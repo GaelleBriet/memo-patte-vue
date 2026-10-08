@@ -2,7 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { dose, period, plain, treatment } from './treatment-fixtures'
-import { treatmentScheduleOf } from '../logic/treatment-schedule'
+import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
 import TreatmentDoneConfirm from '../views/TreatmentDoneConfirm.vue'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'

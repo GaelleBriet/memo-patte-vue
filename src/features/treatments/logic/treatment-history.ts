@@ -2,7 +2,7 @@ import { differenceInCalendarDays, parseISO } from 'date-fns'
 
 import { movedDueOf } from './treatment-dose-writes'
 import { periodSettingsText } from './treatment-rhythm'
-import type { TreatmentWithHistory } from '../repository/treatments.repository'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import { byStartDescending, periodLastDay } from '@/shared/domain/treatment-periods'
 import {

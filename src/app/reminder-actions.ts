@@ -10,12 +10,12 @@ import {
 import { useHomeStore } from '@/features/home/store/home.store'
 import { doseActionTexts, hasSeveralTimes } from '@/features/treatments/logic/treatment-gestures'
 import { notificationTarget } from '@/features/treatments/logic/treatment-notification'
-import { readableScheduleOf } from '@/features/treatments/logic/treatment-schedule'
+import { readableScheduleOf } from '@/features/treatments/logic/treatment-schedule-adapter'
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,
-  type TreatmentWithHistory,
 } from '@/features/treatments/repository/treatments.repository'
+import type { TreatmentWithHistory } from '@/features/treatments/schema/treatment-with-history.schema'
 import {
   treatmentDosesService,
   type AppliedDoseChange,

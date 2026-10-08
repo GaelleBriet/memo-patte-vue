@@ -15,8 +15,8 @@ import {
   treatmentDeleteTexts,
   treatmentHistory,
 } from '../logic/treatment-history'
-import { treatmentScheduleOf } from '../logic/treatment-schedule'
-import type { TreatmentWithHistory } from '../repository/treatments.repository'
+import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 

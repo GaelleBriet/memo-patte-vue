@@ -11,12 +11,12 @@ import {
 } from './treatment-period.schema'
 import {
   treatmentFrequencySchema,
-  treatmentInputSchema,
+  treatmentNameSchema,
   treatmentTypeSchema,
 } from './treatment.schema'
 
 const identity = {
-  name: treatmentInputSchema.shape.name,
+  name: treatmentNameSchema,
   type: treatmentTypeSchema,
 }
 

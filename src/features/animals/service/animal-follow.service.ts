@@ -5,9 +5,9 @@ import {
 } from '@/features/treatments/repository/treatment-periods.repository'
 import {
   getTreatmentsRepository,
-  type TreatmentWithHistory,
   type TreatmentsRepository,
 } from '@/features/treatments/repository/treatments.repository'
+import type { TreatmentWithHistory } from '@/features/treatments/schema/treatment-with-history.schema'
 import { readableTreatmentSchedule } from '@/shared/domain/readable-treatment-schedule'
 import { getAnimalsRepository, type AnimalsRepository } from '../repository/animals.repository'
 import type { Departure } from '../schema/animal.schema'

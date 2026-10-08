@@ -1,8 +1,4 @@
-import type {
-  ExportTreatmentDose,
-  ExportTreatmentPeriod,
-  ExportVaccinationInjection,
-} from './carnet-data'
+import type { ExportTreatmentDose, ExportVaccinationInjection } from './carnet-data'
 
 type Event = { id: string; createdAt: string }
 
@@ -62,17 +58,4 @@ export function vaccinationHeads(
   injections: readonly ExportVaccinationInjection[],
 ): Map<string, ExportVaccinationInjection> {
   return headsOf(vaccinationHistories(injections))
-}
-
-/** Période en cours de chaque traitement, dans l'ordre de `currentPeriodIdSql`. */
-export function currentPeriods(
-  periods: readonly ExportTreatmentPeriod[],
-): Map<string, ExportTreatmentPeriod> {
-  return headsOf(
-    historiesBy(
-      periods,
-      ({ treatmentId }) => treatmentId,
-      ({ startsOn }) => startsOn,
-    ),
-  )
 }

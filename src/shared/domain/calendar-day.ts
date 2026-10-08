@@ -1,3 +1,5 @@
+import { addDays, formatISO } from 'date-fns'
+
 export const MIN_CALENDAR_YEAR = 1900
 export const MAX_CALENDAR_YEAR = 2199
 
@@ -12,4 +14,32 @@ export function isCalendarDay(day: unknown): day is string {
   return (
     parsed.getFullYear() === year && parsed.getMonth() === month - 1 && parsed.getDate() === date
   )
+}
+
+// Bien plus rapide que `parseISO` et `format` : un calcul décale des milliers de dates.
+export function toDate(day: string): Date {
+  return new Date(Number(day.slice(0, 4)), Number(day.slice(5, 7)) - 1, Number(day.slice(8, 10)))
+}
+
+export function toDay(date: Date): string {
+  return formatISO(date, { representation: 'date' })
+}
+
+export function nextDay(date: string): string {
+  return toDay(addDays(toDate(date), 1))
+}
+
+export function previousDay(date: string): string {
+  return toDay(addDays(toDate(date), -1))
+}
+
+export function compareText(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0
+}
+
+export function latestOf(days: (string | null | undefined)[]): string | undefined {
+  return days
+    .filter((day) => day !== null && day !== undefined)
+    .sort(compareText)
+    .at(-1)
 }

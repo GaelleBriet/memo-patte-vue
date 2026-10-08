@@ -1,16 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  currentPeriods,
-  givenDoseHistories,
-  vaccinationHeads,
-  vaccinationHistories,
-} from '../domain/carnet-heads'
-import type {
-  ExportTreatmentDose,
-  ExportTreatmentPeriod,
-  ExportVaccinationInjection,
-} from '../domain/carnet-data'
+import { givenDoseHistories, vaccinationHeads, vaccinationHistories } from '../domain/carnet-heads'
+import type { ExportTreatmentDose, ExportVaccinationInjection } from '../domain/carnet-data'
 
 const AT = '2026-01-01T00:00:00.000Z'
 
@@ -48,34 +39,6 @@ function dose(
     givenOn: dueOn,
     status: 'given',
     nextDueDate: '2027-01-01',
-    createdAt: AT,
-    updatedAt: AT,
-    createdByDevice: 'appareil-test',
-    updatedByDevice: 'appareil-test',
-    ...overrides,
-  }
-}
-
-function period(
-  id: string,
-  startsOn: string,
-  overrides: Partial<ExportTreatmentPeriod> = {},
-): ExportTreatmentPeriod {
-  return {
-    id,
-    treatmentId: 'bravecto',
-    animalId: 'milo',
-    startsOn,
-    firstDueOn: startsOn,
-    referenceOn: startsOn,
-    endsOn: null,
-    stoppedOn: null,
-    frequency: { value: 3, unit: 'month' },
-    times: [],
-    doseQuantity: null,
-    doseUnit: null,
-    reminderOffsetMinutes: null,
-    reminderTime: null,
     createdAt: AT,
     updatedAt: AT,
     createdByDevice: 'appareil-test',
@@ -122,20 +85,5 @@ describe('têtes du carnet', () => {
     ])
 
     expect(histories.get('bravecto')?.map(({ id }) => id)).toEqual(['en-retard', 'a-l-heure'])
-  })
-
-  it('retient pour chaque traitement sa période qui commence le plus tard, puis la dernière saisie', () => {
-    const later = '2026-09-02T00:00:00.000Z'
-    const periods = currentPeriods([
-      period('reprise', '2026-06-01'),
-      period('premiere', '2026-01-01', { createdAt: later }),
-      period('meme-jour', '2026-06-01', { createdAt: later }),
-      period('autre', '2025-01-01', { treatmentId: 'drontal' }),
-    ])
-
-    expect([...periods].map(([treatment, current]) => [treatment, current.id])).toEqual([
-      ['bravecto', 'meme-jour'],
-      ['drontal', 'autre'],
-    ])
   })
 })

@@ -9,12 +9,12 @@ import {
   getAnimalsRepository,
   type AnimalsRepository,
 } from '@/features/animals/repository/animals.repository'
-import { readableScheduleOf } from '@/features/treatments/logic/treatment-schedule'
+import { readableScheduleOf } from '@/features/treatments/logic/treatment-schedule-adapter'
 import {
   getTreatmentsRepository,
-  type TreatmentWithHistory,
   type TreatmentsRepository,
 } from '@/features/treatments/repository/treatments.repository'
+import type { TreatmentWithHistory } from '@/features/treatments/schema/treatment-with-history.schema'
 import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import {
   getVaccinationsRepository,

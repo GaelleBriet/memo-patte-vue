@@ -1,6 +1,6 @@
 import { hasSeveralTimes } from './treatment-gestures'
 import { unloggedWhen, type PromptAction, type Translate } from './treatment-unlogged'
-import type { TreatmentWithHistory } from '../repository/treatments.repository'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 
 type StopSchedule = Pick<TreatmentSchedule, 'phase' | 'currentDoses' | 'unloggedDoses'>

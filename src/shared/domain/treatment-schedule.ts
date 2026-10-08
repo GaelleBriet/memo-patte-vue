@@ -10,7 +10,7 @@ import {
   redateRefusal,
   upcoming,
 } from './treatment-schedule-doses'
-import { nextDay } from './treatment-schedule-dues'
+import { nextDay } from './calendar-day'
 import {
   checkMovable,
   isLocked,
@@ -31,7 +31,7 @@ import {
   mergeDoses,
   pendingDues,
   shiftDueOf,
-} from './treatment-schedule-plan'
+} from './treatment-schedule-timeline'
 import { firstDueOf, shiftedSequence } from './treatment-schedule-sequence'
 import { build, knownDues, planOf } from './treatment-schedule-state'
 import type {
@@ -42,7 +42,8 @@ import type {
 } from './treatment-schedule-types'
 
 export { ScheduleTooLongError } from './treatment-schedule-checks'
-export { familyOf, isNoteLine, type Family } from './treatment-schedule-plan'
+export { dueOf, sameDue, uniqueSorted } from './treatment-schedule-dues'
+export { familyOf, isNoteLine, orderPeriods, type Family } from './treatment-schedule-timeline'
 
 export type {
   Frequency,

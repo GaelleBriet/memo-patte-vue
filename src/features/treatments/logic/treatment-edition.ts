@@ -1,44 +1,45 @@
-import { addDays, differenceInCalendarDays, formatISO, parseISO } from 'date-fns'
 import type { z } from 'zod'
 
-import { currentPeriodOf, treatmentScheduleOf } from './treatment-schedule'
-import { lostDays, pendingDaysAfter } from './treatment-shift-box'
-import type {
-  NewTreatmentPlan,
-  PlannedDoseWrite,
-  TreatmentPlanWrite,
-  TreatmentWithHistory,
-} from '../repository/treatments.repository'
+import { plannedDoseWrites } from './treatment-dose-writes'
+import { treatmentScheduleOf } from './treatment-schedule-adapter'
 import {
-  treatmentCalendarSchema,
-  treatmentCreationSchema,
+  assertReadable,
+  changesRhythm,
+  changesSchedule,
+  currentPeriod,
+  draftPeriod,
+  lastNotedDueOn,
+  rhythmOf,
+  sameSettings,
+  settingsOf,
+  withPeriodSettings,
+  withRhythm,
+  type PlanIds,
+} from './treatment-settings'
+import { lostDays, pendingDaysAfter } from './treatment-shift-box'
+import type { PlannedDoseWrite, TreatmentPlanWrite } from '../repository/treatments.repository'
+import {
   treatmentEditionSchema,
-  treatmentResumptionSchema,
-  type PastDose,
   type PastDuesChoice,
-  type TreatmentCalendarInput,
-  type TreatmentCreationInput,
   type TreatmentEditionInput,
-  type TreatmentResumptionInput,
   type TreatmentRhythm,
 } from '../schema/treatment-form.schema'
-import {
-  treatmentPeriodSettingsSchema,
-  type TreatmentPeriodRecord,
-  type TreatmentPeriodSettings,
+import type {
+  TreatmentPeriodRecord,
+  TreatmentPeriodSettings,
 } from '../schema/treatment-period.schema'
-import { isCalendarDay } from '@/shared/domain/calendar-day'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import { isCalendarDay, latestOf } from '@/shared/domain/calendar-day'
+import { sortedTimes } from '@/shared/domain/clock-time'
 import {
   isAdvanced,
   isNoteLine,
-  ScheduleTooLongError,
+  orderPeriods,
   type Due,
-  type LineChange,
   type MoveRefusal,
   type MovedDose,
   type TreatmentSchedule,
 } from '@/shared/domain/treatment-schedule'
-import { orderPeriods } from '@/shared/domain/treatment-schedule-plan'
 
 type Edition = z.output<typeof treatmentEditionSchema>
 
@@ -101,8 +102,6 @@ export type EditionDraft = {
   pastDuesNextDose: Record<PastDuesChoice, string> | null
 }
 
-export type PlanIds = { periodId: string; doseId: string; shiftId: string }
-
 type Resolved = Omit<EditionDraft, 'farthestMove' | 'pastDues' | 'pastDuesNextDose'> & {
   settings: TreatmentPeriodSettings
   /** Origine de la grille de la période écrite (le 31 d'un mensuel), sa première échéance sinon. */
@@ -114,106 +113,18 @@ type Resolved = Omit<EditionDraft, 'farthestMove' | 'pastDues' | 'pastDuesNextDo
   proposesFirstDue: boolean
 }
 
-function sortedTimes(times: readonly string[]): string[] {
-  return [...times].sort()
-}
-
-function rhythmOf(
-  period: TreatmentPeriodRecord,
-): Omit<TreatmentPeriodSettings, 'startsOn' | 'firstDueOn'> {
-  return {
-    frequency: period.frequency,
-    times: period.times,
-    doseQuantity: period.doseQuantity,
-    doseUnit: period.doseUnit,
-    endsOn: period.endsOn,
-    reminderOffsetMinutes: period.reminderOffsetMinutes,
-    reminderTime: period.reminderTime,
-  }
-}
-
-function settingsOf(period: TreatmentPeriodRecord): TreatmentPeriodSettings {
-  return { startsOn: period.startsOn, firstDueOn: period.firstDueOn, ...rhythmOf(period) }
-}
-
-function withRhythm(
-  settings: TreatmentPeriodSettings,
-  rhythm: TreatmentRhythm,
-): TreatmentPeriodSettings {
-  return {
-    ...settings,
-    frequency: rhythm.frequency,
-    times: sortedTimes(rhythm.times),
-    doseQuantity: rhythm.doseQuantity,
-    doseUnit: rhythm.doseUnit,
-    endsOn: rhythm.endsOn,
-    reminderOffsetMinutes:
-      rhythm.reminderOffsetMinutes === undefined
-        ? settings.reminderOffsetMinutes
-        : rhythm.reminderOffsetMinutes,
-    reminderTime: rhythm.reminderTime === undefined ? settings.reminderTime : rhythm.reminderTime,
-  }
-}
-
-function sameSettings(a: TreatmentPeriodSettings, b: TreatmentPeriodSettings): boolean {
-  return (
-    JSON.stringify({ ...a, times: sortedTimes(a.times) }) ===
-    JSON.stringify({ ...b, times: sortedTimes(b.times) })
-  )
-}
-
-// B3 : la date de fin et le moment du rappel se corrigent, même après des prises.
-function changesRhythm(period: TreatmentPeriodRecord, rhythm: TreatmentRhythm): boolean {
-  const before = settingsOf(period)
-  return !sameSettings(before, {
-    ...withRhythm(before, rhythm),
-    endsOn: period.endsOn,
-    reminderOffsetMinutes: period.reminderOffsetMinutes,
-    reminderTime: period.reminderTime,
-  })
-}
-
-function latestOf(days: (string | null | undefined)[]): string | null {
-  return days.reduce<string | null>(
-    (latest, day) => (day && (latest === null || day > latest) ? day : latest),
-    null,
-  )
-}
-
 function hasNote(schedule: TreatmentSchedule, periodId?: string): boolean {
   return schedule.doses.some(
     (dose) => isNoteLine(dose) && (periodId === undefined || dose.periodId === periodId),
   )
 }
 
-function withoutStale(
+function withoutStaleDoses(
   history: TreatmentWithHistory,
   schedule: TreatmentSchedule,
 ): TreatmentWithHistory {
   const stale = new Set(schedule.staleDoseIds)
   return { ...history, doses: history.doses.filter(({ id }) => !stale.has(id)) }
-}
-
-function withPeriodSettings(
-  history: TreatmentWithHistory,
-  periodId: string,
-  settings: TreatmentPeriodSettings,
-): TreatmentWithHistory {
-  return {
-    ...history,
-    periods: history.periods.map((other) =>
-      other.id === periodId ? { ...other, ...settings } : other,
-    ),
-  }
-}
-
-function currentPeriod(
-  history: TreatmentWithHistory,
-  schedule: TreatmentSchedule,
-): TreatmentPeriodRecord {
-  const period = currentPeriodOf(history, schedule)
-  if (period === null) throw new Error(`Traitement sans période : ${history.id}`)
-  return period
 }
 
 function moveArrivingOn(schedule: TreatmentSchedule, due: Due) {
@@ -222,14 +133,6 @@ function moveArrivingOn(schedule: TreatmentSchedule, due: Due) {
       dose.status === 'postponed' &&
       dose.periodId === due.periodId &&
       dose.nextDueDate === due.dueOn,
-  )
-}
-
-function lastNotedDueOn(history: TreatmentWithHistory, periodId?: string): string | null {
-  return latestOf(
-    history.doses
-      .filter((dose) => isNoteLine(dose) && (periodId === undefined || dose.periodId === periodId))
-      .map((dose) => dose.dueOn),
   )
 }
 
@@ -509,13 +412,6 @@ function resolveCorrected(
   }
 }
 
-function changesSchedule(period: TreatmentPeriodRecord, rhythm: TreatmentRhythm): boolean {
-  return (
-    JSON.stringify([period.frequency, sortedTimes(period.times)]) !==
-    JSON.stringify([rhythm.frequency, sortedTimes(rhythm.times)])
-  )
-}
-
 function withoutPeriod(history: TreatmentWithHistory, periodId: string): TreatmentWithHistory {
   return {
     ...history,
@@ -574,7 +470,7 @@ function resolve(
       pastDues: [],
     }
   }
-  const live = withoutStale(history, base)
+  const live = withoutStaleDoses(history, base)
   const next = rhythm ?? rhythmOf(period)
   if (base.currentPeriodHasDose) {
     const resolved = changesRhythm(period, next)
@@ -668,7 +564,20 @@ function farthestMoveOf(
     : { doseId: farthest.id, arrivesOn: farthest.nextDueDate, advanced: isAdvanced(farthest) }
 }
 
-type DateIssue = { path: 'nextDoseOn' | 'endsOn' | 'pastDues'; message: string }
+export type NextDoseOnIssueReason = 'refused' | 'tooEarly' | 'afterEnd' | 'afterNextDose'
+export type EndsOnIssueReason =
+  | 'beforeFirstDose'
+  | 'beforeNextDose'
+  | 'beforeLastDose'
+  | 'beforePostponedDose'
+  | 'beforeAdvancedDose'
+  | 'beforeFarPostponedDose'
+  | 'beforeFarAdvancedDose'
+
+type DateIssue =
+  | { path: 'nextDoseOn'; message: NextDoseOnIssueReason }
+  | { path: 'endsOn'; message: EndsOnIssueReason }
+  | { path: 'pastDues'; message: 'required' }
 
 function editionIssues(history: TreatmentWithHistory, data: Edition, today: string): DateIssue[] {
   const shiftsFollowing = data.shiftsFollowing ?? true
@@ -703,7 +612,9 @@ function editionIssues(history: TreatmentWithHistory, data: Edition, today: stri
       : null
   if (farthest !== null && data.endsOn !== period.endsOn && data.endsOn < farthest.arrivesOn) {
     const which = farthest.doseId === movedLineId ? '' : 'Far'
-    const reason = farthest.advanced ? `before${which}AdvancedDose` : `before${which}PostponedDose`
+    const reason: EndsOnIssueReason = farthest.advanced
+      ? `before${which}AdvancedDose`
+      : `before${which}PostponedDose`
     return [{ path: 'endsOn', message: reason }]
   }
   const setsFirstDue = nextDose?.change === 'first-due' && (proposesFirstDue || changed)
@@ -727,25 +638,6 @@ export function treatmentEditionSchemaFor(history: TreatmentWithHistory, today: 
       context.addIssue({ code: 'custom', path: [path], message })
     }
   })
-}
-
-function lineWrite(change: LineChange, newId: string): PlannedDoseWrite[] {
-  switch (change.action) {
-    case 'none':
-      return []
-    case 'delete':
-      return [{ action: 'delete', id: change.doseId }]
-    case 'create':
-      return [{ action: 'create', id: newId, dose: change.dose }]
-    case 'rewrite':
-      return [{ action: 'rewrite', id: change.doseId, dose: change.dose }]
-  }
-}
-
-function doseWrites(schedule: TreatmentSchedule, move: MovedDose | null, ids: PlanIds) {
-  const stale: PlannedDoseWrite[] = schedule.staleDoseIds.map((id) => ({ action: 'delete', id }))
-  if (move === null) return stale
-  return [...stale, ...lineWrite(move.report, ids.doseId), ...lineWrite(move.shift, ids.shiftId)]
 }
 
 function changesGrid(period: TreatmentPeriodRecord, settings: TreatmentPeriodSettings): boolean {
@@ -790,7 +682,7 @@ export function editionPlan(
   const treatment = { name: data.name, type: data.type }
   if (change === 'locked') return { treatment, period: null, doses: [] }
 
-  const doses = doseWrites(treatmentScheduleOf(history, today), move, ids)
+  const doses = plannedDoseWrites(treatmentScheduleOf(history, today), move, ids)
   const corrects = change === 'correct' && !sameSettings(settings, settingsOf(period))
   const plan: TreatmentPlanWrite =
     change === 'open'
@@ -852,252 +744,4 @@ function historyAfter(
     )
   }, history.doses)
   return { periods, doses }
-}
-
-/** Lève la `RangeError` du moteur quand l'app ne saurait pas relire cet historique. */
-export function assertReadable(
-  history: Pick<TreatmentWithHistory, 'periods' | 'doses'>,
-  today: string,
-): void {
-  treatmentScheduleOf(history, today)
-}
-
-function isTooLong(cause: unknown): boolean {
-  return cause instanceof ScheduleTooLongError
-}
-
-const DRAFT_ID = 'draft'
-
-function draftPeriod(settings: TreatmentPeriodSettings, at: string): TreatmentPeriodRecord {
-  return {
-    ...settings,
-    referenceOn: settings.firstDueOn,
-    id: DRAFT_ID,
-    treatmentId: DRAFT_ID,
-    animalId: DRAFT_ID,
-    stoppedOn: null,
-    createdAt: at,
-    updatedAt: at,
-    deletedAt: null,
-  }
-}
-
-// Une première prise trop ancienne pour le rythme donnerait un calendrier que le moteur refuse de lire.
-function startsTooFarBack(
-  history: Pick<TreatmentWithHistory, 'periods' | 'doses'>,
-  settings: TreatmentPeriodSettings,
-  today: string,
-): boolean {
-  if (!treatmentPeriodSettingsSchema.safeParse(settings).success) return false
-  const at = `${today}T23:59:59.999Z`
-  try {
-    assertReadable({ ...history, periods: [...history.periods, draftPeriod(settings, at)] }, today)
-    return false
-  } catch (cause) {
-    if (isTooLong(cause)) return true
-    throw cause
-  }
-}
-
-function tooOld() {
-  return { code: 'custom' as const, path: ['firstDoseOn'], message: 'tooOld' }
-}
-
-function creationSettings({
-  firstDoseOn,
-  ...rhythm
-}: TreatmentRhythm & { firstDoseOn: string }): TreatmentPeriodSettings {
-  return withRhythm(
-    {
-      startsOn: firstDoseOn,
-      firstDueOn: firstDoseOn,
-      reminderOffsetMinutes: null,
-      reminderTime: null,
-      ...rhythm,
-    },
-    rhythm,
-  )
-}
-
-/** Le schéma de création, qui refuse une première prise que le moteur ne saurait pas relire. */
-export function treatmentCreationSchemaFor(today: string) {
-  return treatmentCreationSchema.superRefine((data, context) => {
-    if (startsTooFarBack({ periods: [], doses: [] }, creationSettings(data), today)) {
-      context.addIssue(tooOld())
-    }
-  })
-}
-
-function creationSchedule(
-  settings: TreatmentPeriodSettings,
-  periodId: string,
-  today: string,
-): TreatmentSchedule {
-  const period = { ...draftPeriod(settings, `${today}T23:59:59.999Z`), id: periodId }
-  return treatmentScheduleOf({ periods: [period], doses: [] }, today)
-}
-
-// Q42 : les doses non renseignées, et la dose du moment quand elle est déjà passée (jamais celle du jour).
-function pastDuesOfSchedule(schedule: TreatmentSchedule, today: string): Due[] {
-  return [...schedule.unloggedDoses, ...schedule.currentDoses.filter(({ dueOn }) => dueOn < today)]
-}
-
-/**
- * Échéances déjà passées d'un traitement en cours de saisie (TR-3). Vide tant que la saisie ne fait
- * pas un calendrier que le moteur sait lire.
- */
-export function creationPastDues(calendar: TreatmentCalendarInput, today: string): Due[] {
-  const parsed = treatmentCalendarSchema.safeParse(calendar)
-  if (!parsed.success) return []
-  const settings = creationSettings({ ...parsed.data, doseQuantity: null, doseUnit: null })
-  if (!treatmentPeriodSettingsSchema.safeParse(settings).success) return []
-  try {
-    return pastDuesOfSchedule(creationSchedule(settings, DRAFT_ID, today), today)
-  } catch (cause) {
-    if (cause instanceof RangeError) return []
-    throw cause
-  }
-}
-
-function pastDoseWrites(
-  settings: TreatmentPeriodSettings,
-  pastDoses: readonly PastDose[],
-  periodId: string,
-  today: string,
-  newId: () => string,
-): NonNullable<NewTreatmentPlan['doses']> {
-  if (pastDoses.length === 0) return []
-  const schedule = creationSchedule(settings, periodId, today)
-  const pending = new Map(
-    pastDuesOfSchedule(schedule, today).map((due) => [`${due.dueOn} ${due.dueTime ?? ''}`, due]),
-  )
-  return pastDoses.map(({ dueOn, dueTime, status }) => {
-    const key = `${dueOn} ${dueTime ?? ''}`
-    const due = pending.get(key)
-    if (due === undefined) throw new RangeError(`Dose passée inconnue du calendrier : ${key}`)
-    pending.delete(key)
-    return {
-      id: newId(),
-      dose: schedule.doseFor(
-        status === 'given' ? { kind: 'given', due, givenOn: dueOn } : { kind: 'missed', due },
-      ).dose,
-    }
-  })
-}
-
-/** Lève, sans plan, pour une saisie refusée ou une dose passée qui n'est pas une échéance déjà tombée. */
-export function creationPlan(
-  input: TreatmentCreationInput,
-  id: string,
-  today: string,
-  newId: () => string = () => crypto.randomUUID(),
-): NewTreatmentPlan {
-  const { animalId, name, type, pastDoses, ...plan } =
-    treatmentCreationSchemaFor(today).parse(input)
-  const settings = creationSettings(plan)
-  return {
-    id,
-    animalId,
-    name,
-    type,
-    settings,
-    doses: pastDoseWrites(settings, pastDoses ?? [], id, today, newId),
-  }
-}
-
-export type ResumptionDraft = {
-  period: TreatmentPeriodRecord
-  /** Faux tant que le traitement est en cours. */
-  canResume: boolean
-  startedOn: string
-  /** Fin de la dernière période : son arrêt, sinon sa date de fin. */
-  endedOn: string | null
-  /** Durée à reproduire, première et dernière journée comprises ; `null` sans date de fin. */
-  durationDays: number | null
-  /** Première date acceptée pour la première prise de la reprise. */
-  earliestOn: string
-  /** Date de fin qui reproduit cette durée à partir de la première prise choisie. */
-  endsOnFor(firstDoseOn: string): string | null
-}
-
-function dayAfter(day: string): string {
-  return formatISO(addDays(parseISO(day), 1), { representation: 'date' })
-}
-
-// La nouvelle période ne retire rien à la précédente : dès le jour de l'arrêt (G3), qui garde ses
-// prises même notées en avance, ou au lendemain de la date de fin et de la dernière prise notée
-// d'une période finie.
-function resumptionEarliestOn(
-  history: TreatmentWithHistory,
-  period: TreatmentPeriodRecord,
-): string {
-  if (period.stoppedOn !== null)
-    return latestOf([period.startsOn, period.stoppedOn]) ?? period.stoppedOn
-  const after = latestOf([lastNotedDueOn(history, period.id), period.endsOn])
-  return latestOf([period.startsOn, after === null ? null : dayAfter(after)]) ?? period.startsOn
-}
-
-export function resumptionDraft(history: TreatmentWithHistory, today: string): ResumptionDraft {
-  const schedule = treatmentScheduleOf(history, today)
-  const period = currentPeriod(history, schedule)
-  const durationDays =
-    period.endsOn === null
-      ? null
-      : differenceInCalendarDays(parseISO(period.endsOn), parseISO(period.firstDueOn)) + 1
-  return {
-    period,
-    canResume: schedule.phase === 'stopped' || schedule.phase === 'ended',
-    startedOn: period.firstDueOn,
-    endedOn: period.stoppedOn ?? period.endsOn,
-    earliestOn: resumptionEarliestOn(history, period),
-    durationDays,
-    endsOnFor: (firstDoseOn) =>
-      durationDays === null || durationDays < 1 || !isCalendarDay(firstDoseOn)
-        ? null
-        : formatISO(addDays(parseISO(firstDoseOn), durationDays - 1), { representation: 'date' }),
-  }
-}
-
-/** Le schéma de « Reprendre », la première prise après la dernière période. */
-export function treatmentResumptionSchemaFor(history: TreatmentWithHistory, today: string) {
-  const { period, earliestOn } = resumptionDraft(history, today)
-  return treatmentResumptionSchema
-    .refine(({ firstDoseOn }) => firstDoseOn >= earliestOn, {
-      path: ['firstDoseOn'],
-      message: 'tooEarly',
-    })
-    .superRefine(({ firstDoseOn, ...rhythm }, context) => {
-      const settings = withRhythm(
-        { ...settingsOf(period), startsOn: firstDoseOn, firstDueOn: firstDoseOn },
-        rhythm,
-      )
-      if (firstDoseOn >= earliestOn && startsTooFarBack(history, settings, today)) {
-        context.addIssue(tooOld())
-      }
-    })
-}
-
-/** Lève pour un traitement en cours ou une saisie refusée ; la période précédente n'est jamais touchée. */
-export function resumptionPlan(
-  history: TreatmentWithHistory,
-  input: TreatmentResumptionInput,
-  today: string,
-  ids: PlanIds,
-): TreatmentPlanWrite {
-  const { period, canResume } = resumptionDraft(history, today)
-  if (!canResume) throw new Error(`Traitement en cours, rien à reprendre : ${history.id}`)
-  const { firstDoseOn, ...rhythm } = treatmentResumptionSchemaFor(history, today).parse(input)
-  return {
-    treatment: null,
-    period: {
-      action: 'open',
-      id: ids.periodId,
-      settings: withRhythm(
-        { ...settingsOf(period), startsOn: firstDoseOn, firstDueOn: firstDoseOn },
-        rhythm,
-      ),
-      referenceOn: firstDoseOn,
-    },
-    doses: doseWrites(treatmentScheduleOf(history, today), null, ids),
-  }
 }

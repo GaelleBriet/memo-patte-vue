@@ -7,7 +7,7 @@ import type { Animal } from '@/features/animals/schema/animal.schema'
 import type { AnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { provideAnimalsRepository, useAnimalsStore } from '@/features/animals/store/animals.store'
 import { dose, period, treatment } from '@/features/treatments/__tests__/treatment-fixtures'
-import type { TreatmentWithHistory } from '@/features/treatments/repository/treatments.repository'
+import type { TreatmentWithHistory } from '@/features/treatments/schema/treatment-with-history.schema'
 import type { TreatmentPeriodRecord } from '@/features/treatments/schema/treatment-period.schema'
 import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import {

@@ -25,16 +25,13 @@ import type { Treatment } from '../schema/treatment.schema'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { DoseWrite } from '../repository/treatment-doses.repository'
 import type { DoseAction } from '../logic/treatment-dose-writes'
-import type {
-  TreatmentsRepository as FullTreatmentsRepository,
-  TreatmentWithHistory,
-} from '../repository/treatments.repository'
+import type { TreatmentsRepository as FullTreatmentsRepository } from '../repository/treatments.repository'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import { track } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import type { DoseGesture } from '@/shared/domain/treatment-schedule'
 import { recordUsageSignal } from '@/shared/utils/usage-signals'
 
-// Le store ne dépend que de ce qu'il appelle : la cascade de suppression (#102) n'est pas son affaire.
 type TreatmentsRepository = Pick<
   FullTreatmentsRepository,
   'getById' | 'remove' | 'restore' | 'listDoses' | 'getWithHistory' | 'listWithHistoryByAnimal'
@@ -178,11 +175,7 @@ export const useTreatmentsStore = defineStore('treatments', () => {
 
     async create(input: TreatmentCreationInput): Promise<Treatment> {
       const created = await write(
-        async () => {
-          const treatment = await planProvider().create(input)
-          await remindersProvider().reschedule(treatment.id)
-          return treatment
-        },
+        () => planProvider().create(input),
         (treatment) => treatment.animalId,
       )
       recordUsageSignal('entry')
@@ -194,11 +187,7 @@ export const useTreatmentsStore = defineStore('treatments', () => {
 
     async update(id: string, input: TreatmentEditionInput): Promise<Treatment> {
       return write(
-        async () => {
-          const updated = await planProvider().update(id, input)
-          await remindersProvider().reschedule(id)
-          return updated
-        },
+        () => planProvider().update(id, input),
         (updated) => updated.animalId,
       )
     },
@@ -206,11 +195,7 @@ export const useTreatmentsStore = defineStore('treatments', () => {
     /** Le traitement fini ou arrêté repart dans une nouvelle période, à la première prise choisie. */
     async resume(id: string, input: TreatmentResumptionInput): Promise<Treatment> {
       const resumed = await write(
-        async () => {
-          const treatment = await planProvider().resume(id, input)
-          await remindersProvider().reschedule(id)
-          return treatment
-        },
+        () => planProvider().resume(id, input),
         (treatment) => treatment.animalId,
       )
       recordUsageSignal('care')

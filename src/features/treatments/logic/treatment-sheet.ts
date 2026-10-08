@@ -1,7 +1,7 @@
 import { givenWhenMin, isExtraOn } from './treatment-notification'
 import { notifiedDues } from './treatment-other-date'
 import { doneGesture } from './treatment-shift-box'
-import type { TreatmentWithHistory } from '../repository/treatments.repository'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { Treatment } from '../schema/treatment.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { NotifiedDue, TodoDue } from '@/shared/domain/reminder-route'

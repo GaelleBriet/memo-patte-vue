@@ -119,6 +119,23 @@ const PURCHASE_STORE_READ_ONLY = {
     'Du statut Plus, une autre feature ne lit que usePurchaseStore (cf. CLAUDE.md, « Règles strictes de structure »).',
 }
 
+function engineFacadeRule(group: string[]): Linter.RulesRecord {
+  return {
+    'app/no-restricted-engine-imports': [
+      'error',
+      {
+        patterns: [
+          {
+            group,
+            message:
+              "Le moteur d'échéances s'importe par sa façade, `@/shared/domain/treatment-schedule`.",
+          },
+        ],
+      },
+    ],
+  }
+}
+
 function featureImportsRule(feature: string, allowedElsewhere: string[] = []): Linter.RulesRecord {
   return restrictFeatureImports({
     patterns: [
@@ -267,6 +284,23 @@ export default defineConfigWithVueTs(
     files: ['src/core/dev/**/*.{ts,vue}', 'src/**/*.repository.ts'],
     ignores: ['src/core/notifications/**'],
     rules: restrictImports({ paths: [NOTIFICATIONS_PLUGIN_RESTRICTION] }),
+  },
+
+  {
+    name: 'app/treatment-engine-facade',
+    files: ['src/**/*.{ts,vue}'],
+    ignores: ['src/shared/domain/**', '**/__tests__/**'],
+    rules: engineFacadeRule(['**/domain/treatment-schedule-*', '../domain/treatment-schedule-*']),
+  },
+  {
+    name: 'app/treatment-engine-facade/shared-domain',
+    files: ['src/shared/domain/**/*.{ts,vue}'],
+    ignores: ['src/shared/domain/treatment-schedule*.ts'],
+    rules: engineFacadeRule([
+      '**/domain/treatment-schedule-*',
+      './treatment-schedule-*',
+      '../treatment-schedule-*',
+    ]),
   },
 
   // Règle distincte de no-restricted-imports pour se cumuler avec les interdits ci-dessus.

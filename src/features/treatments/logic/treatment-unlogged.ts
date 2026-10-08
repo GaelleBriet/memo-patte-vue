@@ -1,6 +1,6 @@
 import { choiceSummary, type DayChoice } from './treatment-choose-days'
 import { hasSeveralTimes } from './treatment-gestures'
-import type { TreatmentWithHistory } from '../repository/treatments.repository'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { PastDose } from '../schema/treatment-form.schema'
 import type { Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 import {

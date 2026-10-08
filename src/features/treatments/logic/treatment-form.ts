@@ -1,15 +1,16 @@
 import type { z } from 'zod'
 
+import { creationPastDues, treatmentCreationSchemaFor } from './treatment-creation'
 import {
-  creationPastDues,
   editionDraft,
-  treatmentCreationSchemaFor,
   treatmentEditionSchemaFor,
-  treatmentResumptionSchemaFor,
   type EditionDraft,
-} from './treatment-plan'
+  type EndsOnIssueReason,
+  type NextDoseOnIssueReason,
+} from './treatment-edition'
+import { resumptionDraft, treatmentResumptionSchemaFor } from './treatment-resumption'
 import { shiftHelpText, type ShiftHelp } from './treatment-shift-box'
-import type { TreatmentWithHistory } from '../repository/treatments.repository'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import {
   treatmentRhythmSchema,
   type PastDose,
@@ -24,7 +25,7 @@ import {
 import type { FrequencyUnit, TreatmentType } from '../schema/treatment.schema'
 import type { ExactRemindersStatus, NotificationPermissionStatus } from '@/core/notifications'
 import { isCalendarDay } from '@/shared/domain/calendar-day'
-import { isClockTime, MAX_TIMES_PER_DAY } from '@/shared/domain/clock-time'
+import { isClockTime, MAX_TIMES_PER_DAY, sortedTimes } from '@/shared/domain/clock-time'
 import { formatDoseQuantity, TABLET_SHORTCUTS, type DoseUnit } from '@/shared/domain/dosage'
 import type { Due, MoveRefusal } from '@/shared/domain/treatment-schedule'
 import { formatClockTimes, formatDayMonthOrYear, withoutFinalDot } from '@/shared/utils/format'
@@ -80,28 +81,32 @@ const FIELD_OF_PATH: Record<string, TreatmentFormErrorField> = {
   endsOn: 'endsOn',
 }
 
+const NEXT_DOSE_ON_REASON_KEYS: Record<NextDoseOnIssueReason, string> = {
+  tooEarly: 'treatments.form.errors.nextDoseOnTooEarly',
+  afterEnd: 'treatments.form.errors.nextDoseOnAfterEnd',
+  afterNextDose: 'treatments.form.errors.nextDoseOnAfterNextDose',
+  refused: 'treatments.form.errors.nextDoseOnRefused',
+}
+
+const ENDS_ON_REASON_KEYS: Record<EndsOnIssueReason, string> = {
+  beforeFirstDose: 'treatments.form.errors.endsOnBeforeFirstDose',
+  beforeNextDose: 'treatments.form.errors.endsOnBeforeNextDose',
+  beforeLastDose: 'treatments.form.errors.endsOnBeforeLastDose',
+  beforePostponedDose: 'treatments.form.errors.endsOnBeforePostponedDose',
+  beforeAdvancedDose: 'treatments.form.errors.endsOnBeforeAdvancedDose',
+  beforeFarPostponedDose: 'treatments.form.errors.endsOnBeforeFarPostponedDose',
+  beforeFarAdvancedDose: 'treatments.form.errors.endsOnBeforeFarAdvancedDose',
+}
+
 /** Motif d'un refus, porté par le message de l'erreur Zod. */
 const REASON_KEYS: Partial<Record<TreatmentFormErrorField, Record<string, string>>> = {
   firstDoseOn: {
     tooEarly: 'treatments.form.errors.firstDoseOnTooEarly',
     tooOld: 'treatments.form.errors.firstDoseOnTooOld',
   },
-  nextDoseOn: {
-    tooEarly: 'treatments.form.errors.nextDoseOnTooEarly',
-    afterEnd: 'treatments.form.errors.nextDoseOnAfterEnd',
-    afterNextDose: 'treatments.form.errors.nextDoseOnAfterNextDose',
-    refused: 'treatments.form.errors.nextDoseOnRefused',
-  },
+  nextDoseOn: NEXT_DOSE_ON_REASON_KEYS,
   dosage: { incomplete: 'treatments.form.errors.dosageIncomplete' },
-  endsOn: {
-    beforeFirstDose: 'treatments.form.errors.endsOnBeforeFirstDose',
-    beforeNextDose: 'treatments.form.errors.endsOnBeforeNextDose',
-    beforeLastDose: 'treatments.form.errors.endsOnBeforeLastDose',
-    beforePostponedDose: 'treatments.form.errors.endsOnBeforePostponedDose',
-    beforeAdvancedDose: 'treatments.form.errors.endsOnBeforeAdvancedDose',
-    beforeFarPostponedDose: 'treatments.form.errors.endsOnBeforeFarPostponedDose',
-    beforeFarAdvancedDose: 'treatments.form.errors.endsOnBeforeFarAdvancedDose',
-  },
+  endsOn: ENDS_ON_REASON_KEYS,
 }
 
 const REFUSAL_KEYS: Record<MoveRefusal, string> = {
@@ -192,7 +197,7 @@ export function treatmentFormValuesFrom(
     firstDoseOn: '',
     nextDoseOn: '',
     shiftsFollowing: true,
-    times: [...period.times].sort(),
+    times: sortedTimes(period.times),
     doseQuantity:
       period.doseQuantity === null || period.doseUnit === null
         ? ''
@@ -295,7 +300,7 @@ export function canAddTime(times: readonly string[]): boolean {
 /** Heures dans l'ordre de la journée ; une heure illisible, déjà présente ou de trop ne change rien. */
 export function withTime(times: readonly string[], time: string): string[] {
   if (!isClockTime(time) || times.includes(time) || !canAddTime(times)) return [...times]
-  return [...times, time].sort()
+  return sortedTimes([...times, time])
 }
 
 export function withoutTime(times: readonly string[], time: string): string[] {
@@ -449,6 +454,27 @@ export function validateTreatmentResumption(
       ...rhythmInput(values),
     }),
   )
+}
+
+/** Les valeurs d'un traitement relu ; `found` faux : un traitement en cours n'a rien à reprendre. */
+export function loadedFormValues(
+  mode: 'edit' | 'resume',
+  loaded: TreatmentWithHistory,
+  today: string,
+): { values: TreatmentFormValues; found: boolean } {
+  if (mode === 'resume') {
+    const { period, canResume } = resumptionDraft(loaded, today)
+    return { values: { ...treatmentFormValuesFrom(loaded, period), endsOn: '' }, found: canResume }
+  }
+  const first = editionDraftOf(emptyTreatmentFormValues(), loaded, today)
+  return {
+    values: {
+      ...treatmentFormValuesFrom(loaded, first.period),
+      nextDoseOn: first.nextDose?.proposedOn ?? '',
+      shiftsFollowing: first.nextDose?.shiftInitial ?? true,
+    },
+    found: true,
+  }
 }
 
 /** Ce dont dépend une réponse de l'encart : changé, la réponse ne vaut plus (TR-3). */

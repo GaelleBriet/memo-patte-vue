@@ -2,18 +2,14 @@ import { differenceInCalendarDays, differenceInCalendarMonths } from 'date-fns'
 
 import { isClockTime } from './clock-time'
 import { MAX_DUES, checkPastDay, invalid } from './treatment-schedule-checks'
+import { compareText, nextDay, previousDay, toDate } from './calendar-day'
+import { DAYS_PER_STEP, shiftDate } from './treatment-frequency'
 import {
-  DAYS_PER_STEP,
-  compareText,
   dueId,
   dueOf,
   isWithinHalfStep,
   keyOf,
-  nextDay,
-  previousDay,
   sameDue,
-  shiftDate,
-  toDate,
   uniqueSorted,
 } from './treatment-schedule-dues'
 import {
@@ -34,7 +30,7 @@ import {
   sequenceAt,
   shiftDueOf,
   shiftOn,
-} from './treatment-schedule-plan'
+} from './treatment-schedule-timeline'
 import { firstDueOf, shiftedSequence } from './treatment-schedule-sequence'
 import {
   build,
@@ -54,7 +50,7 @@ import type {
   Frequency,
   LineChange,
   NotedDose,
-  PeriodPlan,
+  PeriodTimeline,
   RedateLimits,
   RedateRefusal,
   RedatedDose,
@@ -77,7 +73,7 @@ function landsOn(from: string, day: string, frequency: Frequency): boolean {
 // Le rythme ancré à la date réelle ne retombe jamais sur le jour d'origine ni le jour d'arrivée d'un
 // report qui suit ; une heure plus tardive reportée garde la main sur sa journée.
 function hitsAMove(
-  plan: PeriodPlan,
+  plan: PeriodTimeline,
   due: Due,
   givenOn: string,
   except: TreatmentDoseInput | null = null,
@@ -96,7 +92,7 @@ function hitsAMove(
 }
 
 // Q2 c : la dose d'un report sans décalage, donnée un autre jour, ne décale pas les suivantes.
-function isMovedAlone(plan: PeriodPlan, due: Due): boolean {
+function isMovedAlone(plan: PeriodTimeline, due: Due): boolean {
   return plan.steps.some(
     ({ kind, dose }) =>
       kind === 'move' && dose.nextDueDate === due.dueOn && shiftOn(plan, dose) === undefined,
@@ -149,7 +145,7 @@ export function noteRefusal(
 }
 
 // La première dose du rythme ancré à la date réelle, après la journée qui porte le décalage.
-function restartedOn(plan: PeriodPlan, due: Due, givenOn: string): string {
+function restartedOn(plan: PeriodTimeline, due: Due, givenOn: string): string {
   const floor = `${shiftDueOf(plan, due).dueOn} ~`
   return firstDueOf({ origin: givenOn, firstStep: 1, floor }, plan.period).dueOn
 }
@@ -316,7 +312,7 @@ export function doseFor(state: State, known: () => Set<string>, gesture: DoseGes
 
 // TR-24 bis ne vaut que pour une prise qui décale la suite, avant le report qui suit sa journée.
 function followingMove(
-  plan: PeriodPlan,
+  plan: PeriodTimeline,
   dose: TreatmentDoseInput,
   shift: TreatmentDoseInput | undefined,
 ): TreatmentDoseInput | null {
@@ -358,7 +354,7 @@ function lineWritten(change: LineChange): Written[] {
 
 // TR-24 bis : le report qui suit la prise redatée est gardé, réécrit pour viser la dose qu'elle fixe, ou dépassé.
 function postponementAfter(
-  plan: PeriodPlan,
+  plan: PeriodTimeline,
   dose: TreatmentDoseInput,
   shift: TreatmentDoseInput | undefined,
   shifts: boolean,

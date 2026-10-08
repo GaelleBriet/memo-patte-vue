@@ -5,5 +5,9 @@ export function isClockTime(time: unknown): time is string {
   return typeof time === 'string' && CLOCK_TIME_PATTERN.test(time)
 }
 
+export function sortedTimes(times: readonly string[]): string[] {
+  return [...times].sort()
+}
+
 /** Au-delà, une journée d'échéance n'a plus de sens ; l'import refuse aussi. */
 export const MAX_TIMES_PER_DAY = 24
