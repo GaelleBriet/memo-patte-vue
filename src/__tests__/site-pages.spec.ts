@@ -6,6 +6,8 @@ import { describe, expect, it } from 'vitest'
 
 import { helpPageUrl } from '@/shared/domain/help-page'
 
+import { decode } from './site-text'
+
 const SITE = 'site'
 const SITE_URL = 'https://memopatte.app'
 const CONTACT_EMAIL = 'contact@memopatte.app'
@@ -29,28 +31,12 @@ const englishPages = pages.filter((page) => page.startsWith('en'))
 const read = (path: string) => readFileSync(join(SITE, path), 'utf8')
 const fileOf = (url: string) => join(url.slice(1), 'index.html')
 
-const NAMED_ENTITIES: Record<string, string> = {
-  nbsp: ' ',
-  amp: '&',
-  lt: '<',
-  gt: '>',
-  quot: '"',
-  apos: "'",
-}
-
-function decode(text: string): string {
-  return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (entity, code: string) => {
-    if (code.startsWith('#x') || code.startsWith('#X')) {
-      return String.fromCodePoint(parseInt(code.slice(2), 16))
-    }
-    if (code.startsWith('#')) return String.fromCodePoint(parseInt(code.slice(1), 10))
-    return NAMED_ENTITIES[code] ?? entity
-  })
-}
-
 function readableTexts(html: string): string[] {
-  const attributes = [...html.matchAll(/\b(?:content|alt)="([^"]*)"/g)].map((match) => match[1]!)
-  return [html.replace(/<[^>]*>/g, ''), ...attributes].map(decode)
+  const attributes = [...html.matchAll(/\b(?:content|alt)="([^"]*)"/g)]
+    .map((match) => match[1]!)
+    .filter((value) => !/^https?:\/\//.test(value))
+  const body = html.replace(/<script\b[\s\S]*?<\/script>/gi, '').replace(/<[^>]*>/g, '')
+  return [body, ...attributes].map(decode)
 }
 
 const footerOf = (html: string) => html.match(/<footer\b[^>]*>([\s\S]*?)<\/footer>/)?.[1] ?? ''
@@ -173,13 +159,15 @@ describe('site public memopatte.app', () => {
     '%s ne charge rien depuis un autre site, et ses scripts sont des fichiers du site',
     (page) => {
       const html = read(page)
-      const scripts = html.match(/<script\b[^>]*>[\s\S]*?<\/script>/gi) ?? []
+      const scripts = html.match(/<script\b[^>]*>/gi) ?? []
       for (const script of scripts) {
-        expect(script).toMatch(/^<script type="module" src="\/(?!\/)[^"]+"><\/script>$/)
+        expect(script).toMatch(
+          /^<script (?:type="module" src="\/(?!\/)[^"]+"|type="application\/ld\+json")>$/,
+        )
       }
       const loadingTags = [...html.matchAll(/<(?:link|img|source|iframe)\b[^>]*>/gi)]
         .map((match) => match[0])
-        .filter((tag) => !/\brel="(alternate|canonical)"/.test(tag))
+        .filter((tag) => !/\brel="(?:alternate|canonical)"/.test(tag))
       for (const tag of loadingTags) expect(tag).not.toMatch(/\b(href|src)="(https?:)?\/\//i)
     },
   )

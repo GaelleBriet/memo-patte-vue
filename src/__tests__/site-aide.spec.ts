@@ -22,15 +22,6 @@ const textOf = (html: string) =>
     .replace(/\s+/g, ' ')
 
 const languages = ['fr', 'en'] as const
-const ANCHORS_FROM_SHOWCASE = [
-  '/#comment-ca-marche',
-  '/#prix',
-  '/#questions',
-  '/en/#how-it-works',
-  '/en/#pricing',
-  '/en/#questions',
-]
-
 function sitePages(dir = ''): string[] {
   return readdirSync(join(SITE, dir), { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name)
@@ -322,7 +313,6 @@ describe('aide du site en pages', () => {
     const here = `/${page.replace(/index\.html$/, '')}`
     for (const [, path, fragment] of html.matchAll(/href="([^"#:]*)#([^"]+)"/g)) {
       const target = path || here
-      if (ANCHORS_FROM_SHOWCASE.includes(`${target}#${fragment}`)) continue
       expect(idsOf(read(target)), `${page} → ${target}#${fragment}`).toContain(fragment)
     }
   })

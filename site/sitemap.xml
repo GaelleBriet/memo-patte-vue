@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://memopatte.app/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/en/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/aide/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/aide/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/help/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/aide/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/en/help/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/aide/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/help/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/aide/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/aide/exporter/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/aide/exporter/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/help/export/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/aide/exporter/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/en/help/export/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/aide/exporter/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/help/export/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/aide/exporter/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/aide/sauvegarde-android/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/aide/sauvegarde-android/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/help/android-backup/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/aide/sauvegarde-android/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/en/help/android-backup/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/aide/sauvegarde-android/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/help/android-backup/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/aide/sauvegarde-android/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/aide/plus/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/aide/plus/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/help/plus/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/aide/plus/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/en/help/plus/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/aide/plus/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/help/plus/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/aide/plus/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/aide/nouveau-telephone/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/aide/nouveau-telephone/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/help/new-phone/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/aide/nouveau-telephone/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/en/help/new-phone/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/aide/nouveau-telephone/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/help/new-phone/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/aide/nouveau-telephone/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/aide/effacer/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/aide/effacer/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/help/erase/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/aide/effacer/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/en/help/erase/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/aide/effacer/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/help/erase/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/aide/effacer/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/aide/ne-plus-suivre/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/aide/ne-plus-suivre/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/help/stop-following/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/aide/ne-plus-suivre/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/en/help/stop-following/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/aide/ne-plus-suivre/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/help/stop-following/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/aide/ne-plus-suivre/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/aide/rappels-en-retard/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/aide/rappels-en-retard/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/help/late-reminders/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/aide/rappels-en-retard/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/en/help/late-reminders/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/aide/rappels-en-retard/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/help/late-reminders/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/aide/rappels-en-retard/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/aide/rappels/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/aide/rappels/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/help/reminders/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/aide/rappels/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/en/help/reminders/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/aide/rappels/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/help/reminders/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/aide/rappels/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/confidentialite/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/confidentialite/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/privacy/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/confidentialite/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/en/privacy/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/confidentialite/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/privacy/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/confidentialite/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/suppression-compte/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/suppression-compte/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/delete-account/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/suppression-compte/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/en/delete-account/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/suppression-compte/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/delete-account/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/suppression-compte/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/mentions-legales/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/mentions-legales/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/legal-notice/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/mentions-legales/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/en/legal-notice/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/mentions-legales/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/legal-notice/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/mentions-legales/" />
+  </url>
+</urlset>
