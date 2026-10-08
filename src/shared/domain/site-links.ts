@@ -1,13 +1,13 @@
 import type { AppLocale } from '@/core/i18n'
 
 const SITE_URLS: Record<AppLocale, string> = {
-  fr: 'https://memopatte.gaelle-briet.fr/',
-  en: 'https://memopatte.gaelle-briet.fr/en/',
+  fr: 'https://memopatte.app/',
+  en: 'https://memopatte.app/en/',
 }
 
 const PRIVACY_POLICY_URLS: Record<AppLocale, string> = {
-  fr: 'https://memopatte.gaelle-briet.fr/confidentialite/',
-  en: 'https://memopatte.gaelle-briet.fr/en/privacy/',
+  fr: 'https://memopatte.app/confidentialite/',
+  en: 'https://memopatte.app/en/privacy/',
 }
 
 const LEGAL_NOTICE_URL = 'https://gaelle-briet.fr/mentions-legales/'

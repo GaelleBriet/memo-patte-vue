@@ -122,8 +122,8 @@ describe('PrivacySettingsView', () => {
   })
 
   it.each([
-    ['fr', 'Politique de confidentialité', 'https://memopatte.gaelle-briet.fr/confidentialite/'],
-    ['en', 'Privacy policy', 'https://memopatte.gaelle-briet.fr/en/privacy/'],
+    ['fr', 'Politique de confidentialité', 'https://memopatte.app/confidentialite/'],
+    ['en', 'Privacy policy', 'https://memopatte.app/en/privacy/'],
   ] as const)('ouvre la politique de confidentialité du site en %s', async (locale, label, url) => {
     i18n.global.locale.value = locale
     const wrapper = await monter()

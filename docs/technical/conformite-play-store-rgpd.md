@@ -83,7 +83,7 @@ Voir le tableau complet en **§3.2**. Résumé de la logique :
 |---|---|
 | Concerne les apps qui « allow users to create an account from within your app ». Définition : « An app account is a unique user identity that developers provide as a user-facing feature to serve the user across applications and/or devices (can often include use of usernames, email addresses, and passwords). » | Le compte Plus (Supabase Auth, email+MDP **ou Google**) est un « app account ». **La politique s'applique dès que Plus existe**, même si le compte est optionnel et payant (Google ne fait pas d'exception pour un compte limité à un palier payant — non écrit explicitement, cf. §4). |
 | Chemin de suppression **dans l'app**, « prominent (for example, within the account settings or a similar section) ». | Bouton « Supprimer mon compte » dans Paramètres > Compte MémoPatte Plus. |
-| « provide a web link resource where users can request app account deletion and associated data deletion », déclaré dans le formulaire Data safety (« All developers must complete new Data deletion questions in the Data safety form on the App content page »). | Page web publique (`memopatte.gaelle-briet.fr`, §3.3) dont l'URL est saisie dans Play Console > App content > Data safety > Data deletion. |
+| « provide a web link resource where users can request app account deletion and associated data deletion », déclaré dans le formulaire Data safety (« All developers must complete new Data deletion questions in the Data safety form on the App content page »). | Page web publique (`memopatte.app`, §3.3) dont l'URL est saisie dans Play Console > App content > Data safety > Data deletion. |
 | La page web doit être « functional », « relevant in scope », le chemin de suppression « prominently featured and easily discoverable on the page », et elle doit « reference the app or developer name ». Elle doit permettre la demande « without sending the user back to the app and requiring them to re-download it ». | La page ne peut pas se contenter de dire « réinstallez l'app ». Google admet plusieurs moyens : « an additional link that initiates account deletion, a customer service email or a form they can submit a request through ». → Un **email de contact dédié** + formulaire simple suffit. |
 | Portée : « all user data indicated as collected in your data safety section ». Conservation possible « for legitimate reasons such as security, fraud prevention or regulatory compliance » si l'utilisateur en est informé (politique de confidentialité). | Supprimer tout ce qui est déclaré collecté pour Plus : email, identifiant, photos, contenu. Les **factures/achats** restent chez Google (Play Billing), pas chez MémoPatte. |
 | Suppression **partielle** : la page ne mentionne pas d'option « supprimer certaines données sans supprimer le compte ». | Non exigé. On peut l'offrir en plus (ex. « effacer ma sauvegarde cloud sans fermer le compte »), mais la suppression **complète** du compte doit exister. |
@@ -134,7 +134,7 @@ Subscriptions policy : « Subscriptions must provide sustained or recurring valu
 - Remboursements : côté utilisateur, « Within 48 hours: You may be able to get a refund depending on the details of the purchase » ; « After 48 hours: Contact the developer […] The developer can help with purchase issues and can process refunds according to their policies and applicable laws » (15574908). Côté développeuse : remboursement depuis Play Console > Order management ; « You must issue refunds in accordance with your policy. It is your responsibility to notify your users of any changes to your refund policies and ensure that the policies comply with applicable laws » ; rembourser la **dernière commande** d'un abonnement entraîne « the user's subscription is removed immediately, and future recurrences are automatically canceled » (2741495).
 - Droit de rétractation UE : Conditions Google Play (FR) : le consommateur dispose d'un droit de rétractation de 14 jours, mais pour le contenu numérique « vous convenez que celui-ci est mis à votre disposition immédiatement, et vous renoncez de ce fait à votre droit légal de rétractation » ; « Les Contenus de Google Play sont proposés par Google Commerce Limited » (Irlande) qui agit comme vendeur. DDA §3.4 : « Google est le marchand officiel des Produits vendus ou proposés aux utilisateurs » dans les pays listés (dont la France) ; DDA §3.8 : « Vous autorisez Google à rembourser les utilisateurs conformément aux modalités de remboursement sur Google Play ».
 
-→ MémoPatte doit publier une **politique de remboursement** courte (dans la fiche/politique ou page web) : « Google Play gère les remboursements dans les 48 h ; au-delà, contactez `memopatte@gaelle-briet.fr` ; nous remboursons en cas de dysfonctionnement avéré ». Prévoir un lien in-app « Gérer mon abonnement » vers `https://play.google.com/store/account/subscriptions`.
+→ MémoPatte doit publier une **politique de remboursement** courte (dans la fiche/politique ou page web) : « Google Play gère les remboursements dans les 48 h ; au-delà, contactez `contact@memopatte.app` ; nous remboursons en cas de dysfonctionnement avéré ». Prévoir un lien in-app « Gérer mon abonnement » vers `https://play.google.com/store/account/subscriptions`.
 
 #### Période de grâce, account hold, expiration — valeurs
 
@@ -245,7 +245,7 @@ Principe CNIL : « Les données personnelles ne peuvent pas être conservées in
   - **Export JSON/CSV in-app** = réponse native au **droit à la portabilité** (format structuré, lisible par machine) et, en pratique, au droit d'accès pour le contenu ; compléter par une réponse manuelle par email pour les métadonnées (email, dates, achats).
   - **Suppression de compte in-app + page web** = **droit à l'effacement** ; effet immédiat côté Supabase (Edge Function §1.3) ; côté PostHog, supprimer la personne (« Click **Delete person** to remove them and all their associated data » ; l'API DELETE Persons avec `delete_events=true` ; « event data […] is cleared asynchronously during non-peak usage times (weekends on PostHog Cloud) », <https://posthog.com/docs/privacy/data-storage>).
   - **Retrait du consentement analytics** = interrupteur dans Paramètres (appelle `posthog.opt_out_capturing()`), aussi simple que l'activation.
-  - Contact : `memopatte@gaelle-briet.fr` (cité dans la politique et la fiche Play).
+  - Contact : `contact@memopatte.app` (cité dans la politique et la fiche Play).
 
 #### Mentions d'information obligatoires (art. 13 ; CNIL « Conformité RGPD : information des personnes et transparence », <https://www.cnil.fr/fr/conformite-rgpd-information-des-personnes-et-transparence>)
 
@@ -349,7 +349,7 @@ Références : `opt_out_capturing_by_default: true` puis `posthog.opt_in_capturi
 
 ### 3.1 Politique de confidentialité — MémoPatte
 
-Publiée depuis le 2026-09-26 sur <https://memopatte.gaelle-briet.fr/confidentialite/> (anglais : `/en/privacy/`), source dans `site/confidentialite/index.html` et `site/en/privacy/index.html`. Ces pages sont la seule version du texte : toute évolution de la collecte se fait dans ces fichiers, dans la même PR que le code. À renseigner dans la Play Console (Store listing > Privacy policy), dans l'écran de consentement OAuth Google et dans l'app (Paramètres > Confidentialité).
+Publiée depuis le 2026-09-26 sur <https://memopatte.app/confidentialite/> (anglais : `/en/privacy/`), source dans `site/confidentialite/index.html` et `site/en/privacy/index.html`. Ces pages sont la seule version du texte : toute évolution de la collecte se fait dans ces fichiers, dans la même PR que le code. À renseigner dans la Play Console (Store listing > Privacy policy), dans l'écran de consentement OAuth Google et dans l'app (Paramètres > Confidentialité).
 
 ### 3.2 Tableau des réponses Data safety (Play Console > App content > Data safety)
 
@@ -360,7 +360,7 @@ Publiée depuis le 2026-09-26 sur <https://memopatte.gaelle-briet.fr/confidentia
 | Does your app collect or share any of the required user data types? | **Oui** | Plus (email, contenu, photos) et PostHog (si consenti). |
 | Is all of the user data collected by your app encrypted in transit? | **Oui** | TLS Supabase et PostHog. |
 | Do you provide a way for users to request that their data is deleted? | **Oui** | Suppression de compte in-app + lien web. |
-| Data deletion : « Users can request account deletion » URL | `https://memopatte.gaelle-briet.fr/suppression-compte/` | §3.3. |
+| Data deletion : « Users can request account deletion » URL | `https://memopatte.app/suppression-compte/` | §3.3. |
 | Data deletion : « Users can request that some or all data be deleted » (si proposé) | Oui, via la même page/email | Suppression partielle offerte en option. |
 
 **Types de données** (☐ = ne pas cocher ; C = Collected ; S = Shared ; Opt = optionnel ; Req = requis). « Optionnel » = l'utilisateur peut utiliser l'app sans fournir la donnée (le mode gratuit ne collecte rien).
@@ -398,7 +398,7 @@ Publiée depuis le 2026-09-26 sur <https://memopatte.gaelle-briet.fr/confidentia
    - journalise la date de suppression (sans donnée personnelle) pour preuve.
 3. L'app efface la session locale, désactive les fonctions Plus, affiche la confirmation. Option proposée à l'utilisateur : « Effacer aussi les données locales de cet appareil ».
 
-**B. Page web publique** (obligatoire, URL déclarée dans Data safety) — publiée sur <https://memopatte.gaelle-briet.fr/suppression-compte/> (anglais : `/en/delete-account/`), source dans `site/suppression-compte/index.html` et `site/en/delete-account/index.html`, seule version du texte. Elle décrit la méthode dans l'app (A) et la demande par e-mail (C), ce qui est supprimé et ce qui reste, la suppression de la seule sauvegarde cloud et la résiliation de l'abonnement dans Google Play.
+**B. Page web publique** (obligatoire, URL déclarée dans Data safety) — publiée sur <https://memopatte.app/suppression-compte/> (anglais : `/en/delete-account/`), source dans `site/suppression-compte/index.html` et `site/en/delete-account/index.html`, seule version du texte. Elle décrit la méthode dans l'app (A) et la demande par e-mail (C), ce qui est supprimé et ce qui reste, la suppression de la seule sauvegarde cloud et la résiliation de l'abonnement dans Google Play.
 
 **C. Traitement d'une demande reçue par email** : vérifier l'adresse (répondre à l'expéditeur, demander confirmation), exécuter la même Edge Function via un script admin, confirmer par email, noter la date dans le registre des demandes. Délai RGPD : un mois maximum (art. 12-3).
 
@@ -426,7 +426,7 @@ Publiée depuis le 2026-09-26 sur <https://memopatte.gaelle-briet.fr/confidentia
 15. Mention « réservé aux 18 ans et plus » dans les CGU / création de compte.
 
 **D. Play Console**
-16. Publier la politique et la page de suppression sur `memopatte.gaelle-briet.fr` (fait le 2026-09-26, dossier `site/`) ; saisir les deux URL (Store listing > Privacy policy ; App content > Data safety > Data deletion).
+16. Publier la politique et la page de suppression sur `memopatte.app` (fait le 2026-09-26, dossier `site/`) ; saisir les deux URL (Store listing > Privacy policy ; App content > Data safety > Data deletion).
 17. Remplir Data safety selon §3.2 ; Ads : « no » ; Target audience : 18+ ; Content rating (IARC) ; Health apps declaration : non concerné ; App access : compte de test Plus + License testing ; Financial features / Government : non.
 18. Produits : abonnement avec deux base plans auto-renouvelables, mensuel et annuel (grâce + account hold par défaut, resubscribe activé) et produit unique non consommable « à vie », prix localisés.
 19. Si compte personnel créé après le 13/11/2023 : test fermé avec ≥ 12 testeurs opt-in pendant ≥ 14 jours, puis demande d'accès production.

@@ -80,13 +80,8 @@ describe('HelpContactSettingsView', () => {
   })
 
   it.each([
-    [
-      'fr',
-      'https://memopatte.gaelle-briet.fr/aide/',
-      'Page d’aide',
-      'Questions fréquentes, sur le site',
-    ],
-    ['en', 'https://memopatte.gaelle-briet.fr/en/help/', 'Help page', 'FAQ, on the website'],
+    ['fr', 'https://memopatte.app/aide/', 'Page d’aide', 'Questions fréquentes, sur le site'],
+    ['en', 'https://memopatte.app/en/help/', 'Help page', 'FAQ, on the website'],
   ] as const)('ouvre la page d’aide du site en %s', async (locale, url, label, hint) => {
     i18n.global.locale.value = locale
     const wrapper = await monter()
@@ -118,7 +113,7 @@ describe('HelpContactSettingsView', () => {
     const url = lienOuvert()
 
     expect(url.protocol).toBe('mailto:')
-    expect(url.pathname).toBe('memopatte@gaelle-briet.fr')
+    expect(url.pathname).toBe('contact@memopatte.app')
     expect(url.searchParams.get('subject')).toBe('MémoPatte : question')
     expect(url.searchParams.get('body')).toBe(
       `\r\n\r\n\r\nVersion de l’app : ${VERSION}\r\nVersion d’Android : 16`,
@@ -132,7 +127,7 @@ describe('HelpContactSettingsView', () => {
     await flushPromises()
     const url = lienOuvert()
 
-    expect(url.pathname).toBe('memopatte@gaelle-briet.fr')
+    expect(url.pathname).toBe('contact@memopatte.app')
     expect(url.searchParams.get('subject')).toBe('MémoPatte : suggestion')
   })
 
@@ -194,7 +189,7 @@ describe('HelpContactSettingsView', () => {
         'Aucune app de messagerie n’est installée. Écris-nous à cette adresse :',
       )
       expect(document.querySelector('.help-contact__address')?.textContent?.trim()).toBe(
-        'memopatte@gaelle-briet.fr',
+        'contact@memopatte.app',
       )
       expect(document.querySelector('.bottom-sheet__title')?.textContent).toBe('Nous écrire')
       expect(document.querySelector('.help-contact__copy')?.textContent?.trim()).toBe('Copier')
@@ -219,7 +214,7 @@ describe('HelpContactSettingsView', () => {
       document.querySelector<HTMLButtonElement>('.help-contact__copy')!.click()
       await flushPromises()
 
-      expect(writeText).toHaveBeenCalledWith('memopatte@gaelle-briet.fr')
+      expect(writeText).toHaveBeenCalledWith('contact@memopatte.app')
       expect(toastMessage.value).toBe('Adresse copiée')
       expect(toastTone.value).toBe('success')
     })

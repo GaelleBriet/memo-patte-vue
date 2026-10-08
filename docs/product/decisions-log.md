@@ -2180,3 +2180,12 @@ dose prévue. — Alternatives écartées : garder « Dernière prise » et la l
 répétée) ; retirer « Dernière prise » (le seul traitement sans ligne de résumé) ; retirer toutes les
 périodes d'un traitement dès que la dernière est arrêtée avant sa première échéance (efface des
 doses dues d'une période précédente).
+
+2026-10-08 — **Domaine du site : `memopatte.app`**, `memopatte.fr` redirigé dessus (301, chemin gardé),
+au nom de l'entreprise individuelle de Gaelle, DNS chez Cloudflare. **Contact :
+`contact@memopatte.app`**, boîte Proton comme la précédente. L'app, le site et la documentation
+pointent désormais vers ces adresses ; les mentions légales restent sur `gaelle-briet.fr` jusqu'à
+la page du nouveau site. Remplace le sous-domaine `memopatte.gaelle-briet.fr` et l'adresse
+`memopatte@gaelle-briet.fr` du 2026-09-26. — Raison : un nom à soi, court, qu'on retient, prêt pour la
+page vitrine ; `memopatte.com` est pris. — Alternative écartée : garder le sous-domaine du site
+de l'entreprise. Étude dans le coffre de notes de Gaelle.

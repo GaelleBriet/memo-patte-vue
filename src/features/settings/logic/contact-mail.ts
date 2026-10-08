@@ -1,4 +1,4 @@
-export const CONTACT_ADDRESS = 'memopatte@gaelle-briet.fr'
+export const CONTACT_ADDRESS = 'contact@memopatte.app'
 
 export type ContactTopic = 'question' | 'suggestion'
 
