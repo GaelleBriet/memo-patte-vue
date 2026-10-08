@@ -28,7 +28,7 @@ import DatePickerSheet from '@/shared/components/DatePickerSheet.vue'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
-import { primingReturnRoute, routeAfterReminderSaved } from '@/shared/domain/notification-priming'
+import { leaveAfterReminderSaved, primingReturnRoute } from '@/shared/domain/notification-priming'
 import { returnTo } from '@/shared/utils/return-to'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import { takesNewCare } from '@/shared/domain/unfollowed-animals'
@@ -55,6 +55,7 @@ const isLoading = ref(props.id !== undefined)
 const loadFailed = ref(false)
 const saveFailed = ref(false)
 const isSubmitting = ref(false)
+const isSaved = ref(false)
 const reminderLabelId = useId()
 const isOtherDateOpen = ref(false)
 
@@ -103,6 +104,7 @@ const errorMessage = computed(() => {
 })
 const canSave = computed(
   () =>
+    !isSaved.value &&
     !isLoading.value &&
     !notFound.value &&
     !loadFailed.value &&
@@ -178,7 +180,7 @@ function noteBooster(): void {
 }
 
 async function save(): Promise<void> {
-  if (isSubmitting.value) return
+  if (isSubmitting.value || isSaved.value) return
 
   const result = validate()
   if (!result.success) return
@@ -192,22 +194,21 @@ async function save(): Promise<void> {
     } else {
       await vaccinations.create({ animalId: requireAnimalId(), ...result.data })
     }
-    selectTargetAnimal()
-    returnTo(
-      router,
-      await routeAfterReminderSaved({
-        hasDueDate: result.data.dueDate !== null,
-        animalName: animalName.value,
-        kind: 'vaccination',
-        from,
-        reminder,
-      }),
-    )
+    isSaved.value = true
   } catch {
     saveFailed.value = true
+    return
   } finally {
     isSubmitting.value = false
   }
+  selectTargetAnimal()
+  await leaveAfterReminderSaved(router, {
+    hasDueDate: result.data.dueDate !== null,
+    animalName: animalName.value,
+    kind: 'vaccination',
+    from,
+    reminder,
+  })
 }
 
 onMounted(async () => {

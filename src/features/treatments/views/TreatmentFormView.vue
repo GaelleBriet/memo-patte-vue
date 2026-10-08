@@ -58,9 +58,9 @@ import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import FormSegmented from '@/shared/form/FormSegmented.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
-import { primingReturnRoute, routeAfterReminderSaved } from '@/shared/domain/notification-priming'
+import { leaveAfterReminderSaved, primingReturnRoute } from '@/shared/domain/notification-priming'
 import { detailRoute } from '@/shared/domain/reminder-route'
-import { returnTo, returnToOr } from '@/shared/utils/return-to'
+import { returnTo } from '@/shared/utils/return-to'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import { takesNewCare } from '@/shared/domain/unfollowed-animals'
 
@@ -322,18 +322,6 @@ function write(): (() => Promise<unknown>) | null {
   return null
 }
 
-async function leaveAfterSaving(): Promise<void> {
-  const safe = primingReturnRoute(from, reminder)
-  const target = await routeAfterReminderSaved({
-    hasDueDate: true,
-    animalName: animalName.value,
-    kind: 'treatment',
-    from,
-    reminder,
-  }).catch(() => safe)
-  await returnToOr(router, target, safe)
-}
-
 function onPastDosesAction(action: PromptActionId): void {
   if (pastDoses.value === null) return
   if (action === 'choose-days') isChooseDaysOpen.value = true
@@ -368,7 +356,13 @@ async function submit(): Promise<void> {
     isSubmitting.value = false
   }
   selectTargetAnimal()
-  await leaveAfterSaving()
+  await leaveAfterReminderSaved(router, {
+    hasDueDate: true,
+    animalName: animalName.value,
+    kind: 'treatment',
+    from,
+    reminder,
+  })
 }
 
 onMounted(async () => {
