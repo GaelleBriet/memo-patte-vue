@@ -46,6 +46,14 @@ const CALLEE_GROUPS: Record<string, number> = {
   toRef: G.state,
   toRefs: G.state,
   inject: G.state,
+  provide: G.state,
+  readonly: G.state,
+  shallowReadonly: G.state,
+  customRef: G.state,
+  markRaw: G.state,
+  effectScope: G.state,
+  getCurrentInstance: G.state,
+  nextTick: G.lifecycle,
   computed: G.computed,
   watch: G.watch,
   watchEffect: G.watch,
@@ -158,49 +166,59 @@ function initializer(statement: Node): Node | null | undefined {
   return null
 }
 
-/**
- * Parties de l'instruction lancées pendant le setup, fonctions comprises : tout un composable ou
- * un `watchEffect`, la source d'un `watch`, et son rappel s'il est `immediate`.
- */
-function runsDuringSetup(statement: Node, group: number | null): Node[] {
-  if (group === G.tools) return [statement]
-  const expression = initializer(statement)
-  const name = calleeName(expression)
-  if (name === 'watchEffect' || name === 'watchSyncEffect') return [statement]
-  if (name !== 'watch') return []
-  const [source, callback, options] = (unwrap(expression) as NodeOf<'CallExpression'>).arguments
-  const parts = [source as Node]
-  if (isImmediate(options as Node | undefined)) parts.push(callback as Node)
-  return parts.filter(Boolean)
+const LAZY_CALLS = new Set(['computed', 'defineAsyncComponent'])
+
+/** Options d'un `watch` : un objet du fichier se lit ; venu d'ailleurs, il est jugé immédiat. */
+function isImmediate(options: Node | undefined, statements: Node[]): boolean {
+  let object = options
+  if (options?.type === 'Identifier') {
+    const declarator = statements
+      .flatMap((statement) =>
+        statement.type === 'VariableDeclaration' ? statement.declarations : [],
+      )
+      .find((d) => d.id.type === 'Identifier' && d.id.name === options.name)
+    if (!declarator) return true
+    object = declarator.init as Node | undefined
+  }
+  if (object?.type !== 'ObjectExpression') return object !== undefined
+  return object.properties.some(
+    (property) =>
+      property.type === 'Property' &&
+      property.key.type === 'Identifier' &&
+      property.key.name === 'immediate' &&
+      !(property.value.type === 'Literal' && property.value.value === false),
+  )
 }
 
-function isImmediate(options: Node | undefined): boolean {
-  return (
-    options?.type === 'ObjectExpression' &&
-    options.properties.some(
-      (property) =>
-        property.type === 'Property' &&
-        property.key.type === 'Identifier' &&
-        property.key.name === 'immediate' &&
-        property.value.type === 'Literal' &&
-        property.value.value === true,
-    )
-  )
+/**
+ * Une fonction passée à un appel peut être lancée tout de suite ; restent pour plus tard le getter
+ * d'un `computed`, le rappel d'un `watch` non immédiat et le cycle de vie.
+ */
+function runsLater(fn: Node, statements: Node[]): boolean {
+  const call = fn.parent as Node | undefined
+  if (call?.type !== 'CallExpression' && call?.type !== 'NewExpression') return true
+  const position = call.arguments.indexOf(fn as never)
+  if (position < 0) return true
+  const name = call.callee.type === 'Identifier' ? call.callee.name : null
+  if (name === null) return false
+  if (LAZY_CALLS.has(name) || CALLEE_GROUPS[name] === G.lifecycle) return true
+  if (name !== 'watch' || position !== 1) return false
+  return !isImmediate(call.arguments[2] as Node | undefined, statements)
+}
+
+function isEager(scope: Scope.Scope | null, moduleScope: Scope.Scope, statements: Node[]): boolean {
+  let current = scope
+  while (current && current !== moduleScope) {
+    if (current.type === 'function' && runsLater(current.block as Node, statements)) return false
+    current = current.upper
+  }
+  return true
 }
 
 function isWithin(inner: { range?: [number, number] }, outer: { range?: [number, number] }) {
   const [start, end] = inner.range ?? [0, 0]
   const [outerStart, outerEnd] = outer.range ?? [0, 0]
   return start >= outerStart && end <= outerEnd
-}
-
-function crossesFunction(scope: Scope.Scope | null, moduleScope: Scope.Scope): boolean {
-  let current = scope
-  while (current && current !== moduleScope) {
-    if (current.type === 'function') return true
-    current = current.upper
-  }
-  return false
 }
 
 interface VueElement {
@@ -270,14 +288,14 @@ export function analyzeScriptSetup(sourceCode: SourceCode, program: AST.Program)
 
   entries.forEach((entry, index) => {
     if (entry.group === G.functions) return
-    const eager = runsDuringSetup(entry.node, entry.group)
+    // Un composable peut lancer tout de suite une fonction reçue, même rangée dans un objet.
+    const everything = entry.group === G.tools
     const queue = references
       .filter(
         (r) =>
           r.definedIn !== index &&
           isWithin(r.identifier, entry.node) &&
-          (!crossesFunction(r.from, moduleScope) ||
-            eager.some((part) => isWithin(r.identifier, part))),
+          (everything || isEager(r.from, moduleScope, statements)),
       )
       .map((r) => r.definedIn)
     const seen = new Set<number>([index])

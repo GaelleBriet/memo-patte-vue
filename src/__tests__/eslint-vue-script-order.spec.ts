@@ -97,6 +97,57 @@ describe('app/vue-script-order', () => {
         ),
       },
       {
+        name: 'une fonction passée à .map lit un computed : elle reste après lui',
+        filename: 'Map.vue',
+        code: vue(IMPORTS, STATE, COMPUTED, 'const list = [1, 2].map((x) => x + double.value)'),
+      },
+      {
+        name: 'une fonction passée à un appel inconnu lit un computed',
+        filename: 'Build.vue',
+        code: vue(IMPORTS, STATE, COMPUTED, 'const cache = build(() => double.value)'),
+      },
+      {
+        name: 'une fonction passée à .map appelle une fonction locale',
+        filename: 'Map-fonction.vue',
+        code: vue(
+          IMPORTS,
+          STATE,
+          'const load = () => count.value',
+          'const items = [1].map(() => load())',
+        ),
+      },
+      {
+        name: 'un ref initialisé par .map sur un computed',
+        filename: 'Ref-map.vue',
+        code: vue(IMPORTS, STATE, COMPUTED, 'const copy = ref([1].map(() => double.value))'),
+      },
+      {
+        name: 'un new dont la fonction lit un computed',
+        filename: 'New-fonction.vue',
+        code: vue(IMPORTS, STATE, COMPUTED, 'const observer = new Observer(() => double.value)'),
+      },
+      {
+        name: 'un watch dont les options immédiates sont dans une constante',
+        filename: 'Options.vue',
+        code: vue(
+          IMPORTS,
+          'const OPTIONS = { immediate: true }',
+          STATE,
+          ARROW,
+          'watch(count, () => save(), OPTIONS)',
+        ),
+      },
+      {
+        name: 'un watch dont les options viennent d’ailleurs est jugé immédiat',
+        filename: 'Options-import.vue',
+        code: vue(IMPORTS, STATE, ARROW, 'watch(count, () => save(), SHARED_OPTIONS)'),
+      },
+      {
+        name: 'provide va avec l’état, nextTick avec le cycle de vie',
+        filename: 'Vue-api.vue',
+        code: vue(IMPORTS, PROPS, `${STATE}\nprovide('count', count)`, FUNCTION, 'nextTick(reset)'),
+      },
+      {
         name: 'la source d’un watch lit une fonction déjà déclarée',
         filename: 'Source.vue',
         code: vue(IMPORTS, STATE, 'const f = () => count.value', 'watch(() => f(), () => {})'),
@@ -144,6 +195,30 @@ describe('app/vue-script-order', () => {
         filename: 'Appel-tard.vue',
         code: vue(IMPORTS, STATE, COMPUTED, 'const chart = draw(count)'),
         errors: [order('état (ref, reactive…)', 'computed')],
+      },
+      {
+        name: 'un watch dont les options ne sont pas immédiates, après les fonctions',
+        filename: 'Options-non.vue',
+        code: vue(
+          IMPORTS,
+          'const OPTIONS = { deep: true }',
+          STATE,
+          ARROW,
+          'watch(count, () => save(), OPTIONS)',
+        ),
+        errors: [order('watch', 'fonctions')],
+      },
+      {
+        name: 'useRoute().query est un outil',
+        filename: 'Chaine.vue',
+        code: vue(IMPORTS, STATE, 'const query = useRoute().query'),
+        errors: [order('outils (useI18n, stores, composables)', 'état (ref, reactive…)')],
+      },
+      {
+        name: 'un getter de computed reste paresseux',
+        filename: 'Getter-paresseux.vue',
+        code: vue(IMPORTS, 'const load = () => 1', 'const value = computed(() => load())'),
+        errors: [order('computed', 'fonctions')],
       },
       {
         name: 'new et inject vont avec l’état',
