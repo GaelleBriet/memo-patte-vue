@@ -6,6 +6,7 @@ import { buildReminders, type ReminderKind } from '@/shared/domain/reminders'
 import type { ExportData, ExportFrequency } from '@/shared/domain/carnet-data'
 import { vaccinationHistories } from '@/shared/domain/carnet-heads'
 import type { Dosage } from '@/shared/domain/dosage'
+import { periodClosedBeforeFirstDue } from '@/shared/domain/treatment-end'
 import { byStartDescending, periodLastDay } from '@/shared/domain/treatment-periods'
 import { isAdvanced, type TreatmentDoseInput } from '@/shared/domain/treatment-schedule'
 
@@ -211,7 +212,8 @@ function linesOf(events: Event[], frequency: ExportFrequency): PdfHistoryLine[] 
 function treatmentPeriods({ periods, doses, schedule }: TreatmentState): PdfTreatmentPeriod[] {
   const lines = schedule?.doses ?? doses
   const unlogged = schedule?.unloggedDoses ?? []
-  return [...periods].sort(byStartDescending).map((period, index, sorted) => {
+  const sorted = [...periods].sort(byStartDescending)
+  return sorted.flatMap((period, index): PdfTreatmentPeriod[] => {
     const severalTimes = period.times.length > 1
     const events: Event[] = [
       ...lines
@@ -224,14 +226,17 @@ function treatmentPeriods({ periods, doses, schedule }: TreatmentState): PdfTrea
           dose: { on: due.dueOn, time: severalTimes ? due.dueTime : null, extra: false },
         })),
     ]
-    return {
-      from: period.startsOn,
-      to: periodLastDay(period, sorted[index - 1]),
-      frequency: period.frequency,
-      times: severalTimes ? period.times : [],
-      dosage: { doseQuantity: period.doseQuantity, doseUnit: period.doseUnit },
-      lines: linesOf(events, period.frequency),
-    }
+    if (events.length === 0 && periodClosedBeforeFirstDue(period, sorted[index - 1])) return []
+    return [
+      {
+        from: period.startsOn,
+        to: periodLastDay(period, sorted[index - 1]),
+        frequency: period.frequency,
+        times: severalTimes ? period.times : [],
+        dosage: { doseQuantity: period.doseQuantity, doseUnit: period.doseUnit },
+        lines: linesOf(events, period.frequency),
+      },
+    ]
   })
 }
 

@@ -375,8 +375,10 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   « Dernière prise » = dernière donnée ; « N prises » ne compte que les données ; une prise notée un
   autre jour que son échéance : l'échéance en titre (« 6 oct. 2026 », avec l'heure seulement si la
   période a plusieurs heures), « Donnée le 7 oct. 2026 » dessous ; aucune ligne « A fixé la dose
-  du … » (spec Q13) ; période sans prise : « Aucune prise dans cette période pour l'instant », ou
-  « Arrêté avant la première prise » si elle a été arrêtée avant sa première échéance (TR-30) ;
+  du … » (spec Q13) ; période sans prise : « Aucune prise dans cette période pour l'instant » tant
+  qu'elle est en cours, « Aucune prise dans cette période » une fois close, ou « Aucune prise » pour
+  un traitement arrêté avant sa première prise (TR-30 ; la carte « Fin du traitement » dit « Arrêté
+  avant la première prise ») ;
   l'écart d'une dose non renseignée n'apparaît pas comme une ligne (il est dans le bandeau), sauf quand
   il n'y a plus de bandeau (animal qu'on ne suit plus) : ligne « Non renseigné du … au … », comme dans le
   PDF. (Spec ; planches Q4, Q5 ; P10)

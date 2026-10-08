@@ -645,7 +645,8 @@
         "single": "Le {date}"
       },
       "empty": "Aucune prise dans cette période pour l’instant",
-      "stoppedBeforeFirstDose": "Arrêté avant la première prise",
+      "emptyClosed": "Aucune prise dans cette période",
+      "noDose": "Aucune prise",
       "dueAt": "{date} · {time}",
       "givenOn": "Donnée le {date}",
       "extra": "{date} · Prise en plus",

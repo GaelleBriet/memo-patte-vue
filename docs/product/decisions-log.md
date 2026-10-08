@@ -2163,6 +2163,24 @@ La fiche d'un vaccin de cet animal n'affiche plus « C'est fait » ni « Fait à
 garde « Ajouter une injection passée ».
 « Modifier » reste disponible sur un traitement terminé de cet animal.
 
+2026-10-08 — Textes d'un traitement sans prise (réponses de Gaelle, suite de #594 et #582). Fiche
+d'un traitement arrêté avant sa première prise : la carte « Fin du traitement » garde « Arrêté avant
+la première prise », l'historique dit « Aucune prise », comme le PDF (l'entrée du 2026-10-07 sur Q5
+ne vaut plus pour l'historique). PDF : une période close (arrêtée ou remplacée) avant sa première
+échéance, sans aucune ligne, n'a plus de ligne de période ; une prise unique, seule ligne de l'historique, n'est pas
+répétée sous sa période quand elle ne dit rien de plus que « Dernière prise » (même date, sans
+heure). Historique : une période close sans prise dit « Aucune prise dans cette période », « pour
+l'instant » reste pour une période en cours ; une période est close quand elle est arrêtée, suivie
+d'une autre période, ou que sa date de fin est passée (le jour de la date de fin, elle est encore en
+cours). « Arrêté avant la première prise » suit la règle du 2026-10-07 au pied de la lettre : aucune
+dose jamais due ni notée sur tout le traitement, donc chaque période close avant sa première
+échéance et aucune dose non renseignée pour le moteur (une dose avancée avant l'arrêt est due). —
+Raison : ne pas dire deux fois la même chose, et qu'aucune date ne se lise comme une
+dose prévue. — Alternatives écartées : garder « Dernière prise » et la ligne « Prise : » (date
+répétée) ; retirer « Dernière prise » (le seul traitement sans ligne de résumé) ; retirer toutes les
+périodes d'un traitement dès que la dernière est arrêtée avant sa première échéance (efface des
+doses dues d'une période précédente).
+
 2026-10-08 — **Domaine du site : `memopatte.app`**, `memopatte.fr` redirigé dessus (301, chemin gardé),
 au nom de l'entreprise individuelle de Gaelle, DNS chez Cloudflare. **Contact :
 `contact@memopatte.app`**, boîte Proton comme la précédente. L'app, le site et la documentation

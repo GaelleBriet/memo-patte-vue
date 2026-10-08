@@ -73,6 +73,7 @@ type HistorySchedule = Pick<
   | 'shiftRemovalRefusal'
   | 'strandedMoveOn'
   | 'currentPeriodId'
+  | 'unloggedDoses'
 >
 type Period = TreatmentPeriodRecord
 
@@ -328,9 +329,23 @@ function linesOf(
   return lines
 }
 
-function emptyText(t: Translate, period: Period, doses: TreatmentDoseInput[]): string {
-  return isStoppedBeforeFirstDose(period, doses)
-    ? t('treatments.history.stoppedBeforeFirstDose')
+function isClosed(period: Period, next: Period | undefined, today: string): boolean {
+  return (
+    period.stoppedOn !== null ||
+    next !== undefined ||
+    (period.endsOn !== null && period.endsOn < today)
+  )
+}
+
+function emptyText(
+  t: Translate,
+  period: Period,
+  next: Period | undefined,
+  { periods, schedule, today }: { periods: Period[]; schedule: HistorySchedule; today: string },
+): string {
+  if (isStoppedBeforeFirstDose(period, periods, schedule)) return t('treatments.history.noDose')
+  return isClosed(period, next, today)
+    ? t('treatments.history.emptyClosed')
     : t('treatments.history.empty')
 }
 
@@ -392,7 +407,10 @@ export function treatmentHistory(
               settings: periodSettingsText(t, period),
             },
         lines,
-        emptyText: lines.length === 0 ? emptyText(t, period, schedule.doses) : null,
+        emptyText:
+          lines.length === 0
+            ? emptyText(t, period, periods[index - 1], { periods, schedule, today })
+            : null,
         visibleLines: hidden === 0 ? lines.length : LINES_BEFORE_TOGGLE,
         toggle:
           hidden === 0

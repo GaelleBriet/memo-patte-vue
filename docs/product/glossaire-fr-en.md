@@ -39,7 +39,7 @@ et une relecture s'y réfère plutôt que de rouvrir le débat.
 | Antiparasitaire          | parasite control                 | flea & tick, antiparasitic                | « flea & tick » exclut vers et acariens (tranché par Gaelle, 2026-09-16) |
 | Médicament (type)        | medication                       | —                                        | type de traitement seulement ; « traitement » reste « treatment », jamais « medication » |
 | Posologie                | dosage                           | dose                                     | « dose » est la prise ; « ½ comprimé » = ½ tablet                       |
-| Période                  | period                           | —                                        | « Aucune prise dans cette période pour l'instant » = No doses in this period yet |
+| Période                  | period                           | —                                        | « Aucune prise dans cette période pour l'instant » = No doses in this period yet ; période close : « Aucune prise dans cette période » = No doses in this period |
 | Première prise le        | first dose on                    | start date                               |                                                                         |
 | Heures du traitement     | treatment times                  | —                                        | « Ajouter une heure » = Add a time                                      |
 | Date de fin              | end date                         | —                                        |                                                                         |

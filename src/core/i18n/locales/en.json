@@ -645,7 +645,8 @@
         "single": "{date}"
       },
       "empty": "No doses in this period yet",
-      "stoppedBeforeFirstDose": "Stopped before the first dose",
+      "emptyClosed": "No doses in this period",
+      "noDose": "No doses",
       "dueAt": "{date} · {time}",
       "givenOn": "Given on {date}",
       "extra": "{date} · Extra dose",
