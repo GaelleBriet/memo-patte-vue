@@ -2589,12 +2589,35 @@ describe('TreatmentFormView — reprise (TR-32, planche V7)', () => {
     expect(aide(wrapper, 'ends-on')).toBe('Aucune dose ne sera prévue après cette date.')
   })
 
-  it('ne reprend pas un traitement en cours', async () => {
-    getWithHistory.mockResolvedValue(panacur([{ ...PANACUR, endsOn: null }]))
-    const wrapper = await monterReprise()
+  describe('traitement en cours, rien à reprendre (#673)', () => {
+    beforeEach(async () => {
+      getWithHistory.mockResolvedValue(panacur([{ ...PANACUR, endsOn: null }]))
+      routeur = createRouter({
+        history: createMemoryHistory(),
+        routes: [
+          { path: '/animals', name: 'animals', component: Vide },
+          { path: '/treatments/:id', name: 'treatment-detail', component: Vide },
+          { path: '/treatments/:id/resume', name: 'treatment-resume', component: Vide },
+        ],
+      })
+    })
 
-    expect(wrapper.get('.form-screen__save-error').text()).toBe('Ce traitement est introuvable.')
-    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
+    it('ouvert par un lien, ramène à sa fiche sans le dire introuvable ni ouvrir le formulaire', async () => {
+      await routeur.push({ name: 'treatment-resume', params: { id: ID } })
+      replace = vi.spyOn(routeur, 'replace').mockResolvedValue()
+
+      const wrapper = await monterReprise()
+
+      expect(replace).toHaveBeenCalledExactlyOnceWith({
+        name: 'treatment-detail',
+        params: { id: ID },
+      })
+      expect(wrapper.find('.form-screen__save-error').exists()).toBe(false)
+      expect(wrapper.find('#treatment-first-dose-on').exists()).toBe(false)
+      expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
+      expect(useAnimalsStore().selectedAnimalId).toBe(MILO.id)
+      expect(resume).not.toHaveBeenCalled()
+    })
   })
 
   it('écrit la reprise en anglais', async () => {
@@ -2637,6 +2660,7 @@ describe('TreatmentFormView — animal qu’on ne suit plus (AN-9)', () => {
   })
 
   it('n’ouvre pas la reprise d’un de ses traitements', async () => {
+    getWithHistory.mockResolvedValue(milbemax([periode({ stoppedOn: '2026-09-01' })]))
     await monterReprise()
 
     expect(replace).toHaveBeenCalledWith({ name: 'animals' })

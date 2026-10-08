@@ -713,25 +713,28 @@ describe('validateTreatmentResumption (TR-32)', () => {
 
 describe('loadedFormValues', () => {
   it('« Modifier » part des réglages en cours et de la prochaine dose proposée', () => {
-    const { values, found } = loadedFormValues('edit', milbemax(), TODAY)
-
-    expect(found).toBe(true)
-    expect(values).toEqual({
-      ...treatmentFormValuesFrom(milbemax(), period()),
-      nextDoseOn: '2026-10-10',
+    expect(loadedFormValues('edit', milbemax(), TODAY)).toEqual({
+      status: 'ready',
+      values: {
+        ...treatmentFormValuesFrom(milbemax(), period()),
+        nextDoseOn: '2026-10-10',
+      },
     })
   })
 
   it('« Reprendre » part des réglages de la dernière période, sans date de fin', () => {
     const arrete = milbemax([period({ stoppedOn: '2026-08-01', endsOn: '2026-08-10' })])
 
-    const { values, found } = loadedFormValues('resume', arrete, TODAY)
+    const opened = loadedFormValues('resume', arrete, TODAY)
 
-    expect(found).toBe(true)
-    expect(values).toMatchObject({ name: 'Milbemax', firstDoseOn: '', endsOn: '' })
+    expect(opened.status).toBe('ready')
+    expect(opened).toMatchObject({ values: { name: 'Milbemax', firstDoseOn: '', endsOn: '' } })
   })
 
-  it('un traitement en cours n’a rien à reprendre', () => {
-    expect(loadedFormValues('resume', milbemax(), TODAY).found).toBe(false)
+  it('un traitement en cours n’a rien à reprendre : retour à sa fiche, pas « introuvable »', () => {
+    expect(loadedFormValues('resume', milbemax(), TODAY)).toEqual({
+      status: 'not-resumable',
+      redirect: { name: 'treatment-detail', params: { id: milbemax().id } },
+    })
   })
 })

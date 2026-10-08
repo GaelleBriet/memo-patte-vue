@@ -259,7 +259,11 @@ function errorText(key: string | undefined): string | null {
 
 function open(loaded: TreatmentWithHistory): void {
   const opened = loadedFormValues(mode === 'resume' ? 'resume' : 'edit', loaded, today.value)
-  notFound.value = !opened.found
+  if (opened.status === 'not-resumable') {
+    animals.select(loaded.animalId)
+    returnTo(router, opened.redirect)
+    return
+  }
   values.value = opened.values
   keptOffset.value = values.value.reminderOffset
   history.value = loaded

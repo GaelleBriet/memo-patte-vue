@@ -1,3 +1,4 @@
+import type { RouteLocationRaw } from 'vue-router'
 import type { z } from 'zod'
 
 import { creationPastDues, treatmentCreationSchemaFor } from './treatment-creation'
@@ -27,6 +28,7 @@ import type { ExactRemindersStatus, NotificationPermissionStatus } from '@/core/
 import { isCalendarDay } from '@/shared/domain/calendar-day'
 import { isClockTime, MAX_TIMES_PER_DAY, sortedTimes } from '@/shared/domain/clock-time'
 import { formatDoseQuantity, TABLET_SHORTCUTS, type DoseUnit } from '@/shared/domain/dosage'
+import { detailRoute } from '@/shared/domain/reminder-route'
 import type { Due, MoveRefusal } from '@/shared/domain/treatment-schedule'
 import { formatClockTimes, formatDayMonthOrYear, withoutFinalDot } from '@/shared/utils/format'
 
@@ -456,24 +458,34 @@ export function validateTreatmentResumption(
   )
 }
 
-/** Les valeurs d'un traitement relu ; `found` faux : un traitement en cours n'a rien à reprendre. */
+type LoadedTreatmentForm =
+  | { status: 'ready'; values: TreatmentFormValues }
+  | { status: 'not-resumable'; redirect: RouteLocationRaw }
+
+/** Les valeurs d'un traitement relu ; un traitement en cours n'a rien à reprendre : retour à sa fiche. */
 export function loadedFormValues(
   mode: 'edit' | 'resume',
   loaded: TreatmentWithHistory,
   today: string,
-): { values: TreatmentFormValues; found: boolean } {
+): LoadedTreatmentForm {
   if (mode === 'resume') {
     const { period, canResume } = resumptionDraft(loaded, today)
-    return { values: { ...treatmentFormValuesFrom(loaded, period), endsOn: '' }, found: canResume }
+    if (!canResume) {
+      return {
+        status: 'not-resumable',
+        redirect: detailRoute({ kind: 'treatment', id: loaded.id }),
+      }
+    }
+    return { status: 'ready', values: { ...treatmentFormValuesFrom(loaded, period), endsOn: '' } }
   }
   const first = editionDraftOf(emptyTreatmentFormValues(), loaded, today)
   return {
+    status: 'ready',
     values: {
       ...treatmentFormValuesFrom(loaded, first.period),
       nextDoseOn: first.nextDose?.proposedOn ?? '',
       shiftsFollowing: first.nextDose?.shiftInitial ?? true,
     },
-    found: true,
   }
 }
 
