@@ -24,9 +24,12 @@
       type="font/woff2"
       crossorigin
     />
+    <link rel="canonical" href="https://memopatte.app/en/help/" />
     <link rel="alternate" hreflang="fr" href="https://memopatte.app/aide/" />
     <link rel="alternate" hreflang="en" href="https://memopatte.app/en/help/" />
     <link rel="alternate" hreflang="x-default" href="https://memopatte.app/aide/" />
+    <script type="module" src="/aide/ancres.js"></script>
+    <script type="module" src="/aide/recherche.js"></script>
   </head>
   <body>
     <header class="site-header">
@@ -48,287 +51,121 @@
         >
       </div>
     </header>
-    <main class="document">
+    <main class="document help-home">
       <h1>MémoPatte help</h1>
-      <p class="updated">Last updated: <time datetime="2026-10-07">October 7, 2026</time></p>
-
+      <p class="updated">Last updated: <time datetime="2026-10-08">October 8, 2026</time></p>
+      <form class="help-search" role="search" hidden>
+        <label for="search">Search for a question</label>
+        <input id="search" type="search" autocomplete="off" />
+      </form>
       <section id="faq">
         <h2>Frequently asked questions</h2>
-
-        <h3 id="export">How do I export my health record, and import it again?</h3>
-        <p>In MémoPatte, open Settings › My data › “Export my data”, then choose a format:</p>
-        <ul>
-          <li>
-            <strong>JSON</strong>: your whole health record, to import it into MémoPatte again.
-          </li>
-          <li><strong>CSV</strong>: to open it in a spreadsheet.</li>
-        </ul>
-        <p>
-          You can save the file to your phone, in Documents › MémoPatte, or share it (Google Drive,
-          email…).
-        </p>
-        <p>
-          Just below, Settings › My data › “Export to PDF” creates a PDF of the health record of all
-          your pets or just one, to print or show. Exports are free and don’t need an account.
-          Photos aren’t exported.
-        </p>
-        <p>
-          To import a JSON export again: Settings › My data › “Import a MémoPatte export”. If data
-          already exists on the phone, choose “Merge” (adds what isn’t in your current data yet) or
-          “Replace” (replaces all your current data, after you confirm). MémoPatte then schedules
-          your reminders again.
-        </p>
-
-        <figure class="screenshot">
-          <img
-            src="/en/help/img/exporter.webp"
-            width="540"
-            height="720"
-            loading="lazy"
-            alt="MémoPatte’s My data screen"
-          />
-          <figcaption>
-            Settings › My data: 1. “Export my data”, 2. “Export to PDF”, 3. “Import a MémoPatte
-            export”.
-          </figcaption>
-        </figure>
-
-        <h3 id="android-backup">What does Android’s backup keep?</h3>
-        <p>
-          If your phone’s backup is on, Android may keep a copy of your health record, usually once
-          a day, while the phone is charging and on Wi‑Fi. MémoPatte can’t tell whether it’s on.
-          This copy doesn’t include photos, or settings that belong to the phone, like the weight
-          unit. Android only puts it back when MémoPatte is installed, on a new phone for example,
-          and with no guarantee.
-        </p>
-        <p>
-          So you don’t rely on it, export a copy now and then: Settings › Backup › “Export a copy”,
-          then keep the file somewhere other than your phone (Google Drive, email, a computer).
-        </p>
-
-        <h3 id="plus">What does MémoPatte Plus add?</h3>
-        <p>
-          Everything you do on your phone is free, with no account: your pets, their vaccines,
-          treatments and weigh-ins, reminders, and JSON, CSV and PDF exports. MémoPatte Plus is the
-          subscription that will add a cloud backup of your health record, photos included. It’s
-          coming soon.
-        </p>
-
-        <h3 id="new-phone">How do I get my health record onto a new phone?</h3>
-        <ol>
-          <li>
-            On the old phone, open Settings › Backup › “Export a copy”, and send the file somewhere
-            the new phone can reach it (Google Drive, email…).
-          </li>
-          <li>
-            On the new phone, install MémoPatte, then tap “Import a MémoPatte export” on the welcome
-            screen and choose that file.
-          </li>
-        </ol>
-        <p>
-          If Android’s backup was on, or if you transfer your apps from one phone to the other,
-          Android may also put your health record back when it installs MémoPatte (see the previous
-          question). Either way, photos don’t come along; allow MémoPatte’s notifications again, and
-          its <a href="#reminders-exact">exact reminders</a> if you used them.
-        </p>
-
-        <figure class="screenshot">
-          <img
-            src="/en/help/img/nouveau-telephone.webp"
-            width="540"
-            height="1105"
-            loading="lazy"
-            alt="MémoPatte’s welcome screen"
-          />
-          <figcaption>
-            On the new phone, the welcome screen offers “Import a MémoPatte export”.
-          </figcaption>
-        </figure>
-
-        <h3 id="erase">How do I erase all of MémoPatte’s data?</h3>
-        <p>
-          Open Settings › Backup › “Erase this phone’s data”. MémoPatte first offers to export a
-          copy, then asks you to confirm twice. The whole health record is then removed from the
-          phone (pets, treatments, vaccines, weigh-ins and photos), no more reminders go off, and
-          MémoPatte restarts as on its first launch. Exports saved in Documents › MémoPatte stay on
-          the phone. Without a copy, your health record can’t be recovered.
-        </p>
-
-        <figure class="screenshot">
-          <img
-            src="/en/help/img/effacer.webp"
-            width="540"
-            height="1105"
-            loading="lazy"
-            alt="MémoPatte’s Backup screen"
-          />
-          <figcaption>
-            Settings › Backup: 1. “Export a copy”, 2. “Erase this phone’s data”.
-          </figcaption>
-        </figure>
-
-        <h3 id="stop-following">What about the health record of a pet I no longer follow?</h3>
-        <p>
-          In the pet’s health record, tap ⋮ then “Stop following”: the pet’s reminders and ongoing
-          treatments stop, and the health record stays intact. In the same place, “Delete” erases
-          the whole health record: vaccines, treatments, weigh-ins, photo. Either way, “Undo”, in
-          the message that appears next, takes you back.
-        </p>
-
-        <figure class="screenshot">
-          <img
-            src="/en/help/img/ne-plus-suivre.webp"
-            width="540"
-            height="1105"
-            loading="lazy"
-            alt="A pet’s options in its health record"
-          />
-          <figcaption>
-            In the pet’s health record: 1. the ⋮ button, 2. “Stop following”, 3. “Delete”.
-          </figcaption>
-        </figure>
-
-        <h3 id="late-reminders">My reminders arrive late, or not at all</h3>
-        <p>
-          Several Android settings can block or delay them. Check them in order with the
-          <a href="#reminders">Reminders</a> section, just below.
-        </p>
-
-        <h3 id="email-us">Your question isn’t here?</h3>
+        <div role="status">
+          <p class="help-no-result" hidden>
+            No question matches your search. Email us at
+            <a href="mailto:contact@memopatte.app">contact@memopatte.app</a>.
+          </p>
+        </div>
+        <div class="help-themes">
+          <section class="card help-theme" id="theme-data">
+            <h3>Your data</h3>
+            <ul>
+              <li
+                data-search="In MémoPatte, open Settings › My data › 1 “Export my data”, then choose a format: JSON : your whole health record, to import it into MémoPatte again. CSV : to open it in a spreadsheet. You can save the file to your phone, in Documents › MémoPatte, or share it (Google Drive, email…). Just below, Settings › My data › 2 “Export to PDF” creates a PDF of the health record of all your pets or just one, to print or show. Exports are free and don’t need an account. Photos aren’t exported. To import a JSON export again: Settings › My data › 3 “Import a MémoPatte export”. If data already exists on the phone, choose “Merge” (adds what isn’t in your current data yet) or “Replace” (replaces all your current data, after you confirm). MémoPatte then schedules your reminders again."
+              >
+                <a href="/en/help/export/"
+                  >How do I export my health record, and import it again?</a
+                >
+              </li>
+              <li
+                data-search="If your phone’s backup is on, Android may keep a copy of your health record, usually once a day, while the phone is charging and on Wi‑Fi. MémoPatte can’t tell whether it’s on. This copy doesn’t include photos, or settings that belong to the phone, like the weight unit. Android only puts it back when MémoPatte is installed, on a new phone for example, and with no guarantee. So you don’t rely on it, export a copy now and then: Settings › Backup › “Export a copy”, then keep the file somewhere other than your phone (Google Drive, email, a computer)."
+              >
+                <a href="/en/help/android-backup/">What does Android’s backup keep?</a>
+              </li>
+              <li
+                data-search="On the old phone, open Settings › Backup › “Export a copy”, and send the file somewhere the new phone can reach it (Google Drive, email…). On the new phone, install MémoPatte, then tap “Import a MémoPatte export” on the welcome screen and choose that file. If Android’s backup was on, or if you transfer your apps from one phone to the other, Android may also put your health record back when it installs MémoPatte (see What does Android’s backup keep? ). Either way, photos don’t come along; allow MémoPatte’s notifications again, and its exact reminders if you used them."
+              >
+                <a href="/en/help/new-phone/">How do I get my health record onto a new phone?</a>
+              </li>
+              <li
+                data-search="Open Settings › Backup › 2 “Erase this phone’s data”. MémoPatte first offers to 1 export a copy, then asks you to confirm twice. The whole health record is then removed from the phone (pets, treatments, vaccines, weigh-ins and photos), no more reminders go off, and MémoPatte restarts as on its first launch. Exports saved in Documents › MémoPatte stay on the phone. Without a copy, your health record can’t be recovered."
+              >
+                <a href="/en/help/erase/">How do I erase all of MémoPatte’s data?</a>
+              </li>
+            </ul>
+          </section>
+          <section class="card help-theme" id="theme-reminders">
+            <h3>Reminders</h3>
+            <ul>
+              <li
+                data-search="Several Android settings can block or delay them. Check them in order with the Reminders page."
+              >
+                <a href="/en/help/late-reminders/">My reminders arrive late, or not at all</a>
+              </li>
+              <li
+                data-search="MémoPatte schedules your reminders on the phone itself, so they arrive even without an internet connection. Android is what shows them, and several phone settings can block or delay them. If a reminder doesn’t arrive, or arrives late, check these points in order. The paths below are for Android 14 to 16 on a Google Pixel phone. On other brands (Samsung, Xiaomi, Oppo…), menus and their names can differ: use the search in the Settings app instead."
+              >
+                <a href="/en/help/reminders/">Reminders</a>
+              </li>
+              <li
+                class="help-subsection"
+                data-search="1. Allow MémoPatte’s notifications Without this permission, Android shows no reminders at all. MémoPatte asks for it once your health record has a first upcoming reminder. If it was denied: Open your phone’s Settings app. Tap Notifications › App notifications. Tap MémoPatte. If it isn’t listed, choose “All apps” in the dropdown menu. Turn on “All MémoPatte notifications”. Check that the “Reminders” category is on: that’s the one your reminders use. In MémoPatte, Settings › Reminders shows whether notifications are allowed, with a link to this setting when they’re off."
+              >
+                <a href="/en/help/reminders/#reminders-notifications"
+                  >1. Allow MémoPatte’s notifications</a
+                >
+              </li>
+              <li
+                class="help-subsection"
+                data-search="2. Battery saving and sleep To save battery, Android limits apps while you’re not using them. When MémoPatte is limited too much, your reminders can arrive late, or not at all. Open your phone’s Settings app. Tap Apps › See all apps › MémoPatte. Tap App battery usage. Turn on “Allow background usage”, then tap that label to choose between “Optimized” and “Unrestricted”. On some Android versions, “Unrestricted”, “Optimized” and “Restricted” are shown right away. Restricted (background usage off): Android stops MémoPatte from doing anything while you’re not using it. Your reminders may not arrive at all. Best avoided. Optimized (the default): Android adapts what MémoPatte can do to how you use it. Your reminders arrive, sometimes late. Unrestricted : Android no longer delays your reminders to save battery. Android notes that this choice may use more battery. Choose it if your reminders often arrive late. Battery Saver (Settings › Battery › Battery Saver) can also delay your reminders while it’s on. Finally, if MémoPatte isn’t used for several months, Android can pause it: it removes the app’s permissions, including notifications. Opening MémoPatte or tapping one of its reminders is enough to prevent this. To turn it off: Settings › Apps › See all apps › MémoPatte, then turn off “Pause app activity if unused”."
+              >
+                <a href="/en/help/reminders/#reminders-battery">2. Battery saving and sleep</a>
+              </li>
+              <li
+                class="help-subsection"
+                data-search="3. Exact reminders Without exact reminders, Android can delay your reminders to save battery: a reminder never arrives before its time, usually within the following hour, and sometimes later when the phone is saving battery. With exact reminders, Android shows each reminder right on time. They also let you choose a reminder 15 or 30 minutes before a treatment’s time. Exact reminders are optional: without them, your reminders still arrive, sometimes late. They’re useful for a treatment given at a set time. To turn them on from MémoPatte: Open Settings › Reminders and turn on “Exact reminders”. Tap “Open settings”: Android opens the “Alarms &amp; reminders” screen. Turn on “Allow setting alarms and reminders”, then go back to MémoPatte. Or from your phone’s settings: Settings › Apps › Special app access › Alarms &amp; reminders › MémoPatte, then turn on “Allow setting alarms and reminders”. If you remove this permission, Android closes MémoPatte and deletes its scheduled reminders. Open the app once: it schedules them again right away. MémoPatte then tells you your reminders may arrive late, and keeps your choices: they’re exact again as soon as the permission is back. On a new phone, Android doesn’t carry this permission over, even when it transfers MémoPatte: you need to give it again."
+              >
+                <a href="/en/help/reminders/#reminders-exact">3. Exact reminders</a>
+              </li>
+              <li
+                class="help-subsection"
+                data-search="4. What MémoPatte can’t do on its own Phone switched off : no reminder can arrive on a phone that’s off. When it restarts, MémoPatte schedules your reminders again, and the ones due in the meantime show up. If the phone stayed off for a long time, open MémoPatte once: it recalculates all your reminders. Not opening the app for a long time : MémoPatte schedules your reminders ahead of time, but not forever. The last scheduled reminder asks you to open MémoPatte: opening it is enough to schedule the next ones. Force stop : if you tap “Force stop” in the app info, Android can cancel all its reminders. Open MémoPatte once to schedule them again. Uninstalling : uninstalling MémoPatte erases its reminders. If you reinstall it and get your health record back (Android backup, importing an export, or, soon, MémoPatte Plus), allow its notifications again, and exact reminders if you used them. Still no reminders? Email us at contact@memopatte.app , with your phone model and Android version."
+              >
+                <a href="/en/help/reminders/#reminders-limits"
+                  >4. What MémoPatte can’t do on its own</a
+                >
+              </li>
+            </ul>
+          </section>
+          <section class="card help-theme" id="theme-pets">
+            <h3>Your pets</h3>
+            <ul>
+              <li
+                data-search="In the pet’s health record, tap 1 ⋮ then 2 “Stop following”: the pet’s reminders and ongoing treatments stop, and the health record stays intact. In the same place, 3 “Delete” erases the whole health record: vaccines, treatments, weigh-ins, photo. Either way, “Undo”, in the message that appears next, takes you back."
+              >
+                <a href="/en/help/stop-following/"
+                  >What about the health record of a pet I no longer follow?</a
+                >
+              </li>
+            </ul>
+          </section>
+          <section class="card help-theme" id="theme-plus">
+            <h3>MémoPatte Plus</h3>
+            <ul>
+              <li
+                data-search="Everything you do on your phone is free, with no account: your pets, their vaccines, treatments and weigh-ins, reminders, and JSON, CSV and PDF exports. MémoPatte Plus is the subscription that will add a cloud backup of your health record, photos included. It’s coming soon."
+              >
+                <a href="/en/help/plus/">What does MémoPatte Plus add?</a>
+              </li>
+            </ul>
+          </section>
+        </div>
+      </section>
+      <section class="card help-contact-card" id="email-us">
+        <h2>Your question isn’t here?</h2>
         <p>
           Email us from the app, in Settings › Help &amp; contact › “Email us”, or at
           <a href="mailto:contact@memopatte.app">contact@memopatte.app</a>.
-        </p>
-      </section>
-
-      <section id="reminders">
-        <h2>Reminders</h2>
-        <p>
-          MémoPatte schedules your reminders on the phone itself, so they arrive even without an
-          internet connection. Android is what shows them, and several phone settings can block or
-          delay them. If a reminder doesn’t arrive, or arrives late, check these points in order.
-        </p>
-        <p>
-          The paths below are for Android 14 to 16 on a Google Pixel phone. On other brands
-          (Samsung, Xiaomi, Oppo…), menus and their names can differ: use the search in the Settings
-          app instead.
-        </p>
-
-        <h3 id="reminders-notifications">1. Allow MémoPatte’s notifications</h3>
-        <p>
-          Without this permission, Android shows no reminders at all. MémoPatte asks for it once
-          your health record has a first upcoming reminder. If it was denied:
-        </p>
-        <ol>
-          <li>Open your phone’s Settings app.</li>
-          <li>Tap Notifications › App notifications.</li>
-          <li>Tap MémoPatte. If it isn’t listed, choose “All apps” in the dropdown menu.</li>
-          <li>Turn on “All MémoPatte notifications”.</li>
-          <li>Check that the “Reminders” category is on: that’s the one your reminders use.</li>
-        </ol>
-        <p>
-          In MémoPatte, Settings › Reminders shows whether notifications are allowed, with a link to
-          this setting when they’re off.
-        </p>
-
-        <h3 id="reminders-battery">2. Battery saving and sleep</h3>
-        <p>
-          To save battery, Android limits apps while you’re not using them. When MémoPatte is
-          limited too much, your reminders can arrive late, or not at all.
-        </p>
-        <ol>
-          <li>Open your phone’s Settings app.</li>
-          <li>Tap Apps › See all apps › MémoPatte.</li>
-          <li>Tap App battery usage.</li>
-          <li>
-            Turn on “Allow background usage”, then tap that label to choose between “Optimized” and
-            “Unrestricted”. On some Android versions, “Unrestricted”, “Optimized” and “Restricted”
-            are shown right away.
-          </li>
-        </ol>
-        <ul>
-          <li>
-            <strong>Restricted</strong> (background usage off): Android stops MémoPatte from doing
-            anything while you’re not using it. Your reminders may not arrive at all. Best avoided.
-          </li>
-          <li>
-            <strong>Optimized</strong> (the default): Android adapts what MémoPatte can do to how
-            you use it. Your reminders arrive, sometimes late.
-          </li>
-          <li>
-            <strong>Unrestricted</strong>: Android no longer delays your reminders to save battery.
-            Android notes that this choice may use more battery. Choose it if your reminders often
-            arrive late.
-          </li>
-        </ul>
-        <p>
-          Battery Saver (Settings › Battery › Battery Saver) can also delay your reminders while
-          it’s on.
-        </p>
-        <p>
-          Finally, if MémoPatte isn’t used for several months, Android can pause it: it removes the
-          app’s permissions, including notifications. Opening MémoPatte or tapping one of its
-          reminders is enough to prevent this. To turn it off: Settings › Apps › See all apps ›
-          MémoPatte, then turn off “Pause app activity if unused”.
-        </p>
-
-        <h3 id="reminders-exact">3. Exact reminders</h3>
-        <p>
-          Without exact reminders, Android can delay your reminders to save battery: a reminder
-          never arrives before its time, usually within the following hour, and sometimes later when
-          the phone is saving battery. With exact reminders, Android shows each reminder right on
-          time. They also let you choose a reminder 15 or 30 minutes before a treatment’s time.
-        </p>
-        <p>
-          Exact reminders are optional: without them, your reminders still arrive, sometimes late.
-          They’re useful for a treatment given at a set time.
-        </p>
-        <p>To turn them on from MémoPatte:</p>
-        <ol>
-          <li>Open Settings › Reminders and turn on “Exact reminders”.</li>
-          <li>Tap “Open settings”: Android opens the “Alarms &amp; reminders” screen.</li>
-          <li>Turn on “Allow setting alarms and reminders”, then go back to MémoPatte.</li>
-        </ol>
-        <p>
-          Or from your phone’s settings: Settings › Apps › Special app access › Alarms &amp;
-          reminders › MémoPatte, then turn on “Allow setting alarms and reminders”.
-        </p>
-        <p>
-          If you remove this permission, Android closes MémoPatte and deletes its scheduled
-          reminders. Open the app once: it schedules them again right away. MémoPatte then tells you
-          your reminders may arrive late, and keeps your choices: they’re exact again as soon as the
-          permission is back. On a new phone, Android doesn’t carry this permission over, even when
-          it transfers MémoPatte: you need to give it again.
-        </p>
-
-        <h3 id="reminders-limits">4. What MémoPatte can’t do on its own</h3>
-        <ul>
-          <li>
-            <strong>Phone switched off</strong>: no reminder can arrive on a phone that’s off. When
-            it restarts, MémoPatte schedules your reminders again, and the ones due in the meantime
-            show up. If the phone stayed off for a long time, open MémoPatte once: it recalculates
-            all your reminders.
-          </li>
-          <li>
-            <strong>Not opening the app for a long time</strong>: MémoPatte schedules your reminders
-            ahead of time, but not forever. The last scheduled reminder asks you to open MémoPatte:
-            opening it is enough to schedule the next ones.
-          </li>
-          <li>
-            <strong>Force stop</strong>: if you tap “Force stop” in the app info, Android can cancel
-            all its reminders. Open MémoPatte once to schedule them again.
-          </li>
-          <li>
-            <strong>Uninstalling</strong>: uninstalling MémoPatte erases its reminders. If you
-            reinstall it and get your health record back (Android backup, importing an export, or,
-            soon, MémoPatte Plus), allow its notifications again, and exact reminders if you used
-            them.
-          </li>
-        </ul>
-        <p>
-          Still no reminders? Email us at
-          <a href="mailto:contact@memopatte.app">contact@memopatte.app</a>, with your phone model
-          and Android version.
         </p>
       </section>
     </main>

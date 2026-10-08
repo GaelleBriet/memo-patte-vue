@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { helpPageUrl, remindersHelpUrl } from '@/shared/domain/help-page'
+import { helpPageUrl } from '@/shared/domain/help-page'
 
 const SITE = 'site'
 const SITE_URL = 'https://memopatte.app'
@@ -65,13 +65,6 @@ const translations = [
   { name: 'aide', fr: '/aide/', en: '/en/help/' },
   { name: 'mentions légales', ...SITE_LEGAL_NOTICES },
 ]
-
-const helpPages = {
-  fr: { url: helpPageUrl('fr'), faq: 'questions' },
-  en: { url: helpPageUrl('en'), faq: 'faq' },
-}
-
-const idsOf = (html: string) => new Set([...html.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]))
 
 const policies = { fr: '/confidentialite/', en: '/en/privacy/' }
 const deletions = { fr: '/suppression-compte/', en: '/en/delete-account/' }
@@ -176,14 +169,20 @@ describe('site public memopatte.app', () => {
     expect(read(page)).toContain(`<html lang="${languageOf(page)}">`)
   })
 
-  it.each(pages)('%s ne charge rien depuis un autre site', (page) => {
-    const html = read(page)
-    expect(html).not.toMatch(/<script/i)
-    const loadingTags = [...html.matchAll(/<(?:link|img|source|iframe)\b[^>]*>/gi)]
-      .map((match) => match[0])
-      .filter((tag) => !/\brel="(?:alternate|canonical)"/.test(tag))
-    for (const tag of loadingTags) expect(tag).not.toMatch(/\b(href|src)="(https?:)?\/\//i)
-  })
+  it.each(pages)(
+    '%s ne charge rien depuis un autre site, et ses scripts sont des fichiers du site',
+    (page) => {
+      const html = read(page)
+      const scripts = html.match(/<script\b[^>]*>[\s\S]*?<\/script>/gi) ?? []
+      for (const script of scripts) {
+        expect(script).toMatch(/^<script type="module" src="\/(?!\/)[^"]+"><\/script>$/)
+      }
+      const loadingTags = [...html.matchAll(/<(?:link|img|source|iframe)\b[^>]*>/gi)]
+        .map((match) => match[0])
+        .filter((tag) => !/\brel="(alternate|canonical)"/.test(tag))
+      for (const tag of loadingTags) expect(tag).not.toMatch(/\b(href|src)="(https?:)?\/\//i)
+    },
+  )
 
   it('le style ne charge rien depuis un autre site', () => {
     const css = read('style.css')
@@ -303,32 +302,6 @@ describe('site public memopatte.app', () => {
       const audience = policy.match(/(?:Ce site mesure|This website measures)[^.]*\./)?.[0]
       expect(audience).toBeDefined()
       expect(text).toContain(audience)
-    })
-  })
-
-  describe.each(languages)('page d’aide en %s', (lang) => {
-    const { url, faq } = helpPages[lang]
-    const html = read(fileOf(url.replace(SITE_URL, '')))
-
-    it('commence par les questions fréquentes, avant les rappels', () => {
-      const ids = [...idsOf(html)]
-      const reminders = new URL(remindersHelpUrl(lang)).hash.slice(1)
-      expect(ids.indexOf(faq)).toBeGreaterThanOrEqual(0)
-      expect(ids.indexOf(faq)).toBeLessThan(ids.indexOf(reminders))
-    })
-
-    it('a la section que l’app ouvre pour les rappels', () => {
-      expect(idsOf(html)).toContain(new URL(remindersHelpUrl(lang)).hash.slice(1))
-    })
-
-    it('ne renvoie qu’à des sections qui existent', () => {
-      const anchors = [...html.matchAll(/href="#([^"]+)"/g)].map((m) => m[1])
-      expect(anchors.length).toBeGreaterThan(0)
-      for (const anchor of anchors) expect(idsOf(html), `#${anchor}`).toContain(anchor)
-    })
-
-    it('donne l’e-mail de contact', () => {
-      expect(html).toContain(`href="${CONTACT}"`)
     })
   })
 

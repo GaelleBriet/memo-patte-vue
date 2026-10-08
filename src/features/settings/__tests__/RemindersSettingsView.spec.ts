@@ -348,7 +348,7 @@ describe('RemindersSettingsView — aide et navigation', () => {
     const link = vue.get('a.reminders-settings__help')
     expect(texte(link)).toContain('Je ne reçois pas mes rappels')
     expect(texte(link)).toContain('Page d’aide du site')
-    expect(link.attributes('href')).toBe('https://memopatte.app/aide/#rappels')
+    expect(link.attributes('href')).toBe('https://memopatte.app/aide/rappels/')
     expect(link.attributes('target')).toBe('_blank')
   })
 
@@ -357,7 +357,7 @@ describe('RemindersSettingsView — aide et navigation', () => {
     const vue = await monter()
 
     expect(vue.get('a.reminders-settings__help').attributes('href')).toBe(
-      'https://memopatte.app/en/help/#reminders',
+      'https://memopatte.app/en/help/reminders/',
     )
     expect(texte(vue.get('.reminders-settings__help'))).toContain('I’m not getting my reminders')
   })
