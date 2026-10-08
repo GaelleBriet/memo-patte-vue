@@ -12,6 +12,7 @@ import {
   type TreatmentsRepository,
 } from '../repository/treatments.repository'
 import type { TreatmentCreationInput, TreatmentEditionInput } from '../schema/treatment-form.schema'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import { createWriteQueue } from '../logic/treatment-write-queue'
 import { createTreatmentDosesService, type NotedMoment } from '../service/treatment-doses.service'
 import {
@@ -636,11 +637,20 @@ describe('treatmentPlanService', () => {
   })
 
   describe('rappels', () => {
+    let seenAtReschedule: TreatmentWithHistory | null
+
+    beforeEach(() => {
+      seenAtReschedule = null
+      reminders.reschedule.mockImplementation(async (id) => {
+        seenAtReschedule = await treatments.getWithHistory(id)
+      })
+    })
+
     it('programme les rappels du traitement créé, après son écriture', async () => {
       const created = await service.create(MILBEMAX)
 
       expect(reminders.reschedule).toHaveBeenCalledExactlyOnceWith(created.id)
-      await expect(historyOf(created.id)).resolves.toMatchObject({ id: created.id })
+      expect(seenAtReschedule).toMatchObject({ id: created.id })
     })
 
     it('reprogramme les rappels quand « Modifier » déplace l’échéance', async () => {
@@ -651,6 +661,9 @@ describe('treatmentPlanService', () => {
       await service.update(id, saisie({ nextDoseOn: '2026-10-06' }))
 
       expect(reminders.reschedule).toHaveBeenCalledExactlyOnceWith(id)
+      expect(seenAtReschedule?.doses).toContainEqual(
+        expect.objectContaining({ status: 'postponed', nextDueDate: '2026-10-06' }),
+      )
     })
 
     it('reprogramme les rappels d’un traitement repris', async () => {
@@ -663,6 +676,7 @@ describe('treatmentPlanService', () => {
       await service.resume(id, { ...MILBEMAX, firstDoseOn: '2026-11-03', endsOn: null })
 
       expect(reminders.reschedule).toHaveBeenCalledExactlyOnceWith(id)
+      expect(seenAtReschedule?.periods).toHaveLength(2)
     })
 
     it('ne touche pas aux rappels quand l’écriture est refusée', async () => {
