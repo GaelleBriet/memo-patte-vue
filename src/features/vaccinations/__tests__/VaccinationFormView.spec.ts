@@ -1060,7 +1060,7 @@ describe('VaccinationFormView — envoi en cours', () => {
     expect(create).toHaveBeenCalledOnce()
   })
 
-  it('ne reste pas bloqué quand la navigation de retour échoue : pas de message d’échec, pas de seconde écriture', async () => {
+  it('quand la navigation de retour échoue : pas de message d’échec, pas de seconde écriture, le bouton reste désactivé et « Annuler » utilisable', async () => {
     replace.mockRejectedValue(new Error('navigation refusée'))
     const wrapper = await monterCreation()
     await remplirMinimum(wrapper)

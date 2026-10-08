@@ -203,6 +203,7 @@ describe('leaveAfterReminderSaved', () => {
       routes: [
         { path: '/', name: 'home', component: Vide },
         { path: '/animals', name: 'animals', component: Vide },
+        { path: '/settings', name: 'settings', component: Vide },
         { path: '/form', name: 'form', component: Vide },
         { path: '/priming', name: 'notifications-priming', component: Vide },
       ],
@@ -233,10 +234,10 @@ describe('leaveAfterReminderSaved', () => {
       hasDueDate: true,
       animalName: null,
       kind: 'vaccination',
-      from: 'home',
+      from: 'settings',
     })
 
-    expect(memoire.currentRoute.value.name).toBe('home')
+    expect(memoire.currentRoute.value.name).toBe('settings')
   })
 
   it('ne lève pas quand la navigation échoue', async () => {
