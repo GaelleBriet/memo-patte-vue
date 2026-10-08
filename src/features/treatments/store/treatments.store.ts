@@ -32,7 +32,6 @@ import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import type { DoseGesture } from '@/shared/domain/treatment-schedule'
 import { recordUsageSignal } from '@/shared/utils/usage-signals'
 
-// Le store ne dépend que de ce qu'il appelle : la cascade de suppression (#102) n'est pas son affaire.
 type TreatmentsRepository = Pick<
   FullTreatmentsRepository,
   'getById' | 'remove' | 'restore' | 'listDoses' | 'getWithHistory' | 'listWithHistoryByAnimal'
