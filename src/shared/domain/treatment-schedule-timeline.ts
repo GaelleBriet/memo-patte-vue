@@ -121,12 +121,22 @@ export function hasFallen({ kind, dose }: Step): boolean {
   return kind === 'note' || (kind === 'move' && dose.nextDueDate > dose.dueOn)
 }
 
-// Q24 : les prises du jour du changement comptent pour les premières heures du nouveau réglage.
-function coveredKeys(period: TreatmentPeriodInput, notedThatDay: number): Set<string> {
-  if (period.firstDueOn !== period.startsOn) return new Set()
+export function sameRhythm(
+  a: Pick<TreatmentPeriodInput, 'frequency' | 'times'>,
+  b: Pick<TreatmentPeriodInput, 'frequency' | 'times'>,
+): boolean {
+  return (
+    a.frequency.value === b.frequency.value &&
+    a.frequency.unit === b.frequency.unit &&
+    [...a.times].sort().join() === [...b.times].sort().join()
+  )
+}
+
+// Q24 : les prises déjà notées pour la première journée comptent pour ses premières heures.
+function coveredKeys(period: TreatmentPeriodInput, notedOnFirstDay: number): Set<string> {
   const times = period.times.length === 0 ? [null] : [...period.times].sort(compareText)
   return new Set(
-    times.slice(0, notedThatDay).map((dueTime) => keyOf({ dueOn: period.startsOn, dueTime })),
+    times.slice(0, notedOnFirstDay).map((dueTime) => keyOf({ dueOn: period.firstDueOn, dueTime })),
   )
 }
 
@@ -181,7 +191,7 @@ export function planPeriod(
   period: TreatmentPeriodInput,
   closesOn: string | null,
   doses: TreatmentDoseInput[],
-  notedOnStart: number,
+  notedOnFirstDay: number,
 ): PeriodTimeline {
   const notes = doses.filter(isNoteLine)
   const noteKeys = new Set(notes.map(keyOf))
@@ -215,7 +225,7 @@ export function planPeriod(
     removals: removalsOf(moves),
     noteKeys,
     noteDays,
-    covered: coveredKeys(period, notedOnStart),
+    covered: coveredKeys(period, notedOnFirstDay),
     fallenKeys: steps
       .filter(hasFallen)
       .map(({ dose }) => keyOf(dose))

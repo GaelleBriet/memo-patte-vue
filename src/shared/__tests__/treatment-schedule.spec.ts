@@ -3449,14 +3449,54 @@ describe('sans changer la fréquence ni les heures, la prochaine dose reste cell
       })
     })
 
-    it('8 h du 3 donnée en avance le 2, posologie changée le 2 : la journée du 3 n’est pas redemandée', () => {
+    describe('8 h du 3 donnée en avance le 2, posologie changée le 2 (#656)', () => {
       const book = done(firstDay, '2026-10-02')
-      expect(scheduleOf(book, '2026-10-02').currentDoses).toEqual([due('2026-10-03', '20:00')])
+      const opened = (rhythm: Pick<TreatmentPeriodInput, 'firstDueOn' | 'times'>): Carnet => ({
+        ...book,
+        periods: [
+          ...book.periods,
+          period({
+            id: 'p2',
+            startsOn: '2026-10-02',
+            referenceOn: '2026-10-01',
+            frequency: twoDays,
+            createdAt: '2026-10-02T09:00:00.000Z',
+            ...rhythm,
+          }),
+        ],
+      })
 
-      expect(scheduleOf(book, '2026-10-02').newPeriod(twoDays, times)).toEqual({
-        startsOn: '2026-10-02',
-        firstDueOn: '2026-10-05',
-        referenceOn: '2026-10-05',
+      it('la nouvelle période commence par la journée du 3', () => {
+        expect(scheduleOf(book, '2026-10-02').currentDoses).toEqual([due('2026-10-03', '20:00')])
+
+        expect(scheduleOf(book, '2026-10-02').newPeriod(twoDays, times)).toEqual({
+          startsOn: '2026-10-02',
+          firstDueOn: '2026-10-03',
+          referenceOn: '2026-10-01',
+        })
+      })
+
+      it('la prise de 8 h compte : prochaine dose le 3 à 20 h, puis le 5', () => {
+        const changed = opened({ firstDueOn: '2026-10-03', times })
+
+        const onSecond = scheduleOf(changed, '2026-10-02')
+        expect(onSecond.upcoming(2)).toEqual([
+          due('2026-10-03', '20:00', 'p2'),
+          due('2026-10-05', '08:00', 'p2'),
+        ])
+        expect(onSecond.unloggedDoses).toEqual([])
+        const onFifth = scheduleOf(done(changed, '2026-10-03'), '2026-10-04')
+        expect(onFifth.currentDoses).toEqual([due('2026-10-05', '08:00', 'p2')])
+        expect(onFifth.unloggedDoses).toEqual([])
+      })
+
+      it('les heures changent et la prochaine dose est choisie le 3 : la journée entière reste à donner', () => {
+        const changed = opened({ firstDueOn: '2026-10-03', times: ['09:00', '21:00'] })
+
+        expect(scheduleOf(changed, '2026-10-02').upcoming(2)).toEqual([
+          due('2026-10-03', '09:00', 'p2'),
+          due('2026-10-03', '21:00', 'p2'),
+        ])
       })
     })
 

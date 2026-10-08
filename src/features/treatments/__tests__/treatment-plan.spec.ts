@@ -1619,6 +1619,29 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
     ).toMatchObject({ proposedOn: '2026-03-31', help: { kind: 'scheduled', on: '2026-03-31' } })
   })
 
+  it('tous les 2 jours à 8 h et 20 h, 8 h du 3 donnée le 2, posologie changée le 2 : prochaine dose le 3 (#656)', () => {
+    const matinEtSoir = period({
+      startsOn: '2026-10-01',
+      firstDueOn: '2026-10-01',
+      frequency: { value: 2, unit: 'day' },
+      times: ['08:00', '20:00'],
+    })
+    const prise = (id: string, dueOn: string, dueTime: string, givenOn: string) =>
+      dose({ id, dueOn, dueTime, givenOn, nextDueDate: '2026-10-03' })
+    const history = treatment(
+      [matinEtSoir],
+      [
+        prise('a', '2026-10-01', '08:00', '2026-10-01'),
+        prise('b', '2026-10-01', '20:00', '2026-10-01'),
+        prise('c', '2026-10-03', '08:00', '2026-10-02'),
+      ],
+    )
+
+    expect(
+      editionDraft(history, saisie(history, { doseQuantity: 0.5 }), '2026-10-02').nextDose,
+    ).toMatchObject({ proposedOn: '2026-10-03', help: { kind: 'scheduled', on: '2026-10-03' } })
+  })
+
   it('mensuel du 31, posologie changée le 20 févr. : la nouvelle période garde le 31 comme jour de référence', () => {
     const du31 = treatment(
       [

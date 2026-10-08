@@ -12,6 +12,7 @@ import {
   orderPeriods,
   pendingDues,
   planPeriod,
+  sameRhythm,
 } from './treatment-schedule-timeline'
 import type {
   Due,
@@ -57,19 +58,29 @@ export function notedOn(
   ).length
 }
 
+// Le jour du changement (Q24) ; au même rythme, la journée suivante entamée en avance (#656).
+function coveredDay(
+  period: TreatmentPeriodInput,
+  previous: TreatmentPeriodInput | undefined,
+): string | null {
+  if (period.firstDueOn === period.startsOn) return period.startsOn
+  return previous !== undefined && sameRhythm(previous, period) ? period.firstDueOn : null
+}
+
 export function build(input: TreatmentScheduleInput): State {
   const { today } = input
   const periods = orderPeriods(input.periods)
   // Une prise en plus ne change jamais le calendrier : le moteur ne la lit pas.
   const doses = mergeDoses(input.doses).filter((dose) => !isExtraLine(dose))
-  const plans = periods.map((period, index) =>
-    planPeriod(
+  const plans = periods.map((period, index) => {
+    const coveredOn = coveredDay(period, periods[index - 1])
+    return planPeriod(
       period,
       closingDay(period, periods[index + 1]),
       doses.filter((dose) => dose.periodId === period.id),
-      notedOn(period.startsOn, periods.slice(0, index), doses),
-    ),
-  )
+      coveredOn === null ? 0 : notedOn(coveredOn, periods.slice(0, index), doses),
+    )
+  })
   const current = plans.at(-1)
   const unlogged = plans
     .slice(0, -1)

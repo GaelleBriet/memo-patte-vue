@@ -1193,6 +1193,46 @@ class Simulation {
     if (noted === 0 && dueToday && left !== hours) {
       this.fail(`${gesture} : rien noté pour aujourd’hui, ${left} dose(s) sur ${hours} restent`)
     }
+    this.checkDayStartedAhead(before, after, period, stopped, gesture)
+  }
+
+  // G22 : au même rythme, une journée à venir entamée en avance garde ses heures restantes ; une période
+  // qui commence par la journée du changement (Q24, G15) n'est pas concernée.
+  private checkDayStartedAhead(
+    before: TreatmentSchedule,
+    after: TreatmentSchedule,
+    period: TreatmentPeriodInput,
+    stopped: Set<string>,
+    gesture: string,
+  ): void {
+    const previous = this.book.periods.at(-2)
+    const day = before.currentDoses[0]?.dueOn
+    const { today } = this.book
+    if (
+      previous === undefined ||
+      day === undefined ||
+      day <= today ||
+      period.firstDueOn === today
+    ) {
+      return
+    }
+    if (
+      JSON.stringify([previous.frequency, previous.times]) !==
+      JSON.stringify([period.frequency, period.times])
+    ) {
+      return
+    }
+    const noted = before.doses.filter(
+      (dose) => isNote(dose) && dose.dueOn === day && !stopped.has(dose.periodId),
+    ).length
+    if (noted === 0) return
+    const hours = Math.max(1, period.times.length)
+    const left = pendingOf(after).filter(
+      (due) => due.periodId === period.id && due.dueOn === day,
+    ).length
+    if (left !== hours - noted) {
+      this.fail(`${gesture} : ${left} dose(s) à donner le ${day}, ${hours - noted} attendue(s)`)
+    }
   }
 
   // Q23 : une journée d'échéance n'est jamais coupée entre dose du moment et dose non renseignée.
