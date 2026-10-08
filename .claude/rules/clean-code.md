@@ -34,17 +34,17 @@ dans son module, l'écran ne faisant qu'assembler : ticket #655.
 Un groupe séparé du suivant par une ligne vide, vérifié par la règle ESLint `app/vue-script-order` :
 
 1. imports, puis types locaux et constantes de module (`const MAX = 3`, un appel qui ne lit que des
-   imports)
+   imports ou des constantes de module)
 2. `defineProps` (ou `withDefaults`), `defineEmits`, `defineModel`, `defineSlots`, `defineOptions`
 3. outils : `useI18n`, `useRouter`, `useRoute`, stores, composables `useXxx()`
 4. état : `ref`, `reactive`, `shallowRef`, `useTemplateRef`, `useId`, `toRef`, `toRefs`, `inject`,
-   `new`, `let`, et toute valeur ou tout appel qui lit les props, les outils ou l'état
+   `provide`, `new`, `let`, et toute valeur ou tout appel qui lit les props, les outils, l'état, un
+   `computed` ou une fonction locale
 5. `computed`
 6. `watch`, `watchEffect`
 7. fonctions
-8. cycle de vie : `onMounted`, `onUnmounted`, `onScopeDispose`…
+8. cycle de vie : `onMounted`, `onUnmounted`, `onScopeDispose`, `nextTick`…
 9. `defineExpose`
 
-Un composable qui reçoit un état local (`useFormValidation(values)`) vient juste après cet état ;
-de même un `ref` initialisé depuis un `computed` vient après lui. La règle accepte cette exception
-et rien d'autre.
+Une instruction qui a besoin d'une valeur d'un groupe plus bas pour s'initialiser reste après elle :
+un composable qui reçoit un état local (`useFormValidation(values)`) vient juste après cet état.
