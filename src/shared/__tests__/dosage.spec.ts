@@ -66,12 +66,21 @@ describe('formatDoseQuantity', () => {
 })
 
 describe('doseUnitText', () => {
-  it('accorde l’unité à partir de deux', () => {
+  it('accorde l’unité à partir de deux en français', () => {
     expect(doseUnitText(t, 'tablet', 0.5)).toBe('comprimé')
     expect(doseUnitText(t, 'tablet', 1)).toBe('comprimé')
     expect(doseUnitText(t, 'tablet', 1.5)).toBe('comprimé')
     expect(doseUnitText(t, 'tablet', 2)).toBe('comprimés')
     expect(doseUnitText(t, 'spray', 3)).toBe('pulvérisations')
+  })
+
+  it('accorde l’unité dès qu’une quantité d’au moins un n’est pas exactement un, en anglais', () => {
+    applyLocale('en')
+
+    expect(doseUnitText(t, 'tablet', 0.5)).toBe('tablet')
+    expect(doseUnitText(t, 'tablet', 1)).toBe('tablet')
+    expect(doseUnitText(t, 'drop', 1.5)).toBe('drops')
+    expect(doseUnitText(t, 'tablet', 2)).toBe('tablets')
   })
 
   it('laisse « ml » et « g » invariables', () => {
@@ -129,7 +138,10 @@ describe('dosageText', () => {
     applyLocale('en')
 
     expect(dosageText(t, { doseQuantity: 0.5, doseUnit: 'tablet' })).toBe(`½${NBSP}tablet`)
-    expect(dosageText(t, { doseQuantity: 1.5, doseUnit: 'tablet' })).toBe(`1${NBSP}½${NBSP}tablet`)
+    expect(dosageText(t, { doseQuantity: 1.5, doseUnit: 'tablet' })).toBe(`1${NBSP}½${NBSP}tablets`)
+    expect(dosageText(t, { doseQuantity: 1, doseUnit: 'tablet' })).toBe(`1${NBSP}tablet`)
+    expect(dosageText(t, { doseQuantity: 2, doseUnit: 'tablet' })).toBe(`2${NBSP}tablets`)
+    expect(dosageText(t, { doseQuantity: 1.5, doseUnit: 'drop' })).toBe(`1.5${NBSP}drops`)
     expect(dosageText(t, { doseQuantity: 0.3, doseUnit: 'ml' })).toBe(`0.3${NBSP}ml`)
     expect(dosageText(t, { doseQuantity: 10, doseUnit: 'drop' })).toBe(`10${NBSP}drops`)
   })

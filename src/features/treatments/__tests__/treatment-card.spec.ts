@@ -28,6 +28,22 @@ describe('doseCard', () => {
     })
   })
 
+  it.each([
+    ['fr', 0.5, '½ comprimé'],
+    ['fr', 1, '1 comprimé'],
+    ['fr', 1.5, '1 ½ comprimé'],
+    ['fr', 2, '2 comprimés'],
+    ['en', 0.5, '½ tablet'],
+    ['en', 1, '1 tablet'],
+    ['en', 1.5, '1 ½ tablets'],
+    ['en', 2, '2 tablets'],
+  ] as const)('accorde la posologie en %s : %f donne « %s »', (locale, doseQuantity, dosage) => {
+    applyLocale(locale)
+    const history = treatment([period({ doseQuantity, doseUnit: 'tablet' })])
+
+    expect(card(history, '2026-09-28').dosage).toBe(dosage)
+  })
+
   it('dit la dose du jour, sans heure pour un traitement sans heure (critère 1)', () => {
     const history = treatment([period()], [dose('2026-09-02', '2026-09-03')])
 
