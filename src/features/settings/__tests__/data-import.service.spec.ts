@@ -1262,8 +1262,12 @@ describe('data-import.service', () => {
   })
 
   describe('deux appareils', () => {
-    function at(instant: string): void {
-      vi.setSystemTime(new Date(instant))
+    function instantLocal(dateTime: string): string {
+      return new Date(dateTime).toISOString()
+    }
+
+    function at(localDateTime: string): void {
+      vi.setSystemTime(new Date(localDateTime))
     }
 
     beforeEach(() => {
@@ -1278,7 +1282,7 @@ describe('data-import.service', () => {
       const phoneA = db
       const phoneB = await createInMemoryDb()
       await phoneB.execute('PRAGMA foreign_keys = ON')
-      at('2026-09-01T08:00:00.000Z')
+      at('2026-09-01T08:00:00')
       const a = createRepositories(phoneA)
       const luna = await a.animals.create({ name: 'Luna', species: 'cat' })
       const milbemax = await a.seed.create({
@@ -1290,7 +1294,7 @@ describe('data-import.service', () => {
       })
       await importerOn(phoneB).importData(await exported(phoneA), 'replace')
 
-      at('2026-09-09T08:00:00.000Z')
+      at('2026-09-09T08:00:00')
       await phoneB.runMany([
         createTreatmentDosesRepository(phoneB).insertStatement(
           prise({
@@ -1299,11 +1303,11 @@ describe('data-import.service', () => {
             animalId: luna.id,
             givenOn: '2026-09-09',
             nextDueDate: '2026-09-16',
-            at: '2026-09-09T08:00:00.000Z',
+            at: instantLocal('2026-09-09T08:00:00'),
           }),
         ),
       ])
-      at('2026-09-10T08:00:00.000Z')
+      at('2026-09-10T08:00:00')
       await phoneA.runMany([
         a.doses.insertStatement(
           prise({
@@ -1312,7 +1316,7 @@ describe('data-import.service', () => {
             animalId: luna.id,
             givenOn: '2026-09-10',
             nextDueDate: '2026-09-17',
-            at: '2026-09-10T08:00:00.000Z',
+            at: instantLocal('2026-09-10T08:00:00'),
           }),
         ),
       ])
@@ -1330,7 +1334,7 @@ describe('data-import.service', () => {
       const phoneA = db
       const phoneB = await createInMemoryDb()
       await phoneB.execute('PRAGMA foreign_keys = ON')
-      at('2026-09-01T08:00:00.000Z')
+      at('2026-09-01T08:00:00')
       const a = createRepositories(phoneA)
       const luna = await a.animals.create({ name: 'Luna', species: 'cat' })
       const milbemax = await a.seed.create({
@@ -1342,17 +1346,17 @@ describe('data-import.service', () => {
       })
       await importerOn(phoneB).importData(await exported(phoneA), 'replace')
 
-      at('2026-09-05T08:00:00.000Z')
+      at('2026-09-05T08:00:00')
       await createRepositories(phoneB).seed.update(milbemax.id, {
         name: 'Milbémax chat',
         type: 'deworming',
         frequency: { value: 3, unit: 'month' },
         nextDueDate: '2026-09-15',
       })
-      at('2026-09-10T08:00:00.000Z')
+      at('2026-09-10T08:00:00')
       await a.periods.stop(milbemax.id, '2026-09-10')
 
-      at('2026-09-20T08:00:00.000Z')
+      at('2026-09-20T08:00:00')
       const [fromA, fromB] = [await exported(phoneA), await exported(phoneB)]
       await importerOn(phoneA).importData(fromB, 'merge')
       await importerOn(phoneB).importData(fromA, 'merge')
@@ -1369,7 +1373,7 @@ describe('data-import.service', () => {
       const phoneA = db
       const phoneB = await createInMemoryDb()
       await phoneB.execute('PRAGMA foreign_keys = ON')
-      at('2026-09-01T08:00:00.000Z')
+      at('2026-09-01T08:00:00')
       const a = createRepositories(phoneA)
       const luna = await a.animals.create({ name: 'Luna', species: 'cat' })
       const milbemax = await a.seed.create({
@@ -1382,9 +1386,9 @@ describe('data-import.service', () => {
       await importerOn(phoneB).importData(await exported(phoneA), 'replace')
       const b = createRepositories(phoneB)
 
-      at('2026-09-05T09:00:00.000Z')
+      at('2026-09-05T09:00:00')
       await b.periods.stop(milbemax.id, '2026-09-05')
-      at('2026-09-05T10:00:00.000Z')
+      at('2026-09-05T10:00:00')
       await a.seed.update(milbemax.id, {
         name: 'Milbémax chat',
         type: 'deworming',
@@ -1392,7 +1396,7 @@ describe('data-import.service', () => {
         nextDueDate: '2026-09-15',
       })
 
-      at('2026-09-20T08:00:00.000Z')
+      at('2026-09-20T08:00:00')
       const [fromA, fromB] = [await exported(phoneA), await exported(phoneB)]
       await importerOn(phoneB).importData(fromA, 'merge')
       await importerOn(phoneA).importData(fromB, 'merge')
@@ -1409,7 +1413,7 @@ describe('data-import.service', () => {
       const phoneA = db
       const phoneB = await createInMemoryDb()
       await phoneB.execute('PRAGMA foreign_keys = ON')
-      at('2026-09-01T08:00:00.000Z')
+      at('2026-09-01T08:00:00')
       const a = createRepositories(phoneA)
       const luna = await a.animals.create({ name: 'Luna', species: 'cat' })
       const milbemax = await a.seed.create({
@@ -1422,7 +1426,7 @@ describe('data-import.service', () => {
       await importerOn(phoneB).importData(await exported(phoneA), 'replace')
       const b = createRepositories(phoneB)
 
-      at('2026-09-05T09:00:00.000Z')
+      at('2026-09-05T09:00:00')
       await b.doses.applyBatch(
         [
           {
@@ -1440,7 +1444,7 @@ describe('data-import.service', () => {
         ],
         new Date().toISOString(),
       )
-      at('2026-09-05T10:00:00.000Z')
+      at('2026-09-05T10:00:00')
       await a.seed.update(milbemax.id, {
         name: 'Milbémax chat',
         type: 'deworming',
@@ -1448,7 +1452,7 @@ describe('data-import.service', () => {
         nextDueDate: '2026-09-15',
       })
 
-      at('2026-09-20T08:00:00.000Z')
+      at('2026-09-20T08:00:00')
       const [fromA, fromB] = [await exported(phoneA), await exported(phoneB)]
       await importerOn(phoneB).importData(fromA, 'merge')
       await importerOn(phoneA).importData(fromB, 'merge')
@@ -1469,7 +1473,7 @@ describe('data-import.service', () => {
       const phoneA = db
       const phoneB = await createInMemoryDb()
       await phoneB.execute('PRAGMA foreign_keys = ON')
-      at('2026-09-01T08:00:00.000Z')
+      at('2026-09-01T08:00:00')
       const a = createRepositories(phoneA)
       const luna = await a.animals.create({ name: 'Luna', species: 'cat' })
       const milbemax = await a.seed.create({
@@ -1479,17 +1483,17 @@ describe('data-import.service', () => {
         frequency: { value: 3, unit: 'month' },
         lastDoseDate: '2026-06-15',
       })
-      at('2026-09-01T09:00:00.000Z')
+      at('2026-09-01T09:00:00')
       await importerOn(phoneB).importData(await exported(phoneA), 'replace')
 
-      at('2026-09-10T08:00:00.000Z')
+      at('2026-09-10T08:00:00')
       await a.seed.update(milbemax.id, {
         name: 'Milbémax',
         type: 'deworming',
         frequency: { value: 1, unit: 'month' },
         nextDueDate: '2026-07-15',
       })
-      at('2026-09-12T08:00:00.000Z')
+      at('2026-09-12T08:00:00')
       await phoneB.runMany([
         createTreatmentDosesRepository(phoneB).insertStatement(
           prise({
@@ -1498,12 +1502,12 @@ describe('data-import.service', () => {
             animalId: luna.id,
             givenOn: '2026-09-12',
             nextDueDate: '2026-12-12',
-            at: '2026-09-12T08:00:00.000Z',
+            at: instantLocal('2026-09-12T08:00:00'),
           }),
         ),
       ])
 
-      at('2026-09-20T08:00:00.000Z')
+      at('2026-09-20T08:00:00')
       const [fromA, fromB] = [await exported(phoneA), await exported(phoneB)]
       await importerOn(phoneA).importData(fromB, 'merge')
       await importerOn(phoneB).importData(fromA, 'merge')

@@ -28,8 +28,8 @@ vi.mock('../service/billing.service', async (importOriginal) => ({
 
 const service = vi.mocked(billingService)
 
-const ANNUAL: PlusStatus = { plan: 'annual', expiresAt: '2027-09-14T10:00:00Z' }
-const MONTHLY: PlusStatus = { plan: 'monthly', expiresAt: '2026-10-14T10:00:00Z' }
+const ANNUAL: PlusStatus = { plan: 'annual', expiresAt: new Date(2027, 8, 14, 10).toISOString() }
+const MONTHLY: PlusStatus = { plan: 'monthly', expiresAt: new Date(2026, 9, 14, 10).toISOString() }
 const LIFETIME: PlusStatus = { plan: 'lifetime', expiresAt: null }
 const EXPIRED: PlusStatus = { plan: 'annual', expiresAt: '2026-09-01T10:00:00Z' }
 const CONFIRMED_EXPIRED = {

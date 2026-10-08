@@ -785,6 +785,32 @@ describe('TreatmentFormView — posologie (TR-4)', () => {
     expect((unite(wrapper).props('items') as { title: string }[])[0]!.title).toBe('tablets')
   })
 
+  it.each([
+    ['fr', '½', 'comprimé'],
+    ['fr', '1', 'comprimé'],
+    ['fr', '1,5', 'comprimé'],
+    ['fr', '2', 'comprimés'],
+    ['en', '½', 'tablet'],
+    ['en', '1', 'tablet'],
+    ['en', '1.5', 'tablets'],
+    ['en', '2', 'tablets'],
+  ] as const)('accorde l’unité en %s : « %s » donne « %s »', async (locale, quantite, titre) => {
+    i18n.global.locale.value = locale
+    const wrapper = await monterCreation()
+    await champ(wrapper, 'treatment-dose-quantity').setValue(quantite)
+
+    expect((unite(wrapper).props('items') as { title: string }[])[0]!.title).toBe(titre)
+  })
+
+  it('nomme le raccourci « 1 ½ » au pluriel en anglais', async () => {
+    i18n.global.locale.value = 'en'
+    const wrapper = await monterCreation()
+    await unite(wrapper).setValue('tablet')
+
+    expect(raccourcis(wrapper)[4]!.attributes('aria-label')).toBe('1\u00a0½\u00a0tablets')
+    expect(raccourcis(wrapper)[1]!.attributes('aria-label')).toBe('½\u00a0tablet')
+  })
+
   it('refuse une quantité sans unité, une unité sans quantité et une quantité illisible', async () => {
     const wrapper = await monterCreation()
     await remplirMinimum(wrapper)

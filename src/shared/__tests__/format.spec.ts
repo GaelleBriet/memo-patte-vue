@@ -131,7 +131,7 @@ describe('mois et dates', () => {
   })
 
   it('écrit une échéance en chiffres', () => {
-    expect(formatNumericDate('2027-09-14T10:00:00Z')).toBe('14/09/2027')
+    expect(formatNumericDate(new Date(2027, 8, 14, 10).toISOString())).toBe('14/09/2027')
     expect(formatNumericDate('2026-11-08')).toBe('08/11/2026')
   })
 })
@@ -158,7 +158,7 @@ describe('en anglais', () => {
     expect(plain(formatMonthYear('2026-12-12'))).toBe('Dec 2026')
     expect(plain(formatLongDate('2026-11-08'))).toBe('Nov 8, 2026')
     expect(plain(formatFullDate('2026-02-03'))).toBe('February 3, 2026')
-    expect(formatNumericDate('2027-09-14T10:00:00Z')).toBe('09/14/2027')
+    expect(formatNumericDate(new Date(2027, 8, 14, 10).toISOString())).toBe('09/14/2027')
     expect(plain(formatDayMonth('2026-09-28'))).toBe('Sep 28')
     expect(plain(formatFullDayMonth('2026-09-28'))).toBe('September 28')
     expect(plain(formatWeekdayDate('2026-09-20'))).toBe('Sun, Sep 20, 2026')
