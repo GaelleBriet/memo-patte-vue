@@ -24,9 +24,12 @@
       type="font/woff2"
       crossorigin
     />
+    <link rel="canonical" href="https://memopatte.app/aide/" />
     <link rel="alternate" hreflang="fr" href="https://memopatte.app/aide/" />
     <link rel="alternate" hreflang="en" href="https://memopatte.app/en/help/" />
     <link rel="alternate" hreflang="x-default" href="https://memopatte.app/aide/" />
+    <script type="module" src="/aide/ancres.js"></script>
+    <script type="module" src="/aide/recherche.js"></script>
   </head>
   <body>
     <header class="site-header">
@@ -46,320 +49,127 @@
         >
       </div>
     </header>
-    <main class="document">
+    <main class="document help-home">
       <h1>Aide de MémoPatte</h1>
       <p class="updated">
-        Dernière mise à jour&nbsp;: <time datetime="2026-10-07">7&nbsp;octobre 2026</time>
+        Dernière mise à jour&nbsp;: <time datetime="2026-10-08">8&nbsp;octobre 2026</time>
       </p>
-
+      <form class="help-search" role="search" hidden>
+        <label for="recherche">Chercher une question</label>
+        <input id="recherche" type="search" autocomplete="off" />
+      </form>
       <section id="questions">
         <h2>Questions fréquentes</h2>
-
-        <h3 id="exporter">Comment exporter mon carnet, et le réimporter&nbsp;?</h3>
-        <p>
-          Dans MémoPatte, ouvre Paramètres › Mes données › «&nbsp;Exporter mes données&nbsp;», puis
-          choisis un format&nbsp;:
-        </p>
-        <ul>
-          <li><strong>JSON</strong>&nbsp;: tout ton carnet, pour le réimporter dans MémoPatte.</li>
-          <li><strong>CSV</strong>&nbsp;: pour l’ouvrir dans un tableur.</li>
-        </ul>
-        <p>
-          Tu peux enregistrer le fichier sur le téléphone, dans Documents › MémoPatte, ou le
-          partager (Google Drive, e‑mail…).
-        </p>
-        <p>
-          Juste en dessous, Paramètres › Mes données › «&nbsp;Exporter en PDF&nbsp;» crée le carnet
-          de tous tes animaux ou d’un seul, à imprimer ou à montrer. Les exports sont gratuits et ne
-          demandent aucun compte. Les photos ne sont pas exportées.
-        </p>
-        <p>
-          Pour réimporter un export JSON&nbsp;: Paramètres › Mes données › «&nbsp;Importer un export
-          MémoPatte&nbsp;». Si des données existent déjà sur le téléphone, choisis
-          «&nbsp;Fusionner&nbsp;» (ajoute ce qui est absent de tes données actuelles) ou
-          «&nbsp;Remplacer&nbsp;» (remplace toutes tes données actuelles, après confirmation).
-          MémoPatte reprogramme ensuite tes rappels.
-        </p>
-
-        <figure class="screenshot">
-          <img
-            src="/aide/img/exporter.webp"
-            width="540"
-            height="720"
-            loading="lazy"
-            alt="Écran Mes données de MémoPatte"
-          />
-          <figcaption>
-            Paramètres › Mes données&nbsp;: 1. «&nbsp;Exporter mes données&nbsp;», 2.
-            «&nbsp;Exporter en PDF&nbsp;», 3. «&nbsp;Importer un export MémoPatte&nbsp;».
-          </figcaption>
-        </figure>
-
-        <h3 id="sauvegarde-android">Que garde la sauvegarde d’Android&nbsp;?</h3>
-        <p>
-          Si la sauvegarde de ton téléphone est active, Android peut garder une copie de ton carnet,
-          en général une fois par jour, quand le téléphone est en charge et en Wi‑Fi. MémoPatte ne
-          peut pas savoir si elle est active. Cette copie ne contient ni les photos, ni les réglages
-          propres au téléphone, comme l’unité de poids. Android ne la remet en place qu’à
-          l’installation de MémoPatte, par exemple sur un nouveau téléphone, et sans garantie.
-        </p>
-        <p>
-          Pour ne pas dépendre d’elle, exporte une copie de temps en temps&nbsp;: Paramètres ›
-          Sauvegarde › «&nbsp;Exporter une copie&nbsp;», puis range le fichier ailleurs que sur le
-          téléphone (Google Drive, e‑mail, ordinateur).
-        </p>
-
-        <h3 id="plus">Que change MémoPatte Plus&nbsp;?</h3>
-        <p>
-          Tout ce qui se fait sur ton téléphone est gratuit et sans compte&nbsp;: tes animaux, leurs
-          vaccins, traitements et pesées, les rappels, et les exports JSON, CSV et PDF. MémoPatte
-          Plus est l’abonnement qui ajoutera une sauvegarde cloud de ton carnet, photos comprises.
-          Il arrive bientôt.
-        </p>
-
-        <h3 id="nouveau-telephone">Comment retrouver mon carnet sur un nouveau téléphone&nbsp;?</h3>
-        <ol>
-          <li>
-            Sur l’ancien téléphone, ouvre Paramètres › Sauvegarde › «&nbsp;Exporter une
-            copie&nbsp;», et envoie le fichier là où le nouveau téléphone pourra le retrouver
-            (Google Drive, e‑mail…).
-          </li>
-          <li>
-            Sur le nouveau téléphone, installe MémoPatte, puis touche «&nbsp;Importer un export
-            MémoPatte&nbsp;» sur l’écran de bienvenue et choisis ce fichier.
-          </li>
-        </ol>
-        <p>
-          Si la sauvegarde d’Android était active, ou si tu transfères tes applis d’un téléphone à
-          l’autre, Android peut aussi remettre ton carnet en place quand il installe MémoPatte (voir
-          la question précédente). Dans les deux cas, les photos ne suivent pas&nbsp;; autorise de
-          nouveau les notifications de MémoPatte, et ses
-          <a href="#rappels-precis">rappels précis</a> si tu les utilisais.
-        </p>
-
-        <figure class="screenshot">
-          <img
-            src="/aide/img/nouveau-telephone.webp"
-            width="540"
-            height="1105"
-            loading="lazy"
-            alt="Écran de bienvenue de MémoPatte"
-          />
-          <figcaption>
-            Sur le nouveau téléphone, l’écran de bienvenue propose «&nbsp;Importer un export
-            MémoPatte&nbsp;».
-          </figcaption>
-        </figure>
-
-        <h3 id="effacer">Comment effacer toutes les données de MémoPatte&nbsp;?</h3>
-        <p>
-          Ouvre Paramètres › Sauvegarde › «&nbsp;Effacer les données de ce téléphone&nbsp;».
-          MémoPatte te propose d’abord d’exporter une copie, puis demande deux confirmations. Tout
-          le carnet est alors retiré du téléphone (animaux, traitements, vaccins, poids et photos),
-          plus aucun rappel ne sonne, et MémoPatte redémarre comme au premier lancement. Les exports
-          enregistrés dans Documents › MémoPatte restent sur le téléphone. Sans copie, ton carnet ne
-          pourra pas être retrouvé.
-        </p>
-
-        <figure class="screenshot">
-          <img
-            src="/aide/img/effacer.webp"
-            width="540"
-            height="1105"
-            loading="lazy"
-            alt="Écran Sauvegarde de MémoPatte"
-          />
-          <figcaption>
-            Paramètres › Sauvegarde&nbsp;: 1. «&nbsp;Exporter une copie&nbsp;», 2. «&nbsp;Effacer
-            les données de ce téléphone&nbsp;».
-          </figcaption>
-        </figure>
-
-        <h3 id="ne-plus-suivre">Que faire du carnet d’un animal que je ne suis plus&nbsp;?</h3>
-        <p>
-          Dans son carnet, touche ⋮ puis «&nbsp;Ne plus suivre&nbsp;»&nbsp;: ses rappels et ses
-          traitements en cours s’arrêtent, et son carnet reste intact. Au même endroit,
-          «&nbsp;Supprimer&nbsp;» efface tout son carnet&nbsp;: vaccins, traitements, pesées, photo.
-          Dans les deux cas, «&nbsp;Annuler&nbsp;», dans le message qui s’affiche ensuite, permet de
-          revenir en arrière.
-        </p>
-
-        <figure class="screenshot">
-          <img
-            src="/aide/img/ne-plus-suivre.webp"
-            width="540"
-            height="1105"
-            loading="lazy"
-            alt="Options d’un animal dans son carnet"
-          />
-          <figcaption>
-            Dans le carnet de l’animal&nbsp;: 1. le bouton ⋮, 2. «&nbsp;Ne plus suivre&nbsp;», 3.
-            «&nbsp;Supprimer&nbsp;».
-          </figcaption>
-        </figure>
-
-        <h3 id="rappels-en-retard">Mes rappels arrivent en retard, ou pas du tout</h3>
-        <p>
-          Plusieurs réglages d’Android peuvent les bloquer ou les retarder. Vérifie-les dans l’ordre
-          avec la partie <a href="#rappels">Rappels</a>, juste en dessous.
-        </p>
-
-        <h3 id="nous-ecrire">Ta question n’est pas là&nbsp;?</h3>
+        <div role="status">
+          <p class="help-no-result" hidden>
+            Aucune question ne correspond à ta recherche. Écris-nous à
+            <a href="mailto:contact@memopatte.app">contact@memopatte.app</a>.
+          </p>
+        </div>
+        <div class="help-themes">
+          <section class="card help-theme" id="theme-donnees">
+            <h3>Tes données</h3>
+            <ul>
+              <li
+                data-search="Dans MémoPatte, ouvre Paramètres › Mes données › 1 « Exporter mes données », puis choisis un format : JSON  : tout ton carnet, pour le réimporter dans MémoPatte. CSV  : pour l’ouvrir dans un tableur. Tu peux enregistrer le fichier sur le téléphone, dans Documents › MémoPatte, ou le partager (Google Drive, e‑mail…). Juste en dessous, Paramètres › Mes données › 2 « Exporter en PDF » crée le carnet de tous tes animaux ou d’un seul, à imprimer ou à montrer. Les exports sont gratuits et ne demandent aucun compte. Les photos ne sont pas exportées. Pour réimporter un export JSON : Paramètres › Mes données › 3 « Importer un export MémoPatte ». Si des données existent déjà sur le téléphone, choisis « Fusionner » (ajoute ce qui est absent de tes données actuelles) ou « Remplacer » (remplace toutes tes données actuelles, après confirmation). MémoPatte reprogramme ensuite tes rappels."
+              >
+                <a href="/aide/exporter/">Comment exporter mon carnet, et le réimporter&nbsp;?</a>
+              </li>
+              <li
+                data-search="Si la sauvegarde de ton téléphone est active, Android peut garder une copie de ton carnet, en général une fois par jour, quand le téléphone est en charge et en Wi‑Fi. MémoPatte ne peut pas savoir si elle est active. Cette copie ne contient ni les photos, ni les réglages propres au téléphone, comme l’unité de poids. Android ne la remet en place qu’à l’installation de MémoPatte, par exemple sur un nouveau téléphone, et sans garantie. Pour ne pas dépendre d’elle, exporte une copie de temps en temps : Paramètres › Sauvegarde › « Exporter une copie », puis range le fichier ailleurs que sur le téléphone (Google Drive, e‑mail, ordinateur)."
+              >
+                <a href="/aide/sauvegarde-android/">Que garde la sauvegarde d’Android&nbsp;?</a>
+              </li>
+              <li
+                data-search="Sur l’ancien téléphone, ouvre Paramètres › Sauvegarde › « Exporter une copie », et envoie le fichier là où le nouveau téléphone pourra le retrouver (Google Drive, e‑mail…). Sur le nouveau téléphone, installe MémoPatte, puis touche « Importer un export MémoPatte » sur l’écran de bienvenue et choisis ce fichier. Si la sauvegarde d’Android était active, ou si tu transfères tes applis d’un téléphone à l’autre, Android peut aussi remettre ton carnet en place quand il installe MémoPatte (voir Que garde la sauvegarde d’Android ? ). Dans les deux cas, les photos ne suivent pas ; autorise de nouveau les notifications de MémoPatte, et ses rappels précis si tu les utilisais."
+              >
+                <a href="/aide/nouveau-telephone/"
+                  >Comment retrouver mon carnet sur un nouveau téléphone&nbsp;?</a
+                >
+              </li>
+              <li
+                data-search="Ouvre Paramètres › Sauvegarde › 2 « Effacer les données de ce téléphone ». MémoPatte te propose d’abord 1 d’exporter une copie, puis demande deux confirmations. Tout le carnet est alors retiré du téléphone (animaux, traitements, vaccins, poids et photos), plus aucun rappel ne sonne, et MémoPatte redémarre comme au premier lancement. Les exports enregistrés dans Documents › MémoPatte restent sur le téléphone. Sans copie, ton carnet ne pourra pas être retrouvé."
+              >
+                <a href="/aide/effacer/">Comment effacer toutes les données de MémoPatte&nbsp;?</a>
+              </li>
+            </ul>
+          </section>
+          <section class="card help-theme" id="theme-rappels">
+            <h3>Rappels</h3>
+            <ul>
+              <li
+                data-search="Plusieurs réglages d’Android peuvent les bloquer ou les retarder. Vérifie-les dans l’ordre avec la page Rappels ."
+              >
+                <a href="/aide/rappels-en-retard/"
+                  >Mes rappels arrivent en retard, ou pas du tout</a
+                >
+              </li>
+              <li
+                data-search="MémoPatte programme tes rappels sur le téléphone lui-même : ils arrivent même sans connexion Internet. C’est Android qui les affiche, et plusieurs réglages du téléphone peuvent les bloquer ou les retarder. Si un rappel n’arrive pas, ou arrive en retard, vérifie ces points dans l’ordre. Les chemins indiqués sont ceux d’Android 14 à 16 sur un téléphone Google Pixel. Sur d’autres marques (Samsung, Xiaomi, Oppo…), les menus et leurs noms peuvent changer : utilise alors la recherche de l’application Paramètres."
+              >
+                <a href="/aide/rappels/">Rappels</a>
+              </li>
+              <li
+                class="help-subsection"
+                data-search="1. Autoriser les notifications de MémoPatte Sans cette autorisation, Android n’affiche aucun rappel. MémoPatte la demande quand ton carnet a un premier soin à venir. Si elle a été refusée : Ouvre l’application Paramètres du téléphone. Touche Notifications › Notifications des applis. Touche MémoPatte. Si elle n’apparaît pas, choisis « Toutes les applis » dans le menu déroulant. Active « Toutes les notifications de MémoPatte ». Vérifie que la catégorie « Rappels » est activée : c’est elle qui porte tes rappels. Dans MémoPatte, Paramètres › Rappels indique si les notifications sont autorisées, avec un lien vers ce réglage quand elles sont désactivées."
+              >
+                <a href="/aide/rappels/#rappels-notifications"
+                  >1. Autoriser les notifications de MémoPatte</a
+                >
+              </li>
+              <li
+                class="help-subsection"
+                data-search="2. Économie de batterie et mise en veille Pour économiser la batterie, Android limite les applications quand tu ne les utilises pas. Quand MémoPatte est trop limitée, tes rappels peuvent arriver en retard, ou ne pas arriver du tout. Ouvre l’application Paramètres du téléphone. Touche Applications › Voir toutes les applis › MémoPatte. Touche Utilisation de la batterie par les applis. Active « Autoriser l’utilisation en arrière-plan », puis touche ce libellé pour choisir entre « Optimisée » et « Sans restriction ». Sur certaines versions d’Android, les choix « Sans restriction », « Optimisée » et « Limitée » s’affichent directement. Limitée (utilisation en arrière-plan désactivée) : Android ne laisse plus MémoPatte agir quand tu ne l’utilises pas. Tes rappels peuvent ne pas arriver du tout. À éviter. Optimisée (choix par défaut) : Android adapte ce que fait MémoPatte à ta façon de l’utiliser. Tes rappels arrivent, parfois avec du retard. Sans restriction  : Android ne retarde plus tes rappels pour économiser la batterie. Android précise que ce choix peut solliciter davantage la batterie. Choisis-le si tes rappels arrivent souvent en retard. L’économiseur de batterie (Paramètres › Batterie › Économiseur de batterie) peut lui aussi retarder tes rappels tant qu’il est activé. Enfin, si MémoPatte n’est pas utilisée pendant plusieurs mois, Android peut la mettre en pause : il lui retire ses autorisations, dont celle des notifications. Ouvrir MémoPatte ou toucher l’un de ses rappels suffit à l’éviter. Pour l’empêcher : Paramètres › Applications › Voir toutes les applis › MémoPatte, puis désactive « Suspendre l’activité si inutilisée »."
+              >
+                <a href="/aide/rappels/#rappels-batterie"
+                  >2. Économie de batterie et mise en veille</a
+                >
+              </li>
+              <li
+                class="help-subsection"
+                data-search="3. Rappels précis Sans rappels précis, Android peut décaler tes rappels pour économiser la batterie : un rappel n’arrive jamais avant l’heure prévue, en principe dans l’heure qui suit, et parfois plus tard quand le téléphone économise sa batterie. Avec les rappels précis, Android affiche chaque rappel à l’heure prévue. Ils permettent aussi de choisir un rappel 15 ou 30 minutes avant l’heure d’un traitement. Les rappels précis sont facultatifs : sans eux, tes rappels arrivent quand même, parfois en retard. Ils sont utiles pour un traitement qui se donne à heure fixe. Pour les activer depuis MémoPatte : Ouvre Paramètres › Rappels et active « Rappels précis ». Touche « Ouvrir les réglages » : Android ouvre l’écran « Alarmes et rappels ». Active « Autoriser à définir des alarmes et des rappels », puis reviens dans MémoPatte. Ou depuis les réglages du téléphone : Paramètres › Applications › Accès spéciaux des applis › Alarmes et rappels › MémoPatte, puis active « Autoriser à définir des alarmes et des rappels ». Si tu retires cette autorisation, Android ferme MémoPatte et supprime ses rappels déjà programmés. Ouvre l’app une fois : elle les reprogramme aussitôt. MémoPatte indique alors que tes rappels peuvent arriver en retard, et garde tes choix : ils redeviennent précis dès que l’autorisation est rendue. Sur un nouveau téléphone, Android ne reprend pas cette autorisation, même quand il transfère MémoPatte : il faut la redonner."
+              >
+                <a href="/aide/rappels/#rappels-precis">3. Rappels précis</a>
+              </li>
+              <li
+                class="help-subsection"
+                data-search="4. Ce que MémoPatte ne peut pas faire seule Téléphone éteint  : aucun rappel ne peut arriver sur un téléphone éteint. Au redémarrage, MémoPatte reprogramme tes rappels, et ceux qui devaient arriver pendant ce temps s’affichent. Si le téléphone est resté longtemps éteint, ouvre MémoPatte une fois : elle recalcule tous tes rappels. Longtemps sans ouvrir l’app  : MémoPatte programme tes rappels à l’avance, mais pas indéfiniment. Le dernier rappel programmé invite à ouvrir MémoPatte : l’ouvrir suffit à programmer la suite. Forcer l’arrêt  : si tu touches « Forcer l’arrêt » dans les informations de l’app, Android peut annuler tous ses rappels. Ouvre MémoPatte une fois pour les reprogrammer. Désinstallation  : désinstaller MémoPatte efface ses rappels. Si tu la réinstalles et retrouves ton carnet (sauvegarde Android, import d’un export ou, bientôt, MémoPatte Plus), autorise de nouveau ses notifications, et ses rappels précis si tu les utilisais. Toujours pas de rappel ? Écris-nous à contact@memopatte.app , en précisant le modèle de ton téléphone et sa version d’Android."
+              >
+                <a href="/aide/rappels/#rappels-limites"
+                  >4. Ce que MémoPatte ne peut pas faire seule</a
+                >
+              </li>
+            </ul>
+          </section>
+          <section class="card help-theme" id="theme-animaux">
+            <h3>Tes animaux</h3>
+            <ul>
+              <li
+                data-search="Dans son carnet, touche 1 ⋮ puis 2 « Ne plus suivre » : ses rappels et ses traitements en cours s’arrêtent, et son carnet reste intact. Au même endroit, 3 « Supprimer » efface tout son carnet : vaccins, traitements, pesées, photo. Dans les deux cas, « Annuler », dans le message qui s’affiche ensuite, permet de revenir en arrière."
+              >
+                <a href="/aide/ne-plus-suivre/"
+                  >Que faire du carnet d’un animal que je ne suis plus&nbsp;?</a
+                >
+              </li>
+            </ul>
+          </section>
+          <section class="card help-theme" id="theme-plus">
+            <h3>MémoPatte Plus</h3>
+            <ul>
+              <li
+                data-search="Tout ce qui se fait sur ton téléphone est gratuit et sans compte : tes animaux, leurs vaccins, traitements et pesées, les rappels, et les exports JSON, CSV et PDF. MémoPatte Plus est l’abonnement qui ajoutera une sauvegarde cloud de ton carnet, photos comprises. Il arrive bientôt."
+              >
+                <a href="/aide/plus/">Que change MémoPatte Plus&nbsp;?</a>
+              </li>
+            </ul>
+          </section>
+        </div>
+      </section>
+      <section class="card help-contact-card" id="nous-ecrire">
+        <h2>Ta question n’est pas là&nbsp;?</h2>
         <p>
           Écris-nous depuis l’app, dans Paramètres › Aide et contact › «&nbsp;Nous écrire&nbsp;», ou
           à <a href="mailto:contact@memopatte.app">contact@memopatte.app</a>.
-        </p>
-      </section>
-
-      <section id="rappels">
-        <h2>Rappels</h2>
-        <p>
-          MémoPatte programme tes rappels sur le téléphone lui-même&nbsp;: ils arrivent même sans
-          connexion Internet. C’est Android qui les affiche, et plusieurs réglages du téléphone
-          peuvent les bloquer ou les retarder. Si un rappel n’arrive pas, ou arrive en retard,
-          vérifie ces points dans l’ordre.
-        </p>
-        <p>
-          Les chemins indiqués sont ceux d’Android&nbsp;14 à 16 sur un téléphone Google Pixel. Sur
-          d’autres marques (Samsung, Xiaomi, Oppo…), les menus et leurs noms peuvent changer&nbsp;:
-          utilise alors la recherche de l’application Paramètres.
-        </p>
-
-        <h3 id="rappels-notifications">1. Autoriser les notifications de MémoPatte</h3>
-        <p>
-          Sans cette autorisation, Android n’affiche aucun rappel. MémoPatte la demande quand ton
-          carnet a un premier soin à venir. Si elle a été refusée&nbsp;:
-        </p>
-        <ol>
-          <li>Ouvre l’application Paramètres du téléphone.</li>
-          <li>Touche Notifications › Notifications des applis.</li>
-          <li>
-            Touche MémoPatte. Si elle n’apparaît pas, choisis «&nbsp;Toutes les applis&nbsp;» dans
-            le menu déroulant.
-          </li>
-          <li>Active «&nbsp;Toutes les notifications de MémoPatte&nbsp;».</li>
-          <li>
-            Vérifie que la catégorie «&nbsp;Rappels&nbsp;» est activée&nbsp;: c’est elle qui porte
-            tes rappels.
-          </li>
-        </ol>
-        <p>
-          Dans MémoPatte, Paramètres › Rappels indique si les notifications sont autorisées, avec un
-          lien vers ce réglage quand elles sont désactivées.
-        </p>
-
-        <h3 id="rappels-batterie">2. Économie de batterie et mise en veille</h3>
-        <p>
-          Pour économiser la batterie, Android limite les applications quand tu ne les utilises pas.
-          Quand MémoPatte est trop limitée, tes rappels peuvent arriver en retard, ou ne pas arriver
-          du tout.
-        </p>
-        <ol>
-          <li>Ouvre l’application Paramètres du téléphone.</li>
-          <li>Touche Applications › Voir toutes les applis › MémoPatte.</li>
-          <li>Touche Utilisation de la batterie par les applis.</li>
-          <li>
-            Active «&nbsp;Autoriser l’utilisation en arrière-plan&nbsp;», puis touche ce libellé
-            pour choisir entre «&nbsp;Optimisée&nbsp;» et «&nbsp;Sans restriction&nbsp;». Sur
-            certaines versions d’Android, les choix «&nbsp;Sans restriction&nbsp;»,
-            «&nbsp;Optimisée&nbsp;» et «&nbsp;Limitée&nbsp;» s’affichent directement.
-          </li>
-        </ol>
-        <ul>
-          <li>
-            <strong>Limitée</strong> (utilisation en arrière-plan désactivée)&nbsp;: Android ne
-            laisse plus MémoPatte agir quand tu ne l’utilises pas. Tes rappels peuvent ne pas
-            arriver du tout. À éviter.
-          </li>
-          <li>
-            <strong>Optimisée</strong> (choix par défaut)&nbsp;: Android adapte ce que fait
-            MémoPatte à ta façon de l’utiliser. Tes rappels arrivent, parfois avec du retard.
-          </li>
-          <li>
-            <strong>Sans restriction</strong>&nbsp;: Android ne retarde plus tes rappels pour
-            économiser la batterie. Android précise que ce choix peut solliciter davantage la
-            batterie. Choisis-le si tes rappels arrivent souvent en retard.
-          </li>
-        </ul>
-        <p>
-          L’économiseur de batterie (Paramètres › Batterie › Économiseur de batterie) peut lui aussi
-          retarder tes rappels tant qu’il est activé.
-        </p>
-        <p>
-          Enfin, si MémoPatte n’est pas utilisée pendant plusieurs mois, Android peut la mettre en
-          pause&nbsp;: il lui retire ses autorisations, dont celle des notifications. Ouvrir
-          MémoPatte ou toucher l’un de ses rappels suffit à l’éviter. Pour l’empêcher&nbsp;:
-          Paramètres › Applications › Voir toutes les applis › MémoPatte, puis désactive
-          «&nbsp;Suspendre l’activité si inutilisée&nbsp;».
-        </p>
-
-        <h3 id="rappels-precis">3. Rappels précis</h3>
-        <p>
-          Sans rappels précis, Android peut décaler tes rappels pour économiser la batterie&nbsp;:
-          un rappel n’arrive jamais avant l’heure prévue, en principe dans l’heure qui suit, et
-          parfois plus tard quand le téléphone économise sa batterie. Avec les rappels précis,
-          Android affiche chaque rappel à l’heure prévue. Ils permettent aussi de choisir un rappel
-          15&nbsp;ou 30&nbsp;minutes avant l’heure d’un traitement.
-        </p>
-        <p>
-          Les rappels précis sont facultatifs&nbsp;: sans eux, tes rappels arrivent quand même,
-          parfois en retard. Ils sont utiles pour un traitement qui se donne à heure fixe.
-        </p>
-        <p>Pour les activer depuis MémoPatte&nbsp;:</p>
-        <ol>
-          <li>Ouvre Paramètres › Rappels et active «&nbsp;Rappels précis&nbsp;».</li>
-          <li>
-            Touche «&nbsp;Ouvrir les réglages&nbsp;»&nbsp;: Android ouvre l’écran «&nbsp;Alarmes et
-            rappels&nbsp;».
-          </li>
-          <li>
-            Active «&nbsp;Autoriser à définir des alarmes et des rappels&nbsp;», puis reviens dans
-            MémoPatte.
-          </li>
-        </ol>
-        <p>
-          Ou depuis les réglages du téléphone&nbsp;: Paramètres › Applications › Accès spéciaux des
-          applis › Alarmes et rappels › MémoPatte, puis active «&nbsp;Autoriser à définir des
-          alarmes et des rappels&nbsp;».
-        </p>
-        <p>
-          Si tu retires cette autorisation, Android ferme MémoPatte et supprime ses rappels déjà
-          programmés. Ouvre l’app une fois&nbsp;: elle les reprogramme aussitôt. MémoPatte indique
-          alors que tes rappels peuvent arriver en retard, et garde tes choix&nbsp;: ils
-          redeviennent précis dès que l’autorisation est rendue. Sur un nouveau téléphone, Android
-          ne reprend pas cette autorisation, même quand il transfère MémoPatte&nbsp;: il faut la
-          redonner.
-        </p>
-
-        <h3 id="rappels-limites">4. Ce que MémoPatte ne peut pas faire seule</h3>
-        <ul>
-          <li>
-            <strong>Téléphone éteint</strong>&nbsp;: aucun rappel ne peut arriver sur un téléphone
-            éteint. Au redémarrage, MémoPatte reprogramme tes rappels, et ceux qui devaient arriver
-            pendant ce temps s’affichent. Si le téléphone est resté longtemps éteint, ouvre
-            MémoPatte une fois&nbsp;: elle recalcule tous tes rappels.
-          </li>
-          <li>
-            <strong>Longtemps sans ouvrir l’app</strong>&nbsp;: MémoPatte programme tes rappels à
-            l’avance, mais pas indéfiniment. Le dernier rappel programmé invite à ouvrir
-            MémoPatte&nbsp;: l’ouvrir suffit à programmer la suite.
-          </li>
-          <li>
-            <strong>Forcer l’arrêt</strong>&nbsp;: si tu touches «&nbsp;Forcer l’arrêt&nbsp;» dans
-            les informations de l’app, Android peut annuler tous ses rappels. Ouvre MémoPatte une
-            fois pour les reprogrammer.
-          </li>
-          <li>
-            <strong>Désinstallation</strong>&nbsp;: désinstaller MémoPatte efface ses rappels. Si tu
-            la réinstalles et retrouves ton carnet (sauvegarde Android, import d’un export ou,
-            bientôt, MémoPatte Plus), autorise de nouveau ses notifications, et ses rappels précis
-            si tu les utilisais.
-          </li>
-        </ul>
-        <p>
-          Toujours pas de rappel&nbsp;? Écris-nous à
-          <a href="mailto:contact@memopatte.app">contact@memopatte.app</a>, en précisant le modèle
-          de ton téléphone et sa version d’Android.
         </p>
       </section>
     </main>

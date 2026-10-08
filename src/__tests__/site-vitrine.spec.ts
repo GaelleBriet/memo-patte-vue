@@ -143,7 +143,7 @@ describe('plan du site', () => {
   }
   const urls = parsed.urlset.url
   const locs = urls.map((url) => url.loc)
-  const helpPagesToCome = [
+  const helpPages = [
     ['exporter', 'export'],
     ['sauvegarde-android', 'android-backup'],
     ['plus', 'plus'],
@@ -153,7 +153,6 @@ describe('plan du site', () => {
     ['rappels-en-retard', 'late-reminders'],
     ['rappels', 'reminders'],
   ].flatMap(([fr, en]) => [`/aide/${fr}/`, `/en/help/${en}/`])
-  const pagesToCome = ['/mentions-legales/', '/en/legal-notice/', ...helpPagesToCome]
 
   it('est un XML valide', () => {
     expect(XMLValidator.validate(xml)).toBe(true)
@@ -171,16 +170,17 @@ describe('plan du site', () => {
           '/en/delete-account/',
           '/aide/',
           '/en/help/',
-          ...pagesToCome,
+          '/mentions-legales/',
+          '/en/legal-notice/',
+          ...helpPages,
         ].map((path) => `${SITE_URL}${path}`),
       ),
     )
   })
 
-  it('ne liste que des pages qui existent ou qui arrivent', () => {
+  it('ne liste que des pages qui existent', () => {
     for (const loc of locs) {
       const path = loc.replace(SITE_URL, '')
-      if (pagesToCome.includes(path)) continue
       expect(existsSync(join(SITE, path, 'index.html'))).toBe(true)
     }
   })

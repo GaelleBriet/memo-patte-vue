@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { helpPageUrl, remindersHelpUrl } from '@/shared/domain/help-page'
+import { helpPageUrl } from '@/shared/domain/help-page'
 
 import { decode } from './site-text'
 
@@ -12,22 +12,8 @@ const SITE = 'site'
 const SITE_URL = 'https://memopatte.app'
 const CONTACT_EMAIL = 'contact@memopatte.app'
 const CONTACT = `mailto:${CONTACT_EMAIL}`
-const LEGAL_NOTICE = 'https://www.gaelle-briet.fr/mentions-legales/'
 const SITE_LEGAL_NOTICES = { fr: '/mentions-legales/', en: '/en/legal-notice/' }
-const HELP_PAGES_TO_COME = [
-  '/aide/exporter/',
-  '/aide/rappels/',
-  '/en/help/export/',
-  '/en/help/reminders/',
-]
-const PAGES_TO_COME = [...Object.values(SITE_LEGAL_NOTICES), ...HELP_PAGES_TO_COME]
-const OUTBOUND_HOSTS = [
-  'memopatte.app',
-  'play.google.com',
-  'github.com',
-  'www.cnil.fr',
-  'www.gaelle-briet.fr',
-]
+const OUTBOUND_HOSTS = ['memopatte.app', 'play.google.com', 'github.com', 'www.cnil.fr']
 const FONTS = ['inter-latin-wght-normal.woff2', 'space-grotesk-latin-wght-normal.woff2']
 const FONT_LICENSES = ['inter-OFL.txt', 'space-grotesk-OFL.txt']
 
@@ -63,14 +49,8 @@ const translations = [
   { name: 'politique de confidentialité', fr: '/confidentialite/', en: '/en/privacy/' },
   { name: 'suppression de compte', fr: '/suppression-compte/', en: '/en/delete-account/' },
   { name: 'aide', fr: '/aide/', en: '/en/help/' },
+  { name: 'mentions légales', ...SITE_LEGAL_NOTICES },
 ]
-
-const helpPages = {
-  fr: { url: helpPageUrl('fr'), faq: 'questions' },
-  en: { url: helpPageUrl('en'), faq: 'faq' },
-}
-
-const idsOf = (html: string) => new Set([...html.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]))
 
 const policies = { fr: '/confidentialite/', en: '/en/privacy/' }
 const deletions = { fr: '/suppression-compte/', en: '/en/delete-account/' }
@@ -175,16 +155,22 @@ describe('site public memopatte.app', () => {
     expect(read(page)).toContain(`<html lang="${languageOf(page)}">`)
   })
 
-  it.each(pages)('%s ne charge rien depuis un autre site', (page) => {
-    const html = read(page)
-    for (const script of html.match(/<script\b[^>]*>/gi) ?? []) {
-      expect(script).toBe('<script type="application/ld+json">')
-    }
-    const loadingTags = [...html.matchAll(/<(?:link|img|source|iframe)\b[^>]*>/gi)]
-      .map((match) => match[0])
-      .filter((tag) => !/\brel="(?:alternate|canonical)"/.test(tag))
-    for (const tag of loadingTags) expect(tag).not.toMatch(/\b(href|src)="(https?:)?\/\//i)
-  })
+  it.each(pages)(
+    '%s ne charge rien depuis un autre site, et ses scripts sont des fichiers du site',
+    (page) => {
+      const html = read(page)
+      const scripts = html.match(/<script\b[^>]*>/gi) ?? []
+      for (const script of scripts) {
+        expect(script).toMatch(
+          /^<script (?:type="module" src="\/(?!\/)[^"]+"|type="application\/ld\+json")>$/,
+        )
+      }
+      const loadingTags = [...html.matchAll(/<(?:link|img|source|iframe)\b[^>]*>/gi)]
+        .map((match) => match[0])
+        .filter((tag) => !/\brel="(?:alternate|canonical)"/.test(tag))
+      for (const tag of loadingTags) expect(tag).not.toMatch(/\b(href|src)="(https?:)?\/\//i)
+    },
+  )
 
   it('le style ne charge rien depuis un autre site', () => {
     const css = read('style.css')
@@ -197,7 +183,6 @@ describe('site public memopatte.app', () => {
       match[1]!.replace(/[?#].*$/, ''),
     )
     for (const target of targets) {
-      if (PAGES_TO_COME.includes(target)) continue
       const file = target.endsWith('/') ? `${target}index.html` : target
       expect(existsSync(join(SITE, file)), `${target} introuvable`).toBe(true)
     }
@@ -264,33 +249,47 @@ describe('site public memopatte.app', () => {
     })
 
     it('la politique renvoie aux mentions légales', () => {
-      expect(read(fileOf(policies[lang]))).toContain(`href="${LEGAL_NOTICE}"`)
+      expect(read(fileOf(policies[lang]))).toContain(`href="${SITE_LEGAL_NOTICES[lang]}"`)
     })
   })
 
-  describe.each(languages)('page d’aide en %s', (lang) => {
-    const { url, faq } = helpPages[lang]
-    const html = read(fileOf(url.replace(SITE_URL, '')))
+  describe.each(languages)('mentions légales en %s', (lang) => {
+    const html = read(fileOf(SITE_LEGAL_NOTICES[lang]))
+    const text = readableTexts(html)[0]!.replace(/\s+/g, ' ')
 
-    it('commence par les questions fréquentes, avant les rappels', () => {
-      const ids = [...idsOf(html)]
-      const reminders = new URL(remindersHelpUrl(lang)).hash.slice(1)
-      expect(ids.indexOf(faq)).toBeGreaterThanOrEqual(0)
-      expect(ids.indexOf(faq)).toBeLessThan(ids.indexOf(reminders))
+    it.each([
+      'Gaëlle Briet',
+      'entrepreneure individuelle',
+      '47 rue Vivienne, 75002 Paris',
+      '931 812 978 00027',
+      CONTACT_EMAIL,
+    ])('donne l’éditeur : %s', (detail) => {
+      expect(text).toContain(detail)
     })
 
-    it('a la section que l’app ouvre pour les rappels', () => {
-      expect(idsOf(html)).toContain(new URL(remindersHelpUrl(lang)).hash.slice(1))
+    it('donne l’hébergeur, son adresse et son téléphone', () => {
+      expect(text).toContain('Cloudflare, Inc., 101 Townsend St, San Francisco, CA 94107')
+      expect(text).toContain('+1 (650) 319-8930')
     })
 
-    it('ne renvoie qu’à des sections qui existent', () => {
-      const anchors = [...html.matchAll(/href="#([^"]+)"/g)].map((m) => m[1])
-      expect(anchors.length).toBeGreaterThan(0)
-      for (const anchor of anchors) expect(idsOf(html), `#${anchor}`).toContain(anchor)
+    it('ne donne aucun autre numéro de téléphone que celui de l’hébergeur', () => {
+      const phones = text.match(/\+\d[\d ()-]{7,}\d|\b0\d(?:[ .]?\d{2}){4}\b/g) ?? []
+      expect(phones).toEqual(['+1 (650) 319-8930'])
     })
 
     it('donne l’e-mail de contact', () => {
       expect(html).toContain(`href="${CONTACT}"`)
+    })
+
+    it('renvoie à la politique de confidentialité', () => {
+      expect(html).toContain(`href="${policies[lang]}"`)
+    })
+
+    it('décrit la mesure d’audience avec les mots de la politique', () => {
+      const policy = readableTexts(read(fileOf(policies[lang])))[0]!.replace(/\s+/g, ' ')
+      const audience = policy.match(/(?:Ce site mesure|This website measures)[^.]*\./)?.[0]
+      expect(audience).toBeDefined()
+      expect(text).toContain(audience)
     })
   })
 

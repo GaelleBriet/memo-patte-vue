@@ -10,7 +10,10 @@ const PRIVACY_POLICY_URLS: Record<AppLocale, string> = {
   en: 'https://memopatte.app/en/privacy/',
 }
 
-const LEGAL_NOTICE_URL = 'https://gaelle-briet.fr/mentions-legales/'
+const LEGAL_NOTICE_URLS: Record<AppLocale, string> = {
+  fr: 'https://memopatte.app/mentions-legales/',
+  en: 'https://memopatte.app/en/legal-notice/',
+}
 
 const VACCINE_SOURCE_URL =
   'https://www.data.gouv.fr/datasets/base-de-donnees-publique-des-medicaments-veterinaires-autorises-en-france-1'
@@ -23,8 +26,8 @@ export function privacyPolicyUrl(locale: AppLocale): string {
   return PRIVACY_POLICY_URLS[locale]
 }
 
-export function legalNoticeUrl(): string {
-  return LEGAL_NOTICE_URL
+export function legalNoticeUrl(locale: AppLocale): string {
+  return LEGAL_NOTICE_URLS[locale]
 }
 
 export function vaccineSourceUrl(): string {
