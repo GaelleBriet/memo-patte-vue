@@ -564,7 +564,20 @@ function farthestMoveOf(
     : { doseId: farthest.id, arrivesOn: farthest.nextDueDate, advanced: isAdvanced(farthest) }
 }
 
-type DateIssue = { path: 'nextDoseOn' | 'endsOn' | 'pastDues'; message: string }
+export type NextDoseOnIssueReason = 'refused' | 'tooEarly' | 'afterEnd' | 'afterNextDose'
+export type EndsOnIssueReason =
+  | 'beforeFirstDose'
+  | 'beforeNextDose'
+  | 'beforeLastDose'
+  | 'beforePostponedDose'
+  | 'beforeAdvancedDose'
+  | 'beforeFarPostponedDose'
+  | 'beforeFarAdvancedDose'
+
+type DateIssue =
+  | { path: 'nextDoseOn'; message: NextDoseOnIssueReason }
+  | { path: 'endsOn'; message: EndsOnIssueReason }
+  | { path: 'pastDues'; message: 'required' }
 
 function editionIssues(history: TreatmentWithHistory, data: Edition, today: string): DateIssue[] {
   const shiftsFollowing = data.shiftsFollowing ?? true
@@ -599,7 +612,9 @@ function editionIssues(history: TreatmentWithHistory, data: Edition, today: stri
       : null
   if (farthest !== null && data.endsOn !== period.endsOn && data.endsOn < farthest.arrivesOn) {
     const which = farthest.doseId === movedLineId ? '' : 'Far'
-    const reason = farthest.advanced ? `before${which}AdvancedDose` : `before${which}PostponedDose`
+    const reason: EndsOnIssueReason = farthest.advanced
+      ? `before${which}AdvancedDose`
+      : `before${which}PostponedDose`
     return [{ path: 'endsOn', message: reason }]
   }
   const setsFirstDue = nextDose?.change === 'first-due' && (proposesFirstDue || changed)

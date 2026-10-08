@@ -1,7 +1,13 @@
 import type { z } from 'zod'
 
 import { creationPastDues, treatmentCreationSchemaFor } from './treatment-creation'
-import { editionDraft, treatmentEditionSchemaFor, type EditionDraft } from './treatment-edition'
+import {
+  editionDraft,
+  treatmentEditionSchemaFor,
+  type EditionDraft,
+  type EndsOnIssueReason,
+  type NextDoseOnIssueReason,
+} from './treatment-edition'
 import { treatmentResumptionSchemaFor } from './treatment-resumption'
 import { shiftHelpText, type ShiftHelp } from './treatment-shift-box'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
@@ -76,27 +82,31 @@ const FIELD_OF_PATH: Record<string, TreatmentFormErrorField> = {
 }
 
 /** Motif d'un refus, porté par le message de l'erreur Zod. */
+const NEXT_DOSE_ON_REASON_KEYS: Record<NextDoseOnIssueReason, string> = {
+  tooEarly: 'treatments.form.errors.nextDoseOnTooEarly',
+  afterEnd: 'treatments.form.errors.nextDoseOnAfterEnd',
+  afterNextDose: 'treatments.form.errors.nextDoseOnAfterNextDose',
+  refused: 'treatments.form.errors.nextDoseOnRefused',
+}
+
+const ENDS_ON_REASON_KEYS: Record<EndsOnIssueReason, string> = {
+  beforeFirstDose: 'treatments.form.errors.endsOnBeforeFirstDose',
+  beforeNextDose: 'treatments.form.errors.endsOnBeforeNextDose',
+  beforeLastDose: 'treatments.form.errors.endsOnBeforeLastDose',
+  beforePostponedDose: 'treatments.form.errors.endsOnBeforePostponedDose',
+  beforeAdvancedDose: 'treatments.form.errors.endsOnBeforeAdvancedDose',
+  beforeFarPostponedDose: 'treatments.form.errors.endsOnBeforeFarPostponedDose',
+  beforeFarAdvancedDose: 'treatments.form.errors.endsOnBeforeFarAdvancedDose',
+}
+
 const REASON_KEYS: Partial<Record<TreatmentFormErrorField, Record<string, string>>> = {
   firstDoseOn: {
     tooEarly: 'treatments.form.errors.firstDoseOnTooEarly',
     tooOld: 'treatments.form.errors.firstDoseOnTooOld',
   },
-  nextDoseOn: {
-    tooEarly: 'treatments.form.errors.nextDoseOnTooEarly',
-    afterEnd: 'treatments.form.errors.nextDoseOnAfterEnd',
-    afterNextDose: 'treatments.form.errors.nextDoseOnAfterNextDose',
-    refused: 'treatments.form.errors.nextDoseOnRefused',
-  },
+  nextDoseOn: NEXT_DOSE_ON_REASON_KEYS,
   dosage: { incomplete: 'treatments.form.errors.dosageIncomplete' },
-  endsOn: {
-    beforeFirstDose: 'treatments.form.errors.endsOnBeforeFirstDose',
-    beforeNextDose: 'treatments.form.errors.endsOnBeforeNextDose',
-    beforeLastDose: 'treatments.form.errors.endsOnBeforeLastDose',
-    beforePostponedDose: 'treatments.form.errors.endsOnBeforePostponedDose',
-    beforeAdvancedDose: 'treatments.form.errors.endsOnBeforeAdvancedDose',
-    beforeFarPostponedDose: 'treatments.form.errors.endsOnBeforeFarPostponedDose',
-    beforeFarAdvancedDose: 'treatments.form.errors.endsOnBeforeFarAdvancedDose',
-  },
+  endsOn: ENDS_ON_REASON_KEYS,
 }
 
 const REFUSAL_KEYS: Record<MoveRefusal, string> = {
