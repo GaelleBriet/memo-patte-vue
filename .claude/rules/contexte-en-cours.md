@@ -1,5 +1,21 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-10-08 (nuit, autonomie) : **reprendre ici.** Mergés : #547 (#627), #630 (#631), #629 (#632),
+  #594 (#634), #598 en partie (#633), #582 (#635), #353 (#637), #638 en partie (#639), #487 en partie
+  (#641, refactor sans changement de comportement, comparé à `main` sur l'émulateur), #636 (#643),
+  #640 (#644, CI `fuseaux` : Kiritimati, Pago Pago, Santiago), #642 (#645). `main` à **6 600 tests**,
+  testé sur l'émulateur. Bilan et sept questions dans le coffre, `product/bilan-2026-10-08-nuit.md`.
+  - **Téléphone** : test interrompu à la demande de Gaelle, base de MémoPatte Dev restaurée (même
+    empreinte) ; au prochain branchement, réinstaller le build de `main` dans MémoPatte Dev, restaurer
+    la base sauvegardée dans `~/memopatte-dev-sauvegarde-2026-10-08/`, redonner `POST_NOTIFICATIONS`.
+  - **Ouverts** : #598 (à fermer si Gaelle le juge couvert), #638 (phrase des rappels précis), #487
+    (pas laissés par prudence, liste dans #641), #469 (prompt Claude Design prêt), #612, #416.
+  - **Pièges** : (1) `Closes #N` dans un **message de commit** ferme le ticket au merge même si la PR
+    dit « Avance » : rouvrir, ou écrire « Avance » dans le commit aussi ; (2) un test qui fige un
+    instant UTC puis lit le jour local casse hors d'Europe : construire l'instant en heure locale ; la
+    CI tourne aussi en UTC+14, UTC-11 et Santiago ; (3) le téléphone de Gaelle et l'émulateur peuvent
+    être branchés ensemble : toujours `ANDROID_SERIAL`.
+
 - 2026-10-07 (soir) : **reprendre ici.** Mergés dans la journée, après les réponses de Gaelle au bilan
   de la nuit : #575 (#611, injection passée qui redemande le rappel), #580 (#614, Paramètres en
   rubriques, PDF gratuit), #578 (#618, ne plus suivre, supprimer), #577 (#615, photo de l'animal),
