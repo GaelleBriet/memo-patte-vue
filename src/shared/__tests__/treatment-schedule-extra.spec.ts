@@ -55,6 +55,24 @@ describe('prise en plus : une dose donnée un intervalle ou plus en avance (#503
     },
   )
 
+  it('prise en plus le 9, puis dose du 16 notée le 16 : prochaine le 23, puis le 30', () => {
+    const extra = record(pixel, '2026-10-09', {
+      kind: 'given',
+      due: due('2026-10-16'),
+      givenOn: '2026-10-09',
+    })
+    const book = done(extra, '2026-10-16')
+
+    expect(book.doses.map(({ status, dueOn }) => [status, dueOn])).toEqual([
+      ['extra', '2026-10-09'],
+      ['given', '2026-10-16'],
+    ])
+    expect(dueDays(scheduleOf(book, '2026-10-16').upcoming(2))).toEqual([
+      '2026-10-23',
+      '2026-10-30',
+    ])
+  })
+
   it('tous les 3 jours, dose du 8 donnée le 5 : prochaine le 8', () => {
     const every3 = carnet(
       period({ firstDueOn: '2026-10-08', frequency: { value: 3, unit: 'day' } }),
