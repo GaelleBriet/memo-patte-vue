@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { createMemoryHistory, createRouter } from 'vue-router'
+
 import {
+  leaveAfterReminderSaved,
   primingAfterReminderSaved,
   primingReturnRoute,
   routeAfterReminderSaved,
@@ -188,5 +191,61 @@ describe('route de l’écran d’explication', () => {
     const props = route.matched[0]!.props.default as (r: typeof route) => unknown
 
     expect(props(route)).toEqual({ animalName: 'Luna', kind: 'vaccination' })
+  })
+})
+
+describe('leaveAfterReminderSaved', () => {
+  const Vide = { render: () => null }
+
+  async function routeur() {
+    const memoire = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', name: 'home', component: Vide },
+        { path: '/animals', name: 'animals', component: Vide },
+        { path: '/form', name: 'form', component: Vide },
+        { path: '/priming', name: 'notifications-priming', component: Vide },
+      ],
+    })
+    await memoire.push('/')
+    await memoire.push('/form')
+    return memoire
+  }
+
+  it('va à l’écran d’explication quand il est dû', async () => {
+    shouldShow.mockResolvedValue(true)
+    const memoire = await routeur()
+
+    await leaveAfterReminderSaved(memoire, {
+      hasDueDate: true,
+      animalName: null,
+      kind: 'vaccination',
+    })
+
+    expect(memoire.currentRoute.value.name).toBe('notifications-priming')
+  })
+
+  it('retombe sur l’écran d’origine, sans lever, quand le calcul de la route échoue', async () => {
+    shouldShow.mockRejectedValue(new Error('plugin indisponible'))
+    const memoire = await routeur()
+
+    await leaveAfterReminderSaved(memoire, {
+      hasDueDate: true,
+      animalName: null,
+      kind: 'vaccination',
+      from: 'home',
+    })
+
+    expect(memoire.currentRoute.value.name).toBe('home')
+  })
+
+  it('ne lève pas quand la navigation échoue', async () => {
+    shouldShow.mockResolvedValue(false)
+    const memoire = await routeur()
+    vi.spyOn(memoire, 'replace').mockRejectedValue(new Error('navigation refusée'))
+
+    await expect(
+      leaveAfterReminderSaved(memoire, { hasDueDate: false, animalName: null, kind: 'treatment' }),
+    ).resolves.toBeUndefined()
   })
 })
