@@ -28,7 +28,7 @@ import {
   validateTreatmentResumption,
 } from '../logic/treatment-form'
 import { pastDuesTexts } from '../logic/treatment-past-dues'
-import { resumptionDraft } from '../logic/treatment-plan'
+import { resumptionDraft } from '../logic/treatment-resumption'
 import {
   pastDosesOf,
   pastDosesPrompt,

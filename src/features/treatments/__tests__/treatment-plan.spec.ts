@@ -3,17 +3,17 @@ import { describe, expect, it } from 'vitest'
 import { ZodError } from 'zod'
 
 import {
-  assertReadable,
   creationPastDues,
   creationPlan,
-  editionDraft,
-  editionPlan,
+  treatmentCreationSchemaFor,
+} from '../logic/treatment-creation'
+import { editionDraft, editionPlan, treatmentEditionSchemaFor } from '../logic/treatment-edition'
+import {
   resumptionDraft,
   resumptionPlan,
-  treatmentCreationSchemaFor,
-  treatmentEditionSchemaFor,
   treatmentResumptionSchemaFor,
-} from '../logic/treatment-plan'
+} from '../logic/treatment-resumption'
+import { assertReadable } from '../logic/treatment-settings'
 import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'

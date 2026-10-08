@@ -1,5 +1,7 @@
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
-import { creationPlan, editionPlan, resumptionPlan } from '../logic/treatment-plan'
+import { creationPlan } from '../logic/treatment-creation'
+import { editionPlan } from '../logic/treatment-edition'
+import { resumptionPlan } from '../logic/treatment-resumption'
 import {
   createWriteQueue,
   treatmentWriteQueue,

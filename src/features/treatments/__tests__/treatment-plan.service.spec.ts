@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ZodError } from 'zod'
 
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
-import { editionDraft } from '../logic/treatment-plan'
+import { editionDraft } from '../logic/treatment-edition'
 import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
 import { createTreatmentDosesRepository } from '../repository/treatment-doses.repository'
 import { createTreatmentPeriodsRepository } from '../repository/treatment-periods.repository'

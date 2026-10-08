@@ -1,13 +1,8 @@
 import type { z } from 'zod'
 
-import {
-  creationPastDues,
-  editionDraft,
-  treatmentCreationSchemaFor,
-  treatmentEditionSchemaFor,
-  treatmentResumptionSchemaFor,
-  type EditionDraft,
-} from './treatment-plan'
+import { creationPastDues, treatmentCreationSchemaFor } from './treatment-creation'
+import { editionDraft, treatmentEditionSchemaFor, type EditionDraft } from './treatment-edition'
+import { treatmentResumptionSchemaFor } from './treatment-resumption'
 import { shiftHelpText, type ShiftHelp } from './treatment-shift-box'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import {
