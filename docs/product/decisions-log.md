@@ -2190,6 +2190,16 @@ la page du nouveau site. Remplace le sous-domaine `memopatte.gaelle-briet.fr` et
 page vitrine ; `memopatte.com` est pris. — Alternative écartée : garder le sous-domaine du site
 de l'entreprise. Étude dans le coffre de notes de Gaelle.
 
+2026-10-08 — **Mesure d'audience du site : Cloudflare Web Analytics** (revient sur « pas de
+statistiques sur le site » de l'étude de la page vitrine). Activée dans le projet Pages, sans code :
+pas de cookie, pas d'identifiant, des chiffres globaux seulement (pages vues, provenance, pays, type
+d'appareil). Cloudflare héberge déjà le site : il est ajouté aux prestataires de la politique de
+confidentialité, avec une ligne dans « En bref ». L'app n'est pas concernée (PostHog, après
+consentement). — Raison : savoir si la page vitrine attire du monde, sans bandeau ni nouveau
+prestataire. — Alternatives écartées : Umami Cloud (nouveau prestataire, hébergement « États-Unis et
+UE » sans garantie claire) ; aucune mesure. Pour revenir dessus : désactiver Web Analytics dans le
+projet Pages et retirer les deux mentions.
+
 2026-10-08 — **Un seul ordre des déclarations dans tous les `<script setup>`**, vérifié par la règle
 ESLint `app/vue-script-order` et appliqué à toute la base : imports (puis types et constantes de
 module), macros (`defineProps`, `defineEmits`…), outils (`useI18n`, stores, composables), état,
