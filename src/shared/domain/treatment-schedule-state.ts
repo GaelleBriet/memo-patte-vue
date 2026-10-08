@@ -11,8 +11,8 @@ import {
   notesOf,
   orderPeriods,
   pendingDues,
+  coveredKeys,
   planPeriod,
-  sameRhythm,
 } from './treatment-schedule-timeline'
 import type {
   Due,
@@ -44,27 +44,23 @@ function phaseOf(current: Due | undefined, today: string): TreatmentPhase {
 }
 
 // Une reprise après un arrêt (TR-30) garde sa première prise : seul un changement de réglage compte.
+function notesSinceLastStop(
+  earlier: TreatmentPeriodInput[],
+  doses: TreatmentDoseInput[],
+): TreatmentDoseInput[] {
+  const sinceLastStop = earlier.slice(
+    earlier.map((period) => period.stoppedOn !== null).lastIndexOf(true) + 1,
+  )
+  const changed = new Set(sinceLastStop.map(({ id }) => id))
+  return doses.filter((dose) => isNoteLine(dose) && changed.has(dose.periodId))
+}
+
 export function notedOn(
   day: string,
   earlier: TreatmentPeriodInput[],
   doses: TreatmentDoseInput[],
 ): number {
-  const sinceLastStop = earlier.slice(
-    earlier.map((period) => period.stoppedOn !== null).lastIndexOf(true) + 1,
-  )
-  const changed = new Set(sinceLastStop.map(({ id }) => id))
-  return doses.filter(
-    (dose) => isNoteLine(dose) && dose.dueOn === day && changed.has(dose.periodId),
-  ).length
-}
-
-// Le jour du changement (Q24) ; au même rythme, la journée suivante entamée en avance (#656).
-function coveredDay(
-  period: TreatmentPeriodInput,
-  previous: TreatmentPeriodInput | undefined,
-): string | null {
-  if (period.firstDueOn === period.startsOn) return period.startsOn
-  return previous !== undefined && sameRhythm(previous, period) ? period.firstDueOn : null
+  return notesSinceLastStop(earlier, doses).filter((dose) => dose.dueOn === day).length
 }
 
 export function build(input: TreatmentScheduleInput): State {
@@ -72,15 +68,14 @@ export function build(input: TreatmentScheduleInput): State {
   const periods = orderPeriods(input.periods)
   // Une prise en plus ne change jamais le calendrier : le moteur ne la lit pas.
   const doses = mergeDoses(input.doses).filter((dose) => !isExtraLine(dose))
-  const plans = periods.map((period, index) => {
-    const coveredOn = coveredDay(period, periods[index - 1])
-    return planPeriod(
+  const plans = periods.map((period, index) =>
+    planPeriod(
       period,
       closingDay(period, periods[index + 1]),
       doses.filter((dose) => dose.periodId === period.id),
-      coveredOn === null ? 0 : notedOn(coveredOn, periods.slice(0, index), doses),
-    )
-  })
+      coveredKeys(period, periods[index - 1], notesSinceLastStop(periods.slice(0, index), doses)),
+    ),
+  )
   const current = plans.at(-1)
   const unlogged = plans
     .slice(0, -1)

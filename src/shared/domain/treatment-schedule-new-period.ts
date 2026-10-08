@@ -2,6 +2,7 @@ import { isClockTime } from './clock-time'
 import { checkFrequency, invalid } from './treatment-schedule-checks'
 import { latestOf } from './calendar-day'
 import { shiftDate } from './treatment-frequency'
+import { sequenceDues } from './treatment-schedule-sequence'
 import {
   isShift,
   mergeDoses,
@@ -29,11 +30,18 @@ function keepsSettings(state: State, frequency: Frequency, times: readonly strin
   return current !== undefined && sameRhythm(current, { frequency, times })
 }
 
-// #656 : une journée à venir entamée en avance reste la prochaine ; ses prises en couvrent les heures.
+// G22 : une journée à venir entamée en avance reste la prochaine, si elle est sur la suite en vigueur.
 function scheduledDay(state: State): string | undefined {
+  const { open } = state
   const day = state.currentDoses[0]?.dueOn
-  if (day === undefined || state.open === null) return undefined
-  return !state.open.noteDays.has(day) || day > state.input.today ? day : undefined
+  if (day === undefined || open === null) return undefined
+  if (!open.noteDays.has(day)) return day
+  if (day <= state.input.today) return undefined
+  if (open.steps.some(({ kind, dose }) => kind === 'shift' && dose.nextDueDate === day)) return day
+  const dues = sequenceDues(sequenceAt(open, positionOf(`${day} `, 0)), open.period, day)
+  let next = dues.next().value
+  while (next.dueOn < day) next = dues.next().value
+  return next.dueOn === day ? day : undefined
 }
 
 // Q24 : la nouvelle période commence aujourd'hui ; ses heures au-delà des prises du jour restent à donner.

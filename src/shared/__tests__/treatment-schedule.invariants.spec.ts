@@ -1196,8 +1196,8 @@ class Simulation {
     this.checkDayStartedAhead(before, after, period, stopped, gesture)
   }
 
-  // G22 : au même rythme, une journée à venir entamée en avance garde ses heures restantes ; une période
-  // qui commence par la journée du changement (Q24, G15) n'est pas concernée.
+  // G22 : au même rythme, une journée à venir entamée en avance garde ses heures restantes, sauf
+  // l'arrivée d'un report seul, hors de la suite en vigueur (Q37, #692).
   private checkDayStartedAhead(
     before: TreatmentSchedule,
     after: TreatmentSchedule,
@@ -1207,21 +1207,13 @@ class Simulation {
   ): void {
     const previous = this.book.periods.at(-2)
     const day = before.currentDoses[0]?.dueOn
-    const { today } = this.book
-    if (
-      previous === undefined ||
-      day === undefined ||
-      day <= today ||
-      period.firstDueOn === today
-    ) {
-      return
-    }
-    if (
-      JSON.stringify([previous.frequency, previous.times]) !==
-      JSON.stringify([period.frequency, period.times])
-    ) {
-      return
-    }
+    if (previous === undefined || day === undefined || day <= this.book.today) return
+    const rhythm = ({ frequency, times }: TreatmentPeriodInput) =>
+      JSON.stringify([frequency, [...times].sort()])
+    if (rhythm(previous) !== rhythm(period)) return
+    const arrives = (status: TreatmentDoseInput['status']) =>
+      before.doses.some((dose) => dose.status === status && dose.nextDueDate === day)
+    if (arrives('postponed') && !arrives('shift')) return
     const noted = before.doses.filter(
       (dose) => isNote(dose) && dose.dueOn === day && !stopped.has(dose.periodId),
     ).length
