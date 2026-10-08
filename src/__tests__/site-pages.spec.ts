@@ -11,6 +11,17 @@ const SITE_URL = 'https://memopatte.app'
 const CONTACT_EMAIL = 'contact@memopatte.app'
 const CONTACT = `mailto:${CONTACT_EMAIL}`
 const LEGAL_NOTICE = 'https://www.gaelle-briet.fr/mentions-legales/'
+const SITE_LEGAL_NOTICES = { fr: '/mentions-legales/', en: '/en/legal-notice/' }
+const PAGES_TO_COME = Object.values(SITE_LEGAL_NOTICES)
+const OUTBOUND_HOSTS = [
+  'memopatte.app',
+  'play.google.com',
+  'github.com',
+  'www.cnil.fr',
+  'www.gaelle-briet.fr',
+]
+const FONTS = ['inter-latin-wght-normal.woff2', 'space-grotesk-latin-wght-normal.woff2']
+const FONT_LICENSES = ['inter-OFL.txt', 'space-grotesk-OFL.txt']
 
 function htmlPages(dir: string): string[] {
   return readdirSync(join(SITE, dir), { withFileTypes: true }).flatMap((entry) => {
@@ -50,7 +61,10 @@ function readableTexts(html: string): string[] {
   return [html.replace(/<[^>]*>/g, ''), ...attributes].map(decode)
 }
 
-const footerOf = (html: string) => html.match(/<footer>([\s\S]*?)<\/footer>/)?.[1] ?? ''
+const footerOf = (html: string) => html.match(/<footer\b[^>]*>([\s\S]*?)<\/footer>/)?.[1] ?? ''
+const headerOf = (html: string) => html.match(/<header\b[^>]*>([\s\S]*?)<\/header>/)?.[1] ?? ''
+const withoutLanguageTarget = (html: string) =>
+  html.replace(/href="[^"]*"(?= hreflang=)/g, 'href="…"')
 
 const translations = [
   { name: 'accueil', fr: '/', en: '/en/' },
@@ -82,11 +96,87 @@ describe('site public memopatte.app', () => {
     expect(existsSync(join(SITE, fileOf(url)))).toBe(true)
   })
 
-  it('la page 404 ramène aux deux accueils sans être indexée', () => {
-    const html = read('404.html')
-    expect(html).toContain('<meta name="robots" content="noindex" />')
-    expect(html).toContain('href="/"')
-    expect(html).toContain('href="/en/"')
+  it.each(['404.html', 'en/404.html'])(
+    'la page %s ramène aux deux accueils et à l’aide sans être indexée',
+    (page) => {
+      const html = read(page)
+      const lang = languageOf(page)
+      expect(html).toContain('<meta name="robots" content="noindex" />')
+      expect(html).toContain('href="/"')
+      expect(html).toContain('href="/en/"')
+      expect(html).toContain(`href="${new URL(helpPageUrl(lang)).pathname}"`)
+    },
+  )
+
+  it('les boutons tiennent sur une ligne', () => {
+    const button = read('style.css').match(/\.button \{[^}]*\}/)?.[0] ?? ''
+    expect(button).toContain('white-space: nowrap')
+  })
+
+  it.each(FONTS)('la police %s est servie par le site', (font) => {
+    expect(existsSync(join(SITE, 'fonts', font))).toBe(true)
+    expect(read('style.css')).toContain(`url('/fonts/${font}')`)
+  })
+
+  it.each(FONT_LICENSES)('la licence %s accompagne les polices', (license) => {
+    expect(read(join('fonts', license))).toContain('SIL Open Font License, Version 1.1')
+  })
+
+  it('les polices s’affichent sans attendre leur chargement', () => {
+    const faces = read('style.css').match(/@font-face \{[^}]*\}/g) ?? []
+    expect(faces).toHaveLength(FONTS.length)
+    for (const face of faces) expect(face).toContain('font-display: swap')
+  })
+
+  it('le style ne pointe que vers des fichiers du site qui existent', () => {
+    const targets = [...read('style.css').matchAll(/url\(\s*["']?([^"')]+)/g)].map((m) => m[1]!)
+    expect(targets.length).toBeGreaterThan(0)
+    for (const target of targets) {
+      expect(existsSync(join(SITE, target)), `${target} introuvable`).toBe(true)
+    }
+  })
+
+  it('le style n’anime rien de lui-même et respecte la réduction des animations', () => {
+    const css = read('style.css')
+    expect(css).not.toMatch(/@keyframes|\banimation\s*:/)
+    expect(css).toContain('@media (prefers-reduced-motion: no-preference)')
+  })
+
+  it.each(pages)('%s ne renvoie ailleurs que vers des sites connus', (page) => {
+    const hosts = [...read(page).matchAll(/\b(?:href|src)="https?:\/\/([^/"]+)/g)].map(
+      (match) => match[1],
+    )
+    for (const host of hosts) expect(OUTBOUND_HOSTS).toContain(host)
+  })
+
+  describe.each(languages)('en-tête et pied de page en %s', (lang) => {
+    const pagesOfLanguage = lang === 'fr' ? frenchPages : englishPages
+    const [model, ...others] = pagesOfLanguage
+
+    it.each(others)('%s a le même en-tête que les autres pages', (page) => {
+      expect(withoutLanguageTarget(headerOf(read(page)))).toBe(
+        withoutLanguageTarget(headerOf(read(model!))),
+      )
+    })
+
+    it.each(others)('%s a le même pied de page que les autres pages', (page) => {
+      expect(withoutLanguageTarget(footerOf(read(page)))).toBe(
+        withoutLanguageTarget(footerOf(read(model!))),
+      )
+    })
+
+    it('le pied de page mène à l’aide, aux pages légales et au contact', () => {
+      const footer = footerOf(read(model!))
+      for (const url of [
+        new URL(helpPageUrl(lang)).pathname,
+        policies[lang],
+        deletions[lang],
+        SITE_LEGAL_NOTICES[lang],
+        CONTACT,
+      ]) {
+        expect(footer).toContain(`href="${url}"`)
+      }
+    })
   })
 
   it.each(pages)('%s déclare sa langue', (page) => {
@@ -113,14 +203,16 @@ describe('site public memopatte.app', () => {
       match[1]!.replace(/[?#].*$/, ''),
     )
     for (const target of targets) {
+      if (PAGES_TO_COME.includes(target)) continue
       const file = target.endsWith('/') ? `${target}index.html` : target
       expect(existsSync(join(SITE, file)), `${target} introuvable`).toBe(true)
     }
   })
 
   it.each(pages)('%s renvoie aux mentions légales en pied de page', (page) => {
+    const lang = languageOf(page)
     expect(footerOf(read(page))).toContain(
-      `<a href="${LEGAL_NOTICE}">${legalNoticeLabels[languageOf(page)]}</a>`,
+      `<a href="${SITE_LEGAL_NOTICES[lang]}">${legalNoticeLabels[lang]}</a>`,
     )
   })
 

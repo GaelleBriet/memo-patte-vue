@@ -10,13 +10,43 @@
     />
     <link rel="icon" href="/icon.png" />
     <link rel="stylesheet" href="/style.css" />
+    <link
+      rel="preload"
+      href="/fonts/space-grotesk-latin-wght-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/inter-latin-wght-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
     <link rel="alternate" hreflang="fr" href="https://memopatte.app/suppression-compte/" />
     <link rel="alternate" hreflang="en" href="https://memopatte.app/en/delete-account/" />
     <link rel="alternate" hreflang="x-default" href="https://memopatte.app/suppression-compte/" />
   </head>
   <body>
     <header class="site-header">
-      <a href="/en/"><img src="/icon.png" alt="" width="32" height="32" />MémoPatte</a>
+      <div class="site-header-inner">
+        <a class="brand" href="/en/"
+          ><img src="/icon.png" alt="" width="40" height="40" />MémoPatte</a
+        >
+        <nav class="site-nav" aria-label="Menu">
+          <a href="/en/#how-it-works">How it works</a>
+          <a href="/en/#pricing">Pricing</a>
+          <a href="/en/#questions">Questions</a>
+        </nav>
+        <a class="language" href="/suppression-compte/" hreflang="fr" lang="fr"
+          ><span class="symbol symbol-translate" aria-hidden="true"></span>Français</a
+        >
+        <span class="chip"
+          ><span class="symbol symbol-schedule" aria-hidden="true"></span>Coming soon to Google
+          Play</span
+        >
+      </div>
     </header>
     <main class="document">
       <h1>Delete your MémoPatte account</h1>
@@ -25,7 +55,7 @@
         Plus account and all the data that goes with it.
       </p>
 
-      <section class="callout">
+      <section class="card">
         <h2>Option 1: in the app (recommended)</h2>
         <ol>
           <li>Open MémoPatte, then Settings › Account › “Delete my account”.</li>
@@ -42,7 +72,7 @@
         </ol>
       </section>
 
-      <section class="callout">
+      <section class="card">
         <h2>Option 2: by email, without the app</h2>
         <ol>
           <li>
@@ -102,11 +132,23 @@
         <a href="/en/privacy/">privacy policy</a>.
       </p>
     </main>
-    <footer>
-      An app by <a href="https://www.gaelle-briet.fr">Gaëlle Briet</a> ·
-      <a href="/en/privacy/">Privacy</a> ·
-      <a href="https://www.gaelle-briet.fr/mentions-legales/">Legal notice</a> ·
-      <a href="/suppression-compte/" hreflang="fr" lang="fr">Français</a>
+    <footer class="site-footer">
+      <div class="site-footer-inner">
+        <div>
+          <a class="brand" href="/en/"
+            ><img src="/icon.png" alt="" width="32" height="32" />MémoPatte</a
+          >
+          <p>An app by Gaëlle Briet</p>
+        </div>
+        <nav aria-label="Footer">
+          <a href="/en/help/">Help</a>
+          <a href="/en/privacy/">Privacy</a>
+          <a href="/en/delete-account/">Delete my account</a>
+          <a href="/en/legal-notice/">Legal notice</a>
+          <a href="mailto:contact@memopatte.app">Contact</a>
+          <a href="/suppression-compte/" hreflang="fr" lang="fr">Français</a>
+        </nav>
+      </div>
     </footer>
   </body>
 </html>
