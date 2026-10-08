@@ -5,6 +5,46 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.63](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.62...memo-patte-v0.1.63) (2026-10-08)
+
+
+### ✨ Fonctionnalités
+
+* **accueil:** plus aucun animal suivi ([5423171](https://github.com/GaelleBriet/memo-patte-vue/commit/5423171c82f7028637fec1a57ce2306e2254fe5c))
+* **accueil:** plus aucun animal suivi ([9279daa](https://github.com/GaelleBriet/memo-patte-vue/commit/9279daa9bd3665b663cde52875cc622e45037d90)), closes [#547](https://github.com/GaelleBriet/memo-patte-vue/issues/547)
+* **animals:** plus d'ajout de soin ni de « Reprendre » sur un animal qu'on ne suit plus ([7bddbda](https://github.com/GaelleBriet/memo-patte-vue/commit/7bddbda73cb3ee240bd17d82130af00d8ccb9577))
+* **animals:** plus d'ajout de soin ni de « Reprendre » sur un animal qu'on ne suit plus ([017999a](https://github.com/GaelleBriet/memo-patte-vue/commit/017999ae781f88b7e62355c3ceeb44cc7c765d49)), closes [#629](https://github.com/GaelleBriet/memo-patte-vue/issues/629)
+* **settings:** âge estimé d'une date de naissance approximative dans le PDF ([b2c42fe](https://github.com/GaelleBriet/memo-patte-vue/commit/b2c42fe32d8103c9c21d5212ad7976b0775a04bd))
+* **settings:** contenu du PDF selon la spec Données ([ca5e4c8](https://github.com/GaelleBriet/memo-patte-vue/commit/ca5e4c8374d0d2444d5a173778f1f0e7a53b9715))
+* **settings:** contenu du PDF selon la spec Données ([69c1a6c](https://github.com/GaelleBriet/memo-patte-vue/commit/69c1a6c7a9df5e1cace22d76dc3ef609b710c90a)), closes [#582](https://github.com/GaelleBriet/memo-patte-vue/issues/582)
+
+
+### 🐛 Corrections
+
+* **animals:** formulaires inactifs tant que l'animal n'est pas connu et suivi ([6dbbcac](https://github.com/GaelleBriet/memo-patte-vue/commit/6dbbcac8ffd574aa5769ab1422bc3566847ee425))
+* **i18n:** « 0 prise » au singulier en français ([f6118d7](https://github.com/GaelleBriet/memo-patte-vue/commit/f6118d70911ac1158ab946f5f38e914177b931f5))
+* **i18n:** pluriel de la posologie en anglais (« 1.5 drops ») ([d30ac55](https://github.com/GaelleBriet/memo-patte-vue/commit/d30ac5570b3252af73117b9bb26b407e349659e3))
+* **i18n:** pluriel de la posologie en anglais (« 1.5 drops ») ([5d80e0d](https://github.com/GaelleBriet/memo-patte-vue/commit/5d80e0d6c87abde87470f12b2ac09139c7fea5f2)), closes [#636](https://github.com/GaelleBriet/memo-patte-vue/issues/636)
+* **i18n:** zéro au singulier en français ([024b3fd](https://github.com/GaelleBriet/memo-patte-vue/commit/024b3fd5fb8140f3524c3c77cf216a2b4047c893)), closes [#630](https://github.com/GaelleBriet/memo-patte-vue/issues/630)
+* **parametres:** indice du PDF « Un animal à la fois » quand moins de deux sont suivis ([ad39a0a](https://github.com/GaelleBriet/memo-patte-vue/commit/ad39a0a03309386f2c2f5df1be9cac6dbcf49b70))
+* **parametres:** indice du PDF selon les animaux proposés par la feuille ([b8a3636](https://github.com/GaelleBriet/memo-patte-vue/commit/b8a3636733d06fc196a70a357474d1927ba44803))
+* **parametres:** source ANMV, « CC BY » insécable et liens en noopener vérifiés ([a1a4f5c](https://github.com/GaelleBriet/memo-patte-vue/commit/a1a4f5cf756c525861105d26b34db8191658721d))
+* **parametres:** variable de la feuille PDF renommée, sans masquer celle du template ([d18e335](https://github.com/GaelleBriet/memo-patte-vue/commit/d18e335597318984c307377700d19e8148027a7c))
+* **plus:** sous-titre de l'écran Plus, exports et PDF gratuits ([8c76f3a](https://github.com/GaelleBriet/memo-patte-vue/commit/8c76f3a658c6abe298973069cfe25a8ed33b783c))
+* **plus:** textes Plus alignés sur le code, PDF retiré des avantages ([030a010](https://github.com/GaelleBriet/memo-patte-vue/commit/030a0105655c0d082ac59b5ff72be525e68a761a))
+* **settings:** aucune échéance dans le PDF d'un animal qu'on ne suit plus ([8cfa26b](https://github.com/GaelleBriet/memo-patte-vue/commit/8cfa26ba64205d2e6dbfddd2377728827a657924))
+* **settings:** historique du PDF regroupé par jour, aucun statut pour un animal non suivi ([62c9042](https://github.com/GaelleBriet/memo-patte-vue/commit/62c9042455aef5fa32d35ede2e9fde16a9f2b8ad))
+* **settings:** l'import accepte un arrêt avant le début de la période ([83d1925](https://github.com/GaelleBriet/memo-patte-vue/commit/83d1925d45b75c118385cf63ed1256ab5f0bb88a))
+* **settings:** le PDF dit « Aucune prise » sous « Arrêté avant la première prise » ([3a093e8](https://github.com/GaelleBriet/memo-patte-vue/commit/3a093e84f5907dd6ac778842bf07a6963772d0be))
+* **settings:** lignes du même jour du PDF lues de la plus récente ([051bf9d](https://github.com/GaelleBriet/memo-patte-vue/commit/051bf9d5e6f15d85d685d4b28259aa7dbdf1c190))
+* **shared:** calendrier qui garde le jour maximum dans les fuseaux à changement d'heure à minuit ([f911400](https://github.com/GaelleBriet/memo-patte-vue/commit/f911400a163894f4f49c9b30612c04ff5f8e85b1))
+* **shared:** calendrier qui garde le jour maximum dans les fuseaux à changement d'heure à minuit ([519ca13](https://github.com/GaelleBriet/memo-patte-vue/commit/519ca1300bb2e238944651312dc59e0bb10e6de3)), closes [#642](https://github.com/GaelleBriet/memo-patte-vue/issues/642)
+* **treatments:** « Arrêté avant la première prise » pour un traitement arrêté avant toute dose ([f17d05a](https://github.com/GaelleBriet/memo-patte-vue/commit/f17d05a914a4aa63b7279e31ffa1ad1a260101ad))
+* **treatments:** « Arrêté avant la première prise » pour une période arrêtée avant son début ([9bf2376](https://github.com/GaelleBriet/memo-patte-vue/commit/9bf2376a988984d038380aecee38ac6d7622fd25))
+* **treatments:** l'historique juge « Arrêté avant la première prise » sur tout le traitement ([493cf41](https://github.com/GaelleBriet/memo-patte-vue/commit/493cf41d3964b7bd174b77af91b579aa15d77cc7))
+* **vaccinations:** aucun statut sur la fiche d'un vaccin d'un animal qu'on ne suit plus ([0c0f217](https://github.com/GaelleBriet/memo-patte-vue/commit/0c0f217e1cb8545f9b5d49f0b358513804d1c837))
+* **vaccinations:** ni « C'est fait » ni « Autre jour » pour un animal qu'on ne suit plus ([369ea03](https://github.com/GaelleBriet/memo-patte-vue/commit/369ea03c8006da34bac2222a45bb22baf94b5121))
+
 ## [0.1.62](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.61...memo-patte-v0.1.62) (2026-10-07)
 
 
