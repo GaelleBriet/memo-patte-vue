@@ -1,8 +1,7 @@
 import { nextDay } from './calendar-day'
 import type { Due, TreatmentPhase } from './treatment-schedule'
 import { formatClockTime, formatDayMonthOrYear } from '@/shared/utils/format'
-
-type Translate = (key: string, named: Record<string, unknown>) => string
+import type { Translate } from '@/core/i18n/translate'
 
 /** `label` : `null` pour une dose en retard ; `value` : `null` pour un traitement fini sans date à dire. */
 export type CurrentDoseText = { label: string | null; value: string | null }

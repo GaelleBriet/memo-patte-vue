@@ -1,6 +1,6 @@
-import type { Translate } from './due-reminders'
 import { shownWeight, withWeightUnit } from './weight-display'
 import { formatDayMonthOrYear, formatWeightDelta } from '@/shared/utils/format'
+import type { Translate } from '@/core/i18n/translate'
 
 export type WeightTrend = 'up' | 'down' | 'flat'
 
