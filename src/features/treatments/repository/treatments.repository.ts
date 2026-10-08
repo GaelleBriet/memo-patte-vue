@@ -17,7 +17,7 @@ import type {
   TreatmentPeriodSettings,
 } from '../schema/treatment-period.schema'
 import {
-  treatmentInputSchema,
+  treatmentNameSchema,
   treatmentTypeSchema,
   type FrequencyUnit,
   type Treatment,
@@ -194,7 +194,7 @@ export function createTreatmentsRepository(
 
   function identityOf({ name, type }: Pick<Treatment, 'name' | 'type'>) {
     return {
-      name: treatmentInputSchema.shape.name.parse(name),
+      name: treatmentNameSchema.parse(name),
       type: treatmentTypeSchema.parse(type),
     }
   }

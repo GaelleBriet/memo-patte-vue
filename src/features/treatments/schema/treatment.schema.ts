@@ -19,10 +19,12 @@ export const treatmentFrequencySchema = z.object({
 })
 export type TreatmentFrequency = z.output<typeof treatmentFrequencySchema>
 
+export const treatmentNameSchema = z.string().trim().min(1).max(MAX_NAME_LENGTH)
+
 /** Ce que le traitement lu porte de son plan ; le formulaire a ses schémas dans `treatment-form.schema.ts`. */
 export const treatmentInputSchema = z.object({
   animalId: z.uuid(),
-  name: z.string().trim().min(1).max(MAX_NAME_LENGTH),
+  name: treatmentNameSchema,
   type: treatmentTypeSchema,
   frequency: treatmentFrequencySchema,
 })
