@@ -148,6 +148,57 @@ describe('app/vue-script-order', () => {
         code: vue(IMPORTS, PROPS, `${STATE}\nprovide('count', count)`, FUNCTION, 'nextTick(reset)'),
       },
       {
+        name: 'une fonction appelée sur place lit un computed',
+        filename: 'Iife.vue',
+        code: vue(
+          IMPORTS,
+          STATE,
+          COMPUTED,
+          'const snapshot = (() => double.value)()\nconst other = (function () {\n  return double.value\n}).call(null)',
+        ),
+      },
+      {
+        name: 'une fonction rangée dans un objet ou un tableau passé à un appel',
+        filename: 'Objet.vue',
+        code: vue(
+          IMPORTS,
+          STATE,
+          COMPUTED,
+          'const a = ref(build({ read: () => double.value }))\nconst b = ref(runAll([() => double.value]))',
+        ),
+      },
+      {
+        name: 'un getter d’objet lu au setup',
+        filename: 'Getter-objet.vue',
+        code: vue(
+          IMPORTS,
+          STATE,
+          COMPUTED,
+          'const view = {\n  get d() {\n    return double.value\n  },\n}\nconst copy = ref(view.d)',
+        ),
+      },
+      {
+        name: 'un objet de fonctions passé à un composable',
+        filename: 'Handlers.vue',
+        code: vue(
+          IMPORTS,
+          STATE,
+          COMPUTED,
+          'const handlers = { go: () => double.value }\n\nconst api = useFoo(handlers)',
+        ),
+      },
+      {
+        name: 'des options de watch étalées sont jugées immédiates',
+        filename: 'Spread.vue',
+        code: vue(
+          IMPORTS,
+          'const base = { immediate: true }',
+          STATE,
+          ARROW,
+          'watch(count, () => save(), { ...base })',
+        ),
+      },
+      {
         name: 'la source d’un watch lit une fonction déjà déclarée',
         filename: 'Source.vue',
         code: vue(IMPORTS, STATE, 'const f = () => count.value', 'watch(() => f(), () => {})'),

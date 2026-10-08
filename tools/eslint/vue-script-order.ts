@@ -166,9 +166,10 @@ function initializer(statement: Node): Node | null | undefined {
   return null
 }
 
-const LAZY_CALLS = new Set(['computed', 'defineAsyncComponent'])
-
-/** Options d'un `watch` : un objet du fichier se lit ; venu d'ailleurs, il est jugé immédiat. */
+/**
+ * Rappel d'un `watch` lancé au setup, sauf options en objet littéral du fichier, sans `...`, dont
+ * `immediate` est absent ou vaut `false`.
+ */
 function isImmediate(options: Node | undefined, statements: Node[]): boolean {
   let object = options
   if (options?.type === 'Identifier') {
@@ -177,33 +178,48 @@ function isImmediate(options: Node | undefined, statements: Node[]): boolean {
         statement.type === 'VariableDeclaration' ? statement.declarations : [],
       )
       .find((d) => d.id.type === 'Identifier' && d.id.name === options.name)
-    if (!declarator) return true
-    object = declarator.init as Node | undefined
+    object = declarator?.init as Node | undefined
+    if (!object) return true
   }
-  if (object?.type !== 'ObjectExpression') return object !== undefined
+  if (object === undefined) return false
+  if (object.type !== 'ObjectExpression') return true
   return object.properties.some(
     (property) =>
-      property.type === 'Property' &&
-      property.key.type === 'Identifier' &&
-      property.key.name === 'immediate' &&
-      !(property.value.type === 'Literal' && property.value.value === false),
+      property.type !== 'Property' ||
+      property.computed ||
+      (property.key.type === 'Identifier' &&
+        property.key.name === 'immediate' &&
+        !(property.value.type === 'Literal' && property.value.value === false)),
   )
 }
 
+function calledBy(fn: Node): { call: NodeOf<'CallExpression'>; position: number } | null {
+  let argument = fn
+  let parent = fn.parent as Node | undefined
+  if (parent?.type === 'Property' && parent.value === fn) {
+    argument = parent.parent as Node
+    parent = argument.parent as Node | undefined
+  }
+  if (parent?.type !== 'CallExpression') return null
+  const position = parent.arguments.indexOf(argument as never)
+  return position < 0 ? null : { call: parent, position }
+}
+
 /**
- * Une fonction passée à un appel peut être lancée tout de suite ; restent pour plus tard le getter
- * d'un `computed`, le rappel d'un `watch` non immédiat et le cycle de vie.
+ * Toute fonction peut être lancée au setup, sauf aux places connues pour attendre : getter d'un
+ * `computed`, chargeur de `defineAsyncComponent`, cycle de vie et `nextTick`, rappel d'un `watch`
+ * non immédiat.
  */
 function runsLater(fn: Node, statements: Node[]): boolean {
-  const call = fn.parent as Node | undefined
-  if (call?.type !== 'CallExpression' && call?.type !== 'NewExpression') return true
-  const position = call.arguments.indexOf(fn as never)
-  if (position < 0) return true
-  const name = call.callee.type === 'Identifier' ? call.callee.name : null
-  if (name === null) return false
-  if (LAZY_CALLS.has(name) || CALLEE_GROUPS[name] === G.lifecycle) return true
-  if (name !== 'watch' || position !== 1) return false
-  return !isImmediate(call.arguments[2] as Node | undefined, statements)
+  const found = calledBy(fn)
+  if (!found || found.call.callee.type !== 'Identifier') return false
+  const name = found.call.callee.name
+  const direct = found.call.arguments[found.position] === fn
+  if (name === 'computed') return true
+  if (!direct) return false
+  if (name === 'defineAsyncComponent' || CALLEE_GROUPS[name] === G.lifecycle) return true
+  if (name !== 'watch' || found.position !== 1) return false
+  return !isImmediate(found.call.arguments[2] as Node | undefined, statements)
 }
 
 function isEager(scope: Scope.Scope | null, moduleScope: Scope.Scope, statements: Node[]): boolean {
@@ -288,7 +304,7 @@ export function analyzeScriptSetup(sourceCode: SourceCode, program: AST.Program)
 
   entries.forEach((entry, index) => {
     if (entry.group === G.functions) return
-    // Un composable peut lancer tout de suite une fonction reçue, même rangée dans un objet.
+    // Tout ce qu'un composable reçoit peut servir tout de suite, même un `computed`.
     const everything = entry.group === G.tools
     const queue = references
       .filter(
