@@ -44,6 +44,7 @@ export function useInjectionGestures(onChanged: () => void) {
       ariaLabel,
       undo,
       onUndone: onChanged,
+      onFailed: onChanged,
       failedMessage: t('reminderSheet.undoFailed'),
     })
   }

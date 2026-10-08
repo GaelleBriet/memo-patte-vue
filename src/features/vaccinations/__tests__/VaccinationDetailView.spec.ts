@@ -461,6 +461,22 @@ describe('VaccinationDetailView — injection supprimée ou redatée', () => {
     expect(plain(toastMessage.value)).toBeNull()
   })
 
+  it('relit la fiche quand « Annuler » échoue, avec le toast d’échec', async () => {
+    const view = await monter()
+    await choisir(view, 1, 'remove')
+    const avant = lignes(view).length
+    service.undoRemove.mockRejectedValue(new Error('injection modifiée depuis'))
+    injections = INJECTIONS.filter((injection) => injection.id !== 'i2')
+    getById.mockClear()
+
+    runToastAction()
+    await flushPromises()
+
+    expect(plain(toastMessage.value)).toBe('L’annulation n’a pas abouti.')
+    expect(getById).toHaveBeenCalledWith(CARRE.id)
+    expect(lignes(view)).toHaveLength(avant - 1)
+  })
+
   it('dit l’échec d’une suppression', async () => {
     service.remove.mockRejectedValue(new Error('base verrouillée'))
     const view = await monter()
