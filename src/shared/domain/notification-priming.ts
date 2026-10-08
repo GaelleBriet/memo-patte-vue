@@ -1,6 +1,7 @@
-import type { RouteLocationRaw } from 'vue-router'
+import type { RouteLocationRaw, Router } from 'vue-router'
 
 import { ANIMAL_NAME_QUERY_PARAM } from '@/shared/utils/animal-name-query-param'
+import { returnToOr } from '@/shared/utils/return-to'
 import { shouldShowPriming } from '@/core/notifications/permission'
 import { detailOrigin, detailRoute, REMINDER_QUERY_PARAM } from './reminder-route'
 
@@ -48,6 +49,13 @@ export async function primingAfterReminderSaved(
 
 export async function routeAfterReminderSaved(saved: SavedReminder): Promise<RouteLocationRaw> {
   return (await primingAfterReminderSaved(saved)) ?? primingReturnRoute(saved.from, saved.reminder)
+}
+
+/** Quitte le formulaire d'un rappel enregistré, sans jamais lever : un échec retombe sur l'écran d'origine. */
+export async function leaveAfterReminderSaved(router: Router, saved: SavedReminder): Promise<void> {
+  const safe = primingReturnRoute(saved.from, saved.reminder)
+  const target = await routeAfterReminderSaved(saved).catch(() => safe)
+  await returnToOr(router, target, safe)
 }
 
 /** `from` : `home`, `settings`, `settings-reminders` ou `animals`, où l'écran d'explication ramènera. */
