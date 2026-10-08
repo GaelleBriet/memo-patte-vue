@@ -294,9 +294,13 @@ export default defineConfigWithVueTs(
   },
   {
     name: 'app/treatment-engine-facade/shared-domain',
-    files: ['src/shared/domain/*.{ts,vue}'],
+    files: ['src/shared/domain/**/*.{ts,vue}'],
     ignores: ['src/shared/domain/treatment-schedule*.ts'],
-    rules: engineFacadeRule(['**/domain/treatment-schedule-*', './treatment-schedule-*']),
+    rules: engineFacadeRule([
+      '**/domain/treatment-schedule-*',
+      './treatment-schedule-*',
+      '../treatment-schedule-*',
+    ]),
   },
 
   // Règle distincte de no-restricted-imports pour se cumuler avec les interdits ci-dessus.

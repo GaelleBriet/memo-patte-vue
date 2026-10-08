@@ -320,10 +320,15 @@ describe("façade du moteur d'échéances", { timeout: 30_000 }, () => {
     const component = await engineImports('src/shared/utils/format.ts', [
       "import { toDate } from '../domain/treatment-schedule-dues'",
     ])
+    const nested = await engineImports('src/shared/domain/reminders/plan.ts', [
+      "import { toDate } from '../treatment-schedule-dues'",
+      "import { keyOf } from '@/shared/domain/treatment-schedule-dues'",
+    ])
 
     expect(feature).toBe(2)
     expect(shared).toBe(1)
     expect(component).toBe(1)
+    expect(nested).toBe(2)
   })
 
   it('autorise la façade, et les fichiers internes entre eux', async () => {
