@@ -10,13 +10,43 @@
     />
     <link rel="icon" href="/icon.png" />
     <link rel="stylesheet" href="/style.css" />
+    <link
+      rel="preload"
+      href="/fonts/space-grotesk-latin-wght-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/inter-latin-wght-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
     <link rel="alternate" hreflang="fr" href="https://memopatte.app/confidentialite/" />
     <link rel="alternate" hreflang="en" href="https://memopatte.app/en/privacy/" />
     <link rel="alternate" hreflang="x-default" href="https://memopatte.app/confidentialite/" />
   </head>
   <body>
     <header class="site-header">
-      <a href="/en/"><img src="/icon.png" alt="" width="32" height="32" />MémoPatte</a>
+      <div class="site-header-inner">
+        <a class="brand" href="/en/"
+          ><img src="/icon.png" alt="" width="40" height="40" />MémoPatte</a
+        >
+        <nav class="site-nav" aria-label="Menu">
+          <a href="/en/#how-it-works">How it works</a>
+          <a href="/en/#pricing">Pricing</a>
+          <a href="/en/#questions">Questions</a>
+        </nav>
+        <a class="language" href="/confidentialite/" hreflang="fr" lang="fr"
+          ><span class="symbol symbol-translate" aria-hidden="true"></span>Français</a
+        >
+        <span class="chip"
+          ><span class="symbol symbol-schedule" aria-hidden="true"></span>Coming soon to Google
+          Play</span
+        >
+      </div>
     </header>
     <main class="document">
       <h1>MémoPatte privacy policy</h1>
@@ -368,11 +398,23 @@
         >.
       </p>
     </main>
-    <footer>
-      An app by <a href="https://www.gaelle-briet.fr">Gaëlle Briet</a> ·
-      <a href="/en/delete-account/">Delete my account</a> ·
-      <a href="https://www.gaelle-briet.fr/mentions-legales/">Legal notice</a> ·
-      <a href="/confidentialite/" hreflang="fr" lang="fr">Français</a>
+    <footer class="site-footer">
+      <div class="site-footer-inner">
+        <div>
+          <a class="brand" href="/en/"
+            ><img src="/icon.png" alt="" width="32" height="32" />MémoPatte</a
+          >
+          <p>An app by Gaëlle Briet</p>
+        </div>
+        <nav aria-label="Footer">
+          <a href="/en/help/">Help</a>
+          <a href="/en/privacy/">Privacy</a>
+          <a href="/en/delete-account/">Delete my account</a>
+          <a href="/en/legal-notice/">Legal notice</a>
+          <a href="mailto:contact@memopatte.app">Contact</a>
+          <a href="/confidentialite/" hreflang="fr" lang="fr">Français</a>
+        </nav>
+      </div>
     </footer>
   </body>
 </html>

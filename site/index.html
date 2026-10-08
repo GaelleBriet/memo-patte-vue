@@ -10,26 +10,68 @@
     />
     <link rel="icon" href="/icon.png" />
     <link rel="stylesheet" href="/style.css" />
+    <link
+      rel="preload"
+      href="/fonts/space-grotesk-latin-wght-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/inter-latin-wght-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
     <link rel="alternate" hreflang="fr" href="https://memopatte.app/" />
     <link rel="alternate" hreflang="en" href="https://memopatte.app/en/" />
     <link rel="alternate" hreflang="x-default" href="https://memopatte.app/" />
   </head>
   <body>
-    <main>
-      <img class="icon" src="/icon.png" alt="" width="96" height="96" />
+    <header class="site-header">
+      <div class="site-header-inner">
+        <a class="brand" href="/"><img src="/icon.png" alt="" width="40" height="40" />MémoPatte</a>
+        <nav class="site-nav" aria-label="Menu">
+          <a href="/#comment-ca-marche">Comment ça marche</a>
+          <a href="/#prix">Prix</a>
+          <a href="/#questions">Questions</a>
+        </nav>
+        <a class="language" href="/en/" hreflang="en" lang="en"
+          ><span class="symbol symbol-translate" aria-hidden="true"></span>English</a
+        >
+        <span class="chip"
+          ><span class="symbol symbol-schedule" aria-hidden="true"></span>Bientôt sur Google
+          Play</span
+        >
+      </div>
+    </header>
+    <main class="centered">
+      <img class="app-icon" src="/icon.png" alt="" width="96" height="96" />
       <h1>MémoPatte</h1>
       <p class="lead">
         Le carnet de santé de ton chien et de ton chat&nbsp;: vaccins, traitements, poids et
         rappels, même hors ligne.
       </p>
-      <p class="status">Bientôt sur Google Play</p>
+      <p><span class="chip">Bientôt sur Google Play</span></p>
     </main>
-    <footer>
-      Une app de <a href="https://www.gaelle-briet.fr">Gaëlle Briet</a> ·
-      <a href="/confidentialite/">Confidentialité</a> ·
-      <a href="/suppression-compte/">Supprimer mon compte</a> ·
-      <a href="https://www.gaelle-briet.fr/mentions-legales/">Mentions légales</a> ·
-      <a href="/en/" hreflang="en" lang="en">English</a>
+    <footer class="site-footer">
+      <div class="site-footer-inner">
+        <div>
+          <a class="brand" href="/"
+            ><img src="/icon.png" alt="" width="32" height="32" />MémoPatte</a
+          >
+          <p>Une app de Gaëlle Briet</p>
+        </div>
+        <nav aria-label="Pied de page">
+          <a href="/aide/">Aide</a>
+          <a href="/confidentialite/">Confidentialité</a>
+          <a href="/suppression-compte/">Supprimer mon compte</a>
+          <a href="/mentions-legales/">Mentions légales</a>
+          <a href="mailto:contact@memopatte.app">Contact</a>
+          <a href="/en/" hreflang="en" lang="en">English</a>
+        </nav>
+      </div>
     </footer>
   </body>
 </html>

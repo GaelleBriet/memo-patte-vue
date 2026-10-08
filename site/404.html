@@ -7,20 +7,72 @@
     <title>Page introuvable · MémoPatte</title>
     <link rel="icon" href="/icon.png" />
     <link rel="stylesheet" href="/style.css" />
+    <link
+      rel="preload"
+      href="/fonts/space-grotesk-latin-wght-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/inter-latin-wght-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
   </head>
   <body>
-    <main>
-      <img class="icon" src="/icon.png" alt="" width="96" height="96" />
-      <h1>Page introuvable</h1>
-      <p class="lead">Cette page n’existe pas ou n’existe plus.</p>
-      <p><a href="/">Retour à l’accueil de MémoPatte</a></p>
-      <p lang="en">
-        <a href="/en/" hreflang="en">Page not found. Go to the MémoPatte home page</a>
+    <header class="site-header">
+      <div class="site-header-inner">
+        <a class="brand" href="/"><img src="/icon.png" alt="" width="40" height="40" />MémoPatte</a>
+        <nav class="site-nav" aria-label="Menu">
+          <a href="/#comment-ca-marche">Comment ça marche</a>
+          <a href="/#prix">Prix</a>
+          <a href="/#questions">Questions</a>
+        </nav>
+        <a class="language" href="/en/" hreflang="en" lang="en"
+          ><span class="symbol symbol-translate" aria-hidden="true"></span>English</a
+        >
+        <span class="chip"
+          ><span class="symbol symbol-schedule" aria-hidden="true"></span>Bientôt sur Google
+          Play</span
+        >
+      </div>
+    </header>
+    <main class="centered">
+      <div class="paw-disc">
+        <img src="/patte.webp" alt="" width="392" height="368" />
+      </div>
+      <p class="eyebrow">Erreur 404</p>
+      <h1>Cette page s’est perdue en route</h1>
+      <p class="lead">
+        Elle n’existe pas, ou elle a changé d’adresse. Le reste du site est toujours là.
+      </p>
+      <p class="actions">
+        <a class="button" href="/"
+          ><span class="symbol symbol-home" aria-hidden="true"></span>Retour à l’accueil</a
+        >
+        <a class="button button-secondary" href="/aide/">Page d’aide</a>
       </p>
     </main>
-    <footer>
-      Une app de <a href="https://www.gaelle-briet.fr">Gaëlle Briet</a> ·
-      <a href="https://www.gaelle-briet.fr/mentions-legales/">Mentions légales</a>
+    <footer class="site-footer">
+      <div class="site-footer-inner">
+        <div>
+          <a class="brand" href="/"
+            ><img src="/icon.png" alt="" width="32" height="32" />MémoPatte</a
+          >
+          <p>Une app de Gaëlle Briet</p>
+        </div>
+        <nav aria-label="Pied de page">
+          <a href="/aide/">Aide</a>
+          <a href="/confidentialite/">Confidentialité</a>
+          <a href="/suppression-compte/">Supprimer mon compte</a>
+          <a href="/mentions-legales/">Mentions légales</a>
+          <a href="mailto:contact@memopatte.app">Contact</a>
+          <a href="/en/" hreflang="en" lang="en">English</a>
+        </nav>
+      </div>
     </footer>
   </body>
 </html>
