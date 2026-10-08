@@ -16,9 +16,9 @@ import {
   type DueReminderEntry,
   type DueReminderMoment,
 } from './due-reminders'
+import { toDate } from './calendar-day'
+import { DAYS_PER_STEP } from './treatment-frequency'
 import {
-  DAYS_PER_STEP,
-  toDate,
   uniqueSorted,
   type Due,
   type TreatmentPeriodInput,

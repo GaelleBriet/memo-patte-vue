@@ -27,7 +27,7 @@ import {
   type TreatmentPeriodRecord,
   type TreatmentPeriodSettings,
 } from '../schema/treatment-period.schema'
-import { isCalendarDay } from '@/shared/domain/calendar-day'
+import { isCalendarDay, latestOf, nextDay } from '@/shared/domain/calendar-day'
 import { sortedTimes } from '@/shared/domain/clock-time'
 import {
   isAdvanced,
@@ -170,13 +170,6 @@ function changesRhythm(period: TreatmentPeriodRecord, rhythm: TreatmentRhythm): 
   })
 }
 
-function latestOf(days: (string | null | undefined)[]): string | null {
-  return days.reduce<string | null>(
-    (latest, day) => (day && (latest === null || day > latest) ? day : latest),
-    null,
-  )
-}
-
 function hasNote(schedule: TreatmentSchedule, periodId?: string): boolean {
   return schedule.doses.some(
     (dose) => isNoteLine(dose) && (periodId === undefined || dose.periodId === periodId),
@@ -223,10 +216,14 @@ function moveArrivingOn(schedule: TreatmentSchedule, due: Due) {
 }
 
 function lastNotedDueOn(history: TreatmentWithHistory, periodId?: string): string | null {
-  return latestOf(
-    history.doses
-      .filter((dose) => isNoteLine(dose) && (periodId === undefined || dose.periodId === periodId))
-      .map((dose) => dose.dueOn),
+  return (
+    latestOf(
+      history.doses
+        .filter(
+          (dose) => isNoteLine(dose) && (periodId === undefined || dose.periodId === periodId),
+        )
+        .map((dose) => dose.dueOn),
+    ) ?? null
   )
 }
 
@@ -1017,10 +1014,6 @@ export type ResumptionDraft = {
   endsOnFor(firstDoseOn: string): string | null
 }
 
-function dayAfter(day: string): string {
-  return formatISO(addDays(parseISO(day), 1), { representation: 'date' })
-}
-
 // La nouvelle période ne retire rien à la précédente : dès le jour de l'arrêt (G3), qui garde ses
 // prises même notées en avance, ou au lendemain de la date de fin et de la dernière prise notée
 // d'une période finie.
@@ -1030,8 +1023,8 @@ function resumptionEarliestOn(
 ): string {
   if (period.stoppedOn !== null)
     return latestOf([period.startsOn, period.stoppedOn]) ?? period.stoppedOn
-  const after = latestOf([lastNotedDueOn(history, period.id), period.endsOn])
-  return latestOf([period.startsOn, after === null ? null : dayAfter(after)]) ?? period.startsOn
+  const after = latestOf([lastNotedDueOn(history, period.id), period.endsOn]) ?? null
+  return latestOf([period.startsOn, after === null ? null : nextDay(after)]) ?? period.startsOn
 }
 
 export function resumptionDraft(history: TreatmentWithHistory, today: string): ResumptionDraft {

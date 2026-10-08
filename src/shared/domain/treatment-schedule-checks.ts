@@ -1,9 +1,8 @@
 import { differenceInCalendarDays } from 'date-fns'
 
-import { isCalendarDay } from './calendar-day'
+import { compareText, isCalendarDay, previousDay, toDate } from './calendar-day'
 import { isClockTime } from './clock-time'
-import { MAX_FREQUENCY_VALUE } from './treatment-frequency'
-import { DAYS_PER_STEP, compareText, previousDay, toDate } from './treatment-schedule-dues'
+import { DAYS_PER_STEP, FREQUENCY_UNITS, MAX_FREQUENCY_VALUE } from './treatment-frequency'
 import { closingDay, orderPeriods } from './treatment-schedule-timeline'
 import type {
   Frequency,
@@ -12,7 +11,7 @@ import type {
   TreatmentScheduleInput,
 } from './treatment-schedule-types'
 
-const UNITS: readonly string[] = ['day', 'week', 'month']
+const UNITS: readonly string[] = FREQUENCY_UNITS
 const STATUSES: readonly string[] = ['given', 'missed', 'postponed', 'extra', 'shift']
 
 export const MAX_DUES = 50_000

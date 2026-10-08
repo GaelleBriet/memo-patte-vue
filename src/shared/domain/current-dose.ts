@@ -1,5 +1,4 @@
-import { addDays, format, parseISO } from 'date-fns'
-
+import { nextDay } from './calendar-day'
 import type { Due, TreatmentPhase } from './treatment-schedule'
 import { formatClockTime, formatDayMonthOrYear } from '@/shared/utils/format'
 
@@ -26,7 +25,7 @@ function dueDay(t: Translate, { dueOn, dueTime }: Due, today: string): string {
 }
 
 function isTomorrow(day: string, today: string): boolean {
-  return day === format(addDays(parseISO(today), 1), 'yyyy-MM-dd')
+  return day === nextDay(today)
 }
 
 /** Libellé et valeur de la carte de la dose du moment : « Dose du jour » · « 28 sept. à 20 h ». */

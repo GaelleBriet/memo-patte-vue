@@ -1,5 +1,6 @@
 import { invalid } from './treatment-schedule-checks'
-import { dueId, nextDay, previousDay, sameDue } from './treatment-schedule-dues'
+import { nextDay, previousDay } from './calendar-day'
+import { dueId, sameDue } from './treatment-schedule-dues'
 import {
   closingDay,
   isExtraLine,

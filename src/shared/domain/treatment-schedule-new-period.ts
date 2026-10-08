@@ -1,6 +1,7 @@
 import { isClockTime } from './clock-time'
 import { checkFrequency, invalid } from './treatment-schedule-checks'
-import { latestOf, shiftDate } from './treatment-schedule-dues'
+import { latestOf } from './calendar-day'
+import { shiftDate } from './treatment-frequency'
 import { isShift, mergeDoses, positionOf, sequenceAt, shiftOn } from './treatment-schedule-timeline'
 import { notedOn } from './treatment-schedule-state'
 import type { Frequency, NewPeriod, State } from './treatment-schedule-types'

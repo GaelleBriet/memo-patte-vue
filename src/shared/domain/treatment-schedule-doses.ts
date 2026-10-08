@@ -2,18 +2,14 @@ import { differenceInCalendarDays, differenceInCalendarMonths } from 'date-fns'
 
 import { isClockTime } from './clock-time'
 import { MAX_DUES, checkPastDay, invalid } from './treatment-schedule-checks'
+import { compareText, nextDay, previousDay, toDate } from './calendar-day'
+import { DAYS_PER_STEP, shiftDate } from './treatment-frequency'
 import {
-  DAYS_PER_STEP,
-  compareText,
   dueId,
   dueOf,
   isWithinHalfStep,
   keyOf,
-  nextDay,
-  previousDay,
   sameDue,
-  shiftDate,
-  toDate,
   uniqueSorted,
 } from './treatment-schedule-dues'
 import {

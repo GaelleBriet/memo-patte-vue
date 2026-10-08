@@ -1,4 +1,6 @@
-export type Frequency = { value: number; unit: 'day' | 'week' | 'month' }
+import type { Frequency } from './treatment-frequency'
+
+export type { Frequency }
 
 export type TreatmentPeriodInput = {
   id: string

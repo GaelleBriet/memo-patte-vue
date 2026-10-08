@@ -1,10 +1,11 @@
 import { z } from 'zod'
 
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
-import { MAX_FREQUENCY_VALUE } from '@/shared/domain/treatment-frequency'
+import { FREQUENCY_UNITS, MAX_FREQUENCY_VALUE } from '@/shared/domain/treatment-frequency'
 
 export const TREATMENT_TYPES = ['deworming', 'antiparasitic', 'medication'] as const
-export const FREQUENCY_UNITS = ['day', 'week', 'month'] as const
+
+export { FREQUENCY_UNITS }
 
 export const treatmentTypeSchema = z.enum(TREATMENT_TYPES)
 export type TreatmentType = z.output<typeof treatmentTypeSchema>

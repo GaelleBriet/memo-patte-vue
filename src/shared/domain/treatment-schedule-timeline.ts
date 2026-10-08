@@ -1,4 +1,5 @@
-import { compareText, dueId, dueOf, keyOf, uniqueSorted } from './treatment-schedule-dues'
+import { compareText } from './calendar-day'
+import { dueId, dueOf, keyOf, uniqueSorted } from './treatment-schedule-dues'
 import {
   duesUntil,
   initialSequence,

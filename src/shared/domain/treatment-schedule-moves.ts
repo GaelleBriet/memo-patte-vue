@@ -1,14 +1,12 @@
 import { checkDay, invalid } from './treatment-schedule-checks'
+import { latestOf, nextDay, previousDay } from './calendar-day'
+import { shiftDate } from './treatment-frequency'
 import {
   dueId,
   dueOf,
   isWithinHalfStep,
   keyOf,
-  latestOf,
-  nextDay,
-  previousDay,
   sameDue,
-  shiftDate,
   uniqueSorted,
 } from './treatment-schedule-dues'
 import {
