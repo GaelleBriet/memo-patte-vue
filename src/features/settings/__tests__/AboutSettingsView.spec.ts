@@ -47,8 +47,8 @@ describe('AboutSettingsView', () => {
   })
 
   it.each([
-    ['fr', 'Site de MémoPatte', 'Mentions légales', 'https://memopatte.gaelle-briet.fr/'],
-    ['en', 'MémoPatte website', 'Legal notice', 'https://memopatte.gaelle-briet.fr/en/'],
+    ['fr', 'Site de MémoPatte', 'Mentions légales', 'https://memopatte.app/'],
+    ['en', 'MémoPatte website', 'Legal notice', 'https://memopatte.app/en/'],
   ] as const)(
     'ouvre le site et les mentions légales en %s',
     async (locale, site, mentions, url) => {

@@ -7,8 +7,8 @@ import { describe, expect, it } from 'vitest'
 import { helpPageUrl, remindersHelpUrl } from '@/shared/domain/help-page'
 
 const SITE = 'site'
-const SITE_URL = 'https://memopatte.gaelle-briet.fr'
-const CONTACT_EMAIL = 'memopatte@gaelle-briet.fr'
+const SITE_URL = 'https://memopatte.app'
+const CONTACT_EMAIL = 'contact@memopatte.app'
 const CONTACT = `mailto:${CONTACT_EMAIL}`
 const LEGAL_NOTICE = 'https://www.gaelle-briet.fr/mentions-legales/'
 
@@ -77,7 +77,7 @@ const legalNoticeLabels = { fr: 'Mentions légales', en: 'Legal notice' }
 const languages = ['fr', 'en'] as const
 const languageOf = (page: string) => (page.startsWith('en') ? 'en' : 'fr')
 
-describe('site public memopatte.gaelle-briet.fr', () => {
+describe('site public memopatte.app', () => {
   it.each(translations.flatMap(({ fr, en }) => [fr, en]))('la page %s existe', (url) => {
     expect(existsSync(join(SITE, fileOf(url)))).toBe(true)
   })

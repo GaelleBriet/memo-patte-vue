@@ -65,7 +65,7 @@ personnalisation de l'accueil.
     mon compte » (écrans de l'app, spec Plus PL-21). (Spec Plus)
   - **Confidentialité** : « Statistiques d'usage », lien vers la politique de confidentialité.
     (Existant ; site ; #425 : jamais « anonymes », un abonné connecté y est rattaché à son compte)
-  - **Aide et contact** : page Aide du site ; « Nous écrire » (e-mail à `memopatte@gaelle-briet.fr`,
+  - **Aide et contact** : page Aide du site ; « Nous écrire » (e-mail à `contact@memopatte.app`,
     objet « MémoPatte : question ») et « Il me manque quelque chose » (objet « MémoPatte :
     suggestion »), qui ouvrent l'app de messagerie, message prérempli avec la version de l'app et
     d'Android, jamais le contenu du carnet. (Décision du 2026-09-29 ; parades P2 ; spec Q2)

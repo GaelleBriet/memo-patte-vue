@@ -5,9 +5,9 @@ import { CONTACT_ADDRESS, contactMailBody, contactMailUrl } from '../logic/conta
 
 describe('contactMailUrl', () => {
   it('écrit à l’adresse de contact de MémoPatte', () => {
-    expect(CONTACT_ADDRESS).toBe('memopatte@gaelle-briet.fr')
+    expect(CONTACT_ADDRESS).toBe('contact@memopatte.app')
     expect(contactMailUrl({ subject: 'x', body: 'y' })).toMatch(
-      /^mailto:memopatte@gaelle-briet\.fr\?subject=x&body=y$/,
+      /^mailto:contact@memopatte\.app\?subject=x&body=y$/,
     )
   })
 

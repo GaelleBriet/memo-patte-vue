@@ -2162,3 +2162,12 @@ Alternative écartée : garder les ajouts, avec des soins enregistrés sans aucu
 La fiche d'un vaccin de cet animal n'affiche plus « C'est fait » ni « Fait à une autre date », et
 garde « Ajouter une injection passée ».
 « Modifier » reste disponible sur un traitement terminé de cet animal.
+
+2026-10-08 — **Domaine du site : `memopatte.app`**, `memopatte.fr` redirigé dessus (301, chemin gardé),
+au nom de l'entreprise individuelle de Gaelle, DNS chez Cloudflare. **Contact :
+`contact@memopatte.app`**, boîte Proton comme la précédente. L'app, le site et la documentation
+pointent désormais vers ces adresses ; les mentions légales restent sur `gaelle-briet.fr` jusqu'à
+la page du nouveau site. Remplace le sous-domaine `memopatte.gaelle-briet.fr` et l'adresse
+`memopatte@gaelle-briet.fr` du 2026-09-26. — Raison : un nom à soi, court, qu'on retient, prêt pour la
+page vitrine ; `memopatte.com` est pris. — Alternative écartée : garder le sous-domaine du site
+de l'entreprise. Étude dans le coffre de notes de Gaelle.

@@ -1,8 +1,8 @@
 import type { AppLocale } from '@/core/i18n'
 
 const HELP_PAGE_URLS: Record<AppLocale, string> = {
-  fr: 'https://memopatte.gaelle-briet.fr/aide/',
-  en: 'https://memopatte.gaelle-briet.fr/en/help/',
+  fr: 'https://memopatte.app/aide/',
+  en: 'https://memopatte.app/en/help/',
 }
 
 const REMINDERS_SECTIONS: Record<AppLocale, string> = {
