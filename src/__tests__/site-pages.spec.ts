@@ -12,7 +12,13 @@ const CONTACT_EMAIL = 'contact@memopatte.app'
 const CONTACT = `mailto:${CONTACT_EMAIL}`
 const LEGAL_NOTICE = 'https://www.gaelle-briet.fr/mentions-legales/'
 const SITE_LEGAL_NOTICES = { fr: '/mentions-legales/', en: '/en/legal-notice/' }
-const PAGES_TO_COME = Object.values(SITE_LEGAL_NOTICES)
+const HELP_PAGES_TO_COME = [
+  '/aide/exporter/',
+  '/aide/rappels/',
+  '/en/help/export/',
+  '/en/help/reminders/',
+]
+const PAGES_TO_COME = [...Object.values(SITE_LEGAL_NOTICES), ...HELP_PAGES_TO_COME]
 const OUTBOUND_HOSTS = [
   'memopatte.app',
   'play.google.com',
@@ -57,8 +63,11 @@ function decode(text: string): string {
 }
 
 function readableTexts(html: string): string[] {
-  const attributes = [...html.matchAll(/\b(?:content|alt)="([^"]*)"/g)].map((match) => match[1]!)
-  return [html.replace(/<[^>]*>/g, ''), ...attributes].map(decode)
+  const attributes = [...html.matchAll(/\b(?:content|alt)="([^"]*)"/g)]
+    .map((match) => match[1]!)
+    .filter((value) => !/^https?:\/\//.test(value))
+  const body = html.replace(/<script\b[\s\S]*?<\/script>/gi, '').replace(/<[^>]*>/g, '')
+  return [body, ...attributes].map(decode)
 }
 
 const footerOf = (html: string) => html.match(/<footer\b[^>]*>([\s\S]*?)<\/footer>/)?.[1] ?? ''
@@ -185,10 +194,12 @@ describe('site public memopatte.app', () => {
 
   it.each(pages)('%s ne charge rien depuis un autre site', (page) => {
     const html = read(page)
-    expect(html).not.toMatch(/<script/i)
+    for (const script of html.match(/<script\b[^>]*>/gi) ?? []) {
+      expect(script).toBe('<script type="application/ld+json">')
+    }
     const loadingTags = [...html.matchAll(/<(?:link|img|source|iframe)\b[^>]*>/gi)]
       .map((match) => match[0])
-      .filter((tag) => !/\brel="alternate"/.test(tag))
+      .filter((tag) => !/\brel="(?:alternate|canonical)"/.test(tag))
     for (const tag of loadingTags) expect(tag).not.toMatch(/\b(href|src)="(https?:)?\/\//i)
   })
 

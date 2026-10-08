@@ -1,0 +1,195 @@
+// @vitest-environment node
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
+import { XMLParser, XMLValidator } from 'fast-xml-parser'
+import { describe, expect, it } from 'vitest'
+
+const SITE = 'site'
+const SITE_URL = 'https://memopatte.app'
+const read = (path: string) => readFileSync(join(SITE, path), 'utf8')
+const plain = (text: string) =>
+  text
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;|&#8239;|[  ]/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/\s+/g, ' ')
+
+const homes = {
+  fr: {
+    file: 'index.html',
+    url: `${SITE_URL}/`,
+    locale: 'fr_FR',
+    sections: ['comment-ca-marche', 'prix', 'questions'],
+    prices: ['1,49 € par mois', '9,99 € par an', '29,99 € à vie'],
+    pricesNote: 'Prix indicatifs ; Google Play affiche le sien.',
+    plusLater: 'MémoPatte Plus arrive après la sortie de l’app',
+    bestValue: 'Meilleure offre',
+    helpLinks: ['/aide/rappels/', '/aide/exporter/', '/aide/'],
+  },
+  en: {
+    file: 'en/index.html',
+    url: `${SITE_URL}/en/`,
+    locale: 'en_US',
+    sections: ['how-it-works', 'pricing', 'questions'],
+    prices: ['€1.49/month', '€9.99/year', '€29.99 lifetime'],
+    pricesNote: 'Indicative prices; Google Play shows its own.',
+    plusLater: 'MémoPatte Plus arrives after the app launches',
+    bestValue: 'Best value',
+    helpLinks: ['/en/help/reminders/', '/en/help/export/', '/en/help/'],
+  },
+}
+const languages = ['fr', 'en'] as const
+
+const metaContent = (html: string, key: string) =>
+  html.match(new RegExp(`<meta\\s+(?:property|name)="${key}"\\s+content="([^"]*)"`))?.[1]
+
+function pngSize(path: string) {
+  const bytes = readFileSync(join(SITE, path))
+  return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) }
+}
+
+function jsonLdOf(html: string): Record<string, unknown> {
+  const block = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)?.[1]
+  return JSON.parse(block ?? 'null') as Record<string, unknown>
+}
+
+describe.each(languages)('page vitrine en %s', (lang) => {
+  const home = homes[lang]
+  const html = read(home.file)
+  const text = plain(html)
+
+  it('a les sections visées par les liens de l’en-tête', () => {
+    for (const id of home.sections) {
+      expect(html).toContain(`id="${id}"`)
+      expect(html).toContain(`href="${lang === 'fr' ? '' : '/en'}/#${id}"`)
+    }
+  })
+
+  it('montre les captures de l’app avec leurs dimensions et une description', () => {
+    const images = [...html.matchAll(/<img\b[^>]*class="screen"[^>]*>/g)].map((m) => m[0])
+    expect(images).toHaveLength(5)
+    for (const image of images) {
+      const src = image.match(/src="\/([^"]+)"/)?.[1] ?? ''
+      expect(existsSync(join(SITE, src))).toBe(true)
+      expect(src).toMatch(new RegExp(`^img/${lang}-[a-z-]+\\.webp$`))
+      expect(image).toMatch(/width="\d+"/)
+      expect(image).toMatch(/height="\d+"/)
+      expect(image.match(/alt="([^"]*)"/)?.[1]?.length ?? 0).toBeGreaterThan(30)
+    }
+    expect(images[0]).not.toContain('loading="lazy"')
+    for (const image of images.slice(1)) expect(image).toContain('loading="lazy"')
+  })
+
+  it('affiche les trois offres de Plus, leur mention et leur arrivée après la sortie', () => {
+    for (const price of home.prices) expect(text).toContain(price)
+    expect(text).toContain(home.pricesNote)
+    expect(text).toContain(home.plusLater)
+    expect(text).toContain(home.bestValue)
+  })
+
+  it('renvoie aux pages d’aide', () => {
+    for (const link of home.helpLinks) expect(html).toContain(`href="${link}"`)
+  })
+
+  it('ne montre ni note, ni avis, ni nombre de taps', () => {
+    expect(html).not.toMatch(/aggregateRating|ratingValue|reviewCount|★/)
+    expect(text).not.toMatch(/\b\d+\s*(taps?|touchers?)\b/i)
+  })
+
+  it('déclare son adresse canonique', () => {
+    expect(html).toContain(`<link rel="canonical" href="${home.url}" />`)
+  })
+
+  it('décrit l’app en données structurées, gratuite et sans note', () => {
+    const app = jsonLdOf(html)
+    expect(app).toMatchObject({
+      '@context': 'https://schema.org',
+      '@type': 'MobileApplication',
+      name: 'MémoPatte',
+      operatingSystem: 'Android',
+      applicationCategory: 'LifestyleApplication',
+      inLanguage: lang,
+      url: home.url,
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+    })
+    expect(app).not.toHaveProperty('aggregateRating')
+    expect(app).not.toHaveProperty('review')
+  })
+
+  it('a une image de partage de 1200 × 630 et ses balises', () => {
+    const image = metaContent(html, 'og:image') ?? ''
+    expect(image).toMatch(new RegExp(`^${SITE_URL}/img/og-${lang}\\.png$`))
+    expect(pngSize(image.replace(`${SITE_URL}/`, ''))).toEqual({ width: 1200, height: 630 })
+    expect(metaContent(html, 'og:image:width')).toBe('1200')
+    expect(metaContent(html, 'og:image:height')).toBe('630')
+    expect(metaContent(html, 'og:image:alt')?.length ?? 0).toBeGreaterThan(20)
+    expect(metaContent(html, 'og:title')).toBeTruthy()
+    expect(metaContent(html, 'og:description')).toBeTruthy()
+    expect(metaContent(html, 'og:url')).toBe(home.url)
+    expect(metaContent(html, 'og:type')).toBe('website')
+    expect(metaContent(html, 'og:locale')).toBe(home.locale)
+    expect(metaContent(html, 'twitter:card')).toBe('summary_large_image')
+  })
+})
+
+describe('plan du site', () => {
+  const xml = read('sitemap.xml')
+  const parsed = new XMLParser({
+    ignoreAttributes: false,
+    isArray: (name) => name === 'url' || name === 'xhtml:link',
+  }).parse(xml) as {
+    urlset: { url: { loc: string; 'xhtml:link': { '@_hreflang': string; '@_href': string }[] }[] }
+  }
+  const urls = parsed.urlset.url
+  const locs = urls.map((url) => url.loc)
+  const pagesToCome = ['/mentions-legales/', '/en/legal-notice/']
+
+  it('est un XML valide', () => {
+    expect(XMLValidator.validate(xml)).toBe(true)
+  })
+
+  it('liste les pages du site et les mentions légales', () => {
+    expect(locs).toEqual(
+      expect.arrayContaining(
+        [
+          '/',
+          '/en/',
+          '/confidentialite/',
+          '/en/privacy/',
+          '/suppression-compte/',
+          '/en/delete-account/',
+          '/aide/',
+          '/en/help/',
+          ...pagesToCome,
+        ].map((path) => `${SITE_URL}${path}`),
+      ),
+    )
+  })
+
+  it('ne liste que des pages qui existent ou qui arrivent', () => {
+    for (const loc of locs) {
+      const path = loc.replace(SITE_URL, '')
+      if (pagesToCome.includes(path)) continue
+      expect(existsSync(join(SITE, path, 'index.html'))).toBe(true)
+    }
+  })
+
+  it('donne pour chaque page ses deux langues et la version par défaut', () => {
+    for (const url of urls) {
+      const links = url['xhtml:link']
+      expect(links.map((link) => link['@_hreflang']).sort()).toEqual(['en', 'fr', 'x-default'])
+      expect(links.map((link) => link['@_href'])).toContain(url.loc)
+    }
+  })
+})
+
+describe('robots.txt', () => {
+  const robots = read('robots.txt')
+
+  it('autorise tout et pointe le plan du site', () => {
+    expect(robots).toMatch(/^User-agent: \*$/m)
+    expect(robots).toMatch(/^Allow: \/$/m)
+    expect(robots).toContain(`Sitemap: ${SITE_URL}/sitemap.xml`)
+  })
+})

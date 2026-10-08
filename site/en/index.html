@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>MémoPatte</title>
+    <title>MémoPatte, the health record for your dogs and cats</title>
     <meta
       name="description"
-      content="The health record for your dog and cat: vaccines, treatments, weight and reminders, even offline."
+      content="Vaccines, dewormers, parasite control, medication, weight: what’s due today, for all your pets, on one screen. Even offline. Free, no account."
     />
     <link rel="icon" href="/icon.png" />
     <link rel="stylesheet" href="/style.css" />
@@ -24,9 +24,43 @@
       type="font/woff2"
       crossorigin
     />
+    <link rel="canonical" href="https://memopatte.app/en/" />
     <link rel="alternate" hreflang="fr" href="https://memopatte.app/" />
     <link rel="alternate" hreflang="en" href="https://memopatte.app/en/" />
     <link rel="alternate" hreflang="x-default" href="https://memopatte.app/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="MémoPatte" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="fr_FR" />
+    <meta property="og:url" content="https://memopatte.app/en/" />
+    <meta property="og:title" content="MémoPatte, the health record for your dogs and cats" />
+    <meta
+      property="og:description"
+      content="All your pets’ care on one screen, with reminders that arrive even offline. Free, no account, coming soon to Google Play."
+    />
+    <meta property="og:image" content="https://memopatte.app/img/og-en.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="MémoPatte, the health record for your dogs and cats, coming soon to Google Play"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "MobileApplication",
+        "name": "MémoPatte",
+        "description": "Health record for dogs and cats: vaccines, dewormers, parasite control, medication, weight and reminders, even offline.",
+        "operatingSystem": "Android",
+        "applicationCategory": "LifestyleApplication",
+        "inLanguage": "en",
+        "url": "https://memopatte.app/en/",
+        "image": "https://memopatte.app/icon.png",
+        "author": { "@type": "Person", "name": "Gaëlle Briet" },
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" }
+      }
+    </script>
   </head>
   <body>
     <header class="site-header">
@@ -48,14 +82,343 @@
         >
       </div>
     </header>
-    <main class="centered">
-      <img class="app-icon" src="/icon.png" alt="" width="96" height="96" />
-      <h1>MémoPatte</h1>
-      <p class="lead">
-        The health record for your dog and cat: vaccines, treatments, weight and reminders, even
-        offline.
-      </p>
-      <p><span class="chip">Coming soon to Google Play</span></p>
+    <main class="showcase">
+      <section class="hero">
+        <div class="hero-inner">
+          <div class="hero-band">
+            <h1>The health record for your dogs and cats that remembers their care for you.</h1>
+            <p class="hero-lead">
+              Vaccines, dewormers, parasite control, medication, weight: what’s due today, for all
+              your pets, on one screen. Even offline.
+            </p>
+            <div class="play-cta">
+              <span class="chip chip-light"
+                ><span class="symbol symbol-schedule" aria-hidden="true"></span>Coming soon to
+                Google Play</span
+              >
+              <p class="play-facts">Android · Free · No account</p>
+            </div>
+            <div class="pets" aria-hidden="true">
+              <span class="pet"><span class="pet-avatar pet-milo"></span>Milo</span>
+              <span class="pet"><span class="pet-avatar pet-luna"></span>Luna</span>
+            </div>
+          </div>
+          <div class="hero-phone">
+            <div class="phone">
+              <img
+                class="screen"
+                src="/img/en-accueil.webp"
+                width="720"
+                height="1600"
+                alt="MémoPatte home screen: Milo and Luna at the top, then the “To do” list of six reminders, with Milo’s overdue DHPPi vaccine first, his granules today at 8 am and 8 pm, and Luna’s spot-on in three days."
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="problem">
+        <p class="problem-title">
+          One pet’s dewormer, another’s spot-on, a third one’s evening pill…
+        </p>
+        <p class="problem-text">
+          Your vet reminds you about vaccines; the rest is what gets forgotten at home.
+        </p>
+      </section>
+
+      <section class="section" id="how-it-works">
+        <h2>How it works</h2>
+        <div class="features">
+          <article class="feature">
+            <div class="feature-text">
+              <span class="feature-icon"
+                ><span class="symbol symbol-notifications-active" aria-hidden="true"></span
+              ></span>
+              <h3>Reminders that arrive, even offline</h3>
+              <p>
+                Reminders are scheduled on your phone, so they go off without internet. Tap “Done”
+                in the notification and it’s logged in your health record. For a reminder right on
+                time, turn on “Exact reminders”.
+              </p>
+              <a class="more" href="/en/help/reminders/"
+                >If Android delays your reminders<span
+                  class="symbol symbol-arrow-forward"
+                  aria-hidden="true"
+                ></span
+              ></a>
+            </div>
+            <div class="phone">
+              <img
+                class="screen"
+                src="/img/en-notification.webp"
+                width="720"
+                height="1600"
+                loading="lazy"
+                alt="Android notification shade: the MémoPatte notification “Milo’s Granules at 8 am”, with the dosage “1 sachet” and the “Done” button."
+              />
+            </div>
+          </article>
+
+          <article class="feature">
+            <div class="feature-text">
+              <span class="feature-icon"
+                ><span class="symbol symbol-pets" aria-hidden="true"></span
+              ></span>
+              <h3>All your pets at a glance</h3>
+              <p>
+                Milo, Luna and the rest on one screen: what’s due, for whom, and when. Tap a name to
+                see only that pet’s reminders.
+              </p>
+            </div>
+            <div class="phone">
+              <img
+                class="screen"
+                src="/img/en-accueil.webp"
+                width="720"
+                height="1600"
+                loading="lazy"
+                alt="MémoPatte home screen with Milo and Luna: each reminder in the “To do” list shows its type, the pet’s name and when it’s due, such as “Monthly spot-on, Parasite control · Luna, in 3 days”."
+              />
+            </div>
+          </article>
+
+          <article class="feature">
+            <div class="feature-text">
+              <span class="feature-icon"
+                ><span class="symbol symbol-calendar-today" aria-hidden="true"></span
+              ></span>
+              <h3>What matters today comes first</h3>
+              <p>
+                Overdue and today’s reminders come first. A missed one stays visible, with a single
+                nudge and no guilt: log it whenever you like, even on another date.
+              </p>
+            </div>
+            <div class="phone">
+              <img
+                class="screen"
+                src="/img/en-fiche-traitement.webp"
+                width="720"
+                height="1600"
+                loading="lazy"
+                alt="Milo’s “Granules” treatment, every day at 8 am and 8 pm: today’s two doses with their “Done” button, the “Done on another day” link, the “5 doses not logged” card and the list of doses, including a missed one."
+              />
+            </div>
+          </article>
+
+          <article class="feature">
+            <div class="feature-text">
+              <span class="feature-icon"
+                ><span class="symbol symbol-lock-open" aria-hidden="true"></span
+              ></span>
+              <h3>Truly free, and your data stays yours</h3>
+              <p>
+                No account, no ads, no limit on pets. Your health record lives on your phone and you
+                can export it any time as JSON, CSV or PDF, for free.
+              </p>
+              <a class="more" href="/en/help/export/"
+                >How to export my data<span
+                  class="symbol symbol-arrow-forward"
+                  aria-hidden="true"
+                ></span
+              ></a>
+            </div>
+            <div class="phone">
+              <img
+                class="screen"
+                src="/img/en-mes-donnees.webp"
+                width="720"
+                height="1600"
+                loading="lazy"
+                alt="“My data” screen: weight unit in kilograms or pounds, “Export my data” as JSON or CSV, “Export to PDF” for all pets or just one, and “Import a MémoPatte export”."
+              />
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>What MémoPatte doesn’t do</h2>
+        <ul class="limits">
+          <li class="card">
+            <span class="symbol symbol-stethoscope" aria-hidden="true"></span>
+            <h3>Replace your vet</h3>
+            <p>
+              It logs and reminds you of what you planned with your vet. It never suggests a dose, a
+              product or a date.
+            </p>
+          </li>
+          <li class="card">
+            <span class="symbol symbol-block" aria-hidden="true"></span>
+            <h3>Show ads</h3>
+            <p>No ads in the app, and your data is never sold.</p>
+          </li>
+          <li class="card">
+            <span class="symbol symbol-no-accounts" aria-hidden="true"></span>
+            <h3>Force you to sign up</h3>
+            <p>
+              Everything works on your phone without an account. You’ll only need one for MémoPatte
+              Plus.
+            </p>
+          </li>
+          <li class="card">
+            <span class="symbol symbol-pets" aria-hidden="true"></span>
+            <h3>Track other animals</h3>
+            <p>Dogs and cats only, for now.</p>
+          </li>
+        </ul>
+      </section>
+
+      <section class="section" id="pricing">
+        <h2>Pricing</h2>
+        <p class="section-lead">
+          Everything that works on your phone is free. Only the cloud is paid.
+        </p>
+        <div class="plans">
+          <div class="plan card">
+            <h3>Free</h3>
+            <p class="plan-subtitle">No account, no ads.</p>
+            <p class="plan-price">€0</p>
+            <ul class="plan-features">
+              <li><span class="symbol symbol-check" aria-hidden="true"></span>Unlimited pets</li>
+              <li>
+                <span class="symbol symbol-check" aria-hidden="true"></span>Vaccines and treatments
+              </li>
+              <li><span class="symbol symbol-check" aria-hidden="true"></span>Weight tracking</li>
+              <li>
+                <span class="symbol symbol-check" aria-hidden="true"></span>Reminders on your phone,
+                even offline
+              </li>
+              <li>
+                <span class="symbol symbol-check" aria-hidden="true"></span>JSON, CSV and PDF export
+              </li>
+            </ul>
+          </div>
+          <div class="plan plan-plus">
+            <h3>MémoPatte Plus</h3>
+            <p class="plan-subtitle">Your health record, backed up and on all your devices.</p>
+            <p class="plan-later">
+              <span class="symbol symbol-schedule" aria-hidden="true"></span>MémoPatte Plus arrives
+              after the app launches.
+            </p>
+            <ul class="plan-features">
+              <li>
+                <span class="symbol symbol-cloud" aria-hidden="true"></span>A MémoPatte account
+              </li>
+              <li>
+                <span class="symbol symbol-cloud" aria-hidden="true"></span>Cloud backup and restore
+              </li>
+              <li>
+                <span class="symbol symbol-cloud" aria-hidden="true"></span>The same health record
+                on several devices
+              </li>
+              <li><span class="symbol symbol-cloud" aria-hidden="true"></span>Photos backed up</li>
+            </ul>
+            <ul class="offers">
+              <li><strong>€1.49/month</strong></li>
+              <li class="offer-best">
+                <strong>€9.99/year</strong><span class="best">Best value</span>
+              </li>
+              <li><strong>€29.99 lifetime</strong></li>
+            </ul>
+            <p class="plan-note">Indicative prices; Google Play shows its own.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="questions">
+        <h2>Frequently asked questions</h2>
+        <div class="faq">
+          <details open>
+            <summary>When is MémoPatte coming out?</summary>
+            <p id="answer-release">
+              Soon, on Google Play. The date isn’t set yet: it will be announced here as soon as it
+              is.
+            </p>
+          </details>
+          <details>
+            <summary>What about iPhone?</summary>
+            <p>
+              Not for now. MémoPatte launches on Android first, and there’s no date for iPhone yet.
+            </p>
+          </details>
+          <details>
+            <summary>Is it really free?</summary>
+            <p>
+              Yes. Everything that works on your phone is free, with no ads and no limit on pets,
+              exports included. Only MémoPatte Plus, for the cloud, will be paid.
+            </p>
+          </details>
+          <details>
+            <summary>Do I need an account?</summary>
+            <p>No. You’ll only need one for MémoPatte Plus.</p>
+          </details>
+          <details>
+            <summary>Where is my data?</summary>
+            <p>
+              On your phone. Android’s backup may keep a copy in your Google account (without
+              photos). MémoPatte’s cloud will only be used with MémoPatte Plus. Your data is never
+              sold.
+            </p>
+          </details>
+          <details>
+            <summary>What happens if I change phones?</summary>
+            <p>
+              The safest way: export your health record, then import it on the new phone. Android’s
+              own backup may also bring it back, but with no guarantee: it depends on the device.
+              Once MémoPatte Plus is available, signing in will be enough to get your health record
+              back.
+            </p>
+          </details>
+          <details>
+            <summary>Does it replace my vet?</summary>
+            <p>
+              No. MémoPatte logs and reminds you of what you planned with your vet. It never
+              suggests a dose, a product or a date.
+            </p>
+          </details>
+        </div>
+        <a class="more" href="/en/help/"
+          >All questions on the help page<span
+            class="symbol symbol-arrow-forward"
+            aria-hidden="true"
+          ></span
+        ></a>
+      </section>
+
+      <section class="section">
+        <div class="maker card">
+          <span class="maker-initial" aria-hidden="true">G</span>
+          <div>
+            <h2>Who makes MémoPatte</h2>
+            <p>
+              MémoPatte was born from a forgotten dewormer. I’m Gaëlle, an independent developer in
+              France, and I’m building the app I wish I’d had: simple, honest, and working even
+              offline.
+            </p>
+            <p>
+              Three promises guide it: everything that works on your phone stays free, your data is
+              never sold, and you can export it whenever you like.
+            </p>
+            <p>
+              No investors, no ads: the app is funded by MémoPatte Plus, for those who want cloud
+              backup. If something’s off,
+              <a href="mailto:contact@memopatte.app">write to me</a>.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="final-cta">
+        <img src="/patte.webp" alt="" width="392" height="368" loading="lazy" />
+        <h2>MémoPatte is coming to Google Play</h2>
+        <div class="play-cta">
+          <span class="chip chip-light"
+            ><span class="symbol symbol-schedule" aria-hidden="true"></span>Coming soon to Google
+            Play</span
+          >
+          <p class="play-facts">Android · Free · No account</p>
+        </div>
+      </section>
     </main>
     <footer class="site-footer">
       <div class="site-footer-inner">
