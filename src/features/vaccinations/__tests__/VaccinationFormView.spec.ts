@@ -1048,6 +1048,59 @@ describe('VaccinationFormView — envoi en cours', () => {
     expect(create).toHaveBeenCalledOnce()
   })
 
+  it('ne permet plus aucune écriture après une écriture réussie, « Annuler » restant utilisable', async () => {
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+
+    await soumettre(wrapper)
+    await soumettre(wrapper)
+
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('.form-screen__cancel').attributes('disabled')).toBeUndefined()
+    expect(create).toHaveBeenCalledOnce()
+  })
+
+  it('quand la navigation de retour échoue : pas de message d’échec, pas de seconde écriture, le bouton reste désactivé et « Annuler » utilisable', async () => {
+    replace.mockRejectedValue(new Error('navigation refusée'))
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+
+    await soumettre(wrapper)
+    await soumettre(wrapper)
+
+    expect(create).toHaveBeenCalledOnce()
+    expect(wrapper.find('.form-screen__save-error').exists()).toBe(false)
+    expect(wrapper.get('.form-screen__submit').text()).toBe('Créer')
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('.form-screen__cancel').attributes('disabled')).toBeUndefined()
+  })
+
+  it('retombe sur le Carnet quand le calcul de la route échoue après l’écriture, sans dire que l’enregistrement a échoué', async () => {
+    vi.mocked(shouldShowPriming).mockRejectedValueOnce(new Error('plugin indisponible'))
+    const wrapper = await monterCreation()
+    await remplirMinimum(wrapper)
+    await choisir(wrapper, 'Dans 1 an')
+
+    await soumettre(wrapper)
+    await soumettre(wrapper)
+
+    expect(create).toHaveBeenCalledOnce()
+    expect(replace).toHaveBeenCalledExactlyOnceWith({ name: 'animals' })
+    expect(wrapper.find('.form-screen__save-error').exists()).toBe(false)
+    expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
+  })
+
+  it('ne réenregistre pas en édition quand la navigation de retour échoue', async () => {
+    replace.mockRejectedValue(new Error('navigation refusée'))
+    const wrapper = await monterEdition()
+
+    await soumettre(wrapper)
+    await soumettre(wrapper)
+
+    expect(update).toHaveBeenCalledOnce()
+    expect(wrapper.find('.form-screen__save-error').exists()).toBe(false)
+  })
+
   it('rend la main et prévient quand l’écriture échoue', async () => {
     create.mockRejectedValueOnce(new Error('base fermée'))
     const wrapper = await monterCreation()

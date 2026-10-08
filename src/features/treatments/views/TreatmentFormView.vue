@@ -58,8 +58,9 @@ import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import FormSegmented from '@/shared/form/FormSegmented.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
-import { primingReturnRoute, routeAfterReminderSaved } from '@/shared/domain/notification-priming'
-import { returnTo, returnToOr } from '@/shared/utils/return-to'
+import { leaveAfterReminderSaved, primingReturnRoute } from '@/shared/domain/notification-priming'
+import { detailRoute } from '@/shared/domain/reminder-route'
+import { returnTo } from '@/shared/utils/return-to'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import { takesNewCare } from '@/shared/domain/unfollowed-animals'
 
@@ -259,7 +260,11 @@ function errorText(key: string | undefined): string | null {
 
 function open(loaded: TreatmentWithHistory): void {
   const opened = loadedFormValues(mode === 'resume' ? 'resume' : 'edit', loaded, today.value)
-  notFound.value = !opened.found
+  if (opened.status === 'not-resumable') {
+    animals.select(loaded.animalId)
+    returnTo(router, detailRoute({ kind: 'treatment', id: loaded.id }))
+    return
+  }
   values.value = opened.values
   keptOffset.value = values.value.reminderOffset
   history.value = loaded
@@ -317,18 +322,6 @@ function write(): (() => Promise<unknown>) | null {
   return null
 }
 
-async function leaveAfterSaving(): Promise<void> {
-  const safe = primingReturnRoute(from, reminder)
-  const target = await routeAfterReminderSaved({
-    hasDueDate: true,
-    animalName: animalName.value,
-    kind: 'treatment',
-    from,
-    reminder,
-  }).catch(() => safe)
-  await returnToOr(router, target, safe)
-}
-
 function onPastDosesAction(action: PromptActionId): void {
   if (pastDoses.value === null) return
   if (action === 'choose-days') isChooseDaysOpen.value = true
@@ -363,7 +356,13 @@ async function submit(): Promise<void> {
     isSubmitting.value = false
   }
   selectTargetAnimal()
-  await leaveAfterSaving()
+  await leaveAfterReminderSaved(router, {
+    hasDueDate: true,
+    animalName: animalName.value,
+    kind: 'treatment',
+    from,
+    reminder,
+  })
 }
 
 onMounted(async () => {
