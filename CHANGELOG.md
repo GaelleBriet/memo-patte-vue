@@ -5,6 +5,15 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.64](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.63...memo-patte-v0.1.64) (2026-10-08)
+
+
+### 🐛 Corrections
+
+* **traitements:** « Arrêté avant la première prise » seulement si aucune dose n'a jamais été due ([3dac43d](https://github.com/GaelleBriet/memo-patte-vue/commit/3dac43d99ed97aa6d33798aec217e34452db74dc))
+* **traitements:** période close avant sa première échéance, dose avancée comptée comme due ([f9462eb](https://github.com/GaelleBriet/memo-patte-vue/commit/f9462eb016f551bb16a97234cfe98d2806507e01))
+* **traitements:** traitement sans prise, textes de la fiche et du PDF ([95cabc0](https://github.com/GaelleBriet/memo-patte-vue/commit/95cabc01376075d83f897271fa506e6623720df3))
+
 ## [0.1.63](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.62...memo-patte-v0.1.63) (2026-10-08)
 
 
