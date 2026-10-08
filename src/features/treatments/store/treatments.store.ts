@@ -176,11 +176,7 @@ export const useTreatmentsStore = defineStore('treatments', () => {
 
     async create(input: TreatmentCreationInput): Promise<Treatment> {
       const created = await write(
-        async () => {
-          const treatment = await planProvider().create(input)
-          await remindersProvider().reschedule(treatment.id)
-          return treatment
-        },
+        () => planProvider().create(input),
         (treatment) => treatment.animalId,
       )
       recordUsageSignal('entry')
@@ -192,11 +188,7 @@ export const useTreatmentsStore = defineStore('treatments', () => {
 
     async update(id: string, input: TreatmentEditionInput): Promise<Treatment> {
       return write(
-        async () => {
-          const updated = await planProvider().update(id, input)
-          await remindersProvider().reschedule(id)
-          return updated
-        },
+        () => planProvider().update(id, input),
         (updated) => updated.animalId,
       )
     },
@@ -204,11 +196,7 @@ export const useTreatmentsStore = defineStore('treatments', () => {
     /** Le traitement fini ou arrêté repart dans une nouvelle période, à la première prise choisie. */
     async resume(id: string, input: TreatmentResumptionInput): Promise<Treatment> {
       const resumed = await write(
-        async () => {
-          const treatment = await planProvider().resume(id, input)
-          await remindersProvider().reschedule(id)
-          return treatment
-        },
+        () => planProvider().resume(id, input),
         (treatment) => treatment.animalId,
       )
       recordUsageSignal('care')

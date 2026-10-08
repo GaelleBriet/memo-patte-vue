@@ -81,6 +81,7 @@ describe('formulaire et fiche d’un traitement, sur la même base', () => {
     const reminders = { reschedule: async () => {} }
     const plan = createTreatmentPlanService({
       treatments: () => treatments,
+      reminders,
       today: () => TODAY,
       newId: () => crypto.randomUUID(),
     })

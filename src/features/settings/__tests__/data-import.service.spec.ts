@@ -1166,6 +1166,7 @@ describe('data-import.service', () => {
       const luna = await phone.animals.create({ name: 'Luna', species: 'cat' })
       const form = createTreatmentPlanService({
         treatments: () => phone.treatments,
+        reminders: { reschedule: () => Promise.resolve() },
         today: () => '2026-09-28',
         newId: () => crypto.randomUUID(),
       })

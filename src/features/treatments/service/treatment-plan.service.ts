@@ -18,11 +18,16 @@ import type {
   TreatmentResumptionInput,
 } from '../schema/treatment-form.schema'
 import type { Treatment } from '../schema/treatment.schema'
+import {
+  treatmentRemindersService,
+  type TreatmentRemindersService,
+} from './treatment-reminders.service'
 
 type Provider<T> = () => T | Promise<T>
 
 export type TreatmentPlanDependencies = {
   treatments: Provider<Pick<TreatmentsRepository, 'create' | 'applyPlan' | 'getWithHistory'>>
+  reminders: Pick<TreatmentRemindersService, 'reschedule'>
   today: () => string
   newId: () => string
   queue?: WriteQueue
@@ -31,6 +36,7 @@ export type TreatmentPlanDependencies = {
 /** Chaque méthode lève, sans rien écrire, pour une saisie refusée ou un traitement introuvable. */
 export function createTreatmentPlanService({
   treatments,
+  reminders,
   today,
   newId,
   queue = createWriteQueue(),
@@ -47,26 +53,32 @@ export function createTreatmentPlanService({
 
   return {
     /** Le traitement naît avec sa période et les seules prises renseignées dans l'encart (TR-3). */
-    create(input: TreatmentCreationInput): Promise<Treatment> {
-      return queue(async () =>
+    async create(input: TreatmentCreationInput): Promise<Treatment> {
+      const treatment = await queue(async () =>
         (await treatments()).create(creationPlan(input, newId(), today(), newId)),
       )
+      await reminders.reschedule(treatment.id)
+      return treatment
     },
 
     /** Correction, nouvelle période ou déplacement de la prochaine dose, selon le carnet du jour. */
-    update(id: string, input: TreatmentEditionInput): Promise<Treatment> {
-      return queue(async () => {
+    async update(id: string, input: TreatmentEditionInput): Promise<Treatment> {
+      const updated = await queue(async () => {
         const plan = editionPlan(await historyOf(id), input, today(), ids())
         return (await treatments()).applyPlan(id, plan)
       })
+      await reminders.reschedule(id)
+      return updated
     },
 
     /** Nouvelle période d'un traitement fini ou arrêté ; la précédente n'est jamais modifiée. */
-    resume(id: string, input: TreatmentResumptionInput): Promise<Treatment> {
-      return queue(async () => {
+    async resume(id: string, input: TreatmentResumptionInput): Promise<Treatment> {
+      const resumed = await queue(async () => {
         const plan = resumptionPlan(await historyOf(id), input, today(), ids())
         return (await treatments()).applyPlan(id, plan)
       })
+      await reminders.reschedule(id)
+      return resumed
     },
   }
 }
@@ -75,6 +87,7 @@ export type TreatmentPlanService = ReturnType<typeof createTreatmentPlanService>
 
 export const treatmentPlanService = createTreatmentPlanService({
   treatments: getTreatmentsRepository,
+  reminders: treatmentRemindersService,
   today: todayIsoDate,
   newId: () => crypto.randomUUID(),
   queue: treatmentWriteQueue,
