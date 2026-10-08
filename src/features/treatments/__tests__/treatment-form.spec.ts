@@ -25,6 +25,7 @@ import {
   withoutTime,
   type TreatmentFormValues,
 } from '../logic/treatment-form'
+import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
@@ -713,25 +714,34 @@ describe('validateTreatmentResumption (TR-32)', () => {
 
 describe('loadedFormValues', () => {
   it('« Modifier » part des réglages en cours et de la prochaine dose proposée', () => {
-    const { values, found } = loadedFormValues('edit', milbemax(), TODAY)
-
-    expect(found).toBe(true)
-    expect(values).toEqual({
-      ...treatmentFormValuesFrom(milbemax(), period()),
-      nextDoseOn: '2026-10-10',
+    expect(loadedFormValues('edit', milbemax(), TODAY)).toEqual({
+      status: 'ready',
+      values: {
+        ...treatmentFormValuesFrom(milbemax(), period()),
+        nextDoseOn: '2026-10-10',
+      },
     })
   })
 
   it('« Reprendre » part des réglages de la dernière période, sans date de fin', () => {
     const arrete = milbemax([period({ stoppedOn: '2026-08-01', endsOn: '2026-08-10' })])
 
-    const { values, found } = loadedFormValues('resume', arrete, TODAY)
+    const opened = loadedFormValues('resume', arrete, TODAY)
 
-    expect(found).toBe(true)
-    expect(values).toMatchObject({ name: 'Milbemax', firstDoseOn: '', endsOn: '' })
+    expect(opened.status).toBe('ready')
+    expect(opened).toMatchObject({ values: { name: 'Milbemax', firstDoseOn: '', endsOn: '' } })
   })
 
-  it('un traitement en cours n’a rien à reprendre', () => {
-    expect(loadedFormValues('resume', milbemax(), TODAY).found).toBe(false)
-  })
+  it.each([
+    ['upcoming', TODAY],
+    ['today', '2026-10-10'],
+    ['overdue', '2026-10-12'],
+  ] as const)(
+    'un traitement en cours (%s) n’a rien à reprendre, sans être introuvable',
+    (phase, on) => {
+      expect(treatmentScheduleOf(milbemax(), on).phase).toBe(phase)
+
+      expect(loadedFormValues('resume', milbemax(), on)).toEqual({ status: 'not-resumable' })
+    },
+  )
 })

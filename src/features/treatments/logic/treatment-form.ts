@@ -456,24 +456,28 @@ export function validateTreatmentResumption(
   )
 }
 
-/** Les valeurs d'un traitement relu ; `found` faux : un traitement en cours n'a rien à reprendre. */
+type LoadedTreatmentForm =
+  { status: 'ready'; values: TreatmentFormValues } | { status: 'not-resumable' }
+
+/** Les valeurs d'un traitement relu ; un traitement ni terminé ni arrêté n'a rien à reprendre : retour à sa fiche. */
 export function loadedFormValues(
   mode: 'edit' | 'resume',
   loaded: TreatmentWithHistory,
   today: string,
-): { values: TreatmentFormValues; found: boolean } {
+): LoadedTreatmentForm {
   if (mode === 'resume') {
     const { period, canResume } = resumptionDraft(loaded, today)
-    return { values: { ...treatmentFormValuesFrom(loaded, period), endsOn: '' }, found: canResume }
+    if (!canResume) return { status: 'not-resumable' }
+    return { status: 'ready', values: { ...treatmentFormValuesFrom(loaded, period), endsOn: '' } }
   }
   const first = editionDraftOf(emptyTreatmentFormValues(), loaded, today)
   return {
+    status: 'ready',
     values: {
       ...treatmentFormValuesFrom(loaded, first.period),
       nextDoseOn: first.nextDose?.proposedOn ?? '',
       shiftsFollowing: first.nextDose?.shiftInitial ?? true,
     },
-    found: true,
   }
 }
 
