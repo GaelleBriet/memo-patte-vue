@@ -12,11 +12,11 @@ describe('helpPageUrl', () => {
 })
 
 describe('remindersHelpUrl', () => {
-  it('mène à la section « Rappels » de la page Aide en français', () => {
-    expect(remindersHelpUrl('fr')).toBe('https://memopatte.app/aide/#rappels')
+  it('mène à la page « Rappels » de l’aide en français', () => {
+    expect(remindersHelpUrl('fr')).toBe('https://memopatte.app/aide/rappels/')
   })
 
-  it('mène à la section « Reminders » de la page Help en anglais', () => {
-    expect(remindersHelpUrl('en')).toBe('https://memopatte.app/en/help/#reminders')
+  it('mène à la page « Reminders » de l’aide en anglais', () => {
+    expect(remindersHelpUrl('en')).toBe('https://memopatte.app/en/help/reminders/')
   })
 })

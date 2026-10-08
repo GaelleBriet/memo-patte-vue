@@ -5,7 +5,7 @@ const HELP_PAGE_URLS: Record<AppLocale, string> = {
   en: 'https://memopatte.app/en/help/',
 }
 
-const REMINDERS_SECTIONS: Record<AppLocale, string> = {
+const REMINDERS_PAGES: Record<AppLocale, string> = {
   fr: 'rappels',
   en: 'reminders',
 }
@@ -15,7 +15,7 @@ export function helpPageUrl(locale: AppLocale): string {
   return HELP_PAGE_URLS[locale]
 }
 
-/** Section « Rappels » de la page Aide du site, dans la langue de l'app. */
+/** Page « Rappels » de l'aide du site, dans la langue de l'app. */
 export function remindersHelpUrl(locale: AppLocale): string {
-  return `${HELP_PAGE_URLS[locale]}#${REMINDERS_SECTIONS[locale]}`
+  return `${HELP_PAGE_URLS[locale]}${REMINDERS_PAGES[locale]}/`
 }

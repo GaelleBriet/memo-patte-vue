@@ -121,7 +121,7 @@ describe('HomeMessages — bandeau « Les rappels sont désactivés »', () => {
 
     const help = wrapper.get('.home-reminders-off__help')
     expect(help.text()).toBe('Je ne reçois pas mes rappels')
-    expect(help.attributes('href')).toBe('https://memopatte.app/aide/#rappels')
+    expect(help.attributes('href')).toBe('https://memopatte.app/aide/rappels/')
     expect(help.attributes('target')).toBe('_blank')
   })
 
