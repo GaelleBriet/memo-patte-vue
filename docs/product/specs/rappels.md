@@ -105,9 +105,10 @@ par jour gérées au-delà d'une notification par heure (#365, plus tard) ; alar
 - **RA-19** Une échéance notée, sur ce téléphone ou (Plus) sur un autre après synchronisation, retire
   ses notifications du volet. (P3 R3 ; P14) Un report sans injection ne note pas l'échéance : sa
   notification reste au volet et « C'est fait » ouvre la feuille. L'injection notée ensuite note
-  aussi la date d'origine, si elle est faite au plus tôt deux semaines avant elle (la prévenance) :
-  rappel du 15 mars reporté au 20, injection le 18 → la notification du 15 quitte le volet, et
-  « C'est fait » dessus dit « déjà notée ». (#657)
+  aussi la date d'origine si elle est faite ce jour-là ou après, comme VA-10 : rappel du 15 mars
+  reporté au 20, injection le 18 → la notification du 15 quitte le volet, et « C'est fait » dessus
+  dit « déjà notée ». Limite : une injection faite avant la date d'origine, après un report (le 10
+  pour un rappel du 15 reporté au 20), ne la note pas ; sa notification reste au volet. (#657)
 - **RA-20** Deux appareils Plus : un rappel peut sonner sur un appareil pas encore à jour ; accepté en
   v1 ; « C'est fait » y note une seconde ligne que l'affichage fusionne. (P14 Q2)
 
