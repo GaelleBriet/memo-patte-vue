@@ -2,7 +2,15 @@ import { isClockTime } from './clock-time'
 import { checkFrequency, invalid } from './treatment-schedule-checks'
 import { latestOf } from './calendar-day'
 import { shiftDate } from './treatment-frequency'
-import { isShift, mergeDoses, positionOf, sequenceAt, shiftOn } from './treatment-schedule-timeline'
+import { sequenceDues } from './treatment-schedule-sequence'
+import {
+  isShift,
+  mergeDoses,
+  positionOf,
+  sameRhythm,
+  sequenceAt,
+  shiftOn,
+} from './treatment-schedule-timeline'
 import { notedOn } from './treatment-schedule-state'
 import type { Frequency, NewPeriod, State } from './treatment-schedule-types'
 
@@ -19,17 +27,21 @@ function lastReference(state: State, frequency: Frequency): string | undefined {
 
 function keepsSettings(state: State, frequency: Frequency, times: readonly string[]): boolean {
   const current = state.open?.period
-  return (
-    current !== undefined &&
-    current.frequency.value === frequency.value &&
-    current.frequency.unit === frequency.unit &&
-    [...current.times].sort().join() === [...times].sort().join()
-  )
+  return current !== undefined && sameRhythm(current, { frequency, times })
 }
 
-function untouchedCurrentDay(state: State): string | undefined {
+// G22 : une journée à venir entamée en avance reste la prochaine, si elle est sur la suite en vigueur.
+function scheduledDay(state: State): string | undefined {
+  const { open } = state
   const day = state.currentDoses[0]?.dueOn
-  return day === undefined || state.open?.noteDays.has(day) ? undefined : day
+  if (day === undefined || open === null) return undefined
+  if (!open.noteDays.has(day)) return day
+  if (day <= state.input.today) return undefined
+  if (open.steps.some(({ kind, dose }) => kind === 'shift' && dose.nextDueDate === day)) return day
+  const dues = sequenceDues(sequenceAt(open, positionOf(`${day} `, 0)), open.period, day)
+  let next = dues.next().value
+  while (next.dueOn < day) next = dues.next().value
+  return next.dueOn === day ? day : undefined
 }
 
 // Q24 : la nouvelle période commence aujourd'hui ; ses heures au-delà des prises du jour restent à donner.
@@ -46,7 +58,7 @@ export function newPeriod(state: State, frequency: Frequency, times: readonly st
   if (noted > 0 && noted < times.length) return fromStart
   const dueToday = state.currentDoses.some((due) => due.dueOn === today)
   if (noted === 0 && dueToday) return fromStart
-  const scheduled = keepsSettings(state, frequency, times) ? untouchedCurrentDay(state) : undefined
+  const scheduled = keepsSettings(state, frequency, times) ? scheduledDay(state) : undefined
   if (scheduled !== undefined && scheduled > startsOn && state.open !== null) {
     // Q37 : la suite en cours garde son jour de référence (le 31 d'un mensuel).
     const { origin } = sequenceAt(state.open, positionOf(`${scheduled} `, 0))
