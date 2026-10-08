@@ -279,6 +279,18 @@ describe('PDF : traitement sans prise donnée', () => {
     expect(text).toContain('Aucune prise')
   })
 
+  it('n’écrit pas la période d’un traitement arrêté avant sa première prise, qui se lirait comme une date prévue', () => {
+    const data = carnet(
+      [period({ startsOn: '2026-10-07', frequency: DAILY, stoppedOn: '2026-10-06' })],
+      [],
+    )
+    const text = pdfText(data, '2026-10-10')
+
+    expect(treatmentRow(data, '2026-10-10')).toMatchObject({ periods: [] })
+    expect(text).not.toContain('07/10/2026')
+    expect(text).not.toContain('Tous les jours')
+  })
+
   it('garde « Arrêté le … » et « Aucune prise » pour un arrêté sans prise après sa première échéance (#594)', () => {
     const data = carnet(
       [period({ startsOn: '2026-09-01', frequency: DAILY, stoppedOn: '2026-09-05' })],

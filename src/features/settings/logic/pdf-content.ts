@@ -298,7 +298,8 @@ export function buildCarnetPdfContent(
     .filter((item) => item.animalId === animalId && treatedIds.has(item.id))
     .map((item) => {
       const state = states(item.id)
-      const periods = treatmentPeriods(state)
+      const neverDue = state.outlook.kind === 'stopped' && state.outlook.beforeFirstDose
+      const periods = neverDue ? [] : treatmentPeriods(state)
       const last = lastGiven(state)
       return {
         name: item.name,

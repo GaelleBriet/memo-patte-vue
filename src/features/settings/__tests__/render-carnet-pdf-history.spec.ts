@@ -272,6 +272,61 @@ describe('renderCarnetPdf — historique d’un traitement', () => {
     expect(ecrits).toContain('Le 01/09/2026 · Tous les jours')
   })
 
+  describe('traitement à une seule prise', () => {
+    const unique = (line: PdfHistoryLine, fields: Partial<PdfTreatmentRow> = {}) =>
+      carnet({
+        treatments: [
+          traitement({
+            lastDoseDate: '2026-06-15',
+            due: { kind: 'stopped', on: '2026-06-20', beforeFirstDose: false },
+            state: 'none',
+            periods: [periode({ from: '2026-06-15', to: '2026-06-20', times: [], lines: [line] })],
+            ...fields,
+          }),
+        ],
+      })
+    const prise = (fields: Partial<{ time: string | null; extra: boolean }> = {}) =>
+      ({
+        kind: 'given',
+        series: { kind: 'dates', doses: [{ ...dose('2026-06-15'), ...fields }] },
+      }) as const
+
+    it('n’écrit la date qu’une fois, dans « Dernière prise »', () => {
+      const ecrits = textes(unique(prise()))
+      const debut = ecrits.indexOf('Dernière prise : 15/06/2026')
+
+      expect(ecrits.slice(debut, debut + 2)).toEqual([
+        'Dernière prise : 15/06/2026',
+        'Du 15/06/2026 au 20/06/2026 · Tous les jours · ½ comprimé',
+      ])
+      expect(ecrits.some((texte) => texte.startsWith('Prise :'))).toBe(false)
+    })
+
+    it('garde la ligne quand elle en dit plus : l’heure de la prise', () => {
+      expect(textes(unique(prise({ time: '08:00' })))).toContain('Prise : 15/06/2026 à 8 h')
+    })
+
+    it('garde la ligne à côté d’une autre ligne d’historique', () => {
+      const ecrits = textes(
+        unique(prise(), {
+          periods: [
+            periode({
+              from: '2026-06-15',
+              to: '2026-06-20',
+              times: [],
+              lines: [
+                { kind: 'missed', series: { kind: 'dates', doses: [dose('2026-06-16')] } },
+                prise(),
+              ],
+            }),
+          ],
+        }),
+      )
+
+      expect(ecrits).toContain('Prise : 15/06/2026')
+    })
+  })
+
   it('garde « Donnée illisible » pour un traitement que le moteur ne sait pas lire', () => {
     const ecrits = textes(
       carnet({ treatments: [traitement({ due: { kind: 'unreadable' }, state: 'none' })] }),
