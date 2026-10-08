@@ -59,6 +59,7 @@ import FormScreen from '@/shared/form/FormScreen.vue'
 import FormSegmented from '@/shared/form/FormSegmented.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 import { leaveAfterReminderSaved, primingReturnRoute } from '@/shared/domain/notification-priming'
+import { detailRoute } from '@/shared/domain/reminder-route'
 import { returnTo } from '@/shared/utils/return-to'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import { takesNewCare } from '@/shared/domain/unfollowed-animals'
@@ -259,7 +260,11 @@ function errorText(key: string | undefined): string | null {
 
 function open(loaded: TreatmentWithHistory): void {
   const opened = loadedFormValues(mode === 'resume' ? 'resume' : 'edit', loaded, today.value)
-  notFound.value = !opened.found
+  if (opened.status === 'not-resumable') {
+    animals.select(loaded.animalId)
+    returnTo(router, detailRoute({ kind: 'treatment', id: loaded.id }))
+    return
+  }
   values.value = opened.values
   keptOffset.value = values.value.reminderOffset
   history.value = loaded

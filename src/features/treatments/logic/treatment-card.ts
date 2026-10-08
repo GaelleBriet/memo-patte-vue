@@ -1,4 +1,5 @@
 import { currentPeriodOf, endedOnOf } from './treatment-schedule-adapter'
+import { isResumablePhase } from './treatment-resumption'
 import { periodRhythmText } from './treatment-rhythm'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { ExactRemindersStatus } from '@/core/notifications'
@@ -93,6 +94,6 @@ export function detailActions({ phase }: Pick<TreatmentSchedule, 'phase'>) {
   return {
     canEdit: phase !== 'stopped',
     canStop: phase !== 'stopped' && phase !== 'ended',
-    canResume: phase === 'stopped' || phase === 'ended',
+    canResume: isResumablePhase(phase),
   }
 }
