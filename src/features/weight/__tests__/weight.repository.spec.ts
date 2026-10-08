@@ -75,9 +75,9 @@ describe('weightRepository', () => {
   })
 
   it('départage deux pesées du même jour par date de saisie, pas par ordre d’insertion', async () => {
-    vi.useFakeTimers({ now: new Date('2026-03-01T10:01:00.000Z') })
+    vi.useFakeTimers({ now: new Date(2026, 2, 1, 10, 1) })
     await repository.create({ animalId: MIETTE, weightKg: 4.4, measuredOn: '2026-03-01' })
-    vi.setSystemTime(new Date('2026-03-01T10:00:00.000Z'))
+    vi.setSystemTime(new Date(2026, 2, 1, 10))
     await repository.create({ animalId: MIETTE, weightKg: 4.5, measuredOn: '2026-03-01' })
 
     const weights = (await repository.listByAnimal(MIETTE)).map((entry) => entry.weightKg)

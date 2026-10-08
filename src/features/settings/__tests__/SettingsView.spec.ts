@@ -166,7 +166,7 @@ describe('SettingsView', () => {
     })
 
     it('MémoPatte Plus : le statut d’un abonné', async () => {
-      writeStoredPlusStatus({ plan: 'annual', expiresAt: '2027-09-14T10:00:00Z' })
+      writeStoredPlusStatus({ plan: 'annual', expiresAt: new Date(2027, 8, 14, 10).toISOString() })
       const wrapper = await monter()
 
       expect(sousTitre(wrapper, 'plus')).toBe('Plus annuel jusqu’au 14/09/2027')

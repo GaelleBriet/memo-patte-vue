@@ -101,7 +101,7 @@ describe('synchro de l’historique entre deux appareils', () => {
   let tablet: Device
 
   beforeEach(async () => {
-    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-25T08:00:00.000Z') })
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 8, 25, 8) })
     server = createFakeSyncServer()
     phone = await createDevice(server.client)
     tablet = await createDevice(server.client)

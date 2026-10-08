@@ -39,6 +39,30 @@ jobs:
       - name: Pas d'outils de dev dans le build (fixtures, SQLite du navigateur)
         run: pnpm test:build
 
+  fuseaux:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        tz: ['Pacific/Kiritimati', 'Pacific/Pago_Pago']
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Unit tests (${{ matrix.tz }})
+        run: pnpm exec vitest run
+        env:
+          TZ: ${{ matrix.tz }}
+
   android:
     runs-on: ubuntu-latest
     steps:

@@ -25,7 +25,7 @@ import { createVaccinationRemindersService } from '../service/vaccination-remind
 import { VaccinationWithoutReminderError } from '../logic/vaccination-history'
 
 const BOREE = '11111111-1111-4111-8111-111111111111'
-const NOW = new Date('2026-09-23T08:00:00.000Z')
+const NOW = new Date(2026, 8, 23, 8)
 
 describe('vaccinationInjectionsService', () => {
   let db: InMemoryDb
