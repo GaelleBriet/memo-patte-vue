@@ -13,10 +13,8 @@ import TreatmentUnloggedPrompt from './TreatmentUnloggedPrompt.vue'
 import { chooseDaysSubtitle, type DayChoice } from '../logic/treatment-choose-days'
 import {
   creationPastDuesOf,
-  editionDraftOf,
   emptyTreatmentFormValues,
   loadedFormValues,
-  nextDoseShiftHelp,
   pastDosesBasis,
   reminderHelpText,
   reminderOffsetChoices,
@@ -33,8 +31,6 @@ import {
   nextDoseHelpText,
   resumeInfoText,
 } from '../logic/treatment-form-texts'
-import { pastDuesTexts } from '../logic/treatment-past-dues'
-import { resumptionDraft } from '../logic/treatment-resumption'
 import {
   pastDosesOf,
   pastDosesPrompt,
@@ -47,6 +43,7 @@ import type { PastDuesChoice } from '../schema/treatment-form.schema'
 import type { ReminderOffsetMinutes } from '../schema/treatment-period.schema'
 import { FREQUENCY_UNITS, TREATMENT_TYPES, type FrequencyUnit } from '../schema/treatment.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
+import { useTreatmentFormDrafts } from '../composables/use-treatment-form-drafts'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import {
   markExactRemindersSuggested,
@@ -95,8 +92,6 @@ const endsOnTouched = ref(false)
 /** Une écriture a réussi : plus aucune autre ne part de cet écran. */
 const isSaved = ref(false)
 const hasDuplicateTime = ref(false)
-/** La réponse vaut pour les échéances annoncées au moment où elle a été donnée. */
-const pastDuesAnswer = ref<{ choice: PastDuesChoice; dues: string } | null>(null)
 const isPastDuesOpen = ref(false)
 /** Réponse de l'encart des doses passées : rien n'est écrit avant « Créer ». */
 const pastDosesAnswer = ref<DayChoice | null>(null)
@@ -128,6 +123,17 @@ function requireHistory(): TreatmentWithHistory {
   return history.value
 }
 
+const {
+  draft,
+  previous,
+  nextDose,
+  nextDoseShift,
+  pastDuesChoice,
+  pastDues,
+  hasSettings,
+  answerPastDues: recordPastDuesAnswer,
+} = useTreatmentFormDrafts(mode, { values, history, today, endsOnTouched })
+
 const creation = useFormValidation(values, (current) =>
   validateTreatmentCreation(
     current,
@@ -146,34 +152,6 @@ const errors = computed(
   () => ({ create: creation, edit: edition, resume: resumption })[mode].errors.value,
 )
 
-const draft = computed(() => {
-  if (mode !== 'edit' || history.value === null) return null
-  try {
-    return editionDraftOf(values.value, history.value, today.value)
-  } catch {
-    return null
-  }
-})
-const previous = computed(() =>
-  mode === 'resume' && history.value !== null ? resumptionDraft(history.value, today.value) : null,
-)
-const nextDose = computed(() => draft.value?.nextDose ?? null)
-const nextDoseShift = computed(() =>
-  draft.value === null ? null : nextDoseShiftHelp(t, draft.value, values.value, today.value),
-)
-const announcedDues = computed(() =>
-  JSON.stringify([draft.value?.pastDues ?? [], draft.value?.pastDuesNextDose ?? null]),
-)
-const pastDuesChoice = computed(() =>
-  pastDuesAnswer.value?.dues === announcedDues.value ? pastDuesAnswer.value.choice : null,
-)
-const pastDues = computed(() => {
-  const current = draft.value
-  return current === null || current.pastDuesNextDose === null
-    ? null
-    : pastDuesTexts(t, current.pastDues, current.period, current.pastDuesNextDose)
-})
-const hasSettings = computed(() => draft.value?.change !== 'locked')
 const pastDoses = computed(() =>
   mode === 'create'
     ? pastDosesPrompt(
@@ -263,32 +241,9 @@ watch(
 )
 
 watch(
-  () => [values.value.frequencyValue, values.value.frequencyUnit, values.value.times],
-  () => {
-    pastDuesAnswer.value = null
-  },
-)
-
-watch(
   () => pastDosesBasis(values.value, pastDoses.value?.dues ?? []),
   () => {
     pastDosesAnswer.value = null
-  },
-)
-
-watch(
-  () => nextDose.value?.proposedOn,
-  (proposedOn) => {
-    values.value.nextDoseOn = proposedOn ?? ''
-    values.value.shiftsFollowing = nextDose.value?.shiftInitial ?? true
-  },
-)
-
-watch(
-  () => values.value.firstDoseOn,
-  (firstDoseOn) => {
-    if (previous.value === null || endsOnTouched.value) return
-    values.value.endsOn = previous.value.endsOnFor(firstDoseOn) ?? ''
   },
 )
 
@@ -399,7 +354,7 @@ function answerPastDoses(choice: DayChoice): void {
 }
 
 function answerPastDues(choice: PastDuesChoice): Promise<void> {
-  pastDuesAnswer.value = { choice, dues: announcedDues.value }
+  recordPastDuesAnswer(choice)
   return submit()
 }
 
