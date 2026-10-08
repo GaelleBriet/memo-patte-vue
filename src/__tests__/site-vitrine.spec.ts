@@ -5,14 +5,14 @@ import { join } from 'node:path'
 import { XMLParser, XMLValidator } from 'fast-xml-parser'
 import { describe, expect, it } from 'vitest'
 
+import { decode } from './site-text'
+
 const SITE = 'site'
 const SITE_URL = 'https://memopatte.app'
 const read = (path: string) => readFileSync(join(SITE, path), 'utf8')
-const plain = (text: string) =>
-  text
-    .replace(/<[^>]*>/g, '')
-    .replace(/&nbsp;|&#8239;|[  ]/g, ' ')
-    .replace(/&amp;/g, '&')
+const plain = (html: string) =>
+  decode(html.replace(/<[^>]*>/g, ''))
+    .replace(/[\u00a0\u202f]/g, ' ')
     .replace(/\s+/g, ' ')
 
 const homes = {
@@ -119,7 +119,7 @@ describe.each(languages)('page vitrine en %s', (lang) => {
 
   it('a une image de partage de 1200 × 630 et ses balises', () => {
     const image = metaContent(html, 'og:image') ?? ''
-    expect(image).toMatch(new RegExp(`^${SITE_URL}/img/og-${lang}\\.png$`))
+    expect(image).toMatch(new RegExp(`^${SITE_URL}/img/og-(preinscription-)?${lang}\\.png$`))
     expect(pngSize(image.replace(`${SITE_URL}/`, ''))).toEqual({ width: 1200, height: 630 })
     expect(metaContent(html, 'og:image:width')).toBe('1200')
     expect(metaContent(html, 'og:image:height')).toBe('630')
@@ -143,13 +143,23 @@ describe('plan du site', () => {
   }
   const urls = parsed.urlset.url
   const locs = urls.map((url) => url.loc)
-  const pagesToCome = ['/mentions-legales/', '/en/legal-notice/']
+  const helpPagesToCome = [
+    ['exporter', 'export'],
+    ['sauvegarde-android', 'android-backup'],
+    ['plus', 'plus'],
+    ['nouveau-telephone', 'new-phone'],
+    ['effacer', 'erase'],
+    ['ne-plus-suivre', 'stop-following'],
+    ['rappels-en-retard', 'late-reminders'],
+    ['rappels', 'reminders'],
+  ].flatMap(([fr, en]) => [`/aide/${fr}/`, `/en/help/${en}/`])
+  const pagesToCome = ['/mentions-legales/', '/en/legal-notice/', ...helpPagesToCome]
 
   it('est un XML valide', () => {
     expect(XMLValidator.validate(xml)).toBe(true)
   })
 
-  it('liste les pages du site et les mentions légales', () => {
+  it('liste les pages du site, les mentions légales et les pages d’aide', () => {
     expect(locs).toEqual(
       expect.arrayContaining(
         [

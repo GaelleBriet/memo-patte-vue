@@ -1,4 +1,4 @@
-// Usage : node scripts/open-site-preregistration.mjs <adresse de la fiche Google Play>
+// Usage : node scripts/open-site-preregistration.mjs 'https://play.google.com/store/apps/details?id=…'
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
