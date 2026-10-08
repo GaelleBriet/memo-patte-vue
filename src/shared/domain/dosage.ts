@@ -1,3 +1,4 @@
+import { currentLocale, type AppLocale } from '@/core/i18n'
 import { formatQuantity } from '@/shared/utils/format'
 
 export const DOSE_UNITS = [
@@ -34,9 +35,14 @@ export function formatDoseQuantity(quantity: number, unit: DoseUnit): string {
   return whole === 0 ? fraction : `${whole}${NBSP}${fraction}`
 }
 
-/** `comprimé`, `comprimés` à partir de deux. */
+const takesPlural: Record<AppLocale, (quantity: number) => boolean> = {
+  fr: (quantity) => quantity >= 2,
+  en: (quantity) => quantity > 1,
+}
+
+/** `comprimé`, `comprimés` à partir de deux ; `tablets` au-delà d’un. */
 export function doseUnitText(t: Translate, unit: DoseUnit, quantity: number): string {
-  return t(`dosage.unit.${unit}`, {}, quantity >= 2 ? 2 : 1)
+  return t(`dosage.unit.${unit}`, {}, takesPlural[currentLocale()](quantity) ? 2 : 1)
 }
 
 /** `½ comprimé`, `0,3 ml` ; `null` sans posologie. */

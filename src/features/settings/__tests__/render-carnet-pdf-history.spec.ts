@@ -185,6 +185,30 @@ describe('renderCarnetPdf — historique d’un traitement', () => {
     ])
   })
 
+  it.each([
+    ['fr', 0.5, '½ comprimé'],
+    ['fr', 1, '1 comprimé'],
+    ['fr', 1.5, '1 ½ comprimé'],
+    ['fr', 2, '2 comprimés'],
+    ['en', 0.5, '½ tablet'],
+    ['en', 1, '1 tablet'],
+    ['en', 1.5, '1 ½ tablets'],
+    ['en', 2, '2 tablets'],
+  ] as const)('accorde la posologie en %s : %f donne « %s »', (locale, doseQuantity, dosage) => {
+    i18n.global.locale.value = locale
+    const ecrits = textes(
+      carnet({
+        treatments: [
+          traitement({
+            periods: [periode({ dosage: { doseQuantity, doseUnit: 'tablet' } })],
+          }),
+        ],
+      }),
+    )
+
+    expect(ecrits.some((texte) => texte.endsWith(` · ${dosage}`))).toBe(true)
+  })
+
   it('écrit l’historique en anglais selon le glossaire', () => {
     i18n.global.locale.value = 'en'
     const ecrits = textes(CONTENT)
