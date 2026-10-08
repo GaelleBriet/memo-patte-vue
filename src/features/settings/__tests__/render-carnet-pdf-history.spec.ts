@@ -285,11 +285,12 @@ describe('renderCarnetPdf — historique d’un traitement', () => {
           }),
         ],
       })
-    const prise = (fields: Partial<{ time: string | null; extra: boolean }> = {}) =>
-      ({
-        kind: 'given',
-        series: { kind: 'dates', doses: [{ ...dose('2026-06-15'), ...fields }] },
-      }) as const
+    const prise = (
+      fields: Partial<{ time: string | null; extra: boolean }> = {},
+    ): PdfHistoryLine => ({
+      kind: 'given',
+      series: { kind: 'dates', doses: [{ ...dose('2026-06-15'), ...fields }] },
+    })
 
     it('n’écrit la date qu’une fois, dans « Dernière prise »', () => {
       const ecrits = textes(unique(prise()))
