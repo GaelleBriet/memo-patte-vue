@@ -15,18 +15,24 @@ import {
   creationPastDuesOf,
   editionDraftOf,
   emptyTreatmentFormValues,
-  nextDoseRefusalKey,
+  loadedFormValues,
   nextDoseShiftHelp,
   pastDosesBasis,
   reminderHelpText,
   reminderOffsetChoices,
   suggestExactReminders,
   DUPLICATE_TIME_ERROR_KEY,
-  treatmentFormValuesFrom,
   validateTreatmentCreation,
   validateTreatmentEdition,
   validateTreatmentResumption,
 } from '../logic/treatment-form'
+import {
+  endsOnHelpText,
+  formErrorParams,
+  frequencyUnitCount,
+  nextDoseHelpText,
+  resumeInfoText,
+} from '../logic/treatment-form-texts'
 import { pastDuesTexts } from '../logic/treatment-past-dues'
 import { resumptionDraft } from '../logic/treatment-resumption'
 import {
@@ -51,7 +57,6 @@ import { useExactReminders } from '@/core/notifications/use-exact-reminders'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import ExactRemindersExplainer from '@/shared/components/ExactRemindersExplainer.vue'
 import { MAX_FREQUENCY_VALUE } from '@/shared/domain/treatment-frequency'
-import { formatDayMonthOrYear, formatFullDayMonth, withoutFinalDot } from '@/shared/utils/format'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import FormSegmented from '@/shared/form/FormSegmented.vue'
@@ -229,74 +234,25 @@ const canSave = computed(
 const typeOptions = computed(() =>
   TREATMENT_TYPES.map((type) => ({ value: type, label: t(`treatments.type.${type}`) })),
 )
-const unitCount = computed(() => {
-  const count = Number(values.value.frequencyValue)
-  return Number.isInteger(count) && count > 0 ? count : 1
-})
+const unitCount = computed(() => frequencyUnitCount(values.value.frequencyValue))
 const unitOptions = computed(() =>
   FREQUENCY_UNITS.map((unit) => ({
     value: unit,
     label: t(`treatments.form.frequency.unit.${unit}`, unitCount.value),
   })),
 )
-const nextDoseHelp = computed(() => {
-  const help = nextDose.value?.help ?? null
-  if (help === null) return null
-  switch (help.kind) {
-    case 'refused':
-      return t(nextDoseRefusalKey(help.refusal))
-    case 'dropped':
-      return t('treatments.form.nextDoseOn.dropped', { n: help.count }, help.count)
-    case 'overdue':
-      return t('treatments.form.nextDoseOn.overdue', {
-        date: formatDayMonthOrYear(help.since, today.value),
-      })
-    case 'today':
-      return t('treatments.form.nextDoseOn.today')
-    case 'scheduled':
-      return t('treatments.form.nextDoseOn.scheduled', {
-        date: withoutFinalDot(formatDayMonthOrYear(help.on, today.value)),
-      })
-    case 'calculated-passed':
-      return t('treatments.form.nextDoseOn.calculatedPassed', {
-        date: formatDayMonthOrYear(help.on, today.value),
-      })
-    case 'calculated':
-      return t('treatments.form.nextDoseOn.calculated', {
-        date: withoutFinalDot(formatDayMonthOrYear(help.on, today.value)),
-      })
-  }
-  return null
-})
-const resumeInfo = computed(() => {
-  if (previous.value === null || previous.value.endedOn === null) return null
-  return t('treatments.form.resumeInfo', {
-    start: formatDayMonthOrYear(previous.value.startedOn, today.value),
-    end: withoutFinalDot(formatDayMonthOrYear(previous.value.endedOn, today.value)),
-  })
-})
-const endsOnHelp = computed(() => {
-  const days = previous.value?.durationDays ?? null
-  if (days === null || endsOnTouched.value) return t('treatments.form.endsOn.help')
-  const duration = t('treatments.form.endsOn.days', { n: days }, days)
-  return values.value.endsOn === ''
-    ? t('treatments.form.endsOn.sameDuration', { duration })
-    : t('treatments.form.endsOn.repeatedDuration', { duration })
-})
+const nextDoseHelp = computed(() => nextDoseHelpText(t, nextDose.value?.help ?? null, today.value))
+const resumeInfo = computed(() => resumeInfoText(t, previous.value, today.value))
+const endsOnHelp = computed(() =>
+  endsOnHelpText(t, previous.value, {
+    endsOn: values.value.endsOn,
+    touched: endsOnTouched.value,
+  }),
+)
 
 function errorText(key: string | undefined): string | null {
   if (key === undefined) return null
-  const next = nextDose.value
-  const farthest = draft.value?.farthestMove ?? null
-  return t(key, {
-    max: MAX_NAME_LENGTH,
-    date: next ? formatFullDayMonth(next.earliest) : '',
-    latest: next?.latest ? formatFullDayMonth(next.latest) : '',
-    from: previous.value
-      ? withoutFinalDot(formatDayMonthOrYear(previous.value.earliestOn, today.value))
-      : '',
-    arrival: farthest ? withoutFinalDot(formatDayMonthOrYear(farthest.arrivesOn, today.value)) : '',
-  })
+  return t(key, formErrorParams(draft.value, previous.value, today.value))
 }
 
 watch(
@@ -337,18 +293,9 @@ watch(
 )
 
 function open(loaded: TreatmentWithHistory): void {
-  if (mode === 'resume') {
-    const { period, canResume } = resumptionDraft(loaded, today.value)
-    notFound.value = !canResume
-    values.value = { ...treatmentFormValuesFrom(loaded, period), endsOn: '' }
-  } else {
-    const first = editionDraftOf(emptyTreatmentFormValues(), loaded, today.value)
-    values.value = {
-      ...treatmentFormValuesFrom(loaded, first.period),
-      nextDoseOn: first.nextDose?.proposedOn ?? '',
-      shiftsFollowing: first.nextDose?.shiftInitial ?? true,
-    }
-  }
+  const opened = loadedFormValues(mode === 'resume' ? 'resume' : 'edit', loaded, today.value)
+  notFound.value = !opened.found
+  values.value = opened.values
   keptOffset.value = values.value.reminderOffset
   history.value = loaded
 }

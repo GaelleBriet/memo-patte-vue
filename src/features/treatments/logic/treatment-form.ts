@@ -8,7 +8,7 @@ import {
   type EndsOnIssueReason,
   type NextDoseOnIssueReason,
 } from './treatment-edition'
-import { treatmentResumptionSchemaFor } from './treatment-resumption'
+import { resumptionDraft, treatmentResumptionSchemaFor } from './treatment-resumption'
 import { shiftHelpText, type ShiftHelp } from './treatment-shift-box'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import {
@@ -457,6 +457,27 @@ export function validateTreatmentResumption(
 }
 
 /** Ce dont dépend une réponse de l'encart : changé, la réponse ne vaut plus (TR-3). */
+/** Les valeurs d'un traitement relu ; `found` faux : un traitement en cours n'a rien à reprendre. */
+export function loadedFormValues(
+  mode: 'edit' | 'resume',
+  loaded: TreatmentWithHistory,
+  today: string,
+): { values: TreatmentFormValues; found: boolean } {
+  if (mode === 'resume') {
+    const { period, canResume } = resumptionDraft(loaded, today)
+    return { values: { ...treatmentFormValuesFrom(loaded, period), endsOn: '' }, found: canResume }
+  }
+  const first = editionDraftOf(emptyTreatmentFormValues(), loaded, today)
+  return {
+    values: {
+      ...treatmentFormValuesFrom(loaded, first.period),
+      nextDoseOn: first.nextDose?.proposedOn ?? '',
+      shiftsFollowing: first.nextDose?.shiftInitial ?? true,
+    },
+    found: true,
+  }
+}
+
 export function pastDosesBasis(values: TreatmentFormValues, dues: readonly Due[]): string {
   const { firstDoseOn, frequencyValue, frequencyUnit, times, endsOn } = values
   return JSON.stringify([firstDoseOn, frequencyValue, frequencyUnit, times, endsOn, dues.length])

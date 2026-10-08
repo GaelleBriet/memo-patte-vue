@@ -15,6 +15,7 @@ import {
   suggestExactReminders,
   suggestsExactReminders,
   tabletShortcuts,
+  loadedFormValues,
   treatmentFormValuesFrom,
   validateTreatmentCreation,
   validateTreatmentEdition,
@@ -707,5 +708,30 @@ describe('validateTreatmentResumption (TR-32)', () => {
       success: false,
       errors: { endsOn: 'treatments.form.errors.endsOnBeforeFirstDose' },
     })
+  })
+})
+
+describe('loadedFormValues', () => {
+  it('« Modifier » part des réglages en cours et de la prochaine dose proposée', () => {
+    const { values, found } = loadedFormValues('edit', milbemax(), TODAY)
+
+    expect(found).toBe(true)
+    expect(values).toEqual({
+      ...treatmentFormValuesFrom(milbemax(), period()),
+      nextDoseOn: '2026-10-10',
+    })
+  })
+
+  it('« Reprendre » part des réglages de la dernière période, sans date de fin', () => {
+    const arrete = milbemax([period({ stoppedOn: '2026-08-01', endsOn: '2026-08-10' })])
+
+    const { values, found } = loadedFormValues('resume', arrete, TODAY)
+
+    expect(found).toBe(true)
+    expect(values).toMatchObject({ name: 'Milbemax', firstDoseOn: '', endsOn: '' })
+  })
+
+  it('un traitement en cours n’a rien à reprendre', () => {
+    expect(loadedFormValues('resume', milbemax(), TODAY).found).toBe(false)
   })
 })
