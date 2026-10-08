@@ -336,7 +336,7 @@ describe('treatmentHistory — plusieurs périodes (planche A · V3)', () => {
       ])
     })
 
-    it('reprise ensuite, la période arrêtée garde ce texte sous sa date', () => {
+    it('reprise ensuite, la période arrêtée devient une période close sans prise', () => {
       const book = treatment([
         avant,
         period({
@@ -351,8 +351,25 @@ describe('treatmentHistory — plusieurs périodes (planche A · V3)', () => {
         history(book, '2026-10-10').periods.map(({ head, emptyText }) => [head?.title, emptyText]),
       ).toEqual([
         ['Depuis le 10 oct. 2026', 'Aucune prise dans cette période pour l’instant'],
-        ['Le 7 oct. 2026', 'Aucune prise'],
+        ['Le 7 oct. 2026', 'Aucune prise dans cette période'],
       ])
+    })
+
+    it('reprise arrêtée avant sa première échéance, après des doses dues jamais renseignées : période close', () => {
+      const book = treatment([
+        period({ startsOn: '2026-09-01', firstDueOn: '2026-09-01', stoppedOn: '2026-09-05' }),
+        period({
+          id: 'p-2',
+          startsOn: '2026-10-08',
+          firstDueOn: '2026-10-11',
+          stoppedOn: '2026-10-08',
+          createdAt: '2026-10-08T08:00:00.000Z',
+        }),
+      ])
+
+      expect(history(book, '2026-10-10').periods[0]?.emptyText).toBe(
+        'Aucune prise dans cette période',
+      )
     })
 
     it('reprise arrêtée avant sa première échéance, après une prise : « Aucune prise dans cette période », sans « pour l’instant »', () => {
@@ -407,8 +424,11 @@ describe('treatmentHistory — plusieurs périodes (planche A · V3)', () => {
         [dose('2026-09-01', '2026-09-02')],
       )
 
-    it('garde « pour l’instant » tant que sa date de fin n’est pas passée', () => {
+    it('garde « pour l’instant » tant que sa date de fin n’est pas passée, jour même compris', () => {
       expect(history(after({ endsOn: '2026-10-09' }), '2026-10-07').periods[0]?.emptyText).toBe(
+        'Aucune prise dans cette période pour l’instant',
+      )
+      expect(history(after({ endsOn: '2026-10-09' }), '2026-10-09').periods[0]?.emptyText).toBe(
         'Aucune prise dans cette période pour l’instant',
       )
     })

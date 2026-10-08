@@ -50,7 +50,9 @@ function endText(
     due: null,
     today,
     stoppedOn: period?.stoppedOn ?? null,
-    stoppedBeforeFirstDose: period !== null && isStoppedBeforeFirstDose(period, schedule.doses),
+    stoppedBeforeFirstDose:
+      period !== null &&
+      isStoppedBeforeFirstDose(period, { periods: treatment.periods, doses: schedule.doses }),
     endsOn: endedOnOf(treatment, schedule, today),
   }).value
 }
@@ -126,7 +128,12 @@ function finishedRow(
   ).length
   const end = endText(t, read, today)
   const period = currentPeriodOf(read.treatment, read.schedule)
-  const neverDue = period !== null && isStoppedBeforeFirstDose(period, read.schedule.doses)
+  const neverDue =
+    period !== null &&
+    isStoppedBeforeFirstDose(period, {
+      periods: read.treatment.periods,
+      doses: read.schedule.doses,
+    })
   return {
     id: read.treatment.id,
     name: read.treatment.name,

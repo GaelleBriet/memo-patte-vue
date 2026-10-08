@@ -67,7 +67,11 @@ export function doseCard(
             today,
             stoppedOn: period?.stoppedOn ?? null,
             stoppedBeforeFirstDose:
-              period !== null && isStoppedBeforeFirstDose(period, schedule.doses),
+              period !== null &&
+              isStoppedBeforeFirstDose(period, {
+                periods: treatment.periods,
+                doses: schedule.doses,
+              }),
             endsOn: endedOnOf(treatment, schedule, today),
           }),
   }

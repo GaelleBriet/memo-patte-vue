@@ -307,6 +307,15 @@ describe('renderCarnetPdf — historique d’un traitement', () => {
       expect(textes(unique(prise({ time: '08:00' })))).toContain('Prise : 15/06/2026 à 8 h')
     })
 
+    it('garde la ligne quand la série compte deux prises', () => {
+      const deux: PdfHistoryLine = {
+        kind: 'given',
+        series: { kind: 'dates', doses: [dose('2026-06-15'), dose('2026-06-10')] },
+      }
+
+      expect(textes(unique(deux))).toContain('Prises : 15/06/2026 · 10/06/2026')
+    })
+
     it('garde la ligne à côté d’une autre ligne d’historique', () => {
       const ecrits = textes(
         unique(prise(), {

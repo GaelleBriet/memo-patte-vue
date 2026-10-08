@@ -340,9 +340,9 @@ function emptyText(
   t: Translate,
   period: Period,
   next: Period | undefined,
-  { doses, today }: { doses: TreatmentDoseInput[]; today: string },
+  { periods, doses, today }: { periods: Period[]; doses: TreatmentDoseInput[]; today: string },
 ): string {
-  if (isStoppedBeforeFirstDose(period, doses)) return t('treatments.history.noDose')
+  if (isStoppedBeforeFirstDose(period, { periods, doses })) return t('treatments.history.noDose')
   return isClosed(period, next, today)
     ? t('treatments.history.emptyClosed')
     : t('treatments.history.empty')
@@ -408,7 +408,7 @@ export function treatmentHistory(
         lines,
         emptyText:
           lines.length === 0
-            ? emptyText(t, period, periods[index - 1], { doses: schedule.doses, today })
+            ? emptyText(t, period, periods[index - 1], { periods, doses: schedule.doses, today })
             : null,
         visibleLines: hidden === 0 ? lines.length : LINES_BEFORE_TOGGLE,
         toggle:

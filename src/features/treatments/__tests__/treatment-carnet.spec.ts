@@ -333,6 +333,24 @@ describe('carnetTreatments — traitements terminés (TR-31)', () => {
     }
   })
 
+  it('arrêté avant le début de sa reprise, après des doses dues jamais renseignées : « Arrêté le … »', () => {
+    const repris = named('Bravecto', [
+      period({ startsOn: '2026-09-01', firstDueOn: '2026-09-01', stoppedOn: '2026-09-05' }),
+      period({
+        id: 'p-2',
+        startsOn: '2026-10-08',
+        firstDueOn: '2026-10-11',
+        stoppedOn: '2026-10-08',
+        createdAt: '2026-10-08T08:00:00.000Z',
+      }),
+    ])
+
+    expect(carnet([repris], '2026-10-10').ongoing[0]).toMatchObject({
+      detail: 'Arrêté le 8 oct.',
+      unlogged: '4 doses non renseignées',
+    })
+  })
+
   it('arrêté avant le début de sa reprise, garde « Arrêté le … » et ses prises (#594)', () => {
     const repris = named(
       'Bravecto',

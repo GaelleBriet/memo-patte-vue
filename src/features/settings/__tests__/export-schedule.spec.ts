@@ -291,6 +291,43 @@ describe('PDF : traitement sans prise donnée', () => {
     expect(text).not.toContain('Tous les jours')
   })
 
+  describe('reprise arrêtée avant sa première échéance, après une période où des doses étaient dues', () => {
+    const data = carnet(
+      [
+        period({ startsOn: '2026-09-01', frequency: DAILY, stoppedOn: '2026-09-05' }),
+        period({
+          id: 'p-2',
+          startsOn: '2026-10-08',
+          firstDueOn: '2026-10-11',
+          frequency: DAILY,
+          stoppedOn: '2026-10-08',
+          createdAt: '2026-10-08T08:00:00.000Z',
+        }),
+      ],
+      [],
+    )
+
+    it('ne retire que la période arrêtée avant sa première échéance', () => {
+      const text = pdfText(data, '2026-10-10')
+
+      expect(treatmentRow(data, '2026-10-10').periods).toMatchObject([
+        { from: '2026-09-01', to: '2026-09-05' },
+      ])
+      expect(text).not.toContain('11/10/2026')
+      expect(text).toContain('Du 01/09/2026 au 05/09/2026 · Tous les jours')
+      expect(text).toContain('Non renseigné du 01/09/2026 au 04/09/2026')
+    })
+
+    it('dit « Arrêté le … » : des doses ont été dues en septembre', () => {
+      expect(treatmentRow(data, '2026-10-10').due).toEqual({
+        kind: 'stopped',
+        on: '2026-10-08',
+        beforeFirstDose: false,
+      })
+      expect(pdfText(data, '2026-10-10')).not.toContain('Arrêté avant la première prise')
+    })
+  })
+
   it('garde « Arrêté le … » et « Aucune prise » pour un arrêté sans prise après sa première échéance (#594)', () => {
     const data = carnet(
       [period({ startsOn: '2026-09-01', frequency: DAILY, stoppedOn: '2026-09-05' })],

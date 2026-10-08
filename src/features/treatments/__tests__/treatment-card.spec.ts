@@ -214,6 +214,21 @@ describe('doseCard', () => {
     expect(card(resumed, '2026-10-06').end?.value).toBe('Arrêté le 6 oct.')
   })
 
+  it('garde « Arrêté le … » quand une période précédente a eu des doses dues, jamais renseignées', () => {
+    const resumed = treatment([
+      period({ startsOn: '2026-09-01', firstDueOn: '2026-09-01', stoppedOn: '2026-09-05' }),
+      period({
+        id: 'p-2',
+        startsOn: '2026-10-08',
+        firstDueOn: '2026-10-11',
+        stoppedOn: '2026-10-08',
+        createdAt: '2026-10-08T08:00:00.000Z',
+      }),
+    ])
+
+    expect(card(resumed, '2026-10-10').end?.value).toBe('Arrêté le 8 oct.')
+  })
+
   it('s’écrit en anglais', () => {
     applyLocale('en')
     const history = treatment(
