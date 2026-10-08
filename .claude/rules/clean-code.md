@@ -33,17 +33,18 @@ dans son module, l'écran ne faisant qu'assembler : ticket #655.
 
 Un groupe séparé du suivant par une ligne vide, vérifié par la règle ESLint `app/vue-script-order` :
 
-1. imports, puis types locaux et constantes de module (`const MAX = 3`)
+1. imports, puis types locaux et constantes de module (`const MAX = 3`, un appel qui ne lit que des
+   imports)
 2. `defineProps` (ou `withDefaults`), `defineEmits`, `defineModel`, `defineSlots`, `defineOptions`
 3. outils : `useI18n`, `useRouter`, `useRoute`, stores, composables `useXxx()`
-4. état : `ref`, `reactive`, `shallowRef`, `useTemplateRef`, `useId`, `toRef`, `let` et valeurs
-   tirées des props ou des outils
+4. état : `ref`, `reactive`, `shallowRef`, `useTemplateRef`, `useId`, `toRef`, `toRefs`, `inject`,
+   `new`, `let`, et toute valeur ou tout appel qui lit les props, les outils ou l'état
 5. `computed`
 6. `watch`, `watchEffect`
 7. fonctions
 8. cycle de vie : `onMounted`, `onUnmounted`, `onScopeDispose`…
 9. `defineExpose`
 
-Le cycle de vie vient après les fonctions : il appelle des fonctions déjà lues. Une instruction qui
-a besoin, pour s'initialiser, d'une valeur d'un groupe plus bas (un composable qui reçoit un `ref`,
-un `ref` initialisé depuis un `computed`) reste après elle : la règle l'accepte.
+Un composable qui reçoit un état local (`useFormValidation(values)`) vient juste après cet état ;
+de même un `ref` initialisé depuis un `computed` vient après lui. La règle accepte cette exception
+et rien d'autre.

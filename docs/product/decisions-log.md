@@ -2195,7 +2195,7 @@ ESLint `app/vue-script-order` et appliqué à toute la base : imports (puis type
 module), macros (`defineProps`, `defineEmits`…), outils (`useI18n`, stores, composables), état,
 `computed`, `watch`, fonctions, cycle de vie, `defineExpose`, un groupe séparé du suivant par une
 ligne vide. Une instruction qui a besoin d'une valeur d'un groupe plus bas pour s'initialiser reste
-après elle. Règle et exemple dans `.claude/rules/clean-code.md`. La règle remplace
+après elle. Règle dans `.claude/rules/clean-code.md`. La règle remplace
 `vue/define-macros-order`, qui refusait une constante avant `defineProps`, et vérifie toujours
 `defineProps` avant `defineEmits`. — Raison : retrouver chaque chose au
 même endroit d'un écran à l'autre ; le cycle de vie vient après les fonctions parce qu'il appelle des
