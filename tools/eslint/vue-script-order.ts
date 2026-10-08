@@ -45,6 +45,7 @@ const CALLEE_GROUPS: Record<string, number> = {
   useId: G.state,
   toRef: G.state,
   toRefs: G.state,
+  inject: G.state,
   computed: G.computed,
   watch: G.watch,
   watchEffect: G.watch,
@@ -99,10 +100,27 @@ function calleeName(node: Node | null | undefined): string | null {
   return call.callee.name
 }
 
-function groupOfCall(name: string | null): number | null {
-  if (name === null) return null
-  if (name in CALLEE_GROUPS) return CALLEE_GROUPS[name] ?? null
-  return /^use[A-Z]/.test(name) ? G.tools : null
+/** Nom de l'appel en tête d'une chaîne : `useRoute` pour `useRoute().query`. */
+function rootCallName(node: Node | null | undefined): string | null {
+  let current = unwrap(node)
+  while (current) {
+    if (current.type === 'CallExpression') {
+      if (current.callee.type === 'Identifier') return current.callee.name
+      current = unwrap(current.callee as Node)
+    } else if (current.type === 'MemberExpression') {
+      current = unwrap(current.object as Node)
+    } else {
+      return null
+    }
+  }
+  return null
+}
+
+/** Un appel inconnu est d'abord une constante ; il passe à l'état s'il lit autre chose que des imports. */
+function groupOfCall(name: string | null): number {
+  if (name === null) return G.constants
+  if (name in CALLEE_GROUPS) return CALLEE_GROUPS[name] ?? G.constants
+  return /^use[A-Z]/.test(name) ? G.tools : G.constants
 }
 
 function isTypeExport(statement: Node): boolean {
@@ -119,19 +137,17 @@ function groupOf(statement: Node): number | null {
   if (type.startsWith('TS') || isTypeExport(statement)) return G.constants
   if (type === 'FunctionDeclaration') return G.functions
   if (statement.type === 'ExpressionStatement') {
-    return groupOfCall(calleeName(statement.expression as Node))
+    return groupOfCall(rootCallName(statement.expression as Node))
   }
   if (statement.type === 'VariableDeclaration') {
     if (statement.declarations.length !== 1) return null
     const init = unwrap(statement.declarations[0]?.init as Node | null | undefined)
-    if (!init) return null
+    if (!init) return G.state
     if (init.type === 'ArrowFunctionExpression' || init.type === 'FunctionExpression') {
       return G.functions
     }
-    if (init.type === 'CallExpression' || init.type === 'NewExpression') {
-      return groupOfCall(calleeName(init))
-    }
-    return G.constants
+    if (init.type === 'NewExpression') return G.state
+    return groupOfCall(rootCallName(init))
   }
   return null
 }
@@ -142,13 +158,23 @@ function initializer(statement: Node): Node | null | undefined {
   return null
 }
 
-/** `watchEffect` et `watch(…, { immediate: true })` lancent leur fonction pendant le setup. */
-function runsCallbackNow(statement: Node): boolean {
+/**
+ * Parties de l'instruction lancées pendant le setup, fonctions comprises : tout un composable ou
+ * un `watchEffect`, la source d'un `watch`, et son rappel s'il est `immediate`.
+ */
+function runsDuringSetup(statement: Node, group: number | null): Node[] {
+  if (group === G.tools) return [statement]
   const expression = initializer(statement)
   const name = calleeName(expression)
-  if (name === 'watchEffect' || name === 'watchSyncEffect') return true
-  if (name !== 'watch') return false
-  const options = (unwrap(expression) as NodeOf<'CallExpression'>).arguments[2]
+  if (name === 'watchEffect' || name === 'watchSyncEffect') return [statement]
+  if (name !== 'watch') return []
+  const [source, callback, options] = (unwrap(expression) as NodeOf<'CallExpression'>).arguments
+  const parts = [source as Node]
+  if (isImmediate(options as Node | undefined)) parts.push(callback as Node)
+  return parts.filter(Boolean)
+}
+
+function isImmediate(options: Node | undefined): boolean {
   return (
     options?.type === 'ObjectExpression' &&
     options.properties.some(
@@ -244,14 +270,14 @@ export function analyzeScriptSetup(sourceCode: SourceCode, program: AST.Program)
 
   entries.forEach((entry, index) => {
     if (entry.group === G.functions) return
-    // Un composable peut lancer tout de suite la fonction qu'il reçoit (watch immédiat).
-    const everything = entry.group === G.tools || runsCallbackNow(entry.node)
+    const eager = runsDuringSetup(entry.node, entry.group)
     const queue = references
       .filter(
         (r) =>
           r.definedIn !== index &&
           isWithin(r.identifier, entry.node) &&
-          (everything || !crossesFunction(r.from, moduleScope)),
+          (!crossesFunction(r.from, moduleScope) ||
+            eager.some((part) => isWithin(r.identifier, part))),
       )
       .map((r) => r.definedIn)
     const seen = new Set<number>([index])
@@ -265,13 +291,16 @@ export function analyzeScriptSetup(sourceCode: SourceCode, program: AST.Program)
   })
 
   for (const entry of entries) {
-    if (entry.group !== G.constants || entry.node.type !== 'VariableDeclaration') continue
+    const { type } = entry.node
+    if (entry.group !== G.constants) continue
+    if (type !== 'VariableDeclaration' && type !== 'ExpressionStatement') continue
     const derived = references.some(
       (r) =>
         isWithin(r.identifier, entry.node) &&
         (entries[r.definedIn]?.group ?? G.state) > G.constants,
     )
-    if (entry.node.kind !== 'const' || derived) entry.group = G.state
+    const isLet = entry.node.type === 'VariableDeclaration' && entry.node.kind !== 'const'
+    if (isLet || derived) entry.group = G.state
   }
 
   return entries
@@ -296,11 +325,14 @@ export function effectiveGroups(entries: Entry[]): (number | null)[] {
   return result
 }
 
-const MACROS = ['defineProps', 'defineEmits', 'defineModel, defineSlots, defineOptions'] as const
+function macroName(statement: Node): string {
+  const name = calleeName(initializer(statement)) ?? ''
+  return name === 'withDefaults' ? 'defineProps' : name
+}
 
 function macroRank(statement: Node): number {
-  const name = calleeName(initializer(statement))
-  if (name === 'defineProps' || name === 'withDefaults') return 0
+  const name = macroName(statement)
+  if (name === 'defineProps') return 0
   return name === 'defineEmits' ? 1 : 2
 }
 
@@ -331,6 +363,7 @@ const rule: Rule.RuleModule = {
         const effective = effectiveGroups(entries)
         let highest = -1
         let highestMacro = -1
+        let highestMacroName = ''
         let previous: Entry | null = null
         entries.forEach((entry, index) => {
           const group = entry.group
@@ -348,7 +381,7 @@ const rule: Rule.RuleModule = {
             context.report({
               node: entry.node,
               messageId: 'order',
-              data: { current: MACROS[macroRank(entry.node)], previous: MACROS[highestMacro] },
+              data: { current: macroName(entry.node), previous: highestMacroName },
             })
           } else if (
             previous !== null &&
@@ -363,7 +396,10 @@ const rule: Rule.RuleModule = {
             })
           }
           highest = Math.max(highest, group)
-          if (group === G.macros) highestMacro = Math.max(highestMacro, macroRank(entry.node))
+          if (group === G.macros && macroRank(entry.node) > highestMacro) {
+            highestMacro = macroRank(entry.node)
+            highestMacroName = macroName(entry.node)
+          }
           previous = entry
         })
       },

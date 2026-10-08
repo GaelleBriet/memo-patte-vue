@@ -87,9 +87,29 @@ describe('app/vue-script-order', () => {
         code: vue(IMPORTS, STATE, ARROW, 'watch(count, save, { immediate: true })'),
       },
       {
-        name: 'un appel inconnu peut se placer n’importe où',
+        name: 'un appel qui ne lit que des imports va avec les constantes',
         filename: 'Inconnu.vue',
-        code: vue(IMPORTS, 'const cache = buildCache()', PROPS, STATE),
+        code: vue(
+          IMPORTS,
+          'const cache = buildCache()\nconst max = Math.max(1, MAX)',
+          PROPS,
+          STATE,
+        ),
+      },
+      {
+        name: 'la source d’un watch lit une fonction déjà déclarée',
+        filename: 'Source.vue',
+        code: vue(IMPORTS, STATE, 'const f = () => count.value', 'watch(() => f(), () => {})'),
+      },
+      {
+        name: 'un appel qui lit les outils va avec l’état',
+        filename: 'Appel-etat.vue',
+        code: vue(
+          IMPORTS,
+          'const { query } = useRoute()\nconst store = useAnimalsStore()',
+          'const returnRoute = primingReturnRoute(query.from)\nstore.load()',
+          COMPUTED,
+        ),
       },
       {
         name: 'le <script> à côté du <script setup> est ignoré',
@@ -105,13 +125,34 @@ describe('app/vue-script-order', () => {
           IMPORTS,
           'const emit = defineEmits<{ close: [] }>()\nconst model = defineModel()\n' + PROPS,
         ),
-        errors: [order('defineProps', 'defineModel, defineSlots, defineOptions')],
+        errors: [order('defineProps', 'defineModel')],
       },
       {
         name: 'un objet dont les fonctions lisent un outil, avant cet outil',
         filename: 'Actions-tot.vue',
         code: vue(IMPORTS, "const ACTIONS = { home: () => t('home') }", TOOLS),
         errors: [order('outils (useI18n, stores, composables)', 'état (ref, reactive…)')],
+      },
+      {
+        name: 'un appel inconnu qui lit une fonction, avant defineProps',
+        filename: 'Avant-props.vue',
+        code: vue(IMPORTS, 'const label = format(reset)', PROPS, FUNCTION),
+        errors: [order('macros (defineProps, defineEmits…)', 'état (ref, reactive…)')],
+      },
+      {
+        name: 'un appel qui lit l’état, après un computed',
+        filename: 'Appel-tard.vue',
+        code: vue(IMPORTS, STATE, COMPUTED, 'const chart = draw(count)'),
+        errors: [order('état (ref, reactive…)', 'computed')],
+      },
+      {
+        name: 'new et inject vont avec l’état',
+        filename: 'New.vue',
+        code: vue(IMPORTS, COMPUTED, 'const chart = new Chart()', "const theme = inject('theme')"),
+        errors: [
+          order('état (ref, reactive…)', 'computed'),
+          order('état (ref, reactive…)', 'computed'),
+        ],
       },
       {
         name: 'les props après les outils',
