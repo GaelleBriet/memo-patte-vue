@@ -49,3 +49,9 @@ Un groupe séparé du suivant par une ligne vide, vérifié par la règle ESLint
 
 Une instruction qui a besoin d'une valeur d'un groupe plus bas pour s'initialiser reste après elle :
 un composable qui reçoit un état local (`useFormValidation(values)`) vient après cet état.
+
+Limites connues de la règle : elle ne fait pas d'analyse de flux (fonction rangée dans un objet, un
+tableau ou une `class` placés avant la valeur qu'elle lit, fabrique non `use*` qui lit un `computed`
+à l'initialisation, `watch` en `flush: 'sync'`), et ne vérifie ni `class`, ni `if`, ni `for`, ni
+déclaration multiple au premier niveau. En cas de doute, l'ordre qui fonctionne prime et se signale
+en revue.
