@@ -71,7 +71,7 @@ dernier document avant toute discussion technique.
 - **Export PDF gratuit** : le carnet d'un animal ou de tous les animaux suivis, historique compris (spec Données DO-4).
 
 ### Conformité (ajouté le 2026-09-07)
-- Politique de confidentialité publiée sur `memopatte.gaelle-briet.fr` (dossier `site/`) et liée dans l'app ; page web de suppression de compte ; Data safety et déclarations Play Console (#86).
+- Politique de confidentialité publiée sur `memopatte.app` (dossier `site/`) et liée dans l'app ; page web de suppression de compte ; Data safety et déclarations Play Console (#86).
 - Suppression du compte Plus depuis l'app, Edge Function côté Supabase (#87).
 - Registre des traitements, DPA Supabase et PostHog, prestataires en région UE (#88).
 - Consentement analytics opt-in avant toute initialisation PostHog (#67) ; aucune permission média large (Photo Picker) ; alarmes inexactes par défaut, `SCHEDULE_EXACT_ALARM` seulement pour l'option « Rappels précis », jamais `USE_EXACT_ALARM`.
