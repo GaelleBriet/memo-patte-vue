@@ -310,7 +310,8 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
 
   Gardes du moteur d'échéances (#453) :
   - **G1** Seules les prises dont l'échéance est le jour du changement comptent pour les premières
-    heures du nouveau réglage (une dose d'hier notée aujourd'hui n'en retire aucune).
+    heures du nouveau réglage (une dose d'hier notée aujourd'hui n'en retire aucune), sauf une
+    journée à venir entamée en avance (G22).
     (Garde technique, consignée au journal des décisions autonomes.)
   - **G2** Une prise notée « oubliée » compte comme une prise donnée.
     (Garde technique, consignée au journal des décisions autonomes.)
@@ -332,6 +333,13 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   - **G5** Une période précédente ne garde aucune dose à partir du début de la suivante, même si
     celle-ci commence dans le futur (cas que l'app n'écrit pas).
     (Garde technique, consignée au journal des décisions autonomes.)
+  - **G22** Quand ni la fréquence ni les heures ne changent (Q37) et qu'une heure de la prochaine
+    journée d'échéance a été donnée en avance, la nouvelle période commence par cette journée : les
+    prises déjà notées pour elle comptent pour ses premières heures (G4), les autres restent à donner.
+    Métacam tous les 2 jours à 8 h et 20 h, prochaines doses le 3 ; le 2, la dose de 8 h du 3 est
+    donnée en avance, puis la posologie changée : prochaine dose le 3 à 20 h, puis le 5. Une journée
+    déjà passée entamée (8 h du 3 donnée, 20 h non, posologie changée le 4) garde la dernière prise
+    plus la fréquence (Q37) : prochaine dose le 5, la dose de 20 h du 3 à renseigner. (#656)
 - **TR-29** Un autre produit est un nouveau traitement : arrêter l'ancien, créer le nouveau. (P9 Q2)
 - **TR-30** « Arrêter » : dialogue qui propose de renseigner les doses non renseignées (« Toutes
   données », « Choisir les jours », « Arrêter sans renseigner ») ; « Arrêté le … », plus aucune
@@ -735,7 +743,8 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   prochaine dose, report en vigueur compris. Raison : changer la posologie ne doit pas avancer la dose
   de trois jours sans le dire. Écartée : la dernière prise plus la fréquence (28 févr. + 1 mois). À
   plusieurs heures, la règle ne vaut que si aucune heure de la journée de la dose du moment n'est
-  notée ; sinon, la dernière prise plus la fréquence. Limite : quand la dose reprise est un jour borné
+  notée ; sinon, la dernière prise plus la fréquence ; une journée à venir entamée en avance reste
+  la prochaine (G22, #656). Limite : quand la dose reprise est un jour borné
   (28 févr. d'une suite du 31), la nouvelle période repart de ce jour (28 mars, 28 avr.…) ; la lever
   demande un jour de référence porté par la période (#488).
   (Revue du moteur d'échéances du 2026-10-02, M3.)
@@ -799,9 +808,6 @@ avait fixé la suite ; revue du 2026-10-02). Fermées par la ligne de décalage 
 de la période (#502, étude `technical/etude-modele-prises.md` §2.6) : la dose non renseignée redatée
 (dose du moment au 15), la dose du moment notée par erreur puis corrigée (17), les départs les 29, 30
 et 31 (30 oct., 30 nov.) et le jour borné repris par Q37 (31 mars, 30 avr.). La date de fin qui
-faisait sauter une dose après une prise en retard est fermée par la case et son avertissement (G20, #536). Reste :
-
-- À plusieurs heures, quand une heure de la prochaine journée a été donnée en avance et qu'un réglage
-  change sans toucher la fréquence ni les heures, les heures restantes de cette journée ne sont plus
-  demandées (tous les 2 jours à 8 h et 20 h, 8 h du 3 donnée le 2, posologie changée le 2 : première
-  dose le 5) (TR-28, Q37) : règle du moteur, hors modèle.
+faisait sauter une dose après une prise en retard est fermée par la case et son avertissement (G20, #536).
+La journée à venir entamée en avance, dont les heures restantes n'étaient plus demandées après un
+changement de posologie, est fermée par G22 (#656).
