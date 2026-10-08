@@ -29,10 +29,18 @@ export const OLD_ANCHORS = {
   },
 }
 
+function decodedAnchor(hash) {
+  try {
+    return decodeURIComponent(hash.replace(/^#/, ''))
+  } catch {
+    return null
+  }
+}
+
 export function redirectTarget(pathname, hash) {
   const anchors = OLD_ANCHORS[pathname]
-  const anchor = decodeURIComponent(hash.replace(/^#/, ''))
-  return (anchors && Object.hasOwn(anchors, anchor) && anchors[anchor]) || null
+  const anchor = decodedAnchor(hash)
+  return (anchors && anchor !== null && Object.hasOwn(anchors, anchor) && anchors[anchor]) || null
 }
 
 function followOldAnchor() {

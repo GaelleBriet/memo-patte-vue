@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -22,17 +22,56 @@ const textOf = (html: string) =>
     .replace(/\s+/g, ' ')
 
 const languages = ['fr', 'en'] as const
+const ANCHORS_FROM_SHOWCASE = [
+  '/#comment-ca-marche',
+  '/#prix',
+  '/#questions',
+  '/en/#how-it-works',
+  '/en/#pricing',
+  '/en/#questions',
+]
+
+function sitePages(dir = ''): string[] {
+  return readdirSync(join(SITE, dir), { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name)
+    if (entry.isDirectory()) return sitePages(path)
+    return entry.name.endsWith('.html') ? [path] : []
+  })
+}
+
+const ENTITIES: Record<string, string> = { nbsp: '\u00a0', amp: '&', quot: '"', lt: '<', gt: '>' }
+const plain = (html: string) =>
+  html
+    .replace(/<span class="visually-hidden">[\s\S]*?<\/span>/g, '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&(#\d+|[a-z]+);/g, (entity, code: string) =>
+      code.startsWith('#')
+        ? String.fromCodePoint(Number(code.slice(1)))
+        : (ENTITIES[code] ?? entity),
+    )
+    .replace(/[ \t\r\n]+/g, ' ')
+    .trim()
+
+function answerOf(html: string, section?: string): string {
+  const body = html
+    .split('</h1>')[1]!
+    .split(/<p class="help-contact">|<p>\s*<a class="back-link"/)[0]!
+    .replace(/<figure\b[\s\S]*?<\/figure>/g, '')
+  const parts = body.split(/(?=<h2 id=")/)
+  if (!section) return parts[0]!
+  return parts.find((part) => part.startsWith(`<h2 id="${section}"`)) ?? ''
+}
 const hubs = { fr: '/aide/', en: '/en/help/' } as const
 
 const questions = [
-  { fr: 'exporter', en: 'export', zones: 3 },
-  { fr: 'sauvegarde-android', en: 'android-backup', zones: 0 },
-  { fr: 'plus', en: 'plus', zones: 0 },
-  { fr: 'nouveau-telephone', en: 'new-phone', zones: 0 },
-  { fr: 'effacer', en: 'erase', zones: 2 },
-  { fr: 'ne-plus-suivre', en: 'stop-following', zones: 3 },
-  { fr: 'rappels-en-retard', en: 'late-reminders', zones: 0 },
-  { fr: 'rappels', en: 'reminders', zones: 0 },
+  { fr: 'exporter', en: 'export', zones: 3, textOrder: [1, 2, 3] },
+  { fr: 'sauvegarde-android', en: 'android-backup', zones: 0, textOrder: [] },
+  { fr: 'plus', en: 'plus', zones: 0, textOrder: [] },
+  { fr: 'nouveau-telephone', en: 'new-phone', zones: 0, textOrder: [] },
+  { fr: 'effacer', en: 'erase', zones: 2, textOrder: [2, 1] },
+  { fr: 'ne-plus-suivre', en: 'stop-following', zones: 3, textOrder: [1, 2, 3] },
+  { fr: 'rappels-en-retard', en: 'late-reminders', zones: 0, textOrder: [] },
+  { fr: 'rappels', en: 'reminders', zones: 0, textOrder: [] },
 ]
 const pageOf = (lang: 'fr' | 'en', slug: string) => `${hubs[lang]}${slug}/`
 
@@ -182,7 +221,7 @@ describe('aide du site en pages', () => {
           Number(m[1]),
         )
       const expected = Array.from({ length: question.zones }, (_, i) => i + 1)
-      expect([...numbers(text)].sort()).toEqual(expected)
+      expect(numbers(text)).toEqual(question.textOrder)
       expect(numbers(caption)).toEqual(expected)
     })
 
@@ -239,6 +278,10 @@ describe('aide du site en pages', () => {
     expect(redirectTarget('/aide/', '')).toBeNull()
   })
 
+  it('ignore une ancre mal encodée', () => {
+    expect(redirectTarget('/aide/', '#%E0%A4%A')).toBeNull()
+  })
+
   describe('recherche', () => {
     it('ignore les accents, la casse et les apostrophes', () => {
       expect(normalize('  Économie de BATTERIE, l’app ')).toBe('economie de batterie, l app')
@@ -249,6 +292,39 @@ describe('aide du site en pages', () => {
       expect(matches('Rappels précis', 'rappels batterie')).toBe(false)
       expect(matches('Rappels précis', '   ')).toBe(true)
     })
+
+    it('ne tient pas compte des mots d’une seule lettre', () => {
+      expect(matches('Que faire du carnet', 'l’export du carnet')).toBe(false)
+      expect(matches('Que faire du carnet', 'l’ carnet a')).toBe(true)
+    })
+  })
+
+  describe.each(languages)('texte cherché de l’accueil de l’aide en %s', (lang) => {
+    const entries = [
+      ...read(hubs[lang]).matchAll(/<li\b[^>]*data-search="([^"]*)"[^>]*>\s*<a href="([^"]+)"/g),
+    ].map((m) => ({ search: m[1]!, href: m[2]! }))
+
+    it('a une entrée par question et par sous-partie des rappels', () => {
+      expect(entries).toHaveLength(questions.length + 4)
+    })
+
+    it.each(entries.map((entry) => [entry.href, entry.search]))(
+      '%s cherche dans le texte de sa page',
+      (href, search) => {
+        const [path = '', fragment] = href.split('#')
+        expect(plain(search)).toBe(plain(answerOf(read(path), fragment)))
+      },
+    )
+  })
+
+  it.each(sitePages())('les liens à ancre de %s visent une section qui existe', (page) => {
+    const html = readFileSync(join(SITE, page), 'utf8')
+    const here = `/${page.replace(/index\.html$/, '')}`
+    for (const [, path, fragment] of html.matchAll(/href="([^"#:]*)#([^"]+)"/g)) {
+      const target = path || here
+      if (ANCHORS_FROM_SHOWCASE.includes(`${target}#${fragment}`)) continue
+      expect(idsOf(read(target)), `${page} → ${target}#${fragment}`).toContain(fragment)
+    }
   })
 
   describe('liens de l’app', () => {

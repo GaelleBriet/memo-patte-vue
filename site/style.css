@@ -610,7 +610,7 @@ img {
   border-radius: 50%;
   background: var(--annotation);
   box-shadow: 0 0 0 1px var(--annotation);
-  color: #fff;
+  color: var(--text);
   font-size: 13px;
   font-weight: 700;
   line-height: 1;

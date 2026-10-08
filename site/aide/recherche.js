@@ -12,7 +12,7 @@ export function matches(text, query) {
   const haystack = normalize(text)
   return normalize(query)
     .split(' ')
-    .filter(Boolean)
+    .filter((word) => word.length > 1)
     .every((word) => haystack.includes(word))
 }
 
