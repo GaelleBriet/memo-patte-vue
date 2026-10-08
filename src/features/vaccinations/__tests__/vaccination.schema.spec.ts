@@ -1,6 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { vaccinationInputSchema, vaccinationUpdateSchema } from '../schema/vaccination.schema'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
+
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 const validInput = {
   animalId: '11111111-1111-4111-8111-111111111111',
@@ -69,7 +73,8 @@ describe('vaccinationInputSchema', () => {
   })
 
   it('accepte une date de dernière injection passée ou aujourd’hui', () => {
-    const today = new Date().toISOString().slice(0, 10)
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 8, 23, 30) })
+    const today = '2026-10-08'
     expect(
       vaccinationInputSchema.safeParse({ ...validInput, lastInjectionDate: today }).success,
     ).toBe(true)

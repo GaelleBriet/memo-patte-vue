@@ -1,5 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { weightEntryInputSchema, weightEntryUpdateSchema } from '../schema/weight.schema'
+
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 const validInput = {
   animalId: '11111111-1111-4111-8111-111111111111',
@@ -47,7 +51,8 @@ describe('weightEntryInputSchema', () => {
   })
 
   it('accepte une date de pesée passée ou aujourd’hui', () => {
-    const today = new Date().toISOString().slice(0, 10)
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 8, 23, 30) })
+    const today = '2026-10-08'
     expect(
       weightEntryInputSchema.safeParse({ ...validInput, measuredOn: '2020-01-15' }).success,
     ).toBe(true)

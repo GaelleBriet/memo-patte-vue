@@ -9,7 +9,7 @@ import {
 import { createAnimalsRepository, type AnimalsRepository } from '../repository/animals.repository'
 import { createAnimalCreationService } from '../service/animal-creation.service'
 
-const CREATION = new Date('2026-09-28T12:00:00.000Z')
+const CREATION = new Date(2026, 8, 28, 12)
 
 describe('animalCreationService', () => {
   let db: InMemoryDb

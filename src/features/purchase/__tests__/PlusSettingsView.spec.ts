@@ -80,7 +80,7 @@ describe('PlusSettingsView', () => {
   })
 
   it('donne le statut, « Gérer mon abonnement », et ne propose pas la connexion à un abonné (V19 quater)', async () => {
-    writeStoredPlusStatus({ plan: 'annual', expiresAt: '2027-09-14T10:00:00Z' })
+    writeStoredPlusStatus({ plan: 'annual', expiresAt: new Date(2027, 8, 14, 10).toISOString() })
     const wrapper = await monter()
 
     expect(wrapper.get('.settings-row--plus-status').text()).toContain(
@@ -92,7 +92,7 @@ describe('PlusSettingsView', () => {
 
   it('dit « subscription » en anglais, jamais « plan »', async () => {
     i18n.global.locale.value = 'en'
-    writeStoredPlusStatus({ plan: 'annual', expiresAt: '2027-09-14T10:00:00Z' })
+    writeStoredPlusStatus({ plan: 'annual', expiresAt: new Date(2027, 8, 14, 10).toISOString() })
     const wrapper = await monter()
 
     expect(wrapper.text()).toContain('subscription')

@@ -1,6 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { animalCreationInputSchema, animalInputSchema } from '../schema/animal.schema'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
+
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 const validInput = { name: 'Miette', species: 'cat' } as const
 
@@ -55,7 +59,8 @@ describe('animalInputSchema', () => {
   })
 
   it('accepte une date de naissance passée ou aujourd’hui', () => {
-    const today = new Date().toISOString().slice(0, 10)
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 8, 23, 30) })
+    const today = '2026-10-08'
     expect(animalInputSchema.safeParse({ ...validInput, birthDate: '2020-02-29' }).success).toBe(
       true,
     )

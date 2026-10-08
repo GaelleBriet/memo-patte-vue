@@ -25,7 +25,7 @@ import { createTreatmentRemindersService } from '../service/treatment-reminders.
 import { seedTreatmentWithDose } from './seed-treatment'
 
 const BOREE = '11111111-1111-4111-8111-111111111111'
-const NOW = new Date('2026-09-23T08:00:00.000Z')
+const NOW = new Date(2026, 8, 23, 8)
 
 describe('treatmentDosesService', () => {
   let db: InMemoryDb
@@ -696,7 +696,7 @@ describe('treatmentDosesService', () => {
         kind: 'note',
         gesture: { kind: 'given', due: septembre(), givenOn: '2026-09-23' },
       })
-      const later = new Date('2026-09-23T08:00:04.000Z')
+      const later = new Date(NOW.getTime() + 4_000)
       vi.setSystemTime(later)
 
       await service.undoBatch(bravecto, undo)
@@ -773,11 +773,12 @@ describe('treatmentDosesService', () => {
       const prise = (await treatments.listDoses(bravecto)).find(
         ({ dueOn, status }) => dueOn === '2026-09-28' && status === 'given',
       )
+      const UNE_HEURE_APRES = new Date(NOW.getTime() + 3_600_000).toISOString()
       await db.run(
         `INSERT INTO treatment_dose (id, period_id, treatment_id, animal_id, due_on, due_time,
            given_on, status, next_due_date, created_at, updated_at, created_by_device, updated_by_device)
          VALUES ('report', ?, ?, ?, '2026-10-23', NULL, NULL, 'postponed', '2026-10-30', ?, ?, 'appareil-test', 'appareil-test')`,
-        [bravecto, bravecto, BOREE, '2026-09-23T09:00:00.000Z', '2026-09-23T09:00:00.000Z'],
+        [bravecto, bravecto, BOREE, UNE_HEURE_APRES, UNE_HEURE_APRES],
       )
 
       const applied = await service.apply(bravecto, {
