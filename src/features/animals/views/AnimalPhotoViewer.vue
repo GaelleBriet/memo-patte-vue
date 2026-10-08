@@ -15,13 +15,6 @@ const { t } = useI18n()
 
 let releaseBackButton: (() => void) | null = null
 
-function releaseBack(): void {
-  releaseBackButton?.()
-  releaseBackButton = null
-}
-
-onScopeDispose(releaseBack)
-
 watch(
   open,
   (isOpen) => {
@@ -31,9 +24,16 @@ watch(
   { immediate: true },
 )
 
+function releaseBack(): void {
+  releaseBackButton?.()
+  releaseBackButton = null
+}
+
 function close(): void {
   open.value = false
 }
+
+onScopeDispose(releaseBack)
 </script>
 
 <template>

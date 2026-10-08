@@ -73,11 +73,13 @@ const props = defineProps<{
 const { t } = useI18n()
 const router = useRouter()
 const { query } = useRoute()
-const from = typeof query.from === 'string' ? query.from : undefined
-const reminder = typeof query.reminder === 'string' ? query.reminder : undefined
 const animals = useAnimalsStore()
 const treatments = useTreatmentsStore()
 const { today } = useToday()
+const exactReminders = useExactReminders()
+
+const from = typeof query.from === 'string' ? query.from : undefined
+const reminder = typeof query.reminder === 'string' ? query.reminder : undefined
 
 const mode = props.id === undefined ? 'create' : props.resume ? 'resume' : 'edit'
 
@@ -96,32 +98,10 @@ const isPastDuesOpen = ref(false)
 /** Réponse de l'encart des doses passées : rien n'est écrit avant « Créer ». */
 const pastDosesAnswer = ref<DayChoice | null>(null)
 const isChooseDaysOpen = ref(false)
-const duplicateTimeError = computed(() =>
-  hasDuplicateTime.value ? DUPLICATE_TIME_ERROR_KEY : undefined,
-)
-const exactReminders = useExactReminders()
 const isSuggestingExact = ref(false)
 const isExplainerOpen = ref(false)
 /** Le moment choisi avant d'ouvrir le formulaire reste proposé sans les rappels précis (RA-23). */
 const keptOffset = ref<ReminderOffsetMinutes | null>(null)
-const reminderChoices = computed(() =>
-  reminderOffsetChoices(exactReminders.status.value, keptOffset.value),
-)
-const isLessPrecise = computed(() => exactReminders.status.value === 'removed')
-const suggestsExact = computed(
-  () => isSuggestingExact.value && exactReminders.status.value === 'never-enabled',
-)
-const reminderHelp = computed(() => reminderHelpText(t, values.value.times))
-
-function requireAnimalId(): string {
-  if (props.animalId === undefined) throw new Error('Formulaire traitement ouvert sans animal.')
-  return props.animalId
-}
-
-function requireHistory(): TreatmentWithHistory {
-  if (history.value === null) throw new Error('Formulaire traitement ouvert sans traitement.')
-  return history.value
-}
 
 const {
   draft,
@@ -148,6 +128,18 @@ const edition = useFormValidation(values, (current) =>
 const resumption = useFormValidation(values, (current) =>
   validateTreatmentResumption(current, requireHistory(), today.value),
 )
+
+const duplicateTimeError = computed(() =>
+  hasDuplicateTime.value ? DUPLICATE_TIME_ERROR_KEY : undefined,
+)
+const reminderChoices = computed(() =>
+  reminderOffsetChoices(exactReminders.status.value, keptOffset.value),
+)
+const isLessPrecise = computed(() => exactReminders.status.value === 'removed')
+const suggestsExact = computed(
+  () => isSuggestingExact.value && exactReminders.status.value === 'never-enabled',
+)
+const reminderHelp = computed(() => reminderHelpText(t, values.value.times))
 const errors = computed(
   () => ({ create: creation, edit: edition, resume: resumption })[mode].errors.value,
 )
@@ -228,11 +220,6 @@ const endsOnHelp = computed(() =>
   }),
 )
 
-function errorText(key: string | undefined): string | null {
-  if (key === undefined) return null
-  return t(key, formErrorParams(draft.value, previous.value, today.value))
-}
-
 watch(
   () => values.value.times,
   () => {
@@ -246,6 +233,29 @@ watch(
     pastDosesAnswer.value = null
   },
 )
+
+watch(
+  targetAnimal,
+  (animal) => {
+    if (mode !== 'edit' && animal !== null && !takesNewCare(animal)) backToOrigin()
+  },
+  { immediate: true },
+)
+
+function requireAnimalId(): string {
+  if (props.animalId === undefined) throw new Error('Formulaire traitement ouvert sans animal.')
+  return props.animalId
+}
+
+function requireHistory(): TreatmentWithHistory {
+  if (history.value === null) throw new Error('Formulaire traitement ouvert sans traitement.')
+  return history.value
+}
+
+function errorText(key: string | undefined): string | null {
+  if (key === undefined) return null
+  return t(key, formErrorParams(draft.value, previous.value, today.value))
+}
 
 function open(loaded: TreatmentWithHistory): void {
   const opened = loadedFormValues(mode === 'resume' ? 'resume' : 'edit', loaded, today.value)
@@ -267,21 +277,6 @@ async function setTimes(times: string[]): Promise<void> {
   if (suggests) isSuggestingExact.value = true
 }
 
-onMounted(async () => {
-  if (props.id !== undefined) {
-    try {
-      const loaded = await treatments.getWithHistory(props.id)
-      notFound.value = loaded === null
-      if (loaded) open(loaded)
-    } catch {
-      loadFailed.value = true
-    } finally {
-      isLoading.value = false
-    }
-  }
-  if (!animals.hasLoaded) await animals.load()
-})
-
 function selectTargetAnimal(): void {
   if (targetAnimalId.value !== null) animals.select(targetAnimalId.value)
 }
@@ -290,14 +285,6 @@ function backToOrigin(): void {
   selectTargetAnimal()
   returnTo(router, primingReturnRoute(from, reminder))
 }
-
-watch(
-  targetAnimal,
-  (animal) => {
-    if (mode !== 'edit' && animal !== null && !takesNewCare(animal)) backToOrigin()
-  },
-  { immediate: true },
-)
 
 function selectUnit(unit: FrequencyUnit | null): void {
   if (unit) values.value.frequencyUnit = unit
@@ -378,6 +365,21 @@ async function submit(): Promise<void> {
   selectTargetAnimal()
   await leaveAfterSaving()
 }
+
+onMounted(async () => {
+  if (props.id !== undefined) {
+    try {
+      const loaded = await treatments.getWithHistory(props.id)
+      notFound.value = loaded === null
+      if (loaded) open(loaded)
+    } catch {
+      loadFailed.value = true
+    } finally {
+      isLoading.value = false
+    }
+  }
+  if (!animals.hasLoaded) await animals.load()
+})
 </script>
 
 <template>

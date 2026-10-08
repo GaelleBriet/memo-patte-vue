@@ -66,6 +66,21 @@ const gestures = useTreatmentGestures(() => {
   refreshToday()
   void reload()
 })
+const exactReminders = useExactReminders()
+
+const isExplainerOpen = ref(false)
+const choosing = ref<'log' | 'stop'>('log')
+
+const isOtherDateOpen = ref(false)
+const isDoneConfirmOpen = ref(false)
+const confirming = ref<Due | null>(null)
+const isChooseDaysOpen = ref(false)
+const isDatePickerOpen = ref(false)
+const isStopDialogOpen = ref(false)
+const isDeleteDialogOpen = ref(false)
+const changing = ref<{ row: DoseRow; change: DateChange; box: DateChangeBox | null } | null>(null)
+
+const doseCardRef = useTemplateRef<InstanceType<typeof TreatmentDoseCard>>('doseCard')
 
 const animal = computed(() => (treatment.value ? animals.byId(treatment.value.animalId) : null))
 const named = computed(() => ({
@@ -88,8 +103,6 @@ const card = computed(() =>
       })
     : null,
 )
-const exactReminders = useExactReminders()
-const isExplainerOpen = ref(false)
 const lessPrecise = computed(() =>
   treatment.value && schedule.value
     ? lessPreciseReminder(t, treatment.value, schedule.value, exactReminders.status.value)
@@ -107,7 +120,6 @@ const stopping = computed(() =>
     ? stopPrompt(t, treatment.value, schedule.value, today.value)
     : null,
 )
-const choosing = ref<'log' | 'stop'>('log')
 const chosen = computed(() => (choosing.value === 'stop' ? stopping.value : unlogged.value))
 const chooseDaysSubtitleText = computed(() =>
   chooseDaysSubtitle(named.value.name, named.value.animal, chosen.value?.when ?? null),
@@ -133,20 +145,7 @@ const menuItems = computed<OverflowMenuItem[]>(() => [
   { id: 'remove', label: t('treatments.detail.menu.remove'), icon: 'ms:delete', danger: true },
 ])
 
-const isOtherDateOpen = ref(false)
-const isDoneConfirmOpen = ref(false)
-const confirming = ref<Due | null>(null)
-const isChooseDaysOpen = ref(false)
-const isDatePickerOpen = ref(false)
-const isStopDialogOpen = ref(false)
-const isDeleteDialogOpen = ref(false)
-const changing = ref<{ row: DoseRow; change: DateChange; box: DateChangeBox | null } | null>(null)
-
-onMounted(() => {
-  if (!animals.hasLoaded) void animals.load()
-})
-
-const doseCardRef = useTemplateRef<InstanceType<typeof TreatmentDoseCard>>('doseCard')
+const isFromHome = computed(() => route.query.from === 'home')
 
 watch(
   () => actions.value?.canStop,
@@ -267,8 +266,6 @@ function stop(): void {
   if (treatment.value) void gestures.stop(treatment.value, t('treatments.sheet.errors.stop'))
 }
 
-const isFromHome = computed(() => route.query.from === 'home')
-
 function backToCarnet(): void {
   if (isFromHome.value) {
     returnTo(router, { name: 'home' })
@@ -293,6 +290,10 @@ function resume(): void {
 async function remove(): Promise<void> {
   if (treatment.value && (await gestures.removeTreatment(treatment.value))) backToCarnet()
 }
+
+onMounted(() => {
+  if (!animals.hasLoaded) void animals.load()
+})
 </script>
 
 <template>

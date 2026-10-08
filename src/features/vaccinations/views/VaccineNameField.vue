@@ -18,6 +18,7 @@ const { suggestions, hasSuggestions, countText, usedFor, spokenName } = useVacci
   name,
   toRef(props, 'species'),
 )
+
 const isTyping = ref(false)
 const listId = useId()
 const carnetHeadingId = useId()

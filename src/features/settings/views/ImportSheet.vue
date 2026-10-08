@@ -9,15 +9,14 @@ import BottomSheet from '@/shared/components/BottomSheet.vue'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import { showToast } from '@/shared/utils/toast'
 
-const emit = defineEmits<{ imported: [] }>()
-
 /** Les anciens Android typent un `.json` en octet-stream ou en texte : sans eux, le fichier serait grisé. */
 const ACCEPTED_TYPES = '.json,application/json,application/octet-stream,text/plain'
+
+const emit = defineEmits<{ imported: [] }>()
 
 const busy = defineModel<boolean>('busy', { default: false })
 
 const { t } = useI18n()
-const fileInput = useTemplateRef<HTMLInputElement>('fileInput')
 
 const { step, error, isImporting, selectFile, choose, confirmReplace, cancelReplace, close } =
   useDataImport(undefined, () => {
@@ -25,7 +24,10 @@ const { step, error, isImporting, selectFile, choose, confirmReplace, cancelRepl
     emit('imported')
   })
 
-watch(isImporting, (value) => (busy.value = value))
+const fileInput = useTemplateRef<HTMLInputElement>('fileInput')
+
+const selected = ref<ImportMode | null>(null)
+const groupLabelId = useId()
 
 const modes = computed(() => [
   {
@@ -65,9 +67,6 @@ const errorMessage = computed(() => {
   }
 })
 
-const selected = ref<ImportMode | null>(null)
-const groupLabelId = useId()
-
 const isSheetOpen = computed({
   get: () => step.value !== 'idle',
   set: (isOpen) => {
@@ -81,6 +80,8 @@ const isConfirmOpen = computed({
     if (!isOpen) cancelReplace()
   },
 })
+
+watch(isImporting, (value) => (busy.value = value))
 
 watch(step, (current, previous) => {
   if (current === 'choice' && previous !== 'confirm') selected.value = null

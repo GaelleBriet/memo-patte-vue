@@ -52,6 +52,14 @@ const isRestoring = computed(() => phase.value === 'restoring')
 const isBusy = computed(() => isPurchasing.value || isRestoring.value)
 const isDone = computed(() => ['success', 'cancelled', 'failed'].includes(phase.value))
 
+watch(
+  isMember,
+  (member) => {
+    if (!member && purchase.available) void loadOffers()
+  },
+  { immediate: true },
+)
+
 function priceOf(offer: PlusOffer): string {
   return t(`plus.offers.${offer.plan}.price`, { price: offer.priceString })
 }
@@ -63,14 +71,6 @@ function disclosureOf(offer: PlusOffer): string {
 function submitLabelOf(offer: PlusOffer): string {
   return t(`plus.offers.${offer.plan}.submit`, { price: priceOf(offer) })
 }
-
-watch(
-  isMember,
-  (member) => {
-    if (!member && purchase.available) void loadOffers()
-  },
-  { immediate: true },
-)
 
 async function loadOffers(): Promise<void> {
   if (isLoadingOffers.value) return

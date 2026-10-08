@@ -2199,3 +2199,14 @@ consentement). — Raison : savoir si la page vitrine attire du monde, sans band
 prestataire. — Alternatives écartées : Umami Cloud (nouveau prestataire, hébergement « États-Unis et
 UE » sans garantie claire) ; aucune mesure. Pour revenir dessus : désactiver Web Analytics dans le
 projet Pages et retirer les deux mentions.
+
+2026-10-08 — **Un seul ordre des déclarations dans tous les `<script setup>`**, vérifié par la règle
+ESLint `app/vue-script-order` et appliqué à toute la base : imports (puis types et constantes de
+module), macros (`defineProps`, `defineEmits`…), outils (`useI18n`, stores, composables), état,
+`computed`, `watch`, fonctions, cycle de vie, `defineExpose`, un groupe séparé du suivant par une
+ligne vide. Une instruction qui a besoin d'une valeur d'un groupe plus bas pour s'initialiser reste
+après elle. Règle dans `.claude/rules/clean-code.md`. La règle remplace
+`vue/define-macros-order`, qui refusait une constante avant `defineProps`, et vérifie toujours
+`defineProps` avant `defineEmits`. — Raison : retrouver chaque chose au
+même endroit d'un écran à l'autre ; le cycle de vie vient après les fonctions parce qu'il appelle des
+fonctions déjà lues. — Alternative écartée : le cycle de vie avant les fonctions.

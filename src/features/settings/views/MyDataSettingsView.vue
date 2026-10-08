@@ -7,8 +7,6 @@ import ExportSheet from './ExportSheet.vue'
 import ImportSheet from './ImportSheet.vue'
 import { useExportAvailability } from '../composables/use-export-availability'
 import { pdfExportChoice, toPdfExportAnimals } from '../logic/pdf-export-animals'
-
-const PdfExportSheet = defineAsyncComponent(() => import('./PdfExportSheet.vue'))
 import { promptNotificationsIfReminders } from '@/app/reminders-priming'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
@@ -17,9 +15,13 @@ import { chooseWeightUnit, currentWeightUnit } from '@/shared/domain/weight-unit
 import FormSegmented from '@/shared/form/FormSegmented.vue'
 import { returnTo } from '@/shared/utils/return-to'
 
+const PdfExportSheet = defineAsyncComponent(() => import('./PdfExportSheet.vue'))
+
 const { t } = useI18n()
 const router = useRouter()
 const animals = useAnimalsStore()
+
+const { hasLoadFailed, hasNothingToExport, canExport, retryLoad } = useExportAvailability()
 
 const isExportSheetOpen = ref(false)
 const isPdfExportSheetOpen = ref(false)
@@ -27,6 +29,7 @@ const hasOpenedPdfExportSheet = ref(false)
 const importSheet = useTemplateRef('importSheet')
 const isImporting = ref(false)
 const weightUnitLabelId = useId()
+
 const weightUnit = computed(currentWeightUnit)
 const weightUnitOptions = computed(() =>
   WEIGHT_UNITS.map((unit) => ({
@@ -36,8 +39,6 @@ const weightUnitOptions = computed(() =>
     ariaLabel: t(`settings.data.weightUnit.spoken.${unit}`),
   })),
 )
-
-const { hasLoadFailed, hasNothingToExport, canExport, retryLoad } = useExportAvailability()
 const followedPdfAnimals = computed(() => toPdfExportAnimals(animals.followedAnimals))
 const unfollowedPdfAnimals = computed(() => toPdfExportAnimals(animals.unfollowedAnimals))
 const exportPdfHint = computed(() => {

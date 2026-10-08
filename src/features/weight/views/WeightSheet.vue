@@ -40,21 +40,25 @@ const open = defineModel<boolean>({ default: false })
 const { t } = useI18n()
 const animals = useAnimalsStore()
 const weight = useWeightStore()
+const { today, refresh: refreshToday } = useToday()
+const photoUrl = usePhotoUrls(() => animals.followedAnimals.map((animal) => animal.photoPath))
 
 const values = ref(initialValues())
+
 const { errors, validate, reset } = useFormValidation(values, (current) =>
   validateWeightForm(current, props.entry?.weightKg ?? null),
 )
+
 const animalErrorId = useId()
 const weightErrorId = useId()
 const poundsHintId = useId()
 const dateErrorId = useId()
 const failed = ref<'save' | 'delete' | null>(null)
 const pending = ref<'save' | 'delete' | null>(null)
-const isSubmitting = computed(() => pending.value !== null)
-const { today, refresh: refreshToday } = useToday()
 const weightInput = ref<{ focus: () => void } | null>(null)
 const form = useTemplateRef<HTMLElement>('form')
+
+const isSubmitting = computed(() => pending.value !== null)
 
 const isPounds = computed(() => currentWeightUnit() === 'lb')
 const weightDescribedBy = computed(() => {
@@ -69,7 +73,6 @@ const subtitle = computed(() => {
   const name = knownAnimalId.value ? animals.byId(knownAnimalId.value)?.name : null
   return name ? t('weight.form.forAnimal', { name }) : null
 })
-const photoUrl = usePhotoUrls(() => animals.followedAnimals.map((animal) => animal.photoPath))
 const chips = computed<AnimalChipItem[]>(() =>
   animals.followedAnimals.map((animal) => ({
     id: animal.id,
@@ -80,12 +83,6 @@ const chips = computed<AnimalChipItem[]>(() =>
 const submitLabel = computed(() =>
   pending.value === 'save' ? t('weight.form.submitting') : t('weight.form.submit'),
 )
-
-function initialValues() {
-  return props.entry
-    ? weightFormValuesFrom(props.entry)
-    : emptyWeightFormValues(props.animalId ?? null)
-}
 
 // Chaque ouverture repart de la pesée enregistrée, ou d'un formulaire vierge : aucune saisie gardée.
 watch(
@@ -103,6 +100,12 @@ watch(
   },
   { immediate: true },
 )
+
+function initialValues() {
+  return props.entry
+    ? weightFormValuesFrom(props.entry)
+    : emptyWeightFormValues(props.animalId ?? null)
+}
 
 async function submit(): Promise<void> {
   if (isSubmitting.value) return

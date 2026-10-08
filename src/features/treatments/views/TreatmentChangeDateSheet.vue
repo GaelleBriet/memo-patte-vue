@@ -33,17 +33,17 @@ const { t } = useI18n()
 const chosen = ref<string | null>(props.date)
 const shifts = ref(true)
 
-watch(open, (isOpen) => {
-  if (!isOpen) return
-  chosen.value = props.date
-  shifts.value = props.box?.initial ?? true
-})
-
 const view = computed(() => props.box?.view(chosen.value, shifts.value) ?? null)
 const refused = computed(() => [...props.excluded, ...(props.box?.refusedDays(shifts.value) ?? [])])
 const canSave = computed(
   () => chosen.value !== null && chosen.value !== props.date && view.value?.blocked !== true,
 )
+
+watch(open, (isOpen) => {
+  if (!isOpen) return
+  chosen.value = props.date
+  shifts.value = props.box?.initial ?? true
+})
 
 function save(): void {
   if (chosen.value === null) return

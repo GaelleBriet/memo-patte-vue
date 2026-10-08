@@ -48,6 +48,7 @@ const animals = useAnimalsStore()
 const treatments = useTreatmentsStore()
 const { today, refresh: refreshToday } = useToday()
 const gestures = useTreatmentGestures(() => emit('changed'))
+
 const isBusy = gestures.isBusy
 
 const history = ref<TreatmentWithHistory | null>(null)

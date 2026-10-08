@@ -43,6 +43,8 @@ import { currentAnimalId } from '../logic/current-animal'
 import { todoItems } from '../logic/todo-items'
 import { buildTodo } from '../logic/todo-window'
 
+type FormRoute = 'treatment-new' | 'vaccination-new'
+
 const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
@@ -50,11 +52,6 @@ const animals = useAnimalsStore()
 const home = useHomeStore()
 
 const { today } = useForegroundRefresh(load)
-
-const hasError = computed(() => animals.error !== null || home.error !== null)
-const isReady = computed(() => animals.hasLoaded && home.hasLoaded && !hasError.value)
-const isLoading = computed(() => !isReady.value && !hasError.value)
-const isWelcome = computed(() => isReady.value && animals.animals.length === 0)
 const { entry: unfollowed, open: openUnfollowed } = useOpenUnfollowed(
   () => (animals.followedAnimals.length === 0 ? animals.unfollowedAnimals : []),
   (animalId) => {
@@ -64,6 +61,24 @@ const { entry: unfollowed, open: openUnfollowed } = useOpenUnfollowed(
 )
 
 const photoUrl = usePhotoUrls(() => animals.followedAnimals.map((item) => item.photoPath))
+
+const pendingForm = ref<FormRoute | null>(null)
+const isPickerOpen = ref(false)
+const isWeightSheetOpen = ref(false)
+const openedReminder = ref<TodoRequest | null>(null)
+const openedStep = ref<ReminderStep>('actions')
+const isTreatmentSheetOpen = ref(false)
+const isVaccinationSheetOpen = ref(false)
+const givenWhen = ref<{ id: string; due: NotifiedDue } | null>(null)
+const isGivenWhenOpen = ref(false)
+
+const importSheet = useTemplateRef('importSheet')
+const isImporting = ref(false)
+
+const hasError = computed(() => animals.error !== null || home.error !== null)
+const isReady = computed(() => animals.hasLoaded && home.hasLoaded && !hasError.value)
+const isLoading = computed(() => !isReady.value && !hasError.value)
+const isWelcome = computed(() => isReady.value && animals.animals.length === 0)
 const chips = computed<AnimalChipItem[]>(() =>
   animals.followedAnimals.map((item) => ({
     id: item.id,
@@ -108,26 +123,6 @@ const upToDate = computed(() =>
 )
 const nextReminder = computed(() => nextReminderText(t, summary.value.next, rowOptions.value))
 
-function load(): Promise<unknown> {
-  return Promise.all([animals.load(), home.load()])
-}
-
-function takeReminderRequest(): ReminderRequest | null {
-  const request = parseReminderRequest(route.query)
-  if (request) void router.replace({ query: withoutReminderRequest(route.query) })
-  return request
-}
-
-// Le Carnet laisse un animal sélectionné dans le store partagé : l'accueil ne le reprend pas.
-onMounted(() => {
-  animals.select(null)
-  const fromNotification = route.query[REMINDER_STEP_QUERY_PARAM] !== undefined
-  const request = takeReminderRequest()
-  void load().then(() => {
-    if (request) reopenReminder(request, { fromNotification })
-  })
-})
-
 // Seule une notification pose l'étape : le rappel que « Modifier » laisse dans l'adresse attend le retour.
 watch(
   () => route.query[REMINDER_STEP_QUERY_PARAM],
@@ -143,17 +138,15 @@ watch(
   },
 )
 
-type FormRoute = 'treatment-new' | 'vaccination-new'
+function load(): Promise<unknown> {
+  return Promise.all([animals.load(), home.load()])
+}
 
-const pendingForm = ref<FormRoute | null>(null)
-const isPickerOpen = ref(false)
-const isWeightSheetOpen = ref(false)
-const openedReminder = ref<TodoRequest | null>(null)
-const openedStep = ref<ReminderStep>('actions')
-const isTreatmentSheetOpen = ref(false)
-const isVaccinationSheetOpen = ref(false)
-const givenWhen = ref<{ id: string; due: NotifiedDue } | null>(null)
-const isGivenWhenOpen = ref(false)
+function takeReminderRequest(): ReminderRequest | null {
+  const request = parseReminderRequest(route.query)
+  if (request) void router.replace({ query: withoutReminderRequest(route.query) })
+  return request
+}
 
 function openReminder(request: TodoRequest, step: ReminderStep = 'actions'): void {
   openedReminder.value = request
@@ -211,9 +204,6 @@ function onAnimalPicked(animalId: string): void {
   pendingForm.value = null
 }
 
-const importSheet = useTemplateRef('importSheet')
-const isImporting = ref(false)
-
 async function onImported(): Promise<void> {
   await load()
   await promptNotificationsIfReminders(router, 'home')
@@ -233,6 +223,16 @@ function openCarnet(): void {
   animals.select(animalId)
   void router.push({ name: 'animals' })
 }
+
+// Le Carnet laisse un animal sélectionné dans le store partagé : l'accueil ne le reprend pas.
+onMounted(() => {
+  animals.select(null)
+  const fromNotification = route.query[REMINDER_STEP_QUERY_PARAM] !== undefined
+  const request = takeReminderRequest()
+  void load().then(() => {
+    if (request) reopenReminder(request, { fromNotification })
+  })
+})
 </script>
 
 <template>

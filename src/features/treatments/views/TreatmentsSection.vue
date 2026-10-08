@@ -18,6 +18,8 @@ import ListRowIcon from '@/shared/components/ListRowIcon.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import { useAnimalScopedLoad } from '@/shared/composables/use-animal-scoped-load'
 
+const schedules = carnetScheduleCache()
+
 const props = withDefaults(
   defineProps<{
     animalId: string
@@ -42,6 +44,8 @@ const { loadedFor } = useAnimalScopedLoad(
   (id) => store.loadForAnimal(id),
 )
 
+const showsFinished = ref(false)
+
 const isCurrent = computed(
   () =>
     loadedFor.value === props.animalId && store.animalId === props.animalId && store.error === null,
@@ -52,7 +56,6 @@ const hasError = computed(
 )
 
 // Au changement d'animal, ou après un échec, le store porte déjà le nouvel animal mais encore l'ancienne liste.
-const schedules = carnetScheduleCache()
 const carnet = computed(() =>
   carnetTreatments(t, isCurrent.value ? store.treatments : [], props.today, schedules, {
     followed: props.followed,
@@ -60,13 +63,18 @@ const carnet = computed(() =>
 )
 const rows = computed(() => carnet.value.ongoing)
 const finishedRows = computed(() => carnet.value.finished)
-const showsFinished = ref(false)
 
 watch(
   () => props.animalId,
   () => {
     showsFinished.value = false
   },
+)
+
+watch(
+  () => carnet.value.summary,
+  (value) => emit('summary', value),
+  { immediate: true },
 )
 
 function openDetail(id: string): void {
@@ -76,12 +84,6 @@ function openDetail(id: string): void {
 function addTreatment(): void {
   void router.push({ name: 'treatment-new', params: { animalId: props.animalId } })
 }
-
-watch(
-  () => carnet.value.summary,
-  (value) => emit('summary', value),
-  { immediate: true },
-)
 </script>
 
 <template>

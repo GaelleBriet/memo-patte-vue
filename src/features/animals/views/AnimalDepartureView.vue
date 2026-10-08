@@ -25,14 +25,17 @@ const router = useRouter()
 const animals = useAnimalsStore()
 const { today } = useToday()
 
-const animal = computed(() => animals.byId(props.id))
 const values = ref<DepartureFormValues>({ departureReason: null, departureDate: '' })
+
 const { errors, validate } = useFormValidation(values, (current) =>
   validateDepartureForm(current, today.value),
 )
+
 const isSubmitting = ref(false)
 const saveFailed = ref(false)
 const reasonLabelId = useId()
+
+const animal = computed(() => animals.byId(props.id))
 
 const title = computed(() =>
   animal.value && hasDepartureDetails(animal.value)
@@ -55,15 +58,6 @@ watch(
   { immediate: true },
 )
 
-onMounted(() => {
-  if (!animals.hasLoaded) void animals.load()
-})
-
-function backToCarnet(): void {
-  if (animal.value) animals.select(animal.value.id)
-  returnTo(router, { name: 'animals' })
-}
-
 watch(
   () => animal.value?.unfollowedOn,
   (unfollowedOn) => {
@@ -71,6 +65,11 @@ watch(
   },
   { immediate: true },
 )
+
+function backToCarnet(): void {
+  if (animal.value) animals.select(animal.value.id)
+  returnTo(router, { name: 'animals' })
+}
 
 async function submit(): Promise<void> {
   if (isSubmitting.value || !animal.value) return
@@ -88,6 +87,10 @@ async function submit(): Promise<void> {
     isSubmitting.value = false
   }
 }
+
+onMounted(() => {
+  if (!animals.hasLoaded) void animals.load()
+})
 </script>
 
 <template>

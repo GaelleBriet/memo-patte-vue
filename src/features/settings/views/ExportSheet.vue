@@ -21,6 +21,9 @@ const open = defineModel<boolean>({ default: false })
 const { t } = useI18n()
 const { pendingMode, isPreparing, hasFailed, saveAccess, run, reset } = useDataExport()
 
+const selected = ref<ExportFormat>('json')
+const groupLabelId = useId()
+
 const formats = computed(() => [
   {
     value: 'json' as const,
@@ -35,9 +38,6 @@ const formats = computed(() => [
     description: t('settings.export.csv.description'),
   },
 ])
-
-const selected = ref<ExportFormat>('json')
-const groupLabelId = useId()
 
 watch(
   open,

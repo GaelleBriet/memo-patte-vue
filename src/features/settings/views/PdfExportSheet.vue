@@ -46,18 +46,6 @@ const everyAnimal = computed(() => [...props.animals, ...props.unfollowedAnimals
 const offer = computed(() => pdfExportChoice(props.animals, props.unfollowedAnimals))
 const needsChoice = computed(() => offer.value !== null && offer.value.kind !== 'one')
 
-function animalChoice(animal: PdfExportAnimal, heading: string | null = null): PdfExportChoiceRow {
-  return {
-    key: animal.id,
-    heading,
-    icon: 'ms:pets',
-    label: animal.name,
-    hint: null,
-    ariaLabel: animal.name,
-    animals: [animal],
-  }
-}
-
 const choices = computed<PdfExportChoiceRow[]>(() => {
   const names = props.animals.map(({ name }) => name).join(', ')
   const all: PdfExportChoiceRow[] =
@@ -114,6 +102,18 @@ watch(
   },
   { immediate: true },
 )
+
+function animalChoice(animal: PdfExportAnimal, heading: string | null = null): PdfExportChoiceRow {
+  return {
+    key: animal.id,
+    heading,
+    icon: 'ms:pets',
+    label: animal.name,
+    hint: null,
+    ariaLabel: animal.name,
+    animals: [animal],
+  }
+}
 
 async function choose(choice: PdfExportChoiceRow): Promise<void> {
   chosen.value = choice.animals

@@ -39,37 +39,29 @@ const router = useRouter()
 const animals = useAnimalsStore()
 const { today } = useToday()
 
+const { entries, isLoading, isReady, hasError, reload } = useWeightEntries(() => props.animalId)
+
 const isSheetOpen = ref(false)
 const editedEntry = ref<WeightEntry | null>(null)
 // La carte vide et le bouton fixe se remplacent : celui qui reste reprend le focus.
 const addButton = useTemplateRef<ComponentPublicInstance>('addButton')
 const emptyAddButton = useTemplateRef<HTMLElement>('emptyAddButton')
+const rowList = useTemplateRef<HTMLElement>('rowList')
+const rowHintId = useId()
+
+const selected = ref<number | null>(null)
+
+const chart = useTemplateRef<InstanceType<typeof WeightHistoryChart>>('chart')
+
 const focusFallback = computed<HTMLElement | null>(
   () => addButton.value?.$el ?? emptyAddButton.value ?? null,
 )
-const rowList = useTemplateRef<HTMLElement>('rowList')
-const rowHintId = useId()
 
 const animal = computed(() => animals.byId(props.animalId))
 // Supprimé ou lien périmé : rien à consulter ni à ajouter.
 const isNotFound = computed(() => animals.hasLoaded && animal.value === null)
 
-const { entries, isLoading, isReady, hasError, reload } = useWeightEntries(() => props.animalId)
-
 const history = computed(() => weightHistory(entries.value))
-
-const selected = ref<number | null>(null)
-watch(entries, () => {
-  selected.value = null
-})
-
-const chart = useTemplateRef<InstanceType<typeof WeightHistoryChart>>('chart')
-
-// La puce disparaît sous le doigt : le focus passe à la courbe plutôt que de se perdre.
-function backToCurrent(): void {
-  selected.value = null
-  chart.value?.focus()
-}
 
 // La dernière pesée garde le résumé du repos : « Poids actuel » et sa variation.
 const selectedRow = computed(() => {
@@ -88,6 +80,16 @@ const summary = computed(() => {
     delta: describeHeadline(headline),
   }
 })
+
+watch(entries, () => {
+  selected.value = null
+})
+
+// La puce disparaît sous le doigt : le focus passe à la courbe plutôt que de se perdre.
+function backToCurrent(): void {
+  selected.value = null
+  chart.value?.focus()
+}
 
 function describeRow(row: WeightHistoryRow) {
   return {
@@ -130,13 +132,13 @@ async function focusRow(id: string): Promise<void> {
   rowList.value?.querySelector<HTMLElement>(`[data-entry-id="${id}"]`)?.focus()
 }
 
-onMounted(() => {
-  if (!animals.hasLoaded) void animals.load()
-})
-
 function backToAnimals(): void {
   void router.push({ name: 'animals' })
 }
+
+onMounted(() => {
+  if (!animals.hasLoaded) void animals.load()
+})
 </script>
 
 <template>

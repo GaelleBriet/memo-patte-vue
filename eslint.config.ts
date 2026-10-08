@@ -8,6 +8,7 @@ import pluginOxlint from 'eslint-plugin-oxlint'
 import pluginVueI18n from '@intlify/eslint-plugin-vue-i18n'
 import skipFormatting from 'eslint-config-prettier/flat'
 import dynamicImports from './tools/eslint/dynamic-imports.ts'
+import vueScriptOrder from './tools/eslint/vue-script-order.ts'
 
 // Chaque interdit d'import est posé deux fois : la règle d'ESLint pour les
 // déclarations, la nôtre pour `import()` qu'elle ne visite pas.
@@ -171,7 +172,7 @@ export default defineConfigWithVueTs(
   {
     name: 'app/files-to-lint',
     files: ['**/*.{vue,ts,mts,tsx}'],
-    plugins: { app: dynamicImports },
+    plugins: { app: { rules: { ...dynamicImports.rules, 'vue-script-order': vueScriptOrder } } },
   },
 
   globalIgnores([
@@ -332,6 +333,12 @@ export default defineConfigWithVueTs(
     ]),
   })),
 
+  {
+    name: 'app/vue-script-order',
+    files: ['**/*.vue'],
+    rules: { 'app/vue-script-order': 'error' },
+  },
+
   // Règles projet MémoPatte
   {
     name: 'app/memo-patte-rules',
@@ -339,7 +346,6 @@ export default defineConfigWithVueTs(
       // Vue
       'vue/multi-word-component-names': 'off',
       'vue/component-api-style': ['error', ['script-setup']],
-      'vue/define-macros-order': ['error', { order: ['defineProps', 'defineEmits'] }],
       'vue/block-order': ['error', { order: ['script', 'template', 'style'] }],
       'vue/no-unused-refs': 'error',
       'vue/no-useless-v-bind': 'error',

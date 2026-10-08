@@ -46,13 +46,6 @@ const titleId = useId()
 let opener: HTMLElement | null = null
 let releaseBackButton: (() => void) | null = null
 
-function releaseBack(): void {
-  releaseBackButton?.()
-  releaseBackButton = null
-}
-
-onScopeDispose(releaseBack)
-
 watch(
   open,
   async (isOpen) => {
@@ -78,9 +71,16 @@ watch(
   { immediate: true },
 )
 
+function releaseBack(): void {
+  releaseBackButton?.()
+  releaseBackButton = null
+}
+
 function close(): void {
   open.value = false
 }
+
+onScopeDispose(releaseBack)
 </script>
 
 <template>

@@ -15,15 +15,6 @@ import { weightText, weightUnitText } from '../domain/weight-display'
 import { weightPagePeriod, weightPages } from '../domain/weight-pages'
 import { formatFullDate, formatMonthYear } from '../utils/format'
 
-const props = defineProps<{
-  entries: readonly WeightChartEntry[]
-}>()
-
-/** Index de la pesée sélectionnée parmi toutes, dans l'ordre du temps ; `null` au repos. */
-const selected = defineModel<number | null>('selected', { default: null })
-
-const { t } = useI18n()
-
 const ACTIVE_RADIUS = 7
 const SLIDE_IN_PX = 32
 const SETTLE_MS = 220
@@ -35,13 +26,24 @@ const KEY_STEPS: Record<string, number> = {
 }
 const PAGE_KEYS: Record<string, SwipeDirection> = { PageDown: -1, PageUp: 1 }
 
+const props = defineProps<{
+  entries: readonly WeightChartEntry[]
+}>()
+
+/** Index de la pesée sélectionnée parmi toutes, dans l'ordre du temps ; `null` au repos. */
+const selected = defineModel<number | null>('selected', { default: null })
+
+const { t } = useI18n()
+
 const figure = useTemplateRef<HTMLElement>('figure')
 const svg = useTemplateRef<SVGSVGElement>('svg')
+
 const { width, textScale } = useChartMeasure(figure, DEFAULT_CHART_WIDTH)
 
-const pages = computed(() => weightPages(props.entries.length))
 // Compté depuis la plus récente, comme le découpage : corriger ou supprimer une pesée garde la page.
 const pagesBack = ref(0)
+
+const pages = computed(() => weightPages(props.entries.length))
 const pageIndex = computed(() => Math.max(0, pages.value.length - 1 - pagesBack.value))
 const page = computed(() => pages.value[pageIndex.value] ?? { start: 0, end: 0 })
 const hasPrevious = computed(() => pageIndex.value > 0)
@@ -87,6 +89,14 @@ const valueText = computed(() => {
     : undefined
 })
 
+const { dragX, listeners } = useChartGestures({
+  pick: selectAt,
+  hasPage,
+  turn: turnPage,
+  settle: (fromX) =>
+    animate([{ transform: `translateX(${fromX}px)` }, { transform: 'translateX(0)' }]),
+})
+
 function select(indexOnPage: number): void {
   selected.value = page.value.start + Math.max(0, Math.min(indexOnPage, lastOfPage.value))
 }
@@ -117,14 +127,6 @@ function turnPage(direction: SwipeDirection): void {
     { transform: 'translateX(0)', opacity: 1 },
   ])
 }
-
-const { dragX, listeners } = useChartGestures({
-  pick: selectAt,
-  hasPage,
-  turn: turnPage,
-  settle: (fromX) =>
-    animate([{ transform: `translateX(${fromX}px)` }, { transform: 'translateX(0)' }]),
-})
 
 function onKeydown(event: KeyboardEvent): void {
   const step = KEY_STEPS[event.key]

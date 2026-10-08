@@ -8,10 +8,11 @@ import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { legalNoticeUrl, siteUrl, vaccineSourceUrl } from '@/shared/domain/site-links'
 import { returnTo } from '@/shared/utils/return-to'
 
+const appVersion = import.meta.env.VITE_APP_VERSION
+
 const { t } = useI18n()
 const router = useRouter()
 
-const appVersion = import.meta.env.VITE_APP_VERSION
 const websiteUrl = computed(() => siteUrl(currentLocale()))
 
 function goBack(): void {

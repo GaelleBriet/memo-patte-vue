@@ -22,23 +22,9 @@ const props = defineProps<{ place: HomeMessagePlace }>()
 const { t } = useI18n()
 const router = useRouter()
 const store = useHomeMessagesStore()
-const titleId = useId()
-
-const view = computed(() => {
-  const message = store.message
-  return message && homeMessagePlace(message) === props.place ? homeMessageView(t, message) : null
-})
-const helpUrl = computed(() => remindersHelpUrl(currentLocale()))
-
-onMounted(() => void store.refresh())
 useAppResume(() => void store.refresh())
 
-async function exportCopy(): Promise<void> {
-  if (store.isSharing) return
-  const outcome = await store.shareCopy()
-  if (outcome === 'shared') showToast(t('settings.export.success'))
-  else if (outcome === 'failed') showToast(t('settings.export.error'), { tone: 'error' })
-}
+const titleId = useId()
 
 const ACTIONS: Record<HomeMessageAction, () => void> = {
   androidSettings: () => void openNotificationSettings(),
@@ -54,6 +40,21 @@ const ACTIONS: Record<HomeMessageAction, () => void> = {
   stopQuarterly: () => store.stopQuarterly(),
   closeQuarterly: () => store.closeQuarterly(),
 }
+
+const view = computed(() => {
+  const message = store.message
+  return message && homeMessagePlace(message) === props.place ? homeMessageView(t, message) : null
+})
+const helpUrl = computed(() => remindersHelpUrl(currentLocale()))
+
+async function exportCopy(): Promise<void> {
+  if (store.isSharing) return
+  const outcome = await store.shareCopy()
+  if (outcome === 'shared') showToast(t('settings.export.success'))
+  else if (outcome === 'failed') showToast(t('settings.export.error'), { tone: 'error' })
+}
+
+onMounted(() => void store.refresh())
 </script>
 
 <template>

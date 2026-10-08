@@ -20,6 +20,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+
 const fields = useTemplateRef<HTMLElement>('fields')
 
 async function submit(): Promise<void> {

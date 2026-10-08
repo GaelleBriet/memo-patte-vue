@@ -22,6 +22,7 @@ const emit = defineEmits<{
 const open = defineModel<boolean>({ default: false })
 
 const { t } = useI18n()
+
 const injectedOn = ref('')
 
 const texts = computed(() => pastInjectionTexts(t, { name: props.name, animal: props.animal }))

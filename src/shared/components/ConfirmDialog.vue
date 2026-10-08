@@ -33,10 +33,6 @@ const emit = defineEmits<{
 }>()
 /** Le slot `choices` ajoute des gestes : les actions s'empilent, la confirmation en texte, « Annuler » en dernier. */
 const slots = defineSlots<{ choices?: () => unknown }>()
-const isStacked = computed(() => props.stacked || slots.choices !== undefined)
-const stackedConfirmColor = computed(() =>
-  props.tone === 'danger' && slots.choices === undefined ? 'error' : 'primary',
-)
 
 const open = defineModel<boolean>({ default: false })
 
@@ -46,12 +42,10 @@ let releaseBackButton: (() => void) | null = null
 let opener: HTMLElement | null = null
 let confirmed = false
 
-function releaseBack(): void {
-  releaseBackButton?.()
-  releaseBackButton = null
-}
-
-onScopeDispose(releaseBack)
+const isStacked = computed(() => props.stacked || slots.choices !== undefined)
+const stackedConfirmColor = computed(() =>
+  props.tone === 'danger' && slots.choices === undefined ? 'error' : 'primary',
+)
 
 watch(
   open,
@@ -64,6 +58,11 @@ watch(
   },
   { immediate: true },
 )
+
+function releaseBack(): void {
+  releaseBackButton?.()
+  releaseBackButton = null
+}
 
 function close(): void {
   open.value = false
@@ -89,6 +88,8 @@ function confirm(): void {
   close()
   emit('confirm')
 }
+
+onScopeDispose(releaseBack)
 </script>
 
 <template>

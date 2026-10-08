@@ -25,6 +25,7 @@ const labels: CarnetChartLabels = {
 }
 
 const figure = useTemplateRef<HTMLElement>('figure')
+
 const { width, textScale } = useChartMeasure(figure, DEFAULT_CHART_WIDTH)
 
 const chart = computed(() =>

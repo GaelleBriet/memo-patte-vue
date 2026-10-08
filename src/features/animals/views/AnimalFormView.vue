@@ -33,18 +33,21 @@ const props = defineProps<{
 const { t } = useI18n()
 const router = useRouter()
 const animals = useAnimalsStore()
+const { today } = useToday()
 
 const values = ref(emptyAnimalFormValues())
 const existing = ref<Animal | null>(null)
+
 const { errors, validate } = useFormValidation(values, validateAnimalForm)
+
 const notFound = ref(false)
 const saveFailed = ref(false)
 const isSubmitting = ref(false)
-const { today } = useToday()
 const photo = ref<PhotoChange>({ kind: 'keep' })
 const pickedPreview = ref<string | null>(null)
 const photoFailed = ref(false)
 const isPicking = ref(false)
+
 const photoUrl = usePhotoUrls(() => [existing.value?.photoPath ?? null])
 
 const shownPhotoUrl = computed(() => {
@@ -55,10 +58,6 @@ const shownPhotoUrl = computed(() => {
 
 const canMarkApproximate = computed(() => canMarkBirthDateApproximate(values.value))
 const approximateHelp = computed(() => birthDateApproximateHelp(t, values.value, today.value))
-
-watch(canMarkApproximate, (allowed) => {
-  if (!allowed) values.value.birthDateApproximate = false
-})
 
 const isEdit = computed(() => props.id !== undefined)
 const title = computed(() =>
@@ -84,13 +83,8 @@ const speciesOptions = computed(() =>
   })),
 )
 
-onMounted(async () => {
-  if (props.id === undefined) return
-
-  if (!animals.hasLoaded) await animals.load()
-  existing.value = animals.byId(props.id)
-  notFound.value = existing.value === null
-  if (existing.value) values.value = animalFormValuesFrom(existing.value)
+watch(canMarkApproximate, (allowed) => {
+  if (!allowed) values.value.birthDateApproximate = false
 })
 
 function backToAnimals(): void {
@@ -143,6 +137,15 @@ async function submit(): Promise<void> {
     isSubmitting.value = false
   }
 }
+
+onMounted(async () => {
+  if (props.id === undefined) return
+
+  if (!animals.hasLoaded) await animals.load()
+  existing.value = animals.byId(props.id)
+  notFound.value = existing.value === null
+  if (existing.value) values.value = animalFormValuesFrom(existing.value)
+})
 </script>
 
 <template>

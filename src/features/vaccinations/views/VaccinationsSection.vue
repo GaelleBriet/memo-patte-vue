@@ -21,6 +21,12 @@ import SectionCard from '@/shared/components/SectionCard.vue'
 import { useAnimalScopedLoad } from '@/shared/composables/use-animal-scoped-load'
 import { buildReminders } from '@/shared/domain/reminders'
 
+const BADGE_ICONS: Partial<Record<CarnetVaccinationBadgeStatus, string>> = {
+  overdue: 'ms:error',
+  today: 'ms:today',
+  'up-to-date': 'ms:check',
+}
+
 const props = withDefaults(
   defineProps<{
     animalId: string
@@ -40,19 +46,13 @@ const { t } = useI18n()
 const router = useRouter()
 const store = useVaccinationsStore()
 
-const BADGE_ICONS: Partial<Record<CarnetVaccinationBadgeStatus, string>> = {
-  overdue: 'ms:error',
-  today: 'ms:today',
-  'up-to-date': 'ms:check',
-}
-
-// Au changement d'animal, ou après un échec, le store porte déjà le nouvel animal mais encore l'ancienne liste.
-const vaccinations = computed(() => (isCurrent.value ? store.vaccinations : []))
-
 const { loadedFor } = useAnimalScopedLoad(
   () => props.animalId,
   (id) => store.loadForAnimal(id),
 )
+
+// Au changement d'animal, ou après un échec, le store porte déjà le nouvel animal mais encore l'ancienne liste.
+const vaccinations = computed(() => (isCurrent.value ? store.vaccinations : []))
 
 const isCurrent = computed(
   () =>
@@ -86,6 +86,8 @@ const summary = computed<VaccinationsSummary>(() => {
   return { total, overdue }
 })
 
+watch(summary, (value) => emit('summary', value), { immediate: true })
+
 function openDetail(id: string): void {
   void router.push({ name: 'vaccination-detail', params: { id } })
 }
@@ -93,8 +95,6 @@ function openDetail(id: string): void {
 function addVaccination(): void {
   void router.push({ name: 'vaccination-new', params: { animalId: props.animalId } })
 }
-
-watch(summary, (value) => emit('summary', value), { immediate: true })
 </script>
 
 <template>

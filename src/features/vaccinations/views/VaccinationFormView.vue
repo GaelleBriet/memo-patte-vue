@@ -41,22 +41,15 @@ const props = defineProps<{
 const { t } = useI18n()
 const router = useRouter()
 const { query } = useRoute()
-const from = typeof query.from === 'string' ? query.from : undefined
-const reminder = typeof query.reminder === 'string' ? query.reminder : undefined
 const animals = useAnimalsStore()
 const vaccinations = useVaccinationsStore()
+const { today } = useToday()
+
+const from = typeof query.from === 'string' ? query.from : undefined
+const reminder = typeof query.reminder === 'string' ? query.reminder : undefined
 
 const values = ref(emptyVaccinationFormValues())
 const existing = ref<Vaccination | null>(null)
-const { today } = useToday()
-const context = computed((): VaccinationFormContext => ({
-  today: today.value,
-  currentPlannedDate:
-    existing.value?.lastInjectionDate === null ? (existing.value.dueDate ?? undefined) : undefined,
-}))
-const { errors, validate } = useFormValidation(values, (current) =>
-  validateVaccinationForm(current, context.value),
-)
 const notFound = ref(false)
 const isLoading = ref(props.id !== undefined)
 const loadFailed = ref(false)
@@ -64,6 +57,22 @@ const saveFailed = ref(false)
 const isSubmitting = ref(false)
 const reminderLabelId = useId()
 const isOtherDateOpen = ref(false)
+
+const sameName = ref<Vaccination | null>(null)
+const isSameNameDialogOpen = ref(false)
+const isDoneSheetOpen = ref(false)
+const doneSheetInjectedOn = ref<string | null>(null)
+const isCheckingName = ref(false)
+
+const context = computed((): VaccinationFormContext => ({
+  today: today.value,
+  currentPlannedDate:
+    existing.value?.lastInjectionDate === null ? (existing.value.dueDate ?? undefined) : undefined,
+}))
+
+const { errors, validate } = useFormValidation(values, (current) =>
+  validateVaccinationForm(current, context.value),
+)
 
 const isEdit = computed(() => props.id !== undefined)
 const targetAnimalId = computed(() => existing.value?.animalId ?? props.animalId ?? null)
@@ -109,20 +118,13 @@ const otherDate = computed(() =>
   values.value.reminder?.kind === 'otherDate' ? values.value.reminder.date : null,
 )
 
-onMounted(async () => {
-  if (props.id !== undefined) {
-    try {
-      existing.value = await vaccinations.getById(props.id)
-      notFound.value = existing.value === null
-      if (existing.value) values.value = vaccinationFormValuesFrom(existing.value)
-    } catch {
-      loadFailed.value = true
-    } finally {
-      isLoading.value = false
-    }
-  }
-  if (!animals.hasLoaded) await animals.load()
-})
+watch(
+  targetAnimal,
+  (animal) => {
+    if (!isEdit.value && animal !== null && !takesNewCare(animal)) backToOrigin()
+  },
+  { immediate: true },
+)
 
 function requireAnimalId(): string {
   if (props.animalId === undefined) throw new Error('Formulaire vaccin ouvert sans animal.')
@@ -137,20 +139,6 @@ function backToOrigin(): void {
   selectTargetAnimal()
   returnTo(router, primingReturnRoute(from, reminder))
 }
-
-watch(
-  targetAnimal,
-  (animal) => {
-    if (!isEdit.value && animal !== null && !takesNewCare(animal)) backToOrigin()
-  },
-  { immediate: true },
-)
-
-const sameName = ref<Vaccination | null>(null)
-const isSameNameDialogOpen = ref(false)
-const isDoneSheetOpen = ref(false)
-const doneSheetInjectedOn = ref<string | null>(null)
-const isCheckingName = ref(false)
 
 async function findSameName(): Promise<Vaccination | null> {
   if (props.animalId === undefined || values.value.name.trim() === '') return null
@@ -221,6 +209,21 @@ async function save(): Promise<void> {
     isSubmitting.value = false
   }
 }
+
+onMounted(async () => {
+  if (props.id !== undefined) {
+    try {
+      existing.value = await vaccinations.getById(props.id)
+      notFound.value = existing.value === null
+      if (existing.value) values.value = vaccinationFormValuesFrom(existing.value)
+    } catch {
+      loadFailed.value = true
+    } finally {
+      isLoading.value = false
+    }
+  }
+  if (!animals.hasLoaded) await animals.load()
+})
 </script>
 
 <template>

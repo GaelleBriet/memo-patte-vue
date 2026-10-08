@@ -91,6 +91,7 @@ Chaque `features/<nom>/` range son contenu par rôle technique, en sous-dossiers
 - Zod pour toutes les validations de formulaires
 - **Commentaires : le défaut, c'est pas de commentaire.** Le code et les tests disent ce que fait le programme ; un commentaire ne se justifie que pour un _pourquoi_ indéduisible, et tient alors en une phrase. La raison d'une décision va dans `docs/product/decisions-log.md` ou dans la PR, jamais dans le code. Détail et exemples : `.claude/rules/commentaires.md`
 - Conventional Commits (feat:, fix:, chore:, etc.)
+- Code propre (une responsabilité par fichier, un écran affiche et transmet, rangement jamais abandonné) et ordre des déclarations d'un `<script setup>`, vérifié par la règle ESLint `app/vue-script-order` : `.claude/rules/clean-code.md`
 
 ## Design & UI
 

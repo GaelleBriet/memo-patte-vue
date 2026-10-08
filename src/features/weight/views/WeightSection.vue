@@ -29,15 +29,17 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const isSheetOpen = ref(false)
-
 const { entries, hasError } = useWeightEntries(() => props.animalId)
+
+const isSheetOpen = ref(false)
 
 const summary = computed<WeightSectionSummary>(() => weightSummary(entries.value))
 
 const current = computed(() => (summary.value ? weightNumber(summary.value.latest.weightKg) : null))
 
 const delta = computed(() => (summary.value ? describeDelta(summary.value.delta) : null))
+
+watch(summary, (value) => emit('summary', value), { immediate: true })
 
 function describeDelta(value: WeightDelta): { text: string; trend: 'up' | 'down' | 'flat' } {
   if (value.kind === 'first') {
@@ -51,8 +53,6 @@ function describeDelta(value: WeightDelta): { text: string; trend: 'up' | 'down'
     trend: value.trend,
   }
 }
-
-watch(summary, (value) => emit('summary', value), { immediate: true })
 </script>
 
 <template>

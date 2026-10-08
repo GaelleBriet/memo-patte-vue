@@ -28,6 +28,13 @@ import { reminderIcon } from '@/shared/domain/reminders'
 import type { DoseGesture, Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 import { showToast } from '@/shared/utils/toast'
 
+// Traitement illisible : la confirmation simple, sans dose à renseigner.
+const NO_SCHEDULE: Pick<TreatmentSchedule, 'phase' | 'currentDoses' | 'unloggedDoses'> = {
+  phase: 'upcoming',
+  currentDoses: [],
+  unloggedDoses: [],
+}
+
 const props = withDefaults(
   defineProps<{
     treatmentId: string | null
@@ -48,9 +55,9 @@ const { t } = useI18n()
 const animals = useAnimalsStore()
 const treatments = useTreatmentsStore()
 const { today, refresh: refreshToday } = useToday()
+const gestures = useTreatmentGestures(() => emit('changed'))
 
 const history = ref<TreatmentWithHistory | null>(null)
-const gestures = useTreatmentGestures(() => emit('changed'))
 const isBusy = gestures.isBusy
 const errorMessage = ref<string | null>(null)
 const isStopDialogOpen = ref(false)
@@ -98,12 +105,6 @@ const texts = computed(() =>
       )
     : null,
 )
-// Traitement illisible : la confirmation simple, sans dose à renseigner.
-const NO_SCHEDULE: Pick<TreatmentSchedule, 'phase' | 'currentDoses' | 'unloggedDoses'> = {
-  phase: 'upcoming',
-  currentDoses: [],
-  unloggedDoses: [],
-}
 const stopping = computed(() =>
   stopPrompt(
     t,
@@ -119,6 +120,19 @@ const otherDateMin = computed(() => {
   if (!history.value || !schedule.value || !doseDue.value) return birth
   return sheetOtherDateMin(history.value, schedule.value, doseDue.value, birth)
 })
+
+const actions = useTreatmentSheetActions(
+  { treatmentId: computed(() => history.value?.id ?? null), schedule, doseDue, today, named },
+  {
+    note: (gesture) => void note(gesture),
+    confirm: (due) => {
+      confirming.value = due
+      isConfirmOpen.value = true
+    },
+    close: () => (open.value = false),
+    changed: () => emit('changed'),
+  },
+)
 
 watch(
   open,
@@ -158,19 +172,6 @@ async function note(gesture: DoseGesture): Promise<void> {
   )
   if (await gestures.applyDose(current, action, toast)) open.value = false
 }
-
-const actions = useTreatmentSheetActions(
-  { treatmentId: computed(() => history.value?.id ?? null), schedule, doseDue, today, named },
-  {
-    note: (gesture) => void note(gesture),
-    confirm: (due) => {
-      confirming.value = due
-      isConfirmOpen.value = true
-    },
-    close: () => (open.value = false),
-    changed: () => emit('changed'),
-  },
-)
 
 function doneToday(): void {
   refreshToday()

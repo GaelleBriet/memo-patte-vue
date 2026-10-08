@@ -30,6 +30,10 @@ import SectionCard from '@/shared/components/SectionCard.vue'
 import { originQuery } from '@/shared/domain/reminder-route'
 import { returnTo } from '@/shared/utils/return-to'
 
+type ReminderQuestion =
+  | { for: 'move'; injection: VaccinationInjection; injectedOn: string }
+  | { for: 'past'; injectedOn: string }
+
 const props = defineProps<{
   id: string
 }>()
@@ -42,6 +46,19 @@ const { today } = useToday()
 
 const { data, state, reload } = useVaccinationDetail(() => props.id)
 const gestures = useInjectionGestures(() => void reload())
+
+const isDoneSheetOpen = ref(false)
+const doneStartAt = ref<'done' | 'other-date'>('done')
+const moving = ref<VaccinationInjection | null>(null)
+const isDatePickerOpen = ref(false)
+
+const isDeleteDialogOpen = ref(false)
+const deleteFromOnlyInjection = ref(false)
+
+const isPastSheetOpen = ref(false)
+
+const reminderQuestion = ref<ReminderQuestion | null>(null)
+const isReminderSheetOpen = ref(false)
 
 const vaccination = computed(() => data.value?.vaccination ?? null)
 const injections = computed(() => data.value?.injections ?? [])
@@ -65,20 +82,12 @@ const rowItems = computed<OverflowMenuItem[]>(() => [
 const menuItems = computed<OverflowMenuItem[]>(() => [
   { id: 'remove', label: t('vaccinations.detail.menu.remove'), icon: 'ms:delete', danger: true },
 ])
-
-const isDoneSheetOpen = ref(false)
-const doneStartAt = ref<'done' | 'other-date'>('done')
-const moving = ref<VaccinationInjection | null>(null)
-const isDatePickerOpen = ref(false)
 const movingTexts = computed(() =>
   moving.value ? injectionGestureTexts(t, moving.value.injectedOn, today.value) : null,
 )
 const excludedDates = computed(() =>
   moving.value ? injectionDatesExcept(injections.value, moving.value.id) : [],
 )
-
-const isDeleteDialogOpen = ref(false)
-const deleteFromOnlyInjection = ref(false)
 const deleteTexts = computed(() =>
   vaccination.value
     ? vaccinationDeleteTexts(t, vaccination.value.name, {
@@ -86,10 +95,7 @@ const deleteTexts = computed(() =>
       })
     : null,
 )
-
-onMounted(() => {
-  if (!animals.hasLoaded) void animals.load()
-})
+const takenDates = computed(() => injections.value.map(({ injectedOn }) => injectedOn))
 
 function openDoneSheet(startAt: 'done' | 'other-date'): void {
   doneStartAt.value = startAt
@@ -112,9 +118,6 @@ async function onInjectionAction(injectionId: string, action: string): Promise<v
   }
 }
 
-const isPastSheetOpen = ref(false)
-const takenDates = computed(() => injections.value.map(({ injectedOn }) => injectedOn))
-
 async function addPast(injectedOn: string): Promise<void> {
   const current = vaccination.value
   if (!current) return
@@ -125,13 +128,6 @@ async function addPast(injectedOn: string): Promise<void> {
     isPastSheetOpen.value = false
   }
 }
-
-type ReminderQuestion =
-  | { for: 'move'; injection: VaccinationInjection; injectedOn: string }
-  | { for: 'past'; injectedOn: string }
-
-const reminderQuestion = ref<ReminderQuestion | null>(null)
-const isReminderSheetOpen = ref(false)
 
 function askReminder(question: ReminderQuestion): void {
   reminderQuestion.value = question
@@ -173,6 +169,10 @@ function edit(): void {
 async function remove(): Promise<void> {
   if (vaccination.value && (await gestures.removeVaccination(vaccination.value))) backToCarnet()
 }
+
+onMounted(() => {
+  if (!animals.hasLoaded) void animals.load()
+})
 </script>
 
 <template>

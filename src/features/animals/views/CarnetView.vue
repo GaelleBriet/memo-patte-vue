@@ -17,10 +17,6 @@ import { useForegroundRefresh } from '@/core/app-lifecycle/use-foreground-refres
 import { usePhotoUrls } from '@/core/photos/use-photo-urls'
 import PlusNudgeSection from '@/features/purchase/views/PlusNudgeSection.vue'
 import type { PdfExportAnimal } from '@/features/settings/views/PdfExportSheet.vue'
-
-const PdfExportSheet = defineAsyncComponent(
-  () => import('@/features/settings/views/PdfExportSheet.vue'),
-)
 import TreatmentsSection, {
   type TreatmentsSummary,
 } from '@/features/treatments/views/TreatmentsSection.vue'
@@ -34,15 +30,39 @@ import { animalAvatarGradientCss } from '@/shared/domain/animal-avatar-gradient'
 import { weightDeltaText } from '@/shared/domain/weight-delta'
 import { weightText } from '@/shared/domain/weight-display'
 
+const PdfExportSheet = defineAsyncComponent(
+  () => import('@/features/settings/views/PdfExportSheet.vue'),
+)
+
 const { t } = useI18n()
 const router = useRouter()
 const animals = useAnimalsStore()
 
 const { today } = useForegroundRefresh(() => void animals.load())
 
+const photoUrl = usePhotoUrls(() => animals.animals.map((item) => item.photoPath))
+const gestures = useAnimalFollowGestures()
+
+const { entry: unfollowed, open: openUnfollowed } = useOpenUnfollowed(
+  () => animals.unfollowedAnimals,
+  (animalId) => {
+    animals.select(animalId)
+    document.scrollingElement?.scrollTo?.({ top: 0 })
+  },
+)
+
 const vaccinationsSummary = ref<VaccinationsSummary>({ total: 0, overdue: 0 })
 const treatmentsSummary = ref<TreatmentsSummary>({ total: 0, overdue: 0, ongoing: 0 })
 const weightSummary = ref<WeightSectionSummary>(null)
+
+const isPhotoSheetOpen = ref(false)
+const isPhotoViewerOpen = ref(false)
+
+const isOptionsSheetOpen = ref(false)
+const isDeleteDialogOpen = ref(false)
+
+const isPdfExportSheetOpen = ref(false)
+const hasOpenedPdfExportSheet = ref(false)
 
 const animal = computed(() => animals.selectedAnimal)
 const isLoading = computed(() => !animals.hasLoaded && animals.error === null)
@@ -50,8 +70,6 @@ const hasError = computed(() => animals.error !== null)
 const isEmpty = computed(
   () => animals.hasLoaded && animals.followedAnimals.length === 0 && animals.error === null,
 )
-
-const photoUrl = usePhotoUrls(() => animals.animals.map((item) => item.photoPath))
 
 const chips = computed<AnimalChipItem[]>(() =>
   animals.followedAnimals.map((item) => ({
@@ -68,64 +86,15 @@ const photoLabel = computed(() => {
     : t('animals.carnet.photo.addLabel', { name })
 })
 
-const isPhotoSheetOpen = ref(false)
-const isPhotoViewerOpen = ref(false)
 const photoActions = useAnimalPhotoActions(animal)
 
-const isOptionsSheetOpen = ref(false)
-const isDeleteDialogOpen = ref(false)
-const gestures = useAnimalFollowGestures()
 const isFollowed = computed(() => animal.value?.unfollowedOn === null)
-
-async function applyOption(gesture: (target: { id: string; name: string }) => Promise<boolean>) {
-  const target = animal.value
-  if (!target) return
-  isOptionsSheetOpen.value = false
-  await gesture(target)
-}
-
-function askDelete(): void {
-  isOptionsSheetOpen.value = false
-  isDeleteDialogOpen.value = true
-}
-
-const isPdfExportSheetOpen = ref(false)
-const hasOpenedPdfExportSheet = ref(false)
 const pdfExportAnimals = computed<PdfExportAnimal[]>(() =>
   animal.value ? [{ id: animal.value.id, name: animal.value.name }] : [],
 )
 
-function onExportPdf(): void {
-  hasOpenedPdfExportSheet.value = true
-  isPdfExportSheetOpen.value = true
-}
-
-function openPhotoSheet(event: Event): void {
-  const avatar = event.currentTarget as HTMLElement
-  avatar.focus({ preventScroll: true })
-  photoActions.error.value = null
-  isPhotoSheetOpen.value = true
-}
-
-function viewPhoto(): void {
-  isPhotoSheetOpen.value = false
-  isPhotoViewerOpen.value = true
-}
-
-async function applyPhoto(action: () => Promise<boolean>): Promise<void> {
-  if (await action()) isPhotoSheetOpen.value = false
-}
-
 const subtitle = computed(() =>
   animal.value ? carnetSubtitle(t, animal.value, today.value) : null,
-)
-
-const { entry: unfollowed, open: openUnfollowed } = useOpenUnfollowed(
-  () => animals.unfollowedAnimals,
-  (animalId) => {
-    animals.select(animalId)
-    document.scrollingElement?.scrollTo?.({ top: 0 })
-  },
 )
 
 const departureLabel = computed(() =>
@@ -133,10 +102,6 @@ const departureLabel = computed(() =>
     ? t('animals.carnet.unfollowed.editDate')
     : t('animals.carnet.unfollowed.addDate'),
 )
-
-function openDeparture(): void {
-  if (animal.value) void router.push({ name: 'animal-departure', params: { id: animal.value.id } })
-}
 
 const weightStat = computed(() => {
   const summary = weightSummary.value
@@ -161,15 +126,48 @@ const remindersStat = computed(() => {
   return { value: String(total), sub: t('animals.carnet.stats.upcoming'), isOverdue: false }
 })
 
-onMounted(() => {
-  void animals.load()
-})
-
 // Il y a toujours un animal actif sur le Carnet : le premier animal suivi, faute de choix.
 watchEffect(() => {
   const first = animals.followedAnimals[0]
   if (animals.selectedAnimal === null && first) animals.select(first.id)
 })
+
+async function applyOption(gesture: (target: { id: string; name: string }) => Promise<boolean>) {
+  const target = animal.value
+  if (!target) return
+  isOptionsSheetOpen.value = false
+  await gesture(target)
+}
+
+function askDelete(): void {
+  isOptionsSheetOpen.value = false
+  isDeleteDialogOpen.value = true
+}
+
+function onExportPdf(): void {
+  hasOpenedPdfExportSheet.value = true
+  isPdfExportSheetOpen.value = true
+}
+
+function openPhotoSheet(event: Event): void {
+  const avatar = event.currentTarget as HTMLElement
+  avatar.focus({ preventScroll: true })
+  photoActions.error.value = null
+  isPhotoSheetOpen.value = true
+}
+
+function viewPhoto(): void {
+  isPhotoSheetOpen.value = false
+  isPhotoViewerOpen.value = true
+}
+
+async function applyPhoto(action: () => Promise<boolean>): Promise<void> {
+  if (await action()) isPhotoSheetOpen.value = false
+}
+
+function openDeparture(): void {
+  if (animal.value) void router.push({ name: 'animal-departure', params: { id: animal.value.id } })
+}
 
 function goHome(): void {
   void router.push({ name: 'home' })
@@ -182,6 +180,10 @@ function editAnimal(): void {
 function createAnimal(): void {
   void router.push({ name: 'animal-new' })
 }
+
+onMounted(() => {
+  void animals.load()
+})
 </script>
 
 <template>
