@@ -93,6 +93,51 @@ describe('DateCalendar', () => {
     wrapper.unmount()
   })
 
+  describe('bornes au jour près, quel que soit le fuseau', () => {
+    function actif(wrapper: ReturnType<typeof mount>, jour: string): boolean {
+      const bouton = wrapper.find(`.v-date-picker-month__day .v-btn[aria-label$=" ${jour}"]`)
+      return bouton.exists() && bouton.attributes('disabled') === undefined
+    }
+
+    it('garde le maximum choisissable le lendemain d’un passage à l’heure d’été à minuit (Santiago, 6 septembre 2026)', async () => {
+      const wrapper = await monter({ modelValue: '2026-09-07', max: '2026-09-07' })
+
+      expect(actif(wrapper, '6 septembre 2026')).toBe(true)
+      expect(actif(wrapper, '7 septembre 2026')).toBe(true)
+      expect(actif(wrapper, '8 septembre 2026')).toBe(false)
+      await wrapper
+        .get('.v-date-picker-month__day .v-btn[aria-label$=" 6 septembre 2026"]')
+        .trigger('click')
+      await wrapper
+        .get('.v-date-picker-month__day .v-btn[aria-label$=" 7 septembre 2026"]')
+        .trigger('click')
+      expect(wrapper.emitted('update:modelValue')).toEqual([['2026-09-06'], ['2026-09-07']])
+      wrapper.unmount()
+    })
+
+    it('garde le minimum choisissable le jour du passage à l’heure d’été et après (Santiago, 6 septembre 2026)', async () => {
+      const wrapper = await monter({
+        modelValue: '2026-09-20',
+        min: '2026-09-06',
+        max: '2026-09-23',
+      })
+
+      expect(actif(wrapper, '5 septembre 2026')).toBe(false)
+      expect(actif(wrapper, '6 septembre 2026')).toBe(true)
+      expect(actif(wrapper, '23 septembre 2026')).toBe(true)
+      expect(actif(wrapper, '24 septembre 2026')).toBe(false)
+      wrapper.unmount()
+    })
+
+    it('garde le minimum choisissable dans le mois du passage à l’heure d’été (Santiago, 10 septembre 2026)', async () => {
+      const wrapper = await monter({ modelValue: '2026-09-20', min: '2026-09-10' })
+
+      expect(actif(wrapper, '9 septembre 2026')).toBe(false)
+      expect(actif(wrapper, '10 septembre 2026')).toBe(true)
+      wrapper.unmount()
+    })
+  })
+
   describe('mois et année au toucher du titre', () => {
     function annees(wrapper: ReturnType<typeof mount>) {
       return wrapper.findAll('.v-date-picker-years .v-btn').map((bouton) => ({
