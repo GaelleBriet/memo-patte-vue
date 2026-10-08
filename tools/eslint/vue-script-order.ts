@@ -187,10 +187,13 @@ function isImmediate(options: Node | undefined, statements: Node[]): boolean {
     (property) =>
       property.type !== 'Property' ||
       property.computed ||
-      (property.key.type === 'Identifier' &&
-        property.key.name === 'immediate' &&
+      (keyName(property.key as Node) === 'immediate' &&
         !(property.value.type === 'Literal' && property.value.value === false)),
   )
+}
+
+function keyName(key: Node): unknown {
+  return key.type === 'Identifier' ? key.name : key.type === 'Literal' ? key.value : null
 }
 
 function calledBy(fn: Node): { call: NodeOf<'CallExpression'>; position: number } | null {
@@ -215,7 +218,10 @@ function runsLater(fn: Node, statements: Node[]): boolean {
   if (!found || found.call.callee.type !== 'Identifier') return false
   const name = found.call.callee.name
   const direct = found.call.arguments[found.position] === fn
-  if (name === 'computed') return true
+  if (name === 'computed') {
+    const reader = found.call.parent as Node | undefined
+    return !(reader?.type === 'MemberExpression' && reader.object === found.call)
+  }
   if (!direct) return false
   if (name === 'defineAsyncComponent' || CALLEE_GROUPS[name] === G.lifecycle) return true
   if (name !== 'watch' || found.position !== 1) return false

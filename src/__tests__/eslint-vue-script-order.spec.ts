@@ -188,6 +188,16 @@ describe('app/vue-script-order', () => {
         ),
       },
       {
+        name: 'une clé immediate entre guillemets est reconnue',
+        filename: 'Cle.vue',
+        code: vue(IMPORTS, STATE, ARROW, "watch(count, () => save(), { 'immediate': true })"),
+      },
+      {
+        name: 'un computed lu dans la même instruction est lancé au setup',
+        filename: 'Computed-lu.vue',
+        code: vue(IMPORTS, STATE, COMPUTED, 'const copy = ref(computed(() => double.value).value)'),
+      },
+      {
         name: 'des options de watch étalées sont jugées immédiates',
         filename: 'Spread.vue',
         code: vue(
