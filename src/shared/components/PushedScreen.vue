@@ -32,6 +32,10 @@ const actions = shallowRef<HTMLElement | null>(null)
 
 useFixedBottomBar(actions)
 
+function onScroll(event: Event): void {
+  isScrolled.value = (event.target as HTMLElement).scrollTop > 2
+}
+
 onMounted(() => {
   if (!topbar.value) return
   const element = topbar.value
@@ -44,10 +48,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
   observer?.disconnect()
 })
-
-function onScroll(event: Event): void {
-  isScrolled.value = (event.target as HTMLElement).scrollTop > 2
-}
 </script>
 
 <template>

@@ -19,6 +19,8 @@ import { onBackButton } from '@/core/app-lifecycle/back-button'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import type { Due } from '@/shared/domain/treatment-schedule'
 
+const MONTHS_PER_STEP = 6
+
 const props = withDefaults(
   defineProps<{
     subtitle: string
@@ -38,8 +40,6 @@ const emit = defineEmits<{
   confirm: [choice: DayChoice]
 }>()
 
-const MONTHS_PER_STEP = 6
-
 const open = defineModel<boolean>({ default: false })
 
 const { t } = useI18n()
@@ -48,6 +48,8 @@ const unchecked = reactive(new Set<string>())
 const activeTab = ref('')
 const shownMonths = ref(MONTHS_PER_STEP)
 const more = useTemplateRef<HTMLElement>('more')
+
+let releaseBackButton: (() => void) | null = null
 
 const layout = computed(() => chooseDaysLayout(t, props.dues))
 const tab = computed(
@@ -65,15 +67,6 @@ const activeTexts = computed(() => tabs.value.find(({ id }) => id === tab.value?
 const submit = computed(() =>
   submitTexts(t, props.dues.length, unchecked.size, props.when, props.stopping),
 )
-
-let releaseBackButton: (() => void) | null = null
-
-function releaseBack(): void {
-  releaseBackButton?.()
-  releaseBackButton = null
-}
-
-onScopeDispose(releaseBack)
 
 watch(
   open,
@@ -119,6 +112,11 @@ watch(more, (sentinel, _previous, onCleanup) => {
   onCleanup(() => observer.disconnect())
 })
 
+function releaseBack(): void {
+  releaseBackButton?.()
+  releaseBackButton = null
+}
+
 function selectTab(id: string): void {
   activeTab.value = id
   shownMonths.value = MONTHS_PER_STEP
@@ -135,6 +133,8 @@ function setAll(dues: readonly Due[], checked: boolean): void {
 function confirm(): void {
   emit('confirm', choiceOf(props.dues, unchecked))
 }
+
+onScopeDispose(releaseBack)
 </script>
 
 <template>

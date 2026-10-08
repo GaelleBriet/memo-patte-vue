@@ -42,6 +42,8 @@ const { loadedFor } = useAnimalScopedLoad(
   (id) => store.loadForAnimal(id),
 )
 
+const showsFinished = ref(false)
+
 const isCurrent = computed(
   () =>
     loadedFor.value === props.animalId && store.animalId === props.animalId && store.error === null,
@@ -60,13 +62,18 @@ const carnet = computed(() =>
 )
 const rows = computed(() => carnet.value.ongoing)
 const finishedRows = computed(() => carnet.value.finished)
-const showsFinished = ref(false)
 
 watch(
   () => props.animalId,
   () => {
     showsFinished.value = false
   },
+)
+
+watch(
+  () => carnet.value.summary,
+  (value) => emit('summary', value),
+  { immediate: true },
 )
 
 function openDetail(id: string): void {
@@ -76,12 +83,6 @@ function openDetail(id: string): void {
 function addTreatment(): void {
   void router.push({ name: 'treatment-new', params: { animalId: props.animalId } })
 }
-
-watch(
-  () => carnet.value.summary,
-  (value) => emit('summary', value),
-  { immediate: true },
-)
 </script>
 
 <template>

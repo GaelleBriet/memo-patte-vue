@@ -17,6 +17,7 @@ const props = defineProps<{
 const { t } = useI18n()
 const router = useRouter()
 const { query } = useRoute()
+
 const returnRoute = primingReturnRoute(query.from, query.reminder)
 const isRequesting = ref(false)
 

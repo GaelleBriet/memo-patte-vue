@@ -9,6 +9,7 @@ defineProps<{ help: ShiftHelp | null }>()
 const checked = defineModel<boolean>({ required: true })
 
 const { t } = useI18n()
+
 const helpId = useId()
 </script>
 

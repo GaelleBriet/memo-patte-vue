@@ -30,21 +30,6 @@ const button = useTemplateRef<{ $el: HTMLElement }>('button')
 const list = useTemplateRef<{ $el: HTMLElement }>('list')
 let releaseBackButton: (() => void) | null = null
 
-function releaseBack(): void {
-  releaseBackButton?.()
-  releaseBackButton = null
-}
-
-onScopeDispose(releaseBack)
-
-function focusButton(): void {
-  button.value?.$el.focus({ preventScroll: true })
-}
-
-function focusFirstItem(): void {
-  list.value?.$el.querySelector<HTMLElement>('[role="menuitem"]')?.focus({ preventScroll: true })
-}
-
 // Le focus ne revient au bouton que s'il était resté dans le menu : un choix a déjà pu le déplacer.
 watch(isOpen, async (open) => {
   releaseBack()
@@ -60,6 +45,19 @@ watch(isOpen, async (open) => {
   }
 })
 
+function releaseBack(): void {
+  releaseBackButton?.()
+  releaseBackButton = null
+}
+
+function focusButton(): void {
+  button.value?.$el.focus({ preventScroll: true })
+}
+
+function focusFirstItem(): void {
+  list.value?.$el.querySelector<HTMLElement>('[role="menuitem"]')?.focus({ preventScroll: true })
+}
+
 function choose(item: OverflowMenuItem): void {
   if (item.hint !== undefined) return
   const { id } = item
@@ -67,6 +65,8 @@ function choose(item: OverflowMenuItem): void {
   focusButton()
   emit('select', id)
 }
+
+onScopeDispose(releaseBack)
 </script>
 
 <template>

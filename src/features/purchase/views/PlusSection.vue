@@ -15,9 +15,9 @@ const { t } = useI18n()
 const router = useRouter()
 const purchase = usePurchaseStore()
 
-const isRestoring = ref(false)
-
 const statusHint = usePlusStatusText()
+
+const isRestoring = ref(false)
 
 const isPaused = computed(() => purchase.expiredPlan !== null)
 const canDiscover = computed(() => statusHint.value === null)

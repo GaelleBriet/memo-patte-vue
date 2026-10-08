@@ -16,6 +16,7 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+
 const errorId = useId()
 const helpId = useId()
 

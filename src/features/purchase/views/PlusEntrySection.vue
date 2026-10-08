@@ -7,6 +7,7 @@ import SettingsRubricRow from '@/shared/components/SettingsRubricRow.vue'
 
 const { t } = useI18n()
 const status = usePlusStatusText()
+
 const hint = computed(() => status.value ?? t('plus.settings.summary'))
 </script>
 

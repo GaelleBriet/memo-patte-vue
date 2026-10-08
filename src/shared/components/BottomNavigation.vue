@@ -3,8 +3,6 @@ import { useI18n } from 'vue-i18n'
 
 import { heightBottomNav, paddingBottomNav } from '@/core/theme/layout-tokens'
 
-const { t } = useI18n()
-
 const tabs = [
   { route: 'home', icon: 'ms:home', label: 'nav.home' },
   { route: 'animals', icon: 'ms:pets', label: 'nav.animals' },
@@ -13,6 +11,8 @@ const tabs = [
 // Onglets plus zone de gestes : Vuetify fait `Number(props.height)` pour décaler
 // `VMain`, un `calc()` donnerait `NaN`, d'où les tokens en nombre.
 const barHeight = heightBottomNav + paddingBottomNav
+
+const { t } = useI18n()
 </script>
 
 <template>

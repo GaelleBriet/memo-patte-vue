@@ -13,6 +13,7 @@ const { t } = useI18n()
 const router = useRouter()
 
 const shareAnalytics = ref(hasConsent())
+
 const policyUrl = computed(() => privacyPolicyUrl(currentLocale()))
 
 function onShareAnalyticsChange(enabled: boolean | null): void {

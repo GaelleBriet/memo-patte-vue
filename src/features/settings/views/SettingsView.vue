@@ -11,16 +11,17 @@ import PlusEntrySection from '@/features/purchase/views/PlusEntrySection.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import SettingsRubricRow from '@/shared/components/SettingsRubricRow.vue'
 
+const appVersion = import.meta.env.VITE_APP_VERSION
+
 const { t } = useI18n()
 const router = useRouter()
 const notifications = useRemindersPermission()
 const { status: exactReminders } = useExactReminders()
+
 const remindersHint = computed(() => {
   const summary = remindersSummary(notifications.value, exactReminders.value)
   return summary && t(`settings.reminders.summary.${summary}`)
 })
-
-const appVersion = import.meta.env.VITE_APP_VERSION
 
 function goHome(): void {
   void router.push({ name: 'home' })

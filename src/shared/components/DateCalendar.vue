@@ -5,6 +5,8 @@ import { useI18n } from 'vue-i18n'
 
 import { onBackButton } from '@/core/app-lifecycle/back-button'
 
+type ViewMode = 'month' | 'months' | 'year'
+
 const props = withDefaults(
   defineProps<{
     /** Dates civiles `yyyy-MM-dd`, bornes comprises ; absentes, rien n'est borné de ce côté. */
@@ -20,46 +22,10 @@ const model = defineModel<string | null>({ default: null })
 
 const { t, locale } = useI18n()
 
-// Dates locales à minuit : une chaîne serait lue en UTC par l'adaptateur, un jour trop tôt à l'ouest.
-function toDate(value: string | null): Date | undefined {
-  return value === null ? undefined : parseISO(value)
-}
-
-// Vuetify compare l'instant : un jour qui commence à 01:00 (heure d'été à minuit) dépasserait un maximum à minuit.
-function toMaxDate(value: string | null): Date | undefined {
-  return value === null ? undefined : endOfDay(parseISO(value))
-}
-
-type ViewMode = 'month' | 'months' | 'year'
-
 const viewMode = ref<ViewMode>('month')
 let closingYears = false
 
-// Vuetify revient aux jours après le choix d'une année : le choix du mois passe avant.
-function onViewMode(next: ViewMode): void {
-  const yearPicked = viewMode.value === 'year' && next === 'month' && !closingYears
-  viewMode.value = yearPicked ? 'months' : next
-  closingYears = false
-}
-
-function toggleYears(openYears: () => void): void {
-  closingYears = viewMode.value === 'year'
-  openYears()
-}
-
 let releaseBackButton: (() => void) | null = null
-
-function releaseBack(): void {
-  releaseBackButton?.()
-  releaseBackButton = null
-}
-
-onScopeDispose(releaseBack)
-
-watch(viewMode, (mode) => {
-  releaseBack()
-  if (mode !== 'month') releaseBackButton = onBackButton(() => (viewMode.value = 'month'))
-})
 
 const allowedDates = computed(() => {
   if (props.excluded.length === 0) return undefined
@@ -73,6 +39,40 @@ const selected = computed({
     model.value = date === null ? null : format(date, 'yyyy-MM-dd')
   },
 })
+
+watch(viewMode, (mode) => {
+  releaseBack()
+  if (mode !== 'month') releaseBackButton = onBackButton(() => (viewMode.value = 'month'))
+})
+
+// Dates locales à minuit : une chaîne serait lue en UTC par l'adaptateur, un jour trop tôt à l'ouest.
+function toDate(value: string | null): Date | undefined {
+  return value === null ? undefined : parseISO(value)
+}
+
+// Vuetify compare l'instant : un jour qui commence à 01:00 (heure d'été à minuit) dépasserait un maximum à minuit.
+function toMaxDate(value: string | null): Date | undefined {
+  return value === null ? undefined : endOfDay(parseISO(value))
+}
+
+// Vuetify revient aux jours après le choix d'une année : le choix du mois passe avant.
+function onViewMode(next: ViewMode): void {
+  const yearPicked = viewMode.value === 'year' && next === 'month' && !closingYears
+  viewMode.value = yearPicked ? 'months' : next
+  closingYears = false
+}
+
+function toggleYears(openYears: () => void): void {
+  closingYears = viewMode.value === 'year'
+  openYears()
+}
+
+function releaseBack(): void {
+  releaseBackButton?.()
+  releaseBackButton = null
+}
+
+onScopeDispose(releaseBack)
 </script>
 
 <template>

@@ -42,8 +42,6 @@ watch(
   (value) => (remindBeforeDue.value = value),
 )
 
-onMounted(() => void store.load())
-
 async function save(changes: Partial<CarnetSettings>): Promise<boolean> {
   try {
     await store.update(changes)
@@ -83,6 +81,8 @@ function enableReminders(): void {
 function goBack(): void {
   returnTo(router, { name: 'settings' })
 }
+
+onMounted(() => void store.load())
 </script>
 
 <template>

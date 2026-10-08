@@ -21,6 +21,9 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
+const openPeriods = ref<string[]>([])
+const openGroups = ref<string[]>([])
+
 const menu = computed<Record<DoseLineAction, Omit<OverflowMenuItem, 'id'>>>(() => ({
   'change-date': { label: t('history.changeDate'), icon: 'ms:edit_calendar' },
   'mark-missed': { label: t('treatments.history.menu.markMissed'), icon: 'ms:event_busy' },
@@ -44,9 +47,6 @@ function itemsOf({ actions, refused = {} }: DoseRow): OverflowMenuItem[] {
     return { ...menu.value[id], id, ...(hint === undefined ? {} : { hint }) }
   })
 }
-
-const openPeriods = ref<string[]>([])
-const openGroups = ref<string[]>([])
 
 function toggled(list: string[], id: string): string[] {
   return list.includes(id) ? list.filter((open) => open !== id) : [...list, id]

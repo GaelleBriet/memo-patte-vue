@@ -11,13 +11,13 @@ import {
 } from '../logic/plus-nudge'
 import { usePurchaseStore } from '../store/purchase.store'
 
-const props = defineProps<{ animalCount: number }>()
-
 const ICONS: Record<PlusNudgeTrigger, string> = {
   firstPhoto: 'ms:photo_camera',
   carnetValue: 'ms:star_shine',
   firstExport: 'ms:ios_share',
 }
+
+const props = defineProps<{ animalCount: number }>()
 
 const { t } = useI18n()
 const router = useRouter()
@@ -25,17 +25,6 @@ const purchase = usePurchaseStore()
 
 const trigger = ref<PlusNudgeTrigger | null>(null)
 const titleId = useId()
-
-// Le compteur des trente jours part de l'affichage : sans ça, un rappel ignoré en bloquerait
-// un autre indéfiniment.
-onMounted(() => {
-  if (!purchase.available || purchase.status.plan !== 'none') return
-  if (purchase.expiredPlan !== null) return
-  const next = nextPlusNudge({ animals: props.animalCount })
-  if (next === null) return
-  markPlusNudgeShown(next)
-  trigger.value = next
-})
 
 function discover(): void {
   trigger.value = null
@@ -50,6 +39,17 @@ function stop(): void {
   stopPlusNudges()
   trigger.value = null
 }
+
+// Le compteur des trente jours part de l'affichage : sans ça, un rappel ignoré en bloquerait
+// un autre indéfiniment.
+onMounted(() => {
+  if (!purchase.available || purchase.status.plan !== 'none') return
+  if (purchase.expiredPlan !== null) return
+  const next = nextPlusNudge({ animals: props.animalCount })
+  if (next === null) return
+  markPlusNudgeShown(next)
+  trigger.value = next
+})
 </script>
 
 <template>

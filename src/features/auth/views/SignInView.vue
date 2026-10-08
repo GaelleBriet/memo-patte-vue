@@ -17,13 +17,14 @@ const { t } = useI18n()
 const router = useRouter()
 const auth = useAuthStore()
 const route = useRoute()
-const returnRoute = computed(() => signInReturnRoute(route.query.from))
 
 const mode = ref<SignInMode>('sign-in')
 const values = ref(emptySignInFormValues())
+
 const { errors, validate, reset } = useFormValidation(values, (current) =>
   validateSignInForm(current, mode.value),
 )
+
 const isSubmitting = ref(false)
 const failureKey = ref<string | null>(null)
 const awaitingConfirmationFor = ref<string | null>(null)
@@ -31,9 +32,8 @@ const fields = useTemplateRef<HTMLElement>('fields')
 const errorBanner = useTemplateRef<HTMLElement>('errorBanner')
 
 let isMounted = true
-onUnmounted(() => {
-  isMounted = false
-})
+
+const returnRoute = computed(() => signInReturnRoute(route.query.from))
 
 const isSignUp = computed(() => mode.value === 'sign-up')
 const title = computed(() => (isSignUp.value ? t('auth.signUp.title') : t('auth.signIn.title')))
@@ -106,6 +106,10 @@ async function submit(): Promise<void> {
     await reportFailure(cause)
   }
 }
+
+onUnmounted(() => {
+  isMounted = false
+})
 </script>
 
 <template>

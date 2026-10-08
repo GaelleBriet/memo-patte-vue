@@ -34,10 +34,6 @@ const { t } = useI18n()
 
 const shifts = ref(true)
 
-watch(open, (isOpen) => {
-  if (isOpen) shifts.value = true
-})
-
 const recap = computed(() =>
   otherDateRecap(
     t,
@@ -56,6 +52,10 @@ const box = computed(() =>
   ),
 )
 const gesture = computed(() => otherDateNote(props.due, props.today, box.value, shifts.value))
+
+watch(open, (isOpen) => {
+  if (isOpen) shifts.value = true
+})
 
 function save(): void {
   if (gesture.value !== null) emit('note', gesture.value)

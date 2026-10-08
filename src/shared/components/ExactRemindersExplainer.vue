@@ -13,22 +13,16 @@ defineProps<{
 const open = defineModel<boolean>({ default: false })
 
 const { t } = useI18n()
+
 const isOpening = ref(false)
+
+let releaseBackButton: (() => void) | null = null
 
 const steps = computed(() => [
   t('notifications.exact.steps.open', { action: t('notifications.exact.open') }),
   t('notifications.exact.steps.allow'),
   t('notifications.exact.steps.back'),
 ])
-
-let releaseBackButton: (() => void) | null = null
-
-function releaseBack(): void {
-  releaseBackButton?.()
-  releaseBackButton = null
-}
-
-onScopeDispose(releaseBack)
 
 watch(
   open,
@@ -38,6 +32,11 @@ watch(
   },
   { immediate: true },
 )
+
+function releaseBack(): void {
+  releaseBackButton?.()
+  releaseBackButton = null
+}
 
 function close(): void {
   open.value = false
@@ -53,6 +52,8 @@ async function openSettings(): Promise<void> {
     close()
   }
 }
+
+onScopeDispose(releaseBack)
 </script>
 
 <template>

@@ -50,17 +50,6 @@ const givenOn = ref<string | null>(props.today)
 const hour = ref<string | null>(null)
 const shifts = ref(true)
 
-watch(open, (isOpen) => {
-  if (!isOpen) return
-  step.value = 'day'
-  givenOn.value = props.today
-})
-
-watch([givenOn, step], () => {
-  hour.value = null
-  shifts.value = true
-})
-
 const plan = computed(() => {
   if (givenOn.value === null) return null
   return props.notified === null
@@ -100,6 +89,17 @@ const box = computed(() =>
 )
 
 const gesture = computed(() => otherDateNote(due.value, givenOn.value, box.value, shifts.value))
+
+watch(open, (isOpen) => {
+  if (!isOpen) return
+  step.value = 'day'
+  givenOn.value = props.today
+})
+
+watch([givenOn, step], () => {
+  hour.value = null
+  shifts.value = true
+})
 
 function submit(): void {
   if (givenOn.value === null || plan.value === null) return

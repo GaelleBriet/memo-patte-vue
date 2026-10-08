@@ -66,6 +66,7 @@ const route = useRoute()
 const animals = useAnimalsStore()
 const vaccinations = useVaccinationsStore()
 const { today, refresh: refreshToday } = useToday()
+
 const choicesLabelId = useId()
 
 const vaccination = ref<Vaccination | null>(null)

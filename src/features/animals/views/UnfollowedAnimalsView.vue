@@ -25,10 +25,6 @@ const rows = computed(() =>
   })),
 )
 
-onMounted(() => {
-  if (!animals.hasLoaded) void animals.load()
-})
-
 function back(): void {
   returnTo(router, { name: 'animals' })
 }
@@ -37,6 +33,10 @@ function open(id: string): void {
   animals.select(id)
   returnTo(router, { name: 'animals' })
 }
+
+onMounted(() => {
+  if (!animals.hasLoaded) void animals.load()
+})
 </script>
 
 <template>
