@@ -18,7 +18,10 @@ describe('liens vers le site', () => {
     expect(siteUrl(locale)).toBe(url)
   })
 
-  it('ouvre les mentions légales', () => {
-    expect(legalNoticeUrl()).toBe('https://gaelle-briet.fr/mentions-legales/')
+  it.each([
+    ['fr', 'https://memopatte.app/mentions-legales/'],
+    ['en', 'https://memopatte.app/en/legal-notice/'],
+  ] as const)('ouvre les mentions légales en %s', (locale, url) => {
+    expect(legalNoticeUrl(locale)).toBe(url)
   })
 })

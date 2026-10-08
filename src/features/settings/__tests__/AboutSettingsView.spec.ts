@@ -47,11 +47,23 @@ describe('AboutSettingsView', () => {
   })
 
   it.each([
-    ['fr', 'Site de MémoPatte', 'Mentions légales', 'https://memopatte.app/'],
-    ['en', 'MémoPatte website', 'Legal notice', 'https://memopatte.app/en/'],
+    [
+      'fr',
+      'Site de MémoPatte',
+      'Mentions légales',
+      'https://memopatte.app/',
+      'https://memopatte.app/mentions-legales/',
+    ],
+    [
+      'en',
+      'MémoPatte website',
+      'Legal notice',
+      'https://memopatte.app/en/',
+      'https://memopatte.app/en/legal-notice/',
+    ],
   ] as const)(
     'ouvre le site et les mentions légales en %s',
-    async (locale, site, mentions, url) => {
+    async (locale, site, mentions, url, mentionsUrl) => {
       i18n.global.locale.value = locale
       const wrapper = await monter()
       const lienSite = wrapper.get('.settings-row--website')
@@ -60,7 +72,7 @@ describe('AboutSettingsView', () => {
       expect(lienSite.get('.settings-row__label').text()).toBe(site)
       expect(lienSite.attributes('href')).toBe(url)
       expect(lienMentions.text()).toBe(mentions)
-      expect(lienMentions.attributes('href')).toBe('https://gaelle-briet.fr/mentions-legales/')
+      expect(lienMentions.attributes('href')).toBe(mentionsUrl)
       expect([lienSite, lienMentions].map((lien) => lien.attributes('target'))).toEqual([
         '_blank',
         '_blank',

@@ -2210,3 +2210,10 @@ après elle. Règle dans `.claude/rules/clean-code.md`. La règle remplace
 `defineProps` avant `defineEmits`. — Raison : retrouver chaque chose au
 même endroit d'un écran à l'autre ; le cycle de vie vient après les fonctions parce qu'il appelle des
 fonctions déjà lues. — Alternative écartée : le cycle de vie avant les fonctions.
+
+2026-10-08 — **Mentions légales sur `memopatte.app`** (`/mentions-legales/`, `/en/legal-notice/`) :
+l'app (Paramètres › À propos) et le site y renvoient, chacun dans sa langue ; `gaelle-briet.fr` n'est
+plus cité. Le téléphone de l'éditrice est laissé vide jusqu'à la ligne professionnelle de Gaelle,
+alors que la loi (LCEN) le demande avec l'e-mail : à ajouter dès que la ligne existe, avant de
+déclarer la page dans la Play Console. — Raison : la page vit avec le site de l'app (décision du
+2026-10-07). — Alternative écartée : garder la page du site de l'entreprise.
