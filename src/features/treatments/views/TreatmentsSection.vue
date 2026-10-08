@@ -18,6 +18,8 @@ import ListRowIcon from '@/shared/components/ListRowIcon.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import { useAnimalScopedLoad } from '@/shared/composables/use-animal-scoped-load'
 
+const schedules = carnetScheduleCache()
+
 const props = withDefaults(
   defineProps<{
     animalId: string
@@ -54,7 +56,6 @@ const hasError = computed(
 )
 
 // Au changement d'animal, ou après un échec, le store porte déjà le nouvel animal mais encore l'ancienne liste.
-const schedules = carnetScheduleCache()
 const carnet = computed(() =>
   carnetTreatments(t, isCurrent.value ? store.treatments : [], props.today, schedules, {
     followed: props.followed,
