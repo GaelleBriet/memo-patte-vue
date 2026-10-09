@@ -1082,23 +1082,20 @@
   margin: 0 0 12px;
 }
 
-.maker-initial {
-  display: grid;
-  place-items: center;
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: var(--petrol);
-  color: var(--on-petrol);
-  font-family: var(--font-title);
-  font-size: 32px;
-  font-weight: 700;
+.maker-photo {
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  border-radius: 18px;
+  object-fit: cover;
 }
 
 @media (min-width: 800px) {
   .maker {
-    grid-template-columns: auto minmax(0, 1fr);
-    column-gap: 32px;
+    grid-template-columns: 300px minmax(0, 1fr);
+    align-items: center;
+    column-gap: 40px;
     padding: 40px;
   }
 }
