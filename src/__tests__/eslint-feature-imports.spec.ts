@@ -180,6 +180,24 @@ describe('imports entre features', { timeout: 30_000 }, () => {
     expect(result.feature).toBe(0)
   })
 
+  it("autorise au schéma du fichier d'export les schémas des autres features, rien d'autre", async () => {
+    const schemas = await restrictedImports('src/features/settings/schema/export-file.schema.ts', [
+      '@/features/treatments/schema/treatment.schema',
+      '@/features/weight/schema/weight.schema',
+    ])
+    const others = await restrictedImports('src/features/settings/schema/export-file.schema.ts', [
+      '@/features/treatments/repository/treatments.repository',
+      '@/features/weight/store/weight.store',
+    ])
+    const elsewhere = await restrictedImports('src/features/settings/schema/other.schema.ts', [
+      '@/features/treatments/schema/treatment.schema',
+    ])
+
+    expect(schemas.feature).toBe(0)
+    expect(others.feature).toBe(2)
+    expect(elsewhere.feature).toBe(1)
+  })
+
   it("interdit à un service le store d'une autre feature", async () => {
     const result = await restrictedImports('src/features/home/service/home-reminders.service.ts', [
       '@/features/treatments/store/treatments.store',
