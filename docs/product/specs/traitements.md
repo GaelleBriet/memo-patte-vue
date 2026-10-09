@@ -189,7 +189,7 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     le 6 ; rien de noté le 3, la journée reportée seule au 4 garde ses deux heures. Une période
     ouverte sur ce jour par un changement de posologie (G23) le garde tel quel ; quand les heures
     changent sans changer la fréquence, le jour d'arrivée reste la prochaine dose et ne demande que
-    la dernière heure du nouveau réglage, qui remplace la dose reportée, puis la grille reprend :
+    les dernières heures du nouveau réglage, une par dose reportée, puis la grille reprend :
     heures passées à 9 h et 21 h le 3 ou le 4, le 4 à 21 h seule, puis le 5 à 9 h et 21 h (réponse
     de Gaelle du 2026-10-09). Une heure restée en arrière parce qu'elle était notée revient si sa
     prise est supprimée : à son jour tant que la période la garde, sinon au jour d'arrivée. Un
