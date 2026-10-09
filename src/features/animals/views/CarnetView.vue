@@ -9,6 +9,7 @@ import AnimalPhotoViewer from './AnimalPhotoViewer.vue'
 import UnfollowedAnimalsLink from '@/shared/components/UnfollowedAnimalsLink.vue'
 import { hasDepartureDetails } from '../logic/animal-departure'
 import { carnetSubtitle } from '../logic/carnet-animal'
+import { carnetRemindersStat } from '../logic/carnet-stats'
 import { useOpenUnfollowed } from '@/shared/composables/use-open-unfollowed'
 import { useAnimalsStore } from '../store/animals.store'
 import { useAnimalFollowGestures } from '../composables/use-animal-follow-gestures'
@@ -115,16 +116,9 @@ const weightStat = computed(() => {
   return { value, sub: weightDeltaText(t, summary.delta) }
 })
 
-// Dès qu'il y a un retard, la colonne ne compte plus que les retards : un « 2 en retard »
-// pour un seul retard sur deux rappels mentirait.
-const remindersStat = computed(() => {
-  const total = vaccinationsSummary.value.total + treatmentsSummary.value.total
-  const overdue = vaccinationsSummary.value.overdue + treatmentsSummary.value.overdue
-  if (overdue > 0) {
-    return { value: String(overdue), sub: t('animals.carnet.stats.overdue'), isOverdue: true }
-  }
-  return { value: String(total), sub: t('animals.carnet.stats.upcoming'), isOverdue: false }
-})
+const remindersStat = computed(() =>
+  carnetRemindersStat(t, [vaccinationsSummary.value, treatmentsSummary.value]),
+)
 
 // Il y a toujours un animal actif sur le Carnet : le premier animal suivi, faute de choix.
 watchEffect(() => {
