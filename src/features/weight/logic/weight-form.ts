@@ -4,6 +4,8 @@ import { weightEntryInputSchema, type WeightEntry } from '../schema/weight.schem
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import { exceedsMaxWeight, recordedWeightIn, weightKgFromInput } from '@/shared/domain/weight-unit'
 import { currentWeightUnit } from '@/shared/domain/weight-unit-preference'
+import { fieldErrorsOf, type FieldErrorKeys } from '@/shared/form/field-errors'
+import { numberOrNull } from '@/shared/form/number-input'
 import { formatWeightInput } from '@/shared/utils/format'
 
 export interface WeightFormValues {
@@ -14,14 +16,18 @@ export interface WeightFormValues {
   measuredOn: string
 }
 
-const ERROR_KEYS = {
-  animalId: 'weight.form.errors.animalId',
-  weightKg: 'weight.form.errors.weightKg',
-  measuredOn: 'weight.form.errors.measuredOn',
-} as const
-
-const FUTURE_DATE_KEY = 'weight.form.errors.measuredOnFuture'
+const ANIMAL_KEY = 'weight.form.errors.animalId'
 const MAX_WEIGHT_KEY = 'weight.form.errors.weightKgMax'
+
+// Le seul `refine` du schéma est la borne « pas dans le futur » : c'est lui qui émet `custom`.
+const ERROR_KEYS = {
+  animalId: { key: ANIMAL_KEY },
+  weightKg: { key: 'weight.form.errors.weightKg', byCode: { too_big: MAX_WEIGHT_KEY } },
+  measuredOn: {
+    key: 'weight.form.errors.measuredOn',
+    byCode: { custom: 'weight.form.errors.measuredOnFuture' },
+  },
+} as const satisfies Record<string, FieldErrorKeys>
 
 export type WeightFormErrorField = keyof typeof ERROR_KEYS
 export type WeightFormErrors = Partial<Record<WeightFormErrorField, string>>
@@ -43,31 +49,13 @@ export function weightFormValuesFrom(entry: WeightEntry): WeightFormValues {
   }
 }
 
-function numberOrNull(value: string): number | null {
-  const trimmed = value.trim()
-
-  return trimmed === '' ? null : Number(trimmed.replace(',', '.'))
-}
-
-function isErrorField(field: string): field is WeightFormErrorField {
-  return Object.prototype.hasOwnProperty.call(ERROR_KEYS, field)
-}
-
-// Le seul `refine` du schéma est la borne « pas dans le futur » : c'est lui qui émet `custom`.
-function errorKeyFor(field: WeightFormErrorField, issue: z.core.$ZodIssue): string {
-  if (field === 'measuredOn' && issue.code === 'custom') return FUTURE_DATE_KEY
-  if (field === 'weightKg' && issue.code === 'too_big') return MAX_WEIGHT_KEY
-
-  return ERROR_KEYS[field]
-}
-
 /** `storedWeightKg` : poids de la pesée corrigée, gardé tel quel si la valeur proposée n'a pas bougé. */
 export function validateWeightForm(
   values: WeightFormValues,
   storedWeightKg: number | null = null,
 ): WeightFormResult {
   // Sans animal, la feuille verrouille le poids et la date : leurs erreurs ne pourraient pas être corrigées.
-  if (values.animalId === null) return { success: false, errors: { animalId: ERROR_KEYS.animalId } }
+  if (values.animalId === null) return { success: false, errors: { animalId: ANIMAL_KEY } }
 
   const typed = numberOrNull(values.weightKg)
   const unit = currentWeightUnit()
@@ -80,13 +68,7 @@ export function validateWeightForm(
 
   if (result.success && !tooHeavy) return { success: true, data: result.data }
 
-  const errors: WeightFormErrors = tooHeavy ? { weightKg: MAX_WEIGHT_KEY } : {}
+  const errors = fieldErrorsOf(result.error?.issues ?? [], ERROR_KEYS)
 
-  for (const issue of result.error?.issues ?? []) {
-    const field = String(issue.path[0])
-
-    if (isErrorField(field)) errors[field] ??= errorKeyFor(field, issue)
-  }
-
-  return { success: false, errors }
+  return { success: false, errors: tooHeavy ? { ...errors, weightKg: MAX_WEIGHT_KEY } : errors }
 }

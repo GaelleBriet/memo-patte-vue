@@ -28,6 +28,7 @@ import { isCalendarDay } from '@/shared/domain/calendar-day'
 import { isClockTime, MAX_TIMES_PER_DAY, sortedTimes } from '@/shared/domain/clock-time'
 import { formatDoseQuantity, TABLET_SHORTCUTS, type DoseUnit } from '@/shared/domain/dosage'
 import type { Due, MoveRefusal } from '@/shared/domain/treatment-schedule'
+import { fieldErrorsOf, type FieldErrorKeys } from '@/shared/form/field-errors'
 import { formatClockTimes, formatDayMonthOrYear, withoutFinalDot } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
@@ -51,17 +52,6 @@ export interface TreatmentFormValues {
   /** Sans heure de traitement ; `null` : 9 h, jamais choisie. */
   reminderTime: string | null
 }
-
-const ERROR_KEYS = {
-  name: 'treatments.form.errors.name',
-  type: 'treatments.form.errors.type',
-  frequency: 'treatments.form.errors.frequency',
-  firstDoseOn: 'treatments.form.errors.firstDoseOn',
-  nextDoseOn: 'treatments.form.errors.nextDoseOn',
-  times: 'treatments.form.errors.times',
-  dosage: 'treatments.form.errors.dosageQuantity',
-  endsOn: 'treatments.form.errors.endsOn',
-} as const
 
 export const DUPLICATE_TIME_ERROR_KEY = 'treatments.form.errors.timesDuplicate'
 
@@ -97,16 +87,32 @@ const ENDS_ON_REASON_KEYS: Record<EndsOnIssueReason, string> = {
   beforeFarAdvancedDose: 'treatments.form.errors.endsOnBeforeFarAdvancedDose',
 }
 
-/** Motif d'un refus, porté par le message de l'erreur Zod. */
-const REASON_KEYS: Partial<Record<TreatmentFormErrorField, Record<string, string>>> = {
-  firstDoseOn: {
-    tooEarly: 'treatments.form.errors.firstDoseOnTooEarly',
-    tooOld: 'treatments.form.errors.firstDoseOnTooOld',
+/** Le motif d'un refus est porté par le message de l'erreur Zod. */
+const ERROR_KEYS = {
+  name: {
+    key: 'treatments.form.errors.name',
+    byCode: { too_big: 'treatments.form.errors.nameMax' },
   },
-  nextDoseOn: NEXT_DOSE_ON_REASON_KEYS,
-  dosage: { incomplete: 'treatments.form.errors.dosageIncomplete' },
-  endsOn: ENDS_ON_REASON_KEYS,
-}
+  type: { key: 'treatments.form.errors.type' },
+  frequency: {
+    key: 'treatments.form.errors.frequency',
+    byCode: { too_big: 'treatments.form.errors.frequencyMax' },
+  },
+  firstDoseOn: {
+    key: 'treatments.form.errors.firstDoseOn',
+    byMessage: {
+      tooEarly: 'treatments.form.errors.firstDoseOnTooEarly',
+      tooOld: 'treatments.form.errors.firstDoseOnTooOld',
+    },
+  },
+  nextDoseOn: { key: 'treatments.form.errors.nextDoseOn', byMessage: NEXT_DOSE_ON_REASON_KEYS },
+  times: { key: 'treatments.form.errors.times' },
+  dosage: {
+    key: 'treatments.form.errors.dosageQuantity',
+    byMessage: { incomplete: 'treatments.form.errors.dosageIncomplete' },
+  },
+  endsOn: { key: 'treatments.form.errors.endsOn', byMessage: ENDS_ON_REASON_KEYS },
+} as const satisfies Record<string, FieldErrorKeys>
 
 const REFUSAL_KEYS: Record<MoveRefusal, string> = {
   'later-line': 'treatments.form.nextDoseOn.refusal.laterLine',
@@ -149,9 +155,6 @@ export function nextDoseShiftHelp(
 export function nextDoseRefusalKey(refusal: MoveRefusal): string {
   return REFUSAL_KEYS[refusal]
 }
-
-const FREQUENCY_MAX_KEY = 'treatments.form.errors.frequencyMax'
-const NAME_MAX_KEY = 'treatments.form.errors.nameMax'
 
 type FormResult<D> = { success: true; data: D } | { success: false; errors: TreatmentFormErrors }
 
@@ -341,25 +344,8 @@ export function rhythmOfValues(values: TreatmentFormValues): TreatmentRhythm | n
   return result.success ? result.data : null
 }
 
-function errorKeyFor(field: TreatmentFormErrorField, issue: z.core.$ZodIssue): string {
-  const reason = REASON_KEYS[field]?.[issue.message]
-  if (reason !== undefined) return reason
-  if (field === 'frequency' && issue.code === 'too_big') return FREQUENCY_MAX_KEY
-  if (field === 'name' && issue.code === 'too_big') return NAME_MAX_KEY
-
-  return ERROR_KEYS[field]
-}
-
 function errorsOf(issues: z.core.$ZodIssue[]): TreatmentFormErrors {
-  const errors: TreatmentFormErrors = {}
-
-  for (const issue of issues) {
-    const field = FIELD_OF_PATH[String(issue.path[0])]
-
-    if (field !== undefined) errors[field] ??= errorKeyFor(field, issue)
-  }
-
-  return errors
+  return fieldErrorsOf(issues, ERROR_KEYS, { fieldOfPath: FIELD_OF_PATH })
 }
 
 function resultOf<D>(result: z.ZodSafeParseResult<D>): FormResult<D> {

@@ -4,6 +4,8 @@ import { animalCreationInputSchema, type Animal, type AnimalSpecies } from '../s
 import { animalAgeText } from '@/shared/domain/animal-age'
 import { exceedsMaxWeight, weightKgFromInput } from '@/shared/domain/weight-unit'
 import { currentWeightUnit } from '@/shared/domain/weight-unit-preference'
+import { fieldErrorsOf, type FieldErrorKeys } from '@/shared/form/field-errors'
+import { numberOrNull } from '@/shared/form/number-input'
 import type { Translate } from '@/core/i18n/translate'
 
 export interface AnimalFormValues {
@@ -16,16 +18,15 @@ export interface AnimalFormValues {
   weightKg: string
 }
 
-const ERROR_KEYS = {
-  name: 'animals.form.errors.name',
-  species: 'animals.form.errors.species',
-  breed: 'animals.form.errors.breedMax',
-  birthDate: 'animals.form.errors.birthDate',
-  weightKg: 'animals.form.errors.initialWeightKg',
-} as const
-
 const MAX_WEIGHT_KEY = 'animals.form.errors.initialWeightKgMax'
-const MAX_NAME_KEY = 'animals.form.errors.nameMax'
+
+const ERROR_KEYS = {
+  name: { key: 'animals.form.errors.name', byCode: { too_big: 'animals.form.errors.nameMax' } },
+  species: { key: 'animals.form.errors.species' },
+  breed: { key: 'animals.form.errors.breedMax' },
+  birthDate: { key: 'animals.form.errors.birthDate' },
+  weightKg: { key: 'animals.form.errors.initialWeightKg', byCode: { too_big: MAX_WEIGHT_KEY } },
+} as const satisfies Record<string, FieldErrorKeys>
 
 export type AnimalFormErrorField = keyof typeof ERROR_KEYS
 export type AnimalFormErrors = Partial<Record<AnimalFormErrorField, string>>
@@ -80,23 +81,6 @@ function textOrNull(value: string): string | null {
   return trimmed === '' ? null : trimmed
 }
 
-function numberOrNull(value: string): number | null {
-  const trimmed = value.trim()
-
-  return trimmed === '' ? null : Number(trimmed.replace(',', '.'))
-}
-
-function isErrorField(field: string): field is AnimalFormErrorField {
-  return Object.prototype.hasOwnProperty.call(ERROR_KEYS, field)
-}
-
-function errorKeyFor(field: AnimalFormErrorField, issue: z.core.$ZodIssue): string {
-  if (field === 'weightKg' && issue.code === 'too_big') return MAX_WEIGHT_KEY
-  if (field === 'name' && issue.code === 'too_big') return MAX_NAME_KEY
-
-  return ERROR_KEYS[field]
-}
-
 export function validateAnimalForm(values: AnimalFormValues): AnimalFormResult {
   const typed = numberOrNull(values.weightKg)
   const unit = currentWeightUnit()
@@ -112,13 +96,7 @@ export function validateAnimalForm(values: AnimalFormValues): AnimalFormResult {
 
   if (result.success && !tooHeavy) return { success: true, data: result.data }
 
-  const errors: AnimalFormErrors = tooHeavy ? { weightKg: MAX_WEIGHT_KEY } : {}
+  const errors = fieldErrorsOf(result.error?.issues ?? [], ERROR_KEYS)
 
-  for (const issue of result.error?.issues ?? []) {
-    const field = String(issue.path[0])
-
-    if (isErrorField(field)) errors[field] = errorKeyFor(field, issue)
-  }
-
-  return { success: false, errors }
+  return { success: false, errors: tooHeavy ? { weightKg: MAX_WEIGHT_KEY, ...errors } : errors }
 }
