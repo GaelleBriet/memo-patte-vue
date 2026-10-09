@@ -27,6 +27,7 @@ import {
 import type { TreatmentRecord, TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { Stamped } from '@/shared/domain/carnet-data'
 import type { DoseFields } from '@/shared/domain/treatment-schedule'
+import { groupBy } from '@/shared/utils/group-by'
 
 interface TreatmentRow {
   id: string
@@ -111,16 +112,6 @@ function toStampedRecord(row: TreatmentRow): StampedTreatmentRecord {
     createdByDevice: row.created_by_device,
     updatedByDevice: row.updated_by_device,
   }
-}
-
-function groupBy<T>(rows: T[], keyOf: (row: T) => string): Map<string, T[]> {
-  const groups = new Map<string, T[]>()
-  for (const row of rows) {
-    const group = groups.get(keyOf(row))
-    if (group) group.push(row)
-    else groups.set(keyOf(row), [row])
-  }
-  return groups
 }
 
 /** Sans période visible, un traitement ne se lit pas ; les prises d'une période supprimée non plus. */

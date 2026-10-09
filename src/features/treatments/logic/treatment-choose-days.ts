@@ -8,6 +8,7 @@ import {
   weekdayInitials,
   weekStartsOn,
 } from '@/shared/utils/format'
+import { groupBy } from '@/shared/utils/group-by'
 import type { Translate } from '@/core/i18n/translate'
 
 /** Les cases décochées, par `dayKey` : tout le reste est coché. */
@@ -112,16 +113,6 @@ export function choiceSummary(t: Translate, given: number, missed: number): stri
 /** « Métacam · Luna · du 3 au 27 sept. » : sans ce qui n'est pas encore saisi. */
 export function chooseDaysSubtitle(...parts: (string | null)[]): string {
   return parts.filter((part) => part !== null && part.trim() !== '').join(' · ')
-}
-
-function groupBy<T>(items: readonly T[], keyOf: (item: T) => string): Map<string, T[]> {
-  const groups = new Map<string, T[]>()
-  for (const item of items) {
-    const group = groups.get(keyOf(item))
-    if (group) group.push(item)
-    else groups.set(keyOf(item), [item])
-  }
-  return groups
 }
 
 function monthOf(t: Translate, id: string, dues: Due[], time: string | null): ChooseDaysMonth {
