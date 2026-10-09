@@ -96,7 +96,7 @@ export function validateAnimalForm(values: AnimalFormValues): AnimalFormResult {
 
   if (result.success && !tooHeavy) return { success: true, data: result.data }
 
-  const errors = fieldErrorsOf(result.error?.issues ?? [], ERROR_KEYS, { keep: 'last' })
+  const errors = fieldErrorsOf(result.error?.issues ?? [], ERROR_KEYS)
 
   return { success: false, errors: tooHeavy ? { weightKg: MAX_WEIGHT_KEY, ...errors } : errors }
 }

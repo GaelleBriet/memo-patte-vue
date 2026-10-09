@@ -12,14 +12,15 @@ export interface FieldErrorKeys {
 export interface FieldErrorsOptions<F extends string> {
   /** Sans table, le chemin de l'erreur est le nom du champ. */
   fieldOfPath?: Readonly<Record<string, F>>
-  keep?: 'first' | 'last'
 }
 
 function keyOf({ key, byCode, byMessage }: FieldErrorKeys, issue: z.core.$ZodIssue): string {
-  const byReason = byMessage !== undefined && Object.hasOwn(byMessage, issue.message)
-  if (byReason) return byMessage[issue.message] as string
+  const reason =
+    byMessage !== undefined && Object.hasOwn(byMessage, issue.message)
+      ? byMessage[issue.message]
+      : undefined
 
-  return byCode?.[issue.code] ?? key
+  return reason ?? byCode?.[issue.code] ?? key
 }
 
 function fieldOf<F extends string>(
@@ -35,16 +36,15 @@ function fieldOf<F extends string>(
 export function fieldErrorsOf<F extends string>(
   issues: readonly z.core.$ZodIssue[],
   rules: Readonly<Record<F, FieldErrorKeys>>,
-  { fieldOfPath, keep = 'first' }: FieldErrorsOptions<F> = {},
+  { fieldOfPath }: FieldErrorsOptions<F> = {},
 ): Partial<Record<F, string>> {
   const errors: Partial<Record<F, string>> = {}
 
   for (const issue of issues) {
     const field = fieldOf(String(issue.path[0]), rules, fieldOfPath)
     if (field === undefined) continue
-    if (keep === 'first' && errors[field] !== undefined) continue
 
-    errors[field] = keyOf(rules[field], issue)
+    errors[field] ??= keyOf(rules[field], issue)
   }
 
   return errors

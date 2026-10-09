@@ -68,7 +68,7 @@ describe('fieldErrorsOf', () => {
     ).toEqual({ endsOn: 'endsOn' })
   })
 
-  it('garde la première erreur d’un champ par défaut', () => {
+  it('garde la première erreur d’un champ', () => {
     const issues: z.core.$ZodIssue[] = [
       { code: 'custom', path: ['name'], message: 'x', input: undefined },
       { code: 'too_big', path: ['name'], message: 'x', origin: 'string', maximum: 1, input: 'ab' },
@@ -78,14 +78,14 @@ describe('fieldErrorsOf', () => {
     expect(fieldErrorsOf(issues, rules)).toEqual({ name: 'name' })
   })
 
-  it('garde la dernière erreur d’un champ si on le demande', () => {
+  it('ignore un message qui porte le nom d’une propriété héritée', () => {
     const issues: z.core.$ZodIssue[] = [
-      { code: 'custom', path: ['name'], message: 'x', input: undefined },
-      { code: 'too_big', path: ['name'], message: 'x', origin: 'string', maximum: 1, input: 'ab' },
+      { code: 'custom', path: ['endsOn'], message: 'toString', input: undefined },
     ]
-    const rules = { name: { key: 'name', byCode: { too_big: 'nameMax' } } }
 
-    expect(fieldErrorsOf(issues, rules, { keep: 'last' })).toEqual({ name: 'nameMax' })
+    expect(
+      fieldErrorsOf(issues, { endsOn: { key: 'endsOn', byMessage: { tooEarly: 'early' } } }),
+    ).toEqual({ endsOn: 'endsOn' })
   })
 
   it('rattache plusieurs chemins au même champ', () => {
