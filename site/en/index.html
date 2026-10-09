@@ -349,24 +349,49 @@
               <h3>All your pets at a glance</h3>
               <p>
                 Milo, Luna and the rest on one screen: what’s due, for whom, and when. Tap a name to
-                see only that pet’s care.
+                see only that pet’s care, and tap it again to see everyone.
               </p>
+              <p class="pet-hint" hidden>Try it: tap Milo or Luna on the screen.</p>
             </div>
-            <div class="phone">
+            <div class="phone pet-demo">
               <img
                 class="screen"
-                src="/img/en-accueil-luna.webp"
-                srcset="/img/en-accueil-luna-400.webp 400w, /img/en-accueil-luna.webp 720w"
+                src="/img/en-accueil.webp"
+                srcset="/img/en-accueil-400.webp 400w, /img/en-accueil.webp 720w"
                 sizes="(min-width: 1024px) 320px, 300px"
                 width="720"
                 height="1600"
                 loading="lazy"
-                alt="MémoPatte home screen with Luna’s name tapped: the “To do” list now shows only her monthly spot-on, in 3 days, then the quick actions."
+                alt="MémoPatte home screen: Milo and Luna at the top, then the “To do” list with both pets’ reminders."
               /><span
                 class="ring"
-                style="--ring-x: 0.283; --ring-y: 0.19; --ring-w: 0.275; --ring-h: 0.07"
+                style="--ring-x: 0.04; --ring-y: 0.193; --ring-w: 0.53; --ring-h: 0.062"
                 aria-hidden="true"
               ></span>
+              <button
+                class="pet-spot"
+                type="button"
+                style="--spot-x: 0.05; --spot-y: 0.196; --spot-w: 0.235; --spot-h: 0.056"
+                aria-pressed="false"
+                data-src="/img/en-accueil-milo.webp"
+                data-small="/img/en-accueil-milo-400.webp"
+                data-alt="MémoPatte home screen with Milo’s name tapped: the “To do” list now shows only his five reminders, his overdue DHPPi vaccine first."
+                hidden
+              >
+                Milo
+              </button>
+              <button
+                class="pet-spot"
+                type="button"
+                style="--spot-x: 0.305; --spot-y: 0.196; --spot-w: 0.255; --spot-h: 0.056"
+                aria-pressed="false"
+                data-src="/img/en-accueil-luna.webp"
+                data-small="/img/en-accueil-luna-400.webp"
+                data-alt="MémoPatte home screen with Luna’s name tapped: the “To do” list now shows only her monthly spot-on, in 3 days, then the quick actions."
+                hidden
+              >
+                Luna
+              </button>
             </div>
           </div>
           <div class="tour-step" style="--row: 4">
@@ -376,9 +401,9 @@
               ></span>
               <h3>Every dose, to the day</h3>
               <p>
-                For a treatment given several times a day, each dose has its own “Done” button.
-                Doses not logged? Mark the ones that were given in one go; the history keeps every
-                dose.
+                For a treatment given several times a day, each dose has its own “Done” button. Some
+                doses weren’t logged? Mark the ones that were given in one go; the history keeps
+                every dose.
               </p>
             </div>
             <div class="phone">

@@ -642,16 +642,49 @@
     width: 320px;
     margin-top: 12vh;
     opacity: 0;
+    pointer-events: none;
   }
 
   .js .tour-step.is-active .phone {
     opacity: 1;
+    pointer-events: auto;
   }
 
   .js .tour-step.is-active .feature-icon {
     background: var(--annotation);
     color: var(--petrol);
   }
+}
+
+.pet-spot {
+  position: absolute;
+  top: calc(9px + (100% - 18px) * var(--spot-y));
+  left: calc(9px + (100% - 18px) * var(--spot-x));
+  width: calc((100% - 18px) * var(--spot-w));
+  height: calc((100% - 18px) * var(--spot-h));
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: transparent;
+  font-size: 1px;
+  cursor: pointer;
+}
+
+.pet-spot:focus-visible {
+  outline-offset: 0;
+}
+
+.pet-demo.is-touched .ring {
+  display: none;
+}
+
+.pet-hint {
+  margin-top: 12px !important;
+  color: var(--petrol) !important;
+  font-size: 15px;
+  font-weight: 600;
 }
 
 /* Un rappel pour chaque soin */

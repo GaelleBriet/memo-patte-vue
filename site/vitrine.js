@@ -45,5 +45,49 @@ function followTour(tour) {
   for (const step of steps) observer.observe(step.querySelector('.tour-text'))
 }
 
+function filterByPet(phone) {
+  const screen = phone.querySelector('.screen')
+  const buttons = [...phone.querySelectorAll('.pet-spot')]
+  if (!screen || !buttons.length) return
+  const everyone = { src: screen.src, srcset: screen.srcset, alt: screen.alt }
+  const hint = phone.closest('.tour-step')?.querySelector('.pet-hint')
+  if (hint) hint.hidden = false
+
+  const show = ({ src, srcset, alt }) => {
+    screen.srcset = srcset
+    screen.src = src
+    screen.alt = alt
+  }
+  const petScreen = (button) => ({
+    src: button.dataset.src,
+    srcset: `${button.dataset.small} 400w, ${button.dataset.src} 720w`,
+    alt: button.dataset.alt,
+  })
+
+  for (const button of buttons) {
+    button.hidden = false
+    button.addEventListener('click', () => {
+      const pressed = button.getAttribute('aria-pressed') === 'true'
+      for (const other of buttons) other.setAttribute('aria-pressed', 'false')
+      phone.classList.add('is-touched')
+      if (pressed) return show(everyone)
+      button.setAttribute('aria-pressed', 'true')
+      show(petScreen(button))
+    })
+  }
+  const preload = () => {
+    for (const button of buttons) new Image().src = petScreen(button).src
+  }
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return
+      observer.disconnect()
+      preload()
+    })
+    observer.observe(phone.closest('.tour-step') ?? phone)
+  }
+}
+
 for (const phone of document.querySelectorAll('.hero-phone .phone')) playDemo(phone)
+for (const phone of document.querySelectorAll('.pet-demo')) filterByPet(phone)
 for (const tour of document.querySelectorAll('.tour')) followTour(tour)

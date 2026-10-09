@@ -121,6 +121,19 @@ describe.each(languages)('page vitrine en %s', (lang) => {
     }
   })
 
+  it('montre l’accueil filtré sur chaque animal dont le prénom se touche', () => {
+    const spots = [...html.matchAll(/<button\b[^>]*class="pet-spot"[^>]*>/g)].map((m) => m[0])
+    expect(spots).toHaveLength(2)
+    for (const spot of spots) {
+      const image = spot.match(/data-src="\/([^"]+)"/)?.[1] ?? ''
+      const small = spot.match(/data-small="\/([^"]+)"/)?.[1] ?? ''
+      expect(image).toMatch(new RegExp(`^img/${lang}-accueil-[a-z]+\\.webp$`))
+      expect(small).toBe(image.replace('.webp', '-400.webp'))
+      for (const file of [image, small]) expect(existsSync(join(SITE, file))).toBe(true)
+      expect(spot.match(/data-alt="([^"]*)"/)?.[1]?.length ?? 0).toBeGreaterThan(30)
+    }
+  })
+
   it('reprend ses questions fréquentes en données structurées, mot pour mot', () => {
     const questions = [...html.matchAll(/<summary>([\s\S]*?)<\/summary>/g)].map((m) =>
       squash(plain(m[1]!)),

@@ -353,24 +353,50 @@
               <h3>Tous tes animaux, d’un coup d’œil</h3>
               <p>
                 Milo, Luna et les autres sur le même écran&nbsp;: ce qui est à faire, pour qui, et
-                quand. Touche un prénom pour ne voir que ses soins.
+                quand. Touche un prénom pour ne voir que ses soins, et touche-le à nouveau pour
+                revoir tout le monde.
               </p>
+              <p class="pet-hint" hidden>Essaie&nbsp;: touche Milo ou Luna sur l’écran.</p>
             </div>
-            <div class="phone">
+            <div class="phone pet-demo">
               <img
                 class="screen"
-                src="/img/fr-accueil-luna.webp"
-                srcset="/img/fr-accueil-luna-400.webp 400w, /img/fr-accueil-luna.webp 720w"
+                src="/img/fr-accueil.webp"
+                srcset="/img/fr-accueil-400.webp 400w, /img/fr-accueil.webp 720w"
                 sizes="(min-width: 1024px) 320px, 300px"
                 width="720"
                 height="1600"
                 loading="lazy"
-                alt="Accueil de MémoPatte avec le prénom de Luna touché&nbsp;: la liste «&nbsp;À faire&nbsp;» ne montre plus que sa pipette du mois, dans 3 jours, puis les actions rapides."
+                alt="Accueil de MémoPatte&nbsp;: Milo et Luna en haut, puis la liste «&nbsp;À faire&nbsp;» de leurs soins à tous les deux."
               /><span
                 class="ring"
-                style="--ring-x: 0.283; --ring-y: 0.19; --ring-w: 0.275; --ring-h: 0.07"
+                style="--ring-x: 0.04; --ring-y: 0.193; --ring-w: 0.53; --ring-h: 0.062"
                 aria-hidden="true"
               ></span>
+              <button
+                class="pet-spot"
+                type="button"
+                style="--spot-x: 0.05; --spot-y: 0.196; --spot-w: 0.235; --spot-h: 0.056"
+                aria-pressed="false"
+                data-src="/img/fr-accueil-milo.webp"
+                data-small="/img/fr-accueil-milo-400.webp"
+                data-alt="Accueil de MémoPatte avec le prénom de Milo touché&nbsp;: la liste «&nbsp;À faire&nbsp;» ne montre plus que ses cinq soins, son vaccin CHPPi en retard en tête."
+                hidden
+              >
+                Milo
+              </button>
+              <button
+                class="pet-spot"
+                type="button"
+                style="--spot-x: 0.305; --spot-y: 0.196; --spot-w: 0.255; --spot-h: 0.056"
+                aria-pressed="false"
+                data-src="/img/fr-accueil-luna.webp"
+                data-small="/img/fr-accueil-luna-400.webp"
+                data-alt="Accueil de MémoPatte avec le prénom de Luna touché&nbsp;: la liste «&nbsp;À faire&nbsp;» ne montre plus que sa pipette du mois, dans 3 jours, puis les actions rapides."
+                hidden
+              >
+                Luna
+              </button>
             </div>
           </div>
           <div class="tour-step" style="--row: 4">
@@ -381,8 +407,8 @@
               <h3>Chaque dose, au jour près</h3>
               <p>
                 Pour un traitement à plusieurs prises par jour, chaque dose a son bouton
-                «&nbsp;C’est fait&nbsp;». Des doses pas notées&nbsp;? Indique en une fois celles qui
-                ont été données&nbsp;; l’historique garde chaque prise.
+                «&nbsp;C’est fait&nbsp;». Des doses n’ont pas été notées&nbsp;? Indique en une fois
+                celles qui ont été données&nbsp;; l’historique garde chaque prise.
               </p>
             </div>
             <div class="phone">
