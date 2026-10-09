@@ -84,7 +84,8 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   « Modifier » (TR-28), c'est la dernière prise plus la nouvelle fréquence, jamais avant aujourd'hui
   (sinon aujourd'hui ; à plusieurs heures, aujourd'hui tant qu'il reste des heures du nouveau réglage
   au-delà des prises déjà notées ce jour, spec Q24 ; aujourd'hui aussi quand une dose est due
-  aujourd'hui et encore sans prise, spec Q36), proposée dans « Prochaine dose » et modifiable (spec Q7), avec l'aide « Calculée
+  aujourd'hui et encore sans prise, spec Q36 ; la prochaine journée quand une de ses heures a déjà
+  été donnée en avance, G24), proposée dans « Prochaine dose » et modifiable (spec Q7), avec l'aide « Calculée
   d'après la dernière prise : … Modifiable. » (lot A révisé, N3). Quand ni la fréquence ni les heures
   ne changent, c'est la prochaine échéance du calendrier en cours, report compris (spec Q37). Les suivantes se calculent depuis
   la **dernière ligne** plus la fréquence : date réelle d'une prise donnée, échéance d'une oubliée,
@@ -311,14 +312,16 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   Gardes du moteur d'échéances (#453) :
   - **G1** Seules les prises dont l'échéance est le jour du changement comptent pour les premières
     heures du nouveau réglage (une dose d'hier notée aujourd'hui n'en retire aucune), sauf quand ni
-    la fréquence ni les heures ne changent (G22).
+    la fréquence ni les heures ne changent (G22), et celles de la journée entamée en avance qui
+    ouvre la nouvelle période (G24).
     (Garde technique, consignée au journal des décisions autonomes.)
   - **G2** Une prise notée « oubliée » compte comme une prise donnée.
     (Garde technique, consignée au journal des décisions autonomes.)
   - **G3** Une reprise après un arrêt garde sa première prise du jour : seules comptent les prises
     notées depuis le dernier arrêt. (Garde technique, consignée au journal des décisions autonomes.)
   - **G4** Les heures couvertes sont les plus tôt du nouveau réglage, quel que soit l'ordre de saisie,
-    quand les heures changent ; sinon, chaque prise couvre son heure (G22).
+    quand les heures changent ; sinon, chaque prise couvre son heure, même si la fréquence change
+    (G22, G24).
     (Garde technique, consignée au journal des décisions autonomes.)
   - **G15** « Dose du jour » : quand rien n'est noté pour aujourd'hui et qu'une dose est due
     aujourd'hui, la nouvelle période commence par la dose du jour, que la fréquence change ou non
@@ -345,6 +348,16 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     donnée en avance, posologie changée : restent 20 h du 2, puis 20 h du 3. Une journée déjà passée
     entamée (8 h du 3 donnée, 20 h non, posologie changée le 4) garde la dernière prise plus la
     fréquence (Q37) : prochaine dose le 5, la dose de 20 h du 3 à renseigner. (#656)
+  - **G24** Une dose déjà donnée compte : quand la fréquence ou les heures changent et qu'une heure
+    de la prochaine journée d'échéance a déjà été donnée en avance, la nouvelle période commence par
+    cette journée, ses prises comptent pour les premières heures du nouveau réglage (G4), et le
+    nouveau réglage s'applique à partir de la dose suivante pas encore donnée (décision de Gaelle du
+    2026-10-09, #711). Métacam tous les 2 jours à 8 h et 20 h, prochaine journée le 3, 8 h du 3
+    donnée le 2 : heures passées le 2 à 9 h et 21 h, il ne reste que 21 h le 3, puis le 5 à 9 h et
+    21 h ; fréquence passée à tous les 3 jours, il reste 20 h le 3, puis le 6 ; heure passée à 9 h
+    seule, rien ne reste le 3, prochaine dose le 5. « Prochaine dose » propose le 3, avec l'aide
+    « Prochaine dose prévue : 3 oct. Modifiable. ». Des prises notées aujourd'hui font partir la
+    nouvelle période d'aujourd'hui (Q24).
 - **TR-29** Un autre produit est un nouveau traitement : arrêter l'ancien, créer le nouveau. (P9 Q2)
 - **TR-30** « Arrêter » : dialogue qui propose de renseigner les doses non renseignées (« Toutes
   données », « Choisir les jours », « Arrêter sans renseigner ») ; « Arrêté le … », plus aucune
@@ -665,7 +678,8 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   reste « dose du jour », jamais en retard le jour même (TR-11). Il n'y a plus de dose restante de
   l'ancien réglage le jour du changement ; ses échéances des jours d'avant restent à renseigner
   (TR-28). Écartées : heures restantes à l'ancien réglage (Q19) ; nouveau réglage seulement le
-  lendemain. (Re-revue 2 du moteur d'échéances, #453.)
+  lendemain. (Re-revue 2 du moteur d'échéances, #453.) Étendue le 2026-10-09 à une journée à venir
+  entamée en avance : ses prises comptent de même, et le nouveau réglage part d'elle (G24, #711).
 - 2026-10-01 — **Q25 : un déplacement dont la dose d'arrivée est notée ne se supprime plus et ne
   change plus de date** (TR-24). Donnée ou oubliée, la dose d'arrivée fait entrer la ligne dans
   l'historique ; pour corriger, on passe par la prise elle-même (changer sa date, la supprimer).

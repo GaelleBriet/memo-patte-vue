@@ -53,12 +53,19 @@ export function newPeriod(state: State, frequency: Frequency, times: readonly st
   const { today } = state.input
   const startsOn = latestOf([today, state.plans.at(-1)?.period.startsOn]) ?? today
   const periods = state.plans.map(({ period }) => period)
-  const noted = notedOn(startsOn, periods, mergeDoses(state.input.doses))
+  const doses = mergeDoses(state.input.doses)
+  const noted = notedOn(startsOn, periods, doses)
   const fromStart = { startsOn, firstDueOn: startsOn, referenceOn: startsOn }
   if (noted > 0 && noted < times.length) return fromStart
   const dueToday = state.currentDoses.some((due) => due.dueOn === today)
   if (noted === 0 && dueToday) return fromStart
-  const scheduled = keepsSettings(state, frequency, times) ? scheduledDay(state) : undefined
+  const kept = keepsSettings(state, frequency, times)
+  // G24 : une journée à venir entamée en avance garde ses prises ; le nouveau réglage part d'elle.
+  const next = state.currentDoses[0]?.dueOn
+  if (!kept && next !== undefined && next > startsOn && notedOn(next, periods, doses) > 0) {
+    return { startsOn, firstDueOn: next, referenceOn: next }
+  }
+  const scheduled = kept ? scheduledDay(state) : undefined
   if (scheduled !== undefined && scheduled > startsOn && state.open !== null) {
     // Q37 : la suite en cours garde son jour de référence (le 31 d'un mensuel).
     const { origin } = sequenceAt(state.open, positionOf(`${scheduled} `, 0))

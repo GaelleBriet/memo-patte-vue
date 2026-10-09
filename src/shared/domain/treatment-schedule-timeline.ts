@@ -121,6 +121,13 @@ export function hasFallen({ kind, dose }: Step): boolean {
   return kind === 'note' || (kind === 'move' && dose.nextDueDate > dose.dueOn)
 }
 
+function sameTimes(
+  a: Pick<TreatmentPeriodInput, 'times'>,
+  b: Pick<TreatmentPeriodInput, 'times'>,
+): boolean {
+  return [...a.times].sort().join() === [...b.times].sort().join()
+}
+
 export function sameRhythm(
   a: Pick<TreatmentPeriodInput, 'frequency' | 'times'>,
   b: Pick<TreatmentPeriodInput, 'frequency' | 'times'>,
@@ -128,28 +135,27 @@ export function sameRhythm(
   return (
     a.frequency.value === b.frequency.value &&
     a.frequency.unit === b.frequency.unit &&
-    [...a.times].sort().join() === [...b.times].sort().join()
+    sameTimes(a, b)
   )
 }
 
-// Q24, G4 : les prises du jour du changement couvrent les premières heures du nouveau réglage. G22 : au
-// même rythme, une prise d'une ancienne période couvre son heure, chaque journée de la nouvelle.
+// Q24, G24 : les prises de la première journée couvrent les premières heures du nouveau réglage (G4).
+// G22 : au même rythme, une prise d'une ancienne période couvre son heure, chaque journée de la nouvelle.
 export function coveredKeys(
   period: TreatmentPeriodInput,
   previous: TreatmentPeriodInput | undefined,
   earlierNotes: readonly TreatmentDoseInput[],
 ): Set<string> {
   const keepsRhythm = previous !== undefined && sameRhythm(previous, period)
+  const keepsTimes = previous !== undefined && sameTimes(previous, period)
   const times = period.times.length === 0 ? [null] : [...period.times].sort(compareOrdinal)
   const days = keepsRhythm
     ? uniqueDays(earlierNotes.filter(({ dueOn }) => dueOn >= period.startsOn))
-    : period.firstDueOn === period.startsOn
-      ? [period.startsOn]
-      : []
+    : [period.firstDueOn]
   return new Set(
     days.flatMap((day) => {
       const ofDay = earlierNotes.filter(({ dueOn }) => dueOn === day)
-      const exact = keepsRhythm
+      const exact = keepsTimes
         ? times.filter((time) => ofDay.some(({ dueTime }) => dueTime === time))
         : []
       const earliest = times.filter((time) => !exact.includes(time))

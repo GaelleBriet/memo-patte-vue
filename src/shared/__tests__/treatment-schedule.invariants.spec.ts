@@ -1197,7 +1197,8 @@ class Simulation {
   }
 
   // G22 : au même rythme, une journée à venir entamée en avance garde ses heures restantes, sauf
-  // l'arrivée d'un report seul, hors de la suite en vigueur (Q37, #692).
+  // l'arrivée d'un report seul, hors de la suite en vigueur (Q37, #692). G24 : heures ou fréquence
+  // changées, ses prises comptent pour les premières heures du nouveau réglage.
   private checkDayStartedAhead(
     before: TreatmentSchedule,
     after: TreatmentSchedule,
@@ -1210,20 +1211,32 @@ class Simulation {
     if (previous === undefined || day === undefined || day <= this.book.today) return
     const rhythm = ({ frequency, times }: TreatmentPeriodInput) =>
       JSON.stringify([frequency, [...times].sort()])
-    if (rhythm(previous) !== rhythm(period)) return
+    const kept = rhythm(previous) === rhythm(period)
     const arrives = (status: TreatmentDoseInput['status']) =>
       before.doses.some((dose) => dose.status === status && dose.nextDueDate === day)
-    if (arrives('postponed') && !arrives('shift')) return
+    if (kept && arrives('postponed') && !arrives('shift')) return
     const noted = before.doses.filter(
       (dose) => isNote(dose) && dose.dueOn === day && !stopped.has(dose.periodId),
     ).length
     if (noted === 0) return
+    if (!kept && period.firstDueOn !== day) {
+      // Q24 d'abord : des prises d'aujourd'hui font partir le nouveau réglage d'aujourd'hui.
+      const { startsOn } = period
+      const startsToday = before.doses.some(
+        (dose) => isNote(dose) && dose.dueOn === startsOn && !stopped.has(dose.periodId),
+      )
+      if (!startsToday && startsOn === this.book.today) {
+        this.fail(`${gesture} : la journée du ${day} entamée en avance n’ouvre pas la période`)
+      }
+      return
+    }
     const hours = Math.max(1, period.times.length)
     const left = pendingOf(after).filter(
       (due) => due.periodId === period.id && due.dueOn === day,
     ).length
-    if (left !== hours - noted) {
-      this.fail(`${gesture} : ${left} dose(s) à donner le ${day}, ${hours - noted} attendue(s)`)
+    const expected = Math.max(0, hours - noted)
+    if (left !== expected) {
+      this.fail(`${gesture} : ${left} dose(s) à donner le ${day}, ${expected} attendue(s)`)
     }
   }
 
