@@ -21,6 +21,7 @@ import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import { weightLimitParams, weightUnitText } from '@/shared/domain/weight-display'
 import FormCheckbox from '@/shared/form/FormCheckbox.vue'
 import FormField from '@/shared/form/FormField.vue'
+import { formFailure, submitLabelKey } from '@/shared/form/form-screen'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import FormSegmented from '@/shared/form/FormSegmented.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
@@ -65,16 +66,12 @@ const title = computed(() =>
     ? t('animals.form.editTitle', { name: existing.value.name })
     : t('animals.form.title'),
 )
-const submitLabel = computed(() => {
-  if (isSubmitting.value) {
-    return isEdit.value ? t('animals.form.saving') : t('animals.form.submitting')
-  }
-  return isEdit.value ? t('animals.form.save') : t('animals.form.submit')
-})
+const submitLabel = computed(() =>
+  t(`animals.form.${submitLabelKey(isEdit.value, isSubmitting.value)}`),
+)
 const errorMessage = computed(() => {
-  if (notFound.value) return t('animals.form.errors.notFound')
-  if (saveFailed.value) return t('animals.form.errors.save')
-  return null
+  const failure = formFailure({ notFound: notFound.value, saveFailed: saveFailed.value })
+  return failure === null ? null : t(`animals.form.errors.${failure}`)
 })
 const speciesOptions = computed(() =>
   ANIMAL_SPECIES.map((species) => ({
