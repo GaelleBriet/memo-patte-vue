@@ -229,10 +229,10 @@
           <div class="before-after">
             <figure class="before">
               <ul class="notes">
-                <li class="note note-postit">Milo’s dewormer: when was it?</li>
-                <li class="note note-sms">Reminder: Milo’s vaccine is due again.</li>
+                <li class="note note-postit">Milo’s tablet given on Sept 18</li>
+                <li class="note note-sms">Your vet: Milo’s DHPPi booster is due before Aug 24.</li>
                 <li class="note note-calendar">1st of the month: Luna’s spot-on</li>
-                <li class="note note-scrap">Milo’s granules, 8 pm. Given?</li>
+                <li class="note note-scrap">Milo’s granules: 1 sachet at 8 am and 8 pm</li>
               </ul>
               <figcaption>
                 <strong>Before</strong> Sticky notes, a text message, a calendar and your memory.
@@ -280,8 +280,8 @@
 
       <section class="section" id="how-it-works">
         <h2>How it works</h2>
-        <div class="tour">
-          <div class="tour-step" data-step="0">
+        <div class="tour" style="--steps: 8">
+          <div class="tour-step" style="--row: 1">
             <div class="tour-text">
               <span class="feature-icon"
                 ><span class="symbol symbol-notifications-active" aria-hidden="true"></span
@@ -312,7 +312,36 @@
               />
             </div>
           </div>
-          <div class="tour-step" data-step="1">
+          <div class="tour-step" style="--row: 2">
+            <div class="tour-text">
+              <span class="feature-icon"
+                ><span class="symbol symbol-calendar-today" aria-hidden="true"></span
+              ></span>
+              <h3>What matters today comes first</h3>
+              <p>
+                Overdue and today’s reminders come first on the home screen. A missed one stays
+                visible, with a single nudge and no guilt: log it whenever you like, even on another
+                date.
+              </p>
+            </div>
+            <div class="phone">
+              <img
+                class="screen"
+                src="/img/en-accueil.webp"
+                srcset="/img/en-accueil-400.webp 400w, /img/en-accueil.webp 720w"
+                sizes="(min-width: 1024px) 320px, 300px"
+                width="720"
+                height="1600"
+                loading="lazy"
+                alt="MémoPatte home screen: at the top, “1 overdue reminder” and Milo’s DHPPi vaccine, 45 days overdue, then his granules today at 8 am and 8 pm."
+              /><span
+                class="ring"
+                style="--ring-x: 0.03; --ring-y: 0.318; --ring-w: 0.94; --ring-h: 0.16"
+                aria-hidden="true"
+              ></span>
+            </div>
+          </div>
+          <div class="tour-step" style="--row: 3">
             <div class="tour-text">
               <span class="feature-icon"
                 ><span class="symbol symbol-pets" aria-hidden="true"></span
@@ -326,25 +355,30 @@
             <div class="phone">
               <img
                 class="screen"
-                src="/img/en-accueil.webp"
-                srcset="/img/en-accueil-400.webp 400w, /img/en-accueil.webp 720w"
+                src="/img/en-accueil-luna.webp"
+                srcset="/img/en-accueil-luna-400.webp 400w, /img/en-accueil-luna.webp 720w"
                 sizes="(min-width: 1024px) 320px, 300px"
                 width="720"
                 height="1600"
                 loading="lazy"
-                alt="MémoPatte home screen with Milo and Luna: each reminder in the “To do” list shows its type, the pet’s name and when it’s due, such as “Monthly spot-on, Parasite control · Luna, in 3 days”."
-              /><span class="ring" aria-hidden="true"></span>
+                alt="MémoPatte home screen with Luna’s name tapped: the “To do” list now shows only her monthly spot-on, in 3 days, then the quick actions."
+              /><span
+                class="ring"
+                style="--ring-x: 0.283; --ring-y: 0.19; --ring-w: 0.275; --ring-h: 0.07"
+                aria-hidden="true"
+              ></span>
             </div>
           </div>
-          <div class="tour-step" data-step="2">
+          <div class="tour-step" style="--row: 4">
             <div class="tour-text">
               <span class="feature-icon"
-                ><span class="symbol symbol-calendar-today" aria-hidden="true"></span
+                ><span class="symbol symbol-medication" aria-hidden="true"></span
               ></span>
-              <h3>What matters today comes first</h3>
+              <h3>Every dose, to the day</h3>
               <p>
-                Overdue and today’s reminders come first. A missed one stays visible, with a single
-                nudge and no guilt: log it whenever you like, even on another date.
+                For a treatment given several times a day, each dose has its own “Done” button.
+                Doses not logged? Mark the ones that were given in one go; the history keeps every
+                dose.
               </p>
             </div>
             <div class="phone">
@@ -360,15 +394,87 @@
               />
             </div>
           </div>
-          <div class="tour-step" data-step="3">
+          <div class="tour-step" style="--row: 5">
+            <div class="tour-text">
+              <span class="feature-icon"
+                ><span class="symbol symbol-menu-book" aria-hidden="true"></span
+              ></span>
+              <h3>A health record for each pet</h3>
+              <p>
+                Each pet’s page brings together their vaccines, active treatments and weight.
+                Anything overdue stands out, with the number of reminders to do.
+              </p>
+            </div>
+            <div class="phone">
+              <img
+                class="screen"
+                src="/img/en-carnet.webp"
+                srcset="/img/en-carnet-400.webp 400w, /img/en-carnet.webp 720w"
+                sizes="(min-width: 1024px) 320px, 300px"
+                width="720"
+                height="1600"
+                loading="lazy"
+                alt="Milo’s health record: 54.0 lb, 1 overdue reminder, 3 active treatments, then his vaccines, DHPPi overdue and Rabies up to date, and his treatments."
+              />
+            </div>
+          </div>
+          <div class="tour-step" style="--row: 6">
+            <div class="tour-text">
+              <span class="feature-icon"
+                ><span class="symbol symbol-vaccines" aria-hidden="true"></span
+              ></span>
+              <h3>Their vaccines and every shot</h3>
+              <p>
+                Every shot stays logged, with the date of the next one. Back from the vet, tap
+                “Done”, or “Done on another day” if it was another day.
+              </p>
+            </div>
+            <div class="phone">
+              <img
+                class="screen"
+                src="/img/en-vaccin.webp"
+                srcset="/img/en-vaccin-400.webp 400w, /img/en-vaccin.webp 720w"
+                sizes="(min-width: 1024px) 320px, 300px"
+                width="720"
+                height="1600"
+                loading="lazy"
+                alt="Milo’s DHPPi vaccine page: last shot on Aug 24, 2025, next reminder overdue since Aug 24, the “Done” button, the “Done on another day” link and the three shots logged."
+              />
+            </div>
+          </div>
+          <div class="tour-step" style="--row: 7">
+            <div class="tour-text">
+              <span class="feature-icon"
+                ><span class="symbol symbol-monitor-weight" aria-hidden="true"></span
+              ></span>
+              <h3>Their weight, as a curve</h3>
+              <p>
+                A weigh-in now and then is enough: the curve shows how it changes, with the
+                difference since the last weigh-in. In kilograms or pounds.
+              </p>
+            </div>
+            <div class="phone">
+              <img
+                class="screen"
+                src="/img/en-poids.webp"
+                srcset="/img/en-poids-400.webp 400w, /img/en-poids.webp 720w"
+                sizes="(min-width: 1024px) 320px, 300px"
+                width="720"
+                height="1600"
+                loading="lazy"
+                alt="Milo’s weight tracking: 54.0 lb, +0.4 lb since Sep 8, and his curve from May to October, from 52.0 to 54.0 lb."
+              />
+            </div>
+          </div>
+          <div class="tour-step" style="--row: 8">
             <div class="tour-text">
               <span class="feature-icon"
                 ><span class="symbol symbol-lock-open" aria-hidden="true"></span
               ></span>
               <h3>Truly free, and your data stays yours</h3>
               <p>
-                No account, no ads, no limit on pets. Your health record lives on your phone and you
-                can export it any time as JSON, CSV or PDF, for free.
+                No account, no ads, no limit on pets. Export the health record as a PDF for your vet
+                or a boarding kennel, or all your data as JSON or CSV, for free.
               </p>
               <a class="more" href="/en/help/export/"
                 >How to export my data<span
@@ -380,13 +486,13 @@
             <div class="phone">
               <img
                 class="screen"
-                src="/img/en-mes-donnees.webp"
-                srcset="/img/en-mes-donnees-400.webp 400w, /img/en-mes-donnees.webp 720w"
+                src="/img/en-export-pdf.webp"
+                srcset="/img/en-export-pdf-400.webp 400w, /img/en-export-pdf.webp 720w"
                 sizes="(min-width: 1024px) 320px, 300px"
                 width="720"
                 height="1600"
                 loading="lazy"
-                alt="“My data” screen: weight unit in kilograms or pounds, “Export my data” as JSON or CSV, “Export to PDF” for all pets or just one, and “Import a MémoPatte export”."
+                alt="“Export to PDF” sheet for Milo’s health record: the PDF file with vaccines, treatments, weight and photos, and the “Save to phone” and “Share” buttons."
               />
             </div>
           </div>

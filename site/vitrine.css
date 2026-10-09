@@ -23,6 +23,14 @@
   --symbol: url('/icons/vaccines.svg');
 }
 
+.symbol-menu-book {
+  --symbol: url('/icons/menu-book.svg');
+}
+
+.symbol-monitor-weight {
+  --symbol: url('/icons/monitor-weight.svg');
+}
+
 .symbol-check-circle {
   --symbol: url('/icons/check-circle.svg');
 }
@@ -149,9 +157,9 @@
 
 .notif {
   position: absolute;
-  top: 54px;
-  left: -14px;
-  right: 18px;
+  top: 44px;
+  right: 19px;
+  left: 19px;
   padding: 14px 16px 12px;
   border-radius: 24px;
   background: var(--notification);
@@ -328,10 +336,6 @@
   .hero-phone {
     align-self: end;
     margin-bottom: -120px;
-  }
-
-  .notif {
-    left: -64px;
   }
 }
 
@@ -599,12 +603,12 @@
 
 .ring {
   position: absolute;
-  top: 18.6%;
-  left: 4%;
-  width: 66%;
-  height: 6%;
+  top: calc(9px + (100% - 18px) * var(--ring-y));
+  left: calc(9px + (100% - 18px) * var(--ring-x));
+  width: calc((100% - 18px) * var(--ring-w));
+  height: calc((100% - 18px) * var(--ring-h));
   border: 3px solid var(--annotation);
-  border-radius: var(--radius-pill);
+  border-radius: 20px;
   box-shadow: 0 0 0 6px rgb(232 131 58 / 22%);
 }
 
@@ -622,31 +626,16 @@
 
   .js .tour-text {
     grid-column: 1;
+    grid-row: var(--row);
     display: flex;
     flex-direction: column;
     justify-content: center;
-    min-height: 78vh;
-  }
-
-  .js .tour-step:nth-child(1) .tour-text {
-    grid-row: 1;
-  }
-
-  .js .tour-step:nth-child(2) .tour-text {
-    grid-row: 2;
-  }
-
-  .js .tour-step:nth-child(3) .tour-text {
-    grid-row: 3;
-  }
-
-  .js .tour-step:nth-child(4) .tour-text {
-    grid-row: 4;
+    min-height: 64vh;
   }
 
   .js .tour .phone {
     grid-column: 2;
-    grid-row: 1 / span 4;
+    grid-row: 1 / span var(--steps);
     position: sticky;
     top: max(24px, calc(50vh - 360px));
     align-self: start;

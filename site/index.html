@@ -159,7 +159,7 @@
         <a class="brand" href="/"><img src="/icon.png" alt="" width="40" height="40" />MémoPatte</a>
         <nav class="site-nav" aria-label="Menu">
           <a href="/#comment-ca-marche">Comment ça marche</a>
-          <a href="/#prix">Prix</a>
+          <a href="/#tarifs">Tarifs</a>
           <a href="/#questions">Questions</a>
         </nav>
         <a class="language" href="/en/" hreflang="en" lang="en"
@@ -230,10 +230,12 @@
           <div class="before-after">
             <figure class="before">
               <ul class="notes">
-                <li class="note note-postit">Vermifuge de Milo&nbsp;: c’était quand&nbsp;?</li>
-                <li class="note note-sms">Rappel&nbsp;: le vaccin de Milo est à refaire.</li>
+                <li class="note note-postit">Comprimé de Milo donné le 18/09</li>
+                <li class="note note-sms">
+                  Votre vétérinaire&nbsp;: rappel du vaccin CHPPi de Milo avant le 24/08.
+                </li>
                 <li class="note note-calendar">1er du mois&nbsp;: pipette de Luna</li>
-                <li class="note note-scrap">Granulés de Milo, 20 h. Donnés&nbsp;?</li>
+                <li class="note note-scrap">Granulés de Milo&nbsp;: 1 sachet à 8 h et à 20 h</li>
               </ul>
               <figcaption>
                 <strong>Avant</strong> Des post-it, un SMS, un calendrier et ta mémoire.
@@ -282,8 +284,8 @@
 
       <section class="section" id="comment-ca-marche">
         <h2>Comment ça marche</h2>
-        <div class="tour">
-          <div class="tour-step" data-step="0">
+        <div class="tour" style="--steps: 8">
+          <div class="tour-step" style="--row: 1">
             <div class="tour-text">
               <span class="feature-icon"
                 ><span class="symbol symbol-notifications-active" aria-hidden="true"></span
@@ -314,7 +316,36 @@
               />
             </div>
           </div>
-          <div class="tour-step" data-step="1">
+          <div class="tour-step" style="--row: 2">
+            <div class="tour-text">
+              <span class="feature-icon"
+                ><span class="symbol symbol-calendar-today" aria-hidden="true"></span
+              ></span>
+              <h3>Ce qui compte aujourd’hui d’abord</h3>
+              <p>
+                Les retards et les soins du jour passent en tête de l’accueil. Un oubli reste
+                visible, avec une seule relance et sans reproche&nbsp;: tu le notes quand tu veux,
+                même à une autre date.
+              </p>
+            </div>
+            <div class="phone">
+              <img
+                class="screen"
+                src="/img/fr-accueil.webp"
+                srcset="/img/fr-accueil-400.webp 400w, /img/fr-accueil.webp 720w"
+                sizes="(min-width: 1024px) 320px, 300px"
+                width="720"
+                height="1600"
+                loading="lazy"
+                alt="Accueil de MémoPatte&nbsp;: en tête, «&nbsp;1 soin en retard&nbsp;» et le vaccin CHPPi de Milo, en retard de 45 jours, puis ses granulés du jour à 8 h et à 20 h."
+              /><span
+                class="ring"
+                style="--ring-x: 0.03; --ring-y: 0.318; --ring-w: 0.94; --ring-h: 0.16"
+                aria-hidden="true"
+              ></span>
+            </div>
+          </div>
+          <div class="tour-step" style="--row: 3">
             <div class="tour-text">
               <span class="feature-icon"
                 ><span class="symbol symbol-pets" aria-hidden="true"></span
@@ -328,26 +359,30 @@
             <div class="phone">
               <img
                 class="screen"
-                src="/img/fr-accueil.webp"
-                srcset="/img/fr-accueil-400.webp 400w, /img/fr-accueil.webp 720w"
+                src="/img/fr-accueil-luna.webp"
+                srcset="/img/fr-accueil-luna-400.webp 400w, /img/fr-accueil-luna.webp 720w"
                 sizes="(min-width: 1024px) 320px, 300px"
                 width="720"
                 height="1600"
                 loading="lazy"
-                alt="Accueil de MémoPatte avec Milo et Luna&nbsp;: chaque soin de la liste «&nbsp;À faire&nbsp;» porte son type, le prénom de l’animal et son échéance, comme «&nbsp;Pipette du mois, Antiparasitaire · Luna, dans 3 jours&nbsp;»."
-              /><span class="ring" aria-hidden="true"></span>
+                alt="Accueil de MémoPatte avec le prénom de Luna touché&nbsp;: la liste «&nbsp;À faire&nbsp;» ne montre plus que sa pipette du mois, dans 3 jours, puis les actions rapides."
+              /><span
+                class="ring"
+                style="--ring-x: 0.283; --ring-y: 0.19; --ring-w: 0.275; --ring-h: 0.07"
+                aria-hidden="true"
+              ></span>
             </div>
           </div>
-          <div class="tour-step" data-step="2">
+          <div class="tour-step" style="--row: 4">
             <div class="tour-text">
               <span class="feature-icon"
-                ><span class="symbol symbol-calendar-today" aria-hidden="true"></span
+                ><span class="symbol symbol-medication" aria-hidden="true"></span
               ></span>
-              <h3>Ce qui compte aujourd’hui d’abord</h3>
+              <h3>Chaque dose, au jour près</h3>
               <p>
-                Les retards et les soins du jour passent en tête. Un oubli reste visible, avec une
-                seule relance et sans reproche&nbsp;: tu le notes quand tu veux, même à une autre
-                date.
+                Pour un traitement à plusieurs prises par jour, chaque dose a son bouton
+                «&nbsp;C’est fait&nbsp;». Des doses pas notées&nbsp;? Indique en une fois celles qui
+                ont été données&nbsp;; l’historique garde chaque prise.
               </p>
             </div>
             <div class="phone">
@@ -363,15 +398,89 @@
               />
             </div>
           </div>
-          <div class="tour-step" data-step="3">
+          <div class="tour-step" style="--row: 5">
+            <div class="tour-text">
+              <span class="feature-icon"
+                ><span class="symbol symbol-menu-book" aria-hidden="true"></span
+              ></span>
+              <h3>Le carnet de chaque animal</h3>
+              <p>
+                Sa fiche réunit ses vaccins, ses traitements en cours et son poids. Ce qui est en
+                retard saute aux yeux, avec le nombre de rappels à faire.
+              </p>
+            </div>
+            <div class="phone">
+              <img
+                class="screen"
+                src="/img/fr-carnet.webp"
+                srcset="/img/fr-carnet-400.webp 400w, /img/fr-carnet.webp 720w"
+                sizes="(min-width: 1024px) 320px, 300px"
+                width="720"
+                height="1600"
+                loading="lazy"
+                alt="Carnet de Milo&nbsp;: 24,5 kg, 1 rappel en retard, 3 traitements en cours, puis ses vaccins, CHPPi en retard et Rage à jour, et ses traitements."
+              />
+            </div>
+          </div>
+          <div class="tour-step" style="--row: 6">
+            <div class="tour-text">
+              <span class="feature-icon"
+                ><span class="symbol symbol-vaccines" aria-hidden="true"></span
+              ></span>
+              <h3>Ses vaccins et leurs injections</h3>
+              <p>
+                Chaque injection reste notée, avec la date du rappel suivant. De retour de chez le
+                vétérinaire, touche «&nbsp;C’est fait&nbsp;», ou «&nbsp;Fait à une autre date&nbsp;»
+                si c’était un autre jour.
+              </p>
+            </div>
+            <div class="phone">
+              <img
+                class="screen"
+                src="/img/fr-vaccin.webp"
+                srcset="/img/fr-vaccin-400.webp 400w, /img/fr-vaccin.webp 720w"
+                sizes="(min-width: 1024px) 320px, 300px"
+                width="720"
+                height="1600"
+                loading="lazy"
+                alt="Fiche du vaccin CHPPi de Milo&nbsp;: dernière injection le 24 août 2025, prochain rappel en retard depuis le 24 août, bouton «&nbsp;C’est fait&nbsp;», lien «&nbsp;Fait à une autre date&nbsp;» et les trois injections notées."
+              />
+            </div>
+          </div>
+          <div class="tour-step" style="--row: 7">
+            <div class="tour-text">
+              <span class="feature-icon"
+                ><span class="symbol symbol-monitor-weight" aria-hidden="true"></span
+              ></span>
+              <h3>Son poids, en courbe</h3>
+              <p>
+                Une pesée de temps en temps suffit&nbsp;: la courbe montre l’évolution, avec la
+                variation depuis la dernière pesée. En kilogrammes ou en livres.
+              </p>
+            </div>
+            <div class="phone">
+              <img
+                class="screen"
+                src="/img/fr-poids.webp"
+                srcset="/img/fr-poids-400.webp 400w, /img/fr-poids.webp 720w"
+                sizes="(min-width: 1024px) 320px, 300px"
+                width="720"
+                height="1600"
+                loading="lazy"
+                alt="Suivi de poids de Milo&nbsp;: 24,5 kg, +0,2 kg depuis le 8 sept., et sa courbe de mai à octobre, de 23,6 à 24,5 kg."
+              />
+            </div>
+          </div>
+          <div class="tour-step" style="--row: 8">
             <div class="tour-text">
               <span class="feature-icon"
                 ><span class="symbol symbol-lock-open" aria-hidden="true"></span
               ></span>
               <h3>Gratuit pour de vrai, et tes données restent à toi</h3>
               <p>
-                Pas de compte, pas de publicité, pas de limite d’animaux. Ton carnet vit sur ton
-                téléphone et tu l’exportes quand tu veux, en JSON, CSV ou PDF, gratuitement.
+                Pas de compte, pas de publicité, pas de limite d’animaux. Exporte le carnet en PDF
+                pour le vétérinaire ou la pension, ou toutes tes données en JSON ou CSV,
+                gratuitement.
               </p>
               <a class="more" href="/aide/exporter/"
                 >Comment exporter mes données<span
@@ -383,13 +492,13 @@
             <div class="phone">
               <img
                 class="screen"
-                src="/img/fr-mes-donnees.webp"
-                srcset="/img/fr-mes-donnees-400.webp 400w, /img/fr-mes-donnees.webp 720w"
+                src="/img/fr-export-pdf.webp"
+                srcset="/img/fr-export-pdf-400.webp 400w, /img/fr-export-pdf.webp 720w"
                 sizes="(min-width: 1024px) 320px, 300px"
                 width="720"
                 height="1600"
                 loading="lazy"
-                alt="Écran «&nbsp;Mes données&nbsp;»&nbsp;: unité de poids en kilogrammes ou en livres, «&nbsp;Exporter mes données&nbsp;» en JSON ou CSV, «&nbsp;Exporter en PDF&nbsp;» pour tous les animaux ou un seul, et «&nbsp;Importer un export MémoPatte&nbsp;»."
+                alt="Feuille «&nbsp;Exporter en PDF&nbsp;» du carnet de Milo&nbsp;: le fichier PDF avec ses vaccins, traitements, poids et photos, et les boutons «&nbsp;Enregistrer sur le téléphone&nbsp;» et «&nbsp;Partager&nbsp;»."
               />
             </div>
           </div>
@@ -478,8 +587,8 @@
         </ul>
       </section>
 
-      <section class="section" id="prix">
-        <h2>Prix</h2>
+      <section class="section" id="tarifs">
+        <h2>Tarifs</h2>
         <p class="section-lead">
           Tout ce qui marche sur ton téléphone est gratuit. Seul le cloud est payant.
         </p>

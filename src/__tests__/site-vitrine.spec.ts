@@ -20,7 +20,7 @@ const homes = {
     file: 'index.html',
     url: `${SITE_URL}/`,
     locale: 'fr_FR',
-    sections: ['comment-ca-marche', 'prix', 'questions'],
+    sections: ['comment-ca-marche', 'tarifs', 'questions'],
     prices: ['1,49 € par mois', '9,99 € par an', '29,99 € à vie'],
     pricesNote: 'Prix indicatifs ; Google Play affiche le sien.',
     plusLater: 'MémoPatte Plus arrive après la sortie de l’app',
@@ -90,7 +90,7 @@ describe.each(languages)('page vitrine en %s', (lang) => {
 
   it('montre les captures de l’app avec leurs dimensions et une description', () => {
     const images = [...html.matchAll(/<img\b[^>]*class="screen"[^>]*>/g)].map((m) => m[0])
-    expect(images).toHaveLength(5)
+    expect(images).toHaveLength(9)
     for (const image of images) {
       const src = image.match(/src="\/([^"]+)"/)?.[1] ?? ''
       expect(existsSync(join(SITE, src))).toBe(true)
