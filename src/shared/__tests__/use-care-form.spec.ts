@@ -8,7 +8,11 @@ const replace = vi.fn<(to: unknown) => Promise<void>>(async () => undefined)
 const route = { query: {} as Record<string, string> }
 
 vi.mock('vue-router', () => ({
-  useRouter: () => ({ replace, back: vi.fn(), options: { history: { state: { back: null } } } }),
+  useRouter: () => ({
+    replace,
+    back: vi.fn<() => void>(),
+    options: { history: { state: { back: null } } },
+  }),
   useRoute: () => route,
 }))
 
@@ -85,7 +89,7 @@ describe('useCareForm — création', () => {
     expect(load).not.toHaveBeenCalled()
     expect(form.isLoading.value).toBe(false)
     expect(form.animalName.value).toBe('Milo')
-    expect(form.failure.value).toBeNull()
+    expect(form.saveFailed.value).toBe(false)
     expect(form.canSave.value).toBe(true)
   })
 
@@ -160,7 +164,7 @@ describe('useCareForm — chargement du soin', () => {
     await flushPromises()
 
     expect(open).not.toHaveBeenCalled()
-    expect(form.failure.value).toBe('notFound')
+    expect(form.notFound.value).toBe(true)
     expect(form.canSave.value).toBe(false)
   })
 
@@ -175,7 +179,7 @@ describe('useCareForm — chargement du soin', () => {
     await flushPromises()
 
     expect(form.loadFailed.value).toBe(true)
-    expect(form.failure.value).toBe('load')
+    expect(form.loadFailed.value).toBe(true)
     expect(form.isLoading.value).toBe(false)
     expect(form.canSave.value).toBe(false)
   })
@@ -202,11 +206,11 @@ describe('useCareForm — enregistrement', () => {
     const { form } = monter({ animalId: 'milo' })
     await flushPromises()
     await form.saveThenLeave(() => Promise.reject(new Error('disque plein')), true)
-    expect(form.failure.value).toBe('save')
+    expect(form.saveFailed.value).toBe(true)
 
     await form.saveThenLeave(() => null, true)
 
-    expect(form.failure.value).toBeNull()
+    expect(form.saveFailed.value).toBe(false)
     expect(form.isSaved.value).toBe(false)
     expect(form.isSubmitting.value).toBe(false)
     expect(replace).not.toHaveBeenCalled()
@@ -220,7 +224,7 @@ describe('useCareForm — enregistrement', () => {
       throw new Error('formulaire ouvert sans animal')
     }, false)
 
-    expect(form.failure.value).toBe('save')
+    expect(form.saveFailed.value).toBe(true)
     expect(form.isSaved.value).toBe(false)
     expect(form.canSave.value).toBe(true)
     expect(animals.select).not.toHaveBeenCalled()

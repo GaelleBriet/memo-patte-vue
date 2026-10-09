@@ -27,7 +27,6 @@ import DatePickerSheet from '@/shared/components/DatePickerSheet.vue'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
-import { submitLabelKey } from '@/shared/form/form-screen'
 import { useCareForm } from '@/shared/composables/use-care-form'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
@@ -58,7 +57,9 @@ const {
   isSaved,
   targetAnimal,
   animalName,
-  failure,
+  notFound,
+  loadFailed,
+  saveFailed,
   canSave,
   selectTargetAnimal,
   backToOrigin,
@@ -94,12 +95,18 @@ const title = computed(() =>
 const subtitle = computed(() =>
   animalName.value ? t('vaccinations.form.forAnimal', { name: animalName.value }) : null,
 )
-const submitLabel = computed(() =>
-  t(`vaccinations.form.${submitLabelKey(isEdit.value, isSubmitting.value)}`),
-)
-const errorMessage = computed(() =>
-  failure.value === null ? null : t(`vaccinations.form.errors.${failure.value}`),
-)
+const submitLabel = computed(() => {
+  if (isSubmitting.value) {
+    return isEdit.value ? t('vaccinations.form.saving') : t('vaccinations.form.submitting')
+  }
+  return isEdit.value ? t('vaccinations.form.save') : t('vaccinations.form.submit')
+})
+const errorMessage = computed(() => {
+  if (notFound.value) return t('vaccinations.form.errors.notFound')
+  if (loadFailed.value) return t('vaccinations.form.errors.load')
+  if (saveFailed.value) return t('vaccinations.form.errors.save')
+  return null
+})
 const isInjected = computed(() => hasInjection(values.value))
 const injectionHelp = computed(() =>
   isInjected.value ? null : t('vaccinations.form.lastInjectionDate.help'),

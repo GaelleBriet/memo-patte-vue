@@ -110,7 +110,7 @@ const {
   isSubmitting,
   targetAnimal,
   animalName,
-  failure,
+  saveFailed,
   canSave: canSaveCare,
   backToOrigin,
   saveThenLeave,
@@ -192,9 +192,12 @@ const submitLabel = computed(() => {
   } as const
   return t(labels[mode][isSubmitting.value ? 1 : 0])
 })
-const errorMessage = computed(() =>
-  failure.value === null ? null : t(`treatments.form.errors.${failure.value}`),
-)
+const errorMessage = computed(() => {
+  if (notFound.value) return t('treatments.form.errors.notFound')
+  if (loadFailed.value) return t('treatments.form.errors.load')
+  if (saveFailed.value) return t('treatments.form.errors.save')
+  return null
+})
 const canSave = computed(
   () => canSaveCare.value && (mode !== 'resume' || values.value.firstDoseOn !== ''),
 )

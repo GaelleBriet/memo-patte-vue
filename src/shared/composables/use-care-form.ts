@@ -7,7 +7,6 @@ import {
   type ReminderKind,
 } from '../domain/notification-priming'
 import { takesNewCare } from '../domain/unfollowed-animals'
-import { formFailure } from '../form/form-screen'
 import { returnTo } from '../utils/return-to'
 
 export interface CareFormAnimal {
@@ -61,13 +60,6 @@ export function useCareForm<T, A extends CareFormAnimal>(options: CareFormOption
     () => animals.animals.find((animal) => animal.id === targetAnimalId.value) ?? null,
   )
   const animalName = computed(() => targetAnimal.value?.name ?? null)
-  const failure = computed(() =>
-    formFailure({
-      notFound: notFound.value,
-      loadFailed: loadFailed.value,
-      saveFailed: saveFailed.value,
-    }),
-  )
   const canSave = computed(
     () =>
       !isSaved.value &&
@@ -146,11 +138,11 @@ export function useCareForm<T, A extends CareFormAnimal>(options: CareFormOption
     notFound,
     isLoading,
     loadFailed,
+    saveFailed,
     isSubmitting,
     isSaved,
     targetAnimal,
     animalName,
-    failure,
     canSave,
     selectTargetAnimal,
     backToOrigin,
