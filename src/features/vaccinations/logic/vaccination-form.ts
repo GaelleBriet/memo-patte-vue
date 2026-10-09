@@ -7,6 +7,7 @@ import {
   vaccinationUpdateSchema,
   type Vaccination,
 } from '../schema/vaccination.schema'
+import { fieldErrorsOf, type FieldErrorKeys } from '@/shared/form/field-errors'
 import { formatDayMonthOrYear } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
@@ -32,16 +33,19 @@ export interface VaccinationFormContext {
 }
 
 const ERROR_KEYS = {
-  name: 'vaccinations.form.errors.name',
-  lastInjectionDate: 'vaccinations.form.errors.lastInjectionDate',
-  plannedDate: 'vaccinations.form.errors.plannedDate',
-} as const
-
-const CUSTOM_ERROR_KEYS: Partial<Record<VaccinationFormErrorField, string>> = {
-  lastInjectionDate: 'vaccinations.form.errors.lastInjectionDateFuture',
-  plannedDate: 'vaccinations.form.errors.plannedDatePast',
-}
-const MAX_NAME_KEY = 'vaccinations.form.errors.nameMax'
+  name: {
+    key: 'vaccinations.form.errors.name',
+    byCode: { too_big: 'vaccinations.form.errors.nameMax' },
+  },
+  lastInjectionDate: {
+    key: 'vaccinations.form.errors.lastInjectionDate',
+    byCode: { custom: 'vaccinations.form.errors.lastInjectionDateFuture' },
+  },
+  plannedDate: {
+    key: 'vaccinations.form.errors.plannedDate',
+    byCode: { custom: 'vaccinations.form.errors.plannedDatePast' },
+  },
+} as const satisfies Record<string, FieldErrorKeys>
 
 export type VaccinationFormErrorField = keyof typeof ERROR_KEYS
 export type VaccinationFormErrors = Partial<Record<VaccinationFormErrorField, string>>
@@ -123,17 +127,6 @@ function formSchema(context: VaccinationFormContext) {
   })
 }
 
-function isErrorField(field: string): field is VaccinationFormErrorField {
-  return Object.prototype.hasOwnProperty.call(ERROR_KEYS, field)
-}
-
-function errorKeyFor(field: VaccinationFormErrorField, issue: z.core.$ZodIssue): string {
-  if (issue.code === 'custom') return CUSTOM_ERROR_KEYS[field] ?? ERROR_KEYS[field]
-  if (field === 'name' && issue.code === 'too_big') return MAX_NAME_KEY
-
-  return ERROR_KEYS[field]
-}
-
 /** Avec une injection, le prochain rappel vient des raccourcis ; sans, du rendez-vous, obligatoire. */
 export function validateVaccinationForm(
   values: VaccinationFormValues,
@@ -155,15 +148,7 @@ export function validateVaccinationForm(
     return { success: true, data: { name, lastInjectionDate, dueDate: dueDate ?? null } }
   }
 
-  const errors: VaccinationFormErrors = {}
-
-  for (const issue of result.error.issues) {
-    const field = String(issue.path[0])
-
-    if (isErrorField(field)) errors[field] ??= errorKeyFor(field, issue)
-  }
-
-  return { success: false, errors }
+  return { success: false, errors: fieldErrorsOf(result.error.issues, ERROR_KEYS) }
 }
 
 /** La date d'injection saisie si elle est valide, passée ou du jour ; `null` sinon. */
