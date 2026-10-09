@@ -17,7 +17,6 @@ import {
   formatDayMonth,
   formatDayMonthOrYear,
   formatFullDayMonth,
-  formatWeekdayDate,
   formatWeekday,
   formatWeekdayDayMonth,
   formatDaySeries,
@@ -126,10 +125,6 @@ describe('mois et dates', () => {
     expect(plain(formatFullDayMonth('2026-09-28'))).toBe('28 septembre')
   })
 
-  it('écrit une date précédée de son jour de la semaine abrégé', () => {
-    expect(plain(formatWeekdayDate('2026-09-20'))).toBe('dim. 20 sept. 2026')
-  })
-
   it('écrit une échéance en chiffres', () => {
     expect(formatNumericDate(new Date(2027, 8, 14, 10).toISOString())).toBe('14/09/2027')
     expect(formatNumericDate('2026-11-08')).toBe('08/11/2026')
@@ -161,7 +156,6 @@ describe('en anglais', () => {
     expect(formatNumericDate(new Date(2027, 8, 14, 10).toISOString())).toBe('09/14/2027')
     expect(plain(formatDayMonth('2026-09-28'))).toBe('Sep 28')
     expect(plain(formatFullDayMonth('2026-09-28'))).toBe('September 28')
-    expect(plain(formatWeekdayDate('2026-09-20'))).toBe('Sun, Sep 20, 2026')
   })
 })
 
@@ -173,7 +167,6 @@ describe('dates d’un seul tenant', () => {
     expect(formatDayMonth('2026-10-01')).toBe('1er\u00a0oct.')
     expect(formatFullDate('2026-02-03')).toBe('3\u00a0février\u00a02026')
     expect(formatFullDayMonth('2026-09-28')).toBe('28\u00a0septembre')
-    expect(formatWeekdayDate('2026-09-20')).toBe('dim.\u00a020\u00a0sept.\u00a02026')
     expect(formatWeekdayDayMonth('2026-10-16')).toBe('vendredi\u00a016\u00a0oct.')
     expect(formatMonthYear('2026-12-12')).toBe('déc.\u00a02026')
     expect(formatFullMonthYear('2026-09-03')).toBe('septembre\u00a02026')
@@ -209,7 +202,6 @@ describe('dates d’un seul tenant', () => {
 
     expect(formatLongDate('2026-10-01')).toBe('Oct\u00a01,\u00a02026')
     expect(formatDayMonth('2026-10-10')).toBe('Oct\u00a010')
-    expect(formatWeekdayDate('2026-09-20')).toBe('Sun,\u00a0Sep\u00a020,\u00a02026')
     expect(formatMonthYear('2026-12-12')).toBe('Dec\u00a02026')
     expect(formatDaySeries(['2026-10-26', '2026-11-02'])).toBe('Oct\u00a026, Nov\u00a02')
   })
@@ -371,7 +363,6 @@ describe('premier jour du mois', () => {
     expect(plain(formatDayMonthOrYear('2025-10-01', '2026-10-06'))).toBe('1er oct. 2025')
     expect(plain(formatFullDayMonth('2026-10-01'))).toBe('1er octobre')
     expect(plain(formatFullDate('2026-10-01'))).toBe('1er octobre 2026')
-    expect(plain(formatWeekdayDate('2026-10-01'))).toBe('jeu. 1er oct. 2026')
     expect(plain(formatWeekdayDayMonth('2026-10-01'))).toBe('jeudi 1er oct.')
     expect(plain(formatDaySeries(['2026-10-01', '2026-10-08']))).toBe('1er, 8 oct.')
     expect(plain(formatDayList(['2026-10-01', '2026-10-03']))).toBe('1er et 3 oct.')
@@ -397,7 +388,6 @@ describe('premier jour du mois', () => {
     expect(plain(formatDayMonth('2026-10-01'))).toBe('Oct 1')
     expect(plain(formatLongDate('2026-10-01'))).toBe('Oct 1, 2026')
     expect(plain(formatFullDate('2026-10-01'))).toBe('October 1, 2026')
-    expect(plain(formatWeekdayDate('2026-10-01'))).toBe('Thu, Oct 1, 2026')
     expect(plain(formatDaySeries(['2026-10-01', '2026-10-08']))).toBe('Oct 1, 8')
     expect(plain(formatPeriodRange('2026-09-01', '2026-09-20'))).toEqual({
       start: 'Sep 1',

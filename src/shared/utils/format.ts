@@ -99,7 +99,6 @@ export function weekdayInitials(): string[] {
 const LONG_DATE_PATTERNS = { fr: 'd MMM yyyy', en: 'PP' }
 const DAY_MONTH_PATTERNS = { fr: 'd MMM', en: 'MMM d' }
 const FULL_DAY_MONTH_PATTERNS = { fr: 'd MMMM', en: 'MMMM d' }
-const WEEKDAY_DATE_PATTERNS = { fr: 'EEE d MMM yyyy', en: 'EEE, MMM d, yyyy' }
 
 function isFirstOfMonth(isoDate: string): boolean {
   return isoDate.slice(8, 10) === '01'
@@ -139,11 +138,6 @@ export function withoutFinalDot(text: string): string {
 /** `28 septembre` / `September 28` — lu par le lecteur d'écran. */
 export function formatFullDayMonth(isoDate: string): string {
   return formatIn(isoDate, FULL_DAY_MONTH_PATTERNS)
-}
-
-/** `dim. 20 sept. 2026` / `Sun, Sep 20, 2026`. */
-export function formatWeekdayDate(isoDate: string): string {
-  return formatIn(isoDate, WEEKDAY_DATE_PATTERNS)
 }
 
 const FULL_DATE_PATTERNS = { fr: 'd MMMM yyyy', en: 'MMMM d, yyyy' }
