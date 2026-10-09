@@ -38,14 +38,17 @@ export function editionDraftOf(
  * « Prochaine dose » n'est envoyée que si elle est proposée : vide, elle est alors refusée. Avec une
  * réponse `pastDues`, la date envoyée est celle que la question a annoncée pour ce choix.
  * `needsPastDuesChoice` : la saisie est valide, il reste à poser la question des échéances tombées.
+ * `draft` : le brouillon déjà calculé de cette saisie ; sans lui, il est recalculé et lève quand
+ * l'historique est illisible.
  */
 export function validateTreatmentEdition(
   values: TreatmentFormValues,
   history: TreatmentWithHistory,
   today: string,
   pastDues: PastDuesChoice | null = null,
+  draft: EditionDraft | null = null,
 ): TreatmentEditionResult {
-  const { nextDose, pastDuesNextDose } = editionDraftOf(values, history, today)
+  const { nextDose, pastDuesNextDose } = draft ?? editionDraftOf(values, history, today)
   const typed = values.nextDoseOn.trim()
   const announcedOn = pastDues === null ? null : (pastDuesNextDose?.[pastDues] ?? null)
   const result = treatmentEditionSchemaFor(history, today).safeParse({

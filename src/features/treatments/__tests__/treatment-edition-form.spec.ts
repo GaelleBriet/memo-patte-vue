@@ -163,6 +163,33 @@ describe('validateTreatmentEdition (TR-6, TR-9, TR-28)', () => {
   })
 })
 
+describe('« Modifier » valide la saisie avec le brouillon déjà calculé', () => {
+  it('rend le même résultat avec ou sans le brouillon de l’écran', () => {
+    const values = edition({ frequencyValue: '1' })
+    const draft = editionDraftOf(values, milbemax(), TODAY)
+
+    expect(validateTreatmentEdition(values, milbemax(), TODAY, null, draft)).toEqual(
+      validateTreatmentEdition(values, milbemax(), TODAY),
+    )
+  })
+
+  it('lit la prochaine dose dans le brouillon reçu', () => {
+    const values = edition()
+    const draft = { ...editionDraftOf(values, milbemax(), TODAY), nextDose: null }
+
+    expect(validateTreatmentEdition(values, milbemax(), TODAY, null, draft)).toMatchObject({
+      success: true,
+      data: { nextDoseOn: null },
+    })
+  })
+
+  it('sans brouillon, le recalcule et lève pour un historique illisible', () => {
+    const illisible = milbemax([period({ times: ['8h'] })])
+
+    expect(() => validateTreatmentEdition(edition(), illisible, TODAY)).toThrow(RangeError)
+  })
+})
+
 describe('valeurs à l’ouverture de « Modifier »', () => {
   it('« Modifier » part des réglages en cours et de la prochaine dose proposée', () => {
     expect(editedFormValues(milbemax(), TODAY)).toEqual({

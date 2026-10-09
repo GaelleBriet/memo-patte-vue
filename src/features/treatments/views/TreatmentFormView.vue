@@ -136,7 +136,13 @@ const creation = useFormValidation(values, (current) =>
   ),
 )
 const edition = useFormValidation(values, (current) =>
-  validateTreatmentEdition(current, requireHistory(), today.value, pastDuesChoice.value),
+  validateTreatmentEdition(
+    current,
+    requireHistory(),
+    today.value,
+    pastDuesChoice.value,
+    draft.value,
+  ),
 )
 const resumption = useFormValidation(values, (current) =>
   validateTreatmentResumption(current, requireHistory(), today.value),
@@ -297,13 +303,7 @@ function write(): (() => Promise<unknown>) | null {
     const result = resumption.validate()
     return result.success ? () => treatments.resume(id, result.data) : null
   }
-  edition.validate()
-  const result = validateTreatmentEdition(
-    values.value,
-    requireHistory(),
-    today.value,
-    pastDuesChoice.value,
-  )
+  const result = edition.validate()
   if (result.success) return () => treatments.update(id, result.data)
   isPastDuesOpen.value = result.needsPastDuesChoice
   return null
