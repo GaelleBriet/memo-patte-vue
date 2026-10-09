@@ -142,6 +142,7 @@ export function useCareForm<T, A extends CareFormAnimal>(options: CareFormOption
   })
 
   return {
+    from,
     notFound,
     isLoading,
     loadFailed,
@@ -151,6 +152,7 @@ export function useCareForm<T, A extends CareFormAnimal>(options: CareFormOption
     animalName,
     failure,
     canSave,
+    selectTargetAnimal,
     backToOrigin,
     saveThenLeave,
   }

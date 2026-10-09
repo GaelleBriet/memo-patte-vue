@@ -905,6 +905,21 @@ describe('VaccinationFormView — vaccin déjà suivi', () => {
     expect(replace).not.toHaveBeenCalled()
   })
 
+  it('la feuille « Fait » revient à l’écran d’origine et sélectionne l’animal après un changement', async () => {
+    await routeur.push('/animals?from=home')
+    const select = vi.spyOn(useAnimalsStore(), 'select')
+    const wrapper = await monterCreation()
+    await saisirCarre(wrapper)
+    document.body.querySelector<HTMLButtonElement>('.confirm-dialog__confirm')!.click()
+    await flushPromises()
+
+    const feuille = wrapper.getComponent(VaccinationReminderSheet)
+    expect(feuille.props('returnTo')).toBe('home')
+    feuille.vm.$emit('changed')
+
+    expect(select).toHaveBeenCalledWith(MILO.id)
+  })
+
   it('part d’aujourd’hui quand aucune date n’est saisie', async () => {
     const wrapper = await monterCreation()
     await saisirCarre(wrapper, '')

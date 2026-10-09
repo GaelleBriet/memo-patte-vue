@@ -29,7 +29,7 @@ function magasin(animaux: CareFormAnimal[], hasLoaded = true) {
   const store = reactive({
     animals: hasLoaded ? animaux : ([] as CareFormAnimal[]),
     hasLoaded,
-    load: vi.fn(async () => {
+    load: vi.fn<() => Promise<void>>(async () => {
       store.animals = animaux
       store.hasLoaded = true
     }),
@@ -122,6 +122,24 @@ describe('useCareForm — création', () => {
   })
 })
 
+describe('useCareForm — origine', () => {
+  it('lit l’écran d’origine dans la route, et sélectionne l’animal ciblé sur demande', async () => {
+    route.query = { from: 'home' }
+    const { form, animals } = monter({ animalId: 'luna' })
+    await flushPromises()
+
+    expect(form.from).toBe('home')
+    form.selectTargetAnimal()
+    expect(animals.select).toHaveBeenCalledWith('luna')
+  })
+
+  it('n’a pas d’origine quand la route n’en donne pas', () => {
+    const { form } = monter({ animalId: 'milo' })
+
+    expect(form.from).toBeUndefined()
+  })
+})
+
 describe('useCareForm — chargement du soin', () => {
   it('ouvre le soin chargé, dont l’animal prime sur celui de la route', async () => {
     const soin = { id: 's1', animalId: 'luna' }
@@ -168,7 +186,7 @@ describe('useCareForm — enregistrement', () => {
     route.query = { from: 'settings' }
     const { form, animals } = monter({ animalId: 'milo' })
     await flushPromises()
-    const write = vi.fn(async () => undefined)
+    const write = vi.fn<() => Promise<void>>(async () => undefined)
 
     await form.saveThenLeave(write, true)
 

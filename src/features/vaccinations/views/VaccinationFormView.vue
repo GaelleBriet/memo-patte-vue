@@ -53,12 +53,14 @@ const doneSheetInjectedOn = ref<string | null>(null)
 const isCheckingName = ref(false)
 
 const {
+  from,
   isSubmitting,
   isSaved,
   targetAnimal,
   animalName,
   failure,
   canSave,
+  selectTargetAnimal,
   backToOrigin,
   saveThenLeave,
 } = useCareForm({
