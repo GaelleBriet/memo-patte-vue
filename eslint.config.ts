@@ -120,6 +120,12 @@ const PURCHASE_STORE_READ_ONLY = {
     'Du statut Plus, une autre feature ne lit que usePurchaseStore (cf. CLAUDE.md, « Règles strictes de structure »).',
 }
 
+const APP_RESTRICTION = {
+  group: ['@/app', '@/app/**'],
+  message:
+    "app/ ne fait que démarrer l'app : une feature n'en importe rien (cf. CLAUDE.md, « Règles strictes de structure »).",
+}
+
 function engineFacadeRule(group: string[]): Linter.RulesRecord {
   return {
     'app/no-restricted-engine-imports': [
@@ -158,6 +164,7 @@ function featureImportsRule(feature: string, allowedElsewhere: string[] = []): L
         message:
           'Import interdit depuis une autre feature : passe par shared/ ou core/ (cf. CLAUDE.md, « Règles strictes de structure »).',
       },
+      APP_RESTRICTION,
       ...(feature === 'animals' ? [] : [ANIMALS_STORE_READ_ONLY]),
       ...(feature === 'purchase' ? [] : [PURCHASE_STORE_READ_ONLY]),
       {
