@@ -7,9 +7,45 @@ on:
   push:
     branches:
       - main
+  # La suite complète dans les trois fuseaux, chaque nuit et sur demande (et à chaque push sur main).
+  schedule:
+    - cron: '23 2 * * *'
+  workflow_dispatch:
+
+# Un nouveau commit sur une PR annule le passage en cours ; sur main, chaque passage va au bout.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  pull-requests: read
 
 jobs:
+  # Une PR qui ne touche que site/ ou docs/ ne lance que ESLint et les tests du site.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      app: ${{ steps.diff.outputs.app }}
+    steps:
+      - id: diff
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          app=true
+          if [ "$EVENT" = pull_request ] &&
+            files=$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[] | .filename, (.previous_filename // empty)') &&
+            [ -n "$files" ] && ! grep -qvE '^(site|docs)/' <<<"$files"; then
+            app=false
+          fi
+          echo "app=$app" | tee -a "$GITHUB_OUTPUT"
+
   ci:
+    needs: changes
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -24,27 +60,68 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint
-        run: pnpm lint
+      # Les langues sont dans la clé : no-missing-keys juge un .vue d'après fr.json, que le cache ignore.
+      # no-unused-keys tourne toujours sans cache (`lint:i18n`).
+      - name: Cache ESLint
+        uses: actions/cache@v6
+        with:
+          path: node_modules/.cache/eslint
+          key: eslint-${{ hashFiles('pnpm-lock.yaml', 'eslint.config.ts', '.oxlintrc.json', 'tools/eslint/**', 'src/core/i18n/locales/**') }}-${{ github.sha }}
+          restore-keys: eslint-${{ hashFiles('pnpm-lock.yaml', 'eslint.config.ts', '.oxlintrc.json', 'tools/eslint/**', 'src/core/i18n/locales/**') }}-
 
+      - name: Lint
+        run: pnpm lint:ci
+
+      - name: Tests du site
+        if: needs.changes.outputs.app != 'true'
+        run: pnpm exec vitest run src/__tests__/site- scripts/__tests__/site-
+
+      # Aussi pour site/ seul : `site/_worker.js` est vérifié par tsconfig.vitest.json.
       - name: Type-check
         run: pnpm type-check
 
-      - name: Unit tests
-        run: pnpm exec vitest run
-
+      # Type-check fait juste au-dessus : `build-only` plutôt que `build`, qui le relancerait.
       - name: Build
-        run: pnpm build
+        if: needs.changes.outputs.app == 'true'
+        run: pnpm build-only
 
       - name: Pas d'outils de dev dans le build (fixtures, SQLite du navigateur)
+        if: needs.changes.outputs.app == 'true'
         run: pnpm test:build
 
+  tests:
+    needs: changes
+    if: github.event_name != 'schedule' && needs.changes.outputs.app == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Unit tests (${{ matrix.shard }}/3)
+        run: pnpm exec vitest run --shard=${{ matrix.shard }}/3
+
   fuseaux:
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         tz: ['Pacific/Kiritimati', 'Pacific/Pago_Pago', 'America/Santiago']
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@v7
 
@@ -58,12 +135,27 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Unit tests (${{ matrix.tz }})
-        run: pnpm exec vitest run
+      # Sur une PR, les dossiers des échéances, plus tout test ailleurs qui touche une date ou une heure.
+      - name: Unit tests (${{ matrix.tz }}, ${{ matrix.shard }}/3)
         env:
           TZ: ${{ matrix.tz }}
+          SHARD: ${{ matrix.shard }}/3
+          FULL: ${{ github.event_name != 'pull_request' }}
+        run: |
+          if [ "$FULL" = true ]; then
+            pnpm exec vitest run --shard="$SHARD"
+            exit
+          fi
+          dates=$(grep -rlE --include='*.spec.ts' --include='*.spec.mjs' \
+            'useFakeTimers|setSystemTime|new Date|Date\.(now|UTC|parse)|date-fns|TZ|Intl\.DateTimeFormat|toLocale(Date|Time)?String|getTimezoneOffset|todayIsoDate|[0-9]{4}-[0-9]{2}-[0-9]{2}' \
+            src scripts || true)
+          pnpm exec vitest run --shard="$SHARD" \
+            src/shared/ src/features/treatments/ src/features/vaccinations/ src/features/home/ src/features/weight/ \
+            $dates
 
   android:
+    needs: changes
+    if: github.event_name != 'schedule' && needs.changes.outputs.app == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -104,3 +196,30 @@ jobs:
 
       - name: Permissions du manifest fusionné
         run: pnpm test:manifest
+
+  # Seul passage à attendre : vert si chaque job a réussi, ou n'a été sauté que lorsque c'était voulu.
+  verdict:
+    name: Verdict
+    needs: [changes, ci, tests, fuseaux, android]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          NEEDS: ${{ toJSON(needs) }}
+          EVENT: ${{ github.event_name }}
+          APP: ${{ needs.changes.outputs.app }}
+        run: |
+          if [ "$EVENT" = schedule ]; then
+            expected='changes fuseaux'
+          elif [ "$APP" = true ]; then
+            expected='changes ci tests fuseaux android'
+          else
+            expected='changes ci'
+          fi
+          ok=true
+          while read -r job result; do
+            if [[ " $expected " == *" $job "* ]]; then want=success; else want=skipped; fi
+            echo "$job : $result (attendu : $want)"
+            [ "$result" = "$want" ] || ok=false
+          done < <(jq -r 'to_entries[] | "\(.key) \(.value.result)"' <<<"$NEEDS")
+          $ok

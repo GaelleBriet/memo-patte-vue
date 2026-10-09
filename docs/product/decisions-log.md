@@ -2270,3 +2270,30 @@ n'ouvre pas la période, et une prise qui a décalé la suite compte à sa date 
 le carnet ne redemande jamais une dose donnée (principe 1). —
 Alternative écartée : la journée entière au nouveau réglage, ou la dernière prise plus la nouvelle
 fréquence (le 20 h du 3 disparaissait).
+
+2026-10-09 — **Vitrine de `memopatte.app` refaite avec Gaelle** :
+- accroche « Plus aucun soin oublié pour tes chiens et chats. », plus courte et tournée vers le
+  bénéfice ; la phrase de définition reste dessous pour Google et les IA ;
+- menu « Tarifs » plutôt que « Prix » ;
+- photos du chien et du chat de Gaelle, retouchées par elle, présentés sous les prénoms du carnet de
+  démonstration, Milo et Luna ;
+- sections « Ce qu'un oubli peut coûter », trois bénéfices, et un comparatif avec le carnet papier et
+  l'agenda du téléphone, sans les autres applis : rien de vérifiable à en dire ;
+- visite guidée en huit captures de l'app, avec un rappel de démonstration et des prénoms touchables ;
+- quatre pages par soin (vermifuge, antiparasitaire, vaccins, plusieurs animaux) en FR et EN,
+  reliées depuis le pied de toutes les pages ;
+- menu collé en haut sur ordinateur, flèche de retour en haut sur téléphone ;
+- www renvoyé vers `memopatte.app` par le worker du site.
+
+Le bouton « Bientôt sur Google Play » reste inactif : pas de liste d'e-mails, on attend la
+préinscription Google Play. Dans les données structurées, l'autrice renvoie à `gaelle-briet.fr`,
+accord de Gaelle du jour ; le lien visible reste absent (#682). — Raison : la page expliquait l'app
+sans donner envie de la télécharger. — Alternatives écartées : un titre de quatre mots sans
+« chiens et chats », qui frappe plus fort mais perd les mots que les gens cherchent ; des photos
+libres de droits, plus banales que de vrais animaux.
+
+2026-10-09 — **Téléphone de l'éditrice dans les mentions légales** : `+33 7 69 46 49 63`, ligne
+professionnelle de Gaelle, au format international dans les deux langues et touchable pour appeler.
+Il n'est ni sur l'accueil ni dans l'app, où le contact reste l'e-mail. Ferme le point laissé
+ouvert le 2026-10-08 (LCEN). — Alternative écartée : le format national `07…`, illisible pour un
+visiteur à l'étranger.

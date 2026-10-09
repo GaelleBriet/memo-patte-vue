@@ -56,6 +56,9 @@ const FIRST_SEED = Number(process.env.INVARIANTS_FROM ?? 1)
 const CARNETS = Number(process.env.INVARIANTS_SEEDS ?? 150)
 const STEPS = Number(process.env.INVARIANTS_STEPS ?? 24)
 const TIMEOUT = 30_000 + CARNETS * STEPS * 5
+if (![FIRST_SEED, CARNETS, STEPS].every((value) => Number.isInteger(value) && value > 0)) {
+  throw new Error(`Campagne illisible : INVARIANTS_FROM, INVARIANTS_SEEDS ou INVARIANTS_STEPS`)
+}
 
 function mulberry32(seed: number): Random {
   let state = seed
@@ -1682,7 +1685,9 @@ describe('invariants du moteur, sur des carnets et des gestes tirés au sort (gr
     'aucune dose ne disparaît sans bruit après un geste accepté',
     () => {
       const failures: string[] = []
+      let played = 0
       for (let seed = FIRST_SEED; seed < FIRST_SEED + CARNETS; seed += 1) {
+        played += 1
         const random = mulberry32(seed)
         const simulation = new Simulation(newBook(random), random, seed)
         try {
@@ -1692,6 +1697,10 @@ describe('invariants du moteur, sur des carnets et des gestes tirés au sort (gr
         }
       }
 
+      console.warn(
+        `Campagne : ${played} carnets × ${STEPS} gestes, graines ${FIRST_SEED} à ${FIRST_SEED + CARNETS - 1}`,
+      )
+      expect(played).toBe(CARNETS)
       expect(failures).toEqual([])
     },
     TIMEOUT,

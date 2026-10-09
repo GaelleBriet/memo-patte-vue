@@ -6,10 +6,12 @@
     <title>MémoPatte, le carnet de santé de tes chiens et chats</title>
     <meta
       name="description"
-      content="Vaccins, vermifuges, antiparasitaires, médicaments, poids&nbsp;: ce qui est à faire aujourd’hui, pour tous tes animaux, sur un seul écran. Même sans réseau. Gratuit, sans compte."
+      content="Vaccins, vermifuges, antiparasitaires&nbsp;: MémoPatte rappelle les soins de tous tes chiens et chats, même sans réseau. App Android gratuite, sans compte."
     />
+    <meta name="theme-color" content="#01383e" />
     <link rel="icon" href="/icon.png" />
     <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/vitrine.css" />
     <link
       rel="preload"
       href="/fonts/space-grotesk-latin-wght-normal.woff2"
@@ -57,10 +59,110 @@
         "inLanguage": "fr",
         "url": "https://memopatte.app/",
         "image": "https://memopatte.app/icon.png",
-        "author": { "@type": "Person", "name": "Gaëlle Briet" },
-        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" }
+        "screenshot": "https://memopatte.app/img/fr-accueil.webp",
+        "author": {
+          "@type": "Person",
+          "name": "Gaëlle Briet",
+          "url": "https://www.gaelle-briet.fr/",
+          "sameAs": ["https://www.gaelle-briet.fr/"]
+        },
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "EUR"
+        },
+        "isAccessibleForFree": true,
+        "featureList": [
+          "Rappels de vaccins, vermifuges, antiparasitaires et médicaments",
+          "Rappels même sans réseau",
+          "Tous les animaux sur un seul écran",
+          "Suivi du poids",
+          "Export JSON, CSV et PDF",
+          "Sans compte, sans publicité"
+        ]
       }
     </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "MémoPatte",
+        "url": "https://memopatte.app/",
+        "inLanguage": "fr",
+        "publisher": {
+          "@type": "Person",
+          "name": "Gaëlle Briet",
+          "url": "https://www.gaelle-briet.fr/",
+          "sameAs": ["https://www.gaelle-briet.fr/"]
+        }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "inLanguage": "fr",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Quand sort MémoPatte ?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Bientôt, sur Google Play. La date n’est pas encore fixée : elle sera annoncée ici dès qu’elle le sera."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Et sur iPhone ?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Pas pour l’instant. MémoPatte sort d’abord sur Android, et il n’y a pas encore de date pour l’iPhone."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "C’est vraiment gratuit ?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Oui. Tout ce qui marche sur ton téléphone est gratuit, sans publicité et sans limite d’animaux, exports compris. Seul MémoPatte Plus, pour le cloud, sera payant."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Faut-il un compte ?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Non. Un compte ne servira qu’à MémoPatte Plus."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Où sont mes données ?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Sur ton téléphone. La sauvegarde d’Android peut en garder une copie dans ton compte Google (sans les photos). Le cloud de MémoPatte ne servira qu’avec MémoPatte Plus. Elles ne sont jamais vendues."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Que se passe-t-il si je change de téléphone ?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Le plus sûr : exporte ton carnet, puis importe-le sur le nouveau téléphone. La sauvegarde d’Android peut aussi le reprendre, mais sans garantie : cela dépend de l’appareil. Quand MémoPatte Plus sera là, il suffira de te connecter pour retrouver ton carnet."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Est-ce que ça remplace le vétérinaire ?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Non. MémoPatte note et rappelle ce que tu as prévu avec ton vétérinaire. Elle ne conseille ni dose, ni produit, ni date."
+            }
+          }
+        ]
+      }
+    </script>
+    <script type="module" src="/vitrine.js"></script>
   </head>
   <body>
     <header class="site-header">
@@ -68,7 +170,7 @@
         <a class="brand" href="/"><img src="/icon.png" alt="" width="40" height="40" />MémoPatte</a>
         <nav class="site-nav" aria-label="Menu">
           <a href="/#comment-ca-marche">Comment ça marche</a>
-          <a href="/#prix">Prix</a>
+          <a href="/#tarifs">Tarifs</a>
           <a href="/#questions">Questions</a>
         </nav>
         <a class="language" href="/en/" hreflang="en" lang="en"
@@ -83,11 +185,12 @@
     <main class="showcase">
       <section class="hero">
         <div class="hero-inner">
-          <div class="hero-band">
-            <h1>Le carnet de santé de tes chiens et chats, qui pense aux soins à ta place.</h1>
+          <div class="hero-text">
+            <h1>Plus aucun soin oublié pour tes chiens et chats.</h1>
             <p class="hero-lead">
-              Vaccins, vermifuges, antiparasitaires, médicaments, poids&nbsp;: ce qui est à faire
-              aujourd’hui, pour tous tes animaux, sur un seul écran. Même sans réseau.
+              MémoPatte est une app Android gratuite qui te rappelle les vaccins, vermifuges,
+              antiparasitaires et médicaments de tes animaux. Ce qui est à faire aujourd’hui, pour
+              tous, sur un seul écran. Même sans réseau.
             </p>
             <div class="play-cta">
               <span class="chip chip-light"
@@ -96,184 +199,643 @@
               >
               <p class="play-facts">Android · Gratuit · Sans compte</p>
             </div>
-            <div class="pets" aria-hidden="true">
-              <span class="pet"><span class="pet-avatar pet-milo"></span>Milo</span>
-              <span class="pet"><span class="pet-avatar pet-luna"></span>Luna</span>
-            </div>
           </div>
           <div class="hero-phone">
+            <div class="pet-photo pet-photo-milo" aria-hidden="true">
+              <img src="/img/photo-milo.webp" alt="" width="480" height="480" /><span>Milo</span>
+            </div>
+            <div class="pet-photo pet-photo-luna" aria-hidden="true">
+              <img src="/img/photo-luna.webp" alt="" width="480" height="480" /><span>Luna</span>
+            </div>
             <div class="phone">
               <img
                 class="screen"
                 src="/img/fr-accueil.webp"
+                srcset="/img/fr-accueil-400.webp 400w, /img/fr-accueil.webp 720w"
+                sizes="(min-width: 1024px) 320px, 300px"
                 width="720"
                 height="1600"
-                alt="Accueil de MémoPatte&nbsp;: Milo et Luna en haut, puis la liste «&nbsp;À faire&nbsp;» de six soins, avec le vaccin CHPPi de Milo en retard en tête, ses granulés aujourd’hui à 8&nbsp;h et à 20&nbsp;h, et la pipette de Luna dans trois jours."
+                fetchpriority="high"
+                alt="Accueil de MémoPatte&nbsp;: Milo et Luna en haut, puis la liste «&nbsp;À faire&nbsp;» de six soins, avec le vaccin CHPPi de Milo en retard en tête, ses granulés aujourd’hui à 8 h et à 20 h, et la pipette de Luna dans trois jours."
               />
+              <div class="notif" role="group" aria-label="Exemple de rappel de MémoPatte">
+                <p class="notif-app">
+                  <img src="/icon.png" alt="" width="16" height="16" />MémoPatte · maintenant
+                </p>
+                <p class="notif-title">Granulés de Milo à 8 h</p>
+                <p class="notif-body">1 sachet</p>
+                <button class="notif-action" type="button" hidden>C’est fait</button>
+              </div>
+              <p class="demo-toast" role="status">
+                <span class="toast-text" hidden>Prise de 8 h de Granulés notée pour Milo</span>
+              </p>
             </div>
+            <p class="demo-hint" hidden>Essaie «&nbsp;C’est fait&nbsp;» sur le rappel.</p>
           </div>
         </div>
       </section>
 
-      <section class="problem">
-        <p class="problem-title">
-          Le vermifuge de l’un, la pipette de l’autre, le comprimé du soir du troisième…
-        </p>
-        <p class="problem-text">
-          Le vétérinaire te rappelle les vaccins&nbsp;; le reste, c’est à la maison qu’on l’oublie.
-        </p>
-      </section>
-
-      <section class="section" id="comment-ca-marche">
-        <h2>Comment ça marche</h2>
-        <div class="features">
-          <article class="feature">
-            <div class="feature-text">
-              <span class="feature-icon"
-                ><span class="symbol symbol-notifications-active" aria-hidden="true"></span
-              ></span>
-              <h3>Des rappels qui arrivent, même sans réseau</h3>
+      <section class="problem" aria-labelledby="probleme">
+        <div class="problem-inner">
+          <h2 id="probleme">
+            Le vermifuge de l’un, la pipette de l’autre, le comprimé du soir du troisième…
+          </h2>
+          <p class="problem-text">
+            Le vétérinaire te rappelle les vaccins&nbsp;; le reste, c’est à la maison qu’on
+            l’oublie.
+          </p>
+          <h3 class="stakes-title">Ce qu’un oubli peut coûter</h3>
+          <ul class="stakes">
+            <li>
+              <h4>La pension refuse le chien</h4>
               <p>
-                Les rappels sont programmés sur ton téléphone&nbsp;: pas besoin d’internet pour
-                qu’ils sonnent. Depuis la notification, «&nbsp;C’est fait&nbsp;» le note dans le
-                carnet. Pour l’heure pile, active «&nbsp;Rappels précis&nbsp;».
+                Le rappel du vaccin est passé depuis un mois. Sans vaccins à jour, une pension ou un
+                pet-sitter peut refuser de le garder.
               </p>
-              <a class="more" href="/aide/rappels/"
-                >Si Android retarde tes rappels<span
-                  class="symbol symbol-arrow-forward"
-                  aria-hidden="true"
-                ></span
-              ></a>
-            </div>
-            <div class="phone">
-              <img
-                class="screen"
-                src="/img/fr-notification.webp"
-                width="720"
-                height="1600"
-                loading="lazy"
-                alt="Volet des notifications d’Android&nbsp;: la notification de MémoPatte «&nbsp;Granulés de Milo à 8&nbsp;h&nbsp;», avec la posologie «&nbsp;1 sachet&nbsp;» et le bouton «&nbsp;C’est fait&nbsp;»."
-              />
-            </div>
-          </article>
-
-          <article class="feature">
-            <div class="feature-text">
-              <span class="feature-icon"
-                ><span class="symbol symbol-pets" aria-hidden="true"></span
-              ></span>
-              <h3>Tous tes animaux, d’un coup d’œil</h3>
+            </li>
+            <li>
+              <h4>Donné, ou pas&nbsp;?</h4>
               <p>
-                Milo, Luna et les autres sur le même écran&nbsp;: ce qui est à faire, pour qui, et
-                quand. Touche un prénom pour ne voir que ses soins.
+                Le comprimé du soir&nbsp;: plus personne ne sait s’il a été donné. Le redonner, ou
+                risquer l’oubli&nbsp;?
               </p>
-            </div>
-            <div class="phone">
-              <img
-                class="screen"
-                src="/img/fr-accueil.webp"
-                width="720"
-                height="1600"
-                loading="lazy"
-                alt="Accueil de MémoPatte avec Milo et Luna&nbsp;: chaque soin de la liste «&nbsp;À faire&nbsp;» porte son type, le prénom de l’animal et son échéance, comme «&nbsp;Pipette du mois, Antiparasitaire · Luna, dans 3 jours&nbsp;»."
-              />
-            </div>
-          </article>
-
-          <article class="feature">
-            <div class="feature-text">
-              <span class="feature-icon"
-                ><span class="symbol symbol-calendar-today" aria-hidden="true"></span
-              ></span>
-              <h3>Ce qui compte aujourd’hui d’abord</h3>
+            </li>
+            <li>
+              <h4>Le traitement s’arrête trop tôt</h4>
               <p>
-                Les retards et les soins du jour passent en tête. Un oubli reste visible, avec une
-                seule relance et sans reproche&nbsp;: tu le notes quand tu veux, même à une autre
-                date.
+                Prévu pour trois semaines, il est oublié au bout de dix jours, sans que personne ne
+                s’en rende compte.
               </p>
-            </div>
-            <div class="phone">
-              <img
-                class="screen"
-                src="/img/fr-fiche-traitement.webp"
-                width="720"
-                height="1600"
-                loading="lazy"
-                alt="Fiche du traitement «&nbsp;Granulés&nbsp;» de Milo, tous les jours à 8&nbsp;h et 20&nbsp;h&nbsp;: les deux doses du jour avec leur bouton «&nbsp;C’est fait&nbsp;», le lien «&nbsp;Fait à une autre date&nbsp;», l’encart «&nbsp;5 doses non renseignées&nbsp;» et la liste des prises, dont une oubliée."
-              />
-            </div>
-          </article>
-
-          <article class="feature">
-            <div class="feature-text">
-              <span class="feature-icon"
-                ><span class="symbol symbol-lock-open" aria-hidden="true"></span
-              ></span>
-              <h3>Gratuit pour de vrai, et tes données restent à toi</h3>
-              <p>
-                Pas de compte, pas de publicité, pas de limite d’animaux. Ton carnet vit sur ton
-                téléphone et tu l’exportes quand tu veux, en JSON, CSV ou PDF, gratuitement.
-              </p>
-              <a class="more" href="/aide/exporter/"
-                >Comment exporter mes données<span
-                  class="symbol symbol-arrow-forward"
-                  aria-hidden="true"
-                ></span
-              ></a>
-            </div>
-            <div class="phone">
-              <img
-                class="screen"
-                src="/img/fr-mes-donnees.webp"
-                width="720"
-                height="1600"
-                loading="lazy"
-                alt="Écran «&nbsp;Mes données&nbsp;»&nbsp;: unité de poids en kilogrammes ou en livres, «&nbsp;Exporter mes données&nbsp;» en JSON ou CSV, «&nbsp;Exporter en PDF&nbsp;» pour tous les animaux ou un seul, et «&nbsp;Importer un export MémoPatte&nbsp;»."
-              />
-            </div>
-          </article>
+            </li>
+          </ul>
+          <div class="before-after">
+            <figure class="before">
+              <ul class="notes">
+                <li class="note note-postit">Comprimé de Milo donné le 18/09</li>
+                <li class="note note-sms">
+                  Votre vétérinaire&nbsp;: rappel du vaccin CHPPi de Milo avant le 24/08.
+                </li>
+                <li class="note note-calendar">1er du mois&nbsp;: pipette de Luna</li>
+                <li class="note note-scrap">Granulés de Milo&nbsp;: 1 sachet à 8 h et à 20 h</li>
+              </ul>
+              <figcaption>
+                <strong>Avant</strong> Des post-it, un SMS, un calendrier et ta mémoire.
+              </figcaption>
+            </figure>
+            <figure class="after">
+              <div class="todo">
+                <p class="todo-title">À faire</p>
+                <ul>
+                  <li class="todo-row">
+                    <span class="todo-icon"
+                      ><span class="symbol symbol-vaccines" aria-hidden="true"></span></span
+                    ><span class="todo-name">CHPPi<span class="todo-meta">Vaccin · Milo</span></span
+                    ><span class="due due-late">En retard</span>
+                  </li>
+                  <li class="todo-row">
+                    <span class="todo-icon"
+                      ><span class="symbol symbol-medication" aria-hidden="true"></span></span
+                    ><span class="todo-name"
+                      >Granulés<span class="todo-meta">Vermifuge · Milo</span></span
+                    ><span class="due due-today">Aujourd’hui · 20 h</span>
+                  </li>
+                  <li class="todo-row">
+                    <span class="todo-icon"
+                      ><span class="symbol symbol-pest-control" aria-hidden="true"></span></span
+                    ><span class="todo-name"
+                      >Pipette du mois<span class="todo-meta">Antiparasitaire · Luna</span></span
+                    ><span class="due due-soon">Dans 3 jours</span>
+                  </li>
+                  <li class="todo-row">
+                    <span class="todo-icon"
+                      ><span class="symbol symbol-medication" aria-hidden="true"></span></span
+                    ><span class="todo-name"
+                      >Comprimé du mois<span class="todo-meta">Vermifuge · Milo</span></span
+                    ><span class="due due-soon">Dans 10 jours</span>
+                  </li>
+                </ul>
+              </div>
+              <figcaption>
+                <strong>Avec MémoPatte</strong> Une seule liste, les retards en tête.
+              </figcaption>
+            </figure>
+          </div>
+          <p class="problem-answer">
+            Tu n’as plus à t’en souvenir&nbsp;: MémoPatte s’en souvient pour toi.
+          </p>
         </div>
       </section>
 
+      <div class="band band-dark">
+        <section class="section benefits-section">
+          <h2>Ce que MémoPatte change</h2>
+          <ul class="benefits">
+            <li>
+              <span class="benefit-icon"
+                ><span class="symbol symbol-notifications-active" aria-hidden="true"></span
+              ></span>
+              <h3>Plus rien d’oublié, même sans réseau</h3>
+              <p>
+                Un rappel avant, un le jour même, une relance si rien n’est noté. «&nbsp;C’est
+                fait&nbsp;» depuis la notification, et la date suivante se calcule toute seule.
+              </p>
+            </li>
+            <li>
+              <span class="benefit-icon"
+                ><span class="symbol symbol-pets" aria-hidden="true"></span
+              ></span>
+              <h3>Tous tes animaux, un seul écran</h3>
+              <p>
+                Les retards d’abord, puis le jour, puis la suite&nbsp;: tu sais quoi faire, pour
+                qui, en un coup d’œil.
+              </p>
+            </li>
+            <li>
+              <span class="benefit-icon"
+                ><span class="symbol symbol-lock-open" aria-hidden="true"></span
+              ></span>
+              <h3>Gratuit, sans compte, à toi</h3>
+              <p>
+                Pas de pub, pas de limite d’animaux. Ton carnet reste sur ton téléphone et s’exporte
+                en PDF quand tu veux.
+              </p>
+            </li>
+          </ul>
+        </section>
+      </div>
+
       <section class="section">
-        <h2>Ce que MémoPatte ne fait pas</h2>
-        <ul class="limits">
-          <li class="card">
-            <span class="symbol symbol-stethoscope" aria-hidden="true"></span>
-            <h3>Remplacer le vétérinaire</h3>
-            <p>
-              Elle note et rappelle ce que tu as prévu avec ton vétérinaire. Elle ne conseille ni
-              dose, ni produit, ni date.
-            </p>
+        <h2>Pourquoi pas un carnet papier ou l’agenda du téléphone&nbsp;?</h2>
+        <div class="compare-scroll">
+          <table class="compare">
+            <caption class="visually-hidden">
+              Ce que font le carnet papier, l’agenda du téléphone et MémoPatte
+            </caption>
+            <thead>
+              <tr>
+                <td></td>
+                <th scope="col">Carnet papier</th>
+                <th scope="col">Agenda du téléphone</th>
+                <th scope="col" class="compare-us">MémoPatte</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Te prévient avant la date</th>
+                <td class="is-no">
+                  <span class="symbol symbol-remove" aria-hidden="true"></span
+                  ><span class="visually-hidden">Non</span>
+                </td>
+                <td class="is-yes">
+                  <span class="symbol symbol-check" aria-hidden="true"></span
+                  ><span class="visually-hidden">Oui</span>
+                </td>
+                <td class="is-yes compare-us">
+                  <span class="symbol symbol-check" aria-hidden="true"></span
+                  ><span class="visually-hidden">Oui</span>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Tous les animaux sur un écran, triés par urgence</th>
+                <td class="is-no">
+                  <span class="symbol symbol-remove" aria-hidden="true"></span
+                  ><span class="visually-hidden">Non</span>
+                </td>
+                <td class="is-no">
+                  <span class="symbol symbol-remove" aria-hidden="true"></span
+                  ><span class="visually-hidden">Non</span>
+                </td>
+                <td class="is-yes compare-us">
+                  <span class="symbol symbol-check" aria-hidden="true"></span
+                  ><span class="visually-hidden">Oui</span>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Sait quelles doses ont été données ou oubliées</th>
+                <td class="is-yes">
+                  <span class="symbol symbol-check" aria-hidden="true"></span
+                  ><span class="visually-hidden">Oui</span>
+                </td>
+                <td class="is-no">
+                  <span class="symbol symbol-remove" aria-hidden="true"></span
+                  ><span class="visually-hidden">Non</span>
+                </td>
+                <td class="is-yes compare-us">
+                  <span class="symbol symbol-check" aria-hidden="true"></span
+                  ><span class="visually-hidden">Oui</span>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Garde l’historique de chaque prise et injection</th>
+                <td class="is-yes">
+                  <span class="symbol symbol-check" aria-hidden="true"></span
+                  ><span class="visually-hidden">Oui</span>
+                </td>
+                <td class="is-no">
+                  <span class="symbol symbol-remove" aria-hidden="true"></span
+                  ><span class="visually-hidden">Non</span>
+                </td>
+                <td class="is-yes compare-us">
+                  <span class="symbol symbol-check" aria-hidden="true"></span
+                  ><span class="visually-hidden">Oui</span>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">«&nbsp;C’est fait&nbsp;» depuis la notification</th>
+                <td class="is-no">
+                  <span class="symbol symbol-remove" aria-hidden="true"></span
+                  ><span class="visually-hidden">Non</span>
+                </td>
+                <td class="is-no">
+                  <span class="symbol symbol-remove" aria-hidden="true"></span
+                  ><span class="visually-hidden">Non</span>
+                </td>
+                <td class="is-yes compare-us">
+                  <span class="symbol symbol-check" aria-hidden="true"></span
+                  ><span class="visually-hidden">Oui</span>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Fonctionne sans réseau</th>
+                <td class="is-yes">
+                  <span class="symbol symbol-check" aria-hidden="true"></span
+                  ><span class="visually-hidden">Oui</span>
+                </td>
+                <td class="is-yes">
+                  <span class="symbol symbol-check" aria-hidden="true"></span
+                  ><span class="visually-hidden">Oui</span>
+                </td>
+                <td class="is-yes compare-us">
+                  <span class="symbol symbol-check" aria-hidden="true"></span
+                  ><span class="visually-hidden">Oui</span>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Gratuit, sans compte</th>
+                <td class="is-yes">
+                  <span class="symbol symbol-check" aria-hidden="true"></span
+                  ><span class="visually-hidden">Oui</span>
+                </td>
+                <td class="is-yes">
+                  <span class="symbol symbol-check" aria-hidden="true"></span
+                  ><span class="visually-hidden">Oui</span>
+                </td>
+                <td class="is-yes compare-us">
+                  <span class="symbol symbol-check" aria-hidden="true"></span
+                  ><span class="visually-hidden">Oui</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <div class="band band-sand">
+        <section class="section" id="comment-ca-marche">
+          <h2>Comment ça marche</h2>
+          <p class="section-lead">L’app en huit écrans, avec le carnet de Milo et Luna.</p>
+          <div class="tour" style="--steps: 8">
+            <div class="tour-step" style="--row: 1">
+              <div class="tour-text">
+                <span class="feature-icon"
+                  ><span class="symbol symbol-notifications-active" aria-hidden="true"></span
+                ></span>
+                <h3>Des rappels qui arrivent, même sans réseau</h3>
+                <p>
+                  Les rappels sont programmés sur ton téléphone&nbsp;: pas besoin d’internet pour
+                  qu’ils sonnent. Depuis la notification, «&nbsp;C’est fait&nbsp;» le note dans le
+                  carnet. Pour l’heure pile, active «&nbsp;Rappels précis&nbsp;».
+                </p>
+                <a class="more" href="/aide/rappels/"
+                  >Si Android retarde tes rappels<span
+                    class="symbol symbol-arrow-forward"
+                    aria-hidden="true"
+                  ></span
+                ></a>
+              </div>
+              <div class="phone">
+                <img
+                  class="screen"
+                  src="/img/fr-notification.webp"
+                  srcset="/img/fr-notification-400.webp 400w, /img/fr-notification.webp 720w"
+                  sizes="(min-width: 1024px) 320px, 300px"
+                  width="720"
+                  height="1600"
+                  loading="lazy"
+                  alt="Volet des notifications d’Android&nbsp;: la notification de MémoPatte «&nbsp;Granulés de Milo à 8 h&nbsp;», avec la posologie «&nbsp;1 sachet&nbsp;» et le bouton «&nbsp;C’est fait&nbsp;»."
+                />
+              </div>
+            </div>
+            <div class="tour-step" style="--row: 2">
+              <div class="tour-text">
+                <span class="feature-icon"
+                  ><span class="symbol symbol-calendar-today" aria-hidden="true"></span
+                ></span>
+                <h3>Ce qui compte aujourd’hui d’abord</h3>
+                <p>
+                  Les retards et les soins du jour passent en tête de l’accueil. Un oubli reste
+                  visible, avec une seule relance et sans reproche&nbsp;: tu le notes quand tu veux,
+                  même à une autre date.
+                </p>
+              </div>
+              <div class="phone">
+                <img
+                  class="screen"
+                  src="/img/fr-accueil.webp"
+                  srcset="/img/fr-accueil-400.webp 400w, /img/fr-accueil.webp 720w"
+                  sizes="(min-width: 1024px) 320px, 300px"
+                  width="720"
+                  height="1600"
+                  loading="lazy"
+                  alt="Accueil de MémoPatte&nbsp;: en tête, «&nbsp;1 soin en retard&nbsp;» et le vaccin CHPPi de Milo, en retard de 45 jours, puis ses granulés du jour à 8 h et à 20 h."
+                /><span
+                  class="ring"
+                  style="--ring-x: 0.03; --ring-y: 0.318; --ring-w: 0.94; --ring-h: 0.16"
+                  aria-hidden="true"
+                ></span>
+              </div>
+            </div>
+            <div class="tour-step" style="--row: 3">
+              <div class="tour-text">
+                <span class="feature-icon"
+                  ><span class="symbol symbol-pets" aria-hidden="true"></span
+                ></span>
+                <h3>Tous tes animaux, d’un coup d’œil</h3>
+                <p>
+                  Milo, Luna et les autres sur le même écran&nbsp;: ce qui est à faire, pour qui, et
+                  quand. Touche un prénom pour ne voir que ses soins, et touche-le à nouveau pour
+                  revoir tout le monde.
+                </p>
+                <p class="pet-hint" hidden>Essaie&nbsp;: touche Milo ou Luna sur l’écran.</p>
+              </div>
+              <div class="phone pet-demo">
+                <img
+                  class="screen"
+                  src="/img/fr-accueil.webp"
+                  srcset="/img/fr-accueil-400.webp 400w, /img/fr-accueil.webp 720w"
+                  sizes="(min-width: 1024px) 320px, 300px"
+                  width="720"
+                  height="1600"
+                  loading="lazy"
+                  alt="Accueil de MémoPatte&nbsp;: Milo et Luna en haut, puis la liste «&nbsp;À faire&nbsp;» de leurs soins à tous les deux."
+                /><span
+                  class="ring"
+                  style="--ring-x: 0.04; --ring-y: 0.193; --ring-w: 0.53; --ring-h: 0.062"
+                  aria-hidden="true"
+                ></span>
+                <button
+                  class="pet-spot"
+                  type="button"
+                  style="--spot-x: 0.05; --spot-y: 0.196; --spot-w: 0.235; --spot-h: 0.056"
+                  aria-pressed="false"
+                  data-src="/img/fr-accueil-milo.webp"
+                  data-small="/img/fr-accueil-milo-400.webp"
+                  data-alt="Accueil de MémoPatte avec le prénom de Milo touché&nbsp;: la liste «&nbsp;À faire&nbsp;» ne montre plus que ses cinq soins, son vaccin CHPPi en retard en tête."
+                  hidden
+                >
+                  Milo
+                </button>
+                <button
+                  class="pet-spot"
+                  type="button"
+                  style="--spot-x: 0.305; --spot-y: 0.196; --spot-w: 0.255; --spot-h: 0.056"
+                  aria-pressed="false"
+                  data-src="/img/fr-accueil-luna.webp"
+                  data-small="/img/fr-accueil-luna-400.webp"
+                  data-alt="Accueil de MémoPatte avec le prénom de Luna touché&nbsp;: la liste «&nbsp;À faire&nbsp;» ne montre plus que sa pipette du mois, dans 3 jours, puis les actions rapides."
+                  hidden
+                >
+                  Luna
+                </button>
+              </div>
+            </div>
+            <div class="tour-step" style="--row: 4">
+              <div class="tour-text">
+                <span class="feature-icon"
+                  ><span class="symbol symbol-medication" aria-hidden="true"></span
+                ></span>
+                <h3>Chaque dose, au jour près</h3>
+                <p>
+                  Pour un traitement à plusieurs prises par jour, chaque dose a son bouton
+                  «&nbsp;C’est fait&nbsp;». Des doses n’ont pas été notées&nbsp;? Indique en une
+                  fois celles qui ont été données&nbsp;; l’historique garde chaque prise.
+                </p>
+              </div>
+              <div class="phone">
+                <img
+                  class="screen"
+                  src="/img/fr-fiche-traitement.webp"
+                  srcset="
+                    /img/fr-fiche-traitement-400.webp 400w,
+                    /img/fr-fiche-traitement.webp     720w
+                  "
+                  sizes="(min-width: 1024px) 320px, 300px"
+                  width="720"
+                  height="1600"
+                  loading="lazy"
+                  alt="Fiche du traitement «&nbsp;Granulés&nbsp;» de Milo, tous les jours à 8 h et 20 h&nbsp;: les deux doses du jour avec leur bouton «&nbsp;C’est fait&nbsp;», le lien «&nbsp;Fait à une autre date&nbsp;», l’encart «&nbsp;5 doses non renseignées&nbsp;» et la liste des prises, dont une oubliée."
+                />
+              </div>
+            </div>
+            <div class="tour-step" style="--row: 5">
+              <div class="tour-text">
+                <span class="feature-icon"
+                  ><span class="symbol symbol-menu-book" aria-hidden="true"></span
+                ></span>
+                <h3>Le carnet de chaque animal</h3>
+                <p>
+                  Sa fiche réunit ses vaccins, ses traitements en cours et son poids. Ce qui est en
+                  retard saute aux yeux, avec le nombre de rappels à faire.
+                </p>
+              </div>
+              <div class="phone">
+                <img
+                  class="screen"
+                  src="/img/fr-carnet.webp"
+                  srcset="/img/fr-carnet-400.webp 400w, /img/fr-carnet.webp 720w"
+                  sizes="(min-width: 1024px) 320px, 300px"
+                  width="720"
+                  height="1600"
+                  loading="lazy"
+                  alt="Carnet de Milo&nbsp;: 24,5 kg, 1 rappel en retard, 3 traitements en cours, puis ses vaccins, CHPPi en retard et Rage à jour, et ses traitements."
+                />
+              </div>
+            </div>
+            <div class="tour-step" style="--row: 6">
+              <div class="tour-text">
+                <span class="feature-icon"
+                  ><span class="symbol symbol-vaccines" aria-hidden="true"></span
+                ></span>
+                <h3>Ses vaccins et leurs injections</h3>
+                <p>
+                  Chaque injection reste notée, avec la date du rappel suivant. De retour de chez le
+                  vétérinaire, touche «&nbsp;C’est fait&nbsp;», ou «&nbsp;Fait à une autre
+                  date&nbsp;» si c’était un autre jour.
+                </p>
+              </div>
+              <div class="phone">
+                <img
+                  class="screen"
+                  src="/img/fr-vaccin.webp"
+                  srcset="/img/fr-vaccin-400.webp 400w, /img/fr-vaccin.webp 720w"
+                  sizes="(min-width: 1024px) 320px, 300px"
+                  width="720"
+                  height="1600"
+                  loading="lazy"
+                  alt="Fiche du vaccin CHPPi de Milo&nbsp;: dernière injection le 24 août 2025, prochain rappel en retard depuis le 24 août, bouton «&nbsp;C’est fait&nbsp;», lien «&nbsp;Fait à une autre date&nbsp;» et les trois injections notées."
+                />
+              </div>
+            </div>
+            <div class="tour-step" style="--row: 7">
+              <div class="tour-text">
+                <span class="feature-icon"
+                  ><span class="symbol symbol-monitor-weight" aria-hidden="true"></span
+                ></span>
+                <h3>Son poids, en courbe</h3>
+                <p>
+                  Une pesée de temps en temps suffit&nbsp;: la courbe montre l’évolution, avec la
+                  variation depuis la dernière pesée. En kilogrammes ou en livres.
+                </p>
+              </div>
+              <div class="phone">
+                <img
+                  class="screen"
+                  src="/img/fr-poids.webp"
+                  srcset="/img/fr-poids-400.webp 400w, /img/fr-poids.webp 720w"
+                  sizes="(min-width: 1024px) 320px, 300px"
+                  width="720"
+                  height="1600"
+                  loading="lazy"
+                  alt="Suivi de poids de Milo&nbsp;: 24,5 kg, +0,2 kg depuis le 8 sept., et sa courbe de mai à octobre, de 23,6 à 24,5 kg."
+                />
+              </div>
+            </div>
+            <div class="tour-step" style="--row: 8">
+              <div class="tour-text">
+                <span class="feature-icon"
+                  ><span class="symbol symbol-lock-open" aria-hidden="true"></span
+                ></span>
+                <h3>Gratuit pour de vrai, et tes données restent à toi</h3>
+                <p>
+                  Pas de compte, pas de publicité, pas de limite d’animaux. Exporte le carnet en PDF
+                  pour le vétérinaire ou la pension, ou toutes tes données en JSON ou CSV,
+                  gratuitement.
+                </p>
+                <a class="more" href="/aide/exporter/"
+                  >Comment exporter mes données<span
+                    class="symbol symbol-arrow-forward"
+                    aria-hidden="true"
+                  ></span
+                ></a>
+              </div>
+              <div class="phone">
+                <img
+                  class="screen"
+                  src="/img/fr-export-pdf.webp"
+                  srcset="/img/fr-export-pdf-400.webp 400w, /img/fr-export-pdf.webp 720w"
+                  sizes="(min-width: 1024px) 320px, 300px"
+                  width="720"
+                  height="1600"
+                  loading="lazy"
+                  alt="Feuille «&nbsp;Exporter en PDF&nbsp;» du carnet de Milo&nbsp;: le fichier PDF avec ses vaccins, traitements, poids et photos, et les boutons «&nbsp;Enregistrer sur le téléphone&nbsp;» et «&nbsp;Partager&nbsp;»."
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section class="section">
+        <h2>Un rappel pour chaque soin</h2>
+        <p class="section-lead">
+          Chaque soin garde le rythme prévu avec ton vétérinaire&nbsp;: tous les jours, toutes les
+          semaines, tous les mois ou une fois par an.
+        </p>
+        <ul class="needs">
+          <li>
+            <a class="need-tile" href="/rappel-vermifuge/"
+              ><span class="need-icon"
+                ><span class="symbol symbol-medication" aria-hidden="true"></span></span
+              ><span class="need-title">Rappel de vermifuge</span
+              ><span class="need-line"
+                >Comprimé, pâte ou pipette, au rythme prévu avec ton vétérinaire.</span
+              ></a
+            >
           </li>
-          <li class="card">
-            <span class="symbol symbol-block" aria-hidden="true"></span>
-            <h3>Afficher de la publicité</h3>
-            <p>Aucune pub dans l’app, et tes données ne sont jamais vendues.</p>
+          <li>
+            <a class="need-tile" href="/rappel-antiparasitaire/"
+              ><span class="need-icon"
+                ><span class="symbol symbol-pest-control" aria-hidden="true"></span></span
+              ><span class="need-title">Rappel d’antiparasitaire</span
+              ><span class="need-line"
+                >Pipette, collier ou comprimé contre les puces et les tiques.</span
+              ></a
+            >
           </li>
-          <li class="card">
-            <span class="symbol symbol-no-accounts" aria-hidden="true"></span>
-            <h3>T’obliger à créer un compte</h3>
-            <p>
-              Tout marche sur le téléphone sans inscription. Le compte ne servira qu’à MémoPatte
-              Plus.
-            </p>
+          <li>
+            <a class="need-tile" href="/carnet-vaccination/"
+              ><span class="need-icon"
+                ><span class="symbol symbol-vaccines" aria-hidden="true"></span></span
+              ><span class="need-title">Carnet de vaccination</span
+              ><span class="need-line"
+                >Chaque injection notée, et un rappel deux semaines avant la date.</span
+              ></a
+            >
           </li>
-          <li class="card">
-            <span class="symbol symbol-pets" aria-hidden="true"></span>
-            <h3>Suivre d’autres animaux</h3>
-            <p>Chiens et chats seulement, pour l’instant.</p>
+          <li>
+            <a class="need-tile" href="/plusieurs-animaux/"
+              ><span class="need-icon"
+                ><span class="symbol symbol-pets" aria-hidden="true"></span></span
+              ><span class="need-title">Plusieurs animaux</span
+              ><span class="need-line"
+                >Tous tes chiens et chats sur un seul écran, sans limite.</span
+              ></a
+            >
           </li>
         </ul>
       </section>
 
-      <section class="section" id="prix">
-        <h2>Prix</h2>
+      <div class="band band-sand">
+        <section class="section">
+          <h2>Ce que MémoPatte ne fait pas</h2>
+          <ul class="limits">
+            <li>
+              <span class="symbol symbol-stethoscope" aria-hidden="true"></span>
+              <h3>Remplacer le vétérinaire</h3>
+              <p>
+                Elle note et rappelle ce que tu as prévu avec ton vétérinaire. Elle ne conseille ni
+                dose, ni produit, ni date.
+              </p>
+            </li>
+            <li>
+              <span class="symbol symbol-block" aria-hidden="true"></span>
+              <h3>Afficher de la publicité</h3>
+              <p>Aucune pub dans l’app, et tes données ne sont jamais vendues.</p>
+            </li>
+            <li>
+              <span class="symbol symbol-no-accounts" aria-hidden="true"></span>
+              <h3>T’obliger à créer un compte</h3>
+              <p>
+                Tout marche sur le téléphone sans inscription. Le compte ne servira qu’à MémoPatte
+                Plus.
+              </p>
+            </li>
+            <li>
+              <span class="symbol symbol-pets" aria-hidden="true"></span>
+              <h3>Suivre d’autres animaux</h3>
+              <p>Chiens et chats seulement, pour l’instant.</p>
+            </li>
+          </ul>
+        </section>
+      </div>
+
+      <section class="section" id="tarifs">
+        <h2>Tarifs</h2>
         <p class="section-lead">
           Tout ce qui marche sur ton téléphone est gratuit. Seul le cloud est payant.
         </p>
         <div class="plans">
-          <div class="plan card">
+          <div class="plan plan-free">
             <h3>Gratuit</h3>
             <p class="plan-subtitle">Sans compte, sans publicité.</p>
             <p class="plan-price">0&nbsp;€</p>
@@ -327,70 +889,79 @@
         </div>
       </section>
 
-      <section class="section" id="questions">
-        <h2>Questions fréquentes</h2>
-        <div class="faq">
-          <details open>
-            <summary>Quand sort MémoPatte&nbsp;?</summary>
-            <p id="reponse-sortie">
-              Bientôt, sur Google Play. La date n’est pas encore fixée&nbsp;: elle sera annoncée ici
-              dès qu’elle le sera.
-            </p>
-          </details>
-          <details>
-            <summary>Et sur iPhone&nbsp;?</summary>
-            <p>
-              Pas pour l’instant. MémoPatte sort d’abord sur Android, et il n’y a pas encore de date
-              pour l’iPhone.
-            </p>
-          </details>
-          <details>
-            <summary>C’est vraiment gratuit&nbsp;?</summary>
-            <p>
-              Oui. Tout ce qui marche sur ton téléphone est gratuit, sans publicité et sans limite
-              d’animaux, exports compris. Seul MémoPatte Plus, pour le cloud, sera payant.
-            </p>
-          </details>
-          <details>
-            <summary>Faut-il un compte&nbsp;?</summary>
-            <p>Non. Un compte ne servira qu’à MémoPatte Plus.</p>
-          </details>
-          <details>
-            <summary>Où sont mes données&nbsp;?</summary>
-            <p>
-              Sur ton téléphone. La sauvegarde d’Android peut en garder une copie dans ton compte
-              Google (sans les photos). Le cloud de MémoPatte ne servira qu’avec MémoPatte Plus.
-              Elles ne sont jamais vendues.
-            </p>
-          </details>
-          <details>
-            <summary>Que se passe-t-il si je change de téléphone&nbsp;?</summary>
-            <p>
-              Le plus sûr&nbsp;: exporte ton carnet, puis importe-le sur le nouveau téléphone. La
-              sauvegarde d’Android peut aussi le reprendre, mais sans garantie&nbsp;: cela dépend de
-              l’appareil. Quand MémoPatte Plus sera là, il suffira de te connecter pour retrouver
-              ton carnet.
-            </p>
-          </details>
-          <details>
-            <summary>Est-ce que ça remplace le vétérinaire&nbsp;?</summary>
-            <p>
-              Non. MémoPatte note et rappelle ce que tu as prévu avec ton vétérinaire. Elle ne
-              conseille ni dose, ni produit, ni date.
-            </p>
-          </details>
-        </div>
-        <a class="more" href="/aide/"
-          >Toutes les questions, sur la page d’aide<span
-            class="symbol symbol-arrow-forward"
-            aria-hidden="true"
-          ></span
-        ></a>
-      </section>
+      <div class="band band-sand">
+        <section class="section" id="questions">
+          <h2>Questions fréquentes</h2>
+          <div class="faq">
+            <details open>
+              <summary>Quand sort MémoPatte&nbsp;?</summary>
+              <p id="reponse-sortie">
+                Bientôt, sur Google Play. La date n’est pas encore fixée&nbsp;: elle sera annoncée
+                ici dès qu’elle le sera.
+              </p>
+            </details>
+            <details>
+              <summary>Et sur iPhone&nbsp;?</summary>
+              <p>
+                Pas pour l’instant. MémoPatte sort d’abord sur Android, et il n’y a pas encore de
+                date pour l’iPhone.
+              </p>
+            </details>
+            <details>
+              <summary>C’est vraiment gratuit&nbsp;?</summary>
+              <p>
+                Oui. Tout ce qui marche sur ton téléphone est gratuit, sans publicité et sans limite
+                d’animaux, exports compris. Seul MémoPatte Plus, pour le cloud, sera payant.
+              </p>
+            </details>
+            <details>
+              <summary>Faut-il un compte&nbsp;?</summary>
+              <p>Non. Un compte ne servira qu’à MémoPatte Plus.</p>
+            </details>
+            <details>
+              <summary>Où sont mes données&nbsp;?</summary>
+              <p>
+                Sur ton téléphone. La sauvegarde d’Android peut en garder une copie dans ton compte
+                Google (sans les photos). Le cloud de MémoPatte ne servira qu’avec MémoPatte Plus.
+                Elles ne sont jamais vendues.
+              </p>
+            </details>
+            <details>
+              <summary>Que se passe-t-il si je change de téléphone&nbsp;?</summary>
+              <p>
+                Le plus sûr&nbsp;: exporte ton carnet, puis importe-le sur le nouveau téléphone. La
+                sauvegarde d’Android peut aussi le reprendre, mais sans garantie&nbsp;: cela dépend
+                de l’appareil. Quand MémoPatte Plus sera là, il suffira de te connecter pour
+                retrouver ton carnet.
+              </p>
+            </details>
+            <details>
+              <summary>Est-ce que ça remplace le vétérinaire&nbsp;?</summary>
+              <p>
+                Non. MémoPatte note et rappelle ce que tu as prévu avec ton vétérinaire. Elle ne
+                conseille ni dose, ni produit, ni date.
+              </p>
+            </details>
+          </div>
+          <a class="more" href="/aide/"
+            >Toutes les questions, sur la page d’aide<span
+              class="symbol symbol-arrow-forward"
+              aria-hidden="true"
+            ></span
+          ></a>
+        </section>
+      </div>
 
       <section class="section">
-        <div class="maker card">
-          <span class="maker-initial" aria-hidden="true">G</span>
+        <div class="maker">
+          <img
+            class="maker-photo"
+            src="/img/photo-chien-chat.webp"
+            alt="Un bouvier bernois et un chat roux à poils longs, côte à côte dans une entrée."
+            width="960"
+            height="722"
+            loading="lazy"
+          />
           <div>
             <h2>Qui fait MémoPatte</h2>
             <p>
@@ -422,6 +993,10 @@
           <p class="play-facts">Android · Gratuit · Sans compte</p>
         </div>
       </section>
+      <a class="to-top" href="#" hidden
+        ><span class="symbol symbol-arrow-upward" aria-hidden="true"></span
+        ><span class="visually-hidden">Revenir en haut</span></a
+      >
     </main>
     <footer class="site-footer">
       <div class="site-footer-inner">
@@ -431,6 +1006,12 @@
           >
           <p>Une app de Gaëlle Briet</p>
         </div>
+        <nav class="footer-needs" aria-label="Rappels par soin">
+          <a href="/rappel-vermifuge/">Rappel de vermifuge</a>
+          <a href="/rappel-antiparasitaire/">Rappel d’antiparasitaire</a>
+          <a href="/carnet-vaccination/">Carnet de vaccination</a>
+          <a href="/plusieurs-animaux/">Plusieurs animaux</a>
+        </nav>
         <nav aria-label="Pied de page">
           <a href="/aide/">Aide</a>
           <a href="/confidentialite/">Confidentialité</a>
