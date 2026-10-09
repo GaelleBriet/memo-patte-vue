@@ -1,166 +1,21 @@
 import { describe, expect, it } from 'vitest'
 
+import { edition, milbemax, MILO, period, PRISE, saisie, TODAY } from './treatment-form-fixtures'
 import {
   creationPastDuesOf,
   editionDraftOf,
-  emptyTreatmentFormValues,
   pastDosesBasis,
-  rhythmOfValues,
   loadedFormValues,
-  treatmentFormValuesFrom,
   validateTreatmentCreation,
   validateTreatmentEdition,
   validateTreatmentResumption,
-  type TreatmentFormValues,
 } from '../logic/treatment-form'
+import {
+  emptyTreatmentFormValues,
+  rhythmOfValues,
+  treatmentFormValuesFrom,
+} from '../logic/treatment-form-values'
 import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
-import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-
-const AT = '2026-07-01T08:00:00.000Z'
-const MILO = '11111111-1111-4111-8111-111111111111'
-const TREATMENT = '22222222-2222-4222-8222-222222222222'
-const TODAY = '2026-09-28'
-
-function period(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPeriodRecord {
-  return {
-    id: TREATMENT,
-    treatmentId: TREATMENT,
-    animalId: MILO,
-    startsOn: '2026-07-10',
-    firstDueOn: '2026-07-10',
-    referenceOn: '2026-07-10',
-    endsOn: null,
-    stoppedOn: null,
-    frequency: { value: 3, unit: 'month' },
-    times: [],
-    doseQuantity: 1.5,
-    doseUnit: 'tablet',
-    reminderOffsetMinutes: null,
-    reminderTime: null,
-    createdAt: AT,
-    updatedAt: AT,
-    deletedAt: null,
-    ...overrides,
-  }
-}
-
-const PRISE: NewTreatmentDose = {
-  id: 'd-1',
-  periodId: TREATMENT,
-  treatmentId: TREATMENT,
-  animalId: MILO,
-  dueOn: '2026-07-10',
-  dueTime: null,
-  givenOn: '2026-07-10',
-  status: 'given',
-  nextDueDate: '2026-10-10',
-  createdAt: AT,
-  updatedAt: AT,
-  deletedAt: null,
-}
-
-function milbemax(
-  periods: TreatmentPeriodRecord[] = [period()],
-  doses: NewTreatmentDose[] = [PRISE],
-): TreatmentWithHistory {
-  return {
-    id: TREATMENT,
-    animalId: MILO,
-    name: 'Milbemax',
-    type: 'deworming',
-    createdAt: AT,
-    updatedAt: AT,
-    periods,
-    doses,
-  }
-}
-
-function saisie(changes: Partial<TreatmentFormValues> = {}): TreatmentFormValues {
-  return {
-    name: 'Panacur',
-    type: 'deworming',
-    frequencyValue: '1',
-    frequencyUnit: 'day',
-    firstDoseOn: '2026-09-29',
-    nextDoseOn: '',
-    shiftsFollowing: true,
-    times: ['20:00'],
-    doseQuantity: '½',
-    doseUnit: 'tablet',
-    endsOn: '2026-10-10',
-    reminderOffset: null,
-    reminderTime: null,
-    ...changes,
-  }
-}
-
-function edition(changes: Partial<TreatmentFormValues> = {}): TreatmentFormValues {
-  return {
-    ...treatmentFormValuesFrom(milbemax(), period()),
-    nextDoseOn: '2026-10-10',
-    ...changes,
-  }
-}
-
-describe('valeurs du formulaire', () => {
-  it('part d’un formulaire vide, l’unité de fréquence au mois', () => {
-    expect(emptyTreatmentFormValues()).toEqual({
-      name: '',
-      type: null,
-      frequencyValue: '',
-      frequencyUnit: 'month',
-      firstDoseOn: '',
-      nextDoseOn: '',
-      shiftsFollowing: true,
-      times: [],
-      doseQuantity: '',
-      doseUnit: null,
-      endsOn: '',
-      reminderOffset: null,
-      reminderTime: null,
-    })
-  })
-
-  it('reprend les réglages d’une période, la quantité d’un comprimé en fraction', () => {
-    const reglages = period({ times: ['20:00', '08:00'], endsOn: '2026-10-10' })
-
-    expect(treatmentFormValuesFrom(milbemax(), reglages)).toEqual({
-      name: 'Milbemax',
-      type: 'deworming',
-      frequencyValue: '3',
-      frequencyUnit: 'month',
-      firstDoseOn: '',
-      nextDoseOn: '',
-      shiftsFollowing: true,
-      times: ['08:00', '20:00'],
-      doseQuantity: '1\u00a0½',
-      doseUnit: 'tablet',
-      endsOn: '2026-10-10',
-      reminderOffset: null,
-      reminderTime: null,
-    })
-  })
-
-  it('reprend le rappel de la période, pour « Modifier » comme pour « Reprendre » (TR-32)', () => {
-    const reglages = period({ times: ['21:00'], reminderOffsetMinutes: 30, reminderTime: '07:30' })
-
-    expect(treatmentFormValuesFrom(milbemax(), reglages)).toMatchObject({
-      reminderOffset: 30,
-      reminderTime: '07:30',
-    })
-  })
-
-  it('laisse la posologie vide quand la période n’en a pas', () => {
-    const values = treatmentFormValuesFrom(
-      milbemax(),
-      period({ doseQuantity: null, doseUnit: null }),
-    )
-
-    expect(values).toMatchObject({ doseQuantity: '', doseUnit: null, endsOn: '' })
-  })
-})
 
 describe('champ « Rappel » (RA-7, RA-8, RA-23)', () => {
   it('envoie le rappel saisi avec les réglages', () => {

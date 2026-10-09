@@ -13,7 +13,6 @@ import TreatmentUnloggedPrompt from './TreatmentUnloggedPrompt.vue'
 import { chooseDaysSubtitle, type DayChoice } from '../logic/treatment-choose-days'
 import {
   creationPastDuesOf,
-  emptyTreatmentFormValues,
   loadedFormValues,
   pastDosesBasis,
   validateTreatmentCreation,
@@ -25,6 +24,7 @@ import {
   reminderOffsetChoices,
   suggestExactReminders,
 } from '../logic/treatment-reminder-choices'
+import { emptyTreatmentFormValues } from '../logic/treatment-form-values'
 import { DUPLICATE_TIME_ERROR_KEY } from '../logic/treatment-form-errors'
 import {
   endsOnHelpText,

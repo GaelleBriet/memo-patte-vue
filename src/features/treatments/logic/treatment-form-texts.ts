@@ -1,5 +1,5 @@
 import type { EditionDraft, NextDoseHelp } from './treatment-edition'
-import type { TreatmentFormValues } from './treatment-form'
+import type { TreatmentFormValues } from './treatment-form-values'
 import type { ResumptionDraft } from './treatment-resumption'
 import { shiftHelpText, type ShiftHelp } from './treatment-shift-box'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
