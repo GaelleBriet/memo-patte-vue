@@ -48,7 +48,6 @@ const store = useVaccinationsStore()
 
 const { isCurrent, hasError } = useAnimalSectionLoad(() => props.animalId, store)
 
-// Au changement d'animal, ou après un échec, le store porte déjà le nouvel animal mais encore l'ancienne liste.
 const vaccinations = computed(() => (isCurrent.value ? store.vaccinations : []))
 
 const rows = computed(() =>

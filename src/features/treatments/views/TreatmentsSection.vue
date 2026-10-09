@@ -43,7 +43,6 @@ const { isCurrent, hasError } = useAnimalSectionLoad(() => props.animalId, store
 
 const showsFinished = ref(false)
 
-// Au changement d'animal, ou après un échec, le store porte déjà le nouvel animal mais encore l'ancienne liste.
 const carnet = computed(() =>
   carnetTreatments(t, isCurrent.value ? store.treatments : [], props.today, schedules, {
     followed: props.followed,

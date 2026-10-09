@@ -10,7 +10,8 @@ export type AnimalSectionStore = {
 
 /**
  * Charge la liste d'une section du Carnet ; `isCurrent` dit si le store porte la liste de cet
- * animal, `hasError` si son dernier chargement a échoué.
+ * animal, `hasError` si son dernier chargement a échoué. Au changement d'animal, ou après un échec,
+ * le store porte déjà le nouvel animal mais encore l'ancienne liste : ne l'afficher que si `isCurrent`.
  */
 export function useAnimalSectionLoad(animalId: () => string, store: AnimalSectionStore) {
   const { loadedFor } = useAnimalScopedLoad(animalId, (id) => store.loadForAnimal(id))
