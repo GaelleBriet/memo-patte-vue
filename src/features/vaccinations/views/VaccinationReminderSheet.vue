@@ -14,10 +14,14 @@ import {
   nextReminderSummary,
   vaccinationSheetTexts,
 } from '../logic/vaccination-sheet'
-import type { InjectionDates } from '../repository/vaccination-injections.repository'
+import type { InjectionDates } from '../schema/vaccination-injection.schema'
 import type { Vaccination } from '../schema/vaccination.schema'
 import { useVaccinationsStore } from '../store/vaccinations.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
+import {
+  primingAfterReminderSaved,
+  routeAfterReminderSaved,
+} from '@/core/notifications/reminder-saved-priming'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
 import {
@@ -28,10 +32,6 @@ import {
 import DateCalendar from '@/shared/components/DateCalendar.vue'
 import ReminderActions from '@/shared/components/ReminderActions.vue'
 import { confirmUndoable } from '@/shared/composables/use-guarded-gestures'
-import {
-  primingAfterReminderSaved,
-  routeAfterReminderSaved,
-} from '@/shared/domain/notification-priming'
 import { formatLongDate } from '@/shared/utils/format'
 import { showToast } from '@/shared/utils/toast'
 

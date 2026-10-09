@@ -12,7 +12,7 @@ import {
 } from '../domain/weight-chart'
 import { withWeightUnit } from '../domain/weight-display'
 import { fromKg, toKg } from '../domain/weight-unit'
-import { applyWeightUnit } from '../domain/weight-unit-preference'
+import { applyWeightUnit } from '@/core/preferences/weight-unit-preference'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const LIBELLES: CarnetChartLabels = {

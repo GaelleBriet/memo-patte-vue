@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createCarnetCopyService } from '../service/carnet-copy.service'
 import type { DataExportService } from '@/features/settings/service/data-export.service'
-import { recordUsageSignal, type UsageSignal } from '@/shared/utils/usage-signals'
+import { recordUsageSignal, type UsageSignal } from '@/core/usage/usage-signals'
 
 vi.mock('@/features/settings/service/data-export.service', () => ({ dataExportService: {} }))
-vi.mock('@/shared/utils/usage-signals', () => ({
+vi.mock('@/core/usage/usage-signals', () => ({
   recordUsageSignal: vi.fn<(signal: UsageSignal) => void>(),
 }))
 

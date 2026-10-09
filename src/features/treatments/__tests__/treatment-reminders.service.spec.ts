@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import i18n from '@/core/i18n'
 import type { Animal } from '@/features/animals/schema/animal.schema'
-import { enqueueReminderTask } from '@/shared/domain/due-reminders-schedule'
+import { enqueueReminderTask } from '@/core/notifications/due-reminders-schedule'
 import type { CarnetReminderSettings } from '@/shared/domain/reminder-plan'
 import {
   createFakeNotifications,

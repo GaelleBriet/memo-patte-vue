@@ -74,19 +74,21 @@ Supabase (Postgres + Auth)
 
 ```text
 src/
-├── app/                    # Branchements entre features : actions des notifications, rappels, synchro, consentement
+├── app/                    # Démarrage : plugins, routeur, mise en page, branchement des services au lancement
 ├── router/                 # Routes de Vue Router
 ├── core/
 │   ├── db/                 # SQLite (connexion, migrations, schéma)
 │   ├── supabase/           # Client Supabase
 │   ├── sync/               # Synchronisation local ↔ cloud
-│   ├── notifications/      # Service des notifications locales
+│   ├── notifications/      # Service des notifications locales, file des rappels programmés
 │   ├── i18n/
 │   ├── theme/              # Vuetify, icônes
 │   ├── analytics/          # PostHog, après consentement
 │   ├── app-lifecycle/      # Retour au premier plan, bouton retour, jour courant
 │   ├── device/             # Identité de l'appareil
 │   ├── photos/             # Photo Picker et fichiers de `files/photos/`
+│   ├── preferences/        # Unité de poids choisie
+│   ├── usage/              # Signaux d'usage gardés sur l'appareil
 │   └── dev/                # Fixtures de développement, jamais en production
 ├── features/
 │   ├── animals/
@@ -105,6 +107,8 @@ Chaque `features/<nom>/` range son contenu par rôle technique, en sous-dossiers
 
 `core/dev/` contient les fixtures de développement : le carnet de démo des maquettes (Milo + Luna, dates relatives à aujourd'hui), peuplé via les repositories quand le serveur est lancé avec `pnpm dev:data`. Le module est importé dynamiquement derrière `import.meta.env.DEV` dans `main.ts` : il tombe au build et un test le prouve. Il orchestre plusieurs repositories sans appartenir à aucune feature, d'où sa place dans `core/`.
 
+`app/` ne fait que démarrer l'app : plugins, routeur, mise en page, et branchement des services au lancement (`main.ts` l'appelle). Les cas d'usage (actions des notifications, reconstruction des rappels, écran d'explication des rappels…) vivent dans les services des features. Quand un écran demande un cas d'usage porté par une autre feature, `main.ts` le confie au lancement à `core/` par une fonction `install…` de `app/`, et l'écran le lit dans `core/` (`installRemindersPriming`, `core/notifications/reminders-priming.ts`).
+
 ### Règles strictes
 
 - Aucun import croisé entre features, à quatre exceptions près (règle ESLint `app/feature-imports`) ; tout le reste passe par `shared/` ou `core/` :
@@ -115,6 +119,9 @@ Chaque `features/<nom>/` range son contenu par rôle technique, en sous-dossiers
 - Les repositories sont les seuls autorisés à parler à SQLite et à Supabase, et chacun reste le seul à écrire dans sa table : un service qui orchestre appelle leurs méthodes, il n'écrit pas de SQL.
 - Les stores Pinia ne contiennent aucune requête SQL/API directe.
 - `core/` ne dépend jamais des features, à une exception près : `core/dev/` importe leurs repositories pour peupler le carnet de démo. C'est un outil de développement qui ne part jamais en production ; la règle ESLint `app/core-independent-of-features` interdit l'import partout ailleurs dans `core/`.
+- Aucune feature n'importe `app/` : la règle ESLint `app/feature-imports` l'interdit.
+- Ce qui garde un état ou appelle le téléphone (file des rappels, unité de poids, signaux d'usage) vit dans `core/`, jamais dans `shared/domain/`.
+- `logic/` n'importe jamais un repository : les types d'écriture qu'ils partagent (prises, plan d'un traitement, dates d'une injection) vivent dans `schema/`.
 - Tout texte visible passe par vue-i18n.
 
 ## Authentification & compte

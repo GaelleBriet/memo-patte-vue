@@ -1,7 +1,7 @@
 import { isFuture, parseISO } from 'date-fns'
 import { z } from 'zod'
 
-import { syncAllReminders } from '@/app/reminders-sync'
+import { syncAllReminders } from '@/features/treatments/service/reminders-sync.service'
 import { currentDeviceId } from '@/core/device/device-identity'
 import {
   getDeviceRepository,

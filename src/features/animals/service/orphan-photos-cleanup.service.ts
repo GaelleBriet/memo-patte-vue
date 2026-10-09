@@ -1,8 +1,5 @@
 import { deletePhoto, listPhotos, type StoredPhoto } from '@/core/photos/photo-storage'
-import {
-  getAnimalsRepository,
-  type AnimalVersion,
-} from '@/features/animals/repository/animals.repository'
+import { getAnimalsRepository, type AnimalVersion } from '../repository/animals.repository'
 
 type Provider<T> = () => T | Promise<T>
 

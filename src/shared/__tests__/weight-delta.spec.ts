@@ -9,7 +9,7 @@ import {
 } from '../domain/weight-delta'
 import { weightNumber } from '../domain/weight-display'
 import { toKg, type WeightUnit } from '../domain/weight-unit'
-import { applyWeightUnit } from '../domain/weight-unit-preference'
+import { applyWeightUnit } from '@/core/preferences/weight-unit-preference'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const t = i18n.global.t

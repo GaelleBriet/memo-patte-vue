@@ -1,5 +1,5 @@
 import { fromKg, maxWeightIn } from './weight-unit'
-import { currentWeightUnit } from './weight-unit-preference'
+import { currentWeightUnit } from '@/core/preferences/weight-unit-preference'
 import { formatWeight, formatWeightAxis } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 

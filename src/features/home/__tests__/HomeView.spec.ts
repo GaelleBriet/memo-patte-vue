@@ -38,7 +38,7 @@ import WeightSheet from '@/features/weight/views/WeightSheet.vue'
 import AnimalChipSelector from '@/shared/components/AnimalChipSelector.vue'
 import { plain } from '@/shared/__tests__/plain'
 import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
-import { recordUsageSignal } from '@/shared/utils/usage-signals'
+import { recordUsageSignal } from '@/core/usage/usage-signals'
 import {
   getNotificationPermissionStatus,
   openNotificationSettings,
@@ -72,7 +72,7 @@ vi.mock('@/features/settings/service/data-import.service', async (importOriginal
   dataImportService: { hasLocalData, importData },
 }))
 
-vi.mock('@/app/reminders-priming', () => ({ promptNotificationsIfReminders }))
+vi.mock('@/core/notifications/reminders-priming', () => ({ promptNotificationsIfReminders }))
 
 const TODAY = new Date('2026-09-09T12:00:00')
 

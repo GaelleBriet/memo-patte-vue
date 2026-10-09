@@ -1,4 +1,4 @@
-import { syncAllReminders } from '@/app/reminders-sync'
+import { syncAllReminders } from '@/features/treatments/service/reminders-sync.service'
 import { useCarnetSettingsStore } from '@/features/settings/store/carnet-settings.store'
 
 /** Reprogramme tous les rappels après chaque réglage du carnet enregistré. Pinia doit être actif. */

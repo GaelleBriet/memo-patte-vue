@@ -1,8 +1,9 @@
 import { nextReminderDate } from './vaccination-done'
-import type { InjectionDates } from '../repository/vaccination-injections.repository'
+import type { InjectionDates } from '../schema/vaccination-injection.schema'
 import type { VaccinationInjection } from '../schema/vaccination-injection.schema'
 import type { Vaccination } from '../schema/vaccination.schema'
 import { dueDelayText } from '@/shared/domain/due-delay'
+import { injectionMadeDue } from '@/shared/domain/vaccination-reminders'
 import { formatDayMonthOrYear, formatFullDate, formatLongDate } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
@@ -198,11 +199,6 @@ export function pastInjectionNeedsReminder(
     dueDate !== null &&
     injectionMadeDue(dueDate, injectedOn)
   )
-}
-
-/** Une injection faite le jour d'un rappel ou après a fait ce rappel (VA-10). */
-export function injectionMadeDue(dueDate: string, injectedOn: string): boolean {
-  return dueDate <= injectedOn
 }
 
 function becomesLast(

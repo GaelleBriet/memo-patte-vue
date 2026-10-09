@@ -2,13 +2,17 @@ import { isAfter } from 'date-fns'
 
 import * as notifications from '@/core/notifications'
 import type { Reminder, ScheduledReminder } from '@/core/notifications'
-import { dueReminderPrefix, parseReminderKey, type DueReminderEntry } from './due-reminders'
+import {
+  dueReminderPrefix,
+  parseReminderKey,
+  type DueReminderEntry,
+} from '@/shared/domain/due-reminders'
 import {
   DEFAULT_CARNET_REMINDER_SETTINGS,
   plannedReminders,
   type CareReminders,
   type CarnetReminderSettings,
-} from './reminder-plan'
+} from '@/shared/domain/reminder-plan'
 
 export type ReminderNotifications = Pick<
   typeof notifications,

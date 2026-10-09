@@ -7,7 +7,7 @@ import {
   type NotificationPermissionStatus,
 } from '@/core/notifications/permission'
 import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
-import { readUsageSignals } from '@/shared/utils/usage-signals'
+import { readUsageSignals } from '@/core/usage/usage-signals'
 import { homeMessage } from '../logic/home-messages'
 import {
   readHomeMessagesMemory,

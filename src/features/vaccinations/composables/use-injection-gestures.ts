@@ -8,7 +8,7 @@ import {
   vaccinationDeleteTexts,
   VaccinationWithoutReminderError,
 } from '../logic/vaccination-history'
-import type { InjectionDates } from '../repository/vaccination-injections.repository'
+import type { InjectionDates } from '../schema/vaccination-injection.schema'
 import type { RecordedInjection } from '../service/vaccination-injections.service'
 import type { VaccinationInjection } from '../schema/vaccination-injection.schema'
 import type { Vaccination } from '../schema/vaccination.schema'

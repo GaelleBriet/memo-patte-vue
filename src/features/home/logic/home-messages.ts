@@ -1,7 +1,7 @@
 import { addMonths } from 'date-fns'
 
 import type { NotificationPermissionStatus } from '@/core/notifications'
-import type { UsageSignalTally } from '@/shared/utils/usage-signals'
+import type { UsageSignalTally } from '@/core/usage/usage-signals'
 import type { HomeMessagesMemory } from './home-messages-memory'
 import type { Translate } from '@/core/i18n/translate'
 

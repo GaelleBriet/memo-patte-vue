@@ -3,10 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DataExportService } from '../service/data-export.service'
 import type { SaveAccessPort } from '../composables/use-export-run'
 import { useDataExport } from '../composables/use-data-export'
-import { recordUsageSignal } from '@/shared/utils/usage-signals'
+import { recordUsageSignal } from '@/core/usage/usage-signals'
 
 vi.mock('@/core/app-lifecycle/app-resume', () => ({ useAppResume: () => {} }))
-vi.mock('@/shared/utils/usage-signals', () => ({
+vi.mock('@/core/usage/usage-signals', () => ({
   recordUsageSignal: vi.fn<(signal: string) => void>(),
 }))
 

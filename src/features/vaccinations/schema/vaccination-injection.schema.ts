@@ -13,3 +13,5 @@ export const vaccinationInjectionSchema = z.object({
 })
 
 export type VaccinationInjection = z.output<typeof vaccinationInjectionSchema>
+
+export type InjectionDates = Pick<VaccinationInjection, 'injectedOn' | 'nextDueDate'>

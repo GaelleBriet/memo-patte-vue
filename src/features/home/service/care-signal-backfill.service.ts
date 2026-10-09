@@ -1,6 +1,6 @@
 import { getTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
 import { getVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
-import { backfillCareSignal, isCareBackfillDone } from '@/shared/utils/usage-signals'
+import { backfillCareSignal, isCareBackfillDone } from '@/core/usage/usage-signals'
 
 type Provider<T> = () => T | Promise<T>
 type CareRows = { listAll: () => Promise<{ createdAt: string }[]> }

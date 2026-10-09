@@ -1,22 +1,25 @@
-import type { Animal } from '@/features/animals/schema/animal.schema'
-import type { EntryReminders } from '@/shared/domain/due-reminders-schedule'
-import { vaccinationReminderPlan, type CarnetReminderSettings } from '@/shared/domain/reminder-plan'
-import { injectionMadeDue } from './vaccination-history'
-import type { Vaccination } from '../schema/vaccination.schema'
+import type { EntryReminders } from '@/core/notifications/due-reminders-schedule'
+import { vaccinationReminderPlan, type CarnetReminderSettings } from './reminder-plan'
 import type { Translate } from '@/core/i18n/translate'
+
+type VaccinationDues = { dueDate: string | null; lastInjectionDate: string | null }
+
+type RemindedAnimal = { name: string; deletedAt: string | null; unfollowedOn: string | null }
 
 /** Rappels qu'une injection plus récente a remplacés, lus par `listReplacedDues`. */
 export type ReplacedDues = { replacedDues: readonly string[] }
 
-type RemindedVaccination = Pick<
-  Vaccination,
-  'id' | 'name' | 'dueDate' | 'lastInjectionDate' | 'deletedAt'
-> &
-  ReplacedDues
+type RemindedVaccination = VaccinationDues &
+  ReplacedDues & { id: string; name: string; deletedAt: string | null }
+
+/** Une injection faite le jour d'un rappel ou après a fait ce rappel (VA-10). */
+export function injectionMadeDue(dueDate: string, injectedOn: string): boolean {
+  return dueDate <= injectedOn
+}
 
 /** Une échéance qui n'est plus celle du vaccin est notée si une injection l'a remplacée ou faite. */
 export function isInjectionNoted(
-  vaccination: Pick<Vaccination, 'dueDate' | 'lastInjectionDate'> & ReplacedDues,
+  vaccination: VaccinationDues & ReplacedDues,
   dueDate: string,
 ): boolean {
   const { lastInjectionDate } = vaccination
@@ -28,7 +31,7 @@ export function isInjectionNoted(
 export function vaccinationReminders(
   t: Translate,
   vaccination: RemindedVaccination,
-  animal: Pick<Animal, 'name' | 'deletedAt' | 'unfollowedOn'> | null,
+  animal: RemindedAnimal | null,
   settings: CarnetReminderSettings,
   now: Date,
 ): EntryReminders {

@@ -2,7 +2,7 @@ import {
   dataExportService,
   type DataExportService,
 } from '@/features/settings/service/data-export.service'
-import { recordUsageSignal } from '@/shared/utils/usage-signals'
+import { recordUsageSignal } from '@/core/usage/usage-signals'
 
 export type CarnetCopyOutcome = 'shared' | 'cancelled' | 'failed'
 

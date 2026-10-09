@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { createOrphanPhotosCleanup } from '../orphan-photos-cleanup'
+import { createOrphanPhotosCleanup } from '../service/orphan-photos-cleanup.service'
 import type { StoredPhoto } from '@/core/photos/photo-storage'
 import type { AnimalVersion } from '@/features/animals/repository/animals.repository'
 
