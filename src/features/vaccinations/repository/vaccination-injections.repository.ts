@@ -7,7 +7,7 @@ import type { SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { createRemoteSyncTable } from '@/core/sync/repository/remote-sync-table.repository'
 import { syncField } from '@/core/sync/service/syncable-table'
-import type { VaccinationInjection } from '../schema/vaccination-injection.schema'
+import type { InjectionDates, VaccinationInjection } from '../schema/vaccination-injection.schema'
 import type { Stamped } from '@/shared/domain/carnet-data'
 
 export type VaccinationInjectionRecord = Stamped<VaccinationInjection>
@@ -16,8 +16,6 @@ export type VaccinationInjectionVersion = Pick<
   VaccinationInjection,
   'id' | 'vaccinationId' | 'updatedAt' | 'deletedAt'
 >
-
-export type InjectionDates = Pick<VaccinationInjection, 'injectedOn' | 'nextDueDate'>
 
 interface InjectionRow {
   id: string

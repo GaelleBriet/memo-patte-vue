@@ -14,7 +14,7 @@ import {
   nextReminderSummary,
   vaccinationSheetTexts,
 } from '../logic/vaccination-sheet'
-import type { InjectionDates } from '../repository/vaccination-injections.repository'
+import type { InjectionDates } from '../schema/vaccination-injection.schema'
 import type { Vaccination } from '../schema/vaccination.schema'
 import { useVaccinationsStore } from '../store/vaccinations.store'
 import { useToday } from '@/core/app-lifecycle/use-today'

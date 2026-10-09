@@ -1,5 +1,5 @@
 import { nextReminderDate } from './vaccination-done'
-import type { InjectionDates } from '../repository/vaccination-injections.repository'
+import type { InjectionDates } from '../schema/vaccination-injection.schema'
 import type { VaccinationInjection } from '../schema/vaccination-injection.schema'
 import type { Vaccination } from '../schema/vaccination.schema'
 import { dueDelayText } from '@/shared/domain/due-delay'

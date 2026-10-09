@@ -20,7 +20,7 @@ import type {
   VaccinationUpdateInput,
 } from '../schema/vaccination.schema'
 import type { VaccinationsRepository as FullVaccinationsRepository } from '../repository/vaccinations.repository'
-import type { InjectionDates } from '../repository/vaccination-injections.repository'
+import type { InjectionDates } from '../schema/vaccination-injection.schema'
 import type { VaccinationInjection } from '../schema/vaccination-injection.schema'
 import { track } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
