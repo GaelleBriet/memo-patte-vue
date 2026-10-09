@@ -5,7 +5,6 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { promptNotificationsIfReminders } from '@/app/reminders-priming'
 import { useForegroundRefresh } from '@/core/app-lifecycle/use-foreground-refresh'
-import { usePhotoUrls } from '@/core/photos/use-photo-urls'
 import illustration from '@/assets/brand-illustration.png'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import ImportSheet from '@/features/settings/views/ImportSheet.vue'
@@ -13,7 +12,7 @@ import TreatmentGivenWhenSheet from '@/features/treatments/views/TreatmentGivenW
 import TreatmentReminderSheet from '@/features/treatments/views/TreatmentReminderSheet.vue'
 import VaccinationReminderSheet from '@/features/vaccinations/views/VaccinationReminderSheet.vue'
 import WeightSheet from '@/features/weight/views/WeightSheet.vue'
-import AnimalChipSelector, { type AnimalChipItem } from '@/shared/components/AnimalChipSelector.vue'
+import AnimalChipSelector from '@/shared/components/AnimalChipSelector.vue'
 import UnfollowedAnimalsLink from '@/shared/components/UnfollowedAnimalsLink.vue'
 import {
   detailRoute,
@@ -25,6 +24,7 @@ import {
   type ReminderStep,
   type TodoRequest,
 } from '@/shared/domain/reminder-route'
+import { useAnimalChips } from '@/shared/composables/use-animal-chips'
 import { useOpenUnfollowed } from '@/shared/composables/use-open-unfollowed'
 import AnimalPickerSheet from './AnimalPickerSheet.vue'
 import HomeMessages from './HomeMessages.vue'
@@ -60,7 +60,7 @@ const { entry: unfollowed, open: openUnfollowed } = useOpenUnfollowed(
   },
 )
 
-const photoUrl = usePhotoUrls(() => animals.followedAnimals.map((item) => item.photoPath))
+const chips = useAnimalChips(() => animals.followedAnimals)
 
 const pendingForm = ref<FormRoute | null>(null)
 const isPickerOpen = ref(false)
@@ -79,13 +79,6 @@ const hasError = computed(() => animals.error !== null || home.error !== null)
 const isReady = computed(() => animals.hasLoaded && home.hasLoaded && !hasError.value)
 const isLoading = computed(() => !isReady.value && !hasError.value)
 const isWelcome = computed(() => isReady.value && animals.animals.length === 0)
-const chips = computed<AnimalChipItem[]>(() =>
-  animals.followedAnimals.map((item) => ({
-    id: item.id,
-    name: item.name,
-    photoUrl: photoUrl(item.photoPath),
-  })),
-)
 
 const currentId = computed<string | null>({
   get: () =>

@@ -10,10 +10,10 @@ import {
 import type { WeightEntry } from '../schema/weight.schema'
 import { useWeightStore } from '../store/weight.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
-import { usePhotoUrls } from '@/core/photos/use-photo-urls'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
-import AnimalChipSelector, { type AnimalChipItem } from '@/shared/components/AnimalChipSelector.vue'
+import AnimalChipSelector from '@/shared/components/AnimalChipSelector.vue'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
+import { useAnimalChips } from '@/shared/composables/use-animal-chips'
 import { confirmUndoable } from '@/shared/composables/use-guarded-gestures'
 import { weightLimitParams, weightUnitName, weightUnitText } from '@/shared/domain/weight-display'
 import { currentWeightUnit } from '@/shared/domain/weight-unit-preference'
@@ -41,7 +41,7 @@ const { t } = useI18n()
 const animals = useAnimalsStore()
 const weight = useWeightStore()
 const { today, refresh: refreshToday } = useToday()
-const photoUrl = usePhotoUrls(() => animals.followedAnimals.map((animal) => animal.photoPath))
+const chips = useAnimalChips(() => animals.followedAnimals)
 
 const values = ref(initialValues())
 
@@ -73,13 +73,6 @@ const subtitle = computed(() => {
   const name = knownAnimalId.value ? animals.byId(knownAnimalId.value)?.name : null
   return name ? t('weight.form.forAnimal', { name }) : null
 })
-const chips = computed<AnimalChipItem[]>(() =>
-  animals.followedAnimals.map((animal) => ({
-    id: animal.id,
-    name: animal.name,
-    photoUrl: photoUrl(animal.photoPath),
-  })),
-)
 const submitLabel = computed(() =>
   pending.value === 'save' ? t('weight.form.submitting') : t('weight.form.submit'),
 )

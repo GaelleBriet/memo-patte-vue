@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { carnetSubtitle, nextFollowedAnimalId } from '../logic/carnet-animal'
+import { carnetAnimalToSelect, carnetSubtitle, nextFollowedAnimalId } from '../logic/carnet-animal'
 
 describe('nextFollowedAnimalId', () => {
   it('donne le premier animal suivi autre que celui qui part', () => {
@@ -12,6 +12,21 @@ describe('nextFollowedAnimalId', () => {
   it('rend null quand il ne reste aucun animal suivi', () => {
     expect(nextFollowedAnimalId([{ id: 'milo' }], 'milo')).toBeNull()
     expect(nextFollowedAnimalId([], 'milo')).toBeNull()
+  })
+})
+
+describe('carnetAnimalToSelect', () => {
+  it('choisit le premier animal suivi quand aucun n’est sélectionné', () => {
+    expect(carnetAnimalToSelect(null, [{ id: 'milo' }, { id: 'luna' }])).toBe('milo')
+  })
+
+  it('ne change rien quand un animal est déjà sélectionné, suivi ou non', () => {
+    expect(carnetAnimalToSelect({ id: 'luna' }, [{ id: 'milo' }, { id: 'luna' }])).toBeNull()
+    expect(carnetAnimalToSelect({ id: 'parti' }, [{ id: 'milo' }])).toBeNull()
+  })
+
+  it('rien à choisir sans animal suivi', () => {
+    expect(carnetAnimalToSelect(null, [])).toBeNull()
   })
 })
 
