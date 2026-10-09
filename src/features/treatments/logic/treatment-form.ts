@@ -1,16 +1,15 @@
 import type { z } from 'zod'
 
 import { creationPastDues, treatmentCreationSchemaFor } from './treatment-creation'
-import {
-  editionDraft,
-  treatmentEditionSchemaFor,
-  type EditionDraft,
-  type EndsOnIssueReason,
-  type NextDoseOnIssueReason,
-} from './treatment-edition'
+import { editionDraft, treatmentEditionSchemaFor, type EditionDraft } from './treatment-edition'
 import { resumptionDraft, treatmentResumptionSchemaFor } from './treatment-resumption'
 import { parseDoseQuantity } from './treatment-dosage-input'
-import { shiftHelpText, type ShiftHelp } from './treatment-shift-box'
+import {
+  treatmentFormErrorsOf,
+  treatmentFormResultOf,
+  type TreatmentFormErrors,
+  type TreatmentFormResult,
+} from './treatment-form-errors'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import {
   treatmentRhythmSchema,
@@ -26,10 +25,7 @@ import type { FrequencyUnit, TreatmentType } from '../schema/treatment.schema'
 import { isCalendarDay } from '@/shared/domain/calendar-day'
 import { sortedTimes } from '@/shared/domain/clock-time'
 import { formatDoseQuantity, type DoseUnit } from '@/shared/domain/dosage'
-import type { Due, MoveRefusal } from '@/shared/domain/treatment-schedule'
-import { fieldErrorsOf, type FieldErrorKeys } from '@/shared/form/field-errors'
-import { formatDayMonthOrYear, withoutFinalDot } from '@/shared/utils/format'
-import type { Translate } from '@/core/i18n/translate'
+import type { Due } from '@/shared/domain/treatment-schedule'
 
 export interface TreatmentFormValues {
   name: string
@@ -52,118 +48,13 @@ export interface TreatmentFormValues {
   reminderTime: string | null
 }
 
-export const DUPLICATE_TIME_ERROR_KEY = 'treatments.form.errors.timesDuplicate'
-
-export type TreatmentFormErrorField = keyof typeof ERROR_KEYS
-export type TreatmentFormErrors = Partial<Record<TreatmentFormErrorField, string>>
-
-const FIELD_OF_PATH: Record<string, TreatmentFormErrorField> = {
-  name: 'name',
-  type: 'type',
-  frequency: 'frequency',
-  firstDoseOn: 'firstDoseOn',
-  nextDoseOn: 'nextDoseOn',
-  times: 'times',
-  doseQuantity: 'dosage',
-  doseUnit: 'dosage',
-  endsOn: 'endsOn',
-}
-
-const NEXT_DOSE_ON_REASON_KEYS: Record<NextDoseOnIssueReason, string> = {
-  tooEarly: 'treatments.form.errors.nextDoseOnTooEarly',
-  afterEnd: 'treatments.form.errors.nextDoseOnAfterEnd',
-  afterNextDose: 'treatments.form.errors.nextDoseOnAfterNextDose',
-  refused: 'treatments.form.errors.nextDoseOnRefused',
-}
-
-const ENDS_ON_REASON_KEYS: Record<EndsOnIssueReason, string> = {
-  beforeFirstDose: 'treatments.form.errors.endsOnBeforeFirstDose',
-  beforeNextDose: 'treatments.form.errors.endsOnBeforeNextDose',
-  beforeLastDose: 'treatments.form.errors.endsOnBeforeLastDose',
-  beforePostponedDose: 'treatments.form.errors.endsOnBeforePostponedDose',
-  beforeAdvancedDose: 'treatments.form.errors.endsOnBeforeAdvancedDose',
-  beforeFarPostponedDose: 'treatments.form.errors.endsOnBeforeFarPostponedDose',
-  beforeFarAdvancedDose: 'treatments.form.errors.endsOnBeforeFarAdvancedDose',
-}
-
-/** Le motif d'un refus est porté par le message de l'erreur Zod. */
-const ERROR_KEYS = {
-  name: {
-    key: 'treatments.form.errors.name',
-    byCode: { too_big: 'treatments.form.errors.nameMax' },
-  },
-  type: { key: 'treatments.form.errors.type' },
-  frequency: {
-    key: 'treatments.form.errors.frequency',
-    byCode: { too_big: 'treatments.form.errors.frequencyMax' },
-  },
-  firstDoseOn: {
-    key: 'treatments.form.errors.firstDoseOn',
-    byMessage: {
-      tooEarly: 'treatments.form.errors.firstDoseOnTooEarly',
-      tooOld: 'treatments.form.errors.firstDoseOnTooOld',
-    },
-  },
-  nextDoseOn: { key: 'treatments.form.errors.nextDoseOn', byMessage: NEXT_DOSE_ON_REASON_KEYS },
-  times: { key: 'treatments.form.errors.times' },
-  dosage: {
-    key: 'treatments.form.errors.dosageQuantity',
-    byMessage: { incomplete: 'treatments.form.errors.dosageIncomplete' },
-  },
-  endsOn: { key: 'treatments.form.errors.endsOn', byMessage: ENDS_ON_REASON_KEYS },
-} as const satisfies Record<string, FieldErrorKeys>
-
-const REFUSAL_KEYS: Record<MoveRefusal, string> = {
-  'later-line': 'treatments.form.nextDoseOn.refusal.laterLine',
-  'later-dose': 'treatments.form.nextDoseOn.refusal.laterDose',
-  'no-date-left': 'treatments.form.nextDoseOn.refusal.noDateLeft',
-  'arrival-logged': 'treatments.form.nextDoseOn.refusal.arrivalLogged',
-  'previous-period': 'treatments.form.errors.nextDoseOnRefused',
-  'no-date-alone': 'treatments.form.errors.nextDoseOnRefused',
-}
-
-/** L'aide sous la case « Décaler aussi les doses suivantes » de « Prochaine dose ». */
-export function nextDoseShiftHelp(
-  t: Translate,
-  draft: Pick<EditionDraft, 'nextDose' | 'period'>,
-  values: Pick<TreatmentFormValues, 'nextDoseOn' | 'shiftsFollowing'>,
-  today: string,
-): ShiftHelp | null {
-  const shift = draft.nextDose?.shift ?? null
-  if (shift === null) return null
-  const chosenOn = values.nextDoseOn.trim()
-  if (!values.shiftsFollowing && shift.aloneLatest !== null && chosenOn > shift.aloneLatest) {
-    const date = withoutFinalDot(formatDayMonthOrYear(shift.aloneLatest, today))
-    return { text: t('treatments.shift.aloneLatest', { date }), warning: true }
-  }
-  const following = values.shiftsFollowing ? shift.following : shift.followingAlone
-  return shiftHelpText(
-    t,
-    draft.period,
-    {
-      shifts: values.shiftsFollowing,
-      following,
-      lost: shift.lost,
-      weekdayOn: values.shiftsFollowing ? chosenOn : null,
-    },
-    today,
-  )
-}
-
-/** Texte d'aide du champ « Prochaine dose » grisé. */
-export function nextDoseRefusalKey(refusal: MoveRefusal): string {
-  return REFUSAL_KEYS[refusal]
-}
-
-type FormResult<D> = { success: true; data: D } | { success: false; errors: TreatmentFormErrors }
-
-export type TreatmentCreationResult = FormResult<
+export type TreatmentCreationResult = TreatmentFormResult<
   z.output<ReturnType<typeof treatmentCreationSchemaFor>>
 >
 export type TreatmentEditionResult =
   | { success: true; data: z.output<ReturnType<typeof treatmentEditionSchemaFor>> }
   | { success: false; errors: TreatmentFormErrors; needsPastDuesChoice: boolean }
-export type TreatmentResumptionResult = FormResult<
+export type TreatmentResumptionResult = TreatmentFormResult<
   z.output<ReturnType<typeof treatmentResumptionSchemaFor>>
 >
 
@@ -234,16 +125,6 @@ export function rhythmOfValues(values: TreatmentFormValues): TreatmentRhythm | n
   return result.success ? result.data : null
 }
 
-function errorsOf(issues: z.core.$ZodIssue[]): TreatmentFormErrors {
-  return fieldErrorsOf(issues, ERROR_KEYS, { fieldOfPath: FIELD_OF_PATH })
-}
-
-function resultOf<D>(result: z.ZodSafeParseResult<D>): FormResult<D> {
-  return result.success
-    ? { success: true, data: result.data }
-    : { success: false, errors: errorsOf(result.error.issues) }
-}
-
 /** `pastDoses` : la réponse de l'encart des doses passées, `null` s'il n'est pas rempli. */
 export function validateTreatmentCreation(
   values: TreatmentFormValues,
@@ -251,7 +132,7 @@ export function validateTreatmentCreation(
   today: string,
   pastDoses: PastDose[] | null = null,
 ): TreatmentCreationResult {
-  return resultOf(
+  return treatmentFormResultOf(
     treatmentCreationSchemaFor(today).safeParse({
       animalId,
       name: values.name,
@@ -313,7 +194,7 @@ export function validateTreatmentEdition(
   if (result.success) return { success: true, data: result.data }
   return {
     success: false,
-    errors: errorsOf(result.error.issues),
+    errors: treatmentFormErrorsOf(result.error.issues),
     needsPastDuesChoice: result.error.issues.every(({ path }) => path[0] === 'pastDues'),
   }
 }
@@ -323,7 +204,7 @@ export function validateTreatmentResumption(
   history: TreatmentWithHistory,
   today: string,
 ): TreatmentResumptionResult {
-  return resultOf(
+  return treatmentFormResultOf(
     treatmentResumptionSchemaFor(history, today).safeParse({
       firstDoseOn: values.firstDoseOn.trim(),
       ...rhythmInput(values),
