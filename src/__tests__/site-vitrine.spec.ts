@@ -20,7 +20,7 @@ const homes = {
     file: 'index.html',
     url: `${SITE_URL}/`,
     locale: 'fr_FR',
-    sections: ['comment-ca-marche', 'prix', 'questions'],
+    sections: ['comment-ca-marche', 'tarifs', 'questions'],
     prices: ['1,49 € par mois', '9,99 € par an', '29,99 € à vie'],
     pricesNote: 'Prix indicatifs ; Google Play affiche le sien.',
     plusLater: 'MémoPatte Plus arrive après la sortie de l’app',
@@ -50,9 +50,31 @@ function pngSize(path: string) {
 }
 
 function jsonLdOf(html: string): Record<string, unknown> {
-  const block = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)?.[1]
-  return JSON.parse(block ?? 'null') as Record<string, unknown>
+  return jsonLdBlocks(html)[0]!
 }
+
+function jsonLdBlocks(html: string): Record<string, unknown>[] {
+  return [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(
+    (match) => JSON.parse(match[1]!) as Record<string, unknown>,
+  )
+}
+
+type Faq = { mainEntity: { name: string; acceptedAnswer: { text: string } }[] }
+const faqOf = (html: string) =>
+  jsonLdBlocks(html).find((block) => block['@type'] === 'FAQPage') as Faq | undefined
+const squash = (text: string) =>
+  text
+    .replace(/[\u00a0\u202f]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+const needs = [
+  { fr: '/rappel-vermifuge/', en: '/en/dewormer-reminder/' },
+  { fr: '/rappel-antiparasitaire/', en: '/en/parasite-control-reminder/' },
+  { fr: '/carnet-vaccination/', en: '/en/vaccine-record/' },
+  { fr: '/plusieurs-animaux/', en: '/en/multiple-pets/' },
+]
+const fileOf = (url: string) => join(url.slice(1), 'index.html')
 
 describe.each(languages)('page vitrine en %s', (lang) => {
   const home = homes[lang]
@@ -68,7 +90,7 @@ describe.each(languages)('page vitrine en %s', (lang) => {
 
   it('montre les captures de l’app avec leurs dimensions et une description', () => {
     const images = [...html.matchAll(/<img\b[^>]*class="screen"[^>]*>/g)].map((m) => m[0])
-    expect(images).toHaveLength(5)
+    expect(images).toHaveLength(9)
     for (const image of images) {
       const src = image.match(/src="\/([^"]+)"/)?.[1] ?? ''
       expect(existsSync(join(SITE, src))).toBe(true)
@@ -86,6 +108,41 @@ describe.each(languages)('page vitrine en %s', (lang) => {
     expect(text).toContain(home.pricesNote)
     expect(text).toContain(home.plusLater)
     expect(text).toContain(home.bestValue)
+  })
+
+  it('donne une version légère de chaque capture pour les petits écrans', () => {
+    const images = [...html.matchAll(/<img\b[^>]*class="screen"[^>]*>/g)].map((m) => m[0])
+    for (const image of images) {
+      const sources = image.match(/srcset="([^"]*)"/)?.[1]?.split(',') ?? []
+      expect(sources).toHaveLength(2)
+      for (const source of sources) {
+        expect(existsSync(join(SITE, source.trim().split(' ')[0]!))).toBe(true)
+      }
+    }
+  })
+
+  it('montre l’accueil filtré sur chaque animal dont le prénom se touche', () => {
+    const spots = [...html.matchAll(/<button\b[^>]*class="pet-spot"[^>]*>/g)].map((m) => m[0])
+    expect(spots).toHaveLength(2)
+    for (const spot of spots) {
+      const image = spot.match(/data-src="\/([^"]+)"/)?.[1] ?? ''
+      const small = spot.match(/data-small="\/([^"]+)"/)?.[1] ?? ''
+      expect(image).toMatch(new RegExp(`^img/${lang}-accueil-[a-z]+\\.webp$`))
+      expect(small).toBe(image.replace('.webp', '-400.webp'))
+      for (const file of [image, small]) expect(existsSync(join(SITE, file))).toBe(true)
+      expect(spot.match(/data-alt="([^"]*)"/)?.[1]?.length ?? 0).toBeGreaterThan(30)
+    }
+  })
+
+  it('reprend ses questions fréquentes en données structurées, mot pour mot', () => {
+    const questions = [...html.matchAll(/<summary>([\s\S]*?)<\/summary>/g)].map((m) =>
+      squash(plain(m[1]!)),
+    )
+    expect(faqOf(html)?.mainEntity.map((entry) => squash(entry.name))).toEqual(questions)
+  })
+
+  it('mène aux quatre pages par soin', () => {
+    for (const need of needs) expect(html).toContain(`href="${need[lang]}"`)
   })
 
   it('renvoie aux pages d’aide', () => {
@@ -133,6 +190,54 @@ describe.each(languages)('page vitrine en %s', (lang) => {
   })
 })
 
+describe.each(needs.flatMap((need) => languages.map((lang) => ({ ...need, lang }))))(
+  'page par soin $fr / $en en $lang',
+  (need) => {
+    const url = need[need.lang]
+    const html = read(fileOf(url))
+
+    it('déclare son adresse canonique et sa langue', () => {
+      expect(html).toContain(`<link rel="canonical" href="${SITE_URL}${url}" />`)
+      expect(html).toContain(`<html lang="${need.lang}">`)
+    })
+
+    it('a un titre, une description et un seul titre principal', () => {
+      expect(html.match(/<title>([^<]+)<\/title>/)?.[1]?.length ?? 0).toBeGreaterThan(20)
+      expect(metaContent(html, 'description')?.length ?? 0).toBeGreaterThan(80)
+      expect(html.match(/<h1\b/g)).toHaveLength(1)
+    })
+
+    it('reprend ses questions en données structurées, mot pour mot', () => {
+      const shown = [...html.matchAll(/<h3>([\s\S]*?)<\/h3>/g)].map((m) => squash(plain(m[1]!)))
+      const faq = faqOf(html)?.mainEntity ?? []
+      expect(faq.length).toBeGreaterThan(0)
+      for (const entry of faq) {
+        expect(shown).toContain(squash(entry.name))
+        expect(squash(plain(html))).toContain(squash(entry.acceptedAnswer.text))
+      }
+    })
+
+    it('donne son fil d’Ariane en données structurées', () => {
+      const crumbs = jsonLdBlocks(html).find((block) => block['@type'] === 'BreadcrumbList')
+      expect(crumbs).toMatchObject({
+        itemListElement: [
+          { position: 1, item: `${SITE_URL}${need.lang === 'fr' ? '/' : '/en/'}` },
+          { position: 2, item: `${SITE_URL}${url}` },
+        ],
+      })
+    })
+
+    it('mène aux trois autres pages par soin', () => {
+      const others = needs.map((other) => other[need.lang]).filter((other) => other !== url)
+      for (const other of others) expect(html).toContain(`href="${other}"`)
+    })
+
+    it('ne montre ni note, ni avis', () => {
+      expect(html).not.toMatch(/aggregateRating|ratingValue|reviewCount|★/)
+    })
+  },
+)
+
 describe('plan du site', () => {
   const xml = read('sitemap.xml')
   const parsed = new XMLParser({
@@ -173,6 +278,7 @@ describe('plan du site', () => {
           '/mentions-legales/',
           '/en/legal-notice/',
           ...helpPages,
+          ...needs.flatMap((need) => [need.fr, need.en]),
         ].map((path) => `${SITE_URL}${path}`),
       ),
     )

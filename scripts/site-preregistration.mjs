@@ -7,6 +7,7 @@ const TEXTS = {
     shared: 'préinscription ouverte sur Google Play',
     note: 'Google Play t’envoie une notification le jour de la sortie. Rien à payer, rien à installer d’ici là.',
     answerId: 'reponse-sortie',
+    question: 'Quand sort MémoPatte\u00a0?',
     answer:
       'La date n’est pas encore fixée. La préinscription est ouverte&nbsp;: préinscris-toi sur Google Play pour recevoir une notification le jour de la sortie.',
   },
@@ -16,9 +17,18 @@ const TEXTS = {
     shared: 'pre-registration open on Google Play',
     note: 'Google Play will notify you on launch day. Nothing to pay, nothing to install until then.',
     answerId: 'answer-release',
+    question: 'When is MémoPatte coming out?',
     answer:
       'The date isn’t set yet. Pre-registration is open: pre-register on Google Play to get a notification on launch day.',
   },
+}
+
+function escapeRegExp(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function plainText(html) {
+  return html.replace(/&nbsp;/g, '\u00a0').replace(/<[^>]*>/g, '')
 }
 
 export function openPreregistration(html, lang, playUrl) {
@@ -39,6 +49,12 @@ export function openPreregistration(html, lang, playUrl) {
       `$1\n<p class="play-note">${texts.note}</p>`,
     )
     .replace(new RegExp(`(<p id="${texts.answerId}">)[\\s\\S]*?(<\\/p>)`), `$1${texts.answer}$2`)
+    .replace(
+      new RegExp(
+        `("name":\\s*"${escapeRegExp(texts.question)}",\\s*"acceptedAnswer":\\s*\\{[^}]*?"text":\\s*")[^"]*(")`,
+      ),
+      (_, start, end) => `${start}${plainText(texts.answer)}${end}`,
+    )
     .replace(/\bcontent="[^"]*"/g, (attribute) =>
       attribute.replace(new RegExp(texts.soon, 'gi'), texts.shared),
     )
