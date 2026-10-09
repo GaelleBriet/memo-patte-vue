@@ -8,8 +8,10 @@
       name="description"
       content="Vaccines, dewormers, parasite control, medication, weight: what’s due today, for all your pets, on one screen. Even offline. Free, no account."
     />
+    <meta name="theme-color" content="#01383e" />
     <link rel="icon" href="/icon.png" />
     <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/vitrine.css" />
     <link
       rel="preload"
       href="/fonts/space-grotesk-latin-wght-normal.woff2"
@@ -57,10 +59,99 @@
         "inLanguage": "en",
         "url": "https://memopatte.app/en/",
         "image": "https://memopatte.app/icon.png",
-        "author": { "@type": "Person", "name": "Gaëlle Briet" },
-        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" }
+        "screenshot": "https://memopatte.app/img/en-accueil.webp",
+        "author": {
+          "@type": "Person",
+          "name": "Gaëlle Briet",
+          "url": "https://memopatte.app/"
+        },
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "EUR"
+        }
       }
     </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "MémoPatte",
+        "url": "https://memopatte.app/en/",
+        "inLanguage": "en",
+        "publisher": {
+          "@type": "Person",
+          "name": "Gaëlle Briet",
+          "url": "https://memopatte.app/"
+        }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "inLanguage": "en",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "When is MémoPatte coming out?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Soon, on Google Play. The date isn’t set yet: it will be announced here as soon as it is."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What about iPhone?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Not for now. MémoPatte launches on Android first, and there’s no date for iPhone yet."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is it really free?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. Everything that works on your phone is free, with no ads and no limit on pets, exports included. Only MémoPatte Plus, for the cloud, will be paid."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Do I need an account?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. You’ll only need one for MémoPatte Plus."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Where is my data?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "On your phone. Android’s backup may keep a copy in your Google account (without photos). MémoPatte’s cloud will only be used with MémoPatte Plus. Your data is never sold."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What happens if I change phones?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "The safest way: export your health record, then import it on the new phone. Android’s own backup may also bring it back, but with no guarantee: it depends on the device. Once MémoPatte Plus is available, signing in will be enough to get your health record back."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does it replace my vet?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. MémoPatte logs and reminds you of what you planned with your vet. It never suggests a dose, a product or a date."
+            }
+          }
+        ]
+      }
+    </script>
+    <script type="module" src="/vitrine.js"></script>
   </head>
   <body>
     <header class="site-header">
@@ -85,11 +176,12 @@
     <main class="showcase">
       <section class="hero">
         <div class="hero-inner">
-          <div class="hero-band">
+          <div class="hero-text">
             <h1>The health record for your dogs and cats that remembers their care for you.</h1>
             <p class="hero-lead">
-              Vaccines, dewormers, parasite control, medication, weight: what’s due today, for all
-              your pets, on one screen. Even offline.
+              MémoPatte is a free Android app that reminds you of your pets’ vaccines, dewormers,
+              parasite control and medication. What’s due today, for all of them, on one screen.
+              Even offline.
             </p>
             <div class="play-cta">
               <span class="chip chip-light"
@@ -98,39 +190,99 @@
               >
               <p class="play-facts">Android · Free · No account</p>
             </div>
-            <div class="pets" aria-hidden="true">
-              <span class="pet"><span class="pet-avatar pet-milo"></span>Milo</span>
-              <span class="pet"><span class="pet-avatar pet-luna"></span>Luna</span>
-            </div>
           </div>
           <div class="hero-phone">
             <div class="phone">
               <img
                 class="screen"
                 src="/img/en-accueil.webp"
+                srcset="/img/en-accueil-400.webp 400w, /img/en-accueil.webp 720w"
+                sizes="(min-width: 1024px) 320px, 300px"
                 width="720"
                 height="1600"
+                fetchpriority="high"
                 alt="MémoPatte home screen: Milo and Luna at the top, then the “To do” list of six reminders, with Milo’s overdue DHPPi vaccine first, his granules today at 8 am and 8 pm, and Luna’s spot-on in three days."
               />
+              <div class="notif" role="group" aria-label="Example of a MémoPatte reminder">
+                <p class="notif-app">
+                  <img src="/icon.png" alt="" width="16" height="16" />MémoPatte · now
+                </p>
+                <p class="notif-title">Milo’s Granules at 8 am</p>
+                <p class="notif-body">1 sachet</p>
+                <button class="notif-action" type="button">Done</button>
+              </div>
+              <p class="demo-toast" role="status">
+                <span class="toast-text" hidden>Granules dose logged for Milo</span>
+              </p>
             </div>
+            <p class="demo-hint" hidden>Try “Done” on the reminder.</p>
           </div>
         </div>
       </section>
 
-      <section class="problem">
-        <p class="problem-title">
-          One pet’s dewormer, another’s spot-on, a third one’s evening pill…
-        </p>
-        <p class="problem-text">
-          Your vet reminds you about vaccines; the rest is what gets forgotten at home.
-        </p>
+      <section class="problem" aria-labelledby="probleme">
+        <div class="problem-inner">
+          <h2 id="probleme">One pet’s dewormer, another’s spot-on, a third one’s evening pill…</h2>
+          <p class="problem-text">
+            Your vet reminds you about vaccines; the rest is what gets forgotten at home.
+          </p>
+          <div class="before-after">
+            <figure class="before">
+              <ul class="notes">
+                <li class="note note-postit">Milo’s dewormer: when was it?</li>
+                <li class="note note-sms">Reminder: Milo’s vaccine is due again.</li>
+                <li class="note note-calendar">1st of the month: Luna’s spot-on</li>
+                <li class="note note-scrap">Milo’s granules, 8 pm. Given?</li>
+              </ul>
+              <figcaption>
+                <strong>Before</strong> Sticky notes, a text message, a calendar and your memory.
+              </figcaption>
+            </figure>
+            <figure class="after">
+              <div class="todo">
+                <p class="todo-title">To do</p>
+                <ul>
+                  <li class="todo-row">
+                    <span class="todo-icon"
+                      ><span class="symbol symbol-vaccines" aria-hidden="true"></span></span
+                    ><span class="todo-name"
+                      >DHPPi<span class="todo-meta">Vaccine · Milo</span></span
+                    ><span class="due due-late">Overdue</span>
+                  </li>
+                  <li class="todo-row">
+                    <span class="todo-icon"
+                      ><span class="symbol symbol-medication" aria-hidden="true"></span></span
+                    ><span class="todo-name"
+                      >Granules<span class="todo-meta">Dewormer · Milo</span></span
+                    ><span class="due due-today">Today · 8 pm</span>
+                  </li>
+                  <li class="todo-row">
+                    <span class="todo-icon"
+                      ><span class="symbol symbol-pest-control" aria-hidden="true"></span></span
+                    ><span class="todo-name"
+                      >Monthly spot-on<span class="todo-meta">Parasite control · Luna</span></span
+                    ><span class="due due-soon">In 3 days</span>
+                  </li>
+                  <li class="todo-row">
+                    <span class="todo-icon"
+                      ><span class="symbol symbol-medication" aria-hidden="true"></span></span
+                    ><span class="todo-name"
+                      >Monthly tablet<span class="todo-meta">Dewormer · Milo</span></span
+                    ><span class="due due-soon">In 10 days</span>
+                  </li>
+                </ul>
+              </div>
+              <figcaption><strong>With MémoPatte</strong> One list, overdue first.</figcaption>
+            </figure>
+          </div>
+        </div>
       </section>
 
       <section class="section" id="how-it-works">
         <h2>How it works</h2>
-        <div class="features">
-          <article class="feature">
-            <div class="feature-text">
+        <div class="tour">
+          <div class="tour-step" data-step="0">
+            <div class="tour-text">
               <span class="feature-icon"
                 ><span class="symbol symbol-notifications-active" aria-hidden="true"></span
               ></span>
@@ -151,16 +303,17 @@
               <img
                 class="screen"
                 src="/img/en-notification.webp"
+                srcset="/img/en-notification-400.webp 400w, /img/en-notification.webp 720w"
+                sizes="(min-width: 1024px) 320px, 300px"
                 width="720"
                 height="1600"
                 loading="lazy"
                 alt="Android notification shade: the MémoPatte notification “Milo’s Granules at 8 am”, with the dosage “1 sachet” and the “Done” button."
               />
             </div>
-          </article>
-
-          <article class="feature">
-            <div class="feature-text">
+          </div>
+          <div class="tour-step" data-step="1">
+            <div class="tour-text">
               <span class="feature-icon"
                 ><span class="symbol symbol-pets" aria-hidden="true"></span
               ></span>
@@ -174,16 +327,17 @@
               <img
                 class="screen"
                 src="/img/en-accueil.webp"
+                srcset="/img/en-accueil-400.webp 400w, /img/en-accueil.webp 720w"
+                sizes="(min-width: 1024px) 320px, 300px"
                 width="720"
                 height="1600"
                 loading="lazy"
                 alt="MémoPatte home screen with Milo and Luna: each reminder in the “To do” list shows its type, the pet’s name and when it’s due, such as “Monthly spot-on, Parasite control · Luna, in 3 days”."
-              />
+              /><span class="ring" aria-hidden="true"></span>
             </div>
-          </article>
-
-          <article class="feature">
-            <div class="feature-text">
+          </div>
+          <div class="tour-step" data-step="2">
+            <div class="tour-text">
               <span class="feature-icon"
                 ><span class="symbol symbol-calendar-today" aria-hidden="true"></span
               ></span>
@@ -197,16 +351,17 @@
               <img
                 class="screen"
                 src="/img/en-fiche-traitement.webp"
+                srcset="/img/en-fiche-traitement-400.webp 400w, /img/en-fiche-traitement.webp 720w"
+                sizes="(min-width: 1024px) 320px, 300px"
                 width="720"
                 height="1600"
                 loading="lazy"
                 alt="Milo’s “Granules” treatment, every day at 8 am and 8 pm: today’s two doses with their “Done” button, the “Done on another day” link, the “5 doses not logged” card and the list of doses, including a missed one."
               />
             </div>
-          </article>
-
-          <article class="feature">
-            <div class="feature-text">
+          </div>
+          <div class="tour-step" data-step="3">
+            <div class="tour-text">
               <span class="feature-icon"
                 ><span class="symbol symbol-lock-open" aria-hidden="true"></span
               ></span>
@@ -226,20 +381,68 @@
               <img
                 class="screen"
                 src="/img/en-mes-donnees.webp"
+                srcset="/img/en-mes-donnees-400.webp 400w, /img/en-mes-donnees.webp 720w"
+                sizes="(min-width: 1024px) 320px, 300px"
                 width="720"
                 height="1600"
                 loading="lazy"
                 alt="“My data” screen: weight unit in kilograms or pounds, “Export my data” as JSON or CSV, “Export to PDF” for all pets or just one, and “Import a MémoPatte export”."
               />
             </div>
-          </article>
+          </div>
         </div>
+      </section>
+
+      <section class="section">
+        <h2>A reminder for every kind of care</h2>
+        <p class="section-lead">
+          Each treatment keeps the schedule set with your vet: every day, every week, every month or
+          once a year.
+        </p>
+        <ul class="needs">
+          <li>
+            <a class="need-tile" href="/en/dewormer-reminder/"
+              ><span class="need-icon"
+                ><span class="symbol symbol-medication" aria-hidden="true"></span></span
+              ><span class="need-title">Dewormer reminder</span
+              ><span class="need-line"
+                >Tablet, paste or spot-on, on the schedule set with your vet.</span
+              ></a
+            >
+          </li>
+          <li>
+            <a class="need-tile" href="/en/parasite-control-reminder/"
+              ><span class="need-icon"
+                ><span class="symbol symbol-pest-control" aria-hidden="true"></span></span
+              ><span class="need-title">Parasite control reminder</span
+              ><span class="need-line">Spot-on, collar or tablet against fleas and ticks.</span></a
+            >
+          </li>
+          <li>
+            <a class="need-tile" href="/en/vaccine-record/"
+              ><span class="need-icon"
+                ><span class="symbol symbol-vaccines" aria-hidden="true"></span></span
+              ><span class="need-title">Vaccine record</span
+              ><span class="need-line"
+                >Every shot logged, and a reminder two weeks before it’s due.</span
+              ></a
+            >
+          </li>
+          <li>
+            <a class="need-tile" href="/en/multiple-pets/"
+              ><span class="need-icon"
+                ><span class="symbol symbol-pets" aria-hidden="true"></span></span
+              ><span class="need-title">Multiple pets</span
+              ><span class="need-line">All your dogs and cats on one screen, no limit.</span></a
+            >
+          </li>
+        </ul>
       </section>
 
       <section class="section">
         <h2>What MémoPatte doesn’t do</h2>
         <ul class="limits">
-          <li class="card">
+          <li>
             <span class="symbol symbol-stethoscope" aria-hidden="true"></span>
             <h3>Replace your vet</h3>
             <p>
@@ -247,12 +450,12 @@
               product or a date.
             </p>
           </li>
-          <li class="card">
+          <li>
             <span class="symbol symbol-block" aria-hidden="true"></span>
             <h3>Show ads</h3>
             <p>No ads in the app, and your data is never sold.</p>
           </li>
-          <li class="card">
+          <li>
             <span class="symbol symbol-no-accounts" aria-hidden="true"></span>
             <h3>Force you to sign up</h3>
             <p>
@@ -260,7 +463,7 @@
               Plus.
             </p>
           </li>
-          <li class="card">
+          <li>
             <span class="symbol symbol-pets" aria-hidden="true"></span>
             <h3>Track other animals</h3>
             <p>Dogs and cats only, for now.</p>
@@ -274,7 +477,7 @@
           Everything that works on your phone is free. Only the cloud is paid.
         </p>
         <div class="plans">
-          <div class="plan card">
+          <div class="plan plan-free">
             <h3>Free</h3>
             <p class="plan-subtitle">No account, no ads.</p>
             <p class="plan-price">€0</p>
@@ -378,7 +581,7 @@
           </details>
         </div>
         <a class="more" href="/en/help/"
-          >All questions on the help page<span
+          >All questions, on the help page<span
             class="symbol symbol-arrow-forward"
             aria-hidden="true"
           ></span
@@ -386,7 +589,7 @@
       </section>
 
       <section class="section">
-        <div class="maker card">
+        <div class="maker">
           <span class="maker-initial" aria-hidden="true">G</span>
           <div>
             <h2>Who makes MémoPatte</h2>
@@ -401,8 +604,7 @@
             </p>
             <p>
               No investors, no ads: the app is funded by MémoPatte Plus, for those who want cloud
-              backup. If something’s off,
-              <a href="mailto:contact@memopatte.app">write to me</a>.
+              backup. If something’s off, <a href="mailto:contact@memopatte.app">write to me</a>.
             </p>
           </div>
         </div>
@@ -428,6 +630,12 @@
           >
           <p>An app by Gaëlle Briet</p>
         </div>
+        <nav class="footer-needs" aria-label="Reminders by care">
+          <a href="/en/dewormer-reminder/">Dewormer reminder</a>
+          <a href="/en/parasite-control-reminder/">Parasite control reminder</a>
+          <a href="/en/vaccine-record/">Vaccine record</a>
+          <a href="/en/multiple-pets/">Multiple pets</a>
+        </nav>
         <nav aria-label="Footer">
           <a href="/en/help/">Help</a>
           <a href="/en/privacy/">Privacy</a>

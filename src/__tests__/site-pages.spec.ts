@@ -50,7 +50,33 @@ const translations = [
   { name: 'suppression de compte', fr: '/suppression-compte/', en: '/en/delete-account/' },
   { name: 'aide', fr: '/aide/', en: '/en/help/' },
   { name: 'mentions légales', ...SITE_LEGAL_NOTICES },
+  { name: 'rappel de vermifuge', fr: '/rappel-vermifuge/', en: '/en/dewormer-reminder/' },
+  {
+    name: 'rappel d’antiparasitaire',
+    fr: '/rappel-antiparasitaire/',
+    en: '/en/parasite-control-reminder/',
+  },
+  { name: 'carnet de vaccination', fr: '/carnet-vaccination/', en: '/en/vaccine-record/' },
+  { name: 'plusieurs animaux', fr: '/plusieurs-animaux/', en: '/en/multiple-pets/' },
 ]
+const STYLESHEETS = ['style.css', 'vitrine.css']
+
+function withoutReducedMotionBlocks(css: string): string {
+  const opening = '@media (prefers-reduced-motion: no-preference)'
+  let rest = css
+  let start = rest.indexOf(opening)
+  while (start !== -1) {
+    let depth = 0
+    let end = rest.indexOf('{', start)
+    for (; end < rest.length; end++) {
+      if (rest[end] === '{') depth++
+      if (rest[end] === '}' && --depth === 0) break
+    }
+    rest = rest.slice(0, start) + rest.slice(end + 1)
+    start = rest.indexOf(opening)
+  }
+  return rest
+}
 
 const policies = { fr: '/confidentialite/', en: '/en/privacy/' }
 const deletions = { fr: '/suppression-compte/', en: '/en/delete-account/' }
@@ -100,18 +126,24 @@ describe('site public memopatte.app', () => {
     for (const face of faces) expect(face).toContain('font-display: swap')
   })
 
-  it('le style ne pointe que vers des fichiers du site qui existent', () => {
-    const targets = [...read('style.css').matchAll(/url\(\s*["']?([^"')]+)/g)].map((m) => m[1]!)
+  it.each(STYLESHEETS)('%s ne pointe que vers des fichiers du site qui existent', (sheet) => {
+    const targets = [...read(sheet).matchAll(/url\(\s*["']?([^"')]+)/g)].map((m) => m[1]!)
     expect(targets.length).toBeGreaterThan(0)
     for (const target of targets) {
       expect(existsSync(join(SITE, target)), `${target} introuvable`).toBe(true)
     }
   })
 
-  it('le style n’anime rien de lui-même et respecte la réduction des animations', () => {
+  it('le style commun n’anime rien de lui-même et respecte la réduction des animations', () => {
     const css = read('style.css')
     expect(css).not.toMatch(/@keyframes|\banimation\s*:/)
     expect(css).toContain('@media (prefers-reduced-motion: no-preference)')
+  })
+
+  it('le style de la vitrine n’anime rien quand la réduction des animations est demandée', () => {
+    const css = read('vitrine.css')
+    expect(css).toMatch(/\banimation\s*:/)
+    expect(withoutReducedMotionBlocks(css)).not.toMatch(/\b(animation|transition)\s*:/)
   })
 
   it.each(pages)('%s ne renvoie ailleurs que vers des sites connus', (page) => {
@@ -172,8 +204,8 @@ describe('site public memopatte.app', () => {
     },
   )
 
-  it('le style ne charge rien depuis un autre site', () => {
-    const css = read('style.css')
+  it.each(STYLESHEETS)('%s ne charge rien depuis un autre site', (sheet) => {
+    const css = read(sheet)
     expect(css).not.toMatch(/@import/i)
     expect(css).not.toMatch(/url\(\s*["']?(https?:)?\/\//i)
   })
