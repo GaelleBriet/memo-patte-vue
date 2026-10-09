@@ -87,8 +87,8 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   aujourd'hui et encore sans prise, spec Q36), proposée dans « Prochaine dose » et modifiable (spec Q7), avec l'aide « Calculée
   d'après la dernière prise : … Modifiable. » (lot A révisé, N3). Quand ni la fréquence ni les heures
   ne changent, c'est la prochaine échéance du calendrier en cours, report compris (spec Q37), et la
-  suite reste celle du calendrier en cours (G23) ; les heures d'aujourd'hui qu'un report seul a
-  envoyées à un autre jour y restent. Les suivantes se calculent depuis
+  suite reste celle du calendrier en cours (G23) ; les heures d'aujourd'hui reportées à un autre
+  jour y restent. Les suivantes se calculent depuis
   la **dernière ligne** plus la fréquence : date réelle d'une prise donnée, échéance d'une oubliée,
   nouvelle date d'un report (T1). En mois, le jour de référence est celui de la première échéance
   (31 janv. → 28 févr. → 31 mars), ou le dernier jour du mois quand il n'existe pas, sans dériver ; une
@@ -306,7 +306,7 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   pour le reste de la journée : les prises déjà notées aujourd'hui comptent pour les premières heures
   du nouveau réglage, les heures suivantes restent à donner ; il ne reste aucune dose de l'ancien
   réglage aujourd'hui (spec Q24), sauf quand seule la posologie change : les heures d'aujourd'hui
-  reportées seules à un autre jour y restent, et le calendrier ne change pas (G23) ; les prises passées gardent leurs réglages ; les échéances de l'ancien rythme restées sans
+  reportées à un autre jour y restent, et le calendrier ne change pas (G23) ; les prises passées gardent leurs réglages ; les échéances de l'ancien rythme restées sans
   prise avant aujourd'hui restent à renseigner, comme après un arrêt (TR-30). Exception au « sans
   question » : sans prise notée mais avec des échéances déjà tombées, changer la fréquence ou les
   heures pose la question à l'enregistrement (spec Q38). (P9 Q1 ; spec Q7)
@@ -357,12 +357,12 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     décalage : 4, 6, 8 ; hebdomadaire, dose du 8 avancée au 6 avec décalage : 6, 13, 20 ; mensuel du
     31, dose du 28 févr. avancée seule au 25 : 25 févr., 31 mars, 30 avr. Une heure de ce jour donnée
     en avance couvre son heure (G22) : à 8 h et 20 h, dose du 3 reportée seule au 4, 8 h du 4 donnée
-    le 2 : 20 h du 4, puis le 5. Les heures d'aujourd'hui reportées seules à un autre jour y restent,
-    même quand une prise d'aujourd'hui est notée (TR-28, Q24 ne les ramène pas). Pour décaler la
-    suite, la personne déplace elle-même la dose, case cochée (TR-9). Le moteur garde ce calendrier
-    par le jour de référence de la période : placé après la première échéance, il marque une première
-    échéance seule, puis la grille repart de lui ; placé avant, il ne compte que s'il passe par la
-    première échéance (le 31 d'un mensuel), comme avant.
+    le 2 : 20 h du 4, puis le 5. Les heures d'aujourd'hui reportées à un autre jour, seules ou avec décalage, y
+    restent, même quand une prise d'aujourd'hui est notée (TR-28, Q24 ne les ramène pas) : la
+    nouvelle période commence alors par la prochaine dose. Un report seul plus lointain part avec
+    l'ancienne période (§11) ; la grille, elle, reste : hebdomadaire, dose du 8 avancée seule au 6,
+    dose du 15 reportée seule au 17, posologie changée le 2 : 6, 15, 22. Pour décaler la
+    suite, la personne déplace elle-même la dose, case cochée (TR-9).
 - **TR-29** Un autre produit est un nouveau traitement : arrêter l'ancien, créer le nouveau. (P9 Q2)
 - **TR-30** « Arrêter » : dialogue qui propose de renseigner les doses non renseignées (« Toutes
   données », « Choisir les jours », « Arrêter sans renseigner ») ; « Arrêté le … », plus aucune

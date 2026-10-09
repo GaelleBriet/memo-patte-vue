@@ -1,6 +1,6 @@
 import { isClockTime } from './clock-time'
 import { checkFrequency, invalid } from './treatment-schedule-checks'
-import { latestOf } from './calendar-day'
+import { latestOf, nextDay } from './calendar-day'
 import { shiftDate } from './treatment-frequency'
 import { isOffGrid, sequenceDues } from './treatment-schedule-sequence'
 import {
@@ -22,6 +22,7 @@ import type {
   NewPeriod,
   PeriodTimeline,
   State,
+  Step,
   TreatmentPeriodInput,
 } from './treatment-schedule-types'
 
@@ -75,19 +76,37 @@ function periodDays(period: TreatmentPeriodInput, count: number): string[] {
     .slice(0, count)
 }
 
+// La journée de grille qui suit ce jour, sans la dose qu'un report y a avancée ni les lignes plus
+// lointaines (G5) ; un décalage ancré à ce jour ou avant compte (G18).
+function gridDayAfter(open: PeriodTimeline, day: string): string {
+  const after = positionOf(`${nextDay(day)} `, 0)
+  const inForce = open.anchors.filter(
+    ({ position, sequence }) => position < after || sequence.origin <= day,
+  )
+  const { sequence } = inForce.at(-1) ?? open.anchors[0]!
+  const replaced = open.steps
+    .filter(({ kind, dose }) => kind === 'move' && dose.nextDueDate <= day)
+    .map(({ dose }) => dose.dueOn)
+  const dues = sequenceDues({ ...sequence, floor: `${day} ~` }, open.period)
+  let next = dues.next().value
+  while (replaced.includes(next.dueOn)) next = dues.next().value
+  return next.dueOn
+}
+
 // G23 : au même rythme, le jour de référence qui fait suivre à la nouvelle période le calendrier en
-// vigueur après sa première dose. Un mensuel repris d'un jour borné (le 28 févr. d'une suite du 31)
-// garde au moins la dose suivante, sauf si une ligne plus lointaine la fixe (G5).
+// vigueur après sa première dose ; à défaut, la grille en vigueur. Un mensuel repris d'un jour borné
+// (le 28 févr. d'une suite du 31) garde au moins la dose suivante, sauf ligne plus lointaine (G5).
 function keptReference(open: PeriodTimeline, day: string, fallback: string): string {
   const following = followingDays(open, day, 2)
+  const grid = gridDayAfter(open, day)
   const { origin } = sequenceAt(open, positionOf(`${day} `, 0))
-  const candidates = [fallback, origin, day, following[0]!]
+  const candidates = [fallback, origin, day, ...following.slice(0, 1), grid]
   const daysWith = (referenceOn: string) =>
     periodDays({ ...open.period, firstDueOn: day, referenceOn }, 3)
   const fits = (count: number) => (referenceOn: string) =>
     daysWith(referenceOn).slice(0, count).join() === [day, ...following].slice(0, count).join()
   const farther = open.steps.some(({ kind, dose }) => kind !== 'note' && dose.nextDueDate > day)
-  return candidates.find(fits(3)) ?? (farther ? undefined : candidates.find(fits(2))) ?? fallback
+  return candidates.find(fits(3)) ?? (farther ? undefined : candidates.find(fits(2))) ?? grid
 }
 
 // G22 : une journée à venir entamée en avance reste la prochaine, si elle est sur la suite en vigueur.
@@ -97,7 +116,8 @@ function scheduledDay(state: State): string | undefined {
   if (day === undefined || open === null) return undefined
   if (!open.noteDays.has(day)) return day
   if (day <= state.input.today) return undefined
-  if (open.steps.some(({ kind, dose }) => kind === 'shift' && dose.nextDueDate === day)) return day
+  const arrives = ({ kind, dose }: Step) => kind !== 'note' && dose.nextDueDate === day
+  if (open.steps.some(arrives)) return day
   const dues = sequenceDues(sequenceAt(open, positionOf(`${day} `, 0)), open.period, day)
   let next = dues.next().value
   while (next.dueOn < day) next = dues.next().value
@@ -136,7 +156,9 @@ export function newPeriod(state: State, frequency: Frequency, times: readonly st
   const kept = open !== null && keepsSettings(state, frequency, times)
   const scheduled = kept ? scheduledDay(state) : undefined
   if (kept) {
-    const start = keptStart(state, open, startsOn, fromStart ? startsOn : scheduled)
+    // Au même rythme, aujourd'hui n'ouvre la période que s'il y reste une dose à donner.
+    const planned = fromStart && dueToday ? startsOn : scheduled
+    const start = keptStart(state, open, startsOn, planned)
     if (start !== undefined) return { startsOn, ...start }
   }
   if (fromStart) return { startsOn, firstDueOn: startsOn, referenceOn: startsOn }
