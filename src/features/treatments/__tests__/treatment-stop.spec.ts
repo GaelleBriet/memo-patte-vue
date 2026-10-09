@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { dose, period, plain, treatment } from './treatment-fixtures'
 import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
-import { stopDues, stopPrompt, stoppedText } from '../logic/treatment-stop'
+import { plainStopPrompt, stopDues, stopPrompt, stoppedText } from '../logic/treatment-stop'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 
@@ -108,6 +108,22 @@ describe('stopPrompt — rien à renseigner (planche A · V6 bis)', () => {
 
     expect(dues).toEqual([])
     expect(todayNote).toContain('La dose d’aujourd’hui n’est pas notée')
+  })
+})
+
+describe('plainStopPrompt — traitement illisible', () => {
+  it('confirme simplement, sans dose ni note du jour', () => {
+    const { title, text, todayNote, dues, when, actions, stopOnly } = plain(
+      plainStopPrompt(t, 'Bravecto'),
+    )
+
+    expect(title).toBe('Arrêter Bravecto ?')
+    expect(text).toBe('Plus aucun rappel pour Bravecto. Ses prises restent dans le carnet.')
+    expect(todayNote).toBeNull()
+    expect(dues).toEqual([])
+    expect(when).toBe('')
+    expect(actions).toEqual([])
+    expect(stopOnly).toEqual({ text: 'Arrêter', label: 'Arrêter le traitement Bravecto' })
   })
 })
 
