@@ -1,5 +1,5 @@
 import type { TodoDueItem, TodoItem } from './todo-items'
-import type { DueStatus } from '@/shared/components/DueStatusChip.vue'
+import type { DueStatus } from '@/shared/domain/due-status'
 import {
   todoReminderValue,
   type ReminderRef,

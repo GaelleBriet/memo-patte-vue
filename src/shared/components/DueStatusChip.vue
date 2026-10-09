@@ -1,14 +1,6 @@
-<script lang="ts">
-import type { ReminderStatus } from '@/shared/domain/reminders'
-
-/**
- * `none` est le style neutre : « Pas de rappel », et badge de fréquence des traitements ;
- * `to-log` : « À renseigner », jamais un retard.
- */
-export type DueStatus = ReminderStatus | 'up-to-date' | 'none' | 'to-log' | 'planned'
-</script>
-
 <script setup lang="ts">
+import type { DueStatus } from '@/shared/domain/due-status'
+
 defineProps<{
   status: DueStatus
   label: string
