@@ -12,6 +12,7 @@ const SITE = 'site'
 const SITE_URL = 'https://memopatte.app'
 const CONTACT_EMAIL = 'contact@memopatte.app'
 const CONTACT = `mailto:${CONTACT_EMAIL}`
+const PUBLISHER_PHONE = '+33 7 69 46 49 63'
 const SITE_LEGAL_NOTICES = { fr: '/mentions-legales/', en: '/en/legal-notice/' }
 const OUTBOUND_HOSTS = ['memopatte.app', 'play.google.com', 'github.com', 'www.cnil.fr']
 const FONTS = ['inter-latin-wght-normal.woff2', 'space-grotesk-latin-wght-normal.woff2']
@@ -304,9 +305,14 @@ describe('site public memopatte.app', () => {
       expect(text).toContain('+1 (650) 319-8930')
     })
 
-    it('ne donne aucun autre numéro de téléphone que celui de l’hébergeur', () => {
+    it('donne le téléphone de l’éditrice, qu’on peut toucher pour appeler', () => {
+      expect(text).toContain(PUBLISHER_PHONE)
+      expect(html).toContain('href="tel:+33769464963"')
+    })
+
+    it('ne donne aucun autre numéro de téléphone que ceux de l’éditrice et de l’hébergeur', () => {
       const phones = text.match(/\+\d[\d ()-]{7,}\d|\b0\d(?:[ .]?\d{2}){4}\b/g) ?? []
-      expect(phones).toEqual(['+1 (650) 319-8930'])
+      expect(phones).toEqual([PUBLISHER_PHONE, '+1 (650) 319-8930'])
     })
 
     it('donne l’e-mail de contact', () => {
