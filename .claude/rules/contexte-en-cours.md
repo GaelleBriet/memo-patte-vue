@@ -1,5 +1,27 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-10-09 (nuit, autonomie) : **reprendre ici.** Le 8 au soir : nouveau site en ligne sur
+  `memopatte.app` (#682 socle, #683 mentions légales, #684 aide en pages, #685 vitrine). La nuit :
+  bugs #688 (#674), #689 (#672), #690 (#673), #691 (#675), #693 (#656, dont une double dose), #694
+  (#657) ; rangement de l'audit #695 (L0), #696 (L9), #697 (L3), #698 (L1), #700 (L4), #701 (L7),
+  #702 (L5, en partie), #704 (L6, en partie), #705 (L11, en partie), #708 (L8) ; #706 (#687, cache
+  ESLint par contenu : le push ne relit plus tout le dépôt). Bilan et huit questions dans le coffre,
+  `product/bilans/bilan-2026-10-09-nuit.md` ; décisions au journal autonome.
+  - **Ouverts** : #665 (formulaire animal), #666 (sélection d'animal), #671 (`NotificationPrimingView`),
+    #670 (L10), #662 (L2 : proposition de découpe à faire relire, coffre
+    `technical/etudes/proposition-decoupe-formulaire-traitement.md`), #692, #699, #703, #707, #638.
+  - **Méthode de la nuit, à garder** : un relecteur indépendant par branche, puis intégration du lot
+    dans un worktree jetable, puis le même parcours rejoué sur l'émulateur avec `main` et avec le lot,
+    captures comparées au pixel (scripts dans le dossier temporaire de la session, à recréer : import
+    du carnet de démo, heure figée, clics par la WebView). Un refactor de types seuls se prouve par un
+    build identique (`diff -r dist`).
+  - **Pièges** : (1) l'import du carnet de démo remet la permission des notifications à zéro : la
+    redonner (`pm grant`) ou toucher « Autoriser » ; (2) un arrêt forcé de l'app efface ses alarmes ;
+    (3) la vraie app installée sur l'émulateur affiche ses notifications de test quand on avance
+    l'horloge : ne pas y toucher, vider le volet ; (4) une résolution de conflit dans un worktree
+    jetable se valide avec les hooks, jamais en les désactivant ; (5) `@intlify/vue-i18n/no-unused-keys`
+    ne voit pas une clé construite à la volée : écrire les clés en entier.
+
 - 2026-10-08 (nuit, autonomie) : **reprendre ici.** Mergés : #547 (#627), #630 (#631), #629 (#632),
   #594 (#634), #598 en partie (#633), #582 (#635), #353 (#637), #638 en partie (#639), #487 en partie
   (#641, refactor sans changement de comportement, comparé à `main` sur l'émulateur), #636 (#643),
