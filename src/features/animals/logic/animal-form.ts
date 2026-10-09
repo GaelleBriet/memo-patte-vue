@@ -103,5 +103,5 @@ export function validateAnimalForm(values: AnimalFormValues): AnimalFormResult {
 
   const errors = fieldErrorsOf(result.error?.issues ?? [], ERROR_KEYS)
 
-  return { success: false, errors: tooHeavy ? { weightKg: MAX_WEIGHT_KEY, ...errors } : errors }
+  return { success: false, errors: tooHeavy ? { ...errors, weightKg: MAX_WEIGHT_KEY } : errors }
 }

@@ -115,6 +115,10 @@ describe('validateWeightForm — poids', () => {
   it('refuse un poids au-delà de l’échelle, avec un message distinct', () => {
     expect(erreurs({ weightKg: '2000' }).weightKg).toBe('weight.form.errors.weightKgMax')
   })
+
+  it('dit « poids maximal » pour un nombre trop grand pour être lu, comme la fiche animal', () => {
+    expect(erreurs({ weightKg: '1e400' }).weightKg).toBe('weight.form.errors.weightKgMax')
+  })
 })
 
 describe('validateWeightForm — date', () => {
