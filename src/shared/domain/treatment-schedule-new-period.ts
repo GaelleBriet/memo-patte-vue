@@ -35,8 +35,32 @@ function lastReference(state: State, frequency: Frequency): string | undefined {
   const last = plan === undefined ? undefined : lines(plan.steps).at(-1)
   if (plan === undefined || last === undefined) return undefined
   if (last.kind === 'move') return last.dose.nextDueDate
-  const reference = shiftOn(plan, last.dose)?.nextDueDate ?? last.dose.dueOn
+  const reference =
+    shiftOn(plan, last.dose)?.nextDueDate ??
+    (sameFrequency(plan, frequency) ? partialOrigin(plan, last.dose.dueOn) : undefined) ??
+    last.dose.dueOn
   return shiftDate(reference, frequency, 1)
+}
+
+function sameFrequency({ period }: PeriodTimeline, { value, unit }: Frequency): boolean {
+  return period.frequency.value === value && period.frequency.unit === unit
+}
+
+// G25 : le jour d'arrivée d'un report seul qui a laissé des heures derrière lui ne refixe pas la
+// grille ; elle repart de sa journée d'origine.
+function partialOrigin(plan: PeriodTimeline, day: string): string | undefined {
+  const move = movesInto(plan, day).find(
+    (line) => shiftOn(plan, dueOf(line)) === undefined && stayedKeys(plan, line).length > 0,
+  )
+  return move?.dueOn
+}
+
+// G25 : à fréquence égale, une journée sans plus rien à donner, dont des heures sont parties ou restées
+// en arrière d'un report seul, est réglée : le nouveau réglage n'y ajoute rien.
+function isSettledDay(open: PeriodTimeline, frequency: Frequency, day: string): boolean {
+  if (!sameFrequency(open, frequency)) return false
+  if (pendingDues(open, { from: day, to: day }).length > 0) return false
+  return open.removals.has(day) || partialOrigin(open, day) !== undefined
 }
 
 function keepsSettings(state: State, frequency: Frequency, times: readonly string[]): boolean {
@@ -174,8 +198,9 @@ export function newPeriod(state: State, frequency: Frequency, times: readonly st
   const noted = notedOn(startsOn, periods, doses)
   const { open } = state
   const dueToday = state.currentDoses.some((due) => due.dueOn === today)
-  const fromStart = (noted > 0 && noted < times.length) || (noted === 0 && dueToday)
   const kept = open !== null && keepsSettings(state, frequency, times)
+  const settled = open !== null && !kept && isSettledDay(open, frequency, startsOn)
+  const fromStart = !settled && ((noted > 0 && noted < times.length) || (noted === 0 && dueToday))
   const scheduled = kept ? scheduledDay(state) : undefined
   if (kept) {
     // Au même rythme, aujourd'hui n'ouvre la période que s'il y reste une dose à donner.

@@ -131,15 +131,30 @@ function keepsFrequency(previous: TreatmentPeriodInput, period: TreatmentPeriodI
 
 // G25 : les heures qu'un report seul a laissées derrière lui au premier jour de la période ; heures
 // changées, les doses reportées prennent les dernières heures du nouveau réglage.
-function stayedOnFirstDay(previous: PeriodTimeline, period: TreatmentPeriodInput): string[] {
+// Les prises de ce jour déjà comptées (G4) s'ajoutent aux heures restées en arrière.
+function stayedOnFirstDay(
+  previous: PeriodTimeline,
+  period: TreatmentPeriodInput,
+  covered: ReadonlySet<string> = new Set(),
+): string[] {
   const day = period.firstDueOn
   const stayed = new Set(movesInto(previous, day).flatMap((move) => stayedKeys(previous, move)))
   if (stayed.size === 0 || sameTimes(previous.period, period)) return [...stayed]
   const carried = Math.max(1, previous.period.times.length) - stayed.size
+  const given = [...covered].filter((key) => key.slice(0, 10) === day).length
   return [...period.times]
     .sort(compareOrdinal)
-    .slice(0, Math.max(0, period.times.length - carried))
+    .slice(0, Math.max(0, period.times.length - carried + given))
     .map((dueTime) => keyOf({ dueOn: day, dueTime }))
+}
+
+function changedCoverage(
+  previous: PeriodTimeline | undefined,
+  period: TreatmentPeriodInput,
+  covered: Set<string>,
+): Set<string> {
+  if (previous === undefined || !keepsFrequency(previous.period, period)) return covered
+  return new Set([...covered, ...stayedOnFirstDay(previous, period, covered)])
 }
 
 // G25 : un report seul fermé par la période suivante (G5) garde sa ligne tant que son arrivée l'ouvre.
@@ -170,16 +185,15 @@ export function build(input: TreatmentScheduleInput): State {
         doses.filter((dose) => dose.periodId === period.id),
         previous !== undefined && keepsCoverage(previous.period, period)
           ? inheritedKeys(previous, period)
-          : new Set([
-              ...coveredKeys(
+          : changedCoverage(
+              previous,
+              period,
+              coveredKeys(
                 period,
                 periods[index - 1],
                 notesSinceLastStop(periods.slice(0, index), doses),
               ),
-              ...(previous !== undefined && keepsFrequency(previous.period, period)
-                ? stayedOnFirstDay(previous, period)
-                : []),
-            ]),
+            ),
       ),
     )
   })
