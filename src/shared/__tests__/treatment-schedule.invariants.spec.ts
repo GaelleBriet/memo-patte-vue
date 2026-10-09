@@ -392,7 +392,9 @@ class Simulation {
     for (const step of backToOrigin || laterMove ? [0] : [0, 1, 2]) {
       const dueOn = shifted(to, period.frequency, step)
       if (period.endsOn !== null && dueOn > period.endsOn) break
+      const stayed = backToOrigin && step === 0 ? this.stayedTimes(dueOn) : new Set()
       for (const dueTime of period.times.length > 0 ? period.times : [null]) {
+        if (stayed.has(dueTime)) continue
         const expected = idOf({ periodId: period.id, dueOn, dueTime })
         if (!noted.has(expected) && !pending.some((other) => idOf(other) === expected)) {
           this.fail(`${gesture} : pas de dose à donner le ${dueOn} ${dueTime ?? ''}`)
@@ -942,12 +944,47 @@ class Simulation {
       (dose) =>
         dose.periodId === line.periodId && dose.givenOn !== null && dose.givenOn !== dose.dueOn,
     )
+    this.checkStayedReturns(line, after, gesture)
     if (!isOpen || moved || wasRewritten || offDay || this.book.periods.length > 1) return
     if (!pendingOf(after).some((due) => idOf(due) === idOf(line)) && !after.finished) {
       const horizon = after.upcoming(60).at(-1)
       if (horizon === undefined || horizon.dueOn >= line.dueOn) {
         this.fail(`${gesture} : l’échéance ne revient pas`)
       }
+    }
+  }
+
+  // G25 : une prise supprimée sur la journée d'origine d'un report seul revient, à son jour ou à
+  // son jour d'arrivée.
+  private checkStayedReturns(
+    line: TreatmentDoseInput,
+    after: TreatmentSchedule,
+    gesture: string,
+  ): void {
+    const { doses, periods } = this.book
+    if (line.givenOn !== null && line.givenOn !== line.dueOn) return
+    if (new Set(periods.map(({ times }) => times.join())).size > 1) return
+    if (periods.some(({ stoppedOn }) => stoppedOn !== null)) return
+    const index = periods.findIndex(({ id }) => id === line.periodId)
+    const move = doses.find(
+      (dose) =>
+        dose.status === 'postponed' &&
+        dose.periodId === line.periodId &&
+        dose.dueOn === line.dueOn &&
+        dose.nextDueDate !== dose.dueOn &&
+        !doses.some((other) => other.status !== 'postponed' && idOf(other) === idOf(dose)),
+    )
+    const following = periods.slice(index + 1)
+    if (move === undefined) return
+    if (following.some(({ firstDueOn }) => firstDueOn !== move.nextDueDate)) return
+    const back = [line.dueOn, move.nextDueDate].map((dueOn) => `${dueOn} ${line.dueTime ?? ''}`)
+    const visible = [...pendingOf(after), ...after.doses.filter(isNote)].map(
+      ({ dueOn, dueTime }) => `${dueOn} ${dueTime ?? ''}`,
+    )
+    if (!back.some((key) => visible.includes(key))) {
+      this.fail(
+        `${gesture} : l’heure supprimée ne revient ni le ${line.dueOn} ni le ${move.nextDueDate}`,
+      )
     }
   }
 
@@ -1113,28 +1150,54 @@ class Simulation {
       // G25 : son report, devenu seul, n'apporte plus à son jour d'arrivée que les heures parties.
       (due) =>
         (due.periodId !== line.periodId || due.dueOn <= line.dueOn) &&
-        due.dueOn !== report?.nextDueDate,
+        !(
+          due.dueOn === report?.nextDueDate &&
+          this.book.periods.find(({ id }) => id === due.periodId)?.firstDueOn === due.dueOn
+        ),
       gesture,
     )
   }
 
-  // G25 : les heures du jour d'arrivée d'un report seul qu'il n'a pas emportées n'y sont pas à donner.
-  private stayedHours(
-    before: TreatmentSchedule,
-    period: TreatmentPeriodInput,
-    day: string,
-  ): number {
-    const { doses } = this.book
-    const lone = doses.some(
+  // G25, recalculé depuis les prises : un report seul n'apporte à son jour d'arrivée ni les heures
+  // déjà notées de sa journée d'origine, ni, tant que sa période la garde, celles d'avant son heure.
+  private stayedTimes(day: string): Set<string | null> {
+    const { doses, periods } = this.book
+    const closesOf = (periodId: string) => {
+      const index = periods.findIndex(({ id }) => id === periodId)
+      const bounds = [periods[index]?.stoppedOn, periods[index + 1]?.startsOn]
+      return bounds.filter((bound) => bound !== null && bound !== undefined).sort()[0]
+    }
+    const lone = doses.filter(
       (move) =>
         move.status === 'postponed' &&
         move.nextDueDate === day &&
-        !doses.some((shift) => shift.status === 'shift' && idOf(shift) === idOf(move)),
+        move.dueOn !== day &&
+        !doses.some((other) => other.status !== 'postponed' && idOf(other) === idOf(move)),
     )
-    if (!lone) return 0
-    const pending = pendingOf(before).filter((due) => due.dueOn === day).length
-    const noted = before.doses.filter((dose) => isNote(dose) && dose.dueOn === day).length
-    return Math.max(0, Math.max(1, period.times.length) - pending - noted)
+    const stayed = new Set<string | null>()
+    for (const move of lone) {
+      const closes = closesOf(move.periodId)
+      const kept = closes === undefined || move.dueOn < closes
+      const times = periods.find(({ id }) => id === move.periodId)?.times ?? []
+      for (const time of times.length > 0 ? times : [null]) {
+        const noted = doses.some(
+          (dose) => isNote(dose) && dose.dueOn === move.dueOn && dose.dueTime === time,
+        )
+        if (noted || (kept && (time ?? '') < (move.dueTime ?? ''))) stayed.add(time)
+      }
+    }
+    return stayed
+  }
+
+  // Heures changées, autant de premières heures du nouveau réglage restent couvertes (G4).
+  private stayedHours(
+    period: TreatmentPeriodInput,
+    day: string,
+    ofDay: TreatmentDoseInput[],
+  ): number {
+    const stayed = [...this.stayedTimes(day)]
+    if (!stayed.every((time) => time !== null && period.times.includes(time))) return stayed.length
+    return stayed.filter((time) => !ofDay.some((dose) => dose.dueTime === time)).length
   }
 
   private stop(before: TreatmentSchedule): void {
@@ -1347,12 +1410,13 @@ class Simulation {
     if (rhythmKey(previous) !== rhythmKey(period) || period.firstDueOn !== day) return
     const farther = before.doses
       .filter(
-        ({ periodId, status, nextDueDate }) =>
+        ({ periodId, status, dueOn, nextDueDate }) =>
           periodId === previous.id &&
           (status === 'postponed' || status === 'shift') &&
-          nextDueDate > day,
+          // §11 : un décalage rangé sous une échéance plus lointaine part aussi avec l'ancienne période.
+          (nextDueDate > day || dueOn > day),
       )
-      .flatMap(({ dueOn, nextDueDate }) => [dueOn, nextDueDate])
+      .flatMap(({ dueOn, nextDueDate }) => (nextDueDate > day ? [dueOn, nextDueDate] : [dueOn]))
     const days = [...new Set(pendingOf(before).map(({ dueOn }) => dueOn))]
       .filter((dueOn) => dueOn >= day)
       .sort()
@@ -1430,7 +1494,11 @@ class Simulation {
       changed &&
       noted >= period.times.length &&
       ofToday.some((dose) => refixesSuite(dose, before.doses))
-    const stayed = changed ? 0 : this.stayedHours(before, period, today)
+    const sameFrequency =
+      previous !== undefined &&
+      previous.frequency.value === period.frequency.value &&
+      previous.frequency.unit === period.frequency.unit
+    const stayed = sameFrequency ? this.stayedHours(period, today, ofToday) : 0
     const expected =
       period.firstDueOn === today ? (uncovered ? hours : Math.max(0, hours - noted - stayed)) : 0
     if (left !== expected) {
@@ -1485,7 +1553,7 @@ class Simulation {
     const left = pendingOf(after).filter(
       (due) => due.periodId === period.id && due.dueOn === day,
     ).length
-    const stayed = kept ? this.stayedHours(before, period, day) : 0
+    const stayed = kept ? this.stayedHours(period, day, ofDay) : 0
     const expected = Math.max(0, hours - noted - stayed)
     if (left !== expected) {
       this.fail(`${gesture} : ${left} dose(s) à donner le ${day}, ${expected} attendue(s)`)

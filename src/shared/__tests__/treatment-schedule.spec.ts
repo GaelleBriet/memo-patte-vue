@@ -3805,6 +3805,121 @@ describe('une heure reportée seule ne déplace que cette heure (G25, #720)', ()
     expect(scheduleOf(book, '2026-10-05').unloggedDoses).toEqual([due('2026-10-04', '20:00')])
   })
 
+  it.each([
+    ['2026-10-03', [due('2026-10-04', '08:00', 'p2'), due('2026-10-04', '20:00', 'p2')], []],
+    ['2026-10-04', [due('2026-10-04', '20:00', 'p2')], [due('2026-10-03', '08:00')]],
+  ])(
+    'posologie changée le %s, puis la prise de 8 h du 3 supprimée : la dose de 8 h n’est pas perdue',
+    (changedOn, onThe4th, unlogged) => {
+      const book = movedOn(
+        morningOf3,
+        '2026-10-03',
+        due('2026-10-03', '20:00'),
+        '2026-10-04',
+        false,
+      )
+      const dates = scheduleOf(book, changedOn).newPeriod(twoDays, times)
+      const changed: Carnet = {
+        ...book,
+        periods: [
+          ...book.periods,
+          period({
+            id: 'p2',
+            createdAt: '2026-10-02T09:00:00.000Z',
+            ...dates,
+            frequency: twoDays,
+            times,
+          }),
+        ],
+      }
+      const morning = changed.doses.find(
+        ({ dueOn, status }) => dueOn === '2026-10-03' && status === 'given',
+      )!
+      const schedule = scheduleOf(withoutDose(changed, morning.id), '2026-10-04')
+
+      expect(schedule.currentDoses).toEqual(onThe4th)
+      expect(schedule.unloggedDoses).toEqual(unlogged)
+    },
+  )
+
+  it.each(['2026-10-03', '2026-10-04'])(
+    'heures passées à 9 h et 21 h le %s : le 4, seule 21 h remplace la dose reportée, puis le 5 à 9 h et 21 h',
+    (today) => {
+      const later = ['09:00', '21:00']
+      const book = movedOn(
+        morningOf3,
+        '2026-10-03',
+        due('2026-10-03', '20:00'),
+        '2026-10-04',
+        false,
+      )
+      const dates = scheduleOf(book, today).newPeriod(twoDays, later)
+      const changed: Carnet = {
+        ...book,
+        periods: [
+          ...book.periods,
+          period({
+            id: 'p2',
+            createdAt: '2026-10-02T09:00:00.000Z',
+            ...dates,
+            frequency: twoDays,
+            times: later,
+          }),
+        ],
+      }
+      const schedule = scheduleOf(changed, today)
+      const purged = {
+        ...changed,
+        doses: changed.doses.filter(({ id }) => !schedule.staleDoseIds.includes(id)),
+      }
+
+      expect(schedule.upcoming(3)).toEqual([
+        due('2026-10-04', '21:00', 'p2'),
+        due('2026-10-05', '09:00', 'p2'),
+        due('2026-10-05', '21:00', 'p2'),
+      ])
+      expect(schedule.unloggedDoses).toEqual([])
+      expect(scheduleOf(purged, '2026-10-04').currentDoses).toEqual([
+        due('2026-10-04', '21:00', 'p2'),
+      ])
+    },
+  )
+
+  it('posologie changée le 3, le 4 déplacé au 6 avec décalage puis ramené : le 6 a ses deux heures (Q21), le 4 revient à 20 h seule (graine 230001526)', () => {
+    const book = movedOn(morningOf3, '2026-10-03', due('2026-10-03', '20:00'), '2026-10-04', false)
+    const dates = scheduleOf(book, '2026-10-03').newPeriod(twoDays, times)
+    const changed: Carnet = {
+      ...book,
+      periods: [
+        ...book.periods,
+        period({
+          id: 'p2',
+          createdAt: '2026-10-02T09:00:00.000Z',
+          ...dates,
+          frequency: twoDays,
+          times,
+        }),
+      ],
+    }
+    const away = movedOn(
+      changed,
+      '2026-10-03',
+      due('2026-10-04', '20:00', 'p2'),
+      '2026-10-06',
+      true,
+    )
+
+    expect(scheduleOf(away, '2026-10-03').upcoming(2)).toEqual([
+      due('2026-10-06', '08:00', 'p2'),
+      due('2026-10-06', '20:00', 'p2'),
+    ])
+    const back = movedOn(away, '2026-10-03', due('2026-10-06', '08:00', 'p2'), '2026-10-04', true)
+    expect(scheduleOf(back, '2026-10-03').upcoming(2)).toEqual([
+      due('2026-10-04', '20:00', 'p2'),
+      due('2026-10-05', '08:00', 'p2'),
+    ])
+  })
+
   it('avec décalage, la journée d’arrivée a toutes ses heures (Q21) : le 4 à 8 h et 20 h, puis le 6', () => {
     const book = movedOn(morningOf3, '2026-10-03', due('2026-10-03', '20:00'), '2026-10-04', true)
 
