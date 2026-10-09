@@ -17,7 +17,7 @@ import {
 import vuetify from '@/core/theme/vuetify'
 import { writeStoredPlusStatus } from '@/features/purchase/logic/plus-status-storage'
 import router from '@/router'
-import { readUsageSignals, recordUsageSignal } from '@/shared/utils/usage-signals'
+import { readUsageSignals, recordUsageSignal } from '@/core/usage/usage-signals'
 import { toastMessage } from '@/shared/utils/toast'
 
 vi.mock('@/core/notifications/permission', () => ({

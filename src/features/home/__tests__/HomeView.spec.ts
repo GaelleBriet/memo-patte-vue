@@ -38,7 +38,7 @@ import WeightSheet from '@/features/weight/views/WeightSheet.vue'
 import AnimalChipSelector from '@/shared/components/AnimalChipSelector.vue'
 import { plain } from '@/shared/__tests__/plain'
 import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
-import { recordUsageSignal } from '@/shared/utils/usage-signals'
+import { recordUsageSignal } from '@/core/usage/usage-signals'
 import {
   getNotificationPermissionStatus,
   openNotificationSettings,

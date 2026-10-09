@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createCareSignalBackfill } from '../care-signal-backfill'
-import { isCareBackfillDone, readUsageSignals } from '@/shared/utils/usage-signals'
+import { isCareBackfillDone, readUsageSignals } from '@/core/usage/usage-signals'
 
 function memoryStorage(): Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> {
   const items = new Map<string, string>()

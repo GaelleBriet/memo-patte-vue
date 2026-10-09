@@ -15,13 +15,13 @@ import {
 import { track } from '@/core/analytics'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
-import { recordUsageSignal, type UsageSignal } from '@/shared/utils/usage-signals'
+import { recordUsageSignal, type UsageSignal } from '@/core/usage/usage-signals'
 
 vi.mock('@/core/analytics', () => ({
   track: vi.fn<(event: string, properties?: Record<string, unknown>) => void>(),
 }))
 
-vi.mock('@/shared/utils/usage-signals', () => ({
+vi.mock('@/core/usage/usage-signals', () => ({
   recordUsageSignal: vi.fn<(signal: UsageSignal) => void>(),
 }))
 

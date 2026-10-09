@@ -31,7 +31,7 @@ import { track } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import type { DoseGesture } from '@/shared/domain/treatment-schedule'
 import { useAnimalScopedList } from '@/shared/composables/use-animal-scoped-list'
-import { recordUsageSignal } from '@/shared/utils/usage-signals'
+import { recordUsageSignal } from '@/core/usage/usage-signals'
 
 type TreatmentsRepository = Pick<
   FullTreatmentsRepository,
