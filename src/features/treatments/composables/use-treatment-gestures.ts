@@ -1,8 +1,8 @@
-import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
-import { showToast, showUndoableToast } from '@/shared/utils/toast'
+import { useGuardedGestures } from '@/shared/composables/use-guarded-gestures'
+import { showToast } from '@/shared/utils/toast'
 import { DoseAlreadyLoggedError, type DoseAction } from '../logic/treatment-dose-writes'
 import type { DoseActionTexts } from '../logic/treatment-gestures'
 import { treatmentDeleteTexts } from '../logic/treatment-history'
@@ -22,41 +22,10 @@ export function useTreatmentGestures(onChanged: () => void) {
   const { t } = useI18n()
   const treatments = useTreatmentsStore()
   const animals = useAnimalsStore()
-  const isBusy = ref(false)
+  const { isBusy, guarded, undoable } = useGuardedGestures({ afterUndo: onChanged })
 
   function named(treatment: Named) {
     return { name: treatment.name, animal: animals.byId(treatment.animalId)?.name ?? '' }
-  }
-
-  async function guarded(action: () => Promise<void>, failed?: string): Promise<boolean> {
-    if (isBusy.value) return false
-    isBusy.value = true
-    try {
-      await action()
-      return true
-    } catch {
-      if (failed) showToast(failed, { tone: 'error' })
-      return false
-    } finally {
-      isBusy.value = false
-    }
-  }
-
-  function undoable(
-    message: string,
-    ariaLabel: string,
-    undo: () => Promise<unknown>,
-    announcement?: string,
-  ): void {
-    showUndoableToast(message, {
-      label: t('reminderSheet.undo'),
-      ariaLabel,
-      undo,
-      onUndone: onChanged,
-      onFailed: onChanged,
-      failedMessage: t('reminderSheet.undoFailed'),
-      announcement,
-    })
   }
 
   async function stopped(treatment: Named, doses: readonly DoseGesture[]): Promise<void> {
@@ -65,9 +34,10 @@ export function useTreatmentGestures(onChanged: () => void) {
       const message = stoppedText(t, treatment.name, result.finished)
       if (!result.stopped) showToast(message, { tone: 'info' })
       else {
-        undoable(message, t('treatments.sheet.toast.undoStop', named(treatment)), () =>
-          treatments.undoStop(treatment.id, result.undo),
-        )
+        undoable(message, {
+          ariaLabel: t('treatments.sheet.toast.undoStop', named(treatment)),
+          undo: () => treatments.undoStop(treatment.id, result.undo),
+        })
       }
     } finally {
       onChanged()
@@ -96,9 +66,10 @@ export function useTreatmentGestures(onChanged: () => void) {
       if (change.alreadyGivenOn !== null) {
         showToast(texts.already(change.alreadyGivenOn), { tone: 'info' })
       } else if (change.undo.length > 0) {
-        undoable(texts.done(change), texts.undo, () =>
-          treatments.undoDoseAction(treatment.id, change.undo),
-        )
+        undoable(texts.done(change), {
+          ariaLabel: texts.undo,
+          undo: () => treatments.undoDoseAction(treatment.id, change.undo),
+        })
       }
     } finally {
       onChanged()
@@ -145,12 +116,11 @@ export function useTreatmentGestures(onChanged: () => void) {
     const texts = treatmentDeleteTexts(t, treatment.name)
     return guarded(async () => {
       const deletedAt = await treatments.remove(treatment.id)
-      undoable(
-        texts.deleted,
-        texts.undo,
-        () => treatments.undoRemove(treatment.id, deletedAt),
-        texts.deletedLabel,
-      )
+      undoable(texts.deleted, {
+        ariaLabel: texts.undo,
+        undo: () => treatments.undoRemove(treatment.id, deletedAt),
+        announcement: texts.deletedLabel,
+      })
     }, texts.failed)
   }
 
