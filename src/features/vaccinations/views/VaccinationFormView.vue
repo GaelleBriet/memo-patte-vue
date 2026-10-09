@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, useId, watch } from 'vue'
+import { computed, ref, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute, useRouter } from 'vue-router'
 
 import {
   emptyVaccinationFormValues,
@@ -28,10 +27,9 @@ import DatePickerSheet from '@/shared/components/DatePickerSheet.vue'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
-import { leaveAfterReminderSaved, primingReturnRoute } from '@/shared/domain/notification-priming'
-import { returnTo } from '@/shared/utils/return-to'
+import { submitLabelKey } from '@/shared/form/form-screen'
+import { useCareForm } from '@/shared/composables/use-care-form'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
-import { takesNewCare } from '@/shared/domain/unfollowed-animals'
 
 const props = defineProps<{
   animalId?: string
@@ -39,23 +37,12 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
-const router = useRouter()
-const { query } = useRoute()
 const animals = useAnimalsStore()
 const vaccinations = useVaccinationsStore()
 const { today } = useToday()
 
-const from = typeof query.from === 'string' ? query.from : undefined
-const reminder = typeof query.reminder === 'string' ? query.reminder : undefined
-
 const values = ref(emptyVaccinationFormValues())
 const existing = ref<Vaccination | null>(null)
-const notFound = ref(false)
-const isLoading = ref(props.id !== undefined)
-const loadFailed = ref(false)
-const saveFailed = ref(false)
-const isSubmitting = ref(false)
-const isSaved = ref(false)
 const reminderLabelId = useId()
 const isOtherDateOpen = ref(false)
 
@@ -64,6 +51,26 @@ const isSameNameDialogOpen = ref(false)
 const isDoneSheetOpen = ref(false)
 const doneSheetInjectedOn = ref<string | null>(null)
 const isCheckingName = ref(false)
+
+const {
+  isSubmitting,
+  isSaved,
+  targetAnimal,
+  animalName,
+  failure,
+  canSave,
+  backToOrigin,
+  saveThenLeave,
+} = useCareForm({
+  kind: 'vaccination',
+  animals,
+  id: () => props.id,
+  animalId: () => props.animalId,
+  openedAnimalId: () => existing.value?.animalId,
+  allowsUnfollowedAnimal: () => props.id !== undefined,
+  load: (id) => vaccinations.getById(id),
+  open,
+})
 
 const context = computed((): VaccinationFormContext => ({
   today: today.value,
@@ -76,11 +83,6 @@ const { errors, validate } = useFormValidation(values, (current) =>
 )
 
 const isEdit = computed(() => props.id !== undefined)
-const targetAnimalId = computed(() => existing.value?.animalId ?? props.animalId ?? null)
-const targetAnimal = computed(
-  () => animals.animals.find((animal) => animal.id === targetAnimalId.value) ?? null,
-)
-const animalName = computed(() => targetAnimal.value?.name ?? null)
 const animalSpecies = computed(() => targetAnimal.value?.species ?? null)
 const title = computed(() =>
   existing.value
@@ -90,25 +92,11 @@ const title = computed(() =>
 const subtitle = computed(() =>
   animalName.value ? t('vaccinations.form.forAnimal', { name: animalName.value }) : null,
 )
-const submitLabel = computed(() => {
-  if (isSubmitting.value) {
-    return isEdit.value ? t('vaccinations.form.saving') : t('vaccinations.form.submitting')
-  }
-  return isEdit.value ? t('vaccinations.form.save') : t('vaccinations.form.submit')
-})
-const errorMessage = computed(() => {
-  if (notFound.value) return t('vaccinations.form.errors.notFound')
-  if (loadFailed.value) return t('vaccinations.form.errors.load')
-  if (saveFailed.value) return t('vaccinations.form.errors.save')
-  return null
-})
-const canSave = computed(
-  () =>
-    !isSaved.value &&
-    !isLoading.value &&
-    !notFound.value &&
-    !loadFailed.value &&
-    (isEdit.value || takesNewCare(targetAnimal.value)),
+const submitLabel = computed(() =>
+  t(`vaccinations.form.${submitLabelKey(isEdit.value, isSubmitting.value)}`),
+)
+const errorMessage = computed(() =>
+  failure.value === null ? null : t(`vaccinations.form.errors.${failure.value}`),
 )
 const isInjected = computed(() => hasInjection(values.value))
 const injectionHelp = computed(() =>
@@ -120,26 +108,14 @@ const otherDate = computed(() =>
   values.value.reminder?.kind === 'otherDate' ? values.value.reminder.date : null,
 )
 
-watch(
-  targetAnimal,
-  (animal) => {
-    if (!isEdit.value && animal !== null && !takesNewCare(animal)) backToOrigin()
-  },
-  { immediate: true },
-)
-
 function requireAnimalId(): string {
   if (props.animalId === undefined) throw new Error('Formulaire vaccin ouvert sans animal.')
   return props.animalId
 }
 
-function selectTargetAnimal(): void {
-  if (targetAnimalId.value !== null) animals.select(targetAnimalId.value)
-}
-
-function backToOrigin(): void {
-  selectTargetAnimal()
-  returnTo(router, primingReturnRoute(from, reminder))
+function open(loaded: Vaccination): void {
+  existing.value = loaded
+  values.value = vaccinationFormValuesFrom(loaded)
 }
 
 async function findSameName(): Promise<Vaccination | null> {
@@ -185,46 +161,15 @@ async function save(): Promise<void> {
   const result = validate()
   if (!result.success) return
 
-  isSubmitting.value = true
-  saveFailed.value = false
-
-  try {
-    if (props.id !== undefined) {
-      await vaccinations.update(props.id, { name: result.data.name, dueDate: result.data.dueDate })
-    } else {
-      await vaccinations.create({ animalId: requireAnimalId(), ...result.data })
-    }
-    isSaved.value = true
-  } catch {
-    saveFailed.value = true
-    return
-  } finally {
-    isSubmitting.value = false
-  }
-  selectTargetAnimal()
-  await leaveAfterReminderSaved(router, {
-    hasDueDate: result.data.dueDate !== null,
-    animalName: animalName.value,
-    kind: 'vaccination',
-    from,
-    reminder,
-  })
+  const { id } = props
+  await saveThenLeave(
+    () =>
+      id !== undefined
+        ? vaccinations.update(id, { name: result.data.name, dueDate: result.data.dueDate })
+        : vaccinations.create({ animalId: requireAnimalId(), ...result.data }),
+    result.data.dueDate !== null,
+  )
 }
-
-onMounted(async () => {
-  if (props.id !== undefined) {
-    try {
-      existing.value = await vaccinations.getById(props.id)
-      notFound.value = existing.value === null
-      if (existing.value) values.value = vaccinationFormValuesFrom(existing.value)
-    } catch {
-      loadFailed.value = true
-    } finally {
-      isLoading.value = false
-    }
-  }
-  if (!animals.hasLoaded) await animals.load()
-})
 </script>
 
 <template>

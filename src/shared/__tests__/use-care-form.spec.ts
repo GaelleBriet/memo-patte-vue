@@ -170,7 +170,7 @@ describe('useCareForm — enregistrement', () => {
     await flushPromises()
     const write = vi.fn(async () => undefined)
 
-    await form.save(write, true)
+    await form.saveThenLeave(write, true)
 
     expect(write).toHaveBeenCalledOnce()
     expect(form.isSaved.value).toBe(true)
@@ -183,10 +183,10 @@ describe('useCareForm — enregistrement', () => {
   it('ne fait rien quand il n’y a rien à écrire, et efface l’échec précédent', async () => {
     const { form } = monter({ animalId: 'milo' })
     await flushPromises()
-    await form.save(() => Promise.reject(new Error('disque plein')), true)
+    await form.saveThenLeave(() => Promise.reject(new Error('disque plein')), true)
     expect(form.failure.value).toBe('save')
 
-    await form.save(() => null, true)
+    await form.saveThenLeave(() => null, true)
 
     expect(form.failure.value).toBeNull()
     expect(form.isSaved.value).toBe(false)
@@ -198,7 +198,7 @@ describe('useCareForm — enregistrement', () => {
     const { form, animals } = monter({ animalId: 'milo' })
     await flushPromises()
 
-    await form.save(() => {
+    await form.saveThenLeave(() => {
       throw new Error('formulaire ouvert sans animal')
     }, false)
 
@@ -214,7 +214,10 @@ describe('useCareForm — enregistrement', () => {
     await flushPromises()
     let finish: () => void = () => {}
 
-    const saving = form.save(() => new Promise<void>((resolve) => (finish = resolve)), true)
+    const saving = form.saveThenLeave(
+      () => new Promise<void>((resolve) => (finish = resolve)),
+      true,
+    )
     expect(form.isSubmitting.value).toBe(true)
     finish()
     await saving

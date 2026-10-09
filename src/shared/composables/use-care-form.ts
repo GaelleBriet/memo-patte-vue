@@ -97,7 +97,10 @@ export function useCareForm<T, A extends CareFormAnimal>(options: CareFormOption
   }
 
   /** `write` rend `null` quand rien n'est à écrire ; après une écriture réussie, l'écran se quitte. */
-  async function save(write: () => Promise<unknown> | null, hasDueDate: boolean): Promise<void> {
+  async function saveThenLeave(
+    write: () => Promise<unknown> | null,
+    hasDueDate: boolean,
+  ): Promise<void> {
     isSubmitting.value = true
     saveFailed.value = false
 
@@ -149,6 +152,6 @@ export function useCareForm<T, A extends CareFormAnimal>(options: CareFormOption
     failure,
     canSave,
     backToOrigin,
-    save,
+    saveThenLeave,
   }
 }
