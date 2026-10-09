@@ -5,6 +5,7 @@ import {
   type CarnetReminderSettings,
   type ReminderTranslate,
 } from '@/shared/domain/reminder-plan'
+import { injectionMadeDue } from './vaccination-history'
 import type { Vaccination } from '../schema/vaccination.schema'
 
 /** Rappels qu'une injection plus récente a remplacés, lus par `listReplacedDues`. */
@@ -16,12 +17,15 @@ type RemindedVaccination = Pick<
 > &
   ReplacedDues
 
-/** Une échéance déplacée sans injection n'est pas notée. */
+/** Une échéance qui n'est plus celle du vaccin est notée si une injection l'a remplacée ou faite. */
 export function isInjectionNoted(
-  vaccination: Pick<Vaccination, 'dueDate'> & ReplacedDues,
+  vaccination: Pick<Vaccination, 'dueDate' | 'lastInjectionDate'> & ReplacedDues,
   dueDate: string,
 ): boolean {
-  return vaccination.dueDate !== dueDate && vaccination.replacedDues.includes(dueDate)
+  const { lastInjectionDate } = vaccination
+  if (vaccination.dueDate === dueDate) return false
+  if (vaccination.replacedDues.includes(dueDate)) return true
+  return lastInjectionDate !== null && injectionMadeDue(dueDate, lastInjectionDate)
 }
 
 export function vaccinationReminders(

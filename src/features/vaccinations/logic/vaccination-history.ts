@@ -194,7 +194,16 @@ export function pastInjectionNeedsReminder(
   injectedOn: string,
 ): boolean {
   const { dueDate } = vaccination
-  return becomesLast(vaccination, injectedOn) && dueDate !== null && dueDate <= injectedOn
+  return (
+    becomesLast(vaccination, injectedOn) &&
+    dueDate !== null &&
+    injectionMadeDue(dueDate, injectedOn)
+  )
+}
+
+/** Une injection faite le jour d'un rappel ou après a fait ce rappel (VA-10). */
+export function injectionMadeDue(dueDate: string, injectedOn: string): boolean {
+  return dueDate <= injectedOn
 }
 
 function becomesLast(
