@@ -2248,3 +2248,13 @@ quitte le service d'import pour `schema/`, et seuls les services avaient le droi
 schémas des autres features. — Alternatives écartées : autoriser tout `*.schema.ts` à composer les
 schémas d'autres features (précédent plus large, à ouvrir si la règle se montre trop restrictive) ;
 laisser le schéma dans le service d'import (contraire au ticket).
+
+2026-10-09 — **Un report seul ne déplace que sa dose ; changer la posologie ne change jamais le
+calendrier** (Gaelle, #692 ; règle G23 de la spec Traitements). Vermifuge tous les 2 jours (1, 3, 5,
+7), dose du 3 reportée seule au 4, posologie passée de ½ comprimé à 1 : la suite reste 4, 5, 7.
+Pour décaler la suite, la personne le fait elle-même (« Prochaine dose », case « Décaler aussi les
+doses suivantes »). La nouvelle période s'ouvre sur l'arrivée du report, puis le calendrier reste
+celui d'avant le changement. — Raison :
+un réglage qui ne touche ni la fréquence ni les heures ne doit pas faire glisser le rythme sans le
+dire (principe 1). — Alternative écartée : faire repartir la suite du jour reporté (4, 6, 8), le
+comportement d'avant.

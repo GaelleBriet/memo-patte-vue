@@ -413,12 +413,23 @@ describe('les limites du §11 de la spec, fermées par la ligne de décalage', (
     ])
   })
 
-  it('un jour de référence qui ne passe pas par la première échéance est ignoré', () => {
+  it('un jour de référence avant la première échéance, qui ne passe pas par elle, est ignoré', () => {
     const odd = monthly({ firstDueOn: '2027-02-10', referenceOn: '2027-01-31' })
 
     expect(dueDays(scheduleOf(carnet(odd), '2027-02-01').upcoming(2))).toEqual([
       '2027-02-10',
       '2027-03-10',
+    ])
+  })
+
+  it('un jour de référence après la première échéance : elle est seule, puis la grille part de lui (G23)', () => {
+    const postponed = monthly({ firstDueOn: '2027-03-02', referenceOn: '2027-03-31' })
+
+    expect(dueDays(scheduleOf(carnet(postponed), '2027-03-01').upcoming(4))).toEqual([
+      '2027-03-02',
+      '2027-03-31',
+      '2027-04-30',
+      '2027-05-31',
     ])
   })
 })

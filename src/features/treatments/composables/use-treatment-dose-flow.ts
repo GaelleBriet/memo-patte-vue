@@ -21,8 +21,6 @@ type DoseFlowState = {
 export type DoseFlowExits = {
   /** Après une prise, un lot de doses ou un arrêt réussis. */
   settled?: () => void
-  /** Échec d'un arrêt : en toast, ou en message dans `stopError`. */
-  stopFailure: 'toast' | 'message'
 }
 
 /**
@@ -32,14 +30,13 @@ export type DoseFlowExits = {
 export function useTreatmentDoseFlow(
   { treatment, schedule, today }: DoseFlowState,
   gestures: ReturnType<typeof useTreatmentGestures>,
-  exits: DoseFlowExits,
+  exits: DoseFlowExits = {},
 ) {
   const { t } = useI18n()
   const animals = useAnimalsStore()
 
   const choosing = ref<'log' | 'stop'>('log')
   const isChooseDaysOpen = ref(false)
-  const stopError = ref<string | null>(null)
 
   const animal = computed(() => (treatment.value ? animals.byId(treatment.value.animalId) : null))
   const named = computed(() => ({
@@ -97,27 +94,16 @@ export function useTreatmentDoseFlow(
     exits.settled?.()
   }
 
-  function stopFailed(): void {
-    if (exits.stopFailure === 'message') stopError.value = t('treatments.sheet.errors.stop')
-  }
-
   async function stop(): Promise<void> {
     const current = treatment.value
     if (gestures.isBusy.value || current === null) return
-    stopError.value = null
-    const failed = exits.stopFailure === 'toast' ? t('treatments.sheet.errors.stop') : undefined
-    if (await gestures.stop(current, failed)) exits.settled?.()
-    else stopFailed()
+    if (await gestures.stop(current, t('treatments.sheet.errors.stop'))) exits.settled?.()
   }
 
   async function logThenStop(choice: DayChoice): Promise<void> {
     const current = treatment.value
     if (gestures.isBusy.value || current === null) return
-    stopError.value = null
-    if ((await gestures.stopLogging(current, choiceGestures(choice))) === 'failed') {
-      stopFailed()
-      return
-    }
+    if ((await gestures.stopLogging(current, choiceGestures(choice))) === 'failed') return
     isChooseDaysOpen.value = false
     exits.settled?.()
   }
@@ -152,7 +138,6 @@ export function useTreatmentDoseFlow(
     chosen,
     chooseDaysSubtitleText,
     isChooseDaysOpen,
-    stopError,
     apply,
     note,
     stop,
