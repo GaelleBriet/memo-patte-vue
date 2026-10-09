@@ -38,3 +38,8 @@ export function resumedFormValues(
   if (!canResume) return { status: 'not-resumable' }
   return { status: 'ready', values: { ...treatmentFormValuesFrom(loaded, period), endsOn: '' } }
 }
+
+/** Une reprise ne s'enregistre qu'avec sa première prise. */
+export function canSubmitResumption(values: Pick<TreatmentFormValues, 'firstDoseOn'>): boolean {
+  return values.firstDoseOn !== ''
+}

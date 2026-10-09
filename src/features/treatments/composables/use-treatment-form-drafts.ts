@@ -5,7 +5,6 @@ import { editionDraftOf } from '../logic/treatment-edition-form'
 import type { TreatmentFormValues } from '../logic/treatment-form-values'
 import { nextDoseShiftHelp } from '../logic/treatment-form-texts'
 import { pastDuesTexts } from '../logic/treatment-past-dues'
-import { resumptionDraft } from '../logic/treatment-resumption'
 import type { PastDuesChoice } from '../schema/treatment-form.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 
@@ -13,7 +12,6 @@ type Inputs = {
   values: Ref<TreatmentFormValues>
   history: Ref<TreatmentWithHistory | null>
   today: Ref<string>
-  endsOnTouched: Ref<boolean>
 }
 
 /**
@@ -22,7 +20,7 @@ type Inputs = {
  */
 export function useTreatmentFormDrafts(
   mode: 'create' | 'edit' | 'resume',
-  { values, history, today, endsOnTouched }: Inputs,
+  { values, history, today }: Inputs,
 ) {
   const { t } = useI18n()
   /** La réponse vaut pour les échéances annoncées au moment où elle a été donnée. */
@@ -36,11 +34,6 @@ export function useTreatmentFormDrafts(
       return null
     }
   })
-  const previous = computed(() =>
-    mode === 'resume' && history.value !== null
-      ? resumptionDraft(history.value, today.value)
-      : null,
-  )
   const nextDose = computed(() => draft.value?.nextDose ?? null)
   const nextDoseShift = computed(() =>
     draft.value === null ? null : nextDoseShiftHelp(t, draft.value, values.value, today.value),
@@ -78,17 +71,8 @@ export function useTreatmentFormDrafts(
     },
   )
 
-  watch(
-    () => values.value.firstDoseOn,
-    (firstDoseOn) => {
-      if (previous.value === null || endsOnTouched.value) return
-      values.value.endsOn = previous.value.endsOnFor(firstDoseOn) ?? ''
-    },
-  )
-
   return {
     draft,
-    previous,
     nextDose,
     nextDoseShift,
     pastDuesChoice,

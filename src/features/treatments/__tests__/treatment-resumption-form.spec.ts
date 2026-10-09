@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
 import { milbemax, period, saisie, TODAY } from './treatment-form-fixtures'
-import { resumedFormValues, validateTreatmentResumption } from '../logic/treatment-resumption-form'
+import {
+  canSubmitResumption,
+  resumedFormValues,
+  validateTreatmentResumption,
+} from '../logic/treatment-resumption-form'
 import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
 
 describe('validateTreatmentResumption (TR-32)', () => {
@@ -75,4 +79,11 @@ describe('valeurs à l’ouverture de « Reprendre »', () => {
       expect(resumedFormValues(milbemax(), on)).toEqual({ status: 'not-resumable' })
     },
   )
+})
+
+describe('envoi de « Reprendre »', () => {
+  it('attend la première prise', () => {
+    expect(canSubmitResumption({ firstDoseOn: '' })).toBe(false)
+    expect(canSubmitResumption({ firstDoseOn: '2026-10-01' })).toBe(true)
+  })
 })
