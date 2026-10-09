@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { fieldErrorsOf, type FieldErrorKeys } from '@/shared/form/field-errors'
+
 export type SignInMode = 'sign-in' | 'sign-up'
 
 export interface SignInFormValues {
@@ -8,13 +10,6 @@ export interface SignInFormValues {
 }
 
 export const MIN_PASSWORD_LENGTH = 8
-
-const ERROR_KEYS = {
-  emailRequired: 'auth.form.errors.emailRequired',
-  emailInvalid: 'auth.form.errors.emailInvalid',
-  passwordRequired: 'auth.form.errors.passwordRequired',
-  passwordTooShort: 'auth.form.errors.passwordTooShort',
-} as const
 
 export type SignInFormErrors = Partial<Record<'email' | 'password', string>>
 
@@ -28,6 +23,21 @@ function schemaFor(mode: SignInMode) {
   })
 }
 
+function errorKeysFor(values: SignInFormValues): Record<keyof SignInFormValues, FieldErrorKeys> {
+  return {
+    email: {
+      key: 'auth.form.errors.emailInvalid',
+      byCode: { too_small: 'auth.form.errors.emailRequired' },
+    },
+    password: {
+      key:
+        values.password === ''
+          ? 'auth.form.errors.passwordRequired'
+          : 'auth.form.errors.passwordTooShort',
+    },
+  }
+}
+
 export function emptySignInFormValues(): SignInFormValues {
   return { email: '', password: '' }
 }
@@ -37,19 +47,5 @@ export function validateSignInForm(values: SignInFormValues, mode: SignInMode): 
 
   if (result.success) return { success: true, data: result.data }
 
-  const errors: SignInFormErrors = {}
-
-  for (const issue of result.error.issues) {
-    const field = String(issue.path[0])
-
-    if (field === 'email') {
-      errors.email ??=
-        issue.code === 'too_small' ? ERROR_KEYS.emailRequired : ERROR_KEYS.emailInvalid
-    } else if (field === 'password') {
-      errors.password ??=
-        values.password === '' ? ERROR_KEYS.passwordRequired : ERROR_KEYS.passwordTooShort
-    }
-  }
-
-  return { success: false, errors }
+  return { success: false, errors: fieldErrorsOf(result.error.issues, errorKeysFor(values)) }
 }
