@@ -192,7 +192,9 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     les dernières heures du nouveau réglage, une par dose reportée, puis la grille reprend :
     heures passées à 9 h et 21 h le 3 ou le 4, le 4 à 21 h seule, puis le 5 à 9 h et 21 h (réponse
     de Gaelle du 2026-10-09) ; la dose reportée déjà donnée, le 4 n'a plus rien à donner, et la
-    nouvelle période commence le 5. Une heure restée en arrière parce qu'elle était notée revient
+    nouvelle période commence le 5 ; la fréquence changée, le 4 ne redemande rien non plus (#711).
+    Un report seul arrivé sur un jour de la grille n'y retire aucune heure : ce jour garde les
+    siennes. Une heure restée en arrière parce qu'elle était notée revient
     si sa prise est supprimée : à son jour tant que la période la garde, sinon au jour d'arrivée.
     Un traitement de tous les jours ne reporte pas une heure seule au lendemain : elle passerait
     la dose suivante (Q2 a, G19).
