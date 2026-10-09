@@ -1209,10 +1209,17 @@ class Simulation {
       const closes = closesOf(move.periodId)
       const kept = closes === undefined || move.dueOn < closes
       const times = periods.find(({ id }) => id === move.periodId)?.times ?? []
+      const sameTimes = (periodId: string) =>
+        (periods.find(({ id }) => id === periodId)?.times ?? []).join() === times.join()
+      const ofOrigin = doses.filter((dose) => isNote(dose) && dose.dueOn === move.dueOn)
+      // G4 : les prises d'une période à d'autres heures couvrent les premières heures de ce jour.
+      const coveredEarly = [...times]
+        .sort()
+        .slice(0, ofOrigin.filter(({ periodId }) => !sameTimes(periodId)).length)
       for (const time of times.length > 0 ? times : [null]) {
-        const noted = doses.some(
-          (dose) => isNote(dose) && dose.dueOn === move.dueOn && dose.dueTime === time,
-        )
+        const noted =
+          ofOrigin.some((dose) => sameTimes(dose.periodId) && dose.dueTime === time) ||
+          (time !== null && coveredEarly.includes(time))
         const earlier = (time ?? '') < (move.dueTime ?? '')
         // Fermée par la période suivante, sa journée d'origine n'y garde que ce qui n'y était pas à donner.
         const pendingBefore = (schedule: TreatmentSchedule) =>
@@ -1542,11 +1549,16 @@ class Simulation {
       changed &&
       noted >= period.times.length &&
       ofToday.some((dose) => refixesSuite(dose, before.doses))
+    // G25 : le nouveau réglage garde ce qui est resté en arrière ; fréquence changée, le jour
+    // d'arrivée lui-même seulement (décision du 2026-10-10).
     const sameFrequency =
       previous !== undefined &&
       previous.frequency.value === period.frequency.value &&
       previous.frequency.unit === period.frequency.unit
-    const stayed = sameFrequency ? this.stayedHours(before, period, today, ofToday) : 0
+    const stayed =
+      previous !== undefined && previous.stoppedOn === null && (sameFrequency || noted === 0)
+        ? this.stayedHours(before, period, today, ofToday)
+        : 0
     const expected =
       period.firstDueOn === today ? (uncovered ? hours : Math.max(0, hours - noted - stayed)) : 0
     if (left !== expected) {

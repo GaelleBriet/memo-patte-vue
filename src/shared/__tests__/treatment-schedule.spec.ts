@@ -4150,6 +4150,41 @@ describe('une heure reportée seule ne déplace que cette heure (G25, #720)', ()
     },
   )
 
+  it.each([
+    [['08:00', '20:00'], '20:00', { value: 3, unit: 'day' }, '2026-10-07'],
+    [['08:00', '20:00'], '20:00', { value: 1, unit: 'day' }, '2026-10-05'],
+    [['08:00', '20:00'], '20:00', { value: 1, unit: 'week' }, '2026-10-11'],
+    [['08:00', '14:00', '20:00'], '14:00', { value: 3, unit: 'day' }, '2026-10-07'],
+  ] as const)(
+    'heures %j, %s reportée seule au 4, fréquence changée le 4 (%j) : le 4, seulement l’heure reportée, puis le %s (décision du 2026-10-10)',
+    (hours, moved, frequency, then) => {
+      const every2 = { value: 2, unit: 'day' } as const
+      let book = carnet(period({ firstDueOn: '2026-10-01', frequency: every2, times: [...hours] }))
+      for (const _ of hours) book = done(book, '2026-10-01')
+      book = done(book, '2026-10-03')
+      book = movedOn(book, '2026-10-03', due('2026-10-03', moved), '2026-10-04', false)
+      const travelled = hours.filter((time) => time >= moved)
+      const dates = scheduleOf(book, '2026-10-04').newPeriod(frequency, [...hours])
+      const changed: Carnet = {
+        ...book,
+        periods: [
+          ...book.periods,
+          period({
+            id: 'p2',
+            createdAt: '2026-10-02T09:00:00.000Z',
+            ...dates,
+            frequency,
+            times: [...hours],
+          }),
+        ],
+      }
+      const schedule = scheduleOf(changed, '2026-10-04')
+
+      expect(schedule.currentDoses).toEqual(travelled.map((time) => due('2026-10-04', time, 'p2')))
+      expect(schedule.upcoming(travelled.length + 1).at(-1)).toEqual(due(then, hours[0], 'p2'))
+    },
+  )
+
   it('avec décalage, la journée d’arrivée a toutes ses heures (Q21) : le 4 à 8 h et 20 h, puis le 6', () => {
     const book = movedOn(morningOf3, '2026-10-03', due('2026-10-03', '20:00'), '2026-10-04', true)
 
