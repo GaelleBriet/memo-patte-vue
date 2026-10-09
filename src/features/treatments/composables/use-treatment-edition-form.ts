@@ -1,33 +1,39 @@
 import { computed, ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { editionDraftOf } from '../logic/treatment-edition-form'
+import {
+  editedFormValues,
+  editionDraftOf,
+  validateTreatmentEdition,
+} from '../logic/treatment-edition-form'
+import { formErrorParams, nextDoseShiftHelp } from '../logic/treatment-form-texts'
 import type { TreatmentFormValues } from '../logic/treatment-form-values'
-import { nextDoseShiftHelp } from '../logic/treatment-form-texts'
 import { pastDuesTexts } from '../logic/treatment-past-dues'
 import type { PastDuesChoice } from '../schema/treatment-form.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import { useTreatmentsStore } from '../store/treatments.store'
+import { useFormValidation } from '@/shared/form/use-form-validation'
 
 type Inputs = {
   values: Ref<TreatmentFormValues>
   history: Ref<TreatmentWithHistory | null>
-  today: Ref<string>
+  today: Readonly<Ref<string>>
 }
 
 /**
- * Ce que « Modifier » et « Reprendre » calculent de la saisie, et ce qu'ils y reportent : la
- * prochaine dose proposée, la date de fin qui reprend la durée précédente.
+ * « Modifier » : la prochaine dose proposée et reportée dans la saisie, la question des échéances
+ * tombées, puis la modification écrite.
  */
-export function useTreatmentFormDrafts(
-  mode: 'create' | 'edit' | 'resume',
-  { values, history, today }: Inputs,
-) {
+export function useTreatmentEditionForm({ values, history, today }: Inputs) {
   const { t } = useI18n()
+  const treatments = useTreatmentsStore()
+
   /** La réponse vaut pour les échéances annoncées au moment où elle a été donnée. */
   const pastDuesAnswer = ref<{ choice: PastDuesChoice; dues: string } | null>(null)
+  const isPastDuesOpen = ref(false)
 
   const draft = computed(() => {
-    if (mode !== 'edit' || history.value === null) return null
+    if (history.value === null) return null
     try {
       return editionDraftOf(values.value, history.value, today.value)
     } catch {
@@ -51,10 +57,16 @@ export function useTreatmentFormDrafts(
       : pastDuesTexts(t, current.pastDues, current.period, current.pastDuesNextDose)
   })
   const hasSettings = computed(() => draft.value?.change !== 'locked')
-
-  function answerPastDues(choice: PastDuesChoice): void {
-    pastDuesAnswer.value = { choice, dues: announcedDues.value }
-  }
+  const errorParams = computed(() => formErrorParams(draft.value, null, today.value))
+  const validation = useFormValidation(values, (current) =>
+    validateTreatmentEdition(
+      current,
+      requireHistory(),
+      today.value,
+      pastDuesChoice.value,
+      draft.value,
+    ),
+  )
 
   watch(
     () => [values.value.frequencyValue, values.value.frequencyUnit, values.value.times],
@@ -71,13 +83,40 @@ export function useTreatmentFormDrafts(
     },
   )
 
+  function requireHistory(): TreatmentWithHistory {
+    if (history.value === null) throw new Error('Formulaire traitement ouvert sans traitement.')
+    return history.value
+  }
+
+  function open(loaded: TreatmentWithHistory): boolean {
+    values.value = editedFormValues(loaded, today.value)
+    history.value = loaded
+    return true
+  }
+
+  function answerPastDues(choice: PastDuesChoice): void {
+    pastDuesAnswer.value = { choice, dues: announcedDues.value }
+  }
+
+  /** Sans écriture possible, ouvre la question des échéances tombées quand c'est elle qui manque. */
+  function write(): (() => Promise<unknown>) | null {
+    const id = requireHistory().id
+    const result = validation.validate()
+    if (result.success) return () => treatments.update(id, result.data)
+    isPastDuesOpen.value = result.needsPastDuesChoice
+    return null
+  }
+
   return {
-    draft,
+    errors: validation.errors,
+    errorParams,
+    write,
+    open,
     nextDose,
     nextDoseShift,
-    pastDuesChoice,
     pastDues,
-    hasSettings,
+    isPastDuesOpen,
     answerPastDues,
+    hasSettings,
   }
 }

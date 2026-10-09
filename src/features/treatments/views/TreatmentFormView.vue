@@ -10,7 +10,6 @@ import TreatmentShiftCheckbox from './TreatmentShiftCheckbox.vue'
 import TreatmentTimesField from './TreatmentTimesField.vue'
 import TreatmentUnloggedPrompt from './TreatmentUnloggedPrompt.vue'
 import { chooseDaysSubtitle, type DayChoice } from '../logic/treatment-choose-days'
-import { editedFormValues, validateTreatmentEdition } from '../logic/treatment-edition-form'
 import {
   reminderHelpText,
   reminderOffsetChoices,
@@ -20,7 +19,6 @@ import { emptyTreatmentFormValues } from '../logic/treatment-form-values'
 import { DUPLICATE_TIME_ERROR_KEY } from '../logic/treatment-form-errors'
 import {
   endsOnHelpText,
-  formErrorParams,
   frequencyUnitCount,
   nextDoseHelpText,
   resumeInfoText,
@@ -32,7 +30,7 @@ import type { ReminderOffsetMinutes } from '../schema/treatment-period.schema'
 import { FREQUENCY_UNITS, TREATMENT_TYPES, type FrequencyUnit } from '../schema/treatment.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import { useTreatmentCreationForm } from '../composables/use-treatment-creation-form'
-import { useTreatmentFormDrafts } from '../composables/use-treatment-form-drafts'
+import { useTreatmentEditionForm } from '../composables/use-treatment-edition-form'
 import { useTreatmentResumptionForm } from '../composables/use-treatment-resumption-form'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import {
@@ -47,7 +45,6 @@ import { MAX_FREQUENCY_VALUE } from '@/shared/domain/treatment-frequency'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import FormSegmented from '@/shared/form/FormSegmented.vue'
-import { useFormValidation } from '@/shared/form/use-form-validation'
 import { useCareForm } from '@/shared/composables/use-care-form'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
@@ -70,21 +67,10 @@ const values = ref(emptyTreatmentFormValues())
 const history = ref<TreatmentWithHistory | null>(null)
 const endsOnTouched = ref(false)
 const hasDuplicateTime = ref(false)
-const isPastDuesOpen = ref(false)
 const isSuggestingExact = ref(false)
 const isExplainerOpen = ref(false)
 /** Le moment choisi avant d'ouvrir le formulaire reste proposé sans les rappels précis (RA-23). */
 const keptOffset = ref<ReminderOffsetMinutes | null>(null)
-
-const {
-  draft,
-  nextDose,
-  nextDoseShift,
-  pastDuesChoice,
-  pastDues,
-  hasSettings,
-  answerPastDues: recordPastDuesAnswer,
-} = useTreatmentFormDrafts(mode, { values, history, today })
 
 const {
   notFound,
@@ -120,16 +106,9 @@ const creation =
 const isChooseDaysOpen = creation?.isChooseDaysOpen ?? ref(false)
 const resumption =
   mode === 'resume' ? useTreatmentResumptionForm({ values, history, today, endsOnTouched }) : null
-
-const edition = useFormValidation(values, (current) =>
-  validateTreatmentEdition(
-    current,
-    requireHistory(),
-    today.value,
-    pastDuesChoice.value,
-    draft.value,
-  ),
-)
+const edition = mode === 'edit' ? useTreatmentEditionForm({ values, history, today }) : null
+const isPastDuesOpen = edition?.isPastDuesOpen ?? ref(false)
+const form = creation ?? edition ?? resumption
 
 const duplicateTimeError = computed(() =>
   hasDuplicateTime.value ? DUPLICATE_TIME_ERROR_KEY : undefined,
@@ -142,10 +121,12 @@ const suggestsExact = computed(
   () => isSuggestingExact.value && exactReminders.status.value === 'never-enabled',
 )
 const reminderHelp = computed(() => reminderHelpText(t, values.value.times))
-const errors = computed(() => {
-  if (creation !== null) return creation.errors.value
-  return resumption !== null ? resumption.errors.value : edition.errors.value
-})
+const errors = computed(() => form?.errors.value ?? {})
+const errorParams = computed(() => form?.errorParams.value ?? {})
+const nextDose = computed(() => edition?.nextDose.value ?? null)
+const nextDoseShift = computed(() => edition?.nextDoseShift.value ?? null)
+const pastDues = computed(() => edition?.pastDues.value ?? null)
+const hasSettings = computed(() => edition?.hasSettings.value ?? true)
 
 const pastDoses = computed(() => creation?.pastDoses.value ?? null)
 const pastDosesAnswer = computed(() => creation?.pastDosesAnswer.value ?? null)
@@ -207,24 +188,14 @@ watch(
   },
 )
 
-function requireHistory(): TreatmentWithHistory {
-  if (history.value === null) throw new Error('Formulaire traitement ouvert sans traitement.')
-  return history.value
-}
-
 function errorText(key: string | undefined): string | null {
   if (key === undefined) return null
-  return t(key, formErrorParams(draft.value, previous.value, today.value))
+  return t(key, errorParams.value)
 }
 
 function open(loaded: TreatmentWithHistory): void {
-  if (resumption !== null) {
-    if (resumption.open(loaded)) keptOffset.value = values.value.reminderOffset
-    return
-  }
-  values.value = editedFormValues(loaded, today.value)
-  keptOffset.value = values.value.reminderOffset
-  history.value = loaded
+  const opened = edition?.open(loaded) ?? resumption?.open(loaded) ?? false
+  if (opened) keptOffset.value = values.value.reminderOffset
 }
 
 async function setTimes(times: string[]): Promise<void> {
@@ -248,16 +219,6 @@ function setEndsOn(endsOn: string): void {
   values.value.endsOn = endsOn
 }
 
-function write(): (() => Promise<unknown>) | null {
-  if (creation !== null) return creation.write()
-  if (resumption !== null) return resumption.write()
-  const id = requireHistory().id
-  const result = edition.validate()
-  if (result.success) return () => treatments.update(id, result.data)
-  isPastDuesOpen.value = result.needsPastDuesChoice
-  return null
-}
-
 function onPastDosesAction(action: PromptActionId): void {
   creation?.actOnPastDoses(action)
 }
@@ -267,14 +228,14 @@ function answerPastDoses(choice: DayChoice): void {
 }
 
 function answerPastDues(choice: PastDuesChoice): Promise<void> {
-  recordPastDuesAnswer(choice)
+  edition?.answerPastDues(choice)
   return submit()
 }
 
 async function submit(): Promise<void> {
   if (isSubmitting.value || !canSave.value) return
 
-  await saveThenLeave(() => write()?.() ?? null, true)
+  await saveThenLeave(() => form?.write()?.() ?? null, true)
 }
 </script>
 
