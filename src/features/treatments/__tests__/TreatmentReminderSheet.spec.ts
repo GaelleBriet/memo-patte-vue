@@ -837,6 +837,22 @@ describe('TreatmentReminderSheet — F6, arrêter', () => {
   })
 })
 
+describe('TreatmentReminderSheet — arrêt raté', () => {
+  it('se dit en toast, comme sur la fiche, sans message dans la feuille', async () => {
+    stop.mockRejectedValue(new Error('base'))
+    const sheet = await monter()
+    bouton('.treatment-reminder-sheet__stop').click()
+    await flushPromises()
+
+    bouton('.confirm-dialog__confirm').click()
+    await flushPromises()
+
+    expect(toastMessage.value).toBe('Le traitement n’a pas pu être arrêté. Réessaie.')
+    expect(feuille().querySelector('[role="alert"]')).toBeNull()
+    expect(sheet.emitted('update:modelValue')).toBeUndefined()
+  })
+})
+
 describe('TreatmentReminderSheet — arrêter avec des doses à renseigner (TR-30)', () => {
   /** Quotidien depuis le 20 sept., rien de noté : trois doses à renseigner, dose du jour le 23. */
   const QUOTIDIEN: TreatmentWithHistory = {
@@ -915,6 +931,25 @@ describe('TreatmentReminderSheet — arrêter avec des doses à renseigner (TR-3
     expect(calendrier.props('modelValue')).toBe(false)
     expect(sheet.emitted('update:modelValue')).toEqual([[false]])
   })
+
+  it('renseigner puis arrêter, raté : un seul toast, le calendrier reste ouvert', async () => {
+    stop.mockRejectedValue(new Error('base'))
+    const sheet = await monter()
+    bouton('.treatment-reminder-sheet__stop').click()
+    await flushPromises()
+    ;[...document.body.querySelectorAll<HTMLButtonElement>('.confirm-dialog__actions .v-btn')]
+      .find((button) => button.textContent?.includes('Choisir les jours'))!
+      .click()
+    await flushPromises()
+    const calendrier = sheet.getComponent(TreatmentChooseDays)
+
+    calendrier.vm.$emit('confirm', { given: calendrier.props('dues'), missed: [] })
+    await flushPromises()
+
+    expect(calendrier.props('modelValue')).toBe(true)
+    expect(toastMessage.value).toBe('Le traitement n’a pas pu être arrêté. Réessaie.')
+    expect(feuille().querySelector('[role="alert"]')).toBeNull()
+  })
 })
 
 describe('TreatmentReminderSheet — traitement fini par sa date de fin', () => {
@@ -975,22 +1010,15 @@ describe('TreatmentReminderSheet — confirmation simple de l’arrêt', () => {
     )
   })
 
-  it('traitement illisible : confirmation simple, et l’arrêt marche', async () => {
+  it('traitement illisible : pas de « Arrêter », comme sur la fiche', async () => {
     vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue({
       ...HISTORY,
       periods: [{ ...HISTORY.periods[0]!, times: ['8h'] }],
     })
-    const sheet = await monter()
-    await ouvrirArret()
+    await monter()
 
-    expect(texte('.confirm-dialog__text')).toBe(
-      'Plus aucun rappel pour Bravecto. Ses prises restent dans le carnet.',
-    )
-    expect(boutons()).toEqual(['Annuler', 'Arrêter'])
-    bouton('.confirm-dialog__confirm').click()
-    await flushPromises()
-
-    expect(stop).toHaveBeenCalledWith(BRAVECTO.id, [])
-    expect(sheet.emitted('update:modelValue')).toEqual([[false]])
+    expect(texte('.bottom-sheet__title')).toBe('Bravecto')
+    expect(document.body.querySelector('.treatment-reminder-sheet__stop')).toBeNull()
+    expect(stop).not.toHaveBeenCalled()
   })
 })
