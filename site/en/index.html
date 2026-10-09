@@ -308,41 +308,43 @@
         </div>
       </section>
 
-      <section class="section benefits-section">
-        <h2>What MémoPatte changes</h2>
-        <ul class="benefits">
-          <li>
-            <span class="benefit-icon"
-              ><span class="symbol symbol-notifications-active" aria-hidden="true"></span
-            ></span>
-            <h3>Nothing forgotten, even offline</h3>
-            <p>
-              A reminder before, one on the day, a nudge if nothing is logged. Tap “Done” in the
-              notification and the next date is worked out for you.
-            </p>
-          </li>
-          <li>
-            <span class="benefit-icon"
-              ><span class="symbol symbol-pets" aria-hidden="true"></span
-            ></span>
-            <h3>All your pets, one screen</h3>
-            <p>
-              Overdue first, then today, then what’s next: you know what to do, for whom, at a
-              glance.
-            </p>
-          </li>
-          <li>
-            <span class="benefit-icon"
-              ><span class="symbol symbol-lock-open" aria-hidden="true"></span
-            ></span>
-            <h3>Free, no account, yours</h3>
-            <p>
-              No ads, no limit on pets. Your health record stays on your phone and exports to PDF
-              whenever you like.
-            </p>
-          </li>
-        </ul>
-      </section>
+      <div class="band band-dark">
+        <section class="section benefits-section">
+          <h2>What MémoPatte changes</h2>
+          <ul class="benefits">
+            <li>
+              <span class="benefit-icon"
+                ><span class="symbol symbol-notifications-active" aria-hidden="true"></span
+              ></span>
+              <h3>Nothing forgotten, even offline</h3>
+              <p>
+                A reminder before, one on the day, a nudge if nothing is logged. Tap “Done” in the
+                notification and the next date is worked out for you.
+              </p>
+            </li>
+            <li>
+              <span class="benefit-icon"
+                ><span class="symbol symbol-pets" aria-hidden="true"></span
+              ></span>
+              <h3>All your pets, one screen</h3>
+              <p>
+                Overdue first, then today, then what’s next: you know what to do, for whom, at a
+                glance.
+              </p>
+            </li>
+            <li>
+              <span class="benefit-icon"
+                ><span class="symbol symbol-lock-open" aria-hidden="true"></span
+              ></span>
+              <h3>Free, no account, yours</h3>
+              <p>
+                No ads, no limit on pets. Your health record stays on your phone and exports to PDF
+                whenever you like.
+              </p>
+            </li>
+          </ul>
+        </section>
+      </div>
 
       <section class="section">
         <h2>Why not a paper booklet or your phone’s calendar?</h2>
@@ -470,252 +472,259 @@
         </div>
       </section>
 
-      <section class="section" id="how-it-works">
-        <h2>How it works</h2>
-        <p class="section-lead">The app in eight screens, with Milo’s and Luna’s health record.</p>
-        <div class="tour" style="--steps: 8">
-          <div class="tour-step" style="--row: 1">
-            <div class="tour-text">
-              <span class="feature-icon"
-                ><span class="symbol symbol-notifications-active" aria-hidden="true"></span
-              ></span>
-              <h3>Reminders that arrive, even offline</h3>
-              <p>
-                Reminders are scheduled on your phone, so they go off without internet. Tap “Done”
-                in the notification and it’s logged in your health record. For a reminder right on
-                time, turn on “Exact reminders”.
-              </p>
-              <a class="more" href="/en/help/reminders/"
-                >If Android delays your reminders<span
-                  class="symbol symbol-arrow-forward"
+      <div class="band band-sand">
+        <section class="section" id="how-it-works">
+          <h2>How it works</h2>
+          <p class="section-lead">
+            The app in eight screens, with Milo’s and Luna’s health record.
+          </p>
+          <div class="tour" style="--steps: 8">
+            <div class="tour-step" style="--row: 1">
+              <div class="tour-text">
+                <span class="feature-icon"
+                  ><span class="symbol symbol-notifications-active" aria-hidden="true"></span
+                ></span>
+                <h3>Reminders that arrive, even offline</h3>
+                <p>
+                  Reminders are scheduled on your phone, so they go off without internet. Tap “Done”
+                  in the notification and it’s logged in your health record. For a reminder right on
+                  time, turn on “Exact reminders”.
+                </p>
+                <a class="more" href="/en/help/reminders/"
+                  >If Android delays your reminders<span
+                    class="symbol symbol-arrow-forward"
+                    aria-hidden="true"
+                  ></span
+                ></a>
+              </div>
+              <div class="phone">
+                <img
+                  class="screen"
+                  src="/img/en-notification.webp"
+                  srcset="/img/en-notification-400.webp 400w, /img/en-notification.webp 720w"
+                  sizes="(min-width: 1024px) 320px, 300px"
+                  width="720"
+                  height="1600"
+                  loading="lazy"
+                  alt="Android notification shade: the MémoPatte notification “Milo’s Granules at 8 am”, with the dosage “1 sachet” and the “Done” button."
+                />
+              </div>
+            </div>
+            <div class="tour-step" style="--row: 2">
+              <div class="tour-text">
+                <span class="feature-icon"
+                  ><span class="symbol symbol-calendar-today" aria-hidden="true"></span
+                ></span>
+                <h3>What matters today comes first</h3>
+                <p>
+                  Overdue and today’s reminders come first on the home screen. A missed one stays
+                  visible, with a single nudge and no guilt: log it whenever you like, even on
+                  another date.
+                </p>
+              </div>
+              <div class="phone">
+                <img
+                  class="screen"
+                  src="/img/en-accueil.webp"
+                  srcset="/img/en-accueil-400.webp 400w, /img/en-accueil.webp 720w"
+                  sizes="(min-width: 1024px) 320px, 300px"
+                  width="720"
+                  height="1600"
+                  loading="lazy"
+                  alt="MémoPatte home screen: at the top, “1 overdue reminder” and Milo’s DHPPi vaccine, 45 days overdue, then his granules today at 8 am and 8 pm."
+                /><span
+                  class="ring"
+                  style="--ring-x: 0.03; --ring-y: 0.318; --ring-w: 0.94; --ring-h: 0.16"
                   aria-hidden="true"
-                ></span
-              ></a>
+                ></span>
+              </div>
             </div>
-            <div class="phone">
-              <img
-                class="screen"
-                src="/img/en-notification.webp"
-                srcset="/img/en-notification-400.webp 400w, /img/en-notification.webp 720w"
-                sizes="(min-width: 1024px) 320px, 300px"
-                width="720"
-                height="1600"
-                loading="lazy"
-                alt="Android notification shade: the MémoPatte notification “Milo’s Granules at 8 am”, with the dosage “1 sachet” and the “Done” button."
-              />
-            </div>
-          </div>
-          <div class="tour-step" style="--row: 2">
-            <div class="tour-text">
-              <span class="feature-icon"
-                ><span class="symbol symbol-calendar-today" aria-hidden="true"></span
-              ></span>
-              <h3>What matters today comes first</h3>
-              <p>
-                Overdue and today’s reminders come first on the home screen. A missed one stays
-                visible, with a single nudge and no guilt: log it whenever you like, even on another
-                date.
-              </p>
-            </div>
-            <div class="phone">
-              <img
-                class="screen"
-                src="/img/en-accueil.webp"
-                srcset="/img/en-accueil-400.webp 400w, /img/en-accueil.webp 720w"
-                sizes="(min-width: 1024px) 320px, 300px"
-                width="720"
-                height="1600"
-                loading="lazy"
-                alt="MémoPatte home screen: at the top, “1 overdue reminder” and Milo’s DHPPi vaccine, 45 days overdue, then his granules today at 8 am and 8 pm."
-              /><span
-                class="ring"
-                style="--ring-x: 0.03; --ring-y: 0.318; --ring-w: 0.94; --ring-h: 0.16"
-                aria-hidden="true"
-              ></span>
-            </div>
-          </div>
-          <div class="tour-step" style="--row: 3">
-            <div class="tour-text">
-              <span class="feature-icon"
-                ><span class="symbol symbol-pets" aria-hidden="true"></span
-              ></span>
-              <h3>All your pets at a glance</h3>
-              <p>
-                Milo, Luna and the rest on one screen: what’s due, for whom, and when. Tap a name to
-                see only that pet’s care, and tap it again to see everyone.
-              </p>
-              <p class="pet-hint" hidden>Try it: tap Milo or Luna on the screen.</p>
-            </div>
-            <div class="phone pet-demo">
-              <img
-                class="screen"
-                src="/img/en-accueil.webp"
-                srcset="/img/en-accueil-400.webp 400w, /img/en-accueil.webp 720w"
-                sizes="(min-width: 1024px) 320px, 300px"
-                width="720"
-                height="1600"
-                loading="lazy"
-                alt="MémoPatte home screen: Milo and Luna at the top, then the “To do” list with both pets’ reminders."
-              /><span
-                class="ring"
-                style="--ring-x: 0.04; --ring-y: 0.193; --ring-w: 0.53; --ring-h: 0.062"
-                aria-hidden="true"
-              ></span>
-              <button
-                class="pet-spot"
-                type="button"
-                style="--spot-x: 0.05; --spot-y: 0.196; --spot-w: 0.235; --spot-h: 0.056"
-                aria-pressed="false"
-                data-src="/img/en-accueil-milo.webp"
-                data-small="/img/en-accueil-milo-400.webp"
-                data-alt="MémoPatte home screen with Milo’s name tapped: the “To do” list now shows only his five reminders, his overdue DHPPi vaccine first."
-                hidden
-              >
-                Milo
-              </button>
-              <button
-                class="pet-spot"
-                type="button"
-                style="--spot-x: 0.305; --spot-y: 0.196; --spot-w: 0.255; --spot-h: 0.056"
-                aria-pressed="false"
-                data-src="/img/en-accueil-luna.webp"
-                data-small="/img/en-accueil-luna-400.webp"
-                data-alt="MémoPatte home screen with Luna’s name tapped: the “To do” list now shows only her monthly spot-on, in 3 days, then the quick actions."
-                hidden
-              >
-                Luna
-              </button>
-            </div>
-          </div>
-          <div class="tour-step" style="--row: 4">
-            <div class="tour-text">
-              <span class="feature-icon"
-                ><span class="symbol symbol-medication" aria-hidden="true"></span
-              ></span>
-              <h3>Every dose, to the day</h3>
-              <p>
-                For a treatment given several times a day, each dose has its own “Done” button. Some
-                doses weren’t logged? Mark the ones that were given in one go; the history keeps
-                every dose.
-              </p>
-            </div>
-            <div class="phone">
-              <img
-                class="screen"
-                src="/img/en-fiche-traitement.webp"
-                srcset="/img/en-fiche-traitement-400.webp 400w, /img/en-fiche-traitement.webp 720w"
-                sizes="(min-width: 1024px) 320px, 300px"
-                width="720"
-                height="1600"
-                loading="lazy"
-                alt="Milo’s “Granules” treatment, every day at 8 am and 8 pm: today’s two doses with their “Done” button, the “Done on another day” link, the “5 doses not logged” card and the list of doses, including a missed one."
-              />
-            </div>
-          </div>
-          <div class="tour-step" style="--row: 5">
-            <div class="tour-text">
-              <span class="feature-icon"
-                ><span class="symbol symbol-menu-book" aria-hidden="true"></span
-              ></span>
-              <h3>A health record for each pet</h3>
-              <p>
-                Each pet’s page brings together their vaccines, active treatments and weight.
-                Anything overdue stands out, with the number of reminders to do.
-              </p>
-            </div>
-            <div class="phone">
-              <img
-                class="screen"
-                src="/img/en-carnet.webp"
-                srcset="/img/en-carnet-400.webp 400w, /img/en-carnet.webp 720w"
-                sizes="(min-width: 1024px) 320px, 300px"
-                width="720"
-                height="1600"
-                loading="lazy"
-                alt="Milo’s health record: 54.0 lb, 1 overdue reminder, 3 active treatments, then his vaccines, DHPPi overdue and Rabies up to date, and his treatments."
-              />
-            </div>
-          </div>
-          <div class="tour-step" style="--row: 6">
-            <div class="tour-text">
-              <span class="feature-icon"
-                ><span class="symbol symbol-vaccines" aria-hidden="true"></span
-              ></span>
-              <h3>Their vaccines and every shot</h3>
-              <p>
-                Every shot stays logged, with the date of the next one. Back from the vet, tap
-                “Done”, or “Done on another day” if it was another day.
-              </p>
-            </div>
-            <div class="phone">
-              <img
-                class="screen"
-                src="/img/en-vaccin.webp"
-                srcset="/img/en-vaccin-400.webp 400w, /img/en-vaccin.webp 720w"
-                sizes="(min-width: 1024px) 320px, 300px"
-                width="720"
-                height="1600"
-                loading="lazy"
-                alt="Milo’s DHPPi vaccine page: last shot on Aug 24, 2025, next reminder overdue since Aug 24, the “Done” button, the “Done on another day” link and the three shots logged."
-              />
-            </div>
-          </div>
-          <div class="tour-step" style="--row: 7">
-            <div class="tour-text">
-              <span class="feature-icon"
-                ><span class="symbol symbol-monitor-weight" aria-hidden="true"></span
-              ></span>
-              <h3>Their weight, as a curve</h3>
-              <p>
-                A weigh-in now and then is enough: the curve shows how it changes, with the
-                difference since the last weigh-in. In kilograms or pounds.
-              </p>
-            </div>
-            <div class="phone">
-              <img
-                class="screen"
-                src="/img/en-poids.webp"
-                srcset="/img/en-poids-400.webp 400w, /img/en-poids.webp 720w"
-                sizes="(min-width: 1024px) 320px, 300px"
-                width="720"
-                height="1600"
-                loading="lazy"
-                alt="Milo’s weight tracking: 54.0 lb, +0.4 lb since Sep 8, and his curve from May to October, from 52.0 to 54.0 lb."
-              />
-            </div>
-          </div>
-          <div class="tour-step" style="--row: 8">
-            <div class="tour-text">
-              <span class="feature-icon"
-                ><span class="symbol symbol-lock-open" aria-hidden="true"></span
-              ></span>
-              <h3>Truly free, and your data stays yours</h3>
-              <p>
-                No account, no ads, no limit on pets. Export the health record as a PDF for your vet
-                or a boarding kennel, or all your data as JSON or CSV, for free.
-              </p>
-              <a class="more" href="/en/help/export/"
-                >How to export my data<span
-                  class="symbol symbol-arrow-forward"
+            <div class="tour-step" style="--row: 3">
+              <div class="tour-text">
+                <span class="feature-icon"
+                  ><span class="symbol symbol-pets" aria-hidden="true"></span
+                ></span>
+                <h3>All your pets at a glance</h3>
+                <p>
+                  Milo, Luna and the rest on one screen: what’s due, for whom, and when. Tap a name
+                  to see only that pet’s care, and tap it again to see everyone.
+                </p>
+                <p class="pet-hint" hidden>Try it: tap Milo or Luna on the screen.</p>
+              </div>
+              <div class="phone pet-demo">
+                <img
+                  class="screen"
+                  src="/img/en-accueil.webp"
+                  srcset="/img/en-accueil-400.webp 400w, /img/en-accueil.webp 720w"
+                  sizes="(min-width: 1024px) 320px, 300px"
+                  width="720"
+                  height="1600"
+                  loading="lazy"
+                  alt="MémoPatte home screen: Milo and Luna at the top, then the “To do” list with both pets’ reminders."
+                /><span
+                  class="ring"
+                  style="--ring-x: 0.04; --ring-y: 0.193; --ring-w: 0.53; --ring-h: 0.062"
                   aria-hidden="true"
-                ></span
-              ></a>
+                ></span>
+                <button
+                  class="pet-spot"
+                  type="button"
+                  style="--spot-x: 0.05; --spot-y: 0.196; --spot-w: 0.235; --spot-h: 0.056"
+                  aria-pressed="false"
+                  data-src="/img/en-accueil-milo.webp"
+                  data-small="/img/en-accueil-milo-400.webp"
+                  data-alt="MémoPatte home screen with Milo’s name tapped: the “To do” list now shows only his five reminders, his overdue DHPPi vaccine first."
+                  hidden
+                >
+                  Milo
+                </button>
+                <button
+                  class="pet-spot"
+                  type="button"
+                  style="--spot-x: 0.305; --spot-y: 0.196; --spot-w: 0.255; --spot-h: 0.056"
+                  aria-pressed="false"
+                  data-src="/img/en-accueil-luna.webp"
+                  data-small="/img/en-accueil-luna-400.webp"
+                  data-alt="MémoPatte home screen with Luna’s name tapped: the “To do” list now shows only her monthly spot-on, in 3 days, then the quick actions."
+                  hidden
+                >
+                  Luna
+                </button>
+              </div>
             </div>
-            <div class="phone">
-              <img
-                class="screen"
-                src="/img/en-export-pdf.webp"
-                srcset="/img/en-export-pdf-400.webp 400w, /img/en-export-pdf.webp 720w"
-                sizes="(min-width: 1024px) 320px, 300px"
-                width="720"
-                height="1600"
-                loading="lazy"
-                alt="“Export to PDF” sheet for Milo’s health record: the PDF file with vaccines, treatments, weight and photos, and the “Save to phone” and “Share” buttons."
-              />
+            <div class="tour-step" style="--row: 4">
+              <div class="tour-text">
+                <span class="feature-icon"
+                  ><span class="symbol symbol-medication" aria-hidden="true"></span
+                ></span>
+                <h3>Every dose, to the day</h3>
+                <p>
+                  For a treatment given several times a day, each dose has its own “Done” button.
+                  Some doses weren’t logged? Mark the ones that were given in one go; the history
+                  keeps every dose.
+                </p>
+              </div>
+              <div class="phone">
+                <img
+                  class="screen"
+                  src="/img/en-fiche-traitement.webp"
+                  srcset="
+                    /img/en-fiche-traitement-400.webp 400w,
+                    /img/en-fiche-traitement.webp     720w
+                  "
+                  sizes="(min-width: 1024px) 320px, 300px"
+                  width="720"
+                  height="1600"
+                  loading="lazy"
+                  alt="Milo’s “Granules” treatment, every day at 8 am and 8 pm: today’s two doses with their “Done” button, the “Done on another day” link, the “5 doses not logged” card and the list of doses, including a missed one."
+                />
+              </div>
+            </div>
+            <div class="tour-step" style="--row: 5">
+              <div class="tour-text">
+                <span class="feature-icon"
+                  ><span class="symbol symbol-menu-book" aria-hidden="true"></span
+                ></span>
+                <h3>A health record for each pet</h3>
+                <p>
+                  Each pet’s page brings together their vaccines, active treatments and weight.
+                  Anything overdue stands out, with the number of reminders to do.
+                </p>
+              </div>
+              <div class="phone">
+                <img
+                  class="screen"
+                  src="/img/en-carnet.webp"
+                  srcset="/img/en-carnet-400.webp 400w, /img/en-carnet.webp 720w"
+                  sizes="(min-width: 1024px) 320px, 300px"
+                  width="720"
+                  height="1600"
+                  loading="lazy"
+                  alt="Milo’s health record: 54.0 lb, 1 overdue reminder, 3 active treatments, then his vaccines, DHPPi overdue and Rabies up to date, and his treatments."
+                />
+              </div>
+            </div>
+            <div class="tour-step" style="--row: 6">
+              <div class="tour-text">
+                <span class="feature-icon"
+                  ><span class="symbol symbol-vaccines" aria-hidden="true"></span
+                ></span>
+                <h3>Their vaccines and every shot</h3>
+                <p>
+                  Every shot stays logged, with the date of the next one. Back from the vet, tap
+                  “Done”, or “Done on another day” if it was another day.
+                </p>
+              </div>
+              <div class="phone">
+                <img
+                  class="screen"
+                  src="/img/en-vaccin.webp"
+                  srcset="/img/en-vaccin-400.webp 400w, /img/en-vaccin.webp 720w"
+                  sizes="(min-width: 1024px) 320px, 300px"
+                  width="720"
+                  height="1600"
+                  loading="lazy"
+                  alt="Milo’s DHPPi vaccine page: last shot on Aug 24, 2025, next reminder overdue since Aug 24, the “Done” button, the “Done on another day” link and the three shots logged."
+                />
+              </div>
+            </div>
+            <div class="tour-step" style="--row: 7">
+              <div class="tour-text">
+                <span class="feature-icon"
+                  ><span class="symbol symbol-monitor-weight" aria-hidden="true"></span
+                ></span>
+                <h3>Their weight, as a curve</h3>
+                <p>
+                  A weigh-in now and then is enough: the curve shows how it changes, with the
+                  difference since the last weigh-in. In kilograms or pounds.
+                </p>
+              </div>
+              <div class="phone">
+                <img
+                  class="screen"
+                  src="/img/en-poids.webp"
+                  srcset="/img/en-poids-400.webp 400w, /img/en-poids.webp 720w"
+                  sizes="(min-width: 1024px) 320px, 300px"
+                  width="720"
+                  height="1600"
+                  loading="lazy"
+                  alt="Milo’s weight tracking: 54.0 lb, +0.4 lb since Sep 8, and his curve from May to October, from 52.0 to 54.0 lb."
+                />
+              </div>
+            </div>
+            <div class="tour-step" style="--row: 8">
+              <div class="tour-text">
+                <span class="feature-icon"
+                  ><span class="symbol symbol-lock-open" aria-hidden="true"></span
+                ></span>
+                <h3>Truly free, and your data stays yours</h3>
+                <p>
+                  No account, no ads, no limit on pets. Export the health record as a PDF for your
+                  vet or a boarding kennel, or all your data as JSON or CSV, for free.
+                </p>
+                <a class="more" href="/en/help/export/"
+                  >How to export my data<span
+                    class="symbol symbol-arrow-forward"
+                    aria-hidden="true"
+                  ></span
+                ></a>
+              </div>
+              <div class="phone">
+                <img
+                  class="screen"
+                  src="/img/en-export-pdf.webp"
+                  srcset="/img/en-export-pdf-400.webp 400w, /img/en-export-pdf.webp 720w"
+                  sizes="(min-width: 1024px) 320px, 300px"
+                  width="720"
+                  height="1600"
+                  loading="lazy"
+                  alt="“Export to PDF” sheet for Milo’s health record: the PDF file with vaccines, treatments, weight and photos, and the “Save to phone” and “Share” buttons."
+                />
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
       <section class="section">
         <h2>A reminder for every kind of care</h2>
@@ -763,37 +772,39 @@
         </ul>
       </section>
 
-      <section class="section">
-        <h2>What MémoPatte doesn’t do</h2>
-        <ul class="limits">
-          <li>
-            <span class="symbol symbol-stethoscope" aria-hidden="true"></span>
-            <h3>Replace your vet</h3>
-            <p>
-              It logs and reminds you of what you planned with your vet. It never suggests a dose, a
-              product or a date.
-            </p>
-          </li>
-          <li>
-            <span class="symbol symbol-block" aria-hidden="true"></span>
-            <h3>Show ads</h3>
-            <p>No ads in the app, and your data is never sold.</p>
-          </li>
-          <li>
-            <span class="symbol symbol-no-accounts" aria-hidden="true"></span>
-            <h3>Force you to sign up</h3>
-            <p>
-              Everything works on your phone without an account. You’ll only need one for MémoPatte
-              Plus.
-            </p>
-          </li>
-          <li>
-            <span class="symbol symbol-pets" aria-hidden="true"></span>
-            <h3>Track other animals</h3>
-            <p>Dogs and cats only, for now.</p>
-          </li>
-        </ul>
-      </section>
+      <div class="band band-sand">
+        <section class="section">
+          <h2>What MémoPatte doesn’t do</h2>
+          <ul class="limits">
+            <li>
+              <span class="symbol symbol-stethoscope" aria-hidden="true"></span>
+              <h3>Replace your vet</h3>
+              <p>
+                It logs and reminds you of what you planned with your vet. It never suggests a dose,
+                a product or a date.
+              </p>
+            </li>
+            <li>
+              <span class="symbol symbol-block" aria-hidden="true"></span>
+              <h3>Show ads</h3>
+              <p>No ads in the app, and your data is never sold.</p>
+            </li>
+            <li>
+              <span class="symbol symbol-no-accounts" aria-hidden="true"></span>
+              <h3>Force you to sign up</h3>
+              <p>
+                Everything works on your phone without an account. You’ll only need one for
+                MémoPatte Plus.
+              </p>
+            </li>
+            <li>
+              <span class="symbol symbol-pets" aria-hidden="true"></span>
+              <h3>Track other animals</h3>
+              <p>Dogs and cats only, for now.</p>
+            </li>
+          </ul>
+        </section>
+      </div>
 
       <section class="section" id="pricing">
         <h2>Pricing</h2>
@@ -852,65 +863,68 @@
         </div>
       </section>
 
-      <section class="section" id="questions">
-        <h2>Frequently asked questions</h2>
-        <div class="faq">
-          <details open>
-            <summary>When is MémoPatte coming out?</summary>
-            <p id="answer-release">
-              Soon, on Google Play. The date isn’t set yet: it will be announced here as soon as it
-              is.
-            </p>
-          </details>
-          <details>
-            <summary>What about iPhone?</summary>
-            <p>
-              Not for now. MémoPatte launches on Android first, and there’s no date for iPhone yet.
-            </p>
-          </details>
-          <details>
-            <summary>Is it really free?</summary>
-            <p>
-              Yes. Everything that works on your phone is free, with no ads and no limit on pets,
-              exports included. Only MémoPatte Plus, for the cloud, will be paid.
-            </p>
-          </details>
-          <details>
-            <summary>Do I need an account?</summary>
-            <p>No. You’ll only need one for MémoPatte Plus.</p>
-          </details>
-          <details>
-            <summary>Where is my data?</summary>
-            <p>
-              On your phone. Android’s backup may keep a copy in your Google account (without
-              photos). MémoPatte’s cloud will only be used with MémoPatte Plus. Your data is never
-              sold.
-            </p>
-          </details>
-          <details>
-            <summary>What happens if I change phones?</summary>
-            <p>
-              The safest way: export your health record, then import it on the new phone. Android’s
-              own backup may also bring it back, but with no guarantee: it depends on the device.
-              Once MémoPatte Plus is available, signing in will be enough to get your health record
-              back.
-            </p>
-          </details>
-          <details>
-            <summary>Does it replace my vet?</summary>
-            <p>
-              No. MémoPatte logs and reminds you of what you planned with your vet. It never
-              suggests a dose, a product or a date.
-            </p>
-          </details>
-        </div>
-        <a class="more" href="/en/help/"
-          >All questions, on the help page<span
-            class="symbol symbol-arrow-forward"
-            aria-hidden="true"
-          ></span
-        ></a>
-      </section>
+      <div class="band band-sand">
+        <section class="section" id="questions">
+          <h2>Frequently asked questions</h2>
+          <div class="faq">
+            <details open>
+              <summary>When is MémoPatte coming out?</summary>
+              <p id="answer-release">
+                Soon, on Google Play. The date isn’t set yet: it will be announced here as soon as
+                it is.
+              </p>
+            </details>
+            <details>
+              <summary>What about iPhone?</summary>
+              <p>
+                Not for now. MémoPatte launches on Android first, and there’s no date for iPhone
+                yet.
+              </p>
+            </details>
+            <details>
+              <summary>Is it really free?</summary>
+              <p>
+                Yes. Everything that works on your phone is free, with no ads and no limit on pets,
+                exports included. Only MémoPatte Plus, for the cloud, will be paid.
+              </p>
+            </details>
+            <details>
+              <summary>Do I need an account?</summary>
+              <p>No. You’ll only need one for MémoPatte Plus.</p>
+            </details>
+            <details>
+              <summary>Where is my data?</summary>
+              <p>
+                On your phone. Android’s backup may keep a copy in your Google account (without
+                photos). MémoPatte’s cloud will only be used with MémoPatte Plus. Your data is never
+                sold.
+              </p>
+            </details>
+            <details>
+              <summary>What happens if I change phones?</summary>
+              <p>
+                The safest way: export your health record, then import it on the new phone.
+                Android’s own backup may also bring it back, but with no guarantee: it depends on
+                the device. Once MémoPatte Plus is available, signing in will be enough to get your
+                health record back.
+              </p>
+            </details>
+            <details>
+              <summary>Does it replace my vet?</summary>
+              <p>
+                No. MémoPatte logs and reminds you of what you planned with your vet. It never
+                suggests a dose, a product or a date.
+              </p>
+            </details>
+          </div>
+          <a class="more" href="/en/help/"
+            >All questions, on the help page<span
+              class="symbol symbol-arrow-forward"
+              aria-hidden="true"
+            ></span
+          ></a>
+        </section>
+      </div>
 
       <section class="section">
         <div class="maker">

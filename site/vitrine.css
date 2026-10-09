@@ -8,6 +8,7 @@
   --soon-bg: #e2f0e5;
   --soon-text: #2c6a3c;
   --notification: #f2f4f4;
+  --sand: #f1e7d6;
   --shadow-phone: 0 40px 80px -30px rgb(1 56 62 / 45%);
 }
 
@@ -953,6 +954,55 @@
   color: var(--petrol) !important;
   font-size: 15px;
   font-weight: 600;
+}
+
+/* Bandes de fond qui séparent les sections */
+
+.band {
+  margin-top: 96px;
+  padding-bottom: 88px;
+}
+
+.band > .section {
+  padding-top: 88px;
+}
+
+.band + .section,
+.band + .band {
+  padding-top: 96px;
+}
+
+.band-sand {
+  background: var(--sand);
+}
+
+.band-dark {
+  background: var(--petrol);
+  color: var(--on-petrol);
+}
+
+.band-dark .section h2,
+.band-dark .benefits h3 {
+  color: var(--on-petrol);
+}
+
+.band-dark .benefits p {
+  color: var(--on-petrol-subtitle);
+}
+
+.band-dark .benefit-icon {
+  background: var(--on-petrol-accent);
+  color: var(--petrol);
+}
+
+.band-sand .faq details,
+.band-sand .faq {
+  border-color: rgb(34 27 22 / 12%);
+}
+
+.band-sand .limits,
+.band-sand .limits li {
+  border-color: rgb(34 27 22 / 12%);
 }
 
 /* Un rappel pour chaque soin */
