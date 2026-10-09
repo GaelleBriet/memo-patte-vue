@@ -15,6 +15,8 @@ import {
   coveredKeys,
   sameRhythm,
   planPeriod,
+  stayedKeys,
+  movesInto,
 } from './treatment-schedule-timeline'
 import type {
   Due,
@@ -109,10 +111,24 @@ function keepsCoverage(previous: TreatmentPeriodInput, period: TreatmentPeriodIn
 }
 
 function inheritedKeys(previous: PeriodTimeline, period: TreatmentPeriodInput): Set<string> {
-  return new Set(
-    [...previous.noteKeys, ...previous.covered].filter(
+  return new Set([
+    ...[...previous.noteKeys, ...previous.covered].filter(
       (key) => key.slice(0, 10) >= period.startsOn,
     ),
+    ...movesInto(previous, period.firstDueOn).flatMap((move) => stayedKeys(previous, move)),
+  ])
+}
+
+// G25 : un report seul fermé par la période suivante (G5) garde sa ligne tant que son arrivée l'ouvre.
+export function carriedMoveIds(plans: PeriodTimeline[]): Set<string> {
+  return new Set(
+    plans.slice(1).flatMap((next, index) => {
+      const previous = plans[index]!
+      if (!keepsCoverage(previous.period, next.period)) return []
+      return movesInto(previous, next.period.firstDueOn)
+        .filter((move) => previous.stale.includes(move) && stayedKeys(previous, move).length > 0)
+        .map(({ id }) => id)
+    }),
   )
 }
 

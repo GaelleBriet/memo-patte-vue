@@ -498,6 +498,18 @@ class Simulation {
       ...this.book,
       doses: this.book.doses.filter((dose) => !isOwnShift(dose)),
     })
+    // G25 : le nouveau jour reçoit les heures que la journée d'origine avait encore à donner, et elles seules.
+    const timesOn = (schedule: TreatmentSchedule, day: string) =>
+      pendingOf(schedule)
+        .filter((other) => other.periodId === due.periodId && other.dueOn === day)
+        .map(({ dueTime }) => dueTime ?? '')
+        .sort()
+        .join()
+    if (fresh && timesOn(before, to) === '' && timesOn(after, to) !== timesOn(before, due.dueOn)) {
+      this.fail(
+        `${gesture} : le ${to} reçoit [${timesOn(after, to)}] au lieu de [${timesOn(before, due.dueOn)}]`,
+      )
+    }
     if (fresh && to > due.dueOn) {
       const next = pendingOf(base).find(
         (other) => other.periodId === due.periodId && other.dueOn > due.dueOn,

@@ -178,6 +178,11 @@ function uniqueDays(doses: readonly TreatmentDoseInput[]): string[] {
   return [...new Set(doses.map(({ dueOn }) => dueOn))]
 }
 
+// G5 : un report qui part et arrive après la fermeture de la période.
+function isClosedOut(move: TreatmentDoseInput, closesOn: string | null): boolean {
+  return closesOn !== null && move.dueOn >= closesOn && move.nextDueDate >= closesOn
+}
+
 // G17 : une journée n'a qu'une ligne de chaque famille, la plus récente ; les autres sont sans effet.
 function olderOfSameDay(lines: TreatmentDoseInput[]): TreatmentDoseInput[] {
   return lines.filter((line) =>
@@ -197,14 +202,12 @@ function staleLines(
 ) {
   const moves = doses.filter((dose) => familyOf(dose) === 'move')
   const isLogged = (move: TreatmentDoseInput) => noteDays.has(move.nextDueDate)
-  const isClosedOut = (move: TreatmentDoseInput) =>
-    closesOn !== null && move.dueOn >= closesOn && move.nextDueDate >= closesOn
   const older = olderOfSameDay(moves)
   const staleMoves = moves.filter(
     (move) =>
       noteKeys.has(keyOf(move)) ||
       (!isLogged(move) &&
-        (move.nextDueDate === move.dueOn || older.includes(move) || isClosedOut(move))),
+        (move.nextDueDate === move.dueOn || older.includes(move) || isClosedOut(move, closesOn))),
   )
   return [...staleMoves, ...olderOfSameDay(doses.filter(isShiftLine))]
 }
@@ -221,6 +224,44 @@ function removalsOf(moves: TreatmentDoseInput[]): Map<string, string> {
 function dayDues(period: TreatmentPeriodInput, days: string[]): Due[] {
   const times = period.times.length > 0 ? [...period.times].sort(compareOrdinal) : [null]
   return days.flatMap((dueOn) => times.map((dueTime) => ({ periodId: period.id, dueOn, dueTime })))
+}
+
+// G25 : un report seul n'emporte que les heures qu'il retire à sa journée ; avec son décalage, la
+// journée d'arrivée a toutes ses heures (Q21).
+function arrivalDues(
+  period: TreatmentPeriodInput,
+  move: TreatmentDoseInput,
+  steps: Step[],
+  kept: Set<string>,
+): Due[] {
+  const dues = dayDues(period, [move.nextDueDate])
+  const shifted = steps.some((step) => isShift(step) && dueId(step.dose) === dueId(move))
+  if (shifted) return dues
+  return dues.filter(({ dueTime }) => {
+    const origin = keyOf({ dueOn: move.dueOn, dueTime })
+    return origin >= keyOf(move) && !kept.has(origin)
+  })
+}
+
+/** Les reports qui arrivent ce jour-là, y compris ceux que la période suivante a fermés (G5). */
+export function movesInto(plan: PeriodTimeline, day: string): TreatmentDoseInput[] {
+  const live = plan.steps.filter(isMove).map(({ dose }) => dose)
+  const stale = plan.stale.filter((line) => familyOf(line) === 'move')
+  const older = olderOfSameDay([...live, ...stale])
+  const closedOut = stale.filter(
+    (move) =>
+      isClosedOut(move, plan.closesOn) && !plan.noteKeys.has(keyOf(move)) && !older.includes(move),
+  )
+  return [...live, ...closedOut].filter((move) => move.nextDueDate === day && move.dueOn !== day)
+}
+
+/** G25 : les heures du jour d'arrivée de ce report qu'il n'a pas emportées (seul, sans décalage). */
+export function stayedKeys(plan: PeriodTimeline, move: TreatmentDoseInput): string[] {
+  const kept = new Set([...plan.noteKeys, ...plan.covered])
+  const arrived = new Set(arrivalDues(plan.period, move, plan.steps, kept).map(keyOf))
+  return dayDues(plan.period, [move.nextDueDate])
+    .map(keyOf)
+    .filter((key) => !arrived.has(key))
 }
 
 export function planPeriod(
@@ -249,9 +290,8 @@ export function planPeriod(
       const end = sequences[index + 1]?.floor ?? ''
       return duesUntil(sequence, period, end)
     }),
-    ...dayDues(
-      period,
-      moves.map(({ nextDueDate }) => nextDueDate),
+    ...moves.flatMap((move) =>
+      arrivalDues(period, move, steps, new Set([...noteKeys, ...covered])),
     ),
     ...dayDues(period, isOffGrid(period) ? [period.firstDueOn] : []),
   ]
