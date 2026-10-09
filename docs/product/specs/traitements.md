@@ -194,10 +194,11 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     de Gaelle du 2026-10-09) ; la dose reportée déjà donnée, le 4 n'a plus rien à donner, et la
     nouvelle période commence le 5 ; la fréquence changée, le 4 ne redemande rien non plus (#711).
     Un report seul arrivé sur un jour de la grille n'y retire aucune heure : ce jour garde les
-    siennes. Une heure restée en arrière parce qu'elle était notée revient
-    si sa prise est supprimée : à son jour tant que la période la garde, sinon au jour d'arrivée.
-    Un traitement de tous les jours ne reporte pas une heure seule au lendemain : elle passerait
-    la dose suivante (Q2 a, G19).
+    siennes ; reporté à son tour, un jour d'arrivée n'emporte que les heures qui y étaient à
+    donner. Une heure restée en arrière parce qu'elle était notée revient si sa prise est
+    supprimée : à son jour tant que la période la garde, sinon au jour d'arrivée. Un traitement de
+    tous les jours ne reporte pas une heure seule au lendemain : elle passerait la dose suivante
+    (Q2 a, G19).
 - **TR-10** Dose du moment : la dernière échéance jusqu'à aujourd'hui inclus, si elle est encore sans
   prise ; à défaut, la prochaine. Traitement à plusieurs heures : on raisonne par journée (spec Q23).
   Les heures encore sans prise de la dernière journée d'échéance arrivée sont ensemble la dose du
