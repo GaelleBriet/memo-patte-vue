@@ -53,7 +53,7 @@ const Vide = { render: () => null }
 function routeurMemoire(): Router {
   return createRouter({
     history: createMemoryHistory(),
-    routes: [{ path: '/animals', name: 'animals', component: Vide }],
+    routes: [{ path: '/animals', name: 'carnet', component: Vide }],
   })
 }
 
@@ -61,7 +61,7 @@ function routeurAvecPile(formulaire: { path: string; name: string }): Router {
   return createRouter({
     history: createMemoryHistory(),
     routes: [
-      { path: '/animals', name: 'animals', component: Vide },
+      { path: '/animals', name: 'carnet', component: Vide },
       { ...formulaire, component: Vide },
       { path: '/notifications/priming', name: 'notifications-priming', component: Vide },
     ],
@@ -1070,7 +1070,7 @@ describe('TreatmentFormView — création (TR-1, TR-3)', () => {
 
     await soumettre(wrapper)
 
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
   })
 
   it('revient au Carnet sans rien écrire quand on annule', async () => {
@@ -1080,7 +1080,7 @@ describe('TreatmentFormView — création (TR-1, TR-3)', () => {
     await wrapper.get('.form-screen__cancel').trigger('click')
 
     expect(create).not.toHaveBeenCalled()
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
   })
 })
 
@@ -1424,7 +1424,7 @@ describe('TreatmentFormView — écran d’explication des notifications', () =>
 
     await soumettre(wrapper)
 
-    expect(replace).toHaveBeenCalledExactlyOnceWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledExactlyOnceWith({ name: 'carnet' })
   })
 
   it('n’y passe pas quand l’enregistrement échoue', async () => {
@@ -1460,7 +1460,7 @@ describe('TreatmentFormView — retour sur l’animal du formulaire', () => {
 
     await soumettre(wrapper)
 
-    expect(replace).toHaveBeenCalledExactlyOnceWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledExactlyOnceWith({ name: 'carnet' })
     expect(selection()).toBe(MILO.id)
   })
 
@@ -1523,11 +1523,11 @@ describe('TreatmentFormView — pile de navigation', () => {
     const wrapper = await monterCreation()
     await remplirMinimum(wrapper)
     await soumettre(wrapper)
-    await vi.waitFor(() => expect(routeur.currentRoute.value.name).toBe('animals'))
+    await vi.waitFor(() => expect(routeur.currentRoute.value.name).toBe('carnet'))
 
     await retourAndroid()
 
-    expect(routeur.currentRoute.value.name).toBe('animals')
+    expect(routeur.currentRoute.value.name).toBe('carnet')
   })
 
   it('ne rouvre pas le formulaire au retour après l’écran d’explication des notifications', async () => {
@@ -1536,11 +1536,11 @@ describe('TreatmentFormView — pile de navigation', () => {
     await remplirMinimum(wrapper)
     await soumettre(wrapper)
     await vi.waitFor(() => expect(routeur.currentRoute.value.name).toBe('notifications-priming'))
-    await routeur.replace({ name: 'animals' })
+    await routeur.replace({ name: 'carnet' })
 
     await retourAndroid()
 
-    expect(routeur.currentRoute.value.name).toBe('animals')
+    expect(routeur.currentRoute.value.name).toBe('carnet')
   })
 
   it('ne rouvre pas le formulaire au retour après une annulation', async () => {
@@ -1550,7 +1550,7 @@ describe('TreatmentFormView — pile de navigation', () => {
 
     await retourAndroid()
 
-    expect(routeur.currentRoute.value.name).toBe('animals')
+    expect(routeur.currentRoute.value.name).toBe('carnet')
   })
 })
 
@@ -2356,7 +2356,7 @@ describe('TreatmentFormView — retour vers l’écran d’origine', () => {
       history: createMemoryHistory(),
       routes: [
         { path: '/', name: 'home', component: Vide },
-        { path: '/animals', name: 'animals', component: Vide },
+        { path: '/animals', name: 'carnet', component: Vide },
         { path: '/treatments/:id/edit', name: 'treatment-edit', component: Vide },
       ],
     })
@@ -2404,7 +2404,7 @@ describe('TreatmentFormView — retour vers l’écran d’origine', () => {
 
     await soumettre(wrapper)
 
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
   })
 
   it('ramènera à l’accueil après l’écran d’explication des notifications', async () => {
@@ -2527,7 +2527,7 @@ describe('TreatmentFormView — reprise (TR-32, planche V7)', () => {
     routeur = createRouter({
       history: createMemoryHistory(),
       routes: [
-        { path: '/animals', name: 'animals', component: Vide },
+        { path: '/animals', name: 'carnet', component: Vide },
         { path: '/treatments/:id', name: 'treatment-detail', component: Vide },
         { path: '/treatments/:id/resume', name: 'treatment-resume', component: Vide },
       ],
@@ -2595,7 +2595,7 @@ describe('TreatmentFormView — reprise (TR-32, planche V7)', () => {
       routeur = createRouter({
         history: createMemoryHistory(),
         routes: [
-          { path: '/animals', name: 'animals', component: Vide },
+          { path: '/animals', name: 'carnet', component: Vide },
           { path: '/treatments/:id', name: 'treatment-detail', component: Vide },
           { path: '/treatments/:id/resume', name: 'treatment-resume', component: Vide },
         ],
@@ -2672,7 +2672,7 @@ describe('TreatmentFormView — animal qu’on ne suit plus (AN-9)', () => {
   it('n’ouvre pas la création : retour sur son carnet, sans rien écrire', async () => {
     await monterCreation()
 
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
     expect(useAnimalsStore().selectedAnimalId).toBe(MILO.id)
     expect(create).not.toHaveBeenCalled()
   })
@@ -2681,7 +2681,7 @@ describe('TreatmentFormView — animal qu’on ne suit plus (AN-9)', () => {
     getWithHistory.mockResolvedValue(milbemax([periode({ stoppedOn: '2026-09-01' })]))
     await monterReprise()
 
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
     expect(resume).not.toHaveBeenCalled()
   })
 
@@ -2693,7 +2693,7 @@ describe('TreatmentFormView — animal qu’on ne suit plus (AN-9)', () => {
     await monterCreation()
 
     expect(loadAnimals).not.toHaveBeenCalled()
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
     expect(create).not.toHaveBeenCalled()
   })
 
@@ -2796,7 +2796,7 @@ describe('TreatmentFormView — envoi en cours', () => {
     await soumettre(wrapper)
 
     expect(create).toHaveBeenCalledOnce()
-    expect(replace).toHaveBeenCalledExactlyOnceWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledExactlyOnceWith({ name: 'carnet' })
     expect(wrapper.find('.form-screen__save-error').exists()).toBe(false)
     expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
   })

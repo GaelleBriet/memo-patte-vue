@@ -7,7 +7,11 @@ import type { ExportData, ExportFrequency } from '@/shared/domain/carnet-data'
 import { vaccinationHistories } from '@/shared/domain/carnet-heads'
 import type { Dosage } from '@/shared/domain/dosage'
 import { periodClosedBeforeFirstDue } from '@/shared/domain/treatment-end'
-import { byStartDescending, periodLastDay } from '@/shared/domain/treatment-periods'
+import {
+  byStartDescending,
+  isSeveralTimesADay,
+  periodLastDay,
+} from '@/shared/domain/treatment-periods'
 import { isAdvanced, type TreatmentDoseInput } from '@/shared/domain/treatment-schedule'
 
 export type PdfDueState = 'overdue' | 'upToDate' | 'planned' | 'none'
@@ -214,7 +218,7 @@ function treatmentPeriods({ periods, doses, schedule }: TreatmentState): PdfTrea
   const unlogged = schedule?.unloggedDoses ?? []
   const sorted = [...periods].sort(byStartDescending)
   return sorted.flatMap((period, index): PdfTreatmentPeriod[] => {
-    const severalTimes = period.times.length > 1
+    const severalTimes = isSeveralTimesADay(period)
     const events: Event[] = [
       ...lines
         .filter((dose) => dose.periodId === period.id)
@@ -240,7 +244,7 @@ function treatmentPeriods({ periods, doses, schedule }: TreatmentState): PdfTrea
   })
 }
 
-function lastGiven({ doses, schedule }: TreatmentState): PdfDose | null {
+function lastIntake({ doses, schedule }: TreatmentState): PdfDose | null {
   const given = (schedule?.doses ?? doses).filter(
     (dose) => dose.givenOn !== null && (dose.status === 'given' || dose.status === 'extra'),
   )
@@ -304,7 +308,7 @@ export function buildCarnetPdfContent(
     .map((item) => {
       const state = states(item.id)
       const periods = treatmentPeriods(state)
-      const last = lastGiven(state)
+      const last = lastIntake(state)
       return {
         name: item.name,
         lastDoseDate: last?.on ?? null,

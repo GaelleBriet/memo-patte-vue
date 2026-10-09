@@ -17,7 +17,7 @@ const router = createRouter({
   history: createMemoryHistory(),
   routes: [
     { path: '/', name: 'home', component: Empty },
-    { path: '/animals', name: 'animals', component: Empty },
+    { path: '/animals', name: 'carnet', component: Empty },
   ],
 })
 
@@ -44,7 +44,7 @@ function mountNavigation() {
 describe('BottomNavigation', () => {
   it("cible des routes qui existent dans le routeur de l'app", () => {
     expect(appRouter.hasRoute('home')).toBe(true)
-    expect(appRouter.hasRoute('animals')).toBe(true)
+    expect(appRouter.hasRoute('carnet')).toBe(true)
   })
 
   beforeEach(async () => {
@@ -93,7 +93,7 @@ describe('BottomNavigation', () => {
     expect(tabAt(1).classes()).not.toContain('v-btn--selected')
     expect(tabAt(1).attributes('aria-current')).toBeUndefined()
 
-    await router.push({ name: 'animals' })
+    await router.push({ name: 'carnet' })
     await flushPromises()
 
     expect(tabAt(0).classes()).not.toContain('v-btn--selected')
@@ -109,6 +109,6 @@ describe('BottomNavigation', () => {
     await tabAt(1).trigger('click')
     await flushPromises()
 
-    expect(router.currentRoute.value.name).toBe('animals')
+    expect(router.currentRoute.value.name).toBe('carnet')
   })
 })

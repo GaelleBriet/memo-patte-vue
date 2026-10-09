@@ -601,7 +601,7 @@ describe('HomeView — A3 animal sélectionné, aucun rappel', () => {
     await wrapper.get('.home-up-to-date__add').trigger('click')
 
     expect(animalsStore.selectedAnimalId).toBe(MILO.id)
-    expect(push).toHaveBeenCalledWith({ name: 'animals' })
+    expect(push).toHaveBeenCalledWith({ name: 'carnet' })
   })
 })
 
@@ -629,7 +629,7 @@ describe('HomeView — A4 tous les animaux, aucun rappel', () => {
     await wrapper.get('.home-up-to-date__add').trigger('click')
 
     expect(animalsStore.selectedAnimalId).toBe(MILO.id)
-    expect(push).toHaveBeenCalledWith({ name: 'animals' })
+    expect(push).toHaveBeenCalledWith({ name: 'carnet' })
   })
 })
 
@@ -1331,7 +1331,7 @@ describe('HomeView — plus aucun animal suivi (AC-3)', () => {
       await link.trigger('click')
 
       expect(animalsStore.selectedAnimalId).toBe(LUNA.id)
-      expect(push).toHaveBeenCalledWith({ name: 'animals' })
+      expect(push).toHaveBeenCalledWith({ name: 'carnet' })
     })
 
     it('le dit en anglais', async () => {

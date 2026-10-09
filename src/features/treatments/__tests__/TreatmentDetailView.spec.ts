@@ -170,7 +170,7 @@ beforeEach(async () => {
   }
   provideTreatmentStopService(() => stop)
   router = createRouter({ history: createWebHistory(), routes: routes.map(sansEcran) })
-  await router.push({ name: 'animals' })
+  await router.push({ name: 'carnet' })
   await router.push({ name: 'treatment-detail', params: { id: METACAM.id } })
   push = vi.spyOn(router, 'push').mockResolvedValue()
 })

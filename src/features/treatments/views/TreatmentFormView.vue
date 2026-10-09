@@ -54,6 +54,7 @@ import { useExactReminders } from '@/core/notifications/use-exact-reminders'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import ExactRemindersExplainer from '@/shared/components/ExactRemindersExplainer.vue'
 import { MAX_FREQUENCY_VALUE } from '@/shared/domain/treatment-frequency'
+import { hasSeveralDoseTimes } from '@/shared/domain/treatment-periods'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import FormSegmented from '@/shared/form/FormSegmented.vue'
@@ -161,7 +162,7 @@ const pastDoses = computed(() =>
         t,
         creationPastDuesOf(values.value, today.value),
         today.value,
-        values.value.times.length > 1,
+        hasSeveralDoseTimes(values.value.times),
         { followed: (targetAnimal.value?.unfollowedOn ?? null) === null },
       )
     : null,

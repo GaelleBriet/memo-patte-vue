@@ -1,6 +1,6 @@
 import { differenceInCalendarDays } from 'date-fns'
 
-import { compareText, toDate } from './calendar-day'
+import { compareOrdinal, toDate } from './calendar-day'
 import { shiftDate, type Frequency } from './treatment-frequency'
 import type { Due } from './treatment-schedule-types'
 
@@ -27,5 +27,5 @@ export function sameDue(a: Due, b: Due): boolean {
 
 export function uniqueSorted(dues: Due[]): Due[] {
   const unique = new Map(dues.map((due) => [dueId(due), due]))
-  return [...unique.values()].sort((a, b) => compareText(keyOf(a), keyOf(b)))
+  return [...unique.values()].sort((a, b) => compareOrdinal(keyOf(a), keyOf(b)))
 }

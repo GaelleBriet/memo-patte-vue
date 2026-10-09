@@ -5,7 +5,7 @@ import { heightBottomNav, paddingBottomNav } from '@/core/theme/layout-tokens'
 
 const tabs = [
   { route: 'home', icon: 'ms:home', label: 'nav.home' },
-  { route: 'animals', icon: 'ms:pets', label: 'nav.animals' },
+  { route: 'carnet', icon: 'ms:pets', label: 'nav.animals' },
 ] as const
 
 // Onglets plus zone de gestes : Vuetify fait `Number(props.height)` pour décaler

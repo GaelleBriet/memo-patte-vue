@@ -11,7 +11,7 @@ import i18n from '@/core/i18n'
 import { routeurMemoire } from '@/router/__tests__/routeur-memoire'
 import { dismissToast, showToast } from '@/shared/utils/toast'
 
-const ECRANS_RACINE = [{ name: 'home' }, { name: 'animals' }] as const
+const ECRANS_RACINE = [{ name: 'home' }, { name: 'carnet' }] as const
 
 const ECRANS_POUSSES = [
   { name: 'settings' },

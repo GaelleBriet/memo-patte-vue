@@ -26,12 +26,12 @@ const rows = computed(() =>
 )
 
 function back(): void {
-  returnTo(router, { name: 'animals' })
+  returnTo(router, { name: 'carnet' })
 }
 
 function open(id: string): void {
   animals.select(id)
-  returnTo(router, { name: 'animals' })
+  returnTo(router, { name: 'carnet' })
 }
 
 onMounted(() => {

@@ -891,9 +891,7 @@
     "overdueSince": "en retard depuis le {date}",
     "stoppedOn": "Arrêté le {date}",
     "stoppedBeforeFirstDose": "Arrêté avant la première prise",
-    "endedOn": "Terminé le {date}",
-    "today": "Aujourd’hui",
-    "todayAt": "Aujourd’hui · {time}"
+    "endedOn": "Terminé le {date}"
   },
   "dosage": {
     "unit": {

@@ -38,7 +38,7 @@ function routeurMemoire(): Router {
   return createRouter({
     history: createMemoryHistory(),
     routes: [
-      { path: '/animals', name: 'animals', component: Vide },
+      { path: '/animals', name: 'carnet', component: Vide },
       { path: '/animals/new', name: 'animal-new', component: Vide },
     ],
   })
@@ -48,7 +48,7 @@ function routeurAvecPile(formulaire: { path: string; name: string }): Router {
   return createRouter({
     history: createMemoryHistory(),
     routes: [
-      { path: '/animals', name: 'animals', component: Vide },
+      { path: '/animals', name: 'carnet', component: Vide },
       { ...formulaire, component: Vide },
       { path: '/notifications/priming', name: 'notifications-priming', component: Vide },
     ],
@@ -582,7 +582,7 @@ describe('AnimalFormView — écriture', () => {
     await soumettre(wrapper)
     await wrapper.vm.$nextTick()
 
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
   })
 
   it('sélectionne l’animal créé pour l’afficher au retour sur le Carnet', async () => {
@@ -598,7 +598,7 @@ describe('AnimalFormView — écriture', () => {
     await soumettre(wrapper)
     await flushPromises()
 
-    expect(replace).toHaveBeenCalledExactlyOnceWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledExactlyOnceWith({ name: 'carnet' })
     expect(selectionAuPush).toBe(MILO.id)
   })
 
@@ -609,7 +609,7 @@ describe('AnimalFormView — écriture', () => {
     await wrapper.get('.form-screen__cancel').trigger('click')
 
     expect(create).not.toHaveBeenCalled()
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
   })
 })
 
@@ -626,11 +626,11 @@ describe('AnimalFormView — pile de navigation', () => {
     await remplirMinimum(wrapper)
     await soumettre(wrapper)
     await flushPromises()
-    expect(routeur.currentRoute.value.name).toBe('animals')
+    expect(routeur.currentRoute.value.name).toBe('carnet')
 
     await retourAndroid()
 
-    expect(routeur.currentRoute.value.name).toBe('animals')
+    expect(routeur.currentRoute.value.name).toBe('carnet')
   })
 
   it('ne rouvre pas le formulaire au retour après une annulation', async () => {
@@ -640,7 +640,7 @@ describe('AnimalFormView — pile de navigation', () => {
 
     await retourAndroid()
 
-    expect(routeur.currentRoute.value.name).toBe('animals')
+    expect(routeur.currentRoute.value.name).toBe('carnet')
   })
 })
 
@@ -711,7 +711,7 @@ describe('AnimalFormView — édition (état F2)', () => {
       { kind: 'keep' },
     )
     expect(create).not.toHaveBeenCalled()
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
   })
 
   it('renvoie null, jamais la chaîne vide, pour un champ resté vide (aller-retour)', async () => {
@@ -765,7 +765,7 @@ describe('AnimalFormView — édition (état F2)', () => {
     await wrapper.get('.form-screen__cancel').trigger('click')
 
     expect(update).not.toHaveBeenCalled()
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
   })
 
   it('prévient et n’autorise pas l’envoi quand l’animal est introuvable', async () => {

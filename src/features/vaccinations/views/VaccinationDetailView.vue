@@ -155,7 +155,7 @@ function onReminderChosen(dates: InjectionDates): void {
 
 function backToCarnet(): void {
   if (vaccination.value) animals.select(vaccination.value.animalId)
-  returnTo(router, { name: 'animals' })
+  returnTo(router, { name: 'carnet' })
 }
 
 function edit(): void {

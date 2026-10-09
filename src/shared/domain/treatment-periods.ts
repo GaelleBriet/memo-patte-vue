@@ -21,3 +21,11 @@ export function periodLastDay(
     [period.endsOn, period.stoppedOn, beforeNext].filter((day) => day !== null).sort()[0] ?? null
   )
 }
+
+export function hasSeveralDoseTimes(times: readonly string[]): boolean {
+  return times.length > 1
+}
+
+export function isSeveralTimesADay(period: Pick<TreatmentPeriodInput, 'times'>): boolean {
+  return hasSeveralDoseTimes(period.times)
+}

@@ -33,13 +33,13 @@ export function previousDay(date: string): string {
   return toDay(addDays(toDate(date), -1))
 }
 
-export function compareText(a: string, b: string): number {
+export function compareOrdinal(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0
 }
 
 export function latestOf(days: (string | null | undefined)[]): string | undefined {
   return days
     .filter((day) => day !== null && day !== undefined)
-    .sort(compareText)
+    .sort(compareOrdinal)
     .at(-1)
 }

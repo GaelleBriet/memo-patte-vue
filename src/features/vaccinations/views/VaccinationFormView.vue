@@ -292,7 +292,7 @@ async function save(): Promise<void> {
     :vaccination-id="sameName.id"
     start-at="done"
     :initial-injected-on="doneSheetInjectedOn"
-    :return-to="from ?? 'animals'"
+    :return-to="from ?? 'carnet'"
     @changed="selectTargetAnimal"
   />
 </template>

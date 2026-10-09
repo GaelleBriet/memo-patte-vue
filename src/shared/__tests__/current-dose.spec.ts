@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { currentDoseText, dueTodayText } from '../domain/current-dose'
+import { currentDoseText } from '../domain/current-dose'
 import type { Due } from '../domain/treatment-schedule'
 import i18n, { applyLocale } from '@/core/i18n'
 import { plain } from '@/shared/__tests__/plain'
@@ -105,20 +105,6 @@ describe('currentDoseText', () => {
         stoppedBeforeFirstDose: true,
       }).value,
     ).toBe('Stopped before the first dose')
-  })
-})
-
-describe('dueTodayText', () => {
-  it('garde l’heure d’une échéance du jour, même passée', () => {
-    expect(plain(dueTodayText(t, due(TODAY, '08:00')))).toBe('Aujourd’hui · 8 h')
-    expect(plain(dueTodayText(t, due(TODAY)))).toBe('Aujourd’hui')
-  })
-
-  it('s’écrit en anglais', () => {
-    applyLocale('en')
-
-    expect(plain(dueTodayText(t, due(TODAY, '20:00')))).toBe('Today · 8 pm')
-    expect(plain(dueTodayText(t, due(TODAY)))).toBe('Today')
   })
 
   it('dit quand un traitement à date de fin s’est terminé, jamais avant cette date', () => {

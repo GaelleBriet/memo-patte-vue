@@ -15,7 +15,7 @@ export type TodoSummary = {
 
 export type BuildTodoOptions = { animalId?: string }
 
-function compareText(a: string, b: string): number {
+function compareAlphabetically(a: string, b: string): number {
   return a.localeCompare(b)
 }
 
@@ -26,23 +26,23 @@ function timeKey(time: string | null): string {
 function compareDue(a: TodoDueItem, b: TodoDueItem): number {
   return (
     a.daysUntil - b.daysUntil ||
-    compareText(timeKey(a.dueTime), timeKey(b.dueTime)) ||
-    compareText(a.label, b.label) ||
-    compareText(a.id, b.id)
+    compareAlphabetically(timeKey(a.dueTime), timeKey(b.dueTime)) ||
+    compareAlphabetically(a.label, b.label) ||
+    compareAlphabetically(a.id, b.id)
   )
 }
 
 function compareToLog(a: TodoToLogItem, b: TodoToLogItem): number {
   return (
-    compareText(a.oldest.dueOn, b.oldest.dueOn) ||
-    compareText(timeKey(a.oldest.dueTime), timeKey(b.oldest.dueTime)) ||
-    compareText(a.label, b.label) ||
-    compareText(a.id, b.id)
+    compareAlphabetically(a.oldest.dueOn, b.oldest.dueOn) ||
+    compareAlphabetically(timeKey(a.oldest.dueTime), timeKey(b.oldest.dueTime)) ||
+    compareAlphabetically(a.label, b.label) ||
+    compareAlphabetically(a.id, b.id)
   )
 }
 
 function compareUnreadable(a: TodoUnreadableItem, b: TodoUnreadableItem): number {
-  return compareText(a.label, b.label) || compareText(a.id, b.id)
+  return compareAlphabetically(a.label, b.label) || compareAlphabetically(a.id, b.id)
 }
 
 export function buildTodo(items: readonly TodoItem[], { animalId }: BuildTodoOptions): TodoSummary {

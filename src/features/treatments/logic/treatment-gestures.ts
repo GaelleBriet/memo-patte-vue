@@ -3,6 +3,7 @@ import { moveText, type DoseLineAction } from './treatment-history'
 import { revealedDuesText, type RevealedDues } from './treatment-revealed-dues'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import { nextDay } from '@/shared/domain/calendar-day'
+import { isSeveralTimesADay } from '@/shared/domain/treatment-periods'
 import {
   isAdvanced,
   type Due,
@@ -51,7 +52,8 @@ export function hasSeveralTimes(
   treatment: Pick<TreatmentWithHistory, 'periods'>,
   periodId: string,
 ): boolean {
-  return (treatment.periods.find(({ id }) => id === periodId)?.times.length ?? 0) > 1
+  const period = treatment.periods.find(({ id }) => id === periodId)
+  return period !== undefined && isSeveralTimesADay(period)
 }
 
 /** « Prise de X déjà notée aujourd'hui pour Y », ou « du {date} » un autre jour. */

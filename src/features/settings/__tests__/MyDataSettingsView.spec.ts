@@ -278,7 +278,6 @@ describe('MyDataSettingsView', () => {
 
       expect(ligne.get('.settings-row__label').text()).toBe('Exporter en PDF')
       expect(ligne.get('.settings-row__hint').text()).toBe('PDF du carnet de Milo')
-      expect(ligne.find('.plus-badge').exists()).toBe(false)
       expect(ligne.find('.d-sr-only').exists()).toBe(false)
       expect(ligne.attributes('disabled')).toBeUndefined()
       expect(wrapper.findComponent(PdfExportSheet).exists()).toBe(false)

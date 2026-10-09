@@ -1,4 +1,4 @@
-import { compareText } from './calendar-day'
+import { compareOrdinal } from './calendar-day'
 import { dueId, dueOf, keyOf, uniqueSorted } from './treatment-schedule-dues'
 import {
   duesUntil,
@@ -19,9 +19,9 @@ import type {
 
 function compareDoses(a: TreatmentDoseInput, b: TreatmentDoseInput): number {
   return (
-    compareText(keyOf(a), keyOf(b)) ||
-    compareText(a.createdAt, b.createdAt) ||
-    compareText(a.id, b.id)
+    compareOrdinal(keyOf(a), keyOf(b)) ||
+    compareOrdinal(a.createdAt, b.createdAt) ||
+    compareOrdinal(a.id, b.id)
   )
 }
 
@@ -69,9 +69,9 @@ export function mergeDoses(doses: readonly TreatmentDoseInput[]): TreatmentDoseI
 export function orderPeriods(periods: readonly TreatmentPeriodInput[]): TreatmentPeriodInput[] {
   return [...periods].sort(
     (a, b) =>
-      compareText(a.startsOn, b.startsOn) ||
-      compareText(a.createdAt, b.createdAt) ||
-      compareText(a.id, b.id),
+      compareOrdinal(a.startsOn, b.startsOn) ||
+      compareOrdinal(a.createdAt, b.createdAt) ||
+      compareOrdinal(a.id, b.id),
   )
 }
 
@@ -80,7 +80,7 @@ export function positionOf(key: string, rank: 0 | 1): string {
 }
 
 export function compareCreation(a: TreatmentDoseInput, b: TreatmentDoseInput): number {
-  return compareText(a.createdAt, b.createdAt) || compareText(a.id, b.id)
+  return compareOrdinal(a.createdAt, b.createdAt) || compareOrdinal(a.id, b.id)
 }
 
 // Avancé (Q17), un report agit au début de sa nouvelle date ; reporté, après les prises de son jour
@@ -101,7 +101,7 @@ function stepOf(dose: TreatmentDoseInput): Step {
 function stepsOf(doses: TreatmentDoseInput[]): Step[] {
   return doses
     .map(stepOf)
-    .sort((a, b) => compareText(a.position, b.position) || compareCreation(a.dose, b.dose))
+    .sort((a, b) => compareOrdinal(a.position, b.position) || compareCreation(a.dose, b.dose))
 }
 
 function isNote(step: Step): boolean {
@@ -140,7 +140,7 @@ export function coveredKeys(
   earlierNotes: readonly TreatmentDoseInput[],
 ): Set<string> {
   const keepsRhythm = previous !== undefined && sameRhythm(previous, period)
-  const times = period.times.length === 0 ? [null] : [...period.times].sort(compareText)
+  const times = period.times.length === 0 ? [null] : [...period.times].sort(compareOrdinal)
   const days = keepsRhythm
     ? uniqueDays(earlierNotes.filter(({ dueOn }) => dueOn >= period.startsOn))
     : period.firstDueOn === period.startsOn
@@ -204,7 +204,7 @@ function removalsOf(moves: TreatmentDoseInput[]): Map<string, string> {
 }
 
 function arrivalsOf(period: TreatmentPeriodInput, moves: TreatmentDoseInput[]): Due[] {
-  const times = period.times.length > 0 ? [...period.times].sort(compareText) : [null]
+  const times = period.times.length > 0 ? [...period.times].sort(compareOrdinal) : [null]
   return moves.flatMap(({ nextDueDate }) =>
     times.map((dueTime) => ({ periodId: period.id, dueOn: nextDueDate, dueTime })),
   )
@@ -252,7 +252,7 @@ export function planPeriod(
     fallenKeys: steps
       .filter(hasFallen)
       .map(({ dose }) => keyOf(dose))
-      .sort(compareText),
+      .sort(compareOrdinal),
   }
 }
 
@@ -261,7 +261,7 @@ export function closingDay(
   next: TreatmentPeriodInput | undefined,
 ): string | null {
   const bounds = [period.stoppedOn, next?.startsOn ?? null].filter((day) => day !== null)
-  return bounds.sort(compareText)[0] ?? null
+  return bounds.sort(compareOrdinal)[0] ?? null
 }
 
 function isWithinPeriod(plan: PeriodTimeline, dueOn: string): boolean {

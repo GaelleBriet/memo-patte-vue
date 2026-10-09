@@ -176,7 +176,7 @@ beforeEach(async () => {
   provideVaccinationsRepository(() => vaccinationsRepository)
   provideTreatmentsRepository(() => treatmentsRepository)
   provideWeightRepository(() => weightRepository)
-  await router.push({ name: 'animals' })
+  await router.push({ name: 'carnet' })
   push = vi.spyOn(router, 'push').mockResolvedValue()
   vi.stubGlobal('localStorage', memoryStorage())
   vi.stubGlobal('visualViewport', {
@@ -376,7 +376,6 @@ describe('CarnetView — header', () => {
       const wrapper = await monter()
       const icone = wrapper.get('.carnet-header__export-pdf')
 
-      expect(icone.find('.plus-badge').exists()).toBe(false)
       expect(icone.attributes('aria-label')).toBe('Exporter en PDF')
     })
   })
@@ -649,7 +648,7 @@ describe('CarnetView — route', () => {
   it('reste l’onglet Carnet, à /animals', () => {
     const route = router.resolve('/animals')
 
-    expect(route.name).toBe('animals')
+    expect(route.name).toBe('carnet')
   })
 })
 

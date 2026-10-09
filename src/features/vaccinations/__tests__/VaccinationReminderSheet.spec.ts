@@ -394,14 +394,14 @@ describe('VaccinationReminderSheet — F5, vaccin fait', () => {
   })
 
   it('revient à l’écran demandé une fois l’injection notée', async () => {
-    await monter({ startAt: 'done', returnTo: 'animals' })
+    await monter({ startAt: 'done', returnTo: 'carnet' })
 
     choix()[1]!.click()
     await flushPromises()
     bouton('.vaccination-reminder-sheet__submit').click()
     await flushPromises()
 
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
   })
 
   it('passe par l’écran d’explication avant l’écran demandé, au premier rappel', async () => {
