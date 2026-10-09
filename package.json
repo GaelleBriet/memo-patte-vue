@@ -19,7 +19,7 @@
     "type-check": "vue-tsc --build",
     "lint": "run-s lint:oxlint lint:eslint",
     "lint:oxlint": "oxlint . --fix",
-    "lint:eslint": "eslint . --fix --cache",
+    "lint:eslint": "eslint . --fix --cache --cache-strategy content --cache-location node_modules/.cache/eslint/",
     "format": "prettier --write --experimental-cli src/",
     "check": "run-s format lint type-check test:unit:run build",
     "prepare": "husky",
