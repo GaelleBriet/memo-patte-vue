@@ -17,7 +17,7 @@ import {
   applyWeightUnit,
   currentWeightUnit,
   WEIGHT_UNIT_STORAGE_KEY,
-} from '@/shared/domain/weight-unit-preference'
+} from '@/core/preferences/weight-unit-preference'
 
 vi.mock('../service/data-export.service', () => ({
   dataExportService: { exportData: vi.fn<() => Promise<'shared'>>() },
@@ -36,7 +36,7 @@ vi.mock('../service/data-import.service', async (importOriginal) => ({
   dataImportService: { hasLocalData, importData },
 }))
 
-vi.mock('@/app/reminders-priming', () => ({ promptNotificationsIfReminders }))
+vi.mock('@/core/notifications/reminders-priming', () => ({ promptNotificationsIfReminders }))
 
 const MILO: Animal = {
   id: '11111111-1111-4111-8111-111111111111',

@@ -14,7 +14,7 @@ import { getMsIconPath } from '@/core/theme/icons'
 import vuetify from '@/core/theme/vuetify'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import { KG_PER_LB } from '@/shared/domain/weight-unit'
-import { applyWeightUnit } from '@/shared/domain/weight-unit-preference'
+import { applyWeightUnit } from '@/core/preferences/weight-unit-preference'
 import {
   dismissToast,
   runToastAction,

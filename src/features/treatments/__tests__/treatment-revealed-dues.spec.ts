@@ -6,7 +6,7 @@ import { revealedDues, revealedDuesText } from '../logic/treatment-revealed-dues
 import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
 import { dateChangeBox, otherDateBox, shiftHelpText } from '../logic/treatment-shift-box'
 import { dateChangeOf, doseActionTexts } from '../logic/treatment-gestures'
-import type { DoseWrite } from '../repository/treatment-doses.repository'
+import type { DoseWrite } from '../schema/treatment-dose.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import { createTreatmentDosesService } from '../service/treatment-doses.service'
 import i18n, { applyLocale } from '@/core/i18n'

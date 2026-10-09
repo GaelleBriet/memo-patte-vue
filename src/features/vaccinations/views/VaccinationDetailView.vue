@@ -16,7 +16,7 @@ import {
   vaccinationDeleteTexts,
   vaccinationDetailTexts,
 } from '../logic/vaccination-history'
-import type { InjectionDates } from '../repository/vaccination-injections.repository'
+import type { InjectionDates } from '../schema/vaccination-injection.schema'
 import type { VaccinationInjection } from '../schema/vaccination-injection.schema'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'

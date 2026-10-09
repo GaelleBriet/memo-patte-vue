@@ -23,9 +23,9 @@ import {
 import {
   DuplicateDueError,
   getTreatmentDosesRepository,
-  type DoseWrite,
   type TreatmentDosesRepository,
 } from '../repository/treatment-doses.repository'
+import type { DoseWrite } from '../schema/treatment-dose.schema'
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,

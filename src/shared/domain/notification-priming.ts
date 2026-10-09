@@ -1,13 +1,10 @@
-import type { RouteLocationRaw, Router } from 'vue-router'
+import type { RouteLocationRaw } from 'vue-router'
 
-import { ANIMAL_NAME_QUERY_PARAM } from '@/shared/utils/animal-name-query-param'
-import { returnToOr } from '@/shared/utils/return-to'
-import { shouldShowPriming } from '@/core/notifications/permission'
 import { detailOrigin, detailRoute, REMINDER_QUERY_PARAM } from './reminder-route'
 
 export type ReminderKind = 'vaccination' | 'treatment'
 
-const PRIMING_ROUTE = 'notifications-priming'
+export const PRIMING_ROUTE = 'notifications-priming'
 const DEFAULT_RETURN_ROUTE = 'carnet'
 const RETURN_ROUTES: readonly string[] = [
   'home',
@@ -17,45 +14,8 @@ const RETURN_ROUTES: readonly string[] = [
   'carnet',
 ]
 
-export type SavedReminder = {
-  hasDueDate: boolean
-  animalName: string | null
-  kind: ReminderKind
-  /** Écran où revenir : `home`, `settings`, `settings-reminders`, `settings-data`, `carnet` ou un détail du Carnet, le Carnet sinon. */
-  from?: string
-  /** Rappel dont la feuille se rouvre au retour (`reminder-route.ts`). */
-  reminder?: string
-}
-
-function reminderQuery(reminder: unknown): Record<string, string> {
+export function reminderQuery(reminder: unknown): Record<string, string> {
   return typeof reminder === 'string' ? { [REMINDER_QUERY_PARAM]: reminder } : {}
-}
-
-/** L'écran d'explication, quand le rappel posé est le premier et que rien n'a été demandé ; sinon `null`. */
-export async function primingAfterReminderSaved(
-  saved: SavedReminder,
-): Promise<RouteLocationRaw | null> {
-  if (!saved.hasDueDate || !(await shouldShowPriming())) return null
-  return {
-    name: PRIMING_ROUTE,
-    query: {
-      ...(saved.animalName ? { [ANIMAL_NAME_QUERY_PARAM]: saved.animalName } : {}),
-      kind: saved.kind,
-      ...(saved.from ? { from: saved.from } : {}),
-      ...reminderQuery(saved.reminder),
-    },
-  }
-}
-
-export async function routeAfterReminderSaved(saved: SavedReminder): Promise<RouteLocationRaw> {
-  return (await primingAfterReminderSaved(saved)) ?? primingReturnRoute(saved.from, saved.reminder)
-}
-
-/** Quitte le formulaire d'un rappel enregistré, sans jamais lever : un échec retombe sur l'écran d'origine. */
-export async function leaveAfterReminderSaved(router: Router, saved: SavedReminder): Promise<void> {
-  const safe = primingReturnRoute(saved.from, saved.reminder)
-  const target = await routeAfterReminderSaved(saved).catch(() => safe)
-  await returnToOr(router, target, safe)
 }
 
 /** `from` : `home`, `settings`, `settings-reminders` ou `animals`, où l'écran d'explication ramènera. */

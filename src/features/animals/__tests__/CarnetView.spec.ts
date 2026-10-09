@@ -46,7 +46,7 @@ import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
 import { memoryStorage } from '@/features/purchase/__tests__/billing-fixture'
 import PdfExportSheet from '@/features/settings/views/PdfExportSheet.vue'
 import { toKg } from '@/shared/domain/weight-unit'
-import { applyWeightUnit } from '@/shared/domain/weight-unit-preference'
+import { applyWeightUnit } from '@/core/preferences/weight-unit-preference'
 import {
   dismissToast,
   runToastAction,

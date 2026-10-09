@@ -11,9 +11,9 @@ import {
 } from '../logic/vaccination-history'
 import {
   getVaccinationInjectionsRepository,
-  type InjectionDates,
   type VaccinationInjectionsRepository,
 } from '../repository/vaccination-injections.repository'
+import type { InjectionDates } from '../schema/vaccination-injection.schema'
 import {
   getVaccinationsRepository,
   type VaccinationsRepository,

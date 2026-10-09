@@ -11,7 +11,7 @@ import {
   writeStoredPlusStatus,
 } from '@/features/purchase/logic/plus-status-storage'
 import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
-import { USAGE_SIGNALS_STORAGE_KEY } from '@/shared/utils/usage-signals'
+import { USAGE_SIGNALS_STORAGE_KEY } from '@/core/usage/usage-signals'
 
 import { AccountError } from '../logic/account-error'
 import {

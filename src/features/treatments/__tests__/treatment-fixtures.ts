@@ -1,4 +1,4 @@
-import type { DoseWrite } from '../repository/treatment-doses.repository'
+import type { DoseWrite } from '../schema/treatment-dose.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'

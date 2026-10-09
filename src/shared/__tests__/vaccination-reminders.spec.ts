@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import i18n from '@/core/i18n'
 import { REMINDER_DONE_ACTION_TYPE } from '@/core/notifications/reminder-actions'
 import type { CarnetReminderSettings } from '@/shared/domain/reminder-plan'
-import { isInjectionNoted, vaccinationReminders } from '../logic/vaccination-reminders'
+import { isInjectionNoted, vaccinationReminders } from '../domain/vaccination-reminders'
 
 const t = i18n.global.t
 const ID = '22222222-2222-4222-8222-222222222222'

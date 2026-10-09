@@ -13,7 +13,7 @@ import {
   readUsageSignals,
   recordUsageSignal,
   USAGE_SIGNALS_STORAGE_KEY,
-} from '@/shared/utils/usage-signals'
+} from '@/core/usage/usage-signals'
 
 import { PLUS_ACCOUNT_STORAGE_KEY } from '../logic/plus-account-storage'
 import { authRepository, type AuthRepository } from '../repository/auth.repository'

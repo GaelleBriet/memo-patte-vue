@@ -1,5 +1,5 @@
 import { clearPurchaseDeviceState } from '@/features/purchase/service/purchase-device-state.service'
-import { clearAccountUsageSignals, clearUsageSignals } from '@/shared/utils/usage-signals'
+import { clearAccountUsageSignals, clearUsageSignals } from '@/core/usage/usage-signals'
 
 import { clearPlusAccount, readPlusAccount } from '../logic/plus-account-storage'
 import { authRepository } from '../repository/auth.repository'

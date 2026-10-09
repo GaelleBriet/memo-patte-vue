@@ -16,7 +16,7 @@ import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import i18n from '@/core/i18n'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import { KG_PER_LB } from '@/shared/domain/weight-unit'
-import { applyWeightUnit } from '@/shared/domain/weight-unit-preference'
+import { applyWeightUnit } from '@/core/preferences/weight-unit-preference'
 
 const MILO: Animal = {
   id: '11111111-1111-4111-8111-111111111111',

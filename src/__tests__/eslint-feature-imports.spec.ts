@@ -299,6 +299,28 @@ describe('imports dynamiques', { timeout: 30_000 }, () => {
   })
 })
 
+describe('app/, réservé au démarrage', { timeout: 30_000 }, () => {
+  it("interdit à un écran, un écran composite, un service et un store d'importer app/", async () => {
+    const results = await Promise.all([
+      restrictedImports('src/features/weight/views/WeightHistoryView.vue', ['@/app/sync']),
+      restrictedImports('src/features/home/views/HomeView.vue', ['@/app/reminders-priming']),
+      restrictedImports('src/features/settings/service/data-import.service.ts', [
+        '@/app/reminders-sync',
+        '../../../app/reminders-sync',
+      ]),
+      restrictedDynamicImports('src/features/weight/store/weight.store.ts', ['@/app/sync']),
+    ])
+
+    expect(results.map(({ feature }) => feature)).toEqual([1, 1, 2, 1])
+  })
+
+  it('laisse main.ts brancher app/', async () => {
+    const result = await restrictedImports('src/main.ts', ['@/app/sync'])
+
+    expect(result).toEqual({ feature: 0, legacy: 0 })
+  })
+})
+
 describe("façade du moteur d'échéances", { timeout: 30_000 }, () => {
   async function engineImports(filePath: string, statements: string[]) {
     const [result] = await eslint.lintText(`${statements.join('\n')}\n`, {

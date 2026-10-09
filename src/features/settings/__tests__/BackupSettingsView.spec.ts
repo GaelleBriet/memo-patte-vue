@@ -10,7 +10,7 @@ import router from '@/router'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { memoryStorage } from '@/features/purchase/__tests__/billing-fixture'
-import { readUsageSignals } from '@/shared/utils/usage-signals'
+import { readUsageSignals } from '@/core/usage/usage-signals'
 import { showToast } from '@/shared/utils/toast'
 
 const exportData = vi.hoisted(() => vi.fn<DataExportService['exportData']>())

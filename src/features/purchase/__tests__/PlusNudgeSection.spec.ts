@@ -11,7 +11,7 @@ import { writeStoredPlusStatus } from '../logic/plus-status-storage'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 import { routeurMemoire } from '@/router/__tests__/routeur-memoire'
-import { recordUsageSignal } from '@/shared/utils/usage-signals'
+import { recordUsageSignal } from '@/core/usage/usage-signals'
 
 vi.mock('../service/billing.service', async (importOriginal) => ({
   ...(await importOriginal<object>()),

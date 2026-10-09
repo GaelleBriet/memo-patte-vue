@@ -9,7 +9,9 @@ import {
   useCarnetSettingsStore,
 } from '@/features/settings/store/carnet-settings.store'
 
-vi.mock('@/app/reminders-sync', () => ({ syncAllReminders: vi.fn<() => Promise<void>>() }))
+vi.mock('@/features/treatments/service/reminders-sync.service', () => ({
+  syncAllReminders: vi.fn<() => Promise<void>>(),
+}))
 
 const update = vi.fn<(changes: Partial<CarnetSettings>) => Promise<CarnetSettings>>()
 const sync = vi.fn<() => Promise<void>>(async () => {})

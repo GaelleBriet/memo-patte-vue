@@ -1,6 +1,6 @@
 import type { PlanIds } from './treatment-settings'
-import type { DoseWrite } from '../repository/treatment-doses.repository'
-import type { PlannedDoseWrite } from '../repository/treatments.repository'
+import type { DoseWrite } from '../schema/treatment-dose.schema'
+import type { PlannedDoseWrite } from '../schema/treatment-plan.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import {

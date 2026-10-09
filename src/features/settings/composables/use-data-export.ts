@@ -2,7 +2,7 @@ import { dataExportService, type DataExportService } from '../service/data-expor
 import { isSaved, type DeliveryMode, type DeliveryOutcome } from '../logic/export-delivery'
 import type { ExportFormat } from '../logic/export-format'
 import { useExportRun, type ExportRunInterruption, type SaveAccessPort } from './use-export-run'
-import { recordUsageSignal } from '@/shared/utils/usage-signals'
+import { recordUsageSignal } from '@/core/usage/usage-signals'
 
 export type ExportRunOutcome = DeliveryOutcome | ExportRunInterruption
 

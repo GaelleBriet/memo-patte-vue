@@ -66,6 +66,8 @@ src/
 
 `core/dev/` contient les fixtures de développement (`pnpm dev:data`, carnet de démo Milo + Luna peuplé via les repositories) ; importé derrière `import.meta.env.DEV` uniquement, il ne part jamais en production.
 
+`app/` ne fait que démarrer l’app : plugins, routeur, mise en page, et branchement des services au lancement. Les cas d’usage vivent dans les services des features.
+
 Chaque `features/<nom>/` range son contenu par rôle technique, en sous-dossiers plats créés seulement s'ils ont un fichier à contenir : `store/` (`xxx.store.ts`), `repository/` (`xxx.repository.ts`), `service/` (`*.service.ts`), `schema/` (`*.schema.ts`), `composables/` (`use-*.ts`), `views/` (tous les `.vue`, écrans et sous-composants confondus), `logic/` (le reste des `.ts` propres à la feature) ; `__tests__/` ne bouge pas. `shared/` suit le même principe avec `components/`, `composables/`, `domain/` (logique métier MémoPatte : rappel, poids, animal, carnet), `utils/` (générique, sans connaissance métier) ; `form/` et `__tests__/` gardent leur organisation existante.
 
 ### Règles strictes de structure
@@ -78,6 +80,9 @@ Chaque `features/<nom>/` range son contenu par rôle technique, en sous-dossiers
 - Les repositories sont les seuls autorisés à parler à SQLite et Supabase, et chacun reste le seul à écrire dans sa table : un service qui orchestre appelle leurs méthodes, il n'écrit pas de SQL
 - Les stores Pinia ne contiennent aucune requête directe
 - `core/` ne dépend jamais des features, à une exception près : `core/dev/` importe leurs repositories pour peupler le carnet de démo (outil de dev, jamais en production ; règle ESLint `app/core-independent-of-features`)
+- Aucune feature n’importe `app/` (règle ESLint `app/feature-imports`)
+- Ce qui garde un état ou appelle le téléphone (file des rappels, unité de poids, signaux d’usage) vit dans `core/`, jamais dans `shared/domain/`
+- `logic/` n’importe jamais un repository : les types d’écriture qu’ils partagent vivent dans `schema/`
 - Tout texte visible passe par vue-i18n (FR source, EN livré en v1)
 
 ## Conventions de code

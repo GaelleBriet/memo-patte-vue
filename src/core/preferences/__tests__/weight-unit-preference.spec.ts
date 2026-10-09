@@ -7,7 +7,7 @@ import {
   currentWeightUnit,
   restoreWeightUnit,
   WEIGHT_UNIT_STORAGE_KEY,
-} from '../domain/weight-unit-preference'
+} from '../weight-unit-preference'
 
 function memoryStorage(): Pick<Storage, 'getItem' | 'setItem'> {
   const items = new Map<string, string>()

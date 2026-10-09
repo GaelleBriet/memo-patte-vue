@@ -12,7 +12,7 @@ import { provideWeightRepository, useWeightStore } from '../store/weight.store'
 import i18n, { applyLocale } from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 import { toKg } from '@/shared/domain/weight-unit'
-import { applyWeightUnit } from '@/shared/domain/weight-unit-preference'
+import { applyWeightUnit } from '@/core/preferences/weight-unit-preference'
 import { plain } from '@/shared/__tests__/plain'
 
 const MILO = '11111111-1111-4111-8111-111111111111'

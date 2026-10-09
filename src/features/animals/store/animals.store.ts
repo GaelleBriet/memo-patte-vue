@@ -23,7 +23,7 @@ import {
 } from '../service/animal-photo.service'
 import type { AnimalsRepository } from '../repository/animals.repository'
 import { track } from '@/core/analytics'
-import { recordUsageSignal } from '@/shared/utils/usage-signals'
+import { recordUsageSignal } from '@/core/usage/usage-signals'
 
 export type AnimalsRepositoryProvider = () => AnimalsRepository | Promise<AnimalsRepository>
 export type AnimalDeletionServiceProvider = () => AnimalDeletionService
