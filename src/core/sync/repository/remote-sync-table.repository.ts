@@ -5,7 +5,6 @@ import type { SyncableTable } from '@/core/sync/service/syncable-table'
 
 export interface RemoteSyncTableOptions {
   table: string
-  /** Colonnes lues au pull, séparées par des virgules, comme dans le `SELECT` local. */
   columns: string
   loadClient: () => Promise<SupabaseClient>
 }

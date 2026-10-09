@@ -47,71 +47,78 @@ function fakePullClient(result: FakeResult) {
   return { client: { from } as unknown as SupabaseClient, from, calls }
 }
 
-interface FakeUpdateBuilder {
-  update: (patch: unknown) => FakeUpdateBuilder
-  match: (match: unknown) => FakeUpdateBuilder
-  lt: (column: string, value: unknown) => FakeUpdateBuilder
+interface FakePushBuilder {
+  update: (patch: unknown) => FakePushBuilder
+  match: (match: unknown) => FakePushBuilder
+  lt: (column: string, value: unknown) => FakePushBuilder
   select: (columns: string) => Promise<FakeResult>
-}
-
-interface FakeInsertBuilder {
   upsert: (row: unknown, options: unknown) => Promise<{ error: unknown }>
 }
 
 function fakePushClient(updated: unknown[]) {
   const calls: Record<string, unknown> = {}
-  const updateBuilder: FakeUpdateBuilder = {
-    update: vi.fn<FakeUpdateBuilder['update']>((patch) => {
+  const builder: FakePushBuilder = {
+    update: vi.fn<FakePushBuilder['update']>((patch) => {
       calls.update = patch
-      return updateBuilder
+      return builder
     }),
-    match: vi.fn<FakeUpdateBuilder['match']>((match) => {
+    match: vi.fn<FakePushBuilder['match']>((match) => {
       calls.match = match
-      return updateBuilder
+      return builder
     }),
-    lt: vi.fn<FakeUpdateBuilder['lt']>((column, value) => {
+    lt: vi.fn<FakePushBuilder['lt']>((column, value) => {
       calls.lt = [column, value]
-      return updateBuilder
+      return builder
     }),
-    select: vi.fn<FakeUpdateBuilder['select']>(() =>
-      Promise.resolve({ data: updated, error: null }),
-    ),
-  }
-  const insertBuilder: FakeInsertBuilder = {
-    upsert: vi.fn<FakeInsertBuilder['upsert']>((row, options) => {
+    select: vi.fn<FakePushBuilder['select']>(() => Promise.resolve({ data: updated, error: null })),
+    upsert: vi.fn<FakePushBuilder['upsert']>((row, options) => {
       calls.upsert = [row, options]
       return Promise.resolve({ error: null })
     }),
   }
-  const from = vi.fn<(table: string) => FakeUpdateBuilder | FakeInsertBuilder>((table) => {
-    calls.tables = [...((calls.tables as string[] | undefined) ?? []), table]
-    return 'upsert' in calls || 'update' in calls ? insertBuilder : updateBuilder
+  const from = vi.fn<(table: string) => FakePushBuilder>(() => builder)
+  return { client: { from } as unknown as SupabaseClient, from, calls }
+}
+
+function remoteAnimalTable(client: SupabaseClient) {
+  return createRemoteSyncTable({
+    table: 'animal',
+    columns: 'id, name',
+    loadClient: () => Promise.resolve(client),
   })
-  return { client: { from } as unknown as SupabaseClient, calls }
 }
 
 describe('createRemoteSyncTable', () => {
-  it("ne charge le client Supabase qu'au premier appel", () => {
-    const loadClient = vi.fn<() => Promise<SupabaseClient>>()
+  it('charge le client Supabase à chaque opération, jamais à la construction', async () => {
+    const { client } = fakePullClient({ data: [], error: null })
+    const loadClient = vi.fn<() => Promise<SupabaseClient>>(() => Promise.resolve(client))
 
-    createRemoteSyncTable({ table: 'animal', columns: 'id, name', loadClient })
-
+    const remote = createRemoteSyncTable({ table: 'animal', columns: 'id, name', loadClient })
     expect(loadClient).not.toHaveBeenCalled()
+
+    await remote.pullPage(USER_ID, '2026-01-01T00:00:00.000Z', 50)
+    expect(loadClient).toHaveBeenCalledOnce()
   })
 
-  it("pushRow écrit la ligne sous l'utilisateur, gardée par updated_at, sur la clé (user_id, id)", async () => {
-    const { client, calls } = fakePushClient([])
-    const remote = createRemoteSyncTable({
-      table: 'animal',
-      columns: 'id, name',
-      loadClient: () => Promise.resolve(client),
-    })
+  it("pushRow met à jour la ligne de l'utilisateur, gardée par updated_at, sans la recréer", async () => {
+    const { client, from, calls } = fakePushClient([{ id: ROW.id }])
 
-    await remote.pushRow(USER_ID, ROW)
+    await remoteAnimalTable(client).pushRow(USER_ID, ROW)
 
-    expect(calls.tables).toEqual(['animal', 'animal'])
+    expect(from.mock.calls).toEqual([['animal']])
+    expect(calls.update).toEqual({ name: ROW.name, updated_at: ROW.updated_at })
     expect(calls.match).toEqual({ user_id: USER_ID, id: ROW.id })
     expect(calls.lt).toEqual(['updated_at', ROW.updated_at])
+    expect(calls.upsert).toBeUndefined()
+  })
+
+  it("pushRow crée la ligne sur la clé (user_id, id) quand la mise à jour n'a rien touché", async () => {
+    const { client, from, calls } = fakePushClient([])
+
+    await remoteAnimalTable(client).pushRow(USER_ID, ROW)
+
+    expect(from.mock.calls).toEqual([['animal'], ['animal']])
+    expect(calls.update).toEqual({ name: ROW.name, updated_at: ROW.updated_at })
     expect(calls.upsert).toEqual([
       { ...ROW, user_id: USER_ID },
       { onConflict: 'user_id,id', ignoreDuplicates: true },
