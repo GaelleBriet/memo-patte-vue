@@ -120,9 +120,13 @@ function inheritedKeys(previous: PeriodTimeline, period: TreatmentPeriodInput): 
   ])
 }
 
-// G25 : les heures restées en arrière suivent tout changement de réglage, sauf une reprise.
-function keepsArrival(previous: TreatmentPeriodInput): boolean {
-  return previous.stoppedOn === null
+// G25 : les heures restées en arrière suivent un changement de réglage à fréquence égale ; fréquence
+// changée, seulement quand la période part du jour d'arrivée lui-même (décision du 2026-10-10).
+function keepsArrival(previous: TreatmentPeriodInput, period: TreatmentPeriodInput): boolean {
+  if (previous.stoppedOn !== null) return false
+  const { value, unit } = previous.frequency
+  const sameFrequency = value === period.frequency.value && unit === period.frequency.unit
+  return sameFrequency || period.firstDueOn === period.startsOn
 }
 
 // G25 : les heures qu'un report seul a laissées derrière lui au premier jour de la période ; heures
@@ -149,7 +153,7 @@ function changedCoverage(
   period: TreatmentPeriodInput,
   covered: Set<string>,
 ): Set<string> {
-  if (previous === undefined || !keepsArrival(previous.period)) return covered
+  if (previous === undefined || !keepsArrival(previous.period, period)) return covered
   return new Set([...covered, ...stayedOnFirstDay(previous, period, covered)])
 }
 
@@ -158,7 +162,7 @@ export function carriedMoveIds(plans: PeriodTimeline[]): Set<string> {
   return new Set(
     plans.slice(1).flatMap((next, index) => {
       const previous = plans[index]!
-      if (!keepsArrival(previous.period)) return []
+      if (!keepsArrival(previous.period, next.period)) return []
       const kept = movesInto(previous, next.period.firstDueOn).filter(
         (move) => stayedKeys(previous, move).length > 0,
       )
