@@ -103,12 +103,12 @@ const creation =
         targetAnimal,
       })
     : null
-const isChooseDaysOpen = creation?.isChooseDaysOpen ?? ref(false)
+const edition = mode === 'edit' ? useTreatmentEditionForm({ values, history, today }) : null
 const resumption =
   mode === 'resume' ? useTreatmentResumptionForm({ values, history, today, endsOnTouched }) : null
-const edition = mode === 'edit' ? useTreatmentEditionForm({ values, history, today }) : null
-const isPastDuesOpen = edition?.isPastDuesOpen ?? ref(false)
 const form = creation ?? edition ?? resumption
+const isChooseDaysOpen = creation?.isChooseDaysOpen ?? ref(false)
+const isPastDuesOpen = edition?.isPastDuesOpen ?? ref(false)
 
 const duplicateTimeError = computed(() =>
   hasDuplicateTime.value ? DUPLICATE_TIME_ERROR_KEY : undefined,
@@ -123,15 +123,14 @@ const suggestsExact = computed(
 const reminderHelp = computed(() => reminderHelpText(t, values.value.times))
 const errors = computed(() => form?.errors.value ?? {})
 const errorParams = computed(() => form?.errorParams.value ?? {})
+const pastDoses = computed(() => creation?.pastDoses.value ?? null)
+const pastDosesAnswer = computed(() => creation?.pastDosesAnswer.value ?? null)
+const pastDosesAnswered = computed(() => creation?.pastDosesAnswered.value ?? null)
 const nextDose = computed(() => edition?.nextDose.value ?? null)
 const nextDoseShift = computed(() => edition?.nextDoseShift.value ?? null)
 const pastDues = computed(() => edition?.pastDues.value ?? null)
 const hasSettings = computed(() => edition?.hasSettings.value ?? true)
-
-const pastDoses = computed(() => creation?.pastDoses.value ?? null)
-const pastDosesAnswer = computed(() => creation?.pastDosesAnswer.value ?? null)
-const pastDosesAnswered = computed(() => creation?.pastDosesAnswered.value ?? null)
-
+const previous = computed(() => resumption?.previous.value ?? null)
 const isReady = computed(
   () => mode === 'create' || (history.value !== null && !notFound.value && !loadFailed.value),
 )
@@ -171,7 +170,6 @@ const unitOptions = computed(() =>
     label: t(`treatments.form.frequency.unit.${unit}`, unitCount.value),
   })),
 )
-const previous = computed(() => resumption?.previous.value ?? null)
 const nextDoseHelp = computed(() => nextDoseHelpText(t, nextDose.value?.help ?? null, today.value))
 const resumeInfo = computed(() => resumeInfoText(t, previous.value, today.value))
 const endsOnHelp = computed(() =>
