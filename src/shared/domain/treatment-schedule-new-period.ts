@@ -57,9 +57,18 @@ function partialOrigin(plan: PeriodTimeline, day: string): string | undefined {
 
 // G25 : une journée sans plus rien à donner, dont des heures sont parties ou restées en arrière d'un
 // report seul, est réglée : le nouveau réglage n'y ajoute rien (#711).
-function isSettledDay(open: PeriodTimeline, day: string): boolean {
+function isSettledDay(open: PeriodTimeline, frequency: Frequency, day: string): boolean {
   if (pendingDues(open, { from: day, to: day }).length > 0) return false
-  return open.removals.has(day) || partialOrigin(open, day) !== undefined
+  if (partialOrigin(open, day) !== undefined) return true
+  if (!open.removals.has(day)) return false
+  // Fréquence changée, seulement quand les doses parties de ce jour sont déjà données.
+  const arrivals = open.steps
+    .filter(({ kind, dose }) => kind === 'move' && dose.dueOn === day)
+    .map(({ dose }) => dose.nextDueDate)
+  return (
+    sameFrequency(open, frequency) ||
+    arrivals.every((on) => pendingDues(open, { from: on, to: on }).length === 0)
+  )
 }
 
 function keepsSettings(state: State, frequency: Frequency, times: readonly string[]): boolean {
@@ -198,7 +207,7 @@ export function newPeriod(state: State, frequency: Frequency, times: readonly st
   const { open } = state
   const dueToday = state.currentDoses.some((due) => due.dueOn === today)
   const kept = open !== null && keepsSettings(state, frequency, times)
-  const settled = open !== null && !kept && isSettledDay(open, startsOn)
+  const settled = open !== null && !kept && isSettledDay(open, frequency, startsOn)
   const fromStart = !settled && ((noted > 0 && noted < times.length) || (noted === 0 && dueToday))
   const scheduled = kept ? scheduledDay(state) : undefined
   if (kept) {
