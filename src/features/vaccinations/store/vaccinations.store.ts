@@ -13,6 +13,7 @@ import {
   type VaccinationRemindersService,
 } from '../service/vaccination-reminders.service'
 import { createVaccinationRemovalService } from '../service/vaccination-removal.service'
+import { createVaccinationSaveService } from '../service/vaccination-save.service'
 import type {
   Vaccination,
   VaccinationInput,
@@ -99,6 +100,13 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
     write,
   } = useAnimalScopedList(requireRepository, (repository, id) => repository.listByAnimal(id))
 
+  function saveOn(repository: VaccinationsRepository) {
+    return createVaccinationSaveService({
+      vaccinations: repository,
+      reminders: remindersProvider(),
+    })
+  }
+
   function removalOn(repository: VaccinationsRepository) {
     return createVaccinationRemovalService({
       vaccinations: repository,
@@ -136,11 +144,7 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
 
     async create(input: VaccinationInput): Promise<Vaccination> {
       const created = await write(
-        async (repository) => {
-          const vaccination = await repository.create(input)
-          await remindersProvider().reschedule(vaccination.id)
-          return vaccination
-        },
+        (repository) => saveOn(repository).create(input),
         (vaccination) => vaccination.animalId,
       )
       recordUsageSignal('entry')
@@ -152,11 +156,7 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
 
     async update(id: string, input: VaccinationUpdateInput): Promise<Vaccination> {
       return write(
-        async (repository) => {
-          const updated = await repository.update(id, input)
-          await remindersProvider().reschedule(id)
-          return updated
-        },
+        (repository) => saveOn(repository).update(id, input),
         (updated) => updated.animalId,
       )
     },
