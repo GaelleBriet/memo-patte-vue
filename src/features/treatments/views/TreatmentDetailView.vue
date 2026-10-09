@@ -12,17 +12,10 @@ import TreatmentOtherDateSheet from './TreatmentOtherDateSheet.vue'
 import TreatmentStopDialog from './TreatmentStopDialog.vue'
 import TreatmentUnloggedPrompt from './TreatmentUnloggedPrompt.vue'
 import { useTreatmentDetail } from '../composables/use-treatment-detail'
+import { useTreatmentDoseFlow } from '../composables/use-treatment-dose-flow'
 import { useTreatmentGestures } from '../composables/use-treatment-gestures'
 import { detailActions, doseCard, lessPreciseReminder } from '../logic/treatment-card'
-import { choiceGestures, chooseDaysSubtitle, type DayChoice } from '../logic/treatment-choose-days'
-import type { DoseAction } from '../logic/treatment-dose-writes'
-import {
-  dateChangeOf,
-  doseActionTexts,
-  hasSeveralTimes,
-  lineAction,
-  type DateChange,
-} from '../logic/treatment-gestures'
+import { dateChangeOf, lineAction, type DateChange } from '../logic/treatment-gestures'
 import {
   treatmentDeleteTexts,
   treatmentHistory,
@@ -30,14 +23,7 @@ import {
   type DoseRow,
 } from '../logic/treatment-history'
 import { treatmentStopTexts } from '../logic/treatment-sheet'
-import {
-  dateChangeBox,
-  doneGesture,
-  restoredSuiteFor,
-  type DateChangeBox,
-} from '../logic/treatment-shift-box'
-import { stopPrompt } from '../logic/treatment-stop'
-import { promptChoice, unloggedBanner, type PromptActionId } from '../logic/treatment-unlogged'
+import { dateChangeBox, doneGesture, type DateChangeBox } from '../logic/treatment-shift-box'
 import { useExactReminders } from '@/core/notifications/use-exact-reminders'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
@@ -66,15 +52,29 @@ const gestures = useTreatmentGestures(() => {
   refreshToday()
   void reload()
 })
+const {
+  animal,
+  named,
+  unlogged,
+  stopping,
+  choosing,
+  chosen,
+  chooseDaysSubtitleText,
+  isChooseDaysOpen,
+  apply,
+  note,
+  stop,
+  onUnloggedAction,
+  onStopAction,
+  confirmChosenDays,
+} = useTreatmentDoseFlow({ treatment, schedule, today }, gestures, { stopFailure: 'toast' })
 const exactReminders = useExactReminders()
 
 const isExplainerOpen = ref(false)
-const choosing = ref<'log' | 'stop'>('log')
 
 const isOtherDateOpen = ref(false)
 const isDoneConfirmOpen = ref(false)
 const confirming = ref<Due | null>(null)
-const isChooseDaysOpen = ref(false)
 const isDatePickerOpen = ref(false)
 const isStopDialogOpen = ref(false)
 const isDeleteDialogOpen = ref(false)
@@ -82,11 +82,6 @@ const changing = ref<{ row: DoseRow; change: DateChange; box: DateChangeBox | nu
 
 const doseCardRef = useTemplateRef<InstanceType<typeof TreatmentDoseCard>>('doseCardRef')
 
-const animal = computed(() => (treatment.value ? animals.byId(treatment.value.animalId) : null))
-const named = computed(() => ({
-  name: treatment.value?.name ?? '',
-  animal: animal.value?.name ?? '',
-}))
 const subtitle = computed(() =>
   treatment.value
     ? t('treatments.detail.subtitle', {
@@ -107,22 +102,6 @@ const lessPrecise = computed(() =>
   treatment.value && schedule.value
     ? lessPreciseReminder(t, treatment.value, schedule.value, exactReminders.status.value)
     : null,
-)
-const unlogged = computed(() =>
-  animals.hasLoaded && treatment.value && schedule.value
-    ? unloggedBanner(t, treatment.value, schedule.value, today.value, {
-        followed: (animal.value?.unfollowedOn ?? null) === null,
-      })
-    : null,
-)
-const stopping = computed(() =>
-  treatment.value && schedule.value
-    ? stopPrompt(t, treatment.value, schedule.value, today.value)
-    : null,
-)
-const chosen = computed(() => (choosing.value === 'stop' ? stopping.value : unlogged.value))
-const chooseDaysSubtitleText = computed(() =>
-  chooseDaysSubtitle(named.value.name, named.value.animal, chosen.value?.when ?? null),
 )
 const history = computed(() =>
   treatment.value && schedule.value
@@ -156,26 +135,6 @@ watch(
   },
 )
 
-function apply(action: DoseAction, line: Due | null, periodId: string): Promise<boolean> {
-  if (!treatment.value) return Promise.resolve(false)
-  const texts = doseActionTexts(
-    t,
-    {
-      ...named.value,
-      today: today.value,
-      severalTimes: hasSeveralTimes(treatment.value, periodId),
-    },
-    action,
-    line,
-    restoredSuiteFor(treatment.value, action, today.value),
-  )
-  return gestures.applyDose(treatment.value, action, texts)
-}
-
-function note(gesture: DoseGesture): Promise<boolean> {
-  return apply({ kind: 'note', gesture }, null, gesture.due.periodId)
-}
-
 function done(due: Due): void {
   refreshToday()
   if (!schedule.value) return
@@ -192,45 +151,6 @@ async function noteConfirmed(gesture: DoseGesture): Promise<void> {
 
 async function noteOtherDate(gesture: DoseGesture): Promise<void> {
   if (await note(gesture)) isOtherDateOpen.value = false
-}
-
-function log(choice: DayChoice): Promise<'done' | 'stale' | 'failed'> {
-  if (!treatment.value) return Promise.resolve('failed')
-  const action: DoseAction = { kind: 'log', gestures: choiceGestures(choice) }
-  const texts = doseActionTexts(
-    t,
-    { ...named.value, today: today.value, severalTimes: false },
-    action,
-    null,
-  )
-  return gestures.logDoses(treatment.value, action, texts)
-}
-
-function logThenStop(choice: DayChoice): Promise<'done' | 'stale' | 'failed'> {
-  if (!treatment.value) return Promise.resolve('failed')
-  return gestures.stopLogging(treatment.value, choiceGestures(choice))
-}
-
-function chooseDays(purpose: 'log' | 'stop'): void {
-  choosing.value = purpose
-  isChooseDaysOpen.value = true
-}
-
-function onUnloggedAction(action: PromptActionId): void {
-  if (!unlogged.value) return
-  if (action === 'choose-days') chooseDays('log')
-  else void log(promptChoice(action, unlogged.value.dues))
-}
-
-function onStopAction(action: PromptActionId): void {
-  if (!stopping.value) return
-  if (action === 'choose-days') chooseDays('stop')
-  else void logThenStop(promptChoice(action, stopping.value.dues))
-}
-
-async function logChosenDays(choice: DayChoice): Promise<void> {
-  const result = await (choosing.value === 'stop' ? logThenStop(choice) : log(choice))
-  if (result !== 'failed') isChooseDaysOpen.value = false
 }
 
 function onLineAction(row: DoseRow, choice: DoseLineAction, bounds: MoveBounds | null): void {
@@ -260,10 +180,6 @@ function changeDate(date: string, shiftsFollowing: boolean): void {
   if (!changing.value) return
   const { row, change } = changing.value
   void apply(change.action(date, shiftsFollowing), row.dose, row.dose.periodId)
-}
-
-function stop(): void {
-  if (treatment.value) void gestures.stop(treatment.value, t('treatments.sheet.errors.stop'))
 }
 
 function backToCarnet(): void {
@@ -405,7 +321,7 @@ onMounted(() => {
       :when="chosen?.when ?? ''"
       :stopping="choosing === 'stop'"
       :busy="gestures.isBusy.value"
-      @confirm="logChosenDays"
+      @confirm="confirmChosenDays"
     />
 
     <TreatmentChangeDateSheet

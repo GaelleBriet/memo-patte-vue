@@ -3,9 +3,10 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
 import { currentDeviceId } from '@/core/device/device-identity'
-import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
+import type { SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
-import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
+import { createRemoteSyncTable } from '@/core/sync/repository/remote-sync-table.repository'
+import { syncField } from '@/core/sync/service/syncable-table'
 import type { VaccinationInjection } from '../schema/vaccination-injection.schema'
 import type { Stamped } from '@/shared/domain/carnet-data'
 
@@ -318,32 +319,7 @@ export function createVaccinationInjectionsRepository(
       return (rows[0] as SyncRow | undefined) ?? null
     },
 
-    async pushRow(userId: string, row: SyncRow): Promise<void> {
-      const supabase = await loadClient()
-      await guardedUpsert(supabase, 'vaccination_injection', ['user_id', 'id'], {
-        ...row,
-        user_id: userId,
-      })
-    },
-
-    async pullPage(userId: string, since: string, limit: number): Promise<SyncPullPage> {
-      const supabase = await loadClient()
-      const { data, error } = await supabase
-        .from('vaccination_injection')
-        .select(`${COLUMNS}, server_updated_at`)
-        .eq('user_id', userId)
-        .gte('server_updated_at', since)
-        .order('server_updated_at', { ascending: true })
-        .limit(limit)
-      if (error) throw error
-
-      const rows = (data ?? []) as Array<InjectionRow & { server_updated_at: string }>
-      const cursor = rows.length > 0 ? (rows.at(-1)?.server_updated_at ?? null) : null
-      return {
-        rows: rows.map(({ server_updated_at: _serverUpdatedAt, ...columns }) => columns as SyncRow),
-        cursor,
-      }
-    },
+    ...createRemoteSyncTable({ table: 'vaccination_injection', columns: COLUMNS, loadClient }),
 
     applyRemoteRowStatement(row: SyncRow): SqlStatement {
       return {
