@@ -886,18 +886,18 @@
 }
 
 @media (min-width: 1024px) {
-  .js .tour {
+  .tour.is-live {
     grid-template-columns: minmax(0, 1fr) 320px;
     column-gap: 96px;
     row-gap: 0;
     margin-top: 0;
   }
 
-  .js .tour-step {
+  .is-live .tour-step {
     display: contents;
   }
 
-  .js .tour-text {
+  .is-live .tour-text {
     grid-column: 1;
     grid-row: var(--row);
     display: flex;
@@ -906,7 +906,7 @@
     min-height: 64vh;
   }
 
-  .js .tour .phone {
+  .is-live .phone {
     grid-column: 2;
     grid-row: 1 / span var(--steps);
     position: sticky;
@@ -918,12 +918,12 @@
     pointer-events: none;
   }
 
-  .js .tour-step.is-active .phone {
+  .is-live .tour-step.is-active .phone {
     opacity: 1;
     pointer-events: auto;
   }
 
-  .js .tour-step.is-active .feature-icon {
+  .is-live .tour-step.is-active .feature-icon {
     background: var(--annotation);
     color: var(--petrol);
   }

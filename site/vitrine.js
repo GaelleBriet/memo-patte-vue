@@ -10,10 +10,16 @@ function playDemo(phone) {
   const hint = phone.parentElement.querySelector('.demo-hint')
   if (!notification || !action || !toast) return
   if (hint) hint.hidden = false
+  action.hidden = false
+  toast.tabIndex = -1
+  let playing = false
 
   action.addEventListener('click', () => {
+    if (playing) return
+    playing = true
     notification.classList.add('is-done')
     toast.hidden = false
+    toast.focus({ preventScroll: true })
     setTimeout(() => {
       toast.hidden = true
       setTimeout(() => {
@@ -22,6 +28,7 @@ function playDemo(phone) {
         void notification.offsetWidth
         notification.style.animation = ''
         notification.classList.remove('is-done')
+        playing = false
       }, BACK_MS)
     }, TOAST_MS)
   })
@@ -33,7 +40,9 @@ function followTour(tour) {
   const activate = (step) => {
     for (const other of steps) other.classList.toggle('is-active', other === step)
   }
+  tour.classList.add('is-live')
   activate(steps[0])
+  for (const step of steps) step.addEventListener('focusin', () => activate(step))
   const observer = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
