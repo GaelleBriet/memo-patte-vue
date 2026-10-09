@@ -191,10 +191,11 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     changent sans changer la fréquence, le jour d'arrivée reste la prochaine dose et ne demande que
     les dernières heures du nouveau réglage, une par dose reportée, puis la grille reprend :
     heures passées à 9 h et 21 h le 3 ou le 4, le 4 à 21 h seule, puis le 5 à 9 h et 21 h (réponse
-    de Gaelle du 2026-10-09). Une heure restée en arrière parce qu'elle était notée revient si sa
-    prise est supprimée : à son jour tant que la période la garde, sinon au jour d'arrivée. Un
-    traitement de tous les jours ne reporte pas une heure seule au lendemain : elle passerait la
-    dose suivante (Q2 a, G19).
+    de Gaelle du 2026-10-09) ; la dose reportée déjà donnée, le 4 n'a plus rien à donner, et la
+    nouvelle période commence le 5. Une heure restée en arrière parce qu'elle était notée revient
+    si sa prise est supprimée : à son jour tant que la période la garde, sinon au jour d'arrivée.
+    Un traitement de tous les jours ne reporte pas une heure seule au lendemain : elle passerait
+    la dose suivante (Q2 a, G19).
 - **TR-10** Dose du moment : la dernière échéance jusqu'à aujourd'hui inclus, si elle est encore sans
   prise ; à défaut, la prochaine. Traitement à plusieurs heures : on raisonne par journée (spec Q23).
   Les heures encore sans prise de la dernière journée d'échéance arrivée sont ensemble la dose du
