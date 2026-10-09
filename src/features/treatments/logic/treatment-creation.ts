@@ -1,6 +1,6 @@
 import { treatmentScheduleOf } from './treatment-schedule-adapter'
 import { draftPeriod, DRAFT_ID, startsTooFarBack, tooOld, withRhythm } from './treatment-settings'
-import type { NewTreatmentPlan } from '../repository/treatments.repository'
+import type { NewTreatmentPlan } from '../schema/treatment-plan.schema'
 import {
   treatmentCalendarSchema,
   treatmentCreationSchema,

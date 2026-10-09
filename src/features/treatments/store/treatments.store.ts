@@ -23,7 +23,7 @@ import type {
 } from '../schema/treatment-form.schema'
 import type { Treatment } from '../schema/treatment.schema'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
-import type { DoseWrite } from '../repository/treatment-doses.repository'
+import type { DoseWrite } from '../schema/treatment-dose.schema'
 import type { DoseAction } from '../logic/treatment-dose-writes'
 import type { TreatmentsRepository as FullTreatmentsRepository } from '../repository/treatments.repository'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'

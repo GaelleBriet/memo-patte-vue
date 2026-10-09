@@ -17,7 +17,7 @@ import {
   type PlanIds,
 } from './treatment-settings'
 import { lostDays, pendingDaysAfter } from './treatment-shift-box'
-import type { PlannedDoseWrite, TreatmentPlanWrite } from '../repository/treatments.repository'
+import type { PlannedDoseWrite, TreatmentPlanWrite } from '../schema/treatment-plan.schema'
 import {
   treatmentEditionSchema,
   type PastDuesChoice,

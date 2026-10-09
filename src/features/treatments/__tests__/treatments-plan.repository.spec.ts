@@ -5,10 +5,9 @@ import { ZodError } from 'zod'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import {
   createTreatmentsRepository,
-  type NewTreatmentPlan,
-  type TreatmentPlanWrite,
   type TreatmentsRepository,
 } from '../repository/treatments.repository'
+import type { NewTreatmentPlan, TreatmentPlanWrite } from '../schema/treatment-plan.schema'
 import type { TreatmentPeriodSettings } from '../schema/treatment-period.schema'
 
 const MIETTE = '11111111-1111-4111-8111-111111111111'

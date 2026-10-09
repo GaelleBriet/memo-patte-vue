@@ -11,7 +11,7 @@ import {
   withRhythm,
   type PlanIds,
 } from './treatment-settings'
-import type { TreatmentPlanWrite } from '../repository/treatments.repository'
+import type { TreatmentPlanWrite } from '../schema/treatment-plan.schema'
 import {
   treatmentResumptionSchema,
   type TreatmentResumptionInput,

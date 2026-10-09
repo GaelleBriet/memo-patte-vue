@@ -13,10 +13,7 @@ import {
   currentPeriodIdSql,
 } from './treatment-periods.repository'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
-import type {
-  TreatmentPeriodRecord,
-  TreatmentPeriodSettings,
-} from '../schema/treatment-period.schema'
+import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import {
   treatmentNameSchema,
   treatmentTypeSchema,
@@ -25,8 +22,12 @@ import {
   type TreatmentType,
 } from '../schema/treatment.schema'
 import type { TreatmentRecord, TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type {
+  NewTreatmentPlan,
+  PlannedDoseWrite,
+  TreatmentPlanWrite,
+} from '../schema/treatment-plan.schema'
 import type { Stamped } from '@/shared/domain/carnet-data'
-import type { DoseFields } from '@/shared/domain/treatment-schedule'
 import { groupBy } from '@/shared/utils/group-by'
 
 interface TreatmentRow {
@@ -54,30 +55,6 @@ interface TreatmentWithPeriodRow extends Omit<
 export type TreatmentVersion = Pick<Treatment, 'id' | 'animalId' | 'updatedAt' | 'deletedAt'>
 export type StampedTreatmentRecord = Stamped<TreatmentRecord>
 export type RestoredTreatment = StampedTreatmentRecord
-
-/** Un traitement à créer avec sa première période, et les prises renseignées à la création (TR-3). */
-export type NewTreatmentPlan = Pick<Treatment, 'id' | 'animalId' | 'name' | 'type'> & {
-  settings: TreatmentPeriodSettings
-  doses?: { id: string; dose: DoseFields }[]
-}
-
-export type PlannedDoseWrite =
-  | { action: 'create'; id: string; dose: DoseFields }
-  | { action: 'rewrite'; id: string; dose: DoseFields }
-  | { action: 'delete'; id: string }
-
-/**
- * Ce que « Modifier » ou « Reprendre » écrit en une fois ; `null` : rien à écrire dans cette table.
- * `referenceOn` absent : le jour de référence suit la première échéance.
- */
-export type TreatmentPlanWrite = {
-  treatment: Pick<Treatment, 'name' | 'type'> | null
-  period:
-    | { action: 'correct'; settings: TreatmentPeriodSettings; referenceOn?: string }
-    | { action: 'open'; id: string; settings: TreatmentPeriodSettings; referenceOn?: string }
-    | null
-  doses: PlannedDoseWrite[]
-}
 
 const COLUMNS =
   'id, animal_id, name, type, created_at, updated_at, deleted_at, created_by_device, updated_by_device'

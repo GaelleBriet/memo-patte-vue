@@ -7,7 +7,12 @@ import type { SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { createRemoteSyncTable } from '@/core/sync/repository/remote-sync-table.repository'
 import { syncField } from '@/core/sync/service/syncable-table'
-import type { NewTreatmentDose, TreatmentDose } from '../schema/treatment-dose.schema'
+import type {
+  DoseOwner,
+  DoseWrite,
+  NewTreatmentDose,
+  TreatmentDose,
+} from '../schema/treatment-dose.schema'
 import type { FrequencyUnit } from '../schema/treatment.schema'
 import type { Stamped } from '@/shared/domain/carnet-data'
 import { familyOf, type DoseFields } from '@/shared/domain/treatment-schedule'
@@ -17,18 +22,6 @@ export type TreatmentDoseVersion = Pick<
   NewTreatmentDose,
   'id' | 'periodId' | 'treatmentId' | 'updatedAt' | 'deletedAt'
 >
-
-type DoseOwner = Pick<NewTreatmentDose, 'id' | 'treatmentId' | 'animalId'>
-
-/** `expectedUpdatedAt` : la ligne doit être restée telle qu'un geste l'a écrite (lot inverse). */
-type Unchanged = { expectedUpdatedAt?: string }
-
-/** Une écriture du moteur d'échéances ; `restore` ne sert qu'à défaire un `delete`. */
-export type DoseWrite =
-  | ({ action: 'create'; dose: DoseFields } & DoseOwner)
-  | ({ action: 'rewrite'; id: string; dose: DoseFields } & Unchanged)
-  | ({ action: 'delete'; id: string } & Unchanged)
-  | ({ action: 'restore'; id: string } & Unchanged)
 
 type Step = {
   guard?: SqlStatement

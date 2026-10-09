@@ -7,9 +7,9 @@ import {
   ConcurrentWriteError,
   DuplicateDueError,
   createTreatmentDosesRepository,
-  type DoseWrite,
   type TreatmentDosesRepository,
 } from '../repository/treatment-doses.repository'
+import type { DoseWrite } from '../schema/treatment-dose.schema'
 import { createTreatmentPeriodsRepository } from '../repository/treatment-periods.repository'
 import type { DoseFields } from '@/shared/domain/treatment-schedule'
 
