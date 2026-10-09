@@ -29,6 +29,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Les langues sont dans la clé : no-missing-keys juge un .vue d'après fr.json, que le cache ignore.
+      # no-unused-keys tourne toujours sans cache (`lint:i18n`).
+      - name: Cache ESLint
+        uses: actions/cache@v6
+        with:
+          path: node_modules/.cache/eslint
+          key: eslint-${{ hashFiles('pnpm-lock.yaml', 'eslint.config.ts', '.oxlintrc.json', 'tools/eslint/**', 'src/core/i18n/locales/**') }}-${{ github.sha }}
+          restore-keys: eslint-${{ hashFiles('pnpm-lock.yaml', 'eslint.config.ts', '.oxlintrc.json', 'tools/eslint/**', 'src/core/i18n/locales/**') }}-
+
       - name: Lint
         run: pnpm lint
 
