@@ -11,6 +11,7 @@ import {
   notesOf,
   orderPeriods,
   pendingDues,
+  coveredKeys,
   planPeriod,
 } from './treatment-schedule-timeline'
 import type {
@@ -43,18 +44,23 @@ function phaseOf(current: Due | undefined, today: string): TreatmentPhase {
 }
 
 // Une reprise après un arrêt (TR-30) garde sa première prise : seul un changement de réglage compte.
+function notesSinceLastStop(
+  earlier: TreatmentPeriodInput[],
+  doses: TreatmentDoseInput[],
+): TreatmentDoseInput[] {
+  const sinceLastStop = earlier.slice(
+    earlier.map((period) => period.stoppedOn !== null).lastIndexOf(true) + 1,
+  )
+  const changed = new Set(sinceLastStop.map(({ id }) => id))
+  return doses.filter((dose) => isNoteLine(dose) && changed.has(dose.periodId))
+}
+
 export function notedOn(
   day: string,
   earlier: TreatmentPeriodInput[],
   doses: TreatmentDoseInput[],
 ): number {
-  const sinceLastStop = earlier.slice(
-    earlier.map((period) => period.stoppedOn !== null).lastIndexOf(true) + 1,
-  )
-  const changed = new Set(sinceLastStop.map(({ id }) => id))
-  return doses.filter(
-    (dose) => isNoteLine(dose) && dose.dueOn === day && changed.has(dose.periodId),
-  ).length
+  return notesSinceLastStop(earlier, doses).filter((dose) => dose.dueOn === day).length
 }
 
 export function build(input: TreatmentScheduleInput): State {
@@ -67,7 +73,7 @@ export function build(input: TreatmentScheduleInput): State {
       period,
       closingDay(period, periods[index + 1]),
       doses.filter((dose) => dose.periodId === period.id),
-      notedOn(period.startsOn, periods.slice(0, index), doses),
+      coveredKeys(period, periods[index - 1], notesSinceLastStop(periods.slice(0, index), doses)),
     ),
   )
   const current = plans.at(-1)

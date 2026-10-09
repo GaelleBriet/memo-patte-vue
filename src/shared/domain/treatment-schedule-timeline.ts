@@ -121,13 +121,46 @@ export function hasFallen({ kind, dose }: Step): boolean {
   return kind === 'note' || (kind === 'move' && dose.nextDueDate > dose.dueOn)
 }
 
-// Q24 : les prises du jour du changement comptent pour les premières heures du nouveau réglage.
-function coveredKeys(period: TreatmentPeriodInput, notedThatDay: number): Set<string> {
-  if (period.firstDueOn !== period.startsOn) return new Set()
-  const times = period.times.length === 0 ? [null] : [...period.times].sort(compareText)
-  return new Set(
-    times.slice(0, notedThatDay).map((dueTime) => keyOf({ dueOn: period.startsOn, dueTime })),
+export function sameRhythm(
+  a: Pick<TreatmentPeriodInput, 'frequency' | 'times'>,
+  b: Pick<TreatmentPeriodInput, 'frequency' | 'times'>,
+): boolean {
+  return (
+    a.frequency.value === b.frequency.value &&
+    a.frequency.unit === b.frequency.unit &&
+    [...a.times].sort().join() === [...b.times].sort().join()
   )
+}
+
+// Q24, G4 : les prises du jour du changement couvrent les premières heures du nouveau réglage. G22 : au
+// même rythme, une prise d'une ancienne période couvre son heure, chaque journée de la nouvelle.
+export function coveredKeys(
+  period: TreatmentPeriodInput,
+  previous: TreatmentPeriodInput | undefined,
+  earlierNotes: readonly TreatmentDoseInput[],
+): Set<string> {
+  const keepsRhythm = previous !== undefined && sameRhythm(previous, period)
+  const times = period.times.length === 0 ? [null] : [...period.times].sort(compareText)
+  const days = keepsRhythm
+    ? uniqueDays(earlierNotes.filter(({ dueOn }) => dueOn >= period.startsOn))
+    : period.firstDueOn === period.startsOn
+      ? [period.startsOn]
+      : []
+  return new Set(
+    days.flatMap((day) => {
+      const ofDay = earlierNotes.filter(({ dueOn }) => dueOn === day)
+      const exact = keepsRhythm
+        ? times.filter((time) => ofDay.some(({ dueTime }) => dueTime === time))
+        : []
+      const earliest = times.filter((time) => !exact.includes(time))
+      const covered = [...exact, ...earliest.slice(0, ofDay.length - exact.length)]
+      return covered.map((dueTime) => keyOf({ dueOn: day, dueTime }))
+    }),
+  )
+}
+
+function uniqueDays(doses: readonly TreatmentDoseInput[]): string[] {
+  return [...new Set(doses.map(({ dueOn }) => dueOn))]
 }
 
 // G17 : une journée n'a qu'une ligne de chaque famille, la plus récente ; les autres sont sans effet.
@@ -181,7 +214,7 @@ export function planPeriod(
   period: TreatmentPeriodInput,
   closesOn: string | null,
   doses: TreatmentDoseInput[],
-  notedOnStart: number,
+  covered: Set<string>,
 ): PeriodTimeline {
   const notes = doses.filter(isNoteLine)
   const noteKeys = new Set(notes.map(keyOf))
@@ -215,7 +248,7 @@ export function planPeriod(
     removals: removalsOf(moves),
     noteKeys,
     noteDays,
-    covered: coveredKeys(period, notedOnStart),
+    covered,
     fallenKeys: steps
       .filter(hasFallen)
       .map(({ dose }) => keyOf(dose))
@@ -287,7 +320,8 @@ export function lastDueDay(plan: PeriodTimeline): string | null {
 
 export function nextDueAfter(plan: PeriodTimeline, due: Due): Due {
   const key = keyOf(due)
-  const isAfter = (other: Due) => keyOf(other) > key && !isRemoved(plan, other)
+  const isAfter = (other: Due) =>
+    keyOf(other) > key && !isRemoved(plan, other) && !plan.covered.has(keyOf(other))
   const bounded = plan.between.find(isAfter)
   const tail = sequenceDues(plan.anchors.at(-1)!.sequence, plan.period, due.dueOn)
   for (;;) {
