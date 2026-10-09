@@ -10,6 +10,7 @@ import {
   treatmentRemindersService,
   type TreatmentRemindersService,
 } from '../service/treatment-reminders.service'
+import { createTreatmentRemovalService } from '../service/treatment-removal.service'
 import {
   treatmentStopService,
   type StoppedTreatment,
@@ -102,6 +103,10 @@ export const useTreatmentsStore = defineStore('treatments', () => {
     repository.listWithHistoryByAnimal(id),
   )
 
+  function removalOn(repository: TreatmentsRepository) {
+    return createTreatmentRemovalService({ treatments: repository, reminders: remindersProvider() })
+  }
+
   return {
     /** Traitements de l'animal chargé, avec leurs périodes et leurs prises, dans l'ordre de saisie. */
     treatments,
@@ -161,21 +166,14 @@ export const useTreatmentsStore = defineStore('treatments', () => {
     /** Rend l'instant de la suppression, à passer à `undoRemove`. */
     async remove(id: string): Promise<string> {
       return write(
-        async (repository) => {
-          const deletedAt = await repository.remove(id)
-          await remindersProvider().reschedule(id)
-          return deletedAt
-        },
+        (repository) => removalOn(repository).remove(id),
         () => animalId.value,
       )
     },
 
     async undoRemove(id: string, deletedAt: string): Promise<void> {
       await write(
-        async (repository) => {
-          await repository.restore(id, deletedAt)
-          await remindersProvider().reschedule(id)
-        },
+        (repository) => removalOn(repository).restore(id, deletedAt),
         () => animalId.value,
       )
     },
