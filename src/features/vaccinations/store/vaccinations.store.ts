@@ -12,6 +12,7 @@ import {
   vaccinationRemindersService,
   type VaccinationRemindersService,
 } from '../service/vaccination-reminders.service'
+import { createVaccinationRemovalService } from '../service/vaccination-removal.service'
 import type {
   Vaccination,
   VaccinationInput,
@@ -98,6 +99,13 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
     write,
   } = useAnimalScopedList(requireRepository, (repository, id) => repository.listByAnimal(id))
 
+  function removalOn(repository: VaccinationsRepository) {
+    return createVaccinationRemovalService({
+      vaccinations: repository,
+      reminders: remindersProvider(),
+    })
+  }
+
   return {
     vaccinations,
     animalId,
@@ -156,21 +164,14 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
     /** Rend l'instant de la suppression, à passer à `undoRemove`. */
     async remove(id: string): Promise<string> {
       return write(
-        async (repository) => {
-          const deletedAt = await repository.remove(id)
-          await remindersProvider().reschedule(id)
-          return deletedAt
-        },
+        (repository) => removalOn(repository).remove(id),
         () => animalId.value,
       )
     },
 
     async undoRemove(id: string, deletedAt: string): Promise<void> {
       await write(
-        async (repository) => {
-          await repository.restore(id, deletedAt)
-          await remindersProvider().reschedule(id)
-        },
+        (repository) => removalOn(repository).restore(id, deletedAt),
         () => animalId.value,
       )
     },
