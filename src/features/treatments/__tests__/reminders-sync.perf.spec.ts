@@ -9,7 +9,7 @@ import type { TreatmentWithHistory } from '@/features/treatments/schema/treatmen
 import { createTreatmentRemindersService } from '@/features/treatments/service/treatment-reminders.service'
 import { createFakeNotifications } from '@/shared/__tests__/fake-notifications'
 import { MAX_SCHEDULED_REMINDERS } from '@/core/notifications/due-reminders-schedule'
-import { createRemindersSync } from '../reminders-sync'
+import { createRemindersSync } from '../service/reminders-sync.service'
 
 const NOW = new Date(2026, 8, 30, 12)
 const STAMP = '2024-10-01T08:00:00.000Z'

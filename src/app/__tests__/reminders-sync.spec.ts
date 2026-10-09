@@ -25,7 +25,8 @@ import {
 } from '@/core/notifications/due-reminders-schedule'
 import { MAX_REMINDERS_PER_CARE, type CarnetReminderSettings } from '@/shared/domain/reminder-plan'
 import { REMINDER_DONE_ACTION_TYPE, type Reminder } from '@/core/notifications'
-import { createRemindersSync, installRemindersSync } from '../reminders-sync'
+import { createRemindersSync } from '@/features/treatments/service/reminders-sync.service'
+import { installRemindersSync } from '../reminders-sync'
 
 const STAMP = '2026-09-01T09:00:00.000Z'
 const NOW = new Date(2026, 8, 15, 12)

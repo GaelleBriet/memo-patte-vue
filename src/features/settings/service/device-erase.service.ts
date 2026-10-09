@@ -1,4 +1,4 @@
-import { syncAllReminders } from '@/app/reminders-sync'
+import { syncAllReminders } from '@/features/treatments/service/reminders-sync.service'
 import { optOut } from '@/core/analytics'
 import { restartApp } from '@/core/app-lifecycle/restart-app'
 import { getDeviceRepository } from '@/core/device/device.repository'
