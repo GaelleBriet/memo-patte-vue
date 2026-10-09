@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
 
 import type { WeightEntry, WeightEntryInput, WeightEntryUpdateInput } from '../schema/weight.schema'
 import type { WeightRepository as FullWeightRepository } from '../repository/weight.repository'
 import { track } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
+import { useAnimalScopedList } from '@/shared/composables/use-animal-scoped-list'
 import { recordUsageSignal } from '@/shared/utils/usage-signals'
 
 // Le store ne dépend que de ce qu'il appelle : la cascade de suppression (#102) n'est pas son affaire.
@@ -22,17 +22,6 @@ export function provideWeightRepository(next: WeightRepositoryProvider | null): 
 }
 
 export const useWeightStore = defineStore('weight', () => {
-  /** Pesées de l'animal chargé, dans l'ordre chronologique croissant rendu par le repository. */
-  const entries = ref<WeightEntry[]>([])
-  /** Animal dont la liste est chargée, `null` tant qu'aucune n'a été demandée. */
-  const animalId = ref<string | null>(null)
-  /** Vrai pendant toute opération, chargement comme écriture. */
-  const isLoading = ref(false)
-  /** Distingue « pas encore chargé » de « aucune pesée ». */
-  const hasLoaded = ref(false)
-  /** Échec du dernier chargement : les écritures lèvent, elles ne passent pas par ici. */
-  const error = ref<Error | null>(null)
-
   function requireRepository(): Promise<WeightRepository> {
     if (!provider) {
       throw new Error('Repository des pesées absent : appelle provideWeightRepository().')
@@ -40,59 +29,24 @@ export const useWeightStore = defineStore('weight', () => {
     return Promise.resolve(provider())
   }
 
-  async function refresh(repository: WeightRepository, id: string): Promise<void> {
-    const list = await repository.listByAnimal(id)
-    // Un chargement lancé entre-temps pour un autre animal a priorité sur cette réponse.
-    if (animalId.value !== id) return
-    entries.value = list
-    hasLoaded.value = true
-    error.value = null
-  }
-
-  // Une écriture ne relit que la liste déjà affichée : celle d'un autre animal reste à charger.
-  async function write<T>(
-    operation: (repository: WeightRepository) => Promise<T>,
-    touchedAnimalId: (result: T) => string | null,
-  ): Promise<T> {
-    isLoading.value = true
-    try {
-      const repository = await requireRepository()
-      const result = await operation(repository)
-      const touched = touchedAnimalId(result)
-      if (touched !== null && touched === animalId.value) {
-        await refresh(repository, touched)
-      }
-      return result
-    } finally {
-      isLoading.value = false
-    }
-  }
+  const {
+    items: entries,
+    animalId,
+    isLoading,
+    hasLoaded,
+    error,
+    loadForAnimal,
+    write,
+  } = useAnimalScopedList(requireRepository, (repository, id) => repository.listByAnimal(id))
 
   return {
+    /** Pesées de l'animal chargé, dans l'ordre chronologique croissant rendu par le repository. */
     entries,
     animalId,
     isLoading,
     hasLoaded,
     error,
-
-    /**
-     * Ne lève pas : renvoie `false` et renseigne `error`. Renvoie aussi `true` quand la réponse
-     * est ignorée parce qu'un autre animal a été demandé entre-temps.
-     */
-    async loadForAnimal(id: string): Promise<boolean> {
-      isLoading.value = true
-      animalId.value = id
-      try {
-        await refresh(await requireRepository(), id)
-        return true
-      } catch (cause) {
-        if (animalId.value !== id) return false
-        error.value = cause instanceof Error ? cause : new Error(String(cause))
-        return false
-      } finally {
-        isLoading.value = false
-      }
-    },
+    loadForAnimal,
 
     async create(input: WeightEntryInput): Promise<WeightEntry> {
       const created = await write(
