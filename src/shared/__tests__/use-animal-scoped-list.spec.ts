@@ -10,7 +10,7 @@ const LUNA = 'luna'
 function fakeRepository(entries: Entry[] = []) {
   return {
     entries,
-    listByAnimal: vi.fn(async (animalId: string) =>
+    listByAnimal: vi.fn<(animalId: string) => Promise<Entry[]>>(async (animalId) =>
       entries.filter((entry) => entry.animalId === animalId),
     ),
   }
@@ -151,7 +151,7 @@ describe('useAnimalScopedList', () => {
   it('passe le repository à l’écriture et le résultat au choix de l’animal touché', async () => {
     const repository = fakeRepository()
     const list = listOn(repository)
-    const touched = vi.fn(() => null)
+    const touched = vi.fn<(result: string) => string | null>(() => null)
 
     await list.write(async (opened) => (opened === repository ? 'même' : 'autre'), touched)
 
