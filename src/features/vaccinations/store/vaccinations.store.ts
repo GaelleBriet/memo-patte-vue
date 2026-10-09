@@ -103,14 +103,14 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
   function saveOn(repository: VaccinationsRepository) {
     return createVaccinationSaveService({
       vaccinations: repository,
-      reminders: remindersProvider(),
+      reminders: () => remindersProvider(),
     })
   }
 
   function removalOn(repository: VaccinationsRepository) {
     return createVaccinationRemovalService({
       vaccinations: repository,
-      reminders: remindersProvider(),
+      reminders: () => remindersProvider(),
     })
   }
 

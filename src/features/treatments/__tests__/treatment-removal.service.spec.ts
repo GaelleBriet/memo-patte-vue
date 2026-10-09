@@ -17,7 +17,7 @@ function setup() {
   return {
     treatments,
     reminders,
-    service: createTreatmentRemovalService({ treatments, reminders }),
+    service: createTreatmentRemovalService({ treatments, reminders: () => reminders }),
   }
 }
 
@@ -62,5 +62,18 @@ describe('createTreatmentRemovalService', () => {
     await expect(service.restore('vermifuge', DELETED_AT)).rejects.toThrow('base verrouillée')
 
     expect(reminders.reschedule).not.toHaveBeenCalled()
+  })
+
+  it('ne cherche le service des rappels qu’après l’écriture, et laisse remonter son échec', async () => {
+    const { treatments } = setup()
+    const reminders = vi.fn<() => Pick<TreatmentRemindersService, 'reschedule'>>(() => {
+      expect(treatments.remove).toHaveBeenCalled()
+      throw new Error('rappels absents')
+    })
+    const service = createTreatmentRemovalService({ treatments, reminders })
+
+    await expect(service.remove('vermifuge')).rejects.toThrow('rappels absents')
+
+    expect(reminders).toHaveBeenCalledOnce()
   })
 })

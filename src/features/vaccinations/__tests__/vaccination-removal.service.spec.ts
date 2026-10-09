@@ -17,7 +17,7 @@ function setup() {
   return {
     vaccinations,
     reminders,
-    service: createVaccinationRemovalService({ vaccinations, reminders }),
+    service: createVaccinationRemovalService({ vaccinations, reminders: () => reminders }),
   }
 }
 
@@ -62,5 +62,18 @@ describe('createVaccinationRemovalService', () => {
     await expect(service.restore('rage', DELETED_AT)).rejects.toThrow('base verrouillée')
 
     expect(reminders.reschedule).not.toHaveBeenCalled()
+  })
+
+  it('ne cherche le service des rappels qu’après l’écriture, et laisse remonter son échec', async () => {
+    const { vaccinations } = setup()
+    const reminders = vi.fn<() => Pick<VaccinationRemindersService, 'reschedule'>>(() => {
+      expect(vaccinations.remove).toHaveBeenCalled()
+      throw new Error('rappels absents')
+    })
+    const service = createVaccinationRemovalService({ vaccinations, reminders })
+
+    await expect(service.remove('rage')).rejects.toThrow('rappels absents')
+
+    expect(reminders).toHaveBeenCalledOnce()
   })
 })

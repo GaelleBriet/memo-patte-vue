@@ -104,7 +104,10 @@ export const useTreatmentsStore = defineStore('treatments', () => {
   )
 
   function removalOn(repository: TreatmentsRepository) {
-    return createTreatmentRemovalService({ treatments: repository, reminders: remindersProvider() })
+    return createTreatmentRemovalService({
+      treatments: repository,
+      reminders: () => remindersProvider(),
+    })
   }
 
   return {

@@ -18,7 +18,7 @@ function setup() {
   return {
     vaccinations,
     reminders,
-    service: createVaccinationSaveService({ vaccinations, reminders }),
+    service: createVaccinationSaveService({ vaccinations, reminders: () => reminders }),
   }
 }
 
@@ -62,5 +62,20 @@ describe('createVaccinationSaveService', () => {
     )
 
     expect(reminders.reschedule).not.toHaveBeenCalled()
+  })
+
+  it('ne cherche le service des rappels qu’après l’écriture, et laisse remonter son échec', async () => {
+    const { vaccinations } = setup()
+    const reminders = vi.fn<() => Pick<VaccinationRemindersService, 'reschedule'>>(() => {
+      expect(vaccinations.update).toHaveBeenCalled()
+      throw new Error('rappels absents')
+    })
+    const service = createVaccinationSaveService({ vaccinations, reminders })
+
+    await expect(service.update('rage', { name: 'Rage', dueDate: null })).rejects.toThrow(
+      'rappels absents',
+    )
+
+    expect(reminders).toHaveBeenCalledOnce()
   })
 })
