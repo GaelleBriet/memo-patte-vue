@@ -15,6 +15,7 @@ import {
   type DoseFields,
   type LineChange,
 } from '@/shared/domain/treatment-schedule'
+import i18n from '@/core/i18n'
 
 const MILO = '11111111-1111-4111-8111-111111111111'
 const AT = '2026-09-01T08:00:00.000Z'
@@ -108,7 +109,7 @@ function csvNextDueDate(data: ExportData, today: string): string {
 /** Textes du PDF mis bout à bout : une cellule étroite passe à la ligne. */
 function pdfText(data: ExportData, today: string): string {
   const content = buildCarnetPdfContent(data, MILO, today)!
-  return readPdfPages(renderCarnetPdf([{ content, photoDataUrl: null }], '0.1.24'))
+  return readPdfPages(renderCarnetPdf([{ content, photoDataUrl: null }], '0.1.24', i18n.global.t))
     .flatMap((page) => page.texts.map(({ text }) => text))
     .join(' ')
 }

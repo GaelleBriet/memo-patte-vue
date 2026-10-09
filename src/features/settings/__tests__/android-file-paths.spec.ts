@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
 
-import { EXPORTS_DIR, SAVED_EXPORTS_DIR } from '../logic/export-delivery'
+import { EXPORTS_DIR, SAVED_EXPORTS_DIR } from '../service/export-delivery.service'
 
 const filePaths = readFileSync('android/app/src/main/res/xml/file_paths.xml', 'utf8')
 

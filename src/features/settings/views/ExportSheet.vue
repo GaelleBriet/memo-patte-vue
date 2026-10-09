@@ -4,9 +4,9 @@ import { useI18n } from 'vue-i18n'
 
 import ChoiceCards from './ChoiceCards.vue'
 import ExportActions from './ExportActions.vue'
-import { isSaved, type DeliveryMode } from '../logic/export-delivery'
+import { isSaved, type DeliveryMode } from '../service/export-delivery.service'
 import type { ExportFormat } from '../logic/export-format'
-import { openAppSettings } from '../logic/export-storage-access'
+import { openAppSettings } from '../service/export-storage-access.service'
 import { showSavedExportToast } from '../logic/saved-export-toast'
 import { useDataExport } from '../composables/use-data-export'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
@@ -55,12 +55,16 @@ async function deliver(mode: DeliveryMode): Promise<void> {
   if (isSaved(outcome)) {
     open.value = false
     if (format === 'json') {
-      showSavedExportToast(null, { message: t('settings.export.saved.json') })
+      showSavedExportToast(null, { message: t('settings.export.saved.json') }, t)
     } else {
-      showSavedExportToast(outcome.file, {
-        message: t('settings.export.saved.csv'),
-        openAriaLabel: t('settings.export.openLabel.csv'),
-      })
+      showSavedExportToast(
+        outcome.file,
+        {
+          message: t('settings.export.saved.csv'),
+          openAriaLabel: t('settings.export.openLabel.csv'),
+        },
+        t,
+      )
     }
   } else if (outcome === 'shared') {
     open.value = false

@@ -4,7 +4,7 @@ Contrat entre l'export (Paramètres → « Exporter mes données ») et l'import
 [Import](#import--importer-un-export-mémopatte)).
 Le code de référence est `src/features/settings/logic/export-format.ts`, couvert par
 `src/features/settings/__tests__/export-format.spec.ts` ; la remise du fichier vit dans
-`src/features/settings/logic/export-delivery.ts` et `export-storage-access.ts`.
+`src/features/settings/service/export-delivery.service.ts` et `export-storage-access.service.ts`.
 
 ## Principes
 
@@ -470,7 +470,7 @@ JSON, non traduits (traduction du CSV : #416).
 
 Le PDF est gratuit. Il lit les mêmes lignes que l'export (`collect`) et contient soit tous les
 animaux suivis, chacun à partir d'une nouvelle page, soit un seul animal (#356)
-(`src/features/settings/logic/pdf-content.ts`, rendu par `render-carnet-pdf.ts`). Les échéances et
+(`src/features/settings/logic/pdf-content.ts`, textes par `carnet-pdf-text.ts`, mise en page par `render-carnet-pdf.ts`). Les échéances et
 l'historique des traitements viennent du moteur d'échéances.
 
 - **Identité** : espèce, race, date de naissance et âge (règle AN-8). Si la date est approximative :

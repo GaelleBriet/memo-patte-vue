@@ -4,7 +4,7 @@ import {
   type PdfExportRequest,
   type PdfExportService,
 } from '../service/pdf-export.service'
-import type { DeliveryMode } from '../logic/export-delivery'
+import type { DeliveryMode } from '../service/export-delivery.service'
 import { useExportRun, type ExportRunInterruption, type SaveAccessPort } from './use-export-run'
 
 export type PdfExportRunOutcome = PdfExportOutcome | ExportRunInterruption

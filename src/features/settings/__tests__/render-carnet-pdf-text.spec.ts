@@ -12,6 +12,7 @@ import { EXPORT_FIXTURE, LUNA_ID } from './export-fixture'
 import { PHOTO_JPEG } from './pdf-fixture'
 import { readPdfPages, textBounds, type PdfPage } from './pdf-reader'
 import { plain } from '@/shared/__tests__/plain'
+import i18n from '@/core/i18n'
 
 const ZONE = { left: 18, right: 192, top: 10, bottom: 287 }
 const SOIXANTE_EMOJI = '🐶'.repeat(60)
@@ -57,7 +58,7 @@ function carnet(animal: Partial<CarnetPdfContent['animal']>, rows: string[]): Ca
 }
 
 function pages(content: CarnetPdfContent, photo: string | null = null): PdfPage[] {
-  return readPdfPages(renderCarnetPdf([{ content, photoDataUrl: photo }], '0.1.24'))
+  return readPdfPages(renderCarnetPdf([{ content, photoDataUrl: photo }], '0.1.24', i18n.global.t))
 }
 
 function textes(content: CarnetPdfContent): string[] {

@@ -1,5 +1,9 @@
 import { dataExportService, type DataExportService } from '../service/data-export.service'
-import { isSaved, type DeliveryMode, type DeliveryOutcome } from '../logic/export-delivery'
+import {
+  isSaved,
+  type DeliveryMode,
+  type DeliveryOutcome,
+} from '../service/export-delivery.service'
 import type { ExportFormat } from '../logic/export-format'
 import { useExportRun, type ExportRunInterruption, type SaveAccessPort } from './use-export-run'
 import { recordUsageSignal } from '@/core/usage/usage-signals'

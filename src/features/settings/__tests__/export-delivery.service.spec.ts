@@ -3,7 +3,7 @@ import { Directory, Encoding, Filesystem, type FileInfo } from '@capacitor/files
 import { Share } from '@capacitor/share'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 
-import { clearExports, deliverExportFile } from '../logic/export-delivery'
+import { clearExports, deliverExportFile } from '../service/export-delivery.service'
 
 vi.mock('@capacitor/core', () => ({
   Capacitor: { isNativePlatform: vi.fn<() => boolean>(() => true) },

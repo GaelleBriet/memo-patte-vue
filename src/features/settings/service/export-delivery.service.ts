@@ -2,7 +2,7 @@ import { Capacitor } from '@capacitor/core'
 import { Directory, Encoding, Filesystem } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
 
-import type { ExportFile } from './export-format'
+import type { ExportFile } from '../logic/export-format'
 
 export type DeliveryMode = 'save' | 'share'
 

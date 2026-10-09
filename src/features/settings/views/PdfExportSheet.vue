@@ -3,8 +3,8 @@ import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import ExportActions from './ExportActions.vue'
-import { isSaved, type DeliveryMode } from '../logic/export-delivery'
-import { openAppSettings } from '../logic/export-storage-access'
+import { isSaved, type DeliveryMode } from '../service/export-delivery.service'
+import { openAppSettings } from '../service/export-storage-access.service'
 import { pdfExportFileName } from '../logic/pdf-content'
 import { pdfExportChoice, type PdfExportAnimal } from '../logic/pdf-export-animals'
 import { showSavedExportToast } from '../logic/saved-export-toast'
@@ -133,10 +133,14 @@ async function deliver(mode: DeliveryMode): Promise<void> {
   )
   if (isSaved(outcome)) {
     open.value = false
-    showSavedExportToast(outcome.file, {
-      message: t('settings.pdf.saved'),
-      openAriaLabel: t('settings.pdf.openLabel'),
-    })
+    showSavedExportToast(
+      outcome.file,
+      {
+        message: t('settings.pdf.saved'),
+        openAriaLabel: t('settings.pdf.openLabel'),
+      },
+      t,
+    )
   } else if (outcome === 'shared') {
     open.value = false
     showToast(t('settings.pdf.success'))

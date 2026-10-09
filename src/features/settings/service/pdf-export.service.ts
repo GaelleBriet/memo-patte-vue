@@ -7,7 +7,7 @@ import {
   deliverExportFile,
   type DeliveryMode,
   type DeliveryOutcome,
-} from '../logic/export-delivery'
+} from './export-delivery.service'
 import { buildCarnetPdfContent, type CarnetPdfContent } from '../logic/pdf-content'
 import { renderCarnetPdf } from '../logic/render-carnet-pdf'
 import type { ExportData } from '@/shared/domain/carnet-data'
@@ -67,7 +67,7 @@ export type PdfExportService = ReturnType<typeof createPdfExportService>
 
 export const pdfExportService = createPdfExportService({
   collect: dataExportService.collect,
-  render: renderCarnetPdf,
+  render: (parts, appVersion) => renderCarnetPdf(parts, appVersion, i18n.global.t),
   loadPhoto: (fileName) => photoBase64DataUrl(fileName).catch(() => null),
   deliver: (file, mode) => deliverExportFile(file, mode, i18n.global.t('settings.pdf.shareTitle')),
   appVersion: import.meta.env.VITE_APP_VERSION,
