@@ -4056,6 +4056,50 @@ describe('une heure reportée seule ne déplace que cette heure (G25, #720)', ()
     ])
   })
 
+  it('reports seuls en chaîne, posologie changée avant eux : le dernier jour d’arrivée garde sa seule heure (graine 280000892)', () => {
+    const three = ['08:00', '14:00', '20:00']
+    const weekly = { value: 1, unit: 'week' } as const
+    const line = (dueOn: string, dueTime: string, status: 'given' | 'postponed', next: string) =>
+      stored({
+        periodId: 'p1',
+        dueOn,
+        dueTime,
+        givenOn: status === 'given' ? dueOn : null,
+        status,
+        nextDueDate: next,
+      })
+    const book: Carnet = {
+      periods: [period({ firstDueOn: '2026-10-01', frequency: weekly, times: three })],
+      doses: [
+        line('2026-10-01', '14:00', 'given', '2026-10-01'),
+        line('2026-10-01', '20:00', 'given', '2026-10-01'),
+        line('2026-10-01', '08:00', 'postponed', '2026-10-03'),
+        line('2026-10-03', '08:00', 'postponed', '2026-10-05'),
+      ],
+    }
+    const expected = [due('2026-10-05', '08:00'), due('2026-10-08', '08:00')]
+    expect(scheduleOf(book, '2026-10-01').upcoming(2)).toEqual(expected)
+
+    const dates = scheduleOf(book, '2026-10-01').newPeriod(weekly, three)
+    const changed: Carnet = {
+      ...book,
+      periods: [
+        ...book.periods,
+        period({
+          id: 'p2',
+          createdAt: '2026-10-02T09:00:00.000Z',
+          ...dates,
+          frequency: weekly,
+          times: three,
+        }),
+      ],
+    }
+
+    expect(scheduleOf(changed, '2026-10-01').upcoming(2)).toEqual(
+      expected.map(({ dueOn, dueTime }) => due(dueOn, dueTime, 'p2')),
+    )
+  })
+
   it('avec décalage, la journée d’arrivée a toutes ses heures (Q21) : le 4 à 8 h et 20 h, puis le 6', () => {
     const book = movedOn(morningOf3, '2026-10-03', due('2026-10-03', '20:00'), '2026-10-04', true)
 
