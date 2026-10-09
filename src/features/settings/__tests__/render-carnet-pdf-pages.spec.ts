@@ -169,7 +169,7 @@ function pages(content: CarnetPdfContent): PdfPage[] {
   rendus.set(content, parReglage)
   const doc =
     parReglage.get(reglage) ??
-    readPdfPages(renderCarnetPdf([{ content, photoDataUrl: null }], '0.1.24'))
+    readPdfPages(renderCarnetPdf([{ content, photoDataUrl: null }], '0.1.24', i18n.global.t))
   parReglage.set(reglage, doc)
   return doc
 }
@@ -458,7 +458,9 @@ describe('renderCarnetPdf — noms longs', () => {
 
   it('coupe à la ligne un nom d’animal de 200 caractères, à côté de la photo', () => {
     const content = { ...COURT, animal: { ...COURT.animal, name: NOM_ANIMAL_200 } }
-    const [page] = readPdfPages(renderCarnetPdf([{ content, photoDataUrl: PHOTO_JPEG }], '0.1.24'))
+    const [page] = readPdfPages(
+      renderCarnetPdf([{ content, photoDataUrl: PHOTO_JPEG }], '0.1.24', i18n.global.t),
+    )
     const [photo] = page!.images
     const lignes = page!.texts.filter((text) => text.bold && text.sizePt === 15)
     const identite = page!.texts.find((text) => text.text.startsWith('Chat · '))!
@@ -479,7 +481,9 @@ describe('renderCarnetPdf — noms longs', () => {
   ])('coupe à la ligne une identité à race de 120 caractères, $cas', ({ photo }) => {
     const identiteCourte = pages(COURT)[0]!.texts.find((text) => text.text.startsWith('Chat · '))!
     const content = { ...COURT, animal: { ...COURT.animal, breed: RACE_120 } }
-    const [page] = readPdfPages(renderCarnetPdf([{ content, photoDataUrl: photo }], '0.1.24'))
+    const [page] = readPdfPages(
+      renderCarnetPdf([{ content, photoDataUrl: photo }], '0.1.24', i18n.global.t),
+    )
     const lignes = page!.texts.filter((text) => text.sizePt === 11 && !text.bold)
     const titre = page!.texts.find((text) => text.text === 'Vaccins')!
     const limite = page!.images[0]?.left ?? ZONE.right
@@ -568,6 +572,7 @@ describe('renderCarnetPdf — plusieurs animaux', () => {
           { content: MILO, photoDataUrl: PHOTO_JPEG },
         ],
         '0.1.24',
+        i18n.global.t,
       ),
     )
   const enTete = (page: PdfPage) =>
@@ -604,6 +609,7 @@ describe('renderCarnetPdf — plusieurs animaux', () => {
           { content: LONG, photoDataUrl: null },
         ],
         '0.1.24',
+        i18n.global.t,
       ),
     )
 

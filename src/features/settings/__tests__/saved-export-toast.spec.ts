@@ -3,7 +3,7 @@ import { flushPromises } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { showSavedExportToast } from '../logic/saved-export-toast'
-import { applyLocale } from '@/core/i18n'
+import i18n, { applyLocale } from '@/core/i18n'
 import {
   dismissToast,
   runToastAction,
@@ -37,7 +37,7 @@ afterEach(() => {
 
 describe('showSavedExportToast', () => {
   it('dit où est le fichier et propose « Ouvrir », nommé pour le lecteur d’écran, pendant 4 s', () => {
-    showSavedExportToast(PDF, { message: SAVED, openAriaLabel: 'Ouvrir le PDF' })
+    showSavedExportToast(PDF, { message: SAVED, openAriaLabel: 'Ouvrir le PDF' }, i18n.global.t)
 
     expect(toastMessage.value).toBe(SAVED)
     expect(toastTone.value).toBe('success')
@@ -51,23 +51,27 @@ describe('showSavedExportToast', () => {
   it('suit la langue de l’app', () => {
     applyLocale('en')
 
-    showSavedExportToast(PDF, {
-      message: 'PDF saved to Documents › MémoPatte',
-      openAriaLabel: 'Open the PDF',
-    })
+    showSavedExportToast(
+      PDF,
+      {
+        message: 'PDF saved to Documents › MémoPatte',
+        openAriaLabel: 'Open the PDF',
+      },
+      i18n.global.t,
+    )
 
     expect(toastAction.value?.label).toBe('Open')
   })
 
   it('ne propose rien à ouvrir sans fichier sur le téléphone (téléchargement du navigateur)', () => {
-    showSavedExportToast(null, { message: SAVED, openAriaLabel: 'Ouvrir le PDF' })
+    showSavedExportToast(null, { message: SAVED, openAriaLabel: 'Ouvrir le PDF' }, i18n.global.t)
 
     expect(toastMessage.value).toBe(SAVED)
     expect(toastAction.value).toBeNull()
   })
 
   it('« Ouvrir » confie le fichier à l’app par défaut, avec son URI et son type', async () => {
-    showSavedExportToast(PDF, { message: SAVED, openAriaLabel: 'Ouvrir le PDF' })
+    showSavedExportToast(PDF, { message: SAVED, openAriaLabel: 'Ouvrir le PDF' }, i18n.global.t)
 
     runToastAction()
     await flushPromises()
@@ -84,7 +88,7 @@ describe('showSavedExportToast', () => {
     async (reason) => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
       vi.mocked(FileOpener.openFile).mockRejectedValue(new Error(reason))
-      showSavedExportToast(PDF, { message: SAVED, openAriaLabel: 'Ouvrir le PDF' })
+      showSavedExportToast(PDF, { message: SAVED, openAriaLabel: 'Ouvrir le PDF' }, i18n.global.t)
 
       runToastAction()
       await flushPromises()

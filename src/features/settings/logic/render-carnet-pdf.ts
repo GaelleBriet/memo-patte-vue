@@ -10,7 +10,6 @@ import {
   formatLongDate,
   formatNumericDate,
 } from '@/shared/utils/format'
-import i18n from '@/core/i18n'
 import { drawWeightChart, weightChartHeight } from './pdf-weight-chart'
 import { pdfText } from './pdf-text'
 import type {
@@ -97,8 +96,11 @@ export type CarnetPdfPart = { content: CarnetPdfContent; photoDataUrl: string | 
 
 export type CarnetPdfParts = readonly [CarnetPdfPart, ...CarnetPdfPart[]]
 
-export function renderCarnetPdf(parts: CarnetPdfParts, appVersion: string): Uint8Array {
-  const t = i18n.global.t
+export function renderCarnetPdf(
+  parts: CarnetPdfParts,
+  appVersion: string,
+  t: Translate,
+): Uint8Array {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
 
   parts.forEach((part, index) => {
@@ -539,7 +541,7 @@ function renderWeightSection(
   t: Translate,
 ): void {
   const entries = content.weightEntries
-  const chartHeight = weightChartHeight(doc, entries, CONTENT_WIDTH_MM)
+  const chartHeight = weightChartHeight(doc, entries, CONTENT_WIDTH_MM, t)
   writeSectionTitle(doc, cursor, t('settings.pdf.weight.title'), chartHeight ?? ROW_DESCENT_MM)
   if (entries.length === 0) {
     writeEmptyLine(doc, cursor, t('settings.pdf.weight.empty'))
@@ -548,7 +550,7 @@ function renderWeightSection(
 
   if (chartHeight !== null) {
     doc.saveGraphicsState()
-    drawWeightChart(doc, entries, { x: MARGIN_MM, y: cursor.y, width: CONTENT_WIDTH_MM })
+    drawWeightChart(doc, entries, { x: MARGIN_MM, y: cursor.y, width: CONTENT_WIDTH_MM }, t)
     doc.restoreGraphicsState()
     cursor.y += chartHeight + CHART_GAP_MM
   }

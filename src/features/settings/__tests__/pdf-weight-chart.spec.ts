@@ -14,7 +14,7 @@ import {
   type PdfPath,
   type PdfText,
 } from './pdf-reader'
-import { applyLocale } from '@/core/i18n'
+import i18n, { applyLocale } from '@/core/i18n'
 import { contrastRatio, scssColorTokens } from '@/core/theme/__tests__/contrast'
 import vuetify from '@/core/theme/vuetify'
 import { CHART_FONT_PX, type WeightChartEntry } from '@/shared/domain/weight-chart'
@@ -81,7 +81,7 @@ const MAX_PRES_DE_LA_PASTILLE = pesees(
 
 function dessine(entries: readonly WeightChartEntry[], frame = FRAME) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
-  const height = drawWeightChart(doc, entries, frame)
+  const height = drawWeightChart(doc, entries, frame, i18n.global.t)
   return { height, ...readPdf(new Uint8Array(doc.output('arraybuffer'))) }
 }
 
@@ -152,9 +152,15 @@ describe('weightChartHeight', () => {
   it('annonce avant de dessiner la hauteur de la courbe, et rien sous deux pesées', () => {
     const doc = new jsPDF({ unit: 'mm', format: 'a4' })
 
-    expect(weightChartHeight(doc, LUNA_1_AN, FRAME.width)).toBe(dessine(LUNA_1_AN).height)
-    expect(weightChartHeight(doc, CHIOT, 80)).toBe(dessine(CHIOT, { ...FRAME, width: 80 }).height)
-    expect(weightChartHeight(doc, pesees(['2026-03-04', 23.6]), FRAME.width)).toBeNull()
+    expect(weightChartHeight(doc, LUNA_1_AN, FRAME.width, i18n.global.t)).toBe(
+      dessine(LUNA_1_AN).height,
+    )
+    expect(weightChartHeight(doc, CHIOT, 80, i18n.global.t)).toBe(
+      dessine(CHIOT, { ...FRAME, width: 80 }).height,
+    )
+    expect(
+      weightChartHeight(doc, pesees(['2026-03-04', 23.6]), FRAME.width, i18n.global.t),
+    ).toBeNull()
   })
 })
 
@@ -163,7 +169,7 @@ describe('drawWeightChart — état du document', () => {
     const vierge = new jsPDF({ unit: 'mm', format: 'a4' })
     vierge.addPage()
     const doc = new jsPDF({ unit: 'mm', format: 'a4' })
-    drawWeightChart(doc, LUNA_1_AN, FRAME)
+    drawWeightChart(doc, LUNA_1_AN, FRAME, i18n.global.t)
     doc.addPage()
     const debut = (pdf: jsPDF) =>
       strokeState(readPdfStreams(new Uint8Array(pdf.output('arraybuffer')))[1]!)

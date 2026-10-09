@@ -1,6 +1,6 @@
 import type { jsPDF } from 'jspdf'
 
-import i18n from '@/core/i18n'
+import type { Translate } from '@/core/i18n/translate'
 import {
   buildCarnetWeightChart,
   CHART_FONT_PX,
@@ -54,8 +54,12 @@ function trace(doc: jsPDF, [start, ...rest]: readonly Corner[]): jsPDF {
   return doc
 }
 
-function layoutChart(doc: jsPDF, entries: readonly WeightChartEntry[], width: number) {
-  const t = i18n.global.t
+function layoutChart(
+  doc: jsPDF,
+  entries: readonly WeightChartEntry[],
+  width: number,
+  t: Translate,
+) {
   const labels: CarnetChartLabels = {
     max: (weight) => t('weight.chart.max', { weight }),
     min: (weight) => t('weight.chart.min', { weight }),
@@ -73,8 +77,9 @@ export function weightChartHeight(
   doc: jsPDF,
   entries: readonly WeightChartEntry[],
   width: number,
+  t: Translate,
 ): number | null {
-  const chart = layoutChart(doc, entries, width)
+  const chart = layoutChart(doc, entries, width, t)
   return chart ? chart.height * UNIT_MM : null
 }
 
@@ -83,8 +88,9 @@ export function drawWeightChart(
   doc: jsPDF,
   entries: readonly WeightChartEntry[],
   frame: ChartFrame,
+  t: Translate,
 ): number | null {
-  const chart = layoutChart(doc, entries, frame.width)
+  const chart = layoutChart(doc, entries, frame.width, t)
   if (!chart) return null
   const lineWidthBefore = doc.getLineWidth()
   const drawColorBefore = doc.getDrawColor()

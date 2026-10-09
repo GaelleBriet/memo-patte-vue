@@ -133,10 +133,14 @@ async function deliver(mode: DeliveryMode): Promise<void> {
   )
   if (isSaved(outcome)) {
     open.value = false
-    showSavedExportToast(outcome.file, {
-      message: t('settings.pdf.saved'),
-      openAriaLabel: t('settings.pdf.openLabel'),
-    })
+    showSavedExportToast(
+      outcome.file,
+      {
+        message: t('settings.pdf.saved'),
+        openAriaLabel: t('settings.pdf.openLabel'),
+      },
+      t,
+    )
   } else if (outcome === 'shared') {
     open.value = false
     showToast(t('settings.pdf.success'))

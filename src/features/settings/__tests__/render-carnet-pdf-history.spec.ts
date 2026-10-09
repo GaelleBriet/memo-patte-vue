@@ -33,9 +33,9 @@ function carnet(fields: Partial<CarnetPdfContent>): CarnetPdfContent {
 }
 
 function textes(content: CarnetPdfContent): string[] {
-  return readPdfPages(renderCarnetPdf([{ content, photoDataUrl: null }], '0.1.62')).flatMap(
-    (page) => page.texts.map((text) => plain(text.text)),
-  )
+  return readPdfPages(
+    renderCarnetPdf([{ content, photoDataUrl: null }], '0.1.62', i18n.global.t),
+  ).flatMap((page) => page.texts.map((text) => plain(text.text)))
 }
 
 function dose(on: string, time: string | null = null) {
@@ -355,7 +355,9 @@ describe('renderCarnetPdf — historique d’un traitement', () => {
     const content = carnet({
       treatments: [traitement({ periods: [periode({ lines: lignes })] })],
     })
-    const pages = readPdfPages(renderCarnetPdf([{ content, photoDataUrl: null }], '0.1.62'))
+    const pages = readPdfPages(
+      renderCarnetPdf([{ content, photoDataUrl: null }], '0.1.62', i18n.global.t),
+    )
     const ecrites = pages.flatMap((page) =>
       page.texts.filter((text) => text.text.startsWith('Non renseigné')),
     )
