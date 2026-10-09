@@ -10,6 +10,7 @@ import UnfollowedAnimalsLink from '@/shared/components/UnfollowedAnimalsLink.vue
 import { hasDepartureDetails } from '../logic/animal-departure'
 import { carnetSubtitle } from '../logic/carnet-animal'
 import { carnetRemindersStat } from '../logic/carnet-stats'
+import { useAnimalChips } from '@/shared/composables/use-animal-chips'
 import { useOpenUnfollowed } from '@/shared/composables/use-open-unfollowed'
 import { useAnimalsStore } from '../store/animals.store'
 import { useAnimalFollowGestures } from '../composables/use-animal-follow-gestures'
@@ -25,7 +26,7 @@ import VaccinationsSection, {
   type VaccinationsSummary,
 } from '@/features/vaccinations/views/VaccinationsSection.vue'
 import WeightSection, { type WeightSectionSummary } from '@/features/weight/views/WeightSection.vue'
-import AnimalChipSelector, { type AnimalChipItem } from '@/shared/components/AnimalChipSelector.vue'
+import AnimalChipSelector from '@/shared/components/AnimalChipSelector.vue'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import { animalAvatarGradientCss } from '@/shared/domain/animal-avatar-gradient'
 import { weightDeltaText } from '@/shared/domain/weight-delta'
@@ -42,6 +43,7 @@ const animals = useAnimalsStore()
 const { today } = useForegroundRefresh(() => void animals.load())
 
 const photoUrl = usePhotoUrls(() => animals.animals.map((item) => item.photoPath))
+const chips = useAnimalChips(() => animals.followedAnimals)
 const gestures = useAnimalFollowGestures()
 
 const { entry: unfollowed, open: openUnfollowed } = useOpenUnfollowed(
@@ -72,13 +74,6 @@ const isEmpty = computed(
   () => animals.hasLoaded && animals.followedAnimals.length === 0 && animals.error === null,
 )
 
-const chips = computed<AnimalChipItem[]>(() =>
-  animals.followedAnimals.map((item) => ({
-    id: item.id,
-    name: item.name,
-    photoUrl: photoUrl(item.photoPath),
-  })),
-)
 const headerPhotoUrl = computed(() => photoUrl(animal.value?.photoPath ?? null))
 const photoLabel = computed(() => {
   const name = animal.value?.name ?? ''
