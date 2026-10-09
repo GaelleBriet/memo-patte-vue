@@ -1110,9 +1110,31 @@ class Simulation {
     this.checkProtected(
       before,
       this.schedule(),
-      (due) => due.periodId !== line.periodId || due.dueOn <= line.dueOn,
+      // G25 : son report, devenu seul, n'apporte plus à son jour d'arrivée que les heures parties.
+      (due) =>
+        (due.periodId !== line.periodId || due.dueOn <= line.dueOn) &&
+        due.dueOn !== report?.nextDueDate,
       gesture,
     )
+  }
+
+  // G25 : les heures du jour d'arrivée d'un report seul qu'il n'a pas emportées n'y sont pas à donner.
+  private stayedHours(
+    before: TreatmentSchedule,
+    period: TreatmentPeriodInput,
+    day: string,
+  ): number {
+    const { doses } = this.book
+    const lone = doses.some(
+      (move) =>
+        move.status === 'postponed' &&
+        move.nextDueDate === day &&
+        !doses.some((shift) => shift.status === 'shift' && idOf(shift) === idOf(move)),
+    )
+    if (!lone) return 0
+    const pending = pendingOf(before).filter((due) => due.dueOn === day).length
+    const noted = before.doses.filter((dose) => isNote(dose) && dose.dueOn === day).length
+    return Math.max(0, Math.max(1, period.times.length) - pending - noted)
   }
 
   private stop(before: TreatmentSchedule): void {
@@ -1408,8 +1430,9 @@ class Simulation {
       changed &&
       noted >= period.times.length &&
       ofToday.some((dose) => refixesSuite(dose, before.doses))
+    const stayed = changed ? 0 : this.stayedHours(before, period, today)
     const expected =
-      period.firstDueOn === today ? (uncovered ? hours : Math.max(0, hours - noted)) : 0
+      period.firstDueOn === today ? (uncovered ? hours : Math.max(0, hours - noted - stayed)) : 0
     if (left !== expected) {
       this.fail(`${gesture} : ${left} dose(s) à donner aujourd’hui, ${expected} attendue(s)`)
     }
@@ -1418,8 +1441,10 @@ class Simulation {
       this.fail(`${gesture} : les heures restantes du jour sont perdues`)
     }
     const dueToday = before.currentDoses.some((due) => due.dueOn === today)
-    if (noted === 0 && dueToday && left !== hours) {
-      this.fail(`${gesture} : rien noté pour aujourd’hui, ${left} dose(s) sur ${hours} restent`)
+    if (noted === 0 && dueToday && left !== hours - stayed) {
+      this.fail(
+        `${gesture} : rien noté pour aujourd’hui, ${left} dose(s) sur ${hours - stayed} restent`,
+      )
     }
     this.checkDayStartedAhead(before, after, period, stopped, gesture)
   }
@@ -1460,7 +1485,8 @@ class Simulation {
     const left = pendingOf(after).filter(
       (due) => due.periodId === period.id && due.dueOn === day,
     ).length
-    const expected = Math.max(0, hours - noted)
+    const stayed = kept ? this.stayedHours(before, period, day) : 0
+    const expected = Math.max(0, hours - noted - stayed)
     if (left !== expected) {
       this.fail(`${gesture} : ${left} dose(s) à donner le ${day}, ${expected} attendue(s)`)
     }
