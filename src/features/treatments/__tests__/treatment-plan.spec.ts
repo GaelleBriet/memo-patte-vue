@@ -1678,6 +1678,29 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
     },
   )
 
+  it('tous les 2 jours à 8 h et 20 h, 8 h du 3 donnée le 2, heure passée à 9 h seule : prochaine dose le 5 (G24)', () => {
+    const matinEtSoir = period({
+      startsOn: '2026-10-01',
+      firstDueOn: '2026-10-01',
+      frequency: { value: 2, unit: 'day' },
+      times: ['08:00', '20:00'],
+    })
+    const prise = (id: string, dueOn: string, dueTime: string, givenOn: string) =>
+      dose({ id, dueOn, dueTime, givenOn, nextDueDate: '2026-10-03' })
+    const history = treatment(
+      [matinEtSoir],
+      [
+        prise('a', '2026-10-01', '08:00', '2026-10-01'),
+        prise('b', '2026-10-01', '20:00', '2026-10-01'),
+        prise('c', '2026-10-03', '08:00', '2026-10-02'),
+      ],
+    )
+
+    expect(
+      editionDraft(history, saisie(history, { times: ['09:00'] }), '2026-10-02').nextDose,
+    ).toMatchObject({ proposedOn: '2026-10-05', help: { kind: 'calculated', on: '2026-10-05' } })
+  })
+
   it.each(['2026-10-02', '2026-10-04'])(
     'tous les 2 jours, dose du 3 reportée seule au 4, posologie changée le %s : prochaine dose le 4, puis 5 et 7 (G23, #692)',
     (today) => {

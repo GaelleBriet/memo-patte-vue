@@ -146,6 +146,7 @@ export function coveredKeys(
   period: TreatmentPeriodInput,
   previous: TreatmentPeriodInput | undefined,
   earlierNotes: readonly TreatmentDoseInput[],
+  refixing: ReadonlySet<TreatmentDoseInput>,
 ): Set<string> {
   const keepsRhythm = previous !== undefined && sameRhythm(previous, period)
   const keepsTimes = previous !== undefined && sameTimes(previous, period)
@@ -155,7 +156,9 @@ export function coveredKeys(
     : [period.firstDueOn]
   return new Set(
     days.flatMap((day) => {
-      const ofDay = earlierNotes.filter(({ dueOn }) => dueOn === day)
+      const ofDay = earlierNotes.filter(
+        (note) => note.dueOn === day && (keepsRhythm || !refixing.has(note)),
+      )
       const exact = keepsTimes
         ? times.filter((time) => ofDay.some(({ dueTime }) => dueTime === time))
         : []
@@ -163,6 +166,35 @@ export function coveredKeys(
       const covered = [...exact, ...earliest.slice(0, ofDay.length - exact.length)]
       return covered.map((dueTime) => keyOf({ dueOn: day, dueTime }))
     }),
+  )
+}
+
+// Q8 : une prise qui a décalé la suite compte à sa date réelle : la ligne de décalage de son
+// échéance, ou de celle de la dose qu'elle a avancée (G18), est ancrée à cette date.
+export function refixingNotes(doses: readonly TreatmentDoseInput[]): Set<TreatmentDoseInput> {
+  const anchoredOn = (note: TreatmentDoseInput, dueOn: string) =>
+    doses.some(
+      (dose) =>
+        isShiftLine(dose) &&
+        dose.periodId === note.periodId &&
+        dose.dueOn === dueOn &&
+        (dueOn !== note.dueOn || dose.dueTime === note.dueTime) &&
+        dose.nextDueDate === note.givenOn,
+    )
+  const origins = (note: TreatmentDoseInput) =>
+    doses
+      .filter(
+        (dose) =>
+          familyOf(dose) === 'move' &&
+          dose.periodId === note.periodId &&
+          dose.nextDueDate === note.dueOn,
+      )
+      .map(({ dueOn }) => dueOn)
+  return new Set(
+    doses
+      .filter(isNoteLine)
+      .filter((note) => note.givenOn !== null && note.givenOn !== note.dueOn)
+      .filter((note) => [note.dueOn, ...origins(note)].some((day) => anchoredOn(note, day))),
   )
 }
 

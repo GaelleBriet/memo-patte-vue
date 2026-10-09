@@ -15,7 +15,7 @@ import {
   shiftOn,
 } from './treatment-schedule-timeline'
 import { dueOf, uniqueSorted } from './treatment-schedule-dues'
-import { notedOn } from './treatment-schedule-state'
+import { notedOn, startedAheadOn } from './treatment-schedule-state'
 import type {
   Due,
   Frequency,
@@ -163,12 +163,19 @@ export function newPeriod(state: State, frequency: Frequency, times: readonly st
     if (start !== undefined) return { startsOn, ...start }
   }
   if (fromStart) return { startsOn, firstDueOn: startsOn, referenceOn: startsOn }
-  // G24 : une journée à venir entamée en avance garde ses prises ; le nouveau réglage part d'elle.
+  // G24 : une journée à venir entamée en avance, et pas entièrement couverte, garde ses prises ; le
+  // nouveau réglage part d'elle.
   const next = state.currentDoses[0]?.dueOn
-  if (!kept && next !== undefined && next > startsOn && notedOn(next, periods, doses) > 0) {
-    return { startsOn, firstDueOn: next, referenceOn: next }
+  const started = next === undefined ? 0 : startedAheadOn(next, periods, doses)
+  if (!kept && next !== undefined && next > startsOn && started > 0) {
+    if (started < Math.max(1, times.length))
+      return { startsOn, firstDueOn: next, referenceOn: next }
   }
   const proposed = scheduled ?? lastReference(state, frequency) ?? startsOn
-  const firstDueOn = proposed > startsOn ? proposed : startsOn
+  let firstDueOn = proposed > startsOn ? proposed : startsOn
+  // G1, G24 : une journée déjà couverte par des prises en avance ne reste pas la première échéance.
+  while (!kept && startedAheadOn(firstDueOn, periods, doses) >= Math.max(1, times.length)) {
+    firstDueOn = shiftDate(firstDueOn, frequency, 1)
+  }
   return { startsOn, firstDueOn, referenceOn: firstDueOn }
 }

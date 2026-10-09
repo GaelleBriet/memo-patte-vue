@@ -12,6 +12,7 @@ import {
   orderPeriods,
   pendingDues,
   coveredKeys,
+  refixingNotes,
   planPeriod,
 } from './treatment-schedule-timeline'
 import type {
@@ -63,17 +64,35 @@ export function notedOn(
   return notesSinceLastStop(earlier, doses).filter((dose) => dose.dueOn === day).length
 }
 
+// G24 : les prises d'une journée à venir qui n'ont pas décalé la suite (Q8).
+export function startedAheadOn(
+  day: string,
+  earlier: TreatmentPeriodInput[],
+  doses: TreatmentDoseInput[],
+): number {
+  const refixing = refixingNotes(doses)
+  return notesSinceLastStop(earlier, doses).filter(
+    (dose) => dose.dueOn === day && !refixing.has(dose),
+  ).length
+}
+
 export function build(input: TreatmentScheduleInput): State {
   const { today } = input
   const periods = orderPeriods(input.periods)
   // Une prise en plus ne change jamais le calendrier : le moteur ne la lit pas.
   const doses = mergeDoses(input.doses).filter((dose) => !isExtraLine(dose))
+  const refixing = refixingNotes(doses)
   const plans = periods.map((period, index) =>
     planPeriod(
       period,
       closingDay(period, periods[index + 1]),
       doses.filter((dose) => dose.periodId === period.id),
-      coveredKeys(period, periods[index - 1], notesSinceLastStop(periods.slice(0, index), doses)),
+      coveredKeys(
+        period,
+        periods[index - 1],
+        notesSinceLastStop(periods.slice(0, index), doses),
+        refixing,
+      ),
     ),
   )
   const current = plans.at(-1)

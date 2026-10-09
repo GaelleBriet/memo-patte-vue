@@ -187,6 +187,28 @@ function isKnownLimit(before: string, after: string, frequency: Frequency): bool
   return boundedDay || irregularStart
 }
 
+// Q8 : une ligne de décalage, sur son échéance ou sur celle de la dose qu'elle a avancée (G18),
+// ancrée à la date réelle de la prise.
+function refixesSuite(note: TreatmentDoseInput, doses: readonly TreatmentDoseInput[]): boolean {
+  if (note.givenOn === null || note.givenOn === note.dueOn) return false
+  const origins = doses
+    .filter(
+      (dose) =>
+        dose.status === 'postponed' &&
+        dose.periodId === note.periodId &&
+        dose.nextDueDate === note.dueOn,
+    )
+    .map(({ dueOn }) => dueOn)
+  return doses.some(
+    (dose) =>
+      dose.status === 'shift' &&
+      dose.periodId === note.periodId &&
+      dose.nextDueDate === note.givenOn &&
+      ((dose.dueOn === note.dueOn && dose.dueTime === note.dueTime) ||
+        origins.includes(dose.dueOn)),
+  )
+}
+
 function rhythmKey({ frequency, times }: TreatmentPeriodInput): string {
   return JSON.stringify([frequency, [...times].sort()])
 }
@@ -1226,6 +1248,7 @@ class Simulation {
     this.checkNewSetting(before, after, period, gesture)
     this.checkLoneArrivalKept(before, after, period, gesture)
     this.checkCalendarKept(before, after, period, gesture)
+    this.checkFirstDueKept(after, period, gesture)
   }
 
   // G23 : au même rythme, la prochaine dose arrivée d'un report seul garde sa date, la suite son rythme.
@@ -1311,6 +1334,22 @@ class Simulation {
     this.fail(`${gesture} : la suite a changé (${slots(before)} → ${slots(after)})`)
   }
 
+  // TR-7, Q8, G24 : rythme changé, la première échéance proposée garde une dose à donner ; aucune
+  // prise d'une ancienne période ne la fait passer plus loin.
+  private checkFirstDueKept(
+    after: TreatmentSchedule,
+    period: TreatmentPeriodInput,
+    gesture: string,
+  ): void {
+    const previous = this.book.periods.at(-2)
+    if (previous === undefined || rhythmKey(previous) === rhythmKey(period)) return
+    if (period.firstDueOn < this.book.today) return
+    const first = pendingOf(after).find((due) => due.periodId === period.id)
+    if (first !== undefined && first.dueOn > period.firstDueOn) {
+      this.fail(`${gesture} : première dose le ${first.dueOn}, après le ${period.firstDueOn}`)
+    }
+  }
+
   // Q24 : le nouveau réglage vaut tout de suite, les prises du jour comptent pour ses premières heures.
   private checkNewSetting(
     before: TreatmentSchedule,
@@ -1368,10 +1407,16 @@ class Simulation {
     const day = before.currentDoses[0]?.dueOn
     if (previous === undefined || day === undefined || day <= this.book.today) return
     const kept = rhythmKey(previous) === rhythmKey(period)
+    // Q8 : rythme changé, une prise qui a décalé la suite compte à sa date réelle.
     const noted = before.doses.filter(
-      (dose) => isNote(dose) && dose.dueOn === day && !stopped.has(dose.periodId),
+      (dose) =>
+        isNote(dose) &&
+        dose.dueOn === day &&
+        !stopped.has(dose.periodId) &&
+        (kept || !refixesSuite(dose, before.doses)),
     ).length
     if (noted === 0) return
+    if (!kept && noted >= Math.max(1, period.times.length)) return
     if (!kept && period.firstDueOn !== day) {
       // Q24 d'abord : des prises d'aujourd'hui font partir le nouveau réglage d'aujourd'hui.
       const { startsOn } = period

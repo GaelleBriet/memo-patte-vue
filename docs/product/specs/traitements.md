@@ -313,10 +313,11 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   heures pose la question à l'enregistrement (spec Q38). (P9 Q1 ; spec Q7)
 
   Gardes du moteur d'échéances (#453) :
-  - **G1** Seules les prises dont l'échéance est le jour du changement comptent pour les premières
-    heures du nouveau réglage (une dose d'hier notée aujourd'hui n'en retire aucune), sauf quand ni
-    la fréquence ni les heures ne changent (G22), et celles de la journée entamée en avance qui
-    ouvre la nouvelle période (G24).
+  - **G1** Quand la fréquence ou les heures changent, seules comptent pour les premières heures du
+    nouveau réglage les prises dont l'échéance est la première journée de la nouvelle période
+    (aujourd'hui, Q24, ou la journée entamée en avance, G24 ; une dose d'hier notée aujourd'hui n'en
+    retire aucune) et qui n'ont pas décalé la suite (une prise qui a décalé la suite compte à sa
+    date réelle, Q8). Quand ni la fréquence ni les heures ne changent : G22.
     (Garde technique, consignée au journal des décisions autonomes.)
   - **G2** Une prise notée « oubliée » compte comme une prise donnée.
     (Garde technique, consignée au journal des décisions autonomes.)
@@ -372,10 +373,15 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     nouveau réglage s'applique à partir de la dose suivante pas encore donnée (décision de Gaelle du
     2026-10-09, #711). Métacam tous les 2 jours à 8 h et 20 h, prochaine journée le 3, 8 h du 3
     donnée le 2 : heures passées le 2 à 9 h et 21 h, il ne reste que 21 h le 3, puis le 5 à 9 h et
-    21 h ; fréquence passée à tous les 3 jours, il reste 20 h le 3, puis le 6 ; heure passée à 9 h
-    seule, rien ne reste le 3, prochaine dose le 5. « Prochaine dose » propose le 3, avec l'aide
-    « Prochaine dose prévue : 3 oct. Modifiable. ». Des prises notées aujourd'hui font partir la
-    nouvelle période d'aujourd'hui (Q24).
+    21 h ; fréquence passée à tous les 3 jours, il reste 20 h le 3, puis le 6. « Prochaine dose »
+    propose le 3, avec l'aide « Prochaine dose prévue : 3 oct. Modifiable. ». Quand ses prises
+    couvrent déjà toutes les heures du nouveau réglage, la journée n'ouvre pas la période : la
+    dernière prise plus la nouvelle fréquence (TR-7) ; heure passée à 9 h seule, prochaine dose le 5 ;
+    passé à tous les jours à 8 h, le 4. Une prise qui a décalé la suite compte à sa date réelle et
+    ne couvre pas sa journée (Q8) : tous les 3 jours à 9 h, dose du 4 donnée le 2 avec décalage,
+    fréquence passée à tous les 2 jours le 3 : prochaine dose le 4 ; hebdomadaire à 8 h, dose du 8
+    donnée le 5 avec décalage, passé à tous les 3 jours le 6 : prochaine dose le 8. Des prises
+    notées aujourd'hui font partir la nouvelle période d'aujourd'hui (Q24).
 - **TR-29** Un autre produit est un nouveau traitement : arrêter l'ancien, créer le nouveau. (P9 Q2)
 - **TR-30** « Arrêter » : dialogue qui propose de renseigner les doses non renseignées (« Toutes
   données », « Choisir les jours », « Arrêter sans renseigner ») ; « Arrêté le … », plus aucune
@@ -857,6 +863,10 @@ G23 (#692). Reste :
   reportée seule au 17, posologie changée le 2 : 8, 15, 22, au lieu de 8, 17, 22 (avec décalage, 8,
   17, 24 est gardé). Un report plus lointain encore, même décalé, part aussi. Le garder demande de
   rattacher ses lignes à la nouvelle période.
+- Heures ou fréquence changées alors qu'il reste des doses à donner aujourd'hui et que la journée
+  d'échéance suivante est déjà entamée en avance : la nouvelle période part d'aujourd'hui (Q24), et
+  la prise en avance ne compte pas pour la journée suivante, qui redemande toutes ses heures si elle
+  tombe dans le nouveau rythme (#721).
 - Un calendrier de départ dont deux journées se suivent de plus près que la fréquence, puis hors
   rythme (plusieurs déplacements combinés), ne se reprend pas tel quel : toutes les 6 semaines,
   3 mai, 5 mai, 14 juin, posologie changée : 3 mai, 5 mai, 16 juin.

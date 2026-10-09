@@ -2265,6 +2265,8 @@ s'applique à partir de la dose suivante pas encore donnée. Métacam tous les 2
 8 h du 3 donnée en avance le 2, heures passées à 9 h et 21 h : il ne reste que 21 h le 3 (l'app
 demandait 9 h et 21 h, risque de double dose le matin) ; fréquence passée à tous les 3 jours : 20 h
 le 3, puis le 6. Quand les heures ne changent pas, chaque prise couvre son heure, même si la
-fréquence change. — Raison : le carnet ne redemande jamais une dose donnée (principe 1). —
+fréquence change. Une journée dont les prises couvrent déjà toutes les heures du nouveau réglage
+n'ouvre pas la période, et une prise qui a décalé la suite compte à sa date réelle (Q8). — Raison :
+le carnet ne redemande jamais une dose donnée (principe 1). —
 Alternative écartée : la journée entière au nouveau réglage, ou la dernière prise plus la nouvelle
 fréquence (le 20 h du 3 disparaissait).
