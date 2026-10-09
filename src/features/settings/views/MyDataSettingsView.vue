@@ -11,7 +11,7 @@ import { promptNotificationsIfReminders } from '@/app/reminders-priming'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { WEIGHT_UNITS, type WeightUnit } from '@/shared/domain/weight-unit'
-import { chooseWeightUnit, currentWeightUnit } from '@/shared/domain/weight-unit-preference'
+import { chooseWeightUnit, currentWeightUnit } from '@/core/preferences/weight-unit-preference'
 import FormSegmented from '@/shared/form/FormSegmented.vue'
 import { returnTo } from '@/shared/utils/return-to'
 

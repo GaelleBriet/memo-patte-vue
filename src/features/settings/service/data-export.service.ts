@@ -40,7 +40,7 @@ import {
 import { buildExportFile, type ExportFile, type ExportFormat } from '../logic/export-format'
 import type { ExportData } from '@/shared/domain/carnet-data'
 import type { WeightUnit } from '@/shared/domain/weight-unit'
-import { currentWeightUnit } from '@/shared/domain/weight-unit-preference'
+import { currentWeightUnit } from '@/core/preferences/weight-unit-preference'
 
 type Provider<T> = () => T | Promise<T>
 

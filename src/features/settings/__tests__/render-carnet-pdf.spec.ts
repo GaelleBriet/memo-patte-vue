@@ -7,7 +7,7 @@ import { PHOTO_JPEG } from './pdf-fixture'
 import { readPdf, sameColor, textBounds, type PdfPath, type PdfText } from './pdf-reader'
 import type { CarnetPdfContent } from '../logic/pdf-content'
 import vuetify from '@/core/theme/vuetify'
-import { applyWeightUnit } from '@/shared/domain/weight-unit-preference'
+import { applyWeightUnit } from '@/core/preferences/weight-unit-preference'
 
 const MM_PER_PT = 25.4 / 72
 const ASCENT_EM = 0.75

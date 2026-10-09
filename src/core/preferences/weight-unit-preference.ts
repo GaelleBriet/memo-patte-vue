@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 
-import { defaultWeightUnit, isWeightUnit, type WeightUnit } from './weight-unit'
+import { defaultWeightUnit, isWeightUnit, type WeightUnit } from '@/shared/domain/weight-unit'
 
 export const WEIGHT_UNIT_STORAGE_KEY = 'memopatte.weight.unit'
 

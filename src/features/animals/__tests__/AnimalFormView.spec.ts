@@ -16,7 +16,7 @@ import { photoDisplayUrl } from '@/core/photos/photo-storage'
 import { forgetPhotoUrls } from '@/core/photos/use-photo-urls'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import { KG_PER_LB } from '@/shared/domain/weight-unit'
-import { applyWeightUnit } from '@/shared/domain/weight-unit-preference'
+import { applyWeightUnit } from '@/core/preferences/weight-unit-preference'
 import { plain } from '@/shared/__tests__/plain'
 
 vi.mock('@/core/photos/photo-picker', () => ({

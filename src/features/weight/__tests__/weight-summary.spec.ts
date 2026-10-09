@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { weightSummary } from '../logic/weight-summary'
-import { applyWeightUnit } from '@/shared/domain/weight-unit-preference'
+import { applyWeightUnit } from '@/core/preferences/weight-unit-preference'
 
 function entry(weightKg: number, measuredOn: string) {
   return { weightKg, measuredOn }

@@ -17,7 +17,7 @@ import {
   applyWeightUnit,
   currentWeightUnit,
   WEIGHT_UNIT_STORAGE_KEY,
-} from '@/shared/domain/weight-unit-preference'
+} from '@/core/preferences/weight-unit-preference'
 
 vi.mock('../service/data-export.service', () => ({
   dataExportService: { exportData: vi.fn<() => Promise<'shared'>>() },

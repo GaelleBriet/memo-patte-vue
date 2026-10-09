@@ -24,7 +24,7 @@ import type {
   PdfWeightRow,
 } from '../logic/pdf-content'
 import i18n from '@/core/i18n'
-import { currentWeightUnit } from '@/shared/domain/weight-unit-preference'
+import { currentWeightUnit } from '@/core/preferences/weight-unit-preference'
 import { formatLongDate } from '@/shared/utils/format'
 
 // A4 : les marges latérales du carnet, et 10 mm en haut et en bas, loin de la marge non imprimable.
