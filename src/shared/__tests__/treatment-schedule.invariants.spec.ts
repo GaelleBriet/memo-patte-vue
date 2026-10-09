@@ -977,14 +977,25 @@ class Simulation {
     const following = periods.slice(index + 1)
     if (move === undefined) return
     if (following.some(({ firstDueOn }) => firstDueOn !== move.nextDueDate)) return
-    const back = [line.dueOn, move.nextDueDate].map((dueOn) => `${dueOn} ${line.dueTime ?? ''}`)
+    // L'heure suit les reports en chaîne : le jour d'arrivée a pu être reporté à son tour.
+    const days = [line.dueOn]
+    for (let index = 0; index < days.length && days.length < 10; index += 1) {
+      for (const other of doses) {
+        const from = days[index]
+        if (
+          other.status === 'postponed' &&
+          other.dueOn === from &&
+          !days.includes(other.nextDueDate)
+        ) {
+          days.push(other.nextDueDate)
+        }
+      }
+    }
     const visible = [...pendingOf(after), ...after.doses.filter(isNote)].map(
       ({ dueOn, dueTime }) => `${dueOn} ${dueTime ?? ''}`,
     )
-    if (!back.some((key) => visible.includes(key))) {
-      this.fail(
-        `${gesture} : l’heure supprimée ne revient ni le ${line.dueOn} ni le ${move.nextDueDate}`,
-      )
+    if (!days.some((dueOn) => visible.includes(`${dueOn} ${line.dueTime ?? ''}`))) {
+      this.fail(`${gesture} : l’heure supprimée ne revient sur aucun des jours ${days.join(', ')}`)
     }
   }
 
@@ -1152,7 +1163,8 @@ class Simulation {
         (due.periodId !== line.periodId || due.dueOn <= line.dueOn) &&
         !(
           due.dueOn === report?.nextDueDate &&
-          this.book.periods.find(({ id }) => id === due.periodId)?.firstDueOn === due.dueOn
+          (due.periodId === line.periodId ||
+            this.book.periods.find(({ id }) => id === due.periodId)?.firstDueOn === due.dueOn)
         ),
       gesture,
     )
