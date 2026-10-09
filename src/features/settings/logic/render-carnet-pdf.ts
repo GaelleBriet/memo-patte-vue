@@ -1,26 +1,15 @@
 import { jsPDF } from 'jspdf'
 
-import { animalAge, animalAgeText } from '@/shared/domain/animal-age'
-import { dosageText } from '@/shared/domain/dosage'
-import { weightText } from '@/shared/domain/weight-display'
 import {
-  formatClockTime,
-  formatClockTimes,
-  formatDayMonthOrYear,
-  formatLongDate,
-  formatNumericDate,
-} from '@/shared/utils/format'
+  carnetPdfText,
+  pdfFooterText,
+  pdfPageNumberText,
+  type CarnetPdfText,
+  type PdfDetail,
+  type PdfSectionText,
+} from './carnet-pdf-text'
 import { drawWeightChart, weightChartHeight } from './pdf-weight-chart'
-import { pdfText } from './pdf-text'
-import type {
-  CarnetPdfContent,
-  PdfDose,
-  PdfDoseSeries,
-  PdfHistoryLine,
-  PdfTreatmentPeriod,
-  PdfTreatmentRow,
-  PdfVaccinationRow,
-} from './pdf-content'
+import type { CarnetPdfContent } from './pdf-content'
 import type { Translate } from '@/core/i18n/translate'
 
 const PAGE_WIDTH_MM = 210
@@ -55,14 +44,6 @@ const DETAIL_GRAY = 90
 const MAX_UNSPLIT_BLOCK_MM = 200
 
 type PageCursor = { y: number; makeRoom: (height: number) => void }
-
-function speciesLabelKey(species: 'dog' | 'cat'): string {
-  return `animals.form.species.${species}`
-}
-
-function pdfName(name: string, t: Translate): string {
-  return pdfText(name) || t('settings.pdf.noName')
-}
 
 function lineHeight(doc: jsPDF): number {
   return (doc.getFontSize() * doc.getLineHeightFactor()) / doc.internal.scaleFactor
@@ -108,19 +89,15 @@ export function renderCarnetPdf(
     renderAnimal(doc, part, t)
   })
 
-  writeFooters(
-    doc,
-    t('settings.pdf.footer', {
-      date: formatLongDate(parts[0].content.generatedOn),
-      version: appVersion,
-    }),
-    t,
+  writeFooters(doc, pdfFooterText(parts[0].content.generatedOn, appVersion, t), (page, total) =>
+    pdfPageNumberText(page, total, t),
   )
 
   return new Uint8Array(doc.output('arraybuffer'))
 }
 
 function renderAnimal(doc: jsPDF, { content, photoDataUrl }: CarnetPdfPart, t: Translate): void {
+  const text = carnetPdfText(content, t)
   let y = MARGIN_MM
 
   if (photoDataUrl) {
@@ -147,261 +124,26 @@ function renderAnimal(doc: jsPDF, { content, photoDataUrl }: CarnetPdfPart, t: T
   const headerWidth = photoDataUrl
     ? CONTENT_WIDTH_MM - PHOTO_SIZE_MM - PHOTO_GAP_MM
     : CONTENT_WIDTH_MM
-  const animalName = pdfName(content.animal.name, t)
-  const nameLines = wrap(doc, animalName, headerWidth)
+  const nameLines = wrap(doc, text.animalName, headerWidth)
   writeLines(doc, nameLines, MARGIN_MM, y)
   y += extraLinesHeight(doc, nameLines.length) + 7
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(11)
-  const identityLines = wrap(doc, identityText(content, t), headerWidth)
+  const identityLines = wrap(doc, text.identity, headerWidth)
   writeLines(doc, identityLines, MARGIN_MM, y)
   y += extraLinesHeight(doc, identityLines.length) + 10
 
-  const cursor = createPageCursor(doc, y, () => writeContinuationHeader(doc, animalName))
+  const cursor = createPageCursor(doc, y, () => writeContinuationHeader(doc, text.animalName))
 
-  renderSection(
-    doc,
-    cursor,
-    t('settings.pdf.vaccinations.title'),
-    content.vaccinations.map((row) => [
-      pdfName(row.name, t),
-      vaccinationDueLabel(row, t),
-      vaccinationStateLabel(row, content.generatedOn, t),
-    ]),
-    t('settings.pdf.vaccinations.empty'),
-    content.vaccinations.map((row) =>
-      row.injectionDates.length === 0
-        ? []
-        : [
-            detail(
-              t('settings.pdf.history.injections', { dates: numericDates(row.injectionDates) }),
-            ),
-          ],
-    ),
-  )
-
-  renderSection(
-    doc,
-    cursor,
-    t('settings.pdf.treatments.title'),
-    content.treatments.map((row) => [
-      pdfName(row.name, t),
-      row.state === null && row.due.kind === 'due' ? '' : treatmentDueLabel(row, t),
-      row.state === null ? '' : t(`settings.pdf.status.${row.state}`),
-    ]),
-    t('settings.pdf.treatments.empty'),
-    content.treatments.map((row) => treatmentHistory(row, t)),
-  )
-
-  renderWeightSection(doc, cursor, content, t)
-}
-
-function ageText(
-  { birthDate, birthDateApproximate }: CarnetPdfContent['animal'],
-  today: string,
-  t: Translate,
-): string | null {
-  const text = animalAgeText(
-    (key, named, plural) => t(key, named, plural),
-    { birthDate, approximate: false },
-    today,
-  )
-  if (text === null || !birthDateApproximate || animalAge(birthDate, today)?.value === 0)
-    return text
-  return t('settings.pdf.identity.estimatedAge', { age: text })
-}
-
-function identityText({ animal, generatedOn }: CarnetPdfContent, t: Translate): string {
-  const date = animal.birthDate && formatLongDate(animal.birthDate)
-  const birthDate =
-    date &&
-    (animal.birthDateApproximate
-      ? t('settings.pdf.identity.birthDateApproximate', { date })
-      : t('settings.pdf.identity.birthDate', { date }))
-  const age = animal.departureDate === null ? ageText(animal, generatedOn, t) : null
-  const until =
-    animal.departureDate &&
-    t('settings.pdf.identity.until', { date: formatLongDate(animal.departureDate) })
-  return [
-    t(speciesLabelKey(animal.species)),
-    animal.breed && pdfText(animal.breed),
-    birthDate,
-    age,
-    until,
-  ]
-    .filter((part): part is string => Boolean(part))
-    .join(' · ')
-}
-
-function vaccinationDueLabel(row: PdfVaccinationRow, t: Translate): string {
-  if (row.state === null) return ''
-  return row.dueDate ? formatNumericDate(row.dueDate) : t('settings.pdf.status.none')
-}
-
-function vaccinationStateLabel(row: PdfVaccinationRow, today: string, t: Translate): string {
-  if (row.state === null) return ''
-  if (row.state !== 'planned' || row.dueDate === null) return t(`settings.pdf.status.${row.state}`)
-  return t('settings.pdf.status.planned', { date: formatDayMonthOrYear(row.dueDate, today) })
-}
-
-function treatmentDueLabel({ due }: PdfTreatmentRow, t: Translate): string {
-  switch (due.kind) {
-    case 'due':
-      return due.dueTime === null
-        ? formatNumericDate(due.dueOn)
-        : t('settings.pdf.treatments.dueAt', {
-            date: formatNumericDate(due.dueOn),
-            time: formatClockTime(due.dueTime),
-          })
-    case 'stopped':
-      if (due.beforeFirstDose) return t('settings.pdf.history.stoppedBeforeFirstDose')
-      return due.on === null
-        ? t('settings.pdf.treatments.noDate')
-        : t('settings.pdf.treatments.stopped', { date: formatNumericDate(due.on) })
-    case 'ended':
-      return due.on === null
-        ? t('settings.pdf.treatments.noDate')
-        : t('settings.pdf.treatments.ended', { date: formatNumericDate(due.on) })
-    case 'unreadable':
-      return t('settings.pdf.treatments.unreadable')
-  }
-}
-
-function numericDates(dates: string[]): string {
-  return dates.map(formatNumericDate).join(' · ')
-}
-
-function doseText({ on, time, extra }: PdfDose, t: Translate): string {
-  const day = formatNumericDate(on)
-  const date =
-    time === null
-      ? day
-      : t('settings.pdf.treatments.dueAt', { date: day, time: formatClockTime(time) })
-  return extra ? t('settings.pdf.history.extraDose', { date }) : date
-}
-
-function doseList(doses: PdfDose[], t: Translate): string {
-  return doses.map((dose) => doseText(dose, t)).join(' · ')
-}
-
-function rangeDates(series: Extract<PdfDoseSeries, { kind: 'range' }>) {
-  return {
-    count: series.count,
-    from: formatNumericDate(series.from),
-    to: formatNumericDate(series.to),
-  }
-}
-
-function atTime(text: string, time: string | null): string {
-  return time === null ? text : `${text} · ${formatClockTime(time)}`
-}
-
-function givenText(series: PdfDoseSeries, t: Translate): string {
-  return series.kind === 'dates'
-    ? t('settings.pdf.history.doses', { dates: doseList(series.doses, t) }, series.doses.length)
-    : atTime(t('settings.pdf.history.doseRange', rangeDates(series)), series.time)
-}
-
-function missedText(series: PdfDoseSeries, t: Translate): string {
-  return series.kind === 'dates'
-    ? t('settings.pdf.history.missed', { dates: doseList(series.doses, t) }, series.doses.length)
-    : atTime(t('settings.pdf.history.missedRange', rangeDates(series)), series.time)
-}
-
-function historyLineText(line: PdfHistoryLine, t: Translate): string {
-  switch (line.kind) {
-    case 'given':
-      return givenText(line.series, t)
-    case 'missed':
-      return missedText(line.series, t)
-    case 'unlogged':
-      return atTime(
-        line.from === line.to
-          ? t('settings.pdf.history.unloggedDay', { date: formatNumericDate(line.from) })
-          : t('settings.pdf.history.unlogged', {
-              from: formatNumericDate(line.from),
-              to: formatNumericDate(line.to),
-            }),
-        line.time,
-      )
-    case 'moved': {
-      const dates = { date: formatNumericDate(line.to), due: formatNumericDate(line.dueOn) }
-      return line.advanced
-        ? t('treatments.history.advanced', dates)
-        : t('treatments.history.postponed', dates)
-    }
-  }
-}
-
-function periodRangeText({ from, to }: PdfTreatmentPeriod, t: Translate): string {
-  if (to === null) return t('treatments.history.period.since', { date: formatNumericDate(from) })
-  if (to <= from) return t('treatments.history.period.single', { date: formatNumericDate(from) })
-  return t('treatments.history.period.range', {
-    from: formatNumericDate(from),
-    to: formatNumericDate(to),
-  })
-}
-
-function periodHeadText(period: PdfTreatmentPeriod, t: Translate): string {
-  const { value, unit } = period.frequency
-  return [
-    periodRangeText(period, t),
-    t(`treatments.frequency.${unit}`, { n: value }, value),
-    period.times.length > 0 && formatClockTimes(period.times),
-    dosageText((key, named, plural) => t(key, named, plural), period.dosage),
-  ]
-    .filter((part): part is string => Boolean(part))
-    .join(' · ')
-}
-
-function noDoseLabel(due: PdfTreatmentRow['due'], t: Translate): string {
-  if (due.kind !== 'due') return t('settings.pdf.history.noDose')
-  const date = formatNumericDate(due.dueOn)
-  return due.overdue
-    ? t('settings.pdf.history.noDoseOverdue', { date })
-    : t('settings.pdf.history.noDoseUpcoming', { date })
-}
-
-function repeatsLastDose(row: PdfTreatmentRow): boolean {
-  const lines = row.periods.flatMap((period) => period.lines)
-  const only = lines.length === 1 ? lines[0]! : null
-  if (only?.kind !== 'given' || only.series.kind !== 'dates') return false
-  const [dose, ...others] = only.series.doses
-  return (
-    others.length === 0 &&
-    dose!.on === row.lastDoseDate &&
-    dose!.time === null &&
-    dose!.extra === row.lastDoseExtra
-  )
-}
-
-function treatmentHistory(row: PdfTreatmentRow, t: Translate): Detail[] {
-  const summary =
-    row.lastDoseDate === null
-      ? noDoseLabel(row.due, t)
-      : t('settings.pdf.history.lastDose', {
-          date: doseText({ on: row.lastDoseDate, time: null, extra: row.lastDoseExtra }, t),
-        })
-  const repeats = repeatsLastDose(row)
-  return [
-    detail(summary),
-    ...row.periods.flatMap((period) => [
-      detail(periodHeadText(period, t)),
-      ...(repeats ? [] : period.lines.map((line) => detail(historyLineText(line, t), 1))),
-    ]),
-  ]
-}
-
-type Detail = { text: string; level: 0 | 1 }
-
-function detail(text: string, level: 0 | 1 = 0): Detail {
-  return { text, level }
+  renderSection(doc, cursor, text.vaccinations)
+  renderSection(doc, cursor, text.treatments)
+  renderWeightSection(doc, cursor, content, text.weight, t)
 }
 
 type DetailBlock = { lines: { text: string; x: number }[]; height: number }
 
-function detailBlock(doc: jsPDF, details: Detail[]): DetailBlock {
+function detailBlock(doc: jsPDF, details: PdfDetail[]): DetailBlock {
   doc.setFontSize(DETAIL_PT)
   const lines = details.flatMap(({ text, level }) => {
     const indent = DETAIL_INDENT_MM * (level + 1)
@@ -455,7 +197,11 @@ function writeContinuationHeader(doc: jsPDF, animalName: string): number {
   return MARGIN_MM + height + CONTINUATION_ADVANCE_MM
 }
 
-function writeFooters(doc: jsPDF, generated: string, t: Translate): void {
+function writeFooters(
+  doc: jsPDF,
+  generated: string,
+  pageNumber: (page: number, total: number) => string,
+): void {
   const total = doc.getNumberOfPages()
   for (let page = 1; page <= total; page += 1) {
     doc.setPage(page)
@@ -463,12 +209,9 @@ function writeFooters(doc: jsPDF, generated: string, t: Translate): void {
     doc.setFontSize(9)
     doc.setTextColor(120)
     doc.text(generated, MARGIN_MM, FOOTER_BASELINE_MM)
-    doc.text(
-      t('settings.pdf.pageNumber', { page, total }),
-      PAGE_WIDTH_MM - MARGIN_MM,
-      FOOTER_BASELINE_MM,
-      { align: 'right' },
-    )
+    doc.text(pageNumber(page, total), PAGE_WIDTH_MM - MARGIN_MM, FOOTER_BASELINE_MM, {
+      align: 'right',
+    })
   }
 }
 
@@ -492,10 +235,7 @@ function writeEmptyLine(doc: jsPDF, cursor: PageCursor, label: string): void {
 function renderSection(
   doc: jsPDF,
   cursor: PageCursor,
-  title: string,
-  rows: string[][],
-  emptyLabel: string,
-  details: Detail[][],
+  { title, rows, emptyLabel, details }: PdfSectionText,
 ): void {
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(ROW_PT)
@@ -538,13 +278,14 @@ function renderWeightSection(
   doc: jsPDF,
   cursor: PageCursor,
   content: CarnetPdfContent,
+  text: CarnetPdfText['weight'],
   t: Translate,
 ): void {
   const entries = content.weightEntries
   const chartHeight = weightChartHeight(doc, entries, CONTENT_WIDTH_MM, t)
-  writeSectionTitle(doc, cursor, t('settings.pdf.weight.title'), chartHeight ?? ROW_DESCENT_MM)
+  writeSectionTitle(doc, cursor, text.title, chartHeight ?? ROW_DESCENT_MM)
   if (entries.length === 0) {
-    writeEmptyLine(doc, cursor, t('settings.pdf.weight.empty'))
+    writeEmptyLine(doc, cursor, text.emptyLabel)
     return
   }
 
@@ -555,10 +296,10 @@ function renderWeightSection(
     cursor.y += chartHeight + CHART_GAP_MM
   }
 
-  for (const entry of entries) {
+  for (const [date, weight] of text.rows) {
     cursor.makeRoom(ROW_DESCENT_MM)
-    doc.text(formatNumericDate(entry.measuredOn), MARGIN_MM, cursor.y)
-    doc.text(weightText(t, entry.weightKg), MARGIN_MM + 40, cursor.y)
+    doc.text(date, MARGIN_MM, cursor.y)
+    doc.text(weight, MARGIN_MM + 40, cursor.y)
     cursor.y += ROW_ADVANCE_MM
   }
   cursor.y += SECTION_GAP_MM

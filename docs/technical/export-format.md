@@ -470,7 +470,7 @@ JSON, non traduits (traduction du CSV : #416).
 
 Le PDF est gratuit. Il lit les mêmes lignes que l'export (`collect`) et contient soit tous les
 animaux suivis, chacun à partir d'une nouvelle page, soit un seul animal (#356)
-(`src/features/settings/logic/pdf-content.ts`, rendu par `render-carnet-pdf.ts`). Les échéances et
+(`src/features/settings/logic/pdf-content.ts`, textes par `carnet-pdf-text.ts`, mise en page par `render-carnet-pdf.ts`). Les échéances et
 l'historique des traitements viennent du moteur d'échéances.
 
 - **Identité** : espèce, race, date de naissance et âge (règle AN-8). Si la date est approximative :
