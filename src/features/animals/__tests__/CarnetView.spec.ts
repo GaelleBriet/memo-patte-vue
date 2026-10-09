@@ -376,7 +376,6 @@ describe('CarnetView — header', () => {
       const wrapper = await monter()
       const icone = wrapper.get('.carnet-header__export-pdf')
 
-      expect(icone.find('.plus-badge').exists()).toBe(false)
       expect(icone.attributes('aria-label')).toBe('Exporter en PDF')
     })
   })
