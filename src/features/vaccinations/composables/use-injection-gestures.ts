@@ -1,8 +1,7 @@
-import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
-import { showToast, showUndoableToast } from '@/shared/utils/toast'
+import { useGuardedGestures } from '@/shared/composables/use-guarded-gestures'
 import {
   injectionGestureTexts,
   pastInjectionToast,
@@ -22,32 +21,7 @@ import { useVaccinationsStore } from '../store/vaccinations.store'
 export function useInjectionGestures(onChanged: () => void) {
   const { t } = useI18n()
   const store = useVaccinationsStore()
-  const isBusy = ref(false)
-
-  async function guarded(action: () => Promise<void>, failed: string): Promise<boolean> {
-    if (isBusy.value) return false
-    isBusy.value = true
-    try {
-      await action()
-      return true
-    } catch {
-      showToast(failed, { tone: 'error' })
-      return false
-    } finally {
-      isBusy.value = false
-    }
-  }
-
-  function undoable(message: string, ariaLabel: string, undo: () => Promise<unknown>): void {
-    showUndoableToast(message, {
-      label: t('reminderSheet.undo'),
-      ariaLabel,
-      undo,
-      onUndone: onChanged,
-      onFailed: onChanged,
-      failedMessage: t('reminderSheet.undoFailed'),
-    })
-  }
+  const { isBusy, guarded, undoable } = useGuardedGestures({ afterUndo: onChanged })
 
   /** `without-reminder` : seule injection d'un vaccin sans rappel, c'est le vaccin à supprimer. */
   async function removeInjection(
@@ -60,9 +34,10 @@ export function useInjectionGestures(onChanged: () => void) {
       try {
         const removed = await store.removeInjection(vaccinationId, id)
         onChanged()
-        undoable(texts.removed, texts.undoRemove, () =>
-          store.undoRemoveInjection(vaccinationId, id, removed),
-        )
+        undoable(texts.removed, {
+          ariaLabel: texts.undoRemove,
+          undo: () => store.undoRemoveInjection(vaccinationId, id, removed),
+        })
       } catch (cause) {
         if (!(cause instanceof VaccinationWithoutReminderError)) throw cause
         outcome = 'without-reminder'
@@ -80,7 +55,10 @@ export function useInjectionGestures(onChanged: () => void) {
     return guarded(async () => {
       const { injectionId } = await write()
       onChanged()
-      undoable(toast.added, toast.undoAdd, () => store.undoInjection(vaccinationId, injectionId))
+      undoable(toast.added, {
+        ariaLabel: toast.undoAdd,
+        undo: () => store.undoInjection(vaccinationId, injectionId),
+      })
     }, t('vaccinations.detail.past.failed'))
   }
 
@@ -113,9 +91,10 @@ export function useInjectionGestures(onChanged: () => void) {
     return guarded(async () => {
       const previous = await write()
       onChanged()
-      undoable(texts.moved(injectedOn), texts.undoMove, () =>
-        store.undoChangeInjectionDate(vaccinationId, id, previous),
-      )
+      undoable(texts.moved(injectedOn), {
+        ariaLabel: texts.undoMove,
+        undo: () => store.undoChangeInjectionDate(vaccinationId, id, previous),
+      })
     }, t('vaccinations.detail.errors.change'))
   }
 
@@ -143,7 +122,10 @@ export function useInjectionGestures(onChanged: () => void) {
     const texts = vaccinationDeleteTexts(t, vaccination.name, { onlyInjection: false })
     return guarded(async () => {
       const deletedAt = await store.remove(vaccination.id)
-      undoable(texts.deleted, texts.undo, () => store.undoRemove(vaccination.id, deletedAt))
+      undoable(texts.deleted, {
+        ariaLabel: texts.undo,
+        undo: () => store.undoRemove(vaccination.id, deletedAt),
+      })
     }, texts.failed)
   }
 
