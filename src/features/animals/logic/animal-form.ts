@@ -61,6 +61,11 @@ export function canMarkBirthDateApproximate(values: AnimalFormValues): boolean {
   return values.birthDate.trim() !== ''
 }
 
+export function withBirthDate(values: AnimalFormValues, birthDate: string): AnimalFormValues {
+  const next = { ...values, birthDate }
+  return canMarkBirthDateApproximate(next) ? next : { ...next, birthDateApproximate: false }
+}
+
 export function birthDateApproximateHelp(
   t: Translate,
   values: AnimalFormValues,

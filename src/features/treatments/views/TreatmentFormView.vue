@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 
 import TreatmentChooseDays from './TreatmentChooseDays.vue'
 import TreatmentDosageField from './TreatmentDosageField.vue'
@@ -58,11 +58,10 @@ import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import FormSegmented from '@/shared/form/FormSegmented.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
-import { leaveAfterReminderSaved, primingReturnRoute } from '@/shared/domain/notification-priming'
+import { useCareForm } from '@/shared/composables/use-care-form'
 import { detailRoute } from '@/shared/domain/reminder-route'
 import { returnTo } from '@/shared/utils/return-to'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
-import { takesNewCare } from '@/shared/domain/unfollowed-animals'
 
 const props = defineProps<{
   animalId?: string
@@ -73,27 +72,16 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const router = useRouter()
-const { query } = useRoute()
 const animals = useAnimalsStore()
 const treatments = useTreatmentsStore()
 const { today } = useToday()
 const exactReminders = useExactReminders()
 
-const from = typeof query.from === 'string' ? query.from : undefined
-const reminder = typeof query.reminder === 'string' ? query.reminder : undefined
-
 const mode = props.id === undefined ? 'create' : props.resume ? 'resume' : 'edit'
 
 const values = ref(emptyTreatmentFormValues())
 const history = ref<TreatmentWithHistory | null>(null)
-const notFound = ref(false)
-const isLoading = ref(props.id !== undefined)
-const loadFailed = ref(false)
-const saveFailed = ref(false)
-const isSubmitting = ref(false)
 const endsOnTouched = ref(false)
-/** Une écriture a réussi : plus aucune autre ne part de cet écran. */
-const isSaved = ref(false)
 const hasDuplicateTime = ref(false)
 const isPastDuesOpen = ref(false)
 /** Réponse de l'encart des doses passées : rien n'est écrit avant « Créer ». */
@@ -114,6 +102,28 @@ const {
   hasSettings,
   answerPastDues: recordPastDuesAnswer,
 } = useTreatmentFormDrafts(mode, { values, history, today, endsOnTouched })
+
+const {
+  notFound,
+  isLoading,
+  loadFailed,
+  isSubmitting,
+  targetAnimal,
+  animalName,
+  saveFailed,
+  canSave: canSaveCare,
+  backToOrigin,
+  saveThenLeave,
+} = useCareForm({
+  kind: 'treatment',
+  animals,
+  id: () => props.id,
+  animalId: () => props.animalId,
+  openedAnimalId: () => history.value?.animalId,
+  allowsUnfollowedAnimal: () => mode === 'edit',
+  load: (id) => treatments.getWithHistory(id),
+  open,
+})
 
 const creation = useFormValidation(values, (current) =>
   validateTreatmentCreation(
@@ -160,11 +170,6 @@ const pastDosesAnswered = computed(() =>
   pastDosesAnswer.value === null ? null : pastDosesResult(t, pastDosesAnswer.value),
 )
 
-const targetAnimalId = computed(() => history.value?.animalId ?? props.animalId ?? null)
-const targetAnimal = computed(
-  () => animals.animals.find((animal) => animal.id === targetAnimalId.value) ?? null,
-)
-const animalName = computed(() => targetAnimal.value?.name ?? null)
 const isReady = computed(
   () => mode === 'create' || (history.value !== null && !notFound.value && !loadFailed.value),
 )
@@ -194,13 +199,7 @@ const errorMessage = computed(() => {
   return null
 })
 const canSave = computed(
-  () =>
-    !isSaved.value &&
-    !isLoading.value &&
-    !notFound.value &&
-    !loadFailed.value &&
-    (mode === 'edit' || takesNewCare(targetAnimal.value)) &&
-    (mode !== 'resume' || values.value.firstDoseOn !== ''),
+  () => canSaveCare.value && (mode !== 'resume' || values.value.firstDoseOn !== ''),
 )
 const typeOptions = computed(() =>
   TREATMENT_TYPES.map((type) => ({ value: type, label: t(`treatments.type.${type}`) })),
@@ -233,14 +232,6 @@ watch(
   () => {
     pastDosesAnswer.value = null
   },
-)
-
-watch(
-  targetAnimal,
-  (animal) => {
-    if (mode !== 'edit' && animal !== null && !takesNewCare(animal)) backToOrigin()
-  },
-  { immediate: true },
 )
 
 function requireAnimalId(): string {
@@ -280,15 +271,6 @@ async function setTimes(times: string[]): Promise<void> {
     markSuggested: markExactRemindersSuggested,
   })
   if (suggests) isSuggestingExact.value = true
-}
-
-function selectTargetAnimal(): void {
-  if (targetAnimalId.value !== null) animals.select(targetAnimalId.value)
-}
-
-function backToOrigin(): void {
-  selectTargetAnimal()
-  returnTo(router, primingReturnRoute(from, reminder))
 }
 
 function selectUnit(unit: FrequencyUnit | null): void {
@@ -341,44 +323,8 @@ function answerPastDues(choice: PastDuesChoice): Promise<void> {
 async function submit(): Promise<void> {
   if (isSubmitting.value || !canSave.value) return
 
-  isSubmitting.value = true
-  saveFailed.value = false
-
-  try {
-    const pending = write()
-    if (pending === null) return
-    await pending()
-    isSaved.value = true
-  } catch {
-    saveFailed.value = true
-    return
-  } finally {
-    isSubmitting.value = false
-  }
-  selectTargetAnimal()
-  await leaveAfterReminderSaved(router, {
-    hasDueDate: true,
-    animalName: animalName.value,
-    kind: 'treatment',
-    from,
-    reminder,
-  })
+  await saveThenLeave(() => write()?.() ?? null, true)
 }
-
-onMounted(async () => {
-  if (props.id !== undefined) {
-    try {
-      const loaded = await treatments.getWithHistory(props.id)
-      notFound.value = loaded === null
-      if (loaded) open(loaded)
-    } catch {
-      loadFailed.value = true
-    } finally {
-      isLoading.value = false
-    }
-  }
-  if (!animals.hasLoaded) await animals.load()
-})
 </script>
 
 <template>

@@ -8,6 +8,7 @@ import {
   canMarkBirthDateApproximate,
   emptyAnimalFormValues,
   validateAnimalForm,
+  withBirthDate,
   type AnimalFormValues,
 } from '../logic/animal-form'
 import type { Animal } from '../schema/animal.schema'
@@ -146,6 +147,22 @@ describe('date de naissance approximative', () => {
   it('n’autorise la case qu’une fois la date saisie', () => {
     expect(canMarkBirthDateApproximate(valeurs({ birthDate: '' }))).toBe(false)
     expect(canMarkBirthDateApproximate(valeurs({ birthDate: '2026-07-20' }))).toBe(true)
+  })
+
+  it('décoche la case quand la date est effacée', () => {
+    const cochee = valeurs({ birthDate: '2026-07-20', birthDateApproximate: true })
+
+    expect(withBirthDate(cochee, '')).toEqual({
+      ...cochee,
+      birthDate: '',
+      birthDateApproximate: false,
+    })
+  })
+
+  it('garde la case quand la date change', () => {
+    const cochee = valeurs({ birthDate: '2026-07-20', birthDateApproximate: true })
+
+    expect(withBirthDate(cochee, '2026-07-21')).toEqual({ ...cochee, birthDate: '2026-07-21' })
   })
 
   it('explique la case désactivée tant qu’aucune date n’est saisie', () => {
