@@ -2275,9 +2275,9 @@ fréquence (le 20 h du 3 disparaissait).
 règle G25 de la spec Traitements). Tous les 2 jours à 8 h et 20 h, 8 h du 3 donnée, 20 h du 3
 reportée seule au 4 ; le 4, passage à tous les 3 jours : le 4 ne demande que 20 h, puis le 7 à 8 h
 et 20 h. Même principe quelle que soit la nouvelle fréquence (tous les jours : le 5 ; chaque
-semaine : le 11). — Raison : la dose de 8 h du 3 est donnée, seule la dose reportée reste à donner, comme
-quand les heures changent (décision du 2026-10-09). — Alternative écartée : le 4 à 8 h et 20 h, le
-comportement d'avant.
+semaine : le 11). — Raison : la dose de 8 h du 3 est donnée, seule la dose reportée reste à donner,
+comme quand les heures changent (décision du 2026-10-09). — Alternative écartée : le 4 à 8 h et
+20 h, le comportement d'avant.
 
 2026-10-09 — **Une heure reportée seule ne déplace que cette heure** (Gaelle, #720 ; règle G25 de
 la spec Traitements, qui précise Q21). Vermifuge tous les 2 jours à 8 h et 20 h, 8 h du 3 donnée,
