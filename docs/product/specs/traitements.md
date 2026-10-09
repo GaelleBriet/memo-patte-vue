@@ -193,6 +193,10 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     heures passées à 9 h et 21 h le 3 ou le 4, le 4 à 21 h seule, puis le 5 à 9 h et 21 h (réponse
     de Gaelle du 2026-10-09) ; la dose reportée déjà donnée, le 4 n'a plus rien à donner, et la
     nouvelle période commence le 5 ; la fréquence changée, le 4 ne redemande rien non plus (#711).
+    Fréquence changée le 4 même, la dose reportée pas encore donnée : le 4 ne demande que l'heure
+    reportée, puis le nouveau rythme part du 4 (tous les 3 jours : 20 h le 4, puis le 7 ; tous les
+    jours : le 5 ; chaque semaine : le 11 ; décision de Gaelle du 2026-10-10) ; changée le 3, Q24
+    vaut : 20 h le 3, puis le 6.
     Un report seul arrivé sur un jour de la grille n'y retire aucune heure : ce jour garde les
     siennes ; reporté à son tour, un jour d'arrivée n'emporte que les heures qui y étaient à
     donner. Une heure restée en arrière parce qu'elle était notée revient si sa prise est
