@@ -61,10 +61,3 @@ export function currentDoseText(
     value: isTomorrow(due.dueOn, today) ? t('currentDose.tomorrow', { date: day }) : day,
   }
 }
-
-/** `Aujourd’hui · 8 h` : une échéance du jour garde son heure, même passée. */
-export function dueTodayText(t: Translate, { dueTime }: Pick<Due, 'dueTime'>): string {
-  return dueTime === null
-    ? t('currentDose.today', {})
-    : t('currentDose.todayAt', { time: formatClockTime(dueTime) })
-}
