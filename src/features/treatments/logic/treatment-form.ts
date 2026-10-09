@@ -27,6 +27,7 @@ import type { ExactRemindersStatus, NotificationPermissionStatus } from '@/core/
 import { isCalendarDay } from '@/shared/domain/calendar-day'
 import { isClockTime, MAX_TIMES_PER_DAY, sortedTimes } from '@/shared/domain/clock-time'
 import { formatDoseQuantity, TABLET_SHORTCUTS, type DoseUnit } from '@/shared/domain/dosage'
+import { hasSeveralDoseTimes } from '@/shared/domain/treatment-periods'
 import type { Due, MoveRefusal } from '@/shared/domain/treatment-schedule'
 import { fieldErrorsOf, type FieldErrorKeys } from '@/shared/form/field-errors'
 import { formatClockTimes, formatDayMonthOrYear, withoutFinalDot } from '@/shared/utils/format'
@@ -265,7 +266,7 @@ export async function suggestExactReminders(
 /** L'aide du champ « Rappel » : l'heure à choisir sans heure de traitement, chaque heure à plusieurs. */
 export function reminderHelpText(t: Translate, times: readonly string[]): string | null {
   if (times.length === 0) return t('treatments.form.reminder.noTimeHelp')
-  return times.length > 1
+  return hasSeveralDoseTimes(times)
     ? t('treatments.form.reminder.eachTime', { times: formatClockTimes(times) })
     : null
 }

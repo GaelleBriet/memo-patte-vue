@@ -22,6 +22,10 @@ export function periodLastDay(
   )
 }
 
+export function hasSeveralDoseTimes(times: readonly string[]): boolean {
+  return times.length > 1
+}
+
 export function isSeveralTimesADay(period: Pick<TreatmentPeriodInput, 'times'>): boolean {
-  return period.times.length > 1
+  return hasSeveralDoseTimes(period.times)
 }
