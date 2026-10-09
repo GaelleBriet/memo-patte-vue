@@ -21,3 +21,7 @@ export function periodLastDay(
     [period.endsOn, period.stoppedOn, beforeNext].filter((day) => day !== null).sort()[0] ?? null
   )
 }
+
+export function isSeveralTimesADay(period: Pick<TreatmentPeriodInput, 'times'>): boolean {
+  return period.times.length > 1
+}

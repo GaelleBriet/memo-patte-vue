@@ -4,7 +4,11 @@ import { movedDueOf } from './treatment-dose-writes'
 import { periodSettingsText } from './treatment-rhythm'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import { byStartDescending, periodLastDay } from '@/shared/domain/treatment-periods'
+import {
+  byStartDescending,
+  isSeveralTimesADay,
+  periodLastDay,
+} from '@/shared/domain/treatment-periods'
 import {
   isAdvanced,
   shiftedNextOn,
@@ -90,20 +94,16 @@ function headTitle(t: Translate, period: Period, next: Period | undefined): stri
     : t('treatments.history.period.range', rangeDates(period.startsOn, end))
 }
 
-function hasSeveralTimes(period: Period): boolean {
-  return period.times.length > 1
-}
-
 function dueTitle(t: Translate, dose: TreatmentDoseInput, period: Period): string {
   const date = formatLongDate(dose.dueOn)
-  return hasSeveralTimes(period) && dose.dueTime !== null
+  return isSeveralTimesADay(period) && dose.dueTime !== null
     ? t('treatments.history.dueAt', { date, time: formatClockTime(dose.dueTime) })
     : date
 }
 
 function doseOptionsLabel(t: Translate, dose: TreatmentDoseInput, period: Period): string {
   const date = formatFullDate(dose.dueOn)
-  return hasSeveralTimes(period) && dose.dueTime !== null
+  return isSeveralTimesADay(period) && dose.dueTime !== null
     ? t('treatments.detail.optionsAt', { date, time: formatClockTime(dose.dueTime) })
     : t('treatments.detail.options', { date })
 }
@@ -114,7 +114,7 @@ function missedWhen(t: Translate, doses: TreatmentDoseInput[], period: Period): 
   if (first !== last) return t('treatments.history.days', rangeDates(first, last))
   const times = doses.flatMap(({ dueTime }) => (dueTime === null ? [] : [dueTime]))
   const date = formatLongDate(first)
-  return hasSeveralTimes(period) && times.length > 0
+  return isSeveralTimesADay(period) && times.length > 0
     ? t('treatments.history.dayTimes', { date, times: formatClockTimes(times) })
     : date
 }
