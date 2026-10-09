@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { parseExportFile } from '../service/data-import.service'
+import { parseExportFile } from '../schema/export-file.schema'
 import { IMPORT_FILE, IMPORT_FIXTURE, importFixtureJson, LUNA_ID, MILO_ID } from './import-fixture'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 

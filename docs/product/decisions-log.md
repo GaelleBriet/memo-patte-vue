@@ -2238,3 +2238,13 @@ déclarer la page dans la Play Console. — Raison : la page vit avec le site de
   écartée : permettre à un écran d'appeler le service d'une autre feature (porte plus large).
 - **Aide, rappels précis** : « Si tu retires cette autorisation **après l'avoir donnée** » distingue
   ce cas de celui d'une autorisation jamais donnée (#638).
+
+2026-10-09 — **Cinquième exception aux imports entre features : le schéma du fichier d'export**
+(`settings/schema/export-file.schema.ts`) compose les schémas des lignes des autres features
+(`treatments`, `vaccinations`, `weight`) pour valider un fichier importé, et rien d'autre (ni store,
+ni repository). Exception limitée à ce seul fichier dans la règle ESLint `app/feature-imports`,
+écrite dans CLAUDE.md et `01-architecture-v2.md` (ticket #670). — Raison : le schéma du fichier
+quitte le service d'import pour `schema/`, et seuls les services avaient le droit d'importer les
+schémas des autres features. — Alternatives écartées : autoriser tout `*.schema.ts` à composer les
+schémas d'autres features (précédent plus large, à ouvrir si la règle se montre trop restrictive) ;
+laisser le schéma dans le service d'import (contraire au ticket).

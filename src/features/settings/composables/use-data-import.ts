@@ -1,13 +1,15 @@
 import { ref } from 'vue'
 
 import {
-  dataImportService,
-  ImportRefusedError,
   MAX_IMPORT_FILE_BYTES,
   parseExportFile,
+  type ImportFileError,
+} from '../schema/export-file.schema'
+import {
+  dataImportService,
+  ImportRefusedError,
   type DataImportService,
   type ImportFile,
-  type ImportFileError,
   type ImportMode,
   type ImportRefusal,
 } from '../service/data-import.service'
