@@ -9,6 +9,7 @@ import {
   type NextDoseOnIssueReason,
 } from './treatment-edition'
 import { resumptionDraft, treatmentResumptionSchemaFor } from './treatment-resumption'
+import { parseDoseQuantity } from './treatment-dosage-input'
 import { shiftHelpText, type ShiftHelp } from './treatment-shift-box'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import {
@@ -25,8 +26,8 @@ import {
 import type { FrequencyUnit, TreatmentType } from '../schema/treatment.schema'
 import type { ExactRemindersStatus, NotificationPermissionStatus } from '@/core/notifications'
 import { isCalendarDay } from '@/shared/domain/calendar-day'
-import { isClockTime, MAX_TIMES_PER_DAY, sortedTimes } from '@/shared/domain/clock-time'
-import { formatDoseQuantity, TABLET_SHORTCUTS, type DoseUnit } from '@/shared/domain/dosage'
+import { sortedTimes } from '@/shared/domain/clock-time'
+import { formatDoseQuantity, type DoseUnit } from '@/shared/domain/dosage'
 import { hasSeveralDoseTimes } from '@/shared/domain/treatment-periods'
 import type { Due, MoveRefusal } from '@/shared/domain/treatment-schedule'
 import { fieldErrorsOf, type FieldErrorKeys } from '@/shared/form/field-errors'
@@ -269,56 +270,6 @@ export function reminderHelpText(t: Translate, times: readonly string[]): string
   return hasSeveralDoseTimes(times)
     ? t('treatments.form.reminder.eachTime', { times: formatClockTimes(times) })
     : null
-}
-
-const FRACTION_VALUES: Record<string, number> = { '¼': 0.25, '½': 0.5, '¾': 0.75 }
-
-/** `0,5`, `0.5`, `½`, `1 ½` ; `null` pour un champ vide, `NaN` pour une saisie illisible. */
-export function parseDoseQuantity(text: string): number | null {
-  const trimmed = text.replaceAll('\u00a0', ' ').trim()
-  if (trimmed === '') return null
-  const fraction = /^(\d+)?\s*([¼½¾])$/.exec(trimmed)
-  if (fraction) return Number(fraction[1] ?? 0) + (FRACTION_VALUES[fraction[2] ?? ''] ?? 0)
-  return /^\d+([.,]\d+)?$/.test(trimmed) ? Number(trimmed.replace(',', '.')) : Number.NaN
-}
-
-/** La quantité saisie, récrite pour l'unité choisie : `0,5` devient `½` pour un comprimé. */
-export function doseQuantityTextFor(text: string, unit: DoseUnit | null): string {
-  const quantity = parseDoseQuantity(text)
-  if (quantity === null || Number.isNaN(quantity) || unit === null) return text
-  return formatDoseQuantity(quantity, unit)
-}
-
-export type DoseShortcut = { value: number; label: string }
-
-/** `¼ ½ ¾ 1 1 ½` : les raccourcis de quantité des comprimés. */
-export function tabletShortcuts(): DoseShortcut[] {
-  return TABLET_SHORTCUTS.map((value) => ({ value, label: formatDoseQuantity(value, 'tablet') }))
-}
-
-export function canAddTime(times: readonly string[]): boolean {
-  return times.length < MAX_TIMES_PER_DAY
-}
-
-/** Heures dans l'ordre de la journée ; une heure illisible, déjà présente ou de trop ne change rien. */
-export function withTime(times: readonly string[], time: string): string[] {
-  if (!isClockTime(time) || times.includes(time) || !canAddTime(times)) return [...times]
-  return sortedTimes([...times, time])
-}
-
-export function withoutTime(times: readonly string[], time: string): string[] {
-  return times.filter((other) => other !== time)
-}
-
-/** L'heure est déjà celle d'une autre puce que `except`. */
-export function isTimeTaken(times: readonly string[], time: string, except?: string): boolean {
-  return time !== except && times.includes(time)
-}
-
-/** Une heure illisible ou déjà prise ne change rien. */
-export function withTimeChanged(times: readonly string[], previous: string, time: string) {
-  if (!isClockTime(time) || isTimeTaken(times, time, previous)) return [...times]
-  return withTime(withoutTime(times, previous), time)
 }
 
 function frequencyOf(values: TreatmentFormValues) {

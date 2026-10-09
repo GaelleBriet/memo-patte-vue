@@ -1,28 +1,20 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import {
-  canAddTime,
   creationPastDuesOf,
-  doseQuantityTextFor,
   editionDraftOf,
   emptyTreatmentFormValues,
-  isTimeTaken,
-  parseDoseQuantity,
   pastDosesBasis,
   reminderHelpText,
   reminderOffsetChoices,
   rhythmOfValues,
   suggestExactReminders,
   suggestsExactReminders,
-  tabletShortcuts,
   loadedFormValues,
   treatmentFormValuesFrom,
   validateTreatmentCreation,
   validateTreatmentEdition,
   validateTreatmentResumption,
-  withTime,
-  withTimeChanged,
-  withoutTime,
   type TreatmentFormValues,
 } from '../logic/treatment-form'
 import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
@@ -31,7 +23,6 @@ import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import i18n from '@/core/i18n'
 import type { NotificationPermissionStatus } from '@/core/notifications'
-import { MAX_TIMES_PER_DAY } from '@/shared/domain/clock-time'
 
 const AT = '2026-07-01T08:00:00.000Z'
 const MILO = '11111111-1111-4111-8111-111111111111'
@@ -301,85 +292,6 @@ describe('reminderHelpText (RA-8, V1 bis)', () => {
     expect(reminderHelpText(t, ['08:00', '20:00'])).toBe(
       'Pour chaque heure\u00a0: 8\u00a0h et 20\u00a0h.',
     )
-  })
-})
-
-describe('quantité de la posologie (TR-4)', () => {
-  it.each([
-    ['', null],
-    ['  ', null],
-    ['2', 2],
-    ['0,5', 0.5],
-    ['0.3', 0.3],
-    ['½', 0.5],
-    ['¼', 0.25],
-    ['1 ½', 1.5],
-    ['1\u00a0¾', 1.75],
-  ])('lit « %s »', (text, quantity) => {
-    expect(parseDoseQuantity(text)).toBe(quantity)
-  })
-
-  it.each(['un', '1/2', '-1', '1,', '½ 1'])('ne lit pas « %s »', (text) => {
-    expect(parseDoseQuantity(text)).toBeNaN()
-  })
-
-  it('récrit la quantité pour l’unité choisie : fraction pour un comprimé, décimale sinon', () => {
-    expect(doseQuantityTextFor('0,5', 'tablet')).toBe('½')
-    expect(doseQuantityTextFor('½', 'ml')).toBe('0,5')
-    expect(doseQuantityTextFor('1.5', 'tablet')).toBe('1\u00a0½')
-    expect(doseQuantityTextFor('0,3', 'tablet')).toBe('0,3')
-  })
-
-  it('garde une saisie illisible, vide ou sans unité telle quelle', () => {
-    expect(doseQuantityTextFor('un', 'tablet')).toBe('un')
-    expect(doseQuantityTextFor('', 'tablet')).toBe('')
-    expect(doseQuantityTextFor('0,5', null)).toBe('0,5')
-  })
-
-  it('propose les raccourcis « ¼ ½ ¾ 1 1 ½ » des comprimés', () => {
-    expect(tabletShortcuts()).toEqual([
-      { value: 0.25, label: '¼' },
-      { value: 0.5, label: '½' },
-      { value: 0.75, label: '¾' },
-      { value: 1, label: '1' },
-      { value: 1.5, label: '1\u00a0½' },
-    ])
-  })
-})
-
-describe('heures du traitement (TR-5)', () => {
-  it('ajoute une heure dans l’ordre de la journée', () => {
-    expect(withTime(['20:00'], '08:00')).toEqual(['08:00', '20:00'])
-  })
-
-  it('ignore une heure déjà présente ou illisible', () => {
-    expect(withTime(['08:00'], '08:00')).toEqual(['08:00'])
-    expect(withTime(['08:00'], '')).toEqual(['08:00'])
-  })
-
-  it('retire une heure et en change une autre', () => {
-    expect(withoutTime(['08:00', '20:00'], '08:00')).toEqual(['20:00'])
-    expect(withTimeChanged(['08:00', '20:00'], '20:00', '07:30')).toEqual(['07:30', '08:00'])
-    expect(withTimeChanged(['08:00', '20:00'], '20:00', '08:00')).toEqual(['08:00', '20:00'])
-    expect(withTimeChanged(['08:00', '20:00'], '20:00', '20:00')).toEqual(['08:00', '20:00'])
-    expect(withTimeChanged(['08:00'], '08:00', '')).toEqual(['08:00'])
-  })
-
-  it('reconnaît une heure déjà prise par une autre puce', () => {
-    expect(isTimeTaken(['08:00', '20:00'], '20:00')).toBe(true)
-    expect(isTimeTaken(['08:00', '20:00'], '20:00', '20:00')).toBe(false)
-    expect(isTimeTaken(['08:00', '20:00'], '09:00')).toBe(false)
-  })
-
-  it('s’arrête à 24 heures par jour', () => {
-    const toutes = Array.from(
-      { length: MAX_TIMES_PER_DAY },
-      (_, hour) => `${String(hour).padStart(2, '0')}:00`,
-    )
-
-    expect(canAddTime(toutes.slice(1))).toBe(true)
-    expect(canAddTime(toutes)).toBe(false)
-    expect(withTime(toutes, '00:30')).toEqual(toutes)
   })
 })
 
