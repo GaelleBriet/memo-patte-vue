@@ -163,9 +163,16 @@ export function carriedMoveIds(plans: PeriodTimeline[]): Set<string> {
     plans.slice(1).flatMap((next, index) => {
       const previous = plans[index]!
       if (!keepsFrequency(previous.period, next.period)) return []
-      return movesInto(previous, next.period.firstDueOn)
-        .filter((move) => previous.stale.includes(move) && stayedKeys(previous, move).length > 0)
-        .map(({ id }) => id)
+      const kept = movesInto(previous, next.period.firstDueOn).filter(
+        (move) => stayedKeys(previous, move).length > 0,
+      )
+      // Les reports qui ont amené sa journée d'origine disent quelles heures il a pu emporter.
+      for (let index = 0; index < kept.length; index += 1) {
+        for (const feeder of movesInto(previous, kept[index]!.dueOn)) {
+          if (!kept.includes(feeder)) kept.push(feeder)
+        }
+      }
+      return kept.filter((move) => previous.stale.includes(move)).map(({ id }) => id)
     }),
   )
 }
