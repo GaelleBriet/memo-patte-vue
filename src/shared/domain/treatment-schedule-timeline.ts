@@ -259,11 +259,15 @@ export function movesInto(plan: PeriodTimeline, day: string): TreatmentDoseInput
 export function stayedKeys(plan: PeriodTimeline, move: TreatmentDoseInput): string[] {
   const kept = new Set([...plan.noteKeys, ...plan.covered])
   const arrived = new Set(arrivalDues(plan.period, move, plan.steps, kept).map(keyOf))
-  // Fermée par la période suivante, la journée d'origine ne garde plus ses heures sans prise.
-  const closedOut = isClosedOut(move, plan.closesOn)
+  // Fermée par la période suivante, la journée d'origine ne garde plus ses heures encore à donner.
+  const orphans = isClosedOut(move, plan.closesOn)
+    ? new Set(
+        pendingDues({ ...plan, closesOn: null }, { from: move.dueOn, to: move.dueOn }).map(keyOf),
+      )
+    : new Set<string>()
   return dayDues(plan.period, [move.nextDueDate])
     .filter(({ dueTime }) => !arrived.has(keyOf({ dueOn: move.nextDueDate, dueTime })))
-    .filter(({ dueTime }) => !closedOut || kept.has(keyOf({ dueOn: move.dueOn, dueTime })))
+    .filter(({ dueTime }) => !orphans.has(keyOf({ dueOn: move.dueOn, dueTime })))
     .map(keyOf)
 }
 

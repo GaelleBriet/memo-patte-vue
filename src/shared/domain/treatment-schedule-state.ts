@@ -130,14 +130,15 @@ function keepsFrequency(previous: TreatmentPeriodInput, period: TreatmentPeriodI
 }
 
 // G25 : les heures qu'un report seul a laissées derrière lui au premier jour de la période ; heures
-// changées, il en couvre autant parmi les premières du nouveau réglage (G4).
+// changées, les doses reportées prennent les dernières heures du nouveau réglage.
 function stayedOnFirstDay(previous: PeriodTimeline, period: TreatmentPeriodInput): string[] {
   const day = period.firstDueOn
   const stayed = new Set(movesInto(previous, day).flatMap((move) => stayedKeys(previous, move)))
-  if (sameTimes(previous.period, period)) return [...stayed]
+  if (stayed.size === 0 || sameTimes(previous.period, period)) return [...stayed]
+  const carried = Math.max(1, previous.period.times.length) - stayed.size
   return [...period.times]
     .sort(compareOrdinal)
-    .slice(0, stayed.size)
+    .slice(0, Math.max(0, period.times.length - carried))
     .map((dueTime) => keyOf({ dueOn: day, dueTime }))
 }
 

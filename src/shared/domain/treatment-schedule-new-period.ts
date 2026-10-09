@@ -155,7 +155,8 @@ function partialArrivalStart(
   const { value, unit } = open.period.frequency
   if (value !== frequency.value || unit !== frequency.unit) return undefined
   const next = state.currentDoses[0]?.dueOn
-  if (next === undefined || next < startsOn || !isHeldDay(open, next)) return undefined
+  if (next === undefined || next < startsOn || open.noteDays.has(next)) return undefined
+  if (!isHeldDay(open, next)) return undefined
   const partial = movesInto(open, next).some((move) => stayedKeys(open, move).length > 0)
   return partial ? keptStart(state, open, startsOn, next) : undefined
 }
