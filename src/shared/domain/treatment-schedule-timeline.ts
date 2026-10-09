@@ -255,8 +255,17 @@ export function movesInto(plan: PeriodTimeline, day: string): TreatmentDoseInput
   return [...live, ...closedOut].filter((move) => move.nextDueDate === day && move.dueOn !== day)
 }
 
+function isGridDay(plan: PeriodTimeline, day: string): boolean {
+  const dues = sequenceDues(sequenceAt(plan, positionOf(`${day} `, 0)), plan.period, day)
+  let due = dues.next().value
+  while (due.dueOn < day) due = dues.next().value
+  return due.dueOn === day
+}
+
 /** G25 : les heures du jour d'arrivée de ce report qu'il n'a pas emportées (seul, sans décalage). */
 export function stayedKeys(plan: PeriodTimeline, move: TreatmentDoseInput): string[] {
+  // Un jour de la grille garde ses propres heures : rien n'y reste en arrière.
+  if (isGridDay(plan, move.nextDueDate)) return []
   const kept = new Set([...plan.noteKeys, ...plan.covered])
   const arrived = new Set(arrivalDues(plan.period, move, plan.steps, kept).map(keyOf))
   // Fermée par la période suivante, la journée d'origine ne garde plus ses heures encore à donner.
