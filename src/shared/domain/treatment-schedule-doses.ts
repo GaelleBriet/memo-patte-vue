@@ -4,6 +4,7 @@ import { isClockTime } from './clock-time'
 import { MAX_DUES, checkPastDay, invalid } from './treatment-schedule-checks'
 import { compareOrdinal, nextDay, previousDay, toDate } from './calendar-day'
 import { DAYS_PER_STEP, shiftDate } from './treatment-frequency'
+import { hasSeveralDoseTimes } from './treatment-periods'
 import {
   dueId,
   dueOf,
@@ -200,7 +201,7 @@ function checkKnown(known: () => Set<string>, due: Due): void {
 // donnée en avance couvre son échéance (G10).
 function isExtra(state: State, due: Due, givenOn: string): boolean {
   const { frequency, times } = planOf(state, due.periodId).period
-  return times.length <= 1 && shiftDate(givenOn, frequency, 1) <= due.dueOn
+  return !hasSeveralDoseTimes(times) && shiftDate(givenOn, frequency, 1) <= due.dueOn
 }
 
 // Sa prochaine dose est la première échéance sans prise après elle : le calendrier ne bouge pas.
@@ -219,7 +220,7 @@ function extraFor(state: State, due: Due, givenOn: string): NotedDose {
 // Le dernier jour d'où une prise de cette échéance serait un intervalle ou plus en avance.
 function lastExtraDayOf(state: State, line: TreatmentDoseInput): string | null {
   const { frequency, times } = planOf(state, line.periodId).period
-  if (times.length > 1) return null
+  if (hasSeveralDoseTimes(times)) return null
   let day = shiftDate(line.dueOn, frequency, -1)
   while (shiftDate(nextDay(day), frequency, 1) <= line.dueOn) day = nextDay(day)
   return day
