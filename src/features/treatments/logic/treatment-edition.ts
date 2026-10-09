@@ -171,6 +171,10 @@ function proposalHelp(
   }
   const calculatedOn = calculatedFirstDue(history, rhythm)
   if (calculatedOn === proposedOn) return { kind: 'calculated', on: proposedOn }
+  // G24 : la journée à venir entamée en avance reste la prochaine dose.
+  if (proposedOn > today && schedule.currentDoses[0]?.dueOn === proposedOn) {
+    return { kind: 'scheduled', on: proposedOn }
+  }
   return calculatedOn !== null && calculatedOn < today && proposedOn === today
     ? { kind: 'calculated-passed', on: calculatedOn }
     : todayHelp

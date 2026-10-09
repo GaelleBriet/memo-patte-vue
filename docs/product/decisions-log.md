@@ -2259,6 +2259,18 @@ un réglage qui ne touche ni la fréquence ni les heures ne doit pas faire gliss
 dire (principe 1). — Alternative écartée : faire repartir la suite du jour reporté (4, 6, 8), le
 comportement d'avant.
 
+2026-10-09 — **Heures ou fréquence changées : une dose déjà donnée compte** (Gaelle, réponse 1 du
+bilan de la nuit, #711 ; règle G24 de la spec Traitements, qui étend Q24 et G22). Le nouveau réglage
+s'applique à partir de la dose suivante pas encore donnée. Métacam tous les 2 jours à 8 h et 20 h,
+8 h du 3 donnée en avance le 2, heures passées à 9 h et 21 h : il ne reste que 21 h le 3 (l'app
+demandait 9 h et 21 h, risque de double dose le matin) ; fréquence passée à tous les 3 jours : 20 h
+le 3, puis le 6. Quand les heures ne changent pas, chaque prise couvre son heure, même si la
+fréquence change. Une journée dont les prises couvrent déjà toutes les heures du nouveau réglage
+n'ouvre pas la période, et une prise qui a décalé la suite compte à sa date réelle (Q8). — Raison :
+le carnet ne redemande jamais une dose donnée (principe 1). —
+Alternative écartée : la journée entière au nouveau réglage, ou la dernière prise plus la nouvelle
+fréquence (le 20 h du 3 disparaissait).
+
 2026-10-09 — **Vitrine de `memopatte.app` refaite avec Gaelle** :
 - accroche « Plus aucun soin oublié pour tes chiens et chats. », plus courte et tournée vers le
   bénéfice ; la phrase de définition reste dessous pour Google et les IA ;

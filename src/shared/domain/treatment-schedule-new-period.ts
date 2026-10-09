@@ -15,7 +15,7 @@ import {
   shiftOn,
 } from './treatment-schedule-timeline'
 import { dueOf, uniqueSorted } from './treatment-schedule-dues'
-import { notedOn } from './treatment-schedule-state'
+import { notedOn, startedAheadOn } from './treatment-schedule-state'
 import type {
   Due,
   Frequency,
@@ -151,7 +151,8 @@ export function newPeriod(state: State, frequency: Frequency, times: readonly st
   const { today } = state.input
   const startsOn = latestOf([today, state.plans.at(-1)?.period.startsOn]) ?? today
   const periods = state.plans.map(({ period }) => period)
-  const noted = notedOn(startsOn, periods, mergeDoses(state.input.doses))
+  const doses = mergeDoses(state.input.doses)
+  const noted = notedOn(startsOn, periods, doses)
   const { open } = state
   const dueToday = state.currentDoses.some((due) => due.dueOn === today)
   const fromStart = (noted > 0 && noted < times.length) || (noted === 0 && dueToday)
@@ -164,7 +165,21 @@ export function newPeriod(state: State, frequency: Frequency, times: readonly st
     if (start !== undefined) return { startsOn, ...start }
   }
   if (fromStart) return { startsOn, firstDueOn: startsOn, referenceOn: startsOn }
+  // G24 : une journée à venir entamée en avance, pas entièrement couverte, garde ses prises ; le
+  // nouveau réglage part d'elle.
+  const next = state.currentDoses[0]?.dueOn
+  const started = next === undefined ? 0 : startedAheadOn(next, periods, doses)
+  if (!kept && next !== undefined && next > startsOn && started > 0) {
+    if (started < Math.max(1, times.length)) {
+      return { startsOn, firstDueOn: next, referenceOn: shiftDate(next, frequency, -1) }
+    }
+  }
   const proposed = scheduled ?? lastReference(state, frequency) ?? startsOn
   const firstDueOn = proposed > startsOn ? proposed : startsOn
-  return { startsOn, firstDueOn, referenceOn: firstDueOn }
+  // Q8 : la journée de départ qui a décalé la suite ne couvre rien ; un jour de référence un pas
+  // après elle le marque, sans changer la grille.
+  const refixed =
+    !kept && firstDueOn === startsOn && noted > 0 && startedAheadOn(startsOn, periods, doses) === 0
+  const referenceOn = refixed ? shiftDate(firstDueOn, frequency, 1) : firstDueOn
+  return { startsOn, firstDueOn, referenceOn }
 }

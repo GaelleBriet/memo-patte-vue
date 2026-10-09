@@ -1642,6 +1642,69 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
     ).toMatchObject({ proposedOn: '2026-10-03', help: { kind: 'scheduled', on: '2026-10-03' } })
   })
 
+  it.each([
+    ['les heures passent à 9 h et 21 h', { times: ['09:00', '21:00'] }, '2026-10-01'],
+    [
+      'la fréquence passe à tous les 3 jours',
+      { frequency: { value: 3, unit: 'day' as const } },
+      '2026-09-30',
+    ],
+  ])(
+    'tous les 2 jours à 8 h et 20 h, 8 h du 3 donnée le 2, %s le 2 : prochaine dose le 3 (G24, #711)',
+    (_, changes, referenceOn) => {
+      const matinEtSoir = period({
+        startsOn: '2026-10-01',
+        firstDueOn: '2026-10-01',
+        frequency: { value: 2, unit: 'day' },
+        times: ['08:00', '20:00'],
+      })
+      const prise = (id: string, dueOn: string, dueTime: string, givenOn: string) =>
+        dose({ id, dueOn, dueTime, givenOn, nextDueDate: '2026-10-03' })
+      const history = treatment(
+        [matinEtSoir],
+        [
+          prise('a', '2026-10-01', '08:00', '2026-10-01'),
+          prise('b', '2026-10-01', '20:00', '2026-10-01'),
+          prise('c', '2026-10-03', '08:00', '2026-10-02'),
+        ],
+      )
+      const saisie711 = saisie(history, changes)
+
+      expect(editionDraft(history, saisie711, '2026-10-02').nextDose).toMatchObject({
+        proposedOn: '2026-10-03',
+        help: { kind: 'scheduled', on: '2026-10-03' },
+      })
+      expect(editionPlan(history, saisie711, '2026-10-02', IDS).period).toMatchObject({
+        action: 'open',
+        referenceOn,
+        settings: { startsOn: '2026-10-02', firstDueOn: '2026-10-03' },
+      })
+    },
+  )
+
+  it('tous les 2 jours à 8 h et 20 h, 8 h du 3 donnée le 2, heure passée à 9 h seule : prochaine dose le 5 (G24)', () => {
+    const matinEtSoir = period({
+      startsOn: '2026-10-01',
+      firstDueOn: '2026-10-01',
+      frequency: { value: 2, unit: 'day' },
+      times: ['08:00', '20:00'],
+    })
+    const prise = (id: string, dueOn: string, dueTime: string, givenOn: string) =>
+      dose({ id, dueOn, dueTime, givenOn, nextDueDate: '2026-10-03' })
+    const history = treatment(
+      [matinEtSoir],
+      [
+        prise('a', '2026-10-01', '08:00', '2026-10-01'),
+        prise('b', '2026-10-01', '20:00', '2026-10-01'),
+        prise('c', '2026-10-03', '08:00', '2026-10-02'),
+      ],
+    )
+
+    expect(
+      editionDraft(history, saisie(history, { times: ['09:00'] }), '2026-10-02').nextDose,
+    ).toMatchObject({ proposedOn: '2026-10-05', help: { kind: 'calculated', on: '2026-10-05' } })
+  })
+
   it.each(['2026-10-02', '2026-10-04'])(
     'tous les 2 jours, dose du 3 reportée seule au 4, posologie changée le %s : prochaine dose le 4, puis 5 et 7 (G23, #692)',
     (today) => {
