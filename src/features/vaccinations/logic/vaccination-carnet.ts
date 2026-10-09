@@ -1,7 +1,7 @@
 import { vaccinationStatus } from './vaccination-status'
 import type { Vaccination } from '../schema/vaccination.schema'
 import { overdueDays } from '@/shared/domain/due-delay'
-import { reminderIcon } from '@/shared/domain/reminders'
+import { buildReminders, reminderIcon, type ReminderCounts } from '@/shared/domain/reminders'
 import { formatDayMonthOrYear, formatLongDate } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
@@ -22,6 +22,26 @@ export function carnetVaccinationRow(
   options: { followed?: boolean } = {},
 ): CarnetVaccinationRow {
   return { icon: reminderIcon('vaccination', null), ...statusOf(t, vaccination, today, options) }
+}
+
+/** Rappels de vaccins que la section annonce au Carnet ; aucun pour un animal qu'on ne suit plus. */
+export function carnetVaccinationsSummary(
+  vaccinations: readonly Pick<Vaccination, 'id' | 'animalId' | 'name' | 'dueDate'>[],
+  today: string,
+  { followed = true }: { followed?: boolean } = {},
+): ReminderCounts {
+  if (!followed) return { total: 0, overdue: 0 }
+  const { total, overdue } = buildReminders(
+    vaccinations.map((vaccination) => ({
+      kind: 'vaccination' as const,
+      id: vaccination.id,
+      animalId: vaccination.animalId,
+      label: vaccination.name,
+      dueDate: vaccination.dueDate,
+    })),
+    { today },
+  )
+  return { total, overdue }
 }
 
 function statusOf(

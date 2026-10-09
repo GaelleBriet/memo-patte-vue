@@ -11,6 +11,7 @@ import { useRouter } from 'vue-router'
 
 import {
   carnetVaccinationRow,
+  carnetVaccinationsSummary,
   type CarnetVaccinationBadgeStatus,
 } from '../logic/vaccination-carnet'
 import { byDueDate } from '../logic/vaccination-status'
@@ -19,7 +20,6 @@ import DueStatusChip from '@/shared/components/DueStatusChip.vue'
 import ListRowIcon from '@/shared/components/ListRowIcon.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import { useAnimalScopedLoad } from '@/shared/composables/use-animal-scoped-load'
-import { buildReminders } from '@/shared/domain/reminders'
 
 const BADGE_ICONS: Partial<Record<CarnetVaccinationBadgeStatus, string>> = {
   overdue: 'ms:error',
@@ -71,20 +71,9 @@ const rows = computed(() =>
   })),
 )
 
-const summary = computed<VaccinationsSummary>(() => {
-  if (!props.followed) return { total: 0, overdue: 0 }
-  const { total, overdue } = buildReminders(
-    vaccinations.value.map((vaccination) => ({
-      kind: 'vaccination',
-      id: vaccination.id,
-      animalId: vaccination.animalId,
-      label: vaccination.name,
-      dueDate: vaccination.dueDate,
-    })),
-    { today: props.today },
-  )
-  return { total, overdue }
-})
+const summary = computed<VaccinationsSummary>(() =>
+  carnetVaccinationsSummary(vaccinations.value, props.today, { followed: props.followed }),
+)
 
 watch(summary, (value) => emit('summary', value), { immediate: true })
 
