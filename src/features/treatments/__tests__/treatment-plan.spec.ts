@@ -1643,11 +1643,15 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
   })
 
   it.each([
-    ['les heures passent à 9 h et 21 h', { times: ['09:00', '21:00'] }],
-    ['la fréquence passe à tous les 3 jours', { frequency: { value: 3, unit: 'day' as const } }],
+    ['les heures passent à 9 h et 21 h', { times: ['09:00', '21:00'] }, '2026-10-01'],
+    [
+      'la fréquence passe à tous les 3 jours',
+      { frequency: { value: 3, unit: 'day' as const } },
+      '2026-09-30',
+    ],
   ])(
     'tous les 2 jours à 8 h et 20 h, 8 h du 3 donnée le 2, %s le 2 : prochaine dose le 3 (G24, #711)',
-    (_, changes) => {
+    (_, changes, referenceOn) => {
       const matinEtSoir = period({
         startsOn: '2026-10-01',
         firstDueOn: '2026-10-01',
@@ -1672,7 +1676,7 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
       })
       expect(editionPlan(history, saisie711, '2026-10-02', IDS).period).toMatchObject({
         action: 'open',
-        referenceOn: '2026-10-03',
+        referenceOn,
         settings: { startsOn: '2026-10-02', firstDueOn: '2026-10-03' },
       })
     },

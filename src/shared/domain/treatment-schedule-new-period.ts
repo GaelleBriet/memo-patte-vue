@@ -163,19 +163,16 @@ export function newPeriod(state: State, frequency: Frequency, times: readonly st
     if (start !== undefined) return { startsOn, ...start }
   }
   if (fromStart) return { startsOn, firstDueOn: startsOn, referenceOn: startsOn }
-  // G24 : une journée à venir entamée en avance, et pas entièrement couverte, garde ses prises ; le
+  // G24 : une journée à venir entamée en avance, pas entièrement couverte, garde ses prises ; le
   // nouveau réglage part d'elle.
   const next = state.currentDoses[0]?.dueOn
   const started = next === undefined ? 0 : startedAheadOn(next, periods, doses)
   if (!kept && next !== undefined && next > startsOn && started > 0) {
-    if (started < Math.max(1, times.length))
-      return { startsOn, firstDueOn: next, referenceOn: next }
+    if (started < Math.max(1, times.length)) {
+      return { startsOn, firstDueOn: next, referenceOn: shiftDate(next, frequency, -1) }
+    }
   }
   const proposed = scheduled ?? lastReference(state, frequency) ?? startsOn
-  let firstDueOn = proposed > startsOn ? proposed : startsOn
-  // G1, G24 : une journée déjà couverte par des prises en avance ne reste pas la première échéance.
-  while (!kept && startedAheadOn(firstDueOn, periods, doses) >= Math.max(1, times.length)) {
-    firstDueOn = shiftDate(firstDueOn, frequency, 1)
-  }
+  const firstDueOn = proposed > startsOn ? proposed : startsOn
   return { startsOn, firstDueOn, referenceOn: firstDueOn }
 }

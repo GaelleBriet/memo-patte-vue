@@ -188,7 +188,7 @@ function isKnownLimit(before: string, after: string, frequency: Frequency): bool
 }
 
 // Q8 : une ligne de décalage, sur son échéance ou sur celle de la dose qu'elle a avancée (G18),
-// ancrée à la date réelle de la prise.
+// ancrée à la date réelle de la prise : toute sa journée compte alors à cette date.
 function refixesSuite(note: TreatmentDoseInput, doses: readonly TreatmentDoseInput[]): boolean {
   if (note.givenOn === null || note.givenOn === note.dueOn) return false
   const origins = doses
@@ -1344,6 +1344,8 @@ class Simulation {
     const previous = this.book.periods.at(-2)
     if (previous === undefined || rhythmKey(previous) === rhythmKey(period)) return
     if (period.firstDueOn < this.book.today) return
+    // §11 : avant le début du traitement, la journée de départ suit Q24 même si elle a décalé la suite.
+    if (period.startsOn > this.book.today) return
     const first = pendingOf(after).find((due) => due.periodId === period.id)
     if (first !== undefined && first.dueOn > period.firstDueOn) {
       this.fail(`${gesture} : première dose le ${first.dueOn}, après le ${period.firstDueOn}`)
@@ -1408,13 +1410,11 @@ class Simulation {
     if (previous === undefined || day === undefined || day <= this.book.today) return
     const kept = rhythmKey(previous) === rhythmKey(period)
     // Q8 : rythme changé, une prise qui a décalé la suite compte à sa date réelle.
-    const noted = before.doses.filter(
-      (dose) =>
-        isNote(dose) &&
-        dose.dueOn === day &&
-        !stopped.has(dose.periodId) &&
-        (kept || !refixesSuite(dose, before.doses)),
-    ).length
+    const ofDay = before.doses.filter(
+      (dose) => isNote(dose) && dose.dueOn === day && !stopped.has(dose.periodId),
+    )
+    const refixed = !kept && ofDay.some((dose) => refixesSuite(dose, before.doses))
+    const noted = refixed ? 0 : ofDay.length
     if (noted === 0) return
     if (!kept && noted >= Math.max(1, period.times.length)) return
     if (!kept && period.firstDueOn !== day) {

@@ -3925,7 +3925,7 @@ describe('heures ou fréquence changées : une dose déjà donnée compte, le no
     expect(dates).toEqual({
       startsOn: '2026-10-02',
       firstDueOn: '2026-10-03',
-      referenceOn: '2026-10-03',
+      referenceOn: '2026-10-01',
     })
     expect(schedule.upcoming(3)).toEqual([
       due('2026-10-03', '21:00', 'p2'),
@@ -3979,8 +3979,9 @@ describe('heures ou fréquence changées : une dose déjà donnée compte, le no
     expect(dueDays(schedule.upcoming(2))).toEqual(['2026-10-04', '2026-10-05'])
   })
 
-  it('Doses du 1er à 8 h et 20 h données le 30 sept., la dernière avec décalage, tous les jours à 20 h le 30 : le 1er est couvert, prochaine dose le 2', () => {
-    let book = carnet(monthly({ startsOn: '2026-10-01', firstDueOn: '2026-10-01', times }))
+  it('Doses du 1er à 8 h et 20 h données le 30 sept., la dernière avec décalage, tous les jours à 20 h le 30 : la suite est repartie du 30, le 1er reste à donner (Q8)', () => {
+    let book = carnet(monthly({ firstDueOn: '2026-09-01', times }))
+    book = done(done(book, '2026-09-01'), '2026-09-01')
     for (const time of ['08:00', '20:00']) {
       book = record(book, '2026-09-30', {
         kind: 'given',
@@ -3993,8 +3994,8 @@ describe('heures ou fréquence changées : une dose déjà donnée compte, le no
     const dates = scheduleOf(book, '2026-09-30').newPeriod(daily, ['20:00'])
     const changed = withPeriod(book, { ...dates, frequency: daily, times: ['20:00'] })
 
-    expect(dates.firstDueOn).toBe('2026-10-02')
-    expect(dueDays(scheduleOf(changed, '2026-09-30').upcoming(1))).toEqual(['2026-10-02'])
+    expect(dates.firstDueOn).toBe('2026-10-01')
+    expect(dueDays(scheduleOf(changed, '2026-09-30').upcoming(1))).toEqual(['2026-10-01'])
   })
 
   it('tous les 3 jours à 9 h, dose du 4 donnée le 2 avec décalage, tous les 2 jours le 3 : prochaine dose le 4 (Q8)', () => {
@@ -4033,6 +4034,81 @@ describe('heures ou fréquence changées : une dose déjà donnée compte, le no
       due('2026-10-08', '08:00', 'p2'),
       due('2026-10-11', '08:00', 'p2'),
     ])
+  })
+
+  it('tous les 2 jours à 8 h, dose du 5 donnée le 4 avec décalage, le 5 tous les 3 jours à 8 h et 20 h : reste 20 h le 5 (Q24)', () => {
+    let book = carnet(period({ firstDueOn: '2026-10-01', frequency: twoDays, times: ['08:00'] }))
+    book = done(done(book, '2026-10-01'), '2026-10-03')
+    book = record(book, '2026-10-04', {
+      kind: 'given',
+      due: due('2026-10-05', '08:00'),
+      givenOn: '2026-10-04',
+      shiftsFollowing: true,
+    })
+    const dates = scheduleOf(book, '2026-10-05').newPeriod(threeDays, times)
+    const changed = withPeriod(book, { ...dates, frequency: threeDays, times })
+
+    expect(scheduleOf(changed, '2026-10-05').upcoming(2)).toEqual([
+      due('2026-10-05', '20:00', 'p2'),
+      due('2026-10-08', '08:00', 'p2'),
+    ])
+  })
+
+  describe('tous les 3 jours à 8 h et 20 h, 8 h et 20 h du 4 données le 2, le 20 h avec décalage (Q8)', () => {
+    let book = carnet(period({ firstDueOn: '2026-10-01', frequency: threeDays, times }))
+    book = done(done(book, '2026-10-01'), '2026-10-01')
+    book = record(book, '2026-10-02', {
+      kind: 'given',
+      due: due('2026-10-04', '08:00'),
+      givenOn: '2026-10-02',
+      shiftsFollowing: false,
+    })
+    book = record(book, '2026-10-02', {
+      kind: 'given',
+      due: due('2026-10-04', '20:00'),
+      givenOn: '2026-10-02',
+      shiftsFollowing: true,
+    })
+    const changedOn = (newTimes: string[]) => {
+      const dates = scheduleOf(book, '2026-10-03').newPeriod(twoDays, newTimes)
+      const changed = withPeriod(book, { ...dates, frequency: twoDays, times: newTimes })
+      return scheduleOf(changed, '2026-10-03').upcoming(2)
+    }
+
+    it('tous les 2 jours le 3 : la journée a décalé la suite, le 4 entier reste à donner', () => {
+      expect(changedOn(times)).toEqual([
+        due('2026-10-04', '08:00', 'p2'),
+        due('2026-10-04', '20:00', 'p2'),
+      ])
+    })
+
+    it('tous les 2 jours à 8 h le 3 : prochaine dose le 4', () => {
+      expect(dueDays(changedOn(['08:00']))).toEqual(['2026-10-04', '2026-10-06'])
+    })
+  })
+
+  it('hebdomadaire à 8 h, 14 h et 20 h, 8 h du 8 donnée le 2, puis la suite décalée au 3 : tous les 3 jours, la journée reprise entière', () => {
+    const three = ['08:00', '14:00', '20:00']
+    let book = carnet(weekly({ firstDueOn: '2026-10-01', times: three }))
+    book = done(done(book, '2026-10-01'), '2026-10-01')
+    book = record(book, '2026-10-02', {
+      kind: 'given',
+      due: due('2026-10-08', '08:00'),
+      givenOn: '2026-10-02',
+      shiftsFollowing: false,
+    })
+    book = record(book, '2026-10-03', {
+      kind: 'given',
+      due: due('2026-10-01', '20:00'),
+      givenOn: '2026-10-03',
+      shiftsFollowing: true,
+    })
+    const dates = scheduleOf(book, '2026-10-03').newPeriod(threeDays, three)
+    const changed = withPeriod(book, { ...dates, frequency: threeDays, times: three })
+
+    expect(scheduleOf(changed, '2026-10-03').upcoming(3)).toEqual(
+      three.map((time) => due(dates.firstDueOn, time, 'p2')),
+    )
   })
 
   it('quotidien à 8 h et 20 h, 20 h du 2 donnée la première, tous les 2 jours le 2 : la prise couvre le 20 h, le 8 h du 2 reste', () => {

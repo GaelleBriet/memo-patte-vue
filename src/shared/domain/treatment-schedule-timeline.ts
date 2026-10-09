@@ -146,19 +146,16 @@ export function coveredKeys(
   period: TreatmentPeriodInput,
   previous: TreatmentPeriodInput | undefined,
   earlierNotes: readonly TreatmentDoseInput[],
-  refixing: ReadonlySet<TreatmentDoseInput>,
 ): Set<string> {
   const keepsRhythm = previous !== undefined && sameRhythm(previous, period)
   const keepsTimes = previous !== undefined && sameTimes(previous, period)
   const times = period.times.length === 0 ? [null] : [...period.times].sort(compareOrdinal)
   const days = keepsRhythm
     ? uniqueDays(earlierNotes.filter(({ dueOn }) => dueOn >= period.startsOn))
-    : [period.firstDueOn]
+    : startedDays(period)
   return new Set(
     days.flatMap((day) => {
-      const ofDay = earlierNotes.filter(
-        (note) => note.dueOn === day && (keepsRhythm || !refixing.has(note)),
-      )
+      const ofDay = earlierNotes.filter(({ dueOn }) => dueOn === day)
       const exact = keepsTimes
         ? times.filter((time) => ofDay.some(({ dueTime }) => dueTime === time))
         : []
@@ -169,33 +166,11 @@ export function coveredKeys(
   )
 }
 
-// Q8 : une prise qui a décalé la suite compte à sa date réelle : la ligne de décalage de son
-// échéance, ou de celle de la dose qu'elle a avancée (G18), est ancrée à cette date.
-export function refixingNotes(doses: readonly TreatmentDoseInput[]): Set<TreatmentDoseInput> {
-  const anchoredOn = (note: TreatmentDoseInput, dueOn: string) =>
-    doses.some(
-      (dose) =>
-        isShiftLine(dose) &&
-        dose.periodId === note.periodId &&
-        dose.dueOn === dueOn &&
-        (dueOn !== note.dueOn || dose.dueTime === note.dueTime) &&
-        dose.nextDueDate === note.givenOn,
-    )
-  const origins = (note: TreatmentDoseInput) =>
-    doses
-      .filter(
-        (dose) =>
-          familyOf(dose) === 'move' &&
-          dose.periodId === note.periodId &&
-          dose.nextDueDate === note.dueOn,
-      )
-      .map(({ dueOn }) => dueOn)
-  return new Set(
-    doses
-      .filter(isNoteLine)
-      .filter((note) => note.givenOn !== null && note.givenOn !== note.dueOn)
-      .filter((note) => [note.dueOn, ...origins(note)].some((day) => anchoredOn(note, day))),
-  )
+// G24 : un jour de référence avant la première échéance marque la journée entamée en avance qui
+// ouvre la période, à rythme changé.
+function startedDays(period: TreatmentPeriodInput): string[] {
+  if (period.firstDueOn === period.startsOn) return [period.startsOn]
+  return period.referenceOn < period.firstDueOn ? [period.firstDueOn] : []
 }
 
 function uniqueDays(doses: readonly TreatmentDoseInput[]): string[] {

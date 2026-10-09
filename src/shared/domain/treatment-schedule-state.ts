@@ -3,6 +3,7 @@ import { nextDay, previousDay } from './calendar-day'
 import { dueId, sameDue } from './treatment-schedule-dues'
 import {
   closingDay,
+  familyOf,
   isExtraLine,
   isNoteLine,
   isShiftLine,
@@ -12,7 +13,6 @@ import {
   orderPeriods,
   pendingDues,
   coveredKeys,
-  refixingNotes,
   planPeriod,
 } from './treatment-schedule-timeline'
 import type {
@@ -64,16 +64,41 @@ export function notedOn(
   return notesSinceLastStop(earlier, doses).filter((dose) => dose.dueOn === day).length
 }
 
-// G24 : les prises d'une journée à venir qui n'ont pas décalé la suite (Q8).
+// Q8 : une prise qui a décalé la suite (la ligne de décalage de son échéance, ou de la dose qu'elle a
+// avancée, G18, est ancrée à sa date réelle) compte à cette date, et toute sa journée avec elle.
+function refixesDay(doses: TreatmentDoseInput[], periodId: string, day: string): boolean {
+  const origins = doses
+    .filter(
+      (dose) => familyOf(dose) === 'move' && dose.periodId === periodId && dose.nextDueDate === day,
+    )
+    .map(({ dueOn }) => dueOn)
+  return doses.some(
+    (note) =>
+      isNoteLine(note) &&
+      note.periodId === periodId &&
+      note.dueOn === day &&
+      note.givenOn !== null &&
+      note.givenOn !== day &&
+      doses.some(
+        (shift) =>
+          isShiftLine(shift) &&
+          shift.periodId === periodId &&
+          shift.nextDueDate === note.givenOn &&
+          ((shift.dueOn === day && shift.dueTime === note.dueTime) ||
+            origins.includes(shift.dueOn)),
+      ),
+  )
+}
+
+// G24 : les prises d'une journée à venir donnée en partie en avance, sauf si elle a décalé la suite.
 export function startedAheadOn(
   day: string,
   earlier: TreatmentPeriodInput[],
   doses: TreatmentDoseInput[],
 ): number {
-  const refixing = refixingNotes(doses)
-  return notesSinceLastStop(earlier, doses).filter(
-    (dose) => dose.dueOn === day && !refixing.has(dose),
-  ).length
+  const notes = notesSinceLastStop(earlier, doses).filter((dose) => dose.dueOn === day)
+  const refixed = notes.some(({ periodId }) => refixesDay(doses, periodId, day))
+  return refixed ? 0 : notes.length
 }
 
 export function build(input: TreatmentScheduleInput): State {
@@ -81,18 +106,12 @@ export function build(input: TreatmentScheduleInput): State {
   const periods = orderPeriods(input.periods)
   // Une prise en plus ne change jamais le calendrier : le moteur ne la lit pas.
   const doses = mergeDoses(input.doses).filter((dose) => !isExtraLine(dose))
-  const refixing = refixingNotes(doses)
   const plans = periods.map((period, index) =>
     planPeriod(
       period,
       closingDay(period, periods[index + 1]),
       doses.filter((dose) => dose.periodId === period.id),
-      coveredKeys(
-        period,
-        periods[index - 1],
-        notesSinceLastStop(periods.slice(0, index), doses),
-        refixing,
-      ),
+      coveredKeys(period, periods[index - 1], notesSinceLastStop(periods.slice(0, index), doses)),
     ),
   )
   const current = plans.at(-1)
