@@ -44,14 +44,34 @@ jobs:
       - name: Type-check
         run: pnpm type-check
 
-      - name: Unit tests
-        run: pnpm exec vitest run
-
+      # Type-check fait juste au-dessus : `build-only` plutôt que `build`, qui le relancerait.
       - name: Build
-        run: pnpm build
+        run: pnpm build-only
 
       - name: Pas d'outils de dev dans le build (fixtures, SQLite du navigateur)
         run: pnpm test:build
+
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Unit tests (${{ matrix.shard }}/3)
+        run: pnpm exec vitest run --shard=${{ matrix.shard }}/3
 
   fuseaux:
     runs-on: ubuntu-latest
