@@ -54,6 +54,14 @@ describe.each(Object.entries(pages))('ouverture de la préinscription en %s', (l
     expect(home).toContain(page.answer)
   })
 
+  it('met à jour la même réponse dans les données structurées', () => {
+    const blocks = [...home.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)]
+    const faq = blocks.map((m) => JSON.parse(m[1])).find((block) => block['@type'] === 'FAQPage')
+    const answer = faq.mainEntity[0].acceptedAnswer.text.replace(/\u00a0/g, ' ')
+    expect(answer).toContain(page.answer)
+    expect(answer).not.toMatch(/annoncée ici|announced here/)
+  })
+
   it('passe à une image de partage qui existe, de 1200 × 630, et à sa description', () => {
     const image = metaContent(home, 'og:image') ?? ''
     expect(image).toBe(`${SITE_URL}/img/og-preinscription-${lang}.png`)

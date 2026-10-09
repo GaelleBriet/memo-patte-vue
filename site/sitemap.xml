@@ -13,6 +13,54 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/" />
   </url>
   <url>
+    <loc>https://memopatte.app/rappel-vermifuge/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/rappel-vermifuge/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/dewormer-reminder/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/rappel-vermifuge/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/en/dewormer-reminder/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/rappel-vermifuge/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/dewormer-reminder/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/rappel-vermifuge/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/rappel-antiparasitaire/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/rappel-antiparasitaire/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/parasite-control-reminder/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/rappel-antiparasitaire/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/en/parasite-control-reminder/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/rappel-antiparasitaire/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/parasite-control-reminder/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/rappel-antiparasitaire/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/carnet-vaccination/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/carnet-vaccination/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/vaccine-record/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/carnet-vaccination/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/en/vaccine-record/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/carnet-vaccination/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/vaccine-record/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/carnet-vaccination/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/plusieurs-animaux/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/plusieurs-animaux/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/multiple-pets/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/plusieurs-animaux/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/en/multiple-pets/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/plusieurs-animaux/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/multiple-pets/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/plusieurs-animaux/" />
+  </url>
+  <url>
     <loc>https://memopatte.app/aide/</loc>
     <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/aide/" />
     <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/help/" />
