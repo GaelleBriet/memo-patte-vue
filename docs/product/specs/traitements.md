@@ -355,14 +355,14 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     les 2 jours (1, 3, 5, 7), dose du 3 reportée seule au 4, posologie passée de ½ comprimé à 1 le
     2, le 3 ou le 4 : 4, 5, 7 ; dose du 5 avancée seule au 4 : 4, 7, 9 ; dose du 5 avancée au 4 avec
     décalage : 4, 6, 8 ; hebdomadaire, dose du 8 avancée au 6 avec décalage : 6, 13, 20 ; mensuel du
-    31, dose du 28 févr. avancée seule au 25 : 25 févr., 31 mars, 30 avr. Une heure de ce jour donnée
-    en avance couvre son heure (G22) : à 8 h et 20 h, dose du 3 reportée seule au 4, 8 h du 4 donnée
-    le 2 : 20 h du 4, puis le 5. Les heures d'aujourd'hui reportées à un autre jour, seules ou avec décalage, y
-    restent, même quand une prise d'aujourd'hui est notée (TR-28, Q24 ne les ramène pas) : la
-    nouvelle période commence alors par la prochaine dose. Un report seul plus lointain part avec
-    l'ancienne période (§11) ; la grille, elle, reste : hebdomadaire, dose du 8 avancée seule au 6,
-    dose du 15 reportée seule au 17, posologie changée le 2 : 6, 15, 22. Pour décaler la
-    suite, la personne déplace elle-même la dose, case cochée (TR-9).
+    31, dose du 28 févr. avancée seule au 25 : 25 févr., 31 mars, 30 avr. Une heure de ce jour
+    donnée en avance couvre son heure (G22) : à 8 h et 20 h, dose du 3 reportée seule au 4, 8 h du 4
+    donnée le 2 : 20 h du 4, puis le 5. Les heures d'aujourd'hui reportées à un autre jour, seules
+    ou avec décalage, y restent, même quand une prise d'aujourd'hui est notée (TR-28, Q24 ne les
+    ramène pas) : la nouvelle période commence alors par la prochaine dose. Un report seul plus
+    lointain part avec l'ancienne période (§11) ; la grille, elle, reste : hebdomadaire, dose du 8
+    avancée seule au 6, dose du 15 reportée seule au 17, posologie changée le 2 : 6, 15, 22. Pour
+    décaler la suite, la personne déplace elle-même la dose, case cochée (TR-9).
 - **TR-29** Un autre produit est un nouveau traitement : arrêter l'ancien, créer le nouveau. (P9 Q2)
 - **TR-30** « Arrêter » : dialogue qui propose de renseigner les doses non renseignées (« Toutes
   données », « Choisir les jours », « Arrêter sans renseigner ») ; « Arrêté le … », plus aucune
@@ -843,6 +843,9 @@ G23 (#692). Reste :
   reportée seule au 17, posologie changée le 2 : 8, 15, 22, au lieu de 8, 17, 22 (avec décalage, 8,
   17, 24 est gardé). Un report plus lointain encore, même décalé, part aussi. Le garder demande de
   rattacher ses lignes à la nouvelle période.
+- Un calendrier de départ dont deux journées se suivent de plus près que la fréquence, puis hors
+  rythme (plusieurs déplacements combinés), ne se reprend pas tel quel : toutes les 6 semaines,
+  3 mai, 5 mai, 14 juin, posologie changée : 3 mai, 5 mai, 16 juin.
 - Mensuel du 30 ou du 31 dont la dose qui suit la prochaine tombe sur un jour borné : dose du
   30 janv. reportée seule au 4 févr., posologie changée : 4 févr., 28 févr., puis le 28 de chaque
   mois (28 mars, 28 avr.) au lieu du 30 (30 mars, 30 avr.).

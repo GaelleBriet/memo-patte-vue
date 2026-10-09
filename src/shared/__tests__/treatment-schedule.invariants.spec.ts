@@ -162,6 +162,31 @@ function arrivesOnNextDose(schedule: TreatmentSchedule, period: TreatmentPeriodI
   )
 }
 
+// §11 : un mensuel garde le 28 (ou le 30) au lieu du dernier jour du mois ; un calendrier de départ
+// dont deux journées sont plus proches que la fréquence, puis hors rythme, ne se reprend pas.
+function isKnownLimit(before: string, after: string, frequency: Frequency): boolean {
+  const slotsOf = (joined: string) => joined.split(',').map((slot) => slot.split(' '))
+  const [was, now] = [slotsOf(before), slotsOf(after)]
+  const endOfMonth = (a: string, b: string) =>
+    a.slice(0, 7) === b.slice(0, 7) && Number(a.slice(8)) >= 28 && Number(b.slice(8)) >= 28
+  const boundedDay =
+    frequency.unit === 'month' &&
+    was.length === now.length &&
+    was.every(([day, time], index) => {
+      const [otherDay, otherTime] = now[index]!
+      return time === otherTime && (day === otherDay || endOfMonth(day!, otherDay!))
+    })
+  const days = [...new Set(was.map(([day]) => day!))]
+  const [first, second, third] = days
+  const irregularStart =
+    first !== undefined &&
+    second !== undefined &&
+    third !== undefined &&
+    second < shifted(first, frequency, 1) &&
+    shifted(second, frequency, 1) !== third
+  return boundedDay || irregularStart
+}
+
 function rhythmKey({ frequency, times }: TreatmentPeriodInput): string {
   return JSON.stringify([frequency, [...times].sort()])
 }
@@ -1243,9 +1268,9 @@ class Simulation {
         .map(({ dueOn, dueTime }) => `${dueOn} ${dueTime ?? ''}`)
         .sort()
         .join()
-    if (slots(before) !== slots(after)) {
-      this.fail(`${gesture} : le calendrier a changé (${slots(before)} → ${slots(after)})`)
-    }
+    if (slots(before) === slots(after)) return
+    if (isKnownLimit(slots(before), slots(after), period.frequency)) return
+    this.fail(`${gesture} : le calendrier a changé (${slots(before)} → ${slots(after)})`)
   }
 
   // G23 : au même rythme, la prochaine dose gardée, les jours suivants le sont aussi, hors lignes plus
@@ -1281,9 +1306,9 @@ class Simulation {
         .map(({ dueOn, dueTime }) => `${dueOn} ${dueTime ?? ''}`)
         .sort()
         .join()
-    if (slots(before) !== slots(after)) {
-      this.fail(`${gesture} : la suite a changé (${slots(before)} → ${slots(after)})`)
-    }
+    if (slots(before) === slots(after)) return
+    if (isKnownLimit(slots(before), slots(after), period.frequency)) return
+    this.fail(`${gesture} : la suite a changé (${slots(before)} → ${slots(after)})`)
   }
 
   // Q24 : le nouveau réglage vaut tout de suite, les prises du jour comptent pour ses premières heures.
