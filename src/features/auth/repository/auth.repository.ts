@@ -1,6 +1,7 @@
 import type { AuthError, Session, SupabaseClient } from '@supabase/supabase-js'
 
 import { AUTH_STORAGE_KEY } from '@/core/supabase/auth-storage'
+import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { errorSummary } from '@/shared/utils/error-summary'
 
 import { AccountError, type AccountErrorReason } from '../logic/account-error'
@@ -37,10 +38,6 @@ const REASONS_BY_CODE: Record<string, AccountErrorReason> = {
   invalid_credentials: 'invalid-credentials',
   weak_password: 'weak-password',
   email_not_confirmed: 'email-not-confirmed',
-}
-
-async function loadSupabaseClient(): Promise<SupabaseClient> {
-  return (await import('@/core/supabase/client')).default
 }
 
 function isRetryable(error: AuthError | null): boolean {
