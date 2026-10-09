@@ -233,14 +233,34 @@ function arrivalDues(
   move: TreatmentDoseInput,
   steps: Step[],
   kept: Set<string>,
+  originTimes: ReadonlySet<string | null> | undefined,
 ): Due[] {
   const dues = dayDues(period, [move.nextDueDate])
   const shifted = steps.some((step) => isShift(step) && dueId(step.dose) === dueId(move))
   if (shifted) return dues
   return dues.filter(({ dueTime }) => {
     const origin = keyOf({ dueOn: move.dueOn, dueTime })
-    return origin >= keyOf(move) && !kept.has(origin)
+    const isDue = originTimes === undefined || originTimes.has(dueTime)
+    return isDue && origin >= keyOf(move) && !kept.has(origin)
   })
+}
+
+// Les heures de chaque jour d'arrivée hors grille ; un report parti de ce jour n'emporte que celles-là.
+function arrivalTimes(
+  plan: Pick<PeriodTimeline, 'anchors' | 'period'>,
+  moves: TreatmentDoseInput[],
+  steps: Step[],
+  kept: Set<string>,
+): Map<string, Set<string | null>> {
+  const times = new Map<string, Set<string | null>>()
+  const ordered = [...moves].sort((a, b) => compareOrdinal(a.dueOn, b.dueOn))
+  for (const move of ordered) {
+    const origin = isGridDay(plan, move.dueOn) ? undefined : times.get(move.dueOn)
+    const day = times.get(move.nextDueDate) ?? new Set<string | null>()
+    for (const { dueTime } of arrivalDues(plan.period, move, steps, kept, origin)) day.add(dueTime)
+    times.set(move.nextDueDate, day)
+  }
+  return times
 }
 
 /** Les reports qui arrivent ce jour-là, y compris ceux que la période suivante a fermés (G5). */
@@ -255,7 +275,7 @@ export function movesInto(plan: PeriodTimeline, day: string): TreatmentDoseInput
   return [...live, ...closedOut].filter((move) => move.nextDueDate === day && move.dueOn !== day)
 }
 
-function isGridDay(plan: PeriodTimeline, day: string): boolean {
+function isGridDay(plan: Pick<PeriodTimeline, 'anchors' | 'period'>, day: string): boolean {
   const dues = sequenceDues(sequenceAt(plan, positionOf(`${day} `, 0)), plan.period, day)
   let due = dues.next().value
   while (due.dueOn < day) due = dues.next().value
@@ -267,7 +287,8 @@ export function stayedKeys(plan: PeriodTimeline, move: TreatmentDoseInput): stri
   // Un jour de la grille garde ses propres heures : rien n'y reste en arrière.
   if (isGridDay(plan, move.nextDueDate)) return []
   const kept = new Set([...plan.noteKeys, ...plan.covered])
-  const arrived = new Set(arrivalDues(plan.period, move, plan.steps, kept).map(keyOf))
+  const origin = isGridDay(plan, move.dueOn) ? undefined : plan.arrivals.get(move.dueOn)
+  const arrived = new Set(arrivalDues(plan.period, move, plan.steps, kept, origin).map(keyOf))
   // Fermée par la période suivante, la journée d'origine ne garde plus ses heures encore à donner.
   const orphans = isClosedOut(move, plan.closesOn)
     ? new Set(
@@ -301,13 +322,19 @@ export function planPeriod(
   ]
   const sequences = anchors.map(({ sequence }) => sequence)
   const moves = steps.filter(isMove).map(({ dose }) => dose)
+  const arrivals = arrivalTimes(
+    { anchors, period },
+    moves,
+    steps,
+    new Set([...noteKeys, ...covered]),
+  )
   const between = [
     ...sequences.slice(0, -1).flatMap((sequence, index) => {
       const end = sequences[index + 1]?.floor ?? ''
       return duesUntil(sequence, period, end)
     }),
-    ...moves.flatMap((move) =>
-      arrivalDues(period, move, steps, new Set([...noteKeys, ...covered])),
+    ...[...arrivals].flatMap(([day, times]) =>
+      dayDues(period, [day]).filter(({ dueTime }) => times.has(dueTime)),
     ),
     ...dayDues(period, isOffGrid(period) ? [period.firstDueOn] : []),
   ]
@@ -319,6 +346,7 @@ export function planPeriod(
     anchors,
     between: uniqueSorted(between),
     removals: removalsOf(moves),
+    arrivals,
     noteKeys,
     noteDays,
     covered,
@@ -347,7 +375,7 @@ function isRemoved(plan: PeriodTimeline, due: Due): boolean {
   return first !== undefined && keyOf(due) >= first
 }
 
-export function sequenceAt(plan: PeriodTimeline, position: string): Sequence {
+export function sequenceAt(plan: Pick<PeriodTimeline, 'anchors'>, position: string): Sequence {
   let low = 0
   let high = plan.anchors.length
   while (low < high) {
