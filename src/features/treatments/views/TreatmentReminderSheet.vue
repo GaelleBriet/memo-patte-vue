@@ -7,16 +7,13 @@ import TreatmentDoneConfirm from './TreatmentDoneConfirm.vue'
 import TreatmentOtherDateSheet from './TreatmentOtherDateSheet.vue'
 import TreatmentStopDialog from './TreatmentStopDialog.vue'
 import TreatmentUnloggedPrompt from './TreatmentUnloggedPrompt.vue'
+import { useTreatmentDoseFlow } from '../composables/use-treatment-dose-flow'
 import { useTreatmentGestures } from '../composables/use-treatment-gestures'
 import { useTreatmentSheetActions } from '../composables/use-treatment-sheet-actions'
 import { detailActions } from '../logic/treatment-card'
-import { choiceGestures, chooseDaysSubtitle, type DayChoice } from '../logic/treatment-choose-days'
-import type { DoseAction } from '../logic/treatment-dose-writes'
-import { doseActionTexts, hasSeveralTimes } from '../logic/treatment-gestures'
 import { readableScheduleOf } from '../logic/treatment-schedule-adapter'
 import { sheetOtherDateMin, sheetPeriod, treatmentSheetTexts } from '../logic/treatment-sheet'
-import { stopPrompt } from '../logic/treatment-stop'
-import { promptChoice, unloggedBanner, type PromptActionId } from '../logic/treatment-unlogged'
+import { plainStopPrompt } from '../logic/treatment-stop'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
@@ -25,15 +22,8 @@ import BottomSheet from '@/shared/components/BottomSheet.vue'
 import ReminderActions from '@/shared/components/ReminderActions.vue'
 import type { NotifiedDue, TodoDue } from '@/shared/domain/reminder-route'
 import { reminderIcon } from '@/shared/domain/reminders'
-import type { DoseGesture, Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import type { Due } from '@/shared/domain/treatment-schedule'
 import { showToast } from '@/shared/utils/toast'
-
-// Traitement illisible : la confirmation simple, sans dose à renseigner.
-const NO_SCHEDULE: Pick<TreatmentSchedule, 'phase' | 'currentDoses' | 'unloggedDoses'> = {
-  phase: 'upcoming',
-  currentDoses: [],
-  unloggedDoses: [],
-}
 
 const props = withDefaults(
   defineProps<{
@@ -59,13 +49,10 @@ const gestures = useTreatmentGestures(() => emit('changed'))
 
 const history = ref<TreatmentWithHistory | null>(null)
 const isBusy = gestures.isBusy
-const errorMessage = ref<string | null>(null)
 const isStopDialogOpen = ref(false)
 const isOtherDateOpen = ref(false)
 const isConfirmOpen = ref(false)
 const confirming = ref<Due | null>(null)
-const isChooseDaysOpen = ref(false)
-const choosing = ref<'log' | 'stop'>('log')
 
 const isShown = computed({
   get: () => open.value && history.value !== null && !isOtherDateOpen.value && !isConfirmOpen.value,
@@ -75,19 +62,28 @@ const isShown = computed({
 })
 
 const schedule = computed(() => readableScheduleOf(history.value, today.value))
-const animal = computed(() => (history.value ? animals.byId(history.value.animalId) : null))
-const named = computed(() => ({
-  name: history.value?.name ?? '',
-  animal: animal.value?.name ?? '',
-}))
+
+const {
+  animal,
+  named,
+  unlogged,
+  stopping,
+  choosing,
+  chosen,
+  chooseDaysSubtitleText,
+  isChooseDaysOpen,
+  stopError,
+  note,
+  stop,
+  onUnloggedAction,
+  onStopAction,
+  confirmChosenDays,
+} = useTreatmentDoseFlow({ treatment: history, schedule, today }, gestures, {
+  settled: () => (open.value = false),
+  stopFailure: 'message',
+})
+
 const icon = computed(() => (history.value ? reminderIcon('treatment', history.value.type) : ''))
-const unlogged = computed(() =>
-  animals.hasLoaded && history.value && schedule.value
-    ? unloggedBanner(t, history.value, schedule.value, today.value, {
-        followed: (animal.value?.unfollowedOn ?? null) === null,
-      })
-    : null,
-)
 const isUnloggedSheet = computed(() => props.due === 'unlogged' && unlogged.value !== null)
 const doseDue = computed<NotifiedDue | null>(() => {
   if (props.due !== null && props.due !== 'unlogged') return props.due
@@ -105,16 +101,8 @@ const texts = computed(() =>
       )
     : null,
 )
-const stopping = computed(() =>
-  stopPrompt(
-    t,
-    history.value ?? { name: named.value.name, periods: [] },
-    schedule.value ?? NO_SCHEDULE,
-    today.value,
-  ),
-)
+const stopDialog = computed(() => stopping.value ?? plainStopPrompt(t, named.value.name))
 const canStop = computed(() => schedule.value === null || detailActions(schedule.value).canStop)
-const chosen = computed(() => (choosing.value === 'stop' ? stopping.value : unlogged.value))
 const otherDateMin = computed(() => {
   const birth = animal.value?.birthDate ?? null
   if (!history.value || !schedule.value || !doseDue.value) return birth
@@ -143,7 +131,7 @@ watch(
       return
     }
     refreshToday()
-    errorMessage.value = null
+    stopError.value = null
     history.value = null
     if (!animals.hasLoaded) void animals.load()
     const id = props.treatmentId
@@ -156,23 +144,6 @@ watch(
   { immediate: true },
 )
 
-async function note(gesture: DoseGesture): Promise<void> {
-  const current = history.value
-  if (current === null) return
-  const action: DoseAction = { kind: 'note', gesture }
-  const toast = doseActionTexts(
-    t,
-    {
-      ...named.value,
-      today: today.value,
-      severalTimes: hasSeveralTimes(current, gesture.due.periodId),
-    },
-    action,
-    null,
-  )
-  if (await gestures.applyDose(current, action, toast)) open.value = false
-}
-
 function doneToday(): void {
   refreshToday()
   if (!isBusy.value) actions.doneToday()
@@ -183,62 +154,6 @@ function onChildModel(shown: boolean): void {
   isOtherDateOpen.value = false
   isConfirmOpen.value = false
   open.value = false
-}
-
-async function log(choice: DayChoice): Promise<void> {
-  const current = history.value
-  if (current === null) return
-  const action: DoseAction = { kind: 'log', gestures: choiceGestures(choice) }
-  const toast = doseActionTexts(
-    t,
-    { ...named.value, today: today.value, severalTimes: false },
-    action,
-    null,
-  )
-  if ((await gestures.logDoses(current, action, toast)) === 'failed') return
-  isChooseDaysOpen.value = false
-  open.value = false
-}
-
-function chooseDays(purpose: 'log' | 'stop'): void {
-  choosing.value = purpose
-  isChooseDaysOpen.value = true
-}
-
-function onUnloggedAction(action: PromptActionId): void {
-  if (!unlogged.value) return
-  if (action === 'choose-days') chooseDays('log')
-  else void log(promptChoice(action, unlogged.value.dues))
-}
-
-async function stop(): Promise<void> {
-  const current = history.value
-  if (isBusy.value || current === null) return
-  errorMessage.value = null
-  if (await gestures.stop(current)) open.value = false
-  else errorMessage.value = t('treatments.sheet.errors.stop')
-}
-
-async function logThenStop(choice: DayChoice): Promise<void> {
-  const current = history.value
-  if (isBusy.value || current === null) return
-  errorMessage.value = null
-  const result = await gestures.stopLogging(current, choiceGestures(choice))
-  if (result === 'failed') {
-    errorMessage.value = t('treatments.sheet.errors.stop')
-    return
-  }
-  isChooseDaysOpen.value = false
-  open.value = false
-}
-
-function onStopAction(action: PromptActionId): void {
-  if (action === 'choose-days') chooseDays('stop')
-  else void logThenStop(promptChoice(action, stopping.value.dues))
-}
-
-function onChosenDays(choice: DayChoice): void {
-  void (choosing.value === 'stop' ? logThenStop(choice) : log(choice))
 }
 
 function edit(): void {
@@ -298,8 +213,8 @@ function edit(): void {
         </template>
       </ReminderActions>
 
-      <p v-if="errorMessage" class="treatment-reminder-sheet__error" role="alert">
-        {{ errorMessage }}
+      <p v-if="stopError" class="treatment-reminder-sheet__error" role="alert">
+        {{ stopError }}
       </p>
     </template>
   </BottomSheet>
@@ -340,19 +255,19 @@ function edit(): void {
   <TreatmentStopDialog
     v-if="texts"
     v-model="isStopDialogOpen"
-    :prompt="stopping"
+    :prompt="stopDialog"
     @stop="stop"
     @act="onStopAction"
   />
 
   <TreatmentChooseDays
     v-model="isChooseDaysOpen"
-    :subtitle="chooseDaysSubtitle(named.name, named.animal, chosen?.when ?? null)"
+    :subtitle="chooseDaysSubtitleText"
     :dues="chosen?.dues ?? []"
     :when="chosen?.when ?? ''"
     :busy="isBusy"
     :stopping="choosing === 'stop'"
-    @confirm="onChosenDays"
+    @confirm="confirmChosenDays"
   />
 </template>
 
