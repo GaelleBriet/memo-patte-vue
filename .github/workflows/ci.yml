@@ -17,8 +17,35 @@ concurrency:
   group: ci-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
+  # Une PR qui ne touche que site/ ou docs/ ne lance que ESLint et les tests du site.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      app: ${{ steps.diff.outputs.app }}
+    steps:
+      - id: diff
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          app=true
+          if [ "$EVENT" = pull_request ] &&
+            files=$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[] | .filename, (.previous_filename // empty)') &&
+            [ -n "$files" ] && ! grep -qvE '^(site|docs)/' <<<"$files"; then
+            app=false
+          fi
+          echo "app=$app" | tee -a "$GITHUB_OUTPUT"
+
   ci:
+    needs: changes
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -45,17 +72,26 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Tests du site
+        if: needs.changes.outputs.app != 'true'
+        run: pnpm exec vitest run src/__tests__/site- scripts/__tests__/site-
+
       - name: Type-check
+        if: needs.changes.outputs.app == 'true'
         run: pnpm type-check
 
       # Type-check fait juste au-dessus : `build-only` plutôt que `build`, qui le relancerait.
       - name: Build
+        if: needs.changes.outputs.app == 'true'
         run: pnpm build-only
 
       - name: Pas d'outils de dev dans le build (fixtures, SQLite du navigateur)
+        if: needs.changes.outputs.app == 'true'
         run: pnpm test:build
 
   tests:
+    needs: changes
+    if: github.event_name != 'schedule' && needs.changes.outputs.app == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -78,6 +114,8 @@ jobs:
         run: pnpm exec vitest run --shard=${{ matrix.shard }}/3
 
   fuseaux:
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -116,6 +154,8 @@ jobs:
             $dates
 
   android:
+    needs: changes
+    if: github.event_name != 'schedule' && needs.changes.outputs.app == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -156,3 +196,30 @@ jobs:
 
       - name: Permissions du manifest fusionné
         run: pnpm test:manifest
+
+  # Seul passage à attendre : vert si chaque job a réussi, ou n'a été sauté que lorsque c'était voulu.
+  verdict:
+    name: Verdict
+    needs: [changes, ci, tests, fuseaux, android]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          NEEDS: ${{ toJSON(needs) }}
+          EVENT: ${{ github.event_name }}
+          APP: ${{ needs.changes.outputs.app }}
+        run: |
+          if [ "$EVENT" = schedule ]; then
+            expected='changes fuseaux'
+          elif [ "$APP" = true ]; then
+            expected='changes ci tests fuseaux android'
+          else
+            expected='changes ci'
+          fi
+          ok=true
+          while read -r job result; do
+            if [[ " $expected " == *" $job "* ]]; then want=success; else want=skipped; fi
+            echo "$job : $result (attendu : $want)"
+            [ "$result" = "$want" ] || ok=false
+          done < <(jq -r 'to_entries[] | "\(.key) \(.value.result)"' <<<"$NEEDS")
+          $ok
