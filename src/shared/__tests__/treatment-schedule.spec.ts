@@ -4185,6 +4185,77 @@ describe('une heure reportée seule ne déplace que cette heure (G25, #720)', ()
     },
   )
 
+  describe('plusieurs changements le jour d’arrivée : seule l’heure reportée reste (décision du 2026-10-10)', () => {
+    type Setting = { frequency: { value: number; unit: 'day' | 'week' | 'month' }; times: string[] }
+    const every2 = { value: 2, unit: 'day' } as const
+    const every3 = { value: 3, unit: 'day' } as const
+    const daily = { value: 1, unit: 'day' } as const
+    const changedOn4 = (settings: Setting[]): Carnet => {
+      let book = movedOn(morningOf3, '2026-10-03', due('2026-10-03', '20:00'), '2026-10-04', false)
+      settings.forEach(({ frequency, times: hours }, index) => {
+        const dates = scheduleOf(book, '2026-10-04').newPeriod(frequency, hours)
+        const id = `p${index + 2}`
+        const createdAt = `2026-10-04T0${index}:00:00.000Z`
+        book = {
+          ...book,
+          periods: [...book.periods, period({ id, createdAt, ...dates, frequency, times: hours })],
+        }
+      })
+      return book
+    }
+
+    it.each([
+      [
+        'tous les 3 jours, puis tous les jours',
+        [
+          { frequency: every3, times },
+          { frequency: daily, times },
+        ],
+        '20:00',
+      ],
+      [
+        'tous les 3 jours, puis tous les 2 jours',
+        [
+          { frequency: every3, times },
+          { frequency: every2, times },
+        ],
+        '20:00',
+      ],
+      [
+        'posologie seule, puis tous les 3 jours',
+        [
+          { frequency: every2, times },
+          { frequency: every3, times },
+        ],
+        '20:00',
+      ],
+      [
+        'tous les 3 jours, puis 9 h et 21 h',
+        [
+          { frequency: every3, times },
+          { frequency: every3, times: ['09:00', '21:00'] },
+        ],
+        '21:00',
+      ],
+      [
+        'tous les 3 jours, tous les jours, puis tous les 2 jours',
+        [
+          { frequency: every3, times },
+          { frequency: daily, times },
+          { frequency: every2, times },
+        ],
+        '20:00',
+      ],
+    ] as const)('%s : le 4, une seule dose', (_, settings, time) => {
+      const book = changedOn4(
+        settings.map((setting) => ({ ...setting, times: [...setting.times] })),
+      )
+      const last = book.periods.at(-1)!.id
+
+      expect(scheduleOf(book, '2026-10-04').currentDoses).toEqual([due('2026-10-04', time, last)])
+    })
+  })
+
   it('avec décalage, la journée d’arrivée a toutes ses heures (Q21) : le 4 à 8 h et 20 h, puis le 6', () => {
     const book = movedOn(morningOf3, '2026-10-03', due('2026-10-03', '20:00'), '2026-10-04', true)
 
