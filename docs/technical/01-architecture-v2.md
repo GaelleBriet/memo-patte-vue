@@ -107,7 +107,7 @@ Chaque `features/<nom>/` range son contenu par rôle technique, en sous-dossiers
 
 `core/dev/` contient les fixtures de développement : le carnet de démo des maquettes (Milo + Luna, dates relatives à aujourd'hui), peuplé via les repositories quand le serveur est lancé avec `pnpm dev:data`. Le module est importé dynamiquement derrière `import.meta.env.DEV` dans `main.ts` : il tombe au build et un test le prouve. Il orchestre plusieurs repositories sans appartenir à aucune feature, d'où sa place dans `core/`.
 
-`app/` ne fait que démarrer l'app : plugins, routeur, mise en page, et branchement des services au lancement (`main.ts` l'appelle). Les cas d'usage (actions des notifications, reconstruction des rappels, écran d'explication des rappels…) vivent dans les services des features. Quand un écran demande un cas d'usage porté par une autre feature, `app/` le confie au lancement à `core/`, où l'écran le lit (`core/notifications/reminders-priming.ts`).
+`app/` ne fait que démarrer l'app : plugins, routeur, mise en page, et branchement des services au lancement (`main.ts` l'appelle). Les cas d'usage (actions des notifications, reconstruction des rappels, écran d'explication des rappels…) vivent dans les services des features. Quand un écran demande un cas d'usage porté par une autre feature, `main.ts` le confie au lancement à `core/` par une fonction `install…` de `app/`, et l'écran le lit dans `core/` (`installRemindersPriming`, `core/notifications/reminders-priming.ts`).
 
 ### Règles strictes
 

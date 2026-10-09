@@ -7,13 +7,12 @@ import { installConsentGate } from '@/app/analytics-consent'
 import { installCarnetSettingsReminders } from '@/app/carnet-settings-reminders'
 import { installPageviewTracking } from '@/app/analytics-pageview'
 import { installReminderActions, reminderActions } from '@/app/reminder-actions'
-import { installLaunchPriming } from '@/app/reminders-priming'
+import { installLaunchPriming, installRemindersPriming } from '@/app/reminders-priming'
 import { installRemindersSync } from '@/app/reminders-sync'
 import { createDefaultSyncDependencies, installSync } from '@/app/sync'
 import { initAnalytics } from '@/core/analytics'
 import { installBackButton } from '@/core/app-lifecycle/back-button'
 import { registerCurrentDevice } from '@/core/device/register-device'
-import { provideRemindersPriming } from '@/core/notifications/reminders-priming'
 import { restoreWeightUnit } from '@/core/preferences/weight-unit-preference'
 import vuetify from '@/core/theme/vuetify'
 import i18n, { applyLocale, detectLocale } from '@/core/i18n'
@@ -28,7 +27,6 @@ import { clearExports } from '@/features/settings/logic/export-delivery'
 import { getCarnetSettingsRepository } from '@/features/settings/repository/carnet-settings.repository'
 import { provideCarnetSettingsRepository } from '@/features/settings/store/carnet-settings.store'
 import { getTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
-import { remindersPriming } from '@/features/treatments/service/reminders-priming.service'
 import { provideTreatmentsRepository } from '@/features/treatments/store/treatments.store'
 import { getVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import { provideVaccinationsRepository } from '@/features/vaccinations/store/vaccinations.store'
@@ -41,7 +39,7 @@ provideVaccinationsRepository(getVaccinationsRepository)
 provideWeightRepository(getWeightRepository)
 provideTreatmentsRepository(getTreatmentsRepository)
 provideCarnetSettingsRepository(getCarnetSettingsRepository)
-provideRemindersPriming(remindersPriming)
+installRemindersPriming()
 
 const app = createApp(App)
 
