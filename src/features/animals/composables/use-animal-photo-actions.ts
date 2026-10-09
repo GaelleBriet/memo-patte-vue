@@ -32,7 +32,7 @@ export function useAnimalPhotoActions(animal: Readonly<Ref<Animal | null>>) {
   const error = ref<AnimalPhotoError | null>(null)
   let isRemovalPending = false
 
-  async function guarded(action: (target: Animal) => Promise<boolean>): Promise<boolean> {
+  async function withLoadedAnimal(action: (target: Animal) => Promise<boolean>): Promise<boolean> {
     const target = animal.value
     if (!target) return false
 
@@ -53,7 +53,7 @@ export function useAnimalPhotoActions(animal: Readonly<Ref<Animal | null>>) {
   }
 
   function changePhoto(): Promise<boolean> {
-    return guarded(async (target) => {
+    return withLoadedAnimal(async (target) => {
       let photo: PhotoChange | null
       try {
         const picked = await pickPhoto()
@@ -85,7 +85,7 @@ export function useAnimalPhotoActions(animal: Readonly<Ref<Animal | null>>) {
   }
 
   function removePhoto(): Promise<boolean> {
-    return guarded((target) =>
+    return withLoadedAnimal((target) =>
       save(async () => {
         const removal = await animals.removePhoto(target.id, inputFrom(target))
         if (removal) confirmRemoval(target, removal)
