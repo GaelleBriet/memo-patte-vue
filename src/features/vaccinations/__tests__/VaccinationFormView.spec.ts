@@ -34,7 +34,7 @@ const Vide = { render: () => null }
 function routeurMemoire(): Router {
   return createRouter({
     history: createMemoryHistory(),
-    routes: [{ path: '/animals', name: 'animals', component: Vide }],
+    routes: [{ path: '/animals', name: 'carnet', component: Vide }],
   })
 }
 
@@ -42,7 +42,7 @@ function routeurAvecPile(formulaire: { path: string; name: string }): Router {
   return createRouter({
     history: createMemoryHistory(),
     routes: [
-      { path: '/animals', name: 'animals', component: Vide },
+      { path: '/animals', name: 'carnet', component: Vide },
       { ...formulaire, component: Vide },
       { path: '/notifications/priming', name: 'notifications-priming', component: Vide },
     ],
@@ -480,7 +480,7 @@ describe('VaccinationFormView — création', () => {
 
     await soumettre(wrapper)
 
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
   })
 
   it('revient au Carnet sans rien écrire quand on annule', async () => {
@@ -490,7 +490,7 @@ describe('VaccinationFormView — création', () => {
     await wrapper.get('.form-screen__cancel').trigger('click')
 
     expect(create).not.toHaveBeenCalled()
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
   })
 })
 
@@ -509,7 +509,7 @@ describe('VaccinationFormView — animal qu’on ne suit plus (AN-9)', () => {
 
     await monterCreation()
 
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
     expect(useAnimalsStore().selectedAnimalId).toBe(MILO.id)
     expect(create).not.toHaveBeenCalled()
   })
@@ -522,7 +522,7 @@ describe('VaccinationFormView — animal qu’on ne suit plus (AN-9)', () => {
     await monterCreation()
 
     expect(loadAnimals).not.toHaveBeenCalled()
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
     expect(create).not.toHaveBeenCalled()
   })
 
@@ -597,7 +597,7 @@ describe('VaccinationFormView — écran d’explication des notifications', () 
     await soumettre(wrapper)
 
     expect(shouldShowPriming).not.toHaveBeenCalled()
-    expect(replace).toHaveBeenCalledExactlyOnceWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledExactlyOnceWith({ name: 'carnet' })
   })
 
   it('n’y passe pas quand l’enregistrement échoue', async () => {
@@ -634,7 +634,7 @@ describe('VaccinationFormView — retour sur l’animal du formulaire', () => {
 
     await soumettre(wrapper)
 
-    expect(replace).toHaveBeenCalledExactlyOnceWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledExactlyOnceWith({ name: 'carnet' })
     expect(selection()).toBe(MILO.id)
   })
 
@@ -701,11 +701,11 @@ describe('VaccinationFormView — pile de navigation', () => {
     const wrapper = await monterCreation()
     await remplirMinimum(wrapper)
     await soumettre(wrapper)
-    await vi.waitFor(() => expect(routeur.currentRoute.value.name).toBe('animals'))
+    await vi.waitFor(() => expect(routeur.currentRoute.value.name).toBe('carnet'))
 
     await retourAndroid()
 
-    expect(routeur.currentRoute.value.name).toBe('animals')
+    expect(routeur.currentRoute.value.name).toBe('carnet')
   })
 
   it('ne rouvre pas le formulaire au retour après l’écran d’explication des notifications', async () => {
@@ -715,11 +715,11 @@ describe('VaccinationFormView — pile de navigation', () => {
     await choisir(wrapper, 'Dans 1 an')
     await soumettre(wrapper)
     await vi.waitFor(() => expect(routeur.currentRoute.value.name).toBe('notifications-priming'))
-    await routeur.replace({ name: 'animals' })
+    await routeur.replace({ name: 'carnet' })
 
     await retourAndroid()
 
-    expect(routeur.currentRoute.value.name).toBe('animals')
+    expect(routeur.currentRoute.value.name).toBe('carnet')
   })
 
   it('ne rouvre pas le formulaire au retour après une annulation', async () => {
@@ -729,7 +729,7 @@ describe('VaccinationFormView — pile de navigation', () => {
 
     await retourAndroid()
 
-    expect(routeur.currentRoute.value.name).toBe('animals')
+    expect(routeur.currentRoute.value.name).toBe('carnet')
   })
 })
 
@@ -810,7 +810,7 @@ describe('VaccinationFormView — édition', () => {
 
     expect(update).toHaveBeenCalledExactlyOnceWith(RAGE.id, { name: 'Rage', dueDate: null })
     expect(create).not.toHaveBeenCalled()
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
   })
 
   it('prévient et n’autorise pas l’envoi quand le vaccin est introuvable', async () => {
@@ -899,7 +899,7 @@ describe('VaccinationFormView — vaccin déjà suivi', () => {
       vaccinationId: CARRE.id,
       startAt: 'done',
       initialInjectedOn: '2026-09-01',
-      returnTo: 'animals',
+      returnTo: 'carnet',
     })
     expect(create).not.toHaveBeenCalled()
     expect(replace).not.toHaveBeenCalled()
@@ -945,7 +945,7 @@ describe('VaccinationFormView — vaccin déjà suivi', () => {
       lastInjectionDate: '2026-09-01',
       dueDate: null,
     })
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
   })
 
   it('reste sur le formulaire sans rien enregistrer quand on quitte le dialogue', async () => {
@@ -986,7 +986,7 @@ describe('VaccinationFormView — retour vers l’écran d’origine', () => {
       history: createMemoryHistory(),
       routes: [
         { path: '/', name: 'home', component: Vide },
-        { path: '/animals', name: 'animals', component: Vide },
+        { path: '/animals', name: 'carnet', component: Vide },
         { path: '/vaccinations/:id/edit', name: 'vaccination-edit', component: Vide },
       ],
     })
@@ -1100,7 +1100,7 @@ describe('VaccinationFormView — envoi en cours', () => {
     await soumettre(wrapper)
 
     expect(create).toHaveBeenCalledOnce()
-    expect(replace).toHaveBeenCalledExactlyOnceWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledExactlyOnceWith({ name: 'carnet' })
     expect(wrapper.find('.form-screen__save-error').exists()).toBe(false)
     expect(wrapper.get('.form-screen__submit').attributes('disabled')).toBeDefined()
   })

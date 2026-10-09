@@ -46,13 +46,13 @@ describe('routeAfterReminderSaved', () => {
 
     expect(
       await routeAfterReminderSaved({ hasDueDate: true, animalName: 'Milo', kind: 'treatment' }),
-    ).toEqual({ name: 'animals' })
+    ).toEqual({ name: 'carnet' })
   })
 
   it('revient au Carnet sans rien vérifier quand il n’y a pas d’échéance', async () => {
     expect(
       await routeAfterReminderSaved({ hasDueDate: false, animalName: 'Milo', kind: 'vaccination' }),
-    ).toEqual({ name: 'animals' })
+    ).toEqual({ name: 'carnet' })
     expect(shouldShow).not.toHaveBeenCalled()
   })
 })
@@ -81,7 +81,7 @@ describe('routeAfterReminderSaved, depuis un écran d’origine', () => {
         kind: 'treatment',
         from: 'treatment-edit',
       }),
-    ).toEqual({ name: 'animals' })
+    ).toEqual({ name: 'carnet' })
   })
 })
 
@@ -144,7 +144,7 @@ describe('primingReturnRoute', () => {
     expect(primingReturnRoute('settings')).toEqual({ name: 'settings' })
     expect(primingReturnRoute('settings-reminders')).toEqual({ name: 'settings-reminders' })
     expect(primingReturnRoute('settings-data')).toEqual({ name: 'settings-data' })
-    expect(primingReturnRoute('animals')).toEqual({ name: 'animals' })
+    expect(primingReturnRoute('carnet')).toEqual({ name: 'carnet' })
   })
 
   it('revient au détail d’un vaccin ou d’un traitement, identifié par son rappel', () => {
@@ -159,18 +159,18 @@ describe('primingReturnRoute', () => {
   })
 
   it('revient au Carnet depuis un détail sans rappel, ou dont le rappel est d’un autre type', () => {
-    expect(primingReturnRoute('vaccination-detail')).toEqual({ name: 'animals' })
+    expect(primingReturnRoute('vaccination-detail')).toEqual({ name: 'carnet' })
     expect(primingReturnRoute('vaccination-detail', 'treatment:t1')).toMatchObject({
-      name: 'animals',
+      name: 'carnet',
     })
   })
 
   it('revient au Carnet sans origine, avec une origine inconnue ou l’écran lui-même', () => {
-    expect(primingReturnRoute(undefined)).toEqual({ name: 'animals' })
-    expect(primingReturnRoute('inconnu')).toEqual({ name: 'animals' })
-    expect(primingReturnRoute('animal-edit')).toEqual({ name: 'animals' })
-    expect(primingReturnRoute(['home'])).toEqual({ name: 'animals' })
-    expect(primingReturnRoute('notifications-priming')).toEqual({ name: 'animals' })
+    expect(primingReturnRoute(undefined)).toEqual({ name: 'carnet' })
+    expect(primingReturnRoute('inconnu')).toEqual({ name: 'carnet' })
+    expect(primingReturnRoute('animal-edit')).toEqual({ name: 'carnet' })
+    expect(primingReturnRoute(['home'])).toEqual({ name: 'carnet' })
+    expect(primingReturnRoute('notifications-priming')).toEqual({ name: 'carnet' })
   })
 })
 
@@ -202,7 +202,7 @@ describe('leaveAfterReminderSaved', () => {
       history: createMemoryHistory(),
       routes: [
         { path: '/', name: 'home', component: Vide },
-        { path: '/animals', name: 'animals', component: Vide },
+        { path: '/animals', name: 'carnet', component: Vide },
         { path: '/settings', name: 'settings', component: Vide },
         { path: '/form', name: 'form', component: Vide },
         { path: '/priming', name: 'notifications-priming', component: Vide },

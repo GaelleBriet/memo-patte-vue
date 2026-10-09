@@ -158,7 +158,7 @@ beforeEach(async () => {
     undoChangeDate: vi.fn<VaccinationInjectionsService['undoChangeDate']>(async () => {}),
   }
   provideVaccinationInjectionsService(() => service)
-  await router.push({ name: 'animals' })
+  await router.push({ name: 'carnet' })
   await router.push({ name: 'vaccination-detail', params: { id: CARRE.id } })
   push = vi.spyOn(router, 'push').mockResolvedValue()
 })

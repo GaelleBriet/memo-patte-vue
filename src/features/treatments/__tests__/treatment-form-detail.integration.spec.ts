@@ -134,7 +134,7 @@ describe('formulaire et fiche d’un traitement, sur la même base', () => {
     router = createRouter({
       history: createMemoryHistory(),
       routes: [
-        { path: '/animals', name: 'animals', component: Vide },
+        { path: '/animals', name: 'carnet', component: Vide },
         {
           path: '/treatments/:id',
           name: 'treatment-detail',
@@ -149,7 +149,7 @@ describe('formulaire et fiche d’un traitement, sur la même base', () => {
         },
       ],
     })
-    await router.push({ name: 'animals' })
+    await router.push({ name: 'carnet' })
     await router.push({ name: 'treatment-detail', params: { id } })
     wrapper = mount(RouterView, {
       global: { plugins: [vuetify, i18n, router], stubs: { transition: false } },

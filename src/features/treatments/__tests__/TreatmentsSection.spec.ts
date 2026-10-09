@@ -78,7 +78,7 @@ beforeEach(async () => {
   )
   const repository = fakeTreatmentsRepository({ listWithHistoryByAnimal: list })
   provideTreatmentsRepository(() => repository)
-  await router.push({ name: 'animals' })
+  await router.push({ name: 'carnet' })
 })
 
 afterEach(() => {

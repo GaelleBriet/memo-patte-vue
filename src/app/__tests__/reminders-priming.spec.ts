@@ -184,7 +184,7 @@ function routeur(): Router {
     history: createMemoryHistory(),
     routes: [
       { path: '/', name: 'home', component: Vide },
-      { path: '/animals', name: 'animals', component: Vide },
+      { path: '/animals', name: 'carnet', component: Vide },
       { path: '/settings', name: 'settings', component: Vide },
       { path: '/notifications/priming', name: 'notifications-priming', component: Vide },
     ],
@@ -259,7 +259,7 @@ describe('promptNotificationsIfReminders', () => {
     await router.push('/animals')
 
     expect(await prompt('home')).toBe(false)
-    expect(router.currentRoute.value.name).toBe('animals')
+    expect(router.currentRoute.value.name).toBe('carnet')
   })
 
   it('ne rouvre pas l’écran déjà ouvert par un formulaire', async () => {

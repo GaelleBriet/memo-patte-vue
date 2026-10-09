@@ -63,7 +63,7 @@ beforeEach(async () => {
   routeur = createRouter({
     history: createMemoryHistory(),
     routes: [
-      { path: '/animals', name: 'animals', component: Vide },
+      { path: '/animals', name: 'carnet', component: Vide },
       { path: '/animals/unfollowed', name: 'unfollowed-animals', component: Vide },
     ],
   })
@@ -116,7 +116,7 @@ describe('UnfollowedAnimalsView — liste des animaux qu’on ne suit plus (AN-1
     await wrapper.findAll('.unfollowed-animal')[1]!.trigger('click')
 
     expect(useAnimalsStore().selectedAnimalId).toBe(PIXEL.id)
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
     expect(wrapper.findAll('.unfollowed-animal')[1]!.attributes('aria-label')).toBe(
       'Ouvrir le carnet de Pixel',
     )
@@ -127,7 +127,7 @@ describe('UnfollowedAnimalsView — liste des animaux qu’on ne suit plus (AN-1
 
     await wrapper.get('.pushed-screen__back').trigger('click')
 
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
   })
 
   it('s’écrit en anglais', async () => {

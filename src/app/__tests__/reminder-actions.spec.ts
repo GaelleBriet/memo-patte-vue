@@ -132,10 +132,10 @@ beforeEach(async () => {
     history: createMemoryHistory(),
     routes: [
       { path: '/', name: 'home', component: Vide },
-      { path: '/animals', name: 'animals', component: Vide },
+      { path: '/animals', name: 'carnet', component: Vide },
     ],
   })
-  await router.push({ name: 'animals' })
+  await router.push({ name: 'carnet' })
   today = TODAY
   book = null
   vaccination = CARRE
@@ -539,7 +539,7 @@ describe('notification touchée hors du bouton (RA-17)', () => {
     router.back()
     await arrive
 
-    expect(currentPlace().name).toBe('animals')
+    expect(currentPlace().name).toBe('carnet')
   })
 
   it('ouvre simplement l’accueil pour une clé illisible', async () => {

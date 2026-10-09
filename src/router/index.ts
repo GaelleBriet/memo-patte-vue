@@ -18,7 +18,7 @@ export const routes: RouteRecordRaw[] = [
   },
   {
     path: '/animals',
-    name: 'animals',
+    name: 'carnet',
     component: () => import('@/features/animals/views/CarnetView.vue'),
     meta: { rootScreen: true },
   },

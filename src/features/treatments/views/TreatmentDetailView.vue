@@ -188,7 +188,7 @@ function backToCarnet(): void {
     return
   }
   if (treatment.value) animals.select(treatment.value.animalId)
-  returnTo(router, { name: 'animals' })
+  returnTo(router, { name: 'carnet' })
 }
 
 function edit(): void {

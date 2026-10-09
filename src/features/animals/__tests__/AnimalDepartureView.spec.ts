@@ -48,7 +48,7 @@ beforeEach(async () => {
   routeur = createRouter({
     history: createMemoryHistory(),
     routes: [
-      { path: '/animals', name: 'animals', component: Vide },
+      { path: '/animals', name: 'carnet', component: Vide },
       { path: '/animals/:id/departure', name: 'animal-departure', component: Vide },
     ],
   })
@@ -119,7 +119,7 @@ describe('AnimalDepartureView — « Ajouter une date » (V15 quater)', () => {
       departureDate: '2026-09-28',
     })
     expect(useAnimalsStore().selectedAnimalId).toBe(LUNA.id)
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
   })
 
   it('AN-10 : refuse une date future, sans rien enregistrer', async () => {
@@ -159,7 +159,7 @@ describe('AnimalDepartureView — « Ajouter une date » (V15 quater)', () => {
     await wrapper.get('.form-screen__cancel').trigger('click')
 
     expect(save).not.toHaveBeenCalled()
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
   })
 
   it('dit l’échec de l’enregistrement', async () => {
@@ -205,7 +205,7 @@ describe('AnimalDepartureView — animal suivi', () => {
     await monter()
 
     expect(useAnimalsStore().selectedAnimalId).toBe(LUNA.id)
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
     expect(save).not.toHaveBeenCalled()
   })
 
@@ -217,7 +217,7 @@ describe('AnimalDepartureView — animal suivi', () => {
     store.animals = [{ ...LUNA, unfollowedOn: null }]
     await flushPromises()
 
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
   })
 })
 

@@ -89,7 +89,7 @@ function setBirthDate(birthDate: string): void {
 }
 
 function backToAnimals(): void {
-  void router.replace({ name: 'animals' })
+  void router.replace({ name: 'carnet' })
 }
 
 async function choosePhoto(): Promise<void> {

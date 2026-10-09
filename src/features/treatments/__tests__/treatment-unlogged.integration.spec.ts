@@ -100,7 +100,7 @@ describe('doses non renseignées, du formulaire à la fiche, sur la même base',
     router = createRouter({
       history: createMemoryHistory(),
       routes: [
-        { path: '/animals', name: 'animals', component: Vide },
+        { path: '/animals', name: 'carnet', component: Vide },
         {
           path: '/animals/:animalId/treatments/new',
           name: 'treatment-new',
@@ -115,7 +115,7 @@ describe('doses non renseignées, du formulaire à la fiche, sur la même base',
         },
       ],
     })
-    await router.push({ name: 'animals' })
+    await router.push({ name: 'carnet' })
     await router.push({ name: 'treatment-new', params: { animalId: MILO } })
     wrapper = mount(RouterView, {
       global: { plugins: [vuetify, i18n, router], stubs: { transition: false } },
@@ -178,7 +178,7 @@ describe('doses non renseignées, du formulaire à la fiche, sur la même base',
 
   async function creerPuisOuvrirLaFiche(): Promise<void> {
     await wrapper.get('.form-screen__submit').trigger('click')
-    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('animals'))
+    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('carnet'))
     const [created] = await db.query<{ id: string }>('SELECT id FROM treatment')
     await router.push({ name: 'treatment-detail', params: { id: created!.id } })
     await vi.waitFor(() => expect(wrapper.find('.treatment-dose-card').exists()).toBe(true))

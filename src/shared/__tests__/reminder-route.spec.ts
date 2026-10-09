@@ -170,7 +170,7 @@ describe('returnTo', () => {
       history: createWebHistory(),
       routes: [
         { path: '/', name: 'home', component: Vide },
-        { path: '/animals', name: 'animals', component: Vide },
+        { path: '/animals', name: 'carnet', component: Vide },
         { path: '/edit', name: 'edit', component: Vide },
       ],
     })
@@ -193,10 +193,10 @@ describe('returnTo', () => {
   it('remplace l’écran courant quand l’écran visé n’est pas l’entrée précédente', async () => {
     const router = await routeur()
 
-    returnTo(router, { name: 'animals' })
+    returnTo(router, { name: 'carnet' })
     await new Promise<void>((resolve) => router.afterEach(() => resolve()))
 
-    expect(router.currentRoute.value.name).toBe('animals')
+    expect(router.currentRoute.value.name).toBe('carnet')
     expect(router.options.history.state.back).toBe('/?reminder=treatment:t1')
   })
 })

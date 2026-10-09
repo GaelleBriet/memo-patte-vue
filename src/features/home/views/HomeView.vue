@@ -56,7 +56,7 @@ const { entry: unfollowed, open: openUnfollowed } = useOpenUnfollowed(
   () => (animals.followedAnimals.length === 0 ? animals.unfollowedAnimals : []),
   (animalId) => {
     animals.select(animalId)
-    void router.push({ name: 'animals' })
+    void router.push({ name: 'carnet' })
   },
 )
 
@@ -221,7 +221,7 @@ function openCarnet(): void {
   const animalId = currentId.value ?? animals.followedAnimals[0]?.id
   if (!animalId) return
   animals.select(animalId)
-  void router.push({ name: 'animals' })
+  void router.push({ name: 'carnet' })
 }
 
 // Le Carnet laisse un animal sélectionné dans le store partagé : l'accueil ne le reprend pas.

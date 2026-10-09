@@ -68,7 +68,7 @@ watch(
 
 function backToCarnet(): void {
   if (animal.value) animals.select(animal.value.id)
-  returnTo(router, { name: 'animals' })
+  returnTo(router, { name: 'carnet' })
 }
 
 async function submit(): Promise<void> {

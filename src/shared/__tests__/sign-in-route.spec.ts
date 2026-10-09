@@ -25,7 +25,7 @@ describe('signInReturnRoute', () => {
 
   it('se replie sur l’écran Plus quand l’origine est absente ou inconnue', () => {
     expect(signInReturnRoute(undefined)).toEqual({ name: 'plus' })
-    expect(signInReturnRoute('animals')).toEqual({ name: 'plus' })
+    expect(signInReturnRoute('carnet')).toEqual({ name: 'plus' })
     expect(signInReturnRoute(['settings'])).toEqual({ name: 'plus' })
   })
 })

@@ -31,7 +31,7 @@ beforeEach(async () => {
     history: createMemoryHistory(),
     routes: [
       { path: '/', name: 'home', component: Vide },
-      { path: '/animals', name: 'animals', component: Vide },
+      { path: '/animals', name: 'carnet', component: Vide },
       { path: '/notifications/priming', name: 'notifications-priming', component: Vide },
     ],
   })
@@ -102,7 +102,7 @@ describe('NotificationPrimingView — réponses', () => {
     await flushPromises()
 
     expect(request).toHaveBeenCalledOnce()
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
     expect(toastMessage.value).toBe('Rappels activés')
   })
 
@@ -113,7 +113,7 @@ describe('NotificationPrimingView — réponses', () => {
     await wrapper.get('.notification-priming__enable').trigger('click')
     await flushPromises()
 
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
     expect(toastMessage.value).toBeNull()
   })
 
@@ -138,7 +138,7 @@ describe('NotificationPrimingView — réponses', () => {
 
     expect(postpone).toHaveBeenCalledOnce()
     expect(request).not.toHaveBeenCalled()
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
   })
 
   it('le retour Android vaut « Plus tard »', async () => {
@@ -149,7 +149,7 @@ describe('NotificationPrimingView — réponses', () => {
     await flushPromises()
 
     expect(postpone).toHaveBeenCalledOnce()
-    expect(replace).toHaveBeenCalledWith({ name: 'animals' })
+    expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
   })
 
   it('rend le bouton retour Android en quittant l’écran', () => {

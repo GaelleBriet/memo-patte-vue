@@ -133,7 +133,7 @@ async function focusRow(id: string): Promise<void> {
 }
 
 function backToAnimals(): void {
-  void router.push({ name: 'animals' })
+  void router.push({ name: 'carnet' })
 }
 
 onMounted(() => {

@@ -56,6 +56,6 @@ describe('routeur', () => {
   it('ne déclare écrans racine que l’accueil et le carnet', () => {
     const racines = routes.filter((route) => route.meta?.rootScreen).map((route) => route.name)
 
-    expect(racines).toEqual(['home', 'animals'])
+    expect(racines).toEqual(['home', 'carnet'])
   })
 })

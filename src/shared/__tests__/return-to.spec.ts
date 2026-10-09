@@ -9,7 +9,7 @@ async function routeur() {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
-      { path: '/animals', name: 'animals', component: Vide },
+      { path: '/animals', name: 'carnet', component: Vide },
       { path: '/form', name: 'form', component: Vide },
       { path: '/priming', name: 'priming', component: Vide },
     ],
@@ -23,7 +23,7 @@ describe('returnToOr', () => {
   it('va à la cible quand la navigation aboutit', async () => {
     const router = await routeur()
 
-    await returnToOr(router, { name: 'priming' }, { name: 'animals' })
+    await returnToOr(router, { name: 'priming' }, { name: 'carnet' })
 
     expect(router.currentRoute.value.name).toBe('priming')
   })
@@ -32,9 +32,9 @@ describe('returnToOr', () => {
     const router = await routeur()
     router.beforeEach((to) => (to.name === 'priming' ? false : true))
 
-    await returnToOr(router, { name: 'priming' }, { name: 'animals' })
+    await returnToOr(router, { name: 'priming' }, { name: 'carnet' })
 
-    expect(router.currentRoute.value.name).toBe('animals')
+    expect(router.currentRoute.value.name).toBe('carnet')
   })
 
   it('ne lève jamais, même quand la route de repli échoue aussi', async () => {
@@ -42,7 +42,7 @@ describe('returnToOr', () => {
     vi.spyOn(router, 'replace').mockRejectedValue(new Error('navigation en échec'))
 
     await expect(
-      returnToOr(router, { name: 'priming' }, { name: 'animals' }),
+      returnToOr(router, { name: 'priming' }, { name: 'carnet' }),
     ).resolves.toBeUndefined()
   })
 })

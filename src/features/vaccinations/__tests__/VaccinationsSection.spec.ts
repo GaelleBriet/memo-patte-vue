@@ -51,7 +51,7 @@ beforeEach(async () => {
   )
   const repository = fakeVaccinationsRepository({ listByAnimal })
   provideVaccinationsRepository(() => repository)
-  await router.push({ name: 'animals' })
+  await router.push({ name: 'carnet' })
   push = vi.spyOn(router, 'push').mockResolvedValue()
 })
 

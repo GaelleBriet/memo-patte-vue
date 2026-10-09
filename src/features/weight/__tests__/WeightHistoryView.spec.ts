@@ -118,7 +118,7 @@ beforeEach(async () => {
   routeur = createRouter({
     history: createMemoryHistory(),
     routes: [
-      { path: '/animals', name: 'animals', component: Vide },
+      { path: '/animals', name: 'carnet', component: Vide },
       { path: '/animals/:animalId/weight', name: 'weight-history', component: Vide },
     ],
   })
@@ -212,7 +212,7 @@ describe('WeightHistoryView — top bar', () => {
 
     await retour.trigger('click')
 
-    expect(push).toHaveBeenCalledExactlyOnceWith({ name: 'animals' })
+    expect(push).toHaveBeenCalledExactlyOnceWith({ name: 'carnet' })
   })
 })
 
