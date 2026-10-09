@@ -12,17 +12,27 @@ import type {
 } from './treatment-schedule-types'
 
 // La grille part du jour de référence quand elle passe par la première échéance (le 31 d'un mensuel).
+// Hors de la grille (G23), la première échéance est seule et la grille reprend après elle.
 export function initialSequence(period: TreatmentPeriodInput): Sequence {
-  const fromFirstDue = { origin: period.firstDueOn, firstStep: 0, floor: '' }
-  if (period.referenceOn >= period.firstDueOn) return fromFirstDue
-  const fromReference = {
-    origin: period.referenceOn,
-    firstStep: 0,
-    floor: `${previousDay(period.firstDueOn)} ~`,
+  const { firstDueOn, referenceOn } = period
+  if (referenceOn === firstDueOn) return { origin: firstDueOn, firstStep: 0, floor: '' }
+  if (referenceOn < firstDueOn) {
+    const fromReference = {
+      origin: referenceOn,
+      firstStep: 0,
+      floor: `${previousDay(firstDueOn)} ~`,
+    }
+    if (firstDueOf(fromReference, period).dueOn === firstDueOn) return fromReference
   }
-  return firstDueOf(fromReference, period).dueOn === period.firstDueOn
-    ? fromReference
-    : fromFirstDue
+  return {
+    origin: referenceOn,
+    firstStep: referenceOn > firstDueOn ? 1 : 0,
+    floor: `${firstDueOn} ~`,
+  }
+}
+
+export function isOffGrid(period: TreatmentPeriodInput): boolean {
+  return firstDueOf(initialSequence(period), period).dueOn !== period.firstDueOn
 }
 
 // Après la journée d'origine (`floor`), les échéances suivent le rythme ancré : ancrage + 1 pas, + 2 pas…

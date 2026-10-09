@@ -6,7 +6,10 @@ export type TreatmentPeriodInput = {
   id: string
   startsOn: string
   firstDueOn: string
-  /** Origine de la grille des échéances (le 31 d'un mensuel), la première échéance par défaut. */
+  /**
+   * Origine de la grille des échéances (le 31 d'un mensuel), la première échéance par défaut. Hors de
+   * cette grille, la première échéance est seule ; la grille reprend après elle, et après ce jour.
+   */
   referenceOn: string
   endsOn: string | null
   stoppedOn: string | null

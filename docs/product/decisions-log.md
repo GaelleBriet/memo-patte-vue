@@ -2217,3 +2217,14 @@ plus cité. Le téléphone de l'éditrice est laissé vide jusqu'à la ligne pro
 alors que la loi (LCEN) le demande avec l'e-mail : à ajouter dès que la ligne existe, avant de
 déclarer la page dans la Play Console. — Raison : la page vit avec le site de l'app (décision du
 2026-10-07). — Alternative écartée : garder la page du site de l'entreprise.
+
+2026-10-09 — **Un report seul ne déplace que sa dose ; changer la posologie ne change jamais le
+calendrier** (Gaelle, #692 ; règle G23 de la spec Traitements). Vermifuge tous les 2 jours (1, 3, 5,
+7), dose du 3 reportée seule au 4, posologie passée de ½ comprimé à 1 : la suite reste 4, 5, 7.
+Pour décaler la suite, la personne le fait elle-même (« Prochaine dose », case « Décaler aussi les
+doses suivantes »). La nouvelle période s'ouvre sur l'arrivée du report, puis reprend la grille
+d'avant : son jour de référence reste celui de l'ancienne grille, ou la dose remplacée pour une dose
+avancée, et une première échéance hors de cette grille est seule (le moteur la lit ainsi). — Raison :
+un réglage qui ne touche ni la fréquence ni les heures ne doit pas faire glisser le rythme sans le
+dire (principe 1). — Alternative écartée : faire repartir la suite du jour reporté (4, 6, 8), le
+comportement d'avant.

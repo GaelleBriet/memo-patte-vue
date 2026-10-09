@@ -3,6 +3,7 @@ import { dueId, dueOf, keyOf, uniqueSorted } from './treatment-schedule-dues'
 import {
   duesUntil,
   initialSequence,
+  isOffGrid,
   sequenceDues,
   shiftedSequence,
 } from './treatment-schedule-sequence'
@@ -203,11 +204,9 @@ function removalsOf(moves: TreatmentDoseInput[]): Map<string, string> {
   return removals
 }
 
-function arrivalsOf(period: TreatmentPeriodInput, moves: TreatmentDoseInput[]): Due[] {
+function dayDues(period: TreatmentPeriodInput, days: string[]): Due[] {
   const times = period.times.length > 0 ? [...period.times].sort(compareOrdinal) : [null]
-  return moves.flatMap(({ nextDueDate }) =>
-    times.map((dueTime) => ({ periodId: period.id, dueOn: nextDueDate, dueTime })),
-  )
+  return days.flatMap((dueOn) => times.map((dueTime) => ({ periodId: period.id, dueOn, dueTime })))
 }
 
 export function planPeriod(
@@ -236,7 +235,11 @@ export function planPeriod(
       const end = sequences[index + 1]?.floor ?? ''
       return duesUntil(sequence, period, end)
     }),
-    ...arrivalsOf(period, moves),
+    ...dayDues(
+      period,
+      moves.map(({ nextDueDate }) => nextDueDate),
+    ),
+    ...dayDues(period, isOffGrid(period) ? [period.firstDueOn] : []),
   ]
   return {
     period,

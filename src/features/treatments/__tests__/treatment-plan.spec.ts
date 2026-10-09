@@ -1642,6 +1642,56 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
     ).toMatchObject({ proposedOn: '2026-10-03', help: { kind: 'scheduled', on: '2026-10-03' } })
   })
 
+  it.each(['2026-10-02', '2026-10-04'])(
+    'tous les 2 jours, dose du 3 reportée seule au 4, posologie changée le %s : prochaine dose le 4, puis 5 et 7 (G23, #692)',
+    (today) => {
+      const tousLes2Jours = period({
+        startsOn: '2026-10-01',
+        firstDueOn: '2026-10-01',
+        frequency: { value: 2, unit: 'day' },
+      })
+      const history = treatment(
+        [tousLes2Jours],
+        [
+          dose({ dueOn: '2026-10-01', givenOn: '2026-10-01', nextDueDate: '2026-10-03' }),
+          dose({
+            id: 'r',
+            dueOn: '2026-10-03',
+            givenOn: null,
+            status: 'postponed',
+            nextDueDate: '2026-10-04',
+          }),
+        ],
+      )
+      const changes = saisie(history, { doseQuantity: 0.5 })
+
+      expect(editionDraft(history, changes, today).nextDose).toMatchObject({
+        proposedOn: '2026-10-04',
+        help: { kind: 'scheduled', on: '2026-10-04' },
+      })
+      const plan = editionPlan(history, changes, today, IDS)
+      expect(plan.period).toMatchObject({
+        action: 'open',
+        referenceOn: '2026-10-01',
+        settings: { startsOn: today, firstDueOn: '2026-10-04' },
+      })
+      const opened = period({
+        ...tousLes2Jours,
+        id: NEW_PERIOD,
+        startsOn: today,
+        firstDueOn: '2026-10-04',
+        referenceOn: '2026-10-01',
+        doseQuantity: 0.5,
+        createdAt: `${today}T09:00:00.000Z`,
+      })
+      expect(
+        treatmentScheduleOf(treatment([tousLes2Jours, opened], history.doses), today)
+          .upcoming(3)
+          .map(({ dueOn }) => dueOn),
+      ).toEqual(['2026-10-04', '2026-10-05', '2026-10-07'])
+    },
+  )
+
   it('mensuel du 31, posologie changée le 20 févr. : la nouvelle période garde le 31 comme jour de référence', () => {
     const du31 = treatment(
       [
