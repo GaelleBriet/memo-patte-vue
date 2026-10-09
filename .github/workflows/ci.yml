@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - tmp/ci-base
   push:
     branches:
       - main
