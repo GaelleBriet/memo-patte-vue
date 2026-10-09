@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   formatWeight,
   formatWeightAxis,
@@ -283,6 +283,18 @@ describe('capitalizeFirst', () => {
     expect(capitalizeFirst('dimanche 20 sept.')).toBe('Dimanche 20 sept.')
     expect(capitalizeFirst('écrit')).toBe('Écrit')
     expect(capitalizeFirst('')).toBe('')
+  })
+
+  it('suit la langue du téléphone, comme les suggestions de vaccins l’ont toujours fait', () => {
+    const locale = vi.spyOn(String.prototype, 'toLocaleUpperCase')
+    const upper = vi.spyOn(String.prototype, 'toUpperCase')
+
+    capitalizeFirst('vendredi 16 oct.')
+
+    expect(locale).toHaveBeenCalledOnce()
+    expect(upper).not.toHaveBeenCalled()
+    locale.mockRestore()
+    upper.mockRestore()
   })
 })
 

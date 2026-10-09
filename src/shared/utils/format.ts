@@ -132,7 +132,7 @@ export function formatDayMonthOrYear(isoDate: string, today: string): string {
 
 /** `Dimanche 20 sept.` : la première lettre en capitale, le reste tel quel. */
 export function capitalizeFirst(text: string): string {
-  return text.charAt(0).toUpperCase() + text.slice(1)
+  return text.charAt(0).toLocaleUpperCase() + text.slice(1)
 }
 
 /** `10 oct` en fin de phrase : le point de l'abréviation sert de point final. */
