@@ -1672,7 +1672,7 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
       const plan = editionPlan(history, changes, today, IDS)
       expect(plan.period).toMatchObject({
         action: 'open',
-        referenceOn: '2026-10-01',
+        referenceOn: '2026-10-05',
         settings: { startsOn: today, firstDueOn: '2026-10-04' },
       })
       const opened = period({
@@ -1680,7 +1680,7 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
         id: NEW_PERIOD,
         startsOn: today,
         firstDueOn: '2026-10-04',
-        referenceOn: '2026-10-01',
+        referenceOn: '2026-10-05',
         doseQuantity: 0.5,
         createdAt: `${today}T09:00:00.000Z`,
       })

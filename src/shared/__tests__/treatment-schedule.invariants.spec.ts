@@ -153,6 +153,15 @@ function loneArrivalOf(
   return move === undefined || shifted ? undefined : move
 }
 
+// La prochaine dose est l'arrivée d'un déplacement de cette période, seul ou avec décalage.
+function arrivesOnNextDose(schedule: TreatmentSchedule, period: TreatmentPeriodInput): boolean {
+  const day = schedule.currentDoses[0]?.dueOn
+  return schedule.doses.some(
+    ({ periodId, status, nextDueDate }) =>
+      periodId === period.id && status === 'postponed' && nextDueDate === day,
+  )
+}
+
 function rhythmKey({ frequency, times }: TreatmentPeriodInput): string {
   return JSON.stringify([frequency, [...times].sort()])
 }
@@ -1169,12 +1178,10 @@ class Simulation {
       frequency: pick(this.random, FREQUENCIES) ?? { value: 1, unit: 'day' as const },
       times: pick(this.random, TIMES) ?? [],
     }
-    // G23 : la posologie seule changée quand la prochaine dose est l'arrivée d'un report seul.
+    // G23 : la posologie seule changée quand la prochaine dose est l'arrivée d'un déplacement.
     const current = periods.at(-1)
     const keeps =
-      current !== undefined &&
-      loneArrivalOf(before, current) !== undefined &&
-      this.rhythmRandom() < 0.5
+      current !== undefined && arrivesOnNextDose(before, current) && this.rhythmRandom() < 0.5
     const { frequency, times } = keeps ? current : picked
     const dates = before.newPeriod(frequency, times)
     const gesture = `${this.book.today} nouvelle période ${JSON.stringify({ ...dates, frequency })}`
@@ -1193,6 +1200,7 @@ class Simulation {
     this.checkProtected(before, after, (due) => due.dueOn < dates.startsOn, gesture)
     this.checkNewSetting(before, after, period, gesture)
     this.checkLoneArrivalKept(before, after, period, gesture)
+    this.checkCalendarKept(before, after, period, gesture)
   }
 
   // G23 : au même rythme, la prochaine dose arrivée d'un report seul garde sa date, la suite son rythme.
@@ -1237,6 +1245,44 @@ class Simulation {
         .join()
     if (slots(before) !== slots(after)) {
       this.fail(`${gesture} : le calendrier a changé (${slots(before)} → ${slots(after)})`)
+    }
+  }
+
+  // G23 : au même rythme, la prochaine dose gardée, les jours suivants le sont aussi, hors lignes plus
+  // lointaines (G5).
+  private checkCalendarKept(
+    before: TreatmentSchedule,
+    after: TreatmentSchedule,
+    period: TreatmentPeriodInput,
+    gesture: string,
+  ): void {
+    const previous = this.book.periods.at(-2)
+    const day = before.currentDoses[0]?.dueOn
+    if (previous === undefined || day === undefined || day < this.book.today) return
+    if (rhythmKey(previous) !== rhythmKey(period) || period.firstDueOn !== day) return
+    const farther = before.doses
+      .filter(
+        ({ periodId, status, nextDueDate }) =>
+          periodId === previous.id &&
+          (status === 'postponed' || status === 'shift') &&
+          nextDueDate > day,
+      )
+      .flatMap(({ dueOn, nextDueDate }) => [dueOn, nextDueDate])
+    const days = [...new Set(pendingOf(before).map(({ dueOn }) => dueOn))]
+      .filter((dueOn) => dueOn >= day)
+      .sort()
+    const limits = [days[3], previous.endsOn, period.endsOn, ...farther.map((d) => plusDays(d, -1))]
+      .filter((limit) => limit !== null && limit !== undefined)
+      .sort()
+    const horizon = limits[0] ?? days.at(-1) ?? day
+    const slots = (schedule: TreatmentSchedule) =>
+      pendingOf(schedule)
+        .filter(({ dueOn }) => dueOn >= day && dueOn <= horizon)
+        .map(({ dueOn, dueTime }) => `${dueOn} ${dueTime ?? ''}`)
+        .sort()
+        .join()
+    if (slots(before) !== slots(after)) {
+      this.fail(`${gesture} : la suite a changé (${slots(before)} → ${slots(after)})`)
     }
   }
 

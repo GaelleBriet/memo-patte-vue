@@ -2443,11 +2443,18 @@ describe('nouvelle période après une dose renseignée tard (N14, Q8, Q24)', ()
       to: '2026-04-13',
     })
 
-    expect(scheduleOf(book, '2026-04-08').newPeriod({ value: 1, unit: 'week' }, [])).toEqual({
+    const dates = scheduleOf(book, '2026-04-08').newPeriod({ value: 1, unit: 'week' }, [])
+    expect(dates).toEqual({
       startsOn: '2026-04-08',
       firstDueOn: '2026-04-08',
-      referenceOn: '2026-04-08',
+      referenceOn: '2026-04-13',
     })
+    const changed = withPeriod(book, { ...dates, frequency: { value: 1, unit: 'week' }, times: [] })
+    expect(dueDays(scheduleOf(changed, '2026-04-08').upcoming(3))).toEqual([
+      '2026-04-08',
+      '2026-04-13',
+      '2026-04-20',
+    ])
   })
 
   it('des heures en double sont refusées', () => {
@@ -3641,7 +3648,7 @@ describe('au même rythme, une prise notée en avance couvre son heure dans la n
     expect(dates).toEqual({
       startsOn: '2026-10-05',
       firstDueOn: '2026-10-06',
-      referenceOn: '2026-10-01',
+      referenceOn: '2026-10-07',
     })
     const changed = withPeriod(book, { ...dates, frequency: threeDays, times })
 
@@ -3757,6 +3764,94 @@ describe('un report seul ne déplace que sa dose, même après un changement de 
       due('2026-10-05', '08:00', 'p2'),
     ])
     expect(changed.unloggedDoses).toEqual([])
+  })
+})
+
+describe('changer la posologie ne change jamais le calendrier (G23, #692)', () => {
+  const afterChange = (base: Carnet, today: string, from: Due, to: string, shifts: boolean) => {
+    const { report, shift } = scheduleOf(base, today).move(from, to, shifts)
+    const book = applied(applied(base, shift), report)
+    const { frequency, times } = book.periods[0]!
+    const dates = scheduleOf(book, today).newPeriod(frequency, [...times])
+    return {
+      before: dueDays(scheduleOf(book, today).upcoming(4)),
+      after: dueDays(
+        scheduleOf(withPeriod(book, { ...dates, frequency, times }), today).upcoming(4),
+      ),
+    }
+  }
+  const weeklyGiven = done(carnet(weekly({ firstDueOn: '2026-10-01' })), '2026-10-01')
+  const everyTwoDays = done(
+    carnet(period({ firstDueOn: '2026-10-01', frequency: { value: 2, unit: 'day' } })),
+    '2026-10-03',
+    '2026-10-03',
+  )
+  const the31st = done(carnet(monthly({ firstDueOn: '2027-01-31' })), '2027-01-31')
+
+  it.each([
+    [
+      'hebdomadaire, dose du 8 avancée au 6 avec décalage',
+      weeklyGiven,
+      '2026-10-02',
+      '2026-10-08',
+      '2026-10-06',
+      true,
+    ],
+    [
+      'tous les 2 jours, dose du 5 avancée au 4 avec décalage',
+      everyTwoDays,
+      '2026-10-03',
+      '2026-10-05',
+      '2026-10-04',
+      true,
+    ],
+    [
+      'mensuel du 31, dose du 28 févr. avancée au 25 avec décalage',
+      the31st,
+      '2027-02-02',
+      '2027-02-28',
+      '2027-02-25',
+      true,
+    ],
+    [
+      'mensuel du 31, dose du 28 févr. avancée seule au 25',
+      the31st,
+      '2027-02-02',
+      '2027-02-28',
+      '2027-02-25',
+      false,
+    ],
+    [
+      'mensuel du 31, dose du 28 févr. reportée seule au 2 mars',
+      the31st,
+      '2027-02-02',
+      '2027-02-28',
+      '2027-03-02',
+      false,
+    ],
+  ])('%s, posologie changée : même calendrier', (_, base, today, from, to, shifts) => {
+    const { before, after } = afterChange(base, today, due(from), to, shifts)
+
+    expect(after).toEqual(before)
+  })
+
+  it('période écrite avant G23 (jour de référence avant la première échéance) : relue comme avant', () => {
+    const twoDays = { value: 2, unit: 'day' } as const
+    let book = done(carnet(period({ firstDueOn: '2026-10-01', frequency: twoDays })), '2026-10-01')
+    book = withPeriod(book, {
+      startsOn: '2026-10-02',
+      firstDueOn: '2026-10-04',
+      referenceOn: '2026-10-01',
+      frequency: twoDays,
+      times: [],
+    })
+    for (const day of ['2026-10-04', '2026-10-06', '2026-10-08']) {
+      book = record(book, day, { kind: 'given', due: due(day, null, 'p2'), givenOn: day })
+    }
+
+    const schedule = scheduleOf(book, '2026-10-09')
+    expect(schedule.unloggedDoses).toEqual([])
+    expect(dueDays(schedule.upcoming(1))).toEqual(['2026-10-10'])
   })
 })
 
