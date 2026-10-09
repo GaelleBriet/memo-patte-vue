@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
@@ -9,6 +9,7 @@ import {
   canMarkBirthDateApproximate,
   emptyAnimalFormValues,
   validateAnimalForm,
+  withBirthDate,
 } from '../logic/animal-form'
 import type { PhotoChange } from '../service/animal-photo.service'
 import { ANIMAL_SPECIES, type Animal } from '../schema/animal.schema'
@@ -80,9 +81,9 @@ const speciesOptions = computed(() =>
   })),
 )
 
-watch(canMarkApproximate, (allowed) => {
-  if (!allowed) values.value.birthDateApproximate = false
-})
+function setBirthDate(birthDate: string): void {
+  values.value = withBirthDate(values.value, birthDate)
+}
 
 function backToAnimals(): void {
   void router.replace({ name: 'animals' })
@@ -238,7 +239,7 @@ onMounted(async () => {
       <template #default="{ describedby, invalid }">
         <v-text-field
           id="animal-birth-date"
-          v-model="values.birthDate"
+          :model-value="values.birthDate"
           :aria-describedby="describedby"
           :aria-invalid="invalid"
           class="form-field__input form-field__input--date"
@@ -248,6 +249,7 @@ onMounted(async () => {
           hide-details
           append-inner-icon="ms:calendar_month"
           :error="invalid"
+          @update:model-value="setBirthDate"
         />
       </template>
     </FormField>
