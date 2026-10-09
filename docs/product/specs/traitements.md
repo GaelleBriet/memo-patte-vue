@@ -143,8 +143,8 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   tôt, qui couvre l'échéance déplacée ; déplacer de nouveau la même dose réécrit cette ligne, avec son
   échéance d'origine (spec Q18) ; remise à sa date d'origine, la dose n'a plus de ligne de
   déplacement. Traitement à plusieurs heures : le déplacement porte sur la journée,
-  dont toutes les heures encore sans prise partent au nouveau jour, qui a toutes ses heures (spec
-  Q21). Les doses non renseignées d'avant restent à renseigner. Sans prise dans la période, déplacer
+  dont toutes les heures encore sans prise partent au nouveau jour ; avec le décalage, le nouveau
+  jour a toutes ses heures (spec Q21) ; seul, il ne reçoit que les heures parties (G25). Les doses non renseignées d'avant restent à renseigner. Sans prise dans la période, déplacer
   la première dose corrige la première échéance de la période, sans ligne « Reportée » ni « Avancée »
   (TR-28). (Spec Q2 ; revue du modèle, 2026-09-29, M4 ; lot A révisé, N5)
 
@@ -179,6 +179,15 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     ne dépend jamais de l'heure d'écriture des lignes, et « Annuler » rend le calendrier d'avant.
     Vendredi, dose du 16 avancée au 13 avec décalage, puis donnée le 12 : prochaine dose le 19.
     (Garde technique, consignée au journal des décisions autonomes.)
+  - **G25** Une heure reportée seule ne déplace que cette heure (décision de Gaelle du 2026-10-09,
+    #720) : sans décalage, le nouveau jour ne reçoit que les heures de la journée d'origine encore
+    sans prise, à partir de la première ; avec décalage, il a toutes ses heures (Q21), puisque la suite
+    repart de lui. Vermifuge tous les 2 jours à 8 h et 20 h (1, 3, 5), 8 h du 3 donnée, 20 h du 3
+    reportée seule au 4 : le 4, seule la dose de 20 h (« Dose du jour · 4 oct. à 20 h »), puis le 5 à
+    8 h et 20 h (l'app demandait 8 h et 20 h le 4) ; avec décalage, le 4 à 8 h et 20 h, puis le 6 ;
+    rien de noté le 3, la journée reportée seule au 4 garde ses deux heures. Une période ouverte sur
+    ce jour par un changement de posologie (G23) le garde tel quel. Un traitement de tous les jours ne
+    reporte pas une heure seule au lendemain : elle passerait la dose suivante (Q2 a, G19).
 - **TR-10** Dose du moment : la dernière échéance jusqu'à aujourd'hui inclus, si elle est encore sans
   prise ; à défaut, la prochaine. Traitement à plusieurs heures : on raisonne par journée (spec Q23).
   Les heures encore sans prise de la dernière journée d'échéance arrivée sont ensemble la dose du
@@ -676,7 +685,8 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   20 h part) ; même règle pour avancer ; une seule ligne d'historique par jour déplacé. Raison :
   « Prochaine dose » est une date, sans heure ; déplacer seulement la première heure laisserait une
   dose à donner le jour même après avoir déplacé la prochaine dose. Écartée : ne déplacer que la
-  première heure. (Implémentation de #453, cas ouvert 6.)
+  première heure. (Implémentation de #453, cas ouvert 6.) Sans décalage, le nouveau jour ne reçoit
+  que les heures parties (G25, 2026-10-09, #720).
 - 2026-10-01 — **Q22 (remplacée le même jour par Q24) : tant que rien n'est noté aujourd'hui, le
   nouveau réglage vaut tout de suite** (TR-28, précise Q19) : la nouvelle période commence aujourd'hui ; dès qu'une prise du jour est notée,
   les heures restantes gardent l'ancien réglage et la nouvelle période commence le lendemain. Raison :

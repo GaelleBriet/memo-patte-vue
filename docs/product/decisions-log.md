@@ -2271,6 +2271,15 @@ le carnet ne redemande jamais une dose donnée (principe 1). —
 Alternative écartée : la journée entière au nouveau réglage, ou la dernière prise plus la nouvelle
 fréquence (le 20 h du 3 disparaissait).
 
+2026-10-09 — **Une heure reportée seule ne déplace que cette heure** (Gaelle, #720 ; règle G25 de
+la spec Traitements, qui précise Q21). Vermifuge tous les 2 jours à 8 h et 20 h, 8 h du 3 donnée,
+20 h du 3 reportée seule au 4 : le 4, seule la dose de 20 h est à donner, puis le 5 à 8 h et 20 h.
+Avec « Décaler aussi les doses suivantes », le nouveau jour garde toutes ses heures, puisque la suite
+repart de lui ; un changement de posologie ne ramène pas la dose de 8 h (G23). — Raison : cohérent
+avec « un report seul ne déplace que sa dose » ; la dose de 8 h du 3 est donnée, la redemander le 4
+ferait donner une dose de trop (principe 1). — Alternative écartée : la journée reportée arrive avec
+toutes ses heures (8 h et 20 h le 4), le comportement d'avant.
+
 2026-10-09 — **Vitrine de `memopatte.app` refaite avec Gaelle** :
 - accroche « Plus aucun soin oublié pour tes chiens et chats. », plus courte et tournée vers le
   bénéfice ; la phrase de définition reste dessous pour Google et les IA ;
