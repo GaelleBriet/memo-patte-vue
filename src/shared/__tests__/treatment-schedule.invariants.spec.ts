@@ -1165,6 +1165,15 @@ class Simulation {
           due.dueOn === report?.nextDueDate &&
           (due.periodId === line.periodId ||
             this.book.periods.find(({ id }) => id === due.periodId)?.firstDueOn === due.dueOn)
+        ) &&
+        // Une heure de ce jour d'arrivée déplacée ailleurs part avec elle.
+        !this.book.doses.some(
+          (move) =>
+            move.status === 'postponed' &&
+            move.periodId === due.periodId &&
+            move.dueOn === report?.nextDueDate &&
+            move.nextDueDate === due.dueOn &&
+            (move.dueTime ?? '') <= (due.dueTime ?? ''),
         ),
       gesture,
     )
