@@ -176,21 +176,23 @@ function keptStart(
   return { firstDueOn: day, referenceOn: keptReference(open, day, fallback) }
 }
 
-// G25 : heures changées à fréquence égale, la prochaine dose arrivée d'un report seul qui a laissé des
-// heures derrière lui garde son jour, et la suite reprend la grille d'avant.
+// G25 : la prochaine dose arrivée d'un report seul qui a laissé des heures derrière lui garde son
+// jour ; à fréquence égale la suite reprend la grille d'avant, sinon le nouveau rythme part d'elle.
 function partialArrivalStart(
   state: State,
   open: PeriodTimeline,
   frequency: Frequency,
   startsOn: string,
 ): Pick<NewPeriod, 'firstDueOn' | 'referenceOn'> | undefined {
-  const { value, unit } = open.period.frequency
-  if (value !== frequency.value || unit !== frequency.unit) return undefined
+  const same = sameFrequency(open, frequency)
   const next = state.currentDoses[0]?.dueOn
   if (next === undefined || next < startsOn || open.noteDays.has(next)) return undefined
+  // Fréquence changée : seulement le jour d'arrivée lui-même, d'où part le nouveau rythme.
+  if (!same && next !== startsOn) return undefined
   if (!isHeldDay(open, next)) return undefined
   const partial = movesInto(open, next).some((move) => stayedKeys(open, move).length > 0)
-  return partial ? keptStart(state, open, startsOn, next) : undefined
+  if (!partial) return undefined
+  return same ? keptStart(state, open, startsOn, next) : { firstDueOn: next, referenceOn: next }
 }
 
 // Q24 : la nouvelle période commence aujourd'hui ; ses heures au-delà des prises du jour restent à donner.
