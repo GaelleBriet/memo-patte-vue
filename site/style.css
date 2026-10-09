@@ -212,6 +212,16 @@ img {
 }
 
 @media (min-width: 1024px) {
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+
+  [id] {
+    scroll-margin-top: 100px;
+  }
+
   .site-header-inner {
     flex-wrap: nowrap;
     min-height: 84px;

@@ -36,6 +36,10 @@
   --symbol: url('/icons/remove.svg');
 }
 
+.symbol-arrow-upward {
+  --symbol: url('/icons/arrow-upward.svg');
+}
+
 .symbol-check-circle {
   --symbol: url('/icons/check-circle.svg');
 }
@@ -906,7 +910,7 @@
     grid-column: 2;
     grid-row: 1 / span var(--steps);
     position: sticky;
-    top: max(24px, calc(50vh - 360px));
+    top: max(100px, calc(50vh - 320px));
     align-self: start;
     width: 320px;
     margin-top: 12vh;
@@ -1510,5 +1514,44 @@
 
   .need-phone {
     align-self: end;
+  }
+}
+
+/* Retour en haut */
+
+.to-top {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--petrol);
+  color: var(--on-petrol);
+  box-shadow:
+    0 0 0 2px var(--on-petrol),
+    0 10px 24px -8px rgb(1 56 62 / 60%);
+}
+
+.to-top:hover {
+  background: var(--petrol-hover);
+  color: var(--on-petrol);
+}
+
+.to-top[hidden] {
+  display: none;
+}
+
+.to-top .symbol {
+  width: 24px;
+  height: 24px;
+}
+
+@media (min-width: 1024px) {
+  .to-top {
+    display: none !important;
   }
 }

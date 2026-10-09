@@ -91,3 +91,13 @@ function filterByPet(phone) {
 for (const phone of document.querySelectorAll('.hero-phone .phone')) playDemo(phone)
 for (const phone of document.querySelectorAll('.pet-demo')) filterByPet(phone)
 for (const tour of document.querySelectorAll('.tour')) followTour(tour)
+
+function showBackToTop(link) {
+  const update = () => {
+    link.hidden = window.scrollY < window.innerHeight
+  }
+  update()
+  window.addEventListener('scroll', update, { passive: true })
+}
+
+for (const link of document.querySelectorAll('.to-top')) showBackToTop(link)
