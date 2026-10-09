@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
 
 import {
   treatmentDosesService,
@@ -30,6 +29,7 @@ import type { TreatmentWithHistory } from '../schema/treatment-with-history.sche
 import { track } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import type { DoseGesture } from '@/shared/domain/treatment-schedule'
+import { useAnimalScopedList } from '@/shared/composables/use-animal-scoped-list'
 import { recordUsageSignal } from '@/shared/utils/usage-signals'
 
 type TreatmentsRepository = Pick<
@@ -83,17 +83,6 @@ export function provideTreatmentPlanService(next: (() => TreatmentPlan) | null):
 }
 
 export const useTreatmentsStore = defineStore('treatments', () => {
-  /** Traitements de l'animal chargé, avec leurs périodes et leurs prises, dans l'ordre de saisie. */
-  const treatments = ref<TreatmentWithHistory[]>([])
-  /** Animal dont la liste est chargée, `null` tant qu'aucune n'a été demandée. */
-  const animalId = ref<string | null>(null)
-  /** Vrai pendant toute opération, chargement comme écriture. */
-  const isLoading = ref(false)
-  /** Distingue « pas encore chargé » de « aucun traitement ». */
-  const hasLoaded = ref(false)
-  /** Échec du dernier chargement : les écritures lèvent, elles ne passent pas par ici. */
-  const error = ref<Error | null>(null)
-
   function requireRepository(): Promise<TreatmentsRepository> {
     if (!provider) {
       throw new Error('Repository des traitements absent : appelle provideTreatmentsRepository().')
@@ -101,59 +90,26 @@ export const useTreatmentsStore = defineStore('treatments', () => {
     return Promise.resolve(provider())
   }
 
-  async function refresh(repository: TreatmentsRepository, id: string): Promise<void> {
-    const list = await repository.listWithHistoryByAnimal(id)
-    // Un chargement lancé entre-temps pour un autre animal a priorité sur cette réponse.
-    if (animalId.value !== id) return
-    treatments.value = list
-    hasLoaded.value = true
-    error.value = null
-  }
-
-  // Une écriture ne relit que la liste déjà affichée : celle d'un autre animal reste à charger.
-  async function write<T>(
-    operation: (repository: TreatmentsRepository) => Promise<T>,
-    touchedAnimalId: (result: T) => string | null,
-  ): Promise<T> {
-    isLoading.value = true
-    try {
-      const repository = await requireRepository()
-      const result = await operation(repository)
-      const touched = touchedAnimalId(result)
-      if (touched !== null && touched === animalId.value) {
-        await refresh(repository, touched)
-      }
-      return result
-    } finally {
-      isLoading.value = false
-    }
-  }
+  const {
+    items: treatments,
+    animalId,
+    isLoading,
+    hasLoaded,
+    error,
+    loadForAnimal,
+    write,
+  } = useAnimalScopedList(requireRepository, (repository, id) =>
+    repository.listWithHistoryByAnimal(id),
+  )
 
   return {
+    /** Traitements de l'animal chargé, avec leurs périodes et leurs prises, dans l'ordre de saisie. */
     treatments,
     animalId,
     isLoading,
     hasLoaded,
     error,
-
-    /**
-     * Ne lève pas : renvoie `false` et renseigne `error`. Renvoie aussi `true` quand la réponse
-     * est ignorée parce qu'un autre animal a été demandé entre-temps.
-     */
-    async loadForAnimal(id: string): Promise<boolean> {
-      isLoading.value = true
-      animalId.value = id
-      try {
-        await refresh(await requireRepository(), id)
-        return true
-      } catch (cause) {
-        if (animalId.value !== id) return false
-        error.value = cause instanceof Error ? cause : new Error(String(cause))
-        return false
-      } finally {
-        isLoading.value = false
-      }
-    },
+    loadForAnimal,
 
     async getById(id: string): Promise<Treatment | null> {
       return (await requireRepository()).getById(id)

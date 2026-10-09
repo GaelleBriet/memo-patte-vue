@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
 
 import { isSameVaccineName } from '../logic/vaccination-name'
 import {
@@ -23,6 +22,7 @@ import type { InjectionDates } from '../repository/vaccination-injections.reposi
 import type { VaccinationInjection } from '../schema/vaccination-injection.schema'
 import { track } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
+import { useAnimalScopedList } from '@/shared/composables/use-animal-scoped-list'
 import { recordUsageSignal } from '@/shared/utils/usage-signals'
 
 // Le store ne dépend que de ce qu'il appelle : la cascade de suppression (#102) n'est pas son affaire.
@@ -81,16 +81,6 @@ export function provideVaccinationInjectionsService(
 }
 
 export const useVaccinationsStore = defineStore('vaccinations', () => {
-  const vaccinations = ref<Vaccination[]>([])
-  /** Animal dont la liste est chargée, `null` tant qu'aucune n'a été demandée. */
-  const animalId = ref<string | null>(null)
-  /** Vrai pendant toute opération, chargement comme écriture. */
-  const isLoading = ref(false)
-  /** Distingue « pas encore chargé » de « aucun vaccin ». */
-  const hasLoaded = ref(false)
-  /** Échec du dernier chargement : les écritures lèvent, elles ne passent pas par ici. */
-  const error = ref<Error | null>(null)
-
   function requireRepository(): Promise<VaccinationsRepository> {
     if (!provider) {
       throw new Error('Repository des vaccins absent : appelle provideVaccinationsRepository().')
@@ -98,33 +88,15 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
     return Promise.resolve(provider())
   }
 
-  async function refresh(repository: VaccinationsRepository, id: string): Promise<void> {
-    const list = await repository.listByAnimal(id)
-    // Un chargement lancé entre-temps pour un autre animal a priorité sur cette réponse.
-    if (animalId.value !== id) return
-    vaccinations.value = list
-    hasLoaded.value = true
-    error.value = null
-  }
-
-  // Une écriture ne relit que la liste déjà affichée : celle d'un autre animal reste à charger.
-  async function write<T>(
-    operation: (repository: VaccinationsRepository) => Promise<T>,
-    touchedAnimalId: (result: T) => string | null,
-  ): Promise<T> {
-    isLoading.value = true
-    try {
-      const repository = await requireRepository()
-      const result = await operation(repository)
-      const touched = touchedAnimalId(result)
-      if (touched !== null && touched === animalId.value) {
-        await refresh(repository, touched)
-      }
-      return result
-    } finally {
-      isLoading.value = false
-    }
-  }
+  const {
+    items: vaccinations,
+    animalId,
+    isLoading,
+    hasLoaded,
+    error,
+    loadForAnimal,
+    write,
+  } = useAnimalScopedList(requireRepository, (repository, id) => repository.listByAnimal(id))
 
   return {
     vaccinations,
@@ -132,25 +104,7 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
     isLoading,
     hasLoaded,
     error,
-
-    /**
-     * Ne lève pas : renvoie `false` et renseigne `error`. Renvoie aussi `true` quand la réponse
-     * est ignorée parce qu'un autre animal a été demandé entre-temps.
-     */
-    async loadForAnimal(id: string): Promise<boolean> {
-      isLoading.value = true
-      animalId.value = id
-      try {
-        await refresh(await requireRepository(), id)
-        return true
-      } catch (cause) {
-        if (animalId.value !== id) return false
-        error.value = cause instanceof Error ? cause : new Error(String(cause))
-        return false
-      } finally {
-        isLoading.value = false
-      }
-    },
+    loadForAnimal,
 
     async getById(id: string): Promise<Vaccination | null> {
       return (await requireRepository()).getById(id)
