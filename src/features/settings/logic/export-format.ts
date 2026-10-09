@@ -1,7 +1,7 @@
 import { format } from 'date-fns'
 import { strToU8, zipSync, type Zippable } from 'fflate'
 
-import { outlookDueDate, treatmentOutlooks } from './treatment-outlook'
+import { outlookDueDate, treatmentOutlooks } from '@/shared/domain/treatment-outlook'
 import type { ExportData } from '@/shared/domain/carnet-data'
 import { givenDoseHistories, vaccinationHeads } from '@/shared/domain/carnet-heads'
 import { recordedWeightIn, type WeightUnit } from '@/shared/domain/weight-unit'

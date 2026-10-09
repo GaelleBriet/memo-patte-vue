@@ -1,7 +1,11 @@
 import { differenceInCalendarDays, format, parseISO } from 'date-fns'
 
 import { EXPORT_FILE_TIME } from './export-format'
-import { treatmentStates, type TreatmentOutlook, type TreatmentState } from './treatment-outlook'
+import {
+  treatmentStates,
+  type TreatmentOutlook,
+  type TreatmentState,
+} from '@/shared/domain/treatment-outlook'
 import { buildReminders, type ReminderKind } from '@/shared/domain/reminders'
 import type { ExportData, ExportFrequency } from '@/shared/domain/carnet-data'
 import { vaccinationHistories } from '@/shared/domain/carnet-heads'
