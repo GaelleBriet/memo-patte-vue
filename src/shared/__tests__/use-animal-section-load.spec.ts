@@ -22,8 +22,10 @@ afterEach(() => {
   mounted.splice(0).forEach((wrapper) => wrapper.unmount())
 })
 
-function fakeStore(load: (store: AnimalSectionStore, id: string) => Promise<boolean>) {
-  const store: AnimalSectionStore & { animalId: string | null; error: Error | null } = reactive({
+type FakeStore = AnimalSectionStore & { animalId: string | null; error: Error | null }
+
+function fakeStore(load: (store: FakeStore, id: string) => Promise<boolean>) {
+  const store: FakeStore = reactive({
     animalId: null as string | null,
     error: null as Error | null,
     loadForAnimal(id: string) {
