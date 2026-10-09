@@ -4,9 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { toJsonExport } from '../logic/export-format'
 import { createCarnetSettingsRepository } from '../repository/carnet-settings.repository'
 import { createDataExportService } from '../service/data-export.service'
+import { parseExportFile } from '../schema/export-file.schema'
 import {
   createDataImportService,
-  parseExportFile,
   type DataImportDependencies,
 } from '../service/data-import.service'
 import type { ExportData } from '@/shared/domain/carnet-data'

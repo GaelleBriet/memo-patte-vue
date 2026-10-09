@@ -6,7 +6,7 @@ import { createAnimalsRepository } from '@/features/animals/repository/animals.r
 import { toJsonExport } from '@/features/settings/logic/export-format'
 import { createCarnetSettingsRepository } from '@/features/settings/repository/carnet-settings.repository'
 import { createDataExportService } from '@/features/settings/service/data-export.service'
-import { parseExportFile } from '@/features/settings/service/data-import.service'
+import { parseExportFile } from '@/features/settings/schema/export-file.schema'
 import { createTreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
 import { createTreatmentPeriodsRepository } from '@/features/treatments/repository/treatment-periods.repository'
 import { createTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'

@@ -13,7 +13,6 @@ import { useTreatmentSheetActions } from '../composables/use-treatment-sheet-act
 import { detailActions } from '../logic/treatment-card'
 import { readableScheduleOf } from '../logic/treatment-schedule-adapter'
 import { sheetOtherDateMin, sheetPeriod, treatmentSheetTexts } from '../logic/treatment-sheet'
-import { plainStopPrompt } from '../logic/treatment-stop'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
@@ -72,7 +71,6 @@ const {
   chosen,
   chooseDaysSubtitleText,
   isChooseDaysOpen,
-  stopError,
   note,
   stop,
   onUnloggedAction,
@@ -80,7 +78,6 @@ const {
   confirmChosenDays,
 } = useTreatmentDoseFlow({ treatment: history, schedule, today }, gestures, {
   settled: () => (open.value = false),
-  stopFailure: 'message',
 })
 
 const icon = computed(() => (history.value ? reminderIcon('treatment', history.value.type) : ''))
@@ -101,8 +98,7 @@ const texts = computed(() =>
       )
     : null,
 )
-const stopDialog = computed(() => stopping.value ?? plainStopPrompt(t, named.value.name))
-const canStop = computed(() => schedule.value === null || detailActions(schedule.value).canStop)
+const canStop = computed(() => schedule.value !== null && detailActions(schedule.value).canStop)
 const otherDateMin = computed(() => {
   const birth = animal.value?.birthDate ?? null
   if (!history.value || !schedule.value || !doseDue.value) return birth
@@ -131,7 +127,6 @@ watch(
       return
     }
     refreshToday()
-    stopError.value = null
     history.value = null
     if (!animals.hasLoaded) void animals.load()
     const id = props.treatmentId
@@ -212,10 +207,6 @@ function edit(): void {
           </button>
         </template>
       </ReminderActions>
-
-      <p v-if="stopError" class="treatment-reminder-sheet__error" role="alert">
-        {{ stopError }}
-      </p>
     </template>
   </BottomSheet>
 
@@ -253,9 +244,9 @@ function edit(): void {
   />
 
   <TreatmentStopDialog
-    v-if="texts"
+    v-if="stopping"
     v-model="isStopDialogOpen"
-    :prompt="stopDialog"
+    :prompt="stopping"
     @stop="stop"
     @act="onStopAction"
   />
@@ -308,12 +299,5 @@ function edit(): void {
     outline: none;
     color: rgb(var(--v-theme-on-surface));
   }
-}
-
-.treatment-reminder-sheet__error {
-  margin: 12px 0 0;
-  color: rgb(var(--v-theme-error));
-  font-size: 13px;
-  font-weight: 500;
 }
 </style>
