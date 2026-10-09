@@ -35,7 +35,7 @@ coverage/
 # TypeScript
 *.tsbuildinfo
 
-# ESLint cache (généré par `lint:eslint --cache`)
+# Ancien cache ESLint, encore présent dans les worktrees créés avant #687
 .eslintcache
 
 # Capacitor
