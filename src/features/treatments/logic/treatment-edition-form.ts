@@ -1,6 +1,7 @@
 import type { z } from 'zod'
 
-import { editionDraft, treatmentEditionSchemaFor, type EditionDraft } from './treatment-edition'
+import { treatmentEditionSchemaFor } from './treatment-edition-checks'
+import { editionDraft, type EditionDraft } from './treatment-edition-draft'
 import {
   emptyTreatmentFormValues,
   rhythmInput,

@@ -1,4 +1,5 @@
-import type { EditionDraft, NextDoseHelp } from './treatment-edition'
+import type { EditionDraft } from './treatment-edition-draft'
+import type { NextDoseHelp } from './treatment-edition-resolution'
 import type { TreatmentFormValues } from './treatment-form-values'
 import type { ResumptionDraft } from './treatment-resumption'
 import { shiftHelpText, type ShiftHelp } from './treatment-shift-box'

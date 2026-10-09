@@ -1,6 +1,6 @@
 import type { z } from 'zod'
 
-import type { EndsOnIssueReason, NextDoseOnIssueReason } from './treatment-edition'
+import type { EndsOnIssueReason, NextDoseOnIssueReason } from './treatment-edition-checks'
 import { fieldErrorsOf, type FieldErrorKeys } from '@/shared/form/field-errors'
 
 export const DUPLICATE_TIME_ERROR_KEY = 'treatments.form.errors.timesDuplicate'
