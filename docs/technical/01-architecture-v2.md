@@ -74,14 +74,19 @@ Supabase (Postgres + Auth)
 
 ```text
 src/
-├── app/                    # Point d’entrée, plugins, router, layouts
+├── app/                    # Branchements entre features : actions des notifications, rappels, synchro, consentement
+├── router/                 # Routes de Vue Router
 ├── core/
-│   ├── db/                 # SQLite (connexion, migrations, schema)
-│   ├── supabase/           # Client Supabase + auth helpers
-│   ├── sync/               # Logique de synchronisation local ↔ cloud
-│   ├── notifications/      # Service notifications locales
+│   ├── db/                 # SQLite (connexion, migrations, schéma)
+│   ├── supabase/           # Client Supabase
+│   ├── sync/               # Synchronisation local ↔ cloud
+│   ├── notifications/      # Service des notifications locales
 │   ├── i18n/
-│   ├── theme/              # Vuetify + tokens SCSS
+│   ├── theme/              # Vuetify, icônes
+│   ├── analytics/          # PostHog, après consentement
+│   ├── app-lifecycle/      # Retour au premier plan, bouton retour, jour courant
+│   ├── device/             # Identité de l'appareil
+│   ├── photos/             # Photo Picker et fichiers de `files/photos/`
 │   └── dev/                # Fixtures de développement, jamais en production
 ├── features/
 │   ├── animals/
@@ -89,20 +94,24 @@ src/
 │   ├── treatments/
 │   ├── weight/
 │   ├── home/
-│   ├── auth/               # Écrans de connexion / création de compte
+│   ├── auth/
 │   ├── purchase/
 │   └── settings/
-├── shared/                 # Composants UI réutilisables + types communs
-└── styles/                 # settings.scss, overrides, etc.
-
+├── shared/
+└── styles/                 # Tokens SCSS, réglages Vuetify, styles communs
 ```
+
+Chaque `features/<nom>/` range son contenu par rôle technique, en sous-dossiers plats créés seulement s'ils ont un fichier à contenir : `store/` (`xxx.store.ts`), `repository/` (`xxx.repository.ts`), `service/` (`*.service.ts`), `schema/` (`*.schema.ts`), `composables/` (`use-*.ts`), `views/` (tous les `.vue`, écrans et sous-composants confondus), `logic/` (le reste des `.ts` propres à la feature) ; `__tests__/` ne bouge pas. `shared/` suit le même principe avec `components/`, `composables/`, `domain/` (logique métier MémoPatte : rappel, poids, animal, carnet), `utils/` (générique, sans connaissance métier) ; `form/` et `__tests__/` gardent leur organisation.
 
 `core/dev/` contient les fixtures de développement : le carnet de démo des maquettes (Milo + Luna, dates relatives à aujourd'hui), peuplé via les repositories quand le serveur est lancé avec `pnpm dev:data`. Le module est importé dynamiquement derrière `import.meta.env.DEV` dans `main.ts` : il tombe au build et un test le prouve. Il orchestre plusieurs repositories sans appartenir à aucune feature, d'où sa place dans `core/`.
 
 ### Règles strictes
 
-- Aucun import croisé entre features, à une exception près : un **service de cas d'usage** (`xxx.service.ts`, placé dans la feature qui porte le cas d'usage) peut importer les repositories d'autres features pour les orchestrer — un composant, un store ou un repository, jamais. Tout le reste passe par `shared/` ou `core/`.
-- Un **écran composite** (Carnet, Accueil) assemble plusieurs domaines : il importe les **composants de section** des autres features (`VaccinationsSection.vue`, `WeightSection.vue`…), et chaque section n’utilise que le store de sa feature. C’est la seule forme d’import croisé permise à un composant ; les sections ne s’importent jamais entre elles, et la logique commune à plusieurs écrans (rappels, âge, courbe de poids) vit dans `shared/`.
+- Aucun import croisé entre features, à quatre exceptions près (règle ESLint `app/feature-imports`) ; tout le reste passe par `shared/` ou `core/` :
+  - **données des animaux** : toute feature **lit** l'entité racine du carnet, et rien de plus — `useAnimalsStore` seul de `animals.store` et les types de `animal.schema` (décision du 2026-09-16) ;
+  - **statut Plus** : toute feature **lit** `usePurchaseStore` seul de `purchase.store`, pour gater une fonctionnalité payante (décision du 2026-09-18, ticket #81) ;
+  - **écran composite** (Carnet, Accueil) : il assemble plusieurs domaines et importe les **composants de section** (`VaccinationsSection.vue`, `WeightSection.vue`…) **et les feuilles** (`WeightSheet.vue`…) des autres features. Chaque section n’utilise que le store de sa feature ; les sections ne s’importent jamais entre elles, et la logique commune à plusieurs écrans (rappels, âge, courbe de poids) vit dans `shared/` ;
+  - **service de cas d'usage** (`xxx.service.ts`, placé dans la feature qui porte le cas d'usage) : il importe les **repositories** d'autres features **et leurs types / schémas** pour les orchestrer, ou le **service** d'une autre feature pour réutiliser un cas d'usage, sans jamais former de boucle entre services — un composant, un store ou un repository, jamais.
 - Les repositories sont les seuls autorisés à parler à SQLite et à Supabase, et chacun reste le seul à écrire dans sa table : un service qui orchestre appelle leurs méthodes, il n'écrit pas de SQL.
 - Les stores Pinia ne contiennent aucune requête SQL/API directe.
 - `core/` ne dépend jamais des features, à une exception près : `core/dev/` importe leurs repositories pour peupler le carnet de démo. C'est un outil de développement qui ne part jamais en production ; la règle ESLint `app/core-independent-of-features` interdit l'import partout ailleurs dans `core/`.
@@ -135,7 +144,7 @@ src/
 
 ## Monétisation
 
-- Gratuit = tout le local (animaux illimités, rappels, poids, export JSON/CSV). Plus = tout le cloud (compte, sauvegarde, restauration, multi-appareil, photos) + export PDF.
+- Gratuit = tout le local (animaux illimités, rappels, poids, export JSON, CSV et PDF). Plus = tout le cloud (compte, sauvegarde, restauration, multi-appareil, photos).
 - Trois produits Play Billing pour le même contenu, rattachés au même entitlement RevenueCat `plus` : abonnement mensuel 1,49 € et abonnement annuel 9,99 € (deux base plans d'un même abonnement, annulables à tout moment), achat non consommable « à vie » 29,99 €.
 - L'état Plus est stocké localement (avec vérification Play au lancement) ; un utilisateur dont l'abonnement expire garde tout en local et perd seulement la sync.
 - Pont vers Play Billing : `@revenuecat/purchases-capacitor` (décision du 2026-09-07, comparatif dans `billing-plugins-capacitor.md`). Règles : SDK initialisé uniquement à l'ouverture de l'écran Plus ou si un droit Plus est déjà connu ; identifiant = UUID Supabase, jamais l'email ; aucune collecte d'identifiant publicitaire ni d'IP ; produit à vie déclaré non consommable ; pas d'intégration serveur vers PostHog.
