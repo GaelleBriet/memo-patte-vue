@@ -112,10 +112,10 @@ function keepsCoverage(previous: TreatmentPeriodInput, period: TreatmentPeriodIn
 }
 
 function inheritedKeys(previous: PeriodTimeline, period: TreatmentPeriodInput): Set<string> {
+  // Les heures restées en arrière ne passent qu'au premier jour de la période suivante (G25).
+  const covered = [...previous.covered].filter((key) => !previous.leftBehind.has(key))
   return new Set([
-    ...[...previous.noteKeys, ...previous.covered].filter(
-      (key) => key.slice(0, 10) >= period.startsOn,
-    ),
+    ...[...previous.noteKeys, ...covered].filter((key) => key.slice(0, 10) >= period.startsOn),
     ...stayedOnFirstDay(previous, period),
   ])
 }

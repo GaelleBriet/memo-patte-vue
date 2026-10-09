@@ -60,6 +60,8 @@ function partialOrigin(plan: PeriodTimeline, day: string): string | undefined {
 function isSettledDay(open: PeriodTimeline, frequency: Frequency, day: string): boolean {
   if (pendingDues(open, { from: day, to: day }).length > 0) return false
   if (partialOrigin(open, day) !== undefined) return true
+  // Une période ouverte sur le jour d'arrivée en garde les heures restées en arrière.
+  if (open.period.firstDueOn === day && open.leftBehind.size > 0) return true
   if (!open.removals.has(day)) return false
   // Fréquence changée, seulement quand les doses parties de ce jour sont déjà données.
   const arrivals = open.steps
