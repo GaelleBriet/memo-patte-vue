@@ -288,6 +288,10 @@ describe('validateAnimalForm — poids saisi à la création', () => {
   it('refuse un poids au-delà de l’échelle, avec un message distinct', () => {
     expect(erreurs({ weightKg: '2000' }).weightKg).toBe('animals.form.errors.initialWeightKgMax')
   })
+
+  it('dit « poids maximal » pour un nombre trop grand pour être lu, comme la feuille de pesée', () => {
+    expect(erreurs({ weightKg: '1e400' }).weightKg).toBe('animals.form.errors.initialWeightKgMax')
+  })
 })
 
 describe('validateAnimalForm — date de naissance', () => {
