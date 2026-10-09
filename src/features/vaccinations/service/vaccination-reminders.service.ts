@@ -10,7 +10,7 @@ import {
   type ReminderNotifications,
 } from '@/core/notifications/due-reminders-schedule'
 import type { CarnetReminderSettings } from '@/shared/domain/reminder-plan'
-import { vaccinationReminders } from '../logic/vaccination-reminders'
+import { vaccinationReminders } from '@/shared/domain/vaccination-reminders'
 import {
   getVaccinationsRepository,
   type VaccinationsRepository,

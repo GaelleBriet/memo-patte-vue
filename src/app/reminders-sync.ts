@@ -19,7 +19,7 @@ import {
   getTreatmentsRepository,
   type TreatmentsRepository,
 } from '@/features/treatments/repository/treatments.repository'
-import { vaccinationReminders } from '@/features/vaccinations/logic/vaccination-reminders'
+import { vaccinationReminders } from '@/shared/domain/vaccination-reminders'
 import {
   getVaccinationsRepository,
   type VaccinationsRepository,

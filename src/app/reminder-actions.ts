@@ -21,7 +21,7 @@ import {
   type AppliedDoseChange,
   type TreatmentDosesService,
 } from '@/features/treatments/service/treatment-doses.service'
-import { isInjectionNoted } from '@/features/vaccinations/logic/vaccination-reminders'
+import { isInjectionNoted } from '@/shared/domain/vaccination-reminders'
 import {
   getVaccinationsRepository,
   type VaccinationsRepository,
