@@ -70,7 +70,7 @@ jobs:
           restore-keys: eslint-${{ hashFiles('pnpm-lock.yaml', 'eslint.config.ts', '.oxlintrc.json', 'tools/eslint/**', 'src/core/i18n/locales/**') }}-
 
       - name: Lint
-        run: pnpm lint
+        run: pnpm lint:ci
 
       - name: Tests du site
         if: needs.changes.outputs.app != 'true'
