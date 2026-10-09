@@ -130,6 +130,67 @@ function upToCommonHorizon(a: Due[], b: Due[]): [string[], string[]] {
   return [cut(a), cut(b)]
 }
 
+// G23 : une période peut s'ouvrir sur l'arrivée d'un report seul, hors de sa grille.
+function isOffGridStart(period: TreatmentPeriodInput, day: string): boolean {
+  return (
+    day === period.firstDueOn &&
+    period.referenceOn !== period.firstDueOn &&
+    !landsOn(period.referenceOn, period.firstDueOn, period.frequency)
+  )
+}
+
+// La prochaine dose est l'arrivée d'un report seul (sans décalage) de cette période.
+function loneArrivalOf(
+  schedule: TreatmentSchedule,
+  period: TreatmentPeriodInput,
+): TreatmentDoseInput | undefined {
+  const day = schedule.currentDoses[0]?.dueOn
+  const lines = schedule.doses.filter(({ periodId }) => periodId === period.id)
+  const move = lines.find(
+    ({ status, nextDueDate }) => status === 'postponed' && nextDueDate === day,
+  )
+  const shifted = lines.some((line) => line.status === 'shift' && line.dueOn === move?.dueOn)
+  return move === undefined || shifted ? undefined : move
+}
+
+// La prochaine dose est l'arrivée d'un déplacement de cette période, seul ou avec décalage.
+function arrivesOnNextDose(schedule: TreatmentSchedule, period: TreatmentPeriodInput): boolean {
+  const day = schedule.currentDoses[0]?.dueOn
+  return schedule.doses.some(
+    ({ periodId, status, nextDueDate }) =>
+      periodId === period.id && status === 'postponed' && nextDueDate === day,
+  )
+}
+
+// §11 : un mensuel garde le 28 (ou le 30) au lieu du dernier jour du mois ; un calendrier de départ
+// dont deux journées sont plus proches que la fréquence, puis hors rythme, ne se reprend pas.
+function isKnownLimit(before: string, after: string, frequency: Frequency): boolean {
+  const slotsOf = (joined: string) => joined.split(',').map((slot) => slot.split(' '))
+  const [was, now] = [slotsOf(before), slotsOf(after)]
+  const endOfMonth = (a: string, b: string) =>
+    a.slice(0, 7) === b.slice(0, 7) && Number(a.slice(8)) >= 28 && Number(b.slice(8)) >= 28
+  const boundedDay =
+    frequency.unit === 'month' &&
+    was.length === now.length &&
+    was.every(([day, time], index) => {
+      const [otherDay, otherTime] = now[index]!
+      return time === otherTime && (day === otherDay || endOfMonth(day!, otherDay!))
+    })
+  const days = [...new Set(was.map(([day]) => day!))]
+  const [first, second, third] = days
+  const irregularStart =
+    first !== undefined &&
+    second !== undefined &&
+    third !== undefined &&
+    second < shifted(first, frequency, 1) &&
+    shifted(second, frequency, 1) !== third
+  return boundedDay || irregularStart
+}
+
+function rhythmKey({ frequency, times }: TreatmentPeriodInput): string {
+  return JSON.stringify([frequency, [...times].sort()])
+}
+
 function calendarOf(schedule: TreatmentSchedule): string {
   return JSON.stringify({
     phase: schedule.phase,
@@ -177,6 +238,7 @@ class Simulation {
   private readonly shiftRandom: Random
   private readonly extraRandom: Random
   private readonly boxRandom: Random
+  private readonly rhythmRandom: Random
 
   constructor(
     public book: Book,
@@ -186,6 +248,7 @@ class Simulation {
     this.shiftRandom = mulberry32(seed ^ 0x5f3759df)
     this.extraRandom = mulberry32(seed ^ 0x2545f491)
     this.boxRandom = mulberry32(seed ^ 0x1b873593)
+    this.rhythmRandom = mulberry32(seed ^ 0x3c6ef372)
     const endRandom = mulberry32(seed ^ 0x68e31da4)
     if (endRandom() < 0.2) this.book = withCloseEnd(book, int(endRandom, 1, 2))
   }
@@ -312,7 +375,8 @@ class Simulation {
       }
     }
     const leftBehind = pending.filter((other) => other.dueOn === due.dueOn)
-    if (leftBehind.length > 0 && !landsOn(to, due.dueOn, period.frequency)) {
+    const offGrid = isOffGridStart(period, to)
+    if (leftBehind.length > 0 && !landsOn(to, due.dueOn, period.frequency) && !offGrid) {
       this.fail(`${gesture} : une dose reste à donner au jour d’origine`)
     }
     this.checkProtected(
@@ -704,7 +768,9 @@ class Simulation {
         dose.periodId === due.periodId &&
         dose.nextDueDate === due.dueOn,
     )
-    return (shiftOn(due) && !wroteShift) || movedHere.some((move) => !shiftOn(move))
+    const period = this.book.periods.find(({ id }) => id === due.periodId)
+    const offGrid = period !== undefined && isOffGridStart(period, due.dueOn)
+    return (shiftOn(due) && !wroteShift) || movedHere.some((move) => !shiftOn(move)) || offGrid
   }
 
   // TR-18, Q8 : renseigner ne déplace ni la dose du moment ni les échéances à venir.
@@ -1133,8 +1199,15 @@ class Simulation {
   private newPeriod(before: TreatmentSchedule): void {
     const { periods } = this.book
     if (!before.currentPeriodHasDose || periods.length >= 4 || before.phase === 'stopped') return
-    const frequency = pick(this.random, FREQUENCIES) ?? { value: 1, unit: 'day' }
-    const times = pick(this.random, TIMES) ?? []
+    const picked = {
+      frequency: pick(this.random, FREQUENCIES) ?? { value: 1, unit: 'day' as const },
+      times: pick(this.random, TIMES) ?? [],
+    }
+    // G23 : la posologie seule changée quand la prochaine dose est l'arrivée d'un déplacement.
+    const current = periods.at(-1)
+    const keeps =
+      current !== undefined && arrivesOnNextDose(before, current) && this.rhythmRandom() < 0.5
+    const { frequency, times } = keeps ? current : picked
     const dates = before.newPeriod(frequency, times)
     const gesture = `${this.book.today} nouvelle période ${JSON.stringify({ ...dates, frequency })}`
     this.log.push(gesture)
@@ -1144,13 +1217,98 @@ class Simulation {
       endsOn: this.random() < 0.2 ? plusDays(dates.firstDueOn, int(this.random, 3, 40)) : null,
       stoppedOn: null,
       frequency,
-      times,
+      times: [...times],
       createdAt: this.at(),
     }
     this.book = { ...this.book, periods: [...periods, period] }
     const after = this.schedule()
     this.checkProtected(before, after, (due) => due.dueOn < dates.startsOn, gesture)
     this.checkNewSetting(before, after, period, gesture)
+    this.checkLoneArrivalKept(before, after, period, gesture)
+    this.checkCalendarKept(before, after, period, gesture)
+  }
+
+  // G23 : au même rythme, la prochaine dose arrivée d'un report seul garde sa date, la suite son rythme.
+  private checkLoneArrivalKept(
+    before: TreatmentSchedule,
+    after: TreatmentSchedule,
+    period: TreatmentPeriodInput,
+    gesture: string,
+  ): void {
+    const { today } = this.book
+    const previous = this.book.periods.at(-2)
+    const day = before.currentDoses[0]?.dueOn
+    if (previous === undefined || day === undefined || day < today) return
+    if (rhythmKey(previous) !== rhythmKey(period)) return
+    const lone = loneArrivalOf(before, previous)
+    if (lone === undefined) return
+    const lines = before.doses.filter(
+      ({ periodId, status }) =>
+        periodId === previous.id && (status === 'postponed' || status === 'shift'),
+    )
+    const pendingDays = [
+      ...new Set(
+        pendingOf(before)
+          .map(({ dueOn }) => dueOn)
+          .filter((dueOn) => dueOn >= day),
+      ),
+    ].sort()
+    const otherLines = lines
+      .filter((line) => line !== lone)
+      .flatMap(({ dueOn, nextDueDate }) => [dueOn, nextDueDate])
+      .filter((other) => other >= day)
+    const limits = [pendingDays[2], previous.endsOn, period.endsOn]
+      .filter((limit) => limit !== null && limit !== undefined)
+      .concat(otherLines.map((other) => plusDays(other, -1)))
+      .sort()
+    const horizon = limits[0] ?? pendingDays.at(-1) ?? day
+    const slots = (schedule: TreatmentSchedule) =>
+      pendingOf(schedule)
+        .filter(({ dueOn }) => dueOn >= today && dueOn <= horizon)
+        .map(({ dueOn, dueTime }) => `${dueOn} ${dueTime ?? ''}`)
+        .sort()
+        .join()
+    if (slots(before) === slots(after)) return
+    if (isKnownLimit(slots(before), slots(after), period.frequency)) return
+    this.fail(`${gesture} : le calendrier a changé (${slots(before)} → ${slots(after)})`)
+  }
+
+  // G23 : au même rythme, la prochaine dose gardée, les jours suivants le sont aussi, hors lignes plus
+  // lointaines (G5).
+  private checkCalendarKept(
+    before: TreatmentSchedule,
+    after: TreatmentSchedule,
+    period: TreatmentPeriodInput,
+    gesture: string,
+  ): void {
+    const previous = this.book.periods.at(-2)
+    const day = before.currentDoses[0]?.dueOn
+    if (previous === undefined || day === undefined || day < this.book.today) return
+    if (rhythmKey(previous) !== rhythmKey(period) || period.firstDueOn !== day) return
+    const farther = before.doses
+      .filter(
+        ({ periodId, status, nextDueDate }) =>
+          periodId === previous.id &&
+          (status === 'postponed' || status === 'shift') &&
+          nextDueDate > day,
+      )
+      .flatMap(({ dueOn, nextDueDate }) => [dueOn, nextDueDate])
+    const days = [...new Set(pendingOf(before).map(({ dueOn }) => dueOn))]
+      .filter((dueOn) => dueOn >= day)
+      .sort()
+    const limits = [days[3], previous.endsOn, period.endsOn, ...farther.map((d) => plusDays(d, -1))]
+      .filter((limit) => limit !== null && limit !== undefined)
+      .sort()
+    const horizon = limits[0] ?? days.at(-1) ?? day
+    const slots = (schedule: TreatmentSchedule) =>
+      pendingOf(schedule)
+        .filter(({ dueOn }) => dueOn >= day && dueOn <= horizon)
+        .map(({ dueOn, dueTime }) => `${dueOn} ${dueTime ?? ''}`)
+        .sort()
+        .join()
+    if (slots(before) === slots(after)) return
+    if (isKnownLimit(slots(before), slots(after), period.frequency)) return
+    this.fail(`${gesture} : la suite a changé (${slots(before)} → ${slots(after)})`)
   }
 
   // Q24 : le nouveau réglage vaut tout de suite, les prises du jour comptent pour ses premières heures.
@@ -1186,7 +1344,8 @@ class Simulation {
     if (left !== expected) {
       this.fail(`${gesture} : ${left} dose(s) à donner aujourd’hui, ${expected} attendue(s)`)
     }
-    if (noted > 0 && noted < hours && period.firstDueOn !== today) {
+    const movedAway = !pendingOf(before).some((due) => due.dueOn === today)
+    if (noted > 0 && noted < hours && period.firstDueOn !== today && !movedAway) {
       this.fail(`${gesture} : les heures restantes du jour sont perdues`)
     }
     const dueToday = before.currentDoses.some((due) => due.dueOn === today)
@@ -1196,9 +1355,8 @@ class Simulation {
     this.checkDayStartedAhead(before, after, period, stopped, gesture)
   }
 
-  // G22 : au même rythme, une journée à venir entamée en avance garde ses heures restantes, sauf
-  // l'arrivée d'un report seul, hors de la suite en vigueur (Q37, #692). G24 : heures ou fréquence
-  // changées, ses prises comptent pour les premières heures du nouveau réglage.
+  // G22 : au même rythme, une journée à venir entamée en avance garde ses heures restantes (G23).
+  // G24 : heures ou fréquence changées, ses prises comptent pour les premières heures du nouveau réglage.
   private checkDayStartedAhead(
     before: TreatmentSchedule,
     after: TreatmentSchedule,
@@ -1209,12 +1367,7 @@ class Simulation {
     const previous = this.book.periods.at(-2)
     const day = before.currentDoses[0]?.dueOn
     if (previous === undefined || day === undefined || day <= this.book.today) return
-    const rhythm = ({ frequency, times }: TreatmentPeriodInput) =>
-      JSON.stringify([frequency, [...times].sort()])
-    const kept = rhythm(previous) === rhythm(period)
-    const arrives = (status: TreatmentDoseInput['status']) =>
-      before.doses.some((dose) => dose.status === status && dose.nextDueDate === day)
-    if (kept && arrives('postponed') && !arrives('shift')) return
+    const kept = rhythmKey(previous) === rhythmKey(period)
     const noted = before.doses.filter(
       (dose) => isNote(dose) && dose.dueOn === day && !stopped.has(dose.periodId),
     ).length

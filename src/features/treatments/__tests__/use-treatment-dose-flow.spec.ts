@@ -73,7 +73,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-function flow(exits: Partial<DoseFlowExits> = {}, history: TreatmentWithHistory | null = PANACUR) {
+function flow(exits: DoseFlowExits = {}, history: TreatmentWithHistory | null = PANACUR) {
   let result: ReturnType<typeof useTreatmentDoseFlow> | undefined
   mount(
     defineComponent({
@@ -86,7 +86,7 @@ function flow(exits: Partial<DoseFlowExits> = {}, history: TreatmentWithHistory 
         result = useTreatmentDoseFlow(
           { treatment: current, schedule, today },
           useTreatmentGestures(() => {}),
-          { stopFailure: 'toast', ...exits },
+          exits,
         )
         return () => null
       },
@@ -205,24 +205,15 @@ describe('useTreatmentDoseFlow — arrêter', () => {
     expect(settled).toHaveBeenCalledOnce()
   })
 
-  it('fiche : un arrêt raté se dit en toast', async () => {
+  it('un arrêt raté se dit en toast', async () => {
     stop.mockRejectedValue(new Error('base'))
-    const { stop: arreter, stopError } = flow({ stopFailure: 'toast' })
+    const settled = vi.fn<() => void>()
+    const { stop: arreter } = flow({ settled })
 
     await arreter()
 
     expect(toastMessage.value).toBe('Le traitement n’a pas pu être arrêté. Réessaie.')
-    expect(stopError.value).toBeNull()
-  })
-
-  it('feuille : un arrêt raté se dit dans un message, sans toast', async () => {
-    stop.mockRejectedValue(new Error('base'))
-    const { stop: arreter, stopError } = flow({ stopFailure: 'message' })
-
-    await arreter()
-
-    expect(toastMessage.value).toBeNull()
-    expect(stopError.value).toBe('Le traitement n’a pas pu être arrêté. Réessaie.')
+    expect(settled).not.toHaveBeenCalled()
   })
 
   it('« Choisir les jours » puis arrêter renseigne et arrête d’un geste', async () => {
@@ -241,16 +232,16 @@ describe('useTreatmentDoseFlow — arrêter', () => {
     expect(settled).toHaveBeenCalledOnce()
   })
 
-  it('feuille : renseigner puis arrêter, raté, garde le choix ouvert et le dit', async () => {
+  it('renseigner puis arrêter, raté, garde le choix ouvert et le dit en toast', async () => {
     stop.mockRejectedValue(new Error('base'))
-    const result = flow({ stopFailure: 'message' })
+    const result = flow()
 
     result.onStopAction('choose-days')
     result.confirmChosenDays({ given: result.stopping.value!.dues, missed: [] })
     await flushPromises()
 
     expect(result.isChooseDaysOpen.value).toBe(true)
-    expect(result.stopError.value).toBe('Le traitement n’a pas pu être arrêté. Réessaie.')
+    expect(toastMessage.value).toBe('Le traitement n’a pas pu être arrêté. Réessaie.')
   })
 })
 
@@ -258,7 +249,7 @@ describe('useTreatmentDoseFlow — un geste à la fois', () => {
   it('pendant une prise en cours, arrêter ou renseigner puis arrêter ne part pas', async () => {
     let finish: (change: AppliedDoseChange) => void = () => {}
     apply.mockReturnValue(new Promise((resolve) => (finish = resolve)))
-    const result = flow({ stopFailure: 'message' })
+    const result = flow()
     const due = premiereDose()
     const pending = result.note({ kind: 'given', due, givenOn: due.dueOn })
 
@@ -269,7 +260,6 @@ describe('useTreatmentDoseFlow — un geste à la fois', () => {
 
     expect(stop).not.toHaveBeenCalled()
     expect(toastMessage.value).toBeNull()
-    expect(result.stopError.value).toBeNull()
     expect(result.isChooseDaysOpen.value).toBe(true)
 
     finish(APPLIED)
@@ -281,7 +271,7 @@ describe('useTreatmentDoseFlow — doses déjà notées ailleurs (liste périmé
   it('renseigner : le choix des jours se ferme, et la feuille avec', async () => {
     apply.mockRejectedValue(new DoseAlreadyLoggedError())
     const settled = vi.fn<() => void>()
-    const result = flow({ settled, stopFailure: 'message' })
+    const result = flow({ settled })
     const { dues } = result.unlogged.value!
 
     result.onUnloggedAction('choose-days')
@@ -295,14 +285,13 @@ describe('useTreatmentDoseFlow — doses déjà notées ailleurs (liste périmé
   it('renseigner puis arrêter : le choix des jours se ferme, et la feuille avec', async () => {
     stop.mockRejectedValue(new DoseAlreadyLoggedError())
     const settled = vi.fn<() => void>()
-    const result = flow({ settled, stopFailure: 'message' })
+    const result = flow({ settled })
 
     result.onStopAction('choose-days')
     result.confirmChosenDays({ given: result.stopping.value!.dues, missed: [] })
     await flushPromises()
 
     expect(result.isChooseDaysOpen.value).toBe(false)
-    expect(result.stopError.value).toBeNull()
     expect(settled).toHaveBeenCalledOnce()
   })
 })

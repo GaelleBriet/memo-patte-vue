@@ -100,13 +100,6 @@ export function stopPrompt(
   }
 }
 
-const NO_DOSES: StopSchedule = { phase: 'upcoming', currentDoses: [], unloggedDoses: [] }
-
-/** Sans calendrier lisible : la confirmation simple, sans dose à renseigner. */
-export function plainStopPrompt(t: Translate, name: string): StopPrompt {
-  return stopPrompt(t, { name, periods: [] }, NO_DOSES, '')
-}
-
 /** `finished` : plus rien à renseigner, le traitement est dans « Traitements terminés » (TR-31). */
 export function stoppedText(t: Translate, name: string, finished: boolean): string {
   return finished

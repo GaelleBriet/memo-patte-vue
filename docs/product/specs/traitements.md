@@ -87,7 +87,9 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   aujourd'hui et encore sans prise, spec Q36 ; la prochaine journée quand une de ses heures a déjà
   été donnée en avance, G24), proposée dans « Prochaine dose » et modifiable (spec Q7), avec l'aide « Calculée
   d'après la dernière prise : … Modifiable. » (lot A révisé, N3). Quand ni la fréquence ni les heures
-  ne changent, c'est la prochaine échéance du calendrier en cours, report compris (spec Q37). Les suivantes se calculent depuis
+  ne changent, c'est la prochaine échéance du calendrier en cours, report compris (spec Q37), et la
+  suite reste celle du calendrier en cours (G23) ; les heures d'aujourd'hui reportées à un autre
+  jour y restent. Les suivantes se calculent depuis
   la **dernière ligne** plus la fréquence : date réelle d'une prise donnée, échéance d'une oubliée,
   nouvelle date d'un report (T1). En mois, le jour de référence est celui de la première échéance
   (31 janv. → 28 févr. → 31 mars), ou le dernier jour du mois quand il n'existe pas, sans dériver ; une
@@ -304,7 +306,8 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   période à partir d'aujourd'hui, sans question, et le nouveau réglage vaut tout de suite, y compris
   pour le reste de la journée : les prises déjà notées aujourd'hui comptent pour les premières heures
   du nouveau réglage, les heures suivantes restent à donner ; il ne reste aucune dose de l'ancien
-  réglage aujourd'hui (spec Q24) ; les prises passées gardent leurs réglages ; les échéances de l'ancien rythme restées sans
+  réglage aujourd'hui (spec Q24), sauf quand seule la posologie change : les heures d'aujourd'hui
+  reportées à un autre jour y restent, et le calendrier ne change pas (G23) ; les prises passées gardent leurs réglages ; les échéances de l'ancien rythme restées sans
   prise avant aujourd'hui restent à renseigner, comme après un arrêt (TR-30). Exception au « sans
   question » : sans prise notée mais avec des échéances déjà tombées, changer la fréquence ou les
   heures pose la question à l'enregistrement (spec Q38). (P9 Q1 ; spec Q7)
@@ -341,13 +344,28 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     réglage couvre son heure dans la nouvelle période, chaque jour, pas seulement le jour du
     changement ; les autres heures restent à donner. Quand une heure de la prochaine journée
     d'échéance a été donnée en avance, la nouvelle période commence par cette journée, si elle est
-    sur la suite en vigueur (pas l'arrivée d'un report seul, voir §11). Métacam tous les 2 jours à
+    sur la suite en vigueur ou l'arrivée d'un report seul (G23). Métacam tous les 2 jours à
     8 h et 20 h, prochaines doses le 3 ; le 2, la dose de 8 h du 3 est donnée en avance, puis la
     posologie changée : prochaine dose le 3 à 20 h, puis le 5 ; donnée en avance à 20 h plutôt qu'à
     8 h, c'est le 8 h du 3 qui reste. Quotidien à 8 h et 20 h, le 2 : 8 h du 2 donnée, 8 h du 3
     donnée en avance, posologie changée : restent 20 h du 2, puis 20 h du 3. Une journée déjà passée
     entamée (8 h du 3 donnée, 20 h non, posologie changée le 4) garde la dernière prise plus la
     fréquence (Q37) : prochaine dose le 5, la dose de 20 h du 3 à renseigner. (#656)
+  - **G23** Un report seul ne déplace que sa dose, et changer la posologie ne change jamais le
+    calendrier (décision de Gaelle du 2026-10-09, #692). Quand ni la fréquence ni les heures ne
+    changent, la nouvelle période commence par la prochaine dose (Q37), y compris l'arrivée d'un
+    report seul, à venir ou du jour, puis suit le calendrier en vigueur après elle : vermifuge tous
+    les 2 jours (1, 3, 5, 7), dose du 3 reportée seule au 4, posologie passée de ½ comprimé à 1 le
+    2, le 3 ou le 4 : 4, 5, 7 ; dose du 5 avancée seule au 4 : 4, 7, 9 ; dose du 5 avancée au 4 avec
+    décalage : 4, 6, 8 ; hebdomadaire, dose du 8 avancée au 6 avec décalage : 6, 13, 20 ; mensuel du
+    31, dose du 28 févr. avancée seule au 25 : 25 févr., 31 mars, 30 avr. Une heure de ce jour
+    donnée en avance couvre son heure (G22) : à 8 h et 20 h, dose du 3 reportée seule au 4, 8 h du 4
+    donnée le 2 : 20 h du 4, puis le 5. Les heures d'aujourd'hui reportées à un autre jour, seules
+    ou avec décalage, y restent, même quand une prise d'aujourd'hui est notée (TR-28, Q24 ne les
+    ramène pas) : la nouvelle période commence alors par la prochaine dose. Un report seul plus
+    lointain part avec l'ancienne période (§11) ; la grille, elle, reste : hebdomadaire, dose du 8
+    avancée seule au 6, dose du 15 reportée seule au 17, posologie changée le 2 : 6, 15, 22. Pour
+    décaler la suite, la personne déplace elle-même la dose, case cochée (TR-9).
   - **G24** Une dose déjà donnée compte : quand la fréquence ou les heures changent et qu'une heure
     de la prochaine journée d'échéance a déjà été donnée en avance, la nouvelle période commence par
     cette journée, ses prises comptent pour les premières heures du nouveau réglage (G4), et le
@@ -763,7 +781,8 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   de trois jours sans le dire. Écartée : la dernière prise plus la fréquence (28 févr. + 1 mois). À
   plusieurs heures, la règle ne vaut que si aucune heure de la journée de la dose du moment n'est
   notée ; sinon, la dernière prise plus la fréquence ; une journée à venir entamée en avance reste
-  la prochaine (G22, #656). Limite : quand la dose reprise est un jour borné
+  la prochaine (G22, #656) ; l'arrivée d'un report seul garde sa date, et la suite son rythme (G23,
+  #692). Limite : quand la dose reprise est un jour borné
   (28 févr. d'une suite du 31), la nouvelle période repart de ce jour (28 mars, 28 avr.…) ; la lever
   demande un jour de référence porté par la période (#488).
   (Revue du moteur d'échéances du 2026-10-02, M3.)
@@ -829,12 +848,18 @@ de la période (#502, étude `technical/etude-modele-prises.md` §2.6) : la dose
 et 31 (30 oct., 30 nov.) et le jour borné repris par Q37 (31 mars, 30 avr.). La date de fin qui
 faisait sauter une dose après une prise en retard est fermée par la case et son avertissement (G20, #536).
 La journée à venir entamée en avance, dont les heures restantes n'étaient plus demandées après un
-changement de posologie, est fermée par G22 (#656). Reste :
+changement de posologie, est fermée par G22 (#656). La prochaine dose reportée seule, après laquelle
+la suite glissait d'un jour à un changement de posologie (4, 6, 8 au lieu de 4, 5, 7), est fermée par
+G23 (#692). Reste :
 
-- Quand ni la fréquence ni les heures ne changent et que la prochaine dose est l'arrivée d'un report
-  seul (sans décalage), la nouvelle période repart de ce jour, et non de la suite en vigueur (TR-28,
-  Q37, #692). Tous les 2 jours (1, 3, 5, 7…), dose du 3 reportée seule au 4, posologie changée le 2 :
-  4, 6, 8 au lieu de 4, 5, 7. Une heure de ce jour donnée en avance ramène au calcul « dernière prise
-  plus fréquence » : tous les 3 jours à 8 h et 20 h (1, 4, 7…), dose du 4 reportée seule au 6 ; le 5,
-  8 h du 6 et 8 h du 7 données en avance, posologie changée : première dose le 10, les doses de 20 h
-  du 6 et du 7 ne sont plus demandées.
+- Un changement de posologie ne garde, au-delà de la prochaine dose, qu'une suite décalée. Un report
+  seul plus lointain part avec l'ancienne période (G5) : hebdomadaire (1, 8, 15, 22), dose du 15
+  reportée seule au 17, posologie changée le 2 : 8, 15, 22, au lieu de 8, 17, 22 (avec décalage, 8,
+  17, 24 est gardé). Un report plus lointain encore, même décalé, part aussi. Le garder demande de
+  rattacher ses lignes à la nouvelle période.
+- Un calendrier de départ dont deux journées se suivent de plus près que la fréquence, puis hors
+  rythme (plusieurs déplacements combinés), ne se reprend pas tel quel : toutes les 6 semaines,
+  3 mai, 5 mai, 14 juin, posologie changée : 3 mai, 5 mai, 16 juin.
+- Mensuel du 30 ou du 31 dont la dose qui suit la prochaine tombe sur un jour borné : dose du
+  30 janv. reportée seule au 4 févr., posologie changée : 4 févr., 28 févr., puis le 28 de chaque
+  mois (28 mars, 28 avr.) au lieu du 30 (30 mars, 30 avr.).
