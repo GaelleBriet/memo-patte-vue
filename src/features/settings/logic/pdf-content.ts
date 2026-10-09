@@ -240,7 +240,7 @@ function treatmentPeriods({ periods, doses, schedule }: TreatmentState): PdfTrea
   })
 }
 
-function lastGiven({ doses, schedule }: TreatmentState): PdfDose | null {
+function lastIntake({ doses, schedule }: TreatmentState): PdfDose | null {
   const given = (schedule?.doses ?? doses).filter(
     (dose) => dose.givenOn !== null && (dose.status === 'given' || dose.status === 'extra'),
   )
@@ -304,7 +304,7 @@ export function buildCarnetPdfContent(
     .map((item) => {
       const state = states(item.id)
       const periods = treatmentPeriods(state)
-      const last = lastGiven(state)
+      const last = lastIntake(state)
       return {
         name: item.name,
         lastDoseDate: last?.on ?? null,
