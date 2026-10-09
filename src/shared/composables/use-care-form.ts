@@ -1,11 +1,8 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import {
-  leaveAfterReminderSaved,
-  primingReturnRoute,
-  type ReminderKind,
-} from '../domain/notification-priming'
+import { leaveAfterReminderSaved } from '@/core/notifications/reminder-saved-priming'
+import { primingReturnRoute, type ReminderKind } from '../domain/notification-priming'
 import { takesNewCare } from '../domain/unfollowed-animals'
 import { returnTo } from '../utils/return-to'
 
