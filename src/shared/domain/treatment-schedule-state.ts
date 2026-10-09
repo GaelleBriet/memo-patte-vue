@@ -131,21 +131,37 @@ function keepsArrival(previous: TreatmentPeriodInput, period: TreatmentPeriodInp
 
 // G25 : les heures qu'un report seul a laissées derrière lui au premier jour de la période ; heures
 // changées, les doses reportées prennent les dernières heures du nouveau réglage.
+// Les heures restées en arrière au premier jour de la période, dans ses heures à elle ; une période
+// précédente qui s'ouvrait le même jour transmet les siennes (deux changements le même jour).
+function leftBehindOn(previous: PeriodTimeline, period: TreatmentPeriodInput): string[] {
+  const day = period.firstDueOn
+  const stayed = new Set([
+    ...movesInto(previous, day).flatMap((move) => stayedKeys(previous, move)),
+    ...(previous.period.firstDueOn === day ? previous.leftBehind : []),
+  ])
+  if (stayed.size === 0 || sameTimes(previous.period, period)) return [...stayed]
+  const carried = Math.max(1, previous.period.times.length) - stayed.size
+  return earliestOn(period, day, period.times.length - carried)
+}
+
+function earliestOn(period: TreatmentPeriodInput, day: string, count: number): string[] {
+  return [...period.times]
+    .sort(compareOrdinal)
+    .slice(0, Math.max(0, count))
+    .map((dueTime) => keyOf({ dueOn: day, dueTime }))
+}
+
 // Les prises de ce jour déjà comptées (G4) s'ajoutent aux heures restées en arrière.
 function stayedOnFirstDay(
   previous: PeriodTimeline,
   period: TreatmentPeriodInput,
   covered: ReadonlySet<string> = new Set(),
 ): string[] {
+  const left = leftBehindOn(previous, period)
+  if (left.length === 0 || sameTimes(previous.period, period)) return left
   const day = period.firstDueOn
-  const stayed = new Set(movesInto(previous, day).flatMap((move) => stayedKeys(previous, move)))
-  if (stayed.size === 0 || sameTimes(previous.period, period)) return [...stayed]
-  const carried = Math.max(1, previous.period.times.length) - stayed.size
   const given = [...covered].filter((key) => key.slice(0, 10) === day).length
-  return [...period.times]
-    .sort(compareOrdinal)
-    .slice(0, Math.max(0, period.times.length - carried + given))
-    .map((dueTime) => keyOf({ dueOn: day, dueTime }))
+  return earliestOn(period, day, left.length + given)
 }
 
 function changedCoverage(
@@ -185,24 +201,28 @@ export function build(input: TreatmentScheduleInput): State {
   const plans: PeriodTimeline[] = []
   periods.forEach((period, index) => {
     const previous = plans[index - 1]
-    plans.push(
-      planPeriod(
-        period,
-        closingDay(period, periods[index + 1]),
-        doses.filter((dose) => dose.periodId === period.id),
-        previous !== undefined && keepsCoverage(previous.period, period)
-          ? inheritedKeys(previous, period)
-          : changedCoverage(
-              previous,
+    const kept = previous !== undefined && keepsCoverage(previous.period, period)
+    const plan = planPeriod(
+      period,
+      closingDay(period, periods[index + 1]),
+      doses.filter((dose) => dose.periodId === period.id),
+      kept
+        ? inheritedKeys(previous, period)
+        : changedCoverage(
+            previous,
+            period,
+            coveredKeys(
               period,
-              coveredKeys(
-                period,
-                periods[index - 1],
-                notesSinceLastStop(periods.slice(0, index), doses),
-              ),
+              periods[index - 1],
+              notesSinceLastStop(periods.slice(0, index), doses),
             ),
-      ),
+          ),
     )
+    const carries = kept || (previous !== undefined && keepsArrival(previous.period, period))
+    plans.push({
+      ...plan,
+      leftBehind: new Set(carries && previous !== undefined ? leftBehindOn(previous, period) : []),
+    })
   })
   const current = plans.at(-1)
   const unlogged = plans

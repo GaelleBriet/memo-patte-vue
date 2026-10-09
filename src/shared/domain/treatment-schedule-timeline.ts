@@ -355,6 +355,7 @@ export function planPeriod(
     between: uniqueSorted(between),
     removals: removalsOf(moves),
     arrivals,
+    leftBehind: new Set(),
     noteKeys,
     noteDays,
     covered,
