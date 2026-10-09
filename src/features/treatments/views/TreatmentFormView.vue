@@ -13,12 +13,11 @@ import TreatmentUnloggedPrompt from './TreatmentUnloggedPrompt.vue'
 import { chooseDaysSubtitle, type DayChoice } from '../logic/treatment-choose-days'
 import {
   creationPastDuesOf,
-  loadedFormValues,
   pastDosesBasis,
   validateTreatmentCreation,
-  validateTreatmentEdition,
-  validateTreatmentResumption,
-} from '../logic/treatment-form'
+} from '../logic/treatment-creation-form'
+import { editedFormValues, validateTreatmentEdition } from '../logic/treatment-edition-form'
+import { resumedFormValues, validateTreatmentResumption } from '../logic/treatment-resumption-form'
 import {
   reminderHelpText,
   reminderOffsetChoices,
@@ -253,7 +252,10 @@ function errorText(key: string | undefined): string | null {
 }
 
 function open(loaded: TreatmentWithHistory): void {
-  const opened = loadedFormValues(mode === 'resume' ? 'resume' : 'edit', loaded, today.value)
+  const opened =
+    mode === 'resume'
+      ? resumedFormValues(loaded, today.value)
+      : ({ status: 'ready', values: editedFormValues(loaded, today.value) } as const)
   if (opened.status === 'not-resumable') {
     animals.select(loaded.animalId)
     returnTo(router, detailRoute({ kind: 'treatment', id: loaded.id }))

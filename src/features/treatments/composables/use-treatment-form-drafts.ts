@@ -1,7 +1,7 @@
 import { computed, ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { editionDraftOf } from '../logic/treatment-form'
+import { editionDraftOf } from '../logic/treatment-edition-form'
 import type { TreatmentFormValues } from '../logic/treatment-form-values'
 import { nextDoseShiftHelp } from '../logic/treatment-form-texts'
 import { pastDuesTexts } from '../logic/treatment-past-dues'
