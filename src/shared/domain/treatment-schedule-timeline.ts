@@ -263,8 +263,8 @@ function arrivalTimes(
   return times
 }
 
-/** Les reports qui arrivent ce jour-là, y compris ceux que la période suivante a fermés (G5). */
-export function movesInto(plan: PeriodTimeline, day: string): TreatmentDoseInput[] {
+// Les reports lus, plus ceux que la période suivante a fermés (G5).
+function readMoves(plan: PeriodTimeline): TreatmentDoseInput[] {
   const live = plan.steps.filter(isMove).map(({ dose }) => dose)
   const stale = plan.stale.filter((line) => familyOf(line) === 'move')
   const older = olderOfSameDay([...live, ...stale])
@@ -272,7 +272,12 @@ export function movesInto(plan: PeriodTimeline, day: string): TreatmentDoseInput
     (move) =>
       isClosedOut(move, plan.closesOn) && !plan.noteKeys.has(keyOf(move)) && !older.includes(move),
   )
-  return [...live, ...closedOut].filter((move) => move.nextDueDate === day && move.dueOn !== day)
+  return [...live, ...closedOut]
+}
+
+/** Les reports qui arrivent ce jour-là, y compris ceux que la période suivante a fermés (G5). */
+export function movesInto(plan: PeriodTimeline, day: string): TreatmentDoseInput[] {
+  return readMoves(plan).filter((move) => move.nextDueDate === day && move.dueOn !== day)
 }
 
 function isGridDay(plan: Pick<PeriodTimeline, 'anchors' | 'period'>, day: string): boolean {
@@ -287,7 +292,10 @@ export function stayedKeys(plan: PeriodTimeline, move: TreatmentDoseInput): stri
   // Un jour de la grille garde ses propres heures : rien n'y reste en arrière.
   if (isGridDay(plan, move.nextDueDate)) return []
   const kept = new Set([...plan.noteKeys, ...plan.covered])
-  const origin = isGridDay(plan, move.dueOn) ? undefined : plan.arrivals.get(move.dueOn)
+  const arrivals = isClosedOut(move, plan.closesOn)
+    ? arrivalTimes(plan, readMoves(plan), plan.steps, kept)
+    : plan.arrivals
+  const origin = isGridDay(plan, move.dueOn) ? undefined : arrivals.get(move.dueOn)
   const arrived = new Set(arrivalDues(plan.period, move, plan.steps, kept, origin).map(keyOf))
   // Fermée par la période suivante, la journée d'origine ne garde plus ses heures encore à donner.
   const orphans = isClosedOut(move, plan.closesOn)
