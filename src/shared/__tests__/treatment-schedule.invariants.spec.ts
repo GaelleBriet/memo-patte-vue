@@ -1556,7 +1556,9 @@ class Simulation {
       previous.frequency.value === period.frequency.value &&
       previous.frequency.unit === period.frequency.unit
     const stayed =
-      previous !== undefined && previous.stoppedOn === null && (sameFrequency || noted === 0)
+      previous !== undefined &&
+      previous.stoppedOn === null &&
+      (sameFrequency || period.firstDueOn === today)
         ? this.stayedHours(before, period, today, ofToday)
         : 0
     const expected =

@@ -4204,6 +4204,30 @@ describe('une heure reportée seule ne déplace que cette heure (G25, #720)', ()
       return book
     }
 
+    it('posologie changée le 4, 20 h du 4 oubliée, puis tous les 3 jours : rien le 4, puis le 7 (graine 310002240)', () => {
+      let book = changedOn4([{ frequency: every2, times }])
+      book = record(book, '2026-10-04', { kind: 'missed', due: due('2026-10-04', '20:00', 'p2') })
+      const dates = scheduleOf(book, '2026-10-04').newPeriod(every3, times)
+      book = {
+        ...book,
+        periods: [
+          ...book.periods,
+          period({
+            id: 'p3',
+            createdAt: '2026-10-04T05:00:00.000Z',
+            ...dates,
+            frequency: every3,
+            times,
+          }),
+        ],
+      }
+
+      expect(dates.firstDueOn).toBe('2026-10-07')
+      expect(scheduleOf(book, '2026-10-04').currentDoses).toEqual([
+        due('2026-10-07', '08:00', 'p3'),
+      ])
+    })
+
     it.each([
       [
         'tous les 3 jours, puis tous les jours',
