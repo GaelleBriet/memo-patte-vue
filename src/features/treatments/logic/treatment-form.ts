@@ -29,8 +29,7 @@ import { isClockTime, MAX_TIMES_PER_DAY, sortedTimes } from '@/shared/domain/clo
 import { formatDoseQuantity, TABLET_SHORTCUTS, type DoseUnit } from '@/shared/domain/dosage'
 import type { Due, MoveRefusal } from '@/shared/domain/treatment-schedule'
 import { formatClockTimes, formatDayMonthOrYear, withoutFinalDot } from '@/shared/utils/format'
-
-type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
+import type { Translate } from '@/core/i18n/translate'
 
 export interface TreatmentFormValues {
   name: string

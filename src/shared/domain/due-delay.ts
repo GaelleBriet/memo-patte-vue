@@ -1,6 +1,5 @@
 import { differenceInCalendarDays, differenceInMonths, parseISO } from 'date-fns'
-
-export type Translate = (key: string, named: Record<string, unknown>, plural: number) => string
+import type { Translate } from '@/core/i18n/translate'
 
 export type DueDelayText = { text: string; overdue: boolean }
 

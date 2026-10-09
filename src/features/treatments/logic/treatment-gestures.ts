@@ -19,8 +19,7 @@ import {
   formatWeekday,
   withoutFinalDot,
 } from '@/shared/utils/format'
-
-export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
+import type { Translate } from '@/core/i18n/translate'
 
 export type GestureContext = {
   name: string

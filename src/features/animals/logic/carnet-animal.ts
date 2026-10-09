@@ -1,8 +1,7 @@
 import type { Animal } from '../schema/animal.schema'
 import { animalAgeText } from '@/shared/domain/animal-age'
 import { formatLongDate } from '@/shared/utils/format'
-
-type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
+import type { Translate } from '@/core/i18n/translate'
 
 /** Animal affiché par le Carnet quand `leavingId` le quitte ; `null` : il ne reste aucun animal suivi. */
 export function nextFollowedAnimalId(

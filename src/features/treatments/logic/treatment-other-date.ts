@@ -6,8 +6,7 @@ import {
   type TreatmentSchedule,
 } from '@/shared/domain/treatment-schedule'
 import { formatClockTime, formatDayMonthOrYear } from '@/shared/utils/format'
-
-export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
+import type { Translate } from '@/core/i18n/translate'
 
 export type HourChoice = {
   time: string

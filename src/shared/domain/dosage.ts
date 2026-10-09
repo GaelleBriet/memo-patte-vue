@@ -1,5 +1,6 @@
 import { currentLocale, type AppLocale } from '@/core/i18n'
 import { formatQuantity } from '@/shared/utils/format'
+import type { Translate } from '@/core/i18n/translate'
 
 export const DOSE_UNITS = [
   'tablet',
@@ -18,8 +19,6 @@ export const DOSE_UNITS = [
 export type DoseUnit = (typeof DOSE_UNITS)[number]
 
 export type Dosage = { doseQuantity: number | null; doseUnit: DoseUnit | null }
-
-type Translate = (key: string, named: Record<string, unknown>, plural: number) => string
 
 /** Raccourcis du champ quantité pour les comprimés. */
 export const TABLET_SHORTCUTS = [0.25, 0.5, 0.75, 1, 1.5] as const

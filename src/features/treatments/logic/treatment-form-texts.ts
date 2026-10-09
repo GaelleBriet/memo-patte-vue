@@ -1,9 +1,9 @@
 import type { EditionDraft, NextDoseHelp } from './treatment-edition'
 import { nextDoseRefusalKey } from './treatment-form'
-import type { Translate } from './treatment-gestures'
 import type { ResumptionDraft } from './treatment-resumption'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import { formatDayMonthOrYear, formatFullDayMonth, withoutFinalDot } from '@/shared/utils/format'
+import type { Translate } from '@/core/i18n/translate'
 
 type Previous = Pick<ResumptionDraft, 'startedOn' | 'endedOn' | 'durationDays' | 'earliestOn'>
 

@@ -3,8 +3,7 @@ import { addDays, format, parseISO } from 'date-fns'
 import { nextReminderDate, type NextReminderChoice } from './vaccination-done'
 import type { Vaccination } from '../schema/vaccination.schema'
 import { formatDayMonthOrYear, formatLongDate } from '@/shared/utils/format'
-
-export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
+import type { Translate } from '@/core/i18n/translate'
 
 export type SheetVaccination = Pick<Vaccination, 'name' | 'dueDate' | 'lastInjectionDate'>
 

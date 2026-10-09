@@ -9,12 +9,13 @@ import {
   replaceDueReminders,
   type ReminderNotifications,
 } from '@/shared/domain/due-reminders-schedule'
-import type { CarnetReminderSettings, ReminderTranslate } from '@/shared/domain/reminder-plan'
+import type { CarnetReminderSettings } from '@/shared/domain/reminder-plan'
 import { vaccinationReminders } from '../logic/vaccination-reminders'
 import {
   getVaccinationsRepository,
   type VaccinationsRepository,
 } from '../repository/vaccinations.repository'
+import type { Translate } from '@/core/i18n/translate'
 
 type Provider<T> = () => T | Promise<T>
 
@@ -23,7 +24,7 @@ export type VaccinationRemindersDependencies = {
   animals: Provider<Pick<AnimalsRepository, 'getById'>>
   settings?: Provider<CarnetReminderSettings>
   notifications: ReminderNotifications
-  t: ReminderTranslate
+  t: Translate
   now: () => Date
 }
 

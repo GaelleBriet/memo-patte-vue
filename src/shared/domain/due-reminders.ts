@@ -5,8 +5,6 @@ export type DueReminderMoment = 'before' | 'due' | 'overdue'
 
 export type DueReminderEntry = { kind: ReminderKind; id: string }
 
-export type Translate = (key: string, named: Record<string, unknown>) => string
-
 export const DAYS_BEFORE_DUE = 3
 export const DAYS_OVERDUE = 3
 

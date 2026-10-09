@@ -1,10 +1,11 @@
 import { addDays, differenceInCalendarDays, format, parseISO, sub } from 'date-fns'
 
-import { notifiedDues, type Translate } from './treatment-other-date'
+import { notifiedDues } from './treatment-other-date'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { NotifiedDue } from '@/shared/domain/reminder-route'
 import type { Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 import { formatClockTime, formatFullDate, formatWeekdayDayMonth } from '@/shared/utils/format'
+import type { Translate } from '@/core/i18n/translate'
 
 /**
  * `note` : notification du jour, son échéance se note d'un tap ; `given-when` : « Donnée quand ? » ;

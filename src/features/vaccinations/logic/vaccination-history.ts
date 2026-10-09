@@ -4,8 +4,7 @@ import type { VaccinationInjection } from '../schema/vaccination-injection.schem
 import type { Vaccination } from '../schema/vaccination.schema'
 import { dueDelayText } from '@/shared/domain/due-delay'
 import { formatDayMonthOrYear, formatFullDate, formatLongDate } from '@/shared/utils/format'
-
-export type Translate = (key: string, named?: Record<string, unknown>, plural?: number) => string
+import type { Translate } from '@/core/i18n/translate'
 
 type Shortcut = { kind: 'oneMonth' } | { kind: 'oneYear' } | { kind: 'threeYears' }
 

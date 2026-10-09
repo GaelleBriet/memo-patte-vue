@@ -1,8 +1,7 @@
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import { dosageText } from '@/shared/domain/dosage'
 import { formatClockTimes, formatDayMonthOrYear } from '@/shared/utils/format'
-
-type Translate = (key: string, named: Record<string, unknown>, plural: number) => string
+import type { Translate } from '@/core/i18n/translate'
 
 const SEPARATOR = ' · '
 

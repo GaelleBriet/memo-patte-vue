@@ -4,6 +4,7 @@ import { animalCreationInputSchema, type Animal, type AnimalSpecies } from '../s
 import { animalAgeText } from '@/shared/domain/animal-age'
 import { exceedsMaxWeight, weightKgFromInput } from '@/shared/domain/weight-unit'
 import { currentWeightUnit } from '@/shared/domain/weight-unit-preference'
+import type { Translate } from '@/core/i18n/translate'
 
 export interface AnimalFormValues {
   name: string
@@ -58,8 +59,6 @@ export function animalFormValuesFrom(animal: Animal): AnimalFormValues {
 export function canMarkBirthDateApproximate(values: AnimalFormValues): boolean {
   return values.birthDate.trim() !== ''
 }
-
-type Translate = (key: string, named: Record<string, unknown>, plural: number) => string
 
 export function birthDateApproximateHelp(
   t: Translate,

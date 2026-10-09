@@ -1,8 +1,7 @@
 import { differenceInCalendarDays, differenceInMonths, differenceInYears, parseISO } from 'date-fns'
+import type { Translate } from '@/core/i18n/translate'
 
 export type AnimalAge = { unit: 'year' | 'month' | 'week'; value: number }
-
-type Translate = (key: string, named: Record<string, unknown>, plural: number) => string
 
 const MAX_AGE_IN_WEEKS = 16
 

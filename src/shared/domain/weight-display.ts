@@ -1,7 +1,7 @@
-import type { Translate } from './due-reminders'
 import { fromKg, maxWeightIn } from './weight-unit'
 import { currentWeightUnit } from './weight-unit-preference'
 import { formatWeight, formatWeightAxis } from '@/shared/utils/format'
+import type { Translate } from '@/core/i18n/translate'
 
 /** Un poids enregistré en kg, dans l'unité choisie, sans arrondi. */
 export function displayedWeight(kg: number): number {
