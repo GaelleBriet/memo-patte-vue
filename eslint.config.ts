@@ -102,7 +102,6 @@ const COMPOSITE_SCREENS = [
   { feature: 'settings', file: 'src/features/settings/views/SettingsView.vue' },
 ]
 
-// Le schéma du fichier d'export compose les schémas des lignes de chaque feature.
 const EXPORT_FILE_SCHEMA = 'src/features/settings/schema/export-file.schema.ts'
 
 // Exception actée le 2026-09-16 (decisions-log) : toute feature lit le store des
