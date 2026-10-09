@@ -21,6 +21,7 @@ function playDemo(phone) {
     toast.hidden = false
     toast.focus({ preventScroll: true })
     setTimeout(() => {
+      const hadFocus = document.activeElement === toast
       toast.hidden = true
       setTimeout(() => {
         notification.classList.add('is-again')
@@ -28,6 +29,7 @@ function playDemo(phone) {
         void notification.offsetWidth
         notification.style.animation = ''
         notification.classList.remove('is-done')
+        if (hadFocus) action.focus({ preventScroll: true })
         playing = false
       }, BACK_MS)
     }, TOAST_MS)
