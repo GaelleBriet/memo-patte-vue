@@ -1160,7 +1160,7 @@ class Simulation {
 
   // G25, recalculé depuis les prises : un report seul n'apporte à son jour d'arrivée ni les heures
   // déjà notées de sa journée d'origine, ni, tant que sa période la garde, celles d'avant son heure.
-  private stayedTimes(day: string): Set<string | null> {
+  private stayedTimes(day: string, before?: TreatmentSchedule, depth = 0): Set<string | null> {
     const { doses, periods } = this.book
     const closesOf = (periodId: string) => {
       const index = periods.findIndex(({ id }) => id === periodId)
@@ -1183,7 +1183,18 @@ class Simulation {
         const noted = doses.some(
           (dose) => isNote(dose) && dose.dueOn === move.dueOn && dose.dueTime === time,
         )
-        if (noted || (kept && (time ?? '') < (move.dueTime ?? ''))) stayed.add(time)
+        const earlier = (time ?? '') < (move.dueTime ?? '')
+        // Fermée par la période suivante, sa journée d'origine n'y garde que ce qui n'y était pas à donner.
+        const pendingBefore = (schedule: TreatmentSchedule) =>
+          pendingOf(schedule).some(
+            (due) =>
+              due.periodId === move.periodId && due.dueOn === move.dueOn && due.dueTime === time,
+          )
+        const notDue =
+          before !== undefined
+            ? !pendingBefore(before)
+            : depth < 8 && this.stayedTimes(move.dueOn, undefined, depth + 1).has(time)
+        if (noted || (earlier && (kept || notDue))) stayed.add(time)
       }
     }
     return stayed
@@ -1191,13 +1202,21 @@ class Simulation {
 
   // Heures changées, autant de premières heures du nouveau réglage restent couvertes (G4).
   private stayedHours(
+    before: TreatmentSchedule,
     period: TreatmentPeriodInput,
     day: string,
     ofDay: TreatmentDoseInput[],
   ): number {
-    const stayed = [...this.stayedTimes(day)]
-    if (!stayed.every((time) => time !== null && period.times.includes(time))) return stayed.length
-    return stayed.filter((time) => !ofDay.some((dose) => dose.dueTime === time)).length
+    const stayed = [...this.stayedTimes(day, before)]
+    const previous = this.book.periods.at(-2)
+    if (
+      previous === undefined ||
+      [...previous.times].sort().join() === [...period.times].sort().join()
+    ) {
+      return stayed.filter((time) => !ofDay.some((dose) => dose.dueTime === time)).length
+    }
+    const carried = Math.max(1, previous.times.length) - stayed.length
+    return stayed.length === 0 ? 0 : Math.max(0, period.times.length - carried)
   }
 
   private stop(before: TreatmentSchedule): void {
@@ -1498,7 +1517,7 @@ class Simulation {
       previous !== undefined &&
       previous.frequency.value === period.frequency.value &&
       previous.frequency.unit === period.frequency.unit
-    const stayed = sameFrequency ? this.stayedHours(period, today, ofToday) : 0
+    const stayed = sameFrequency ? this.stayedHours(before, period, today, ofToday) : 0
     const expected =
       period.firstDueOn === today ? (uncovered ? hours : Math.max(0, hours - noted - stayed)) : 0
     if (left !== expected) {
@@ -1553,7 +1572,10 @@ class Simulation {
     const left = pendingOf(after).filter(
       (due) => due.periodId === period.id && due.dueOn === day,
     ).length
-    const stayed = kept ? this.stayedHours(period, day, ofDay) : 0
+    const sameFrequency =
+      previous.frequency.value === period.frequency.value &&
+      previous.frequency.unit === period.frequency.unit
+    const stayed = sameFrequency ? this.stayedHours(before, period, day, ofDay) : 0
     const expected = Math.max(0, hours - noted - stayed)
     if (left !== expected) {
       this.fail(`${gesture} : ${left} dose(s) à donner le ${day}, ${expected} attendue(s)`)
