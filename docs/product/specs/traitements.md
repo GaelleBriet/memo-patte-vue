@@ -875,6 +875,11 @@ G23 (#692). Reste :
   ses prises la couvrent (Q24), au lieu de compter à leur date réelle (Q8). Mensuel à 8 h, 14 h et
   20 h commençant le 25, les trois doses du 25 données les 23 et 24, la dernière avec décalage ;
   le 24, passage à tous les jours à 20 h : prochaine dose le 26 au lieu du 25.
+- Des prises données en avance pour une journée d'une période que d'autres ont remplacée depuis
+  comptent encore pour cette journée si une nouvelle période la reprend comme jour du changement
+  (Q24) : tous les jours à 6 h, 12 h, 18 h et 23 h, puis toutes les 6 semaines à 8 h et 20 h avec le
+  30 mars donné en avance, puis toutes les 2 semaines ; le 30 mars, passage à tous les 2 jours :
+  prochaine dose le 1er avr. au lieu du 30 mars (#721).
 - Un calendrier de départ dont deux journées se suivent de plus près que la fréquence, puis hors
   rythme (plusieurs déplacements combinés), ne se reprend pas tel quel : toutes les 6 semaines,
   3 mai, 5 mai, 14 juin, posologie changée : 3 mai, 5 mai, 16 juin.

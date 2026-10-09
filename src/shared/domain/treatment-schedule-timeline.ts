@@ -167,8 +167,9 @@ export function coveredKeys(
 }
 
 // G24 : un jour de référence avant la première échéance marque la journée entamée en avance qui
-// ouvre la période, à rythme changé.
+// ouvre la période, à rythme changé ; après elle, une journée qui ne couvre rien (Q8).
 function startedDays(period: TreatmentPeriodInput): string[] {
+  if (period.referenceOn > period.firstDueOn) return []
   if (period.firstDueOn === period.startsOn) return [period.startsOn]
   return period.referenceOn < period.firstDueOn ? [period.firstDueOn] : []
 }

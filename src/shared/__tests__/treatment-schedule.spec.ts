@@ -4111,6 +4111,25 @@ describe('heures ou fréquence changées : une dose déjà donnée compte, le no
     )
   })
 
+  it('toutes les 2 semaines sans heure, dose du 13 donnée le 12 avec décalage, le 13 tous les jours : dose le 13 (Q8)', () => {
+    const twoWeeks = { value: 2, unit: 'week' } as const
+    let book = done(carnet(period({ firstDueOn: '2026-09-29', frequency: twoWeeks })), '2026-09-29')
+    book = record(book, '2026-10-12', {
+      kind: 'given',
+      due: due('2026-10-13'),
+      givenOn: '2026-10-12',
+      shiftsFollowing: true,
+    })
+    const daily = { value: 1, unit: 'day' } as const
+    const dates = scheduleOf(book, '2026-10-13').newPeriod(daily, [])
+    const changed = withPeriod(book, { ...dates, frequency: daily, times: [] })
+
+    expect(dueDays(scheduleOf(changed, '2026-10-13').upcoming(2))).toEqual([
+      '2026-10-13',
+      '2026-10-14',
+    ])
+  })
+
   it('quotidien à 8 h et 20 h, 20 h du 2 donnée la première, tous les 2 jours le 2 : la prise couvre le 20 h, le 8 h du 2 reste', () => {
     const daily = carnet(
       period({ firstDueOn: '2026-10-01', frequency: { value: 1, unit: 'day' }, times }),

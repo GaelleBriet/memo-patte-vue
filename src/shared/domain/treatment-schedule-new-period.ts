@@ -174,5 +174,10 @@ export function newPeriod(state: State, frequency: Frequency, times: readonly st
   }
   const proposed = scheduled ?? lastReference(state, frequency) ?? startsOn
   const firstDueOn = proposed > startsOn ? proposed : startsOn
-  return { startsOn, firstDueOn, referenceOn: firstDueOn }
+  // Q8 : la journée de départ qui a décalé la suite ne couvre rien ; un jour de référence un pas
+  // après elle le marque, sans changer la grille.
+  const refixed =
+    !kept && firstDueOn === startsOn && noted > 0 && startedAheadOn(startsOn, periods, doses) === 0
+  const referenceOn = refixed ? shiftDate(firstDueOn, frequency, 1) : firstDueOn
+  return { startsOn, firstDueOn, referenceOn }
 }
