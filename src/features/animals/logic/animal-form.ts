@@ -5,6 +5,7 @@ import { animalAgeText } from '@/shared/domain/animal-age'
 import { exceedsMaxWeight, weightKgFromInput } from '@/shared/domain/weight-unit'
 import { currentWeightUnit } from '@/shared/domain/weight-unit-preference'
 import { fieldErrorsOf, type FieldErrorKeys } from '@/shared/form/field-errors'
+import { numberOrNull } from '@/shared/form/number-input'
 import type { Translate } from '@/core/i18n/translate'
 
 export interface AnimalFormValues {
@@ -78,12 +79,6 @@ function textOrNull(value: string): string | null {
   const trimmed = value.trim()
 
   return trimmed === '' ? null : trimmed
-}
-
-function numberOrNull(value: string): number | null {
-  const trimmed = value.trim()
-
-  return trimmed === '' ? null : Number(trimmed.replace(',', '.'))
 }
 
 export function validateAnimalForm(values: AnimalFormValues): AnimalFormResult {

@@ -5,6 +5,7 @@ import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import { exceedsMaxWeight, recordedWeightIn, weightKgFromInput } from '@/shared/domain/weight-unit'
 import { currentWeightUnit } from '@/shared/domain/weight-unit-preference'
 import { fieldErrorsOf, type FieldErrorKeys } from '@/shared/form/field-errors'
+import { numberOrNull } from '@/shared/form/number-input'
 import { formatWeightInput } from '@/shared/utils/format'
 
 export interface WeightFormValues {
@@ -46,12 +47,6 @@ export function weightFormValuesFrom(entry: WeightEntry): WeightFormValues {
     weightKg: formatWeightInput(recordedWeightIn(entry.weightKg, currentWeightUnit())),
     measuredOn: entry.measuredOn,
   }
-}
-
-function numberOrNull(value: string): number | null {
-  const trimmed = value.trim()
-
-  return trimmed === '' ? null : Number(trimmed.replace(',', '.'))
 }
 
 /** `storedWeightKg` : poids de la pesée corrigée, gardé tel quel si la valeur proposée n'a pas bougé. */
