@@ -1197,6 +1197,15 @@ class Simulation {
     )
     const stayed = new Set<string | null>()
     for (const move of lone) {
+      // Un jour de la grille garde ses propres heures : il les avait toutes avant le geste.
+      const ownTimes = periods.find(({ id }) => id === move.periodId)?.times ?? []
+      const shown =
+        before === undefined
+          ? 0
+          : [...pendingOf(before), ...before.doses.filter(isNote)].filter(
+              (due) => due.periodId === move.periodId && due.dueOn === day,
+            ).length
+      if (shown >= Math.max(1, ownTimes.length)) continue
       const closes = closesOf(move.periodId)
       const kept = closes === undefined || move.dueOn < closes
       const times = periods.find(({ id }) => id === move.periodId)?.times ?? []
