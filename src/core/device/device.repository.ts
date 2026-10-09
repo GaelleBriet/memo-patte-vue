@@ -2,9 +2,10 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
-import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
+import type { SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
-import { syncField, type SyncPullPage } from '@/core/sync/service/syncable-table'
+import { createRemoteSyncTable } from '@/core/sync/repository/remote-sync-table.repository'
+import { syncField } from '@/core/sync/service/syncable-table'
 import type { DeviceIdentity } from './device-identity'
 
 export type DeviceRecord = {
@@ -102,28 +103,7 @@ export function createDeviceRepository(
       return rows[0] ?? null
     },
 
-    async pushRow(userId: string, row: SyncRow): Promise<void> {
-      const supabase = await loadClient()
-      await guardedUpsert(supabase, 'device', ['user_id', 'id'], { ...row, user_id: userId })
-    },
-
-    async pullPage(userId: string, since: string, limit: number): Promise<SyncPullPage> {
-      const supabase = await loadClient()
-      const { data, error } = await supabase
-        .from('device')
-        .select(`${COLUMNS}, server_updated_at`)
-        .eq('user_id', userId)
-        .gte('server_updated_at', since)
-        .order('server_updated_at', { ascending: true })
-        .limit(limit)
-      if (error) throw error
-
-      const rows = (data ?? []) as unknown as Array<SyncRow & { server_updated_at: string }>
-      return {
-        rows: rows.map(({ server_updated_at: _serverUpdatedAt, ...columns }) => columns as SyncRow),
-        cursor: rows.at(-1)?.server_updated_at ?? null,
-      }
-    },
+    ...createRemoteSyncTable({ table: 'device', columns: COLUMNS, loadClient }),
 
     applyRemoteRowStatement(row: SyncRow): SqlStatement {
       return {
