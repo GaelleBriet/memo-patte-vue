@@ -16,14 +16,16 @@ import {
   emptyTreatmentFormValues,
   loadedFormValues,
   pastDosesBasis,
-  reminderHelpText,
-  reminderOffsetChoices,
-  suggestExactReminders,
   DUPLICATE_TIME_ERROR_KEY,
   validateTreatmentCreation,
   validateTreatmentEdition,
   validateTreatmentResumption,
 } from '../logic/treatment-form'
+import {
+  reminderHelpText,
+  reminderOffsetChoices,
+  suggestExactReminders,
+} from '../logic/treatment-reminder-choices'
 import {
   endsOnHelpText,
   formErrorParams,
