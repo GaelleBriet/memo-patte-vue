@@ -4032,6 +4032,30 @@ describe('une heure reportée seule ne déplace que cette heure (G25, #720)', ()
     expect(schedule.unloggedDoses).toEqual([])
   })
 
+  it('reports seuls en chaîne : une heure qui n’était pas à donner au jour d’origine ne part pas (graine 270001148)', () => {
+    const three = ['08:00', '14:00', '20:00']
+    let book = carnet(
+      period({ firstDueOn: '2026-10-01', frequency: { value: 1, unit: 'week' }, times: three }),
+    )
+    book = record(book, '2026-10-01', {
+      kind: 'given',
+      due: due('2026-10-01', '20:00'),
+      givenOn: '2026-10-01',
+    })
+    book = movedOn(book, '2026-10-01', due('2026-10-01', '08:00'), '2026-10-03', false)
+    expect(scheduleOf(book, '2026-10-01').upcoming(2)).toEqual([
+      due('2026-10-03', '08:00'),
+      due('2026-10-03', '14:00'),
+    ])
+    book = done(book, '2026-10-03')
+    book = movedOn(book, '2026-10-03', due('2026-10-03', '14:00'), '2026-10-05', false)
+
+    expect(scheduleOf(book, '2026-10-03').upcoming(2)).toEqual([
+      due('2026-10-05', '14:00'),
+      due('2026-10-08', '08:00'),
+    ])
+  })
+
   it('avec décalage, la journée d’arrivée a toutes ses heures (Q21) : le 4 à 8 h et 20 h, puis le 6', () => {
     const book = movedOn(morningOf3, '2026-10-03', due('2026-10-03', '20:00'), '2026-10-04', true)
 
