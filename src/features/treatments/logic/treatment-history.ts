@@ -273,7 +273,7 @@ function linesOf(
   schedule: HistorySchedule,
   period: Period,
   doses: TreatmentDoseInput[],
-  { lastGivenId, today }: { lastGivenId: string | undefined; today: string },
+  { lastPlannedDoseGivenId, today }: { lastPlannedDoseGivenId: string | undefined; today: string },
 ): HistoryLine[] {
   const lines: HistoryLine[] = []
   for (const dose of displayOrder([...doses].reverse())) {
@@ -305,7 +305,7 @@ function linesOf(
           dose.givenOn === null || dose.givenOn === dose.dueOn
             ? null
             : t('treatments.history.givenOn', { date: formatLongDate(dose.givenOn) }),
-        isLast: dose.id === lastGivenId,
+        isLast: dose.id === lastPlannedDoseGivenId,
         optionsLabel: doseOptionsLabel(t, dose, period),
         actions: ['change-date', 'mark-missed', 'remove'],
       })
@@ -361,7 +361,7 @@ function notesIn(lines: HistoryLine[]): number {
   )
 }
 
-function lastGiven(doses: TreatmentDoseInput[]): TreatmentDoseInput | undefined {
+function lastPlannedDoseGiven(doses: TreatmentDoseInput[]): TreatmentDoseInput | undefined {
   const rank = ({ givenOn, dueOn, dueTime }: TreatmentDoseInput) =>
     `${givenOn ?? ''} ${dueOn} ${dueTime ?? ''}`
   return doses
@@ -381,7 +381,7 @@ export function treatmentHistory(
   const periods = [...treatment.periods].sort(byStartDescending)
   const given = schedule.doses.filter(({ status }) => status === 'given' || status === 'extra')
   const oldest = given[0]
-  const last = lastGiven(schedule.doses)
+  const last = lastPlannedDoseGiven(schedule.doses)
   const isAlone = periods.length === 1
 
   return {
@@ -394,7 +394,7 @@ export function treatmentHistory(
           }),
     periods: periods.map((period, index): HistoryPeriod => {
       const doses = schedule.doses.filter((dose) => dose.periodId === period.id)
-      const lines = linesOf(t, schedule, period, doses, { lastGivenId: last?.id, today })
+      const lines = linesOf(t, schedule, period, doses, { lastPlannedDoseGivenId: last?.id, today })
       const hidden = notesIn(lines.slice(LINES_BEFORE_TOGGLE))
       const others = index === 0 && !isAlone
       return {
