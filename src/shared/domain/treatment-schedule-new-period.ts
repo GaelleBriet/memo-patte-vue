@@ -87,7 +87,9 @@ function gridDayAfter(open: PeriodTimeline, day: string): string {
   const replaced = open.steps
     .filter(({ kind, dose }) => kind === 'move' && dose.nextDueDate <= day)
     .map(({ dose }) => dose.dueOn)
-  const dues = sequenceDues({ ...sequence, floor: `${day} ~` }, open.period)
+  // Un décalage rangé sous une échéance plus lointaine (G18) ne vaut qu'après elle.
+  const floor = sequence.floor > `${day} ~` ? sequence.floor : `${day} ~`
+  const dues = sequenceDues({ ...sequence, floor }, open.period)
   let next = dues.next().value
   while (replaced.includes(next.dueOn)) next = dues.next().value
   return next.dueOn
