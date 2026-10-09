@@ -8,10 +8,8 @@ import i18n from '@/core/i18n'
 import { createCarnetSettingsRepository } from '@/features/settings/repository/carnet-settings.repository'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { createDataExportService } from '@/features/settings/service/data-export.service'
-import {
-  createDataImportService,
-  parseExportFile,
-} from '@/features/settings/service/data-import.service'
+import { parseExportFile } from '@/features/settings/schema/export-file.schema'
+import { createDataImportService } from '@/features/settings/service/data-import.service'
 import { createTreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
 import { createTreatmentPeriodsRepository } from '@/features/treatments/repository/treatment-periods.repository'
 import { createTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'

@@ -305,8 +305,8 @@ les rappels depuis le carnet écrit.
 
 ## Import — « Importer un export MémoPatte »
 
-Code de référence : `src/features/settings/service/data-import.service.ts` (validation Zod du
-fichier et écriture) et `src/shared/domain/import-plan.ts` (module pur : entrées du fichier + état local → écritures à
+Code de référence : `src/features/settings/schema/export-file.schema.ts` (validation Zod du
+fichier), `src/features/settings/service/data-import.service.ts` (écriture) et `src/shared/domain/import-plan.ts` (module pur : entrées du fichier + état local → écritures à
 jouer, réutilisable par la synchronisation Plus). Les types de lignes partagés vivent dans
 `src/shared/domain/carnet-data.ts`.
 
