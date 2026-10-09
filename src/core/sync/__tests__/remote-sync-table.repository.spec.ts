@@ -11,58 +11,79 @@ interface FakeResult {
   error: unknown
 }
 
+interface FakePullBuilder {
+  select: (columns: string) => FakePullBuilder
+  eq: (column: string, value: unknown) => FakePullBuilder
+  gte: (column: string, value: unknown) => FakePullBuilder
+  order: (column: string, options: unknown) => FakePullBuilder
+  limit: (count: number) => Promise<FakeResult>
+}
+
 function fakePullClient(result: FakeResult) {
   const calls: Record<string, unknown> = {}
-  const builder = {
-    select: vi.fn((columns: string) => {
+  const builder: FakePullBuilder = {
+    select: vi.fn<FakePullBuilder['select']>((columns) => {
       calls.select = columns
       return builder
     }),
-    eq: vi.fn((column: string, value: unknown) => {
+    eq: vi.fn<FakePullBuilder['eq']>((column, value) => {
       calls.eq = [column, value]
       return builder
     }),
-    gte: vi.fn((column: string, value: unknown) => {
+    gte: vi.fn<FakePullBuilder['gte']>((column, value) => {
       calls.gte = [column, value]
       return builder
     }),
-    order: vi.fn((column: string, options: unknown) => {
+    order: vi.fn<FakePullBuilder['order']>((column, options) => {
       calls.order = [column, options]
       return builder
     }),
-    limit: vi.fn((count: number) => {
+    limit: vi.fn<FakePullBuilder['limit']>((count) => {
       calls.limit = count
       return Promise.resolve(result)
     }),
   }
-  const from = vi.fn(() => builder)
+  const from = vi.fn<(table: string) => FakePullBuilder>(() => builder)
   return { client: { from } as unknown as SupabaseClient, from, calls }
+}
+
+interface FakeUpdateBuilder {
+  update: (patch: unknown) => FakeUpdateBuilder
+  match: (match: unknown) => FakeUpdateBuilder
+  lt: (column: string, value: unknown) => FakeUpdateBuilder
+  select: (columns: string) => Promise<FakeResult>
+}
+
+interface FakeInsertBuilder {
+  upsert: (row: unknown, options: unknown) => Promise<{ error: unknown }>
 }
 
 function fakePushClient(updated: unknown[]) {
   const calls: Record<string, unknown> = {}
-  const updateBuilder = {
-    update: vi.fn((patch: unknown) => {
+  const updateBuilder: FakeUpdateBuilder = {
+    update: vi.fn<FakeUpdateBuilder['update']>((patch) => {
       calls.update = patch
       return updateBuilder
     }),
-    match: vi.fn((match: unknown) => {
+    match: vi.fn<FakeUpdateBuilder['match']>((match) => {
       calls.match = match
       return updateBuilder
     }),
-    lt: vi.fn((column: string, value: unknown) => {
+    lt: vi.fn<FakeUpdateBuilder['lt']>((column, value) => {
       calls.lt = [column, value]
       return updateBuilder
     }),
-    select: vi.fn(() => Promise.resolve({ data: updated, error: null })),
+    select: vi.fn<FakeUpdateBuilder['select']>(() =>
+      Promise.resolve({ data: updated, error: null }),
+    ),
   }
-  const insertBuilder = {
-    upsert: vi.fn((row: unknown, options: unknown) => {
+  const insertBuilder: FakeInsertBuilder = {
+    upsert: vi.fn<FakeInsertBuilder['upsert']>((row, options) => {
       calls.upsert = [row, options]
       return Promise.resolve({ error: null })
     }),
   }
-  const from = vi.fn((table: string) => {
+  const from = vi.fn<(table: string) => FakeUpdateBuilder | FakeInsertBuilder>((table) => {
     calls.tables = [...((calls.tables as string[] | undefined) ?? []), table]
     return 'upsert' in calls || 'update' in calls ? insertBuilder : updateBuilder
   })
@@ -71,7 +92,7 @@ function fakePushClient(updated: unknown[]) {
 
 describe('createRemoteSyncTable', () => {
   it("ne charge le client Supabase qu'au premier appel", () => {
-    const loadClient = vi.fn()
+    const loadClient = vi.fn<() => Promise<SupabaseClient>>()
 
     createRemoteSyncTable({ table: 'animal', columns: 'id, name', loadClient })
 
