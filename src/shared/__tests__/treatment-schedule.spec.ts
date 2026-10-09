@@ -3768,6 +3768,95 @@ describe('un report seul ne déplace que sa dose, même après un changement de 
 })
 
 describe('changer la posologie ne change jamais le calendrier (G23, #692)', () => {
+  it('hebdomadaire, dose du 17 avancée au 12 avec décalage, prise du 12 notée le 6 puis supprimée, dose du 20 avancée seule au 18 : aucune dose le 13', () => {
+    const weekly1 = { value: 1, unit: 'week' } as const
+    let book = carnet(weekly({ startsOn: '2026-04-02', firstDueOn: '2026-04-17' }))
+    const advanced = scheduleOf(book, '2026-04-06').move(due('2026-04-17'), '2026-04-12', true)
+    book = applied(applied(book, advanced.shift), advanced.report)
+    book = record(book, '2026-04-06', {
+      kind: 'given',
+      due: due('2026-04-12'),
+      givenOn: '2026-04-06',
+      shiftsFollowing: true,
+    })
+    book = withoutDose(book, lastDose(book).id)
+    const alone = scheduleOf(book, '2026-04-06').move(due('2026-04-20'), '2026-04-18', false)
+    book = applied(applied(book, alone.shift), alone.report)
+    expect(dueDays(scheduleOf(book, '2026-04-06').upcoming(3))).toEqual([
+      '2026-04-12',
+      '2026-04-18',
+      '2026-04-27',
+    ])
+
+    const dates = scheduleOf(book, '2026-04-06').newPeriod(weekly1, [])
+    const changed = withPeriod(book, { ...dates, frequency: weekly1, times: [] })
+
+    expect(dueDays(scheduleOf(changed, '2026-04-06').upcoming(3))).toEqual([
+      '2026-04-12',
+      '2026-04-20',
+      '2026-04-27',
+    ])
+  })
+
+  it('une prise d’une période plus ancienne, à un autre rythme, ne couvre pas une heure restée à donner (G22)', () => {
+    const every3 = { value: 3, unit: 'day' } as const
+    const times = ['08:00', '14:00', '20:00']
+    let book: Carnet = {
+      periods: [
+        weekly({ firstDueOn: '2026-10-01' }),
+        period({
+          id: 'p2',
+          startsOn: '2026-10-06',
+          firstDueOn: '2026-10-08',
+          referenceOn: '2026-10-08',
+          frequency: every3,
+          times,
+          createdAt: '2026-10-06T09:00:00.000Z',
+        }),
+      ],
+      doses: [
+        stored({
+          periodId: 'p1',
+          dueOn: '2026-10-08',
+          dueTime: null,
+          givenOn: '2026-10-06',
+          status: 'given',
+          nextDueDate: '2026-10-15',
+        }),
+      ],
+    }
+    for (const time of ['08:00', '20:00']) {
+      book = record(book, '2026-10-06', {
+        kind: 'given',
+        due: due('2026-10-08', time, 'p2'),
+        givenOn: '2026-10-06',
+        shiftsFollowing: false,
+      })
+    }
+    const before = scheduleOf(book, '2026-10-06').upcoming(2)
+    expect(before[0]).toEqual(due('2026-10-08', '14:00', 'p2'))
+
+    const dates = scheduleOf(book, '2026-10-06').newPeriod(every3, times)
+    const changed: Carnet = {
+      ...book,
+      periods: [
+        ...book.periods,
+        period({
+          id: 'p3',
+          createdAt: '2026-10-06T10:00:00.000Z',
+          ...dates,
+          frequency: every3,
+          times,
+        }),
+      ],
+    }
+
+    expect(scheduleOf(changed, '2026-10-06').upcoming(2)).toEqual([
+      due('2026-10-08', '14:00', 'p3'),
+      due('2026-10-11', '08:00', 'p3'),
+    ])
+  })
+
   const afterChange = (base: Carnet, today: string, from: Due, to: string, shifts: boolean) => {
     const { report, shift } = scheduleOf(base, today).move(from, to, shifts)
     const book = applied(applied(base, shift), report)

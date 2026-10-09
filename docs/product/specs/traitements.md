@@ -339,7 +339,9 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     (Garde technique, consignée au journal des décisions autonomes.)
   - **G22** Quand ni la fréquence ni les heures ne changent (Q37), une prise déjà notée sous l'ancien
     réglage couvre son heure dans la nouvelle période, chaque jour, pas seulement le jour du
-    changement ; les autres heures restent à donner. Quand une heure de la prochaine journée
+    changement ; les autres heures restent à donner : ce que l'ancien réglage tenait pour donné le
+    reste, rien de plus (une prise d'une période encore plus ancienne, à un autre rythme, ne couvre
+    pas une heure qui restait à donner). Quand une heure de la prochaine journée
     d'échéance a été donnée en avance, la nouvelle période commence par cette journée, si elle est
     sur la suite en vigueur ou l'arrivée d'un report seul (G23). Métacam tous les 2 jours à
     8 h et 20 h, prochaines doses le 3 ; le 2, la dose de 8 h du 3 est donnée en avance, puis la

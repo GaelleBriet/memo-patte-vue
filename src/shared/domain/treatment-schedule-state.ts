@@ -12,6 +12,7 @@ import {
   orderPeriods,
   pendingDues,
   coveredKeys,
+  sameRhythm,
   planPeriod,
 } from './treatment-schedule-timeline'
 import type {
@@ -63,19 +64,43 @@ export function notedOn(
   return notesSinceLastStop(earlier, doses).filter((dose) => dose.dueOn === day).length
 }
 
+// G22 : au même rythme, la nouvelle période garde ce que la précédente tenait pour donné, heure par
+// heure, à partir de son début.
+function keepsCoverage(previous: TreatmentPeriodInput, period: TreatmentPeriodInput): boolean {
+  return previous.stoppedOn === null && sameRhythm(previous, period)
+}
+
+function inheritedKeys(previous: PeriodTimeline, period: TreatmentPeriodInput): Set<string> {
+  return new Set(
+    [...previous.noteKeys, ...previous.covered].filter(
+      (key) => key.slice(0, 10) >= period.startsOn,
+    ),
+  )
+}
+
 export function build(input: TreatmentScheduleInput): State {
   const { today } = input
   const periods = orderPeriods(input.periods)
   // Une prise en plus ne change jamais le calendrier : le moteur ne la lit pas.
   const doses = mergeDoses(input.doses).filter((dose) => !isExtraLine(dose))
-  const plans = periods.map((period, index) =>
-    planPeriod(
-      period,
-      closingDay(period, periods[index + 1]),
-      doses.filter((dose) => dose.periodId === period.id),
-      coveredKeys(period, periods[index - 1], notesSinceLastStop(periods.slice(0, index), doses)),
-    ),
-  )
+  const plans: PeriodTimeline[] = []
+  periods.forEach((period, index) => {
+    const previous = plans[index - 1]
+    plans.push(
+      planPeriod(
+        period,
+        closingDay(period, periods[index + 1]),
+        doses.filter((dose) => dose.periodId === period.id),
+        previous !== undefined && keepsCoverage(previous.period, period)
+          ? inheritedKeys(previous, period)
+          : coveredKeys(
+              period,
+              periods[index - 1],
+              notesSinceLastStop(periods.slice(0, index), doses),
+            ),
+      ),
+    )
+  })
   const current = plans.at(-1)
   const unlogged = plans
     .slice(0, -1)
