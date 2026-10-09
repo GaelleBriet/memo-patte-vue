@@ -98,7 +98,7 @@ function reachedAt(
   return carnet.animals >= PLUS_NUDGE_ANIMALS ? null : undefined
 }
 
-export function pendingPlusNudge(
+function pendingPlusNudge(
   state: PlusNudgeState,
   signals: UsageSignals,
   carnet: CarnetSize,
