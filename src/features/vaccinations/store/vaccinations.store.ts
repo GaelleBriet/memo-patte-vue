@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
 
 import { isSameVaccineName } from '../logic/vaccination-name'
 import {
@@ -13,6 +12,8 @@ import {
   vaccinationRemindersService,
   type VaccinationRemindersService,
 } from '../service/vaccination-reminders.service'
+import { createVaccinationRemovalService } from '../service/vaccination-removal.service'
+import { createVaccinationSaveService } from '../service/vaccination-save.service'
 import type {
   Vaccination,
   VaccinationInput,
@@ -23,6 +24,7 @@ import type { InjectionDates } from '../repository/vaccination-injections.reposi
 import type { VaccinationInjection } from '../schema/vaccination-injection.schema'
 import { track } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
+import { useAnimalScopedList } from '@/shared/composables/use-animal-scoped-list'
 import { recordUsageSignal } from '@/shared/utils/usage-signals'
 
 // Le store ne dépend que de ce qu'il appelle : la cascade de suppression (#102) n'est pas son affaire.
@@ -81,16 +83,6 @@ export function provideVaccinationInjectionsService(
 }
 
 export const useVaccinationsStore = defineStore('vaccinations', () => {
-  const vaccinations = ref<Vaccination[]>([])
-  /** Animal dont la liste est chargée, `null` tant qu'aucune n'a été demandée. */
-  const animalId = ref<string | null>(null)
-  /** Vrai pendant toute opération, chargement comme écriture. */
-  const isLoading = ref(false)
-  /** Distingue « pas encore chargé » de « aucun vaccin ». */
-  const hasLoaded = ref(false)
-  /** Échec du dernier chargement : les écritures lèvent, elles ne passent pas par ici. */
-  const error = ref<Error | null>(null)
-
   function requireRepository(): Promise<VaccinationsRepository> {
     if (!provider) {
       throw new Error('Repository des vaccins absent : appelle provideVaccinationsRepository().')
@@ -98,32 +90,28 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
     return Promise.resolve(provider())
   }
 
-  async function refresh(repository: VaccinationsRepository, id: string): Promise<void> {
-    const list = await repository.listByAnimal(id)
-    // Un chargement lancé entre-temps pour un autre animal a priorité sur cette réponse.
-    if (animalId.value !== id) return
-    vaccinations.value = list
-    hasLoaded.value = true
-    error.value = null
+  const {
+    items: vaccinations,
+    animalId,
+    isLoading,
+    hasLoaded,
+    error,
+    loadForAnimal,
+    write,
+  } = useAnimalScopedList(requireRepository, (repository, id) => repository.listByAnimal(id))
+
+  function saveOn(repository: VaccinationsRepository) {
+    return createVaccinationSaveService({
+      vaccinations: repository,
+      reminders: () => remindersProvider(),
+    })
   }
 
-  // Une écriture ne relit que la liste déjà affichée : celle d'un autre animal reste à charger.
-  async function write<T>(
-    operation: (repository: VaccinationsRepository) => Promise<T>,
-    touchedAnimalId: (result: T) => string | null,
-  ): Promise<T> {
-    isLoading.value = true
-    try {
-      const repository = await requireRepository()
-      const result = await operation(repository)
-      const touched = touchedAnimalId(result)
-      if (touched !== null && touched === animalId.value) {
-        await refresh(repository, touched)
-      }
-      return result
-    } finally {
-      isLoading.value = false
-    }
+  function removalOn(repository: VaccinationsRepository) {
+    return createVaccinationRemovalService({
+      vaccinations: repository,
+      reminders: () => remindersProvider(),
+    })
   }
 
   return {
@@ -132,25 +120,7 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
     isLoading,
     hasLoaded,
     error,
-
-    /**
-     * Ne lève pas : renvoie `false` et renseigne `error`. Renvoie aussi `true` quand la réponse
-     * est ignorée parce qu'un autre animal a été demandé entre-temps.
-     */
-    async loadForAnimal(id: string): Promise<boolean> {
-      isLoading.value = true
-      animalId.value = id
-      try {
-        await refresh(await requireRepository(), id)
-        return true
-      } catch (cause) {
-        if (animalId.value !== id) return false
-        error.value = cause instanceof Error ? cause : new Error(String(cause))
-        return false
-      } finally {
-        isLoading.value = false
-      }
-    },
+    loadForAnimal,
 
     async getById(id: string): Promise<Vaccination | null> {
       return (await requireRepository()).getById(id)
@@ -174,11 +144,7 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
 
     async create(input: VaccinationInput): Promise<Vaccination> {
       const created = await write(
-        async (repository) => {
-          const vaccination = await repository.create(input)
-          await remindersProvider().reschedule(vaccination.id)
-          return vaccination
-        },
+        (repository) => saveOn(repository).create(input),
         (vaccination) => vaccination.animalId,
       )
       recordUsageSignal('entry')
@@ -190,11 +156,7 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
 
     async update(id: string, input: VaccinationUpdateInput): Promise<Vaccination> {
       return write(
-        async (repository) => {
-          const updated = await repository.update(id, input)
-          await remindersProvider().reschedule(id)
-          return updated
-        },
+        (repository) => saveOn(repository).update(id, input),
         (updated) => updated.animalId,
       )
     },
@@ -202,21 +164,14 @@ export const useVaccinationsStore = defineStore('vaccinations', () => {
     /** Rend l'instant de la suppression, à passer à `undoRemove`. */
     async remove(id: string): Promise<string> {
       return write(
-        async (repository) => {
-          const deletedAt = await repository.remove(id)
-          await remindersProvider().reschedule(id)
-          return deletedAt
-        },
+        (repository) => removalOn(repository).remove(id),
         () => animalId.value,
       )
     },
 
     async undoRemove(id: string, deletedAt: string): Promise<void> {
       await write(
-        async (repository) => {
-          await repository.restore(id, deletedAt)
-          await remindersProvider().reschedule(id)
-        },
+        (repository) => removalOn(repository).restore(id, deletedAt),
         () => animalId.value,
       )
     },

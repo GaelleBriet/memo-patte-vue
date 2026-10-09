@@ -27,12 +27,13 @@ import {
 } from '@/shared/domain/reminder-route'
 import DateCalendar from '@/shared/components/DateCalendar.vue'
 import ReminderActions from '@/shared/components/ReminderActions.vue'
+import { confirmUndoable } from '@/shared/composables/use-guarded-gestures'
 import {
   primingAfterReminderSaved,
   routeAfterReminderSaved,
 } from '@/shared/domain/notification-priming'
 import { formatLongDate } from '@/shared/utils/format'
-import { showToast, showUndoableToast } from '@/shared/utils/toast'
+import { showToast } from '@/shared/utils/toast'
 
 type Step = 'actions' | 'done' | 'injection-date' | 'due-date'
 
@@ -207,12 +208,10 @@ async function save(): Promise<void> {
     })
     open.value = false
     emit('changed')
-    showUndoableToast(t('vaccinations.sheet.toast.injection', named), {
-      label: t('reminderSheet.undo'),
+    confirmUndoable(t, t('vaccinations.sheet.toast.injection', named), {
       ariaLabel: t('vaccinations.sheet.toast.undoInjection', named),
       undo: () => vaccinations.undoInjection(current.id, injectionId),
       onUndone: () => emit('changed'),
-      failedMessage: t('reminderSheet.undoFailed'),
     })
     const saved = {
       hasDueDate: nextDueDate !== null,

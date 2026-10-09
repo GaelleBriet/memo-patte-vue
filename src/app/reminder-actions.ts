@@ -26,6 +26,7 @@ import {
   getVaccinationsRepository,
   type VaccinationsRepository,
 } from '@/features/vaccinations/repository/vaccinations.repository'
+import { confirmUndoable } from '@/shared/composables/use-guarded-gestures'
 import { isLegacyReminderKey, parseReminderKey } from '@/shared/domain/due-reminders'
 import {
   parseReminderQuery,
@@ -35,7 +36,7 @@ import {
 } from '@/shared/domain/reminder-route'
 import type { Due } from '@/shared/domain/treatment-schedule'
 import { formatDayMonthOrYear } from '@/shared/utils/format'
-import { showToast, showUndoableToast } from '@/shared/utils/toast'
+import { showToast } from '@/shared/utils/toast'
 import type { Translate } from '@/core/i18n/translate'
 
 type Provider<T> = () => T | Promise<T>
@@ -132,13 +133,11 @@ export function createReminderActions({
       { kind: 'note', gesture: { kind: 'given', due, givenOn } },
       null,
     )
-    showUndoableToast(texts.done(noted), {
-      label: t('reminderSheet.undo'),
+    confirmUndoable(t, texts.done(noted), {
       ariaLabel: texts.undo,
       undo: () => doses.undoBatch(treatment.id, noted.undo),
       onUndone: () => void refreshHome(),
       onFailed: () => void refreshHome(),
-      failedMessage: t('reminderSheet.undoFailed'),
     })
   }
 
