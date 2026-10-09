@@ -2,7 +2,7 @@ import { differenceInCalendarDays, differenceInCalendarMonths } from 'date-fns'
 
 import { isClockTime } from './clock-time'
 import { MAX_DUES, checkPastDay, invalid } from './treatment-schedule-checks'
-import { compareText, nextDay, previousDay, toDate } from './calendar-day'
+import { compareOrdinal, nextDay, previousDay, toDate } from './calendar-day'
 import { DAYS_PER_STEP, shiftDate } from './treatment-frequency'
 import {
   dueId,
@@ -367,7 +367,7 @@ function postponementAfter(
   const moveShift = shiftOn(plan, move)
   const moveShiftIds = moveShift === undefined ? [] : [moveShift.id]
   if (move.nextDueDate <= givenOn) return { doseIds: [move.id, ...moveShiftIds], kept: false }
-  const firstTime = [...plan.period.times].sort(compareText)[0] ?? null
+  const firstTime = [...plan.period.times].sort(compareOrdinal)[0] ?? null
   const followed = { periodId: dose.periodId, dueOn: restartsOn, dueTime: firstTime }
   // Suivi d'une autre ligne, le report garde son échéance : la suite d'après pourrait retomber dessus.
   const lastLine = plan.steps.filter((step) => step.kind !== 'shift').at(-1)?.dose
@@ -429,7 +429,7 @@ function followingReport(
     ...new Set(
       pendingDues(plan, { from: nextDay(dose.dueOn), to: horizon }).map(({ dueOn }) => dueOn),
     ),
-  ].sort(compareText)
+  ].sort(compareOrdinal)
   const distance = (day: string) => Math.abs(differenceInCalendarDays(toDate(day), toDate(was)))
   const targetDay = days.reduce<string | undefined>(
     (best, day) => (best === undefined || distance(day) < distance(best) ? day : best),
@@ -639,7 +639,7 @@ export function dueForDate(state: State, date: string, time: string | null): Due
       .map(({ dose }) => ({ due: dueOf(dose), status: dose.status })),
   ]
     .filter(({ due }) => matches(due))
-    .sort((a, b) => compareText(keyOf(a.due), keyOf(b.due)))
+    .sort((a, b) => compareOrdinal(keyOf(a.due), keyOf(b.due)))
   const last = entries.filter(({ due }) => due.dueOn <= date).at(-1)
   if (last !== undefined && (last.status === null || last.status === 'missed')) return last.due
   const ahead = entries.find(({ due, status }) => status === null && due.dueOn > date)

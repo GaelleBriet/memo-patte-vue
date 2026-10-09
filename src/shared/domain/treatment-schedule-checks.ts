@@ -1,6 +1,6 @@
 import { differenceInCalendarDays } from 'date-fns'
 
-import { compareText, isCalendarDay, previousDay, toDate } from './calendar-day'
+import { compareOrdinal, isCalendarDay, previousDay, toDate } from './calendar-day'
 import { isClockTime } from './clock-time'
 import { DAYS_PER_STEP, FREQUENCY_UNITS, MAX_FREQUENCY_VALUE } from './treatment-frequency'
 import { closingDay, orderPeriods } from './treatment-schedule-timeline'
@@ -81,10 +81,10 @@ function estimatedDues(
   const arrivals = doses
     .filter((dose) => dose.status === 'postponed')
     .map((dose) => dose.nextDueDate)
-  const first = [period.firstDueOn, ...keys, ...arrivals].sort(compareText)[0] ?? today
+  const first = [period.firstDueOn, ...keys, ...arrivals].sort(compareOrdinal)[0] ?? today
   const close = closesOn === null ? null : previousDay(closesOn)
-  const end = [period.endsOn, close, today].filter((day) => day !== null).sort(compareText)[0]
-  const last = [end ?? today, ...keys].sort(compareText).at(-1) ?? today
+  const end = [period.endsOn, close, today].filter((day) => day !== null).sort(compareOrdinal)[0]
+  const last = [end ?? today, ...keys].sort(compareOrdinal).at(-1) ?? today
   const span = Math.max(0, differenceInCalendarDays(toDate(last), toDate(first)))
   const stepDays = DAYS_PER_STEP[period.frequency.unit] * period.frequency.value
   const perDay = Math.max(1, period.times.length)
