@@ -14,8 +14,8 @@ import type { Vaccination } from '@/features/vaccinations/schema/vaccination.sch
 import {
   createRemindersPriming,
   hasUpcomingDueDates,
-  installLaunchPriming,
-} from '../reminders-priming'
+} from '@/features/treatments/service/reminders-priming.service'
+import { installLaunchPriming } from '../reminders-priming'
 
 const STAMP = '2026-09-01T09:00:00.000Z'
 const TODAY = '2026-09-15'

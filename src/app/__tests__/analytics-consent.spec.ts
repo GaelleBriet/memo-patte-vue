@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
 import { ANALYTICS_CONSENT_ROUTE, installConsentGate, shouldAskConsent } from '../analytics-consent'
-import { createRemindersPriming } from '../reminders-priming'
+import { createRemindersPriming } from '@/features/treatments/service/reminders-priming.service'
 import type { ConsentStatus } from '@/core/analytics'
 import { period, treatment } from '@/features/treatments/__tests__/treatment-fixtures'
 

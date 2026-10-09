@@ -72,7 +72,7 @@ vi.mock('@/features/settings/service/data-import.service', async (importOriginal
   dataImportService: { hasLocalData, importData },
 }))
 
-vi.mock('@/app/reminders-priming', () => ({ promptNotificationsIfReminders }))
+vi.mock('@/core/notifications/reminders-priming', () => ({ promptNotificationsIfReminders }))
 
 const TODAY = new Date('2026-09-09T12:00:00')
 

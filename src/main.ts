@@ -15,6 +15,8 @@ import { createDefaultSyncDependencies, installSync } from '@/app/sync'
 import { initAnalytics } from '@/core/analytics'
 import { installBackButton } from '@/core/app-lifecycle/back-button'
 import { registerCurrentDevice } from '@/core/device/register-device'
+import { provideRemindersPriming } from '@/core/notifications/reminders-priming'
+import { restoreWeightUnit } from '@/core/preferences/weight-unit-preference'
 import vuetify from '@/core/theme/vuetify'
 import i18n, { applyLocale, detectLocale } from '@/core/i18n'
 import { getAnimalsRepository } from '@/features/animals/repository/animals.repository'
@@ -26,12 +28,12 @@ import { clearExports } from '@/features/settings/logic/export-delivery'
 import { getCarnetSettingsRepository } from '@/features/settings/repository/carnet-settings.repository'
 import { provideCarnetSettingsRepository } from '@/features/settings/store/carnet-settings.store'
 import { getTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
+import { remindersPriming } from '@/features/treatments/service/reminders-priming.service'
 import { provideTreatmentsRepository } from '@/features/treatments/store/treatments.store'
 import { getVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import { provideVaccinationsRepository } from '@/features/vaccinations/store/vaccinations.store'
 import { getWeightRepository } from '@/features/weight/repository/weight.repository'
 import { provideWeightRepository } from '@/features/weight/store/weight.store'
-import { restoreWeightUnit } from '@/core/preferences/weight-unit-preference'
 import '@/styles/main.scss'
 
 provideAnimalsRepository(getAnimalsRepository)
@@ -39,6 +41,7 @@ provideVaccinationsRepository(getVaccinationsRepository)
 provideWeightRepository(getWeightRepository)
 provideTreatmentsRepository(getTreatmentsRepository)
 provideCarnetSettingsRepository(getCarnetSettingsRepository)
+provideRemindersPriming(remindersPriming)
 
 const app = createApp(App)
 

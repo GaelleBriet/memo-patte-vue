@@ -36,7 +36,7 @@ vi.mock('../service/data-import.service', async (importOriginal) => ({
   dataImportService: { hasLocalData, importData },
 }))
 
-vi.mock('@/app/reminders-priming', () => ({ promptNotificationsIfReminders }))
+vi.mock('@/core/notifications/reminders-priming', () => ({ promptNotificationsIfReminders }))
 
 const MILO: Animal = {
   id: '11111111-1111-4111-8111-111111111111',
