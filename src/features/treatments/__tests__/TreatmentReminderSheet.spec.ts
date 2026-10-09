@@ -1017,6 +1017,7 @@ describe('TreatmentReminderSheet — confirmation simple de l’arrêt', () => {
     })
     await monter()
 
+    expect(texte('.bottom-sheet__title')).toBe('Bravecto')
     expect(document.body.querySelector('.treatment-reminder-sheet__stop')).toBeNull()
     expect(stop).not.toHaveBeenCalled()
   })

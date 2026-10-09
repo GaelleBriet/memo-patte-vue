@@ -73,7 +73,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-function flow(exits: Partial<DoseFlowExits> = {}, history: TreatmentWithHistory | null = PANACUR) {
+function flow(exits: DoseFlowExits = {}, history: TreatmentWithHistory | null = PANACUR) {
   let result: ReturnType<typeof useTreatmentDoseFlow> | undefined
   mount(
     defineComponent({
