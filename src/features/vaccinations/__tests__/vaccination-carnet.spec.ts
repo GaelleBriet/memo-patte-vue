@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { carnetVaccinationRow } from '../logic/vaccination-carnet'
+import { carnetVaccinationRow, carnetVaccinationsSummary } from '../logic/vaccination-carnet'
 import i18n, { applyLocale } from '@/core/i18n'
 import { plain } from '@/shared/__tests__/plain'
 
@@ -140,5 +140,36 @@ describe('carnetVaccinationRow — animal qu’on ne suit plus (VA-16, B · V15 
     applyLocale('en')
 
     expect(unfollowedRow('2026-01-12', null).detail).toBe('Last injection on Jan 12, 2026')
+  })
+})
+
+describe('carnetVaccinationsSummary — rappels annoncés au Carnet', () => {
+  const vaccine = (id: string, dueDate: string | null) => ({
+    id,
+    animalId: 'milo',
+    name: id,
+    dueDate,
+  })
+
+  it('compte les vaccins qui ont un rappel, et ceux en retard', () => {
+    expect(
+      carnetVaccinationsSummary(
+        [vaccine('rage', '2026-10-01'), vaccine('chc', '2027-01-12'), vaccine('lepto', null)],
+        TODAY,
+      ),
+    ).toEqual({ total: 2, overdue: 1 })
+  })
+
+  it('le jour du rappel n’est pas un retard', () => {
+    expect(carnetVaccinationsSummary([vaccine('rage', TODAY)], TODAY)).toEqual({
+      total: 1,
+      overdue: 0,
+    })
+  })
+
+  it('rien pour un animal qu’on ne suit plus', () => {
+    expect(
+      carnetVaccinationsSummary([vaccine('rage', '2026-10-01')], TODAY, { followed: false }),
+    ).toEqual({ total: 0, overdue: 0 })
   })
 })

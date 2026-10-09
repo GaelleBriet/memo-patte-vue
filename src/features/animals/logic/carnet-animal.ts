@@ -11,6 +11,14 @@ export function nextFollowedAnimalId(
   return followed.find(({ id }) => id !== leavingId)?.id ?? null
 }
 
+/** Le Carnet a toujours un animal actif : sans choix, le premier animal suivi ; `null` : rien à choisir. */
+export function carnetAnimalToSelect(
+  selected: { id: string } | null,
+  followed: readonly { id: string }[],
+): string | null {
+  return selected === null ? (followed[0]?.id ?? null) : null
+}
+
 /** AN-7, AN-10 : « race · âge », ou « jusqu'au … » une fois la date du départ saisie. */
 export function carnetSubtitle(
   t: Translate,
