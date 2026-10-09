@@ -62,7 +62,7 @@ export function dosesAfter(
 }
 
 /** Le calendrier après le geste ; `null` quand le moteur le refuse. */
-export function scheduleAfter(
+function scheduleAfter(
   history: History,
   schedule: TreatmentSchedule,
   action: DoseAction,
@@ -224,7 +224,7 @@ function suiteHelpOf(
  * L'aide d'un geste de la fiche, calculée sur le calendrier qu'il laisserait : `currentDay`, le jour
  * de la dose avant le geste ; `newDay`, après.
  */
-export function shiftHelpOf(
+function shiftHelpOf(
   t: Translate,
   history: History,
   schedule: TreatmentSchedule,
@@ -477,7 +477,7 @@ export function restoredSuiteFor(
 }
 
 /** Après « Supprimer ce décalage » : la prochaine dose du calendrier sans lui. */
-export function restoredSuiteOf(
+function restoredSuiteOf(
   history: History,
   line: Line,
   today: string,
