@@ -2218,6 +2218,27 @@ alors que la loi (LCEN) le demande avec l'e-mail : à ajouter dès que la ligne 
 déclarer la page dans la Play Console. — Raison : la page vit avec le site de l'app (décision du
 2026-10-07). — Alternative écartée : garder la page du site de l'entreprise.
 
+2026-10-09 — **Réponses de Gaelle au bilan de la nuit** (questions 3 à 8 ; la 1, la 2 et la 9 sont
+écrites avec leurs tickets #711, #692 et #670) :
+- **Poids au-dessus du maximum** (200 kg) : le même message partout, fiche animal et feuille de pesée
+  (#712).
+- **Échec d'un arrêt** : la feuille « À faire » se comporte comme la fiche (un seul toast ; pas
+  d'« Arrêter » pour un traitement illisible) (#713).
+- **Formulaire traitement** (L2, #662) : un module de logique et un état par cas (créer, modifier,
+  reprendre), un seul écran, « Prochaine dose déplacée » dans son propre module. Proposition dans le
+  coffre de notes de Gaelle.
+- **Écrans partagés** : un écran utilisé par plusieurs features vit dans `shared/views/`
+  (l'écran d'explication des notifications y passe).
+- **Cas d'usage des rappels** (« C'est fait » sur une notification, reconstruction de tous les
+  rappels, écran d'explication) : dans les services des traitements, même s'ils concernent aussi les
+  vaccins, parce qu'ils réutilisent leur logique. — Alternatives écartées : services de l'Accueil ;
+  vaccins et traitements séparés avec un aiguillage dans `app/` ; une feature « rappels ».
+- **Relais dans `core/`** : quand deux écrans de features différentes ont besoin du même cas
+  d'usage, `app/` le branche au lancement dans `core/`, où les écrans le lisent. — Alternative
+  écartée : permettre à un écran d'appeler le service d'une autre feature (porte plus large).
+- **Aide, rappels précis** : « Si tu retires cette autorisation **après l'avoir donnée** » distingue
+  ce cas de celui d'une autorisation jamais donnée (#638).
+
 2026-10-09 — **Cinquième exception aux imports entre features : le schéma du fichier d'export**
 (`settings/schema/export-file.schema.ts`) compose les schémas des lignes des autres features
 (`treatments`, `vaccinations`, `weight`) pour valider un fichier importé, et rien d'autre (ni store,
