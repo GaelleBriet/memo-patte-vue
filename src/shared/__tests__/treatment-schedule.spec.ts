@@ -4095,9 +4095,16 @@ describe('une heure reportée seule ne déplace que cette heure (G25, #720)', ()
       ],
     }
 
-    expect(scheduleOf(changed, '2026-10-01').upcoming(2)).toEqual(
+    const schedule = scheduleOf(changed, '2026-10-01')
+    const purged = {
+      ...changed,
+      doses: changed.doses.filter(({ id }) => !schedule.staleDoseIds.includes(id)),
+    }
+
+    expect(schedule.upcoming(2)).toEqual(
       expected.map(({ dueOn, dueTime }) => due(dueOn, dueTime, 'p2')),
     )
+    expect(scheduleOf(purged, '2026-10-01').upcoming(2)).toEqual(schedule.upcoming(2))
   })
 
   it('avec décalage, la journée d’arrivée a toutes ses heures (Q21) : le 4 à 8 h et 20 h, puis le 6', () => {
