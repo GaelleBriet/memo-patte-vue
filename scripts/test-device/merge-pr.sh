@@ -5,11 +5,16 @@ ROOT=$(git rev-parse --path-format=absolute --git-common-dir | xargs dirname)
 CHECK=$ROOT/.claude/worktrees/integ
 LOG=$(mktemp)
 cd "$ROOT" || exit 1
-until [ "$(gh pr view "$P" --json statusCheckRollup -q '.statusCheckRollup|length')" != 0 ] &&
-  [ "$(gh pr view "$P" --json statusCheckRollup -q '[.statusCheckRollup[]|select(.status!="COMPLETED")]|length')" = 0 ]; do sleep 30; done
+# « Verdict » ne finit qu'après tous les jobs du passage, matrices comprises : on l'attend, puis plus rien en cours.
+checks() { gh pr checks "$P" --json name,bucket 2>/dev/null; true; }
+until C=$(checks) && [ "$(jq '[.[]|select(.name=="Verdict" and .bucket!="pending")]|length' <<<"${C:-[]}")" = 1 ] &&
+  [ "$(jq '[.[]|select(.bucket=="pending")]|length' <<<"$C")" = 0 ]; do sleep 30; done
 git fetch -q origin
 git merge-base --is-ancestor origin/main "origin/$B" || { echo "PR $P EN RETARD"; exit 2; }
-gh pr checks "$P" | grep -qv pass && { echo "PR $P CI NON VERTE"; exit 3; }
+# Un passage sauté n'est accepté que si « Verdict » est vert : lui seul sait si le saut était voulu.
+BAD=$(jq -r '.[]|select(.bucket!="pass" and .bucket!="skipping")|.name' <<<"$C")
+[ -z "$BAD" ] && [ "$(jq -r '.[]|select(.name=="Verdict")|.bucket' <<<"$C")" = pass ] ||
+  { echo "PR $P CI NON VERTE :" $BAD; exit 3; }
 for _ in 1 2 3 4 5 6; do st=$(gh pr view "$P" --json mergeStateStatus -q .mergeStateStatus); [ "$st" = CLEAN ] && break; sleep 20; done
 [ "$st" = CLEAN ] || { echo "PR $P état $st"; exit 4; }
 gh pr merge "$P" --merge || exit 5
