@@ -1,7 +1,7 @@
 import combinationsFile from './vaccine-combinations.json'
 import { comparableVaccineName, isSameVaccineName } from './vaccination-name'
 import type { Animal, AnimalSpecies } from '@/features/animals/schema/animal.schema'
-import { formatList } from '@/shared/utils/format'
+import { capitalizeFirst, formatList } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
 export interface VaccineCombination {
@@ -56,13 +56,11 @@ export function vaccineCombinationsFor(species: AnimalSpecies): VaccineCombinati
   })
 }
 
-function capitalized(text: string): string {
-  return text.charAt(0).toLocaleUpperCase() + text.slice(1)
-}
-
 export function labelledCombinations(t: Translate, species: AnimalSpecies): LabelledCombination[] {
   return vaccineCombinationsFor(species).map(({ diseases, aliases }) => ({
-    label: capitalized(diseases.map((disease) => t(`vaccinations.diseases.${disease}`)).join(', ')),
+    label: capitalizeFirst(
+      diseases.map((disease) => t(`vaccinations.diseases.${disease}`)).join(', '),
+    ),
     aliases,
   }))
 }

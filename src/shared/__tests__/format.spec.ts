@@ -24,6 +24,7 @@ import {
   weekdayInitials,
   weekStartsOn,
   withoutFinalDot,
+  capitalizeFirst,
   formatPeriodRange,
 } from '../utils/format'
 import { plain } from './plain'
@@ -274,6 +275,14 @@ describe('formatList', () => {
     applyLocale('en')
 
     expect(formatList(['Milo', 'Luna', 'Rex'])).toBe('Milo, Luna, and Rex')
+  })
+})
+
+describe('capitalizeFirst', () => {
+  it('met la première lettre en capitale sans toucher au reste', () => {
+    expect(capitalizeFirst('dimanche 20 sept.')).toBe('Dimanche 20 sept.')
+    expect(capitalizeFirst('écrit')).toBe('Écrit')
+    expect(capitalizeFirst('')).toBe('')
   })
 })
 

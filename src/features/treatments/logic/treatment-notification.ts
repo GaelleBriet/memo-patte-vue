@@ -4,7 +4,12 @@ import { notifiedDues } from './treatment-other-date'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { NotifiedDue } from '@/shared/domain/reminder-route'
 import type { Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
-import { formatClockTime, formatFullDate, formatWeekdayDayMonth } from '@/shared/utils/format'
+import {
+  capitalizeFirst,
+  formatClockTime,
+  formatFullDate,
+  formatWeekdayDayMonth,
+} from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
 /**
@@ -102,10 +107,6 @@ export function givenWhenMin(
   return earliest > birthDate ? earliest : birthDate
 }
 
-function capitalized(text: string): string {
-  return text.charAt(0).toUpperCase() + text.slice(1)
-}
-
 export type GivenWhenTexts = {
   subtitle: string
   /** « ½ comprimé · prévue mardi 6 oct. à 20 h » (V5). */
@@ -142,7 +143,7 @@ export function givenWhenTexts(
     subtitle: t('treatments.sheet.otherDay.subtitle', { name, animal }),
     due,
     scheduled: {
-      label: capitalized(date),
+      label: capitalizeFirst(date),
       detail:
         time === null
           ? t('treatments.givenWhen.scheduled')
@@ -154,7 +155,7 @@ export function givenWhenTexts(
     },
     today: {
       label: t('treatments.givenWhen.today'),
-      detail: capitalized(formatWeekdayDayMonth(today)),
+      detail: capitalizeFirst(formatWeekdayDayMonth(today)),
       aria: t('treatments.givenWhen.todayLabel', { date: formatFullDate(today) }),
     },
     other: {
