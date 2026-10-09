@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { createCareSignalBackfill } from '../care-signal-backfill'
+import { createCareSignalBackfill } from '../service/care-signal-backfill.service'
 import { isCareBackfillDone, readUsageSignals } from '@/core/usage/usage-signals'
 
 function memoryStorage(): Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> {
