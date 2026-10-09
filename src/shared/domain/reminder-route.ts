@@ -11,7 +11,7 @@ import type { ReminderKind } from './reminders'
 /** Rappel de l'écran d'origine : sa feuille se rouvre sur l'accueil, son détail se retrouve sur le Carnet. */
 export const REMINDER_QUERY_PARAM = 'reminder'
 
-export const DETAIL_ROUTES: Readonly<Record<ReminderKind, string>> = {
+const DETAIL_ROUTES: Readonly<Record<ReminderKind, string>> = {
   vaccination: 'vaccination-detail',
   treatment: 'treatment-detail',
 }
