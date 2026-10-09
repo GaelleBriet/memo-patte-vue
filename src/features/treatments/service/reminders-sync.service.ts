@@ -13,7 +13,6 @@ import {
   getTreatmentsRepository,
   type TreatmentsRepository,
 } from '../repository/treatments.repository'
-import { vaccinationReminders } from '@/shared/domain/vaccination-reminders'
 import {
   getVaccinationsRepository,
   type VaccinationsRepository,
@@ -33,6 +32,7 @@ import {
 } from '@/core/notifications/due-reminders-schedule'
 import { plannedReminders } from '@/shared/domain/reminder-plan'
 import type { ReminderKind } from '@/shared/domain/reminders'
+import { vaccinationReminders } from '@/shared/domain/vaccination-reminders'
 import type { Translate } from '@/core/i18n/translate'
 
 type Provider<T> = () => T | Promise<T>

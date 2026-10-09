@@ -23,7 +23,8 @@ import {
   toastMessage,
   toastTone,
 } from '@/shared/utils/toast'
-import { createReminderActions, installReminderActions } from '../reminder-actions'
+import { createReminderActions } from '@/features/treatments/service/reminder-actions.service'
+import { installReminderActions } from '../reminder-actions'
 import { plain } from '@/shared/__tests__/plain'
 
 const TODAY = '2026-10-07'
