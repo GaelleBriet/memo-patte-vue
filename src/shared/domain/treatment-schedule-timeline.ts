@@ -122,7 +122,7 @@ export function hasFallen({ kind, dose }: Step): boolean {
   return kind === 'note' || (kind === 'move' && dose.nextDueDate > dose.dueOn)
 }
 
-function sameTimes(
+export function sameTimes(
   a: Pick<TreatmentPeriodInput, 'times'>,
   b: Pick<TreatmentPeriodInput, 'times'>,
 ): boolean {
@@ -259,9 +259,12 @@ export function movesInto(plan: PeriodTimeline, day: string): TreatmentDoseInput
 export function stayedKeys(plan: PeriodTimeline, move: TreatmentDoseInput): string[] {
   const kept = new Set([...plan.noteKeys, ...plan.covered])
   const arrived = new Set(arrivalDues(plan.period, move, plan.steps, kept).map(keyOf))
+  // Fermée par la période suivante, la journée d'origine ne garde plus ses heures sans prise.
+  const closedOut = isClosedOut(move, plan.closesOn)
   return dayDues(plan.period, [move.nextDueDate])
+    .filter(({ dueTime }) => !arrived.has(keyOf({ dueOn: move.nextDueDate, dueTime })))
+    .filter(({ dueTime }) => !closedOut || kept.has(keyOf({ dueOn: move.dueOn, dueTime })))
     .map(keyOf)
-    .filter((key) => !arrived.has(key))
 }
 
 export function planPeriod(

@@ -13,6 +13,8 @@ import {
   sameRhythm,
   sequenceAt,
   shiftOn,
+  movesInto,
+  stayedKeys,
 } from './treatment-schedule-timeline'
 import { dueOf, uniqueSorted } from './treatment-schedule-dues'
 import { notedOn, startedAheadOn } from './treatment-schedule-state'
@@ -142,6 +144,22 @@ function keptStart(
   return { firstDueOn: day, referenceOn: keptReference(open, day, fallback) }
 }
 
+// G25 : heures changées à fréquence égale, la prochaine dose arrivée d'un report seul qui a laissé des
+// heures derrière lui garde son jour, et la suite reprend la grille d'avant.
+function partialArrivalStart(
+  state: State,
+  open: PeriodTimeline,
+  frequency: Frequency,
+  startsOn: string,
+): Pick<NewPeriod, 'firstDueOn' | 'referenceOn'> | undefined {
+  const { value, unit } = open.period.frequency
+  if (value !== frequency.value || unit !== frequency.unit) return undefined
+  const next = state.currentDoses[0]?.dueOn
+  if (next === undefined || next < startsOn || !isHeldDay(open, next)) return undefined
+  const partial = movesInto(open, next).some((move) => stayedKeys(open, move).length > 0)
+  return partial ? keptStart(state, open, startsOn, next) : undefined
+}
+
 // Q24 : la nouvelle période commence aujourd'hui ; ses heures au-delà des prises du jour restent à donner.
 export function newPeriod(state: State, frequency: Frequency, times: readonly string[]): NewPeriod {
   checkFrequency(frequency, '')
@@ -164,6 +182,9 @@ export function newPeriod(state: State, frequency: Frequency, times: readonly st
     const start = keptStart(state, open, startsOn, planned)
     if (start !== undefined) return { startsOn, ...start }
   }
+  const arrival =
+    open === null || kept ? undefined : partialArrivalStart(state, open, frequency, startsOn)
+  if (arrival !== undefined) return { startsOn, ...arrival }
   if (fromStart) return { startsOn, firstDueOn: startsOn, referenceOn: startsOn }
   // G24 : une journée à venir entamée en avance, pas entièrement couverte, garde ses prises ; le
   // nouveau réglage part d'elle.

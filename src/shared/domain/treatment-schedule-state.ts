@@ -1,6 +1,6 @@
 import { invalid } from './treatment-schedule-checks'
-import { nextDay, previousDay } from './calendar-day'
-import { dueId, sameDue } from './treatment-schedule-dues'
+import { compareOrdinal, nextDay, previousDay } from './calendar-day'
+import { dueId, keyOf, sameDue } from './treatment-schedule-dues'
 import {
   closingDay,
   familyOf,
@@ -17,6 +17,7 @@ import {
   planPeriod,
   stayedKeys,
   movesInto,
+  sameTimes,
 } from './treatment-schedule-timeline'
 import type {
   Due,
@@ -115,8 +116,29 @@ function inheritedKeys(previous: PeriodTimeline, period: TreatmentPeriodInput): 
     ...[...previous.noteKeys, ...previous.covered].filter(
       (key) => key.slice(0, 10) >= period.startsOn,
     ),
-    ...movesInto(previous, period.firstDueOn).flatMap((move) => stayedKeys(previous, move)),
+    ...stayedOnFirstDay(previous, period),
   ])
+}
+
+function keepsFrequency(previous: TreatmentPeriodInput, period: TreatmentPeriodInput): boolean {
+  const { value, unit } = previous.frequency
+  return (
+    previous.stoppedOn === null &&
+    value === period.frequency.value &&
+    unit === period.frequency.unit
+  )
+}
+
+// G25 : les heures qu'un report seul a laissées derrière lui au premier jour de la période ; heures
+// changées, il en couvre autant parmi les premières du nouveau réglage (G4).
+function stayedOnFirstDay(previous: PeriodTimeline, period: TreatmentPeriodInput): string[] {
+  const day = period.firstDueOn
+  const stayed = new Set(movesInto(previous, day).flatMap((move) => stayedKeys(previous, move)))
+  if (sameTimes(previous.period, period)) return [...stayed]
+  return [...period.times]
+    .sort(compareOrdinal)
+    .slice(0, stayed.size)
+    .map((dueTime) => keyOf({ dueOn: day, dueTime }))
 }
 
 // G25 : un report seul fermé par la période suivante (G5) garde sa ligne tant que son arrivée l'ouvre.
@@ -124,7 +146,7 @@ export function carriedMoveIds(plans: PeriodTimeline[]): Set<string> {
   return new Set(
     plans.slice(1).flatMap((next, index) => {
       const previous = plans[index]!
-      if (!keepsCoverage(previous.period, next.period)) return []
+      if (!keepsFrequency(previous.period, next.period)) return []
       return movesInto(previous, next.period.firstDueOn)
         .filter((move) => previous.stale.includes(move) && stayedKeys(previous, move).length > 0)
         .map(({ id }) => id)
@@ -147,11 +169,16 @@ export function build(input: TreatmentScheduleInput): State {
         doses.filter((dose) => dose.periodId === period.id),
         previous !== undefined && keepsCoverage(previous.period, period)
           ? inheritedKeys(previous, period)
-          : coveredKeys(
-              period,
-              periods[index - 1],
-              notesSinceLastStop(periods.slice(0, index), doses),
-            ),
+          : new Set([
+              ...coveredKeys(
+                period,
+                periods[index - 1],
+                notesSinceLastStop(periods.slice(0, index), doses),
+              ),
+              ...(previous !== undefined && keepsFrequency(previous.period, period)
+                ? stayedOnFirstDay(previous, period)
+                : []),
+            ]),
       ),
     )
   })
