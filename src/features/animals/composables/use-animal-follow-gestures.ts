@@ -1,8 +1,7 @@
-import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
-import { showToast, showUndoableToast } from '@/shared/utils/toast'
+import { useGuardedGestures } from '@/shared/composables/use-guarded-gestures'
 import { nextFollowedAnimalId } from '../logic/carnet-animal'
 import type { Animal } from '../schema/animal.schema'
 import { useAnimalsStore } from '../store/animals.store'
@@ -18,21 +17,7 @@ export function useAnimalFollowGestures() {
   const { t } = useI18n()
   const router = useRouter()
   const animals = useAnimalsStore()
-  const isBusy = ref(false)
-
-  async function guarded(action: () => Promise<void>, failed: string): Promise<boolean> {
-    if (isBusy.value) return false
-    isBusy.value = true
-    try {
-      await action()
-      return true
-    } catch {
-      showToast(failed, { tone: 'error' })
-      return false
-    } finally {
-      isBusy.value = false
-    }
-  }
+  const { isBusy, guarded, undoable } = useGuardedGestures()
 
   function leave(animalId: string, { toHome = false } = {}): void {
     const next = nextFollowedAnimalId(animals.followedAnimals, animalId)
@@ -40,37 +25,17 @@ export function useAnimalFollowGestures() {
     if (toHome || next === null) void router.push({ name: 'home' })
   }
 
-  function undoable(
-    message: string,
-    ariaLabel: string,
-    undo: () => Promise<unknown>,
-    options: { onUndone?: () => void; onExpired?: () => void; announcement?: string } = {},
-  ): void {
-    showUndoableToast(message, {
-      label: t('reminderSheet.undo'),
-      ariaLabel,
-      undo,
-      onUndone: options.onUndone ?? (() => {}),
-      onExpired: options.onExpired,
-      announcement: options.announcement,
-      failedMessage: t('reminderSheet.undoFailed'),
-    })
-  }
-
   function unfollow({ id, name }: Named): Promise<boolean> {
     return guarded(async () => {
       const undo = await animals.unfollow(id)
       leave(id, { toHome: true })
       if (undo === null) return
-      undoable(
-        t('animals.carnet.toast.unfollowed', { name }),
-        t('animals.carnet.toast.undoUnfollow', { name }),
-        () => animals.undoUnfollow(undo),
-        {
-          onUndone: () => animals.select(id),
-          announcement: t('animals.carnet.toast.unfollowedAnnouncement', { name }),
-        },
-      )
+      undoable(t('animals.carnet.toast.unfollowed', { name }), {
+        ariaLabel: t('animals.carnet.toast.undoUnfollow', { name }),
+        undo: () => animals.undoUnfollow(undo),
+        onUndone: () => animals.select(id),
+        announcement: t('animals.carnet.toast.unfollowedAnnouncement', { name }),
+      })
     }, t('animals.carnet.toast.failed'))
   }
 
@@ -78,11 +43,10 @@ export function useAnimalFollowGestures() {
     return guarded(async () => {
       const undo = await animals.follow(id)
       if (undo === null) return
-      undoable(
-        t('animals.carnet.toast.followed', { name }),
-        t('animals.carnet.toast.undoFollow', { name }),
-        () => animals.undoFollow(undo),
-      )
+      undoable(t('animals.carnet.toast.followed', { name }), {
+        ariaLabel: t('animals.carnet.toast.undoFollow', { name }),
+        undo: () => animals.undoFollow(undo),
+      })
     }, t('animals.carnet.toast.failed'))
   }
 
@@ -93,15 +57,12 @@ export function useAnimalFollowGestures() {
         const removal = await animals.remove(id)
         leave(id)
         if (removal === null) return
-        undoable(
-          t('animals.carnet.toast.deleted', { name }),
-          t('animals.carnet.toast.undoDelete', { name }),
-          () => animals.undoRemove(removal),
-          {
-            onUndone: () => animals.select(id),
-            onExpired: () => void animals.forgetPhoto(removal),
-          },
-        )
+        undoable(t('animals.carnet.toast.deleted', { name }), {
+          ariaLabel: t('animals.carnet.toast.undoDelete', { name }),
+          undo: () => animals.undoRemove(removal),
+          onUndone: () => animals.select(id),
+          onExpired: () => void animals.forgetPhoto(removal),
+        })
       },
       t('animals.carnet.toast.deleteFailed', { name }),
     )
