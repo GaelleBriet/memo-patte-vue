@@ -14,12 +14,12 @@ import { usePhotoUrls } from '@/core/photos/use-photo-urls'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import AnimalChipSelector, { type AnimalChipItem } from '@/shared/components/AnimalChipSelector.vue'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
+import { confirmUndoable } from '@/shared/composables/use-guarded-gestures'
 import { weightLimitParams, weightUnitName, weightUnitText } from '@/shared/domain/weight-display'
 import { currentWeightUnit } from '@/shared/domain/weight-unit-preference'
 import { focusFirstInvalid } from '@/shared/form/focus-first-invalid'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 import { formatDayMonthOrYear } from '@/shared/utils/format'
-import { showUndoableToast } from '@/shared/utils/toast'
 
 const props = defineProps<{
   /** Animal déjà identifié par le contexte d'ouverture (Carnet) ; `null` ou absent : à choisir. */
@@ -146,12 +146,10 @@ async function remove(): Promise<void> {
     await weight.remove(entry.id)
     open.value = false
     const date = formatDayMonthOrYear(entry.measuredOn, today.value)
-    showUndoableToast(t('weight.form.toast.deleted', { date }), {
-      label: t('reminderSheet.undo'),
+    confirmUndoable(t, t('weight.form.toast.deleted', { date }), {
       ariaLabel: t('weight.form.toast.undoDelete', { date }),
       undo: () => weight.undoRemove(entry.id),
       onUndone: () => emit('restored', entry),
-      failedMessage: t('reminderSheet.undoFailed'),
     })
   } catch {
     failed.value = 'delete'

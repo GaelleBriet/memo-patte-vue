@@ -5,7 +5,8 @@ import type { PhotoChange, PhotoRemoval } from '../service/animal-photo.service'
 import type { Animal, AnimalInput } from '../schema/animal.schema'
 import { useAnimalsStore } from '../store/animals.store'
 import { pickPhoto } from '@/core/photos/photo-picker'
-import { dismissToast, showUndoableToast } from '@/shared/utils/toast'
+import { useGuardedGestures } from '@/shared/composables/use-guarded-gestures'
+import { dismissToast } from '@/shared/utils/toast'
 
 export type AnimalPhotoError = 'animals.form.errors.photo' | 'animals.form.errors.save'
 
@@ -26,21 +27,19 @@ function inputFrom(animal: Animal): AnimalInput {
 export function useAnimalPhotoActions(animal: Readonly<Ref<Animal | null>>) {
   const { t } = useI18n()
   const animals = useAnimalsStore()
-  const isBusy = ref(false)
+  const { isBusy, oneAtATime, undoable } = useGuardedGestures()
+
   const error = ref<AnimalPhotoError | null>(null)
   let isRemovalPending = false
 
-  async function guarded(action: (target: Animal) => Promise<boolean>): Promise<boolean> {
+  async function withLoadedAnimal(action: (target: Animal) => Promise<boolean>): Promise<boolean> {
     const target = animal.value
-    if (!target || isBusy.value) return false
+    if (!target) return false
 
-    isBusy.value = true
-    error.value = null
-    try {
-      return await action(target)
-    } finally {
-      isBusy.value = false
-    }
+    return oneAtATime(() => {
+      error.value = null
+      return action(target)
+    })
   }
 
   async function save(write: () => Promise<unknown>): Promise<boolean> {
@@ -54,7 +53,7 @@ export function useAnimalPhotoActions(animal: Readonly<Ref<Animal | null>>) {
   }
 
   function changePhoto(): Promise<boolean> {
-    return guarded(async (target) => {
+    return withLoadedAnimal(async (target) => {
       let photo: PhotoChange | null
       try {
         const picked = await pickPhoto()
@@ -72,24 +71,21 @@ export function useAnimalPhotoActions(animal: Readonly<Ref<Animal | null>>) {
 
   function confirmRemoval(target: Animal, removal: PhotoRemoval): void {
     isRemovalPending = true
-    showUndoableToast(t('animals.carnet.photo.removed'), {
-      label: t('reminderSheet.undo'),
+    undoable(t('animals.carnet.photo.removed'), {
       ariaLabel: t('animals.carnet.photo.undoRemove', { name: target.name }),
       undo: () => {
         isRemovalPending = false
         return animals.undoRemovePhoto(inputFrom(animals.byId(target.id) ?? target), removal)
       },
-      onUndone: () => {},
       onExpired: () => {
         isRemovalPending = false
         void animals.forgetRemovedPhoto(removal)
       },
-      failedMessage: t('reminderSheet.undoFailed'),
     })
   }
 
   function removePhoto(): Promise<boolean> {
-    return guarded((target) =>
+    return withLoadedAnimal((target) =>
       save(async () => {
         const removal = await animals.removePhoto(target.id, inputFrom(target))
         if (removal) confirmRemoval(target, removal)
