@@ -11,11 +11,6 @@ import TreatmentShiftCheckbox from './TreatmentShiftCheckbox.vue'
 import TreatmentTimesField from './TreatmentTimesField.vue'
 import TreatmentUnloggedPrompt from './TreatmentUnloggedPrompt.vue'
 import { chooseDaysSubtitle, type DayChoice } from '../logic/treatment-choose-days'
-import {
-  creationPastDuesOf,
-  pastDosesBasis,
-  validateTreatmentCreation,
-} from '../logic/treatment-creation-form'
 import { editedFormValues, validateTreatmentEdition } from '../logic/treatment-edition-form'
 import { resumedFormValues, validateTreatmentResumption } from '../logic/treatment-resumption-form'
 import {
@@ -32,18 +27,13 @@ import {
   nextDoseHelpText,
   resumeInfoText,
 } from '../logic/treatment-form-texts'
-import {
-  pastDosesOf,
-  pastDosesPrompt,
-  pastDosesResult,
-  promptChoice,
-  type PromptActionId,
-} from '../logic/treatment-unlogged'
+import type { PromptActionId } from '../logic/treatment-unlogged'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { PastDuesChoice } from '../schema/treatment-form.schema'
 import type { ReminderOffsetMinutes } from '../schema/treatment-period.schema'
 import { FREQUENCY_UNITS, TREATMENT_TYPES, type FrequencyUnit } from '../schema/treatment.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
+import { useTreatmentCreationForm } from '../composables/use-treatment-creation-form'
 import { useTreatmentFormDrafts } from '../composables/use-treatment-form-drafts'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import {
@@ -55,7 +45,6 @@ import { useExactReminders } from '@/core/notifications/use-exact-reminders'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import ExactRemindersExplainer from '@/shared/components/ExactRemindersExplainer.vue'
 import { MAX_FREQUENCY_VALUE } from '@/shared/domain/treatment-frequency'
-import { hasSeveralDoseTimes } from '@/shared/domain/treatment-periods'
 import FormField from '@/shared/form/FormField.vue'
 import FormScreen from '@/shared/form/FormScreen.vue'
 import FormSegmented from '@/shared/form/FormSegmented.vue'
@@ -86,9 +75,6 @@ const history = ref<TreatmentWithHistory | null>(null)
 const endsOnTouched = ref(false)
 const hasDuplicateTime = ref(false)
 const isPastDuesOpen = ref(false)
-/** Réponse de l'encart des doses passées : rien n'est écrit avant « Créer ». */
-const pastDosesAnswer = ref<DayChoice | null>(null)
-const isChooseDaysOpen = ref(false)
 const isSuggestingExact = ref(false)
 const isExplainerOpen = ref(false)
 /** Le moment choisi avant d'ouvrir le formulaire reste proposé sans les rappels précis (RA-23). */
@@ -127,14 +113,17 @@ const {
   open,
 })
 
-const creation = useFormValidation(values, (current) =>
-  validateTreatmentCreation(
-    current,
-    requireAnimalId(),
-    today.value,
-    pastDosesAnswer.value === null ? null : pastDosesOf(pastDosesAnswer.value),
-  ),
-)
+const creation =
+  mode === 'create'
+    ? useTreatmentCreationForm({
+        values,
+        today,
+        animalId: () => props.animalId,
+        targetAnimal,
+      })
+    : null
+const isChooseDaysOpen = creation?.isChooseDaysOpen ?? ref(false)
+
 const edition = useFormValidation(values, (current) =>
   validateTreatmentEdition(
     current,
@@ -159,24 +148,14 @@ const suggestsExact = computed(
   () => isSuggestingExact.value && exactReminders.status.value === 'never-enabled',
 )
 const reminderHelp = computed(() => reminderHelpText(t, values.value.times))
-const errors = computed(
-  () => ({ create: creation, edit: edition, resume: resumption })[mode].errors.value,
-)
+const errors = computed(() => {
+  if (creation !== null) return creation.errors.value
+  return mode === 'resume' ? resumption.errors.value : edition.errors.value
+})
 
-const pastDoses = computed(() =>
-  mode === 'create'
-    ? pastDosesPrompt(
-        t,
-        creationPastDuesOf(values.value, today.value),
-        today.value,
-        hasSeveralDoseTimes(values.value.times),
-        { followed: (targetAnimal.value?.unfollowedOn ?? null) === null },
-      )
-    : null,
-)
-const pastDosesAnswered = computed(() =>
-  pastDosesAnswer.value === null ? null : pastDosesResult(t, pastDosesAnswer.value),
-)
+const pastDoses = computed(() => creation?.pastDoses.value ?? null)
+const pastDosesAnswer = computed(() => creation?.pastDosesAnswer.value ?? null)
+const pastDosesAnswered = computed(() => creation?.pastDosesAnswered.value ?? null)
 
 const isReady = computed(
   () => mode === 'create' || (history.value !== null && !notFound.value && !loadFailed.value),
@@ -235,18 +214,6 @@ watch(
   },
 )
 
-watch(
-  () => pastDosesBasis(values.value, pastDoses.value?.dues ?? []),
-  () => {
-    pastDosesAnswer.value = null
-  },
-)
-
-function requireAnimalId(): string {
-  if (props.animalId === undefined) throw new Error('Formulaire traitement ouvert sans animal.')
-  return props.animalId
-}
-
 function requireHistory(): TreatmentWithHistory {
   if (history.value === null) throw new Error('Formulaire traitement ouvert sans traitement.')
   return history.value
@@ -294,10 +261,7 @@ function setEndsOn(endsOn: string): void {
 }
 
 function write(): (() => Promise<unknown>) | null {
-  if (mode === 'create') {
-    const result = creation.validate()
-    return result.success ? () => treatments.create(result.data) : null
-  }
+  if (creation !== null) return creation.write()
   const id = requireHistory().id
   if (mode === 'resume') {
     const result = resumption.validate()
@@ -310,14 +274,11 @@ function write(): (() => Promise<unknown>) | null {
 }
 
 function onPastDosesAction(action: PromptActionId): void {
-  if (pastDoses.value === null) return
-  if (action === 'choose-days') isChooseDaysOpen.value = true
-  else pastDosesAnswer.value = promptChoice(action, pastDoses.value.dues)
+  creation?.actOnPastDoses(action)
 }
 
 function answerPastDoses(choice: DayChoice): void {
-  pastDosesAnswer.value = choice
-  isChooseDaysOpen.value = false
+  creation?.answerPastDoses(choice)
 }
 
 function answerPastDues(choice: PastDuesChoice): Promise<void> {
