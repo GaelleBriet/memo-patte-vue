@@ -8,7 +8,7 @@ import AnimalPhotoSheet from './AnimalPhotoSheet.vue'
 import AnimalPhotoViewer from './AnimalPhotoViewer.vue'
 import UnfollowedAnimalsLink from '@/shared/components/UnfollowedAnimalsLink.vue'
 import { hasDepartureDetails } from '../logic/animal-departure'
-import { carnetSubtitle } from '../logic/carnet-animal'
+import { carnetAnimalToSelect, carnetSubtitle } from '../logic/carnet-animal'
 import { carnetRemindersStat } from '../logic/carnet-stats'
 import { useAnimalChips } from '@/shared/composables/use-animal-chips'
 import { useOpenUnfollowed } from '@/shared/composables/use-open-unfollowed'
@@ -115,10 +115,9 @@ const remindersStat = computed(() =>
   carnetRemindersStat(t, [vaccinationsSummary.value, treatmentsSummary.value]),
 )
 
-// Il y a toujours un animal actif sur le Carnet : le premier animal suivi, faute de choix.
 watchEffect(() => {
-  const first = animals.followedAnimals[0]
-  if (animals.selectedAnimal === null && first) animals.select(first.id)
+  const id = carnetAnimalToSelect(animals.selectedAnimal, animals.followedAnimals)
+  if (id !== null) animals.select(id)
 })
 
 async function applyOption(gesture: (target: { id: string; name: string }) => Promise<boolean>) {
