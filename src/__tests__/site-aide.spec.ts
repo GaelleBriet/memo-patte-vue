@@ -48,6 +48,7 @@ function answerOf(html: string, section?: string): string {
     .split('</h1>')[1]!
     .split(/<p class="help-contact">|<p>\s*<a class="back-link"/)[0]!
     .replace(/<figure\b[\s\S]*?<\/figure>/g, '')
+    .replace(/<p class="updated">[\s\S]*?<\/p>/g, '')
   const parts = body.split(/(?=<h2 id=")/)
   if (!section) return parts[0]!
   return parts.find((part) => part.startsWith(`<h2 id="${section}"`)) ?? ''
