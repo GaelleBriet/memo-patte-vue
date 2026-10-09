@@ -2,7 +2,13 @@ import type {
   TreatmentPeriodRecord,
   TreatmentPeriodSettings,
 } from '../schema/treatment-period.schema'
-import type { MoveRefusal, MovedDose } from '@/shared/domain/treatment-schedule'
+import {
+  isNoteLine,
+  type Due,
+  type MoveRefusal,
+  type MovedDose,
+  type TreatmentSchedule,
+} from '@/shared/domain/treatment-schedule'
 
 /** Ce que le champ « Prochaine dose » dit sous sa date. */
 export type NextDoseHelp =
@@ -65,3 +71,13 @@ export type EditionResolution = {
 
 /** La date saisie dans « Prochaine dose » et la case « Décaler aussi les doses suivantes ». */
 export type NextDoseChoice = { chosenOn: string | null; shiftsFollowing: boolean }
+
+export function hasNote(schedule: TreatmentSchedule, periodId?: string): boolean {
+  return schedule.doses.some(
+    (dose) => isNoteLine(dose) && (periodId === undefined || dose.periodId === periodId),
+  )
+}
+
+export function overdueHelp(due: Due, today: string): NextDoseHelp | null {
+  return due.dueOn < today ? { kind: 'overdue', since: due.dueOn } : null
+}
