@@ -1220,11 +1220,10 @@ class Simulation {
             (due) =>
               due.periodId === move.periodId && due.dueOn === move.dueOn && due.dueTime === time,
           )
-        const notDue =
-          before !== undefined
-            ? !pendingBefore(before)
-            : depth < 8 && this.stayedTimes(move.dueOn, undefined, depth + 1).has(time)
-        if (noted || (earlier && (kept || notDue))) stayed.add(time)
+        // Une heure qui n'était pas à donner à son jour d'origine, restée elle-même en arrière.
+        const chained = depth < 8 && this.stayedTimes(move.dueOn, undefined, depth + 1).has(time)
+        const orphanKept = before !== undefined && !pendingBefore(before)
+        if (noted || chained || (earlier && (kept || orphanKept))) stayed.add(time)
       }
     }
     return stayed
