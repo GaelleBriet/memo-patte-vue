@@ -8,7 +8,7 @@ import { dose, period, treatment } from '@/features/treatments/__tests__/treatme
 import type { TreatmentWithHistory } from '@/features/treatments/schema/treatment-with-history.schema'
 import { createTreatmentRemindersService } from '@/features/treatments/service/treatment-reminders.service'
 import { createFakeNotifications } from '@/shared/__tests__/fake-notifications'
-import { MAX_SCHEDULED_REMINDERS } from '@/shared/domain/due-reminders-schedule'
+import { MAX_SCHEDULED_REMINDERS } from '@/core/notifications/due-reminders-schedule'
 import { createRemindersSync } from '../reminders-sync'
 
 const NOW = new Date(2026, 8, 30, 12)

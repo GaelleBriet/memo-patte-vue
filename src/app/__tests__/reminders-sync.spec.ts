@@ -22,7 +22,7 @@ import {
   MAX_SCHEDULED_REMINDERS,
   replaceDueReminders,
   withOneRetry,
-} from '@/shared/domain/due-reminders-schedule'
+} from '@/core/notifications/due-reminders-schedule'
 import { MAX_REMINDERS_PER_CARE, type CarnetReminderSettings } from '@/shared/domain/reminder-plan'
 import { REMINDER_DONE_ACTION_TYPE, type Reminder } from '@/core/notifications'
 import { createRemindersSync, installRemindersSync } from '../reminders-sync'

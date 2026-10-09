@@ -25,7 +25,7 @@ import {
 import {
   enqueueReminderTask,
   MAX_SCHEDULED_REMINDERS,
-} from '@/shared/domain/due-reminders-schedule'
+} from '@/core/notifications/due-reminders-schedule'
 import { MAX_REMINDERS_PER_CARE } from '@/shared/domain/reminder-plan'
 import { createRemindersSync, installRemindersSync } from '../reminders-sync'
 import { seededTreatments } from '@/features/treatments/__tests__/seed-treatment'

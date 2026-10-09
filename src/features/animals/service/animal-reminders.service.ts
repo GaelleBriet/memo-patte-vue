@@ -13,7 +13,7 @@ import {
   reminderNotifications,
   withdrawDueReminders,
   type ReminderNotifications,
-} from '@/shared/domain/due-reminders-schedule'
+} from '@/core/notifications/due-reminders-schedule'
 
 type Provider<T> = () => T | Promise<T>
 

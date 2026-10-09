@@ -16,13 +16,16 @@ import {
   markRebuilt,
   withdrawDueReminders,
   type EntryReminders,
-} from '../domain/due-reminders-schedule'
+} from '../due-reminders-schedule'
 import {
   MAX_REMINDERS_PER_CARE,
   type CareReminders,
   type CarnetReminderSettings,
-} from '../domain/reminder-plan'
-import { createFakeNotifications, type FakeNotifications } from './fake-notifications'
+} from '@/shared/domain/reminder-plan'
+import {
+  createFakeNotifications,
+  type FakeNotifications,
+} from '@/shared/__tests__/fake-notifications'
 
 const ID = '22222222-2222-4222-8222-222222222222'
 const OTHER = '33333333-3333-4333-8333-333333333333'

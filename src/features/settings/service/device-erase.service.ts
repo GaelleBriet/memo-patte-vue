@@ -22,7 +22,7 @@ import { getTreatmentsRepository } from '@/features/treatments/repository/treatm
 import { getVaccinationInjectionsRepository } from '@/features/vaccinations/repository/vaccination-injections.repository'
 import { getVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import { getWeightRepository } from '@/features/weight/repository/weight.repository'
-import { cancelAllDueReminders } from '@/shared/domain/due-reminders-schedule'
+import { cancelAllDueReminders } from '@/core/notifications/due-reminders-schedule'
 import { clearAppStorage } from '@/shared/utils/app-storage'
 import { errorSummary } from '@/shared/utils/error-summary'
 import { getCarnetSettingsRepository } from '../repository/carnet-settings.repository'

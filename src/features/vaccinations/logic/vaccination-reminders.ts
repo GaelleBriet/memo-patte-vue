@@ -1,5 +1,5 @@
 import type { Animal } from '@/features/animals/schema/animal.schema'
-import type { EntryReminders } from '@/shared/domain/due-reminders-schedule'
+import type { EntryReminders } from '@/core/notifications/due-reminders-schedule'
 import { vaccinationReminderPlan, type CarnetReminderSettings } from '@/shared/domain/reminder-plan'
 import { injectionMadeDue } from './vaccination-history'
 import type { Vaccination } from '../schema/vaccination.schema'

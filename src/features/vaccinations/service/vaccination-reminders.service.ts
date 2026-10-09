@@ -8,7 +8,7 @@ import {
   reminderNotifications,
   replaceDueReminders,
   type ReminderNotifications,
-} from '@/shared/domain/due-reminders-schedule'
+} from '@/core/notifications/due-reminders-schedule'
 import type { CarnetReminderSettings } from '@/shared/domain/reminder-plan'
 import { vaccinationReminders } from '../logic/vaccination-reminders'
 import {

@@ -38,7 +38,7 @@ import {
   withOneRetry,
   type EntryReminders,
   type ReminderNotifications,
-} from '@/shared/domain/due-reminders-schedule'
+} from '@/core/notifications/due-reminders-schedule'
 import { plannedReminders, type CarnetReminderSettings } from '@/shared/domain/reminder-plan'
 import type { ReminderKind } from '@/shared/domain/reminders'
 import type { Translate } from '@/core/i18n/translate'

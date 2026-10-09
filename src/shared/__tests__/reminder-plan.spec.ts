@@ -5,7 +5,7 @@ import i18n from '@/core/i18n'
 import { REMINDER_DONE_ACTION_TYPE } from '@/core/notifications/reminder-actions'
 import type { Reminder } from '@/core/notifications'
 import { parseReminderKey } from '../domain/due-reminders'
-import { MAX_SCHEDULED_REMINDERS } from '../domain/due-reminders-schedule'
+import { MAX_SCHEDULED_REMINDERS } from '@/core/notifications/due-reminders-schedule'
 import {
   MAX_REMINDERS_PER_CARE,
   plannedReminders,

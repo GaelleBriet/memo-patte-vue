@@ -1,7 +1,7 @@
 import { format } from 'date-fns'
 
 import type { Animal } from '@/features/animals/schema/animal.schema'
-import type { EntryReminders } from '@/shared/domain/due-reminders-schedule'
+import type { EntryReminders } from '@/core/notifications/due-reminders-schedule'
 import { treatmentReminderPlan, type CarnetReminderSettings } from '@/shared/domain/reminder-plan'
 import { isNoteLine, type TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 import { currentPeriodOf, readableScheduleOf } from './treatment-schedule-adapter'
