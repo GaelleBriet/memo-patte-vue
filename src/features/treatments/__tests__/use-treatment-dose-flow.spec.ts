@@ -6,6 +6,7 @@ import { computed, defineComponent, ref } from 'vue'
 import { dose, period, treatment } from './treatment-fixtures'
 import { useTreatmentDoseFlow, type DoseFlowExits } from '../composables/use-treatment-dose-flow'
 import { useTreatmentGestures } from '../composables/use-treatment-gestures'
+import { DoseAlreadyLoggedError } from '../logic/treatment-dose-writes'
 import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { AppliedDoseChange } from '../service/treatment-doses.service'
@@ -250,5 +251,58 @@ describe('useTreatmentDoseFlow — arrêter', () => {
 
     expect(result.isChooseDaysOpen.value).toBe(true)
     expect(result.stopError.value).toBe('Le traitement n’a pas pu être arrêté. Réessaie.')
+  })
+})
+
+describe('useTreatmentDoseFlow — un geste à la fois', () => {
+  it('pendant une prise en cours, arrêter ou renseigner puis arrêter ne part pas', async () => {
+    let finish: (change: AppliedDoseChange) => void = () => {}
+    apply.mockReturnValue(new Promise((resolve) => (finish = resolve)))
+    const result = flow({ stopFailure: 'message' })
+    const due = premiereDose()
+    const pending = result.note({ kind: 'given', due, givenOn: due.dueOn })
+
+    result.onStopAction('choose-days')
+    await result.stop()
+    result.confirmChosenDays({ given: result.stopping.value!.dues, missed: [] })
+    await flushPromises()
+
+    expect(stop).not.toHaveBeenCalled()
+    expect(toastMessage.value).toBeNull()
+    expect(result.stopError.value).toBeNull()
+    expect(result.isChooseDaysOpen.value).toBe(true)
+
+    finish(APPLIED)
+    await pending
+  })
+})
+
+describe('useTreatmentDoseFlow — doses déjà notées ailleurs (liste périmée)', () => {
+  it('renseigner : le choix des jours se ferme, et la feuille avec', async () => {
+    apply.mockRejectedValue(new DoseAlreadyLoggedError())
+    const settled = vi.fn<() => void>()
+    const result = flow({ settled, stopFailure: 'message' })
+    const { dues } = result.unlogged.value!
+
+    result.onUnloggedAction('choose-days')
+    result.confirmChosenDays({ given: dues, missed: [] })
+    await flushPromises()
+
+    expect(result.isChooseDaysOpen.value).toBe(false)
+    expect(settled).toHaveBeenCalledOnce()
+  })
+
+  it('renseigner puis arrêter : le choix des jours se ferme, et la feuille avec', async () => {
+    stop.mockRejectedValue(new DoseAlreadyLoggedError())
+    const settled = vi.fn<() => void>()
+    const result = flow({ settled, stopFailure: 'message' })
+
+    result.onStopAction('choose-days')
+    result.confirmChosenDays({ given: result.stopping.value!.dues, missed: [] })
+    await flushPromises()
+
+    expect(result.isChooseDaysOpen.value).toBe(false)
+    expect(result.stopError.value).toBeNull()
+    expect(settled).toHaveBeenCalledOnce()
   })
 })
