@@ -7,8 +7,16 @@ LOG=$(mktemp)
 cd "$ROOT" || exit 1
 # « Verdict » ne finit qu'après tous les jobs du passage, matrices comprises : on l'attend, puis plus rien en cours.
 checks() { gh pr checks "$P" --json name,bucket 2>/dev/null; true; }
+END=$((SECONDS + 3600))
 until C=$(checks) && [ "$(jq '[.[]|select(.name=="Verdict" and .bucket!="pending")]|length' <<<"${C:-[]}")" = 1 ] &&
-  [ "$(jq '[.[]|select(.bucket=="pending")]|length' <<<"$C")" = 0 ]; do sleep 30; done
+  [ "$(jq '[.[]|select(.bucket=="pending")]|length' <<<"$C")" = 0 ]; do
+  # Deux relevés de suite : entre deux jobs d'un passage, la liste peut être un instant sans rien en cours.
+  if [ "$(jq 'length > 0 and all(.bucket!="pending") and all(.name!="Verdict")' <<<"${C:-[]}")" = true ]; then
+    NOV=$((${NOV:-0} + 1)); [ "$NOV" -ge 2 ] && { echo "PR $P SANS VERDICT : lancer gh pr update-branch $P"; exit 7; }
+  else NOV=0; fi
+  [ $SECONDS -ge $END ] && { echo "PR $P CI TOUJOURS EN COURS APRÈS 60 MIN"; exit 8; }
+  sleep 30
+done
 git fetch -q origin
 git merge-base --is-ancestor origin/main "origin/$B" || { echo "PR $P EN RETARD"; exit 2; }
 # Un passage sauté n'est accepté que si « Verdict » est vert : lui seul sait si le saut était voulu.
