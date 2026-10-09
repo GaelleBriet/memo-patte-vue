@@ -19,7 +19,7 @@ import { useVaccinationsStore } from '../store/vaccinations.store'
 import DueStatusChip from '@/shared/components/DueStatusChip.vue'
 import ListRowIcon from '@/shared/components/ListRowIcon.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
-import { useAnimalScopedLoad } from '@/shared/composables/use-animal-scoped-load'
+import { useAnimalSectionLoad } from '@/shared/composables/use-animal-section-load'
 
 const BADGE_ICONS: Partial<Record<CarnetVaccinationBadgeStatus, string>> = {
   overdue: 'ms:error',
@@ -46,22 +46,10 @@ const { t } = useI18n()
 const router = useRouter()
 const store = useVaccinationsStore()
 
-const { loadedFor } = useAnimalScopedLoad(
-  () => props.animalId,
-  (id) => store.loadForAnimal(id),
-)
+const { isCurrent, hasError } = useAnimalSectionLoad(() => props.animalId, store)
 
 // Au changement d'animal, ou après un échec, le store porte déjà le nouvel animal mais encore l'ancienne liste.
 const vaccinations = computed(() => (isCurrent.value ? store.vaccinations : []))
-
-const isCurrent = computed(
-  () =>
-    loadedFor.value === props.animalId && store.animalId === props.animalId && store.error === null,
-)
-const hasError = computed(
-  () =>
-    loadedFor.value === props.animalId && store.animalId === props.animalId && store.error !== null,
-)
 
 const rows = computed(() =>
   [...vaccinations.value].sort(byDueDate).map((vaccination) => ({
