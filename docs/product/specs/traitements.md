@@ -196,7 +196,8 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     Fréquence changée le 4 même, la dose reportée pas encore donnée : le 4 ne demande que l'heure
     reportée, puis le nouveau rythme part du 4 (tous les 3 jours : 20 h le 4, puis le 7 ; tous les
     jours : le 5 ; chaque semaine : le 11 ; décision de Gaelle du 2026-10-10) ; changée le 3, Q24
-    vaut : 20 h le 3, puis le 6.
+    vaut : 20 h le 3, puis le 6. Plusieurs changements le 4 (une fréquence corrigée aussitôt, par
+    exemple) gardent la même règle : le 4 ne demande toujours que l'heure reportée.
     Un report seul arrivé sur un jour de la grille n'y retire aucune heure : ce jour garde les
     siennes ; reporté à son tour, un jour d'arrivée n'emporte que les heures qui y étaient à
     donner. Une heure restée en arrière parce qu'elle était notée revient si sa prise est
