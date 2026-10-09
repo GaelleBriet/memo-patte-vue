@@ -3,8 +3,8 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import ExportSheet from '../views/ExportSheet.vue'
-import type { DeliveryMode, DeliveryOutcome } from '../logic/export-delivery'
-import type { SaveAccess } from '../logic/export-storage-access'
+import type { DeliveryMode, DeliveryOutcome } from '../service/export-delivery.service'
+import type { SaveAccess } from '../service/export-storage-access.service'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 import { dismissToast, runToastAction, toastAction, toastMessage } from '@/shared/utils/toast'
@@ -20,7 +20,7 @@ const storage = vi.hoisted(() => ({
 const resumeListeners = vi.hoisted(() => [] as (() => void)[])
 
 vi.mock('../service/data-export.service', () => ({ dataExportService: { exportData } }))
-vi.mock('../logic/export-storage-access', () => storage)
+vi.mock('../service/export-storage-access.service', () => storage)
 vi.mock('@/core/app-lifecycle/app-resume', () => ({
   useAppResume: (listener: () => void) => resumeListeners.push(listener),
 }))

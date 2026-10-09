@@ -4,7 +4,7 @@ Contrat entre l'export (Paramètres → « Exporter mes données ») et l'import
 [Import](#import--importer-un-export-mémopatte)).
 Le code de référence est `src/features/settings/logic/export-format.ts`, couvert par
 `src/features/settings/__tests__/export-format.spec.ts` ; la remise du fichier vit dans
-`src/features/settings/logic/export-delivery.ts` et `export-storage-access.ts`.
+`src/features/settings/service/export-delivery.service.ts` et `export-storage-access.service.ts`.
 
 ## Principes
 

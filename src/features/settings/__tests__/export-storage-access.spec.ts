@@ -4,7 +4,11 @@ import { Filesystem } from '@capacitor/filesystem'
 import { AndroidSettings, NativeSettings } from 'capacitor-native-settings'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { checkSaveAccess, openAppSettings, requestSaveAccess } from '../logic/export-storage-access'
+import {
+  checkSaveAccess,
+  openAppSettings,
+  requestSaveAccess,
+} from '../service/export-storage-access.service'
 
 type Status = { publicStorage: PermissionState }
 

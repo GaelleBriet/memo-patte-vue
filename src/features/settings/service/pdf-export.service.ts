@@ -7,7 +7,7 @@ import {
   deliverExportFile,
   type DeliveryMode,
   type DeliveryOutcome,
-} from '../logic/export-delivery'
+} from './export-delivery.service'
 import { buildCarnetPdfContent, type CarnetPdfContent } from '../logic/pdf-content'
 import { renderCarnetPdf } from '../logic/render-carnet-pdf'
 import type { ExportData } from '@/shared/domain/carnet-data'

@@ -1,6 +1,6 @@
 import { FileOpener } from '@capawesome-team/capacitor-file-opener'
 
-import type { SavedFile } from './export-delivery'
+import type { SavedFile } from '../service/export-delivery.service'
 import i18n from '@/core/i18n'
 import { showToast } from '@/shared/utils/toast'
 

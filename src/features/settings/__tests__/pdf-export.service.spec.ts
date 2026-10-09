@@ -5,7 +5,7 @@ import {
   type PdfExportDependencies,
   type PdfExportRequest,
 } from '../service/pdf-export.service'
-import type { DeliveryOutcome } from '../logic/export-delivery'
+import type { DeliveryOutcome } from '../service/export-delivery.service'
 import { EXPORT_FIXTURE, LUNA_ID, MILO_ID } from './export-fixture'
 
 const EXPORTED_AT = new Date('2026-09-15T10:30:00')

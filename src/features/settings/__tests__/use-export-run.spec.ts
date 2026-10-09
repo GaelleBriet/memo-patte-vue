@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { SaveAccess } from '../logic/export-storage-access'
+import type { SaveAccess } from '../service/export-storage-access.service'
 import { useExportRun, type SaveAccessPort } from '../composables/use-export-run'
 
 const resumeListeners = vi.hoisted(() => [] as (() => void)[])

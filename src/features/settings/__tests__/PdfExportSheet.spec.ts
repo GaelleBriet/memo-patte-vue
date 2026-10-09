@@ -3,8 +3,8 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import PdfExportSheet, { type PdfExportAnimal } from '../views/PdfExportSheet.vue'
-import type { DeliveryMode } from '../logic/export-delivery'
-import type { SaveAccess } from '../logic/export-storage-access'
+import type { DeliveryMode } from '../service/export-delivery.service'
+import type { SaveAccess } from '../service/export-storage-access.service'
 import type { PdfExportOutcome, PdfExportRequest } from '../service/pdf-export.service'
 import i18n, { applyLocale } from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
@@ -22,7 +22,7 @@ const storage = vi.hoisted(() => ({
 vi.mock('../service/pdf-export.service', () => ({
   pdfExportService: { exportCarnetPdf },
 }))
-vi.mock('../logic/export-storage-access', () => storage)
+vi.mock('../service/export-storage-access.service', () => storage)
 vi.mock('@/core/app-lifecycle/app-resume', () => ({ useAppResume: () => {} }))
 vi.mock('@capawesome-team/capacitor-file-opener', () => ({
   FileOpener: { openFile: vi.fn<() => Promise<void>>(async () => {}) },

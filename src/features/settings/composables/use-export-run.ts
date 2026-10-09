@@ -1,7 +1,11 @@
 import { computed, ref } from 'vue'
 
-import type { DeliveryMode } from '../logic/export-delivery'
-import { checkSaveAccess, requestSaveAccess, type SaveAccess } from '../logic/export-storage-access'
+import type { DeliveryMode } from '../service/export-delivery.service'
+import {
+  checkSaveAccess,
+  requestSaveAccess,
+  type SaveAccess,
+} from '../service/export-storage-access.service'
 import { useAppResume } from '@/core/app-lifecycle/app-resume'
 
 export type SaveAccessPort = {

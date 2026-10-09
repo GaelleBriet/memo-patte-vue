@@ -2,8 +2,8 @@
 import { computed, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import type { DeliveryMode } from '../logic/export-delivery'
-import type { SaveAccess } from '../logic/export-storage-access'
+import type { DeliveryMode } from '../service/export-delivery.service'
+import type { SaveAccess } from '../service/export-storage-access.service'
 
 const props = withDefaults(
   defineProps<{

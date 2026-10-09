@@ -32,7 +32,7 @@ import {
   deliverExportFile,
   type DeliveryMode,
   type DeliveryOutcome,
-} from '../logic/export-delivery'
+} from './export-delivery.service'
 import {
   getCarnetSettingsRepository,
   type CarnetSettingsRepository,
