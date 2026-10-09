@@ -7,7 +7,7 @@ on:
   push:
     branches:
       - main
-  # La suite complète dans les trois fuseaux, chaque nuit et sur demande.
+  # La suite complète dans les trois fuseaux, chaque nuit et sur demande (et à chaque push sur main).
   schedule:
     - cron: '23 2 * * *'
   workflow_dispatch:
@@ -76,8 +76,8 @@ jobs:
         if: needs.changes.outputs.app != 'true'
         run: pnpm exec vitest run src/__tests__/site- scripts/__tests__/site-
 
+      # Aussi pour site/ seul : `site/_worker.js` est vérifié par tsconfig.vitest.json.
       - name: Type-check
-        if: needs.changes.outputs.app == 'true'
         run: pnpm type-check
 
       # Type-check fait juste au-dessus : `build-only` plutôt que `build`, qui le relancerait.
@@ -135,12 +135,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # À chaque PR, les dossiers des échéances, plus tout test ailleurs qui touche une date ou une heure.
+      # Sur une PR, les dossiers des échéances, plus tout test ailleurs qui touche une date ou une heure.
       - name: Unit tests (${{ matrix.tz }}, ${{ matrix.shard }}/3)
         env:
           TZ: ${{ matrix.tz }}
           SHARD: ${{ matrix.shard }}/3
-          FULL: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+          FULL: ${{ github.event_name != 'pull_request' }}
         run: |
           if [ "$FULL" = true ]; then
             pnpm exec vitest run --shard="$SHARD"
