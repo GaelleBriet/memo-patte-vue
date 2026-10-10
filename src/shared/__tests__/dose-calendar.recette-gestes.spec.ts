@@ -89,7 +89,7 @@ describe('R5, R6 : prise en plus, correction de date', () => {
   })
 
   it.fails(
-    'Q-C1 : dose du 16 notée le 16, corrigée le 25 « donnée le 24 », case cochée : 31 oct., 7 nov.',
+    'Q-C1 : dose du 16 notée le 16, corrigée le 25 « donnée le 24 », case cochée : 31 oct., 7 nov. (pas 3)',
     () => {
       const c = donne(vendredis(), '2026-10-16', echeance(vendredis(), '2026-10-16'))
       const corrigee = corrige(
@@ -108,7 +108,7 @@ describe('R5, R6 : prise en plus, correction de date', () => {
   )
 
   it.fails(
-    'Q-C1 : la correction et « Fait à une autre date » le 24 donnent le même calendrier',
+    'Q-C1 : la correction et « Fait à une autre date » le 24 donnent le même calendrier (pas 3)',
     () => {
       const c = donne(vendredis(), '2026-10-16', echeance(vendredis(), '2026-10-16'))
       const corrigee = corrige(

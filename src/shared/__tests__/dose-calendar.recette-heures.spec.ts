@@ -114,7 +114,7 @@ describe('R7 : 8 h du 3 donnée, 20 h du 3 reportée au 4', () => {
   )
 
   it.fails(
-    'R10, Q-#744 : plusieurs changements le 4, fréquence ramenée aussitôt : 20 h le 4, puis le 5',
+    'R10, Q-#744 : plusieurs changements le 4, fréquence ramenée aussitôt : 20 h le 4, puis le 5 (pas 4)',
     () => {
       let c = modifie(reporte20h(), '2026-10-04', jours(3), H)
       c = modifie(c, '2026-10-04', jours(2), H)
@@ -146,7 +146,7 @@ describe('R7 : 8 h du 3 donnée, 20 h du 3 reportée au 4', () => {
 
 describe('R4, R10 : une prise couvre son échéance, un réglage du jour se remplace', () => {
   it.fails(
-    '#741 : tous les 3 mois à 6, 12, 18, 23 h ; 23 h reportée au 12, donnée le 5 ; chaque semaine le 12 : rien le 12, le 19',
+    '#741 : tous les 3 mois à 6, 12, 18, 23 h ; 23 h reportée au 12, donnée le 5 ; chaque semaine le 12 : rien le 12, le 19 (pas 4)',
     () => {
       const T = ['06:00', '12:00', '18:00', '23:00']
       let c = carnet('2026-03-10', mois(3), T)

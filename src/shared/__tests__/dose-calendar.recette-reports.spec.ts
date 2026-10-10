@@ -141,7 +141,7 @@ describe('R3, R7 : report seul et posologie changée', () => {
 
 describe('R3, R6 : décalage et heures changées', () => {
   it.fails(
-    '#743 : tous les 3 mois à 8 h et 20 h du 29 mars, les deux doses données le 28 avec décalage, heures passées à 8, 14, 20 h : 28 juin, 28 sept.',
+    '#743 : tous les 3 mois à 8 h et 20 h du 29 mars, les deux doses données le 28 avec décalage, heures passées à 8, 14, 20 h : 28 juin, 28 sept. (pas 4)',
     () => {
       let c = carnet('2026-03-29', mois(3), H)
       c = donne(c, '2026-03-28', echeance(c, '2026-03-29', '08:00'), '2026-03-28', true)

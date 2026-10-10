@@ -35,7 +35,7 @@ function rienLe(c: Carnet, day: string): string[] {
 
 describe('R4, R9 : réglage changé le jour d’arrivée d’un report rangé deux réglages plus tôt', () => {
   it.fails(
-    'graine 500000856 : 20 h du 24 notée oubliée, toutes les 2 semaines à 8 h et 20 h le 24 : rien le 24',
+    'graine 500000856 : 20 h du 24 notée oubliée, toutes les 2 semaines à 8 h et 20 h le 24 : rien le 24 (pas 4)',
     () => {
       const { today, ...c } = graine(500000856)
       expect(rienLe(modifie(c, today, semaines(2), H), today)).toEqual([])
@@ -43,7 +43,7 @@ describe('R4, R9 : réglage changé le jour d’arrivée d’un report rangé de
   )
 
   it.fails(
-    'graine 510000010 : dose reportée donnée, tous les jours à 6, 12, 18, 23 h le 8 : rien le 8',
+    'graine 510000010 : dose reportée donnée, tous les jours à 6, 12, 18, 23 h le 8 : rien le 8 (pas 4)',
     () => {
       const { today, ...c } = graine(510000010)
       const changed = modifie(c, today, jours(1), ['06:00', '12:00', '18:00', '23:00'])
@@ -52,7 +52,7 @@ describe('R4, R9 : réglage changé le jour d’arrivée d’un report rangé de
   )
 
   it.fails(
-    'graine 500001712 : dose du 15 donnée, tous les jours à 8, 14, 20 h le 15 : rien le 15',
+    'graine 500001712 : dose du 15 donnée, tous les jours à 8, 14, 20 h le 15 : rien le 15 (pas 4)',
     () => {
       const { today, ...c } = graine(500001712)
       const changed = modifie(c, today, jours(1), ['08:00', '14:00', '20:00'])
