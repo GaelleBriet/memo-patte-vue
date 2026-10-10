@@ -101,4 +101,19 @@ describe('useFormValidation', () => {
     expect(errors.value).toEqual({})
     expect(espion).not.toHaveBeenCalled()
   })
+
+  it('rend le résultat tel que la validation l’a construit, champ en plus compris', () => {
+    const values = ref<Valeurs>({ name: '', weight: '' })
+    const { validate, errors } = useFormValidation(values, (current) => ({
+      success: false as const,
+      errors: {},
+      needsChoice: current.name === '',
+    }))
+
+    const result = validate()
+
+    expect(result).toEqual({ success: false, errors: {}, needsChoice: true })
+    expect(result.needsChoice).toBe(true)
+    expect(errors.value).toEqual({})
+  })
 })

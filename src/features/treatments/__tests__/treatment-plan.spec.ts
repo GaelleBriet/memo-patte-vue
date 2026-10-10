@@ -7,7 +7,9 @@ import {
   creationPlan,
   treatmentCreationSchemaFor,
 } from '../logic/treatment-creation'
-import { editionDraft, editionPlan, treatmentEditionSchemaFor } from '../logic/treatment-edition'
+import { treatmentEditionSchemaFor } from '../logic/treatment-edition-checks'
+import { editionDraft } from '../logic/treatment-edition-draft'
+import { editionPlan } from '../logic/treatment-edition-plan'
 import {
   resumptionDraft,
   resumptionPlan,

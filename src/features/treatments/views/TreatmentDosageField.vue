@@ -2,7 +2,11 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { doseQuantityTextFor, parseDoseQuantity, tabletShortcuts } from '../logic/treatment-form'
+import {
+  doseQuantityTextFor,
+  parseDoseQuantity,
+  tabletShortcuts,
+} from '../logic/treatment-dosage-input'
 import { DOSE_UNITS, doseUnitText, type DoseUnit } from '@/shared/domain/dosage'
 
 const props = defineProps<{

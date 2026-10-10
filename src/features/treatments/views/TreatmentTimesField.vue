@@ -7,7 +7,7 @@ import {
   withTime,
   withTimeChanged,
   withoutTime,
-} from '../logic/treatment-form'
+} from '../logic/treatment-times-input'
 import { formatClockTime } from '@/shared/utils/format'
 
 const props = defineProps<{
