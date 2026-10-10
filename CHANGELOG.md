@@ -5,6 +5,35 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.67](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.66...memo-patte-v0.1.67) (2026-10-10)
+
+
+### 🐛 Corrections
+
+* **traitements:** « Décaler aussi » ne déplace pas une dose de la journée déjà donnée ([2580a2c](https://github.com/GaelleBriet/memo-patte-vue/commit/2580a2c2755f11f6b506217d45386be7efb97247))
+* **traitements:** arrivée d'un report seul entamée en avance, la grille continue ([d943d19](https://github.com/GaelleBriet/memo-patte-vue/commit/d943d199a670f67130c90bbeb15a7ba0d0c1572e)), closes [#737](https://github.com/GaelleBriet/memo-patte-vue/issues/737)
+* **traitements:** avec décalage, le jour d'arrivée ne reçoit que les heures parties ([7cb4d0d](https://github.com/GaelleBriet/memo-patte-vue/commit/7cb4d0dc0bcf3408567d2c108f253600bb959823)), closes [#735](https://github.com/GaelleBriet/memo-patte-vue/issues/735)
+* **traitements:** dose reportée déjà donnée, heures changées sans dose de trop ([7b9b542](https://github.com/GaelleBriet/memo-patte-vue/commit/7b9b542fc5d988604a62da45a967bca76d1bc81d)), closes [#720](https://github.com/GaelleBriet/memo-patte-vue/issues/720)
+* **traitements:** fréquence changée le jour d'arrivée, seules les heures reportées ([0cb0d9d](https://github.com/GaelleBriet/memo-patte-vue/commit/0cb0d9d810c4fe2c3d924dd53f136a2efe0b8c7f)), closes [#720](https://github.com/GaelleBriet/memo-patte-vue/issues/720)
+* **traitements:** fréquence changée, heures restées en arrière au seul jour d'arrivée ([9c0af50](https://github.com/GaelleBriet/memo-patte-vue/commit/9c0af509121a2f0b1f3da2afe7e92ba27b21fef2)), closes [#720](https://github.com/GaelleBriet/memo-patte-vue/issues/720)
+* **traitements:** fréquence changée, journée réglée seulement si la dose reportée est donnée ([5fc97af](https://github.com/GaelleBriet/memo-patte-vue/commit/5fc97afa346133a5ec458a8165296db35bb86c99)), closes [#720](https://github.com/GaelleBriet/memo-patte-vue/issues/720)
+* **traitements:** heures d'origine lues aussi sur les reports fermés par la période suivante ([99e8696](https://github.com/GaelleBriet/memo-patte-vue/commit/99e8696a9d94cb17462e53ecc135164d413da156)), closes [#720](https://github.com/GaelleBriet/memo-patte-vue/issues/720)
+* **traitements:** heures orphelines rendues au jour d'arrivée, dernières heures gardées ([f6629b8](https://github.com/GaelleBriet/memo-patte-vue/commit/f6629b825c0c8a48dab2f43d4a4a1923eb8e6145)), closes [#720](https://github.com/GaelleBriet/memo-patte-vue/issues/720)
+* **traitements:** heures restées en arrière gardées d'un changement à l'autre le même jour ([3218ea0](https://github.com/GaelleBriet/memo-patte-vue/commit/3218ea0e8b4fd9d8659706f56faf3afc04d98b6c)), closes [#720](https://github.com/GaelleBriet/memo-patte-vue/issues/720)
+* **traitements:** heures restées en arrière limitées à leur jour, journée réglée ([b354a06](https://github.com/GaelleBriet/memo-patte-vue/commit/b354a06ce7f98a72ed1f2587f0b0d78140d63afc)), closes [#720](https://github.com/GaelleBriet/memo-patte-vue/issues/720)
+* **traitements:** heures restées en arrière lues depuis les prises, heures changées ([086dcbc](https://github.com/GaelleBriet/memo-patte-vue/commit/086dcbcb53f1b982296b34bcb90cf65723335de6)), closes [#720](https://github.com/GaelleBriet/memo-patte-vue/issues/720)
+* **traitements:** jour d'arrivée avec décalage réglé, sa dose reportée donnée ([e60e675](https://github.com/GaelleBriet/memo-patte-vue/commit/e60e675c8fd2a3e09e8a7943808502a3d9857976)), closes [#735](https://github.com/GaelleBriet/memo-patte-vue/issues/735)
+* **traitements:** jour de grille qui garde ses heures, journée réglée à toute fréquence ([759f623](https://github.com/GaelleBriet/memo-patte-vue/commit/759f62310e6fc19c36c02e07782c989dd4dacbf4)), closes [#720](https://github.com/GaelleBriet/memo-patte-vue/issues/720)
+* **traitements:** journée entière reportée seule, la grille continue après un réglage changé ([e7a8688](https://github.com/GaelleBriet/memo-patte-vue/commit/e7a8688d23ba10e5fe22a94301b9dd8ed3c045c5)), closes [#737](https://github.com/GaelleBriet/memo-patte-vue/issues/737)
+* **traitements:** journée reportée seule, la grille continue après un réglage changé ([47a001c](https://github.com/GaelleBriet/memo-patte-vue/commit/47a001c8cb3f2a9371894d8a328a0fe3e46a181f))
+* **traitements:** lignes des reports qui amènent une journée d'origine gardées ([f9cea39](https://github.com/GaelleBriet/memo-patte-vue/commit/f9cea398029825aa9d66837cbafa3ac22ddd3c64)), closes [#720](https://github.com/GaelleBriet/memo-patte-vue/issues/720)
+* **traitements:** mensuel, changer les heures ne fait plus glisser le jour du mois ([77cc401](https://github.com/GaelleBriet/memo-patte-vue/commit/77cc4013a8af59a51d71da34dde8a611e6691938))
+* **traitements:** mensuel, changer les heures ne fait plus glisser le jour du mois ([3b4f474](https://github.com/GaelleBriet/memo-patte-vue/commit/3b4f474a4a2d9e8f93f901420ac744841db01b2c)), closes [#736](https://github.com/GaelleBriet/memo-patte-vue/issues/736)
+* **traitements:** reports seuls en chaîne, la grille repart de la première journée d'origine ([95b65da](https://github.com/GaelleBriet/memo-patte-vue/commit/95b65da87e8ab2661d91c2eab733e43eb969b07f)), closes [#737](https://github.com/GaelleBriet/memo-patte-vue/issues/737)
+* **traitements:** un jour d'arrivée reporté n'emporte que ses heures à donner ([ec4fa5c](https://github.com/GaelleBriet/memo-patte-vue/commit/ec4fa5c32f060b9613cf7f5234cd5bc7635a129a)), closes [#720](https://github.com/GaelleBriet/memo-patte-vue/issues/720)
+* **traitements:** une heure reportée seule ne déplace que cette heure ([035018e](https://github.com/GaelleBriet/memo-patte-vue/commit/035018ef138c7ab8a4ce2d7abbf645c5b592016e))
+* **traitements:** une heure reportée seule ne déplace que cette heure ([c5aa064](https://github.com/GaelleBriet/memo-patte-vue/commit/c5aa06472528fb4a154c23636dede82617efd80f)), closes [#720](https://github.com/GaelleBriet/memo-patte-vue/issues/720)
+
 ## [0.1.66](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.65...memo-patte-v0.1.66) (2026-10-09)
 
 
