@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
 
+import { referenceReading } from '../domain/dose-calendar/reference-model'
 import {
   DAY,
   H,
@@ -35,6 +36,19 @@ describe('R2 : la grille', () => {
       '2026-10-03 08:00',
       '2026-10-03 20:00',
     ])
+  })
+
+  it('un réglage dont la première échéance est loin se lit jusqu’à elle, pas comme une fin', () => {
+    const p1 = setting('p1', '2026-03-01', MONTH)
+    const p2 = setting('p2', '2026-09-01', { value: 3, unit: 'month' }, [], {
+      startsOn: '2026-04-01',
+    })
+    const today = '2026-04-01'
+    const lines = [line('p1', 'given', '2026-03-01')]
+    expect(referenceReading({ settings: [p1, p2], lines, today, until: today })).toMatchObject({
+      phase: 'upcoming',
+      current: ['2026-09-01'],
+    })
   })
 })
 
