@@ -191,7 +191,7 @@ Un épic « Moteur des doses v2 » et un ticket par pas (1 à 10), chacun avec :
 | Risque | Parade |
 | --- | --- |
 | Un écart de l'oracle qu'on ne sait pas rattacher à un ticket | Il bloque la PR ; soit c'est un défaut de v2 (corrigé), soit un défaut de l'ancien moteur non connu (ticket créé, écart accepté avec exemple) : jamais « accepté sans raison » |
-| Les douze règles laissent un cas sans réponse | Le modèle naïf le révèle (il faut écrire la règle pour le coder) ; la question va à Gaelle avec exemple, recommandation, alternative, **avant** le code |
+| Les douze règles laissent un cas sans réponse (arrivé au pas 1 : #762, #763, fermés le 2026-10-10 dans R4, R6, R7) | Le modèle naïf le révèle (il faut écrire la règle pour le coder) ; la question va à Gaelle avec exemple, recommandation, alternative, **avant** le code |
 | Dérive du périmètre (tentation de toucher les écrans au pas 2) | Un pas = une PR = ses fichiers ; les pas 5 et 6 seuls touchent les écrans |
 | Migration Supabase | Gaelle présente, CI, migration rejouée sur l'émulateur v11 rempli, règle du dépôt |
 | Temps | Les pas 2-3-4 sont le cœur (7 jours) ; si le pas 2 révèle une règle fausse, on s'arrête et on corrige le document des règles, pas le code |

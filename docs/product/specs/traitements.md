@@ -312,6 +312,8 @@ Quand un réglage **garde la fréquence** du précédent, il hérite de son orig
 
 Une prise (donnée ou oubliée) vise une échéance, jour et heure, et la couvre dans **tout** le calendrier du traitement, quel que soit le réglage qui la produit. Sa date réelle est une information d'historique. **Une seule traduction** existe : le jour où les heures changent, les prises de ce jour (visant l'ancien réglage) couvrent les premières heures du nouveau réglage, dans l'ordre et à hauteur de leur nombre ; une journée entièrement couverte n'a plus rien à donner.
 
+**Une prise ne se perd jamais.** Si son échéance a quitté le calendrier (ligne reçue d'un autre appareil que le moteur ne peut pas refuser, R11 ; grille repartie plus loin que les gestes de l'app ne le permettent, R6), elle couvre la première échéance qui suit son jour d'échéance à moins d'un pas ; s'il n'y en a pas, ou si une autre prise la couvre déjà, elle est sans effet (R11) et reste visible. Les gestes de l'app empêchent le cas (R6, R7) : cette lecture ne sert qu'à ce que deux appareils ou un fichier importé n'y mettent pas une dose de trop (#762, décision du 2026-10-10).
+
 _Remplace Q24, G1, G2, G4, G22, G24 et les « journées entamées en avance », « journées réglées », « heures restées en arrière »._
 
 #### R5 — Prise en plus
@@ -326,11 +328,13 @@ La suite des échéances ne repart jamais d'elle-même d'une date réelle. Elle 
 
 La case est proposée quand la prise ou le report **change la date** de la dose du moment ou de la prochaine dose (pas pour une dose non renseignée, pas pour la dose du jour donnée le jour même, pas pour une prise en plus). **Corriger la date d'une prise** (décision du 2026-10-10, Q-C1) se juge **au jour de la nouvelle date**, comme si la prise était notée ce jour-là : la case est proposée aux mêmes conditions, et le résultat est le même que par « Fait à une autre date ».
 
+**La case n'est pas proposée quand une ligne existe plus loin dans la période** (une prise, donnée ou oubliée, ou un décalage dont la journée d'origine est après la dose notée ou corrigée) : la date se note ou se corrige, le calendrier ne bouge pas, et l'aide le dit (« Une dose plus lointaine est déjà notée. », texte existant). Pour décaler quand même, la personne corrige ou supprime d'abord la ligne la plus récente. Même refus pour « Supprimer ce décalage » quand une prise existe plus loin (G19). Un report qui suit est, lui, gardé et réécrit (G12, TR-24 bis) ; s'il ne peut pas l'être (R7), la correction est refusée. Raison : une ligne de décalage ne doit jamais déplacer la grille sous une prise déjà notée, sinon cette prise ne vise plus rien et l'app redemanderait une dose déjà donnée (#762, décision du 2026-10-10).
+
 _Remplace TR-7 T1/T2 (« la suite repart de la dernière ligne »), G10, G18, G20 (le contenu de la case), TR-24 bis (la partie calcul)._
 
 #### R7 — Le report déplace une journée, ou une heure et les suivantes
 
-Un report déplace la dose visée **et les heures suivantes de la même journée encore sans prise** vers un jour d'arrivée, qui ne reçoit que ces heures. Les heures déjà notées de la journée d'origine y restent. Sans la case, seule cette dose bouge et elle arrive au plus **la veille** de la journée d'échéance suivante ; avec la case, une ligne de décalage ancrée au jour d'arrivée repart de lui (R6). Déplacer de nouveau la même dose réécrit sa ligne ; la ramener à sa date la supprime. Une journée n'a qu'une ligne de report et qu'une ligne de décalage (la plus récente vaut, deux appareils). Un report reste **une ligne du traitement** : il n'est jamais supprimé ni oublié parce qu'un réglage a changé (décisions Q-§11 et Q-purge du 2026-10-10).
+Un report déplace la dose visée **et les heures suivantes de la même journée encore sans prise** vers un jour d'arrivée, qui ne reçoit que ces heures. Les heures déjà notées de la journée d'origine y restent. Sans la case, seule cette dose bouge et elle arrive au plus **la veille** de la journée d'échéance suivante ; avec la case, une ligne de décalage ancrée au jour d'arrivée repart de lui (R6). Déplacer de nouveau la même dose réécrit sa ligne ; la ramener à sa date la supprime. Un report n'arrive jamais sur le jour d'origine d'un autre report, ni sur son propre jour d'origine, **y compris quand une correction de date le réécrit** (G9, G12) : la correction qui ferait se renvoyer la même dose entre deux reports est refusée, avec le texte existant « Change d'abord la date du report. » (#763, décision du 2026-10-10). Une journée n'a qu'une ligne de report et qu'une ligne de décalage (la plus récente vaut, deux appareils). Un report reste **une ligne du traitement** : il n'est jamais supprimé ni oublié parce qu'un réglage a changé (décisions Q-§11 et Q-purge du 2026-10-10).
 
 Le jour où les heures changent, un jour d'arrivée reçoit **autant d'échéances qu'il y avait de doses reportées**, prises **en fin de liste** des nouvelles heures (une dose reportée à 20 h, heures passées à 9 h et 21 h : 21 h).
 
@@ -868,6 +872,15 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
   notée », « prise en plus », « en retard », journées perdues par la date de fin, « période en
   cours » ne sont plus recalculées à l'écran (17 doubles sources relevées). Écartée : attendre un
   premier écart visible.
+- 2026-10-10 — **#762 et #763, trous du pas 1** (R4, R6, R7). Une correction de date avec
+  « Décaler » n'est plus proposée quand une prise ou un décalage existe plus loin ; une prise dont
+  l'échéance a quitté le calendrier (synchro, import) couvre la première échéance qui suit son
+  jour à moins d'un pas, sinon elle est sans effet ; une correction qui ferait se renvoyer une dose
+  entre deux reports est refusée (« Change d'abord la date du report. »). Raison : ne jamais
+  redemander une dose déjà donnée ; agir en amont, par construction, comme G7 pour « Prochaine
+  dose » ; une lecture de secours pour les lignes que le moteur ne peut pas refuser (R11).
+  Écartées : laisser la dose en retard (une dose de trop) ; réécrire la prise pour qu'elle vise la
+  dose la plus proche (une règle de plus dès que deux prises visent la même dose).
 
 ## 11. Questions ouvertes
 
@@ -885,5 +898,10 @@ moteur v1 (pas 10).
 
 Décision de Gaelle du 2026-10-10 : une ligne sans effet reste à sa place dans l'historique, grisée,
 avec son texte habituel suivi de « · sans effet » (« Reportée au 19 oct. · sans effet »), et son
-menu ⋮ ne propose que « Supprimer » (R11, TR-24, TR-35). Aucune question ouverte.
+menu ⋮ ne propose que « Supprimer » (R11, TR-24, TR-35).
+
+Trous relevés au pas 1 de l'épic #758 et fermés le 2026-10-10 : #762 (prise qui ne vise plus aucune
+échéance après une correction avec décalage : R6, pas de case quand une ligne existe plus loin, et
+R4 « une prise ne se perd jamais » pour les lignes reçues) ; #763 (deux reports qui se renvoient une
+dose : R7, refus de la correction, G9 étendue à la réécriture). Aucune question ouverte.
 
