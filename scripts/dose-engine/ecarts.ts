@@ -106,17 +106,7 @@ function familiesOn(book: Book, day: string, stale: Set<string>): Family[] {
           : line.dueOn === day && isNote(line)
     if (!touches) continue
     if (stale.has(line.id)) found.add('lignes-sans-effet')
-    if (
-      line.status === 'postponed' &&
-      book.doses.some(
-        (other) =>
-          other.status === 'postponed' &&
-          other.dueOn === line.nextDueDate &&
-          other.nextDueDate === line.dueOn,
-      )
-    ) {
-      found.add('reports-en-boucle')
-    }
+    if (line.status === 'postponed' && inLoop(book, line)) found.add('reports-en-boucle')
     const across =
       outside(line.periodId, line.dueOn) ||
       (line.status === 'postponed' && outside(line.periodId, line.nextDueDate))
@@ -164,14 +154,31 @@ function familiesOn(book: Book, day: string, stale: Set<string>): Family[] {
   return [...found]
 }
 
+// R7 : de jour d'arrivée en jour d'arrivée, des reports ramènent la dose au jour d'origine de `line`.
+function inLoop(book: Book, line: TreatmentDoseInput): boolean {
+  const reports = book.doses.filter(({ status }) => status === 'postponed')
+  const seen = new Set<string>()
+  const days = [line.nextDueDate]
+  while (days.length > 0) {
+    const day = days.pop()!
+    if (day === line.dueOn) return true
+    if (seen.has(day)) continue
+    seen.add(day)
+    reports
+      .filter(({ dueOn }) => dueOn === day)
+      .forEach(({ nextDueDate }) => days.push(nextDueDate))
+  }
+  return false
+}
+
 // R4 : l'échéance `key`, due pour le moteur actuel, est couverte par une prise d'un jour plus tôt
 // à moins d'un pas, sortie du calendrier du second moteur : sans ces prises, il la redemande. Une
 // prise qui pourrait battre un report reste dans le carnet relu.
-function coveredByOrphan(book: Book, key: string, reread: (book: Book) => Reading): boolean {
+function coveredByOrphan(book: Book, key: string, reread: Reread): boolean {
   const day = dayOf(key)
   const reported = new Set(
     book.doses
-      .filter(({ status }) => status === 'postponed')
+      .filter(({ status, dueOn, nextDueDate }) => status === 'postponed' && nextDueDate !== dueOn)
       .map(({ dueOn, dueTime }) => `${dueOn} ${dueTime}`),
   )
   const near = (note: TreatmentDoseInput) =>
@@ -182,19 +189,20 @@ function coveredByOrphan(book: Book, key: string, reread: (book: Book) => Readin
       ({ id, frequency }) => id === note.periodId && shifted(note.dueOn, frequency, 1) > day,
     )
   if (!book.doses.some(near)) return false
-  const without = reread({ ...book, doses: book.doses.filter((line) => !near(line)) })
+  const until = [plusDays(book.today, HORIZON_DAYS), day].sort()[1]!
+  const without = reread({ ...book, doses: book.doses.filter((line) => !near(line)) }, until)
   return !('error' in without) && pendingOf(without).has(key)
 }
 
-/**
- * Rattache un écart aux familles connues, jour par jour ; un jour sans famille reste inexpliqué.
- * `reread` relit un carnet par le second moteur.
- */
+/** Relit un carnet par le second moteur, échéances à venir lues jusqu'à `until`. */
+export type Reread = (book: Book, until: string) => Reading
+
+/** Rattache un écart aux familles connues, jour par jour ; un jour sans famille reste inexpliqué. */
 export function verdictOf(
   book: Book,
   actual: Reading,
   reference: Reading,
-  reread: (book: Book) => Reading,
+  reread: Reread,
 ): Verdict {
   if ('error' in actual || 'error' in reference) {
     return { families: [], unexplained: ['un moteur lève'], accepted: false }

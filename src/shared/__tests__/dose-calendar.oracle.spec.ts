@@ -55,6 +55,25 @@ describe('oracle des moteurs de doses', () => {
   })
 
   it.each([
+    [550000279, 'prise-orpheline'],
+    [550048773, 'prise-orpheline'],
+    [550140965, 'prise-orpheline'],
+    [550123096, 'reports-en-boucle'],
+  ])('moteur v2, sans changement de réglage : la graine %i est rattachée à %s', (seed, family) => {
+    const run = runOracle(
+      oracleConfig({
+        ORACLE_ENGINES: 'actuel,v2',
+        ORACLE_SETTINGS: 'sans',
+        ORACLE_FROM: String(seed),
+        ORACLE_SEEDS: '1',
+        ORACLE_STEPS: '40',
+      }),
+    )
+    expect(run.divergences.flatMap(({ verdict }) => verdict.families)).toContain(family)
+    expect(report(run)).toEqual([])
+  })
+
+  it.each([
     ['ORACLE_SEEDS', 'mille'],
     ['ORACLE_FROM', '-3'],
     ['ORACLE_STEPS', '2.5'],
