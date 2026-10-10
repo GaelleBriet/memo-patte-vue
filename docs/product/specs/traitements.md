@@ -403,7 +403,22 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     ramène pas) : la nouvelle période commence alors par la prochaine dose. Un report seul plus
     lointain part avec l'ancienne période (§11) ; la grille, elle, reste : hebdomadaire, dose du 8
     avancée seule au 6, dose du 15 reportée seule au 17, posologie changée le 2 : 6, 15, 22. Pour
-    décaler la suite, la personne déplace elle-même la dose, case cochée (TR-9).
+    décaler la suite, la personne déplace elle-même la dose, case cochée (TR-9). Les heures changées
+    sans changer la fréquence, la règle reste (décision de Gaelle du 2026-10-09, #737) : la journée
+    reportée seule garde son jour d'arrivée, dans les nouvelles heures, puis la suite reprend le
+    calendrier. Tous les 2 jours (1, 3, 5) à 8 h et 20 h, rien de noté le 3, la journée reportée
+    seule au 4, heures passées à 9 h et 21 h le 3 ou le 4 : le 4 à 9 h et 21 h, puis le 5 et le 7
+    (l'app donnait 4, 6, 8) ; à 9 h seule : le 4, le 5, le 7 à 9 h ; hebdomadaire (1, 8, 15),
+    journée du 8 reportée seule au 10 : 10, 15, 22 ; mensuel du 1er, journée du 1er nov. reportée
+    seule au 3 : 3 nov., 1er déc., 1er janv. Les prises déjà notées le jour d'arrivée comptent pour
+    les premières heures du nouveau réglage (Q24) : 8 h du 4 donnée, heures passées le 4 à 9 h et
+    21 h, il reste 21 h le 4, puis le 5 ; à 9 h seule, plus rien le 4, puis le 5 ; les deux doses du
+    4 données, le 5. La fréquence changée, le nouveau rythme part du jour d'arrivée, comme pour une
+    heure reportée seule (G25) : tous les 3 jours, 4 puis 7 ; tous les jours, 4 puis 5 ; chaque
+    semaine, 4 puis 11. Une posologie changée après un jour d'arrivée entamé suit aussi le
+    calendrier : tous les 3 jours (1, 4, 7) à 8 h et 20 h, journée du 4 reportée seule au 5 (ou
+    avancée seule au 3), 8 h donnée ce jour-là, posologie changée le lendemain : prochaine dose le 7
+    (l'app proposait le 8, ou le 6), la dose de 20 h restant à renseigner.
   - **G24** Une dose déjà donnée compte : quand la fréquence ou les heures changent et qu'une heure
     de la prochaine journée d'échéance a déjà été donnée en avance, la nouvelle période commence par
     cette journée, ses prises comptent pour les premières heures du nouveau réglage (G4), et le
@@ -749,7 +764,9 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   l'ancien réglage le jour du changement ; ses échéances des jours d'avant restent à renseigner
   (TR-28). Écartées : heures restantes à l'ancien réglage (Q19) ; nouveau réglage seulement le
   lendemain. (Re-revue 2 du moteur d'échéances, #453.) Étendue le 2026-10-09 à une journée à venir
-  entamée en avance : ses prises comptent de même, et le nouveau réglage part d'elle (G24, #711).
+  entamée en avance : ses prises comptent de même, et le nouveau réglage part d'elle (G24, #711). Le
+  même jour, une journée entière reportée seule garde son jour d'arrivée quand les heures changent,
+  et la suite le calendrier : 4, 5, 7 au lieu de 4, 6, 8 (G23, #737).
 - 2026-10-01 — **Q25 : un déplacement dont la dose d'arrivée est notée ne se supprime plus et ne
   change plus de date** (TR-24). Donnée ou oubliée, la dose d'arrivée fait entrer la ligne dans
   l'historique ; pour corriger, on passe par la prise elle-même (changer sa date, la supprimer).

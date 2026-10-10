@@ -2259,6 +2259,16 @@ un réglage qui ne touche ni la fréquence ni les heures ne doit pas faire gliss
 dire (principe 1). — Alternative écartée : faire repartir la suite du jour reporté (4, 6, 8), le
 comportement d'avant.
 
+2026-10-09 — **Journée entière reportée seule, puis heures changées : le calendrier continue**
+(Gaelle, #737 ; règle G23 de la spec Traitements). Un report sans « Décaler aussi les doses
+suivantes » ne change jamais le calendrier ; avec la case cochée, tout se décale. Tous les 2 jours
+(1, 3, 5) à 8 h et 20 h, rien de noté le 3, les deux doses du 3 reportées seules au 4, heures passées
+à 9 h et 21 h le 3 ou le 4 : le 4 à 9 h et 21 h, puis le 5 et le 7. Les prises déjà notées le 4
+comptent pour les premières heures du nouveau réglage (Q24) ; la fréquence changée, le nouveau rythme
+part du 4, comme pour une heure reportée seule (décision du 2026-10-10). — Raison : changer l'heure
+des prises ne doit pas faire glisser le rythme sans le dire (principe 1). — Alternative écartée : la
+suite repart du jour d'arrivée (4, 6, 8), le comportement d'avant.
+
 2026-10-09 — **Heures ou fréquence changées : une dose déjà donnée compte** (Gaelle, réponse 1 du
 bilan de la nuit, #711 ; règle G24 de la spec Traitements, qui étend Q24 et G22). Le nouveau réglage
 s'applique à partir de la dose suivante pas encore donnée. Métacam tous les 2 jours à 8 h et 20 h,
