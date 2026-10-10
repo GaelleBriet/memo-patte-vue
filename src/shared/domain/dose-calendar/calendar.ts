@@ -63,20 +63,19 @@ function journeys(input: EpisodeInput, effects: Map<string, LineEffect>) {
       previous !== undefined &&
       previous.firstDueOn >= setting.startsOn &&
       grid.floor === plusDays(previous.firstDueOn, -1)
-    const arrival = lines.reports.some(
-      ({ dueOn, targetOn }) => targetOn === setting.firstDueOn && dueOn < setting.startsOn,
-    )
-    // R7, R9.2 : un réglage qui part du jour d'arrivée d'un report lui laisse ses seules heures.
-    const ownFloor =
-      previous !== undefined && arrival
-        ? setting.firstDueOn
-        : plusDays(later(setting.firstDueOn, setting.startsOn), -1)
+    const ownFloor = plusDays(later(setting.firstDueOn, setting.startsOn), -1)
+    // R7, R9.2 : un nouveau rythme qui part du jour d'arrivée d'un report lui laisse ses seules heures.
+    const arrival =
+      previous !== undefined &&
+      lines.reports.some(
+        ({ dueOn, targetOn }) => targetOn === setting.firstDueOn && dueOn < setting.startsOn,
+      )
     grid = continued
       ? {
           origin: grid.origin,
           floor: neverStarted ? ownFloor : later(grid.floor, plusDays(setting.startsOn, -1)),
         }
-      : { origin: origin ?? setting.firstDueOn, floor: ownFloor }
+      : { origin: origin ?? setting.firstDueOn, floor: arrival ? setting.firstDueOn : ownFloor }
     // R3 : écrit sous un réglage d'avant un changement de fréquence, un décalage est dépassé.
     const turns = lines.shifts.filter(
       (shift) => within(shift) && (continued || !earlier.has(shift.settingId)),

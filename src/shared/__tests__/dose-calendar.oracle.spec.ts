@@ -93,6 +93,21 @@ describe('oracle des moteurs de doses', () => {
     expect(report(run)).toEqual([])
   })
 
+  it.each([570005085, 570012998])(
+    'modèle de référence et moteur v2 : même lecture de la graine %i (réglage de même fréquence parti d’un jour d’arrivée)',
+    (seed) => {
+      const run = runOracle(
+        oracleConfig({
+          ORACLE_ENGINES: 'reference,v2',
+          ORACLE_FROM: String(seed),
+          ORACLE_SEEDS: '1',
+          ORACLE_STEPS: '40',
+        }),
+      )
+      expect(run.divergences).toEqual([])
+    },
+  )
+
   it('une prise du jour où son réglage cède la place n’est pas une prise orpheline (R1, R4)', () => {
     const period = {
       endsOn: null,
