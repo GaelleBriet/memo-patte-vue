@@ -33,7 +33,7 @@ import {
   shiftDueOf,
 } from './treatment-schedule-timeline'
 import { firstDueOf, shiftedSequence } from './treatment-schedule-sequence'
-import { build, knownDues, planOf } from './treatment-schedule-state'
+import { build, carriedMoveIds, knownDues, planOf } from './treatment-schedule-state'
 import type {
   TreatmentDoseInput,
   TreatmentPeriodInput,
@@ -88,8 +88,10 @@ export function treatmentSchedule(input: TreatmentScheduleInput): TreatmentSched
   checkInput(input)
   const state = build(input)
   const currentPeriodId = state.plans.at(-1)?.period.id ?? null
-  const staleDoseIds = state.plans.flatMap((plan) => plan.stale.map(({ id }) => id))
-  const doses = mergeDoses(input.doses).filter(({ id }) => !staleDoseIds.includes(id))
+  const unread = state.plans.flatMap((plan) => plan.stale.map(({ id }) => id))
+  const carried = carriedMoveIds(state.plans)
+  const staleDoseIds = unread.filter((id) => !carried.has(id))
+  const doses = mergeDoses(input.doses).filter(({ id }) => !unread.includes(id))
   let known: Set<string> | undefined
   const knownOnce = () => (known ??= knownDues(state))
   return {

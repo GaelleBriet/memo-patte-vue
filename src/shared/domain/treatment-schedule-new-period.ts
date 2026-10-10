@@ -13,6 +13,8 @@ import {
   sameRhythm,
   sequenceAt,
   shiftOn,
+  movesInto,
+  stayedKeys,
 } from './treatment-schedule-timeline'
 import { dueOf, uniqueSorted } from './treatment-schedule-dues'
 import { notedOn, startedAheadOn } from './treatment-schedule-state'
@@ -33,8 +35,42 @@ function lastReference(state: State, frequency: Frequency): string | undefined {
   const last = plan === undefined ? undefined : lines(plan.steps).at(-1)
   if (plan === undefined || last === undefined) return undefined
   if (last.kind === 'move') return last.dose.nextDueDate
-  const reference = shiftOn(plan, last.dose)?.nextDueDate ?? last.dose.dueOn
+  const reference =
+    shiftOn(plan, last.dose)?.nextDueDate ??
+    (sameFrequency(plan, frequency) ? partialOrigin(plan, last.dose.dueOn) : undefined) ??
+    last.dose.dueOn
   return shiftDate(reference, frequency, 1)
+}
+
+function sameFrequency({ period }: PeriodTimeline, { value, unit }: Frequency): boolean {
+  return period.frequency.value === value && period.frequency.unit === unit
+}
+
+// G25 : le jour d'arrivée d'un report seul qui a laissé des heures derrière lui ne refixe pas la
+// grille ; elle repart de sa journée d'origine.
+function partialOrigin(plan: PeriodTimeline, day: string): string | undefined {
+  const move = movesInto(plan, day).find(
+    (line) => shiftOn(plan, dueOf(line)) === undefined && stayedKeys(plan, line).length > 0,
+  )
+  return move?.dueOn
+}
+
+// G25 : une journée sans plus rien à donner, dont des heures sont parties ou restées en arrière d'un
+// report seul, est réglée : le nouveau réglage n'y ajoute rien (#711).
+function isSettledDay(open: PeriodTimeline, frequency: Frequency, day: string): boolean {
+  if (pendingDues(open, { from: day, to: day }).length > 0) return false
+  if (partialOrigin(open, day) !== undefined) return true
+  // Une période ouverte sur le jour d'arrivée en garde les heures restées en arrière.
+  if (open.period.firstDueOn === day && open.leftBehind.size > 0) return true
+  if (!open.removals.has(day)) return false
+  // Fréquence changée, seulement quand les doses parties de ce jour sont déjà données.
+  const arrivals = open.steps
+    .filter(({ kind, dose }) => kind === 'move' && dose.dueOn === day)
+    .map(({ dose }) => dose.nextDueDate)
+  return (
+    sameFrequency(open, frequency) ||
+    arrivals.every((on) => pendingDues(open, { from: on, to: on }).length === 0)
+  )
 }
 
 function keepsSettings(state: State, frequency: Frequency, times: readonly string[]): boolean {
@@ -142,6 +178,25 @@ function keptStart(
   return { firstDueOn: day, referenceOn: keptReference(open, day, fallback) }
 }
 
+// G25 : la prochaine dose arrivée d'un report seul qui a laissé des heures derrière lui garde son
+// jour ; à fréquence égale la suite reprend la grille d'avant, sinon le nouveau rythme part d'elle.
+function partialArrivalStart(
+  state: State,
+  open: PeriodTimeline,
+  frequency: Frequency,
+  startsOn: string,
+): Pick<NewPeriod, 'firstDueOn' | 'referenceOn'> | undefined {
+  const same = sameFrequency(open, frequency)
+  const next = state.currentDoses[0]?.dueOn
+  if (next === undefined || next < startsOn || open.noteDays.has(next)) return undefined
+  // Fréquence changée : seulement le jour d'arrivée lui-même, d'où part le nouveau rythme.
+  if (!same && next !== startsOn) return undefined
+  if (!isHeldDay(open, next)) return undefined
+  const partial = movesInto(open, next).some((move) => stayedKeys(open, move).length > 0)
+  if (!partial) return undefined
+  return same ? keptStart(state, open, startsOn, next) : { firstDueOn: next, referenceOn: next }
+}
+
 // Q24 : la nouvelle période commence aujourd'hui ; ses heures au-delà des prises du jour restent à donner.
 export function newPeriod(state: State, frequency: Frequency, times: readonly string[]): NewPeriod {
   checkFrequency(frequency, '')
@@ -155,8 +210,9 @@ export function newPeriod(state: State, frequency: Frequency, times: readonly st
   const noted = notedOn(startsOn, periods, doses)
   const { open } = state
   const dueToday = state.currentDoses.some((due) => due.dueOn === today)
-  const fromStart = (noted > 0 && noted < times.length) || (noted === 0 && dueToday)
   const kept = open !== null && keepsSettings(state, frequency, times)
+  const settled = open !== null && !kept && isSettledDay(open, frequency, startsOn)
+  const fromStart = !settled && ((noted > 0 && noted < times.length) || (noted === 0 && dueToday))
   const scheduled = kept ? scheduledDay(state) : undefined
   if (kept) {
     // Au même rythme, aujourd'hui n'ouvre la période que s'il y reste une dose à donner.
@@ -164,6 +220,9 @@ export function newPeriod(state: State, frequency: Frequency, times: readonly st
     const start = keptStart(state, open, startsOn, planned)
     if (start !== undefined) return { startsOn, ...start }
   }
+  const arrival =
+    open === null || kept ? undefined : partialArrivalStart(state, open, frequency, startsOn)
+  if (arrival !== undefined) return { startsOn, ...arrival }
   if (fromStart) return { startsOn, firstDueOn: startsOn, referenceOn: startsOn }
   // G24 : une journée à venir entamée en avance, pas entièrement couverte, garde ses prises ; le
   // nouveau réglage part d'elle.

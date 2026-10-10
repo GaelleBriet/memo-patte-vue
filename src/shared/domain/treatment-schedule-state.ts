@@ -1,6 +1,6 @@
 import { invalid } from './treatment-schedule-checks'
-import { nextDay, previousDay } from './calendar-day'
-import { dueId, sameDue } from './treatment-schedule-dues'
+import { compareOrdinal, nextDay, previousDay } from './calendar-day'
+import { dueId, keyOf, sameDue } from './treatment-schedule-dues'
 import {
   closingDay,
   familyOf,
@@ -15,6 +15,9 @@ import {
   coveredKeys,
   sameRhythm,
   planPeriod,
+  stayedKeys,
+  movesInto,
+  sameTimes,
 } from './treatment-schedule-timeline'
 import type {
   Due,
@@ -109,10 +112,84 @@ function keepsCoverage(previous: TreatmentPeriodInput, period: TreatmentPeriodIn
 }
 
 function inheritedKeys(previous: PeriodTimeline, period: TreatmentPeriodInput): Set<string> {
+  // Les heures restées en arrière ne passent qu'au premier jour de la période suivante (G25).
+  const covered = [...previous.covered].filter((key) => !previous.leftBehind.has(key))
+  return new Set([
+    ...[...previous.noteKeys, ...covered].filter((key) => key.slice(0, 10) >= period.startsOn),
+    ...stayedOnFirstDay(previous, period),
+  ])
+}
+
+// G25 : les heures restées en arrière suivent un changement de réglage à fréquence égale ; fréquence
+// changée, seulement quand la période part du jour d'arrivée lui-même (décision du 2026-10-10).
+function keepsArrival(previous: TreatmentPeriodInput, period: TreatmentPeriodInput): boolean {
+  if (previous.stoppedOn !== null) return false
+  const { value, unit } = previous.frequency
+  const sameFrequency = value === period.frequency.value && unit === period.frequency.unit
+  return sameFrequency || period.firstDueOn === period.startsOn
+}
+
+// G25 : les heures qu'un report seul a laissées derrière lui au premier jour de la période ; heures
+// changées, les doses reportées prennent les dernières heures du nouveau réglage.
+// Les heures restées en arrière au premier jour de la période, dans ses heures à elle ; une période
+// précédente qui s'ouvrait le même jour transmet les siennes (deux changements le même jour).
+function leftBehindOn(previous: PeriodTimeline, period: TreatmentPeriodInput): string[] {
+  const day = period.firstDueOn
+  const stayed = new Set([
+    ...movesInto(previous, day).flatMap((move) => stayedKeys(previous, move)),
+    ...(previous.period.firstDueOn === day ? previous.leftBehind : []),
+  ])
+  if (stayed.size === 0 || sameTimes(previous.period, period)) return [...stayed]
+  const carried = Math.max(1, previous.period.times.length) - stayed.size
+  return earliestOn(period, day, period.times.length - carried)
+}
+
+function earliestOn(period: TreatmentPeriodInput, day: string, count: number): string[] {
+  return [...period.times]
+    .sort(compareOrdinal)
+    .slice(0, Math.max(0, count))
+    .map((dueTime) => keyOf({ dueOn: day, dueTime }))
+}
+
+// Les prises de ce jour déjà comptées (G4) s'ajoutent aux heures restées en arrière.
+function stayedOnFirstDay(
+  previous: PeriodTimeline,
+  period: TreatmentPeriodInput,
+  covered: ReadonlySet<string> = new Set(),
+): string[] {
+  const left = leftBehindOn(previous, period)
+  if (left.length === 0 || sameTimes(previous.period, period)) return left
+  const day = period.firstDueOn
+  const given = [...covered].filter((key) => key.slice(0, 10) === day).length
+  return earliestOn(period, day, left.length + given)
+}
+
+function changedCoverage(
+  previous: PeriodTimeline | undefined,
+  period: TreatmentPeriodInput,
+  covered: Set<string>,
+): Set<string> {
+  if (previous === undefined || !keepsArrival(previous.period, period)) return covered
+  return new Set([...covered, ...stayedOnFirstDay(previous, period, covered)])
+}
+
+// G25 : un report seul fermé par la période suivante (G5) garde sa ligne tant que son arrivée l'ouvre.
+export function carriedMoveIds(plans: PeriodTimeline[]): Set<string> {
   return new Set(
-    [...previous.noteKeys, ...previous.covered].filter(
-      (key) => key.slice(0, 10) >= period.startsOn,
-    ),
+    plans.slice(1).flatMap((next, index) => {
+      const previous = plans[index]!
+      if (!keepsArrival(previous.period, next.period)) return []
+      const kept = movesInto(previous, next.period.firstDueOn).filter(
+        (move) => stayedKeys(previous, move).length > 0,
+      )
+      // Les reports qui ont amené sa journée d'origine disent quelles heures il a pu emporter.
+      for (let index = 0; index < kept.length; index += 1) {
+        for (const feeder of movesInto(previous, kept[index]!.dueOn)) {
+          if (!kept.includes(feeder)) kept.push(feeder)
+        }
+      }
+      return kept.filter((move) => previous.stale.includes(move)).map(({ id }) => id)
+    }),
   )
 }
 
@@ -124,20 +201,28 @@ export function build(input: TreatmentScheduleInput): State {
   const plans: PeriodTimeline[] = []
   periods.forEach((period, index) => {
     const previous = plans[index - 1]
-    plans.push(
-      planPeriod(
-        period,
-        closingDay(period, periods[index + 1]),
-        doses.filter((dose) => dose.periodId === period.id),
-        previous !== undefined && keepsCoverage(previous.period, period)
-          ? inheritedKeys(previous, period)
-          : coveredKeys(
+    const kept = previous !== undefined && keepsCoverage(previous.period, period)
+    const plan = planPeriod(
+      period,
+      closingDay(period, periods[index + 1]),
+      doses.filter((dose) => dose.periodId === period.id),
+      kept
+        ? inheritedKeys(previous, period)
+        : changedCoverage(
+            previous,
+            period,
+            coveredKeys(
               period,
               periods[index - 1],
               notesSinceLastStop(periods.slice(0, index), doses),
             ),
-      ),
+          ),
     )
+    const carries = kept || (previous !== undefined && keepsArrival(previous.period, period))
+    plans.push({
+      ...plan,
+      leftBehind: new Set(carries && previous !== undefined ? leftBehindOn(previous, period) : []),
+    })
   })
   const current = plans.at(-1)
   const unlogged = plans

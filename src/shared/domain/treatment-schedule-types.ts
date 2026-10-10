@@ -253,6 +253,10 @@ export type PeriodTimeline = {
   between: Due[]
   /** Jour d'origine d'un report → sa première clé : la journée part à partir de là (Q21). */
   removals: Map<string, string>
+  /** G25 : heures restées en arrière au premier jour de la période. */
+  leftBehind: ReadonlySet<string>
+  /** Jour d'arrivée → heures qu'y apportent ses reports (G25). */
+  arrivals: Map<string, Set<string | null>>
   noteKeys: Set<string>
   noteDays: Set<string>
   covered: Set<string>
