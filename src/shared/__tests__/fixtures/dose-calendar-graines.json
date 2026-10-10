@@ -1,0 +1,369 @@
+{
+  "500000856": {
+    "today": "2026-03-24",
+    "periods": [
+      {
+        "id": "p1",
+        "startsOn": "2026-03-15",
+        "firstDueOn": "2026-03-15",
+        "referenceOn": "2026-03-15",
+        "endsOn": null,
+        "stoppedOn": null,
+        "frequency": {
+          "value": 2,
+          "unit": "day"
+        },
+        "times": ["08:00", "20:00"],
+        "createdAt": "2026-01-01T00:00:00.000Z"
+      },
+      {
+        "id": "p2",
+        "startsOn": "2026-03-24",
+        "firstDueOn": "2026-03-24",
+        "referenceOn": "2026-03-24",
+        "endsOn": null,
+        "stoppedOn": null,
+        "frequency": {
+          "value": 6,
+          "unit": "week"
+        },
+        "times": ["20:00"],
+        "createdAt": "2026-01-01T00:00:41.000Z"
+      }
+    ],
+    "doses": [
+      {
+        "id": "d34",
+        "periodId": "p1",
+        "dueOn": "2026-03-20",
+        "dueTime": "20:00",
+        "givenOn": null,
+        "status": "postponed",
+        "nextDueDate": "2026-03-24",
+        "createdAt": "2026-01-01T00:00:00.000Z",
+        "updatedAt": "2026-01-01T00:00:00.000Z"
+      },
+      {
+        "id": "d48",
+        "periodId": "p2",
+        "dueOn": "2026-03-24",
+        "dueTime": "20:00",
+        "givenOn": null,
+        "status": "missed",
+        "nextDueDate": "2026-05-05",
+        "createdAt": "2026-01-01T00:00:01.000Z",
+        "updatedAt": "2026-01-01T00:00:01.000Z"
+      }
+    ]
+  },
+  "510000010": {
+    "today": "2026-03-08",
+    "periods": [
+      {
+        "id": "p1",
+        "startsOn": "2026-03-07",
+        "firstDueOn": "2026-03-07",
+        "referenceOn": "2026-03-07",
+        "endsOn": null,
+        "stoppedOn": null,
+        "frequency": {
+          "value": 2,
+          "unit": "day"
+        },
+        "times": ["08:00", "14:00", "20:00"],
+        "createdAt": "2026-01-01T00:00:00.000Z"
+      },
+      {
+        "id": "p2",
+        "startsOn": "2026-03-08",
+        "firstDueOn": "2026-03-08",
+        "referenceOn": "2026-03-09",
+        "endsOn": "2026-03-13",
+        "stoppedOn": null,
+        "frequency": {
+          "value": 2,
+          "unit": "day"
+        },
+        "times": ["08:00", "20:00"],
+        "createdAt": "2026-01-01T00:00:11.000Z"
+      }
+    ],
+    "doses": [
+      {
+        "id": "d3",
+        "periodId": "p1",
+        "dueOn": "2026-03-07",
+        "dueTime": "14:00",
+        "givenOn": null,
+        "status": "postponed",
+        "nextDueDate": "2026-03-08",
+        "createdAt": "2026-01-01T00:00:00.000Z",
+        "updatedAt": "2026-01-01T00:00:00.000Z"
+      },
+      {
+        "id": "d5",
+        "periodId": "p1",
+        "dueOn": "2026-03-08",
+        "dueTime": "20:00",
+        "givenOn": "2026-03-03",
+        "status": "given",
+        "nextDueDate": "2026-03-09",
+        "createdAt": "2026-01-01T00:00:01.000Z",
+        "updatedAt": "2026-01-01T00:00:01.000Z"
+      },
+      {
+        "id": "d14",
+        "periodId": "p2",
+        "dueOn": "2026-03-08",
+        "dueTime": "20:00",
+        "givenOn": "2026-03-08",
+        "status": "given",
+        "nextDueDate": "2026-03-09",
+        "createdAt": "2026-01-01T00:00:02.000Z",
+        "updatedAt": "2026-01-01T00:00:02.000Z"
+      }
+    ]
+  },
+  "500001712": {
+    "today": "2026-03-15",
+    "periods": [
+      {
+        "id": "p1",
+        "startsOn": "2026-03-05",
+        "firstDueOn": "2026-03-05",
+        "referenceOn": "2026-03-05",
+        "endsOn": null,
+        "stoppedOn": null,
+        "frequency": {
+          "value": 2,
+          "unit": "day"
+        },
+        "times": ["06:00", "12:00", "18:00", "23:00"],
+        "createdAt": "2026-01-01T00:00:00.000Z"
+      },
+      {
+        "id": "p2",
+        "startsOn": "2026-03-15",
+        "firstDueOn": "2026-03-15",
+        "referenceOn": "2026-03-15",
+        "endsOn": null,
+        "stoppedOn": null,
+        "frequency": {
+          "value": 1,
+          "unit": "week"
+        },
+        "times": [],
+        "createdAt": "2026-01-01T00:00:58.000Z"
+      }
+    ],
+    "doses": [
+      {
+        "id": "d44",
+        "periodId": "p1",
+        "dueOn": "2026-03-14",
+        "dueTime": "18:00",
+        "givenOn": "2026-03-08",
+        "status": "given",
+        "nextDueDate": "2026-03-14",
+        "createdAt": "2026-01-01T00:00:00.000Z",
+        "updatedAt": "2026-01-01T00:00:00.000Z"
+      },
+      {
+        "id": "d56",
+        "periodId": "p1",
+        "dueOn": "2026-03-14",
+        "dueTime": "06:00",
+        "givenOn": null,
+        "status": "postponed",
+        "nextDueDate": "2026-03-15",
+        "createdAt": "2026-01-01T00:00:01.000Z",
+        "updatedAt": "2026-01-01T00:00:01.000Z"
+      },
+      {
+        "id": "d59",
+        "periodId": "p2",
+        "dueOn": "2026-03-15",
+        "dueTime": null,
+        "givenOn": "2026-03-15",
+        "status": "given",
+        "nextDueDate": "2026-03-22",
+        "createdAt": "2026-01-01T00:00:02.000Z",
+        "updatedAt": "2026-01-01T00:00:02.000Z"
+      }
+    ]
+  },
+  "520002718": {
+    "today": "2026-03-11",
+    "periods": [
+      {
+        "id": "p1",
+        "startsOn": "2026-03-09",
+        "firstDueOn": "2026-03-09",
+        "referenceOn": "2026-03-09",
+        "endsOn": "2026-04-09",
+        "stoppedOn": null,
+        "frequency": {
+          "value": 2,
+          "unit": "week"
+        },
+        "times": ["20:00"],
+        "createdAt": "2026-01-01T00:00:00.000Z"
+      }
+    ],
+    "doses": [
+      {
+        "id": "d4",
+        "periodId": "p1",
+        "dueOn": "2026-03-21",
+        "dueTime": "20:00",
+        "givenOn": null,
+        "status": "shift",
+        "nextDueDate": "2026-03-08",
+        "createdAt": "2026-01-01T00:00:04.000Z",
+        "updatedAt": "2026-01-01T00:00:04.000Z"
+      },
+      {
+        "id": "d21",
+        "periodId": "p1",
+        "dueOn": "2026-03-22",
+        "dueTime": "20:00",
+        "givenOn": null,
+        "status": "postponed",
+        "nextDueDate": "2026-03-13",
+        "createdAt": "2026-01-01T00:00:21.000Z",
+        "updatedAt": "2026-01-01T00:00:23.000Z"
+      },
+      {
+        "id": "d36",
+        "periodId": "p1",
+        "dueOn": "2026-04-05",
+        "dueTime": "20:00",
+        "givenOn": null,
+        "status": "shift",
+        "nextDueDate": "2026-04-01",
+        "createdAt": "2026-01-01T00:00:36.000Z",
+        "updatedAt": "2026-01-01T00:00:36.000Z"
+      },
+      {
+        "id": "d40",
+        "periodId": "p1",
+        "dueOn": "2026-03-09",
+        "dueTime": "20:00",
+        "givenOn": null,
+        "status": "shift",
+        "nextDueDate": "2026-03-05",
+        "createdAt": "2026-01-01T00:00:40.000Z",
+        "updatedAt": "2026-01-01T00:00:40.000Z"
+      },
+      {
+        "id": "d45",
+        "periodId": "p1",
+        "dueOn": "2026-03-09",
+        "dueTime": "20:00",
+        "givenOn": null,
+        "status": "missed",
+        "nextDueDate": "2026-03-13",
+        "createdAt": "2026-01-01T00:00:45.000Z",
+        "updatedAt": "2026-01-01T00:00:45.000Z"
+      }
+    ]
+  },
+  "510001190": {
+    "today": "2026-04-19",
+    "periods": [
+      {
+        "id": "p1",
+        "startsOn": "2026-04-09",
+        "firstDueOn": "2026-04-09",
+        "referenceOn": "2026-04-09",
+        "endsOn": "2026-04-19",
+        "stoppedOn": null,
+        "frequency": {
+          "value": 1,
+          "unit": "month"
+        },
+        "times": ["08:00", "14:00", "20:00"],
+        "createdAt": "2026-01-01T00:00:00.000Z"
+      }
+    ],
+    "doses": [
+      {
+        "id": "d8",
+        "periodId": "p1",
+        "dueOn": "2026-04-09",
+        "dueTime": "08:00",
+        "givenOn": null,
+        "status": "postponed",
+        "nextDueDate": "2026-04-15",
+        "createdAt": "2026-01-01T00:00:08.000Z",
+        "updatedAt": "2026-01-01T00:00:08.000Z"
+      },
+      {
+        "id": "d13",
+        "periodId": "p1",
+        "dueOn": "2026-04-15",
+        "dueTime": "08:00",
+        "givenOn": "2026-04-15",
+        "status": "given",
+        "nextDueDate": "2026-04-15",
+        "createdAt": "2026-01-01T00:00:13.000Z",
+        "updatedAt": "2026-01-01T00:00:13.000Z"
+      },
+      {
+        "id": "d21",
+        "periodId": "p1",
+        "dueOn": "2026-04-15",
+        "dueTime": "20:00",
+        "givenOn": null,
+        "status": "shift",
+        "nextDueDate": "2026-04-19",
+        "createdAt": "2026-01-01T00:00:21.000Z",
+        "updatedAt": "2026-01-01T00:00:21.000Z"
+      },
+      {
+        "id": "d22",
+        "periodId": "p1",
+        "dueOn": "2026-04-15",
+        "dueTime": "20:00",
+        "givenOn": null,
+        "status": "postponed",
+        "nextDueDate": "2026-04-19",
+        "createdAt": "2026-01-01T00:00:22.000Z",
+        "updatedAt": "2026-01-01T00:00:22.000Z"
+      },
+      {
+        "id": "d24",
+        "periodId": "p1",
+        "dueOn": "2026-04-19",
+        "dueTime": "20:00",
+        "givenOn": null,
+        "status": "shift",
+        "nextDueDate": "2026-04-15",
+        "createdAt": "2026-01-01T00:00:24.000Z",
+        "updatedAt": "2026-01-01T00:00:24.000Z"
+      },
+      {
+        "id": "d32",
+        "periodId": "p1",
+        "dueOn": "2026-04-19",
+        "dueTime": "20:00",
+        "givenOn": "2026-04-19",
+        "status": "given",
+        "nextDueDate": "2026-05-15",
+        "createdAt": "2026-01-01T00:00:32.000Z",
+        "updatedAt": "2026-01-01T00:00:32.000Z"
+      },
+      {
+        "id": "d34",
+        "periodId": "p1",
+        "dueOn": "2026-04-15",
+        "dueTime": "14:00",
+        "givenOn": "2026-04-15",
+        "status": "given",
+        "nextDueDate": "2026-04-19",
+        "createdAt": "2026-01-01T00:00:34.000Z",
+        "updatedAt": "2026-01-01T00:00:34.000Z"
+      }
+    ]
+  }
+}
