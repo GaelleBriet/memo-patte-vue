@@ -209,11 +209,12 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     chaque cas ci-dessus garde sa règle pour le jour d'arrivée, et la suite repart de lui :
     posologie changée le 3 ou le 4, le 4 à 20 h seule, puis le 6 ; heures passées à 9 h et 21 h, le
     4 à 21 h seule, puis le 6 à 9 h et 21 h ; la dose reportée déjà donnée, le 4 n'a plus rien à
-    donner ; fréquence changée le 4, la dose reportée pas encore donnée, 20 h le 4, puis le nouveau
-    rythme part du 4 (le 7, le 5 ou le 11) ; plusieurs changements le 4, toujours 20 h seule ;
-    reportée au 5, jour de la grille, le 5 à 20 h seule, puis le 7, car la grille repart de lui ; le
-    4 reporté à son tour au 5, seule 20 h part ; tous les jours, le 4 à 20 h seule, puis le 5 à 8 h
-    et 20 h ; la prise de 8 h du 3 supprimée, 8 h revient le 3.
+    donner, et la nouvelle période commence le 6 (tous les 3 jours : le 7) ; fréquence changée le 4,
+    la dose reportée pas encore donnée, 20 h le 4, puis le nouveau rythme part du 4 (le 7, le 5 ou
+    le 11) ; plusieurs changements le 4, toujours 20 h seule ; reportée au 5, jour de la grille, le
+    5 à 20 h seule, puis le 7, car la grille repart de lui ; le 4 reporté à son tour au 5, seule 20
+    h part ; tous les jours, le 4 à 20 h seule, puis le 5 à 8 h et 20 h ; la prise de 8 h du 3
+    supprimée, 8 h revient le 3.
 - **TR-10** Dose du moment : la dernière échéance jusqu'à aujourd'hui inclus, si elle est encore sans
   prise ; à défaut, la prochaine. Traitement à plusieurs heures : on raisonne par journée (spec Q23).
   Les heures encore sans prise de la dernière journée d'échéance arrivée sont ensemble la dose du
