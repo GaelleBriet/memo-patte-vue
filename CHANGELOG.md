@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.68](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.67...memo-patte-v0.1.68) (2026-10-10)
+
+
+### 🐛 Corrections
+
+* **dose-calendar:** un décalage d'un réglage dépassé ne survit pas à un changement de fréquence ([e0210f9](https://github.com/GaelleBriet/memo-patte-vue/commit/e0210f9426d4d825cdd87863de7f1de1e3e5a322)), closes [#748](https://github.com/GaelleBriet/memo-patte-vue/issues/748)
+* **dose-calendar:** un réglage qui en remplace un jamais commencé repart de sa propre première dose ([68c1772](https://github.com/GaelleBriet/memo-patte-vue/commit/68c177217ed6009c4a50824d23dc247a80b99a2d)), closes [#748](https://github.com/GaelleBriet/memo-patte-vue/issues/748)
+
 ## [0.1.67](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.66...memo-patte-v0.1.67) (2026-10-10)
 
 
