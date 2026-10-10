@@ -1,3 +1,4 @@
+import { treatmentView, viewInputOf, type TreatmentView } from '../domain/dose-calendar'
 import {
   treatmentSchedule,
   type DoseFields,
@@ -10,8 +11,9 @@ import {
 } from '../domain/treatment-schedule'
 
 /**
- * Gestes et lectures du jeu de recette, joués par le moteur en essai : le moteur actuel au pas 1 de
- * l'épic #758, le moteur v2 ensuite. Les écritures suivent le repository de l'app.
+ * Gestes et lectures du jeu de recette : les lectures par le moteur v2 depuis le pas 2 de l'épic
+ * #758, les gestes par le moteur actuel jusqu'aux pas 3 et 4. Les écritures suivent le repository de
+ * l'app, sans purge (R11).
  */
 export type Carnet = { periods: TreatmentPeriodInput[]; doses: TreatmentDoseInput[] }
 
@@ -50,6 +52,10 @@ export function carnet(
 
 export function lecture(c: Carnet, today: string): TreatmentSchedule {
   return treatmentSchedule({ periods: c.periods, doses: c.doses, today })
+}
+
+export function vue(c: Carnet, today: string): TreatmentView {
+  return treatmentView(viewInputOf({ periods: c.periods, doses: c.doses, today }))
 }
 
 /** L'échéance d'un jour, et de son heure, dans le réglage en cours. */
@@ -99,28 +105,22 @@ function applique(c: Carnet, change: LineChange): Carnet {
   }
 }
 
-// Comme le repository du moteur actuel : les lignes sans effet partent avec l'écriture.
-function purge(c: Carnet, today: string): Carnet {
-  const stale = lecture(c, today).staleDoseIds
-  return { ...c, doses: c.doses.filter(({ id }) => !stale.includes(id)) }
-}
-
 /** « C'est fait » ou « Fait à une autre date » ; `decale` : la case, absente pour un tap sans case. */
 export function donne(c: Carnet, today: string, due: Due, givenOn = today, decale?: boolean) {
   const gesture = { kind: 'given' as const, due, givenOn, shiftsFollowing: decale }
   const noted = lecture(c, today).doseFor(gesture)
   const shifted = noted.shift === null ? c : ecrit(c, noted.shift)
-  return purge(ecrit(shifted, noted.dose), today)
+  return ecrit(shifted, noted.dose)
 }
 
 export function oublie(c: Carnet, today: string, due: Due): Carnet {
-  return purge(ecrit(c, lecture(c, today).doseFor({ kind: 'missed', due }).dose), today)
+  return ecrit(c, lecture(c, today).doseFor({ kind: 'missed', due }).dose)
 }
 
 /** « Prochaine dose » : la dose déplacée, avec ou sans la case « Décaler aussi les doses suivantes ». */
 export function deplace(c: Carnet, today: string, due: Due, to: string, decale = true): Carnet {
   const { report, shift } = lecture(c, today).move(due, to, decale)
-  return purge(applique(applique(c, shift), report), today)
+  return applique(applique(c, shift), report)
 }
 
 /** « Changer la date » d'une prise donnée. */
@@ -140,7 +140,7 @@ export function corrige(c: Carnet, today: string, doseId: string, givenOn: strin
         ? { ...line, ...postponement.shiftLine, updatedAt: at }
         : line
     })
-  return purge(applique({ ...c, doses }, shift), today)
+  return applique({ ...c, doses }, shift)
 }
 
 export function supprime(c: Carnet, doseId: string): Carnet {
@@ -149,11 +149,11 @@ export function supprime(c: Carnet, doseId: string): Carnet {
 
 export function supprimeReport(c: Carnet, today: string, doseId: string): Carnet {
   const { report, shift } = lecture(c, today).removeMove(doseId)
-  return purge(applique(applique(c, report), shift), today)
+  return applique(applique(c, report), shift)
 }
 
 export function supprimeDecalage(c: Carnet, today: string, doseId: string): Carnet {
-  return purge(applique(c, lecture(c, today).removeShift(doseId)), today)
+  return applique(c, lecture(c, today).removeShift(doseId))
 }
 
 /** La première échéance que « Modifier » propose pour ces réglages. */
@@ -161,7 +161,7 @@ export function proposition(c: Carnet, today: string, frequency: Frequency, time
   return lecture(c, today).newPeriod(frequency, times).firstDueOn
 }
 
-/** « Modifier » : un nouveau réglage aux dates que le moteur propose ; l'app purge avant de l'écrire. */
+/** « Modifier » : un nouveau réglage aux dates que le moteur actuel propose (pas 4 de l'épic). */
 export function modifie(c: Carnet, today: string, frequency: Frequency, times: string[]): Carnet {
   const dates = lecture(c, today).newPeriod(frequency, times)
   const period = {
@@ -173,8 +173,7 @@ export function modifie(c: Carnet, today: string, frequency: Frequency, times: s
     times,
     createdAt: now(),
   }
-  const purged = purge(c, today)
-  return { ...purged, periods: [...purged.periods, period] }
+  return { ...c, periods: [...c.periods, period] }
 }
 
 export function arrete(c: Carnet, today: string): Carnet {
@@ -197,32 +196,31 @@ export function reprend(c: Carnet, today: string, firstDueOn: string, frequency:
     times: [],
     createdAt: now(),
   }
-  const purged = purge(c, today)
-  return { ...purged, periods: [...purged.periods, period] }
+  return { ...c, periods: [...c.periods, period] }
 }
 
 /** Dose(s) du moment puis échéances à venir, sans doublon, en clés « jour heure ». */
 export function affiche(c: Carnet, today: string, count = 6): string[] {
-  const schedule = lecture(c, today)
-  const keys = [...schedule.currentDoses, ...schedule.upcoming(60)].map(cle)
+  const view = vue(c, today)
+  const keys = [...view.currentDoses, ...view.upcoming({ limit: 60 })].map(cle)
   return [...new Set(keys)].slice(0, count)
 }
 
 /** Les journées de la dose du moment et des échéances à venir. */
 export function journees(c: Carnet, today: string, count = 4): string[] {
-  const schedule = lecture(c, today)
-  const days = [...schedule.currentDoses, ...schedule.upcoming(80)].map(({ dueOn }) => dueOn)
+  const view = vue(c, today)
+  const days = [...view.currentDoses, ...view.upcoming({ limit: 80 })].map(({ dueOn }) => dueOn)
   return [...new Set(days)].slice(0, count)
 }
 
 export function aRenseigner(c: Carnet, today: string): string[] {
-  return lecture(c, today).unloggedDoses.map(cle)
+  return vue(c, today).unloggedDoses.map(cle)
 }
 
 /** Toutes les échéances sans prise, à renseigner, du moment ou à venir. */
 export function sansPrise(c: Carnet, today: string): string[] {
-  const schedule = lecture(c, today)
-  return [...schedule.unloggedDoses, ...schedule.currentDoses].map(cle)
+  const view = vue(c, today)
+  return [...view.unloggedDoses, ...view.currentDoses].map(cle)
 }
 
 export function ligne(c: Carnet, dueOn: string, dueTime: string | null, status: string) {

@@ -153,35 +153,29 @@ describe('R7, R11 : un report reste une ligne du traitement', () => {
     expect(journees(c, '2026-10-09', 3)).toEqual(['2026-10-17', '2026-10-24', '2026-10-31'])
   })
 
-  it.fails(
-    '#719 : hebdo, le 2, dose du 15 reportée seule au 17 pendant que le 8 est à venir, posologie changée : 8, 17, 22',
-    () => {
-      let c = carnet('2026-10-01', semaines(1))
-      c = donne(c, '2026-10-01', echeance(c, '2026-10-01'))
-      c = deplace(c, '2026-10-02', echeance(c, '2026-10-15'), '2026-10-17', false)
-      expect(journees(c, '2026-10-02', 3)).toEqual(['2026-10-08', '2026-10-17', '2026-10-22'])
-      c = modifie(c, '2026-10-02', semaines(1), [])
-      expect(journees(c, '2026-10-02', 3)).toEqual(['2026-10-08', '2026-10-17', '2026-10-22'])
-    },
-  )
+  it('#719 : hebdo, le 2, dose du 15 reportée seule au 17 pendant que le 8 est à venir, posologie changée : 8, 17, 22', () => {
+    let c = carnet('2026-10-01', semaines(1))
+    c = donne(c, '2026-10-01', echeance(c, '2026-10-01'))
+    c = deplace(c, '2026-10-02', echeance(c, '2026-10-15'), '2026-10-17', false)
+    expect(journees(c, '2026-10-02', 3)).toEqual(['2026-10-08', '2026-10-17', '2026-10-22'])
+    c = modifie(c, '2026-10-02', semaines(1), [])
+    expect(journees(c, '2026-10-02', 3)).toEqual(['2026-10-08', '2026-10-17', '2026-10-22'])
+  })
 
-  it.fails(
-    '#734 (voisin), Q-purge : journée du 3 reportée seule au 4, posologie changée le 3, « Supprimer ce report » : le 3 revient',
-    () => {
-      let c = carnet('2026-10-01', jours(2), H)
-      c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '08:00'))
-      c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '20:00'))
-      c = deplace(c, '2026-10-03', echeance(c, '2026-10-03', '08:00'), '2026-10-04', false)
-      c = modifie(c, '2026-10-03', jours(2), H)
-      c = supprimeReport(c, '2026-10-03', ligne(c, '2026-10-03', '08:00', 'postponed').id)
-      expect(affiche(c, '2026-10-03', 4)).toEqual([
-        '2026-10-03 08:00',
-        '2026-10-03 20:00',
-        '2026-10-05 08:00',
-        '2026-10-05 20:00',
-      ])
-    },
-  )
+  it('#734 (voisin), Q-purge : journée du 3 reportée seule au 4, posologie changée le 3, « Supprimer ce report » : le 3 revient', () => {
+    let c = carnet('2026-10-01', jours(2), H)
+    c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '08:00'))
+    c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '20:00'))
+    c = deplace(c, '2026-10-03', echeance(c, '2026-10-03', '08:00'), '2026-10-04', false)
+    c = modifie(c, '2026-10-03', jours(2), H)
+    c = supprimeReport(c, '2026-10-03', ligne(c, '2026-10-03', '08:00', 'postponed').id)
+    expect(affiche(c, '2026-10-03', 4)).toEqual([
+      '2026-10-03 08:00',
+      '2026-10-03 20:00',
+      '2026-10-05 08:00',
+      '2026-10-05 20:00',
+    ])
+  })
 })
 
 describe('TR-25, R11 : deux appareils', () => {
@@ -192,21 +186,18 @@ describe('TR-25, R11 : deux appareils', () => {
     }
   }
 
-  it.fails(
-    'Q-purge : A note la dose du 16, B la reporte seule au 19 : la prise gagne, le report reste, sans effet',
-    () => {
-      const c = vendredis()
-      const parA = donne(c, '2026-10-16', echeance(c, '2026-10-16'))
-      const parB = deplace(c, '2026-10-16', echeance(c, '2026-10-16'), '2026-10-19', false)
-      const fusionne = fusion(parA, parB)
-      expect(journees(fusionne, '2026-10-17', 2)).toEqual(['2026-10-23', '2026-10-30'])
-      const ensuite = donne(fusionne, '2026-10-23', echeance(fusionne, '2026-10-23'))
-      const report = ensuite.doses.find(
-        ({ dueOn, status }) => dueOn === '2026-10-16' && status === 'postponed',
-      )
-      expect(report?.nextDueDate).toBe('2026-10-19')
-    },
-  )
+  it('Q-purge : A note la dose du 16, B la reporte seule au 19 : la prise gagne, le report reste, sans effet', () => {
+    const c = vendredis()
+    const parA = donne(c, '2026-10-16', echeance(c, '2026-10-16'))
+    const parB = deplace(c, '2026-10-16', echeance(c, '2026-10-16'), '2026-10-19', false)
+    const fusionne = fusion(parA, parB)
+    expect(journees(fusionne, '2026-10-17', 2)).toEqual(['2026-10-23', '2026-10-30'])
+    const ensuite = donne(fusionne, '2026-10-23', echeance(fusionne, '2026-10-23'))
+    const report = ensuite.doses.find(
+      ({ dueOn, status }) => dueOn === '2026-10-16' && status === 'postponed',
+    )
+    expect(report?.nextDueDate).toBe('2026-10-19')
+  })
 
   it('A et B notent la même dose à deux dates : la plus récente gagne', () => {
     const debut = carnet('2026-10-02', semaines(1))

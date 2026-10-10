@@ -68,24 +68,28 @@ function onLattice(origin: string, period: Period, day: string): boolean {
 }
 
 // La grille d'une période comme le moteur actuel la lit : sa première échéance, puis la grille de
-// `referenceOn` (qui la suit, G23, ou passe par elle).
+// `referenceOn` quand elle la suit (G23) ou passe par elle, sinon celle de la première échéance.
 function ownGrid(period: Period, day: string): boolean {
   const { firstDueOn, referenceOn } = period
   if (day <= firstDueOn) return day === firstDueOn
   if (referenceOn > firstDueOn) return day >= referenceOn && onLattice(referenceOn, period, day)
-  return onLattice(referenceOn, period, day) || onLattice(firstDueOn, period, day)
+  const origin = onLattice(referenceOn, period, firstDueOn) ? referenceOn : firstDueOn
+  return onLattice(origin, period, day)
 }
 
-// R3, R6 : la grille en vigueur avant le changement, chaque décalage la faisant repartir de son ancrage.
+// R3, R6 : la grille en vigueur avant le changement, celle du premier réglage d'une suite de même
+// fréquence, chaque décalage la faisant repartir de son ancrage.
 function inForceGrid(book: Book, before: Period[], day: string): boolean {
   const last = before.at(-1)
   if (last === undefined) return false
+  let first = before.length - 1
+  while (first > 0 && sameFrequency(before[first - 1]!, last)) first -= 1
   const ids = new Set(before.map(({ id }) => id))
   const turn = book.doses
     .filter((line) => line.status === 'shift' && ids.has(line.periodId) && line.dueOn < day)
     .sort((a, b) => a.dueOn.localeCompare(b.dueOn))
     .at(-1)
-  if (turn === undefined) return ownGrid(last, day)
+  if (turn === undefined) return ownGrid(before[first]!, day)
   return day > turn.nextDueDate && onLattice(turn.nextDueDate, last, day)
 }
 
@@ -161,15 +165,19 @@ function familiesOn(book: Book, day: string, stale: Set<string>): Family[] {
 }
 
 // R4 : l'échéance `key`, due pour le moteur actuel, est couverte par une prise d'un jour plus tôt
-// à moins d'un pas, sortie du calendrier du second moteur : sans ces prises, il la redemande. Un
-// report qui arrive ce jour-là pourrait aussi l'expliquer : il est laissé à l'examen.
+// à moins d'un pas, sortie du calendrier du second moteur : sans ces prises, il la redemande. Une
+// prise qui pourrait battre un report reste dans le carnet relu.
 function coveredByOrphan(book: Book, key: string, reread: (book: Book) => Reading): boolean {
   const day = dayOf(key)
-  if (book.doses.some((line) => line.status === 'postponed' && line.nextDueDate === day))
-    return false
+  const reported = new Set(
+    book.doses
+      .filter(({ status }) => status === 'postponed')
+      .map(({ dueOn, dueTime }) => `${dueOn} ${dueTime}`),
+  )
   const near = (note: TreatmentDoseInput) =>
     isNote(note) &&
     note.dueOn < day &&
+    !reported.has(`${note.dueOn} ${note.dueTime}`) &&
     book.periods.some(
       ({ id, frequency }) => id === note.periodId && shifted(note.dueOn, frequency, 1) > day,
     )

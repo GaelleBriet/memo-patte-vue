@@ -62,23 +62,17 @@ describe('R4, R9 : réglage changé le jour d’arrivée d’un report rangé de
 })
 
 describe('R3, R12 : la posologie ne change pas le calendrier, la proposition est le résultat', () => {
-  it.fails(
-    'graine 520002718 : toutes les 2 semaines à 20 h, posologie changée le 11 mars : 13, 19 mars, 5 avr.',
-    () => {
-      const { today, ...c } = graine(520002718)
-      expect(journees(c, today, 3)).toEqual(['2026-03-13', '2026-03-19', '2026-04-05'])
-      const changed = modifie(c, today, semaines(2), ['20:00'])
-      expect(journees(changed, today, 3)).toEqual(['2026-03-13', '2026-03-19', '2026-04-05'])
-    },
-  )
+  it('graine 520002718 : toutes les 2 semaines à 20 h, posologie changée le 11 mars : 13, 19 mars, 5 avr.', () => {
+    const { today, ...c } = graine(520002718)
+    expect(journees(c, today, 3)).toEqual(['2026-03-13', '2026-03-19', '2026-04-05'])
+    const changed = modifie(c, today, semaines(2), ['20:00'])
+    expect(journees(changed, today, 3)).toEqual(['2026-03-13', '2026-03-19', '2026-04-05'])
+  })
 
-  it.fails(
-    'graine 510001190 : tous les jours à 8 h et 20 h le 19 avr. : la première dose proposée est celle du calendrier',
-    () => {
-      const { today, ...c } = graine(510001190)
-      const proposed = proposition(c, today, jours(1), H)
-      const changed = modifie(c, today, jours(1), H)
-      expect(journees(changed, today, 1)).toEqual([proposed])
-    },
-  )
+  it('graine 510001190 : tous les jours à 8 h et 20 h le 19 avr. : la première dose proposée est celle du calendrier', () => {
+    const { today, ...c } = graine(510001190)
+    const proposed = proposition(c, today, jours(1), H)
+    const changed = modifie(c, today, jours(1), H)
+    expect(journees(changed, today, 1)).toEqual([proposed])
+  })
 })

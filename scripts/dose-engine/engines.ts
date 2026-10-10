@@ -1,11 +1,8 @@
-import {
-  referenceReading,
-  type ReferenceLine,
-  type ReferenceSetting,
-} from '@/shared/domain/dose-calendar/reference-model'
-import { treatmentSchedule, type TreatmentPeriodInput } from '@/shared/domain/treatment-schedule'
+import { treatmentView, viewInputOf } from '@/shared/domain/dose-calendar'
+import { referenceReading } from '@/shared/domain/dose-calendar/reference-model'
+import { treatmentSchedule } from '@/shared/domain/treatment-schedule'
 
-import { plusDays, shifted, type Book } from './carnet'
+import { plusDays, type Book } from './carnet'
 import { dueKey, HORIZON_DAYS, type Display, type Reading } from './display'
 
 /** Un moteur lu par l'oracle : le carnet entier en entrée, ce qu'il montre en sortie. */
@@ -30,47 +27,34 @@ export const currentEngine: Engine = {
   },
 }
 
-// Plan §3.1 (migration v12) : l'origine est `referenceOn` quand la grille qui en part passe par la
-// première échéance (le 31 d'un mensuel), ou quand elle la suit (première échéance hors grille, G23) ;
-// sinon la première échéance.
-export function referenceSettings(periods: readonly TreatmentPeriodInput[]): ReferenceSetting[] {
-  return periods.map(({ referenceOn, ...period }) => {
-    let day = referenceOn
-    for (let step = 1; day < period.firstDueOn; step += 1) {
-      day = shifted(referenceOn, period.frequency, step)
-    }
-    const kept = day === period.firstDueOn || referenceOn > period.firstDueOn
-    return { ...period, gridOriginOn: kept ? referenceOn : period.firstDueOn }
-  })
-}
-
-export function referenceLines(doses: Book['doses']): ReferenceLine[] {
-  return doses.map(({ id, periodId, dueOn, dueTime, status, nextDueDate, updatedAt }) => ({
-    id,
-    settingId: periodId,
-    dueOn,
-    dueTime,
-    status,
-    targetOn: status === 'postponed' || status === 'shift' ? nextDueDate : null,
-    updatedAt,
-  }))
-}
-
+// Les deux lectures v2 reçoivent le carnet par le même adaptateur (plan §3.1).
 export const referenceEngine: Engine = {
   name: 'reference',
-  read({ periods, doses, today }) {
-    return referenceReading({
-      settings: referenceSettings(periods),
-      lines: referenceLines(doses),
-      today,
-      until: plusDays(today, HORIZON_DAYS),
-    })
+  read(book) {
+    const { settings, lines, today } = viewInputOf(book)
+    return referenceReading({ settings, lines, today, until: plusDays(today, HORIZON_DAYS) })
+  },
+}
+
+export const v2Engine: Engine = {
+  name: 'v2',
+  read(book) {
+    const view = treatmentView(viewInputOf(book))
+    const keys = (dues: { dueOn: string; dueTime: string | null }[]) => dues.map(dueKey).sort()
+    return {
+      phase: view.phase,
+      finished: view.finished,
+      current: keys(view.currentDoses),
+      unlogged: keys(view.unloggedDoses),
+      upcoming: keys(view.upcoming({ to: plusDays(book.today, HORIZON_DAYS) })),
+    }
   },
 }
 
 export const ENGINES: Record<string, Engine> = {
   actuel: currentEngine,
   reference: referenceEngine,
+  v2: v2Engine,
 }
 
 export function readWith(engine: Engine, book: Book): Reading {

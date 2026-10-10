@@ -114,21 +114,18 @@ describe('R3, R7 : report seul et posologie changée', () => {
     expect(journees(c, '2026-10-03', 3)).toEqual(['2026-10-04', '2026-10-05', '2026-10-07'])
   })
 
-  it.fails(
-    '#745 : tous les 6 jours à 8, 14, 20 h, deux reports seuls sur deux réglages, 9 h seule le 5 : 7, 13',
-    () => {
-      let c = carnet('2026-10-01', jours(6), ['08:00', '14:00', '20:00'])
-      c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '08:00'))
-      c = deplace(c, '2026-10-01', echeance(c, '2026-10-01', '14:00'), '2026-10-03', false)
-      expect(affiche(c, '2026-10-01', 2)).toEqual(['2026-10-03 14:00', '2026-10-03 20:00'])
-      c = modifie(c, '2026-10-02', jours(6), ['08:00', '14:00', '20:00'])
-      c = donne(c, '2026-10-03', echeance(c, '2026-10-03', '14:00'))
-      c = deplace(c, '2026-10-03', echeance(c, '2026-10-03', '20:00'), '2026-10-05', false)
-      c = donne(c, '2026-10-05', echeance(c, '2026-10-05', '20:00'))
-      c = modifie(c, '2026-10-05', jours(6), ['09:00'])
-      expect(journees(c, '2026-10-05', 2)).toEqual(['2026-10-07', '2026-10-13'])
-    },
-  )
+  it('#745 : tous les 6 jours à 8, 14, 20 h, deux reports seuls sur deux réglages, 9 h seule le 5 : 7, 13', () => {
+    let c = carnet('2026-10-01', jours(6), ['08:00', '14:00', '20:00'])
+    c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '08:00'))
+    c = deplace(c, '2026-10-01', echeance(c, '2026-10-01', '14:00'), '2026-10-03', false)
+    expect(affiche(c, '2026-10-01', 2)).toEqual(['2026-10-03 14:00', '2026-10-03 20:00'])
+    c = modifie(c, '2026-10-02', jours(6), ['08:00', '14:00', '20:00'])
+    c = donne(c, '2026-10-03', echeance(c, '2026-10-03', '14:00'))
+    c = deplace(c, '2026-10-03', echeance(c, '2026-10-03', '20:00'), '2026-10-05', false)
+    c = donne(c, '2026-10-05', echeance(c, '2026-10-05', '20:00'))
+    c = modifie(c, '2026-10-05', jours(6), ['09:00'])
+    expect(journees(c, '2026-10-05', 2)).toEqual(['2026-10-07', '2026-10-13'])
+  })
 
   it('tous les 3 jours, journée du 4 reportée seule au 5, 8 h donnée le 5, posologie le 6 : le 7, 20 h du 5 à renseigner', () => {
     let c = carnet('2026-10-01', jours(3), H)

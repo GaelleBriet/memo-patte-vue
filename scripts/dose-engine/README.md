@@ -11,9 +11,11 @@ ORACLE_FROM=530000000 ORACLE_SEEDS=20000 ORACLE_STEPS=40 ORACLE_ENGINES=actuel,r
 
 - `ORACLE_FROM`, `ORACLE_SEEDS`, `ORACLE_STEPS` : première graine, nombre de carnets, gestes par carnet
   (par défaut 530000000, 50, 24).
-- `ORACLE_ENGINES` : les deux moteurs comparés, `actuel` et `reference` (modèle naïf de
-  `src/shared/domain/dose-calendar/`) ; par défaut `actuel,actuel`. Le premier est le moteur actuel :
-  c'est lui qui mène les gestes et contre lequel les écarts sont rattachés.
+- `ORACLE_ENGINES` : les deux moteurs comparés, `actuel`, `reference` (modèle naïf de
+  `src/shared/domain/dose-calendar/`) et `v2` (`treatmentView`) ; par défaut `actuel,actuel`.
+  `reference` et `v2` reçoivent le carnet par le même adaptateur (`viewInputOf`, plan §3.1) ;
+  `reference,v2` doit rendre zéro écart. Le moteur actuel mène toujours les gestes ; placé en
+  premier, c'est contre lui que les écarts sont rattachés.
 - `ORACLE_SETTINGS` : `avec` (gestes de la campagne, « Modifier » et « Reprendre » compris) ou `sans`
   (un seul réglage).
 - `ORACLE_OUT` : dossier où écrire, par graine qui diverge, le carnet avant le geste fautif
