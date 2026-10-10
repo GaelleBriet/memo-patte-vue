@@ -1,4 +1,5 @@
 import { compareOrdinal } from './calendar-day'
+import { shiftDate } from './treatment-frequency'
 import { dueId, dueOf, keyOf, uniqueSorted } from './treatment-schedule-dues'
 import {
   duesUntil,
@@ -166,12 +167,15 @@ export function coveredKeys(
   )
 }
 
-// G24 : un jour de référence avant la première échéance marque la journée entamée en avance qui
-// ouvre la période, à rythme changé ; après elle, une journée qui ne couvre rien (Q8).
+// Jour de référence avant la première échéance : journée entamée en avance (G24) ; un pas après :
+// journée qui ne couvre rien (Q8) ; plus près : arrivée d'un report seul, grille gardée (G23).
 function startedDays(period: TreatmentPeriodInput): string[] {
-  if (period.referenceOn > period.firstDueOn) return []
-  if (period.firstDueOn === period.startsOn) return [period.startsOn]
-  return period.referenceOn < period.firstDueOn ? [period.firstDueOn] : []
+  const { firstDueOn, referenceOn, startsOn, frequency } = period
+  if (referenceOn > firstDueOn) {
+    return referenceOn === shiftDate(firstDueOn, frequency, 1) ? [] : [firstDueOn]
+  }
+  if (firstDueOn === startsOn) return [startsOn]
+  return referenceOn < firstDueOn ? [firstDueOn] : []
 }
 
 function uniqueDays(doses: readonly TreatmentDoseInput[]): string[] {

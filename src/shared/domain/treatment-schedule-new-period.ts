@@ -37,7 +37,7 @@ function lastReference(state: State, frequency: Frequency): string | undefined {
   if (last.kind === 'move') return last.dose.nextDueDate
   const reference =
     shiftOn(plan, last.dose)?.nextDueDate ??
-    (sameFrequency(plan, frequency) ? partialOrigin(plan, last.dose.dueOn) : undefined) ??
+    (sameFrequency(plan, frequency) ? loneOrigin(plan, last.dose.dueOn) : undefined) ??
     last.dose.dueOn
   return shiftDate(reference, frequency, 1)
 }
@@ -46,13 +46,20 @@ function sameFrequency({ period }: PeriodTimeline, { value, unit }: Frequency): 
   return period.frequency.value === value && period.frequency.unit === unit
 }
 
-// G25 : le jour d'arrivée d'un report seul qui a laissé des heures derrière lui ne refixe pas la
-// grille ; elle repart de sa journée d'origine.
-function partialOrigin(plan: PeriodTimeline, day: string): string | undefined {
-  const move = movesInto(plan, day).find(
-    (line) => shiftOn(plan, dueOf(line)) === undefined && stayedKeys(plan, line).length > 0,
-  )
-  return move?.dueOn
+// G23, G25 : le jour d'arrivée d'un report seul ne refixe pas la grille ; elle repart de la première
+// journée d'origine, en remontant les reports seuls en chaîne.
+function loneOrigin(plan: PeriodTimeline, day: string): string | undefined {
+  const loneFrom = (on: string) =>
+    movesInto(plan, on).find((line) => shiftOn(plan, dueOf(line)) === undefined)?.dueOn
+  const seen = new Set([day])
+  let origin = loneFrom(day)
+  while (origin !== undefined && !seen.has(origin)) {
+    seen.add(origin)
+    const earlier = loneFrom(origin)
+    if (earlier === undefined) return origin
+    origin = earlier
+  }
+  return origin
 }
 
 // G25 : une journée sans plus rien à donner, dont des heures sont parties ou restées en arrière d'un
@@ -178,9 +185,9 @@ function keptStart(
   return { firstDueOn: day, referenceOn: keptReference(open, day, fallback) }
 }
 
-// G25 : la prochaine dose arrivée d'un report seul qui a laissé des heures derrière lui garde son
-// jour ; à fréquence égale la suite reprend la grille d'avant, sinon le nouveau rythme part d'elle.
-function partialArrivalStart(
+// G23, G25 : la prochaine dose arrivée d'un report seul garde son jour ; à fréquence égale la suite
+// reprend la grille d'avant, sinon le nouveau rythme part d'elle.
+function loneArrivalStart(
   state: State,
   open: PeriodTimeline,
   frequency: Frequency,
@@ -192,9 +199,19 @@ function partialArrivalStart(
   // Fréquence changée : seulement le jour d'arrivée lui-même, d'où part le nouveau rythme.
   if (!same && next !== startsOn) return undefined
   if (!isHeldDay(open, next)) return undefined
-  const partial = movesInto(open, next).some((move) => stayedKeys(open, move).length > 0)
-  if (!partial) return undefined
   return same ? keptStart(state, open, startsOn, next) : { firstDueOn: next, referenceOn: next }
+}
+
+// G23 : à fréquence égale, l'arrivée entamée d'un report seul garde son jour et la grille d'avant.
+function heldStart(
+  state: State,
+  frequency: Frequency,
+  startsOn: string,
+  day: string,
+): Pick<NewPeriod, 'firstDueOn' | 'referenceOn'> | undefined {
+  const { open } = state
+  if (open === null || !sameFrequency(open, frequency) || !isHeldDay(open, day)) return undefined
+  return keptStart(state, open, startsOn, day)
 }
 
 // Q24 : la nouvelle période commence aujourd'hui ; ses heures au-delà des prises du jour restent à donner.
@@ -221,16 +238,23 @@ export function newPeriod(state: State, frequency: Frequency, times: readonly st
     if (start !== undefined) return { startsOn, ...start }
   }
   const arrival =
-    open === null || kept ? undefined : partialArrivalStart(state, open, frequency, startsOn)
+    open === null || kept ? undefined : loneArrivalStart(state, open, frequency, startsOn)
   if (arrival !== undefined) return { startsOn, ...arrival }
-  if (fromStart) return { startsOn, firstDueOn: startsOn, referenceOn: startsOn }
+  if (fromStart) {
+    const held = heldStart(state, frequency, startsOn, startsOn)
+    return { startsOn, ...(held ?? { firstDueOn: startsOn, referenceOn: startsOn }) }
+  }
   // G24 : une journée à venir entamée en avance, pas entièrement couverte, garde ses prises ; le
   // nouveau réglage part d'elle.
   const next = state.currentDoses[0]?.dueOn
   const started = next === undefined ? 0 : startedAheadOn(next, periods, doses)
   if (!kept && next !== undefined && next > startsOn && started > 0) {
     if (started < Math.max(1, times.length)) {
-      return { startsOn, firstDueOn: next, referenceOn: shiftDate(next, frequency, -1) }
+      const held = heldStart(state, frequency, startsOn, next)
+      return {
+        startsOn,
+        ...(held ?? { firstDueOn: next, referenceOn: shiftDate(next, frequency, -1) }),
+      }
     }
   }
   const proposed = scheduled ?? lastReference(state, frequency) ?? startsOn

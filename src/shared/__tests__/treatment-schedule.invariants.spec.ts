@@ -1434,7 +1434,8 @@ class Simulation {
     this.checkFirstDueKept(after, period, gesture)
   }
 
-  // G23 : au même rythme, la prochaine dose arrivée d'un report seul garde sa date, la suite son rythme.
+  // G23 : au même rythme, la prochaine dose arrivée d'un report seul garde sa date, la suite son rythme ;
+  // heures changées, les journées d'après restent celles du calendrier (#737).
   private checkLoneArrivalKept(
     before: TreatmentSchedule,
     after: TreatmentSchedule,
@@ -1445,9 +1446,12 @@ class Simulation {
     const previous = this.book.periods.at(-2)
     const day = before.currentDoses[0]?.dueOn
     if (previous === undefined || day === undefined || day < today) return
-    if (rhythmKey(previous) !== rhythmKey(period)) return
+    const { value, unit } = previous.frequency
+    if (value !== period.frequency.value || unit !== period.frequency.unit) return
+    const sameTimes = rhythmKey(previous) === rhythmKey(period)
     const lone = loneArrivalOf(before, previous)
     if (lone === undefined) return
+    if (!sameTimes) this.checkWholeDayArrival(before, after, period, lone, gesture)
     const lines = before.doses.filter(
       ({ periodId, status }) =>
         periodId === previous.id && (status === 'postponed' || status === 'shift'),
@@ -1469,14 +1473,43 @@ class Simulation {
       .sort()
     const horizon = limits[0] ?? pendingDays.at(-1) ?? day
     const slots = (schedule: TreatmentSchedule) =>
-      pendingOf(schedule)
-        .filter(({ dueOn }) => dueOn >= today && dueOn <= horizon)
-        .map(({ dueOn, dueTime }) => `${dueOn} ${dueTime ?? ''}`)
-        .sort()
-        .join()
+      [
+        ...new Set(
+          pendingOf(schedule)
+            .filter(({ dueOn }) => dueOn >= today && dueOn <= horizon && (sameTimes || dueOn > day))
+            .map(({ dueOn, dueTime }) => (sameTimes ? `${dueOn} ${dueTime ?? ''}` : dueOn))
+            .sort(),
+        ),
+      ].join()
     if (slots(before) === slots(after)) return
     if (isKnownLimit(slots(before), slots(after), period.frequency)) return
     this.fail(`${gesture} : le calendrier a changé (${slots(before)} → ${slots(after)})`)
+  }
+
+  // #737 : journée entière reportée seule, heures changées : le jour d'arrivée demande les nouvelles
+  // heures au-delà des prises qu'il a déjà (Q24, G24).
+  private checkWholeDayArrival(
+    before: TreatmentSchedule,
+    after: TreatmentSchedule,
+    period: TreatmentPeriodInput,
+    lone: TreatmentDoseInput,
+    gesture: string,
+  ): void {
+    const day = lone.nextDueDate
+    if (period.firstDueOn !== day) return
+    const { doses } = before
+    const notesOn = (on: string) => doses.filter((dose) => isNote(dose) && dose.dueOn === on)
+    const chained = doses.some(
+      ({ status, nextDueDate }) => status === 'postponed' && nextDueDate === lone.dueOn,
+    )
+    if (chained || notesOn(lone.dueOn).length > 0) return
+    const noted = notesOn(day)
+    if (noted.some((dose) => refixesSuite(dose, doses))) return
+    const left = pendingOf(after).filter((due) => due.periodId === period.id && due.dueOn === day)
+    const expected = Math.max(0, Math.max(1, period.times.length) - noted.length)
+    if (left.length !== expected) {
+      this.fail(`${gesture} : ${left.length} dose(s) le ${day}, ${expected} attendue(s)`)
+    }
   }
 
   // G23 : au même rythme, la prochaine dose gardée, les jours suivants le sont aussi, hors lignes plus
