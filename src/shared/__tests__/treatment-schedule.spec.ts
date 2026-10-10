@@ -4455,12 +4455,12 @@ describe('une heure reportée seule ne déplace que cette heure (G25, #720)', ()
     )
 
     it.each([
-      [twoDays, times],
-      [twoDays, ['09:00', '21:00']],
-      [{ value: 3, unit: 'day' } as const, times],
+      [twoDays, times, '2026-10-06'],
+      [twoDays, ['09:00', '21:00'], '2026-10-06'],
+      [{ value: 3, unit: 'day' } as const, times, '2026-10-07'],
     ] as const)(
-      'dose reportée donnée le 4, puis %j à %j le 4 : plus rien le 4',
-      (frequency, hours) => {
+      'dose reportée donnée le 4, puis %j à %j le 4 : plus rien le 4, puis le %s',
+      (frequency, hours, then) => {
         const given = record(shiftedTo4, '2026-10-04', {
           kind: 'given',
           due: due('2026-10-04', '20:00'),
@@ -4469,7 +4469,7 @@ describe('une heure reportée seule ne déplace que cette heure (G25, #720)', ()
         const book = changedOn(given, '2026-10-04', frequency, [...hours])
         const schedule = scheduleOf(book, '2026-10-04')
 
-        expect(schedule.upcoming(1)[0]!.dueOn > '2026-10-04').toBe(true)
+        expect(schedule.upcoming(2)).toEqual(hours.map((time) => due(then, time, 'p2')))
         expect(schedule.unloggedDoses).toEqual([])
       },
     )
