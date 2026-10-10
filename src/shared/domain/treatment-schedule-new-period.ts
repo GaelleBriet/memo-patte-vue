@@ -37,7 +37,7 @@ function lastReference(state: State, frequency: Frequency): string | undefined {
   if (last.kind === 'move') return last.dose.nextDueDate
   const reference =
     shiftOn(plan, last.dose)?.nextDueDate ??
-    (sameFrequency(plan, frequency) ? partialOrigin(plan, last.dose.dueOn) : undefined) ??
+    (sameFrequency(plan, frequency) ? loneOrigin(plan, last.dose.dueOn) : undefined) ??
     last.dose.dueOn
   return shiftDate(reference, frequency, 1)
 }
@@ -46,13 +46,10 @@ function sameFrequency({ period }: PeriodTimeline, { value, unit }: Frequency): 
   return period.frequency.value === value && period.frequency.unit === unit
 }
 
-// G25 : le jour d'arrivée d'un report seul qui a laissé des heures derrière lui ne refixe pas la
-// grille ; elle repart de sa journée d'origine.
-function partialOrigin(plan: PeriodTimeline, day: string): string | undefined {
-  const move = movesInto(plan, day).find(
-    (line) => shiftOn(plan, dueOf(line)) === undefined && stayedKeys(plan, line).length > 0,
-  )
-  return move?.dueOn
+// G23, G25 : le jour d'arrivée d'un report seul ne refixe pas la grille ; elle repart de sa journée
+// d'origine.
+function loneOrigin(plan: PeriodTimeline, day: string): string | undefined {
+  return movesInto(plan, day).find((line) => shiftOn(plan, dueOf(line)) === undefined)?.dueOn
 }
 
 // G25 : une journée sans plus rien à donner, dont des heures sont parties ou restées en arrière d'un
@@ -178,9 +175,9 @@ function keptStart(
   return { firstDueOn: day, referenceOn: keptReference(open, day, fallback) }
 }
 
-// G25 : la prochaine dose arrivée d'un report seul qui a laissé des heures derrière lui garde son
-// jour ; à fréquence égale la suite reprend la grille d'avant, sinon le nouveau rythme part d'elle.
-function partialArrivalStart(
+// G23, G25 : la prochaine dose arrivée d'un report seul garde son jour ; à fréquence égale la suite
+// reprend la grille d'avant, sinon le nouveau rythme part d'elle.
+function loneArrivalStart(
   state: State,
   open: PeriodTimeline,
   frequency: Frequency,
@@ -192,8 +189,6 @@ function partialArrivalStart(
   // Fréquence changée : seulement le jour d'arrivée lui-même, d'où part le nouveau rythme.
   if (!same && next !== startsOn) return undefined
   if (!isHeldDay(open, next)) return undefined
-  const partial = movesInto(open, next).some((move) => stayedKeys(open, move).length > 0)
-  if (!partial) return undefined
   return same ? keptStart(state, open, startsOn, next) : { firstDueOn: next, referenceOn: next }
 }
 
@@ -221,9 +216,16 @@ export function newPeriod(state: State, frequency: Frequency, times: readonly st
     if (start !== undefined) return { startsOn, ...start }
   }
   const arrival =
-    open === null || kept ? undefined : partialArrivalStart(state, open, frequency, startsOn)
+    open === null || kept ? undefined : loneArrivalStart(state, open, frequency, startsOn)
   if (arrival !== undefined) return { startsOn, ...arrival }
-  if (fromStart) return { startsOn, firstDueOn: startsOn, referenceOn: startsOn }
+  if (fromStart) {
+    // G23 : aujourd'hui, arrivée entamée d'un report seul, garde la grille d'avant.
+    const held =
+      open !== null && sameFrequency(open, frequency) && isHeldDay(open, startsOn)
+        ? keptStart(state, open, startsOn, startsOn)
+        : undefined
+    return { startsOn, ...(held ?? { firstDueOn: startsOn, referenceOn: startsOn }) }
+  }
   // G24 : une journée à venir entamée en avance, pas entièrement couverte, garde ses prises ; le
   // nouveau réglage part d'elle.
   const next = state.currentDoses[0]?.dueOn

@@ -4511,11 +4511,16 @@ describe('journée entière reportée seule, puis un réglage changé : la grill
   const twoDays = { value: 2, unit: 'day' } as const
   const times = ['08:00', '20:00']
   const later = ['09:00', '21:00']
-  const reportedAlone = (first: TreatmentPeriodInput, from: string, to: string): Carnet => {
+  const reportedAlone = (
+    first: TreatmentPeriodInput,
+    from: string,
+    to: string,
+    today = from,
+  ): Carnet => {
     let book = carnet(first)
     for (const _ of first.times.length > 0 ? first.times : [null])
       book = done(book, first.firstDueOn)
-    const { report, shift } = scheduleOf(book, from).move(
+    const { report, shift } = scheduleOf(book, today).move(
       due(from, first.times[0] ?? null),
       to,
       false,
@@ -4706,6 +4711,26 @@ describe('journée entière reportée seule, puis un réglage changé : la grill
       const changed = scheduleOf(changedOn(third, today, frequency, later), today)
 
       expect(dueDays(changed.upcoming(6))).toEqual(upcoming.flatMap((day) => [day, day]))
+    },
+  )
+
+  it.each([
+    ['reportée seule au 5', '2026-10-04', '2026-10-05', '2026-10-06'],
+    ['avancée seule au 3', '2026-10-02', '2026-10-03', '2026-10-04'],
+  ])(
+    'tous les 3 jours (1, 4, 7) à 8 h et 20 h, journée du 4 %s, 8 h donnée ce jour-là, posologie changée le lendemain : prochaine dose le 7',
+    (_, movedOn, to, today) => {
+      const every3 = { value: 3, unit: 'day' } as const
+      const first = period({ firstDueOn: '2026-10-01', frequency: every3, times })
+      const book = record(reportedAlone(first, '2026-10-04', to, movedOn), to, {
+        kind: 'given',
+        due: due(to, '08:00'),
+        givenOn: to,
+      })
+      const changed = scheduleOf(changedOn(book, today, every3, times), today)
+
+      expect(dueDays(changed.upcoming(3))).toEqual(['2026-10-07', '2026-10-07', '2026-10-10'])
+      expect(changed.unloggedDoses).toEqual([due(to, '20:00')])
     },
   )
 })
