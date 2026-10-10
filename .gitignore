@@ -67,6 +67,7 @@ docs/product/02-customer-discovery/entretiens/*
 # du dossier (settings.local.json, worktrees, caches) reste local à la machine
 .claude/*
 !.claude/rules/
+!.claude/agents/
 !.claude/settings.json
 
 # Fichiers parasites Windows/WSL (métadonnée ajoutée par l'explorateur
