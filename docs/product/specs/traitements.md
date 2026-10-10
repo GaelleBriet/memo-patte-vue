@@ -388,7 +388,8 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     8 h, c'est le 8 h du 3 qui reste. Quotidien à 8 h et 20 h, le 2 : 8 h du 2 donnée, 8 h du 3
     donnée en avance, posologie changée : restent 20 h du 2, puis 20 h du 3. Une journée déjà passée
     entamée (8 h du 3 donnée, 20 h non, posologie changée le 4) garde la dernière prise plus la
-    fréquence (Q37) : prochaine dose le 5, la dose de 20 h du 3 à renseigner. (#656)
+    fréquence (Q37) : prochaine dose le 5, la dose de 20 h du 3 à renseigner (#656) ; sauf l'arrivée
+    d'un report seul, qui garde la grille (G23, #737).
   - **G23** Un report seul ne déplace que sa dose, et changer la posologie ne change jamais le
     calendrier (décision de Gaelle du 2026-10-09, #692). Quand ni la fréquence ni les heures ne
     changent, la nouvelle période commence par la prochaine dose (Q37), y compris l'arrivée d'un
@@ -403,22 +404,27 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     ramène pas) : la nouvelle période commence alors par la prochaine dose. Un report seul plus
     lointain part avec l'ancienne période (§11) ; la grille, elle, reste : hebdomadaire, dose du 8
     avancée seule au 6, dose du 15 reportée seule au 17, posologie changée le 2 : 6, 15, 22. Pour
-    décaler la suite, la personne déplace elle-même la dose, case cochée (TR-9). Les heures changées
-    sans changer la fréquence, la règle reste (décision de Gaelle du 2026-10-09, #737) : la journée
-    reportée seule garde son jour d'arrivée, dans les nouvelles heures, puis la suite reprend le
-    calendrier. Tous les 2 jours (1, 3, 5) à 8 h et 20 h, rien de noté le 3, la journée reportée
-    seule au 4, heures passées à 9 h et 21 h le 3 ou le 4 : le 4 à 9 h et 21 h, puis le 5 et le 7
-    (l'app donnait 4, 6, 8) ; à 9 h seule : le 4, le 5, le 7 à 9 h ; hebdomadaire (1, 8, 15),
-    journée du 8 reportée seule au 10 : 10, 15, 22 ; mensuel du 1er, journée du 1er nov. reportée
-    seule au 3 : 3 nov., 1er déc., 1er janv. Les prises déjà notées le jour d'arrivée comptent pour
-    les premières heures du nouveau réglage (Q24) : 8 h du 4 donnée, heures passées le 4 à 9 h et
-    21 h, il reste 21 h le 4, puis le 5 ; à 9 h seule, plus rien le 4, puis le 5 ; les deux doses du
-    4 données, le 5 ; 8 h du 4 donnée en avance le 3, heures changées le 3, de même (G24). La fréquence changée, le nouveau rythme part du jour d'arrivée, comme pour une
-    heure reportée seule (G25) : tous les 3 jours, 4 puis 7 ; tous les jours, 4 puis 5 ; chaque
-    semaine, 4 puis 11. Une posologie changée après un jour d'arrivée entamé suit aussi le
-    calendrier : tous les 3 jours (1, 4, 7) à 8 h et 20 h, journée du 4 reportée seule au 5 (ou
-    avancée seule au 3), 8 h donnée ce jour-là, posologie changée le lendemain : prochaine dose le 7
-    (l'app proposait le 8, ou le 6), la dose de 20 h restant à renseigner.
+    décaler la suite, la personne déplace elle-même la dose, case cochée (TR-9). Un report sans
+    « Décaler aussi les doses suivantes » ne change jamais le calendrier, même quand les heures
+    changent ; avec la case cochée, tout se décale (décision de Gaelle du 2026-10-09, #737). Tous
+    les 2 jours (1, 3, 5) à 8 h et 20 h, rien de noté le 3, la journée reportée seule au 4, heures
+    passées à 9 h et 21 h le 3 ou le 4 : le 4 à 9 h et 21 h, puis le 5 et le 7 (l'app donnait 4, 6,
+    8) ; hebdomadaire (1, 8, 15), journée du 8 reportée seule au 10 : 10, 15, 22 ; mensuel du 1er,
+    journée du 1er nov. reportée seule au 3 : 3 nov., 1er déc., 1er janv. Des reports seuls en
+    chaîne gardent la grille de la première journée d'origine : tous les 6 jours (1, 7, 13) à 8 h,
+    14 h et 20 h, 14 h du 1 reportée seule au 3, 20 h du 3 reportée seule au 5 et donnée, heure
+    passée à 9 h le 5 : 7, 13. Choix de cohérence en autonomie, à valider par Gaelle (#737) : le
+    jour d'arrivée d'une journée vierge reportée entière reçoit toutes les nouvelles heures (Q24 :
+    passées à 8 h, 14 h et 20 h, le 4 aux trois heures) ; ses prises déjà notées comptent pour les
+    premières heures du nouveau réglage, même données en avance (Q24, G24 : 8 h du 4 donnée, il
+    reste 21 h le 4, puis le 5 ; les deux doses du 4 données puis passage à 8 h, 14 h et 20 h, 20 h
+    encore demandée le 4, puis le 5) ; la fréquence changée, le nouveau rythme part du jour
+    d'arrivée, comme pour une heure reportée seule (G25 ; tous les 3 jours, 4 puis 7 ; tous les
+    jours, 4 puis 5 ; chaque semaine, 4 puis 11) ; une posologie changée après un jour d'arrivée
+    entamé et passé suit la grille, par exception à G22 : tous les 3 jours (1, 4, 7) à 8 h et 20 h,
+    journée du 4 reportée seule au 5 (ou avancée seule au 3), 8 h donnée ce jour-là, posologie
+    changée le lendemain, prochaine dose le 7 (l'app proposait le 8, ou le 6), la dose de 20 h
+    restant à renseigner.
   - **G24** Une dose déjà donnée compte : quand la fréquence ou les heures changent et qu'une heure
     de la prochaine journée d'échéance a déjà été donnée en avance, la nouvelle période commence par
     cette journée, ses prises comptent pour les premières heures du nouveau réglage (G4), et le
@@ -946,3 +952,6 @@ G23 (#692). Reste :
 - Mensuel du 30 ou du 31 dont la dose qui suit la prochaine tombe sur un jour borné : dose du
   30 janv. reportée seule au 4 févr., posologie changée : 4 févr., 28 févr., puis le 28 de chaque
   mois (28 mars, 28 avr.) au lieu du 30 (30 mars, 30 avr.).
+  Même limite quand les heures changent (#737) : mensuel du 31 à 8 h et 20 h, journée du 31 janv.
+  reportée seule au 2 févr., heures passées à 9 h et 21 h : 2 févr., 28 févr., 28 mars, 28 avr.
+  au lieu de 31 mars, 30 avr.
