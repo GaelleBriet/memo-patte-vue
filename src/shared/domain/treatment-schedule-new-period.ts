@@ -192,6 +192,18 @@ function loneArrivalStart(
   return same ? keptStart(state, open, startsOn, next) : { firstDueOn: next, referenceOn: next }
 }
 
+// G23 : à fréquence égale, l'arrivée entamée d'un report seul garde son jour et la grille d'avant.
+function heldStart(
+  state: State,
+  frequency: Frequency,
+  startsOn: string,
+  day: string,
+): Pick<NewPeriod, 'firstDueOn' | 'referenceOn'> | undefined {
+  const { open } = state
+  if (open === null || !sameFrequency(open, frequency) || !isHeldDay(open, day)) return undefined
+  return keptStart(state, open, startsOn, day)
+}
+
 // Q24 : la nouvelle période commence aujourd'hui ; ses heures au-delà des prises du jour restent à donner.
 export function newPeriod(state: State, frequency: Frequency, times: readonly string[]): NewPeriod {
   checkFrequency(frequency, '')
@@ -219,11 +231,7 @@ export function newPeriod(state: State, frequency: Frequency, times: readonly st
     open === null || kept ? undefined : loneArrivalStart(state, open, frequency, startsOn)
   if (arrival !== undefined) return { startsOn, ...arrival }
   if (fromStart) {
-    // G23 : aujourd'hui, arrivée entamée d'un report seul, garde la grille d'avant.
-    const held =
-      open !== null && sameFrequency(open, frequency) && isHeldDay(open, startsOn)
-        ? keptStart(state, open, startsOn, startsOn)
-        : undefined
+    const held = heldStart(state, frequency, startsOn, startsOn)
     return { startsOn, ...(held ?? { firstDueOn: startsOn, referenceOn: startsOn }) }
   }
   // G24 : une journée à venir entamée en avance, pas entièrement couverte, garde ses prises ; le
@@ -232,7 +240,11 @@ export function newPeriod(state: State, frequency: Frequency, times: readonly st
   const started = next === undefined ? 0 : startedAheadOn(next, periods, doses)
   if (!kept && next !== undefined && next > startsOn && started > 0) {
     if (started < Math.max(1, times.length)) {
-      return { startsOn, firstDueOn: next, referenceOn: shiftDate(next, frequency, -1) }
+      const held = heldStart(state, frequency, startsOn, next)
+      return {
+        startsOn,
+        ...(held ?? { firstDueOn: next, referenceOn: shiftDate(next, frequency, -1) }),
+      }
     }
   }
   const proposed = scheduled ?? lastReference(state, frequency) ?? startsOn
