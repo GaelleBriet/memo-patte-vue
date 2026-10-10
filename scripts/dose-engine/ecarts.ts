@@ -6,7 +6,7 @@ import {
 } from '@/shared/domain/treatment-schedule'
 
 import { plusDays, shifted, type Book } from './carnet'
-import { HORIZON_DAYS, type Display, type Reading } from './display'
+import { dueKey, HORIZON_DAYS, type Display, type Reading } from './display'
 
 /**
  * Familles d'écarts entre le moteur actuel et le modèle de référence. Chacune est décrite, avec son
@@ -58,7 +58,7 @@ function periodsOf(book: Book) {
     const close = period === undefined ? null : closing(period)
     return period === undefined || day < period.startsOn || (close !== null && day >= close)
   }
-  return { ordered, byId, outside }
+  return { ordered, byId, outside, closing }
 }
 
 function onLattice(origin: string, period: Period, day: string): boolean {
@@ -84,7 +84,7 @@ function inForceGrid(book: Book, before: Period[], day: string): boolean {
   if (last === undefined) return false
   let first = before.length - 1
   while (first > 0 && sameFrequency(before[first - 1]!, last)) first -= 1
-  const ids = new Set(before.map(({ id }) => id))
+  const ids = new Set(before.slice(first).map(({ id }) => id))
   const turn = book.doses
     .filter((line) => line.status === 'shift' && ids.has(line.periodId) && line.dueOn < day)
     .sort((a, b) => a.dueOn.localeCompare(b.dueOn))
@@ -141,7 +141,8 @@ function familiesOn(book: Book, day: string, stale: Set<string>): Family[] {
       found.add('prises-du-traitement')
     }
     if (!sameFrequency(previous, period) || day < period.startsOn) return
-    const before = ordered.slice(0, index).filter(({ stoppedOn }) => stoppedOn === null)
+    const stops = ordered.slice(0, index).map(({ stoppedOn }, at) => (stoppedOn === null ? -1 : at))
+    const before = ordered.slice(Math.max(...stops) + 1, index)
     if (day <= period.firstDueOn || inForceGrid(book, before, day) !== ownGrid(period, day)) {
       found.add('reglage-meme-frequence')
     }
@@ -171,11 +172,17 @@ function inLoop(book: Book, line: TreatmentDoseInput): boolean {
   return false
 }
 
-// R4 : l'échéance `key`, due pour le moteur actuel, est couverte par une prise d'un jour plus tôt
-// à moins d'un pas, sortie du calendrier du second moteur : sans ces prises, il la redemande. Une
-// prise qui pourrait battre un report reste dans le carnet relu.
+// R4 : l'échéance `key`, due pour le moteur actuel, est couverte par une prise d'une échéance plus
+// tôt (jour et heure) à moins d'un pas, sortie du calendrier du second moteur : sans ces prises, il la
+// redemande. Une prise qui pourrait battre un report, ou qui vise le jour où son réglage cède la place
+// (R1 : elle garde son échéance), reste dans le carnet relu.
 function coveredByOrphan(book: Book, key: string, reread: Reread): boolean {
   const day = dayOf(key)
+  const { byId, closing } = periodsOf(book)
+  const atBoundary = ({ periodId, dueOn }: TreatmentDoseInput) => {
+    const period = byId(periodId)
+    return period !== undefined && closing(period) === dueOn
+  }
   const reported = new Set(
     book.doses
       .filter(({ status, dueOn, nextDueDate }) => status === 'postponed' && nextDueDate !== dueOn)
@@ -183,7 +190,8 @@ function coveredByOrphan(book: Book, key: string, reread: Reread): boolean {
   )
   const near = (note: TreatmentDoseInput) =>
     isNote(note) &&
-    note.dueOn < day &&
+    dueKey(note) < key &&
+    !atBoundary(note) &&
     !reported.has(`${note.dueOn} ${note.dueTime}`) &&
     book.periods.some(
       ({ id, frequency }) => id === note.periodId && shifted(note.dueOn, frequency, 1) > day,

@@ -3,7 +3,9 @@ import { readFileSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
 
-import { FAMILIES } from '../../../scripts/dose-engine/ecarts'
+import type { Book } from '../../../scripts/dose-engine/carnet'
+import { FAMILIES, verdictOf } from '../../../scripts/dose-engine/ecarts'
+import { currentEngine, readWith, v2Engine } from '../../../scripts/dose-engine/engines'
 import { oracleConfig, runOracle, type OracleRun } from '../../../scripts/dose-engine/oracle'
 
 // Séries longues, hors `vitest run` : voir scripts/dose-engine/README.md (ORACLE_FROM, ORACLE_SEEDS,
@@ -59,6 +61,8 @@ describe('oracle des moteurs de doses', () => {
     [550048773, 'prise-orpheline'],
     [550140965, 'prise-orpheline'],
     [550123096, 'reports-en-boucle'],
+    [550248567, 'prise-orpheline'],
+    [550250118, 'prise-orpheline'],
   ])('moteur v2, sans changement de réglage : la graine %i est rattachée à %s', (seed, family) => {
     const run = runOracle(
       oracleConfig({
@@ -71,6 +75,70 @@ describe('oracle des moteurs de doses', () => {
     )
     expect(run.divergences.flatMap(({ verdict }) => verdict.families)).toContain(family)
     expect(report(run)).toEqual([])
+  })
+
+  it.each([
+    [560001008, 'reglage-meme-frequence'],
+    [560003279, 'reglage-meme-frequence'],
+  ])('moteur v2, réglages changés : la graine %i est rattachée à %s', (seed, family) => {
+    const run = runOracle(
+      oracleConfig({
+        ORACLE_ENGINES: 'actuel,v2',
+        ORACLE_FROM: String(seed),
+        ORACLE_SEEDS: '1',
+        ORACLE_STEPS: '40',
+      }),
+    )
+    expect(run.divergences.flatMap(({ verdict }) => verdict.families)).toContain(family)
+    expect(report(run)).toEqual([])
+  })
+
+  it('une prise du jour où son réglage cède la place n’est pas une prise orpheline (R1, R4)', () => {
+    const period = {
+      endsOn: null,
+      stoppedOn: null,
+      times: [],
+      createdAt: '2026-01-01T00:00:00.000Z',
+    }
+    const dose = { dueTime: null, status: 'given' as const, updatedAt: '2026-01-01T00:00:01.000Z' }
+    const book: Book = {
+      today: '2026-10-05',
+      periods: [
+        {
+          ...period,
+          id: 'p1',
+          startsOn: '2026-09-05',
+          firstDueOn: '2026-09-05',
+          referenceOn: '2026-09-05',
+          frequency: { value: 1, unit: 'month' },
+        },
+        {
+          ...period,
+          id: 'p2',
+          startsOn: '2026-10-05',
+          firstDueOn: '2026-10-12',
+          referenceOn: '2026-10-12',
+          frequency: { value: 1, unit: 'week' },
+          createdAt: '2026-01-02T00:00:00.000Z',
+        },
+      ],
+      doses: ['2026-09-05', '2026-10-05'].map((day) => ({
+        ...dose,
+        id: day,
+        periodId: 'p1',
+        dueOn: day,
+        givenOn: day,
+        nextDueDate: day,
+        createdAt: dose.updatedAt,
+      })),
+    }
+    const actual = readWith(currentEngine, book)
+    if ('error' in actual) throw new Error(actual.error)
+    expect(actual.current).toEqual(['2026-10-12'])
+    const upcoming = actual.upcoming.filter((key) => key !== '2026-10-12')
+    const skipped = { ...actual, current: upcoming.slice(0, 1), upcoming }
+    const reread = (carnet: Book, until: string) => readWith(v2Engine, carnet, until)
+    expect(verdictOf(book, actual, skipped, reread).unexplained).toContain('2026-10-12')
   })
 
   it.each([
