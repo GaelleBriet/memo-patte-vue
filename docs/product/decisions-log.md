@@ -2274,6 +2274,31 @@ reportée seule au 5, 8 h donnée, posologie changée le 6 : le 7, pas le 8) ; (
 le nouveau rythme part du jour d'arrivée, comme pour une heure reportée seule (la décision du
 2026-10-10 ne portait que sur une heure reportée seule).
 
+2026-10-09 — **Mensuel : changer les heures ne change pas le jour du mois** (Gaelle, #736 ; règle
+G26 de la spec Traitements). Décision de Gaelle : c'est un défaut, changer les heures ne change pas
+le jour du mois. Comprimé tous les mois, le 31 (31 janv.), heures changées avant le 28 févr. :
+28 févr., 31 mars, 30 avr., 31 mai (l'app donnait 28 févr., 28 mars, 28 avr. : le traitement
+glissait au 28 pour toujours). Même esprit que G23, qui le dit pour la posologie : un réglage qui
+ne touche pas la fréquence ne change pas le calendrier. — Raison : changer l'heure des prises ne
+doit pas faire glisser le rythme sans le dire (principe 1). — Alternative écartée : la nouvelle
+période repart du jour borné (28 mars, 28 avr.), le comportement d'avant.
+Choix de cohérence en autonomie, à valider par Gaelle : (a) la même règle vaut pour une posologie
+changée, une suite du 29 ou du 30, une année bissextile, tous les 2 ou 3 mois, une journée bornée
+entamée en avance (G24) et le jour d'arrivée déjà passé d'un report seul (G23).
+Question ouverte pour Gaelle : (b) quand la fréquence change, l'app reprend le jour réel de la
+dernière prise, borné compris (dernière prise plus la nouvelle fréquence, TR-7) : mensuel du
+31 déc., dose du 31 déc. donnée, passage à tous les 2 mois le 10 janv. : 28 févr., 28 avr.,
+28 juin ; tous les 2 mois depuis le 31 janv., passage à tous les mois : 28 févr., 28 mars ;
+hebdomadaire, dernière prise le 31 janv., passage à tous les mois : 28 févr., 28 mars.
+Recommandation : quand la nouvelle fréquence est en mois, garder le jour du mois de la grille
+d'avant, ou celui de la dernière prise si l'ancien rythme n'est pas en mois (31 déc. → 28 févr.,
+30 avr., 30 juin) ; raison : même principe que G26, passer de tous les mois à tous les 2 mois ne
+veut pas dire changer de jour. Alternative : garder le comportement actuel, simple et déjà écrit
+par TR-7, au prix du glissement au 28. (c) Reste une limite (spec §11) : une période ouverte sur
+l'arrivée d'un report seul à venir, suivie d'un jour borné, glisse encore (31 janv. reporté seul
+au 2 févr. : 2 févr., 28 févr., 28 mars ; aussi pour une suite du 29 et les mois de 30 jours),
+faute de pouvoir l'écrire avec les données d'une période (question posée à Gaelle).
+
 2026-10-09 — **Heures ou fréquence changées : une dose déjà donnée compte** (Gaelle, réponse 1 du
 bilan de la nuit, #711 ; règle G24 de la spec Traitements, qui étend Q24 et G22). Le nouveau réglage
 s'applique à partir de la dose suivante pas encore donnée. Métacam tous les 2 jours à 8 h et 20 h,

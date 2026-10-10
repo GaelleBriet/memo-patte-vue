@@ -3550,7 +3550,7 @@ describe('sans changer la fréquence ni les heures, la prochaine dose reste cell
     })
   })
 
-  it('les heures changent : la dernière prise plus la fréquence, comme avant', () => {
+  it('les heures changent : la dernière prise plus la fréquence, jour du mois gardé (#736)', () => {
     const book = done(
       done(carnet(monthly({ firstDueOn: '2027-01-31' })), '2027-01-31'),
       '2027-02-28',
@@ -3558,8 +3558,8 @@ describe('sans changer la fréquence ni les heures, la prochaine dose reste cell
 
     expect(scheduleOf(book, '2027-03-01').newPeriod(everyMonth, ['08:00'])).toEqual({
       startsOn: '2027-03-01',
-      firstDueOn: '2027-03-28',
-      referenceOn: '2027-03-28',
+      firstDueOn: '2027-03-31',
+      referenceOn: '2027-03-31',
     })
   })
 })

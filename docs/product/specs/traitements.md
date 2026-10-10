@@ -92,7 +92,8 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   jour y restent. Les suivantes se calculent depuis
   la **dernière ligne** plus la fréquence : date réelle d'une prise donnée, échéance d'une oubliée,
   nouvelle date d'un report (T1). En mois, le jour de référence est celui de la première échéance
-  (31 janv. → 28 févr. → 31 mars), ou le dernier jour du mois quand il n'existe pas, sans dériver ; une
+  (31 janv. → 28 févr. → 31 mars), ou le dernier jour du mois quand il n'existe pas, sans dériver,
+  y compris après un changement d'heures ou de posologie (G26) ; une
   prise donnée un autre jour que son échéance devient la nouvelle référence (T2). La suite ne repart
   de la date réelle que si la prise couvre la dose du moment ; une prise notée pour une échéance plus
   ancienne (dose non renseignée) ne déplace rien (TR-18, spec Q8). (Décision du 2026-09-23, point 5 ;
@@ -442,6 +443,23 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     20 h, les deux doses du 4 données le 2, le 20 h avec décalage, passage à tous les 2 jours le 3 :
     le 4 à 8 h et 20 h. Une journée ouverte ainsi garde ce rôle si le décalage est supprimé plus
     tard. Des prises notées aujourd'hui font partir la nouvelle période d'aujourd'hui (Q24).
+  - **G26** Changer les heures d'un traitement mensuel ne change pas le jour du mois (décision de
+    Gaelle du 2026-10-09, #736). Comprimé tous les mois, le 31 (31 janv.), heures changées avant le
+    28 févr. : 28 févr., 31 mars, 30 avr., 31 mai (l'app donnait 28 févr., 28 mars, 28 avr.) ;
+    changées le 28 févr. ou après : 31 mars, 30 avr. Avec « Décaler aussi les doses suivantes », la
+    suite repart du jour d'arrivée (G25) et garde ce jour du mois (dose du 28 févr. reportée au
+    2 mars avec décalage : 2 mars, 2 avr.). « Reprendre » part de la première prise choisie (TR-32).
+    Choix de cohérence en autonomie, à valider par Gaelle : la même règle vaut pour une posologie
+    changée, une suite du 29 ou du 30 (suite du 30 : 28 févr., 30 mars), une année bissextile
+    (suite du 31 : 29 févr. 2028, 31 mars), tous les 2 ou 3 mois (tous les 2 mois depuis le
+    31 déc. : 28 févr., 30 avr., 30 juin), une journée bornée entamée en avance (G24 : 30 avr., puis
+    31 mai) et le jour d'arrivée d'un report seul entamé et passé (G23 : journée du 28 févr.
+    reportée seule au 2 mars, 8 h donnée, puis 31 mars). Question ouverte pour Gaelle : quand la
+    fréquence change, l'app reprend le jour réel de la dernière prise, borné compris (dernière
+    prise plus la nouvelle fréquence, TR-7) : mensuel du 31 déc., dose du 31 déc. donnée, passage à
+    tous les 2 mois le 10 janv. : 28 févr., 28 avr., 28 juin ; tous les 2 mois depuis le 31 janv.,
+    passage à tous les mois le 3 févr. : 28 févr., 28 mars ; hebdomadaire, dernière prise le
+    31 janv., passage à tous les mois : 28 févr., 28 mars.
 - **TR-29** Un autre produit est un nouveau traitement : arrêter l'ancien, créer le nouveau. (P9 Q2)
 - **TR-30** « Arrêter » : dialogue qui propose de renseigner les doses non renseignées (« Toutes
   données », « Choisir les jours », « Arrêter sans renseigner ») ; « Arrêté le … », plus aucune
@@ -949,9 +967,16 @@ G23 (#692). Reste :
 - Un calendrier de départ dont deux journées se suivent de plus près que la fréquence, puis hors
   rythme (plusieurs déplacements combinés), ne se reprend pas tel quel : toutes les 6 semaines,
   3 mai, 5 mai, 14 juin, posologie changée : 3 mai, 5 mai, 16 juin.
-- Mensuel du 30 ou du 31 dont la dose qui suit la prochaine tombe sur un jour borné : dose du
+- Mensuel du 29, du 30 ou du 31 ouvert sur l'arrivée d'un report seul à venir, quand une dose qui
+  la suit tombe sur un jour borné (février, ou un mois de 30 jours pour une suite du 31) : dose du
   30 janv. reportée seule au 4 févr., posologie changée : 4 févr., 28 févr., puis le 28 de chaque
-  mois (28 mars, 28 avr.) au lieu du 30 (30 mars, 30 avr.).
-  Même limite quand les heures changent (#737) : mensuel du 31 à 8 h et 20 h, journée du 31 janv.
-  reportée seule au 2 févr., heures passées à 9 h et 21 h : 2 févr., 28 févr., 28 mars, 28 avr.
-  au lieu de 31 mars, 30 avr.
+  mois (28 mars, 28 avr.) au lieu du 30 (30 mars, 30 avr.) ; même chose quand les heures changent
+  (#737) : mensuel du 31 à 8 h et 20 h, journée du 31 janv. reportée seule au 2 févr., heures
+  passées à 9 h et 21 h : 2 févr., 28 févr., 28 mars au lieu de 31 mars ; mensuel du 29 janv. 2027
+  reporté seul au 2 févr., heures changées le 1er : 28 mars au lieu de 29 mars ; mensuel du 31,
+  31 mars reporté seul au 2 avr., heures changées le 1er avr. : 30 avr., 30 mai au lieu de 31 mai.
+  Le changement sans report (G26) et le jour d'arrivée déjà passé gardent le jour du mois (#736).
+  Ce cas reste parce qu'une période ne dit que sa première échéance et un jour de référence : une
+  première dose hors grille suivie d'une grille du 31 qui commence par un jour borné ne s'y écrit
+  pas. Le lever demande de lire autrement le jour de référence, ou d'en porter un de plus
+  (question posée à Gaelle, #736).
