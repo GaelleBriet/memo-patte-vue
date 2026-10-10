@@ -413,7 +413,7 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     seule au 3 : 3 nov., 1er déc., 1er janv. Les prises déjà notées le jour d'arrivée comptent pour
     les premières heures du nouveau réglage (Q24) : 8 h du 4 donnée, heures passées le 4 à 9 h et
     21 h, il reste 21 h le 4, puis le 5 ; à 9 h seule, plus rien le 4, puis le 5 ; les deux doses du
-    4 données, le 5. La fréquence changée, le nouveau rythme part du jour d'arrivée, comme pour une
+    4 données, le 5 ; 8 h du 4 donnée en avance le 3, heures changées le 3, de même (G24). La fréquence changée, le nouveau rythme part du jour d'arrivée, comme pour une
     heure reportée seule (G25) : tous les 3 jours, 4 puis 7 ; tous les jours, 4 puis 5 ; chaque
     semaine, 4 puis 11. Une posologie changée après un jour d'arrivée entamé suit aussi le
     calendrier : tous les 3 jours (1, 4, 7) à 8 h et 20 h, journée du 4 reportée seule au 5 (ou
