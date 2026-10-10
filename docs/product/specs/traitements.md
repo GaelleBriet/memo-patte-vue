@@ -39,7 +39,11 @@ suivre une ordonnance comme document (v2, P2) ; partager un traitement entre per
 | Terme | Sens |
 | --- | --- |
 | **Traitement** | Un produit donné à un animal (« Panacur de Pixel »). Identifié par son nom ; un autre produit est un autre traitement. Type : vermifuge, antiparasitaire ou médicament. |
-| **Période** | Intervalle pendant lequel un traitement suit les mêmes réglages : première prise, date de fin facultative, fréquence, heures, posologie, moment du rappel. Un traitement a une ou plusieurs périodes successives. |
+| **Réglage** (ou période) | Fréquence, heures, posologie, date de fin, moment du rappel, valables **à partir d'un jour** jusqu'au réglage suivant ; une première échéance et une origine de grille (R1). Un traitement a un ou plusieurs réglages successifs ; **le calendrier, lui, est celui du traitement** (R1). |
+| **Ligne** | Ce que la personne a écrit dans l'historique : une prise (donnée ou oubliée), une prise en plus, un report, un décalage. Une ligne appartient au traitement ; le moteur n'en supprime jamais (R11). |
+| **Décalage** | Ligne « Doses suivantes décalées » : à partir d'une journée d'origine, la grille a une nouvelle origine (R6). Écrite par la case « Décaler aussi les doses suivantes ». |
+| **Prise en plus** | Prise notée un intervalle ou plus avant la dose qu'elle viserait : rangée sous sa date réelle, elle ne couvre rien et ne change pas le calendrier (R5). |
+| **Sans effet** | Ligne que le moteur ne lit plus (report revenu à sa date, ligne plus ancienne de la même journée entre deux appareils, report battu par une prise) : elle reste visible, grisée, et seule la personne la supprime (R11). |
 | **Échéance** | Moment où une prise est prévue par la période : un jour, et une heure si le traitement en a plusieurs par jour. |
 | **Prise** | Ce qui s'est passé pour une échéance : **donnée** ou **oubliée** à une date, ou **reportée** à une autre date, plus tard ou plus tôt (ligne « Reportée au … » ou « Avancée au … », TR-9). |
 | **Dose du moment** | La dernière échéance jusqu'à aujourd'hui inclus, si elle est encore sans prise ; à défaut, la prochaine. |
@@ -80,59 +84,18 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
 
 ### 4.2 Échéances et dose du moment
 
-- **TR-7** La première échéance d'une période est sa première prise ; pour une période ouverte par
-  « Modifier » (TR-28), c'est la dernière prise plus la nouvelle fréquence, jamais avant aujourd'hui
-  (sinon aujourd'hui ; à plusieurs heures, aujourd'hui tant qu'il reste des heures du nouveau réglage
-  au-delà des prises déjà notées ce jour, spec Q24 ; aujourd'hui aussi quand une dose est due
-  aujourd'hui et encore sans prise, spec Q36 ; la prochaine journée quand une de ses heures a déjà
-  été donnée en avance, G24), proposée dans « Prochaine dose » et modifiable (spec Q7), avec l'aide « Calculée
-  d'après la dernière prise : … Modifiable. » (lot A révisé, N3). Quand ni la fréquence ni les heures
-  ne changent, c'est la prochaine échéance du calendrier en cours, report compris (spec Q37), et la
-  suite reste celle du calendrier en cours (G23) ; les heures d'aujourd'hui reportées à un autre
-  jour y restent. Les suivantes se calculent depuis
-  la **dernière ligne** plus la fréquence : date réelle d'une prise donnée, échéance d'une oubliée,
-  nouvelle date d'un report (T1). En mois, le jour de référence est celui de la première échéance
-  (31 janv. → 28 févr. → 31 mars), ou le dernier jour du mois quand il n'existe pas, sans dériver,
-  y compris après un changement d'heures ou de posologie (G26) ; une
-  prise donnée un autre jour que son échéance devient la nouvelle référence (T2). La suite ne repart
-  de la date réelle que si la prise couvre la dose du moment ; une prise notée pour une échéance plus
-  ancienne (dose non renseignée) ne déplace rien (TR-18, spec Q8). (Décision du 2026-09-23, point 5 ;
-  spec du 2026-09-28 §3.1, §4.1 ; plan de livraison, T1 et T2)
-
-  Gardes du moteur d'échéances (#453) :
-  - **G10** À plusieurs heures, une prise donnée un autre jour que son échéance ne refixe la suite que
-    si elle est la dernière heure du jour et que les autres heures de ce jour sont déjà notées.
-    (Garde technique, consignée au journal des décisions autonomes.)
-  - **G11** Une prise datée un intervalle ou plus avant son échéance est une **prise en plus**
-    (#503, étude `technical/etude-modele-prises.md` §2.6, Q1) : rangée sous sa date réelle, elle ne
-    couvre aucune échéance, n'écrit aucune ligne de décalage et **ne change jamais le calendrier** :
-    les doses prévues restent toutes à leur date (décision de Gaelle du 2026-10-05). Hebdomadaire du
-    vendredi, dose du 16 donnée le mercredi 7, le 9 ou le 2 : « 9 oct. 2026 · Prise en plus », la
-    prochaine dose reste le 16, puis 23, 30 ; notée avant le début de la période, idem. Second « C'est
-    fait » du jour d'un quotidien : prise en plus, la dose du lendemain reste à donner. Seule la fiche
-    note une prise en plus : sur la feuille « À faire » et depuis une notification, un second geste du
-    jour répond « déjà notée » (Q33). « Changer la date » d'une prise en plus ne va jamais sur un jour
-    qui en a déjà une (jours grisés ; décochée, l'aide propose de cocher la case) ; sans dose à viser (traitement terminé ou arrêté), elle reste une
-    prise en plus à la nouvelle date. À plusieurs heures par jour, une heure donnée en avance couvre son
-    échéance (G10).
+- **TR-7** La première échéance d'un réglage est sa première prise (création, reprise) ou la date
+  proposée puis confirmée dans « Prochaine dose » quand « Modifier » ouvre un réglage (R9 ; aide
+  « Calculée d'après la dernière prise : … Modifiable. », lot A révisé, N3 ; « Aujourd'hui est
+  proposé. Modifiable. », Q39). Les échéances suivantes sont l'origine de la grille plus un nombre
+  entier de pas (R2) ; l'origine est la première échéance, elle se transmet d'un réglage au suivant
+  tant que la fréquence ne change pas (R3), et **seule une ligne de décalage** la déplace (R6). En
+  mois, un jour qui n'existe pas devient le dernier jour du mois sans que l'origine change
+  (31 janv. → 28 févr. → 31 mars), y compris après un changement d'heures ou de posologie (R3). Une
+  prise notée pour une dose non renseignée ne déplace rien (TR-18, spec Q8). (Décision du 2026-09-23,
+  point 5 ; spec du 2026-09-28 §3.1, §4.1 ; moteur v2, décision du 2026-10-10.)
 - **TR-8** Aucune échéance après la date de fin.
 
-  Garde du moteur d'échéances (#506, réécrite par #536) :
-  - **G20** « C'est fait » ne décale jamais la suite sans l'aval de la personne (principe du
-    2026-10-06). Quand la prise décalerait la suite (la case de « Fait à une autre date » serait
-    proposée : dose en retard ou donnée en avance, N1, N3, G10), « C'est fait » ouvre une
-    confirmation : « Dose du vendredi 16 oct., donnée le lundi 19 oct. », la case « Décaler aussi les
-    doses suivantes » cochée par défaut et son aide, qui montre les dates, cochée comme décochée, ou la
-    dose perdue à cause de la date de fin (V28 bis), puis « Enregistrer » et « Annuler », qui n'écrit
-    rien. Restent un tap, sans rien décaler : la dose du jour, une prise sans case, et une prise dont le
-    décalage ferait passer un report seul (Q2 a, G19 : le toast le dit). « Annuler » du toast défait
-    tout le geste ; quand la prise termine le traitement, le toast le dit (TR-31). Le décalage
-    automatique et la règle de la demi-fréquence face à la date de fin disparaissent des gestes de
-    l'app : la fiche les a quittés avec #536, la notification les quitte avec #539 et la feuille
-    « À faire » avec #543, qui reprennent la même confirmation. Vendredi, 16, 23 et 30 oct., fin le
-    30 : dose du 16 donnée le lundi 19, cochée, 26 oct., et l'aide dit « Avec le décalage, la dose du
-    30 oct. ne sera plus prévue (date de fin). » ; décochée, 23 et 30 restent. (Décision de Gaelle du
-    2026-10-06, qui revient sur celles du 2026-10-03, Q4, et du 2026-10-05, #506.)
 - **TR-9** « Prochaine dose » (« Modifier ») déplace la prochaine dose, plus tôt ou plus tard que
   l'échéance prévue, et recale la suite des échéances à partir de la nouvelle date. La date choisie va
   du lendemain de l'échéance qui précède (en pratique, de la dernière prise notée), jamais avant
@@ -145,77 +108,11 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   échéance d'origine (spec Q18) ; remise à sa date d'origine, la dose n'a plus de ligne de
   déplacement. Traitement à plusieurs heures : le déplacement porte sur la journée, dont toutes
   les heures encore sans prise partent au nouveau jour, qui ne reçoit qu'elles, seul comme avec le
-  décalage (spec Q21, G25) ; une dose déjà donnée de la journée ne se décale jamais. Les doses non
+  décalage (spec Q21, R7) ; une dose déjà donnée de la journée ne se décale jamais. Les doses non
   renseignées d'avant restent à renseigner. Sans prise dans la période, déplacer la première dose
   corrige la première échéance de la période, sans ligne « Reportée » ni « Avancée » (TR-28). (Spec
   Q2 ; revue du modèle, 2026-09-29, M4 ; lot A révisé, N5)
 
-  Gardes du moteur d'échéances (#453) :
-  - **G6** Une dose ne s'avance pas d'un intervalle entier ou plus (en mois : jamais à un jour d'où la
-    fréquence retombe sur son échéance d'origine), pour garder une seule ligne par échéance.
-    Exemples : hebdomadaire, la dose du 6 avr. s'avance au plus tôt au 31 mars ; mensuel, la dose du
-    30 avr. s'avance au plus tôt au 1er avr., car le 30 mars comme le 31 mars plus un mois retombent
-    sur le 30 avr. (Validée par Gaelle, points validés en bloc du 2026-10-01.)
-  - **G7** Une dose ne se déplace pas tant qu'une ligne (prise ou déplacement) existe plus loin dans la
-    période ; le moteur en donne la raison à l'écran. Quand c'est un déplacement, le champ
-    « Prochaine dose » est grisé, avec l'aide « Une dose plus lointaine est déjà reportée. Supprime ce
-    report pour déplacer celle-ci. » (Décidée, spec Q26.)
-  - **G8** La date minimale passe aussi après la date réelle de la dernière prise notée.
-    (Garde technique, consignée au journal des décisions autonomes.)
-  - **G9** Une dose n'arrive pas sur le jour d'origine d'un autre déplacement.
-    (Garde technique, consignée au journal des décisions autonomes.)
-  - **G13** Quand la suite a changé depuis le déplacement, déplacer de nouveau la dose réécrit la ligne
-    avec l'échéance qu'elle remplace désormais (« prévue le » peut changer) ; une ligne ne ramène
-    jamais une dose à son propre jour d'origine.
-    (Validée par Gaelle, points validés en bloc du 2026-10-01.)
-  - **G17** Une journée n'a qu'une ligne de déplacement : la redéplacer réécrit sa ligne, même quand
-    une heure y est revenue (prise supprimée) ; deux lignes pour la même journée (synchronisation) :
-    la plus récente vaut, l'autre est sans effet.
-    (Garde technique, consignée au journal des décisions autonomes.)
-  - **G14** Un déplacement ne remplace que l'échéance qu'il vise : si la suite change sans lui (prise
-    supprimée, TR-26), l'échéance qui réapparaît reste à donner ou à renseigner.
-    (Validée par Gaelle, points validés en bloc du 2026-10-01.)
-  - **G18** Le décalage d'une dose avancée est rangé sous son échéance d'origine, avec celui de son
-    report : une prise notée un autre jour le réancre à sa date réelle ; corrigée au jour d'arrivée,
-    elle le ramène à ce jour. Un décalage du jour d'arrivée reste celui de cette échéance : le calendrier
-    ne dépend jamais de l'heure d'écriture des lignes, et « Annuler » rend le calendrier d'avant.
-    Vendredi, dose du 16 avancée au 13 avec décalage, puis donnée le 12 : prochaine dose le 19.
-    (Garde technique, consignée au journal des décisions autonomes.)
-  - **G25** Une heure reportée seule ne déplace que cette heure (décision de Gaelle du 2026-10-09,
-    #720) : le nouveau jour ne reçoit que les heures de la journée d'origine encore sans prise, à
-    partir de la première. Vermifuge tous les 2 jours à 8 h et 20 h (1, 3, 5), 8 h du 3 donnée, 20 h
-    du 3 reportée seule au 4 : le 4, seule la dose de 20 h (« Dose du jour · 4 oct. à 20 h »), puis
-    le 5 à 8 h et 20 h (l'app demandait 8 h et 20 h le 4) ; rien de noté le 3, la journée reportée
-    seule au 4 garde ses deux heures. Avec « Décaler aussi les doses suivantes », la même règle vaut
-    (décision de Gaelle du 2026-10-09, #735) : le décalage emporte la dose reportée et toutes celles
-    d'après, jamais une dose déjà donnée de la journée ; le 4, seule 20 h, puis le 6 et le 8 à 8 h
-    et 20 h (l'app demandait 8 h et 20 h le 4) ; le décalage supprimé ensuite, le 4 garde 20 h seule
-    et la suite revient au 5 ; rien de noté le 3, la journée part entière au 4, puis le 6. Une
-    période ouverte sur ce jour par un changement de posologie (G23) le garde tel quel ; quand les
-    heures changent sans changer la fréquence, le jour d'arrivée reste la prochaine dose et ne
-    demande que les dernières heures du nouveau réglage, une par dose reportée, puis la grille
-    reprend : heures passées à 9 h et 21 h le 3 ou le 4, le 4 à 21 h seule, puis le 5 à 9 h et 21 h
-    (réponse de Gaelle du 2026-10-09) ; la dose reportée déjà donnée, le 4 n'a plus rien à donner,
-    et la nouvelle période commence le 5 ; la fréquence changée, le 4 ne redemande rien non plus
-    (#711). Fréquence changée le 4 même, la dose reportée pas encore donnée : le 4 ne demande que
-    l'heure reportée, puis le nouveau rythme part du 4 (tous les 3 jours : 20 h le 4, puis le 7 ;
-    tous les jours : le 5 ; chaque semaine : le 11 ; décision de Gaelle du 2026-10-10) ; changée le
-    3, Q24 vaut : 20 h le 3, puis le 6. Plusieurs changements le 4 (une fréquence corrigée aussitôt,
-    par exemple) gardent la même règle : le 4 ne demande toujours que l'heure reportée. Un report
-    seul arrivé sur un jour de la grille n'y retire aucune heure : ce jour garde les siennes ;
-    reporté à son tour, un jour d'arrivée n'emporte que les heures qui y étaient à donner. Une heure
-    restée en arrière parce qu'elle était notée revient si sa prise est supprimée : à son jour tant
-    que la période la garde, sinon au jour d'arrivée. Un traitement de tous les jours ne reporte pas
-    une heure seule au lendemain : elle passerait la dose suivante (Q2 a, G19). Avec décalage,
-    chaque cas ci-dessus garde sa règle pour le jour d'arrivée, et la suite repart de lui :
-    posologie changée le 3 ou le 4, le 4 à 20 h seule, puis le 6 ; heures passées à 9 h et 21 h, le
-    4 à 21 h seule, puis le 6 à 9 h et 21 h ; la dose reportée déjà donnée, le 4 n'a plus rien à
-    donner, et la nouvelle période commence le 6 (tous les 3 jours : le 7) ; fréquence changée le 4,
-    la dose reportée pas encore donnée, 20 h le 4, puis le nouveau rythme part du 4 (le 7, le 5 ou
-    le 11) ; plusieurs changements le 4, toujours 20 h seule ; reportée au 5, jour de la grille, le
-    5 à 20 h seule, puis le 7, car la grille repart de lui ; le 4 reporté à son tour au 5, seule 20
-    h part ; tous les jours, le 4 à 20 h seule, puis le 5 à 8 h et 20 h ; la prise de 8 h du 3
-    supprimée, 8 h revient le 3.
 - **TR-10** Dose du moment : la dernière échéance jusqu'à aujourd'hui inclus, si elle est encore sans
   prise ; à défaut, la prochaine. Traitement à plusieurs heures : on raisonne par journée (spec Q23).
   Les heures encore sans prise de la dernière journée d'échéance arrivée sont ensemble la dose du
@@ -282,51 +179,29 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
 - **TR-24** Menu ⋮ d'une prise : changer la date, supprimer, « Marquer comme donnée / oubliée » ;
   d'une prise en plus : « Changer la date » et « Supprimer cette prise » seulement (décision du
   2026-10-05 ; changer sa date la fait viser ce que viserait une prise notée ce jour-là, TR-13) ; d'une
-  ligne « Reportée au … » ou « Avancée au … » : « Changer la date », « Supprimer ce report » (la suite
-  repart de la ligne précédente ; l'échéance d'origine redevient la dose du moment ou une dose non
-  renseignée) ; un toast
+  ligne « Reportée au … » ou « Avancée au … » : « Changer la date », « Supprimer ce report »
+  (l'échéance d'origine redevient la dose du moment ou une dose non renseignée ; la ligne de décalage
+  de la journée, s'il y en a une, reste et se supprime à part, R6) ; d'une ligne « Doses suivantes
+  décalées » : « Supprimer ce décalage » (refus de R7 et G19) ; d'une ligne sans effet (R11) :
+  « Supprimer » seul ; un toast
   « Annuler » après chaque geste. Un déplacement dont la dose d'arrivée est déjà notée (donnée ou
   oubliée) fait partie de l'historique : sa ligne n'a plus « Changer la date » ni « Supprimer ce
   report » ; pour corriger, on passe par la prise elle-même (changer sa date, la supprimer) (spec
   Q25). (Existant ; P5 ; report : relecture de cohérence du 2026-09-30, validé en bloc)
-- **TR-24 bis** Changer la date d'une prise qui a fixé la suite recalcule la prochaine dose qu'elle
-  fixe. Une prise donnée ne se redate jamais un intervalle ou plus avant son échéance : ces jours sont
-  grisés (date minimale), elle ne devient pas une prise en plus en silence (G11). Un déplacement placé après elle (ligne « Reportée au … » ou « Avancée au … ») est gardé, et le
-  toast le dit (« Prise déplacée au 28 août. Prochaine dose gardée au 10 oct., que tu avais
-  reportée. » · Annuler) ; s'il ne tombe plus après la prise déplacée, la suite repart de la prise, et
-  le toast le dit. Une ligne verrouillée (dose d'arrivée déjà notée, spec Q25) n'est jamais retirée :
+- **TR-24 bis** Changer la date d'une prise se juge **au jour de la nouvelle date**, comme si la prise
+  était notée ce jour-là (R6 ; décision du 2026-10-10, Q-C1) : la case « Décaler aussi les doses
+  suivantes » est proposée aux mêmes conditions que pour « Fait à une autre date », et le résultat est
+  le même. Une prise donnée ne se redate jamais un intervalle ou plus avant son échéance : ces jours
+  sont grisés (date minimale), elle ne devient pas une prise en plus en silence (R5). Un déplacement
+  placé après elle (ligne « Reportée au … » ou « Avancée au … ») est gardé et réécrit pour viser la
+  dose que fixe la prise corrigée (G12), et le toast le dit (« Prise déplacée au 28 août. Prochaine
+  dose gardée au 10 oct., que tu avais reportée. » · Annuler) ; s'il ne tombe plus après la prise
+  déplacée, la suite repart de la prise, et le toast le dit ; un report seul suit la correction ou la
+  refuse (G19). Une ligne verrouillée (dose d'arrivée déjà notée, spec Q25) n'est jamais retirée :
   elle reste dans l'historique, et le toast ne la mentionne pas. Une prise notée pour une dose non
-  renseignée ne fixe aucune suite (TR-7, spec Q8) :
-  changer sa date ne touche ni la suite ni un déplacement. (Décision du 2026-09-25, point 1,
-  transposée ; plan de livraison, T3 ; points validés en bloc du 2026-10-01)
-
-  Garde du moteur d'échéances (#453) :
-  - **G12** Le déplacement gardé est réécrit pour viser la dose que fixe la prise corrigée : sa ligne
-    dit alors « prévue le » avec la nouvelle échéance (prise du 5 sept. corrigée au 28 août :
-    « Reportée au 10 oct. (prévue le 28 sept.) »).
-    (Validée par Gaelle, points validés en bloc du 2026-10-01.)
-  - **G19** Un report seul (sans décalage) ne passe jamais la dose suivante (Q2 a). Quand une
-    correction de date change le rythme, un report seul qui la suit vise l'échéance du nouveau
-    calendrier la plus proche de son ancienne arrivée et garde cette date si elle reste dans les
-    bornes de Q2 a ; sinon elle s'en approche, jamais avant aujourd'hui ; si aucune date ne convient,
-    la correction est refusée (« Avec ce jour, la dose que tu avais reportée au 30 oct. ne pourrait plus tomber au bon moment. Change d'abord la date de ce report. »). L'aide sous la case
-    l'annonce (« La dose que tu avais reportée au 30 oct. reste prévue ce jour-là. ») et le toast le dit (« Prise déplacée au 17 oct. Le
-    report suit : dose reportée au 30 oct. »). Hebdomadaire du vendredi, aujourd'hui le 27, dose du
-    16 donnée le 19 avec décalage, dose du 26 reportée seule au 30 : prise corrigée au samedi 17,
-    « Avancée au 30 oct. (prévue le 31 oct.) », puis 7 nov. ; corrigée au 16, le report retombe sur
-    la dose du 30. Une correction refusée dans un seul état de la case n'est permise que dans
-    l'autre (jours grisés). Restent refusés : « Fait à une autre date » coché et « Supprimer ce
-    décalage », grisé aussi quand un report seul qui le suit n'aurait plus son échéance d'origine
-    dans le rythme rétabli (« Supprime d'abord le report du 23 oct. » ; vendredi, décalage du 16 au 19,
-    dose du 26 avancée seule au 23 : sans le décalage, la dose du 23 et la dose avancée tomberaient
-    ensemble ; graine 2157, #506). « C'est fait », la notification et la feuille « À faire » notent la prise
-    sans décalage (« La suite ne bouge pas : un report est prévu le 28 oct. »). (Décisions de Gaelle
-    du 2026-10-05, #505.)
-  - **G21** Quand une prise notée ou corrigée fait repartir la suite plus tôt, l'aide sous la case
-    et le toast annoncent les doses passées qui deviennent à renseigner ou en retard, et seulement
-    celles-là : une dose déjà en retard avant le geste n'est pas répétée. Vendredi, aujourd'hui le
-    27 oct., dose du 16 notée le lundi 19 avec décalage (la dose du 26 est en retard) ; la prise
-    corrigée au 12 : « La dose du 19 oct. sera à renseigner. » (#528 ; textes à valider par Gaelle.)
+  renseignée ne fixe aucune suite (spec Q8) : changer sa date ne touche ni la suite ni un déplacement.
+  (Décision du 2026-09-25, point 1, transposée ; plan de livraison, T3 ; points validés en bloc du
+  2026-10-01 ; décision du 2026-10-10.)
 - **TR-25** Une correction s'applique à toutes les lignes de la même échéance, jour et heure (deux
   appareils), et devient la modification la plus récente. (Relecture, point 5)
 - **TR-26** Pas de règle de « seule prise » : supprimer la seule prise garde le traitement (son
@@ -339,127 +214,18 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
 
 - **TR-27** Nom et type : toujours une correction. (P9)
 - **TR-28** Fréquence, heures, posologie : si aucune prise (donnée, oubliée ou reportée, T4 ; une
-  prise en plus ne compte pas, G11) n'a été notée depuis le début de la période, correction (les réglages sont remplacés) ; sinon, nouvelle
-  période à partir d'aujourd'hui, sans question, et le nouveau réglage vaut tout de suite, y compris
-  pour le reste de la journée : les prises déjà notées aujourd'hui comptent pour les premières heures
-  du nouveau réglage, les heures suivantes restent à donner ; il ne reste aucune dose de l'ancien
-  réglage aujourd'hui (spec Q24), sauf quand seule la posologie change : les heures d'aujourd'hui
-  reportées à un autre jour y restent, et le calendrier ne change pas (G23) ; les prises passées gardent leurs réglages ; les échéances de l'ancien rythme restées sans
-  prise avant aujourd'hui restent à renseigner, comme après un arrêt (TR-30). Exception au « sans
-  question » : sans prise notée mais avec des échéances déjà tombées, changer la fréquence ou les
-  heures pose la question à l'enregistrement (spec Q38). (P9 Q1 ; spec Q7)
-
-  Gardes du moteur d'échéances (#453) :
-  - **G1** Quand la fréquence ou les heures changent, seules comptent pour les premières heures du
-    nouveau réglage les prises dont l'échéance est le jour du changement (Q24 ; une dose d'hier
-    notée aujourd'hui n'en retire aucune) ou la journée entamée en avance qui ouvre la nouvelle
-    période (G24). Quand ni la fréquence ni les heures ne changent : G22.
-    (Garde technique, consignée au journal des décisions autonomes.)
-  - **G2** Une prise notée « oubliée » compte comme une prise donnée.
-    (Garde technique, consignée au journal des décisions autonomes.)
-  - **G3** Une reprise après un arrêt garde sa première prise du jour : seules comptent les prises
-    notées depuis le dernier arrêt. (Garde technique, consignée au journal des décisions autonomes.)
-  - **G4** Les heures couvertes sont les plus tôt du nouveau réglage, quel que soit l'ordre de saisie,
-    quand les heures changent ; sinon, chaque prise couvre son heure, même si la fréquence change
-    (G22, G24).
-    (Garde technique, consignée au journal des décisions autonomes.)
-  - **G15** « Dose du jour » : quand rien n'est noté pour aujourd'hui et qu'une dose est due
-    aujourd'hui, la nouvelle période commence par la dose du jour, que la fréquence change ou non
-    (heures passées de 8 h et 20 h à 9 h et 21 h : 9 h et 21 h le jour même ; quotidien passé à tous
-    les 2 jours : la dose du jour, puis le surlendemain), même si la dose suivante avait déjà été
-    déplacée. (Validée par Gaelle, points validés en bloc du 2026-10-01 ; étendue à un changement de
-    fréquence par la spec Q36.)
-  - **G16** Pour « la dernière prise plus la nouvelle fréquence » (TR-7), une prise qui n'a pas fixé
-    la suite compte par son échéance, pas par sa date réelle (spec Q8) : hebdomadaire, la dose du
-    8 sept. notée le 10 alors que la dose du moment est celle du 15, fréquence passée à tous les
-    10 jours le 17, première dose le 18. Quand une dose est due le jour du changement, G15 l'emporte
-    (spec Q36). (Garde technique, consignée au journal des décisions autonomes.)
-  - **G5** Une période précédente ne garde aucune dose à partir du début de la suivante, même si
-    celle-ci commence dans le futur (cas que l'app n'écrit pas).
-    (Garde technique, consignée au journal des décisions autonomes.)
-  - **G22** Quand ni la fréquence ni les heures ne changent (Q37), une prise déjà notée sous l'ancien
-    réglage couvre son heure dans la nouvelle période, chaque jour, pas seulement le jour du
-    changement ; les autres heures restent à donner : ce que l'ancien réglage tenait pour donné le
-    reste, rien de plus (une prise d'une période encore plus ancienne, à un autre rythme, ne couvre
-    pas une heure qui restait à donner). Quand une heure de la prochaine journée
-    d'échéance a été donnée en avance, la nouvelle période commence par cette journée, si elle est
-    sur la suite en vigueur ou l'arrivée d'un report seul (G23). Métacam tous les 2 jours à
-    8 h et 20 h, prochaines doses le 3 ; le 2, la dose de 8 h du 3 est donnée en avance, puis la
-    posologie changée : prochaine dose le 3 à 20 h, puis le 5 ; donnée en avance à 20 h plutôt qu'à
-    8 h, c'est le 8 h du 3 qui reste. Quotidien à 8 h et 20 h, le 2 : 8 h du 2 donnée, 8 h du 3
-    donnée en avance, posologie changée : restent 20 h du 2, puis 20 h du 3. Une journée déjà passée
-    entamée (8 h du 3 donnée, 20 h non, posologie changée le 4) garde la dernière prise plus la
-    fréquence (Q37) : prochaine dose le 5, la dose de 20 h du 3 à renseigner (#656) ; sauf l'arrivée
-    d'un report seul, qui garde la grille (G23, #737).
-  - **G23** Un report seul ne déplace que sa dose, et changer la posologie ne change jamais le
-    calendrier (décision de Gaelle du 2026-10-09, #692). Quand ni la fréquence ni les heures ne
-    changent, la nouvelle période commence par la prochaine dose (Q37), y compris l'arrivée d'un
-    report seul, à venir ou du jour, puis suit le calendrier en vigueur après elle : vermifuge tous
-    les 2 jours (1, 3, 5, 7), dose du 3 reportée seule au 4, posologie passée de ½ comprimé à 1 le
-    2, le 3 ou le 4 : 4, 5, 7 ; dose du 5 avancée seule au 4 : 4, 7, 9 ; dose du 5 avancée au 4 avec
-    décalage : 4, 6, 8 ; hebdomadaire, dose du 8 avancée au 6 avec décalage : 6, 13, 20 ; mensuel du
-    31, dose du 28 févr. avancée seule au 25 : 25 févr., 31 mars, 30 avr. Une heure de ce jour
-    donnée en avance couvre son heure (G22) : à 8 h et 20 h, dose du 3 reportée seule au 4, 8 h du 4
-    donnée le 2 : 20 h du 4, puis le 5. Les heures d'aujourd'hui reportées à un autre jour, seules
-    ou avec décalage, y restent, même quand une prise d'aujourd'hui est notée (TR-28, Q24 ne les
-    ramène pas) : la nouvelle période commence alors par la prochaine dose. Un report seul plus
-    lointain part avec l'ancienne période (§11) ; la grille, elle, reste : hebdomadaire, dose du 8
-    avancée seule au 6, dose du 15 reportée seule au 17, posologie changée le 2 : 6, 15, 22. Pour
-    décaler la suite, la personne déplace elle-même la dose, case cochée (TR-9). Un report sans
-    « Décaler aussi les doses suivantes » ne change jamais le calendrier, même quand les heures
-    changent ; avec la case cochée, tout se décale (décision de Gaelle du 2026-10-09, #737). Tous
-    les 2 jours (1, 3, 5) à 8 h et 20 h, rien de noté le 3, la journée reportée seule au 4, heures
-    passées à 9 h et 21 h le 3 ou le 4 : le 4 à 9 h et 21 h, puis le 5 et le 7 (l'app donnait 4, 6,
-    8) ; hebdomadaire (1, 8, 15), journée du 8 reportée seule au 10 : 10, 15, 22 ; mensuel du 1er,
-    journée du 1er nov. reportée seule au 3 : 3 nov., 1er déc., 1er janv. Des reports seuls en
-    chaîne gardent la grille de la première journée d'origine : tous les 6 jours (1, 7, 13) à 8 h,
-    14 h et 20 h, 14 h du 1 reportée seule au 3, 20 h du 3 reportée seule au 5 et donnée, heure
-    passée à 9 h le 5 : 7, 13. Choix de cohérence en autonomie, à valider par Gaelle (#737) : le
-    jour d'arrivée d'une journée vierge reportée entière reçoit toutes les nouvelles heures (Q24 :
-    passées à 8 h, 14 h et 20 h, le 4 aux trois heures) ; ses prises déjà notées comptent pour les
-    premières heures du nouveau réglage, même données en avance (Q24, G24 : 8 h du 4 donnée, il
-    reste 21 h le 4, puis le 5 ; les deux doses du 4 données puis passage à 8 h, 14 h et 20 h, 20 h
-    encore demandée le 4, puis le 5) ; la fréquence changée, le nouveau rythme part du jour
-    d'arrivée, comme pour une heure reportée seule (G25 ; tous les 3 jours, 4 puis 7 ; tous les
-    jours, 4 puis 5 ; chaque semaine, 4 puis 11) ; une posologie changée après un jour d'arrivée
-    entamé et passé suit la grille, par exception à G22 : tous les 3 jours (1, 4, 7) à 8 h et 20 h,
-    journée du 4 reportée seule au 5 (ou avancée seule au 3), 8 h donnée ce jour-là, posologie
-    changée le lendemain, prochaine dose le 7 (l'app proposait le 8, ou le 6), la dose de 20 h
-    restant à renseigner.
-  - **G24** Une dose déjà donnée compte : quand la fréquence ou les heures changent et qu'une heure
-    de la prochaine journée d'échéance a déjà été donnée en avance, la nouvelle période commence par
-    cette journée, ses prises comptent pour les premières heures du nouveau réglage (G4), et le
-    nouveau réglage s'applique à partir de la dose suivante pas encore donnée (décision de Gaelle du
-    2026-10-09, #711). Métacam tous les 2 jours à 8 h et 20 h, prochaine journée le 3, 8 h du 3
-    donnée le 2 : heures passées le 2 à 9 h et 21 h, il ne reste que 21 h le 3, puis le 5 à 9 h et
-    21 h ; fréquence passée à tous les 3 jours, il reste 20 h le 3, puis le 6. « Prochaine dose »
-    propose le 3, avec l'aide « Prochaine dose prévue : 3 oct. Modifiable. » ; une autre date
-    choisie, les prises du 3 ne comptent plus. La journée n'ouvre pas la période quand ses prises
-    couvrent déjà toutes les heures du nouveau réglage (la dernière prise plus la nouvelle
-    fréquence, TR-7 : heure passée à 9 h seule, prochaine dose le 5), ni quand une de ses prises a
-    décalé la suite : la journée compte alors entière à la date réelle de la prise (Q8), et aucune
-    de ses prises ne couvre la nouvelle période. Tous les 3 jours à 9 h, dose du 4 donnée le 2 avec
-    décalage, passage à tous les 2 jours le 3 : prochaine dose le 4 ; tous les 3 jours à 8 h et
-    20 h, les deux doses du 4 données le 2, le 20 h avec décalage, passage à tous les 2 jours le 3 :
-    le 4 à 8 h et 20 h. Une journée ouverte ainsi garde ce rôle si le décalage est supprimé plus
-    tard. Des prises notées aujourd'hui font partir la nouvelle période d'aujourd'hui (Q24).
-  - **G26** Changer les heures d'un traitement mensuel ne change pas le jour du mois (décision de
-    Gaelle du 2026-10-09, #736). Comprimé tous les mois, le 31 (31 janv.), heures changées avant le
-    28 févr. : 28 févr., 31 mars, 30 avr., 31 mai (l'app donnait 28 févr., 28 mars, 28 avr.) ;
-    changées le 28 févr. ou après : 31 mars, 30 avr. Avec « Décaler aussi les doses suivantes », la
-    suite repart du jour d'arrivée (G25) et garde ce jour du mois (dose du 28 févr. reportée au
-    2 mars avec décalage : 2 mars, 2 avr.). « Reprendre » part de la première prise choisie (TR-32).
-    Choix de cohérence en autonomie, à valider par Gaelle : la même règle vaut pour une posologie
-    changée, une suite du 29 ou du 30 (suite du 30 : 28 févr., 30 mars), une année bissextile
-    (suite du 31 : 29 févr. 2028, 31 mars), tous les 2 ou 3 mois (tous les 2 mois depuis le
-    31 déc. : 28 févr., 30 avr., 30 juin), une journée bornée entamée en avance (G24 : 30 avr., puis
-    31 mai) et le jour d'arrivée d'un report seul entamé et passé (G23 : journée du 28 févr.
-    reportée seule au 2 mars, 8 h donnée, puis 31 mars). Question ouverte pour Gaelle : quand la
-    fréquence change, l'app reprend le jour réel de la dernière prise, borné compris (dernière
-    prise plus la nouvelle fréquence, TR-7) : mensuel du 31 déc., dose du 31 déc. donnée, passage à
-    tous les 2 mois le 10 janv. : 28 févr., 28 avr., 28 juin ; tous les 2 mois depuis le 31 janv.,
-    passage à tous les mois le 3 févr. : 28 févr., 28 mars ; hebdomadaire, dernière prise le
-    31 janv., passage à tous les mois : 28 févr., 28 mars.
+  prise en plus ne compte pas, R5) n'a été notée depuis le début du réglage, correction (les réglages
+  sont remplacés) ; sinon, nouveau réglage à partir d'aujourd'hui, sans question. Le nouveau réglage
+  ne ferme rien et ne recopie rien : il change la façon de calculer les échéances à partir
+  d'aujourd'hui (R1) ; les prises, reports et décalages restent ceux du traitement (R4, R7, R11) ; le
+  calendrier ne bouge que si la fréquence change, et alors seulement à partir de la première
+  échéance proposée (R3, R9). Les prises déjà notées aujourd'hui comptent pour les premières heures
+  du nouveau réglage (R4, Q24) ; les prises passées gardent leurs réglages ; les échéances restées
+  sans prise avant aujourd'hui restent à renseigner, comme après un arrêt (TR-30). Un réglage ouvert
+  aujourd'hui et encore sans prise se remplace quand on le modifie de nouveau le jour même (R10).
+  Exception au « sans question » : sans prise notée mais avec des échéances déjà tombées, changer la
+  fréquence ou les heures pose la question à l'enregistrement (spec Q38). (P9 Q1 ; spec Q7 ; moteur
+  v2, décision du 2026-10-10.)
 - **TR-29** Un autre produit est un nouveau traitement : arrêter l'ancien, créer le nouveau. (P9 Q2)
 - **TR-30** « Arrêter » : dialogue qui propose de renseigner les doses non renseignées (« Toutes
   données », « Choisir les jours », « Arrêter sans renseigner ») ; « Arrêté le … », plus aucune
@@ -522,6 +288,149 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   terminés » ; leur historique reste, écarts compris (TR-35). Après « Suivre de nouveau », leurs doses
   non renseignées reviennent à renseigner (TR-30 ; relecture de cohérence du 2026-09-30, validé en bloc). (P10 ; spec Animaux, lot B révisé)
 
+### 4.8 Règles du moteur (v2, décision du 2026-10-10)
+
+Ces douze règles remplacent les gardes G1 à G26 de la v1 (plan de mise en œuvre : `docs/technical/moteur-doses-v2-plan.md`). Trois idées les portent :
+1. **Un calendrier par traitement, pas par réglage.** Les prises, les reports et les décalages appartiennent au traitement. Un changement de réglage (fréquence, heures, posologie) change la façon de calculer les échéances **à partir d'un jour**, il ne ferme rien et ne recopie rien. Plus aucune ligne n'est « perdue » ou « purgée » parce qu'un réglage a changé.
+2. **Une échéance, c'est un jour et une heure.** Une prise couvre l'échéance qu'elle vise, point. La seule règle de « traduction » existe le jour où les heures changent : les prises de ce jour couvrent les premières heures du nouveau réglage, dans l'ordre.
+3. **La grille a une origine, et une seule chose la déplace : une ligne de décalage.** L'origine se transmet d'un réglage au suivant tant que la fréquence ne change pas (le 31 d'un mensuel reste le 31). Aucune date de réglage ne porte un autre sens caché.
+
+
+#### R1 — Réglages successifs
+
+Un traitement a des **réglages** successifs (fréquence, heures, posologie, date de fin, rappel), chacun valable **à partir d'un jour** jusqu'au jour du suivant. Un réglage a une **première échéance** et une **origine de grille**. À la création et à la reprise, l'origine est la première échéance. Un arrêt ferme le réglage en cours à la date d'arrêt ; une reprise ouvre un nouveau réglage.
+
+#### R2 — La grille
+
+Les journées d'échéance d'un réglage sont son origine plus un nombre entier de pas (jours, semaines, mois), **à partir de sa première échéance** et jusqu'à sa date de fin ou au jour du réglage suivant (exclu). En mois, un jour qui n'existe pas devient le dernier jour du mois, sans que l'origine change (31 janv., 28 févr., 31 mars). Chaque journée a les heures du réglage, ou une seule échéance sans heure.
+
+#### R3 — L'origine se transmet
+
+Quand un réglage **garde la fréquence** du précédent, il hérite de son origine de grille (telle qu'elle est **en vigueur** à son premier jour : décalages compris, R7) : le calendrier ne bouge pas. Quand la fréquence change, l'origine est la première échéance du nouveau réglage (R9).
+
+#### R4 — Ce qu'une prise couvre
+
+Une prise (donnée ou oubliée) vise une échéance, jour et heure, et la couvre dans **tout** le calendrier du traitement, quel que soit le réglage qui la produit. Sa date réelle est une information d'historique. **Une seule traduction** existe : le jour où les heures changent, les prises de ce jour (visant l'ancien réglage) couvrent les premières heures du nouveau réglage, dans l'ordre et à hauteur de leur nombre ; une journée entièrement couverte n'a plus rien à donner.
+
+_Remplace Q24, G1, G2, G4, G22, G24 et les « journées entamées en avance », « journées réglées », « heures restées en arrière »._
+
+#### R5 — Prise en plus
+
+Une prise notée **un intervalle ou plus avant** l'échéance qu'elle viserait (ou un second « C'est fait » le même jour d'un traitement sans heure, ou avant le début du traitement) est une **prise en plus** : rangée sous sa date réelle, elle ne couvre rien et ne change jamais le calendrier. À plusieurs heures par jour, une heure donnée en avance couvre son échéance (ce n'est pas une prise en plus).
+
+_= G11, inchangée._
+
+#### R6 — Le décalage, et seulement lui, déplace la suite
+
+La suite des échéances ne repart jamais d'elle-même d'une date réelle. Elle repart d'une **ligne de décalage**, écrite quand la personne coche « Décaler aussi les doses suivantes » (prise en retard ou en avance, report, correction de date). Une ligne de décalage dit : « à partir de cette journée d'origine, la grille a pour nouvelle origine ce jour d'ancrage ». Elle est visible dans l'historique, supprimable seule, et survit à la suppression de la prise qui l'a créée.
+
+La case est proposée quand la prise ou le report **change la date** de la dose du moment ou de la prochaine dose (pas pour une dose non renseignée, pas pour la dose du jour donnée le jour même, pas pour une prise en plus). **Corriger la date d'une prise** (décision du 2026-10-10, Q-C1) se juge **au jour de la nouvelle date**, comme si la prise était notée ce jour-là : la case est proposée aux mêmes conditions, et le résultat est le même que par « Fait à une autre date ».
+
+_Remplace TR-7 T1/T2 (« la suite repart de la dernière ligne »), G10, G18, G20 (le contenu de la case), TR-24 bis (la partie calcul)._
+
+#### R7 — Le report déplace une journée, ou une heure et les suivantes
+
+Un report déplace la dose visée **et les heures suivantes de la même journée encore sans prise** vers un jour d'arrivée, qui ne reçoit que ces heures. Les heures déjà notées de la journée d'origine y restent. Sans la case, seule cette dose bouge et elle arrive au plus **la veille** de la journée d'échéance suivante ; avec la case, une ligne de décalage ancrée au jour d'arrivée repart de lui (R6). Déplacer de nouveau la même dose réécrit sa ligne ; la ramener à sa date la supprime. Une journée n'a qu'une ligne de report et qu'une ligne de décalage (la plus récente vaut, deux appareils). Un report reste **une ligne du traitement** : il n'est jamais supprimé ni oublié parce qu'un réglage a changé (décisions Q-§11 et Q-purge du 2026-10-10).
+
+Le jour où les heures changent, un jour d'arrivée reçoit **autant d'échéances qu'il y avait de doses reportées**, prises **en fin de liste** des nouvelles heures (une dose reportée à 20 h, heures passées à 9 h et 21 h : 21 h).
+
+_= Q21, G25 (la partie « arrivée »), G7, G9, G13, G17, Q18, Q2 a, Q25 pour les refus._
+
+#### R8 — Reprendre
+
+Après un arrêt, la reprise ouvre un nouveau réglage dont la première échéance est choisie par la personne (dès le jour de l'arrêt). Les prises **d'avant l'arrêt** ne couvrent pas la reprise, **sauf** une prise notée le jour même de la reprise, qui couvre sa première journée (décision Q-G3 du 2026-10-10).
+
+#### R9 — Où commence un réglage changé
+
+Quand la fréquence ou les heures changent, la première échéance proposée est :
+
+1. **aujourd'hui**, si aujourd'hui est une journée d'échéance (grille ou arrivée d'un report) qui a encore des heures à donner, ou si rien n'y est noté et qu'une dose y était due ; les prises d'aujourd'hui couvrent les premières heures du nouveau réglage (R4) ;
+2. sinon, la **prochaine journée d'échéance** du calendrier en vigueur quand elle est déjà **entamée** (une de ses heures donnée en avance) ou quand c'est l'**arrivée d'un report** : elle garde son jour, ses prises couvrent les premières heures du nouveau réglage, et le nouveau rythme part d'elle ;
+3. sinon, la **dernière journée d'échéance passée plus la nouvelle fréquence**, jamais avant aujourd'hui.
+
+La date est modifiable (« Prochaine dose ») ; une autre date choisie devient la première échéance et l'origine. Quand la fréquence ne change pas (heures ou posologie seules), la première échéance est **la prochaine journée du calendrier en vigueur** (dose du moment en retard comprise), et l'origine est héritée (R3) : le calendrier ne bouge pas.
+
+_Remplace Q7, Q36, Q37, G15, G16, G23 (la partie « où commence »), G24._
+
+#### R10 — Corriger un réglage le jour de son ouverture
+
+Un réglage ouvert aujourd'hui et encore sans prise se **remplace** quand on le modifie de nouveau le jour même : il n'en ouvre pas un troisième (décision Q-#744 du 2026-10-10). Un réglage sans aucune prise dont on change la fréquence ou les heures alors que des échéances sont tombées pose la question de la spec Q38 (garder à renseigner, ou corriger).
+
+#### R11 — Rien ne disparaît sans geste
+
+Une ligne écrite par la personne (prise, prise en plus, report, décalage) n'est **jamais supprimée par le moteur**. Ce qui n'a plus d'effet (un report revenu à sa date, une ligne plus ancienne de la même journée entre deux appareils, un report battu par une prise de la même échéance) reste en base et dans l'historique, marqué « sans effet » à l'affichage ; seule la personne le supprime. Le moteur ne lit **que** des lignes, il n'en écrit ni n'en efface jamais à la lecture (décision Q-purge du 2026-10-10).
+
+#### R12 — Une seule lecture pour tous les écrans
+
+Tout ce que l'app montre d'un traitement (dose du moment, retard, à renseigner, à venir, historique, rappels à programmer, menus permis, textes de confirmation) vient d'**une** lecture du moteur, la même pour la fiche, l'accueil, la feuille « À faire », les notifications, le Carnet, le PDF et le CSV. Aucun écran ne recalcule une règle (« déjà notée », « prise en plus », « en retard », journées perdues par la date de fin, « période en cours ») : il lit (décision Q-double du 2026-10-10).
+
+#### Gardes des gestes conservées de la v1
+
+Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé pour les tests et les tickets) :
+
+  - **G20** « C'est fait » ne décale jamais la suite sans l'aval de la personne (principe du
+    2026-10-06). Quand la prise décalerait la suite (la case de « Fait à une autre date » serait
+    proposée : dose en retard ou donnée en avance, N1, N3, G10), « C'est fait » ouvre une
+    confirmation : « Dose du vendredi 16 oct., donnée le lundi 19 oct. », la case « Décaler aussi les
+    doses suivantes » cochée par défaut et son aide, qui montre les dates, cochée comme décochée, ou la
+    dose perdue à cause de la date de fin (V28 bis), puis « Enregistrer » et « Annuler », qui n'écrit
+    rien. Restent un tap, sans rien décaler : la dose du jour, une prise sans case, et une prise dont le
+    décalage ferait passer un report seul (Q2 a, G19 : le toast le dit). « Annuler » du toast défait
+    tout le geste ; quand la prise termine le traitement, le toast le dit (TR-31). Le décalage
+    automatique et la règle de la demi-fréquence face à la date de fin disparaissent des gestes de
+    l'app : la fiche les a quittés avec #536, la notification les quitte avec #539 et la feuille
+    « À faire » avec #543, qui reprennent la même confirmation. Vendredi, 16, 23 et 30 oct., fin le
+    30 : dose du 16 donnée le lundi 19, cochée, 26 oct., et l'aide dit « Avec le décalage, la dose du
+    30 oct. ne sera plus prévue (date de fin). » ; décochée, 23 et 30 restent. (Décision de Gaelle du
+    2026-10-06, qui revient sur celles du 2026-10-03, Q4, et du 2026-10-05, #506.)
+  - **G6** Une dose ne s'avance pas d'un intervalle entier ou plus (en mois : jamais à un jour d'où la
+    fréquence retombe sur son échéance d'origine), pour garder une seule ligne par échéance.
+    Exemples : hebdomadaire, la dose du 6 avr. s'avance au plus tôt au 31 mars ; mensuel, la dose du
+    30 avr. s'avance au plus tôt au 1er avr., car le 30 mars comme le 31 mars plus un mois retombent
+    sur le 30 avr. (Validée par Gaelle, points validés en bloc du 2026-10-01.)
+  - **G7** Une dose ne se déplace pas tant qu'une ligne (prise ou déplacement) existe plus loin dans la
+    période ; le moteur en donne la raison à l'écran. Quand c'est un déplacement, le champ
+    « Prochaine dose » est grisé, avec l'aide « Une dose plus lointaine est déjà reportée. Supprime ce
+    report pour déplacer celle-ci. » (Décidée, spec Q26.)
+  - **G8** La date minimale passe aussi après la date réelle de la dernière prise notée.
+    (Garde technique, consignée au journal des décisions autonomes.)
+  - **G9** Une dose n'arrive pas sur le jour d'origine d'un autre déplacement.
+    (Garde technique, consignée au journal des décisions autonomes.)
+  - **G12** Le déplacement gardé est réécrit pour viser la dose que fixe la prise corrigée : sa ligne
+    dit alors « prévue le » avec la nouvelle échéance (prise du 5 sept. corrigée au 28 août :
+    « Reportée au 10 oct. (prévue le 28 sept.) »).
+    (Validée par Gaelle, points validés en bloc du 2026-10-01.)
+  - **G13** Quand la suite a changé depuis le déplacement, déplacer de nouveau la dose réécrit la ligne
+    avec l'échéance qu'elle remplace désormais (« prévue le » peut changer) ; une ligne ne ramène
+    jamais une dose à son propre jour d'origine.
+    (Validée par Gaelle, points validés en bloc du 2026-10-01.)
+  - **G17** Une journée n'a qu'une ligne de déplacement : la redéplacer réécrit sa ligne, même quand
+    une heure y est revenue (prise supprimée) ; deux lignes pour la même journée (synchronisation) :
+    la plus récente vaut, l'autre est sans effet.
+    (Garde technique, consignée au journal des décisions autonomes.)
+  - **G19** Un report seul (sans décalage) ne passe jamais la dose suivante (Q2 a). Quand une
+    correction de date change le rythme, un report seul qui la suit vise l'échéance du nouveau
+    calendrier la plus proche de son ancienne arrivée et garde cette date si elle reste dans les
+    bornes de Q2 a ; sinon elle s'en approche, jamais avant aujourd'hui ; si aucune date ne convient,
+    la correction est refusée (« Avec ce jour, la dose que tu avais reportée au 30 oct. ne pourrait plus tomber au bon moment. Change d'abord la date de ce report. »). L'aide sous la case
+    l'annonce (« La dose que tu avais reportée au 30 oct. reste prévue ce jour-là. ») et le toast le dit (« Prise déplacée au 17 oct. Le
+    report suit : dose reportée au 30 oct. »). Hebdomadaire du vendredi, aujourd'hui le 27, dose du
+    16 donnée le 19 avec décalage, dose du 26 reportée seule au 30 : prise corrigée au samedi 17,
+    « Avancée au 30 oct. (prévue le 31 oct.) », puis 7 nov. ; corrigée au 16, le report retombe sur
+    la dose du 30. Une correction refusée dans un seul état de la case n'est permise que dans
+    l'autre (jours grisés). Restent refusés : « Fait à une autre date » coché et « Supprimer ce
+    décalage », grisé aussi quand un report seul qui le suit n'aurait plus son échéance d'origine
+    dans le rythme rétabli (« Supprime d'abord le report du 23 oct. » ; vendredi, décalage du 16 au 19,
+    dose du 26 avancée seule au 23 : sans le décalage, la dose du 23 et la dose avancée tomberaient
+    ensemble ; graine 2157, #506). « C'est fait », la notification et la feuille « À faire » notent la prise
+    sans décalage (« La suite ne bouge pas : un report est prévu le 28 oct. »). (Décisions de Gaelle
+    du 2026-10-05, #505.)
+  - **G21** Quand une prise notée ou corrigée fait repartir la suite plus tôt, l'aide sous la case
+    et le toast annoncent les doses passées qui deviennent à renseigner ou en retard, et seulement
+    celles-là : une dose déjà en retard avant le geste n'est pas répétée. Vendredi, aujourd'hui le
+    27 oct., dose du 16 notée le lundi 19 avec décalage (la dose du 26 est en retard) ; la prise
+    corrigée au 12 : « La dose du 19 oct. sera à renseigner. » (#528 ; textes à valider par Gaelle.)
+
 ## 5. États et transitions
 
 | État | Ce que montre la fiche | Rappels | Vers |
@@ -548,14 +457,13 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
 
 ## 7. Données (besoins, pas modèle)
 
-- Traitement : animal (figé), nom, type, suppression logique.
-- Période : date de début, première échéance, date de fin facultative, fréquence, heures, posologie
-  (quantité, unité), moment du rappel, date d'arrêt ; ordonnée par sa date de début.
-- Prise : échéance couverte (jour, heure), date réelle (vide pour une oubliée ou une reportée), état
-  (donnée, oubliée, reportée : TR-9), prochaine échéance fixée ; ses réglages sont ceux de sa période.
-- Synchronisé (Plus), exporté (JSON complet, CSV, PDF). Schéma : [modèle de données v2](../../technical/modele-de-donnees-v2.md).
+- Traitement : animal (figé), nom, type, suppression logique. **Le calendrier est celui du traitement** (R1).
+- Réglage (`treatment_period`) : date de début, première échéance, **origine de grille** (un seul sens, R2, R3), date de fin facultative, fréquence, heures, posologie (quantité, unité), moment du rappel, date d'arrêt ; ordonné par sa date de début.
+- Ligne (`treatment_dose`) : traitement, échéance visée (jour, heure), date réelle (prise, prise en plus), état (donnée, oubliée, prise en plus, reportée, décalage), **date cible** (arrivée d'un report, ancrage d'un décalage, vide pour une prise) ; le réglage qui a produit la prise, à titre d'information (posologie affichée). Plus de « prochaine échéance fixée » sur une prise : le moteur ne la lisait pas.
+- Rien n'est supprimé par le moteur (R11) ; une ligne sans effet est marquée à l'affichage, pas en base.
+- Synchronisé (Plus), exporté (JSON complet v5, CSV, PDF) ; l'import relit chaque traitement par le moteur avant d'écrire (Q40). Schéma v12 : [modèle de données v2](../../technical/modele-de-donnees-v2.md), [plan du moteur v2](../../technical/moteur-doses-v2-plan.md) §3.
 - Plus tard, une posologie différente selon l'heure (#365) demandera une posologie par heure : le
-  schéma actuel n'en porte qu'une par période (décision du 2026-09-28 nuancée par la revue du modèle).
+  schéma actuel n'en porte qu'une par réglage (décision du 2026-09-28 nuancée par la revue du modèle).
 
 ## 8. Critères d'acceptation (extraits prioritaires)
 
@@ -928,55 +836,52 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   7 sept. » alors que la personne vient de dire que la dose a été donnée. Écartée : limiter l'encart à
   ce qui deviendra le bandeau. (Décision déléguée par Gaelle, encart #462.)
 
+- 2026-10-10 — **Moteur des doses v2 : douze règles à la place des gardes** (§4.8, R1 à R12 ;
+  remplace G1 à G5, G10, G14 à G16, G18, G22 à G26, et précise Q7, Q8, Q21 à Q24, Q36, Q37). Raison
+  (Gaelle) : « bien trop longtemps que nous tournons en rond » ; quatre correctifs en trois jours,
+  chacun révélant un cas de plus ; l'analyse du 2026-10-10 montre que tous les défauts tiennent à la
+  frontière entre deux périodes, où l'ancienne était fermée et la nouvelle devait tout deviner (29
+  règles non écrites dans le code). Décision : un calendrier par traitement (R1), les lignes
+  appartiennent au traitement (R7, R11), l'origine de grille se transmet (R3), une seule règle de
+  couverture (R4), seul un décalage déplace la suite (R6), une seule lecture pour tous les écrans
+  (R12). Écartées : consolider règle par règle (laisse les concepts fautifs) ; échéances
+  matérialisées en base (dérivées stockées, conflits de synchro, trois à quatre fois le coût).
+  Mise en œuvre : `docs/technical/moteur-doses-v2-plan.md`, épic GitHub « Moteur des doses v2 ».
+- 2026-10-10 — **Q-C1 : corriger la date d'une prise se juge au jour de la nouvelle date** (TR-24
+  bis, R6). Hebdo du vendredi, dose du 16 notée le 16 par erreur, corrigée le 25 « donnée le 24 » :
+  la case est proposée ; cochée, la suite repart du 24 (31, 7 nov.) ; même résultat que par « Fait
+  à une autre date ». Écartée : garder la dose du 23 en retard (Q8 l'emportait sur TR-24 bis).
+- 2026-10-10 — **Q-G3 : une prise notée le jour de la reprise couvre sa première journée** (R8).
+  Dose du jour donnée, « Arrêter » chez le vétérinaire, « Reprendre » le soir même : rien à
+  redonner. Écartée : afficher « Une dose a déjà été notée aujourd'hui » et garder G3.
+- 2026-10-10 — **Q-#744 : un réglage ouvert aujourd'hui, sans prise, se remplace quand on le modifie
+  le jour même** (R10). Journée du 3 reportée au 4, fréquence → 3 jours puis → 2 jours le 3 :
+  4, 5, 7. Écartée : empiler les réglages (4, 6, 8).
+- 2026-10-10 — **Q-§11 : un report plus lointain que la prochaine dose survit à un changement de
+  posologie** (R7, R11 ; ferme #719, retire la limite du §11). Hebdo (1, 8, 15, 22), dose du 15
+  reportée seule au 17 pendant que le 8 est à venir, posologie changée : 8, 17, 22. Écartée : griser
+  « Prochaine dose » quand un report existe plus loin.
+- 2026-10-10 — **Q-purge : une ligne écrite par la personne ne disparaît jamais sans son geste**
+  (R11). Le moteur ne supprime plus rien à la lecture ; une ligne sans effet reste visible, grisée,
+  avec « Supprimer » seul. Écartée : garder la purge et l'écrire dans TR-35.
+- 2026-10-10 — **Q-double : une seule lecture du moteur pour tous les écrans** (R12). « Déjà
+  notée », « prise en plus », « en retard », journées perdues par la date de fin, « période en
+  cours » ne sont plus recalculées à l'écran (17 doubles sources relevées). Écartée : attendre un
+  premier écart visible.
+
 ## 11. Questions ouvertes
 
 Posées par la relecture de cohérence du 2026-09-30 (`technical/relecture-coherence-2026-09-30-1.md`),
 toutes tranchées le 2026-09-30 : C1 (Q15), C2 (Q16), C5 (TR-30), C6 (TR-24), C7 (TR-13, RA-18), les
 trois dernières validées en bloc.
 
-Limites connues du moteur d'échéances, renvoyées à #488 (la ligne d'une prise ne disait pas si elle
-avait fixé la suite ; revue du 2026-10-02). Fermées par la ligne de décalage et le jour de référence
-de la période (#502, étude `technical/etude-modele-prises.md` §2.6) : la dose non renseignée redatée
-(dose du moment au 15), la dose du moment notée par erreur puis corrigée (17), les départs les 29, 30
-et 31 (30 oct., 30 nov.) et le jour borné repris par Q37 (31 mars, 30 avr.). La date de fin qui
-faisait sauter une dose après une prise en retard est fermée par la case et son avertissement (G20, #536).
-La journée à venir entamée en avance, dont les heures restantes n'étaient plus demandées après un
-changement de posologie, est fermée par G22 (#656). La prochaine dose reportée seule, après laquelle
-la suite glissait d'un jour à un changement de posologie (4, 6, 8 au lieu de 4, 5, 7), est fermée par
-G23 (#692). Reste :
+Les limites connues du moteur v1 (report plus lointain perdu à un changement de posologie, journée
+entamée en avance redemandée, prises d'une période remplacée qui couvrent encore, calendrier de
+départ irrégulier, mensuel du 29, 30 ou 31 ouvert sur l'arrivée d'un report) sont fermées par
+construction par les règles R1, R3, R4, R7 et R11 du moteur v2 (décision du 2026-10-10). Elles
+restent des scénarios du jeu de recette (`docs/technical/moteur-doses-v2-plan.md` §6 et
+`src/shared/__tests__/dose-calendar.recette.spec.ts` à partir du pas 1) jusqu'à la suppression du
+moteur v1 (pas 10).
 
-- Un changement de posologie ne garde, au-delà de la prochaine dose, qu'une suite décalée. Un report
-  seul plus lointain part avec l'ancienne période (G5) : hebdomadaire (1, 8, 15, 22), dose du 15
-  reportée seule au 17, posologie changée le 2 : 8, 15, 22, au lieu de 8, 17, 22 (avec décalage, 8,
-  17, 24 est gardé). Un report plus lointain encore, même décalé, part aussi. Le garder demande de
-  rattacher ses lignes à la nouvelle période.
-- Heures ou fréquence changées alors qu'il reste des doses à donner aujourd'hui et que la journée
-  d'échéance suivante est déjà entamée en avance : la nouvelle période part d'aujourd'hui (Q24), et
-  la prise en avance ne compte pas pour la journée suivante, qui redemande toutes ses heures si elle
-  tombe dans le nouveau rythme (#721).
-- Heures ou fréquence changées avant le début du traitement, quand toute la première journée a déjà
-  été donnée en avance, la dernière dose avec décalage : la nouvelle période commence ce jour-là et
-  ses prises la couvrent (Q24), au lieu de compter à leur date réelle (Q8). Mensuel à 8 h, 14 h et
-  20 h commençant le 25, les trois doses du 25 données les 23 et 24, la dernière avec décalage ;
-  le 24, passage à tous les jours à 20 h : prochaine dose le 26 au lieu du 25.
-- Des prises données en avance pour une journée d'une période que d'autres ont remplacée depuis
-  comptent encore pour cette journée si une nouvelle période la reprend comme jour du changement
-  (Q24) : tous les jours à 6 h, 12 h, 18 h et 23 h, puis toutes les 6 semaines à 8 h et 20 h avec le
-  30 mars donné en avance, puis toutes les 2 semaines ; le 30 mars, passage à tous les 2 jours :
-  prochaine dose le 1er avr. au lieu du 30 mars (#721).
-- Un calendrier de départ dont deux journées se suivent de plus près que la fréquence, puis hors
-  rythme (plusieurs déplacements combinés), ne se reprend pas tel quel : toutes les 6 semaines,
-  3 mai, 5 mai, 14 juin, posologie changée : 3 mai, 5 mai, 16 juin.
-- Mensuel du 29, du 30 ou du 31 ouvert sur l'arrivée d'un report seul à venir, quand une dose qui
-  la suit tombe sur un jour borné (février, ou un mois de 30 jours pour une suite du 31) : dose du
-  30 janv. reportée seule au 4 févr., posologie changée : 4 févr., 28 févr., puis le 28 de chaque
-  mois (28 mars, 28 avr.) au lieu du 30 (30 mars, 30 avr.) ; même chose quand les heures changent
-  (#737) : mensuel du 31 à 8 h et 20 h, journée du 31 janv. reportée seule au 2 févr., heures
-  passées à 9 h et 21 h : 2 févr., 28 févr., 28 mars au lieu de 31 mars ; mensuel du 29 janv. 2027
-  reporté seul au 2 févr., heures changées le 1er : 28 mars au lieu de 29 mars ; mensuel du 31,
-  31 mars reporté seul au 2 avr., heures changées le 1er avr. : 30 avr., 30 mai au lieu de 31 mai.
-  Le changement sans report (G26) et le jour d'arrivée déjà passé gardent le jour du mois (#736).
-  Ce cas reste parce qu'une période ne dit que sa première échéance et un jour de référence : une
-  première dose hors grille suivie d'une grille du 31 qui commence par un jour borné ne s'y écrit
-  pas. Le lever demande de lire autrement le jour de référence, ou d'en porter un de plus
-  (question posée à Gaelle, #736).
+Reste à trancher par Gaelle : le texte d'une ligne sans effet dans l'historique (proposition :
+« Reportée au 4 oct. · sans effet », grisée, menu « Supprimer » seul ; R11).
