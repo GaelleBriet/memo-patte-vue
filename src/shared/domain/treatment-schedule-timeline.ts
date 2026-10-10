@@ -167,9 +167,8 @@ export function coveredKeys(
   )
 }
 
-// G24 : un jour de référence avant la première échéance marque la journée entamée en avance qui
-// ouvre la période, à rythme changé ; un pas après elle, une journée qui ne couvre rien (Q8) ; plus
-// près, l'arrivée d'un report seul qui garde la grille (G23).
+// Jour de référence avant la première échéance : journée entamée en avance (G24) ; un pas après :
+// journée qui ne couvre rien (Q8) ; plus près : arrivée d'un report seul, grille gardée (G23).
 function startedDays(period: TreatmentPeriodInput): string[] {
   const { firstDueOn, referenceOn, startsOn, frequency } = period
   if (referenceOn > firstDueOn) {

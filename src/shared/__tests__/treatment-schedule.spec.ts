@@ -4807,6 +4807,43 @@ describe('journée entière reportée seule, puis un réglage changé : la grill
       expect(dueDays(changed.upcoming(2))).toEqual(['2026-04-24', '2026-06-05'])
     })
   })
+
+  it.each([
+    ['2025-12-30', '2026-01-30', '2026-02-28'],
+    ['2025-12-15', '2026-01-15', '2026-02-15'],
+  ])(
+    'mensuel du %s, période ouverte le %s, jour de référence le %s, exactement un pas plus loin (Q8, fin de mois comprise) : la journée de départ ne couvre rien',
+    (first, day, referenceOn) => {
+      const book: Carnet = {
+        periods: [
+          monthly({ firstDueOn: first, times: ['08:00'] }),
+          monthly({
+            id: 'p2',
+            createdAt: '2026-10-02T09:00:00.000Z',
+            startsOn: day,
+            firstDueOn: day,
+            referenceOn,
+            times: later,
+          }),
+        ],
+        doses: [
+          stored({
+            periodId: 'p1',
+            dueOn: day,
+            dueTime: '08:00',
+            givenOn: day,
+            status: 'given',
+            nextDueDate: day,
+          }),
+        ],
+      }
+
+      expect(scheduleOf(book, day).currentDoses).toEqual([
+        due(day, '09:00', 'p2'),
+        due(day, '21:00', 'p2'),
+      ])
+    },
+  )
 })
 
 describe('changer la posologie ne change jamais le calendrier (G23, #692)', () => {
