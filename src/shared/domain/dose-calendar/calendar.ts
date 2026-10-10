@@ -102,7 +102,7 @@ function journeys(input: EpisodeInput, effects: Map<string, LineEffect>) {
       (setting.endsOn === null || end <= setting.endsOn) &&
       isOnGrid(grid.origin, setting.frequency, end)
     ) {
-      boundaries.set(end, hoursOf(setting.times))
+      boundaries.set(end, [...(boundaries.get(end) ?? []), ...hoursOf(setting.times)])
     }
   })
   for (const shift of lines.shifts) {
@@ -134,7 +134,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     const exact = ofDay.filter(
       (note) =>
         !isBorrowed.has(note) &&
-        (translated.get(day) !== journey.setting.id || note.settingId === journey.setting.id),
+        (!translated.has(day) || sameHours(settingOf(note.settingId), journey.setting)),
     )
     for (const note of ofDay) {
       if (!exact.includes(note) || journey.hours.includes(note.dueTime)) matched.add(note)

@@ -167,6 +167,34 @@ describe('relecture du pas 2 : frontières de réglage et historique', () => {
     expect(effectOf(read, evening.id)).toEqual({ kind: 'covers', key: '2026-10-03 21:00' })
   })
 
+  it('R1, R4 : deux réglages qui cèdent la place le même jour : chaque prise garde son échéance', () => {
+    const morning = line('p1', 'given', '2026-10-03', '06:00')
+    const evening = line('p2', 'given', '2026-10-03', '20:00')
+    const settings = [
+      setting('p1', '2026-10-01', DAY, ['06:00']),
+      setting('p2', '2026-10-03', DAY, ['20:00']),
+      setting('p3', '2026-10-10', WEEK, ['09:00'], { startsOn: '2026-10-03' }),
+    ]
+    const read = view(settings, [morning, evening], '2026-10-03')
+    expect(effectOf(read, morning.id)).toEqual({ kind: 'covers', key: '2026-10-03 06:00' })
+    expect(effectOf(read, evening.id)).toEqual({ kind: 'covers', key: '2026-10-03 20:00' })
+  })
+
+  it('R4 : heures changées par deux réglages le même jour : la prise de l’ancien réglage couvre la première heure', () => {
+    const settings = [
+      setting('p1', '2026-10-01', DAY, H),
+      setting('p2', '2026-10-03', DAY, ['09:00', '21:00']),
+      setting('p3', '2026-10-03', DAY, ['09:00', '21:00']),
+    ]
+    const lines = [
+      line('p1', 'given', '2026-10-03', '20:00'),
+      line('p2', 'missed', '2026-10-05', '09:00'),
+    ]
+    const read = view(settings, lines, '2026-10-03')
+    expect(read.dueState({ dueOn: '2026-10-03', dueTime: '09:00' })).toBe('covered')
+    expect(read.dueState({ dueOn: '2026-10-03', dueTime: '21:00' })).toBe('pending')
+  })
+
   it('Q41 : une dose oubliée n’est pas « déjà notée »', () => {
     const p1 = setting('p1', '2026-10-02', WEEK)
     const read = view([p1], [line('p1', 'missed', '2026-10-02')], '2026-10-09')

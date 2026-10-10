@@ -201,7 +201,7 @@ export function calendarOf(
       (setting.endsOn === null || end <= setting.endsOn) &&
       isOnGrid(grid.origin, setting.frequency, end)
     ) {
-      boundaries.set(end, hoursOf(setting))
+      boundaries.set(end, [...(boundaries.get(end) ?? []), ...hoursOf(setting)])
     }
   })
 
@@ -213,7 +213,7 @@ export function calendarOf(
     const exact = ofDay.filter(
       (note) =>
         !borrowed.includes(note) &&
-        (translated.get(day) !== journey.setting.id || note.settingId === journey.setting.id),
+        (!translated.has(day) || sameHours(settingOf(note.settingId), journey.setting)),
     )
     ofDay
       .filter((note) => !exact.includes(note) || journey.hours.includes(note.dueTime))

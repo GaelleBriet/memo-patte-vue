@@ -61,6 +61,12 @@ function periodsOf(book: Book) {
   return { ordered, byId, outside, closing }
 }
 
+// R1, R8 : les périodes de l'épisode en cours avant `index`, depuis le dernier arrêt.
+function episodeBefore(ordered: Period[], index: number): Period[] {
+  const stops = ordered.slice(0, index).map(({ stoppedOn }, at) => (stoppedOn === null ? -1 : at))
+  return ordered.slice(Math.max(...stops) + 1, index)
+}
+
 function onLattice(origin: string, period: Period, day: string): boolean {
   let reached = origin
   for (let step = 1; reached < day; step += 1) reached = shifted(origin, period.frequency, step)
@@ -89,7 +95,10 @@ function inForceGrid(book: Book, before: Period[], day: string): boolean {
     .filter((line) => line.status === 'shift' && ids.has(line.periodId) && line.dueOn < day)
     .sort((a, b) => a.dueOn.localeCompare(b.dueOn))
     .at(-1)
-  if (turn === undefined) return ownGrid(before[first]!, day)
+  const head = before[first]!
+  if (turn === undefined) {
+    return ownGrid(head, day) || (day < head.firstDueOn && onLattice(day, head, head.firstDueOn))
+  }
   return day > turn.nextDueDate && onLattice(turn.nextDueDate, last, day)
 }
 
@@ -141,8 +150,7 @@ function familiesOn(book: Book, day: string, stale: Set<string>): Family[] {
       found.add('prises-du-traitement')
     }
     if (!sameFrequency(previous, period) || day < period.startsOn) return
-    const stops = ordered.slice(0, index).map(({ stoppedOn }, at) => (stoppedOn === null ? -1 : at))
-    const before = ordered.slice(Math.max(...stops) + 1, index)
+    const before = episodeBefore(ordered, index)
     if (day <= period.firstDueOn || inForceGrid(book, before, day) !== ownGrid(period, day)) {
       found.add('reglage-meme-frequence')
     }
@@ -174,14 +182,16 @@ function inLoop(book: Book, line: TreatmentDoseInput): boolean {
 
 // R4 : l'échéance `key`, due pour le moteur actuel, est couverte par une prise d'une échéance plus
 // tôt (jour et heure) à moins d'un pas, sortie du calendrier du second moteur : sans ces prises, il la
-// redemande. Une prise qui pourrait battre un report, ou qui vise le jour où son réglage cède la place
-// (R1 : elle garde son échéance), reste dans le carnet relu.
+// redemande. Une prise qui pourrait battre un report, ou qui vise une journée de sa grille le jour où
+// son réglage cède la place (R1 : elle garde son échéance), reste dans le carnet relu.
 function coveredByOrphan(book: Book, key: string, reread: Reread): boolean {
   const day = dayOf(key)
-  const { byId, closing } = periodsOf(book)
+  const { ordered, byId, closing } = periodsOf(book)
   const atBoundary = ({ periodId, dueOn }: TreatmentDoseInput) => {
     const period = byId(periodId)
-    return period !== undefined && closing(period) === dueOn
+    if (period === undefined || closing(period) !== dueOn) return false
+    const run = [...episodeBefore(ordered, ordered.indexOf(period)), period]
+    return inForceGrid(book, run, dueOn)
   }
   const reported = new Set(
     book.doses

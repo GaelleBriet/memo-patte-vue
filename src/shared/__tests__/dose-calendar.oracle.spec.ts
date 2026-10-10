@@ -80,6 +80,9 @@ describe('oracle des moteurs de doses', () => {
   it.each([
     [560001008, 'reglage-meme-frequence'],
     [560003279, 'reglage-meme-frequence'],
+    [570010320, 'reglage-meme-frequence'],
+    [570002709, 'prise-orpheline'],
+    [570015902, 'prise-orpheline'],
   ])('moteur v2, réglages changés : la graine %i est rattachée à %s', (seed, family) => {
     const run = runOracle(
       oracleConfig({
