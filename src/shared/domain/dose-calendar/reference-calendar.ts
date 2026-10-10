@@ -127,6 +127,8 @@ export function calendarOf(
   const days = new Map<string, Journey>()
   // R4, R7, R9 : les jours où une prise visant d'autres heures couvre les premières heures.
   const translated = new Map<string, string>()
+  // R1, R4 : le jour où un réglage cède la place, ses prises gardent leur échéance.
+  const boundaries = new Map<string, Hour[]>()
   let grid: Grid = { origin: live[0]!.firstDueOn, floor: '' }
   live.forEach((setting, index) => {
     const end = endOf(index)
@@ -164,7 +166,14 @@ export function calendarOf(
         }
       : {
           origin: setting.gridOriginOn ?? setting.firstDueOn,
-          floor: plusDays(later(setting.firstDueOn, setting.startsOn), -1),
+          // R7, R9.2 : un réglage qui part du jour d'arrivée d'un report lui laisse ses seules heures.
+          floor:
+            previous !== undefined &&
+            reports.some(
+              ({ dueOn, targetOn }) => targetOn === setting.firstDueOn && dueOn < setting.startsOn,
+            )
+              ? setting.firstDueOn
+              : plusDays(later(setting.firstDueOn, setting.startsOn), -1),
         }
     // R6 : à partir de sa journée d'origine, un décalage donne à la grille l'origine de son ancrage ;
     // écrit sous un réglage d'avant un changement de fréquence, il est dépassé par la nouvelle origine (R3).
@@ -186,6 +195,14 @@ export function calendarOf(
       grid = { origin: turn.targetOn!, floor: later(turn.dueOn, turn.targetOn!) }
       from = plusDays(turn.dueOn, 1)
     }
+    if (
+      end !== null &&
+      end > grid.floor &&
+      (setting.endsOn === null || end <= setting.endsOn) &&
+      isOnGrid(grid.origin, setting.frequency, end)
+    ) {
+      boundaries.set(end, hoursOf(setting))
+    }
   })
 
   // R4 : une prise couvre son échéance ; le jour où les heures changent, celles qui visaient l'ancien
@@ -204,9 +221,18 @@ export function calendarOf(
     const covered = new Set(
       journey.hours.filter((hour) => exact.some((note) => note.dueTime === hour)),
     )
+    // R4 : une journée de l'ancien réglage entièrement notée n'a plus rien à donner.
+    const whole = ofDay.some(
+      (note) =>
+        !exact.includes(note) &&
+        !borrowed.includes(note) &&
+        hoursOf(settingOf(note.settingId)).every((hour) =>
+          ofDay.some((other) => other.settingId === note.settingId && other.dueTime === hour),
+        ),
+    )
     let elsewhere = ofDay.length - exact.length
     for (const hour of journey.hours) {
-      if (elsewhere > 0 && !covered.has(hour)) {
+      if ((elsewhere > 0 || whole) && !covered.has(hour)) {
         covered.add(hour)
         elsewhere -= 1
       }
@@ -252,6 +278,13 @@ export function calendarOf(
     ].sort()
     days.set(targetOn!, day)
   }
+
+  boundaries.forEach((hours, day) => {
+    if (days.has(day)) return
+    notes
+      .filter((note) => note.dueOn === day && hours.includes(note.dueTime))
+      .forEach((note) => matched.add(note))
+  })
 
   const dues: { key: string; day: string; covered: boolean }[] = []
   for (const [day, journey] of [...days].sort(([a], [b]) => a.localeCompare(b))) {

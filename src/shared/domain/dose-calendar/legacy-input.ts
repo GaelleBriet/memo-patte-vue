@@ -1,4 +1,4 @@
-import { stepped } from './grid'
+import { isOnGrid } from './grid'
 import type { Day, Line, LineStatus, Setting, TreatmentViewInput } from './types'
 
 /** Réglage tel que le schéma v11 l'enregistre : `referenceOn` porte encore plusieurs sens. */
@@ -17,16 +17,9 @@ export type LegacyInput = {
   today: Day
 }
 
-/**
- * Plan §3.1 : l'origine est `referenceOn` quand la grille qui en part passe par la première
- * échéance (le 31 d'un mensuel) ou la suit, sinon la première échéance.
- */
+/** Plan §3.1 : l'origine est `referenceOn` quand sa grille passe par la première échéance (le 31 d'un mensuel). */
 function settingOf({ referenceOn, ...period }: LegacyPeriod): Setting {
-  let day = referenceOn
-  for (let step = 1; day < period.firstDueOn; step += 1) {
-    day = stepped(referenceOn, period.frequency, step)
-  }
-  const kept = day === period.firstDueOn || referenceOn > period.firstDueOn
+  const kept = isOnGrid(referenceOn, period.frequency, period.firstDueOn)
   return { ...period, gridOriginOn: kept ? referenceOn : period.firstDueOn }
 }
 

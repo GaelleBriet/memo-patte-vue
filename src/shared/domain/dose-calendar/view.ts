@@ -70,16 +70,16 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
     .sort()
     .at(-1)!
   const base = plusDays(lastKnownDay, 2 * step)
-  const built = new Map<Day, EpisodeCalendar[]>()
+  const build = (reach: Day) => parts.map((part) => episodeCalendar({ ...part, settingOf, reach }))
+  const calendars = build(base)
+  let widest = { reach: base, calendars }
   const calendarsUntil = (day: Day): EpisodeCalendar[] => {
-    const reach = later(base, day)
-    const known = built.get(reach)
-    if (known !== undefined) return known
-    const calendars = parts.map((part) => episodeCalendar({ ...part, settingOf, reach }))
-    built.set(reach, calendars)
-    return calendars
+    if (day > widest.reach) {
+      const reach = plusDays(day, UPCOMING_DAYS)
+      widest = { reach, calendars: build(reach) }
+    }
+    return widest.calendars
   }
-  const calendars = calendarsUntil(base)
   const currentSetting = episodes.at(-1)?.at(-1) ?? null
   const moment = momentOf(calendars, currentSetting ?? undefined, today)
   const closed = moment.phase === 'stopped' || moment.phase === 'ended'
@@ -149,7 +149,7 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
     alreadyNotedOn: (due, day) => {
       const slot = slotOf(keyOf(due.dueOn, due.dueTime))
       const by = slot?.coveredBy ?? null
-      if (by !== null) return by.givenOn ?? day
+      if (by !== null) return by.status === 'given' ? (by.givenOn ?? day) : null
       const extra = lines.some(
         (line) =>
           line.status === 'extra' &&

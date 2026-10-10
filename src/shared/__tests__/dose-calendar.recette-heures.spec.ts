@@ -77,17 +77,14 @@ describe('R7 : 8 h du 3 donnée, 20 h du 3 reportée au 4', () => {
     expect(affiche(c, '2026-10-04', 2)).toEqual(['2026-10-05 09:00', '2026-10-05 21:00'])
   })
 
-  it.fails(
-    'fréquence changée le 4 pour tous les 3 jours : 20 h le 4, puis le 7 (pas 4, réglage proposé par le moteur actuel)',
-    () => {
-      const c = modifie(reporte20h(), '2026-10-04', jours(3), H)
-      expect(affiche(c, '2026-10-04', 3)).toEqual([
-        '2026-10-04 20:00',
-        '2026-10-07 08:00',
-        '2026-10-07 20:00',
-      ])
-    },
-  )
+  it('fréquence changée le 4 pour tous les 3 jours : 20 h le 4, puis le 7', () => {
+    const c = modifie(reporte20h(), '2026-10-04', jours(3), H)
+    expect(affiche(c, '2026-10-04', 3)).toEqual([
+      '2026-10-04 20:00',
+      '2026-10-07 08:00',
+      '2026-10-07 20:00',
+    ])
+  })
 
   it('fréquence changée le 4 pour tous les jours : le 5 ; pour chaque semaine : le 11', () => {
     const c = reporte20h()
@@ -145,21 +142,18 @@ describe('R7 : 8 h du 3 donnée, 20 h du 3 reportée au 4', () => {
 })
 
 describe('R4, R10 : une prise couvre son échéance, un réglage du jour se remplace', () => {
-  it.fails(
-    '#741 : tous les 3 mois à 6, 12, 18, 23 h ; 23 h reportée au 12, donnée le 5 ; chaque semaine le 12 : rien le 12, le 19 (pas 4)',
-    () => {
-      const T = ['06:00', '12:00', '18:00', '23:00']
-      let c = carnet('2026-03-10', mois(3), T)
-      for (const heure of T.slice(0, 3)) {
-        c = donne(c, '2026-03-10', echeance(c, '2026-03-10', heure))
-      }
-      c = deplace(c, '2026-03-10', echeance(c, '2026-03-10', '23:00'), '2026-03-12', true)
-      c = donne(c, '2026-03-12', echeance(c, '2026-03-12', '23:00'), '2026-03-05')
-      expect(journees(c, '2026-03-12', 1)).toEqual(['2026-06-05'])
-      c = modifie(c, '2026-03-12', semaines(1), H)
-      expect(journees(c, '2026-03-12', 1)).toEqual(['2026-03-19'])
-    },
-  )
+  it('#741 : tous les 3 mois à 6, 12, 18, 23 h ; 23 h reportée au 12, donnée le 5 ; chaque semaine le 12 : rien le 12, le 19', () => {
+    const T = ['06:00', '12:00', '18:00', '23:00']
+    let c = carnet('2026-03-10', mois(3), T)
+    for (const heure of T.slice(0, 3)) {
+      c = donne(c, '2026-03-10', echeance(c, '2026-03-10', heure))
+    }
+    c = deplace(c, '2026-03-10', echeance(c, '2026-03-10', '23:00'), '2026-03-12', true)
+    c = donne(c, '2026-03-12', echeance(c, '2026-03-12', '23:00'), '2026-03-05')
+    expect(journees(c, '2026-03-12', 1)).toEqual(['2026-06-05'])
+    c = modifie(c, '2026-03-12', semaines(1), H)
+    expect(journees(c, '2026-03-12', 1)).toEqual(['2026-03-19'])
+  })
 
   it('#738 : 20 h du 3 donnée, posologie changée le 3, prise supprimée : 20 h du 3 revient', () => {
     let c = base()

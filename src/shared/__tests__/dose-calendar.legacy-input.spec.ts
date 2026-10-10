@@ -39,6 +39,11 @@ describe('plan §3.1 : `referenceOn` devient l’origine de la grille', () => {
     expect(origins([period('p1', '2026-04-29', '2026-01-31')])).toEqual(['2026-04-29'])
   })
 
+  it('un `referenceOn` après la première échéance n’est gardé que sur sa grille', () => {
+    expect(origins([period('p1', '2026-02-28', '2026-03-31')])).toEqual(['2026-03-31'])
+    expect(origins([period('p1', '2026-02-10', '2026-03-31')])).toEqual(['2026-02-10'])
+  })
+
   it('R3 : à fréquence gardée, l’origine est héritée ; après un arrêt, elle repart', () => {
     const p1 = period('p1', '2026-01-31', '2026-01-31')
     const p2 = period('p2', '2026-02-28', '2026-02-28', { startsOn: '2026-02-20' })

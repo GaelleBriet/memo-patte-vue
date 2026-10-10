@@ -37,6 +37,7 @@ function journeys(input: EpisodeInput, effects: Map<string, LineEffect>) {
   const { live, endOf } = span
   const days = new Map<Day, Journey>()
   const translated = new Map<Day, string>()
+  const boundaries = new Map<Day, Hour[]>()
   let grid = { origin: live[0]!.firstDueOn, floor: '' }
   live.forEach((setting, index) => {
     const end = endOf(index)
@@ -62,7 +63,14 @@ function journeys(input: EpisodeInput, effects: Map<string, LineEffect>) {
       previous !== undefined &&
       previous.firstDueOn >= setting.startsOn &&
       grid.floor === plusDays(previous.firstDueOn, -1)
-    const ownFloor = plusDays(later(setting.firstDueOn, setting.startsOn), -1)
+    const arrival = lines.reports.some(
+      ({ dueOn, targetOn }) => targetOn === setting.firstDueOn && dueOn < setting.startsOn,
+    )
+    // R7, R9.2 : un réglage qui part du jour d'arrivée d'un report lui laisse ses seules heures.
+    const ownFloor =
+      previous !== undefined && arrival
+        ? setting.firstDueOn
+        : plusDays(later(setting.firstDueOn, setting.startsOn), -1)
     grid = continued
       ? {
           origin: grid.origin,
@@ -89,18 +97,26 @@ function journeys(input: EpisodeInput, effects: Map<string, LineEffect>) {
       grid = { origin: turn.targetOn!, floor: later(turn.dueOn, turn.targetOn!) }
       from = plusDays(turn.dueOn, 1)
     }
+    if (
+      end !== null &&
+      end > grid.floor &&
+      (setting.endsOn === null || end <= setting.endsOn) &&
+      isOnGrid(grid.origin, setting.frequency, end)
+    ) {
+      boundaries.set(end, hoursOf(setting.times))
+    }
   })
   for (const shift of lines.shifts) {
     if (!effects.has(shift.id)) effects.set(shift.id, { kind: 'idle', reason: 'overtaken' })
   }
-  return { days, translated }
+  return { days, translated, boundaries }
 }
 
 /** R4, R7, R11 : le calendrier d'un épisode, une passe par étape, du réglage à la couverture. */
 export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   const { settingOf, span, lines, borrowed } = input
   const effects = new Map<string, LineEffect>()
-  const { days, translated } = journeys(input, effects)
+  const { days, translated, boundaries } = journeys(input, effects)
   const byDay = new Map<Day, Line[]>()
   for (const note of [...lines.notes, ...borrowed]) {
     byDay.set(note.dueOn, [...(byDay.get(note.dueOn) ?? []), note])
@@ -129,9 +145,20 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
       const note = exact.find(({ dueTime }) => dueTime === hour)
       if (note !== undefined) covered.set(hour, note)
     }
-    const elsewhere = ofDay.filter((note) => !exact.includes(note))
-    for (const hour of journey.hours) {
-      if (elsewhere.length > 0 && !covered.has(hour)) covered.set(hour, elsewhere.shift()!)
+    const elsewhere = ofDay
+      .filter((note) => !exact.includes(note))
+      .sort((a, b) => (a.dueTime ?? '').localeCompare(b.dueTime ?? ''))
+    const last = elsewhere.at(-1)
+    const whole = elsewhere.some(
+      (note) =>
+        !isBorrowed.has(note) &&
+        hoursOf(settingOf(note.settingId).times).every((hour) =>
+          ofDay.some((other) => other.settingId === note.settingId && other.dueTime === hour),
+        ),
+    )
+    for (const hour of journey.hours.filter((each) => !covered.has(each))) {
+      const note = elsewhere.shift() ?? (whole ? last : undefined)
+      if (note !== undefined) covered.set(hour, note)
     }
     return covered
   }
@@ -191,6 +218,17 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     days.set(targetOn!, day)
   }
 
+  // R1, R4 : le jour où un réglage cède la place, ses prises gardent leur échéance.
+  boundaries.forEach((hours, day) => {
+    if (days.has(day)) return
+    for (const note of byDay.get(day) ?? []) {
+      if (!isBorrowed.has(note) && hours.includes(note.dueTime)) {
+        matched.add(note)
+        heldAtOrigin.add(note)
+      }
+    }
+  })
+
   const slots: Slot[] = []
   for (const [day, journey] of [...days].sort(([a], [b]) => a.localeCompare(b))) {
     if (journey.hours.length > 0) fallen.add(day)
@@ -204,7 +242,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     }
   }
   coverOrphans(lines.notes, matched, slots, settingOf)
-  noteEffects(lines, slots, heldAtOrigin, effects)
+  noteEffects(lines, borrowed, slots, heldAtOrigin, effects)
   return { slots, fallen, moved, effects }
 }
 
@@ -231,6 +269,7 @@ function coverOrphans(
 
 function noteEffects(
   lines: EpisodeLines,
+  borrowed: readonly Line[],
   slots: readonly Slot[],
   heldAtOrigin: ReadonlySet<Line>,
   effects: Map<string, LineEffect>,
@@ -239,8 +278,9 @@ function noteEffects(
   for (const { coveredBy, key } of slots) {
     if (coveredBy !== null && !covering.has(coveredBy)) covering.set(coveredBy, key)
   }
-  for (const note of lines.notes) {
+  for (const note of [...lines.notes, ...borrowed]) {
     const key = covering.get(note)
+    if (borrowed.includes(note) && key === undefined) continue
     const own = heldAtOrigin.has(note) ? keyOf(note.dueOn, note.dueTime) : undefined
     const covered = key ?? own
     effects.set(

@@ -69,4 +69,17 @@ describe('moteur des doses v2 : une passe par étape', () => {
     expect(read()[1]!.length).toBeGreaterThan(50)
     expect(times.sort((a, b) => a - b)[10]).toBeLessThan(5)
   })
+
+  it('lit l’état de 400 échéances lointaines sans reconstruire le calendrier à chacune', () => {
+    const read = view([setting('p1', '2026-01-01', DAY)], [], '2026-01-01')
+    const times: number[] = []
+    for (let run = 0; run < 5; run += 1) {
+      const start = performance.now()
+      for (let index = 0; index < 400; index += 1) {
+        read.dueState({ dueOn: plusDays('2026-03-01', run * 400 + index), dueTime: null })
+      }
+      times.push(performance.now() - start)
+    }
+    expect(times.sort((a, b) => a - b)[2]).toBeLessThan(25)
+  })
 })

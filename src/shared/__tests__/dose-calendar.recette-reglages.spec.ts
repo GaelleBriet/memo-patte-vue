@@ -16,6 +16,7 @@ import {
   proposition,
   reprend,
   semaines,
+  vue,
 } from './dose-calendar.recette.aides'
 
 // Jeu de recette du moteur v2 (épic #758) : attentes des règles R1 à R12 et des décisions du
@@ -72,6 +73,29 @@ describe('R2, R3, R9 : première échéance, mois, nouveau réglage', () => {
     c = donne(c, '2026-09-01', echeance(c, '2026-09-01'))
     c = donne(c, '2026-09-17', echeance(c, '2026-09-08'), '2026-09-10')
     expect(proposition(c, '2026-09-17', jours(10), [])).toBe('2026-09-18')
+  })
+})
+
+describe('R1, R4 : la dose du jour donnée, puis le réglage changé le même jour', () => {
+  it('mensuel du 5, dose du 5 oct. donnée, chaque semaine le 5 : le 12, puis le 19', () => {
+    let c = carnet('2026-09-05', mois(1))
+    c = donne(c, '2026-09-05', echeance(c, '2026-09-05'))
+    c = donne(c, '2026-10-05', echeance(c, '2026-10-05'))
+    c = modifie(c, '2026-10-05', semaines(1), [])
+    expect(journees(c, '2026-10-05', 2)).toEqual(['2026-10-12', '2026-10-19'])
+  })
+
+  it('quotidien à 8 h et 20 h, doses du 3 données, chaque semaine à 9 h le 3 : le 10, les prises du 3 gardent leur échéance', () => {
+    let c = carnet('2026-10-01', jours(1), H)
+    c = donne(c, '2026-10-03', echeance(c, '2026-10-03', '08:00'))
+    c = donne(c, '2026-10-03', echeance(c, '2026-10-03', '20:00'))
+    c = modifie(c, '2026-10-03', semaines(1), ['09:00'])
+    expect(affiche(c, '2026-10-03', 2)).toEqual(['2026-10-10 09:00', '2026-10-17 09:00'])
+    const effects = vue(c, '2026-10-03').history.map(({ effect }) => effect)
+    expect(effects).toEqual([
+      { kind: 'covers', key: '2026-10-03 08:00' },
+      { kind: 'covers', key: '2026-10-03 20:00' },
+    ])
   })
 })
 
