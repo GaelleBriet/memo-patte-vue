@@ -76,11 +76,8 @@ export function referenceReading({
     const all = [...unlogged, ...missed].sort()
     return { phase, finished: all.length === 0, current: [], unlogged: all, upcoming: [] }
   }
-  if (setting.stoppedOn !== null)
-    return closed(
-      'stopped',
-      own.filter((key) => dayOf(key) <= yesterday),
-    )
+  const past = own.filter((key) => dayOf(key) <= yesterday)
+  if (setting.stoppedOn !== null) return closed('stopped', past)
   if (setting.endsOn !== null && setting.endsOn < today) return closed('ended', own)
 
   // TR-10, TR-13 : la dernière journée arrivée reste la dose du moment tant qu'elle a des heures sans prise.

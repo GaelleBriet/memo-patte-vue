@@ -1,9 +1,9 @@
 import type { ReferenceFrequency, ReferenceLine, ReferenceSetting } from './reference-types'
 
-export type Hour = string | null
+type Hour = string | null
 type Journey = { setting: ReferenceSetting; hours: Hour[] }
 type Grid = { origin: string; floor: string }
-export type Calendar = { pending: string[]; fallen: Set<string> }
+type Calendar = { pending: string[]; fallen: Set<string> }
 
 const DAY_MS = 86_400_000
 
@@ -29,10 +29,10 @@ function stepped(origin: string, { value, unit }: ReferenceFrequency, step: numb
   return toDay(Date.UTC(year, month, Math.min(+origin.slice(8, 10), lastDay)))
 }
 
-// R2 : l'origine plus un nombre entier de pas, de `from` à `to` inclus.
 export const longestStep = ({ value, unit }: ReferenceFrequency) =>
   value * (unit === 'month' ? 31 : unit === 'week' ? 7 : 1)
 
+// R2 : l'origine plus un nombre entier de pas, de `from` à `to` inclus.
 function gridDays(origin: string, frequency: ReferenceFrequency, from: string, to: string) {
   const longest = longestStep(frequency)
   const days: string[] = []
@@ -53,7 +53,7 @@ const sameFrequency = (a: ReferenceSetting, b: ReferenceSetting) =>
 const isOnGrid = (origin: string, frequency: ReferenceFrequency, day: string) =>
   gridDays(origin, frequency, day, day).length === 1
 
-// R1 : un arrêt clôt un épisode ; R10 : un réglage suivi d'un autre ouvert le même jour n'a aucun jour.
+// R1, R8 : un arrêt clôt un épisode ; la reprise en ouvre un autre.
 export function episodesOf(settings: readonly ReferenceSetting[]): ReferenceSetting[][] {
   const ordered = [...settings].sort(
     (a, b) =>

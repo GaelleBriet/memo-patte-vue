@@ -107,6 +107,7 @@ function familiesOn(book: Book, day: string, stale: Set<string>): Family[] {
   ordered.forEach((period, index) => {
     const previous = ordered[index - 1]
     if (previous === undefined) return
+    if (outside(period.id, day) && day !== period.firstDueOn) return
     if (previous.stoppedOn !== null) {
       if (
         period.startsOn === day &&
