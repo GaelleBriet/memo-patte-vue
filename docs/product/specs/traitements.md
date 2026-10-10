@@ -846,7 +846,7 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
   couverture (R4), seul un décalage déplace la suite (R6), une seule lecture pour tous les écrans
   (R12). Écartées : consolider règle par règle (laisse les concepts fautifs) ; échéances
   matérialisées en base (dérivées stockées, conflits de synchro, trois à quatre fois le coût).
-  Mise en œuvre : `docs/technical/moteur-doses-v2-plan.md`, épic GitHub « Moteur des doses v2 ».
+  Mise en œuvre : `docs/technical/moteur-doses-v2-plan.md`, épic GitHub #758 « Moteur des doses v2 » (pas 1 à 10 : #748 à #757).
 - 2026-10-10 — **Q-C1 : corriger la date d'une prise se juge au jour de la nouvelle date** (TR-24
   bis, R6). Hebdo du vendredi, dose du 16 notée le 16 par erreur, corrigée le 25 « donnée le 24 » :
   la case est proposée ; cochée, la suite repart du 24 (31, 7 nov.) ; même résultat que par « Fait

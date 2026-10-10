@@ -180,7 +180,7 @@ Captures émulateur au pixel sur les parcours de la recette (pas 5, 6, 8), test 
 - **Performance** : une passe linéaire ; l'ancien `redate` reconstruisait l'état jusqu'à six fois ; viser < 5 ms par traitement sur 400 échéances (test de `treatment-schedule.perf.spec.ts` repris).
 - **Fuseaux** : rien de nouveau ; `today` reste un paramètre, les jours des chaînes `yyyy-MM-dd`.
 
-## 8. Tickets à créer (pas 0)
+## 8. Tickets (créés le 2026-10-10 : épic #758, pas 1 à 10 = #748 à #757)
 
 Un épic « Moteur des doses v2 » et un ticket par pas (1 à 10), chacun avec : les règles couvertes, la preuve attendue, les tickets qu'il ferme (`Closes`), les fichiers possédés. Les tickets ouverts #719, #734, #738, #741, #743, #744, #745 reçoivent un commentaire « fermé par le pas N de l'épic » et restent ouverts jusqu'à la PR qui les ferme ; #721 est fermé au pas 10 (ses graines rejouées par l'oracle) ; #654 au pas 6 ; #487 et #655 (rangement du code des traitements) sont absorbés par les pas 5 et 6.
 
