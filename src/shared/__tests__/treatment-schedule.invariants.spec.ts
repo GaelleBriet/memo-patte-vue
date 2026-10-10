@@ -1434,7 +1434,8 @@ class Simulation {
     this.checkFirstDueKept(after, period, gesture)
   }
 
-  // G23 : au même rythme, la prochaine dose arrivée d'un report seul garde sa date, la suite son rythme.
+  // G23 : au même rythme, la prochaine dose arrivée d'un report seul garde sa date, la suite son rythme ;
+  // heures changées, les journées d'après restent celles du calendrier (#737).
   private checkLoneArrivalKept(
     before: TreatmentSchedule,
     after: TreatmentSchedule,
@@ -1445,7 +1446,9 @@ class Simulation {
     const previous = this.book.periods.at(-2)
     const day = before.currentDoses[0]?.dueOn
     if (previous === undefined || day === undefined || day < today) return
-    if (rhythmKey(previous) !== rhythmKey(period)) return
+    const { value, unit } = previous.frequency
+    if (value !== period.frequency.value || unit !== period.frequency.unit) return
+    const sameTimes = rhythmKey(previous) === rhythmKey(period)
     const lone = loneArrivalOf(before, previous)
     if (lone === undefined) return
     const lines = before.doses.filter(
@@ -1469,11 +1472,14 @@ class Simulation {
       .sort()
     const horizon = limits[0] ?? pendingDays.at(-1) ?? day
     const slots = (schedule: TreatmentSchedule) =>
-      pendingOf(schedule)
-        .filter(({ dueOn }) => dueOn >= today && dueOn <= horizon)
-        .map(({ dueOn, dueTime }) => `${dueOn} ${dueTime ?? ''}`)
-        .sort()
-        .join()
+      [
+        ...new Set(
+          pendingOf(schedule)
+            .filter(({ dueOn }) => dueOn >= today && dueOn <= horizon && (sameTimes || dueOn > day))
+            .map(({ dueOn, dueTime }) => (sameTimes ? `${dueOn} ${dueTime ?? ''}` : dueOn))
+            .sort(),
+        ),
+      ].join()
     if (slots(before) === slots(after)) return
     if (isKnownLimit(slots(before), slots(after), period.frequency)) return
     this.fail(`${gesture} : le calendrier a changé (${slots(before)} → ${slots(after)})`)
