@@ -2,7 +2,7 @@ import { isClockTime } from './clock-time'
 import { checkFrequency, invalid } from './treatment-schedule-checks'
 import { latestOf, nextDay } from './calendar-day'
 import { shiftDate } from './treatment-frequency'
-import { isOffGrid, sequenceDues } from './treatment-schedule-sequence'
+import { initialSequence, isOffGrid, sequenceDues } from './treatment-schedule-sequence'
 import {
   isShift,
   mergeDoses,
@@ -39,7 +39,23 @@ function lastReference(state: State, frequency: Frequency): string | undefined {
     shiftOn(plan, last.dose)?.nextDueDate ??
     (sameFrequency(plan, frequency) ? loneOrigin(plan, last.dose.dueOn) : undefined) ??
     last.dose.dueOn
-  return shiftDate(reference, frequency, 1)
+  return nextGridDay(plan, reference, frequency) ?? shiftDate(reference, frequency, 1)
+}
+
+// #736 : au même rythme mensuel, la journée qui suit sur la grille garde son jour du mois.
+function nextGridDay(
+  plan: PeriodTimeline,
+  reference: string,
+  frequency: Frequency,
+): string | undefined {
+  if (frequency.unit !== 'month' || !sameFrequency(plan, frequency)) return undefined
+  const sequence = sequenceAt(plan, positionOf(`${reference} ~`, 1))
+  const dues = sequenceDues({ ...sequence, floor: '' }, plan.period, reference)
+  let next = dues.next().value
+  while (next.dueOn < reference) next = dues.next().value
+  if (next.dueOn !== reference) return undefined
+  while (next.dueOn === reference) next = dues.next().value
+  return next.dueOn
 }
 
 function sameFrequency({ period }: PeriodTimeline, { value, unit }: Frequency): boolean {
@@ -214,8 +230,25 @@ function heldStart(
   return keptStart(state, open, startsOn, day)
 }
 
+// #736 : au même rythme mensuel, une première dose bornée de la grille en vigueur (le 28 févr. d'une
+// suite du 31) en garde le jour du mois.
+function keptMonthDay(state: State, frequency: Frequency, dates: NewPeriod): NewPeriod {
+  const { open } = state
+  const { firstDueOn, referenceOn } = dates
+  if (open === null || frequency.unit !== 'month' || !sameFrequency(open, frequency)) return dates
+  if (referenceOn > firstDueOn) return dates
+  const { origin } = sequenceAt(open, positionOf(`${firstDueOn} `, 0))
+  if (origin >= firstDueOn || origin.slice(8) <= firstDueOn.slice(8)) return dates
+  const onGrid = initialSequence({ ...open.period, firstDueOn, referenceOn: origin })
+  return onGrid.origin === origin ? { ...dates, referenceOn: origin } : dates
+}
+
 // Q24 : la nouvelle période commence aujourd'hui ; ses heures au-delà des prises du jour restent à donner.
 export function newPeriod(state: State, frequency: Frequency, times: readonly string[]): NewPeriod {
+  return keptMonthDay(state, frequency, proposedPeriod(state, frequency, times))
+}
+
+function proposedPeriod(state: State, frequency: Frequency, times: readonly string[]): NewPeriod {
   checkFrequency(frequency, '')
   if (!times.every(isClockTime) || new Set(times).size !== times.length) {
     throw invalid(`heures ${JSON.stringify(times)}`)
