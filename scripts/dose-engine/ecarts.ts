@@ -22,7 +22,8 @@ export const FAMILIES = {
   'mensuel-du-31': { accepted: true },
   'marqueur-reference': { accepted: true },
   'reglage-remplace': { accepted: true },
-  'prise-orpheline': { accepted: false },
+  'prise-orpheline': { accepted: true },
+  'reports-en-boucle': { accepted: true },
 } as const
 
 export type Family = keyof typeof FAMILIES
@@ -101,6 +102,17 @@ function familiesOn(book: Book, day: string, stale: Set<string>): Family[] {
           : line.dueOn === day && isNote(line)
     if (!touches) continue
     if (stale.has(line.id)) found.add('lignes-sans-effet')
+    if (
+      line.status === 'postponed' &&
+      book.doses.some(
+        (other) =>
+          other.status === 'postponed' &&
+          other.dueOn === line.nextDueDate &&
+          other.nextDueDate === line.dueOn,
+      )
+    ) {
+      found.add('reports-en-boucle')
+    }
     const across =
       outside(line.periodId, line.dueOn) ||
       (line.status === 'postponed' && outside(line.periodId, line.nextDueDate))

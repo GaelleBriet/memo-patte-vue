@@ -62,19 +62,12 @@ describe('oracle des moteurs de doses', () => {
     expect(() => oracleConfig({ [name]: value })).toThrow(/^Oracle illisible/)
   })
 
-  it('ecarts-acceptes.md décrit chaque famille, acceptée ou non, à sa place', () => {
+  it('ecarts-acceptes.md décrit chaque famille, une fois', () => {
     const text = readFileSync(
       new URL('../../../scripts/dose-engine/ecarts-acceptes.md', import.meta.url),
       'utf8',
     )
-    const [accepted, refused] = text.split('## Écarts non acceptés')
-    const listed = (part = '') =>
-      [...part.matchAll(/^\| famille `([a-z0-9-]+)` +\|/gm)].map(([, family]) => family).sort()
-    const families = (wanted: boolean) =>
-      Object.entries(FAMILIES)
-        .filter(([, { accepted }]) => accepted === wanted)
-        .map(([family]) => family)
-        .sort()
-    expect([listed(accepted), listed(refused)]).toEqual([families(true), families(false)])
+    const listed = [...text.matchAll(/^\| famille `([a-z0-9-]+)`/gm)].map(([, family]) => family)
+    expect(listed.sort()).toEqual(Object.keys(FAMILIES).sort())
   })
 })
