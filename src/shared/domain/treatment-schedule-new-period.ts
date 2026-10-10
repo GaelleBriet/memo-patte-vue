@@ -42,7 +42,7 @@ function lastReference(state: State, frequency: Frequency): string | undefined {
   return nextGridDay(plan, reference, frequency) ?? shiftDate(reference, frequency, 1)
 }
 
-// #736 : au même rythme mensuel, la journée qui suit sur la grille garde son jour du mois.
+// G26 : au même rythme mensuel, la journée qui suit sur la grille garde son jour du mois.
 function nextGridDay(
   plan: PeriodTimeline,
   reference: string,
@@ -230,7 +230,7 @@ function heldStart(
   return keptStart(state, open, startsOn, day)
 }
 
-// #736 : au même rythme mensuel, une première dose bornée de la grille en vigueur (le 28 févr. d'une
+// G26 : au même rythme mensuel, une première dose bornée de la grille en vigueur (le 28 févr. d'une
 // suite du 31) en garde le jour du mois.
 function keptMonthDay(state: State, frequency: Frequency, dates: NewPeriod): NewPeriod {
   const { open } = state

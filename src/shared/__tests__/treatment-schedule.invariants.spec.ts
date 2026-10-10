@@ -1438,7 +1438,7 @@ class Simulation {
     this.checkMonthDayKept(before, after, period, gesture)
   }
 
-  // #736 : au même rythme mensuel, heures ou posologie changées, une journée qui suit la première dose
+  // G26 : au même rythme mensuel, heures ou posologie changées, une journée qui suit la première dose
   // ne glisse pas au 28 (ou au 30) du même mois : le jour du mois survit (31 mars après le 28 févr.).
   private checkMonthDayKept(
     before: TreatmentSchedule,

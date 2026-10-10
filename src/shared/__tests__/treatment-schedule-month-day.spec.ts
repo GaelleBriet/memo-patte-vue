@@ -12,6 +12,7 @@ import {
   record,
   scheduleOf,
   stored,
+  weekly,
   type Carnet,
 } from './treatment-schedule-fixtures'
 
@@ -185,12 +186,45 @@ describe('mensuel : changer les heures ou la posologie ne change pas le jour du 
     ).toEqual(['2027-02-28', '2027-03-30', '2027-04-30'])
   })
 
-  it('fréquence changée : la dernière prise plus la nouvelle fréquence (TR-7), sans jour du mois gardé', () => {
+  describe('fréquence changée : la nouvelle grille part du jour réel de la dernière prise, borné compris', () => {
     const everyTwo = { value: 2, unit: 'month' } as const
 
-    expect(upcomingDays(changed(february, '2027-03-05', everyTwo, []), '2027-03-05', 2)).toEqual([
-      '2027-04-28',
-      '2027-06-28',
-    ])
+    it('mensuel du 31 déc., passage à tous les 2 mois le 10 janv. : 28 févr., 28 avr., 28 juin', () => {
+      const book = done(carnet(monthly({ firstDueOn: '2026-12-31' })), '2026-12-31')
+
+      expect(upcomingDays(changed(book, '2027-01-10', everyTwo, []), '2027-01-10', 3)).toEqual([
+        '2027-02-28',
+        '2027-04-28',
+        '2027-06-28',
+      ])
+    })
+
+    it('mensuel du 31, 28 févr. donné, passage à tous les 2 mois le 5 mars : 28 avr., 28 juin', () => {
+      expect(upcomingDays(changed(february, '2027-03-05', everyTwo, []), '2027-03-05', 2)).toEqual([
+        '2027-04-28',
+        '2027-06-28',
+      ])
+    })
+
+    it('tous les 2 mois depuis le 31 janv., passage à tous les mois le 3 févr. : 28 févr., 28 mars', () => {
+      const book = done(
+        carnet(monthly({ firstDueOn: '2027-01-31', frequency: everyTwo })),
+        '2027-01-31',
+      )
+
+      expect(upcomingDays(changed(book, '2027-02-03', everyMonth, []), '2027-02-03', 2)).toEqual([
+        '2027-02-28',
+        '2027-03-28',
+      ])
+    })
+
+    it('hebdomadaire, dernière prise le 31 janv., passage à tous les mois : 28 févr., 28 mars', () => {
+      const book = done(carnet(weekly({ firstDueOn: '2027-01-31' })), '2027-01-31')
+
+      expect(upcomingDays(changed(book, '2027-02-03', everyMonth, []), '2027-02-03', 2)).toEqual([
+        '2027-02-28',
+        '2027-03-28',
+      ])
+    })
   })
 })
