@@ -1236,6 +1236,17 @@ class Simulation {
     return stayed
   }
 
+  // Fréquence changée : la période d'avant amène ce jour par un report seul, ou s'ouvrait déjà sur lui.
+  private arrivesFrom(previous: TreatmentPeriodInput, day: string): boolean {
+    return (
+      previous.firstDueOn === day ||
+      this.book.doses.some(
+        (move) =>
+          move.status === 'postponed' && move.periodId === previous.id && move.nextDueDate === day,
+      )
+    )
+  }
+
   // Heures changées, autant de premières heures du nouveau réglage restent couvertes (G4).
   private stayedHours(
     before: TreatmentSchedule,
@@ -1558,7 +1569,7 @@ class Simulation {
     const stayed =
       previous !== undefined &&
       previous.stoppedOn === null &&
-      (sameFrequency || period.firstDueOn === today)
+      (sameFrequency || (period.firstDueOn === today && this.arrivesFrom(previous, today)))
         ? this.stayedHours(before, period, today, ofToday)
         : 0
     const expected =
