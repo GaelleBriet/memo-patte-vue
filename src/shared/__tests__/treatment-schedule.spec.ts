@@ -4637,6 +4637,29 @@ describe('journée entière reportée seule, puis un réglage changé : la grill
     },
   )
 
+  it.each([
+    [
+      ['09:00', '21:00'],
+      ['2026-10-04 21:00', '2026-10-05 09:00', '2026-10-05 21:00'],
+    ],
+    [
+      ['08:00', '14:00', '20:00'],
+      ['2026-10-04 14:00', '2026-10-04 20:00', '2026-10-05 08:00'],
+    ],
+  ])(
+    '8 h du 4 donnée en avance le 3, heures passées le 3 à %j : le reste du 4 (G24), puis le 5',
+    (hours, upcoming) => {
+      const ahead = record(third, '2026-10-03', {
+        kind: 'given',
+        due: due('2026-10-04', '08:00'),
+        givenOn: '2026-10-03',
+      })
+      const changed = scheduleOf(changedOn(ahead, '2026-10-03', twoDays, hours), '2026-10-03')
+
+      expect(slots(changed.upcoming(3))).toEqual(upcoming)
+    },
+  )
+
   it.each(['2026-10-03', '2026-10-04'])(
     'une seule heure par jour, dose du 3 reportée seule au 4, heure passée à 9 h le %s : 4, 5, 7',
     (today) => {
