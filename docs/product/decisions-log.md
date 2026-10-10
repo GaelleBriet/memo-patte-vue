@@ -2271,6 +2271,17 @@ le carnet ne redemande jamais une dose donnée (principe 1). —
 Alternative écartée : la journée entière au nouveau réglage, ou la dernière prise plus la nouvelle
 fréquence (le 20 h du 3 disparaissait).
 
+2026-10-09 — **« Décaler aussi les doses suivantes » ne déplace jamais une dose déjà donnée de la
+journée** (Gaelle, #735 ; règles Q21 et G25 de la spec Traitements). Les doses suivantes, ce sont
+la dose reportée et toutes celles d'après. Tous les 2 jours (1, 3, 5) à 8 h et 20 h, 8 h du 3
+donnée, 20 h du 3 reportée au 4 avec le décalage : le 4, seule 20 h, puis le 6 et le 8 à 8 h et
+20 h. Le décalage supprimé ensuite, le 4 garde 20 h seule et la suite revient au 5 ; rien de donné
+le 3, la journée entière part au 4. Chaque cas de G25 (posologie, heures ou fréquence changées,
+plusieurs changements le même jour, report en chaîne) garde avec le décalage la même règle pour le
+jour d'arrivée, la suite repartant de lui. — Raison : la dose de 8 h du 3 est donnée, la redemander
+le 4 ferait donner une dose de trop (principe 1), comme pour un report seul. — Alternative
+écartée : le nouveau jour reprend toutes ses heures (Q21 du 2026-10-01), le comportement d'avant.
+
 2026-10-10 — **Fréquence changée le jour d'arrivée d'une heure reportée seule** (Gaelle, #720 ;
 règle G25 de la spec Traitements). Tous les 2 jours à 8 h et 20 h, 8 h du 3 donnée, 20 h du 3
 reportée seule au 4 ; le 4, passage à tous les 3 jours : le 4 ne demande que 20 h, puis le 7 à 8 h
@@ -2283,7 +2294,7 @@ comme quand les heures changent (décision du 2026-10-09). — Alternative écar
 la spec Traitements, qui précise Q21). Vermifuge tous les 2 jours à 8 h et 20 h, 8 h du 3 donnée,
 20 h du 3 reportée seule au 4 : le 4, seule la dose de 20 h est à donner, puis le 5 à 8 h et 20 h.
 Avec « Décaler aussi les doses suivantes », le nouveau jour garde toutes ses heures, puisque la
-suite repart de lui ; un changement de posologie ne ramène pas la dose de 8 h (G23). Heures passées
+suite repart de lui (remplacé par l'entrée du même jour sur le décalage, #735) ; un changement de posologie ne ramène pas la dose de 8 h (G23). Heures passées
 à 9 h et 21 h le 3 ou le 4, sans changer la fréquence : le 4 ne demande que 21 h, qui remplace la
 dose reportée, puis le 5 à 9 h et 21 h (réponse de Gaelle du même jour). — Raison : cohérent avec
 « un report seul ne déplace que sa dose » ; la dose de 8 h du 3 est donnée, la redemander le 4

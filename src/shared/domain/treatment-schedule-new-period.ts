@@ -56,10 +56,10 @@ function partialOrigin(plan: PeriodTimeline, day: string): string | undefined {
 }
 
 // G25 : une journée sans plus rien à donner, dont des heures sont parties ou restées en arrière d'un
-// report seul, est réglée : le nouveau réglage n'y ajoute rien (#711).
+// report, seul ou avec décalage (#735), est réglée : le nouveau réglage n'y ajoute rien (#711).
 function isSettledDay(open: PeriodTimeline, frequency: Frequency, day: string): boolean {
   if (pendingDues(open, { from: day, to: day }).length > 0) return false
-  if (partialOrigin(open, day) !== undefined) return true
+  if (movesInto(open, day).some((move) => stayedKeys(open, move).length > 0)) return true
   // Une période ouverte sur le jour d'arrivée en garde les heures restées en arrière.
   if (open.period.firstDueOn === day && open.leftBehind.size > 0) return true
   if (!open.removals.has(day)) return false

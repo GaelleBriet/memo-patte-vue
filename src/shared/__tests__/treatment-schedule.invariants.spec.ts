@@ -389,11 +389,28 @@ class Simulation {
       (dose) =>
         dose.status === 'postponed' && dose.periodId === due.periodId && dose.dueOn > due.dueOn,
     )
+    // #735 : avec son décalage, le nouveau jour ne reçoit que les heures parties de la journée déplacée.
+    const timesOn = (schedule: TreatmentSchedule, day: string) =>
+      pendingOf(schedule)
+        .filter((other) => other.periodId === due.periodId && other.dueOn === day)
+        .map(({ dueTime }) => dueTime)
+    const departed = timesOn(before, due.dueOn)
+    const fresh = !before.doses.some(
+      (dose) =>
+        dose.status === 'postponed' &&
+        dose.periodId === due.periodId &&
+        (dose.nextDueDate === due.dueOn || dose.dueOn === due.dueOn),
+    )
+    if (!backToOrigin && fresh && timesOn(before, to).length === 0) {
+      const extra = timesOn(after, to).filter((time) => !departed.includes(time))
+      if (extra.length > 0) this.fail(`${gesture} : le ${to} reçoit aussi [${extra.join()}]`)
+    }
     for (const step of backToOrigin || laterMove ? [0] : [0, 1, 2]) {
       const dueOn = shifted(to, period.frequency, step)
       if (period.endsOn !== null && dueOn > period.endsOn) break
       const stayed = backToOrigin && step === 0 ? this.stayedTimes(dueOn) : new Set()
-      for (const dueTime of period.times.length > 0 ? period.times : [null]) {
+      const times = period.times.length > 0 ? period.times : [null]
+      for (const dueTime of !backToOrigin && step === 0 ? departed : times) {
         if (stayed.has(dueTime)) continue
         const expected = idOf({ periodId: period.id, dueOn, dueTime })
         if (!noted.has(expected) && !pending.some((other) => idOf(other) === expected)) {
@@ -1179,7 +1196,7 @@ class Simulation {
     )
   }
 
-  // G25, recalculé depuis les prises : un report seul n'apporte à son jour d'arrivée ni les heures
+  // G25, recalculé depuis les prises : un report, seul ou avec décalage (#735), n'apporte à son jour d'arrivée ni les heures
   // déjà notées de sa journée d'origine, ni, tant que sa période la garde, celles d'avant son heure.
   private stayedTimes(day: string, before?: TreatmentSchedule, depth = 0): Set<string | null> {
     const { doses, periods } = this.book
@@ -1188,15 +1205,15 @@ class Simulation {
       const bounds = [periods[index]?.stoppedOn, periods[index + 1]?.startsOn]
       return bounds.filter((bound) => bound !== null && bound !== undefined).sort()[0]
     }
-    const lone = doses.filter(
+    const arriving = doses.filter(
       (move) =>
         move.status === 'postponed' &&
         move.nextDueDate === day &&
         move.dueOn !== day &&
-        !doses.some((other) => other.status !== 'postponed' && idOf(other) === idOf(move)),
+        !doses.some((other) => isNote(other) && idOf(other) === idOf(move)),
     )
     const stayed = new Set<string | null>()
-    for (const move of lone) {
+    for (const move of arriving) {
       // Un jour de la grille garde ses propres heures : il les avait toutes avant le geste.
       const ownTimes = periods.find(({ id }) => id === move.periodId)?.times ?? []
       const shown =

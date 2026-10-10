@@ -1731,7 +1731,7 @@ describe('plusieurs heures : « Prochaine dose » déplace la journée (TR-9, Q2
     },
   )
 
-  it('8 h notée le 28 : seule 20 h part', () => {
+  it('8 h notée le 28 : seule 20 h part, le 30 ne reçoit qu’elle (#735)', () => {
     const at8 = done(metacam, '2026-09-28')
     const book = record(at8, '2026-09-28', {
       kind: 'postponed',
@@ -1746,7 +1746,7 @@ describe('plusieurs heures : « Prochaine dose » déplace la journée (TR-9, Q2
       expect.objectContaining({ dueTime: '20:00', status: 'postponed', nextDueDate: '2026-09-30' }),
     ])
     expect(schedule.unloggedDoses).toEqual([])
-    expect(schedule.upcoming(2)).toEqual([due('2026-09-30', '08:00'), due('2026-09-30', '20:00')])
+    expect(schedule.upcoming(2)).toEqual([due('2026-09-30', '20:00'), due('2026-10-01', '08:00')])
   })
 
   it('avancer déplace aussi la journée : tous les 2 jours, le 5 avancé au 4', () => {
@@ -1862,7 +1862,7 @@ describe('une dose remise à sa date d’origine reste à donner (TR-9)', () => 
 describe('journée déplacée quand une heure est déjà notée (Q21)', () => {
   const metacam = carnet(period({ firstDueOn: '2026-09-28', times: ['08:00', '20:00'] }))
 
-  it('journée du 28 déplacée au 30, 8 h donnée le 30, puis 20 h déplacée au 2 oct. : une nouvelle ligne', () => {
+  it('journée du 28 déplacée au 30, 8 h donnée le 30, puis 20 h déplacée au 2 oct. : une nouvelle ligne, le 2 à 20 h seule (#735)', () => {
     let book = record(metacam, '2026-09-28', {
       kind: 'postponed',
       due: due('2026-09-28', '08:00'),
@@ -1889,10 +1889,10 @@ describe('journée déplacée quand une heure est déjà notée (Q21)', () => {
     expect(book.doses.find(({ id }) => id === first.id)).toEqual(first)
     const schedule = scheduleOf(book, '2026-10-01')
     expect(schedule.unloggedDoses).toEqual([])
-    expect(schedule.upcoming(2)).toEqual([due('2026-10-02', '08:00'), due('2026-10-02', '20:00')])
+    expect(schedule.upcoming(2)).toEqual([due('2026-10-02', '20:00'), due('2026-10-03', '08:00')])
   })
 
-  it('20 h notée avant 8 h le 28, puis 8 h déplacée au 30 : rien le 29, deux heures le 30', () => {
+  it('20 h notée avant 8 h le 28, puis 8 h déplacée au 30 : rien le 29, le 30 à 8 h seule (#735)', () => {
     let book = record(metacam, '2026-09-28', {
       kind: 'given',
       due: due('2026-09-28', '20:00'),
@@ -1906,7 +1906,7 @@ describe('journée déplacée quand une heure est déjà notée (Q21)', () => {
     const schedule = scheduleOf(book, '2026-09-29')
 
     expect(schedule.unloggedDoses).toEqual([])
-    expect(schedule.upcoming(2)).toEqual([due('2026-09-30', '08:00'), due('2026-09-30', '20:00')])
+    expect(schedule.upcoming(2)).toEqual([due('2026-09-30', '08:00'), due('2026-10-01', '08:00')])
   })
 })
 
@@ -3885,7 +3885,7 @@ describe('une heure reportée seule ne déplace que cette heure (G25, #720)', ()
     },
   )
 
-  it('posologie changée le 3, le 4 déplacé au 6 avec décalage puis ramené : le 6 a ses deux heures (Q21), le 4 revient à 20 h seule (graine 230001526)', () => {
+  it('posologie changée le 3, le 4 déplacé au 6 avec décalage puis ramené : le 6 n’a que 20 h (#735), le 4 revient à 20 h seule (graine 230001526)', () => {
     const book = movedOn(morningOf3, '2026-10-03', due('2026-10-03', '20:00'), '2026-10-04', false)
     const dates = scheduleOf(book, '2026-10-03').newPeriod(twoDays, times)
     const changed: Carnet = {
@@ -3910,10 +3910,10 @@ describe('une heure reportée seule ne déplace que cette heure (G25, #720)', ()
     )
 
     expect(scheduleOf(away, '2026-10-03').upcoming(2)).toEqual([
-      due('2026-10-06', '08:00', 'p2'),
       due('2026-10-06', '20:00', 'p2'),
+      due('2026-10-08', '08:00', 'p2'),
     ])
-    const back = movedOn(away, '2026-10-03', due('2026-10-06', '08:00', 'p2'), '2026-10-04', true)
+    const back = movedOn(away, '2026-10-03', due('2026-10-06', '20:00', 'p2'), '2026-10-04', true)
     expect(scheduleOf(back, '2026-10-03').upcoming(2)).toEqual([
       due('2026-10-04', '20:00', 'p2'),
       due('2026-10-05', '08:00', 'p2'),
@@ -4280,16 +4280,6 @@ describe('une heure reportée seule ne déplace que cette heure (G25, #720)', ()
     })
   })
 
-  it('avec décalage, la journée d’arrivée a toutes ses heures (Q21) : le 4 à 8 h et 20 h, puis le 6', () => {
-    const book = movedOn(morningOf3, '2026-10-03', due('2026-10-03', '20:00'), '2026-10-04', true)
-
-    expect(scheduleOf(book, '2026-10-03').upcoming(3)).toEqual([
-      due('2026-10-04', '08:00'),
-      due('2026-10-04', '20:00'),
-      due('2026-10-06', '08:00'),
-    ])
-  })
-
   it('rien de noté le 3, la journée reportée seule au 4 garde ses deux heures', () => {
     const firstDay = done(
       done(carnet(period({ firstDueOn: '2026-10-01', frequency: twoDays, times })), '2026-10-01'),
@@ -4318,6 +4308,202 @@ describe('une heure reportée seule ne déplace que cette heure (G25, #720)', ()
       due('2026-10-05', '20:00'),
       due('2026-10-07', '08:00'),
     ])
+  })
+  describe('avec décalage, le jour d’arrivée ne reçoit que les heures parties (#735)', () => {
+    const shiftedTo4 = movedOn(
+      morningOf3,
+      '2026-10-03',
+      due('2026-10-03', '20:00'),
+      '2026-10-04',
+      true,
+    )
+    const changedOn = (
+      book: Carnet,
+      today: string,
+      frequency: Frequency,
+      hours: string[],
+      id = 'p2',
+    ): Carnet => {
+      const dates = scheduleOf(book, today).newPeriod(frequency, hours)
+      const createdAt = `${today}T0${book.periods.length}:00:00.000Z`
+      return {
+        ...book,
+        periods: [...book.periods, period({ id, createdAt, ...dates, frequency, times: hours })],
+      }
+    }
+    const purgedOf = (book: Carnet, today: string): Carnet => {
+      const stale = scheduleOf(book, today).staleDoseIds
+      return { ...book, doses: book.doses.filter(({ id }) => !stale.includes(id)) }
+    }
+
+    it('8 h du 3 donnée, 20 h du 3 reportée au 4 avec décalage : le 4, seule 20 h, puis le 6 à 8 h et 20 h', () => {
+      expect(scheduleOf(shiftedTo4, '2026-10-03').upcoming(4)).toEqual([
+        due('2026-10-04', '20:00'),
+        due('2026-10-06', '08:00'),
+        due('2026-10-06', '20:00'),
+        due('2026-10-08', '08:00'),
+      ])
+      const onThe4th = scheduleOf(shiftedTo4, '2026-10-04')
+      expect(onThe4th.currentDoses).toEqual([due('2026-10-04', '20:00')])
+      expect(onThe4th.unloggedDoses).toEqual([])
+      expect(scheduleOf(shiftedTo4, '2026-10-06').unloggedDoses).toEqual([
+        due('2026-10-04', '20:00'),
+      ])
+    })
+
+    it('décalage supprimé ensuite : le 4 garde 20 h seule, la suite revient au 5', () => {
+      const shift = shiftedTo4.doses.find(({ status }) => status === 'shift')!
+
+      expect(scheduleOf(withoutDose(shiftedTo4, shift.id), '2026-10-03').upcoming(3)).toEqual([
+        due('2026-10-04', '20:00'),
+        due('2026-10-05', '08:00'),
+        due('2026-10-05', '20:00'),
+      ])
+    })
+
+    it('rien de noté le 3, la journée reportée au 4 avec décalage garde ses deux heures, puis le 6', () => {
+      const firstDay = done(
+        done(carnet(period({ firstDueOn: '2026-10-01', frequency: twoDays, times })), '2026-10-01'),
+        '2026-10-01',
+      )
+      const book = movedOn(firstDay, '2026-10-02', due('2026-10-03', '08:00'), '2026-10-04', true)
+
+      expect(scheduleOf(book, '2026-10-02').upcoming(3)).toEqual([
+        due('2026-10-04', '08:00'),
+        due('2026-10-04', '20:00'),
+        due('2026-10-06', '08:00'),
+      ])
+    })
+
+    it('reportée au 5, jour de la grille, avec décalage : le 5, seule 20 h, puis le 7 à 8 h et 20 h', () => {
+      const book = movedOn(morningOf3, '2026-10-03', due('2026-10-03', '20:00'), '2026-10-05', true)
+
+      expect(scheduleOf(book, '2026-10-03').upcoming(3)).toEqual([
+        due('2026-10-05', '20:00'),
+        due('2026-10-07', '08:00'),
+        due('2026-10-07', '20:00'),
+      ])
+    })
+
+    it('tous les jours, 20 h du 3 reportée au 4 avec décalage : le 4, seule 20 h, puis le 5 à 8 h et 20 h', () => {
+      let book = carnet(period({ firstDueOn: '2026-10-03', times }))
+      book = done(book, '2026-10-03')
+      book = movedOn(book, '2026-10-03', due('2026-10-03', '20:00'), '2026-10-04', true)
+
+      expect(scheduleOf(book, '2026-10-03').upcoming(3)).toEqual([
+        due('2026-10-04', '20:00'),
+        due('2026-10-05', '08:00'),
+        due('2026-10-05', '20:00'),
+      ])
+    })
+
+    it('le 4 reporté à son tour au 5 avec décalage : seule 20 h part, puis le 7', () => {
+      const book = movedOn(shiftedTo4, '2026-10-03', due('2026-10-04', '20:00'), '2026-10-05', true)
+
+      expect(scheduleOf(book, '2026-10-03').upcoming(3)).toEqual([
+        due('2026-10-05', '20:00'),
+        due('2026-10-07', '08:00'),
+        due('2026-10-07', '20:00'),
+      ])
+    })
+
+    it('prise de 8 h du 3 supprimée : 8 h revient le 3, le 4 garde 20 h seule', () => {
+      const morning = shiftedTo4.doses.find(
+        ({ dueOn, status }) => dueOn === '2026-10-03' && status === 'given',
+      )!
+      const schedule = scheduleOf(withoutDose(shiftedTo4, morning.id), '2026-10-03')
+
+      expect(schedule.currentDoses).toEqual([due('2026-10-03', '08:00')])
+      expect(schedule.upcoming(3)).toEqual([
+        due('2026-10-03', '08:00'),
+        due('2026-10-04', '20:00'),
+        due('2026-10-06', '08:00'),
+      ])
+    })
+
+    it.each(['2026-10-03', '2026-10-04'])(
+      'posologie changée le %s : le 4, seule 20 h, puis le 6',
+      (today) => {
+        const book = changedOn(shiftedTo4, today, twoDays, times)
+        const schedule = scheduleOf(book, today)
+
+        expect(schedule.upcoming(3)).toEqual([
+          due('2026-10-04', '20:00', 'p2'),
+          due('2026-10-06', '08:00', 'p2'),
+          due('2026-10-06', '20:00', 'p2'),
+        ])
+        expect(schedule.unloggedDoses).toEqual([])
+        expect(scheduleOf(purgedOf(book, today), today).upcoming(3)).toEqual(schedule.upcoming(3))
+      },
+    )
+
+    it.each(['2026-10-03', '2026-10-04'])(
+      'heures passées à 9 h et 21 h le %s : le 4, seule 21 h, puis le 6 à 9 h et 21 h',
+      (today) => {
+        const later = ['09:00', '21:00']
+        const book = changedOn(shiftedTo4, today, twoDays, later)
+        const schedule = scheduleOf(book, today)
+
+        expect(schedule.upcoming(3)).toEqual([
+          due('2026-10-04', '21:00', 'p2'),
+          due('2026-10-06', '09:00', 'p2'),
+          due('2026-10-06', '21:00', 'p2'),
+        ])
+        expect(schedule.unloggedDoses).toEqual([])
+        expect(scheduleOf(purgedOf(book, today), today).upcoming(3)).toEqual(schedule.upcoming(3))
+      },
+    )
+
+    it.each([
+      [twoDays, times, '2026-10-06'],
+      [twoDays, ['09:00', '21:00'], '2026-10-06'],
+      [{ value: 3, unit: 'day' } as const, times, '2026-10-07'],
+      [{ value: 1, unit: 'week' } as const, ['06:00', '12:00', '18:00', '23:00'], '2026-10-11'],
+    ] as const)(
+      'dose reportée donnée le 4, puis %j à %j le 4 : plus rien le 4, puis le %s (graine 340001775)',
+      (frequency, hours, then) => {
+        const given = record(shiftedTo4, '2026-10-04', {
+          kind: 'given',
+          due: due('2026-10-04', '20:00'),
+          givenOn: '2026-10-04',
+        })
+        const dates = scheduleOf(given, '2026-10-04').newPeriod(frequency, [...hours])
+        const book = changedOn(given, '2026-10-04', frequency, [...hours])
+        const schedule = scheduleOf(book, '2026-10-04')
+
+        expect(dates.firstDueOn).toBe(then)
+        expect(schedule.upcoming(hours.length)).toEqual(hours.map((time) => due(then, time, 'p2')))
+        expect(schedule.unloggedDoses).toEqual([])
+      },
+    )
+
+    it.each([
+      [{ value: 3, unit: 'day' } as const, '2026-10-07'],
+      [{ value: 1, unit: 'day' } as const, '2026-10-05'],
+      [{ value: 1, unit: 'week' } as const, '2026-10-11'],
+    ])(
+      'fréquence %j le 4, dose reportée pas encore donnée : 20 h le 4, puis le %s',
+      (frequency, then) => {
+        const book = changedOn(shiftedTo4, '2026-10-04', frequency, times)
+        const schedule = scheduleOf(book, '2026-10-04')
+
+        expect(schedule.currentDoses).toEqual([due('2026-10-04', '20:00', 'p2')])
+        expect(schedule.upcoming(2)).toEqual([
+          due('2026-10-04', '20:00', 'p2'),
+          due(then, '08:00', 'p2'),
+        ])
+      },
+    )
+
+    it('tous les 3 jours, tous les jours, puis tous les 2 jours le 4 : le 4, seule 20 h', () => {
+      let book = changedOn(shiftedTo4, '2026-10-04', { value: 3, unit: 'day' }, times, 'p2')
+      book = changedOn(book, '2026-10-04', { value: 1, unit: 'day' }, times, 'p3')
+      book = changedOn(book, '2026-10-04', twoDays, times, 'p4')
+
+      expect(scheduleOf(book, '2026-10-04').currentDoses).toEqual([
+        due('2026-10-04', '20:00', 'p4'),
+      ])
+    })
   })
 })
 
@@ -4504,7 +4690,7 @@ describe('changer la posologie ne change jamais le calendrier (G23, #692)', () =
     expect(changedOn(book, '2026-10-02')).toEqual(['2026-10-06', '2026-10-15', '2026-10-22'])
   })
 
-  it('hebdomadaire à 8 h et 20 h, 8 h du 1er donnée, 20 h du 1er déplacée au 3 avec décalage, posologie changée le 1er : le 3, puis le 10', () => {
+  it('hebdomadaire à 8 h et 20 h, 8 h du 1er donnée, 20 h du 1er déplacée au 3 avec décalage, posologie changée le 1er : le 3 à 20 h seule (#735), puis le 10', () => {
     const times = ['08:00', '20:00']
     let book = carnet(weekly({ firstDueOn: '2026-10-01', times }))
     book = done(book, '2026-10-01')
@@ -4518,9 +4704,9 @@ describe('changer la posologie ne change jamais le calendrier (G23, #692)', () =
     const changed = withPeriod(book, { ...dates, frequency: { value: 1, unit: 'week' }, times })
 
     expect(scheduleOf(changed, '2026-10-01').upcoming(3)).toEqual([
-      due('2026-10-03', '08:00', 'p2'),
       due('2026-10-03', '20:00', 'p2'),
       due('2026-10-10', '08:00', 'p2'),
+      due('2026-10-10', '20:00', 'p2'),
     ])
   })
 

@@ -226,19 +226,14 @@ function dayDues(period: TreatmentPeriodInput, days: string[]): Due[] {
   return days.flatMap((dueOn) => times.map((dueTime) => ({ periodId: period.id, dueOn, dueTime })))
 }
 
-// G25 : un report seul n'emporte que les heures qu'il retire à sa journée ; avec son décalage, la
-// journée d'arrivée a toutes ses heures (Q21).
+// G25 : un report, seul ou avec son décalage (#735), n'emporte que les heures qu'il retire à sa journée.
 function arrivalDues(
   period: TreatmentPeriodInput,
   move: TreatmentDoseInput,
-  steps: Step[],
   kept: Set<string>,
   originTimes: ReadonlySet<string | null> | undefined,
 ): Due[] {
-  const dues = dayDues(period, [move.nextDueDate])
-  const shifted = steps.some((step) => isShift(step) && dueId(step.dose) === dueId(move))
-  if (shifted) return dues
-  return dues.filter(({ dueTime }) => {
+  return dayDues(period, [move.nextDueDate]).filter(({ dueTime }) => {
     const origin = keyOf({ dueOn: move.dueOn, dueTime })
     const isDue = originTimes === undefined || originTimes.has(dueTime)
     return isDue && origin >= keyOf(move) && !kept.has(origin)
@@ -249,7 +244,6 @@ function arrivalDues(
 function arrivalTimes(
   plan: Pick<PeriodTimeline, 'anchors' | 'period'>,
   moves: TreatmentDoseInput[],
-  steps: Step[],
   kept: Set<string>,
 ): Map<string, Set<string | null>> {
   const times = new Map<string, Set<string | null>>()
@@ -257,7 +251,7 @@ function arrivalTimes(
   for (const move of ordered) {
     const origin = isGridDay(plan, move.dueOn) ? undefined : times.get(move.dueOn)
     const day = times.get(move.nextDueDate) ?? new Set<string | null>()
-    for (const { dueTime } of arrivalDues(plan.period, move, steps, kept, origin)) day.add(dueTime)
+    for (const { dueTime } of arrivalDues(plan.period, move, kept, origin)) day.add(dueTime)
     times.set(move.nextDueDate, day)
   }
   return times
@@ -287,16 +281,16 @@ function isGridDay(plan: Pick<PeriodTimeline, 'anchors' | 'period'>, day: string
   return due.dueOn === day
 }
 
-/** G25 : les heures du jour d'arrivée de ce report qu'il n'a pas emportées (seul, sans décalage). */
+/** G25 : les heures du jour d'arrivée de ce report qu'il n'a pas emportées. */
 export function stayedKeys(plan: PeriodTimeline, move: TreatmentDoseInput): string[] {
   // Un jour de la grille garde ses propres heures : rien n'y reste en arrière.
   if (isGridDay(plan, move.nextDueDate)) return []
   const kept = new Set([...plan.noteKeys, ...plan.covered])
   const arrivals = isClosedOut(move, plan.closesOn)
-    ? arrivalTimes(plan, readMoves(plan), plan.steps, kept)
+    ? arrivalTimes(plan, readMoves(plan), kept)
     : plan.arrivals
   const origin = isGridDay(plan, move.dueOn) ? undefined : arrivals.get(move.dueOn)
-  const arrived = new Set(arrivalDues(plan.period, move, plan.steps, kept, origin).map(keyOf))
+  const arrived = new Set(arrivalDues(plan.period, move, kept, origin).map(keyOf))
   // Fermée par la période suivante, la journée d'origine ne garde plus ses heures encore à donner.
   const orphans = isClosedOut(move, plan.closesOn)
     ? new Set(
@@ -330,12 +324,7 @@ export function planPeriod(
   ]
   const sequences = anchors.map(({ sequence }) => sequence)
   const moves = steps.filter(isMove).map(({ dose }) => dose)
-  const arrivals = arrivalTimes(
-    { anchors, period },
-    moves,
-    steps,
-    new Set([...noteKeys, ...covered]),
-  )
+  const arrivals = arrivalTimes({ anchors, period }, moves, new Set([...noteKeys, ...covered]))
   const between = [
     ...sequences.slice(0, -1).flatMap((sequence, index) => {
       const end = sequences[index + 1]?.floor ?? ''

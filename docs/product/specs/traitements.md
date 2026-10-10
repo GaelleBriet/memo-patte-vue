@@ -143,11 +143,11 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   tôt, qui couvre l'échéance déplacée ; déplacer de nouveau la même dose réécrit cette ligne, avec son
   échéance d'origine (spec Q18) ; remise à sa date d'origine, la dose n'a plus de ligne de
   déplacement. Traitement à plusieurs heures : le déplacement porte sur la journée, dont toutes
-  les heures encore sans prise partent au nouveau jour ; avec le décalage, le nouveau jour a toutes
-  ses heures (spec Q21) ; seul, il ne reçoit que les heures parties (G25). Les doses non renseignées
-  d'avant restent à renseigner. Sans prise dans la période, déplacer la première dose corrige la
-  première échéance de la période, sans ligne « Reportée » ni « Avancée » (TR-28). (Spec Q2 ; revue
-  du modèle, 2026-09-29, M4 ; lot A révisé, N5)
+  les heures encore sans prise partent au nouveau jour, qui ne reçoit qu'elles, seul comme avec le
+  décalage (spec Q21, G25) ; une dose déjà donnée de la journée ne se décale jamais. Les doses non
+  renseignées d'avant restent à renseigner. Sans prise dans la période, déplacer la première dose
+  corrige la première échéance de la période, sans ligne « Reportée » ni « Avancée » (TR-28). (Spec
+  Q2 ; revue du modèle, 2026-09-29, M4 ; lot A révisé, N5)
 
   Gardes du moteur d'échéances (#453) :
   - **G6** Une dose ne s'avance pas d'un intervalle entier ou plus (en mois : jamais à un jour d'où la
@@ -181,29 +181,40 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
     Vendredi, dose du 16 avancée au 13 avec décalage, puis donnée le 12 : prochaine dose le 19.
     (Garde technique, consignée au journal des décisions autonomes.)
   - **G25** Une heure reportée seule ne déplace que cette heure (décision de Gaelle du 2026-10-09,
-    #720) : sans décalage, le nouveau jour ne reçoit que les heures de la journée d'origine encore
-    sans prise, à partir de la première ; avec décalage, il a toutes ses heures (Q21), puisque la
-    suite repart de lui. Vermifuge tous les 2 jours à 8 h et 20 h (1, 3, 5), 8 h du 3 donnée, 20 h
+    #720) : le nouveau jour ne reçoit que les heures de la journée d'origine encore sans prise, à
+    partir de la première. Vermifuge tous les 2 jours à 8 h et 20 h (1, 3, 5), 8 h du 3 donnée, 20 h
     du 3 reportée seule au 4 : le 4, seule la dose de 20 h (« Dose du jour · 4 oct. à 20 h »), puis
-    le 5 à 8 h et 20 h (l'app demandait 8 h et 20 h le 4) ; avec décalage, le 4 à 8 h et 20 h, puis
-    le 6 ; rien de noté le 3, la journée reportée seule au 4 garde ses deux heures. Une période
-    ouverte sur ce jour par un changement de posologie (G23) le garde tel quel ; quand les heures
-    changent sans changer la fréquence, le jour d'arrivée reste la prochaine dose et ne demande que
-    les dernières heures du nouveau réglage, une par dose reportée, puis la grille reprend :
-    heures passées à 9 h et 21 h le 3 ou le 4, le 4 à 21 h seule, puis le 5 à 9 h et 21 h (réponse
-    de Gaelle du 2026-10-09) ; la dose reportée déjà donnée, le 4 n'a plus rien à donner, et la
-    nouvelle période commence le 5 ; la fréquence changée, le 4 ne redemande rien non plus (#711).
-    Fréquence changée le 4 même, la dose reportée pas encore donnée : le 4 ne demande que l'heure
-    reportée, puis le nouveau rythme part du 4 (tous les 3 jours : 20 h le 4, puis le 7 ; tous les
-    jours : le 5 ; chaque semaine : le 11 ; décision de Gaelle du 2026-10-10) ; changée le 3, Q24
-    vaut : 20 h le 3, puis le 6. Plusieurs changements le 4 (une fréquence corrigée aussitôt, par
-    exemple) gardent la même règle : le 4 ne demande toujours que l'heure reportée.
-    Un report seul arrivé sur un jour de la grille n'y retire aucune heure : ce jour garde les
-    siennes ; reporté à son tour, un jour d'arrivée n'emporte que les heures qui y étaient à
-    donner. Une heure restée en arrière parce qu'elle était notée revient si sa prise est
-    supprimée : à son jour tant que la période la garde, sinon au jour d'arrivée. Un traitement de
-    tous les jours ne reporte pas une heure seule au lendemain : elle passerait la dose suivante
-    (Q2 a, G19).
+    le 5 à 8 h et 20 h (l'app demandait 8 h et 20 h le 4) ; rien de noté le 3, la journée reportée
+    seule au 4 garde ses deux heures. Avec « Décaler aussi les doses suivantes », la même règle vaut
+    (décision de Gaelle du 2026-10-09, #735) : le décalage emporte la dose reportée et toutes celles
+    d'après, jamais une dose déjà donnée de la journée ; le 4, seule 20 h, puis le 6 et le 8 à 8 h
+    et 20 h (l'app demandait 8 h et 20 h le 4) ; le décalage supprimé ensuite, le 4 garde 20 h seule
+    et la suite revient au 5 ; rien de noté le 3, la journée part entière au 4, puis le 6. Une
+    période ouverte sur ce jour par un changement de posologie (G23) le garde tel quel ; quand les
+    heures changent sans changer la fréquence, le jour d'arrivée reste la prochaine dose et ne
+    demande que les dernières heures du nouveau réglage, une par dose reportée, puis la grille
+    reprend : heures passées à 9 h et 21 h le 3 ou le 4, le 4 à 21 h seule, puis le 5 à 9 h et 21 h
+    (réponse de Gaelle du 2026-10-09) ; la dose reportée déjà donnée, le 4 n'a plus rien à donner,
+    et la nouvelle période commence le 5 ; la fréquence changée, le 4 ne redemande rien non plus
+    (#711). Fréquence changée le 4 même, la dose reportée pas encore donnée : le 4 ne demande que
+    l'heure reportée, puis le nouveau rythme part du 4 (tous les 3 jours : 20 h le 4, puis le 7 ;
+    tous les jours : le 5 ; chaque semaine : le 11 ; décision de Gaelle du 2026-10-10) ; changée le
+    3, Q24 vaut : 20 h le 3, puis le 6. Plusieurs changements le 4 (une fréquence corrigée aussitôt,
+    par exemple) gardent la même règle : le 4 ne demande toujours que l'heure reportée. Un report
+    seul arrivé sur un jour de la grille n'y retire aucune heure : ce jour garde les siennes ;
+    reporté à son tour, un jour d'arrivée n'emporte que les heures qui y étaient à donner. Une heure
+    restée en arrière parce qu'elle était notée revient si sa prise est supprimée : à son jour tant
+    que la période la garde, sinon au jour d'arrivée. Un traitement de tous les jours ne reporte pas
+    une heure seule au lendemain : elle passerait la dose suivante (Q2 a, G19). Avec décalage,
+    chaque cas ci-dessus garde sa règle pour le jour d'arrivée, et la suite repart de lui :
+    posologie changée le 3 ou le 4, le 4 à 20 h seule, puis le 6 ; heures passées à 9 h et 21 h, le
+    4 à 21 h seule, puis le 6 à 9 h et 21 h ; la dose reportée déjà donnée, le 4 n'a plus rien à
+    donner, et la nouvelle période commence le 6 (tous les 3 jours : le 7) ; fréquence changée le 4,
+    la dose reportée pas encore donnée, 20 h le 4, puis le nouveau rythme part du 4 (le 7, le 5 ou
+    le 11) ; plusieurs changements le 4, toujours 20 h seule ; reportée au 5, jour de la grille, le
+    5 à 20 h seule, puis le 7, car la grille repart de lui ; le 4 reporté à son tour au 5, seule 20
+    h part ; tous les jours, le 4 à 20 h seule, puis le 5 à 8 h et 20 h ; la prise de 8 h du 3
+    supprimée, 8 h revient le 3.
 - **TR-10** Dose du moment : la dernière échéance jusqu'à aujourd'hui inclus, si elle est encore sans
   prise ; à défaut, la prochaine. Traitement à plusieurs heures : on raisonne par journée (spec Q23).
   Les heures encore sans prise de la dernière journée d'échéance arrivée sont ensemble la dose du
@@ -702,7 +713,11 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   « Prochaine dose » est une date, sans heure ; déplacer seulement la première heure laisserait une
   dose à donner le jour même après avoir déplacé la prochaine dose. Écartée : ne déplacer que la
   première heure. (Implémentation de #453, cas ouvert 6.) Sans décalage, le nouveau jour ne reçoit
-  que les heures parties (G25, 2026-10-09, #720).
+  que les heures parties (G25, 2026-10-09, #720) ; avec décalage aussi (décision de Gaelle du
+  2026-10-09, #735) : le décalage emporte la dose reportée et toutes celles d'après, jamais une dose
+  déjà donnée de la journée (8 h notée le 28, 20 h déplacée au 30 : le 30 à 20 h seule, puis la
+  suite repart du 30). Le nouveau jour « reprend avec toutes ses heures » ne vaut plus que quand
+  rien n'est noté le jour d'origine.
 - 2026-10-01 — **Q22 (remplacée le même jour par Q24) : tant que rien n'est noté aujourd'hui, le
   nouveau réglage vaut tout de suite** (TR-28, précise Q19) : la nouvelle période commence aujourd'hui ; dès qu'une prise du jour est notée,
   les heures restantes gardent l'ancien réglage et la nouvelle période commence le lendemain. Raison :

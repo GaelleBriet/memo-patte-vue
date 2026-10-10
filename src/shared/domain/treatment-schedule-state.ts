@@ -129,10 +129,8 @@ function keepsArrival(previous: TreatmentPeriodInput, period: TreatmentPeriodInp
   return sameFrequency || period.firstDueOn === period.startsOn
 }
 
-// G25 : les heures qu'un report seul a laissées derrière lui au premier jour de la période ; heures
-// changées, les doses reportées prennent les dernières heures du nouveau réglage.
-// Les heures restées en arrière au premier jour de la période, dans ses heures à elle ; une période
-// précédente qui s'ouvrait le même jour transmet les siennes (deux changements le même jour).
+// G25 : heures laissées derrière par un report au premier jour de la période, dans ses heures à elle
+// (les doses reportées prennent les dernières) ; une période ouverte le même jour transmet les siennes.
 function leftBehindOn(previous: PeriodTimeline, period: TreatmentPeriodInput): string[] {
   const day = period.firstDueOn
   const stayed = new Set([
@@ -173,7 +171,7 @@ function changedCoverage(
   return new Set([...covered, ...stayedOnFirstDay(previous, period, covered)])
 }
 
-// G25 : un report seul fermé par la période suivante (G5) garde sa ligne tant que son arrivée l'ouvre.
+// G25 : un report fermé par la période suivante (G5) garde sa ligne tant que son arrivée l'ouvre.
 export function carriedMoveIds(plans: PeriodTimeline[]): Set<string> {
   return new Set(
     plans.slice(1).flatMap((next, index) => {

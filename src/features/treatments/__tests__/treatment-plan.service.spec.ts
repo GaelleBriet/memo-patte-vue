@@ -581,7 +581,7 @@ describe('treatmentPlanService', () => {
       expect(schedule.unloggedDoses).toEqual([])
     })
 
-    it('ne déplace que l’heure restante d’une journée dont la première prise est notée (Q21)', async () => {
+    it('ne déplace que l’heure restante d’une journée dont la première prise est notée, le 29 ne reçoit qu’elle (Q21, #735)', async () => {
       const { id } = await service.create({ ...METACAM, ...TOUS_LES_2_JOURS })
       await giveAt(id, '2026-09-27', '08:00')
 
@@ -592,7 +592,7 @@ describe('treatmentPlanService', () => {
         { dueOn: '2026-09-27', dueTime: '20:00', nextDueDate: '2026-09-29' },
       ])
       const schedule = await scheduleOf(id)
-      expect(times(schedule.upcoming(2))).toEqual(['2026-09-29 08:00', '2026-09-29 20:00'])
+      expect(times(schedule.upcoming(2))).toEqual(['2026-09-29 20:00', '2026-10-01 08:00'])
       expect(schedule.unloggedDoses).toEqual([])
     })
 
