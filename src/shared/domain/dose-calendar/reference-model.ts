@@ -52,10 +52,16 @@ export function referenceReading({
 }: ReferenceInput): ReferenceReading {
   const episodes = episodesOf(settings)
   const yesterday = plusDays(today, -1)
-  // Au-delà de la dernière ligne, une journée sans prise tombe au plus un pas plus loin.
+  // Au-delà du dernier jour connu, une journée sans prise tombe au plus deux pas plus loin : une
+  // prise sortie du calendrier peut couvrir l'échéance qui suit (R4).
+  const known = [
+    until,
+    ...settings.flatMap(({ startsOn, firstDueOn }) => [startsOn, firstDueOn]),
+    ...lines.flatMap(({ dueOn, targetOn }) => [dueOn, targetOn ?? dueOn]),
+  ]
   const reach = plusDays(
-    [until, ...lines.flatMap(({ dueOn, targetOn }) => [dueOn, targetOn ?? dueOn])].sort().at(-1)!,
-    Math.max(0, ...settings.map(({ frequency }) => longestStep(frequency))),
+    known.sort().at(-1)!,
+    2 * Math.max(0, ...settings.map(({ frequency }) => longestStep(frequency))),
   )
   const calendars = episodes.map((episode, index) =>
     calendarOf(settings, episode, lines, borrowedNotes(episodes, index, lines), reach),

@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
+import { referenceReading } from '../domain/dose-calendar/reference-model'
 import { DAY, H, line, next, read, setting, TWO_DAYS, WEEK } from './dose-calendar.reference.aides'
 
 describe('R7 : le report déplace une heure et les suivantes encore sans prise', () => {
@@ -72,6 +73,16 @@ describe('R4 : une prise ne se perd jamais', () => {
     const lines = [...notes('2026-10-02', '2026-10-09', '2026-10-16', '2026-10-17')]
     lines.push(line('p1', 'shift', '2026-10-09', null, '2026-10-10'))
     expect(read(WEEKLY, lines, '2026-10-18').current).toEqual(['2026-10-24'])
+  })
+
+  it('l’échéance couverte, la prochaine dose est lue plus loin, pas une fin', () => {
+    const quarterly = setting('p1', '2026-01-10', { value: 3, unit: 'month' })
+    const lines = [line('p1', 'given', '2026-01-10'), line('p1', 'given', '2026-02-01')]
+    const today = '2026-01-10'
+    expect(referenceReading({ settings: [quarterly], lines, today, until: today })).toMatchObject({
+      phase: 'upcoming',
+      current: ['2026-07-10'],
+    })
   })
 
   it('aucune échéance à moins d’un pas, elle est sans effet', () => {
