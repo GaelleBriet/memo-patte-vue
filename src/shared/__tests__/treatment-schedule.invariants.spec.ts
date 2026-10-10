@@ -165,15 +165,18 @@ function arrivesOnNextDose(schedule: TreatmentSchedule, period: TreatmentPeriodI
   )
 }
 
-// §11 : un mensuel garde le 28 (ou le 30) au lieu du dernier jour du mois ; un calendrier de départ
-// dont deux journées sont plus proches que la fréquence, puis hors rythme, ne se reprend pas.
-function isKnownLimit(before: string, after: string, frequency: Frequency): boolean {
+// §11 : un mensuel ouvert hors grille (arrivée d'un report seul) garde le 28 (ou le 30) au lieu du
+// dernier jour du mois ; un calendrier de départ dont deux journées sont plus proches que la
+// fréquence, puis hors rythme, ne se reprend pas.
+function isKnownLimit(before: string, after: string, period: TreatmentPeriodInput): boolean {
+  const { frequency } = period
   const slotsOf = (joined: string) => joined.split(',').map((slot) => slot.split(' '))
   const [was, now] = [slotsOf(before), slotsOf(after)]
   const endOfMonth = (a: string, b: string) =>
     a.slice(0, 7) === b.slice(0, 7) && Number(a.slice(8)) >= 28 && Number(b.slice(8)) >= 28
   const boundedDay =
     frequency.unit === 'month' &&
+    period.referenceOn > period.firstDueOn &&
     was.length === now.length &&
     was.every(([day, time], index) => {
       const [otherDay, otherTime] = now[index]!
@@ -1432,6 +1435,61 @@ class Simulation {
     this.checkLoneArrivalKept(before, after, period, gesture)
     this.checkCalendarKept(before, after, period, gesture)
     this.checkFirstDueKept(after, period, gesture)
+    this.checkMonthDayKept(before, after, period, gesture)
+  }
+
+  // #736 : au même rythme mensuel, heures ou posologie changées, une journée qui suit la première dose
+  // ne glisse pas au 28 (ou au 30) du même mois : le jour du mois survit (31 mars après le 28 févr.).
+  private checkMonthDayKept(
+    before: TreatmentSchedule,
+    after: TreatmentSchedule,
+    period: TreatmentPeriodInput,
+    gesture: string,
+  ): void {
+    const previous = this.book.periods.at(-2)
+    const { firstDueOn, frequency } = period
+    if (previous === undefined || frequency.unit !== 'month') return
+    const { value, unit } = previous.frequency
+    if (value !== frequency.value || unit !== frequency.unit) return
+    if (period.referenceOn > firstDueOn) return
+    const daysOf = (schedule: TreatmentSchedule, periodId?: string) =>
+      [
+        ...new Set(
+          pendingOf(schedule)
+            .filter((due) => periodId === undefined || due.periodId === periodId)
+            .map(({ dueOn }) => dueOn)
+            .filter((dueOn) => dueOn >= firstDueOn),
+        ),
+      ].sort()
+    const was = daysOf(before)
+    if (was[0] !== firstDueOn) return
+    const farther = before.doses
+      .filter(
+        ({ periodId, status, dueOn, nextDueDate }) =>
+          periodId === previous.id &&
+          (status === 'postponed' || status === 'shift') &&
+          (nextDueDate > firstDueOn || dueOn >= firstDueOn),
+      )
+      .flatMap(({ dueOn, nextDueDate }) => [dueOn, nextDueDate])
+      .filter((day) => day > firstDueOn)
+    const limits = [was[3], previous.endsOn, period.endsOn, ...farther.map((d) => plusDays(d, -1))]
+      .filter((limit) => limit !== null && limit !== undefined)
+      .sort()
+    const horizon = limits[0] ?? was.at(-1) ?? firstDueOn
+    const within = (days: string[]) => days.filter((day) => day > firstDueOn && day <= horizon)
+    const [kept, now] = [within(was), within(daysOf(after, period.id))]
+    const endOfMonth = (day: string) => Number(day.slice(8)) >= 28
+    const slid = kept.some((day, index) => {
+      const other = now[index]
+      return (
+        other !== undefined &&
+        other < day &&
+        other.slice(0, 7) === day.slice(0, 7) &&
+        endOfMonth(other) &&
+        endOfMonth(day)
+      )
+    })
+    if (slid) this.fail(`${gesture} : jour du mois perdu (${kept.join()} → ${now.join()})`)
   }
 
   // G23 : au même rythme, la prochaine dose arrivée d'un report seul garde sa date, la suite son rythme ;
@@ -1482,7 +1540,7 @@ class Simulation {
         ),
       ].join()
     if (slots(before) === slots(after)) return
-    if (isKnownLimit(slots(before), slots(after), period.frequency)) return
+    if (isKnownLimit(slots(before), slots(after), period)) return
     this.fail(`${gesture} : le calendrier a changé (${slots(before)} → ${slots(after)})`)
   }
 
@@ -1547,7 +1605,7 @@ class Simulation {
         .sort()
         .join()
     if (slots(before) === slots(after)) return
-    if (isKnownLimit(slots(before), slots(after), period.frequency)) return
+    if (isKnownLimit(slots(before), slots(after), period)) return
     this.fail(`${gesture} : la suite a changé (${slots(before)} → ${slots(after)})`)
   }
 
