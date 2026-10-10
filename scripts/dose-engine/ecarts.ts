@@ -160,8 +160,34 @@ function familiesOn(book: Book, day: string, stale: Set<string>): Family[] {
   return [...found]
 }
 
-/** Rattache un écart aux familles connues, jour par jour ; un jour sans famille reste inexpliqué. */
-export function verdictOf(book: Book, actual: Reading, reference: Reading): Verdict {
+// R4 : l'échéance `key`, due pour le moteur actuel, est couverte par une prise d'un jour plus tôt
+// à moins d'un pas, sortie du calendrier du second moteur : sans ces prises, il la redemande. Un
+// report qui arrive ce jour-là pourrait aussi l'expliquer : il est laissé à l'examen.
+function coveredByOrphan(book: Book, key: string, reread: (book: Book) => Reading): boolean {
+  const day = dayOf(key)
+  if (book.doses.some((line) => line.status === 'postponed' && line.nextDueDate === day))
+    return false
+  const near = (note: TreatmentDoseInput) =>
+    isNote(note) &&
+    note.dueOn < day &&
+    book.periods.some(
+      ({ id, frequency }) => id === note.periodId && shifted(note.dueOn, frequency, 1) > day,
+    )
+  if (!book.doses.some(near)) return false
+  const without = reread({ ...book, doses: book.doses.filter((line) => !near(line)) })
+  return !('error' in without) && pendingOf(without).has(key)
+}
+
+/**
+ * Rattache un écart aux familles connues, jour par jour ; un jour sans famille reste inexpliqué.
+ * `reread` relit un carnet par le second moteur.
+ */
+export function verdictOf(
+  book: Book,
+  actual: Reading,
+  reference: Reading,
+  reread: (book: Book) => Reading,
+): Verdict {
   if ('error' in actual || 'error' in reference) {
     return { families: [], unexplained: ['un moteur lève'], accepted: false }
   }
@@ -182,6 +208,8 @@ export function verdictOf(book: Book, actual: Reading, reference: Reading): Verd
   const unexplained: string[] = []
   for (const key of new Set(differing)) {
     const found = familiesOn(book, dayOf(key), stale)
+    if (a.has(key) && !b.has(key) && coveredByOrphan(book, key, reread))
+      found.push('prise-orpheline')
     found.forEach((family) => families.add(family))
     if (found.length === 0) unexplained.push(key)
   }

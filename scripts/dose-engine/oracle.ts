@@ -84,7 +84,7 @@ function playCarnet(config: OracleConfig, seed: number, run: OracleRun): Diverge
     if (gaps.length > 0) {
       const verdict =
         config.engines[0].name === 'actuel'
-          ? verdictOf(after, a, b)
+          ? verdictOf(after, a, b, (book) => readWith(config.engines[1], book))
           : { families: [], unexplained: ['sans le moteur actuel en premier'], accepted: false }
       divergence = {
         seed,

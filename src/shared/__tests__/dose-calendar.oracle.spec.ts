@@ -10,6 +10,7 @@ import { oracleConfig, runOracle, type OracleRun } from '../../../scripts/dose-e
 // ORACLE_STEPS, ORACLE_ENGINES, ORACLE_SETTINGS, ORACLE_OUT).
 const config = oracleConfig(process.env)
 const TIMEOUT = 60_000 + config.seeds * config.steps * 20
+const SANS_SETTINGS: readonly string[] = ['prise-orpheline', 'lignes-sans-effet']
 
 function report(run: OracleRun): string[] {
   return run.unaccepted.map(
@@ -38,11 +39,13 @@ describe('oracle des moteurs de doses', () => {
     expect(run.divergences).toEqual([])
   })
 
-  it('le modèle de référence contre le moteur actuel, sans changement de réglage : aucun écart', () => {
+  it('le modèle de référence contre le moteur actuel, sans changement de réglage : prises sorties du calendrier et lignes sans effet seules (R4, R11)', () => {
     const run = runOracle(
       oracleConfig({ ORACLE_ENGINES: 'actuel,reference', ORACLE_SETTINGS: 'sans' }),
     )
-    expect(run.divergences.map(({ seed }) => seed)).toEqual([])
+    const families = run.divergences.flatMap(({ verdict }) => verdict.families)
+    expect(report(run)).toEqual([])
+    expect(families.filter((family) => !SANS_SETTINGS.includes(family))).toEqual([])
   })
 
   it('le modèle de référence contre le moteur actuel, réglages changés : écarts rattachés', () => {

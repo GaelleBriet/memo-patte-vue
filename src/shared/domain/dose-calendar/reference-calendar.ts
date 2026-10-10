@@ -190,6 +190,7 @@ export function calendarOf(
 
   // R4 : une prise couvre son échéance ; le jour où les heures changent, celles qui visaient l'ancien
   // réglage couvrent les premières heures du nouveau, à hauteur de leur nombre.
+  const matched = new Set<ReferenceLine>()
   const coveredOn = (day: string, journey: Journey): Set<Hour> => {
     const ofDay = [...notes, ...borrowed].filter((note) => note.dueOn === day)
     const exact = ofDay.filter(
@@ -197,6 +198,9 @@ export function calendarOf(
         !borrowed.includes(note) &&
         (translated.get(day) !== journey.setting.id || note.settingId === journey.setting.id),
     )
+    ofDay
+      .filter((note) => !exact.includes(note) || journey.hours.includes(note.dueTime))
+      .forEach((note) => matched.add(note))
     const covered = new Set(
       journey.hours.filter((hour) => exact.some((note) => note.dueTime === hour)),
     )
@@ -223,6 +227,11 @@ export function calendarOf(
     const origin = days.get(dueOn)
     const from = origin?.setting ?? settingOf(report!.settingId)
     const hours = origin?.hours ?? hoursOf(from)
+    if (origin === undefined) {
+      notes
+        .filter((note) => note.dueOn === dueOn && hours.includes(note.dueTime))
+        .forEach((note) => matched.add(note))
+    }
     const covered =
       origin === undefined
         ? new Set(hours.filter((hour) => noted.has(keyOf(dueOn, hour))))
@@ -244,13 +253,23 @@ export function calendarOf(
     days.set(targetOn!, day)
   }
 
-  const pending: string[] = []
+  const dues: { key: string; day: string; covered: boolean }[] = []
   for (const [day, journey] of [...days].sort(([a], [b]) => a.localeCompare(b))) {
     if (journey.hours.length > 0) fallen.add(day)
     const covered = coveredOn(day, journey)
-    pending.push(
-      ...journey.hours.filter((hour) => !covered.has(hour)).map((hour) => keyOf(day, hour)),
+    dues.push(
+      ...journey.hours.map((hour) => ({ key: keyOf(day, hour), day, covered: covered.has(hour) })),
     )
   }
-  return { pending, fallen }
+  // R4 : une prise dont l'échéance a quitté le calendrier couvre la première échéance qui suit, à
+  // moins d'un pas de son réglage ; déjà couverte ou trop loin, la prise est sans effet.
+  const orphans = notes
+    .filter((note) => !matched.has(note))
+    .sort((a, b) => keyOf(a.dueOn, a.dueTime).localeCompare(keyOf(b.dueOn, b.dueTime)))
+  for (const note of orphans) {
+    const { frequency } = settingOf(note.settingId)
+    const due = dues.find((each) => each.key > keyOf(note.dueOn, note.dueTime))
+    if (due !== undefined && due.day < stepped(note.dueOn, frequency, 1)) due.covered = true
+  }
+  return { pending: dues.filter(({ covered }) => !covered).map(({ key }) => key), fallen }
 }

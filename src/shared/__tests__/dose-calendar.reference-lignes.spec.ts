@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { DAY, H, line, next, read, setting, TWO_DAYS } from './dose-calendar.reference.aides'
+import { DAY, H, line, next, read, setting, TWO_DAYS, WEEK } from './dose-calendar.reference.aides'
 
 describe('R7 : le report déplace une heure et les suivantes encore sans prise', () => {
   it('8 h du 3 donnée, 20 h reportée seule au 4 : le 4 ne reçoit que 20 h', () => {
@@ -52,6 +52,32 @@ describe('R7 : le report déplace une heure et les suivantes encore sans prise',
       line('p1', 'given', '2026-10-03'),
     ]
     expect(next([p1], lines, '2026-10-02')).toEqual(['2026-10-02', '2026-10-04', '2026-10-05'])
+  })
+})
+
+describe('R4 : une prise ne se perd jamais', () => {
+  const WEEKLY = [setting('p1', '2026-10-02', WEEK)]
+  const notes = (...days: string[]) => days.map((day) => line('p1', 'given', day))
+
+  it('sortie du calendrier, elle couvre la première échéance qui suit à moins d’un pas', () => {
+    const lines = [...notes('2026-10-02', '2026-10-09', '2026-10-16')]
+    lines.push(line('p1', 'shift', '2026-10-09', null, '2026-10-10'))
+    expect(read(WEEKLY, lines, '2026-10-18')).toMatchObject({
+      current: ['2026-10-24'],
+      unlogged: [],
+    })
+  })
+
+  it('l’échéance qui suit déjà couverte, elle est sans effet', () => {
+    const lines = [...notes('2026-10-02', '2026-10-09', '2026-10-16', '2026-10-17')]
+    lines.push(line('p1', 'shift', '2026-10-09', null, '2026-10-10'))
+    expect(read(WEEKLY, lines, '2026-10-18').current).toEqual(['2026-10-24'])
+  })
+
+  it('aucune échéance à moins d’un pas, elle est sans effet', () => {
+    const lines = [...notes('2026-10-02', '2026-10-09', '2026-10-16')]
+    lines.push(line('p1', 'shift', '2026-10-09', null, '2026-10-17'))
+    expect(read(WEEKLY, lines, '2026-10-18').current).toEqual(['2026-10-24'])
   })
 })
 
