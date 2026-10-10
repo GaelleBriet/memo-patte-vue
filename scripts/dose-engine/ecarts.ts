@@ -20,6 +20,8 @@ export const FAMILIES = {
   'reglage-meme-frequence': { accepted: true },
   'reprise-meme-jour': { accepted: true },
   'mensuel-du-31': { accepted: true },
+  'marqueur-reference': { accepted: true },
+  'reglage-remplace': { accepted: true },
   'prise-orpheline': { accepted: false },
 } as const
 
@@ -108,6 +110,18 @@ function familiesOn(book: Book, day: string, stale: Set<string>): Family[] {
     const previous = ordered[index - 1]
     if (previous === undefined) return
     if (outside(period.id, day) && day !== period.firstDueOn) return
+    // Plan §3.1 : `referenceOn` marquait une première échéance hors grille (G23), une journée entamée
+    // (G24) ou une journée qui ne couvre rien (Q8) ; le moteur v2 n'a plus ces marqueurs.
+    const [low, high] = [period.firstDueOn, period.referenceOn].sort()
+    if (low !== high && low! <= day && day <= high!) found.add('marqueur-reference')
+    // R10 : remplacé le jour même sans prise, le réglage précédent ne compte plus.
+    const replaced =
+      previous.startsOn === period.startsOn &&
+      previous.stoppedOn === null &&
+      !book.doses.some(
+        (line) => line.periodId === previous.id && (isNote(line) || line.status === 'postponed'),
+      )
+    if (replaced) found.add('reglage-remplace')
     if (previous.stoppedOn !== null) {
       if (
         period.startsOn === day &&
@@ -144,9 +158,13 @@ export function verdictOf(book: Book, actual: Reading, reference: Reading): Verd
   const [a, b] = [pendingOf(actual), pendingOf(reference)]
   const near = [...a, ...b].filter((key) => a.has(key) !== b.has(key) && dayOf(key) <= until)
   // Au-delà de l'horizon, seule la dose du moment est lue : elle dit où le calendrier diverge.
-  const far = [...actual.current, ...reference.current].filter(
-    (key) => actual.current.includes(key) !== reference.current.includes(key) && dayOf(key) > until,
-  )
+  const far = [...actual.current, ...reference.current]
+    .filter(
+      (key) =>
+        actual.current.includes(key) !== reference.current.includes(key) && dayOf(key) > until,
+    )
+    .sort()
+    .slice(0, 1)
   const differing = near.length > 0 ? near : far
   const families = new Set<Family>()
   const unexplained: string[] = []

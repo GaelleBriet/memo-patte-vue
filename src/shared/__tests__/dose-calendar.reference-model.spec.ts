@@ -74,6 +74,32 @@ describe('R3 : l’origine se transmet', () => {
   })
 })
 
+describe('R3, R6 : un décalage et un changement de fréquence', () => {
+  it('écrit sous l’ancien réglage, un décalage est dépassé par la nouvelle origine', () => {
+    const p1 = setting('p1', '2026-10-01', TWO_DAYS)
+    const p2 = setting('p2', '2026-10-04', { value: 3, unit: 'day' }, [], {
+      startsOn: '2026-10-02',
+    })
+    const lines = [
+      line('p1', 'given', '2026-10-01'),
+      line('p1', 'shift', '2026-10-05', null, '2026-10-06'),
+    ]
+    expect(next([p1, p2], lines, '2026-10-02')).toEqual(['2026-10-04', '2026-10-07', '2026-10-10'])
+  })
+
+  it('écrit sous le nouveau réglage, il fait repartir la suite', () => {
+    const p1 = setting('p1', '2026-10-01', TWO_DAYS)
+    const p2 = setting('p2', '2026-10-04', { value: 3, unit: 'day' }, [], {
+      startsOn: '2026-10-02',
+    })
+    const lines = [
+      line('p1', 'given', '2026-10-01'),
+      line('p2', 'shift', '2026-10-07', null, '2026-10-08'),
+    ]
+    expect(next([p1, p2], lines, '2026-10-02')).toEqual(['2026-10-04', '2026-10-07', '2026-10-11'])
+  })
+})
+
 describe('R4 : ce qu’une prise couvre', () => {
   it('une prise oubliée couvre son échéance comme une prise donnée', () => {
     const p1 = setting('p1', '2026-10-01', DAY)

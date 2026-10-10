@@ -137,13 +137,11 @@ export function calendarOf(
     // part de la première échéance du réglage (R2).
     const previous = live[index - 1]
     const origin = setting.gridOriginOn
+    const earlier = new Set(episode.slice(0, episode.indexOf(setting)).map(({ id }) => id))
+    const within = ({ dueOn }: ReferenceLine) =>
+      dueOn >= setting.startsOn && (end === null || dueOn < end)
     const anchors = shifts
-      .filter(
-        ({ dueOn, updatedAt }) =>
-          dueOn >= setting.startsOn &&
-          (end === null || dueOn < end) &&
-          updatedAt < setting.createdAt,
-      )
+      .filter((shift) => within(shift) && earlier.has(shift.settingId))
       .map(({ targetOn }) => targetOn!)
     const continued =
       previous !== undefined &&
@@ -160,12 +158,9 @@ export function calendarOf(
           floor: plusDays(later(setting.firstDueOn, setting.startsOn), -1),
         }
     // R6 : à partir de sa journée d'origine, un décalage donne à la grille l'origine de son ancrage ;
-    // écrit avant un changement de fréquence, il est dépassé par la nouvelle origine (R3).
+    // écrit sous un réglage d'avant un changement de fréquence, il est dépassé par la nouvelle origine (R3).
     const turns = shifts.filter(
-      ({ dueOn, updatedAt }) =>
-        dueOn >= setting.startsOn &&
-        (end === null || dueOn < end) &&
-        (continued || updatedAt > setting.createdAt),
+      (shift) => within(shift) && (continued || !earlier.has(shift.settingId)),
     )
     let from = setting.startsOn
     for (const turn of [...turns, null]) {
