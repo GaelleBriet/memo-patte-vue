@@ -46,10 +46,20 @@ function sameFrequency({ period }: PeriodTimeline, { value, unit }: Frequency): 
   return period.frequency.value === value && period.frequency.unit === unit
 }
 
-// G23, G25 : le jour d'arrivée d'un report seul ne refixe pas la grille ; elle repart de sa journée
-// d'origine.
+// G23, G25 : le jour d'arrivée d'un report seul ne refixe pas la grille ; elle repart de la première
+// journée d'origine, en remontant les reports seuls en chaîne.
 function loneOrigin(plan: PeriodTimeline, day: string): string | undefined {
-  return movesInto(plan, day).find((line) => shiftOn(plan, dueOf(line)) === undefined)?.dueOn
+  const loneFrom = (on: string) =>
+    movesInto(plan, on).find((line) => shiftOn(plan, dueOf(line)) === undefined)?.dueOn
+  const seen = new Set([day])
+  let origin = loneFrom(day)
+  while (origin !== undefined && !seen.has(origin)) {
+    seen.add(origin)
+    const earlier = loneFrom(origin)
+    if (earlier === undefined) return origin
+    origin = earlier
+  }
+  return origin
 }
 
 // G25 : une journée sans plus rien à donner, dont des heures sont parties ou restées en arrière d'un
