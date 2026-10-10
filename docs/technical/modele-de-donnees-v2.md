@@ -188,6 +188,15 @@ développement peuvent être effacées. Rien de l'existant n'est à récupérer.
   valeur actuelle).
 - Index sur les clés étrangères ; suppression logique partout.
 
+
+### 4.2 Évolution v12 (moteur des doses v2, décision du 2026-10-10)
+
+Le calendrier devient celui du traitement, pas de la période : `treatment_dose.period_id` reste à
+titre d'information (posologie appliquée), `treatment_period.reference_on` devient `grid_origin_on`
+(origine de la grille, un seul sens), `treatment_dose.next_due_date` devient `target_on` (arrivée
+d'un report, ancrage d'un décalage, vide pour une prise). Règles : spec `traitements.md` §4.8 ;
+migration, export v5 et miroir Supabase : `moteur-doses-v2-plan.md` §3.
+
 ## 5. Décisions
 
 - 2026-09-29 — **M1 : une table `treatment_period` sous le traitement.** Le traitement garde l'animal,

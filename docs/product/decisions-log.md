@@ -2367,3 +2367,19 @@ professionnelle de Gaelle, au format international dans les deux langues et touc
 Il n'est ni sur l'accueil ni dans l'app, où le contact reste l'e-mail. Ferme le point laissé
 ouvert le 2026-10-08 (LCEN). — Alternative écartée : le format national `07…`, illisible pour un
 visiteur à l'étranger.
+
+2026-10-10 — **Moteur des doses v2** : le calcul du calendrier des traitements est réécrit sur douze
+règles (spec `traitements.md` §4.8, R1 à R12) qui remplacent les gardes G1 à G26 ; un calendrier par
+traitement, des lignes qui appartiennent au traitement et que le moteur ne supprime jamais, une
+origine de grille qui se transmet d'un réglage au suivant, une seule règle de couverture, un seul
+déclencheur de décalage (la ligne de décalage), une seule lecture pour tous les écrans. Schéma v12
+(`grid_origin_on` remplace `reference_on`, `target_on` remplace `next_due_date`), export v5, import
+relu par le moteur. Plan en dix pas, chacun prouvé par l'ancien moteur rejoué en oracle :
+`docs/technical/moteur-doses-v2-plan.md`. Six décisions de produit du même jour dans la spec §10
+(Q-C1, Q-G3, Q-#744, Q-§11, Q-purge, Q-double). — Raison (Gaelle) : « bien trop longtemps que nous
+tournons en rond » ; l'analyse du jour montre que les sept tickets ouverts et les quatre derniers
+correctifs tiennent tous à la frontière entre deux périodes, où le moteur devait deviner ce que
+l'ancienne avait prévu. — Alternatives écartées : consolider règle par règle (garde les concepts
+fautifs, trente règles non écrites dans le code) ; échéances matérialisées en base (données dérivées
+stockées, conflits de synchro, trois à quatre fois le coût). L'exécution est confiée à un autre agent ;
+cette PR ne livre que la spec, le plan et les tickets.
