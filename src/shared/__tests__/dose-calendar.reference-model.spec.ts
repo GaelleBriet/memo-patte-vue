@@ -167,6 +167,16 @@ describe('R6 : seul un décalage déplace la suite', () => {
   })
 })
 
+describe('R2, R3 : un réglage qui en remplace un jamais commencé', () => {
+  it('un nouveau réglage de même fréquence ne reprend pas la première dose future du précédent', () => {
+    const p2 = setting('p2', '2026-04-06', DAY, H, { startsOn: '2026-03-25' })
+    const p3 = setting('p3', '2026-03-25', DAY, H)
+    expect(
+      read([p2, p3], [line('p2', 'given', '2026-04-06', '08:00')], '2026-03-25').upcoming,
+    ).toContain('2026-03-26 08:00')
+  })
+})
+
 describe('modèle de référence : indépendant du moteur, de l’app et de l’horloge', () => {
   const folder = fileURLToPath(new URL('../domain/dose-calendar/', import.meta.url))
   const sources = readdirSync(folder)

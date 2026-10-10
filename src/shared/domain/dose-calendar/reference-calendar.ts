@@ -151,8 +151,17 @@ export function calendarOf(
     if (previous !== undefined && !sameHours(previous, setting)) {
       translated.set(setting.startsOn, setting.id).set(setting.firstDueOn, setting.id)
     }
+    const neverStarted =
+      previous !== undefined &&
+      previous.firstDueOn >= setting.startsOn &&
+      grid.floor === plusDays(previous.firstDueOn, -1)
     grid = continued
-      ? { origin: grid.origin, floor: later(grid.floor, plusDays(setting.startsOn, -1)) }
+      ? {
+          origin: grid.origin,
+          floor: neverStarted
+            ? plusDays(later(setting.firstDueOn, setting.startsOn), -1)
+            : later(grid.floor, plusDays(setting.startsOn, -1)),
+        }
       : {
           origin: setting.gridOriginOn ?? setting.firstDueOn,
           floor: plusDays(later(setting.firstDueOn, setting.startsOn), -1),
