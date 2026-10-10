@@ -358,7 +358,7 @@ Un réglage ouvert aujourd'hui et encore sans prise se **remplace** quand on le 
 
 #### R11 — Rien ne disparaît sans geste
 
-Une ligne écrite par la personne (prise, prise en plus, report, décalage) n'est **jamais supprimée par le moteur**. Ce qui n'a plus d'effet (un report revenu à sa date, une ligne plus ancienne de la même journée entre deux appareils, un report battu par une prise de la même échéance) reste en base et dans l'historique, marqué « sans effet » à l'affichage ; seule la personne le supprime. Le moteur ne lit **que** des lignes, il n'en écrit ni n'en efface jamais à la lecture (décision Q-purge du 2026-10-10).
+Une ligne écrite par la personne (prise, prise en plus, report, décalage) n'est **jamais supprimée par le moteur**. Ce qui n'a plus d'effet (un report revenu à sa date, une ligne plus ancienne de la même journée entre deux appareils, un report battu par une prise de la même échéance) reste en base et dans l'historique, à sa place, grisé, son texte suivi de « · sans effet » (« Reportée au 19 oct. · sans effet »), avec « Supprimer » pour seul menu (décision de Gaelle du 2026-10-10) ; seule la personne le supprime. Le moteur ne lit **que** des lignes, il n'en écrit ni n'en efface jamais à la lecture (décision Q-purge du 2026-10-10).
 
 #### R12 — Une seule lecture pour tous les écrans
 
@@ -883,5 +883,7 @@ restent des scénarios du jeu de recette (`docs/technical/moteur-doses-v2-plan.m
 `src/shared/__tests__/dose-calendar.recette.spec.ts` à partir du pas 1) jusqu'à la suppression du
 moteur v1 (pas 10).
 
-Reste à trancher par Gaelle : le texte d'une ligne sans effet dans l'historique (proposition :
-« Reportée au 4 oct. · sans effet », grisée, menu « Supprimer » seul ; R11).
+Décision de Gaelle du 2026-10-10 : une ligne sans effet reste à sa place dans l'historique, grisée,
+avec son texte habituel suivi de « · sans effet » (« Reportée au 19 oct. · sans effet »), et son
+menu ⋮ ne propose que « Supprimer » (R11, TR-24, TR-35). Aucune question ouverte.
+

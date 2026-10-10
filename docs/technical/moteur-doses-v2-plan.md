@@ -174,7 +174,7 @@ Captures émulateur au pixel sur les parcours de la recette (pas 5, 6, 8), test 
 ## 7. Impacts hors moteur, à ne pas oublier
 
 - **Textes** : les aides de « Prochaine dose » (`calculated`, `scheduled`, `calculated-passed`, `today`) sont recalculées depuis `preview` ; les toasts de redatage (G19, G21) viennent de `view.gestures.redate` ; aucun nouveau texte produit sans maquette : les textes existants sont réutilisés, un texte qui change de sens est posé en question à Gaelle avant la PR.
-- **Historique** : une ligne « sans effet » (R11) a un affichage : proposition « Reportée au 4 oct. · sans effet » en gris, menu « Supprimer » seul. **Question à Gaelle** au pas 0 (texte vu par l'utilisateur).
+- **Historique** : une ligne « sans effet » (R11) reste à sa place, grisée, son texte suivi de « · sans effet » (« Reportée au 19 oct. · sans effet »), menu « Supprimer » seul (décision de Gaelle du 2026-10-10).
 - **Carnet de démo** et fixtures de test : convertis au pas 7.
 - **Site** (FAQ des rappels et des traitements) : relire les phrases qui décrivent les reports ; aucune ne devrait changer.
 - **Performance** : une passe linéaire ; l'ancien `redate` reconstruisait l'état jusqu'à six fois ; viser < 5 ms par traitement sur 400 échéances (test de `treatment-schedule.perf.spec.ts` repris).
@@ -196,6 +196,6 @@ Un épic « Moteur des doses v2 » et un ticket par pas (1 à 10), chacun avec :
 
 ## 10. Ce qui est attendu de Gaelle
 
-1. **Pas 0** : relire la spec `docs/product/specs/traitements.md` §4.8 (douze règles, un quart d'heure) et répondre à la question du texte « sans effet » (§7). Tout le reste se fait en autonomie, consigné au journal.
+1. **Pas 0** : relire la spec `docs/product/specs/traitements.md` §4.8 (douze règles, un quart d'heure) (la question du texte « sans effet » est tranchée, §7). Tout le reste se fait en autonomie, consigné au journal.
 2. **Pas 7** : être présente pour la migration Supabase.
 3. **Pas 9** : une heure sur son téléphone avec la recette.
