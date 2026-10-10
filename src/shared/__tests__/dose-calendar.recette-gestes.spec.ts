@@ -20,6 +20,7 @@ import {
   supprime,
   supprimeReport,
   type Carnet,
+  vue,
 } from './dose-calendar.recette.aides'
 
 // Jeu de recette du moteur v2 (épic #758) : gestes sur la fiche, deux appareils, temps qui passe.
@@ -98,11 +99,11 @@ describe('R5, R6 : prise en plus, correction de date', () => {
         ligne(c, '2026-10-16', null, 'given').id,
         '2026-10-24',
       )
-      const schedule = lecture(corrigee, '2026-10-25')
+      const read = vue(corrigee, '2026-10-25')
       expect({
-        current: schedule.currentDoses.map(cle),
-        unlogged: schedule.unloggedDoses.map(cle),
-        next: schedule.upcoming(2).map(cle),
+        current: read.currentDoses.map(cle),
+        unlogged: read.unloggedDoses.map(cle),
+        next: read.upcoming({ limit: 2 }).map(cle),
       }).toEqual({ current: ['2026-10-31'], unlogged: [], next: ['2026-10-31', '2026-11-07'] })
     },
   )
@@ -117,7 +118,7 @@ describe('R5, R6 : prise en plus, correction de date', () => {
         ligne(c, '2026-10-16', null, 'given').id,
         '2026-10-24',
       )
-      expect(lecture(corrigee, '2026-10-25').phase).toBe('upcoming')
+      expect(vue(corrigee, '2026-10-25').phase).toBe('upcoming')
       expect(journees(corrigee, '2026-10-25', 2)).toEqual(['2026-10-31', '2026-11-07'])
       const autre = lecture(vendredis(), '2026-10-25').dueForDate('2026-10-24')!
       expect(
@@ -135,10 +136,10 @@ describe('R5, R6 : prise en plus, correction de date', () => {
       true,
     )
     c = supprime(c, ligne(c, '2026-10-16', null, 'given').id)
-    const schedule = lecture(c, '2026-10-20')
-    expect(schedule.currentDoses.map(cle)).toEqual(['2026-10-16'])
-    expect(schedule.upcoming(2).map(cle)).toEqual(['2026-10-26', '2026-11-02'])
-    expect(schedule.unloggedDoses).toEqual([])
+    const read = vue(c, '2026-10-20')
+    expect(read.currentDoses.map(cle)).toEqual(['2026-10-16'])
+    expect(read.upcoming({ limit: 2 }).map(cle)).toEqual(['2026-10-26', '2026-11-02'])
+    expect(read.unloggedDoses).toEqual([])
   })
 })
 
@@ -210,8 +211,8 @@ describe('TR-25, R11 : deux appareils', () => {
 
 describe('le temps qui passe ne change que les étiquettes, jamais le calendrier', () => {
   function echeances(c: Carnet, today: string, horizon: string): string[] {
-    const schedule = lecture(c, today)
-    const all = [...schedule.unloggedDoses, ...schedule.currentDoses, ...schedule.upcoming(200)]
+    const read = vue(c, today)
+    const all = [...read.unloggedDoses, ...read.currentDoses, ...read.upcoming({ limit: 200 })]
     return [...new Set(all.map(cle))].filter((key) => key.slice(0, 10) <= horizon).sort()
   }
 
