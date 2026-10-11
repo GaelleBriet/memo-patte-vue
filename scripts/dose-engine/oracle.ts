@@ -37,6 +37,8 @@ export type OracleRun = {
   stopped: { seed: number; reason: string }[]
   /** Gestes que le moteur v2 refuse, non joués, comptés par raison. */
   refused: Record<string, number>
+  /** Refus suspects de v2 (échéance qu'il propose, correction que le moteur actuel accepte), par type. */
+  suspects: Record<string, { count: number; examples: string[] }>
   /** Toutes les graines qui divergent, réduites à leur verdict : une série longue en garde des milliers. */
   divergences: Pick<Divergence, 'seed' | 'verdict'>[]
   /** Écarts que ni un ticket ni une décision n'expliquent : ils bloquent. */
@@ -116,8 +118,15 @@ function playCarnet(config: OracleConfig, seed: number, run: OracleRun): Diverge
     if (!(error instanceof WalkStopped)) throw error
     run.stopped.push({ seed, reason: error.message })
   }
-  for (const { reason } of walk.refused) {
+  for (const { gesture, reason, suspect, input } of walk.refused) {
     run.refused[reason] = (run.refused[reason] ?? 0) + 1
+    if (suspect === undefined) continue
+    const entry = (run.suspects[suspect] ??= { count: 0, examples: [] })
+    entry.count += 1
+    if (entry.examples.length >= 3) continue
+    entry.examples.push(`graine ${seed} : ${gesture}`)
+    const index = entry.examples.length
+    if (config.out !== null) writtenSuspect(config.out, { seed, index, gesture, suspect, input })
   }
   return divergence
 }
@@ -129,6 +138,16 @@ function written(out: string, divergence: Divergence): void {
   writeFileSync(join(out, `avant-${seed}.json`), `${JSON.stringify(content, null, 2)}\n`)
 }
 
+function writtenSuspect(out: string, suspect: Record<string, unknown> & { seed: number }): void {
+  mkdirSync(out, { recursive: true })
+  const kind = String(suspect.suspect)
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[^a-z]+/g, '-')
+  const name = `refus-${kind}-${suspect.seed}-${suspect.index}.json`
+  writeFileSync(join(out, name), `${JSON.stringify(suspect, null, 2)}\n`)
+}
+
 export function runOracle(config: OracleConfig): OracleRun {
   const last = config.from + config.seeds - 1
   const [a, b] = config.engines
@@ -138,6 +157,7 @@ export function runOracle(config: OracleConfig): OracleRun {
     gestures: 0,
     stopped: [],
     refused: {},
+    suspects: {},
     divergences: [],
     unaccepted: [],
     families: {},
@@ -162,12 +182,16 @@ export function runOracle(config: OracleConfig): OracleRun {
     .sort(([, a], [, b]) => b - a)
     .map(([reason, count]) => `${reason} ${count}`)
     .join(', ')
+  const suspects = Object.entries(run.suspects)
+    .map(([kind, { count }]) => `${kind} ${count}`)
+    .join(', ')
   run.summary =
     `Oracle : ${run.carnets} carnets × ${config.steps} gestes, graines ${config.from} à ${last}` +
     ` (${a.name} contre ${b.name}, réglages ${config.settings}) : ${run.gestures} gestes comparés,` +
     ` ${run.divergences.length} écarts dont ${run.unaccepted.length} non rattachés,` +
     ` ${run.stopped.length} carnets arrêtés, ${refusedCount} gestes refusés par v2 non joués` +
     `${families === '' ? '' : ` ; familles : ${families}`}` +
-    `${refusals === '' ? '' : ` ; refus de v2 : ${refusals}`}`
+    `${refusals === '' ? '' : ` ; refus de v2 : ${refusals}`}` +
+    ` ; refus à analyser : ${suspects === '' ? 'aucun' : suspects}`
   return run
 }

@@ -4,6 +4,7 @@ import {
   noteDose,
   redateDose,
   removeLine,
+  treatmentView,
   viewInputOf,
   type GestureResult,
   type Line,
@@ -41,16 +42,48 @@ function differenceOf(mine: string[], target: string[]): string {
 
 export type V2Play = (input: TreatmentViewInput) => GestureResult
 
+/** Ce que l'oracle sait du geste pour repérer un refus suspect (I4 du pas 3). */
+export type Probe = { due?: ReturnType<typeof v2Due>; redate?: boolean }
+
+const REPORT_REFUSALS = ['passes-report', 'stuck-report', 'report-loop']
+
+// Un refus de v2 sur une échéance que sa propre vue propose, ou une correction que le moteur actuel
+// accepte et que v2 refuse à cause d'un report : à analyser, jamais caché dans un simple compte.
+function suspectOf(input: TreatmentViewInput, refusals: string[], probe: Probe): string | null {
+  if (probe.redate === true) {
+    const report = refusals.find((reason) => REPORT_REFUSALS.includes(reason))
+    if (report !== undefined) return `correction acceptée par le moteur actuel (${report})`
+  }
+  if (probe.due === undefined) return null
+  const view = treatmentView(input)
+  const proposed = [
+    ...view.currentDoses,
+    ...(view.nextDue === null ? [] : [view.nextDue]),
+    ...view.upcoming({ limit: 3 }),
+  ]
+  const { dueOn, dueTime } = probe.due
+  const own = proposed.some((due) => due.dueOn === dueOn && due.dueTime === dueTime)
+  return own ? `échéance proposée par v2 (${refusals[0]})` : null
+}
+
 /**
  * L'oracle ne compare que des carnets que l'app peut produire : un geste du moteur actuel n'est joué
  * que si le moteur v2, pour le même geste (case cochée ou non), écrit le même carnet. Sinon il est
- * compté avec sa raison (refus de v2, ou autres lignes) et le carnet reste tel quel.
+ * compté avec sa raison (refus de v2, ou autres lignes) et le carnet reste tel quel ; un refus suspect
+ * est listé à part.
  */
-export function refusedByV2(walk: Walk, gesture: string, after: Book, plays: V2Play[]): boolean {
+export function refusedByV2(
+  walk: Walk,
+  gesture: string,
+  after: Book,
+  plays: V2Play[],
+  probe: Probe = {},
+): boolean {
   if (walk.filter === 'aucun') return false
   const input = viewInputOf(keptBook(walk))
   const target = signature(viewInputOf({ ...after, doses: [...after.doses, ...walk.purged] }).lines)
   const reasons: string[] = []
+  const refusals: string[] = []
   for (const play of plays) {
     let result: GestureResult
     try {
@@ -61,13 +94,20 @@ export function refusedByV2(walk: Walk, gesture: string, after: Book, plays: V2P
     }
     if ('refusal' in result) {
       reasons.push(result.refusal.reason)
+      refusals.push(result.refusal.reason)
       continue
     }
     const mine = signature(applied(input, result.changes).lines)
     if (mine.join() === target.join()) return false
     reasons.push(differenceOf(mine, target))
   }
-  walk.refused.push({ gesture, reason: reasons[0] ?? 'aucun geste v2' })
+  const allRefused = refusals.length === plays.length
+  const suspect = allRefused || probe.redate === true ? suspectOf(input, refusals, probe) : null
+  walk.refused.push({
+    gesture,
+    reason: reasons[0] ?? 'aucun geste v2',
+    ...(suspect === null ? {} : { suspect, input }),
+  })
   return true
 }
 

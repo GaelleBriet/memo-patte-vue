@@ -10,7 +10,7 @@ function playMove(walk: Walk, gesture: string, due: Due, to: string, shiftsFollo
     (input: Parameters<typeof v2.moveDose>[0]) =>
       v2.moveDose(input, { due: v2Due(due), to, shiftsFollowing }),
   ]
-  if (refusedByV2(walk, gesture, next, play)) return
+  if (refusedByV2(walk, gesture, next, play, { due: v2Due(due) })) return
   walk.log.push(gesture)
   walk.book = next
 }

@@ -23,7 +23,13 @@ ORACLE_FROM=530000000 ORACLE_SEEDS=20000 ORACLE_STEPS=40 ORACLE_ENGINES=actuel,r
   refus de v2 ou « v2 écrit autre chose » avec la règle en cause) ou `aucun` (tous les gestes du
   moteur actuel, carnets inatteignables compris).
 - `ORACLE_OUT` : dossier où écrire, par graine qui diverge, le carnet avant le geste fautif
-  (`avant-<graine>.json`).
+  (`avant-<graine>.json`), et les trois premiers carnets de chaque refus à analyser
+  (`refus-<type>-<graine>-<n>.json`).
+
+La ligne « Oracle » finit par les **refus à analyser** : un refus de v2 sur une échéance que sa propre
+vue propose (dose du moment, prochaine dose, trois suivantes), et une correction de date que le moteur
+actuel accepte et que v2 refuse à cause d'un report. Chacun est soit un défaut corrigé, soit un refus
+justifié par une règle datée (`ecarts-acceptes.md`).
 
 La ligne « Oracle : N carnets × M gestes, graines A à B » dit ce qui a été joué ; un réglage illisible
 arrête l'oracle avant tout carnet. Tout écart non rattaché à `ecarts-acceptes.md` fait échouer la

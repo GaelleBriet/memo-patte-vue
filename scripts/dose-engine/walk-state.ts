@@ -1,3 +1,4 @@
+import type { TreatmentViewInput } from '@/shared/domain/dose-calendar'
 import {
   treatmentSchedule,
   type DoseFields,
@@ -35,7 +36,12 @@ export type Walk = {
   readonly settings: SettingsMode
   readonly filter: FilterMode
   /** Gestes refusés par le moteur v2, avec leur raison. */
-  readonly refused: { gesture: string; reason: string }[]
+  readonly refused: {
+    gesture: string
+    reason: string
+    suspect?: string
+    input?: TreatmentViewInput
+  }[]
   readonly random: Random
   readonly shiftRandom: Random
   readonly extraRandom: Random
