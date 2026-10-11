@@ -471,3 +471,44 @@ describe('R3, R10 : un réglage remplacé le jour même transmet sa grille au r�
     ])
   })
 })
+
+describe('R3, R6 : un décalage écrit avant un changement de fréquence reste dépassé sous une posologie', () => {
+  const s1 = setting('s1', '2026-03-13', { value: 3, unit: 'day' }, ['20:00'])
+  const s2 = setting('s2', '2026-03-15', { value: 2, unit: 'week' }, ['20:00'], {
+    startsOn: '2026-03-14',
+  })
+  const lines = [
+    line('s1', 'postponed', '2026-03-13', '20:00', '2026-03-15'),
+    { ...line('s1', 'given', '2026-03-15', '20:00'), givenOn: '2026-03-14' },
+    line('s1', 'shift', '2026-03-15', '20:00', '2026-03-14'),
+  ]
+
+  it('tous les 3 jours à 20 h, dose du 13 reportée seule au 15 et donnée le 14 avec décalage ; le 14, toutes les 2 semaines dès le 15 ; le 15, posologie : 29 mars, 12 et 26 avr.', () => {
+    const s3 = setting('s3', '2026-03-29', { value: 2, unit: 'week' }, ['20:00'], {
+      startsOn: '2026-03-15',
+      gridOriginOn: null,
+    })
+    const expected = ['2026-03-29 20:00', '2026-04-12 20:00', '2026-04-26 20:00']
+    expect(next([s1, s2], lines, '2026-03-15')).toEqual(expected)
+    expect(next([s1, s2, s3], lines, '2026-03-15')).toEqual(expected)
+  })
+})
+
+describe('R3 : une date choisie sur la grille d’un décalage à venir continue le rythme', () => {
+  const s1 = setting('s1', '2026-03-20', MONTH, ['20:00'])
+  const lines = [
+    { ...line('s1', 'given', '2026-04-20', '20:00'), givenOn: '2026-03-25' },
+    line('s1', 'shift', '2026-04-20', '20:00', '2026-03-25'),
+  ]
+  const s2 = setting('s2', '2026-06-25', MONTH, ['20:00'], { startsOn: '2026-03-27' })
+
+  it('mensuel du 20 mars à 20 h, dose du 20 avr. donnée le 25 mars avec décalage ; le 27, première dose le 25 juin ; le 29, posologie : la même suite', () => {
+    const s3 = setting('s3', '2026-04-25', MONTH, ['20:00'], {
+      startsOn: '2026-03-29',
+      gridOriginOn: null,
+    })
+    expect(next([s1, s2, s3], lines, '2026-03-29', 4)).toEqual(
+      next([s1, s2], lines, '2026-03-29', 4),
+    )
+  })
+})

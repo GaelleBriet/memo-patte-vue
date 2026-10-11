@@ -19,6 +19,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   const boundaries = new Map<Day, Hour[]>()
   const openings = new Set<Day>()
   let grid = { origin: chain[0]!.firstDueOn, floor: '' }
+  let rhythm = new Set<string>()
   let rhythmFrom = span.live[0]!.startsOn
   chain.forEach((setting, position) => {
     const index = span.live.indexOf(setting)
@@ -31,7 +32,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     const earlier = new Set(chain.slice(0, position).map(({ id }) => id))
     const within = ({ dueOn }: Line) => dueOn >= setting.startsOn && (end === null || dueOn < end)
     const anchors = lines.shifts
-      .filter((shift) => within(shift) && earlier.has(shift.settingId))
+      .filter((shift) => shift.dueOn >= setting.startsOn && rhythm.has(shift.settingId))
       .map(({ targetOn }) => targetOn!)
     const continued =
       previous !== undefined &&
@@ -52,6 +53,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       const follows = chain.slice(0, position).some((each) => span.live.includes(each))
       if (follows && setting.firstDueOn >= setting.startsOn) openings.add(setting.firstDueOn)
     }
+    rhythm = continued ? new Set([...rhythm, setting.id]) : new Set([setting.id])
     grid = continued
       ? {
           origin: grid.origin,
@@ -62,7 +64,9 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     if (index > 0 && !continued) rhythmFrom = setting.startsOn
     // R3 : écrit sous un réglage d'avant un changement de fréquence, un décalage est dépassé.
     const turns = lines.shifts.filter(
-      (shift) => within(shift) && (continued || !earlier.has(shift.settingId)),
+      (shift) =>
+        within(shift) &&
+        (!earlier.has(shift.settingId) || (continued && rhythm.has(shift.settingId))),
     )
     let from = setting.startsOn
     for (const turn of [...turns, null]) {

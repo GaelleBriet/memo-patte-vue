@@ -74,6 +74,7 @@ export function calendarOf(
   )
   let grid: Grid = { origin: chain[0]!.firstDueOn, floor: '' }
   // R9, Q-retard : les réglages de même fréquence continuent le rythme, et sa dose en retard.
+  let rhythm = new Set<string>()
   let rhythmFrom = live[0]!.startsOn
   chain.forEach((setting, position) => {
     const index = live.indexOf(setting)
@@ -89,7 +90,7 @@ export function calendarOf(
     const within = ({ dueOn }: ReferenceLine) =>
       dueOn >= setting.startsOn && (end === null || dueOn < end)
     const anchors = shifts
-      .filter((shift) => within(shift) && earlier.has(shift.settingId))
+      .filter((shift) => shift.dueOn >= setting.startsOn && rhythm.has(shift.settingId))
       .map(({ targetOn }) => targetOn!)
     const continued =
       previous !== undefined &&
@@ -112,6 +113,7 @@ export function calendarOf(
       const follows = chain.slice(0, position).some((each) => live.includes(each))
       if (follows && setting.firstDueOn >= setting.startsOn) openings.add(setting.firstDueOn)
     }
+    rhythm = continued ? new Set([...rhythm, setting.id]) : new Set([setting.id])
     grid = continued
       ? {
           origin: grid.origin,
@@ -123,7 +125,9 @@ export function calendarOf(
     // R6 : à partir de sa journée d'origine, un décalage donne à la grille l'origine de son ancrage ;
     // écrit sous un réglage d'avant un changement de fréquence, il est dépassé par la nouvelle origine (R3).
     const turns = shifts.filter(
-      (shift) => within(shift) && (continued || !earlier.has(shift.settingId)),
+      (shift) =>
+        within(shift) &&
+        (!earlier.has(shift.settingId) || (continued && rhythm.has(shift.settingId))),
     )
     let from = setting.startsOn
     for (const turn of [...turns, null]) {

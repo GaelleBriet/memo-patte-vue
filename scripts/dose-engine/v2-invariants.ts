@@ -1,10 +1,11 @@
 import {
   applied,
+  newSettings,
   play,
   preview,
+  settingsApplied,
   treatmentView,
   type Due,
-  type Gesture,
   type Line,
   type TreatmentView,
   type TreatmentViewInput,
@@ -14,7 +15,7 @@ import { referenceReading } from '@/shared/domain/dose-calendar/reference-model'
 
 import { int, plusDays, type Random } from './carnet'
 import { dueKey, gapsBetween, HORIZON_DAYS, type Display } from './display'
-import { posologyFirstDue, type V2Step } from './v2-walk'
+import type { V2Step } from './v2-walk'
 
 /** Un invariant de la campagne v2 (plan §6.3) qui ne tient pas, avec ce qui le montre. */
 export type Broken = { invariant: string; detail: string }
@@ -117,30 +118,30 @@ export function noDouble(input: TreatmentViewInput): Broken | null {
   return found.length === 0 ? null : { invariant: 'pas de double', detail: JSON.stringify(found) }
 }
 
-/** 3. R3 : « Modifier » à fréquence et heures égales ne change pas le calendrier, sans exemption. */
+/** 3. R3, Q-retard : « Modifier » à fréquence et heures égales ne change ni le calendrier ni les états, sans exemption. */
 export function posology(input: TreatmentViewInput): Broken | null {
   const view = treatmentView(input)
   const current = view.currentSetting
   if (current === null || view.phase === 'stopped' || view.phase === 'ended') return null
-  const firstDueOn = posologyFirstDue(view, input.today)
-  const posology = {
-    ...current,
-    id: 'posologie',
-    startsOn: input.today,
-    firstDueOn,
-    gridOriginOn: null,
-    createdAt: '9999-12-31T23:59:59.999Z',
+  const { frequency, times, endsOn } = current
+  const result = newSettings(input, { frequency, times, endsOn })
+  if (!('plan' in result)) {
+    return { invariant: 'posologie sans effet', detail: `pas de plan : ${JSON.stringify(result)}` }
   }
-  const changed = { ...input, settings: [...input.settings, posology] }
   const until = horizonOf(input)
   const read = (carnet: TreatmentViewInput) => {
-    const view = treatmentView(carnet)
-    const pending = [...view.unloggedDoses, ...view.currentDoses, ...view.upcoming({ to: until })]
-    const effects = view.history.map(({ line, effect }) => `${line.id} ${JSON.stringify(effect)}`)
-    const keys = pending.map(dueKey).filter((key) => key.slice(0, 10) <= until)
-    return [[...new Set(keys)].sort(), effects]
+    const after = treatmentView(carnet)
+    const within = (dues: Due[]) => dues.map(dueKey).filter((key) => key.slice(0, 10) <= until)
+    const effects = after.history.map(({ line, effect }) => `${line.id} ${JSON.stringify(effect)}`)
+    return [
+      after.phase,
+      within(after.unloggedDoses),
+      within(after.currentDoses),
+      within(after.upcoming({ to: until })),
+      effects,
+    ]
   }
-  return compare('posologie sans effet', read(input), read(changed))
+  return compare('posologie sans effet', read(input), read(settingsApplied(input, result.plan)))
 }
 
 /** 4. Le temps ne change que les étiquettes : l'union des échéances sans prise jusqu'à un horizon fixe. */
@@ -245,10 +246,15 @@ export function undo(step: V2Step): Broken | null {
   return compare('annuler', read(step.before), read({ ...step.after, lines }))
 }
 
-/** 7. R12 : la préversion du geste est la lecture du carnet une fois écrit. */
+/** 7. R12 : la préversion du geste ou du réglage est la lecture du carnet une fois écrit. */
 export function previewIsResult(step: V2Step): Broken | null {
-  if (step.gesture === null) return null
-  const shown = preview(step.before, step.gesture as Gesture)
+  const shown =
+    step.plan !== null
+      ? preview(step.before, step.plan)
+      : step.gesture === null
+        ? null
+        : preview(step.before, step.gesture)
+  if (shown === null) return null
   if ('refusal' in shown)
     return { invariant: 'préversion', detail: `refus en préversion : ${shown.refusal.reason}` }
   const until = horizonOf(step.after)

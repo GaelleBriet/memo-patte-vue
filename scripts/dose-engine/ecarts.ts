@@ -274,7 +274,7 @@ function keepsLateDose(book: Book, reference: Display): boolean {
     return false
   }
   const run = [...episodeBefore(ordered, ordered.length - 1), last]
-  const from = run.findLastIndex(({ startsOn }) => startsOn <= day)
+  const from = run.filter(({ startsOn }) => startsOn <= day).length - 1
   return from >= 0 && run.slice(from).every((period) => sameFrequency(period, last))
 }
 
