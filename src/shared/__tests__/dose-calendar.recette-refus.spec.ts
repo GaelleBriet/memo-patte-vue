@@ -11,7 +11,7 @@ import {
   type Refusal,
 } from '../domain/dose-calendar'
 import { outcome } from '../domain/dose-calendar/gestures/outcome'
-import { DAY, H, line, setting, WEEK } from './dose-calendar.v2.aides'
+import { DAY, H, line, MONTH, setting, WEEK } from './dose-calendar.v2.aides'
 
 // Jeu de recette du moteur v2 (épic #758, pas 3) : chaque refus d'un geste, sur un carnet daté, et le
 // texte existant que l'écran affiche pour lui (aucun texte nouveau).
@@ -138,6 +138,25 @@ describe('un cas daté par refus', () => {
     expect(
       outcome(input, [{ ...loop, line: { ...loop.line, targetOn: '2026-10-22' } }]),
     ).not.toHaveProperty('refusal')
+  })
+
+  it('R7, #763 : mensuel du 16 mars, prise du 16 donnée le 19 avec décalage, doses du 19 avr. avancée au 15 et du 19 mai avancée au 20 avr. ; la prise ramenée au 16 ferait se renvoyer les deux reports : refusé', () => {
+    const p1 = setting('p1', '2026-03-16', MONTH)
+    const p2 = setting('p2', '2026-04-20', MONTH, [], {
+      startsOn: '2026-03-19',
+      gridOriginOn: null,
+    })
+    const prise = { ...line('p1', 'given', '2026-03-16'), givenOn: '2026-03-19' }
+    const lines = [
+      line('p1', 'shift', '2026-03-16', null, '2026-03-19'),
+      prise,
+      line('p1', 'postponed', '2026-04-19', null, '2026-04-15'),
+      line('p1', 'postponed', '2026-05-19', null, '2026-04-20'),
+    ]
+    const input = { settings: [p1, p2], lines, today: '2026-03-19' }
+    expect(
+      redateDose(input, { lineId: prise.id, givenOn: '2026-03-16', shiftsFollowing: false }),
+    ).toEqual({ refusal: { reason: 'report-loop' } })
   })
 
   it('N8 : décalage du 16 au 19, dose du 26 donnée : « Supprimer ce décalage » refusé', () => {
