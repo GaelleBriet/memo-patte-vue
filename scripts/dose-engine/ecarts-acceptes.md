@@ -93,7 +93,11 @@ R3, R7), le moteur actuel 25 mai, 25 juin, 25 juil. par son marqueur d'origine (
   et 20 h, première dose le 24 ; le 23, la dose du 24 avancée au 23 ; une prise d'avant l'arrêt
   notée le 23 à 20 h. Sans posologie, le 23 demande 8, 14 et 20 h ; avec une posologie écrite le 23
   (première dose le 23), la prise d'avant l'arrêt est empruntée et le 23 n'a plus que 20 h. La
-  campagne depuis 690000000 reste rouge sur ces trois graines jusqu'à la réponse de Gaelle.
+  campagne depuis 690000000 reste rouge sur ces trois graines jusqu'à la réponse de Gaelle. Le geste
+  « Modifier » du pas 4 en montre deux autres, même mécanisme : graine 710000212 (campagne depuis
+  710000000 ; reprise le 31 mars, première dose le 1er avr. avancée au 31, prise d'avant l'arrêt
+  visant le 31) et graine 700002909 (campagne depuis 700000000 ; prise oubliée du 17 mars, arrêt et
+  reprise le 17, première dose le 18 avancée au 17).
 
 ## Refus à analyser de l'oracle (pas 3)
 
@@ -140,4 +144,5 @@ carnets de l'oracle `actuel,v2` (20 000 carnets à partir de 530000000, réglage
 | R9.2, journée entamée ou arrivée | La prochaine journée entamée, ou l'arrivée d'un report, garde son jour et le rythme part d'elle ; le moteur actuel part d'aujourd'hui ou de sa dernière prise. Graines 530000067 (tous les jours dès le 19 avr., journée entamée, au lieu du 8), 530000352 (arrivée du 26 mars).                                                       |
 | R9.3                             | La dernière journée qui a une prise, par son échéance, plus la nouvelle fréquence (exemple de Q7 : « le calcul donne le 23 ») ; le moteur actuel part de la date réelle d'une prise qui a décalé la suite, d'un report ou d'aujourd'hui sur un traitement fini (Q8, G16). Graines 530000079, 530000385, 530000001.                     |
 | fréquence gardée (R3, Q-retard)  | Heures changées seules : la première échéance est la prochaine journée du calendrier en vigueur, ses prises la couvrent (R4) ; le moteur actuel redemande les heures d'une journée déjà donnée (famille `prises-du-traitement`, #741). Graines 530000066, 530000229.                                                                   |
+| R9 et un traitement fini         | Sur un traitement fini (date de fin passée), le moteur actuel propose aujourd'hui ; v2 suit R9.3. Graines 530000001, 530000148.                                                                                                                                                                                                        |
 | « même affichage »               | Les deux réglages montrent les mêmes doses ; seuls changent l'état d'une journée déjà donnée et l'effet des prises dans l'historique.                                                                                                                                                                                                  |
