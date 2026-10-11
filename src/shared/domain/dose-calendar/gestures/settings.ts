@@ -1,6 +1,6 @@
-import { hoursOf, later, plusDays, sameFrequency, stepped } from '../grid'
+import { hoursOf, isOnGrid, later, plusDays, sameFrequency, stepped } from '../grid'
 import { isNote } from '../lines'
-import { hasNotes } from '../settings'
+import { episodesOf, hasNotes } from '../settings'
 import type {
   Day,
   Due,
@@ -12,6 +12,7 @@ import type {
   TreatmentViewInput,
 } from '../types'
 import { buildView, type TreatmentView } from '../view'
+import { settingsApplied } from './changes'
 
 /** « Modifier » : les nouveaux réglages ; `firstDueOn` : la « Prochaine dose » choisie, sinon la proposée. */
 export type SettingsRequest = {
@@ -32,11 +33,18 @@ const NEXT_DAYS = 800
 const sameHours = (a: readonly string[], b: readonly string[]) =>
   hoursOf(a).join() === hoursOf(b).join()
 
-/** R9 : à fréquence gardée, la prochaine journée du calendrier en vigueur, dose du moment en retard comprise. */
-export function keptFirstDue(view: TreatmentView, today: Day): Day {
-  const late = view.currentDoses.find(({ dueOn }) => dueOn < today)
-  if (late !== undefined) return late.dueOn
-  return view.slots(today, plusDays(today, NEXT_DAYS))[0]?.due.dueOn ?? today
+// R9, R12 : à fréquence gardée, la prochaine journée du carnet une fois le réglage écrit, dose du
+// moment en retard comprise ; la première échéance joue sur la lecture (heures changées, reprise).
+function keptFirstDue(today: Day, readWith: (firstDueOn: Day) => TreatmentView): Day {
+  let day = today
+  for (let round = 0; round < 3; round += 1) {
+    const view = readWith(day)
+    const late = view.currentDoses.find(({ dueOn }) => dueOn < today)
+    const next = late?.dueOn ?? view.slots(today, plusDays(today, NEXT_DAYS))[0]?.due.dueOn ?? today
+    if (next === day) return day
+    day = next
+  }
+  return day
 }
 
 const isNoted = (state: string) => state === 'given' || state === 'missed' || state === 'covered'
@@ -85,25 +93,34 @@ function changedFirstDue(
 
 type Dates = Pick<SettingFields, 'firstDueOn' | 'gridOriginOn'>
 
+// R6, R12 : un décalage resté d'un réglage remplacé peut faire repartir le nouveau rythme ; la date
+// proposée est la première journée que la fiche montrera.
+function shownFrom(day: Day, readWith: (dates: Dates) => TreatmentView): Day {
+  return (
+    readWith({ firstDueOn: day, gridOriginOn: day }).slots(day, plusDays(day, NEXT_DAYS))[0]?.due
+      .dueOn ?? day
+  )
+}
+
 // R3, R9 : la date proposée, ou choisie, et l'origine de la grille ; héritée à fréquence gardée.
 function proposedDates(
-  input: TreatmentViewInput,
+  before: TreatmentViewInput,
   previous: Setting | null,
   request: SettingsRequest,
   fallback: Day,
+  readWith: (dates: Dates) => TreatmentView,
 ): Dates | { refusal: Refusal } {
-  const view = buildView(input)
   const kept = previous !== null && sameFrequency(previous.frequency, request.frequency)
   const proposed = kept
-    ? keptFirstDue(view, input.today)
+    ? keptFirstDue(before.today, (firstDueOn) => readWith({ firstDueOn, gridOriginOn: null }))
     : previous === null
       ? fallback
-      : changedFirstDue(input, view, request.frequency, fallback)
+      : shownFrom(changedFirstDue(before, buildView(before), request.frequency, fallback), readWith)
   const chosen = request.firstDueOn
   if (chosen === undefined || chosen === proposed) {
     return { firstDueOn: proposed, gridOriginOn: kept ? null : proposed }
   }
-  if (chosen < input.today) return { refusal: { reason: 'too-early', earliest: input.today } }
+  if (chosen < before.today) return { refusal: { reason: 'too-early', earliest: before.today } }
   return { firstDueOn: chosen, gridOriginOn: chosen }
 }
 
@@ -123,19 +140,37 @@ const rewrite = (current: Setting, setting: SettingFields): SettingsPlan => ({
   setting,
 })
 
+const readAfter =
+  (input: TreatmentViewInput, draft: (dates: Dates) => SettingsPlan) => (dates: Dates) =>
+    buildView(settingsApplied(input, draft(dates)))
+
 // R10 : le réglage ouvert aujourd'hui, encore sans prise, est remplacé ; il est calculé comme s'il
-// n'avait jamais existé.
+// n'avait jamais existé, comme les autres réglages sans prise ouverts le même jour (synchro).
 function replaced(
   input: TreatmentViewInput,
   current: Setting,
   request: SettingsRequest,
 ): SettingsResult {
-  const base = { ...input, settings: input.settings.filter(({ id }) => id !== current.id) }
+  const episode = episodesOf(input.settings).find((each) =>
+    each.some(({ id }) => id === current.id),
+  )!
+  const gone = new Set(
+    episode
+      .filter((each) => each.startsOn === current.startsOn && !hasNotes(each, input.lines))
+      .map(({ id }) => id),
+  )
+  const base = { ...input, settings: input.settings.filter(({ id }) => !gone.has(id)) }
   const before = buildView(base)
   const previous = before.phase === 'stopped' ? null : before.currentSetting
-  const dates = proposedDates(base, previous, request, current.firstDueOn)
-  if ('refusal' in dates) return dates
-  return { plan: rewrite(current, fieldsOf(current.startsOn, dates, request)) }
+  const draft = (dates: Dates) => rewrite(current, fieldsOf(current.startsOn, dates, request))
+  const proposal = proposedDates(
+    base,
+    previous,
+    request,
+    current.firstDueOn,
+    readAfter(input, draft),
+  )
+  return 'refusal' in proposal ? proposal : { plan: draft(proposal) }
 }
 
 // Q38 : les doses non renseignées du réglage en cours et sa dose du moment en retard.
@@ -164,14 +199,55 @@ export function newSettings(input: TreatmentViewInput, request: SettingsRequest)
     setting: fieldsOf(today, dates, request),
   })
   if (!hasNotes(current, input.lines)) {
-    const { firstDueOn, gridOriginOn } = current
-    const kept = { firstDueOn, gridOriginOn }
-    if (sameRhythm) return { plan: rewrite(current, fieldsOf(current.startsOn, kept, request)) }
+    if (sameRhythm) return rhythmKept(input, view, current, request, create)
     if (current.startsOn === today) return replaced(input, current, request)
     return corrected(input, view, current, request, create)
   }
-  const dates = proposedDates(input, current, request, today)
-  return 'refusal' in dates ? dates : { plan: create(dates) }
+  const proposal = proposedDates(input, current, request, today, readAfter(input, create))
+  return 'refusal' in proposal ? proposal : { plan: create(proposal) }
+}
+
+// TR-9, TR-28 : même rythme et aucune prise, le réglage garde ses dates ; une autre « Prochaine
+// dose » corrige sa première échéance tant qu'aucune n'est tombée, sinon les doses tombées restent
+// à renseigner et le réglage part d'aujourd'hui.
+function rhythmKept(
+  input: TreatmentViewInput,
+  view: TreatmentView,
+  current: Setting,
+  request: SettingsRequest,
+  create: (dates: Dates) => SettingsPlan,
+): SettingsResult {
+  const { today } = input
+  const { firstDueOn, gridOriginOn } = current
+  const chosen = request.firstDueOn
+  if (chosen === undefined || chosen === firstDueOn) {
+    return {
+      plan: rewrite(current, fieldsOf(current.startsOn, { firstDueOn, gridOriginOn }, request)),
+    }
+  }
+  if (chosen < today) return { refusal: { reason: 'too-early', earliest: today } }
+  const dates = { firstDueOn: chosen, gridOriginOn: chosen }
+  if (fallenOf(view, current, today).length > 0) return { plan: create(dates) }
+  const startsOn = chosen < current.startsOn ? chosen : current.startsOn
+  return { plan: rewrite(current, fieldsOf(startsOn, dates, request)) }
+}
+
+// TR-28, Q38 : corrigé à fréquence gardée, le réglage garde sa grille et part de sa première journée
+// encore due à partir d'aujourd'hui ; les échéances tombées sortent du carnet.
+function keptCorrection(
+  input: TreatmentViewInput,
+  current: Setting,
+  request: SettingsRequest,
+): Dates {
+  const { today } = input
+  const { firstDueOn, gridOriginOn } = current
+  const draft = rewrite(current, fieldsOf(current.startsOn, { firstDueOn, gridOriginOn }, request))
+  const next = buildView(settingsApplied(input, draft))
+    .slots(today, plusDays(today, NEXT_DAYS))
+    .find(({ state }) => state === 'pending')?.due.dueOn
+  const first = next ?? later(firstDueOn, today)
+  const kept = gridOriginOn !== null && isOnGrid(gridOriginOn, request.frequency, first)
+  return { firstDueOn: first, gridOriginOn: kept ? gridOriginOn : first }
 }
 
 // TR-28, Q38, Q39 : sans prise depuis son début, le réglage est corrigé ; avec des échéances
@@ -184,18 +260,29 @@ function corrected(
   create: (dates: Dates) => SettingsPlan,
 ): SettingsResult {
   const { today } = input
+  const { firstDueOn: chosen, ...asked } = request
   const fallen = fallenOf(view, current, today)
+  const correctFrom = (dates: Dates) => {
+    const startsOn = dates.firstDueOn < current.startsOn ? dates.firstDueOn : current.startsOn
+    return rewrite(current, fieldsOf(startsOn, dates, request))
+  }
+  const answer = (keep: SettingsPlan, correct: SettingsPlan): SettingsResult =>
+    fallen.length === 0 ? { plan: correct } : { question: { fallen, keep, correct } }
   const neverNoted = !input.lines.some(isNote)
-  const asked = neverNoted && fallen.length > 0
-  const fallback = asked ? today : later(current.firstDueOn, today)
-  const dates = proposedDates(input, current, request, fallback)
-  if ('refusal' in dates) return dates
-  const first = request.firstDueOn ?? (asked ? today : later(dates.firstDueOn, today))
-  const startsOn = first < current.startsOn ? first : current.startsOn
-  const correct = rewrite(
-    current,
-    fieldsOf(startsOn, { firstDueOn: first, gridOriginOn: first }, request),
-  )
-  if (fallen.length === 0) return { plan: correct }
-  return { question: { fallen, keep: create(dates), correct } }
+  const questioned = neverNoted && fallen.length > 0
+  const fallback = questioned ? today : later(current.firstDueOn, today)
+  const proposal = proposedDates(input, current, asked, fallback, readAfter(input, create))
+  if ('refusal' in proposal) return proposal
+  const own = (first: Day): Dates => ({ firstDueOn: first, gridOriginOn: first })
+  const fixed = questioned
+    ? own(shownFrom(today, readAfter(input, correctFrom)))
+    : sameFrequency(current.frequency, request.frequency)
+      ? keptCorrection(input, current, request)
+      : own(shownFrom(later(proposal.firstDueOn, today), readAfter(input, correctFrom)))
+  const implicit = answer(create(proposal), correctFrom(fixed))
+  // Q38 : la date que montre le formulaire, passée telle quelle, n'est pas une date choisie.
+  const shown = fallen.length === 0 ? fixed : proposal
+  if (chosen === undefined || chosen === shown.firstDueOn) return implicit
+  if (chosen < today) return { refusal: { reason: 'too-early', earliest: today } }
+  return answer(create(own(chosen)), correctFrom(own(chosen)))
 }

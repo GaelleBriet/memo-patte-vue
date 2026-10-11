@@ -8,7 +8,6 @@ export { dueForDate, noteDose } from './gestures/note'
 export { redateDose } from './gestures/redate'
 export { removalRefusal, removeLine } from './gestures/remove'
 export {
-  keptFirstDue,
   newSettings,
   type FallenQuestion,
   type SettingsRequest,
