@@ -1,83 +1,21 @@
-import type { ReferenceFrequency, ReferenceLine, ReferenceSetting } from './reference-types'
+import {
+  gridDays,
+  hoursOf,
+  isOnGrid,
+  keyOf,
+  later,
+  plusDays,
+  sameFrequency,
+  sameHours,
+  stepped,
+  type Hour,
+} from './reference-grid'
+import { isNote, latestBy } from './reference-lines'
+import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
-type Hour = string | null
 type Journey = { setting: ReferenceSetting; hours: Hour[] }
 type Grid = { origin: string; floor: string }
 type Calendar = { pending: string[]; fallen: Set<string> }
-
-const DAY_MS = 86_400_000
-
-const toTime = (day: string) => Date.UTC(+day.slice(0, 4), +day.slice(5, 7) - 1, +day.slice(8, 10))
-const toDay = (time: number) => new Date(time).toISOString().slice(0, 10)
-export const plusDays = (day: string, count: number) => toDay(toTime(day) + count * DAY_MS)
-const later = (a: string, b: string) => (a > b ? a : b)
-export const keyOf = (day: string, hour: Hour) => (hour === null ? day : `${day} ${hour}`)
-const hoursOf = (setting: ReferenceSetting): Hour[] =>
-  setting.times.length === 0 ? [null] : [...setting.times].sort()
-const sameHours = (a: ReferenceSetting, b: ReferenceSetting) =>
-  hoursOf(a).join() === hoursOf(b).join()
-export const isNote = (line: ReferenceLine) => line.status === 'given' || line.status === 'missed'
-const isMoreRecent = (a: ReferenceLine, b: ReferenceLine) =>
-  a.updatedAt > b.updatedAt || (a.updatedAt === b.updatedAt && a.id > b.id)
-
-function stepped(origin: string, { value, unit }: ReferenceFrequency, step: number): string {
-  if (unit !== 'month') return plusDays(origin, step * value * (unit === 'week' ? 7 : 1))
-  const months = +origin.slice(5, 7) - 1 + step * value
-  const year = +origin.slice(0, 4) + Math.floor(months / 12)
-  const month = ((months % 12) + 12) % 12
-  const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate()
-  return toDay(Date.UTC(year, month, Math.min(+origin.slice(8, 10), lastDay)))
-}
-
-export const longestStep = ({ value, unit }: ReferenceFrequency) =>
-  value * (unit === 'month' ? 31 : unit === 'week' ? 7 : 1)
-
-// R2 : l'origine plus un nombre entier de pas, de `from` à `to` inclus.
-function gridDays(origin: string, frequency: ReferenceFrequency, from: string, to: string) {
-  const longest = longestStep(frequency)
-  const days: string[] = []
-  let step = Math.floor((toTime(from) - toTime(origin)) / DAY_MS / longest) - 1
-  for (
-    let day = stepped(origin, frequency, step);
-    day <= to;
-    day = stepped(origin, frequency, ++step)
-  ) {
-    if (day >= from) days.push(day)
-  }
-  return days
-}
-
-const sameFrequency = (a: ReferenceSetting, b: ReferenceSetting) =>
-  a.frequency.value === b.frequency.value && a.frequency.unit === b.frequency.unit
-
-const isOnGrid = (origin: string, frequency: ReferenceFrequency, day: string) =>
-  gridDays(origin, frequency, day, day).length === 1
-
-// R1, R8 : un arrêt clôt un épisode ; la reprise en ouvre un autre.
-export function episodesOf(settings: readonly ReferenceSetting[]): ReferenceSetting[][] {
-  const ordered = [...settings].sort(
-    (a, b) =>
-      a.startsOn.localeCompare(b.startsOn) ||
-      a.createdAt.localeCompare(b.createdAt) ||
-      a.id.localeCompare(b.id),
-  )
-  const episodes: ReferenceSetting[][] = [[]]
-  for (const setting of ordered) {
-    episodes.at(-1)!.push(setting)
-    if (setting.stoppedOn !== null) episodes.push([])
-  }
-  return episodes.filter((episode) => episode.length > 0)
-}
-
-// TR-25, R11 : une ligne par échéance et par famille, la plus récente ; une journée n'a qu'un report et qu'un décalage.
-export function latestBy(lines: ReferenceLine[], keyOfLine: (line: ReferenceLine) => string) {
-  const latest = new Map<string, ReferenceLine>()
-  for (const line of lines) {
-    const kept = latest.get(keyOfLine(line))
-    if (kept === undefined || isMoreRecent(line, kept)) latest.set(keyOfLine(line), line)
-  }
-  return [...latest.values()].sort((a, b) => a.dueOn.localeCompare(b.dueOn))
-}
 
 export function calendarOf(
   settings: readonly ReferenceSetting[],

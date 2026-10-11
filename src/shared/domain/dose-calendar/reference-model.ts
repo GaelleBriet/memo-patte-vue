@@ -1,12 +1,6 @@
-import {
-  calendarOf,
-  episodesOf,
-  isNote,
-  keyOf,
-  latestBy,
-  longestStep,
-  plusDays,
-} from './reference-calendar'
+import { calendarOf } from './reference-calendar'
+import { keyOf, longestStep, plusDays } from './reference-grid'
+import { episodesOf, isNote, latestBy } from './reference-lines'
 import type {
   ReferenceInput,
   ReferenceLine,
