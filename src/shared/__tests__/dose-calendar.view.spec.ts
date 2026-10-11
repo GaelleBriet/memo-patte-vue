@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { DAY, H, keys, line, setting, view, WEEK } from './dose-calendar.v2.aides'
+import { DAY, H, keys, line, setting, TWO_DAYS, view, WEEK } from './dose-calendar.v2.aides'
 
 describe('R12 : la lecture d’un traitement', () => {
   it('prochaine échéance, échéances à venir dans une fenêtre, dernière journée', () => {
@@ -207,5 +207,24 @@ describe('relecture du pas 2 : frontières de réglage et historique', () => {
     const p1 = setting('p1', '2026-10-02', WEEK)
     const read = view([p1], [line('p1', 'missed', '2026-10-02')], '2026-10-09')
     expect(read.alreadyNotedOn({ dueOn: '2026-10-02', dueTime: null }, '2026-10-09')).toBeNull()
+  })
+
+  it('les échéances d’un intervalle de jours, avec leur état et la prise qui les couvre', () => {
+    const p1 = setting('p1', '2026-10-01', TWO_DAYS, H)
+    const given = line('p1', 'given', '2026-10-01', '08:00')
+    const moved = line('p1', 'postponed', '2026-10-03', '08:00', '2026-10-04')
+    const read = view([p1], [given, moved], '2026-10-02')
+    expect(
+      read
+        .slots('2026-10-01', '2026-10-05')
+        .map(({ due, state, by }) => [keys([due])[0], state, by?.id ?? null]),
+    ).toEqual([
+      ['2026-10-01 08:00', 'given', given.id],
+      ['2026-10-01 20:00', 'pending', null],
+      ['2026-10-04 08:00', 'pending', null],
+      ['2026-10-04 20:00', 'pending', null],
+      ['2026-10-05 08:00', 'pending', null],
+      ['2026-10-05 20:00', 'pending', null],
+    ])
   })
 })

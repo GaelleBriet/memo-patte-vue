@@ -89,43 +89,37 @@ describe('R5, R6 : prise en plus, correction de date', () => {
     ])
   })
 
-  it.fails(
-    'Q-C1 : dose du 16 notée le 16, corrigée le 25 « donnée le 24 », case cochée : 31 oct., 7 nov. (pas 3)',
-    () => {
-      const c = donne(vendredis(), '2026-10-16', echeance(vendredis(), '2026-10-16'))
-      const corrigee = corrige(
-        c,
-        '2026-10-25',
-        ligne(c, '2026-10-16', null, 'given').id,
-        '2026-10-24',
-      )
-      const read = vue(corrigee, '2026-10-25')
-      expect({
-        current: read.currentDoses.map(cle),
-        unlogged: read.unloggedDoses.map(cle),
-        next: read.upcoming({ limit: 2 }).map(cle),
-      }).toEqual({ current: ['2026-10-31'], unlogged: [], next: ['2026-10-31', '2026-11-07'] })
-    },
-  )
+  it('Q-C1 : dose du 16 notée le 16, corrigée le 25 « donnée le 24 », case cochée : 31 oct., 7 nov.', () => {
+    const c = donne(vendredis(), '2026-10-16', echeance(vendredis(), '2026-10-16'))
+    const corrigee = corrige(
+      c,
+      '2026-10-25',
+      ligne(c, '2026-10-16', null, 'given').id,
+      '2026-10-24',
+    )
+    const read = vue(corrigee, '2026-10-25')
+    expect({
+      current: read.currentDoses.map(cle),
+      unlogged: read.unloggedDoses.map(cle),
+      next: read.upcoming({ limit: 2 }).map(cle),
+    }).toEqual({ current: ['2026-10-31'], unlogged: [], next: ['2026-10-31', '2026-11-07'] })
+  })
 
-  it.fails(
-    'Q-C1 : la correction et « Fait à une autre date » le 24 donnent le même calendrier (pas 3)',
-    () => {
-      const c = donne(vendredis(), '2026-10-16', echeance(vendredis(), '2026-10-16'))
-      const corrigee = corrige(
-        c,
-        '2026-10-25',
-        ligne(c, '2026-10-16', null, 'given').id,
-        '2026-10-24',
-      )
-      expect(vue(corrigee, '2026-10-25').phase).toBe('upcoming')
-      expect(journees(corrigee, '2026-10-25', 2)).toEqual(['2026-10-31', '2026-11-07'])
-      const autre = lecture(vendredis(), '2026-10-25').dueForDate('2026-10-24')!
-      expect(
-        journees(donne(vendredis(), '2026-10-25', autre, '2026-10-24', true), '2026-10-25', 2),
-      ).toEqual(['2026-10-31', '2026-11-07'])
-    },
-  )
+  it('Q-C1 : la correction et « Fait à une autre date » le 24 donnent le même calendrier', () => {
+    const c = donne(vendredis(), '2026-10-16', echeance(vendredis(), '2026-10-16'))
+    const corrigee = corrige(
+      c,
+      '2026-10-25',
+      ligne(c, '2026-10-16', null, 'given').id,
+      '2026-10-24',
+    )
+    expect(vue(corrigee, '2026-10-25').phase).toBe('upcoming')
+    expect(journees(corrigee, '2026-10-25', 2)).toEqual(['2026-10-31', '2026-11-07'])
+    const autre = lecture(vendredis(), '2026-10-25').dueForDate('2026-10-24')!
+    expect(
+      journees(donne(vendredis(), '2026-10-25', autre, '2026-10-24', true), '2026-10-25', 2),
+    ).toEqual(['2026-10-31', '2026-11-07'])
+  })
 
   it('N6 : dose du 16 donnée le 19 avec décalage, prise supprimée : le 16 revient, la suite reste décalée', () => {
     let c = donne(

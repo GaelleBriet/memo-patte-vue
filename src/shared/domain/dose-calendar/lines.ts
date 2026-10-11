@@ -1,9 +1,11 @@
 import { keyOf } from './grid'
 import type { IdleReason, Line } from './types'
 
-export const isNote = (line: Line): boolean => line.status === 'given' || line.status === 'missed'
+export const isNote = (line: Pick<Line, 'status'>): boolean =>
+  line.status === 'given' || line.status === 'missed'
 
-const familyOf = (line: Line): string => (isNote(line) ? 'note' : line.status)
+export const familyOf = (line: Pick<Line, 'status'>): string =>
+  isNote(line) ? 'note' : line.status
 
 const isMoreRecent = (a: Line, b: Line): boolean =>
   a.updatedAt > b.updatedAt || (a.updatedAt === b.updatedAt && a.id > b.id)

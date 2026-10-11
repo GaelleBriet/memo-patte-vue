@@ -1,0 +1,72 @@
+import { keyOf } from '../grid'
+import { familyOf } from '../lines'
+import type { Day, Line, LineChange, LineFields, TreatmentViewInput } from '../types'
+
+const WRITTEN_AT = '9999-12-31T23:59:59.999Z'
+
+/** Comme le repository : une ligne par réglage, échéance et famille, réécrite si elle existe déjà. */
+export function written(lines: readonly Line[], fields: LineFields): LineChange {
+  const key = keyOf(fields.dueOn, fields.dueTime)
+  const existing = lines.find(
+    (line) =>
+      line.settingId === fields.settingId &&
+      keyOf(line.dueOn, line.dueTime) === key &&
+      familyOf(line) === familyOf(fields),
+  )
+  return existing === undefined
+    ? { action: 'create', line: fields }
+    : { action: 'rewrite', id: existing.id, line: fields }
+}
+
+/** R6, G17 : une journée n'a qu'une ligne de décalage, la plus récente. */
+export function shiftOfDay(lines: readonly Line[], day: Day): Line | undefined {
+  return lines
+    .filter((line) => line.status === 'shift' && line.dueOn === day)
+    .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt) || a.id.localeCompare(b.id))
+    .at(-1)
+}
+
+/** La ligne de décalage d'une journée, écrite ancrée à ce jour, en réécrivant celle qui existe. */
+export function shiftWritten(
+  lines: readonly Line[],
+  at: Pick<Line, 'settingId' | 'dueOn' | 'dueTime'>,
+  anchoredOn: Day,
+): LineChange {
+  const existing = shiftOfDay(lines, at.dueOn)
+  const line: LineFields = {
+    settingId: existing?.settingId ?? at.settingId,
+    dueOn: at.dueOn,
+    dueTime: existing?.dueTime ?? at.dueTime,
+    status: 'shift',
+    givenOn: null,
+    targetOn: anchoredOn,
+  }
+  return existing === undefined
+    ? { action: 'create', line }
+    : { action: 'rewrite', id: existing.id, line }
+}
+
+/** Le carnet une fois les lignes écrites, chacune plus récente que tout le carnet (simulation, R12). */
+export function applied(
+  input: TreatmentViewInput,
+  changes: readonly LineChange[],
+): TreatmentViewInput {
+  let lines = [...input.lines]
+  changes.forEach((change, index) => {
+    if (change.action === 'delete') {
+      lines = lines.filter(({ id }) => id !== change.id)
+      return
+    }
+    const id = change.action === 'rewrite' ? change.id : `écrite-${index}`
+    const line: Line = { ...change.line, id, updatedAt: WRITTEN_AT }
+    lines =
+      change.action === 'rewrite'
+        ? lines.map((each) => (each.id === id ? line : each))
+        : [...lines, line]
+  })
+  return { ...input, lines }
+}
+
+export function without(input: TreatmentViewInput, ids: readonly string[]): TreatmentViewInput {
+  return { ...input, lines: input.lines.filter(({ id }) => !ids.includes(id)) }
+}

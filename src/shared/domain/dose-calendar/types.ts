@@ -66,3 +66,51 @@ export type LineEffect =
   | { kind: 'idle'; reason: IdleReason }
 
 export type Phase = 'upcoming' | 'today' | 'overdue' | 'ended' | 'stopped'
+
+/** Les champs d'une ligne à écrire ; l'identifiant et l'horodatage viennent du repository. */
+export type LineFields = Omit<Line, 'id' | 'updatedAt'>
+
+/** Ce qu'un geste écrit : une ligne créée, réécrite ou supprimée ; le moteur n'écrit jamais lui-même. */
+export type LineChange =
+  | { action: 'create'; line: LineFields }
+  | { action: 'rewrite'; id: string; line: LineFields }
+  | { action: 'delete'; id: string }
+
+/** `shiftsFollowing` : la case « Décaler aussi les doses suivantes », sans effet quand elle n'est pas proposée. */
+export type Gesture =
+  | { kind: 'note'; due: Due; status: 'given' | 'missed'; givenOn: Day; shiftsFollowing: boolean }
+  | { kind: 'move'; due: Due; to: Day; shiftsFollowing: boolean }
+  | { kind: 'redate'; lineId: string; givenOn: Day; shiftsFollowing: boolean }
+  | { kind: 'remove'; lineId: string }
+
+/** Pourquoi un geste n'est pas permis ; chaque raison a son texte existant à l'écran. */
+export type Refusal =
+  | { reason: 'later-dose' }
+  | { reason: 'later-line' }
+  | { reason: 'no-date-left' }
+  | { reason: 'no-date-alone' }
+  | { reason: 'arrival-logged' }
+  | { reason: 'not-movable' }
+  | { reason: 'out-of-bounds'; earliest: Day; latest: Day | null }
+  | { reason: 'too-early'; earliest: Day }
+  | { reason: 'day-taken' }
+  | { reason: 'passes-report'; on: Day }
+  | { reason: 'stuck-report'; on: Day }
+  | { reason: 'report-loop' }
+  | { reason: 'report-past-next'; on: Day }
+  | { reason: 'report-off-rhythm'; on: Day }
+
+/** Un report seul que le geste réécrit pour suivre la correction (G19) : arrivée d'avant, d'après. */
+export type FollowedReport = { from: Day; to: Day | null }
+
+export type GestureOutcome = {
+  changes: LineChange[]
+  offersShift: boolean
+  /** G20, Q4 : journées que le décalage fait sortir de la date de fin. */
+  lostToEnd: Day[]
+  /** G21 : échéances passées que le geste rend à renseigner ou en retard. */
+  newlyDue: Due[]
+  followed: FollowedReport[]
+}
+
+export type GestureResult = GestureOutcome | { refusal: Refusal }

@@ -1,19 +1,27 @@
-import { treatmentView, viewInputOf, type TreatmentView } from '../domain/dose-calendar'
+import {
+  moveDose,
+  noteDose,
+  redateDose,
+  removeLine,
+  treatmentView,
+  viewInputOf,
+  type GestureResult,
+  type LineChange as V2Change,
+  type TreatmentView,
+} from '../domain/dose-calendar'
 import {
   treatmentSchedule,
-  type DoseFields,
   type Due,
   type Frequency,
-  type LineChange,
   type TreatmentDoseInput,
   type TreatmentPeriodInput,
   type TreatmentSchedule,
 } from '../domain/treatment-schedule'
 
 /**
- * Gestes et lectures du jeu de recette : les lectures par le moteur v2 depuis le pas 2 de l'épic
- * #758, les gestes par le moteur actuel jusqu'aux pas 3 et 4. Les écritures suivent le repository de
- * l'app, sans purge (R11).
+ * Gestes et lectures du jeu de recette : lectures et gestes par le moteur v2 depuis le pas 3 de
+ * l'épic #758, réglages proposés par le moteur actuel jusqu'au pas 4. Les écritures suivent le
+ * repository de l'app, sans purge (R11).
  */
 export type Carnet = { periods: TreatmentPeriodInput[]; doses: TreatmentDoseInput[] }
 
@@ -67,85 +75,66 @@ export function cle({ dueOn, dueTime }: Pick<Due, 'dueOn' | 'dueTime'>): string 
   return dueTime === null ? dueOn : `${dueOn} ${dueTime}`
 }
 
-const familyOf = ({ status }: Pick<TreatmentDoseInput, 'status'>) =>
-  status === 'given' || status === 'missed' ? 'note' : status
-
-function ecrit(c: Carnet, fields: DoseFields): Carnet {
-  const at = now()
-  const existing = c.doses.find(
-    (dose) =>
-      dose.periodId === fields.periodId &&
-      cle(dose) === cle(fields) &&
-      familyOf(dose) === familyOf(fields),
-  )
-  if (existing !== undefined) {
-    const doses = c.doses.map((dose) =>
-      dose === existing ? { ...dose, ...fields, updatedAt: at } : dose,
-    )
-    return { ...c, doses }
-  }
-  return { ...c, doses: [...c.doses, { id: `d${stamp}`, ...fields, createdAt: at, updatedAt: at }] }
+function entree(c: Carnet, today: string) {
+  return viewInputOf({ periods: c.periods, doses: c.doses, today })
 }
 
-function applique(c: Carnet, change: LineChange): Carnet {
-  switch (change.action) {
-    case 'none':
-      return c
-    case 'create':
-      return ecrit(c, change.dose)
-    case 'delete':
-      return supprime(c, change.doseId)
-    case 'rewrite': {
-      const at = now()
-      const doses = c.doses.map((dose) =>
-        dose.id === change.doseId ? { ...dose, ...change.dose, updatedAt: at } : dose,
-      )
-      return { ...c, doses }
+function ecrit(c: Carnet, change: V2Change): Carnet {
+  if (change.action === 'delete') return supprime(c, change.id)
+  const at = now()
+  const { settingId, targetOn, ...fields } = change.line
+  const dose = {
+    ...fields,
+    periodId: settingId,
+    nextDueDate: targetOn ?? fields.dueOn,
+    updatedAt: at,
+  }
+  if (change.action === 'rewrite') {
+    return {
+      ...c,
+      doses: c.doses.map((line) => (line.id === change.id ? { ...line, ...dose } : line)),
     }
   }
+  return { ...c, doses: [...c.doses, { id: `d${stamp}`, ...dose, createdAt: at }] }
 }
 
-/** « C'est fait » ou « Fait à une autre date » ; `decale` : la case, absente pour un tap sans case. */
-export function donne(c: Carnet, today: string, due: Due, givenOn = today, decale?: boolean) {
-  const gesture = { kind: 'given' as const, due, givenOn, shiftsFollowing: decale }
-  const noted = lecture(c, today).doseFor(gesture)
-  const shifted = noted.shift === null ? c : ecrit(c, noted.shift)
-  return ecrit(shifted, noted.dose)
+function joue(c: Carnet, result: GestureResult): Carnet {
+  if ('refusal' in result) throw new Error(`geste refusé : ${JSON.stringify(result.refusal)}`)
+  return result.changes.reduce(ecrit, c)
+}
+
+const v2 = ({ periodId, dueOn, dueTime }: Due) => ({ settingId: periodId, dueOn, dueTime })
+
+/** « C'est fait » ou « Fait à une autre date » ; `decale` : la case, cochée par défaut (G20). */
+export function donne(c: Carnet, today: string, due: Due, givenOn = today, decale = true) {
+  const gesture = { due: v2(due), status: 'given' as const, givenOn, shiftsFollowing: decale }
+  return joue(c, noteDose(entree(c, today), gesture))
 }
 
 /** Une prise reçue d'un autre appareil : écrite telle quelle, sans geste ni garde de l'app. */
 export function recoit(c: Carnet, due: Due, givenOn = due.dueOn): Carnet {
-  return ecrit(c, { ...due, status: 'given', givenOn, nextDueDate: due.dueOn })
+  const line = { ...v2(due), status: 'given' as const, givenOn, targetOn: null }
+  return ecrit(c, { action: 'create', line })
 }
 
 export function oublie(c: Carnet, today: string, due: Due): Carnet {
-  return ecrit(c, lecture(c, today).doseFor({ kind: 'missed', due }).dose)
+  const gesture = {
+    due: v2(due),
+    status: 'missed' as const,
+    givenOn: due.dueOn,
+    shiftsFollowing: false,
+  }
+  return joue(c, noteDose(entree(c, today), gesture))
 }
 
 /** « Prochaine dose » : la dose déplacée, avec ou sans la case « Décaler aussi les doses suivantes ». */
 export function deplace(c: Carnet, today: string, due: Due, to: string, decale = true): Carnet {
-  const { report, shift } = lecture(c, today).move(due, to, decale)
-  return applique(applique(c, shift), report)
+  return joue(c, moveDose(entree(c, today), { due: v2(due), to, shiftsFollowing: decale }))
 }
 
 /** « Changer la date » d'une prise donnée. */
 export function corrige(c: Carnet, today: string, doseId: string, givenOn: string, decale = true) {
-  const { dose, shift, postponement } = lecture(c, today).redate(doseId, givenOn, decale)
-  const at = now()
-  const dropped = postponement?.kept === false ? postponement.doseIds : []
-  const doses = c.doses
-    .filter(({ id }) => !dropped.includes(id))
-    .map((line) => {
-      if (line.id === doseId) return { ...line, ...dose, updatedAt: at }
-      if (postponement?.kept !== true) return line
-      if (postponement.doseIds.includes(line.id)) {
-        return { ...line, ...postponement.line, updatedAt: at }
-      }
-      return postponement.shiftIds.includes(line.id)
-        ? { ...line, ...postponement.shiftLine, updatedAt: at }
-        : line
-    })
-  return applique({ ...c, doses }, shift)
+  return joue(c, redateDose(entree(c, today), { lineId: doseId, givenOn, shiftsFollowing: decale }))
 }
 
 export function supprime(c: Carnet, doseId: string): Carnet {
@@ -153,12 +142,11 @@ export function supprime(c: Carnet, doseId: string): Carnet {
 }
 
 export function supprimeReport(c: Carnet, today: string, doseId: string): Carnet {
-  const { report, shift } = lecture(c, today).removeMove(doseId)
-  return applique(applique(c, report), shift)
+  return joue(c, removeLine(entree(c, today), doseId))
 }
 
 export function supprimeDecalage(c: Carnet, today: string, doseId: string): Carnet {
-  return applique(c, lecture(c, today).removeShift(doseId))
+  return joue(c, removeLine(entree(c, today), doseId))
 }
 
 /** La première échéance que « Modifier » propose pour ces réglages. */
