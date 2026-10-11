@@ -165,7 +165,7 @@ export function symmetry(input: TreatmentViewInput, random: Random): Broken | nu
   const view = treatmentView(input)
   const due = view.currentDoses.find(({ dueOn }) => dueOn <= input.today)
   if (due === undefined) return null
-  // Question ouverte (rapport du pas 3) : un décalage ancré au jour du tap part avec la prise corrigée, sans dire qui l'a écrit.
+  // Exemption unique (ecarts-acceptes.md) : un décalage ancré au jour du tap part avec la prise corrigée.
   const shiftDay = shiftDayOf(view, due)
   const anchoredToday = ({ status, dueOn, targetOn }: Line) =>
     status === 'shift' && dueOn === shiftDay && targetOn === input.today
