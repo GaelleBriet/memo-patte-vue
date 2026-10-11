@@ -354,6 +354,24 @@ describe('R7, G13 : redéplacer l’arrivée d’un report d’un rythme précé
     ])
   })
 
+  it('hebdo à 20 h, dose du 13 avr. reportée au 15 ; le 8, tous les 2 jours dès le 15 ; le 9, tous les 3 jours dès le 17 : la dose du 15 se déplace, le 15 n’ouvre plus aucun rythme', () => {
+    const p1 = setting('p1', '2026-04-06', WEEK, ['20:00'])
+    const p2 = setting('p2', '2026-04-15', TWO_DAYS, ['20:00'], { startsOn: '2026-04-08' })
+    const p3 = setting('p3', '2026-04-17', { value: 3, unit: 'day' }, ['20:00'], {
+      startsOn: '2026-04-09',
+    })
+    const lines = [
+      line('p1', 'given', '2026-04-06', '20:00'),
+      line('p1', 'postponed', '2026-04-13', '20:00', '2026-04-15'),
+    ]
+    const input = { settings: [p1, p2, p3], lines, today: '2026-04-09' }
+    const dose = { settingId: 'p3', dueOn: '2026-04-15', dueTime: '20:00' }
+    expect(moveBounds(input, dose, true)).not.toHaveProperty('refusal')
+    expect(
+      moveDose(input, { due: dose, to: '2026-04-16', shiftsFollowing: false }),
+    ).not.toHaveProperty('refusal')
+  })
+
   it.each([
     ['reportée au 14', '2026-04-14'],
     ['avancée au 12', '2026-04-12'],

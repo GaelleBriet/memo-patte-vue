@@ -293,6 +293,41 @@ describe('R7, R9.2 : la dose avancée dont l’arrivée devient la première éc
   )
 })
 
+describe('R7, R9.2 : un rythme qui ne part plus de l’arrivée d’un report n’en efface pas les heures (relecture du pas 3)', () => {
+  it('hebdo à 20 h, doses des 6 et 13 avr. données, dose du 20 avancée au 16 ; le 14, tous les 2 jours dès le 16 ; le 15, tous les jours à 8 et 20 h : le 16 garde 8 h', () => {
+    const p1 = setting('p1', '2026-04-06', WEEK, ['20:00'])
+    const p2 = setting('p2', '2026-04-16', TWO_DAYS, ['20:00'], { startsOn: '2026-04-14' })
+    const p3 = setting('p3', '2026-04-15', DAY, H, { startsOn: '2026-04-15' })
+    const lines = [
+      line('p1', 'given', '2026-04-06', '20:00'),
+      line('p1', 'given', '2026-04-13', '20:00'),
+      line('p1', 'postponed', '2026-04-20', '20:00', '2026-04-16'),
+    ]
+    expect(next([p1, p2, p3], lines, '2026-04-15', 5)).toEqual([
+      '2026-04-15 08:00',
+      '2026-04-15 20:00',
+      '2026-04-16 08:00',
+      '2026-04-16 20:00',
+      '2026-04-17 08:00',
+    ])
+  })
+
+  it('hebdo à 20 h, dose du 13 avr. reportée au 15 ; le 8, tous les 2 jours dès le 15 ; le 9, tous les 3 jours à 8 et 20 h dès le 12 : le 15 garde 8 h', () => {
+    const p1 = setting('p1', '2026-04-06', WEEK, ['20:00'])
+    const p2 = setting('p2', '2026-04-15', TWO_DAYS, ['20:00'], { startsOn: '2026-04-08' })
+    const p3 = setting('p3', '2026-04-12', { value: 3, unit: 'day' }, H, { startsOn: '2026-04-09' })
+    const lines = [
+      line('p1', 'given', '2026-04-06', '20:00'),
+      line('p1', 'postponed', '2026-04-13', '20:00', '2026-04-15'),
+    ]
+    expect(read([p1, p2, p3], lines, '2026-04-09').upcoming.slice(2, 5)).toEqual([
+      '2026-04-15 08:00',
+      '2026-04-15 20:00',
+      '2026-04-18 08:00',
+    ])
+  })
+})
+
 describe('R9 : un réglage écrit avant la première dose, fréquence changée (relecture du pas 3)', () => {
   it.each([
     ['tous les jours dès le 3', DAY, '2026-10-03', ['2026-10-03', '2026-10-04', '2026-10-05']],

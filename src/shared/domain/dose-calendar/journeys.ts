@@ -46,8 +46,9 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       previous.firstDueOn >= setting.startsOn &&
       grid.floor === plusDays(previous.firstDueOn, -1)
     const ownFloor = plusDays(later(setting.firstDueOn, setting.startsOn), -1)
-    if (index > 0 && !continued && setting.firstDueOn >= setting.startsOn) {
-      openings.add(setting.firstDueOn)
+    if (!continued) {
+      for (const day of openings) if (day >= setting.startsOn) openings.delete(day)
+      if (index > 0 && setting.firstDueOn >= setting.startsOn) openings.add(setting.firstDueOn)
     }
     grid = continued
       ? {
