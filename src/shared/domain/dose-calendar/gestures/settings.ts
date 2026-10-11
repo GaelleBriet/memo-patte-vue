@@ -41,18 +41,10 @@ export function keptFirstDue(view: TreatmentView, today: Day): Day {
 
 const isNoted = (state: string) => state === 'given' || state === 'missed' || state === 'covered'
 
-// R9.1 : aujourd'hui a encore des heures à donner, ou rien n'y est noté alors qu'une dose y était due.
-function dueToday(input: TreatmentViewInput, view: TreatmentView): boolean {
-  const { today } = input
-  const slots = view.slots(today, today)
-  if (slots.some(({ state }) => state === 'pending')) return true
-  if (slots.some(({ state }) => isNoted(state))) return false
-  if (input.lines.some((line) => isNote(line) && line.dueOn === today)) return false
-  const setting = view.settingAt(today)
-  return (
-    setting !== undefined &&
-    hoursOf(setting.times).some((dueTime) => view.dueState({ dueOn: today, dueTime }) === 'moved')
-  )
+// R9.1 : aujourd'hui est une journée d'échéance qui a encore des heures à donner ; partie avec un
+// report, elle n'en a plus (Q-#744 : le rythme part alors de l'arrivée, R9.2).
+function dueToday(view: TreatmentView, today: Day): boolean {
+  return view.slots(today, today).some(({ state }) => state === 'pending')
 }
 
 // R9.2 : la prochaine journée, entamée en avance ou arrivée d'un report, garde son jour.
@@ -83,7 +75,7 @@ function changedFirstDue(
   fallback: Day,
 ): Day {
   const { today } = input
-  if (dueToday(input, view)) return today
+  if (dueToday(view, today)) return today
   const held = heldNextDay(view, today)
   if (held !== undefined) return held
   const from = input.settings.map(({ startsOn }) => startsOn).sort()[0] ?? today

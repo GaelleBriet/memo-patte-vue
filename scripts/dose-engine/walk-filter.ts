@@ -143,16 +143,48 @@ function shownBy(input: TreatmentViewInput): string {
   ])
 }
 
+// La branche de R9 qui donne la première échéance de v2 (fréquence gardée, R9.1, R9.2 ou R9.3).
+function branchOf(input: TreatmentViewInput, firstDueOn: string, kept: boolean): string {
+  if (kept) return 'fréquence gardée, R3, Q-retard'
+  if (firstDueOn === input.today) return 'R9.1'
+  const view = treatmentView(input)
+  const next = view.slots(plusDays(input.today, 1), plusDays(input.today, 800))[0]?.due.dueOn
+  if (next !== firstDueOn) return 'R9.3'
+  const day = view.slots(firstDueOn, firstDueOn)
+  if (day.every(({ state }) => state !== 'pending')) return 'R9.2, journée déjà toute donnée'
+  return day.some(({ state }) => state !== 'pending') ? 'R9.2, journée entamée' : 'R9.2, arrivée'
+}
+
+// Ce que montrent les écrans : phase, doses du moment, à renseigner, à venir.
+function displayOf(input: TreatmentViewInput): string {
+  const view = treatmentView(input)
+  const until = plusDays(input.today, HORIZON_DAYS)
+  return JSON.stringify([
+    view.phase,
+    view.currentDoses.map(dueKey),
+    view.unloggedDoses.map(dueKey),
+    view.upcoming({ to: until }).map(dueKey),
+  ])
+}
+
 // La règle qui sépare le réglage du moteur actuel de celui que v2 écrirait.
-function settingsReasonOf(result: SettingsResult, after: Book): string {
+function settingsReasonOf(
+  input: TreatmentViewInput,
+  result: SettingsResult,
+  target: TreatmentViewInput,
+): string {
   if ('refusal' in result) return result.refusal.reason
   if ('question' in result) return 'v2 pose la question Q38'
   const { plan } = result
   if (plan.action === 'rewrite') return 'v2 corrige le réglage (R10, TR-28)'
-  const period = after.periods.at(-1)!
-  return plan.setting.firstDueOn === period.firstDueOn
-    ? 'v2 garde une autre grille (R3)'
-    : 'v2 propose une autre première échéance (R9)'
+  const period = target.settings.at(-1)!
+  const kept = plan.setting.gridOriginOn === null
+  const same = displayOf(settingsApplied(input, plan)) === displayOf(target)
+  const what =
+    plan.setting.firstDueOn === period.firstDueOn
+      ? 'v2 garde une autre grille'
+      : `v2 propose une autre première échéance (${branchOf(input, plan.setting.firstDueOn, kept)}${plan.setting.firstDueOn < period.firstDueOn ? ', plus tôt' : ', plus tard'})`
+  return same ? `${what}, même affichage` : what
 }
 
 /**
@@ -174,7 +206,7 @@ export function settingsRefusedByV2(
     if ('plan' in result && shownBy(settingsApplied(input, result.plan)) === shownBy(target)) {
       return false
     }
-    reason = settingsReasonOf(result, after)
+    reason = settingsReasonOf(input, result, target)
   } catch (error) {
     reason = `v2 lève (${String(error).slice(0, 60)})`
   }

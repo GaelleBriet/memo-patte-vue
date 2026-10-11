@@ -94,13 +94,13 @@ describe('R9 : où commence un réglage dont la fréquence change', () => {
       ])
     })
 
-    it('R9.1 : rien noté le 3, journée reportée seule au 4 ; le 3, tous les 3 jours : le 3 est proposé', () => {
+    it('R9.2, Q-#744 : rien noté le 3, journée reportée seule au 4 ; le 3, tous les 3 jours : le 4, d’où part le rythme', () => {
       const input = {
         settings: [metacam],
         lines: [...first, line('p1', 'postponed', '2026-10-03', '08:00', '2026-10-04')],
         today: '2026-10-03',
       }
-      expect(planOf(input, request(THREE_DAYS, H)).setting.firstDueOn).toBe('2026-10-03')
+      expect(planOf(input, request(THREE_DAYS, H)).setting.firstDueOn).toBe('2026-10-04')
     })
   })
 })
