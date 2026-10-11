@@ -31,14 +31,18 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     const origin = setting.gridOriginOn
     const earlier = new Set(chain.slice(0, position).map(({ id }) => id))
     const within = ({ dueOn }: Line) => dueOn >= setting.startsOn && (end === null || dueOn < end)
-    const anchors = lines.shifts
-      .filter((shift) => shift.dueOn >= setting.startsOn && rhythm.has(shift.settingId))
-      .map(({ targetOn }) => targetOn!)
+    // R3, R9 : une origine choisie se juge sur la grille en vigueur à la première échéance.
+    const inForce =
+      lines.shifts
+        .filter(
+          ({ dueOn, settingId }) =>
+            dueOn >= setting.startsOn && dueOn < setting.firstDueOn && rhythm.has(settingId),
+        )
+        .at(-1)?.targetOn ?? grid.origin
     const continued =
       previous !== undefined &&
       sameFrequency(previous.frequency, setting.frequency) &&
-      (origin === null ||
-        [grid.origin, ...anchors].some((day) => isOnGrid(day, setting.frequency, origin)))
+      (origin === null || isOnGrid(inForce, setting.frequency, origin))
     if (index > 0 && !sameHours(span.live[index - 1]!, setting)) {
       translated.set(setting.startsOn, setting.id).set(setting.firstDueOn, setting.id)
     }

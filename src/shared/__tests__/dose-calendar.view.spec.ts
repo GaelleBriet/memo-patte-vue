@@ -607,3 +607,20 @@ describe('R9, Q-retard : un traitement fini avant la modification garde ses dose
     ])
   })
 })
+
+describe('R3, R9 : une date choisie se juge sur la grille en vigueur ce jour-là', () => {
+  it('tous les 3 mois à 20 h, première dose le 2 avr., décalage ancré au 31 mars qui vaut à partir du 2 ; le 31, première dose choisie le 31 : 31 mars, 30 juin, 30 sept.', () => {
+    const s1 = setting('s1', '2026-04-02', { value: 3, unit: 'month' }, ['20:00'], {
+      startsOn: '2026-03-30',
+    })
+    const s2 = setting('s2', '2026-03-31', { value: 3, unit: 'month' }, ['20:00'], {
+      startsOn: '2026-03-31',
+    })
+    const lines = [line('s1', 'shift', '2026-04-02', '20:00', '2026-03-31')]
+    expect(next([s1, s2], lines, '2026-03-31')).toEqual([
+      '2026-03-31 20:00',
+      '2026-06-30 20:00',
+      '2026-09-30 20:00',
+    ])
+  })
+})
