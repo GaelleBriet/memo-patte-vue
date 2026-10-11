@@ -261,6 +261,7 @@ describe('R8 : reprendre', () => {
     expect(bornes(c, '2026-10-07', echeance(c, '2026-10-08'), false)).toEqual({
       earliest: '2026-10-07',
       latest: '2026-10-14',
+      excluded: [],
     })
     expect(caseProposee(c, '2026-10-10', echeance(c, '2026-10-08'))).toBe(true)
   })

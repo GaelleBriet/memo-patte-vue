@@ -28,18 +28,23 @@ export function shiftDayOf(view: TreatmentView, due: Pick<Due, 'dueOn'>): Day {
   return advanced?.line.dueOn ?? due.dueOn
 }
 
+/** G7, G8 : une dose avancée (report ou décalage vers une date plus tôt) vit à son arrivée. */
+export const livesOn = ({ dueOn, targetOn }: Pick<Line, 'dueOn' | 'targetOn'>): Day =>
+  targetOn !== null && targetOn < dueOn ? targetOn : dueOn
+
 /** R6, G7, TR-32 : une prise, ou une ligne de décalage, ou un report, existe après cette journée dans sa période. */
 export function linesAfter(
   input: Pick<TreatmentViewInput, 'settings' | 'lines'>,
   from: Pick<Due, 'settingId' | 'dueOn'>,
   ignored: ReadonlySet<string>,
+  dayOf: (line: Line) => Day = ({ dueOn }) => dueOn,
 ): { notes: Line[]; others: Line[] } {
   const episode = episodeIdsOf(input.settings, from.settingId)
   const later = input.lines.filter(
     (line) =>
       !ignored.has(line.id) &&
       (episode.size === 0 || episode.has(line.settingId)) &&
-      line.dueOn > from.dueOn &&
+      dayOf(line) > from.dueOn &&
       line.status !== 'extra',
   )
   return { notes: later.filter(isNote), others: later.filter((line) => !isNote(line)) }
