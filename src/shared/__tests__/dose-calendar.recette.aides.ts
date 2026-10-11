@@ -115,7 +115,7 @@ export function donne(c: Carnet, today: string, due: Due, givenOn = today, decal
 
 /** Une prise reçue d'un autre appareil : écrite telle quelle, sans geste ni garde de l'app. */
 export function recoit(c: Carnet, due: Due, givenOn = due.dueOn): Carnet {
-  return ecrit(c, { ...due, status: 'given', givenOn, nextDueDate: null })
+  return ecrit(c, { ...due, status: 'given', givenOn, nextDueDate: due.dueOn })
 }
 
 export function oublie(c: Carnet, today: string, due: Due): Carnet {
