@@ -87,11 +87,17 @@ export function redateDose(input: TreatmentViewInput, gesture: RedateGesture): G
     id: line.id,
     line: { ...due, status: 'given', givenOn, targetOn: null },
   }
+  // G18 : le décalage d'une dose avancée est celui de son report, ancré à son jour d'arrivée.
+  const reportAnchor = shiftDay === line.dueOn ? null : line.dueOn
+  // N2 : seul le décalage ancré à la date de la prise la suit ; un autre décalage de la journée reste.
+  const owned = own !== undefined && own.targetOn === line.givenOn ? own : undefined
   const changesFor = (checked: boolean): LineChange[] => {
     if (offered && checked)
       return [prise, shiftWritten(input.lines, { ...due, dueOn: shiftDay }, givenOn)]
-    const drops = own !== undefined && (offered || (givenOn === line.dueOn && !blocked))
-    return drops ? [prise, { action: 'delete', id: own.id }] : [prise]
+    const drops = owned !== undefined && (offered || givenOn === line.dueOn)
+    if (!drops) return [prise]
+    if (reportAnchor === null) return [prise, { action: 'delete', id: owned.id }]
+    return [prise, shiftWritten(input.lines, owned, reportAnchor)]
   }
   const brokenWith = (changes: LineChange[]) =>
     brokenReports(input, applied(input, changes), line.dueOn)

@@ -88,6 +88,10 @@ function planOf(input: TreatmentViewInput, due: Due, shiftsFollowing: boolean): 
     )
     .at(-1)
   if (existing !== undefined && notedOn(existing.targetOn!)) return { reason: 'arrival-logged' }
+  const locked = reportsOf(view).some((report) => report.targetOn === due.dueOn)
+  if (existing === undefined && locked && view.dueState(due) !== 'pending') {
+    return { reason: 'arrival-logged' }
+  }
   const restInput = existing === undefined ? input : without(input, [existing.id])
   const moved = movedDue(view, buildView(restInput), due, existing)
   if (moved.dueOn < setting.startsOn) return { reason: 'not-movable' }

@@ -28,7 +28,11 @@ const horizonOf = (input: TreatmentViewInput, from: Day) =>
  * après la journée d'échéance précédente et avant la suivante.
  */
 export function reportHolds(input: TreatmentViewInput, report: Line): boolean {
-  const rest = buildView(without(input, [report.id]))
+  const arriving = input.lines.filter(
+    (line) =>
+      (line.status === 'given' || line.status === 'missed') && line.dueOn === report.targetOn,
+  )
+  const rest = buildView(without(input, [report.id, ...arriving.map(({ id }) => id)]))
   if (rest.dueState(report) !== 'pending') return false
   const arrival = report.targetOn!
   if (arrival > report.dueOn) {

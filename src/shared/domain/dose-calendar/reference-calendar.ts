@@ -79,7 +79,7 @@ export function calendarOf(
     // part de la première échéance du réglage (R2).
     const previous = live[index - 1]
     const origin = setting.gridOriginOn
-    const earlier = new Set(episode.slice(0, episode.indexOf(setting)).map(({ id }) => id))
+    const earlier = new Set(live.slice(0, index).map(({ id }) => id))
     const within = ({ dueOn }: ReferenceLine) =>
       dueOn >= setting.startsOn && (end === null || dueOn < end)
     const anchors = shifts

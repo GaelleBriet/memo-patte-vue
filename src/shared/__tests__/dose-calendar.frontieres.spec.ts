@@ -10,26 +10,42 @@ import type { Line } from '../domain/dose-calendar/types'
 import { DAY, line, setting, view } from './dose-calendar.v2.aides'
 
 const folder = fileURLToPath(new URL('../domain/dose-calendar/', import.meta.url))
-const modules = readdirSync(folder)
-  .filter((name) => name.endsWith('.ts') && !name.startsWith('reference-'))
+const modules = readdirSync(folder, { recursive: true, encoding: 'utf8' })
+  .filter((name) => name.endsWith('.ts') && !name.split('/').at(-1)!.startsWith('reference-'))
   .map((name) => ({ name, text: readFileSync(join(folder, name), 'utf8') }))
 const importsOf = (text: string) => [...text.matchAll(/from '([^']+)'/g)].map(([, path]) => path!)
+const insideFolder = (name: string, path: string) =>
+  path.startsWith('./') ||
+  (name.includes('/') && path.startsWith('../') && !path.startsWith('../../'))
 
 describe('moteur des doses v2 : frontières', () => {
   it('ne dépend que de lui-même : ni features, ni core, ni modèle de référence', () => {
     expect(modules.length).toBeGreaterThan(5)
     const foreign = modules.flatMap(({ name, text }) =>
       importsOf(text)
-        .filter((path) => !path.startsWith('./') || path.startsWith('./reference-'))
+        .filter((path) => !insideFolder(name, path) || /\/reference-/.test(path))
         .map((path) => `${name} → ${path}`),
     )
     expect(foreign).toEqual([])
   })
 
-  it('ne lit jamais l’horloge ; seuls la dose du moment et la vue lisent aujourd’hui', () => {
+  it('ne lit jamais l’horloge ; seuls la dose du moment, la vue et les gestes lisent aujourd’hui', () => {
     expect(modules.filter(({ text }) => /Date\.now\(|new Date\(\)/.test(text))).toEqual([])
-    const knowsToday = modules.filter(({ text }) => /\btoday\b/.test(text)).map(({ name }) => name)
+    const knowsToday = modules
+      .filter(({ text }) => /\btoday\b/.test(text))
+      .map(({ name }) => name)
+      .filter((name) => !name.startsWith('gestures/'))
     expect(knowsToday.sort()).toEqual(['legacy-input.ts', 'moment.ts', 'types.ts', 'view.ts'])
+  })
+
+  it('chaque geste a son module dans gestures/, chacun avec son fichier de test', () => {
+    const gestures = modules.filter(({ name }) => name.startsWith('gestures/'))
+    const tested = readdirSync(fileURLToPath(new URL('.', import.meta.url)))
+    const untested = gestures
+      .map(({ name }) => name.slice('gestures/'.length, -'.ts'.length))
+      .filter((name) => !tested.includes(`dose-calendar.gestures-${name}.spec.ts`))
+    expect(gestures.length).toBeGreaterThanOrEqual(6)
+    expect(untested).toEqual([])
   })
 
   it('seul le calendrier produit des échéances à partir de la grille', () => {

@@ -20,8 +20,6 @@ export type EpisodeCalendar = {
 export type EpisodeInput = {
   settingOf: (id: string) => Setting
   span: Span
-  /** Réglages de l'épisode dans l'ordre, ceux remplacés le jour même compris (R10). */
-  episode: readonly Setting[]
   lines: EpisodeLines
   /** R8 : prises d'avant l'arrêt qui couvrent la première journée de la reprise. */
   borrowed: readonly Line[]
@@ -33,7 +31,7 @@ const sameHours = (a: Setting, b: Setting) => hoursOf(a.times).join() === hoursO
 
 /** R3, R6 : les journées de chaque réglage, sur la grille en vigueur, que les décalages font repartir. */
 function journeys(input: EpisodeInput, effects: Map<string, LineEffect>) {
-  const { span, episode, lines, reach } = input
+  const { span, lines, reach } = input
   const { live, endOf } = span
   const days = new Map<Day, Journey>()
   const translated = new Map<Day, string>()
@@ -47,7 +45,7 @@ function journeys(input: EpisodeInput, effects: Map<string, LineEffect>) {
       .sort()[0]!
     const previous = live[index - 1]
     const origin = setting.gridOriginOn
-    const earlier = new Set(episode.slice(0, episode.indexOf(setting)).map(({ id }) => id))
+    const earlier = new Set(live.slice(0, index).map(({ id }) => id))
     const within = ({ dueOn }: Line) => dueOn >= setting.startsOn && (end === null || dueOn < end)
     const anchors = lines.shifts
       .filter((shift) => within(shift) && earlier.has(shift.settingId))
