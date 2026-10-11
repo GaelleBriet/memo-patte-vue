@@ -6,12 +6,20 @@ const isMoreRecent = (a: ReferenceLine, b: ReferenceLine) =>
 
 // R1, R8 : un arrêt clôt un épisode ; la reprise en ouvre un autre.
 export function episodesOf(settings: readonly ReferenceSetting[]): ReferenceSetting[][] {
-  const ordered = [...settings].sort(
-    (a, b) =>
-      a.startsOn.localeCompare(b.startsOn) ||
-      a.createdAt.localeCompare(b.createdAt) ||
-      a.id.localeCompare(b.id),
-  )
+  // R9, R10 : un réglage remplacé avant son premier jour par un réglage écrit après lui cède sa place ce jour-là.
+  const ordered = settings
+    .map((setting) => {
+      const startsOn = settings
+        .filter(({ createdAt }) => createdAt > setting.createdAt)
+        .reduce((day, newer) => (newer.startsOn < day ? newer.startsOn : day), setting.startsOn)
+      return startsOn === setting.startsOn ? setting : { ...setting, startsOn }
+    })
+    .sort(
+      (a, b) =>
+        a.startsOn.localeCompare(b.startsOn) ||
+        a.createdAt.localeCompare(b.createdAt) ||
+        a.id.localeCompare(b.id),
+    )
   const episodes: ReferenceSetting[][] = [[]]
   for (const setting of ordered) {
     episodes.at(-1)!.push(setting)

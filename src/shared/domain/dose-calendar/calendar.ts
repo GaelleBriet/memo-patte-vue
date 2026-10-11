@@ -1,9 +1,8 @@
-import { gridDays, hoursOf, isOnGrid, keyOf, later, plusDays, sameFrequency, stepped } from './grid'
+import { hoursOf, keyOf, stepped } from './grid'
+import { journeys, sameHours, type Journey } from './journeys'
 import type { EpisodeLines } from './lines'
 import type { Span } from './settings'
 import type { Day, Due, Hour, Line, LineEffect, Setting } from './types'
-
-type Journey = { setting: Setting; hours: Hour[] }
 
 /** Une échéance du calendrier, et la prise qui la couvre ; `exact` : la prise vise cette échéance. */
 export type Slot = { due: Due; key: string; coveredBy: Line | null; exact: boolean }
@@ -20,93 +19,11 @@ export type EpisodeCalendar = {
 export type EpisodeInput = {
   settingOf: (id: string) => Setting
   span: Span
-  /** Réglages de l'épisode dans l'ordre, ceux remplacés le jour même compris (R10). */
-  episode: readonly Setting[]
   lines: EpisodeLines
   /** R8 : prises d'avant l'arrêt qui couvrent la première journée de la reprise. */
   borrowed: readonly Line[]
   /** Dernier jour de la grille calculée. */
   reach: Day
-}
-
-const sameHours = (a: Setting, b: Setting) => hoursOf(a.times).join() === hoursOf(b.times).join()
-
-/** R3, R6 : les journées de chaque réglage, sur la grille en vigueur, que les décalages font repartir. */
-function journeys(input: EpisodeInput, effects: Map<string, LineEffect>) {
-  const { span, episode, lines, reach } = input
-  const { live, endOf } = span
-  const days = new Map<Day, Journey>()
-  const translated = new Map<Day, string>()
-  const boundaries = new Map<Day, Hour[]>()
-  const openings = new Set<Day>()
-  let grid = { origin: live[0]!.firstDueOn, floor: '' }
-  live.forEach((setting, index) => {
-    const end = endOf(index)
-    const last = [reach, setting.endsOn, end === null ? null : plusDays(end, -1)]
-      .filter((day) => day !== null)
-      .sort()[0]!
-    const previous = live[index - 1]
-    const origin = setting.gridOriginOn
-    const earlier = new Set(episode.slice(0, episode.indexOf(setting)).map(({ id }) => id))
-    const within = ({ dueOn }: Line) => dueOn >= setting.startsOn && (end === null || dueOn < end)
-    const anchors = lines.shifts
-      .filter((shift) => within(shift) && earlier.has(shift.settingId))
-      .map(({ targetOn }) => targetOn!)
-    const continued =
-      previous !== undefined &&
-      sameFrequency(previous.frequency, setting.frequency) &&
-      (origin === null ||
-        [grid.origin, ...anchors].some((day) => isOnGrid(day, setting.frequency, origin)))
-    if (previous !== undefined && !sameHours(previous, setting)) {
-      translated.set(setting.startsOn, setting.id).set(setting.firstDueOn, setting.id)
-    }
-    const neverStarted =
-      previous !== undefined &&
-      previous.firstDueOn >= setting.startsOn &&
-      grid.floor === plusDays(previous.firstDueOn, -1)
-    const ownFloor = plusDays(later(setting.firstDueOn, setting.startsOn), -1)
-    if (previous !== undefined && !continued && setting.firstDueOn >= setting.startsOn) {
-      openings.add(setting.firstDueOn)
-    }
-    grid = continued
-      ? {
-          origin: grid.origin,
-          floor: neverStarted ? ownFloor : later(grid.floor, plusDays(setting.startsOn, -1)),
-        }
-      : { origin: origin ?? setting.firstDueOn, floor: ownFloor }
-    // R3 : écrit sous un réglage d'avant un changement de fréquence, un décalage est dépassé.
-    const turns = lines.shifts.filter(
-      (shift) => within(shift) && (continued || !earlier.has(shift.settingId)),
-    )
-    let from = setting.startsOn
-    for (const turn of [...turns, null]) {
-      const to = turn === null || turn.dueOn >= last ? last : turn.dueOn
-      for (const day of gridDays(
-        grid.origin,
-        setting.frequency,
-        later(from, plusDays(grid.floor, 1)),
-        to,
-      )) {
-        days.set(day, { setting, hours: hoursOf(setting.times) })
-      }
-      if (turn === null) break
-      effects.set(turn.id, { kind: 'shifts', from: turn.dueOn })
-      grid = { origin: turn.targetOn!, floor: later(turn.dueOn, turn.targetOn!) }
-      from = plusDays(turn.dueOn, 1)
-    }
-    if (
-      end !== null &&
-      end > grid.floor &&
-      (setting.endsOn === null || end <= setting.endsOn) &&
-      isOnGrid(grid.origin, setting.frequency, end)
-    ) {
-      boundaries.set(end, [...(boundaries.get(end) ?? []), ...hoursOf(setting.times)])
-    }
-  })
-  for (const shift of lines.shifts) {
-    if (!effects.has(shift.id)) effects.set(shift.id, { kind: 'idle', reason: 'overtaken' })
-  }
-  return { days, translated, boundaries, openings }
 }
 
 /** R4, R7, R11 : le calendrier d'un épisode, une passe par étape, du réglage à la couverture. */
@@ -164,6 +81,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   // sur sa journée passent d'abord.
   const fallen = new Set<Day>()
   const moved = new Map<string, Line>()
+  const stop = span.endOf(span.live.length - 1)
   const waiting = [...lines.reports]
   while (waiting.length > 0) {
     const ready = waiting.findIndex(
@@ -174,7 +92,8 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     const origin = days.get(dueOn)
     const from = origin?.setting ?? settingOf(report.settingId)
     const hours = origin?.hours ?? hoursOf(from.times)
-    if (origin === undefined) {
+    // R8 : au-delà de l'arrêt, une prise ne garde pas son échéance, la reprise seule la porte.
+    if (origin === undefined && (stop === null || dueOn < stop)) {
       for (const note of byDay.get(dueOn) ?? []) {
         if (!isBorrowed.has(note) && hours.includes(note.dueTime)) {
           matched.add(note)
@@ -211,7 +130,10 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     if (!kept) translated.set(targetOn!, arrival.id)
     const day = days.get(targetOn!) ?? { setting: arrival, hours: [] }
     // R7, R9.2 : un nouveau rythme qui part du jour d'arrivée d'un report lui laisse ses seules heures.
-    if (dueOn < targetOn! && openings.delete(targetOn!)) day.hours = []
+    if (openings.delete(targetOn!)) {
+      day.hours = []
+      effects.set(report.id, { kind: 'moves', keys, arrival: targetOn, opensRhythm: true })
+    }
     const arriving = kept ? leaving : hoursOf(arrival.times).slice(-leaving.length)
     day.hours = [...new Set([...day.hours, ...arriving])].sort()
     days.set(targetOn!, day)
@@ -219,7 +141,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
 
   // R1, R4 : le jour où un réglage cède la place, ses prises gardent leur échéance.
   boundaries.forEach((hours, day) => {
-    if (days.has(day)) return
+    if (days.has(day) || (stop !== null && day >= stop)) return
     for (const note of byDay.get(day) ?? []) {
       if (!isBorrowed.has(note) && hours.includes(note.dueTime)) {
         matched.add(note)

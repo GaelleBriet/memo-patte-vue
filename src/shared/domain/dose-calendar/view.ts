@@ -17,6 +17,9 @@ import type {
 /** Une ligne de l'historique, avec ou sans effet (R11). */
 export type HistoryLine = { line: Line; effect: LineEffect }
 
+/** Une échéance du calendrier, son état, et la prise qui la couvre. */
+export type DueSlot = { due: Due; state: DueState; by: Line | null }
+
 /** Fenêtre des échéances à venir : `from` aujourd'hui par défaut, `to` 400 jours plus loin. */
 export type Window = { from?: Day; to?: Day; limit?: number }
 
@@ -37,6 +40,8 @@ export type TreatmentView = {
   lastDueDay: Day | null
   history: HistoryLine[]
   dueState(due: Pick<Due, 'dueOn' | 'dueTime'>): DueState
+  /** Toutes les échéances du calendrier de `from` à `to` inclus, notées ou non. */
+  slots(from: Day, to: Day): DueSlot[]
   /** TR-21, Q33 : le jour où cette échéance a déjà été notée, `null` si elle ne l'est pas. */
   alreadyNotedOn(due: Pick<Due, 'dueOn' | 'dueTime'>, today: Day): Day | null
   /** R5 : premier jour où une prise couvre encore cette échéance ; `null` : pas de borne. */
@@ -94,14 +99,17 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
       .filter((slot) => slot.key === key)
       .at(-1)
 
+  const stateOf = (slot: Slot): DueState => {
+    if (slot.coveredBy === null) return 'pending'
+    return slot.exact ? (slot.coveredBy.status as 'given' | 'missed') : 'covered'
+  }
   const dueState = ({ dueOn, dueTime }: Pick<Due, 'dueOn' | 'dueTime'>): DueState => {
     const key = keyOf(dueOn, dueTime)
     const slot = slotOf(key)
     if (slot === undefined) {
       return calendarsUntil(dueOn).some(({ moved }) => moved.has(key)) ? 'moved' : 'removed'
     }
-    if (slot.coveredBy === null) return 'pending'
-    return slot.exact ? (slot.coveredBy.status as 'given' | 'missed') : 'covered'
+    return stateOf(slot)
   }
 
   return {
@@ -146,6 +154,15 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
       },
     })),
     dueState,
+    slots: (from, to) => {
+      const byKey = new Map<string, Slot>()
+      for (const slot of calendarsUntil(to).flatMap(({ slots }) => slots)) {
+        if (slot.due.dueOn >= from && slot.due.dueOn <= to) byKey.set(slot.key, slot)
+      }
+      return [...byKey.values()]
+        .sort((a, b) => a.key.localeCompare(b.key))
+        .map((slot) => ({ due: slot.due, state: stateOf(slot), by: slot.coveredBy }))
+    },
     alreadyNotedOn: (due, day) => {
       const slot = slotOf(keyOf(due.dueOn, due.dueTime))
       const by = slot?.coveredBy ?? null

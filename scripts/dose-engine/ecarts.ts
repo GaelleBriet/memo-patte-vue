@@ -193,16 +193,23 @@ function coveredByOrphan(book: Book, key: string, reread: Reread): boolean {
     const run = [...episodeBefore(ordered, ordered.indexOf(period)), period]
     return inForceGrid(book, run, dueOn)
   }
+  // R1, R8 : un report ne se bat qu'avec une prise de son épisode.
+  const episodeOf = (periodId: string) => {
+    const period = byId(periodId)
+    if (period === undefined) return periodId
+    const index = ordered.indexOf(period)
+    return (episodeBefore(ordered, index)[0] ?? period).id
+  }
   const reported = new Set(
     book.doses
       .filter(({ status, dueOn, nextDueDate }) => status === 'postponed' && nextDueDate !== dueOn)
-      .map(({ dueOn, dueTime }) => `${dueOn} ${dueTime}`),
+      .map(({ periodId, dueOn, dueTime }) => `${episodeOf(periodId)} ${dueOn} ${dueTime}`),
   )
   const near = (note: TreatmentDoseInput) =>
     isNote(note) &&
     dueKey(note) < key &&
     !atBoundary(note) &&
-    !reported.has(`${note.dueOn} ${note.dueTime}`) &&
+    !reported.has(`${episodeOf(note.periodId)} ${note.dueOn} ${note.dueTime}`) &&
     book.periods.some(
       ({ id, frequency }) => id === note.periodId && shifted(note.dueOn, frequency, 1) > day,
     )

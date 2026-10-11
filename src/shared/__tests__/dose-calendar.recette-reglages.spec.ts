@@ -5,7 +5,9 @@ import {
   aRenseigner,
   affiche,
   arrete,
+  bornes,
   carnet,
+  caseProposee,
   donne,
   echeance,
   H,
@@ -248,5 +250,19 @@ describe('R8 : reprendre', () => {
     c = arrete(c, '2026-10-02')
     c = reprend(c, '2026-10-02', '2026-10-02', jours(1))
     expect(affiche(c, '2026-10-02', 1)).toEqual(['2026-10-03'])
+  })
+
+  it('R6, TR-32 : hebdo, dose du 9 donnée d’avance le 5, arrêt le 6, reprise le 7 au 8 : la dose du 8 se déplace, et notée le 10 elle propose la case', () => {
+    let c = carnet('2026-10-02', semaines(1))
+    c = donne(c, '2026-10-02', echeance(c, '2026-10-02'))
+    c = donne(c, '2026-10-05', echeance(c, '2026-10-09'), '2026-10-05', false)
+    c = arrete(c, '2026-10-06')
+    c = reprend(c, '2026-10-07', '2026-10-08', semaines(1))
+    expect(bornes(c, '2026-10-07', echeance(c, '2026-10-08'), false)).toEqual({
+      earliest: '2026-10-07',
+      latest: '2026-10-14',
+      excluded: [],
+    })
+    expect(caseProposee(c, '2026-10-10', echeance(c, '2026-10-08'))).toBe(true)
   })
 })

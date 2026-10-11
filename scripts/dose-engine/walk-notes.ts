@@ -1,6 +1,7 @@
 import type { Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 
 import { idOf, int, isNote, pick, plusDays } from './carnet'
+import { bothBoxes, refusedByV2, v2, v2Due } from './walk-filter'
 import { applied, stampOf, unchecks, WalkStopped, written, type Walk } from './walk-state'
 
 function refusedBy(gesture: () => unknown): boolean {
@@ -22,7 +23,6 @@ export function note(
 ): void {
   const box = shiftsFollowing === false ? ', case décochée' : ''
   const gesture = `${walk.book.today} ${kind} ${idOf(due)} le ${givenOn}${box}`
-  walk.log.push(gesture)
   let noted
   try {
     noted =
@@ -30,10 +30,18 @@ export function note(
         ? before.doseFor({ kind, due, givenOn, shiftsFollowing })
         : before.doseFor({ kind, due })
   } catch (error) {
+    walk.log.push(gesture)
     throw new WalkStopped(`${gesture} : ${String(error)}`)
   }
-  if (noted.shift !== null) walk.book = written(walk, walk.book, noted.shift)
-  walk.book = written(walk, walk.book, noted.dose)
+  const shifted = noted.shift === null ? walk.book : written(walk, walk.book, noted.shift)
+  const next = written(walk, shifted, noted.dose)
+  const plays = bothBoxes(
+    (shiftsFollowing) => (input) =>
+      v2.noteDose(input, { due: v2Due(due), status: kind, givenOn, shiftsFollowing }),
+  )
+  if (refusedByV2(walk, gesture, next, plays, { due: v2Due(due) })) return
+  walk.log.push(gesture)
+  walk.book = next
 }
 
 export function give(walk: Walk, before: TreatmentSchedule): void {
@@ -100,15 +108,22 @@ export function redateExtra(walk: Walk, before: TreatmentSchedule): void {
   const givenOn = plusDays(walk.book.today, -int(walk.extraRandom, 0, 6))
   if (before.redateLimits(extra.id).takenDays.includes(givenOn)) return
   const gesture = `${walk.book.today} redater la prise en plus ${idOf(extra)} au ${givenOn}`
-  walk.log.push(gesture)
   let redated
   try {
     redated = before.redate(extra.id, givenOn)
   } catch (error) {
+    walk.log.push(gesture)
     throw new WalkStopped(`${gesture} : ${String(error)}`)
   }
   const book = { ...walk.book, doses: walk.book.doses.filter(({ id }) => id !== extra.id) }
-  walk.book = written(walk, applied(walk, book, redated.shift), redated.dose)
+  const next = written(walk, applied(walk, book, redated.shift), redated.dose)
+  const plays = bothBoxes(
+    (shiftsFollowing) => (input) =>
+      v2.redateDose(input, { lineId: extra.id, givenOn, shiftsFollowing }),
+  )
+  if (refusedByV2(walk, gesture, next, plays, { redate: true })) return
+  walk.log.push(gesture)
+  walk.book = next
 }
 
 export function deleteExtra(walk: Walk, before: TreatmentSchedule): void {
@@ -117,15 +132,21 @@ export function deleteExtra(walk: Walk, before: TreatmentSchedule): void {
     before.doses.filter(({ status }) => status === 'extra'),
   )
   if (extra === undefined) return
-  walk.log.push(`${walk.book.today} supprimer la prise en plus ${idOf(extra)}`)
-  walk.book = { ...walk.book, doses: walk.book.doses.filter(({ id }) => id !== extra.id) }
+  const gesture = `${walk.book.today} supprimer la prise en plus ${idOf(extra)}`
+  const next = { ...walk.book, doses: walk.book.doses.filter(({ id }) => id !== extra.id) }
+  if (refusedByV2(walk, gesture, next, [(input) => v2.removeLine(input, extra.id)])) return
+  walk.log.push(gesture)
+  walk.book = next
 }
 
 export function deleteNote(walk: Walk, before: TreatmentSchedule): void {
   const line = pick(walk.random, before.doses.filter(isNote))
   if (line === undefined) return
-  walk.log.push(`${walk.book.today} supprimer la prise ${idOf(line)}`)
-  walk.book = { ...walk.book, doses: walk.book.doses.filter(({ id }) => id !== line.id) }
+  const gesture = `${walk.book.today} supprimer la prise ${idOf(line)}`
+  const next = { ...walk.book, doses: walk.book.doses.filter(({ id }) => id !== line.id) }
+  if (refusedByV2(walk, gesture, next, [(input) => v2.removeLine(input, line.id)])) return
+  walk.log.push(gesture)
+  walk.book = next
 }
 
 export function redate(walk: Walk, before: TreatmentSchedule): void {
@@ -145,7 +166,7 @@ export function redate(walk: Walk, before: TreatmentSchedule): void {
     return
   }
   const box = unchecked ? ', case décochée' : ''
-  walk.log.push(`${walk.book.today} redater ${idOf(dose)} au ${givenOn}${box}`)
+  const gesture = `${walk.book.today} redater ${idOf(dose)} au ${givenOn}${box}`
   const { dose: fields, shift, postponement } = before.redate(dose.id, givenOn, !unchecked)
   const dropped = postponement?.kept === false ? postponement.doseIds : []
   const at = stampOf(walk)
@@ -161,5 +182,12 @@ export function redate(walk: Walk, before: TreatmentSchedule): void {
         ? { ...line, ...postponement.shiftLine, updatedAt: at }
         : line
     })
-  walk.book = applied(walk, { ...walk.book, doses }, shift)
+  const next = applied(walk, { ...walk.book, doses }, shift)
+  const plays = [!unchecked, unchecked].map(
+    (shiftsFollowing) => (input: Parameters<typeof v2.redateDose>[0]) =>
+      v2.redateDose(input, { lineId: dose.id, givenOn, shiftsFollowing }),
+  )
+  if (refusedByV2(walk, gesture, next, plays, { redate: true })) return
+  walk.log.push(gesture)
+  walk.book = next
 }

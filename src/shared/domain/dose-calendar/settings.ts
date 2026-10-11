@@ -2,14 +2,24 @@ import { keyOf } from './grid'
 import { isNote, latestBy } from './lines'
 import type { Day, Line, Setting } from './types'
 
+/** R9, R10 : un réglage remplacé avant son premier jour par un réglage écrit après lui cède sa place ce jour-là. */
+function replacedBefore(settings: readonly Setting[], setting: Setting): Setting {
+  const startsOn = settings
+    .filter(({ createdAt }) => createdAt > setting.createdAt)
+    .reduce((day, newer) => (newer.startsOn < day ? newer.startsOn : day), setting.startsOn)
+  return startsOn === setting.startsOn ? setting : { ...setting, startsOn }
+}
+
 /** R1, R8 : réglages dans l'ordre ; un arrêt clôt un épisode, la reprise en ouvre un autre. */
 export function episodesOf(settings: readonly Setting[]): Setting[][] {
-  const ordered = [...settings].sort(
-    (a, b) =>
-      a.startsOn.localeCompare(b.startsOn) ||
-      a.createdAt.localeCompare(b.createdAt) ||
-      a.id.localeCompare(b.id),
-  )
+  const ordered = settings
+    .map((setting) => replacedBefore(settings, setting))
+    .sort(
+      (a, b) =>
+        a.startsOn.localeCompare(b.startsOn) ||
+        a.createdAt.localeCompare(b.createdAt) ||
+        a.id.localeCompare(b.id),
+    )
   const episodes: Setting[][] = [[]]
   for (const setting of ordered) {
     episodes.at(-1)!.push(setting)
@@ -21,10 +31,18 @@ export function episodesOf(settings: readonly Setting[]): Setting[][] {
 /** Les réglages d'un épisode qui ont des jours, chacun jusqu'au premier jour du suivant (R1). */
 export type Span = {
   live: Setting[]
+  /** R3, R10 : remplacés le jour même avant le premier réglage lu, ils lui transmettent leur grille. */
+  replaced: Setting[]
   /** Premier jour où le réglage ne vaut plus : début du suivant, ou arrêt ; `null` : ouvert. */
   endOf(index: number): Day | null
   /** Le réglage en vigueur ce jour-là, date de fin comprise ; aucun avant, après la fin ou l'arrêt. */
   settingAt(day: Day): Setting | undefined
+}
+
+/** R8, TR-32 : les réglages de la période (épisode) qui contient ce réglage. */
+export function episodeIdsOf(settings: readonly Setting[], settingId: string): Set<string> {
+  const episode = episodesOf(settings).find((each) => each.some(({ id }) => id === settingId))
+  return new Set((episode ?? []).map(({ id }) => id))
 }
 
 /** R10 : remplacé le jour même, un réglage sans prise ni report n'a jamais existé. */
@@ -45,7 +63,7 @@ export function spanOf(episode: readonly Setting[], kept: readonly Line[]): Span
     const open = (end === null || day < end) && (setting.endsOn === null || day <= setting.endsOn)
     return open ? setting : undefined
   }
-  return { live, endOf, settingAt }
+  return { live, replaced: episode.slice(0, episode.indexOf(live[0]!)), endOf, settingAt }
 }
 
 /**

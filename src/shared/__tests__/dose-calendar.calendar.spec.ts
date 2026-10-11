@@ -12,7 +12,6 @@ function calendar(settings: Setting[], lines: Line[]) {
   return episodeCalendar({
     settingOf: (id) => settings.find((each) => each.id === id)!,
     span: spanOf(settings, own.kept),
-    episode: settings,
     lines: own,
     borrowed: [],
     reach: '2026-12-31',

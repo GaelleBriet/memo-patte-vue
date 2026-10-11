@@ -1,0 +1,241 @@
+import { keyOf, later, plusDays, stepped } from '../grid'
+import { isNote } from '../lines'
+import { episodesOf } from '../settings'
+import type {
+  Day,
+  Due,
+  Gesture,
+  GestureResult,
+  Line,
+  LineChange,
+  LineFields,
+  Refusal,
+  TreatmentViewInput,
+} from '../types'
+import { buildView, type TreatmentView } from '../view'
+import { applied, shiftOfDay, shiftWritten, without, written } from './changes'
+import { linesAfter, livesOn, lostToEnd, outcome } from './outcome'
+import { strandsNote } from './reports'
+
+export type MoveGesture = Omit<Extract<Gesture, { kind: 'move' }>, 'kind'>
+
+/**
+ * TR-9 : de `earliest` à `latest` inclus ; `latest` : la date de fin ou, seule, la veille de la dose
+ * suivante ; `excluded` : les jours d'origine d'un autre report, où la dose n'arrive pas (R7, G9).
+ */
+export type MoveBounds = { earliest: Day; latest: Day | null; excluded: Day[] }
+
+type MovePlan = {
+  moved: Due
+  existing: Line | undefined
+  dayShift: Line | undefined
+  bounds: MoveBounds
+}
+
+const reportsOf = (view: TreatmentView, episode: ReadonlySet<string>): Line[] =>
+  view.history
+    .filter(
+      ({ line, effect }) =>
+        line.status === 'postponed' && effect.kind === 'moves' && episode.has(line.settingId),
+    )
+    .map(({ line }) => line)
+
+const opensRhythm = (view: TreatmentView, report: Line): boolean =>
+  view.history.some(
+    ({ line, effect }) => line.id === report.id && effect.kind === 'moves' && effect.opensRhythm,
+  )
+
+// G6 : le dernier jour d'où la fréquence retombe encore sur l'échéance d'origine.
+function oneStepBefore(due: Due, view: TreatmentView): Day {
+  const { frequency } = view.settingAt(due.dueOn) ?? view.currentSetting!
+  let day = stepped(due.dueOn, frequency, -1)
+  while (stepped(plusDays(day, 1), frequency, 1) <= due.dueOn) day = plusDays(day, 1)
+  return day
+}
+
+// R7, G13, G17 : la dose déplacée ; un report garde son échéance tant qu'il la déplace, sinon il vise celle qu'il remplace.
+function movedDue(view: TreatmentView, rest: TreatmentView, due: Due, existing?: Line): Due | null {
+  const pendingOn = (read: TreatmentView, day: Day) =>
+    read
+      .slots(day, day)
+      .filter(({ state }) => state === 'pending')
+      .map((slot) => slot.due)
+  if (existing === undefined) {
+    const sameDay = pendingOn(view, due.dueOn)
+    const known = sameDay.some(
+      (other) => keyOf(other.dueOn, other.dueTime) === keyOf(due.dueOn, due.dueTime),
+    )
+    return known ? sameDay[0]! : null
+  }
+  if (due.dueOn === existing.dueOn && due.dueOn !== existing.targetOn) {
+    return pendingOn(rest, due.dueOn)[0] ?? due
+  }
+  const own = keyOf(existing.dueOn, existing.dueTime)
+  const effect = view.history.find(({ line }) => line.id === existing.id)?.effect
+  if (effect?.kind === 'moves' && effect.keys.includes(own)) {
+    return { settingId: existing.settingId, dueOn: existing.dueOn, dueTime: existing.dueTime }
+  }
+  const replaced = rest
+    .slots(existing.dueOn, plusDays(existing.dueOn, 400))
+    .find(
+      ({ due: other, state }) => state === 'pending' && keyOf(other.dueOn, other.dueTime) >= own,
+    )
+  return (
+    replaced?.due ?? {
+      settingId: existing.settingId,
+      dueOn: existing.dueOn,
+      dueTime: existing.dueTime,
+    }
+  )
+}
+
+// G13, R6 : réécrit vers l'échéance qu'il remplace, le report laisserait une prise sans échéance.
+function rewriteStrands(
+  input: TreatmentViewInput,
+  view: TreatmentView,
+  existing: Line,
+  moved: Due,
+): boolean {
+  if (keyOf(moved.dueOn, moved.dueTime) === keyOf(existing.dueOn, existing.dueTime)) return false
+  const line: LineFields = {
+    ...moved,
+    status: 'postponed',
+    givenOn: null,
+    targetOn: existing.targetOn,
+  }
+  return strandsNote(
+    view,
+    buildView(applied(input, [{ action: 'rewrite', id: existing.id, line }])),
+  )
+}
+
+function planOf(input: TreatmentViewInput, due: Due, shiftsFollowing: boolean): MovePlan | Refusal {
+  const view = buildView(input)
+  const setting = view.currentSetting
+  if (setting === null || view.phase === 'stopped' || view.phase === 'ended') {
+    return { reason: 'not-movable' }
+  }
+  const episode = episodesOf(input.settings).at(-1)!
+  const ids = new Set(episode.map(({ id }) => id))
+  const notedOn = (day: Day) =>
+    input.lines.some((line) => isNote(line) && ids.has(line.settingId) && line.dueOn === day)
+  const existing = reportsOf(view, ids)
+    .filter(
+      (report) =>
+        (report.targetOn === due.dueOn && !notedOn(due.dueOn)) || report.dueOn === due.dueOn,
+    )
+    .at(-1)
+  if (existing !== undefined && notedOn(existing.targetOn!)) return { reason: 'arrival-logged' }
+  // R7, R9.2 : partie de son arrivée, la dose rendrait au jour les heures du nouveau rythme.
+  if (existing !== undefined && opensRhythm(view, existing)) return { reason: 'not-movable' }
+  const locked = reportsOf(view, ids).some((report) => report.targetOn === due.dueOn)
+  if (existing === undefined && locked && view.dueState(due) !== 'pending') {
+    return { reason: 'arrival-logged' }
+  }
+  const restInput = existing === undefined ? input : without(input, [existing.id])
+  const moved = movedDue(view, buildView(restInput), due, existing)
+  if (moved === null || moved.dueOn < episode[0]!.startsOn) return { reason: 'not-movable' }
+  if (existing !== undefined && rewriteStrands(input, view, existing, moved)) {
+    return { reason: 'later-dose' }
+  }
+  const dayShift = shiftOfDay(input.lines, existing?.dueOn ?? moved.dueOn)
+  const ignored = new Set([existing?.id, dayShift?.id].filter((id) => id !== undefined))
+  const livesAt = [moved.dueOn, existing?.targetOn ?? moved.dueOn].sort()[0]!
+  // R6 : un décalage déplacerait la grille sous l'échéance d'origine d'une dose avancée plus loin.
+  const dayOf = shiftsFollowing ? undefined : livesOn
+  const after = linesAfter(input, { ...moved, dueOn: livesAt }, ignored, dayOf)
+  if (after.notes.length > 0) return { reason: 'later-dose' }
+  if (after.others.length > 0) return { reason: 'later-line' }
+  const rest = buildView(restInput)
+  const first = input.settings
+    .flatMap(({ startsOn, firstDueOn }) => [startsOn, firstDueOn])
+    .sort()[0]!
+  const before = [
+    oneStepBefore(moved, view),
+    ...rest.slots(first, plusDays(livesAt, -1)).map(({ due: other }) => other.dueOn),
+    ...input.lines
+      .filter(
+        (line) =>
+          !ignored.has(line.id) &&
+          line.status !== 'extra' &&
+          line.status !== 'shift' &&
+          ids.has(line.settingId),
+      )
+      .flatMap((line) => [livesOn(line), ...(line.givenOn === null ? [] : [line.givenOn])]),
+  ].sort()
+  const earliest = [input.today, setting.startsOn, plusDays(before.at(-1)!, 1)].sort().at(-1)!
+  let latest = setting.endsOn
+  if (latest !== null && earliest > latest) return { reason: 'no-date-left' }
+  if (!shiftsFollowing) {
+    const alone = buildView(without(restInput, dayShift === undefined ? [] : [dayShift.id]))
+    const nextOn = alone
+      .slots(plusDays(moved.dueOn, 1), plusDays(later(moved.dueOn, earliest), 800))
+      .find(({ state }) => state === 'pending')?.due.dueOn
+    if (nextOn !== undefined) {
+      const cap = latest !== null && latest < plusDays(nextOn, -1) ? latest : plusDays(nextOn, -1)
+      if (cap < earliest || (earliest === cap && cap === moved.dueOn)) {
+        return { reason: 'no-date-alone' }
+      }
+      latest = cap
+    }
+  }
+  const excluded = reportsOf(view, ids)
+    .filter(({ id, dueOn }) => id !== existing?.id && dueOn !== moved.dueOn)
+    .map(({ dueOn }) => dueOn)
+    .filter((day) => day >= earliest && (latest === null || day <= latest))
+  const bounds = { earliest, latest, excluded: [...new Set(excluded)].sort() }
+  return { moved, existing, dayShift, bounds }
+}
+
+/** « Prochaine dose » : bornes du déplacement (TR-9, G6, G8, Q20, Q2 a), ou pourquoi il est refusé (G7, Q25). */
+export function moveBounds(
+  input: TreatmentViewInput,
+  due: Due,
+  shiftsFollowing: boolean,
+): MoveBounds | { refusal: Refusal } {
+  const plan = planOf(input, due, shiftsFollowing)
+  return 'reason' in plan ? { refusal: plan } : plan.bounds
+}
+
+/** R7 : le report de la dose, seul ou avec sa ligne de décalage ancrée au jour d'arrivée (R6). */
+export function moveDose(input: TreatmentViewInput, gesture: MoveGesture): GestureResult {
+  const { due, to, shiftsFollowing } = gesture
+  const plan = planOf(input, due, shiftsFollowing)
+  if ('reason' in plan) return { refusal: plan }
+  const { moved, existing, dayShift, bounds } = plan
+  if (to < bounds.earliest || (bounds.latest !== null && to > bounds.latest)) {
+    return {
+      refusal: { reason: 'out-of-bounds', earliest: bounds.earliest, latest: bounds.latest },
+    }
+  }
+  if (bounds.excluded.includes(to)) return { refusal: { reason: 'report-loop' } }
+  if (existing !== undefined && to === existing.targetOn)
+    return outcome(input, [], { offersShift: true })
+  const dropShift: LineChange[] =
+    dayShift === undefined ? [] : [{ action: 'delete', id: dayShift.id }]
+  if (to === moved.dueOn) {
+    return outcome(
+      input,
+      existing === undefined ? [] : [{ action: 'delete', id: existing.id }, ...dropShift],
+    )
+  }
+  const line: LineFields = { ...moved, status: 'postponed', givenOn: null, targetOn: to }
+  const report: LineChange =
+    existing === undefined
+      ? written(input.lines, line)
+      : { action: 'rewrite', id: existing.id, line }
+  if (!shiftsFollowing) return outcome(input, [report, ...dropShift], { offersShift: true })
+  const shift: LineChange =
+    dayShift !== undefined && dayShift.dueOn !== moved.dueOn
+      ? {
+          action: 'rewrite',
+          id: dayShift.id,
+          line: { ...moved, status: 'shift', givenOn: null, targetOn: to },
+        }
+      : shiftWritten(input.lines, moved, to)
+  const changes = [report, shift]
+  return outcome(input, changes, {
+    offersShift: true,
+    lostToEnd: lostToEnd(input, [report, ...dropShift], changes, moved.dueOn),
+  })
+}
