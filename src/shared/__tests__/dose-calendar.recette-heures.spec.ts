@@ -14,6 +14,7 @@ import {
   ligne,
   modifie,
   mois,
+  recoit,
   sansPrise,
   semaines,
   supprime,
@@ -86,6 +87,36 @@ describe('R7 : 8 h du 3 donnée, 20 h du 3 reportée au 4', () => {
     ])
   })
 
+  it('R9.2 : fréquence changée le 3 pour tous les 3 jours, première dose le 4 : 20 h le 4, puis le 7', () => {
+    const c = modifie(reporte20h(), '2026-10-03', jours(3), H, '2026-10-04')
+    expect(affiche(c, '2026-10-04', 3)).toEqual([
+      '2026-10-04 20:00',
+      '2026-10-07 08:00',
+      '2026-10-07 20:00',
+    ])
+  })
+
+  it('R9.2, R3 : tous les 3 jours le 3 à partir du 4, puis heures passées à 9 h et 21 h le 4 : 21 h le 4, puis le 7', () => {
+    let c = modifie(reporte20h(), '2026-10-03', jours(3), H, '2026-10-04')
+    c = modifie(c, '2026-10-04', jours(3), ['09:00', '21:00'], '2026-10-04')
+    expect(affiche(c, '2026-10-04', 3)).toEqual([
+      '2026-10-04 21:00',
+      '2026-10-07 09:00',
+      '2026-10-07 21:00',
+    ])
+  })
+
+  it('R11 : 20 h du 3 donnée sur un autre appareil, report sans effet ; tous les 3 jours le 4, première dose le 4 : 8 h et 20 h le 4', () => {
+    let c = reporte20h()
+    c = recoit(c, echeance(c, '2026-10-03', '20:00'))
+    c = modifie(c, '2026-10-04', jours(3), H, '2026-10-04')
+    expect(affiche(c, '2026-10-04', 3)).toEqual([
+      '2026-10-04 08:00',
+      '2026-10-04 20:00',
+      '2026-10-07 08:00',
+    ])
+  })
+
   it('fréquence changée le 4 pour tous les jours : le 5 ; pour chaque semaine : le 11', () => {
     const c = reporte20h()
     expect(journees(modifie(c, '2026-10-04', jours(1), H), '2026-10-04', 2)).toEqual([
@@ -98,17 +129,20 @@ describe('R7 : 8 h du 3 donnée, 20 h du 3 reportée au 4', () => {
     ])
   })
 
-  it('fréquence changée le 3, jour d’origine : 20 h le 3, puis le 6', () => {
-    const c = modifie(reporte20h(), '2026-10-03', jours(3), H)
-    expect(affiche(c, '2026-10-03', 3)).toEqual([
-      '2026-10-03 20:00',
-      '2026-10-06 08:00',
-      '2026-10-06 20:00',
-    ])
-  })
+  it.fails(
+    'fréquence changée le 3, jour d’origine : 20 h le 3, puis le 6 (pas 4, réglage proposé par le moteur actuel)',
+    () => {
+      const c = modifie(reporte20h(), '2026-10-03', jours(3), H)
+      expect(affiche(c, '2026-10-03', 3)).toEqual([
+        '2026-10-03 20:00',
+        '2026-10-06 08:00',
+        '2026-10-06 20:00',
+      ])
+    },
+  )
 
   it.fails(
-    'R10, Q-#744 : plusieurs changements le 4, fréquence ramenée aussitôt : 20 h le 4, puis le 5',
+    'R10, Q-#744 : plusieurs changements le 4, fréquence ramenée aussitôt : 20 h le 4, puis le 5 (pas 4)',
     () => {
       let c = modifie(reporte20h(), '2026-10-04', jours(3), H)
       c = modifie(c, '2026-10-04', jours(2), H)
@@ -130,55 +164,43 @@ describe('R7 : 8 h du 3 donnée, 20 h du 3 reportée au 4', () => {
     expect(sansPrise(c, '2026-10-04')).toContain('2026-10-03 08:00')
   })
 
-  it.fails(
-    '#734 : posologie changée le 4, puis « Supprimer ce report » : 20 h du 3 à renseigner, rien le 4, puis le 5',
-    () => {
-      let c = modifie(reporte20h(), '2026-10-04', jours(2), H)
-      c = supprimeReport(c, '2026-10-04', ligne(c, '2026-10-03', '20:00', 'postponed').id)
-      expect(aRenseigner(c, '2026-10-04')).toEqual(['2026-10-03 20:00'])
-      expect(affiche(c, '2026-10-04', 2)).toEqual(['2026-10-05 08:00', '2026-10-05 20:00'])
-    },
-  )
+  it('#734 : posologie changée le 4, puis « Supprimer ce report » : 20 h du 3 à renseigner, rien le 4, puis le 5', () => {
+    let c = modifie(reporte20h(), '2026-10-04', jours(2), H)
+    c = supprimeReport(c, '2026-10-04', ligne(c, '2026-10-03', '20:00', 'postponed').id)
+    expect(aRenseigner(c, '2026-10-04')).toEqual(['2026-10-03 20:00'])
+    expect(affiche(c, '2026-10-04', 2)).toEqual(['2026-10-05 08:00', '2026-10-05 20:00'])
+  })
 })
 
 describe('R4, R10 : une prise couvre son échéance, un réglage du jour se remplace', () => {
-  it.fails(
-    '#741 : tous les 3 mois à 6, 12, 18, 23 h ; 23 h reportée au 12, donnée le 5 ; chaque semaine le 12 : rien le 12, le 19',
-    () => {
-      const T = ['06:00', '12:00', '18:00', '23:00']
-      let c = carnet('2026-03-10', mois(3), T)
-      for (const heure of T.slice(0, 3)) {
-        c = donne(c, '2026-03-10', echeance(c, '2026-03-10', heure))
-      }
-      c = deplace(c, '2026-03-10', echeance(c, '2026-03-10', '23:00'), '2026-03-12', true)
-      c = donne(c, '2026-03-12', echeance(c, '2026-03-12', '23:00'), '2026-03-05')
-      expect(journees(c, '2026-03-12', 1)).toEqual(['2026-06-05'])
-      c = modifie(c, '2026-03-12', semaines(1), H)
-      expect(journees(c, '2026-03-12', 1)).toEqual(['2026-03-19'])
-    },
-  )
+  it('#741 : tous les 3 mois à 6, 12, 18, 23 h ; 23 h reportée au 12, donnée le 5 ; chaque semaine le 12 : rien le 12, le 19', () => {
+    const T = ['06:00', '12:00', '18:00', '23:00']
+    let c = carnet('2026-03-10', mois(3), T)
+    for (const heure of T.slice(0, 3)) {
+      c = donne(c, '2026-03-10', echeance(c, '2026-03-10', heure))
+    }
+    c = deplace(c, '2026-03-10', echeance(c, '2026-03-10', '23:00'), '2026-03-12', true)
+    c = donne(c, '2026-03-12', echeance(c, '2026-03-12', '23:00'), '2026-03-05')
+    expect(journees(c, '2026-03-12', 1)).toEqual(['2026-06-05'])
+    c = modifie(c, '2026-03-12', semaines(1), H)
+    expect(journees(c, '2026-03-12', 1)).toEqual(['2026-03-19'])
+  })
 
-  it.fails(
-    '#738 : 20 h du 3 donnée, posologie changée le 3, prise supprimée : 20 h du 3 revient',
-    () => {
-      let c = base()
-      c = donne(c, '2026-10-03', echeance(c, '2026-10-03', '20:00'))
-      c = modifie(c, '2026-10-03', jours(2), H)
-      c = supprime(c, ligne(c, '2026-10-03', '20:00', 'given').id)
-      expect(sansPrise(c, '2026-10-03')).toContain('2026-10-03 20:00')
-    },
-  )
+  it('#738 : 20 h du 3 donnée, posologie changée le 3, prise supprimée : 20 h du 3 revient', () => {
+    let c = base()
+    c = donne(c, '2026-10-03', echeance(c, '2026-10-03', '20:00'))
+    c = modifie(c, '2026-10-03', jours(2), H)
+    c = supprime(c, ligne(c, '2026-10-03', '20:00', 'given').id)
+    expect(sansPrise(c, '2026-10-03')).toContain('2026-10-03 20:00')
+  })
 
-  it.fails(
-    '#744 : rien noté le 3, journée reportée seule au 4, fréquence → 3 jours puis → 2 jours le 3 : 4, 5, 7',
-    () => {
-      let c = carnet('2026-10-01', jours(2), H)
-      c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '08:00'))
-      c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '20:00'))
-      c = deplace(c, '2026-10-03', echeance(c, '2026-10-03', '08:00'), '2026-10-04', false)
-      c = modifie(c, '2026-10-03', jours(3), H)
-      c = modifie(c, '2026-10-03', jours(2), H)
-      expect(journees(c, '2026-10-03', 3)).toEqual(['2026-10-04', '2026-10-05', '2026-10-07'])
-    },
-  )
+  it('#744 : rien noté le 3, journée reportée seule au 4, fréquence → 3 jours puis → 2 jours le 3 : 4, 5, 7', () => {
+    let c = carnet('2026-10-01', jours(2), H)
+    c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '08:00'))
+    c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '20:00'))
+    c = deplace(c, '2026-10-03', echeance(c, '2026-10-03', '08:00'), '2026-10-04', false)
+    c = modifie(c, '2026-10-03', jours(3), H)
+    c = modifie(c, '2026-10-03', jours(2), H)
+    expect(journees(c, '2026-10-03', 3)).toEqual(['2026-10-04', '2026-10-05', '2026-10-07'])
+  })
 })

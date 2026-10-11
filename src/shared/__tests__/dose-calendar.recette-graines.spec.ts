@@ -34,46 +34,34 @@ function rienLe(c: Carnet, day: string): string[] {
 }
 
 describe('R4, R9 : réglage changé le jour d’arrivée d’un report rangé deux réglages plus tôt', () => {
-  it.fails(
-    'graine 500000856 : 20 h du 24 notée oubliée, toutes les 2 semaines à 8 h et 20 h le 24 : rien le 24',
-    () => {
-      const { today, ...c } = graine(500000856)
-      expect(rienLe(modifie(c, today, semaines(2), H), today)).toEqual([])
-    },
-  )
+  it('graine 500000856 : 20 h du 24 notée oubliée, toutes les 2 semaines à 8 h et 20 h le 24 : rien le 24', () => {
+    const { today, ...c } = graine(500000856)
+    expect(rienLe(modifie(c, today, semaines(2), H), today)).toEqual([])
+  })
 
-  it.fails(
-    'graine 510000010 : dose reportée donnée, tous les jours à 6, 12, 18, 23 h le 8 : rien le 8',
-    () => {
-      const { today, ...c } = graine(510000010)
-      const changed = modifie(c, today, jours(1), ['06:00', '12:00', '18:00', '23:00'])
-      expect(rienLe(changed, today)).toEqual([])
-    },
-  )
+  it('graine 510000010 : dose reportée donnée, tous les jours à 6, 12, 18, 23 h le 8 : rien le 8', () => {
+    const { today, ...c } = graine(510000010)
+    const changed = modifie(c, today, jours(1), ['06:00', '12:00', '18:00', '23:00'])
+    expect(rienLe(changed, today)).toEqual([])
+  })
 
-  it.fails(
-    'graine 500001712 : dose du 15 donnée, tous les jours à 8, 14, 20 h le 15 : rien le 15',
-    () => {
-      const { today, ...c } = graine(500001712)
-      const changed = modifie(c, today, jours(1), ['08:00', '14:00', '20:00'])
-      expect(rienLe(changed, today)).toEqual([])
-    },
-  )
+  it('graine 500001712 : dose du 15 donnée, tous les jours à 8, 14, 20 h le 15 : rien le 15', () => {
+    const { today, ...c } = graine(500001712)
+    const changed = modifie(c, today, jours(1), ['08:00', '14:00', '20:00'])
+    expect(rienLe(changed, today)).toEqual([])
+  })
 })
 
 describe('R3, R12 : la posologie ne change pas le calendrier, la proposition est le résultat', () => {
-  it.fails(
-    'graine 520002718 : toutes les 2 semaines à 20 h, posologie changée le 11 mars : 13, 19 mars, 5 avr.',
-    () => {
-      const { today, ...c } = graine(520002718)
-      expect(journees(c, today, 3)).toEqual(['2026-03-13', '2026-03-19', '2026-04-05'])
-      const changed = modifie(c, today, semaines(2), ['20:00'])
-      expect(journees(changed, today, 3)).toEqual(['2026-03-13', '2026-03-19', '2026-04-05'])
-    },
-  )
+  it('graine 520002718 : toutes les 2 semaines à 20 h, posologie changée le 11 mars : 13, 19 mars, 5 avr.', () => {
+    const { today, ...c } = graine(520002718)
+    expect(journees(c, today, 3)).toEqual(['2026-03-13', '2026-03-19', '2026-04-05'])
+    const changed = modifie(c, today, semaines(2), ['20:00'])
+    expect(journees(changed, today, 3)).toEqual(['2026-03-13', '2026-03-19', '2026-04-05'])
+  })
 
   it.fails(
-    'graine 510001190 : tous les jours à 8 h et 20 h le 19 avr. : la première dose proposée est celle du calendrier',
+    'graine 510001190 : tous les jours à 8 h et 20 h le 19 avr. : la première dose proposée est celle du calendrier (pas 4 : le moteur actuel propose le 19, jour d’arrivée d’un report dont la seule heure est donnée, R7 ; R9 propose le 20)',
     () => {
       const { today, ...c } = graine(510001190)
       const proposed = proposition(c, today, jours(1), H)
@@ -81,4 +69,9 @@ describe('R3, R12 : la posologie ne change pas le calendrier, la proposition est
       expect(journees(changed, today, 1)).toEqual([proposed])
     },
   )
+
+  it('graine 510001190 : tous les jours à 8 h et 20 h le 19 avr. : le 20, comme le moteur actuel', () => {
+    const { today, ...c } = graine(510001190)
+    expect(journees(modifie(c, today, jours(1), H), today, 2)).toEqual(['2026-04-20', '2026-04-21'])
+  })
 })
