@@ -209,7 +209,7 @@ function changeSettings(walk: V2Walk, kind: (typeof GESTURES)[number]): void {
   if (kind === 'stop' && current !== null && current.stoppedOn === null && random() < 0.3) {
     if (current.startsOn > today) return
     const stopped = settings.map((setting) =>
-      setting === current ? { ...setting, stoppedOn: today } : setting,
+      setting.id === current.id ? { ...setting, stoppedOn: today } : setting,
     )
     return setSettings(walk, 'arrêter', stopped)
   }

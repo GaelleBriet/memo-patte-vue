@@ -92,7 +92,6 @@ describe('oracle des moteurs de doses', { timeout: 60_000 }, () => {
   it.each([
     [560001008, 'reglage-meme-frequence'],
     [560003279, 'reglage-meme-frequence'],
-    [570010320, 'reglage-meme-frequence'],
     [570002709, 'prise-orpheline'],
     [570015902, 'prise-orpheline'],
   ])(
@@ -136,6 +135,19 @@ describe('oracle des moteurs de doses', { timeout: 60_000 }, () => {
       expect(report(run)).toEqual([])
     },
   )
+
+  it('graine 570010320 : un réglage de même fréquence fait avant la première dose garde la grille sans la faire repartir plus tôt (R3, décision du 2026-10-11)', () => {
+    const run = runOracle(
+      oracleConfig({
+        ORACLE_ENGINES: 'actuel,v2',
+        ORACLE_FILTER: 'aucun',
+        ORACLE_FROM: '570010320',
+        ORACLE_SEEDS: '1',
+        ORACLE_STEPS: '40',
+      }),
+    )
+    expect(run.divergences).toEqual([])
+  })
 
   it.each([570005085, 570012998])(
     'modèle de référence et moteur v2 : même lecture de la graine %i (réglage de même fréquence parti d’un jour d’arrivée)',

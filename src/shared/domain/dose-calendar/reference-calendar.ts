@@ -69,17 +69,21 @@ export function calendarOf(
   const boundaries = new Map<string, Hour[]>()
   // R7, R9.2 : les premières échéances des réglages qui ouvrent un nouveau rythme.
   const openings = new Set<string>()
-  let grid: Grid = { origin: live[0]!.firstDueOn, floor: '' }
-  live.forEach((setting, index) => {
-    const end = endOf(index)
+  // R3, R10 : remplacés le jour même avant le premier réglage lu, ils lui transmettent leur grille.
+  const chain = [...episode.slice(0, episode.indexOf(live[0]!)), ...live]
+  const replaced = chain.length - live.length
+  let grid: Grid = { origin: chain[0]!.firstDueOn, floor: '' }
+  chain.forEach((setting, position) => {
+    const index = position - replaced
+    const end = index < 0 ? setting.startsOn : endOf(index)
     const last = [reach, setting.endsOn, end === null ? null : plusDays(end, -1)]
       .filter((day) => day !== null)
       .sort()[0]!
     // R3 : à fréquence gardée et sur la grille en vigueur, le calendrier continue ; sinon la grille
     // part de la première échéance du réglage (R2).
-    const previous = live[index - 1]
+    const previous = chain[position - 1]
     const origin = setting.gridOriginOn
-    const earlier = new Set(live.slice(0, index).map(({ id }) => id))
+    const earlier = new Set(chain.slice(0, position).map(({ id }) => id))
     const within = ({ dueOn }: ReferenceLine) =>
       dueOn >= setting.startsOn && (end === null || dueOn < end)
     const anchors = shifts
@@ -90,23 +94,27 @@ export function calendarOf(
       sameFrequency(previous, setting) &&
       (origin === null ||
         [grid.origin, ...anchors].some((day) => isOnGrid(day, setting.frequency, origin)))
-    if (previous !== undefined && !sameHours(previous, setting)) {
+    if (index > 0 && !sameHours(previous!, setting)) {
       translated.set(setting.startsOn, setting.id).set(setting.firstDueOn, setting.id)
     }
-    const neverStarted =
+    // R3 : une première échéance choisie sur la grille d'un réglage jamais commencé la fait partir
+    // d'elle ; héritée, elle garde la grille du réglage remplacé (décision du 2026-10-11).
+    const chosenStart =
+      origin !== null &&
       previous !== undefined &&
       previous.firstDueOn >= setting.startsOn &&
       grid.floor === plusDays(previous.firstDueOn, -1)
     const ownFloor = plusDays(later(setting.firstDueOn, setting.startsOn), -1)
-    if (previous !== undefined && !continued && setting.firstDueOn >= setting.startsOn) {
+    if (index > 0 && !continued && setting.firstDueOn >= setting.startsOn) {
       openings.add(setting.firstDueOn)
     }
     grid = continued
       ? {
           origin: grid.origin,
-          floor: neverStarted ? ownFloor : later(grid.floor, plusDays(setting.startsOn, -1)),
+          floor: chosenStart ? ownFloor : later(grid.floor, plusDays(setting.startsOn, -1)),
         }
       : { origin: setting.gridOriginOn ?? setting.firstDueOn, floor: ownFloor }
+    if (index < 0) return
     // R6 : à partir de sa journée d'origine, un décalage donne à la grille l'origine de son ancrage ;
     // écrit sous un réglage d'avant un changement de fréquence, il est dépassé par la nouvelle origine (R3).
     const turns = shifts.filter(

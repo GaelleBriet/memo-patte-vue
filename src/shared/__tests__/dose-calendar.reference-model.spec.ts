@@ -191,6 +191,82 @@ describe('R2, R3 : un réglage qui en remplace un jamais commencé', () => {
   })
 })
 
+describe('R3, R10 : un changement de réglage fait avant la première dose (décision du 2026-10-11)', () => {
+  const THREE_DAYS = { value: 3, unit: 'day' as const }
+
+  it('graine 640000526 : tous les 3 jours à 20 h du 6 avr., posologie le 5 (première échéance le 8, arrivée d’un report supprimé depuis) : 6, 9, 12', () => {
+    const p1 = setting('p1', '2026-04-06', THREE_DAYS, ['20:00'])
+    const p2 = setting('p2', '2026-04-08', THREE_DAYS, ['20:00'], {
+      startsOn: '2026-04-05',
+      gridOriginOn: null,
+    })
+    const expected = ['2026-04-06 20:00', '2026-04-09 20:00', '2026-04-12 20:00']
+    expect(next([p1, p2], [], '2026-04-06')).toEqual(expected)
+    const p3 = setting('p3', '2026-04-06', THREE_DAYS, ['20:00'], {
+      startsOn: '2026-04-06',
+      gridOriginOn: null,
+    })
+    expect(next([p1, p2, p3], [], '2026-04-06')).toEqual(expected)
+  })
+
+  it('créé le 1er avr., première dose le 6, dose du 6 reportée au 8 sous la création, posologie le 4 (première échéance le 8), report supprimé : 6, 9, 12', () => {
+    const p1 = setting('p1', '2026-04-06', THREE_DAYS, ['20:00'], { startsOn: '2026-04-01' })
+    const p2 = setting('p2', '2026-04-08', THREE_DAYS, ['20:00'], {
+      startsOn: '2026-04-04',
+      gridOriginOn: null,
+    })
+    const report = line('p1', 'postponed', '2026-04-06', '20:00', '2026-04-08')
+    expect(next([p1, p2], [report], '2026-04-05')).toEqual([
+      '2026-04-08 20:00',
+      '2026-04-09 20:00',
+      '2026-04-12 20:00',
+    ])
+    expect(next([p1, p2], [], '2026-04-05')).toEqual([
+      '2026-04-06 20:00',
+      '2026-04-09 20:00',
+      '2026-04-12 20:00',
+    ])
+  })
+
+  it('graine 640001351 : toutes les 6 semaines du 22 mars, décalage du 22 au 23, posologie le 20 (première échéance le 23) : 22 mars, puis 4 mai', () => {
+    const SIX_WEEKS = { value: 6, unit: 'week' as const }
+    const p1 = setting('p1', '2026-03-22', SIX_WEEKS)
+    const p2 = setting('p2', '2026-03-23', SIX_WEEKS, [], {
+      startsOn: '2026-03-20',
+      gridOriginOn: null,
+    })
+    const shift = line('p1', 'shift', '2026-03-22', null, '2026-03-23')
+    expect(next([p1, p2], [shift], '2026-03-20', 2)).toEqual(['2026-03-22', '2026-05-04'])
+  })
+})
+
+describe('R7, R9 : la journée d’arrivée devenue première échéance d’une posologie (décision du 2026-10-11)', () => {
+  it('graine 620002762 : chaque semaine à 8, 14, 20 h du 24 mars, 14 h reportée au 12 avr. avec décalage, posologies le 25 et le 28 : le 12 ne reçoit que 14 h', () => {
+    const times = ['08:00', '14:00', '20:00']
+    const endsOn = '2026-04-25'
+    const p1 = setting('p1', '2026-03-24', WEEK, times, { endsOn })
+    const p2 = setting('p2', '2026-04-13', WEEK, times, {
+      startsOn: '2026-03-25',
+      gridOriginOn: null,
+      endsOn,
+    })
+    const p3 = setting('p3', '2026-04-12', WEEK, times, {
+      startsOn: '2026-03-28',
+      gridOriginOn: null,
+      endsOn,
+    })
+    const lines = [
+      line('p1', 'given', '2026-03-24', '08:00'),
+      line('p1', 'missed', '2026-03-24', '20:00'),
+      line('p1', 'postponed', '2026-03-24', '14:00', '2026-04-12'),
+      line('p1', 'shift', '2026-03-24', '14:00', '2026-04-12'),
+    ]
+    const expected = ['2026-04-12 14:00', '2026-04-19 08:00', '2026-04-19 14:00']
+    expect(next([p1, p2], lines, '2026-03-28')).toEqual(expected)
+    expect(next([p1, p2, p3], lines, '2026-03-28')).toEqual(expected)
+  })
+})
+
 describe('R1, R4 : la prise du jour d’un changement de réglage garde son échéance', () => {
   const monthly = setting('p1', '2026-09-05', MONTH)
   const given = [line('p1', 'given', '2026-09-05'), line('p1', 'given', '2026-10-05')]
