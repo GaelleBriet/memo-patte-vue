@@ -141,14 +141,14 @@ describe('R4 : même rythme, prises en avance (G22)', () => {
     ])
   })
 
-  it('journée passée entamée, posologie changée le 4 : le 5, et 20 h du 3 à renseigner', () => {
+  it('Q-retard : journée passée entamée, posologie changée le 4 : 20 h du 3 en retard, puis le 5', () => {
     let c = carnet('2026-10-01', jours(2), H)
     c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '08:00'))
     c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '20:00'))
     c = donne(c, '2026-10-03', echeance(c, '2026-10-03', '08:00'))
     c = modifie(c, '2026-10-04', jours(2), H)
-    expect(journees(c, '2026-10-04', 2)).toEqual(['2026-10-05', '2026-10-07'])
-    expect(aRenseigner(c, '2026-10-04')).toEqual(['2026-10-03 20:00'])
+    expect(journees(c, '2026-10-04', 2)).toEqual(['2026-10-03', '2026-10-05'])
+    expect(aRenseigner(c, '2026-10-04')).toEqual([])
   })
 })
 

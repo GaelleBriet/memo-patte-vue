@@ -164,11 +164,15 @@ describe('R7 : 8 h du 3 donnée, 20 h du 3 reportée au 4', () => {
     expect(sansPrise(c, '2026-10-04')).toContain('2026-10-03 08:00')
   })
 
-  it('#734 : posologie changée le 4, puis « Supprimer ce report » : 20 h du 3 à renseigner, rien le 4, puis le 5', () => {
+  it('#734, Q-retard : posologie changée le 4, puis « Supprimer ce report » : 20 h du 3 en retard, rien le 4, puis le 5', () => {
     let c = modifie(reporte20h(), '2026-10-04', jours(2), H)
     c = supprimeReport(c, '2026-10-04', ligne(c, '2026-10-03', '20:00', 'postponed').id)
-    expect(aRenseigner(c, '2026-10-04')).toEqual(['2026-10-03 20:00'])
-    expect(affiche(c, '2026-10-04', 2)).toEqual(['2026-10-05 08:00', '2026-10-05 20:00'])
+    expect(aRenseigner(c, '2026-10-04')).toEqual([])
+    expect(affiche(c, '2026-10-04', 3)).toEqual([
+      '2026-10-03 20:00',
+      '2026-10-05 08:00',
+      '2026-10-05 20:00',
+    ])
   })
 })
 

@@ -14,6 +14,8 @@ export type EpisodeCalendar = {
   /** Échéance retirée par un report → ce report. */
   moved: Map<string, Line>
   effects: Map<string, LineEffect>
+  /** R9, Q-retard : premier jour du rythme en vigueur, que les réglages de même fréquence continuent. */
+  rhythmFrom: Day
 }
 
 export type EpisodeInput = {
@@ -30,7 +32,7 @@ export type EpisodeInput = {
 export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   const { settingOf, span, lines, borrowed } = input
   const effects = new Map<string, LineEffect>()
-  const { days, translated, boundaries, openings } = journeys(input, effects)
+  const { days, translated, boundaries, openings, rhythmFrom } = journeys(input, effects)
   const byDay = new Map<Day, Line[]>()
   for (const note of [...lines.notes, ...borrowed]) {
     byDay.set(note.dueOn, [...(byDay.get(note.dueOn) ?? []), note])
@@ -164,7 +166,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   }
   coverOrphans(lines.notes, matched, slots, settingOf)
   noteEffects(lines, borrowed, slots, heldAtOrigin, effects)
-  return { slots, fallen, moved, effects }
+  return { slots, fallen, moved, effects, rhythmFrom }
 }
 
 // R4 : une prise dont l'échéance a quitté le calendrier couvre la première échéance qui suit, à

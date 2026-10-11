@@ -1,4 +1,4 @@
-import { keyOf } from './grid'
+import { keyOf, sameFrequency } from './grid'
 import { isNote, latestBy } from './lines'
 import type { Day, Line, Setting } from './types'
 
@@ -31,8 +31,8 @@ export function episodesOf(settings: readonly Setting[]): Setting[][] {
 /** Les réglages d'un épisode qui ont des jours, chacun jusqu'au premier jour du suivant (R1). */
 export type Span = {
   live: Setting[]
-  /** R3, R10 : remplacés le jour même avant le premier réglage lu, ils lui transmettent leur grille. */
-  replaced: Setting[]
+  /** R3, R10 : les réglages lus dans l'ordre ; remplacé le jour même, un réglage n'y garde que sa grille, pour le suivant de même fréquence. */
+  chain: Setting[]
   /** Premier jour où le réglage ne vaut plus : début du suivant, ou arrêt ; `null` : ouvert. */
   endOf(index: number): Day | null
   /** Le réglage en vigueur ce jour-là, date de fin comprise ; aucun avant, après la fin ou l'arrêt. */
@@ -45,14 +45,20 @@ export function episodeIdsOf(settings: readonly Setting[], settingId: string): S
   return new Set((episode ?? []).map(({ id }) => id))
 }
 
+/** TR-28, R10 : une prise, donnée ou oubliée, ou un report rangés sous ce réglage. */
+export const hasNotes = (setting: Setting, lines: readonly Line[]): boolean =>
+  lines.some(
+    (line) => line.settingId === setting.id && (isNote(line) || line.status === 'postponed'),
+  )
+
 /** R10 : remplacé le jour même, un réglage sans prise ni report n'a jamais existé. */
 export function spanOf(episode: readonly Setting[], kept: readonly Line[]): Span {
-  const live = episode.filter(
+  const isLive = (setting: Setting, index: number) =>
+    episode[index + 1]?.startsOn !== setting.startsOn || hasNotes(setting, kept)
+  const live = episode.filter(isLive)
+  const chain = episode.filter(
     (setting, index) =>
-      episode[index + 1]?.startsOn !== setting.startsOn ||
-      kept.some(
-        (line) => line.settingId === setting.id && (isNote(line) || line.status === 'postponed'),
-      ),
+      isLive(setting, index) || sameFrequency(setting.frequency, episode[index + 1]!.frequency),
   )
   const endOf = (index: number) => live[index + 1]?.startsOn ?? live[index]!.stoppedOn
   const settingAt = (day: Day) => {
@@ -63,7 +69,7 @@ export function spanOf(episode: readonly Setting[], kept: readonly Line[]): Span
     const open = (end === null || day < end) && (setting.endsOn === null || day <= setting.endsOn)
     return open ? setting : undefined
   }
-  return { live, replaced: episode.slice(0, episode.indexOf(live[0]!)), endOf, settingAt }
+  return { live, chain, endOf, settingAt }
 }
 
 /**

@@ -15,7 +15,7 @@ import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 type Journey = { setting: ReferenceSetting; hours: Hour[] }
 type Grid = { origin: string; floor: string }
-type Calendar = { pending: string[]; fallen: Set<string> }
+type Calendar = { pending: string[]; fallen: Set<string>; rhythmFrom: string }
 
 export function calendarOf(
   settings: readonly ReferenceSetting[],
@@ -31,13 +31,12 @@ export function calendarOf(
       `${line.settingId} ${keyOf(line.dueOn, line.dueTime)} ${isNote(line) ? 'note' : line.status}`,
   )
   // R10 : remplacé le jour même, un réglage encore sans prise n'a jamais existé.
-  const live = episode.filter(
-    (setting, index) =>
-      episode[index + 1]?.startsOn !== setting.startsOn ||
-      lines.some(
-        (line) => line.settingId === setting.id && (isNote(line) || line.status === 'postponed'),
-      ),
-  )
+  const isLive = (setting: ReferenceSetting, index: number) =>
+    episode[index + 1]?.startsOn !== setting.startsOn ||
+    lines.some(
+      (line) => line.settingId === setting.id && (isNote(line) || line.status === 'postponed'),
+    )
+  const live = episode.filter(isLive)
   const notes = lines.filter(isNote)
   const noted = new Set([...notes, ...borrowed].map((note) => keyOf(note.dueOn, note.dueTime)))
   const shifts = latestBy(
@@ -69,12 +68,15 @@ export function calendarOf(
   const boundaries = new Map<string, Hour[]>()
   // R7, R9.2 : les premières échéances des réglages qui ouvrent un nouveau rythme.
   const openings = new Set<string>()
-  // R3, R10 : remplacés le jour même avant le premier réglage lu, ils lui transmettent leur grille.
-  const chain = [...episode.slice(0, episode.indexOf(live[0]!)), ...live]
-  const replaced = chain.length - live.length
+  // R3, R10 : remplacé le jour même, un réglage transmet sa grille au suivant de même fréquence.
+  const chain = episode.filter(
+    (setting, index) => isLive(setting, index) || sameFrequency(setting, episode[index + 1]!),
+  )
   let grid: Grid = { origin: chain[0]!.firstDueOn, floor: '' }
+  // R9, Q-retard : les réglages de même fréquence continuent le rythme, et sa dose en retard.
+  let rhythmFrom = live[0]!.startsOn
   chain.forEach((setting, position) => {
-    const index = position - replaced
+    const index = live.indexOf(setting)
     const end = index < 0 ? setting.startsOn : endOf(index)
     const last = [reach, setting.endsOn, end === null ? null : plusDays(end, -1)]
       .filter((day) => day !== null)
@@ -94,7 +96,7 @@ export function calendarOf(
       sameFrequency(previous, setting) &&
       (origin === null ||
         [grid.origin, ...anchors].some((day) => isOnGrid(day, setting.frequency, origin)))
-    if (index > 0 && !sameHours(previous!, setting)) {
+    if (index > 0 && !sameHours(live[index - 1]!, setting)) {
       translated.set(setting.startsOn, setting.id).set(setting.firstDueOn, setting.id)
     }
     // R3 : une première échéance choisie sur la grille d'un réglage jamais commencé la fait partir
@@ -107,7 +109,8 @@ export function calendarOf(
     const ownFloor = plusDays(later(setting.firstDueOn, setting.startsOn), -1)
     if (!continued) {
       for (const day of openings) if (day >= setting.startsOn) openings.delete(day)
-      if (index > 0 && setting.firstDueOn >= setting.startsOn) openings.add(setting.firstDueOn)
+      const follows = chain.slice(0, position).some((each) => live.includes(each))
+      if (follows && setting.firstDueOn >= setting.startsOn) openings.add(setting.firstDueOn)
     }
     grid = continued
       ? {
@@ -116,6 +119,7 @@ export function calendarOf(
         }
       : { origin: setting.gridOriginOn ?? setting.firstDueOn, floor: ownFloor }
     if (index < 0) return
+    if (index > 0 && !continued) rhythmFrom = setting.startsOn
     // R6 : à partir de sa journée d'origine, un décalage donne à la grille l'origine de son ancrage ;
     // écrit sous un réglage d'avant un changement de fréquence, il est dépassé par la nouvelle origine (R3).
     const turns = shifts.filter(
@@ -247,5 +251,6 @@ export function calendarOf(
     const due = dues.find((each) => each.key > keyOf(note.dueOn, note.dueTime))
     if (due !== undefined && due.day < stepped(note.dueOn, frequency, 1)) due.covered = true
   }
-  return { pending: dues.filter(({ covered }) => !covered).map(({ key }) => key), fallen }
+  const pending = dues.filter(({ covered }) => !covered).map(({ key }) => key)
+  return { pending, fallen, rhythmFrom }
 }

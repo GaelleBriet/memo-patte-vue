@@ -141,7 +141,7 @@ describe('dose du moment, doses non renseignées, phases', () => {
     expect(reading).toMatchObject({ phase: 'overdue', current: ['2026-10-01 20:00'], unlogged: [] })
   })
 
-  it('après un changement de réglage, les échéances passées restent à renseigner', () => {
+  it('Q-retard : après un changement de posologie, la dose en retard reste la dose du moment', () => {
     const p1 = setting('p1', '2026-10-01', TWO_DAYS, H)
     const p2 = setting('p2', '2026-10-05', TWO_DAYS, H, {
       startsOn: '2026-10-04',
@@ -153,9 +153,9 @@ describe('dose du moment, doses non renseignées, phases', () => {
       line('p1', 'given', '2026-10-03', '08:00'),
     ]
     expect(read([p1, p2], lines, '2026-10-04')).toMatchObject({
-      phase: 'upcoming',
-      current: ['2026-10-05 08:00'],
-      unlogged: ['2026-10-03 20:00'],
+      phase: 'overdue',
+      current: ['2026-10-03 20:00'],
+      unlogged: [],
     })
   })
 

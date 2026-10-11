@@ -456,3 +456,84 @@ describe('R7, R9.2 : un rythme qui ne part plus de l’arrivée d’un report n�
     },
   )
 })
+
+describe('R9, Q-retard : une dose en retard reste la dose du moment à fréquence gardée (décision du 2026-10-11)', () => {
+  const monday = setting('p1', '2026-10-05', WEEK)
+  const given = line('p1', 'given', '2026-10-05')
+
+  it('hebdo du lundi, dose du lundi 12 non donnée, posologie changée le mercredi 14 : le 12 reste en retard', () => {
+    const posology = setting('p2', '2026-10-12', WEEK, [], {
+      startsOn: '2026-10-14',
+      gridOriginOn: null,
+    })
+    const read = view([monday, posology], [given], '2026-10-14')
+    expect([read.phase, keys(read.currentDoses), keys(read.unloggedDoses)]).toEqual([
+      'overdue',
+      ['2026-10-12'],
+      [],
+    ])
+  })
+
+  it('heures seules changées le 14 : le 12 reste en retard, à l’ancienne heure', () => {
+    const hours = setting('p2', '2026-10-12', WEEK, ['09:00'], {
+      startsOn: '2026-10-14',
+      gridOriginOn: null,
+    })
+    const read = view([monday, hours], [given], '2026-10-14')
+    expect([read.phase, keys(read.currentDoses), keys(read.unloggedDoses)]).toEqual([
+      'overdue',
+      ['2026-10-12'],
+      [],
+    ])
+  })
+
+  it('fréquence changée le 14 (toutes les 2 semaines dès le 19) : le 12 est à renseigner', () => {
+    const rhythm = setting('p2', '2026-10-19', { value: 2, unit: 'week' }, [], {
+      startsOn: '2026-10-14',
+    })
+    const read = view([monday, rhythm], [given], '2026-10-14')
+    expect([read.phase, keys(read.currentDoses), keys(read.unloggedDoses)]).toEqual([
+      'upcoming',
+      ['2026-10-19'],
+      ['2026-10-12'],
+    ])
+  })
+})
+
+describe('R3, R10 : un réglage remplacé le jour même transmet sa grille au réglage de même fréquence (#781)', () => {
+  const weekly = setting('s1', '2026-10-01', WEEK)
+  const lines = [
+    line('s1', 'given', '2026-10-01'),
+    line('s1', 'postponed', '2026-10-08', null, '2026-10-12'),
+  ]
+  const fortnightly = setting('s2', '2026-10-14', { value: 2, unit: 'week' }, [], {
+    startsOn: '2026-10-10',
+  })
+
+  it('hebdo, dose du 8 reportée seule au 12 ; le 10, toutes les 2 semaines dès le 14, puis posologie le même jour : 12, 14, 28', () => {
+    const posology = setting('s3', '2026-10-12', { value: 2, unit: 'week' }, [], {
+      startsOn: '2026-10-10',
+      gridOriginOn: null,
+    })
+    expect(next([weekly, fortnightly, posology], lines, '2026-10-10')).toEqual(
+      next([weekly, fortnightly], lines, '2026-10-10'),
+    )
+    expect(next([weekly, fortnightly, posology], lines, '2026-10-10')).toEqual([
+      '2026-10-12',
+      '2026-10-14',
+      '2026-10-28',
+    ])
+  })
+
+  it('le même jour, un réglage hebdomadaire reçu d’un autre appareil remplace le premier et garde la grille du lundi : 12, 15, 22', () => {
+    const other = setting('s3', '2026-10-12', WEEK, [], {
+      startsOn: '2026-10-10',
+      gridOriginOn: null,
+    })
+    expect(next([weekly, fortnightly, other], lines, '2026-10-10')).toEqual([
+      '2026-10-12',
+      '2026-10-15',
+      '2026-10-22',
+    ])
+  })
+})
