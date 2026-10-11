@@ -162,6 +162,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   // sur sa journée passent d'abord.
   const fallen = new Set<Day>()
   const moved = new Map<string, Line>()
+  const stop = span.endOf(span.live.length - 1)
   const waiting = [...lines.reports]
   while (waiting.length > 0) {
     const ready = waiting.findIndex(
@@ -172,7 +173,8 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     const origin = days.get(dueOn)
     const from = origin?.setting ?? settingOf(report.settingId)
     const hours = origin?.hours ?? hoursOf(from.times)
-    if (origin === undefined) {
+    // R8 : au-delà de l'arrêt, une prise ne garde pas son échéance, la reprise seule la porte.
+    if (origin === undefined && (stop === null || dueOn < stop)) {
       for (const note of byDay.get(dueOn) ?? []) {
         if (!isBorrowed.has(note) && hours.includes(note.dueTime)) {
           matched.add(note)

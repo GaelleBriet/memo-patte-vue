@@ -165,6 +165,17 @@ describe('relecture du pas 2 : frontières de réglage et historique', () => {
     expect(effectOf(read, given.id)).toEqual({ kind: 'covers', key: '2026-10-05' })
   })
 
+  it('R8 : prise d’avance au-delà de l’arrêt, report du même jour : la reprise qui note cette échéance est seule à la couvrir', () => {
+    const p1 = setting('p1', '2026-10-01', DAY, H, { stoppedOn: '2026-10-03' })
+    const ahead = line('p1', 'given', '2026-10-06', '20:00')
+    const report = line('p1', 'postponed', '2026-10-06', '08:00', '2026-10-08')
+    const p2 = setting('p2', '2026-10-04', TWO_DAYS, ['20:00'], { startsOn: '2026-10-03' })
+    const resumed = line('p2', 'given', '2026-10-06', '20:00')
+    const read = view([p1, p2], [ahead, report, resumed], '2026-10-06')
+    expect(effectOf(read, ahead.id)).toEqual({ kind: 'idle', reason: 'nothing-to-cover' })
+    expect(effectOf(read, resumed.id)).toEqual({ kind: 'covers', key: '2026-10-06 20:00' })
+  })
+
   it('R4 : heures changées, les prises du jour couvrent les nouvelles heures dans l’ordre des heures', () => {
     const p1 = setting('p1', '2026-10-01', DAY, H)
     const evening = line('p1', 'given', '2026-10-03', '20:00')
