@@ -56,8 +56,11 @@ function requestOf(walk: SettingsWalk, current: Setting): SettingsRequest {
   return { ...asked, firstDueOn: chosen }
 }
 
-/** Le plan joué par « Modifier », ou `null` : rien à modifier, ou refusé (le refus est consigné). */
-export function changedSettings(walk: SettingsWalk): SettingsPlan | null {
+/** « Modifier » joué : la demande du formulaire et le plan accepté. */
+export type SettingsPlay = { request: SettingsRequest; plan: SettingsPlan }
+
+/** « Modifier » joué, ou `null` : rien à modifier, ou refusé (le refus est consigné). */
+export function changedSettings(walk: SettingsWalk): SettingsPlay | null {
   const view = treatmentView(walk.input)
   const current = view.currentSetting
   if (current === null || view.phase === 'stopped' || walk.input.settings.length >= MAX_SETTINGS) {
@@ -72,12 +75,12 @@ export function changedSettings(walk: SettingsWalk): SettingsPlan | null {
   }
   if ('plan' in result) {
     walk.log.push(`${label} → ${JSON.stringify(result.plan)}`)
-    return result.plan
+    return { request: asked, plan: result.plan }
   }
   const keep = walk.random() < 0.5
   const plan = keep ? result.question.keep : result.question.correct
   walk.log.push(`${label} Q38 ${keep ? 'à renseigner' : 'corrigé'} → ${JSON.stringify(plan)}`)
-  return plan
+  return { request: asked, plan }
 }
 
 /** « Arrêter » le réglage en cours ; `null` : rien à arrêter. */

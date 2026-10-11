@@ -51,8 +51,10 @@ par les deux moteurs (R11).
 à la première échéance proposée par `gestures/settings` ou à une autre date ; « Arrêter » ;
 « Reprendre ») et vérifie à chaque pas les huit invariants du plan §6.3 (`v2-invariants.ts`) :
 conservation des faits, pas de double, posologie sans effet, temps, symétrie, annuler,
-préversion = résultat, équivalence au modèle naïf. Variables posées directement devant la commande,
-sous le même verrou :
+préversion = résultat, équivalence au modèle naïf ; et un neuvième pour « Modifier » (R9, R12) : la
+fiche montre la première échéance proposée, la même demande avec la date proposée passée en clair rend
+la même réponse (jamais un refus), une autre date choisie est celle que la fiche lit. Variables
+posées directement devant la commande, sous le même verrou :
 
 ```sh
 INVARIANTS_FROM=620000000 INVARIANTS_SEEDS=3000 INVARIANTS_STEPS=40 \

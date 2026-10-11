@@ -10,6 +10,7 @@ import {
   type LineChange,
   type Setting,
   type SettingsPlan,
+  type SettingsRequest,
   type TreatmentViewInput,
 } from '@/shared/domain/dose-calendar'
 
@@ -39,6 +40,8 @@ export type V2Step = {
   gesture: Gesture | null
   outcome: GestureOutcome | null
   plan: SettingsPlan | null
+  /** « Modifier » : la demande du formulaire qui a donné `plan`. */
+  request?: SettingsRequest
 }
 
 const GESTURES = [
@@ -196,16 +199,16 @@ function changeSettings(walk: V2Walk, kind: (typeof GESTURES)[number]): V2Step |
   const before = walk.input
   const settings = settingsWalk(walk)
   if (kind === 'settings') {
-    const plan = changedSettings(settings)
-    if (plan === null) return null
-    walk.input = settingsWritten(settings, plan)
+    const played = changedSettings(settings)
+    if (played === null) return null
+    walk.input = settingsWritten(settings, played.plan)
     return {
       label: walk.log.at(-1)!,
       before,
       after: walk.input,
       gesture: null,
       outcome: null,
-      plan,
+      ...played,
     }
   }
   const after =
