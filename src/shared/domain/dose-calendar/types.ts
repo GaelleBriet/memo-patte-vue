@@ -60,7 +60,13 @@ export type IdleReason =
 /** Ce qu'une ligne fait au calendrier : la clé de l'échéance couverte, ou les échéances déplacées. */
 export type LineEffect =
   | { kind: 'covers'; key: string }
-  | { kind: 'moves'; keys: string[]; arrival: Day | null }
+  | {
+      kind: 'moves'
+      keys: string[]
+      arrival: Day | null
+      /** R9.2 : son arrivée est la première échéance d'un nouveau rythme, qui ne garde que ses heures. */
+      opensRhythm?: true
+    }
   | { kind: 'shifts'; from: Day }
   | { kind: 'extra' }
   | { kind: 'idle'; reason: IdleReason }

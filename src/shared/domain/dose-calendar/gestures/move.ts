@@ -40,6 +40,11 @@ const reportsOf = (view: TreatmentView, episode: ReadonlySet<string>): Line[] =>
     )
     .map(({ line }) => line)
 
+const opensRhythm = (view: TreatmentView, report: Line): boolean =>
+  view.history.some(
+    ({ line, effect }) => line.id === report.id && effect.kind === 'moves' && effect.opensRhythm,
+  )
+
 // G6 : le dernier jour d'où la fréquence retombe encore sur l'échéance d'origine.
 function oneStepBefore(due: Due, view: TreatmentView): Day {
   const { frequency } = view.settingAt(due.dueOn) ?? view.currentSetting!
@@ -48,7 +53,7 @@ function oneStepBefore(due: Due, view: TreatmentView): Day {
   return day
 }
 
-// R7, G13, G17 : la dose déplacée, celle que la ligne existante remplace, ou la première heure sans prise de sa journée.
+// R7, G13, G17 : la dose déplacée ; un report garde son échéance tant qu'il la déplace, sinon il vise celle qu'il remplace.
 function movedDue(view: TreatmentView, rest: TreatmentView, due: Due, existing?: Line): Due | null {
   const pendingOn = (read: TreatmentView, day: Day) =>
     read
@@ -66,6 +71,10 @@ function movedDue(view: TreatmentView, rest: TreatmentView, due: Due, existing?:
     return pendingOn(rest, due.dueOn)[0] ?? due
   }
   const own = keyOf(existing.dueOn, existing.dueTime)
+  const effect = view.history.find(({ line }) => line.id === existing.id)?.effect
+  if (effect?.kind === 'moves' && effect.keys.includes(own)) {
+    return { settingId: existing.settingId, dueOn: existing.dueOn, dueTime: existing.dueTime }
+  }
   const replaced = rest
     .slots(existing.dueOn, plusDays(existing.dueOn, 400))
     .find(
@@ -117,6 +126,8 @@ function planOf(input: TreatmentViewInput, due: Due, shiftsFollowing: boolean): 
     )
     .at(-1)
   if (existing !== undefined && notedOn(existing.targetOn!)) return { reason: 'arrival-logged' }
+  // R7, R9.2 : partie de son arrivée, la dose rendrait au jour les heures du nouveau rythme.
+  if (existing !== undefined && opensRhythm(view, existing)) return { reason: 'not-movable' }
   const locked = reportsOf(view, ids).some((report) => report.targetOn === due.dueOn)
   if (existing === undefined && locked && view.dueState(due) !== 'pending') {
     return { reason: 'arrival-logged' }

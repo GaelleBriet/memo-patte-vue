@@ -1,8 +1,14 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { moveBounds, moveDose, type GestureOutcome } from '../domain/dose-calendar'
-import { line, MONTH, setting, TWO_DAYS, WEEK } from './dose-calendar.v2.aides'
+import {
+  applied,
+  moveBounds,
+  moveDose,
+  treatmentView,
+  type GestureOutcome,
+} from '../domain/dose-calendar'
+import { keys, line, MONTH, setting, TWO_DAYS, WEEK } from './dose-calendar.v2.aides'
 
 const due = (dueOn: string, dueTime: string | null = null) => ({ settingId: 'p1', dueOn, dueTime })
 const changesOf = (result: ReturnType<typeof moveDose>) => {
@@ -275,7 +281,7 @@ describe('G7, G8 : une dose avancée se juge à son arrivée (décision du 2026-
     })
   })
 
-  it('graine 530000019 : la prise de 8 h du 1er juil. tient par le report de 14 h ; réécrire ce report vers la dose du 30 juil. la perdrait : refusé dès les bornes (G13)', () => {
+  it('graine 530000019 : la dose du 30 juil. est l’arrivée du report de 14 h du 1er juil. devenue première échéance du mensuel (R9.2) : refusée dès les bornes, le report garde son échéance', () => {
     const p1 = setting('p1', '2026-03-29', MONTH, H2)
     const p2 = setting(
       'p2',
@@ -298,7 +304,7 @@ describe('G7, G8 : une dose avancée se juge à son arrivée (décision du 2026-
     const dose = { settingId: 'p3', dueOn: '2026-07-30', dueTime: '20:00' }
     for (const shiftsFollowing of [true, false]) {
       expect(moveBounds(carnet, dose, shiftsFollowing)).toEqual({
-        refusal: { reason: 'later-dose' },
+        refusal: { reason: 'not-movable' },
       })
     }
   })
@@ -325,4 +331,49 @@ describe('G7, G8 : une dose avancée se juge à son arrivée (décision du 2026-
       moveDose(carnet, { due: dose, to: '2026-04-08', shiftsFollowing: false }),
     ).not.toHaveProperty('refusal')
   })
+})
+
+describe('R7, G13 : redéplacer l’arrivée d’un report d’un rythme précédent (relecture du pas 3)', () => {
+  const TWO_WEEKS = { value: 2, unit: 'week' as const }
+  const SIX_WEEKS = { value: 6, unit: 'week' as const }
+  const metacam = setting('p1', '2026-03-30', TWO_WEEKS, ['20:00'])
+  const given = line('p1', 'given', '2026-03-30', '20:00')
+
+  it('toutes les 2 semaines à 20 h, dose du 13 avr. reportée seule au 15, puis toutes les 6 semaines à 20 h dès le 14 : la dose du 15 avancée au 10 garde son échéance du 13, le 14 reste', () => {
+    const report = line('p1', 'postponed', '2026-04-13', '20:00', '2026-04-15')
+    const p2 = setting('p2', '2026-04-14', SIX_WEEKS, ['20:00'], { startsOn: '2026-04-02' })
+    const input = { settings: [metacam, p2], lines: [given, report], today: '2026-04-02' }
+    const dose = { settingId: 'p2', dueOn: '2026-04-15', dueTime: '20:00' }
+    const result = moveDose(input, { due: dose, to: '2026-04-10', shiftsFollowing: false })
+    expect(changesOf(result)).toEqual([['rewrite', 'postponed', '2026-04-13', '2026-04-10']])
+    const after = treatmentView(applied(input, (result as GestureOutcome).changes))
+    expect(keys(after.upcoming({ limit: 3 }))).toEqual([
+      '2026-04-10 20:00',
+      '2026-04-14 20:00',
+      '2026-05-26 20:00',
+    ])
+  })
+
+  it.each([
+    ['reportée au 14', '2026-04-14'],
+    ['avancée au 12', '2026-04-12'],
+  ])(
+    'Métacam toutes les 2 semaines à 20 h, dose du 13 avr. %s, puis toutes les 6 semaines à 6, 12, 18, 23 h dès ce jour (R9.2) : la dose de ce jour ne se déplace pas sans rendre au jour ses trois autres heures (question pour Gaelle)',
+    (_, arrival) => {
+      const report = line('p1', 'postponed', '2026-04-13', '20:00', arrival)
+      const p2 = setting('p2', arrival, SIX_WEEKS, ['06:00', '12:00', '18:00', '23:00'], {
+        startsOn: '2026-04-02',
+      })
+      const input = { settings: [metacam, p2], lines: [given, report], today: '2026-04-02' }
+      const dose = { settingId: 'p2', dueOn: arrival, dueTime: '23:00' }
+      for (const shiftsFollowing of [true, false]) {
+        expect(moveBounds(input, dose, shiftsFollowing)).toEqual({
+          refusal: { reason: 'not-movable' },
+        })
+        expect(moveDose(input, { due: dose, to: '2026-04-16', shiftsFollowing })).toEqual({
+          refusal: { reason: 'not-movable' },
+        })
+      }
+    },
+  )
 })
