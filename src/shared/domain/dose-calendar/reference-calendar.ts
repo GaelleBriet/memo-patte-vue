@@ -1,83 +1,21 @@
-import type { ReferenceFrequency, ReferenceLine, ReferenceSetting } from './reference-types'
+import {
+  gridDays,
+  hoursOf,
+  isOnGrid,
+  keyOf,
+  later,
+  plusDays,
+  sameFrequency,
+  sameHours,
+  stepped,
+  type Hour,
+} from './reference-grid'
+import { isNote, latestBy } from './reference-lines'
+import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
-type Hour = string | null
 type Journey = { setting: ReferenceSetting; hours: Hour[] }
 type Grid = { origin: string; floor: string }
 type Calendar = { pending: string[]; fallen: Set<string> }
-
-const DAY_MS = 86_400_000
-
-const toTime = (day: string) => Date.UTC(+day.slice(0, 4), +day.slice(5, 7) - 1, +day.slice(8, 10))
-const toDay = (time: number) => new Date(time).toISOString().slice(0, 10)
-export const plusDays = (day: string, count: number) => toDay(toTime(day) + count * DAY_MS)
-const later = (a: string, b: string) => (a > b ? a : b)
-export const keyOf = (day: string, hour: Hour) => (hour === null ? day : `${day} ${hour}`)
-const hoursOf = (setting: ReferenceSetting): Hour[] =>
-  setting.times.length === 0 ? [null] : [...setting.times].sort()
-const sameHours = (a: ReferenceSetting, b: ReferenceSetting) =>
-  hoursOf(a).join() === hoursOf(b).join()
-export const isNote = (line: ReferenceLine) => line.status === 'given' || line.status === 'missed'
-const isMoreRecent = (a: ReferenceLine, b: ReferenceLine) =>
-  a.updatedAt > b.updatedAt || (a.updatedAt === b.updatedAt && a.id > b.id)
-
-function stepped(origin: string, { value, unit }: ReferenceFrequency, step: number): string {
-  if (unit !== 'month') return plusDays(origin, step * value * (unit === 'week' ? 7 : 1))
-  const months = +origin.slice(5, 7) - 1 + step * value
-  const year = +origin.slice(0, 4) + Math.floor(months / 12)
-  const month = ((months % 12) + 12) % 12
-  const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate()
-  return toDay(Date.UTC(year, month, Math.min(+origin.slice(8, 10), lastDay)))
-}
-
-export const longestStep = ({ value, unit }: ReferenceFrequency) =>
-  value * (unit === 'month' ? 31 : unit === 'week' ? 7 : 1)
-
-// R2 : l'origine plus un nombre entier de pas, de `from` à `to` inclus.
-function gridDays(origin: string, frequency: ReferenceFrequency, from: string, to: string) {
-  const longest = longestStep(frequency)
-  const days: string[] = []
-  let step = Math.floor((toTime(from) - toTime(origin)) / DAY_MS / longest) - 1
-  for (
-    let day = stepped(origin, frequency, step);
-    day <= to;
-    day = stepped(origin, frequency, ++step)
-  ) {
-    if (day >= from) days.push(day)
-  }
-  return days
-}
-
-const sameFrequency = (a: ReferenceSetting, b: ReferenceSetting) =>
-  a.frequency.value === b.frequency.value && a.frequency.unit === b.frequency.unit
-
-const isOnGrid = (origin: string, frequency: ReferenceFrequency, day: string) =>
-  gridDays(origin, frequency, day, day).length === 1
-
-// R1, R8 : un arrêt clôt un épisode ; la reprise en ouvre un autre.
-export function episodesOf(settings: readonly ReferenceSetting[]): ReferenceSetting[][] {
-  const ordered = [...settings].sort(
-    (a, b) =>
-      a.startsOn.localeCompare(b.startsOn) ||
-      a.createdAt.localeCompare(b.createdAt) ||
-      a.id.localeCompare(b.id),
-  )
-  const episodes: ReferenceSetting[][] = [[]]
-  for (const setting of ordered) {
-    episodes.at(-1)!.push(setting)
-    if (setting.stoppedOn !== null) episodes.push([])
-  }
-  return episodes.filter((episode) => episode.length > 0)
-}
-
-// TR-25, R11 : une ligne par échéance et par famille, la plus récente ; une journée n'a qu'un report et qu'un décalage.
-export function latestBy(lines: ReferenceLine[], keyOfLine: (line: ReferenceLine) => string) {
-  const latest = new Map<string, ReferenceLine>()
-  for (const line of lines) {
-    const kept = latest.get(keyOfLine(line))
-    if (kept === undefined || isMoreRecent(line, kept)) latest.set(keyOfLine(line), line)
-  }
-  return [...latest.values()].sort((a, b) => a.dueOn.localeCompare(b.dueOn))
-}
 
 export function calendarOf(
   settings: readonly ReferenceSetting[],
@@ -127,6 +65,10 @@ export function calendarOf(
   const days = new Map<string, Journey>()
   // R4, R7, R9 : les jours où une prise visant d'autres heures couvre les premières heures.
   const translated = new Map<string, string>()
+  // R1, R4 : le jour où un réglage cède la place, ses prises gardent leur échéance.
+  const boundaries = new Map<string, Hour[]>()
+  // R7, R9.2 : les premières échéances des réglages qui ouvrent un nouveau rythme.
+  const openings = new Set<string>()
   let grid: Grid = { origin: live[0]!.firstDueOn, floor: '' }
   live.forEach((setting, index) => {
     const end = endOf(index)
@@ -155,17 +97,16 @@ export function calendarOf(
       previous !== undefined &&
       previous.firstDueOn >= setting.startsOn &&
       grid.floor === plusDays(previous.firstDueOn, -1)
+    const ownFloor = plusDays(later(setting.firstDueOn, setting.startsOn), -1)
+    if (previous !== undefined && !continued && setting.firstDueOn >= setting.startsOn) {
+      openings.add(setting.firstDueOn)
+    }
     grid = continued
       ? {
           origin: grid.origin,
-          floor: neverStarted
-            ? plusDays(later(setting.firstDueOn, setting.startsOn), -1)
-            : later(grid.floor, plusDays(setting.startsOn, -1)),
+          floor: neverStarted ? ownFloor : later(grid.floor, plusDays(setting.startsOn, -1)),
         }
-      : {
-          origin: setting.gridOriginOn ?? setting.firstDueOn,
-          floor: plusDays(later(setting.firstDueOn, setting.startsOn), -1),
-        }
+      : { origin: setting.gridOriginOn ?? setting.firstDueOn, floor: ownFloor }
     // R6 : à partir de sa journée d'origine, un décalage donne à la grille l'origine de son ancrage ;
     // écrit sous un réglage d'avant un changement de fréquence, il est dépassé par la nouvelle origine (R3).
     const turns = shifts.filter(
@@ -186,23 +127,44 @@ export function calendarOf(
       grid = { origin: turn.targetOn!, floor: later(turn.dueOn, turn.targetOn!) }
       from = plusDays(turn.dueOn, 1)
     }
+    if (
+      end !== null &&
+      end > grid.floor &&
+      (setting.endsOn === null || end <= setting.endsOn) &&
+      isOnGrid(grid.origin, setting.frequency, end)
+    ) {
+      boundaries.set(end, [...(boundaries.get(end) ?? []), ...hoursOf(setting)])
+    }
   })
 
   // R4 : une prise couvre son échéance ; le jour où les heures changent, celles qui visaient l'ancien
   // réglage couvrent les premières heures du nouveau, à hauteur de leur nombre.
+  const matched = new Set<ReferenceLine>()
   const coveredOn = (day: string, journey: Journey): Set<Hour> => {
     const ofDay = [...notes, ...borrowed].filter((note) => note.dueOn === day)
     const exact = ofDay.filter(
       (note) =>
         !borrowed.includes(note) &&
-        (translated.get(day) !== journey.setting.id || note.settingId === journey.setting.id),
+        (!translated.has(day) || sameHours(settingOf(note.settingId), journey.setting)),
     )
+    ofDay
+      .filter((note) => !exact.includes(note) || journey.hours.includes(note.dueTime))
+      .forEach((note) => matched.add(note))
     const covered = new Set(
       journey.hours.filter((hour) => exact.some((note) => note.dueTime === hour)),
     )
+    // R4 : une journée de l'ancien réglage entièrement notée n'a plus rien à donner.
+    const whole = ofDay.some(
+      (note) =>
+        !exact.includes(note) &&
+        !borrowed.includes(note) &&
+        hoursOf(settingOf(note.settingId)).every((hour) =>
+          ofDay.some((other) => other.settingId === note.settingId && other.dueTime === hour),
+        ),
+    )
     let elsewhere = ofDay.length - exact.length
     for (const hour of journey.hours) {
-      if (elsewhere > 0 && !covered.has(hour)) {
+      if ((elsewhere > 0 || whole) && !covered.has(hour)) {
         covered.add(hour)
         elsewhere -= 1
       }
@@ -223,6 +185,11 @@ export function calendarOf(
     const origin = days.get(dueOn)
     const from = origin?.setting ?? settingOf(report!.settingId)
     const hours = origin?.hours ?? hoursOf(from)
+    if (origin === undefined) {
+      notes
+        .filter((note) => note.dueOn === dueOn && hours.includes(note.dueTime))
+        .forEach((note) => matched.add(note))
+    }
     const covered =
       origin === undefined
         ? new Set(hours.filter((hour) => noted.has(keyOf(dueOn, hour))))
@@ -238,19 +205,38 @@ export function calendarOf(
     const kept = sameHours(arrival, from)
     if (!kept) translated.set(targetOn!, arrival.id)
     const day = days.get(targetOn!) ?? { setting: arrival, hours: [] }
+    // R7, R9.2 : un nouveau rythme qui part du jour d'arrivée d'un report lui laisse ses seules heures.
+    if (dueOn < targetOn! && openings.delete(targetOn!)) day.hours = []
     day.hours = [
       ...new Set([...day.hours, ...(kept ? moved : hoursOf(arrival).slice(-moved.length))]),
     ].sort()
     days.set(targetOn!, day)
   }
 
-  const pending: string[] = []
+  boundaries.forEach((hours, day) => {
+    if (days.has(day)) return
+    notes
+      .filter((note) => note.dueOn === day && hours.includes(note.dueTime))
+      .forEach((note) => matched.add(note))
+  })
+
+  const dues: { key: string; day: string; covered: boolean }[] = []
   for (const [day, journey] of [...days].sort(([a], [b]) => a.localeCompare(b))) {
     if (journey.hours.length > 0) fallen.add(day)
     const covered = coveredOn(day, journey)
-    pending.push(
-      ...journey.hours.filter((hour) => !covered.has(hour)).map((hour) => keyOf(day, hour)),
+    dues.push(
+      ...journey.hours.map((hour) => ({ key: keyOf(day, hour), day, covered: covered.has(hour) })),
     )
   }
-  return { pending, fallen }
+  // R4 : une prise dont l'échéance a quitté le calendrier couvre la première échéance qui suit, à
+  // moins d'un pas de son réglage ; déjà couverte ou trop loin, la prise est sans effet.
+  const orphans = notes
+    .filter((note) => !matched.has(note))
+    .sort((a, b) => keyOf(a.dueOn, a.dueTime).localeCompare(keyOf(b.dueOn, b.dueTime)))
+  for (const note of orphans) {
+    const { frequency } = settingOf(note.settingId)
+    const due = dues.find((each) => each.key > keyOf(note.dueOn, note.dueTime))
+    if (due !== undefined && due.day < stepped(note.dueOn, frequency, 1)) due.covered = true
+  }
+  return { pending: dues.filter(({ covered }) => !covered).map(({ key }) => key), fallen }
 }

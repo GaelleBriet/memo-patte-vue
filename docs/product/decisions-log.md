@@ -2383,3 +2383,10 @@ l'ancienne avait prévu. — Alternatives écartées : consolider règle par rè
 fautifs, trente règles non écrites dans le code) ; échéances matérialisées en base (données dérivées
 stockées, conflits de synchro, trois à quatre fois le coût). L'exécution est confiée à un autre agent ;
 cette PR ne livre que la spec, le plan et les tickets.
+
+2026-10-11 — **Moteur des doses v2 : changer la posologie ne change pas l'état d'une dose en retard**
+(Q-retard, spec `traitements.md` TR-28 et R9). Milo, hebdomadaire du lundi, dose du 12 oct. non
+donnée, posologie changée le 14 : le 12 reste la dose du moment, en retard. — Raison (Gaelle) : une
+modification du dosage ne doit rien changer à ce qu'on voit des dates (principe R3). — Alternative
+écartée : la passer dans « à renseigner », comme le disait la lettre de TR-28. Limité à la fréquence
+inchangée ; à la charge du pas 4 (#751).

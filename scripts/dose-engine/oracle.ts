@@ -34,7 +34,8 @@ export type OracleRun = {
   carnets: number
   gestures: number
   stopped: { seed: number; reason: string }[]
-  divergences: Divergence[]
+  /** Toutes les graines qui divergent, réduites à leur verdict : une série longue en garde des milliers. */
+  divergences: Pick<Divergence, 'seed' | 'verdict'>[]
   /** Écarts que ni un ticket ni une décision n'expliquent : ils bloquent. */
   unaccepted: Divergence[]
   families: Partial<Record<Family, number>>
@@ -84,7 +85,7 @@ function playCarnet(config: OracleConfig, seed: number, run: OracleRun): Diverge
     if (gaps.length > 0) {
       const verdict =
         config.engines[0].name === 'actuel'
-          ? verdictOf(after, a, b)
+          ? verdictOf(after, a, b, (book, until) => readWith(config.engines[1], book, until))
           : { families: [], unexplained: ['sans le moteur actuel en premier'], accepted: false }
       divergence = {
         seed,
@@ -134,7 +135,7 @@ export function runOracle(config: OracleConfig): OracleRun {
     run.carnets += 1
     const divergence = playCarnet(config, seed, run)
     if (divergence === undefined) continue
-    run.divergences.push(divergence)
+    run.divergences.push({ seed, verdict: divergence.verdict })
     for (const family of divergence.verdict.families) {
       run.families[family] = (run.families[family] ?? 0) + 1
     }

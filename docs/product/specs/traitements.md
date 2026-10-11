@@ -220,8 +220,11 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   d'aujourd'hui (R1) ; les prises, reports et décalages restent ceux du traitement (R4, R7, R11) ; le
   calendrier ne bouge que si la fréquence change, et alors seulement à partir de la première
   échéance proposée (R3, R9). Les prises déjà notées aujourd'hui comptent pour les premières heures
-  du nouveau réglage (R4, Q24) ; les prises passées gardent leurs réglages ; les échéances restées
-  sans prise avant aujourd'hui restent à renseigner, comme après un arrêt (TR-30). Un réglage ouvert
+  du nouveau réglage (R4, Q24) ; les prises passées gardent leurs réglages ; **quand la fréquence ne
+  change pas (posologie ou heures seules), une dose en retard reste la dose du moment, en retard,
+  comme avant la modification** (R9, décision Q-retard du 2026-10-10) ; quand la fréquence change,
+  les échéances restées sans prise avant la première échéance du nouveau réglage restent à
+  renseigner, comme après un arrêt (TR-30). Un réglage ouvert
   aujourd'hui et encore sans prise se remplace quand on le modifie de nouveau le jour même (R10).
   Exception au « sans question » : sans prise notée mais avec des échéances déjà tombées, changer la
   fréquence ou les heures pose la question à l'enregistrement (spec Q38). (P9 Q1 ; spec Q7 ; moteur
@@ -352,7 +355,7 @@ Quand la fréquence ou les heures changent, la première échéance proposée es
 2. sinon, la **prochaine journée d'échéance** du calendrier en vigueur quand elle est déjà **entamée** (une de ses heures donnée en avance) ou quand c'est l'**arrivée d'un report** : elle garde son jour, ses prises couvrent les premières heures du nouveau réglage, et le nouveau rythme part d'elle ;
 3. sinon, la **dernière journée d'échéance passée plus la nouvelle fréquence**, jamais avant aujourd'hui.
 
-La date est modifiable (« Prochaine dose ») ; une autre date choisie devient la première échéance et l'origine. Quand la fréquence ne change pas (heures ou posologie seules), la première échéance est **la prochaine journée du calendrier en vigueur** (dose du moment en retard comprise), et l'origine est héritée (R3) : le calendrier ne bouge pas.
+La date est modifiable (« Prochaine dose ») ; une autre date choisie devient la première échéance et l'origine. Quand la fréquence ne change pas (heures ou posologie seules), la première échéance est **la prochaine journée du calendrier en vigueur** (dose du moment en retard comprise : elle reste en retard, jamais déplacée vers « à renseigner », Q-retard), et l'origine est héritée (R3) : le calendrier ne bouge pas.
 
 _Remplace Q7, Q36, Q37, G15, G16, G23 (la partie « où commence »), G24._
 
@@ -868,6 +871,13 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
 - 2026-10-10 — **Q-purge : une ligne écrite par la personne ne disparaît jamais sans son geste**
   (R11). Le moteur ne supprime plus rien à la lecture ; une ligne sans effet reste visible, grisée,
   avec « Supprimer » seul. Écartée : garder la purge et l'écrire dans TR-35.
+- 2026-10-10 — **Q-retard : changer la posologie (ou les heures) ne change pas l'état d'une dose en
+  retard** (R9, TR-28). Milo, hebdomadaire du lundi, dose du lundi 12 oct. non donnée, posologie
+  changée le mercredi 14 : le 12 reste la dose du moment, en retard, comme avant la modification.
+  Écartée : la passer dans « à renseigner » avec « Prochaine dose 19 oct. » (lettre de l'ancien
+  TR-28), qui ferait changer une dose de statut parce qu'on a modifié le dosage. Limitée au cas où la
+  fréquence ne change pas ; quand elle change, les échéances sans prise avant la première échéance du
+  nouveau réglage restent à renseigner.
 - 2026-10-10 — **Q-double : une seule lecture du moteur pour tous les écrans** (R12). « Déjà
   notée », « prise en plus », « en retard », journées perdues par la date de fin, « période en
   cours » ne sont plus recalculées à l'écran (17 doubles sources relevées). Écartée : attendre un

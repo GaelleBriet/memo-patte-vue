@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
 
+import { referenceReading } from '../domain/dose-calendar/reference-model'
 import {
   DAY,
   H,
@@ -35,6 +36,19 @@ describe('R2 : la grille', () => {
       '2026-10-03 08:00',
       '2026-10-03 20:00',
     ])
+  })
+
+  it('un réglage dont la première échéance est loin se lit jusqu’à elle, pas comme une fin', () => {
+    const p1 = setting('p1', '2026-03-01', MONTH)
+    const p2 = setting('p2', '2026-09-01', { value: 3, unit: 'month' }, [], {
+      startsOn: '2026-04-01',
+    })
+    const today = '2026-04-01'
+    const lines = [line('p1', 'given', '2026-03-01')]
+    expect(referenceReading({ settings: [p1, p2], lines, today, until: today })).toMatchObject({
+      phase: 'upcoming',
+      current: ['2026-09-01'],
+    })
   })
 })
 
@@ -174,6 +188,37 @@ describe('R2, R3 : un réglage qui en remplace un jamais commencé', () => {
     expect(
       read([p2, p3], [line('p2', 'given', '2026-04-06', '08:00')], '2026-03-25').upcoming,
     ).toContain('2026-03-26 08:00')
+  })
+})
+
+describe('R1, R4 : la prise du jour d’un changement de réglage garde son échéance', () => {
+  const monthly = setting('p1', '2026-09-05', MONTH)
+  const given = [line('p1', 'given', '2026-09-05'), line('p1', 'given', '2026-10-05')]
+
+  it('mensuel du 5, dose du 5 oct. donnée, hebdo à partir du 12 : le 12, puis le 19', () => {
+    const weekly = setting('p2', '2026-10-12', WEEK, [], { startsOn: '2026-10-05' })
+    expect(next([monthly, weekly], given, '2026-10-05', 2)).toEqual(['2026-10-12', '2026-10-19'])
+  })
+
+  it('mensuel du 5, dose du 5 oct. donnée, quotidien à partir du 6 : le 6', () => {
+    const daily = setting('p2', '2026-10-06', DAY, [], { startsOn: '2026-10-05' })
+    expect(next([monthly, daily], given, '2026-10-05', 1)).toEqual(['2026-10-06'])
+  })
+})
+
+describe('R7, R9 : un réglage qui part du jour d’arrivée d’un report', () => {
+  it('20 h du 3 reportée au 4, tous les 3 jours à partir du 4 : 20 h le 4, puis le 7', () => {
+    const p1 = setting('p1', '2026-10-01', TWO_DAYS, H)
+    const p2 = setting('p2', '2026-10-04', { value: 3, unit: 'day' }, H)
+    const lines = [
+      line('p1', 'given', '2026-10-03', '08:00'),
+      line('p1', 'postponed', '2026-10-03', '20:00', '2026-10-04'),
+    ]
+    expect(next([p1, p2], lines, '2026-10-04', 3)).toEqual([
+      '2026-10-04 20:00',
+      '2026-10-07 08:00',
+      '2026-10-07 20:00',
+    ])
   })
 })
 
