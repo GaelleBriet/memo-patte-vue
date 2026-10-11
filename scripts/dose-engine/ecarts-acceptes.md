@@ -75,6 +75,17 @@ remplace le réglage de création (même jour de début, R10) et hérite de la p
 Graine 640001351 : même famille (toutes les 6 semaines à 8, 14, 20 h, première dose le 22 mars,
 posologie le 20). À trancher par Gaelle ; rien n'est deviné dans le moteur.
 
+Graine 620002762 (`INVARIANTS_FROM=620000000 INVARIANTS_SEEDS=3000`), même invariant, atteinte depuis
+le correctif I1 du pas 3 : chaque semaine à 8 h, 14 h et 20 h du mardi 24 mars ; le 24, 8 h donnée,
+20 h oubliée, 14 h reportée au 13 avr. avec décalage ; le 25, posologie changée (première échéance le
+13, arrivée du report) ; le 28, la dose redéplacée au 12 avec décalage. Calendrier : 12 avr. à 14 h
+seule (R7 : le jour d'arrivée ne reçoit que l'heure reportée), puis 19 avr. Une seconde posologie le
+28 (première échéance le 12, R9) donne au 12 avr. les trois heures (8 h, 14 h, 20 h) : deux doses de
+plus. R7 (« ne reçoit que ces heures ») et R9.2 (« elle garde son jour, ses prises couvrent les
+premières heures du nouveau réglage ») ne disent pas ce que devient une journée d'arrivée qui
+devient la première échéance d'un réglage quand ses autres heures ont été notées à leur jour
+d'origine. À trancher par Gaelle.
+
 ## Refus à analyser de l'oracle (pas 3)
 
 Oracle `actuel,v2`, 20 000 carnets à partir de 530000000. Corrigés au pas 3 (test daté pour chacun) :
