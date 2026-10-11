@@ -18,6 +18,10 @@ ORACLE_FROM=530000000 ORACLE_SEEDS=20000 ORACLE_STEPS=40 ORACLE_ENGINES=actuel,r
   premier, c'est contre lui que les écarts sont rattachés.
 - `ORACLE_SETTINGS` : `avec` (gestes de la campagne, « Modifier » et « Reprendre » compris) ou `sans`
   (un seul réglage).
+- `ORACLE_FILTER` : `v2` (par défaut : un geste du moteur actuel n'est joué que si le moteur v2, pour
+  le même geste, case cochée ou non, écrit le même carnet ; les gestes écartés sont comptés par raison,
+  refus de v2 ou « v2 écrit autre chose » avec la règle en cause) ou `aucun` (tous les gestes du
+  moteur actuel, carnets inatteignables compris).
 - `ORACLE_OUT` : dossier où écrire, par graine qui diverge, le carnet avant le geste fautif
   (`avant-<graine>.json`).
 
@@ -25,7 +29,25 @@ La ligne « Oracle : N carnets × M gestes, graines A à B » dit ce qui a été
 arrête l'oracle avant tout carnet. Tout écart non rattaché à `ecarts-acceptes.md` fait échouer la
 spec.
 
-Les carnets sont ceux de la campagne d'invariants (`treatment-schedule.invariants.spec.ts`), même
-graine, mêmes gestes : le générateur est recopié dans `carnet.ts` et `walk*.ts`, sans les
-vérifications, jusqu'à la réécriture de la campagne (pas 3 de l'épic #758). Les lignes que le moteur
-actuel fait purger restent dans le carnet lu par les deux moteurs (R11).
+Les carnets sont ceux de l'ancienne campagne d'invariants (`treatment-schedule.invariants.spec.ts`),
+même graine, mêmes gestes, menés par le moteur actuel (`carnet.ts`, `walk*.ts`) et filtrés par les
+refus de v2 (`walk-filter.ts`). Les lignes que le moteur actuel fait purger restent dans le carnet lu
+par les deux moteurs (R11).
+
+## Campagne d'invariants du moteur v2
+
+`src/shared/__tests__/dose-calendar.invariants.spec.ts` mène des carnets par les gestes de v2
+(`v2-walk.ts`) et vérifie à chaque pas les huit invariants du plan §6.3 (`v2-invariants.ts`) :
+conservation des faits, pas de double, posologie sans effet, temps, symétrie, annuler,
+préversion = résultat, équivalence au modèle naïf. Variables posées directement devant la commande,
+sous le même verrou :
+
+```sh
+INVARIANTS_FROM=620000000 INVARIANTS_SEEDS=3000 INVARIANTS_STEPS=40 \
+  flock /tmp/claude-1000/memo-patte-suite.lock nice -n 19 \
+  pnpm exec vitest run src/shared/__tests__/dose-calendar.invariants.spec.ts --reporter=verbose
+```
+
+La ligne « Campagne : N carnets × M gestes, graines A à B » dit ce qui a été joué ; un réglage
+illisible arrête la campagne ; un échec imprime le carnet avant le geste fautif et les gestes joués.
+Par défaut (suite normale) : 25 carnets × 24 gestes.

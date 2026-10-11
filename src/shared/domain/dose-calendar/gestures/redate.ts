@@ -36,7 +36,14 @@ function redateExtra(
   const moved: LineChange = {
     action: 'rewrite',
     id: extra.id,
-    line: { ...extra, dueOn: givenOn, givenOn },
+    line: {
+      settingId: extra.settingId,
+      dueOn: givenOn,
+      dueTime: extra.dueTime,
+      status: 'extra',
+      givenOn,
+      targetOn: null,
+    },
   }
   if (due === null) return outcome(input, [moved])
   const noted = noteDose(rest, { due, status: 'given', givenOn, shiftsFollowing })
@@ -103,12 +110,12 @@ export function redateDose(input: TreatmentViewInput, gesture: RedateGesture): G
     brokenReports(input, applied(input, changes), line.dueOn)
   let changes = changesFor(shiftsFollowing)
   const broken = brokenWith(changes)
-  const extra = {
+  const details = {
     offersShift: offered,
     lostToEnd:
       offered && shiftsFollowing ? lostToEnd(input, changesFor(false), changes, line.dueOn) : [],
   }
-  if (broken.length === 0) return outcome(input, changes, extra)
+  if (broken.length === 0) return outcome(input, changes, details)
   if (offered && brokenWith(changesFor(!shiftsFollowing)).length === 0) {
     return { refusal: { reason: 'passes-report', on: broken[0]!.targetOn! } }
   }
@@ -127,5 +134,5 @@ export function redateDose(input: TreatmentViewInput, gesture: RedateGesture): G
   if (brokenWith(changes).length > 0) {
     return { refusal: { reason: 'stuck-report', on: broken[0]!.targetOn! } }
   }
-  return outcome(input, changes, { ...extra, followed: follows })
+  return outcome(input, changes, { ...details, followed: follows })
 }
