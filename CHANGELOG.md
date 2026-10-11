@@ -5,6 +5,23 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.69](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.68...memo-patte-v0.1.69) (2026-10-11)
+
+
+### ✨ Fonctionnalités
+
+* **dose-calendar:** moteur v2, lecture du calendrier (pas 2) ([ef47d1f](https://github.com/GaelleBriet/memo-patte-vue/commit/ef47d1fb3f266379f51ffbd348c527d83a741797))
+* **dose-calendar:** moteur v2, lecture du calendrier (pas 2) ([b7fea2c](https://github.com/GaelleBriet/memo-patte-vue/commit/b7fea2c6607f229b89c74c479c744ce510e941e8)), closes [#749](https://github.com/GaelleBriet/memo-patte-vue/issues/749)
+
+
+### 🐛 Corrections
+
+* **dose-calendar:** la prise du jour d'un changement de réglage garde son échéance ([6cb4190](https://github.com/GaelleBriet/memo-patte-vue/commit/6cb419086d681a69bb0a900b274eca175e6bd7bd))
+* **dose-calendar:** plusieurs réglages remplacés le même jour gardent leurs prises ([37046c8](https://github.com/GaelleBriet/memo-patte-vue/commit/37046c8871cc427ec5a30c813e1d5ec2cb32b3f3))
+* **dose-calendar:** seul un nouveau rythme laisse au jour d'arrivée ses seules heures ([b416be6](https://github.com/GaelleBriet/memo-patte-vue/commit/b416be6f81dd6210f9b74fb021c87f77d3f11b9a))
+* **dose-calendar:** seul un report effectif laisse au jour d'un nouveau rythme ses seules heures ([77f798a](https://github.com/GaelleBriet/memo-patte-vue/commit/77f798a7742ba4a4fea08662f2f59806358abb3f))
+* **dose-engine:** l'oracle rattache les prises orphelines par jour et heure ([8e2d472](https://github.com/GaelleBriet/memo-patte-vue/commit/8e2d472c7071f88dbf0cb814cf63a74dd3ecef39))
+
 ## [0.1.68](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.67...memo-patte-v0.1.68) (2026-10-10)
 
 

@@ -858,6 +858,11 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
   bis, R6). Hebdo du vendredi, dose du 16 notée le 16 par erreur, corrigée le 25 « donnée le 24 » :
   la case est proposée ; cochée, la suite repart du 24 (31, 7 nov.) ; même résultat que par « Fait
   à une autre date ». Écartée : garder la dose du 23 en retard (Q8 l'emportait sur TR-24 bis).
+  Même lecture quand la correction saute des doses (2026-10-11) : hebdo, dose du 2 donnée, le 20 la
+  dose du 9 est à renseigner et celle du 16 en retard ; la prise du 2 corrigée en 17 vaut « Fait le
+  17 » pour la dose du 16, la case est proposée (24 si cochée), la dose du 9 reste à renseigner et
+  celle du 2 le devient. Une prise en retard ne couvre jamais plus d'une dose, une dose passée sans
+  prise ne s'efface jamais. Écartée : garder la prise sur le 2 et effacer le 9 et le 16.
 - 2026-10-10 — **Q-G3 : une prise notée le jour de la reprise couvre sa première journée** (R8).
   Dose du jour donnée, « Arrêter » chez le vétérinaire, « Reprendre » le soir même : rien à
   redonner. Écartée : afficher « Une dose a déjà été notée aujourd'hui » et garder G3.
