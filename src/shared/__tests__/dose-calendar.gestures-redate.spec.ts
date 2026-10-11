@@ -1,10 +1,16 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { applied, redateDose, treatmentView, type GestureOutcome } from '../domain/dose-calendar'
+import {
+  applied,
+  noteDose,
+  redateDose,
+  treatmentView,
+  type GestureOutcome,
+} from '../domain/dose-calendar'
 import { keys, line, setting, WEEK } from './dose-calendar.v2.aides'
 
-const accepted = (result: ReturnType<typeof redateDose>) => {
+const accepted = (result: ReturnType<typeof redateDose | typeof noteDose>) => {
   if ('refusal' in result) throw new Error(`refusé : ${result.refusal.reason}`)
   return result as GestureOutcome
 }
@@ -14,7 +20,7 @@ const p1 = setting('p1', '2026-10-02', WEEK)
 const base = [line('p1', 'given', '2026-10-02'), line('p1', 'given', '2026-10-09')]
 
 describe('« Changer la date » d’une prise (TR-24 bis, Q-C1, G12, G19, G21)', () => {
-  it('Q-C1 : dose du 16 notée le 16, corrigée le 25 « donnée le 24 », case cochée : 31 oct., 7 nov.', () => {
+  it('Q-C1 : dose du 16 notée le 16, corrigée le 25 « donnée le 24 », case cochée : la dose du 23 donnée le 24, le 16 à renseigner, 31 oct.', () => {
     const prise = line('p1', 'given', '2026-10-16')
     const input = { settings: [p1], lines: [...base, prise], today: '2026-10-25' }
     const result = accepted(
@@ -22,8 +28,46 @@ describe('« Changer la date » d’une prise (TR-24 bis, Q-C1, G12, G19, G21)',
     )
     expect(result.offersShift).toBe(true)
     const read = treatmentView(applied(input, result.changes))
-    expect([keys(read.currentDoses), keys(read.unloggedDoses)]).toEqual([['2026-10-31'], []])
+    expect([keys(read.currentDoses), keys(read.unloggedDoses)]).toEqual([
+      ['2026-10-31'],
+      ['2026-10-16'],
+    ])
   })
+
+  for (const [checked, suite] of [
+    [true, ['2026-10-24', '2026-10-31']],
+    [false, ['2026-10-23', '2026-10-30']],
+  ] as const) {
+    it(`Q-C1 : prise du 2 donnée ; le 20, la prise du 2 corrigée au 17, case ${checked ? 'cochée' : 'décochée'} : la dose en retard du 16 donnée le 17, les doses du 2 et du 9 à renseigner, puis ${suite[0].slice(8)}`, () => {
+      const prise = line('p1', 'given', '2026-10-02')
+      const input = { settings: [p1], lines: [prise], today: '2026-10-20' }
+      const gesture = { lineId: prise.id, givenOn: '2026-10-17', shiftsFollowing: checked }
+      const result = accepted(redateDose(input, gesture))
+      expect(result.offersShift).toBe(true)
+      const after = applied(input, result.changes)
+      const rewritten = after.lines.find(({ id }) => id === prise.id)
+      expect([rewritten?.dueOn, rewritten?.givenOn]).toEqual(['2026-10-16', '2026-10-17'])
+      const read = treatmentView(after)
+      expect(keys(read.unloggedDoses)).toEqual(['2026-10-02', '2026-10-09'])
+      expect(keys(read.upcoming({ limit: 2 }))).toEqual(suite)
+      const direct = noteDose(
+        { ...input, lines: [] },
+        {
+          due: { settingId: 'p1', dueOn: '2026-10-16', dueTime: null },
+          status: 'given',
+          givenOn: '2026-10-17',
+          shiftsFollowing: checked,
+        },
+      )
+      expect(keys(read.upcoming({ limit: 4 }))).toEqual(
+        keys(
+          treatmentView(applied({ ...input, lines: [] }, accepted(direct).changes)).upcoming({
+            limit: 4,
+          }),
+        ),
+      )
+    })
+  }
 
   it('R5 : une prise donnée ne descend pas à un intervalle ou plus avant son échéance (jours grisés)', () => {
     const prise = line('p1', 'given', '2026-10-16')

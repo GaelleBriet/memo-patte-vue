@@ -1,5 +1,7 @@
-import { keyOf } from '../grid'
+import { keyOf, plusDays } from '../grid'
 import type {
+  Day,
+  Due,
   FollowedReport,
   Gesture,
   GestureResult,
@@ -58,6 +60,87 @@ function redateExtra(
   })
 }
 
+type Details = { offersShift: boolean; lostToEnd: Day[] }
+
+// G19 : chaque report seul qui ne tient plus suit la correction, sinon elle est refusée.
+function withFollowed(
+  input: TreatmentViewInput,
+  written: LineChange[],
+  from: Day,
+  details: Details,
+): GestureResult {
+  const brokenWith = (changes: LineChange[]) => brokenReports(input, applied(input, changes), from)
+  const broken = brokenWith(written)
+  if (broken.length === 0) return outcome(input, written, details)
+  let changes = written
+  const follows: FollowedReport[] = []
+  for (const report of broken) {
+    const carnet = applied(input, changes)
+    const next = followed(
+      carnet,
+      carnet.lines.find(({ id }) => id === report.id)!,
+      from,
+    )
+    if (next === null) return { refusal: { reason: 'stuck-report', on: report.targetOn! } }
+    changes = [...changes, next.change]
+    follows.push({ from: report.targetOn!, to: next.to })
+  }
+  if (brokenWith(changes).length > 0) {
+    return { refusal: { reason: 'stuck-report', on: broken[0]!.targetOn! } }
+  }
+  return outcome(input, changes, { ...details, followed: follows })
+}
+
+// Q-C1 : une prise en retard ne couvre qu'une dose ; corrigée après une échéance passée encore sans prise, elle vise la dose que « Fait à une autre date » noterait ce jour-là.
+function lateTarget(rest: TreatmentViewInput, line: Line, givenOn: Day): Due | null {
+  const spans = buildView(rest)
+    .slots(plusDays(line.dueOn, 1), givenOn)
+    .some(({ state }) => state === 'pending')
+  if (!spans) return null
+  return (
+    [dueForDate(rest, givenOn, line.dueTime), dueForDate(rest, givenOn, null)].find(
+      (due) => due !== null && due.dueOn <= givenOn,
+    ) ?? null
+  )
+}
+
+function redateAsNote(
+  input: TreatmentViewInput,
+  rest: TreatmentViewInput,
+  line: Line,
+  dropped: LineChange[],
+  target: Due,
+  gesture: RedateGesture,
+): GestureResult {
+  const { givenOn, shiftsFollowing } = gesture
+  const plain = noteDose(rest, { due: target, status: 'given', givenOn, shiftsFollowing: false })
+  if ('refusal' in plain) return plain
+  const missed = plain.changes.find((change) => change.action === 'rewrite')
+  const prise: LineChange[] =
+    missed === undefined
+      ? [
+          {
+            action: 'rewrite',
+            id: line.id,
+            line: { ...target, status: 'given', givenOn, targetOn: null },
+          },
+        ]
+      : [{ action: 'delete', id: line.id }, missed]
+  const kept = [...dropped, ...prise]
+  if (!plain.offersShift || !shiftsFollowing) {
+    return withFollowed(input, kept, target.dueOn, {
+      offersShift: plain.offersShift,
+      lostToEnd: [],
+    })
+  }
+  const shiftDay = shiftDayOf(buildView(rest), target)
+  const changes = [...kept, shiftWritten(rest.lines, { ...target, dueOn: shiftDay }, givenOn)]
+  return withFollowed(input, changes, target.dueOn, {
+    offersShift: true,
+    lostToEnd: lostToEnd(input, kept, changes, target.dueOn),
+  })
+}
+
 /**
  * TR-24 bis, Q-C1 : la correction se juge au jour de la nouvelle date, comme une prise notée ce
  * jour-là ; un report seul qui ne tient plus suit (G19), sinon la correction est refusée.
@@ -98,6 +181,12 @@ export function redateDose(input: TreatmentViewInput, gesture: RedateGesture): G
   const reportAnchor = shiftDay === line.dueOn ? null : line.dueOn
   // N2 : seul le décalage ancré à la date de la prise la suit ; un autre décalage de la journée reste.
   const owned = own !== undefined && own.targetOn === line.givenOn ? own : undefined
+  const rest = without(input, owned === undefined ? [line.id] : [line.id, owned.id])
+  const target = lateTarget(rest, line, givenOn)
+  if (target !== null) {
+    const dropped: LineChange[] = owned === undefined ? [] : [{ action: 'delete', id: owned.id }]
+    return redateAsNote(input, rest, line, dropped, target, gesture)
+  }
   const changesFor = (checked: boolean): LineChange[] => {
     if (offered && checked)
       return [prise, shiftWritten(input.lines, { ...due, dueOn: shiftDay }, givenOn)]
@@ -106,30 +195,10 @@ export function redateDose(input: TreatmentViewInput, gesture: RedateGesture): G
     if (reportAnchor === null) return [prise, { action: 'delete', id: owned.id }]
     return [prise, shiftWritten(input.lines, owned, reportAnchor)]
   }
-  const brokenWith = (changes: LineChange[]) =>
-    brokenReports(input, applied(input, changes), line.dueOn)
-  let changes = changesFor(shiftsFollowing)
-  const broken = brokenWith(changes)
-  const details = {
+  const changes = changesFor(shiftsFollowing)
+  return withFollowed(input, changes, line.dueOn, {
     offersShift: offered,
     lostToEnd:
       offered && shiftsFollowing ? lostToEnd(input, changesFor(false), changes, line.dueOn) : [],
-  }
-  if (broken.length === 0) return outcome(input, changes, details)
-  const follows: FollowedReport[] = []
-  for (const report of broken) {
-    const carnet = applied(input, changes)
-    const next = followed(
-      carnet,
-      carnet.lines.find(({ id }) => id === report.id)!,
-      line.dueOn,
-    )
-    if (next === null) return { refusal: { reason: 'stuck-report', on: report.targetOn! } }
-    changes = [...changes, next.change]
-    follows.push({ from: report.targetOn!, to: next.to })
-  }
-  if (brokenWith(changes).length > 0) {
-    return { refusal: { reason: 'stuck-report', on: broken[0]!.targetOn! } }
-  }
-  return outcome(input, changes, { ...details, followed: follows })
+  })
 }
