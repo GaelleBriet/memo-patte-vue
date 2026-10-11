@@ -33,6 +33,9 @@ describe('oracle des moteurs de doses', { timeout: 60_000 }, () => {
     () => {
       const run = runOracle(config)
       console.warn(run.summary)
+      for (const [kind, { examples }] of Object.entries(run.suspects)) {
+        console.warn(`${kind} :\n  ${examples.join('\n  ')}`)
+      }
       expect(run.carnets).toBe(config.seeds)
       expect(report(run)).toEqual([])
     },

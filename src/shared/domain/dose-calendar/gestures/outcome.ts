@@ -1,6 +1,6 @@
 import { keyOf, plusDays } from '../grid'
 import { isNote } from '../lines'
-import { episodesOf } from '../settings'
+import { episodeIdsOf } from '../settings'
 import type {
   Day,
   Due,
@@ -9,6 +9,7 @@ import type {
   Line,
   LineChange,
   Refusal,
+  Setting,
   TreatmentViewInput,
 } from '../types'
 import { buildView, type TreatmentView } from '../view'
@@ -33,15 +34,11 @@ export function linesAfter(
   from: Pick<Due, 'settingId' | 'dueOn'>,
   ignored: ReadonlySet<string>,
 ): { notes: Line[]; others: Line[] } {
-  const elsewhere = new Set(
-    episodesOf(input.settings)
-      .filter((episode) => !episode.some(({ id }) => id === from.settingId))
-      .flatMap((episode) => episode.map(({ id }) => id)),
-  )
+  const episode = episodeIdsOf(input.settings, from.settingId)
   const later = input.lines.filter(
     (line) =>
       !ignored.has(line.id) &&
-      !elsewhere.has(line.settingId) &&
+      (episode.size === 0 || episode.has(line.settingId)) &&
       line.dueOn > from.dueOn &&
       line.status !== 'extra',
   )
@@ -85,9 +82,10 @@ export function lostToEnd(
 export function harm(
   before: TreatmentView,
   after: TreatmentView,
+  settings: readonly Setting[],
   changes: readonly LineChange[],
 ): Refusal | null {
-  if (arrivesOnOrigin(after, changes)) return { reason: 'report-loop' }
+  if (arrivesOnOrigin(after, settings, changes)) return { reason: 'report-loop' }
   return strandsNote(before, after) ? { reason: 'later-dose' } : null
 }
 
@@ -98,7 +96,7 @@ export function outcome(
 ): GestureOutcome | { refusal: Refusal } {
   const before = buildView(input)
   const after = buildView(applied(input, changes))
-  const refusal = harm(before, after, changes)
+  const refusal = harm(before, after, input.settings, changes)
   if (refusal !== null) return { refusal }
   return {
     changes,

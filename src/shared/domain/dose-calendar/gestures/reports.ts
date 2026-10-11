@@ -1,5 +1,6 @@
 import { keyOf, later, longestStep, plusDays, stepped } from '../grid'
-import type { Day, Line, LineChange, TreatmentViewInput } from '../types'
+import { episodeIdsOf } from '../settings'
+import type { Day, Line, LineChange, Setting, TreatmentViewInput } from '../types'
 import { buildView, type TreatmentView } from '../view'
 import { without } from './changes'
 
@@ -108,7 +109,11 @@ export function followed(
 }
 
 /** R7, G9 : un report écrit par le geste n'arrive ni sur la journée d'origine d'un autre report, ni sur la sienne. */
-export function arrivesOnOrigin(after: TreatmentView, written: readonly LineChange[]): boolean {
+export function arrivesOnOrigin(
+  after: TreatmentView,
+  settings: readonly Setting[],
+  written: readonly LineChange[],
+): boolean {
   const reports = after.history
     .filter(({ line, effect }) => line.status === 'postponed' && effect.kind === 'moves')
     .map(({ line }) => line)
@@ -116,8 +121,13 @@ export function arrivesOnOrigin(after: TreatmentView, written: readonly LineChan
     if (change.action === 'delete' || change.line.status !== 'postponed') return false
     const { dueOn, targetOn } = change.line
     const id = change.action === 'rewrite' ? change.id : null
+    const episode = episodeIdsOf(settings, change.line.settingId)
     return reports.some(
-      (other) => other.id !== id && other.dueOn === targetOn && dueOn !== other.dueOn,
+      (other) =>
+        other.id !== id &&
+        episode.has(other.settingId) &&
+        other.dueOn === targetOn &&
+        dueOn !== other.dueOn,
     )
   })
 }

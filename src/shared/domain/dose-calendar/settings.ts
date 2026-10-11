@@ -28,6 +28,12 @@ export type Span = {
 }
 
 /** R10 : remplacé le jour même, un réglage sans prise ni report n'a jamais existé. */
+/** R8, TR-32 : les réglages de la période (épisode) qui contient ce réglage. */
+export function episodeIdsOf(settings: readonly Setting[], settingId: string): Set<string> {
+  const episode = episodesOf(settings).find((each) => each.some(({ id }) => id === settingId))
+  return new Set((episode ?? []).map(({ id }) => id))
+}
+
 export function spanOf(episode: readonly Setting[], kept: readonly Line[]): Span {
   const live = episode.filter(
     (setting, index) =>

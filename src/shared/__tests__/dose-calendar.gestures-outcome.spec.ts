@@ -82,7 +82,7 @@ describe('conséquences d’un geste (G18, G20, G21, R6, R7)', () => {
       lines: [prise, line('p1', 'shift', '2026-10-09', null, '2026-10-11')],
       today: '2026-10-17',
     })
-    expect(harm(before, after, [])).toEqual({ reason: 'later-dose' })
-    expect(harm(before, before, [])).toBeNull()
+    expect(harm(before, after, [p1], [])).toEqual({ reason: 'later-dose' })
+    expect(harm(before, before, [p1], [])).toBeNull()
   })
 })

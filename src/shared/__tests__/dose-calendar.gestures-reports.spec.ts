@@ -66,11 +66,15 @@ describe('gardes par construction (R6, R7)', () => {
       givenOn: null,
       targetOn: '2026-10-16',
     }
-    expect(arrivesOnOrigin(after, [{ action: 'rewrite', id: second.id, line: written }])).toBe(true)
     expect(
-      arrivesOnOrigin(after, [
-        { action: 'rewrite', id: second.id, line: { ...written, targetOn: '2026-10-25' } },
-      ]),
+      arrivesOnOrigin(after, [p1], [{ action: 'rewrite', id: second.id, line: written }]),
+    ).toBe(true)
+    expect(
+      arrivesOnOrigin(
+        after,
+        [p1],
+        [{ action: 'rewrite', id: second.id, line: { ...written, targetOn: '2026-10-25' } }],
+      ),
     ).toBe(false)
   })
 

@@ -28,9 +28,12 @@ type MovePlan = {
   bounds: MoveBounds
 }
 
-const reportsOf = (view: TreatmentView): Line[] =>
+const reportsOf = (view: TreatmentView, episode: ReadonlySet<string>): Line[] =>
   view.history
-    .filter(({ line, effect }) => line.status === 'postponed' && effect.kind === 'moves')
+    .filter(
+      ({ line, effect }) =>
+        line.status === 'postponed' && effect.kind === 'moves' && episode.has(line.settingId),
+    )
     .map(({ line }) => line)
 
 // G6 : le dernier jour d'où la fréquence retombe encore sur l'échéance d'origine.
@@ -79,21 +82,23 @@ function planOf(input: TreatmentViewInput, due: Due, shiftsFollowing: boolean): 
   if (setting === null || view.phase === 'stopped' || view.phase === 'ended') {
     return { reason: 'not-movable' }
   }
-  const notedOn = (day: Day) => input.lines.some((line) => isNote(line) && line.dueOn === day)
-  const existing = reportsOf(view)
+  const episode = episodesOf(input.settings).at(-1)!
+  const ids = new Set(episode.map(({ id }) => id))
+  const notedOn = (day: Day) =>
+    input.lines.some((line) => isNote(line) && ids.has(line.settingId) && line.dueOn === day)
+  const existing = reportsOf(view, ids)
     .filter(
       (report) =>
         (report.targetOn === due.dueOn && !notedOn(due.dueOn)) || report.dueOn === due.dueOn,
     )
     .at(-1)
   if (existing !== undefined && notedOn(existing.targetOn!)) return { reason: 'arrival-logged' }
-  const locked = reportsOf(view).some((report) => report.targetOn === due.dueOn)
+  const locked = reportsOf(view, ids).some((report) => report.targetOn === due.dueOn)
   if (existing === undefined && locked && view.dueState(due) !== 'pending') {
     return { reason: 'arrival-logged' }
   }
   const restInput = existing === undefined ? input : without(input, [existing.id])
   const moved = movedDue(view, buildView(restInput), due, existing)
-  const episode = episodesOf(input.settings).at(-1)!
   if (moved === null || moved.dueOn < episode[0]!.startsOn) return { reason: 'not-movable' }
   const dayShift = shiftOfDay(input.lines, existing?.dueOn ?? moved.dueOn)
   const ignored = new Set([existing?.id, dayShift?.id].filter((id) => id !== undefined))
@@ -113,7 +118,7 @@ function planOf(input: TreatmentViewInput, due: Due, shiftsFollowing: boolean): 
           !ignored.has(line.id) &&
           line.status !== 'extra' &&
           line.status !== 'shift' &&
-          episode.some(({ id }) => id === line.settingId),
+          ids.has(line.settingId),
       )
       .flatMap((line) => [line.dueOn, ...(line.givenOn === null ? [] : [line.givenOn])]),
   ].sort()

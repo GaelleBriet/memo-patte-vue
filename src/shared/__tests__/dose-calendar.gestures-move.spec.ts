@@ -146,6 +146,40 @@ describe('« Prochaine dose » (R7, G6, G7, G8, Q20, Q25, Q2 a)', () => {
     ).toEqual([])
   })
 
+  it('R8, TR-32 : dose du 15 reportée seule au 19, arrêt le 16, reprise le 16 au 19 : la dose du 19 de la reprise se déplace', () => {
+    const stopped = setting('p1', '2026-10-01', WEEK, [], { stoppedOn: '2026-10-16' })
+    const resumed = setting('p2', '2026-10-19', WEEK, [], { startsOn: '2026-10-16' })
+    const input = {
+      settings: [stopped, resumed],
+      lines: [line('p1', 'postponed', '2026-10-15', null, '2026-10-19')],
+      today: '2026-10-16',
+    }
+    const dose = { settingId: 'p2', dueOn: '2026-10-19', dueTime: null }
+    expect(moveBounds(input, dose, true)).toEqual({ earliest: '2026-10-16', latest: null })
+  })
+
+  it('R8, R7 : un report d’avant l’arrêt n’empêche pas une dose de la reprise d’arriver sur son jour d’origine', () => {
+    const times = ['06:00', '12:00', '18:00', '23:00']
+    const settings = [
+      setting('p1', '2026-03-29', { value: 1, unit: 'day' }, [], { stoppedOn: '2026-03-31' }),
+      setting('p2', '2026-04-03', WEEK, times, { startsOn: '2026-03-31' }),
+      setting('p3', '2026-03-31', WEEK, times, { gridOriginOn: null, stoppedOn: '2026-03-31' }),
+      setting('p4', '2026-04-02', { value: 3, unit: 'day' }, ['08:00', '20:00'], {
+        startsOn: '2026-04-01',
+      }),
+    ]
+    const lines = [
+      line('p2', 'shift', '2026-04-03', '06:00', '2026-03-31'),
+      line('p2', 'postponed', '2026-04-03', '06:00', '2026-03-31'),
+    ]
+    const dose = { settingId: 'p4', dueOn: '2026-04-02', dueTime: '08:00' }
+    const result = moveDose(
+      { settings, lines, today: '2026-04-01' },
+      { due: dose, to: '2026-04-03', shiftsFollowing: true },
+    )
+    expect(result).not.toHaveProperty('refusal')
+  })
+
   it('Q21 : 8 h et 20 h, la journée part à partir de sa première heure sans prise', () => {
     const p1 = setting('p1', '2026-10-01', TWO_DAYS, ['08:00', '20:00'])
     const input = { settings: [p1], lines: [], today: '2026-10-02' }
