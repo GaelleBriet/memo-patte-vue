@@ -97,7 +97,42 @@ R3, R7), le moteur actuel 25 mai, 25 juin, 25 juil. par son marqueur d'origine (
   « Modifier » du pas 4 en montre deux autres, même mécanisme : graine 710000212 (campagne depuis
   710000000 ; reprise le 31 mars, première dose le 1er avr. avancée au 31, prise d'avant l'arrêt
   visant le 31) et graine 700002909 (campagne depuis 700000000 ; prise oubliée du 17 mars, arrêt et
-  reprise le 17, première dose le 18 avancée au 17).
+  reprise le 17, première dose le 18 avancée au 17). La relecture du pas 4 en montre deux de plus,
+  même mécanisme (campagne depuis 730000000) : graine 730000993 (reprise le 25 mars, chaque semaine à
+  8, 14 et 20 h, première dose le 27 avancée seule au 25, prise d'avant l'arrêt visant le 25) et
+  graine 730000200 (reprise le 8 avr., tous les 2 jours, première dose le 9 avancée seule au 8, prise
+  d'avant l'arrêt visant le 8).
+
+## Questions ouvertes du pas 4 (« Modifier »)
+
+- **Même geste, deux refus différents** (#786, invariant de symétrie ; question pour Gaelle) :
+  graine 730001829 (campagne depuis 730000000). Toutes les 6 semaines à 20 h du 27 mars, fin le
+  10 mai, dose du 8 mai avancée seule au 23 avr. ; le 10 avr., la dose du 27 mars notée au 9 avr.,
+  case cochée : « Fait à une autre date » refuse en `passes-report`, « C'est fait » puis « Changer la
+  date » refuse en `stuck-report`. Les deux chemins refusent, avec deux textes différents.
+- **Première échéance proposée après la date de fin** (#787 ; question pour Gaelle) : tous les
+  2 jours du 1er oct., fin le 10, doses des 1er et 3 données ; le 4, passé au mensuel : « Modifier »
+  propose le 3 nov. (R9.3), après la date de fin. L'invariant de la proposition (`v2-invariants.ts`,
+  neuvième) ne juge pas une première échéance après la date de fin.
+- **« Prochaine dose » choisie dans l'écart d'un décalage** (TR-9, G6, R6 ; question pour Gaelle) :
+  chaque semaine à 20 h du 18 mars, dose du 18 donnée le 19 avec décalage (la suite repart du 19) ;
+  le 19, heures passées à 6, 12, 18 et 23 h et « Prochaine dose » le 19 : le réglage est accepté,
+  mais la fiche montre le 26, le décalage ayant déjà pris le 19 (graines 700000168, 700000329,
+  700000374, 700000383 de la campagne depuis 700000000). TR-9 borne la date « du lendemain de
+  l'échéance qui précède (en pratique, de la dernière prise notée) » : le 19 par l'échéance, le 20
+  par la prise. Le moteur garde son comportement ; l'invariant n'exige pas qu'une date prise entre
+  la journée d'origine d'un décalage et son ancrage soit lue.
+- **Décalage resté sous un réglage réécrit** (R6, R10, TR-28 ; question pour Gaelle) : un réglage
+  sans prise que « Modifier » réécrit (remplacé le jour même, ou corrigé) garde les décalages écrits
+  sous lui, et ils valent pour le nouveau rythme. Hebdo du lundi, doses des 5 et 12 oct. données ; le
+  14, tous les 3 jours (première dose le 16), dose du 16 donnée le 14 avec décalage puis la prise
+  supprimée ; le 14, toutes les 2 semaines : le rythme part du 14 ancré par ce décalage, « Modifier »
+  propose et la fiche montre le 28 oct., puis le 11 nov., au lieu du 26 (R9.3). Avec une autre
+  « Prochaine dose » choisie après ce décalage, la fiche ne la montre pas : hebdo dont la première
+  dose est le lundi 12 oct., rien noté, dose du 12 donnée le 7 avec décalage puis la prise supprimée ;
+  le 7, posologie et « Prochaine dose » le 19 : la fiche montre le 14. L'invariant de la proposition
+  ne juge pas une première échéance, proposée ou choisie, posée après un décalage du réglage réécrit
+  (graine 700001396).
 
 ## Refus à analyser de l'oracle (pas 3)
 
