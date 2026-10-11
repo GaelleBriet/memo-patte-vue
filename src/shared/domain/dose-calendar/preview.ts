@@ -1,9 +1,9 @@
-import { applied } from './gestures/changes'
+import { applied, settingsApplied } from './gestures/changes'
 import { moveDose } from './gestures/move'
 import { noteDose } from './gestures/note'
 import { redateDose } from './gestures/redate'
 import { removeLine } from './gestures/remove'
-import type { Gesture, GestureResult, Refusal, TreatmentViewInput } from './types'
+import type { Gesture, GestureResult, Refusal, SettingsPlan, TreatmentViewInput } from './types'
 import { buildView, type TreatmentView } from './view'
 
 /** Les lignes qu'écrirait le geste, ou pourquoi il est refusé ; rien n'est écrit. */
@@ -20,11 +20,20 @@ export function play(input: TreatmentViewInput, gesture: Gesture): GestureResult
   }
 }
 
-/** R12 : la lecture du traitement après le geste, sur le carnet simulé : ce que les écrans montreront. */
+/**
+ * R12 : la lecture du traitement après le geste ou le réglage, sur le carnet simulé : ce que les écrans
+ * montreront.
+ */
+export function preview(input: TreatmentViewInput, plan: SettingsPlan): TreatmentView
 export function preview(
   input: TreatmentViewInput,
   gesture: Gesture,
+): TreatmentView | { refusal: Refusal }
+export function preview(
+  input: TreatmentViewInput,
+  change: Gesture | SettingsPlan,
 ): TreatmentView | { refusal: Refusal } {
-  const result = play(input, gesture)
+  if ('action' in change) return buildView(settingsApplied(input, change))
+  const result = play(input, change)
   return 'refusal' in result ? result : buildView(applied(input, result.changes))
 }

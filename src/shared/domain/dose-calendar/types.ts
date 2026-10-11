@@ -76,6 +76,14 @@ export type Phase = 'upcoming' | 'today' | 'overdue' | 'ended' | 'stopped'
 /** Les champs d'une ligne à écrire ; l'identifiant et l'horodatage viennent du repository. */
 export type LineFields = Omit<Line, 'id' | 'updatedAt'>
 
+/** Les champs d'un réglage à écrire ; l'arrêt passe par « Arrêter », l'identifiant par le repository. */
+export type SettingFields = Omit<Setting, 'id' | 'createdAt' | 'stoppedOn'>
+
+/** Ce que « Modifier » écrit : un réglage ouvert aujourd'hui, ou le réglage en cours corrigé (R10, TR-28). */
+export type SettingsPlan =
+  | { action: 'create'; setting: SettingFields }
+  | { action: 'rewrite'; id: string; setting: SettingFields }
+
 /** Ce qu'un geste écrit : une ligne créée, réécrite ou supprimée ; le moteur n'écrit jamais lui-même. */
 export type LineChange =
   | { action: 'create'; line: LineFields }

@@ -1,6 +1,14 @@
 import { keyOf } from '../grid'
 import { familyOf } from '../lines'
-import type { Day, Line, LineChange, LineFields, TreatmentViewInput } from '../types'
+import type {
+  Day,
+  Line,
+  LineChange,
+  LineFields,
+  Setting,
+  SettingsPlan,
+  TreatmentViewInput,
+} from '../types'
 
 const WRITTEN_AT = '9999-12-31T23:59:59.999Z'
 
@@ -73,4 +81,21 @@ export function applied(
 
 export function without(input: TreatmentViewInput, ids: readonly string[]): TreatmentViewInput {
   return { ...input, lines: input.lines.filter(({ id }) => !ids.includes(id)) }
+}
+
+/** Le carnet une fois le réglage écrit, plus récent que tout le carnet (simulation, R12). */
+export function settingsApplied(input: TreatmentViewInput, plan: SettingsPlan): TreatmentViewInput {
+  if (plan.action === 'create') {
+    const setting: Setting = {
+      ...plan.setting,
+      id: 'réglage-écrit',
+      stoppedOn: null,
+      createdAt: WRITTEN_AT,
+    }
+    return { ...input, settings: [...input.settings, setting] }
+  }
+  const settings = input.settings.map((setting) =>
+    setting.id === plan.id ? { ...setting, ...plan.setting } : setting,
+  )
+  return { ...input, settings }
 }
