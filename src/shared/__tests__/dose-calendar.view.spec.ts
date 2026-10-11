@@ -157,6 +157,14 @@ describe('relecture du pas 2 : frontières de réglage et historique', () => {
     expect(read.dueState({ dueOn: '2026-10-05', dueTime: null })).toBe('covered')
   })
 
+  it('R8, Q-G3 : hebdo arrêté le 5, prise du 5 hors de sa grille, reprise quotidienne le 5 : elle couvre le 5', () => {
+    const p1 = setting('p1', '2026-10-01', WEEK, [], { stoppedOn: '2026-10-05' })
+    const given = line('p1', 'given', '2026-10-05')
+    const p2 = setting('p2', '2026-10-05', DAY)
+    const read = view([p1, p2], [given], '2026-10-05')
+    expect(effectOf(read, given.id)).toEqual({ kind: 'covers', key: '2026-10-05' })
+  })
+
   it('R4 : heures changées, les prises du jour couvrent les nouvelles heures dans l’ordre des heures', () => {
     const p1 = setting('p1', '2026-10-01', DAY, H)
     const evening = line('p1', 'given', '2026-10-03', '20:00')
