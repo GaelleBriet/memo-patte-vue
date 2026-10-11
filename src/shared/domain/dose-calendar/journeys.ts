@@ -61,7 +61,8 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
         }
       : { origin: origin ?? setting.firstDueOn, floor: ownFloor }
     if (index < 0) return
-    if (index > 0 && !continued) rhythmFrom = setting.startsOn
+    const ended = index > 0 && (span.live[index - 1]!.endsOn ?? setting.startsOn) < setting.startsOn
+    if (index > 0 && (!continued || ended)) rhythmFrom = setting.startsOn
     // R3 : écrit sous un réglage d'avant un changement de fréquence, un décalage est dépassé.
     const turns = lines.shifts.filter(
       (shift) =>

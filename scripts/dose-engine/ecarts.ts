@@ -248,10 +248,13 @@ export function verdictOf(
   const differing = near.length > 0 ? near : far
   const families = new Set<Family>()
   const unexplained: string[] = []
+  const lateKept = keepsLateDose(book, reference)
   for (const key of new Set(differing)) {
     const found = familiesOn(book, dayOf(key), stale)
     if (a.has(key) && !b.has(key) && coveredByOrphan(book, key, reread))
       found.push('prise-orpheline')
+    const current = actual.current.includes(key) || reference.current.includes(key)
+    if (found.length === 0 && lateKept && current) found.push('dose-en-retard')
     found.forEach((family) => families.add(family))
     if (found.length === 0) unexplained.push(key)
   }

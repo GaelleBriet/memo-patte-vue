@@ -589,3 +589,21 @@ describe('R3 : une date choisie sur la grille d’un décalage à venir continue
     )
   })
 })
+
+describe('R9, Q-retard : un traitement fini avant la modification garde ses doses à renseigner', () => {
+  it('tous les 3 mois à 20 h du 7 mars, fin le 16, dose du 7 non donnée ; le 18, sans heure, première dose le 7 juin : le 7 mars à renseigner', () => {
+    const ended = setting('p1', '2026-03-07', { value: 3, unit: 'month' }, ['20:00'], {
+      endsOn: '2026-03-16',
+    })
+    const after = setting('p2', '2026-06-07', { value: 3, unit: 'month' }, [], {
+      startsOn: '2026-03-18',
+      gridOriginOn: null,
+    })
+    const read = view([ended, after], [], '2026-03-18')
+    expect([read.phase, keys(read.currentDoses), keys(read.unloggedDoses)]).toEqual([
+      'upcoming',
+      ['2026-06-07'],
+      ['2026-03-07 20:00'],
+    ])
+  })
+})

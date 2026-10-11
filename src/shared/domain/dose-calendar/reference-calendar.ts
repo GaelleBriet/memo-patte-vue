@@ -121,7 +121,8 @@ export function calendarOf(
         }
       : { origin: setting.gridOriginOn ?? setting.firstDueOn, floor: ownFloor }
     if (index < 0) return
-    if (index > 0 && !continued) rhythmFrom = setting.startsOn
+    const ended = index > 0 && (live[index - 1]!.endsOn ?? setting.startsOn) < setting.startsOn
+    if (index > 0 && (!continued || ended)) rhythmFrom = setting.startsOn
     // R6 : à partir de sa journée d'origine, un décalage donne à la grille l'origine de son ancrage ;
     // écrit sous un réglage d'avant un changement de fréquence, il est dépassé par la nouvelle origine (R3).
     const turns = shifts.filter(
