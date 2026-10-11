@@ -130,7 +130,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     if (!kept) translated.set(targetOn!, arrival.id)
     const day = days.get(targetOn!) ?? { setting: arrival, hours: [] }
     // R7, R9.2 : un nouveau rythme qui part du jour d'arrivée d'un report lui laisse ses seules heures.
-    if (dueOn < targetOn! && openings.delete(targetOn!)) day.hours = []
+    if (openings.delete(targetOn!)) day.hours = []
     const arriving = kept ? leaving : hoursOf(arrival.times).slice(-leaving.length)
     day.hours = [...new Set([...day.hours, ...arriving])].sort()
     days.set(targetOn!, day)

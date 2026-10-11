@@ -267,6 +267,32 @@ describe('R7, R9 : la journée d’arrivée devenue première échéance d’une
   })
 })
 
+describe('R7, R9.2 : la dose avancée dont l’arrivée devient la première échéance d’un nouveau rythme (relecture du pas 3)', () => {
+  it.each([
+    ['avancée au 12', '2026-04-12', ['2026-04-12 23:00', '2026-05-24 06:00']],
+    ['reportée au 14', '2026-04-14', ['2026-04-14 23:00', '2026-05-26 06:00']],
+  ])(
+    'toutes les 2 semaines à 20 h du 30 mars, dose du 13 %s, puis toutes les 6 semaines à 6, 12, 18, 23 h : la journée d’arrivée n’a que 23 h',
+    (_, arrival, expected) => {
+      const p1 = setting('p1', '2026-03-30', { value: 2, unit: 'week' }, ['20:00'])
+      const p2 = setting(
+        'p2',
+        arrival,
+        { value: 6, unit: 'week' },
+        ['06:00', '12:00', '18:00', '23:00'],
+        {
+          startsOn: '2026-04-02',
+        },
+      )
+      const lines = [
+        line('p1', 'given', '2026-03-30', '20:00'),
+        line('p1', 'postponed', '2026-04-13', '20:00', arrival),
+      ]
+      expect(next([p1, p2], lines, '2026-04-02', 2)).toEqual(expected)
+    },
+  )
+})
+
 describe('R1, R4 : la prise du jour d’un changement de réglage garde son échéance', () => {
   const monthly = setting('p1', '2026-09-05', MONTH)
   const given = [line('p1', 'given', '2026-09-05'), line('p1', 'given', '2026-10-05')]

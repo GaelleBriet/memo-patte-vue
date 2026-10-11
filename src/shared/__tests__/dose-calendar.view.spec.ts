@@ -354,3 +354,25 @@ describe('R7, R9 : la journée d’arrivée devenue première échéance d’une
     expect(upcoming([p1, p2, p3])).toEqual(expected)
   })
 })
+
+describe('R7, R9.2 : la dose avancée dont l’arrivée devient la première échéance d’un nouveau rythme (relecture du pas 3)', () => {
+  const H4 = ['06:00', '12:00', '18:00', '23:00']
+  const TWO_WEEKS = { value: 2, unit: 'week' as const }
+  const SIX_WEEKS = { value: 6, unit: 'week' as const }
+
+  it.each([
+    ['avancée au 12', '2026-04-12', ['2026-04-12 23:00', '2026-05-24 06:00']],
+    ['reportée au 14', '2026-04-14', ['2026-04-14 23:00', '2026-05-26 06:00']],
+  ])(
+    'Métacam toutes les 2 semaines à 20 h du 30 mars, dose du 13 %s le 2 avr., puis toutes les 6 semaines à 6, 12, 18, 23 h : la journée d’arrivée n’a que 23 h',
+    (_, arrival, expected) => {
+      const p1 = setting('p1', '2026-03-30', TWO_WEEKS, ['20:00'])
+      const p2 = setting('p2', arrival, SIX_WEEKS, H4, { startsOn: '2026-04-02' })
+      const lines = [
+        line('p1', 'given', '2026-03-30', '20:00'),
+        line('p1', 'postponed', '2026-04-13', '20:00', arrival),
+      ]
+      expect(keys(view([p1, p2], lines, '2026-04-02').upcoming({ limit: 2 }))).toEqual(expected)
+    },
+  )
+})
