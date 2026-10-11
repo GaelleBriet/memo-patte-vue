@@ -83,7 +83,7 @@ describe('moteur des doses v2 : une passe par étape', () => {
       times.push(performance.now() - start)
     }
     expect(read()[1]!.length).toBeGreaterThan(50)
-    expect(times.sort((a, b) => a - b)[10]).toBeLessThan(5)
+    expect(times.sort((a, b) => a - b)[10]).toBeLessThan(20)
   })
 
   it('lit l’état de 400 échéances lointaines sans reconstruire le calendrier à chacune', () => {

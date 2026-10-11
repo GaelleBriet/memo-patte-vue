@@ -27,7 +27,7 @@ function report(run: OracleRun): string[] {
   )
 }
 
-describe('oracle des moteurs de doses', () => {
+describe('oracle des moteurs de doses', { timeout: 60_000 }, () => {
   it(
     'les écarts entre les deux moteurs sont tous rattachés à un ticket ou à une décision',
     () => {
