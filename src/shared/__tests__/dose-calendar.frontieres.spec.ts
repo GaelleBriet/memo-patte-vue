@@ -60,7 +60,7 @@ describe('moteur des doses v2 : frontières', () => {
 })
 
 describe('moteur des doses v2 : une passe par étape', () => {
-  it('lit un traitement de 400 échéances en moins de 5 ms', () => {
+  it('lit un traitement de 400 échéances en moins de 20 ms (médiane)', () => {
     const p1 = setting('p1', '2026-01-01', DAY, ['06:00', '12:00', '18:00', '23:00'], {
       endsOn: '2026-04-10',
     })

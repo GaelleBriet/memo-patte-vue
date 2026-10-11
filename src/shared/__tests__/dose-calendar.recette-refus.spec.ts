@@ -10,6 +10,7 @@ import {
   removalRefusal,
   type Refusal,
 } from '../domain/dose-calendar'
+import { outcome } from '../domain/dose-calendar/gestures/outcome'
 import { DAY, H, line, setting, WEEK } from './dose-calendar.v2.aides'
 
 // Jeu de recette du moteur v2 (épic #758, pas 3) : chaque refus d'un geste, sur un carnet daté, et le
@@ -117,6 +118,26 @@ describe('un cas daté par refus', () => {
       },
     )
     expect(result).toEqual({ refusal: { reason: 'passes-report', on: '2026-10-27' } })
+  })
+
+  it('R7, #763 : dose du 16 reportée seule au 21 ; un geste qui avancerait la dose du 23 au 16 la renverrait entre deux reports : refusé', () => {
+    const first = line('p1', 'postponed', '2026-10-16', null, '2026-10-21')
+    const input = { settings: [hebdo], lines: [first], today: '2026-10-12' }
+    const loop = {
+      action: 'create' as const,
+      line: {
+        settingId: 'p1',
+        dueOn: '2026-10-23',
+        dueTime: null,
+        status: 'postponed' as const,
+        givenOn: null,
+        targetOn: '2026-10-16',
+      },
+    }
+    expect(outcome(input, [loop])).toEqual({ refusal: { reason: 'report-loop' } })
+    expect(
+      outcome(input, [{ ...loop, line: { ...loop.line, targetOn: '2026-10-22' } }]),
+    ).not.toHaveProperty('refusal')
   })
 
   it('N8 : décalage du 16 au 19, dose du 26 donnée : « Supprimer ce décalage » refusé', () => {
