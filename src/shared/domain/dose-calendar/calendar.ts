@@ -219,7 +219,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
 
   // R1, R4 : le jour où un réglage cède la place, ses prises gardent leur échéance.
   boundaries.forEach((hours, day) => {
-    if (days.has(day)) return
+    if (days.has(day) || (stop !== null && day >= stop)) return
     for (const note of byDay.get(day) ?? []) {
       if (!isBorrowed.has(note) && hours.includes(note.dueTime)) {
         matched.add(note)
