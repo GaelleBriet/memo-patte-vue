@@ -1,18 +1,23 @@
 import {
   applied,
   moveDose,
+  newSettings,
   noteDose,
   redateDose,
   removeLine,
+  settingsApplied,
   treatmentView,
   viewInputOf,
   type GestureResult,
   type Line,
+  type SettingsRequest,
+  type SettingsResult,
   type TreatmentViewInput,
 } from '@/shared/domain/dose-calendar'
 import type { Due } from '@/shared/domain/treatment-schedule'
 
-import type { Book } from './carnet'
+import { plusDays, type Book } from './carnet'
+import { dueKey, HORIZON_DAYS } from './display'
 import { keptBook, type Walk } from './walk-state'
 
 export const v2Due = ({ periodId, dueOn, dueTime }: Due) => ({
@@ -118,3 +123,61 @@ export const bothBoxes = (play: (shiftsFollowing: boolean) => V2Play): V2Play[] 
   play(true),
   play(false),
 ]
+
+// Ce que montre un carnet : doses du moment, à renseigner, calendrier et effet de chaque ligne.
+function shownBy(input: TreatmentViewInput): string {
+  const view = treatmentView(input)
+  const from = input.settings
+    .flatMap(({ startsOn, firstDueOn }) => [startsOn, firstDueOn])
+    .sort()[0]!
+  const slots = view
+    .slots(from, plusDays(input.today, HORIZON_DAYS))
+    .map(({ due, state }) => `${dueKey(due)} ${state}`)
+  const effects = view.history.map(({ line, effect }) => `${line.id} ${JSON.stringify(effect)}`)
+  return JSON.stringify([
+    view.phase,
+    view.currentDoses.map(dueKey),
+    view.unloggedDoses.map(dueKey),
+    slots,
+    effects,
+  ])
+}
+
+// La règle qui sépare le réglage du moteur actuel de celui que v2 écrirait.
+function settingsReasonOf(result: SettingsResult, after: Book): string {
+  if ('refusal' in result) return result.refusal.reason
+  if ('question' in result) return 'v2 pose la question Q38'
+  const { plan } = result
+  if (plan.action === 'rewrite') return 'v2 corrige le réglage (R10, TR-28)'
+  const period = after.periods.at(-1)!
+  return plan.setting.firstDueOn === period.firstDueOn
+    ? 'v2 garde une autre grille (R3)'
+    : 'v2 propose une autre première échéance (R9)'
+}
+
+/**
+ * « Modifier » n'est joué que si le réglage que v2 écrirait (R9, R10, Q38) se lit comme celui que le
+ * moteur actuel propose ; sinon le geste est compté avec sa raison, et chaque raison est à analyser.
+ */
+export function settingsRefusedByV2(
+  walk: Walk,
+  gesture: string,
+  after: Book,
+  request: SettingsRequest,
+): boolean {
+  if (walk.filter === 'aucun') return false
+  const input = viewInputOf(keptBook(walk))
+  const target = viewInputOf({ ...after, doses: [...after.doses, ...walk.purged] })
+  let reason: string
+  try {
+    const result = newSettings(input, request)
+    if ('plan' in result && shownBy(settingsApplied(input, result.plan)) === shownBy(target)) {
+      return false
+    }
+    reason = settingsReasonOf(result, after)
+  } catch (error) {
+    reason = `v2 lève (${String(error).slice(0, 60)})`
+  }
+  walk.refused.push({ gesture, reason, suspect: `réglage : ${reason}`, input })
+  return true
+}

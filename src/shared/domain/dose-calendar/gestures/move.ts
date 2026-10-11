@@ -225,14 +225,17 @@ export function moveDose(input: TreatmentViewInput, gesture: MoveGesture): Gestu
       ? written(input.lines, line)
       : { action: 'rewrite', id: existing.id, line }
   if (!shiftsFollowing) return outcome(input, [report, ...dropShift], { offersShift: true })
+  // R6, R7 : le décalage appartient au rythme en vigueur ce jour-là, sinon il serait dépassé.
+  const inForce = buildView(input).settingAt(moved.dueOn)?.id ?? moved.settingId
+  const at = { ...moved, settingId: inForce }
   const shift: LineChange =
     dayShift !== undefined && dayShift.dueOn !== moved.dueOn
       ? {
           action: 'rewrite',
           id: dayShift.id,
-          line: { ...moved, status: 'shift', givenOn: null, targetOn: to },
+          line: { ...at, status: 'shift', givenOn: null, targetOn: to },
         }
-      : shiftWritten(input.lines, moved, to)
+      : shiftWritten(input.lines, at, to)
   const changes = [report, shift]
   return outcome(input, changes, {
     offersShift: true,

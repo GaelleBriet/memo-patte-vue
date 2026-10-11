@@ -46,7 +46,7 @@ export function shiftWritten(
 ): LineChange {
   const existing = shiftOfDay(lines, at.dueOn)
   const line: LineFields = {
-    settingId: existing?.settingId ?? at.settingId,
+    settingId: at.settingId,
     dueOn: at.dueOn,
     dueTime: existing?.dueTime ?? at.dueTime,
     status: 'shift',

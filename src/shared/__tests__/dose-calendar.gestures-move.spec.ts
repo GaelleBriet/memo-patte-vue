@@ -395,3 +395,24 @@ describe('R7, G13 : redéplacer l’arrivée d’un report d’un rythme précé
     },
   )
 })
+
+describe('R6, R7 : la case cochée en redéplaçant un report fait repartir la suite du nouveau rythme (#782)', () => {
+  it('tous les jours du 21 mars, dose du 24 reportée au 27 avec décalage ; le 24, tous les 3 jours dès le 24 ; la dose du 27 reportée au 4 avr. avec décalage : 4, 7, 10 avr.', () => {
+    const daily = setting('p1', '2026-03-21', { value: 1, unit: 'day' })
+    const p2 = setting('p2', '2026-03-24', { value: 3, unit: 'day' }, [], {
+      startsOn: '2026-03-24',
+    })
+    const lines = [
+      line('p1', 'given', '2026-03-21'),
+      line('p1', 'given', '2026-03-22'),
+      line('p1', 'postponed', '2026-03-24', null, '2026-03-27'),
+      line('p1', 'shift', '2026-03-24', null, '2026-03-27'),
+    ]
+    const input = { settings: [daily, p2], lines, today: '2026-03-24' }
+    const dose = { settingId: 'p2', dueOn: '2026-03-27', dueTime: null }
+    const result = moveDose(input, { due: dose, to: '2026-04-04', shiftsFollowing: true })
+    const after = treatmentView(applied(input, (result as GestureOutcome).changes))
+    expect(keys(after.upcoming({ limit: 3 }))).toEqual(['2026-04-04', '2026-04-07', '2026-04-10'])
+    expect(after.history.map(({ effect }) => effect.kind)).not.toContain('idle')
+  })
+})

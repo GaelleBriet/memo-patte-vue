@@ -1,6 +1,7 @@
 import type { TreatmentPeriodInput, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 
 import { FREQUENCIES, int, pick, plusDays, TIMES } from './carnet'
+import { settingsRefusedByV2 } from './walk-filter'
 import { stampOf, WalkStopped, type Walk } from './walk-state'
 
 export function stop(walk: Walk): void {
@@ -61,9 +62,8 @@ export function newPeriod(walk: Walk, before: TreatmentSchedule): void {
   } catch (error) {
     throw new WalkStopped(`${walk.book.today} nouvelle période : ${String(error)}`)
   }
-  walk.log.push(
-    `${walk.book.today} nouvelle période ${JSON.stringify({ ...dates, frequency, times })}`,
-  )
+  const label = `${walk.book.today} nouvelle période ${JSON.stringify({ ...dates, frequency, times })}`
+  walk.log.push(label)
   const period: TreatmentPeriodInput = {
     id: `p${periods.length + 1}`,
     ...dates,
@@ -73,5 +73,8 @@ export function newPeriod(walk: Walk, before: TreatmentSchedule): void {
     times: [...times],
     createdAt: stampOf(walk),
   }
-  walk.book = { ...walk.book, periods: [...periods, period] }
+  const after = { ...walk.book, periods: [...periods, period] }
+  const request = { frequency, times: [...times], endsOn: period.endsOn }
+  if (settingsRefusedByV2(walk, label, after, request)) return
+  walk.book = after
 }
