@@ -14,6 +14,7 @@ import {
   ligne,
   modifie,
   mois,
+  recoit,
   sansPrise,
   semaines,
   supprime,
@@ -83,6 +84,36 @@ describe('R7 : 8 h du 3 donnée, 20 h du 3 reportée au 4', () => {
       '2026-10-04 20:00',
       '2026-10-07 08:00',
       '2026-10-07 20:00',
+    ])
+  })
+
+  it('R9.2 : fréquence changée le 3 pour tous les 3 jours, première dose le 4 : 20 h le 4, puis le 7', () => {
+    const c = modifie(reporte20h(), '2026-10-03', jours(3), H, '2026-10-04')
+    expect(affiche(c, '2026-10-04', 3)).toEqual([
+      '2026-10-04 20:00',
+      '2026-10-07 08:00',
+      '2026-10-07 20:00',
+    ])
+  })
+
+  it('R9.2, R3 : tous les 3 jours le 3 à partir du 4, puis heures passées à 9 h et 21 h le 4 : 21 h le 4, puis le 7', () => {
+    let c = modifie(reporte20h(), '2026-10-03', jours(3), H, '2026-10-04')
+    c = modifie(c, '2026-10-04', jours(3), ['09:00', '21:00'], '2026-10-04')
+    expect(affiche(c, '2026-10-04', 3)).toEqual([
+      '2026-10-04 21:00',
+      '2026-10-07 09:00',
+      '2026-10-07 21:00',
+    ])
+  })
+
+  it('R11 : 20 h du 3 donnée sur un autre appareil, report sans effet ; tous les 3 jours le 4, première dose le 4 : 8 h et 20 h le 4', () => {
+    let c = reporte20h()
+    c = recoit(c, echeance(c, '2026-10-03', '20:00'))
+    c = modifie(c, '2026-10-04', jours(3), H, '2026-10-04')
+    expect(affiche(c, '2026-10-04', 3)).toEqual([
+      '2026-10-04 08:00',
+      '2026-10-04 20:00',
+      '2026-10-07 08:00',
     ])
   })
 

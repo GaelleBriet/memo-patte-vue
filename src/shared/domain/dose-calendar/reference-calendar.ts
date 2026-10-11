@@ -129,6 +129,8 @@ export function calendarOf(
   const translated = new Map<string, string>()
   // R1, R4 : le jour où un réglage cède la place, ses prises gardent leur échéance.
   const boundaries = new Map<string, Hour[]>()
+  // R7, R9.2 : les premières échéances des réglages qui ouvrent un nouveau rythme.
+  const openings = new Set<string>()
   let grid: Grid = { origin: live[0]!.firstDueOn, floor: '' }
   live.forEach((setting, index) => {
     const end = endOf(index)
@@ -157,24 +159,16 @@ export function calendarOf(
       previous !== undefined &&
       previous.firstDueOn >= setting.startsOn &&
       grid.floor === plusDays(previous.firstDueOn, -1)
+    const ownFloor = plusDays(later(setting.firstDueOn, setting.startsOn), -1)
+    if (previous !== undefined && !continued && setting.firstDueOn >= setting.startsOn) {
+      openings.add(setting.firstDueOn)
+    }
     grid = continued
       ? {
           origin: grid.origin,
-          floor: neverStarted
-            ? plusDays(later(setting.firstDueOn, setting.startsOn), -1)
-            : later(grid.floor, plusDays(setting.startsOn, -1)),
+          floor: neverStarted ? ownFloor : later(grid.floor, plusDays(setting.startsOn, -1)),
         }
-      : {
-          origin: setting.gridOriginOn ?? setting.firstDueOn,
-          // R7, R9.2 : un réglage qui part du jour d'arrivée d'un report lui laisse ses seules heures.
-          floor:
-            previous !== undefined &&
-            reports.some(
-              ({ dueOn, targetOn }) => targetOn === setting.firstDueOn && dueOn < setting.startsOn,
-            )
-              ? setting.firstDueOn
-              : plusDays(later(setting.firstDueOn, setting.startsOn), -1),
-        }
+      : { origin: setting.gridOriginOn ?? setting.firstDueOn, floor: ownFloor }
     // R6 : à partir de sa journée d'origine, un décalage donne à la grille l'origine de son ancrage ;
     // écrit sous un réglage d'avant un changement de fréquence, il est dépassé par la nouvelle origine (R3).
     const turns = shifts.filter(
@@ -273,6 +267,8 @@ export function calendarOf(
     const kept = sameHours(arrival, from)
     if (!kept) translated.set(targetOn!, arrival.id)
     const day = days.get(targetOn!) ?? { setting: arrival, hours: [] }
+    // R7, R9.2 : un nouveau rythme qui part du jour d'arrivée d'un report lui laisse ses seules heures.
+    if (dueOn < targetOn! && openings.delete(targetOn!)) day.hours = []
     day.hours = [
       ...new Set([...day.hours, ...(kept ? moved : hoursOf(arrival).slice(-moved.length))]),
     ].sort()

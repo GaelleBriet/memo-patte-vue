@@ -38,6 +38,7 @@ function journeys(input: EpisodeInput, effects: Map<string, LineEffect>) {
   const days = new Map<Day, Journey>()
   const translated = new Map<Day, string>()
   const boundaries = new Map<Day, Hour[]>()
+  const openings = new Set<Day>()
   let grid = { origin: live[0]!.firstDueOn, floor: '' }
   live.forEach((setting, index) => {
     const end = endOf(index)
@@ -64,18 +65,15 @@ function journeys(input: EpisodeInput, effects: Map<string, LineEffect>) {
       previous.firstDueOn >= setting.startsOn &&
       grid.floor === plusDays(previous.firstDueOn, -1)
     const ownFloor = plusDays(later(setting.firstDueOn, setting.startsOn), -1)
-    // R7, R9.2 : un nouveau rythme qui part du jour d'arrivée d'un report lui laisse ses seules heures.
-    const arrival =
-      previous !== undefined &&
-      lines.reports.some(
-        ({ dueOn, targetOn }) => targetOn === setting.firstDueOn && dueOn < setting.startsOn,
-      )
+    if (previous !== undefined && !continued && setting.firstDueOn >= setting.startsOn) {
+      openings.add(setting.firstDueOn)
+    }
     grid = continued
       ? {
           origin: grid.origin,
           floor: neverStarted ? ownFloor : later(grid.floor, plusDays(setting.startsOn, -1)),
         }
-      : { origin: origin ?? setting.firstDueOn, floor: arrival ? setting.firstDueOn : ownFloor }
+      : { origin: origin ?? setting.firstDueOn, floor: ownFloor }
     // R3 : écrit sous un réglage d'avant un changement de fréquence, un décalage est dépassé.
     const turns = lines.shifts.filter(
       (shift) => within(shift) && (continued || !earlier.has(shift.settingId)),
@@ -108,14 +106,14 @@ function journeys(input: EpisodeInput, effects: Map<string, LineEffect>) {
   for (const shift of lines.shifts) {
     if (!effects.has(shift.id)) effects.set(shift.id, { kind: 'idle', reason: 'overtaken' })
   }
-  return { days, translated, boundaries }
+  return { days, translated, boundaries, openings }
 }
 
 /** R4, R7, R11 : le calendrier d'un épisode, une passe par étape, du réglage à la couverture. */
 export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   const { settingOf, span, lines, borrowed } = input
   const effects = new Map<string, LineEffect>()
-  const { days, translated, boundaries } = journeys(input, effects)
+  const { days, translated, boundaries, openings } = journeys(input, effects)
   const byDay = new Map<Day, Line[]>()
   for (const note of [...lines.notes, ...borrowed]) {
     byDay.set(note.dueOn, [...(byDay.get(note.dueOn) ?? []), note])
@@ -212,6 +210,8 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     const kept = sameHours(arrival, from)
     if (!kept) translated.set(targetOn!, arrival.id)
     const day = days.get(targetOn!) ?? { setting: arrival, hours: [] }
+    // R7, R9.2 : un nouveau rythme qui part du jour d'arrivée d'un report lui laisse ses seules heures.
+    if (dueOn < targetOn! && openings.delete(targetOn!)) day.hours = []
     const arriving = kept ? leaving : hoursOf(arrival.times).slice(-leaving.length)
     day.hours = [...new Set([...day.hours, ...arriving])].sort()
     days.set(targetOn!, day)

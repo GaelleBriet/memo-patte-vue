@@ -5,7 +5,12 @@ import { describe, expect, it } from 'vitest'
 
 import type { Book } from '../../../scripts/dose-engine/carnet'
 import { FAMILIES, verdictOf } from '../../../scripts/dose-engine/ecarts'
-import { currentEngine, readWith, v2Engine } from '../../../scripts/dose-engine/engines'
+import {
+  currentEngine,
+  readWith,
+  referenceEngine,
+  v2Engine,
+} from '../../../scripts/dose-engine/engines'
 import { oracleConfig, runOracle, type OracleRun } from '../../../scripts/dose-engine/oracle'
 
 // Séries longues, hors `vitest run` : voir scripts/dose-engine/README.md (ORACLE_FROM, ORACLE_SEEDS,
@@ -157,6 +162,79 @@ describe('oracle des moteurs de doses', () => {
     const skipped = { ...actual, current: upcoming.slice(0, 1), upcoming }
     const reread = (carnet: Book, until: string) => readWith(v2Engine, carnet, until)
     expect(verdictOf(book, actual, skipped, reread).unexplained).toContain('2026-10-12')
+  })
+
+  describe('R7, R9.2, R11 : tous les 2 jours à 8 h et 20 h, 20 h du 3 reportée au 4, tous les 3 jours à partir du 4', () => {
+    const period = { endsOn: null, stoppedOn: null, times: ['08:00', '20:00'] }
+    const p1 = {
+      ...period,
+      id: 'p1',
+      startsOn: '2026-10-01',
+      firstDueOn: '2026-10-01',
+      referenceOn: '2026-10-01',
+      frequency: { value: 2, unit: 'day' as const },
+      createdAt: '2026-01-01T00:00:00.000Z',
+    }
+    const dose = (dueOn: string, dueTime: string, status: 'given' | 'postponed', at: number) => ({
+      id: `${dueOn} ${dueTime} ${status}`,
+      periodId: 'p1',
+      dueOn,
+      dueTime,
+      status,
+      givenOn: status === 'given' ? dueOn : null,
+      nextDueDate: status === 'given' ? '2026-10-03' : '2026-10-04',
+      createdAt: `2026-01-01T00:00:0${at}.000Z`,
+      updatedAt: `2026-01-01T00:00:0${at}.000Z`,
+    })
+    const doses = [
+      dose('2026-10-01', '08:00', 'given', 1),
+      dose('2026-10-01', '20:00', 'given', 2),
+      dose('2026-10-03', '08:00', 'given', 3),
+      dose('2026-10-03', '20:00', 'postponed', 4),
+    ]
+    const bookOf = (changedOn: string, extra: typeof doses = []): Book => ({
+      today: '2026-10-04',
+      periods: [
+        p1,
+        {
+          ...p1,
+          id: 'p2',
+          startsOn: changedOn,
+          firstDueOn: '2026-10-04',
+          referenceOn: '2026-10-04',
+          frequency: { value: 3, unit: 'day' },
+          createdAt: '2026-01-02T00:00:00.000Z',
+        },
+      ],
+      doses: [...doses, ...extra],
+    })
+    const both = (book: Book) =>
+      [referenceEngine, v2Engine].map((engine) => {
+        const reading = readWith(engine, book, '2026-10-07')
+        if ('error' in reading) throw new Error(reading.error)
+        return [...reading.current, ...reading.upcoming].filter(
+          (key, i, all) => all.indexOf(key) === i,
+        )
+      })
+
+    it.each(['2026-10-03', '2026-10-04'])(
+      'réglage changé le %s : le 4 ne reçoit que 20 h',
+      (changedOn) => {
+        const expected = ['2026-10-04 20:00', '2026-10-07 08:00', '2026-10-07 20:00']
+        expect(both(bookOf(changedOn))).toEqual([expected, expected])
+      },
+    )
+
+    it('20 h du 3 donnée sur un autre appareil, report sans effet : 8 h et 20 h le 4', () => {
+      const book = bookOf('2026-10-04', [dose('2026-10-03', '20:00', 'given', 5)])
+      const expected = [
+        '2026-10-04 08:00',
+        '2026-10-04 20:00',
+        '2026-10-07 08:00',
+        '2026-10-07 20:00',
+      ]
+      expect(both(book)).toEqual([expected, expected])
+    })
   })
 
   it.each([

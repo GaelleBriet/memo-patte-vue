@@ -113,6 +113,11 @@ export function donne(c: Carnet, today: string, due: Due, givenOn = today, decal
   return ecrit(shifted, noted.dose)
 }
 
+/** Une prise reçue d'un autre appareil : écrite telle quelle, sans geste ni garde de l'app. */
+export function recoit(c: Carnet, due: Due, givenOn = due.dueOn): Carnet {
+  return ecrit(c, { ...due, status: 'given', givenOn, nextDueDate: null })
+}
+
 export function oublie(c: Carnet, today: string, due: Due): Carnet {
   return ecrit(c, lecture(c, today).doseFor({ kind: 'missed', due }).dose)
 }
@@ -161,9 +166,18 @@ export function proposition(c: Carnet, today: string, frequency: Frequency, time
   return lecture(c, today).newPeriod(frequency, times).firstDueOn
 }
 
-/** « Modifier » : un nouveau réglage aux dates que le moteur actuel propose (pas 4 de l'épic). */
-export function modifie(c: Carnet, today: string, frequency: Frequency, times: string[]): Carnet {
-  const dates = lecture(c, today).newPeriod(frequency, times)
+/** « Modifier » : un nouveau réglage aux dates que le moteur actuel propose (pas 4 de l'épic), ou à la « Prochaine dose » choisie. */
+export function modifie(
+  c: Carnet,
+  today: string,
+  frequency: Frequency,
+  times: string[],
+  premiere?: string,
+): Carnet {
+  const dates =
+    premiere === undefined
+      ? lecture(c, today).newPeriod(frequency, times)
+      : { startsOn: today, firstDueOn: premiere, referenceOn: premiere }
   const period = {
     id: `p${c.periods.length + 1}`,
     ...dates,
