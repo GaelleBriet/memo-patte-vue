@@ -1,19 +1,19 @@
-import { keyOf, later } from './grid'
+import { keyOf } from './grid'
 import { isNote, latestBy } from './lines'
 import type { Day, Line, Setting } from './types'
 
-/** R10 : écrit avant le premier jour d'un réglage déjà là (avant la première dose), un réglage prend sa place. */
-function startingAfterEarlier(settings: readonly Setting[], setting: Setting): Setting {
+/** R9, R10 : un réglage remplacé avant son premier jour par un réglage écrit après lui cède sa place ce jour-là. */
+function replacedBefore(settings: readonly Setting[], setting: Setting): Setting {
   const startsOn = settings
-    .filter(({ createdAt }) => createdAt < setting.createdAt)
-    .reduce((day, earlier) => later(day, earlier.startsOn), setting.startsOn)
+    .filter(({ createdAt }) => createdAt > setting.createdAt)
+    .reduce((day, newer) => (newer.startsOn < day ? newer.startsOn : day), setting.startsOn)
   return startsOn === setting.startsOn ? setting : { ...setting, startsOn }
 }
 
 /** R1, R8 : réglages dans l'ordre ; un arrêt clôt un épisode, la reprise en ouvre un autre. */
 export function episodesOf(settings: readonly Setting[]): Setting[][] {
   const ordered = settings
-    .map((setting) => startingAfterEarlier(settings, setting))
+    .map((setting) => replacedBefore(settings, setting))
     .sort(
       (a, b) =>
         a.startsOn.localeCompare(b.startsOn) ||

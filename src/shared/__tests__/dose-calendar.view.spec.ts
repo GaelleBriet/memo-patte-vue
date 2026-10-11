@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { Line, Setting } from '../domain/dose-calendar/types'
-import { DAY, H, keys, line, setting, TWO_DAYS, view, WEEK } from './dose-calendar.v2.aides'
+import { DAY, H, keys, line, next, setting, TWO_DAYS, view, WEEK } from './dose-calendar.v2.aides'
 
 describe('R12 : la lecture d’un traitement', () => {
   it('prochaine échéance, échéances à venir dans une fenêtre, dernière journée', () => {
@@ -373,6 +373,32 @@ describe('R7, R9.2 : la dose avancée dont l’arrivée devient la première éc
         line('p1', 'postponed', '2026-04-13', '20:00', arrival),
       ]
       expect(keys(view([p1, p2], lines, '2026-04-02').upcoming({ limit: 2 }))).toEqual(expected)
+    },
+  )
+})
+
+describe('R9 : un réglage écrit avant la première dose, fréquence changée (relecture du pas 3)', () => {
+  const tuesday = setting('p1', '2026-10-06', WEEK)
+  const report = line('p1', 'postponed', '2026-10-06', null, '2026-10-08')
+
+  it.each([
+    [
+      'tous les jours, prochaine dose le 3',
+      DAY,
+      '2026-10-03',
+      ['2026-10-03', '2026-10-04', '2026-10-05'],
+    ],
+    [
+      'tous les 3 jours, prochaine dose le 5',
+      { value: 3, unit: 'day' as const },
+      '2026-10-05',
+      ['2026-10-05', '2026-10-08', '2026-10-11'],
+    ],
+  ])(
+    'vermifuge hebdomadaire, première dose le mardi 6, reportée au 8 ; le 3, %s : la date choisie est la première échéance',
+    (_, frequency, firstDueOn, expected) => {
+      const changed = setting('p2', firstDueOn, frequency, [], { startsOn: '2026-10-03' })
+      expect(next([tuesday, changed], [report], '2026-10-03')).toEqual(expected)
     },
   )
 })

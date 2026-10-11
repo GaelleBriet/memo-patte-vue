@@ -293,6 +293,26 @@ describe('R7, R9.2 : la dose avancée dont l’arrivée devient la première éc
   )
 })
 
+describe('R9 : un réglage écrit avant la première dose, fréquence changée (relecture du pas 3)', () => {
+  it.each([
+    ['tous les jours dès le 3', DAY, '2026-10-03', ['2026-10-03', '2026-10-04', '2026-10-05']],
+    [
+      'tous les 3 jours dès le 5',
+      { value: 3, unit: 'day' as const },
+      '2026-10-05',
+      ['2026-10-05', '2026-10-08', '2026-10-11'],
+    ],
+  ])(
+    'hebdomadaire, première dose le 6, reportée au 8 ; le 3, %s : la date choisie est la première échéance',
+    (_, frequency, firstDueOn, expected) => {
+      const p1 = setting('p1', '2026-10-06', WEEK)
+      const p2 = setting('p2', firstDueOn, frequency, [], { startsOn: '2026-10-03' })
+      const lines = [line('p1', 'postponed', '2026-10-06', null, '2026-10-08')]
+      expect(next([p1, p2], lines, '2026-10-03')).toEqual(expected)
+    },
+  )
+})
+
 describe('R1, R4 : la prise du jour d’un changement de réglage garde son échéance', () => {
   const monthly = setting('p1', '2026-09-05', MONTH)
   const given = [line('p1', 'given', '2026-09-05'), line('p1', 'given', '2026-10-05')]
