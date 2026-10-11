@@ -1,4 +1,5 @@
 import {
+  moveBounds,
   moveDose,
   noteDose,
   redateDose,
@@ -130,6 +131,19 @@ export function oublie(c: Carnet, today: string, due: Due): Carnet {
 /** « Prochaine dose » : la dose déplacée, avec ou sans la case « Décaler aussi les doses suivantes ». */
 export function deplace(c: Carnet, today: string, due: Due, to: string, decale = true): Carnet {
   return joue(c, moveDose(entree(c, today), { due: v2(due), to, shiftsFollowing: decale }))
+}
+
+/** Les bornes de « Prochaine dose », ou son refus. */
+export function bornes(c: Carnet, today: string, due: Due, decale = true) {
+  return moveBounds(entree(c, today), v2(due), decale)
+}
+
+/** La case « Décaler aussi les doses suivantes » est-elle proposée pour une prise notée ce jour-là ? */
+export function caseProposee(c: Carnet, today: string, due: Due, givenOn = today): boolean {
+  const gesture = { due: v2(due), status: 'given' as const, givenOn, shiftsFollowing: false }
+  const result = noteDose(entree(c, today), gesture)
+  if ('refusal' in result) throw new Error(`geste refusé : ${JSON.stringify(result.refusal)}`)
+  return result.offersShift
 }
 
 /** « Changer la date » d'une prise donnée. */

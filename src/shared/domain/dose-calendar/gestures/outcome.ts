@@ -1,5 +1,6 @@
 import { keyOf, plusDays } from '../grid'
 import { isNote } from '../lines'
+import { episodesOf } from '../settings'
 import type {
   Day,
   Due,
@@ -26,14 +27,23 @@ export function shiftDayOf(view: TreatmentView, due: Pick<Due, 'dueOn'>): Day {
   return advanced?.line.dueOn ?? due.dueOn
 }
 
-/** R6, G7 : une prise, ou une ligne de décalage, ou un report, existe après cette journée. */
+/** R6, G7, TR-32 : une prise, ou une ligne de décalage, ou un report, existe après cette journée dans sa période. */
 export function linesAfter(
-  lines: readonly Line[],
-  day: Day,
+  input: Pick<TreatmentViewInput, 'settings' | 'lines'>,
+  from: Pick<Due, 'settingId' | 'dueOn'>,
   ignored: ReadonlySet<string>,
 ): { notes: Line[]; others: Line[] } {
-  const later = lines.filter(
-    (line) => !ignored.has(line.id) && line.dueOn > day && line.status !== 'extra',
+  const elsewhere = new Set(
+    episodesOf(input.settings)
+      .filter((episode) => !episode.some(({ id }) => id === from.settingId))
+      .flatMap((episode) => episode.map(({ id }) => id)),
+  )
+  const later = input.lines.filter(
+    (line) =>
+      !ignored.has(line.id) &&
+      !elsewhere.has(line.settingId) &&
+      line.dueOn > from.dueOn &&
+      line.status !== 'extra',
   )
   return { notes: later.filter(isNote), others: later.filter((line) => !isNote(line)) }
 }

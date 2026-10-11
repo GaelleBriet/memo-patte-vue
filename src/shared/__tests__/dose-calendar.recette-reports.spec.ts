@@ -5,12 +5,14 @@ import {
   aRenseigner,
   affiche,
   carnet,
+  corrige,
   deplace,
   donne,
   echeance,
   H,
   jours,
   journees,
+  ligne,
   modifie,
   mois,
   semaines,
@@ -136,6 +138,26 @@ describe('R3, R7 : report seul et posologie changée', () => {
     c = modifie(c, '2026-10-06', jours(3), H)
     expect(journees(c, '2026-10-06', 2)).toEqual(['2026-10-07', '2026-10-10'])
     expect(aRenseigner(c, '2026-10-06')).toEqual(['2026-10-05 20:00'])
+  })
+
+  it('R7 : hebdo du vendredi 2 oct., dose du 9 reportée seule au 13, posologie changée le 10 : le 11, la dose déplacée de nouveau au 14 réécrit son report', () => {
+    let c = carnet('2026-10-02', semaines(1))
+    c = donne(c, '2026-10-02', echeance(c, '2026-10-02'))
+    c = deplace(c, '2026-10-08', echeance(c, '2026-10-09'), '2026-10-13', false)
+    c = modifie(c, '2026-10-10', semaines(1), [])
+    c = deplace(c, '2026-10-11', echeance(c, '2026-10-13'), '2026-10-14', false)
+    expect(journees(c, '2026-10-11', 3)).toEqual(['2026-10-14', '2026-10-16', '2026-10-23'])
+    expect(c.doses.filter(({ status }) => status === 'postponed')).toHaveLength(1)
+  })
+
+  it('G12 : mensuel du 5, dose du 5 oct. reportée seule au 10 ; prise du 5 sept. corrigée au 28 août, cochée : « Reportée au 10 oct. (prévue le 28 sept.) »', () => {
+    let c = carnet('2026-08-05', mois(1))
+    c = donne(c, '2026-08-05', echeance(c, '2026-08-05'))
+    c = donne(c, '2026-09-05', echeance(c, '2026-09-05'))
+    c = deplace(c, '2026-10-01', echeance(c, '2026-10-05'), '2026-10-10', false)
+    c = corrige(c, '2026-10-01', ligne(c, '2026-09-05', null, 'given').id, '2026-08-28')
+    expect(ligne(c, '2026-09-28', null, 'postponed').nextDueDate).toBe('2026-10-10')
+    expect(journees(c, '2026-10-01', 3)).toEqual(['2026-10-10', '2026-10-28', '2026-11-28'])
   })
 })
 

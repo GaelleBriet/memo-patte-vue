@@ -71,7 +71,7 @@ describe('« Changer la date » d’une prise (TR-24 bis, Q-C1, G12, G19, G21)',
     expect(keys(result.newlyDue)).toEqual(['2026-10-19'])
   })
 
-  it('G19 : dose du 16 reportée seule au 21 ; la prise du 9 corrigée au 11, cochée, ferait passer le report : permise décochée seulement', () => {
+  it('G19 : dose du 16 reportée seule au 21 ; la prise du 9 corrigée au 11, cochée : le report suit, « Reportée au 21 oct. (prévue le 18 oct.) »', () => {
     const prise = line('p1', 'given', '2026-10-09')
     const report = line('p1', 'postponed', '2026-10-16', null, '2026-10-21')
     const input = {
@@ -79,11 +79,12 @@ describe('« Changer la date » d’une prise (TR-24 bis, Q-C1, G12, G19, G21)',
       lines: [line('p1', 'given', '2026-10-02'), prise, report],
       today: '2026-10-12',
     }
-    expect(
+    const result = accepted(
       redateDose(input, { lineId: prise.id, givenOn: '2026-10-11', shiftsFollowing: true }),
-    ).toEqual({
-      refusal: { reason: 'passes-report', on: '2026-10-21' },
-    })
+    )
+    expect(result.followed).toEqual([{ from: '2026-10-21', to: '2026-10-21' }])
+    const rewritten = applied(input, result.changes).lines.find(({ id }) => id === report.id)
+    expect([rewritten?.dueOn, rewritten?.targetOn]).toEqual(['2026-10-18', '2026-10-21'])
     expect(
       accepted(
         redateDose(input, { lineId: prise.id, givenOn: '2026-10-11', shiftsFollowing: false }),

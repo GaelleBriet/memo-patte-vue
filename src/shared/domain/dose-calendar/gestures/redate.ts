@@ -83,7 +83,7 @@ export function redateDose(input: TreatmentViewInput, gesture: RedateGesture): G
       keyOf(other.dueOn, other.dueTime) === keyOf(line.dueOn, line.dueTime),
   )
   const ignored = new Set([...sisters.map(({ id }) => id), ...(own === undefined ? [] : [own.id])])
-  const later = linesAfter(input.lines, line.dueOn, ignored)
+  const later = linesAfter(input, line, ignored)
   const blocked = later.notes.length > 0 || later.others.some(({ status }) => status === 'shift')
   const dayDone = view
     .slots(line.dueOn, line.dueOn)
@@ -116,9 +116,6 @@ export function redateDose(input: TreatmentViewInput, gesture: RedateGesture): G
       offered && shiftsFollowing ? lostToEnd(input, changesFor(false), changes, line.dueOn) : [],
   }
   if (broken.length === 0) return outcome(input, changes, details)
-  if (offered && brokenWith(changesFor(!shiftsFollowing)).length === 0) {
-    return { refusal: { reason: 'passes-report', on: broken[0]!.targetOn! } }
-  }
   const follows: FollowedReport[] = []
   for (const report of broken) {
     const carnet = applied(input, changes)

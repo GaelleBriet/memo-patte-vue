@@ -1,5 +1,6 @@
 import { keyOf, later, plusDays, stepped } from '../grid'
 import { isNote } from '../lines'
+import { episodesOf } from '../settings'
 import type {
   Day,
   Due,
@@ -92,10 +93,11 @@ function planOf(input: TreatmentViewInput, due: Due, shiftsFollowing: boolean): 
   }
   const restInput = existing === undefined ? input : without(input, [existing.id])
   const moved = movedDue(view, buildView(restInput), due, existing)
-  if (moved === null || moved.dueOn < setting.startsOn) return { reason: 'not-movable' }
+  const episode = episodesOf(input.settings).at(-1)!
+  if (moved === null || moved.dueOn < episode[0]!.startsOn) return { reason: 'not-movable' }
   const dayShift = shiftOfDay(input.lines, existing?.dueOn ?? moved.dueOn)
   const ignored = new Set([existing?.id, dayShift?.id].filter((id) => id !== undefined))
-  const after = linesAfter(input.lines, moved.dueOn, ignored)
+  const after = linesAfter(input, moved, ignored)
   if (after.notes.length > 0) return { reason: 'later-dose' }
   if (after.others.length > 0) return { reason: 'later-line' }
   const rest = buildView(restInput)
@@ -106,7 +108,13 @@ function planOf(input: TreatmentViewInput, due: Due, shiftsFollowing: boolean): 
     oneStepBefore(moved, view),
     ...rest.slots(first, plusDays(moved.dueOn, -1)).map(({ due: other }) => other.dueOn),
     ...input.lines
-      .filter((line) => !ignored.has(line.id) && line.status !== 'extra' && line.status !== 'shift')
+      .filter(
+        (line) =>
+          !ignored.has(line.id) &&
+          line.status !== 'extra' &&
+          line.status !== 'shift' &&
+          episode.some(({ id }) => id === line.settingId),
+      )
       .flatMap((line) => [line.dueOn, ...(line.givenOn === null ? [] : [line.givenOn])]),
   ].sort()
   const earliest = [input.today, setting.startsOn, plusDays(before.at(-1)!, 1)].sort().at(-1)!

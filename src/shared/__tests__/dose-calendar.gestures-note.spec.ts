@@ -62,7 +62,7 @@ describe('noter une prise (R5, R6, G19, G20)', () => {
   })
 
   it('R6 : une prise existe plus loin dans le traitement (réglage d’avant compris) : pas de case', () => {
-    const p1 = setting('p1', '2026-10-02', WEEK, [], { stoppedOn: '2026-10-10' })
+    const p1 = setting('p1', '2026-10-02', WEEK)
     const p2 = setting('p2', '2026-10-16', WEEK, [], { startsOn: '2026-10-10' })
     const later = line('p1', 'given', '2026-10-23')
     const result = noteDose(

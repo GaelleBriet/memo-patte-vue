@@ -28,7 +28,11 @@ describe('conséquences d’un geste (G18, G20, G21, R6, R7)', () => {
       line('p1', 'shift', '2026-10-23', null, '2026-10-24'),
       line('p1', 'extra', '2026-10-20'),
     ]
-    const after = linesAfter(lines, '2026-10-16', new Set())
+    const after = linesAfter(
+      { settings: [p1], lines },
+      { settingId: 'p1', dueOn: '2026-10-16' },
+      new Set(),
+    )
     expect([after.notes.length, after.others.length]).toEqual([1, 1])
   })
 

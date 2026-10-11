@@ -55,7 +55,7 @@ function offersShift(input: TreatmentViewInput, view: TreatmentView, due: Due, g
   const sameDay = view.slots(due.dueOn, due.dueOn).filter(({ state }) => state === 'pending')
   if (sameDay.some(({ due: other }) => !sameKey(other))) return false
   const own = shiftOfDay(input.lines, shiftDayOf(view, due))
-  const later = linesAfter(input.lines, due.dueOn, new Set(own === undefined ? [] : [own.id]))
+  const later = linesAfter(input, due, new Set(own === undefined ? [] : [own.id]))
   return later.notes.length === 0 && !later.others.some(({ status }) => status === 'shift')
 }
 
