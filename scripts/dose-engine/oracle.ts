@@ -6,7 +6,7 @@ import { gapsBetween, type Gap, type Reading } from './display'
 import { verdictOf, type Family, type Verdict } from './ecarts'
 import { ENGINES, readWith, type Engine } from './engines'
 import { step } from './walk'
-import { keptBook, startWalk, WalkStopped, type SettingsMode } from './walk-state'
+import { keptBook, startWalk, WalkStopped, type FilterMode, type SettingsMode } from './walk-state'
 
 export type OracleConfig = {
   from: number
@@ -14,6 +14,7 @@ export type OracleConfig = {
   steps: number
   engines: [Engine, Engine]
   settings: SettingsMode
+  filter: FilterMode
   out: string | null
 }
 
@@ -34,6 +35,8 @@ export type OracleRun = {
   carnets: number
   gestures: number
   stopped: { seed: number; reason: string }[]
+  /** Gestes que le moteur v2 refuse, non joués, comptés par raison. */
+  refused: Record<string, number>
   /** Toutes les graines qui divergent, réduites à leur verdict : une série longue en garde des milliers. */
   divergences: Pick<Divergence, 'seed' | 'verdict'>[]
   /** Écarts que ni un ticket ni une décision n'expliquent : ils bloquent. */
@@ -59,7 +62,12 @@ export function oracleConfig(env: Record<string, string | undefined>): OracleCon
   if (settings !== 'avec' && settings !== 'sans') {
     throw new Error(`Oracle illisible : ORACLE_SETTINGS=${settings}`)
   }
+  const filter = env.ORACLE_FILTER ?? 'v2'
+  if (filter !== 'v2' && filter !== 'aucun') {
+    throw new Error(`Oracle illisible : ORACLE_FILTER=${filter}`)
+  }
   return {
+    filter,
     from: positiveInteger('ORACLE_FROM', env.ORACLE_FROM, 530_000_000),
     seeds: positiveInteger('ORACLE_SEEDS', env.ORACLE_SEEDS, 50),
     steps: positiveInteger('ORACLE_STEPS', env.ORACLE_STEPS, 24),
@@ -75,7 +83,7 @@ function compared(config: OracleConfig, book: Book): [Reading, Reading, Gap[]] {
 }
 
 function playCarnet(config: OracleConfig, seed: number, run: OracleRun): Divergence | undefined {
-  const walk = startWalk(seed, config.settings)
+  const walk = startWalk(seed, config.settings, config.filter)
   let divergence: Divergence | undefined
   const check = (before: Book, gesture: string) => {
     if (divergence !== undefined) return
@@ -108,6 +116,9 @@ function playCarnet(config: OracleConfig, seed: number, run: OracleRun): Diverge
     if (!(error instanceof WalkStopped)) throw error
     run.stopped.push({ seed, reason: error.message })
   }
+  for (const { reason } of walk.refused) {
+    run.refused[reason] = (run.refused[reason] ?? 0) + 1
+  }
   return divergence
 }
 
@@ -126,6 +137,7 @@ export function runOracle(config: OracleConfig): OracleRun {
     carnets: 0,
     gestures: 0,
     stopped: [],
+    refused: {},
     divergences: [],
     unaccepted: [],
     families: {},
@@ -145,10 +157,17 @@ export function runOracle(config: OracleConfig): OracleRun {
   const families = Object.entries(run.families)
     .map(([family, count]) => `${family} ${count}`)
     .join(', ')
+  const refusedCount = Object.values(run.refused).reduce((sum, count) => sum + count, 0)
+  const refusals = Object.entries(run.refused)
+    .sort(([, a], [, b]) => b - a)
+    .map(([reason, count]) => `${reason} ${count}`)
+    .join(', ')
   run.summary =
     `Oracle : ${run.carnets} carnets × ${config.steps} gestes, graines ${config.from} à ${last}` +
     ` (${a.name} contre ${b.name}, réglages ${config.settings}) : ${run.gestures} gestes comparés,` +
     ` ${run.divergences.length} écarts dont ${run.unaccepted.length} non rattachés,` +
-    ` ${run.stopped.length} carnets arrêtés${families === '' ? '' : ` ; familles : ${families}`}`
+    ` ${run.stopped.length} carnets arrêtés, ${refusedCount} gestes refusés par v2 non joués` +
+    `${families === '' ? '' : ` ; familles : ${families}`}` +
+    `${refusals === '' ? '' : ` ; refus de v2 : ${refusals}`}`
   return run
 }

@@ -68,19 +68,23 @@ describe('oracle des moteurs de doses', () => {
     [550123096, 'reports-en-boucle'],
     [550248567, 'prise-orpheline'],
     [550250118, 'prise-orpheline'],
-  ])('moteur v2, sans changement de réglage : la graine %i est rattachée à %s', (seed, family) => {
-    const run = runOracle(
-      oracleConfig({
-        ORACLE_ENGINES: 'actuel,v2',
-        ORACLE_SETTINGS: 'sans',
-        ORACLE_FROM: String(seed),
-        ORACLE_SEEDS: '1',
-        ORACLE_STEPS: '40',
-      }),
-    )
-    expect(run.divergences.flatMap(({ verdict }) => verdict.families)).toContain(family)
-    expect(report(run)).toEqual([])
-  })
+  ])(
+    'moteur v2, sans changement de réglage ni filtre : la graine %i est rattachée à %s',
+    (seed, family) => {
+      const run = runOracle(
+        oracleConfig({
+          ORACLE_ENGINES: 'actuel,v2',
+          ORACLE_SETTINGS: 'sans',
+          ORACLE_FILTER: 'aucun',
+          ORACLE_FROM: String(seed),
+          ORACLE_SEEDS: '1',
+          ORACLE_STEPS: '40',
+        }),
+      )
+      expect(run.divergences.flatMap(({ verdict }) => verdict.families)).toContain(family)
+      expect(report(run)).toEqual([])
+    },
+  )
 
   it.each([
     [560001008, 'reglage-meme-frequence'],
@@ -88,18 +92,47 @@ describe('oracle des moteurs de doses', () => {
     [570010320, 'reglage-meme-frequence'],
     [570002709, 'prise-orpheline'],
     [570015902, 'prise-orpheline'],
-  ])('moteur v2, réglages changés : la graine %i est rattachée à %s', (seed, family) => {
-    const run = runOracle(
-      oracleConfig({
-        ORACLE_ENGINES: 'actuel,v2',
-        ORACLE_FROM: String(seed),
-        ORACLE_SEEDS: '1',
-        ORACLE_STEPS: '40',
-      }),
-    )
-    expect(run.divergences.flatMap(({ verdict }) => verdict.families)).toContain(family)
-    expect(report(run)).toEqual([])
-  })
+  ])(
+    'moteur v2, réglages changés, sans filtre : la graine %i est rattachée à %s',
+    (seed, family) => {
+      const run = runOracle(
+        oracleConfig({
+          ORACLE_ENGINES: 'actuel,v2',
+          ORACLE_FILTER: 'aucun',
+          ORACLE_FROM: String(seed),
+          ORACLE_SEEDS: '1',
+          ORACLE_STEPS: '40',
+        }),
+      )
+      expect(run.divergences.flatMap(({ verdict }) => verdict.families)).toContain(family)
+      expect(report(run)).toEqual([])
+    },
+  )
+
+  it.each([
+    [550248567, 'sans'],
+    [550250118, 'sans'],
+    [600018106, 'avec'],
+    [600014163, 'avec'],
+    [600014274, 'avec'],
+    [580001079, 'avec'],
+    [580011308, 'avec'],
+    [580038853, 'avec'],
+  ])(
+    'carnet inatteignable, gestes refusés par v2 non joués : la graine %i ne laisse aucun écart non rattaché',
+    (seed, settings) => {
+      const run = runOracle(
+        oracleConfig({
+          ORACLE_ENGINES: 'actuel,v2',
+          ORACLE_SETTINGS: settings,
+          ORACLE_FROM: String(seed),
+          ORACLE_SEEDS: '1',
+          ORACLE_STEPS: '40',
+        }),
+      )
+      expect(report(run)).toEqual([])
+    },
+  )
 
   it.each([570005085, 570012998])(
     'modèle de référence et moteur v2 : même lecture de la graine %i (réglage de même fréquence parti d’un jour d’arrivée)',
@@ -244,6 +277,7 @@ describe('oracle des moteurs de doses', () => {
     ['ORACLE_ENGINES', 'actuel'],
     ['ORACLE_ENGINES', 'actuel,v3'],
     ['ORACLE_SETTINGS', 'parfois'],
+    ['ORACLE_FILTER', 'v3'],
   ])('un réglage illisible arrête l’oracle avant tout carnet : %s=%s', (name, value) => {
     expect(() => oracleConfig({ [name]: value })).toThrow(/^Oracle illisible/)
   })

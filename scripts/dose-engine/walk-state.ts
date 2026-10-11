@@ -21,6 +21,9 @@ import {
 /** `sans` : un seul réglage, ni « Modifier » ni « Reprendre » ; `avec` : les gestes de la campagne. */
 export type SettingsMode = 'avec' | 'sans'
 
+/** `v2` : les gestes que le moteur v2 refuse ne sont pas joués ; `aucun` : tous les gestes du moteur actuel. */
+export type FilterMode = 'v2' | 'aucun'
+
 /** Un carnet de la campagne d'invariants, mené par le moteur actuel comme l'app le mène. */
 export type Walk = {
   book: Book
@@ -30,6 +33,9 @@ export type Walk = {
   readonly log: string[]
   readonly seed: number
   readonly settings: SettingsMode
+  readonly filter: FilterMode
+  /** Gestes refusés par le moteur v2, avec leur raison. */
+  readonly refused: { gesture: string; reason: string }[]
   readonly random: Random
   readonly shiftRandom: Random
   readonly extraRandom: Random
@@ -39,7 +45,7 @@ export type Walk = {
 
 export class WalkStopped extends Error {}
 
-export function startWalk(seed: number, settings: SettingsMode): Walk {
+export function startWalk(seed: number, settings: SettingsMode, filter: FilterMode = 'v2'): Walk {
   const random = mulberry32(seed)
   const book = newBook(random)
   const endRandom = mulberry32(seed ^ 0x68e31da4)
@@ -50,6 +56,8 @@ export function startWalk(seed: number, settings: SettingsMode): Walk {
     log: [],
     seed,
     settings,
+    filter,
+    refused: [],
     random,
     shiftRandom: mulberry32(seed ^ 0x5f3759df),
     extraRandom: mulberry32(seed ^ 0x2545f491),

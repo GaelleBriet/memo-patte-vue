@@ -145,6 +145,8 @@ export function moveDose(input: TreatmentViewInput, gesture: MoveGesture): Gestu
   if (to < bounds.earliest || (bounds.latest !== null && to > bounds.latest)) {
     return { refusal: { reason: 'out-of-bounds', ...bounds } }
   }
+  if (existing !== undefined && to === existing.targetOn)
+    return outcome(input, [], { offersShift: true })
   const dropShift: LineChange[] =
     dayShift === undefined ? [] : [{ action: 'delete', id: dayShift.id }]
   if (to === moved.dueOn) {

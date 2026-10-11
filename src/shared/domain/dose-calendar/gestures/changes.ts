@@ -4,14 +4,21 @@ import type { Day, Line, LineChange, LineFields, TreatmentViewInput } from '../t
 
 const WRITTEN_AT = '9999-12-31T23:59:59.999Z'
 
-/** Comme le repository : une ligne par réglage, échéance et famille, réécrite si elle existe déjà. */
+const latest = (lines: readonly Line[]): Line | undefined =>
+  [...lines]
+    .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt) || a.id.localeCompare(b.id))
+    .at(-1)
+
+/** Comme le repository : une ligne par réglage, échéance et famille ; la plus récente est réécrite. */
 export function written(lines: readonly Line[], fields: LineFields): LineChange {
   const key = keyOf(fields.dueOn, fields.dueTime)
-  const existing = lines.find(
-    (line) =>
-      line.settingId === fields.settingId &&
-      keyOf(line.dueOn, line.dueTime) === key &&
-      familyOf(line) === familyOf(fields),
+  const existing = latest(
+    lines.filter(
+      (line) =>
+        line.settingId === fields.settingId &&
+        keyOf(line.dueOn, line.dueTime) === key &&
+        familyOf(line) === familyOf(fields),
+    ),
   )
   return existing === undefined
     ? { action: 'create', line: fields }
@@ -20,10 +27,7 @@ export function written(lines: readonly Line[], fields: LineFields): LineChange 
 
 /** R6, G17 : une journée n'a qu'une ligne de décalage, la plus récente. */
 export function shiftOfDay(lines: readonly Line[], day: Day): Line | undefined {
-  return lines
-    .filter((line) => line.status === 'shift' && line.dueOn === day)
-    .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt) || a.id.localeCompare(b.id))
-    .at(-1)
+  return latest(lines.filter((line) => line.status === 'shift' && line.dueOn === day))
 }
 
 /** La ligne de décalage d'une journée, écrite ancrée à ce jour, en réécrivant celle qui existe. */
