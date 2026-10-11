@@ -91,6 +91,7 @@ export type Refusal =
   | { reason: 'no-date-alone' }
   | { reason: 'arrival-logged' }
   | { reason: 'not-movable' }
+  | { reason: 'unknown-due' }
   | { reason: 'out-of-bounds'; earliest: Day; latest: Day | null }
   | { reason: 'too-early'; earliest: Day }
   | { reason: 'day-taken' }

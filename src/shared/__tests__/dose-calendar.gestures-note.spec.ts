@@ -135,4 +135,18 @@ describe('noter une prise (R5, R6, G19, G20)', () => {
     expect(dueForDate(ahead, '2026-10-04', null)).toEqual(due('2026-10-09'))
     expect(() => dueForDate(ahead, '2026-10-05', null)).toThrow(RangeError)
   })
+
+  it('échéance hors du calendrier (le samedi 3) ou partie avec son report (le 9) : refusée, sans lever', () => {
+    const report = line('p1', 'postponed', '2026-10-09', null, '2026-10-10')
+    const input = given([report], '2026-10-10')
+    const noted = (dueOn: string) =>
+      noteDose(input, {
+        due: due(dueOn),
+        status: 'given',
+        givenOn: '2026-10-10',
+        shiftsFollowing: false,
+      })
+    expect(noted('2026-10-03')).toEqual({ refusal: { reason: 'unknown-due' } })
+    expect(noted('2026-10-09')).toEqual({ refusal: { reason: 'unknown-due' } })
+  })
 })

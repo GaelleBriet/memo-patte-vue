@@ -165,4 +165,16 @@ describe('« Prochaine dose » (R7, G6, G7, G8, Q20, Q25, Q2 a)', () => {
       refusal: { reason: 'not-movable' },
     })
   })
+
+  it('échéance hors du calendrier (le 2) ou déjà donnée (le 8) : la dose ne se déplace pas, sans lever', () => {
+    const input = {
+      settings: [hebdo],
+      lines: [line('p1', 'given', '2026-10-08')],
+      today: '2026-10-08',
+    }
+    const moved = (dueOn: string) =>
+      moveDose(input, { due: due(dueOn), to: '2026-10-10', shiftsFollowing: false })
+    expect(moved('2026-10-02')).toEqual({ refusal: { reason: 'not-movable' } })
+    expect(moved('2026-10-08')).toEqual({ refusal: { reason: 'not-movable' } })
+  })
 })

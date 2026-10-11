@@ -41,7 +41,7 @@ function oneStepBefore(due: Due, view: TreatmentView): Day {
 }
 
 // R7, G13, G17 : la dose déplacée, celle que la ligne existante remplace, ou la première heure sans prise de sa journée.
-function movedDue(view: TreatmentView, rest: TreatmentView, due: Due, existing?: Line): Due {
+function movedDue(view: TreatmentView, rest: TreatmentView, due: Due, existing?: Line): Due | null {
   const pendingOn = (read: TreatmentView, day: Day) =>
     read
       .slots(day, day)
@@ -49,12 +49,10 @@ function movedDue(view: TreatmentView, rest: TreatmentView, due: Due, existing?:
       .map((slot) => slot.due)
   if (existing === undefined) {
     const sameDay = pendingOn(view, due.dueOn)
-    if (
-      !sameDay.some((other) => keyOf(other.dueOn, other.dueTime) === keyOf(due.dueOn, due.dueTime))
-    ) {
-      throw new RangeError(`Échéance inconnue du calendrier : ${keyOf(due.dueOn, due.dueTime)}`)
-    }
-    return sameDay[0]!
+    const known = sameDay.some(
+      (other) => keyOf(other.dueOn, other.dueTime) === keyOf(due.dueOn, due.dueTime),
+    )
+    return known ? sameDay[0]! : null
   }
   if (due.dueOn === existing.dueOn && due.dueOn !== existing.targetOn) {
     return pendingOn(rest, due.dueOn)[0] ?? due
@@ -94,7 +92,7 @@ function planOf(input: TreatmentViewInput, due: Due, shiftsFollowing: boolean): 
   }
   const restInput = existing === undefined ? input : without(input, [existing.id])
   const moved = movedDue(view, buildView(restInput), due, existing)
-  if (moved.dueOn < setting.startsOn) return { reason: 'not-movable' }
+  if (moved === null || moved.dueOn < setting.startsOn) return { reason: 'not-movable' }
   const dayShift = shiftOfDay(input.lines, existing?.dueOn ?? moved.dueOn)
   const ignored = new Set([existing?.id, dayShift?.id].filter((id) => id !== undefined))
   const after = linesAfter(input.lines, moved.dueOn, ignored)

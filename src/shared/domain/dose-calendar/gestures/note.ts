@@ -77,9 +77,8 @@ export function noteDose(input: TreatmentViewInput, gesture: NoteGesture): Gestu
   const { due, status, givenOn, shiftsFollowing } = gesture
   checkPast(givenOn, input.today)
   const view = buildView(input)
-  if (['moved', 'removed'].includes(view.dueState(due))) {
-    throw new RangeError(`Échéance inconnue du calendrier : ${keyOf(due.dueOn, due.dueTime)}`)
-  }
+  if (['moved', 'removed'].includes(view.dueState(due)))
+    return { refusal: { reason: 'unknown-due' } }
   if (status === 'given' && isExtra(view, due, givenOn)) {
     const extra: LineFields = {
       settingId: due.settingId,

@@ -25,6 +25,7 @@ const TEXTS: Record<Refusal['reason'], string[]> = {
   'no-date-alone': ['treatments.form.errors.nextDoseOnRefused', 'treatments.shift.aloneLatest'],
   'arrival-logged': ['treatments.form.nextDoseOn.refusal.arrivalLogged'],
   'not-movable': ['treatments.form.errors.nextDoseOnRefused'],
+  'unknown-due': [],
   'out-of-bounds': ['treatments.shift.aloneLatest'],
   'too-early': [],
   'day-taken': [],
@@ -50,7 +51,7 @@ const textOf = (messages: Record<string, unknown>, key: string) =>
 
 describe('refus des gestes, textes existants', () => {
   it.each(['fr', 'en'])(
-    'chaque refus a un texte existant en %s (jours grisés pour « too-early » et « day-taken »)',
+    'chaque refus a un texte existant en %s (jours grisés pour « too-early » et « day-taken », échéance que l’écran ne propose pas pour « unknown-due »)',
     (name) => {
       const messages = locale(name)
       const missing = Object.values(TEXTS)
