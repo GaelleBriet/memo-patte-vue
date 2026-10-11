@@ -163,6 +163,16 @@ describe('« Changer la date » d’une prise (TR-24 bis, Q-C1, G12, G19, G21)',
     expect(result.followed).toEqual([{ from: '2026-10-27', to: '2026-10-27' }])
   })
 
+  it('G19, TR-24 : dose du 23 reportée seule au 27 ; le 20, la prise en plus du 12 corrigée au 19, cochée : elle devient la dose du 16 et le report suit', () => {
+    const extra = line('p1', 'extra', '2026-10-12')
+    const report = line('p1', 'postponed', '2026-10-23', null, '2026-10-27')
+    const input = { settings: [p1], lines: [...base, extra, report], today: '2026-10-20' }
+    const result = accepted(
+      redateDose(input, { lineId: extra.id, givenOn: '2026-10-19', shiftsFollowing: true }),
+    )
+    expect(result.followed).toEqual([{ from: '2026-10-27', to: '2026-10-27' }])
+  })
+
   it('TR-24 : une prise en plus redatée vise ce que viserait une prise notée ce jour-là', () => {
     const extra = line('p1', 'extra', '2026-10-05')
     const input = { settings: [p1], lines: [...base, extra], today: '2026-10-17' }

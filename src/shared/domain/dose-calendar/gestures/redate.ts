@@ -23,7 +23,7 @@ function redateExtra(
   extra: Line,
   gesture: RedateGesture,
 ): GestureResult {
-  const { givenOn, shiftsFollowing } = gesture
+  const { givenOn } = gesture
   if (givenOn === extra.givenOn) return outcome(input, [])
   const taken = input.lines.some(
     (line) =>
@@ -48,16 +48,13 @@ function redateExtra(
     },
   }
   if (due === null) return outcome(input, [moved])
-  const noted = noteDose(rest, { due, status: 'given', givenOn, shiftsFollowing })
-  if ('refusal' in noted) return noted
-  const stillExtra = noted.changes.some(
+  const plain = noteDose(rest, { due, status: 'given', givenOn, shiftsFollowing: false })
+  if ('refusal' in plain) return plain
+  const stillExtra = plain.changes.some(
     (change) => change.action !== 'delete' && change.line.status === 'extra',
   )
   if (stillExtra) return outcome(input, [moved])
-  return outcome(input, [{ action: 'delete', id: extra.id }, ...noted.changes], {
-    offersShift: noted.offersShift,
-    lostToEnd: noted.lostToEnd,
-  })
+  return redateAsNote(input, rest, extra, [], due, gesture)
 }
 
 type Details = { offersShift: boolean; lostToEnd: Day[] }
