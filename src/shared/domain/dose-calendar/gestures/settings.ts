@@ -199,9 +199,10 @@ function corrected(
   const dates = proposedDates(input, current, request, fallback)
   if ('refusal' in dates) return dates
   const first = request.firstDueOn ?? (asked ? today : later(dates.firstDueOn, today))
+  const startsOn = first < current.startsOn ? first : current.startsOn
   const correct = rewrite(
     current,
-    fieldsOf(current.startsOn, { firstDueOn: first, gridOriginOn: first }, request),
+    fieldsOf(startsOn, { firstDueOn: first, gridOriginOn: first }, request),
   )
   if (fallen.length === 0) return { plan: correct }
   return { question: { fallen, keep: create(dates), correct } }

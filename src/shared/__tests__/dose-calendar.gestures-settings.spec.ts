@@ -280,4 +280,16 @@ describe('TR-28, Q38, Q39 : un réglage sans prise', () => {
       },
     })
   })
+
+  it('pas encore commencé : une première dose choisie plus tôt avance aussi le début du réglage', () => {
+    const ahead = setting('p1', '2026-10-10', WEEK)
+    const input = { settings: [ahead], lines: [], today: '2026-10-05' }
+    expect(newSettings(input, request(DAY, [], '2026-10-06'))).toEqual({
+      plan: {
+        action: 'rewrite',
+        id: 'p1',
+        setting: expect.objectContaining({ startsOn: '2026-10-06', firstDueOn: '2026-10-06' }),
+      },
+    })
+  })
 })
