@@ -511,6 +511,30 @@ describe('R3 : une date choisie sur la grille d’un décalage à venir continue
       next([s1, s2], lines, '2026-03-29', 4),
     )
   })
+
+  it('R9 : le 27, première dose choisie le 25 juin : le 20 mars reste en retard, les 25 avr. et 25 mai ne sont plus dus', () => {
+    expect(next([s1, s2], lines, '2026-03-27')).toEqual([
+      '2026-03-20 20:00',
+      '2026-06-25 20:00',
+      '2026-07-25 20:00',
+    ])
+  })
+})
+
+describe('R2, R9 : une date choisie sur la grille en vigueur est la première échéance', () => {
+  const monday = setting('m1', '2026-10-05', WEEK)
+  const lines = [line('m1', 'given', '2026-10-05')]
+
+  it('hebdo du lundi, dose du 5 donnée ; le 7, posologie, première dose choisie le lundi 19 : 19, 26', () => {
+    const chosen = setting('m2', '2026-10-19', WEEK, [], { startsOn: '2026-10-07' })
+    expect(next([monday, chosen], lines, '2026-10-07', 2)).toEqual(['2026-10-19', '2026-10-26'])
+  })
+
+  it('Q38 corrigé : le réglage du 6 réécrit à 9 h, première dose le lundi 19 : le 12 sort du carnet', () => {
+    const corrected = setting('m2', '2026-10-19', WEEK, ['09:00'], { startsOn: '2026-10-06' })
+    const reading = read([monday, corrected], lines, '2026-10-14')
+    expect([reading.current, reading.unlogged]).toEqual([['2026-10-19 09:00'], []])
+  })
 })
 
 describe('R9, Q-retard : un traitement fini avant la modification garde ses doses à renseigner', () => {

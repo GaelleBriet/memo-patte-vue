@@ -30,7 +30,7 @@ export function setting(
     stoppedOn: null,
     frequency,
     times,
-    createdAt: `2026-01-01T00:00:${String(stamp).padStart(2, '0')}.000Z`,
+    createdAt: `2026-01-01T00:${String(Math.floor(stamp / 60)).padStart(2, '0')}:${String(stamp % 60).padStart(2, '0')}.000Z`,
     ...extra,
   }
 }
@@ -50,7 +50,7 @@ export function line(
     dueTime,
     status,
     targetOn,
-    updatedAt: `2026-01-01T00:01:${String(stamp).padStart(2, '0')}.000Z`,
+    updatedAt: `2026-01-01T01:${String(Math.floor(stamp / 60)).padStart(2, '0')}:${String(stamp % 60).padStart(2, '0')}.000Z`,
   }
 }
 

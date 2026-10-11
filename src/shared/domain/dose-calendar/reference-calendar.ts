@@ -76,6 +76,7 @@ export function calendarOf(
   // R9, Q-retard : les réglages de même fréquence continuent le rythme, et sa dose en retard.
   let rhythm = new Set<string>()
   let rhythmFrom = live[0]!.startsOn
+  let chosenFloor = ''
   chain.forEach((setting, position) => {
     const index = live.indexOf(setting)
     const end = index < 0 ? setting.startsOn : endOf(index)
@@ -117,11 +118,16 @@ export function calendarOf(
       const follows = chain.slice(0, position).some((each) => live.includes(each))
       if (follows && setting.firstDueOn >= setting.startsOn) openings.add(setting.firstDueOn)
     }
+    // R2, R9 : une origine posée sur la grille en vigueur ne lit aucune journée avant sa première
+    // échéance, ni ses suivants de même rythme, pas même après un décalage.
+    chosenFloor = !continued ? '' : origin !== null ? ownFloor : chosenFloor
     rhythm = continued ? new Set([...rhythm, setting.id]) : new Set([setting.id])
     grid = continued
       ? {
           origin: grid.origin,
-          floor: chosenStart ? ownFloor : later(grid.floor, plusDays(setting.startsOn, -1)),
+          floor: chosenStart
+            ? ownFloor
+            : later(grid.floor, later(chosenFloor, plusDays(setting.startsOn, -1))),
         }
       : { origin: setting.gridOriginOn ?? setting.firstDueOn, floor: ownFloor }
     if (index < 0) return
@@ -146,7 +152,10 @@ export function calendarOf(
         days.set(day, { setting, hours: hoursOf(setting) })
       }
       if (turn === null) break
-      grid = { origin: turn.targetOn!, floor: later(turn.dueOn, turn.targetOn!) }
+      grid = {
+        origin: turn.targetOn!,
+        floor: later(chosenFloor, later(turn.dueOn, turn.targetOn!)),
+      }
       from = plusDays(turn.dueOn, 1)
     }
     if (

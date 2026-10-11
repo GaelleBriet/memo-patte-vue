@@ -21,6 +21,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   let grid = { origin: chain[0]!.firstDueOn, floor: '' }
   let rhythm = new Set<string>()
   let rhythmFrom = span.live[0]!.startsOn
+  let chosenFloor = ''
   chain.forEach((setting, position) => {
     const index = span.live.indexOf(setting)
     const end = index < 0 ? setting.startsOn : span.endOf(index)
@@ -57,11 +58,16 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       const follows = chain.slice(0, position).some((each) => span.live.includes(each))
       if (follows && setting.firstDueOn >= setting.startsOn) openings.add(setting.firstDueOn)
     }
+    // R2, R9 : une origine posée sur la grille en vigueur ne lit aucune journée avant sa première
+    // échéance, ni ses suivants de même rythme, pas même après un décalage.
+    chosenFloor = !continued ? '' : origin !== null ? ownFloor : chosenFloor
     rhythm = continued ? new Set([...rhythm, setting.id]) : new Set([setting.id])
     grid = continued
       ? {
           origin: grid.origin,
-          floor: chosenStart ? ownFloor : later(grid.floor, plusDays(setting.startsOn, -1)),
+          floor: chosenStart
+            ? ownFloor
+            : later(grid.floor, later(chosenFloor, plusDays(setting.startsOn, -1))),
         }
       : { origin: origin ?? setting.firstDueOn, floor: ownFloor }
     if (index < 0) return
@@ -86,7 +92,10 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       }
       if (turn === null) break
       effects.set(turn.id, { kind: 'shifts', from: turn.dueOn })
-      grid = { origin: turn.targetOn!, floor: later(turn.dueOn, turn.targetOn!) }
+      grid = {
+        origin: turn.targetOn!,
+        floor: later(chosenFloor, later(turn.dueOn, turn.targetOn!)),
+      }
       from = plusDays(turn.dueOn, 1)
     }
     if (
