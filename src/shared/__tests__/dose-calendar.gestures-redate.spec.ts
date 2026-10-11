@@ -192,3 +192,33 @@ describe('« Changer la date » d’une prise (TR-24 bis, Q-C1, G12, G19, G21)',
     })
   })
 })
+
+describe('Q-C1, TR-32 : la correction d’une prise d’une période arrêtée (relecture du pas 3)', () => {
+  it.each([true, false])(
+    'hebdo, dose du 2 oct. donnée, arrêt le 5, reprise le 12 (première dose le 16) ; le 20, la prise du 2 corrigée au 17, case %s : elle reste la dose du 2, la reprise ne bouge pas',
+    (checked) => {
+      const first = setting('p1', '2026-10-02', WEEK, [], { stoppedOn: '2026-10-05' })
+      const resumed = setting('p2', '2026-10-16', WEEK, [], { startsOn: '2026-10-12' })
+      const prise = line('p1', 'given', '2026-10-02')
+      const input = { settings: [first, resumed], lines: [prise], today: '2026-10-20' }
+      const gesture = { lineId: prise.id, givenOn: '2026-10-17', shiftsFollowing: checked }
+      const after = applied(input, accepted(redateDose(input, gesture)).changes)
+      expect(after.lines.filter(({ settingId }) => settingId === 'p2')).toEqual([])
+      const rewritten = after.lines.find(({ id }) => id === prise.id)
+      expect([rewritten?.dueOn, rewritten?.givenOn]).toEqual(['2026-10-02', '2026-10-17'])
+      expect(after.lines.map(({ status }) => status)).toEqual(['given'])
+      const read = treatmentView(after)
+      expect([keys(read.currentDoses), keys(read.unloggedDoses)]).toEqual([['2026-10-16'], []])
+      expect(keys(read.upcoming({ limit: 1 }))).toEqual(['2026-10-23'])
+    },
+  )
+
+  it('R6 : arrêté le 20 sans reprise, la prise du 16 corrigée au 18 : pas de case, aucun décalage écrit', () => {
+    const stopped = setting('p1', '2026-10-02', WEEK, [], { stoppedOn: '2026-10-20' })
+    const lines = [...base, line('p1', 'given', '2026-10-16')]
+    const input = { settings: [stopped], lines, today: '2026-10-22' }
+    const gesture = { lineId: lines[2]!.id, givenOn: '2026-10-18', shiftsFollowing: true }
+    const result = accepted(redateDose(input, gesture))
+    expect([result.offersShift, result.changes.length]).toEqual([false, 1])
+  })
+})

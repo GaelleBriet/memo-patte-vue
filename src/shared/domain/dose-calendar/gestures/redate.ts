@@ -9,6 +9,7 @@ import type {
   LineChange,
   TreatmentViewInput,
 } from '../types'
+import { episodeIdsOf } from '../settings'
 import { buildView } from '../view'
 import { applied, shiftOfDay, shiftWritten, without } from './changes'
 import { checkPast, dueForDate, noteDose } from './note'
@@ -88,15 +89,16 @@ function withFollowed(
   return outcome(input, changes, { ...details, followed: follows })
 }
 
-// Q-C1 : une prise en retard ne couvre qu'une dose ; corrigée après une échéance passée encore sans prise, elle vise la dose que « Fait à une autre date » noterait ce jour-là.
+// Q-C1 : une prise en retard ne couvre qu'une dose ; corrigée après une échéance passée encore sans prise de sa période, elle vise la dose que « Fait à une autre date » noterait ce jour-là.
 function lateTarget(rest: TreatmentViewInput, line: Line, givenOn: Day): Due | null {
+  const episode = episodeIdsOf(rest.settings, line.settingId)
   const spans = buildView(rest)
     .slots(plusDays(line.dueOn, 1), givenOn)
-    .some(({ state }) => state === 'pending')
+    .some(({ due, state }) => state === 'pending' && episode.has(due.settingId))
   if (!spans) return null
   return (
     [dueForDate(rest, givenOn, line.dueTime), dueForDate(rest, givenOn, null)].find(
-      (due) => due !== null && due.dueOn <= givenOn,
+      (due) => due !== null && due.dueOn <= givenOn && episode.has(due.settingId),
     ) ?? null
   )
 }
@@ -168,7 +170,10 @@ export function redateDose(input: TreatmentViewInput, gesture: RedateGesture): G
   const dayDone = view
     .slots(line.dueOn, line.dueOn)
     .every(({ due: other, state }) => state !== 'pending' || other.dueTime === line.dueTime)
-  const offered = givenOn !== line.dueOn && !blocked && dayDone
+  const closed =
+    view.phase === 'stopped' ||
+    !episodeIdsOf(input.settings, line.settingId).has(view.currentSetting?.id ?? '')
+  const offered = givenOn !== line.dueOn && !blocked && dayDone && !closed
   const prise: LineChange = {
     action: 'rewrite',
     id: line.id,
