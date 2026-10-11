@@ -165,9 +165,11 @@ export function symmetry(input: TreatmentViewInput, random: Random): Broken | nu
   const view = treatmentView(input)
   const due = view.currentDoses.find(({ dueOn }) => dueOn <= input.today)
   if (due === undefined) return null
-  // Un décalage déjà posé sur la journée : la spec ne dit pas s'il appartient à la prise corrigée.
+  // Question ouverte (rapport du pas 3) : un décalage ancré au jour du tap part avec la prise corrigée, sans dire qui l'a écrit.
   const shiftDay = shiftDayOf(view, due)
-  if (input.lines.some(({ status, dueOn }) => status === 'shift' && dueOn === shiftDay)) return null
+  const anchoredToday = ({ status, dueOn, targetOn }: Line) =>
+    status === 'shift' && dueOn === shiftDay && targetOn === input.today
+  if (input.lines.some(anchoredToday)) return null
   const givenOn = plusDays(input.today, -int(random, 0, 6))
   const boundary = view.extraBoundary(due)
   if (boundary !== null && givenOn < boundary) return null
@@ -203,6 +205,9 @@ export function symmetry(input: TreatmentViewInput, random: Random): Broken | nu
     shiftsFollowing: checked,
   })
   const label = `symétrie (${dueKey(due)} le ${givenOn}, case ${checked ? 'cochée' : 'décochée'})`
+  // G19 : « Fait à une autre date » coché refuse de faire passer un report seul, la correction le fait suivre.
+  const g19 = 'refusal' in direct && direct.refusal.reason === 'passes-report'
+  if (g19 && !('refusal' in redated) && redated.followed.length > 0) return null
   if ('refusal' in direct || 'refusal' in redated) {
     const reasons = [
       'refusal' in direct ? direct.refusal.reason : 'accepté',
@@ -210,7 +215,6 @@ export function symmetry(input: TreatmentViewInput, random: Random): Broken | nu
     ]
     return reasons[0] === reasons[1] ? null : { invariant: label, detail: reasons.join(' ≠ ') }
   }
-  if (redated.followed.length > 0) return null
   const until = horizonOf(input)
   const read = (carnet: TreatmentViewInput) => {
     const after = treatmentView(carnet)

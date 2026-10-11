@@ -136,6 +136,33 @@ describe('« Changer la date » d’une prise (TR-24 bis, Q-C1, G12, G19, G21)',
     ).toHaveLength(1)
   })
 
+  it('G19 : dose du 23 reportée seule au 27 ; le 20, « Fait à une autre date » le 19 coché est refusé, la correction vers le 19 fait suivre le report', () => {
+    const report = line('p1', 'postponed', '2026-10-23', null, '2026-10-27')
+    const input = { settings: [p1], lines: [...base, report], today: '2026-10-20' }
+    const dose = { settingId: 'p1', dueOn: '2026-10-16', dueTime: null }
+    expect(
+      noteDose(input, { due: dose, status: 'given', givenOn: '2026-10-19', shiftsFollowing: true }),
+    ).toEqual({ refusal: { reason: 'passes-report', on: '2026-10-27' } })
+    const tapped = applied(
+      input,
+      accepted(
+        noteDose(input, {
+          due: dose,
+          status: 'given',
+          givenOn: '2026-10-20',
+          shiftsFollowing: false,
+        }),
+      ).changes,
+    )
+    const prise = tapped.lines.find(
+      ({ status, dueOn }) => status === 'given' && dueOn === '2026-10-16',
+    )!
+    const result = accepted(
+      redateDose(tapped, { lineId: prise.id, givenOn: '2026-10-19', shiftsFollowing: true }),
+    )
+    expect(result.followed).toEqual([{ from: '2026-10-27', to: '2026-10-27' }])
+  })
+
   it('TR-24 : une prise en plus redatée vise ce que viserait une prise notée ce jour-là', () => {
     const extra = line('p1', 'extra', '2026-10-05')
     const input = { settings: [p1], lines: [...base, extra], today: '2026-10-17' }
