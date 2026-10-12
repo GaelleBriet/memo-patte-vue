@@ -9,6 +9,28 @@ export type JourneyInput = { span: Span; lines: EpisodeLines; reach: Day }
 
 type Segment = { origin: Day; from: Day; to: Day | null }
 
+type Claim = { setting: Setting; end: Day | null; segments: Segment[] }
+
+// R1, R4 : une journée d'origine d'un report ou de fin de réglage, sortie du calendrier, se lit avec
+// le dernier réglage dont elle était une journée.
+function leftDays(claims: readonly Claim[], held: ReadonlySet<Day>, stop: Day | null) {
+  const left = new Map<Day, Journey>()
+  for (const { setting, segments } of claims) {
+    for (const day of held) {
+      const open =
+        (setting.endsOn === null || day <= setting.endsOn) && (stop === null || day < stop)
+      const wasDay = segments.some(
+        (segment) =>
+          day >= segment.from &&
+          (segment.to === null || day <= segment.to) &&
+          isOnGrid(segment.origin, setting.frequency, day),
+      )
+      if (open && wasDay) left.set(day, { setting, hours: hoursOf(setting.times) })
+    }
+  }
+  return left
+}
+
 export const sameHours = (a: Setting, b: Setting) =>
   hoursOf(a.times).join() === hoursOf(b.times).join()
 
@@ -18,8 +40,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   const { chain } = span
   const days = new Map<Day, Journey>()
   const translated = new Map<Day, string>()
-  const left = new Map<Day, Journey>()
-  const stop = span.endOf(span.live.length - 1)
+  const claims: Claim[] = []
   const held = new Set([
     ...lines.reports.map(({ dueOn }) => dueOn),
     ...span.live.map((_, index) => span.endOf(index)).filter((day) => day !== null),
@@ -53,6 +74,11 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       previous !== undefined &&
       sameFrequency(previous.frequency, setting.frequency) &&
       (origin === null || isOnGrid(inForce, setting.frequency, origin))
+    // R3 : une grille que ce réglage continue n'appartient plus au précédent après sa fin.
+    const claimed = claims.at(-1)
+    if (continued && claimed !== undefined && claimed.end !== null) {
+      if (rhythm.has(claimed.setting.id)) claimed.segments.at(-1)!.to = plusDays(claimed.end, -1)
+    }
     if (index > 0 && !sameHours(span.live[index - 1]!, setting)) {
       translated.set(setting.startsOn, setting.id).set(setting.firstDueOn, setting.id)
     }
@@ -105,24 +131,11 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       }
       from = plusDays(turn.dueOn, 1)
     }
-    // R1, R4 : une journée d'origine d'un report ou de fin de réglage, sortie du calendrier, se lit
-    // avec le dernier réglage dont elle était une journée.
-    for (const day of held) {
-      const wasDay = segments.some(
-        (segment) =>
-          day >= segment.from &&
-          (segment.to === null || day <= segment.to) &&
-          isOnGrid(segment.origin, setting.frequency, day),
-      )
-      const open =
-        (setting.endsOn === null || day <= setting.endsOn) && (stop === null || day < stop)
-      if (wasDay && open) {
-        left.set(day, { setting, hours: hoursOf(setting.times) })
-      }
-    }
+    claims.push({ setting, end, segments })
   })
   for (const shift of lines.shifts) {
     if (!effects.has(shift.id)) effects.set(shift.id, { kind: 'idle', reason: 'overtaken' })
   }
+  const left = leftDays(claims, held, span.endOf(span.live.length - 1))
   return { days, translated, left, openings, rhythmFrom }
 }

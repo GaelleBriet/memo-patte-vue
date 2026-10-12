@@ -67,6 +67,10 @@ export function calendarOf(
   // R1, R4 : sortie du calendrier, une journée d'origine d'un report ou de fin de réglage se lit
   // avec le dernier réglage dont elle était une journée.
   const left = new Map<string, Journey>()
+  type Segment = { origin: string; from: string; to: string | null }
+  const claims: { setting: ReferenceSetting; end: string | null; segments: Segment[] }[] = []
+  // R3 : une grille continuée par le réglage suivant ne lui appartient plus après sa fin.
+  const continuedAfter = new Set<ReferenceSetting>()
   const stop = endOf(live.length - 1)
   const held = new Set([
     ...reports.map(({ dueOn }) => dueOn),
@@ -127,6 +131,10 @@ export function calendarOf(
     // R2, R9 : une origine posée sur la grille en vigueur ne lit aucune journée avant sa première
     // échéance, ni ses suivants de même rythme, pas même après un décalage.
     chosenFloor = !continued ? '' : origin !== null ? ownFloor : chosenFloor
+    const claimed = claims.at(-1)
+    if (continued && claimed !== undefined && rhythm.has(claimed.setting.id)) {
+      continuedAfter.add(claimed.setting)
+    }
     rhythm = continued ? new Set([...rhythm, setting.id]) : new Set([setting.id])
     grid = continued
       ? {
@@ -147,7 +155,7 @@ export function calendarOf(
         (!earlier.has(shift.settingId) || (continued && rhythm.has(shift.settingId))),
     )
     let from = setting.startsOn
-    const segments: { origin: string; from: string; to: string | null }[] = []
+    const segments: Segment[] = []
     for (const turn of [...turns, null]) {
       const to = turn === null ? last : turn.dueOn < last ? turn.dueOn : last
       const start = later(from, plusDays(grid.floor, 1))
@@ -162,6 +170,11 @@ export function calendarOf(
       }
       from = plusDays(turn.dueOn, 1)
     }
+    claims.push({ setting, end, segments })
+  })
+
+  for (const { setting, end, segments } of claims) {
+    if (end !== null && continuedAfter.has(setting)) segments.at(-1)!.to = plusDays(end, -1)
     for (const day of held) {
       const open =
         (setting.endsOn === null || day <= setting.endsOn) && (stop === null || day < stop)
@@ -173,7 +186,7 @@ export function calendarOf(
       )
       if (open && wasDay) left.set(day, { setting, hours: hoursOf(setting) })
     }
-  })
+  }
 
   // R4 : une prise couvre son échéance ; le jour où les heures changent, celles qui visaient l'ancien
   // réglage couvrent les premières heures du nouveau, à hauteur de leur nombre.
