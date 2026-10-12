@@ -42,8 +42,7 @@ export function withChosenDate(
   if (implicitDays(implicit()).includes(chosen)) return result
   const lines = arrivalMoved(input, chosen)
   if (lines.length === 0) return result
-  const carry = (plan: SettingsPlan) =>
-    plan.setting.firstDueOn === chosen ? { ...plan, lines } : plan
+  const carry = (plan: SettingsPlan) => ({ ...plan, lines })
   if ('plan' in result) return { ...result, plan: carry(result.plan) }
   const { keep, correct } = result.question
   return { ...result, question: { ...result.question, keep: carry(keep), correct: carry(correct) } }
