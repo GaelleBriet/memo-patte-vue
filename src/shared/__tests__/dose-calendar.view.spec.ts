@@ -52,6 +52,16 @@ describe('R12 : la lecture d’un traitement', () => {
     expect(given.stoppedBeforeFirstDose).toBe(false)
   })
 
+  it('arrêté le jour de sa première échéance : la dose était due, « Arrêté le … » (#594, 2026-10-08)', () => {
+    const p1 = setting('p1', '2026-10-07', DAY, [], { stoppedOn: '2026-10-07' })
+    const read = view([p1], [], '2026-10-07')
+    expect([read.phase, read.stoppedBeforeFirstDose, read.endedOn]).toEqual([
+      'stopped',
+      false,
+      '2026-10-07',
+    ])
+  })
+
   it('date de fin atteinte : fini à la date de fin', () => {
     const p1 = setting('p1', '2026-10-01', DAY, [], { endsOn: '2026-10-02' })
     const lines = [line('p1', 'given', '2026-10-01'), line('p1', 'given', '2026-10-02')]
