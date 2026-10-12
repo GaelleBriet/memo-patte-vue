@@ -1,17 +1,19 @@
-import { currentPeriodOf, endedOnOf } from './treatment-schedule-adapter'
 import { isResumablePhase } from './treatment-resumption'
 import { periodRhythmText } from './treatment-rhythm'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { ExactRemindersStatus } from '@/core/notifications'
 import { currentDoseText } from '@/shared/domain/current-dose'
+import type { Phase, TreatmentView } from '@/shared/domain/dose-calendar'
 import { dosageText } from '@/shared/domain/dosage'
-import { isStoppedBeforeFirstDose } from '@/shared/domain/treatment-end'
-import type { Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import { currentPeriodIn } from '@/shared/domain/treatment-reading'
 import { formatClockTime, formatDayMonthOrYear } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
+/** L'échéance telle que les gestes de la fiche la reçoivent encore (pas 6 de l'épic #758). */
+type GestureDue = { periodId: string; dueOn: string; dueTime: string | null }
+
 export type DoseCardEntry = {
-  due: Due
+  due: GestureDue
   /** `null` pour une dose en retard. */
   label: string | null
   value: string | null
@@ -27,24 +29,24 @@ export type DoseCard = {
   end: { label: string | null; value: string | null } | null
 }
 
-type CardSchedule = Pick<
-  TreatmentSchedule,
-  'phase' | 'currentDoses' | 'currentPeriodId' | 'doses' | 'unloggedDoses'
+type CardView = Pick<
+  TreatmentView,
+  'phase' | 'currentDoses' | 'currentSetting' | 'endedOn' | 'stoppedBeforeFirstDose'
 >
 
 export function doseCard(
   t: Translate,
   treatment: Pick<TreatmentWithHistory, 'name' | 'periods'>,
-  schedule: CardSchedule,
+  view: CardView,
   { animal, today }: { animal: string; today: string },
 ): DoseCard {
-  const period = currentPeriodOf(treatment, schedule)
-  const { phase } = schedule
+  const period = currentPeriodIn(treatment.periods, view)
+  const { phase } = view
   const named = { name: treatment.name, animal }
-  const entries = schedule.currentDoses.map((due): DoseCardEntry => {
+  const entries = view.currentDoses.map(({ settingId, ...due }): DoseCardEntry => {
     const date = formatDayMonthOrYear(due.dueOn, today)
     return {
-      due,
+      due: { periodId: settingId, ...due },
       ...currentDoseText(t, { phase, due, today }),
       overdue: phase === 'overdue',
       doneLabel:
@@ -68,10 +70,9 @@ export function doseCard(
             phase,
             due: null,
             today,
-            stoppedOn: period?.stoppedOn ?? null,
-            stoppedBeforeFirstDose:
-              period !== null && isStoppedBeforeFirstDose(period, treatment.periods, schedule),
-            endsOn: endedOnOf(treatment, schedule, today),
+            stoppedOn: view.currentSetting?.stoppedOn ?? null,
+            stoppedBeforeFirstDose: view.stoppedBeforeFirstDose,
+            endsOn: phase === 'ended' ? view.endedOn : null,
           }),
   }
 }
@@ -80,16 +81,16 @@ export function doseCard(
 export function lessPreciseReminder(
   t: Translate,
   treatment: Pick<TreatmentWithHistory, 'periods'>,
-  schedule: CardSchedule,
+  view: Pick<TreatmentView, 'currentDoses' | 'currentSetting'>,
   exact: ExactRemindersStatus | null,
 ): string | null {
-  if (exact !== 'removed' || schedule.currentDoses.length === 0) return null
-  const period = currentPeriodOf(treatment, schedule)
+  if (exact !== 'removed' || view.currentDoses.length === 0) return null
+  const period = currentPeriodIn(treatment.periods, view)
   if (period === null || period.times.length === 0) return null
   return t(`treatments.detail.reminder.lessPrecise.${period.reminderOffsetMinutes ?? 0}`)
 }
 
-export function detailActions({ phase }: Pick<TreatmentSchedule, 'phase'>) {
+export function detailActions({ phase }: { phase: Phase }) {
   return {
     canEdit: phase !== 'stopped',
     canStop: phase !== 'stopped' && phase !== 'ended',

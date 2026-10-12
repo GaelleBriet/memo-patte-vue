@@ -45,9 +45,8 @@ const router = useRouter()
 const route = useRoute()
 const animals = useAnimalsStore()
 
-const { treatment, schedule, today, refreshToday, state, unreadable, reload } = useTreatmentDetail(
-  () => props.id,
-)
+const { treatment, schedule, view, today, refreshToday, state, unreadable, reload } =
+  useTreatmentDetail(() => props.id)
 const gestures = useTreatmentGestures(() => {
   refreshToday()
   void reload()
@@ -91,16 +90,16 @@ const subtitle = computed(() =>
     : null,
 )
 const card = computed(() =>
-  treatment.value && schedule.value
-    ? doseCard(t, treatment.value, schedule.value, {
+  treatment.value && view.value
+    ? doseCard(t, treatment.value, view.value, {
         animal: named.value.animal,
         today: today.value,
       })
     : null,
 )
 const lessPrecise = computed(() =>
-  treatment.value && schedule.value
-    ? lessPreciseReminder(t, treatment.value, schedule.value, exactReminders.status.value)
+  treatment.value && view.value
+    ? lessPreciseReminder(t, treatment.value, view.value, exactReminders.status.value)
     : null,
 )
 const history = computed(() =>
@@ -108,7 +107,7 @@ const history = computed(() =>
     ? treatmentHistory(t, treatment.value, schedule.value, today.value)
     : null,
 )
-const actions = computed(() => (schedule.value ? detailActions(schedule.value) : null))
+const actions = computed(() => (view.value ? detailActions(view.value) : null))
 const canResume = computed(() => actions.value?.canResume === true && takesNewCare(animal.value))
 const stopTexts = computed(() => treatmentStopTexts(t, named.value))
 const deleteTexts = computed(() => treatmentDeleteTexts(t, named.value.name))
