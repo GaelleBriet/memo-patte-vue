@@ -113,6 +113,30 @@ describe('#787 : le critère est la première dose encore à donner, après la d
     ).not.toHaveProperty('refusal')
   })
 
+  it.each([
+    ['2026-10-15', { refusal: { reason: 'no-dose-before-end' } }],
+    ['2026-10-25', { plan: expect.objectContaining({ action: 'rewrite' }) }],
+  ])(
+    'Milo, chaque lundi à 8 h, dose du 12 donnée le 7 ; réglage à 10 h du 7 sans prise, première dose le 19 sur la grille du 12 ; le 9, « Prochaine dose » le 12 et fin le %s : même origine, première dose changée, le critère s’applique',
+    (endsOn, expected) => {
+      const m1 = setting('m1', '2026-10-05', WEEK, ['08:00'])
+      const m2 = setting('m2', '2026-10-19', WEEK, ['10:00'], {
+        startsOn: '2026-10-07',
+        gridOriginOn: '2026-10-12',
+      })
+      const carnet = {
+        settings: [m1, m2],
+        lines: [
+          line('m1', 'given', '2026-10-05', '08:00'),
+          { ...line('m1', 'given', '2026-10-12', '08:00'), givenOn: '2026-10-07' },
+        ],
+        today: '2026-10-09',
+      }
+      const asked = { frequency: WEEK, times: ['10:00'], endsOn, firstDueOn: '2026-10-12' }
+      expect(newSettings(carnet, asked)).toEqual(expected)
+    },
+  )
+
   it('même carnet, date de fin passée (le 3) : accepté, comme avant', () => {
     const own = setting('p1', '2026-10-01', TWO_DAYS, [], { endsOn: '2026-10-04' })
     const carnet = {
