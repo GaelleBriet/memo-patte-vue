@@ -24,7 +24,8 @@ function shiftRemovalRefusal(input: TreatmentViewInput, shift: Line): Refusal | 
 }
 
 /**
- * Pourquoi « Supprimer » est refusé : report dont la dose d'arrivée est notée (Q25), décalage suivi
+ * Pourquoi « Supprimer » est refusé : report dont la dose d'arrivée est notée (Q25) ou devenue la
+ * première échéance d'un nouveau rythme (#780, R9.2), décalage suivi
  * d'une prise ou d'un report seul qui ne tiendrait plus (N8, G19) ; une ligne sans effet se supprime
  * toujours (R11).
  */
@@ -35,7 +36,8 @@ export function removalRefusal(input: TreatmentViewInput, lineId: string): Refus
   if (effect.kind === 'idle') return null
   if (line.status === 'postponed') {
     const logged = input.lines.some((other) => isNote(other) && other.dueOn === line.targetOn)
-    return logged ? { reason: 'arrival-logged' } : null
+    if (logged) return { reason: 'arrival-logged' }
+    return effect.kind === 'moves' && effect.opensRhythm ? { reason: 'not-movable' } : null
   }
   return line.status === 'shift' ? shiftRemovalRefusal(input, line) : null
 }

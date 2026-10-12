@@ -20,7 +20,7 @@ export type {
 
 const dayOf = (key: string) => key.slice(0, 10)
 
-// R8 : une prise d'avant l'arrêt ne couvre la reprise que pour sa première journée, le jour même.
+// R8, Q-G3 : une prise d'avant l'arrêt ne couvre la reprise que le jour où elle est écrite.
 function borrowedNotes(
   episodes: ReferenceSetting[][],
   index: number,
@@ -28,7 +28,7 @@ function borrowedNotes(
 ): ReferenceLine[] {
   const episode = episodes[index]!
   const first = episode.filter(({ startsOn }) => startsOn === episode[0]!.startsOn).at(-1)!
-  if (index === 0 || first.firstDueOn !== first.startsOn) return []
+  if (index === 0) return []
   const before = new Set(episodes.slice(0, index).flatMap((earlier) => earlier.map(({ id }) => id)))
   return latestBy(
     lines.filter(

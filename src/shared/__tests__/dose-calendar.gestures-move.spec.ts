@@ -376,7 +376,7 @@ describe('R7, G13 : redéplacer l’arrivée d’un report d’un rythme précé
     ['reportée au 14', '2026-04-14'],
     ['avancée au 12', '2026-04-12'],
   ])(
-    'Métacam toutes les 2 semaines à 20 h, dose du 13 avr. %s, puis toutes les 6 semaines à 6, 12, 18, 23 h dès ce jour (R9.2) : la dose de ce jour ne se déplace pas sans rendre au jour ses trois autres heures (question pour Gaelle)',
+    'Métacam toutes les 2 semaines à 20 h, dose du 13 avr. %s, puis toutes les 6 semaines à 6, 12, 18, 23 h dès ce jour (R9.2) : la dose de ce jour ne se déplace pas, le report est verrouillé comme Q25 (#780, décision du 2026-10-12)',
     (_, arrival) => {
       const report = line('p1', 'postponed', '2026-04-13', '20:00', arrival)
       const p2 = setting('p2', arrival, SIX_WEEKS, ['06:00', '12:00', '18:00', '23:00'], {

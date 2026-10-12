@@ -2390,3 +2390,30 @@ donnée, posologie changée le 14 : le 12 reste la dose du moment, en retard. �
 modification du dosage ne doit rien changer à ce qu'on voit des dates (principe R3). — Alternative
 écartée : la passer dans « à renseigner », comme le disait la lettre de TR-28. Limité à la fréquence
 inchangée ; à la charge du pas 4 (#751).
+
+2026-10-12 — **Moteur des doses v2 : décisions de Gaelle sur les questions des pas 3 et 4** (spec
+`traitements.md` §10, entrées du 2026-10-12, et R6 à R11). « Modifier » refuse un rythme qui ne laisse
+plus aucune dose avant la date de fin (#787, « Avec ce rythme, plus aucune dose avant la date de fin.
+Change la date de fin ou le rythme. ») et propose la première dose encore à donner, comme la fiche ; la
+prise d'avant l'arrêt notée le jour de la reprise compte, avec ou sans posologie (#784) ; le report qui
+a servi de départ à un nouveau rythme est verrouillé comme Q25 (#780) ; un même geste rend un seul
+refus (#786) ; une date choisie à fréquence gardée remplace la dose en retard ; un décalage d'avant la
+première échéance d'un réglage qui fait repartir la grille est sans effet ; une correction de date
+n'efface jamais un oubli. Lectures gardées : une prise de « Choisir les jours » se corrige comme les
+autres, pas de case pour une dose déplacée seule (Q2 c), les chaînes de reports existantes restent
+lues, Q-C1 l'emporte sur TR-24 bis, seul le décalage ancré à la date de la prise suit sa correction. —
+Raison (Gaelle) : ne jamais faire disparaître une dose ni une ligne sans geste, une seule lecture et un
+seul texte par geste. — Alternatives écartées : accepter et terminer le traitement (#787), proposer
+une journée déjà toute donnée, ne compter la prise du jour de la reprise que si elle commence ce
+jour-là, laisser bouger le report en déplaçant le début du réglage (#780).
+
+2026-10-12 — **Moteur des doses v2 : réponses de Gaelle à la relecture de la PR #795** (spec
+`traitements.md` §10, dernières entrées du 2026-10-12). Un décalage se juge à la lettre : sa journée
+d'origine doit être une échéance de la grille telle qu'elle est avant lui, ou l'arrivée d'une dose
+reportée du rythme en vigueur ; une date choisie est toujours montrée (#794) ; choisie le jour d'une
+échéance, elle remplace la dose de ce jour et laisse les plus anciennes à renseigner ; #787 se juge sur
+la première dose encore à donner ; #786 rend un seul résultat, le report suit quand une date lui
+convient. — Raison (Gaelle) : une date choisie par la personne est celle que la fiche montre, et un
+même geste ne rend qu'un résultat ; la parité avec l'ancien moteur ne compte pas (aucune donnée
+réelle). — Alternatives écartées : la lecture étroite des décalages à fréquence gardée, le plancher
+d'un réglage jamais commencé, un refus `passes-report` propre à « Fait à une autre date ».

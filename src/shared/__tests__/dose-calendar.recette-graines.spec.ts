@@ -53,11 +53,11 @@ describe('R4, R9 : réglage changé le jour d’arrivée d’un report rangé de
 })
 
 describe('R3, R12 : la posologie ne change pas le calendrier, la proposition est le résultat', () => {
-  it('graine 520002718 : toutes les 2 semaines à 20 h, posologie changée le 11 mars : 13, 19 mars, 5 avr.', () => {
+  it('graine 520002718 : toutes les 2 semaines à 20 h, posologie changée le 11 mars : 13, 19 mars, 2 avr. (R6 : les décalages du 21 mars et du 5 avr. ne partent pas d’une échéance de la grille du 5 mars)', () => {
     const { today, ...c } = graine(520002718)
-    expect(journees(c, today, 3)).toEqual(['2026-03-13', '2026-03-19', '2026-04-05'])
+    expect(journees(c, today, 3)).toEqual(['2026-03-13', '2026-03-19', '2026-04-02'])
     const changed = modifie(c, today, semaines(2), ['20:00'])
-    expect(journees(changed, today, 3)).toEqual(['2026-03-13', '2026-03-19', '2026-04-05'])
+    expect(journees(changed, today, 3)).toEqual(['2026-03-13', '2026-03-19', '2026-04-02'])
   })
 
   it('graine 510001190 : tous les jours à 8 h et 20 h le 19 avr. : la première dose proposée est celle du calendrier (R9, R12 : le 20 ; le moteur actuel proposait le 19, jour d’arrivée d’un report dont la seule heure est donnée)', () => {

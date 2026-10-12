@@ -103,13 +103,13 @@ export type Refusal =
   | { reason: 'later-line' }
   | { reason: 'no-date-left' }
   | { reason: 'no-date-alone' }
+  | { reason: 'no-dose-before-end' }
   | { reason: 'arrival-logged' }
   | { reason: 'not-movable' }
   | { reason: 'unknown-due' }
   | { reason: 'out-of-bounds'; earliest: Day; latest: Day | null }
   | { reason: 'too-early'; earliest: Day }
   | { reason: 'day-taken' }
-  | { reason: 'passes-report'; on: Day }
   | { reason: 'stuck-report'; on: Day }
   | { reason: 'report-loop' }
   | { reason: 'report-past-next'; on: Day }

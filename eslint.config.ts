@@ -53,7 +53,7 @@ const DYNAMIC_I18N_KEYS = [
   '/^vaccinations\\.form\\.name\\.suggestions\\.combinations\\.(dog|cat)$/',
   '/^vaccinations\\.form\\.errors\\.(name|nameMax|lastInjectionDate|lastInjectionDateFuture|plannedDate|plannedDatePast)$/',
   '/^treatments\\.form\\.errors\\.(name|nameMax|type|frequency|frequencyMax|firstDoseOn|firstDoseOnTooEarly|firstDoseOnTooOld|nextDoseOn|nextDoseOnTooEarly|nextDoseOnAfterEnd|nextDoseOnAfterNextDose|nextDoseOnRefused|times|timesDuplicate|dosageQuantity|dosageIncomplete|endsOn|endsOnBeforeFirstDose|endsOnBeforeNextDose|endsOnBeforeLastDose|endsOnBeforePostponedDose|endsOnBeforeAdvancedDose|endsOnBeforeFarPostponedDose|endsOnBeforeFarAdvancedDose)$/',
-  '/^treatments\\.form\\.nextDoseOn\\.refusal\\.(laterLine|laterDose|noDateLeft|arrivalLogged)$/',
+  '/^treatments\\.form\\.nextDoseOn\\.refusal\\.(laterLine|laterDose|noDateLeft|noDoseBeforeEnd|arrivalLogged)$/',
   '/^treatments\\.(form\\.reminder\\.offset|detail\\.reminder\\.lessPrecise)\\.(0|15|30|60)$/',
   '/^treatments\\.shift\\.(moved|kept)\\.(weekly|every)$/',
   '/^treatments\\.shift\\.revealed\\.(help|toast)\\.(unlogged|overdue|unloggedThen|thenOverdue)$/',

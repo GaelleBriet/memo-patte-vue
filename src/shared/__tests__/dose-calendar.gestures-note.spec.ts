@@ -1,7 +1,15 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { dueForDate, noteDose, type GestureOutcome, type Line } from '../domain/dose-calendar'
+import {
+  applied,
+  dueForDate,
+  noteDose,
+  redateDose,
+  type GestureOutcome,
+  type Line,
+  type TreatmentViewInput,
+} from '../domain/dose-calendar'
 import { H, line, setting, TWO_DAYS, WEEK } from './dose-calendar.v2.aides'
 
 const vendredi = (extra: Parameters<typeof setting>[4] = {}) =>
@@ -92,7 +100,7 @@ describe('noter une prise (R5, R6, G19, G20)', () => {
     expect(accepted(result).offersShift).toBe(false)
   })
 
-  it('G19, Q2 a : dose du 26 reportée seule au 30 ; la dose du 16 donnée le 19, cochée, ferait passer le report : refusé', () => {
+  it('G19, #786 : dose du 23 reportée seule au 27 ; la dose du 16 donnée le 19, cochée : accepté, le report suit (la dose du 23 reste prévue le 27)', () => {
     const lines = [line('p1', 'postponed', '2026-10-23', null, '2026-10-27')]
     const result = noteDose(given(lines, '2026-10-19'), {
       due: due('2026-10-16'),
@@ -100,7 +108,105 @@ describe('noter une prise (R5, R6, G19, G20)', () => {
       givenOn: '2026-10-19',
       shiftsFollowing: true,
     })
-    expect(result).toEqual({ refusal: { reason: 'passes-report', on: '2026-10-27' } })
+    expect(accepted(result).followed).toEqual([{ from: '2026-10-27', to: '2026-10-27' }])
+  })
+
+  it('Q2 c (gardée le 2026-10-12) : hebdo du vendredi, dose du 9 reportée seule au 13 ; la dose du 13 donnée le 14 : pas de case, la suite reste au 16', () => {
+    const input = {
+      settings: [vendredi()],
+      lines: [
+        line('p1', 'given', '2026-10-02'),
+        line('p1', 'postponed', '2026-10-09', null, '2026-10-13'),
+      ],
+      today: '2026-10-14',
+    }
+    for (const shiftsFollowing of [true, false]) {
+      const result = accepted(
+        noteDose(input, {
+          due: due('2026-10-13'),
+          status: 'given',
+          givenOn: '2026-10-14',
+          shiftsFollowing,
+        }),
+      )
+      expect(result.offersShift).toBe(false)
+      expect(written(result)).toEqual([['create', 'given', '2026-10-13', null]])
+    }
+  })
+
+  it('#786, R6 : toutes les 6 semaines à 20 h du 27 mars, fin le 10 mai, dose du 8 mai avancée seule au 23 avr. ; le 10 avr., dose du 27 mars donnée le 9, cochée : même refus par « Fait à une autre date » et par « C’est fait » puis « Changer la date »', () => {
+    const p1 = setting('p1', '2026-03-27', { value: 6, unit: 'week' }, ['20:00'], {
+      endsOn: '2026-05-10',
+    })
+    const input = {
+      settings: [p1],
+      lines: [line('p1', 'postponed', '2026-05-08', '20:00', '2026-04-23')],
+      today: '2026-04-10',
+    }
+    const dose = due('2026-03-27', '20:00')
+    const direct = noteDose(input, {
+      due: dose,
+      status: 'given',
+      givenOn: '2026-04-09',
+      shiftsFollowing: true,
+    })
+    const tapped = applied(
+      input,
+      accepted(
+        noteDose(input, {
+          due: dose,
+          status: 'given',
+          givenOn: '2026-04-10',
+          shiftsFollowing: false,
+        }),
+      ).changes,
+    )
+    const prise = tapped.lines.find(({ status }) => status === 'given')!
+    const redated = redateDose(tapped, {
+      lineId: prise.id,
+      givenOn: '2026-04-09',
+      shiftsFollowing: true,
+    })
+    expect(direct).toEqual({ refusal: { reason: 'stuck-report', on: '2026-04-23' } })
+    expect(redated).toEqual(direct)
+  })
+
+  it('#786, G12 : même traitement sans date de fin ; le 10 avr., dose du 27 mars donnée le 9, cochée : accepté, le report suit, même résultat par « C’est fait » puis « Changer la date »', () => {
+    const p1 = setting('p1', '2026-03-27', { value: 6, unit: 'week' }, ['20:00'])
+    const input = {
+      settings: [p1],
+      lines: [line('p1', 'postponed', '2026-05-08', '20:00', '2026-04-23')],
+      today: '2026-04-10',
+    }
+    const dose = due('2026-03-27', '20:00')
+    const direct = accepted(
+      noteDose(input, { due: dose, status: 'given', givenOn: '2026-04-09', shiftsFollowing: true }),
+    )
+    const tapped = applied(
+      input,
+      accepted(
+        noteDose(input, {
+          due: dose,
+          status: 'given',
+          givenOn: '2026-04-10',
+          shiftsFollowing: false,
+        }),
+      ).changes,
+    )
+    const prise = tapped.lines.find(({ status }) => status === 'given')!
+    const redated = accepted(
+      redateDose(tapped, { lineId: prise.id, givenOn: '2026-04-09', shiftsFollowing: true }),
+    )
+    expect(direct.followed).toHaveLength(1)
+    expect(direct.followed[0]!.from).toBe('2026-04-23')
+    expect(redated.followed).toEqual(direct.followed)
+    const reportOf = (carnet: TreatmentViewInput) =>
+      carnet.lines
+        .filter(({ status }) => status === 'postponed')
+        .map(({ dueOn, targetOn }) => [dueOn, targetOn])
+    expect(reportOf(applied(tapped, redated.changes))).toEqual(
+      reportOf(applied(input, direct.changes)),
+    )
   })
 
   it('G20, Q4 : fin le 30, dose du 16 donnée le lundi 19, cochée : la dose du 30 ne sera plus prévue', () => {

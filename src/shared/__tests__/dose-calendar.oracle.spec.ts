@@ -65,12 +65,11 @@ describe('oracle des moteurs de doses', { timeout: 60_000 }, () => {
   })
 
   it.each([
-    [550000279, 'prise-orpheline'],
-    [550048773, 'prise-orpheline'],
+    [550048773, 'decalage-hors-grille'],
     [550140965, 'prise-orpheline'],
     [550123096, 'reports-en-boucle'],
     [550248567, 'prise-orpheline'],
-    [550250118, 'prise-orpheline'],
+    [550250118, 'decalage-hors-grille'],
   ])(
     'moteur v2, sans changement de réglage ni filtre : la graine %i est rattachée à %s',
     (seed, family) => {

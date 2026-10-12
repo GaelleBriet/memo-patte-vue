@@ -50,7 +50,7 @@ export type V2Play = (input: TreatmentViewInput) => GestureResult
 /** Ce que l'oracle sait du geste pour repérer un refus suspect (I4 du pas 3). */
 export type Probe = { due?: ReturnType<typeof v2Due>; redate?: boolean }
 
-const REPORT_REFUSALS = ['passes-report', 'stuck-report', 'report-loop']
+const REPORT_REFUSALS = ['stuck-report', 'report-loop']
 
 // Un refus de v2 sur une échéance que sa propre vue propose, ou une correction que le moteur actuel
 // accepte et que v2 refuse à cause d'un report : à analyser, jamais caché dans un simple compte.

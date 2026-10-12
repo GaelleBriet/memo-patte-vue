@@ -4,6 +4,9 @@ import { describe, expect, it } from 'vitest'
 import { removalRefusal, removeLine } from '../domain/dose-calendar'
 import { line, setting, WEEK } from './dose-calendar.v2.aides'
 
+const TWO_WEEKS = { value: 2, unit: 'week' as const }
+const SIX_WEEKS = { value: 6, unit: 'week' as const }
+
 // Vendredis d'octobre : 2, 9, 16, 23, 30.
 const p1 = setting('p1', '2026-10-02', WEEK)
 
@@ -53,6 +56,21 @@ describe('« Supprimer » (R11, Q25, N8, G19)', () => {
       reason: 'report-off-rhythm',
       on: '2026-10-23',
     })
+  })
+
+  it('#780, Q25 : toutes les 2 semaines à 20 h, dose du 13 avr. reportée au 14, puis toutes les 6 semaines à 6, 12, 18, 23 h dès le 14 : le report a servi, il ne se supprime plus', () => {
+    const metacam = setting('m1', '2026-03-30', TWO_WEEKS, ['20:00'])
+    const report = line('m1', 'postponed', '2026-04-13', '20:00', '2026-04-14')
+    const sixWeeks = setting('m2', '2026-04-14', SIX_WEEKS, ['06:00', '12:00', '18:00', '23:00'], {
+      startsOn: '2026-04-02',
+    })
+    const input = {
+      settings: [metacam, sixWeeks],
+      lines: [line('m1', 'given', '2026-03-30', '20:00'), report],
+      today: '2026-04-02',
+    }
+    expect(removalRefusal(input, report.id)).toEqual({ reason: 'not-movable' })
+    expect(removeLine(input, report.id)).toEqual({ refusal: { reason: 'not-movable' } })
   })
 
   it('R11 : une ligne sans effet se supprime toujours', () => {

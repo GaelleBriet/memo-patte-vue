@@ -7,14 +7,20 @@ import {
   plusDays,
   sameFrequency,
   sameHours,
-  stepped,
   type Hour,
 } from './reference-grid'
+import {
+  coverOrphans,
+  leftDays,
+  type Claim,
+  type Journey,
+  type ReferenceDue,
+  type Segment,
+} from './reference-days'
 import { isNote, latestBy } from './reference-lines'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
-type Journey = { setting: ReferenceSetting; hours: Hour[] }
-type Grid = { origin: string; floor: string }
+type Grid = { origin: string; floor: string; since: string }
 type Calendar = { pending: string[]; fallen: Set<string>; rhythmFrom: string }
 
 export function calendarOf(
@@ -64,11 +70,8 @@ export function calendarOf(
   const days = new Map<string, Journey>()
   // R4, R7, R9 : les jours où une prise visant d'autres heures couvre les premières heures.
   const translated = new Map<string, string>()
-  // R1, R4 : sortie du calendrier, la journée où un réglage cède la place, ou celle d'origine d'un
-  // de ses reports s'il est remplacé le jour où il commence, se lit avec ce réglage.
   const left = new Map<string, Journey>()
-  type Segment = { origin: string; from: string; to: string | null }
-  const claims: { setting: ReferenceSetting; end: string | null; segments: Segment[] }[] = []
+  const claims: Claim[] = []
   const stop = endOf(live.length - 1)
   // R7, R9.2 : les premières échéances des réglages qui ouvrent un nouveau rythme.
   const openings = new Set<string>()
@@ -76,11 +79,21 @@ export function calendarOf(
   const chain = episode.filter(
     (setting, index) => isLive(setting, index) || sameFrequency(setting, episode[index + 1]!),
   )
-  let grid: Grid = { origin: chain[0]!.firstDueOn, floor: '' }
+  let grid: Grid = { origin: chain[0]!.firstDueOn, floor: '', since: '' }
   // R9, Q-retard : les réglages de même fréquence continuent le rythme, et sa dose en retard.
   let rhythm = new Set<string>()
   let rhythmFrom = live[0]!.startsOn
+  const replaced: { from: string; to: string; onDueDay: boolean }[] = []
   let chosenFloor = ''
+  let rhythmFloor = ''
+  let anchors = new Set<ReferenceLine>()
+  const isDueDay = (on: Grid, setting: ReferenceSetting, day: string) =>
+    day > on.since && isOnGrid(on.origin, setting.frequency, day)
+  const turned = (turn: ReferenceLine, floor: string): Grid => ({
+    origin: turn.targetOn!,
+    floor: later(floor, later(turn.dueOn, turn.targetOn!)),
+    since: later(turn.dueOn, turn.targetOn!),
+  })
   chain.forEach((setting, position) => {
     const index = live.indexOf(setting)
     const end = index < 0 ? setting.startsOn : endOf(index)
@@ -95,27 +108,24 @@ export function calendarOf(
     const within = ({ dueOn }: ReferenceLine) =>
       dueOn >= setting.startsOn && (end === null || dueOn < end)
     // R3, R9 : une origine choisie se juge sur la grille en vigueur à la première échéance.
-    const inForce =
-      shifts
-        .filter(
-          ({ dueOn, settingId }) =>
-            dueOn >= setting.startsOn && dueOn < setting.firstDueOn && rhythm.has(settingId),
-        )
-        .at(-1)?.targetOn ?? grid.origin
+    const held = new Set<ReferenceLine>()
+    const inForce = shifts
+      .filter(
+        ({ dueOn, settingId }) =>
+          dueOn >= setting.startsOn && dueOn < setting.firstDueOn && rhythm.has(settingId),
+      )
+      .reduce((on, shift) => {
+        if (!isDueDay(on, setting, shift.dueOn)) return on
+        held.add(shift)
+        return turned(shift, '')
+      }, grid)
     const continued =
       previous !== undefined &&
       sameFrequency(previous, setting) &&
-      (origin === null || isOnGrid(inForce, setting.frequency, origin))
+      (origin === null || isOnGrid(inForce.origin, setting.frequency, origin))
     if (index > 0 && !sameHours(live[index - 1]!, setting)) {
       translated.set(setting.startsOn, setting.id).set(setting.firstDueOn, setting.id)
     }
-    // R3 : une première échéance choisie sur la grille d'un réglage jamais commencé la fait partir
-    // d'elle ; héritée, elle garde la grille du réglage remplacé (décision du 2026-10-11).
-    const chosenStart =
-      origin !== null &&
-      previous !== undefined &&
-      previous.firstDueOn >= setting.startsOn &&
-      grid.floor === plusDays(previous.firstDueOn, -1)
     const ownFloor = plusDays(later(setting.firstDueOn, setting.startsOn), -1)
     if (!continued) {
       for (const day of openings) if (day >= setting.startsOn) openings.delete(day)
@@ -125,17 +135,30 @@ export function calendarOf(
     // R2, R9 : une origine posée sur la grille en vigueur ne lit aucune journée avant sa première
     // échéance, ni ses suivants de même rythme, pas même après un décalage.
     chosenFloor = !continued ? '' : origin !== null ? ownFloor : chosenFloor
+    if (!continued || origin !== null) rhythmFloor = ownFloor
+    if (!continued || origin !== null) anchors = continued ? held : new Set()
     rhythm = continued ? new Set([...rhythm, setting.id]) : new Set([setting.id])
-    grid = continued
-      ? {
-          origin: grid.origin,
-          floor: chosenStart
-            ? ownFloor
-            : later(grid.floor, later(chosenFloor, plusDays(setting.startsOn, -1))),
-        }
-      : { origin: setting.gridOriginOn ?? setting.firstDueOn, floor: ownFloor }
+    const inherited = grid
+    // R3, TR-9 : une première échéance choisie est lue, même plus tôt que celle du réglage hérité.
+    grid = !continued
+      ? { origin: setting.gridOriginOn ?? setting.firstDueOn, floor: ownFloor, since: ownFloor }
+      : origin !== null
+        ? { ...grid, floor: ownFloor }
+        : { ...grid, floor: later(grid.floor, later(chosenFloor, plusDays(setting.startsOn, -1))) }
     if (index < 0) return
     const ended = index > 0 && (live[index - 1]!.endsOn ?? setting.startsOn) < setting.startsOn
+    // TR-9 : à fréquence gardée, une première échéance choisie remplace la dose en retard du rythme.
+    const written = episode[episode.indexOf(setting) - 1]
+    const kept =
+      index > 0 &&
+      written !== undefined &&
+      [written, live[index - 1]!].every((other) => sameFrequency(other, setting))
+    if (kept && origin !== null && !ended) {
+      const onDueDay =
+        setting.startsOn > inherited.floor &&
+        isOnGrid(inherited.origin, setting.frequency, setting.startsOn)
+      replaced.push({ from: rhythmFrom, to: setting.startsOn, onDueDay })
+    }
     if (index > 0 && (!continued || ended)) rhythmFrom = setting.startsOn
     // R6 : à partir de sa journée d'origine, un décalage donne à la grille l'origine de son ancrage ;
     // écrit sous un réglage d'avant un changement de fréquence, il est dépassé par la nouvelle origine (R3).
@@ -146,7 +169,14 @@ export function calendarOf(
     )
     let from = setting.startsOn
     const segments: Segment[] = []
+    // R6 : la journée d'origine d'un décalage, échéance de la grille telle qu'elle est avant lui, ou
+    // arrivée d'une dose reportée du rythme en vigueur ; avant une date choisie, seul celui qui la
+    // porte (R3, TR-9).
+    const lands = (turn: ReferenceLine) =>
+      (isDueDay(grid, setting, turn.dueOn) && (turn.dueOn > chosenFloor || anchors.has(turn))) ||
+      reports.some((report) => report.targetOn === turn.dueOn && report.dueOn > rhythmFloor)
     for (const turn of [...turns, null]) {
+      if (turn !== null && !lands(turn)) continue
       const to = turn === null ? last : turn.dueOn < last ? turn.dueOn : last
       const start = later(from, plusDays(grid.floor, 1))
       for (const day of gridDays(grid.origin, setting.frequency, start, to)) {
@@ -154,32 +184,13 @@ export function calendarOf(
       }
       segments.push({ origin: grid.origin, from: start, to: turn?.dueOn ?? setting.endsOn })
       if (turn === null) break
-      grid = {
-        origin: turn.targetOn!,
-        floor: later(chosenFloor, later(turn.dueOn, turn.targetOn!)),
-      }
+      grid = turned(turn, chosenFloor)
       from = plusDays(turn.dueOn, 1)
     }
     claims.push({ setting, end, segments })
   })
 
-  for (const { setting, end, segments } of claims) {
-    if (end === null) continue
-    const reported = reports
-      .filter(({ settingId }) => settingId === setting.id)
-      .map(({ dueOn }) => dueOn)
-    for (const day of end === setting.startsOn ? [...reported, end] : [end]) {
-      const open =
-        (setting.endsOn === null || day <= setting.endsOn) && (stop === null || day < stop)
-      const wasDay = segments.some(
-        (segment) =>
-          day >= segment.from &&
-          (segment.to === null || day <= segment.to) &&
-          isOnGrid(segment.origin, setting.frequency, day),
-      )
-      if (open && wasDay) left.set(day, { setting, hours: hoursOf(setting) })
-    }
-  }
+  leftDays(claims, reports, stop).forEach((journey, day) => left.set(day, journey))
 
   // R4 : une prise couvre son échéance ; le jour où les heures changent, celles qui visaient l'ancien
   // réglage couvrent les premières heures du nouveau, à hauteur de leur nombre.
@@ -261,7 +272,7 @@ export function calendarOf(
     if (!days.has(day)) coveredOn(day, journey)
   })
 
-  const dues: { key: string; day: string; covered: boolean }[] = []
+  const dues: ReferenceDue[] = []
   for (const [day, journey] of [...days].sort(([a], [b]) => a.localeCompare(b))) {
     if (journey.hours.length > 0) fallen.add(day)
     const covered = coveredOn(day, journey)
@@ -269,16 +280,20 @@ export function calendarOf(
       ...journey.hours.map((hour) => ({ key: keyOf(day, hour), day, covered: covered.has(hour) })),
     )
   }
-  // R4 : une prise dont l'échéance a quitté le calendrier couvre la première échéance qui suit, à
-  // moins d'un pas de son réglage ; déjà couverte ou trop loin, la prise est sans effet.
-  const orphans = notes
-    .filter((note) => !matched.has(note))
-    .sort((a, b) => keyOf(a.dueOn, a.dueTime).localeCompare(keyOf(b.dueOn, b.dueTime)))
-  for (const note of orphans) {
-    const { frequency } = settingOf(note.settingId)
-    const due = dues.find((each) => each.key > keyOf(note.dueOn, note.dueTime))
-    if (due !== undefined && due.day < stepped(note.dueOn, frequency, 1)) due.covered = true
-  }
-  const pending = dues.filter(({ covered }) => !covered).map(({ key }) => key)
+  coverOrphans(notes, matched, dues, settingOf)
+  // TR-9 : la date choisie remplace la dose du moment : celle du premier jour du réglage s'il est une
+  // échéance, sinon la dernière journée arrivée avant lui.
+  const lateDays = replaced
+    .filter(({ onDueDay }) => !onDueDay)
+    .map(({ from, to }) =>
+      [...fallen]
+        .filter((day) => day >= from && day < to)
+        .sort()
+        .at(-1),
+    )
+  replaced.filter(({ onDueDay }) => onDueDay).forEach(({ to }) => fallen.add(to))
+  const pending = dues
+    .filter(({ covered, day }) => !covered && !lateDays.includes(day))
+    .map(({ key }) => key)
   return { pending, fallen, rhythmFrom }
 }

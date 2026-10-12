@@ -7,6 +7,7 @@ import {
   redateDose,
   treatmentView,
   type GestureOutcome,
+  type TreatmentViewInput,
 } from '../domain/dose-calendar'
 import { keys, line, setting, WEEK } from './dose-calendar.v2.aides'
 
@@ -136,13 +137,14 @@ describe('« Changer la date » d’une prise (TR-24 bis, Q-C1, G12, G19, G21)',
     ).toHaveLength(1)
   })
 
-  it('G19 : dose du 23 reportée seule au 27 ; le 20, « Fait à une autre date » le 19 coché est refusé, la correction vers le 19 fait suivre le report', () => {
+  it('G19, #786 : dose du 23 reportée seule au 27 ; le 20, « Fait à une autre date » le 19 coché et la correction vers le 19 font suivre le report, même carnet', () => {
     const report = line('p1', 'postponed', '2026-10-23', null, '2026-10-27')
     const input = { settings: [p1], lines: [...base, report], today: '2026-10-20' }
     const dose = { settingId: 'p1', dueOn: '2026-10-16', dueTime: null }
-    expect(
+    const direct = accepted(
       noteDose(input, { due: dose, status: 'given', givenOn: '2026-10-19', shiftsFollowing: true }),
-    ).toEqual({ refusal: { reason: 'passes-report', on: '2026-10-27' } })
+    )
+    expect(direct.followed).toEqual([{ from: '2026-10-27', to: '2026-10-27' }])
     const tapped = applied(
       input,
       accepted(
@@ -160,7 +162,12 @@ describe('« Changer la date » d’une prise (TR-24 bis, Q-C1, G12, G19, G21)',
     const result = accepted(
       redateDose(tapped, { lineId: prise.id, givenOn: '2026-10-19', shiftsFollowing: true }),
     )
-    expect(result.followed).toEqual([{ from: '2026-10-27', to: '2026-10-27' }])
+    expect(result.followed).toEqual(direct.followed)
+    const read = (changes: typeof direct.changes, carnet: TreatmentViewInput) => {
+      const view = treatmentView(applied(carnet, changes))
+      return [keys(view.currentDoses), keys(view.upcoming({ limit: 3 }))]
+    }
+    expect(read(result.changes, tapped)).toEqual(read(direct.changes, input))
   })
 
   it('G19, TR-24 : dose du 23 reportée seule au 27 ; le 20, la prise en plus du 12 corrigée au 19, cochée : elle devient la dose du 16 et le report suit', () => {
@@ -190,6 +197,74 @@ describe('« Changer la date » d’une prise (TR-24 bis, Q-C1, G12, G19, G21)',
     ).toEqual({
       refusal: { reason: 'day-taken' },
     })
+  })
+})
+
+describe('TR-16, TR-24 bis : une prise de « Choisir les jours » se corrige comme les autres (décision du 2026-10-12)', () => {
+  it('dose du 16 renseignée le 25 par « Choisir les jours », ou notée le 16 par « C’est fait » ; corrigée au 17 : même carnet', () => {
+    const dose = { settingId: 'p1', dueOn: '2026-10-16', dueTime: null }
+    const empty = { settings: [p1], lines: base, today: '2026-10-25' }
+    const chosen = applied(
+      empty,
+      accepted(
+        noteDose(empty, {
+          due: dose,
+          status: 'given',
+          givenOn: '2026-10-16',
+          shiftsFollowing: false,
+        }),
+      ).changes,
+    )
+    const onTime = { ...empty, today: '2026-10-16' }
+    const tapped = {
+      ...applied(
+        onTime,
+        accepted(
+          noteDose(onTime, {
+            due: dose,
+            status: 'given',
+            givenOn: '2026-10-16',
+            shiftsFollowing: false,
+          }),
+        ).changes,
+      ),
+      today: '2026-10-25',
+    }
+    const corrected = (carnet: TreatmentViewInput) => {
+      const prise = carnet.lines.find(
+        ({ dueOn, status }) => dueOn === '2026-10-16' && status === 'given',
+      )!
+      const result = accepted(
+        redateDose(carnet, { lineId: prise.id, givenOn: '2026-10-17', shiftsFollowing: false }),
+      )
+      const read = treatmentView(applied(carnet, result.changes))
+      return [
+        result.offersShift,
+        keys(read.currentDoses),
+        keys(read.unloggedDoses),
+        keys(read.upcoming({ limit: 2 })),
+      ]
+    }
+    expect(corrected(chosen)).toEqual(corrected(tapped))
+  })
+})
+
+describe('R6, R11 : une correction de date n’efface jamais un oubli (décision du 2026-10-12)', () => {
+  it('prise du 2 donnée, dose du 9 à renseigner, dose du 16 oubliée ; le 20, la prise du 2 corrigée au 17 : refusée « Une dose plus lointaine est déjà notée. » ; l’oubli supprimé, elle est acceptée', () => {
+    const prise = line('p1', 'given', '2026-10-02')
+    const missed = line('p1', 'missed', '2026-10-16')
+    const input = { settings: [p1], lines: [prise, missed], today: '2026-10-20' }
+    for (const shiftsFollowing of [true, false]) {
+      const gesture = { lineId: prise.id, givenOn: '2026-10-17', shiftsFollowing }
+      expect(redateDose(input, gesture)).toEqual({ refusal: { reason: 'later-dose' } })
+      const without = { ...input, lines: [prise] }
+      const read = treatmentView(applied(without, accepted(redateDose(without, gesture)).changes))
+      expect(read.dueState({ dueOn: '2026-10-16', dueTime: null })).toBe('given')
+      expect(keys(read.unloggedDoses)).toEqual(['2026-10-02', '2026-10-09'])
+      expect(keys(read.upcoming({ limit: 1 }))).toEqual([
+        shiftsFollowing ? '2026-10-24' : '2026-10-23',
+      ])
+    }
   })
 })
 

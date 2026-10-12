@@ -34,12 +34,12 @@ describe('R1, R8 : réglages successifs, arrêt et reprise', () => {
     expect(spanOf([p1, p2, p3], [line('p2', 'given', '2026-10-03')]).live).toEqual([p1, p2, p3])
   })
 
-  it('R8 : seule une prise du jour même de la reprise couvre sa première journée', () => {
+  it('R8, #784 : seule une prise du jour même de la reprise compte, que la reprise commence ce jour-là ou plus tard', () => {
     const p1 = setting('p1', '2026-10-01', DAY, [], { stoppedOn: '2026-10-02' })
     const p2 = setting('p2', '2026-10-02', DAY)
     const today = line('p1', 'given', '2026-10-02')
     const lines = [line('p1', 'given', '2026-10-01'), today]
     expect(borrowedNotes([[p1], [p2]], 1, lines)).toEqual([today])
-    expect(borrowedNotes([[p1], [{ ...p2, firstDueOn: '2026-10-05' }]], 1, lines)).toEqual([])
+    expect(borrowedNotes([[p1], [{ ...p2, firstDueOn: '2026-10-05' }]], 1, lines)).toEqual([today])
   })
 })

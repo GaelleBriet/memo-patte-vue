@@ -105,9 +105,6 @@ export function symmetry(input: TreatmentViewInput, random: Random): Broken | nu
     shiftsFollowing: checked,
   })
   const label = `symétrie (${dueKey(due)} le ${givenOn}, case ${checked ? 'cochée' : 'décochée'})`
-  // G19 : « Fait à une autre date » coché refuse de faire passer un report seul, la correction le fait suivre.
-  const g19 = 'refusal' in direct && direct.refusal.reason === 'passes-report'
-  if (g19 && !('refusal' in redated) && redated.followed.length > 0) return null
   if ('refusal' in direct || 'refusal' in redated) {
     const reasons = [
       'refusal' in direct ? direct.refusal.reason : 'accepté',

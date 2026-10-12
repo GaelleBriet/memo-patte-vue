@@ -7,6 +7,8 @@ import {
 
 import { plusDays, shifted, type Book } from './carnet'
 import { dueKey, HORIZON_DAYS, type Display, type Reading } from './display'
+import { inForceGrid, ownGrid, sameFrequency } from './ecarts-grilles'
+import { inLoop, outsideShiftGaps } from './ecarts-lignes'
 
 /**
  * Familles d'écarts entre le moteur actuel et le modèle de référence. Chacune est décrite, avec son
@@ -25,6 +27,7 @@ export const FAMILIES = {
   'prise-orpheline': { accepted: true },
   'reports-en-boucle': { accepted: true },
   'dose-en-retard': { accepted: true },
+  'decalage-hors-grille': { accepted: true },
 } as const
 
 export type Family = keyof typeof FAMILIES
@@ -35,8 +38,6 @@ type Period = TreatmentPeriodInput
 
 const dayOf = (key: string) => key.slice(0, 10)
 const isNote = ({ status }: TreatmentDoseInput) => status === 'given' || status === 'missed'
-const sameFrequency = (a: Period, b: Period) =>
-  a.frequency.value === b.frequency.value && a.frequency.unit === b.frequency.unit
 const sameTimes = (a: Period, b: Period) =>
   [...a.times].sort().join() === [...b.times].sort().join()
 
@@ -66,41 +67,6 @@ function periodsOf(book: Book) {
 function episodeBefore(ordered: Period[], index: number): Period[] {
   const stops = ordered.slice(0, index).map(({ stoppedOn }, at) => (stoppedOn === null ? -1 : at))
   return ordered.slice(Math.max(...stops) + 1, index)
-}
-
-function onLattice(origin: string, period: Period, day: string): boolean {
-  let reached = origin
-  for (let step = 1; reached < day; step += 1) reached = shifted(origin, period.frequency, step)
-  return reached === day
-}
-
-// La grille d'une période comme le moteur actuel la lit : sa première échéance, puis la grille de
-// `referenceOn` quand elle la suit (G23) ou passe par elle, sinon celle de la première échéance.
-function ownGrid(period: Period, day: string): boolean {
-  const { firstDueOn, referenceOn } = period
-  if (day <= firstDueOn) return day === firstDueOn
-  if (referenceOn > firstDueOn) return day >= referenceOn && onLattice(referenceOn, period, day)
-  const origin = onLattice(referenceOn, period, firstDueOn) ? referenceOn : firstDueOn
-  return onLattice(origin, period, day)
-}
-
-// R3, R6 : la grille en vigueur avant le changement, celle du premier réglage d'une suite de même
-// fréquence, chaque décalage la faisant repartir de son ancrage.
-function inForceGrid(book: Book, before: Period[], day: string): boolean {
-  const last = before.at(-1)
-  if (last === undefined) return false
-  let first = before.length - 1
-  while (first > 0 && sameFrequency(before[first - 1]!, last)) first -= 1
-  const ids = new Set(before.slice(first).map(({ id }) => id))
-  const turn = book.doses
-    .filter((line) => line.status === 'shift' && ids.has(line.periodId) && line.dueOn < day)
-    .sort((a, b) => a.dueOn.localeCompare(b.dueOn))
-    .at(-1)
-  const head = before[first]!
-  if (turn === undefined) {
-    return ownGrid(head, day) || (day < head.firstDueOn && onLattice(day, head, head.firstDueOn))
-  }
-  return day > turn.nextDueDate && onLattice(turn.nextDueDate, last, day)
 }
 
 // Pourquoi ce jour diffère : chaque famille dit ce que le moteur actuel fait autrement que R1 à R12.
@@ -162,23 +128,6 @@ function familiesOn(book: Book, day: string, stale: Set<string>): Family[] {
     }
   })
   return [...found]
-}
-
-// R7 : de jour d'arrivée en jour d'arrivée, des reports ramènent la dose au jour d'origine de `line`.
-function inLoop(book: Book, line: TreatmentDoseInput): boolean {
-  const reports = book.doses.filter(({ status }) => status === 'postponed')
-  const seen = new Set<string>()
-  const days = [line.nextDueDate]
-  while (days.length > 0) {
-    const day = days.pop()!
-    if (day === line.dueOn) return true
-    if (seen.has(day)) continue
-    seen.add(day)
-    reports
-      .filter(({ dueOn }) => dueOn === day)
-      .forEach(({ nextDueDate }) => days.push(nextDueDate))
-  }
-  return false
 }
 
 // R4 : l'échéance `key`, due pour le moteur actuel, est couverte par une prise d'une échéance plus
@@ -259,11 +208,13 @@ export function verdictOf(
     if (found.length === 0) unexplained.push(key)
   }
   if (differing.length === 0) splitFamilies(book, actual, reference, stale, families, unexplained)
+  const rest = outsideShiftGaps(book, actual, reference, unexplained)
+  if (rest.length < unexplained.length) families.add('decalage-hors-grille')
   const list = [...families]
   return {
     families: list,
-    unexplained,
-    accepted: unexplained.length === 0 && list.every((family) => FAMILIES[family].accepted),
+    unexplained: rest,
+    accepted: rest.length === 0 && list.every((family) => FAMILIES[family].accepted),
   }
 }
 
