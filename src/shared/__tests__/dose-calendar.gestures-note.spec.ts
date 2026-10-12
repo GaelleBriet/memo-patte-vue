@@ -1,7 +1,14 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { dueForDate, noteDose, type GestureOutcome, type Line } from '../domain/dose-calendar'
+import {
+  applied,
+  dueForDate,
+  noteDose,
+  redateDose,
+  type GestureOutcome,
+  type Line,
+} from '../domain/dose-calendar'
 import { H, line, setting, TWO_DAYS, WEEK } from './dose-calendar.v2.aides'
 
 const vendredi = (extra: Parameters<typeof setting>[4] = {}) =>
@@ -101,6 +108,43 @@ describe('noter une prise (R5, R6, G19, G20)', () => {
       shiftsFollowing: true,
     })
     expect(result).toEqual({ refusal: { reason: 'passes-report', on: '2026-10-27' } })
+  })
+
+  it('#786, R6 : toutes les 6 semaines à 20 h du 27 mars, fin le 10 mai, dose du 8 mai avancée seule au 23 avr. ; le 10 avr., dose du 27 mars donnée le 9, cochée : même refus par « Fait à une autre date » et par « C’est fait » puis « Changer la date »', () => {
+    const p1 = setting('p1', '2026-03-27', { value: 6, unit: 'week' }, ['20:00'], {
+      endsOn: '2026-05-10',
+    })
+    const input = {
+      settings: [p1],
+      lines: [line('p1', 'postponed', '2026-05-08', '20:00', '2026-04-23')],
+      today: '2026-04-10',
+    }
+    const dose = due('2026-03-27', '20:00')
+    const direct = noteDose(input, {
+      due: dose,
+      status: 'given',
+      givenOn: '2026-04-09',
+      shiftsFollowing: true,
+    })
+    const tapped = applied(
+      input,
+      accepted(
+        noteDose(input, {
+          due: dose,
+          status: 'given',
+          givenOn: '2026-04-10',
+          shiftsFollowing: false,
+        }),
+      ).changes,
+    )
+    const prise = tapped.lines.find(({ status }) => status === 'given')!
+    const redated = redateDose(tapped, {
+      lineId: prise.id,
+      givenOn: '2026-04-09',
+      shiftsFollowing: true,
+    })
+    expect(direct).toEqual({ refusal: { reason: 'stuck-report', on: '2026-04-23' } })
+    expect(redated).toEqual(direct)
   })
 
   it('G20, Q4 : fin le 30, dose du 16 donnée le lundi 19, cochée : la dose du 30 ne sera plus prévue', () => {

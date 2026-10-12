@@ -7,6 +7,7 @@ import type {
   FollowedReport,
   GestureOutcome,
   Line,
+  GestureResult,
   LineChange,
   Refusal,
   Setting,
@@ -14,7 +15,7 @@ import type {
 } from '../types'
 import { buildView, type TreatmentView } from '../view'
 import { applied } from './changes'
-import { arrivesOnOrigin, strandsNote } from './reports'
+import { arrivesOnOrigin, brokenReports, followed, strandsNote } from './reports'
 
 /** G18 : le décalage d'une dose avancée se pose sur sa journée d'origine, sinon sur sa journée. */
 export function shiftDayOf(view: TreatmentView, due: Pick<Due, 'dueOn'>): Day {
@@ -107,4 +108,36 @@ export function outcome(
     newlyDue: newlyDue(before, after, input.today),
     followed: extra.followed ?? ([] as FollowedReport[]),
   }
+}
+
+export type Details = { offersShift: boolean; lostToEnd: Day[] }
+
+// G19, #786 : chaque report seul qui ne tient plus suit le geste, sinon il est refusé ; un seul
+// chemin pour « Fait à une autre date » et pour la correction de date.
+export function withFollowed(
+  input: TreatmentViewInput,
+  written: LineChange[],
+  from: Day,
+  details: Details,
+): GestureResult {
+  const brokenWith = (changes: LineChange[]) => brokenReports(input, applied(input, changes), from)
+  const broken = brokenWith(written)
+  if (broken.length === 0) return outcome(input, written, details)
+  let changes = written
+  const follows: FollowedReport[] = []
+  for (const report of broken) {
+    const carnet = applied(input, changes)
+    const next = followed(
+      carnet,
+      carnet.lines.find(({ id }) => id === report.id)!,
+      from,
+    )
+    if (next === null) return { refusal: { reason: 'stuck-report', on: report.targetOn! } }
+    changes = [...changes, next.change]
+    follows.push({ from: report.targetOn!, to: next.to })
+  }
+  if (brokenWith(changes).length > 0) {
+    return { refusal: { reason: 'stuck-report', on: broken[0]!.targetOn! } }
+  }
+  return outcome(input, changes, { ...details, followed: follows })
 }

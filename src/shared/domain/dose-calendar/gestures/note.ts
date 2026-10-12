@@ -9,9 +9,8 @@ import type {
   TreatmentViewInput,
 } from '../types'
 import { buildView, type TreatmentView } from '../view'
-import { applied, shiftOfDay, shiftWritten, written } from './changes'
-import { linesAfter, lostToEnd, outcome, shiftDayOf } from './outcome'
-import { brokenReports } from './reports'
+import { shiftOfDay, shiftWritten, written } from './changes'
+import { linesAfter, lostToEnd, outcome, shiftDayOf, withFollowed } from './outcome'
 
 export type NoteGesture = Omit<Extract<Gesture, { kind: 'note' }>, 'kind'>
 
@@ -102,10 +101,11 @@ export function noteDose(input: TreatmentViewInput, gesture: NoteGesture): Gestu
     note,
     shiftWritten(input.lines, { ...due, dueOn: shiftDayOf(view, due) }, givenOn),
   ]
-  const [broken] = brokenReports(input, applied(input, shifted), due.dueOn)
-  if (broken !== undefined) return { refusal: { reason: 'passes-report', on: broken.targetOn! } }
-  return outcome(input, shifted, {
+  const checked = withFollowed(input, shifted, due.dueOn, {
     offersShift: true,
     lostToEnd: lostToEnd(input, [note], shifted, due.dueOn),
   })
+  // G19 : noté coché, le geste ne fait pas suivre un report seul qu'il ferait passer.
+  const [passed] = 'refusal' in checked ? [] : checked.followed
+  return passed === undefined ? checked : { refusal: { reason: 'passes-report', on: passed.from } }
 }
