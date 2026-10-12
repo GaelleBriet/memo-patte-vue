@@ -17,6 +17,7 @@ function misreadFirstDue(
   input: TreatmentViewInput,
   plan: SettingsPlan,
   day: string,
+  proposed = false,
 ): Misread | null {
   const view = preview(input, plan)
   if (view.phase === 'ended' || view.phase === 'stopped') return null
@@ -25,6 +26,11 @@ function misreadFirstDue(
   const emptied = moves.some(({ keys }) => keys.some((key) => key.startsWith(day)))
   if (view.slots(day, day).length === 0 && !emptied) {
     return { early: false, text: `aucune échéance le ${day}` }
+  }
+  // Décision du 2026-10-12 : la date proposée est une dose encore à donner, comme sur la fiche.
+  const pending = view.slots(day, day).some(({ state }) => state === 'pending')
+  if (proposed && !pending && !emptied) {
+    return { early: false, text: `journée déjà toute notée le ${day}` }
   }
   const early = [...view.currentDoses, ...view.upcoming({ to: day })].filter(
     ({ dueOn }) => dueOn >= input.today && dueOn < day && !arrivals.has(dueOn),
@@ -48,7 +54,7 @@ export function settingsProposal(step: V2Step): Broken | null {
   }
   const plans =
     'plan' in proposed ? [proposed.plan] : [proposed.question.keep, proposed.question.correct]
-  const date = plans[0]!.setting.firstDueOn
+  const date = proposed.shownOn ?? plans[0]!.setting.firstDueOn
   const explicit = compare(
     'date proposée en clair',
     proposed,
@@ -73,8 +79,8 @@ export function settingsProposal(step: V2Step): Broken | null {
       ({ status, settingId, dueOn }) => status === 'shift' && settingId === each.id && dueOn < day,
     )
   for (const each of plans.filter((one) => !keepsDates(one))) {
-    const day = each.setting.firstDueOn
-    const misread = misreadFirstDue(before, each, day)
+    const day = each === plans[0] ? date : each.setting.firstDueOn
+    const misread = misreadFirstDue(before, each, day, each === plans[0])
     if (misread !== null && !(misread.early && staleShift(each, day))) {
       return { invariant: 'proposée ≠ montrée', detail: `${misread.text}\n${JSON.stringify(each)}` }
     }

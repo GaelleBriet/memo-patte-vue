@@ -65,6 +65,17 @@ function changedFirstDue(
 
 export type Dates = Pick<SettingFields, 'firstDueOn' | 'gridOriginOn'>
 
+/** `shownOn` : la « Prochaine dose » montrée quand la première échéance écrite est déjà toute notée (R4). */
+export type Proposal = Dates & { shownOn?: Day }
+
+// R9, R12 : la première dose encore à donner que la fiche montrera ; une journée proposée déjà toute
+// notée garde son rôle (traduction des heures, R4 ; départ du rythme, R9.2), la fiche montre la suivante.
+export function shownDay(dates: Dates, readWith: (dates: Dates) => TreatmentView): Day {
+  const view = readWith(dates)
+  const first = (view.currentDoses[0] ?? view.upcoming({ limit: 1 })[0])?.dueOn
+  return later(first ?? dates.firstDueOn, dates.firstDueOn)
+}
+
 // R6, R12 : un décalage resté d'un réglage remplacé peut faire repartir le nouveau rythme ; la date
 // proposée est la première journée que la fiche montrera.
 export function shownFrom(day: Day, readWith: (dates: Dates) => TreatmentView): Day {
@@ -81,16 +92,18 @@ export function proposedDates(
   request: SettingsRequest,
   fallback: Day,
   readWith: (dates: Dates) => TreatmentView,
-): Dates | { refusal: Refusal } {
+): Proposal | { refusal: Refusal } {
   const kept = previous !== null && sameFrequency(previous.frequency, request.frequency)
   const proposed = kept
     ? keptFirstDue(before.today, readWith({ firstDueOn: before.today, gridOriginOn: null }))
     : previous === null
       ? fallback
       : shownFrom(changedFirstDue(before, buildView(before), request.frequency, fallback), readWith)
+  const dates = { firstDueOn: proposed, gridOriginOn: kept ? null : proposed }
+  const shown = shownDay(dates, readWith)
   const chosen = request.firstDueOn
-  if (chosen === undefined || chosen === proposed) {
-    return { firstDueOn: proposed, gridOriginOn: kept ? null : proposed }
+  if (chosen === undefined || chosen === proposed || chosen === shown) {
+    return shown === proposed ? dates : { ...dates, shownOn: shown }
   }
   if (chosen < before.today) return { refusal: { reason: 'too-early', earliest: before.today } }
   return { firstDueOn: chosen, gridOriginOn: chosen }

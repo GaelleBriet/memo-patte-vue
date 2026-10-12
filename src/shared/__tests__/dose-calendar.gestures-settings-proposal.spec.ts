@@ -1,9 +1,9 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { newSettings, type SettingsRequest } from '../domain/dose-calendar'
+import { newSettings, preview, type SettingsRequest } from '../domain/dose-calendar'
 import type { TreatmentViewInput } from '../domain/dose-calendar/types'
-import { line, setting, TWO_DAYS } from './dose-calendar.v2.aides'
+import { keys, line, setting, TWO_DAYS, WEEK } from './dose-calendar.v2.aides'
 
 function planOf(input: TreatmentViewInput, asked: SettingsRequest) {
   const result = newSettings(input, asked)
@@ -36,4 +36,33 @@ describe('#787, TR-8, Q20 : un rythme qui ne laisse plus aucune dose avant la da
   it('même carnet, date de fin repoussée au 10 nov. : le 3 nov. est proposé', () => {
     expect(planOf(input, monthly('2026-11-10')).setting.firstDueOn).toBe('2026-11-03')
   })
+})
+
+describe('R9, R12 : « Modifier » propose la première dose encore à donner (décision du 2026-10-12)', () => {
+  const monday = setting('m1', '2026-10-05', WEEK, ['08:00'])
+  const milo = {
+    settings: [monday],
+    lines: [
+      line('m1', 'given', '2026-10-05', '08:00'),
+      { ...line('m1', 'given', '2026-10-12', '08:00'), givenOn: '2026-10-07' },
+    ],
+    today: '2026-10-07',
+  }
+
+  it.each([
+    ['posologie seule', ['08:00']],
+    ['heures passées à 9 h', ['09:00']],
+  ])(
+    'Milo, chaque lundi à 8 h, dose du 5 donnée, celle du 12 donnée le 7 ; le 7, %s : le 19 proposé et montré, le 12 reste donné',
+    (_, times) => {
+      const asked: SettingsRequest = { frequency: WEEK, times, endsOn: null }
+      const result = newSettings(milo, asked)
+      if (!('plan' in result)) throw new Error(JSON.stringify(result))
+      expect(result.shownOn).toBe('2026-10-19')
+      const view = preview(milo, result.plan)
+      expect(view.dueState({ dueOn: '2026-10-12', dueTime: times[0]! })).not.toBe('pending')
+      expect(keys(view.currentDoses)).toEqual([`2026-10-19 ${times[0]}`])
+      expect(newSettings(milo, { ...asked, firstDueOn: '2026-10-19' })).toEqual(result)
+    },
+  )
 })
