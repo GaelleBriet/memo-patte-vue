@@ -79,6 +79,8 @@ function redateAsNote(
   gesture: RedateGesture,
 ): GestureResult {
   const { givenOn, shiftsFollowing } = gesture
+  // R6, R11 : la correction ne fait jamais d'un oubli plus lointain une prise donnée.
+  if (buildView(rest).dueState(target) === 'missed') return { refusal: { reason: 'later-dose' } }
   const plain = noteDose(rest, { due: target, status: 'given', givenOn, shiftsFollowing: false })
   if ('refusal' in plain) return plain
   const missed = plain.changes.find((change) => change.action === 'rewrite')

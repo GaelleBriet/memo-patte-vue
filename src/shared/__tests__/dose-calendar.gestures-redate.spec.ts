@@ -193,6 +193,25 @@ describe('« Changer la date » d’une prise (TR-24 bis, Q-C1, G12, G19, G21)',
   })
 })
 
+describe('R6, R11 : une correction de date n’efface jamais un oubli (décision du 2026-10-12)', () => {
+  it('prise du 2 donnée, dose du 9 à renseigner, dose du 16 oubliée ; le 20, la prise du 2 corrigée au 17 : refusée « Une dose plus lointaine est déjà notée. » ; l’oubli supprimé, elle est acceptée', () => {
+    const prise = line('p1', 'given', '2026-10-02')
+    const missed = line('p1', 'missed', '2026-10-16')
+    const input = { settings: [p1], lines: [prise, missed], today: '2026-10-20' }
+    for (const shiftsFollowing of [true, false]) {
+      const gesture = { lineId: prise.id, givenOn: '2026-10-17', shiftsFollowing }
+      expect(redateDose(input, gesture)).toEqual({ refusal: { reason: 'later-dose' } })
+      const without = { ...input, lines: [prise] }
+      const read = treatmentView(applied(without, accepted(redateDose(without, gesture)).changes))
+      expect(read.dueState({ dueOn: '2026-10-16', dueTime: null })).toBe('given')
+      expect(keys(read.unloggedDoses)).toEqual(['2026-10-02', '2026-10-09'])
+      expect(keys(read.upcoming({ limit: 1 }))).toEqual([
+        shiftsFollowing ? '2026-10-24' : '2026-10-23',
+      ])
+    }
+  })
+})
+
 describe('Q-C1, TR-32 : la correction d’une prise d’une période arrêtée (relecture du pas 3)', () => {
   it.each([true, false])(
     'hebdo, dose du 2 oct. donnée, arrêt le 5, reprise le 12 (première dose le 16) ; le 20, la prise du 2 corrigée au 17, case %s : elle reste la dose du 2, la reprise ne bouge pas',
