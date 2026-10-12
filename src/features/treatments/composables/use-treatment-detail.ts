@@ -2,14 +2,10 @@ import { computed } from 'vue'
 
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { useDetailLoad } from '@/shared/composables/use-detail-load'
-import { treatmentReading } from '@/shared/domain/treatment-reading'
 import { readableScheduleOf } from '../logic/treatment-schedule-adapter'
 import { useTreatmentsStore } from '../store/treatments.store'
 
-/**
- * Un traitement, ses périodes et ses prises : `view`, sa lecture (R12) ; `schedule`, l'ancien moteur
- * que les gestes lisent encore ; `unreadable` : l'un ou l'autre le refuse.
- */
+/** Un traitement, ses périodes et ses prises, avec son calendrier du jour ; `unreadable` : le moteur le refuse. */
 export function useTreatmentDetail(id: () => string) {
   const store = useTreatmentsStore()
   const { today, refresh: refreshToday } = useToday()
@@ -18,10 +14,7 @@ export function useTreatmentDetail(id: () => string) {
   )
 
   const schedule = computed(() => readableScheduleOf(data.value, today.value))
-  const view = computed(() => (data.value ? treatmentReading(data.value, today.value) : null))
-  const unreadable = computed(
-    () => data.value !== null && (schedule.value === null || view.value === null),
-  )
+  const unreadable = computed(() => data.value !== null && schedule.value === null)
 
-  return { treatment: data, schedule, view, today, refreshToday, state, unreadable, reload }
+  return { treatment: data, schedule, today, refreshToday, state, unreadable, reload }
 }
