@@ -37,6 +37,10 @@ export function nextDoseHelpText(t: Translate, help: NextDoseHelp | null, today:
       return t('treatments.form.nextDoseOn.scheduled', {
         date: withoutFinalDot(formatDayMonthOrYear(help.on, today)),
       })
+    case 'calculated-passed':
+      return t('treatments.form.nextDoseOn.calculatedPassed', {
+        date: formatDayMonthOrYear(help.on, today),
+      })
     case 'calculated':
       return t('treatments.form.nextDoseOn.calculated', {
         date: withoutFinalDot(formatDayMonthOrYear(help.on, today)),

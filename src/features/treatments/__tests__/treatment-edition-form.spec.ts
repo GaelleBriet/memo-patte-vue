@@ -133,7 +133,7 @@ describe('validateTreatmentEdition (TR-6, TR-9, TR-28)', () => {
     })
     expect(editionDraftOf(edition({ frequencyValue: '1' }), milbemax(), TODAY)).toMatchObject({
       change: 'edit',
-      nextDose: { proposedOn: TODAY, help: { kind: 'today' } },
+      nextDose: { proposedOn: TODAY, help: { kind: 'calculated-passed', on: '2026-08-10' } },
     })
   })
 

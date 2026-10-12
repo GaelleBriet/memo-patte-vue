@@ -1659,7 +1659,14 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
   it('propose aujourd’hui quand la fréquence change après des prises : une nouvelle période s’ouvrira (V1 quater)', async () => {
     getWithHistory.mockResolvedValue(
       milbemax(
-        [periode({ frequency: { value: 1, unit: 'week' }, doseUnit: 'pipette' })],
+        [
+          periode({
+            startsOn: '2026-09-01',
+            firstDueOn: '2026-09-01',
+            frequency: { value: 1, unit: 'week' },
+            doseUnit: 'pipette',
+          }),
+        ],
         [prise({ dueOn: '2026-09-08', givenOn: '2026-09-08', nextDueDate: '2026-09-15' })],
       ),
     )
@@ -1671,7 +1678,9 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
 
     expect(valeur(wrapper, 'treatment-next-dose-on')).toBe('2026-09-28')
     expect(champ(wrapper, 'treatment-next-dose-on').attributes('min')).toBe('2026-09-28')
-    expect(aide(wrapper, 'next-dose-on')).toBe('Aujourd’hui est proposé. Modifiable.')
+    expect(aide(wrapper, 'next-dose-on')).toBe(
+      'Calculée d’après la dernière prise : le 23 sept., déjà passé ; aujourd’hui est proposé. Modifiable.',
+    )
 
     await soumettre(wrapper)
 
@@ -1989,7 +1998,9 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
 
     await champ(wrapper, 'treatment-frequency-value').setValue('1')
 
-    expect(aide(wrapper, 'next-dose-on')).toBe('Today is suggested. You can change it.')
+    expect(aide(wrapper, 'next-dose-on')).toBe(
+      'Based on the last dose: Aug 10, already passed; today is suggested. You can change it.',
+    )
   })
 })
 

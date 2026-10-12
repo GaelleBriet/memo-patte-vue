@@ -402,6 +402,7 @@
         "label": "Prochaine dose",
         "calculated": "Calculée d’après la dernière prise : {date}. Modifiable.",
         "scheduled": "Prochaine dose prévue : {date}. Modifiable.",
+        "calculatedPassed": "Calculée d’après la dernière prise : le {date}, déjà passé ; aujourd’hui est proposé. Modifiable.",
         "today": "Aujourd’hui est proposé. Modifiable.",
         "overdue": "Dose en retard depuis le {date}",
         "refusal": {

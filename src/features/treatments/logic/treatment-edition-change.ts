@@ -10,6 +10,7 @@ import {
   changesRhythm,
   changesSchedule,
   currentPeriod,
+  lastNotedDueOn,
   rhythmOf,
   settingsOf,
   withPeriodSettings,
@@ -58,21 +59,50 @@ function planOf(result: SettingsResult, choice: PastDuesChoice | undefined): Set
   return choice === 'keep' ? result.question.keep : result.question.correct
 }
 
+/** I4, Q29 : la première dose que calculerait le moteur à partir de la dernière prise, avant d'être ramenée à aujourd'hui. */
+function calculatedOn(
+  { input }: TreatmentReading,
+  history: TreatmentWithHistory,
+  rhythm: TreatmentRhythm,
+): Day | null {
+  const lastNotedOn = lastNotedDueOn(history)
+  if (lastNotedOn === null) return null
+  try {
+    const result = newSettings({ ...input, today: lastNotedOn }, requestOf(rhythm))
+    if (!('plan' in result)) return null
+    const first = result.shownOn ?? result.plan.setting.firstDueOn
+    return first > lastNotedOn ? first : null
+  } catch {
+    return null
+  }
+}
+
 function helpOf(
-  { view }: TreatmentReading,
+  reading: TreatmentReading,
+  history: TreatmentWithHistory,
   period: TreatmentPeriodRecord,
   rhythm: TreatmentRhythm,
   proposedOn: Day,
   today: Day,
   hasNote: boolean,
 ): NextDoseHelp | null {
-  if (!hasNote) return proposedOn === today ? { kind: 'today' } : null
+  const { view } = reading
+  const todayHelp: NextDoseHelp | null = proposedOn === today ? { kind: 'today' } : null
+  if (!hasNote) return proposedOn < today ? { kind: 'overdue', since: proposedOn } : todayHelp
   if (!changesSchedule(period, rhythm)) {
     const [due] = view.currentDoses
     if (proposedOn < today) return { kind: 'overdue', since: proposedOn }
     return due?.dueOn === proposedOn ? { kind: 'scheduled', on: proposedOn } : null
   }
-  return proposedOn === today ? { kind: 'today' } : { kind: 'calculated', on: proposedOn }
+  if (reportArrivingOn(view, proposedOn) !== undefined) return { kind: 'scheduled', on: proposedOn }
+  const calculated = calculatedOn(reading, history, rhythm)
+  if (calculated === proposedOn) return { kind: 'calculated', on: proposedOn }
+  if (proposedOn > today && view.currentDoses[0]?.dueOn === proposedOn) {
+    return { kind: 'scheduled', on: proposedOn }
+  }
+  return calculated !== null && calculated < today && proposedOn === today
+    ? { kind: 'calculated-passed', on: calculated }
+    : todayHelp
 }
 
 function unchanged(period: TreatmentPeriodRecord, change: Answered['change']): Answered {
@@ -153,7 +183,7 @@ export function resolve(
       earliest: today,
       latest: next.endsOn,
       refusal: null,
-      help: helpOf(reading, period, next, proposedOn, today, hasNote),
+      help: helpOf(reading, history, period, next, proposedOn, today, hasNote),
       shift: null,
       shiftInitial: true,
     } satisfies NextDoseDraft,

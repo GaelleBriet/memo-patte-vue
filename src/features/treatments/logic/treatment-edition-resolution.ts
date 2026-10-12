@@ -10,6 +10,8 @@ export type NextDoseHelp =
   /** Aucune prise dans tout le traitement : faute de référence, aujourd'hui est proposé. */
   | { kind: 'today' }
   | { kind: 'calculated'; on: string }
+  /** La date calculée est passée : aujourd'hui est proposé à sa place. */
+  | { kind: 'calculated-passed'; on: string }
   /** Date reprise du calendrier en cours, report compris (Q37). */
   | { kind: 'scheduled'; on: string }
 
