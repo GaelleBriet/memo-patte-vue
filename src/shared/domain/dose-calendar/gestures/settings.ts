@@ -122,8 +122,8 @@ export function newSettings(input: TreatmentViewInput, request: SettingsRequest)
     : result
 }
 
-// #787, TR-8, Q20 : un rythme qui repart de sa première échéance ne laisse aucune dose encore à donner
-// jusqu'à la date de fin ; une date de fin passée termine le traitement (TR-6).
+// #787, TR-8, Q20 : un rythme qui repart de sa première échéance n'a aucune dose encore à donner entre
+// elle et la date de fin ; une date de fin passée termine le traitement (TR-6).
 function leavesNoDose(
   input: TreatmentViewInput,
   request: SettingsRequest,
@@ -137,7 +137,7 @@ function leavesNoDose(
     (plan) =>
       plan.setting.gridOriginOn !== null &&
       !buildView(settingsApplied(input, plan))
-        .slots([input.today, plan.setting.firstDueOn].sort()[0]!, endsOn)
+        .slots(plan.setting.firstDueOn, endsOn)
         .some(({ state }) => state === 'pending'),
   )
 }
