@@ -192,3 +192,24 @@ describe('doseChange — renseigner des doses en un lot', () => {
     expect(after.unloggedDoses).toEqual([])
   })
 })
+
+describe('doseChange — le report nommé quand la suite ne bouge pas (G19, G20)', () => {
+  const HELD = treatment(PIXEL.periods, [...PIXEL.doses, postponed('2026-10-23', '2026-10-29')])
+
+  it('garde dans le résultat le report que « C’est fait » a laissé en place', () => {
+    const noted = change(HELD, '2026-10-21', {
+      kind: 'note',
+      gesture: note('2026-10-21'),
+      heldBy: '2026-10-29',
+    })
+
+    expect(noted.heldBy).toBe('2026-10-29')
+    expect(noted.writes.map(({ action }) => action)).toEqual(['create'])
+  })
+
+  it('n’en dit rien sans report à nommer', () => {
+    expect(change(PIXEL, '2026-10-16', { kind: 'note', gesture: note('2026-10-16') }).heldBy).toBe(
+      undefined,
+    )
+  })
+})

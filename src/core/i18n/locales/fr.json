@@ -784,6 +784,7 @@
       "recapAt": "Dose de {time} du {due}, donnée le {given}",
       "save": "Enregistrer",
       "suiteCut": "{done}. La dose du {dates} n’est plus prévue (date de fin). | {done}. Les doses du {dates} ne sont plus prévues (date de fin).",
+      "suiteHeld": "{done}. La suite ne bouge pas : un report est prévu le {date}.",
       "stuckMove": "Avec ce jour, la dose que tu avais reportée au {date} ne pourrait plus tomber au bon moment. Change d’abord la date de ce report.",
       "reportFollows": "La dose que tu avais reportée au {date} reste prévue ce jour-là.",
       "movedAfterReport": "Dose reportée le {report}, puis le {date} et {every}.",

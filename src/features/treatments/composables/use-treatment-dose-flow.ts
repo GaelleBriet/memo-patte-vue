@@ -81,8 +81,8 @@ export function useTreatmentDoseFlow(
     return applied
   }
 
-  function note(gesture: NoteGesture): Promise<boolean> {
-    return apply({ kind: 'note', gesture }, null, gesture.due.settingId)
+  function note(gesture: NoteGesture, heldBy?: string): Promise<boolean> {
+    return apply({ kind: 'note', gesture, heldBy }, null, gesture.due.settingId)
   }
 
   async function log(choice: DayChoice): Promise<void> {

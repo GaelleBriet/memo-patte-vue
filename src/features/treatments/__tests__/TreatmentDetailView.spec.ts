@@ -974,6 +974,51 @@ describe('TreatmentDetailView — « Décaler aussi les doses suivantes » (V29,
     expect(toastAction.value?.ariaLabel).toBe('Annuler la suppression du décalage')
   })
 
+  it('« Fait à une autre date » refusé case cochée : rien ne s’enregistre ; décochée, la prise seule (Q2 a, G20)', async () => {
+    vi.setSystemTime(new Date('2027-04-10T21:00:00'))
+    const view = await monter(
+      treatment(
+        [
+          {
+            ...VENDREDI,
+            startsOn: '2027-03-27',
+            firstDueOn: '2027-03-27',
+            referenceOn: '2027-03-27',
+            frequency: { value: 6, unit: 'week' },
+            times: ['20:00'],
+            endsOn: '2027-05-10',
+          },
+        ],
+        [postponed('2027-05-08', '2027-04-23', { dueTime: '20:00' })],
+      ),
+    )
+    await view.get('.treatment-dose-card__other-date').trigger('click')
+    await flushPromises()
+
+    const enregistrer = () => dansLaFeuille('.treatment-other-date__submit')[0]!
+    expect(enregistrer().disabled).toBe(true)
+    expect(dansLaFeuille('.treatment-shift__help')[0]!.textContent?.replace(NBSP, ' ')).toBe(
+      'Avec ce jour, la dose que tu avais reportée au 23 avr. ne pourrait plus tomber au bon moment. Change d’abord la date de ce report.',
+    )
+
+    ;(dansLaFeuille('.treatment-shift__input')[0] as unknown as HTMLInputElement).click()
+    await flushPromises()
+    expect(enregistrer().disabled).toBe(false)
+    enregistrer().click()
+    await flushPromises()
+
+    expect(service.apply).toHaveBeenCalledWith(METACAM.id, {
+      kind: 'note',
+      gesture: {
+        kind: 'note',
+        due: { settingId: 'p-1', dueOn: '2027-03-27', dueTime: '20:00' },
+        status: 'given',
+        givenOn: '2027-04-10',
+        shiftsFollowing: false,
+      },
+    })
+  })
+
   it('« Fait à une autre date » : récapitulatif, case cochée, envoyée décochée', async () => {
     const view = await monter(treatment([VENDREDI], [dose('2026-09-18', '2026-09-25')]))
     await view.get('.treatment-dose-card__other-date').trigger('click')
@@ -1105,6 +1150,41 @@ describe('TreatmentDetailView — « C’est fait » ne décale rien sans l’av
     expect(
       dansLaFeuille('.treatment-done-confirm__recap')[0]!.textContent?.replace(NBSP, ' '),
     ).toBe('Dose du vendredi 2 oct., donnée le lundi 28 sept.')
+  })
+
+  it('un report avancé seul bloque le décalage : un tap, la prise seule, le toast le dit (G19, G20)', async () => {
+    vi.setSystemTime(new Date('2027-04-10T09:00:00'))
+    service.apply.mockResolvedValue({ ...APPLIED, heldBy: '2027-04-23' } as typeof APPLIED)
+    await cestFait(
+      treatment(
+        [
+          {
+            ...VENDREDI,
+            startsOn: '2027-03-27',
+            firstDueOn: '2027-03-27',
+            frequency: { value: 6, unit: 'week' },
+            times: ['20:00'],
+            endsOn: '2027-05-10',
+          },
+        ],
+        [postponed('2027-05-08', '2027-04-23', { dueTime: '20:00' })],
+      ),
+    )
+
+    expect(service.apply).toHaveBeenCalledWith(METACAM.id, {
+      kind: 'note',
+      gesture: {
+        kind: 'note',
+        due: { settingId: 'p-1', dueOn: '2027-03-27', dueTime: '20:00' },
+        status: 'given',
+        givenOn: '2027-04-10',
+        shiftsFollowing: false,
+      },
+      heldBy: '2027-04-23',
+    })
+    expect(message()).toBe(
+      'Prise de Métacam notée pour Luna. La suite ne bouge pas : un report est prévu le 23 avr.',
+    )
   })
 })
 

@@ -44,7 +44,7 @@ export function sheetPeriod(
 }
 
 export type SheetDoneTarget =
-  | { kind: 'note'; gesture: NoteGesture }
+  | { kind: 'note'; gesture: NoteGesture; heldBy?: string }
   | { kind: 'confirm'; due: Due }
   | { kind: 'already'; givenOn: string }
   | { kind: 'missed' }
@@ -85,7 +85,7 @@ export function sheetDoneTarget(
   const tapped = doneGesture(reading, pending.due, today)
   return tapped.confirm
     ? { kind: 'confirm', due: pending.due }
-    : { kind: 'note', gesture: tapped.gesture }
+    : { kind: 'note', gesture: tapped.gesture, heldBy: tapped.heldBy }
 }
 
 /** Premier jour proposé par « Fait à une autre date » pour l'échéance de la ligne. */

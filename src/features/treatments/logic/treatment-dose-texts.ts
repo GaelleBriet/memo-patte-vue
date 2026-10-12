@@ -1,7 +1,12 @@
 import type { DoseActionTexts, TextTools } from './treatment-gestures'
 import type { NoteGesture } from './treatment-dose-change'
 import { withRevealed } from './treatment-revealed-dues'
-import { formatClockTime, formatDaySeries, formatFullDate } from '@/shared/utils/format'
+import {
+  formatClockTime,
+  formatDaySeries,
+  formatFullDate,
+  withoutFinalDot,
+} from '@/shared/utils/format'
 
 export function noteTexts(
   { t, name, animal, today, day, dueDay, already, severalTimes }: TextTools,
@@ -38,10 +43,16 @@ export function noteTexts(
     dates: formatDaySeries(days),
   })
   const told: DoseActionTexts['done'] = (applied) => {
-    const { finishes, lostToEnd = [] } = applied
+    const { finishes, heldBy, lostToEnd = [] } = applied
     if (finishes) return t('treatments.detail.toast.lastDose', { name })
     if (lostToEnd.length > 0) {
       return t('treatments.shift.suiteCut', endNote(lostToEnd), lostToEnd.length)
+    }
+    if (heldBy !== undefined) {
+      return t('treatments.shift.suiteHeld', {
+        done: withoutFinalDot(noted()),
+        date: withoutFinalDot(day(heldBy)),
+      })
     }
     return noted()
   }

@@ -156,7 +156,7 @@ function proceed(due: Due): void {
   }
   const tapped = doneGesture(reading.value, due, today.value)
   if (!tapped.confirm) {
-    void note(tapped.gesture)
+    void note(tapped.gesture, tapped.heldBy)
     return
   }
   confirming.value = due
@@ -169,10 +169,10 @@ function chooseOtherDate(): void {
   isOtherDateOpen.value = true
 }
 
-async function note(gesture: NoteGesture): Promise<void> {
+async function note(gesture: NoteGesture, heldBy?: string): Promise<void> {
   const current = history.value
   if (current === null) return
-  const action: DoseAction = { kind: 'note', gesture }
+  const action: DoseAction = { kind: 'note', gesture, heldBy }
   const toast = doseActionTexts(
     t,
     {

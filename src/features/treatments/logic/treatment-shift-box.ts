@@ -227,7 +227,7 @@ export function doneGesture(
   reading: TreatmentReading,
   due: Due,
   today: string,
-): { confirm: true } | { confirm: false; gesture: NoteGesture } {
+): { confirm: true } | { confirm: false; gesture: NoteGesture; heldBy?: string } {
   const note = (shiftsFollowing: boolean): NoteGesture => ({
     kind: 'note',
     due,
@@ -237,9 +237,10 @@ export function doneGesture(
   })
   const plain = play(reading.input, note(false))
   if (refused(plain) || !plain.offersShift) return { confirm: false, gesture: note(false) }
-  return refused(play(reading.input, note(true)))
-    ? { confirm: false, gesture: note(false) }
-    : { confirm: true }
+  const shifted = play(reading.input, note(true))
+  if (!refused(shifted)) return { confirm: true }
+  const held = 'on' in shifted.refusal ? { heldBy: shifted.refusal.on } : {}
+  return { confirm: false, gesture: note(false), ...held }
 }
 
 /**

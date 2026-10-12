@@ -26,7 +26,7 @@ type SheetState = {
 }
 
 type SheetHandlers = {
-  note: (gesture: NoteGesture) => void
+  note: (gesture: NoteGesture, heldBy?: string) => void
   confirm: (due: Due) => void
   close: () => void
   changed: () => void
@@ -66,7 +66,7 @@ export function useTreatmentSheetActions(
     const target = sheetDoneTarget(reading.value, doseDue.value, today.value)
     switch (target.kind) {
       case 'note':
-        note(target.gesture)
+        note(target.gesture, target.heldBy)
         return
       case 'confirm':
         confirm(target.due)

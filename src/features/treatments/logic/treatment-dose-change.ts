@@ -21,7 +21,8 @@ import type { TreatmentReading } from '@/shared/domain/treatment-reading'
 export type NoteGesture = Extract<Gesture, { kind: 'note' }>
 
 export type DoseAction =
-  | { kind: 'note'; gesture: NoteGesture }
+  /** `heldBy` : l'arrivée du report seul que le décalage de cette prise ferait passer ; la suite ne bouge pas. */
+  | { kind: 'note'; gesture: NoteGesture; heldBy?: string }
   /** Doses à renseigner, écrites en un seul lot ; lève `DoseAlreadyLoggedError` si l'une est déjà notée. */
   | { kind: 'log'; gestures: readonly NoteGesture[] }
   /** Une prise, une prise en plus, un report ou un décalage : le moteur dit ce qui reste. */
@@ -41,6 +42,8 @@ export type DoseChange = {
   moved: LineFields | 'removed' | null
   /** La prise, le report ou la ligne supprimés laissent un décalage en place (N6). */
   shiftKept: boolean
+  /** Le report qui garde la suite en place (G19, G20) : son arrivée. */
+  heldBy?: string
   /** G21 : les doses passées que le geste fait apparaître, à renseigner ou en retard. */
   revealed: RevealedDues | null
 }
@@ -98,6 +101,7 @@ function noteChange(
   history: History,
   reading: TreatmentReading,
   gesture: NoteGesture,
+  heldBy: string | undefined,
   newId: () => string,
 ): DoseChange {
   if (gesture.status === 'given') {
@@ -112,6 +116,7 @@ function noteChange(
     lostToEnd: outcome.lostToEnd,
     shiftKept: gesture.status === 'missed' && wasGiven && keepsShift(reading, gesture.due),
     revealed: gesture.status === 'given' ? revealedBy(reading, outcome) : null,
+    ...(heldBy === undefined ? {} : { heldBy }),
   }
 }
 
@@ -177,7 +182,7 @@ export function doseChange(
 ): DoseChange {
   switch (action.kind) {
     case 'note':
-      return noteChange(history, reading, action.gesture, newId)
+      return noteChange(history, reading, action.gesture, action.heldBy, newId)
     case 'log':
       return logChange(history, reading, action.gestures, newId)
     case 'remove': {

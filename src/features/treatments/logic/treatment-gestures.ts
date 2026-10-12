@@ -22,6 +22,7 @@ export type DoseActionTexts = {
   done(
     applied: Pick<DoseChange, 'followed' | 'moved' | 'shiftKept'> & {
       finishes?: boolean
+      heldBy?: string
       lostToEnd?: readonly string[]
       revealed?: RevealedDues | null
     },

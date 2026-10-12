@@ -529,3 +529,21 @@ describe('doseActionTexts — renseigner des doses en un lot', () => {
     )
   })
 })
+
+describe('doseActionTexts — la suite ne bouge pas : un report est prévu (G19, G20)', () => {
+  const action: DoseAction = {
+    kind: 'note',
+    gesture: { kind: 'note', status: 'given', due: SOIR, givenOn: TODAY, shiftsFollowing: false },
+    heldBy: '2026-10-28',
+  }
+
+  it('le toast nomme le report, en français puis en anglais', () => {
+    expect(texts(UNE_HEURE, action).done({ ...RIEN, heldBy: '2026-10-28' })).toBe(
+      'Prise de Panacur notée pour Pixel. La suite ne bouge pas : un report est prévu le 28 oct.',
+    )
+    applyLocale('en')
+    expect(texts(UNE_HEURE, action).done({ ...RIEN, heldBy: '2026-10-28' })).toBe(
+      'Panacur dose logged for Pixel. The schedule doesn’t move: a postponement is planned on Oct 28.',
+    )
+  })
+})

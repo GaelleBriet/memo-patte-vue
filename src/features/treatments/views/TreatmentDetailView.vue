@@ -143,7 +143,7 @@ function done(due: Due): void {
   if (tapped.confirm) {
     confirming.value = due
     isDoneConfirmOpen.value = true
-  } else void note(tapped.gesture)
+  } else void note(tapped.gesture, tapped.heldBy)
 }
 
 async function noteConfirmed(gesture: NoteGesture): Promise<void> {

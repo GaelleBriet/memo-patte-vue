@@ -413,7 +413,10 @@ describe('restoredSuiteFor — le toast de « Supprimer ce décalage » (V31 qua
 })
 
 describe('doneGesture — « C’est fait » de la fiche : rien ne se décale sans l’aval (2026-10-06)', () => {
-  const note = (due: typeof DUE_16, givenOn: string) => ({
+  const note = (
+    due: { settingId: string; dueOn: string; dueTime: string | null },
+    givenOn: string,
+  ) => ({
     kind: 'note' as const,
     status: 'given' as const,
     due,
@@ -466,6 +469,28 @@ describe('doneGesture — « C’est fait » de la fiche : rien ne se décale sa
 
     expect(doneGesture(treatmentReadingOf(held, '2026-10-21'), DUE_16, '2026-10-21')).toEqual({
       confirm: true,
+    })
+  })
+
+  it('un report avancé seul que le décalage ferait passer : un tap, la prise seule, le report est nommé (G19, G20)', () => {
+    const held = treatment(
+      [
+        period({
+          startsOn: '2027-03-27',
+          firstDueOn: '2027-03-27',
+          frequency: { value: 6, unit: 'week' },
+          times: ['20:00'],
+          endsOn: '2027-05-10',
+        }),
+      ],
+      [postponed('2027-05-08', '2027-04-23', { dueTime: '20:00' })],
+    )
+    const due = { settingId: 'p-1', dueOn: '2027-03-27', dueTime: '20:00' }
+
+    expect(doneGesture(treatmentReadingOf(held, '2027-04-10'), due, '2027-04-10')).toEqual({
+      confirm: false,
+      gesture: note(due, '2027-04-10'),
+      heldBy: '2027-04-23',
     })
   })
 })
