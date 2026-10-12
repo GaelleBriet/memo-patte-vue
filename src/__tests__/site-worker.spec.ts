@@ -17,6 +17,7 @@ describe('site/_worker.js', () => {
     ['http://memopatte.gaelle-briet.fr/en/privacy/', 'https://memopatte.app/en/privacy/'],
     ['https://www.memopatte.app/', 'https://memopatte.app/'],
     ['https://www.memopatte.app/en/help/?x=1', 'https://memopatte.app/en/help/?x=1'],
+    ['https://memopatte.pages.dev/aide/?x=1', 'https://memopatte.app/aide/?x=1'],
   ])('redirige %s vers %s en 301', async (from, to) => {
     const { response, assets } = serve(from)
     const res = await response

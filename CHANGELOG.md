@@ -5,6 +5,21 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.72](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.71...memo-patte-v0.1.72) (2026-10-12)
+
+
+### 🐛 Corrections
+
+* **site:** redirige memopatte.pages.dev vers memopatte.app ([3e5096c](https://github.com/GaelleBriet/memo-patte-vue/commit/3e5096c62638b2ee235279136b2103579a8ee438))
+* **site:** redirige memopatte.pages.dev vers memopatte.app ([f1fddd3](https://github.com/GaelleBriet/memo-patte-vue/commit/f1fddd39c0b073c9e4875803967a81e490bf333e))
+
+## [0.1.71](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.70...memo-patte-v0.1.71) (2026-10-12)
+
+
+### ✨ Fonctionnalités
+
+* **treatments:** PDF, CSV et rappels du JSON lisent le moteur v2 (pas 5) ([4feca21](https://github.com/GaelleBriet/memo-patte-vue/commit/4feca212f6962213f3a2209a3f3889fb8a4b6560))
+
 ## [0.1.70](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.69...memo-patte-v0.1.70) (2026-10-12)
 
 
