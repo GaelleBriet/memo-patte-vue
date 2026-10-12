@@ -1,12 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { dose, period, plain, treatment } from './treatment-fixtures'
-import {
-  dateChangeOf,
-  doseActionTexts,
-  hasSeveralTimes,
-  lineAction,
-} from '../logic/treatment-gestures'
+import { doseActionTexts, hasSeveralTimes } from '../logic/treatment-gestures'
+import { dateChangeOf, lineAction } from '../logic/treatment-line-actions'
 import type { DoseAction, NoteGesture } from '../logic/treatment-dose-change'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
 import i18n, { applyLocale } from '@/core/i18n'

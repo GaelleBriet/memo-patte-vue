@@ -16,7 +16,7 @@ import { useTreatmentDoseFlow } from '../composables/use-treatment-dose-flow'
 import { useTreatmentGestures } from '../composables/use-treatment-gestures'
 import { detailActions, doseCard, lessPreciseReminder } from '../logic/treatment-card'
 import type { NoteGesture } from '../logic/treatment-dose-change'
-import { dateChangeOf, lineAction, type DateChange } from '../logic/treatment-gestures'
+import { dateChangeOf, lineAction, type DateChange } from '../logic/treatment-line-actions'
 import {
   treatmentDeleteTexts,
   treatmentHistory,

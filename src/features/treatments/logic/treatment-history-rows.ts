@@ -1,4 +1,4 @@
-import { movedDueOf } from './treatment-gestures'
+import { movedDueOf } from './treatment-line-actions'
 import { refusalText } from './treatment-refusal-texts'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'

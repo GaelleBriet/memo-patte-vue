@@ -1,5 +1,5 @@
 import type { Due, TreatmentView } from '@/shared/domain/dose-calendar'
-import { formatDaySeries } from '@/shared/utils/format'
+import { formatDaySeries, withoutFinalDot } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
 /** Doses passées sans prise qu'un geste fait apparaître : à renseigner, ou en retard. */
@@ -52,4 +52,15 @@ export function revealedDuesText(
   if (overdue.length === 0) return t(key('unlogged'), toLog, unlogged.length)
   const first = t(key('unloggedThen'), toLog, unlogged.length)
   return `${first} ${t(key('thenOverdue'), late, overdue.length)}`
+}
+
+export function withRevealed(
+  t: Translate,
+  done: string,
+  revealed: RevealedDues | null | undefined,
+): string {
+  const text =
+    revealed === undefined || revealed === null ? null : revealedDuesText(t, revealed, 'toast')
+  if (text === null) return done
+  return t('treatments.shift.revealed.after', { done: withoutFinalDot(done), revealed: text })
 }
