@@ -378,5 +378,92 @@ select is(
   array[2, 1, 2, 1, 1, 1, 1, 1, 2, 0]::bigint[],
   'compte supprimé : ses lignes partent en cascade, celles des autres restent');
 
+-- Conversion de la migration v12 rejouée : colonnes remises à l'état v11, cas limites, puis le corps de la migration.
+select pg_temp.as_owner();
+alter table public.treatment_period rename column grid_origin_on to reference_on;
+alter table public.treatment_period alter column reference_on set not null;
+alter table public.treatment_dose rename column target_on to next_due_date;
+alter table public.treatment_dose alter column next_due_date set not null;
+
+insert into public.device (user_id, id, installed_at, created_at, updated_at)
+values ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', now(), now(), now());
+insert into public.animal (user_id, id, name, species, created_at, updated_at, created_by_device, updated_by_device)
+values ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '00000000-0000-4000-8000-0000000000c1', 'Luna', 'cat', now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+insert into public.treatment (user_id, id, animal_id, name, type, created_at, updated_at, created_by_device, updated_by_device)
+values ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '00000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-0000000000c1', 'Mensuel', 'antiparasitic', now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'),
+       ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '00000000-0000-4000-8000-0000000000d2', '00000000-0000-4000-8000-0000000000c1', 'Quotidien', 'medication', now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+insert into public.treatment_period (user_id, id, treatment_id, animal_id, starts_on, first_due_on,
+  reference_on, frequency_value, frequency_unit, created_at, updated_at, created_by_device, updated_by_device)
+values
+  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-0000000000c1', '2026-01-31', '2026-02-28', '2026-01-31', 1, 'month', now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'),
+  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '00000000-0000-4000-8000-0000000000e2', '00000000-0000-4000-8000-0000000000d2', '00000000-0000-4000-8000-0000000000c1', '2026-01-01', '2026-01-01', '2026-01-01', 1, 'day', now() - interval '2 hours', now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'),
+  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '00000000-0000-4000-8000-0000000000e3', '00000000-0000-4000-8000-0000000000d2', '00000000-0000-4000-8000-0000000000c1', '2026-02-01', '2026-02-01', '2026-01-01', 1, 'day', now() - interval '1 hour', now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+alter table public.treatment_period rename column reference_on to grid_origin_on;
+alter table public.treatment_period alter column grid_origin_on drop not null;
+
+alter table public.treatment_dose rename column next_due_date to target_on;
+alter table public.treatment_dose alter column target_on drop not null;
+
+-- Un réglage remplacé avant son premier jour cède sa place au réglage écrit après lui ; les réglages
+-- d'un traitement supprimé se rangent avec ceux supprimés au même instant.
+with keyed as (
+  select
+    p.user_id, p.id, p.treatment_id, p.deleted_at, p.created_at, p.first_due_on,
+    p.grid_origin_on as reference_on, p.stopped_on, p.frequency_value, p.frequency_unit,
+    least(p.starts_on, coalesce((
+      select min(newer.starts_on) from public.treatment_period newer
+      where newer.user_id = p.user_id and newer.treatment_id = p.treatment_id
+        and newer.deleted_at is not distinct from p.deleted_at
+        and newer.created_at > p.created_at), p.starts_on)) as start_key
+  from public.treatment_period p
+),
+ordered as (
+  select keyed.*, lag(keyed.id) over (
+    partition by keyed.user_id, keyed.treatment_id, keyed.deleted_at
+    order by keyed.start_key, keyed.created_at, keyed.id) as previous_id
+  from keyed
+),
+converted as (
+  select o.user_id, o.id,
+    case
+      when previous.id is not null and previous.stopped_on is null
+        and previous.frequency_value = o.frequency_value
+        and previous.frequency_unit = o.frequency_unit
+        and previous.reference_on = o.reference_on then null
+      when case o.frequency_unit
+        when 'day' then (o.first_due_on - o.reference_on) % o.frequency_value = 0
+        when 'week' then (o.first_due_on - o.reference_on) % (7 * o.frequency_value) = 0
+        else ((extract(year from o.first_due_on) * 12 + extract(month from o.first_due_on))
+            - (extract(year from o.reference_on) * 12 + extract(month from o.reference_on)))::integer
+            % o.frequency_value = 0
+          and extract(day from o.first_due_on) = least(
+            extract(day from o.reference_on),
+            extract(day from (date_trunc('month', o.first_due_on) + interval '1 month - 1 day')))
+      end then o.reference_on
+      else o.first_due_on
+    end as grid_origin_on
+  from ordered o
+  left join keyed previous on previous.user_id = o.user_id and previous.id = o.previous_id
+)
+update public.treatment_period period
+set grid_origin_on = converted.grid_origin_on
+from converted
+where period.user_id = converted.user_id and period.id = converted.id
+  and period.grid_origin_on is distinct from converted.grid_origin_on;
+
+update public.treatment_dose
+set target_on = null
+where status not in ('postponed', 'shift') and target_on is not null;
+
+select is(
+  (select grid_origin_on from public.treatment_period where id = '00000000-0000-4000-8000-0000000000e1'),
+  '2026-01-31'::date, 'mensuel du 31 : la référence qui tombe sur le rythme est conservée');
+select is(
+  (select grid_origin_on from public.treatment_period where id = '00000000-0000-4000-8000-0000000000e2'),
+  '2026-01-01'::date, 'premier réglage : sa référence est gardée');
+select is(
+  (select grid_origin_on from public.treatment_period where id = '00000000-0000-4000-8000-0000000000e3'),
+  null::date, 'réglage de même origine que le précédent : origine vide (hérite)');
+
 select * from finish();
 rollback;

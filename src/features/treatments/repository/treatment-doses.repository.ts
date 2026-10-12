@@ -24,8 +24,6 @@ export type TreatmentDoseVersion = Pick<
   'id' | 'periodId' | 'treatmentId' | 'updatedAt' | 'deletedAt'
 >
 
-type DueWrite = { dose: DoseFields }
-
 type Step = {
   guard?: SqlStatement
   statement: SqlStatement
@@ -212,8 +210,8 @@ export function createTreatmentDosesRepository(
   }
 
   // Q5 : une échéance a au plus une ligne visible écrite ici par famille ; la synchronisation peut en
-  // apporter une seconde, que le moteur lit sans effet (R11).
-  function duplicateWhere({ dose }: DueWrite): { sql: string; params: SqlParam[] } {
+  // apporter une seconde, dont une des deux devient sans effet pour le moteur (R11).
+  function duplicateWhere(dose: DoseFields): { sql: string; params: SqlParam[] } {
     const family = familyOf(dose) === 'note' ? ['given', 'missed'] : [dose.status]
     return {
       sql: `period_id = ? AND due_on = ? AND due_time IS ? AND ${NOT_DELETED}
@@ -223,8 +221,8 @@ export function createTreatmentDosesRepository(
   }
 
   // Réinsère la ligne en double sous son propre identifiant : la clé primaire fait échouer le lot.
-  function duplicateGuardStatement(write: DueWrite): SqlStatement {
-    const where = duplicateWhere(write)
+  function duplicateGuardStatement(dose: DoseFields): SqlStatement {
+    const where = duplicateWhere(dose)
     return {
       sql: `INSERT INTO treatment_dose (${COLUMNS})
             SELECT ${COLUMNS} FROM treatment_dose WHERE ${where.sql} LIMIT 1`,
@@ -260,14 +258,14 @@ export function createTreatmentDosesRepository(
     const dues = new Set<string>()
     for (const write of writes) {
       if (write.action !== 'create') continue
-      const due = JSON.stringify(duplicateWhere(write).params)
+      const due = JSON.stringify(duplicateWhere(write.dose).params)
       if (dues.has(due)) throw new DuplicateDueError(`Échéance en double dans le lot : ${write.id}`)
       dues.add(due)
     }
   }
 
-  async function hasDuplicate(write: DueWrite): Promise<boolean> {
-    const where = duplicateWhere(write)
+  async function hasDuplicate(dose: DoseFields): Promise<boolean> {
+    const where = duplicateWhere(dose)
     const rows = await db.query<{ id: string }>(
       `SELECT id FROM treatment_dose WHERE ${where.sql} LIMIT 1`,
       where.params,
@@ -424,7 +422,7 @@ export function createTreatmentDosesRepository(
         switch (write.action) {
           case 'create':
             return {
-              guard: duplicateGuardStatement(write),
+              guard: duplicateGuardStatement(write.dose),
               statement: createStatement({ ...write, at }),
               after: liveParentGuardStatement(write.id),
               inverse: { action: 'delete', id: write.id, ...unchanged },
@@ -465,7 +463,7 @@ export function createTreatmentDosesRepository(
         ])
       } catch (cause) {
         for (const write of writes) {
-          if (write.action === 'create' && (await hasDuplicate(write))) {
+          if (write.action === 'create' && (await hasDuplicate(write.dose))) {
             throw new DuplicateDueError(`Échéance déjà notée : ${write.id}`, { cause })
           }
         }
