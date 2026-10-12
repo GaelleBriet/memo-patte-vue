@@ -4,6 +4,10 @@ import type { IdleReason, Line } from './types'
 export const isNote = (line: Pick<Line, 'status'>): boolean =>
   line.status === 'given' || line.status === 'missed'
 
+/** « Avancée au … » plutôt que « Reportée au … » : la nouvelle date précède l'échéance remplacée. */
+export const isAdvanced = (line: Pick<Line, 'status' | 'dueOn' | 'targetOn'>): boolean =>
+  line.status === 'postponed' && line.targetOn !== null && line.targetOn < line.dueOn
+
 export const familyOf = (line: Pick<Line, 'status'>): string =>
   isNote(line) ? 'note' : line.status
 

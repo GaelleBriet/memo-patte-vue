@@ -13,6 +13,7 @@ export {
   type SettingsRequest,
   type SettingsResult,
 } from './gestures/settings'
+export { isAdvanced } from './lines'
 export { play, preview } from './preview'
 export type { DueSlot, HistoryLine, TreatmentView, Window } from './view'
 export type * from './types'

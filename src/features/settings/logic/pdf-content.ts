@@ -16,6 +16,7 @@ import {
   periodClosedBeforeFirstDue,
   periodLastDay,
 } from '@/shared/domain/treatment-periods'
+import { isAdvanced } from '@/shared/domain/dose-calendar'
 import { shownLines } from '@/shared/domain/treatment-reading'
 
 export type PdfDueState = 'overdue' | 'upToDate' | 'planned' | 'none'
@@ -158,7 +159,7 @@ function eventOf(dose: ShownDose, severalTimes: boolean): Event[] {
             kind: 'moved',
             dueOn: dose.dueOn,
             to: dose.nextDueDate,
-            advanced: dose.nextDueDate < dose.dueOn,
+            advanced: isAdvanced({ ...dose, targetOn: dose.nextDueDate }),
           },
         },
       ]
@@ -219,7 +220,7 @@ function linesOf(events: Event[], frequency: ExportFrequency): PdfHistoryLine[] 
     .map(lineOf)
 }
 
-// L'ordre d'écriture départage deux lignes d'une même échéance, comme avant la lecture unique.
+// L'ordre d'écriture départage deux lignes d'une même échéance.
 function creationOrder(a: ShownDose, b: ShownDose): number {
   const key = (dose: ShownDose) =>
     `${dose.dueOn} ${dose.dueTime ?? ''} ${dose.createdAt} ${dose.id}`

@@ -1,5 +1,5 @@
 import { keyOf, plusDays } from '../grid'
-import { isNote } from '../lines'
+import { isAdvanced, isNote } from '../lines'
 import { episodeIdsOf } from '../settings'
 import type {
   Day,
@@ -20,10 +20,7 @@ import { arrivesOnOrigin, strandsNote } from './reports'
 export function shiftDayOf(view: TreatmentView, due: Pick<Due, 'dueOn'>): Day {
   const advanced = view.history.find(
     ({ line, effect }) =>
-      line.status === 'postponed' &&
-      effect.kind === 'moves' &&
-      line.targetOn === due.dueOn &&
-      line.targetOn < line.dueOn,
+      isAdvanced(line) && effect.kind === 'moves' && line.targetOn === due.dueOn,
   )
   return advanced?.line.dueOn ?? due.dueOn
 }
