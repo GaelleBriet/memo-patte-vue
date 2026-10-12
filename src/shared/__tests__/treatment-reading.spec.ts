@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { treatmentView, viewInputOf, type LegacyInput } from '../domain/dose-calendar'
-import { shownLines, treatmentReading } from '../domain/treatment-reading'
+import { currentPeriodIn, shownLines, treatmentReading } from '../domain/treatment-reading'
 
 type Period = LegacyInput['periods'][number]
 type Dose = LegacyInput['doses'][number]
@@ -112,5 +112,15 @@ describe('shownLines', () => {
     const read = treatmentReading(treatment, TODAY)!
     expect(read.history.find(({ line }) => line.id === 'off')?.effect.kind).toBe('idle')
     expect(shownLines(read).map(({ id }) => id)).toEqual(['off', 'a'])
+  })
+})
+
+describe('currentPeriodIn', () => {
+  it('rend l’enregistrement du réglage en cours, la reprise après un arrêt', () => {
+    const first = period({ stoppedOn: '2026-10-02' })
+    const resumed = period({ id: 'p-2', startsOn: '2026-10-03', firstDueOn: '2026-10-03' })
+    const periods = [resumed, first]
+    expect(currentPeriodIn(periods, treatmentReading({ periods, doses: [] }, TODAY)!)).toBe(resumed)
+    expect(currentPeriodIn([], treatmentReading({ periods: [], doses: [] }, TODAY)!)).toBeNull()
   })
 })
