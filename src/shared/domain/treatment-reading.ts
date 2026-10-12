@@ -163,7 +163,6 @@ export function treatmentReading(treatment: TreatmentRecords, today: string): Tr
   return readTreatment(treatment, today)?.view ?? null
 }
 
-// Doublons d'une même échéance : la fiche, le PDF et le CSV les montrent « · sans effet », ils ne comptent aucune prise.
 const DUPLICATES: readonly IdleReason[] = ['superseded', 'back-to-date', 'beaten']
 
 /** Les lignes qui comptent une prise, dans l'ordre chronologique : sans les doublons d'une même échéance. */
