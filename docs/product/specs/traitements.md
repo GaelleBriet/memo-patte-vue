@@ -202,7 +202,9 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   la prise la suit (lecture du 2026-10-12). (Décision du 2026-09-25, point 1, transposée ; plan de livraison, T3 ; points validés en bloc du
   2026-10-01 ; décision du 2026-10-10.)
 - **TR-25** Une correction s'applique à toutes les lignes de la même échéance, jour et heure (deux
-  appareils), et devient la modification la plus récente. (Relecture, point 5)
+  appareils), et devient la modification la plus récente. « Supprimer » la prise en vigueur supprime
+  aussi les autres lignes de sa dose ; une ligne grisée « · sans effet » se supprime seule (décision
+  du 2026-10-12). (Relecture, point 5)
 - **TR-26** Pas de règle de « seule prise » : supprimer la seule prise garde le traitement (son
   échéance redevient la dose du moment, ou une dose non renseignée si une échéance plus récente est
   tombée, TR-13) ; « Marquer comme oubliée » est permis sur toute prise, y compris la seule donnée. Pour
@@ -352,9 +354,9 @@ Quand la fréquence ou les heures changent, la première échéance proposée es
 
 1. **aujourd'hui**, si aujourd'hui est une journée d'échéance (grille ou arrivée d'un report) qui a encore des heures à donner, ou si rien n'y est noté et qu'une dose y était due ; les prises d'aujourd'hui couvrent les premières heures du nouveau réglage (R4) ;
 2. sinon, la **prochaine journée d'échéance** du calendrier en vigueur quand elle est déjà **entamée** (une de ses heures donnée en avance) ou quand c'est l'**arrivée d'un report** : elle garde son jour, ses prises couvrent les premières heures du nouveau réglage, et le nouveau rythme part d'elle ;
-3. sinon, la **dernière journée d'échéance passée plus la nouvelle fréquence**, jamais avant aujourd'hui.
+3. sinon, la **dernière journée d'échéance passée plus la nouvelle fréquence**, jamais avant aujourd'hui ; une journée notée que le réglage suivant a fait sortir du calendrier compte (R4), la date ne dépend donc pas du jour de la correction (#799, décision du 2026-10-12).
 
-La date proposée et montrée est la première dose encore à donner, comme sur la fiche (une journée déjà toute notée garde son rôle de première échéance écrite) ; un nouveau rythme dont la première dose encore à donner tomberait après la date de fin est refusé, une date de fin égale à aujourd'hui n'ayant rien de spécial (« Avec ce rythme, plus aucune dose avant la date de fin. Change la date de fin ou le rythme. », #787) (décisions du 2026-10-12). La date est modifiable (« Prochaine dose ») ; une autre date choisie devient la première échéance et l'origine ; à fréquence gardée, elle remplace la dose du moment : la dose en retard, qui ne passe pas « à renseigner », ou, si le réglage commence un jour d'échéance, la dose de ce jour, les doses plus anciennes restant à renseigner ; elle est montrée même plus tôt que la première échéance d'un réglage jamais commencé (TR-9, #794, décisions du 2026-10-12). Quand la fréquence ne change pas (heures ou posologie seules), la première échéance est **la prochaine journée du calendrier en vigueur** (dose du moment en retard comprise : elle reste en retard, jamais déplacée vers « à renseigner », Q-retard), et l'origine est héritée (R3) : le calendrier ne bouge pas.
+La date proposée et montrée est la première dose encore à donner, comme sur la fiche (une journée déjà toute notée garde son rôle de première échéance écrite) ; un nouveau rythme dont la première dose encore à donner tomberait après la date de fin est refusé, une date de fin égale à aujourd'hui n'ayant rien de spécial (« Avec ce rythme, plus aucune dose avant la date de fin. Change la date de fin ou le rythme. », #787) (décisions du 2026-10-12). La date est modifiable (« Prochaine dose ») ; une autre date choisie devient la première échéance et l'origine ; à fréquence gardée, elle remplace la dose du moment : la dose en retard, qui ne passe pas « à renseigner », ou, si le réglage commence un jour d'échéance, la dose de ce jour, les doses plus anciennes restant à renseigner ; quand la prochaine dose est l'arrivée d'un report, la ligne du report est réécrite pour arriver à la date choisie (R7), elle ne devient pas « sans effet » (#796, décision du 2026-10-12) ; elle est montrée même plus tôt que la première échéance d'un réglage jamais commencé (TR-9, #794, décisions du 2026-10-12). Quand la fréquence ne change pas (heures ou posologie seules), la première échéance est **la prochaine journée du calendrier en vigueur** (dose du moment en retard comprise : elle reste en retard, jamais déplacée vers « à renseigner », Q-retard), et l'origine est héritée (R3) : le calendrier ne bouge pas.
 
 _Remplace Q7, Q36, Q37, G15, G16, G23 (la partie « où commence »), G24._
 
@@ -1003,6 +1005,35 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
 - 2026-10-12 — **R11 et l'oubli : l'asymétrie est voulue**. « Fait à une autre date » sur un jour noté
   oublié le repasse en donnée (TR-22, geste fait exprès sur cette dose) ; la correction de date d'une
   autre prise n'efface jamais l'oubli (refus).
+- 2026-10-12 — **Journée déplacée à plusieurs heures : seules les heures restantes** (R7, Q21).
+  Milo, trois prises par jour (8 h, 14 h, 20 h), dose de 8 h du 5 mars donnée, « Prochaine dose » le
+  7 mars : le 7 reçoit 14 h et 20 h, la dose de 8 h du 5 étant donnée ; les jours suivants ont leurs
+  trois heures. Écartée : 8 h, 14 h et 20 h le 7, comme un réglage ouvert ce jour-là.
+- 2026-10-12 — **#799 : la première dose proposée ne dépend pas du jour de la correction** (R9.3).
+  Quotidien depuis le 30 sept., doses des 30, 1er et 2 oct. données ; le 2 oct., passage à
+  hebdomadaire ; corrigé en « toutes les 2 semaines » le 2, le 3 ou le 5 oct. : le 16, avec l'aide
+  « Calculée d'après la dernière prise ». Écartée : le 15 les jours suivants (la journée du 2, sortie du
+  calendrier par l'hebdomadaire, n'était plus lue comme une échéance).
+- 2026-10-12 — **Date avant une dose déjà donnée plus loin : refusée** (Q26, R12). Demander
+  « Prochaine dose » le 22 mars alors qu'une dose du 4 mai est déjà donnée : « trop tôt ». Le refus
+  vient du moteur, le formulaire l'affiche seulement. Écartée : ouvrir un réglage à cette date.
+- 2026-10-12 — **TR-25 : « Supprimer » une dose supprime toutes ses lignes**. Dose du 10 oct. de
+  Milo notée sur chaque appareil, « Supprimer » : plus aucune ligne pour cette dose. La lecture d'une
+  ligne plus récente reste celle de R11 (#654). Écartée : laisser la dose donnée par l'autre ligne.
+- 2026-10-12 — **#796 : la date choisie déplace la prochaine dose, arrivée d'un report comprise**
+  (R9, R7). Métacam tous les 2 jours du 2 oct., doses des 2, 4 et 6 données, dose du 8 reportée au 10 ;
+  le 9, posologie et « Prochaine dose » le 11 : la ligne du report est réécrite pour arriver le 11, la
+  fiche montre 11, 13 (pas 10, 11, 13) ; le 8 avec « Prochaine dose » le 9 : 9, 11. Écartée : laisser le
+  report arriver le 10, ou le rendre « sans effet ».
+- 2026-10-12 — **Prise en plus et « Prochaine dose » : rien ne change** (R5). Hebdo, première dose le
+  21 sept., prise en plus le 16 ; le 17, « Prochaine dose » au 24 : la première dose est corrigée,
+  sans ligne « Reportée ». Une prise en plus ne touche pas le calendrier ; avant la première dose,
+  c'est « Première prise le » qui change. Écartée : écrire un report.
+- 2026-10-12 — **Avant une date choisie, seul le décalage qui la porte garde son effet** (R3, R6) :
+  confirmé.
+- 2026-10-12 — **PDF, CSV et feuilles montrent les lignes sans effet comme l'historique** (R11, R12).
+  Une ligne remplacée, battue ou revenue à sa date y est écrite à sa place, suivie de « · sans effet »
+  (« · no longer applies »). Écartée : les cacher.
 
 ## 11. Questions ouvertes
 
@@ -1025,5 +1056,15 @@ menu ⋮ ne propose que « Supprimer » (R11, TR-24, TR-35).
 Trous relevés au pas 1 de l'épic #758 et fermés le 2026-10-10 : #762 (prise qui ne vise plus aucune
 échéance après une correction avec décalage : R6, pas de case quand une ligne existe plus loin, et
 R4 « une prise ne se perd jamais » pour les lignes reçues) ; #763 (deux reports qui se renvoient une
-dose : R7, refus de la correction, G9 étendue à la réécriture). Aucune question ouverte.
+dose : R7, refus de la correction, G9 étendue à la réécriture).
+
+Ouvertes le 2026-10-13, en appliquant les décisions du 2026-10-12 au soir :
+
+- **Q26 et #794 avec un réglage changé.** « Prochaine dose » seule passe par un report, que le moteur
+  refuse déjà avant une dose donnée plus loin (« Choisis une date à partir du … »). Avec une posologie
+  ou des heures changées, la même date ouvre un réglage, et #794 (« une date choisie est toujours
+  montrée ») l'accepte : tous les jours, dose du 19 mai donnée d'avance ; le 24 avr., posologie et
+  « Prochaine dose » le 24 : la fiche montre le 24. Refuser aussi ce cas, ou garder #794 ?
+- **CSV.** `prises.csv` liste déjà toutes les lignes, sans effet comprises ; les marquer
+  « · sans effet » demande une colonne de plus, donc un titre nouveau.
 
