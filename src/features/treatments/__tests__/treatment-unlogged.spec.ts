@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { dose, period, plain, treatment } from './treatment-fixtures'
 import { doseCard } from '../logic/treatment-card'
+import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
 import {
   pastDosesOf,
   pastDosesPrompt,
@@ -12,7 +13,6 @@ import {
 } from '../logic/treatment-unlogged'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import i18n, { applyLocale } from '@/core/i18n'
-import { treatmentReading } from '@/shared/domain/treatment-reading'
 
 const t = i18n.global.t
 const TODAY = '2026-09-28'
@@ -23,7 +23,7 @@ const PANACUR = {
 const HEBDO = period({ frequency: { value: 1, unit: 'week' } })
 
 function banner(history: TreatmentWithHistory, today = TODAY) {
-  return plain(unloggedBanner(t, history, treatmentReading(history, today)!, today))
+  return plain(unloggedBanner(t, history, treatmentScheduleOf(history, today), today))
 }
 
 afterEach(() => applyLocale('fr'))
@@ -54,7 +54,7 @@ describe('unloggedBanner (TR-15)', () => {
   })
 
   it('TR-37 : aucun bandeau pour un animal qu’on ne suit plus', () => {
-    const schedule = treatmentReading(PANACUR, TODAY)!
+    const schedule = treatmentScheduleOf(PANACUR, TODAY)
 
     expect(unloggedBanner(t, PANACUR, schedule, TODAY, { followed: false })).toBeNull()
   })
@@ -155,7 +155,7 @@ describe('unloggedBanner (TR-15)', () => {
 
 describe('une dose non renseignée n’est jamais un retard (TR-14)', () => {
   it('la carte reste « Dose du jour », sans retard, avec 25 doses non renseignées', () => {
-    const schedule = treatmentReading(PANACUR, TODAY)!
+    const schedule = treatmentScheduleOf(PANACUR, TODAY)
     const card = doseCard(t, PANACUR, schedule, { animal: 'Milo', today: TODAY })
 
     expect(schedule.phase).toBe('today')
@@ -165,7 +165,7 @@ describe('une dose non renseignée n’est jamais un retard (TR-14)', () => {
 
   it('en retard, la carte ne compte que la dose du moment', () => {
     const history = treatment([HEBDO], [dose('2026-09-01', '2026-09-08')])
-    const schedule = treatmentReading(history, '2026-09-24')!
+    const schedule = treatmentScheduleOf(history, '2026-09-24')
     const card = doseCard(t, history, schedule, { animal: 'Milo', today: '2026-09-24' })
 
     expect(card.entries).toHaveLength(1)
