@@ -303,6 +303,23 @@ describe('R10 : un réglage ouvert aujourd’hui, encore sans prise, se remplace
     ).toEqual(['2026-10-04', '2026-10-05', '2026-10-07'])
   })
 
+  it('R3 : Luna, tous les 3 jours à 8 h dès le 1er avr. ; le 30 mars, posologie (1re échéance le 2, report du 1er supprimé) puis heures à 9 h : 1er, 4, 7 avr. à 9 h', () => {
+    const luna = setting('s1', '2026-04-01', THREE_DAYS, ['08:00'], {
+      createdAt: '2026-03-30T09:00:00.000Z',
+    })
+    const dosage = setting('s2', '2026-04-02', THREE_DAYS, ['08:00'], {
+      startsOn: '2026-03-30',
+      gridOriginOn: null,
+      createdAt: '2026-03-30T09:05:00.000Z',
+    })
+    const input = { settings: [luna, dosage], lines: [], today: '2026-03-30' }
+    expect(shown(input, request(THREE_DAYS, ['09:00']))).toEqual([
+      '2026-04-01 09:00',
+      '2026-04-04 09:00',
+      '2026-04-07 09:00',
+    ])
+  })
+
   it('#781 : posologie seule le jour même, le réglage remplacé garde ses dates : 12, 14, 28', () => {
     const weekly = setting('s1', '2026-10-01', WEEK)
     const fortnightly = setting('s2', '2026-10-14', { value: 2, unit: 'week' }, [], {

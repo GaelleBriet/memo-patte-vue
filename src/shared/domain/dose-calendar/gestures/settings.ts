@@ -151,12 +151,21 @@ function replaced(
   current: Setting,
   request: SettingsRequest,
 ): SettingsResult {
-  const episode = episodesOf(input.settings).find((each) =>
-    each.some(({ id }) => id === current.id),
-  )!
+  const episode = new Set(
+    episodesOf(input.settings)
+      .find((each) => each.some(({ id }) => id === current.id))!
+      .map(({ id }) => id),
+  )
+  // R3 : un réglage remplacé avant son premier jour n'a pas été ouvert aujourd'hui, il reste.
   const gone = new Set(
-    episode
-      .filter((each) => each.startsOn === current.startsOn && !hasNotes(each, input.lines))
+    input.settings
+      .filter(
+        (each) =>
+          each.id === current.id ||
+          (episode.has(each.id) &&
+            each.startsOn === current.startsOn &&
+            !hasNotes(each, input.lines)),
+      )
       .map(({ id }) => id),
   )
   const base = { ...input, settings: input.settings.filter(({ id }) => !gone.has(id)) }
