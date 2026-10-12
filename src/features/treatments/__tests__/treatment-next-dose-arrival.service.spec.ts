@@ -92,5 +92,20 @@ describe('#796 : « Prochaine dose » avec une posologie déplace l’arrivée d
       ({ status }) => status === 'postponed',
     )
     expect(report).toMatchObject({ dueOn: '2026-10-08', nextDueDate: '2026-10-11' })
+    const shift = (await storedHistory(replay.treatments, ID)).doses.find(
+      ({ status }) => status === 'shift',
+    )
+    expect(shift).toMatchObject({ dueOn: '2026-10-08', nextDueDate: '2026-10-11' })
+  })
+
+  it('le 8, posologie et « Prochaine dose » le 8 : report et décalage supprimés, la fiche montre 8, 10, 12', async () => {
+    await metacamReportedToThe10th()
+    await posologyWithNextDose('2026-10-08', '2026-10-08')
+
+    const read = await readingAfter(replay, ID)
+    expect(read?.[4]?.split(',').slice(0, 3)).toEqual(['2026-10-08 ', '2026-10-10 ', '2026-10-12 '])
+    const statuses = (await storedHistory(replay.treatments, ID)).doses.map(({ status }) => status)
+    expect(statuses).not.toContain('postponed')
+    expect(statuses).not.toContain('shift')
   })
 })

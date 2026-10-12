@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { newSettings, preview, type SettingsRequest } from '../domain/dose-calendar'
+import { moveDose, newSettings, preview, type SettingsRequest } from '../domain/dose-calendar'
 import type { TreatmentViewInput } from '../domain/dose-calendar/types'
 import { keys, line, setting, TWO_DAYS, WEEK } from './dose-calendar.v2.aides'
 
@@ -72,6 +72,65 @@ describe('#796, R9, R7 : une date choisie déplace la prochaine dose, arrivée d
     const asked12 = { ...asked('2026-10-12'), frequency: WEEK }
     expect(planOf(input, asked12).lines).toBeUndefined()
     expect(shown(input, asked12)).toEqual(['2026-10-10', '2026-10-12', '2026-10-19'])
+  })
+})
+
+describe('#796, R6, R7 : la date choisie emmène le décalage de la journée du report, comme « Prochaine dose »', () => {
+  const metacam = setting('p1', '2026-10-02', TWO_DAYS)
+  const report = line('p1', 'postponed', '2026-10-08', null, '2026-10-10')
+  const shift = line('p1', 'shift', '2026-10-08', null, '2026-10-10')
+  const lines = [
+    line('p1', 'given', '2026-10-02'),
+    line('p1', 'given', '2026-10-04'),
+    line('p1', 'given', '2026-10-06'),
+    report,
+    shift,
+  ]
+  const asked = (firstDueOn: string): SettingsRequest => ({
+    frequency: TWO_DAYS,
+    times: [],
+    endsOn: null,
+    firstDueOn,
+  })
+
+  it('Métacam tous les 2 jours du 2 oct., dose du 8 reportée au 10 avec « Décaler aussi » ; le 8, posologie et « Prochaine dose » le 8 : 8, 10, 12', () => {
+    const input = { settings: [metacam], lines, today: '2026-10-08' }
+    expect(planOf(input, asked('2026-10-08')).lines).toEqual([
+      { action: 'delete', id: report.id },
+      { action: 'delete', id: shift.id },
+    ])
+    expect(shown(input, asked('2026-10-08'))).toEqual(['2026-10-08', '2026-10-10', '2026-10-12'])
+  })
+
+  it('même carnet, le 9, « Prochaine dose » le 11 : le décalage est réécrit au 11 avec le report, 11, 13', () => {
+    const input = { settings: [metacam], lines, today: '2026-10-09' }
+    const plan = planOf(input, asked('2026-10-11'))
+    expect(plan.lines).toEqual([
+      {
+        action: 'rewrite',
+        id: report.id,
+        line: expect.objectContaining({ targetOn: '2026-10-11' }),
+      },
+      {
+        action: 'rewrite',
+        id: shift.id,
+        line: expect.objectContaining({ targetOn: '2026-10-11' }),
+      },
+    ])
+    expect(shown(input, asked('2026-10-11'), 2)).toEqual(['2026-10-11', '2026-10-13'])
+    expect(
+      preview(input, plan).history.find(({ line: { id } }) => id === shift.id)?.effect,
+    ).toEqual({ kind: 'shifts', from: '2026-10-08' })
+  })
+
+  it('les lignes écrites sont celles de « Prochaine dose » avec « Décaler aussi » sur la dose du 10', () => {
+    const input = { settings: [metacam], lines, today: '2026-10-09' }
+    const moved = moveDose(input, {
+      due: { settingId: 'p1', dueOn: '2026-10-10', dueTime: null },
+      to: '2026-10-11',
+      shiftsFollowing: true,
+    })
+    expect('changes' in moved && moved.changes).toEqual(planOf(input, asked('2026-10-11')).lines)
   })
 })
 

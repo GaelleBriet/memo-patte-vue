@@ -3,25 +3,21 @@ import { isNote } from '../lines'
 import { episodesOf } from '../settings'
 import type { Day, SettingsPlan, TreatmentViewInput } from '../types'
 import { buildView } from '../view'
+import { arrivalFollowing } from './move'
 import type { SettingsResult } from './settings'
 import { NEXT_DAYS } from './settings-proposal'
 
-// R7, R9, #796 : la date choisie déplace la prochaine dose ; quand c'est l'arrivée d'un report, sa
-// ligne est réécrite pour arriver ce jour-là, ou supprimée si la dose revient à son jour d'origine.
+// R7, R9, #796 : la date choisie déplace la prochaine dose ; quand c'est l'arrivée d'un report, elle
+// l'emmène comme « Prochaine dose ».
 function arrivalMoved(input: TreatmentViewInput, chosen: Day): NonNullable<SettingsPlan['lines']> {
-  const view = buildView(input)
   const { today } = input
-  const next = view
+  const next = buildView(input)
     .slots(today, plusDays(today, NEXT_DAYS))
-    .find(({ state }) => state === 'pending')?.due.dueOn
-  if (next === undefined || next === chosen) return []
-  return view.history.flatMap(({ line, effect }): NonNullable<SettingsPlan['lines']> => {
-    if (effect.kind !== 'moves' || effect.arrival !== next) return []
-    const { id, updatedAt: _, ...fields } = line
-    return line.dueOn === chosen
-      ? [{ action: 'delete', id }]
-      : [{ action: 'rewrite', id, line: { ...fields, targetOn: chosen } }]
-  })
+    .find(({ state }) => state === 'pending')?.due
+  if (next === undefined || next.dueOn === chosen) return []
+  return arrivalFollowing(input, next, chosen).filter(
+    (change): change is NonNullable<SettingsPlan['lines']>[number] => change.action !== 'create',
+  )
 }
 
 // La date que le formulaire propose, passée telle quelle, n'est pas une date choisie (Q38, R12).

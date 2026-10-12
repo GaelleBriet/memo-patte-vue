@@ -197,34 +197,33 @@ export function moveBounds(
   return 'reason' in plan ? { refusal: plan } : plan.bounds
 }
 
-/** R7 : le report de la dose, seul ou avec sa ligne de décalage ancrée au jour d'arrivée (R6). */
-export function moveDose(input: TreatmentViewInput, gesture: MoveGesture): GestureResult {
-  const { due, to, shiftsFollowing } = gesture
-  const plan = planOf(input, due, shiftsFollowing)
-  if ('reason' in plan) return { refusal: plan }
-  const { moved, existing, dayShift, bounds } = plan
-  if (to < bounds.earliest || (bounds.latest !== null && to > bounds.latest)) {
-    return {
-      refusal: { reason: 'out-of-bounds', earliest: bounds.earliest, latest: bounds.latest },
-    }
+function boundsRefusal(bounds: MoveBounds, to: Day): Refusal | null {
+  const { earliest, latest, excluded } = bounds
+  if (to < earliest || (latest !== null && to > latest)) {
+    return { reason: 'out-of-bounds', earliest, latest }
   }
-  if (bounds.excluded.includes(to)) return { refusal: { reason: 'report-loop' } }
-  if (existing !== undefined && to === existing.targetOn)
-    return outcome(input, [], { offersShift: true })
+  return excluded.includes(to) ? { reason: 'report-loop' } : null
+}
+
+// R7, R6 : ramené à son jour, le report part avec le décalage de sa journée ; réécrit, il garde ce
+// décalage, ancré au jour d'arrivée, seulement quand les doses suivantes le suivent.
+function reportLines(
+  input: TreatmentViewInput,
+  { moved, existing, dayShift }: MovePlan,
+  to: Day,
+  shiftsFollowing: boolean,
+): LineChange[] {
   const dropShift: LineChange[] =
     dayShift === undefined ? [] : [{ action: 'delete', id: dayShift.id }]
   if (to === moved.dueOn) {
-    return outcome(
-      input,
-      existing === undefined ? [] : [{ action: 'delete', id: existing.id }, ...dropShift],
-    )
+    return existing === undefined ? [] : [{ action: 'delete', id: existing.id }, ...dropShift]
   }
   const line: LineFields = { ...moved, status: 'postponed', givenOn: null, targetOn: to }
   const report: LineChange =
     existing === undefined
       ? written(input.lines, line)
       : { action: 'rewrite', id: existing.id, line }
-  if (!shiftsFollowing) return outcome(input, [report, ...dropShift], { offersShift: true })
+  if (!shiftsFollowing) return [report, ...dropShift]
   // R6, R7 : le décalage appartient au rythme en vigueur ce jour-là, sinon il serait dépassé.
   const inForce = buildView(input).settingAt(moved.dueOn)?.id ?? moved.settingId
   const at = { ...moved, settingId: inForce }
@@ -236,9 +235,35 @@ export function moveDose(input: TreatmentViewInput, gesture: MoveGesture): Gestu
           line: { ...at, status: 'shift', givenOn: null, targetOn: to },
         }
       : shiftWritten(input.lines, at, to)
-  const changes = [report, shift]
+  return [report, shift]
+}
+
+/** R7 : le report de la dose, seul ou avec sa ligne de décalage ancrée au jour d'arrivée (R6). */
+export function moveDose(input: TreatmentViewInput, gesture: MoveGesture): GestureResult {
+  const { due, to, shiftsFollowing } = gesture
+  const plan = planOf(input, due, shiftsFollowing)
+  if ('reason' in plan) return { refusal: plan }
+  const refusal = boundsRefusal(plan.bounds, to)
+  if (refusal !== null) return { refusal }
+  const { moved, existing } = plan
+  if (existing !== undefined && to === existing.targetOn)
+    return outcome(input, [], { offersShift: true })
+  const changes = reportLines(input, plan, to, shiftsFollowing)
+  if (to === moved.dueOn) return outcome(input, changes)
+  if (!shiftsFollowing) return outcome(input, changes, { offersShift: true })
   return outcome(input, changes, {
     offersShift: true,
-    lostToEnd: lostToEnd(input, [report, ...dropShift], changes, moved.dueOn),
+    lostToEnd: lostToEnd(input, reportLines(input, plan, to, false), changes, moved.dueOn),
   })
+}
+
+/**
+ * #796 : le report qui arrive à la dose, emmené à la date choisie comme par « Prochaine dose » avec
+ * le décalage de sa journée, sans en écrire un ; rien sans report ou hors des bornes (G7, G8).
+ */
+export function arrivalFollowing(input: TreatmentViewInput, due: Due, to: Day): LineChange[] {
+  const plan = planOf(input, due, true)
+  if ('reason' in plan || plan.existing === undefined) return []
+  if (boundsRefusal(plan.bounds, to) !== null) return []
+  return reportLines(input, plan, to, plan.dayShift !== undefined)
 }
