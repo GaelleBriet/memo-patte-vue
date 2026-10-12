@@ -15,7 +15,6 @@ import i18n from '@/core/i18n'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { dismissToast, toastMessage, toastTone } from '@/shared/utils/toast'
-import { treatmentReading } from '@/shared/domain/treatment-reading'
 
 const TODAY = '2026-09-28'
 
@@ -84,11 +83,8 @@ function flow(exits: DoseFlowExits = {}, history: TreatmentWithHistory | null = 
         const schedule = computed(() =>
           current.value ? treatmentScheduleOf(current.value, today.value) : null,
         )
-        const view = computed(() =>
-          current.value ? treatmentReading(current.value, today.value) : null,
-        )
         result = useTreatmentDoseFlow(
-          { treatment: current, view, schedule, today },
+          { treatment: current, schedule, today },
           useTreatmentGestures(() => {}),
           exits,
         )
