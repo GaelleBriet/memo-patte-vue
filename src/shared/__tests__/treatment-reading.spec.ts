@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { treatmentView, viewInputOf, type LegacyInput } from '../domain/dose-calendar'
-import { treatmentReading } from '../domain/treatment-reading'
+import { shownLines, treatmentReading } from '../domain/treatment-reading'
 
 type Period = LegacyInput['periods'][number]
 type Dose = LegacyInput['doses'][number]
@@ -82,5 +82,35 @@ describe('treatmentReading', () => {
       times,
     })
     expect(treatmentReading({ periods: [old], doses: [] }, TODAY)).toBeNull()
+  })
+})
+
+describe('shownLines', () => {
+  it('cache un report revenu à sa date et la plus ancienne de deux prises d’une même échéance', () => {
+    const treatment = {
+      periods: [period()],
+      doses: [
+        dose({ id: 'old', updatedAt: '2026-10-01T08:00:00.000Z' }),
+        dose({ id: 'new', updatedAt: '2026-10-01T10:00:00.000Z' }),
+        dose({
+          id: 'back',
+          dueOn: '2026-10-02',
+          status: 'postponed',
+          givenOn: null,
+          nextDueDate: '2026-10-02',
+        }),
+      ],
+    }
+    expect(shownLines(treatmentReading(treatment, TODAY)!).map(({ id }) => id)).toEqual(['new'])
+  })
+
+  it('garde une prise qui ne couvre plus rien, à sa place', () => {
+    const treatment = {
+      periods: [period({ frequency: { value: 1, unit: 'week' } })],
+      doses: [dose({ id: 'a' }), dose({ id: 'off', dueOn: '2026-09-20', givenOn: '2026-09-20' })],
+    }
+    const read = treatmentReading(treatment, TODAY)!
+    expect(read.history.find(({ line }) => line.id === 'off')?.effect.kind).toBe('idle')
+    expect(shownLines(read).map(({ id }) => id)).toEqual(['off', 'a'])
   })
 })

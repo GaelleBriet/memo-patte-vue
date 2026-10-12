@@ -129,7 +129,7 @@ describe('treatmentStates', () => {
     expect(states('t-1')).toBe(state)
     expect(state.periods.map(({ id }) => id)).toEqual(['p-1'])
     expect(state.doses).toHaveLength(1)
-    expect(state.schedule).not.toBeNull()
+    expect(state.view).not.toBeNull()
   })
 })
 

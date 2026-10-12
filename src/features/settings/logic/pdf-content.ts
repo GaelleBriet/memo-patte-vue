@@ -10,13 +10,14 @@ import { buildReminders, type ReminderKind } from '@/shared/domain/reminders'
 import type { ExportData, ExportFrequency } from '@/shared/domain/carnet-data'
 import { vaccinationHistories } from '@/shared/domain/carnet-heads'
 import type { Dosage } from '@/shared/domain/dosage'
-import { periodClosedBeforeFirstDue } from '@/shared/domain/treatment-end'
+import type { Line } from '@/shared/domain/dose-calendar'
 import {
   byStartDescending,
   isSeveralTimesADay,
+  periodClosedBeforeFirstDue,
   periodLastDay,
 } from '@/shared/domain/treatment-periods'
-import { isAdvanced, type TreatmentDoseInput } from '@/shared/domain/treatment-schedule'
+import { shownLines } from '@/shared/domain/treatment-reading'
 
 export type PdfDueState = 'overdue' | 'upToDate' | 'planned' | 'none'
 
@@ -135,10 +136,7 @@ type Event =
 
 type MovedLine = Extract<PdfHistoryLine, { kind: 'moved' }>
 
-function eventOf(
-  dose: Pick<TreatmentDoseInput, 'dueOn' | 'dueTime' | 'givenOn' | 'status' | 'nextDueDate'>,
-  severalTimes: boolean,
-): Event[] {
+function eventOf(dose: Line, severalTimes: boolean): Event[] {
   const time = severalTimes ? dose.dueTime : null
   switch (dose.status) {
     case 'given':
@@ -155,8 +153,8 @@ function eventOf(
           line: {
             kind: 'moved',
             dueOn: dose.dueOn,
-            to: dose.nextDueDate,
-            advanced: isAdvanced(dose),
+            to: dose.targetOn!,
+            advanced: dose.targetOn! < dose.dueOn,
           },
         },
       ]
@@ -217,18 +215,18 @@ function linesOf(events: Event[], frequency: ExportFrequency): PdfHistoryLine[] 
     .map(lineOf)
 }
 
-function treatmentPeriods({ periods, doses, schedule }: TreatmentState): PdfTreatmentPeriod[] {
-  const lines = schedule?.doses ?? doses
-  const unlogged = schedule?.unloggedDoses ?? []
+function treatmentPeriods({ periods, view }: TreatmentState): PdfTreatmentPeriod[] {
+  if (view === null) return []
+  const lines = shownLines(view)
   const sorted = [...periods].sort(byStartDescending)
   return sorted.flatMap((period, index): PdfTreatmentPeriod[] => {
     const severalTimes = isSeveralTimesADay(period)
     const events: Event[] = [
       ...lines
-        .filter((dose) => dose.periodId === period.id)
+        .filter((dose) => dose.settingId === period.id)
         .flatMap((dose) => eventOf(dose, severalTimes)),
-      ...unlogged
-        .filter((due) => due.periodId === period.id)
+      ...view.unloggedDoses
+        .filter((due) => due.settingId === period.id)
         .map((due): Event => ({
           kind: 'unlogged',
           dose: { on: due.dueOn, time: severalTimes ? due.dueTime : null, extra: false },
@@ -248,8 +246,9 @@ function treatmentPeriods({ periods, doses, schedule }: TreatmentState): PdfTrea
   })
 }
 
-function lastIntake({ doses, schedule }: TreatmentState): PdfDose | null {
-  const given = (schedule?.doses ?? doses).filter(
+// Illisible, la dernière prise reste un fait enregistré ; seul l'historique attend une lecture du moteur.
+function lastIntake({ doses, view }: TreatmentState): PdfDose | null {
+  const given = (view === null ? doses : shownLines(view)).filter(
     (dose) => dose.givenOn !== null && (dose.status === 'given' || dose.status === 'extra'),
   )
   const rank = ({ givenOn, dueOn, dueTime }: (typeof given)[number]) =>

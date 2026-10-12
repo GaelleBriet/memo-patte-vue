@@ -2,7 +2,14 @@ import { differenceInCalendarDays } from 'date-fns'
 
 import { isCalendarDay, toDate } from './calendar-day'
 import { isClockTime } from './clock-time'
-import { treatmentView, viewInputOf, type LegacyInput, type TreatmentView } from './dose-calendar'
+import {
+  treatmentView,
+  viewInputOf,
+  type HistoryLine,
+  type LegacyInput,
+  type Line,
+  type TreatmentView,
+} from './dose-calendar'
 import { DAYS_PER_STEP, FREQUENCY_UNITS, MAX_FREQUENCY_VALUE } from './treatment-frequency'
 
 type Period = LegacyInput['periods'][number]
@@ -64,4 +71,16 @@ export function treatmentReading(treatment: TreatmentRecords, today: string): Tr
     (treatment.periods.length === 0 || estimatedDues(treatment, today) <= MAX_DUES)
   if (!readable) return null
   return treatmentView(viewInputOf({ ...treatment, today }))
+}
+
+// « · sans effet » n'a pas encore de texte : une ligne sans effet reste cachée comme avant, sauf une prise (R4).
+function isShown({ line, effect }: HistoryLine): boolean {
+  if (effect.kind !== 'idle') return true
+  if (effect.reason === 'superseded') return false
+  return line.status !== 'postponed' && line.status !== 'shift'
+}
+
+/** Les lignes que l'historique montre, dans l'ordre chronologique. */
+export function shownLines(view: Pick<TreatmentView, 'history'>): Line[] {
+  return view.history.filter(isShown).map(({ line }) => line)
 }

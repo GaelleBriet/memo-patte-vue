@@ -3,9 +3,8 @@ import type {
   ExportTreatmentDose,
   ExportTreatmentPeriod,
 } from '@/shared/domain/carnet-data'
-import { endedOnOf, isStoppedBeforeFirstDose } from '@/shared/domain/treatment-end'
-import { readableTreatmentSchedule } from '@/shared/domain/readable-treatment-schedule'
-import type { TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import type { TreatmentView } from '@/shared/domain/dose-calendar'
+import { treatmentReading } from '@/shared/domain/treatment-reading'
 
 /** `dueTime` : seulement quand la période a plusieurs heures. */
 export type TreatmentOutlook =
@@ -14,39 +13,30 @@ export type TreatmentOutlook =
   | { kind: 'ended'; on: string | null }
   | { kind: 'unreadable' }
 
-/** `schedule` : `null` quand le moteur juge le traitement illisible. */
+/** `view` : `null` quand le moteur juge le traitement illisible. */
 export type TreatmentState = {
   periods: ExportTreatmentPeriod[]
   doses: ExportTreatmentDose[]
-  schedule: TreatmentSchedule | null
+  view: TreatmentView | null
   outlook: TreatmentOutlook
 }
 
-type History = Pick<TreatmentState, 'periods' | 'doses'>
-
 function outlookOf(
-  history: History,
-  schedule: TreatmentSchedule | null,
-  today: string,
+  periods: readonly ExportTreatmentPeriod[],
+  view: TreatmentView | null,
 ): TreatmentOutlook {
-  if (schedule === null) return { kind: 'unreadable' }
-  const current = history.periods.find(({ id }) => id === schedule.currentPeriodId)
-  if (schedule.phase === 'stopped') {
-    return {
-      kind: 'stopped',
-      on: current?.stoppedOn ?? null,
-      beforeFirstDose:
-        current !== undefined && isStoppedBeforeFirstDose(current, history.periods, schedule),
-    }
+  if (view === null) return { kind: 'unreadable' }
+  if (view.phase === 'stopped') {
+    return { kind: 'stopped', on: view.endedOn, beforeFirstDose: view.stoppedBeforeFirstDose }
   }
-  const due = schedule.phase === 'ended' ? null : (schedule.currentDoses[0] ?? schedule.nextDue)
-  if (due === null) return { kind: 'ended', on: endedOnOf(history, schedule, today) }
-  const period = history.periods.find(({ id }) => id === due.periodId)
+  const due = view.phase === 'ended' ? null : (view.currentDoses[0] ?? view.nextDue)
+  if (due === null) return { kind: 'ended', on: view.endedOn }
+  const period = periods.find(({ id }) => id === due.settingId)
   return {
     kind: 'due',
     dueOn: due.dueOn,
     dueTime: (period?.times.length ?? 0) > 1 ? due.dueTime : null,
-    overdue: schedule.phase === 'overdue',
+    overdue: view.phase === 'overdue',
   }
 }
 
@@ -62,8 +52,8 @@ export function treatmentStates(
       periods: data.treatmentPeriods.filter((period) => period.treatmentId === treatmentId),
       doses: data.treatmentDoses.filter((dose) => dose.treatmentId === treatmentId),
     }
-    const schedule = readableTreatmentSchedule({ ...history, today })
-    const state = { ...history, schedule, outlook: outlookOf(history, schedule, today) }
+    const view = treatmentReading(history, today)
+    const state = { ...history, view, outlook: outlookOf(history.periods, view) }
     states.set(treatmentId, state)
     return state
   }

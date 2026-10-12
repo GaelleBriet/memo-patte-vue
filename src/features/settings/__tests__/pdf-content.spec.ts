@@ -745,7 +745,7 @@ describe('buildCarnetPdfContent — historique', () => {
   describe('traitement illisible', () => {
     const UNREADABLE = { id: 'p', startsOn: '2026-01-01', times: ['25:00'] }
 
-    it('garde « Donnée illisible » et son historique tel qu’enregistré, sans doses non renseignées', () => {
+    it('dit « Donnée illisible » et sa dernière prise enregistrée, sans historique repris des lignes brutes (R12)', () => {
       const row = treatmentRow(
         [UNREADABLE],
         [
@@ -756,36 +756,47 @@ describe('buildCarnetPdfContent — historique', () => {
       )
 
       expect(row.due).toEqual({ kind: 'unreadable' })
-      expect(row.periods[0]!.lines).toEqual([
-        { kind: 'given', series: { kind: 'dates', doses: [at('2026-06-01')] } },
-        { kind: 'missed', series: { kind: 'dates', doses: [at('2026-03-01')] } },
-        { kind: 'given', series: { kind: 'dates', doses: [at('2026-02-01'), at('2026-01-01')] } },
-      ])
+      expect(row.periods).toEqual([])
+      expect(row.lastDoseDate).toBe('2026-06-01')
     })
+  })
 
-    it('écrit le report avant la prise de la même échéance', () => {
-      const row = treatmentRow(
-        [UNREADABLE],
-        [
-          ...given('p', '2026-05-01', '2026-06-01'),
-          { periodId: 'p', dueOn: '2026-06-01', status: 'postponed', nextDueDate: '2026-06-04' },
-        ],
-      )
+  it('écrit le report avant la prise rangée au même jour', () => {
+    const row = treatmentRow(
+      [{ id: 'p', startsOn: '2026-05-01' }],
+      [
+        { periodId: 'p', dueOn: '2026-05-01', status: 'given', givenOn: '2026-06-01' },
+        { periodId: 'p', dueOn: '2026-06-01', status: 'postponed', nextDueDate: '2026-06-04' },
+        { periodId: 'p', dueOn: '2026-06-04', status: 'missed' },
+      ],
+    )
 
-      expect(row.periods[0]!.lines).toEqual([
-        { kind: 'moved', dueOn: '2026-06-01', to: '2026-06-04', advanced: false },
-        { kind: 'given', series: { kind: 'dates', doses: [at('2026-06-01'), at('2026-05-01')] } },
-      ])
-    })
+    expect(row.periods[0]!.lines).toEqual([
+      { kind: 'missed', series: { kind: 'dates', doses: [at('2026-06-04')] } },
+      { kind: 'moved', dueOn: '2026-06-01', to: '2026-06-04', advanced: false },
+      { kind: 'given', series: { kind: 'dates', doses: [at('2026-06-01')] } },
+    ])
+  })
 
-    it('commence une nouvelle série quand l’écart dépasse 1,5 fois la fréquence', () => {
-      const row = treatmentRow([UNREADABLE], given('p', '2026-01-01', '2026-02-01', '2026-06-01'))
+  it('commence une nouvelle série quand l’écart dépasse 1,5 fois la fréquence', () => {
+    const missed = ['2026-03-01', '2026-04-01', '2026-05-01'].map((dueOn): DoseSpec => ({
+      periodId: 'p',
+      dueOn,
+      status: 'missed',
+    }))
+    const row = treatmentRow(
+      [{ id: 'p', startsOn: '2026-01-01' }],
+      [...given('p', '2026-01-01', '2026-02-01', '2026-06-01'), ...missed],
+    )
 
-      expect(row.periods[0]!.lines).toEqual([
-        { kind: 'given', series: { kind: 'dates', doses: [at('2026-06-01')] } },
-        { kind: 'given', series: { kind: 'dates', doses: [at('2026-02-01'), at('2026-01-01')] } },
-      ])
-    })
+    expect(row.periods[0]!.lines).toEqual([
+      { kind: 'given', series: { kind: 'dates', doses: [at('2026-06-01')] } },
+      {
+        kind: 'missed',
+        series: { kind: 'dates', doses: [at('2026-05-01'), at('2026-04-01'), at('2026-03-01')] },
+      },
+      { kind: 'given', series: { kind: 'dates', doses: [at('2026-02-01'), at('2026-01-01')] } },
+    ])
   })
 })
 
