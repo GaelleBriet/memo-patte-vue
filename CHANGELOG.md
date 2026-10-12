@@ -5,6 +5,48 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.70](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.69...memo-patte-v0.1.70) (2026-10-12)
+
+
+### ✨ Fonctionnalités
+
+* **dose-calendar:** moteur v2, gestes et aperçu (pas 3) ([7a6c4dc](https://github.com/GaelleBriet/memo-patte-vue/commit/7a6c4dca52760f045716ddd80cff62d59eb8ee72))
+* **dose-calendar:** moteur v2, nouveau réglage et aperçu (pas 4) ([1876f35](https://github.com/GaelleBriet/memo-patte-vue/commit/1876f35560f59d978e6a00a106cfdd727939d4f7))
+* **dose-calendar:** nouveau réglage, R9, R10, Q38 et préversion ([bccbe0d](https://github.com/GaelleBriet/memo-patte-vue/commit/bccbe0d2f910fa8bcefc5d949aac9cfc884c649d))
+* **dose-engine:** geste « nouveau réglage » dans la campagne v2 ([6f7cdb9](https://github.com/GaelleBriet/memo-patte-vue/commit/6f7cdb9b7ee3123ec8e68fda071b78f0026072b2))
+
+
+### 🐛 Corrections
+
+* **dose-calendar:** « Modifier » propose la date que la fiche montre ([3534aab](https://github.com/GaelleBriet/memo-patte-vue/commit/3534aab0cc2e2b4612904dd427cb836d741dd1e4))
+* **dose-calendar:** bornes du report, une dose avancée vit à son arrivée ([dc9a5ee](https://github.com/GaelleBriet/memo-patte-vue/commit/dc9a5ee077bfbe15249c0197e23a51196f09c92b))
+* **dose-calendar:** décalage d'un réglage remplacé dépassé (R3) ([da4c26a](https://github.com/GaelleBriet/memo-patte-vue/commit/da4c26a11a6a8d2b98487abdb99ed36053b7beb2))
+* **dose-calendar:** décalage d'un report redéplacé sous le rythme en vigueur ([9da18ca](https://github.com/GaelleBriet/memo-patte-vue/commit/9da18ca5d992908d9629e28e995d75c216145224))
+* **dose-calendar:** dose en retard gardée à fréquence gardée (Q-retard) ([09b5a3d](https://github.com/GaelleBriet/memo-patte-vue/commit/09b5a3dff55f94a340652c18adb1c35f289fe264))
+* **dose-calendar:** dose en retard gardée si le réglage vaut encore ([010acca](https://github.com/GaelleBriet/memo-patte-vue/commit/010accab496a95d90ce2241c06679be5f65037a0))
+* **dose-calendar:** grille continuée non reprise par l'ancien réglage ([c501367](https://github.com/GaelleBriet/memo-patte-vue/commit/c50136783994b2b26b24b2c389bcfdc52da37cea))
+* **dose-calendar:** heures seules ne déplacent plus le calendrier ([b7d1322](https://github.com/GaelleBriet/memo-patte-vue/commit/b7d13226222aa8fcf1e2ca48c6b78d058f8e614f))
+* **dose-calendar:** journée de fin lue par le seul réglage qui cède ([0c403f3](https://github.com/GaelleBriet/memo-patte-vue/commit/0c403f357e5f57cb8577a8042c3d8bf7b16f5755))
+* **dose-calendar:** journée sortie du calendrier lue avec ses heures ([50f7062](https://github.com/GaelleBriet/memo-patte-vue/commit/50f7062236684af8cfb11841bcad14754a330080))
+* **dose-calendar:** journée sortie lue avec les seuls reports du réglage ([8b3cd24](https://github.com/GaelleBriet/memo-patte-vue/commit/8b3cd24028715cbdf80f1d5cee2bf533262f9e94))
+* **dose-calendar:** l'arrivée d'une dose avancée garde ses seules heures ([b9d7a5d](https://github.com/GaelleBriet/memo-patte-vue/commit/b9d7a5d9f4fc4bf867e2620e0ea53ca088458fb7))
+* **dose-calendar:** les reports d'une période arrêtée ne gênent pas la reprise ([54ecbbe](https://github.com/GaelleBriet/memo-patte-vue/commit/54ecbbe0b1111eeb52ea5abf8923eb63e3e4b928))
+* **dose-calendar:** origine choisie jugée sur la grille en vigueur ([c8f6ec9](https://github.com/GaelleBriet/memo-patte-vue/commit/c8f6ec9d5767c633ac2ce77a4dedcbe7e5f42cdb))
+* **dose-calendar:** première échéance du jour seulement s'il a des heures ([3d0dc63](https://github.com/GaelleBriet/memo-patte-vue/commit/3d0dc63511daeff51093758149ba912346c8f5db))
+* **dose-calendar:** prise du jour où le réglage cède la place lue ([5f47562](https://github.com/GaelleBriet/memo-patte-vue/commit/5f475628a9f47f2fb694562192641b7a4809e083))
+* **dose-calendar:** report d'une journée sortie lu par son réglage ([46100b0](https://github.com/GaelleBriet/memo-patte-vue/commit/46100b09fb38b32299a7b0476164aa8f493b03b5))
+* **dose-calendar:** report redéplacé, report qui suit, reprise (v2) ([6ae8af3](https://github.com/GaelleBriet/memo-patte-vue/commit/6ae8af32f0a4d7f5cced707cc55f957c1681c40f))
+* **dose-calendar:** un réglage écrit avant la première dose la remplace ([13ae33b](https://github.com/GaelleBriet/memo-patte-vue/commit/13ae33b0b2c1d0e5ba28ec611899fcf1b40fdd26))
+* **dose-calendar:** un réglage suivant périme l'ouverture d'un rythme ([3b8c63d](https://github.com/GaelleBriet/memo-patte-vue/commit/3b8c63d742dc5961cdf37ccca466de45372eeb3e))
+* **dose-calendar:** un report redéplacé garde son échéance d'origine ([e1183e1](https://github.com/GaelleBriet/memo-patte-vue/commit/e1183e1a4b0e445ce22e52d76a6f205cbf3107a8))
+* **dose-calendar:** une correction avant le début avance le réglage ([92c6c4c](https://github.com/GaelleBriet/memo-patte-vue/commit/92c6c4c330cb8dbfc1132200e6cca1b46df9347e))
+* **dose-calendar:** une correction de date reste dans la période de sa prise ([fc1b9c7](https://github.com/GaelleBriet/memo-patte-vue/commit/fc1b9c722403274da7541feda64bb0a9eedc40a0))
+* **dose-calendar:** une date choisie avant la première dose est gardée ([9926f8e](https://github.com/GaelleBriet/memo-patte-vue/commit/9926f8ed76b6f9b1934eea88a7535f5b12214a5d))
+* **dose-calendar:** une date choisie sur la grille est la première lue ([62f888d](https://github.com/GaelleBriet/memo-patte-vue/commit/62f888de4dd764a0cb6fcb95affc2e2b90418754))
+* **dose-calendar:** une prise au-delà de l'arrêt ne garde pas son échéance ([36b9aa9](https://github.com/GaelleBriet/memo-patte-vue/commit/36b9aa985115aa2228790fd379ade749de52ae28))
+* **dose-calendar:** une prise corrigée en retard ne couvre qu'une dose ([c61a447](https://github.com/GaelleBriet/memo-patte-vue/commit/c61a447bf36d6d7bd9aded47d344e0336cb7b106))
+* **dose-calendar:** une prise en plus corrigée fait suivre le report seul ([2a23640](https://github.com/GaelleBriet/memo-patte-vue/commit/2a2364068639fa28380fd7732ccadffbcd5b9df9))
+
 ## [0.1.69](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.68...memo-patte-v0.1.69) (2026-10-11)
 
 
