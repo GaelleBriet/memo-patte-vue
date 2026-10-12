@@ -7,13 +7,19 @@ import {
   plusDays,
   sameFrequency,
   sameHours,
-  stepped,
   type Hour,
 } from './reference-grid'
+import {
+  coverOrphans,
+  leftDays,
+  type Claim,
+  type Journey,
+  type ReferenceDue,
+  type Segment,
+} from './reference-days'
 import { isNote, latestBy } from './reference-lines'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
-type Journey = { setting: ReferenceSetting; hours: Hour[] }
 type Grid = { origin: string; floor: string }
 type Calendar = { pending: string[]; fallen: Set<string>; rhythmFrom: string }
 
@@ -64,11 +70,8 @@ export function calendarOf(
   const days = new Map<string, Journey>()
   // R4, R7, R9 : les jours où une prise visant d'autres heures couvre les premières heures.
   const translated = new Map<string, string>()
-  // R1, R4 : sortie du calendrier, la journée où un réglage cède la place, ou celle d'origine d'un
-  // de ses reports s'il est remplacé le jour où il commence, se lit avec ce réglage.
   const left = new Map<string, Journey>()
-  type Segment = { origin: string; from: string; to: string | null }
-  const claims: { setting: ReferenceSetting; end: string | null; segments: Segment[] }[] = []
+  const claims: Claim[] = []
   const stop = endOf(live.length - 1)
   // R7, R9.2 : les premières échéances des réglages qui ouvrent un nouveau rythme.
   const openings = new Set<string>()
@@ -163,23 +166,7 @@ export function calendarOf(
     claims.push({ setting, end, segments })
   })
 
-  for (const { setting, end, segments } of claims) {
-    if (end === null) continue
-    const reported = reports
-      .filter(({ settingId }) => settingId === setting.id)
-      .map(({ dueOn }) => dueOn)
-    for (const day of end === setting.startsOn ? [...reported, end] : [end]) {
-      const open =
-        (setting.endsOn === null || day <= setting.endsOn) && (stop === null || day < stop)
-      const wasDay = segments.some(
-        (segment) =>
-          day >= segment.from &&
-          (segment.to === null || day <= segment.to) &&
-          isOnGrid(segment.origin, setting.frequency, day),
-      )
-      if (open && wasDay) left.set(day, { setting, hours: hoursOf(setting) })
-    }
-  }
+  leftDays(claims, reports, stop).forEach((journey, day) => left.set(day, journey))
 
   // R4 : une prise couvre son échéance ; le jour où les heures changent, celles qui visaient l'ancien
   // réglage couvrent les premières heures du nouveau, à hauteur de leur nombre.
@@ -261,7 +248,7 @@ export function calendarOf(
     if (!days.has(day)) coveredOn(day, journey)
   })
 
-  const dues: { key: string; day: string; covered: boolean }[] = []
+  const dues: ReferenceDue[] = []
   for (const [day, journey] of [...days].sort(([a], [b]) => a.localeCompare(b))) {
     if (journey.hours.length > 0) fallen.add(day)
     const covered = coveredOn(day, journey)
@@ -269,16 +256,7 @@ export function calendarOf(
       ...journey.hours.map((hour) => ({ key: keyOf(day, hour), day, covered: covered.has(hour) })),
     )
   }
-  // R4 : une prise dont l'échéance a quitté le calendrier couvre la première échéance qui suit, à
-  // moins d'un pas de son réglage ; déjà couverte ou trop loin, la prise est sans effet.
-  const orphans = notes
-    .filter((note) => !matched.has(note))
-    .sort((a, b) => keyOf(a.dueOn, a.dueTime).localeCompare(keyOf(b.dueOn, b.dueTime)))
-  for (const note of orphans) {
-    const { frequency } = settingOf(note.settingId)
-    const due = dues.find((each) => each.key > keyOf(note.dueOn, note.dueTime))
-    if (due !== undefined && due.day < stepped(note.dueOn, frequency, 1)) due.covered = true
-  }
+  coverOrphans(notes, matched, dues, settingOf)
   const pending = dues.filter(({ covered }) => !covered).map(({ key }) => key)
   return { pending, fallen, rhythmFrom }
 }
