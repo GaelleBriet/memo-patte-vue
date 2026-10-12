@@ -51,7 +51,6 @@ function doseLines(input: TreatmentViewInput, removed: Line): Line[] {
     (line) =>
       line.id !== removed.id &&
       isNote(line) &&
-      line.settingId === removed.settingId &&
       line.dueOn === removed.dueOn &&
       line.dueTime === removed.dueTime,
   )
