@@ -3,6 +3,8 @@ import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import { readableTreatmentSchedule } from '@/shared/domain/readable-treatment-schedule'
 import { treatmentSchedule, type TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 
+export { endedOnOf } from '@/shared/domain/treatment-end'
+
 type History = Pick<TreatmentWithHistory, 'periods' | 'doses'>
 
 /** Lève une `RangeError` quand une période ou une prise est illisible. */
