@@ -129,7 +129,7 @@ function moveLine(
   const bounds = moveBounds(reading.input, movedDueOf(dose), true)
   const refusal = removalRefusal(reading.input, dose.id)
   const found = 'refusal' in bounds ? null : bounds
-  const locked = refusal?.reason === 'arrival-logged'
+  const locked = refusal?.reason === 'arrival-logged' || refusal?.reason === 'not-movable'
   return {
     kind: 'move',
     dose,

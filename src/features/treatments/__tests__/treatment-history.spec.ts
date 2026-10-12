@@ -155,6 +155,37 @@ describe('treatmentHistory — une période (planches A · V1 quinquies bis, V5 
     ])
   })
 
+  it('retire son menu à un report devenu le départ d’un nouveau rythme (#780)', () => {
+    const toutesLes2Semaines = period({
+      startsOn: '2026-03-30',
+      firstDueOn: '2026-03-30',
+      frequency: { value: 2, unit: 'week' },
+      times: ['20:00'],
+    })
+    const toutesLes6Semaines = period({
+      id: 'p-2',
+      startsOn: '2026-04-02',
+      firstDueOn: '2026-04-14',
+      frequency: { value: 6, unit: 'week' },
+      times: ['06:00', '12:00', '18:00', '23:00'],
+      createdAt: '2026-09-02T08:00:00.000Z',
+    })
+    const book = treatment(
+      [toutesLes2Semaines, toutesLes6Semaines],
+      [
+        dose('2026-03-30', '2026-04-13', { dueTime: '20:00' }),
+        postponed('2026-04-13', '2026-04-14', { dueTime: '20:00' }),
+      ],
+    )
+
+    const report = history(book, '2026-04-02')
+      .periods.flatMap(({ lines }) => lines)
+      .find(({ kind }) => kind === 'move')
+
+    expect(report).toMatchObject({ actions: [] })
+    expect(report).not.toHaveProperty('refused')
+  })
+
   it('garde l’échéance en titre d’une prise notée un autre jour, sans heure pour une seule heure', () => {
     const panacur = treatment(
       [
