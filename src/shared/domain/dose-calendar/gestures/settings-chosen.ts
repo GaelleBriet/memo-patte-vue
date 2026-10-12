@@ -1,4 +1,6 @@
 import { plusDays } from '../grid'
+import { isNote } from '../lines'
+import { episodesOf } from '../settings'
 import type { Day, SettingsPlan, TreatmentViewInput } from '../types'
 import { buildView } from '../view'
 import type { SettingsResult } from './settings'
@@ -32,15 +34,30 @@ function implicitDays(result: SettingsResult): Day[] {
   ]
 }
 
-/** R7, #796 : un plan qui écrit une date choisie comme première échéance emporte le report qui y arrive. */
-export function withArrival(
+// Q26 : une dose déjà notée plus loin que la date choisie, dans la période en cours.
+function notedLater(input: TreatmentViewInput, chosen: Day): boolean {
+  const episode = new Set(
+    episodesOf(input.settings)
+      .at(-1)!
+      .map(({ id }) => id),
+  )
+  return input.lines.some(
+    (line) => isNote(line) && episode.has(line.settingId) && line.dueOn > chosen,
+  )
+}
+
+/**
+ * R7, #796 : à fréquence gardée, une « Prochaine dose » choisie, qui n'est pas la date proposée,
+ * emporte le report qui arrive à la prochaine dose ; rien ne bouge avant une dose notée plus loin.
+ */
+export function withChosenDate(
   input: TreatmentViewInput,
   chosen: Day | undefined,
   result: SettingsResult,
   implicit: () => SettingsResult,
 ): SettingsResult {
   if (chosen === undefined || 'refusal' in result) return result
-  if (implicitDays(implicit()).includes(chosen)) return result
+  if (implicitDays(implicit()).includes(chosen) || notedLater(input, chosen)) return result
   const lines = arrivalMoved(input, chosen)
   if (lines.length === 0) return result
   const carry = (plan: SettingsPlan) =>

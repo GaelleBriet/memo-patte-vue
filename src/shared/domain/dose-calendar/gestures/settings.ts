@@ -12,7 +12,7 @@ import type {
 } from '../types'
 import { buildView, type TreatmentView } from '../view'
 import { settingsApplied } from './changes'
-import { withArrival } from './settings-arrival'
+import { withChosenDate } from './settings-chosen'
 import {
   NEXT_DAYS,
   proposedDates,
@@ -120,7 +120,7 @@ export function newSettings(input: TreatmentViewInput, request: SettingsRequest)
   const planned = settingsFor(input, view, current, request)
   const { firstDueOn: chosen, ...implicit } = request
   const result = sameFrequency(current.frequency, request.frequency)
-    ? withArrival(input, chosen, planned, () => settingsFor(input, view, current, implicit))
+    ? withChosenDate(input, chosen, planned, () => settingsFor(input, view, current, implicit))
     : planned
   return leavesNoDose(input, request, result)
     ? { refusal: { reason: 'no-dose-before-end' } }

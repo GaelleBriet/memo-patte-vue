@@ -74,3 +74,37 @@ describe('#796, R9, R7 : une date choisie déplace la prochaine dose, arrivée d
     expect(shown(input, asked12)).toEqual(['2026-10-10', '2026-10-12', '2026-10-19'])
   })
 })
+
+describe('#796 : une date choisie avant une dose déjà notée plus loin ne réécrit aucun report', () => {
+  it('graine 540000188 : mensuel à 6, 12, 18 et 23 h, dose du 4 mai à 6 h donnée le 18 mars, 12 h reportée au 17 mai ; le 19, « Prochaine dose » le 22 mars : le report garde son arrivée', () => {
+    const monthly = { value: 1, unit: 'month' as const }
+    const H4 = ['06:00', '12:00', '18:00', '23:00']
+    const s1 = setting('s1', '2026-03-04', monthly, ['08:00', '20:00'])
+    const s2 = setting('s2', '2026-03-27', monthly, H4, {
+      startsOn: '2026-03-19',
+      gridOriginOn: null,
+    })
+    const ahead = (settingId: string, dueOn: string, dueTime: string, givenOn: string) => ({
+      ...line(settingId, 'given', dueOn, dueTime),
+      givenOn,
+    })
+    const input = {
+      settings: [s1, s2],
+      lines: [
+        ahead('s1', '2026-03-04', '20:00', '2026-03-14'),
+        line('s1', 'postponed', '2026-03-04', '08:00', '2026-03-27'),
+        ahead('s1', '2026-03-27', '08:00', '2026-03-11'),
+        ahead('s1', '2026-04-04', '08:00', '2026-03-10'),
+        ahead('s1', '2026-04-04', '20:00', '2026-03-16'),
+        ahead('s2', '2026-04-04', '06:00', '2026-03-19'),
+        ahead('s2', '2026-05-04', '06:00', '2026-03-18'),
+        ahead('s2', '2026-04-04', '18:00', '2026-03-18'),
+        line('s2', 'postponed', '2026-05-04', '12:00', '2026-05-17'),
+        line('s2', 'shift', '2026-05-04', '12:00', '2026-05-17'),
+      ],
+      today: '2026-03-19',
+    }
+    const asked = { frequency: monthly, times: H4, endsOn: null, firstDueOn: '2026-03-22' }
+    expect(planOf(input, asked).lines).toBeUndefined()
+  })
+})
