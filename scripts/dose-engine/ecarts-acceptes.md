@@ -103,7 +103,9 @@ R3, R7), le moteur actuel 25 mai, 25 juin, 25 juil. par son marqueur d'origine (
   graine 730000200 (reprise le 8 avr., tous les 2 jours, première dose le 9 avancée seule au 8, prise
   d'avant l'arrêt visant le 8). La seconde relecture du pas 4 en montre trois de plus, même mécanisme
   (reprise, première dose avancée au jour de la reprise, campagne depuis 750000000) : graines
-  750000185, 750000272 et 750001179.
+  750000185, 750000272 et 750001179. La troisième relecture du pas 4 en montre deux de plus, même
+  mécanisme (reprise, première dose avancée au jour de la reprise, prise d'avant l'arrêt visant ce
+  jour, campagne depuis 780000000) : graines 780000409 et 780000766.
 
 ## Questions ouvertes du pas 4 (« Modifier »)
 
@@ -111,7 +113,9 @@ R3, R7), le moteur actuel 25 mai, 25 juin, 25 juil. par son marqueur d'origine (
   graine 730001829 (campagne depuis 730000000). Toutes les 6 semaines à 20 h du 27 mars, fin le
   10 mai, dose du 8 mai avancée seule au 23 avr. ; le 10 avr., la dose du 27 mars notée au 9 avr.,
   case cochée : « Fait à une autre date » refuse en `passes-report`, « C'est fait » puis « Changer la
-  date » refuse en `stuck-report`. Les deux chemins refusent, avec deux textes différents.
+  date » refuse en `stuck-report`. Les deux chemins refusent, avec deux textes différents. Même
+  asymétrie, `passes-report` d'un côté et `report-loop` de l'autre : graine 780001784 (campagne
+  depuis 780000000).
 - **Première échéance proposée après la date de fin** (#787 ; question pour Gaelle) : tous les
   2 jours du 1er oct., fin le 10, doses des 1er et 3 données ; le 4, passé au mensuel : « Modifier »
   propose le 3 nov. (R9.3), après la date de fin. L'invariant de la proposition
