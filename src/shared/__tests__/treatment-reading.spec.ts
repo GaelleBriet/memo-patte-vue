@@ -83,6 +83,17 @@ describe('treatmentReading', () => {
     })
     expect(treatmentReading({ periods: [old], doses: [] }, TODAY)).toBeNull()
   })
+
+  it('lit un traitement de tous les jours à 8 h et 20 h qui finit en 2100, comme l’ancien moteur', () => {
+    const milbemax = period({
+      startsOn: '2026-10-12',
+      firstDueOn: '2026-10-12',
+      referenceOn: '2026-10-12',
+      endsOn: '2100-01-01',
+      times: ['08:00', '20:00'],
+    })
+    expect(treatmentReading({ periods: [milbemax], doses: [] }, '2026-10-12')).not.toBeNull()
+  })
 })
 
 describe('shownLines', () => {

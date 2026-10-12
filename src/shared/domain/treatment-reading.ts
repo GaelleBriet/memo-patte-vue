@@ -1,6 +1,6 @@
 import { differenceInCalendarDays } from 'date-fns'
 
-import { isCalendarDay, toDate } from './calendar-day'
+import { isCalendarDay, previousDay, toDate } from './calendar-day'
 import { isClockTime } from './clock-time'
 import {
   treatmentView,
@@ -51,16 +51,39 @@ function isReadableDose(dose: Dose): boolean {
   )
 }
 
+function byStart(a: Period, b: Period): number {
+  const key = ({ startsOn, createdAt, id }: Period) => `${startsOn} ${createdAt} ${id}`
+  return key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0
+}
+
+function estimatedPeriodDues(
+  period: Period,
+  next: Period | undefined,
+  doses: readonly Dose[],
+  today: string,
+): number {
+  const keys = doses.map(({ dueOn }) => dueOn)
+  const arrivals = doses.filter(({ status }) => status === 'postponed').map((d) => d.nextDueDate)
+  const first = [period.firstDueOn, ...keys, ...arrivals].sort()[0]!
+  const closesOn = [period.stoppedOn, next?.startsOn ?? null]
+    .filter((day) => day !== null)
+    .sort()[0]
+  const close = closesOn === undefined ? null : previousDay(closesOn)
+  const end = [period.endsOn, close, today].filter((day) => day !== null).sort()[0]!
+  const last = [end, ...keys].sort().at(-1)!
+  const span = Math.max(0, differenceInCalendarDays(toDate(last), toDate(first)))
+  const stepDays = DAYS_PER_STEP[period.frequency.unit] * period.frequency.value
+  const perDay = Math.max(1, period.times.length)
+  return (Math.floor(span / stepDays) + 2) * perDay + doses.length
+}
+
+/** Réglage par réglage, jusqu'à aujourd'hui ou sa fin : la même borne que l'ancien moteur. */
 function estimatedDues({ periods, doses }: TreatmentRecords, today: string): number {
-  const days = [
-    today,
-    ...periods.flatMap(({ firstDueOn, endsOn }) => [firstDueOn, endsOn ?? today]),
-    ...doses.map(({ dueOn }) => dueOn),
-  ].sort()
-  const span = differenceInCalendarDays(toDate(days.at(-1)!), toDate(days[0]!))
-  const step = Math.min(...periods.map(({ frequency }) => DAYS_PER_STEP[frequency.unit]))
-  const perDay = Math.max(1, ...periods.map(({ times }) => times.length))
-  return (Math.floor(span / step) + 2) * perDay + doses.length
+  const ordered = [...periods].sort(byStart)
+  return ordered.reduce((sum, period, index) => {
+    const own = doses.filter(({ periodId }) => periodId === period.id)
+    return sum + estimatedPeriodDues(period, ordered[index + 1], own, today)
+  }, 0)
 }
 
 /** R12 : la lecture d'un traitement enregistré ; `null` quand ses données sont illisibles. */
@@ -68,7 +91,7 @@ export function treatmentReading(treatment: TreatmentRecords, today: string): Tr
   const readable =
     treatment.periods.every(isReadablePeriod) &&
     treatment.doses.every(isReadableDose) &&
-    (treatment.periods.length === 0 || estimatedDues(treatment, today) <= MAX_DUES)
+    estimatedDues(treatment, today) <= MAX_DUES
   if (!readable) return null
   return treatmentView(viewInputOf({ ...treatment, today }))
 }
