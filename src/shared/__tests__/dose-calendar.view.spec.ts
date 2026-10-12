@@ -634,3 +634,48 @@ describe('R3, R9 : une date choisie se juge sur la grille en vigueur ce jour-là
     ])
   })
 })
+
+describe('arrêté avant la première prise (TR-30, #594, 2026-10-08)', () => {
+  const stopped = (extra: Partial<Setting> = {}) =>
+    setting('p1', '2026-10-07', DAY, [], { stoppedOn: '2026-10-06', ...extra })
+
+  it('vrai sans aucune prise ni dose due, un décalage seul compris', () => {
+    expect(view([stopped()], [], '2026-10-06').stoppedBeforeFirstDose).toBe(true)
+    const shift = line('p1', 'shift', '2026-10-07', null, '2026-10-09')
+    expect(view([stopped()], [shift], '2026-10-06').stoppedBeforeFirstDose).toBe(true)
+  })
+
+  it('faux après la première échéance, ou sans arrêt', () => {
+    expect(
+      view([stopped({ stoppedOn: '2026-10-08' })], [], '2026-10-08').stoppedBeforeFirstDose,
+    ).toBe(false)
+    expect(view([stopped({ stoppedOn: null })], [], '2026-10-06').stoppedBeforeFirstDose).toBe(
+      false,
+    )
+  })
+
+  it('faux dès qu’une dose a été donnée, oubliée ou prise en plus', () => {
+    for (const status of ['given', 'missed', 'extra'] as const) {
+      const read = view([stopped()], [line('p1', status, '2026-10-05')], '2026-10-06')
+      expect(read.stoppedBeforeFirstDose).toBe(false)
+    }
+  })
+
+  it('faux quand une période précédente a eu des doses dues, jamais renseignées', () => {
+    const first = setting('p0', '2026-09-01', DAY, [], { stoppedOn: '2026-09-05' })
+    const resumed = setting('p1', '2026-10-11', DAY, [], {
+      startsOn: '2026-10-08',
+      stoppedOn: '2026-10-08',
+    })
+    expect(view([first, resumed], [], '2026-10-08').stoppedBeforeFirstDose).toBe(false)
+  })
+
+  it('vrai quand chaque période s’est close avant sa première échéance', () => {
+    const replaced = setting('p0', '2026-09-10', DAY, [], { startsOn: '2026-09-01' })
+    const next = setting('p1', '2026-09-20', DAY, [], {
+      startsOn: '2026-09-05',
+      stoppedOn: '2026-09-12',
+    })
+    expect(view([replaced, next], [], '2026-09-12').stoppedBeforeFirstDose).toBe(true)
+  })
+})
