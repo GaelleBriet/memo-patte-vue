@@ -163,13 +163,6 @@ function logChange(
       targetOn: null,
     },
   }))
-  const left = stateOf(
-    treatmentView(applied(reading.input, changes)),
-    gestures.map(({ due }) => due),
-  )
-  if (gestures.some(({ due }) => left.get(dueKey(due)) === 'pending')) {
-    throw new GestureRefusedError({ reason: 'unknown-due' })
-  }
   return { ...NONE, writes: doseWritesOf(history, changes, newId) }
 }
 
