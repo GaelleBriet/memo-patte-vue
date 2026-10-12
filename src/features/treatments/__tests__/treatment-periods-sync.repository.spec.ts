@@ -23,7 +23,7 @@ const LOCAL_ROW = {
   animal_id: ANIMAL_ID,
   starts_on: '2026-01-01',
   first_due_on: '2026-01-02',
-  reference_on: '2026-01-02',
+  grid_origin_on: '2026-01-02',
   ends_on: '2026-01-31',
   stopped_on: null,
   frequency_value: 1,
@@ -73,7 +73,7 @@ describe('treatmentPeriodsRepository — port de synchronisation', () => {
       `INSERT INTO treatment_period
          (id, treatment_id, animal_id, starts_on, first_due_on, ends_on, frequency_value,
           frequency_unit, times, dose_quantity, dose_unit, reminder_offset_minutes, created_at,
-          updated_at, reference_on, created_by_device, updated_by_device)
+          updated_at, grid_origin_on, created_by_device, updated_by_device)
        VALUES (?, ?, ?, '2026-01-01', '2026-01-02', '2026-01-31', 1, 'day', '08:00,20:00', 0.5,
                'tablet', 15, ?, ?, '2026-01-02', 'appareil-test', 'appareil-test')`,
       [TREATMENT_ID, TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],

@@ -15,11 +15,11 @@ describe('migrationTableNames', () => {
       'vaccination',
       'vaccination_injection',
       'treatment',
-      'treatment_period',
-      'treatment_dose',
       'sync_outbox',
       'sync_state',
       'sync_pull_cursor',
+      'treatment_period',
+      'treatment_dose',
     ])
   })
 
@@ -89,14 +89,14 @@ describe('clearAllTables', () => {
       },
       {
         sql: `INSERT INTO treatment_period (id, treatment_id, animal_id, starts_on, first_due_on,
-                frequency_value, frequency_unit, created_at, updated_at, reference_on, created_by_device, updated_by_device)
+                frequency_value, frequency_unit, created_at, updated_at, grid_origin_on, created_by_device, updated_by_device)
               VALUES ('t-1', 't-1', 'a-2', '2026-08-01', '2026-08-01', 3, 'month', ?, ?, '2026-08-01', 'appareil-test', 'appareil-test')`,
         params: [NOW, NOW],
       },
       {
         sql: `INSERT INTO treatment_dose (id, period_id, treatment_id, animal_id, due_on, given_on,
-                status, next_due_date, created_at, updated_at, created_by_device, updated_by_device)
-              VALUES ('t-1', 't-1', 't-1', 'a-2', '2026-08-01', '2026-08-01', 'given', '2026-11-01', ?, ?, 'appareil-test', 'appareil-test')`,
+                status, created_at, updated_at, created_by_device, updated_by_device)
+              VALUES ('t-1', 't-1', 't-1', 'a-2', '2026-08-01', '2026-08-01', 'given', ?, ?, 'appareil-test', 'appareil-test')`,
         params: [NOW, NOW],
       },
     ])

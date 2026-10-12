@@ -21,7 +21,7 @@ export function restoredSuiteFor(
     (dose) =>
       dose.status === 'postponed' && dose.periodId === line.periodId && dose.dueOn === line.dueOn,
   )
-  const from = nextDay(laterOf(line.dueOn, report?.nextDueDate ?? line.dueOn))
+  const from = nextDay(laterOf(line.dueOn, report?.targetOn ?? line.dueOn))
   return {
     nextOn: after.upcoming({ from, limit: 1 })[0]?.dueOn ?? null,
     weekly: period.frequency.unit === 'week',

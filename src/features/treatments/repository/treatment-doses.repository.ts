@@ -8,6 +8,7 @@ import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { createRemoteSyncTable } from '@/core/sync/repository/remote-sync-table.repository'
 import { syncField } from '@/core/sync/service/syncable-table'
 import type {
+  DoseFields,
   DoseOwner,
   DoseWrite,
   NewTreatmentDose,
@@ -15,13 +16,15 @@ import type {
 } from '../schema/treatment-dose.schema'
 import type { FrequencyUnit } from '../schema/treatment.schema'
 import type { Stamped } from '@/shared/domain/carnet-data'
-import { familyOf, type DoseFields } from '@/shared/domain/treatment-schedule'
+import { familyOf } from '@/shared/domain/dose-calendar'
 
 export type RestoredTreatmentDose = Omit<Stamped<NewTreatmentDose>, 'deletedAt'>
 export type TreatmentDoseVersion = Pick<
   NewTreatmentDose,
   'id' | 'periodId' | 'treatmentId' | 'updatedAt' | 'deletedAt'
 >
+
+type DueWrite = { dose: DoseFields }
 
 type Step = {
   guard?: SqlStatement
@@ -39,7 +42,7 @@ interface DoseRow {
   due_time: string | null
   given_on: string | null
   status: TreatmentDose['status']
-  next_due_date: string
+  target_on: string | null
   created_at: string
   updated_at: string
   deleted_at: string | null
@@ -58,7 +61,7 @@ type DoseVersionRow = Pick<
 >
 
 const COLUMNS =
-  'id, period_id, treatment_id, animal_id, due_on, due_time, given_on, status, next_due_date, ' +
+  'id, period_id, treatment_id, animal_id, due_on, due_time, given_on, status, target_on, ' +
   'created_at, updated_at, deleted_at, created_by_device, updated_by_device'
 
 const COLUMN_NAMES = COLUMNS.split(', ')
@@ -85,7 +88,7 @@ function toDose(row: DoseWithFrequencyRow): TreatmentDose {
     dueTime: row.due_time,
     givenOn: row.given_on,
     status: row.status,
-    nextDueDate: row.next_due_date,
+    targetOn: row.target_on,
     frequency: { value: row.frequency_value, unit: row.frequency_unit },
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -111,7 +114,7 @@ function valuesOf(dose: Stamped<NewTreatmentDose>): SqlParam[] {
     dose.dueTime,
     dose.givenOn,
     dose.status,
-    dose.nextDueDate,
+    dose.targetOn,
     dose.createdAt,
     dose.updatedAt,
     dose.deletedAt,
@@ -127,7 +130,7 @@ function fieldsOf(row: DoseRow): DoseFields {
     dueTime: row.due_time,
     givenOn: row.given_on,
     status: row.status,
-    nextDueDate: row.next_due_date,
+    targetOn: row.target_on,
   }
 }
 
@@ -176,7 +179,7 @@ export function createTreatmentDosesRepository(
     return {
       sql: `UPDATE treatment_dose
             SET period_id = ?, due_on = ?, due_time = ?, given_on = ?, status = ?,
-                next_due_date = ?, updated_at = ?, updated_by_device = ?
+                target_on = ?, updated_at = ?, updated_by_device = ?
             WHERE id = ? AND ${NOT_DELETED}`,
       params: [
         dose.periodId,
@@ -184,7 +187,7 @@ export function createTreatmentDosesRepository(
         dose.dueTime,
         dose.givenOn,
         dose.status,
-        dose.nextDueDate,
+        dose.targetOn,
         updatedAt,
         deviceId(),
         id,
@@ -208,8 +211,9 @@ export function createTreatmentDosesRepository(
     }
   }
 
-  // Q5 : une échéance a au plus une ligne visible par famille (prise, prise en plus, report, décalage).
-  function duplicateWhere(dose: DoseFields): { sql: string; params: SqlParam[] } {
+  // Q5 : une échéance a au plus une ligne visible écrite ici par famille ; la synchronisation peut en
+  // apporter une seconde, que le moteur lit sans effet (R11).
+  function duplicateWhere({ dose }: DueWrite): { sql: string; params: SqlParam[] } {
     const family = familyOf(dose) === 'note' ? ['given', 'missed'] : [dose.status]
     return {
       sql: `period_id = ? AND due_on = ? AND due_time IS ? AND ${NOT_DELETED}
@@ -219,8 +223,8 @@ export function createTreatmentDosesRepository(
   }
 
   // Réinsère la ligne en double sous son propre identifiant : la clé primaire fait échouer le lot.
-  function duplicateGuardStatement(dose: DoseFields): SqlStatement {
-    const where = duplicateWhere(dose)
+  function duplicateGuardStatement(write: DueWrite): SqlStatement {
+    const where = duplicateWhere(write)
     return {
       sql: `INSERT INTO treatment_dose (${COLUMNS})
             SELECT ${COLUMNS} FROM treatment_dose WHERE ${where.sql} LIMIT 1`,
@@ -256,14 +260,14 @@ export function createTreatmentDosesRepository(
     const dues = new Set<string>()
     for (const write of writes) {
       if (write.action !== 'create') continue
-      const due = JSON.stringify(duplicateWhere(write.dose).params)
+      const due = JSON.stringify(duplicateWhere(write).params)
       if (dues.has(due)) throw new DuplicateDueError(`Échéance en double dans le lot : ${write.id}`)
       dues.add(due)
     }
   }
 
-  async function hasDuplicate(dose: DoseFields): Promise<boolean> {
-    const where = duplicateWhere(dose)
+  async function hasDuplicate(write: DueWrite): Promise<boolean> {
+    const where = duplicateWhere(write)
     const rows = await db.query<{ id: string }>(
       `SELECT id FROM treatment_dose WHERE ${where.sql} LIMIT 1`,
       where.params,
@@ -420,7 +424,7 @@ export function createTreatmentDosesRepository(
         switch (write.action) {
           case 'create':
             return {
-              guard: duplicateGuardStatement(write.dose),
+              guard: duplicateGuardStatement(write),
               statement: createStatement({ ...write, at }),
               after: liveParentGuardStatement(write.id),
               inverse: { action: 'delete', id: write.id, ...unchanged },
@@ -461,7 +465,7 @@ export function createTreatmentDosesRepository(
         ])
       } catch (cause) {
         for (const write of writes) {
-          if (write.action === 'create' && (await hasDuplicate(write.dose))) {
+          if (write.action === 'create' && (await hasDuplicate(write))) {
             throw new DuplicateDueError(`Échéance déjà notée : ${write.id}`, { cause })
           }
         }
@@ -530,7 +534,7 @@ export function createTreatmentDosesRepository(
       return exists
         ? {
             sql: `UPDATE treatment_dose
-                  SET due_on = ?, due_time = ?, given_on = ?, status = ?, next_due_date = ?,
+                  SET due_on = ?, due_time = ?, given_on = ?, status = ?, target_on = ?,
                       created_at = ?, updated_at = ?, deleted_at = NULL, created_by_device = ?,
                       updated_by_device = ?
                   WHERE id = ?`,
@@ -539,7 +543,7 @@ export function createTreatmentDosesRepository(
               dose.dueTime,
               dose.givenOn,
               dose.status,
-              dose.nextDueDate,
+              dose.targetOn,
               dose.createdAt,
               dose.updatedAt,
               dose.createdByDevice,
@@ -571,7 +575,7 @@ export function createTreatmentDosesRepository(
                 period_id = excluded.period_id, treatment_id = excluded.treatment_id,
                 animal_id = excluded.animal_id, due_on = excluded.due_on,
                 due_time = excluded.due_time, given_on = excluded.given_on,
-                status = excluded.status, next_due_date = excluded.next_due_date,
+                status = excluded.status, target_on = excluded.target_on,
                 created_at = excluded.created_at, updated_at = excluded.updated_at,
                 deleted_at = excluded.deleted_at, created_by_device = excluded.created_by_device,
                 updated_by_device = excluded.updated_by_device
@@ -585,7 +589,7 @@ export function createTreatmentDosesRepository(
           syncField(row, 'due_time'),
           syncField(row, 'given_on'),
           syncField(row, 'status'),
-          syncField(row, 'next_due_date'),
+          syncField(row, 'target_on'),
           syncField(row, 'created_at'),
           row.updated_at,
           syncField(row, 'deleted_at'),

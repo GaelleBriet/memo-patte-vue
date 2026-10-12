@@ -124,7 +124,7 @@ describe('formulaire et fiche d’un traitement, sur la même base', () => {
             dueTime: null,
             givenOn: '2026-07-10',
             status: 'given',
-            nextDueDate: '2026-10-10',
+            targetOn: null,
           },
         },
       ],

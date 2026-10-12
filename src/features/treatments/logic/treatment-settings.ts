@@ -124,7 +124,7 @@ export const DRAFT_ID = 'draft'
 export function draftPeriod(settings: TreatmentPeriodSettings, at: string): TreatmentPeriodRecord {
   return {
     ...settings,
-    referenceOn: settings.firstDueOn,
+    gridOriginOn: settings.firstDueOn,
     id: DRAFT_ID,
     treatmentId: DRAFT_ID,
     animalId: DRAFT_ID,

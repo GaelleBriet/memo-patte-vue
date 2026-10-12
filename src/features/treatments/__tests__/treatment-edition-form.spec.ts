@@ -75,7 +75,7 @@ describe('validateTreatmentEdition (TR-6, TR-9, TR-28)', () => {
           id: 'd-2',
           dueOn: '2026-10-10',
           givenOn: '2026-10-10',
-          nextDueDate: '2027-01-10',
+          targetOn: null,
         },
       ],
     )

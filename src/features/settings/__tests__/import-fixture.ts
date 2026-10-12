@@ -171,7 +171,7 @@ export const IMPORT_FIXTURE: ExportData = {
       dueTime: null,
       givenOn: '2026-06-15',
       status: 'given',
-      nextDueDate: '2026-09-15',
+      targetOn: null,
       createdAt: '2026-01-10T08:10:00.000Z',
       updatedAt: '2026-06-15T08:10:00.000Z',
       ...BY_FIXTURE_DEVICE,
@@ -183,7 +183,7 @@ export const IMPORT_FIXTURE: ExportData = {
       dueTime: '08:00',
       givenOn: null,
       status: 'postponed',
-      nextDueDate: '2026-09-03',
+      targetOn: '2026-09-03',
     },
     {
       ...PANACUR,
@@ -192,7 +192,7 @@ export const IMPORT_FIXTURE: ExportData = {
       dueTime: '20:00',
       givenOn: null,
       status: 'missed',
-      nextDueDate: '2026-09-02',
+      targetOn: null,
     },
     {
       ...PANACUR,
@@ -201,7 +201,7 @@ export const IMPORT_FIXTURE: ExportData = {
       dueTime: '08:00',
       givenOn: '2026-09-01',
       status: 'given',
-      nextDueDate: '2026-09-01',
+      targetOn: null,
     },
   ],
   weightEntries: [
@@ -235,10 +235,10 @@ export const IMPORT_FIXTURE: ExportData = {
   ],
 }
 
-export const IMPORT_FILE: ImportFile = { schemaVersion: 4, data: IMPORT_FIXTURE }
+export const IMPORT_FILE: ImportFile = { schemaVersion: 5, data: IMPORT_FIXTURE }
 
 export function importFile(data: ExportData = IMPORT_FIXTURE): ImportFile {
-  return { schemaVersion: 4, data }
+  return { schemaVersion: 5, data }
 }
 
 export function importFixtureJson(data: ExportData = IMPORT_FIXTURE): string {

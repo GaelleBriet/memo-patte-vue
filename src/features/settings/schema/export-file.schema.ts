@@ -1,6 +1,7 @@
-import { isFuture, parseISO } from 'date-fns'
+import { format, isFuture, parseISO } from 'date-fns'
 import { z } from 'zod'
 
+import { currentDeviceId } from '@/core/device/device-identity'
 import { MAX_MODEL_LENGTH } from '@/core/device/device.repository'
 import { isPhotoFileName } from '@/core/photos/photo-storage'
 import {
@@ -24,9 +25,11 @@ import {
 import { vaccinationInputSchema } from '@/features/vaccinations/schema/vaccination.schema'
 import { weightEntryInputSchema } from '@/features/weight/schema/weight.schema'
 import { EXPORT_SCHEMA_VERSION } from '../logic/export-format'
+import { everyTreatmentReadable, fromVersion3, fromVersion4 } from '../logic/export-file-versions'
 import { carnetSettingsSchema } from './carnet-settings.schema'
 import { isCalendarDay, MAX_CALENDAR_YEAR, MIN_CALENDAR_YEAR } from '@/shared/domain/calendar-day'
 import { CLOCK_TIME_PATTERN } from '@/shared/domain/clock-time'
+import type { ExportData } from '@/shared/domain/carnet-data'
 import type { ImportFile } from '@/shared/domain/import-plan'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
@@ -36,6 +39,7 @@ export type ParsedExportFile =
   { ok: true; file: ImportFile } | { ok: false; reason: ImportFileError }
 
 export const MAX_IMPORT_FILE_BYTES = 10 * 1024 * 1024
+const OLDEST_READ_VERSION = 3
 const MAX_TEXT_LENGTH = 200
 
 function isYearInRange(value: string): boolean {
@@ -61,9 +65,7 @@ const optionalName = z
   .nullable()
   .transform((value) => value || null)
 
-const carnetSettingsFileSchema = carnetSettingsSchema.extend(stamps)
-
-const animalFileSchema = z.object({
+const animalShape = {
   id: z.uuid(),
   name: animalInputSchema.shape.name,
   species: animalSpeciesSchema,
@@ -74,78 +76,70 @@ const animalFileSchema = z.object({
   unfollowedOn: day.nullable(),
   departureReason: departureReasonSchema.nullable(),
   departureDate: day.nullable(),
-  ...stamps,
-})
-
-const vaccinationFileSchema = z.object({
+}
+const vaccinationShape = {
   id: z.uuid(),
   animalId: z.uuid(),
   name: vaccinationInputSchema.shape.name,
   plannedDueDate: day.nullable(),
-  ...stamps,
-})
-
-const injectionFileSchema = z.object({
+}
+const injectionShape = {
   id: z.uuid(),
   vaccinationId: z.uuid(),
   animalId: z.uuid(),
   injectedOn: pastDay,
   nextDueDate: day.nullable(),
-  ...stamps,
-})
-
-const treatmentFileSchema = z.object({
+}
+const treatmentShape = {
   id: z.uuid(),
   animalId: z.uuid(),
   name: treatmentNameSchema,
   type: treatmentTypeSchema,
-  ...stamps,
-})
-
-const periodFileSchema = z
-  .object({
-    id: z.uuid(),
-    treatmentId: z.uuid(),
-    animalId: z.uuid(),
-    startsOn: day,
-    firstDueOn: day,
-    referenceOn: day,
-    endsOn: day.nullable(),
-    stoppedOn: day.nullable(),
-    frequency: treatmentFrequencySchema,
-    times: treatmentTimesSchema,
-    doseQuantity: doseQuantitySchema.nullable(),
-    doseUnit: doseUnitSchema.nullable(),
-    reminderOffsetMinutes: z.literal([...REMINDER_OFFSETS_MINUTES]).nullable(),
-    reminderTime: clockTime.nullable(),
-    ...stamps,
-  })
-  .refine(hasWholeDosage)
-  .refine(({ firstDueOn, endsOn }) => endsOn === null || endsOn >= firstDueOn)
-
-const doseFileSchema = z
-  .object({
-    id: z.uuid(),
-    periodId: z.uuid(),
-    treatmentId: z.uuid(),
-    animalId: z.uuid(),
-    dueOn: day,
-    dueTime: clockTime.nullable(),
-    givenOn: pastDay.nullable(),
-    status: z.enum(DOSE_STATUSES),
-    nextDueDate: day,
-    ...stamps,
-  })
-  .refine((dose) => ['given', 'extra'].includes(dose.status) === (dose.givenOn !== null))
-  .refine((dose) => dose.status !== 'extra' || dose.dueOn === dose.givenOn)
-
-const weightEntryFileSchema = z.object({
+}
+const periodShape = {
+  id: z.uuid(),
+  treatmentId: z.uuid(),
+  animalId: z.uuid(),
+  startsOn: day,
+  firstDueOn: day,
+  endsOn: day.nullable(),
+  stoppedOn: day.nullable(),
+  frequency: treatmentFrequencySchema,
+  times: treatmentTimesSchema,
+  doseQuantity: doseQuantitySchema.nullable(),
+  doseUnit: doseUnitSchema.nullable(),
+  reminderOffsetMinutes: z.literal([...REMINDER_OFFSETS_MINUTES]).nullable(),
+  reminderTime: clockTime.nullable(),
+}
+const doseShape = {
+  id: z.uuid(),
+  periodId: z.uuid(),
+  treatmentId: z.uuid(),
+  animalId: z.uuid(),
+  dueOn: day,
+  dueTime: clockTime.nullable(),
+  givenOn: pastDay.nullable(),
+  status: z.enum(DOSE_STATUSES),
+}
+const weightEntryShape = {
   id: z.uuid(),
   animalId: z.uuid(),
   weightKg: weightEntryInputSchema.shape.weightKg,
   measuredOn: pastDay,
-  ...stamps,
-})
+}
+
+type PeriodRow = Parameters<typeof hasWholeDosage>[0] & {
+  firstDueOn: string
+  endsOn: string | null
+}
+type DoseRow = { status: string; givenOn: string | null; dueOn: string }
+
+const isConsistentPeriod = (period: PeriodRow) =>
+  hasWholeDosage(period) && (period.endsOn === null || period.endsOn >= period.firstDueOn)
+const isConsistentDose = (dose: DoseRow) =>
+  ['given', 'extra'].includes(dose.status) === (dose.givenOn !== null) &&
+  (dose.status !== 'extra' || dose.dueOn === dose.givenOn)
+const isMove = (status: string) => status === 'postponed' || status === 'shift'
 
 const deviceFileSchema = z.object({
   id: z.uuid(),
@@ -154,52 +148,96 @@ const deviceFileSchema = z.object({
   ...timestamps,
 })
 
-function hasUniqueIds(rows: { id: string }[]): boolean {
-  return new Set(rows.map((row) => row.id)).size === rows.length
+type Row = { id: string; animalId: string }
+type Carnet = {
+  animals: { id: string }[]
+  treatments: Row[]
+  treatmentPeriods: (Row & { treatmentId: string })[]
+} & Record<'vaccinations' | 'vaccinationInjections' | 'treatmentDoses' | 'weightEntries', Row[]>
+
+const hasUniqueIds = (rows: { id: string }[]) =>
+  new Set(rows.map(({ id }) => id)).size === rows.length
+
+function isConsistentCarnet(data: Carnet): boolean {
+  const { animals, treatments, treatmentPeriods } = data
+  const children = [
+    ...treatments,
+    ...treatmentPeriods,
+    ...data.vaccinations,
+    ...data.vaccinationInjections,
+    ...data.treatmentDoses,
+    ...data.weightEntries,
+  ]
+  const animalIds = new Set(animals.map(({ id }) => id))
+  const withPeriod = new Set(treatmentPeriods.map(({ treatmentId }) => treatmentId))
+  return (
+    [
+      animals,
+      treatments,
+      treatmentPeriods,
+      data.vaccinations,
+      data.vaccinationInjections,
+      data.treatmentDoses,
+      data.weightEntries,
+    ].every(hasUniqueIds) &&
+    children.every(({ animalId }) => animalIds.has(animalId)) &&
+    treatments.every(({ id }) => withPeriod.has(id))
+  )
 }
 
-const exportFileSchema = z
+const signed = <S extends z.ZodRawShape>(shape: S) => z.object({ ...shape, ...stamps })
+const dated = <S extends z.ZodRawShape>(shape: S) => z.object({ ...shape, ...timestamps })
+const headerSchema = z.object({
+  exportedAt: instant,
+  appVersion: z.string().max(MAX_TEXT_LENGTH),
+})
+
+const signedCarnet = {
+  carnetSettings: carnetSettingsSchema.extend(stamps).nullable(),
+  animals: z.array(signed(animalShape)),
+  vaccinations: z.array(signed(vaccinationShape)),
+  vaccinationInjections: z.array(signed(injectionShape)),
+  treatments: z.array(signed(treatmentShape)),
+  weightEntries: z.array(signed(weightEntryShape)),
+  devices: z.array(deviceFileSchema).refine(hasUniqueIds),
+}
+
+const version5FileSchema = z
   .object({
-    schemaVersion: z.literal(EXPORT_SCHEMA_VERSION),
-    exportedAt: instant,
-    appVersion: z.string().max(MAX_TEXT_LENGTH),
-    carnetSettings: carnetSettingsFileSchema.nullable(),
-    animals: z.array(animalFileSchema),
-    vaccinations: z.array(vaccinationFileSchema),
-    vaccinationInjections: z.array(injectionFileSchema),
-    treatments: z.array(treatmentFileSchema),
-    treatmentPeriods: z.array(periodFileSchema),
-    treatmentDoses: z.array(doseFileSchema),
-    weightEntries: z.array(weightEntryFileSchema),
-    devices: z.array(deviceFileSchema),
+    ...signedCarnet,
+    treatmentPeriods: z.array(
+      signed({ ...periodShape, gridOriginOn: day.nullable() }).refine(isConsistentPeriod),
+    ),
+    treatmentDoses: z.array(
+      signed({ ...doseShape, targetOn: day.nullable() })
+        .refine(isConsistentDose)
+        .refine(({ status, targetOn }) => isMove(status) === (targetOn !== null)),
+    ),
   })
-  .refine((file) =>
-    [
-      file.animals,
-      file.vaccinations,
-      file.vaccinationInjections,
-      file.treatments,
-      file.treatmentPeriods,
-      file.treatmentDoses,
-      file.weightEntries,
-      file.devices,
-    ].every(hasUniqueIds),
-  )
-  .refine((file) => {
-    const animalIds = new Set(file.animals.map((animal) => animal.id))
-    return [
-      ...file.vaccinations,
-      ...file.vaccinationInjections,
-      ...file.treatments,
-      ...file.treatmentPeriods,
-      ...file.treatmentDoses,
-      ...file.weightEntries,
-    ].every((row) => animalIds.has(row.animalId))
+  .refine(isConsistentCarnet)
+
+const version4FileSchema = z
+  .object({
+    ...signedCarnet,
+    treatmentPeriods: z.array(
+      signed({ ...periodShape, referenceOn: day }).refine(isConsistentPeriod),
+    ),
+    treatmentDoses: z.array(signed({ ...doseShape, nextDueDate: day }).refine(isConsistentDose)),
   })
-  .refine((file) => {
-    const withPeriod = new Set(file.treatmentPeriods.map(({ treatmentId }) => treatmentId))
-    return file.treatments.every(({ id }) => withPeriod.has(id))
+  .refine(isConsistentCarnet)
+
+const version3FileSchema = z
+  .object({
+    carnetSettings: carnetSettingsSchema.extend(timestamps).nullable(),
+    animals: z.array(dated(animalShape)),
+    vaccinations: z.array(dated(vaccinationShape)),
+    vaccinationInjections: z.array(dated(injectionShape)),
+    treatments: z.array(dated(treatmentShape)),
+    treatmentPeriods: z.array(dated(periodShape).refine(isConsistentPeriod)),
+    treatmentDoses: z.array(dated({ ...doseShape, nextDueDate: day }).refine(isConsistentDose)),
+    weightEntries: z.array(dated(weightEntryShape)),
   })
+  .refine(isConsistentCarnet)
 
 const versionSchema = z.object({ schemaVersion: z.number().int().positive() })
 
@@ -229,44 +267,36 @@ function refusalReason(error: z.ZodError): ImportFileError {
   return onlyTooBig(error, BOUNDED_FIELDS) ? 'outOfRange' : 'invalid'
 }
 
-/** La version tranche avant toute validation : seul le format courant se relit. */
-export function parseExportFile(text: string): ParsedExportFile {
+function fileSchemaOf(version: number, deviceId: string): z.ZodType<ExportData> {
+  if (version === 3) {
+    return version3FileSchema.transform((data) => fromVersion4(fromVersion3(data, deviceId)))
+  }
+  return version === 4 ? version4FileSchema.transform(fromVersion4) : version5FileSchema
+}
+
+/**
+ * La version tranche avant toute validation ; un export v3 ou v4 est converti au format courant
+ * (plan §3.3), signé par `deviceId` quand il n'a pas d'appareil, puis relu par le moteur (Q40).
+ */
+export function parseExportFile(
+  text: string,
+  deviceId: string = currentDeviceId(),
+  today: string = format(new Date(), 'yyyy-MM-dd'),
+): ParsedExportFile {
   const document = parseJson(text)
 
   const version = versionSchema.safeParse(document)
   if (!version.success) return { ok: false, reason: 'invalid' }
-  if (version.data.schemaVersion > EXPORT_SCHEMA_VERSION) return { ok: false, reason: 'newer' }
-  if (version.data.schemaVersion < EXPORT_SCHEMA_VERSION) return { ok: false, reason: 'older' }
+  const { schemaVersion } = version.data
+  if (schemaVersion > EXPORT_SCHEMA_VERSION) return { ok: false, reason: 'newer' }
+  if (schemaVersion < OLDEST_READ_VERSION) return { ok: false, reason: 'older' }
 
-  const file = exportFileSchema.safeParse(document)
-  if (!file.success) return { ok: false, reason: refusalReason(file.error) }
+  const header = headerSchema.safeParse(document)
+  if (!header.success) return { ok: false, reason: refusalReason(header.error) }
+  const parsed = fileSchemaOf(schemaVersion, deviceId).safeParse(document)
+  if (!parsed.success) return { ok: false, reason: refusalReason(parsed.error) }
+  const { data } = parsed
+  if (!everyTreatmentReadable(data, today)) return { ok: false, reason: 'invalid' }
 
-  const {
-    carnetSettings,
-    animals,
-    vaccinations,
-    vaccinationInjections,
-    treatments,
-    treatmentPeriods,
-    treatmentDoses,
-    weightEntries,
-    devices,
-  } = file.data
-  return {
-    ok: true,
-    file: {
-      schemaVersion: EXPORT_SCHEMA_VERSION,
-      data: {
-        carnetSettings,
-        animals,
-        vaccinations,
-        vaccinationInjections,
-        treatments,
-        treatmentPeriods,
-        treatmentDoses,
-        weightEntries,
-        devices,
-      },
-    },
-  }
+  return { ok: true, file: { schemaVersion: EXPORT_SCHEMA_VERSION, data } }
 }

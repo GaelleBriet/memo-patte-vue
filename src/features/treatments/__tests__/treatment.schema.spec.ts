@@ -134,7 +134,7 @@ describe('treatmentDoseSchema', () => {
     dueTime: null,
     givenOn: '2026-06-02',
     status: 'given',
-    nextDueDate: '2026-09-02',
+    targetOn: null,
     createdAt: '2026-06-02T10:00:00.000Z',
     updatedAt: '2026-06-02T10:00:00.000Z',
     deletedAt: null,
@@ -156,6 +156,12 @@ describe('treatmentDoseSchema', () => {
       treatmentDoseSchema.safeParse({ ...dose, status: 'missed', givenOn: null }).success,
     ).toBe(true)
     expect(treatmentDoseSchema.safeParse({ ...dose, status: 'skipped' }).success).toBe(false)
+  })
+
+  it('range le jour d’arrivée d’un report, jamais une date invalide', () => {
+    const report = { ...dose, status: 'postponed', givenOn: null, targetOn: '2026-06-05' } as const
+    expect(treatmentDoseSchema.parse(report)).toEqual(report)
+    expect(treatmentDoseSchema.safeParse({ ...report, targetOn: '05/06/2026' }).success).toBe(false)
   })
 })
 

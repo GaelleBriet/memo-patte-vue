@@ -12,7 +12,7 @@ export function period(overrides: Partial<TreatmentPeriodRecord> = {}): Treatmen
     animalId: 'luna',
     startsOn: '2026-09-01',
     firstDueOn: '2026-09-01',
-    referenceOn: overrides.firstDueOn ?? '2026-09-01',
+    gridOriginOn: overrides.firstDueOn ?? '2026-09-01',
     endsOn: null,
     stoppedOn: null,
     frequency: { value: 1, unit: 'day' },
@@ -28,13 +28,17 @@ export function period(overrides: Partial<TreatmentPeriodRecord> = {}): Treatmen
   }
 }
 
-/** Prise donnée le jour de son échéance, sauf mention ; `id` vaut l'échéance par défaut. */
+/**
+ * Prise donnée le jour de son échéance, sauf mention ; `id` vaut l'échéance par défaut. `next` ne
+ * s'écrit que pour un report (jour d'arrivée) ou un décalage (jour d'ancrage).
+ */
 export function dose(
   dueOn: string,
-  nextDueDate: string,
+  next: string,
   overrides: Partial<NewTreatmentDose> = {},
 ): NewTreatmentDose {
   const dueTime = overrides.dueTime ?? null
+  const status = overrides.status ?? 'given'
   return {
     id: dueTime === null ? dueOn : `${dueOn} ${dueTime}`,
     periodId: 'p-1',
@@ -44,7 +48,7 @@ export function dose(
     dueTime,
     givenOn: dueOn,
     status: 'given',
-    nextDueDate,
+    targetOn: status === 'postponed' || status === 'shift' ? next : null,
     createdAt: AT,
     updatedAt: AT,
     deletedAt: null,
@@ -54,10 +58,10 @@ export function dose(
 
 export function missed(
   dueOn: string,
-  nextDueDate: string,
+  next: string,
   overrides: Partial<NewTreatmentDose> = {},
 ): NewTreatmentDose {
-  return dose(dueOn, nextDueDate, { givenOn: null, status: 'missed', ...overrides })
+  return dose(dueOn, next, { givenOn: null, status: 'missed', ...overrides })
 }
 
 export function postponed(
@@ -90,10 +94,10 @@ export function shifted(
 /** Prise en plus, rangée sous sa date réelle. */
 export function extra(
   givenOn: string,
-  nextDueDate: string,
+  next: string,
   overrides: Partial<NewTreatmentDose> = {},
 ): NewTreatmentDose {
-  return dose(givenOn, nextDueDate, { id: `en plus ${givenOn}`, status: 'extra', ...overrides })
+  return dose(givenOn, next, { id: `en plus ${givenOn}`, status: 'extra', ...overrides })
 }
 
 export function treatment(

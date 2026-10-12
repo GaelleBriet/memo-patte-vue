@@ -60,8 +60,8 @@ describe('treatmentDosesService', () => {
   }
 
   function visibleDoses() {
-    return db.query<{ given_on: string; next_due_date: string }>(
-      `SELECT given_on, next_due_date FROM treatment_dose
+    return db.query<{ given_on: string; target_on: string | null }>(
+      `SELECT given_on, target_on FROM treatment_dose
        WHERE treatment_id = ? AND deleted_at IS NULL AND status <> 'shift' ORDER BY given_on`,
       [bravecto],
     )
@@ -176,7 +176,7 @@ describe('treatmentDosesService', () => {
       })
       await expect(visibleDoses()).resolves.toContainEqual({
         given_on: '2026-09-23',
-        next_due_date: '2026-09-28',
+        target_on: null,
       })
       expect(dueDates()[0]).toBe('2026-10-28')
 
@@ -638,11 +638,11 @@ describe('treatmentDosesService', () => {
         due_on: string
         given_on: string | null
         status: string
-        next_due_date: string
+        target_on: string | null
         updated_at: string
         deleted_at: string | null
       }>(
-        `SELECT due_on, given_on, status, next_due_date, updated_at, deleted_at
+        `SELECT due_on, given_on, status, target_on, updated_at, deleted_at
          FROM treatment_dose WHERE treatment_id = ? AND status <> 'shift' ORDER BY due_on`,
         [bravecto],
       )
@@ -660,11 +660,11 @@ describe('treatmentDosesService', () => {
         { action: 'delete', id: expect.any(String), expectedUpdatedAt: NOW.toISOString() },
       ])
       await expect(
-        db.query(`SELECT due_on, next_due_date FROM treatment_dose WHERE status = 'shift'`),
-      ).resolves.toEqual([{ due_on: '2026-09-28', next_due_date: '2026-09-23' }])
+        db.query(`SELECT due_on, target_on FROM treatment_dose WHERE status = 'shift'`),
+      ).resolves.toEqual([{ due_on: '2026-09-28', target_on: '2026-09-23' }])
       await expect(rows()).resolves.toMatchObject([
-        { due_on: '2026-08-28', given_on: '2026-08-28', next_due_date: '2026-09-28' },
-        { due_on: '2026-09-28', given_on: '2026-09-23', next_due_date: '2026-09-28' },
+        { due_on: '2026-08-28', given_on: '2026-08-28', target_on: null },
+        { due_on: '2026-09-28', given_on: '2026-09-23', target_on: null },
       ])
       expect(dueDates()[0]).toBe('2026-10-23')
     })
@@ -721,9 +721,7 @@ describe('treatmentDosesService', () => {
 
       await service.undoBatch(bravecto, undo)
 
-      await expect(visibleDoses()).resolves.toEqual([
-        { given_on: '2026-08-28', next_due_date: '2026-09-28' },
-      ])
+      await expect(visibleDoses()).resolves.toEqual([{ given_on: '2026-08-28', target_on: null }])
       expect(dueDates()[0]).toBe('2026-09-28')
     })
 
@@ -734,7 +732,7 @@ describe('treatmentDosesService', () => {
       })
 
       await expect(rows()).resolves.toMatchObject([
-        { due_on: '2026-08-28', given_on: null, status: 'missed', next_due_date: '2026-08-28' },
+        { due_on: '2026-08-28', given_on: null, status: 'missed', target_on: null },
       ])
     })
 
@@ -749,7 +747,7 @@ describe('treatmentDosesService', () => {
       const UNE_HEURE_APRES = new Date(NOW.getTime() + 3_600_000).toISOString()
       await db.run(
         `INSERT INTO treatment_dose (id, period_id, treatment_id, animal_id, due_on, due_time,
-           given_on, status, next_due_date, created_at, updated_at, created_by_device, updated_by_device)
+           given_on, status, target_on, created_at, updated_at, created_by_device, updated_by_device)
          VALUES ('report', ?, ?, ?, '2026-10-23', NULL, NULL, 'postponed', '2026-10-30', ?, ?, 'appareil-test', 'appareil-test')`,
         [bravecto, bravecto, BOREE, UNE_HEURE_APRES, UNE_HEURE_APRES],
       )
@@ -764,8 +762,8 @@ describe('treatmentDosesService', () => {
       expect(applied.followed).toEqual([{ from: '2026-10-30', to: '2026-10-30' }])
       await expect(rows()).resolves.toMatchObject([
         { due_on: '2026-08-28' },
-        { due_on: '2026-09-28', given_on: '2026-09-21', next_due_date: '2026-09-28' },
-        { due_on: '2026-10-21', status: 'postponed', next_due_date: '2026-10-30' },
+        { due_on: '2026-09-28', given_on: '2026-09-21', target_on: null },
+        { due_on: '2026-10-21', status: 'postponed', target_on: '2026-10-30' },
       ])
     })
 
@@ -779,9 +777,7 @@ describe('treatmentDosesService', () => {
         }),
       ).rejects.toThrow(RangeError)
 
-      await expect(visibleDoses()).resolves.toEqual([
-        { given_on: '2026-08-28', next_due_date: '2026-09-28' },
-      ])
+      await expect(visibleDoses()).resolves.toEqual([{ given_on: '2026-08-28', target_on: null }])
     })
 
     it('lève pour un traitement introuvable', async () => {

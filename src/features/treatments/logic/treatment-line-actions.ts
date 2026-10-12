@@ -7,12 +7,12 @@ import type { Translate } from '@/core/i18n/translate'
 
 type Line = Pick<
   NewTreatmentDose,
-  'id' | 'periodId' | 'dueOn' | 'dueTime' | 'givenOn' | 'status' | 'nextDueDate'
+  'id' | 'periodId' | 'dueOn' | 'dueTime' | 'givenOn' | 'status' | 'targetOn'
 >
 
 /** La dose que montre une ligne de report : à son jour d'arrivée. */
-export function movedDueOf(line: Pick<Line, 'periodId' | 'dueTime' | 'nextDueDate'>): Due {
-  return { settingId: line.periodId, dueOn: line.nextDueDate, dueTime: line.dueTime }
+export function movedDueOf(line: Pick<Line, 'periodId' | 'dueOn' | 'dueTime' | 'targetOn'>): Due {
+  return { settingId: line.periodId, dueOn: line.targetOn ?? line.dueOn, dueTime: line.dueTime }
 }
 
 /** Geste d'un choix du menu ⋮ ; `null` pour « Changer la date », qui attend le jour choisi. */
@@ -76,7 +76,7 @@ export function dateChangeOf(
     if (bounds === null) return null
     return {
       subtitle: moveText(t, line),
-      date: line.nextDueDate,
+      date: line.targetOn ?? line.dueOn,
       min: bounds.earliest,
       max: bounds.latest,
       excluded: bounds.excluded,

@@ -73,7 +73,7 @@ describe('treatmentPlanService', () => {
     db.close()
   })
 
-  async function give(treatmentId: string, dueOn: string, nextDueDate: string): Promise<void> {
+  async function give(treatmentId: string, dueOn: string): Promise<void> {
     await createTreatmentDosesRepository(db).applyBatch(
       [
         {
@@ -87,7 +87,7 @@ describe('treatmentPlanService', () => {
             dueTime: null,
             givenOn: dueOn,
             status: 'given',
-            nextDueDate,
+            targetOn: null,
           },
         },
       ],
@@ -279,8 +279,8 @@ describe('treatmentPlanService', () => {
           firstDoseOn: '2026-09-18',
           endsOn: null,
         })
-        await give(id, '2026-09-18', '2026-09-25')
-        await give(id, '2026-09-25', '2026-10-02')
+        await give(id, '2026-09-18')
+        await give(id, '2026-09-25')
         await service.update(id, saisie({ frequency: { value: 10, unit: 'day' }, endsOn: null }))
         today = '2026-10-04'
         return id
@@ -353,7 +353,7 @@ describe('treatmentPlanService', () => {
 
   it('ouvre une nouvelle période aujourd’hui quand une prise est notée, l’ancienne intacte (TR-28)', async () => {
     const { id } = await service.create(MILBEMAX)
-    await give(id, '2026-09-26', '2026-10-03')
+    await give(id, '2026-09-26')
     const [before] = (await historyOf(id)).periods
 
     const updated = await service.update(id, saisie({ frequency: { value: 2, unit: 'day' } }))
@@ -374,7 +374,7 @@ describe('treatmentPlanService', () => {
 
   it('reporte la prochaine dose par une ligne « Reportée », sans période nouvelle (TR-9)', async () => {
     const { id } = await service.create(MILBEMAX)
-    await give(id, '2026-09-26', '2026-10-03')
+    await give(id, '2026-09-26')
 
     const updated = await service.update(id, saisie({ nextDoseOn: '2026-10-06' }))
 
@@ -382,17 +382,17 @@ describe('treatmentPlanService', () => {
     const { periods, doses } = await historyOf(id)
     expect(periods).toHaveLength(1)
     expect(doses.filter(({ status }) => status !== 'shift')).toMatchObject([
-      { dueOn: '2026-10-03', givenOn: null, status: 'postponed', nextDueDate: '2026-10-06' },
+      { dueOn: '2026-10-03', givenOn: null, status: 'postponed', targetOn: '2026-10-06' },
       { dueOn: '2026-09-26', status: 'given' },
     ])
     expect(doses.filter(({ status }) => status === 'shift')).toMatchObject([
-      { dueOn: '2026-10-03', nextDueDate: '2026-10-06' },
+      { dueOn: '2026-10-03', targetOn: '2026-10-06' },
     ])
   })
 
   it('une notification « C’est fait » pendant un report attend sa fin : jamais une prise et un report sur la même échéance', async () => {
     const { id } = await service.create(MILBEMAX)
-    await give(id, '2026-09-26', '2026-10-03')
+    await give(id, '2026-09-26')
     const queue = createWriteQueue()
     const doses = createTreatmentDosesService({
       treatments: () => treatments,
@@ -433,7 +433,7 @@ describe('treatmentPlanService', () => {
 
   it('refuse une prochaine dose après la date de fin d’une période qui a déjà une prise, sans rien écrire (Q20)', async () => {
     const { id } = await service.create(MILBEMAX)
-    await give(id, '2026-09-26', '2026-10-03')
+    await give(id, '2026-09-26')
     const before = await historyOf(id)
 
     const refus = await service
@@ -449,7 +449,7 @@ describe('treatmentPlanService', () => {
 
   it('reprend un traitement arrêté dans une nouvelle période, la précédente intacte (TR-32)', async () => {
     const { id } = await service.create(MILBEMAX)
-    await give(id, '2026-09-26', '2026-10-03')
+    await give(id, '2026-09-26')
     await createTreatmentPeriodsRepository(db).stop(id, '2026-09-28')
     const [before] = (await historyOf(id)).periods
     today = '2026-11-02'
@@ -482,7 +482,7 @@ describe('treatmentPlanService', () => {
   it('reprend le jour même de l’arrêt : la prise de ce jour couvre la première journée de la reprise (Q-G3)', async () => {
     today = '2026-10-02'
     const { id } = await service.create({ ...MILBEMAX, firstDoseOn: '2026-09-25', endsOn: null })
-    await give(id, '2026-10-02', '2026-10-09')
+    await give(id, '2026-10-02')
     await createTreatmentPeriodsRepository(db).stop(id, '2026-10-02')
     const before = await historyOf(id)
 
@@ -538,7 +538,7 @@ describe('treatmentPlanService', () => {
               dueTime,
               givenOn: dueOn,
               status: 'given',
-              nextDueDate: dueOn,
+              targetOn: null,
             },
           },
         ],
@@ -570,7 +570,7 @@ describe('treatmentPlanService', () => {
       const { periods, doses } = await historyOf(id)
       expect(periods).toHaveLength(1)
       expect(doses.filter(({ status }) => status === 'postponed')).toMatchObject([
-        { dueOn: '2026-09-27', dueTime: '08:00', nextDueDate: '2026-09-29' },
+        { dueOn: '2026-09-27', dueTime: '08:00', targetOn: '2026-09-29' },
       ])
       const schedule = await scheduleOf(id)
       expect(times(schedule.upcoming({ limit: 3 }))).toEqual([
@@ -589,7 +589,7 @@ describe('treatmentPlanService', () => {
 
       const { doses } = await historyOf(id)
       expect(doses.filter(({ status }) => status === 'postponed')).toMatchObject([
-        { dueOn: '2026-09-27', dueTime: '20:00', nextDueDate: '2026-09-29' },
+        { dueOn: '2026-09-27', dueTime: '20:00', targetOn: '2026-09-29' },
       ])
       const schedule = await scheduleOf(id)
       expect(times(schedule.upcoming({ limit: 2 }))).toEqual([
@@ -658,20 +658,20 @@ describe('treatmentPlanService', () => {
 
     it('reprogramme les rappels quand « Modifier » déplace l’échéance', async () => {
       const { id } = await service.create(MILBEMAX)
-      await give(id, '2026-09-26', '2026-10-03')
+      await give(id, '2026-09-26')
       reminders.reschedule.mockClear()
 
       await service.update(id, saisie({ nextDoseOn: '2026-10-06' }))
 
       expect(reminders.reschedule).toHaveBeenCalledExactlyOnceWith(id)
       expect(seenAtReschedule?.doses).toContainEqual(
-        expect.objectContaining({ status: 'postponed', nextDueDate: '2026-10-06' }),
+        expect.objectContaining({ status: 'postponed', targetOn: '2026-10-06' }),
       )
     })
 
     it('reprogramme les rappels d’un traitement repris', async () => {
       const { id } = await service.create(MILBEMAX)
-      await give(id, '2026-09-26', '2026-10-03')
+      await give(id, '2026-09-26')
       await createTreatmentPeriodsRepository(db).stop(id, '2026-09-28')
       today = '2026-11-02'
       reminders.reschedule.mockClear()

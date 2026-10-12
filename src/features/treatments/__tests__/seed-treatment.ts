@@ -1,5 +1,3 @@
-import { addDays, addMonths, addWeeks, format, parseISO } from 'date-fns'
-
 import { createTreatmentDosesRepository } from '../repository/treatment-doses.repository'
 import { currentPeriodIdSql } from '../repository/treatment-periods.repository'
 import {
@@ -12,15 +10,7 @@ type DbClient = Parameters<typeof createTreatmentsRepository>[0]
 
 export type SeedTreatment = TreatmentInput & { lastDoseDate: string }
 
-function addFrequency(date: string, { value, unit }: TreatmentFrequency): string {
-  const add = unit === 'day' ? addDays : unit === 'week' ? addWeeks : addMonths
-  return format(add(parseISO(date), value), 'yyyy-MM-dd')
-}
-
-type HeadEdit = Pick<Treatment, 'name' | 'type'> & {
-  frequency: TreatmentFrequency
-  nextDueDate: string
-}
+type HeadEdit = Pick<Treatment, 'name' | 'type'> & { frequency: TreatmentFrequency }
 
 /** Traitement avec sa première prise, donnée le jour de `lastDoseDate`, de même identifiant que lui. */
 export async function seedTreatmentWithDose(
@@ -56,7 +46,7 @@ export async function seedTreatmentWithDose(
       dueTime: null,
       givenOn: input.lastDoseDate,
       status: 'given',
-      nextDueDate: addFrequency(input.lastDoseDate, input.frequency),
+      targetOn: null,
       createdAt: created.createdAt,
       updatedAt: created.createdAt,
       deletedAt: null,
@@ -82,11 +72,6 @@ export async function seedHeadEdit(db: DbClient, id: string, edit: HeadEdit): Pr
             WHERE id = ${currentPeriodIdSql('?')} AND (frequency_value <> ? OR frequency_unit <> ?)`,
       params: [value, unit, at, id, value, unit],
     },
-    {
-      sql: `UPDATE treatment_dose SET next_due_date = ?, updated_at = ?
-            WHERE id = ? AND next_due_date <> ?`,
-      params: [edit.nextDueDate, at, id, edit.nextDueDate],
-    },
   ])
 }
 
@@ -100,7 +85,7 @@ export async function headDose(treatments: TreatmentsRepository, treatmentId: st
     ({ periodId, status }) =>
       periodId === treatment?.periodId && status !== 'shift' && status !== 'extra',
   )
-  return head ? { givenOn: head.givenOn, nextDueDate: head.nextDueDate } : null
+  return head ? { givenOn: head.givenOn, targetOn: head.targetOn } : null
 }
 
 /** Les deux écritures d'un carnet de test, pour une base donnée. */

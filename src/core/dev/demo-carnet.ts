@@ -24,7 +24,7 @@ export interface DemoVaccination extends Omit<VaccinationInput, 'animalId'> {
 
 export type DemoDose = Pick<
   NewTreatmentDose,
-  'dueOn' | 'dueTime' | 'givenOn' | 'status' | 'nextDueDate'
+  'dueOn' | 'dueTime' | 'givenOn' | 'status' | 'targetOn'
 >
 
 /** Une échéance sans ligne dans `doses` est une dose non renseignée. */
@@ -81,12 +81,12 @@ function monthlyWeights(today: Date, weightsKg: number[]): DemoAnimal['weights']
   }))
 }
 
-function given(on: Date, next: Date, dueTime: string | null = null): DemoDose {
-  return { dueOn: day(on), dueTime, givenOn: day(on), status: 'given', nextDueDate: day(next) }
+function given(on: Date, dueTime: string | null = null): DemoDose {
+  return { dueOn: day(on), dueTime, givenOn: day(on), status: 'given', targetOn: null }
 }
 
-function missed(on: Date, next: Date, dueTime: string | null = null): DemoDose {
-  return { dueOn: day(on), dueTime, givenOn: null, status: 'missed', nextDueDate: day(next) }
+function missed(on: Date, dueTime: string | null = null): DemoDose {
+  return { dueOn: day(on), dueTime, givenOn: null, status: 'missed', targetOn: null }
 }
 
 function postponed(from: Date, to: Date): DemoDose {
@@ -95,20 +95,18 @@ function postponed(from: Date, to: Date): DemoDose {
     dueTime: null,
     givenOn: null,
     status: 'postponed',
-    nextDueDate: day(to),
+    targetOn: day(to),
   }
 }
 
 /** Le décalage qui accompagne un report : les doses suivantes repartent de sa nouvelle date. */
 function shifted(from: Date, to: Date): DemoDose {
-  return { dueOn: day(from), dueTime: null, givenOn: null, status: 'shift', nextDueDate: day(to) }
+  return { dueOn: day(from), dueTime: null, givenOn: null, status: 'shift', targetOn: day(to) }
 }
 
-/** `count` prises mensuelles jusqu'à `last`, chacune fixant la suivante. */
+/** `count` prises mensuelles jusqu'à `last`. */
 function monthlyDoses(last: Date, count: number): DemoDose[] {
-  return Array.from({ length: count }, (_, index) =>
-    given(subMonths(last, count - 1 - index), subMonths(last, count - 2 - index)),
-  )
+  return Array.from({ length: count }, (_, index) => given(subMonths(last, count - 1 - index)))
 }
 
 export function buildDemoCarnet(today: Date): DemoAnimal[] {
@@ -162,7 +160,7 @@ export function buildDemoCarnet(today: Date): DemoAnimal[] {
             {
               startsOn: day(bravectoLast),
               frequency: { value: 3, unit: 'month' },
-              doses: [given(bravectoLast, addMonths(bravectoLast, 3))],
+              doses: [given(bravectoLast)],
             },
           ],
         },
@@ -187,10 +185,7 @@ export function buildDemoCarnet(today: Date): DemoAnimal[] {
               startsOn: day(subDays(advocateLast, 15)),
               frequency: { value: 15, unit: 'day' },
               stoppedOn: day(advocateStop),
-              doses: [
-                given(subDays(advocateLast, 15), advocateLast),
-                given(advocateLast, addDays(advocateLast, 15)),
-              ],
+              doses: [given(subDays(advocateLast, 15)), given(advocateLast)],
             },
           ],
         },
@@ -208,11 +203,11 @@ export function buildDemoCarnet(today: Date): DemoAnimal[] {
               doseUnit: 'sachet',
               reminderOffsetMinutes: 15,
               doses: [
-                given(panacurStart, panacurStart, MORNING),
-                given(panacurStart, addDays(panacurStart, 1), EVENING),
-                given(addDays(panacurStart, 1), addDays(panacurStart, 1), MORNING),
-                missed(addDays(panacurStart, 1), addDays(panacurStart, 2), EVENING),
-                given(addDays(panacurStart, 3), addDays(panacurStart, 3), MORNING),
+                given(panacurStart, MORNING),
+                given(panacurStart, EVENING),
+                given(addDays(panacurStart, 1), MORNING),
+                missed(addDays(panacurStart, 1), EVENING),
+                given(addDays(panacurStart, 3), MORNING),
               ],
             },
           ],
@@ -244,15 +239,12 @@ export function buildDemoCarnet(today: Date): DemoAnimal[] {
               startsOn: day(milbemaxFirst),
               frequency: { value: 3, unit: 'month' },
               stoppedOn: day(subMonths(today, 8)),
-              doses: [
-                given(milbemaxFirst, addMonths(milbemaxFirst, 3)),
-                given(addMonths(milbemaxFirst, 3), addMonths(milbemaxFirst, 6)),
-              ],
+              doses: [given(milbemaxFirst), given(addMonths(milbemaxFirst, 3))],
             },
             {
               startsOn: day(milbemaxResume),
               frequency: { value: 3, unit: 'month' },
-              doses: [given(milbemaxResume, addMonths(milbemaxResume, 3))],
+              doses: [given(milbemaxResume)],
             },
           ],
         },
@@ -269,10 +261,10 @@ export function buildDemoCarnet(today: Date): DemoAnimal[] {
               doseUnit: 'pipette',
               reminderTime: '18:00',
               doses: [
-                given(frontlineStart, frontlineDue),
+                given(frontlineStart),
                 postponed(frontlineDue, frontlineGiven),
                 shifted(frontlineDue, frontlineGiven),
-                given(frontlineGiven, addMonths(frontlineGiven, 1)),
+                given(frontlineGiven),
               ],
             },
           ],

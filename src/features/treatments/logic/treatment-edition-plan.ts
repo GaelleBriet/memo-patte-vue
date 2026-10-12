@@ -21,12 +21,15 @@ function periodsAfter(
   today: string,
 ): TreatmentWithHistory['periods'] {
   const at = `${today}T23:59:59.999Z`
-  const referenceOn = period.referenceOn ?? period.settings.firstDueOn
+  const { gridOriginOn } = period
   if (period.action === 'open') {
-    return [...history.periods, { ...draftPeriod(period.settings, at), id: period.id, referenceOn }]
+    return [
+      ...history.periods,
+      { ...draftPeriod(period.settings, at), id: period.id, gridOriginOn },
+    ]
   }
   return history.periods.map((other) =>
-    other.id === currentId ? { ...other, ...period.settings, referenceOn } : other,
+    other.id === currentId ? { ...other, ...period.settings, gridOriginOn } : other,
   )
 }
 
@@ -74,10 +77,10 @@ export function editionPlan(
   const settings = withRhythm(settingsOf(period), data)
   const written =
     plan !== null
-      ? periodWriteOf(plan, history, settings, () => ids.periodId)
+      ? periodWriteOf(plan, settings, () => ids.periodId)
       : sameSettings(settings, settingsOf(period))
         ? null
-        : { action: 'correct' as const, id: period.id, settings, referenceOn: period.referenceOn }
+        : { action: 'correct' as const, id: period.id, settings, gridOriginOn: period.gridOriginOn }
   const doses = move === null ? [] : plannedDoseWritesOf(history, move.changes, ids.newId)
   const result: TreatmentPlanWrite = { treatment, period: written, doses }
   if (written !== null || doses.length > 0) {

@@ -72,8 +72,8 @@ export type ExportTreatmentPeriod = {
   animalId: string
   startsOn: string
   firstDueOn: string
-  /** Origine de la grille des échéances. */
-  referenceOn: string
+  /** Origine de la grille (R2) ; `null` : celle du réglage précédent (R3). */
+  gridOriginOn: string | null
   endsOn: string | null
   stoppedOn: string | null
   frequency: ExportFrequency
@@ -99,7 +99,8 @@ export type ExportTreatmentDose = {
   /** `null` pour une prise oubliée ou reportée. */
   givenOn: string | null
   status: 'given' | 'missed' | 'postponed' | 'extra' | 'shift'
-  nextDueDate: string
+  /** Report : jour d'arrivée ; décalage : jour d'ancrage ; `null` pour une prise. */
+  targetOn: string | null
   createdAt: string
   updatedAt: string
   createdByDevice: string

@@ -44,7 +44,7 @@ function prise(
     dueTime: null,
     givenOn,
     status: 'given',
-    nextDueDate: '2026-12-20',
+    targetOn: null,
     createdAt: NOW,
     updatedAt: NOW,
     deletedAt: null,
@@ -128,7 +128,7 @@ describe('treatmentDosesRepository', () => {
   })
 
   it('liste les prises visibles de tous les traitements, avec la fréquence de leur période', async () => {
-    const recente = prise(milbemax, 'recente', '2026-04-10', { nextDueDate: '2026-07-10' })
+    const recente = prise(milbemax, 'recente', '2026-04-10', { targetOn: null })
     await db.runMany([doses.insertStatement(recente)])
 
     const liste = await doses.listAll()
@@ -147,7 +147,7 @@ describe('treatmentDosesRepository', () => {
           dueTime: '20:00',
           givenOn: null,
           status: 'postponed',
-          nextDueDate: '2026-02-24',
+          targetOn: '2026-02-24',
           createdByDevice: 'appareil-du-fichier',
           updatedByDevice: 'appareil-du-fichier',
         },
@@ -165,7 +165,7 @@ describe('treatmentDosesRepository', () => {
           due_time: '20:00',
           given_on: null,
           status: 'postponed',
-          next_due_date: '2026-02-24',
+          target_on: '2026-02-24',
           created_at: NOW,
           updated_at: NOW,
           deleted_at: null,
@@ -187,7 +187,7 @@ describe('treatmentDosesRepository', () => {
   it('insère une prise absente avec l’identifiant choisi', async () => {
     const dose = {
       ...prise(milbemax, 'nouvelle', '2025-10-10'),
-      nextDueDate: '2026-01-10',
+      targetOn: null,
       createdAt: T0,
       createdByDevice: 'appareil-du-fichier',
       updatedByDevice: 'appareil-du-fichier',
@@ -207,7 +207,7 @@ describe('treatmentDosesRepository', () => {
         due_time: null,
         given_on: '2025-10-10',
         status: 'given',
-        next_due_date: '2026-01-10',
+        target_on: null,
         created_at: T0,
         updated_at: NOW,
         deleted_at: null,

@@ -223,11 +223,11 @@ describe('les services des traitements rejouent les gestes du moteur v2', () => 
               times,
             })
             const raw = JSON.stringify(
-              stored.periods.map(({ id: i, startsOn, firstDueOn, referenceOn, createdAt }) => ({
+              stored.periods.map(({ id: i, startsOn, firstDueOn, gridOriginOn, createdAt }) => ({
                 i: i.slice(0, 4),
                 startsOn,
                 firstDueOn,
-                referenceOn,
+                gridOriginOn,
                 createdAt,
               })),
             )

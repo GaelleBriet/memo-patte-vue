@@ -124,7 +124,7 @@ describe('data-export.service', () => {
       dueOn: '2026-09-15',
       givenOn: null,
       status: 'postponed',
-      nextDueDate: '2026-09-20',
+      targetOn: '2026-09-20',
     }
     const { service } = setup({
       treatmentDoses: () => ({ listRecords: async () => [reportee, ...doses] }),
@@ -146,7 +146,7 @@ describe('data-export.service', () => {
     expect(file.name).toBe('memopatte-export-20260915-1030.json')
     const document = JSON.parse(file.content as string)
     expect(document).toMatchObject({
-      schemaVersion: 4,
+      schemaVersion: 5,
       exportedAt: NOW.toISOString(),
       appVersion: '0.1.24',
     })

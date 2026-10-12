@@ -126,7 +126,7 @@ describe('synchro de l’historique entre deux appareils', () => {
     })
     await expect(headDose(tablet.treatments, bravecto.id)).resolves.toEqual({
       givenOn: '2026-08-20',
-      nextDueDate: '2026-09-20',
+      targetOn: null,
     })
     expect(tablet.onRemindersOutdated).toHaveBeenCalledOnce()
   })
@@ -195,7 +195,6 @@ describe('synchro de l’historique entre deux appareils', () => {
       name: 'Bravecto Plus',
       type: 'antiparasitic',
       frequency: { value: 1, unit: 'month' },
-      nextDueDate: '2026-09-20',
     })
     later()
     await tablet.injectionDone.record(carre.id, {
@@ -218,7 +217,7 @@ describe('synchro de l’historique entre deux appareils', () => {
       })
       await expect(headDose(device.treatments, bravecto.id)).resolves.toEqual({
         givenOn: '2026-09-25',
-        nextDueDate: '2026-09-20',
+        targetOn: null,
       })
     }
   })

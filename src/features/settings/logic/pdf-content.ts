@@ -138,7 +138,7 @@ type MovedLine = Extract<PdfHistoryLine, { kind: 'moved' }>
 
 type ShownDose = Pick<
   ExportTreatmentDose,
-  'id' | 'periodId' | 'dueOn' | 'dueTime' | 'givenOn' | 'status' | 'nextDueDate' | 'createdAt'
+  'id' | 'periodId' | 'dueOn' | 'dueTime' | 'givenOn' | 'status' | 'targetOn' | 'createdAt'
 >
 
 function eventOf(dose: ShownDose, severalTimes: boolean): Event[] {
@@ -158,8 +158,8 @@ function eventOf(dose: ShownDose, severalTimes: boolean): Event[] {
           line: {
             kind: 'moved',
             dueOn: dose.dueOn,
-            to: dose.nextDueDate,
-            advanced: isAdvanced({ ...dose, targetOn: dose.nextDueDate }),
+            to: dose.targetOn ?? dose.dueOn,
+            advanced: isAdvanced(dose),
           },
         },
       ]

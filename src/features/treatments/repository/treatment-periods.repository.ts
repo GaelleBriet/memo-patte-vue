@@ -30,7 +30,7 @@ interface PeriodRow {
   animal_id: string
   starts_on: string
   first_due_on: string
-  reference_on: string
+  grid_origin_on: string | null
   ends_on: string | null
   stopped_on: string | null
   frequency_value: number
@@ -55,7 +55,7 @@ const SYNC_COLUMN_NAMES = [
   'animal_id',
   'starts_on',
   'first_due_on',
-  'reference_on',
+  'grid_origin_on',
   'ends_on',
   'stopped_on',
   'frequency_value',
@@ -93,6 +93,12 @@ const SETTINGS_COLUMNS = [
   'reminder_time',
 ]
 
+const CORRECTED_COLUMNS = [...SETTINGS_COLUMNS, 'grid_origin_on']
+
+function originOf(gridOriginOn: string | null): string | null {
+  return gridOriginOn === null ? null : calendarDaySchema.parse(gridOriginOn)
+}
+
 function timesColumn(times: readonly string[]): string | null {
   return times.length > 0 ? times.join(TIMES_SEPARATOR) : null
 }
@@ -104,7 +110,7 @@ function toPeriodRecord(row: PeriodRow): TreatmentPeriodRecord {
     animalId: row.animal_id,
     startsOn: row.starts_on,
     firstDueOn: row.first_due_on,
-    referenceOn: row.reference_on,
+    gridOriginOn: row.grid_origin_on,
     endsOn: row.ends_on,
     stoppedOn: row.stopped_on,
     frequency: { value: row.frequency_value, unit: row.frequency_unit },
@@ -196,12 +202,15 @@ export function createTreatmentPeriodsRepository(
     entity: 'treatment_period',
 
     /**
-     * Fin, heures, posologie et moment du rappel absents : la période n'en a pas ; jour de
-     * référence absent : sa première échéance. Lève pour des réglages incohérents.
+     * Fin, heures, posologie et moment du rappel absents : la période n'en a pas ; origine de la
+     * grille absente : sa première échéance. Lève pour des réglages incohérents.
      */
     insertStatement(
       period: TreatmentPeriod &
-        Partial<TreatmentPeriodSettings> & { deletedAt: string | null; referenceOn?: string },
+        Partial<TreatmentPeriodSettings> & {
+          deletedAt: string | null
+          gridOriginOn?: string | null
+        },
     ): SqlStatement {
       const settings = treatmentPeriodSettingsSchema.parse({
         startsOn: period.startsOn,
@@ -223,7 +232,7 @@ export function createTreatmentPeriodsRepository(
           period.animalId,
           settings.startsOn,
           settings.firstDueOn,
-          period.referenceOn ?? settings.firstDueOn,
+          period.gridOriginOn === undefined ? settings.firstDueOn : originOf(period.gridOriginOn),
           settings.endsOn,
           period.stoppedOn,
           settings.frequency.value,
@@ -243,14 +252,14 @@ export function createTreatmentPeriodsRepository(
     },
 
     /**
-     * Tous les réglages de cette période, sauf son arrêt ; le jour de référence suit la première
-     * échéance sauf mention. Rien n'est daté si rien ne change. Lève pour des réglages incohérents.
+     * Tous les réglages de cette période et l'origine de sa grille, sauf son arrêt. Rien n'est daté
+     * si rien ne change. Lève pour des réglages incohérents.
      */
     correctSettingsStatement(
       periodId: string,
       input: TreatmentPeriodSettings,
       updatedAt: string,
-      referenceOn?: string,
+      gridOriginOn: string | null,
     ): SqlStatement {
       const settings = treatmentPeriodSettingsSchema.parse(input)
       const values = [
@@ -264,21 +273,15 @@ export function createTreatmentPeriodsRepository(
         settings.doseUnit,
         settings.reminderOffsetMinutes,
         settings.reminderTime,
+        originOf(gridOriginOn),
       ]
       return {
         sql: `UPDATE treatment_period
-              SET ${SETTINGS_COLUMNS.map((column) => `${column} = ?`).join(', ')},
-                  reference_on = ?, updated_at = ?, updated_by_device = ?
+              SET ${CORRECTED_COLUMNS.map((column) => `${column} = ?`).join(', ')},
+                  updated_at = ?, updated_by_device = ?
               WHERE id = ?
-                AND (${SETTINGS_COLUMNS.map((column) => `${column} IS NOT ?`).join(' OR ')})`,
-        params: [
-          ...values,
-          calendarDaySchema.parse(referenceOn ?? settings.firstDueOn),
-          updatedAt,
-          deviceId(),
-          periodId,
-          ...values,
-        ],
+                AND (${CORRECTED_COLUMNS.map((column) => `${column} IS NOT ?`).join(' OR ')})`,
+        params: [...values, updatedAt, deviceId(), periodId, ...values],
       }
     },
 
@@ -406,7 +409,7 @@ export function createTreatmentPeriodsRepository(
       const values = [
         period.startsOn,
         period.firstDueOn,
-        period.referenceOn,
+        period.gridOriginOn,
         period.endsOn,
         period.stoppedOn,
         period.frequency.value,
@@ -423,7 +426,7 @@ export function createTreatmentPeriodsRepository(
       return exists
         ? {
             sql: `UPDATE treatment_period
-                  SET starts_on = ?, first_due_on = ?, reference_on = ?, ends_on = ?,
+                  SET starts_on = ?, first_due_on = ?, grid_origin_on = ?, ends_on = ?,
                       stopped_on = ?, frequency_value = ?, frequency_unit = ?, times = ?,
                       dose_quantity = ?, dose_unit = ?, reminder_offset_minutes = ?,
                       reminder_time = ?, created_at = ?, updated_at = ?, deleted_at = NULL,

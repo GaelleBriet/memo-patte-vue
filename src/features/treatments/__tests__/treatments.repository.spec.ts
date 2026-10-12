@@ -20,11 +20,11 @@ import { seedTreatmentWithDose } from './seed-treatment'
 
 type ImportedTreatment = Omit<Treatment, 'periodId' | 'stoppedOn' | 'deletedAt'> & {
   lastDoseDate: string
-  nextDueDate: string
+  targetOn: string | null
   stoppedOn?: string | null
 }
 
-function projected({ lastDoseDate: _l, nextDueDate: _n, ...treatment }: ImportedTreatment) {
+function projected({ lastDoseDate: _l, targetOn: _n, ...treatment }: ImportedTreatment) {
   return treatment
 }
 
@@ -276,7 +276,7 @@ describe('treatmentsRepository — périodes et prises', () => {
     due_time: string | null
     given_on: string | null
     status: string
-    next_due_date: string
+    target_on: string | null
     created_at: string
     updated_at: string
     deleted_at: string | null
@@ -299,7 +299,6 @@ describe('treatmentsRepository — périodes et prises', () => {
   async function addDose(
     treatmentId: string,
     givenOn: string,
-    nextDueDate: string,
     {
       createdAt = '2026-09-20T10:00:00.000Z',
       id = crypto.randomUUID(),
@@ -316,7 +315,7 @@ describe('treatmentsRepository — périodes et prises', () => {
         dueTime: null,
         givenOn,
         status: 'given',
-        nextDueDate,
+        targetOn: null,
         createdAt,
         updatedAt: createdAt,
         deletedAt: null,
@@ -362,7 +361,7 @@ describe('treatmentsRepository — périodes et prises', () => {
 
     async function reprise(overrides: Partial<TreatmentPeriodRecord> = {}): Promise<string> {
       const created = await seedTreatmentWithDose(db, { ...bravecto, lastDoseDate: '2026-09-01' })
-      await addDose(created.id, '2026-09-15', '2026-09-22')
+      await addDose(created.id, '2026-09-15')
       await periods.stop(created.id, '2026-09-21')
       await db.runMany([
         periods.insertStatement({
@@ -504,7 +503,7 @@ describe('treatmentsRepository — périodes et prises', () => {
   it('supprimer un traitement pose sa date de suppression sur ses périodes et ses prises', async () => {
     vi.useFakeTimers({ now: new Date('2026-09-24T10:00:00.000Z') })
     const created = await seedTreatmentWithDose(db, bravecto)
-    await addDose(created.id, '2025-12-01', '2026-03-01')
+    await addDose(created.id, '2025-12-01')
     const autre = await seedTreatmentWithDose(db, { ...bravecto, name: 'Milbemax' })
     vi.advanceTimersByTime(60_000)
 
@@ -554,7 +553,7 @@ describe('treatmentsRepository — périodes et prises', () => {
 
     it('rend visibles le traitement, ses périodes et ses prises, datés de l’annulation', async () => {
       const created = await seedTreatmentWithDose(db, bravecto)
-      await addDose(created.id, '2025-12-01', '2026-03-01')
+      await addDose(created.id, '2025-12-01')
       const deletedAt = await removeThenWait(created.id)
 
       await repository.restore(created.id, deletedAt)
@@ -572,7 +571,7 @@ describe('treatmentsRepository — périodes et prises', () => {
 
     it('laisse supprimée une prise supprimée avant le traitement', async () => {
       const created = await seedTreatmentWithDose(db, bravecto)
-      const ancienne = await addDose(created.id, '2025-12-01', '2026-03-01')
+      const ancienne = await addDose(created.id, '2025-12-01')
       await doses.applyBatch([{ action: 'delete', id: ancienne }], '2026-09-24T09:00:00.000Z')
       const deletedAt = await removeThenWait(created.id)
 
@@ -611,7 +610,7 @@ describe('treatmentsRepository — périodes et prises', () => {
 
   it('liste les prises visibles d’un traitement, la plus récente d’abord', async () => {
     const created = await seedTreatmentWithDose(db, bravecto)
-    const ancienne = await addDose(created.id, '2025-12-01', '2026-03-01')
+    const ancienne = await addDose(created.id, '2025-12-01')
 
     const liste = await repository.listDoses(created.id)
 
@@ -627,7 +626,7 @@ describe('treatmentsRepository — import', () => {
     type: 'deworming',
     frequency: { value: 3, unit: 'month' },
     lastDoseDate: '2026-06-15',
-    nextDueDate: '2026-09-15',
+    targetOn: '2026-09-15',
     createdAt: '2026-01-10T08:10:00.000Z',
     updatedAt: '2026-06-15T08:10:00.000Z',
   }
@@ -652,7 +651,7 @@ describe('treatmentsRepository — import', () => {
           animalId: treatment.animalId,
           startsOn: treatment.lastDoseDate,
           firstDueOn: treatment.lastDoseDate,
-          referenceOn: treatment.lastDoseDate,
+          gridOriginOn: treatment.lastDoseDate,
           endsOn: null,
           frequency: treatment.frequency,
           stoppedOn: treatment.stoppedOn ?? null,
@@ -677,7 +676,7 @@ describe('treatmentsRepository — import', () => {
           dueTime: null,
           givenOn: treatment.lastDoseDate,
           status: 'given',
-          nextDueDate: treatment.nextDueDate,
+          targetOn: treatment.targetOn,
           createdAt: treatment.createdAt,
           updatedAt: treatment.updatedAt,
           ...PAR_FICHIER,
@@ -711,8 +710,8 @@ describe('treatmentsRepository — import', () => {
       deletedAt: null,
     })
     await expect(
-      db.query('SELECT next_due_date FROM treatment_dose WHERE id = ?', [IMPORTE.id]),
-    ).resolves.toEqual([{ next_due_date: '2026-09-15' }])
+      db.query('SELECT target_on FROM treatment_dose WHERE id = ?', [IMPORTE.id]),
+    ).resolves.toEqual([{ target_on: '2026-09-15' }])
   })
 
   it('écrase un traitement existant, même supprimé, et le rend visible', async () => {
@@ -722,7 +721,7 @@ describe('treatmentsRepository — import', () => {
       ...IMPORTE,
       type: 'antiparasitic',
       frequency: { value: 2, unit: 'week' },
-      nextDueDate: '2026-07-15',
+      targetOn: '2026-07-15',
       updatedAt: '2026-09-15T08:00:00.000Z',
     }
 
@@ -735,8 +734,8 @@ describe('treatmentsRepository — import', () => {
       deletedAt: null,
     })
     await expect(
-      db.query('SELECT next_due_date FROM treatment_dose WHERE id = ?', [IMPORTE.id]),
-    ).resolves.toEqual([{ next_due_date: '2026-07-15' }])
+      db.query('SELECT target_on FROM treatment_dose WHERE id = ?', [IMPORTE.id]),
+    ).resolves.toEqual([{ target_on: '2026-07-15' }])
   })
 
   it('garde l’arrêt du fichier, à l’insertion comme à l’écrasement', async () => {

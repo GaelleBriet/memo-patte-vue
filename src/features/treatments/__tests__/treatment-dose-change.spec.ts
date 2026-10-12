@@ -54,7 +54,7 @@ describe('doseChange — « C’est fait » et « Fait à une autre date »', ()
       { action: 'create', dose: { dueOn: '2026-10-16', status: 'given', givenOn: '2026-10-19' } },
       {
         action: 'create',
-        dose: { dueOn: '2026-10-16', status: 'shift', nextDueDate: '2026-10-19' },
+        dose: { dueOn: '2026-10-16', status: 'shift', targetOn: '2026-10-19' },
       },
     ])
   })
@@ -126,7 +126,7 @@ describe('doseChange — corriger, déplacer, supprimer', () => {
     })
 
     expect(writes).toMatchObject([
-      { action: 'create', dose: { status: 'postponed', nextDueDate: '2026-10-20' } },
+      { action: 'create', dose: { status: 'postponed', targetOn: '2026-10-20' } },
     ])
     expect(moved).toMatchObject({ status: 'postponed', targetOn: '2026-10-20' })
   })

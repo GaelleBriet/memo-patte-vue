@@ -1,16 +1,27 @@
 import { describe, expect, it } from 'vitest'
 
-import { treatmentView, viewInputOf, type LegacyInput } from '../domain/dose-calendar'
-import { readTreatment, shownLines, treatmentReading } from '../domain/treatment-reading'
+import { treatmentView } from '../domain/dose-calendar'
+import {
+  readTreatment,
+  shownLines,
+  treatmentReading,
+  type TreatmentRecords,
+} from '../domain/treatment-reading'
 
-type Period = LegacyInput['periods'][number]
-type Dose = LegacyInput['doses'][number]
+type Period = TreatmentRecords['periods'][number]
+type Dose = TreatmentRecords['doses'][number]
+
+const inputOf = ({ periods, doses }: TreatmentRecords, today: string) => ({
+  settings: periods,
+  lines: doses.map(({ periodId, ...line }) => ({ ...line, settingId: periodId })),
+  today,
+})
 
 const period = (extra: Partial<Period> = {}): Period => ({
   id: 'p-1',
   startsOn: '2026-10-01',
   firstDueOn: '2026-10-01',
-  referenceOn: '2026-10-01',
+  gridOriginOn: '2026-10-01',
   endsOn: null,
   stoppedOn: null,
   frequency: { value: 1, unit: 'day' },
@@ -26,7 +37,7 @@ const dose = (extra: Partial<Dose> = {}): Dose => ({
   dueTime: null,
   status: 'given',
   givenOn: '2026-10-01',
-  nextDueDate: '2026-10-02',
+  targetOn: null,
   updatedAt: '2026-10-01T09:00:00.000Z',
   ...extra,
 })
@@ -37,7 +48,7 @@ describe('treatmentReading', () => {
   it('lit un traitement enregistré par le moteur v2, comme sa lecture directe', () => {
     const treatment = { periods: [period()], doses: [dose()] }
     const read = treatmentReading(treatment, TODAY)
-    const direct = treatmentView(viewInputOf({ ...treatment, today: TODAY }))
+    const direct = treatmentView(inputOf(treatment, TODAY))
     expect(read?.phase).toBe('today')
     expect(read?.unloggedDoses).toHaveLength(1)
     expect(read?.currentDoses).toEqual(direct.currentDoses)
@@ -61,16 +72,19 @@ describe('treatmentReading', () => {
       'une arrivée de report invalide',
       {
         periods: [period()],
-        doses: [dose({ status: 'postponed', givenOn: null, nextDueDate: '' })],
+        doses: [dose({ status: 'postponed', givenOn: null, targetOn: '' })],
       },
+    ],
+    [
+      'un report sans arrivée',
+      { periods: [period()], doses: [dose({ status: 'postponed', givenOn: null })] },
+    ],
+    [
+      'un jour d’arrivée invalide sur une prise',
+      { periods: [period()], doses: [dose({ targetOn: 'jamais' })] },
     ],
   ])('rend null pour %s', (_, treatment) => {
     expect(treatmentReading(treatment, TODAY)).toBeNull()
-  })
-
-  it('lit une prise dont la prochaine échéance enregistrée est invalide : rien ne la relit', () => {
-    const treatment = { periods: [period()], doses: [dose({ nextDueDate: 'jamais' })] }
-    expect(treatmentReading(treatment, TODAY)).not.toBeNull()
   })
 
   it('rend null pour un calendrier démesuré, sans le calculer', () => {
@@ -78,7 +92,7 @@ describe('treatmentReading', () => {
     const old = period({
       startsOn: '1900-01-01',
       firstDueOn: '1900-01-01',
-      referenceOn: '1900-01-01',
+      gridOriginOn: '1900-01-01',
       times,
     })
     expect(treatmentReading({ periods: [old], doses: [] }, TODAY)).toBeNull()
@@ -88,7 +102,7 @@ describe('treatmentReading', () => {
     const milbemax = period({
       startsOn: '2026-10-12',
       firstDueOn: '2026-10-12',
-      referenceOn: '2026-10-12',
+      gridOriginOn: '2026-10-12',
       endsOn: '2100-01-01',
       times: ['08:00', '20:00'],
     })
@@ -108,7 +122,7 @@ describe('shownLines', () => {
           dueOn: '2026-10-02',
           status: 'postponed',
           givenOn: null,
-          nextDueDate: '2026-10-02',
+          targetOn: '2026-10-02',
         }),
       ],
     }
@@ -131,7 +145,7 @@ describe('shownLines', () => {
         period({
           startsOn: '2026-03-28',
           firstDueOn: '2026-03-28',
-          referenceOn: '2026-03-28',
+          gridOriginOn: '2026-03-28',
           frequency: { value: 2, unit: 'day' },
           times: ['08:00', '20:00'],
           createdAt: '2026-01-01T00:00:00.000Z',
@@ -140,7 +154,7 @@ describe('shownLines', () => {
           id: 'p-2',
           startsOn: '2026-03-28',
           firstDueOn: '2026-03-28',
-          referenceOn: '2026-03-28',
+          gridOriginOn: '2026-03-28',
           frequency: { value: 3, unit: 'month' },
           createdAt: '2026-01-01T00:00:30.000Z',
         }),
@@ -152,14 +166,13 @@ describe('shownLines', () => {
           dueTime: '20:00',
           status: 'postponed',
           givenOn: null,
-          nextDueDate: '2026-03-29',
+          targetOn: '2026-03-29',
         }),
         dose({
           id: 'prise',
           dueOn: '2026-03-29',
           dueTime: '20:00',
           givenOn: '2026-03-25',
-          nextDueDate: '2026-03-31',
         }),
       ],
     }
@@ -176,7 +189,7 @@ describe('readTreatment', () => {
   it('rend la vue et le carnet que lisent les gestes', () => {
     const treatment = { periods: [period()], doses: [dose()] }
     const reading = readTreatment(treatment, TODAY)
-    expect(reading?.input).toEqual(viewInputOf({ ...treatment, today: TODAY }))
+    expect(reading?.input).toEqual(inputOf(treatment, TODAY))
     expect(reading?.view.currentDoses).toEqual(treatmentReading(treatment, TODAY)?.currentDoses)
   })
 

@@ -132,7 +132,7 @@ describe('appareil posé à chaque écriture', () => {
               dueTime: null,
               givenOn: '2026-09-01',
               status: 'given',
-              nextDueDate: '2026-12-01',
+              targetOn: null,
             },
           },
         ],

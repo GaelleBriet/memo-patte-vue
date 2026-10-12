@@ -309,14 +309,14 @@ export function createTreatmentsRepository(
         })
       }
       if (plan.period?.action === 'correct') {
-        const { id: periodId, settings, referenceOn } = plan.period
-        statements.push(periods.correctSettingsStatement(periodId, settings, at, referenceOn))
+        const { id: periodId, settings, gridOriginOn } = plan.period
+        statements.push(periods.correctSettingsStatement(periodId, settings, at, gridOriginOn))
       }
       if (plan.period?.action === 'open') {
         statements.push(
           periods.insertStatement({
             ...plan.period.settings,
-            referenceOn: plan.period.referenceOn,
+            gridOriginOn: plan.period.gridOriginOn,
             id: plan.period.id,
             treatmentId: id,
             animalId: current.animalId,

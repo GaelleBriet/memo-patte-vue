@@ -1,13 +1,10 @@
-import type { DoseWrite, NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { DoseFields, DoseWrite, NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { PlannedDoseWrite } from '../schema/treatment-plan.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { LineChange, LineFields } from '@/shared/domain/dose-calendar'
 
 type History = Pick<TreatmentWithHistory, 'id' | 'animalId' | 'doses'>
 
-type DoseFields = Extract<DoseWrite, { action: 'create' }>['dose']
-
-/** Le schéma v11 garde `next_due_date` pour toute ligne : une prise l'écrit sans le relire (plan §3). */
 export function doseFieldsOf(line: LineFields): DoseFields {
   return {
     periodId: line.settingId,
@@ -15,7 +12,7 @@ export function doseFieldsOf(line: LineFields): DoseFields {
     dueTime: line.dueTime,
     givenOn: line.givenOn,
     status: line.status,
-    nextDueDate: line.targetOn ?? line.dueOn,
+    targetOn: line.targetOn,
   }
 }
 
@@ -27,7 +24,7 @@ function isUnchanged(line: NewTreatmentDose | undefined, dose: DoseFields): bool
     line.dueTime === dose.dueTime &&
     line.givenOn === dose.givenOn &&
     line.status === dose.status &&
-    line.nextDueDate === dose.nextDueDate
+    line.targetOn === dose.targetOn
   )
 }
 

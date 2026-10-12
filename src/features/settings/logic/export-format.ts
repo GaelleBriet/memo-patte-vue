@@ -7,7 +7,7 @@ import { givenDoseHistories, vaccinationHeads } from '@/shared/domain/carnet-hea
 import { recordedWeightIn, type WeightUnit } from '@/shared/domain/weight-unit'
 
 /** Contrat documenté dans `docs/technical/export-format.md` : toute rupture incrémente la version. */
-export const EXPORT_SCHEMA_VERSION = 4
+export const EXPORT_SCHEMA_VERSION = 5
 
 export type ExportFormat = 'json' | 'csv'
 
@@ -271,7 +271,7 @@ export function toCsvTables(data: ExportData, weightUnit: WeightUnit, today: str
         'dueTime',
         'givenOn',
         'status',
-        'nextDueDate',
+        'targetOn',
       ],
       data.treatmentDoses.map((dose) => [
         dose.id,
@@ -284,7 +284,7 @@ export function toCsvTables(data: ExportData, weightUnit: WeightUnit, today: str
         dose.dueTime,
         dose.givenOn,
         dose.status,
-        dose.nextDueDate,
+        dose.targetOn,
       ]),
     ),
     'poids.csv': csv(
