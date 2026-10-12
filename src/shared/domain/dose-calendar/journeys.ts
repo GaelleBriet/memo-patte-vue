@@ -11,12 +11,12 @@ type Segment = { origin: Day; from: Day; to: Day | null }
 
 type Claim = { setting: Setting; end: Day | null; segments: Segment[] }
 
-// R1, R4 : une journée d'origine d'un report ou de fin de réglage, sortie du calendrier, se lit avec
-// le dernier réglage dont elle était une journée.
-function leftDays(claims: readonly Claim[], held: ReadonlySet<Day>, stop: Day | null) {
+// R1, R4 : une journée d'origine d'un report, ou celle où un réglage cède la place, sortie du
+// calendrier, se lit avec le dernier réglage dont elle était une journée.
+function leftDays(claims: readonly Claim[], reported: readonly Day[], stop: Day | null) {
   const left = new Map<Day, Journey>()
-  for (const { setting, segments } of claims) {
-    for (const day of held) {
+  for (const { setting, end, segments } of claims) {
+    for (const day of end === null ? reported : [...reported, end]) {
       const open =
         (setting.endsOn === null || day <= setting.endsOn) && (stop === null || day < stop)
       const wasDay = segments.some(
@@ -41,10 +41,6 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   const days = new Map<Day, Journey>()
   const translated = new Map<Day, string>()
   const claims: Claim[] = []
-  const held = new Set([
-    ...lines.reports.map(({ dueOn }) => dueOn),
-    ...span.live.map((_, index) => span.endOf(index)).filter((day) => day !== null),
-  ])
   const openings = new Set<Day>()
   let grid = { origin: chain[0]!.firstDueOn, floor: '' }
   let rhythm = new Set<string>()
@@ -136,6 +132,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   for (const shift of lines.shifts) {
     if (!effects.has(shift.id)) effects.set(shift.id, { kind: 'idle', reason: 'overtaken' })
   }
-  const left = leftDays(claims, held, span.endOf(span.live.length - 1))
+  const reported = lines.reports.map(({ dueOn }) => dueOn)
+  const left = leftDays(claims, reported, span.endOf(span.live.length - 1))
   return { days, translated, left, openings, rhythmFrom }
 }

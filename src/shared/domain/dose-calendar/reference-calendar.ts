@@ -64,18 +64,14 @@ export function calendarOf(
   const days = new Map<string, Journey>()
   // R4, R7, R9 : les jours où une prise visant d'autres heures couvre les premières heures.
   const translated = new Map<string, string>()
-  // R1, R4 : sortie du calendrier, une journée d'origine d'un report ou de fin de réglage se lit
-  // avec le dernier réglage dont elle était une journée.
+  // R1, R4 : sortie du calendrier, une journée d'origine d'un report, ou celle où un réglage cède la
+  // place, se lit avec le dernier réglage dont elle était une journée.
   const left = new Map<string, Journey>()
   type Segment = { origin: string; from: string; to: string | null }
   const claims: { setting: ReferenceSetting; end: string | null; segments: Segment[] }[] = []
   // R3 : une grille continuée par le réglage suivant ne lui appartient plus après sa fin.
   const continuedAfter = new Set<ReferenceSetting>()
   const stop = endOf(live.length - 1)
-  const held = new Set([
-    ...reports.map(({ dueOn }) => dueOn),
-    ...live.map((_, index) => endOf(index)).filter((day) => day !== null),
-  ])
   // R7, R9.2 : les premières échéances des réglages qui ouvrent un nouveau rythme.
   const openings = new Set<string>()
   // R3, R10 : remplacé le jour même, un réglage transmet sa grille au suivant de même fréquence.
@@ -175,7 +171,8 @@ export function calendarOf(
 
   for (const { setting, end, segments } of claims) {
     if (end !== null && continuedAfter.has(setting)) segments.at(-1)!.to = plusDays(end, -1)
-    for (const day of held) {
+    const reported = reports.map(({ dueOn }) => dueOn)
+    for (const day of end === null ? reported : [...reported, end]) {
       const open =
         (setting.endsOn === null || day <= setting.endsOn) && (stop === null || day < stop)
       const wasDay = segments.some(
