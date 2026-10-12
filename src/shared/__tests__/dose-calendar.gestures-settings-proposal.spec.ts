@@ -36,6 +36,69 @@ describe('#787, TR-8, Q20 : un rythme qui ne laisse plus aucune dose avant la da
   it('même carnet, date de fin repoussée au 10 nov. : le 3 nov. est proposé', () => {
     expect(planOf(input, monthly('2026-11-10')).setting.firstDueOn).toBe('2026-11-03')
   })
+
+  it.each([
+    ['hebdomadaire', WEEK],
+    ['mensuel', { value: 1, unit: 'month' as const }],
+  ])(
+    'même carnet, dose du 5 donnée en avance le 4 ; le 4, %s : refusé, les doses du 7 et du 9 ne disparaissent pas sans un mot',
+    (_, frequency) => {
+      const ahead = { ...line('p1', 'given', '2026-10-05'), givenOn: '2026-10-04' }
+      const carnet = { ...input, lines: [...input.lines, ahead] }
+      expect(newSettings(carnet, { frequency, times: [], endsOn: '2026-10-10' })).toEqual({
+        refusal: { reason: 'no-dose-before-end' },
+      })
+    },
+  )
+})
+
+describe('#787 : le critère est la première dose encore à donner, après la date de fin ou non (décision du 2026-10-12)', () => {
+  const daily = { value: 1, unit: 'day' as const }
+
+  it('tous les 2 jours du 2 oct., fin le 4, dose du 2 donnée ; le 4, jour d’échéance, tous les jours : accepté, première dose le 4', () => {
+    const own = setting('p1', '2026-10-02', TWO_DAYS, [], { endsOn: '2026-10-04' })
+    const carnet = {
+      settings: [own],
+      lines: [line('p1', 'given', '2026-10-02')],
+      today: '2026-10-04',
+    }
+    expect(
+      planOf(carnet, { frequency: daily, times: [], endsOn: '2026-10-04' }).setting.firstDueOn,
+    ).toBe('2026-10-04')
+  })
+
+  it('tous les 2 jours du 1er oct., fin le 4, doses du 1er et du 3 données ; le 4, mensuel : aucune dose le 4, refusé', () => {
+    const own = setting('p1', '2026-10-01', TWO_DAYS, [], { endsOn: '2026-10-04' })
+    const carnet = {
+      settings: [own],
+      lines: [line('p1', 'given', '2026-10-01'), line('p1', 'given', '2026-10-03')],
+      today: '2026-10-04',
+    }
+    expect(
+      newSettings(carnet, {
+        frequency: { value: 1, unit: 'month' },
+        times: [],
+        endsOn: '2026-10-04',
+      }),
+    ).toEqual({ refusal: { reason: 'no-dose-before-end' } })
+  })
+
+  it('même carnet, date de fin passée (le 3) : accepté, comme avant', () => {
+    const own = setting('p1', '2026-10-01', TWO_DAYS, [], { endsOn: '2026-10-04' })
+    const carnet = {
+      settings: [own],
+      lines: [line('p1', 'given', '2026-10-01'), line('p1', 'given', '2026-10-03')],
+      today: '2026-10-04',
+    }
+    expect(
+      'plan' in
+        newSettings(carnet, {
+          frequency: { value: 1, unit: 'month' },
+          times: [],
+          endsOn: '2026-10-03',
+        }),
+    ).toBe(true)
+  })
 })
 
 describe('R9, R12 : « Modifier » propose la première dose encore à donner (décision du 2026-10-12)', () => {

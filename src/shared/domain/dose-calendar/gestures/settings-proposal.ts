@@ -27,7 +27,6 @@ function dueToday(view: TreatmentView, today: Day): boolean {
   return view.slots(today, today).some(({ state }) => state === 'pending')
 }
 
-// R9.2 : la prochaine journée, entamée en avance ou arrivée d'un report, garde son jour.
 function heldNextDay(view: TreatmentView, today: Day): Day | undefined {
   const tomorrow = plusDays(today, 1)
   const day = view.slots(tomorrow, plusDays(today, NEXT_DAYS))[0]?.due.dueOn
@@ -39,7 +38,6 @@ function heldNextDay(view: TreatmentView, today: Day): Day | undefined {
   return started || arrival ? day : undefined
 }
 
-// R9.3 (Q7) : la dernière journée passée qui a une prise, plus la nouvelle fréquence.
 function lastNotedDay(view: TreatmentView, today: Day, from: Day): Day | undefined {
   return view
     .slots(from, today)
@@ -47,7 +45,6 @@ function lastNotedDay(view: TreatmentView, today: Day, from: Day): Day | undefin
     .at(-1)?.due.dueOn
 }
 
-/** R9 : la première échéance proposée quand la fréquence change, et son origine. */
 function changedFirstDue(
   input: TreatmentViewInput,
   view: TreatmentView,
@@ -89,7 +86,6 @@ export function shownFrom(day: Day, readWith: (dates: Dates) => TreatmentView): 
   )
 }
 
-// R3, R9 : la date proposée, ou choisie, et l'origine de la grille ; héritée à fréquence gardée.
 export function proposedDates(
   before: TreatmentViewInput,
   previous: Setting | null,

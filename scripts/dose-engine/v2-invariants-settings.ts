@@ -18,14 +18,17 @@ function misreadFirstDue(
   proposed = false,
 ): string | null {
   const view = preview(input, plan)
-  if (view.phase === 'ended' || view.phase === 'stopped') return null
+  const { endsOn, gridOriginOn } = plan.setting
+  // TR-6 : une date de fin passée, ou atteinte à fréquence gardée, termine le traitement.
+  const finishes = gridOriginOn === null || (endsOn !== null && endsOn < input.today)
+  if (view.phase === 'stopped' || (view.phase === 'ended' && finishes)) return null
   const moves = view.history.flatMap(({ effect }) => (effect.kind === 'moves' ? [effect] : []))
   const arrivals = new Set(moves.map(({ arrival }) => arrival))
   const emptied = moves.some(({ keys }) => keys.some((key) => key.startsWith(day)))
   if (view.slots(day, day).length === 0 && !emptied) {
     return `aucune échéance le ${day}`
   }
-  // Décision du 2026-10-12 : la date proposée est une dose encore à donner, comme sur la fiche.
+  // R12 : la date proposée est une dose encore à donner, comme sur la fiche.
   const pending = view.slots(day, day).some(({ state }) => state === 'pending')
   if (proposed && !pending && !emptied) {
     return `journée déjà toute notée le ${day}`
@@ -45,7 +48,7 @@ export function settingsProposal(step: V2Step): Broken | null {
   const { before, plan } = step
   const { firstDueOn: chosen, ...asked } = step.request
   const proposed = newSettings(before, asked)
-  // #787 (décision du 2026-10-12) : un rythme sans dose avant la date de fin se refuse sans date.
+  // #787 : un rythme sans dose avant la date de fin se refuse sans date.
   if ('refusal' in proposed && proposed.refusal.reason === 'no-dose-before-end') return null
   if ('refusal' in proposed) {
     return { invariant: 'proposition', detail: `refus sans date : ${proposed.refusal.reason}` }
