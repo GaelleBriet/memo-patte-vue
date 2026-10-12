@@ -1,11 +1,11 @@
 // @vitest-environment node
 // Lecture des écrans avant / après (#752) : LECTURE_OUT=<dossier> LECTURE_SEEDS=400 pnpm exec vitest run scripts/test-device/lecture-avant-apres.spec.ts
-// Écrit les carnets (exports à importer sur l'émulateur) et, pour la version du code en place, ce que
-// montrent l'accueil, le Carnet, la fiche, le PDF et le CSV ; lancé sur `main` puis sur la branche, `diff -r`.
+// Écrit les carnets et, pour la version du code en place, ce que montrent le PDF, le CSV et les rappels
+// du JSON ; lancé sur `main` puis sur la branche, `diff -r`. L'horloge suit le jour de chaque carnet.
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import type { Book } from '../dose-engine/carnet'
 import { gapsBetween } from '../dose-engine/display'
@@ -15,19 +15,13 @@ import { step } from '../dose-engine/walk'
 import { startWalk, WalkStopped } from '../dose-engine/walk-state'
 import { buildDemoCarnet } from '@/core/dev/demo-carnet'
 import i18n from '@/core/i18n'
-import { todoItems } from '@/features/home/logic/todo-items'
 import { carnetPdfText } from '@/features/settings/logic/carnet-pdf-text'
-import { toCsvTables, toJsonExport } from '@/features/settings/logic/export-format'
+import { exportReminders, toCsvTables, toJsonExport } from '@/features/settings/logic/export-format'
 import { buildCarnetPdfContent } from '@/features/settings/logic/pdf-content'
 import { renderCarnetPdf } from '@/features/settings/logic/render-carnet-pdf'
 import { animalOf, FIXTURE_DEVICE, periodOf } from '@/features/settings/__tests__/export-fixture'
 import { readPdfPages } from '@/features/settings/__tests__/pdf-reader'
 import { parseExportFile } from '@/features/settings/schema/export-file.schema'
-import { doseCard } from '@/features/treatments/logic/treatment-card'
-import { carnetTreatments } from '@/features/treatments/logic/treatment-carnet'
-import { treatmentHistory } from '@/features/treatments/logic/treatment-history'
-import { readableScheduleOf } from '@/features/treatments/logic/treatment-schedule-adapter'
-import { unloggedBanner } from '@/features/treatments/logic/treatment-unlogged'
 import type { ExportData } from '@/shared/domain/carnet-data'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -253,40 +247,7 @@ function traits({ periods, doses }: Book): string[] {
   return [...found]
 }
 
-function treatmentsOf(data: ExportData) {
-  return data.treatments.map((treatment) => ({
-    ...treatment,
-    periods: data.treatmentPeriods
-      .filter(({ treatmentId }) => treatmentId === treatment.id)
-      .map((period) => ({ ...period, deletedAt: null })),
-    doses: data.treatmentDoses.filter(({ treatmentId }) => treatmentId === treatment.id),
-  })) as any[]
-}
-
 function screens(data: ExportData, today: string) {
-  const treatments = treatmentsOf(data)
-  const followed = new Set(data.animals.map(({ id }) => id))
-  const sources = treatments.map((treatment) => ({
-    kind: 'treatment',
-    id: treatment.id,
-    animalId: treatment.animalId,
-    label: treatment.name,
-    treatmentType: treatment.type,
-    periods: treatment.periods,
-    doses: treatment.doses,
-  }))
-  const fiche = treatments.map((treatment) => {
-    const schedule = readableScheduleOf(treatment, today)
-    const view = treatmentReading === undefined ? schedule : treatmentReading(treatment, today)
-    if (schedule === null || view === null) return { name: treatment.name, illisible: true }
-    const reads: any = treatmentReading === undefined ? schedule : { view, schedule }
-    return {
-      name: treatment.name,
-      carte: doseCard(t, treatment, view as any, { animal: 'Milo', today }),
-      aRenseigner: unloggedBanner(t, treatment, view as any, today),
-      historique: treatmentHistory(t, treatment, reads, today),
-    }
-  })
   const pdf = data.animals.map(({ id }) => {
     const content = buildCarnetPdfContent(data, id, today)!
     const pages = readPdfPages(renderCarnetPdf([{ content, photoDataUrl: null }], '0.0.0', t))
@@ -297,21 +258,14 @@ function screens(data: ExportData, today: string) {
   })
   return {
     today,
-    accueil: todoItems(sources as any, today, followed),
-    carnet: data.animals.map(({ id }) =>
-      carnetTreatments(
-        t,
-        treatments.filter(({ animalId }) => animalId === id),
-        today,
-      ),
-    ),
-    fiche,
+    rappels: exportReminders(data, today),
     pdf: JSON.parse(JSON.stringify(pdf).replace(/Généré le [^"]*/g, 'Généré le …')),
     csv: toCsvTables(data, 'kg', today),
   }
 }
 
 function write(name: string, data: ExportData, today: string) {
+  vi.setSystemTime(new Date(`${today}T12:00:00`))
   const text = toJsonExport(data, {
     exportedAt: new Date(`${today}T12:00:00`),
     appVersion: '0.0.0',
@@ -326,6 +280,9 @@ function write(name: string, data: ExportData, today: string) {
 }
 
 describe.skipIf(out === undefined)('lecture des écrans, avant / après (#752)', () => {
+  beforeAll(() => vi.useFakeTimers({ toFake: ['Date'] }))
+  afterAll(() => vi.useRealTimers())
+
   it(`écrit les carnets et ce que montre la version « ${VERSION} »`, () => {
     write('demo', demoData(), DEMO_TODAY)
     const chosen: Record<string, number> = {}
