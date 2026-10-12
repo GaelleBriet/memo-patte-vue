@@ -1,9 +1,10 @@
+import { currentPeriodOf, endedOnOf, readableScheduleOf } from './treatment-schedule-adapter'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import { currentDoseText } from '@/shared/domain/current-dose'
-import type { TreatmentView } from '@/shared/domain/dose-calendar'
 import { overdueDays } from '@/shared/domain/due-delay'
 import { reminderIcon, type ReminderCounts } from '@/shared/domain/reminders'
-import { currentPeriodIn, shownLines, treatmentReading } from '@/shared/domain/treatment-reading'
+import { isStoppedBeforeFirstDose } from '@/shared/domain/treatment-end'
+import type { TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 import { formatClockTimes, formatDayMonthOrYear, formatPeriodRange } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
@@ -31,27 +32,35 @@ export type CarnetTreatments = {
   summary: TreatmentsSummary
 }
 
-type Read = { treatment: TreatmentWithHistory; view: TreatmentView | null }
+type Read = { treatment: TreatmentWithHistory; schedule: TreatmentSchedule | null }
 
-type Readable = Read & { view: TreatmentView }
-
-function isOpen(view: TreatmentView): boolean {
-  return view.phase !== 'ended' && view.phase !== 'stopped'
+function isOpen(schedule: TreatmentSchedule): boolean {
+  return schedule.phase !== 'ended' && schedule.phase !== 'stopped'
 }
 
-function endText(t: Translate, { view }: Readable, today: string): string | null {
+function endText(
+  t: Translate,
+  { treatment, schedule }: Read & { schedule: TreatmentSchedule },
+  today: string,
+): string | null {
+  const period = currentPeriodOf(treatment, schedule)
   return currentDoseText(t, {
-    phase: view.phase,
+    phase: schedule.phase,
     due: null,
     today,
-    stoppedOn: view.currentSetting?.stoppedOn ?? null,
-    stoppedBeforeFirstDose: view.stoppedBeforeFirstDose,
-    endsOn: view.phase === 'ended' ? view.endedOn : null,
+    stoppedOn: period?.stoppedOn ?? null,
+    stoppedBeforeFirstDose:
+      period !== null && isStoppedBeforeFirstDose(period, treatment.periods, schedule),
+    endsOn: endedOnOf(treatment, schedule, today),
   }).value
 }
 
-function rhythmText(t: Translate, read: Readable, today: string): string | null {
-  const period = currentPeriodIn(read.treatment.periods, read.view)
+function rhythmText(
+  t: Translate,
+  read: Read & { schedule: TreatmentSchedule },
+  today: string,
+): string | null {
+  const period = currentPeriodOf(read.treatment, read.schedule)
   if (period === null) return null
   const { value, unit } = period.frequency
   const frequency = t(`treatments.frequency.${unit}`, { n: value }, value)
@@ -59,8 +68,8 @@ function rhythmText(t: Translate, read: Readable, today: string): string | null 
     period.times.length === 0
       ? frequency
       : t('treatments.section.rhythm', { frequency, times: formatClockTimes(period.times) })
-  const [due] = read.view.currentDoses
-  if (read.view.phase === 'overdue' || due === undefined) return rhythm
+  const [due] = read.schedule.currentDoses
+  if (read.schedule.phase === 'overdue' || due === undefined) return rhythm
   const complement =
     period.endsOn === null
       ? t('treatments.section.nextDose', { date: formatDayMonthOrYear(due.dueOn, today) })
@@ -70,49 +79,55 @@ function rhythmText(t: Translate, read: Readable, today: string): string | null 
 
 function overdueBadge(
   t: Translate,
-  view: TreatmentView,
+  schedule: TreatmentSchedule,
   today: string,
 ): CarnetTreatmentRow['badge'] {
-  const [due] = view.currentDoses
-  if (view.phase !== 'overdue' || due === undefined) return null
+  const [due] = schedule.currentDoses
+  if (schedule.phase !== 'overdue' || due === undefined) return null
   const days = overdueDays(due.dueOn, today)
   return { status: 'overdue', label: t('treatments.section.overdue', { n: days }, days) }
 }
 
 function ongoingRow(t: Translate, read: Read, today: string): CarnetTreatmentRow {
-  const { treatment, view } = read
+  const { treatment, schedule } = read
   const base = {
     id: treatment.id,
     name: treatment.name,
     icon: reminderIcon('treatment', treatment.type),
   }
-  if (view === null) {
+  if (schedule === null) {
     return { ...base, detail: t('treatments.section.unreadable'), badge: null, unlogged: null }
   }
-  const count = view.unloggedDoses.length
+  const count = schedule.unloggedDoses.length
   const unlogged = count === 0 ? null : t('treatments.unlogged.title', { n: count }, count)
-  if (!isOpen(view) || view.currentDoses.length === 0) {
+  if (!isOpen(schedule) || schedule.currentDoses.length === 0) {
     return {
       ...base,
-      detail: endText(t, { treatment, view }, today),
+      detail: endText(t, { treatment, schedule }, today),
       badge: count === 0 ? null : { status: 'to-log', label: t('treatments.section.toLog') },
       unlogged,
     }
   }
   return {
     ...base,
-    detail: rhythmText(t, { treatment, view }, today),
-    badge: overdueBadge(t, view, today),
+    detail: rhythmText(t, { treatment, schedule }, today),
+    badge: overdueBadge(t, schedule, today),
     unlogged,
   }
 }
 
-function finishedRow(t: Translate, read: Readable, today: string): FinishedTreatmentRow {
-  const given = shownLines(read.view).filter(
+function finishedRow(
+  t: Translate,
+  read: Read & { schedule: TreatmentSchedule },
+  today: string,
+): FinishedTreatmentRow {
+  const given = read.schedule.doses.filter(
     ({ status }) => status === 'given' || status === 'extra',
   ).length
   const end = endText(t, read, today)
-  const neverDue = read.view.stoppedBeforeFirstDose
+  const period = currentPeriodOf(read.treatment, read.schedule)
+  const neverDue =
+    period !== null && isStoppedBeforeFirstDose(period, read.treatment.periods, read.schedule)
   return {
     id: read.treatment.id,
     name: read.treatment.name,
@@ -127,14 +142,19 @@ function finishedRow(t: Translate, read: Readable, today: string): FinishedTreat
 }
 
 /** Le plus urgent d'abord ; puis les traitements à renseigner, puis les illisibles. */
-function urgency({ view }: Read): string {
-  if (view === null) return '2'
-  const [due] = view.currentDoses
-  return isOpen(view) && due !== undefined ? `0 ${due.dueOn} ${due.dueTime ?? ''}` : '1'
+function urgency({ schedule }: Read): string {
+  if (schedule === null) return '2'
+  const [due] = schedule.currentDoses
+  return isOpen(schedule) && due !== undefined ? `0 ${due.dueOn} ${due.dueTime ?? ''}` : '1'
 }
 
-function endDay({ view }: Readable): string {
-  return view.endedOn ?? ''
+function endDay(
+  { treatment, schedule }: Read & { schedule: TreatmentSchedule },
+  today: string,
+): string {
+  return (
+    currentPeriodOf(treatment, schedule)?.stoppedOn ?? endedOnOf(treatment, schedule, today) ?? ''
+  )
 }
 
 function compare(a: string, b: string): number {
@@ -142,7 +162,7 @@ function compare(a: string, b: string): number {
 }
 
 export type ScheduleCache = {
-  read(treatment: TreatmentWithHistory, today: string): TreatmentView | null
+  read(treatment: TreatmentWithHistory, today: string): TreatmentSchedule | null
 }
 
 // Chaque ligne compte : une ligne synchronisée peut être réécrite avec une date plus ancienne que la plus récente.
@@ -153,15 +173,15 @@ function versionOf({ updatedAt, periods, doses }: TreatmentWithHistory, today: s
 
 /** Calendriers gardés d'un rendu à l'autre : seul un traitement modifié, ou un autre jour, est relu. */
 export function carnetScheduleCache(): ScheduleCache {
-  const entries = new Map<string, { version: string; view: TreatmentView | null }>()
+  const entries = new Map<string, { version: string; schedule: TreatmentSchedule | null }>()
   return {
     read(treatment, today) {
       const version = versionOf(treatment, today)
       const known = entries.get(treatment.id)
-      if (known?.version === version) return known.view
-      const view = treatmentReading(treatment, today)
-      entries.set(treatment.id, { version, view })
-      return view
+      if (known?.version === version) return known.schedule
+      const schedule = readableScheduleOf(treatment, today)
+      entries.set(treatment.id, { version, schedule })
+      return schedule
     },
   }
 }
@@ -180,26 +200,26 @@ export function carnetTreatments(
 ): CarnetTreatments {
   const reads = treatments.map((treatment): Read => ({
     treatment,
-    view: schedules.read(treatment, today),
+    schedule: schedules.read(treatment, today),
   }))
-  const isFinished = (read: Read): read is Readable =>
-    read.view !== null && (read.view.finished || (!followed && !isOpen(read.view)))
+  const isFinished = (read: Read): read is Read & { schedule: TreatmentSchedule } =>
+    read.schedule !== null && (read.schedule.finished || (!followed && !isOpen(read.schedule)))
   const ongoing = reads
     .filter((read) => !isFinished(read))
     .sort((a, b) => compare(urgency(a), urgency(b)))
   const due = ongoing.filter(
-    ({ view }) => view !== null && isOpen(view) && view.currentDoses.length > 0,
+    ({ schedule }) => schedule !== null && isOpen(schedule) && schedule.currentDoses.length > 0,
   )
 
   return {
     ongoing: ongoing.map((read) => ongoingRow(t, read, today)),
     finished: reads
       .filter(isFinished)
-      .sort((a, b) => compare(endDay(b), endDay(a)))
+      .sort((a, b) => compare(endDay(b, today), endDay(a, today)))
       .map((read) => finishedRow(t, read, today)),
     summary: {
       total: due.length,
-      overdue: due.filter(({ view }) => view?.phase === 'overdue').length,
+      overdue: due.filter(({ schedule }) => schedule?.phase === 'overdue').length,
       ongoing: ongoing.length,
     },
   }

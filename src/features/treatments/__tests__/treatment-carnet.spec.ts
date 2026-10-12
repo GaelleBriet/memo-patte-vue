@@ -6,7 +6,7 @@ import type { TreatmentWithHistory } from '../schema/treatment-with-history.sche
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import i18n, { applyLocale } from '@/core/i18n'
-import * as engine from '@/shared/domain/dose-calendar'
+import * as engine from '@/shared/domain/treatment-schedule'
 
 const t = i18n.global.t
 const TODAY = '2026-09-28'
@@ -199,7 +199,7 @@ describe('carnetTreatments — une ligne par traitement en cours (TR-36, B · V1
   })
 
   it('ne calcule le calendrier qu’une fois par traitement', () => {
-    const schedule = vi.spyOn(engine, 'treatmentView')
+    const schedule = vi.spyOn(engine, 'treatmentSchedule')
 
     carnet([MILBEMAX, PANACUR])
 
@@ -209,7 +209,7 @@ describe('carnetTreatments — une ligne par traitement en cours (TR-36, B · V1
   it('après un geste, ne recalcule que le traitement touché', () => {
     const cache = carnetScheduleCache()
     carnetTreatments(t, [MILBEMAX, PANACUR], TODAY, cache)
-    const schedule = vi.spyOn(engine, 'treatmentView')
+    const schedule = vi.spyOn(engine, 'treatmentSchedule')
     const noted = dose('2026-09-03', '2026-09-04', { updatedAt: '2026-09-28T10:00:00.000Z' })
     const touched = { ...PANACUR, doses: [...PANACUR.doses, noted] }
 
@@ -226,7 +226,7 @@ describe('carnetTreatments — une ligne par traitement en cours (TR-36, B · V1
     const noted = dose('2026-09-03', '2026-09-04', { updatedAt: '2026-09-28T08:00:05.000Z' })
     const book = { ...PANACUR, doses: [...PANACUR.doses, noted] }
     carnetTreatments(t, [book], TODAY, cache)
-    const schedule = vi.spyOn(engine, 'treatmentView')
+    const schedule = vi.spyOn(engine, 'treatmentSchedule')
     const [first] = book.periods
     const weekly = {
       ...book,
@@ -247,7 +247,7 @@ describe('carnetTreatments — une ligne par traitement en cours (TR-36, B · V1
   it('recalcule un traitement dont une prise a disparu, et tous le lendemain', () => {
     const cache = carnetScheduleCache()
     carnetTreatments(t, [MILBEMAX, PANACUR], TODAY, cache)
-    const schedule = vi.spyOn(engine, 'treatmentView')
+    const schedule = vi.spyOn(engine, 'treatmentSchedule')
 
     carnetTreatments(t, [MILBEMAX, { ...PANACUR, doses: PANACUR.doses.slice(1) }], TODAY, cache)
     expect(schedule).toHaveBeenCalledOnce()
