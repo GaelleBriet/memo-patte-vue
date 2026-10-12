@@ -1,0 +1,106 @@
+// @vitest-environment node
+import { describe, expect, it } from 'vitest'
+
+import { newSettings, preview, treatmentView, type SettingsRequest } from '../domain/dose-calendar'
+import type { Frequency, Line, TreatmentViewInput } from '../domain/dose-calendar/types'
+import { H, keys, line, MONTH, setting, TWO_DAYS } from './dose-calendar.v2.aides'
+
+const THREE_HOURS = ['08:00', '14:00', '20:00']
+
+function planOf(input: TreatmentViewInput, asked: SettingsRequest) {
+  const result = newSettings(input, asked)
+  if (!('plan' in result)) throw new Error(`pas de plan : ${JSON.stringify(result)}`)
+  return result.plan
+}
+
+const given = (settingId: string, dueOn: string, dueTime: string, givenOn: string): Line => ({
+  ...line(settingId, 'given', dueOn, dueTime),
+  givenOn,
+})
+
+const effectsOf = (input: TreatmentViewInput, lines: Line[]) => {
+  const { history } = treatmentView(input)
+  return lines.map((each) => history.find(({ line: read }) => read.id === each.id)!.effect)
+}
+
+describe('R4 : une journée qui porte des lignes et quitte le calendrier garde sa lecture', () => {
+  describe('toutes les 2 semaines à 8 h, 14 h et 20 h dès le 13 mars, puis mensuel à 8 h et 20 h ouvert le 11 ; le 13 est complet', () => {
+    const fortnight: Frequency = { value: 2, unit: 'week' }
+    const first = setting('s1', '2026-03-13', fortnight, THREE_HOURS, { endsOn: '2026-04-03' })
+    const monthly = setting('s2', '2026-03-13', MONTH, H, {
+      startsOn: '2026-03-11',
+      endsOn: '2026-04-03',
+    })
+    const old20 = given('s1', '2026-03-13', '20:00', '2026-03-08')
+    const report = line('s1', 'postponed', '2026-03-13', '08:00', '2026-03-31')
+    const new20 = given('s2', '2026-03-13', '20:00', '2026-03-10')
+    const input = {
+      settings: [first, monthly],
+      lines: [old20, report, new20],
+      today: '2026-03-11',
+    }
+
+    it('avant : la prise de 20 h de l’ancien réglage couvre 8 h, le report est sans effet', () => {
+      expect(effectsOf(input, [old20, report, new20])).toEqual([
+        { kind: 'covers', key: '2026-03-13 08:00' },
+        { kind: 'idle', reason: 'beaten' },
+        { kind: 'covers', key: '2026-03-13 20:00' },
+      ])
+    })
+
+    it('« Prochaine dose » le 11 : le 13 sort du calendrier, rien n’arrive le 31', () => {
+      const plan = planOf(input, {
+        frequency: MONTH,
+        times: H,
+        endsOn: '2026-04-03',
+        firstDueOn: '2026-03-11',
+      })
+      const view = preview(input, plan)
+      expect(keys(view.slots('2026-03-12', '2026-04-30').map(({ due }) => due))).toEqual([])
+      expect(view.history.find(({ line: read }) => read.id === report.id)!.effect).toEqual({
+        kind: 'idle',
+        reason: 'beaten',
+      })
+    })
+  })
+
+  describe('tous les 2 jours à 8 h et 20 h dès le 3 avr. ; le 5, 20 h donnée, puis heures à 8 h, 14 h et 20 h ; 14 h donnée, 20 h oubliée', () => {
+    const twice = setting('s1', '2026-04-03', TWO_DAYS, H)
+    const thrice = setting('s2', '2026-04-05', TWO_DAYS, THREE_HOURS, { gridOriginOn: null })
+    const done = [
+      line('s1', 'given', '2026-04-03', '08:00'),
+      line('s1', 'given', '2026-04-03', '20:00'),
+    ]
+    const old20 = line('s1', 'given', '2026-04-05', '20:00')
+    const new14 = line('s2', 'given', '2026-04-05', '14:00')
+    const missed20 = line('s2', 'missed', '2026-04-05', '20:00')
+    const input = {
+      settings: [twice, thrice],
+      lines: [...done, old20, new14, missed20],
+      today: '2026-04-05',
+    }
+    const expected = [
+      { kind: 'covers', key: '2026-04-05 08:00' },
+      { kind: 'covers', key: '2026-04-05 14:00' },
+      { kind: 'covers', key: '2026-04-05 20:00' },
+    ]
+
+    it('avant : la prise de 20 h de l’ancien réglage couvre 8 h', () => {
+      expect(effectsOf(input, [old20, new14, missed20])).toEqual(expected)
+    })
+
+    it('tous les 3 jours, première échéance le 8 : le 5 sort du calendrier, chaque prise garde son heure', () => {
+      const plan = planOf(input, {
+        frequency: { value: 3, unit: 'day' },
+        times: THREE_HOURS,
+        endsOn: null,
+      })
+      expect(plan.setting.firstDueOn).toBe('2026-04-08')
+      const view = preview(input, plan)
+      const effects = [old20, new14, missed20].map(
+        (each) => view.history.find(({ line: read }) => read.id === each.id)!.effect,
+      )
+      expect(effects).toEqual(expected)
+    })
+  })
+})

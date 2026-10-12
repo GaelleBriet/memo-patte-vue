@@ -32,7 +32,7 @@ export type EpisodeInput = {
 export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   const { settingOf, span, lines, borrowed } = input
   const effects = new Map<string, LineEffect>()
-  const { days, translated, boundaries, openings, rhythmFrom } = journeys(input, effects)
+  const { days, translated, left, openings, rhythmFrom } = journeys(input, effects)
   const byDay = new Map<Day, Line[]>()
   for (const note of [...lines.notes, ...borrowed]) {
     byDay.set(note.dueOn, [...(byDay.get(note.dueOn) ?? []), note])
@@ -42,7 +42,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     [...lines.notes, ...borrowed].map((note) => keyOf(note.dueOn, note.dueTime)),
   )
   const matched = new Set<Line>()
-  const heldAtOrigin = new Set<Line>()
+  const held = new Map<Line, string>()
 
   // R4 : une prise couvre son échéance ; le jour où les heures changent, celles qui visaient
   // l'ancien réglage couvrent les premières heures du nouveau, à hauteur de leur nombre.
@@ -91,7 +91,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     )
     const report = waiting.splice(Math.max(0, ready), 1)[0]!
     const { dueOn, dueTime, targetOn } = report
-    const origin = days.get(dueOn)
+    const origin = days.get(dueOn) ?? left.get(dueOn)
     const from = origin?.setting ?? settingOf(report.settingId)
     const hours = origin?.hours ?? hoursOf(from.times)
     // R8 : au-delà de l'arrêt, une prise ne garde pas son échéance, la reprise seule la porte.
@@ -99,7 +99,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
       for (const note of byDay.get(dueOn) ?? []) {
         if (!isBorrowed.has(note) && hours.includes(note.dueTime)) {
           matched.add(note)
-          heldAtOrigin.add(note)
+          held.set(note, keyOf(note.dueOn, note.dueTime))
         }
       }
     }
@@ -141,15 +141,12 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     days.set(targetOn!, day)
   }
 
-  // R1, R4 : le jour où un réglage cède la place, ses prises gardent leur échéance.
-  boundaries.forEach((hours, day) => {
-    if (days.has(day) || (stop !== null && day >= stop)) return
-    for (const note of byDay.get(day) ?? []) {
-      if (!isBorrowed.has(note) && hours.includes(note.dueTime)) {
-        matched.add(note)
-        heldAtOrigin.add(note)
-      }
-    }
+  // R1, R4 : sortie du calendrier, une journée garde ses prises sur ses échéances, traduction comprise.
+  left.forEach((journey, day) => {
+    if (days.has(day)) return
+    coveredOn(day, journey).forEach((note, hour) => {
+      if (!isBorrowed.has(note)) held.set(note, keyOf(day, hour))
+    })
   })
 
   const slots: Slot[] = []
@@ -165,7 +162,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     }
   }
   coverOrphans(lines.notes, matched, slots, settingOf)
-  noteEffects(lines, borrowed, slots, heldAtOrigin, effects)
+  noteEffects(lines, borrowed, slots, held, effects)
   return { slots, fallen, moved, effects, rhythmFrom }
 }
 
@@ -194,7 +191,7 @@ function noteEffects(
   lines: EpisodeLines,
   borrowed: readonly Line[],
   slots: readonly Slot[],
-  heldAtOrigin: ReadonlySet<Line>,
+  held: ReadonlyMap<Line, string>,
   effects: Map<string, LineEffect>,
 ): void {
   const covering = new Map<Line, string>()
@@ -204,8 +201,7 @@ function noteEffects(
   for (const note of [...lines.notes, ...borrowed]) {
     const key = covering.get(note)
     if (borrowed.includes(note) && key === undefined) continue
-    const own = heldAtOrigin.has(note) ? keyOf(note.dueOn, note.dueTime) : undefined
-    const covered = key ?? own
+    const covered = key ?? held.get(note)
     effects.set(
       note.id,
       covered === undefined

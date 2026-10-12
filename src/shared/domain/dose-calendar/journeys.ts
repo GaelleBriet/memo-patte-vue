@@ -7,6 +7,8 @@ export type Journey = { setting: Setting; hours: Hour[] }
 
 export type JourneyInput = { span: Span; lines: EpisodeLines; reach: Day }
 
+type Segment = { origin: Day; from: Day; to: Day | null }
+
 export const sameHours = (a: Setting, b: Setting) =>
   hoursOf(a.times).join() === hoursOf(b.times).join()
 
@@ -16,7 +18,12 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   const { chain } = span
   const days = new Map<Day, Journey>()
   const translated = new Map<Day, string>()
-  const boundaries = new Map<Day, Hour[]>()
+  const left = new Map<Day, Journey>()
+  const stop = span.endOf(span.live.length - 1)
+  const held = new Set([
+    ...lines.reports.map(({ dueOn }) => dueOn),
+    ...span.live.map((_, index) => span.endOf(index)).filter((day) => day !== null),
+  ])
   const openings = new Set<Day>()
   let grid = { origin: chain[0]!.firstDueOn, floor: '' }
   let rhythm = new Set<string>()
@@ -80,16 +87,14 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
         (!earlier.has(shift.settingId) || (continued && rhythm.has(shift.settingId))),
     )
     let from = setting.startsOn
+    const segments: Segment[] = []
     for (const turn of [...turns, null]) {
       const to = turn === null || turn.dueOn >= last ? last : turn.dueOn
-      for (const day of gridDays(
-        grid.origin,
-        setting.frequency,
-        later(from, plusDays(grid.floor, 1)),
-        to,
-      )) {
+      const start = later(from, plusDays(grid.floor, 1))
+      for (const day of gridDays(grid.origin, setting.frequency, start, to)) {
         days.set(day, { setting, hours: hoursOf(setting.times) })
       }
+      segments.push({ origin: grid.origin, from: start, to: turn?.dueOn ?? setting.endsOn })
       if (turn === null) break
       effects.set(turn.id, { kind: 'shifts', from: turn.dueOn })
       grid = {
@@ -98,17 +103,24 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       }
       from = plusDays(turn.dueOn, 1)
     }
-    if (
-      end !== null &&
-      end > grid.floor &&
-      (setting.endsOn === null || end <= setting.endsOn) &&
-      isOnGrid(grid.origin, setting.frequency, end)
-    ) {
-      boundaries.set(end, [...(boundaries.get(end) ?? []), ...hoursOf(setting.times)])
+    // R1, R4 : une journée d'origine d'un report ou de fin de réglage, sortie du calendrier, se lit
+    // avec le dernier réglage dont elle était une journée.
+    for (const day of held) {
+      const wasDay = segments.some(
+        (segment) =>
+          day >= segment.from &&
+          (segment.to === null || day <= segment.to) &&
+          isOnGrid(segment.origin, setting.frequency, day),
+      )
+      const open =
+        (setting.endsOn === null || day <= setting.endsOn) && (stop === null || day < stop)
+      if (wasDay && open) {
+        left.set(day, { setting, hours: hoursOf(setting.times) })
+      }
     }
   })
   for (const shift of lines.shifts) {
     if (!effects.has(shift.id)) effects.set(shift.id, { kind: 'idle', reason: 'overtaken' })
   }
-  return { days, translated, boundaries, openings, rhythmFrom }
+  return { days, translated, left, openings, rhythmFrom }
 }

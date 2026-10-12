@@ -64,8 +64,14 @@ export function calendarOf(
   const days = new Map<string, Journey>()
   // R4, R7, R9 : les jours où une prise visant d'autres heures couvre les premières heures.
   const translated = new Map<string, string>()
-  // R1, R4 : le jour où un réglage cède la place, ses prises gardent leur échéance.
-  const boundaries = new Map<string, Hour[]>()
+  // R1, R4 : sortie du calendrier, une journée d'origine d'un report ou de fin de réglage se lit
+  // avec le dernier réglage dont elle était une journée.
+  const left = new Map<string, Journey>()
+  const stop = endOf(live.length - 1)
+  const held = new Set([
+    ...reports.map(({ dueOn }) => dueOn),
+    ...live.map((_, index) => endOf(index)).filter((day) => day !== null),
+  ])
   // R7, R9.2 : les premières échéances des réglages qui ouvrent un nouveau rythme.
   const openings = new Set<string>()
   // R3, R10 : remplacé le jour même, un réglage transmet sa grille au suivant de même fréquence.
@@ -141,16 +147,14 @@ export function calendarOf(
         (!earlier.has(shift.settingId) || (continued && rhythm.has(shift.settingId))),
     )
     let from = setting.startsOn
+    const segments: { origin: string; from: string; to: string | null }[] = []
     for (const turn of [...turns, null]) {
       const to = turn === null ? last : turn.dueOn < last ? turn.dueOn : last
-      for (const day of gridDays(
-        grid.origin,
-        setting.frequency,
-        later(from, plusDays(grid.floor, 1)),
-        to,
-      )) {
+      const start = later(from, plusDays(grid.floor, 1))
+      for (const day of gridDays(grid.origin, setting.frequency, start, to)) {
         days.set(day, { setting, hours: hoursOf(setting) })
       }
+      segments.push({ origin: grid.origin, from: start, to: turn?.dueOn ?? setting.endsOn })
       if (turn === null) break
       grid = {
         origin: turn.targetOn!,
@@ -158,13 +162,16 @@ export function calendarOf(
       }
       from = plusDays(turn.dueOn, 1)
     }
-    if (
-      end !== null &&
-      end > grid.floor &&
-      (setting.endsOn === null || end <= setting.endsOn) &&
-      isOnGrid(grid.origin, setting.frequency, end)
-    ) {
-      boundaries.set(end, [...(boundaries.get(end) ?? []), ...hoursOf(setting)])
+    for (const day of held) {
+      const open =
+        (setting.endsOn === null || day <= setting.endsOn) && (stop === null || day < stop)
+      const wasDay = segments.some(
+        (segment) =>
+          day >= segment.from &&
+          (segment.to === null || day <= segment.to) &&
+          isOnGrid(segment.origin, setting.frequency, day),
+      )
+      if (open && wasDay) left.set(day, { setting, hours: hoursOf(setting) })
     }
   })
 
@@ -213,7 +220,7 @@ export function calendarOf(
     )
     const [report] = waiting.splice(Math.max(0, ready), 1)
     const { dueOn, dueTime, targetOn } = report!
-    const origin = days.get(dueOn)
+    const origin = days.get(dueOn) ?? left.get(dueOn)
     const from = origin?.setting ?? settingOf(report!.settingId)
     const hours = origin?.hours ?? hoursOf(from)
     if (origin === undefined) {
@@ -244,11 +251,8 @@ export function calendarOf(
     days.set(targetOn!, day)
   }
 
-  boundaries.forEach((hours, day) => {
-    if (days.has(day)) return
-    notes
-      .filter((note) => note.dueOn === day && hours.includes(note.dueTime))
-      .forEach((note) => matched.add(note))
+  left.forEach((journey, day) => {
+    if (!days.has(day)) coveredOn(day, journey)
   })
 
   const dues: { key: string; day: string; covered: boolean }[] = []

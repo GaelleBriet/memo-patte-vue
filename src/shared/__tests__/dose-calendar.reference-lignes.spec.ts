@@ -2,7 +2,17 @@
 import { describe, expect, it } from 'vitest'
 
 import { referenceReading } from '../domain/dose-calendar/reference-model'
-import { DAY, H, line, next, read, setting, TWO_DAYS, WEEK } from './dose-calendar.reference.aides'
+import {
+  DAY,
+  H,
+  line,
+  MONTH,
+  next,
+  read,
+  setting,
+  TWO_DAYS,
+  WEEK,
+} from './dose-calendar.reference.aides'
 
 describe('R7 : le report déplace une heure et les suivantes encore sans prise', () => {
   it('8 h du 3 donnée, 20 h reportée seule au 4 : le 4 ne reçoit que 20 h', () => {
@@ -89,6 +99,27 @@ describe('R4 : une prise ne se perd jamais', () => {
     const lines = [...notes('2026-10-02', '2026-10-09', '2026-10-16')]
     lines.push(line('p1', 'shift', '2026-10-09', null, '2026-10-17'))
     expect(read(WEEKLY, lines, '2026-10-18').current).toEqual(['2026-10-24'])
+  })
+
+  it('le 13 mars complet (8 h couverte par traduction) sorti du calendrier : son report vers le 31 reste sans effet', () => {
+    const until = { endsOn: '2026-04-03' }
+    const fortnight = setting(
+      's1',
+      '2026-03-13',
+      { value: 2, unit: 'week' },
+      ['08:00', '14:00', '20:00'],
+      until,
+    )
+    const monthly = setting('s2', '2026-03-13', MONTH, H, { ...until, startsOn: '2026-03-11' })
+    const fromToday = setting('s3', '2026-03-11', MONTH, H, until)
+    const lines = [
+      line('s1', 'given', '2026-03-13', '20:00'),
+      line('s1', 'postponed', '2026-03-13', '08:00', '2026-03-31'),
+      line('s2', 'given', '2026-03-13', '20:00'),
+    ]
+    expect(read([fortnight, monthly, fromToday], lines, '2026-03-11').upcoming).not.toContain(
+      '2026-03-31 08:00',
+    )
   })
 })
 

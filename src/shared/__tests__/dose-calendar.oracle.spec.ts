@@ -93,7 +93,6 @@ describe('oracle des moteurs de doses', { timeout: 60_000 }, () => {
     [560001008, 'reglage-meme-frequence'],
     [560003279, 'reglage-meme-frequence'],
     [570002709, 'prise-orpheline'],
-    [570015902, 'prise-orpheline'],
   ])(
     'moteur v2, réglages changés, sans filtre : la graine %i est rattachée à %s',
     (seed, family) => {
