@@ -71,9 +71,13 @@ export type Proposal = Dates & { shownOn?: Day }
 // R9, R12 : la première dose encore à donner que la fiche montrera ; une journée proposée déjà toute
 // notée garde son rôle (traduction des heures, R4 ; départ du rythme, R9.2), la fiche montre la suivante.
 export function shownDay(dates: Dates, readWith: (dates: Dates) => TreatmentView): Day {
+  const { firstDueOn } = dates
   const view = readWith(dates)
-  const first = (view.currentDoses[0] ?? view.upcoming({ limit: 1 })[0])?.dueOn
-  return later(first ?? dates.firstDueOn, dates.firstDueOn)
+  return (
+    view
+      .slots(firstDueOn, view.lastDueDay ?? plusDays(firstDueOn, NEXT_DAYS))
+      .find(({ state }) => state === 'pending')?.due.dueOn ?? firstDueOn
+  )
 }
 
 // R6, R12 : un décalage resté d'un réglage remplacé peut faire repartir le nouveau rythme ; la date

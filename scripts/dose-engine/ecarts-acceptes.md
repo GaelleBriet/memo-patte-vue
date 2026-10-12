@@ -98,7 +98,7 @@ seule (`INVARIANTS_FROM=<graine> INVARIANTS_SEEDS=1 INVARIANTS_STEPS=40`) et pas
   780001784 vertes, sans exemption dans l'invariant de symétrie ; test daté dans
   `dose-calendar.gestures-note.spec.ts`.
 - **Première échéance proposée après la date de fin** (#787) : refusée (`no-dose-before-end`) quand
-  la fréquence change et que la date de fin est encore à venir ; l'invariant n° 9 admet ce refus sans
+  le nouveau rythme repart après une date de fin encore à venir ; l'invariant n° 9 admet ce refus sans
   date, et la campagne ne choisit plus de « Prochaine dose » après la date de fin (le formulaire la
   refuse, `nextDoseOnAfterEnd`, Q20).
 - **Journée déjà toute donnée proposée par « Modifier »** : la date proposée et montrée est la

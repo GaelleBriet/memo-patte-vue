@@ -901,8 +901,9 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
   du 3 données ; le 4, « Modifier » passe au mensuel : la première dose tomberait le 3 nov. Texte sous
   le champ : « Avec ce rythme, plus aucune dose avant la date de fin. Change la date de fin ou le
   rythme. » (EN : « At this frequency, no dose is left before the end date. Change the end date or
-  the frequency. »). Le refus ne vaut que quand la fréquence change et que la date de fin est encore
-  à venir : finir un traitement par une date de fin passée reste permis (TR-6). Écartée : accepter et
+  the frequency. »). Le refus vaut quand le nouveau rythme repart de sa propre première échéance
+  (fréquence changée, ou date choisie) après une date de fin encore à venir : finir un traitement par
+  une date de fin passée reste permis (TR-6). Écartée : accepter et
   terminer le traitement (les doses des 5, 7 et 9 disparaîtraient sans un mot).
 - 2026-10-12 — **« Modifier » propose la première dose encore à donner, comme la fiche** (R9, R12).
   Milo, chaque lundi à 8 h : dose du 5 donnée, celle du 12 donnée en avance le 7 ; le 7, posologie

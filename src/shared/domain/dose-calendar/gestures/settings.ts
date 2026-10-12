@@ -117,25 +117,18 @@ export function newSettings(input: TreatmentViewInput, request: SettingsRequest)
     throw new RangeError('Aucun réglage en cours : « Reprendre » ouvre le suivant')
   }
   const result = settingsFor(input, view, current, request)
-  return leavesNoDose(input.today, current, request, result)
+  return leavesNoDose(input.today, request, result)
     ? { refusal: { reason: 'no-dose-before-end' } }
     : result
 }
 
-// #787, TR-8, Q20 : un nouveau rythme dont la première échéance tombe après une date de fin encore à venir.
-function leavesNoDose(
-  today: Day,
-  current: Setting,
-  request: SettingsRequest,
-  result: SettingsResult,
-): boolean {
+// #787, TR-8, Q20 : un rythme qui repart après une date de fin encore à venir ne laisse aucune dose.
+function leavesNoDose(today: Day, request: SettingsRequest, result: SettingsResult): boolean {
   const { endsOn } = request
-  if (endsOn === null || endsOn < today || sameFrequency(current.frequency, request.frequency)) {
-    return false
-  }
+  if (endsOn === null || endsOn < today) return false
   const plans =
     'plan' in result ? [result.plan] : 'question' in result ? [result.question.keep] : []
-  return plans.some(({ setting }) => setting.firstDueOn > endsOn)
+  return plans.some(({ setting }) => setting.gridOriginOn !== null && setting.firstDueOn > endsOn)
 }
 
 function settingsFor(
