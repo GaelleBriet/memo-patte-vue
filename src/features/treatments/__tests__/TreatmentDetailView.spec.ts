@@ -313,9 +313,11 @@ describe('TreatmentDetailView — carte de la dose du moment', () => {
     expect(service.apply).toHaveBeenCalledWith(METACAM.id, {
       kind: 'note',
       gesture: {
-        kind: 'given',
+        kind: 'note',
+        status: 'given',
         due: { settingId: 'p-1', dueOn: '2026-09-28', dueTime: '08:00' },
         givenOn: '2026-09-28',
+        shiftsFollowing: false,
       },
     })
     expect(message()).toBe('Prise de 8 h de Métacam notée pour Luna')
@@ -399,9 +401,11 @@ describe('TreatmentDetailView — carte de la dose du moment', () => {
     expect(service.apply).toHaveBeenCalledWith(METACAM.id, {
       kind: 'note',
       gesture: {
-        kind: 'given',
+        kind: 'note',
+        status: 'given',
         due: { settingId: 'p-1', dueOn: '2026-09-28', dueTime: '08:00' },
         givenOn: '2026-09-29',
+        shiftsFollowing: false,
       },
     })
     expect(textes(view, '.treatment-dose-card__value')).toEqual([
@@ -445,9 +449,11 @@ describe('TreatmentDetailView — carte de la dose du moment', () => {
     expect(service.apply).toHaveBeenCalledWith(MILBEMAX.id, {
       kind: 'note',
       gesture: {
-        kind: 'given',
+        kind: 'note',
+        status: 'given',
         due: { settingId: 'p-1', dueOn: '2026-10-14', dueTime: null },
         givenOn: '2026-09-28',
+        shiftsFollowing: false,
       },
     })
     expect(message()).toBe('Prise de Métacam notée pour Luna')
@@ -560,9 +566,11 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
     expect(service.apply).toHaveBeenCalledWith(deuxPeriodes.id, {
       kind: 'note',
       gesture: {
-        kind: 'given',
+        kind: 'note',
+        status: 'given',
         due: { settingId: 'p-1', dueOn: '2026-09-24', dueTime: '09:00' },
         givenOn: '2026-09-24',
+        shiftsFollowing: false,
       },
     })
   })
@@ -587,9 +595,11 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
     expect(service.apply).toHaveBeenCalledWith(METACAM.id, {
       kind: 'note',
       gesture: {
-        kind: 'given',
+        kind: 'note',
+        status: 'given',
         due: { settingId: 'p-1', dueOn: '2026-09-28', dueTime: '20:00' },
         givenOn: '2026-09-28',
+        shiftsFollowing: false,
       },
     })
     expect(message()).toBe('Prise de 20 h de Métacam notée pour Luna')
@@ -626,9 +636,11 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
     expect(service.apply).toHaveBeenCalledWith(quotidien.id, {
       kind: 'note',
       gesture: {
-        kind: 'given',
+        kind: 'note',
+        status: 'given',
         due: { settingId: 'p-1', dueOn: '2026-09-25', dueTime: null },
         givenOn: '2026-09-25',
+        shiftsFollowing: false,
       },
     })
     expect(message()).toBe('Prise de Métacam du 25 sept. notée pour Luna')
@@ -770,7 +782,7 @@ describe('TreatmentDetailView — menu ⋮ d’une prise', () => {
 
     await choisir(view, '27 sept. 2026', 'remove')
 
-    expect(service.apply).toHaveBeenCalledWith(seule.id, { kind: 'remove', doseId: '2026-09-27' })
+    expect(service.apply).toHaveBeenCalledWith(seule.id, { kind: 'remove', lineId: '2026-09-27' })
     expect(message()).toBe('Prise du 27 sept. supprimée')
     expect(toastAction.value?.ariaLabel?.replace(NBSP, ' ')).toBe(
       'Annuler la suppression de la prise du 27 septembre 2026',
@@ -790,7 +802,13 @@ describe('TreatmentDetailView — menu ⋮ d’une prise', () => {
 
     expect(service.apply).toHaveBeenCalledWith(METACAM.id, {
       kind: 'note',
-      gesture: { kind: 'missed', due: { settingId: 'p-1', dueOn: '2026-09-27', dueTime: '20:00' } },
+      gesture: {
+        kind: 'note',
+        status: 'missed',
+        due: { settingId: 'p-1', dueOn: '2026-09-27', dueTime: '20:00' },
+        givenOn: '2026-09-27',
+        shiftsFollowing: false,
+      },
     })
     expect(message()).toBe('Prise du 27 sept. à 20 h marquée comme oubliée')
     expect(toastAction.value?.label).toBe('Annuler')
@@ -799,7 +817,7 @@ describe('TreatmentDetailView — menu ⋮ d’une prise', () => {
   it('change la date d’une prise, jusqu’à aujourd’hui, et dit le report gardé (TR-24 bis)', async () => {
     service.apply.mockResolvedValue({
       ...APPLIED,
-      postponement: { kept: true, nextDueDate: '2026-10-14' },
+      followed: [{ from: '2026-10-14', to: '2026-10-14' }],
     })
     const view = await monter(MILBEMAX)
 
@@ -820,12 +838,11 @@ describe('TreatmentDetailView — menu ⋮ d’une prise', () => {
 
     expect(service.apply).toHaveBeenCalledWith(MILBEMAX.id, {
       kind: 'redate',
-      doseId: '2026-07-10',
+      lineId: '2026-07-10',
       givenOn: '2026-07-08',
+      shiftsFollowing: true,
     })
-    expect(message()).toBe(
-      'Prise déplacée au 8 juil. Prochaine dose gardée au 14 oct., que tu avais reportée.',
-    )
+    expect(message()).toBe('Prise déplacée au 8 juil. Le report suit : dose reportée au 14 oct.')
     expect(toastAction.value?.ariaLabel).toBe('Annuler le changement de date de la prise')
   })
 })
@@ -851,8 +868,8 @@ describe('TreatmentDetailView — ligne « Reportée » (planche A · V1 quinqui
     await choisir(view, REPORT, 'remove-move')
 
     expect(service.apply).toHaveBeenCalledWith(MILBEMAX.id, {
-      kind: 'remove-move',
-      doseId: 'report 2026-10-10',
+      kind: 'remove',
+      lineId: 'report 2026-10-10',
     })
     expect(message()).toBe('Report supprimé')
     expect(toastAction.value?.ariaLabel).toBe('Annuler la suppression du report')
@@ -880,7 +897,7 @@ describe('TreatmentDetailView — ligne « Reportée » (planche A · V1 quinqui
         dueTime: null,
         givenOn: null,
         status: 'postponed',
-        nextDueDate: '2026-10-16',
+        targetOn: '2026-10-16',
       },
     })
     calendrier.vm.$emit('save', '2026-10-16', true)
@@ -888,8 +905,9 @@ describe('TreatmentDetailView — ligne « Reportée » (planche A · V1 quinqui
 
     expect(service.apply).toHaveBeenCalledWith(MILBEMAX.id, {
       kind: 'move',
-      doseId: 'report 2026-10-10',
+      due: { settingId: 'p-1', dueOn: '2026-10-14', dueTime: null },
       to: '2026-10-16',
+      shiftsFollowing: true,
     })
     expect(message()).toBe('Dose reportée au 16 oct.')
   })
@@ -949,52 +967,11 @@ describe('TreatmentDetailView — « Décaler aussi les doses suivantes » (V29,
     await choisir(view, DECALAGE, 'remove-shift')
 
     expect(service.apply).toHaveBeenCalledWith(METACAM.id, {
-      kind: 'remove-shift',
-      doseId: 'décalage 2026-09-25',
+      kind: 'remove',
+      lineId: 'décalage 2026-09-25',
     })
     expect(message()).toBe('Décalage supprimé. Les doses suivantes reviennent au vendredi.')
     expect(toastAction.value?.ariaLabel).toBe('Annuler la suppression du décalage')
-  })
-
-  it('« Fait à une autre date » refusé case cochée : rien ne s’enregistre ; décochée, la prise seule (Q2 a)', async () => {
-    vi.setSystemTime(new Date('2026-10-14T21:00:00'))
-    const view = await monter(
-      treatment(
-        [
-          {
-            ...VENDREDI,
-            startsOn: '2026-10-02',
-            firstDueOn: '2026-10-02',
-            referenceOn: '2026-10-02',
-          },
-        ],
-        [dose('2026-10-02', '2026-10-09'), postponed('2026-10-16', '2026-10-22')],
-      ),
-    )
-    await view.get('.treatment-dose-card__other-date').trigger('click')
-    await flushPromises()
-
-    const enregistrer = () => dansLaFeuille('.treatment-other-date__submit')[0]!
-    expect(enregistrer().disabled).toBe(true)
-    expect(dansLaFeuille('.treatment-shift__help')[0]!.textContent?.replace(NBSP, ' ')).toBe(
-      'Ce jour ferait passer le report du 22 oct. après la dose suivante : décoche la case, ou change d’abord la date du report.',
-    )
-
-    ;(dansLaFeuille('.treatment-shift__input')[0] as unknown as HTMLInputElement).click()
-    await flushPromises()
-    expect(enregistrer().disabled).toBe(false)
-    enregistrer().click()
-    await flushPromises()
-
-    expect(service.apply).toHaveBeenCalledWith(METACAM.id, {
-      kind: 'note',
-      gesture: {
-        kind: 'given',
-        due: { settingId: 'p-1', dueOn: '2026-10-09', dueTime: null },
-        givenOn: '2026-10-14',
-        shiftsFollowing: false,
-      },
-    })
   })
 
   it('« Fait à une autre date » : récapitulatif, case cochée, envoyée décochée', async () => {
@@ -1022,7 +999,8 @@ describe('TreatmentDetailView — « Décaler aussi les doses suivantes » (V29,
     expect(service.apply).toHaveBeenCalledWith(METACAM.id, {
       kind: 'note',
       gesture: {
-        kind: 'given',
+        kind: 'note',
+        status: 'given',
         due: { settingId: 'p-1', dueOn: '2026-09-25', dueTime: null },
         givenOn: '2026-09-28',
         shiftsFollowing: false,
@@ -1069,7 +1047,13 @@ describe('TreatmentDetailView — « C’est fait » ne décale rien sans l’av
 
     expect(service.apply).toHaveBeenCalledWith(METACAM.id, {
       kind: 'note',
-      gesture: { kind: 'given', due: DUE_25, givenOn: '2026-09-28', shiftsFollowing: true },
+      gesture: {
+        kind: 'note',
+        status: 'given',
+        due: DUE_25,
+        givenOn: '2026-09-28',
+        shiftsFollowing: true,
+      },
     })
     expect(message()).toBe('Prise de Métacam notée pour Luna')
     runToastAction()
@@ -1088,7 +1072,13 @@ describe('TreatmentDetailView — « C’est fait » ne décale rien sans l’av
 
     expect(service.apply).toHaveBeenCalledWith(METACAM.id, {
       kind: 'note',
-      gesture: { kind: 'given', due: DUE_25, givenOn: '2026-09-28', shiftsFollowing: false },
+      gesture: {
+        kind: 'note',
+        status: 'given',
+        due: DUE_25,
+        givenOn: '2026-09-28',
+        shiftsFollowing: false,
+      },
     })
   })
 
@@ -1115,21 +1105,6 @@ describe('TreatmentDetailView — « C’est fait » ne décale rien sans l’av
     expect(
       dansLaFeuille('.treatment-done-confirm__recap')[0]!.textContent?.replace(NBSP, ' '),
     ).toBe('Dose du vendredi 2 oct., donnée le lundi 28 sept.')
-  })
-
-  it('un report seul bloque le décalage : un tap, la prise seule, le toast le dit (Q2 a)', async () => {
-    service.apply.mockResolvedValue({ ...APPLIED, heldBy: '2026-10-08' } as typeof APPLIED)
-    await cestFait(
-      treatment([VENDREDI], [...EN_RETARD.doses, postponed('2026-10-02', '2026-10-08')]),
-    )
-
-    expect(service.apply).toHaveBeenCalledWith(METACAM.id, {
-      kind: 'note',
-      gesture: { kind: 'given', due: DUE_25, givenOn: '2026-09-28' },
-    })
-    expect(message()).toBe(
-      'Prise de Métacam notée pour Luna. La suite ne bouge pas : un report est prévu le 8 oct.',
-    )
   })
 })
 
@@ -1364,7 +1339,7 @@ describe('TreatmentDetailView — doses non renseignées (TR-14 à TR-17)', () =
     return view.findAll('.treatment-unlogged__action')
   }
 
-  function gestes(): { kind: string; due: { dueOn: string } }[] {
+  function gestes(): { kind: string; status: string; due: { dueOn: string } }[] {
     const action = service.apply.mock.calls.at(-1)?.[1]
     if (action?.kind !== 'log') throw new Error('Pas de lot écrit')
     return [...action.gestures]
@@ -1472,11 +1447,13 @@ describe('TreatmentDetailView — doses non renseignées (TR-14 à TR-17)', () =
 
     expect(service.apply).toHaveBeenCalledOnce()
     expect(gestes()).toHaveLength(25)
-    expect(gestes().every(({ kind }) => kind === 'given')).toBe(true)
+    expect(gestes().every(({ status }) => status === 'given')).toBe(true)
     expect(gestes()[0]).toEqual({
-      kind: 'given',
+      kind: 'note',
+      status: 'given',
       due: { settingId: 'p-1', dueOn: '2026-09-03', dueTime: null },
       givenOn: '2026-09-03',
+      shiftsFollowing: false,
     })
     expect(message()).toBe('Métacam : 25 prises notées')
     expect(toastAction.value?.ariaLabel).toBe('Annuler les doses renseignées de Métacam')
@@ -1508,7 +1485,13 @@ describe('TreatmentDetailView — doses non renseignées (TR-14 à TR-17)', () =
     await flushPromises()
 
     expect(gestes()).toEqual([
-      { kind: 'missed', due: { settingId: 'p-1', dueOn: '2026-09-27', dueTime: null } },
+      {
+        kind: 'note',
+        status: 'missed',
+        due: { settingId: 'p-1', dueOn: '2026-09-27', dueTime: null },
+        givenOn: '2026-09-27',
+        shiftsFollowing: false,
+      },
     ])
     expect(message()).toBe('Métacam : 1 oubli noté')
 
@@ -1517,9 +1500,11 @@ describe('TreatmentDetailView — doses non renseignées (TR-14 à TR-17)', () =
 
     expect(gestes()).toEqual([
       {
-        kind: 'given',
+        kind: 'note',
+        status: 'given',
         due: { settingId: 'p-1', dueOn: '2026-09-27', dueTime: null },
         givenOn: '2026-09-27',
+        shiftsFollowing: false,
       },
     ])
   })
@@ -1552,10 +1537,10 @@ describe('TreatmentDetailView — doses non renseignées (TR-14 à TR-17)', () =
     expect(service.apply).toHaveBeenCalledOnce()
     expect(
       gestes()
-        .filter(({ kind }) => kind === 'missed')
+        .filter(({ status }) => status === 'missed')
         .map(({ due }) => due.dueOn),
     ).toEqual(['2026-09-03', '2026-09-04', '2026-09-05', '2026-09-06', '2026-09-07'])
-    expect(gestes().filter(({ kind }) => kind === 'given')).toHaveLength(20)
+    expect(gestes().filter(({ status }) => status === 'given')).toHaveLength(20)
     expect(message()).toBe('Métacam : 20 prises et 5 oublis notés')
     expect(screen.props('modelValue')).toBe(false)
   })
@@ -1602,7 +1587,7 @@ describe('TreatmentDetailView — doses non renseignées (TR-14 à TR-17)', () =
 
     expect(
       gestes()
-        .filter(({ kind }) => kind === 'missed')
+        .filter(({ status }) => status === 'missed')
         .map(({ due }) => due),
     ).toEqual([
       { settingId: 'p-1', dueOn: '2026-09-25', dueTime: '08:00' },
@@ -1654,7 +1639,7 @@ describe('TreatmentDetailView — doses non renseignées (TR-14 à TR-17)', () =
     dansLaFeuille('.treatment-choose-days__submit')[0]!.click()
     await flushPromises()
 
-    expect(gestes().filter(({ kind }) => kind === 'missed')).toHaveLength(2)
+    expect(gestes().filter(({ status }) => status === 'missed')).toHaveLength(2)
     expect(view.getComponent(TreatmentChooseDays).props('modelValue')).toBe(false)
   })
 
@@ -1686,7 +1671,7 @@ describe('TreatmentDetailView — arrêter avec des doses à renseigner (TR-30, 
     return view.getComponent(TreatmentStopDialog)
   }
 
-  function gestes(): { kind: string; due: { dueOn: string } }[] {
+  function gestes(): { kind: string; status: string; due: { dueOn: string } }[] {
     return [...(stop.stop.mock.calls.at(-1)?.[1] ?? [])]
   }
 
@@ -1733,9 +1718,11 @@ describe('TreatmentDetailView — arrêter avec des doses à renseigner (TR-30, 
     expect(stop.stop).toHaveBeenCalledOnce()
     expect(gestes()).toHaveLength(25)
     expect(gestes()[0]).toEqual({
-      kind: 'given',
+      kind: 'note',
+      status: 'given',
       due: { settingId: 'p-1', dueOn: '2026-09-03', dueTime: null },
       givenOn: '2026-09-03',
+      shiftsFollowing: false,
     })
     expect(message()).toBe('Métacam arrêté, à retrouver dans Traitements terminés.')
 
@@ -1795,7 +1782,7 @@ describe('TreatmentDetailView — arrêter avec des doses à renseigner (TR-30, 
     await flushPromises()
 
     expect(service.apply).not.toHaveBeenCalled()
-    expect(gestes().map(({ kind }) => kind)).toEqual([...Array(24).fill('given'), 'missed'])
+    expect(gestes().map(({ status }) => status)).toEqual([...Array(24).fill('given'), 'missed'])
     expect(calendrier.props('modelValue')).toBe(false)
   })
 
