@@ -108,11 +108,3 @@ function isShown({ effect }: HistoryLine): boolean {
 export function shownLines(view: Pick<TreatmentView, 'history'>): Line[] {
   return view.history.filter(isShown).map(({ line }) => line)
 }
-
-/** L'enregistrement du réglage en cours, avec les colonnes que le moteur ne lit pas (posologie, rappel). */
-export function currentPeriodIn<P extends { id: string }>(
-  periods: readonly P[],
-  view: Pick<TreatmentView, 'currentSetting'>,
-): P | null {
-  return periods.find(({ id }) => id === view.currentSetting?.id) ?? null
-}
