@@ -5,7 +5,6 @@ import { isClockTime } from './clock-time'
 import {
   treatmentView,
   viewInputOf,
-  type HistoryLine,
   type IdleReason,
   type LegacyInput,
   type Line,
@@ -164,14 +163,19 @@ export function treatmentReading(treatment: TreatmentRecords, today: string): Tr
   return readTreatment(treatment, today)?.view ?? null
 }
 
-// La fiche grise ces lignes « · sans effet » (R11) ; le PDF et les feuilles, qui comptent des prises, ne les montrent pas.
-const HIDDEN: readonly IdleReason[] = ['superseded', 'back-to-date', 'beaten']
+// Doublons d'une même échéance : la fiche, le PDF et le CSV les montrent « · sans effet », ils ne comptent aucune prise.
+const DUPLICATES: readonly IdleReason[] = ['superseded', 'back-to-date', 'beaten']
 
-function isShown({ effect }: HistoryLine): boolean {
-  return effect.kind !== 'idle' || !HIDDEN.includes(effect.reason)
+/** Les lignes qui comptent une prise, dans l'ordre chronologique : sans les doublons d'une même échéance. */
+export function countedLines(view: Pick<TreatmentView, 'history'>): Line[] {
+  return view.history
+    .filter(({ effect }) => effect.kind !== 'idle' || !DUPLICATES.includes(effect.reason))
+    .map(({ line }) => line)
 }
 
-/** Les lignes que l'historique montre, dans l'ordre chronologique. */
-export function shownLines(view: Pick<TreatmentView, 'history'>): Line[] {
-  return view.history.filter(isShown).map(({ line }) => line)
+/** R11, R12 : chaque ligne de l'historique, `idle` quand elle est sans effet (« · sans effet »). */
+export function historyEntries(
+  view: Pick<TreatmentView, 'history'>,
+): { line: Line; idle: boolean }[] {
+  return view.history.map(({ line, effect }) => ({ line, idle: effect.kind === 'idle' }))
 }
