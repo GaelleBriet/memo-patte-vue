@@ -6,8 +6,7 @@ import type {
   HomeVaccinationSource,
 } from '../service/home-reminders.service'
 import type { ReminderStatus } from '@/shared/domain/reminders'
-import type { Due } from '@/shared/domain/dose-calendar'
-import { treatmentReading } from '@/shared/domain/treatment-reading'
+import { treatmentSchedule, type Due } from '@/shared/domain/treatment-schedule'
 
 type TodoDay = Pick<Due, 'dueOn' | 'dueTime'>
 
@@ -40,8 +39,8 @@ export type TodoUnreadableItem = Identity & { group: 'unreadable'; key: string }
 
 export type TodoItem = TodoDueItem | TodoToLogItem | TodoUnreadableItem
 
-function statusOf(daysUntil: number, overdue: boolean): ReminderStatus {
-  if (overdue) return 'overdue'
+function statusOf(daysUntil: number): ReminderStatus {
+  if (daysUntil < 0) return 'overdue'
   if (daysUntil === 0) return 'today'
   if (daysUntil === 1) return 'tomorrow'
   return 'later'
@@ -57,7 +56,6 @@ function dueItem(
   source: HomeReminderSource,
   { dueOn, dueTime }: TodoDay,
   today: string,
-  overdue: boolean,
 ): TodoDueItem {
   const daysUntil = differenceInCalendarDays(parseISO(dueOn), parseISO(today))
   const day =
@@ -66,7 +64,7 @@ function dueItem(
     ...identityOf(source),
     group: 'due',
     key: `${source.kind}:${source.id}${day}`,
-    status: statusOf(daysUntil, overdue),
+    status: statusOf(daysUntil),
     daysUntil,
     dueOn,
     dueTime,
@@ -79,27 +77,28 @@ function dayKey({ dueOn, dueTime }: TodoDay): string {
 
 function vaccinationItems(source: HomeVaccinationSource, today: string): TodoItem[] {
   if (source.dueDate === null) return []
-  const due = { dueOn: source.dueDate, dueTime: null }
-  return [dueItem(source, due, today, source.dueDate < today)]
+  return [dueItem(source, { dueOn: source.dueDate, dueTime: null }, today)]
 }
 
 function treatmentItems(source: HomeTreatmentSource, today: string): TodoItem[] {
-  const view = treatmentReading(source, today)
-  if (view === null) {
+  let schedule
+  try {
+    schedule = treatmentSchedule({ periods: source.periods, doses: source.doses, today })
+  } catch (cause) {
+    if (!(cause instanceof RangeError)) throw cause
     return [{ ...identityOf(source), group: 'unreadable', key: `treatment:${source.id}` }]
   }
-  const isOpen = view.phase !== 'ended' && view.phase !== 'stopped'
-  const overdue = view.phase === 'overdue'
+  const isOpen = schedule.phase !== 'ended' && schedule.phase !== 'stopped'
   const items: TodoItem[] = isOpen
-    ? view.currentDoses.map((due) => dueItem(source, due, today, overdue))
+    ? schedule.currentDoses.map((due) => dueItem(source, due, today))
     : []
-  const [oldest] = [...view.unloggedDoses].sort((a, b) => dayKey(a).localeCompare(dayKey(b)))
+  const [oldest] = [...schedule.unloggedDoses].sort((a, b) => dayKey(a).localeCompare(dayKey(b)))
   if (oldest !== undefined) {
     items.push({
       ...identityOf(source),
       group: 'to-log',
       key: `treatment:${source.id}:unlogged`,
-      unlogged: view.unloggedDoses.length,
+      unlogged: schedule.unloggedDoses.length,
       oldest: { dueOn: oldest.dueOn, dueTime: oldest.dueTime },
     })
   }
