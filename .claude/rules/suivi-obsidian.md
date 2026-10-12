@@ -13,6 +13,10 @@ Demande de Gaelle : mettre à jour son coffre (`Memo-Patte/docs/`) à chaque ava
 | Une décision de Gaelle est reçue                                     | Journal `decisions-log.md` du dépôt et spec, par une PR de documentation                                                       |
 | Un incident (CI rouge, preuve non jouée, erreur de process)          | Ligne « Ce qui a mal tourné, et ce qui change » du bilan, et une règle ici ou dans `collaboration.md` si le remède est durable |
 
+## Une lecture « à confirmer » ne se code qu'après le bilan
+
+Toute lecture de règle marquée « à confirmer » (ou ⏳) dans le journal des décisions autonomes figure, avec un exemple daté, une recommandation et l'alternative, dans le **bilan du même pas**. Sinon elle n'est pas codée : l'agent s'arrête sur ce cas et le décrit (décision de Gaelle, 2026-10-12, après avoir découvert cinq lectures du pas 3 qui n'étaient jamais passées par un bilan). Un relecteur vérifie à chaque pas que les « à confirmer » du journal sont dans le bilan.
+
 ## Comment
 
 - Côté app, pas côté code : écran, geste, exemple daté (animal, dates), ce qui change pour Gaelle, puis la décision attendue.
