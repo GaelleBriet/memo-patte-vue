@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { newSettings, preview, type SettingsRequest } from '../domain/dose-calendar'
 import type { Frequency, Line, Setting, TreatmentViewInput } from '../domain/dose-calendar/types'
-import { DAY, H, keys, line, next, setting, TWO_DAYS, WEEK } from './dose-calendar.v2.aides'
+import { DAY, H, keys, line, MONTH, next, setting, TWO_DAYS, WEEK } from './dose-calendar.v2.aides'
 
 const THREE_DAYS: Frequency = { value: 3, unit: 'day' }
 
@@ -274,6 +274,16 @@ describe('R9 : « Prochaine dose » choisie', () => {
       '2026-03-27',
       '2026-03-29',
     ])
+  })
+
+  it('R6, #794 : mensuel du 29 mars, dose du 29 reportée au 5 avr. ; le 31, « Prochaine dose » le 9 juin, décalage du 5 au 9 avr. : la dose reportée vient de l’ancien rythme, le décalage est sans effet : 5 avr., 9 juin, 9 juil.', () => {
+    const s1 = setting('s1', '2026-03-29', MONTH)
+    const s2 = setting('s2', '2026-06-09', MONTH, [], { startsOn: '2026-03-31' })
+    const lines = [
+      line('s1', 'postponed', '2026-03-29', null, '2026-04-05'),
+      line('s2', 'shift', '2026-04-05', null, '2026-04-09'),
+    ]
+    expect(next([s1, s2], lines, '2026-03-31')).toEqual(['2026-04-05', '2026-06-09', '2026-07-09'])
   })
 
   it.each([
