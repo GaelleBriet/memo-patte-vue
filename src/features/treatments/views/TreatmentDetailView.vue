@@ -66,7 +66,7 @@ const {
   onUnloggedAction,
   onStopAction,
   confirmChosenDays,
-} = useTreatmentDoseFlow({ treatment, schedule, today }, gestures)
+} = useTreatmentDoseFlow({ treatment, view, schedule, today }, gestures)
 const exactReminders = useExactReminders()
 
 const isExplainerOpen = ref(false)

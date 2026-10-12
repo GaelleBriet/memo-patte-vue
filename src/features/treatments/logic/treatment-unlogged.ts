@@ -1,8 +1,10 @@
+import { gestureDue } from './gesture-due'
 import { choiceSummary, type DayChoice } from './treatment-choose-days'
 import { hasSeveralTimes } from './treatment-gestures'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { PastDose } from '../schema/treatment-form.schema'
-import type { Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import type { TreatmentView } from '@/shared/domain/dose-calendar'
+import type { Due } from '@/shared/domain/treatment-schedule'
 import {
   formatClockTime,
   formatDayList,
@@ -117,12 +119,12 @@ export function promptChoice(
 export function unloggedBanner(
   t: Translate,
   treatment: Pick<TreatmentWithHistory, 'name' | 'periods'>,
-  schedule: Pick<TreatmentSchedule, 'unloggedDoses'>,
+  view: Pick<TreatmentView, 'unloggedDoses'>,
   today: string,
   { followed = true }: { followed?: boolean } = {},
 ): UnloggedPrompt | null {
   if (!followed) return null
-  const dues = schedule.unloggedDoses
+  const dues = view.unloggedDoses.map(gestureDue)
   const [first] = dues
   if (first === undefined) return null
   const count = dues.length

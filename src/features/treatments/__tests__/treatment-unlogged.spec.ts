@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { dose, period, plain, treatment } from './treatment-fixtures'
 import { doseCard } from '../logic/treatment-card'
-import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
 import {
   pastDosesOf,
   pastDosesPrompt,
@@ -24,7 +23,7 @@ const PANACUR = {
 const HEBDO = period({ frequency: { value: 1, unit: 'week' } })
 
 function banner(history: TreatmentWithHistory, today = TODAY) {
-  return plain(unloggedBanner(t, history, treatmentScheduleOf(history, today), today))
+  return plain(unloggedBanner(t, history, treatmentReading(history, today)!, today))
 }
 
 afterEach(() => applyLocale('fr'))
@@ -55,7 +54,7 @@ describe('unloggedBanner (TR-15)', () => {
   })
 
   it('TR-37 : aucun bandeau pour un animal qu’on ne suit plus', () => {
-    const schedule = treatmentScheduleOf(PANACUR, TODAY)
+    const schedule = treatmentReading(PANACUR, TODAY)!
 
     expect(unloggedBanner(t, PANACUR, schedule, TODAY, { followed: false })).toBeNull()
   })

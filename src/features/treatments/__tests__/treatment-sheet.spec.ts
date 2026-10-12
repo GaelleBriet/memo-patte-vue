@@ -9,6 +9,7 @@ import {
   treatmentSheetTexts,
 } from '../logic/treatment-sheet'
 import i18n, { applyLocale } from '@/core/i18n'
+import { treatmentReading } from '@/shared/domain/treatment-reading'
 
 const t = i18n.global.t
 
@@ -267,19 +268,19 @@ describe('sheetPeriod — la période dont la feuille parle', () => {
     [AVANT, APRES],
     [dose('2026-09-01', '2026-09-08'), dose('2026-10-05', '2026-10-06', { periodId: 'p-2' })],
   )
-  const schedule = treatmentScheduleOf(book, '2026-10-06')
+  const view = treatmentReading(book, '2026-10-06')!
 
   it('celle de l’échéance de la ligne', () => {
-    expect(sheetPeriod(book, schedule, { dueOn: '2026-10-06', dueTime: null })?.id).toBe('p-2')
+    expect(sheetPeriod(book, view, { dueOn: '2026-10-06', dueTime: null })?.id).toBe('p-2')
   })
 
   it('celle des doses non renseignées pour leur ligne', () => {
-    expect(sheetPeriod(book, schedule, 'unlogged')?.id).toBe('p-1')
+    expect(sheetPeriod(book, view, 'unlogged')?.id).toBe('p-1')
   })
 
-  it('la dernière quand l’échéance n’est plus au calendrier', () => {
-    expect(sheetPeriod(book, schedule, { dueOn: '2026-12-25', dueTime: null })?.id).toBe('p-2')
-    expect(sheetPeriod(book, null, null)?.id).toBe('p-2')
+  it('celle en cours quand l’échéance n’est plus au calendrier ; aucune pour un traitement illisible', () => {
+    expect(sheetPeriod(book, view, { dueOn: '2026-12-25', dueTime: null })?.id).toBe('p-2')
+    expect(sheetPeriod(book, null, null)).toBeUndefined()
   })
 })
 

@@ -10,10 +10,12 @@ import { stopPrompt } from '../logic/treatment-stop'
 import { promptChoice, unloggedBanner, type PromptActionId } from '../logic/treatment-unlogged'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
+import type { TreatmentView } from '@/shared/domain/dose-calendar'
 import type { DoseGesture, Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 
 type DoseFlowState = {
   treatment: Readonly<Ref<TreatmentWithHistory | null>>
+  view: Readonly<Ref<TreatmentView | null>>
   schedule: Readonly<Ref<TreatmentSchedule | null>>
   today: Readonly<Ref<string>>
 }
@@ -28,7 +30,7 @@ export type DoseFlowExits = {
  * « À faire » ; chaque écran dit par `exits` ce qui suit un geste.
  */
 export function useTreatmentDoseFlow(
-  { treatment, schedule, today }: DoseFlowState,
+  { treatment, view, schedule, today }: DoseFlowState,
   gestures: ReturnType<typeof useTreatmentGestures>,
   exits: DoseFlowExits = {},
 ) {
@@ -44,8 +46,8 @@ export function useTreatmentDoseFlow(
     animal: animal.value?.name ?? '',
   }))
   const unlogged = computed(() =>
-    animals.hasLoaded && treatment.value && schedule.value
-      ? unloggedBanner(t, treatment.value, schedule.value, today.value, {
+    animals.hasLoaded && treatment.value && view.value
+      ? unloggedBanner(t, treatment.value, view.value, today.value, {
           followed: (animal.value?.unfollowedOn ?? null) === null,
         })
       : null,

@@ -1,3 +1,4 @@
+import { gestureDue, type GestureDue } from './gesture-due'
 import { isResumablePhase } from './treatment-resumption'
 import { periodRhythmText } from './treatment-rhythm'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
@@ -8,9 +9,6 @@ import { dosageText } from '@/shared/domain/dosage'
 import { currentPeriodIn } from '@/shared/domain/treatment-reading'
 import { formatClockTime, formatDayMonthOrYear } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
-
-/** L'échéance telle que les gestes de la fiche la reçoivent encore (pas 6 de l'épic #758). */
-type GestureDue = { periodId: string; dueOn: string; dueTime: string | null }
 
 export type DoseCardEntry = {
   due: GestureDue
@@ -43,10 +41,10 @@ export function doseCard(
   const period = currentPeriodIn(treatment.periods, view)
   const { phase } = view
   const named = { name: treatment.name, animal }
-  const entries = view.currentDoses.map(({ settingId, ...due }): DoseCardEntry => {
+  const entries = view.currentDoses.map((due): DoseCardEntry => {
     const date = formatDayMonthOrYear(due.dueOn, today)
     return {
-      due: { periodId: settingId, ...due },
+      due: gestureDue(due),
       ...currentDoseText(t, { phase, due, today }),
       overdue: phase === 'overdue',
       doneLabel:
