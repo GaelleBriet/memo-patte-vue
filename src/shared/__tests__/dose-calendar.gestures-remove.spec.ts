@@ -83,3 +83,47 @@ describe('« Supprimer » (R11, Q25, N8, G19)', () => {
     expect(removalRefusal(input, back.id)).toBeNull()
   })
 })
+
+describe('TR-25 : « Supprimer » une dose supprime toutes ses lignes (décision du 2026-10-12)', () => {
+  const twice = (dueOn: string) => [line('p1', 'given', dueOn), line('p1', 'given', dueOn)]
+
+  it('dose du 16 oct. de Milo notée sur chaque appareil, « Supprimer » : plus aucune ligne pour cette dose', () => {
+    const [older, newer] = twice('2026-10-16')
+    const input = { settings: [p1], lines: [older!, newer!], today: '2026-10-20' }
+    const result = removeLine(input, newer!.id)
+    expect('refusal' in result ? result : result.changes).toEqual([
+      { action: 'delete', id: newer!.id },
+      { action: 'delete', id: older!.id },
+    ])
+  })
+
+  it('une dose donnée et la même notée oubliée sur l’autre appareil : les deux lignes partent', () => {
+    const missed = line('p1', 'missed', '2026-10-16')
+    const given = line('p1', 'given', '2026-10-16')
+    const input = { settings: [p1], lines: [missed, given], today: '2026-10-20' }
+    const result = removeLine(input, given.id)
+    expect('refusal' in result ? result : result.changes).toEqual([
+      { action: 'delete', id: given.id },
+      { action: 'delete', id: missed.id },
+    ])
+  })
+
+  it('la ligne grisée « · sans effet » se supprime seule, la prise en vigueur reste', () => {
+    const [older, newer] = twice('2026-10-16')
+    const input = { settings: [p1], lines: [older!, newer!], today: '2026-10-20' }
+    const result = removeLine(input, older!.id)
+    expect('refusal' in result ? result : result.changes).toEqual([
+      { action: 'delete', id: older!.id },
+    ])
+  })
+
+  it('le report et le décalage de la même journée ne sont pas des lignes de la dose', () => {
+    const given = line('p1', 'given', '2026-10-16')
+    const shift = line('p1', 'shift', '2026-10-16', null, '2026-10-19')
+    const input = { settings: [p1], lines: [given, shift], today: '2026-10-20' }
+    const result = removeLine(input, given.id)
+    expect('refusal' in result ? result : result.changes).toEqual([
+      { action: 'delete', id: given.id },
+    ])
+  })
+})
