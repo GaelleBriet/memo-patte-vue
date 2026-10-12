@@ -134,6 +134,23 @@ describe('#796, R6, R7 : la date choisie emmène le décalage de la journée du 
   })
 })
 
+describe('Q38, R12 : la date proposée, passée telle quelle, n’est pas une date choisie', () => {
+  it('toutes les 6 semaines du 7 mars, 7 mars donné, dose du 18 avr. avancée au 11 ; le 8 mars, fin le 20 mars : la date proposée (le 8) passée telle quelle, le report garde son arrivée', () => {
+    const sixWeeks = { value: 6, unit: 'week' as const }
+    const input = {
+      settings: [setting('s1', '2026-03-07', sixWeeks)],
+      lines: [
+        line('s1', 'given', '2026-03-07'),
+        line('s1', 'postponed', '2026-04-18', null, '2026-04-11'),
+      ],
+      today: '2026-03-08',
+    }
+    const asked = { frequency: sixWeeks, times: [], endsOn: '2026-03-20' }
+    expect(planOf(input, asked).setting.firstDueOn).toBe('2026-03-08')
+    expect(planOf(input, { ...asked, firstDueOn: '2026-03-08' }).lines).toBeUndefined()
+  })
+})
+
 describe('#796 : une date choisie avant une dose déjà notée plus loin ne réécrit aucun report', () => {
   it('graine 540000188 : mensuel à 6, 12, 18 et 23 h, dose du 4 mai à 6 h donnée le 18 mars, 12 h reportée au 17 mai ; le 19, « Prochaine dose » le 22 mars : le report garde son arrivée', () => {
     const monthly = { value: 1, unit: 'month' as const }
