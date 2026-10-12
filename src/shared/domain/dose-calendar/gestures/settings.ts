@@ -123,7 +123,8 @@ export function newSettings(input: TreatmentViewInput, request: SettingsRequest)
 }
 
 // #787, TR-8, Q20 : un rythme qui repart de sa première échéance n'a aucune dose encore à donner entre
-// elle et la date de fin ; une date de fin passée termine le traitement (TR-6).
+// elle et la date de fin ; une date de fin passée termine le traitement (TR-6), un réglage qui garde
+// ses dates ne repart pas.
 function leavesNoDose(
   input: TreatmentViewInput,
   request: SettingsRequest,
@@ -133,9 +134,18 @@ function leavesNoDose(
   if (endsOn === null || endsOn < input.today) return false
   const plans =
     'plan' in result ? [result.plan] : 'question' in result ? [result.question.keep] : []
+  const keepsDates = ({ setting, ...plan }: SettingsPlan) =>
+    'id' in plan &&
+    input.settings.some(
+      ({ id, firstDueOn, gridOriginOn }) =>
+        id === plan.id &&
+        firstDueOn === setting.firstDueOn &&
+        gridOriginOn === setting.gridOriginOn,
+    )
   return plans.some(
     (plan) =>
       plan.setting.gridOriginOn !== null &&
+      !keepsDates(plan) &&
       !buildView(settingsApplied(input, plan))
         .slots(plan.setting.firstDueOn, endsOn)
         .some(({ state }) => state === 'pending'),

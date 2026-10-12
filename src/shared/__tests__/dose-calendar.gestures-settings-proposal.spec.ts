@@ -1,9 +1,11 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { newSettings, preview, type SettingsRequest } from '../domain/dose-calendar'
+import { applied, newSettings, play, preview, type SettingsRequest } from '../domain/dose-calendar'
 import type { TreatmentViewInput } from '../domain/dose-calendar/types'
 import { keys, line, setting, TWO_DAYS, WEEK } from './dose-calendar.v2.aides'
+
+const THREE_DAYS = { value: 3, unit: 'day' as const }
 
 function planOf(input: TreatmentViewInput, asked: SettingsRequest) {
   const result = newSettings(input, asked)
@@ -81,6 +83,34 @@ describe('#787 : le critère est la première dose encore à donner, après la d
         endsOn: '2026-10-04',
       }),
     ).toEqual({ refusal: { reason: 'no-dose-before-end' } })
+  })
+
+  it('graine 850001702 : tous les 3 jours, réglage du 22 mars, première dose le 4 avr., fin le 4 ; le 26, dose du 4 avancée au 31 mars avec décalage, puis posologie seule : le réglage garde ses dates, accepté', () => {
+    const s1 = setting('s1', '2026-03-20', THREE_DAYS)
+    const s2 = setting('s2', '2026-04-04', THREE_DAYS, [], {
+      startsOn: '2026-03-22',
+      endsOn: '2026-04-04',
+    })
+    const carnet = {
+      settings: [s1, s2],
+      lines: [
+        line('s1', 'missed', '2026-03-20'),
+        line('s1', 'postponed', '2026-03-23', null, '2026-04-04'),
+        line('s2', 'shift', '2026-03-23', null, '2026-04-04'),
+      ],
+      today: '2026-03-26',
+    }
+    const moved = play(carnet, {
+      kind: 'move',
+      due: { settingId: 's2', dueOn: '2026-04-04', dueTime: null },
+      to: '2026-03-31',
+      shiftsFollowing: true,
+    })
+    if ('refusal' in moved) throw new Error(JSON.stringify(moved))
+    const after = applied(carnet, moved.changes)
+    expect(
+      newSettings(after, { frequency: THREE_DAYS, times: [], endsOn: '2026-04-04' }),
+    ).not.toHaveProperty('refusal')
   })
 
   it('même carnet, date de fin passée (le 3) : accepté, comme avant', () => {
