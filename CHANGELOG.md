@@ -5,6 +5,27 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.73](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.72...memo-patte-v0.1.73) (2026-10-12)
+
+
+### ✨ Fonctionnalités
+
+* **dose-calendar:** décisions de Gaelle du 12 octobre (moteur v2) ([fac8375](https://github.com/GaelleBriet/memo-patte-vue/commit/fac8375e7f23610592fa5b5b20101569873eb39c))
+
+
+### 🐛 Corrections
+
+* **dose-calendar:** [#786](https://github.com/GaelleBriet/memo-patte-vue/issues/786) un seul résultat, le report seul suit ([9f24c6a](https://github.com/GaelleBriet/memo-patte-vue/commit/9f24c6afc6e4e469fa743ee8b1e1c1e6250f23cf))
+* **dose-calendar:** [#787](https://github.com/GaelleBriet/memo-patte-vue/issues/787) jugé de la première échéance à la date de fin ([efca997](https://github.com/GaelleBriet/memo-patte-vue/commit/efca997be2c1722c4f78b7d70139a7886d932178))
+* **dose-calendar:** [#787](https://github.com/GaelleBriet/memo-patte-vue/issues/787) jugé sur la première dose encore à donner ([63f8244](https://github.com/GaelleBriet/memo-patte-vue/commit/63f8244e24cf179ce1833157e78bbc9e5eaeff54))
+* **dose-calendar:** [#787](https://github.com/GaelleBriet/memo-patte-vue/issues/787) sans effet sur un réglage qui garde ses dates ([9bcf2b6](https://github.com/GaelleBriet/memo-patte-vue/commit/9bcf2b6e9043318cd2774e99b0ea762e4fc14469))
+* **dose-calendar:** date montrée et refus [#787](https://github.com/GaelleBriet/memo-patte-vue/issues/787) lus sur le réglage écrit ([72ee6cc](https://github.com/GaelleBriet/memo-patte-vue/commit/72ee6cca3fdc69b373aeebe2bdf1038c14bc6a0c))
+* **dose-calendar:** décalage d'avant une date choisie sans effet ([9b31345](https://github.com/GaelleBriet/memo-patte-vue/commit/9b3134563a265d25f0ab9fa69697745c1c6e6dc1))
+* **dose-calendar:** décalage d'une arrivée gardé, posologie sans effet ([8c55ee3](https://github.com/GaelleBriet/memo-patte-vue/commit/8c55ee3a1a1a1b3f4eefd49c1209d11b873b48b2))
+* **dose-calendar:** décalage jugé sur la grille d'avant lui (R6, [#794](https://github.com/GaelleBriet/memo-patte-vue/issues/794)) ([63cd99a](https://github.com/GaelleBriet/memo-patte-vue/commit/63cd99ad0f06726aebba9614744c0c74d6fb3b6f))
+* **dose-calendar:** jour masqué par une date choisie (TR-9) ([5774ded](https://github.com/GaelleBriet/memo-patte-vue/commit/5774ded1d568b592094a8766da94ceb378bfe132))
+* **dose-engine:** grille en vigueur de l'oracle sans décalage inerte ([d8e3742](https://github.com/GaelleBriet/memo-patte-vue/commit/d8e374275fc12bebb3533aa9fe8d38f6b6c1b8e4))
+
 ## [0.1.72](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.71...memo-patte-v0.1.72) (2026-10-12)
 
 
