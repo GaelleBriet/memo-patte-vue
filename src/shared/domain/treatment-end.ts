@@ -4,7 +4,7 @@ import {
   type TreatmentPeriodInput,
   type TreatmentSchedule,
 } from './treatment-schedule'
-import { byStartDescending, periodLastDay } from './treatment-periods'
+import { byStartDescending, periodClosedBeforeFirstDue } from './treatment-periods'
 
 /** Fin d'un traitement fini : sa date de fin une fois atteinte, sinon sa dernière échéance notée. */
 export function endedOnOf(
@@ -26,15 +26,6 @@ type PeriodDays = Pick<
   TreatmentPeriodInput,
   'id' | 'startsOn' | 'createdAt' | 'firstDueOn' | 'endsOn' | 'stoppedOn'
 >
-
-/** Arrêtée, finie ou remplacée par `next` avant sa première échéance. */
-export function periodClosedBeforeFirstDue(
-  period: Pick<TreatmentPeriodInput, 'firstDueOn' | 'endsOn' | 'stoppedOn'>,
-  next: Pick<TreatmentPeriodInput, 'startsOn'> | undefined,
-): boolean {
-  const last = periodLastDay(period, next)
-  return last !== null && last < period.firstDueOn
-}
 
 /** `period` arrêtée avant sa première échéance, et aucune dose jamais due ni notée sur tout le traitement. */
 export function isStoppedBeforeFirstDose(

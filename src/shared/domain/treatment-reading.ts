@@ -1,0 +1,110 @@
+import { differenceInCalendarDays } from 'date-fns'
+
+import { isCalendarDay, previousDay, toDate } from './calendar-day'
+import { isClockTime } from './clock-time'
+import {
+  treatmentView,
+  viewInputOf,
+  type HistoryLine,
+  type IdleReason,
+  type LegacyInput,
+  type Line,
+  type TreatmentView,
+} from './dose-calendar'
+import { DAYS_PER_STEP, FREQUENCY_UNITS, MAX_FREQUENCY_VALUE } from './treatment-frequency'
+
+type Period = LegacyInput['periods'][number]
+type Dose = LegacyInput['doses'][number]
+
+/** Les périodes et les prises d'un traitement telles que la base les rend. */
+export type TreatmentRecords = { periods: readonly Period[]; doses: readonly Dose[] }
+
+const MAX_DUES = 50_000
+const STATUSES: readonly string[] = ['given', 'missed', 'postponed', 'extra', 'shift']
+const UNITS: readonly string[] = FREQUENCY_UNITS
+
+const isOptionalDay = (day: unknown) => day === null || isCalendarDay(day)
+
+function isReadablePeriod({ frequency, times, ...days }: Period): boolean {
+  const { value, unit } = frequency ?? {}
+  return (
+    [days.startsOn, days.firstDueOn, days.referenceOn].every(isCalendarDay) &&
+    isOptionalDay(days.endsOn) &&
+    isOptionalDay(days.stoppedOn) &&
+    Number.isInteger(value) &&
+    value! >= 1 &&
+    value! <= MAX_FREQUENCY_VALUE &&
+    UNITS.includes(unit ?? '') &&
+    Array.isArray(times) &&
+    times.every(isClockTime) &&
+    new Set(times).size === times.length
+  )
+}
+
+function isReadableDose(dose: Dose): boolean {
+  const moves = dose.status === 'postponed' || dose.status === 'shift'
+  return (
+    STATUSES.includes(dose.status) &&
+    isCalendarDay(dose.dueOn) &&
+    isOptionalDay(dose.givenOn) &&
+    (dose.dueTime === null || isClockTime(dose.dueTime)) &&
+    (!moves || isCalendarDay(dose.nextDueDate))
+  )
+}
+
+function byStart(a: Period, b: Period): number {
+  const key = ({ startsOn, createdAt, id }: Period) => `${startsOn} ${createdAt} ${id}`
+  return key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0
+}
+
+function estimatedPeriodDues(
+  period: Period,
+  next: Period | undefined,
+  doses: readonly Dose[],
+  today: string,
+): number {
+  const keys = doses.map(({ dueOn }) => dueOn)
+  const arrivals = doses.filter(({ status }) => status === 'postponed').map((d) => d.nextDueDate)
+  const first = [period.firstDueOn, ...keys, ...arrivals].sort()[0]!
+  const closesOn = [period.stoppedOn, next?.startsOn ?? null]
+    .filter((day) => day !== null)
+    .sort()[0]
+  const close = closesOn === undefined ? null : previousDay(closesOn)
+  const end = [period.endsOn, close, today].filter((day) => day !== null).sort()[0]!
+  const last = [end, ...keys].sort().at(-1)!
+  const span = Math.max(0, differenceInCalendarDays(toDate(last), toDate(first)))
+  const stepDays = DAYS_PER_STEP[period.frequency.unit] * period.frequency.value
+  const perDay = Math.max(1, period.times.length)
+  return (Math.floor(span / stepDays) + 2) * perDay + doses.length
+}
+
+/** Réglage par réglage, jusqu'à aujourd'hui ou sa fin : la même borne que l'ancien moteur. */
+function estimatedDues({ periods, doses }: TreatmentRecords, today: string): number {
+  const ordered = [...periods].sort(byStart)
+  return ordered.reduce((sum, period, index) => {
+    const own = doses.filter(({ periodId }) => periodId === period.id)
+    return sum + estimatedPeriodDues(period, ordered[index + 1], own, today)
+  }, 0)
+}
+
+/** R12 : la lecture d'un traitement enregistré ; `null` quand ses données sont illisibles. */
+export function treatmentReading(treatment: TreatmentRecords, today: string): TreatmentView | null {
+  const readable =
+    treatment.periods.every(isReadablePeriod) &&
+    treatment.doses.every(isReadableDose) &&
+    estimatedDues(treatment, today) <= MAX_DUES
+  if (!readable) return null
+  return treatmentView(viewInputOf({ ...treatment, today }))
+}
+
+// R11 veut ces lignes grisées « · sans effet » : faute de ce texte, elles restent cachées.
+const HIDDEN: readonly IdleReason[] = ['superseded', 'back-to-date', 'beaten']
+
+function isShown({ effect }: HistoryLine): boolean {
+  return effect.kind !== 'idle' || !HIDDEN.includes(effect.reason)
+}
+
+/** Les lignes que l'historique montre, dans l'ordre chronologique. */
+export function shownLines(view: Pick<TreatmentView, 'history'>): Line[] {
+  return view.history.filter(isShown).map(({ line }) => line)
+}

@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { episodeLines } from '../domain/dose-calendar/lines'
+import { episodeLines, isAdvanced } from '../domain/dose-calendar/lines'
 import { line } from './dose-calendar.v2.aides'
 
 const P1 = new Set(['p1'])
@@ -33,5 +33,12 @@ describe('TR-25, R11 : les lignes lues par le calendrier', () => {
     expect(read.shifts).toEqual([second])
     expect(read.kept).not.toContain(other)
     expect(read.idle.has(other.id)).toBe(false)
+  })
+
+  it('« Avancée au … » : un report dont l’arrivée précède l’échéance, jamais un décalage', () => {
+    expect(isAdvanced(line('p1', 'postponed', '2026-10-05', null, '2026-10-03'))).toBe(true)
+    expect(isAdvanced(line('p1', 'postponed', '2026-10-05', null, '2026-10-07'))).toBe(false)
+    expect(isAdvanced(line('p1', 'postponed', '2026-10-05', null, '2026-10-05'))).toBe(false)
+    expect(isAdvanced(line('p1', 'shift', '2026-10-05', null, '2026-10-03'))).toBe(false)
   })
 })

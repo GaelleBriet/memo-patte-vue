@@ -22,6 +22,15 @@ export function periodLastDay(
   )
 }
 
+/** Arrêtée, finie ou remplacée par `next` avant sa première échéance. */
+export function periodClosedBeforeFirstDue(
+  period: Pick<TreatmentPeriodInput, 'firstDueOn' | 'endsOn' | 'stoppedOn'>,
+  next: Pick<TreatmentPeriodInput, 'startsOn'> | undefined,
+): boolean {
+  const last = periodLastDay(period, next)
+  return last !== null && last < period.firstDueOn
+}
+
 export function hasSeveralDoseTimes(times: readonly string[]): boolean {
   return times.length > 1
 }

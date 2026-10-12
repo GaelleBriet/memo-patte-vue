@@ -1,4 +1,4 @@
-import { keyOf, sameFrequency } from './grid'
+import { keyOf, plusDays, sameFrequency } from './grid'
 import { isNote, latestBy } from './lines'
 import type { Day, Line, Setting } from './types'
 
@@ -93,4 +93,15 @@ export function borrowedNotes(
     ),
     (line) => keyOf(line.dueOn, line.dueTime),
   )
+}
+
+/** TR-30, #594 : chaque réglage clos avant sa première échéance, le jour de l'arrêt compris dans le réglage. */
+export function closedBeforeFirstDue(settings: readonly Setting[]): boolean {
+  const ordered = episodesOf(settings).flat()
+  return ordered.every((setting, index) => {
+    const next = ordered[index + 1]
+    const before = next === undefined ? null : plusDays(next.startsOn, -1)
+    const last = [setting.endsOn, setting.stoppedOn, before].filter((day) => day !== null).sort()[0]
+    return last !== undefined && last < setting.firstDueOn
+  })
 }
