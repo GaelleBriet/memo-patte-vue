@@ -347,6 +347,7 @@ describe.skipIf(out === undefined)('lecture des écrans, avant / après (#752)',
     }
     writeFileSync(join(out!, 'carnets-choisis.json'), JSON.stringify(chosen, null, 1))
     writeFileSync(join(out!, 'familles.json'), JSON.stringify(families, null, 1))
+    expect(written).toBeGreaterThan(1)
     process.stdout.write(
       `Lecture « ${VERSION} » : ${written} carnets ; ${JSON.stringify(chosen)}\n`,
     )
