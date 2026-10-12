@@ -213,3 +213,48 @@ describe('doseChange — le report nommé quand la suite ne bouge pas (G19, G20)
     )
   })
 })
+
+describe('doseChange — la prise d’une dose avancée : son décalage est sous l’échéance d’origine (G18)', () => {
+  const ADVANCED = treatment(
+    [
+      period({
+        startsOn: '2026-09-01',
+        firstDueOn: '2026-09-01',
+        frequency: { value: 1, unit: 'week' },
+      }),
+    ],
+    [
+      dose('2026-09-01', '2026-09-08'),
+      postponed('2026-09-08', '2026-09-06'),
+      shifted('2026-09-08', '2026-09-05'),
+      dose('2026-09-06', '2026-09-12', { givenOn: '2026-09-05' }),
+    ],
+  )
+
+  it('supprimer la prise garde le décalage, et le geste le dit', () => {
+    const { writes, shiftKept } = change(ADVANCED, '2026-09-07', {
+      kind: 'remove',
+      lineId: '2026-09-06',
+    })
+
+    expect(writes).toEqual([{ action: 'delete', id: '2026-09-06' }])
+    expect(shiftKept).toBe(true)
+  })
+
+  it('« Marquer comme oubliée » garde le décalage, et le geste le dit', () => {
+    const due = { settingId: 'p-1', dueOn: '2026-09-06', dueTime: null }
+
+    expect(
+      change(ADVANCED, '2026-09-07', {
+        kind: 'note',
+        gesture: {
+          kind: 'note',
+          due,
+          status: 'missed',
+          givenOn: '2026-09-06',
+          shiftsFollowing: false,
+        },
+      }).shiftKept,
+    ).toBe(true)
+  })
+})
