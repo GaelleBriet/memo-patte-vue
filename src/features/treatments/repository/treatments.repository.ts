@@ -305,8 +305,8 @@ export function createTreatmentsRepository(
         })
       }
       if (plan.period?.action === 'correct') {
-        const { settings, referenceOn } = plan.period
-        statements.push(periods.correctCurrentSettingsStatement(id, settings, at, referenceOn))
+        const { id: periodId, settings, referenceOn } = plan.period
+        statements.push(periods.correctSettingsStatement(periodId, settings, at, referenceOn))
       }
       if (plan.period?.action === 'open') {
         statements.push(

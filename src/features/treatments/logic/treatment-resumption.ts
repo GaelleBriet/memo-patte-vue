@@ -83,7 +83,7 @@ export function treatmentResumptionSchemaFor(history: TreatmentWithHistory, toda
     })
     .superRefine(({ firstDoseOn, ...rhythm }, context) => {
       const settings = withRhythm(
-        { ...settingsOf(period), startsOn: firstDoseOn, firstDueOn: firstDoseOn },
+        { ...settingsOf(period), startsOn: today, firstDueOn: firstDoseOn },
         rhythm,
       )
       if (firstDoseOn >= earliestOn && startsTooFarBack(history, settings, today)) {
@@ -108,7 +108,7 @@ export function resumptionPlan(
       action: 'open',
       id: ids.periodId,
       settings: withRhythm(
-        { ...settingsOf(period), startsOn: firstDoseOn, firstDueOn: firstDoseOn },
+        { ...settingsOf(period), startsOn: today, firstDueOn: firstDoseOn },
         rhythm,
       ),
       referenceOn: firstDoseOn,

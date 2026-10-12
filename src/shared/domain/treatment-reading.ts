@@ -88,51 +88,64 @@ function estimatedDues({ periods, doses }: TreatmentRecords, today: string): num
   }, 0)
 }
 
-function byCreation(a: Period, b: Period): number {
-  return (
-    a.startsOn.localeCompare(b.startsOn) ||
-    a.createdAt.localeCompare(b.createdAt) ||
-    a.id.localeCompare(b.id)
-  )
-}
+/** Ce qui range les réglages d'un traitement et fait hériter l'origine de l'un à l'autre. */
+export type OrderedPeriod = Pick<
+  Period,
+  'id' | 'startsOn' | 'createdAt' | 'stoppedOn' | 'frequency' | 'referenceOn'
+>
 
-const sameRhythm = (a: Period, b: Period) =>
+const sameRhythm = (a: OrderedPeriod, b: OrderedPeriod) =>
   a.frequency.value === b.frequency.value && a.frequency.unit === b.frequency.unit
 
-/**
- * Le schéma v11 n'a qu'une colonne, `reference_on`, pour l'origine de la grille : un réglage à la
- * fréquence du précédent qui l'écrit autrement que lui pose sa propre origine (TR-9). Un réglage qui
- * hérite recopie la référence du précédent.
- */
-function ownsOrigin(period: Period, previous: Period | undefined): boolean {
-  return (
-    previous !== undefined &&
-    previous.stoppedOn === null &&
-    sameRhythm(previous, period) &&
-    period.referenceOn !== previous.referenceOn
+// R1, R9 : un réglage remplacé avant son premier jour cède sa place à un réglage écrit après lui.
+function inOrder<P extends OrderedPeriod>(periods: readonly P[]): P[] {
+  const startOf = (period: P) =>
+    periods
+      .filter(({ createdAt }) => createdAt > period.createdAt)
+      .reduce((day, newer) => (newer.startsOn < day ? newer.startsOn : day), period.startsOn)
+  return [...periods].sort(
+    (a, b) =>
+      startOf(a).localeCompare(startOf(b)) ||
+      a.createdAt.localeCompare(b.createdAt) ||
+      a.id.localeCompare(b.id),
   )
 }
 
-function withOwnOrigins(input: TreatmentViewInput, periods: readonly Period[]): TreatmentViewInput {
-  const ordered = [...periods].sort(byCreation)
-  const own = new Map(
-    ordered.flatMap((period, index) =>
-      ownsOrigin(period, ordered[index - 1])
-        ? [
-            [
-              period.id,
-              viewInputOf({ periods: [period], doses: [], today: input.today }).settings[0]!
-                .gridOriginOn,
-            ] as const,
-          ]
-        : [],
-    ),
+/** Le réglage qui précède celui-ci dans l'ordre que lit le moteur : celui dont il hérite l'origine. */
+export function previousPeriod<P extends OrderedPeriod>(
+  periods: readonly P[],
+  period: P,
+): P | undefined {
+  const others = periods.filter(({ id }) => id !== period.id)
+  const ordered = inOrder([...others, period])
+  return ordered[ordered.indexOf(period) - 1]
+}
+
+/**
+ * Le schéma v11 n'a qu'une colonne, `reference_on`, pour l'origine de la grille : un réglage qui
+ * hérite de celle du précédent (même fréquence, non arrêté) en recopie la référence, un réglage qui
+ * pose la sienne l'écrit (TR-9, R8).
+ */
+function withOrigins(input: TreatmentViewInput, periods: readonly Period[]): TreatmentViewInput {
+  const ordered = inOrder(periods)
+  const origins = new Map(
+    ordered.map((period, index) => {
+      const previous = ordered[index - 1]
+      const inherits =
+        previous !== undefined &&
+        previous.stoppedOn === null &&
+        sameRhythm(previous, period) &&
+        period.referenceOn === previous.referenceOn
+      const own = viewInputOf({ periods: [period], doses: [], today: input.today }).settings[0]!
+      return [period.id, inherits ? null : own.gridOriginOn] as const
+    }),
   )
-  if (own.size === 0) return input
   return {
     ...input,
     settings: input.settings.map((setting) =>
-      own.has(setting.id) ? { ...setting, gridOriginOn: own.get(setting.id)! } : setting,
+      origins.has(setting.id)
+        ? { ...setting, gridOriginOn: origins.get(setting.id) ?? null }
+        : setting,
     ),
   }
 }
@@ -147,7 +160,7 @@ export function readTreatment(treatment: TreatmentRecords, today: string): Treat
     treatment.doses.every(isReadableDose) &&
     estimatedDues(treatment, today) <= MAX_DUES
   if (!readable) return null
-  const input = withOwnOrigins(viewInputOf({ ...treatment, today }), treatment.periods)
+  const input = withOrigins(viewInputOf({ ...treatment, today }), treatment.periods)
   return { view: treatmentView(input), input }
 }
 

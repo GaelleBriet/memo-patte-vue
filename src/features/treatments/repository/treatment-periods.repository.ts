@@ -163,32 +163,32 @@ export function createTreatmentPeriodsRepository(
   }
 
   function stopStatement(
-    treatmentId: string,
+    periodId: string,
     stoppedOn: string,
     updatedAt: string,
   ): Required<SqlStatement> {
     return {
       sql: `UPDATE treatment_period SET stopped_on = ?, updated_at = ?, updated_by_device = ?
-            WHERE id = ${currentPeriodIdSql('?')} AND stopped_on IS NULL`,
-      params: [stoppedOn, updatedAt, deviceId(), treatmentId],
+            WHERE id = ? AND stopped_on IS NULL`,
+      params: [stoppedOn, updatedAt, deviceId(), periodId],
     }
   }
 
   // Réinsère la période déjà arrêtée sous son propre identifiant : la clé primaire fait échouer le lot.
-  function notStoppedGuardStatement(treatmentId: string): Required<SqlStatement> {
+  function notStoppedGuardStatement(periodId: string): Required<SqlStatement> {
     return {
       sql: `INSERT INTO treatment_period (${SYNC_COLUMNS})
             SELECT ${SYNC_COLUMNS} FROM treatment_period
-            WHERE id = ${currentPeriodIdSql('?')} AND stopped_on IS NOT NULL`,
-      params: [treatmentId],
+            WHERE id = ? AND stopped_on IS NOT NULL`,
+      params: [periodId],
     }
   }
 
-  function undoStopStatement(treatmentId: string, updatedAt: string): Required<SqlStatement> {
+  function undoStopStatement(periodId: string, updatedAt: string): Required<SqlStatement> {
     return {
       sql: `UPDATE treatment_period SET stopped_on = NULL, updated_at = ?, updated_by_device = ?
-            WHERE id = ${currentPeriodIdSql('?')} AND stopped_on IS NOT NULL`,
-      params: [updatedAt, deviceId(), treatmentId],
+            WHERE id = ? AND stopped_on IS NOT NULL`,
+      params: [updatedAt, deviceId(), periodId],
     }
   }
 
@@ -243,12 +243,11 @@ export function createTreatmentPeriodsRepository(
     },
 
     /**
-     * Tous les réglages de la période en cours, sauf son arrêt ; le jour de référence suit la
-     * première échéance sauf mention. Rien n'est daté si rien ne change. Lève pour des réglages
-     * incohérents.
+     * Tous les réglages de cette période, sauf son arrêt ; le jour de référence suit la première
+     * échéance sauf mention. Rien n'est daté si rien ne change. Lève pour des réglages incohérents.
      */
-    correctCurrentSettingsStatement(
-      treatmentId: string,
+    correctSettingsStatement(
+      periodId: string,
       input: TreatmentPeriodSettings,
       updatedAt: string,
       referenceOn?: string,
@@ -270,34 +269,34 @@ export function createTreatmentPeriodsRepository(
         sql: `UPDATE treatment_period
               SET ${SETTINGS_COLUMNS.map((column) => `${column} = ?`).join(', ')},
                   reference_on = ?, updated_at = ?, updated_by_device = ?
-              WHERE id = ${currentPeriodIdSql('?')}
+              WHERE id = ?
                 AND (${SETTINGS_COLUMNS.map((column) => `${column} IS NOT ?`).join(' OR ')})`,
         params: [
           ...values,
           calendarDaySchema.parse(referenceOn ?? settings.firstDueOn),
           updatedAt,
           deviceId(),
-          treatmentId,
+          periodId,
           ...values,
         ],
       }
     },
 
-    /** Faux quand la période en cours est déjà arrêtée, ou que le traitement n'en a pas : rien n'est écrit. */
-    async stop(treatmentId: string, stoppedOn: string): Promise<boolean> {
-      const { sql, params } = stopStatement(treatmentId, stoppedOn, new Date().toISOString())
+    /** Faux quand la période est déjà arrêtée, ou inconnue : rien n'est écrit. */
+    async stop(periodId: string, stoppedOn: string): Promise<boolean> {
+      const { sql, params } = stopStatement(periodId, stoppedOn, new Date().toISOString())
       return (await db.run(sql, params)) > 0
     },
 
-    async undoStop(treatmentId: string): Promise<void> {
-      const { sql, params } = undoStopStatement(treatmentId, new Date().toISOString())
+    async undoStop(periodId: string): Promise<void> {
+      const { sql, params } = undoStopStatement(periodId, new Date().toISOString())
       await db.run(sql, params)
     },
 
     /** L'arrêt, à jouer dans la transaction des prises renseignées avec lui. */
     stopStatement,
 
-    /** Fait échouer la transaction quand la période en cours est déjà arrêtée. */
+    /** Fait échouer la transaction quand la période est déjà arrêtée. */
     notStoppedGuardStatement,
 
     undoStopStatement,

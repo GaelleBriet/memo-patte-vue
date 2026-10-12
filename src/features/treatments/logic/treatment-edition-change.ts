@@ -5,7 +5,14 @@ import type {
   NextDoseHelp,
 } from './treatment-edition-resolution'
 import { treatmentReadingOf } from './treatment-reading-adapter'
-import { changesRhythm, changesSchedule, currentPeriod, rhythmOf } from './treatment-settings'
+import {
+  changesSchedule,
+  currentPeriod,
+  rhythmOf,
+  sameSettings,
+  settingsOf,
+  withRhythm,
+} from './treatment-settings'
 import type { PastDuesChoice, TreatmentRhythm } from '../schema/treatment-form.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
@@ -98,15 +105,14 @@ export function resolve(
   const period = currentPeriod(history, reading.view)
   if (lockedBy(period, reading)) return locked(period)
   const next = rhythm ?? rhythmOf(period)
+  const typed = chosenOn !== null && isCalendarDay(chosenOn) ? chosenOn : null
   const base = newSettings(reading.input, requestOf(next))
   const proposedOn = shownOf(base) ?? reading.view.currentDoses[0]?.dueOn ?? today
-  const chosen =
-    chosenOn !== null && isCalendarDay(chosenOn) && chosenOn !== proposedOn
-      ? newSettings(reading.input, requestOf(next, chosenOn))
-      : null
-  const answer = chosen ?? base
+  const answer = typed === null ? base : newSettings(reading.input, requestOf(next, typed))
   const hasNote = history.doses.some(({ status }) => status === 'given' || status === 'missed')
-  const writes = changesRhythm(period, next) || chosen !== null
+  const writes =
+    (typed !== null && typed !== proposedOn) ||
+    !sameSettings(withRhythm(settingsOf(period), next), settingsOf(period))
   const refusal = 'refusal' in answer ? answer.refusal : null
   return {
     period,

@@ -74,6 +74,14 @@ export function createTreatmentStopService({
     return history
   }
 
+  // Le réglage en cours est celui que lit le moteur, pas la période que la base classe en dernier.
+  function currentPeriodId(history: TreatmentWithHistory): string {
+    const current = readableReadingOf(history, today())?.view.currentSetting
+    const id = current?.id ?? history.periods.at(-1)?.id
+    if (id === undefined) throw new Error(`Traitement sans période : ${history.id}`)
+    return id
+  }
+
   /** Rien à écrire : traitement déjà arrêté, ou fini par sa date de fin ; `null` sinon. */
   function unchanged(history: TreatmentWithHistory): StoppedTreatment | null {
     const view = readableReadingOf(history, today())?.view
@@ -95,9 +103,10 @@ export function createTreatmentStopService({
     const { writes } = doseChange(history, reading, { kind: 'log', gestures }, newId)
     const at = now().toISOString()
     const repository = await periods()
+    const periodId = currentPeriodId(history)
     const stop = [
-      repository.notStoppedGuardStatement(history.id),
-      repository.stopStatement(history.id, today(), at),
+      repository.notStoppedGuardStatement(periodId),
+      repository.stopStatement(periodId, today(), at),
     ]
     try {
       return await (await doses()).applyBatch(writes, at, stop)
@@ -128,7 +137,8 @@ export function createTreatmentStopService({
         return stoppedElsewhere
       }
     }
-    const stopped = gestures.length > 0 || (await (await periods()).stop(treatmentId, today()))
+    const stopped =
+      gestures.length > 0 || (await (await periods()).stop(currentPeriodId(history), today()))
     await reminders.reschedule(treatmentId)
     const finished =
       readableReadingOf(await historyOf(treatmentId), today())?.view.finished ?? false
@@ -136,10 +146,11 @@ export function createTreatmentStopService({
   }
 
   async function undone(treatmentId: string, writes: readonly DoseWrite[]): Promise<void> {
-    if (writes.length === 0) await (await periods()).undoStop(treatmentId)
+    const periodId = currentPeriodId(await historyOf(treatmentId))
+    if (writes.length === 0) await (await periods()).undoStop(periodId)
     else {
       const at = now().toISOString()
-      const undoStop = (await periods()).undoStopStatement(treatmentId, at)
+      const undoStop = (await periods()).undoStopStatement(periodId, at)
       await (await doses()).applyBatch(writes, at, [undoStop])
     }
     await reminders.reschedule(treatmentId)

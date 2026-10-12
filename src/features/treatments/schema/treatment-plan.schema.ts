@@ -20,7 +20,7 @@ export type PlannedDoseWrite =
 export type TreatmentPlanWrite = {
   treatment: Pick<Treatment, 'name' | 'type'> | null
   period:
-    | { action: 'correct'; settings: TreatmentPeriodSettings; referenceOn?: string }
+    | { action: 'correct'; id: string; settings: TreatmentPeriodSettings; referenceOn?: string }
     | { action: 'open'; id: string; settings: TreatmentPeriodSettings; referenceOn?: string }
     | null
   doses: PlannedDoseWrite[]

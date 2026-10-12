@@ -70,7 +70,7 @@ export function hasWholeDosage({
   return (doseQuantity === null) === (doseUnit === null)
 }
 
-/** Garde de toute écriture d'une période : ce qu'elle laisse passer se réimporte. */
+/** Garde de toute écriture d'une période ; ses dates sont celles du moteur des doses (R1). */
 export const treatmentPeriodSettingsSchema = z
   .object({
     startsOn: calendarDaySchema,
@@ -84,7 +84,3 @@ export const treatmentPeriodSettingsSchema = z
     reminderTime: clockTimeSchema.nullable(),
   })
   .refine(hasWholeDosage, { path: ['doseUnit'] })
-  .refine(({ startsOn, firstDueOn }) => firstDueOn >= startsOn, { path: ['firstDueOn'] })
-  .refine(({ firstDueOn, endsOn }) => endsOn === null || endsOn >= firstDueOn, {
-    path: ['endsOn'],
-  })
