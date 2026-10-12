@@ -1,5 +1,5 @@
 const CANONICAL_HOST = 'memopatte.app'
-const OLD_HOSTS = ['memopatte.gaelle-briet.fr', 'www.memopatte.app']
+const OLD_HOSTS = ['memopatte.gaelle-briet.fr', 'www.memopatte.app', 'memopatte.pages.dev']
 
 export default {
   async fetch(request, env) {
