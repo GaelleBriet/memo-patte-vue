@@ -2406,3 +2406,14 @@ Raison (Gaelle) : ne jamais faire disparaître une dose ni une ligne sans geste,
 seul texte par geste. — Alternatives écartées : accepter et terminer le traitement (#787), proposer
 une journée déjà toute donnée, ne compter la prise du jour de la reprise que si elle commence ce
 jour-là, laisser bouger le report en déplaçant le début du réglage (#780).
+
+2026-10-12 — **Moteur des doses v2 : réponses de Gaelle à la relecture de la PR #795** (spec
+`traitements.md` §10, dernières entrées du 2026-10-12). Un décalage se juge à la lettre : sa journée
+d'origine doit être une échéance de la grille telle qu'elle est avant lui, ou l'arrivée d'une dose
+reportée du rythme en vigueur ; une date choisie est toujours montrée (#794) ; choisie le jour d'une
+échéance, elle remplace la dose de ce jour et laisse les plus anciennes à renseigner ; #787 se juge sur
+la première dose encore à donner ; #786 rend un seul résultat, le report suit quand une date lui
+convient. — Raison (Gaelle) : une date choisie par la personne est celle que la fiche montre, et un
+même geste ne rend qu'un résultat ; la parité avec l'ancien moteur ne compte pas (aucune donnée
+réelle). — Alternatives écartées : la lecture étroite des décalages à fréquence gardée, le plancher
+d'un réglage jamais commencé, un refus `passes-report` propre à « Fait à une autre date ».
