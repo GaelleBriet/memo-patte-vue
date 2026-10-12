@@ -7,10 +7,9 @@ import {
   type TreatmentState,
 } from '@/shared/domain/treatment-outlook'
 import { buildReminders, type ReminderKind } from '@/shared/domain/reminders'
-import type { ExportData, ExportFrequency } from '@/shared/domain/carnet-data'
+import type { ExportData, ExportFrequency, ExportTreatmentDose } from '@/shared/domain/carnet-data'
 import { vaccinationHistories } from '@/shared/domain/carnet-heads'
 import type { Dosage } from '@/shared/domain/dosage'
-import type { Line } from '@/shared/domain/dose-calendar'
 import {
   byStartDescending,
   isSeveralTimesADay,
@@ -136,7 +135,12 @@ type Event =
 
 type MovedLine = Extract<PdfHistoryLine, { kind: 'moved' }>
 
-function eventOf(dose: Line, severalTimes: boolean): Event[] {
+type ShownDose = Pick<
+  ExportTreatmentDose,
+  'id' | 'periodId' | 'dueOn' | 'dueTime' | 'givenOn' | 'status' | 'nextDueDate' | 'createdAt'
+>
+
+function eventOf(dose: ShownDose, severalTimes: boolean): Event[] {
   const time = severalTimes ? dose.dueTime : null
   switch (dose.status) {
     case 'given':
@@ -153,8 +157,8 @@ function eventOf(dose: Line, severalTimes: boolean): Event[] {
           line: {
             kind: 'moved',
             dueOn: dose.dueOn,
-            to: dose.targetOn!,
-            advanced: dose.targetOn! < dose.dueOn,
+            to: dose.nextDueDate,
+            advanced: dose.nextDueDate < dose.dueOn,
           },
         },
       ]
@@ -215,15 +219,30 @@ function linesOf(events: Event[], frequency: ExportFrequency): PdfHistoryLine[] 
     .map(lineOf)
 }
 
-function treatmentPeriods({ periods, view }: TreatmentState): PdfTreatmentPeriod[] {
+// L'ordre d'écriture départage deux lignes d'une même échéance, comme avant la lecture unique.
+function creationOrder(a: ShownDose, b: ShownDose): number {
+  const key = (dose: ShownDose) =>
+    `${dose.dueOn} ${dose.dueTime ?? ''} ${dose.createdAt} ${dose.id}`
+  return compare(key(a), key(b))
+}
+
+// Illisible, la dernière prise reste un fait enregistré ; seul l'historique attend une lecture du moteur.
+function shownDoses({ doses, view }: TreatmentState): ShownDose[] {
+  const records = new Map(doses.map((dose) => [dose.id, dose]))
+  const shown = view === null ? doses : shownLines(view).flatMap(({ id }) => records.get(id) ?? [])
+  return [...shown].sort(creationOrder)
+}
+
+function treatmentPeriods(state: TreatmentState): PdfTreatmentPeriod[] {
+  const { periods, view } = state
   if (view === null) return []
-  const lines = shownLines(view)
+  const lines = shownDoses(state)
   const sorted = [...periods].sort(byStartDescending)
   return sorted.flatMap((period, index): PdfTreatmentPeriod[] => {
     const severalTimes = isSeveralTimesADay(period)
     const events: Event[] = [
       ...lines
-        .filter((dose) => dose.settingId === period.id)
+        .filter((dose) => dose.periodId === period.id)
         .flatMap((dose) => eventOf(dose, severalTimes)),
       ...view.unloggedDoses
         .filter((due) => due.settingId === period.id)
@@ -246,9 +265,8 @@ function treatmentPeriods({ periods, view }: TreatmentState): PdfTreatmentPeriod
   })
 }
 
-// Illisible, la dernière prise reste un fait enregistré ; seul l'historique attend une lecture du moteur.
-function lastIntake({ doses, view }: TreatmentState): PdfDose | null {
-  const given = (view === null ? doses : shownLines(view)).filter(
+function lastIntake(state: TreatmentState): PdfDose | null {
+  const given = shownDoses(state).filter(
     (dose) => dose.givenOn !== null && (dose.status === 'given' || dose.status === 'extra'),
   )
   const rank = ({ givenOn, dueOn, dueTime }: (typeof given)[number]) =>

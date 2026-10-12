@@ -73,11 +73,10 @@ export function treatmentReading(treatment: TreatmentRecords, today: string): Tr
   return treatmentView(viewInputOf({ ...treatment, today }))
 }
 
-// « · sans effet » n'a pas encore de texte : une ligne sans effet reste cachée comme avant, sauf une prise (R4).
+// « · sans effet » n'a pas encore de texte : seuls un report sans effet et une ligne remplacée restent cachés, comme avant.
 function isShown({ line, effect }: HistoryLine): boolean {
   if (effect.kind !== 'idle') return true
-  if (effect.reason === 'superseded') return false
-  return line.status !== 'postponed' && line.status !== 'shift'
+  return effect.reason !== 'superseded' && line.status !== 'postponed'
 }
 
 /** Les lignes que l'historique montre, dans l'ordre chronologique. */

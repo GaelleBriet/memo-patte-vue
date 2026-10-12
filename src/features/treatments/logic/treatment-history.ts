@@ -258,10 +258,9 @@ const FAMILY_RANK: Record<TreatmentDoseInput['status'], number> = {
 
 // Du plus récent au plus ancien ; sur une même échéance, le report, la prise, puis le décalage.
 function displayOrder(doses: TreatmentDoseInput[]): TreatmentDoseInput[] {
-  const key = ({ dueOn, dueTime }: TreatmentDoseInput) => `${dueOn} ${dueTime ?? ''}`
-  return [...doses].sort((a, b) =>
-    key(a) === key(b) ? FAMILY_RANK[a.status] - FAMILY_RANK[b.status] : key(a) < key(b) ? 1 : -1,
-  )
+  const key = (dose: TreatmentDoseInput) =>
+    `${dose.dueOn} ${dose.dueTime ?? ''} ${2 - FAMILY_RANK[dose.status]} ${dose.createdAt} ${dose.id}`
+  return [...doses].sort((a, b) => (key(a) < key(b) ? 1 : key(a) > key(b) ? -1 : 0))
 }
 
 function linesOf(
@@ -272,7 +271,7 @@ function linesOf(
   { lastPlannedDoseGivenId, today }: { lastPlannedDoseGivenId: string | undefined; today: string },
 ): HistoryLine[] {
   const lines: HistoryLine[] = []
-  for (const dose of displayOrder([...doses].reverse())) {
+  for (const dose of displayOrder(doses)) {
     if (dose.status === 'postponed') {
       lines.push(moveLine(t, reads.schedule, dose, today))
       continue
