@@ -9,7 +9,7 @@ export type JourneyInput = { span: Span; lines: EpisodeLines; reach: Day }
 
 type Segment = { origin: Day; from: Day; to: Day | null }
 
-/** `since` : veille de la première échéance de la grille, sans le plancher d'une date choisie. */
+// `floor` : veille du premier jour que la fiche lit ; `since` : veille de la première échéance.
 type Grid = { origin: Day; floor: Day; since: Day }
 
 type Claim = { setting: Setting; end: Day | null; segments: Segment[] }

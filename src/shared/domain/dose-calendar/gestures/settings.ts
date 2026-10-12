@@ -122,9 +122,8 @@ export function newSettings(input: TreatmentViewInput, request: SettingsRequest)
     : result
 }
 
-// #787, TR-8, Q20 : un rythme qui repart de sa première échéance n'a aucune dose encore à donner entre
-// elle et la date de fin ; une date de fin passée termine le traitement (TR-6), un réglage qui garde
-// ses dates ne repart pas.
+// #787, TR-8, Q20 : un rythme qui repart n'a plus aucune dose à donner avant la date de fin ; une fin
+// passée termine le traitement (TR-6), un réglage qui garde ses dates ne repart pas.
 function leavesNoDose(
   input: TreatmentViewInput,
   request: SettingsRequest,
