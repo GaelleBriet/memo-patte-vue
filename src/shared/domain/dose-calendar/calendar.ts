@@ -163,7 +163,12 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   }
   coverOrphans(lines.notes, matched, slots, settingOf)
   noteEffects(lines, borrowed, slots, held, effects)
-  const lateDays = new Set(replaced.map((range) => lastFallen(fallen, range)))
+  const lateDays = new Set(
+    replaced.filter(({ onDueDay }) => !onDueDay).map((range) => lastFallen(fallen, range)),
+  )
+  // TR-9 : un premier jour qui est une échéance portait la dose du moment ; les doses plus anciennes
+  // restent à renseigner.
+  replaced.filter(({ onDueDay }) => onDueDay).forEach(({ to }) => fallen.add(to))
   const kept = slots.filter(({ due, coveredBy }) => coveredBy !== null || !lateDays.has(due.dueOn))
   return { slots: kept, fallen, moved, effects, rhythmFrom }
 }

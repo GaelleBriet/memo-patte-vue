@@ -404,6 +404,58 @@ describe('R6 : un décalage ne vaut que si sa journée d’origine est une éch�
     ])
   })
 
+  it('hebdo du lundi, tous les 3 jours dès le 16 réécrit le 14 en hebdo (première dose le 19), décalage du 16 au 14 resté : le 16 n’est pas sur la grille du lundi, 19, 26', () => {
+    const weekly = setting('a', '2026-10-05', WEEK)
+    const back = setting('b', '2026-10-19', WEEK, [], {
+      startsOn: '2026-10-14',
+      gridOriginOn: null,
+    })
+    const lines = [
+      line('a', 'given', '2026-10-05'),
+      line('a', 'given', '2026-10-12'),
+      line('b', 'shift', '2026-10-16', null, '2026-10-14'),
+    ]
+    expect(next([weekly, back], lines, '2026-10-14', 2)).toEqual(['2026-10-19', '2026-10-26'])
+  })
+
+  it('hebdo du vendredi, dose du 16 donnée le 14 avec décalage, posologie le 14 : le 16 est sur la grille 9, 16, 23, le décalage vaut : 21, 28', () => {
+    const friday = setting('a', '2026-10-02', WEEK)
+    const dosage = setting('b', '2026-10-16', WEEK, [], {
+      startsOn: '2026-10-14',
+      gridOriginOn: null,
+    })
+    const lines = [
+      line('a', 'given', '2026-10-02'),
+      line('a', 'given', '2026-10-09'),
+      line('a', 'given', '2026-10-16'),
+      line('a', 'shift', '2026-10-16', null, '2026-10-14'),
+    ]
+    expect(next([friday, dosage], lines, '2026-10-14', 2)).toEqual(['2026-10-21', '2026-10-28'])
+  })
+
+  it('#794 : mensuel du 29 mars, dose du 29 reportée au 5 avr. ; réglage du 31, première dose choisie le 9 juin, décalage du 5 au 9 avr. : la dose reportée vient de l’ancien rythme, le décalage est sans effet : 5 avr., 9 juin, 9 juil.', () => {
+    const s1 = setting('s1', '2026-03-29', MONTH)
+    const s2 = setting('s2', '2026-06-09', MONTH, [], { startsOn: '2026-03-31' })
+    const lines = [
+      line('s1', 'postponed', '2026-03-29', null, '2026-04-05'),
+      line('s2', 'shift', '2026-04-05', null, '2026-04-09'),
+    ]
+    expect(next([s1, s2], lines, '2026-03-31')).toEqual(['2026-04-05', '2026-06-09', '2026-07-09'])
+  })
+
+  it('toutes les 6 semaines, première dose choisie le 18 août, avancée seule au 8 juil., puis au 3 juin avec décalage : la dose avancée est celle du rythme, le décalage vaut : 3 juin, 15 juil., 26 août', () => {
+    const six = { value: 6, unit: 'week' as const }
+    const s1 = setting('s1', '2026-03-26', { value: 3, unit: 'month' })
+    const s2 = setting('s2', '2026-08-18', six, [], { startsOn: '2026-03-29' })
+    const lines = [
+      line('s1', 'given', '2026-03-26'),
+      line('s2', 'postponed', '2026-08-18', null, '2026-07-08'),
+      line('s2', 'postponed', '2026-07-08', null, '2026-06-03'),
+      line('s2', 'shift', '2026-07-08', null, '2026-06-03'),
+    ]
+    expect(next([s1, s2], lines, '2026-03-30')).toEqual(['2026-06-03', '2026-07-15', '2026-08-26'])
+  })
+
   it('hebdo dont la première dose est le 19 (choisie), décalage du 12 au 7 resté : 19, 26', () => {
     const weekly = setting('p1', '2026-10-19', WEEK, [], { startsOn: '2026-10-05' })
     const lines = [line('p1', 'shift', '2026-10-12', null, '2026-10-07')]
@@ -423,6 +475,51 @@ describe('TR-9 : à fréquence gardée, une « Prochaine dose » choisie remplac
       expect([reading.current, reading.unlogged]).toEqual([[chosen], []])
     },
   )
+
+  it.each([
+    [
+      'tous les 2 jours du 2 oct., doses du 2 et du 4 données ; le 8, jour d’échéance, première dose le 9',
+      TWO_DAYS,
+      '2026-10-02',
+      ['2026-10-02', '2026-10-04'],
+      '2026-10-08',
+      '2026-10-09',
+      '2026-10-06',
+    ],
+    [
+      'tous les jours du 10 oct., doses du 10 au 12 données ; le 14, première dose le 16',
+      DAY,
+      '2026-10-10',
+      ['2026-10-10', '2026-10-11', '2026-10-12'],
+      '2026-10-14',
+      '2026-10-16',
+      '2026-10-13',
+    ],
+  ])(
+    '%s : la dose du jour est remplacée, la plus ancienne reste à renseigner',
+    (_, frequency, from, days, today, chosen, unlogged) => {
+      const own = setting('q1', from, frequency)
+      const s2 = setting('q2', chosen, frequency, [], { startsOn: today })
+      const reading = read(
+        [own, s2],
+        days.map((day) => line('q1', 'given', day)),
+        today,
+      )
+      expect([reading.current, reading.unlogged]).toEqual([[chosen], [unlogged]])
+    },
+  )
+
+  it('#794 : tous les jours, première dose choisie le 16 mai, dose du 16 reportée au 19 avec décalage, posologie le 20 avr., dose du 19 donnée ; le 24 avr., première dose choisie le 24 : le 24', () => {
+    const s1 = setting('s1', '2026-05-16', DAY, [], { startsOn: '2026-04-15' })
+    const s2 = setting('s2', '2026-05-19', DAY, [], { startsOn: '2026-04-20', gridOriginOn: null })
+    const s3 = setting('s3', '2026-04-24', DAY, [], { startsOn: '2026-04-24' })
+    const lines = [
+      line('s1', 'postponed', '2026-05-16', null, '2026-05-19'),
+      line('s1', 'shift', '2026-05-16', null, '2026-05-19'),
+      line('s2', 'given', '2026-05-19'),
+    ]
+    expect(next([s1, s2, s3], lines, '2026-04-24', 2)).toEqual(['2026-04-24', '2026-04-25'])
+  })
 })
 
 describe('R7, R9 : un réglage qui part du jour d’arrivée d’un report', () => {

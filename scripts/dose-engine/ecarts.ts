@@ -7,6 +7,7 @@ import {
 
 import { plusDays, shifted, type Book } from './carnet'
 import { dueKey, HORIZON_DAYS, type Display, type Reading } from './display'
+import { inLoop, outsideShiftGaps } from './ecarts-lignes'
 
 /**
  * Familles d'écarts entre le moteur actuel et le modèle de référence. Chacune est décrite, avec son
@@ -25,6 +26,7 @@ export const FAMILIES = {
   'prise-orpheline': { accepted: true },
   'reports-en-boucle': { accepted: true },
   'dose-en-retard': { accepted: true },
+  'decalage-hors-grille': { accepted: true },
 } as const
 
 export type Family = keyof typeof FAMILIES
@@ -164,23 +166,6 @@ function familiesOn(book: Book, day: string, stale: Set<string>): Family[] {
   return [...found]
 }
 
-// R7 : de jour d'arrivée en jour d'arrivée, des reports ramènent la dose au jour d'origine de `line`.
-function inLoop(book: Book, line: TreatmentDoseInput): boolean {
-  const reports = book.doses.filter(({ status }) => status === 'postponed')
-  const seen = new Set<string>()
-  const days = [line.nextDueDate]
-  while (days.length > 0) {
-    const day = days.pop()!
-    if (day === line.dueOn) return true
-    if (seen.has(day)) continue
-    seen.add(day)
-    reports
-      .filter(({ dueOn }) => dueOn === day)
-      .forEach(({ nextDueDate }) => days.push(nextDueDate))
-  }
-  return false
-}
-
 // R4 : l'échéance `key`, due pour le moteur actuel, est couverte par une prise d'une échéance plus
 // tôt (jour et heure) à moins d'un pas, sortie du calendrier du second moteur : sans ces prises, il la
 // redemande. Une prise qui pourrait battre un report, ou qui vise une journée de sa grille le jour où
@@ -259,11 +244,13 @@ export function verdictOf(
     if (found.length === 0) unexplained.push(key)
   }
   if (differing.length === 0) splitFamilies(book, actual, reference, stale, families, unexplained)
+  const rest = outsideShiftGaps(book, reference, unexplained)
+  if (rest.length < unexplained.length) families.add('decalage-hors-grille')
   const list = [...families]
   return {
     families: list,
-    unexplained,
-    accepted: unexplained.length === 0 && list.every((family) => FAMILIES[family].accepted),
+    unexplained: rest,
+    accepted: rest.length === 0 && list.every((family) => FAMILIES[family].accepted),
   }
 }
 
