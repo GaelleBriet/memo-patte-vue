@@ -22,14 +22,12 @@ export function inLoop(book: Book, line: TreatmentDoseInput): boolean {
   return false
 }
 
-const pendingOf = (display: Display) =>
-  new Set([...display.unlogged, ...display.current, ...display.upcoming])
+const idleShifts = new WeakMap<Book, Set<string>>()
 
-/**
- * R6 : les écarts que le moteur actuel n'a plus une fois retirés les décalages dont la journée
- * d'origine n'est plus une échéance pour le moteur v2 ; rend ceux qui restent.
- */
-export function outsideShiftGaps(book: Book, second: Display, keys: string[]): string[] {
+/** R6 : les décalages que le moteur v2 tient pour sans effet, leur journée d'origine n'étant plus une échéance. */
+export function idleShiftIds(book: Book): Set<string> {
+  const known = idleShifts.get(book)
+  if (known !== undefined) return known
   const idle = new Set(
     treatmentView(viewInputOf(book))
       .history.filter(
@@ -38,13 +36,35 @@ export function outsideShiftGaps(book: Book, second: Display, keys: string[]): s
       )
       .map(({ line }) => line.id),
   )
+  idleShifts.set(book, idle)
+  return idle
+}
+
+const pendingOf = (display: Display) =>
+  new Set([...display.unlogged, ...display.current, ...display.upcoming])
+
+/**
+ * R6 : les écarts qui tiennent aux décalages dont la journée d'origine n'est plus une échéance pour le
+ * moteur v2 (le moteur actuel, relu sans eux, lit autrement ou comme le moteur v2) ; rend les autres.
+ */
+export function outsideShiftGaps(
+  book: Book,
+  actual: Display,
+  second: Display,
+  keys: string[],
+): string[] {
+  const idle = idleShiftIds(book)
   if (idle.size === 0 || keys.length === 0) return keys
   const without = readWith(currentEngine, {
     ...book,
     doses: book.doses.filter(({ id }) => !idle.has(id)),
   })
   if ('error' in without) return keys
-  const [a, b] = [pendingOf(without), pendingOf(second)]
-  const sameCurrent = without.current.join() === second.current.join()
-  return keys.filter((key) => (key === 'dose du moment' ? !sameCurrent : a.has(key) !== b.has(key)))
+  const [a, b, before] = [pendingOf(without), pendingOf(second), pendingOf(actual)]
+  const moment = without.current.join()
+  const explained = (key: string) =>
+    key === 'dose du moment'
+      ? moment === second.current.join() || moment !== actual.current.join()
+      : a.has(key) === b.has(key) || a.has(key) !== before.has(key)
+  return keys.filter((key) => !explained(key))
 }
