@@ -49,7 +49,8 @@ par les deux moteurs (R11).
 `src/shared/__tests__/dose-calendar.invariants.spec.ts` mène des carnets par les gestes de v2
 (`v2-walk.ts`, et `v2-walk-settings.ts` pour « Modifier » : posologie, heures, fréquence ou les deux,
 à la première échéance proposée par `gestures/settings` ou à une autre date ; « Arrêter » ;
-« Reprendre ») et vérifie à chaque pas les huit invariants du plan §6.3 (`v2-invariants.ts`) :
+« Reprendre ») et vérifie à chaque pas les huit invariants du plan §6.3 (`v2-invariants.ts`, qui
+assemble `v2-invariants-lines.ts`, `v2-invariants-readings.ts` et `v2-invariants-settings.ts`) :
 conservation des faits, pas de double, posologie sans effet, temps, symétrie, annuler,
 préversion = résultat, équivalence au modèle naïf ; et un neuvième pour « Modifier » (R9, R12) : la
 fiche montre la première échéance proposée, la même demande avec la date proposée passée en clair rend

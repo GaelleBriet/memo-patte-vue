@@ -101,7 +101,9 @@ R3, R7), le moteur actuel 25 mai, 25 juin, 25 juil. par son marqueur d'origine (
   même mécanisme (campagne depuis 730000000) : graine 730000993 (reprise le 25 mars, chaque semaine à
   8, 14 et 20 h, première dose le 27 avancée seule au 25, prise d'avant l'arrêt visant le 25) et
   graine 730000200 (reprise le 8 avr., tous les 2 jours, première dose le 9 avancée seule au 8, prise
-  d'avant l'arrêt visant le 8).
+  d'avant l'arrêt visant le 8). La seconde relecture du pas 4 en montre trois de plus, même mécanisme
+  (reprise, première dose avancée au jour de la reprise, campagne depuis 750000000) : graines
+  750000185, 750000272 et 750001179.
 
 ## Questions ouvertes du pas 4 (« Modifier »)
 
@@ -112,8 +114,8 @@ R3, R7), le moteur actuel 25 mai, 25 juin, 25 juil. par son marqueur d'origine (
   date » refuse en `stuck-report`. Les deux chemins refusent, avec deux textes différents.
 - **Première échéance proposée après la date de fin** (#787 ; question pour Gaelle) : tous les
   2 jours du 1er oct., fin le 10, doses des 1er et 3 données ; le 4, passé au mensuel : « Modifier »
-  propose le 3 nov. (R9.3), après la date de fin. L'invariant de la proposition (`v2-invariants.ts`,
-  neuvième) ne juge pas une première échéance après la date de fin.
+  propose le 3 nov. (R9.3), après la date de fin. L'invariant de la proposition
+  (`v2-invariants-settings.ts`, neuvième) ne juge pas une première échéance après la date de fin.
 - **« Prochaine dose » choisie dans l'écart d'un décalage** (TR-9, G6, R6 ; question pour Gaelle) :
   chaque semaine à 20 h du 18 mars, dose du 18 donnée le 19 avec décalage (la suite repart du 19) ;
   le 19, heures passées à 6, 12, 18 et 23 h et « Prochaine dose » le 19 : le réglage est accepté,
@@ -131,8 +133,15 @@ R3, R7), le moteur actuel 25 mai, 25 juin, 25 juil. par son marqueur d'origine (
   « Prochaine dose » choisie après ce décalage, la fiche ne la montre pas : hebdo dont la première
   dose est le lundi 12 oct., rien noté, dose du 12 donnée le 7 avec décalage puis la prise supprimée ;
   le 7, posologie et « Prochaine dose » le 19 : la fiche montre le 14. L'invariant de la proposition
-  ne juge pas une première échéance, proposée ou choisie, posée après un décalage du réglage réécrit
-  (graine 700001396).
+  ne juge pas une dose montrée avant une première échéance, proposée ou choisie, posée après un
+  décalage du réglage réécrit (graine 700001396) ; une date proposée doit toujours être une journée
+  de la fiche.
+- **Journée déjà toute donnée en avance proposée par « Modifier »** (R9, R12 ; question pour Gaelle) :
+  Milo, chaque lundi à 8 h ; la dose du 5 oct. donnée, celle du 12 donnée en avance le 7. Le 7,
+  posologie seule ou heures passées à 9 h : « Modifier » propose le 12, la fiche montre « Prochaine
+  dose 19 oct. ». Faut-il afficher dans le formulaire la première échéance encore à donner (le 19),
+  tout en gardant le 12 comme première échéance écrite pour la traduction des heures (R4) ? Le moteur
+  garde son comportement ; l'invariant de la proposition accepte une journée déjà toute couverte.
 
 ## Refus à analyser de l'oracle (pas 3)
 
