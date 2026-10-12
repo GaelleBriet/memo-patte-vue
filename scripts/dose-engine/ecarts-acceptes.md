@@ -114,6 +114,19 @@ seule (`INVARIANTS_FROM=<graine> INVARIANTS_SEEDS=1 INVARIANTS_STEPS=40`) et pas
 - **Report d'une arrivée devenue première échéance d'un nouveau rythme** (#780) : verrouillé comme
   Q25 (ni « Changer la date » ni « Supprimer », `not-movable`).
 
+## Cas restants de l'invariant n° 9 (lecture déjà celle de `main`)
+
+Sans l'exemption `staleShift`, la campagne montre quatre « Prochaine dose » choisies que la fiche ne
+montre pas (campagnes du 2026-10-12 : 810001161 et 810002312 depuis 810000000, 780000156 et 780001015
+depuis 780000000). Le même carnet, la même demande, se lisent à l'identique avec le moteur de `main` :
+ce ne sont pas des régressions, et aucune ne relève des décisions du 2026-10-12. Graine 810001161 :
+tous les jours à 6, 12, 18 et 23 h, première dose choisie le 16 mai par un réglage du 15 avr. (puis
+posologies) ; le 24 avr., « Modifier » à 8 h et 20 h, « Prochaine dose » le 24 : la fiche montre le
+20 mai, la date choisie d'un réglage jamais commencé gardant son plancher (R3, décision du
+2026-10-11). Les trois autres mêlent une date choisie et des décalages ancrés avant leur journée
+d'origine (dose donnée très en avance avec décalage). Ticket #794. À trancher au bilan : une date choisie plus tôt
+que celle d'un réglage jamais commencé doit-elle toujours être montrée ?
+
 ## Question encore ouverte du pas 4 (« Modifier »)
 
 - **« Prochaine dose » choisie dans l'écart d'un décalage** (TR-9, G6, R6 ; question pour Gaelle) :
