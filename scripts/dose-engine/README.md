@@ -53,8 +53,10 @@ par les deux moteurs (R11).
 assemble `v2-invariants-lines.ts`, `v2-invariants-readings.ts` et `v2-invariants-settings.ts`) :
 conservation des faits, pas de double, posologie sans effet, temps, symétrie, annuler,
 préversion = résultat, équivalence au modèle naïf ; et un neuvième pour « Modifier » (R9, R12) : la
-fiche montre la première échéance proposée, la même demande avec la date proposée passée en clair rend
-la même réponse (jamais un refus), une autre date choisie est celle que la fiche lit. Variables
+fiche montre la date proposée (`shownOn`, sinon la première échéance écrite), qui a encore une dose à
+donner ; la même demande avec cette date passée en clair rend la même réponse (jamais un refus, sauf
+`no-dose-before-end`, #787) ; une autre date choisie est celle que la fiche lit. La campagne ne
+choisit jamais une « Prochaine dose » après la date de fin, que le formulaire refuse (Q20). Variables
 posées directement devant la commande, sous le même verrou :
 
 ```sh

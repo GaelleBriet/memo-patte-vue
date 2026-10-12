@@ -2390,3 +2390,19 @@ donnée, posologie changée le 14 : le 12 reste la dose du moment, en retard. �
 modification du dosage ne doit rien changer à ce qu'on voit des dates (principe R3). — Alternative
 écartée : la passer dans « à renseigner », comme le disait la lettre de TR-28. Limité à la fréquence
 inchangée ; à la charge du pas 4 (#751).
+
+2026-10-12 — **Moteur des doses v2 : décisions de Gaelle sur les questions des pas 3 et 4** (spec
+`traitements.md` §10, entrées du 2026-10-12, et R6 à R11). « Modifier » refuse un rythme qui ne laisse
+plus aucune dose avant la date de fin (#787, « Avec ce rythme, plus aucune dose avant la date de fin.
+Change la date de fin ou le rythme. ») et propose la première dose encore à donner, comme la fiche ; la
+prise d'avant l'arrêt notée le jour de la reprise compte, avec ou sans posologie (#784) ; le report qui
+a servi de départ à un nouveau rythme est verrouillé comme Q25 (#780) ; un même geste rend un seul
+refus (#786) ; une date choisie à fréquence gardée remplace la dose en retard ; un décalage d'avant la
+première échéance d'un réglage qui fait repartir la grille est sans effet ; une correction de date
+n'efface jamais un oubli. Lectures gardées : une prise de « Choisir les jours » se corrige comme les
+autres, pas de case pour une dose déplacée seule (Q2 c), les chaînes de reports existantes restent
+lues, Q-C1 l'emporte sur TR-24 bis, seul le décalage ancré à la date de la prise suit sa correction. —
+Raison (Gaelle) : ne jamais faire disparaître une dose ni une ligne sans geste, une seule lecture et un
+seul texte par geste. — Alternatives écartées : accepter et terminer le traitement (#787), proposer
+une journée déjà toute donnée, ne compter la prise du jour de la reprise que si elle commence ce
+jour-là, laisser bouger le report en déplaçant le début du réglage (#780).
