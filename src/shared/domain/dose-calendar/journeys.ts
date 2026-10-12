@@ -74,11 +74,6 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       previous !== undefined &&
       sameFrequency(previous.frequency, setting.frequency) &&
       (origin === null || isOnGrid(inForce, setting.frequency, origin))
-    // R3 : une grille que ce réglage continue n'appartient plus au précédent après sa fin.
-    const claimed = claims.at(-1)
-    if (continued && claimed !== undefined && claimed.end !== null) {
-      if (rhythm.has(claimed.setting.id)) claimed.segments.at(-1)!.to = plusDays(claimed.end, -1)
-    }
     if (index > 0 && !sameHours(span.live[index - 1]!, setting)) {
       translated.set(setting.startsOn, setting.id).set(setting.firstDueOn, setting.id)
     }

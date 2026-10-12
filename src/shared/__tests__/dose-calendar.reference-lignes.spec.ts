@@ -171,6 +171,22 @@ describe('R7 : un réglage remplacé le jour où il commence ne lit que ses prop
   })
 })
 
+describe('R3, R4 : la prise du jour où le réglage cède la place couvre son échéance', () => {
+  it('chaque jeudi à 8 h et 20 h dès le 1er oct., 8 h du 8 donnée, le 8 heures à 9 h et 21 h dès le 15, dose du 15 avancée au 12 : le 12 à 9 h reste à donner', () => {
+    const settings = [
+      setting('s1', '2026-10-01', WEEK, H),
+      setting('s2', '2026-10-15', WEEK, ['09:00', '21:00'], { startsOn: '2026-10-08' }),
+    ]
+    const lines = [
+      line('s1', 'given', '2026-10-01', '08:00'),
+      line('s1', 'given', '2026-10-01', '20:00'),
+      line('s1', 'given', '2026-10-08', '08:00'),
+      line('s2', 'postponed', '2026-10-15', '09:00', '2026-10-12'),
+    ]
+    expect(next(settings, lines, '2026-10-08', 2)).toEqual(['2026-10-12 09:00', '2026-10-12 21:00'])
+  })
+})
+
 describe('R8 : reprendre', () => {
   it('une prise d’avant l’arrêt ne couvre pas la reprise, sauf celle du jour même', () => {
     const p1 = setting('p1', '2026-10-01', DAY, [], { stoppedOn: '2026-10-02' })

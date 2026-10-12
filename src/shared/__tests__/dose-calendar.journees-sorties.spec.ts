@@ -206,3 +206,23 @@ describe('R7 : un réglage remplacé le jour où il commence ne lit que ses prop
     })
   })
 })
+
+describe('R3, R4 : la prise du jour où le réglage cède la place couvre son échéance', () => {
+  it('chaque jeudi à 8 h et 20 h dès le 1er oct., 8 h du 8 donnée ; le 8, heures à 9 h et 21 h dès le 15 : la prise couvre le 8 à 8 h', () => {
+    const weekly = setting('s1', '2026-10-01', WEEK, H)
+    const eighth = line('s1', 'given', '2026-10-08', '08:00')
+    const done = [
+      line('s1', 'given', '2026-10-01', '08:00'),
+      line('s1', 'given', '2026-10-01', '20:00'),
+    ]
+    const input = { settings: [weekly], lines: [...done, eighth], today: '2026-10-08' }
+    const covers = [{ kind: 'covers', key: '2026-10-08 08:00' }]
+    for (const frequency of [WEEK, { value: 2, unit: 'week' } as Frequency]) {
+      const asked = { frequency, times: ['09:00', '21:00'], endsOn: null, firstDueOn: '2026-10-15' }
+      const view = preview(input, planOf(input, asked))
+      expect(
+        view.history.filter(({ line: read }) => read.id === eighth.id).map(({ effect }) => effect),
+      ).toEqual(covers)
+    }
+  })
+})

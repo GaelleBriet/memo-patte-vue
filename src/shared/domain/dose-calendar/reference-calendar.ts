@@ -69,8 +69,6 @@ export function calendarOf(
   const left = new Map<string, Journey>()
   type Segment = { origin: string; from: string; to: string | null }
   const claims: { setting: ReferenceSetting; end: string | null; segments: Segment[] }[] = []
-  // R3 : une grille continuée par le réglage suivant ne lui appartient plus après sa fin.
-  const continuedAfter = new Set<ReferenceSetting>()
   const stop = endOf(live.length - 1)
   // R7, R9.2 : les premières échéances des réglages qui ouvrent un nouveau rythme.
   const openings = new Set<string>()
@@ -127,10 +125,6 @@ export function calendarOf(
     // R2, R9 : une origine posée sur la grille en vigueur ne lit aucune journée avant sa première
     // échéance, ni ses suivants de même rythme, pas même après un décalage.
     chosenFloor = !continued ? '' : origin !== null ? ownFloor : chosenFloor
-    const claimed = claims.at(-1)
-    if (continued && claimed !== undefined && rhythm.has(claimed.setting.id)) {
-      continuedAfter.add(claimed.setting)
-    }
     rhythm = continued ? new Set([...rhythm, setting.id]) : new Set([setting.id])
     grid = continued
       ? {
@@ -170,7 +164,6 @@ export function calendarOf(
   })
 
   for (const { setting, end, segments } of claims) {
-    if (end !== null && continuedAfter.has(setting)) segments.at(-1)!.to = plusDays(end, -1)
     if (end === null) continue
     const reported = reports
       .filter(({ settingId }) => settingId === setting.id)
