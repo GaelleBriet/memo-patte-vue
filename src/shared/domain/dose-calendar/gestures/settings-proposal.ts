@@ -38,11 +38,14 @@ function heldNextDay(view: TreatmentView, today: Day): Day | undefined {
   return started || arrival ? day : undefined
 }
 
+// R9.3, #799 : une journée sortie du calendrier par le réglage suivant garde ses prises (R4), elle
+// reste la dernière journée d'échéance passée quel que soit le jour de la correction.
 function lastNotedDay(view: TreatmentView, today: Day, from: Day): Day | undefined {
-  return view
-    .slots(from, today)
-    .filter(({ state }) => isNoted(state))
-    .at(-1)?.due.dueOn
+  return view.history
+    .flatMap(({ effect }) => (effect.kind === 'covers' ? [effect.key.slice(0, 10)] : []))
+    .filter((day) => day >= from && day <= today)
+    .sort()
+    .at(-1)
 }
 
 function changedFirstDue(
