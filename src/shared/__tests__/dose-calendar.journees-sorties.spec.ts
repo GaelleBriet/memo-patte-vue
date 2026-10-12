@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { newSettings, preview, treatmentView, type SettingsRequest } from '../domain/dose-calendar'
 import type { Frequency, Line, TreatmentViewInput } from '../domain/dose-calendar/types'
-import { H, keys, line, MONTH, setting, TWO_DAYS } from './dose-calendar.v2.aides'
+import { DAY, H, keys, line, MONTH, setting, TWO_DAYS, WEEK } from './dose-calendar.v2.aides'
 
 const THREE_HOURS = ['08:00', '14:00', '20:00']
 
@@ -157,5 +157,52 @@ describe('R7 : un réglage qui a eu des jours ne reprend pas une journée de son
       today: '2026-03-28',
     })
     expect(keys(view.upcoming({ limit: 3 }))).toContain('2026-04-09 20:00')
+  })
+})
+
+describe('R7 : un réglage remplacé le jour où il commence ne lit que ses propres reports', () => {
+  const everyThree: Frequency = { value: 3, unit: 'day' }
+  const reportEffect = (input: TreatmentViewInput, asked: SettingsRequest, report: Line) => {
+    const view = preview(input, planOf(input, asked))
+    const effect = view.history.find(({ line: read }) => read.id === report.id)!.effect
+    return { effect, upcoming: keys(view.upcoming({ limit: 3 })) }
+  }
+
+  it('chaque semaine à 8 h dès le 3 oct. (8 h donnée), le 3 tous les 2 jours à 9 h ; dose du 17 reportée au 18 ; le 16, tous les 3 jours dès le 20 : le 18 garde sa dose de 9 h', () => {
+    const weekly = setting('s1', '2026-10-03', WEEK, ['08:00'])
+    const everyTwo = setting('s2', '2026-10-05', TWO_DAYS, ['09:00'], { startsOn: '2026-10-03' })
+    const report = line('s2', 'postponed', '2026-10-17', '09:00', '2026-10-18')
+    const input = {
+      settings: [weekly, everyTwo],
+      lines: [line('s1', 'given', '2026-10-03', '08:00'), report],
+      today: '2026-10-16',
+    }
+    const asked = {
+      frequency: everyThree,
+      times: ['09:00'],
+      endsOn: null,
+      firstDueOn: '2026-10-20',
+    }
+    expect(reportEffect(input, asked, report)).toEqual({
+      effect: { kind: 'moves', keys: ['2026-10-17 09:00'], arrival: '2026-10-18' },
+      upcoming: ['2026-10-18 09:00', '2026-10-20 09:00', '2026-10-23 09:00'],
+    })
+  })
+
+  it('chaque jour à 8, 20 et 22 h dès le 3 oct. (8 h donnée), le 3 tous les 2 jours à 9 h ; dose du 17 reportée au 18 ; le 16, tous les 3 jours à 8, 20 et 22 h dès le 20 : le 18 ne reçoit qu’une dose', () => {
+    const hours = ['08:00', '20:00', '22:00']
+    const daily = setting('s1', '2026-10-03', DAY, hours)
+    const everyTwo = setting('s2', '2026-10-03', TWO_DAYS, ['09:00'])
+    const report = line('s2', 'postponed', '2026-10-17', '09:00', '2026-10-18')
+    const input = {
+      settings: [daily, everyTwo],
+      lines: [line('s1', 'given', '2026-10-03', '08:00'), report],
+      today: '2026-10-16',
+    }
+    const asked = { frequency: everyThree, times: hours, endsOn: null, firstDueOn: '2026-10-20' }
+    expect(reportEffect(input, asked, report)).toEqual({
+      effect: { kind: 'moves', keys: ['2026-10-17 09:00'], arrival: '2026-10-18' },
+      upcoming: ['2026-10-18 22:00', '2026-10-20 08:00', '2026-10-20 20:00'],
+    })
   })
 })

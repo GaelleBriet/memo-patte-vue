@@ -11,12 +11,15 @@ type Segment = { origin: Day; from: Day; to: Day | null }
 
 type Claim = { setting: Setting; end: Day | null; segments: Segment[] }
 
-// R1, R4 : sortie du calendrier, la journée où un réglage cède la place, ou celle d'origine d'un
-// report pour un réglage remplacé le jour où il commence, se lit avec ce réglage.
-function leftDays(claims: readonly Claim[], reported: readonly Day[], stop: Day | null) {
+// R1, R4 : sortie du calendrier, la journée où un réglage cède la place, ou celle d'origine d'un de
+// ses reports s'il est remplacé le jour où il commence, se lit avec ce réglage.
+function leftDays(claims: readonly Claim[], reports: readonly Line[], stop: Day | null) {
   const left = new Map<Day, Journey>()
   for (const { setting, end, segments } of claims) {
     if (end === null) continue
+    const reported = reports
+      .filter(({ settingId }) => settingId === setting.id)
+      .map(({ dueOn }) => dueOn)
     for (const day of end === setting.startsOn ? [...reported, end] : [end]) {
       const open =
         (setting.endsOn === null || day <= setting.endsOn) && (stop === null || day < stop)
@@ -133,7 +136,6 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   for (const shift of lines.shifts) {
     if (!effects.has(shift.id)) effects.set(shift.id, { kind: 'idle', reason: 'overtaken' })
   }
-  const reported = lines.reports.map(({ dueOn }) => dueOn)
-  const left = leftDays(claims, reported, span.endOf(span.live.length - 1))
+  const left = leftDays(claims, lines.reports, span.endOf(span.live.length - 1))
   return { days, translated, left, openings, rhythmFrom }
 }

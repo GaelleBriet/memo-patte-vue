@@ -132,6 +132,45 @@ describe('R7 : un réglage qui a eu des jours ne reprend pas une journée de son
   })
 })
 
+describe('R7 : un réglage remplacé le jour où il commence ne lit que ses propres reports', () => {
+  const everyThree = { value: 3, unit: 'day' } as const
+
+  it('chaque semaine à 8 h dès le 3 oct., le 3 tous les 2 jours à 9 h, dose du 17 reportée au 18, le 16 tous les 3 jours dès le 20 : le 18 garde sa dose de 9 h', () => {
+    const settings = [
+      setting('s1', '2026-10-03', WEEK, ['08:00']),
+      setting('s2', '2026-10-05', TWO_DAYS, ['09:00'], { startsOn: '2026-10-03' }),
+      setting('s3', '2026-10-20', everyThree, ['09:00'], { startsOn: '2026-10-16' }),
+    ]
+    const lines = [
+      line('s1', 'given', '2026-10-03', '08:00'),
+      line('s2', 'postponed', '2026-10-17', '09:00', '2026-10-18'),
+    ]
+    expect(next(settings, lines, '2026-10-16')).toEqual([
+      '2026-10-18 09:00',
+      '2026-10-20 09:00',
+      '2026-10-23 09:00',
+    ])
+  })
+
+  it('chaque jour à 8, 20 et 22 h dès le 3 oct., le 3 tous les 2 jours à 9 h, dose du 17 reportée au 18, le 16 tous les 3 jours à 8, 20 et 22 h dès le 20 : le 18 ne reçoit qu’une dose', () => {
+    const hours = ['08:00', '20:00', '22:00']
+    const settings = [
+      setting('s1', '2026-10-03', DAY, hours),
+      setting('s2', '2026-10-03', TWO_DAYS, ['09:00']),
+      setting('s3', '2026-10-20', everyThree, hours, { startsOn: '2026-10-16' }),
+    ]
+    const lines = [
+      line('s1', 'given', '2026-10-03', '08:00'),
+      line('s2', 'postponed', '2026-10-17', '09:00', '2026-10-18'),
+    ]
+    expect(next(settings, lines, '2026-10-16')).toEqual([
+      '2026-10-18 22:00',
+      '2026-10-20 08:00',
+      '2026-10-20 20:00',
+    ])
+  })
+})
+
 describe('R8 : reprendre', () => {
   it('une prise d’avant l’arrêt ne couvre pas la reprise, sauf celle du jour même', () => {
     const p1 = setting('p1', '2026-10-01', DAY, [], { stoppedOn: '2026-10-02' })

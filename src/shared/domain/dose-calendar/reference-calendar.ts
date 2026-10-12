@@ -65,7 +65,7 @@ export function calendarOf(
   // R4, R7, R9 : les jours où une prise visant d'autres heures couvre les premières heures.
   const translated = new Map<string, string>()
   // R1, R4 : sortie du calendrier, la journée où un réglage cède la place, ou celle d'origine d'un
-  // report pour un réglage remplacé le jour où il commence, se lit avec ce réglage.
+  // de ses reports s'il est remplacé le jour où il commence, se lit avec ce réglage.
   const left = new Map<string, Journey>()
   type Segment = { origin: string; from: string; to: string | null }
   const claims: { setting: ReferenceSetting; end: string | null; segments: Segment[] }[] = []
@@ -172,7 +172,9 @@ export function calendarOf(
   for (const { setting, end, segments } of claims) {
     if (end !== null && continuedAfter.has(setting)) segments.at(-1)!.to = plusDays(end, -1)
     if (end === null) continue
-    const reported = reports.map(({ dueOn }) => dueOn)
+    const reported = reports
+      .filter(({ settingId }) => settingId === setting.id)
+      .map(({ dueOn }) => dueOn)
     for (const day of end === setting.startsOn ? [...reported, end] : [end]) {
       const open =
         (setting.endsOn === null || day <= setting.endsOn) && (stop === null || day < stop)
