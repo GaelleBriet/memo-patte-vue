@@ -1249,6 +1249,23 @@ describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
     expect(() => editionPlan(history, input, '2026-09-28', IDS)).toThrow(ZodError)
   })
 
+  it('refuse, case décochée, une prochaine dose au-delà de la date de fin comme après la fin, non comme après la dose suivante', () => {
+    const history = treatment(
+      [
+        period({
+          startsOn: '2026-09-26',
+          firstDueOn: '2026-09-26',
+          frequency: { value: 1, unit: 'week' },
+          endsOn: '2026-10-10',
+        }),
+      ],
+      [dose({ dueOn: '2026-09-26', givenOn: '2026-09-26', nextDueDate: '2026-10-03' })],
+    )
+    const input = saisie(history, { nextDoseOn: '2026-11-01', shiftsFollowing: false })
+
+    expect(champsRefuses(history, input, '2026-09-28')).toEqual(['nextDoseOn:afterEnd'])
+  })
+
   it('accepte une prochaine dose au-delà de l’ancienne fin quand la date de fin change dans la même saisie', () => {
     const history = treatment(
       [
