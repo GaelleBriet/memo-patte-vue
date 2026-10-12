@@ -276,6 +276,20 @@ describe('R9 : « Prochaine dose » choisie', () => {
     ])
   })
 
+  it('R3, R6 : hebdo du lundi 5 oct., doses du 5 et du 12 données, décalage resté du mercredi 14 au vendredi 16 ; le 13, « Prochaine dose » le vendredi 23 : le 14 n’est pas une échéance, le décalage ne fait pas la grille, le rythme repart du 23 : 23, 30', () => {
+    const s1 = setting('s1', '2026-10-05', WEEK)
+    const input = {
+      settings: [s1],
+      lines: [
+        line('s1', 'given', '2026-10-05'),
+        line('s1', 'given', '2026-10-12'),
+        line('s1', 'shift', '2026-10-14', null, '2026-10-16'),
+      ],
+      today: '2026-10-13',
+    }
+    expect(shown(input, request(WEEK, [], '2026-10-23'), 2)).toEqual(['2026-10-23', '2026-10-30'])
+  })
+
   it('R6, #794 : mensuel du 29 mars, dose du 29 reportée au 5 avr. ; le 31, « Prochaine dose » le 9 juin, décalage du 5 au 9 avr. : la dose reportée vient de l’ancien rythme, le décalage est sans effet : 5 avr., 9 juin, 9 juil.', () => {
     const s1 = setting('s1', '2026-03-29', MONTH)
     const s2 = setting('s2', '2026-06-09', MONTH, [], { startsOn: '2026-03-31' })
