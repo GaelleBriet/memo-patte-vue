@@ -5,6 +5,19 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.74](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.73...memo-patte-v0.1.74) (2026-10-12)
+
+
+### 🐛 Corrections
+
+* **i18n:** espaces insécables des textes rétablis, comme sur main ([d3549a5](https://github.com/GaelleBriet/memo-patte-vue/commit/d3549a5f3b353fd4381c38181f708150a0486801))
+* **settings:** l'import accepte une période qui commence après sa première échéance (I2) ([7eaa0b6](https://github.com/GaelleBriet/memo-patte-vue/commit/7eaa0b6f4454bf8d97294489c9aaea881793e794))
+* **settings:** l'import refuse une fin avant la première échéance ([40e4a69](https://github.com/GaelleBriet/memo-patte-vue/commit/40e4a693c46382cbefcc3e2b8de48dab39b861d4))
+* **treatments:** « La suite ne bouge pas » dit le report qui la retient (I3) ([b6f18ce](https://github.com/GaelleBriet/memo-patte-vue/commit/b6f18ce0b18969fd1dfccf46bfc84238f497fca8))
+* **treatments:** « Prochaine dose » seule reporte la dose avec la case de décalage (C1) ([3b560c4](https://github.com/GaelleBriet/memo-patte-vue/commit/3b560c4c19c39312e7c0310d570fcc8205f4f7c6))
+* **treatments:** fin et rappel corrigés sur place, aide Q29 rétablie (I1, I4) ([ea145cf](https://github.com/GaelleBriet/memo-patte-vue/commit/ea145cf933547af21868cc58a4639e43728f3a03))
+* **treatments:** report devenu départ d'un nouveau rythme sans menu ([#780](https://github.com/GaelleBriet/memo-patte-vue/issues/780)) ([7a180d9](https://github.com/GaelleBriet/memo-patte-vue/commit/7a180d905318fa471dc5809b46db33e3ad531211))
+
 ## [0.1.73](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.72...memo-patte-v0.1.73) (2026-10-12)
 
 
