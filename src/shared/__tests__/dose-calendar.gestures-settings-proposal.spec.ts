@@ -11,7 +11,7 @@ function planOf(input: TreatmentViewInput, asked: SettingsRequest) {
   return result.plan
 }
 
-describe('R9.3 : la première échéance proposée après un changement de fréquence', () => {
+describe('#787, TR-8, Q20 : un rythme qui ne laisse plus aucune dose avant la date de fin (décision du 2026-10-12)', () => {
   const everyTwo = setting('p1', '2026-10-01', TWO_DAYS, [], { endsOn: '2026-10-10' })
   const input = {
     settings: [everyTwo],
@@ -22,6 +22,15 @@ describe('R9.3 : la première échéance proposée après un changement de fréq
     frequency: { value: 1, unit: 'month' },
     times: [],
     endsOn,
+  })
+
+  it('tous les 2 jours du 1er oct., fin le 10, doses des 1er et 3 données ; le 4, mensuel : refusé à l’enregistrement', () => {
+    expect(newSettings(input, monthly('2026-10-10'))).toEqual({
+      refusal: { reason: 'no-dose-before-end' },
+    })
+    expect(newSettings(input, { ...monthly('2026-10-10'), firstDueOn: '2026-11-03' })).toEqual({
+      refusal: { reason: 'no-dose-before-end' },
+    })
   })
 
   it('même carnet, date de fin repoussée au 10 nov. : le 3 nov. est proposé', () => {

@@ -20,8 +20,6 @@ function misreadFirstDue(
 ): Misread | null {
   const view = preview(input, plan)
   if (view.phase === 'ended' || view.phase === 'stopped') return null
-  // #787 : une première échéance proposée après la date de fin, question ouverte.
-  if (plan.setting.endsOn !== null && day > plan.setting.endsOn) return null
   const moves = view.history.flatMap(({ effect }) => (effect.kind === 'moves' ? [effect] : []))
   const arrivals = new Set(moves.map(({ arrival }) => arrival))
   const emptied = moves.some(({ keys }) => keys.some((key) => key.startsWith(day)))
@@ -43,6 +41,8 @@ export function settingsProposal(step: V2Step): Broken | null {
   const { before, plan } = step
   const { firstDueOn: chosen, ...asked } = step.request
   const proposed = newSettings(before, asked)
+  // #787 (décision du 2026-10-12) : un rythme sans dose avant la date de fin se refuse sans date.
+  if ('refusal' in proposed && proposed.refusal.reason === 'no-dose-before-end') return null
   if ('refusal' in proposed) {
     return { invariant: 'proposition', detail: `refus sans date : ${proposed.refusal.reason}` }
   }

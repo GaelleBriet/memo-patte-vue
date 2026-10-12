@@ -102,12 +102,40 @@ function fallenOf(view: TreatmentView, current: Setting, today: Day): Due[] {
  * de fin ou rappel ; rien n'est écrit.
  */
 export function newSettings(input: TreatmentViewInput, request: SettingsRequest): SettingsResult {
-  const { today } = input
   const view = buildView(input)
   const current = view.currentSetting
   if (current === null || view.phase === 'stopped') {
     throw new RangeError('Aucun réglage en cours : « Reprendre » ouvre le suivant')
   }
+  const result = settingsFor(input, view, current, request)
+  return leavesNoDose(input.today, current, request, result)
+    ? { refusal: { reason: 'no-dose-before-end' } }
+    : result
+}
+
+// #787, TR-8, Q20 : un nouveau rythme dont la première échéance tombe après une date de fin encore à venir.
+function leavesNoDose(
+  today: Day,
+  current: Setting,
+  request: SettingsRequest,
+  result: SettingsResult,
+): boolean {
+  const { endsOn } = request
+  if (endsOn === null || endsOn < today || sameFrequency(current.frequency, request.frequency)) {
+    return false
+  }
+  const plans =
+    'plan' in result ? [result.plan] : 'question' in result ? [result.question.keep] : []
+  return plans.some(({ setting }) => setting.firstDueOn > endsOn)
+}
+
+function settingsFor(
+  input: TreatmentViewInput,
+  view: TreatmentView,
+  current: Setting,
+  request: SettingsRequest,
+): SettingsResult {
+  const { today } = input
   const sameRhythm =
     sameFrequency(current.frequency, request.frequency) && sameHours(current.times, request.times)
   const create = (dates: Dates): SettingsPlan => ({

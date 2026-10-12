@@ -24,6 +24,7 @@ const TEXTS: Record<Refusal['reason'], string[]> = {
   'later-line': ['treatments.form.nextDoseOn.refusal.laterLine'],
   'no-date-left': ['treatments.form.nextDoseOn.refusal.noDateLeft'],
   'no-date-alone': ['treatments.form.errors.nextDoseOnRefused', 'treatments.shift.aloneLatest'],
+  'no-dose-before-end': ['treatments.form.nextDoseOn.refusal.noDoseBeforeEnd'],
   'arrival-logged': ['treatments.form.nextDoseOn.refusal.arrivalLogged'],
   'not-movable': ['treatments.form.errors.nextDoseOnRefused'],
   'unknown-due': [],

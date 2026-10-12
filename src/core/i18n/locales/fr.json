@@ -410,6 +410,7 @@
           "laterLine": "Une dose plus lointaine est déjà reportée. Supprime ce report pour déplacer celle-ci.",
           "laterDose": "Une dose plus lointaine est déjà notée.",
           "noDateLeft": "Plus aucune date possible avant la date de fin. Change la date de fin pour déplacer cette dose.",
+          "noDoseBeforeEnd": "Avec ce rythme, plus aucune dose avant la date de fin. Change la date de fin ou le rythme.",
           "arrivalLogged": "Cette dose a déjà été déplacée, et sa nouvelle date est notée."
         }
       },

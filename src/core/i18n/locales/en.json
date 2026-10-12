@@ -410,6 +410,7 @@
           "laterLine": "A later dose is already postponed. Delete that postponement to move this one.",
           "laterDose": "A later dose is already logged.",
           "noDateLeft": "No date left before the end date. Change the end date to move this dose.",
+          "noDoseBeforeEnd": "At this frequency, no dose is left before the end date. Change the end date or the frequency.",
           "arrivalLogged": "This dose was already moved, and its new date is logged."
         }
       },

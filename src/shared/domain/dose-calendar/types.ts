@@ -103,6 +103,7 @@ export type Refusal =
   | { reason: 'later-line' }
   | { reason: 'no-date-left' }
   | { reason: 'no-date-alone' }
+  | { reason: 'no-dose-before-end' }
   | { reason: 'arrival-logged' }
   | { reason: 'not-movable' }
   | { reason: 'unknown-due' }

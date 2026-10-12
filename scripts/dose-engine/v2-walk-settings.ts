@@ -53,6 +53,8 @@ function requestOf(walk: SettingsWalk, current: Setting): SettingsRequest {
     .upcoming({ limit: 6 })
     .map(({ dueOn }) => dueOn)
   const chosen = pick(random, [input.today, ...upcoming, plusDays(input.today, int(random, 1, 5))])
+  // Q20 : le formulaire refuse une « Prochaine dose » après la date de fin (`nextDoseOnAfterEnd`).
+  if (chosen === undefined || (endsOn !== null && chosen > endsOn)) return asked
   return { ...asked, firstDueOn: chosen }
 }
 
