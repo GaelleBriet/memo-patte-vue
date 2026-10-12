@@ -6,6 +6,7 @@ import {
   treatmentView,
   viewInputOf,
   type HistoryLine,
+  type IdleReason,
   type LegacyInput,
   type Line,
   type TreatmentView,
@@ -96,10 +97,11 @@ export function treatmentReading(treatment: TreatmentRecords, today: string): Tr
   return treatmentView(viewInputOf({ ...treatment, today }))
 }
 
-// « · sans effet » n'a pas encore de texte : seuls un report sans effet et une ligne remplacée restent cachés, comme avant.
-function isShown({ line, effect }: HistoryLine): boolean {
-  if (effect.kind !== 'idle') return true
-  return effect.reason !== 'superseded' && line.status !== 'postponed'
+// R11 veut ces lignes grisées « · sans effet » : faute de ce texte, elles restent cachées.
+const HIDDEN: readonly IdleReason[] = ['superseded', 'back-to-date', 'beaten']
+
+function isShown({ effect }: HistoryLine): boolean {
+  return effect.kind !== 'idle' || !HIDDEN.includes(effect.reason)
 }
 
 /** Les lignes que l'historique montre, dans l'ordre chronologique. */

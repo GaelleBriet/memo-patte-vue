@@ -742,6 +742,48 @@ describe('buildCarnetPdfContent — historique', () => {
     ])
   })
 
+  it('garde un report qui n’a plus de dose à déplacer, la fréquence ayant changé le même jour', () => {
+    const row = treatmentRow(
+      [
+        {
+          id: 'p0',
+          startsOn: '2026-03-28',
+          frequency: { value: 2, unit: 'day' },
+          times: ['08:00', '20:00'],
+        },
+        {
+          id: 'p1',
+          startsOn: '2026-03-28',
+          frequency: { value: 3, unit: 'month' },
+          createdAt: '2026-01-01T00:00:30.000Z',
+        },
+      ],
+      [
+        {
+          periodId: 'p0',
+          dueOn: '2026-03-28',
+          dueTime: '20:00',
+          status: 'postponed',
+          nextDueDate: '2026-03-29',
+        },
+        {
+          periodId: 'p0',
+          dueOn: '2026-03-29',
+          dueTime: '20:00',
+          status: 'given',
+          givenOn: '2026-03-25',
+        },
+        { periodId: 'p1', dueOn: '2026-03-28', status: 'missed' },
+      ],
+      '2026-03-28',
+    )
+
+    expect(row.periods[1]!.lines).toEqual([
+      { kind: 'moved', dueOn: '2026-03-28', to: '2026-03-29', advanced: false },
+      { kind: 'given', series: { kind: 'dates', doses: [at('2026-03-25', '20:00')] } },
+    ])
+  })
+
   describe('traitement illisible', () => {
     const UNREADABLE = { id: 'p', startsOn: '2026-01-01', times: ['25:00'] }
 

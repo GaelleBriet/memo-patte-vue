@@ -124,6 +124,52 @@ describe('shownLines', () => {
     expect(read.history.find(({ line }) => line.id === 'off')?.effect.kind).toBe('idle')
     expect(shownLines(read).map(({ id }) => id)).toEqual(['off', 'a'])
   })
+
+  it('garde un report qui n’a plus de dose à déplacer, la fréquence ayant changé le même jour', () => {
+    const treatment = {
+      periods: [
+        period({
+          startsOn: '2026-03-28',
+          firstDueOn: '2026-03-28',
+          referenceOn: '2026-03-28',
+          frequency: { value: 2, unit: 'day' },
+          times: ['08:00', '20:00'],
+          createdAt: '2026-01-01T00:00:00.000Z',
+        }),
+        period({
+          id: 'p-2',
+          startsOn: '2026-03-28',
+          firstDueOn: '2026-03-28',
+          referenceOn: '2026-03-28',
+          frequency: { value: 3, unit: 'month' },
+          createdAt: '2026-01-01T00:00:30.000Z',
+        }),
+      ],
+      doses: [
+        dose({
+          id: 'report',
+          dueOn: '2026-03-28',
+          dueTime: '20:00',
+          status: 'postponed',
+          givenOn: null,
+          nextDueDate: '2026-03-29',
+        }),
+        dose({
+          id: 'prise',
+          dueOn: '2026-03-29',
+          dueTime: '20:00',
+          givenOn: '2026-03-25',
+          nextDueDate: '2026-03-31',
+        }),
+      ],
+    }
+    const read = treatmentReading(treatment, '2026-03-28')!
+    expect(read.history.find(({ line }) => line.id === 'report')?.effect).toEqual({
+      kind: 'idle',
+      reason: 'nothing-to-move',
+    })
+    expect(shownLines(read).map(({ id }) => id)).toEqual(['report', 'prise'])
+  })
 })
 
 describe('currentPeriodIn', () => {
