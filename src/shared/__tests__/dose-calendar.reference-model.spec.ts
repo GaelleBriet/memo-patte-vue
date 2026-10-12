@@ -366,6 +366,22 @@ describe('R1, R4 : la prise du jour d’un changement de réglage garde son éch
   })
 })
 
+describe('R8, Q-G3 : la prise d’avant l’arrêt notée le jour de la reprise (décision du 2026-10-12, #784)', () => {
+  it('reprise le 23 mars, hebdo à 8, 14 et 20 h dès le 24, 20 h du 24 avancée au 23, prise d’avant l’arrêt du 23 à 20 h : rien à redonner le 23', () => {
+    const p1 = setting('p1', '2026-03-20', DAY, ['08:00', '14:00', '20:00'], {
+      stoppedOn: '2026-03-23',
+    })
+    const p2 = setting('p2', '2026-03-24', WEEK, ['08:00', '14:00', '20:00'], {
+      startsOn: '2026-03-23',
+    })
+    const lines = [
+      line('p1', 'given', '2026-03-23', '20:00'),
+      line('p2', 'postponed', '2026-03-24', '20:00', '2026-03-23'),
+    ]
+    expect(next([p1, p2], lines, '2026-03-23', 1)).toEqual(['2026-03-24 08:00'])
+  })
+})
+
 describe('R7, R9 : un réglage qui part du jour d’arrivée d’un report', () => {
   it('20 h du 3 reportée au 4, tous les 3 jours à partir du 4 : 20 h le 4, puis le 7', () => {
     const p1 = setting('p1', '2026-10-01', TWO_DAYS, H)

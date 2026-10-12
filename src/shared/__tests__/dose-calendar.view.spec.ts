@@ -187,6 +187,31 @@ describe('relecture du pas 2 : frontières de réglage et historique', () => {
     expect(effectOf(read, given.id)).toEqual({ kind: 'covers', key: '2026-10-05' })
   })
 
+  describe('R8, Q-G3, #784 : reprise le 23 mars, hebdo à 8, 14 et 20 h dès le 24, 20 h du 24 avancée au 23, prise d’avant l’arrêt notée le 23 à 20 h', () => {
+    const p1 = setting('p1', '2026-03-20', DAY, ['08:00', '14:00', '20:00'], {
+      stoppedOn: '2026-03-23',
+    })
+    const before = line('p1', 'given', '2026-03-23', '20:00')
+    const p2 = setting('p2', '2026-03-24', WEEK, ['08:00', '14:00', '20:00'], {
+      startsOn: '2026-03-23',
+    })
+    const advanced = line('p2', 'postponed', '2026-03-24', '20:00', '2026-03-23')
+    const dosage = setting('p3', '2026-03-23', WEEK, ['08:00', '14:00', '20:00'], {
+      startsOn: '2026-03-23',
+      gridOriginOn: null,
+    })
+
+    it.each([
+      ['sans posologie', [p1, p2]],
+      ['posologie écrite le 23', [p1, p2, dosage]],
+    ])('%s : la prise couvre la dose avancée au 23, rien à redonner le 23', (_, settings) => {
+      const read = view(settings, [before, advanced], '2026-03-23')
+      expect(read.dueState({ dueOn: '2026-03-23', dueTime: '20:00' })).toBe('covered')
+      expect(effectOf(read, before.id)).toEqual({ kind: 'covers', key: '2026-03-23 20:00' })
+      expect(keys(read.currentDoses)).toEqual(['2026-03-24 08:00'])
+    })
+  })
+
   it('R8 : prise d’avance au-delà de l’arrêt, report du même jour : la reprise qui note cette échéance est seule à la couvrir', () => {
     const p1 = setting('p1', '2026-10-01', DAY, H, { stoppedOn: '2026-10-03' })
     const ahead = line('p1', 'given', '2026-10-06', '20:00')

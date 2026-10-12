@@ -74,10 +74,7 @@ export function spanOf(episode: readonly Setting[], kept: readonly Line[]): Span
   return { episode, live, chain, endOf, settingAt }
 }
 
-/**
- * R8 : les prises d'avant l'arrêt ne couvrent la reprise que pour sa première journée, quand elles
- * visent ce jour-là et que la reprise commence par une échéance.
- */
+/** R8, Q-G3 : les prises d'avant l'arrêt ne couvrent la reprise que le jour où elle est écrite. */
 export function borrowedNotes(
   episodes: Setting[][],
   index: number,
@@ -85,7 +82,7 @@ export function borrowedNotes(
 ): Line[] {
   const episode = episodes[index]!
   const first = episode.filter(({ startsOn }) => startsOn === episode[0]!.startsOn).at(-1)!
-  if (index === 0 || first.firstDueOn !== first.startsOn) return []
+  if (index === 0) return []
   const before = new Set(episodes.slice(0, index).flatMap((earlier) => earlier.map(({ id }) => id)))
   return latestBy(
     lines.filter(
