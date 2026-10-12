@@ -34,17 +34,10 @@ const sameHours = (a: readonly string[], b: readonly string[]) =>
   hoursOf(a).join() === hoursOf(b).join()
 
 // R9, R12 : à fréquence gardée, la prochaine journée du carnet une fois le réglage écrit, dose du
-// moment en retard comprise ; la première échéance joue sur la lecture (heures changées, reprise).
-function keptFirstDue(today: Day, readWith: (firstDueOn: Day) => TreatmentView): Day {
-  let day = today
-  for (let round = 0; round < 3; round += 1) {
-    const view = readWith(day)
-    const late = view.currentDoses.find(({ dueOn }) => dueOn < today)
-    const next = late?.dueOn ?? view.slots(today, plusDays(today, NEXT_DAYS))[0]?.due.dueOn ?? today
-    if (next === day) return day
-    day = next
-  }
-  return day
+// moment en retard comprise ; l'origine héritée, la première échéance ne change pas les journées.
+function keptFirstDue(today: Day, view: TreatmentView): Day {
+  const late = view.currentDoses.find(({ dueOn }) => dueOn < today)
+  return late?.dueOn ?? view.slots(today, plusDays(today, NEXT_DAYS))[0]?.due.dueOn ?? today
 }
 
 const isNoted = (state: string) => state === 'given' || state === 'missed' || state === 'covered'
@@ -112,7 +105,7 @@ function proposedDates(
 ): Dates | { refusal: Refusal } {
   const kept = previous !== null && sameFrequency(previous.frequency, request.frequency)
   const proposed = kept
-    ? keptFirstDue(before.today, (firstDueOn) => readWith({ firstDueOn, gridOriginOn: null }))
+    ? keptFirstDue(before.today, readWith({ firstDueOn: before.today, gridOriginOn: null }))
     : previous === null
       ? fallback
       : shownFrom(changedFirstDue(before, buildView(before), request.frequency, fallback), readWith)
