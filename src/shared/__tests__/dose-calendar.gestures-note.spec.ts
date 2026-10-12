@@ -110,6 +110,29 @@ describe('noter une prise (R5, R6, G19, G20)', () => {
     expect(result).toEqual({ refusal: { reason: 'passes-report', on: '2026-10-27' } })
   })
 
+  it('Q2 c (gardée le 2026-10-12) : hebdo du vendredi, dose du 9 reportée seule au 13 ; la dose du 13 donnée le 14 : pas de case, la suite reste au 16', () => {
+    const input = {
+      settings: [vendredi()],
+      lines: [
+        line('p1', 'given', '2026-10-02'),
+        line('p1', 'postponed', '2026-10-09', null, '2026-10-13'),
+      ],
+      today: '2026-10-14',
+    }
+    for (const shiftsFollowing of [true, false]) {
+      const result = accepted(
+        noteDose(input, {
+          due: due('2026-10-13'),
+          status: 'given',
+          givenOn: '2026-10-14',
+          shiftsFollowing,
+        }),
+      )
+      expect(result.offersShift).toBe(false)
+      expect(written(result)).toEqual([['create', 'given', '2026-10-13', null]])
+    }
+  })
+
   it('#786, R6 : toutes les 6 semaines à 20 h du 27 mars, fin le 10 mai, dose du 8 mai avancée seule au 23 avr. ; le 10 avr., dose du 27 mars donnée le 9, cochée : même refus par « Fait à une autre date » et par « C’est fait » puis « Changer la date »', () => {
     const p1 = setting('p1', '2026-03-27', { value: 6, unit: 'week' }, ['20:00'], {
       endsOn: '2026-05-10',

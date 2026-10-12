@@ -10,7 +10,7 @@ import type {
 } from '../types'
 import { buildView, type TreatmentView } from '../view'
 import { shiftOfDay, shiftWritten, written } from './changes'
-import { linesAfter, lostToEnd, outcome, shiftDayOf, withFollowed } from './outcome'
+import { linesAfter, lostToEnd, movedAlone, outcome, shiftDayOf, withFollowed } from './outcome'
 
 export type NoteGesture = Omit<Extract<Gesture, { kind: 'note' }>, 'kind'>
 
@@ -44,10 +44,11 @@ export function dueForDate(
 
 /**
  * R6 : la case est proposée quand la prise change la date de la dose du moment, à la dernière heure de
- * sa journée, et qu'aucune prise ni aucun décalage n'existe plus loin dans le traitement.
+ * sa journée, et qu'aucune prise ni aucun décalage n'existe plus loin dans le traitement ; jamais pour
+ * une dose déplacée seule (Q2 c).
  */
 function offersShift(input: TreatmentViewInput, view: TreatmentView, due: Due, givenOn: Day) {
-  if (givenOn === due.dueOn) return false
+  if (givenOn === due.dueOn || movedAlone(view, input.lines, due.dueOn)) return false
   const key = keyOf(due.dueOn, due.dueTime)
   const sameKey = (other: Due) => keyOf(other.dueOn, other.dueTime) === key
   if (!view.currentDoses.some(sameKey)) return false

@@ -12,7 +12,7 @@ import { episodeIdsOf } from '../settings'
 import { buildView } from '../view'
 import { shiftOfDay, shiftWritten, without } from './changes'
 import { checkPast, dueForDate, noteDose } from './note'
-import { linesAfter, lostToEnd, outcome, shiftDayOf, withFollowed } from './outcome'
+import { linesAfter, lostToEnd, movedAlone, outcome, shiftDayOf, withFollowed } from './outcome'
 
 export type RedateGesture = Omit<Extract<Gesture, { kind: 'redate' }>, 'kind'>
 
@@ -142,7 +142,8 @@ export function redateDose(input: TreatmentViewInput, gesture: RedateGesture): G
   const closed =
     view.phase === 'stopped' ||
     !episodeIdsOf(input.settings, line.settingId).has(view.currentSetting?.id ?? '')
-  const offered = givenOn !== line.dueOn && !blocked && dayDone && !closed
+  const alone = movedAlone(view, input.lines, line.dueOn)
+  const offered = givenOn !== line.dueOn && !blocked && dayDone && !closed && !alone
   const prise: LineChange = {
     action: 'rewrite',
     id: line.id,

@@ -26,6 +26,17 @@ export function shiftDayOf(view: TreatmentView, due: Pick<Due, 'dueOn'>): Day {
   return advanced?.line.dueOn ?? due.dueOn
 }
 
+/** Q2 c : la dose de ce jour est l'arrivée d'un report écrit sans « Décaler aussi les doses suivantes ». */
+export function movedAlone(view: TreatmentView, lines: readonly Line[], day: Day): boolean {
+  return view.history.some(
+    ({ line, effect }) =>
+      line.status === 'postponed' &&
+      effect.kind === 'moves' &&
+      effect.arrival === day &&
+      !lines.some(({ status, dueOn }) => status === 'shift' && dueOn === line.dueOn),
+  )
+}
+
 /** G7, G8 : une dose avancée (report ou décalage vers une date plus tôt) vit à son arrivée. */
 export const livesOn = ({ dueOn, targetOn }: Pick<Line, 'dueOn' | 'targetOn'>): Day =>
   targetOn !== null && targetOn < dueOn ? targetOn : dueOn

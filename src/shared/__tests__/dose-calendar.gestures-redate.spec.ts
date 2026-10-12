@@ -193,6 +193,55 @@ describe('« Changer la date » d’une prise (TR-24 bis, Q-C1, G12, G19, G21)',
   })
 })
 
+describe('TR-16, TR-24 bis : une prise de « Choisir les jours » se corrige comme les autres (décision du 2026-10-12)', () => {
+  it('dose du 16 renseignée le 25 par « Choisir les jours », ou notée le 16 par « C’est fait » ; corrigée au 17 : même carnet', () => {
+    const dose = { settingId: 'p1', dueOn: '2026-10-16', dueTime: null }
+    const empty = { settings: [p1], lines: base, today: '2026-10-25' }
+    const chosen = applied(
+      empty,
+      accepted(
+        noteDose(empty, {
+          due: dose,
+          status: 'given',
+          givenOn: '2026-10-16',
+          shiftsFollowing: false,
+        }),
+      ).changes,
+    )
+    const onTime = { ...empty, today: '2026-10-16' }
+    const tapped = {
+      ...applied(
+        onTime,
+        accepted(
+          noteDose(onTime, {
+            due: dose,
+            status: 'given',
+            givenOn: '2026-10-16',
+            shiftsFollowing: false,
+          }),
+        ).changes,
+      ),
+      today: '2026-10-25',
+    }
+    const corrected = (carnet: typeof empty) => {
+      const prise = carnet.lines.find(
+        ({ dueOn, status }) => dueOn === '2026-10-16' && status === 'given',
+      )!
+      const result = accepted(
+        redateDose(carnet, { lineId: prise.id, givenOn: '2026-10-17', shiftsFollowing: false }),
+      )
+      const read = treatmentView(applied(carnet, result.changes))
+      return [
+        result.offersShift,
+        keys(read.currentDoses),
+        keys(read.unloggedDoses),
+        keys(read.upcoming({ limit: 2 })),
+      ]
+    }
+    expect(corrected(chosen)).toEqual(corrected(tapped))
+  })
+})
+
 describe('R6, R11 : une correction de date n’efface jamais un oubli (décision du 2026-10-12)', () => {
   it('prise du 2 donnée, dose du 9 à renseigner, dose du 16 oubliée ; le 20, la prise du 2 corrigée au 17 : refusée « Une dose plus lointaine est déjà notée. » ; l’oubli supprimé, elle est acceptée', () => {
     const prise = line('p1', 'given', '2026-10-02')
