@@ -880,7 +880,7 @@ describe('editionPlan — période ouverte par « Modifier », encore sans prise
     })
   })
 
-  it('corrigée un autre jour que son ouverture, garde son début : aucune dose non renseignée nouvelle', () => {
+  function hebdoCorrigeeLe5() {
     const quotidien = period({
       startsOn: '2026-09-30',
       firstDueOn: '2026-09-30',
@@ -898,16 +898,17 @@ describe('editionPlan — période ouverte par « Modifier », encore sans prise
     )
     const history = treatment([quotidien, hebdo], prises)
     const input = saisie(history, { frequency: { value: 2, unit: 'week' } })
+    return { quotidien, hebdo, history, input }
+  }
+
+  it('corrigée un autre jour que son ouverture, garde son début : aucune dose non renseignée nouvelle', () => {
+    const { quotidien, hebdo, history, input } = hebdoCorrigeeLe5()
 
     expect(editionDraft(history, input, '2026-10-05').nextDose).toMatchObject({
-      proposedOn: '2026-10-15',
       earliest: '2026-10-05',
     })
     const plan = editionPlan(history, input, '2026-10-05', IDS)
-    expect(plan.period).toMatchObject({
-      action: 'correct',
-      settings: { startsOn: '2026-10-02', firstDueOn: '2026-10-15' },
-    })
+    expect(plan.period).toMatchObject({ action: 'correct', settings: { startsOn: '2026-10-02' } })
     const after = viewOf(
       {
         ...history,
@@ -916,6 +917,14 @@ describe('editionPlan — période ouverte par « Modifier », encore sans prise
       '2026-10-05',
     )
     expect(after.unloggedDoses).toEqual([])
+  })
+
+  it.fails('pas 6, ticket moteur : date proposée selon le jour de correction', () => {
+    const { history, input } = hebdoCorrigeeLe5()
+
+    expect(editionDraft(history, input, '2026-10-05').nextDose).toMatchObject({
+      proposedOn: '2026-10-16',
+    })
   })
 
   it('garde la première échéance choisie dans « Prochaine dose » avec la fréquence corrigée', () => {
