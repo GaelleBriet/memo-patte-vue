@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  treatmentFirstPeriodSettingsSchema,
   treatmentPeriodSettingsSchema,
   type TreatmentPeriodSettings,
 } from '../schema/treatment-period.schema'
@@ -66,14 +67,24 @@ describe('treatmentPeriodSettingsSchema', () => {
     expect(champRefuse({ times: [...heures, '00:30'] })).toBe('times')
   })
 
-  it('refuse une première échéance avant le début de la période', () => {
-    expect(champRefuse({ firstDueOn: '2026-09-27' })).toBe('firstDueOn')
-    expect(accepte({ firstDueOn: '2026-09-28' })).toBe(true)
+  it('laisse au moteur les dates d’un réglage : une première échéance avant son début, une fin avant elle', () => {
+    expect(accepte({ firstDueOn: '2026-09-27' })).toBe(true)
+    expect(accepte({ endsOn: '2026-09-28' })).toBe(true)
   })
 
-  it('refuse une date de fin avant la première échéance, égale acceptée', () => {
-    expect(champRefuse({ endsOn: '2026-09-28' })).toBe('endsOn')
-    expect(accepte({ endsOn: '2026-09-29' })).toBe(true)
+  describe('première période d’un traitement', () => {
+    const premiere = (changes: Partial<TreatmentPeriodSettings>) =>
+      treatmentFirstPeriodSettingsSchema.safeParse({ ...REGLAGES, ...changes })
+
+    it('refuse une première échéance avant le début de la période', () => {
+      expect(premiere({ firstDueOn: '2026-09-27' }).error?.issues[0]?.path[0]).toBe('firstDueOn')
+      expect(premiere({ firstDueOn: '2026-09-28' }).success).toBe(true)
+    })
+
+    it('refuse une date de fin avant la première échéance, égale acceptée', () => {
+      expect(premiere({ endsOn: '2026-09-28' }).error?.issues[0]?.path[0]).toBe('endsOn')
+      expect(premiere({ endsOn: '2026-09-29' }).success).toBe(true)
+    })
   })
 
   it('borne la fréquence de 1 à 365', () => {

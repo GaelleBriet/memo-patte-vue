@@ -20,12 +20,12 @@ describe('erreurs du formulaire de traitement', () => {
   it('traduit le motif d’une date refusée, puis le code de l’erreur', () => {
     expect(
       treatmentFormErrorsOf([
-        issue('nextDoseOn', 'afterNextDose'),
+        issue('nextDoseOn', 'noDoseBeforeEnd'),
         issue('endsOn', 'beforeFarAdvancedDose'),
         issue('name', 'x', 'too_big'),
       ]),
     ).toEqual({
-      nextDoseOn: 'treatments.form.errors.nextDoseOnAfterNextDose',
+      nextDoseOn: 'treatments.form.nextDoseOn.refusal.noDoseBeforeEnd',
       endsOn: 'treatments.form.errors.endsOnBeforeFarAdvancedDose',
       name: 'treatments.form.errors.nameMax',
     })
