@@ -221,7 +221,7 @@ describe('R9, R12 : la date proposée est celle que la fiche montre ensuite', ()
     expect(shown(input, request(WEEK, H), 2)).toEqual(['2026-04-02 08:00', '2026-04-07 20:00'])
   })
 
-  it('R10 : hebdo du lundi, tous les 3 jours le 14 (1re dose le 16, donnée le 14 avec décalage puis prise supprimée) ; retour à l’hebdo le 14 : le 21, puis le 28', () => {
+  it('R6, R10 : hebdo du lundi, tous les 3 jours le 14 (1re dose le 16, donnée le 14 avec décalage puis prise supprimée) ; retour à l’hebdo le 14 : fréquence gardée, le 16 n’est pas avant la première échéance : le décalage vaut encore, le 21, puis le 28', () => {
     const weekly = setting('a', '2026-10-05', WEEK)
     const everyThree = setting('b', '2026-10-16', THREE_DAYS, [], { startsOn: '2026-10-14' })
     const input = {
@@ -235,9 +235,11 @@ describe('R9, R12 : la date proposée est celle que la fiche montre ensuite', ()
     }
     expect(planOf(input, request(WEEK)).setting.firstDueOn).toBe('2026-10-21')
     expect(shown(input, request(WEEK), 2)).toEqual(['2026-10-21', '2026-10-28'])
+    const read = preview(input, planOf(input, request(WEEK)))
+    expect(read.history.find(({ line }) => line.status === 'shift')?.effect.kind).toBe('shifts')
   })
 
-  it('R10, R12 : même carnet, toutes les 2 semaines le 14 : le décalage resté du réglage remplacé vaut, la date proposée est celle lue (28 oct., puis 11 nov.)', () => {
+  it('R6, R10, R12 : même carnet, toutes les 2 semaines le 14 : le décalage resté du réglage remplacé est sans effet, le 26 oct. proposé et montré, puis le 9 nov.', () => {
     const weekly = setting('a', '2026-10-05', WEEK)
     const everyThree = setting('b', '2026-10-16', THREE_DAYS, [], { startsOn: '2026-10-14' })
     const input = {
@@ -250,8 +252,8 @@ describe('R9, R12 : la date proposée est celle que la fiche montre ensuite', ()
       today: '2026-10-14',
     }
     const fortnight = request({ value: 2, unit: 'week' })
-    expect(planOf(input, fortnight).setting.firstDueOn).toBe('2026-10-28')
-    expect(shown(input, fortnight, 2)).toEqual(['2026-10-28', '2026-11-11'])
+    expect(planOf(input, fortnight).setting.firstDueOn).toBe('2026-10-26')
+    expect(shown(input, fortnight, 2)).toEqual(['2026-10-26', '2026-11-09'])
   })
 
   it('R10 : deux réglages sans prise ouverts le 14 reçus de la synchro (tous les 2 jours, puis hebdo) ; heures passées à 9 h : le rythme du lundi continue', () => {
@@ -426,6 +428,14 @@ describe('TR-28, Q38, Q39 : un réglage sans prise', () => {
         setting: { startsOn: '2026-10-05', firstDueOn: '2026-10-14', gridOriginOn: '2026-10-14' },
       })
       expect(shown(input, request(WEEK, [], '2026-10-14'), 2)).toEqual(['2026-10-14', '2026-10-21'])
+    })
+
+    it('R6 : la dose du 12 donnée le 7 avec décalage, puis la prise supprimée ; le 7, posologie et « Prochaine dose » le 19 : la fiche montre le 19', () => {
+      const shifted = { ...input, lines: [line('p1', 'shift', '2026-10-12', null, '2026-10-07')] }
+      expect(shown(shifted, request(WEEK, [], '2026-10-19'), 2)).toEqual([
+        '2026-10-19',
+        '2026-10-26',
+      ])
     })
 
     it('Q7 : une date avant aujourd’hui est refusée', () => {

@@ -98,13 +98,13 @@ export function calendarOf(
     const within = ({ dueOn }: ReferenceLine) =>
       dueOn >= setting.startsOn && (end === null || dueOn < end)
     // R3, R9 : une origine choisie se juge sur la grille en vigueur à la première échéance.
-    const inForce =
-      shifts
-        .filter(
-          ({ dueOn, settingId }) =>
-            dueOn >= setting.startsOn && dueOn < setting.firstDueOn && rhythm.has(settingId),
-        )
-        .at(-1)?.targetOn ?? grid.origin
+    const held = shifts
+      .filter(
+        ({ dueOn, settingId }) =>
+          dueOn >= setting.startsOn && dueOn < setting.firstDueOn && rhythm.has(settingId),
+      )
+      .at(-1)
+    const inForce = held?.targetOn ?? grid.origin
     const continued =
       previous !== undefined &&
       sameFrequency(previous, setting) &&
@@ -128,6 +128,9 @@ export function calendarOf(
     // R2, R9 : une origine posée sur la grille en vigueur ne lit aucune journée avant sa première
     // échéance, ni ses suivants de même rythme, pas même après un décalage.
     chosenFloor = !continued ? '' : origin !== null ? ownFloor : chosenFloor
+    // R6, R11 : un décalage d'avant la première échéance d'un réglage qui fait repartir la grille est
+    // sans effet.
+    const restartFloor = !continued || origin !== null ? ownFloor : ''
     rhythm = continued ? new Set([...rhythm, setting.id]) : new Set([setting.id])
     grid = continued
       ? {
@@ -150,6 +153,8 @@ export function calendarOf(
     let from = setting.startsOn
     const segments: Segment[] = []
     for (const turn of [...turns, null]) {
+      const lands = turn === null || (turn === held && continued) || turn.dueOn > restartFloor
+      if (!lands) continue
       const to = turn === null ? last : turn.dueOn < last ? turn.dueOn : last
       const start = later(from, plusDays(grid.floor, 1))
       for (const day of gridDays(grid.origin, setting.frequency, start, to)) {

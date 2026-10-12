@@ -7,6 +7,7 @@ import {
   redateDose,
   treatmentView,
   type GestureOutcome,
+  type TreatmentViewInput,
 } from '../domain/dose-calendar'
 import { keys, line, setting, WEEK } from './dose-calendar.v2.aides'
 
@@ -223,7 +224,7 @@ describe('TR-16, TR-24 bis : une prise de « Choisir les jours » se corrige com
       ),
       today: '2026-10-25',
     }
-    const corrected = (carnet: typeof empty) => {
+    const corrected = (carnet: TreatmentViewInput) => {
       const prise = carnet.lines.find(
         ({ dueOn, status }) => dueOn === '2026-10-16' && status === 'given',
       )!

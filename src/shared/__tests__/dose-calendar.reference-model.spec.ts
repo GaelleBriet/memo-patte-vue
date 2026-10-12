@@ -382,6 +382,27 @@ describe('R8, Q-G3 : la prise d’avant l’arrêt notée le jour de la reprise 
   })
 })
 
+describe('R6 : un décalage ne vaut que si sa journée d’origine est une échéance du calendrier en vigueur (décision du 2026-10-12)', () => {
+  it('hebdo du lundi, tous les 3 jours dès le 16 réécrit le 14 en toutes les 2 semaines dès le 26, décalage du 16 au 14 resté : 26 oct., 9 nov.', () => {
+    const weekly = setting('a', '2026-10-05', WEEK)
+    const fortnight = setting('b', '2026-10-26', { value: 2, unit: 'week' }, [], {
+      startsOn: '2026-10-14',
+    })
+    const lines = [
+      line('a', 'given', '2026-10-05'),
+      line('a', 'given', '2026-10-12'),
+      line('b', 'shift', '2026-10-16', null, '2026-10-14'),
+    ]
+    expect(next([weekly, fortnight], lines, '2026-10-14', 2)).toEqual(['2026-10-26', '2026-11-09'])
+  })
+
+  it('hebdo dont la première dose est le 19 (choisie), décalage du 12 au 7 resté : 19, 26', () => {
+    const weekly = setting('p1', '2026-10-19', WEEK, [], { startsOn: '2026-10-05' })
+    const lines = [line('p1', 'shift', '2026-10-12', null, '2026-10-07')]
+    expect(next([weekly], lines, '2026-10-07', 2)).toEqual(['2026-10-19', '2026-10-26'])
+  })
+})
+
 describe('R7, R9 : un réglage qui part du jour d’arrivée d’un report', () => {
   it('20 h du 3 reportée au 4, tous les 3 jours à partir du 4 : 20 h le 4, puis le 7', () => {
     const p1 = setting('p1', '2026-10-01', TWO_DAYS, H)
