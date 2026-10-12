@@ -35,8 +35,21 @@ if (mode === 'eval') {
   await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
 } else if (mode === 'type') {
   await send('Input.insertText', { text: args.join(' ') })
+} else if (mode === 'freeze') {
+  // Jour figé à midi pour toute la page, puis rechargement : l'app lit ce jour-là au démarrage.
+  const source = `(()=>{const R=Date;const off=new R('${args[0]}T12:00:00').getTime()-R.now();class F extends R{constructor(...a){super(...(a.length?a:[R.now()+off]))}static now(){return R.now()+off}}window.Date=F})()`
+  await send('Page.enable')
+  await send('Page.addScriptToEvaluateOnNewDocument', { source })
+  await send('Page.reload')
+  await new Promise((resolve) => setTimeout(resolve, Number(args[1] ?? 6000)))
+} else if (mode === 'shot') {
+  const { result } = await send('Page.captureScreenshot', { format: 'png' })
+  const { writeFileSync } = await import('node:fs')
+  writeFileSync(args[0], Buffer.from(result.data, 'base64'))
 } else {
-  console.error('usage : cdp.mjs eval <expression> | tap <x> <y> | type <texte>')
+  console.error(
+    'usage : cdp.mjs eval <expression> | tap <x> <y> | type <texte> | freeze <AAAA-MM-JJ> | shot <fichier.png>',
+  )
   process.exitCode = 1
 }
 ws.close()
