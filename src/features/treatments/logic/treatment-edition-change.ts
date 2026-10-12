@@ -59,7 +59,7 @@ function planOf(result: SettingsResult, choice: PastDuesChoice | undefined): Set
   return choice === 'keep' ? result.question.keep : result.question.correct
 }
 
-/** I4, Q29 : la première dose que calculerait le moteur à partir de la dernière prise, avant d'être ramenée à aujourd'hui. */
+// Q29 : la première dose calculée à partir de la dernière prise, avant d'être ramenée à aujourd'hui.
 function calculatedOn(
   { input }: TreatmentReading,
   history: TreatmentWithHistory,
