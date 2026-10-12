@@ -31,11 +31,6 @@ const TEXTS: Record<Refusal['reason'], string[]> = {
   'out-of-bounds': ['treatments.shift.aloneLatest'],
   'too-early': [],
   'day-taken': [],
-  'passes-report': [
-    'treatments.shift.passesMove',
-    'treatments.shift.passesMoveUncheck',
-    'treatments.shift.passesMoveCheck',
-  ],
   'stuck-report': ['treatments.shift.stuckMove'],
   'report-loop': ['treatments.history.refusal.shiftMovePastNext'],
   'report-past-next': ['treatments.history.refusal.shiftMovePastNext'],
@@ -104,7 +99,7 @@ describe('un cas daté par refus', () => {
     })
   })
 
-  it('G19, Q2 a : « Fait à une autre date » coché qui ferait passer un report seul : refusé', () => {
+  it('G19, #786 : « Fait à une autre date » coché, un report seul après la prise : accepté, le report suit', () => {
     const lines = [
       line('p1', 'given', '2026-10-09'),
       line('p1', 'postponed', '2026-10-23', null, '2026-10-27'),
@@ -118,7 +113,9 @@ describe('un cas daté par refus', () => {
         shiftsFollowing: true,
       },
     )
-    expect(result).toEqual({ refusal: { reason: 'passes-report', on: '2026-10-27' } })
+    expect('refusal' in result ? result : result.followed).toEqual([
+      { from: '2026-10-27', to: '2026-10-27' },
+    ])
   })
 
   it('R7, #763 : dose du 16 reportée seule au 21 ; un geste qui avancerait la dose du 23 au 16 la renverrait entre deux reports : refusé', () => {

@@ -137,13 +137,14 @@ describe('« Changer la date » d’une prise (TR-24 bis, Q-C1, G12, G19, G21)',
     ).toHaveLength(1)
   })
 
-  it('G19 : dose du 23 reportée seule au 27 ; le 20, « Fait à une autre date » le 19 coché est refusé, la correction vers le 19 fait suivre le report', () => {
+  it('G19, #786 : dose du 23 reportée seule au 27 ; le 20, « Fait à une autre date » le 19 coché et la correction vers le 19 font suivre le report, même carnet', () => {
     const report = line('p1', 'postponed', '2026-10-23', null, '2026-10-27')
     const input = { settings: [p1], lines: [...base, report], today: '2026-10-20' }
     const dose = { settingId: 'p1', dueOn: '2026-10-16', dueTime: null }
-    expect(
+    const direct = accepted(
       noteDose(input, { due: dose, status: 'given', givenOn: '2026-10-19', shiftsFollowing: true }),
-    ).toEqual({ refusal: { reason: 'passes-report', on: '2026-10-27' } })
+    )
+    expect(direct.followed).toEqual([{ from: '2026-10-27', to: '2026-10-27' }])
     const tapped = applied(
       input,
       accepted(
@@ -161,7 +162,12 @@ describe('« Changer la date » d’une prise (TR-24 bis, Q-C1, G12, G19, G21)',
     const result = accepted(
       redateDose(tapped, { lineId: prise.id, givenOn: '2026-10-19', shiftsFollowing: true }),
     )
-    expect(result.followed).toEqual([{ from: '2026-10-27', to: '2026-10-27' }])
+    expect(result.followed).toEqual(direct.followed)
+    const read = (changes: typeof direct.changes, carnet: TreatmentViewInput) => {
+      const view = treatmentView(applied(carnet, changes))
+      return [keys(view.currentDoses), keys(view.upcoming({ limit: 3 }))]
+    }
+    expect(read(result.changes, tapped)).toEqual(read(direct.changes, input))
   })
 
   it('G19, TR-24 : dose du 23 reportée seule au 27 ; le 20, la prise en plus du 12 corrigée au 19, cochée : elle devient la dose du 16 et le report suit', () => {

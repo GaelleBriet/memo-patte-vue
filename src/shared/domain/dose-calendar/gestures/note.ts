@@ -102,11 +102,8 @@ export function noteDose(input: TreatmentViewInput, gesture: NoteGesture): Gestu
     note,
     shiftWritten(input.lines, { ...due, dueOn: shiftDayOf(view, due) }, givenOn),
   ]
-  const checked = withFollowed(input, shifted, due.dueOn, {
+  return withFollowed(input, shifted, due.dueOn, {
     offersShift: true,
     lostToEnd: lostToEnd(input, [note], shifted, due.dueOn),
   })
-  // G19 : noté coché, le geste ne fait pas suivre un report seul qu'il ferait passer.
-  const [passed] = 'refusal' in checked ? [] : checked.followed
-  return passed === undefined ? checked : { refusal: { reason: 'passes-report', on: passed.from } }
 }

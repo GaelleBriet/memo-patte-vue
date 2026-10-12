@@ -110,7 +110,6 @@ export type Refusal =
   | { reason: 'out-of-bounds'; earliest: Day; latest: Day | null }
   | { reason: 'too-early'; earliest: Day }
   | { reason: 'day-taken' }
-  | { reason: 'passes-report'; on: Day }
   | { reason: 'stuck-report'; on: Day }
   | { reason: 'report-loop' }
   | { reason: 'report-past-next'; on: Day }
