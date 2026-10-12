@@ -1,5 +1,5 @@
 import { givenWhenMin, isExtraOn } from './treatment-notification'
-import { notifiedDues } from './treatment-other-date'
+import { givesBeforeItsDay, notifiedDues } from './treatment-other-date'
 import { doneGesture } from './treatment-shift-box'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { Treatment } from '../schema/treatment.schema'
@@ -7,7 +7,7 @@ import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { NoteGesture } from './treatment-dose-change'
 import type { NotifiedDue, TodoDue } from '@/shared/domain/reminder-route'
 import type { Due, TreatmentView } from '@/shared/domain/dose-calendar'
-import { shownLines, type TreatmentReading } from '@/shared/domain/treatment-reading'
+import type { TreatmentReading } from '@/shared/domain/treatment-reading'
 import { formatClockTime, formatDayMonthOrYear } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
@@ -51,12 +51,6 @@ export type SheetDoneTarget =
   | { kind: 'detail'; dueOn: string }
   | { kind: 'none' }
 
-function givenOnDay(view: Pick<TreatmentView, 'history'>, day: string): boolean {
-  return shownLines(view).some(
-    ({ status, givenOn }) => (status === 'given' || status === 'extra') && givenOn === day,
-  )
-}
-
 /**
  * « Fait aujourd'hui » de la feuille, sur l'échéance de sa ligne (TR-13) : `confirm` quand la prise
  * décalerait la suite (G20). Une dose à venir après une prise du jour, ou déjà donnée, est « déjà
@@ -76,7 +70,7 @@ export function sheetDoneTarget(
     if (given !== undefined) return { kind: 'already', givenOn: given.givenOn ?? due.dueOn }
     return dues.some(({ status }) => status === 'missed') ? { kind: 'missed' } : { kind: 'none' }
   }
-  if (pending.due.dueOn > today && givenOnDay(view, today)) {
+  if (givesBeforeItsDay(view, pending.due, today)) {
     return { kind: 'already', givenOn: today }
   }
   if (isExtraOn(view, pending.due, today)) {

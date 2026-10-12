@@ -128,8 +128,16 @@ export function momentDue(
   }
   const current = view.currentDoses[0]
   if (current === undefined) return null
-  const givenToday = shownLines(view).some((line) => isGiven(line) && line.givenOn === today)
-  return current.dueOn > today && givenToday ? { alreadyGivenOn: today } : { due: current }
+  return givesBeforeItsDay(view, current, today) ? { alreadyGivenOn: today } : { due: current }
+}
+
+/** Q33 : une dose à venir n'est pas notée en avance quand une prise a déjà été donnée aujourd'hui. */
+export function givesBeforeItsDay(
+  view: Pick<TreatmentView, 'history'>,
+  { dueOn }: Pick<Due, 'dueOn'>,
+  today: string,
+): boolean {
+  return dueOn > today && shownLines(view).some((line) => isGiven(line) && line.givenOn === today)
 }
 
 type MomentTarget = ReturnType<typeof momentDue>
