@@ -32,7 +32,7 @@ export type EpisodeInput = {
 export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   const { settingOf, span, lines, borrowed } = input
   const effects = new Map<string, LineEffect>()
-  const { days, translated, left, openings, rhythmFrom } = journeys(input, effects)
+  const { days, translated, left, openings, rhythmFrom, replaced } = journeys(input, effects)
   const byDay = new Map<Day, Line[]>()
   for (const note of [...lines.notes, ...borrowed]) {
     byDay.set(note.dueOn, [...(byDay.get(note.dueOn) ?? []), note])
@@ -163,7 +163,17 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   }
   coverOrphans(lines.notes, matched, slots, settingOf)
   noteEffects(lines, borrowed, slots, held, effects)
-  return { slots, fallen, moved, effects, rhythmFrom }
+  const lateDays = new Set(replaced.map((range) => lastFallen(fallen, range)))
+  const kept = slots.filter(({ due, coveredBy }) => coveredBy !== null || !lateDays.has(due.dueOn))
+  return { slots: kept, fallen, moved, effects, rhythmFrom }
+}
+
+// TR-9 : la dernière journée arrivée avant le réglage, dose du moment qu'une date choisie remplace.
+function lastFallen(fallen: ReadonlySet<Day>, { from, to }: { from: Day; to: Day }) {
+  return [...fallen]
+    .filter((day) => day >= from && day < to)
+    .sort()
+    .at(-1)
 }
 
 // R4 : une prise dont l'échéance a quitté le calendrier couvre la première échéance qui suit, à

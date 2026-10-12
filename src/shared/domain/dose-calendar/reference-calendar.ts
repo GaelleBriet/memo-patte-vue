@@ -83,6 +83,7 @@ export function calendarOf(
   // R9, Q-retard : les réglages de même fréquence continuent le rythme, et sa dose en retard.
   let rhythm = new Set<string>()
   let rhythmFrom = live[0]!.startsOn
+  const replaced: { from: string; to: string }[] = []
   let chosenFloor = ''
   chain.forEach((setting, position) => {
     const index = live.indexOf(setting)
@@ -142,6 +143,9 @@ export function calendarOf(
       : { origin: setting.gridOriginOn ?? setting.firstDueOn, floor: ownFloor }
     if (index < 0) return
     const ended = index > 0 && (live[index - 1]!.endsOn ?? setting.startsOn) < setting.startsOn
+    // TR-9 : à fréquence gardée, une première échéance choisie remplace la dose en retard du rythme.
+    const kept = index > 0 && sameFrequency(live[index - 1]!, setting)
+    if (kept && origin !== null && !ended) replaced.push({ from: rhythmFrom, to: setting.startsOn })
     if (index > 0 && (!continued || ended)) rhythmFrom = setting.startsOn
     // R6 : à partir de sa journée d'origine, un décalage donne à la grille l'origine de son ancrage ;
     // écrit sous un réglage d'avant un changement de fréquence, il est dépassé par la nouvelle origine (R3).
@@ -262,6 +266,14 @@ export function calendarOf(
     )
   }
   coverOrphans(notes, matched, dues, settingOf)
-  const pending = dues.filter(({ covered }) => !covered).map(({ key }) => key)
+  const lateDays = replaced.map(({ from, to }) =>
+    [...fallen]
+      .filter((day) => day >= from && day < to)
+      .sort()
+      .at(-1),
+  )
+  const pending = dues
+    .filter(({ covered, day }) => !covered && !lateDays.includes(day))
+    .map(({ key }) => key)
   return { pending, fallen, rhythmFrom }
 }

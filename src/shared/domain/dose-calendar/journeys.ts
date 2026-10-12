@@ -49,6 +49,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   let grid = { origin: chain[0]!.firstDueOn, floor: '' }
   let rhythm = new Set<string>()
   let rhythmFrom = span.live[0]!.startsOn
+  const replaced: { from: Day; to: Day }[] = []
   let chosenFloor = ''
   chain.forEach((setting, position) => {
     const index = span.live.indexOf(setting)
@@ -105,6 +106,9 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       : { origin: origin ?? setting.firstDueOn, floor: ownFloor }
     if (index < 0) return
     const ended = index > 0 && (span.live[index - 1]!.endsOn ?? setting.startsOn) < setting.startsOn
+    // TR-9 : à fréquence gardée, une première échéance choisie remplace la dose en retard du rythme.
+    const kept = index > 0 && sameFrequency(span.live[index - 1]!.frequency, setting.frequency)
+    if (kept && origin !== null && !ended) replaced.push({ from: rhythmFrom, to: setting.startsOn })
     if (index > 0 && (!continued || ended)) rhythmFrom = setting.startsOn
     // R3 : écrit sous un réglage d'avant un changement de fréquence, un décalage est dépassé.
     const turns = lines.shifts.filter(
@@ -137,5 +141,5 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     if (!effects.has(shift.id)) effects.set(shift.id, { kind: 'idle', reason: 'overtaken' })
   }
   const left = leftDays(claims, lines.reports, span.endOf(span.live.length - 1))
-  return { days, translated, left, openings, rhythmFrom }
+  return { days, translated, left, openings, rhythmFrom, replaced }
 }

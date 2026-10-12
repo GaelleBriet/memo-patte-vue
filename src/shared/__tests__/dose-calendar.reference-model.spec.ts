@@ -403,6 +403,20 @@ describe('R6 : un décalage ne vaut que si sa journée d’origine est une éch�
   })
 })
 
+describe('TR-9 : à fréquence gardée, une « Prochaine dose » choisie remplace la dose en retard (décision du 2026-10-12)', () => {
+  const monday = setting('m1', '2026-10-05', WEEK)
+  const lines = [line('m1', 'given', '2026-10-05')]
+
+  it.each(['2026-10-15', '2026-10-19'])(
+    'hebdo du lundi, le 12 non donné ; le 14, posologie et première dose le %s : ni retard ni à renseigner',
+    (chosen) => {
+      const s2 = setting('m2', chosen, WEEK, [], { startsOn: '2026-10-14' })
+      const reading = read([monday, s2], lines, '2026-10-14')
+      expect([reading.current, reading.unlogged]).toEqual([[chosen], []])
+    },
+  )
+})
+
 describe('R7, R9 : un réglage qui part du jour d’arrivée d’un report', () => {
   it('20 h du 3 reportée au 4, tous les 3 jours à partir du 4 : 20 h le 4, puis le 7', () => {
     const p1 = setting('p1', '2026-10-01', TWO_DAYS, H)
@@ -549,12 +563,13 @@ describe('R3 : une date choisie sur la grille d’un décalage à venir continue
     )
   })
 
-  it('R9 : le 27, première dose choisie le 25 juin : le 20 mars reste en retard, les 25 avr. et 25 mai ne sont plus dus', () => {
+  it('R9, TR-9 : le 27, première dose choisie le 25 juin : le 20 mars en retard est remplacé (décision du 2026-10-12), les 25 avr. et 25 mai ne sont plus dus', () => {
     expect(next([s1, s2], lines, '2026-03-27')).toEqual([
-      '2026-03-20 20:00',
       '2026-06-25 20:00',
       '2026-07-25 20:00',
+      '2026-08-25 20:00',
     ])
+    expect(read([s1, s2], lines, '2026-03-27').unlogged).toEqual([])
   })
 })
 

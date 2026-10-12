@@ -132,6 +132,18 @@ describe('R9, R3, Q-retard : fréquence gardée', () => {
     expect([view.phase, keys(view.currentDoses)]).toEqual(['overdue', ['2026-10-12']])
   })
 
+  it.each([
+    ['le jeudi 15, hors grille', '2026-10-15'],
+    ['le lundi 19, sur la grille', '2026-10-19'],
+  ])(
+    'TR-9 : posologie et « Prochaine dose » %s : le 12 en retard est remplacé, il ne passe pas à renseigner',
+    (_, chosen) => {
+      const view = preview(input, planOf(input, request(WEEK, [], chosen)))
+      expect([keys(view.currentDoses), keys(view.unloggedDoses)]).toEqual([[chosen], []])
+      expect(view.dueState({ dueOn: '2026-10-12', dueTime: null })).toBe('removed')
+    },
+  )
+
   it('fréquence changée le 14 : le 12 passe à renseigner', () => {
     const view = preview(input, planOf(input, request({ value: 2, unit: 'week' })))
     expect(keys(view.unloggedDoses)).toEqual(['2026-10-12'])
