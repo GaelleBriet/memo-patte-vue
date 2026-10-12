@@ -85,6 +85,8 @@ export function calendarOf(
   let rhythmFrom = live[0]!.startsOn
   const replaced: { from: string; to: string }[] = []
   let chosenFloor = ''
+  let restartFloor = ''
+  let anchorShift: ReferenceLine | undefined
   chain.forEach((setting, position) => {
     const index = live.indexOf(setting)
     const end = index < 0 ? setting.startsOn : endOf(index)
@@ -130,8 +132,9 @@ export function calendarOf(
     // échéance, ni ses suivants de même rythme, pas même après un décalage.
     chosenFloor = !continued ? '' : origin !== null ? ownFloor : chosenFloor
     // R6, R11 : un décalage d'avant la première échéance d'un réglage qui fait repartir la grille est
-    // sans effet.
-    const restartFloor = !continued || origin !== null ? ownFloor : ''
+    // sans effet, sauf sur l'arrivée d'un report ou sous la date choisie qu'il a portée (R3).
+    if (!continued || origin !== null) restartFloor = ownFloor
+    if (!continued || origin !== null) anchorShift = continued ? held : undefined
     rhythm = continued ? new Set([...rhythm, setting.id]) : new Set([setting.id])
     grid = continued
       ? {
@@ -144,7 +147,11 @@ export function calendarOf(
     if (index < 0) return
     const ended = index > 0 && (live[index - 1]!.endsOn ?? setting.startsOn) < setting.startsOn
     // TR-9 : à fréquence gardée, une première échéance choisie remplace la dose en retard du rythme.
-    const kept = index > 0 && sameFrequency(live[index - 1]!, setting)
+    const written = episode[episode.indexOf(setting) - 1]
+    const kept =
+      index > 0 &&
+      written !== undefined &&
+      [written, live[index - 1]!].every((other) => sameFrequency(other, setting))
     if (kept && origin !== null && !ended) replaced.push({ from: rhythmFrom, to: setting.startsOn })
     if (index > 0 && (!continued || ended)) rhythmFrom = setting.startsOn
     // R6 : à partir de sa journée d'origine, un décalage donne à la grille l'origine de son ancrage ;
@@ -157,7 +164,11 @@ export function calendarOf(
     let from = setting.startsOn
     const segments: Segment[] = []
     for (const turn of [...turns, null]) {
-      const lands = turn === null || (turn === held && continued) || turn.dueOn > restartFloor
+      const lands =
+        turn === null ||
+        turn === anchorShift ||
+        turn.dueOn > restartFloor ||
+        reports.some(({ targetOn }) => targetOn === turn.dueOn)
       if (!lands) continue
       const to = turn === null ? last : turn.dueOn < last ? turn.dueOn : last
       const start = later(from, plusDays(grid.floor, 1))

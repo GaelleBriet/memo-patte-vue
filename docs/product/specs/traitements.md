@@ -330,7 +330,7 @@ La suite des échéances ne repart jamais d'elle-même d'une date réelle. Elle 
 
 La case est proposée quand la prise ou le report **change la date** de la dose du moment ou de la prochaine dose (pas pour une dose non renseignée, pas pour la dose du jour donnée le jour même, pas pour une prise en plus). **Corriger la date d'une prise** (décision du 2026-10-10, Q-C1) se juge **au jour de la nouvelle date**, comme si la prise était notée ce jour-là : la case est proposée aux mêmes conditions, et le résultat est le même que par « Fait à une autre date ».
 
-**La case n'est pas proposée quand une ligne existe plus loin dans la période** (une prise, donnée ou oubliée, ou un décalage dont la journée d'origine est après la dose notée ou corrigée) : la date se note ou se corrige, le calendrier ne bouge pas, et l'aide le dit (« Une dose plus lointaine est déjà notée. », texte existant). Pour décaler quand même, la personne corrige ou supprime d'abord la ligne la plus récente. Même refus pour « Supprimer ce décalage » quand une prise existe plus loin (G19). La case n'est pas proposée non plus pour une dose déplacée seule (Q2 c), et une correction qui ferait d'un oubli plus lointain une prise donnée est refusée avec le même texte (décisions du 2026-10-12). Seul le décalage ancré à la date de la prise suit une prise corrigée ; un décalage dont la journée d'origine précède la première échéance d'un réglage qui fait repartir la grille (date proposée ou choisie par « Modifier ») est sans effet (R11), sauf celui sur lequel la date choisie a été posée (R3) (décision du 2026-10-12). Un report qui suit est, lui, gardé et réécrit (G12, TR-24 bis) ; s'il ne peut pas l'être (R7), la correction est refusée. Raison : une ligne de décalage ne doit jamais déplacer la grille sous une prise déjà notée, sinon cette prise ne vise plus rien et l'app redemanderait une dose déjà donnée (#762, décision du 2026-10-10).
+**La case n'est pas proposée quand une ligne existe plus loin dans la période** (une prise, donnée ou oubliée, ou un décalage dont la journée d'origine est après la dose notée ou corrigée) : la date se note ou se corrige, le calendrier ne bouge pas, et l'aide le dit (« Une dose plus lointaine est déjà notée. », texte existant). Pour décaler quand même, la personne corrige ou supprime d'abord la ligne la plus récente. Même refus pour « Supprimer ce décalage » quand une prise existe plus loin (G19). La case n'est pas proposée non plus pour une dose déplacée seule (Q2 c), et une correction qui ferait d'un oubli plus lointain une prise donnée est refusée avec le même texte (décisions du 2026-10-12). Seul le décalage ancré à la date de la prise suit une prise corrigée ; un décalage dont la journée d'origine précède la première échéance d'un réglage qui fait repartir la grille (date proposée ou choisie par « Modifier ») est sans effet (R11), sauf sur l'arrivée d'un report, qui reste une échéance, et sauf celui sur lequel la date choisie a été posée (R3) (décision du 2026-10-12). Un report qui suit est, lui, gardé et réécrit (G12, TR-24 bis) ; s'il ne peut pas l'être (R7), la correction est refusée. Raison : une ligne de décalage ne doit jamais déplacer la grille sous une prise déjà notée, sinon cette prise ne vise plus rien et l'app redemanderait une dose déjà donnée (#762, décision du 2026-10-10).
 
 _Remplace TR-7 T1/T2 (« la suite repart de la dernière ligne »), G10, G18, G20 (le contenu de la case), TR-24 bis (la partie calcul)._
 
@@ -929,7 +929,8 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
   seules changées : la dose en retard reste en retard (Q-retard). Une « Prochaine dose » choisie à
   fréquence gardée remplace la dose en retard, qui ne passe pas « à renseigner » : Milo, hebdo du
   lundi, dose du 12 non donnée ; le 14, posologie et « Prochaine dose » le jeudi 15 (ou le lundi 19) :
-  la fiche montre le 15 (ou le 19), le 12 n'est plus dû. Fréquence changée : les échéances sans prise
+  la fiche montre le 15 (ou le 19), le 12 n'est plus dû. Cela vaut quand le réglage écrit juste avant
+  avait la même fréquence ; fréquence changée : les échéances sans prise
   avant la première échéance restent à renseigner (inchangé). Écartée : passer le 12 « à renseigner ».
 - 2026-10-12 — **Un décalage d'avant la première échéance d'un réglage qui fait repartir la grille
   est sans effet** (R6, R10, R11). Hebdo du lundi, doses des 5 et 12 oct. données ; le 14, tous les
@@ -937,8 +938,9 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
   14, retour à toutes les 2 semaines : « Modifier » propose et la fiche montre le 26 oct. (pas le 28).
   Hebdo dont la première dose est le lundi 12, rien noté, dose du 12 donnée le 7 avec décalage puis
   la prise supprimée ; le 7, « Prochaine dose » le 19 : la fiche montre le 19. Le décalage reste dans
-  l'historique, grisé, « · sans effet », avec « Supprimer » seul. Le décalage sur lequel une date
-  choisie a été posée (grille en vigueur à la première échéance, R3) garde son effet. Écartée : laisser
+  l'historique, grisé, « · sans effet », avec « Supprimer » seul. Gardent leur effet : le décalage
+  posé sur l'arrivée d'un report (une échéance), et celui sur lequel une date choisie a été posée
+  (grille en vigueur à la première échéance, R3) ; un changement de posologie ensuite n'y change rien. Écartée : laisser
   le décalage faire repartir le nouveau rythme (la fiche ne montrerait pas la date de « Modifier »).
 - 2026-10-12 — **Un oubli ne disparaît jamais par une correction de date** (R6, R11, Q-C1). Hebdo,
   prise du 2 oct. donnée, dose du 9 à renseigner, dose du 16 notée oubliée ; le 20, corriger la date

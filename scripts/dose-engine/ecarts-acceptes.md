@@ -106,7 +106,7 @@ seule (`INVARIANTS_FROM=<graine> INVARIANTS_SEEDS=1 INVARIANTS_STEPS=40`) et pas
   (traduction des heures, R4 ; départ du rythme, R9.2). L'invariant n° 9 exige une dose encore à
   donner à la date montrée.
 - **Décalage resté sous un réglage réécrit** (R6, R10) : un décalage d'avant la première échéance d'un
-  réglage qui fait repartir la grille (date proposée ou choisie) est sans effet ; graines 700001396 et
+  réglage qui fait repartir la grille (date proposée ou choisie) est sans effet, sauf sur l'arrivée d'un report ou sous la date choisie qu'il a portée ; graines 700001396 et
   761000141 vertes, 570010320 verte ; exemption `staleShift` retirée de l'invariant n° 9. Lecture
   retenue plus étroite que « la journée d'origine n'est plus une échéance du calendrier en vigueur » :
   à fréquence gardée (origine héritée), un décalage d'après le début du réglage garde son effet même

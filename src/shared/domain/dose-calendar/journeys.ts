@@ -51,6 +51,9 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   let rhythmFrom = span.live[0]!.startsOn
   const replaced: { from: Day; to: Day }[] = []
   let chosenFloor = ''
+  let restartFloor = ''
+  let anchorShift: Line | undefined
+  const arrivals = new Set(lines.reports.map(({ targetOn }) => targetOn))
   chain.forEach((setting, position) => {
     const index = span.live.indexOf(setting)
     const end = index < 0 ? setting.startsOn : span.endOf(index)
@@ -93,8 +96,9 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     // échéance, ni ses suivants de même rythme, pas même après un décalage.
     chosenFloor = !continued ? '' : origin !== null ? ownFloor : chosenFloor
     // R6, R11 : un décalage d'avant la première échéance d'un réglage qui fait repartir la grille est
-    // sans effet.
-    const restartFloor = !continued || origin !== null ? ownFloor : ''
+    // sans effet, sauf sur l'arrivée d'un report ou sous la date choisie qu'il a portée (R3).
+    if (!continued || origin !== null) restartFloor = ownFloor
+    if (!continued || origin !== null) anchorShift = continued ? held : undefined
     rhythm = continued ? new Set([...rhythm, setting.id]) : new Set([setting.id])
     grid = continued
       ? {
@@ -107,7 +111,13 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     if (index < 0) return
     const ended = index > 0 && (span.live[index - 1]!.endsOn ?? setting.startsOn) < setting.startsOn
     // TR-9 : à fréquence gardée, une première échéance choisie remplace la dose en retard du rythme.
-    const kept = index > 0 && sameFrequency(span.live[index - 1]!.frequency, setting.frequency)
+    const written = span.episode[span.episode.indexOf(setting) - 1]
+    const kept =
+      index > 0 &&
+      written !== undefined &&
+      [written, span.live[index - 1]!].every(({ frequency }) =>
+        sameFrequency(frequency, setting.frequency),
+      )
     if (kept && origin !== null && !ended) replaced.push({ from: rhythmFrom, to: setting.startsOn })
     if (index > 0 && (!continued || ended)) rhythmFrom = setting.startsOn
     // R3 : écrit sous un réglage d'avant un changement de fréquence, un décalage est dépassé.
@@ -118,7 +128,8 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     )
     let from = setting.startsOn
     const segments: Segment[] = []
-    const lands = (turn: Line) => (turn === held && continued) || turn.dueOn > restartFloor
+    const lands = (turn: Line) =>
+      turn === anchorShift || turn.dueOn > restartFloor || arrivals.has(turn.dueOn)
     for (const turn of [...turns, null]) {
       if (turn !== null && !lands(turn)) continue
       const to = turn === null || turn.dueOn >= last ? last : turn.dueOn

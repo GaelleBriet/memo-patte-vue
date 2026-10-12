@@ -394,6 +394,14 @@ describe('R6 : un décalage ne vaut que si sa journée d’origine est une éch�
       line('b', 'shift', '2026-10-16', null, '2026-10-14'),
     ]
     expect(next([weekly, fortnight], lines, '2026-10-14', 2)).toEqual(['2026-10-26', '2026-11-09'])
+    const dosage = setting('c', '2026-10-26', { value: 2, unit: 'week' }, [], {
+      startsOn: '2026-10-15',
+      gridOriginOn: null,
+    })
+    expect(next([weekly, fortnight, dosage], lines, '2026-10-15', 2)).toEqual([
+      '2026-10-26',
+      '2026-11-09',
+    ])
   })
 
   it('hebdo dont la première dose est le 19 (choisie), décalage du 12 au 7 resté : 19, 26', () => {
