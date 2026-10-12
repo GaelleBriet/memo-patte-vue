@@ -147,7 +147,9 @@ export function calendarOf(
       written !== undefined &&
       [written, live[index - 1]!].every((other) => sameFrequency(other, setting))
     if (kept && origin !== null && !ended) {
-      const onDueDay = isDueDay(inherited, setting, setting.startsOn)
+      const onDueDay =
+        setting.startsOn > inherited.floor &&
+        isOnGrid(inherited.origin, setting.frequency, setting.startsOn)
       replaced.push({ from: rhythmFrom, to: setting.startsOn, onDueDay })
     }
     if (index > 0 && (!continued || ended)) rhythmFrom = setting.startsOn

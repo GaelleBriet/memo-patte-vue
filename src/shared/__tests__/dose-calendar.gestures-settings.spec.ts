@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { newSettings, preview, type SettingsRequest } from '../domain/dose-calendar'
 import type { Frequency, Line, Setting, TreatmentViewInput } from '../domain/dose-calendar/types'
-import { DAY, H, keys, line, setting, TWO_DAYS, WEEK } from './dose-calendar.v2.aides'
+import { DAY, H, keys, line, next, setting, TWO_DAYS, WEEK } from './dose-calendar.v2.aides'
 
 const THREE_DAYS: Frequency = { value: 3, unit: 'day' }
 
@@ -166,6 +166,41 @@ describe('R9, R3, Q-retard : fréquence gardée', () => {
     const view = preview(carnet, planOf(carnet, request(own.frequency, [], chosen)))
     expect([keys(view.currentDoses), keys(view.unloggedDoses)]).toEqual([[chosen], [unlogged]])
     expect(view.dueState({ dueOn: unlogged, dueTime: null })).toBe('pending')
+  })
+
+  describe('TR-9 : dose du 5 donnée, dose du 12 reportée seule au jeudi 15 ; le 13, posologie et « Prochaine dose » le 26', () => {
+    const s1 = setting('s1', '2026-10-05', WEEK)
+    const lines = [
+      line('s1', 'given', '2026-10-05'),
+      line('s1', 'postponed', '2026-10-12', null, '2026-10-15'),
+    ]
+    const s2 = setting('s2', '2026-10-26', WEEK, [], { startsOn: '2026-10-13' })
+
+    it('la fiche montre le 15 en retard, puis le 26', () => {
+      const carnet = { settings: [s1], lines, today: '2026-10-13' }
+      expect(planOf(carnet, request(WEEK, [], '2026-10-26')).setting).toMatchObject({
+        startsOn: '2026-10-13',
+        firstDueOn: '2026-10-26',
+        gridOriginOn: '2026-10-26',
+      })
+      const later = { settings: [s1, s2], lines, today: '2026-10-19' }
+      expect(next(later.settings, later.lines, later.today, 2)).toEqual([
+        '2026-10-15',
+        '2026-10-26',
+      ])
+    })
+
+    it.each([
+      ['le lundi 19, que la date choisie a sorti de la grille', '2026-10-19'],
+      ['le mardi 20', '2026-10-20'],
+    ])(
+      '%s, posologie et « Prochaine dose » le 22 : le 15 en retard est remplacé, il ne passe pas à renseigner',
+      (_, today) => {
+        const carnet = { settings: [s1, s2], lines, today }
+        const view = preview(carnet, planOf(carnet, request(WEEK, [], '2026-10-22')))
+        expect([keys(view.currentDoses), keys(view.unloggedDoses)]).toEqual([['2026-10-22'], []])
+      },
+    )
   })
 
   it('fréquence changée le 14 : le 12 passe à renseigner', () => {

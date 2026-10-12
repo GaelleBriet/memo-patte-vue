@@ -123,7 +123,9 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
         sameFrequency(frequency, setting.frequency),
       )
     if (kept && origin !== null && !ended) {
-      const onDueDay = isDueDay(inherited, setting.frequency, setting.startsOn)
+      const onDueDay =
+        setting.startsOn > inherited.floor &&
+        isOnGrid(inherited.origin, setting.frequency, setting.startsOn)
       replaced.push({ from: rhythmFrom, to: setting.startsOn, onDueDay })
     }
     if (index > 0 && (!continued || ended)) rhythmFrom = setting.startsOn

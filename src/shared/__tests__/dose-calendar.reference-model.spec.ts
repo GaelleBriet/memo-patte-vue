@@ -520,6 +520,18 @@ describe('TR-9 : à fréquence gardée, une « Prochaine dose » choisie remplac
     ]
     expect(next([s1, s2, s3], lines, '2026-04-24', 2)).toEqual(['2026-04-24', '2026-04-25'])
   })
+
+  it.each(['2026-10-19', '2026-10-20'])(
+    'hebdo du lundi, dose du 5 donnée, dose du 12 reportée seule au 15 ; le 13, posologie et première dose le 26 ; le %s, posologie et première dose le 22 : le 15 est remplacé, ni retard ni à renseigner',
+    (today) => {
+      const s2 = setting('m2', '2026-10-26', WEEK, [], { startsOn: '2026-10-13' })
+      const s3 = setting('m3', '2026-10-22', WEEK, [], { startsOn: today })
+      const reported = [...lines, line('m1', 'postponed', '2026-10-12', null, '2026-10-15')]
+      expect(next([monday, s2], reported, today, 2)).toEqual(['2026-10-15', '2026-10-26'])
+      const reading = read([monday, s2, s3], reported, today)
+      expect([reading.current, reading.unlogged]).toEqual([['2026-10-22'], []])
+    },
+  )
 })
 
 describe('R7, R9 : un réglage qui part du jour d’arrivée d’un report', () => {
