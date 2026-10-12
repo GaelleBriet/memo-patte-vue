@@ -121,11 +121,7 @@ export function previousPeriod<P extends OrderedPeriod>(
   return ordered[ordered.indexOf(period) - 1]
 }
 
-/**
- * Le schéma v11 n'a qu'une colonne, `reference_on`, pour l'origine de la grille : un réglage qui
- * hérite de celle du précédent (même fréquence, non arrêté) en recopie la référence, un réglage qui
- * pose la sienne l'écrit (TR-9, R8).
- */
+// Le schéma v11 n'a que `reference_on` pour l'origine de la grille : hériter la recopie, la poser l'écrit.
 function withOrigins(input: TreatmentViewInput, periods: readonly Period[]): TreatmentViewInput {
   const ordered = inOrder(periods)
   const origins = new Map(
@@ -168,7 +164,7 @@ export function treatmentReading(treatment: TreatmentRecords, today: string): Tr
   return readTreatment(treatment, today)?.view ?? null
 }
 
-// R11 veut ces lignes grisées « · sans effet » : faute de ce texte, elles restent cachées.
+// La fiche grise ces lignes « · sans effet » (R11) ; le PDF et les feuilles, qui comptent des prises, ne les montrent pas.
 const HIDDEN: readonly IdleReason[] = ['superseded', 'back-to-date', 'beaten']
 
 function isShown({ effect }: HistoryLine): boolean {

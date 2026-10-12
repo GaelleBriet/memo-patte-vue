@@ -13,10 +13,7 @@ type Extras = Pick<
 
 const NEWEST = '9999-12-31T23:59:59.999Z'
 
-/**
- * Le schéma v11 n'a que `reference_on` pour l'origine de la grille : un réglage qui hérite recopie
- * celle du précédent, un réglage qui pose la sienne l'écrit (`readTreatment` les distingue ainsi).
- */
+// Même convention que `readTreatment` : un réglage qui hérite recopie la référence du précédent.
 function referenceOf(plan: SettingsPlan, periods: readonly OrderedPeriod[]): string {
   const { gridOriginOn, firstDueOn, startsOn, frequency } = plan.setting
   if (gridOriginOn !== null) return gridOriginOn

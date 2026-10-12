@@ -85,14 +85,8 @@ export function createTreatmentStopService({
   /** Rien à écrire : traitement déjà arrêté, ou fini par sa date de fin ; `null` sinon. */
   function unchanged(history: TreatmentWithHistory): StoppedTreatment | null {
     const view = readableReadingOf(history, today())?.view
-    const isStopped = (history.periods.at(-1)?.stoppedOn ?? null) !== null
-    if (!isStopped && view?.phase !== 'ended') return null
-    return {
-      animalId: history.animalId,
-      stopped: false,
-      finished: view?.finished ?? false,
-      undo: [],
-    }
+    if (view === undefined || (view.phase !== 'stopped' && view.phase !== 'ended')) return null
+    return { animalId: history.animalId, stopped: false, finished: view.finished, undo: [] }
   }
 
   async function logAndStop(
