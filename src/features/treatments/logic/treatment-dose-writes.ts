@@ -1,4 +1,5 @@
 import type { DoseWrite, NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { PlannedDoseWrite } from '../schema/treatment-plan.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { LineChange, LineFields } from '@/shared/domain/dose-calendar'
 
@@ -55,6 +56,25 @@ export function doseWritesOf(
       }
       case 'delete':
         return [{ action: 'delete', id: change.id }]
+    }
+  })
+}
+
+/** Écritures de « Modifier » : celles d'un geste, sans le traitement ni l'animal que `applyPlan` pose. */
+export function plannedDoseWritesOf(
+  history: History,
+  changes: readonly LineChange[],
+  newId: () => string,
+): PlannedDoseWrite[] {
+  return doseWritesOf(history, changes, newId).flatMap((write): PlannedDoseWrite[] => {
+    switch (write.action) {
+      case 'create':
+        return [{ action: 'create', id: write.id, dose: write.dose }]
+      case 'rewrite':
+      case 'delete':
+        return [write]
+      case 'restore':
+        return []
     }
   })
 }

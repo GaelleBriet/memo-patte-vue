@@ -49,9 +49,9 @@ describe('validateTreatmentEdition (TR-6, TR-9, TR-28)', () => {
     [{ nextDoseOn: '2026-09-27' }, { nextDoseOn: 'treatments.form.errors.nextDoseOnTooEarly' }],
     [
       { nextDoseOn: '2026-10-20', endsOn: '2026-10-15' },
-      { nextDoseOn: 'treatments.form.nextDoseOn.refusal.noDoseBeforeEnd' },
+      { nextDoseOn: 'treatments.form.errors.nextDoseOnAfterEnd' },
     ],
-    [{ endsOn: '2026-07-09' }, { endsOn: 'treatments.form.errors.endsOnBeforeLastDose' }],
+    [{ endsOn: '2026-07-09' }, { endsOn: 'treatments.form.errors.endsOnBeforeFirstDose' }],
   ] as const)('refuse %o', (change, errors) => {
     expect(validateTreatmentEdition(edition(change), milbemax(), TODAY)).toMatchObject({
       success: false,

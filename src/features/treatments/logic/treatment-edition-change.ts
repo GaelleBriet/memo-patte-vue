@@ -4,14 +4,15 @@ import type {
   NextDoseDraft,
   NextDoseHelp,
 } from './treatment-edition-resolution'
+import { hasDoseLine, reportArrivingOn, resolveMoved } from './treatment-next-dose-move'
 import { treatmentReadingOf } from './treatment-reading-adapter'
 import {
+  changesRhythm,
   changesSchedule,
   currentPeriod,
   rhythmOf,
-  sameSettings,
   settingsOf,
-  withRhythm,
+  withPeriodSettings,
 } from './treatment-settings'
 import type { PastDuesChoice, TreatmentRhythm } from '../schema/treatment-form.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
@@ -74,16 +75,39 @@ function helpOf(
   return proposedOn === today ? { kind: 'today' } : { kind: 'calculated', on: proposedOn }
 }
 
-function locked(period: TreatmentPeriodRecord): Answered {
+function unchanged(period: TreatmentPeriodRecord, change: Answered['change']): Answered {
   return {
     period,
-    change: 'locked',
+    change,
     nextDose: null,
     plan: null,
+    move: null,
     refusal: null,
     pastDues: [],
     pastDuesNextDose: null,
   }
+}
+
+/** La lecture sur laquelle la dose du moment se déplace : celle avec la date de fin saisie, sauf quand elle ferait sortir le report en vigueur (Q30). */
+function movingReading(
+  history: TreatmentWithHistory,
+  period: TreatmentPeriodRecord,
+  endsOn: Day | null,
+  today: Day,
+): TreatmentReading {
+  const readWith = (day: Day | null) =>
+    treatmentReadingOf(
+      withPeriodSettings(history, period.id, { ...settingsOf(period), endsOn: day }),
+      today,
+    )
+  const corrected = readWith(endsOn)
+  if (endsOn === period.endsOn) return corrected
+  const kept = readWith(period.endsOn)
+  const keptDue = kept.view.currentDoses[0]
+  const correctedDue = corrected.view.currentDoses[0]
+  const holdsReport =
+    keptDue !== undefined && reportArrivingOn(kept.view, keptDue.dueOn) !== undefined
+  return holdsReport && correctedDue?.dueOn !== keptDue.dueOn ? kept : corrected
 }
 
 function lockedBy(period: TreatmentPeriodRecord, reading: TreatmentReading): boolean {
@@ -97,33 +121,44 @@ function lockedBy(period: TreatmentPeriodRecord, reading: TreatmentReading): boo
 export function resolve(
   history: TreatmentWithHistory,
   rhythm: TreatmentRhythm | null,
-  { chosenOn }: NextDoseChoice,
+  choice: NextDoseChoice,
   today: Day,
   pastDuesChoice?: PastDuesChoice,
 ): Answered {
   const reading = treatmentReadingOf(history, today)
   const period = currentPeriod(history, reading.view)
-  if (lockedBy(period, reading)) return locked(period)
+  if (lockedBy(period, reading)) return unchanged(period, 'locked')
   const next = rhythm ?? rhythmOf(period)
+  if (!changesRhythm(period, next) && hasDoseLine(reading.view, period.id)) {
+    const moving = movingReading(history, period, next.endsOn, today)
+    const due = moving.view.currentDoses[0]
+    return due === undefined
+      ? unchanged(period, 'edit')
+      : resolveMoved({ period, history, reading: moving, due, next, choice, today })
+  }
+  const { chosenOn } = choice
   const typed = chosenOn !== null && isCalendarDay(chosenOn) ? chosenOn : null
   const base = newSettings(reading.input, requestOf(next))
   const proposedOn = shownOf(base) ?? reading.view.currentDoses[0]?.dueOn ?? today
   const answer = typed === null ? base : newSettings(reading.input, requestOf(next, typed))
   const hasNote = history.doses.some(({ status }) => status === 'given' || status === 'missed')
-  const writes =
-    (typed !== null && typed !== proposedOn) ||
-    !sameSettings(withRhythm(settingsOf(period), next), settingsOf(period))
+  const writes = (typed !== null && typed !== proposedOn) || changesRhythm(period, next)
   const refusal = 'refusal' in answer ? answer.refusal : null
   return {
     period,
     change: 'edit',
     nextDose: {
+      change: 'first-due',
       proposedOn,
       earliest: today,
       latest: next.endsOn,
+      refusal: null,
       help: helpOf(reading, period, next, proposedOn, today, hasNote),
+      shift: null,
+      shiftInitial: true,
     } satisfies NextDoseDraft,
     plan: writes ? planOf(answer, pastDuesChoice) : null,
+    move: null,
     refusal,
     pastDues: 'question' in answer ? answer.question.fallen : [],
     pastDuesNextDose: datesOf(answer),

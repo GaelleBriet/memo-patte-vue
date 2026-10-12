@@ -18,6 +18,8 @@ export interface TreatmentFormValues {
   firstDoseOn: string
   /** Modification : la date proposée tant qu'elle n'est pas changée. */
   nextDoseOn: string
+  /** Modification : la case « Décaler aussi les doses suivantes », cochée par défaut. */
+  shiftsFollowing: boolean
   times: string[]
   doseQuantity: string
   doseUnit: DoseUnit | null
@@ -36,6 +38,7 @@ export function emptyTreatmentFormValues(): TreatmentFormValues {
     frequencyUnit: 'month',
     firstDoseOn: '',
     nextDoseOn: '',
+    shiftsFollowing: true,
     times: [],
     doseQuantity: '',
     doseUnit: null,
@@ -57,6 +60,7 @@ export function treatmentFormValuesFrom(
     frequencyUnit: period.frequency.unit,
     firstDoseOn: '',
     nextDoseOn: '',
+    shiftsFollowing: true,
     times: sortedTimes(period.times),
     doseQuantity:
       period.doseQuantity === null || period.doseUnit === null

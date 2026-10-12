@@ -1,6 +1,7 @@
 import { format, parseISO, subDays } from 'date-fns'
 
 import { keepsShift, type NoteGesture } from './treatment-dose-change'
+import type { NextDoseShift } from './treatment-edition-resolution'
 import {
   laterOf,
   refusalHelp,
@@ -71,18 +72,22 @@ function movedDueOf(line: Pick<Line, 'periodId' | 'dueTime' | 'nextDueDate'>): D
   return { settingId: line.periodId, dueOn: line.nextDueDate, dueTime: line.dueTime }
 }
 
-function moveBox(t: Translate, line: Line, carnet: Carnet): DateChangeBox | null {
+function moveBoxFor(
+  t: Translate,
+  due: Due,
+  carnet: Carnet,
+  initial: boolean,
+): DateChangeBox | null {
   const { reading, today } = carnet
-  const due = movedDueOf(line)
   const alone = moveBounds(reading.input, due, false)
   if ('refusal' in alone) return null
   const aloneMax = alone.latest
   return {
-    initial: keepsShift(reading, line),
+    initial,
     aloneMax,
     refusedDays: () => [],
     view: (date, shifts) => {
-      if (date === null || date === line.nextDueDate) return { shown: true, help: null }
+      if (date === null || date === due.dueOn) return { shown: true, help: null }
       if (!shifts && aloneMax !== null && date > aloneMax) {
         const text = t('treatments.shift.aloneLatest', {
           date: withoutFinalDot(formatDayMonthOrYear(aloneMax, today)),
@@ -92,10 +97,23 @@ function moveBox(t: Translate, line: Line, carnet: Carnet): DateChangeBox | null
       const result = play(reading.input, { kind: 'move', due, to: date, shiftsFollowing: shifts })
       if (refused(result))
         return { shown: true, help: refusalHelp(t, result.refusal, today), blocked: true }
-      const outcome = { outcome: result, settingId: line.periodId, newDay: date, shifts }
+      const outcome = { outcome: result, settingId: due.settingId, newDay: date, shifts }
       return { shown: true, help: suiteHelpOf(t, carnet, outcome).help }
     },
   }
+}
+
+function moveBox(t: Translate, line: Line, carnet: Carnet): DateChangeBox | null {
+  return moveBoxFor(t, movedDueOf(line), carnet, keepsShift(carnet.reading, line))
+}
+
+/** La case de « Prochaine dose » dans « Modifier », pour la date choisie et l'état de la case. */
+export function nextDoseBoxView(
+  t: Translate,
+  { due, chosenOn, carnet }: NextDoseShift,
+  shifts: boolean,
+): ShiftBoxView {
+  return moveBoxFor(t, due, carnet, true)?.view(chosenOn, shifts) ?? { shown: false, help: null }
 }
 
 function redateBox(t: Translate, line: Line, carnet: Carnet): DateChangeBox | null {

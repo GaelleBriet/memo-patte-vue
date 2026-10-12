@@ -6,11 +6,18 @@ import { lastNotedDueOn } from './treatment-settings'
 import { treatmentEditionSchema } from '../schema/treatment-form.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
-import type { Refusal, TreatmentView } from '@/shared/domain/dose-calendar'
+import {
+  applied,
+  treatmentView,
+  type GestureOutcome,
+  type Refusal,
+  type TreatmentView,
+} from '@/shared/domain/dose-calendar'
 
 type Edition = z.output<typeof treatmentEditionSchema>
 
-export type NextDoseOnIssueReason = 'refused' | 'tooEarly' | 'noDoseBeforeEnd'
+export type NextDoseOnIssueReason =
+  'refused' | 'tooEarly' | 'noDoseBeforeEnd' | 'afterEnd' | 'afterNextDose'
 export type EndsOnIssueReason =
   | 'beforeFirstDose'
   | 'beforeLastDose'
@@ -52,8 +59,20 @@ export function farthestMoveOf(
       }
 }
 
-function refusalIssue(refusal: Refusal): NextDoseOnIssueReason {
+function refusalIssue(
+  refusal: Refusal,
+  {
+    nextDoseOn,
+    endsOn,
+    shiftsFollowing,
+  }: Pick<Edition, 'nextDoseOn' | 'endsOn' | 'shiftsFollowing'>,
+): NextDoseOnIssueReason {
   switch (refusal.reason) {
+    case 'out-of-bounds': {
+      if (nextDoseOn === null || nextDoseOn < refusal.earliest) return 'tooEarly'
+      const pastNext = shiftsFollowing === false && (endsOn === null || nextDoseOn <= endsOn)
+      return pastNext ? 'afterNextDose' : 'afterEnd'
+    }
     case 'too-early':
       return 'tooEarly'
     case 'no-dose-before-end':
@@ -69,10 +88,11 @@ function endsOnIssue(
   endsOn: string,
   today: string,
   corrects: boolean,
+  move: GestureOutcome | null,
 ): EndsOnIssueReason | null {
-  const farthest = corrects
-    ? farthestMoveOf(treatmentReadingOf(history, today).view, period.id)
-    : null
+  const reading = treatmentReadingOf(history, today)
+  const view = move === null ? reading.view : treatmentView(applied(reading.input, move.changes))
+  const farthest = corrects ? farthestMoveOf(view, period.id) : null
   if (farthest !== null && endsOn < farthest.arrivesOn) {
     const which = farthest.isNext ? '' : 'Far'
     return `before${which}${farthest.advanced ? 'Advanced' : 'Postponed'}Dose`
@@ -83,10 +103,10 @@ function endsOnIssue(
 }
 
 function editionIssues(history: TreatmentWithHistory, data: Edition, today: string): DateIssue[] {
-  const { period, change, plan, refusal, pastDues } = resolve(
+  const { period, change, plan, move, refusal, pastDues } = resolve(
     history,
     data,
-    { chosenOn: data.nextDoseOn },
+    { chosenOn: data.nextDoseOn, shiftsFollowing: data.shiftsFollowing ?? true },
     today,
     data.pastDues,
   )
@@ -94,9 +114,9 @@ function editionIssues(history: TreatmentWithHistory, data: Edition, today: stri
   if (pastDues.length > 0 && data.pastDues === undefined) {
     return [{ path: 'pastDues', message: 'required' }]
   }
-  if (refusal !== null) return [{ path: 'nextDoseOn', message: refusalIssue(refusal) }]
+  if (refusal !== null) return [{ path: 'nextDoseOn', message: refusalIssue(refusal, data) }]
   if (data.endsOn === null || data.endsOn === period.endsOn) return []
-  const message = endsOnIssue(history, period, data.endsOn, today, plan === null)
+  const message = endsOnIssue(history, period, data.endsOn, today, plan === null, move)
   return message === null ? [] : [{ path: 'endsOn', message }]
 }
 

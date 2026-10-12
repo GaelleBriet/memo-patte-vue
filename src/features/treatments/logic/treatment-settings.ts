@@ -11,7 +11,7 @@ import { sortedTimes } from '@/shared/domain/clock-time'
 import type { TreatmentView } from '@/shared/domain/dose-calendar'
 import { readTreatment } from '@/shared/domain/treatment-reading'
 
-export type PlanIds = { periodId: string }
+export type PlanIds = { periodId: string; newId: () => string }
 
 export function rhythmOf(
   period: TreatmentPeriodRecord,

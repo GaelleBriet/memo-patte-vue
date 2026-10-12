@@ -4,8 +4,14 @@ import { ZodError } from 'zod'
 
 import { startV2Walk, v2Step, type V2Step } from '../../../../scripts/dose-engine/v2-walk'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
-import { newSettings, treatmentView, type Setting } from '@/shared/domain/dose-calendar'
+import {
+  newSettings,
+  treatmentView,
+  type Gesture,
+  type Setting,
+} from '@/shared/domain/dose-calendar'
 import { readTreatment } from '@/shared/domain/treatment-reading'
+import { hasDoseLine } from '../logic/treatment-next-dose-move'
 import {
   actionOf,
   createReplay,
@@ -39,6 +45,12 @@ function refusedByScreen(step: V2Step): boolean {
   if (step.plan !== null && view.phase === 'ended') return true
   if (step.request !== undefined) {
     const { firstDueOn, ...asked } = step.request
+    const { id: settingId, frequency: current, times: hours } = view.currentSetting!
+    const sameRhythm =
+      JSON.stringify([current, [...hours].sort()]) ===
+      JSON.stringify([asked.frequency, [...asked.times].sort()])
+    // Même rythme après une prise : « Modifier » déplace la prochaine dose ou corrige la fin, il n'ouvre pas de réglage.
+    if (sameRhythm && hasDoseLine(view, settingId)) return true
     const proposed = newSettings(step.before, asked)
     const proposedOn =
       'plan' in proposed ? (proposed.shownOn ?? proposed.plan.setting.firstDueOn) : undefined
@@ -50,11 +62,56 @@ function refusedByScreen(step: V2Step): boolean {
   return step.label.endsWith(' arrêter') && view.phase === 'ended'
 }
 
+function movesNextDose(step: V2Step): boolean {
+  const { gesture } = step
+  if (gesture?.kind !== 'move') return false
+  const view = treatmentView(step.before)
+  const [due] = view.currentDoses
+  return (
+    due !== undefined &&
+    due.dueOn === gesture.due.dueOn &&
+    due.dueTime === gesture.due.dueTime &&
+    hasDoseLine(view, view.currentSetting!.id)
+  )
+}
+
+// TR-6 : une date de fin avant la première échéance ou avant une prise notée est refusée par le formulaire, que le moteur ne juge pas.
+function refusedForEndDate(cause: ZodError, step: V2Step): boolean {
+  const { request, before } = step
+  const current = treatmentView(before).currentSetting
+  if (request === undefined || request.endsOn === null || current === null) return false
+  const { endsOn } = request
+  return cause.issues.every(({ path, message }) => {
+    if (path.join() !== 'endsOn') return false
+    if (message === 'beforeFirstDose') return endsOn < current.firstDueOn
+    return (
+      message === 'beforeLastDose' &&
+      before.lines.some(
+        (line) =>
+          line.settingId === current.id &&
+          (line.status === 'given' || line.status === 'missed') &&
+          line.dueOn > endsOn,
+      )
+    )
+  })
+}
+
 async function replayStep(replay: Replay, id: string, periods: Periods, step: V2Step) {
   const periodOf = (settingId: string) => periods.get(settingId) ?? settingId
   replay.clock.day = step.before.today
   replay.tick()
-  if (step.gesture !== null) {
+  if (movesNextDose(step)) {
+    const { frequency, times, endsOn } = treatmentView(step.before).currentSetting!
+    const { to, shiftsFollowing } = step.gesture as Extract<Gesture, { kind: 'move' }>
+    await replay.plans.update(id, {
+      ...ASKED_SETTINGS,
+      frequency,
+      times: [...times],
+      endsOn,
+      nextDoseOn: to,
+      shiftsFollowing,
+    })
+  } else if (step.gesture !== null) {
     const stored = await storedHistory(replay.treatments, id)
     await replay.doses.apply(id, actionOf(step.gesture, step.before, stored, periodOf))
   } else if (step.plan !== null && step.request !== undefined) {
@@ -117,6 +174,7 @@ describe('les services des traitements rejouent les gestes du moteur v2', () => 
     async () => {
       const failures: string[] = []
       let played = 0
+      let refused = 0
       for (let seed = FROM; seed < FROM + SEEDS; seed += 1) {
         const walk = startV2Walk(seed)
         const id = crypto.randomUUID()
@@ -129,8 +187,14 @@ describe('les services des traitements rejouent les gestes du moteur v2', () => 
           try {
             await replayStep(replay, id, periods, step)
           } catch (cause) {
-            if (!(cause instanceof ZodError)) {
-              failures.push(`graine ${seed}, ${step.label} : ${String(cause)}`)
+            if (cause instanceof ZodError && refusedForEndDate(cause, step)) {
+              refused += 1
+            } else {
+              failures.push(
+                cause instanceof ZodError
+                  ? `graine ${seed}, ${step.label} : refusé par le formulaire ${JSON.stringify(cause.issues)}`
+                  : `graine ${seed}, ${step.label} : ${String(cause)}`,
+              )
             }
             break
           }
@@ -176,7 +240,7 @@ describe('les services des traitements rejouent les gestes du moteur v2', () => 
         }
       }
       console.warn(
-        `Services : ${SEEDS} suites, ${played} gestes joués, graines ${FROM} à ${FROM + SEEDS - 1}`,
+        `Services : ${SEEDS} suites, ${played} gestes joués, ${refused} suites arrêtées par une date de fin refusée (TR-6), graines ${FROM} à ${FROM + SEEDS - 1}`,
       )
       expect(failures).toEqual([])
     },

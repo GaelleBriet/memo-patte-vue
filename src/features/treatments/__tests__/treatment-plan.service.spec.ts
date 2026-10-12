@@ -372,22 +372,25 @@ describe('treatmentPlanService', () => {
     expect(updated.periodId).toBe(periods[1]?.id)
   })
 
-  it('une « Prochaine dose » choisie ouvre un réglage qui part de cette date, sans report (TR-9, R9)', async () => {
+  it('reporte la prochaine dose par une ligne « Reportée », sans période nouvelle (TR-9)', async () => {
     const { id } = await service.create(MILBEMAX)
     await give(id, '2026-09-26', '2026-10-03')
 
     const updated = await service.update(id, saisie({ nextDoseOn: '2026-10-06' }))
 
+    expect(updated.periodId).toBe(id)
     const { periods, doses } = await historyOf(id)
-    expect(periods).toHaveLength(2)
-    expect(updated.periodId).toBe(periods[1]?.id)
-    expect(periods[1]).toMatchObject({ startsOn: '2026-09-28', firstDueOn: '2026-10-06' })
-    expect(doses.map(({ status }) => status)).toEqual(['given'])
-    const { view } = treatmentReadingOf(await historyOf(id), today)
-    expect(view.currentDoses).toMatchObject([{ dueOn: '2026-10-06' }])
+    expect(periods).toHaveLength(1)
+    expect(doses.filter(({ status }) => status !== 'shift')).toMatchObject([
+      { dueOn: '2026-10-03', givenOn: null, status: 'postponed', nextDueDate: '2026-10-06' },
+      { dueOn: '2026-09-26', status: 'given' },
+    ])
+    expect(doses.filter(({ status }) => status === 'shift')).toMatchObject([
+      { dueOn: '2026-10-03', nextDueDate: '2026-10-06' },
+    ])
   })
 
-  it('une notification « C’est fait » pendant « Modifier » attend sa fin : jamais deux prises sur la même échéance', async () => {
+  it('une notification « C’est fait » pendant un report attend sa fin : jamais une prise et un report sur la même échéance', async () => {
     const { id } = await service.create(MILBEMAX)
     await give(id, '2026-09-26', '2026-10-03')
     const queue = createWriteQueue()
@@ -421,8 +424,11 @@ describe('treatmentPlanService', () => {
     await notification
 
     const { doses: lines } = await historyOf(id)
-    const noted = lines.filter(({ status }) => status === 'given').map(({ dueOn }) => dueOn)
-    expect(new Set(noted).size).toBe(noted.length)
+    const report = lines.find(({ status }) => status === 'postponed')
+    expect(report).toMatchObject({ dueOn: '2026-10-03' })
+    expect(
+      lines.filter(({ status, dueOn }) => status === 'given' && dueOn === report?.dueOn),
+    ).toEqual([])
   })
 
   it('refuse une prochaine dose après la date de fin d’une période qui a déjà une prise, sans rien écrire (Q20)', async () => {
@@ -436,7 +442,7 @@ describe('treatmentPlanService', () => {
 
     expect(refus).toBeInstanceOf(ZodError)
     expect((refus as ZodError).issues).toMatchObject([
-      { path: ['nextDoseOn'], message: 'noDoseBeforeEnd' },
+      { path: ['nextDoseOn'], message: 'afterEnd' },
     ])
     await expect(historyOf(id)).resolves.toEqual(before)
   })
@@ -548,6 +554,51 @@ describe('treatmentPlanService', () => {
       return dues.map(({ dueOn, dueTime }) => `${dueOn} ${dueTime}`)
     }
 
+    const TOUS_LES_2_JOURS = { frequency: { value: 2, unit: 'day' } } as const
+
+    it('déplace la journée entière par une seule ligne (Q21)', async () => {
+      const { id } = await service.create({
+        ...METACAM,
+        ...TOUS_LES_2_JOURS,
+        firstDoseOn: '2026-09-25',
+      })
+      await giveAt(id, '2026-09-25', '08:00')
+      await giveAt(id, '2026-09-25', '20:00')
+
+      await service.update(id, reglages({ ...TOUS_LES_2_JOURS, nextDoseOn: '2026-09-29' }))
+
+      const { periods, doses } = await historyOf(id)
+      expect(periods).toHaveLength(1)
+      expect(doses.filter(({ status }) => status === 'postponed')).toMatchObject([
+        { dueOn: '2026-09-27', dueTime: '08:00', nextDueDate: '2026-09-29' },
+      ])
+      const schedule = await scheduleOf(id)
+      expect(times(schedule.upcoming({ limit: 3 }))).toEqual([
+        '2026-09-29 08:00',
+        '2026-09-29 20:00',
+        '2026-10-01 08:00',
+      ])
+      expect(schedule.unloggedDoses).toEqual([])
+    })
+
+    it('ne déplace que l’heure restante d’une journée dont la première prise est notée, le 29 ne reçoit qu’elle (Q21, #735)', async () => {
+      const { id } = await service.create({ ...METACAM, ...TOUS_LES_2_JOURS })
+      await giveAt(id, '2026-09-27', '08:00')
+
+      await service.update(id, reglages({ ...TOUS_LES_2_JOURS, nextDoseOn: '2026-09-29' }))
+
+      const { doses } = await historyOf(id)
+      expect(doses.filter(({ status }) => status === 'postponed')).toMatchObject([
+        { dueOn: '2026-09-27', dueTime: '20:00', nextDueDate: '2026-09-29' },
+      ])
+      const schedule = await scheduleOf(id)
+      expect(times(schedule.upcoming({ limit: 2 }))).toEqual([
+        '2026-09-29 20:00',
+        '2026-10-01 08:00',
+      ])
+      expect(schedule.unloggedDoses).toEqual([])
+    })
+
     it('compte la prise de 8 h déjà notée pour la première heure du nouveau réglage : reste 21 h (Q24)', async () => {
       const { id } = await service.create(METACAM)
       await giveAt(id, '2026-09-27', '08:00')
@@ -605,7 +656,7 @@ describe('treatmentPlanService', () => {
       expect(seenAtReschedule).toMatchObject({ id: created.id })
     })
 
-    it('reprogramme les rappels quand « Modifier » change la prochaine dose', async () => {
+    it('reprogramme les rappels quand « Modifier » déplace l’échéance', async () => {
       const { id } = await service.create(MILBEMAX)
       await give(id, '2026-09-26', '2026-10-03')
       reminders.reschedule.mockClear()
@@ -613,7 +664,9 @@ describe('treatmentPlanService', () => {
       await service.update(id, saisie({ nextDoseOn: '2026-10-06' }))
 
       expect(reminders.reschedule).toHaveBeenCalledExactlyOnceWith(id)
-      expect(seenAtReschedule?.periods.at(-1)).toMatchObject({ firstDueOn: '2026-10-06' })
+      expect(seenAtReschedule?.doses).toContainEqual(
+        expect.objectContaining({ status: 'postponed', nextDueDate: '2026-10-06' }),
+      )
     })
 
     it('reprogramme les rappels d’un traitement repris', async () => {

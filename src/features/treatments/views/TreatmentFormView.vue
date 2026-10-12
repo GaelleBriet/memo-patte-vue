@@ -6,6 +6,7 @@ import TreatmentChooseDays from './TreatmentChooseDays.vue'
 import TreatmentDosageField from './TreatmentDosageField.vue'
 import TreatmentPastDuesSheet from './TreatmentPastDuesSheet.vue'
 import TreatmentReminderField from './TreatmentReminderField.vue'
+import TreatmentShiftCheckbox from './TreatmentShiftCheckbox.vue'
 import TreatmentTimesField from './TreatmentTimesField.vue'
 import TreatmentUnloggedPrompt from './TreatmentUnloggedPrompt.vue'
 import { chooseDaysSubtitle, type DayChoice } from '../logic/treatment-choose-days'
@@ -126,6 +127,7 @@ const pastDoses = computed(() => creation?.pastDoses.value ?? null)
 const pastDosesAnswer = computed(() => creation?.pastDosesAnswer.value ?? null)
 const pastDosesAnswered = computed(() => creation?.pastDosesAnswered.value ?? null)
 const nextDose = computed(() => edition?.nextDose.value ?? null)
+const nextDoseShift = computed(() => edition?.nextDoseShift.value ?? null)
 const pastDues = computed(() => edition?.pastDues.value ?? null)
 const hasSettings = computed(() => edition?.hasSettings.value ?? true)
 const previous = computed(() => resumption?.previous.value ?? null)
@@ -392,6 +394,7 @@ async function submit(): Promise<void> {
             type="date"
             :min="nextDose.earliest"
             :max="nextDose.latest ?? undefined"
+            :disabled="nextDose.refusal !== null"
             variant="outlined"
             hide-details
             aria-required="true"
@@ -402,6 +405,13 @@ async function submit(): Promise<void> {
           />
         </template>
       </FormField>
+
+      <TreatmentShiftCheckbox
+        v-if="nextDose?.shift"
+        v-model="values.shiftsFollowing"
+        class="treatment-form__shift"
+        :help="nextDoseShift"
+      />
 
       <FormField
         class="treatment-form__field--times"
@@ -534,6 +544,11 @@ async function submit(): Promise<void> {
 
 <style scoped lang="scss">
 @use '@/styles/tokens' as tokens;
+
+// La case suit l'aide de « Prochaine dose » qu'elle complète (V28).
+.treatment-form__shift {
+  margin-top: -20px;
+}
 
 .treatment-form__loading {
   display: flex;

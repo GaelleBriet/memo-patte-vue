@@ -1,3 +1,4 @@
+import { plannedDoseWritesOf } from './treatment-dose-writes'
 import { resolve } from './treatment-edition-change'
 import { treatmentEditionSchemaFor } from './treatment-edition-checks'
 import { periodWriteOf } from './treatment-settings-writes'
@@ -9,7 +10,7 @@ import {
   withRhythm,
   type PlanIds,
 } from './treatment-settings'
-import type { TreatmentPlanWrite } from '../schema/treatment-plan.schema'
+import type { PlannedDoseWrite, TreatmentPlanWrite } from '../schema/treatment-plan.schema'
 import type { TreatmentEditionInput } from '../schema/treatment-form.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 
@@ -29,6 +30,29 @@ function periodsAfter(
   )
 }
 
+function dosesAfter(
+  history: TreatmentWithHistory,
+  writes: PlannedDoseWrite[],
+  today: string,
+): TreatmentWithHistory['doses'] {
+  const at = `${today}T23:59:59.999Z`
+  const stamps = {
+    treatmentId: history.id,
+    animalId: history.animalId,
+    createdAt: at,
+    updatedAt: at,
+  }
+  return writes.reduce((lines, write) => {
+    if (write.action === 'delete') return lines.filter(({ id }) => id !== write.id)
+    if (write.action === 'create') {
+      return [...lines, { ...write.dose, ...stamps, id: write.id, deletedAt: null }]
+    }
+    return lines.map((line) =>
+      line.id === write.id ? { ...line, ...write.dose, updatedAt: at } : line,
+    )
+  }, history.doses)
+}
+
 /** Lève une `ZodError` pour une saisie refusée : rien n'est alors à écrire. */
 export function editionPlan(
   history: TreatmentWithHistory,
@@ -37,10 +61,10 @@ export function editionPlan(
   ids: PlanIds,
 ): TreatmentPlanWrite {
   const data = treatmentEditionSchemaFor(history, today).parse(input)
-  const { period, change, plan } = resolve(
+  const { period, change, plan, move } = resolve(
     history,
     data,
-    { chosenOn: data.nextDoseOn },
+    { chosenOn: data.nextDoseOn, shiftsFollowing: data.shiftsFollowing ?? true },
     today,
     data.pastDues,
   )
@@ -54,10 +78,15 @@ export function editionPlan(
       : sameSettings(settings, settingsOf(period))
         ? null
         : { action: 'correct' as const, id: period.id, settings, referenceOn: period.referenceOn }
-  const result: TreatmentPlanWrite = { treatment, period: written, doses: [] }
-  if (written !== null) {
+  const doses = move === null ? [] : plannedDoseWritesOf(history, move.changes, ids.newId)
+  const result: TreatmentPlanWrite = { treatment, period: written, doses }
+  if (written !== null || doses.length > 0) {
     assertReadable(
-      { doses: history.doses, periods: periodsAfter(history, period.id, written, today) },
+      {
+        doses: dosesAfter(history, doses, today),
+        periods:
+          written === null ? history.periods : periodsAfter(history, period.id, written, today),
+      },
       today,
     )
   }

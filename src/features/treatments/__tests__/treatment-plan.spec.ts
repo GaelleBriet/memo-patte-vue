@@ -17,7 +17,7 @@ import type { TreatmentWithHistory } from '../schema/treatment-with-history.sche
 const AT = '2026-07-01T08:00:00.000Z'
 const MILO = '11111111-1111-4111-8111-111111111111'
 const TREATMENT = '22222222-2222-4222-8222-222222222222'
-const IDS = { periodId: '33333333-3333-4333-8333-333333333333' }
+const IDS = { periodId: '33333333-3333-4333-8333-333333333333', newId: () => 'nouvelle-ligne' }
 
 function period(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPeriodRecord {
   return {
@@ -163,8 +163,13 @@ describe('editionPlan — « Modifier » écrit ce que le moteur propose (TR-28,
     })
   })
 
-  it('une autre « Prochaine dose » à fréquence gardée : un réglage qui pose sa propre origine', () => {
-    const plan = editionPlan(WEEKLY_AFTER_TWO, { ...EDITION, nextDoseOn: '2026-09-24' }, TODAY, IDS)
+  it('une autre « Prochaine dose » avec une posologie changée : un réglage qui pose sa propre origine', () => {
+    const plan = editionPlan(
+      WEEKLY_AFTER_TWO,
+      { ...EDITION, doseQuantity: 2, nextDoseOn: '2026-09-24' },
+      TODAY,
+      IDS,
+    )
 
     expect(plan.period).toMatchObject({
       action: 'open',

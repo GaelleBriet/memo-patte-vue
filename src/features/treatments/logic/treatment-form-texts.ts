@@ -1,16 +1,32 @@
 import type { EditionDraft } from './treatment-edition-draft'
 import type { NextDoseHelp } from './treatment-edition-resolution'
+import { refusalText } from './treatment-refusal-texts'
 import type { ResumptionDraft } from './treatment-resumption'
+import { nextDoseBoxView } from './treatment-shift-box'
+import type { ShiftHelp } from './treatment-shift-help'
+import type { TreatmentFormValues } from './treatment-form-values'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import { formatDayMonthOrYear, formatFullDayMonth, withoutFinalDot } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
 type Previous = Pick<ResumptionDraft, 'startedOn' | 'endedOn' | 'durationDays' | 'earliestOn'>
 
+/** L'aide sous la case « Décaler aussi les doses suivantes » de « Prochaine dose ». */
+export function nextDoseShiftHelp(
+  t: Translate,
+  draft: Pick<EditionDraft, 'nextDose'>,
+  values: Pick<TreatmentFormValues, 'shiftsFollowing'>,
+): ShiftHelp | null {
+  const shift = draft.nextDose?.shift ?? null
+  return shift === null ? null : nextDoseBoxView(t, shift, values.shiftsFollowing).help
+}
+
 /** Le texte sous la date de « Prochaine dose ». */
 export function nextDoseHelpText(t: Translate, help: NextDoseHelp | null, today: string) {
   if (help === null) return null
   switch (help.kind) {
+    case 'refused':
+      return refusalText(t, help.refusal, today)
     case 'overdue':
       return t('treatments.form.nextDoseOn.overdue', {
         date: formatDayMonthOrYear(help.since, today),

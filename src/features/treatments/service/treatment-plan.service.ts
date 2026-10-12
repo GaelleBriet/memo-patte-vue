@@ -48,7 +48,7 @@ export function createTreatmentPlanService({
   }
 
   function ids() {
-    return { periodId: newId() }
+    return { periodId: newId(), newId }
   }
 
   return {

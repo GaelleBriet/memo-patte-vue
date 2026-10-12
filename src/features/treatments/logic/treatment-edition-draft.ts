@@ -25,11 +25,12 @@ export function editionDraft(
   rhythm: TreatmentRhythm | null,
   today: string,
   chosenOn: string | null = null,
+  shiftsFollowing = true,
 ): EditionDraft {
   const { period, change, nextDose, pastDues, pastDuesNextDose } = resolve(
     history,
     rhythm,
-    { chosenOn },
+    { chosenOn, shiftsFollowing },
     today,
   )
   const farthestMove =

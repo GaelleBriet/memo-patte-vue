@@ -1,9 +1,11 @@
+import type { Carnet } from './treatment-shift-help'
 import type { PastDuesChoice } from '../schema/treatment-form.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import type { Due, Refusal, SettingsPlan } from '@/shared/domain/dose-calendar'
+import type { Due, GestureOutcome, Refusal, SettingsPlan } from '@/shared/domain/dose-calendar'
 
 /** Ce que le champ « Prochaine dose » dit sous sa date. */
 export type NextDoseHelp =
+  | { kind: 'refused'; refusal: Refusal }
   | { kind: 'overdue'; since: string }
   /** Aucune prise dans tout le traitement : faute de référence, aujourd'hui est proposé. */
   | { kind: 'today' }
@@ -11,12 +13,23 @@ export type NextDoseHelp =
   /** Date reprise du calendrier en cours, report compris (Q37). */
   | { kind: 'scheduled'; on: string }
 
+/** La case « Décaler aussi les doses suivantes » sous la date choisie : la dose déplacée, lue sur le carnet. */
+export type NextDoseShift = { due: Due; chosenOn: string; carnet: Carnet }
+
 export type NextDoseDraft = {
+  /** `move` : une ligne « Reportée / Avancée » ; `first-due` : la date choisie ouvre un réglage ou corrige la première échéance. */
+  change: 'first-due' | 'move'
   proposedOn: string
   earliest: string
-  /** La date de fin saisie ; `null` sans borne. */
+  /** La date de fin saisie, ou la veille de la dose suivante pour un report seul ; `null` sans borne. */
   latest: string | null
+  /** Le moteur refuse tout déplacement de cette dose : le champ est grisé. */
+  refusal: Refusal | null
   help: NextDoseHelp | null
+  /** `null` : pas de case, la date ne déplace aucune dose ou la dose ne peut aller seule. */
+  shift: NextDoseShift | null
+  /** N2 : la case rouverte telle qu'elle a été laissée, cochée sans report ou avec son décalage. */
+  shiftInitial: boolean
 }
 
 /** Ce que « Modifier » fait des réglages saisis, et ce qu'il écrirait. */
@@ -31,7 +44,9 @@ export type EditionResolution = {
    * corrige sur place (date de fin, rappel) ou ne change pas.
    */
   plan: SettingsPlan | null
-  /** Le moteur refuse ce réglage : la date, ou le rythme, ne passe pas. */
+  /** R7, TR-9 : le report de la prochaine dose que la saisie écrit, quand seule sa date change. */
+  move: GestureOutcome | null
+  /** Le moteur refuse ce que la saisie demande : la date, ou le rythme, ne passe pas. */
   refusal: Refusal | null
   /** Échéances tombées que le nouveau rythme laisserait à renseigner ou retirerait (Q38). */
   pastDues: Due[]
@@ -39,5 +54,5 @@ export type EditionResolution = {
   pastDuesNextDose: Record<PastDuesChoice, string> | null
 }
 
-/** La date saisie dans « Prochaine dose ». */
-export type NextDoseChoice = { chosenOn: string | null }
+/** La date saisie dans « Prochaine dose » et la case « Décaler aussi les doses suivantes ». */
+export type NextDoseChoice = { chosenOn: string | null; shiftsFollowing: boolean }
