@@ -85,6 +85,10 @@ export function without(input: TreatmentViewInput, ids: readonly string[]): Trea
 
 /** Le carnet une fois le réglage écrit, plus récent que tout le carnet (simulation, R12). */
 export function settingsApplied(input: TreatmentViewInput, plan: SettingsPlan): TreatmentViewInput {
+  return applied(settingWritten(input, plan), plan.lines ?? [])
+}
+
+function settingWritten(input: TreatmentViewInput, plan: SettingsPlan): TreatmentViewInput {
   if (plan.action === 'create') {
     const setting: Setting = {
       ...plan.setting,

@@ -68,17 +68,8 @@ describe('« Prochaine dose » à rythme gardé, sur un traitement à plusieurs 
     return readingAfter(replay, ID)
   }
 
-  it('le jour choisi ne reçoit que les heures restantes de la journée déplacée (TR-9, Q21)', async () => {
+  it('le jour choisi ne reçoit que les heures restantes de la journée déplacée (TR-9, Q21, décision du 2026-10-12)', async () => {
     const read = await moveNextDoseTo('2026-03-07')
     expect(read?.[2]).toBe('2026-03-07 14:00')
   })
-
-  // Le moteur ouvrant un réglage à cette date donne les trois heures du 7 mars : écart à trancher.
-  it.fails(
-    'le jour choisi reçoit toutes les heures, comme un réglage ouvert à cette date',
-    async () => {
-      const read = await moveNextDoseTo('2026-03-07')
-      expect(read?.[2]).toBe('2026-03-07 08:00')
-    },
-  )
 })
