@@ -5,8 +5,6 @@ import { arrivalFollowing } from './move'
 import type { SettingsResult } from './settings'
 import { NEXT_DAYS } from './settings-proposal'
 
-// R7, R9, #796 : la date choisie déplace la prochaine dose ; quand c'est l'arrivée d'un report, elle
-// l'emmène comme « Prochaine dose ».
 function arrivalMoved(input: TreatmentViewInput, chosen: Day): NonNullable<SettingsPlan['lines']> {
   const { today } = input
   const next = buildView(input)
@@ -28,10 +26,7 @@ function implicitDays(result: SettingsResult): Day[] {
   ]
 }
 
-/**
- * R7, #796 : à fréquence gardée, une « Prochaine dose » choisie, qui n'est pas la date proposée,
- * emporte le report qui arrive à la prochaine dose, dans les bornes de « Prochaine dose » (G7, G8).
- */
+/** R7, #796 : à fréquence gardée, une date choisie emmène le report qui arrive à la prochaine dose. */
 export function withChosenDate(
   input: TreatmentViewInput,
   chosen: Day | undefined,
