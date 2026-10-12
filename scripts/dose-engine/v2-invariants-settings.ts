@@ -9,13 +9,15 @@ import { dueKey } from './display'
 import { compare, type Broken } from './v2-reading'
 import type { V2Step } from './v2-walk'
 
-// R12 : ce que la lecture du carnet écrit montre avant la première échéance attendue, ou `null` ;
+type Misread = { early: boolean; text: string }
+
+// R12 : ce que la lecture du carnet écrit montre au lieu de la première échéance attendue, ou `null` ;
 // un report reste une ligne du traitement (R7) : son arrivée peut précéder, son départ vide le jour.
 function misreadFirstDue(
   input: TreatmentViewInput,
   plan: SettingsPlan,
   day: string,
-): string | null {
+): Misread | null {
   const view = preview(input, plan)
   if (view.phase === 'ended' || view.phase === 'stopped') return null
   // #787 : une première échéance proposée après la date de fin, question ouverte.
@@ -23,11 +25,13 @@ function misreadFirstDue(
   const moves = view.history.flatMap(({ effect }) => (effect.kind === 'moves' ? [effect] : []))
   const arrivals = new Set(moves.map(({ arrival }) => arrival))
   const emptied = moves.some(({ keys }) => keys.some((key) => key.startsWith(day)))
-  if (view.slots(day, day).length === 0 && !emptied) return `aucune échéance le ${day}`
+  if (view.slots(day, day).length === 0 && !emptied) {
+    return { early: false, text: `aucune échéance le ${day}` }
+  }
   const early = [...view.currentDoses, ...view.upcoming({ to: day })].filter(
     ({ dueOn }) => dueOn >= input.today && dueOn < day && !arrivals.has(dueOn),
   )
-  return early.length === 0 ? null : `${dueKey(early[0]!)} avant le ${day}`
+  return early.length === 0 ? null : { early: true, text: `${dueKey(early[0]!)} avant le ${day}` }
 }
 
 /**
@@ -61,18 +65,18 @@ export function settingsProposal(step: V2Step): Broken | null {
         gridOriginOn === each.setting.gridOriginOn,
     )
   // Question ouverte (R6, R10, TR-28) : le décalage d'un réglage réécrit vaut encore pour son
-  // nouveau rythme, avant la première échéance posée.
+  // nouveau rythme, avant la première échéance posée ; la date proposée, elle, est toujours lue.
   const staleShift = (each: SettingsPlan, day: string) =>
     each.action === 'rewrite' &&
     each.setting.gridOriginOn !== null &&
     before.lines.some(
       ({ status, settingId, dueOn }) => status === 'shift' && settingId === each.id && dueOn < day,
     )
-  const judged = plans.filter((one) => !keepsDates(one) && !staleShift(one, one.setting.firstDueOn))
-  for (const each of judged) {
-    const misread = misreadFirstDue(before, each, each.setting.firstDueOn)
-    if (misread !== null) {
-      return { invariant: 'proposée ≠ montrée', detail: `${misread}\n${JSON.stringify(each)}` }
+  for (const each of plans.filter((one) => !keepsDates(one))) {
+    const day = each.setting.firstDueOn
+    const misread = misreadFirstDue(before, each, day)
+    if (misread !== null && !(misread.early && staleShift(each, day))) {
+      return { invariant: 'proposée ≠ montrée', detail: `${misread.text}\n${JSON.stringify(each)}` }
     }
   }
   if (chosen === undefined || chosen === date) return null
@@ -87,5 +91,5 @@ export function settingsProposal(step: V2Step): Broken | null {
   const misread = inShift || staleShift(plan, chosen) ? null : misreadFirstDue(before, plan, chosen)
   return misread === null
     ? null
-    : { invariant: 'choisie ≠ montrée', detail: `${misread}\n${JSON.stringify(plan)}` }
+    : { invariant: 'choisie ≠ montrée', detail: `${misread.text}\n${JSON.stringify(plan)}` }
 }
