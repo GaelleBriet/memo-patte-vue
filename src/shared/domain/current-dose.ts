@@ -1,7 +1,5 @@
 import { nextDay } from './calendar-day'
-import type { Due, Phase } from './dose-calendar'
-
-type Day = Pick<Due, 'dueOn' | 'dueTime'>
+import type { Due, TreatmentPhase } from './treatment-schedule'
 import { formatClockTime, formatDayMonthOrYear } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
@@ -9,9 +7,9 @@ import type { Translate } from '@/core/i18n/translate'
 export type CurrentDoseText = { label: string | null; value: string | null }
 
 export type CurrentDose = {
-  phase: Phase
+  phase: TreatmentPhase
   /** Une des doses du moment ; `null` quand le traitement est fini ou arrêté. */
-  due: Day | null
+  due: Due | null
   today: string
   stoppedOn?: string | null
   /** Aucune dose jamais due ni donnée : l'arrêt n'a pas de date à dire. */
@@ -20,7 +18,7 @@ export type CurrentDose = {
   endsOn?: string | null
 }
 
-function dueDay(t: Translate, { dueOn, dueTime }: Day, today: string): string {
+function dueDay(t: Translate, { dueOn, dueTime }: Due, today: string): string {
   const date = formatDayMonthOrYear(dueOn, today)
   return dueTime === null ? date : t('currentDose.at', { date, time: formatClockTime(dueTime) })
 }
