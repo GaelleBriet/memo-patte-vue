@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.71](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.70...memo-patte-v0.1.71) (2026-10-12)
+
+
+### ✨ Fonctionnalités
+
+* **treatments:** PDF, CSV et rappels du JSON lisent le moteur v2 (pas 5) ([4feca21](https://github.com/GaelleBriet/memo-patte-vue/commit/4feca212f6962213f3a2209a3f3889fb8a4b6560))
+
 ## [0.1.70](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.69...memo-patte-v0.1.70) (2026-10-12)
 
 
