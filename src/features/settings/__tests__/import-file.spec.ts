@@ -310,6 +310,10 @@ describe('parseExportFile', () => {
 
     it.each([
       [
+        'une date de fin avant la première échéance',
+        { firstDueOn: '2026-09-12', endsOn: '2026-09-11' },
+      ],
+      [
         'plus de 24 heures par jour',
         {
           times: Array.from(
@@ -325,8 +329,11 @@ describe('parseExportFile', () => {
     })
 
     it.each([
-      ['une date de fin avant le début', { endsOn: '2026-08-31' }],
       ['une première échéance avant le début', { firstDueOn: '2026-08-31' }],
+      [
+        'un début après la première échéance et la date de fin',
+        { startsOn: '2026-10-14', firstDueOn: '2026-10-12', endsOn: '2026-10-13' },
+      ],
     ])(
       'accepte %s, que « Modifier » écrit pour un réglage ouvert après une dose en retard',
       (_, change) => {
