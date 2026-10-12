@@ -21,7 +21,6 @@ import BottomSheet from '@/shared/components/BottomSheet.vue'
 import ReminderActions from '@/shared/components/ReminderActions.vue'
 import type { NotifiedDue, TodoDue } from '@/shared/domain/reminder-route'
 import { reminderIcon } from '@/shared/domain/reminders'
-import { treatmentReading } from '@/shared/domain/treatment-reading'
 import type { Due } from '@/shared/domain/treatment-schedule'
 import { showToast } from '@/shared/utils/toast'
 
@@ -62,7 +61,6 @@ const isShown = computed({
 })
 
 const schedule = computed(() => readableScheduleOf(history.value, today.value))
-const view = computed(() => (history.value ? treatmentReading(history.value, today.value) : null))
 
 const {
   animal,
@@ -78,7 +76,7 @@ const {
   onUnloggedAction,
   onStopAction,
   confirmChosenDays,
-} = useTreatmentDoseFlow({ treatment: history, view, schedule, today }, gestures, {
+} = useTreatmentDoseFlow({ treatment: history, schedule, today }, gestures, {
   settled: () => (open.value = false),
 })
 
@@ -86,7 +84,7 @@ const icon = computed(() => (history.value ? reminderIcon('treatment', history.v
 const isUnloggedSheet = computed(() => props.due === 'unlogged' && unlogged.value !== null)
 const doseDue = computed<NotifiedDue | null>(() => {
   if (props.due !== null && props.due !== 'unlogged') return props.due
-  const [current] = view.value?.currentDoses ?? []
+  const [current] = schedule.value?.currentDoses ?? []
   return current === undefined ? null : { dueOn: current.dueOn, dueTime: current.dueTime }
 })
 const texts = computed(() =>
@@ -94,13 +92,13 @@ const texts = computed(() =>
     ? treatmentSheetTexts(
         t,
         history.value,
-        sheetPeriod(history.value, view.value, props.due),
+        sheetPeriod(history.value, schedule.value, props.due),
         isUnloggedSheet.value ? 'unlogged' : doseDue.value,
         { animal: named.value.animal, today: today.value },
       )
     : null,
 )
-const canStop = computed(() => view.value !== null && detailActions(view.value).canStop)
+const canStop = computed(() => schedule.value !== null && detailActions(schedule.value).canStop)
 const otherDateMin = computed(() => {
   const birth = animal.value?.birthDate ?? null
   if (!history.value || !schedule.value || !doseDue.value) return birth
