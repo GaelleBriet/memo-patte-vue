@@ -11,12 +11,13 @@ type Segment = { origin: Day; from: Day; to: Day | null }
 
 type Claim = { setting: Setting; end: Day | null; segments: Segment[] }
 
-// R1, R4 : une journée d'origine d'un report, ou celle où un réglage cède la place, sortie du
-// calendrier, se lit avec le dernier réglage dont elle était une journée.
+// R1, R4 : sortie du calendrier, la journée où un réglage cède la place, ou celle d'origine d'un
+// report pour un réglage remplacé le jour où il commence, se lit avec ce réglage.
 function leftDays(claims: readonly Claim[], reported: readonly Day[], stop: Day | null) {
   const left = new Map<Day, Journey>()
   for (const { setting, end, segments } of claims) {
-    for (const day of end === null ? reported : [...reported, end]) {
+    if (end === null) continue
+    for (const day of end === setting.startsOn ? [...reported, end] : [end]) {
       const open =
         (setting.endsOn === null || day <= setting.endsOn) && (stop === null || day < stop)
       const wasDay = segments.some(

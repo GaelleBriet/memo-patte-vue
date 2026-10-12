@@ -123,6 +123,15 @@ describe('R4 : une prise ne se perd jamais', () => {
   })
 })
 
+describe('R7 : un réglage qui a eu des jours ne reprend pas une journée de son successeur', () => {
+  it('chaque jour dès le 21 mars, puis toutes les 2 semaines à 20 h dès le 24 ; dose du 11 avr. reportée au 9 : le 9 reste à donner', () => {
+    const daily = setting('s1', '2026-03-21', DAY)
+    const fortnight = setting('s2', '2026-03-24', { value: 2, unit: 'week' }, ['20:00'])
+    const report = line('s2', 'postponed', '2026-04-11', '20:00', '2026-04-09')
+    expect(read([daily, fortnight], [report], '2026-03-28').upcoming).toContain('2026-04-09 20:00')
+  })
+})
+
 describe('R8 : reprendre', () => {
   it('une prise d’avant l’arrêt ne couvre pas la reprise, sauf celle du jour même', () => {
     const p1 = setting('p1', '2026-10-01', DAY, [], { stoppedOn: '2026-10-02' })

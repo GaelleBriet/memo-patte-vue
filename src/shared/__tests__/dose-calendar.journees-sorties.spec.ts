@@ -145,3 +145,17 @@ describe('R1, R4 : seul le réglage qui cède la place lit sa journée de fin', 
     ).toEqual(idle)
   })
 })
+
+describe('R7 : un réglage qui a eu des jours ne reprend pas une journée de son successeur', () => {
+  it('chaque jour dès le 21 mars, puis toutes les 2 semaines à 20 h dès le 24 ; dose du 11 avr., sortie du calendrier, reportée au 9 : le 9 à 20 h reste à donner', () => {
+    const daily = setting('s1', '2026-03-21', { value: 1, unit: 'day' })
+    const fortnight = setting('s2', '2026-03-24', { value: 2, unit: 'week' }, ['20:00'])
+    const report = line('s2', 'postponed', '2026-04-11', '20:00', '2026-04-09')
+    const view = treatmentView({
+      settings: [daily, fortnight],
+      lines: [report],
+      today: '2026-03-28',
+    })
+    expect(keys(view.upcoming({ limit: 3 }))).toContain('2026-04-09 20:00')
+  })
+})
