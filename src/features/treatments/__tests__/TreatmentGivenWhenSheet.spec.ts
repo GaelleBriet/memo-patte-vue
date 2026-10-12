@@ -153,7 +153,13 @@ describe('TreatmentGivenWhenSheet — « Donnée quand ? » (V5)', () => {
 
     expect(noteDemandee()).toEqual({
       kind: 'note',
-      gesture: { kind: 'given', due: DOSE_16, givenOn: '2026-10-16', shiftsFollowing: false },
+      gesture: {
+        kind: 'note',
+        status: 'given',
+        due: DOSE_16,
+        givenOn: '2026-10-16',
+        shiftsFollowing: false,
+      },
     })
     expect(sheet.emitted('update:modelValue')).toEqual([[false]])
     expect(sheet.emitted('changed')).toHaveLength(1)
@@ -181,7 +187,13 @@ describe('TreatmentGivenWhenSheet — « Donnée quand ? » (V5)', () => {
 
     expect(noteDemandee()).toEqual({
       kind: 'note',
-      gesture: { kind: 'given', due: DOSE_16, givenOn: '2026-10-19', shiftsFollowing: true },
+      gesture: {
+        kind: 'note',
+        status: 'given',
+        due: DOSE_16,
+        givenOn: '2026-10-19',
+        shiftsFollowing: true,
+      },
     })
   })
 
@@ -218,7 +230,13 @@ describe('TreatmentGivenWhenSheet — « Donnée quand ? » (V5)', () => {
 
     expect(noteDemandee()).toEqual({
       kind: 'note',
-      gesture: { kind: 'given', due: DOSE_16, givenOn: '2026-10-19', shiftsFollowing: true },
+      gesture: {
+        kind: 'note',
+        status: 'given',
+        due: DOSE_16,
+        givenOn: '2026-10-19',
+        shiftsFollowing: true,
+      },
     })
   })
 
@@ -238,7 +256,8 @@ describe('TreatmentGivenWhenSheet — « Donnée quand ? » (V5)', () => {
     expect(noteDemandee()).toEqual({
       kind: 'note',
       gesture: {
-        kind: 'given',
+        kind: 'note',
+        status: 'given',
         due: { settingId: 'p-1', dueOn: '2026-10-06', dueTime: '20:00' },
         givenOn: '2026-10-06',
         shiftsFollowing: false,
@@ -312,7 +331,8 @@ describe('TreatmentGivenWhenSheet — « Donnée quand ? » (V5)', () => {
     expect(noteDemandee()).toEqual({
       kind: 'note',
       gesture: {
-        kind: 'given',
+        kind: 'note',
+        status: 'given',
         due: { settingId: 'p-1', dueOn: '2026-10-04', dueTime: '20:00' },
         givenOn: '2026-10-04',
         shiftsFollowing: false,
