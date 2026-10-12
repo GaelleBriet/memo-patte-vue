@@ -70,8 +70,9 @@ function endsOnIssue(
   today: string,
   corrects: boolean,
 ): EndsOnIssueReason | null {
-  const { view } = treatmentReadingOf(history, today)
-  const farthest = farthestMoveOf(view, period.id)
+  const farthest = corrects
+    ? farthestMoveOf(treatmentReadingOf(history, today).view, period.id)
+    : null
   if (farthest !== null && endsOn < farthest.arrivesOn) {
     const which = farthest.isNext ? '' : 'Far'
     return `before${which}${farthest.advanced ? 'Advanced' : 'Postponed'}Dose`

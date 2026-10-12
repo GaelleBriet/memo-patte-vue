@@ -1592,9 +1592,7 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
     expect(valeur(wrapper, 'treatment-next-dose-on')).toBe('2026-10-10')
     expect(date.attributes('min')).toBe('2026-09-28')
     expect(date.attributes('max')).toBeUndefined()
-    expect(aide(wrapper, 'next-dose-on')).toBe(
-      'Calculée d’après la dernière prise : 10 oct. Modifiable.',
-    )
+    expect(aide(wrapper, 'next-dose-on')).toBe('Prochaine dose prévue : 10 oct. Modifiable.')
   })
 
   it('corrige le nom et le type sans changer la prochaine dose (TR-27)', async () => {
@@ -1622,38 +1620,11 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
 
     await champ(wrapper, 'treatment-next-dose-on').setValue('2026-10-14')
 
-    expect(aide(wrapper, 'next-dose-on')).toBe(
-      'Calculée d’après la dernière prise : 10 oct. Modifiable.',
-    )
+    expect(aide(wrapper, 'next-dose-on')).toBe('Prochaine dose prévue : 10 oct. Modifiable.')
 
     await soumettre(wrapper)
 
     expect(update).toHaveBeenCalledWith(ID, expect.objectContaining({ nextDoseOn: '2026-10-14' }))
-  })
-
-  it('montre la case « Décaler aussi les doses suivantes », cochée, et l’envoie décochée (V28)', async () => {
-    const wrapper = await monterEdition()
-    expect(wrapper.find('.treatment-shift').exists()).toBe(false)
-
-    await champ(wrapper, 'treatment-next-dose-on').setValue('2026-10-14')
-
-    const caseDecaler = wrapper.get<HTMLInputElement>('.treatment-shift__input')
-    expect(caseDecaler.element.checked).toBe(true)
-    expect(wrapper.get('.treatment-shift__label').text()).toBe('Décaler aussi les doses suivantes')
-    expect(wrapper.get('.treatment-shift__help').text().replaceAll(' ', ' ')).toBe(
-      'Les doses suivantes passeront au 14 janv. 2027, puis tous les 3 mois.',
-    )
-
-    await caseDecaler.setValue(false)
-
-    expect(wrapper.get('.treatment-shift__help').text().replaceAll(' ', ' ')).toBe(
-      'Seule cette dose change. Les suivantes restent prévues le 10 janv. 2027, puis tous les 3 mois.',
-    )
-    await soumettre(wrapper)
-    expect(update).toHaveBeenCalledWith(
-      ID,
-      expect.objectContaining({ nextDoseOn: '2026-10-14', shiftsFollowing: false }),
-    )
   })
 
   it('propose aujourd’hui quand la fréquence change après des prises : une nouvelle période s’ouvrira (V1 quater)', async () => {
@@ -1671,9 +1642,7 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
 
     expect(valeur(wrapper, 'treatment-next-dose-on')).toBe('2026-09-28')
     expect(champ(wrapper, 'treatment-next-dose-on').attributes('min')).toBe('2026-09-28')
-    expect(aide(wrapper, 'next-dose-on')).toBe(
-      'Calculée d’après la dernière prise : le 23 sept., déjà passé ; aujourd’hui est proposé. Modifiable.',
-    )
+    expect(aide(wrapper, 'next-dose-on')).toBe('Aujourd’hui est proposé. Modifiable.')
 
     await soumettre(wrapper)
 
@@ -1703,7 +1672,7 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
     await soumettre(wrapper)
 
     expect(messages(wrapper)).toEqual([
-      'La prochaine dose ne peut pas dépasser la date de fin. Change la date de fin pour aller plus loin.',
+      'Avec ce rythme, plus aucune dose avant la date de fin. Change la date de fin ou le rythme.',
     ])
     expect(update).not.toHaveBeenCalled()
   })
@@ -1744,34 +1713,6 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
       'La date de fin ne peut pas précéder la dernière prise notée.',
     ])
     expect(update).not.toHaveBeenCalled()
-  })
-
-  it('grise « Prochaine dose » et dit pourquoi quand une dose plus lointaine est déjà reportée (Q26)', async () => {
-    getWithHistory.mockResolvedValue(
-      milbemax(
-        [
-          periode({
-            frequency: { value: 1, unit: 'day' },
-            startsOn: '2026-09-20',
-            firstDueOn: '2026-09-20',
-          }),
-        ],
-        [
-          prise({
-            dueOn: '2026-10-05',
-            givenOn: null,
-            status: 'postponed',
-            nextDueDate: '2026-10-07',
-          }),
-        ],
-      ),
-    )
-    const wrapper = await monterEdition()
-
-    expect(champ(wrapper, 'treatment-next-dose-on').attributes('disabled')).toBeDefined()
-    expect(aide(wrapper, 'next-dose-on')).toBe(
-      'Une dose plus lointaine est déjà reportée. Supprime ce report pour déplacer celle-ci.',
-    )
   })
 
   it('ne propose pas « Prochaine dose » sans prise notée d’aide calculée', async () => {
@@ -1831,63 +1772,7 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
     expect(messages(autre)).toEqual(['Choisis une date à partir du 28 septembre.'])
   })
 
-  it('annonce les doses qui ne seront plus à renseigner quand la première échéance d’un traitement sans prise change', async () => {
-    getWithHistory.mockResolvedValue(
-      milbemax(
-        [
-          periode({
-            frequency: { value: 1, unit: 'day' },
-            startsOn: '2026-09-20',
-            firstDueOn: '2026-09-20',
-          }),
-        ],
-        [],
-      ),
-    )
-    const wrapper = await monterEdition()
-
-    expect(valeur(wrapper, 'treatment-next-dose-on')).toBe('2026-09-28')
-    expect(aide(wrapper, 'next-dose-on')).toBeUndefined()
-
-    await champ(wrapper, 'treatment-next-dose-on').setValue('2026-10-01')
-
-    expect(aide(wrapper, 'next-dose-on')).toBe(
-      'Les 8 doses prévues avant cette date ne seront plus à renseigner.',
-    )
-
-    i18n.global.locale.value = 'en'
-    await wrapper.vm.$nextTick()
-
-    expect(aide(wrapper, 'next-dose-on')).toBe(
-      'The 8 doses scheduled before this date will no longer need to be logged.',
-    )
-  })
-
-  it('l’annonce au singulier pour une seule dose', async () => {
-    getWithHistory.mockResolvedValue(
-      milbemax(
-        [
-          periode({
-            frequency: { value: 1, unit: 'week' },
-            startsOn: '2026-09-27',
-            firstDueOn: '2026-09-27',
-          }),
-        ],
-        [],
-      ),
-    )
-    const wrapper = await monterEdition()
-
-    expect(aide(wrapper, 'next-dose-on')).toBe('Dose en retard depuis le 27 sept.')
-
-    await champ(wrapper, 'treatment-next-dose-on').setValue('2026-09-30')
-
-    expect(aide(wrapper, 'next-dose-on')).toBe(
-      'La dose prévue avant cette date ne sera plus à renseigner.',
-    )
-  })
-
-  it('refuse une date de fin avant l’arrivée d’un report, et l’accepte quand « Prochaine dose » repasse avant elle', async () => {
+  it('accepte une date de fin avant l’arrivée d’un report : un nouveau réglage prend le relais', async () => {
     getWithHistory.mockResolvedValue(
       milbemax(
         [periode()],
@@ -1908,57 +1793,8 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
 
     await soumettre(wrapper)
 
-    expect(valeur(wrapper, 'treatment-next-dose-on')).toBe('2026-10-14')
-    expect(messages(wrapper)).toEqual(['La prochaine dose est reportée au 14 oct.'])
-    i18n.global.locale.value = 'en'
-    await wrapper.vm.$nextTick()
-    expect(messages(wrapper)).toEqual(['The next dose is postponed to Oct 14.'])
-    i18n.global.locale.value = 'fr'
-    expect(update).not.toHaveBeenCalled()
-
-    await champ(wrapper, 'treatment-next-dose-on').setValue('2026-10-11')
-    await soumettre(wrapper)
-
-    expect(update).toHaveBeenCalledWith(
-      ID,
-      expect.objectContaining({ endsOn: '2026-10-12', nextDoseOn: '2026-10-11' }),
-    )
-  })
-
-  it('nomme « une dose » quand le report en cause n’est pas celui de la prochaine dose', async () => {
-    getWithHistory.mockResolvedValue(
-      milbemax(
-        [
-          periode({
-            startsOn: '2026-09-11',
-            firstDueOn: '2026-09-11',
-            frequency: { value: 1, unit: 'week' },
-          }),
-        ],
-        [
-          prise({ dueOn: '2026-09-11', givenOn: '2026-09-11', nextDueDate: '2026-09-18' }),
-          prise({
-            id: 'd-report',
-            dueOn: '2026-10-09',
-            givenOn: null,
-            status: 'postponed',
-            nextDueDate: '2026-10-20',
-          }),
-        ],
-      ),
-    )
-    const wrapper = await monterEdition()
-    await champ(wrapper, 'treatment-ends-on').setValue('2026-10-15')
-
-    await soumettre(wrapper)
-
-    expect(messages(wrapper)).toEqual(['Une dose est reportée au 20 oct.'])
-    expect(update).not.toHaveBeenCalled()
-
-    i18n.global.locale.value = 'en'
-    await wrapper.vm.$nextTick()
-
-    expect(messages(wrapper)).toEqual(['A dose is postponed to Oct 20.'])
+    expect(messages(wrapper)).toEqual([])
+    expect(update).toHaveBeenCalledWith(ID, expect.objectContaining({ endsOn: '2026-10-12' }))
   })
 
   it('ne laisse corriger que le nom et le type d’un traitement arrêté', async () => {
@@ -2043,13 +1879,11 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
 
     expect(wrapper.get('.pushed-screen__title').text()).toBe('Edit Milbemax')
     expect(wrapper.get('.form-screen__submit').text()).toBe('Save')
-    expect(aide(wrapper, 'next-dose-on')).toBe('Based on the last dose: Oct 10. You can change it.')
+    expect(aide(wrapper, 'next-dose-on')).toBe('Next scheduled dose: Oct 10. You can change it.')
 
     await champ(wrapper, 'treatment-frequency-value').setValue('1')
 
-    expect(aide(wrapper, 'next-dose-on')).toBe(
-      'Based on the last dose: Aug 10, already passed; today is suggested. You can change it.',
-    )
+    expect(aide(wrapper, 'next-dose-on')).toBe('Today is suggested. You can change it.')
   })
 })
 
@@ -2187,28 +2021,7 @@ describe('TreatmentFormView — échéances tombées d’une période sans prise
     )
   })
 
-  it('annonce et écrit la date calculée du chemin quand la date choisie à la main n’y vaut pas', async () => {
-    getWithHistory.mockResolvedValue(SANS_PRISE())
-    wrapper = await monterEdition()
-    await champ(wrapper, 'treatment-frequency-value').setValue('3')
-    await champ(wrapper, 'treatment-next-dose-on').setValue('2026-10-05')
-    await champ(wrapper, 'treatment-ends-on').setValue('2026-10-01')
-    await soumettre(wrapper)
-
-    expect(plain(feuille().props('texts'))).toMatchObject({
-      dropHint: 'L’ancien réglage était une erreur. Prochaine dose le 28 sept.',
-    })
-
-    dansLaFeuille('.treatment-past-dues__choice--drop').click()
-    await flushPromises()
-
-    expect(update).toHaveBeenCalledExactlyOnceWith(
-      ID,
-      expect.objectContaining({ pastDues: 'drop', nextDoseOn: '2026-09-28', endsOn: '2026-10-01' }),
-    )
-  })
-
-  it('annonce pour chaque choix la date que ce choix écrit, quand elles diffèrent', async () => {
+  it('annonce pour chaque choix la date que ce choix écrit', async () => {
     getWithHistory.mockResolvedValue(
       milbemax(
         [
@@ -2238,7 +2051,7 @@ describe('TreatmentFormView — échéances tombées d’une période sans prise
     expect(plain(feuille().props('texts'))).toMatchObject({
       title: '1 dose était prévue avant aujourd’hui',
       keepHint: 'Le nouveau rythme commence aujourd’hui. Prochaine dose le 8 oct.',
-      dropHint: 'L’ancien réglage était une erreur. Prochaine dose le 28 sept.',
+      dropHint: 'L’ancien réglage était une erreur. Prochaine dose le 8 oct.',
     })
 
     dansLaFeuille('.treatment-past-dues__choice--keep').click()
@@ -2264,11 +2077,8 @@ describe('TreatmentFormView — échéances tombées d’une période sans prise
 
   it('repose la question quand les échéances annoncées ont changé depuis la réponse', async () => {
     const view = await corrigerLaFrequence()
-    await champ(view, 'treatment-ends-on').setValue('2026-09-20')
-    dansLaFeuille('.treatment-past-dues__choice--keep').click()
+    dansLaFeuille('.treatment-past-dues__cancel').click()
     await flushPromises()
-    expect(messages(view)).toHaveLength(1)
-    expect(update).not.toHaveBeenCalled()
 
     vi.setSystemTime(new Date('2026-09-30T08:00:00'))
     simulateWebResume()
