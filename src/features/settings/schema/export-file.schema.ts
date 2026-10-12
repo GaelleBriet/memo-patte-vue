@@ -121,9 +121,6 @@ const periodFileSchema = z
     ...stamps,
   })
   .refine(hasWholeDosage)
-  .refine(({ startsOn, firstDueOn, endsOn }) =>
-    [firstDueOn, endsOn].every((date) => date === null || date >= startsOn),
-  )
 
 const doseFileSchema = z
   .object({

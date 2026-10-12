@@ -1217,6 +1217,64 @@ describe('data-import.service', () => {
       source.close()
     })
 
+    it('une posologie changée alors que la dose est en retard : une période qui commence après sa première échéance revient à l’identique', async () => {
+      const source = await createInMemoryDb()
+      await source.execute('PRAGMA foreign_keys = ON')
+      const phone = createRepositories(source)
+      const milo = await phone.animals.create({ name: 'Milo', species: 'dog' })
+      const form = createTreatmentPlanService({
+        treatments: () => phone.treatments,
+        reminders: { reschedule: () => Promise.resolve() },
+        today: () => '2026-10-14',
+        newId: () => crypto.randomUUID(),
+      })
+      const hebdo = {
+        frequency: { value: 1, unit: 'week' as const },
+        times: [],
+        doseQuantity: 1,
+        doseUnit: 'tablet' as const,
+        endsOn: null,
+      }
+      const milbemax = await form.create({
+        animalId: milo.id,
+        name: 'Milbemax',
+        type: 'deworming',
+        firstDoseOn: '2026-10-05',
+        ...hebdo,
+      })
+      await source.runMany([
+        phone.doses.insertStatement(
+          prise({
+            id: crypto.randomUUID(),
+            treatmentId: milbemax.id,
+            animalId: milo.id,
+            givenOn: '2026-10-05',
+            nextDueDate: '2026-10-05',
+            at: '2026-10-05T08:00:00.000Z',
+          }),
+        ),
+      ])
+      await form.update(milbemax.id, {
+        name: 'Milbemax',
+        type: 'deworming',
+        ...hebdo,
+        doseQuantity: 0.5,
+        nextDoseOn: null,
+      })
+
+      await importerOn(db, () => NOW).importData(await exported(source), 'replace')
+
+      const before = await carnet(source)
+      expect(
+        before.treatmentPeriods.map(({ startsOn, firstDueOn }) => [startsOn, firstDueOn]).sort(),
+      ).toEqual([
+        ['2026-10-05', '2026-10-05'],
+        ['2026-10-14', '2026-10-12'],
+      ])
+      await expect(carnet()).resolves.toEqual(before)
+      source.close()
+    })
+
     it('un carnet avec périodes, heures, posologie, prises oubliées et report revient à l’identique', async () => {
       const source = await createInMemoryDb()
       await source.execute('PRAGMA foreign_keys = ON')
