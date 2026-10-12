@@ -4,9 +4,7 @@ import { doneGesture } from './treatment-shift-box'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { Treatment } from '../schema/treatment.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import type { TreatmentView } from '@/shared/domain/dose-calendar'
 import type { NotifiedDue, TodoDue } from '@/shared/domain/reminder-route'
-import { currentPeriodIn } from '@/shared/domain/treatment-reading'
 import type { DoseGesture, Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 import { formatClockTime, formatDayMonthOrYear } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
@@ -32,22 +30,17 @@ type SheetSchedule = Pick<
 /** La période de l'échéance de la ligne, sinon la dernière. */
 export function sheetPeriod(
   history: Pick<TreatmentWithHistory, 'periods'>,
-  view: Pick<TreatmentView, 'unloggedDoses' | 'slots' | 'currentSetting'> | null,
+  schedule: Pick<TreatmentSchedule, 'doses' | 'unloggedDoses' | 'currentDoses'> | null,
   due: TodoDue | null,
 ): TreatmentPeriodRecord | undefined {
-  if (view === null) return undefined
   const target =
-    due === null
+    schedule === null || due === null
       ? undefined
       : due === 'unlogged'
-        ? view.unloggedDoses[0]
-        : view
-            .slots(due.dueOn, due.dueOn)
-            .find(({ due: slot }) => due.dueTime === null || slot.dueTime === due.dueTime)?.due
+        ? schedule.unloggedDoses[0]
+        : notifiedDues(schedule, due)[0]?.due
   return (
-    history.periods.find(({ id }) => id === target?.settingId) ??
-    currentPeriodIn(history.periods, view) ??
-    undefined
+    history.periods.find(({ id }) => id === target?.periodId) ?? history.periods.at(-1) ?? undefined
   )
 }
 
