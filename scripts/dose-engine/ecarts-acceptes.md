@@ -136,7 +136,11 @@ rythme précédent ne la déplace pas. Tous les jours, première dose choisie le
 15 avr., dose du 16 reportée au 19 avec décalage ; le 20 avr., posologie, dose du 19 donnée ; le
 24 avr., « Prochaine dose » le 24 : la fiche montre le 24 (le 20 mai avant). Mensuel du 29 mars, dose
 du 29 reportée au 5 avr. ; réglage du 31, première dose choisie le 9 juin, décalage du 5 au 9 avr. :
-5 avr., 9 juin, 9 juil. Graines 810001161, 810002312, 780000156 et 780001015 vertes ; tests datés dans
+5 avr., 9 juin, 9 juil. Avant la date choisie, seul le décalage sur lequel elle a été posée garde son
+effet (R3) : hebdo du lundi 5 oct. ; le 7, tous les 3 jours, première dose choisie le 2 nov.,
+décalage du lundi 12 au 14 écrit sous ce réglage ; le 7, retour à l'hebdo, « Prochaine dose » le
+2 nov. : 2, 9 nov. (4, 11 nov. avant ; `main` lisait de même, l'invariant l'exemptait). Graines
+810001161, 810002312, 780000156, 780001015 et 870000527 vertes ; tests datés dans
 `dose-calendar.gestures-settings.spec.ts` et `dose-calendar.reference-model.spec.ts`.
 
 ## Question encore ouverte du pas 4 (« Modifier »)

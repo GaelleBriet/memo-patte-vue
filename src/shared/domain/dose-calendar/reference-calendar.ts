@@ -86,6 +86,7 @@ export function calendarOf(
   const replaced: { from: string; to: string; onDueDay: boolean }[] = []
   let chosenFloor = ''
   let rhythmFloor = ''
+  let anchors = new Set<ReferenceLine>()
   const isDueDay = (on: Grid, setting: ReferenceSetting, day: string) =>
     day > on.since && isOnGrid(on.origin, setting.frequency, day)
   const turned = (turn: ReferenceLine, floor: string): Grid => ({
@@ -107,12 +108,17 @@ export function calendarOf(
     const within = ({ dueOn }: ReferenceLine) =>
       dueOn >= setting.startsOn && (end === null || dueOn < end)
     // R3, R9 : une origine choisie se juge sur la grille en vigueur à la première échéance.
+    const held = new Set<ReferenceLine>()
     const inForce = shifts
       .filter(
         ({ dueOn, settingId }) =>
           dueOn >= setting.startsOn && dueOn < setting.firstDueOn && rhythm.has(settingId),
       )
-      .reduce((on, shift) => (isDueDay(on, setting, shift.dueOn) ? turned(shift, '') : on), grid)
+      .reduce((on, shift) => {
+        if (!isDueDay(on, setting, shift.dueOn)) return on
+        held.add(shift)
+        return turned(shift, '')
+      }, grid)
     const continued =
       previous !== undefined &&
       sameFrequency(previous, setting) &&
@@ -130,6 +136,7 @@ export function calendarOf(
     // échéance, ni ses suivants de même rythme, pas même après un décalage.
     chosenFloor = !continued ? '' : origin !== null ? ownFloor : chosenFloor
     if (!continued || origin !== null) rhythmFloor = ownFloor
+    if (!continued || origin !== null) anchors = continued ? held : new Set()
     rhythm = continued ? new Set([...rhythm, setting.id]) : new Set([setting.id])
     const inherited = grid
     // R3, TR-9 : une première échéance choisie est lue, même plus tôt que celle du réglage hérité.
@@ -163,10 +170,11 @@ export function calendarOf(
     let from = setting.startsOn
     const segments: Segment[] = []
     // R6 : la journée d'origine d'un décalage, échéance de la grille telle qu'elle est avant lui, ou
-    // arrivée d'une dose reportée du rythme en vigueur.
-    const lands = ({ dueOn }: ReferenceLine) =>
-      isDueDay(grid, setting, dueOn) ||
-      reports.some((report) => report.targetOn === dueOn && report.dueOn > rhythmFloor)
+    // arrivée d'une dose reportée du rythme en vigueur ; avant une date choisie, seul celui qui la
+    // porte (R3, TR-9).
+    const lands = (turn: ReferenceLine) =>
+      (isDueDay(grid, setting, turn.dueOn) && (turn.dueOn > chosenFloor || anchors.has(turn))) ||
+      reports.some((report) => report.targetOn === turn.dueOn && report.dueOn > rhythmFloor)
     for (const turn of [...turns, null]) {
       if (turn !== null && !lands(turn)) continue
       const to = turn === null ? last : turn.dueOn < last ? turn.dueOn : last

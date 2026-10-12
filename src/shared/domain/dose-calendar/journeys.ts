@@ -64,6 +64,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   const replaced: { from: Day; to: Day; onDueDay: boolean }[] = []
   let chosenFloor = ''
   let rhythmFloor = ''
+  let anchors = new Set<Line>()
   chain.forEach((setting, position) => {
     const index = span.live.indexOf(setting)
     const end = index < 0 ? setting.startsOn : span.endOf(index)
@@ -78,6 +79,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     const within = ({ dueOn }: Line) => dueOn >= setting.startsOn && (end === null || dueOn < end)
     // R3, R9 : une origine choisie se juge sur la grille en vigueur à la première échéance.
     let inForce = grid
+    const held = new Set<Line>()
     for (const shift of lines.shifts) {
       const ahead = shift.dueOn >= setting.startsOn && shift.dueOn < setting.firstDueOn
       if (
@@ -86,6 +88,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
         isDueDay(inForce, setting.frequency, shift.dueOn)
       ) {
         inForce = turned(shift, '')
+        held.add(shift)
       }
     }
     const continued =
@@ -105,6 +108,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     // échéance, ni ses suivants de même rythme, pas même après un décalage.
     chosenFloor = !continued ? '' : origin !== null ? ownFloor : chosenFloor
     if (!continued || origin !== null) rhythmFloor = ownFloor
+    if (!continued || origin !== null) anchors = continued ? held : new Set()
     rhythm = continued ? new Set([...rhythm, setting.id]) : new Set([setting.id])
     const inherited = grid
     grid = !continued
@@ -138,10 +142,12 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     let from = setting.startsOn
     const segments: Segment[] = []
     // R6 : un décalage ne vaut que si sa journée d'origine est une échéance de la grille telle qu'elle
-    // est avant lui, ou l'arrivée d'une dose reportée du rythme en vigueur.
-    const lands = ({ dueOn }: Line) =>
-      isDueDay(grid, setting.frequency, dueOn) ||
-      lines.reports.some((report) => report.targetOn === dueOn && report.dueOn > rhythmFloor)
+    // est avant lui, ou l'arrivée d'une dose reportée du rythme en vigueur ; avant une date choisie,
+    // seul celui qui la porte (R3, TR-9).
+    const lands = (turn: Line) =>
+      (isDueDay(grid, setting.frequency, turn.dueOn) &&
+        (turn.dueOn > chosenFloor || anchors.has(turn))) ||
+      lines.reports.some((report) => report.targetOn === turn.dueOn && report.dueOn > rhythmFloor)
     for (const turn of [...turns, null]) {
       if (turn !== null && !lands(turn)) continue
       const to = turn === null || turn.dueOn >= last ? last : turn.dueOn

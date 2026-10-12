@@ -290,6 +290,14 @@ describe('R9 : « Prochaine dose » choisie', () => {
     expect(shown(input, request(WEEK, [], '2026-10-23'), 2)).toEqual(['2026-10-23', '2026-10-30'])
   })
 
+  it('R6, TR-9 : hebdo du lundi 5 oct. ; le 7, tous les 3 jours, première dose choisie le 2 nov., décalage du lundi 12 au 14 ; le 7, retour à l’hebdo, « Prochaine dose » le 2 nov. : le décalage d’avant la date choisie est sans effet : 2, 9 nov. (graine 870000527)', () => {
+    const s1 = setting('s1', '2026-10-05', WEEK)
+    const s2 = setting('s2', '2026-11-02', THREE_DAYS, [], { startsOn: '2026-10-07' })
+    const shift = line('s2', 'shift', '2026-10-12', null, '2026-10-14')
+    const input = { settings: [s1, s2], lines: [shift], today: '2026-10-07' }
+    expect(shown(input, request(WEEK, [], '2026-11-02'), 2)).toEqual(['2026-11-02', '2026-11-09'])
+  })
+
   it('R6, #794 : mensuel du 29 mars, dose du 29 reportée au 5 avr. ; le 31, « Prochaine dose » le 9 juin, décalage du 5 au 9 avr. : la dose reportée vient de l’ancien rythme, le décalage est sans effet : 5 avr., 9 juin, 9 juil.', () => {
     const s1 = setting('s1', '2026-03-29', MONTH)
     const s2 = setting('s2', '2026-06-09', MONTH, [], { startsOn: '2026-03-31' })

@@ -433,6 +433,13 @@ describe('R6 : un décalage ne vaut que si sa journée d’origine est une éch�
     expect(next([friday, dosage], lines, '2026-10-14', 2)).toEqual(['2026-10-21', '2026-10-28'])
   })
 
+  it('R6, TR-9 : hebdo du lundi 5 oct., réglage du 7 réécrit en hebdo, première dose choisie le 2 nov., décalage du lundi 12 au 14 écrit sous ce réglage : sans effet avant la date choisie : 2, 9 nov. (graine 870000527)', () => {
+    const s1 = setting('s1', '2026-10-05', WEEK)
+    const s2 = setting('s2', '2026-11-02', WEEK, [], { startsOn: '2026-10-07' })
+    const lines = [line('s2', 'shift', '2026-10-12', null, '2026-10-14')]
+    expect(next([s1, s2], lines, '2026-10-07', 2)).toEqual(['2026-11-02', '2026-11-09'])
+  })
+
   it('#794 : mensuel du 29 mars, dose du 29 reportée au 5 avr. ; réglage du 31, première dose choisie le 9 juin, décalage du 5 au 9 avr. : la dose reportée vient de l’ancien rythme, le décalage est sans effet : 5 avr., 9 juin, 9 juil.', () => {
     const s1 = setting('s1', '2026-03-29', MONTH)
     const s2 = setting('s2', '2026-06-09', MONTH, [], { startsOn: '2026-03-31' })
