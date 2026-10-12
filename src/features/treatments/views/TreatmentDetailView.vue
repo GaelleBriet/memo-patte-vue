@@ -103,8 +103,13 @@ const lessPrecise = computed(() =>
     : null,
 )
 const history = computed(() =>
-  treatment.value && schedule.value
-    ? treatmentHistory(t, treatment.value, schedule.value, today.value)
+  treatment.value && view.value && schedule.value
+    ? treatmentHistory(
+        t,
+        treatment.value,
+        { view: view.value, schedule: schedule.value },
+        today.value,
+      )
     : null,
 )
 const actions = computed(() => (view.value ? detailActions(view.value) : null))

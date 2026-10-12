@@ -19,11 +19,13 @@ import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import i18n, { applyLocale } from '@/core/i18n'
+import { treatmentReading } from '@/shared/domain/treatment-reading'
 
 const t = i18n.global.t
 
 function history(book: TreatmentWithHistory, today: string) {
-  return plain(treatmentHistory(t, book, treatmentScheduleOf(book, today), today))
+  const reads = { view: treatmentReading(book, today)!, schedule: treatmentScheduleOf(book, today) }
+  return plain(treatmentHistory(t, book, reads, today))
 }
 
 function titles(book: TreatmentWithHistory, today: string): string[][] {
