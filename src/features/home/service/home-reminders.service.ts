@@ -8,7 +8,7 @@ import {
   type VaccinationsRepository,
 } from '@/features/vaccinations/repository/vaccinations.repository'
 import type { ReminderSource } from '@/shared/domain/reminders'
-import type { TreatmentDoseInput, TreatmentPeriodInput } from '@/shared/domain/treatment-schedule'
+import type { TreatmentRecords } from '@/shared/domain/treatment-reading'
 
 type Provider<T> = () => T | Promise<T>
 
@@ -26,8 +26,8 @@ export type HomeTreatmentSource = {
   animalId: string
   label: string
   treatmentType: TreatmentType
-  periods: readonly TreatmentPeriodInput[]
-  doses: readonly TreatmentDoseInput[]
+  periods: TreatmentRecords['periods']
+  doses: TreatmentRecords['doses']
 }
 
 export type HomeReminderSource = HomeVaccinationSource | HomeTreatmentSource

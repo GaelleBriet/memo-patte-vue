@@ -22,14 +22,12 @@ const FIELD_OF_PATH: Record<string, TreatmentFormErrorField> = {
 
 const NEXT_DOSE_ON_REASON_KEYS: Record<NextDoseOnIssueReason, string> = {
   tooEarly: 'treatments.form.errors.nextDoseOnTooEarly',
-  afterEnd: 'treatments.form.errors.nextDoseOnAfterEnd',
-  afterNextDose: 'treatments.form.errors.nextDoseOnAfterNextDose',
+  noDoseBeforeEnd: 'treatments.form.nextDoseOn.refusal.noDoseBeforeEnd',
   refused: 'treatments.form.errors.nextDoseOnRefused',
 }
 
 const ENDS_ON_REASON_KEYS: Record<EndsOnIssueReason, string> = {
   beforeFirstDose: 'treatments.form.errors.endsOnBeforeFirstDose',
-  beforeNextDose: 'treatments.form.errors.endsOnBeforeNextDose',
   beforeLastDose: 'treatments.form.errors.endsOnBeforeLastDose',
   beforePostponedDose: 'treatments.form.errors.endsOnBeforePostponedDose',
   beforeAdvancedDose: 'treatments.form.errors.endsOnBeforeAdvancedDose',

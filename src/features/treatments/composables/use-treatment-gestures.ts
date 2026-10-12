@@ -3,13 +3,16 @@ import { useI18n } from 'vue-i18n'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { useGuardedGestures } from '@/shared/composables/use-guarded-gestures'
 import { showToast } from '@/shared/utils/toast'
-import { DoseAlreadyLoggedError, type DoseAction } from '../logic/treatment-dose-writes'
+import {
+  DoseAlreadyLoggedError,
+  type DoseAction,
+  type NoteGesture,
+} from '../logic/treatment-dose-change'
 import type { DoseActionTexts } from '../logic/treatment-gestures'
 import { treatmentDeleteTexts } from '../logic/treatment-history'
 import { stoppedText } from '../logic/treatment-stop'
 import type { Treatment } from '../schema/treatment.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
-import type { DoseGesture } from '@/shared/domain/treatment-schedule'
 
 type Named = Pick<Treatment, 'id' | 'name' | 'animalId'>
 
@@ -28,7 +31,7 @@ export function useTreatmentGestures(onChanged: () => void) {
     return { name: treatment.name, animal: animals.byId(treatment.animalId)?.name ?? '' }
   }
 
-  async function stopped(treatment: Named, doses: readonly DoseGesture[]): Promise<void> {
+  async function stopped(treatment: Named, doses: readonly NoteGesture[]): Promise<void> {
     try {
       const result = await treatments.stop(treatment.id, doses)
       const message = stoppedText(t, treatment.name, result.finished)
@@ -51,7 +54,7 @@ export function useTreatmentGestures(onChanged: () => void) {
   /** Doses renseignées puis arrêt, en un geste qu'un seul « Annuler » défait. */
   function stopLogging(
     treatment: Named,
-    doses: readonly DoseGesture[],
+    doses: readonly NoteGesture[],
   ): Promise<'done' | 'stale' | 'failed'> {
     return staleAware(() => stopped(treatment, doses), t('treatments.sheet.errors.stop'))
   }

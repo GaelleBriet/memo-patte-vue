@@ -681,6 +681,7 @@
         "shiftRemovedOn": "Move deleted. Next dose on {date}.",
         "undoShiftRemoved": "Undo deleting the move"
       },
+      "noEffect": "{text} · no longer applies",
       "shiftWithoutNext": "Following doses moved",
       "shift": "Following doses moved · next on {date}",
       "shiftOptions": "Options for the move of the doses after {date}",

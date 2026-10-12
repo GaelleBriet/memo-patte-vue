@@ -6,7 +6,8 @@ import type {
   HomeVaccinationSource,
 } from '../service/home-reminders.service'
 import type { ReminderStatus } from '@/shared/domain/reminders'
-import { treatmentSchedule, type Due } from '@/shared/domain/treatment-schedule'
+import type { Due } from '@/shared/domain/dose-calendar'
+import { readTreatment } from '@/shared/domain/treatment-reading'
 
 type TodoDay = Pick<Due, 'dueOn' | 'dueTime'>
 
@@ -81,24 +82,21 @@ function vaccinationItems(source: HomeVaccinationSource, today: string): TodoIte
 }
 
 function treatmentItems(source: HomeTreatmentSource, today: string): TodoItem[] {
-  let schedule
-  try {
-    schedule = treatmentSchedule({ periods: source.periods, doses: source.doses, today })
-  } catch (cause) {
-    if (!(cause instanceof RangeError)) throw cause
+  const view = readTreatment(source, today)?.view
+  if (view === undefined) {
     return [{ ...identityOf(source), group: 'unreadable', key: `treatment:${source.id}` }]
   }
-  const isOpen = schedule.phase !== 'ended' && schedule.phase !== 'stopped'
+  const isOpen = view.phase !== 'ended' && view.phase !== 'stopped'
   const items: TodoItem[] = isOpen
-    ? schedule.currentDoses.map((due) => dueItem(source, due, today))
+    ? view.currentDoses.map((due) => dueItem(source, due, today))
     : []
-  const [oldest] = [...schedule.unloggedDoses].sort((a, b) => dayKey(a).localeCompare(dayKey(b)))
+  const [oldest] = [...view.unloggedDoses].sort((a, b) => dayKey(a).localeCompare(dayKey(b)))
   if (oldest !== undefined) {
     items.push({
       ...identityOf(source),
       group: 'to-log',
       key: `treatment:${source.id}:unlogged`,
-      unlogged: schedule.unloggedDoses.length,
+      unlogged: view.unloggedDoses.length,
       oldest: { dueOn: oldest.dueOn, dueTime: oldest.dueTime },
     })
   }

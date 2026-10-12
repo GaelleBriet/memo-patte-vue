@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { HourChoice } from '../logic/treatment-other-date'
-import type { Due } from '@/shared/domain/treatment-schedule'
+import type { Due } from '@/shared/domain/dose-calendar'
 
 const props = withDefaults(
   defineProps<{

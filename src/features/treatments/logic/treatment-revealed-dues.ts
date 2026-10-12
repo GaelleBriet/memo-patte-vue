@@ -1,14 +1,14 @@
-import type { Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import type { Due, TreatmentView } from '@/shared/domain/dose-calendar'
 import { formatDaySeries } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
 /** Doses passées sans prise qu'un geste fait apparaître : à renseigner, ou en retard. */
 export type RevealedDues = { unlogged: Due[]; overdue: Due[] }
 
-type PastSchedule = Pick<TreatmentSchedule, 'unloggedDoses' | 'currentDoses'>
+type PastSchedule = Pick<TreatmentView, 'unloggedDoses' | 'currentDoses'>
 
-function keyOf({ periodId, dueOn, dueTime }: Due): string {
-  return `${periodId} ${dueOn} ${dueTime ?? ''}`
+function keyOf({ settingId, dueOn, dueTime }: Due): string {
+  return `${settingId} ${dueOn} ${dueTime ?? ''}`
 }
 
 function overdueOf(schedule: PastSchedule, today: string): Due[] {

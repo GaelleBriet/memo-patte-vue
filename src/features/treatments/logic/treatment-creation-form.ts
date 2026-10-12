@@ -4,7 +4,7 @@ import { creationPastDues, treatmentCreationSchemaFor } from './treatment-creati
 import { rhythmInput, type TreatmentFormValues } from './treatment-form-values'
 import { treatmentFormResultOf, type TreatmentFormResult } from './treatment-form-errors'
 import type { PastDose } from '../schema/treatment-form.schema'
-import type { Due } from '@/shared/domain/treatment-schedule'
+import type { Due } from '@/shared/domain/dose-calendar'
 
 export type TreatmentCreationResult = TreatmentFormResult<
   z.output<ReturnType<typeof treatmentCreationSchemaFor>>

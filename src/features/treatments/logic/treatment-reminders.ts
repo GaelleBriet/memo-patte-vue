@@ -4,7 +4,7 @@ import type { Animal } from '@/features/animals/schema/animal.schema'
 import type { EntryReminders } from '@/core/notifications/due-reminders-schedule'
 import { treatmentReminderPlan, type CarnetReminderSettings } from '@/shared/domain/reminder-plan'
 import { isNoteLine, type TreatmentSchedule } from '@/shared/domain/treatment-schedule'
-import { currentPeriodOf, readableScheduleOf } from './treatment-schedule-adapter'
+import { currentPeriodOf, readableScheduleOf } from './reminders-schedule-adapter'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { Translate } from '@/core/i18n/translate'
 

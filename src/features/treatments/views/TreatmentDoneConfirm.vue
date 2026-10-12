@@ -7,7 +7,9 @@ import { hasSeveralTimes } from '../logic/treatment-gestures'
 import { otherDateBox, otherDateNote, otherDateRecap } from '../logic/treatment-shift-box'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
-import type { Due, DoseGesture, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import type { NoteGesture } from '../logic/treatment-dose-change'
+import type { Due } from '@/shared/domain/dose-calendar'
+import type { TreatmentReading } from '@/shared/domain/treatment-reading'
 
 const props = withDefaults(
   defineProps<{
@@ -15,7 +17,7 @@ const props = withDefaults(
     animal: string
     icon: string
     history: TreatmentWithHistory
-    schedule: TreatmentSchedule
+    reading: TreatmentReading
     today: string
     /** L'échéance que « C'est fait » note aujourd'hui. */
     due: Due | null
@@ -25,7 +27,7 @@ const props = withDefaults(
 )
 
 const emit = defineEmits<{
-  note: [gesture: DoseGesture]
+  note: [gesture: NoteGesture]
 }>()
 
 const open = defineModel<boolean>({ default: false })
@@ -39,7 +41,7 @@ const recap = computed(() =>
     t,
     props.due,
     props.today,
-    props.due !== null && hasSeveralTimes(props.history, props.due.periodId),
+    props.due !== null && hasSeveralTimes(props.history, props.due.settingId),
   ),
 )
 const box = computed(() =>
@@ -47,7 +49,7 @@ const box = computed(() =>
     t,
     props.due,
     props.today,
-    { history: props.history, schedule: props.schedule, today: props.today },
+    { history: props.history, reading: props.reading, today: props.today },
     shifts.value,
   ),
 )

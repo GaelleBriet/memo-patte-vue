@@ -1,59 +1,26 @@
-import { differenceInCalendarDays, parseISO } from 'date-fns'
-
-import { movedDueOf } from './treatment-dose-writes'
 import { periodSettingsText } from './treatment-rhythm'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import {
+  lineOf,
+  missedRow,
+  missedTitle,
+  type DoseRow,
+  type Entry,
+  type HistoryLine,
+  type RowContext,
+} from './treatment-history-rows'
+import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import {
-  byStartDescending,
-  isSeveralTimesADay,
-  periodLastDay,
-} from '@/shared/domain/treatment-periods'
-import {
-  isAdvanced,
-  shiftedNextOn,
-  type MoveBounds,
-  type ShiftRemovalRefusal,
-  type TreatmentDoseInput,
-  type TreatmentSchedule,
-} from '@/shared/domain/treatment-schedule'
-import { isStoppedBeforeFirstDose } from '@/shared/domain/treatment-end'
-import {
-  formatClockTime,
-  formatClockTimes,
-  formatDayMonthOrYear,
-  formatFullDate,
-  formatLongDate,
-  withoutFinalDot,
-} from '@/shared/utils/format'
+import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import { byStartDescending, periodLastDay } from '@/shared/domain/treatment-periods'
+import type { TreatmentReading } from '@/shared/domain/treatment-reading'
+import { formatLongDate, formatDayMonthOrYear } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
+
+export { moveText } from './treatment-history-rows'
+export type { DoseLineAction, DoseRow, HistoryLine } from './treatment-history-rows'
 
 /** Lignes d'une période montrées avant « Voir les prises précédentes ». */
 export const LINES_BEFORE_TOGGLE = 3
-
-export type DoseLineAction =
-  'change-date' | 'mark-missed' | 'mark-given' | 'remove' | 'remove-move' | 'remove-shift'
-
-export type DoseRow = {
-  dose: TreatmentDoseInput
-  title: string
-  optionsLabel: string
-  /** Vide : la ligne n'a pas de menu. */
-  actions: DoseLineAction[]
-  /** Actions grisées, avec l'aide qui dit pourquoi. */
-  refused?: Partial<Record<DoseLineAction, string>>
-}
-
-export type HistoryLine =
-  | (DoseRow & { kind: 'given'; detail: string | null; isLast: boolean })
-  /** Prise en plus : jamais « Dernière prise », que la dernière prise prévue garde. */
-  | (DoseRow & { kind: 'extra' })
-  /** Prises oubliées qui se suivent ; `dose` et `actions` sont ceux de la plus récente. */
-  | (DoseRow & { kind: 'missed'; rows: DoseRow[] })
-  /** `bounds` : dates entre lesquelles le report se déplace, `null` s'il ne se déplace pas. */
-  | (DoseRow & { kind: 'move'; bounds: MoveBounds | null })
-  /** Ligne de décalage des doses suivantes (N7). */
-  | (DoseRow & { kind: 'shift' })
 
 export type HistoryPeriod = {
   id: string
@@ -67,18 +34,15 @@ export type HistoryPeriod = {
 
 export type TreatmentHistory = { counter: string | null; periods: HistoryPeriod[] }
 
-type HistorySchedule = Pick<
-  TreatmentSchedule,
-  | 'doses'
-  | 'lockedMoveIds'
-  | 'moveBounds'
-  | 'moveRemovalRefusal'
-  | 'shiftRemovalRefusal'
-  | 'strandedMoveOn'
-  | 'currentPeriodId'
-  | 'unloggedDoses'
->
 type Period = TreatmentPeriodRecord
+
+const FAMILY_RANK: Record<NewTreatmentDose['status'], number> = {
+  postponed: 0,
+  given: 1,
+  missed: 1,
+  extra: 1,
+  shift: 2,
+}
 
 function rangeDates(from: string, to: string): { from: string; to: string } {
   return { from: formatDayMonthOrYear(from, to), to: formatLongDate(to) }
@@ -94,225 +58,37 @@ function headTitle(t: Translate, period: Period, next: Period | undefined): stri
     : t('treatments.history.period.range', rangeDates(period.startsOn, end))
 }
 
-function dueTitle(t: Translate, dose: TreatmentDoseInput, period: Period): string {
-  const date = formatLongDate(dose.dueOn)
-  return isSeveralTimesADay(period) && dose.dueTime !== null
-    ? t('treatments.history.dueAt', { date, time: formatClockTime(dose.dueTime) })
-    : date
-}
-
-function doseOptionsLabel(t: Translate, dose: TreatmentDoseInput, period: Period): string {
-  const date = formatFullDate(dose.dueOn)
-  return isSeveralTimesADay(period) && dose.dueTime !== null
-    ? t('treatments.detail.optionsAt', { date, time: formatClockTime(dose.dueTime) })
-    : t('treatments.detail.options', { date })
-}
-
-function missedWhen(t: Translate, doses: TreatmentDoseInput[], period: Period): string {
-  const days = [...new Set(doses.map(({ dueOn }) => dueOn))].sort()
-  const [first, last] = [days[0]!, days.at(-1)!]
-  if (first !== last) return t('treatments.history.days', rangeDates(first, last))
-  const times = doses.flatMap(({ dueTime }) => (dueTime === null ? [] : [dueTime]))
-  const date = formatLongDate(first)
-  return isSeveralTimesADay(period) && times.length > 0
-    ? t('treatments.history.dayTimes', { date, times: formatClockTimes(times) })
-    : date
-}
-
-function missedTitle(t: Translate, doses: TreatmentDoseInput[], period: Period): string {
-  return t('treatments.history.missed', { when: missedWhen(t, doses, period) }, doses.length)
-}
-
-function missedRow(t: Translate, dose: TreatmentDoseInput, period: Period): DoseRow {
-  return {
-    dose,
-    title: missedTitle(t, [dose], period),
-    optionsLabel: doseOptionsLabel(t, dose, period),
-    actions: ['mark-given', 'remove'],
-  }
-}
-
-function moveBoundsOf(schedule: HistorySchedule, dose: TreatmentDoseInput): MoveBounds | null {
-  if (schedule.lockedMoveIds.includes(dose.id)) return null
-  try {
-    return schedule.moveBounds(movedDueOf(dose))
-  } catch (cause) {
-    if (cause instanceof RangeError) return null
-    throw cause
-  }
-}
-
-export function moveText(
-  t: Translate,
-  dose: Pick<TreatmentDoseInput, 'status' | 'dueOn' | 'nextDueDate'>,
-): string {
-  const dates = {
-    date: formatLongDate(dose.nextDueDate),
-    due: formatDayMonthOrYear(dose.dueOn, dose.nextDueDate),
-  }
-  return isAdvanced(dose)
-    ? t('treatments.history.advanced', dates)
-    : t('treatments.history.postponed', dates)
-}
-
-function daysBetween(from: string, to: string): number {
-  return differenceInCalendarDays(parseISO(to), parseISO(from))
-}
-
-// Décision du 2026-10-05 : la dose revenue à sa date tomberait trop près de la suivante.
-function moveRemovalHint(
-  t: Translate,
-  schedule: HistorySchedule,
-  dose: TreatmentDoseInput,
-  today: string,
-): string | null {
-  const refusal = schedule.moveRemovalRefusal(dose.id)
-  if (refusal === null) return null
-  const days = daysBetween(refusal.dueOn, refusal.nextOn)
-  return t(
-    'treatments.history.refusal.moveTooClose',
-    { date: formatDayMonthOrYear(refusal.dueOn, today), n: days },
-    days,
-  )
-}
-
-function moveLine(
-  t: Translate,
-  schedule: HistorySchedule,
-  dose: TreatmentDoseInput,
-  today: string,
-): HistoryLine {
-  const bounds = moveBoundsOf(schedule, dose)
-  const isLocked = schedule.lockedMoveIds.includes(dose.id)
-  const hint = isLocked ? null : moveRemovalHint(t, schedule, dose, today)
-  return {
-    kind: 'move',
-    dose,
-    title: moveText(t, dose),
-    optionsLabel: t('treatments.history.moveOptions', { date: formatFullDate(dose.dueOn) }),
-    actions: isLocked ? [] : bounds === null ? ['remove-move'] : ['change-date', 'remove-move'],
-    ...(hint === null ? {} : { refused: { 'remove-move': hint } }),
-    bounds,
-  }
-}
-
-const SHIFT_REFUSALS = {
-  'later-dose': 'treatments.history.refusal.shiftLaterDose',
-  'move-past-next': 'treatments.history.refusal.shiftMovePastNext',
-  'move-off-rhythm': 'treatments.history.refusal.shiftMoveOffRhythm',
-} as const
-
-function shiftRefusalText(
-  t: Translate,
-  schedule: HistorySchedule,
-  dose: TreatmentDoseInput,
-  refusal: ShiftRemovalRefusal,
-): string {
-  const strandedOn = refusal === 'move-off-rhythm' ? schedule.strandedMoveOn(dose.id) : null
-  if (strandedOn === null) return t(SHIFT_REFUSALS[refusal])
-  const date = withoutFinalDot(formatDayMonthOrYear(strandedOn, dose.dueOn))
-  return t(SHIFT_REFUSALS[refusal], { date })
-}
-
-// Période close, arrêtée ou finie par sa date de fin : plus de prochaine dose à annoncer.
-function hasNextAfterShift(
-  schedule: HistorySchedule,
-  period: Period,
-  nextOn: string,
-  today: string,
-): boolean {
-  const { endsOn } = period
-  return (
-    period.id === schedule.currentPeriodId &&
-    period.stoppedOn === null &&
-    (endsOn === null || (nextOn <= endsOn && endsOn >= today))
-  )
-}
-
-function shiftLine(
-  t: Translate,
-  schedule: HistorySchedule,
-  dose: TreatmentDoseInput,
-  period: Period,
-  today: string,
-): HistoryLine {
-  const nextOn = shiftedNextOn(dose, period)
-  const refusal = schedule.shiftRemovalRefusal(dose.id)
-  return {
-    kind: 'shift',
-    dose,
-    title: hasNextAfterShift(schedule, period, nextOn, today)
-      ? t('treatments.history.shift', { date: formatDayMonthOrYear(nextOn, dose.dueOn) })
-      : t('treatments.history.shiftWithoutNext'),
-    optionsLabel: t('treatments.history.shiftOptions', { date: formatFullDate(dose.dueOn) }),
-    actions: ['remove-shift'],
-    ...(refusal === null
-      ? {}
-      : { refused: { 'remove-shift': shiftRefusalText(t, schedule, dose, refusal) } }),
-  }
-}
-
-const FAMILY_RANK: Record<TreatmentDoseInput['status'], number> = {
-  postponed: 0,
-  given: 1,
-  missed: 1,
-  extra: 1,
-  shift: 2,
-}
-
 // Du plus récent au plus ancien ; sur une même échéance, le report, la prise, puis le décalage.
-function displayOrder(doses: TreatmentDoseInput[]): TreatmentDoseInput[] {
-  const key = ({ dueOn, dueTime }: TreatmentDoseInput) => `${dueOn} ${dueTime ?? ''}`
-  return [...doses].sort((a, b) =>
-    key(a) === key(b) ? FAMILY_RANK[a.status] - FAMILY_RANK[b.status] : key(a) < key(b) ? 1 : -1,
+function displayOrder(entries: Entry[]): Entry[] {
+  const key = ({ dose }: Entry) => `${dose.dueOn} ${dose.dueTime ?? ''}`
+  return [...entries].sort((a, b) =>
+    key(a) === key(b)
+      ? FAMILY_RANK[a.dose.status] - FAMILY_RANK[b.dose.status]
+      : key(a) < key(b)
+        ? 1
+        : -1,
   )
 }
 
 function linesOf(
   t: Translate,
-  schedule: HistorySchedule,
+  context: RowContext,
   period: Period,
-  doses: TreatmentDoseInput[],
-  { lastPlannedDoseGivenId, today }: { lastPlannedDoseGivenId: string | undefined; today: string },
+  entries: Entry[],
+  lastGivenId: string | undefined,
 ): HistoryLine[] {
   const lines: HistoryLine[] = []
-  for (const dose of displayOrder([...doses].reverse())) {
-    if (dose.status === 'postponed') {
-      lines.push(moveLine(t, schedule, dose, today))
-      continue
-    }
-    if (dose.status === 'shift') {
-      lines.push(shiftLine(t, schedule, dose, period, today))
-      continue
-    }
-    if (dose.status === 'extra') {
-      const date = formatLongDate(dose.givenOn ?? dose.dueOn)
-      lines.push({
-        kind: 'extra',
-        dose,
-        title: t('treatments.history.extra', { date }),
-        optionsLabel: t('treatments.history.extraOptions', { date: formatFullDate(dose.dueOn) }),
-        actions: ['change-date', 'remove'],
-      })
-      continue
-    }
-    if (dose.status === 'given') {
-      lines.push({
-        kind: 'given',
-        dose,
-        title: dueTitle(t, dose, period),
-        detail:
-          dose.givenOn === null || dose.givenOn === dose.dueOn
-            ? null
-            : t('treatments.history.givenOn', { date: formatLongDate(dose.givenOn) }),
-        isLast: dose.id === lastPlannedDoseGivenId,
-        optionsLabel: doseOptionsLabel(t, dose, period),
-        actions: ['change-date', 'mark-missed', 'remove'],
-      })
+  for (const entry of displayOrder([...entries].reverse())) {
+    const line = lineOf(t, context, period, entry, lastGivenId)
+    if (line !== null) {
+      lines.push(line)
       continue
     }
     const previous = lines.at(-1)
-    const rows = [...(previous?.kind === 'missed' ? previous.rows : []), missedRow(t, dose, period)]
+    const rows: DoseRow[] = [
+      ...(previous?.kind === 'missed' ? previous.rows : []),
+      missedRow(t, entry.dose, period),
+    ]
     if (previous?.kind === 'missed') lines.pop()
     lines.push({
       ...rows[0]!,
@@ -340,9 +116,11 @@ function emptyText(
   t: Translate,
   period: Period,
   next: Period | undefined,
-  { periods, schedule, today }: { periods: Period[]; schedule: HistorySchedule; today: string },
+  { reading, today }: RowContext,
 ): string {
-  if (isStoppedBeforeFirstDose(period, periods, schedule)) return t('treatments.history.noDose')
+  if (period.stoppedOn !== null && reading.view.stoppedBeforeFirstDose) {
+    return t('treatments.history.noDose')
+  }
   return isClosed(period, next, today)
     ? t('treatments.history.emptyClosed')
     : t('treatments.history.empty')
@@ -354,35 +132,52 @@ function notesIn(lines: HistoryLine[]): number {
       count +
       (line.kind === 'missed'
         ? line.rows.length
-        : line.kind === 'move' || line.kind === 'shift'
+        : line.kind === 'move' || line.kind === 'shift' || line.kind === 'idle'
           ? 0
           : 1),
     0,
   )
 }
 
-function lastPlannedDoseGiven(doses: TreatmentDoseInput[]): TreatmentDoseInput | undefined {
-  const rank = ({ givenOn, dueOn, dueTime }: TreatmentDoseInput) =>
+function lastPlannedDoseGiven(entries: Entry[]): NewTreatmentDose | undefined {
+  const rank = ({ givenOn, dueOn, dueTime }: NewTreatmentDose) =>
     `${givenOn ?? ''} ${dueOn} ${dueTime ?? ''}`
-  return doses
-    .filter((dose) => dose.status === 'given')
-    .reduce<TreatmentDoseInput | undefined>(
+  return entries
+    .filter(({ dose, idle }) => !idle && dose.status === 'given')
+    .map(({ dose }) => dose)
+    .reduce<NewTreatmentDose | undefined>(
       (last, dose) => (last === undefined || rank(dose) >= rank(last) ? dose : last),
       undefined,
     )
 }
 
+// R12 : chaque ligne du traitement, lue avec son effet sur le calendrier.
+function entriesOf(
+  treatment: Pick<TreatmentWithHistory, 'doses'>,
+  { view }: TreatmentReading,
+): Entry[] {
+  const records = new Map(treatment.doses.map((dose) => [dose.id, dose]))
+  return view.history.flatMap(({ line, effect }) => {
+    const dose = records.get(line.id)
+    return dose === undefined ? [] : [{ dose, idle: effect.kind === 'idle' }]
+  })
+}
+
 export function treatmentHistory(
   t: Translate,
-  treatment: Pick<TreatmentWithHistory, 'periods'>,
-  schedule: HistorySchedule,
+  treatment: Pick<TreatmentWithHistory, 'periods' | 'doses'>,
+  reading: TreatmentReading,
   today: string,
 ): TreatmentHistory {
   const periods = [...treatment.periods].sort(byStartDescending)
-  const given = schedule.doses.filter(({ status }) => status === 'given' || status === 'extra')
+  const entries = entriesOf(treatment, reading)
+  const given = entries.filter(
+    ({ dose, idle }) => !idle && (dose.status === 'given' || dose.status === 'extra'),
+  )
   const oldest = given[0]
-  const last = lastPlannedDoseGiven(schedule.doses)
+  const last = lastPlannedDoseGiven(entries)
   const isAlone = periods.length === 1
+  const context = { reading, today }
 
   return {
     counter:
@@ -390,11 +185,11 @@ export function treatmentHistory(
         ? null
         : t('treatments.detail.since', {
             n: given.length,
-            date: formatLongDate(oldest.dueOn),
+            date: formatLongDate(oldest.dose.dueOn),
           }),
     periods: periods.map((period, index): HistoryPeriod => {
-      const doses = schedule.doses.filter((dose) => dose.periodId === period.id)
-      const lines = linesOf(t, schedule, period, doses, { lastPlannedDoseGivenId: last?.id, today })
+      const own = entries.filter(({ dose }) => dose.periodId === period.id)
+      const lines = linesOf(t, context, period, own, last?.id)
       const hidden = notesIn(lines.slice(LINES_BEFORE_TOGGLE))
       const others = index === 0 && !isAlone
       return {
@@ -406,10 +201,7 @@ export function treatmentHistory(
               settings: periodSettingsText(t, period),
             },
         lines,
-        emptyText:
-          lines.length === 0
-            ? emptyText(t, period, periods[index - 1], { periods, schedule, today })
-            : null,
+        emptyText: lines.length === 0 ? emptyText(t, period, periods[index - 1], context) : null,
         visibleLines: hidden === 0 ? lines.length : LINES_BEFORE_TOGGLE,
         toggle:
           hidden === 0

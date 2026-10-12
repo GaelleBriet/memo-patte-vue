@@ -1,10 +1,10 @@
 import { hasSeveralTimes } from './treatment-gestures'
 import { unloggedWhen, type PromptAction } from './treatment-unlogged'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
-import type { Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import type { Due, TreatmentView } from '@/shared/domain/dose-calendar'
 import type { Translate } from '@/core/i18n/translate'
 
-type StopSchedule = Pick<TreatmentSchedule, 'phase' | 'currentDoses' | 'unloggedDoses'>
+type StopView = Pick<TreatmentView, 'phase' | 'currentDoses' | 'unloggedDoses'>
 
 export type StopPrompt = {
   title: string
@@ -21,7 +21,7 @@ export type StopPrompt = {
 }
 
 /** Doses non renseignées et dose en retard : ce qui resterait à renseigner après l'arrêt (TR-30). */
-export function stopDues({ phase, currentDoses, unloggedDoses }: StopSchedule): Due[] {
+export function stopDues({ phase, currentDoses, unloggedDoses }: StopView): Due[] {
   return phase === 'overdue' ? [...unloggedDoses, ...currentDoses] : unloggedDoses
 }
 
@@ -62,24 +62,24 @@ function actionsOf(t: Translate, name: string, count: number, when: string): Pro
 export function stopPrompt(
   t: Translate,
   treatment: Pick<TreatmentWithHistory, 'name' | 'periods'>,
-  schedule: StopSchedule,
+  view: StopView,
   today: string,
 ): StopPrompt {
   const { name } = treatment
-  const dues = stopDues(schedule)
+  const dues = stopDues(view)
   const [first] = dues
   const count = dues.length
   const when =
     first === undefined
       ? ''
-      : unloggedWhen(t, dues, today, hasSeveralTimes(treatment, first.periodId))
+      : unloggedWhen(t, dues, today, hasSeveralTimes(treatment, first.settingId))
   return {
     title: t('treatments.sheet.stopDialog.title', { name }),
     text:
       count === 0
         ? t('treatments.sheet.stopDialog.text', { name })
         : t('treatments.stop.unlogged', { n: count, when }, count),
-    todayNote: schedule.phase === 'today' ? t('treatments.stop.todayNote') : null,
+    todayNote: view.phase === 'today' ? t('treatments.stop.todayNote') : null,
     dues,
     when,
     actions: actionsOf(t, name, count, when),

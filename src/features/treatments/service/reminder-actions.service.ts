@@ -2,9 +2,10 @@ import type { Router } from 'vue-router'
 
 import type { ReminderAction } from '@/core/notifications'
 import type { AnimalsRepository } from '@/features/animals/repository/animals.repository'
+import type { NoteGesture } from '../logic/treatment-dose-change'
 import { doseActionTexts, hasSeveralTimes } from '../logic/treatment-gestures'
 import { notificationTarget } from '../logic/treatment-notification'
-import { readableScheduleOf } from '../logic/treatment-schedule-adapter'
+import { readableReadingOf } from '../logic/treatment-reading-adapter'
 import type { TreatmentsRepository } from '../repository/treatments.repository'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { AppliedDoseChange, TreatmentDosesService } from './treatment-doses.service'
@@ -17,7 +18,7 @@ import {
   type NotifiedDue,
   type ReminderRequest,
 } from '@/shared/domain/reminder-route'
-import type { Due } from '@/shared/domain/treatment-schedule'
+import type { Due } from '@/shared/domain/dose-calendar'
 import { isInjectionNoted } from '@/shared/domain/vaccination-reminders'
 import { formatDayMonthOrYear } from '@/shared/utils/format'
 import { showToast } from '@/shared/utils/toast'
@@ -37,6 +38,14 @@ export type ReminderActionsDependencies = {
 }
 
 type Done = { animalId: string; name: string; doneOn: string }
+
+const noteOf = (due: Due, givenOn: string): NoteGesture => ({
+  kind: 'note',
+  due,
+  status: 'given',
+  givenOn,
+  shiftsFollowing: false,
+})
 
 type Named = { name: string; animal: string }
 
@@ -113,8 +122,8 @@ export function createReminderActions({
     const named = { name: treatment.name, animal: await animalName(treatment.animalId) }
     const texts = doseActionTexts(
       t,
-      { ...named, today: today(), severalTimes: hasSeveralTimes(treatment, due.periodId) },
-      { kind: 'note', gesture: { kind: 'given', due, givenOn } },
+      { ...named, today: today(), severalTimes: hasSeveralTimes(treatment, due.settingId) },
+      { kind: 'note', gesture: noteOf(due, givenOn) },
       null,
     )
     confirmUndoable(t, texts.done(noted), {
@@ -130,7 +139,7 @@ export function createReminderActions({
     await openHome()
     const givenOn = today()
     const noted = await doses
-      .apply(id, { kind: 'note', gesture: { kind: 'given', due, givenOn } })
+      .apply(id, { kind: 'note', gesture: noteOf(due, givenOn) })
       .catch(() => null)
     if (noted === null) {
       showToast(t('treatments.sheet.errors.dose'), { tone: 'error' })
@@ -168,11 +177,11 @@ export function createReminderActions({
     const treatment = await (await treatments()).getWithHistory(id)
     if (treatment === null) return openHome()
     const day = today()
-    const schedule = readableScheduleOf(treatment, day)
-    if (schedule === null) return openHome({ kind: 'treatment', id, step: 'actions' })
+    const reading = readableReadingOf(treatment, day)
+    if (reading === null) return openHome({ kind: 'treatment', id, step: 'actions' })
     if (legacy && notified.dueOn === day) return legacyDone(treatment, notified.dueOn)
 
-    const target = notificationTarget(schedule, notified, day)
+    const target = notificationTarget(reading.view, notified, day)
     switch (target.kind) {
       case 'none':
         return noDoseLeft()

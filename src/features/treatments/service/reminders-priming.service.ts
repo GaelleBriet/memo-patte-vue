@@ -9,7 +9,7 @@ import {
   getAnimalsRepository,
   type AnimalsRepository,
 } from '@/features/animals/repository/animals.repository'
-import { readableScheduleOf } from '../logic/treatment-schedule-adapter'
+import { readableReadingOf } from '../logic/treatment-reading-adapter'
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,
@@ -33,9 +33,9 @@ export type CarnetDueDates = {
 
 /** D'après le moteur : ni fini, ni arrêté, ni illisible, avec une dose du moment ou à venir. */
 function hasUpcomingDose(treatment: CarnetDueDates['treatments'][number], today: string): boolean {
-  const schedule = readableScheduleOf(treatment, today)
-  if (schedule === null || schedule.phase === 'ended' || schedule.phase === 'stopped') return false
-  return schedule.currentDoses.length > 0 || schedule.upcoming(1).length > 0
+  const view = readableReadingOf(treatment, today)?.view
+  if (view === undefined || view.phase === 'ended' || view.phase === 'stopped') return false
+  return view.currentDoses.length > 0 || view.upcoming({ limit: 1 }).length > 0
 }
 
 /**

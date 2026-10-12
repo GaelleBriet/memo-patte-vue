@@ -30,7 +30,6 @@ export function editionDraftOf(
     rhythmOfValues(values),
     today,
     isCalendarDay(chosenOn) ? chosenOn : null,
-    values.shiftsFollowing,
   )
 }
 
@@ -56,7 +55,6 @@ export function validateTreatmentEdition(
     type: values.type,
     ...rhythmInput(values),
     nextDoseOn: announcedOn ?? (nextDose === null ? null : typed),
-    ...(values.shiftsFollowing ? {} : { shiftsFollowing: false }),
     ...(pastDues === null ? {} : { pastDues }),
   })
   if (result.success) return { success: true, data: result.data }
@@ -73,6 +71,5 @@ export function editedFormValues(loaded: TreatmentWithHistory, today: string): T
   return {
     ...treatmentFormValuesFrom(loaded, first.period),
     nextDoseOn: first.nextDose?.proposedOn ?? '',
-    shiftsFollowing: first.nextDose?.shiftInitial ?? true,
   }
 }

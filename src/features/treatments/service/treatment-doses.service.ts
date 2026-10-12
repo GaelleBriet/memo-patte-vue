@@ -1,20 +1,19 @@
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
-import { isNoteLine, type Due, type TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import type { Due, TreatmentView } from '@/shared/domain/dose-calendar'
+import type { TreatmentReading } from '@/shared/domain/treatment-reading'
 import {
   DoseAlreadyLoggedError,
   doseChange,
   type DoseAction,
   type DoseChange,
-} from '../logic/treatment-dose-writes'
+} from '../logic/treatment-dose-change'
 import { hasSeveralTimes } from '../logic/treatment-gestures'
 import { momentDue, notifiedDue } from '../logic/treatment-other-date'
-import { revealedDues, type RevealedDues } from '../logic/treatment-revealed-dues'
 import {
   currentPeriodOf,
-  readableScheduleOf,
-  treatmentScheduleOf,
-} from '../logic/treatment-schedule-adapter'
-import { dosesAfter } from '../logic/treatment-shift-box'
+  readableReadingOf,
+  treatmentReadingOf,
+} from '../logic/treatment-reading-adapter'
 import {
   createWriteQueue,
   treatmentWriteQueue,
@@ -53,8 +52,6 @@ export type AppliedDoseChange = Omit<DoseChange, 'writes'> & {
   finishes: boolean
   /** Lot inverse, à passer à `undoBatch` ; vide quand rien n'a été écrit. */
   undo: DoseWrite[]
-  /** Après une prise notée ou redatée : les doses passées qu'elle fait apparaître. */
-  revealed?: RevealedDues
 }
 
 export type NotedMoment = AppliedDoseChange & {
@@ -92,54 +89,37 @@ export function createTreatmentDosesService({
   }
 
   // Seule une période close ou à date de fin peut se terminer : les autres ne sont pas relues.
-  async function finishedBy(
-    before: TreatmentWithHistory,
-    schedule: TreatmentSchedule,
-  ): Promise<boolean> {
-    const current = currentPeriodOf(before, schedule)
-    if (schedule.finished || (current?.endsOn ?? current?.stoppedOn ?? null) === null) return false
-    return readableScheduleOf(await historyOf(before.id), today())?.finished ?? false
+  async function finishedBy(before: TreatmentWithHistory, view: TreatmentView): Promise<boolean> {
+    const current = currentPeriodOf(before, view)
+    if (view.finished || (current?.endsOn ?? current?.stoppedOn ?? null) === null) return false
+    return readableReadingOf(await historyOf(before.id), today())?.view.finished ?? false
   }
 
   async function alreadyNoted(action: DoseAction, treatmentId: string): Promise<string | null> {
-    if (action.kind !== 'note' || action.gesture.kind !== 'given') return null
+    if (action.kind !== 'note' || action.gesture.status !== 'given') return null
     const { due, givenOn } = action.gesture
     const { doses: lines } = await historyOf(treatmentId)
     const line = lines.find(
       (dose) =>
-        dose.periodId === due.periodId &&
+        dose.periodId === due.settingId &&
         dose.dueTime === due.dueTime &&
-        ((dose.dueOn === due.dueOn && isNoteLine(dose)) ||
+        ((dose.dueOn === due.dueOn && (dose.status === 'given' || dose.status === 'missed')) ||
           (dose.dueOn === givenOn && dose.status === 'extra')),
     )
     return line === undefined ? null : (line.givenOn ?? givenOn)
   }
 
-  function revealedBy(
-    history: TreatmentWithHistory,
-    schedule: TreatmentSchedule,
-    action: DoseAction,
-    writes: readonly DoseWrite[],
-  ): RevealedDues | null {
-    const reveals =
-      action.kind === 'redate' || (action.kind === 'note' && action.gesture.kind === 'given')
-    if (!reveals || writes.length === 0) return null
-    const after = { ...history, doses: dosesAfter(history.doses, writes) }
-    return revealedDues(schedule, treatmentScheduleOf(after, today()), today())
-  }
-
   async function run(
     history: TreatmentWithHistory,
-    schedule: TreatmentSchedule,
+    reading: TreatmentReading,
     action: DoseAction,
   ): Promise<AppliedDoseChange> {
-    const { writes, ...change } = doseChange(history, schedule, action, () => crypto.randomUUID())
+    const { writes, ...change } = doseChange(history, reading, action, () => crypto.randomUUID())
     const { animalId } = history
     try {
       const undo = await write(history.id, writes)
-      const finishes = undo.length > 0 && (await finishedBy(history, schedule))
-      const revealed = revealedBy(history, schedule, action, writes)
-      return { ...change, animalId, finishes, undo, ...(revealed === null ? {} : { revealed }) }
+      const finishes = undo.length > 0 && (await finishedBy(history, reading.view))
+      return { ...change, animalId, finishes, undo }
     } catch (cause) {
       if (cause instanceof DuplicateDueError && action.kind === 'log') {
         throw new DoseAlreadyLoggedError(cause.message, { cause })
@@ -152,9 +132,11 @@ export function createTreatmentDosesService({
         finishes: false,
         undo: [],
         alreadyGivenOn,
-        postponement: null,
+        lostToEnd: [],
+        followed: [],
         moved: null,
         shiftKept: false,
+        revealed: null,
       }
     }
   }
@@ -166,22 +148,24 @@ export function createTreatmentDosesService({
   ): Promise<NotedMoment> {
     const day = today()
     const history = await historyOf(treatmentId)
-    const schedule = treatmentScheduleOf(history, day)
+    const reading = treatmentReadingOf(history, day)
     const nothing = {
       animalId: history.animalId,
       finishes: false,
       undo: [],
       alreadyGivenOn: null,
-      postponement: null,
+      lostToEnd: [],
+      followed: [],
       moved: null,
       shiftKept: false,
+      revealed: null,
       due: null,
       severalTimes: false,
     }
     const target =
       notifiedDueOn === null
-        ? momentDue(schedule, givenOn, day)
-        : notifiedDue(schedule, notifiedDueOn, day)
+        ? momentDue(reading, givenOn, day)
+        : notifiedDue(reading, notifiedDueOn, day)
     if (target === 'ask') return { ...nothing, outcome: 'ask' }
     if (target === null) return { ...nothing, outcome: 'none' }
     if ('dayNoted' in target) return { ...nothing, outcome: 'day-noted' }
@@ -189,16 +173,16 @@ export function createTreatmentDosesService({
       return { ...nothing, outcome: 'already', alreadyGivenOn: target.alreadyGivenOn }
     }
     const { due } = target
-    const applied = await run(history, schedule, {
+    const applied = await run(history, reading, {
       kind: 'note',
-      gesture: { kind: 'given', due, givenOn },
+      gesture: { kind: 'note', due, status: 'given', givenOn, shiftsFollowing: false },
     })
     if (applied.alreadyGivenOn !== null) return { ...nothing, ...applied, outcome: 'already' }
     return {
       ...applied,
       outcome: 'noted',
       due,
-      severalTimes: hasSeveralTimes(history, due.periodId),
+      severalTimes: hasSeveralTimes(history, due.settingId),
     }
   }
 
@@ -210,7 +194,7 @@ export function createTreatmentDosesService({
     apply(treatmentId: string, action: DoseAction): Promise<AppliedDoseChange> {
       return queue(async () => {
         const history = await historyOf(treatmentId)
-        return run(history, treatmentScheduleOf(history, today()), action)
+        return run(history, treatmentReadingOf(history, today()), action)
       })
     },
 

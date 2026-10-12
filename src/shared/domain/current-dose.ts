@@ -1,5 +1,5 @@
 import { nextDay } from './calendar-day'
-import type { Due, TreatmentPhase } from './treatment-schedule'
+import type { Due, Phase } from './dose-calendar'
 import { formatClockTime, formatDayMonthOrYear } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
@@ -7,7 +7,7 @@ import type { Translate } from '@/core/i18n/translate'
 export type CurrentDoseText = { label: string | null; value: string | null }
 
 export type CurrentDose = {
-  phase: TreatmentPhase
+  phase: Phase
   /** Une des doses du moment ; `null` quand le traitement est fini ou arrêté. */
   due: Due | null
   today: string

@@ -10,6 +10,7 @@ import {
   type LegacyInput,
   type Line,
   type TreatmentView,
+  type TreatmentViewInput,
 } from './dose-calendar'
 import { DAYS_PER_STEP, FREQUENCY_UNITS, MAX_FREQUENCY_VALUE } from './treatment-frequency'
 
@@ -87,14 +88,71 @@ function estimatedDues({ periods, doses }: TreatmentRecords, today: string): num
   }, 0)
 }
 
+function byCreation(a: Period, b: Period): number {
+  return (
+    a.startsOn.localeCompare(b.startsOn) ||
+    a.createdAt.localeCompare(b.createdAt) ||
+    a.id.localeCompare(b.id)
+  )
+}
+
+const sameRhythm = (a: Period, b: Period) =>
+  a.frequency.value === b.frequency.value && a.frequency.unit === b.frequency.unit
+
+/**
+ * Le schéma v11 n'a qu'une colonne, `reference_on`, pour l'origine de la grille : un réglage à la
+ * fréquence du précédent qui l'écrit autrement que lui pose sa propre origine (TR-9). Un réglage qui
+ * hérite recopie la référence du précédent.
+ */
+function ownsOrigin(period: Period, previous: Period | undefined): boolean {
+  return (
+    previous !== undefined &&
+    previous.stoppedOn === null &&
+    sameRhythm(previous, period) &&
+    period.referenceOn !== previous.referenceOn
+  )
+}
+
+function withOwnOrigins(input: TreatmentViewInput, periods: readonly Period[]): TreatmentViewInput {
+  const ordered = [...periods].sort(byCreation)
+  const own = new Map(
+    ordered.flatMap((period, index) =>
+      ownsOrigin(period, ordered[index - 1])
+        ? [
+            [
+              period.id,
+              viewInputOf({ periods: [period], doses: [], today: input.today }).settings[0]!
+                .gridOriginOn,
+            ] as const,
+          ]
+        : [],
+    ),
+  )
+  if (own.size === 0) return input
+  return {
+    ...input,
+    settings: input.settings.map((setting) =>
+      own.has(setting.id) ? { ...setting, gridOriginOn: own.get(setting.id)! } : setting,
+    ),
+  }
+}
+
+/** La vue d'un traitement et le carnet qu'elle lit : les gestes et leur aperçu jouent sur ce carnet. */
+export type TreatmentReading = { view: TreatmentView; input: TreatmentViewInput }
+
 /** R12 : la lecture d'un traitement enregistré ; `null` quand ses données sont illisibles. */
-export function treatmentReading(treatment: TreatmentRecords, today: string): TreatmentView | null {
+export function readTreatment(treatment: TreatmentRecords, today: string): TreatmentReading | null {
   const readable =
     treatment.periods.every(isReadablePeriod) &&
     treatment.doses.every(isReadableDose) &&
     estimatedDues(treatment, today) <= MAX_DUES
   if (!readable) return null
-  return treatmentView(viewInputOf({ ...treatment, today }))
+  const input = withOwnOrigins(viewInputOf({ ...treatment, today }), treatment.periods)
+  return { view: treatmentView(input), input }
+}
+
+export function treatmentReading(treatment: TreatmentRecords, today: string): TreatmentView | null {
+  return readTreatment(treatment, today)?.view ?? null
 }
 
 // R11 veut ces lignes grisées « · sans effet » : faute de ce texte, elles restent cachées.

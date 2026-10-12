@@ -3,7 +3,7 @@ import { useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import type { DoseCard } from '../logic/treatment-card'
-import type { Due } from '@/shared/domain/treatment-schedule'
+import type { Due } from '@/shared/domain/dose-calendar'
 
 withDefaults(defineProps<{ card: DoseCard; lessPrecise?: string | null; busy?: boolean }>(), {
   lessPrecise: null,

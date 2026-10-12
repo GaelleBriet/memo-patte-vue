@@ -1,10 +1,6 @@
 import type { NotifiedDue } from '@/shared/domain/reminder-route'
-import {
-  dueOf,
-  type Due,
-  type TreatmentDoseInput,
-  type TreatmentSchedule,
-} from '@/shared/domain/treatment-schedule'
+import { dueForDate, type Due, type Line, type TreatmentView } from '@/shared/domain/dose-calendar'
+import { shownLines, type TreatmentReading } from '@/shared/domain/treatment-reading'
 import { formatClockTime, formatDayMonthOrYear } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
@@ -23,23 +19,18 @@ export type OtherDatePlan = {
   due: Due | null
 }
 
-type DaySchedule = Pick<TreatmentSchedule, 'doses' | 'unloggedDoses' | 'currentDoses'>
-type OtherDateSchedule = DaySchedule & Pick<TreatmentSchedule, 'dueForDate'>
+type DayView = Pick<TreatmentView, 'slots'>
 
 export type DayDue = { due: Due; status: 'pending' | 'given' | 'missed'; givenOn: string | null }
 
-function dayDues(schedule: DaySchedule, day: string): DayDue[] {
-  const notes = schedule.doses.flatMap((dose): DayDue[] =>
-    dose.dueOn === day && (dose.status === 'given' || dose.status === 'missed')
-      ? [{ due: dueOf(dose), status: dose.status, givenOn: dose.givenOn }]
-      : [],
-  )
-  const pending = [...schedule.unloggedDoses, ...schedule.currentDoses]
-    .filter((due) => due.dueOn === day)
-    .map((due): DayDue => ({ due, status: 'pending', givenOn: null }))
-  return [...notes, ...pending].sort((a, b) =>
-    (a.due.dueTime ?? '') < (b.due.dueTime ?? '') ? -1 : 1,
-  )
+function dayDues(view: DayView, day: string): DayDue[] {
+  return view
+    .slots(day, day)
+    .map(({ due, state, by }): DayDue =>
+      state === 'pending' || by === null
+        ? { due, status: 'pending', givenOn: null }
+        : { due, status: by.status === 'given' ? 'given' : 'missed', givenOn: by.givenOn },
+    )
 }
 
 function hourChoice(t: Translate, { due, status }: DayDue): HourChoice {
@@ -67,29 +58,25 @@ function hourChoice(t: Translate, { due, status }: DayDue): HourChoice {
 /** Ce que « Fait à une autre date » demande et note pour le jour choisi. */
 export function otherDatePlan(
   t: Translate,
-  schedule: OtherDateSchedule,
+  { view, input }: TreatmentReading,
   givenOn: string,
 ): OtherDatePlan {
-  const dues = dayDues(schedule, givenOn)
+  const dues = dayDues(view, givenOn)
   const timed = dues.filter(({ due }) => due.dueTime !== null)
   if (timed.length > 1) return { hours: timed.map((entry) => hourChoice(t, entry)), due: null }
   const [only] = dues
-  if (only === undefined) return { hours: [], due: schedule.dueForDate(givenOn) }
+  if (only === undefined) return { hours: [], due: dueForDate(input, givenOn, null) }
   return { hours: [], due: only.status === 'given' ? null : only.due }
 }
 
 /** Les échéances d'une notification : son heure, ou toute la journée sans heure (relance). */
-export function notifiedDues(schedule: DaySchedule, { dueOn, dueTime }: NotifiedDue): DayDue[] {
-  return dayDues(schedule, dueOn).filter(({ due }) => dueTime === null || due.dueTime === dueTime)
+export function notifiedDues(view: DayView, { dueOn, dueTime }: NotifiedDue): DayDue[] {
+  return dayDues(view, dueOn).filter(({ due }) => dueTime === null || due.dueTime === dueTime)
 }
 
 /** Ce que « Donnée quand ? » note : l'échéance de la notification, ou l'une de ses heures ; jamais un oubli (Q41). */
-export function notifiedPlan(
-  t: Translate,
-  schedule: DaySchedule,
-  notified: NotifiedDue,
-): OtherDatePlan {
-  const dues = notifiedDues(schedule, notified)
+export function notifiedPlan(t: Translate, view: DayView, notified: NotifiedDue): OtherDatePlan {
+  const dues = notifiedDues(view, notified)
   const open = (entry: DayDue): Due | null => (entry.status === 'pending' ? entry.due : null)
   if (dues.length > 1) {
     return {
@@ -101,14 +88,18 @@ export function notifiedPlan(
   return { hours: [], due: only === undefined ? null : open(only) }
 }
 
-function isGiven({ status }: Pick<TreatmentDoseInput, 'status'>): boolean {
+function isGiven({ status }: Pick<Line, 'status'>): boolean {
   return status === 'given' || status === 'extra'
 }
 
 /** Jours dont toutes les échéances sont données, ou qui ont une prise en plus : une autre prise ne s'y note pas. */
-export function givenDays(schedule: DaySchedule): string[] {
-  const days = new Set(schedule.doses.filter(isGiven).map(({ dueOn }) => dueOn))
-  return [...days].filter((day) => dayDues(schedule, day).every(({ status }) => status === 'given'))
+export function givenDays(view: Pick<TreatmentView, 'history' | 'slots'>): string[] {
+  const days = new Set(
+    shownLines(view)
+      .filter(isGiven)
+      .map(({ dueOn }) => dueOn),
+  )
+  return [...days].filter((day) => dayDues(view, day).every(({ status }) => status === 'given'))
 }
 
 /**
@@ -118,11 +109,11 @@ export function givenDays(schedule: DaySchedule): string[] {
  * `dayNoted` : toutes les doses du jour sont notées, aucune donnée ; `null` : rien à noter.
  */
 export function momentDue(
-  schedule: OtherDateSchedule,
+  { view, input }: TreatmentReading,
   givenOn: string,
   today: string,
 ): { due: Due } | { alreadyGivenOn: string } | { dayNoted: true } | null {
-  const dues = dayDues(schedule, givenOn)
+  const dues = dayDues(view, givenOn)
   const open =
     dues.find(({ status }) => status === 'pending') ??
     (givenOn === today ? undefined : dues.find(({ status }) => status === 'missed'))
@@ -132,12 +123,12 @@ export function momentDue(
     return given === undefined ? { dayNoted: true } : { alreadyGivenOn: given.givenOn ?? givenOn }
   }
   if (givenOn !== today) {
-    const due = schedule.dueForDate(givenOn)
+    const due = dueForDate(input, givenOn, null)
     return due === null ? null : { due }
   }
-  const current = schedule.currentDoses[0]
+  const current = view.currentDoses[0]
   if (current === undefined) return null
-  const givenToday = schedule.doses.some((dose) => isGiven(dose) && dose.givenOn === today)
+  const givenToday = shownLines(view).some((line) => isGiven(line) && line.givenOn === today)
   return current.dueOn > today && givenToday ? { alreadyGivenOn: today } : { due: current }
 }
 
@@ -149,11 +140,11 @@ type MomentTarget = ReturnType<typeof momentDue>
  * écrit ; sinon la dose que vise `momentDue`.
  */
 export function notifiedDue(
-  schedule: OtherDateSchedule,
+  reading: TreatmentReading,
   notifiedDueOn: string,
   today: string,
 ): MomentTarget | 'ask' {
-  const dues = dayDues(schedule, notifiedDueOn)
+  const dues = dayDues(reading.view, notifiedDueOn)
   const noted = dues.filter(({ status }) => status !== 'pending')
   if (noted.length > 0) {
     if (noted.length < dues.length) return 'ask'
@@ -162,7 +153,7 @@ export function notifiedDue(
       ? { dayNoted: true }
       : { alreadyGivenOn: given.givenOn ?? notifiedDueOn }
   }
-  const target = momentDue(schedule, today, today)
+  const target = momentDue(reading, today, today)
   return target !== null && 'due' in target && target.due.dueOn !== notifiedDueOn ? 'ask' : target
 }
 

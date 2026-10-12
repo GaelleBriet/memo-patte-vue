@@ -11,7 +11,7 @@ import { useTreatmentDoseFlow } from '../composables/use-treatment-dose-flow'
 import { useTreatmentGestures } from '../composables/use-treatment-gestures'
 import { useTreatmentSheetActions } from '../composables/use-treatment-sheet-actions'
 import { detailActions } from '../logic/treatment-card'
-import { readableScheduleOf } from '../logic/treatment-schedule-adapter'
+import { readableReadingOf } from '../logic/treatment-reading-adapter'
 import { sheetOtherDateMin, sheetPeriod, treatmentSheetTexts } from '../logic/treatment-sheet'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
@@ -21,7 +21,7 @@ import BottomSheet from '@/shared/components/BottomSheet.vue'
 import ReminderActions from '@/shared/components/ReminderActions.vue'
 import type { NotifiedDue, TodoDue } from '@/shared/domain/reminder-route'
 import { reminderIcon } from '@/shared/domain/reminders'
-import type { Due } from '@/shared/domain/treatment-schedule'
+import type { Due } from '@/shared/domain/dose-calendar'
 import { showToast } from '@/shared/utils/toast'
 
 const props = withDefaults(
@@ -60,7 +60,7 @@ const isShown = computed({
   },
 })
 
-const schedule = computed(() => readableScheduleOf(history.value, today.value))
+const reading = computed(() => readableReadingOf(history.value, today.value))
 
 const {
   animal,
@@ -76,7 +76,7 @@ const {
   onUnloggedAction,
   onStopAction,
   confirmChosenDays,
-} = useTreatmentDoseFlow({ treatment: history, schedule, today }, gestures, {
+} = useTreatmentDoseFlow({ treatment: history, reading, today }, gestures, {
   settled: () => (open.value = false),
 })
 
@@ -84,7 +84,7 @@ const icon = computed(() => (history.value ? reminderIcon('treatment', history.v
 const isUnloggedSheet = computed(() => props.due === 'unlogged' && unlogged.value !== null)
 const doseDue = computed<NotifiedDue | null>(() => {
   if (props.due !== null && props.due !== 'unlogged') return props.due
-  const [current] = schedule.value?.currentDoses ?? []
+  const [current] = reading.value?.view.currentDoses ?? []
   return current === undefined ? null : { dueOn: current.dueOn, dueTime: current.dueTime }
 })
 const texts = computed(() =>
@@ -92,21 +92,21 @@ const texts = computed(() =>
     ? treatmentSheetTexts(
         t,
         history.value,
-        sheetPeriod(history.value, schedule.value, props.due),
+        sheetPeriod(history.value, reading.value?.view ?? null, props.due),
         isUnloggedSheet.value ? 'unlogged' : doseDue.value,
         { animal: named.value.animal, today: today.value },
       )
     : null,
 )
-const canStop = computed(() => schedule.value !== null && detailActions(schedule.value).canStop)
+const canStop = computed(() => reading.value !== null && detailActions(reading.value.view).canStop)
 const otherDateMin = computed(() => {
   const birth = animal.value?.birthDate ?? null
-  if (!history.value || !schedule.value || !doseDue.value) return birth
-  return sheetOtherDateMin(history.value, schedule.value, doseDue.value, birth)
+  if (!history.value || !reading.value || !doseDue.value) return birth
+  return sheetOtherDateMin(reading.value.view, doseDue.value, birth)
 })
 
 const actions = useTreatmentSheetActions(
-  { treatmentId: computed(() => history.value?.id ?? null), schedule, doseDue, today, named },
+  { treatmentId: computed(() => history.value?.id ?? null), reading, doseDue, today, named },
   {
     note: (gesture) => void note(gesture),
     confirm: (due) => {
@@ -211,13 +211,13 @@ function edit(): void {
   </BottomSheet>
 
   <TreatmentOtherDateSheet
-    v-if="history && schedule"
+    v-if="history && reading"
     :model-value="isOtherDateOpen"
     :name="named.name"
     :animal="named.animal"
     :icon="icon"
     :history="history"
-    :schedule="schedule"
+    :reading="reading"
     :today="today"
     :min="otherDateMin"
     :notified="doseDue"
@@ -229,13 +229,13 @@ function edit(): void {
   />
 
   <TreatmentDoneConfirm
-    v-if="history && schedule"
+    v-if="history && reading"
     :model-value="isConfirmOpen"
     :name="named.name"
     :animal="named.animal"
     :icon="icon"
     :history="history"
-    :schedule="schedule"
+    :reading="reading"
     :today="today"
     :due="confirming"
     :busy="isBusy"

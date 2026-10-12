@@ -11,20 +11,22 @@ import {
   type NotifiedDue,
   type TodoDue,
 } from '@/shared/domain/reminder-route'
-import type { DoseGesture, Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import type { NoteGesture } from '../logic/treatment-dose-change'
+import type { Due } from '@/shared/domain/dose-calendar'
+import type { TreatmentReading } from '@/shared/domain/treatment-reading'
 import { formatDayMonthOrYear, withoutFinalDot } from '@/shared/utils/format'
 import { showToast } from '@/shared/utils/toast'
 
 type SheetState = {
   treatmentId: Ref<string | null>
-  schedule: Ref<TreatmentSchedule | null>
+  reading: Ref<TreatmentReading | null>
   doseDue: Ref<NotifiedDue | null>
   today: Ref<string>
   named: Ref<{ name: string; animal: string }>
 }
 
 type SheetHandlers = {
-  note: (gesture: DoseGesture) => void
+  note: (gesture: NoteGesture) => void
   confirm: (due: Due) => void
   close: () => void
   changed: () => void
@@ -32,7 +34,7 @@ type SheetHandlers = {
 
 /** « Fait aujourd'hui » et « Modifier » de la feuille « À faire », sur l'échéance de sa ligne. */
 export function useTreatmentSheetActions(
-  { treatmentId, schedule, doseDue, today, named }: SheetState,
+  { treatmentId, reading, doseDue, today, named }: SheetState,
   { note, confirm, close, changed }: SheetHandlers,
 ) {
   const { t } = useI18n()
@@ -56,12 +58,12 @@ export function useTreatmentSheetActions(
   }
 
   function doneToday(): void {
-    if (schedule.value === null) return
+    if (reading.value === null) return
     if (doseDue.value === null) {
       info(t('treatments.sheet.errors.noDoseLeft'))
       return
     }
-    const target = sheetDoneTarget(schedule.value, doseDue.value, today.value)
+    const target = sheetDoneTarget(reading.value, doseDue.value, today.value)
     switch (target.kind) {
       case 'note':
         note(target.gesture)

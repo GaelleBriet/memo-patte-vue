@@ -17,7 +17,7 @@ import {
 } from '../logic/treatment-choose-days'
 import { onBackButton } from '@/core/app-lifecycle/back-button'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
-import type { Due } from '@/shared/domain/treatment-schedule'
+import type { Due } from '@/shared/domain/dose-calendar'
 
 const MONTHS_PER_STEP = 6
 

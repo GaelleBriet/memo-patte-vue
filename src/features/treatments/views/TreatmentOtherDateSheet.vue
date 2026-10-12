@@ -16,7 +16,8 @@ import type { TreatmentWithHistory } from '../schema/treatment-with-history.sche
 import BottomSheet from '@/shared/components/BottomSheet.vue'
 import DateCalendar from '@/shared/components/DateCalendar.vue'
 import type { NotifiedDue } from '@/shared/domain/reminder-route'
-import type { DoseGesture, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import type { NoteGesture } from '../logic/treatment-dose-change'
+import type { TreatmentReading } from '@/shared/domain/treatment-reading'
 
 const props = withDefaults(
   defineProps<{
@@ -24,7 +25,7 @@ const props = withDefaults(
     animal: string
     icon: string
     history: TreatmentWithHistory
-    schedule: TreatmentSchedule
+    reading: TreatmentReading
     today: string
     min?: string | null
     busy?: boolean
@@ -37,7 +38,7 @@ const props = withDefaults(
 )
 
 const emit = defineEmits<{
-  note: [gesture: DoseGesture]
+  note: [gesture: NoteGesture]
   back: []
 }>()
 
@@ -53,8 +54,8 @@ const shifts = ref(true)
 const plan = computed(() => {
   if (givenOn.value === null) return null
   return props.notified === null
-    ? otherDatePlan(t, props.schedule, givenOn.value)
-    : notifiedPlan(t, props.schedule, props.notified)
+    ? otherDatePlan(t, props.reading, givenOn.value)
+    : notifiedPlan(t, props.reading.view, props.notified)
 })
 const severalTimes = computed(() => (plan.value?.hours.length ?? 0) > 0)
 const texts = computed(() =>
@@ -65,7 +66,7 @@ const texts = computed(() =>
     severalTimes.value,
   ),
 )
-const excluded = computed(() => givenDays(props.schedule))
+const excluded = computed(() => givenDays(props.reading.view))
 const due = computed(() => {
   if (step.value === 'day') return severalTimes.value ? null : (plan.value?.due ?? null)
   return plan.value?.hours.find(({ time }) => time === hour.value)?.due ?? null
@@ -75,7 +76,7 @@ const recap = computed(() =>
     t,
     due.value,
     givenOn.value,
-    due.value !== null && hasSeveralTimes(props.history, due.value.periodId),
+    due.value !== null && hasSeveralTimes(props.history, due.value.settingId),
   ),
 )
 const box = computed(() =>
@@ -83,7 +84,7 @@ const box = computed(() =>
     t,
     due.value,
     givenOn.value,
-    { history: props.history, schedule: props.schedule, today: props.today },
+    { history: props.history, reading: props.reading, today: props.today },
     shifts.value,
   ),
 )

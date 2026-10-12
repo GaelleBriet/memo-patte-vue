@@ -1,7 +1,10 @@
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
-import type { DoseGesture } from '@/shared/domain/treatment-schedule'
-import { DoseAlreadyLoggedError, doseChange } from '../logic/treatment-dose-writes'
-import { readableScheduleOf, treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
+import {
+  DoseAlreadyLoggedError,
+  doseChange,
+  type NoteGesture,
+} from '../logic/treatment-dose-change'
+import { readableReadingOf, treatmentReadingOf } from '../logic/treatment-reading-adapter'
 import {
   createWriteQueue,
   treatmentWriteQueue,
@@ -73,23 +76,23 @@ export function createTreatmentStopService({
 
   /** Rien à écrire : traitement déjà arrêté, ou fini par sa date de fin ; `null` sinon. */
   function unchanged(history: TreatmentWithHistory): StoppedTreatment | null {
-    const schedule = readableScheduleOf(history, today())
+    const view = readableReadingOf(history, today())?.view
     const isStopped = (history.periods.at(-1)?.stoppedOn ?? null) !== null
-    if (!isStopped && schedule?.phase !== 'ended') return null
+    if (!isStopped && view?.phase !== 'ended') return null
     return {
       animalId: history.animalId,
       stopped: false,
-      finished: schedule?.finished ?? false,
+      finished: view?.finished ?? false,
       undo: [],
     }
   }
 
   async function logAndStop(
     history: TreatmentWithHistory,
-    gestures: readonly DoseGesture[],
+    gestures: readonly NoteGesture[],
   ): Promise<DoseWrite[]> {
-    const schedule = treatmentScheduleOf(history, today())
-    const { writes } = doseChange(history, schedule, { kind: 'log', gestures }, newId)
+    const reading = treatmentReadingOf(history, today())
+    const { writes } = doseChange(history, reading, { kind: 'log', gestures }, newId)
     const at = now().toISOString()
     const repository = await periods()
     const stop = [
@@ -108,7 +111,7 @@ export function createTreatmentStopService({
 
   async function stopped(
     treatmentId: string,
-    gestures: readonly DoseGesture[],
+    gestures: readonly NoteGesture[],
   ): Promise<StoppedTreatment> {
     const history = await historyOf(treatmentId)
     const notStopped = unchanged(history)
@@ -127,7 +130,8 @@ export function createTreatmentStopService({
     }
     const stopped = gestures.length > 0 || (await (await periods()).stop(treatmentId, today()))
     await reminders.reschedule(treatmentId)
-    const finished = readableScheduleOf(await historyOf(treatmentId), today())?.finished ?? false
+    const finished =
+      readableReadingOf(await historyOf(treatmentId), today())?.view.finished ?? false
     return { animalId: history.animalId, stopped, finished, undo }
   }
 
@@ -149,7 +153,7 @@ export function createTreatmentStopService({
      * Lève pour un traitement introuvable, et une `DoseAlreadyLoggedError` quand une dose du lot est
      * déjà notée.
      */
-    stop(treatmentId: string, gestures: readonly DoseGesture[] = []): Promise<StoppedTreatment> {
+    stop(treatmentId: string, gestures: readonly NoteGesture[] = []): Promise<StoppedTreatment> {
       return queue(() => stopped(treatmentId, gestures))
     },
 

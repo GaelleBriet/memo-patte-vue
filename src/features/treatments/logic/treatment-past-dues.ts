@@ -1,6 +1,6 @@
 import type { PastDuesChoice } from '../schema/treatment-form.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import type { Due } from '@/shared/domain/treatment-schedule'
+import type { Due } from '@/shared/domain/dose-calendar'
 import {
   formatClockTimes,
   formatDayList,
