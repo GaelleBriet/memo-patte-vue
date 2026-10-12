@@ -193,6 +193,17 @@ describe('R9 : « Prochaine dose » choisie', () => {
       expect(shown(milo, request(WEEK, [], '2026-10-15'), 2)).toEqual(['2026-10-15', '2026-10-22'])
     })
   })
+
+  it('R3 : tous les 3 mois dès le 13 mars, décalé au 17, remplacé avant son premier jour par tous les 2 jours dès le 17 ; le 15, « Prochaine dose » le 27 : la fiche montre le 27', () => {
+    const quarterly = setting('s1', '2026-03-13', { value: 3, unit: 'month' })
+    const shift = line('s1', 'shift', '2026-03-13', null, '2026-03-17')
+    const everyTwo = setting('s2', '2026-03-17', TWO_DAYS, [], { startsOn: '2026-03-11' })
+    const input = { settings: [quarterly, everyTwo], lines: [shift], today: '2026-03-15' }
+    expect(shown(input, request(TWO_DAYS, [], '2026-03-27'), 2)).toEqual([
+      '2026-03-27',
+      '2026-03-29',
+    ])
+  })
 })
 
 describe('R9, R12 : la date proposée est celle que la fiche montre ensuite', () => {

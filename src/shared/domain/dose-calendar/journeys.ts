@@ -37,7 +37,9 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       .sort()[0]!
     const previous = chain[position - 1]
     const origin = setting.gridOriginOn
-    const earlier = new Set(chain.slice(0, position).map(({ id }) => id))
+    const earlier = new Set(
+      span.episode.slice(0, span.episode.indexOf(setting)).map(({ id }) => id),
+    )
     const within = ({ dueOn }: Line) => dueOn >= setting.startsOn && (end === null || dueOn < end)
     // R3, R9 : une origine choisie se juge sur la grille en vigueur à la première échéance.
     const inForce =

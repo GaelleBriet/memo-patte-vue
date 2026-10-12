@@ -93,7 +93,7 @@ export function calendarOf(
     // part de la première échéance du réglage (R2).
     const previous = chain[position - 1]
     const origin = setting.gridOriginOn
-    const earlier = new Set(chain.slice(0, position).map(({ id }) => id))
+    const earlier = new Set(episode.slice(0, episode.indexOf(setting)).map(({ id }) => id))
     const within = ({ dueOn }: ReferenceLine) =>
       dueOn >= setting.startsOn && (end === null || dueOn < end)
     // R3, R9 : une origine choisie se juge sur la grille en vigueur à la première échéance.

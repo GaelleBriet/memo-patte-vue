@@ -30,6 +30,8 @@ export function episodesOf(settings: readonly Setting[]): Setting[][] {
 
 /** Les réglages d'un épisode qui ont des jours, chacun jusqu'au premier jour du suivant (R1). */
 export type Span = {
+  /** Tous les réglages de l'épisode, dans l'ordre. */
+  episode: readonly Setting[]
   live: Setting[]
   /** R3, R10 : les réglages lus dans l'ordre ; remplacé le jour même, un réglage n'y garde que sa grille, pour le suivant de même fréquence. */
   chain: Setting[]
@@ -69,7 +71,7 @@ export function spanOf(episode: readonly Setting[], kept: readonly Line[]): Span
     const open = (end === null || day < end) && (setting.endsOn === null || day <= setting.endsOn)
     return open ? setting : undefined
   }
-  return { live, chain, endOf, settingAt }
+  return { episode, live, chain, endOf, settingAt }
 }
 
 /**
