@@ -8,7 +8,7 @@ import {
   type TreatmentsRepository,
 } from '@/features/treatments/repository/treatments.repository'
 import type { TreatmentWithHistory } from '@/features/treatments/schema/treatment-with-history.schema'
-import { readableTreatmentSchedule } from '@/shared/domain/readable-treatment-schedule'
+import { readTreatment } from '@/shared/domain/treatment-reading'
 import { getAnimalsRepository, type AnimalsRepository } from '../repository/animals.repository'
 import type { Departure } from '../schema/animal.schema'
 import { animalRemindersService, type AnimalRemindersService } from './animal-reminders.service'
@@ -37,8 +37,8 @@ const FOLLOWED: Departure = { unfollowedOn: null, departureReason: null, departu
 function ongoingPeriodId(treatment: TreatmentWithHistory, today: string): string | null {
   const current = treatment.periods.at(-1)
   if (current === undefined || current.stoppedOn !== null) return null
-  const schedule = readableTreatmentSchedule({ ...treatment, today })
-  return schedule?.phase === 'ended' ? null : current.id
+  const view = readTreatment(treatment, today)?.view
+  return view?.phase === 'ended' ? null : current.id
 }
 
 export function createAnimalFollowService({

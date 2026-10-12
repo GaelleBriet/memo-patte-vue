@@ -48,7 +48,7 @@ export function createTreatmentPlanService({
   }
 
   function ids() {
-    return { periodId: newId(), doseId: newId(), shiftId: newId() }
+    return { periodId: newId(), newId }
   }
 
   return {

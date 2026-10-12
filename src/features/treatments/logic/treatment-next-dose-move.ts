@@ -1,139 +1,119 @@
-import {
-  hasNote,
-  overdueHelp,
-  type EditionResolution,
-  type NextDoseChoice,
-  type NextDoseHelp,
-  type NextDoseShift,
-} from './treatment-edition-resolution'
-import { treatmentScheduleOf } from './treatment-schedule-adapter'
-import { lostDays, pendingDaysAfter } from './treatment-shift-box'
+import { keepsShift } from './treatment-dose-change'
 import type {
-  TreatmentPeriodRecord,
-  TreatmentPeriodSettings,
-} from '../schema/treatment-period.schema'
+  EditionResolution,
+  NextDoseChoice,
+  NextDoseHelp,
+} from './treatment-edition-resolution'
+import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
+import type { TreatmentRhythm } from '../schema/treatment-form.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import { isCalendarDay } from '@/shared/domain/calendar-day'
-import type { Due, MovedDose, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import {
+  moveBounds,
+  play,
+  type Due,
+  type GestureOutcome,
+  type Line,
+  type Refusal,
+  type TreatmentView,
+} from '@/shared/domain/dose-calendar'
+import type { TreatmentReading } from '@/shared/domain/treatment-reading'
 
-export function moveArrivingOn(schedule: TreatmentSchedule, due: Due) {
-  return schedule.doses.find(
-    (dose) =>
-      dose.status === 'postponed' &&
-      dose.periodId === due.periodId &&
-      dose.nextDueDate === due.dueOn,
+/** Le report en vigueur qui amène une dose le jour `day`. */
+export function reportArrivingOn(
+  view: Pick<TreatmentView, 'history'>,
+  day: string,
+): Line | undefined {
+  return view.history.find(
+    ({ line, effect }) =>
+      line.status === 'postponed' && effect.kind === 'moves' && effect.arrival === day,
+  )?.line
+}
+
+/** Le réglage en cours a déjà une prise ou un report : « Prochaine dose » déplace alors la dose, elle ne corrige plus la première échéance. */
+export function hasDoseLine(view: Pick<TreatmentView, 'history'>, settingId: string): boolean {
+  return view.history.some(
+    ({ line }) =>
+      line.settingId === settingId &&
+      (line.status === 'given' || line.status === 'missed' || line.status === 'postponed'),
   )
 }
 
-function dosesWith(history: TreatmentWithHistory, { report, shift }: MovedDose, today: string) {
-  const at = `${today}T23:59:59.999Z`
-  const owner = { treatmentId: history.id, animalId: history.animalId, deletedAt: null }
-  return [report, shift].reduce((doses, change, index) => {
-    switch (change.action) {
-      case 'none':
-        return doses
-      case 'delete':
-        return doses.filter(({ id }) => id !== change.doseId)
-      case 'rewrite':
-        return doses.map((dose) =>
-          dose.id === change.doseId ? { ...dose, ...change.dose, updatedAt: at } : dose,
-        )
-      case 'create':
-        return [
-          ...doses,
-          { ...change.dose, ...owner, id: `apercu-${index}`, createdAt: at, updatedAt: at },
-        ]
-    }
-  }, history.doses)
+type Moved = {
+  period: TreatmentPeriodRecord
+  history: TreatmentWithHistory
+  reading: TreatmentReading
+  due: Due
+  next: Pick<TreatmentRhythm, 'endsOn'>
+  choice: NextDoseChoice
+  today: string
 }
 
-// La case n'apparaît que si la dose change vraiment de date et peut aller seule (Q2 a).
-function shiftOf(
-  book: TreatmentWithHistory,
-  schedule: TreatmentSchedule,
-  due: Due,
-  chosenOn: string,
-  today: string,
-): NextDoseShift | null {
-  const period = book.periods.find(({ id }) => id === due.periodId)
-  const alone = schedule.moveBounds(due, false)
-  if (period === undefined || alone === null) return null
-  const checked = schedule.move(due, chosenOn, true)
-  if (checked.report.action !== 'create' && checked.report.action !== 'rewrite') return null
-  const followingWith = (moved: MovedDose) =>
-    pendingDaysAfter(
-      treatmentScheduleOf({ ...book, doses: dosesWith(book, moved, today) }, today),
-      period,
-      chosenOn,
-    )
-  const following = followingWith(checked)
-  const fitsAlone = alone.latest === null || chosenOn <= alone.latest
-  const followingAlone = fitsAlone ? followingWith(schedule.move(due, chosenOn, false)) : []
-  const before = pendingDaysAfter(schedule, period, due.dueOn)
-  return {
-    following,
-    followingAlone,
-    lost: lostDays(before, following, period),
-    aloneLatest: alone.latest,
-  }
-}
+const isRefused = (result: object): result is { refusal: Refusal } => 'refusal' in result
 
-export function resolveMoved(
-  period: TreatmentPeriodRecord,
-  book: TreatmentWithHistory,
-  schedule: TreatmentSchedule,
-  due: Due,
-  settings: TreatmentPeriodSettings,
-  { chosenOn, shiftsFollowing }: NextDoseChoice,
-  today: string,
-): EditionResolution {
-  const bounds = schedule.moveBounds(due)
-  const refusal = schedule.moveRefusal(due)
-  const alone = shiftsFollowing ? null : schedule.moveBounds(due, false)
-  const latest = alone?.latest ?? settings.endsOn
-  const line = moveArrivingOn(schedule, due)
-  const inBounds =
-    bounds !== null &&
-    chosenOn !== null &&
-    chosenOn !== due.dueOn &&
-    isCalendarDay(chosenOn) &&
-    chosenOn >= bounds.earliest &&
-    (latest === null || chosenOn <= latest)
-  const shift =
-    bounds !== null &&
-    chosenOn !== null &&
-    chosenOn !== due.dueOn &&
-    isCalendarDay(chosenOn) &&
-    chosenOn >= bounds.earliest &&
-    (settings.endsOn === null || chosenOn <= settings.endsOn)
-      ? shiftOf(book, schedule, due, chosenOn, today)
-      : null
-  const calculated: NextDoseHelp | null = hasNote(schedule, period.id)
-    ? { kind: 'calculated', on: line?.dueOn ?? due.dueOn }
-    : null
+const movesALine = ({ changes }: GestureOutcome): boolean =>
+  changes.some((change) => change.action !== 'delete' && change.line.status === 'postponed')
+
+/** TR-9 : seule la date de « Prochaine dose » change, la dose du moment est déplacée (R7, Q17, Q18, Q21). */
+export function resolveMoved({
+  period,
+  history,
+  reading,
+  due,
+  next,
+  choice: { chosenOn, shiftsFollowing },
+  today,
+}: Moved): EditionResolution {
+  const { input, view } = reading
+  const full = moveBounds(input, due, true)
+  const alone = moveBounds(input, due, false)
+  const fieldRefusal = isRefused(full) && isRefused(alone) ? full.refusal : null
+  const onlyAlone = isRefused(full) && !isRefused(alone)
+  const bounds = isRefused(full) ? alone : full
+  const aloneBounds = shiftsFollowing || isRefused(alone) ? null : alone
+  const latest = aloneBounds?.latest ?? next.endsOn
+  const typed =
+    chosenOn !== null && isCalendarDay(chosenOn) && chosenOn !== due.dueOn ? chosenOn : null
+  const gesture = (to: string, shifts: boolean) =>
+    play(input, { kind: 'move', due, to, shiftsFollowing: shifts })
+  const played = typed === null || fieldRefusal !== null ? null : gesture(typed, shiftsFollowing)
+  const offered = [true, false].some((shifts) => {
+    const result = typed === null || isRefused(alone) ? null : gesture(typed, shifts)
+    return result !== null && !isRefused(result) && movesALine(result)
+  })
+  const report = reportArrivingOn(view, due.dueOn)
+  const refusal =
+    typed !== null && fieldRefusal !== null
+      ? fieldRefusal
+      : played !== null && isRefused(played)
+        ? played.refusal
+        : null
+  const help: NextDoseHelp | null =
+    fieldRefusal !== null
+      ? { kind: 'refused', refusal: fieldRefusal }
+      : due.dueOn < today
+        ? { kind: 'overdue', since: due.dueOn }
+        : { kind: 'calculated', on: report?.dueOn ?? due.dueOn }
   return {
     period,
-    change: 'correct',
-    proposesFirstDue: false,
-    movedLineId: line?.id ?? null,
+    change: 'edit',
     nextDose: {
       change: 'move',
       proposedOn: due.dueOn,
-      earliest: bounds?.earliest ?? today,
+      earliest: isRefused(bounds) ? today : bounds.earliest,
       latest,
-      refusal,
-      help:
-        refusal !== null ? { kind: 'refused', refusal } : (overdueHelp(due, today) ?? calculated),
-      shift,
-      shiftInitial:
-        line === undefined ||
-        schedule.doses.some(
-          (dose) =>
-            dose.status === 'shift' && dose.periodId === line.periodId && dose.dueOn === line.dueOn,
-        ),
+      refusal: fieldRefusal,
+      help,
+      shift:
+        typed !== null && offered
+          ? { due, chosenOn: typed, carnet: { history, reading, today } }
+          : null,
+      shiftInitial: !onlyAlone && (report === undefined || keepsShift(reading, report)),
     },
-    settings,
-    referenceOn: period.referenceOn,
-    move: inBounds ? schedule.move(due, chosenOn, shiftsFollowing) : null,
+    plan: null,
+    move: played === null || isRefused(played) ? null : played,
+    refusal,
+    pastDues: [],
+    pastDuesNextDose: null,
   }
 }

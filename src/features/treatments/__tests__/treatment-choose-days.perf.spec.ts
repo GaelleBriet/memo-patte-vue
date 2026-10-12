@@ -13,11 +13,11 @@ import {
 } from '../logic/treatment-choose-days'
 import i18n from '@/core/i18n'
 import { days } from '@/shared/__tests__/treatment-schedule-fixtures'
-import type { Due } from '@/shared/domain/treatment-schedule'
+import type { Due } from '@/shared/domain/dose-calendar'
 
 const t = i18n.global.t
 const TROIS_ANS: Due[] = days('2023-09-28', '2026-09-27').flatMap((dueOn) =>
-  ['08:00', '20:00'].map((dueTime) => ({ periodId: 'p-1', dueOn, dueTime })),
+  ['08:00', '20:00'].map((dueTime) => ({ settingId: 'p-1', dueOn, dueTime })),
 )
 
 // Meilleur de trois essais : écarte le bruit de la machine, garde visible une régression.

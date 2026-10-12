@@ -13,7 +13,10 @@ import {
   currentPeriodIdSql,
 } from './treatment-periods.repository'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
-import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
+import {
+  treatmentFirstPeriodSettingsSchema,
+  type TreatmentPeriodRecord,
+} from '../schema/treatment-period.schema'
 import {
   treatmentNameSchema,
   treatmentTypeSchema,
@@ -256,6 +259,7 @@ export function createTreatmentsRepository(
     /** Le traitement, sa première période, de même identifiant, et les prises du plan : tout ou rien. */
     async create(plan: NewTreatmentPlan): Promise<Treatment> {
       const { name, type } = identityOf(plan)
+      treatmentFirstPeriodSettingsSchema.parse(plan.settings)
       const now = new Date().toISOString()
 
       await db.runMany([
@@ -305,8 +309,8 @@ export function createTreatmentsRepository(
         })
       }
       if (plan.period?.action === 'correct') {
-        const { settings, referenceOn } = plan.period
-        statements.push(periods.correctCurrentSettingsStatement(id, settings, at, referenceOn))
+        const { id: periodId, settings, referenceOn } = plan.period
+        statements.push(periods.correctSettingsStatement(periodId, settings, at, referenceOn))
       }
       if (plan.period?.action === 'open') {
         statements.push(

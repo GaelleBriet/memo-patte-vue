@@ -1,4 +1,4 @@
-import { currentPeriodOf, treatmentScheduleOf } from './treatment-schedule-adapter'
+import { currentPeriodOf, treatmentReadingOf } from './treatment-reading-adapter'
 import type { TreatmentRhythm } from '../schema/treatment-form.schema'
 import {
   treatmentPeriodSettingsSchema,
@@ -8,13 +8,10 @@ import {
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import { latestOf } from '@/shared/domain/calendar-day'
 import { sortedTimes } from '@/shared/domain/clock-time'
-import {
-  isNoteLine,
-  ScheduleTooLongError,
-  type TreatmentSchedule,
-} from '@/shared/domain/treatment-schedule'
+import type { TreatmentView } from '@/shared/domain/dose-calendar'
+import { readTreatment } from '@/shared/domain/treatment-reading'
 
-export type PlanIds = { periodId: string; doseId: string; shiftId: string }
+export type PlanIds = { periodId: string; newId: () => string }
 
 export function rhythmOf(
   period: TreatmentPeriodRecord,
@@ -86,9 +83,9 @@ export function withPeriodSettings(
 
 export function currentPeriod(
   history: TreatmentWithHistory,
-  schedule: TreatmentSchedule,
+  view: Pick<TreatmentView, 'currentSetting'>,
 ): TreatmentPeriodRecord {
-  const period = currentPeriodOf(history, schedule)
+  const period = currentPeriodOf(history, view)
   if (period === null) throw new Error(`Traitement sans période : ${history.id}`)
   return period
 }
@@ -98,7 +95,9 @@ export function lastNotedDueOn(history: TreatmentWithHistory, periodId?: string)
     latestOf(
       history.doses
         .filter(
-          (dose) => isNoteLine(dose) && (periodId === undefined || dose.periodId === periodId),
+          (dose) =>
+            (dose.status === 'given' || dose.status === 'missed') &&
+            (periodId === undefined || dose.periodId === periodId),
         )
         .map((dose) => dose.dueOn),
     ) ?? null
@@ -112,16 +111,12 @@ export function changesSchedule(period: TreatmentPeriodRecord, rhythm: Treatment
   )
 }
 
-/** Lève la `RangeError` du moteur quand l'app ne saurait pas relire cet historique. */
+/** Lève une `RangeError` quand l'app ne saurait pas relire cet historique. */
 export function assertReadable(
   history: Pick<TreatmentWithHistory, 'periods' | 'doses'>,
   today: string,
 ): void {
-  treatmentScheduleOf(history, today)
-}
-
-function isTooLong(cause: unknown): boolean {
-  return cause instanceof ScheduleTooLongError
+  treatmentReadingOf(history, today)
 }
 
 export const DRAFT_ID = 'draft'
@@ -148,13 +143,8 @@ export function startsTooFarBack(
 ): boolean {
   if (!treatmentPeriodSettingsSchema.safeParse(settings).success) return false
   const at = `${today}T23:59:59.999Z`
-  try {
-    assertReadable({ ...history, periods: [...history.periods, draftPeriod(settings, at)] }, today)
-    return false
-  } catch (cause) {
-    if (isTooLong(cause)) return true
-    throw cause
-  }
+  const drafted = { ...history, periods: [...history.periods, draftPeriod(settings, at)] }
+  return readTreatment(drafted, today) === null
 }
 
 export function tooOld() {

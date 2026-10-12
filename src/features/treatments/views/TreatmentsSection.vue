@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import {
-  carnetScheduleCache,
+  carnetViewCache,
   carnetTreatments,
   type TreatmentsSummary,
 } from '../logic/treatment-carnet'
@@ -18,7 +18,7 @@ import ListRowIcon from '@/shared/components/ListRowIcon.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import { useAnimalSectionLoad } from '@/shared/composables/use-animal-section-load'
 
-const schedules = carnetScheduleCache()
+const views = carnetViewCache()
 
 const props = withDefaults(
   defineProps<{
@@ -44,7 +44,7 @@ const { isCurrent, hasError } = useAnimalSectionLoad(() => props.animalId, store
 const showsFinished = ref(false)
 
 const carnet = computed(() =>
-  carnetTreatments(t, isCurrent.value ? store.treatments : [], props.today, schedules, {
+  carnetTreatments(t, isCurrent.value ? store.treatments : [], props.today, views, {
     followed: props.followed,
   }),
 )

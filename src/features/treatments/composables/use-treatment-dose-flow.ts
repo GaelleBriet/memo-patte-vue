@@ -3,18 +3,18 @@ import { useI18n } from 'vue-i18n'
 
 import type { useTreatmentGestures } from './use-treatment-gestures'
 import { choiceGestures, chooseDaysSubtitle, type DayChoice } from '../logic/treatment-choose-days'
-import type { DoseAction } from '../logic/treatment-dose-writes'
-import { doseActionTexts, hasSeveralTimes } from '../logic/treatment-gestures'
-import { restoredSuiteFor } from '../logic/treatment-shift-box'
+import type { DoseAction, NoteGesture } from '../logic/treatment-dose-change'
+import { doseActionTexts, hasSeveralTimes, type DueDay } from '../logic/treatment-gestures'
+import { restoredSuiteFor } from '../logic/treatment-restored-suite'
 import { stopPrompt } from '../logic/treatment-stop'
 import { promptChoice, unloggedBanner, type PromptActionId } from '../logic/treatment-unlogged'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
-import type { DoseGesture, Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import type { TreatmentReading } from '@/shared/domain/treatment-reading'
 
 type DoseFlowState = {
   treatment: Readonly<Ref<TreatmentWithHistory | null>>
-  schedule: Readonly<Ref<TreatmentSchedule | null>>
+  reading: Readonly<Ref<TreatmentReading | null>>
   today: Readonly<Ref<string>>
 }
 
@@ -28,7 +28,7 @@ export type DoseFlowExits = {
  * « À faire » ; chaque écran dit par `exits` ce qui suit un geste.
  */
 export function useTreatmentDoseFlow(
-  { treatment, schedule, today }: DoseFlowState,
+  { treatment, reading, today }: DoseFlowState,
   gestures: ReturnType<typeof useTreatmentGestures>,
   exits: DoseFlowExits = {},
 ) {
@@ -44,15 +44,15 @@ export function useTreatmentDoseFlow(
     animal: animal.value?.name ?? '',
   }))
   const unlogged = computed(() =>
-    animals.hasLoaded && treatment.value && schedule.value
-      ? unloggedBanner(t, treatment.value, schedule.value, today.value, {
+    animals.hasLoaded && treatment.value && reading.value
+      ? unloggedBanner(t, treatment.value, reading.value.view, today.value, {
           followed: (animal.value?.unfollowedOn ?? null) === null,
         })
       : null,
   )
   const stopping = computed(() =>
-    treatment.value && schedule.value
-      ? stopPrompt(t, treatment.value, schedule.value, today.value)
+    treatment.value && reading.value
+      ? stopPrompt(t, treatment.value, reading.value.view, today.value)
       : null,
   )
   const chosen = computed(() => (choosing.value === 'stop' ? stopping.value : unlogged.value))
@@ -60,23 +60,29 @@ export function useTreatmentDoseFlow(
     chooseDaysSubtitle(named.value.name, named.value.animal, chosen.value?.when ?? null),
   )
 
-  async function apply(action: DoseAction, line: Due | null, periodId: string): Promise<boolean> {
+  async function apply(
+    action: DoseAction,
+    line: DueDay | null,
+    settingId: string,
+  ): Promise<boolean> {
     const current = treatment.value
     if (current === null) return false
     const texts = doseActionTexts(
       t,
-      { ...named.value, today: today.value, severalTimes: hasSeveralTimes(current, periodId) },
+      { ...named.value, today: today.value, severalTimes: hasSeveralTimes(current, settingId) },
       action,
       line,
-      restoredSuiteFor(current, action, today.value),
+      reading.value === null
+        ? null
+        : restoredSuiteFor({ history: current, reading: reading.value }, action),
     )
     const applied = await gestures.applyDose(current, action, texts)
     if (applied) exits.settled?.()
     return applied
   }
 
-  function note(gesture: DoseGesture): Promise<boolean> {
-    return apply({ kind: 'note', gesture }, null, gesture.due.periodId)
+  function note(gesture: NoteGesture, heldBy?: string): Promise<boolean> {
+    return apply({ kind: 'note', gesture, heldBy }, null, gesture.due.settingId)
   }
 
   async function log(choice: DayChoice): Promise<void> {

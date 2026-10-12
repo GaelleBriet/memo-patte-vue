@@ -10,6 +10,7 @@ import {
   type LegacyInput,
   type Line,
   type TreatmentView,
+  type TreatmentViewInput,
 } from './dose-calendar'
 import { DAYS_PER_STEP, FREQUENCY_UNITS, MAX_FREQUENCY_VALUE } from './treatment-frequency'
 
@@ -87,17 +88,83 @@ function estimatedDues({ periods, doses }: TreatmentRecords, today: string): num
   }, 0)
 }
 
+/** Ce qui range les réglages d'un traitement et fait hériter l'origine de l'un à l'autre. */
+export type OrderedPeriod = Pick<
+  Period,
+  'id' | 'startsOn' | 'createdAt' | 'stoppedOn' | 'frequency' | 'referenceOn'
+>
+
+const sameRhythm = (a: OrderedPeriod, b: OrderedPeriod) =>
+  a.frequency.value === b.frequency.value && a.frequency.unit === b.frequency.unit
+
+// R1, R9 : un réglage remplacé avant son premier jour cède sa place à un réglage écrit après lui.
+function inOrder<P extends OrderedPeriod>(periods: readonly P[]): P[] {
+  const startOf = (period: P) =>
+    periods
+      .filter(({ createdAt }) => createdAt > period.createdAt)
+      .reduce((day, newer) => (newer.startsOn < day ? newer.startsOn : day), period.startsOn)
+  return [...periods].sort(
+    (a, b) =>
+      startOf(a).localeCompare(startOf(b)) ||
+      a.createdAt.localeCompare(b.createdAt) ||
+      a.id.localeCompare(b.id),
+  )
+}
+
+/** Le réglage qui précède celui-ci dans l'ordre que lit le moteur : celui dont il hérite l'origine. */
+export function previousPeriod<P extends OrderedPeriod>(
+  periods: readonly P[],
+  period: P,
+): P | undefined {
+  const others = periods.filter(({ id }) => id !== period.id)
+  const ordered = inOrder([...others, period])
+  return ordered[ordered.indexOf(period) - 1]
+}
+
+// Le schéma v11 n'a que `reference_on` pour l'origine de la grille : hériter la recopie, la poser l'écrit.
+function withOrigins(input: TreatmentViewInput, periods: readonly Period[]): TreatmentViewInput {
+  const ordered = inOrder(periods)
+  const origins = new Map(
+    ordered.map((period, index) => {
+      const previous = ordered[index - 1]
+      const inherits =
+        previous !== undefined &&
+        previous.stoppedOn === null &&
+        sameRhythm(previous, period) &&
+        period.referenceOn === previous.referenceOn
+      const own = viewInputOf({ periods: [period], doses: [], today: input.today }).settings[0]!
+      return [period.id, inherits ? null : own.gridOriginOn] as const
+    }),
+  )
+  return {
+    ...input,
+    settings: input.settings.map((setting) =>
+      origins.has(setting.id)
+        ? { ...setting, gridOriginOn: origins.get(setting.id) ?? null }
+        : setting,
+    ),
+  }
+}
+
+/** La vue d'un traitement et le carnet qu'elle lit : les gestes et leur aperçu jouent sur ce carnet. */
+export type TreatmentReading = { view: TreatmentView; input: TreatmentViewInput }
+
 /** R12 : la lecture d'un traitement enregistré ; `null` quand ses données sont illisibles. */
-export function treatmentReading(treatment: TreatmentRecords, today: string): TreatmentView | null {
+export function readTreatment(treatment: TreatmentRecords, today: string): TreatmentReading | null {
   const readable =
     treatment.periods.every(isReadablePeriod) &&
     treatment.doses.every(isReadableDose) &&
     estimatedDues(treatment, today) <= MAX_DUES
   if (!readable) return null
-  return treatmentView(viewInputOf({ ...treatment, today }))
+  const input = withOrigins(viewInputOf({ ...treatment, today }), treatment.periods)
+  return { view: treatmentView(input), input }
 }
 
-// R11 veut ces lignes grisées « · sans effet » : faute de ce texte, elles restent cachées.
+export function treatmentReading(treatment: TreatmentRecords, today: string): TreatmentView | null {
+  return readTreatment(treatment, today)?.view ?? null
+}
+
+// La fiche grise ces lignes « · sans effet » (R11) ; le PDF et les feuilles, qui comptent des prises, ne les montrent pas.
 const HIDDEN: readonly IdleReason[] = ['superseded', 'back-to-date', 'beaten']
 
 function isShown({ effect }: HistoryLine): boolean {

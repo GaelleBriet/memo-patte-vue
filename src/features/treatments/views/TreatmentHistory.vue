@@ -11,7 +11,7 @@ import type {
 import HistoryRow from '@/shared/components/HistoryRow.vue'
 import type { OverflowMenuItem } from '@/shared/components/OverflowMenu.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
-import type { MoveBounds } from '@/shared/domain/treatment-schedule'
+import type { MoveBounds } from '@/shared/domain/dose-calendar'
 
 defineProps<{ history: TreatmentHistory }>()
 
@@ -116,6 +116,15 @@ function select(row: DoseRow, action: string, bounds: MoveBounds | null = null):
           class="treatment-history__item treatment-history__shift"
           muted
           icon="ms:event_upcoming"
+          :date="line.title"
+          :options-label="line.optionsLabel"
+          :items="itemsOf(line)"
+          @select="select(line, $event)"
+        />
+        <HistoryRow
+          v-else-if="line.kind === 'idle'"
+          class="treatment-history__item treatment-history__idle"
+          muted
           :date="line.title"
           :options-label="line.optionsLabel"
           :items="itemsOf(line)"

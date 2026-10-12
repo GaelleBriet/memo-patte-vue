@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { dose, missed, period, plain, postponed, shifted, treatment } from './treatment-fixtures'
 import { detailActions, doseCard, lessPreciseReminder } from '../logic/treatment-card'
-import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
+import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 
@@ -10,7 +10,9 @@ const t = i18n.global.t
 const MATIN_ET_SOIR = period({ times: ['08:00', '20:00'], doseQuantity: 0.3, doseUnit: 'ml' })
 
 function card(history: TreatmentWithHistory, today: string) {
-  return plain(doseCard(t, history, treatmentScheduleOf(history, today), { animal: 'Luna', today }))
+  return plain(
+    doseCard(t, history, treatmentReadingOf(history, today).view, { animal: 'Luna', today }),
+  )
 }
 
 afterEach(() => applyLocale('fr'))
@@ -52,7 +54,7 @@ describe('doseCard', () => {
       dosage: null,
       entries: [
         {
-          due: { periodId: 'p-1', dueOn: '2026-09-28', dueTime: null },
+          due: { settingId: 'p-1', dueOn: '2026-09-28', dueTime: null },
           label: 'Dose du jour',
           value: '28 sept.',
           overdue: false,
@@ -71,14 +73,14 @@ describe('doseCard', () => {
 
     expect(card(history, '2026-09-28').entries).toEqual([
       {
-        due: { periodId: 'p-1', dueOn: '2026-09-28', dueTime: '08:00' },
+        due: { settingId: 'p-1', dueOn: '2026-09-28', dueTime: '08:00' },
         label: 'Dose du jour',
         value: '28 sept. à 8 h',
         overdue: false,
         doneLabel: 'C’est fait : noter la dose de 8 h du 28 sept. de Métacam pour Luna',
       },
       {
-        due: { periodId: 'p-1', dueOn: '2026-09-28', dueTime: '20:00' },
+        due: { settingId: 'p-1', dueOn: '2026-09-28', dueTime: '20:00' },
         label: 'Dose du jour',
         value: '28 sept. à 20 h',
         overdue: false,
@@ -132,7 +134,7 @@ describe('doseCard', () => {
         shifted('2026-09-02', '2026-09-28'),
       ],
     )
-    const schedule = treatmentScheduleOf(history, '2026-09-28')
+    const schedule = treatmentReadingOf(history, '2026-09-28').view
 
     expect(schedule.unloggedDoses).toEqual([])
     expect(card(history, '2026-09-28').entries).toMatchObject([
@@ -214,16 +216,14 @@ describe('doseCard', () => {
     expect(card(resumed, '2026-10-06').end?.value).toBe('Arrêté le 6 oct.')
   })
 
-  it('garde « Arrêté le … » quand la première dose, avancée avant l’arrêt, est due sans être renseignée', () => {
+  it('dit « Arrêté avant la première prise » quand la première dose a été avancée avant le début du réglage', () => {
     const advanced = treatment(
       [period({ startsOn: '2026-10-07', firstDueOn: '2026-10-07', stoppedOn: '2026-10-06' })],
       [postponed('2026-10-07', '2026-10-05')],
     )
 
-    expect(treatmentScheduleOf(advanced, '2026-10-06').unloggedDoses).toEqual([
-      { periodId: 'p-1', dueOn: '2026-10-05', dueTime: null },
-    ])
-    expect(card(advanced, '2026-10-06').end?.value).toBe('Arrêté le 6 oct.')
+    expect(treatmentReadingOf(advanced, '2026-10-06').view.unloggedDoses).toEqual([])
+    expect(card(advanced, '2026-10-06').end?.value).toBe('Arrêté avant la première prise')
   })
 
   it('garde « Arrêté le … » quand une période précédente a eu des doses dues, jamais renseignées', () => {
@@ -327,7 +327,7 @@ describe('lessPreciseReminder (TR-34, Rappels Q6)', () => {
   )
 
   function ligne(history: TreatmentWithHistory, exact: Parameters<typeof lessPreciseReminder>[3]) {
-    return lessPreciseReminder(t, history, treatmentScheduleOf(history, '2026-09-28'), exact)
+    return lessPreciseReminder(t, history, treatmentReadingOf(history, '2026-09-28').view, exact)
   }
 
   it('dit le rappel choisi, peut arriver en retard, quand les rappels précis ont été retirés', () => {

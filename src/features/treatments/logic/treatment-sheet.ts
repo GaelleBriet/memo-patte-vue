@@ -1,11 +1,13 @@
 import { givenWhenMin, isExtraOn } from './treatment-notification'
-import { notifiedDues } from './treatment-other-date'
+import { givesBeforeItsDay, notifiedDues } from './treatment-other-date'
 import { doneGesture } from './treatment-shift-box'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { Treatment } from '../schema/treatment.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
+import type { NoteGesture } from './treatment-dose-change'
 import type { NotifiedDue, TodoDue } from '@/shared/domain/reminder-route'
-import type { DoseGesture, Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import type { Due, TreatmentView } from '@/shared/domain/dose-calendar'
+import type { TreatmentReading } from '@/shared/domain/treatment-reading'
 import { formatClockTime, formatDayMonthOrYear } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
@@ -22,41 +24,32 @@ export function treatmentStopTexts(t: Translate, named: { name: string; animal: 
   }
 }
 
-type SheetSchedule = Pick<
-  TreatmentSchedule,
-  'doses' | 'unloggedDoses' | 'currentDoses' | 'offersShift' | 'noteRefusal' | 'doseFor'
->
-
 /** La période de l'échéance de la ligne, sinon la dernière. */
 export function sheetPeriod(
   history: Pick<TreatmentWithHistory, 'periods'>,
-  schedule: Pick<TreatmentSchedule, 'doses' | 'unloggedDoses' | 'currentDoses'> | null,
+  view: Pick<TreatmentView, 'slots' | 'unloggedDoses'> | null,
   due: TodoDue | null,
 ): TreatmentPeriodRecord | undefined {
   const target =
-    schedule === null || due === null
+    view === null || due === null
       ? undefined
       : due === 'unlogged'
-        ? schedule.unloggedDoses[0]
-        : notifiedDues(schedule, due)[0]?.due
+        ? view.unloggedDoses[0]
+        : notifiedDues(view, due)[0]?.due
   return (
-    history.periods.find(({ id }) => id === target?.periodId) ?? history.periods.at(-1) ?? undefined
+    history.periods.find(({ id }) => id === target?.settingId) ??
+    history.periods.at(-1) ??
+    undefined
   )
 }
 
 export type SheetDoneTarget =
-  | { kind: 'note'; gesture: DoseGesture }
+  | { kind: 'note'; gesture: NoteGesture; heldBy?: string }
   | { kind: 'confirm'; due: Due }
   | { kind: 'already'; givenOn: string }
   | { kind: 'missed' }
   | { kind: 'detail'; dueOn: string }
   | { kind: 'none' }
-
-function givenOnDay(schedule: Pick<TreatmentSchedule, 'doses'>, day: string): boolean {
-  return schedule.doses.some(
-    ({ status, givenOn }) => (status === 'given' || status === 'extra') && givenOn === day,
-  )
-}
 
 /**
  * « Fait aujourd'hui » de la feuille, sur l'échéance de sa ligne (TR-13) : `confirm` quand la prise
@@ -65,40 +58,39 @@ function givenOnDay(schedule: Pick<TreatmentSchedule, 'doses'>, day: string): bo
  * sur la fiche (G11) : `detail`.
  */
 export function sheetDoneTarget(
-  schedule: SheetSchedule,
+  reading: TreatmentReading,
   due: NotifiedDue,
   today: string,
 ): SheetDoneTarget {
-  const dues = notifiedDues(schedule, due)
+  const { view } = reading
+  const dues = notifiedDues(view, due)
   const pending = dues.find(({ status }) => status === 'pending')
   if (pending === undefined) {
     const given = dues.find(({ status }) => status === 'given')
     if (given !== undefined) return { kind: 'already', givenOn: given.givenOn ?? due.dueOn }
     return dues.some(({ status }) => status === 'missed') ? { kind: 'missed' } : { kind: 'none' }
   }
-  if (pending.due.dueOn > today && givenOnDay(schedule, today)) {
+  if (givesBeforeItsDay(view, pending.due, today)) {
     return { kind: 'already', givenOn: today }
   }
-  if (isExtraOn(schedule, pending.due, today)) {
+  if (isExtraOn(view, pending.due, today)) {
     return { kind: 'detail', dueOn: pending.due.dueOn }
   }
-  const tapped = doneGesture(schedule, pending.due, today)
+  const tapped = doneGesture(reading, pending.due, today)
   return tapped.confirm
     ? { kind: 'confirm', due: pending.due }
-    : { kind: 'note', gesture: tapped.gesture }
+    : { kind: 'note', gesture: tapped.gesture, heldBy: tapped.heldBy }
 }
 
 /** Premier jour proposé par « Fait à une autre date » pour l'échéance de la ligne. */
 export function sheetOtherDateMin(
-  history: Pick<TreatmentWithHistory, 'periods'>,
-  schedule: Pick<TreatmentSchedule, 'doses' | 'unloggedDoses' | 'currentDoses' | 'doseFor'>,
+  view: Pick<TreatmentView, 'slots' | 'extraBoundary'>,
   due: NotifiedDue,
   birthDate: string | null,
 ): string | null {
-  const target = notifiedDues(schedule, due).find(({ status }) => status === 'pending')?.due
-  const period = history.periods.find(({ id }) => id === target?.periodId)
-  if (target === undefined || period === undefined) return birthDate
-  return givenWhenMin(schedule, period, target, birthDate)
+  const target = notifiedDues(view, due).find(({ status }) => status === 'pending')?.due
+  if (target === undefined) return birthDate
+  return givenWhenMin(view, target, birthDate)
 }
 
 function dueText(t: Translate, { dueOn, dueTime }: NotifiedDue, today: string): string {

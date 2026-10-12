@@ -68,3 +68,10 @@ INVARIANTS_FROM=620000000 INVARIANTS_SEEDS=3000 INVARIANTS_STEPS=40 \
 La ligne « Campagne : N carnets × M gestes, graines A à B » dit ce qui a été joué ; un réglage
 illisible arrête la campagne ; un échec imprime le carnet avant le geste fautif et les gestes joués.
 Par défaut (suite normale) : 25 carnets × 24 gestes.
+
+## Les services des traitements contre le moteur v2
+
+`src/features/treatments/__tests__/treatment-services.oracle.service.spec.ts` rejoue les gestes du
+moteur v2 par les services (base SQLite en mémoire) et compare les lignes écrites à la lecture du
+moteur seul. Variables : `TREATMENT_ORACLE_FROM` (540000000), `TREATMENT_ORACLE_SEEDS` (20 par défaut),
+`TREATMENT_ORACLE_STEPS` (30). Un geste que l'écran refuse n'est pas joué. Les gestes « Prochaine dose » de la dose du moment passent par le formulaire (report ou date de fin corrigée sur place) ; une suite arrêtée par un refus du formulaire est comptée, et seule une date de fin refusée (TR-6) est admise.

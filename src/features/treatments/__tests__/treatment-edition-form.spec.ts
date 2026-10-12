@@ -45,27 +45,6 @@ describe('validateTreatmentEdition (TR-6, TR-9, TR-28)', () => {
     })
   })
 
-  it('donne à l’aide la date saisie dans « Prochaine dose »', () => {
-    const sansPrise = milbemax(
-      [
-        period({
-          startsOn: '2026-09-20',
-          firstDueOn: '2026-09-20',
-          frequency: { value: 1, unit: 'day' },
-        }),
-      ],
-      [],
-    )
-
-    expect(
-      editionDraftOf(
-        edition({ frequencyValue: '1', frequencyUnit: 'day', nextDoseOn: '2026-10-01' }),
-        sansPrise,
-        TODAY,
-      ).nextDose?.help,
-    ).toEqual({ kind: 'dropped', count: 8 })
-  })
-
   it.each([
     [{ nextDoseOn: '2026-09-27' }, { nextDoseOn: 'treatments.form.errors.nextDoseOnTooEarly' }],
     [
@@ -73,15 +52,17 @@ describe('validateTreatmentEdition (TR-6, TR-9, TR-28)', () => {
       { nextDoseOn: 'treatments.form.errors.nextDoseOnAfterEnd' },
     ],
     [{ endsOn: '2026-07-09' }, { endsOn: 'treatments.form.errors.endsOnBeforeFirstDose' }],
-    [
-      { frequencyValue: '1', endsOn: '2026-09-01', nextDoseOn: TODAY },
-      { endsOn: 'treatments.form.errors.endsOnBeforeNextDose' },
-    ],
   ] as const)('refuse %o', (change, errors) => {
     expect(validateTreatmentEdition(edition(change), milbemax(), TODAY)).toMatchObject({
       success: false,
       errors,
     })
+  })
+
+  it('une date de fin déjà passée est acceptée : elle termine le traitement (TR-6)', () => {
+    const values = edition({ frequencyValue: '1', endsOn: '2026-09-01', nextDoseOn: TODAY })
+
+    expect(validateTreatmentEdition(values, milbemax(), TODAY)).toMatchObject({ success: true })
   })
 
   it('refuse une date de fin avant la dernière prise notée', () => {
@@ -146,10 +127,12 @@ describe('validateTreatmentEdition (TR-6, TR-9, TR-28)', () => {
     })
   })
 
-  it('suit la saisie en cours : nouvelle période dès que la fréquence change, correction sinon', () => {
-    expect(editionDraftOf(edition(), milbemax(), TODAY).change).toBe('correct')
+  it('propose la prochaine dose du moteur : celle de la fiche, ou aujourd’hui quand la fréquence change', () => {
+    expect(editionDraftOf(edition(), milbemax(), TODAY).nextDose).toMatchObject({
+      proposedOn: '2026-10-10',
+    })
     expect(editionDraftOf(edition({ frequencyValue: '1' }), milbemax(), TODAY)).toMatchObject({
-      change: 'open',
+      change: 'edit',
       nextDose: { proposedOn: TODAY, help: { kind: 'calculated-passed', on: '2026-08-10' } },
     })
   })
@@ -157,7 +140,7 @@ describe('validateTreatmentEdition (TR-6, TR-9, TR-28)', () => {
   it('garde les réglages enregistrés tant que la saisie n’est pas valide', () => {
     expect(rhythmOfValues(edition({ frequencyValue: '' }))).toBeNull()
     expect(editionDraftOf(edition({ frequencyValue: '' }), milbemax(), TODAY)).toMatchObject({
-      change: 'correct',
+      change: 'edit',
       nextDose: { proposedOn: '2026-10-10' },
     })
   })

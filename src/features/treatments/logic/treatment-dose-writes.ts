@@ -1,370 +1,80 @@
-import type { PlanIds } from './treatment-settings'
-import type { DoseWrite } from '../schema/treatment-dose.schema'
+import type { DoseWrite, NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { PlannedDoseWrite } from '../schema/treatment-plan.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
-import {
-  familyOf,
-  sameDue,
-  type DoseFields,
-  type DoseGesture,
-  type Due,
-  type Family,
-  type LineChange,
-  type MovedDose,
-  type NotedDose,
-  type TreatmentSchedule,
-} from '@/shared/domain/treatment-schedule'
-
-export type DoseAction =
-  | { kind: 'note'; gesture: DoseGesture }
-  /** Doses à renseigner, écrites en un seul lot ; lève `DoseAlreadyLoggedError` si l'une est déjà notée. */
-  | { kind: 'log'; gestures: readonly DoseGesture[] }
-  | { kind: 'remove'; doseId: string }
-  /** `shiftsFollowing` : la case « Décaler aussi les doses suivantes », cochée par défaut. */
-  | { kind: 'redate'; doseId: string; givenOn: string; shiftsFollowing?: boolean }
-  | { kind: 'move'; doseId: string; to: string; shiftsFollowing?: boolean }
-  | { kind: 'remove-move'; doseId: string }
-  | { kind: 'remove-shift'; doseId: string }
-
-export type DoseChange = {
-  writes: DoseWrite[]
-  /** Date d'une prise déjà donnée pour cette échéance : rien n'est écrit. */
-  alreadyGivenOn: string | null
-  /** Déplacement qui suivait une prise redatée : gardé à sa date, ou perdu. */
-  postponement: { kept: true; nextDueDate: string; followed?: true } | { kept: false } | null
-  /** Ce qu'un geste sur un report en a fait : sa ligne telle qu'écrite, ou `removed` ; `null` hors de ces gestes ou sans changement. */
-  moved: DoseFields | 'removed' | null
-  /** La prise supprimée ou marquée oubliée, ou le report supprimé, laisse sa ligne de décalage (N6). */
-  shiftKept: boolean
-  /** Prise notée sans son décalage, qui ferait passer ce report seul : son arrivée (Q2 a). */
-  heldBy?: string
-  /** Prise notée en retard sans case : les journées que son décalage fait sortir de la date de fin (Q4). */
-  lostToEnd?: string[]
-  /** Les journées que ce décalage, non écrit, aurait fait sortir de la date de fin (Q4). */
-  keptToEnd?: string[]
-}
-
-export class DoseAlreadyLoggedError extends Error {}
+import type { LineChange, LineFields } from '@/shared/domain/dose-calendar'
 
 type History = Pick<TreatmentWithHistory, 'id' | 'animalId' | 'doses'>
 
-// TR-25 : les lignes d'une même échéance et d'une même famille (deux appareils) se corrigent ensemble.
-function linesOf({ doses }: History, due: Due, family: Family): NewTreatmentDose[] {
-  return doses.filter((dose) => sameDue(dose, due) && familyOf(dose) === family)
+type DoseFields = Extract<DoseWrite, { action: 'create' }>['dose']
+
+/** Le schéma v11 garde `next_due_date` pour toute ligne : une prise l'écrit sans le relire (plan §3). */
+export function doseFieldsOf(line: LineFields): DoseFields {
+  return {
+    periodId: line.settingId,
+    dueOn: line.dueOn,
+    dueTime: line.dueTime,
+    givenOn: line.givenOn,
+    status: line.status,
+    nextDueDate: line.targetOn ?? line.dueOn,
+  }
 }
 
-function lineById({ doses }: History, id: string): NewTreatmentDose {
-  const line = doses.find((dose) => dose.id === id)
-  if (line === undefined) throw new Error(`Prise introuvable : ${id}`)
-  return line
-}
-
-function sisterLines(history: History, id: string): NewTreatmentDose[] {
-  const line = lineById(history, id)
-  return linesOf(history, line, familyOf(line))
-}
-
-/** La dose d'une ligne « Reportée » ou « Avancée », à sa nouvelle date. */
-export function movedDueOf(
-  line: Pick<NewTreatmentDose, 'periodId' | 'dueTime' | 'nextDueDate'>,
-): Due {
-  return { periodId: line.periodId, dueOn: line.nextDueDate, dueTime: line.dueTime }
-}
-
-function hasFields(line: NewTreatmentDose, dose: DoseFields): boolean {
+function isUnchanged(line: NewTreatmentDose | undefined, dose: DoseFields): boolean {
   return (
-    sameDue(line, dose) &&
+    line !== undefined &&
+    line.periodId === dose.periodId &&
+    line.dueOn === dose.dueOn &&
+    line.dueTime === dose.dueTime &&
     line.givenOn === dose.givenOn &&
     line.status === dose.status &&
     line.nextDueDate === dose.nextDueDate
   )
 }
 
-function rewrites(lines: NewTreatmentDose[], dose: DoseFields): DoseWrite[] {
-  return lines
-    .filter((line) => !hasFields(line, dose))
-    .map(({ id }) => ({ action: 'rewrite', id, dose }))
-}
-
-function deletes(ids: readonly string[]): DoseWrite[] {
-  return ids.map((id) => ({ action: 'delete', id }))
-}
-
-function sistersOf(history: History, id: string): string[] {
-  return sisterLines(history, id)
-    .filter((other) => other.id !== id)
-    .map((other) => other.id)
-}
-
-function created(history: History, dose: DoseFields, newId: () => string): DoseWrite {
-  return {
-    action: 'create',
-    id: newId(),
-    treatmentId: history.id,
-    animalId: history.animalId,
-    dose,
-  }
-}
-
-function lineWrites(history: History, change: LineChange, newId: () => string): DoseWrite[] {
-  switch (change.action) {
-    case 'create':
-      return [created(history, change.dose, newId)]
-    case 'rewrite':
-      return [
-        { action: 'rewrite', id: change.doseId, dose: change.dose },
-        ...deletes(sistersOf(history, change.doseId)),
-      ]
-    case 'delete':
-      return deletes([change.doseId, ...sistersOf(history, change.doseId)])
-    case 'none':
-      return []
-  }
-}
-
-function movedChange(
+/** Les écritures d'un geste : chaque `LineChange` du moteur devient une écriture du repository. */
+export function doseWritesOf(
   history: History,
-  { report, shift }: MovedDose,
-  newId: () => string,
-): Pick<DoseChange, 'writes' | 'moved'> {
-  return {
-    writes: [...lineWrites(history, report, newId), ...lineWrites(history, shift, newId)],
-    moved: report.action === 'none' ? null : report.action === 'delete' ? 'removed' : report.dose,
-  }
-}
-
-function withStaleDeletes(writes: DoseWrite[], schedule: TreatmentSchedule): DoseWrite[] {
-  if (writes.length === 0) return writes
-  const unique = writes.filter(
-    (write, index) =>
-      write.action === 'create' || writes.findIndex(({ id }) => id === write.id) === index,
-  )
-  const touched = new Set(unique.map(({ id }) => id))
-  return [...unique, ...deletes(schedule.staleDoseIds.filter((id) => !touched.has(id)))]
-}
-
-// Écrit sur les lignes de la même famille, ou en crée une.
-function familyWrites(
-  history: History,
-  dose: DoseFields,
-  lines: NewTreatmentDose[],
+  changes: readonly LineChange[],
   newId: () => string,
 ): DoseWrite[] {
-  return lines.length > 0 ? rewrites(lines, dose) : [created(history, dose, newId)]
-}
-
-// Une prise en plus est rangée sous sa date réelle, avec les lignes de sa famille.
-function noteWrites(
-  history: History,
-  { dose, shift }: NotedDose,
-  notes: NewTreatmentDose[],
-  newId: () => string,
-): DoseWrite[] {
-  const lines = familyOf(dose) === 'note' ? notes : linesOf(history, dose, familyOf(dose))
-  const writes = familyWrites(history, dose, lines, newId)
-  if (shift === null) return writes
-  return [...writes, ...familyWrites(history, shift, linesOf(history, shift, 'shift'), newId)]
-}
-
-function dueKey({ periodId, dueOn, dueTime }: Due): string {
-  return `${periodId} ${dueOn} ${dueTime ?? ''}`
-}
-
-function logWrites(
-  history: History,
-  schedule: TreatmentSchedule,
-  gestures: readonly DoseGesture[],
-  newId: () => string,
-): DoseWrite[] {
-  const noted = new Set(schedule.doses.filter((dose) => familyOf(dose) === 'note').map(dueKey))
-  const logged = gestures.find(({ due }) => noted.has(dueKey(due)))
-  if (logged !== undefined) {
-    throw new DoseAlreadyLoggedError(`Dose déjà notée : ${dueKey(logged.due)}`)
-  }
-  const notesOfDue = new Map<string, NewTreatmentDose[]>()
-  for (const line of history.doses.filter((dose) => familyOf(dose) === 'note')) {
-    notesOfDue.set(dueKey(line), [...(notesOfDue.get(dueKey(line)) ?? []), line])
-  }
-  return gestures.flatMap((gesture) =>
-    noteWrites(
-      history,
-      schedule.doseFor(gesture),
-      notesOfDue.get(dueKey(gesture.due)) ?? [],
-      newId,
-    ),
-  )
-}
-
-function keepsShift(history: History, schedule: TreatmentSchedule, id: string): boolean {
-  const line = lineById(history, id)
-  return familyOf(line) !== 'extra' && hasShift(history, schedule, line)
-}
-
-function hasShift(history: History, schedule: TreatmentSchedule, due: Due): boolean {
-  return linesOf(history, schedule.shiftDueOf(due), 'shift').length > 0
-}
-
-// Redatée, une prise en plus prend la place d'une ligne de l'échéance qu'elle vise désormais, ou
-// garde la sienne.
-function extraRedateWrites(
-  history: History,
-  schedule: TreatmentSchedule,
-  { doseId, givenOn }: { doseId: string; givenOn: string },
-  newId: () => string,
-): DoseWrite[] {
-  const { dose, shift } = schedule.redate(doseId, givenOn)
-  const extras = sisterLines(history, doseId)
-  const targets = linesOf(history, dose, familyOf(dose)).filter((line) => !extras.includes(line))
-  const lines =
-    targets.length > 0
-      ? [...rewrites(targets, dose), ...deletes(extras.map(({ id }) => id))]
-      : rewrites(extras, dose)
-  return [...lines, ...lineWrites(history, shift, newId)]
-}
-
-function changeOf(
-  history: History,
-  schedule: TreatmentSchedule,
-  action: DoseAction,
-  newId: () => string,
-): DoseChange {
-  const unchanged = { alreadyGivenOn: null, postponement: null, moved: null, shiftKept: false }
-  switch (action.kind) {
-    case 'note': {
-      const { gesture } = action
-      const noted = schedule.doses.find(
-        (dose) => sameDue(dose, gesture.due) && familyOf(dose) === 'note',
-      )
-      if (gesture.kind === 'given' && noted?.status === 'given') {
-        return { ...unchanged, writes: [], alreadyGivenOn: noted.givenOn }
+  return changes.flatMap((change): DoseWrite[] => {
+    switch (change.action) {
+      case 'create':
+        return [
+          {
+            action: 'create',
+            id: newId(),
+            treatmentId: history.id,
+            animalId: history.animalId,
+            dose: doseFieldsOf(change.line),
+          },
+        ]
+      case 'rewrite': {
+        const dose = doseFieldsOf(change.line)
+        const existing = history.doses.find(({ id }) => id === change.id)
+        return isUnchanged(existing, dose) ? [] : [{ action: 'rewrite', id: change.id, dose }]
       }
-      const written = schedule.doseFor(gesture)
-      const isRepeated =
-        familyOf(written.dose) === 'extra' &&
-        schedule.doses.some((dose) => familyOf(dose) === 'extra' && sameDue(dose, written.dose))
-      if (isRepeated) return { ...unchanged, writes: [], alreadyGivenOn: written.dose.givenOn }
-      const notes = linesOf(history, gesture.due, 'note')
-      return {
-        ...unchanged,
-        writes: noteWrites(history, written, notes, newId),
-        ...(written.heldBy === undefined ? {} : { heldBy: written.heldBy }),
-        ...(written.lostToEnd === undefined ? {} : { lostToEnd: written.lostToEnd }),
-        ...(written.keptToEnd === undefined ? {} : { keptToEnd: written.keptToEnd }),
-        shiftKept:
-          gesture.kind === 'missed' && notes.length > 0 && hasShift(history, schedule, gesture.due),
-      }
+      case 'delete':
+        return [{ action: 'delete', id: change.id }]
     }
-    case 'log':
-      return { ...unchanged, writes: logWrites(history, schedule, action.gestures, newId) }
-    case 'remove':
-      return {
-        ...unchanged,
-        writes: deletes(sisterLines(history, action.doseId).map(({ id }) => id)),
-        shiftKept: keepsShift(history, schedule, action.doseId),
-      }
-    case 'redate': {
-      if (familyOf(lineById(history, action.doseId)) === 'extra') {
-        return { ...unchanged, writes: extraRedateWrites(history, schedule, action, newId) }
-      }
-      const { dose, shift, postponement } = schedule.redate(
-        action.doseId,
-        action.givenOn,
-        action.shiftsFollowing,
-      )
-      const writes = [
-        ...rewrites(sisterLines(history, action.doseId), dose),
-        ...lineWrites(history, shift, newId),
-      ]
-      if (postponement === null) return { ...unchanged, writes }
-      if (!postponement.kept) {
-        const lost = postponement.doseIds.flatMap((id) => [id, ...sistersOf(history, id)])
-        const { followedOn } = postponement
-        return {
-          ...unchanged,
-          writes: [...writes, ...deletes([...new Set(lost)])],
-          postponement:
-            followedOn === undefined
-              ? { kept: false }
-              : { kept: true, nextDueDate: followedOn, followed: true },
-        }
-      }
-      const kept = (ids: string[], line: DoseFields) =>
-        ids.flatMap((id): DoseWrite[] => [
-          { action: 'rewrite', id, dose: line },
-          ...deletes(sistersOf(history, id).filter((other) => !ids.includes(other))),
-        ])
-      return {
-        ...unchanged,
-        writes: [
-          ...writes,
-          ...kept(postponement.doseIds, postponement.line),
-          ...kept(postponement.shiftIds, postponement.shiftLine),
-        ],
-        postponement: {
-          kept: true,
-          nextDueDate: postponement.line.nextDueDate,
-          ...(postponement.followed === true ? { followed: true as const } : {}),
-        },
-      }
-    }
-    case 'move': {
-      const moved = schedule.move(
-        movedDueOf(lineById(history, action.doseId)),
-        action.to,
-        action.shiftsFollowing,
-      )
-      return { ...unchanged, ...movedChange(history, moved, newId) }
-    }
-    case 'remove-move':
-      return {
-        ...unchanged,
-        ...movedChange(history, schedule.removeMove(action.doseId), newId),
-        shiftKept: keepsShift(history, schedule, action.doseId),
-      }
-    case 'remove-shift':
-      return {
-        ...unchanged,
-        writes: lineWrites(history, schedule.removeShift(action.doseId), newId),
-      }
-  }
+  })
 }
 
-/** Écritures d'un geste sur les prises, calculées par le moteur ; lève quand il le refuse. */
-export function doseChange(
+/** Écritures de « Modifier » : celles d'un geste, sans le traitement ni l'animal que `applyPlan` pose. */
+export function plannedDoseWritesOf(
   history: History,
-  schedule: TreatmentSchedule,
-  action: DoseAction,
+  changes: readonly LineChange[],
   newId: () => string,
-): DoseChange {
-  const change = changeOf(history, schedule, action, newId)
-  return { ...change, writes: withStaleDeletes(change.writes, schedule) }
-}
-
-function plannedLineWrites(change: LineChange, newId: string): PlannedDoseWrite[] {
-  switch (change.action) {
-    case 'none':
-      return []
-    case 'delete':
-      return [{ action: 'delete', id: change.doseId }]
-    case 'create':
-      return [{ action: 'create', id: newId, dose: change.dose }]
-    case 'rewrite':
-      return [{ action: 'rewrite', id: change.doseId, dose: change.dose }]
-  }
-}
-
-/** Écritures de « Modifier » et « Reprendre » : les prises périmées, puis le déplacement de la prochaine dose. */
-export function plannedDoseWrites(
-  schedule: TreatmentSchedule,
-  move: MovedDose | null,
-  ids: PlanIds,
 ): PlannedDoseWrite[] {
-  const stale: PlannedDoseWrite[] = schedule.staleDoseIds.map((id) => ({ action: 'delete', id }))
-  if (move === null) return stale
-  return [
-    ...stale,
-    ...plannedLineWrites(move.report, ids.doseId),
-    ...plannedLineWrites(move.shift, ids.shiftId),
-  ]
+  return doseWritesOf(history, changes, newId).flatMap((write): PlannedDoseWrite[] => {
+    switch (write.action) {
+      case 'create':
+        return [{ action: 'create', id: write.id, dose: write.dose }]
+      case 'rewrite':
+      case 'delete':
+        return [write]
+      case 'restore':
+        return []
+    }
+  })
 }

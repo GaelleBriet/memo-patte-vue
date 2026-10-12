@@ -1,7 +1,10 @@
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
-import type { DoseGesture } from '@/shared/domain/treatment-schedule'
-import { DoseAlreadyLoggedError, doseChange } from '../logic/treatment-dose-writes'
-import { readableScheduleOf, treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
+import {
+  DoseAlreadyLoggedError,
+  doseChange,
+  type NoteGesture,
+} from '../logic/treatment-dose-change'
+import { readableReadingOf, treatmentReadingOf } from '../logic/treatment-reading-adapter'
 import {
   createWriteQueue,
   treatmentWriteQueue,
@@ -71,30 +74,33 @@ export function createTreatmentStopService({
     return history
   }
 
+  // Le réglage en cours est celui que lit le moteur, pas la période que la base classe en dernier.
+  function currentPeriodId(history: TreatmentWithHistory): string {
+    const current = readableReadingOf(history, today())?.view.currentSetting
+    const id = current?.id ?? history.periods.at(-1)?.id
+    if (id === undefined) throw new Error(`Traitement sans période : ${history.id}`)
+    return id
+  }
+
   /** Rien à écrire : traitement déjà arrêté, ou fini par sa date de fin ; `null` sinon. */
   function unchanged(history: TreatmentWithHistory): StoppedTreatment | null {
-    const schedule = readableScheduleOf(history, today())
-    const isStopped = (history.periods.at(-1)?.stoppedOn ?? null) !== null
-    if (!isStopped && schedule?.phase !== 'ended') return null
-    return {
-      animalId: history.animalId,
-      stopped: false,
-      finished: schedule?.finished ?? false,
-      undo: [],
-    }
+    const view = readableReadingOf(history, today())?.view
+    if (view === undefined || (view.phase !== 'stopped' && view.phase !== 'ended')) return null
+    return { animalId: history.animalId, stopped: false, finished: view.finished, undo: [] }
   }
 
   async function logAndStop(
     history: TreatmentWithHistory,
-    gestures: readonly DoseGesture[],
+    gestures: readonly NoteGesture[],
   ): Promise<DoseWrite[]> {
-    const schedule = treatmentScheduleOf(history, today())
-    const { writes } = doseChange(history, schedule, { kind: 'log', gestures }, newId)
+    const reading = treatmentReadingOf(history, today())
+    const { writes } = doseChange(history, reading, { kind: 'log', gestures }, newId)
     const at = now().toISOString()
     const repository = await periods()
+    const periodId = currentPeriodId(history)
     const stop = [
-      repository.notStoppedGuardStatement(history.id),
-      repository.stopStatement(history.id, today(), at),
+      repository.notStoppedGuardStatement(periodId),
+      repository.stopStatement(periodId, today(), at),
     ]
     try {
       return await (await doses()).applyBatch(writes, at, stop)
@@ -108,7 +114,7 @@ export function createTreatmentStopService({
 
   async function stopped(
     treatmentId: string,
-    gestures: readonly DoseGesture[],
+    gestures: readonly NoteGesture[],
   ): Promise<StoppedTreatment> {
     const history = await historyOf(treatmentId)
     const notStopped = unchanged(history)
@@ -125,17 +131,20 @@ export function createTreatmentStopService({
         return stoppedElsewhere
       }
     }
-    const stopped = gestures.length > 0 || (await (await periods()).stop(treatmentId, today()))
+    const stopped =
+      gestures.length > 0 || (await (await periods()).stop(currentPeriodId(history), today()))
     await reminders.reschedule(treatmentId)
-    const finished = readableScheduleOf(await historyOf(treatmentId), today())?.finished ?? false
+    const finished =
+      readableReadingOf(await historyOf(treatmentId), today())?.view.finished ?? false
     return { animalId: history.animalId, stopped, finished, undo }
   }
 
   async function undone(treatmentId: string, writes: readonly DoseWrite[]): Promise<void> {
-    if (writes.length === 0) await (await periods()).undoStop(treatmentId)
+    const periodId = currentPeriodId(await historyOf(treatmentId))
+    if (writes.length === 0) await (await periods()).undoStop(periodId)
     else {
       const at = now().toISOString()
-      const undoStop = (await periods()).undoStopStatement(treatmentId, at)
+      const undoStop = (await periods()).undoStopStatement(periodId, at)
       await (await doses()).applyBatch(writes, at, [undoStop])
     }
     await reminders.reschedule(treatmentId)
@@ -149,7 +158,7 @@ export function createTreatmentStopService({
      * Lève pour un traitement introuvable, et une `DoseAlreadyLoggedError` quand une dose du lot est
      * déjà notée.
      */
-    stop(treatmentId: string, gestures: readonly DoseGesture[] = []): Promise<StoppedTreatment> {
+    stop(treatmentId: string, gestures: readonly NoteGesture[] = []): Promise<StoppedTreatment> {
       return queue(() => stopped(treatmentId, gestures))
     },
 

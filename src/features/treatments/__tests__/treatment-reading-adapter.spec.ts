@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import {
   currentPeriodOf,
-  readableScheduleOf,
-  treatmentScheduleOf,
-} from '../logic/treatment-schedule-adapter'
+  readableReadingOf,
+  treatmentReadingOf,
+} from '../logic/treatment-reading-adapter'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 
@@ -46,22 +46,22 @@ function metacam(periods: TreatmentPeriodRecord[]): TreatmentWithHistory {
   }
 }
 
-describe('treatmentScheduleOf', () => {
-  it('calcule le calendrier pour le jour donné, sans lire l’horloge', () => {
+describe('treatmentReadingOf', () => {
+  it('lit le calendrier pour le jour donné, sans lire l’horloge', () => {
     const treatment = metacam([period({ firstDueOn: '2026-09-10' })])
 
-    expect(treatmentScheduleOf(treatment, '2026-09-05')).toMatchObject({
+    expect(treatmentReadingOf(treatment, '2026-09-05').view).toMatchObject({
       phase: 'upcoming',
-      currentDoses: [{ periodId: 'p-1', dueOn: '2026-09-10', dueTime: '20:00' }],
+      currentDoses: [{ settingId: 'p-1', dueOn: '2026-09-10', dueTime: '20:00' }],
     })
-    expect(treatmentScheduleOf(treatment, '2026-09-10').phase).toBe('today')
-    expect(treatmentScheduleOf(treatment, '2026-09-12').unloggedDoses).toEqual([
-      { periodId: 'p-1', dueOn: '2026-09-10', dueTime: '20:00' },
-      { periodId: 'p-1', dueOn: '2026-09-11', dueTime: '20:00' },
+    expect(treatmentReadingOf(treatment, '2026-09-10').view.phase).toBe('today')
+    expect(treatmentReadingOf(treatment, '2026-09-12').view.unloggedDoses).toEqual([
+      { settingId: 'p-1', dueOn: '2026-09-10', dueTime: '20:00' },
+      { settingId: 'p-1', dueOn: '2026-09-11', dueTime: '20:00' },
     ])
   })
 
-  it('transmet les prises telles que la base les rend', () => {
+  it('lit les prises telles que la base les rend', () => {
     const treatment: TreatmentWithHistory = {
       ...metacam([period()]),
       doses: [
@@ -82,16 +82,16 @@ describe('treatmentScheduleOf', () => {
       ],
     }
 
-    const schedule = treatmentScheduleOf(treatment, '2026-09-02')
+    const { view, input } = treatmentReadingOf(treatment, '2026-09-02')
 
-    expect(schedule.doses).toEqual(treatment.doses)
-    expect(schedule.currentPeriodHasDose).toBe(true)
+    expect(view.history.map(({ line }) => line.id)).toEqual(['d-1'])
+    expect(input.lines).toMatchObject([{ id: 'd-1', settingId: 'p-1', targetOn: null }])
   })
 
   it('lève une RangeError quand une donnée est illisible', () => {
     const treatment = metacam([period({ times: ['8h'] })])
 
-    expect(() => treatmentScheduleOf(treatment, '2026-09-05')).toThrow(RangeError)
+    expect(() => treatmentReadingOf(treatment, '2026-09-05')).toThrow(RangeError)
   })
 })
 
@@ -100,7 +100,9 @@ describe('currentPeriodOf', () => {
     const reprise = period({ id: 'p-2', startsOn: '2026-09-20', times: ['08:00', '20:00'] })
     const treatment = metacam([period({ stoppedOn: '2026-09-20' }), reprise])
 
-    expect(currentPeriodOf(treatment, treatmentScheduleOf(treatment, '2026-09-21'))).toBe(reprise)
+    expect(currentPeriodOf(treatment, treatmentReadingOf(treatment, '2026-09-21').view)).toBe(
+      reprise,
+    )
   })
 
   it('départage deux périodes du même jour par leur saisie, quel que soit leur ordre de lecture', () => {
@@ -108,20 +110,20 @@ describe('currentPeriodOf', () => {
     const seconde = period({ id: 'p-a', createdAt: '2026-09-01T09:00:00.000Z' })
     const treatment = metacam([seconde, premiere])
 
-    expect(currentPeriodOf(treatment, treatmentScheduleOf(treatment, '2026-09-21'))).toBe(seconde)
+    expect(currentPeriodOf(treatment, treatmentReadingOf(treatment, '2026-09-21').view)).toBe(
+      seconde,
+    )
   })
 
   it('ne rend rien sans période', () => {
-    const treatment = metacam([])
-
-    expect(currentPeriodOf(treatment, treatmentScheduleOf(treatment, '2026-09-21'))).toBeNull()
+    expect(currentPeriodOf(metacam([]), { currentSetting: null })).toBeNull()
   })
 })
 
-describe('readableScheduleOf', () => {
-  it('rend le calendrier d’un traitement lisible, rien pour un traitement illisible ou absent', () => {
-    expect(readableScheduleOf(metacam([period()]), '2026-09-05')?.phase).toBe('today')
-    expect(readableScheduleOf(metacam([period({ times: ['8h'] })]), '2026-09-05')).toBeNull()
-    expect(readableScheduleOf(null, '2026-09-05')).toBeNull()
+describe('readableReadingOf', () => {
+  it('rend la lecture d’un traitement lisible, rien pour un traitement illisible ou absent', () => {
+    expect(readableReadingOf(metacam([period()]), '2026-09-05')?.view.phase).toBe('today')
+    expect(readableReadingOf(metacam([period({ times: ['8h'] })]), '2026-09-05')).toBeNull()
+    expect(readableReadingOf(null, '2026-09-05')).toBeNull()
   })
 })

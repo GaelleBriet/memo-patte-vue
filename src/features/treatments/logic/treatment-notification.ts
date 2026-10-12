@@ -1,9 +1,7 @@
-import { addDays, differenceInCalendarDays, format, parseISO, sub } from 'date-fns'
-
 import { notifiedDues } from './treatment-other-date'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { NotifiedDue } from '@/shared/domain/reminder-route'
-import type { Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import type { Due, TreatmentView } from '@/shared/domain/dose-calendar'
 import {
   capitalizeFirst,
   formatClockTime,
@@ -24,20 +22,17 @@ export type NotificationTarget =
   | { kind: 'sheet' }
   | { kind: 'none' }
 
-type NotifiedSchedule = Pick<
-  TreatmentSchedule,
-  'doses' | 'unloggedDoses' | 'currentDoses' | 'finished'
->
+type NotifiedView = Pick<TreatmentView, 'slots' | 'finished'>
 
 /** Ce que fait « C'est fait » d'une notification, d'après le moteur d'échéances. */
 export function notificationTarget(
-  schedule: NotifiedSchedule,
+  view: NotifiedView,
   notified: NotifiedDue,
   today: string,
 ): NotificationTarget {
-  const dues = notifiedDues(schedule, notified)
+  const dues = notifiedDues(view, notified)
   if (dues.length === 0 || notified.dueOn > today) {
-    return schedule.finished ? { kind: 'none' } : { kind: 'sheet' }
+    return view.finished ? { kind: 'none' } : { kind: 'sheet' }
   }
   const pending = dues.filter(({ status }) => status === 'pending')
   if (pending.length === 0) {
@@ -59,50 +54,19 @@ export function isEveryDay({ frequency }: Pick<TreatmentPeriodRecord, 'frequency
   return frequency.value === 1 && frequency.unit === 'day'
 }
 
-export function isExtraOn(schedule: Pick<TreatmentSchedule, 'doseFor'>, due: Due, givenOn: string) {
-  try {
-    return schedule.doseFor({ kind: 'given', due, givenOn }).dose.status === 'extra'
-  } catch (cause) {
-    if (cause instanceof RangeError) return true
-    throw cause
-  }
-}
-
-function day(date: Date): string {
-  return format(date, 'yyyy-MM-dd')
-}
-
-/**
- * Premier jour où une prise note encore cette échéance : avant, elle serait une prise en plus (G11) ;
- * `null` : pas de borne.
- */
-export function earliestGivenOn(
-  schedule: Pick<TreatmentSchedule, 'doseFor'>,
-  { frequency }: Pick<TreatmentPeriodRecord, 'frequency'>,
-  due: Due,
-): string | null {
-  const steps = { day: 'days', week: 'weeks', month: 'months' } as const
-  let low = day(sub(parseISO(due.dueOn), { [steps[frequency.unit]]: frequency.value, days: 1 }))
-  if (!isExtraOn(schedule, due, low)) return null
-  let high = due.dueOn
-  let gap = differenceInCalendarDays(parseISO(high), parseISO(low))
-  while (gap > 1) {
-    const middle = day(addDays(parseISO(low), Math.floor(gap / 2)))
-    if (isExtraOn(schedule, due, middle)) low = middle
-    else high = middle
-    gap = differenceInCalendarDays(parseISO(high), parseISO(low))
-  }
-  return high
+/** R5, G11 : une prise avant ce jour serait une prise en plus ; `null` : pas de borne. */
+export function isExtraOn(view: Pick<TreatmentView, 'extraBoundary'>, due: Due, givenOn: string) {
+  const boundary = view.extraBoundary(due)
+  return boundary !== null && givenOn < boundary
 }
 
 /** Premier jour du calendrier de « Une autre date » : ni prise en plus, ni avant la naissance. */
 export function givenWhenMin(
-  schedule: Pick<TreatmentSchedule, 'doseFor'>,
-  period: Pick<TreatmentPeriodRecord, 'frequency'>,
+  view: Pick<TreatmentView, 'extraBoundary'>,
   due: Due,
   birthDate: string | null,
 ): string | null {
-  const earliest = earliestGivenOn(schedule, period, due)
+  const earliest = view.extraBoundary(due)
   if (earliest === null || birthDate === null) return earliest ?? birthDate
   return earliest > birthDate ? earliest : birthDate
 }

@@ -1,18 +1,11 @@
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import { readableTreatmentSchedule } from '@/shared/domain/readable-treatment-schedule'
-import { treatmentSchedule, type TreatmentSchedule } from '@/shared/domain/treatment-schedule'
-
-export { endedOnOf } from '@/shared/domain/treatment-end'
+import type { TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 
 type History = Pick<TreatmentWithHistory, 'periods' | 'doses'>
 
-/** Lève une `RangeError` quand une période ou une prise est illisible. */
-export function treatmentScheduleOf(treatment: History, today: string): TreatmentSchedule {
-  return treatmentSchedule({ periods: treatment.periods, doses: treatment.doses, today })
-}
-
-/** `null` sans traitement, ou quand le moteur d'échéances le refuse comme illisible. */
+/** Les rappels lisent encore l'ancien moteur : le pas 8 de l'épic #758 les passe à la vue. */
 export function readableScheduleOf(
   treatment: History | null,
   today: string,

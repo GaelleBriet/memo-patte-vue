@@ -2,8 +2,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
-import { DoseAlreadyLoggedError } from '../logic/treatment-dose-writes'
-import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
+import { DoseAlreadyLoggedError, type NoteGesture } from '../logic/treatment-dose-change'
+import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
 import { choiceGestures } from '../logic/treatment-choose-days'
 import {
   createTreatmentDosesRepository,
@@ -14,7 +14,6 @@ import {
   type TreatmentsRepository,
 } from '../repository/treatments.repository'
 import { createTreatmentDosesService } from '../service/treatment-doses.service'
-import type { DoseGesture } from '@/shared/domain/treatment-schedule'
 
 const MILO = '11111111-1111-4111-8111-111111111111'
 const PANACUR = '22222222-2222-4222-8222-222222222222'
@@ -38,7 +37,7 @@ describe('renseigner les doses non renseignées (TR-17)', () => {
 
   async function schedule() {
     const history = await treatments.getWithHistory(PANACUR)
-    return treatmentScheduleOf(history!, TODAY)
+    return treatmentReadingOf(history!, TODAY).view
   }
 
   function statuses() {
@@ -90,9 +89,13 @@ describe('renseigner les doses non renseignées (TR-17)', () => {
   it('« Choisir les jours » écrit 20 données et 5 oubliées en un seul lot, sans déplacer la dose du jour', async () => {
     const applyBatch = vi.fn<TreatmentDosesRepository['applyBatch']>(doses.applyBatch)
     const before = await schedule()
-    const gestures = before.unloggedDoses.map((due, index): DoseGesture =>
-      index < 5 ? { kind: 'missed', due } : { kind: 'given', due, givenOn: due.dueOn },
-    )
+    const gestures = before.unloggedDoses.map((due, index): NoteGesture => ({
+      kind: 'note',
+      due,
+      status: index < 5 ? 'missed' : 'given',
+      givenOn: due.dueOn,
+      shiftsFollowing: false,
+    }))
 
     await serviceWith(applyBatch).apply(PANACUR, { kind: 'log', gestures })
     const after = await schedule()
@@ -103,8 +106,8 @@ describe('renseigner les doses non renseignées (TR-17)', () => {
     await expect(statuses()).resolves.toEqual({ given: 20, missed: 5 })
     expect(after.unloggedDoses).toEqual([])
     expect(after.currentDoses).toEqual(before.currentDoses)
-    expect(after.upcoming(5)).toEqual(before.upcoming(5))
-    expect(after.doses.every(({ periodId }) => periodId === PANACUR)).toBe(true)
+    expect(after.upcoming({ limit: 5 })).toEqual(before.upcoming({ limit: 5 }))
+    expect(after.history.every(({ line }) => line.settingId === PANACUR)).toBe(true)
   })
 
   it('« Annuler » défait tout le geste en un seul lot', async () => {
@@ -157,7 +160,13 @@ describe('renseigner les doses non renseignées (TR-17)', () => {
 
       const noted = await serviceWith(doses.applyBatch).apply(PANACUR, {
         kind: 'note',
-        gesture: { kind: 'given', due: due!, givenOn: TODAY },
+        gesture: {
+          kind: 'note',
+          due: due!,
+          status: 'given',
+          givenOn: TODAY,
+          shiftsFollowing: false,
+        },
       })
 
       expect(due).toMatchObject({ dueOn: TODAY })
@@ -184,7 +193,13 @@ describe('renseigner les doses non renseignées (TR-17)', () => {
     const service = serviceWith(doses.applyBatch)
     await service.apply(PANACUR, {
       kind: 'note',
-      gesture: { kind: 'missed', due: unloggedDoses[3]! },
+      gesture: {
+        kind: 'note',
+        due: unloggedDoses[3]!,
+        status: 'missed',
+        givenOn: unloggedDoses[3]!.dueOn,
+        shiftsFollowing: false,
+      },
     })
 
     await expect(
@@ -218,7 +233,13 @@ describe('renseigner les doses non renseignées (TR-17)', () => {
     const late = serviceWith(async (writes, at) => {
       await serviceWith(doses.applyBatch).apply(PANACUR, {
         kind: 'note',
-        gesture: { kind: 'missed', due: unloggedDoses[10]! },
+        gesture: {
+          kind: 'note',
+          due: unloggedDoses[10]!,
+          status: 'missed',
+          givenOn: unloggedDoses[10]!.dueOn,
+          shiftsFollowing: false,
+        },
       })
       return doses.applyBatch(writes, at)
     })

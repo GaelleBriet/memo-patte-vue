@@ -24,12 +24,11 @@ import type {
 import type { Treatment } from '../schema/treatment.schema'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { DoseWrite } from '../schema/treatment-dose.schema'
-import type { DoseAction } from '../logic/treatment-dose-writes'
+import type { DoseAction, NoteGesture } from '../logic/treatment-dose-change'
 import type { TreatmentsRepository as FullTreatmentsRepository } from '../repository/treatments.repository'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import { track } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
-import type { DoseGesture } from '@/shared/domain/treatment-schedule'
 import { useAnimalScopedList } from '@/shared/composables/use-animal-scoped-list'
 import { recordUsageSignal } from '@/core/usage/usage-signals'
 
@@ -184,7 +183,7 @@ export const useTreatmentsStore = defineStore('treatments', () => {
     /** `gestures` : doses renseignées avec l'arrêt, dans le même geste. */
     async stop(
       treatmentId: string,
-      gestures: readonly DoseGesture[] = [],
+      gestures: readonly NoteGesture[] = [],
     ): Promise<StoppedTreatment> {
       return write(
         () => stopProvider().stop(treatmentId, gestures),

@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
-import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
+import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
 import { createTreatmentDosesRepository } from '../repository/treatment-doses.repository'
 import { createTreatmentPeriodsRepository } from '../repository/treatment-periods.repository'
 import {
@@ -210,17 +210,16 @@ describe('treatmentsRepository — traitement avec ses périodes et ses prises',
     const metacam = await repository.getWithHistory(METACAM.id)
     const panacur = await repository.getWithHistory(PANACUR.id)
 
-    const schedule = treatmentScheduleOf(metacam!, '2026-09-28')
-    expect(schedule.phase).toBe('today')
-    expect(schedule.currentPeriodId).toBe(EN_COURS.id)
-    expect(schedule.currentDoses).toEqual([
-      { periodId: EN_COURS.id, dueOn: '2026-09-28', dueTime: '08:00' },
-      { periodId: EN_COURS.id, dueOn: '2026-09-28', dueTime: '20:00' },
+    const { view } = treatmentReadingOf(metacam!, '2026-09-28')
+    expect(view.phase).toBe('today')
+    expect(view.currentSetting?.id).toBe(EN_COURS.id)
+    expect(view.currentDoses).toEqual([
+      { settingId: EN_COURS.id, dueOn: '2026-09-28', dueTime: '08:00' },
+      { settingId: EN_COURS.id, dueOn: '2026-09-28', dueTime: '20:00' },
     ])
-    expect(treatmentScheduleOf(panacur!, '2026-09-28')).toMatchObject({
+    expect(treatmentReadingOf(panacur!, '2026-09-28').view).toMatchObject({
       phase: 'upcoming',
-      currentDoses: [{ periodId: PANACUR.id, dueOn: '2026-10-10', dueTime: null }],
-      currentPeriodHasDose: false,
+      currentDoses: [{ settingId: PANACUR.id, dueOn: '2026-10-10', dueTime: null }],
     })
   })
 })

@@ -42,7 +42,7 @@ export function useTreatmentEditionForm({ values, history, today }: Inputs) {
   })
   const nextDose = computed(() => draft.value?.nextDose ?? null)
   const nextDoseShift = computed(() =>
-    draft.value === null ? null : nextDoseShiftHelp(t, draft.value, values.value, today.value),
+    draft.value === null ? null : nextDoseShiftHelp(t, draft.value, values.value),
   )
   const announcedDues = computed(() =>
     JSON.stringify([draft.value?.pastDues ?? [], draft.value?.pastDuesNextDose ?? null]),

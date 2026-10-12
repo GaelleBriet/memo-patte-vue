@@ -123,7 +123,9 @@ const APPLIED: AppliedDoseChange = {
   animalId: BOREE.id,
   undo: [{ action: 'delete', id: 'p1' }],
   alreadyGivenOn: null,
-  postponement: null,
+  lostToEnd: [],
+  followed: [],
+  revealed: null,
   finishes: false,
   moved: null,
   shiftKept: false,
@@ -220,7 +222,7 @@ const HEBDO: TreatmentWithHistory = {
   name: 'Milbemax',
   type: 'deworming',
 }
-const DOSE_16 = { periodId: 'p-1', dueOn: '2026-10-16', dueTime: null }
+const DOSE_16 = { settingId: 'p-1', dueOn: '2026-10-16', dueTime: null }
 const LIGNE_16 = { dueOn: '2026-10-16', dueTime: null }
 
 function lePlus(history: TreatmentWithHistory, aujourdhui: string) {
@@ -284,7 +286,13 @@ describe('TreatmentReminderSheet — F2, la feuille de l’échéance touchée',
 
     expect(apply).toHaveBeenCalledExactlyOnceWith(HEBDO.id, {
       kind: 'note',
-      gesture: { kind: 'given', due: DOSE_16, givenOn: '2026-10-16' },
+      gesture: {
+        kind: 'note',
+        status: 'given',
+        due: DOSE_16,
+        givenOn: '2026-10-16',
+        shiftsFollowing: false,
+      },
     })
     expect(sheet.emitted('update:modelValue')).toEqual([[false]])
     expect(sheet.emitted('changed')).toHaveLength(1)
@@ -353,7 +361,13 @@ describe('TreatmentReminderSheet — F2, la feuille de l’échéance touchée',
 
     expect(geste()).toEqual({
       kind: 'note',
-      gesture: { kind: 'given', due: DOSE_16, givenOn: '2026-10-19', shiftsFollowing: true },
+      gesture: {
+        kind: 'note',
+        status: 'given',
+        due: DOSE_16,
+        givenOn: '2026-10-19',
+        shiftsFollowing: true,
+      },
     })
     expect(sheet.emitted('update:modelValue')).toEqual([[false]])
   })
@@ -374,7 +388,13 @@ describe('TreatmentReminderSheet — F2, la feuille de l’échéance touchée',
 
     expect(geste()).toEqual({
       kind: 'note',
-      gesture: { kind: 'given', due: DOSE_16, givenOn: '2026-10-19', shiftsFollowing: false },
+      gesture: {
+        kind: 'note',
+        status: 'given',
+        due: DOSE_16,
+        givenOn: '2026-10-19',
+        shiftsFollowing: false,
+      },
     })
   })
 
@@ -518,8 +538,8 @@ describe('TreatmentReminderSheet — plusieurs heures par jour : l’heure de la
     periods: [{ ...VENDREDIS, frequency: { value: 1, unit: 'day' }, times: ['08:00', '20:00'] }],
     doses: [],
   }
-  const MATIN = { periodId: 'p-1', dueOn: '2026-10-09', dueTime: '08:00' }
-  const SOIR = { periodId: 'p-1', dueOn: '2026-10-09', dueTime: '20:00' }
+  const MATIN = { settingId: 'p-1', dueOn: '2026-10-09', dueTime: '08:00' }
+  const SOIR = { settingId: 'p-1', dueOn: '2026-10-09', dueTime: '20:00' }
 
   it('la ligne de 20 h note 20 h d’un tap, sans demander l’heure', async () => {
     lePlus(DEUX_HEURES, '2026-10-09')
@@ -531,7 +551,13 @@ describe('TreatmentReminderSheet — plusieurs heures par jour : l’heure de la
     expect(document.body.querySelector('.treatment-hours__hour')).toBeNull()
     expect(geste()).toEqual({
       kind: 'note',
-      gesture: { kind: 'given', due: SOIR, givenOn: '2026-10-09' },
+      gesture: {
+        kind: 'note',
+        status: 'given',
+        due: SOIR,
+        givenOn: '2026-10-09',
+        shiftsFollowing: false,
+      },
     })
     expect(plain(toastMessage.value)).toBe('Prise de 20 h de Milbemax notée pour Boree')
   })
@@ -545,7 +571,13 @@ describe('TreatmentReminderSheet — plusieurs heures par jour : l’heure de la
 
     expect(geste()).toEqual({
       kind: 'note',
-      gesture: { kind: 'given', due: MATIN, givenOn: '2026-10-09' },
+      gesture: {
+        kind: 'note',
+        status: 'given',
+        due: MATIN,
+        givenOn: '2026-10-09',
+        shiftsFollowing: false,
+      },
     })
   })
 })
@@ -589,7 +621,13 @@ describe('TreatmentReminderSheet — fait à une autre date, avec la case (#527)
 
     expect(geste()).toEqual({
       kind: 'note',
-      gesture: { kind: 'given', due: DOSE_16, givenOn: '2026-10-19', shiftsFollowing: true },
+      gesture: {
+        kind: 'note',
+        status: 'given',
+        due: DOSE_16,
+        givenOn: '2026-10-19',
+        shiftsFollowing: true,
+      },
     })
     expect(sheet.emitted('update:modelValue')).toEqual([[false]])
   })
@@ -609,7 +647,13 @@ describe('TreatmentReminderSheet — fait à une autre date, avec la case (#527)
 
     expect(geste()).toEqual({
       kind: 'note',
-      gesture: { kind: 'given', due: DOSE_16, givenOn: '2026-10-17', shiftsFollowing: false },
+      gesture: {
+        kind: 'note',
+        status: 'given',
+        due: DOSE_16,
+        givenOn: '2026-10-17',
+        shiftsFollowing: false,
+      },
     })
   })
 
@@ -626,7 +670,13 @@ describe('TreatmentReminderSheet — fait à une autre date, avec la case (#527)
 
     expect(geste()).toEqual({
       kind: 'note',
-      gesture: { kind: 'given', due: DOSE_16, givenOn: '2026-10-16' },
+      gesture: {
+        kind: 'note',
+        status: 'given',
+        due: DOSE_16,
+        givenOn: '2026-10-16',
+        shiftsFollowing: false,
+      },
     })
   })
 

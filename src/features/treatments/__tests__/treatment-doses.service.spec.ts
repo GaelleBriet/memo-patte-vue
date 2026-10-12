@@ -9,8 +9,8 @@ import {
   createFakeNotifications,
   type FakeNotifications,
 } from '@/shared/__tests__/fake-notifications'
-import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
-import type { DoseAction } from '../logic/treatment-dose-writes'
+import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
+import type { DoseAction, NoteGesture } from '../logic/treatment-dose-change'
 import { createTreatmentDosesRepository } from '../repository/treatment-doses.repository'
 import { createTreatmentPeriodsRepository } from '../repository/treatment-periods.repository'
 import {
@@ -25,6 +25,24 @@ import { createTreatmentRemindersService } from '../service/treatment-reminders.
 import { seedTreatmentWithDose } from './seed-treatment'
 
 const BOREE = '11111111-1111-4111-8111-111111111111'
+
+type Day = { settingId: string; dueOn: string; dueTime: string | null }
+
+const given = (due: Day, givenOn: string): NoteGesture => ({
+  kind: 'note',
+  status: 'given',
+  due,
+  givenOn,
+  shiftsFollowing: false,
+})
+
+const missedNote = (due: Day): NoteGesture => ({
+  kind: 'note',
+  status: 'missed',
+  due,
+  givenOn: due.dueOn,
+  shiftsFollowing: false,
+})
 const NOW = new Date(2026, 8, 23, 8)
 
 describe('treatmentDosesService', () => {
@@ -137,7 +155,7 @@ describe('treatmentDosesService', () => {
 
     async function fiche(id: string) {
       const history = await treatments.getWithHistory(id)
-      return treatmentScheduleOf(history!, todayIsoDate())
+      return treatmentReadingOf(history!, todayIsoDate()).view
     }
 
     const DEUX_HEURES = {
@@ -153,14 +171,14 @@ describe('treatmentDosesService', () => {
       expect(noted).toMatchObject({
         animalId: BOREE,
         alreadyGivenOn: null,
-        due: { periodId: bravecto, dueOn: '2026-09-28', dueTime: null },
+        due: { settingId: bravecto, dueOn: '2026-09-28', dueTime: null },
         severalTimes: false,
       })
       await expect(visibleDoses()).resolves.toContainEqual({
         given_on: '2026-09-23',
-        next_due_date: '2026-10-23',
+        next_due_date: '2026-09-28',
       })
-      expect(dueDates()[0]).toBe('2026-10-23')
+      expect(dueDates()[0]).toBe('2026-10-28')
 
       await service.undoBatch(bravecto, noted.undo)
 
@@ -189,11 +207,7 @@ describe('treatmentDosesService', () => {
       const metacam = await creer('metacam', DEUX_HEURES)
       await service.apply(metacam, {
         kind: 'note',
-        gesture: {
-          kind: 'given',
-          due: { periodId: metacam, dueOn: '2026-09-23', dueTime: '08:00' },
-          givenOn: '2026-09-23',
-        },
+        gesture: given({ settingId: metacam, dueOn: '2026-09-23', dueTime: '08:00' }, '2026-09-23'),
       })
 
       const soir = await service.noteMoment(metacam, '2026-09-23')
@@ -210,11 +224,7 @@ describe('treatmentDosesService', () => {
 
       const applied = await service.apply(metacam, {
         kind: 'note',
-        gesture: {
-          kind: 'given',
-          due: { periodId: metacam, dueOn: '2026-09-23', dueTime: '08:00' },
-          givenOn: '2026-09-23',
-        },
+        gesture: given({ settingId: metacam, dueOn: '2026-09-23', dueTime: '08:00' }, '2026-09-23'),
       })
 
       expect(applied).toMatchObject({ undo: [], alreadyGivenOn: '2026-09-23' })
@@ -225,11 +235,7 @@ describe('treatmentDosesService', () => {
       const metacam = await creer('metacam', DEUX_HEURES)
       const matin: DoseAction = {
         kind: 'note',
-        gesture: {
-          kind: 'given',
-          due: { periodId: metacam, dueOn: '2026-09-23', dueTime: '08:00' },
-          givenOn: '2026-09-23',
-        },
+        gesture: given({ settingId: metacam, dueOn: '2026-09-23', dueTime: '08:00' }, '2026-09-23'),
       }
       const { undo } = await service.apply(metacam, matin)
 
@@ -262,11 +268,7 @@ describe('treatmentDosesService', () => {
       await service.noteMoment(parLaFeuille, '2026-09-23')
       await service.apply(parLaFiche, {
         kind: 'note',
-        gesture: {
-          kind: 'given',
-          due: { periodId: parLaFiche, dueOn: '2026-09-18', dueTime: null },
-          givenOn: '2026-09-23',
-        },
+        gesture: given({ settingId: parLaFiche, dueOn: '2026-09-18', dueTime: null }, '2026-09-23'),
       })
 
       await expect(lignes(parLaFeuille)).resolves.toEqual(await lignes(parLaFiche))
@@ -293,7 +295,7 @@ describe('treatmentDosesService', () => {
       ])
 
       await expect(lignes(hebdo)).resolves.toHaveLength(1)
-      expect(premiere.undo).toHaveLength(2)
+      expect(premiere.undo).toHaveLength(1)
       expect(seconde).toMatchObject({ undo: [], alreadyGivenOn: '2026-09-23', due: null })
     })
 
@@ -302,11 +304,7 @@ describe('treatmentDosesService', () => {
       await service.noteMoment(hebdo, '2026-09-23')
       const enPlus: DoseAction = {
         kind: 'note',
-        gesture: {
-          kind: 'given',
-          due: { periodId: hebdo, dueOn: '2026-09-30', dueTime: null },
-          givenOn: '2026-09-23',
-        },
+        gesture: given({ settingId: hebdo, dueOn: '2026-10-02', dueTime: null }, '2026-09-23'),
       }
 
       const [premiere, seconde] = await Promise.all([
@@ -330,16 +328,12 @@ describe('treatmentDosesService', () => {
       const hebdo = await creer('hebdo', HEBDO)
       await service.noteMoment(hebdo, '2026-09-23')
       const before = dueSlots(hebdo)
-      expect(before[0]).toBe('2026-09-30 ')
+      expect(before[0]).toBe('2026-09-25 ')
       notifications.scheduleReminders.mockClear()
 
       await service.apply(hebdo, {
         kind: 'note',
-        gesture: {
-          kind: 'given',
-          due: { periodId: hebdo, dueOn: '2026-09-30', dueTime: null },
-          givenOn: '2026-09-23',
-        },
+        gesture: given({ settingId: hebdo, dueOn: '2026-10-02', dueTime: null }, '2026-09-23'),
       })
 
       expect(notifications.scheduleReminders).toHaveBeenCalledOnce()
@@ -367,7 +361,7 @@ describe('treatmentDosesService', () => {
         metacam,
       ])
 
-      await expect(service.noteMoment(bravecto, '2026-09-24')).rejects.toThrow('date future')
+      await expect(service.noteMoment(bravecto, '2026-09-24')).rejects.toThrow(RangeError)
       await expect(service.noteMoment(metacam, '2026-09-23')).resolves.toMatchObject({
         outcome: 'none',
         undo: [],
@@ -389,11 +383,7 @@ describe('treatmentDosesService', () => {
 
       await service.apply(hebdo, {
         kind: 'note',
-        gesture: {
-          kind: 'given',
-          due: { periodId: hebdo, dueOn: '2026-09-30', dueTime: null },
-          givenOn: '2026-09-23',
-        },
+        gesture: given({ settingId: hebdo, dueOn: '2026-10-02', dueTime: null }, '2026-09-23'),
       })
 
       await expect(lignes(hebdo)).resolves.toEqual([
@@ -401,7 +391,7 @@ describe('treatmentDosesService', () => {
         { due_on: '2026-09-23', due_time: null, given_on: '2026-09-23' },
       ])
       expect((await fiche(hebdo)).currentDoses).toEqual([
-        { periodId: hebdo, dueOn: '2026-09-30', dueTime: null },
+        { settingId: hebdo, dueOn: '2026-09-25', dueTime: null },
       ])
     })
 
@@ -422,8 +412,8 @@ describe('treatmentDosesService', () => {
 
     it('8 h marquée oubliée : la feuille puis la notification notent 20 h, jamais 8 h ; la fiche la corrige', async () => {
       const metacam = await creer('metacam', DEUX_HEURES)
-      const matin = { periodId: metacam, dueOn: '2026-09-23', dueTime: '08:00' }
-      await service.apply(metacam, { kind: 'note', gesture: { kind: 'missed', due: matin } })
+      const matin = { settingId: metacam, dueOn: '2026-09-23', dueTime: '08:00' }
+      await service.apply(metacam, { kind: 'note', gesture: missedNote(matin) })
 
       const soir = await service.noteMoment(metacam, '2026-09-23')
       const feuille = await service.noteMoment(metacam, '2026-09-23')
@@ -441,7 +431,7 @@ describe('treatmentDosesService', () => {
 
       await service.apply(metacam, {
         kind: 'note',
-        gesture: { kind: 'given', due: matin, givenOn: '2026-09-23' },
+        gesture: given(matin, '2026-09-23'),
       })
 
       await expect(lignes(metacam)).resolves.toMatchObject([
@@ -455,7 +445,7 @@ describe('treatmentDosesService', () => {
       for (const dueTime of ['08:00', '20:00']) {
         await service.apply(metacam, {
           kind: 'note',
-          gesture: { kind: 'missed', due: { periodId: metacam, dueOn: '2026-09-23', dueTime } },
+          gesture: missedNote({ settingId: metacam, dueOn: '2026-09-23', dueTime }),
         })
       }
 
@@ -507,7 +497,7 @@ describe('treatmentDosesService', () => {
       expect(enRetard).toMatchObject({ outcome: 'noted', due: { dueOn: '2026-09-18' } })
     })
 
-    describe('dose en retard et date de fin, sans case (Q4, #506)', () => {
+    describe('dose en retard et date de fin : la feuille et la notification ne décalent jamais (G20)', () => {
       const QUATRE_SEMAINES = { value: 4, unit: 'week' as const }
       const loin = { firstDueOn: '2026-09-15', frequency: QUATRE_SEMAINES, endsOn: '2026-10-13' }
       const proche = { firstDueOn: '2026-09-01', frequency: QUATRE_SEMAINES, endsOn: '2026-09-29' }
@@ -520,7 +510,7 @@ describe('treatmentDosesService', () => {
         )
       }
 
-      it('la dose prévue au moins une demi-fréquence après : elle reste, par la feuille et la notification', async () => {
+      it('la dose suivante reste, par la feuille et la notification', async () => {
         const feuille = await creer('feuille', loin)
         const notification = await creer('notification', loin)
 
@@ -542,35 +532,7 @@ describe('treatmentDosesService', () => {
         }
       })
 
-      it('plusieurs doses avant la fin : la dose suivante loin, rien ne bouge ; proche, la dose perdue est dite', async () => {
-        const SEMAINE = { value: 1, unit: 'week' as const }
-        const loinLundi = await creer('loin', {
-          firstDueOn: '2026-09-21',
-          frequency: SEMAINE,
-          endsOn: '2026-10-05',
-        })
-        const procheVendredi = await creer('proche', {
-          firstDueOn: '2026-09-18',
-          frequency: SEMAINE,
-          endsOn: '2026-10-02',
-        })
-
-        const garde = await service.noteMoment(loinLundi, '2026-09-23')
-        const coupe = await service.noteMoment(procheVendredi, '2026-09-23', {
-          notifiedDueOn: '2026-09-18',
-        })
-
-        expect(garde).not.toHaveProperty('lostToEnd')
-        await expect(decalages(loinLundi)).resolves.toEqual([])
-        expect(coupe).toMatchObject({
-          outcome: 'noted',
-          finishes: false,
-          lostToEnd: ['2026-10-02'],
-        })
-        await expect(decalages(procheVendredi)).resolves.toEqual([{ due_on: '2026-09-18' }])
-      })
-
-      it('à moins d’une demi-fréquence : le traitement se termine, par la feuille, la notification et la fiche', async () => {
+      it('même près de la date de fin, aucune dose n’est perdue et rien ne se termine', async () => {
         const feuille = await creer('feuille', proche)
         const notification = await creer('notification', proche)
         const parLaFiche = await creer('fiche', proche)
@@ -580,19 +542,42 @@ describe('treatmentDosesService', () => {
           await service.noteMoment(notification, '2026-09-23', { notifiedDueOn: '2026-09-01' }),
           await service.apply(parLaFiche, {
             kind: 'note',
-            gesture: {
-              kind: 'given',
-              due: { periodId: parLaFiche, dueOn: '2026-09-01', dueTime: null },
-              givenOn: '2026-09-23',
-            },
+            gesture: given(
+              { settingId: parLaFiche, dueOn: '2026-09-01', dueTime: null },
+              '2026-09-23',
+            ),
           }),
         ]
 
-        for (const noted of notes) expect(noted).toMatchObject({ finishes: true })
-        for (const id of [feuille, notification, parLaFiche]) {
-          await expect(decalages(id)).resolves.toEqual([{ due_on: '2026-09-01' }])
-          await expect(fiche(id)).resolves.toMatchObject({ finished: true })
+        for (const noted of notes) {
+          expect(noted).toMatchObject({ finishes: false, lostToEnd: [] })
         }
+        for (const id of [feuille, notification, parLaFiche]) {
+          await expect(decalages(id)).resolves.toEqual([])
+          await expect(fiche(id)).resolves.toMatchObject({
+            finished: false,
+            currentDoses: [{ dueOn: '2026-09-29' }],
+          })
+        }
+      })
+
+      it('la fiche, case cochée, dit la dose que le décalage fait sortir de la date de fin (Q4)', async () => {
+        const vendredi = await creer('proche', {
+          firstDueOn: '2026-09-18',
+          frequency: { value: 1, unit: 'week' },
+          endsOn: '2026-10-02',
+        })
+
+        const noted = await service.apply(vendredi, {
+          kind: 'note',
+          gesture: {
+            ...given({ settingId: vendredi, dueOn: '2026-09-18', dueTime: null }, '2026-09-23'),
+            shiftsFollowing: true,
+          },
+        })
+
+        expect(noted).toMatchObject({ finishes: false, lostToEnd: ['2026-10-02'] })
+        await expect(decalages(vendredi)).resolves.toEqual([{ due_on: '2026-09-18' }])
       })
     })
 
@@ -600,10 +585,7 @@ describe('treatmentDosesService', () => {
       const metacam = await creer('metacam', { ...DEUX_HEURES, times: [] })
       await service.apply(metacam, {
         kind: 'note',
-        gesture: {
-          kind: 'missed',
-          due: { periodId: metacam, dueOn: '2026-09-23', dueTime: null },
-        },
+        gesture: missedNote({ settingId: metacam, dueOn: '2026-09-23', dueTime: null }),
       })
       const days = ['2026-09-23', '2026-09-24']
       const aMinuit = createTreatmentDosesService({
@@ -626,11 +608,7 @@ describe('treatmentDosesService', () => {
     it('notification d’une dose déjà donnée en avance : « déjà notée », rien d’écrit', async () => {
       await service.apply(bravecto, {
         kind: 'note',
-        gesture: {
-          kind: 'given',
-          due: { periodId: bravecto, dueOn: '2026-09-28', dueTime: null },
-          givenOn: '2026-09-23',
-        },
+        gesture: given({ settingId: bravecto, dueOn: '2026-09-28', dueTime: null }, '2026-09-23'),
       })
 
       const noted = await service.noteMoment(bravecto, '2026-09-23', {
@@ -649,10 +627,10 @@ describe('treatmentDosesService', () => {
   })
 
   describe('gestes de la fiche, calculés par le moteur', () => {
-    const DOSE_DE_SEPTEMBRE = { periodId: '', dueOn: '2026-09-28', dueTime: null }
+    const DOSE_DE_SEPTEMBRE = { settingId: '', dueOn: '2026-09-28', dueTime: null }
 
     function septembre() {
-      return { ...DOSE_DE_SEPTEMBRE, periodId: bravecto }
+      return { ...DOSE_DE_SEPTEMBRE, settingId: bravecto }
     }
 
     function rows() {
@@ -673,10 +651,10 @@ describe('treatmentDosesService', () => {
     it('note la dose du moment en avance : la suite repart de la date réelle, rappels reprogrammés', async () => {
       const applied = await service.apply(bravecto, {
         kind: 'note',
-        gesture: { kind: 'given', due: septembre(), givenOn: '2026-09-23' },
+        gesture: { ...given(septembre(), '2026-09-23'), shiftsFollowing: true },
       })
 
-      expect(applied).toMatchObject({ animalId: BOREE, alreadyGivenOn: null, postponement: null })
+      expect(applied).toMatchObject({ animalId: BOREE, alreadyGivenOn: null, followed: [] })
       expect(applied.undo).toEqual([
         { action: 'delete', id: expect.any(String), expectedUpdatedAt: NOW.toISOString() },
         { action: 'delete', id: expect.any(String), expectedUpdatedAt: NOW.toISOString() },
@@ -686,7 +664,7 @@ describe('treatmentDosesService', () => {
       ).resolves.toEqual([{ due_on: '2026-09-28', next_due_date: '2026-09-23' }])
       await expect(rows()).resolves.toMatchObject([
         { due_on: '2026-08-28', given_on: '2026-08-28', next_due_date: '2026-09-28' },
-        { due_on: '2026-09-28', given_on: '2026-09-23', next_due_date: '2026-10-23' },
+        { due_on: '2026-09-28', given_on: '2026-09-23', next_due_date: '2026-09-28' },
       ])
       expect(dueDates()[0]).toBe('2026-10-23')
     })
@@ -694,7 +672,7 @@ describe('treatmentDosesService', () => {
     it('« Annuler » rejoue le lot inverse à son propre instant : la ligne est datée de l’annulation', async () => {
       const { undo } = await service.apply(bravecto, {
         kind: 'note',
-        gesture: { kind: 'given', due: septembre(), givenOn: '2026-09-23' },
+        gesture: { ...given(septembre(), '2026-09-23'), shiftsFollowing: true },
       })
       const later = new Date(NOW.getTime() + 4_000)
       vi.setSystemTime(later)
@@ -715,11 +693,7 @@ describe('treatmentDosesService', () => {
     it('n’écrit rien pour une échéance déjà donnée, et dit quand elle l’a été', async () => {
       const applied = await service.apply(bravecto, {
         kind: 'note',
-        gesture: {
-          kind: 'given',
-          due: { periodId: bravecto, dueOn: '2026-08-28', dueTime: null },
-          givenOn: '2026-09-23',
-        },
+        gesture: given({ settingId: bravecto, dueOn: '2026-08-28', dueTime: null }, '2026-09-23'),
       })
 
       expect(applied).toEqual({
@@ -727,21 +701,23 @@ describe('treatmentDosesService', () => {
         finishes: false,
         undo: [],
         alreadyGivenOn: '2026-08-28',
-        postponement: null,
+        lostToEnd: [],
+        followed: [],
         moved: null,
         shiftKept: false,
+        revealed: null,
       })
       await expect(visibleDoses()).resolves.toHaveLength(1)
     })
 
     it('supprime la seule prise : le traitement reste, sa dose revient en retard', async () => {
-      const { undo } = await service.apply(bravecto, { kind: 'remove', doseId: bravecto })
+      const { undo } = await service.apply(bravecto, { kind: 'remove', lineId: bravecto })
 
       await expect(visibleDoses()).resolves.toEqual([])
       const history = await treatments.getWithHistory(bravecto)
-      const schedule = treatmentScheduleOf(history!, todayIsoDate())
-      expect(schedule.phase).toBe('overdue')
-      expect(schedule.currentDoses).toMatchObject([{ dueOn: '2026-08-28' }])
+      const { view } = treatmentReadingOf(history!, todayIsoDate())
+      expect(view.phase).toBe('overdue')
+      expect(view.currentDoses).toMatchObject([{ dueOn: '2026-08-28' }])
 
       await service.undoBatch(bravecto, undo)
 
@@ -754,21 +730,18 @@ describe('treatmentDosesService', () => {
     it('marque oubliée la seule prise donnée', async () => {
       await service.apply(bravecto, {
         kind: 'note',
-        gesture: {
-          kind: 'missed',
-          due: { periodId: bravecto, dueOn: '2026-08-28', dueTime: null },
-        },
+        gesture: missedNote({ settingId: bravecto, dueOn: '2026-08-28', dueTime: null }),
       })
 
       await expect(rows()).resolves.toMatchObject([
-        { due_on: '2026-08-28', given_on: null, status: 'missed', next_due_date: '2026-09-28' },
+        { due_on: '2026-08-28', given_on: null, status: 'missed', next_due_date: '2026-08-28' },
       ])
     })
 
     it('change la date d’une prise et dit le report gardé', async () => {
       await service.apply(bravecto, {
         kind: 'note',
-        gesture: { kind: 'given', due: septembre(), givenOn: '2026-09-23' },
+        gesture: { ...given(septembre(), '2026-09-23'), shiftsFollowing: true },
       })
       const prise = (await treatments.listDoses(bravecto)).find(
         ({ dueOn, status }) => dueOn === '2026-09-28' && status === 'given',
@@ -783,21 +756,27 @@ describe('treatmentDosesService', () => {
 
       const applied = await service.apply(bravecto, {
         kind: 'redate',
-        doseId: prise!.id,
+        lineId: prise!.id,
         givenOn: '2026-09-21',
+        shiftsFollowing: true,
       })
 
-      expect(applied.postponement).toEqual({ kept: true, nextDueDate: '2026-10-30' })
+      expect(applied.followed).toEqual([{ from: '2026-10-30', to: '2026-10-30' }])
       await expect(rows()).resolves.toMatchObject([
         { due_on: '2026-08-28' },
-        { due_on: '2026-09-28', given_on: '2026-09-21', next_due_date: '2026-10-30' },
+        { due_on: '2026-09-28', given_on: '2026-09-21', next_due_date: '2026-09-28' },
         { due_on: '2026-10-21', status: 'postponed', next_due_date: '2026-10-30' },
       ])
     })
 
     it('n’écrit rien quand le moteur refuse le geste', async () => {
       await expect(
-        service.apply(bravecto, { kind: 'redate', doseId: bravecto, givenOn: '2026-09-24' }),
+        service.apply(bravecto, {
+          kind: 'redate',
+          lineId: bravecto,
+          givenOn: '2026-09-24',
+          shiftsFollowing: true,
+        }),
       ).rejects.toThrow(RangeError)
 
       await expect(visibleDoses()).resolves.toEqual([
@@ -807,7 +786,7 @@ describe('treatmentDosesService', () => {
 
     it('lève pour un traitement introuvable', async () => {
       await expect(
-        service.apply('99999999-9999-4999-8999-999999999999', { kind: 'remove', doseId: 'x' }),
+        service.apply('99999999-9999-4999-8999-999999999999', { kind: 'remove', lineId: 'x' }),
       ).rejects.toThrow('Traitement introuvable')
     })
   })

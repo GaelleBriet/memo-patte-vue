@@ -20,7 +20,7 @@ import {
 } from '../logic/treatment-choose-days'
 import i18n, { applyLocale } from '@/core/i18n'
 import { days } from '@/shared/__tests__/treatment-schedule-fixtures'
-import type { Due } from '@/shared/domain/treatment-schedule'
+import type { Due } from '@/shared/domain/dose-calendar'
 
 const t = i18n.global.t
 const WHEN = 'du 3 au 27 sept.'
@@ -29,9 +29,9 @@ function dues(
   from: string,
   to: string,
   times: (string | null)[] = [null],
-  periodId = 'p-1',
+  settingId = 'p-1',
 ): Due[] {
-  return days(from, to).flatMap((dueOn) => times.map((dueTime) => ({ periodId, dueOn, dueTime })))
+  return days(from, to).flatMap((dueOn) => times.map((dueTime) => ({ settingId, dueOn, dueTime })))
 }
 
 const SEPTEMBRE = dues('2026-09-03', '2026-09-27')
@@ -162,7 +162,7 @@ describe('chooseDaysLayout — un calendrier par mois (TR-16)', () => {
 
   it('saute les mois sans dose', () => {
     const quarterly: Due[] = ['2026-01-10', '2026-04-10', '2026-07-10'].map((dueOn) => ({
-      periodId: 'p-1',
+      settingId: 'p-1',
       dueOn,
       dueTime: null,
     }))
@@ -290,9 +290,15 @@ describe('choiceOf — ce que le choix écrit', () => {
 
     expect(choice).toEqual({ given: [all[0], all[2]], missed: [all[1]] })
     expect(choiceGestures(choice)).toEqual([
-      { kind: 'given', due: all[0], givenOn: '2026-09-03' },
-      { kind: 'given', due: all[2], givenOn: '2026-09-05' },
-      { kind: 'missed', due: all[1] },
+      { kind: 'note', status: 'given', due: all[0], givenOn: '2026-09-03', shiftsFollowing: false },
+      { kind: 'note', status: 'given', due: all[2], givenOn: '2026-09-05', shiftsFollowing: false },
+      {
+        kind: 'note',
+        status: 'missed',
+        due: all[1],
+        givenOn: '2026-09-04',
+        shiftsFollowing: false,
+      },
     ])
   })
 

@@ -51,7 +51,9 @@ const APPLIED: AppliedDoseChange = {
   finishes: false,
   undo: [{ action: 'delete', id: 'prise' }],
   alreadyGivenOn: null,
-  postponement: null,
+  lostToEnd: [],
+  followed: [],
+  revealed: null,
   moved: null,
   shiftKept: false,
 }
@@ -126,7 +128,7 @@ function noteDemandee() {
 }
 
 const HEBDO = () => treatment([VENDREDIS], [dose('2026-10-09', '2026-10-16')])
-const DOSE_16 = { periodId: 'p-1', dueOn: '2026-10-16', dueTime: null }
+const DOSE_16 = { settingId: 'p-1', dueOn: '2026-10-16', dueTime: null }
 
 describe('TreatmentGivenWhenSheet — « Donnée quand ? » (V5)', () => {
   it('propose le jour prévu, aujourd’hui et une autre date, sans rien présélectionner', async () => {
@@ -151,7 +153,13 @@ describe('TreatmentGivenWhenSheet — « Donnée quand ? » (V5)', () => {
 
     expect(noteDemandee()).toEqual({
       kind: 'note',
-      gesture: { kind: 'given', due: DOSE_16, givenOn: '2026-10-16', shiftsFollowing: false },
+      gesture: {
+        kind: 'note',
+        status: 'given',
+        due: DOSE_16,
+        givenOn: '2026-10-16',
+        shiftsFollowing: false,
+      },
     })
     expect(sheet.emitted('update:modelValue')).toEqual([[false]])
     expect(sheet.emitted('changed')).toHaveLength(1)
@@ -179,7 +187,13 @@ describe('TreatmentGivenWhenSheet — « Donnée quand ? » (V5)', () => {
 
     expect(noteDemandee()).toEqual({
       kind: 'note',
-      gesture: { kind: 'given', due: DOSE_16, givenOn: '2026-10-19', shiftsFollowing: true },
+      gesture: {
+        kind: 'note',
+        status: 'given',
+        due: DOSE_16,
+        givenOn: '2026-10-19',
+        shiftsFollowing: true,
+      },
     })
   })
 
@@ -216,7 +230,13 @@ describe('TreatmentGivenWhenSheet — « Donnée quand ? » (V5)', () => {
 
     expect(noteDemandee()).toEqual({
       kind: 'note',
-      gesture: { kind: 'given', due: DOSE_16, givenOn: '2026-10-19', shiftsFollowing: true },
+      gesture: {
+        kind: 'note',
+        status: 'given',
+        due: DOSE_16,
+        givenOn: '2026-10-19',
+        shiftsFollowing: true,
+      },
     })
   })
 
@@ -236,8 +256,9 @@ describe('TreatmentGivenWhenSheet — « Donnée quand ? » (V5)', () => {
     expect(noteDemandee()).toEqual({
       kind: 'note',
       gesture: {
-        kind: 'given',
-        due: { periodId: 'p-1', dueOn: '2026-10-06', dueTime: '20:00' },
+        kind: 'note',
+        status: 'given',
+        due: { settingId: 'p-1', dueOn: '2026-10-06', dueTime: '20:00' },
         givenOn: '2026-10-06',
         shiftsFollowing: false,
       },
@@ -310,8 +331,9 @@ describe('TreatmentGivenWhenSheet — « Donnée quand ? » (V5)', () => {
     expect(noteDemandee()).toEqual({
       kind: 'note',
       gesture: {
-        kind: 'given',
-        due: { periodId: 'p-1', dueOn: '2026-10-04', dueTime: '20:00' },
+        kind: 'note',
+        status: 'given',
+        due: { settingId: 'p-1', dueOn: '2026-10-04', dueTime: '20:00' },
         givenOn: '2026-10-04',
         shiftsFollowing: false,
       },

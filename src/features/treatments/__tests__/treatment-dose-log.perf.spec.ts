@@ -3,8 +3,8 @@ import { addDays, format, parseISO } from 'date-fns'
 import { describe, expect, it } from 'vitest'
 
 import { dose, period, treatment } from './treatment-fixtures'
-import { doseChange } from '../logic/treatment-dose-writes'
-import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
+import { doseChange } from '../logic/treatment-dose-change'
+import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
 import { choiceGestures } from '../logic/treatment-choose-days'
 
 const TODAY = '2026-09-28'
@@ -40,11 +40,11 @@ function fastest<T>(run: () => T): { result: T; elapsed: number } {
 
 function allGiven(history: ReturnType<typeof gap>) {
   let id = 0
-  const schedule = treatmentScheduleOf(history, TODAY)
+  const reading = treatmentReadingOf(history, TODAY)
   return doseChange(
     history,
-    schedule,
-    { kind: 'log', gestures: choiceGestures({ given: schedule.unloggedDoses, missed: [] }) },
+    reading,
+    { kind: 'log', gestures: choiceGestures({ given: reading.view.unloggedDoses, missed: [] }) },
     () => String((id += 1)),
   ).writes
 }

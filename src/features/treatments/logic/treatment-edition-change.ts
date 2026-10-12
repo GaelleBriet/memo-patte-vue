@@ -1,12 +1,11 @@
-import {
-  hasNote,
-  overdueHelp,
-  type EditionResolution,
-  type NextDoseChoice,
-  type NextDoseHelp,
+import type {
+  EditionResolution,
+  NextDoseChoice,
+  NextDoseDraft,
+  NextDoseHelp,
 } from './treatment-edition-resolution'
-import { moveArrivingOn, resolveMoved } from './treatment-next-dose-move'
-import { treatmentScheduleOf } from './treatment-schedule-adapter'
+import { hasDoseLine, reportArrivingOn, resolveMoved } from './treatment-next-dose-move'
+import { treatmentReadingOf } from './treatment-reading-adapter'
 import {
   changesRhythm,
   changesSchedule,
@@ -15,291 +14,183 @@ import {
   rhythmOf,
   settingsOf,
   withPeriodSettings,
-  withRhythm,
 } from './treatment-settings'
 import type { PastDuesChoice, TreatmentRhythm } from '../schema/treatment-form.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
-import { isCalendarDay, latestOf } from '@/shared/domain/calendar-day'
+import { isCalendarDay } from '@/shared/domain/calendar-day'
 import { sortedTimes } from '@/shared/domain/clock-time'
 import {
-  isAdvanced,
-  orderPeriods,
-  type Due,
-  type TreatmentSchedule,
-} from '@/shared/domain/treatment-schedule'
+  newSettings,
+  type Day,
+  type SettingsPlan,
+  type SettingsRequest,
+  type SettingsResult,
+} from '@/shared/domain/dose-calendar'
+import type { TreatmentReading } from '@/shared/domain/treatment-reading'
 
-/** Le déplacement en vigueur qui arrive le plus tard dans la période en cours. */
-export type FarthestMove = { doseId: string; arrivesOn: string; advanced: boolean }
+type Answered = EditionResolution
 
-function withoutStaleDoses(
-  history: TreatmentWithHistory,
-  schedule: TreatmentSchedule,
-): TreatmentWithHistory {
-  const stale = new Set(schedule.staleDoseIds)
-  return { ...history, doses: history.doses.filter(({ id }) => !stale.has(id)) }
+function requestOf(rhythm: TreatmentRhythm, firstDueOn?: Day): SettingsRequest {
+  const asked = {
+    frequency: rhythm.frequency,
+    times: sortedTimes(rhythm.times),
+    endsOn: rhythm.endsOn,
+  }
+  return firstDueOn === undefined ? asked : { ...asked, firstDueOn }
 }
 
-// La date calculée, sans le plancher d'aujourd'hui : le moteur la rend quand il se place au jour de
-// la dernière prise notée. Rendue ce jour-là même (journée incomplète, Q24), elle n'apprend rien.
-function calculatedFirstDue(history: TreatmentWithHistory, rhythm: TreatmentRhythm): string | null {
+/** La « Prochaine dose » que le formulaire montre : la date écrite, ou celle que la fiche montrera (R9). */
+function shownOf(result: SettingsResult): Day | null {
+  if ('refusal' in result) return null
+  if ('plan' in result) return result.shownOn ?? result.plan.setting.firstDueOn
+  return result.question.correct.setting.firstDueOn
+}
+
+function datesOf(result: SettingsResult): Record<PastDuesChoice, string> | null {
+  if (!('question' in result)) return null
+  const { keep, correct } = result.question
+  return { keep: result.shownOn ?? keep.setting.firstDueOn, drop: correct.setting.firstDueOn }
+}
+
+function planOf(result: SettingsResult, choice: PastDuesChoice | undefined): SettingsPlan | null {
+  if ('plan' in result) return result.plan
+  if ('refusal' in result || choice === undefined) return null
+  return choice === 'keep' ? result.question.keep : result.question.correct
+}
+
+// Q29 : la première dose calculée à partir de la dernière prise, avant d'être ramenée à aujourd'hui.
+function calculatedOn(
+  { input }: TreatmentReading,
+  history: TreatmentWithHistory,
+  rhythm: TreatmentRhythm,
+): Day | null {
   const lastNotedOn = lastNotedDueOn(history)
   if (lastNotedOn === null) return null
   try {
-    const { firstDueOn } = treatmentScheduleOf(history, lastNotedOn).newPeriod(
-      rhythm.frequency,
-      sortedTimes(rhythm.times),
-    )
-    return firstDueOn > lastNotedOn ? firstDueOn : null
+    const result = newSettings({ ...input, today: lastNotedOn }, requestOf(rhythm))
+    if (!('plan' in result)) return null
+    const first = result.shownOn ?? result.plan.setting.firstDueOn
+    return first > lastNotedOn ? first : null
   } catch {
     return null
   }
 }
 
-function proposalHelp(
+function helpOf(
+  reading: TreatmentReading,
   history: TreatmentWithHistory,
-  schedule: TreatmentSchedule,
   period: TreatmentPeriodRecord,
   rhythm: TreatmentRhythm,
-  proposedOn: string,
-  today: string,
+  proposedOn: Day,
+  today: Day,
+  hasNote: boolean,
 ): NextDoseHelp | null {
+  const { view } = reading
   const todayHelp: NextDoseHelp | null = proposedOn === today ? { kind: 'today' } : null
-  if (!hasNote(schedule)) return todayHelp
+  if (!hasNote) return proposedOn < today ? { kind: 'overdue', since: proposedOn } : todayHelp
   if (!changesSchedule(period, rhythm)) {
-    // Q37 : la date est celle du calendrier en cours, report compris, pas un calcul depuis la dernière prise.
-    const due = schedule.currentDoses[0]
-    if (due === undefined) return null
-    if (due.dueOn === proposedOn) return { kind: 'scheduled', on: proposedOn }
-    return proposedOn === today ? overdueHelp(due, today) : null
+    const [due] = view.currentDoses
+    if (proposedOn < today) return { kind: 'overdue', since: proposedOn }
+    return due?.dueOn === proposedOn ? { kind: 'scheduled', on: proposedOn } : null
   }
-  const calculatedOn = calculatedFirstDue(history, rhythm)
-  if (calculatedOn === proposedOn) return { kind: 'calculated', on: proposedOn }
-  // G24 : la journée à venir entamée en avance reste la prochaine dose.
-  if (proposedOn > today && schedule.currentDoses[0]?.dueOn === proposedOn) {
+  if (reportArrivingOn(view, proposedOn) !== undefined) return { kind: 'scheduled', on: proposedOn }
+  const calculated = calculatedOn(reading, history, rhythm)
+  if (calculated === proposedOn) return { kind: 'calculated', on: proposedOn }
+  if (proposedOn > today && view.currentDoses[0]?.dueOn === proposedOn) {
     return { kind: 'scheduled', on: proposedOn }
   }
-  return calculatedOn !== null && calculatedOn < today && proposedOn === today
-    ? { kind: 'calculated-passed', on: calculatedOn }
+  return calculated !== null && calculated < today && proposedOn === today
+    ? { kind: 'calculated-passed', on: calculated }
     : todayHelp
 }
 
-function resolveOpened(
-  period: TreatmentPeriodRecord,
-  history: TreatmentWithHistory,
-  rhythm: TreatmentRhythm,
-  chosenOn: string | null,
-  today: string,
-  change: 'open' | 'correct',
-): EditionResolution {
-  // Une période corrigée se recalcule au jour de son ouverture : l'historique d'avant s'arrêtait là.
-  const openedOn = change === 'correct' && period.startsOn < today ? period.startsOn : today
-  const schedule = treatmentScheduleOf(history, openedOn)
-  const opened = schedule.newPeriod(rhythm.frequency, sortedTimes(rhythm.times))
-  const firstDueOn = opened.firstDueOn < today ? today : opened.firstDueOn
-  const startsOn = change === 'open' ? opened.startsOn : period.startsOn
-  const writtenOn = chosenOn ?? firstDueOn
+function unchanged(period: TreatmentPeriodRecord, change: Answered['change']): Answered {
   return {
     period,
     change,
-    proposesFirstDue: true,
-    movedLineId: null,
-    referenceOn: writtenOn === opened.firstDueOn ? opened.referenceOn : writtenOn,
-    nextDose: {
-      change: 'first-due',
-      proposedOn: firstDueOn,
-      earliest: today,
-      latest: rhythm.endsOn,
-      refusal: null,
-      help: proposalHelp(history, schedule, period, rhythm, firstDueOn, today),
-      shift: null,
-      shiftInitial: true,
-    },
-    settings: withRhythm({ ...settingsOf(period), startsOn, firstDueOn: writtenOn }, rhythm),
+    nextDose: null,
+    plan: null,
     move: null,
+    refusal: null,
+    pastDues: [],
+    pastDuesNextDose: null,
   }
 }
 
-function droppedHelp(
-  schedule: TreatmentSchedule,
-  periodId: string,
-  firstDueOn: string,
-  today: string,
-): NextDoseHelp | null {
-  // Une dose du jour est déplacée, pas perdue : seules comptent les doses non renseignées ou en retard.
-  const overdue = schedule.currentDoses.filter((due) => due.dueOn < today)
-  const count = [...schedule.unloggedDoses, ...overdue].filter(
-    (due) => due.periodId === periodId && due.dueOn < firstDueOn,
-  ).length
-  return count > 0 ? { kind: 'dropped', count } : null
-}
-
-function resolveCorrected(
+/** La lecture sur laquelle la dose du moment se déplace : celle avec la date de fin saisie, sauf quand elle ferait sortir le report en vigueur (Q30). */
+function movingReading(
   history: TreatmentWithHistory,
   period: TreatmentPeriodRecord,
-  rhythm: TreatmentRhythm,
-  choice: NextDoseChoice,
-  today: string,
-): EditionResolution {
-  const { chosenOn } = choice
-  const corrected = withRhythm(settingsOf(period), rhythm)
-  const book = withPeriodSettings(history, period.id, corrected)
-  const schedule = treatmentScheduleOf(book, today)
-  const due = schedule.currentDoses[0]
-  if (due === undefined || schedule.nextDoseChange === null) {
-    // Un report dont l'arrivée dépasse la date de fin saisie : la dose se lit avec la date de fin d'avant.
-    const keptBook = withPeriodSettings(history, period.id, { ...corrected, endsOn: period.endsOn })
-    const kept = treatmentScheduleOf(keptBook, today)
-    const moved = kept.currentDoses[0]
-    if (moved !== undefined && moveArrivingOn(kept, moved) !== undefined) {
-      return resolveMoved(period, keptBook, kept, moved, corrected, choice, today)
-    }
-    return {
-      period,
-      change: 'correct',
-      nextDose: null,
-      settings: corrected,
-      referenceOn: period.referenceOn,
-      move: null,
-      proposesFirstDue: false,
-      movedLineId: null,
-    }
-  }
-  if (schedule.nextDoseChange === 'move') {
-    return resolveMoved(period, book, schedule, due, corrected, choice, today)
-  }
-
-  const previous = orderPeriods(history.periods).at(-2)
-  const changed = chosenOn !== null && chosenOn !== due.dueOn
-  const firstDueOn = changed ? chosenOn : corrected.firstDueOn
-  const sameGrid =
-    firstDueOn === period.firstDueOn &&
-    JSON.stringify(corrected.frequency) === JSON.stringify(period.frequency)
-  return {
-    period,
-    change: 'correct',
-    proposesFirstDue: false,
-    nextDose: {
-      change: 'first-due',
-      proposedOn: due.dueOn,
-      earliest: latestOf([today, previous?.startsOn]) ?? today,
-      latest: rhythm.endsOn,
-      refusal: null,
-      help:
-        (changed && isCalendarDay(chosenOn)
-          ? droppedHelp(schedule, period.id, chosenOn, today)
-          : null) ?? overdueHelp(due, today),
-      shift: null,
-      shiftInitial: true,
-    },
-    settings: {
-      ...corrected,
-      firstDueOn,
-      startsOn: firstDueOn < corrected.startsOn ? firstDueOn : corrected.startsOn,
-    },
-    referenceOn: sameGrid ? period.referenceOn : firstDueOn,
-    move: null,
-    movedLineId: null,
-  }
+  endsOn: Day | null,
+  today: Day,
+): TreatmentReading {
+  const readWith = (day: Day | null) =>
+    treatmentReadingOf(
+      withPeriodSettings(history, period.id, { ...settingsOf(period), endsOn: day }),
+      today,
+    )
+  const corrected = readWith(endsOn)
+  if (endsOn === period.endsOn) return corrected
+  const kept = readWith(period.endsOn)
+  const keptDue = kept.view.currentDoses[0]
+  const correctedDue = corrected.view.currentDoses[0]
+  const holdsReport =
+    keptDue !== undefined && reportArrivingOn(kept.view, keptDue.dueOn) !== undefined
+  return holdsReport && correctedDue?.dueOn !== keptDue.dueOn ? kept : corrected
 }
 
-function withoutPeriod(history: TreatmentWithHistory, periodId: string): TreatmentWithHistory {
-  return {
-    ...history,
-    periods: history.periods.filter(({ id }) => id !== periodId),
-    doses: history.doses.filter((dose) => dose.periodId !== periodId),
-  }
+function lockedBy(period: TreatmentPeriodRecord, reading: TreatmentReading): boolean {
+  return period.stoppedOn !== null || reading.view.phase === 'ended'
 }
 
-// TR-7 : une période ouverte par « Modifier » et encore sans prise se recalcule comme si elle s'ouvrait.
-function followsOpenPeriod(history: TreatmentWithHistory, period: TreatmentPeriodRecord): boolean {
-  const previous = orderPeriods(history.periods).at(-2)
-  return (
-    previous !== undefined &&
-    previous.stoppedOn === null &&
-    (previous.endsOn === null || period.startsOn <= previous.endsOn)
-  )
-}
-
-// Doses non renseignées et dose en retard d'une période sans prise dont la fréquence ou les heures changent.
-function pastDuesOf(
-  schedule: TreatmentSchedule,
-  period: TreatmentPeriodRecord,
-  rhythm: TreatmentRhythm,
-  today: string,
-): Due[] {
-  if (schedule.currentPeriodHasDose || !changesSchedule(period, rhythm)) return []
-  const overdue = schedule.currentDoses.filter((due) => due.dueOn < today)
-  return [...schedule.unloggedDoses, ...overdue].filter((due) => due.periodId === period.id)
-}
-
-type Answered = EditionResolution & { pastDues: Due[] }
-
+/**
+ * R9, R10, TR-28 : ce que « Modifier » écrirait pour ces réglages et cette « Prochaine dose », lu sur
+ * le moteur ; la date saisie ne compte que si elle diffère de celle proposée.
+ */
 export function resolve(
   history: TreatmentWithHistory,
   rhythm: TreatmentRhythm | null,
   choice: NextDoseChoice,
-  today: string,
+  today: Day,
   pastDuesChoice?: PastDuesChoice,
 ): Answered {
-  const { chosenOn } = choice
-  const base = treatmentScheduleOf(history, today)
-  const period = currentPeriod(history, base)
-  if (period.stoppedOn !== null || base.phase === 'ended') {
-    return {
-      period,
-      change: 'locked',
-      nextDose: null,
-      settings: settingsOf(period),
-      referenceOn: period.referenceOn,
-      move: null,
-      proposesFirstDue: false,
-      movedLineId: null,
-      pastDues: [],
-    }
-  }
-  const live = withoutStaleDoses(history, base)
+  const reading = treatmentReadingOf(history, today)
+  const period = currentPeriod(history, reading.view)
+  if (lockedBy(period, reading)) return unchanged(period, 'locked')
   const next = rhythm ?? rhythmOf(period)
-  if (base.currentPeriodHasDose) {
-    const resolved = changesRhythm(period, next)
-      ? resolveOpened(period, live, next, chosenOn, today, 'open')
-      : resolveCorrected(live, period, next, choice, today)
-    return { ...resolved, pastDues: [] }
+  if (!changesRhythm(period, next) && hasDoseLine(reading.view, period.id)) {
+    const moving = movingReading(history, period, next.endsOn, today)
+    const due = moving.view.currentDoses[0]
+    return due === undefined
+      ? unchanged(period, 'edit')
+      : resolveMoved({ period, history, reading: moving, due, next, choice, today })
   }
-  const pastDues = pastDuesOf(treatmentScheduleOf(live, today), period, next, today)
-  if (pastDues.length > 0 && pastDuesChoice === 'keep') {
-    return { ...resolveOpened(period, live, next, chosenOn, today, 'open'), pastDues }
+  const { chosenOn } = choice
+  const typed = chosenOn !== null && isCalendarDay(chosenOn) ? chosenOn : null
+  const base = newSettings(reading.input, requestOf(next))
+  const proposedOn = shownOf(base) ?? reading.view.currentDoses[0]?.dueOn ?? today
+  const answer = typed === null ? base : newSettings(reading.input, requestOf(next, typed))
+  const hasNote = history.doses.some(({ status }) => status === 'given' || status === 'missed')
+  const writes = (typed !== null && typed !== proposedOn) || changesRhythm(period, next)
+  const refusal = 'refusal' in answer ? answer.refusal : null
+  return {
+    period,
+    change: 'edit',
+    nextDose: {
+      change: 'first-due',
+      proposedOn,
+      earliest: today,
+      latest: next.endsOn,
+      refusal: null,
+      help: helpOf(reading, history, period, next, proposedOn, today, hasNote),
+      shift: null,
+      shiftInitial: true,
+    } satisfies NextDoseDraft,
+    plan: writes ? planOf(answer, pastDuesChoice) : null,
+    move: null,
+    refusal,
+    pastDues: 'question' in answer ? answer.question.fallen : [],
+    pastDuesNextDose: datesOf(answer),
   }
-  const recalculated =
-    changesSchedule(period, next) && (pastDues.length > 0 || followsOpenPeriod(live, period))
-  const resolved = recalculated
-    ? resolveOpened(period, withoutPeriod(live, period.id), next, chosenOn, today, 'correct')
-    : resolveCorrected(live, period, next, choice, today)
-  return { ...resolved, pastDues }
-}
-
-// Q30 : les déplacements que le moteur garde en vigueur dans la période, sauf ceux dont l'arrivée est notée.
-export function farthestMoveOf(
-  history: TreatmentWithHistory,
-  periodId: string,
-  today: string,
-  exceptId: string | null,
-): FarthestMove | null {
-  const schedule = treatmentScheduleOf(history, today)
-  const locked = new Set(schedule.lockedMoveIds)
-  const farthest = schedule.doses
-    .filter(
-      (dose) =>
-        dose.status === 'postponed' &&
-        dose.periodId === periodId &&
-        dose.id !== exceptId &&
-        !locked.has(dose.id),
-    )
-    .reduce<(typeof schedule.doses)[number] | null>(
-      (latest, dose) => (latest === null || dose.nextDueDate > latest.nextDueDate ? dose : latest),
-      null,
-    )
-  return farthest === null
-    ? null
-    : { doseId: farthest.id, arrivesOn: farthest.nextDueDate, advanced: isAdvanced(farthest) }
 }

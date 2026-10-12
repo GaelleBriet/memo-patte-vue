@@ -9,7 +9,7 @@ import {
   type ChooseDaysMonth,
   type Unchecked,
 } from '../logic/treatment-choose-days'
-import type { Due } from '@/shared/domain/treatment-schedule'
+import type { Due } from '@/shared/domain/dose-calendar'
 
 const props = defineProps<{
   month: ChooseDaysMonth

@@ -14,9 +14,9 @@ import {
   notificationTarget,
 } from '../logic/treatment-notification'
 import { notifiedPlan, otherDateTexts } from '../logic/treatment-other-date'
-import { readableScheduleOf } from '../logic/treatment-schedule-adapter'
+import { readableReadingOf } from '../logic/treatment-reading-adapter'
 import { doneGesture } from '../logic/treatment-shift-box'
-import type { DoseAction } from '../logic/treatment-dose-writes'
+import type { DoseAction, NoteGesture } from '../logic/treatment-dose-change'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
@@ -25,7 +25,7 @@ import BottomSheet from '@/shared/components/BottomSheet.vue'
 import { dosageText } from '@/shared/domain/dosage'
 import type { NotifiedDue } from '@/shared/domain/reminder-route'
 import { reminderIcon } from '@/shared/domain/reminders'
-import type { Due, DoseGesture } from '@/shared/domain/treatment-schedule'
+import type { Due } from '@/shared/domain/dose-calendar'
 import { showToast } from '@/shared/utils/toast'
 
 const props = defineProps<{
@@ -65,15 +65,15 @@ const isShown = computed({
   },
 })
 
-const schedule = computed(() => readableScheduleOf(history.value, today.value))
+const reading = computed(() => readableReadingOf(history.value, today.value))
 const plan = computed(() =>
-  schedule.value && props.due ? notifiedPlan(t, schedule.value, props.due) : null,
+  reading.value && props.due ? notifiedPlan(t, reading.value.view, props.due) : null,
 )
 const firstDue = computed(
   () => plan.value?.due ?? plan.value?.hours.find(({ due }) => due !== null)?.due ?? null,
 )
 const period = computed(() =>
-  history.value?.periods.find(({ id }) => id === firstDue.value?.periodId),
+  history.value?.periods.find(({ id }) => id === firstDue.value?.settingId),
 )
 const named = computed(() => ({
   name: history.value?.name ?? '',
@@ -96,9 +96,9 @@ const hourTexts = computed(() =>
   otherDateTexts(t, { ...named.value, today: today.value }, givenOn.value ?? today.value, true),
 )
 const otherDateMin = computed(() => {
-  if (!schedule.value || !period.value || !firstDue.value || !history.value) return null
+  if (!reading.value || !firstDue.value || !history.value) return null
   const birth = animals.byId(history.value.animalId)?.birthDate ?? null
-  return givenWhenMin(schedule.value, period.value, firstDue.value, birth)
+  return givenWhenMin(reading.value.view, firstDue.value, birth)
 })
 
 watch(
@@ -126,7 +126,9 @@ watch(
 // La notification a pu être notée ailleurs entre-temps.
 function settleUnavailable(): void {
   const target =
-    schedule.value && props.due ? notificationTarget(schedule.value, props.due, today.value) : null
+    reading.value && props.due
+      ? notificationTarget(reading.value.view, props.due, today.value)
+      : null
   if (target?.kind === 'given-when') return
   open.value = false
   if (target?.kind === 'already') {
@@ -147,14 +149,14 @@ function choose(date: string): void {
 
 function proceed(due: Due): void {
   const date = givenOn.value
-  if (date === null || schedule.value === null) return
+  if (date === null || reading.value === null) return
   if (date === due.dueOn) {
-    void note({ kind: 'given', due, givenOn: date, shiftsFollowing: false })
+    void note({ kind: 'note', due, status: 'given', givenOn: date, shiftsFollowing: false })
     return
   }
-  const tapped = doneGesture(schedule.value, due, today.value)
+  const tapped = doneGesture(reading.value, due, today.value)
   if (!tapped.confirm) {
-    void note(tapped.gesture)
+    void note(tapped.gesture, tapped.heldBy)
     return
   }
   confirming.value = due
@@ -167,16 +169,16 @@ function chooseOtherDate(): void {
   isOtherDateOpen.value = true
 }
 
-async function note(gesture: DoseGesture): Promise<void> {
+async function note(gesture: NoteGesture, heldBy?: string): Promise<void> {
   const current = history.value
   if (current === null) return
-  const action: DoseAction = { kind: 'note', gesture }
+  const action: DoseAction = { kind: 'note', gesture, heldBy }
   const toast = doseActionTexts(
     t,
     {
       ...named.value,
       today: today.value,
-      severalTimes: hasSeveralTimes(current, gesture.due.periodId),
+      severalTimes: hasSeveralTimes(current, gesture.due.settingId),
     },
     action,
     null,
@@ -277,13 +279,13 @@ async function note(gesture: DoseGesture): Promise<void> {
   </BottomSheet>
 
   <TreatmentOtherDateSheet
-    v-if="history && schedule"
+    v-if="history && reading"
     v-model="isOtherDateOpen"
     :name="named.name"
     :animal="named.animal"
     :icon="icon"
     :history="history"
-    :schedule="schedule"
+    :reading="reading"
     :today="today"
     :min="otherDateMin"
     :notified="props.due"
@@ -292,13 +294,13 @@ async function note(gesture: DoseGesture): Promise<void> {
   />
 
   <TreatmentDoneConfirm
-    v-if="history && schedule"
+    v-if="history && reading"
     v-model="isConfirmOpen"
     :name="named.name"
     :animal="named.animal"
     :icon="icon"
     :history="history"
-    :schedule="schedule"
+    :reading="reading"
     :today="today"
     :due="confirming"
     :busy="isBusy"

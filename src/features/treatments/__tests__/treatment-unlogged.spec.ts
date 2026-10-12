@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { dose, period, plain, treatment } from './treatment-fixtures'
 import { doseCard } from '../logic/treatment-card'
-import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
+import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
 import {
   pastDosesOf,
   pastDosesPrompt,
@@ -23,7 +23,7 @@ const PANACUR = {
 const HEBDO = period({ frequency: { value: 1, unit: 'week' } })
 
 function banner(history: TreatmentWithHistory, today = TODAY) {
-  return plain(unloggedBanner(t, history, treatmentScheduleOf(history, today), today))
+  return plain(unloggedBanner(t, history, treatmentReadingOf(history, today).view, today))
 }
 
 afterEach(() => applyLocale('fr'))
@@ -54,7 +54,7 @@ describe('unloggedBanner (TR-15)', () => {
   })
 
   it('TR-37 : aucun bandeau pour un animal qu’on ne suit plus', () => {
-    const schedule = treatmentScheduleOf(PANACUR, TODAY)
+    const schedule = treatmentReadingOf(PANACUR, TODAY).view
 
     expect(unloggedBanner(t, PANACUR, schedule, TODAY, { followed: false })).toBeNull()
   })
@@ -75,7 +75,7 @@ describe('unloggedBanner (TR-15)', () => {
       title: '1 dose non renseignée',
       subtitle: '27 sept.',
       note: 'Indique si elle a été donnée.',
-      dues: [{ periodId: 'p-1', dueOn: '2026-09-27', dueTime: null }],
+      dues: [{ settingId: 'p-1', dueOn: '2026-09-27', dueTime: null }],
       actions: [
         {
           id: 'given',
@@ -155,7 +155,7 @@ describe('unloggedBanner (TR-15)', () => {
 
 describe('une dose non renseignée n’est jamais un retard (TR-14)', () => {
   it('la carte reste « Dose du jour », sans retard, avec 25 doses non renseignées', () => {
-    const schedule = treatmentScheduleOf(PANACUR, TODAY)
+    const schedule = treatmentReadingOf(PANACUR, TODAY).view
     const card = doseCard(t, PANACUR, schedule, { animal: 'Milo', today: TODAY })
 
     expect(schedule.phase).toBe('today')
@@ -165,7 +165,7 @@ describe('une dose non renseignée n’est jamais un retard (TR-14)', () => {
 
   it('en retard, la carte ne compte que la dose du moment', () => {
     const history = treatment([HEBDO], [dose('2026-09-01', '2026-09-08')])
-    const schedule = treatmentScheduleOf(history, '2026-09-24')
+    const schedule = treatmentReadingOf(history, '2026-09-24').view
     const card = doseCard(t, history, schedule, { animal: 'Milo', today: '2026-09-24' })
 
     expect(card.entries).toHaveLength(1)
@@ -182,8 +182,8 @@ describe('unloggedWhen', () => {
 
 describe('promptChoice', () => {
   const dues = [
-    { periodId: 'p-1', dueOn: '2026-09-03', dueTime: null },
-    { periodId: 'p-1', dueOn: '2026-09-04', dueTime: null },
+    { settingId: 'p-1', dueOn: '2026-09-03', dueTime: null },
+    { settingId: 'p-1', dueOn: '2026-09-04', dueTime: null },
   ]
 
   it('répond pour toutes les doses d’un coup', () => {
@@ -195,7 +195,7 @@ describe('promptChoice', () => {
 
 describe('pastDosesPrompt — l’encart du formulaire de création (TR-3)', () => {
   const draft = (dueOn: string, dueTime: string | null = null) => ({
-    periodId: 'draft',
+    settingId: 'draft',
     dueOn,
     dueTime,
   })

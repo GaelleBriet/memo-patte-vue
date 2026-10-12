@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { currentDoseText } from '../domain/current-dose'
-import type { Due } from '../domain/treatment-schedule'
+import type { Due } from '../domain/dose-calendar'
 import i18n, { applyLocale } from '@/core/i18n'
 import { plain } from '@/shared/__tests__/plain'
 
@@ -9,7 +9,7 @@ const t = i18n.global.t
 const TODAY = '2026-09-28'
 
 function due(dueOn: string, dueTime: string | null = null): Due {
-  return { periodId: 'p-1', dueOn, dueTime }
+  return { settingId: 'p-1', dueOn, dueTime }
 }
 
 function currentDose(state: Parameters<typeof currentDoseText>[1]) {

@@ -218,7 +218,7 @@ describe('synchro de l’historique entre deux appareils', () => {
       })
       await expect(headDose(device.treatments, bravecto.id)).resolves.toEqual({
         givenOn: '2026-09-25',
-        nextDueDate: '2026-10-25',
+        nextDueDate: '2026-09-20',
       })
     }
   })

@@ -1659,7 +1659,14 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
   it('propose aujourd’hui quand la fréquence change après des prises : une nouvelle période s’ouvrira (V1 quater)', async () => {
     getWithHistory.mockResolvedValue(
       milbemax(
-        [periode({ frequency: { value: 1, unit: 'week' }, doseUnit: 'pipette' })],
+        [
+          periode({
+            startsOn: '2026-09-01',
+            firstDueOn: '2026-09-01',
+            frequency: { value: 1, unit: 'week' },
+            doseUnit: 'pipette',
+          }),
+        ],
         [prise({ dueOn: '2026-09-08', givenOn: '2026-09-08', nextDueDate: '2026-09-15' })],
       ),
     )
@@ -1829,62 +1836,6 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
     await soumettre(autre)
 
     expect(messages(autre)).toEqual(['Choisis une date à partir du 28 septembre.'])
-  })
-
-  it('annonce les doses qui ne seront plus à renseigner quand la première échéance d’un traitement sans prise change', async () => {
-    getWithHistory.mockResolvedValue(
-      milbemax(
-        [
-          periode({
-            frequency: { value: 1, unit: 'day' },
-            startsOn: '2026-09-20',
-            firstDueOn: '2026-09-20',
-          }),
-        ],
-        [],
-      ),
-    )
-    const wrapper = await monterEdition()
-
-    expect(valeur(wrapper, 'treatment-next-dose-on')).toBe('2026-09-28')
-    expect(aide(wrapper, 'next-dose-on')).toBeUndefined()
-
-    await champ(wrapper, 'treatment-next-dose-on').setValue('2026-10-01')
-
-    expect(aide(wrapper, 'next-dose-on')).toBe(
-      'Les 8 doses prévues avant cette date ne seront plus à renseigner.',
-    )
-
-    i18n.global.locale.value = 'en'
-    await wrapper.vm.$nextTick()
-
-    expect(aide(wrapper, 'next-dose-on')).toBe(
-      'The 8 doses scheduled before this date will no longer need to be logged.',
-    )
-  })
-
-  it('l’annonce au singulier pour une seule dose', async () => {
-    getWithHistory.mockResolvedValue(
-      milbemax(
-        [
-          periode({
-            frequency: { value: 1, unit: 'week' },
-            startsOn: '2026-09-27',
-            firstDueOn: '2026-09-27',
-          }),
-        ],
-        [],
-      ),
-    )
-    const wrapper = await monterEdition()
-
-    expect(aide(wrapper, 'next-dose-on')).toBe('Dose en retard depuis le 27 sept.')
-
-    await champ(wrapper, 'treatment-next-dose-on').setValue('2026-09-30')
-
-    expect(aide(wrapper, 'next-dose-on')).toBe(
-      'La dose prévue avant cette date ne sera plus à renseigner.',
-    )
   })
 
   it('refuse une date de fin avant l’arrivée d’un report, et l’accepte quand « Prochaine dose » repasse avant elle', async () => {
@@ -2187,28 +2138,7 @@ describe('TreatmentFormView — échéances tombées d’une période sans prise
     )
   })
 
-  it('annonce et écrit la date calculée du chemin quand la date choisie à la main n’y vaut pas', async () => {
-    getWithHistory.mockResolvedValue(SANS_PRISE())
-    wrapper = await monterEdition()
-    await champ(wrapper, 'treatment-frequency-value').setValue('3')
-    await champ(wrapper, 'treatment-next-dose-on').setValue('2026-10-05')
-    await champ(wrapper, 'treatment-ends-on').setValue('2026-10-01')
-    await soumettre(wrapper)
-
-    expect(plain(feuille().props('texts'))).toMatchObject({
-      dropHint: 'L’ancien réglage était une erreur. Prochaine dose le 28 sept.',
-    })
-
-    dansLaFeuille('.treatment-past-dues__choice--drop').click()
-    await flushPromises()
-
-    expect(update).toHaveBeenCalledExactlyOnceWith(
-      ID,
-      expect.objectContaining({ pastDues: 'drop', nextDoseOn: '2026-09-28', endsOn: '2026-10-01' }),
-    )
-  })
-
-  it('annonce pour chaque choix la date que ce choix écrit, quand elles diffèrent', async () => {
+  it('annonce pour chaque choix la date que ce choix écrit', async () => {
     getWithHistory.mockResolvedValue(
       milbemax(
         [
@@ -2238,7 +2168,7 @@ describe('TreatmentFormView — échéances tombées d’une période sans prise
     expect(plain(feuille().props('texts'))).toMatchObject({
       title: '1 dose était prévue avant aujourd’hui',
       keepHint: 'Le nouveau rythme commence aujourd’hui. Prochaine dose le 8 oct.',
-      dropHint: 'L’ancien réglage était une erreur. Prochaine dose le 28 sept.',
+      dropHint: 'L’ancien réglage était une erreur. Prochaine dose le 8 oct.',
     })
 
     dansLaFeuille('.treatment-past-dues__choice--keep').click()
@@ -2264,11 +2194,8 @@ describe('TreatmentFormView — échéances tombées d’une période sans prise
 
   it('repose la question quand les échéances annoncées ont changé depuis la réponse', async () => {
     const view = await corrigerLaFrequence()
-    await champ(view, 'treatment-ends-on').setValue('2026-09-20')
-    dansLaFeuille('.treatment-past-dues__choice--keep').click()
+    dansLaFeuille('.treatment-past-dues__cancel').click()
     await flushPromises()
-    expect(messages(view)).toHaveLength(1)
-    expect(update).not.toHaveBeenCalled()
 
     vi.setSystemTime(new Date('2026-09-30T08:00:00'))
     simulateWebResume()

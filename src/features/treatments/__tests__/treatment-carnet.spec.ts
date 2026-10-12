@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { dose, extra, missed, period, plain, treatment } from './treatment-fixtures'
-import { carnetScheduleCache, carnetTreatments } from '../logic/treatment-carnet'
+import { carnetViewCache, carnetTreatments } from '../logic/treatment-carnet'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import i18n, { applyLocale } from '@/core/i18n'
-import * as engine from '@/shared/domain/treatment-schedule'
+import * as engine from '@/shared/domain/dose-calendar'
 
 const t = i18n.global.t
 const TODAY = '2026-09-28'
@@ -199,7 +199,7 @@ describe('carnetTreatments — une ligne par traitement en cours (TR-36, B · V1
   })
 
   it('ne calcule le calendrier qu’une fois par traitement', () => {
-    const schedule = vi.spyOn(engine, 'treatmentSchedule')
+    const schedule = vi.spyOn(engine, 'treatmentView')
 
     carnet([MILBEMAX, PANACUR])
 
@@ -207,9 +207,9 @@ describe('carnetTreatments — une ligne par traitement en cours (TR-36, B · V1
   })
 
   it('après un geste, ne recalcule que le traitement touché', () => {
-    const cache = carnetScheduleCache()
+    const cache = carnetViewCache()
     carnetTreatments(t, [MILBEMAX, PANACUR], TODAY, cache)
-    const schedule = vi.spyOn(engine, 'treatmentSchedule')
+    const schedule = vi.spyOn(engine, 'treatmentView')
     const noted = dose('2026-09-03', '2026-09-04', { updatedAt: '2026-09-28T10:00:00.000Z' })
     const touched = { ...PANACUR, doses: [...PANACUR.doses, noted] }
 
@@ -222,11 +222,11 @@ describe('carnetTreatments — une ligne par traitement en cours (TR-36, B · V1
   })
 
   it('recalcule une ligne réécrite avec un updatedAt plus ancien que le maximum', () => {
-    const cache = carnetScheduleCache()
+    const cache = carnetViewCache()
     const noted = dose('2026-09-03', '2026-09-04', { updatedAt: '2026-09-28T08:00:05.000Z' })
     const book = { ...PANACUR, doses: [...PANACUR.doses, noted] }
     carnetTreatments(t, [book], TODAY, cache)
-    const schedule = vi.spyOn(engine, 'treatmentSchedule')
+    const schedule = vi.spyOn(engine, 'treatmentView')
     const [first] = book.periods
     const weekly = {
       ...book,
@@ -245,9 +245,9 @@ describe('carnetTreatments — une ligne par traitement en cours (TR-36, B · V1
   })
 
   it('recalcule un traitement dont une prise a disparu, et tous le lendemain', () => {
-    const cache = carnetScheduleCache()
+    const cache = carnetViewCache()
     carnetTreatments(t, [MILBEMAX, PANACUR], TODAY, cache)
-    const schedule = vi.spyOn(engine, 'treatmentSchedule')
+    const schedule = vi.spyOn(engine, 'treatmentView')
 
     carnetTreatments(t, [MILBEMAX, { ...PANACUR, doses: PANACUR.doses.slice(1) }], TODAY, cache)
     expect(schedule).toHaveBeenCalledOnce()
@@ -374,7 +374,7 @@ describe('carnetTreatments — traitements terminés (TR-31)', () => {
     const arrete = named('Panacur', [period({ stoppedOn: '2026-09-06' })], PANACUR.doses)
 
     const { ongoing, finished, summary } = plain(
-      carnetTreatments(t, [arrete], TODAY, carnetScheduleCache(), { followed: false }),
+      carnetTreatments(t, [arrete], TODAY, carnetViewCache(), { followed: false }),
     )
 
     expect(ongoing).toEqual([])
@@ -393,7 +393,7 @@ describe('carnetTreatments — traitements terminés (TR-31)', () => {
     const arrete = named('Panacur', [period({ stoppedOn: '2026-09-06' })], PANACUR.doses)
 
     const { ongoing } = plain(
-      carnetTreatments(t, [arrete], TODAY, carnetScheduleCache(), { followed: true }),
+      carnetTreatments(t, [arrete], TODAY, carnetViewCache(), { followed: true }),
     )
 
     expect(ongoing).toEqual([

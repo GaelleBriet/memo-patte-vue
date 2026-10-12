@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { treatmentView, viewInputOf, type LegacyInput } from '../domain/dose-calendar'
-import { shownLines, treatmentReading } from '../domain/treatment-reading'
+import { readTreatment, shownLines, treatmentReading } from '../domain/treatment-reading'
 
 type Period = LegacyInput['periods'][number]
 type Dose = LegacyInput['doses'][number]
@@ -169,5 +169,19 @@ describe('shownLines', () => {
       reason: 'nothing-to-move',
     })
     expect(shownLines(read).map(({ id }) => id)).toEqual(['report', 'prise'])
+  })
+})
+
+describe('readTreatment', () => {
+  it('rend la vue et le carnet que lisent les gestes', () => {
+    const treatment = { periods: [period()], doses: [dose()] }
+    const reading = readTreatment(treatment, TODAY)
+    expect(reading?.input).toEqual(viewInputOf({ ...treatment, today: TODAY }))
+    expect(reading?.view.currentDoses).toEqual(treatmentReading(treatment, TODAY)?.currentDoses)
+  })
+
+  it('rend null pour un traitement illisible', () => {
+    const treatment = { periods: [period({ firstDueOn: '2026-02-30' })], doses: [] }
+    expect(readTreatment(treatment, TODAY)).toBeNull()
   })
 })

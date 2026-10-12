@@ -1,6 +1,7 @@
 import { getDay, getDaysInMonth, parseISO } from 'date-fns'
 
-import type { DoseGesture, Due } from '@/shared/domain/treatment-schedule'
+import type { NoteGesture } from './treatment-dose-change'
+import type { Due } from '@/shared/domain/dose-calendar'
 import {
   formatClockTime,
   formatFullDayMonth,
@@ -52,8 +53,8 @@ export type ChooseDaysTabTexts = {
   uncheckAllLabel: string
 }
 
-export function dayKey({ periodId, dueOn, dueTime }: Due): string {
-  return `${periodId} ${dueOn} ${dueTime ?? ''}`
+export function dayKey({ settingId, dueOn, dueTime }: Due): string {
+  return `${settingId} ${dueOn} ${dueTime ?? ''}`
 }
 
 export function toggleDay(unchecked: Set<string>, due: Due): void {
@@ -81,11 +82,15 @@ export function choiceOf(dues: readonly Due[], unchecked: Unchecked): DayChoice 
 }
 
 /** Décocher = oubliée ; une dose cochée est notée donnée le jour de son échéance. */
-export function choiceGestures({ given, missed }: DayChoice): DoseGesture[] {
-  return [
-    ...given.map((due): DoseGesture => ({ kind: 'given', due, givenOn: due.dueOn })),
-    ...missed.map((due): DoseGesture => ({ kind: 'missed', due })),
-  ]
+export function choiceGestures({ given, missed }: DayChoice): NoteGesture[] {
+  const note = (due: Due, status: 'given' | 'missed'): NoteGesture => ({
+    kind: 'note',
+    due,
+    status,
+    givenOn: due.dueOn,
+    shiftsFollowing: false,
+  })
+  return [...given.map((due) => note(due, 'given')), ...missed.map((due) => note(due, 'missed'))]
 }
 
 function givenCount(t: Translate, given: number): string {

@@ -15,7 +15,8 @@ import { useTreatmentDetail } from '../composables/use-treatment-detail'
 import { useTreatmentDoseFlow } from '../composables/use-treatment-dose-flow'
 import { useTreatmentGestures } from '../composables/use-treatment-gestures'
 import { detailActions, doseCard, lessPreciseReminder } from '../logic/treatment-card'
-import { dateChangeOf, lineAction, type DateChange } from '../logic/treatment-gestures'
+import type { NoteGesture } from '../logic/treatment-dose-change'
+import { dateChangeOf, lineAction, type DateChange } from '../logic/treatment-line-actions'
 import {
   treatmentDeleteTexts,
   treatmentHistory,
@@ -33,7 +34,7 @@ import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { originQuery } from '@/shared/domain/reminder-route'
 import { reminderIcon } from '@/shared/domain/reminders'
 import { takesNewCare } from '@/shared/domain/unfollowed-animals'
-import type { DoseGesture, Due, MoveBounds } from '@/shared/domain/treatment-schedule'
+import type { Due, MoveBounds } from '@/shared/domain/dose-calendar'
 import { returnTo } from '@/shared/utils/return-to'
 
 const props = defineProps<{
@@ -45,7 +46,7 @@ const router = useRouter()
 const route = useRoute()
 const animals = useAnimalsStore()
 
-const { treatment, schedule, today, refreshToday, state, unreadable, reload } = useTreatmentDetail(
+const { treatment, reading, today, refreshToday, state, unreadable, reload } = useTreatmentDetail(
   () => props.id,
 )
 const gestures = useTreatmentGestures(() => {
@@ -67,7 +68,7 @@ const {
   onUnloggedAction,
   onStopAction,
   confirmChosenDays,
-} = useTreatmentDoseFlow({ treatment, schedule, today }, gestures)
+} = useTreatmentDoseFlow({ treatment, reading, today }, gestures)
 const exactReminders = useExactReminders()
 
 const isExplainerOpen = ref(false)
@@ -91,24 +92,24 @@ const subtitle = computed(() =>
     : null,
 )
 const card = computed(() =>
-  treatment.value && schedule.value
-    ? doseCard(t, treatment.value, schedule.value, {
+  treatment.value && reading.value
+    ? doseCard(t, treatment.value, reading.value.view, {
         animal: named.value.animal,
         today: today.value,
       })
     : null,
 )
 const lessPrecise = computed(() =>
-  treatment.value && schedule.value
-    ? lessPreciseReminder(t, treatment.value, schedule.value, exactReminders.status.value)
+  treatment.value && reading.value
+    ? lessPreciseReminder(t, treatment.value, reading.value.view, exactReminders.status.value)
     : null,
 )
 const history = computed(() =>
-  treatment.value && schedule.value
-    ? treatmentHistory(t, treatment.value, schedule.value, today.value)
+  treatment.value && reading.value
+    ? treatmentHistory(t, treatment.value, reading.value, today.value)
     : null,
 )
-const actions = computed(() => (schedule.value ? detailActions(schedule.value) : null))
+const actions = computed(() => (reading.value ? detailActions(reading.value.view) : null))
 const canResume = computed(() => actions.value?.canResume === true && takesNewCare(animal.value))
 const stopTexts = computed(() => treatmentStopTexts(t, named.value))
 const deleteTexts = computed(() => treatmentDeleteTexts(t, named.value.name))
@@ -137,19 +138,19 @@ watch(
 
 function done(due: Due): void {
   refreshToday()
-  if (!schedule.value) return
-  const tapped = doneGesture(schedule.value, due, today.value)
+  if (!reading.value) return
+  const tapped = doneGesture(reading.value, due, today.value)
   if (tapped.confirm) {
     confirming.value = due
     isDoneConfirmOpen.value = true
-  } else void note(tapped.gesture)
+  } else void note(tapped.gesture, tapped.heldBy)
 }
 
-async function noteConfirmed(gesture: DoseGesture): Promise<void> {
+async function noteConfirmed(gesture: NoteGesture): Promise<void> {
   if (await note(gesture)) isDoneConfirmOpen.value = false
 }
 
-async function noteOtherDate(gesture: DoseGesture): Promise<void> {
+async function noteOtherDate(gesture: NoteGesture): Promise<void> {
   if (await note(gesture)) isOtherDateOpen.value = false
 }
 
@@ -160,18 +161,18 @@ function onLineAction(row: DoseRow, choice: DoseLineAction, bounds: MoveBounds |
     void apply(action, row.dose, row.dose.periodId)
     return
   }
+  if (!treatment.value || !reading.value) return
   const change = dateChangeOf(t, row.dose, bounds, {
     today: today.value,
     earliest: animal.value?.birthDate ?? null,
-    limits: schedule.value?.redateLimits(row.dose.id) ?? null,
+    view: reading.value.view,
   })
-  if (change === null || !treatment.value || !schedule.value) return
-  const box = dateChangeBox(
-    t,
-    row.dose,
-    { history: treatment.value, schedule: schedule.value, today: today.value },
-    change.action,
-  )
+  if (change === null) return
+  const box = dateChangeBox(t, row.dose, {
+    history: treatment.value,
+    reading: reading.value,
+    today: today.value,
+  })
   changing.value = { row, change, box }
   isDatePickerOpen.value = true
 }
@@ -287,13 +288,13 @@ onMounted(() => {
     </div>
 
     <TreatmentOtherDateSheet
-      v-if="treatment && schedule"
+      v-if="treatment && reading"
       v-model="isOtherDateOpen"
       :name="named.name"
       :animal="named.animal"
       :icon="reminderIcon('treatment', treatment.type)"
       :history="treatment"
-      :schedule="schedule"
+      :reading="reading"
       :today="today"
       :min="animal?.birthDate ?? null"
       :busy="gestures.isBusy.value"
@@ -301,13 +302,13 @@ onMounted(() => {
     />
 
     <TreatmentDoneConfirm
-      v-if="treatment && schedule"
+      v-if="treatment && reading"
       v-model="isDoneConfirmOpen"
       :name="named.name"
       :animal="named.animal"
       :icon="reminderIcon('treatment', treatment.type)"
       :history="treatment"
-      :schedule="schedule"
+      :reading="reading"
       :today="today"
       :due="confirming"
       :busy="gestures.isBusy.value"

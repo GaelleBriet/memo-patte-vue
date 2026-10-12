@@ -1,4 +1,5 @@
-import { treatmentScheduleOf } from './treatment-schedule-adapter'
+import { doseFieldsOf } from './treatment-dose-writes'
+import { treatmentReadingOf } from './treatment-reading-adapter'
 import { draftPeriod, DRAFT_ID, startsTooFarBack, tooOld, withRhythm } from './treatment-settings'
 import type { NewTreatmentPlan } from '../schema/treatment-plan.schema'
 import {
@@ -13,7 +14,8 @@ import {
   treatmentPeriodSettingsSchema,
   type TreatmentPeriodSettings,
 } from '../schema/treatment-period.schema'
-import type { Due, TreatmentSchedule } from '@/shared/domain/treatment-schedule'
+import { play, type Due, type TreatmentView } from '@/shared/domain/dose-calendar'
+import type { TreatmentReading } from '@/shared/domain/treatment-reading'
 
 function creationSettings({
   firstDoseOn,
@@ -40,18 +42,18 @@ export function treatmentCreationSchemaFor(today: string) {
   })
 }
 
-function creationSchedule(
+function creationReading(
   settings: TreatmentPeriodSettings,
   periodId: string,
   today: string,
-): TreatmentSchedule {
+): TreatmentReading {
   const period = { ...draftPeriod(settings, `${today}T23:59:59.999Z`), id: periodId }
-  return treatmentScheduleOf({ periods: [period], doses: [] }, today)
+  return treatmentReadingOf({ periods: [period], doses: [] }, today)
 }
 
 // Q42 : les doses non renseignées, et la dose du moment quand elle est déjà passée (jamais celle du jour).
-function pastDuesOfSchedule(schedule: TreatmentSchedule, today: string): Due[] {
-  return [...schedule.unloggedDoses, ...schedule.currentDoses.filter(({ dueOn }) => dueOn < today)]
+function pastDuesOfView(view: TreatmentView, today: string): Due[] {
+  return [...view.unloggedDoses, ...view.currentDoses.filter(({ dueOn }) => dueOn < today)]
 }
 
 /**
@@ -64,7 +66,7 @@ export function creationPastDues(calendar: TreatmentCalendarInput, today: string
   const settings = creationSettings({ ...parsed.data, doseQuantity: null, doseUnit: null })
   if (!treatmentPeriodSettingsSchema.safeParse(settings).success) return []
   try {
-    return pastDuesOfSchedule(creationSchedule(settings, DRAFT_ID, today), today)
+    return pastDuesOfView(creationReading(settings, DRAFT_ID, today).view, today)
   } catch (cause) {
     if (cause instanceof RangeError) return []
     throw cause
@@ -79,21 +81,27 @@ function pastDoseWrites(
   newId: () => string,
 ): NonNullable<NewTreatmentPlan['doses']> {
   if (pastDoses.length === 0) return []
-  const schedule = creationSchedule(settings, periodId, today)
+  const reading = creationReading(settings, periodId, today)
   const pending = new Map(
-    pastDuesOfSchedule(schedule, today).map((due) => [`${due.dueOn} ${due.dueTime ?? ''}`, due]),
+    pastDuesOfView(reading.view, today).map((due) => [`${due.dueOn} ${due.dueTime ?? ''}`, due]),
   )
   return pastDoses.map(({ dueOn, dueTime, status }) => {
     const key = `${dueOn} ${dueTime ?? ''}`
     const due = pending.get(key)
     if (due === undefined) throw new RangeError(`Dose passée inconnue du calendrier : ${key}`)
     pending.delete(key)
-    return {
-      id: newId(),
-      dose: schedule.doseFor(
-        status === 'given' ? { kind: 'given', due, givenOn: dueOn } : { kind: 'missed', due },
-      ).dose,
+    const noted = play(reading.input, {
+      kind: 'note',
+      due,
+      status,
+      givenOn: dueOn,
+      shiftsFollowing: false,
+    })
+    const [change] = 'refusal' in noted ? [] : noted.changes
+    if (change === undefined || change.action !== 'create') {
+      throw new RangeError(`Dose passée refusée par le calendrier : ${key}`)
     }
+    return { id: newId(), dose: doseFieldsOf(change.line) }
   })
 }
 

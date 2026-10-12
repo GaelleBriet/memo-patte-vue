@@ -1,7 +1,6 @@
 import { addDays, differenceInCalendarDays, formatISO, parseISO } from 'date-fns'
 
-import { plannedDoseWrites } from './treatment-dose-writes'
-import { treatmentScheduleOf } from './treatment-schedule-adapter'
+import { treatmentReadingOf } from './treatment-reading-adapter'
 import {
   currentPeriod,
   lastNotedDueOn,
@@ -19,7 +18,7 @@ import {
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import { isCalendarDay, latestOf, nextDay } from '@/shared/domain/calendar-day'
-import type { TreatmentPhase } from '@/shared/domain/treatment-schedule'
+import type { Phase } from '@/shared/domain/dose-calendar'
 
 export type ResumptionDraft = {
   period: TreatmentPeriodRecord
@@ -49,20 +48,20 @@ function resumptionEarliestOn(
   return latestOf([period.startsOn, after === null ? null : nextDay(after)]) ?? period.startsOn
 }
 
-export function isResumablePhase(phase: TreatmentPhase): boolean {
+export function isResumablePhase(phase: Phase): boolean {
   return phase === 'stopped' || phase === 'ended'
 }
 
 export function resumptionDraft(history: TreatmentWithHistory, today: string): ResumptionDraft {
-  const schedule = treatmentScheduleOf(history, today)
-  const period = currentPeriod(history, schedule)
+  const { view } = treatmentReadingOf(history, today)
+  const period = currentPeriod(history, view)
   const durationDays =
     period.endsOn === null
       ? null
       : differenceInCalendarDays(parseISO(period.endsOn), parseISO(period.firstDueOn)) + 1
   return {
     period,
-    canResume: isResumablePhase(schedule.phase),
+    canResume: isResumablePhase(view.phase),
     startedOn: period.firstDueOn,
     endedOn: period.stoppedOn ?? period.endsOn,
     earliestOn: resumptionEarliestOn(history, period),
@@ -84,7 +83,7 @@ export function treatmentResumptionSchemaFor(history: TreatmentWithHistory, toda
     })
     .superRefine(({ firstDoseOn, ...rhythm }, context) => {
       const settings = withRhythm(
-        { ...settingsOf(period), startsOn: firstDoseOn, firstDueOn: firstDoseOn },
+        { ...settingsOf(period), startsOn: today, firstDueOn: firstDoseOn },
         rhythm,
       )
       if (firstDoseOn >= earliestOn && startsTooFarBack(history, settings, today)) {
@@ -109,11 +108,11 @@ export function resumptionPlan(
       action: 'open',
       id: ids.periodId,
       settings: withRhythm(
-        { ...settingsOf(period), startsOn: firstDoseOn, firstDueOn: firstDoseOn },
+        { ...settingsOf(period), startsOn: today, firstDueOn: firstDoseOn },
         rhythm,
       ),
       referenceOn: firstDoseOn,
     },
-    doses: plannedDoseWrites(treatmentScheduleOf(history, today), null, ids),
+    doses: [],
   }
 }
