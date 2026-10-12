@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { dose, extra, missed, period, plain, postponed, treatment } from './treatment-fixtures'
-import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
+import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
 import {
   sheetDoneTarget,
   sheetOtherDateMin,
@@ -20,35 +20,44 @@ const VENDREDI = period({
   firstDueOn: '2026-10-09',
   frequency: { value: 1, unit: 'week' },
 })
-const DUE_16 = { periodId: 'p-1', dueOn: '2026-10-16', dueTime: null }
+const DUE_16 = { settingId: 'p-1', dueOn: '2026-10-16', dueTime: null }
 const MATIN_ET_SOIR = period({ times: ['08:00', '20:00'] })
 
 describe('sheetDoneTarget — « Fait aujourd’hui » vise l’échéance de la ligne touchée', () => {
   it('dose du jour : un tap, sans décalage à demander', () => {
     const book = treatment([VENDREDI], [dose('2026-10-09', '2026-10-16')])
-    const schedule = treatmentScheduleOf(book, '2026-10-16')
+    const reading = treatmentReadingOf(book, '2026-10-16')
 
-    expect(sheetDoneTarget(schedule, { dueOn: '2026-10-16', dueTime: null }, '2026-10-16')).toEqual(
-      { kind: 'note', gesture: { kind: 'given', due: DUE_16, givenOn: '2026-10-16' } },
-    )
+    expect(sheetDoneTarget(reading, { dueOn: '2026-10-16', dueTime: null }, '2026-10-16')).toEqual({
+      kind: 'note',
+      gesture: {
+        kind: 'note',
+        status: 'given',
+        due: DUE_16,
+        givenOn: '2026-10-16',
+        shiftsFollowing: false,
+      },
+    })
   })
 
   it('dose en retard : la confirmation avec la case (G20)', () => {
     const book = treatment([VENDREDI], [dose('2026-10-09', '2026-10-16')])
-    const schedule = treatmentScheduleOf(book, '2026-10-19')
+    const reading = treatmentReadingOf(book, '2026-10-19')
 
-    expect(sheetDoneTarget(schedule, { dueOn: '2026-10-16', dueTime: null }, '2026-10-19')).toEqual(
-      { kind: 'confirm', due: DUE_16 },
-    )
+    expect(sheetDoneTarget(reading, { dueOn: '2026-10-16', dueTime: null }, '2026-10-19')).toEqual({
+      kind: 'confirm',
+      due: DUE_16,
+    })
   })
 
   it('dose donnée en avance : la confirmation aussi (principe du 2026-10-06)', () => {
     const book = treatment([VENDREDI], [dose('2026-10-09', '2026-10-16')])
-    const schedule = treatmentScheduleOf(book, '2026-10-13')
+    const reading = treatmentReadingOf(book, '2026-10-13')
 
-    expect(sheetDoneTarget(schedule, { dueOn: '2026-10-16', dueTime: null }, '2026-10-13')).toEqual(
-      { kind: 'confirm', due: DUE_16 },
-    )
+    expect(sheetDoneTarget(reading, { dueOn: '2026-10-16', dueTime: null }, '2026-10-13')).toEqual({
+      kind: 'confirm',
+      due: DUE_16,
+    })
   })
 
   it('à plusieurs heures, l’heure de la ligne, d’un tap le jour même', () => {
@@ -56,27 +65,30 @@ describe('sheetDoneTarget — « Fait aujourd’hui » vise l’échéance de la
       [MATIN_ET_SOIR],
       [dose('2026-09-28', '2026-09-28', { dueTime: '08:00' })],
     )
-    const schedule = treatmentScheduleOf(book, '2026-09-28')
+    const reading = treatmentReadingOf(book, '2026-09-28')
 
     expect(
-      sheetDoneTarget(schedule, { dueOn: '2026-09-28', dueTime: '20:00' }, '2026-09-28'),
+      sheetDoneTarget(reading, { dueOn: '2026-09-28', dueTime: '20:00' }, '2026-09-28'),
     ).toEqual({
       kind: 'note',
       gesture: {
-        kind: 'given',
-        due: { periodId: 'p-1', dueOn: '2026-09-28', dueTime: '20:00' },
+        kind: 'note',
+        status: 'given',
+        due: { settingId: 'p-1', dueOn: '2026-09-28', dueTime: '20:00' },
         givenOn: '2026-09-28',
+        shiftsFollowing: false,
       },
     })
   })
 
   it('second geste du jour sur la dose suivante : « déjà notée » (Q33)', () => {
     const book = treatment([period()], [dose('2026-09-28', '2026-09-29')])
-    const schedule = treatmentScheduleOf(book, '2026-09-28')
+    const reading = treatmentReadingOf(book, '2026-09-28')
 
-    expect(sheetDoneTarget(schedule, { dueOn: '2026-09-29', dueTime: null }, '2026-09-28')).toEqual(
-      { kind: 'already', givenOn: '2026-09-28' },
-    )
+    expect(sheetDoneTarget(reading, { dueOn: '2026-09-29', dueTime: null }, '2026-09-28')).toEqual({
+      kind: 'already',
+      givenOn: '2026-09-28',
+    })
   })
 
   it('après une prise en plus du jour, « déjà notée » aussi (Q33)', () => {
@@ -84,11 +96,12 @@ describe('sheetDoneTarget — « Fait aujourd’hui » vise l’échéance de la
       [VENDREDI],
       [dose('2026-10-09', '2026-10-16'), extra('2026-10-13', '2026-10-16')],
     )
-    const schedule = treatmentScheduleOf(book, '2026-10-13')
+    const reading = treatmentReadingOf(book, '2026-10-13')
 
-    expect(sheetDoneTarget(schedule, { dueOn: '2026-10-16', dueTime: null }, '2026-10-13')).toEqual(
-      { kind: 'already', givenOn: '2026-10-13' },
-    )
+    expect(sheetDoneTarget(reading, { dueOn: '2026-10-16', dueTime: null }, '2026-10-13')).toEqual({
+      kind: 'already',
+      givenOn: '2026-10-13',
+    })
   })
 
   it('échéance notée entre-temps : « déjà notée », à la date de sa prise (TR-21)', () => {
@@ -99,11 +112,12 @@ describe('sheetDoneTarget — « Fait aujourd’hui » vise l’échéance de la
         dose('2026-10-16', '2026-10-23', { givenOn: '2026-10-17' }),
       ],
     )
-    const schedule = treatmentScheduleOf(book, '2026-10-19')
+    const reading = treatmentReadingOf(book, '2026-10-19')
 
-    expect(sheetDoneTarget(schedule, { dueOn: '2026-10-16', dueTime: null }, '2026-10-19')).toEqual(
-      { kind: 'already', givenOn: '2026-10-17' },
-    )
+    expect(sheetDoneTarget(reading, { dueOn: '2026-10-16', dueTime: null }, '2026-10-19')).toEqual({
+      kind: 'already',
+      givenOn: '2026-10-17',
+    })
   })
 
   it('échéance notée oubliée entre-temps : l’oubli reste, et la feuille le dit (Q41)', () => {
@@ -111,20 +125,20 @@ describe('sheetDoneTarget — « Fait aujourd’hui » vise l’échéance de la
       [VENDREDI],
       [dose('2026-10-09', '2026-10-16'), missed('2026-10-16', '2026-10-23')],
     )
-    const schedule = treatmentScheduleOf(book, '2026-10-19')
+    const reading = treatmentReadingOf(book, '2026-10-19')
 
-    expect(sheetDoneTarget(schedule, { dueOn: '2026-10-16', dueTime: null }, '2026-10-19')).toEqual(
-      { kind: 'missed' },
-    )
+    expect(sheetDoneTarget(reading, { dueOn: '2026-10-16', dueTime: null }, '2026-10-19')).toEqual({
+      kind: 'missed',
+    })
   })
 
   it('échéance qui n’est plus au calendrier : rien à noter', () => {
     const book = treatment([VENDREDI], [dose('2026-10-09', '2026-10-16')])
-    const schedule = treatmentScheduleOf(book, '2026-10-19')
+    const reading = treatmentReadingOf(book, '2026-10-19')
 
-    expect(sheetDoneTarget(schedule, { dueOn: '2026-10-14', dueTime: null }, '2026-10-19')).toEqual(
-      { kind: 'none' },
-    )
+    expect(sheetDoneTarget(reading, { dueOn: '2026-10-14', dueTime: null }, '2026-10-19')).toEqual({
+      kind: 'none',
+    })
   })
 
   describe('mensuel dont la dose est reportée de 40 jours (#569)', () => {
@@ -140,9 +154,9 @@ describe('sheetDoneTarget — « Fait aujourd’hui » vise l’échéance de la
         [MENSUEL],
         [dose('2026-09-16', '2026-10-16'), postponed('2026-10-16', '2026-11-25')],
       )
-      const schedule = treatmentScheduleOf(book, '2026-10-16')
+      const reading = treatmentReadingOf(book, '2026-10-16')
 
-      expect(sheetDoneTarget(schedule, LIGNE, '2026-10-16')).toEqual({
+      expect(sheetDoneTarget(reading, LIGNE, '2026-10-16')).toEqual({
         kind: 'detail',
         dueOn: '2026-11-16',
       })
@@ -157,9 +171,9 @@ describe('sheetDoneTarget — « Fait aujourd’hui » vise l’échéance de la
           extra('2026-10-16', '2026-11-25'),
         ],
       )
-      const schedule = treatmentScheduleOf(book, '2026-10-16')
+      const reading = treatmentReadingOf(book, '2026-10-16')
 
-      expect(sheetDoneTarget(schedule, LIGNE, '2026-10-16')).toEqual({
+      expect(sheetDoneTarget(reading, LIGNE, '2026-10-16')).toEqual({
         kind: 'already',
         givenOn: '2026-10-16',
       })
@@ -267,33 +281,33 @@ describe('sheetPeriod — la période dont la feuille parle', () => {
     [AVANT, APRES],
     [dose('2026-09-01', '2026-09-08'), dose('2026-10-05', '2026-10-06', { periodId: 'p-2' })],
   )
-  const schedule = treatmentScheduleOf(book, '2026-10-06')
+  const reading = treatmentReadingOf(book, '2026-10-06')
 
   it('celle de l’échéance de la ligne', () => {
-    expect(sheetPeriod(book, schedule, { dueOn: '2026-10-06', dueTime: null })?.id).toBe('p-2')
+    expect(sheetPeriod(book, reading.view, { dueOn: '2026-10-06', dueTime: null })?.id).toBe('p-2')
   })
 
   it('celle des doses non renseignées pour leur ligne', () => {
-    expect(sheetPeriod(book, schedule, 'unlogged')?.id).toBe('p-1')
+    expect(sheetPeriod(book, reading.view, 'unlogged')?.id).toBe('p-1')
   })
 
   it('la dernière quand l’échéance n’est plus au calendrier', () => {
-    expect(sheetPeriod(book, schedule, { dueOn: '2026-12-25', dueTime: null })?.id).toBe('p-2')
+    expect(sheetPeriod(book, reading.view, { dueOn: '2026-12-25', dueTime: null })?.id).toBe('p-2')
     expect(sheetPeriod(book, null, null)?.id).toBe('p-2')
   })
 })
 
 describe('sheetOtherDateMin — premier jour de « Fait à une autre date »', () => {
   const book = treatment([VENDREDI], [dose('2026-10-09', '2026-10-16')])
-  const schedule = treatmentScheduleOf(book, '2026-10-19')
+  const reading = treatmentReadingOf(book, '2026-10-19')
   const ligne = { dueOn: '2026-10-16', dueTime: null }
 
   it('le lendemain de la dose précédente : avant, la prise serait une prise en plus (G11)', () => {
-    expect(sheetOtherDateMin(book, schedule, ligne, '2026-04-10')).toBe('2026-10-10')
+    expect(sheetOtherDateMin(reading.view, ligne, '2026-04-10')).toBe('2026-10-10')
   })
 
   it('jamais avant la naissance de l’animal', () => {
-    expect(sheetOtherDateMin(book, schedule, ligne, '2026-10-12')).toBe('2026-10-12')
+    expect(sheetOtherDateMin(reading.view, ligne, '2026-10-12')).toBe('2026-10-12')
   })
 
   it('la naissance seule quand l’échéance n’est plus à noter', () => {
@@ -302,7 +316,7 @@ describe('sheetOtherDateMin — premier jour de « Fait à une autre date »', (
       [dose('2026-10-09', '2026-10-16'), dose('2026-10-16', '2026-10-23')],
     )
     expect(
-      sheetOtherDateMin(noted, treatmentScheduleOf(noted, '2026-10-19'), ligne, '2026-04-10'),
+      sheetOtherDateMin(treatmentReadingOf(noted, '2026-10-19').view, ligne, '2026-04-10'),
     ).toBe('2026-04-10')
   })
 })

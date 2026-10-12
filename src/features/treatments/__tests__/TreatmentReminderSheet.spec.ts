@@ -123,7 +123,9 @@ const APPLIED: AppliedDoseChange = {
   animalId: BOREE.id,
   undo: [{ action: 'delete', id: 'p1' }],
   alreadyGivenOn: null,
-  postponement: null,
+  lostToEnd: [],
+  followed: [],
+  revealed: null,
   finishes: false,
   moved: null,
   shiftKept: false,
@@ -220,7 +222,7 @@ const HEBDO: TreatmentWithHistory = {
   name: 'Milbemax',
   type: 'deworming',
 }
-const DOSE_16 = { periodId: 'p-1', dueOn: '2026-10-16', dueTime: null }
+const DOSE_16 = { settingId: 'p-1', dueOn: '2026-10-16', dueTime: null }
 const LIGNE_16 = { dueOn: '2026-10-16', dueTime: null }
 
 function lePlus(history: TreatmentWithHistory, aujourdhui: string) {
@@ -518,8 +520,8 @@ describe('TreatmentReminderSheet — plusieurs heures par jour : l’heure de la
     periods: [{ ...VENDREDIS, frequency: { value: 1, unit: 'day' }, times: ['08:00', '20:00'] }],
     doses: [],
   }
-  const MATIN = { periodId: 'p-1', dueOn: '2026-10-09', dueTime: '08:00' }
-  const SOIR = { periodId: 'p-1', dueOn: '2026-10-09', dueTime: '20:00' }
+  const MATIN = { settingId: 'p-1', dueOn: '2026-10-09', dueTime: '08:00' }
+  const SOIR = { settingId: 'p-1', dueOn: '2026-10-09', dueTime: '20:00' }
 
   it('la ligne de 20 h note 20 h d’un tap, sans demander l’heure', async () => {
     lePlus(DEUX_HEURES, '2026-10-09')

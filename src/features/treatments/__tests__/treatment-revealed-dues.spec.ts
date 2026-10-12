@@ -1,16 +1,17 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { dose, period, plain, shifted, treatment, written } from './treatment-fixtures'
-import type { DoseAction } from '../logic/treatment-dose-writes'
+import type { DoseAction } from '../logic/treatment-dose-change'
 import { revealedDues, revealedDuesText } from '../logic/treatment-revealed-dues'
-import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
-import { dateChangeBox, otherDateBox, shiftHelpText } from '../logic/treatment-shift-box'
-import { dateChangeOf, doseActionTexts } from '../logic/treatment-gestures'
+import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
+import { dateChangeBox, otherDateBox } from '../logic/treatment-shift-box'
+import { shiftHelpText } from '../logic/treatment-shift-help'
+import { doseActionTexts } from '../logic/treatment-gestures'
 import type { DoseWrite } from '../schema/treatment-dose.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import { createTreatmentDosesService } from '../service/treatment-doses.service'
 import i18n, { applyLocale } from '@/core/i18n'
-import type { Due } from '@/shared/domain/treatment-schedule'
+import type { Due, TreatmentView } from '@/shared/domain/dose-calendar'
 
 const t = i18n.global.t
 
@@ -30,7 +31,7 @@ const LE_30 = period({
 })
 
 function due(dueOn: string, dueTime: string | null = null): Due {
-  return { periodId: 'p-1', dueOn, dueTime }
+  return { settingId: 'p-1', dueOn, dueTime }
 }
 
 const days = (dues: readonly Due[]) => dues.map(({ dueOn }) => dueOn)
@@ -51,13 +52,13 @@ async function saved(history: TreatmentWithHistory, action: DoseAction, today: s
     today: () => today,
   })
   const change = await service.apply(history.id, action)
-  return { change, after: treatmentScheduleOf(current, today) }
+  return { change, after: treatmentReadingOf(current, today).view }
 }
 
-function pastWithoutDose(schedule: ReturnType<typeof treatmentScheduleOf>, today: string) {
+function pastWithoutDose(view: TreatmentView, today: string) {
   return {
-    unlogged: days(schedule.unloggedDoses),
-    overdue: days(schedule.currentDoses.filter(({ dueOn }) => dueOn < today)),
+    unlogged: days(view.unloggedDoses),
+    overdue: days(view.currentDoses.filter(({ dueOn }) => dueOn < today)),
   }
 }
 
@@ -99,9 +100,8 @@ function changeDateHelp(
   date: string,
   today: string,
 ) {
-  const carnet = { history, schedule: treatmentScheduleOf(history, today), today }
-  const change = dateChangeOf(t, prise, null, { today, earliest: null })!
-  return dateChangeBox(t, prise, carnet, change.action)!.view(date, true).help?.text
+  const carnet = { history, reading: treatmentReadingOf(history, today), today }
+  return dateChangeBox(t, prise, carnet)!.view(date, true).help?.text
 }
 
 const CASES: Case[] = [
@@ -109,7 +109,7 @@ const CASES: Case[] = [
     name: 'hebdomadaire, prise corrigée plus tôt',
     history: HEBDO,
     today: HEBDO_TODAY,
-    action: { kind: 'redate', doseId: PRISE_16.id, givenOn: '2026-10-12' },
+    action: { kind: 'redate', lineId: PRISE_16.id, givenOn: '2026-10-12', shiftsFollowing: true },
     help: () => changeDateHelp(HEBDO, PRISE_16, '2026-10-12', HEBDO_TODAY),
     announced: { unlogged: ['2026-10-19'], overdue: [] },
     text: 'La dose du 19 oct. sera à renseigner.',
@@ -118,7 +118,7 @@ const CASES: Case[] = [
     name: 'mensuel, prise corrigée plus tôt',
     history: MENSUEL,
     today: MENS_TODAY,
-    action: { kind: 'redate', doseId: PRISE_30.id, givenOn: '2026-09-28' },
+    action: { kind: 'redate', lineId: PRISE_30.id, givenOn: '2026-09-28', shiftsFollowing: true },
     help: () => changeDateHelp(MENSUEL, PRISE_30, '2026-09-28', MENS_TODAY),
     announced: { unlogged: ['2026-10-28'], overdue: ['2026-11-28'] },
     text: 'La dose du 28 oct. sera à renseigner ; celle du 28 nov., en retard.',
@@ -130,7 +130,8 @@ const CASES: Case[] = [
     action: {
       kind: 'note',
       gesture: {
-        kind: 'given',
+        kind: 'note',
+        status: 'given',
         due: due('2026-10-23'),
         givenOn: '2026-10-19',
         shiftsFollowing: true,
@@ -141,7 +142,7 @@ const CASES: Case[] = [
         t,
         due('2026-10-23'),
         '2026-10-19',
-        { history: AUTRE, schedule: treatmentScheduleOf(AUTRE, HEBDO_TODAY), today: HEBDO_TODAY },
+        { history: AUTRE, reading: treatmentReadingOf(AUTRE, HEBDO_TODAY), today: HEBDO_TODAY },
         true,
       ).help?.text,
     announced: { unlogged: [], overdue: ['2026-10-26'] },
@@ -151,7 +152,7 @@ const CASES: Case[] = [
 
 describe('revealedDues — les doses passées qu’un geste fait apparaître', () => {
   it.each(CASES)('$name : les dates annoncées sont celles du calendrier enregistré', async (c) => {
-    const before = pastWithoutDose(treatmentScheduleOf(c.history, c.today), c.today)
+    const before = pastWithoutDose(treatmentReadingOf(c.history, c.today).view, c.today)
     const { change, after } = await saved(c.history, c.action, c.today)
     const now = pastWithoutDose(after, c.today)
 
@@ -171,9 +172,9 @@ describe('revealedDues — les doses passées qu’un geste fait apparaître', (
   })
 
   it('une dose déjà en retard avant la correction n’est pas annoncée', () => {
-    const before = treatmentScheduleOf(HEBDO, HEBDO_TODAY)
+    const before = treatmentReadingOf(HEBDO, HEBDO_TODAY).view
     expect(days(before.currentDoses)).toEqual(['2026-10-26'])
-    const after = treatmentScheduleOf(
+    const after = treatmentReadingOf(
       treatment(
         [VENDREDI],
         [
@@ -183,7 +184,7 @@ describe('revealedDues — les doses passées qu’un geste fait apparaître', (
         ],
       ),
       HEBDO_TODAY,
-    )
+    ).view
 
     expect(revealedDues(before, after, HEBDO_TODAY)).toEqual({
       unlogged: [due('2026-10-19')],
@@ -191,34 +192,43 @@ describe('revealedDues — les doses passées qu’un geste fait apparaître', (
     })
   })
 
-  it.each<[string, DoseAction]>([
-    [
-      'prise corrigée au lendemain',
-      { kind: 'redate', doseId: '2026-10-08', givenOn: '2026-10-09' },
-    ],
-    [
-      'dose donnée le lendemain',
-      {
-        kind: 'note',
-        gesture: {
-          kind: 'given',
-          due: due('2026-10-09'),
-          givenOn: '2026-10-10',
-          shiftsFollowing: true,
-        },
-      },
-    ],
-  ])('quotidien, %s : aucune dose passée annoncée', async (_, action) => {
+  describe('quotidien, doses des 7 et 8 oct. données, aujourd’hui le 11', () => {
     const today = '2026-10-11'
     const QUOTIDIEN = period({ startsOn: '2026-10-07', firstDueOn: '2026-10-07' })
     const history = treatment(
       [QUOTIDIEN],
       ['2026-10-07', '2026-10-08'].map((day) => dose(day, day)),
     )
-    const { change, after } = await saved(history, action, today)
 
-    expect(change.revealed).toEqual({ unlogged: [], overdue: [] })
-    expect(days(after.upcoming(1))).toEqual([today])
+    it('dose donnée le lendemain : aucune dose passée annoncée', async () => {
+      const { change, after } = await saved(
+        history,
+        {
+          kind: 'note',
+          gesture: {
+            kind: 'note',
+            status: 'given',
+            due: due('2026-10-09'),
+            givenOn: '2026-10-10',
+            shiftsFollowing: true,
+          },
+        },
+        today,
+      )
+
+      expect(change.revealed).toBeNull()
+      expect(days(after.upcoming({ limit: 1 }))).toEqual([today])
+    })
+
+    it('prise du 8 corrigée au 9 (Q-C1) : elle note la dose du 9, celle du 8 est à renseigner', async () => {
+      const { change } = await saved(
+        history,
+        { kind: 'redate', lineId: '2026-10-08', givenOn: '2026-10-09', shiftsFollowing: true },
+        today,
+      )
+
+      expect(change.revealed).toEqual({ unlogged: [due('2026-10-08')], overdue: [] })
+    })
   })
 })
 
@@ -289,7 +299,7 @@ describe('revealedDuesText', () => {
 describe('le toast du geste annonce les doses passées', () => {
   const context = { name: 'Panacur', animal: 'Pixel', today: '2026-10-27', severalTimes: false }
   const applied = {
-    postponement: null,
+    followed: [],
     moved: null,
     shiftKept: false,
     revealed: { unlogged: [due('2026-10-19')], overdue: [due('2026-10-26')] },
@@ -299,7 +309,7 @@ describe('le toast du geste annonce les doses passées', () => {
     const texts = doseActionTexts(
       t,
       context,
-      { kind: 'redate', doseId: 'prise', givenOn: '2026-10-12' },
+      { kind: 'redate', lineId: 'prise', givenOn: '2026-10-12', shiftsFollowing: true },
       null,
     )
 
@@ -312,7 +322,16 @@ describe('le toast du geste annonce les doses passées', () => {
     const texts = doseActionTexts(
       t,
       context,
-      { kind: 'note', gesture: { kind: 'given', due: due('2026-10-23'), givenOn: '2026-10-19' } },
+      {
+        kind: 'note',
+        gesture: {
+          kind: 'note',
+          status: 'given',
+          due: due('2026-10-23'),
+          givenOn: '2026-10-19',
+          shiftsFollowing: true,
+        },
+      },
       null,
     )
 
@@ -325,7 +344,7 @@ describe('le toast du geste annonce les doses passées', () => {
     const texts = doseActionTexts(
       t,
       context,
-      { kind: 'redate', doseId: 'prise', givenOn: '2026-10-12' },
+      { kind: 'redate', lineId: 'prise', givenOn: '2026-10-12', shiftsFollowing: true },
       null,
     )
 
@@ -353,7 +372,7 @@ describe('l’aide sous la case ne cite que des dates à venir', () => {
       t,
       due('2026-10-23'),
       '2026-10-19',
-      { history: AUTRE, schedule: treatmentScheduleOf(AUTRE, HEBDO_TODAY), today: HEBDO_TODAY },
+      { history: AUTRE, reading: treatmentReadingOf(AUTRE, HEBDO_TODAY), today: HEBDO_TODAY },
       true,
     ).help?.text
 
@@ -367,11 +386,10 @@ describe('finitions de la revue', () => {
   it('le jour même de l’échéance, sans case, l’aide annonce aussi les doses passées', () => {
     const carnet = {
       history: HEBDO,
-      schedule: treatmentScheduleOf(HEBDO, HEBDO_TODAY),
+      reading: treatmentReadingOf(HEBDO, HEBDO_TODAY),
       today: HEBDO_TODAY,
     }
-    const change = dateChangeOf(t, PRISE_16, null, { today: HEBDO_TODAY, earliest: null })!
-    const view = dateChangeBox(t, PRISE_16, carnet, change.action)!.view('2026-10-16', true)
+    const view = dateChangeBox(t, PRISE_16, carnet)!.view('2026-10-16', true)
 
     expect(view.shown).toBe(false)
     expect(plain(view.help)).toEqual({ text: 'La dose du 23 oct. sera en retard.', warning: false })

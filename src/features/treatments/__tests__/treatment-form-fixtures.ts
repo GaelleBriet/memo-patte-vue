@@ -70,7 +70,6 @@ export function saisie(changes: Partial<TreatmentFormValues> = {}): TreatmentFor
     frequencyUnit: 'day',
     firstDoseOn: '2026-09-29',
     nextDoseOn: '',
-    shiftsFollowing: true,
     times: ['20:00'],
     doseQuantity: '½',
     doseUnit: 'tablet',

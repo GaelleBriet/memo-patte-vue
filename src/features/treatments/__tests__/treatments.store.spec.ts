@@ -535,7 +535,13 @@ describe('useTreatmentsStore — gestes d’un rappel', () => {
     const undo = [{ action: 'delete' as const, id: 'p1' }]
     const stopped = { animalId: MILO, stopped: true, finished: true, undo }
     const gestures = [
-      { kind: 'missed' as const, due: { periodId: 'p', dueOn: '2026-09-19', dueTime: null } },
+      {
+        kind: 'note' as const,
+        status: 'missed' as const,
+        due: { settingId: 'p', dueOn: '2026-09-19', dueTime: null },
+        givenOn: '2026-09-19',
+        shiftsFollowing: false,
+      },
     ]
     stop.stop.mockResolvedValue(stopped)
     const store = useTreatmentsStore()
@@ -555,7 +561,9 @@ describe('useTreatmentsStore — gestes d’un rappel', () => {
       animalId: MILO,
       undo: [{ action: 'restore' as const, id: 'p1' }],
       alreadyGivenOn: null,
-      postponement: null,
+      lostToEnd: [],
+      followed: [],
+      revealed: null,
       finishes: false,
       moved: null,
       shiftKept: false,
@@ -563,12 +571,12 @@ describe('useTreatmentsStore — gestes d’un rappel', () => {
     doses.apply.mockResolvedValue(applied)
     repository.listWithHistoryByAnimal.mockClear()
 
-    await expect(store.applyDoseAction(seme.id, { kind: 'remove', doseId: 'p1' })).resolves.toEqual(
+    await expect(store.applyDoseAction(seme.id, { kind: 'remove', lineId: 'p1' })).resolves.toEqual(
       applied,
     )
     await store.undoDoseAction(seme.id, applied.undo)
 
-    expect(doses.apply).toHaveBeenCalledWith(seme.id, { kind: 'remove', doseId: 'p1' })
+    expect(doses.apply).toHaveBeenCalledWith(seme.id, { kind: 'remove', lineId: 'p1' })
     expect(doses.undoBatch).toHaveBeenCalledWith(seme.id, applied.undo)
     expect(repository.listWithHistoryByAnimal).toHaveBeenCalledTimes(2)
   })
@@ -577,7 +585,7 @@ describe('useTreatmentsStore — gestes d’un rappel', () => {
     doses.apply.mockRejectedValue(new Error('base verrouillée'))
     const store = useTreatmentsStore()
 
-    await expect(store.applyDoseAction('t1', { kind: 'remove', doseId: 'p1' })).rejects.toThrow(
+    await expect(store.applyDoseAction('t1', { kind: 'remove', lineId: 'p1' })).rejects.toThrow(
       'base verrouillée',
     )
     expect(store.isLoading).toBe(false)

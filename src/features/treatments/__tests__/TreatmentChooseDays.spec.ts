@@ -5,11 +5,11 @@ import TreatmentChooseDays from '../views/TreatmentChooseDays.vue'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 import { days } from '@/shared/__tests__/treatment-schedule-fixtures'
-import type { Due } from '@/shared/domain/treatment-schedule'
+import type { Due } from '@/shared/domain/dose-calendar'
 
 const NBSP = / /g
 const VINGT: Due[] = days('2026-09-03', '2026-09-22').map((dueOn) => ({
-  periodId: 'p-1',
+  settingId: 'p-1',
   dueOn,
   dueTime: null,
 }))

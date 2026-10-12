@@ -2,14 +2,14 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { dose, extra, missed, period, plain, postponed, treatment } from './treatment-fixtures'
 import {
-  earliestGivenOn,
   givenWhenMin,
   givenWhenTexts,
   isEveryDay,
+  isExtraOn,
   notificationTarget,
 } from '../logic/treatment-notification'
 import { notifiedPlan } from '../logic/treatment-other-date'
-import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
+import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 
@@ -34,7 +34,7 @@ const TOUS_LES_3_JOURS = period({
 })
 
 function target(book: TreatmentWithHistory, today: string, dueOn: string, dueTime: string | null) {
-  return notificationTarget(treatmentScheduleOf(book, today), { dueOn, dueTime }, today)
+  return notificationTarget(treatmentReadingOf(book, today).view, { dueOn, dueTime }, today)
 }
 
 afterEach(() => applyLocale('fr'))
@@ -48,7 +48,7 @@ describe('notificationTarget — ce que fait « C’est fait » d’une notifica
 
     expect(target(book, '2026-10-07', '2026-10-07', '20:00')).toEqual({
       kind: 'note',
-      due: { periodId: 'p-1', dueOn: '2026-10-07', dueTime: '20:00' },
+      due: { settingId: 'p-1', dueOn: '2026-10-07', dueTime: '20:00' },
     })
   })
 
@@ -75,7 +75,7 @@ describe('notificationTarget — ce que fait « C’est fait » d’une notifica
 
     expect(target(book, '2026-10-07', '2026-10-07', '20:00')).toEqual({
       kind: 'note',
-      due: { periodId: 'p-1', dueOn: '2026-10-07', dueTime: '20:00' },
+      due: { settingId: 'p-1', dueOn: '2026-10-07', dueTime: '20:00' },
     })
   })
 
@@ -118,7 +118,7 @@ describe('notificationTarget — ce que fait « C’est fait » d’une notifica
 
     expect(target(book, '2026-10-16', '2026-10-16', null)).toEqual({
       kind: 'note',
-      due: { periodId: 'p-1', dueOn: '2026-10-16', dueTime: null },
+      due: { settingId: 'p-1', dueOn: '2026-10-16', dueTime: null },
     })
   })
 
@@ -190,36 +190,37 @@ describe('notificationTarget — ce que fait « C’est fait » d’une notifica
 })
 
 describe('givenWhenMin — borne du calendrier de « Une autre date »', () => {
-  const DOSE_9 = { periodId: 'p-1', dueOn: '2026-10-09', dueTime: null }
-  const schedule = () =>
-    treatmentScheduleOf(treatment([VENDREDIS], [dose('2026-10-02', '2026-10-09')]), '2026-10-12')
+  const DOSE_9 = { settingId: 'p-1', dueOn: '2026-10-09', dueTime: null }
+  const view = () =>
+    treatmentReadingOf(treatment([VENDREDIS], [dose('2026-10-02', '2026-10-09')]), '2026-10-12')
+      .view
 
   it.each([
     [null, '2026-10-03'],
     ['2026-01-10', '2026-10-03'],
     ['2026-10-05', '2026-10-05'],
   ])('naissance %s : %s', (birthDate, expected) => {
-    expect(givenWhenMin(schedule(), VENDREDIS, DOSE_9, birthDate)).toBe(expected)
+    expect(givenWhenMin(view(), DOSE_9, birthDate)).toBe(expected)
   })
 
   it('sans borne du moteur, la naissance seule', () => {
     const book = treatment([TOUS_LES_3_JOURS])
-    const due = { periodId: 'p-1', dueOn: '2026-10-04', dueTime: '20:00' }
-    const plan = treatmentScheduleOf(book, '2026-10-07')
+    const due = { settingId: 'p-1', dueOn: '2026-10-04', dueTime: '20:00' }
+    const { view: plan } = treatmentReadingOf(book, '2026-10-07')
 
-    expect(givenWhenMin(plan, TOUS_LES_3_JOURS, due, null)).toBeNull()
-    expect(givenWhenMin(plan, TOUS_LES_3_JOURS, due, '2026-05-01')).toBe('2026-05-01')
+    expect(givenWhenMin(plan, due, null)).toBeNull()
+    expect(givenWhenMin(plan, due, '2026-05-01')).toBe('2026-05-01')
   })
 })
 
 describe('notifiedPlan — l’échéance de la notification, ou ses heures', () => {
   it('une heure précise : l’échéance, sans heure à choisir', () => {
     const book = treatment([MATIN_ET_SOIR])
-    const schedule = treatmentScheduleOf(book, '2026-10-07')
+    const { view } = treatmentReadingOf(book, '2026-10-07')
 
-    expect(notifiedPlan(t, schedule, { dueOn: '2026-10-06', dueTime: '20:00' })).toEqual({
+    expect(notifiedPlan(t, view, { dueOn: '2026-10-06', dueTime: '20:00' })).toEqual({
       hours: [],
-      due: { periodId: 'p-1', dueOn: '2026-10-06', dueTime: '20:00' },
+      due: { settingId: 'p-1', dueOn: '2026-10-06', dueTime: '20:00' },
     })
   })
 
@@ -232,9 +233,9 @@ describe('notifiedPlan — l’échéance de la notification, ou ses heures', ()
         missed('2026-10-04', '2026-10-04', { dueTime: '08:00' }),
       ],
     )
-    const schedule = treatmentScheduleOf(book, '2026-10-07')
+    const { view } = treatmentReadingOf(book, '2026-10-07')
 
-    expect(plain(notifiedPlan(t, schedule, { dueOn: '2026-10-04', dueTime: null }))).toEqual({
+    expect(plain(notifiedPlan(t, view, { dueOn: '2026-10-04', dueTime: null }))).toEqual({
       due: null,
       hours: [
         { time: '08:00', label: '8 h', detail: 'Dose de 8 h · notée oubliée', due: null },
@@ -242,34 +243,29 @@ describe('notifiedPlan — l’échéance de la notification, ou ses heures', ()
           time: '20:00',
           label: '20 h',
           detail: 'Dose de 20 h · pas encore notée',
-          due: { periodId: 'p-1', dueOn: '2026-10-04', dueTime: '20:00' },
+          due: { settingId: 'p-1', dueOn: '2026-10-04', dueTime: '20:00' },
         },
       ],
     })
   })
 })
 
-describe('earliestGivenOn — « Une autre date » note toujours l’échéance de la notification', () => {
-  it('G11 : pas un intervalle ou plus avant l’échéance, ce serait une prise en plus', () => {
+describe('isExtraOn — « Une autre date » note toujours l’échéance de la notification', () => {
+  it('G11 : un intervalle ou plus avant l’échéance, ce serait une prise en plus', () => {
     const book = treatment([VENDREDIS], [dose('2026-10-02', '2026-10-09')])
-    const schedule = treatmentScheduleOf(book, '2026-10-12')
+    const { view } = treatmentReadingOf(book, '2026-10-12')
+    const due = { settingId: 'p-1', dueOn: '2026-10-09', dueTime: null }
 
-    expect(
-      earliestGivenOn(schedule, VENDREDIS, { periodId: 'p-1', dueOn: '2026-10-09', dueTime: null }),
-    ).toBe('2026-10-03')
+    expect(isExtraOn(view, due, '2026-10-02')).toBe(true)
+    expect(isExtraOn(view, due, '2026-10-03')).toBe(false)
   })
 
   it('à plusieurs heures par jour, aucune prise n’est en plus : pas de borne', () => {
     const book = treatment([TOUS_LES_3_JOURS])
-    const schedule = treatmentScheduleOf(book, '2026-10-07')
+    const { view } = treatmentReadingOf(book, '2026-10-07')
+    const due = { settingId: 'p-1', dueOn: '2026-10-04', dueTime: '20:00' }
 
-    expect(
-      earliestGivenOn(schedule, TOUS_LES_3_JOURS, {
-        periodId: 'p-1',
-        dueOn: '2026-10-04',
-        dueTime: '20:00',
-      }),
-    ).toBeNull()
+    expect(isExtraOn(view, due, '2026-09-01')).toBe(false)
   })
 })
 
@@ -284,7 +280,7 @@ describe('isEveryDay — Q3', () => {
 })
 
 describe('givenWhenTexts — « Donnée quand ? » (planche A · V5)', () => {
-  const due = { periodId: 'p-1', dueOn: '2026-10-06', dueTime: '20:00' }
+  const due = { settingId: 'p-1', dueOn: '2026-10-06', dueTime: '20:00' }
   const PANACUR = { name: 'Panacur', animal: 'Pixel', today: '2026-10-07', dosage: null }
 
   it('dit le jour prévu, avec son heure, et aujourd’hui', () => {

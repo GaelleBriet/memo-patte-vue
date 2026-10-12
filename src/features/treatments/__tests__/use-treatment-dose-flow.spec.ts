@@ -6,14 +6,15 @@ import { computed, defineComponent, ref } from 'vue'
 import { dose, period, treatment } from './treatment-fixtures'
 import { useTreatmentDoseFlow, type DoseFlowExits } from '../composables/use-treatment-dose-flow'
 import { useTreatmentGestures } from '../composables/use-treatment-gestures'
-import { DoseAlreadyLoggedError } from '../logic/treatment-dose-writes'
-import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
+import { DoseAlreadyLoggedError, type NoteGesture } from '../logic/treatment-dose-change'
+import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { AppliedDoseChange } from '../service/treatment-doses.service'
 import { useTreatmentsStore } from '../store/treatments.store'
 import i18n from '@/core/i18n'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
+import type { Due } from '@/shared/domain/dose-calendar'
 import { dismissToast, toastMessage, toastTone } from '@/shared/utils/toast'
 
 const TODAY = '2026-09-28'
@@ -44,7 +45,9 @@ const APPLIED: AppliedDoseChange = {
   animalId: LUNA.id,
   undo: [{ action: 'delete', id: 'p1' }],
   alreadyGivenOn: null,
-  postponement: null,
+  lostToEnd: [],
+  followed: [],
+  revealed: null,
   finishes: false,
   moved: null,
   shiftKept: false,
@@ -80,11 +83,11 @@ function flow(exits: DoseFlowExits = {}, history: TreatmentWithHistory | null = 
       setup() {
         const current = ref(history)
         const today = ref(TODAY)
-        const schedule = computed(() =>
-          current.value ? treatmentScheduleOf(current.value, today.value) : null,
+        const reading = computed(() =>
+          current.value ? treatmentReadingOf(current.value, today.value) : null,
         )
         result = useTreatmentDoseFlow(
-          { treatment: current, schedule, today },
+          { treatment: current, reading, today },
           useTreatmentGestures(() => {}),
           exits,
         )
@@ -94,6 +97,10 @@ function flow(exits: DoseFlowExits = {}, history: TreatmentWithHistory | null = 
     { global: { plugins: [i18n] } },
   )
   return result!
+}
+
+function given(due: Due): NoteGesture {
+  return { kind: 'note', due, status: 'given', givenOn: due.dueOn, shiftsFollowing: false }
 }
 
 function premiereDose() {
@@ -125,12 +132,12 @@ describe('useTreatmentDoseFlow — « C’est fait »', () => {
     const { note } = flow({ settled })
     const due = premiereDose()
 
-    const noted = await note({ kind: 'given', due, givenOn: due.dueOn })
+    const noted = await note(given(due))
 
     expect(noted).toBe(true)
     expect(apply).toHaveBeenCalledWith(PANACUR.id, {
       kind: 'note',
-      gesture: { kind: 'given', due, givenOn: due.dueOn },
+      gesture: given(due),
     })
     expect(toastMessage.value).toContain('Panacur')
     expect(settled).toHaveBeenCalledOnce()
@@ -142,7 +149,7 @@ describe('useTreatmentDoseFlow — « C’est fait »', () => {
     const { note } = flow({ settled })
     const due = premiereDose()
 
-    expect(await note({ kind: 'given', due, givenOn: due.dueOn })).toBe(false)
+    expect(await note(given(due))).toBe(false)
     expect(toastTone.value).toBe('error')
     expect(settled).not.toHaveBeenCalled()
   })
@@ -251,7 +258,7 @@ describe('useTreatmentDoseFlow — un geste à la fois', () => {
     apply.mockReturnValue(new Promise((resolve) => (finish = resolve)))
     const result = flow()
     const due = premiereDose()
-    const pending = result.note({ kind: 'given', due, givenOn: due.dueOn })
+    const pending = result.note(given(due))
 
     result.onStopAction('choose-days')
     await result.stop()

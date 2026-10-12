@@ -14,7 +14,7 @@ import {
 
 import { fakeTreatmentsRepository } from './fake-treatments-repository'
 import { dose, missed, period, postponed, shifted, treatment } from './treatment-fixtures'
-import { DoseAlreadyLoggedError } from '../logic/treatment-dose-writes'
+import { DoseAlreadyLoggedError } from '../logic/treatment-dose-change'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentDosesService } from '../service/treatment-doses.service'
@@ -106,7 +106,9 @@ const APPLIED = {
   animalId: LUNA.id,
   undo: [{ action: 'delete' as const, id: 'nouvelle' }],
   alreadyGivenOn: null,
-  postponement: null,
+  lostToEnd: [],
+  followed: [],
+  revealed: null,
   finishes: false,
   moved: null,
   shiftKept: false,
@@ -312,7 +314,7 @@ describe('TreatmentDetailView — carte de la dose du moment', () => {
       kind: 'note',
       gesture: {
         kind: 'given',
-        due: { periodId: 'p-1', dueOn: '2026-09-28', dueTime: '08:00' },
+        due: { settingId: 'p-1', dueOn: '2026-09-28', dueTime: '08:00' },
         givenOn: '2026-09-28',
       },
     })
@@ -377,7 +379,7 @@ describe('TreatmentDetailView — carte de la dose du moment', () => {
     )
     const view = await monter()
     const card = view.getComponent(TreatmentDoseCard)
-    const due = { periodId: 'p-1', dueOn: '2026-09-28', dueTime: '08:00' }
+    const due = { settingId: 'p-1', dueOn: '2026-09-28', dueTime: '08:00' }
 
     card.vm.$emit('done', due)
     card.vm.$emit('done', due)
@@ -398,7 +400,7 @@ describe('TreatmentDetailView — carte de la dose du moment', () => {
       kind: 'note',
       gesture: {
         kind: 'given',
-        due: { periodId: 'p-1', dueOn: '2026-09-28', dueTime: '08:00' },
+        due: { settingId: 'p-1', dueOn: '2026-09-28', dueTime: '08:00' },
         givenOn: '2026-09-29',
       },
     })
@@ -444,7 +446,7 @@ describe('TreatmentDetailView — carte de la dose du moment', () => {
       kind: 'note',
       gesture: {
         kind: 'given',
-        due: { periodId: 'p-1', dueOn: '2026-10-14', dueTime: null },
+        due: { settingId: 'p-1', dueOn: '2026-10-14', dueTime: null },
         givenOn: '2026-09-28',
       },
     })
@@ -559,7 +561,7 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
       kind: 'note',
       gesture: {
         kind: 'given',
-        due: { periodId: 'p-1', dueOn: '2026-09-24', dueTime: '09:00' },
+        due: { settingId: 'p-1', dueOn: '2026-09-24', dueTime: '09:00' },
         givenOn: '2026-09-24',
       },
     })
@@ -586,7 +588,7 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
       kind: 'note',
       gesture: {
         kind: 'given',
-        due: { periodId: 'p-1', dueOn: '2026-09-28', dueTime: '20:00' },
+        due: { settingId: 'p-1', dueOn: '2026-09-28', dueTime: '20:00' },
         givenOn: '2026-09-28',
       },
     })
@@ -625,7 +627,7 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
       kind: 'note',
       gesture: {
         kind: 'given',
-        due: { periodId: 'p-1', dueOn: '2026-09-25', dueTime: null },
+        due: { settingId: 'p-1', dueOn: '2026-09-25', dueTime: null },
         givenOn: '2026-09-25',
       },
     })
@@ -788,7 +790,7 @@ describe('TreatmentDetailView — menu ⋮ d’une prise', () => {
 
     expect(service.apply).toHaveBeenCalledWith(METACAM.id, {
       kind: 'note',
-      gesture: { kind: 'missed', due: { periodId: 'p-1', dueOn: '2026-09-27', dueTime: '20:00' } },
+      gesture: { kind: 'missed', due: { settingId: 'p-1', dueOn: '2026-09-27', dueTime: '20:00' } },
     })
     expect(message()).toBe('Prise du 27 sept. à 20 h marquée comme oubliée')
     expect(toastAction.value?.label).toBe('Annuler')
@@ -873,7 +875,7 @@ describe('TreatmentDetailView — ligne « Reportée » (planche A · V1 quinqui
     service.apply.mockResolvedValue({
       ...APPLIED,
       moved: {
-        periodId: 'p-1',
+        settingId: 'p-1',
         dueOn: '2026-10-10',
         dueTime: null,
         givenOn: null,
@@ -988,7 +990,7 @@ describe('TreatmentDetailView — « Décaler aussi les doses suivantes » (V29,
       kind: 'note',
       gesture: {
         kind: 'given',
-        due: { periodId: 'p-1', dueOn: '2026-10-09', dueTime: null },
+        due: { settingId: 'p-1', dueOn: '2026-10-09', dueTime: null },
         givenOn: '2026-10-14',
         shiftsFollowing: false,
       },
@@ -1021,7 +1023,7 @@ describe('TreatmentDetailView — « Décaler aussi les doses suivantes » (V29,
       kind: 'note',
       gesture: {
         kind: 'given',
-        due: { periodId: 'p-1', dueOn: '2026-09-25', dueTime: null },
+        due: { settingId: 'p-1', dueOn: '2026-09-25', dueTime: null },
         givenOn: '2026-09-28',
         shiftsFollowing: false,
       },
@@ -1037,7 +1039,7 @@ describe('TreatmentDetailView — « C’est fait » ne décale rien sans l’av
     firstDueOn: '2026-09-18',
   })
   const EN_RETARD = treatment([VENDREDI], [dose('2026-09-18', '2026-09-25')])
-  const DUE_25 = { periodId: 'p-1', dueOn: '2026-09-25', dueTime: null }
+  const DUE_25 = { settingId: 'p-1', dueOn: '2026-09-25', dueTime: null }
 
   async function cestFait(book: TreatmentWithHistory) {
     const view = await monter(book)
@@ -1473,7 +1475,7 @@ describe('TreatmentDetailView — doses non renseignées (TR-14 à TR-17)', () =
     expect(gestes().every(({ kind }) => kind === 'given')).toBe(true)
     expect(gestes()[0]).toEqual({
       kind: 'given',
-      due: { periodId: 'p-1', dueOn: '2026-09-03', dueTime: null },
+      due: { settingId: 'p-1', dueOn: '2026-09-03', dueTime: null },
       givenOn: '2026-09-03',
     })
     expect(message()).toBe('Métacam : 25 prises notées')
@@ -1506,7 +1508,7 @@ describe('TreatmentDetailView — doses non renseignées (TR-14 à TR-17)', () =
     await flushPromises()
 
     expect(gestes()).toEqual([
-      { kind: 'missed', due: { periodId: 'p-1', dueOn: '2026-09-27', dueTime: null } },
+      { kind: 'missed', due: { settingId: 'p-1', dueOn: '2026-09-27', dueTime: null } },
     ])
     expect(message()).toBe('Métacam : 1 oubli noté')
 
@@ -1516,7 +1518,7 @@ describe('TreatmentDetailView — doses non renseignées (TR-14 à TR-17)', () =
     expect(gestes()).toEqual([
       {
         kind: 'given',
-        due: { periodId: 'p-1', dueOn: '2026-09-27', dueTime: null },
+        due: { settingId: 'p-1', dueOn: '2026-09-27', dueTime: null },
         givenOn: '2026-09-27',
       },
     ])
@@ -1603,8 +1605,8 @@ describe('TreatmentDetailView — doses non renseignées (TR-14 à TR-17)', () =
         .filter(({ kind }) => kind === 'missed')
         .map(({ due }) => due),
     ).toEqual([
-      { periodId: 'p-1', dueOn: '2026-09-25', dueTime: '08:00' },
-      { periodId: 'p-1', dueOn: '2026-09-27', dueTime: '20:00' },
+      { settingId: 'p-1', dueOn: '2026-09-25', dueTime: '08:00' },
+      { settingId: 'p-1', dueOn: '2026-09-27', dueTime: '20:00' },
     ])
     expect(gestes()).toHaveLength(6)
   })
@@ -1732,7 +1734,7 @@ describe('TreatmentDetailView — arrêter avec des doses à renseigner (TR-30, 
     expect(gestes()).toHaveLength(25)
     expect(gestes()[0]).toEqual({
       kind: 'given',
-      due: { periodId: 'p-1', dueOn: '2026-09-03', dueTime: null },
+      due: { settingId: 'p-1', dueOn: '2026-09-03', dueTime: null },
       givenOn: '2026-09-03',
     })
     expect(message()).toBe('Métacam arrêté, à retrouver dans Traitements terminés.')

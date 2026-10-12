@@ -35,21 +35,6 @@ describe('nextDoseHelpText', () => {
       'Aujourd’hui est proposé. Modifiable.',
     )
   })
-
-  it('compte les doses qui ne seront plus à renseigner', () => {
-    expect(plain(nextDoseHelpText(t, { kind: 'dropped', count: 1 }, TODAY))).toBe(
-      'La dose prévue avant cette date ne sera plus à renseigner.',
-    )
-    expect(plain(nextDoseHelpText(t, { kind: 'dropped', count: 3 }, TODAY))).toBe(
-      'Les 3 doses prévues avant cette date ne seront plus à renseigner.',
-    )
-  })
-
-  it('dit le refus du moteur', () => {
-    expect(plain(nextDoseHelpText(t, { kind: 'refused', refusal: 'later-dose' }, TODAY))).toBe(
-      'Une dose plus lointaine est déjà notée.',
-    )
-  })
 })
 
 describe('resumeInfoText', () => {
@@ -94,7 +79,7 @@ describe('formErrorParams', () => {
 
   it('cite la première date de reprise et l’arrivée du report le plus lointain', () => {
     const params = formErrorParams(
-      { nextDose: null, farthestMove: { doseId: 'd', arrivesOn: '2026-10-20', advanced: false } },
+      { nextDose: null, farthestMove: { arrivesOn: '2026-10-20', advanced: false, isNext: true } },
       PREVIOUS,
       TODAY,
     )

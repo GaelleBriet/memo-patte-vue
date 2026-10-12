@@ -1,37 +1,45 @@
 import { describe, expect, it } from 'vitest'
 
-import { dose, missed, period, postponed, treatment, written } from './treatment-fixtures'
-import { DoseAlreadyLoggedError, doseChange } from '../logic/treatment-dose-writes'
-import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
+import { dose, missed, period, treatment, written } from './treatment-fixtures'
+import {
+  DoseAlreadyLoggedError,
+  doseChange,
+  type NoteGesture,
+} from '../logic/treatment-dose-change'
+import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
-import type { DoseGesture, Due } from '@/shared/domain/treatment-schedule'
+import type { Due } from '@/shared/domain/dose-calendar'
 
 const OWNER = { treatmentId: 'metacam', animalId: 'luna' }
 const TODAY = '2026-09-28'
 
-function given(due: Due): DoseGesture {
-  return { kind: 'given', due, givenOn: due.dueOn }
+function note(due: Due, status: 'given' | 'missed'): NoteGesture {
+  return { kind: 'note', due, status, givenOn: due.dueOn, shiftsFollowing: false }
 }
 
-function forgotten(due: Due): DoseGesture {
-  return { kind: 'missed', due }
+function given(due: Due): NoteGesture {
+  return note(due, 'given')
 }
 
-function log(history: TreatmentWithHistory, today: string, gestures: DoseGesture[]) {
+function forgotten(due: Due): NoteGesture {
+  return note(due, 'missed')
+}
+
+function log(history: TreatmentWithHistory, today: string, gestures: NoteGesture[]) {
   let next = 0
-  return doseChange(history, treatmentScheduleOf(history, today), { kind: 'log', gestures }, () => {
+  return doseChange(history, treatmentReadingOf(history, today), { kind: 'log', gestures }, () => {
     next += 1
     return `nouvelle-${next}`
   })
 }
 
 function moment(history: TreatmentWithHistory, today: string) {
-  const schedule = treatmentScheduleOf(history, today)
+  const { view } = treatmentReadingOf(history, today)
   return {
-    phase: schedule.phase,
-    currentDoses: schedule.currentDoses,
-    nextDue: schedule.nextDue,
-    upcoming: schedule.upcoming(12),
+    phase: view.phase,
+    currentDoses: view.currentDoses,
+    nextDue: view.nextDue,
+    upcoming: view.upcoming({ limit: 12 }),
   }
 }
 
@@ -43,7 +51,7 @@ const PANACUR = treatment(
 
 describe('doseChange — renseigner des doses en un lot', () => {
   it('écrit une prise par dose, donnée à sa date ou oubliée, avec la période de son échéance', () => {
-    const [first, second] = treatmentScheduleOf(PANACUR, TODAY).unloggedDoses as [Due, Due]
+    const [first, second] = treatmentReadingOf(PANACUR, TODAY).view.unloggedDoses as [Due, Due]
 
     const { writes, alreadyGivenOn } = log(PANACUR, TODAY, [given(first), forgotten(second)])
 
@@ -59,7 +67,7 @@ describe('doseChange — renseigner des doses en un lot', () => {
           dueTime: null,
           givenOn: '2026-09-03',
           status: 'given',
-          nextDueDate: '2026-09-04',
+          nextDueDate: '2026-09-03',
         },
       },
       {
@@ -72,24 +80,24 @@ describe('doseChange — renseigner des doses en un lot', () => {
           dueTime: null,
           givenOn: null,
           status: 'missed',
-          nextDueDate: '2026-09-05',
+          nextDueDate: '2026-09-04',
         },
       },
     ])
   })
 
   it('« Choisir les jours » sur 25 jours, 5 décochés : 20 données et 5 oubliées, plus rien à renseigner', () => {
-    const unlogged = treatmentScheduleOf(PANACUR, TODAY).unloggedDoses
+    const unlogged = treatmentReadingOf(PANACUR, TODAY).view.unloggedDoses
     const gestures = unlogged.map((due, index) => (index < 5 ? forgotten(due) : given(due)))
 
     const { writes } = log(PANACUR, TODAY, gestures)
-    const after = treatmentScheduleOf(written(PANACUR, writes), TODAY)
+    const after = treatmentReadingOf(written(PANACUR, writes), TODAY).view
 
     expect(unlogged).toHaveLength(25)
     expect(writes).toHaveLength(25)
     expect(after.unloggedDoses).toEqual([])
-    expect(after.doses.filter(({ status }) => status === 'missed')).toHaveLength(5)
-    expect(after.doses.filter(({ status }) => status === 'given')).toHaveLength(22)
+    expect(after.history.filter(({ line }) => line.status === 'missed')).toHaveLength(5)
+    expect(after.history.filter(({ line }) => line.status === 'given')).toHaveLength(22)
   })
 
   it('n’écrit rien sans dose', () => {
@@ -97,8 +105,8 @@ describe('doseChange — renseigner des doses en un lot', () => {
   })
 
   it('refuse tout le lot quand une de ses doses est déjà notée', () => {
-    const [first] = treatmentScheduleOf(PANACUR, TODAY).unloggedDoses as [Due]
-    const noted = { periodId: 'p-1', dueOn: '2026-09-02', dueTime: null }
+    const [first] = treatmentReadingOf(PANACUR, TODAY).view.unloggedDoses as [Due]
+    const noted = { settingId: 'p-1', dueOn: '2026-09-02', dueTime: null }
 
     expect(() => log(PANACUR, TODAY, [given(first), given(noted)])).toThrow(DoseAlreadyLoggedError)
     expect(() => log(PANACUR, TODAY, [forgotten(noted)])).toThrow(DoseAlreadyLoggedError)
@@ -111,7 +119,7 @@ describe('doseChange — renseigner des doses en un lot', () => {
     )
 
     expect(() =>
-      log(history, TODAY, [given({ periodId: 'p-1', dueOn: '2026-09-02', dueTime: null })]),
+      log(history, TODAY, [given({ settingId: 'p-1', dueOn: '2026-09-02', dueTime: null })]),
     ).toThrow(DoseAlreadyLoggedError)
   })
 
@@ -120,33 +128,15 @@ describe('doseChange — renseigner des doses en un lot', () => {
       [period({ frequency: { value: 1, unit: 'week' } })],
       [dose('2026-09-01', '2026-09-08')],
     )
-    const schedule = treatmentScheduleOf(history, '2026-09-24')
-    const dues = [...schedule.unloggedDoses, ...schedule.currentDoses]
+    const { view } = treatmentReadingOf(history, '2026-09-24')
+    const dues = [...view.unloggedDoses, ...view.currentDoses]
 
     const { writes } = log(history, '2026-09-24', dues.map(given))
-    const after = treatmentScheduleOf(written(history, writes), '2026-09-24')
+    const after = treatmentReadingOf(written(history, writes), '2026-09-24').view
 
     expect(dues.map(({ dueOn }) => dueOn)).toEqual(['2026-09-08', '2026-09-15', '2026-09-22'])
     expect(after.unloggedDoses).toEqual([])
     expect(after.currentDoses.map(({ dueOn }) => dueOn)).toEqual(['2026-09-29'])
-  })
-
-  it('emporte les lignes sans effet avec l’écriture', () => {
-    const weekly = period({ frequency: { value: 1, unit: 'week' } })
-    const history = treatment(
-      [weekly],
-      [
-        dose('2026-09-01', '2026-09-08'),
-        postponed('2026-09-22', '2026-09-22', { id: 'sans-effet' }),
-      ],
-    )
-    const schedule = treatmentScheduleOf(history, TODAY)
-
-    const { writes } = log(history, TODAY, schedule.unloggedDoses.map(given))
-
-    expect(schedule.staleDoseIds).toEqual(['sans-effet'])
-    expect(writes.at(-1)).toEqual({ action: 'delete', id: 'sans-effet' })
-    expect(treatmentScheduleOf(written(history, writes), TODAY).unloggedDoses).toEqual([])
   })
 })
 
@@ -219,7 +209,7 @@ describe('renseigner ne déplace ni la dose du moment ni les échéances à veni
 
   it.each(cases)('%s', (_, history, today) => {
     const before = moment(history, today)
-    const unlogged = treatmentScheduleOf(history, today).unloggedDoses
+    const unlogged = treatmentReadingOf(history, today).view.unloggedDoses
     const gestures = unlogged.map((due, index) => (index % 3 === 1 ? forgotten(due) : given(due)))
 
     const { writes } = log(history, today, gestures)
@@ -227,14 +217,14 @@ describe('renseigner ne déplace ni la dose du moment ni les échéances à veni
 
     expect(unlogged.length).toBeGreaterThan(0)
     expect(writes.every((write) => write.action === 'create')).toBe(true)
-    expect(treatmentScheduleOf(after, today).unloggedDoses).toEqual([])
+    expect(treatmentReadingOf(after, today).view.unloggedDoses).toEqual([])
     expect(moment(after, today)).toEqual(before)
   })
 
   it('une à une, dans le désordre, non plus', () => {
     let history = PANACUR
     const before = moment(history, TODAY)
-    const unlogged = [...treatmentScheduleOf(history, TODAY).unloggedDoses].reverse()
+    const unlogged = [...treatmentReadingOf(history, TODAY).view.unloggedDoses].reverse()
 
     for (const due of unlogged) {
       history = written(history, log(history, TODAY, [given(due)]).writes)

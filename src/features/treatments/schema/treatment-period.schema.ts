@@ -84,3 +84,10 @@ export const treatmentPeriodSettingsSchema = z
     reminderTime: clockTimeSchema.nullable(),
   })
   .refine(hasWholeDosage, { path: ['doseUnit'] })
+
+/** Garde de la première période d'un traitement : sa première échéance et sa fin ne précèdent pas son début. */
+export const treatmentFirstPeriodSettingsSchema = treatmentPeriodSettingsSchema
+  .refine(({ startsOn, firstDueOn }) => firstDueOn >= startsOn, { path: ['firstDueOn'] })
+  .refine(({ firstDueOn, endsOn }) => endsOn === null || endsOn >= firstDueOn, {
+    path: ['endsOn'],
+  })

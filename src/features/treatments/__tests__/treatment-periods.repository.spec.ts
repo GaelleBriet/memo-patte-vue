@@ -23,7 +23,6 @@ const VASCO = '22222222-2222-4222-8222-222222222222'
 const MILBEMAX = '33333333-3333-4333-8333-333333333333'
 const BRAVECTO = '44444444-4444-4444-8444-444444444444'
 const REPRISE = '55555555-5555-4555-8555-555555555555'
-const MEME_JOUR = '66666666-6666-4666-8666-666666666666'
 const T0 = '2026-01-01T00:00:00.000Z'
 const EARLIER = '2026-02-01T00:00:00.000Z'
 const NOW = '2026-03-01T10:00:00.000Z'
@@ -131,7 +130,7 @@ describe('treatmentPeriodsRepository', () => {
     ])
   })
 
-  describe('période en cours', () => {
+  describe('arrêt d’une période', () => {
     beforeEach(async () => {
       await db.runMany([
         periods.insertStatement(
@@ -140,10 +139,10 @@ describe('treatmentPeriodsRepository', () => {
       ])
     })
 
-    it('arrête la période la plus récente du traitement, pas les précédentes', async () => {
+    it('arrête la période donnée, pas les autres du traitement', async () => {
       vi.useFakeTimers({ now: new Date(NOW) })
 
-      await expect(periods.stop(MILBEMAX, '2026-03-01')).resolves.toBe(true)
+      await expect(periods.stop(REPRISE, '2026-03-01')).resolves.toBe(true)
 
       await expect(row(REPRISE)).resolves.toMatchObject({
         stopped_on: '2026-03-01',
@@ -152,41 +151,15 @@ describe('treatmentPeriodsRepository', () => {
       await expect(row(MILBEMAX)).resolves.toMatchObject({ stopped_on: null, updated_at: T0 })
     })
 
-    it('départage deux périodes du même jour par la date de saisie', async () => {
-      await db.runMany([
-        periods.insertStatement(
-          period({
-            id: MEME_JOUR,
-            startsOn: '2026-02-15',
-            createdAt: EARLIER,
-            updatedAt: EARLIER,
-          }),
-        ),
-      ])
-
-      await periods.stop(MILBEMAX, '2026-03-01')
-
-      await expect(row(REPRISE)).resolves.toMatchObject({ stopped_on: null })
-      await expect(row(MEME_JOUR)).resolves.toMatchObject({ stopped_on: '2026-03-01' })
-    })
-
-    it('ignore une période supprimée', async () => {
-      await db.run('UPDATE treatment_period SET deleted_at = ? WHERE id = ?', [EARLIER, REPRISE])
-
-      await periods.stop(MILBEMAX, '2026-03-01')
-
-      await expect(row(MILBEMAX)).resolves.toMatchObject({ stopped_on: '2026-03-01' })
-    })
-
     it('n’arrête pas de nouveau une période arrêtée : sa date d’arrêt est gardée', async () => {
-      await periods.stop(MILBEMAX, '2026-02-20')
+      await periods.stop(REPRISE, '2026-02-20')
 
-      await expect(periods.stop(MILBEMAX, '2026-03-01')).resolves.toBe(false)
+      await expect(periods.stop(REPRISE, '2026-03-01')).resolves.toBe(false)
 
       await expect(row(REPRISE)).resolves.toMatchObject({ stopped_on: '2026-02-20' })
     })
 
-    it('n’arrête rien pour un traitement inconnu ou dont les périodes sont supprimées', async () => {
+    it('n’arrête rien pour une période inconnue ou supprimée', async () => {
       await db.run('UPDATE treatment_period SET deleted_at = ? WHERE treatment_id = ?', [
         EARLIER,
         BRAVECTO,
@@ -196,11 +169,11 @@ describe('treatmentPeriodsRepository', () => {
       await expect(periods.stop(BRAVECTO, '2026-03-01')).resolves.toBe(false)
     })
 
-    it('annule l’arrêt de la période en cours', async () => {
-      await periods.stop(MILBEMAX, '2026-03-01')
+    it('annule l’arrêt de la période donnée', async () => {
+      await periods.stop(REPRISE, '2026-03-01')
       vi.useFakeTimers({ now: new Date(NOW) })
 
-      await periods.undoStop(MILBEMAX)
+      await periods.undoStop(REPRISE)
 
       await expect(row(REPRISE)).resolves.toMatchObject({ stopped_on: null, updated_at: NOW })
     })
@@ -240,7 +213,7 @@ describe('treatmentPeriodsRepository', () => {
         ),
       ])
 
-      await db.runMany([periods.correctCurrentSettingsStatement(MILBEMAX, REGLAGES, NOW)])
+      await db.runMany([periods.correctSettingsStatement(REPRISE, REGLAGES, NOW)])
 
       const [first, current] = await periods.listByTreatment(MILBEMAX)
       expect(current).toEqual({
@@ -267,7 +240,7 @@ describe('treatmentPeriodsRepository', () => {
         reminderOffsetMinutes: null,
       }
 
-      await db.runMany([periods.correctCurrentSettingsStatement(MILBEMAX, sans, NOW)])
+      await db.runMany([periods.correctSettingsStatement(REPRISE, sans, NOW)])
 
       const [, current] = await periods.listByTreatment(MILBEMAX)
       expect(current).toEqual({ ...COMPLETE, ...sans, updatedAt: NOW })
@@ -275,24 +248,15 @@ describe('treatmentPeriodsRepository', () => {
 
     it('refuse d’insérer ou de corriger des réglages incohérents, sans rien écrire', async () => {
       const sansUnite = { ...REGLAGES, doseUnit: null }
-      const finAvantLaPremiere = { ...REGLAGES, endsOn: '2026-02-10' }
 
       expect(() => periods.insertStatement({ ...COMPLETE, ...sansUnite })).toThrow(ZodError)
-      expect(() => periods.insertStatement({ ...COMPLETE, firstDueOn: '2026-02-09' })).toThrow(
-        ZodError,
-      )
-      expect(() => periods.correctCurrentSettingsStatement(MILBEMAX, sansUnite, NOW)).toThrow(
-        ZodError,
-      )
-      expect(() =>
-        periods.correctCurrentSettingsStatement(MILBEMAX, finAvantLaPremiere, NOW),
-      ).toThrow(ZodError)
+      expect(() => periods.correctSettingsStatement(MILBEMAX, sansUnite, NOW)).toThrow(ZodError)
     })
 
     it('ne date pas une période dont aucun réglage ne change', async () => {
       await db.runMany([periods.insertStatement(COMPLETE)])
 
-      await db.runMany([periods.correctCurrentSettingsStatement(MILBEMAX, REGLAGES, NOW)])
+      await db.runMany([periods.correctSettingsStatement(REPRISE, REGLAGES, NOW)])
 
       await expect(row(REPRISE)).resolves.toMatchObject({ updated_at: EARLIER })
     })

@@ -8,7 +8,7 @@ import {
   createFakeNotifications,
   type FakeNotifications,
 } from '@/shared/__tests__/fake-notifications'
-import { DoseAlreadyLoggedError } from '../logic/treatment-dose-writes'
+import { DoseAlreadyLoggedError } from '../logic/treatment-dose-change'
 import { createTreatmentDosesRepository } from '../repository/treatment-doses.repository'
 import { createTreatmentPeriodsRepository } from '../repository/treatment-periods.repository'
 import {
@@ -123,11 +123,17 @@ describe('treatmentStopService', () => {
     let panacur: string
 
     function due(dueOn: string) {
-      return { periodId: panacur, dueOn, dueTime: null }
+      return { settingId: panacur, dueOn, dueTime: null }
     }
 
     function given(dueOn: string) {
-      return { kind: 'given' as const, due: due(dueOn), givenOn: dueOn }
+      return {
+        kind: 'note' as const,
+        status: 'given' as const,
+        due: due(dueOn),
+        givenOn: dueOn,
+        shiftsFollowing: false,
+      }
     }
 
     function reminded(): boolean {
@@ -181,7 +187,13 @@ describe('treatmentStopService', () => {
       const stopped = await service.stop(panacur, [
         given('2026-09-20'),
         given('2026-09-21'),
-        { kind: 'missed', due: due('2026-09-22') },
+        {
+          kind: 'note',
+          status: 'missed',
+          due: due('2026-09-22'),
+          givenOn: '2026-09-22',
+          shiftsFollowing: false,
+        },
       ])
 
       expect(runMany).toHaveBeenCalledOnce()

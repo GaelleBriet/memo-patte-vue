@@ -152,7 +152,7 @@ function shiftTitle(
 ): string {
   const { view } = reading
   const current = period.id === view.currentSetting?.id && period.stoppedOn === null
-  const next = current ? view.upcoming({ from: nextDay(dose.dueOn), limit: 1 })[0] : undefined
+  const next = current ? view.upcoming({ from: nextDay(dose.nextDueDate), limit: 1 })[0] : undefined
   return next === undefined
     ? t('treatments.history.shiftWithoutNext')
     : t('treatments.history.shift', { date: formatDayMonthOrYear(next.dueOn, dose.dueOn) })

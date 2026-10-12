@@ -169,7 +169,7 @@ export function createTreatmentPeriodsRepository(
   ): Required<SqlStatement> {
     return {
       sql: `UPDATE treatment_period SET stopped_on = ?, updated_at = ?, updated_by_device = ?
-            WHERE id = ? AND stopped_on IS NULL`,
+            WHERE id = ? AND stopped_on IS NULL AND ${NOT_DELETED}`,
       params: [stoppedOn, updatedAt, deviceId(), periodId],
     }
   }

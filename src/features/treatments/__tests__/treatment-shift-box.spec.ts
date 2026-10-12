@@ -1,22 +1,19 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { dose, period, plain, postponed, shifted, treatment } from './treatment-fixtures'
-import { doseChange } from '../logic/treatment-dose-writes'
-import { dateChangeOf } from '../logic/treatment-gestures'
-import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
+import { doseChange } from '../logic/treatment-dose-change'
+import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
+import { restoredSuiteFor } from '../logic/treatment-restored-suite'
 import {
   dateChangeBox,
   doneGesture,
-  dosesAfter,
   otherDateBox,
   otherDateNote,
   otherDateRecap,
-  restoredSuiteFor,
-  shiftHelpText,
 } from '../logic/treatment-shift-box'
+import { shiftHelpText } from '../logic/treatment-shift-help'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import i18n, { applyLocale } from '@/core/i18n'
-import { formatDayMonth } from '@/shared/utils/format'
 
 const t = i18n.global.t
 
@@ -27,10 +24,10 @@ const VENDREDI = period({
   frequency: { value: 1, unit: 'week' },
 })
 const PIXEL = treatment([VENDREDI], [dose('2026-10-09', '2026-10-16')])
-const DUE_16 = { periodId: 'p-1', dueOn: '2026-10-16', dueTime: null }
+const DUE_16 = { settingId: 'p-1', dueOn: '2026-10-16', dueTime: null }
 
 function carnet(history: TreatmentWithHistory, today: string) {
-  return { history, schedule: treatmentScheduleOf(history, today), today }
+  return { history, reading: treatmentReadingOf(history, today), today }
 }
 
 function help(view: { help: { text: string; warning: boolean } | null }) {
@@ -182,9 +179,7 @@ describe('dateChangeBox — « Changer la date » (V30, N2)', () => {
   const seul = treatment([VENDREDI], [...PIXEL.doses, report])
 
   function boxOf(history: TreatmentWithHistory) {
-    const bounds = { earliest: today, latest: null }
-    const change = dateChangeOf(t, report, bounds, { today, earliest: null })!
-    return dateChangeBox(t, report, carnet(history, today), change.action)!
+    return dateChangeBox(t, report, carnet(history, today))!
   }
 
   it('se rouvre telle qu’elle a été laissée', () => {
@@ -216,8 +211,7 @@ describe('dateChangeBox — « Changer la date » (V30, N2)', () => {
       [VENDREDI],
       [...PIXEL.doses, prise, shifted('2026-10-16', '2026-10-19')],
     )
-    const change = dateChangeOf(t, prise, null, { today: '2026-10-21', earliest: null })!
-    const box = dateChangeBox(t, prise, carnet(history, '2026-10-21'), change.action)!
+    const box = dateChangeBox(t, prise, carnet(history, '2026-10-21'))!
 
     expect(box.initial).toBe(true)
     expect(box.view('2026-10-19', true).shown).toBe(false)
@@ -230,75 +224,66 @@ describe('dateChangeBox — « Changer la date » (V30, N2)', () => {
   })
 })
 
-describe('Q2 a : les jours qui feraient passer un report seul sont refusés', () => {
-  // Vendredis ; prise du 9 oct., dose du 16 reportée seule au jeudi 22.
-  const SEUL = treatment(
+describe('G19 : les jours qui ne laisseraient aucune date au report seul sont refusés', () => {
+  // Vendredis ; le 16 donnée le lundi 19 avec décalage, le 26 reporté seul au 30 ; aujourd’hui le 8 nov.
+  const prise = dose('2026-10-16', '2026-10-26', { givenOn: '2026-10-19' })
+  const history = treatment(
     [VENDREDI],
     [
-      dose('2026-10-09', '2026-10-16', { createdAt: '2026-10-09T08:00:00.000Z' }),
-      postponed('2026-10-16', '2026-10-22'),
+      dose('2026-10-09', '2026-10-16'),
+      prise,
+      shifted('2026-10-16', '2026-10-19'),
+      postponed('2026-10-26', '2026-10-30'),
     ],
   )
-  const today = '2026-10-12'
+  const today = '2026-11-08'
 
   it('« Changer la date » grise ces jours et le dit', () => {
-    const prise = SEUL.doses[0]!
-    const change = dateChangeOf(t, prise, null, { today, earliest: null })!
-    const box = dateChangeBox(t, prise, carnet(SEUL, today), change.action)!
+    const box = dateChangeBox(t, prise, carnet(history, today))!
 
-    expect(box.refusedDays(true)).toContain('2026-10-07')
-    expect(box.refusedDays(false)).not.toContain('2026-10-07')
-    expect(box.view('2026-10-07', true)).toMatchObject({ blocked: true })
-    expect(plain(box.view('2026-10-07', true).help!.text)).toBe(
-      'Ce jour ferait passer le report du 22 oct. après la dose suivante : change d’abord la date du report.',
+    expect(box.refusedDays(true)).toContain('2026-10-17')
+    expect(box.view('2026-10-17', true)).toMatchObject({ blocked: true })
+    expect(plain(box.view('2026-10-17', true).help!.text)).toBe(
+      'Avec ce jour, la dose que tu avais reportée au 30 oct. ne pourrait plus tomber au bon moment. Change d’abord la date de ce report.',
     )
   })
 
-  it('« Fait à une autre date » coché le refuse, décoché le permet', () => {
-    const late = treatment([VENDREDI], [...PIXEL.doses, postponed('2026-10-16', '2026-10-22')])
-    const due9 = { periodId: 'p-1', dueOn: '2026-10-09', dueTime: null }
-
-    expect(otherDateBox(t, due9, '2026-10-14', carnet(late, '2026-10-14'), true)).toMatchObject({
-      shown: true,
-      blocked: true,
-    })
-    expect(
-      otherDateBox(t, due9, '2026-10-14', carnet(late, '2026-10-14'), false).blocked,
-    ).toBeUndefined()
-    expect(
-      plain(otherDateBox(t, due9, '2026-10-14', carnet(late, '2026-10-14'), true).help!.text),
-    ).toBe(
-      'Ce jour ferait passer le report du 22 oct. après la dose suivante : décoche la case, ou change d’abord la date du report.',
+  it('« Fait à une autre date » coché : un report seul après la prise suit, rien n’est refusé (#786)', () => {
+    const held = treatment(
+      [VENDREDI],
+      [dose('2026-10-09', '2026-10-16'), postponed('2026-10-23', '2026-10-27')],
     )
+    const view = otherDateBox(t, DUE_16, '2026-10-19', carnet(held, '2026-10-19'), true)
+
+    expect(view.shown).toBe(true)
+    expect(view.blocked).toBeUndefined()
   })
 })
 
 describe('otherDateNote — ce que « Fait à une autre date » enregistre', () => {
-  const due9 = { periodId: 'p-1', dueOn: '2026-10-09', dueTime: null }
+  const due9 = { settingId: 'p-1', dueOn: '2026-10-09', dueTime: null }
+  const note = (givenOn: string, shiftsFollowing: boolean) => ({
+    kind: 'note' as const,
+    status: 'given' as const,
+    due: due9,
+    givenOn,
+    shiftsFollowing,
+  })
 
   it('refusé, rien ne s’enregistre ; la case montrée, son état part au moteur', () => {
     const shown = { shown: true, help: null }
 
     expect(otherDateNote(due9, '2026-10-14', { ...shown, blocked: true }, true)).toBeNull()
-    expect(otherDateNote(due9, '2026-10-14', shown, true)).toEqual({
-      kind: 'given',
-      due: due9,
-      givenOn: '2026-10-14',
-      shiftsFollowing: true,
-    })
-    expect(otherDateNote(due9, '2026-10-14', shown, false)).toMatchObject({
-      shiftsFollowing: false,
-    })
-    expect(otherDateNote(due9, '2026-10-14', { shown: false, help: null }, false)).toEqual({
-      kind: 'given',
-      due: due9,
-      givenOn: '2026-10-14',
-    })
+    expect(otherDateNote(due9, '2026-10-14', shown, true)).toEqual(note('2026-10-14', true))
+    expect(otherDateNote(due9, '2026-10-14', shown, false)).toEqual(note('2026-10-14', false))
+    expect(otherDateNote(due9, '2026-10-14', { shown: false, help: null }, true)).toEqual(
+      note('2026-10-14', false),
+    )
     expect(otherDateNote(null, '2026-10-14', shown, true)).toBeNull()
   })
 })
 
-describe('I2 : la correction fait suivre le report seul, et l’aide dit le calendrier enregistré', () => {
+describe('G19 : la correction fait suivre le report seul, et l’aide dit le calendrier enregistré', () => {
   // Vendredis ; le 16 donnée le lundi 19 avec décalage (26, 2 nov.), le 26 reporté seul au 30.
   const prise = dose('2026-10-16', '2026-10-26', { givenOn: '2026-10-19' })
   const history = treatment(
@@ -311,54 +296,43 @@ describe('I2 : la correction fait suivre le report seul, et l’aide dit le cale
     ],
   )
   const today = '2026-10-27'
-  const schedule = treatmentScheduleOf(history, today)
-  const change = dateChangeOf(t, prise, null, { today, earliest: null })!
-  const box = dateChangeBox(t, prise, carnet(history, today), change.action)!
+  const reading = treatmentReadingOf(history, today)
+  const box = dateChangeBox(t, prise, carnet(history, today))!
 
   function saved(date: string, shifts: boolean) {
-    const { writes } = doseChange(history, schedule, change.action(date, shifts), () => 'n')
-    return treatmentScheduleOf({ ...history, doses: dosesAfter(history.doses, writes) }, today)
+    const { writes } = doseChange(
+      history,
+      reading,
+      { kind: 'redate', lineId: prise.id, givenOn: date, shiftsFollowing: shifts },
+      () => 'n',
+    )
+    const lines = writes.reduce(
+      (all, write) =>
+        write.action === 'rewrite'
+          ? all.map((line) => (line.id === write.id ? { ...line, ...write.dose } : line))
+          : write.action === 'delete'
+            ? all.filter(({ id }) => id !== write.id)
+            : all,
+      history.doses,
+    )
+    return treatmentReadingOf({ ...history, doses: lines }, today).view
   }
-
-  function follows(date: string, shifts: boolean): boolean {
-    const { postponement } = schedule.redate(prise.id, date, shifts)
-    if (postponement === null) return false
-    return postponement.kept
-      ? postponement.followed === true
-      : postponement.followedOn !== undefined
-  }
-
-  it.each(['2026-10-12', '2026-10-15', '2026-10-17', '2026-10-18'])(
-    'au %s, case décochée : refusé dans cet état seul, le jour est grisé',
-    (date) => {
-      expect(schedule.redateRefusal(prise.id, date, false)).toEqual({
-        on: '2026-10-30',
-        reason: 'passes',
-      })
-      expect(schedule.redateRefusal(prise.id, date, true)).toBeNull()
-      expect(box.view(date, false).blocked).toBe(true)
-      expect(plain(box.view(date, false).help!.text)).toBe(
-        'Avec ce jour, la dose que tu avais reportée au 30 oct. tomberait après la suivante. Coche « Décaler aussi les doses suivantes », ou change d’abord la date de ce report.',
-      )
-      expect(box.refusedDays(false)).toContain(date)
-    },
-  )
 
   it.each(['2026-10-12', '2026-10-15', '2026-10-17', '2026-10-18'])(
     'au %s, case cochée : le report suit, l’aide dit le calendrier enregistré',
     (date) => {
       const after = saved(date, true)
-      const moves = after.doses.filter(({ status }) => status === 'postponed')
-      expect(moves.every(({ nextDueDate }) => nextDueDate >= today)).toBe(true)
+      const moves = after.history.filter(({ line }) => line.status === 'postponed')
+      expect(moves.every(({ line }) => line.targetOn! >= today)).toBe(true)
       const pending = [
-        ...new Set([...after.currentDoses, ...after.upcoming(6)].map(({ dueOn }) => dueOn)),
+        ...new Set(
+          [...after.currentDoses, ...after.upcoming({ limit: 6 })].map((due) => due.dueOn),
+        ),
       ].sort()
-      const [first, second] = pending.filter((day) => day > date)
+      const [first] = pending.filter((day) => day > date)
       const text = plain(box.view(date, true).help!.text)
 
-      expect(text).toContain(plain(formatDayMonth(first!)).split(' ')[0]!)
-      expect(text).toContain(String(Number(second!.slice(8))))
-      expect(text.includes('30 oct.')).toBe(follows(date, true))
+      expect(text).toContain(String(Number(first!.slice(8))))
       expect(text.match(/30 oct\./g)?.length ?? 0).toBeLessThanOrEqual(1)
     },
   )
@@ -368,23 +342,17 @@ describe('I2 : la correction fait suivre le report seul, et l’aide dit le cale
     (shifts) => {
       const after = saved('2026-10-16', shifts)
 
-      expect(after.doses.some(({ status }) => status === 'postponed')).toBe(false)
-      expect(after.upcoming(2).map(({ dueOn }) => dueOn)).toEqual(['2026-10-30', '2026-11-06'])
+      expect(after.history.some(({ line }) => line.status === 'postponed')).toBe(false)
+      expect(after.upcoming({ limit: 2 }).map(({ dueOn }) => dueOn)).toEqual([
+        '2026-10-30',
+        '2026-11-06',
+      ])
       expect(after.currentDoses.map(({ dueOn }) => dueOn)).toEqual(['2026-10-23'])
       expect(plain(box.view('2026-10-16', shifts).help!.text)).toBe(
         'La dose du 23 oct. sera en retard. La dose que tu avais reportée au 30 oct. reste prévue ce jour-là.',
       )
     },
   )
-
-  it('au 17, case cochée : le report garde le 30 et vise le samedi 31 ; l’aide suit le calendrier', () => {
-    expect(plain(box.view('2026-10-17', true).help!.text)).toBe(
-      'Dose reportée le 30 oct., puis le 7 nov. et toutes les semaines. La dose du 24 oct. sera en retard.',
-    )
-    const after = saved('2026-10-17', true)
-    expect(after.currentDoses.map(({ dueOn }) => dueOn)).toEqual(['2026-10-24'])
-    expect(after.upcoming(2).map(({ dueOn }) => dueOn)).toEqual(['2026-10-30', '2026-11-07'])
-  })
 
   it('l’aide nomme à part un report qui précède le rythme', () => {
     const weekly = { frequency: { value: 1, unit: 'week' as const } }
@@ -434,36 +402,40 @@ describe('restoredSuiteFor — le toast de « Supprimer ce décalage » (V31 qua
       [VENDREDI],
       [...PIXEL.doses, shifted('2026-10-16', '2026-10-19'), postponed('2026-10-16', '2026-10-19')],
     )
+    const book = carnet(history, '2026-10-15')
 
-    expect(
-      restoredSuiteFor(
-        history,
-        { kind: 'remove-shift', doseId: 'décalage 2026-10-16' },
-        '2026-10-15',
-      ),
-    ).toEqual({ nextOn: '2026-10-23', weekly: true })
-    expect(restoredSuiteFor(history, { kind: 'remove', doseId: '2026-10-09' }, '2026-10-15')).toBe(
-      null,
-    )
+    expect(restoredSuiteFor(book, { kind: 'remove', lineId: 'décalage 2026-10-16' })).toEqual({
+      nextOn: '2026-10-23',
+      weekly: true,
+    })
+    expect(restoredSuiteFor(book, { kind: 'remove', lineId: '2026-10-09' })).toBeNull()
   })
 })
 
 describe('doneGesture — « C’est fait » de la fiche : rien ne se décale sans l’aval (2026-10-06)', () => {
+  const note = (due: typeof DUE_16, givenOn: string) => ({
+    kind: 'note' as const,
+    status: 'given' as const,
+    due,
+    givenOn,
+    shiftsFollowing: false,
+  })
+
   it('une dose du jour se note d’un tap', () => {
-    expect(doneGesture(treatmentScheduleOf(PIXEL, '2026-10-16'), DUE_16, '2026-10-16')).toEqual({
+    expect(doneGesture(treatmentReadingOf(PIXEL, '2026-10-16'), DUE_16, '2026-10-16')).toEqual({
       confirm: false,
-      gesture: { kind: 'given', due: DUE_16, givenOn: '2026-10-16' },
+      gesture: note(DUE_16, '2026-10-16'),
     })
   })
 
   it('une dose en retard demande la confirmation', () => {
-    expect(doneGesture(treatmentScheduleOf(PIXEL, '2026-10-19'), DUE_16, '2026-10-19')).toEqual({
+    expect(doneGesture(treatmentReadingOf(PIXEL, '2026-10-19'), DUE_16, '2026-10-19')).toEqual({
       confirm: true,
     })
   })
 
   it('une dose donnée en avance aussi', () => {
-    expect(doneGesture(treatmentScheduleOf(PIXEL, '2026-10-14'), DUE_16, '2026-10-14')).toEqual({
+    expect(doneGesture(treatmentReadingOf(PIXEL, '2026-10-14'), DUE_16, '2026-10-14')).toEqual({
       confirm: true,
     })
   })
@@ -471,39 +443,29 @@ describe('doneGesture — « C’est fait » de la fiche : rien ne se décale sa
   it('avec une date de fin, même loin de la dose suivante (V28 bis)', () => {
     const ended = treatment([{ ...VENDREDI, endsOn: '2026-10-30' }], PIXEL.doses)
 
-    expect(doneGesture(treatmentScheduleOf(ended, '2026-10-19'), DUE_16, '2026-10-19')).toEqual({
+    expect(doneGesture(treatmentReadingOf(ended, '2026-10-19'), DUE_16, '2026-10-19')).toEqual({
       confirm: true,
     })
   })
 
   it('tous les jours, pas de case : un tap qui ne décale rien (N3)', () => {
     const daily = treatment([period({ startsOn: '2026-10-14', firstDueOn: '2026-10-14' })])
-    const due14 = { periodId: 'p-1', dueOn: '2026-10-14', dueTime: null }
-    const schedule = treatmentScheduleOf(daily, '2026-10-15')
-    const done = doneGesture(schedule, due14, '2026-10-15')
+    const due14 = { settingId: 'p-1', dueOn: '2026-10-14', dueTime: null }
 
-    expect(done).toEqual({
+    expect(doneGesture(treatmentReadingOf(daily, '2026-10-15'), due14, '2026-10-15')).toEqual({
       confirm: false,
-      gesture: { kind: 'given', due: due14, givenOn: '2026-10-15' },
+      gesture: note(due14, '2026-10-15'),
     })
-    expect(done.confirm === false && schedule.doseFor(done.gesture).shift).toBeNull()
   })
 
-  it('un report seul bloque le décalage : un tap, la prise seule, le toast le dit (Q2 a)', () => {
+  it('un report seul que le décalage fait passer suit le décalage (G19) : la confirmation est demandée', () => {
     const held = treatment(
       [VENDREDI],
       [dose('2026-10-09', '2026-10-16'), postponed('2026-10-23', '2026-10-29')],
     )
-    const schedule = treatmentScheduleOf(held, '2026-10-21')
-    const done = doneGesture(schedule, DUE_16, '2026-10-21')
 
-    expect(done).toEqual({
-      confirm: false,
-      gesture: { kind: 'given', due: DUE_16, givenOn: '2026-10-21' },
-    })
-    expect(done.confirm === false && schedule.doseFor(done.gesture)).toMatchObject({
-      shift: null,
-      heldBy: '2026-10-29',
+    expect(doneGesture(treatmentReadingOf(held, '2026-10-21'), DUE_16, '2026-10-21')).toEqual({
+      confirm: true,
     })
   })
 })

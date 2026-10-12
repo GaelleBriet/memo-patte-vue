@@ -241,7 +241,10 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
       await createdThenSynced()
       const settings = { ...REGLAGES, times: ['09:00'], endsOn: null, doseQuantity: 1 }
 
-      await repository.applyPlan(PANACUR, { ...RIEN, period: { action: 'correct', settings } })
+      await repository.applyPlan(PANACUR, {
+        ...RIEN,
+        period: { action: 'correct', id: PANACUR, settings },
+      })
 
       await expect(repository.getWithHistory(PANACUR)).resolves.toMatchObject({
         periods: [{ id: PANACUR, ...settings, updatedAt: T1 }],
@@ -326,7 +329,7 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
       await expect(
         repository.applyPlan(PANACUR, {
           treatment: { name: 'Autre', type: 'deworming' },
-          period: { action: 'correct', settings: { ...REGLAGES, endsOn: null } },
+          period: { action: 'correct', id: PANACUR, settings: { ...REGLAGES, endsOn: null } },
           doses: [{ action: 'create', id: REPORT, dose: LIGNE }],
         }),
       ).rejects.toThrow('ligne refusée')
@@ -342,7 +345,11 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
         repository.applyPlan(PANACUR, {
           ...RIEN,
           treatment: { name: 'Autre', type: 'deworming' },
-          period: { action: 'correct', settings: { ...REGLAGES, endsOn: '2026-09-28' } },
+          period: {
+            action: 'correct',
+            id: PANACUR,
+            settings: { ...REGLAGES, doseQuantity: 1, doseUnit: null },
+          },
         }),
       ).rejects.toBeInstanceOf(ZodError)
 

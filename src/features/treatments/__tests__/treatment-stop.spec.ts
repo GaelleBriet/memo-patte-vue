@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { dose, period, plain, treatment } from './treatment-fixtures'
-import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
+import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
 import { stopDues, stopPrompt, stoppedText } from '../logic/treatment-stop'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import i18n, { applyLocale } from '@/core/i18n'
@@ -9,7 +9,7 @@ import i18n, { applyLocale } from '@/core/i18n'
 const t = i18n.global.t
 
 function prompt(book: TreatmentWithHistory, today: string) {
-  return plain(stopPrompt(t, book, treatmentScheduleOf(book, today), today))
+  return plain(stopPrompt(t, book, treatmentReadingOf(book, today).view, today))
 }
 
 /** Planche A · V6 : quotidien, dernière prise le 2 sept., ouvert le 28. */
@@ -113,8 +113,8 @@ describe('stopPrompt — rien à renseigner (planche A · V6 bis)', () => {
 
 describe('stopDues', () => {
   it('ne compte jamais la dose du jour ni la prochaine', () => {
-    expect(stopDues(treatmentScheduleOf(HEBDO, '2026-09-14'))).toEqual([])
-    expect(stopDues(treatmentScheduleOf(HEBDO, '2026-09-10'))).toEqual([])
+    expect(stopDues(treatmentReadingOf(HEBDO, '2026-09-14').view)).toEqual([])
+    expect(stopDues(treatmentReadingOf(HEBDO, '2026-09-10').view)).toEqual([])
   })
 })
 

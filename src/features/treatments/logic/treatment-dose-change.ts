@@ -7,11 +7,14 @@ import {
   play,
   treatmentView,
   type Due,
+  type DueState,
   type FollowedReport,
   type Gesture,
   type GestureOutcome,
+  type LineChange,
   type LineFields,
   type Refusal,
+  type TreatmentView,
 } from '@/shared/domain/dose-calendar'
 import type { TreatmentReading } from '@/shared/domain/treatment-reading'
 
@@ -112,17 +115,56 @@ function noteChange(
   }
 }
 
+const dueKey = ({ dueOn, dueTime }: Pick<Due, 'dueOn' | 'dueTime'>) => `${dueOn} ${dueTime ?? ''}`
+
+const isOnItsDay = ({ due, givenOn }: NoteGesture) => givenOn === due.dueOn
+
+function stateOf(view: TreatmentView, dues: readonly Due[]): Map<string, DueState> {
+  const days = dues.map(({ dueOn }) => dueOn).sort()
+  const slots = days.length === 0 ? [] : view.slots(days[0]!, days.at(-1)!)
+  return new Map(slots.map(({ due, state }) => [dueKey(due), state]))
+}
+
+// Chaque dose a sa ligne, à son jour : une seule lecture du carnet pour tout le lot, sinon un geste après l'autre.
 function logChange(
   history: History,
   reading: TreatmentReading,
   gestures: readonly NoteGesture[],
   newId: () => string,
 ): DoseChange {
-  const logged = gestures.find(({ due }) => reading.view.dueState(due) !== 'pending')
+  const states = stateOf(
+    reading.view,
+    gestures.map(({ due }) => due),
+  )
+  const logged = gestures.find(({ due }) => (states.get(dueKey(due)) ?? 'pending') !== 'pending')
   if (logged !== undefined) {
     throw new DoseAlreadyLoggedError(`Dose déjà notée : ${logged.due.dueOn} ${logged.due.dueTime}`)
   }
-  const changes = gestures.flatMap((gesture) => played(reading, gesture).changes)
+  if (gestures.some(({ due }) => !states.has(dueKey(due)))) {
+    throw new GestureRefusedError({ reason: 'unknown-due' })
+  }
+  if (!gestures.every(isOnItsDay)) {
+    const changes = gestures.flatMap((gesture) => played(reading, gesture).changes)
+    return { ...NONE, writes: doseWritesOf(history, changes, newId) }
+  }
+  const changes = gestures.map(({ due, status }): LineChange => ({
+    action: 'create',
+    line: {
+      settingId: due.settingId,
+      dueOn: due.dueOn,
+      dueTime: due.dueTime,
+      status,
+      givenOn: status === 'given' ? due.dueOn : null,
+      targetOn: null,
+    },
+  }))
+  const left = stateOf(
+    treatmentView(applied(reading.input, changes)),
+    gestures.map(({ due }) => due),
+  )
+  if (gestures.some(({ due }) => left.get(dueKey(due)) === 'pending')) {
+    throw new GestureRefusedError({ reason: 'unknown-due' })
+  }
   return { ...NONE, writes: doseWritesOf(history, changes, newId) }
 }
 

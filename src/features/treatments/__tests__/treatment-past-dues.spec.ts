@@ -8,7 +8,7 @@ const PROCHAINES = { keep: '2026-10-15', drop: '2026-10-04' }
 const TOUS_LES_2_JOURS = { frequency: { value: 2, unit: 'day' as const }, times: [] }
 
 function dues(days: string[], times: (string | null)[] = [null]) {
-  return days.flatMap((dueOn) => times.map((dueTime) => ({ periodId: 'p', dueOn, dueTime })))
+  return days.flatMap((dueOn) => times.map((dueTime) => ({ settingId: 'p', dueOn, dueTime })))
 }
 
 function lisible(texts: object): Record<string, string> {

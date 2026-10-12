@@ -2,7 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { dose, period, plain, treatment } from './treatment-fixtures'
-import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
+import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
 import TreatmentDoneConfirm from '../views/TreatmentDoneConfirm.vue'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
@@ -28,7 +28,7 @@ const VENDREDI = period({
   firstDueOn: '2026-10-09',
   frequency: { value: 1, unit: 'week' },
 })
-const DUE_16 = { periodId: 'p-1', dueOn: '2026-10-16', dueTime: null }
+const DUE_16 = { settingId: 'p-1', dueOn: '2026-10-16', dueTime: null }
 const TODAY = '2026-10-19'
 
 async function ouvrir(endsOn: string | null = null) {
@@ -40,7 +40,7 @@ async function ouvrir(endsOn: string | null = null) {
       animal: 'Pixel',
       icon: 'ms:medication',
       history,
-      schedule: treatmentScheduleOf(history, TODAY),
+      reading: treatmentReadingOf(history, TODAY),
       today: TODAY,
       due: DUE_16,
     },
@@ -92,8 +92,8 @@ describe('TreatmentDoneConfirm — « C’est fait » qui décalerait la suite (
     await flushPromises()
 
     expect(wrapper.emitted('note')).toEqual([
-      [{ kind: 'given', due: DUE_16, givenOn: TODAY, shiftsFollowing: true }],
-      [{ kind: 'given', due: DUE_16, givenOn: TODAY, shiftsFollowing: false }],
+      [{ kind: 'note', status: 'given', due: DUE_16, givenOn: TODAY, shiftsFollowing: true }],
+      [{ kind: 'note', status: 'given', due: DUE_16, givenOn: TODAY, shiftsFollowing: false }],
     ])
     wrapper.unmount()
   })

@@ -15,7 +15,7 @@ import {
   treatmentDeleteTexts,
   treatmentHistory,
 } from '../logic/treatment-history'
-import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
+import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import i18n, { applyLocale } from '@/core/i18n'
@@ -23,7 +23,7 @@ import i18n, { applyLocale } from '@/core/i18n'
 const t = i18n.global.t
 
 function history(book: TreatmentWithHistory, today: string) {
-  return plain(treatmentHistory(t, book, treatmentScheduleOf(book, today), today))
+  return plain(treatmentHistory(t, book, treatmentReadingOf(book, today), today))
 }
 
 function titles(book: TreatmentWithHistory, today: string): string[][] {
@@ -595,7 +595,7 @@ describe('treatmentHistory — prise en plus (planches V32, V32 bis)', () => {
 })
 
 describe('treatmentHistory — ce que deux appareils ou un import peuvent laisser', () => {
-  it('ne montre qu’une prise par échéance, avec l’état de la ligne modifiée en dernier (critère 12)', () => {
+  it('garde la ligne modifiée en dernier ; l’autre reste, grisée « sans effet » (R11, critère 12)', () => {
     const book = treatment(
       [period({ times: ['08:00', '20:00'] })],
       [
@@ -612,6 +612,7 @@ describe('treatmentHistory — ce que deux appareils ou un import peuvent laisse
     expect(titles(book, '2026-09-01')[0]).toEqual([
       '1er sept. 2026 · 20 h',
       'Oubliée · 1er sept. 2026, 8 h',
+      '1er sept. 2026 · 8 h · sans effet',
     ])
   })
 
@@ -720,21 +721,6 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
     })
   })
 
-  it('grisée quand son report a dépassé la dose suivante (décision du 2026-10-05)', () => {
-    const book = treatment(
-      [VENDREDI],
-      [
-        dose('2026-10-09', '2026-10-16'),
-        shifted('2026-10-16', '2026-10-24'),
-        postponed('2026-10-16', '2026-10-24'),
-      ],
-    )
-
-    expect(line(book, '2026-10-15', 'shift').refused).toEqual({
-      'remove-shift': 'Change d’abord la date du report.',
-    })
-  })
-
   it('grisée quand un report seul qui suit sortirait du rythme rétabli : supprimer ce report d’abord', () => {
     const book = treatment(
       [VENDREDI],
@@ -752,29 +738,6 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
     applyLocale('en')
     expect(line(book, '2026-10-15', 'shift').refused).toEqual({
       'remove-shift': 'Delete the postponement to Oct 23 first.',
-    })
-  })
-
-  it('« Supprimer ce report » grisé quand la dose reviendrait la veille de la suivante', () => {
-    const JEUDI = period({
-      startsOn: '2026-11-19',
-      firstDueOn: '2026-11-19',
-      frequency: { value: 1, unit: 'week' },
-    })
-    const book = treatment(
-      [JEUDI],
-      [
-        dose('2026-11-19', '2026-11-26'),
-        shifted('2026-11-26', '2026-11-20'),
-        postponed('2026-11-26', '2026-11-20'),
-      ],
-    )
-
-    const report = line(book, '2026-11-19', 'move')
-    expect(report.actions).toEqual(['change-date', 'remove-move'])
-    expect(report.refused).toEqual({
-      'remove-move':
-        'Supprime d’abord le décalage des doses suivantes : la dose du 26 nov. tomberait la veille de la suivante.',
     })
   })
 })

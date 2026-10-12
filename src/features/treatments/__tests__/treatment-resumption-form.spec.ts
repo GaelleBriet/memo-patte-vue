@@ -6,7 +6,7 @@ import {
   resumedFormValues,
   validateTreatmentResumption,
 } from '../logic/treatment-resumption-form'
-import { treatmentScheduleOf } from '../logic/treatment-schedule-adapter'
+import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
 
 describe('validateTreatmentResumption (TR-32)', () => {
   const ARRETE = milbemax([period({ stoppedOn: '2026-08-01' })])
@@ -74,7 +74,7 @@ describe('valeurs à l’ouverture de « Reprendre »', () => {
   ] as const)(
     'un traitement en cours (%s) n’a rien à reprendre, sans être introuvable',
     (phase, on) => {
-      expect(treatmentScheduleOf(milbemax(), on).phase).toBe(phase)
+      expect(treatmentReadingOf(milbemax(), on).view.phase).toBe(phase)
 
       expect(resumedFormValues(milbemax(), on)).toEqual({ status: 'not-resumable' })
     },
