@@ -37,10 +37,9 @@ export function momentOf(
     return { phase: 'ended', finished: unlogged.length === 0, current: [], unlogged, open: [] }
   }
   const pending = pendingOf(last)
-  unlogged.push(
-    ...pending.filter(({ due }) => due.dueOn < setting.startsOn && due.dueOn <= yesterday),
-  )
-  const own = pending.filter(({ due }) => due.dueOn >= setting.startsOn)
+  const from = last.rhythmFrom
+  unlogged.push(...pending.filter(({ due }) => due.dueOn < from && due.dueOn <= yesterday))
+  const own = pending.filter(({ due }) => due.dueOn >= from)
   const closed = (phase: Phase, missed: Slot[]): Moment => {
     const all = [...unlogged, ...missed].sort(byKey)
     return { phase, finished: all.length === 0, current: [], unlogged: all, open: [] }
@@ -54,7 +53,7 @@ export function momentOf(
   if (setting.endsOn !== null && setting.endsOn < today) return closed('ended', own)
 
   const lastDay = [...last.fallen]
-    .filter((day) => day >= setting.startsOn && day <= today)
+    .filter((day) => day >= from && day <= today)
     .sort()
     .at(-1)
   const ofLastDay = own.filter(({ due }) => due.dueOn === lastDay)

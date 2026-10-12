@@ -24,6 +24,7 @@ export const FAMILIES = {
   'reglage-remplace': { accepted: true },
   'prise-orpheline': { accepted: true },
   'reports-en-boucle': { accepted: true },
+  'dose-en-retard': { accepted: true },
 } as const
 
 export type Family = keyof typeof FAMILIES
@@ -247,10 +248,13 @@ export function verdictOf(
   const differing = near.length > 0 ? near : far
   const families = new Set<Family>()
   const unexplained: string[] = []
+  const lateKept = keepsLateDose(book, reference)
   for (const key of new Set(differing)) {
     const found = familiesOn(book, dayOf(key), stale)
     if (a.has(key) && !b.has(key) && coveredByOrphan(book, key, reread))
       found.push('prise-orpheline')
+    const current = actual.current.includes(key) || reference.current.includes(key)
+    if (found.length === 0 && lateKept && current) found.push('dose-en-retard')
     found.forEach((family) => families.add(family))
     if (found.length === 0) unexplained.push(key)
   }
@@ -261,6 +265,20 @@ export function verdictOf(
     unexplained,
     accepted: unexplained.length === 0 && list.every((family) => FAMILIES[family].accepted),
   }
+}
+
+// R9, Q-retard : à fréquence gardée depuis la journée de la dose du moment du second moteur, elle y
+// reste en retard ; le moteur actuel la range à renseigner.
+function keepsLateDose(book: Book, reference: Display): boolean {
+  const day = reference.current[0]?.slice(0, 10)
+  const { ordered } = periodsOf(book)
+  const last = ordered.at(-1)
+  if (day === undefined || last === undefined || day >= last.startsOn || day >= book.today) {
+    return false
+  }
+  const run = [...episodeBefore(ordered, ordered.length - 1), last]
+  const from = run.filter(({ startsOn }) => startsOn <= day).length - 1
+  return from >= 0 && run.slice(from).every((period) => sameFrequency(period, last))
 }
 
 // Mêmes échéances, autre dose du moment : une journée entre les deux doses du moment n'est tombée
@@ -276,6 +294,7 @@ function splitFamilies(
   const firsts = [actual.current[0], reference.current[0], book.today].filter(
     (key) => key !== undefined,
   )
+  if (keepsLateDose(book, reference)) families.add('dose-en-retard')
   const from = firsts.map(dayOf).sort()[0]!
   const days = new Set(
     book.doses
@@ -284,7 +303,7 @@ function splitFamilies(
   )
   const found = [...days].flatMap((day) => familiesOn(book, day, stale))
   found.forEach((family) => families.add(family))
-  if (found.length > 0) return
+  if (found.length > 0 || families.has('dose-en-retard')) return
   const orphan = book.doses.some(
     (line) => isNote(line) && line.dueOn > from && line.dueOn <= book.today,
   )

@@ -1,6 +1,7 @@
 import {
   moveBounds,
   moveDose,
+  newSettings,
   noteDose,
   redateDose,
   removeLine,
@@ -8,6 +9,7 @@ import {
   viewInputOf,
   type GestureResult,
   type LineChange as V2Change,
+  type SettingsPlan,
   type TreatmentView,
 } from '../domain/dose-calendar'
 import {
@@ -20,9 +22,8 @@ import {
 } from '../domain/treatment-schedule'
 
 /**
- * Gestes et lectures du jeu de recette : lectures et gestes par le moteur v2 depuis le pas 3 de
- * l'épic #758, réglages proposés par le moteur actuel jusqu'au pas 4. Les écritures suivent le
- * repository de l'app, sans purge (R11).
+ * Gestes et lectures du jeu de recette : lectures, gestes et réglages par le moteur v2 (épic #758).
+ * Les écritures suivent le repository de l'app, sans purge (R11).
  */
 export type Carnet = { periods: TreatmentPeriodInput[]; doses: TreatmentDoseInput[] }
 
@@ -163,12 +164,28 @@ export function supprimeDecalage(c: Carnet, today: string, doseId: string): Carn
   return joue(c, removeLine(entree(c, today), doseId))
 }
 
-/** La première échéance que « Modifier » propose pour ces réglages. */
-export function proposition(c: Carnet, today: string, frequency: Frequency, times: string[]) {
-  return lecture(c, today).newPeriod(frequency, times).firstDueOn
+function plan(c: Carnet, today: string, frequency: Frequency, times: string[], premiere?: string) {
+  const asked = {
+    frequency,
+    times,
+    endsOn: null,
+    ...(premiere === undefined ? {} : { firstDueOn: premiere }),
+  }
+  const result = newSettings(entree(c, today), asked)
+  if (!('plan' in result)) throw new Error(`« Modifier » sans plan : ${JSON.stringify(result)}`)
+  return result.plan
 }
 
-/** « Modifier » : un nouveau réglage aux dates que le moteur actuel propose (pas 4 de l'épic), ou à la « Prochaine dose » choisie. */
+/** La première échéance que « Modifier » propose pour ces réglages. */
+export function proposition(c: Carnet, today: string, frequency: Frequency, times: string[]) {
+  return plan(c, today, frequency, times).setting.firstDueOn
+}
+
+function periodOf({ gridOriginOn, ...setting }: SettingsPlan['setting']) {
+  return { ...setting, referenceOn: gridOriginOn ?? setting.firstDueOn, times: [...setting.times] }
+}
+
+/** « Modifier » : le réglage que le moteur v2 écrit, à la date proposée ou à la « Prochaine dose » choisie. */
 export function modifie(
   c: Carnet,
   today: string,
@@ -176,17 +193,17 @@ export function modifie(
   times: string[],
   premiere?: string,
 ): Carnet {
-  const dates =
-    premiere === undefined
-      ? lecture(c, today).newPeriod(frequency, times)
-      : { startsOn: today, firstDueOn: premiere, referenceOn: premiere }
+  const written = plan(c, today, frequency, times, premiere)
+  if (written.action === 'rewrite') {
+    const periods = c.periods.map((period) =>
+      period.id === written.id ? { ...period, ...periodOf(written.setting) } : period,
+    )
+    return { ...c, periods }
+  }
   const period = {
     id: `p${c.periods.length + 1}`,
-    ...dates,
-    endsOn: null,
+    ...periodOf(written.setting),
     stoppedOn: null,
-    frequency,
-    times,
     createdAt: now(),
   }
   return { ...c, periods: [...c.periods, period] }

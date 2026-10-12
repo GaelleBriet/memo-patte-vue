@@ -2,7 +2,18 @@
 import { describe, expect, it } from 'vitest'
 
 import type { Line, Setting } from '../domain/dose-calendar/types'
-import { DAY, H, keys, line, next, setting, TWO_DAYS, view, WEEK } from './dose-calendar.v2.aides'
+import {
+  DAY,
+  H,
+  keys,
+  line,
+  MONTH,
+  next,
+  setting,
+  TWO_DAYS,
+  view,
+  WEEK,
+} from './dose-calendar.v2.aides'
 
 describe('R12 : la lecture d’un traitement', () => {
   it('prochaine échéance, échéances à venir dans une fenêtre, dernière journée', () => {
@@ -202,7 +213,7 @@ describe('relecture du pas 2 : frontières de réglage et historique', () => {
     expect(effectOf(read, evening.id)).toEqual({ kind: 'covers', key: '2026-10-03 21:00' })
   })
 
-  it('R1, R4 : deux réglages qui cèdent la place le même jour : chaque prise garde son échéance', () => {
+  it('R1, R4 : deux réglages qui cèdent la place le même jour : la journée se lit avec le dernier, traduction comprise', () => {
     const morning = line('p1', 'given', '2026-10-03', '06:00')
     const evening = line('p2', 'given', '2026-10-03', '20:00')
     const settings = [
@@ -211,7 +222,7 @@ describe('relecture du pas 2 : frontières de réglage et historique', () => {
       setting('p3', '2026-10-10', WEEK, ['09:00'], { startsOn: '2026-10-03' }),
     ]
     const read = view(settings, [morning, evening], '2026-10-03')
-    expect(effectOf(read, morning.id)).toEqual({ kind: 'covers', key: '2026-10-03 06:00' })
+    expect(effectOf(read, morning.id)).toEqual({ kind: 'idle', reason: 'nothing-to-cover' })
     expect(effectOf(read, evening.id)).toEqual({ kind: 'covers', key: '2026-10-03 20:00' })
   })
 
@@ -455,4 +466,161 @@ describe('R7, R9.2 : un rythme qui ne part plus de l’arrivée d’un report n�
       )
     },
   )
+})
+
+describe('R9, Q-retard : une dose en retard reste la dose du moment à fréquence gardée (décision du 2026-10-11)', () => {
+  const monday = setting('p1', '2026-10-05', WEEK)
+  const given = line('p1', 'given', '2026-10-05')
+
+  it('hebdo du lundi, dose du lundi 12 non donnée, posologie changée le mercredi 14 : le 12 reste en retard', () => {
+    const posology = setting('p2', '2026-10-12', WEEK, [], {
+      startsOn: '2026-10-14',
+      gridOriginOn: null,
+    })
+    const read = view([monday, posology], [given], '2026-10-14')
+    expect([read.phase, keys(read.currentDoses), keys(read.unloggedDoses)]).toEqual([
+      'overdue',
+      ['2026-10-12'],
+      [],
+    ])
+  })
+
+  it('heures seules changées le 14 : le 12 reste en retard, à l’ancienne heure', () => {
+    const hours = setting('p2', '2026-10-12', WEEK, ['09:00'], {
+      startsOn: '2026-10-14',
+      gridOriginOn: null,
+    })
+    const read = view([monday, hours], [given], '2026-10-14')
+    expect([read.phase, keys(read.currentDoses), keys(read.unloggedDoses)]).toEqual([
+      'overdue',
+      ['2026-10-12'],
+      [],
+    ])
+  })
+
+  it('fréquence changée le 14 (toutes les 2 semaines dès le 19) : le 12 est à renseigner', () => {
+    const rhythm = setting('p2', '2026-10-19', { value: 2, unit: 'week' }, [], {
+      startsOn: '2026-10-14',
+    })
+    const read = view([monday, rhythm], [given], '2026-10-14')
+    expect([read.phase, keys(read.currentDoses), keys(read.unloggedDoses)]).toEqual([
+      'upcoming',
+      ['2026-10-19'],
+      ['2026-10-12'],
+    ])
+  })
+})
+
+describe('R3, R10 : un réglage remplacé le jour même transmet sa grille au réglage de même fréquence (#781)', () => {
+  const weekly = setting('s1', '2026-10-01', WEEK)
+  const lines = [
+    line('s1', 'given', '2026-10-01'),
+    line('s1', 'postponed', '2026-10-08', null, '2026-10-12'),
+  ]
+  const fortnightly = setting('s2', '2026-10-14', { value: 2, unit: 'week' }, [], {
+    startsOn: '2026-10-10',
+  })
+
+  it('hebdo, dose du 8 reportée seule au 12 ; le 10, toutes les 2 semaines dès le 14, puis posologie le même jour : 12, 14, 28', () => {
+    const posology = setting('s3', '2026-10-12', { value: 2, unit: 'week' }, [], {
+      startsOn: '2026-10-10',
+      gridOriginOn: null,
+    })
+    expect(next([weekly, fortnightly, posology], lines, '2026-10-10')).toEqual(
+      next([weekly, fortnightly], lines, '2026-10-10'),
+    )
+    expect(next([weekly, fortnightly, posology], lines, '2026-10-10')).toEqual([
+      '2026-10-12',
+      '2026-10-14',
+      '2026-10-28',
+    ])
+  })
+
+  it('le même jour, un réglage hebdomadaire reçu d’un autre appareil remplace le premier et garde la grille du lundi : 12, 15, 22', () => {
+    const other = setting('s3', '2026-10-12', WEEK, [], {
+      startsOn: '2026-10-10',
+      gridOriginOn: null,
+    })
+    expect(next([weekly, fortnightly, other], lines, '2026-10-10')).toEqual([
+      '2026-10-12',
+      '2026-10-15',
+      '2026-10-22',
+    ])
+  })
+})
+
+describe('R3, R6 : un décalage écrit avant un changement de fréquence reste dépassé sous une posologie', () => {
+  const s1 = setting('s1', '2026-03-13', { value: 3, unit: 'day' }, ['20:00'])
+  const s2 = setting('s2', '2026-03-15', { value: 2, unit: 'week' }, ['20:00'], {
+    startsOn: '2026-03-14',
+  })
+  const lines = [
+    line('s1', 'postponed', '2026-03-13', '20:00', '2026-03-15'),
+    { ...line('s1', 'given', '2026-03-15', '20:00'), givenOn: '2026-03-14' },
+    line('s1', 'shift', '2026-03-15', '20:00', '2026-03-14'),
+  ]
+
+  it('tous les 3 jours à 20 h, dose du 13 reportée seule au 15 et donnée le 14 avec décalage ; le 14, toutes les 2 semaines dès le 15 ; le 15, posologie : 29 mars, 12 et 26 avr.', () => {
+    const s3 = setting('s3', '2026-03-29', { value: 2, unit: 'week' }, ['20:00'], {
+      startsOn: '2026-03-15',
+      gridOriginOn: null,
+    })
+    const expected = ['2026-03-29 20:00', '2026-04-12 20:00', '2026-04-26 20:00']
+    expect(next([s1, s2], lines, '2026-03-15')).toEqual(expected)
+    expect(next([s1, s2, s3], lines, '2026-03-15')).toEqual(expected)
+  })
+})
+
+describe('R3 : une date choisie sur la grille d’un décalage à venir continue le rythme', () => {
+  const s1 = setting('s1', '2026-03-20', MONTH, ['20:00'])
+  const lines = [
+    { ...line('s1', 'given', '2026-04-20', '20:00'), givenOn: '2026-03-25' },
+    line('s1', 'shift', '2026-04-20', '20:00', '2026-03-25'),
+  ]
+  const s2 = setting('s2', '2026-06-25', MONTH, ['20:00'], { startsOn: '2026-03-27' })
+
+  it('mensuel du 20 mars à 20 h, dose du 20 avr. donnée le 25 mars avec décalage ; le 27, première dose le 25 juin ; le 29, posologie : la même suite', () => {
+    const s3 = setting('s3', '2026-04-25', MONTH, ['20:00'], {
+      startsOn: '2026-03-29',
+      gridOriginOn: null,
+    })
+    expect(next([s1, s2, s3], lines, '2026-03-29', 4)).toEqual(
+      next([s1, s2], lines, '2026-03-29', 4),
+    )
+  })
+})
+
+describe('R9, Q-retard : un traitement fini avant la modification garde ses doses à renseigner', () => {
+  it('tous les 3 mois à 20 h du 7 mars, fin le 16, dose du 7 non donnée ; le 18, sans heure, première dose le 7 juin : le 7 mars à renseigner', () => {
+    const ended = setting('p1', '2026-03-07', { value: 3, unit: 'month' }, ['20:00'], {
+      endsOn: '2026-03-16',
+    })
+    const after = setting('p2', '2026-06-07', { value: 3, unit: 'month' }, [], {
+      startsOn: '2026-03-18',
+      gridOriginOn: null,
+    })
+    const read = view([ended, after], [], '2026-03-18')
+    expect([read.phase, keys(read.currentDoses), keys(read.unloggedDoses)]).toEqual([
+      'upcoming',
+      ['2026-06-07'],
+      ['2026-03-07 20:00'],
+    ])
+  })
+})
+
+describe('R3, R9 : une date choisie se juge sur la grille en vigueur ce jour-là', () => {
+  it('tous les 3 mois à 20 h, première dose le 2 avr., décalage ancré au 31 mars qui vaut à partir du 2 ; le 31, première dose choisie le 31 : 31 mars, 30 juin, 30 sept.', () => {
+    const s1 = setting('s1', '2026-04-02', { value: 3, unit: 'month' }, ['20:00'], {
+      startsOn: '2026-03-30',
+    })
+    const s2 = setting('s2', '2026-03-31', { value: 3, unit: 'month' }, ['20:00'], {
+      startsOn: '2026-03-31',
+    })
+    const lines = [line('s1', 'shift', '2026-04-02', '20:00', '2026-03-31')]
+    expect(next([s1, s2], lines, '2026-03-31')).toEqual([
+      '2026-03-31 20:00',
+      '2026-06-30 20:00',
+      '2026-09-30 20:00',
+    ])
+  })
 })

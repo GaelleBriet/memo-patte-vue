@@ -68,10 +68,9 @@ export function referenceReading({
   if (last === undefined || setting === undefined) {
     return { phase: 'ended', finished: unlogged.length === 0, current: [], unlogged, upcoming: [] }
   }
-  unlogged.push(
-    ...last.pending.filter((key) => dayOf(key) < setting.startsOn && dayOf(key) <= yesterday),
-  )
-  const own = last.pending.filter((key) => dayOf(key) >= setting.startsOn)
+  const from = last.rhythmFrom
+  unlogged.push(...last.pending.filter((key) => dayOf(key) < from && dayOf(key) <= yesterday))
+  const own = last.pending.filter((key) => dayOf(key) >= from)
   const closed = (phase: ReferencePhase, missed: string[]): ReferenceReading => {
     const all = [...unlogged, ...missed].sort()
     return { phase, finished: all.length === 0, current: [], unlogged: all, upcoming: [] }
@@ -82,7 +81,7 @@ export function referenceReading({
 
   // TR-10, TR-13 : la dernière journée arrivée reste la dose du moment tant qu'elle a des heures sans prise.
   const lastDay = [...last.fallen]
-    .filter((day) => day >= setting.startsOn && day <= today)
+    .filter((day) => day >= from && day <= today)
     .sort()
     .at(-1)
   const ofLastDay = own.filter((key) => dayOf(key) === lastDay)

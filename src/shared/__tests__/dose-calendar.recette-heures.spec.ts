@@ -130,7 +130,7 @@ describe('R7 : 8 h du 3 donnée, 20 h du 3 reportée au 4', () => {
   })
 
   it.fails(
-    'fréquence changée le 3, jour d’origine : 20 h le 3, puis le 6 (pas 4, réglage proposé par le moteur actuel)',
+    'fréquence changée le 3, jour d’origine : 20 h le 3, puis le 6 (question du pas 4 : R9.2 et R7 donnent 20 h le 4, puis le 7)',
     () => {
       const c = modifie(reporte20h(), '2026-10-03', jours(3), H)
       expect(affiche(c, '2026-10-03', 3)).toEqual([
@@ -141,14 +141,11 @@ describe('R7 : 8 h du 3 donnée, 20 h du 3 reportée au 4', () => {
     },
   )
 
-  it.fails(
-    'R10, Q-#744 : plusieurs changements le 4, fréquence ramenée aussitôt : 20 h le 4, puis le 5 (pas 4)',
-    () => {
-      let c = modifie(reporte20h(), '2026-10-04', jours(3), H)
-      c = modifie(c, '2026-10-04', jours(2), H)
-      expect(affiche(c, '2026-10-04', 3)).toEqual(suite)
-    },
-  )
+  it('R10, Q-#744 : plusieurs changements le 4, fréquence ramenée aussitôt : 20 h le 4, puis le 5', () => {
+    let c = modifie(reporte20h(), '2026-10-04', jours(3), H)
+    c = modifie(c, '2026-10-04', jours(2), H)
+    expect(affiche(c, '2026-10-04', 3)).toEqual(suite)
+  })
 
   it('avec décalage, reportée au 5, jour de la grille : 20 h le 5, puis le 7', () => {
     expect(affiche(reporte20h(true, '2026-10-05'), '2026-10-04', 3)).toEqual([
@@ -164,11 +161,15 @@ describe('R7 : 8 h du 3 donnée, 20 h du 3 reportée au 4', () => {
     expect(sansPrise(c, '2026-10-04')).toContain('2026-10-03 08:00')
   })
 
-  it('#734 : posologie changée le 4, puis « Supprimer ce report » : 20 h du 3 à renseigner, rien le 4, puis le 5', () => {
+  it('#734, Q-retard : posologie changée le 4, puis « Supprimer ce report » : 20 h du 3 en retard, rien le 4, puis le 5', () => {
     let c = modifie(reporte20h(), '2026-10-04', jours(2), H)
     c = supprimeReport(c, '2026-10-04', ligne(c, '2026-10-03', '20:00', 'postponed').id)
-    expect(aRenseigner(c, '2026-10-04')).toEqual(['2026-10-03 20:00'])
-    expect(affiche(c, '2026-10-04', 2)).toEqual(['2026-10-05 08:00', '2026-10-05 20:00'])
+    expect(aRenseigner(c, '2026-10-04')).toEqual([])
+    expect(affiche(c, '2026-10-04', 3)).toEqual([
+      '2026-10-03 20:00',
+      '2026-10-05 08:00',
+      '2026-10-05 20:00',
+    ])
   })
 })
 

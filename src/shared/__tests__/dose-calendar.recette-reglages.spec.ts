@@ -141,14 +141,14 @@ describe('R4 : même rythme, prises en avance (G22)', () => {
     ])
   })
 
-  it('journée passée entamée, posologie changée le 4 : le 5, et 20 h du 3 à renseigner', () => {
+  it('Q-retard : journée passée entamée, posologie changée le 4 : 20 h du 3 en retard, puis le 5', () => {
     let c = carnet('2026-10-01', jours(2), H)
     c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '08:00'))
     c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '20:00'))
     c = donne(c, '2026-10-03', echeance(c, '2026-10-03', '08:00'))
     c = modifie(c, '2026-10-04', jours(2), H)
-    expect(journees(c, '2026-10-04', 2)).toEqual(['2026-10-05', '2026-10-07'])
-    expect(aRenseigner(c, '2026-10-04')).toEqual(['2026-10-03 20:00'])
+    expect(journees(c, '2026-10-04', 2)).toEqual(['2026-10-03', '2026-10-05'])
+    expect(aRenseigner(c, '2026-10-04')).toEqual([])
   })
 })
 
@@ -184,7 +184,7 @@ describe('R4, R9 : rythme changé, journée à venir entamée en avance (G24)', 
   })
 
   it.fails(
-    'tous les 3 jours à 9 h, dose du 4 donnée le 2 avec décalage, tous les 2 jours le 3 : le 4 (pas 4, réglage proposé par le moteur actuel)',
+    'tous les 3 jours à 9 h, dose du 4 donnée le 2 avec décalage, tous les 2 jours le 3 : le 4 (question du pas 4 : R4, la prise couvre le 4 ; le 6, puis le 8)',
     () => {
       let c = carnet('2026-10-01', jours(3), ['09:00'])
       c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '09:00'))
@@ -195,7 +195,7 @@ describe('R4, R9 : rythme changé, journée à venir entamée en avance (G24)', 
   )
 
   it.fails(
-    'tous les 3 jours, les deux doses du 4 données le 2, 20 h avec décalage, tous les 2 jours le 3 : le 4 (pas 4, réglage proposé par le moteur actuel)',
+    'tous les 3 jours, les deux doses du 4 données le 2, 20 h avec décalage, tous les 2 jours le 3 : le 4 (question du pas 4 : R4, les prises couvrent le 4 ; le 6)',
     () => {
       let c = carnet('2026-10-01', jours(3), H)
       c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '08:00'))

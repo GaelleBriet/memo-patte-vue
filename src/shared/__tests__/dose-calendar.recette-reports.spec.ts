@@ -129,15 +129,15 @@ describe('R3, R7 : report seul et posologie changée', () => {
     expect(journees(c, '2026-10-05', 2)).toEqual(['2026-10-07', '2026-10-13'])
   })
 
-  it('tous les 3 jours, journée du 4 reportée seule au 5, 8 h donnée le 5, posologie le 6 : le 7, 20 h du 5 à renseigner', () => {
+  it('Q-retard : tous les 3 jours, journée du 4 reportée seule au 5, 8 h donnée le 5, posologie le 6 : 20 h du 5 en retard, puis le 7', () => {
     let c = carnet('2026-10-01', jours(3), H)
     c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '08:00'))
     c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '20:00'))
     c = deplace(c, '2026-10-02', echeance(c, '2026-10-04', '08:00'), '2026-10-05', false)
     c = donne(c, '2026-10-05', echeance(c, '2026-10-05', '08:00'))
     c = modifie(c, '2026-10-06', jours(3), H)
-    expect(journees(c, '2026-10-06', 2)).toEqual(['2026-10-07', '2026-10-10'])
-    expect(aRenseigner(c, '2026-10-06')).toEqual(['2026-10-05 20:00'])
+    expect(journees(c, '2026-10-06', 2)).toEqual(['2026-10-05', '2026-10-07'])
+    expect(aRenseigner(c, '2026-10-06')).toEqual([])
   })
 
   it('R7 : hebdo du vendredi 2 oct., dose du 9 reportée seule au 13, posologie changée le 10 : le 11, la dose déplacée de nouveau au 14 réécrit son report', () => {

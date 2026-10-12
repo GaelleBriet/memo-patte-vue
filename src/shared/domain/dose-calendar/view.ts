@@ -132,13 +132,12 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
     nextDue: closed ? null : (moment.open.find(({ due }) => due.dueOn > today)?.due ?? null),
     upcoming: ({ from = today, to = plusDays(from, UPCOMING_DAYS), limit } = {}) => {
       if (closed) return []
-      const setting = currentSetting!
-      const dues = calendarsUntil(to)
-        .at(-1)!
-        .slots.filter(
+      const calendar = calendarsUntil(to).at(-1)!
+      const dues = calendar.slots
+        .filter(
           ({ coveredBy, due }) =>
             coveredBy === null &&
-            due.dueOn >= setting.startsOn &&
+            due.dueOn >= calendar.rhythmFrom &&
             due.dueOn >= from &&
             due.dueOn <= to,
         )

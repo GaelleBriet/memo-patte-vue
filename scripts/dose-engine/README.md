@@ -35,6 +35,10 @@ La ligne « Oracle : N carnets × M gestes, graines A à B » dit ce qui a été
 arrête l'oracle avant tout carnet. Tout écart non rattaché à `ecarts-acceptes.md` fait échouer la
 spec.
 
+« Modifier » (`walk-settings.ts`) n'est joué que si le réglage que v2 écrirait (`newSettings`, R9,
+R10, Q38) se lit comme celui que le moteur actuel propose (`newPeriod`) ; sinon il est compté, avec la
+branche de R9 en cause, parmi les refus à analyser (`ecarts-acceptes.md`, section du pas 4).
+
 Les carnets sont ceux de l'ancienne campagne d'invariants (`treatment-schedule.invariants.spec.ts`),
 même graine, mêmes gestes, menés par le moteur actuel (`carnet.ts`, `walk*.ts`) et filtrés par les
 refus de v2 (`walk-filter.ts`). Les lignes que le moteur actuel fait purger restent dans le carnet lu
@@ -43,10 +47,15 @@ par les deux moteurs (R11).
 ## Campagne d'invariants du moteur v2
 
 `src/shared/__tests__/dose-calendar.invariants.spec.ts` mène des carnets par les gestes de v2
-(`v2-walk.ts`) et vérifie à chaque pas les huit invariants du plan §6.3 (`v2-invariants.ts`) :
+(`v2-walk.ts`, et `v2-walk-settings.ts` pour « Modifier » : posologie, heures, fréquence ou les deux,
+à la première échéance proposée par `gestures/settings` ou à une autre date ; « Arrêter » ;
+« Reprendre ») et vérifie à chaque pas les huit invariants du plan §6.3 (`v2-invariants.ts`, qui
+assemble `v2-invariants-lines.ts`, `v2-invariants-readings.ts` et `v2-invariants-settings.ts`) :
 conservation des faits, pas de double, posologie sans effet, temps, symétrie, annuler,
-préversion = résultat, équivalence au modèle naïf. Variables posées directement devant la commande,
-sous le même verrou :
+préversion = résultat, équivalence au modèle naïf ; et un neuvième pour « Modifier » (R9, R12) : la
+fiche montre la première échéance proposée, la même demande avec la date proposée passée en clair rend
+la même réponse (jamais un refus), une autre date choisie est celle que la fiche lit. Variables
+posées directement devant la commande, sous le même verrou :
 
 ```sh
 INVARIANTS_FROM=620000000 INVARIANTS_SEEDS=3000 INVARIANTS_STEPS=40 \

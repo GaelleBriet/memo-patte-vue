@@ -1,18 +1,23 @@
 import {
   applied,
   moveDose,
+  newSettings,
   noteDose,
   redateDose,
   removeLine,
+  settingsApplied,
   treatmentView,
   viewInputOf,
   type GestureResult,
   type Line,
+  type SettingsRequest,
+  type SettingsResult,
   type TreatmentViewInput,
 } from '@/shared/domain/dose-calendar'
 import type { Due } from '@/shared/domain/treatment-schedule'
 
-import type { Book } from './carnet'
+import { plusDays, type Book } from './carnet'
+import { dueKey, HORIZON_DAYS } from './display'
 import { keptBook, type Walk } from './walk-state'
 
 export const v2Due = ({ periodId, dueOn, dueTime }: Due) => ({
@@ -118,3 +123,93 @@ export const bothBoxes = (play: (shiftsFollowing: boolean) => V2Play): V2Play[] 
   play(true),
   play(false),
 ]
+
+// Ce que montre un carnet : doses du moment, à renseigner, calendrier et effet de chaque ligne.
+function shownBy(input: TreatmentViewInput): string {
+  const view = treatmentView(input)
+  const from = input.settings
+    .flatMap(({ startsOn, firstDueOn }) => [startsOn, firstDueOn])
+    .sort()[0]!
+  const slots = view
+    .slots(from, plusDays(input.today, HORIZON_DAYS))
+    .map(({ due, state }) => `${dueKey(due)} ${state}`)
+  const effects = view.history.map(({ line, effect }) => `${line.id} ${JSON.stringify(effect)}`)
+  return JSON.stringify([
+    view.phase,
+    view.currentDoses.map(dueKey),
+    view.unloggedDoses.map(dueKey),
+    slots,
+    effects,
+  ])
+}
+
+// La branche de R9 qui donne la première échéance de v2 (fréquence gardée, R9.1, R9.2 ou R9.3).
+function branchOf(input: TreatmentViewInput, firstDueOn: string, kept: boolean): string {
+  if (kept) return 'fréquence gardée, R3, Q-retard'
+  if (firstDueOn === input.today) return 'R9.1'
+  const view = treatmentView(input)
+  const next = view.slots(plusDays(input.today, 1), plusDays(input.today, 800))[0]?.due.dueOn
+  if (next !== firstDueOn) return 'R9.3'
+  const day = view.slots(firstDueOn, firstDueOn)
+  if (day.every(({ state }) => state !== 'pending')) return 'R9.2, journée déjà toute donnée'
+  return day.some(({ state }) => state !== 'pending') ? 'R9.2, journée entamée' : 'R9.2, arrivée'
+}
+
+// Ce que montrent les écrans : phase, doses du moment, à renseigner, à venir.
+function displayOf(input: TreatmentViewInput): string {
+  const view = treatmentView(input)
+  const until = plusDays(input.today, HORIZON_DAYS)
+  return JSON.stringify([
+    view.phase,
+    view.currentDoses.map(dueKey),
+    view.unloggedDoses.map(dueKey),
+    view.upcoming({ to: until }).map(dueKey),
+  ])
+}
+
+// La règle qui sépare le réglage du moteur actuel de celui que v2 écrirait.
+function settingsReasonOf(
+  input: TreatmentViewInput,
+  result: SettingsResult,
+  target: TreatmentViewInput,
+): string {
+  if ('refusal' in result) return result.refusal.reason
+  if ('question' in result) return 'v2 pose la question Q38'
+  const { plan } = result
+  if (plan.action === 'rewrite') return 'v2 corrige le réglage (R10, TR-28)'
+  const period = target.settings.at(-1)!
+  const kept = plan.setting.gridOriginOn === null
+  const same = displayOf(settingsApplied(input, plan)) === displayOf(target)
+  const what =
+    plan.setting.firstDueOn === period.firstDueOn
+      ? 'v2 garde une autre grille'
+      : `v2 propose une autre première échéance (${branchOf(input, plan.setting.firstDueOn, kept)}${plan.setting.firstDueOn < period.firstDueOn ? ', plus tôt' : ', plus tard'})`
+  return same ? `${what}, même affichage` : what
+}
+
+/**
+ * « Modifier » n'est joué que si le réglage que v2 écrirait (R9, R10, Q38) se lit comme celui que le
+ * moteur actuel propose ; sinon le geste est compté avec sa raison, et chaque raison est à analyser.
+ */
+export function settingsRefusedByV2(
+  walk: Walk,
+  gesture: string,
+  after: Book,
+  request: SettingsRequest,
+): boolean {
+  if (walk.filter === 'aucun') return false
+  const input = viewInputOf(keptBook(walk))
+  const target = viewInputOf({ ...after, doses: [...after.doses, ...walk.purged] })
+  let reason: string
+  try {
+    const result = newSettings(input, request)
+    if ('plan' in result && shownBy(settingsApplied(input, result.plan)) === shownBy(target)) {
+      return false
+    }
+    reason = settingsReasonOf(input, result, target)
+  } catch (error) {
+    reason = `v2 lève (${String(error).slice(0, 60)})`
+  }
+  walk.refused.push({ gesture, reason, suspect: `réglage : ${reason}`, input })
+  return true
+}

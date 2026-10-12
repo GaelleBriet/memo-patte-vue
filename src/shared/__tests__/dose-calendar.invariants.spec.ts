@@ -5,7 +5,7 @@ import { mulberry32 } from '../../../scripts/dose-engine/carnet'
 import { brokenBy } from '../../../scripts/dose-engine/v2-invariants'
 import { startV2Walk, v2Step, type V2Step } from '../../../scripts/dose-engine/v2-walk'
 
-// Campagne d'invariants du moteur v2 (plan §6.3) : des carnets menés par les gestes de v2, huit
+// Campagne d'invariants du moteur v2 (plan §6.3) : des carnets menés par les gestes de v2, neuf
 // invariants vérifiés à chaque pas, horizon en jours, aucune exemption. Séries longues : variables
 // INVARIANTS_FROM, INVARIANTS_SEEDS, INVARIANTS_STEPS posées directement devant la commande
 // (`.claude/rules/outils-de-test.md`).
@@ -62,7 +62,7 @@ const campaign = campaignOf(process.env)
 
 describe('campagne d’invariants du moteur v2', () => {
   it(
-    'les huit invariants tiennent à chaque geste',
+    'les neuf invariants tiennent à chaque geste',
     () => {
       const played = playCampaign(campaign)
       const last = campaign.from + campaign.seeds - 1

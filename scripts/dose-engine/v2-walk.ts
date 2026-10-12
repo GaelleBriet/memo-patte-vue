@@ -9,11 +9,19 @@ import {
   type Line,
   type LineChange,
   type Setting,
-  type TreatmentView,
+  type SettingsPlan,
+  type SettingsRequest,
   type TreatmentViewInput,
 } from '@/shared/domain/dose-calendar'
 
 import { FREQUENCIES, int, mulberry32, pick, plusDays, TIMES, type Random } from './carnet'
+import {
+  changedSettings,
+  resumed,
+  settingsWritten,
+  stopped,
+  type SettingsWalk,
+} from './v2-walk-settings'
 
 /** Un carnet mené par les gestes du moteur v2, comme l'app le mènera (pas 3 de l'épic #758). */
 export type V2Walk = {
@@ -24,13 +32,16 @@ export type V2Walk = {
   readonly log: string[]
 }
 
-/** Un pas joué : le carnet avant et après, et le geste accepté qui l'a changé (`null` : réglage ou attente). */
+/** Un pas joué : le carnet avant et après, et le geste ou le réglage accepté qui l'a changé. */
 export type V2Step = {
   label: string
   before: TreatmentViewInput
   after: TreatmentViewInput
   gesture: Gesture | null
   outcome: GestureOutcome | null
+  plan: SettingsPlan | null
+  /** « Modifier » : la demande du formulaire qui a donné `plan`. */
+  request?: SettingsRequest
 }
 
 const GESTURES = [
@@ -45,7 +56,8 @@ const GESTURES = [
   'redate',
   'redate',
   'remove',
-  'posology',
+  'settings',
+  'settings',
   'stop',
   'resume',
   'wait',
@@ -178,56 +190,32 @@ function drawGesture(walk: V2Walk, kind: (typeof GESTURES)[number]): Gesture | n
   }
 }
 
-/**
- * R9, fréquence et heures gardées : la prochaine journée du calendrier en vigueur, notée ou non, ou
- * la dose du moment en retard (choix de la campagne en attendant `gestures/settings`, pas 4).
- */
-export function posologyFirstDue(view: TreatmentView, today: string): string {
-  const late = view.currentDoses.find(({ dueOn }) => dueOn < today)
-  if (late !== undefined) return late.dueOn
-  return view.slots(today, plusDays(today, 800))[0]?.due.dueOn ?? today
+function settingsWalk(walk: V2Walk): SettingsWalk {
+  return { input: walk.input, random: walk.random, log: walk.log, stamp: () => stampOf(walk) }
 }
 
-function setSettings(walk: V2Walk, label: string, settings: Setting[]): void {
-  walk.log.push(`${walk.input.today} ${label}`)
-  walk.input = { ...walk.input, settings }
-}
-
-// « Modifier » sans changer la fréquence ni les heures (R3, R9) ; « Arrêter » ; « Reprendre » (R8).
-function changeSettings(walk: V2Walk, kind: (typeof GESTURES)[number]): void {
-  const { input, random } = walk
-  const { settings, today } = input
-  const view = treatmentView(input)
-  const current = view.currentSetting
-  const closed = view.phase === 'stopped' || view.phase === 'ended'
-  if (kind === 'posology' && current !== null && !closed && settings.length < 4) {
-    const firstDueOn = posologyFirstDue(view, today)
-    const setting = { ...current, id: `s${settings.length + 1}`, startsOn: today, firstDueOn }
-    const posology = { ...setting, gridOriginOn: null, stoppedOn: null, createdAt: stampOf(walk) }
-    return setSettings(walk, `posologie ${JSON.stringify(posology)}`, [...settings, posology])
-  }
-  if (kind === 'stop' && current !== null && current.stoppedOn === null && random() < 0.3) {
-    if (current.startsOn > today) return
-    const stopped = settings.map((setting) =>
-      setting.id === current.id ? { ...setting, stoppedOn: today } : setting,
-    )
-    return setSettings(walk, 'arrêter', stopped)
-  }
-  if (kind === 'resume' && view.phase === 'stopped' && settings.length < 4) {
-    const firstDueOn = plusDays(today, int(random, 0, 3))
-    const resumed: Setting = {
-      id: `s${settings.length + 1}`,
-      startsOn: today,
-      firstDueOn,
-      gridOriginOn: firstDueOn,
-      endsOn: random() < 0.2 ? plusDays(firstDueOn, int(random, 3, 40)) : null,
-      stoppedOn: null,
-      frequency: pick(random, FREQUENCIES)!,
-      times: [...pick(random, TIMES)!],
-      createdAt: stampOf(walk),
+// « Modifier » (R9, R10, Q38), « Arrêter », « Reprendre » (R8) : le carnet changé, ou `null`.
+function changeSettings(walk: V2Walk, kind: (typeof GESTURES)[number]): V2Step | null {
+  const before = walk.input
+  const settings = settingsWalk(walk)
+  if (kind === 'settings') {
+    const played = changedSettings(settings)
+    if (played === null) return null
+    walk.input = settingsWritten(settings, played.plan)
+    return {
+      label: walk.log.at(-1)!,
+      before,
+      after: walk.input,
+      gesture: null,
+      outcome: null,
+      ...played,
     }
-    setSettings(walk, `reprendre ${JSON.stringify(resumed)}`, [...settings, resumed])
   }
+  const after =
+    kind === 'stop' ? (walk.random() < 0.3 ? stopped(settings) : null) : resumed(settings)
+  if (after === null) return null
+  walk.input = after
+  return { label: walk.log.at(-1)!, before, after, gesture: null, outcome: null, plan: null }
 }
 
 /** Un pas : un geste tiré au sort, joué s'il est accepté ; `onStep` reçoit chaque pas qui change le carnet. */
@@ -237,13 +225,12 @@ export function v2Step(walk: V2Walk, onStep: (step: V2Step) => void): void {
   if (kind === 'wait') {
     walk.log.push(`${before.today} attendre`)
     walk.input = { ...before, today: plusDays(before.today, int(walk.random, 1, 4)) }
-    return onStep({ label: 'attendre', before, after: walk.input, gesture: null, outcome: null })
+    const after = walk.input
+    return onStep({ label: 'attendre', before, after, gesture: null, outcome: null, plan: null })
   }
-  if (kind === 'posology' || kind === 'stop' || kind === 'resume') {
-    changeSettings(walk, kind)
-    if (walk.input !== before) {
-      onStep({ label: walk.log.at(-1)!, before, after: walk.input, gesture: null, outcome: null })
-    }
+  if (kind === 'settings' || kind === 'stop' || kind === 'resume') {
+    const step = changeSettings(walk, kind)
+    if (step !== null) onStep(step)
     return
   }
   const gesture = drawGesture(walk, kind)
@@ -256,5 +243,5 @@ export function v2Step(walk: V2Walk, onStep: (step: V2Step) => void): void {
   }
   walk.log.push(label)
   walk.input = written(walk, result.changes)
-  onStep({ label, before, after: walk.input, gesture, outcome: result })
+  onStep({ label, before, after: walk.input, gesture, outcome: result, plan: null })
 }
