@@ -146,9 +146,26 @@ describe('RA-19 : une échéance notée retire sa notification du volet', () => 
     expect(read.isNoted('2026-10-06', null)).toBe(false)
   })
 
-  it('une prise sans effet ne note rien', () => {
-    const daily = setting('p1', '2026-10-05', WEEK)
-    const outside = view([daily], [line('p1', 'given', '2026-10-07')], '2026-10-08')
-    expect(outside.isNoted('2026-10-07', null)).toBe(false)
+  it('arrêté le jour d’une échéance déjà donnée : sortie du calendrier, elle reste notée', () => {
+    const p1 = setting('p1', '2026-10-01', { value: 3, unit: 'day' }, H, {
+      stoppedOn: '2026-10-04',
+    })
+    const stopped = view([p1], [line('p1', 'given', '2026-10-04', '08:00')], '2026-10-04')
+    expect(stopped.dueState({ dueOn: '2026-10-04', dueTime: '08:00' })).toBe('removed')
+    expect(stopped.isNoted('2026-10-04', '08:00')).toBe(true)
+    expect(stopped.isNoted('2026-10-04', '20:00')).toBe(false)
+  })
+
+  it('une prise sans effet sur une échéance encore à donner ne la note pas', () => {
+    const p1 = setting('p1', '2026-03-17', { value: 2, unit: 'week' }, H, {
+      stoppedOn: '2026-03-22',
+    })
+    const p2 = setting('p2', '2026-03-28', DAY, ['20:00'], { startsOn: '2026-03-26' })
+    const report = line('p1', 'postponed', '2026-03-17', '08:00', '2026-04-19')
+    const early = { ...line('p1', 'given', '2026-04-19', '20:00'), givenOn: '2026-03-16' }
+    const read = view([p1, p2], [report, early], '2026-03-26')
+    expect(read.history.at(-1)!.effect.kind).toBe('idle')
+    expect(read.dueState({ dueOn: '2026-04-19', dueTime: '20:00' })).toBe('pending')
+    expect(read.isNoted('2026-04-19', '20:00')).toBe(false)
   })
 })

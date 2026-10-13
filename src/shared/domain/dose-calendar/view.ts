@@ -52,7 +52,10 @@ export type TreatmentView = {
   settingAt(day: Day): Setting | undefined
   /** RA-1 à RA-6 : les rappels des échéances encore à donner, la lecture unique des rappels. */
   reminders(window: ReminderWindow): DueReminder[]
-  /** RA-19 : l'échéance est donnée, oubliée ou couverte ; `dueTime` `null` : une de sa journée. */
+  /**
+   * RA-19 : l'échéance est donnée, oubliée ou couverte, ou sortie du calendrier avec une prise écrite
+   * pour elle ; `dueTime` `null` : une échéance de sa journée.
+   */
   isNoted(dueOn: Day, dueTime: Hour): boolean
 }
 
@@ -216,9 +219,12 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
         },
         window,
       ),
-    isNoted: (dueOn, dueTime) =>
-      slots(dueOn, dueOn).some(
-        ({ due, state }) => state !== 'pending' && (dueTime === null || due.dueTime === dueTime),
-      ),
+    isNoted: (dueOn, dueTime) => {
+      const matches = (hour: Hour) => dueTime === null || hour === dueTime
+      const ofDay = slots(dueOn, dueOn).filter(({ due }) => matches(due.dueTime))
+      if (ofDay.length > 0) return ofDay.some(({ state }) => state !== 'pending')
+      // Une échéance que le calendrier n'a plus (arrêt, réglage changé) reste notée par sa prise.
+      return lines.some((line) => isNote(line) && line.dueOn === dueOn && matches(line.dueTime))
+    },
   }
 }
