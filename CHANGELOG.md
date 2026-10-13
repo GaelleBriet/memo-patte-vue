@@ -5,6 +5,23 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.77](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.76...memo-patte-v0.1.77) (2026-10-13)
+
+
+### 🐛 Corrections
+
+* **dose-calendar:** jour de l'arrêt jugé sur toutes les reprises ouvertes ce jour-là ([#819](https://github.com/GaelleBriet/memo-patte-vue/issues/819)) ([24faa55](https://github.com/GaelleBriet/memo-patte-vue/commit/24faa551656108c5f4a9e0f24ed5cfd3832c92da))
+* **dose-calendar:** journée de la reprise lue sur ses réglages vivants, pas le seul ouvrant ([#819](https://github.com/GaelleBriet/memo-patte-vue/issues/819)) ([9fe8914](https://github.com/GaelleBriet/memo-patte-vue/commit/9fe8914339c564efc24cbb943604cc206a577ebc))
+* **dose-calendar:** les prises du jour de l'arrêt restent comptées ([#819](https://github.com/GaelleBriet/memo-patte-vue/issues/819)) ([35d63f4](https://github.com/GaelleBriet/memo-patte-vue/commit/35d63f4101b51313a147da0e2b44f7a977984805))
+* **dose-calendar:** les prises du jour de l'arrêt, données avant l'arrêt, restent comptées ([#819](https://github.com/GaelleBriet/memo-patte-vue/issues/819)) ([3746eda](https://github.com/GaelleBriet/memo-patte-vue/commit/3746edaf48cae8c5233bcda47ef981489e1dd5bb))
+* **dose-calendar:** rappels cherchés avec le pas du réglage en cours ([dfcdaee](https://github.com/GaelleBriet/memo-patte-vue/commit/dfcdaee94c89506a5064eb8b20a78bcb47ca0568))
+* **dose-calendar:** reprise le jour de l'arrêt, première dose plus tard : les prises restent ([#819](https://github.com/GaelleBriet/memo-patte-vue/issues/819)) ([0b1ee99](https://github.com/GaelleBriet/memo-patte-vue/commit/0b1ee99474afe82c585f7d2cd191cda878cf74e8))
+* **moteur:** « Elles n'étaient pas à donner » refusé sans dose avant la date de fin ([#806](https://github.com/GaelleBriet/memo-patte-vue/issues/806)) ([b67ea2d](https://github.com/GaelleBriet/memo-patte-vue/commit/b67ea2d3fa1732f3ee82de9afc7ae288d59a8a57))
+* **moteur:** « Prochaine dose » grisée par une dose notée après le jour de la modification ([#811](https://github.com/GaelleBriet/memo-patte-vue/issues/811)) ([2984483](https://github.com/GaelleBriet/memo-patte-vue/commit/298448341b7642321076dd9fc83ff92f28ed6f1e))
+* **moteur:** décisions de Gaelle du 13 oct. au soir ([#806](https://github.com/GaelleBriet/memo-patte-vue/issues/806), [#811](https://github.com/GaelleBriet/memo-patte-vue/issues/811)) ([55f2cff](https://github.com/GaelleBriet/memo-patte-vue/commit/55f2cff748dd2ae1b9f9fad8e69c425b0efa591c))
+* **rappels:** relance d'un jour d'arrivée de report comparée aux heures de la fiche ([#814](https://github.com/GaelleBriet/memo-patte-vue/issues/814)) ([22ac27d](https://github.com/GaelleBriet/memo-patte-vue/commit/22ac27db42bfc500aa1dd795d69fa100e4e9ee25))
+* **rappels:** relance d'un jour d'arrivée de report comparée aux heures de la fiche ([#814](https://github.com/GaelleBriet/memo-patte-vue/issues/814)) ([c58e104](https://github.com/GaelleBriet/memo-patte-vue/commit/c58e104547c8c6d9475bbde26cabe3e3bbeb5db3))
+
 ## [0.1.76](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.75...memo-patte-v0.1.76) (2026-10-13)
 
 
