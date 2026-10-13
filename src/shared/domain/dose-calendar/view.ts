@@ -7,8 +7,8 @@ import { borrowedNotes, closedBeforeFirstDue, episodesOf, spanOf } from './setti
 import type {
   Day,
   Due,
-  Hour,
   DueState,
+  Hour,
   Line,
   LineEffect,
   Phase,
@@ -223,7 +223,6 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
       const matches = (hour: Hour) => dueTime === null || hour === dueTime
       const ofDay = slots(dueOn, dueOn).filter(({ due }) => matches(due.dueTime))
       if (ofDay.length > 0) return ofDay.some(({ state }) => state !== 'pending')
-      // Une échéance que le calendrier n'a plus (arrêt, réglage changé) reste notée par sa prise.
       return lines.some((line) => isNote(line) && line.dueOn === dueOn && matches(line.dueTime))
     },
   }
