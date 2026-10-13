@@ -46,11 +46,11 @@ describe('buildDemoCarnet', () => {
     }
   })
 
-  it('date Milo relativement à aujourd’hui : golden retriever de 4 ans', () => {
+  it('date Milo relativement à aujourd’hui : bouvier bernois de 4 ans', () => {
     const { animal } = find('Milo')
 
     expect(animal.species).toBe('dog')
-    expect(animal.breed).toBe('Golden retriever')
+    expect(animal.breed).toBe('Bouvier bernois')
     expect(differenceInYears(TODAY, parseISO(animal.birthDate as string))).toBe(4)
   })
 
@@ -87,11 +87,11 @@ describe('buildDemoCarnet', () => {
     ])
   })
 
-  it('donne à Milo six pesées mensuelles croissantes de 23,6 à 24,5 kg, la dernière ce mois-ci', () => {
+  it('donne à Milo six pesées mensuelles croissantes de 39,8 à 42,6 kg, la dernière ce mois-ci', () => {
     const { weights } = find('Milo')
 
     expect(weights).toHaveLength(6)
-    expect(weights.map((weight) => weight.weightKg)).toEqual([23.6, 23.8, 24, 24.1, 24.3, 24.5])
+    expect(weights.map((weight) => weight.weightKg)).toEqual([39.8, 40.4, 41, 41.5, 42.1, 42.6])
     expect(weights.at(-1)?.measuredOn).toBe(today)
     expect(weights.at(0)?.measuredOn).toBe('2026-04-13')
   })

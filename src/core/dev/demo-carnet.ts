@@ -127,7 +127,7 @@ export function buildDemoCarnet(today: Date): DemoAnimal[] {
       animal: {
         name: 'Milo',
         species: 'dog',
-        breed: 'Golden retriever',
+        breed: 'Bouvier bernois',
         birthDate: day(subYears(today, 4)),
       },
       vaccinations: [
@@ -213,7 +213,7 @@ export function buildDemoCarnet(today: Date): DemoAnimal[] {
           ],
         },
       ],
-      weights: monthlyWeights(today, [23.6, 23.8, 24, 24.1, 24.3, 24.5]),
+      weights: monthlyWeights(today, [39.8, 40.4, 41, 41.5, 42.1, 42.6]),
     },
     {
       animal: {
