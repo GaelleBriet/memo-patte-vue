@@ -238,8 +238,12 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   La dose du jour non notée est retirée par l'arrêt ; quand elle existe, le dialogue le dit : « La dose
   d'aujourd'hui n'est pas notée : si tu l'as donnée, touche « C'est fait » avant d'arrêter. » (Spec Q9)
   Les prises du jour de l'arrêt notées avant l'arrêt restent comptées, quel que soit le jour où le
-  traitement a commencé, dose arrivée d'un report comprise ; une dose d'après l'arrêt donnée d'avance
-  reste « sans effet » (#819, décision du 2026-10-13).
+  traitement a commencé, dose arrivée d'un report comprise, et même repris ce jour-là quand la
+  reprise n'y a pas de dose ; une dose d'après l'arrêt donnée d'avance reste « sans effet » (#819,
+  décision du 2026-10-13). Seule une reprise qui a sa journée le jour de l'arrêt (sa première dose, ou
+  une dose reportée ou avancée à ce jour) lit ce jour à la place de l'ancienne période (R8, Q-G3). Un
+  report qui arrive le jour de l'arrêt et a servi de départ à un nouveau rythme reste verrouillé,
+  comme avant l'arrêt (#780).
   Sans dose à renseigner, une confirmation simple : « Plus aucun rappel pour Milbemax. Ses prises
   restent dans le carnet. » (relecture du lot A, correction 6). (P9 Q3, doute de Gaelle à observer)
   Arrêté avant sa première échéance, sans aucune prise sur tout le traitement : la date d'arrêt reste
@@ -1101,11 +1105,17 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
   celles du 15 données d'avance le 13 ; « Arrêter » le 13 : les deux prises du 13 couvrent leurs
   doses, les deux du 15, après l'arrêt, restent « sans effet ». Le jour de l'arrêt se lit de la même
   façon quel que soit le jour de début : un traitement commencé le 10 et arrêté le 13 garde de même
-  les prises du 13, et une dose du 12 reportée au 13, donnée le 13 avant l'arrêt, reste couverte. Une
-  dose du jour non notée reste retirée par l'arrêt, sans passer « à renseigner » ; arrêté avant sa
-  première échéance sans aucune prise, le traitement dit toujours « Arrêté avant la première prise ».
-  Écartée : un jour de l'arrêt qui n'appartient plus au traitement (ses prises sans effet, y compris
-  celles données avant l'arrêt).
+  les prises du 13, et une dose du 12 reportée au 13, donnée le 13 avant l'arrêt, reste couverte. Même
+  lecture quand la reprise s'ouvre le jour de l'arrêt sans y avoir de dose : mensuel sans heure, dose
+  du 13 oct. donnée le 13, arrêté le 13, repris le 13 avec première dose le 13 nov. (ou tous les jours
+  dès le 14) : la prise du 13 oct. compte, comme pour une reprise le 14 ; 8 h, 14 h et 20 h du 8
+  données, arrêté et repris le 8 avec première dose le 9 : les trois prises comptent. Une reprise qui a
+  sa journée le jour de l'arrêt (première dose ce jour-là, ou dose reportée ou avancée à ce jour) lit
+  seule cette journée (Q-G3, inchangé). Un report arrivé le jour de l'arrêt qui a servi de départ à un
+  nouveau rythme reste verrouillé, comme avant l'arrêt (#780). Une dose du jour non notée reste
+  retirée par l'arrêt, sans passer « à renseigner » ; arrêté avant sa première échéance sans aucune
+  prise, le traitement dit toujours « Arrêté avant la première prise ». Écartée : un jour de l'arrêt
+  qui n'appartient plus au traitement (ses prises sans effet, y compris celles données avant l'arrêt).
 
 ## 11. Questions ouvertes
 
