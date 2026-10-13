@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { applied, removalRefusal, removeLine, treatmentView } from '../domain/dose-calendar'
-import { line, setting, WEEK } from './dose-calendar.v2.aides'
+import { DAY, line, setting, WEEK } from './dose-calendar.v2.aides'
 
 const TWO_WEEKS = { value: 2, unit: 'week' as const }
 const SIX_WEEKS = { value: 6, unit: 'week' as const }
@@ -130,6 +130,24 @@ describe('TR-25 : « Supprimer » une dose supprime toutes ses lignes (décision
     if ('refusal' in result) return
     const after = treatmentView(applied(input, result.changes))
     expect(after.history.some(({ effect }) => effect.kind === 'covers')).toBe(false)
+  })
+
+  it('entre deux périodes (décision du 2026-10-13) : tous les jours, dose du 6 donnée d’avance le 5, arrêt le 5, « Reprendre » le 5 avec première dose le 6, dose du 6 notée de nouveau : « Supprimer » la prise en vigueur emporte les deux lignes', () => {
+    const stopped = setting('d1', '2026-10-01', DAY, [], { stoppedOn: '2026-10-05' })
+    const resumed = setting('d2', '2026-10-06', DAY, [], { startsOn: '2026-10-05' })
+    const ahead = { ...line('d1', 'given', '2026-10-06'), givenOn: '2026-10-05' }
+    const again = line('d2', 'given', '2026-10-06')
+    const input = { settings: [stopped, resumed], lines: [ahead, again], today: '2026-10-06' }
+    const live = treatmentView(input).history.find(({ effect }) => effect.kind === 'covers')
+    expect(live?.line.id).toBe(again.id)
+    const result = removeLine(input, again.id)
+    expect('refusal' in result ? result : result.changes).toEqual([
+      { action: 'delete', id: again.id },
+      { action: 'delete', id: ahead.id },
+    ])
+    if ('refusal' in result) return
+    const after = treatmentView(applied(input, result.changes))
+    expect(after.history).toEqual([])
   })
 
   it('le report et le décalage de la même journée ne sont pas des lignes de la dose', () => {

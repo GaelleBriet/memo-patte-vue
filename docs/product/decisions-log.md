@@ -2433,3 +2433,28 @@ sur trois jours, une seule lecture pour tous les écrans. — Alternatives écar
 jour choisi ; le 15 les jours suivants ; ouvrir un réglage avant une dose donnée ; laisser la dose
 donnée par l'autre ligne ; laisser le report arriver à son ancienne date ou le rendre sans effet ;
 écrire un report pour une prise en plus ; cacher les lignes sans effet du PDF.
+
+2026-10-13 — **Moteur des doses v2 : réponses de Gaelle au bilan du pas 7** (spec `traitements.md`
+§10, entrées du 2026-10-13, R9, R11). Q26 vaut aussi avec un réglage changé : une date choisie avant
+une dose déjà notée est refusée par le moteur, et le champ « Prochaine dose » est grisé quand une dose
+plus lointaine que la date proposée est notée (« Une dose plus lointaine est déjà notée. ») ; la
+posologie reste modifiable sans toucher la date ; l'exemple de #794 devient un refus, #794 reste vrai
+quand rien n'est noté plus loin. Une date choisie remplace la dose du moment : arrivée d'un report, le
+report est réécrit (#796) ; en retard ou en attente, la grille repart de la date choisie et un report
+plus loin la suit, ou devient sans effet si sa journée d'origine n'est pas sur la nouvelle grille
+(cas A et B du bilan : 9, 11, 13 et 7, 9, 11) ; parti de la date choisie elle-même, il est porté par
+elle, sans effet (8, 10, 12, comme avant le pas 7 ; lecture à confirmer, spec §11). « Supprimer » une dose entre deux périodes emporte ses
+deux lignes (TR-25, confirmé). — Raison (Gaelle) : une prise déjà notée ne perd jamais son échéance,
+une dose déplacée ne laisse pas trois prises sur trois jours, un même geste suit une seule règle. —
+Alternatives écartées : montrer le 24 dans l'exemple de #794 ; fusionner la dose en retard et
+l'arrivée du report en réécrivant le report ; laisser arriver le report à son ancienne date.
+
+2026-10-13 — **Moteur des doses v2 : une date choisie passe au réglage qui la remplace le jour même**
+(spec `traitements.md` R10 et §10, TR-9, R6 ; choix de cohérence en autonomie, à confirmer par
+Gaelle). Un réglage remplacé le jour même par un réglage sans date choisie (posologie seule, réglage
+reçu d'un autre appareil) lui transmet sa date choisie : la dose du moment qu'elle remplaçait reste
+remplacée et ses reports se lisent sur la grille repartie. Tous les 3 jours du 3 oct., dose du 6 non
+donnée ; le 7, « Prochaine dose » le 8, puis une posologie reçue d'un autre appareil : 8, 11, 14 (et
+non 6, 8, 11). — Raison : une posologie seule ne change rien au calendrier (invariant « posologie sans
+effet », graine 998000832). — Alternative écartée : laisser au réglage remplacé ses journées sorties
+du calendrier, d'où partaient encore des reports.

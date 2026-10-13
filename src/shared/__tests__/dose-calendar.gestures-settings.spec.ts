@@ -308,30 +308,43 @@ describe('R9 : « Prochaine dose » choisie', () => {
     expect(next([s1, s2], lines, '2026-03-31')).toEqual(['2026-04-05', '2026-06-09', '2026-07-09'])
   })
 
-  it.each([
-    ['posologie', []],
-    ['heures passées à 8 h', ['08:00']],
-  ])(
-    'TR-9, #794 : tous les jours, première dose choisie le 16 mai par un réglage du 15 avr., dose du 16 reportée au 19 avec décalage ; le 20 avr., posologie (première dose le 19 mai), dose du 19 donnée ; le 24 avr., %s et « Prochaine dose » le 24 : la fiche montre le 24',
-    (_, times) => {
-      const s1 = setting('s1', '2026-05-16', DAY, [], { startsOn: '2026-04-15' })
-      const s2 = setting('s2', '2026-05-19', DAY, [], {
-        startsOn: '2026-04-20',
-        gridOriginOn: null,
-      })
-      const input = {
-        settings: [s1, s2],
-        lines: [
-          line('s1', 'postponed', '2026-05-16', null, '2026-05-19'),
-          line('s1', 'shift', '2026-05-16', null, '2026-05-19'),
-          given('s2', '2026-05-19', null, '2026-04-20'),
-        ],
-        today: '2026-04-24',
-      }
-      const day = times.length === 0 ? '2026-04-24' : '2026-04-24 08:00'
-      expect(shown(input, request(DAY, times, '2026-04-24'), 1)).toEqual([day])
-    },
-  )
+  describe('TR-9, #794 : tous les jours, première dose choisie le 16 mai par un réglage du 15 avr., dose du 16 reportée au 19 avec décalage ; le 20 avr., posologie (première dose le 19 mai)', () => {
+    const s1 = setting('s1', '2026-05-16', DAY, [], { startsOn: '2026-04-15' })
+    const s2 = setting('s2', '2026-05-19', DAY, [], { startsOn: '2026-04-20', gridOriginOn: null })
+    const moved = [
+      line('s1', 'postponed', '2026-05-16', null, '2026-05-19'),
+      line('s1', 'shift', '2026-05-16', null, '2026-05-19'),
+    ]
+
+    it.each([
+      ['posologie', []],
+      ['heures passées à 8 h', ['08:00']],
+    ])(
+      'Q26 : dose du 19 donnée le 20 avr. ; le 24 avr., %s et « Prochaine dose » le 24 : refusé, une dose plus lointaine est déjà notée (décision du 2026-10-13)',
+      (_, times) => {
+        const input = {
+          settings: [s1, s2],
+          lines: [...moved, given('s2', '2026-05-19', null, '2026-04-20')],
+          today: '2026-04-24',
+        }
+        expect(newSettings(input, request(DAY, times, '2026-04-24'))).toEqual({
+          refusal: { reason: 'later-dose' },
+        })
+      },
+    )
+
+    it.each([
+      ['posologie', []],
+      ['heures passées à 8 h', ['08:00']],
+    ])(
+      'rien n’est noté plus loin ; le 24 avr., %s et « Prochaine dose » le 24 : la fiche montre le 24',
+      (_, times) => {
+        const input = { settings: [s1, s2], lines: moved, today: '2026-04-24' }
+        const day = times.length === 0 ? '2026-04-24' : '2026-04-24 08:00'
+        expect(shown(input, request(DAY, times, '2026-04-24'), 1)).toEqual([day])
+      },
+    )
+  })
 })
 
 describe('R9, R12 : la date proposée est celle que la fiche montre ensuite', () => {

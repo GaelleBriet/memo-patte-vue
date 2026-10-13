@@ -19,6 +19,7 @@ export {
   type SettingsRequest,
   type SettingsResult,
 } from './gestures/settings'
+export { chosenDateRefusal } from './gestures/settings-chosen'
 export { familyOf, isAdvanced } from './lines'
 export { play, preview } from './preview'
 export type { DueSlot, HistoryLine, TreatmentView, Window } from './view'

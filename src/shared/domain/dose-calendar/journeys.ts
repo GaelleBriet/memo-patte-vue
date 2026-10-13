@@ -14,12 +14,19 @@ type Grid = { origin: Day; floor: Day; since: Day }
 
 type Claim = { setting: Setting; end: Day | null; segments: Segment[] }
 
+type Replaced = { from: Day; to: Day; onDueDay: boolean }
+
 // R1, R4 : sortie du calendrier, la journée où un réglage cède la place, ou celle d'origine d'un de
 // ses reports s'il est remplacé le jour où il commence, se lit avec ce réglage.
-function leftDays(claims: readonly Claim[], reports: readonly Line[], stop: Day | null) {
+function leftDays(
+  claims: readonly Claim[],
+  reports: readonly Line[],
+  stop: Day | null,
+  handed: ReadonlySet<string>,
+) {
   const left = new Map<Day, Journey>()
   for (const { setting, end, segments } of claims) {
-    if (end === null) continue
+    if (end === null || handed.has(setting.id)) continue
     const reported = reports
       .filter(({ settingId }) => settingId === setting.id)
       .map(({ dueOn }) => dueOn)
@@ -61,7 +68,13 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   let grid: Grid = { origin: chain[0]!.firstDueOn, floor: '', since: '' }
   let rhythm = new Set<string>()
   let rhythmFrom = span.live[0]!.startsOn
-  const replaced: { from: Day; to: Day; onDueDay: boolean }[] = []
+  const replaced: Replaced[] = []
+  // R6, TR-9 : par réglage, la date choisie dont la grille repart, que ses suivants de même rythme continuent.
+  const restarts = new Map<string, Day>()
+  let restart: Day | undefined
+  let replacing: Replaced | null = null
+  // R10, TR-9 : remplacé le jour même par un réglage sans date choisie, un réglage lui laisse ses journées.
+  const handed = new Set<string>()
   let chosenFloor = ''
   let rhythmFloor = ''
   let anchors = new Set<Line>()
@@ -116,21 +129,37 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       : origin !== null
         ? { ...grid, floor: ownFloor }
         : { ...grid, floor: later(grid.floor, later(chosenFloor, plusDays(setting.startsOn, -1))) }
-    if (index < 0) return
-    const ended = index > 0 && (span.live[index - 1]!.endsOn ?? setting.startsOn) < setting.startsOn
-    // TR-9 : à fréquence gardée, une première échéance choisie remplace la dose du moment du rythme.
-    const written = span.episode[span.episode.indexOf(setting) - 1]
+    const at = span.episode.indexOf(setting)
+    const prior = span.live.filter((each) => span.episode.indexOf(each) < at).at(-1)
+    const ended = prior !== undefined && (prior.endsOn ?? setting.startsOn) < setting.startsOn
+    // TR-9 : à fréquence gardée, une première échéance choisie remplace la dose du moment du rythme,
+    // même quand son réglage est remplacé le jour même par un réglage sans date choisie (R10).
+    const written = span.episode[at - 1]
     const kept =
-      index > 0 &&
+      prior !== undefined &&
       written !== undefined &&
-      [written, span.live[index - 1]!].every(({ frequency }) =>
-        sameFrequency(frequency, setting.frequency),
-      )
+      [written, prior].every(({ frequency }) => sameFrequency(frequency, setting.frequency))
     if (kept && origin !== null && !ended) {
       const onDueDay =
         setting.startsOn > inherited.floor &&
         isOnGrid(inherited.origin, setting.frequency, setting.startsOn)
-      replaced.push({ from: rhythmFrom, to: setting.startsOn, onDueDay })
+      replacing = { from: rhythmFrom, to: setting.startsOn, onDueDay }
+      restart = setting.firstDueOn
+    } else if (!continued || origin !== null || ended) {
+      replacing = null
+      restart = undefined
+    }
+    if (index < 0) return
+    if (replacing !== null) replaced.push(replacing)
+    replacing = null
+    if (restart !== undefined) restarts.set(setting.id, restart)
+    if (
+      prior?.startsOn === setting.startsOn &&
+      origin === null &&
+      restart !== undefined &&
+      restarts.get(prior.id) === restart
+    ) {
+      handed.add(prior.id)
     }
     if (index > 0 && (!continued || ended)) rhythmFrom = setting.startsOn
     // R3 : écrit sous un réglage d'avant un changement de fréquence, un décalage est dépassé.
@@ -166,6 +195,6 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   for (const shift of lines.shifts) {
     if (!effects.has(shift.id)) effects.set(shift.id, { kind: 'idle', reason: 'overtaken' })
   }
-  const left = leftDays(claims, lines.reports, span.endOf(span.live.length - 1))
-  return { days, translated, left, openings, rhythmFrom, replaced }
+  const left = leftDays(claims, lines.reports, span.endOf(span.live.length - 1), handed)
+  return { days, translated, left, openings, rhythmFrom, replaced, restarts }
 }

@@ -1,10 +1,11 @@
-import { hoursOf, isOnGrid, keyOf, stepped, type Hour } from './reference-grid'
+import { hoursOf, isOnGrid, keyOf, sameHours, stepped, type Hour } from './reference-grid'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 export type Journey = { setting: ReferenceSetting; hours: Hour[] }
 export type Segment = { origin: string; from: string; to: string | null }
 export type Claim = { setting: ReferenceSetting; end: string | null; segments: Segment[] }
 export type ReferenceDue = { key: string; day: string; covered: boolean }
+export type Replaced = { from: string; to: string; onDueDay: boolean }
 
 // R1, R4 : sortie du calendrier, la journée où un réglage cède la place, ou celle d'origine d'un
 // de ses reports s'il est remplacé le jour où il commence, se lit avec ce réglage.
@@ -34,6 +35,28 @@ export function leftDays(
   return left
 }
 
+// R10, TR-9 : remplacé le jour même par un réglage sans date choisie qui continue sa grille repartie,
+// un réglage n'a plus de journée sortie du calendrier : son remplaçant les lit.
+export function handedOf(
+  claims: readonly Claim[],
+  restarts: ReadonlyMap<string, string>,
+): Set<string> {
+  return new Set(
+    claims
+      .filter(({ setting }, at) => {
+        const successor = claims[at + 1]?.setting
+        return (
+          successor !== undefined &&
+          successor.startsOn === setting.startsOn &&
+          successor.gridOriginOn === null &&
+          restarts.has(setting.id) &&
+          restarts.get(successor.id) === restarts.get(setting.id)
+        )
+      })
+      .map(({ setting }) => setting.id),
+  )
+}
+
 // R4 : une prise dont l'échéance a quitté le calendrier couvre la première échéance qui suit, à
 // moins d'un pas de son réglage ; déjà couverte ou trop loin, la prise est sans effet.
 export function coverOrphans(
@@ -49,5 +72,59 @@ export function coverOrphans(
     const { frequency } = settingOf(note.settingId)
     const due = dues.find((each) => each.key > keyOf(note.dueOn, note.dueTime))
     if (due !== undefined && due.day < stepped(note.dueOn, frequency, 1)) due.covered = true
+  }
+}
+
+// TR-9 : la dernière journée arrivée avant un réglage qui ne commence pas un jour d'échéance.
+export function lateDaysOf(replaced: readonly Replaced[], fallen: ReadonlySet<string>) {
+  return replaced
+    .filter(({ onDueDay }) => !onDueDay)
+    .map(({ from, to }) =>
+      [...fallen]
+        .filter((day) => day >= from && day < to)
+        .sort()
+        .at(-1),
+    )
+}
+
+// R4 : une prise couvre son échéance ; le jour où les heures changent, celles qui visaient l'ancien
+// réglage couvrent les premières heures du nouveau, à hauteur de leur nombre.
+export function coverageOf(
+  notes: readonly ReferenceLine[],
+  borrowed: readonly ReferenceLine[],
+  translated: ReadonlyMap<string, string>,
+  settingOf: (id: string) => ReferenceSetting,
+  matched: Set<ReferenceLine>,
+) {
+  return (day: string, journey: Journey): Set<Hour> => {
+    const ofDay = notes.filter((note) => note.dueOn === day)
+    const exact = ofDay.filter(
+      (note) =>
+        !borrowed.includes(note) &&
+        (!translated.has(day) || sameHours(settingOf(note.settingId), journey.setting)),
+    )
+    ofDay
+      .filter((note) => !exact.includes(note) || journey.hours.includes(note.dueTime))
+      .forEach((note) => matched.add(note))
+    const covered = new Set(
+      journey.hours.filter((hour) => exact.some((note) => note.dueTime === hour)),
+    )
+    // R4 : une journée de l'ancien réglage entièrement notée n'a plus rien à donner.
+    const whole = ofDay.some(
+      (note) =>
+        !exact.includes(note) &&
+        !borrowed.includes(note) &&
+        hoursOf(settingOf(note.settingId)).every((hour) =>
+          ofDay.some((other) => other.settingId === note.settingId && other.dueTime === hour),
+        ),
+    )
+    let elsewhere = ofDay.length - exact.length
+    for (const hour of journey.hours) {
+      if ((elsewhere > 0 || whole) && !covered.has(hour)) {
+        covered.add(hour)
+        elsewhere -= 1
+      }
+    }
+    return covered
   }
 }

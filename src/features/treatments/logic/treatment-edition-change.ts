@@ -21,6 +21,7 @@ import type { TreatmentWithHistory } from '../schema/treatment-with-history.sche
 import { isCalendarDay } from '@/shared/domain/calendar-day'
 import { sortedTimes } from '@/shared/domain/clock-time'
 import {
+  chosenDateRefusal,
   newSettings,
   type Day,
   type SettingsPlan,
@@ -174,6 +175,7 @@ export function resolve(
   const hasNote = history.doses.some(({ status }) => status === 'given' || status === 'missed')
   const writes = (typed !== null && typed !== proposedOn) || changesRhythm(period, next)
   const refusal = 'refusal' in answer ? answer.refusal : null
+  const fieldRefusal = chosenDateRefusal(reading.input, base)
   return {
     period,
     change: 'edit',
@@ -182,8 +184,11 @@ export function resolve(
       proposedOn,
       earliest: today,
       latest: next.endsOn,
-      refusal: null,
-      help: helpOf(reading, history, period, next, proposedOn, today, hasNote),
+      refusal: fieldRefusal,
+      help:
+        fieldRefusal === null
+          ? helpOf(reading, history, period, next, proposedOn, today, hasNote)
+          : { kind: 'refused', refusal: fieldRefusal },
       shift: null,
       shiftInitial: true,
     } satisfies NextDoseDraft,

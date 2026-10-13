@@ -143,6 +143,33 @@ décalage du lundi 12 au 14 écrit sous ce réglage ; le 7, retour à l'hebdo, �
 810001161, 810002312, 780000156, 780001015 et 870000527 vertes ; tests datés dans
 `dose-calendar.gestures-settings.spec.ts` et `dose-calendar.reference-model.spec.ts`.
 
+**Revu le 2026-10-13 (Q26).** Le premier exemple devient un refus : la dose du 19 mai est donnée
+d'avance, et une date choisie avant une dose déjà notée est refusée par le moteur, réglage changé
+compris (`later-dose`, « Une dose plus lointaine est déjà notée. »). Le même carnet sans la prise du
+19 mai montre toujours le 24 : #794 reste vrai quand rien n'est noté plus loin. La lecture d'un tel
+réglage reçu d'un autre appareil ne change pas (test de `dose-calendar.reference-model.spec.ts`
+gardé). Le champ n'est grisé que pour une dose plus lointaine que la date proposée : la dose du
+lendemain à 8 h donnée d'avance, prochaine dose proposée, le laisse libre (G24, #711).
+
+## Date choisie et report plus loin (décision du 2026-10-13)
+
+Une date choisie à fréquence gardée remplace la dose du moment ; la grille repart d'elle (TR-9). Un
+report dont la journée d'origine tombe dans ce rythme repartant (le réglage de la date choisie et ses
+suivants de même rythme) sans y être une échéance est sans effet (`nothing-to-move`), sauf celui qui
+porte la date choisie ou ouvre le nouveau rythme (R9.2). La date choisie ne réécrit le report que si
+la dose du moment est son arrivée (#796). Tous les 2 jours, doses des 2 et 4 données, 6 non donnée,
+8 reportée au 10 : le 7, « Prochaine dose » le 9 : 9, 11, 13 (9, 11 avec le report réécrit et la dose
+en retard fusionnée avant ; 9, 10, 11 sur l'ancien `main`) ; le 6, « Prochaine dose » le 7 : 7, 9, 11
+(7, 9, 10, 11 avant). Un report écrit avant la date choisie et parti de cette date même est porté
+par elle, sans effet : le 6 ou le 7, « Prochaine dose » le 8 : 8, 10, 12, comme sur `main` (lecture
+à confirmer, spec §11) ; un report écrit sous le réglage de la date choisie garde son effet. La règle
+ne vaut pas hors d'une date choisie : un report parti d'une journée sortie du calendrier par un changement de fréquence reste lu (tests de
+`dose-calendar.journees-sorties.spec.ts`). Le modèle naïf applique la même règle, report qui porte
+la date choisie compris (graine 992000111 : à plusieurs heures, l'arrivée ne garde que l'heure
+reportée ; test daté de `dose-calendar.reference-model.spec.ts`). Remplacé le jour même par un
+réglage sans date choisie, un réglage lui transmet sa date choisie, dans les deux modèles (graine
+998000832, tests datés « remplacé le jour même par un réglage sans date choisie »).
+
 ## Question encore ouverte du pas 4 (« Modifier »)
 
 - **« Prochaine dose » choisie dans l'écart d'un décalage** (TR-9, G6, R6 ; question pour Gaelle) :
@@ -202,3 +229,16 @@ carnets de l'oracle `actuel,v2` (20 000 carnets à partir de 530000000, réglage
 | fréquence gardée (R3, Q-retard)  | Heures changées seules : la première échéance est la prochaine journée du calendrier en vigueur, ses prises la couvrent (R4) ; le moteur actuel redemande les heures d'une journée déjà donnée (famille `prises-du-traitement`, #741). Graines 530000066, 530000229.                                                                                                                                                           |
 | R9 et un traitement fini         | Sur un traitement fini (date de fin passée), le moteur actuel propose aujourd'hui ; v2 suit R9.3. Graines 530000001, 530000148.                                                                                                                                                                                                                                                                                                |
 | « même affichage »               | Les deux réglages montrent les mêmes doses ; seuls changent l'état d'une journée déjà donnée et l'effet des prises dans l'historique.                                                                                                                                                                                                                                                                                          |
+
+## Écart non rattaché, antérieur à la branche (graine 991003624, oracle `actuel,v2`, 2026-10-13)
+
+Reproduit à l'identique sur `main` (adb1d28e), sans lien avec les décisions du 2026-10-13 ; à trancher
+dans un ticket. Mensuel à 6, 12, 18 et 23 h du 14 mars (fin le 24), dose de 12 h du 14 reportée seule
+au 20 ; le 22, « Modifier » passe à tous les 3 jours à 8 h et 20 h (première dose le 23), puis, le même
+jour, à 6, 12, 18 et 23 h, origine le 20 ; la seule prise du réglage du 22 à 8 h et 20 h est
+supprimée. La dose de 12 h du 20 (arrivée du report) n'est pas donnée : v2 la montre en retard comme
+dose du moment, le moteur actuel la met « à renseigner » et propose le 23 à 6 h. Le réglage à 8 h et
+20 h, remplacé le jour même sans prise, transmet sa grille au suivant (R10, #781), et v2 lit alors la
+fréquence comme gardée pour la dose en retard (Q-retard), alors qu'elle change par rapport au réglage
+mensuel en vigueur avant ; R9 ne garde la dose en retard qu'à fréquence gardée. Lecture probable :
+défaut de v2.
