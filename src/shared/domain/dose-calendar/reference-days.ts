@@ -36,30 +36,13 @@ export function leftDays(
   return left
 }
 
-export type Resumption = {
-  live: readonly ReferenceSetting[]
-  reports: readonly ReferenceLine[]
-}
-
-// TR-30, R8 : le jour de l'arrêt se lit avec le réglage arrêté, sans y laisser d'échéance, sauf quand
-// une reprise ouverte au plus tard ce jour-là y a sa journée : une première échéance, ou l'arrivée d'un
-// report ; toutes les reprises comptent, puisqu'elles empruntent toutes les prises d'avant.
-export function stopDayOf(stopped: ReferenceSetting, resumptions: readonly Resumption[]) {
+// TR-30 : le jour de l'arrêt se lit avec le réglage arrêté, sans y laisser d'échéance ; une reprise
+// qui y a sa journée y lit ses heures, toutes couvertes par une prise d'avant l'arrêt (R8, Q-G3).
+export function stopDayOf(stopped: ReferenceSetting) {
   const stop = stopped.stoppedOn
-  const resumesThatDay =
-    stop !== null &&
-    resumptions.some(
-      ({ live, reports }) =>
-        live[0]!.startsOn <= stop &&
-        (live.some(({ firstDueOn }) => firstDueOn === stop) ||
-          reports.some(({ targetOn }) => targetOn === stop)),
-    )
-  const readsStop = stop !== null && !resumesThatDay
-  const closedFrom = readsStop ? plusDays(stop, 1) : stop
+  const closedFrom = stop === null ? null : plusDays(stop, 1)
   const stoppedAt = (day: string) =>
-    readsStop && day === stop && (stopped.endsOn === null || day <= stopped.endsOn)
-      ? stopped
-      : undefined
+    day === stop && (stopped.endsOn === null || day <= stopped.endsOn) ? stopped : undefined
   return { closedFrom, stoppedAt }
 }
 
@@ -116,7 +99,8 @@ export function lateDaysOf(replaced: readonly Replaced[], fallen: ReadonlySet<st
 }
 
 // R4 : une prise couvre son échéance ; le jour où les heures changent, celles qui visaient l'ancien
-// réglage couvrent les premières heures du nouveau, à hauteur de leur nombre.
+// réglage couvrent les premières heures du nouveau, à hauteur de leur nombre ; une prise d'avant
+// l'arrêt couvre toute la première journée de la reprise (R8, Q-G3).
 export function coverageOf(
   notes: readonly ReferenceLine[],
   borrowed: readonly ReferenceLine[],
@@ -128,8 +112,9 @@ export function coverageOf(
     const ofDay = notes.filter((note) => note.dueOn === day)
     const exact = ofDay.filter(
       (note) =>
-        !borrowed.includes(note) &&
-        (!translated.has(day) || sameHours(settingOf(note.settingId), journey.setting)),
+        borrowed.includes(note) ||
+        !translated.has(day) ||
+        sameHours(settingOf(note.settingId), journey.setting),
     )
     ofDay
       .filter((note) => !exact.includes(note) || journey.hours.includes(note.dueTime))
@@ -138,14 +123,15 @@ export function coverageOf(
       journey.hours.filter((hour) => exact.some((note) => note.dueTime === hour)),
     )
     // R4 : une journée de l'ancien réglage entièrement notée n'a plus rien à donner.
-    const whole = ofDay.some(
-      (note) =>
-        !exact.includes(note) &&
-        !borrowed.includes(note) &&
-        hoursOf(settingOf(note.settingId)).every((hour) =>
-          ofDay.some((other) => other.settingId === note.settingId && other.dueTime === hour),
-        ),
-    )
+    const whole =
+      ofDay.some((note) => borrowed.includes(note)) ||
+      ofDay.some(
+        (note) =>
+          !exact.includes(note) &&
+          hoursOf(settingOf(note.settingId)).every((hour) =>
+            ofDay.some((other) => other.settingId === note.settingId && other.dueTime === hour),
+          ),
+      )
     let elsewhere = ofDay.length - exact.length
     for (const hour of journey.hours) {
       if ((elsewhere > 0 || whole) && !covered.has(hour)) {

@@ -71,7 +71,10 @@ export function chosenRefusal(
   return chosenDateRefusal(input, implicit) ?? laterNote(input, (day) => day > chosen)
 }
 
-/** R7, #796 : à fréquence gardée, une date choisie emmène le report qui arrive à la dose du moment. */
+/**
+ * R7, #796 : à fréquence gardée, une date choisie emmène le report qui arrive à la dose du moment ;
+ * « Elles restent à renseigner » garde la dose du moment, la date n'ouvre que la nouvelle grille (#817).
+ */
 export function withChosenDate(
   input: TreatmentViewInput,
   chosen: Day | undefined,
@@ -83,7 +86,7 @@ export function withChosenDate(
   if (lines.length === 0) return result
   const carry = (plan: SettingsPlan) => ({ ...plan, lines })
   if ('plan' in result) return { ...result, plan: carry(result.plan) }
-  const { keep, correct } = result.question
-  const carried = 'refusal' in correct ? correct : carry(correct)
-  return { ...result, question: { ...result.question, keep: carry(keep), correct: carried } }
+  const { correct } = result.question
+  if ('refusal' in correct) return result
+  return { ...result, question: { ...result.question, correct: carry(correct) } }
 }

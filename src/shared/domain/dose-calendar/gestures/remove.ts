@@ -1,4 +1,5 @@
 import { isNote } from '../lines'
+import { episodeIdsOf } from '../settings'
 import type { GestureResult, Line, LineChange, Refusal, TreatmentViewInput } from '../types'
 import { buildView } from '../view'
 import { without } from './changes'
@@ -42,15 +43,17 @@ export function removalRefusal(input: TreatmentViewInput, lineId: string): Refus
   return line.status === 'shift' ? shiftRemovalRefusal(input, line) : null
 }
 
-// TR-25 : la prise en vigueur emporte les autres lignes de sa dose (deux appareils) ; une ligne sans
-// effet part seule.
+// TR-25 : la prise en vigueur emporte les autres lignes de sa dose dans sa période (deux appareils) ;
+// une ligne sans effet, ou une prise d'une autre période (#822), part seule.
 function doseLines(input: TreatmentViewInput, removed: Line): Line[] {
   const effect = buildView(input).history.find(({ line }) => line.id === removed.id)!.effect
   if (!isNote(removed) || effect.kind === 'idle') return []
+  const period = episodeIdsOf(input.settings, removed.settingId)
   return input.lines.filter(
     (line) =>
       line.id !== removed.id &&
       isNote(line) &&
+      period.has(line.settingId) &&
       line.dueOn === removed.dueOn &&
       line.dueTime === removed.dueTime,
   )

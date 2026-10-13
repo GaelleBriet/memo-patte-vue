@@ -94,3 +94,30 @@ export function settingsProposal(step: V2Step): Broken | null {
     ? null
     : { invariant: 'choisie ≠ montrée', detail: `${misread}\n${JSON.stringify(plan)}` }
 }
+
+/**
+ * #806, #817 : « Elles n'étaient pas à donner » n'est refusée que si son rythme, sans date de fin, n'a
+ * plus aucune dose à donner avant elle.
+ */
+export function refusedCorrection(step: V2Step): Broken | null {
+  const { before, request } = step
+  if (step.plan === null || request === undefined || request.endsOn === null) return null
+  const result = newSettings(before, request)
+  if (!('question' in result) || !('refusal' in result.question.correct)) return null
+  const { endsOn } = request
+  const open = newSettings(before, { ...request, endsOn: null })
+  const correct = 'question' in open ? open.question.correct : null
+  if (correct === null || 'refusal' in correct) {
+    return {
+      invariant: '« pas à donner » refusé',
+      detail: `sans date de fin : ${JSON.stringify(open)}`,
+    }
+  }
+  const ended = { ...correct, setting: { ...correct.setting, endsOn } }
+  const due = preview(before, ended)
+    .slots(correct.setting.firstDueOn, endsOn)
+    .find(({ state }) => state === 'pending')
+  return due === undefined
+    ? null
+    : { invariant: '« pas à donner » refusé', detail: `${dueKey(due.due)} avant le ${endsOn}` }
+}

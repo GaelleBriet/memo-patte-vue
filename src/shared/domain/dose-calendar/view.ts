@@ -1,9 +1,9 @@
 import { episodeCalendar, type EpisodeCalendar, type Slot } from './calendar'
-import { hoursOf, keyOf, later, longestStep, plusDays, stepped } from './grid'
+import { dayOfKey, hoursOf, keyOf, later, longestStep, plusDays, stepped } from './grid'
 import { episodeLines, isNote } from './lines'
 import { momentOf } from './moment'
 import { dueReminders, type DueReminder, type ReminderWindow } from './reminders'
-import { borrowedNotes, closedBeforeFirstDue, episodesOf, liveOf, spanOf } from './settings'
+import { borrowedNotes, closedBeforeFirstDue, episodesOf, spanOf } from './settings'
 import type {
   Day,
   Due,
@@ -66,20 +66,27 @@ const lineOrder = (a: Line, b: Line) =>
   a.updatedAt.localeCompare(b.updatedAt) ||
   a.id.localeCompare(b.id)
 
+// R1, R4, R8 : les échéances que les reprises lisent le jour de l'arrêt, une seule fois chacune.
+function readOn(later: readonly EpisodeCalendar[], day: Day | null): Set<string> {
+  if (day === null) return new Set()
+  return new Set(
+    later.flatMap(({ slots, effects }) => [
+      ...slots.filter(({ due }) => due.dueOn === day).map(({ key }) => key),
+      ...[...effects.values()].flatMap((effect) =>
+        effect.kind === 'covers' && dayOfKey(effect.key) === day ? [effect.key] : [],
+      ),
+    ]),
+  )
+}
+
 export function buildView({ settings, lines, today }: TreatmentViewInput): TreatmentView {
   const byId = new Map(settings.map((setting) => [setting.id, setting]))
   const settingOf = (id: string) => byId.get(id)!
   const episodes = episodesOf(settings)
-  const owns = episodes.map((episode) => episodeLines(lines, new Set(episode.map(({ id }) => id))))
-  const resumptions = episodes.map((episode, index) => ({
-    live: liveOf(episode, owns[index]!.kept),
-    reports: owns[index]!.reports,
-  }))
   const parts = episodes.map((episode, index) => {
-    const own = owns[index]!
+    const own = episodeLines(lines, new Set(episode.map(({ id }) => id)))
     const borrowed = borrowedNotes(episodes, index, lines)
-    const span = spanOf(episode, own.kept, resumptions.slice(index + 1))
-    return { episode, lines: own, span, borrowed }
+    return { episode, lines: own, span: spanOf(episode, own.kept), borrowed }
   })
   const step = Math.max(0, ...settings.map(({ frequency }) => longestStep(frequency)))
   const lastKnownDay = [
@@ -90,7 +97,14 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
     .sort()
     .at(-1)!
   const base = plusDays(lastKnownDay, 2 * step)
-  const build = (reach: Day) => parts.map((part) => episodeCalendar({ ...part, settingOf, reach }))
+  const build = (reach: Day) => {
+    const built: EpisodeCalendar[] = []
+    for (const part of [...parts].reverse()) {
+      const yielded = readOn(built, part.span.live.at(-1)!.stoppedOn)
+      built.unshift(episodeCalendar({ ...part, settingOf, reach, yielded }))
+    }
+    return built
+  }
   const calendars = build(base)
   let widest = { reach: base, calendars }
   const calendarsUntil = (day: Day): EpisodeCalendar[] => {
@@ -107,7 +121,12 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
   const end = currentSetting?.endsOn ?? currentSetting?.stoppedOn ?? null
   const lastSlots = end === null ? [] : (calendarsUntil(end).at(-1)?.slots ?? [])
   const lastDueDay = lastSlots.at(-1)?.due.dueOn ?? null
-  const effects = new Map(calendars.flatMap(({ effects }) => [...effects]))
+  // R8, #819 : une prise d'avant l'arrêt qui couvre sa dose y reste comptée, même si elle couvre
+  // aussi la première journée de la reprise, sauf quand la reprise reprend cette dose.
+  const effects = new Map<string, LineEffect>()
+  for (const [id, effect] of calendars.flatMap((calendar) => [...calendar.effects])) {
+    if (effects.get(id)?.kind !== 'covers') effects.set(id, effect)
+  }
   const live = parts.flatMap(({ span }) => span.live)
   const slotOf = (key: string): Slot | undefined =>
     calendarsUntil(key.slice(0, 10))

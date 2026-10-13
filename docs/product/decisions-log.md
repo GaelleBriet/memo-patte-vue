@@ -2493,3 +2493,30 @@ report arrivé le jour de l'arrêt qui a servi de départ à un nouveau rythme r
 le correctif, les prises du jour de l'arrêt étaient sans effet quel que soit le jour de début ; seul
 le cas d'un arrêt le jour du début l'a montré. — Alternative écartée : un jour de l'arrêt qui
 n'appartient plus au traitement, où même les prises données avant l'arrêt sont sans effet.
+
+2026-10-13 — **Moteur des doses v2 : décisions de Gaelle de la nuit (#810, #817, #821, #822, #823)**
+(spec `traitements.md` TR-25, TR-30, R8, R10, §10 et §11). Elles remplacent les réponses du soir ;
+la décision « une prise ne couvre que la dose de son heure » est retirée.
+
+- **R8 et Q-G3 tels qu'écrits, et rien d'autre** : une prise notée le jour de la reprise couvre toute
+  sa première journée, quelles que soient les heures. Milo, dose de 8 h donnée, arrêt, reprise le soir
+  à 20 h : rien à redonner, prochaine dose le 9 à 20 h. Deux doses par jour reprises à 9 h et 21 h :
+  journée couverte, pas de double dose. #821 : 8 h, 14 h et 20 h données le 8, arrêt, reprise le 8
+  avec 20 h seule : la première journée de la reprise est couverte par R8, et les trois doses de
+  l'ancienne période gardent leurs prises (#819, une dose donnée avant l'arrêt reste comptée) : rien
+  de grisé, aucune prise « sans effet ». Le défaut d'origine était seulement le grisage des prises de
+  14 h et 20 h. #823 : arrêts et reprises multiples le même jour, la prise d'avant reste comptée
+  (inchangé). Aucun double comptage d'une même dose (R1). — Écartées : « une prise ne couvre que la
+  dose de son heure » (retirée) ; une règle composée (dans l'ordre si aucune heure commune, par heure
+  sinon).
+- **#810** : « une dose en retard ne disparaît que par « Elles n'étaient pas à donner » (question
+  ouverte) ou par une date choisie dans « Prochaine dose » sans question posée ; un changement de
+  fréquence seul la laisse en retard ». Le correctif de fréquence du soir est retiré ; la graine
+  991003624 reste un écart ouvert, et #810 reste ouvert.
+- **#817** : une donnée explicite sur le traitement, nommée par ce qu'elle veut dire (« les doses
+  passées du réglage précédent restent à renseigner »), jamais déduite ; sa migration (base, miroir,
+  export) dans un ticket à part, rejouée sur le téléphone (#825). Le report n'est plus réécrit après
+  « Elles restent à renseigner ».
+- **#822** : la règle du 2026-10-12 est gardée dans une même période (TR-25) : la fiche montre une
+  ligne, « Supprimer » retire ce qu'elle montre (donc les deux prises de deux appareils) ; entre deux
+  périodes, deux lignes, on ne retire que celle touchée.

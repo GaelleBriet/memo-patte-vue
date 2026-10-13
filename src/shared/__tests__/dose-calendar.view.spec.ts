@@ -223,7 +223,7 @@ describe('relecture du pas 2 : frontières de réglage et historique', () => {
     expect(effectOf(read, resumed.id)).toEqual({ kind: 'covers', key: '2026-10-06 20:00' })
   })
 
-  it('R4, R8 : posologie ouverte puis arrêtée le 8, doses de 14 h et 20 h du 8 données d’avance, reprise le 8 à 20 h : l’échéance de la reprise n’est couverte qu’une fois', () => {
+  it('R4, R8 : posologie ouverte puis arrêtée le 8, doses de 14 h et 20 h du 8 données d’avance, reprise le 8 à 20 h : les deux prises restent comptées, la dose de 20 h de la reprise une seule fois (R8, #819)', () => {
     const p1 = setting('p1', '2026-10-05', DAY, ['08:00', '14:00', '20:00'])
     const p2 = setting('p2', '2026-10-08', DAY, ['08:00', '14:00', '20:00'], {
       stoppedOn: '2026-10-08',
@@ -233,9 +233,11 @@ describe('relecture du pas 2 : frontières de réglage et historique', () => {
     const p3 = setting('p3', '2026-10-08', { value: 3, unit: 'day' }, ['20:00'])
     const read = view([p1, p2, p3], [afternoon, evening], '2026-10-08')
     const effects = [effectOf(read, afternoon.id), effectOf(read, evening.id)]
-    expect(effects.filter((effect) => effect?.kind === 'covers')).toEqual([
+    expect(effects).toEqual([
+      { kind: 'covers', key: '2026-10-08 14:00' },
       { kind: 'covers', key: '2026-10-08 20:00' },
     ])
+    expect(read.slots('2026-10-08', '2026-10-08').map(({ state }) => state)).toEqual(['covered'])
   })
 
   it('R4 : heures changées, les prises du jour couvrent les nouvelles heures dans l’ordre des heures', () => {
