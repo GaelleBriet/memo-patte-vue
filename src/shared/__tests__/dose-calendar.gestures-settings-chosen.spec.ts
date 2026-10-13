@@ -9,7 +9,7 @@ import {
   type SettingsRequest,
 } from '../domain/dose-calendar'
 import type { TreatmentViewInput } from '../domain/dose-calendar/types'
-import { DAY, keys, line, setting, TWO_DAYS, WEEK } from './dose-calendar.v2.aides'
+import { DAY, keys, line, next, setting, TWO_DAYS, WEEK } from './dose-calendar.v2.aides'
 
 function planOf(input: TreatmentViewInput, asked: SettingsRequest) {
   const result = newSettings(input, asked)
@@ -243,11 +243,28 @@ describe('R9, R6, TR-9 : une date choisie déplace la dose du moment, le report 
     expect(effectOfReport(after, plan)).toMatchObject({ kind: 'idle' })
   })
 
-  it('même carnet, le 6, « Prochaine dose » le 8 : le report du 8 est sur la nouvelle grille, il la suit : 10, 12', () => {
+  it('même carnet, le 6, « Prochaine dose » le 8 : le report part de la date choisie, elle le porte, il est sans effet : 8, 10, 12', () => {
     const input = { settings: [metacam], lines, today: '2026-10-06' }
     const plan = planOf(input, asked('2026-10-08'))
-    expect(shown(input, asked('2026-10-08'), 2)).toEqual(['2026-10-10', '2026-10-12'])
-    expect(effectOfReport(input, plan)).toMatchObject({ kind: 'moves', arrival: '2026-10-10' })
+    expect(shown(input, asked('2026-10-08'))).toEqual(['2026-10-08', '2026-10-10', '2026-10-12'])
+    expect(effectOfReport(input, plan)).toMatchObject({ kind: 'idle' })
+  })
+
+  it('même carnet, le 7, posologie et « Prochaine dose » le 8 : 8, 10, 12, le report du 8 est sans effet, comme sur main', () => {
+    const input = { settings: [metacam], lines, today: '2026-10-07' }
+    const plan = planOf(input, asked('2026-10-08'))
+    expect(shown(input, asked('2026-10-08'))).toEqual(['2026-10-08', '2026-10-10', '2026-10-12'])
+    expect(effectOfReport(input, plan)).toMatchObject({ kind: 'idle' })
+  })
+
+  it('date choisie le 8, puis le 8, dose du jour reportée au 9 : ce report-là garde son effet, 9, 10, 12', () => {
+    const chosen = setting('p2', '2026-10-08', TWO_DAYS, [], { startsOn: '2026-10-07' })
+    const later = line('p2', 'postponed', '2026-10-08', null, '2026-10-09')
+    expect(next([metacam, chosen], [...lines, later], '2026-10-08')).toEqual([
+      '2026-10-09',
+      '2026-10-10',
+      '2026-10-12',
+    ])
   })
 })
 

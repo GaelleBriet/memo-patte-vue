@@ -106,11 +106,12 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
         }
       }
     }
-    // R6, TR-9 : une date choisie fait repartir la grille ; un report parti d'une journée qu'elle n'a
-    // pas est sans effet, sauf celui qui porte la date choisie ou ouvre le nouveau rythme (R9.2).
+    // R6, TR-9 : la date choisie porte le report d'avant elle qui en part ; parti d'une journée hors de
+    // la grille repartie, un report est sans effet, sauf s'il porte la date ou ouvre un rythme (R9.2).
     const chosenOn = restarts.get(span.settingAt(dueOn)?.id ?? '')
     const carries = targetOn === chosenOn || openings.has(targetOn!)
-    if (origin === undefined && chosenOn !== undefined && !carries) {
+    const carried = dueOn === chosenOn && restarts.get(report.settingId) !== chosenOn
+    if (chosenOn !== undefined && (carried || (origin === undefined && !carries))) {
       effects.set(report.id, { kind: 'idle', reason: 'nothing-to-move' })
       continue
     }

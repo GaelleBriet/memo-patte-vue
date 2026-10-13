@@ -2442,7 +2442,8 @@ posologie reste modifiable sans toucher la date ; l'exemple de #794 devient un r
 quand rien n'est noté plus loin. Une date choisie remplace la dose du moment : arrivée d'un report, le
 report est réécrit (#796) ; en retard ou en attente, la grille repart de la date choisie et un report
 plus loin la suit, ou devient sans effet si sa journée d'origine n'est pas sur la nouvelle grille
-(cas A et B du bilan : 9, 11, 13 et 7, 9, 11). « Supprimer » une dose entre deux périodes emporte ses
+(cas A et B du bilan : 9, 11, 13 et 7, 9, 11) ; parti de la date choisie elle-même, il est porté par
+elle, sans effet (8, 10, 12, comme avant le pas 7 ; lecture à confirmer, spec §11). « Supprimer » une dose entre deux périodes emporte ses
 deux lignes (TR-25, confirmé). — Raison (Gaelle) : une prise déjà notée ne perd jamais son échéance,
 une dose déplacée ne laisse pas trois prises sur trois jours, un même geste suit une seule règle. —
 Alternatives écartées : montrer le 24 dans l'exemple de #794 ; fusionner la dose en retard et

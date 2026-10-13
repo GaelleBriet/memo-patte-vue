@@ -781,9 +781,20 @@ describe('R6, TR-9 : une date choisie fait repartir la grille, le report plus lo
     ])
   })
 
-  it('le 6, première dose choisie le 8 : le report part d’une échéance de la nouvelle grille, il la suit : 10, 12', () => {
+  it('le 6, première dose choisie le 8 : le report part de la date choisie, elle le porte, il est sans effet : 8, 10, 12', () => {
     const p2 = setting('p2', '2026-10-08', TWO_DAYS, [], { startsOn: '2026-10-06' })
-    expect(next([p1, p2], lines, '2026-10-06', 2)).toEqual(['2026-10-10', '2026-10-12'])
+    expect(next([p1, p2], lines, '2026-10-06')).toEqual(['2026-10-08', '2026-10-10', '2026-10-12'])
+  })
+
+  it('le 7, première dose choisie le 8 : 8, 10, 12', () => {
+    const p2 = setting('p2', '2026-10-08', TWO_DAYS, [], { startsOn: '2026-10-07' })
+    expect(next([p1, p2], lines, '2026-10-07')).toEqual(['2026-10-08', '2026-10-10', '2026-10-12'])
+  })
+
+  it('première dose choisie le 8, puis le 8, dose du jour reportée au 9 : ce report-là garde son effet, 9, 10, 12', () => {
+    const p2 = setting('p2', '2026-10-08', TWO_DAYS, [], { startsOn: '2026-10-07' })
+    const later = [...lines, line('p2', 'postponed', '2026-10-08', null, '2026-10-09')]
+    expect(next([p1, p2], later, '2026-10-08')).toEqual(['2026-10-09', '2026-10-10', '2026-10-12'])
   })
 })
 
