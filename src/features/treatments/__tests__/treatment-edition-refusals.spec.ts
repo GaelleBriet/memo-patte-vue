@@ -11,6 +11,7 @@ const MILO = '11111111-1111-4111-8111-111111111111'
 const TREATMENT = '22222222-2222-4222-8222-222222222222'
 const SECOND = '33333333-3333-4333-8333-333333333333'
 const DAILY = { value: 1, unit: 'day' as const }
+const TWO_DAYS = { value: 2, unit: 'day' as const }
 const THREE_TIMES = ['08:00', '14:00', '20:00']
 
 let stamp = 0
@@ -131,5 +132,42 @@ describe('#806, Q38 : « Elles n’étaient pas à donner » refusé quand il ne
     expect(
       refusedFields(history, { ...back, pastDues: 'keep', nextDoseOn: '2026-03-17' }, '2026-03-18'),
     ).toEqual([])
+  })
+})
+
+describe('#811, Q26 : une dose notée plus loin que le jour de la modification grise la « Prochaine dose » (décision du 2026-10-13)', () => {
+  const metacam = period({ startsOn: '2026-10-02', firstDueOn: '2026-10-02', frequency: TWO_DAYS })
+  const given = ['02', '04', '06', '08', '10'].map((day) =>
+    dose({ dueOn: `2026-10-${day}`, givenOn: `2026-10-${day}` }),
+  )
+  const history = treatment(
+    [metacam],
+    [...given, dose({ dueOn: '2026-10-12', givenOn: '2026-10-11' })],
+  )
+
+  it('tous les 2 jours, doses du 2 au 10 données, celle du 12 donnée d’avance le 11 ; le 11, posologie : le 14 proposé, champ grisé', () => {
+    const draft = editionDraft(history, saisie(history, { doseQuantity: 2 }), '2026-10-11')
+    expect(draft.nextDose).toMatchObject({
+      proposedOn: '2026-10-14',
+      refusal: { reason: 'later-dose' },
+      help: { kind: 'refused', refusal: { reason: 'later-dose' } },
+    })
+  })
+
+  it('même carnet, posologie seule à la date proposée : acceptée ; « Prochaine dose » le 13 : refusée', () => {
+    expect(
+      refusedFields(
+        history,
+        saisie(history, { doseQuantity: 2, nextDoseOn: '2026-10-14' }),
+        '2026-10-11',
+      ),
+    ).toEqual([])
+    expect(
+      refusedFields(
+        history,
+        saisie(history, { doseQuantity: 2, nextDoseOn: '2026-10-13' }),
+        '2026-10-11',
+      ),
+    ).toEqual(['nextDoseOn:refused'])
   })
 })
