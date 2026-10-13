@@ -71,15 +71,15 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
   const settingOf = (id: string) => byId.get(id)!
   const episodes = episodesOf(settings)
   const owns = episodes.map((episode) => episodeLines(lines, new Set(episode.map(({ id }) => id))))
+  const resumptions = episodes.map((episode, index) => ({
+    live: liveOf(episode, owns[index]!.kept),
+    reports: owns[index]!.reports,
+  }))
   const parts = episodes.map((episode, index) => {
     const own = owns[index]!
     const borrowed = borrowedNotes(episodes, index, lines)
-    const next = episodes[index + 1]
-    const resumption =
-      next === undefined
-        ? null
-        : { live: liveOf(next, owns[index + 1]!.kept), reports: owns[index + 1]!.reports }
-    return { episode, lines: own, span: spanOf(episode, own.kept, resumption), borrowed }
+    const span = spanOf(episode, own.kept, resumptions.slice(index + 1))
+    return { episode, lines: own, span, borrowed }
   })
   const step = Math.max(0, ...settings.map(({ frequency }) => longestStep(frequency)))
   const lastKnownDay = [

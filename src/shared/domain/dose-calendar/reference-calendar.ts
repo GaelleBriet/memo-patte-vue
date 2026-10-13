@@ -34,7 +34,7 @@ export function calendarOf(
   allLines: readonly ReferenceLine[],
   borrowed: ReferenceLine[],
   reach: string,
-  resumption: Resumption | null,
+  resumptions: readonly Resumption[],
 ): Calendar {
   const lines = episodeLinesOf(episode, allLines)
   const isLive = isLiveIn(episode, lines)
@@ -62,7 +62,7 @@ export function calendarOf(
   const translated = new Map<string, string>()
   const left = new Map<string, Journey>()
   const claims: Claim[] = []
-  const { closedFrom, stoppedAt } = stopDayOf(live.at(-1)!, resumption)
+  const { closedFrom, stoppedAt } = stopDayOf(live.at(-1)!, resumptions)
   // R7, R9.2 : les premières échéances des réglages qui ouvrent un nouveau rythme.
   const openings = new Set<string>()
   // R3, R10 : remplacé le jour même, un réglage transmet sa grille au suivant de même fréquence.

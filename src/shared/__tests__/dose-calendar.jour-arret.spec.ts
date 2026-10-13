@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { removalRefusal } from '../domain/dose-calendar'
+import { noteDose, removalRefusal } from '../domain/dose-calendar'
 import type { Frequency, Line } from '../domain/dose-calendar/types'
 import * as reference from './dose-calendar.reference.aides'
 import { DAY, H, keys, line, MONTH, setting, TWO_DAYS, view } from './dose-calendar.v2.aides'
@@ -150,6 +150,36 @@ describe('TR-30, #819 : les prises du jour de l’arrêt, données avant l’arr
       { kind: 'covers', key: '2026-10-08 14:00' },
       { kind: 'covers', key: '2026-10-08 20:00' },
     ])
+  })
+
+  describe('tous les jours, prises données jusqu’au 2 avr. ; arrêté le 2, repris le 2 dès le 3, arrêté de nouveau le 2, repris le 2 dès le 2', () => {
+    const twice = (hours: string[]) => {
+      const days = ['2026-03-30', '2026-03-31', '2026-04-01', '2026-04-02']
+      const settings = [
+        setting('p1', days[0]!, DAY, hours, { stoppedOn: '2026-04-02' }),
+        setting('p2', '2026-04-03', DAY, hours, {
+          startsOn: '2026-04-02',
+          stoppedOn: '2026-04-02',
+        }),
+        setting('p3', '2026-04-02', DAY, hours),
+      ]
+      const lines = days.flatMap((day) => hours.map((hour) => line('p1', 'given', day, hour)))
+      return { settings, lines, today: '2026-04-02' }
+    }
+
+    it.each([
+      ['à 20 h', ['20:00']],
+      ['à 8 h et 20 h', H],
+    ])('%s : « C’est fait » sur la dose de 20 h du 2, déjà couverte, est refusé', (_, hours) => {
+      const due = { settingId: 'p3', dueOn: '2026-04-02', dueTime: '20:00' }
+      const gesture = {
+        due,
+        status: 'given' as const,
+        givenOn: '2026-04-02',
+        shiftsFollowing: false,
+      }
+      expect(noteDose(twice(hours), gesture)).toEqual({ refusal: { reason: 'later-dose' } })
+    })
   })
 
   it('modèle naïf, même carnet : arrêté, rien à renseigner ni à venir', () => {

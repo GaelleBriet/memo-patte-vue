@@ -11,7 +11,7 @@ function calendar(settings: Setting[], lines: Line[]) {
   const own = episodeLines(lines, new Set(settings.map(({ id }) => id)))
   return episodeCalendar({
     settingOf: (id) => settings.find((each) => each.id === id)!,
-    span: spanOf(settings, own.kept, null),
+    span: spanOf(settings, own.kept, []),
     lines: own,
     borrowed: [],
     reach: '2026-12-31',

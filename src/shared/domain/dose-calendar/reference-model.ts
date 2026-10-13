@@ -64,22 +64,20 @@ export function referenceReading({
     known.sort().at(-1)!,
     2 * Math.max(0, ...settings.map(({ frequency }) => longestStep(frequency))),
   )
-  const calendars = episodes.map((episode, index) => {
-    const next = episodes[index + 1]
-    const ofNext = next === undefined ? [] : episodeLinesOf(next, lines)
-    const resumption =
-      next === undefined
-        ? null
-        : { live: next.filter(isLiveIn(next, ofNext)), reports: reportsOf(ofNext) }
-    return calendarOf(
+  const resumptions = episodes.map((episode) => {
+    const own = episodeLinesOf(episode, lines)
+    return { live: episode.filter(isLiveIn(episode, own)), reports: reportsOf(own) }
+  })
+  const calendars = episodes.map((episode, index) =>
+    calendarOf(
       settings,
       episode,
       lines,
       borrowedNotes(episodes, index, lines),
       reach,
-      resumption,
-    )
-  })
+      resumptions.slice(index + 1),
+    ),
+  )
   const last = calendars.pop()
   const setting = episodes.at(-1)?.at(-1)
   const unlogged = calendars.flatMap(({ pending }) =>

@@ -57,7 +57,7 @@ export const hasNotes = (setting: Setting, lines: readonly Line[]): boolean =>
     (line) => line.settingId === setting.id && (isNote(line) || line.status === 'postponed'),
   )
 
-/** R8 : les réglages de la reprise qui ont des jours, et ses reports. */
+/** R8 : les réglages d'une reprise qui ont des jours, et ses reports. */
 export type Resumption = { live: readonly Setting[]; reports: readonly Line[] }
 
 /** R10 : remplacé le jour même, un réglage sans prise ni report n'a jamais existé. */
@@ -68,19 +68,23 @@ const isLiveIn =
 export const liveOf = (episode: readonly Setting[], kept: readonly Line[]): Setting[] =>
   episode.filter(isLiveIn(episode, kept))
 
-/** TR-30, R8 : la reprise a sa journée le jour de l'arrêt, une première échéance ou l'arrivée d'un report. */
-function resumesOnStopDay(stop: Day, resumption: Resumption | null): boolean {
-  if (resumption === null || resumption.live[0]!.startsOn > stop) return false
-  return (
-    resumption.live.some(({ firstDueOn }) => firstDueOn === stop) ||
-    resumption.reports.some(({ targetOn }) => targetOn === stop)
+/**
+ * TR-30, R8 : une reprise ouverte au plus tard le jour de l'arrêt y a sa journée, une première échéance
+ * ou l'arrivée d'un report ; toutes comptent, puisqu'elles empruntent toutes les prises d'avant.
+ */
+function resumesOnStopDay(stop: Day, resumptions: readonly Resumption[]): boolean {
+  return resumptions.some(
+    ({ live, reports }) =>
+      live[0]!.startsOn <= stop &&
+      (live.some(({ firstDueOn }) => firstDueOn === stop) ||
+        reports.some(({ targetOn }) => targetOn === stop)),
   )
 }
 
 export function spanOf(
   episode: readonly Setting[],
   kept: readonly Line[],
-  resumption: Resumption | null,
+  resumptions: readonly Resumption[],
 ): Span {
   const isLive = isLiveIn(episode, kept)
   const live = episode.filter(isLive)
@@ -91,7 +95,7 @@ export function spanOf(
   const endOf = (index: number) => live[index + 1]?.startsOn ?? live[index]!.stoppedOn
   const stopped = live.at(-1)!
   const stop = stopped.stoppedOn
-  const readsStop = stop !== null && !resumesOnStopDay(stop, resumption)
+  const readsStop = stop !== null && !resumesOnStopDay(stop, resumptions)
   const closedFrom = readsStop ? plusDays(stop, 1) : stop
   const settingAt = (day: Day) => {
     const index = live.filter(({ startsOn }) => startsOn <= day).length - 1
