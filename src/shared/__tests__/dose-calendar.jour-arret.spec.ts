@@ -182,7 +182,7 @@ describe('TR-30, #819 : les prises du jour de l’arrêt, données avant l’arr
     })
   })
 
-  it('modèle naïf, même carnet : arrêté, rien à renseigner ni à venir', () => {
+  it('lecture du modèle naïf, « Test » arrêté le 13 : arrêté, aucune dose à renseigner ni à venir', () => {
     const test = reference.setting('p1', STOP, reference.TWO_DAYS, H, { stoppedOn: STOP })
     const lines = [STOP, '2026-10-15'].flatMap((day) =>
       H.map((hour) => reference.line('p1', 'given', day, hour)),
@@ -196,7 +196,7 @@ describe('TR-30, #819 : les prises du jour de l’arrêt, données avant l’arr
     })
   })
 
-  it('modèle naïf, mensuel arrêté le 13 oct., dose du 13 donnée, repris le 13 avec première dose le 13 nov. : rien à renseigner', () => {
+  it('lecture du modèle naïf, mensuel arrêté le 13 oct. puis repris dès le 13 nov. : prochaine dose le 13 nov., aucune dose à renseigner', () => {
     const monthly = reference.setting('p1', '2026-09-13', reference.MONTH, [], { stoppedOn: STOP })
     const resumed = reference.setting('p2', '2026-11-13', reference.MONTH, [], { startsOn: STOP })
     const lines = ['2026-09-13', STOP].map((day) => reference.line('p1', 'given', day))
