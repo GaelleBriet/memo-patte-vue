@@ -3,7 +3,7 @@ import { hoursOf, keyOf, later, longestStep, plusDays, stepped } from './grid'
 import { episodeLines, isNote } from './lines'
 import { momentOf } from './moment'
 import { dueReminders, type DueReminder, type ReminderWindow } from './reminders'
-import { borrowedNotes, closedBeforeFirstDue, episodesOf, spanOf } from './settings'
+import { borrowedNotes, closedBeforeFirstDue, episodesOf, liveOf, spanOf } from './settings'
 import type {
   Day,
   Due,
@@ -76,7 +76,9 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
     const borrowed = borrowedNotes(episodes, index, lines)
     const next = episodes[index + 1]
     const resumption =
-      next === undefined ? null : { episode: next, reports: owns[index + 1]!.reports }
+      next === undefined
+        ? null
+        : { live: liveOf(next, owns[index + 1]!.kept), reports: owns[index + 1]!.reports }
     return { episode, lines: own, span: spanOf(episode, own.kept, resumption), borrowed }
   })
   const step = Math.max(0, ...settings.map(({ frequency }) => longestStep(frequency)))

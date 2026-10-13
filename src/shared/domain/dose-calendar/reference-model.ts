@@ -5,7 +5,7 @@ import {
   episodesOf,
   isNote,
   latestBy,
-  openingOf,
+  isLiveIn,
   reportsOf,
 } from './reference-lines'
 import type {
@@ -33,7 +33,8 @@ function borrowedNotes(
   index: number,
   lines: readonly ReferenceLine[],
 ): ReferenceLine[] {
-  const first = openingOf(episodes[index]!)
+  const episode = episodes[index]!
+  const first = episode.filter(({ startsOn }) => startsOn === episode[0]!.startsOn).at(-1)!
   if (index === 0) return []
   const before = new Set(episodes.slice(0, index).flatMap((earlier) => earlier.map(({ id }) => id)))
   return latestBy(
@@ -65,8 +66,11 @@ export function referenceReading({
   )
   const calendars = episodes.map((episode, index) => {
     const next = episodes[index + 1]
+    const ofNext = next === undefined ? [] : episodeLinesOf(next, lines)
     const resumption =
-      next === undefined ? null : { episode: next, reports: reportsOf(episodeLinesOf(next, lines)) }
+      next === undefined
+        ? null
+        : { live: next.filter(isLiveIn(next, ofNext)), reports: reportsOf(ofNext) }
     return calendarOf(
       settings,
       episode,

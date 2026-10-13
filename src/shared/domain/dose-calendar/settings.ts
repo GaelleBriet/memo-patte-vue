@@ -57,30 +57,32 @@ export const hasNotes = (setting: Setting, lines: readonly Line[]): boolean =>
     (line) => line.settingId === setting.id && (isNote(line) || line.status === 'postponed'),
   )
 
-/** R8 : l'épisode qui reprend après l'arrêt, et ses reports. */
-export type Resumption = { episode: readonly Setting[]; reports: readonly Line[] }
+/** R8 : les réglages de la reprise qui ont des jours, et ses reports. */
+export type Resumption = { live: readonly Setting[]; reports: readonly Line[] }
 
-/** R8 : le réglage d'ouverture de l'épisode, le dernier écrit pour son premier jour. */
-const openingOf = (episode: readonly Setting[]): Setting =>
-  episode.filter(({ startsOn }) => startsOn === episode[0]!.startsOn).at(-1)!
+/** R10 : remplacé le jour même, un réglage sans prise ni report n'a jamais existé. */
+const isLiveIn =
+  (episode: readonly Setting[], kept: readonly Line[]) => (setting: Setting, index: number) =>
+    episode[index + 1]?.startsOn !== setting.startsOn || hasNotes(setting, kept)
 
-/** TR-30, R8 : la reprise a sa journée le jour de l'arrêt, sa première échéance ou l'arrivée d'un report. */
+export const liveOf = (episode: readonly Setting[], kept: readonly Line[]): Setting[] =>
+  episode.filter(isLiveIn(episode, kept))
+
+/** TR-30, R8 : la reprise a sa journée le jour de l'arrêt, une première échéance ou l'arrivée d'un report. */
 function resumesOnStopDay(stop: Day, resumption: Resumption | null): boolean {
-  if (resumption === null || resumption.episode[0]!.startsOn > stop) return false
+  if (resumption === null || resumption.live[0]!.startsOn > stop) return false
   return (
-    openingOf(resumption.episode).firstDueOn === stop ||
+    resumption.live.some(({ firstDueOn }) => firstDueOn === stop) ||
     resumption.reports.some(({ targetOn }) => targetOn === stop)
   )
 }
 
-/** R10 : remplacé le jour même, un réglage sans prise ni report n'a jamais existé. */
 export function spanOf(
   episode: readonly Setting[],
   kept: readonly Line[],
   resumption: Resumption | null,
 ): Span {
-  const isLive = (setting: Setting, index: number) =>
-    episode[index + 1]?.startsOn !== setting.startsOn || hasNotes(setting, kept)
+  const isLive = isLiveIn(episode, kept)
   const live = episode.filter(isLive)
   const chain = episode.filter(
     (setting, index) =>
@@ -112,7 +114,8 @@ export function borrowedNotes(
   index: number,
   lines: readonly Line[],
 ): Line[] {
-  const first = openingOf(episodes[index]!)
+  const episode = episodes[index]!
+  const first = episode.filter(({ startsOn }) => startsOn === episode[0]!.startsOn).at(-1)!
   if (index === 0) return []
   const before = new Set(episodes.slice(0, index).flatMap((earlier) => earlier.map(({ id }) => id)))
   return latestBy(

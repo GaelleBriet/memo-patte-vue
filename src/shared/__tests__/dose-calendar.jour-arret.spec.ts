@@ -89,6 +89,21 @@ describe('TR-30, #819 : les prises du jour de l’arrêt, données avant l’arr
     })
   })
 
+  it('graine 2001000538 : arrêté le 2 avr., repris le 2 à 8, 14 et 20 h, 20 h du 2 donnée de chaque côté, remplacé le 2 par une posologie dès le 3 : le 2 à 20 h n’est couvert qu’une fois', () => {
+    const hours = ['08:00', '14:00', '20:00']
+    const stopped = setting('p1', '2026-03-30', DAY, ['20:00'], { stoppedOn: '2026-04-02' })
+    const resumed = setting('p2', '2026-04-02', DAY, hours)
+    const replacing = setting('p3', '2026-04-03', DAY, hours, { startsOn: '2026-04-02' })
+    const lines = [
+      line('p1', 'given', '2026-04-02', '20:00'),
+      line('p2', 'given', '2026-04-02', '20:00'),
+    ]
+    const read = view([stopped, resumed, replacing], lines, '2026-04-02')
+    expect(effectsOf(read, lines).filter(({ kind }) => kind === 'covers')).toEqual([
+      { kind: 'covers', key: '2026-04-02 20:00' },
+    ])
+  })
+
   it('#780 : toutes les 2 semaines à 20 h, dose du 13 avr. reportée au 14, toutes les 6 semaines dès le 14, arrêté le 14 : le report reste verrouillé', () => {
     const metacam = setting('m1', '2026-03-30', { value: 2, unit: 'week' }, ['20:00'])
     const report = line('m1', 'postponed', '2026-04-13', '20:00', '2026-04-14')

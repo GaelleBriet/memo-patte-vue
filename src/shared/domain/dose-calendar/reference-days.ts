@@ -1,5 +1,4 @@
 import { hoursOf, isOnGrid, keyOf, plusDays, sameHours, stepped, type Hour } from './reference-grid'
-import { openingOf } from './reference-lines'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 export type Journey = { setting: ReferenceSetting; hours: Hour[] }
@@ -38,19 +37,19 @@ export function leftDays(
 }
 
 export type Resumption = {
-  episode: readonly ReferenceSetting[]
+  live: readonly ReferenceSetting[]
   reports: readonly ReferenceLine[]
 }
 
 // TR-30, R8 : le jour de l'arrêt se lit avec le réglage arrêté, sans y laisser d'échéance, sauf quand
-// la reprise y a sa journée : sa première échéance, ou l'arrivée d'un de ses reports.
+// la reprise y a sa journée : une première échéance d'un de ses réglages, ou l'arrivée d'un report.
 export function stopDayOf(stopped: ReferenceSetting, resumption: Resumption | null) {
   const stop = stopped.stoppedOn
   const resumesThatDay =
     resumption !== null &&
     stop !== null &&
-    resumption.episode[0]!.startsOn <= stop &&
-    (openingOf(resumption.episode).firstDueOn === stop ||
+    resumption.live[0]!.startsOn <= stop &&
+    (resumption.live.some(({ firstDueOn }) => firstDueOn === stop) ||
       resumption.reports.some(({ targetOn }) => targetOn === stop))
   const readsStop = stop !== null && !resumesThatDay
   const closedFrom = readsStop ? plusDays(stop, 1) : stop

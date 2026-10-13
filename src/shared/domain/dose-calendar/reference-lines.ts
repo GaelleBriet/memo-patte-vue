@@ -62,6 +62,11 @@ export const reportsOf = (lines: readonly ReferenceLine[]): ReferenceLine[] =>
     (line) => line.dueOn,
   )
 
-// R8 : le réglage d'ouverture d'un épisode, le dernier écrit pour son premier jour.
-export const openingOf = (episode: readonly ReferenceSetting[]): ReferenceSetting =>
-  episode.filter(({ startsOn }) => startsOn === episode[0]!.startsOn).at(-1)!
+// R10 : remplacé le jour même, un réglage encore sans prise n'a jamais existé.
+export const isLiveIn =
+  (episode: readonly ReferenceSetting[], lines: readonly ReferenceLine[]) =>
+  (setting: ReferenceSetting, index: number) =>
+    episode[index + 1]?.startsOn !== setting.startsOn ||
+    lines.some(
+      (line) => line.settingId === setting.id && (isNote(line) || line.status === 'postponed'),
+    )

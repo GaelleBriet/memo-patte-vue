@@ -22,7 +22,7 @@ import {
   type Replaced,
   type Segment,
 } from './reference-days'
-import { episodeLinesOf, isNote, latestBy, reportsOf } from './reference-lines'
+import { episodeLinesOf, isLiveIn, isNote, latestBy, reportsOf } from './reference-lines'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 type Grid = { origin: string; floor: string; since: string }
@@ -37,12 +37,7 @@ export function calendarOf(
   resumption: Resumption | null,
 ): Calendar {
   const lines = episodeLinesOf(episode, allLines)
-  // R10 : remplacé le jour même, un réglage encore sans prise n'a jamais existé.
-  const isLive = (setting: ReferenceSetting, index: number) =>
-    episode[index + 1]?.startsOn !== setting.startsOn ||
-    lines.some(
-      (line) => line.settingId === setting.id && (isNote(line) || line.status === 'postponed'),
-    )
+  const isLive = isLiveIn(episode, lines)
   const live = episode.filter(isLive)
   const notes = lines.filter(isNote)
   const noted = new Set([...notes, ...borrowed].map((note) => keyOf(note.dueOn, note.dueTime)))
