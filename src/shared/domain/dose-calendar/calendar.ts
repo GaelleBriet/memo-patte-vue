@@ -22,7 +22,7 @@ export type EpisodeInput = {
   settingOf: (id: string) => Setting
   span: Span
   lines: EpisodeLines
-  /** R8 : prises d'avant l'arrêt qui couvrent, chacune à son heure, la première journée de la reprise. */
+  /** R8, Q-G3 : prises d'avant l'arrêt notées le jour de la reprise, qui couvrent sa première journée. */
   borrowed: readonly Line[]
   /** R1, R8 : échéances du jour de l'arrêt que lisent les reprises, gardées par elles seules. */
   yielded: ReadonlySet<string>
@@ -51,7 +51,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
 
   // R4 : une prise couvre son échéance ; le jour où les heures changent, celles qui visaient
   // l'ancien réglage couvrent les premières heures du nouveau, à hauteur de leur nombre ; une prise
-  // d'avant l'arrêt ne couvre que la dose de son heure (R8).
+  // d'avant l'arrêt couvre toute la première journée de la reprise (R8, Q-G3).
   const coveredOn = (day: Day, journey: Journey): Map<Hour, Line> => {
     const ofDay = byDay.get(day) ?? []
     const exact = ofDay.filter(
@@ -69,16 +69,19 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
       if (note !== undefined) covered.set(hour, note)
     }
     const elsewhere = ofDay
-      .filter((note) => !exact.includes(note))
+      .filter(
+        (note) =>
+          !exact.includes(note) || (isBorrowed.has(note) && !journey.hours.includes(note.dueTime)),
+      )
       .sort((a, b) => (a.dueTime ?? '').localeCompare(b.dueTime ?? ''))
-    const last = elsewhere.at(-1)
-    const whole = elsewhere.some(
-      (note) =>
-        !isBorrowed.has(note) &&
+    const last = elsewhere.at(-1) ?? ofDay.find((note) => isBorrowed.has(note))
+    const whole =
+      ofDay.some((note) => isBorrowed.has(note)) ||
+      elsewhere.some((note) =>
         hoursOf(settingOf(note.settingId).times).every((hour) =>
           ofDay.some((other) => other.settingId === note.settingId && other.dueTime === hour),
         ),
-    )
+      )
     for (const hour of journey.hours.filter((each) => !covered.has(each))) {
       const note = elsewhere.shift() ?? (whole ? last : undefined)
       if (note !== undefined) covered.set(hour, note)

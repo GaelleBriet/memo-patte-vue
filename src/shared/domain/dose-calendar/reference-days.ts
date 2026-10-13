@@ -37,7 +37,7 @@ export function leftDays(
 }
 
 // TR-30 : le jour de l'arrêt se lit avec le réglage arrêté, sans y laisser d'échéance ; une reprise
-// qui y a sa journée y lit ses heures, chaque prise d'avant l'arrêt couvrant la dose de son heure (R8).
+// qui y a sa journée y lit ses heures, toutes couvertes par une prise d'avant l'arrêt (R8, Q-G3).
 export function stopDayOf(stopped: ReferenceSetting) {
   const stop = stopped.stoppedOn
   const closedFrom = stop === null ? null : plusDays(stop, 1)
@@ -100,7 +100,7 @@ export function lateDaysOf(replaced: readonly Replaced[], fallen: ReadonlySet<st
 
 // R4 : une prise couvre son échéance ; le jour où les heures changent, celles qui visaient l'ancien
 // réglage couvrent les premières heures du nouveau, à hauteur de leur nombre ; une prise d'avant
-// l'arrêt ne couvre que la dose de son heure (R8).
+// l'arrêt couvre toute la première journée de la reprise (R8, Q-G3).
 export function coverageOf(
   notes: readonly ReferenceLine[],
   borrowed: readonly ReferenceLine[],
@@ -123,14 +123,15 @@ export function coverageOf(
       journey.hours.filter((hour) => exact.some((note) => note.dueTime === hour)),
     )
     // R4 : une journée de l'ancien réglage entièrement notée n'a plus rien à donner.
-    const whole = ofDay.some(
-      (note) =>
-        !exact.includes(note) &&
-        !borrowed.includes(note) &&
-        hoursOf(settingOf(note.settingId)).every((hour) =>
-          ofDay.some((other) => other.settingId === note.settingId && other.dueTime === hour),
-        ),
-    )
+    const whole =
+      ofDay.some((note) => borrowed.includes(note)) ||
+      ofDay.some(
+        (note) =>
+          !exact.includes(note) &&
+          hoursOf(settingOf(note.settingId)).every((hour) =>
+            ofDay.some((other) => other.settingId === note.settingId && other.dueTime === hour),
+          ),
+      )
     let elsewhere = ofDay.length - exact.length
     for (const hour of journey.hours) {
       if ((elsewhere > 0 || whole) && !covered.has(hour)) {
