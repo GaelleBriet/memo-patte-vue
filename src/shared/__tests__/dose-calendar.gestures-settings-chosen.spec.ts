@@ -9,7 +9,17 @@ import {
   type SettingsRequest,
 } from '../domain/dose-calendar'
 import type { TreatmentViewInput } from '../domain/dose-calendar/types'
-import { DAY, keys, line, next, setting, TWO_DAYS, WEEK } from './dose-calendar.v2.aides'
+import {
+  DAY,
+  keys,
+  line,
+  MONTH,
+  next,
+  setting,
+  TWO_DAYS,
+  view,
+  WEEK,
+} from './dose-calendar.v2.aides'
 
 function planOf(input: TreatmentViewInput, asked: SettingsRequest) {
   const result = newSettings(input, asked)
@@ -316,5 +326,68 @@ describe('Q26, R12 : une dose plus lointaine déjà notée refuse la « Prochain
     }
     const changed = { frequency: TWO_DAYS, times: ['09:00', '21:00'], endsOn: null }
     expect(chosenDateRefusal(carnet, newSettings(carnet, changed))).toBeNull()
+  })
+})
+
+describe('R10, TR-9, R6 : remplacé le jour même par un réglage sans date choisie, un réglage lui transmet sa date choisie', () => {
+  const monthly = setting('m1', '2026-04-10', MONTH, ['20:00'])
+  const chosen = setting('m2', '2026-06-23', MONTH, ['20:00'], { startsOn: '2026-04-22' })
+  const posology = setting('m3', '2026-05-19', MONTH, ['20:00'], {
+    startsOn: '2026-04-22',
+    gridOriginOn: null,
+  })
+  const reports = [
+    line('m1', 'postponed', '2026-06-10', '20:00', '2026-05-19'),
+    line('m2', 'shift', '2026-06-10', '20:00', '2026-05-19'),
+    line('m2', 'postponed', '2026-06-23', '20:00', '2026-06-10'),
+  ]
+  const lines = [line('m1', 'given', '2026-04-10', '20:00'), ...reports]
+  const effects = (read: ReturnType<typeof view>) =>
+    read.history.map(({ line: { id }, effect }) => `${id} ${JSON.stringify(effect)}`)
+
+  it('graine 998000832 : mensuel à 20 h du 10 avr. ; le 22, « Prochaine dose » le 23 juin, dose du 10 juin reportée au 19 mai avec décalage, report du 23 juin au 10 juin ; posologie seule le même jour : 19 juin, 19 juil., 19 août, rien le 19 mai', () => {
+    const expected = ['2026-06-19 20:00', '2026-07-19 20:00', '2026-08-19 20:00']
+    expect(next([monthly, chosen], lines, '2026-04-22')).toEqual(expected)
+    expect(next([monthly, chosen, posology], lines, '2026-04-22')).toEqual(expected)
+  })
+
+  it('même carnet, dose du 10 mai donnée le 14 avr. : la posologie seule ne change pas l’historique, les reports restent sans effet', () => {
+    const early = { ...line('m1', 'given', '2026-05-10', '20:00'), givenOn: '2026-04-14' }
+    const input = { settings: [monthly, chosen], lines: [...lines, early], today: '2026-04-22' }
+    const plan = planOf(input, { frequency: MONTH, times: ['20:00'], endsOn: null })
+    expect(plan).toMatchObject({ action: 'create', setting: { startsOn: '2026-04-22' } })
+    expect(effects(preview(input, plan))).toEqual(
+      effects(view(input.settings, input.lines, input.today)),
+    )
+    expect(
+      preview(input, plan)
+        .history.filter(({ line }) => reports.includes(line) && line.status === 'postponed')
+        .map(({ effect }) => effect),
+    ).toEqual([
+      { kind: 'idle', reason: 'nothing-to-move' },
+      { kind: 'idle', reason: 'nothing-to-move' },
+    ])
+  })
+
+  it('tous les 3 jours du 3 oct., 3 donnée, 6 non donnée ; le 7, « Prochaine dose » le 8, puis posologie reçue d’un autre appareil le même jour : 8, 11, 14, la dose en retard du 6 reste remplacée', () => {
+    const every3 = { value: 3, unit: 'day' } as const
+    const first = setting('t1', '2026-10-03', every3)
+    const on8 = setting('t2', '2026-10-08', every3, [], { startsOn: '2026-10-07' })
+    const other = setting('t3', '2026-10-08', every3, [], {
+      startsOn: '2026-10-07',
+      gridOriginOn: null,
+    })
+    const given = [line('t1', 'given', '2026-10-03')]
+    expect(next([first, on8], given, '2026-10-07')).toEqual([
+      '2026-10-08',
+      '2026-10-11',
+      '2026-10-14',
+    ])
+    expect(next([first, on8, other], given, '2026-10-07')).toEqual([
+      '2026-10-08',
+      '2026-10-11',
+      '2026-10-14',
+    ])
+    expect(keys(view([first, on8, other], given, '2026-10-07').unloggedDoses)).toEqual([])
   })
 })

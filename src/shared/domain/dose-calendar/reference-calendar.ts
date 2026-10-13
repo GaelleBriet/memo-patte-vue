@@ -88,6 +88,8 @@ export function calendarOf(
   const replaced: Replaced[] = []
   const restarts = new Map<string, string>()
   let restart: string | undefined
+  // R10, TR-9 : la date choisie d'un réglage remplacé le jour même attend le réglage qui le remplace.
+  let waitingReplace: Replaced | undefined
   let chosenFloor = ''
   let rhythmFloor = ''
   let anchors = new Set<ReferenceLine>()
@@ -149,22 +151,29 @@ export function calendarOf(
       : origin !== null
         ? { ...grid, floor: ownFloor }
         : { ...grid, floor: later(grid.floor, later(chosenFloor, plusDays(setting.startsOn, -1))) }
-    if (index < 0) return
-    const ended = index > 0 && (live[index - 1]!.endsOn ?? setting.startsOn) < setting.startsOn
+    const livesBefore = live.filter((other) => episode.indexOf(other) < episode.indexOf(setting))
+    const lastLive = livesBefore[livesBefore.length - 1]
+    const ended = lastLive !== undefined && (lastLive.endsOn ?? setting.startsOn) < setting.startsOn
     // TR-9 : à fréquence gardée, une première échéance choisie remplace la dose en retard du rythme.
     const written = episode[episode.indexOf(setting) - 1]
     const kept =
-      index > 0 &&
+      lastLive !== undefined &&
       written !== undefined &&
-      [written, live[index - 1]!].every((other) => sameFrequency(other, setting))
+      [written, lastLive].every((other) => sameFrequency(other, setting))
     if (kept && origin !== null && !ended) {
       const onDueDay =
         setting.startsOn > inherited.floor &&
         isOnGrid(inherited.origin, setting.frequency, setting.startsOn)
-      replaced.push({ from: rhythmFrom, to: setting.startsOn, onDueDay })
+      waitingReplace = { from: rhythmFrom, to: setting.startsOn, onDueDay }
       // R6, TR-9 : la grille repartie d'une date choisie, continuée par les réglages de même rythme.
       restart = setting.firstDueOn
-    } else if (!continued || origin !== null || ended) restart = undefined
+    } else if (!continued || origin !== null || ended) {
+      waitingReplace = undefined
+      restart = undefined
+    }
+    if (index < 0) return
+    if (waitingReplace !== undefined) replaced.push(waitingReplace)
+    waitingReplace = undefined
     if (restart !== undefined) restarts.set(setting.id, restart)
     if (index > 0 && (!continued || ended)) rhythmFrom = setting.startsOn
     // R6 : à partir de sa journée d'origine, un décalage donne à la grille l'origine de son ancrage ;
@@ -197,7 +206,27 @@ export function calendarOf(
     claims.push({ setting, end, segments })
   })
 
-  leftDays(claims, reports, stop).forEach((journey, day) => left.set(day, journey))
+  // R10, TR-9 : remplacé le jour même par un réglage sans date choisie qui continue sa grille repartie,
+  // un réglage n'a plus de journée sortie du calendrier : son remplaçant les lit.
+  const handed = new Set(
+    claims
+      .filter(({ setting }, at) => {
+        const successor = claims[at + 1]?.setting
+        return (
+          successor !== undefined &&
+          successor.startsOn === setting.startsOn &&
+          successor.gridOriginOn === null &&
+          restarts.has(setting.id) &&
+          restarts.get(successor.id) === restarts.get(setting.id)
+        )
+      })
+      .map(({ setting }) => setting.id),
+  )
+  leftDays(
+    claims.filter(({ setting }) => !handed.has(setting.id)),
+    reports,
+    stop,
+  ).forEach((journey, day) => left.set(day, journey))
 
   const matched = new Set<ReferenceLine>()
   const coveredOn = coverageOf([...notes, ...borrowed], borrowed, translated, settingOf, matched)

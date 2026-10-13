@@ -362,7 +362,7 @@ _Remplace Q7, Q36, Q37, G15, G16, G23 (la partie « où commence »), G24._
 
 #### R10 — Corriger un réglage le jour de son ouverture
 
-Un réglage ouvert aujourd'hui et encore sans prise se **remplace** quand on le modifie de nouveau le jour même : il n'en ouvre pas un troisième (décision Q-#744 du 2026-10-10). Un réglage sans aucune prise dont on change la fréquence ou les heures alors que des échéances sont tombées pose la question de la spec Q38 (garder à renseigner, ou corriger). Un décalage écrit sous le réglage remplacé ou corrigé garde son effet seulement si sa journée d'origine est une échéance de la grille du réglage qui le remplace, telle qu'elle est avant lui, ou l'arrivée d'une dose reportée de ce rythme (R6, décision du 2026-10-12) : retour à l'hebdo du lundi, un décalage du 16 est sans effet ; une posologie seule ne change rien.
+Un réglage ouvert aujourd'hui et encore sans prise se **remplace** quand on le modifie de nouveau le jour même : il n'en ouvre pas un troisième (décision Q-#744 du 2026-10-10). Un réglage sans aucune prise dont on change la fréquence ou les heures alors que des échéances sont tombées pose la question de la spec Q38 (garder à renseigner, ou corriger). Un décalage écrit sous le réglage remplacé ou corrigé garde son effet seulement si sa journée d'origine est une échéance de la grille du réglage qui le remplace, telle qu'elle est avant lui, ou l'arrivée d'une dose reportée de ce rythme (R6, décision du 2026-10-12) : retour à l'hebdo du lundi, un décalage du 16 est sans effet ; une posologie seule ne change rien. Remplacé le jour même par un réglage sans date choisie (posologie seule, ou réglage reçu d'un autre appareil), un réglage lui transmet sa date choisie : la dose du moment qu'elle remplaçait reste remplacée, et ses reports se lisent sur la grille repartie (TR-9, R6, décision du 2026-10-13).
 
 #### R11 — Rien ne disparaît sans geste
 
@@ -1062,6 +1062,15 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
   choisie, elle le porte, il est sans effet : 8, 10, 12 (lecture à confirmer, §11). Une posologie
   seule écrite ensuite garde la grille repartie. Écartées : fusionner la dose en retard et l'arrivée
   du report le 9 en réécrivant le report ; laisser arriver le report le 10.
+- 2026-10-13 — **Date choisie transmise au réglage qui la remplace le jour même** (R10, TR-9, R6 ;
+  choix de cohérence en autonomie). Un réglage remplacé le jour même par un réglage sans date choisie
+  lui laisse sa date choisie, pour que le remplacement ne change ni les échéances ni l'historique.
+  Tous les 3 jours du 3 oct., dose du 6 non donnée ; le 7, « Prochaine dose » le 8, puis une
+  posologie reçue d'un autre appareil le même jour : 8, 11, 14, la dose du 6 reste remplacée (6, 8, 11
+  avant). Mensuel à 20 h du 10 avr. ; le 22 avr., « Prochaine dose » le 23 juin, dose du 10 juin
+  reportée au 19 mai avec décalage, report du 23 juin au 10 juin ; posologie seule le même jour :
+  19 juin, 19 juil., les reports restent sans effet (avant : une dose le 19 mai). Écartée : laisser
+  au réglage remplacé ses journées sorties du calendrier.
 - 2026-10-13 — **TR-25 entre deux périodes : confirmé**. Une dose prise d'avance avant un arrêt,
   notée de nouveau après « Reprendre » le même jour : « Supprimer » emporte les deux lignes (jour et
   heure).

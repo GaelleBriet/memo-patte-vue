@@ -647,6 +647,41 @@ describe('R3, R10 : un réglage remplacé le jour même transmet sa grille au r�
   })
 })
 
+describe('R10, TR-9, R6 : remplacé le jour même par un réglage sans date choisie, un réglage lui transmet sa date choisie', () => {
+  it('graine 998000832 : mensuel à 20 h du 10 avr. ; le 22, « Prochaine dose » le 23 juin, dose du 10 juin reportée au 19 mai avec décalage, report du 23 juin au 10 juin ; posologie seule le même jour : 19 juin, 19 juil., 19 août, rien le 19 mai', () => {
+    const monthly = setting('m1', '2026-04-10', MONTH, ['20:00'])
+    const chosen = setting('m2', '2026-06-23', MONTH, ['20:00'], { startsOn: '2026-04-22' })
+    const posology = setting('m3', '2026-05-19', MONTH, ['20:00'], {
+      startsOn: '2026-04-22',
+      gridOriginOn: null,
+    })
+    const lines = [
+      line('m1', 'given', '2026-04-10', '20:00'),
+      line('m1', 'postponed', '2026-06-10', '20:00', '2026-05-19'),
+      line('m2', 'shift', '2026-06-10', '20:00', '2026-05-19'),
+      line('m2', 'postponed', '2026-06-23', '20:00', '2026-06-10'),
+    ]
+    const expected = ['2026-06-19 20:00', '2026-07-19 20:00', '2026-08-19 20:00']
+    expect(next([monthly, chosen], lines, '2026-04-22')).toEqual(expected)
+    expect(next([monthly, chosen, posology], lines, '2026-04-22')).toEqual(expected)
+  })
+
+  it('tous les 3 jours du 3 oct., 3 donnée, 6 non donnée ; le 7, « Prochaine dose » le 8, puis posologie reçue d’un autre appareil le même jour : 8, 11, 14, la dose en retard du 6 reste remplacée', () => {
+    const every3 = { value: 3, unit: 'day' } as const
+    const first = setting('t1', '2026-10-03', every3)
+    const on8 = setting('t2', '2026-10-08', every3, [], { startsOn: '2026-10-07' })
+    const other = setting('t3', '2026-10-08', every3, [], {
+      startsOn: '2026-10-07',
+      gridOriginOn: null,
+    })
+    const given = [line('t1', 'given', '2026-10-03')]
+    const expected = ['2026-10-08', '2026-10-11', '2026-10-14']
+    expect(next([first, on8], given, '2026-10-07')).toEqual(expected)
+    expect(next([first, on8, other], given, '2026-10-07')).toEqual(expected)
+    expect(read([first, on8, other], given, '2026-10-07').unlogged).toEqual([])
+  })
+})
+
 describe('R3, R6 : un décalage écrit avant un changement de fréquence reste dépassé sous une posologie', () => {
   const s1 = setting('s1', '2026-03-13', { value: 3, unit: 'day' }, ['20:00'])
   const s2 = setting('s2', '2026-03-15', { value: 2, unit: 'week' }, ['20:00'], {

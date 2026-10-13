@@ -2448,3 +2448,13 @@ deux lignes (TR-25, confirmé). — Raison (Gaelle) : une prise déjà notée ne
 une dose déplacée ne laisse pas trois prises sur trois jours, un même geste suit une seule règle. —
 Alternatives écartées : montrer le 24 dans l'exemple de #794 ; fusionner la dose en retard et
 l'arrivée du report en réécrivant le report ; laisser arriver le report à son ancienne date.
+
+2026-10-13 — **Moteur des doses v2 : une date choisie passe au réglage qui la remplace le jour même**
+(spec `traitements.md` R10 et §10, TR-9, R6 ; choix de cohérence en autonomie, à confirmer par
+Gaelle). Un réglage remplacé le jour même par un réglage sans date choisie (posologie seule, réglage
+reçu d'un autre appareil) lui transmet sa date choisie : la dose du moment qu'elle remplaçait reste
+remplacée et ses reports se lisent sur la grille repartie. Tous les 3 jours du 3 oct., dose du 6 non
+donnée ; le 7, « Prochaine dose » le 8, puis une posologie reçue d'un autre appareil : 8, 11, 14 (et
+non 6, 8, 11). — Raison : une posologie seule ne change rien au calendrier (invariant « posologie sans
+effet », graine 998000832). — Alternative écartée : laisser au réglage remplacé ses journées sorties
+du calendrier, d'où partaient encore des reports.

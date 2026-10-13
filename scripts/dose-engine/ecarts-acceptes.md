@@ -166,7 +166,9 @@ par elle, sans effet : le 6 ou le 7, « Prochaine dose » le 8 : 8, 10, 12, comm
 ne vaut pas hors d'une date choisie : un report parti d'une journée sortie du calendrier par un changement de fréquence reste lu (tests de
 `dose-calendar.journees-sorties.spec.ts`). Le modèle naïf applique la même règle, report qui porte
 la date choisie compris (graine 992000111 : à plusieurs heures, l'arrivée ne garde que l'heure
-reportée ; test daté de `dose-calendar.reference-model.spec.ts`).
+reportée ; test daté de `dose-calendar.reference-model.spec.ts`). Remplacé le jour même par un
+réglage sans date choisie, un réglage lui transmet sa date choisie, dans les deux modèles (graine
+998000832, tests datés « remplacé le jour même par un réglage sans date choisie »).
 
 ## Question encore ouverte du pas 4 (« Modifier »)
 
