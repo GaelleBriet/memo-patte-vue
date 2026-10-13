@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
+import { removalRefusal } from '../domain/dose-calendar'
 import type { Frequency, Line } from '../domain/dose-calendar/types'
 import * as reference from './dose-calendar.reference.aides'
 import { DAY, H, keys, line, MONTH, setting, TWO_DAYS, view } from './dose-calendar.v2.aides'
@@ -86,6 +87,20 @@ describe('TR-30, #819 : les prises du jour de l’arrêt, données avant l’arr
       expect([read.finished, keys(read.unloggedDoses)]).toEqual([true, []])
       expect(read.dueState({ dueOn: STOP, dueTime: '08:00' })).toBe('removed')
     })
+  })
+
+  it('#780 : toutes les 2 semaines à 20 h, dose du 13 avr. reportée au 14, toutes les 6 semaines dès le 14, arrêté le 14 : le report reste verrouillé', () => {
+    const metacam = setting('m1', '2026-03-30', { value: 2, unit: 'week' }, ['20:00'])
+    const report = line('m1', 'postponed', '2026-04-13', '20:00', '2026-04-14')
+    const sixWeeks = setting('m2', '2026-04-14', { value: 6, unit: 'week' }, ['06:00', '20:00'], {
+      startsOn: '2026-04-02',
+    })
+    const lines = [line('m1', 'given', '2026-03-30', '20:00'), report]
+    const stopped = { ...sixWeeks, stoppedOn: '2026-04-14' }
+    expect([
+      removalRefusal({ settings: [metacam, sixWeeks], lines, today: '2026-04-14' }, report.id),
+      removalRefusal({ settings: [metacam, stopped], lines, today: '2026-04-14' }, report.id),
+    ]).toEqual([{ reason: 'not-movable' }, { reason: 'not-movable' }])
   })
 
   it('ouvert le 13, première dose le 15, arrêté le 13 sans prise : « Arrêté avant la première prise »', () => {
