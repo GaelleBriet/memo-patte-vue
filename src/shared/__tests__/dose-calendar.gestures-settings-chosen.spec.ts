@@ -433,4 +433,25 @@ describe('R10, TR-9, R6 : remplacé le jour même par un réglage sans date choi
     ])
     expect(keys(view([first, on8, other], given, '2026-10-07').unloggedDoses)).toEqual([])
   })
+
+  it('#810, graine 991003624 : mensuel à 6, 12, 18 et 23 h du 14 mars, 12 h du 14 reportée seule au 20 ; le 22, tous les 3 jours à 8 h et 20 h dès le 23, remplacé le jour même sans prise par 6, 12, 18 et 23 h : la fréquence a changé, la dose de 12 h du 20 passe à renseigner', () => {
+    const hours = ['06:00', '12:00', '18:00', '23:00']
+    const every3 = { value: 3, unit: 'day' } as const
+    const monthly = setting('p1', '2026-03-14', MONTH, hours, { endsOn: '2026-03-24' })
+    const twice = setting('p2', '2026-03-23', every3, ['08:00', '20:00'], {
+      startsOn: '2026-03-22',
+    })
+    const four = setting('p3', '2026-03-23', every3, hours, {
+      startsOn: '2026-03-22',
+      gridOriginOn: null,
+    })
+    const lines = [
+      line('p1', 'given', '2026-03-14', '18:00'),
+      line('p1', 'postponed', '2026-03-14', '12:00', '2026-03-20'),
+      line('p1', 'given', '2026-03-20', '23:00'),
+    ]
+    const read = view([monthly, twice, four], lines, '2026-03-22')
+    expect([read.phase, keys(read.currentDoses)]).toEqual(['upcoming', ['2026-03-23 06:00']])
+    expect(keys(read.unloggedDoses)).toContain('2026-03-20 12:00')
+  })
 })
