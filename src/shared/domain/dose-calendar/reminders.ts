@@ -10,7 +10,7 @@ export type DueReminder = { moment: ReminderMoment; due: Due; on: Day; hours: st
 export type ReminderWindow = { count: number; daysBefore: number; daysAfter: number }
 
 /** Ce que les rappels lisent de la vue. */
-export type ReminderSource = {
+type ReminderSource = {
   phase: Phase
   lastDueDay: Day | null
   currentDoses: Due[]
