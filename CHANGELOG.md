@@ -5,6 +5,22 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.76](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.75...memo-patte-v0.1.76) (2026-10-13)
+
+
+### ✨ Fonctionnalités
+
+* **treatments:** « Prochaine dose » grisée par le moteur, réglage changé ([91f90bd](https://github.com/GaelleBriet/memo-patte-vue/commit/91f90bd32b55a161fbe47122555b30e7ff3d556a))
+
+
+### 🐛 Corrections
+
+* **dose-calendar:** date choisie le jour d'origine d'un report, report sans effet ([c9e2a23](https://github.com/GaelleBriet/memo-patte-vue/commit/c9e2a23d96f76f527767b14b8f03bbd4afcf425d))
+* **dose-calendar:** date choisie transmise au réglage qui la remplace le jour même ([53ac6ad](https://github.com/GaelleBriet/memo-patte-vue/commit/53ac6ad9f0887ef21f6a2cb850c34dcb09944cb9))
+* **dose-calendar:** date choisie, report hors grille et Q26 ([5f400bb](https://github.com/GaelleBriet/memo-patte-vue/commit/5f400bb55f272bfc521b8a4ab3d628fe491ec8af))
+* **dose-calendar:** modèle naïf, le report qui porte la date choisie ([4427d59](https://github.com/GaelleBriet/memo-patte-vue/commit/4427d59f8bf1044b15b360daee7c6d53215368ae))
+* **dose-calendar:** réponses du 13 oct., date choisie, report et Q26 ([6667e92](https://github.com/GaelleBriet/memo-patte-vue/commit/6667e9280719353e15800b38809082196f6c52bf))
+
 ## [0.1.75](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.74...memo-patte-v0.1.75) (2026-10-13)
 
 
