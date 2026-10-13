@@ -143,6 +143,29 @@ décalage du lundi 12 au 14 écrit sous ce réglage ; le 7, retour à l'hebdo, �
 810001161, 810002312, 780000156, 780001015 et 870000527 vertes ; tests datés dans
 `dose-calendar.gestures-settings.spec.ts` et `dose-calendar.reference-model.spec.ts`.
 
+**Revu le 2026-10-13 (Q26).** Le premier exemple devient un refus : la dose du 19 mai est donnée
+d'avance, et une date choisie avant une dose déjà notée est refusée par le moteur, réglage changé
+compris (`later-dose`, « Une dose plus lointaine est déjà notée. »). Le même carnet sans la prise du
+19 mai montre toujours le 24 : #794 reste vrai quand rien n'est noté plus loin. La lecture d'un tel
+réglage reçu d'un autre appareil ne change pas (test de `dose-calendar.reference-model.spec.ts`
+gardé). Le champ n'est grisé que pour une dose plus lointaine que la date proposée : la dose du
+lendemain à 8 h donnée d'avance, prochaine dose proposée, le laisse libre (G24, #711).
+
+## Date choisie et report plus loin (décision du 2026-10-13)
+
+Une date choisie à fréquence gardée remplace la dose du moment ; la grille repart d'elle (TR-9). Un
+report dont la journée d'origine tombe dans ce rythme repartant (le réglage de la date choisie et ses
+suivants de même rythme) sans y être une échéance est sans effet (`nothing-to-move`), sauf celui qui
+porte la date choisie ou ouvre le nouveau rythme (R9.2). La date choisie ne réécrit le report que si
+la dose du moment est son arrivée (#796). Tous les 2 jours, doses des 2 et 4 données, 6 non donnée,
+8 reportée au 10 : le 7, « Prochaine dose » le 9 : 9, 11, 13 (9, 11 avec le report réécrit et la dose
+en retard fusionnée avant ; 9, 10, 11 sur l'ancien `main`) ; le 6, « Prochaine dose » le 7 : 7, 9, 11
+(7, 9, 10, 11 avant). La règle ne vaut pas hors d'une date choisie : un report parti d'une journée
+sortie du calendrier par un changement de fréquence reste lu (tests de
+`dose-calendar.journees-sorties.spec.ts`). Le modèle naïf applique la même règle ; « porte la date
+choisie » n'y change aucune échéance lue (la date choisie est déjà une échéance du réglage), il n'y
+est donc pas écrit.
+
 ## Question encore ouverte du pas 4 (« Modifier »)
 
 - **« Prochaine dose » choisie dans l'écart d'un décalage** (TR-9, G6, R6 ; question pour Gaelle) :
