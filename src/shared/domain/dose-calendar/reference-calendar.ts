@@ -12,6 +12,7 @@ import {
   coverageOf,
   coverOrphans,
   lateDaysOf,
+  handedOf,
   leftDays,
   type Claim,
   type Journey,
@@ -206,22 +207,7 @@ export function calendarOf(
     claims.push({ setting, end, segments })
   })
 
-  // R10, TR-9 : remplacé le jour même par un réglage sans date choisie qui continue sa grille repartie,
-  // un réglage n'a plus de journée sortie du calendrier : son remplaçant les lit.
-  const handed = new Set(
-    claims
-      .filter(({ setting }, at) => {
-        const successor = claims[at + 1]?.setting
-        return (
-          successor !== undefined &&
-          successor.startsOn === setting.startsOn &&
-          successor.gridOriginOn === null &&
-          restarts.has(setting.id) &&
-          restarts.get(successor.id) === restarts.get(setting.id)
-        )
-      })
-      .map(({ setting }) => setting.id),
-  )
+  const handed = handedOf(claims, restarts)
   leftDays(
     claims.filter(({ setting }) => !handed.has(setting.id)),
     reports,

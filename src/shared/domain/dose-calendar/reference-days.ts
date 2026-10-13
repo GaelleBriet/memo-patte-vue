@@ -35,6 +35,28 @@ export function leftDays(
   return left
 }
 
+// R10, TR-9 : remplacé le jour même par un réglage sans date choisie qui continue sa grille repartie,
+// un réglage n'a plus de journée sortie du calendrier : son remplaçant les lit.
+export function handedOf(
+  claims: readonly Claim[],
+  restarts: ReadonlyMap<string, string>,
+): Set<string> {
+  return new Set(
+    claims
+      .filter(({ setting }, at) => {
+        const successor = claims[at + 1]?.setting
+        return (
+          successor !== undefined &&
+          successor.startsOn === setting.startsOn &&
+          successor.gridOriginOn === null &&
+          restarts.has(setting.id) &&
+          restarts.get(successor.id) === restarts.get(setting.id)
+        )
+      })
+      .map(({ setting }) => setting.id),
+  )
+}
+
 // R4 : une prise dont l'échéance a quitté le calendrier couvre la première échéance qui suit, à
 // moins d'un pas de son réglage ; déjà couverte ou trop loin, la prise est sans effet.
 export function coverOrphans(
