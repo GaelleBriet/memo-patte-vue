@@ -240,6 +240,59 @@ describe('« Prochaine dose » seule : un report, jamais un nouveau réglage (TR
   })
 })
 
+describe('Q26 : une dose plus lointaine déjà notée grise « Prochaine dose », réglage changé compris (décision du 2026-10-13)', () => {
+  const quotidien = treatment(
+    [
+      period({
+        startsOn: '2026-09-20',
+        firstDueOn: '2026-09-20',
+        doseQuantity: 1,
+        doseUnit: 'tablet',
+      }),
+    ],
+    [dose('2026-09-20', '2026-09-20'), dose('2026-10-05', '2026-10-05', { givenOn: '2026-09-25' })],
+  )
+  const TODAY = '2026-09-28'
+
+  it.each([
+    ['posologie', { doseQuantity: 2 }],
+    ['heures', { times: ['08:00'] }],
+  ])(
+    '%s changée : le champ est grisé avec la raison du moteur, la date choisie refusée',
+    (_, changes) => {
+      const rhythm = { ...saisie(quotidien), ...changes }
+      expect(editionDraft(quotidien, rhythm, TODAY).nextDose).toMatchObject({
+        change: 'first-due',
+        refusal: { reason: 'later-dose' },
+        help: { kind: 'refused', refusal: { reason: 'later-dose' } },
+      })
+      expect(
+        champsRefuses(
+          quotidien,
+          saisie(quotidien, { ...changes, nextDoseOn: '2026-09-30' }),
+          TODAY,
+        ),
+      ).toEqual(['nextDoseOn:refused'])
+    },
+  )
+
+  it('posologie changée sans toucher la date : enregistrée', () => {
+    expect(champsRefuses(quotidien, saisie(quotidien, { doseQuantity: 2 }), TODAY)).toEqual([])
+  })
+
+  it('le texte du champ grisé est celui qui existe déjà', () => {
+    const { help } = editionDraft(
+      quotidien,
+      { ...saisie(quotidien), doseQuantity: 2 },
+      TODAY,
+    ).nextDose!
+    expect(help).toEqual({ kind: 'refused', refusal: { reason: 'later-dose' } })
+    expect(t('treatments.history.refusal.shiftLaterDose')).toBe(
+      'Une dose plus lointaine est déjà notée.',
+    )
+  })
+})
+
 describe('« Prochaine dose » et la date de fin', () => {
   const HEBDO = period({
     startsOn: '2026-09-26',
