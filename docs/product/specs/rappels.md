@@ -55,7 +55,9 @@ par jour gérées au-delà d'une notification par heure (#365, plus tard) ; alar
   ou au-delà (rythmes de 1 à 3 jours : le jour même seul). (Existant, `dueReminders`)
 - **RA-5** Pour un traitement à plusieurs heures : une seule prévenance par jour d'échéance, à l'heure
   de la première prise (« Médicament de Luna dans 3 jours, à 8 h et 20 h ») ; une seule relance, si
-  aucune prise de ce jour n'est notée. (Spec Q2, 2026-09-29)
+  aucune prise de ce jour n'est notée. (Spec Q2, 2026-09-29) Les heures du jour sont celles que la fiche
+  montre : le jour d'arrivée d'un report ne porte que les heures reportées (R7 de la spec Traitements).
+  (#814, décision du 2026-10-13)
 - **RA-6** Aucun rappel pour une dose non renseignée, après la date de fin, pour un traitement arrêté,
   ou pour un animal qu'on ne suit plus. (Spec Traitements TR-14 ; P10) Exception : la relance de la
   dernière dose prévue avant la date de fin est envoyée, même si elle tombe après la date de fin (par
@@ -244,6 +246,12 @@ par jour gérées au-delà d'une notification par heure (#365, plus tard) ; alar
   précis » est peu clair, la conséquence parle mieux (décision de Gaelle). Écartée : « Moins précis »
   (Q3, Q6 du 2026-09-29, qui gardent leur sens). Aussi : rappels précis déjà accordés, l'interrupteur
   ouvre directement « Alarmes et rappels » d'Android.
+
+- 2026-10-13 — **La relance compare aux heures de la journée que montre la fiche** (RA-3, RA-5, #814).
+  Luna, hebdomadaire du lundi à 8 h et 20 h ; le lundi 5 oct., la dose de 8 h est donnée, celle de
+  20 h reportée au jeudi 8 ; rien n'est noté le 8 : relance le dimanche 11. Raison : le jour d'arrivée
+  ne porte que les heures reportées (R7), aucune prise de ce jour n'est notée. Écartée : comparer aux
+  heures du réglage (8 h et 20 h), qui taisait cette relance.
 
 - 2026-09-30 — **Lots B et C révisés, points qui touchent les rappels** : écran « Ne rate plus aucun
   rappel » au sous-titre sans accord, premier avantage nommant le prochain soin à venir (RA-21) ;

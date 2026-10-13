@@ -87,3 +87,32 @@ export function viewReminders(book: Book): ReminderReading {
     return { error: String(error) }
   }
 }
+
+/**
+ * #814 : la vue relance aussi une journée que la fiche montre avec moins d'heures que le réglage
+ * (arrivée d'un report, R7), que l'ancienne règle taisait. Les relances en plus de la vue quand c'est
+ * la seule différence, `null` sinon.
+ */
+export function shortDayRelances(
+  book: Book,
+  old: ReminderReading,
+  now: ReminderReading,
+): string[] | null {
+  if ('error' in old || 'error' in now) return null
+  if (old.reminders.some((line) => !now.reminders.includes(line))) return null
+  const extra = now.reminders.filter((line) => !old.reminders.includes(line))
+  const view = treatmentView(viewInputOf(book))
+  const shortDay = (line: string) => {
+    const [moment, key] = line.split(' ')
+    const day = key!.slice(0, 10)
+    const setting = view.settingAt(day) ?? view.currentSetting
+    const shown = view.slots(day, day)
+    return (
+      moment === 'overdue' &&
+      setting !== null &&
+      shown.length < Math.max(1, setting.times.length) &&
+      shown.every(({ state }) => state === 'pending')
+    )
+  }
+  return extra.length > 0 && extra.every(shortDay) ? extra : null
+}

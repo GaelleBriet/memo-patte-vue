@@ -59,6 +59,58 @@ describe('RA-1 à RA-6 : les rappels lus dans la vue', () => {
     )
   })
 
+  describe('RA-3, RA-5 : la relance compare aux heures de la journée que montre la fiche (R7, #814)', () => {
+    const p1 = setting('p1', '2026-10-05', WEEK, H)
+    const ofDay = (day: string, reminders: DueReminder[]) =>
+      shown(reminders).filter((each) => each.split(' ')[1] === day)
+
+    it('Luna : 8 h donnée le 5, 20 h reportée au jeudi 8, rien noté le 8 : relance le 11', () => {
+      const lines = [
+        line('p1', 'given', '2026-10-05', '08:00'),
+        line('p1', 'postponed', '2026-10-05', '20:00', '2026-10-08'),
+      ]
+      expect(ofDay('2026-10-08', view([p1], lines, '2026-10-06').reminders(WINDOW))).toEqual([
+        'due 2026-10-08 20:00 → 2026-10-08',
+        'before 2026-10-08 20:00 → 2026-10-05 [20:00]',
+        'overdue 2026-10-08 20:00 → 2026-10-11',
+      ])
+    })
+
+    it('la journée d’arrivée notée ne relance pas', () => {
+      const lines = [
+        line('p1', 'given', '2026-10-05', '08:00'),
+        line('p1', 'postponed', '2026-10-05', '20:00', '2026-10-08'),
+        line('p1', 'given', '2026-10-08', '20:00'),
+      ]
+      expect(ofDay('2026-10-08', view([p1], lines, '2026-10-09').reminders(WINDOW))).toEqual([])
+    })
+
+    it('journée entière reportée : les deux heures arrivent, relance tant qu’aucune n’est notée', () => {
+      const report = line('p1', 'postponed', '2026-10-05', '08:00', '2026-10-08')
+      expect(
+        ofDay('2026-10-08', view([p1], [report], '2026-10-06').reminders(WINDOW)).filter((each) =>
+          each.startsWith('overdue'),
+        ),
+      ).toEqual(['overdue 2026-10-08 08:00 → 2026-10-11'])
+      const morning = line('p1', 'given', '2026-10-08', '08:00')
+      expect(
+        ofDay('2026-10-08', view([p1], [report, morning], '2026-10-09').reminders(WINDOW)),
+      ).toEqual([
+        'due 2026-10-08 20:00 → 2026-10-08',
+        'before 2026-10-08 20:00 → 2026-10-05 [20:00]',
+      ])
+    })
+
+    it('jour d’origine : 8 h non notée, 20 h reportée au 11, la fiche montre 8 h seule : relance le 8', () => {
+      const report = line('p1', 'postponed', '2026-10-05', '20:00', '2026-10-11')
+      expect(
+        ofDay('2026-10-05', view([p1], [report], '2026-10-06').reminders(WINDOW)).filter((each) =>
+          each.startsWith('overdue'),
+        ),
+      ).toEqual(['overdue 2026-10-05 08:00 → 2026-10-08'])
+    })
+  })
+
   it('RA-4 : tous les 4 jours, prévenance après l’échéance d’avant, relance avant la suivante', () => {
     const read = view([setting('p1', '2026-10-10', { value: 4, unit: 'day' })], [], '2026-10-06')
     expect(shown(read.reminders({ ...WINDOW, count: 1 })).slice(0, 6)).toEqual([

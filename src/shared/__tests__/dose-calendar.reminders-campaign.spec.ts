@@ -7,6 +7,7 @@ import { gapsBetween } from '../../../scripts/dose-engine/display'
 import { currentEngine, readWith, v2Engine } from '../../../scripts/dose-engine/engines'
 import {
   legacyReminders,
+  shortDayRelances,
   viewReminders,
   type ReminderReading,
 } from '../../../scripts/dose-engine/legacy-reminders'
@@ -65,6 +66,7 @@ type Tally = {
   sameView: number
   sameReminders: number
   notedByView: number
+  shortDays: number
   otherView: number
   otherReminders: number
   unexplained: string[]
@@ -128,6 +130,8 @@ function compareState(book: Book, tally: Tally, seed: number): void {
   if (same && apart !== null) {
     tally.sameReminders += 1
     if (apart.length > 0) tally.notedByView += 1
+  } else if (apart !== null && shortDayRelances(book, old, now) !== null) {
+    tally.shortDays += 1
   } else if (tally.unexplained.length < 3) {
     tally.unexplained.push(
       `graine ${seed} : ${difference(old, now)}\ncarnet : ${JSON.stringify(book)}`,
@@ -142,6 +146,7 @@ function playOracle(): Tally {
     sameView: 0,
     sameReminders: 0,
     notedByView: 0,
+    shortDays: 0,
     otherView: 0,
     otherReminders: 0,
     unexplained: [],
@@ -185,7 +190,8 @@ describe('rappels lus dans la vue (pas 8)', () => {
         `Oracle rappels : ${tally.carnets} carnets × ${campaign.steps} gestes, graines ` +
           `${campaign.from} à ${last} : ${tally.states} états ; fiche identique ${tally.sameView}` +
           ` (rappels identiques ${tally.sameReminders}, dont ${tally.notedByView} où la vue lit` +
-          ` autrement une échéance notée) ; fiche différente ${tally.otherView}` +
+          ` autrement une échéance notée) ; relance en plus d’une journée à heures partielles` +
+          ` ${tally.shortDays} (#814) ; fiche différente ${tally.otherView}` +
           ` (rappels différents ${tally.otherReminders})`,
       )
       expect(tally.carnets).toBe(campaign.seeds)
