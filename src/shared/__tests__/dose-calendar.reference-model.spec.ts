@@ -747,3 +747,56 @@ describe('R3, R9 : une date choisie se juge sur la grille en vigueur ce jour-là
     ])
   })
 })
+
+describe('R6, TR-9 : une date choisie fait repartir la grille, le report plus loin la suit ou est sans effet (décision du 2026-10-13)', () => {
+  const p1 = setting('p1', '2026-10-02', TWO_DAYS)
+  const lines = [
+    line('p1', 'given', '2026-10-02'),
+    line('p1', 'given', '2026-10-04'),
+    line('p1', 'postponed', '2026-10-08', null, '2026-10-10'),
+  ]
+
+  it('cas A : 6 non donnée, 8 reportée au 10 ; le 7, première dose choisie le 9 : 9, 11, 13, rien à renseigner', () => {
+    const p2 = setting('p2', '2026-10-09', TWO_DAYS, [], { startsOn: '2026-10-07' })
+    expect(next([p1, p2], lines, '2026-10-07')).toEqual(['2026-10-09', '2026-10-11', '2026-10-13'])
+    expect(read([p1, p2], lines, '2026-10-07').unlogged).toEqual([])
+  })
+
+  it('cas B : le 6, première dose choisie le 7 : 7, 9, 11', () => {
+    const p2 = setting('p2', '2026-10-07', TWO_DAYS, [], { startsOn: '2026-10-06' })
+    expect(next([p1, p2], lines, '2026-10-06')).toEqual(['2026-10-07', '2026-10-09', '2026-10-11'])
+  })
+
+  it('cas B suivi d’une posologie le 7 : la grille repartie reste, le report reste sans effet', () => {
+    const p2 = setting('p2', '2026-10-07', TWO_DAYS, [], { startsOn: '2026-10-06' })
+    const p3 = setting('p3', '2026-10-09', TWO_DAYS, [], {
+      startsOn: '2026-10-07',
+      gridOriginOn: null,
+    })
+    const given7 = [...lines, line('p2', 'given', '2026-10-07')]
+    expect(next([p1, p2, p3], given7, '2026-10-07')).toEqual([
+      '2026-10-09',
+      '2026-10-11',
+      '2026-10-13',
+    ])
+  })
+
+  it('le 6, première dose choisie le 8 : le report part d’une échéance de la nouvelle grille, il la suit : 10, 12', () => {
+    const p2 = setting('p2', '2026-10-08', TWO_DAYS, [], { startsOn: '2026-10-06' })
+    expect(next([p1, p2], lines, '2026-10-06', 2)).toEqual(['2026-10-10', '2026-10-12'])
+  })
+})
+
+describe('R6, R7 : le report qui porte la date choisie garde son effet (graine 850001702)', () => {
+  it('tous les 3 jours du 20 mars, dose du 23 reportée au 4 avr. avec décalage ; réglage du 22, première dose choisie le 4 avr. : le 4 avr., puis le 7', () => {
+    const threeDays = { value: 3, unit: 'day' as const }
+    const s1 = setting('s1', '2026-03-20', threeDays)
+    const s2 = setting('s2', '2026-04-04', threeDays, [], { startsOn: '2026-03-22' })
+    const lines = [
+      line('s1', 'missed', '2026-03-20'),
+      line('s1', 'postponed', '2026-03-23', null, '2026-04-04'),
+      line('s2', 'shift', '2026-03-23', null, '2026-04-04'),
+    ]
+    expect(next([s1, s2], lines, '2026-03-26', 2)).toEqual(['2026-04-04', '2026-04-07'])
+  })
+})

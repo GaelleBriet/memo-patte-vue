@@ -1,9 +1,15 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { moveDose, newSettings, preview, type SettingsRequest } from '../domain/dose-calendar'
+import {
+  chosenDateRefusal,
+  moveDose,
+  newSettings,
+  preview,
+  type SettingsRequest,
+} from '../domain/dose-calendar'
 import type { TreatmentViewInput } from '../domain/dose-calendar/types'
-import { keys, line, setting, TWO_DAYS, WEEK } from './dose-calendar.v2.aides'
+import { DAY, keys, line, setting, TWO_DAYS, WEEK } from './dose-calendar.v2.aides'
 
 function planOf(input: TreatmentViewInput, asked: SettingsRequest) {
   const result = newSettings(input, asked)
@@ -151,8 +157,8 @@ describe('Q38, R12 : la date proposée, passée telle quelle, n’est pas une da
   })
 })
 
-describe('#796 : une date choisie avant une dose déjà notée plus loin ne réécrit aucun report', () => {
-  it('graine 540000188 : mensuel à 6, 12, 18 et 23 h, dose du 4 mai à 6 h donnée le 18 mars, 12 h reportée au 17 mai ; le 19, « Prochaine dose » le 22 mars : le report garde son arrivée', () => {
+describe('#796, Q26 : une date choisie avant une dose déjà notée plus loin est refusée, aucun report réécrit (décision du 2026-10-13)', () => {
+  it('graine 540000188 : mensuel à 6, 12, 18 et 23 h, dose du 4 mai à 6 h donnée le 18 mars, 12 h reportée au 17 mai ; le 19, « Prochaine dose » le 22 mars : refusée', () => {
     const monthly = { value: 1, unit: 'month' as const }
     const H4 = ['06:00', '12:00', '18:00', '23:00']
     const s1 = setting('s1', '2026-03-04', monthly, ['08:00', '20:00'])
@@ -181,6 +187,117 @@ describe('#796 : une date choisie avant une dose déjà notée plus loin ne ré�
       today: '2026-03-19',
     }
     const asked = { frequency: monthly, times: H4, endsOn: null, firstDueOn: '2026-03-22' }
-    expect(planOf(input, asked).lines).toBeUndefined()
+    expect(newSettings(input, asked)).toEqual({ refusal: { reason: 'later-dose' } })
+  })
+})
+
+describe('R9, R6, TR-9 : une date choisie déplace la dose du moment, le report plus loin suit la grille ou devient sans effet (décision du 2026-10-13)', () => {
+  const metacam = setting('p1', '2026-10-02', TWO_DAYS)
+  const report = line('p1', 'postponed', '2026-10-08', null, '2026-10-10')
+  const lines = [line('p1', 'given', '2026-10-02'), line('p1', 'given', '2026-10-04'), report]
+  const asked = (firstDueOn: string): SettingsRequest => ({
+    frequency: TWO_DAYS,
+    times: [],
+    endsOn: null,
+    firstDueOn,
+  })
+  const effectOfReport = (input: TreatmentViewInput, plan: ReturnType<typeof planOf>) =>
+    preview(input, plan).history.find(({ line: { id } }) => id === report.id)?.effect
+
+  it('cas A : tous les 2 jours, doses des 2 et 4 données, 6 non donnée, 8 reportée au 10 ; le 7, posologie et « Prochaine dose » le 9 : 9, 11, 13, le 9 remplace la dose en retard du 6', () => {
+    const input = { settings: [metacam], lines, today: '2026-10-07' }
+    const plan = planOf(input, asked('2026-10-09'))
+    expect(plan.lines).toBeUndefined()
+    expect(shown(input, asked('2026-10-09'))).toEqual(['2026-10-09', '2026-10-11', '2026-10-13'])
+    expect(keys(preview(input, plan).unloggedDoses)).toEqual([])
+    expect(effectOfReport(input, plan)).toMatchObject({ kind: 'idle' })
+  })
+
+  it('cas B : même carnet, le 6, dose du jour en attente ; « Prochaine dose » le 7 : 7, 9, 11, le report du 8 est sans effet', () => {
+    const input = { settings: [metacam], lines, today: '2026-10-06' }
+    const plan = planOf(input, asked('2026-10-07'))
+    expect(plan.lines).toBeUndefined()
+    expect(shown(input, asked('2026-10-07'))).toEqual(['2026-10-07', '2026-10-09', '2026-10-11'])
+    expect(effectOfReport(input, plan)).toMatchObject({ kind: 'idle' })
+  })
+
+  it('cas B, puis le 7 dose donnée et posologie seule : la grille repartie reste, le report reste sans effet', () => {
+    const input = { settings: [metacam], lines, today: '2026-10-06' }
+    expect(planOf(input, asked('2026-10-07')).setting).toMatchObject({
+      startsOn: '2026-10-06',
+      firstDueOn: '2026-10-07',
+      gridOriginOn: '2026-10-07',
+    })
+    const chosen = setting('p2', '2026-10-07', TWO_DAYS, [], { startsOn: '2026-10-06' })
+    const after = {
+      settings: [metacam, chosen],
+      lines: [...lines, line('p2', 'given', '2026-10-07')],
+      today: '2026-10-07',
+    }
+    const plan = planOf(after, { frequency: TWO_DAYS, times: [], endsOn: null })
+    expect(shown(after, { frequency: TWO_DAYS, times: [], endsOn: null })).toEqual([
+      '2026-10-09',
+      '2026-10-11',
+      '2026-10-13',
+    ])
+    expect(effectOfReport(after, plan)).toMatchObject({ kind: 'idle' })
+  })
+
+  it('même carnet, le 6, « Prochaine dose » le 8 : le report du 8 est sur la nouvelle grille, il la suit : 10, 12', () => {
+    const input = { settings: [metacam], lines, today: '2026-10-06' }
+    const plan = planOf(input, asked('2026-10-08'))
+    expect(shown(input, asked('2026-10-08'), 2)).toEqual(['2026-10-10', '2026-10-12'])
+    expect(effectOfReport(input, plan)).toMatchObject({ kind: 'moves', arrival: '2026-10-10' })
+  })
+})
+
+describe('Q26, R12 : une dose plus lointaine déjà notée refuse la « Prochaine dose » choisie, réglage changé compris (décision du 2026-10-13)', () => {
+  const daily = setting('d1', '2026-04-15', DAY)
+  const ahead = { ...line('d1', 'given', '2026-05-19'), givenOn: '2026-04-20' }
+  const input = {
+    settings: [daily],
+    lines: [line('d1', 'given', '2026-04-15'), ahead],
+    today: '2026-04-24',
+  }
+  const asked = { frequency: DAY, times: [], endsOn: null }
+
+  it('tous les jours, dose du 19 mai donnée d’avance ; le 24 avr., posologie et « Prochaine dose » le 25 : refusé, « Une dose plus lointaine est déjà notée. »', () => {
+    expect(newSettings(input, { ...asked, firstDueOn: '2026-04-25' })).toEqual({
+      refusal: { reason: 'later-dose' },
+    })
+  })
+
+  it('même carnet, heures passées à 8 h et « Prochaine dose » le 2 juin : refusé', () => {
+    expect(newSettings(input, { ...asked, times: ['08:00'], firstDueOn: '2026-06-02' })).toEqual({
+      refusal: { reason: 'later-dose' },
+    })
+  })
+
+  it('même carnet, posologie seule sans toucher la date, ou la date proposée passée telle quelle : accepté', () => {
+    expect(newSettings(input, asked)).toHaveProperty('plan')
+    expect(newSettings(input, { ...asked, firstDueOn: '2026-04-24' })).toEqual(
+      newSettings(input, asked),
+    )
+  })
+
+  it('le refus se lit sans date, pour griser le champ', () => {
+    expect(chosenDateRefusal(input, newSettings(input, asked))).toEqual({ reason: 'later-dose' })
+    const without = { ...input, lines: [line('d1', 'given', '2026-04-15')] }
+    expect(chosenDateRefusal(without, newSettings(without, asked))).toBeNull()
+  })
+
+  it('G24, #711 : la dose du lendemain à 8 h donnée d’avance est la prochaine dose, pas une dose plus lointaine : le champ reste libre', () => {
+    const twice = setting('t1', '2026-10-01', TWO_DAYS, ['08:00', '20:00'])
+    const carnet = {
+      settings: [twice],
+      lines: [
+        line('t1', 'given', '2026-10-01', '08:00'),
+        line('t1', 'given', '2026-10-01', '20:00'),
+        { ...line('t1', 'given', '2026-10-03', '08:00'), givenOn: '2026-10-02' },
+      ],
+      today: '2026-10-02',
+    }
+    const changed = { frequency: TWO_DAYS, times: ['09:00', '21:00'], endsOn: null }
+    expect(chosenDateRefusal(carnet, newSettings(carnet, changed))).toBeNull()
   })
 })

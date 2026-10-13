@@ -62,6 +62,9 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   let rhythm = new Set<string>()
   let rhythmFrom = span.live[0]!.startsOn
   const replaced: { from: Day; to: Day; onDueDay: boolean }[] = []
+  // R6, TR-9 : par réglage, la date choisie dont la grille repart, que ses suivants de même rythme continuent.
+  const restarts = new Map<string, Day>()
+  let restart: Day | undefined
   let chosenFloor = ''
   let rhythmFloor = ''
   let anchors = new Set<Line>()
@@ -131,7 +134,9 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
         setting.startsOn > inherited.floor &&
         isOnGrid(inherited.origin, setting.frequency, setting.startsOn)
       replaced.push({ from: rhythmFrom, to: setting.startsOn, onDueDay })
-    }
+      restart = setting.firstDueOn
+    } else if (!continued || origin !== null || ended) restart = undefined
+    if (restart !== undefined) restarts.set(setting.id, restart)
     if (index > 0 && (!continued || ended)) rhythmFrom = setting.startsOn
     // R3 : écrit sous un réglage d'avant un changement de fréquence, un décalage est dépassé.
     const turns = lines.shifts.filter(
@@ -167,5 +172,5 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     if (!effects.has(shift.id)) effects.set(shift.id, { kind: 'idle', reason: 'overtaken' })
   }
   const left = leftDays(claims, lines.reports, span.endOf(span.live.length - 1))
-  return { days, translated, left, openings, rhythmFrom, replaced }
+  return { days, translated, left, openings, rhythmFrom, replaced, restarts }
 }

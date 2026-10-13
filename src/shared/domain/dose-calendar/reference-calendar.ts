@@ -7,14 +7,16 @@ import {
   plusDays,
   sameFrequency,
   sameHours,
-  type Hour,
 } from './reference-grid'
 import {
+  coverageOf,
   coverOrphans,
+  lateDaysOf,
   leftDays,
   type Claim,
   type Journey,
   type ReferenceDue,
+  type Replaced,
   type Segment,
 } from './reference-days'
 import { isNote, latestBy } from './reference-lines'
@@ -83,7 +85,9 @@ export function calendarOf(
   // R9, Q-retard : les réglages de même fréquence continuent le rythme, et sa dose en retard.
   let rhythm = new Set<string>()
   let rhythmFrom = live[0]!.startsOn
-  const replaced: { from: string; to: string; onDueDay: boolean }[] = []
+  const replaced: Replaced[] = []
+  const restarts = new Set<string>()
+  let restart = false
   let chosenFloor = ''
   let rhythmFloor = ''
   let anchors = new Set<ReferenceLine>()
@@ -159,6 +163,10 @@ export function calendarOf(
         isOnGrid(inherited.origin, setting.frequency, setting.startsOn)
       replaced.push({ from: rhythmFrom, to: setting.startsOn, onDueDay })
     }
+    // R6, TR-9 : la grille repartie d'une date choisie, continuée par les réglages de même rythme.
+    if (kept && origin !== null && !ended) restart = true
+    else if (!continued || origin !== null || ended) restart = false
+    if (restart) restarts.add(setting.id)
     if (index > 0 && (!continued || ended)) rhythmFrom = setting.startsOn
     // R6 : à partir de sa journée d'origine, un décalage donne à la grille l'origine de son ancrage ;
     // écrit sous un réglage d'avant un changement de fréquence, il est dépassé par la nouvelle origine (R3).
@@ -192,40 +200,8 @@ export function calendarOf(
 
   leftDays(claims, reports, stop).forEach((journey, day) => left.set(day, journey))
 
-  // R4 : une prise couvre son échéance ; le jour où les heures changent, celles qui visaient l'ancien
-  // réglage couvrent les premières heures du nouveau, à hauteur de leur nombre.
   const matched = new Set<ReferenceLine>()
-  const coveredOn = (day: string, journey: Journey): Set<Hour> => {
-    const ofDay = [...notes, ...borrowed].filter((note) => note.dueOn === day)
-    const exact = ofDay.filter(
-      (note) =>
-        !borrowed.includes(note) &&
-        (!translated.has(day) || sameHours(settingOf(note.settingId), journey.setting)),
-    )
-    ofDay
-      .filter((note) => !exact.includes(note) || journey.hours.includes(note.dueTime))
-      .forEach((note) => matched.add(note))
-    const covered = new Set(
-      journey.hours.filter((hour) => exact.some((note) => note.dueTime === hour)),
-    )
-    // R4 : une journée de l'ancien réglage entièrement notée n'a plus rien à donner.
-    const whole = ofDay.some(
-      (note) =>
-        !exact.includes(note) &&
-        !borrowed.includes(note) &&
-        hoursOf(settingOf(note.settingId)).every((hour) =>
-          ofDay.some((other) => other.settingId === note.settingId && other.dueTime === hour),
-        ),
-    )
-    let elsewhere = ofDay.length - exact.length
-    for (const hour of journey.hours) {
-      if ((elsewhere > 0 || whole) && !covered.has(hour)) {
-        covered.add(hour)
-        elsewhere -= 1
-      }
-    }
-    return covered
-  }
+  const coveredOn = coverageOf([...notes, ...borrowed], borrowed, translated, settingOf, matched)
 
   // R7 : un report emporte son heure et les suivantes encore sans prise ; les reports qui arrivent sur
   // sa journée passent d'abord.
@@ -249,6 +225,10 @@ export function calendarOf(
       origin === undefined
         ? new Set(hours.filter((hour) => noted.has(keyOf(dueOn, hour))))
         : coveredOn(dueOn, origin)
+    // R6, TR-9 : parti d'une journée que la grille repartie d'une date choisie n'a pas, le report est
+    // sans effet, sauf s'il ouvre le nouveau rythme (R9.2) ; porter la date choisie ne change rien ici.
+    const restarted = restarts.has(settingAt(dueOn)?.id ?? '')
+    if (origin === undefined && restarted && !openings.has(targetOn!)) continue
     // R11 : un report battu par une prise de la même échéance est sans effet.
     if (covered.has(dueTime)) continue
     if (targetOn! > dueOn) fallen.add(dueOn)
@@ -283,14 +263,7 @@ export function calendarOf(
   coverOrphans(notes, matched, dues, settingOf)
   // TR-9 : la date choisie remplace la dose du moment : celle du premier jour du réglage s'il est une
   // échéance, sinon la dernière journée arrivée avant lui.
-  const lateDays = replaced
-    .filter(({ onDueDay }) => !onDueDay)
-    .map(({ from, to }) =>
-      [...fallen]
-        .filter((day) => day >= from && day < to)
-        .sort()
-        .at(-1),
-    )
+  const lateDays = lateDaysOf(replaced, fallen)
   replaced.filter(({ onDueDay }) => onDueDay).forEach(({ to }) => fallen.add(to))
   const pending = dues
     .filter(({ covered, day }) => !covered && !lateDays.includes(day))

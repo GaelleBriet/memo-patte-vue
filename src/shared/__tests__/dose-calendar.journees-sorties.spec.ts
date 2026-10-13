@@ -2,7 +2,12 @@
 import { describe, expect, it } from 'vitest'
 
 import { newSettings, preview, treatmentView, type SettingsRequest } from '../domain/dose-calendar'
-import type { Frequency, Line, TreatmentViewInput } from '../domain/dose-calendar/types'
+import type {
+  Frequency,
+  Line,
+  SettingsPlan,
+  TreatmentViewInput,
+} from '../domain/dose-calendar/types'
 import { DAY, H, keys, line, MONTH, setting, TWO_DAYS, WEEK } from './dose-calendar.v2.aides'
 
 const THREE_HOURS = ['08:00', '14:00', '20:00']
@@ -48,13 +53,23 @@ describe('R4 : une journée qui porte des lignes et quitte le calendrier garde s
       ])
     })
 
-    it('« Prochaine dose » le 11 : le 13 sort du calendrier, rien n’arrive le 31', () => {
-      const plan = planOf(input, {
-        frequency: MONTH,
-        times: H,
-        endsOn: '2026-04-03',
-        firstDueOn: '2026-03-11',
-      })
+    it('Q26 : « Prochaine dose » le 11 est refusée, les prises du 13 sont plus lointaines (décision du 2026-10-13)', () => {
+      const asked = { frequency: MONTH, times: H, endsOn: '2026-04-03', firstDueOn: '2026-03-11' }
+      expect(newSettings(input, asked)).toEqual({ refusal: { reason: 'later-dose' } })
+    })
+
+    it('le même réglage reçu d’un autre appareil, première dose le 11 : le 13 sort du calendrier, rien n’arrive le 31', () => {
+      const plan: SettingsPlan = {
+        action: 'create',
+        setting: {
+          startsOn: '2026-03-11',
+          firstDueOn: '2026-03-11',
+          gridOriginOn: '2026-03-11',
+          endsOn: '2026-04-03',
+          frequency: MONTH,
+          times: H,
+        },
+      }
       const view = preview(input, plan)
       expect(keys(view.slots('2026-03-12', '2026-04-30').map(({ due }) => due))).toEqual([])
       expect(view.history.find(({ line: read }) => read.id === report.id)!.effect).toEqual({

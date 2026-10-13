@@ -32,7 +32,10 @@ export type EpisodeInput = {
 export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   const { settingOf, span, lines, borrowed } = input
   const effects = new Map<string, LineEffect>()
-  const { days, translated, left, openings, rhythmFrom, replaced } = journeys(input, effects)
+  const { days, translated, left, openings, rhythmFrom, replaced, restarts } = journeys(
+    input,
+    effects,
+  )
   const byDay = new Map<Day, Line[]>()
   for (const note of [...lines.notes, ...borrowed]) {
     byDay.set(note.dueOn, [...(byDay.get(note.dueOn) ?? []), note])
@@ -102,6 +105,14 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
           held.set(note, keyOf(note.dueOn, note.dueTime))
         }
       }
+    }
+    // R6, TR-9 : une date choisie fait repartir la grille ; un report parti d'une journée qu'elle n'a
+    // pas est sans effet, sauf celui qui porte la date choisie ou ouvre le nouveau rythme (R9.2).
+    const chosenOn = restarts.get(span.settingAt(dueOn)?.id ?? '')
+    const carries = targetOn === chosenOn || openings.has(targetOn!)
+    if (origin === undefined && chosenOn !== undefined && !carries) {
+      effects.set(report.id, { kind: 'idle', reason: 'nothing-to-move' })
+      continue
     }
     const covered =
       origin === undefined
