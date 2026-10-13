@@ -19,7 +19,8 @@ function arrivalMoved(input: TreatmentViewInput, chosen: Day): NonNullable<Setti
 // La date que le formulaire propose, passée telle quelle, n'est pas une date choisie (Q38, R12).
 function implicitDays(result: SettingsResult): Day[] {
   if ('refusal' in result) return []
-  const plans = 'plan' in result ? [result.plan] : [result.question.keep, result.question.correct]
+  const { keep, correct } = 'question' in result ? result.question : { keep: result.plan }
+  const plans = correct === undefined || 'refusal' in correct ? [keep] : [keep, correct]
   return [
     ...plans.map(({ setting }) => setting.firstDueOn),
     ...(result.shownOn === undefined ? [] : [result.shownOn]),
@@ -80,5 +81,6 @@ export function withChosenDate(
   const carry = (plan: SettingsPlan) => ({ ...plan, lines })
   if ('plan' in result) return { ...result, plan: carry(result.plan) }
   const { keep, correct } = result.question
-  return { ...result, question: { ...result.question, keep: carry(keep), correct: carry(correct) } }
+  const carried = 'refusal' in correct ? correct : carry(correct)
+  return { ...result, question: { ...result.question, keep: carry(keep), correct: carried } }
 }

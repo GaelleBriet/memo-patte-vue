@@ -97,6 +97,10 @@ export function changedSettings(walk: SettingsWalk): SettingsPlay | null {
   }
   const keep = walk.random() < 0.5
   const plan = keep ? result.question.keep : result.question.correct
+  if ('refusal' in plan) {
+    walk.log.push(`${label} Q38 corrigé refusé (${plan.refusal.reason})`)
+    return null
+  }
   walk.log.push(`${label} Q38 ${keep ? 'à renseigner' : 'corrigé'} → ${JSON.stringify(plan)}`)
   return { request: asked, plan }
 }

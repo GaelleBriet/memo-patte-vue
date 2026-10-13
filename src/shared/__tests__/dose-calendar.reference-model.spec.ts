@@ -860,3 +860,41 @@ describe('R6, R7 : le report qui porte la date choisie garde son effet (graines 
     expect(next([s1, s2], lines, '2026-03-26', 2)).toEqual(['2026-04-04', '2026-04-07'])
   })
 })
+
+describe('#806, Q38 : « Elles n’étaient pas à donner » ne laisse plus aucune dose avant la date de fin (graine 975000503)', () => {
+  const threeTimes = ['08:00', '14:00', '20:00']
+  const s1 = setting('s1', '2026-03-14', DAY, threeTimes, { endsOn: '2026-04-06' })
+  const lines = [
+    line('s1', 'postponed', '2026-03-17', '08:00', '2026-04-05'),
+    line('s1', 'shift', '2026-03-17', '08:00', '2026-04-05'),
+    line('s1', 'given', '2026-03-16', '08:00'),
+  ]
+  const fourTimes = ['06:00', '12:00', '18:00', '23:00']
+
+  it('chaque jour à 8, 14 et 20 h, fin le 6 avr. ; 8 h du 17 mars reportée au 5 avr. avec décalage, réglage à 6, 12, 18 et 23 h du 17 corrigé le 18 à 8, 14 et 20 h dès le 18, fin le 25 : aucune dose avant le 25', () => {
+    const corrected = setting('s2', '2026-03-18', DAY, threeTimes, {
+      startsOn: '2026-03-17',
+      endsOn: '2026-03-25',
+    })
+    expect(read([s1, corrected], lines, '2026-03-18')).toMatchObject({
+      current: [],
+      upcoming: [],
+    })
+  })
+
+  it('même carnet, « Elles restent à renseigner » : la dose de 6 h du 17 reste la dose du moment, en retard', () => {
+    const s2 = setting('s2', '2026-03-17', DAY, fourTimes, {
+      endsOn: '2026-04-06',
+      gridOriginOn: null,
+    })
+    const kept = setting('s3', '2026-03-17', DAY, threeTimes, {
+      startsOn: '2026-03-18',
+      endsOn: '2026-03-25',
+      gridOriginOn: null,
+    })
+    expect(read([s1, s2, kept], lines, '2026-03-18')).toMatchObject({
+      phase: 'overdue',
+      current: ['2026-03-17 06:00'],
+    })
+  })
+})

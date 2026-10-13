@@ -1,4 +1,4 @@
-import type { PastDuesChoice } from '../schema/treatment-form.schema'
+import type { PastDuesNextDose } from './treatment-edition-resolution'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { Due } from '@/shared/domain/dose-calendar'
 import {
@@ -17,6 +17,8 @@ export type PastDuesTexts = {
   keepHint: string
   drop: string
   dropHint: string
+  /** #806 : la réponse ne laisserait plus aucune dose avant la date de fin. */
+  dropRefused: boolean
   cancel: string
 }
 
@@ -56,7 +58,7 @@ export function pastDuesTexts(
   t: Translate,
   dues: readonly Due[],
   period: Pick<TreatmentPeriodRecord, 'frequency' | 'times'>,
-  nextDose: Record<PastDuesChoice, string>,
+  nextDose: PastDuesNextDose,
 ): PastDuesTexts {
   const count = dues.length
   const days = [...new Set(dues.map(({ dueOn }) => dueOn))].sort()
@@ -66,7 +68,11 @@ export function pastDuesTexts(
     keep: t('treatments.form.pastDues.keep', {}, count),
     keepHint: t('treatments.form.pastDues.keepHint', { date: sentenceDate(nextDose.keep) }, 1),
     drop: t('treatments.form.pastDues.drop', {}, count),
-    dropHint: t('treatments.form.pastDues.dropHint', { date: sentenceDate(nextDose.drop) }, 1),
+    dropHint:
+      nextDose.drop === null
+        ? t('treatments.form.nextDoseOn.refusal.noDoseBeforeEnd', {}, 1)
+        : t('treatments.form.pastDues.dropHint', { date: sentenceDate(nextDose.drop) }, 1),
+    dropRefused: nextDose.drop === null,
     cancel: t('treatments.form.pastDues.cancel', {}, 1),
   }
 }

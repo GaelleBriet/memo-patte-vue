@@ -39,6 +39,7 @@ describe('pastDuesTexts', () => {
       keepHint: 'Le nouveau rythme commence aujourd’hui. Prochaine dose le 15 oct.',
       drop: 'Elles n’étaient pas à donner',
       dropHint: 'L’ancien réglage était une erreur. Prochaine dose le 4 oct.',
+      dropRefused: 'false',
       cancel: 'Annuler',
     })
   })
@@ -93,6 +94,20 @@ describe('pastDuesTexts', () => {
     expect(texts.text).toBe('Les 3 et 5 oct., au rythme « tous les 2 jours · 8 h et 20 h ».')
   })
 
+  it('#806 : « pas à donner » refusé n’annonce aucune date, il dit pourquoi', () => {
+    const texts = pastDuesTexts(t, dues(['2026-03-17'], ['06:00']), TOUS_LES_2_JOURS, {
+      keep: '2026-03-17',
+      drop: null,
+    })
+
+    expect(lisible(texts)).toMatchObject({
+      keepHint: 'Le nouveau rythme commence aujourd’hui. Prochaine dose le 17 mars.',
+      dropHint:
+        'Avec ce rythme, plus aucune dose avant la date de fin. Change la date de fin ou le rythme.',
+    })
+    expect(texts.dropRefused).toBe(true)
+  })
+
   it('s’écrit en anglais', () => {
     applyLocale('en')
 
@@ -112,6 +127,7 @@ describe('pastDuesTexts', () => {
       keepHint: 'The new schedule starts today. Next dose on Oct 15.',
       drop: 'They weren’t meant to be given',
       dropHint: 'The previous setting was a mistake. Next dose on Oct 4.',
+      dropRefused: 'false',
       cancel: 'Cancel',
     })
     expect(

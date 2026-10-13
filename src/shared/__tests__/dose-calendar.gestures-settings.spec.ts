@@ -1,7 +1,13 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { newSettings, preview, type SettingsRequest } from '../domain/dose-calendar'
+import {
+  newSettings,
+  preview,
+  type FallenQuestion,
+  type SettingsPlan,
+  type SettingsRequest,
+} from '../domain/dose-calendar'
 import type { Frequency, Line, Setting, TreatmentViewInput } from '../domain/dose-calendar/types'
 import { DAY, H, keys, line, MONTH, next, setting, TWO_DAYS, WEEK } from './dose-calendar.v2.aides'
 
@@ -10,6 +16,11 @@ const THREE_DAYS: Frequency = { value: 3, unit: 'day' }
 function request(frequency: Frequency, times: string[] = [], firstDueOn?: string) {
   const asked: SettingsRequest = { frequency, times, endsOn: null }
   return firstDueOn === undefined ? asked : { ...asked, firstDueOn }
+}
+
+function corrected({ correct }: FallenQuestion): SettingsPlan {
+  if ('refusal' in correct) throw new Error(`réponse refusée : ${JSON.stringify(correct)}`)
+  return correct
 }
 
 function planOf(input: TreatmentViewInput, asked: SettingsRequest) {
@@ -550,7 +561,7 @@ describe('TR-28, Q38, Q39 : un réglage sans prise', () => {
       '2026-10-05',
       '2026-10-07',
     ])
-    expect(keys(preview(input, result.question.correct).unloggedDoses)).toEqual([])
+    expect(keys(preview(input, corrected(result.question)).unloggedDoses)).toEqual([])
   })
 
   it('posologie seule : pas de question, le réglage est corrigé, ses dates gardées', () => {
@@ -616,7 +627,7 @@ describe('TR-28, Q38, Q39 : un réglage sans prise', () => {
     function questionOf(asked: SettingsRequest) {
       const result = newSettings(input, asked)
       if (!('question' in result)) throw new Error(`pas de question : ${JSON.stringify(result)}`)
-      return result.question
+      return { ...result.question, correct: corrected(result.question) }
     }
 
     it('« Elles n’étaient pas à donner » : le 12 sort du carnet, le rythme du lundi continue (19, 26)', () => {

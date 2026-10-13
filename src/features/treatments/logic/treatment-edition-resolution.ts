@@ -1,5 +1,4 @@
 import type { Carnet } from './treatment-shift-help'
-import type { PastDuesChoice } from '../schema/treatment-form.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { Due, GestureOutcome, Refusal, SettingsPlan } from '@/shared/domain/dose-calendar'
 
@@ -34,6 +33,9 @@ export type NextDoseDraft = {
   shiftInitial: boolean
 }
 
+/** La première échéance que chaque réponse à Q38 écrirait ; `drop` vaut `null` quand elle est refusée (#806). */
+export type PastDuesNextDose = { keep: string; drop: string | null }
+
 /** Ce que « Modifier » fait des réglages saisis, et ce qu'il écrirait. */
 export type EditionResolution = {
   period: TreatmentPeriodRecord
@@ -52,8 +54,8 @@ export type EditionResolution = {
   refusal: Refusal | null
   /** Échéances tombées que le nouveau rythme laisserait à renseigner ou retirerait (Q38). */
   pastDues: Due[]
-  /** La première échéance que chaque réponse écrirait ; `null` sans question à poser. */
-  pastDuesNextDose: Record<PastDuesChoice, string> | null
+  /** `null` sans question à poser. */
+  pastDuesNextDose: PastDuesNextDose | null
 }
 
 /** La date saisie dans « Prochaine dose » et la case « Décaler aussi les doses suivantes ». */

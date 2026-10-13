@@ -53,8 +53,10 @@ export function settingsProposal(step: V2Step): Broken | null {
   if ('refusal' in proposed) {
     return { invariant: 'proposition', detail: `refus sans date : ${proposed.refusal.reason}` }
   }
-  const plans =
+  // #806 : « Elles n'étaient pas à donner » refusée n'annonce aucune date.
+  const plans = (
     'plan' in proposed ? [proposed.plan] : [proposed.question.keep, proposed.question.correct]
+  ).filter((each): each is SettingsPlan => 'setting' in each)
   const date = proposed.shownOn ?? plans[0]!.setting.firstDueOn
   const explicit = compare(
     'date proposée en clair',
