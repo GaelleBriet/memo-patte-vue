@@ -58,7 +58,14 @@ export function referenceReading({
     2 * Math.max(0, ...settings.map(({ frequency }) => longestStep(frequency))),
   )
   const calendars = episodes.map((episode, index) =>
-    calendarOf(settings, episode, lines, borrowedNotes(episodes, index, lines), reach),
+    calendarOf(
+      settings,
+      episode,
+      lines,
+      borrowedNotes(episodes, index, lines),
+      reach,
+      episodes[index + 1]?.[0]?.startsOn ?? null,
+    ),
   )
   const last = calendars.pop()
   const setting = episodes.at(-1)?.at(-1)

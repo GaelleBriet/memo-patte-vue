@@ -21,7 +21,7 @@ type Replaced = { from: Day; to: Day; onDueDay: boolean }
 function leftDays(
   claims: readonly Claim[],
   reports: readonly Line[],
-  stop: Day | null,
+  closedFrom: Day | null,
   handed: ReadonlySet<string>,
 ) {
   const left = new Map<Day, Journey>()
@@ -32,7 +32,8 @@ function leftDays(
       .map(({ dueOn }) => dueOn)
     for (const day of end === setting.startsOn ? [...reported, end] : [end]) {
       const open =
-        (setting.endsOn === null || day <= setting.endsOn) && (stop === null || day < stop)
+        (setting.endsOn === null || day <= setting.endsOn) &&
+        (closedFrom === null || day < closedFrom)
       const wasDay = segments.some(
         (segment) =>
           day >= segment.from &&
@@ -195,6 +196,6 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   for (const shift of lines.shifts) {
     if (!effects.has(shift.id)) effects.set(shift.id, { kind: 'idle', reason: 'overtaken' })
   }
-  const left = leftDays(claims, lines.reports, span.endOf(span.live.length - 1), handed)
+  const left = leftDays(claims, lines.reports, span.closedFrom, handed)
   return { days, translated, left, openings, rhythmFrom, replaced, restarts }
 }

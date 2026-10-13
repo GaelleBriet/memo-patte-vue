@@ -14,6 +14,7 @@ import {
   lateDaysOf,
   handedOf,
   leftDays,
+  stopDayOf,
   type Claim,
   type Journey,
   type ReferenceDue,
@@ -32,6 +33,7 @@ export function calendarOf(
   allLines: readonly ReferenceLine[],
   borrowed: ReferenceLine[],
   reach: string,
+  resumesOn: string | null,
 ): Calendar {
   const ids = new Set(episode.map(({ id }) => id))
   const lines = latestBy(
@@ -75,7 +77,7 @@ export function calendarOf(
   const translated = new Map<string, string>()
   const left = new Map<string, Journey>()
   const claims: Claim[] = []
-  const stop = endOf(live.length - 1)
+  const { closedFrom, stoppedAt } = stopDayOf(live.at(-1)!, resumesOn)
   // R7, R9.2 : les premières échéances des réglages qui ouvrent un nouveau rythme.
   const openings = new Set<string>()
   // R3, R10 : remplacé le jour même, un réglage transmet sa grille au suivant de même fréquence.
@@ -211,7 +213,7 @@ export function calendarOf(
   leftDays(
     claims.filter(({ setting }) => !handed.has(setting.id)),
     reports,
-    stop,
+    closedFrom,
   ).forEach((journey, day) => left.set(day, journey))
 
   const matched = new Set<ReferenceLine>()
@@ -251,18 +253,19 @@ export function calendarOf(
     if (targetOn! > dueOn) fallen.add(dueOn)
     const moved = hours.filter((hour) => (hour ?? '') >= (dueTime ?? '') && !covered.has(hour))
     if (origin !== undefined) origin.hours = origin.hours.filter((hour) => !moved.includes(hour))
-    const arrival = settingAt(targetOn!)
+    const arrival = settingAt(targetOn!) ?? stoppedAt(targetOn!)
+    const into = stoppedAt(targetOn!) === undefined ? days : left
     if (arrival === undefined || moved.length === 0) continue
     // R7 : heures changées, le jour d'arrivée prend autant de dernières heures que de doses reportées.
     const kept = sameHours(arrival, from)
     if (!kept) translated.set(targetOn!, arrival.id)
-    const day = days.get(targetOn!) ?? { setting: arrival, hours: [] }
+    const day = into.get(targetOn!) ?? { setting: arrival, hours: [] }
     // R7, R9.2 : un nouveau rythme qui part du jour d'arrivée d'un report lui laisse ses seules heures.
     if (openings.delete(targetOn!)) day.hours = []
     day.hours = [
       ...new Set([...day.hours, ...(kept ? moved : hoursOf(arrival).slice(-moved.length))]),
     ].sort()
-    days.set(targetOn!, day)
+    into.set(targetOn!, day)
   }
 
   left.forEach((journey, day) => {
