@@ -22,15 +22,17 @@ export type EpisodeInput = {
   settingOf: (id: string) => Setting
   span: Span
   lines: EpisodeLines
-  /** R8 : prises d'avant l'arrêt qui couvrent la première journée de la reprise. */
+  /** R8 : prises d'avant l'arrêt qui couvrent, chacune à son heure, la première journée de la reprise. */
   borrowed: readonly Line[]
+  /** R1, R8 : échéances du jour de l'arrêt que lisent les reprises, gardées par elles seules. */
+  yielded: ReadonlySet<string>
   /** Dernier jour de la grille calculée. */
   reach: Day
 }
 
 /** R4, R7, R11 : le calendrier d'un épisode, une passe par étape, du réglage à la couverture. */
 export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
-  const { settingOf, span, lines, borrowed } = input
+  const { settingOf, span, lines, borrowed, yielded } = input
   const effects = new Map<string, LineEffect>()
   const { days, translated, left, openings, rhythmFrom, replaced, restarts } = journeys(
     input,
@@ -48,13 +50,15 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   const held = new Map<Line, string>()
 
   // R4 : une prise couvre son échéance ; le jour où les heures changent, celles qui visaient
-  // l'ancien réglage couvrent les premières heures du nouveau, à hauteur de leur nombre.
+  // l'ancien réglage couvrent les premières heures du nouveau, à hauteur de leur nombre ; une prise
+  // d'avant l'arrêt ne couvre que la dose de son heure (R8).
   const coveredOn = (day: Day, journey: Journey): Map<Hour, Line> => {
     const ofDay = byDay.get(day) ?? []
     const exact = ofDay.filter(
       (note) =>
-        !isBorrowed.has(note) &&
-        (!translated.has(day) || sameHours(settingOf(note.settingId), journey.setting)),
+        isBorrowed.has(note) ||
+        !translated.has(day) ||
+        sameHours(settingOf(note.settingId), journey.setting),
     )
     for (const note of ofDay) {
       if (!exact.includes(note) || journey.hours.includes(note.dueTime)) matched.add(note)
@@ -154,11 +158,13 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     into.set(targetOn!, day)
   }
 
-  // R1, R4 : sortie du calendrier, une journée garde ses prises sur ses échéances, traduction comprise.
+  // R1, R4 : sortie du calendrier, une journée garde ses prises sur ses échéances, traduction comprise,
+  // sauf celles qu'une reprise lit le jour de l'arrêt (R8).
   left.forEach((journey, day) => {
     if (days.has(day)) return
     coveredOn(day, journey).forEach((note, hour) => {
-      if (!isBorrowed.has(note)) held.set(note, keyOf(day, hour))
+      const key = keyOf(day, hour)
+      if (!isBorrowed.has(note) && !yielded.has(key)) held.set(note, key)
     })
   })
 

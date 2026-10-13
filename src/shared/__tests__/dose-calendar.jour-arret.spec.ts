@@ -182,6 +182,101 @@ describe('TR-30, #819 : les prises du jour de l’arrêt, données avant l’arr
     })
   })
 
+  describe('8 h, 14 h et 20 h du 8 données, arrêt le 8, reprise le 8 à 20 h seulement dès le 8 (décision du 2026-10-13)', () => {
+    const hours = ['08:00', '14:00', '20:00']
+    const stopped = setting('p1', '2026-10-05', DAY, hours, { stoppedOn: '2026-10-08' })
+    const resumed = setting('p2', '2026-10-08', DAY, ['20:00'])
+    const ofDay8 = hours.map((hour) => line('p1', 'given', '2026-10-08', hour))
+
+    it('chaque prise couvre la dose de son heure, aucune n’est sans effet', () => {
+      expect(effectsOf(view([stopped, resumed], ofDay8, '2026-10-08'), ofDay8)).toEqual([
+        { kind: 'covers', key: '2026-10-08 08:00' },
+        { kind: 'covers', key: '2026-10-08 14:00' },
+        { kind: 'covers', key: '2026-10-08 20:00' },
+      ])
+    })
+
+    it('la dose de 20 h du 8 n’existe qu’une fois, couverte ; la prochaine dose est le 9 à 20 h', () => {
+      const read = view([stopped, resumed], ofDay8, '2026-10-08')
+      expect(read.slots('2026-10-08', '2026-10-08').map(({ due, by }) => [due, by?.id])).toEqual([
+        [{ settingId: 'p2', dueOn: '2026-10-08', dueTime: '20:00' }, ofDay8[2]!.id],
+      ])
+      expect(keys([read.nextDue!])).toEqual(['2026-10-09 20:00'])
+    })
+
+    it('20 h non donnée : 8 h et 14 h couvrent leurs doses, la dose de 20 h du 8 reste à donner', () => {
+      const morning = ofDay8.slice(0, 2)
+      const read = view([stopped, resumed], morning, '2026-10-08')
+      expect(effectsOf(read, morning)).toEqual([
+        { kind: 'covers', key: '2026-10-08 08:00' },
+        { kind: 'covers', key: '2026-10-08 14:00' },
+      ])
+      expect(keys(read.currentDoses)).toEqual(['2026-10-08 20:00'])
+    })
+
+    it('reprise aux mêmes heures, 8 h et 20 h, seule la prise de 20 h donnée : elle couvre 20 h, 8 h reste à donner', () => {
+      const twice = setting('p1', '2026-10-05', DAY, H, { stoppedOn: '2026-10-08' })
+      const again = setting('p2', '2026-10-08', DAY, H)
+      const evening = line('p1', 'given', '2026-10-08', '20:00')
+      const read = view([twice, again], [evening], '2026-10-08')
+      expect(effectsOf(read, [evening])).toEqual([{ kind: 'covers', key: '2026-10-08 20:00' }])
+      expect(keys(read.currentDoses)).toEqual(['2026-10-08 08:00'])
+    })
+
+    it('lecture du modèle naïf, 8 h et 14 h données : la dose de 20 h du 8 reste à donner', () => {
+      const naive = [
+        reference.setting('p1', '2026-10-05', reference.DAY, hours, { stoppedOn: '2026-10-08' }),
+        reference.setting('p2', '2026-10-08', reference.DAY, ['20:00']),
+      ]
+      const lines = ['2026-10-05', '2026-10-06', '2026-10-07'].flatMap((day) =>
+        hours.map((hour) => reference.line('p1', 'given', day, hour)),
+      )
+      const morning = ['08:00', '14:00'].map((hour) =>
+        reference.line('p1', 'given', '2026-10-08', hour),
+      )
+      expect(reference.read(naive, [...lines, ...morning], '2026-10-08')).toMatchObject({
+        current: ['2026-10-08 20:00'],
+        unlogged: [],
+      })
+    })
+  })
+
+  describe('#823 : tous les jours, dose du 2 avr. donnée ; arrêté le 2, repris le 2 dès le 2, arrêté de nouveau le 2', () => {
+    const settingsOf = (hours: string[], resumptions: number) => [
+      setting('p1', '2026-03-30', DAY, hours, { stoppedOn: '2026-04-02' }),
+      ...Array.from({ length: resumptions }, (_, index) =>
+        setting(`r${index + 1}`, '2026-04-02', DAY, hours, { stoppedOn: '2026-04-02' }),
+      ),
+    ]
+    const givenOn = (day: string, hours: string[]) =>
+      hours.map((hour) => line('p1', 'given', day, hour))
+    const givenOn2 = (hours: string[]) => givenOn('2026-04-02', hours)
+    const before = (hours: string[]) =>
+      ['2026-03-30', '2026-03-31', '2026-04-01'].flatMap((day) => givenOn(day, hours))
+
+    it.each<[string, string[], number]>([
+      ['à 20 h, une reprise', ['20:00'], 1],
+      ['à 8 h et 20 h, une reprise', H, 1],
+      ['à 20 h, deux reprises', ['20:00'], 2],
+      ['à 8 h et 20 h, trois reprises', H, 3],
+    ])('%s : les prises d’avant le premier arrêt couvrent leurs doses', (_, hours, resumptions) => {
+      const given = givenOn2(hours)
+      const read = view(settingsOf(hours, resumptions), [...before(hours), ...given], '2026-04-02')
+      expect(effectsOf(read, given)).toEqual(
+        hours.map((hour) => ({ kind: 'covers', key: `2026-04-02 ${hour}` })),
+      )
+      expect([read.phase, read.finished]).toEqual(['stopped', true])
+    })
+
+    it('la reprise a noté de nouveau la dose de 20 h du 2 : une seule prise la couvre', () => {
+      const given = givenOn2(['20:00'])
+      const again = line('r1', 'given', '2026-04-02', '20:00')
+      const read = view(settingsOf(['20:00'], 1), [...given, again], '2026-04-02')
+      const covering = effectsOf(read, [...given, again]).filter(({ kind }) => kind === 'covers')
+      expect(covering).toEqual([{ kind: 'covers', key: '2026-04-02 20:00' }])
+    })
+  })
+
   it('lecture du modèle naïf, « Test » arrêté le 13 : arrêté, aucune dose à renseigner ni à venir', () => {
     const test = reference.setting('p1', STOP, reference.TWO_DAYS, H, { stoppedOn: STOP })
     const lines = [STOP, '2026-10-15'].flatMap((day) =>
