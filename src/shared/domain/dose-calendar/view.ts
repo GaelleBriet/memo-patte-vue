@@ -2,11 +2,13 @@ import { episodeCalendar, type EpisodeCalendar, type Slot } from './calendar'
 import { hoursOf, keyOf, later, longestStep, plusDays, stepped } from './grid'
 import { episodeLines, isNote } from './lines'
 import { momentOf } from './moment'
+import { dueReminders, type DueReminder, type ReminderWindow } from './reminders'
 import { borrowedNotes, closedBeforeFirstDue, episodesOf, spanOf } from './settings'
 import type {
   Day,
   Due,
   DueState,
+  Hour,
   Line,
   LineEffect,
   Phase,
@@ -48,6 +50,13 @@ export type TreatmentView = {
   extraBoundary(due: Due): Day | null
   currentSetting: Setting | null
   settingAt(day: Day): Setting | undefined
+  /** RA-1 à RA-6 : les rappels des échéances encore à donner, la lecture unique des rappels. */
+  reminders(window: ReminderWindow): DueReminder[]
+  /**
+   * RA-19 : l'échéance est donnée, oubliée ou couverte, ou sortie du calendrier avec une prise écrite
+   * pour elle ; `dueTime` `null` : une échéance de sa journée.
+   */
+  isNoted(dueOn: Day, dueTime: Hour): boolean
 }
 
 const UPCOMING_DAYS = 400
@@ -86,6 +95,7 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
     return widest.calendars
   }
   const currentSetting = episodes.at(-1)?.at(-1) ?? null
+  const currentStep = currentSetting === null ? 0 : longestStep(currentSetting.frequency)
   const moment = momentOf(calendars, currentSetting ?? undefined, today)
   const closed = moment.phase === 'stopped' || moment.phase === 'ended'
   const end = currentSetting?.endsOn ?? currentSetting?.stoppedOn ?? null
@@ -112,6 +122,37 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
     return stateOf(slot)
   }
 
+  const upcoming: TreatmentView['upcoming'] = ({
+    from = today,
+    to = plusDays(from, UPCOMING_DAYS),
+    limit,
+  } = {}) => {
+    if (closed) return []
+    const calendar = calendarsUntil(to).at(-1)!
+    const dues = calendar.slots
+      .filter(
+        ({ coveredBy, due }) =>
+          coveredBy === null &&
+          due.dueOn >= calendar.rhythmFrom &&
+          due.dueOn >= from &&
+          due.dueOn <= to,
+      )
+      .map(({ due }) => due)
+    return limit === undefined ? dues : dues.slice(0, limit)
+  }
+  const settingAt = (day: Day) => live.filter(({ startsOn }) => startsOn <= day).at(-1)
+  const slots: TreatmentView['slots'] = (from, to) => {
+    const byKey = new Map<string, Slot>()
+    for (const slot of calendarsUntil(to).flatMap(({ slots }) => slots)) {
+      if (slot.due.dueOn >= from && slot.due.dueOn <= to) byKey.set(slot.key, slot)
+    }
+    return [...byKey.values()]
+      .sort((a, b) => a.key.localeCompare(b.key))
+      .map((slot) => ({ due: slot.due, state: stateOf(slot), by: slot.coveredBy }))
+  }
+  const currentDoses = moment.current.map(({ due }) => due)
+  const unloggedDoses = moment.unlogged.map(({ due }) => due)
+
   return {
     phase: moment.phase,
     finished: moment.finished,
@@ -128,23 +169,10 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
           : currentSetting.endsOn !== null && currentSetting.endsOn <= today
             ? currentSetting.endsOn
             : (calendars.at(-1)?.slots.at(-1)?.due.dueOn ?? null),
-    currentDoses: moment.current.map(({ due }) => due),
-    unloggedDoses: moment.unlogged.map(({ due }) => due),
+    currentDoses,
+    unloggedDoses,
     nextDue: closed ? null : (moment.open.find(({ due }) => due.dueOn > today)?.due ?? null),
-    upcoming: ({ from = today, to = plusDays(from, UPCOMING_DAYS), limit } = {}) => {
-      if (closed) return []
-      const calendar = calendarsUntil(to).at(-1)!
-      const dues = calendar.slots
-        .filter(
-          ({ coveredBy, due }) =>
-            coveredBy === null &&
-            due.dueOn >= calendar.rhythmFrom &&
-            due.dueOn >= from &&
-            due.dueOn <= to,
-        )
-        .map(({ due }) => due)
-      return limit === undefined ? dues : dues.slice(0, limit)
-    },
+    upcoming,
     lastDueDay,
     history: [...lines].sort(lineOrder).map((line) => ({
       line,
@@ -154,15 +182,7 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
       },
     })),
     dueState,
-    slots: (from, to) => {
-      const byKey = new Map<string, Slot>()
-      for (const slot of calendarsUntil(to).flatMap(({ slots }) => slots)) {
-        if (slot.due.dueOn >= from && slot.due.dueOn <= to) byKey.set(slot.key, slot)
-      }
-      return [...byKey.values()]
-        .sort((a, b) => a.key.localeCompare(b.key))
-        .map((slot) => ({ due: slot.due, state: stateOf(slot), by: slot.coveredBy }))
-    },
+    slots,
     alreadyNotedOn: (due, day) => {
       const slot = slotOf(keyOf(due.dueOn, due.dueTime))
       const by = slot?.coveredBy ?? null
@@ -185,6 +205,26 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
       return later(day, start)
     },
     currentSetting,
-    settingAt: (day) => live.filter(({ startsOn }) => startsOn <= day).at(-1),
+    settingAt,
+    reminders: (window) =>
+      dueReminders(
+        {
+          phase: moment.phase,
+          lastDueDay,
+          currentDoses,
+          unloggedDoses,
+          currentSetting,
+          settingAt,
+          upcomingUntil: (limit) =>
+            upcoming({ limit, to: plusDays(lastKnownDay, (limit + 2) * currentStep) }),
+        },
+        window,
+      ),
+    isNoted: (dueOn, dueTime) => {
+      const matches = (hour: Hour) => dueTime === null || hour === dueTime
+      const ofDay = slots(dueOn, dueOn).filter(({ due }) => matches(due.dueTime))
+      if (ofDay.length > 0) return ofDay.some(({ state }) => state !== 'pending')
+      return lines.some((line) => isNote(line) && line.dueOn === dueOn && matches(line.dueTime))
+    },
   }
 }

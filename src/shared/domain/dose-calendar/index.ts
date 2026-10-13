@@ -1,13 +1,7 @@
 import type { TreatmentViewInput } from './types'
 import { buildView, type TreatmentView } from './view'
 
-export {
-  gridOriginsOf,
-  legacyRecordsOf,
-  targetOnOf,
-  viewInputOf,
-  type LegacyInput,
-} from './legacy-input'
+export { gridOriginsOf, targetOnOf, viewInputOf, type LegacyInput } from './legacy-input'
 export { applied, settingsApplied } from './gestures/changes'
 export { moveBounds, moveDose, type MoveBounds } from './gestures/move'
 export { dueForDate, noteDose } from './gestures/note'
@@ -22,6 +16,7 @@ export {
 export { chosenDateRefusal } from './gestures/settings-chosen'
 export { familyOf, isAdvanced } from './lines'
 export { play, preview } from './preview'
+export type { DueReminder, ReminderMoment, ReminderWindow } from './reminders'
 export type { DueSlot, HistoryLine, TreatmentView, Window } from './view'
 export type * from './types'
 

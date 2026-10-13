@@ -3,17 +3,9 @@ import { format } from 'date-fns'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import type { EntryReminders } from '@/core/notifications/due-reminders-schedule'
 import { treatmentReminderPlan, type CarnetReminderSettings } from '@/shared/domain/reminder-plan'
-import { isNoteLine, type TreatmentSchedule } from '@/shared/domain/treatment-schedule'
-import { currentPeriodOf, readableScheduleOf } from './reminders-schedule-adapter'
+import { currentPeriodOf, readableReadingOf } from './treatment-reading-adapter'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { Translate } from '@/core/i18n/translate'
-
-/** Sans heure, la clé de l'ancienne forme vaut pour toute prise de son jour. */
-function notedBy(schedule: TreatmentSchedule): EntryReminders['isNoted'] {
-  const notes = schedule.doses.filter(isNoteLine)
-  return (dueDate, dueTime) =>
-    notes.some((note) => note.dueOn === dueDate && (dueTime === null || note.dueTime === dueTime))
-}
 
 /** Un traitement illisible n'a ni rappel ni échéance notée. */
 export function treatmentReminders(
@@ -23,11 +15,12 @@ export function treatmentReminders(
   settings: CarnetReminderSettings,
   now: Date,
 ): EntryReminders {
-  const schedule = readableScheduleOf(treatment, format(now, 'yyyy-MM-dd'))
-  if (schedule === null) return { care: null, isNoted: () => false }
+  const reading = readableReadingOf(treatment, format(now, 'yyyy-MM-dd'))
+  if (reading === null) return { care: null, isNoted: () => false }
 
-  const isNoted = notedBy(schedule)
-  const period = currentPeriodOf(treatment, schedule)
+  const { view } = reading
+  const isNoted = view.isNoted
+  const period = currentPeriodOf(treatment, view)
   if (
     period === null ||
     animal === null ||
@@ -37,12 +30,6 @@ export function treatmentReminders(
     return { care: null, isNoted }
   }
 
-  const source = {
-    id: treatment.id,
-    name: treatment.name,
-    animalName: animal.name,
-    period,
-    schedule,
-  }
+  const source = { id: treatment.id, name: treatment.name, animalName: animal.name, period, view }
   return { care: treatmentReminderPlan(t, source, settings, now), isNoted }
 }

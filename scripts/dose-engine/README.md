@@ -75,3 +75,28 @@ Par défaut (suite normale) : 25 carnets × 24 gestes.
 moteur v2 par les services (base SQLite en mémoire) et compare les lignes écrites à la lecture du
 moteur seul. Variables : `TREATMENT_ORACLE_FROM` (540000000), `TREATMENT_ORACLE_SEEDS` (20 par défaut),
 `TREATMENT_ORACLE_STEPS` (30). Un geste que l'écran refuse n'est pas joué. Les gestes « Prochaine dose » de la dose du moment passent par le formulaire (report ou date de fin corrigée sur place) ; une suite arrêtée par un refus du formulaire est comptée, et seule une date de fin refusée (TR-6) est admise.
+
+## Les rappels lus dans la vue (pas 8)
+
+`src/shared/__tests__/dose-calendar.reminders-campaign.spec.ts` joue deux séries sur les mêmes
+graines :
+
+- **campagne** : des carnets menés par les gestes de v2 (`v2-walk.ts`) ; à chaque pas,
+  `v2-reminders.ts` vérifie que les rappels de `view.reminders` sont les échéances de la fiche
+  (RA-1, RA-6 : toute échéance à donner a son rappel du jour, aucune autre ; la dernière dose après
+  la date de fin), la prévenance et la relance (RA-2 à RA-5), relues sur l'état de chaque échéance, et
+  le volet (RA-19, `view.isNoted`) ;
+- **oracle** : des carnets menés par le moteur actuel (`walk.ts`) ; `legacy-reminders.ts` recopie les
+  règles des rappels d'avant le pas 8 sur l'ancien moteur. Là où les deux moteurs montrent la même
+  fiche, les rappels doivent être identiques ; seule l'échéance notée peut différer, quand le
+  calendrier la contient encore et que la fiche en décide (ligne sans effet, prise qui en couvre une
+  autre). Partout, les rappels doivent être ceux de la fiche v2.
+
+```sh
+RAPPELS_FROM=641000000 RAPPELS_SEEDS=3000 RAPPELS_STEPS=40 \
+  flock /tmp/claude-1000/memo-patte-suite.lock nice -n 19 \
+  pnpm exec vitest run src/shared/__tests__/dose-calendar.reminders-campaign.spec.ts --reporter=verbose
+```
+
+Les lignes « Campagne rappels » et « Oracle rappels » disent ce qui a été joué. Par défaut (suite
+normale) : 25 carnets × 24 gestes.
