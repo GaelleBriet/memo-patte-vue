@@ -126,8 +126,9 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     const leaving = hours.filter((hour) => (hour ?? '') >= (dueTime ?? '') && !covered.has(hour))
     if (origin !== undefined) origin.hours = origin.hours.filter((hour) => !leaving.includes(hour))
     leaving.forEach((hour) => moved.set(keyOf(dueOn, hour), report))
-    const arrival = span.settingAt(targetOn!) ?? span.stoppedAt(targetOn!)
-    const into = span.stoppedAt(targetOn!) === undefined ? days : left
+    const stopDay = span.stoppedAt(targetOn!)
+    const arrival = span.settingAt(targetOn!) ?? stopDay
+    const into = stopDay === undefined ? days : left
     const keys = leaving.map((hour) => keyOf(dueOn, hour))
     if (leaving.length === 0) {
       effects.set(report.id, { kind: 'idle', reason: 'nothing-to-move' })

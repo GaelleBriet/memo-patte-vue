@@ -243,8 +243,9 @@ export function calendarOf(
     if (targetOn! > dueOn) fallen.add(dueOn)
     const moved = hours.filter((hour) => (hour ?? '') >= (dueTime ?? '') && !covered.has(hour))
     if (origin !== undefined) origin.hours = origin.hours.filter((hour) => !moved.includes(hour))
-    const arrival = settingAt(targetOn!) ?? stoppedAt(targetOn!)
-    const into = stoppedAt(targetOn!) === undefined ? days : left
+    const stopDay = stoppedAt(targetOn!)
+    const arrival = settingAt(targetOn!) ?? stopDay
+    const into = stopDay === undefined ? days : left
     if (arrival === undefined || moved.length === 0) continue
     // R7 : heures changées, le jour d'arrivée prend autant de dernières heures que de doses reportées.
     const kept = sameHours(arrival, from)
