@@ -122,7 +122,7 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
   const lastSlots = end === null ? [] : (calendarsUntil(end).at(-1)?.slots ?? [])
   const lastDueDay = lastSlots.at(-1)?.due.dueOn ?? null
   // R8, #819 : une prise d'avant l'arrêt qui couvre sa dose y reste comptée, même si elle couvre
-  // aussi la première journée de la reprise.
+  // aussi la première journée de la reprise, sauf quand la reprise reprend cette dose.
   const effects = new Map<string, LineEffect>()
   for (const [id, effect] of calendars.flatMap((calendar) => [...calendar.effects])) {
     if (effects.get(id)?.kind !== 'covers') effects.set(id, effect)
