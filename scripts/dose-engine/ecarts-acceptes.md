@@ -162,9 +162,9 @@ la dose du moment est son arrivée (#796). Tous les 2 jours, doses des 2 et 4 do
 en retard fusionnée avant ; 9, 10, 11 sur l'ancien `main`) ; le 6, « Prochaine dose » le 7 : 7, 9, 11
 (7, 9, 10, 11 avant). La règle ne vaut pas hors d'une date choisie : un report parti d'une journée
 sortie du calendrier par un changement de fréquence reste lu (tests de
-`dose-calendar.journees-sorties.spec.ts`). Le modèle naïf applique la même règle ; « porte la date
-choisie » n'y change aucune échéance lue (la date choisie est déjà une échéance du réglage), il n'y
-est donc pas écrit.
+`dose-calendar.journees-sorties.spec.ts`). Le modèle naïf applique la même règle, report qui porte
+la date choisie compris (graine 992000111 : à plusieurs heures, l'arrivée ne garde que l'heure
+reportée ; test daté de `dose-calendar.reference-model.spec.ts`).
 
 ## Question encore ouverte du pas 4 (« Modifier »)
 

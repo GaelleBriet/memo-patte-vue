@@ -787,7 +787,21 @@ describe('R6, TR-9 : une date choisie fait repartir la grille, le report plus lo
   })
 })
 
-describe('R6, R7 : le report qui porte la date choisie garde son effet (graine 850001702)', () => {
+describe('R6, R7 : le report qui porte la date choisie garde son effet (graines 850001702, 992000111)', () => {
+  it('tous les 2 jours à 8 h et 20 h du 4 avr., posologie le 7 ; le 15, première dose choisie le 5 mai, 8 h du 24 avr. reportée au 5 mai avec décalage : le 5 mai à 8 h', () => {
+    const s1 = setting('s1', '2026-04-04', TWO_DAYS, H)
+    const s2 = setting('s2', '2026-04-10', TWO_DAYS, H, {
+      startsOn: '2026-04-07',
+      gridOriginOn: null,
+    })
+    const s3 = setting('s3', '2026-05-05', TWO_DAYS, H, { startsOn: '2026-04-15' })
+    const lines = [
+      line('s2', 'postponed', '2026-04-24', '08:00', '2026-05-05'),
+      line('s2', 'shift', '2026-04-24', '08:00', '2026-05-05'),
+    ]
+    expect(read([s1, s2, s3], lines, '2026-04-15').current).toEqual(['2026-05-05 08:00'])
+  })
+
   it('tous les 3 jours du 20 mars, dose du 23 reportée au 4 avr. avec décalage ; réglage du 22, première dose choisie le 4 avr. : le 4 avr., puis le 7', () => {
     const threeDays = { value: 3, unit: 'day' as const }
     const s1 = setting('s1', '2026-03-20', threeDays)

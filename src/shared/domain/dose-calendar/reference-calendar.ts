@@ -86,8 +86,8 @@ export function calendarOf(
   let rhythm = new Set<string>()
   let rhythmFrom = live[0]!.startsOn
   const replaced: Replaced[] = []
-  const restarts = new Set<string>()
-  let restart = false
+  const restarts = new Map<string, string>()
+  let restart: string | undefined
   let chosenFloor = ''
   let rhythmFloor = ''
   let anchors = new Set<ReferenceLine>()
@@ -164,9 +164,9 @@ export function calendarOf(
       replaced.push({ from: rhythmFrom, to: setting.startsOn, onDueDay })
     }
     // R6, TR-9 : la grille repartie d'une date choisie, continuée par les réglages de même rythme.
-    if (kept && origin !== null && !ended) restart = true
-    else if (!continued || origin !== null || ended) restart = false
-    if (restart) restarts.add(setting.id)
+    if (kept && origin !== null && !ended) restart = setting.firstDueOn
+    else if (!continued || origin !== null || ended) restart = undefined
+    if (restart !== undefined) restarts.set(setting.id, restart)
     if (index > 0 && (!continued || ended)) rhythmFrom = setting.startsOn
     // R6 : à partir de sa journée d'origine, un décalage donne à la grille l'origine de son ancrage ;
     // écrit sous un réglage d'avant un changement de fréquence, il est dépassé par la nouvelle origine (R3).
@@ -226,9 +226,10 @@ export function calendarOf(
         ? new Set(hours.filter((hour) => noted.has(keyOf(dueOn, hour))))
         : coveredOn(dueOn, origin)
     // R6, TR-9 : parti d'une journée que la grille repartie d'une date choisie n'a pas, le report est
-    // sans effet, sauf s'il ouvre le nouveau rythme (R9.2) ; porter la date choisie ne change rien ici.
-    const restarted = restarts.has(settingAt(dueOn)?.id ?? '')
-    if (origin === undefined && restarted && !openings.has(targetOn!)) continue
+    // sans effet, sauf s'il porte cette date ou ouvre le nouveau rythme (R9.2).
+    const chosenOn = restarts.get(settingAt(dueOn)?.id ?? '')
+    const carries = targetOn === chosenOn || openings.has(targetOn!)
+    if (origin === undefined && chosenOn !== undefined && !carries) continue
     // R11 : un report battu par une prise de la même échéance est sans effet.
     if (covered.has(dueTime)) continue
     if (targetOn! > dueOn) fallen.add(dueOn)
