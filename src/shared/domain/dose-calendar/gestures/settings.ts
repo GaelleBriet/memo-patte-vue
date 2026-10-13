@@ -13,6 +13,7 @@ import type {
 import { buildView, type TreatmentView } from '../view'
 import { settingsApplied } from './changes'
 import { chosenRefusal, isChosen, withChosenDate } from './settings-chosen'
+import { endChecked } from './settings-end'
 import {
   NEXT_DAYS,
   proposedDates,
@@ -25,8 +26,15 @@ import {
 
 export type { SettingsRequest } from './settings-proposal'
 
-/** Q38 : sans prise, des échéances tombées ; « Elles restent à renseigner » ou « Elles n'étaient pas à donner ». */
-export type FallenQuestion = { fallen: Due[]; keep: SettingsPlan; correct: SettingsPlan }
+/**
+ * Q38 : sans prise, des échéances tombées ; « Elles restent à renseigner » ou « Elles n'étaient pas à
+ * donner », refusée quand elle ne laisse plus aucune dose avant la date de fin (#806).
+ */
+export type FallenQuestion = {
+  fallen: Due[]
+  keep: SettingsPlan
+  correct: SettingsPlan | { refusal: Refusal }
+}
 
 /** `shownOn` : la « Prochaine dose » que montre le formulaire, quand elle n'est pas la première échéance écrite. */
 export type SettingsResult =
@@ -125,38 +133,7 @@ export function newSettings(input: TreatmentViewInput, request: SettingsRequest)
   const result = sameFrequency(current.frequency, request.frequency)
     ? withChosenDate(input, chosen, planned, implicit)
     : planned
-  return leavesNoDose(input, request, result)
-    ? { refusal: { reason: 'no-dose-before-end' } }
-    : result
-}
-
-// #787, TR-8, Q20 : un rythme qui repart n'a plus aucune dose à donner avant la date de fin ; une fin
-// passée termine le traitement (TR-6), un réglage qui garde ses dates ne repart pas.
-function leavesNoDose(
-  input: TreatmentViewInput,
-  request: SettingsRequest,
-  result: SettingsResult,
-): boolean {
-  const { endsOn } = request
-  if (endsOn === null || endsOn < input.today) return false
-  const plans =
-    'plan' in result ? [result.plan] : 'question' in result ? [result.question.keep] : []
-  const keepsDates = ({ setting, ...plan }: SettingsPlan) =>
-    'id' in plan &&
-    input.settings.some(
-      ({ id, firstDueOn, gridOriginOn }) =>
-        id === plan.id &&
-        firstDueOn === setting.firstDueOn &&
-        gridOriginOn === setting.gridOriginOn,
-    )
-  return plans.some(
-    (plan) =>
-      plan.setting.gridOriginOn !== null &&
-      !keepsDates(plan) &&
-      !buildView(settingsApplied(input, plan))
-        .slots(plan.setting.firstDueOn, endsOn)
-        .some(({ state }) => state === 'pending'),
-  )
+  return endChecked(input, request.endsOn, result)
 }
 
 function settingsFor(

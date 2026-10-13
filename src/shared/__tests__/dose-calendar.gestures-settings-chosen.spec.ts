@@ -329,6 +329,49 @@ describe('Q26, R12 : une dose plus lointaine déjà notée refuse la « Prochain
   })
 })
 
+describe('#811, Q26 : une dose notée plus loin que le jour de la modification grise la « Prochaine dose » (décision du 2026-10-13)', () => {
+  const metacam = setting('p1', '2026-10-02', TWO_DAYS)
+  const given = ['02', '04', '06', '08', '10'].map((day) => line('p1', 'given', `2026-10-${day}`))
+  const ahead = { ...line('p1', 'given', '2026-10-12'), givenOn: '2026-10-11' }
+  const carnet = { settings: [metacam], lines: [...given, ahead], today: '2026-10-11' }
+  const posology = { frequency: TWO_DAYS, times: [], endsOn: null }
+
+  it('tous les 2 jours, doses du 2 au 10 données, celle du 12 donnée d’avance le 11 ; le 11, posologie : le 14 proposé, champ grisé', () => {
+    const result = newSettings(carnet, posology)
+    expect(result).toMatchObject({ shownOn: '2026-10-14' })
+    expect(chosenDateRefusal(carnet, result)).toEqual({ reason: 'later-dose' })
+  })
+
+  it('même carnet, « Prochaine dose » le 13 : refusé ; le 14 passé tel quel : la posologie s’écrit', () => {
+    expect(newSettings(carnet, { ...posology, firstDueOn: '2026-10-13' })).toEqual({
+      refusal: { reason: 'later-dose' },
+    })
+    expect(newSettings(carnet, { ...posology, firstDueOn: '2026-10-14' })).toEqual(
+      newSettings(carnet, posology),
+    )
+  })
+
+  it('même carnet sans la prise d’avance : le 12 proposé, champ libre', () => {
+    const without = { ...carnet, lines: given }
+    expect(chosenDateRefusal(without, newSettings(without, posology))).toBeNull()
+  })
+
+  it('tous les 2 jours à 8 h et 20 h, 8 h du 3 donnée le 2 ; le 2, heure passée à 9 h seule : le 5 proposé, champ grisé (le 3 n’est plus la prochaine dose)', () => {
+    const twice = setting('t1', '2026-10-01', TWO_DAYS, ['08:00', '20:00'])
+    const early = {
+      settings: [twice],
+      lines: [
+        line('t1', 'given', '2026-10-01', '08:00'),
+        line('t1', 'given', '2026-10-01', '20:00'),
+        { ...line('t1', 'given', '2026-10-03', '08:00'), givenOn: '2026-10-02' },
+      ],
+      today: '2026-10-02',
+    }
+    const nine = { frequency: TWO_DAYS, times: ['09:00'], endsOn: null }
+    expect(chosenDateRefusal(early, newSettings(early, nine))).toEqual({ reason: 'later-dose' })
+  })
+})
+
 describe('R10, TR-9, R6 : remplacé le jour même par un réglage sans date choisie, un réglage lui transmet sa date choisie', () => {
   const monthly = setting('m1', '2026-04-10', MONTH, ['20:00'])
   const chosen = setting('m2', '2026-06-23', MONTH, ['20:00'], { startsOn: '2026-04-22' })

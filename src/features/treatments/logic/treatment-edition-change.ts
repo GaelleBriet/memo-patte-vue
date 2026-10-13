@@ -3,6 +3,7 @@ import type {
   NextDoseChoice,
   NextDoseDraft,
   NextDoseHelp,
+  PastDuesNextDose,
 } from './treatment-edition-resolution'
 import { hasDoseLine, reportArrivingOn, resolveMoved } from './treatment-next-dose-move'
 import { treatmentReadingOf } from './treatment-reading-adapter'
@@ -24,6 +25,7 @@ import {
   chosenDateRefusal,
   newSettings,
   type Day,
+  type Refusal,
   type SettingsPlan,
   type SettingsRequest,
   type SettingsResult,
@@ -41,24 +43,35 @@ function requestOf(rhythm: TreatmentRhythm, firstDueOn?: Day): SettingsRequest {
   return firstDueOn === undefined ? asked : { ...asked, firstDueOn }
 }
 
+/** La première échéance que « Elles restent à renseigner » écrirait, celle que la fiche montrera. */
+const keptOn = (result: Extract<SettingsResult, { question: unknown }>): Day =>
+  result.shownOn ?? result.question.keep.setting.firstDueOn
+
 /** La « Prochaine dose » que le formulaire montre : la date écrite, ou celle que la fiche montrera (R9). */
 function shownOf(result: SettingsResult): Day | null {
   if ('refusal' in result) return null
   if ('plan' in result) return result.shownOn ?? result.plan.setting.firstDueOn
-  return result.question.correct.setting.firstDueOn
+  const { correct } = result.question
+  return 'refusal' in correct ? keptOn(result) : correct.setting.firstDueOn
 }
 
-function datesOf(result: SettingsResult): Record<PastDuesChoice, string> | null {
+function datesOf(result: SettingsResult): PastDuesNextDose | null {
   if (!('question' in result)) return null
-  const { keep, correct } = result.question
-  return { keep: result.shownOn ?? keep.setting.firstDueOn, drop: correct.setting.firstDueOn }
+  const { correct } = result.question
+  return { keep: keptOn(result), drop: 'refusal' in correct ? null : correct.setting.firstDueOn }
 }
 
-function planOf(result: SettingsResult, choice: PastDuesChoice | undefined): SettingsPlan | null {
+function answerOf(result: SettingsResult, choice: PastDuesChoice | undefined) {
   if ('plan' in result) return result.plan
-  if ('refusal' in result || choice === undefined) return null
+  if ('refusal' in result || choice === undefined) return result
   return choice === 'keep' ? result.question.keep : result.question.correct
 }
+
+const planOf = (answer: ReturnType<typeof answerOf>): SettingsPlan | null =>
+  'setting' in answer ? answer : null
+
+const refusalOf = (answer: ReturnType<typeof answerOf>): Refusal | null =>
+  'refusal' in answer ? answer.refusal : null
 
 // Q29 : la première dose calculée à partir de la dernière prise, avant d'être ramenée à aujourd'hui.
 function calculatedOn(
@@ -174,7 +187,7 @@ export function resolve(
   const answer = typed === null ? base : newSettings(reading.input, requestOf(next, typed))
   const hasNote = history.doses.some(({ status }) => status === 'given' || status === 'missed')
   const writes = (typed !== null && typed !== proposedOn) || changesRhythm(period, next)
-  const refusal = 'refusal' in answer ? answer.refusal : null
+  const chosen = answerOf(answer, pastDuesChoice)
   const fieldRefusal = chosenDateRefusal(reading.input, base)
   return {
     period,
@@ -192,9 +205,9 @@ export function resolve(
       shift: null,
       shiftInitial: true,
     } satisfies NextDoseDraft,
-    plan: writes ? planOf(answer, pastDuesChoice) : null,
+    plan: writes ? planOf(chosen) : null,
     move: null,
-    refusal,
+    refusal: refusalOf(chosen),
     pastDues: 'question' in answer ? answer.question.fallen : [],
     pastDuesNextDose: datesOf(answer),
   }

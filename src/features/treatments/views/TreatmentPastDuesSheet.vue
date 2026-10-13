@@ -40,6 +40,7 @@ function choose(choice: PastDuesChoice): void {
       <button
         type="button"
         class="treatment-past-dues__choice treatment-past-dues__choice--drop"
+        :disabled="texts.dropRefused"
         @click="choose('drop')"
       >
         <span class="treatment-past-dues__label">{{ texts.drop }}</span>
@@ -85,6 +86,10 @@ function choose(choice: PastDuesChoice): void {
   cursor: pointer;
 }
 
+.treatment-past-dues__choice:disabled {
+  cursor: default;
+}
+
 .treatment-past-dues__choice + .treatment-past-dues__choice {
   border-top: 1px solid tokens.$color-divider;
 }
@@ -93,6 +98,10 @@ function choose(choice: PastDuesChoice): void {
   color: rgb(var(--v-theme-primary));
   font-size: 15.5px;
   font-weight: 700;
+}
+
+.treatment-past-dues__choice:disabled .treatment-past-dues__label {
+  color: tokens.$color-text-secondary;
 }
 
 .treatment-past-dues__hint {
