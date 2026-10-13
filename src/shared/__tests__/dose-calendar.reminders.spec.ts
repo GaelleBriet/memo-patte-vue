@@ -1,8 +1,22 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import type { DueReminder, ReminderWindow } from '../domain/dose-calendar'
+import {
+  applied,
+  newSettings,
+  play,
+  settingsApplied,
+  treatmentView,
+  type DueReminder,
+  type ReminderWindow,
+} from '../domain/dose-calendar'
 import { DAY, H, line, MONTH, setting, view, WEEK } from './dose-calendar.v2.aides'
+
+const played = (input: Parameters<typeof play>[0], gesture: Parameters<typeof play>[1]) => {
+  const result = play(input, gesture)
+  if ('refusal' in result) throw new Error('geste refusé')
+  return result
+}
 
 const WINDOW: ReminderWindow = { count: 60, daysBefore: 3, daysAfter: 3 }
 
@@ -57,6 +71,91 @@ describe('RA-1 à RA-6 : les rappels lus dans la vue', () => {
     expect(shown(halfDone.reminders(WINDOW)).filter((each) => each.includes('2026-10-05'))).toEqual(
       ['due 2026-10-05 20:00 → 2026-10-05', 'before 2026-10-05 20:00 → 2026-10-02 [20:00]'],
     )
+  })
+
+  describe('RA-3, RA-5 : la relance compare aux heures de la journée que montre la fiche (R7, #814)', () => {
+    const p1 = setting('p1', '2026-10-05', WEEK, H)
+    const ofDay = (day: string, reminders: DueReminder[]) =>
+      shown(reminders).filter((each) => each.split(' ')[1] === day)
+
+    it('Luna : 8 h donnée le 5, 20 h reportée au jeudi 8, rien noté le 8 : relance le 11', () => {
+      const lines = [
+        line('p1', 'given', '2026-10-05', '08:00'),
+        line('p1', 'postponed', '2026-10-05', '20:00', '2026-10-08'),
+      ]
+      expect(ofDay('2026-10-08', view([p1], lines, '2026-10-06').reminders(WINDOW))).toEqual([
+        'due 2026-10-08 20:00 → 2026-10-08',
+        'before 2026-10-08 20:00 → 2026-10-05 [20:00]',
+        'overdue 2026-10-08 20:00 → 2026-10-11',
+      ])
+    })
+
+    it('la journée d’arrivée notée ne relance pas', () => {
+      const lines = [
+        line('p1', 'given', '2026-10-05', '08:00'),
+        line('p1', 'postponed', '2026-10-05', '20:00', '2026-10-08'),
+        line('p1', 'given', '2026-10-08', '20:00'),
+      ]
+      expect(ofDay('2026-10-08', view([p1], lines, '2026-10-09').reminders(WINDOW))).toEqual([])
+    })
+
+    it('journée entière reportée : les deux heures arrivent, relance tant qu’aucune n’est notée', () => {
+      const report = line('p1', 'postponed', '2026-10-05', '08:00', '2026-10-08')
+      expect(
+        ofDay('2026-10-08', view([p1], [report], '2026-10-06').reminders(WINDOW)).filter((each) =>
+          each.startsWith('overdue'),
+        ),
+      ).toEqual(['overdue 2026-10-08 08:00 → 2026-10-11'])
+      const morning = line('p1', 'given', '2026-10-08', '08:00')
+      expect(
+        ofDay('2026-10-08', view([p1], [report, morning], '2026-10-09').reminders(WINDOW)),
+      ).toEqual([
+        'due 2026-10-08 20:00 → 2026-10-08',
+        'before 2026-10-08 20:00 → 2026-10-05 [20:00]',
+      ])
+    })
+
+    it('jour d’origine : 20 h reportée au 17 puis 8 h ajoutée, la fiche montre 8 h seule le 12 : relance le 15', () => {
+      const week = { value: 1, unit: 'week' } as const
+      const first = {
+        settings: [setting('p1', '2026-10-05', week, ['20:00'])],
+        lines: [],
+        today: '2026-10-05',
+      }
+      const noted = applied(
+        first,
+        played(first, {
+          kind: 'note',
+          due: { settingId: 'p1', dueOn: '2026-10-05', dueTime: '20:00' },
+          status: 'given',
+          givenOn: '2026-10-05',
+          shiftsFollowing: false,
+        }).changes,
+      )
+      const moved = { ...noted, today: '2026-10-06' }
+      const afterMove = applied(
+        moved,
+        played(moved, {
+          kind: 'move',
+          due: { settingId: 'p1', dueOn: '2026-10-12', dueTime: '20:00' },
+          to: '2026-10-17',
+          shiftsFollowing: false,
+        }).changes,
+      )
+      const edited = { ...afterMove, today: '2026-10-07' }
+      const proposal = newSettings(edited, {
+        frequency: week,
+        times: ['08:00', '20:00'],
+        endsOn: null,
+      })
+      if (!('plan' in proposal)) throw new Error('plan attendu')
+      const after = settingsApplied(edited, proposal.plan)
+      expect(
+        shown(treatmentView(after).reminders(WINDOW)).filter((each) =>
+          each.startsWith('overdue 2026-10-12'),
+        ),
+      ).toEqual(['overdue 2026-10-12 08:00 → 2026-10-15'])
+    })
   })
 
   it('RA-4 : tous les 4 jours, prévenance après l’échéance d’avant, relance avant la suivante', () => {

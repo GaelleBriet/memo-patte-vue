@@ -2471,3 +2471,11 @@ ne grise pas. Confirmés : un report parti de la date choisie est porté par ell
 un dialogue n'annonce jamais une dose que la fiche ne montre pas ; une prise déjà notée ne perd jamais
 son échéance. — Alternatives écartées : refuser tout l'enregistrement, ou accepter et terminer le
 traitement (#806) ; ne refuser que les dates choisies après la dose notée (#811).
+
+2026-10-13 — **Rappels : la relance d'un jour d'arrivée de report** (spec `rappels.md`, RA-3, RA-5 ;
+#814). La relance d'une journée à plusieurs heures se décide sur les heures de la journée telles que
+la fiche les montre, et non sur celles du réglage : le jour d'arrivée d'un report ne porte que les
+heures reportées (R7). Luna, hebdomadaire du lundi à 8 h et 20 h ; le 5 oct., 8 h donnée et 20 h
+reportée au jeudi 8 ; rien n'est noté le 8 : relance le 11. — Raison (Gaelle) : aucune prise de ce
+jour n'est notée, RA-5 demande la relance. — Alternative écartée : comparer aux heures du réglage,
+qui attendait 8 h le 8 et taisait la relance.

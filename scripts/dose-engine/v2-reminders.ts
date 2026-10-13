@@ -79,9 +79,7 @@ export function remindersBrokenBy(input: TreatmentViewInput): Broken | null {
     if (index === 0 || before > days[index - 1]!) expected.push(`before ${first} → ${before}`)
     hours[first] = ofDay.flatMap(({ dueTime }) => (dueTime === null ? [] : [dueTime]))
     const overdue = plusDays(day, REMINDER_WINDOW.daysAfter)
-    const allPending = (setting.times.length === 0 ? [null] : setting.times).every(
-      (time) => view.dueState({ dueOn: day, dueTime: time }) === 'pending',
-    )
+    const allPending = view.slots(day, day).every(({ state }) => state === 'pending')
     const beforeNext = index === days.length - 1 || overdue < days[index + 1]!
     if (allPending && beforeNext && day !== cutDay) expected.push(`overdue ${first} → ${overdue}`)
   })

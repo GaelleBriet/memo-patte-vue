@@ -1,4 +1,4 @@
-import { hoursOf, keyOf, longestStep, plusDays } from './grid'
+import { keyOf, longestStep, plusDays } from './grid'
 import type { Day, Due, Phase, Setting } from './types'
 
 export type ReminderMoment = 'before' | 'due' | 'overdue'
@@ -18,6 +18,8 @@ type ReminderSource = {
   currentSetting: Setting | null
   upcomingUntil(limit: number): Due[]
   settingAt(day: Day): Setting | undefined
+  /** Les échéances que la fiche montre de `from` à `to`, notées ou non. */
+  calendarDues(from: Day, to: Day): Due[]
 }
 
 const byKey = (a: Due, b: Due) => keyOf(a.dueOn, a.dueTime).localeCompare(keyOf(b.dueOn, b.dueTime))
@@ -49,13 +51,18 @@ function byDay(dues: readonly Due[]): Map<Day, Due[]> {
 /**
  * RA-1 à RA-6 : un rappel par échéance encore à donner ; au-delà de `daysBefore` jours de rythme, la
  * prévenance et la relance, à la première heure du jour (RA-5), tant qu'elles ne tombent pas sur
- * l'échéance voisine (RA-4) ; la relance seulement si toutes les heures du jour sont encore dues.
+ * l'échéance voisine (RA-4) ; la relance seulement si toutes les heures que la fiche montre ce jour-là
+ * sont encore dues.
  */
 export function dueReminders(source: ReminderSource, window: ReminderWindow): DueReminder[] {
   if (source.currentSetting === null) return []
   const { daysBefore, daysAfter } = window
   const days = byDay(remindedDues(source, window.count))
   const dayList = [...days.keys()]
+  const shownDays =
+    dayList.length === 0
+      ? new Map<Day, Due[]>()
+      : byDay(source.calendarDues(dayList[0]!, dayList.at(-1)!))
   const all: DueReminder[] = []
 
   dayList.forEach((day, index) => {
@@ -73,7 +80,9 @@ export function dueReminders(source: ReminderSource, window: ReminderWindow): Du
     }
     const overdue = plusDays(day, daysAfter)
     const next = dayList[index + 1]
-    const allDue = hoursOf(setting.times).every((hour) => dues.some((due) => due.dueTime === hour))
+    const allDue = (shownDays.get(day) ?? []).every((shown) =>
+      dues.some((due) => due.dueTime === shown.dueTime),
+    )
     if (allDue && (next === undefined || overdue < next)) {
       all.push({ moment: 'overdue', due: first!, on: overdue, hours })
     }

@@ -215,6 +215,7 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
           unloggedDoses,
           currentSetting,
           settingAt,
+          calendarDues: (from, to) => slots(from, to).map(({ due }) => due),
           upcomingUntil: (limit) =>
             upcoming({ limit, to: plusDays(lastKnownDay, (limit + 2) * currentStep) }),
         },
