@@ -174,6 +174,26 @@ describe('RA-19 : une échéance notée retire sa notification du volet', () => 
     expect(stopped.isNoted('2026-10-04', '20:00')).toBe(false)
   })
 
+  it('couverte par une prise d’une autre heure : notée', () => {
+    const p1 = setting('p1', '2026-03-08', WEEK, ['08:00', '14:00', '20:00'])
+    const p2 = setting('p2', '2026-03-08', DAY, H)
+    const given = (dueTime: string) => ({
+      ...line('p1', 'given', '2026-03-08', dueTime),
+      givenOn: '2026-03-02',
+    })
+    const afternoon = given('14:00')
+    const read = view([p1, p2], [given('08:00'), afternoon], '2026-03-08')
+    expect(read.slots('2026-03-08', '2026-03-08').at(-1)).toEqual({
+      due: { settingId: 'p2', dueOn: '2026-03-08', dueTime: '20:00' },
+      state: 'covered',
+      by: afternoon,
+    })
+    expect(read.isNoted('2026-03-08', '20:00')).toBe(true)
+    expect(view([p1, p2], [given('08:00')], '2026-03-08').isNoted('2026-03-08', '20:00')).toBe(
+      false,
+    )
+  })
+
   it('une prise sans effet sur une échéance encore à donner ne la note pas', () => {
     const p1 = setting('p1', '2026-03-17', { value: 2, unit: 'week' }, H, {
       stoppedOn: '2026-03-22',
