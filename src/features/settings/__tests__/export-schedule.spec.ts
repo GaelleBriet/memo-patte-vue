@@ -10,12 +10,9 @@ import type {
   ExportTreatmentDose,
   ExportTreatmentPeriod,
 } from '@/shared/domain/carnet-data'
-import { legacyRecordsOf, targetOnOf } from '@/shared/domain/dose-calendar'
-import {
-  treatmentSchedule,
-  type DoseFields,
-  type LineChange,
-} from '@/shared/domain/treatment-schedule'
+import { play, targetOnOf, type LineChange } from '@/shared/domain/dose-calendar'
+import type { DoseFields } from '@/shared/domain/treatment-schedule'
+import { readTreatment } from '@/shared/domain/treatment-reading'
 import i18n from '@/core/i18n'
 
 const MILO = '11111111-1111-4111-8111-111111111111'
@@ -117,7 +114,13 @@ function pdfText(data: ExportData, today: string): string {
 }
 
 function created(change: LineChange): ExportTreatmentDose[] {
-  return change.action === 'create' ? [line(change.dose)] : []
+  if (change.action !== 'create') return []
+  const { settingId, targetOn, ...fields } = change.line
+  return [line({ ...fields, periodId: settingId, nextDueDate: targetOn ?? fields.dueOn })]
+}
+
+function readingOf(data: ExportData, today: string) {
+  return readTreatment({ periods: data.treatmentPeriods, doses: data.treatmentDoses }, today)!
 }
 
 describe('PDF et CSV : prochaine échéance lue par le moteur', () => {
@@ -189,11 +192,7 @@ describe('PDF et CSV : prochaine échéance lue par le moteur', () => {
       [period({ startsOn: '2026-09-01', stoppedOn: '2026-09-05', frequency: DAILY })],
       [given('2026-09-01')],
     )
-    const schedule = treatmentSchedule({
-      ...legacyRecordsOf({ periods: data.treatmentPeriods, doses: data.treatmentDoses }),
-      today: '2026-09-10',
-    })
-    expect(schedule.unloggedDoses.length).toBeGreaterThan(0)
+    expect(readingOf(data, '2026-09-10').view.unloggedDoses.length).toBeGreaterThan(0)
 
     expect(treatmentRow(data, '2026-09-10')).toMatchObject({
       due: { kind: 'stopped', on: '2026-09-05' },
@@ -207,11 +206,14 @@ describe('PDF et CSV : prochaine échéance lue par le moteur', () => {
   it('suit un report et la ligne de décalage qui fait repartir la suite', () => {
     const first = given('2026-09-01')
     const base = carnet([period({ startsOn: '2026-09-01', frequency: WEEKLY })], [first])
-    const moved = treatmentSchedule({
-      ...legacyRecordsOf({ periods: base.treatmentPeriods, doses: base.treatmentDoses }),
-      today: '2026-09-05',
-    }).move({ periodId: 'p-1', dueOn: '2026-09-08', dueTime: null }, '2026-09-10')
-    const doses = [first, ...created(moved.report), ...created(moved.shift)]
+    const moved = play(readingOf(base, '2026-09-05').input, {
+      kind: 'move',
+      due: { settingId: 'p-1', dueOn: '2026-09-08', dueTime: null },
+      to: '2026-09-10',
+      shiftsFollowing: true,
+    })
+    if ('refusal' in moved) throw new Error(moved.refusal.reason)
+    const doses = [first, ...moved.changes.flatMap(created)]
     expect(doses.map(({ status }) => status)).toEqual(['given', 'postponed', 'shift'])
     const data = carnet(base.treatmentPeriods, [...doses, given('2026-09-10')])
 

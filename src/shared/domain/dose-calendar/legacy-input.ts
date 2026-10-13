@@ -109,36 +109,3 @@ export function gridOriginsOf(periods: readonly LegacyRecord[]): Map<string, Day
     }),
   )
 }
-
-type StoredSetting = Pick<Setting, 'id' | 'startsOn' | 'createdAt' | 'gridOriginOn' | 'firstDueOn'>
-type StoredLine = Pick<Line, 'targetOn' | 'givenOn' | 'dueOn'>
-
-/**
- * Schéma v12 → anciens types, pour l'ancien moteur que lisent encore les rappels : un réglage qui
- * hérite recopie la référence du précédent, comme l'écrivait le schéma v11 ; une prise a toujours
- * une date suivante, qu'il ne relit que pour un déplacement.
- */
-export function legacyRecordsOf<P extends StoredSetting, D extends StoredLine>({
-  periods,
-  doses,
-}: {
-  periods: readonly P[]
-  doses: readonly D[]
-}): { periods: (P & { referenceOn: Day })[]; doses: (D & { nextDueDate: Day })[] } {
-  const references = new Map<string, Day>()
-  let previous: Day | undefined
-  for (const period of inOrder(periods)) {
-    previous = period.gridOriginOn ?? previous ?? period.firstDueOn
-    references.set(period.id, previous)
-  }
-  return {
-    periods: periods.map((period) => ({
-      ...period,
-      referenceOn: references.get(period.id) ?? period.firstDueOn,
-    })),
-    doses: doses.map((dose) => ({
-      ...dose,
-      nextDueDate: dose.targetOn ?? dose.givenOn ?? dose.dueOn,
-    })),
-  }
-}

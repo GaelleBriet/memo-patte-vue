@@ -8,6 +8,7 @@ import {
   withoutFinalDot,
 } from '@/shared/utils/format'
 import { dosageText, type Dosage } from './dosage'
+import type { DueReminder, TreatmentView } from './dose-calendar'
 import {
   DAYS_BEFORE_DUE,
   DAYS_OVERDUE,
@@ -17,29 +18,21 @@ import {
   type DueReminderMoment,
 } from './due-reminders'
 import { toDate } from './calendar-day'
-import { DAYS_PER_STEP } from './treatment-frequency'
-import {
-  uniqueSorted,
-  type Due,
-  type TreatmentPeriodInput,
-  type TreatmentSchedule,
-} from './treatment-schedule'
 import type { Translate } from '@/core/i18n/translate'
 
 export type CarnetReminderSettings = { vaccineReminderTime: string; remindBeforeDue: boolean }
 
-export type TreatmentReminderPeriod = Pick<TreatmentPeriodInput, 'frequency' | 'times' | 'endsOn'> &
-  Dosage & { reminderOffsetMinutes: number | null; reminderTime: string | null }
+export type TreatmentReminderPeriod = Dosage & {
+  reminderOffsetMinutes: number | null
+  reminderTime: string | null
+}
 
 export type TreatmentReminderSource = {
   id: string
   name: string
   animalName: string
   period: TreatmentReminderPeriod
-  schedule: Pick<
-    TreatmentSchedule,
-    'phase' | 'currentDoses' | 'unloggedDoses' | 'upcoming' | 'lastDueDay'
-  >
+  view: Pick<TreatmentView, 'reminders'>
 }
 
 export type VaccinationReminderSource = {
@@ -95,33 +88,42 @@ function reminder(
   }
 }
 
-function byDay(dues: readonly Due[]): Map<string, Due[]> {
-  const days = new Map<string, Due[]>()
-  for (const due of dues) days.set(due.dueOn, [...(days.get(due.dueOn) ?? []), due])
-  return days
-}
-
-/** Une fois la date de fin passée, la dernière dose garde sa relance : elle était prévue avant la fin. */
-function lastDoseAfterEnd({ schedule }: TreatmentReminderSource): Due[] {
-  if (schedule.phase !== 'ended') return []
-  const lastDay = schedule.lastDueDay()
-  return schedule.unloggedDoses.filter(({ dueOn }) => dueOn === lastDay)
-}
-
-function upcomingAndCurrent(source: TreatmentReminderSource): Due[] {
-  const { period, schedule } = source
-  const perDay = Math.max(1, period.times.length)
-  const fetched = schedule.upcoming(MAX_REMINDERS_PER_CARE + 2 * perDay + 1)
-  return uniqueSorted([...lastDoseAfterEnd(source), ...schedule.currentDoses, ...fetched])
+function treatmentTexts(
+  t: Translate,
+  { moment, due, hours }: DueReminder,
+  named: { name: string; animal: string },
+  dosage: string,
+): { title: string; body: string } {
+  if (moment === 'due') {
+    const title =
+      due.dueTime === null
+        ? t('reminders.plan.treatment.dueToday', named)
+        : t('reminders.plan.treatment.dueAt', { ...named, time: formatClockTime(due.dueTime) })
+    return { title, body: dosage }
+  }
+  if (moment === 'overdue') {
+    return {
+      title: t('reminders.plan.treatment.overdueTitle', { ...named, days: DAYS_OVERDUE }),
+      body: t('reminders.plan.treatment.overdueBody', {}),
+    }
+  }
+  const title =
+    hours.length === 0
+      ? t('reminders.plan.treatment.before', { ...named, days: DAYS_BEFORE_DUE })
+      : t('reminders.plan.treatment.beforeAt', {
+          ...named,
+          days: DAYS_BEFORE_DUE,
+          times: formatClockTimes(hours),
+        })
+  return { title, body: t('reminders.plan.treatment.beforeBody', {}) }
 }
 
 export function treatmentReminderPlan(
   t: Translate,
-  source: TreatmentReminderSource,
+  { id, name, animalName, period, view }: TreatmentReminderSource,
   settings: CarnetReminderSettings,
   now: Date,
 ): CareReminders {
-  const { id, name, animalName, period } = source
   const entry: DueReminderEntry = { kind: 'treatment', id }
   const named = { name, animal: animalName }
   const offset = period.reminderOffsetMinutes ?? 0
@@ -129,55 +131,24 @@ export function treatmentReminderPlan(
     time === null
       ? instant(day, period.reminderTime ?? DEFAULT_REMINDER_TIME)
       : instant(day, time, offset)
-  const { value, unit } = period.frequency
-  const spansAllowed = value * DAYS_PER_STEP[unit] > DAYS_BEFORE_DUE
   const dosage = dosageText(t, period) ?? ''
-  const days = byDay(upcomingAndCurrent(source))
-  const dayList = [...days.keys()]
-  const all: Reminder[] = []
-
-  dayList.forEach((day, index) => {
-    const dues = days.get(day)!
-    for (const { dueTime } of dues) {
-      const title =
-        dueTime === null
-          ? t('reminders.plan.treatment.dueToday', named)
-          : t('reminders.plan.treatment.dueAt', { ...named, time: formatClockTime(dueTime) })
-      all.push(
-        reminder(entry, { day, time: dueTime }, 'due', atOf(day, dueTime), { title, body: dosage }),
-      )
-    }
-    if (!spansAllowed) return
-
-    const first = { day, time: dues[0]!.dueTime }
-    const before = shiftDay(day, -DAYS_BEFORE_DUE)
-    const previous = dayList[index - 1]
-    if (settings.remindBeforeDue && (previous === undefined || before > previous)) {
-      const times = dues.flatMap(({ dueTime }) => (dueTime === null ? [] : [dueTime]))
-      const title =
-        times.length === 0
-          ? t('reminders.plan.treatment.before', { ...named, days: DAYS_BEFORE_DUE })
-          : t('reminders.plan.treatment.beforeAt', {
-              ...named,
-              days: DAYS_BEFORE_DUE,
-              times: formatClockTimes(times),
-            })
-      const body = t('reminders.plan.treatment.beforeBody', {})
-      all.push(reminder(entry, first, 'before', atOf(before, first.time), { title, body }))
-    }
-
-    const overdue = shiftDay(day, DAYS_OVERDUE)
-    const next = dayList[index + 1]
-    const nothingNoted = period.times.every((time) => dues.some((due) => due.dueTime === time))
-    if (nothingNoted && (next === undefined || overdue < next)) {
-      all.push(
-        reminder(entry, first, 'overdue', atOf(overdue, first.time), {
-          title: t('reminders.plan.treatment.overdueTitle', { ...named, days: DAYS_OVERDUE }),
-          body: t('reminders.plan.treatment.overdueBody', {}),
-        }),
-      )
-    }
-  })
+  const window = {
+    count: MAX_REMINDERS_PER_CARE,
+    daysBefore: DAYS_BEFORE_DUE,
+    daysAfter: DAYS_OVERDUE,
+  }
+  const all = view
+    .reminders(window)
+    .filter(({ moment }) => moment !== 'before' || settings.remindBeforeDue)
+    .map((each) =>
+      reminder(
+        entry,
+        { day: each.due.dueOn, time: each.due.dueTime },
+        each.moment,
+        atOf(each.on, each.due.dueTime),
+        treatmentTexts(t, each, named, dosage),
+      ),
+    )
 
   const future = all
     .filter(({ at }) => at > now)

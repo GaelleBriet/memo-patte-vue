@@ -8,7 +8,6 @@ import initSqlJs from 'sql.js'
 import { describe, expect, it } from 'vitest'
 
 import type { DbClient } from '@/core/db/db-client'
-import { readableScheduleOf } from '@/features/treatments/logic/reminders-schedule-adapter'
 import { createTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
 import { treatmentReading } from '@/shared/domain/treatment-reading'
 
@@ -45,12 +44,11 @@ async function openFile(file: string): Promise<DbClient> {
 }
 
 describe.skipIf(path === undefined || out === undefined)('lecture d’une base de l’appareil', () => {
-  it('écrit ce que montrent les écrans et ce que lisent les rappels, traitement par traitement', async () => {
+  it('écrit ce que montrent les écrans, traitement par traitement', async () => {
     const treatments = await createTreatmentsRepository(await openFile(path!)).listAllWithHistory()
     const shown = Object.fromEntries(
       treatments.map((treatment) => {
         const view = treatmentReading(treatment, TODAY)
-        const schedule = readableScheduleOf(treatment, TODAY)
         return [
           treatment.name,
           {
@@ -64,15 +62,6 @@ describe.skipIf(path === undefined || out === undefined)('lecture d’une base d
                     unlogged: keys(view.unloggedDoses),
                     upcoming: keys(view.upcoming({ limit: 40 })),
                     history: view.history.map(({ line, effect }) => [line.id, effect]),
-                  },
-            rappels:
-              schedule === null
-                ? 'illisible'
-                : {
-                    phase: schedule.phase,
-                    current: keys(schedule.currentDoses),
-                    unlogged: keys(schedule.unloggedDoses),
-                    upcoming: keys(schedule.upcoming(40)),
                   },
           },
         ]

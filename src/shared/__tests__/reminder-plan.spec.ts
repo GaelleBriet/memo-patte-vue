@@ -15,13 +15,13 @@ import {
   type CarnetReminderSettings,
   type TreatmentReminderPeriod,
 } from '../domain/reminder-plan'
+import { treatmentView, viewInputOf } from '../domain/dose-calendar'
 import type { TreatmentPeriodInput } from '../domain/treatment-schedule'
 import {
   carnet,
   due,
   period,
   record,
-  scheduleOf,
   stored,
   weekly,
   type Carnet,
@@ -51,7 +51,7 @@ afterEach(() => {
 
 type Setup = {
   input?: Partial<TreatmentPeriodInput>
-  reminders?: Partial<Omit<TreatmentReminderPeriod, keyof TreatmentPeriodInput>>
+  reminders?: Partial<TreatmentReminderPeriod>
   doses?: Parameters<typeof stored>[0][]
   today: string
   now: Date
@@ -80,14 +80,13 @@ function plan({
       name: 'Panacur',
       animalName: 'Pixel',
       period: {
-        ...periodInput,
         reminderOffsetMinutes: null,
         reminderTime: null,
         doseQuantity: null,
         doseUnit: null,
         ...reminders,
       },
-      schedule: scheduleOf(book, today),
+      view: treatmentView(viewInputOf({ ...book, today })),
     },
     settings ?? SETTINGS,
     now,
