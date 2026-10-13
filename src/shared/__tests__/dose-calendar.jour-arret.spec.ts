@@ -14,7 +14,7 @@ describe('TR-30, #819 : les prises du jour de l’arrêt, données avant l’arr
   describe('« Test » tous les 2 jours à 8 h et 20 h dès le 13 oct. ; 13 et 15 donnés le 13 ; « Arrêter » le 13', () => {
     const test = setting('p1', STOP, TWO_DAYS, H, { stoppedOn: STOP })
     const ofDay13 = H.map((hour) => line('p1', 'given', STOP, hour))
-    const ofDay15 = H.map((hour) => line('p1', 'given', '2026-10-15', hour))
+    const ofDay15 = H.map((hour) => ({ ...line('p1', 'given', '2026-10-15', hour), givenOn: STOP }))
     const read = view([test], [...ofDay13, ...ofDay15], STOP)
 
     it('les deux prises du 13 couvrent leurs doses', () => {
