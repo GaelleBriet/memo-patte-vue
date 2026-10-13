@@ -128,23 +128,6 @@ const APP_RESTRICTION = {
     "app/ ne fait que démarrer l'app : une feature n'en importe rien (cf. CLAUDE.md, « Règles strictes de structure »).",
 }
 
-function engineFacadeRule(group: string[]): Linter.RulesRecord {
-  return {
-    'app/no-restricted-engine-imports': [
-      'error',
-      {
-        patterns: [
-          {
-            group,
-            message:
-              "Le moteur d'échéances s'importe par sa façade, `@/shared/domain/treatment-schedule`.",
-          },
-        ],
-      },
-    ],
-  }
-}
-
 function featureImportsRule(feature: string, allowedElsewhere: string[] = []): Linter.RulesRecord {
   return restrictFeatureImports({
     patterns: [
@@ -299,18 +282,21 @@ export default defineConfigWithVueTs(
   {
     name: 'app/treatment-engine-facade',
     files: ['src/**/*.{ts,vue}'],
-    ignores: ['src/shared/domain/**', '**/__tests__/**'],
-    rules: engineFacadeRule(['**/domain/treatment-schedule-*', '../domain/treatment-schedule-*']),
-  },
-  {
-    name: 'app/treatment-engine-facade/shared-domain',
-    files: ['src/shared/domain/**/*.{ts,vue}'],
-    ignores: ['src/shared/domain/treatment-schedule*.ts'],
-    rules: engineFacadeRule([
-      '**/domain/treatment-schedule-*',
-      './treatment-schedule-*',
-      '../treatment-schedule-*',
-    ]),
+    ignores: ['src/shared/domain/dose-calendar/**', '**/__tests__/**'],
+    rules: {
+      'app/no-restricted-engine-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/domain/dose-calendar/**', './dose-calendar/**', '../dose-calendar/**'],
+              message:
+                "Le moteur des doses s'importe par sa façade, `@/shared/domain/dose-calendar`.",
+            },
+          ],
+        },
+      ],
+    },
   },
 
   // Règle distincte de no-restricted-imports pour se cumuler avec les interdits ci-dessus.

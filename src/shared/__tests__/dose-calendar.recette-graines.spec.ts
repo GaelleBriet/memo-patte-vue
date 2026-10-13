@@ -67,7 +67,7 @@ describe('R3, R12 : la posologie ne change pas le calendrier, la proposition est
     expect(journees(changed, today, 1)).toEqual([proposed])
   })
 
-  it('graine 510001190 : tous les jours à 8 h et 20 h le 19 avr. : le 20, comme le moteur actuel', () => {
+  it('graine 510001190 : tous les jours à 8 h et 20 h le 19 avr. : le 20, comme l’ancien moteur', () => {
     const { today, ...c } = graine(510001190)
     expect(journees(modifie(c, today, jours(1), H), today, 2)).toEqual(['2026-04-20', '2026-04-21'])
   })

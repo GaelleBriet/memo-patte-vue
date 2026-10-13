@@ -81,7 +81,7 @@ function estimatedPeriodDues(
   return (Math.floor(span / stepDays) + 2) * perDay + doses.length
 }
 
-/** Réglage par réglage, jusqu'à aujourd'hui ou sa fin : la même borne que l'ancien moteur. */
+/** Réglage par réglage, jusqu'à aujourd'hui ou sa fin. */
 function estimatedDues({ periods, doses }: TreatmentRecords, today: string): number {
   const ordered = [...periods].sort(byStart)
   return ordered.reduce((sum, period, index) => {
