@@ -237,6 +237,9 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   dose en retard depuis plusieurs jours, que le dialogue compte avec les autres (relecture de cohérence du 2026-09-30, validé en bloc) ; « Annuler ».
   La dose du jour non notée est retirée par l'arrêt ; quand elle existe, le dialogue le dit : « La dose
   d'aujourd'hui n'est pas notée : si tu l'as donnée, touche « C'est fait » avant d'arrêter. » (Spec Q9)
+  Les prises du jour de l'arrêt notées avant l'arrêt restent comptées, quel que soit le jour où le
+  traitement a commencé, dose arrivée d'un report comprise ; une dose d'après l'arrêt donnée d'avance
+  reste « sans effet » (#819, décision du 2026-10-13).
   Sans dose à renseigner, une confirmation simple : « Plus aucun rappel pour Milbemax. Ses prises
   restent dans le carnet. » (relecture du lot A, correction 6). (P9 Q3, doute de Gaelle à observer)
   Arrêté avant sa première échéance, sans aucune prise sur tout le traitement : la date d'arrêt reste
@@ -1093,6 +1096,16 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
   échéance. Une dose notée sur la date proposée elle-même, la prochaine dose (8 h du lendemain donnée
   d'avance, 20 h encore à donner), ne grise pas le champ (G24, #711). Écartée : ne refuser que les
   dates choisies après la dose notée.
+- 2026-10-13 — **Les prises du jour de l'arrêt restent comptées** (TR-30, R4, #819). « Test », tous
+  les 2 jours à 8 h et 20 h, première dose le 13 oct. ; les doses de 8 h et 20 h du 13 données le 13,
+  celles du 15 données d'avance le 13 ; « Arrêter » le 13 : les deux prises du 13 couvrent leurs
+  doses, les deux du 15, après l'arrêt, restent « sans effet ». Le jour de l'arrêt se lit de la même
+  façon quel que soit le jour de début : un traitement commencé le 10 et arrêté le 13 garde de même
+  les prises du 13, et une dose du 12 reportée au 13, donnée le 13 avant l'arrêt, reste couverte. Une
+  dose du jour non notée reste retirée par l'arrêt, sans passer « à renseigner » ; arrêté avant sa
+  première échéance sans aucune prise, le traitement dit toujours « Arrêté avant la première prise ».
+  Écartée : un jour de l'arrêt qui n'appartient plus au traitement (ses prises sans effet, y compris
+  celles données avant l'arrêt).
 
 ## 11. Questions ouvertes
 

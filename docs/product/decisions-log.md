@@ -2479,3 +2479,13 @@ heures reportées (R7). Luna, hebdomadaire du lundi à 8 h et 20 h ; le 5 oct., 
 reportée au jeudi 8 ; rien n'est noté le 8 : relance le 11. — Raison (Gaelle) : aucune prise de ce
 jour n'est notée, RA-5 demande la relance. — Alternative écartée : comparer aux heures du réglage,
 qui attendait 8 h le 8 et taisait la relance.
+
+2026-10-13 — **Moteur des doses v2 : les prises du jour de l'arrêt restent comptées** (spec
+`traitements.md` TR-30 et §10 ; #819). « Test », tous les 2 jours à 8 h et 20 h dès le 13 oct. ; 8 h
+et 20 h du 13 données le 13, celles du 15 données d'avance ; « Arrêter » le 13 : les prises du 13
+couvrent leurs doses, celles du 15 restent « sans effet ». Le jour de l'arrêt se lit de la même façon
+quel que soit le jour de début du traitement, dose arrivée d'un report comprise ; une dose du jour
+non notée reste retirée par l'arrêt. — Raison (Gaelle) : une prise notée ne se perd jamais (R4). Avant
+le correctif, les prises du jour de l'arrêt étaient sans effet quel que soit le jour de début ; seul
+le cas d'un arrêt le jour du début l'a montré. — Alternative écartée : un jour de l'arrêt qui
+n'appartient plus au traitement, où même les prises données avant l'arrêt sont sans effet.
