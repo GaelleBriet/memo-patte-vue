@@ -1,4 +1,4 @@
-import { hoursOf, isOnGrid, keyOf, sameHours, stepped, type Hour } from './reference-grid'
+import { hoursOf, isOnGrid, keyOf, plusDays, sameHours, stepped, type Hour } from './reference-grid'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 export type Journey = { setting: ReferenceSetting; hours: Hour[] }
@@ -12,7 +12,7 @@ export type Replaced = { from: string; to: string; onDueDay: boolean }
 export function leftDays(
   claims: readonly Claim[],
   reports: readonly ReferenceLine[],
-  stop: string | null,
+  closedFrom: string | null,
 ): Map<string, Journey> {
   const left = new Map<string, Journey>()
   for (const { setting, end, segments } of claims) {
@@ -22,7 +22,8 @@ export function leftDays(
       .map(({ dueOn }) => dueOn)
     for (const day of end === setting.startsOn ? [...reported, end] : [end]) {
       const open =
-        (setting.endsOn === null || day <= setting.endsOn) && (stop === null || day < stop)
+        (setting.endsOn === null || day <= setting.endsOn) &&
+        (closedFrom === null || day < closedFrom)
       const wasDay = segments.some(
         (segment) =>
           day >= segment.from &&
@@ -33,6 +34,33 @@ export function leftDays(
     }
   }
   return left
+}
+
+export type Resumption = {
+  live: readonly ReferenceSetting[]
+  reports: readonly ReferenceLine[]
+}
+
+// TR-30, R8 : le jour de l'arrêt se lit avec le réglage arrêté, sans y laisser d'échéance, sauf quand
+// une reprise ouverte au plus tard ce jour-là y a sa journée : une première échéance, ou l'arrivée d'un
+// report ; toutes les reprises comptent, puisqu'elles empruntent toutes les prises d'avant.
+export function stopDayOf(stopped: ReferenceSetting, resumptions: readonly Resumption[]) {
+  const stop = stopped.stoppedOn
+  const resumesThatDay =
+    stop !== null &&
+    resumptions.some(
+      ({ live, reports }) =>
+        live[0]!.startsOn <= stop &&
+        (live.some(({ firstDueOn }) => firstDueOn === stop) ||
+          reports.some(({ targetOn }) => targetOn === stop)),
+    )
+  const readsStop = stop !== null && !resumesThatDay
+  const closedFrom = readsStop ? plusDays(stop, 1) : stop
+  const stoppedAt = (day: string) =>
+    readsStop && day === stop && (stopped.endsOn === null || day <= stopped.endsOn)
+      ? stopped
+      : undefined
+  return { closedFrom, stoppedAt }
 }
 
 // R10, TR-9 : remplacé le jour même par un réglage sans date choisie qui continue sa grille repartie,

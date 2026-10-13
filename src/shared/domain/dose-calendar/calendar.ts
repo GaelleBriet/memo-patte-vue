@@ -86,7 +86,6 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   // sur sa journée passent d'abord.
   const fallen = new Set<Day>()
   const moved = new Map<string, Line>()
-  const stop = span.endOf(span.live.length - 1)
   const waiting = [...lines.reports]
   while (waiting.length > 0) {
     const ready = waiting.findIndex(
@@ -98,7 +97,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     const from = origin?.setting ?? settingOf(report.settingId)
     const hours = origin?.hours ?? hoursOf(from.times)
     // R8 : au-delà de l'arrêt, une prise ne garde pas son échéance, la reprise seule la porte.
-    if (origin === undefined && (stop === null || dueOn < stop)) {
+    if (origin === undefined && (span.closedFrom === null || dueOn < span.closedFrom)) {
       for (const note of byDay.get(dueOn) ?? []) {
         if (!isBorrowed.has(note) && hours.includes(note.dueTime)) {
           matched.add(note)
@@ -127,7 +126,9 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     const leaving = hours.filter((hour) => (hour ?? '') >= (dueTime ?? '') && !covered.has(hour))
     if (origin !== undefined) origin.hours = origin.hours.filter((hour) => !leaving.includes(hour))
     leaving.forEach((hour) => moved.set(keyOf(dueOn, hour), report))
-    const arrival = span.settingAt(targetOn!)
+    const stopDay = span.stoppedAt(targetOn!)
+    const arrival = span.settingAt(targetOn!) ?? stopDay
+    const into = stopDay === undefined ? days : left
     const keys = leaving.map((hour) => keyOf(dueOn, hour))
     if (leaving.length === 0) {
       effects.set(report.id, { kind: 'idle', reason: 'nothing-to-move' })
@@ -142,7 +143,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     // R7 : heures changées, le jour d'arrivée prend autant de dernières heures que de doses reportées.
     const kept = sameHours(arrival, from)
     if (!kept) translated.set(targetOn!, arrival.id)
-    const day = days.get(targetOn!) ?? { setting: arrival, hours: [] }
+    const day = into.get(targetOn!) ?? { setting: arrival, hours: [] }
     // R7, R9.2 : un nouveau rythme qui part du jour d'arrivée d'un report lui laisse ses seules heures.
     if (openings.delete(targetOn!)) {
       day.hours = []
@@ -150,7 +151,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     }
     const arriving = kept ? leaving : hoursOf(arrival.times).slice(-leaving.length)
     day.hours = [...new Set([...day.hours, ...arriving])].sort()
-    days.set(targetOn!, day)
+    into.set(targetOn!, day)
   }
 
   // R1, R4 : sortie du calendrier, une journée garde ses prises sur ses échéances, traduction comprise.

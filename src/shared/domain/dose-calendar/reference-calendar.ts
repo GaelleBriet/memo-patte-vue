@@ -14,13 +14,15 @@ import {
   lateDaysOf,
   handedOf,
   leftDays,
+  stopDayOf,
   type Claim,
+  type Resumption,
   type Journey,
   type ReferenceDue,
   type Replaced,
   type Segment,
 } from './reference-days'
-import { isNote, latestBy } from './reference-lines'
+import { episodeLinesOf, isLiveIn, isNote, latestBy, reportsOf } from './reference-lines'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 type Grid = { origin: string; floor: string; since: string }
@@ -32,19 +34,10 @@ export function calendarOf(
   allLines: readonly ReferenceLine[],
   borrowed: ReferenceLine[],
   reach: string,
+  resumptions: readonly Resumption[],
 ): Calendar {
-  const ids = new Set(episode.map(({ id }) => id))
-  const lines = latestBy(
-    allLines.filter((line) => ids.has(line.settingId)),
-    (line) =>
-      `${line.settingId} ${keyOf(line.dueOn, line.dueTime)} ${isNote(line) ? 'note' : line.status}`,
-  )
-  // R10 : remplacé le jour même, un réglage encore sans prise n'a jamais existé.
-  const isLive = (setting: ReferenceSetting, index: number) =>
-    episode[index + 1]?.startsOn !== setting.startsOn ||
-    lines.some(
-      (line) => line.settingId === setting.id && (isNote(line) || line.status === 'postponed'),
-    )
+  const lines = episodeLinesOf(episode, allLines)
+  const isLive = isLiveIn(episode, lines)
   const live = episode.filter(isLive)
   const notes = lines.filter(isNote)
   const noted = new Set([...notes, ...borrowed].map((note) => keyOf(note.dueOn, note.dueTime)))
@@ -52,13 +45,7 @@ export function calendarOf(
     lines.filter((line) => line.status === 'shift' && line.targetOn !== null),
     (line) => line.dueOn,
   )
-  const reports = latestBy(
-    lines.filter(
-      (line) =>
-        line.status === 'postponed' && line.targetOn !== null && line.targetOn !== line.dueOn,
-    ),
-    (line) => line.dueOn,
-  )
+  const reports = reportsOf(lines)
   const settingOf = (id: string) => settings.find((setting) => setting.id === id)!
   const endOf = (index: number) => live[index + 1]?.startsOn ?? live[index]!.stoppedOn
   const settingAt = (day: string) => {
@@ -75,7 +62,7 @@ export function calendarOf(
   const translated = new Map<string, string>()
   const left = new Map<string, Journey>()
   const claims: Claim[] = []
-  const stop = endOf(live.length - 1)
+  const { closedFrom, stoppedAt } = stopDayOf(live.at(-1)!, resumptions)
   // R7, R9.2 : les premières échéances des réglages qui ouvrent un nouveau rythme.
   const openings = new Set<string>()
   // R3, R10 : remplacé le jour même, un réglage transmet sa grille au suivant de même fréquence.
@@ -211,7 +198,7 @@ export function calendarOf(
   leftDays(
     claims.filter(({ setting }) => !handed.has(setting.id)),
     reports,
-    stop,
+    closedFrom,
   ).forEach((journey, day) => left.set(day, journey))
 
   const matched = new Set<ReferenceLine>()
@@ -251,18 +238,20 @@ export function calendarOf(
     if (targetOn! > dueOn) fallen.add(dueOn)
     const moved = hours.filter((hour) => (hour ?? '') >= (dueTime ?? '') && !covered.has(hour))
     if (origin !== undefined) origin.hours = origin.hours.filter((hour) => !moved.includes(hour))
-    const arrival = settingAt(targetOn!)
+    const stopDay = stoppedAt(targetOn!)
+    const arrival = settingAt(targetOn!) ?? stopDay
+    const into = stopDay === undefined ? days : left
     if (arrival === undefined || moved.length === 0) continue
     // R7 : heures changées, le jour d'arrivée prend autant de dernières heures que de doses reportées.
     const kept = sameHours(arrival, from)
     if (!kept) translated.set(targetOn!, arrival.id)
-    const day = days.get(targetOn!) ?? { setting: arrival, hours: [] }
+    const day = into.get(targetOn!) ?? { setting: arrival, hours: [] }
     // R7, R9.2 : un nouveau rythme qui part du jour d'arrivée d'un report lui laisse ses seules heures.
     if (openings.delete(targetOn!)) day.hours = []
     day.hours = [
       ...new Set([...day.hours, ...(kept ? moved : hoursOf(arrival).slice(-moved.length))]),
     ].sort()
-    days.set(targetOn!, day)
+    into.set(targetOn!, day)
   }
 
   left.forEach((journey, day) => {

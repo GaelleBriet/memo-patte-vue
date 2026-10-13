@@ -3,7 +3,7 @@ import { hoursOf, keyOf, later, longestStep, plusDays, stepped } from './grid'
 import { episodeLines, isNote } from './lines'
 import { momentOf } from './moment'
 import { dueReminders, type DueReminder, type ReminderWindow } from './reminders'
-import { borrowedNotes, closedBeforeFirstDue, episodesOf, spanOf } from './settings'
+import { borrowedNotes, closedBeforeFirstDue, episodesOf, liveOf, spanOf } from './settings'
 import type {
   Day,
   Due,
@@ -70,10 +70,16 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
   const byId = new Map(settings.map((setting) => [setting.id, setting]))
   const settingOf = (id: string) => byId.get(id)!
   const episodes = episodesOf(settings)
+  const owns = episodes.map((episode) => episodeLines(lines, new Set(episode.map(({ id }) => id))))
+  const resumptions = episodes.map((episode, index) => ({
+    live: liveOf(episode, owns[index]!.kept),
+    reports: owns[index]!.reports,
+  }))
   const parts = episodes.map((episode, index) => {
-    const own = episodeLines(lines, new Set(episode.map(({ id }) => id)))
+    const own = owns[index]!
     const borrowed = borrowedNotes(episodes, index, lines)
-    return { episode, lines: own, span: spanOf(episode, own.kept), borrowed }
+    const span = spanOf(episode, own.kept, resumptions.slice(index + 1))
+    return { episode, lines: own, span, borrowed }
   })
   const step = Math.max(0, ...settings.map(({ frequency }) => longestStep(frequency)))
   const lastKnownDay = [

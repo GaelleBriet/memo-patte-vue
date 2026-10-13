@@ -18,7 +18,7 @@ describe('R1, R8 : réglages successifs, arrêt et reprise', () => {
   it('un réglage vaut jusqu’au premier jour du suivant, date de fin comprise', () => {
     const p1 = setting('p1', '2026-10-01', DAY)
     const p2 = setting('p2', '2026-10-05', DAY, [], { endsOn: '2026-10-08' })
-    const span = spanOf([p1, p2], [])
+    const span = spanOf([p1, p2], [], [])
     expect([span.settingAt('2026-10-04'), span.settingAt('2026-10-05')]).toEqual([p1, p2])
     expect([span.settingAt('2026-09-30'), span.settingAt('2026-10-09')]).toEqual([
       undefined,
@@ -30,8 +30,8 @@ describe('R1, R8 : réglages successifs, arrêt et reprise', () => {
     const p1 = setting('p1', '2026-10-01', DAY)
     const p2 = setting('p2', '2026-10-03', TWO_DAYS)
     const p3 = setting('p3', '2026-10-03', DAY)
-    expect(spanOf([p1, p2, p3], []).live).toEqual([p1, p3])
-    expect(spanOf([p1, p2, p3], [line('p2', 'given', '2026-10-03')]).live).toEqual([p1, p2, p3])
+    expect(spanOf([p1, p2, p3], [], []).live).toEqual([p1, p3])
+    expect(spanOf([p1, p2, p3], [line('p2', 'given', '2026-10-03')], []).live).toEqual([p1, p2, p3])
   })
 
   it('R8, #784 : seule une prise du jour même de la reprise compte, que la reprise commence ce jour-là ou plus tard', () => {

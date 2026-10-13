@@ -1,3 +1,4 @@
+import { keyOf } from './reference-grid'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 export const isNote = (line: ReferenceLine) => line.status === 'given' || line.status === 'missed'
@@ -37,3 +38,35 @@ export function latestBy(lines: ReferenceLine[], keyOfLine: (line: ReferenceLine
   }
   return [...latest.values()].sort((a, b) => a.dueOn.localeCompare(b.dueOn))
 }
+
+// TR-25 : par réglage, échéance et famille, la ligne la plus récente d'un épisode.
+export function episodeLinesOf(
+  episode: readonly ReferenceSetting[],
+  allLines: readonly ReferenceLine[],
+): ReferenceLine[] {
+  const ids = new Set(episode.map(({ id }) => id))
+  return latestBy(
+    allLines.filter((line) => ids.has(line.settingId)),
+    (line) =>
+      `${line.settingId} ${keyOf(line.dueOn, line.dueTime)} ${isNote(line) ? 'note' : line.status}`,
+  )
+}
+
+// R7 : une ligne de report par journée, sans les reports revenus à leur date.
+export const reportsOf = (lines: readonly ReferenceLine[]): ReferenceLine[] =>
+  latestBy(
+    lines.filter(
+      (line) =>
+        line.status === 'postponed' && line.targetOn !== null && line.targetOn !== line.dueOn,
+    ),
+    (line) => line.dueOn,
+  )
+
+// R10 : remplacé le jour même, un réglage encore sans prise n'a jamais existé.
+export const isLiveIn =
+  (episode: readonly ReferenceSetting[], lines: readonly ReferenceLine[]) =>
+  (setting: ReferenceSetting, index: number) =>
+    episode[index + 1]?.startsOn !== setting.startsOn ||
+    lines.some(
+      (line) => line.settingId === setting.id && (isNote(line) || line.status === 'postponed'),
+    )

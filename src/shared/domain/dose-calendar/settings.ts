@@ -37,6 +37,10 @@ export type Span = {
   chain: Setting[]
   /** Premier jour où le réglage ne vaut plus : début du suivant, ou arrêt ; `null` : ouvert. */
   endOf(index: number): Day | null
+  /** TR-30, R8 : premier jour que l'épisode ne lit plus ; le jour de l'arrêt reste à lui, sauf si la reprise y a sa journée. */
+  closedFrom: Day | null
+  /** TR-30 : le réglage arrêté, le jour de l'arrêt que l'épisode lit encore, sans y laisser d'échéance. */
+  stoppedAt(day: Day): Setting | undefined
   /** Le réglage en vigueur ce jour-là, date de fin comprise ; aucun avant, après la fin ou l'arrêt. */
   settingAt(day: Day): Setting | undefined
 }
@@ -53,16 +57,46 @@ export const hasNotes = (setting: Setting, lines: readonly Line[]): boolean =>
     (line) => line.settingId === setting.id && (isNote(line) || line.status === 'postponed'),
   )
 
+/** R8 : les réglages d'une reprise qui ont des jours, et ses reports. */
+export type Resumption = { live: readonly Setting[]; reports: readonly Line[] }
+
 /** R10 : remplacé le jour même, un réglage sans prise ni report n'a jamais existé. */
-export function spanOf(episode: readonly Setting[], kept: readonly Line[]): Span {
-  const isLive = (setting: Setting, index: number) =>
+const isLiveIn =
+  (episode: readonly Setting[], kept: readonly Line[]) => (setting: Setting, index: number) =>
     episode[index + 1]?.startsOn !== setting.startsOn || hasNotes(setting, kept)
+
+export const liveOf = (episode: readonly Setting[], kept: readonly Line[]): Setting[] =>
+  episode.filter(isLiveIn(episode, kept))
+
+/**
+ * TR-30, R8 : une reprise ouverte au plus tard le jour de l'arrêt y a sa journée, une première échéance
+ * ou l'arrivée d'un report ; toutes comptent, puisqu'elles empruntent toutes les prises d'avant.
+ */
+function resumesOnStopDay(stop: Day, resumptions: readonly Resumption[]): boolean {
+  return resumptions.some(
+    ({ live, reports }) =>
+      live[0]!.startsOn <= stop &&
+      (live.some(({ firstDueOn }) => firstDueOn === stop) ||
+        reports.some(({ targetOn }) => targetOn === stop)),
+  )
+}
+
+export function spanOf(
+  episode: readonly Setting[],
+  kept: readonly Line[],
+  resumptions: readonly Resumption[],
+): Span {
+  const isLive = isLiveIn(episode, kept)
   const live = episode.filter(isLive)
   const chain = episode.filter(
     (setting, index) =>
       isLive(setting, index) || sameFrequency(setting.frequency, episode[index + 1]!.frequency),
   )
   const endOf = (index: number) => live[index + 1]?.startsOn ?? live[index]!.stoppedOn
+  const stopped = live.at(-1)!
+  const stop = stopped.stoppedOn
+  const readsStop = stop !== null && !resumesOnStopDay(stop, resumptions)
+  const closedFrom = readsStop ? plusDays(stop, 1) : stop
   const settingAt = (day: Day) => {
     const index = live.filter(({ startsOn }) => startsOn <= day).length - 1
     const setting = live[index]
@@ -71,7 +105,11 @@ export function spanOf(episode: readonly Setting[], kept: readonly Line[]): Span
     const open = (end === null || day < end) && (setting.endsOn === null || day <= setting.endsOn)
     return open ? setting : undefined
   }
-  return { episode, live, chain, endOf, settingAt }
+  const stoppedAt = (day: Day) =>
+    readsStop && day === stop && (stopped.endsOn === null || day <= stopped.endsOn)
+      ? stopped
+      : undefined
+  return { episode, live, chain, endOf, closedFrom, stoppedAt, settingAt }
 }
 
 /** R8, Q-G3 : les prises d'avant l'arrêt ne couvrent la reprise que le jour où elle est écrite. */
