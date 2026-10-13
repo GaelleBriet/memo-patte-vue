@@ -16,12 +16,13 @@ import {
   leftDays,
   stopDayOf,
   type Claim,
+  type Resumption,
   type Journey,
   type ReferenceDue,
   type Replaced,
   type Segment,
 } from './reference-days'
-import { isNote, latestBy } from './reference-lines'
+import { episodeLinesOf, isNote, latestBy, reportsOf } from './reference-lines'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 type Grid = { origin: string; floor: string; since: string }
@@ -33,14 +34,9 @@ export function calendarOf(
   allLines: readonly ReferenceLine[],
   borrowed: ReferenceLine[],
   reach: string,
-  resumesOn: string | null,
+  resumption: Resumption | null,
 ): Calendar {
-  const ids = new Set(episode.map(({ id }) => id))
-  const lines = latestBy(
-    allLines.filter((line) => ids.has(line.settingId)),
-    (line) =>
-      `${line.settingId} ${keyOf(line.dueOn, line.dueTime)} ${isNote(line) ? 'note' : line.status}`,
-  )
+  const lines = episodeLinesOf(episode, allLines)
   // R10 : remplacé le jour même, un réglage encore sans prise n'a jamais existé.
   const isLive = (setting: ReferenceSetting, index: number) =>
     episode[index + 1]?.startsOn !== setting.startsOn ||
@@ -54,13 +50,7 @@ export function calendarOf(
     lines.filter((line) => line.status === 'shift' && line.targetOn !== null),
     (line) => line.dueOn,
   )
-  const reports = latestBy(
-    lines.filter(
-      (line) =>
-        line.status === 'postponed' && line.targetOn !== null && line.targetOn !== line.dueOn,
-    ),
-    (line) => line.dueOn,
-  )
+  const reports = reportsOf(lines)
   const settingOf = (id: string) => settings.find((setting) => setting.id === id)!
   const endOf = (index: number) => live[index + 1]?.startsOn ?? live[index]!.stoppedOn
   const settingAt = (day: string) => {
@@ -77,7 +67,7 @@ export function calendarOf(
   const translated = new Map<string, string>()
   const left = new Map<string, Journey>()
   const claims: Claim[] = []
-  const { closedFrom, stoppedAt } = stopDayOf(live.at(-1)!, resumesOn)
+  const { closedFrom, stoppedAt } = stopDayOf(live.at(-1)!, resumption)
   // R7, R9.2 : les premières échéances des réglages qui ouvrent un nouveau rythme.
   const openings = new Set<string>()
   // R3, R10 : remplacé le jour même, un réglage transmet sa grille au suivant de même fréquence.

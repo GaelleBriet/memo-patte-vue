@@ -1,6 +1,13 @@
 import { calendarOf } from './reference-calendar'
 import { keyOf, longestStep, plusDays } from './reference-grid'
-import { episodesOf, isNote, latestBy } from './reference-lines'
+import {
+  episodeLinesOf,
+  episodesOf,
+  isNote,
+  latestBy,
+  openingOf,
+  reportsOf,
+} from './reference-lines'
 import type {
   ReferenceInput,
   ReferenceLine,
@@ -26,8 +33,7 @@ function borrowedNotes(
   index: number,
   lines: readonly ReferenceLine[],
 ): ReferenceLine[] {
-  const episode = episodes[index]!
-  const first = episode.filter(({ startsOn }) => startsOn === episode[0]!.startsOn).at(-1)!
+  const first = openingOf(episodes[index]!)
   if (index === 0) return []
   const before = new Set(episodes.slice(0, index).flatMap((earlier) => earlier.map(({ id }) => id)))
   return latestBy(
@@ -57,16 +63,19 @@ export function referenceReading({
     known.sort().at(-1)!,
     2 * Math.max(0, ...settings.map(({ frequency }) => longestStep(frequency))),
   )
-  const calendars = episodes.map((episode, index) =>
-    calendarOf(
+  const calendars = episodes.map((episode, index) => {
+    const next = episodes[index + 1]
+    const resumption =
+      next === undefined ? null : { episode: next, reports: reportsOf(episodeLinesOf(next, lines)) }
+    return calendarOf(
       settings,
       episode,
       lines,
       borrowedNotes(episodes, index, lines),
       reach,
-      episodes[index + 1]?.[0]?.startsOn ?? null,
-    ),
-  )
+      resumption,
+    )
+  })
   const last = calendars.pop()
   const setting = episodes.at(-1)?.at(-1)
   const unlogged = calendars.flatMap(({ pending }) =>

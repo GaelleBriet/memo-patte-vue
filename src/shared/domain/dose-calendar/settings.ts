@@ -37,7 +37,7 @@ export type Span = {
   chain: Setting[]
   /** Premier jour où le réglage ne vaut plus : début du suivant, ou arrêt ; `null` : ouvert. */
   endOf(index: number): Day | null
-  /** TR-30, R8 : premier jour que l'épisode ne lit plus ; le jour de l'arrêt reste à lui, sauf reprise ce jour-là. */
+  /** TR-30, R8 : premier jour que l'épisode ne lit plus ; le jour de l'arrêt reste à lui, sauf si la reprise y a sa journée. */
   closedFrom: Day | null
   /** TR-30 : le réglage arrêté, le jour de l'arrêt que l'épisode lit encore, sans y laisser d'échéance. */
   stoppedAt(day: Day): Setting | undefined
@@ -57,11 +57,27 @@ export const hasNotes = (setting: Setting, lines: readonly Line[]): boolean =>
     (line) => line.settingId === setting.id && (isNote(line) || line.status === 'postponed'),
   )
 
+/** R8 : l'épisode qui reprend après l'arrêt, et ses reports. */
+export type Resumption = { episode: readonly Setting[]; reports: readonly Line[] }
+
+/** R8 : le réglage d'ouverture de l'épisode, le dernier écrit pour son premier jour. */
+const openingOf = (episode: readonly Setting[]): Setting =>
+  episode.filter(({ startsOn }) => startsOn === episode[0]!.startsOn).at(-1)!
+
+/** TR-30, R8 : la reprise a sa journée le jour de l'arrêt, sa première échéance ou l'arrivée d'un report. */
+function resumesOnStopDay(stop: Day, resumption: Resumption | null): boolean {
+  if (resumption === null || resumption.episode[0]!.startsOn > stop) return false
+  return (
+    openingOf(resumption.episode).firstDueOn === stop ||
+    resumption.reports.some(({ targetOn }) => targetOn === stop)
+  )
+}
+
 /** R10 : remplacé le jour même, un réglage sans prise ni report n'a jamais existé. */
 export function spanOf(
   episode: readonly Setting[],
   kept: readonly Line[],
-  resumesOn: Day | null,
+  resumption: Resumption | null,
 ): Span {
   const isLive = (setting: Setting, index: number) =>
     episode[index + 1]?.startsOn !== setting.startsOn || hasNotes(setting, kept)
@@ -73,7 +89,7 @@ export function spanOf(
   const endOf = (index: number) => live[index + 1]?.startsOn ?? live[index]!.stoppedOn
   const stopped = live.at(-1)!
   const stop = stopped.stoppedOn
-  const readsStop = stop !== null && (resumesOn === null || resumesOn > stop)
+  const readsStop = stop !== null && !resumesOnStopDay(stop, resumption)
   const closedFrom = readsStop ? plusDays(stop, 1) : stop
   const settingAt = (day: Day) => {
     const index = live.filter(({ startsOn }) => startsOn <= day).length - 1
@@ -96,8 +112,7 @@ export function borrowedNotes(
   index: number,
   lines: readonly Line[],
 ): Line[] {
-  const episode = episodes[index]!
-  const first = episode.filter(({ startsOn }) => startsOn === episode[0]!.startsOn).at(-1)!
+  const first = openingOf(episodes[index]!)
   if (index === 0) return []
   const before = new Set(episodes.slice(0, index).flatMap((earlier) => earlier.map(({ id }) => id)))
   return latestBy(

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { Frequency, Line } from '../domain/dose-calendar/types'
 import * as reference from './dose-calendar.reference.aides'
-import { DAY, H, keys, line, setting, TWO_DAYS, view } from './dose-calendar.v2.aides'
+import { DAY, H, keys, line, MONTH, setting, TWO_DAYS, view } from './dose-calendar.v2.aides'
 
 const STOP = '2026-10-13'
 
@@ -94,6 +94,34 @@ describe('TR-30, #819 : les prises du jour de l’arrêt, données avant l’arr
     expect([read.stoppedBeforeFirstDose, read.endedOn]).toEqual([true, STOP])
   })
 
+  describe('mensuel sans heure, dose du 13 oct. donnée le 13, « Arrêter » le 13, « Reprendre »', () => {
+    const monthly = setting('p1', '2026-09-13', MONTH, [], { stoppedOn: STOP })
+    const given = line('p1', 'given', STOP)
+
+    it.each<[string, string, string, Frequency]>([
+      ['le 13, première dose le 13 nov.', STOP, '2026-11-13', MONTH],
+      ['le 13, tous les jours dès le 14', STOP, '2026-10-14', DAY],
+      ['le 14, première dose le 13 nov.', '2026-10-14', '2026-11-13', MONTH],
+    ])('%s : la prise du 13 oct. couvre sa dose', (_, startsOn, firstDueOn, frequency) => {
+      const resumed = setting('p2', firstDueOn, frequency, [], { startsOn })
+      const read = view([monthly, resumed], [given], STOP)
+      expect(effectsOf(read, [given])).toEqual([{ kind: 'covers', key: STOP }])
+      expect(keys([read.nextDue!])).toEqual([firstDueOn])
+    })
+  })
+
+  it('8 h, 14 h et 20 h du 8 données, arrêt le 8, reprise le 8, première dose le 9 : les trois prises couvrent leurs doses', () => {
+    const hours = ['08:00', '14:00', '20:00']
+    const stopped = setting('p1', '2026-10-05', DAY, hours, { stoppedOn: '2026-10-08' })
+    const resumed = setting('p2', '2026-10-09', DAY, hours, { startsOn: '2026-10-08' })
+    const ofDay8 = hours.map((hour) => line('p1', 'given', '2026-10-08', hour))
+    expect(effectsOf(view([stopped, resumed], ofDay8, '2026-10-08'), ofDay8)).toEqual([
+      { kind: 'covers', key: '2026-10-08 08:00' },
+      { kind: 'covers', key: '2026-10-08 14:00' },
+      { kind: 'covers', key: '2026-10-08 20:00' },
+    ])
+  })
+
   it('modèle naïf, même carnet : arrêté, rien à renseigner ni à venir', () => {
     const test = reference.setting('p1', STOP, reference.TWO_DAYS, H, { stoppedOn: STOP })
     const lines = [STOP, '2026-10-15'].flatMap((day) =>
@@ -105,6 +133,17 @@ describe('TR-30, #819 : les prises du jour de l’arrêt, données avant l’arr
       current: [],
       unlogged: [],
       upcoming: [],
+    })
+  })
+
+  it('modèle naïf, mensuel arrêté le 13 oct., dose du 13 donnée, repris le 13 avec première dose le 13 nov. : rien à renseigner', () => {
+    const monthly = reference.setting('p1', '2026-09-13', reference.MONTH, [], { stoppedOn: STOP })
+    const resumed = reference.setting('p2', '2026-11-13', reference.MONTH, [], { startsOn: STOP })
+    const lines = ['2026-09-13', STOP].map((day) => reference.line('p1', 'given', day))
+    expect(reference.read([monthly, resumed], lines, STOP)).toMatchObject({
+      phase: 'upcoming',
+      current: ['2026-11-13'],
+      unlogged: [],
     })
   })
 })
