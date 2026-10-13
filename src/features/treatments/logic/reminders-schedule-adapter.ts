@@ -1,5 +1,6 @@
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
+import { legacyRecordsOf } from '@/shared/domain/dose-calendar'
 import { readableTreatmentSchedule } from '@/shared/domain/readable-treatment-schedule'
 import type { TreatmentSchedule } from '@/shared/domain/treatment-schedule'
 
@@ -11,7 +12,7 @@ export function readableScheduleOf(
   today: string,
 ): TreatmentSchedule | null {
   if (treatment === null) return null
-  return readableTreatmentSchedule({ periods: treatment.periods, doses: treatment.doses, today })
+  return readableTreatmentSchedule({ ...legacyRecordsOf(treatment), today })
 }
 
 export function currentPeriodOf(

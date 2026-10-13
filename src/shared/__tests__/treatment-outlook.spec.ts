@@ -22,7 +22,7 @@ function period(changes: Partial<ExportTreatmentPeriod> = {}): ExportTreatmentPe
     animalId: 'a-1',
     startsOn: '2026-09-01',
     firstDueOn: '2026-09-01',
-    referenceOn: '2026-09-01',
+    gridOriginOn: '2026-09-01',
     endsOn: null,
     stoppedOn: null,
     frequency: { value: 1, unit: 'month' },
@@ -46,7 +46,7 @@ function given(dueOn: string, changes: Partial<ExportTreatmentDose> = {}): Expor
     dueTime: null,
     givenOn: dueOn,
     status: 'given',
-    nextDueDate: dueOn,
+    targetOn: null,
     ...STAMPS,
     ...changes,
   }

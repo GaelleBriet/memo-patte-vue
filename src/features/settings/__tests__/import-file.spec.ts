@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { parseExportFile } from '../schema/export-file.schema'
+import exportV3 from './fixtures/export-v3-0.1.56.json?raw'
+import exportV4 from './fixtures/export-v4-0.1.60.json?raw'
 import { IMPORT_FILE, IMPORT_FIXTURE, importFixtureJson, LUNA_ID, MILO_ID } from './import-fixture'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
@@ -144,7 +146,7 @@ describe('parseExportFile', () => {
   })
 
   describe('version', () => {
-    it.each([1, 2, 3])(
+    it.each([1, 2])(
       'signale un export d’une version plus ancienne (v%i), quel que soit son contenu',
       (schemaVersion) => {
         expect(parseExportFile(JSON.stringify({ schemaVersion, animals: [] }))).toEqual({
@@ -158,7 +160,7 @@ describe('parseExportFile', () => {
     )
 
     it('signale un export d’une version plus récente, quel que soit son contenu', () => {
-      const text = JSON.stringify({ schemaVersion: 5, pets: [] })
+      const text = JSON.stringify({ schemaVersion: 6, pets: [] })
 
       expect(parseExportFile(text)).toEqual({ ok: false, reason: 'newer' })
     })
@@ -420,8 +422,13 @@ describe('parseExportFile', () => {
       ['une date réelle dans le futur', { givenOn: '2999-01-01' }],
       ['une échéance illisible', { dueOn: '10/09/2026' }],
       ['une heure d’échéance à 25 h', { dueTime: '25:00' }],
-      ['une prochaine échéance absente', { nextDueDate: null }],
-      ['une prochaine échéance après 2199', { nextDueDate: '2200-01-01' }],
+      ['un jour d’arrivée sur une prise', { targetOn: '2026-09-02' }],
+      ['un report sans jour d’arrivée', { status: 'postponed', givenOn: null, targetOn: null }],
+      [
+        'un jour d’arrivée après 2199',
+        { status: 'postponed', givenOn: null, targetOn: '2200-01-01' },
+      ],
+      ['une ligne de décalage sans jour d’ancrage', { status: 'shift', givenOn: null }],
       ['une période qui n’est pas un UUID', { periodId: 'p-1' }],
       ['une prise sans période', { periodId: undefined }],
       ['une prise en plus sans date réelle', { status: 'extra', givenOn: null }],
@@ -463,7 +470,7 @@ describe('parseExportFile', () => {
             status: 'extra',
             dueOn: '2026-09-01',
             givenOn: '2026-09-01',
-            nextDueDate: '2026-09-02',
+            targetOn: null,
           })
         }),
       )
@@ -479,7 +486,7 @@ describe('parseExportFile', () => {
           Object.assign(panacur(document).matin, {
             status: 'shift',
             givenOn: null,
-            nextDueDate: '2026-09-02',
+            targetOn: '2026-09-02',
           })
         }),
       )
@@ -490,18 +497,18 @@ describe('parseExportFile', () => {
     })
   })
 
-  describe('jour de référence et appareils', () => {
-    it('relit le jour de référence de chaque période et les appareils du carnet', () => {
+  describe('origine de la grille et appareils', () => {
+    it('relit l’origine de la grille de chaque période et les appareils du carnet', () => {
       const result = parseExportFile(importFixtureJson())
 
       expect(
-        result.ok && result.file.data.treatmentPeriods.map((period) => period.referenceOn),
+        result.ok && result.file.data.treatmentPeriods.map((period) => period.gridOriginOn),
       ).toEqual(['2026-06-15', '2026-09-01'])
       expect(result.ok && result.file.data.devices).toEqual(IMPORT_FIXTURE.devices)
     })
 
     it.each([
-      ['une période sans jour de référence', 'treatmentPeriods', { referenceOn: undefined }],
+      ['une période sans origine de grille', 'treatmentPeriods', { gridOriginOn: undefined }],
       ['un appareil sans date d’installation', 'devices', { installedAt: undefined }],
       ['un modèle d’appareil de plus de 200 caractères', 'devices', { model: 'a'.repeat(201) }],
     ])('refuse %s', (_, table, change) => {
@@ -646,6 +653,96 @@ describe('parseExportFile', () => {
       const result = parseExportFile(text)
 
       expect(result.ok && result.file.data.animals.map(({ id }) => id)).toEqual([LUNA_ID, MILO_ID])
+    })
+  })
+
+  describe('anciens exports, convertis au format courant (plan §3.3)', () => {
+    const IMPORTEUR = '12121212-1212-4212-8212-121212121212'
+
+    it('relit un export v4 de l’app 0.1.60 : origine de la grille, arrivée des reports, appareils', () => {
+      const result = parseExportFile(exportV4, IMPORTEUR, '2026-10-12')
+
+      expect(result.ok).toBe(true)
+      if (!result.ok) return
+      const { data } = result.file
+      expect(result.file.schemaVersion).toBe(5)
+      expect(data.treatmentPeriods.map(({ gridOriginOn }) => gridOriginOn)).toEqual([
+        '2026-06-15',
+        '2026-09-01',
+      ])
+      expect(data.treatmentDoses.map(({ status, targetOn }) => [status, targetOn])).toEqual([
+        ['given', null],
+        ['postponed', '2026-09-03'],
+        ['missed', null],
+        ['given', null],
+      ])
+      expect(data.devices.map(({ id }) => id)).toEqual(['ffffffff-ffff-4fff-8fff-ffffffffffff'])
+      expect(data.treatments.every(({ createdByDevice }) => createdByDevice !== IMPORTEUR)).toBe(
+        true,
+      )
+    })
+
+    it('relit un export v3 de l’app 0.1.56, signé par l’appareil qui importe', () => {
+      const result = parseExportFile(exportV3, IMPORTEUR, '2026-10-12')
+
+      expect(result.ok).toBe(true)
+      if (!result.ok) return
+      const { data } = result.file
+      expect(data.devices).toEqual([])
+      expect(data.animals.map(({ name }) => name)).toEqual(['Luna', 'Milo'])
+      expect(data.treatmentDoses).toHaveLength(29)
+      for (const row of [...data.animals, ...data.treatmentPeriods, ...data.treatmentDoses]) {
+        expect(row).toMatchObject({ createdByDevice: IMPORTEUR, updatedByDevice: IMPORTEUR })
+      }
+      expect(
+        data.treatmentPeriods.every(({ gridOriginOn, firstDueOn }) => gridOriginOn === firstDueOn),
+      ).toBe(true)
+      expect(
+        data.treatmentDoses.filter(({ targetOn }) => targetOn !== null).map(({ status }) => status),
+      ).toEqual(['postponed'])
+    })
+
+    it('fait hériter l’origine d’une période qui suit sans arrêt une période de même rythme et même référence (R3)', () => {
+      const v4 = JSON.parse(exportV4) as Document
+      const [milbemax] = rows(v4, 'treatmentPeriods')
+      rows(v4, 'treatmentPeriods').push({
+        ...milbemax,
+        id: '99999999-0000-4000-8000-000000000001',
+        startsOn: '2026-08-01',
+        firstDueOn: '2026-09-15',
+        createdAt: '2026-08-01T07:00:00.000Z',
+      })
+
+      const result = parseExportFile(JSON.stringify(v4), IMPORTEUR, '2026-10-12')
+
+      expect(
+        result.ok && result.file.data.treatmentPeriods.map(({ gridOriginOn }) => gridOriginOn),
+      ).toEqual(['2026-06-15', '2026-09-01', null])
+    })
+
+    it('refuse un export v4 dont un report n’a pas de date suivante', () => {
+      const v4 = JSON.parse(exportV4) as Document
+      delete rows(v4, 'treatmentDoses')[1]!.nextDueDate
+
+      expect(parseExportFile(JSON.stringify(v4), IMPORTEUR, '2026-10-12')).toEqual(INVALID)
+    })
+  })
+
+  describe('relu par le moteur avant toute écriture (Q40)', () => {
+    it('refuse un fichier dont un traitement est trop long à relire : rien n’est importé', () => {
+      const heures = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2, '0')}:00`)
+      const text = withDocument((document) => {
+        const [, period] = rows(document, 'treatmentPeriods')
+        Object.assign(period!, {
+          startsOn: '1950-01-01',
+          firstDueOn: '1950-01-01',
+          gridOriginOn: '1950-01-01',
+          times: heures,
+        })
+        document.treatmentDoses = rows(document, 'treatmentDoses').slice(0, 1)
+      })
+
+      expect(parseExportFile(text)).toEqual(INVALID)
     })
   })
 

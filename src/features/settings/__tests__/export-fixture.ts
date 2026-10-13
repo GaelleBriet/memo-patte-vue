@@ -33,7 +33,6 @@ export type SummaryVaccination = Omit<ExportVaccination, 'plannedDueDate'> & {
 export type SummaryTreatment = ExportTreatment & {
   frequency: ExportFrequency
   lastDoseDate: string
-  nextDueDate: string
   stoppedOn?: string | null
 }
 
@@ -65,7 +64,7 @@ export function periodOf(
 ): ExportTreatmentPeriod {
   return {
     firstDueOn: period.startsOn,
-    referenceOn: period.firstDueOn ?? period.startsOn,
+    gridOriginOn: period.firstDueOn ?? period.startsOn,
     endsOn: null,
     stoppedOn: null,
     frequency: { value: 1, unit: 'month' },
@@ -139,7 +138,7 @@ export function carnetOf({
       dueTime: null,
       givenOn: treatment.lastDoseDate,
       status: 'given',
-      nextDueDate: treatment.nextDueDate,
+      targetOn: null,
       createdAt: treatment.createdAt,
       updatedAt: treatment.updatedAt,
       ...BY_FIXTURE_DEVICE,
@@ -312,7 +311,7 @@ export const EXPORT_FIXTURE: ExportData = {
       dueTime: null,
       givenOn: '2026-06-15',
       status: 'given',
-      nextDueDate: '2026-09-15',
+      targetOn: null,
       createdAt: '2026-06-15T08:10:00.000Z',
       updatedAt: '2026-06-15T08:10:00.000Z',
       ...BY_FIXTURE_DEVICE,
@@ -326,7 +325,7 @@ export const EXPORT_FIXTURE: ExportData = {
       dueTime: null,
       givenOn: '2026-03-15',
       status: 'given',
-      nextDueDate: '2026-06-15',
+      targetOn: null,
       createdAt: '2026-01-10T08:10:00.000Z',
       updatedAt: '2026-01-10T08:10:00.000Z',
       ...BY_FIXTURE_DEVICE,
@@ -338,7 +337,7 @@ export const EXPORT_FIXTURE: ExportData = {
       dueTime: '20:00',
       givenOn: null,
       status: 'missed',
-      nextDueDate: '2026-09-11',
+      targetOn: null,
     },
     {
       ...PANACUR,
@@ -347,7 +346,7 @@ export const EXPORT_FIXTURE: ExportData = {
       dueTime: '08:00',
       givenOn: '2026-09-10',
       status: 'given',
-      nextDueDate: '2026-09-10',
+      targetOn: null,
     },
   ],
   weightEntries: [

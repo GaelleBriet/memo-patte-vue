@@ -55,7 +55,7 @@ function dosesAfter(history: TreatmentWithHistory, { doses }: TreatmentPlanWrite
       return lines.map((line) => (line.id === write.id ? { ...line, ...write.dose } : line))
     }
     const { id, dose: fields } = write
-    return [...lines, { ...dose(fields.dueOn, fields.nextDueDate), ...fields, id }]
+    return [...lines, { ...dose(fields.dueOn, fields.targetOn ?? fields.dueOn), ...fields, id }]
   }, history.doses)
 }
 
@@ -105,7 +105,7 @@ describe('« Prochaine dose » seule : un report, jamais un nouveau réglage (TR
           dueTime: null,
           givenOn: null,
           status: 'postponed',
-          nextDueDate: '2026-09-24',
+          targetOn: '2026-09-24',
         },
       },
     ])
@@ -122,8 +122,8 @@ describe('« Prochaine dose » seule : un report, jamais un nouveau réglage (TR
     expect(plan.period).toBeNull()
     expect(plan.doses.map(({ action }) => action)).toEqual(['create', 'create'])
     expect(plan.doses).toMatchObject([
-      { dose: { status: 'postponed', dueOn: '2026-09-21', nextDueDate: '2026-09-24' } },
-      { dose: { status: 'shift', nextDueDate: '2026-09-24' } },
+      { dose: { status: 'postponed', dueOn: '2026-09-21', targetOn: '2026-09-24' } },
+      { dose: { status: 'shift', targetOn: '2026-09-24' } },
     ])
     expect(upcomingAfter(MILBEMAX, plan, TODAY, 3)).toEqual([
       '2026-09-24',
@@ -137,8 +137,8 @@ describe('« Prochaine dose » seule : un report, jamais un nouveau réglage (TR
 
     expect(plan.period).toBeNull()
     expect(plan.doses).toMatchObject([
-      { action: 'create', dose: { dueOn: '2026-09-21', nextDueDate: '2026-09-18' } },
-      { action: 'create', dose: { status: 'shift', nextDueDate: '2026-09-18' } },
+      { action: 'create', dose: { dueOn: '2026-09-21', targetOn: '2026-09-18' } },
+      { action: 'create', dose: { status: 'shift', targetOn: '2026-09-18' } },
     ])
   })
 
@@ -191,12 +191,12 @@ describe('« Prochaine dose » seule : un report, jamais un nouveau réglage (TR
         {
           action: 'rewrite',
           id: 'report 2026-09-21',
-          dose: { dueOn: '2026-09-21', nextDueDate: '2026-09-26' },
+          dose: { dueOn: '2026-09-21', targetOn: '2026-09-26' },
         },
         {
           action: 'rewrite',
           id: 'décalage 2026-09-21',
-          dose: { status: 'shift', nextDueDate: '2026-09-26' },
+          dose: { status: 'shift', targetOn: '2026-09-26' },
         },
       ])
     })
@@ -266,8 +266,8 @@ describe('« Prochaine dose » et la date de fin', () => {
 
     expect(plan.period).toMatchObject({ action: 'correct', settings: { endsOn: '2026-11-05' } })
     expect(plan.doses).toMatchObject([
-      { action: 'create', dose: { dueOn: '2026-10-03', nextDueDate: '2026-10-12' } },
-      { action: 'create', dose: { status: 'shift', nextDueDate: '2026-10-12' } },
+      { action: 'create', dose: { dueOn: '2026-10-03', targetOn: '2026-10-12' } },
+      { action: 'create', dose: { status: 'shift', targetOn: '2026-10-12' } },
     ])
   })
 
@@ -318,8 +318,8 @@ describe('« Prochaine dose » et la date de fin', () => {
 
       expect(plan.period).toMatchObject({ action: 'correct', settings: { endsOn: '2026-10-12' } })
       expect(plan.doses).toMatchObject([
-        { action: 'rewrite', id: 'report 2026-10-07', dose: { nextDueDate: '2026-10-11' } },
-        { action: 'rewrite', dose: { status: 'shift', nextDueDate: '2026-10-11' } },
+        { action: 'rewrite', id: 'report 2026-10-07', dose: { targetOn: '2026-10-11' } },
+        { action: 'rewrite', dose: { status: 'shift', targetOn: '2026-10-11' } },
       ])
     })
 

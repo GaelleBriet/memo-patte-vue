@@ -107,7 +107,7 @@ function periode(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPerio
     animalId: MILO.id,
     startsOn: '2026-07-10',
     firstDueOn: '2026-07-10',
-    referenceOn: overrides.firstDueOn ?? '2026-07-10',
+    gridOriginOn: overrides.firstDueOn ?? '2026-07-10',
     endsOn: null,
     stoppedOn: null,
     frequency: { value: 3, unit: 'month' },
@@ -133,7 +133,7 @@ function prise(overrides: Partial<NewTreatmentDose> = {}): NewTreatmentDose {
     dueTime: null,
     givenOn: '2026-07-10',
     status: 'given',
-    nextDueDate: '2026-10-10',
+    targetOn: null,
     createdAt: AT,
     updatedAt: AT,
     deletedAt: null,
@@ -1667,7 +1667,7 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
             doseUnit: 'pipette',
           }),
         ],
-        [prise({ dueOn: '2026-09-08', givenOn: '2026-09-08', nextDueDate: '2026-09-15' })],
+        [prise({ dueOn: '2026-09-08', givenOn: '2026-09-08' })],
       ),
     )
     const wrapper = await monterEdition()
@@ -1739,7 +1739,7 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
     getWithHistory.mockResolvedValue(
       milbemax(
         [periode({ frequency: { value: 1, unit: 'week' } })],
-        [prise({ dueOn: '2026-09-26', givenOn: '2026-09-26', nextDueDate: '2026-10-03' })],
+        [prise({ dueOn: '2026-09-26', givenOn: '2026-09-26' })],
       ),
     )
     const wrapper = await monterEdition()
@@ -1768,7 +1768,7 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
             dueOn: '2026-10-05',
             givenOn: null,
             status: 'postponed',
-            nextDueDate: '2026-10-07',
+            targetOn: '2026-10-07',
           }),
         ],
       ),
@@ -1814,10 +1814,10 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
             frequency: { value: 1, unit: 'week' },
             startsOn: '2026-09-20',
             firstDueOn: '2026-09-20',
-            referenceOn: '2026-09-20',
+            gridOriginOn: '2026-09-20',
           }),
         ],
-        [prise({ dueOn: '2026-09-20', givenOn: '2026-09-20', nextDueDate: '2026-09-27' })],
+        [prise({ dueOn: '2026-09-20', givenOn: '2026-09-20' })],
       ),
     )
     const wrapper = await monterEdition()
@@ -1849,7 +1849,7 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
             dueOn: '2026-10-10',
             givenOn: null,
             status: 'postponed',
-            nextDueDate: '2026-10-14',
+            targetOn: '2026-10-14',
           }),
         ],
       ),
@@ -1887,13 +1887,13 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
           }),
         ],
         [
-          prise({ dueOn: '2026-09-11', givenOn: '2026-09-11', nextDueDate: '2026-09-18' }),
+          prise({ dueOn: '2026-09-11', givenOn: '2026-09-11' }),
           prise({
             id: 'd-report',
             dueOn: '2026-10-09',
             givenOn: null,
             status: 'postponed',
-            nextDueDate: '2026-10-20',
+            targetOn: '2026-10-20',
           }),
         ],
       ),
@@ -2156,8 +2156,8 @@ describe('TreatmentFormView — échéances tombées d’une période sans prise
           }),
         ],
         [
-          prise({ id: 'a', dueOn: '2026-09-11', givenOn: '2026-09-11', nextDueDate: '2026-09-18' }),
-          prise({ id: 'b', dueOn: '2026-09-18', givenOn: '2026-09-18', nextDueDate: '2026-09-25' }),
+          prise({ id: 'a', dueOn: '2026-09-11', givenOn: '2026-09-11' }),
+          prise({ id: 'b', dueOn: '2026-09-18', givenOn: '2026-09-18' }),
         ],
       ),
     )
@@ -2352,7 +2352,7 @@ describe('TreatmentFormView — reprise (TR-32, planche V7)', () => {
     frequency: { value: 1, unit: 'day' },
     startsOn: '2026-10-06',
     firstDueOn: '2026-10-06',
-    referenceOn: '2026-10-06',
+    gridOriginOn: '2026-10-06',
     endsOn: '2026-10-10',
     times: ['20:00'],
     doseQuantity: 0.5,
@@ -2361,7 +2361,6 @@ describe('TreatmentFormView — reprise (TR-32, planche V7)', () => {
     dueOn: '2026-10-10',
     dueTime: '20:00',
     givenOn: '2026-10-10',
-    nextDueDate: '2026-10-11',
   })
 
   function panacur(periods = [PANACUR]): TreatmentWithHistory {
@@ -2766,7 +2765,7 @@ describe('TreatmentFormView — changement de jour', () => {
     getWithHistory.mockResolvedValue(
       milbemax(
         [periode({ frequency: { value: 1, unit: 'day' } })],
-        [prise({ dueOn: '2026-09-27', givenOn: '2026-09-27', nextDueDate: '2026-09-28' })],
+        [prise({ dueOn: '2026-09-27', givenOn: '2026-09-27' })],
       ),
     )
     const wrapper = await monterEdition()

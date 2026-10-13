@@ -28,8 +28,8 @@ export type ReminderOffsetMinutes = (typeof REMINDER_OFFSETS_MINUTES)[number]
 
 /** La période avec toutes ses colonnes : ce que l'export emporte et que l'import écrit. */
 export type TreatmentPeriodRecord = TreatmentPeriod & {
-  /** Origine de la grille des échéances ; par défaut, la première échéance. */
-  referenceOn: string
+  /** Origine de la grille (R2) ; `null` : celle du réglage précédent (R3). */
+  gridOriginOn: string | null
   endsOn: string | null
   /** Heures `HH:mm` de chaque jour d'échéance ; vide pour un traitement sans heure. */
   times: string[]

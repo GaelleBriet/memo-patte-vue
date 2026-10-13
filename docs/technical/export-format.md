@@ -1,4 +1,4 @@
-# Format d'export des données (#80, v3 : #454, v4 : #501)
+# Format d'export des données (#80, v3 : #454, v4 : #501, v5 : #754)
 
 Contrat entre l'export (Paramètres → « Exporter mes données ») et l'import (#84, section
 [Import](#import--importer-un-export-mémopatte)).
@@ -89,7 +89,7 @@ Date du nom de fichier : minute locale de l'export. Encodage UTF-8, sans BOM, in
 
 ```json
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "exportedAt": "2026-10-01T08:30:00.000Z",
   "appVersion": "0.1.48",
   "carnetSettings": null,
@@ -120,17 +120,29 @@ et de celui qui a écrit sa valeur actuelle ; une période porte son jour de ré
 une prise peut valoir `"extra"` (prise en plus) ou `"shift"` (ligne de décalage) ; le fichier porte
 la liste des appareils (`devices[]`). Le CSV ne reprend ni les appareils ni leurs identifiants.
 
+**Version 5** (#754, schéma v12, [`moteur-doses-v2-plan.md`](moteur-doses-v2-plan.md) §3) : une colonne
+par sens. Une période porte l'origine de sa grille `gridOriginOn` à la place de `referenceOn`, `null`
+quand elle hérite celle du réglage précédent (R3) ; une ligne porte son jour d'arrivée `targetOn` à la
+place de `nextDueDate`, renseigné pour un report (jour d'arrivée) et une ligne de décalage (jour
+d'ancrage) seulement, `null` pour une prise.
+
 | Champ           | Type                   | Sens                                                                 |
 | --------------- | ---------------------- | -------------------------------------------------------------------- |
 | `schemaVersion` | entier                 | Version du contrat. Toute rupture (champ retiré, renommé, sens changé) l'incrémente ; un ajout de champ optionnel ne l'incrémente pas |
 | `exportedAt`    | ISO 8601 UTC           | Instant de l'export                                                  |
 | `appVersion`    | texte                  | Version de l'app (`package.json`) qui a produit le fichier           |
 
-L'import n'accepte **que la version 4** (spec Données DO-8) : un `schemaVersion` supérieur est refusé
-(« Cet export vient d'une version plus récente de l'app. »), un `schemaVersion` inférieur aussi
-(« Cet export vient d'une version plus ancienne de MémoPatte. Il ne peut plus être importé. »). Les formats v1 (jusqu'à la 0.1.40), v2
-(jusqu'à la 0.1.48) et v3 (jusqu'à la 0.1.56) ne se relisent plus, sans conversion : l'app n'est pas publiée, les fichiers
-existants ne portent que des données de test (décision du 2026-09-29).
+L'import relit les versions **3, 4 et 5** (plan du moteur v2 §3.3) : un fichier v3 ou v4 est converti
+au format v5 avant toute autre étape. `referenceOn` devient `gridOriginOn` par la règle de la migration
+v12 (`gridOriginsOf`, `src/shared/domain/dose-calendar/legacy-input.ts`) : `null` quand la période suit
+sans arrêt une période de même fréquence et de même `referenceOn`, sinon `referenceOn` s'il est sur la
+grille qui passe par `firstDueOn`, sinon `firstDueOn` ; `nextDueDate` devient `targetOn` pour un report
+et un décalage, `null` pour une prise. Un fichier v3, qui n'a ni appareils ni `referenceOn`, est signé
+par l'appareil qui importe (`createdByDevice`, `updatedByDevice`) et part de `referenceOn` = `firstDueOn`.
+Un `schemaVersion` supérieur est refusé (« Cet export vient d'une version plus récente de l'app. »), un
+`schemaVersion` inférieur à 3 aussi (« Cet export vient d'une version plus ancienne de MémoPatte. Il ne
+peut plus être importé. ») : les formats v1 (jusqu'à la 0.1.40) et v2 (jusqu'à la 0.1.48) ne se relisent
+plus (décision du 2026-09-29).
 
 Dates : une date civile s'écrit `AAAA-MM-JJ`, existe au calendrier et tombe entre 1900 et 2199 ; un
 instant s'écrit en ISO 8601 UTC (`Z`), entre les mêmes années ; une heure s'écrit `HH:mm` sur 24 h.
@@ -221,7 +233,7 @@ n'en exporte pas, et l'import le refuse jusqu'au lot 3, comme `"medication"`.
 | `animalId`              | UUID                                                          | Toujours celui de son traitement                                      |
 | `startsOn`              | `AAAA-MM-JJ`                                                  | Début de la période                                                   |
 | `firstDueOn`            | `AAAA-MM-JJ`                                                  | Première échéance de la période                                       |
-| `referenceOn`           | `AAAA-MM-JJ`                                                  | Origine de la grille des échéances ; par défaut, la première échéance |
+| `gridOriginOn`          | `AAAA-MM-JJ` \| `null`                                        | Origine de la grille (R2) ; `null` : celle du réglage précédent (R3)  |
 | `endsOn`                | `AAAA-MM-JJ` \| `null`                                        | Date de fin, facultative                                              |
 | `stoppedOn`             | `AAAA-MM-JJ` \| `null`                                        | Date d'arrêt, `null` en cours                                         |
 | `frequency`             | `{ "value": 1 à 365, "unit": "day" \| "week" \| "month" }`    |                                                                       |
@@ -252,7 +264,7 @@ la décrit dans le fichier.
 | `dueTime`     | `HH:mm` \| `null`                        | Heure de l'échéance ; `null` sans heure                                  |
 | `givenOn`     | `AAAA-MM-JJ` \| `null`                   | Date réelle, jamais dans le futur ; `null` pour une oubliée ou un report |
 | `status`      | `"given"` \| `"missed"` \| `"postponed"` \| `"extra"` \| `"shift"` | Donnée, oubliée, reportée, prise en plus, ligne de décalage |
-| `nextDueDate` | `AAAA-MM-JJ`                             | Prochaine échéance fixée par la ligne ; pour un report, sa nouvelle date |
+| `targetOn`    | `AAAA-MM-JJ` \| `null`                   | Report : jour d'arrivée ; décalage : jour d'ancrage ; `null` pour une prise |
 | `createdAt`   | ISO 8601 UTC                             |                                                                          |
 | `updatedAt`   | ISO 8601 UTC                             |                                                                          |
 
@@ -322,9 +334,12 @@ d'écriture ne journalise que le type de l'erreur).
   - fichier de plus de 10 Mo (refusé sans être lu : c'est ce qui borne le nombre de lignes), pas du
     JSON, pas d'entier `schemaVersion` strictement positif, champ obligatoire absent ou mal formé →
     « Ce fichier n'est pas un export MémoPatte. » ;
-  - **la version tranche avant toute validation** : `schemaVersion` supérieur à 4 → « Cet export
-    vient d'une version plus récente de l'app. » ; inférieur à 4 → « Cet export vient d'une version
+  - **la version tranche avant toute validation** : `schemaVersion` supérieur à 5 → « Cet export
+    vient d'une version plus récente de l'app. » ; inférieur à 3 → « Cet export vient d'une version
     plus ancienne de MémoPatte. Il ne peut plus être importé. » ; dans les deux cas, quel que soit le reste du contenu ;
+  - **relu par le moteur** (Q40) : après conversion, chaque traitement du fichier est relu par le
+    moteur des doses ; un traitement qu'il ne sait pas lire refuse tout le fichier, avec le message
+    d'un fichier invalide, et rien n'est écrit ;
   - chaque champ a son type exact (un booléen n'est pas `1`, un nombre n'est pas du texte), ses
     valeurs fermées (espèce, type, unité de fréquence, état d'une prise, motif du départ, unité de
     posologie, moment du rappel) et ses bornes : dates civiles réelles entre 1900 et 2199, instants
@@ -394,7 +409,7 @@ d'écriture ne journalise que le type de l'erreur).
   à ses valeurs, les autres telles quelles ; une ligne annulée à part reste annulée. C'est la règle
   « revient avec son animal » un étage plus bas (`deletedWithItsParent`).
 - **Échéance importée** : chaque ligne voyage entière, comme elle le fera dans la synchronisation
-  Plus. La `nextDueDate` d'une injection ou d'une prise est reprise **telle quelle**, jamais
+  Plus. La `nextDueDate` d'une injection et le `targetOn` d'une ligne sont repris **tels quels**, jamais
   recalculée, et il n'y a plus de réconciliation après l'écriture : les réglages d'une prise sont
   ceux de sa période.
 - **Dates** : une ligne écrite qui n'existait pas sur l'appareil garde son `createdAt` et son
@@ -459,7 +474,7 @@ se réimporte.
 | `injections.csv`  | `id;vaccinationId;vaccinationName;animalId;animalName;injectedOn;nextDueDate`                       |
 | `traitements.csv` | `id;animalId;animalName;name;type;lastDoseDate;nextDueDate`                                         |
 | `periodes.csv`    | `id;treatmentId;treatmentName;animalId;animalName;startsOn;firstDueOn;endsOn;stoppedOn;frequencyValue;frequencyUnit;times;doseQuantity;doseUnit;reminderOffsetMinutes;reminderTime` |
-| `prises.csv`      | `id;periodId;treatmentId;treatmentName;animalId;animalName;dueOn;dueTime;givenOn;status;nextDueDate` |
+| `prises.csv`      | `id;periodId;treatmentId;treatmentName;animalId;animalName;dueOn;dueTime;givenOn;status;targetOn`    |
 | `poids.csv`       | `id;animalId;animalName;measuredOn;weightKg` (`weightLb` en lb)                                     |
 | `rappels.csv`     | `kind;sourceId;animalId;animalName;name;dueDate`                                                    |
 

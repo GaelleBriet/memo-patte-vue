@@ -184,7 +184,7 @@ describe('toJsonExport', () => {
 
   it('versionne le document pour l’import', () => {
     expect(parsed.schemaVersion).toBe(EXPORT_SCHEMA_VERSION)
-    expect(parsed.schemaVersion).toBe(4)
+    expect(parsed.schemaVersion).toBe(5)
     expect(parsed.exportedAt).toBe(META.exportedAt.toISOString())
     expect(parsed.appVersion).toBe('0.1.24')
   })
@@ -233,7 +233,7 @@ describe('toJsonExport', () => {
       animalId: MILO_ID,
       startsOn: '2026-09-10',
       firstDueOn: '2026-09-10',
-      referenceOn: '2026-09-10',
+      gridOriginOn: '2026-09-10',
       endsOn: '2026-09-20',
       stoppedOn: null,
       frequency: { value: 1, unit: 'day' },
@@ -259,7 +259,7 @@ describe('toJsonExport', () => {
       dueTime: '20:00',
       givenOn: null,
       status: 'missed',
-      nextDueDate: '2026-09-11',
+      targetOn: null,
       createdAt: '2026-09-10T07:00:00.000Z',
       updatedAt: '2026-09-10T07:00:00.000Z',
       createdByDevice: FIXTURE_DEVICE,
@@ -423,11 +423,11 @@ describe('toCsvTables', () => {
       '',
     ])
     expect(lines(tables['prises.csv'])).toEqual([
-      'id;periodId;treatmentId;treatmentName;animalId;animalName;dueOn;dueTime;givenOn;status;nextDueDate',
-      `d-milbemax-06;p-milbemax;t-milbemax;Milbémax;${LUNA_ID};Luna;2026-06-15;;2026-06-15;given;2026-09-15`,
-      `d-milbemax-03;p-milbemax;t-milbemax;Milbémax;${LUNA_ID};Luna;2026-03-15;;2026-03-15;given;2026-06-15`,
-      `d-panacur-soir;p-panacur;t-panacur;Panacur;${MILO_ID};Milo;2026-09-10;20:00;;missed;2026-09-11`,
-      `d-panacur-matin;p-panacur;t-panacur;Panacur;${MILO_ID};Milo;2026-09-10;08:00;2026-09-10;given;2026-09-10`,
+      'id;periodId;treatmentId;treatmentName;animalId;animalName;dueOn;dueTime;givenOn;status;targetOn',
+      `d-milbemax-06;p-milbemax;t-milbemax;Milbémax;${LUNA_ID};Luna;2026-06-15;;2026-06-15;given;`,
+      `d-milbemax-03;p-milbemax;t-milbemax;Milbémax;${LUNA_ID};Luna;2026-03-15;;2026-03-15;given;`,
+      `d-panacur-soir;p-panacur;t-panacur;Panacur;${MILO_ID};Milo;2026-09-10;20:00;;missed;`,
+      `d-panacur-matin;p-panacur;t-panacur;Panacur;${MILO_ID};Milo;2026-09-10;08:00;2026-09-10;given;`,
       '',
     ])
   })

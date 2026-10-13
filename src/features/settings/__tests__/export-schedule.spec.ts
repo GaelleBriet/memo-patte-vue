@@ -10,6 +10,7 @@ import type {
   ExportTreatmentDose,
   ExportTreatmentPeriod,
 } from '@/shared/domain/carnet-data'
+import { legacyRecordsOf, targetOnOf } from '@/shared/domain/dose-calendar'
 import {
   treatmentSchedule,
   type DoseFields,
@@ -37,7 +38,7 @@ function period(
 
 let sequence = 0
 
-function line(fields: DoseFields): ExportTreatmentDose {
+function line({ nextDueDate, ...fields }: DoseFields): ExportTreatmentDose {
   sequence += 1
   const stamp = new Date(Date.parse(AT) + sequence * 1000).toISOString()
   return {
@@ -48,6 +49,7 @@ function line(fields: DoseFields): ExportTreatmentDose {
     updatedAt: stamp,
     ...BY_FIXTURE_DEVICE,
     ...fields,
+    targetOn: targetOnOf({ status: fields.status, nextDueDate }),
   }
 }
 
@@ -188,8 +190,7 @@ describe('PDF et CSV : prochaine échéance lue par le moteur', () => {
       [given('2026-09-01')],
     )
     const schedule = treatmentSchedule({
-      periods: data.treatmentPeriods,
-      doses: data.treatmentDoses,
+      ...legacyRecordsOf({ periods: data.treatmentPeriods, doses: data.treatmentDoses }),
       today: '2026-09-10',
     })
     expect(schedule.unloggedDoses.length).toBeGreaterThan(0)
@@ -207,8 +208,7 @@ describe('PDF et CSV : prochaine échéance lue par le moteur', () => {
     const first = given('2026-09-01')
     const base = carnet([period({ startsOn: '2026-09-01', frequency: WEEKLY })], [first])
     const moved = treatmentSchedule({
-      periods: base.treatmentPeriods,
-      doses: base.treatmentDoses,
+      ...legacyRecordsOf({ periods: base.treatmentPeriods, doses: base.treatmentDoses }),
       today: '2026-09-05',
     }).move({ periodId: 'p-1', dueOn: '2026-09-08', dueTime: null }, '2026-09-10')
     const doses = [first, ...created(moved.report), ...created(moved.shift)]

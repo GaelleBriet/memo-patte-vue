@@ -1,5 +1,9 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-10-13 : **ne pas publier avant le pas 8 du moteur v2.** Le pas 7 (#801, schéma v12) change les
+  rappels de l'ancien moteur dans de rares cas (7 états sur 120 000 où ils concordaient avec la fiche
+  avant et plus après) : les rappels passent au nouveau moteur au pas 8.
+
 - 2026-10-09 (nuit, autonomie) : **reprendre ici.** Le 8 au soir : nouveau site en ligne sur
   `memopatte.app` (#682 socle, #683 mentions légales, #684 aide en pages, #685 vitrine). La nuit :
   bugs #688 (#674), #689 (#672), #690 (#673), #691 (#675), #693 (#656, dont une double dose), #694

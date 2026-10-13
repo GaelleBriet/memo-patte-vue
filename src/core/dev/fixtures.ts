@@ -153,7 +153,7 @@ async function seedDemoCarnet(repositories: FixturesRepositories, today: Date): 
                 reminderOffsetMinutes: null,
                 reminderTime: null,
                 ...period,
-                referenceOn: period.firstDueOn ?? period.startsOn,
+                gridOriginOn: period.firstDueOn ?? period.startsOn,
                 ...stamps,
                 id: periodId,
                 treatmentId,

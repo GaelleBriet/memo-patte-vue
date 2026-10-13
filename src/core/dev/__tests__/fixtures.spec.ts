@@ -142,11 +142,11 @@ describe('applyFixtures', () => {
 
     expect(outcome).toBe('seeded')
     expect(deletedTables(db)).toEqual([
+      'treatment_dose',
+      'treatment_period',
       'sync_pull_cursor',
       'sync_state',
       'sync_outbox',
-      'treatment_dose',
-      'treatment_period',
       'treatment',
       'vaccination_injection',
       'vaccination',

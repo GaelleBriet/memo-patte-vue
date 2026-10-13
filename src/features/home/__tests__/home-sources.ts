@@ -1,5 +1,7 @@
 import type { HomeTreatmentSource, HomeVaccinationSource } from '../service/home-reminders.service'
-import type { TreatmentDoseInput, TreatmentPeriodInput } from '@/shared/domain/treatment-schedule'
+
+type TreatmentPeriodInput = HomeTreatmentSource['periods'][number]
+type TreatmentDoseInput = HomeTreatmentSource['doses'][number]
 
 const AT = '2026-09-01T08:00:00.000Z'
 
@@ -22,7 +24,7 @@ export function period(overrides: Partial<TreatmentPeriodInput> = {}): Treatment
     id: 'p1',
     startsOn: firstDueOn,
     firstDueOn,
-    referenceOn: firstDueOn,
+    gridOriginOn: firstDueOn,
     endsOn: null,
     stoppedOn: null,
     frequency: { value: 1, unit: 'day' },
@@ -45,8 +47,7 @@ export function given(
     dueTime,
     givenOn: dueOn,
     status: 'given',
-    nextDueDate: dueOn,
-    createdAt: AT,
+    targetOn: null,
     updatedAt: AT,
     ...overrides,
   }

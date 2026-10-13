@@ -77,7 +77,7 @@ function createRepositories(client: InMemoryDb) {
 
 /** Prise donnée à son échéance, dans la première période de son traitement. */
 function prise(
-  dose: Pick<NewTreatmentDose, 'id' | 'treatmentId' | 'animalId' | 'nextDueDate'> & {
+  dose: Pick<NewTreatmentDose, 'id' | 'treatmentId' | 'animalId'> & {
     givenOn: string
     at: string
   },
@@ -89,6 +89,7 @@ function prise(
     dueOn: dose.givenOn,
     dueTime: null,
     status: 'given',
+    targetOn: null,
     createdAt: at,
     updatedAt: at,
     deletedAt: null,
@@ -228,7 +229,7 @@ describe('data-import.service', () => {
       ),
     }
 
-    await service.importData({ schemaVersion: 4, data }, 'replace')
+    await service.importData({ schemaVersion: 5, data }, 'replace')
 
     await expect(repositories.treatments.getById(milbemax!.id)).resolves.toMatchObject({
       type: 'medication',
@@ -494,22 +495,20 @@ describe('data-import.service', () => {
   })
 
   describe('échéance d’un traitement', () => {
-    it('reprend l’échéance du fichier telle quelle, sans la recalculer depuis la dernière prise', async () => {
+    it('reprend le jour d’arrivée d’un report tel quel, sans le recalculer', async () => {
       const { service } = setup()
-      const echeanceArbitraire: ExportData = {
+      const arriveeArbitraire: ExportData = {
         ...IMPORT_FIXTURE,
-        treatmentDoses: IMPORT_FIXTURE.treatmentDoses.map((dose) => ({
-          ...dose,
-          nextDueDate: '2027-01-31',
-        })),
+        treatmentDoses: IMPORT_FIXTURE.treatmentDoses.map((dose) =>
+          dose.status === 'postponed' ? { ...dose, targetOn: '2027-01-31' } : dose,
+        ),
       }
 
-      await service.importData(importFile(echeanceArbitraire), 'replace')
+      await service.importData(importFile(arriveeArbitraire), 'replace')
 
-      await expect(headDose(repositories.treatments, MILBEMAX_ID)).resolves.toEqual({
-        givenOn: '2026-06-15',
-        nextDueDate: '2027-01-31',
-      })
+      await expect(
+        db.query('SELECT target_on FROM treatment_dose WHERE id = ?', [PANACUR_REPORT_ID]),
+      ).resolves.toEqual([{ target_on: '2027-01-31' }])
     })
   })
 
@@ -863,8 +862,9 @@ describe('data-import.service', () => {
       await expect(repositories.treatments.getById(PANACUR_ID)).resolves.toMatchObject({
         periodId: PANACUR_PERIOD_ID,
       })
-      await expect(headDose(repositories.treatments, PANACUR_ID)).resolves.toMatchObject({
-        nextDueDate: '2026-09-02',
+      await expect(headDose(repositories.treatments, PANACUR_ID)).resolves.toEqual({
+        givenOn: null,
+        targetOn: null,
       })
       await expect(
         db.query(
@@ -1123,7 +1123,6 @@ describe('data-import.service', () => {
             treatmentId: bravecto.id,
             animalId: milo.id,
             givenOn: '2026-06-01',
-            nextDueDate: '2026-09-01',
             at: '2026-06-01T08:00:00.000Z',
           }),
         ),
@@ -1191,7 +1190,6 @@ describe('data-import.service', () => {
             treatmentId: metacam.id,
             animalId: luna.id,
             givenOn: '2026-09-27',
-            nextDueDate: '2026-09-27',
             at: '2026-09-27T08:00:00.000Z',
           }),
           dueTime: '08:00',
@@ -1249,7 +1247,6 @@ describe('data-import.service', () => {
             treatmentId: milbemax.id,
             animalId: milo.id,
             givenOn: '2026-10-05',
-            nextDueDate: '2026-10-05',
             at: '2026-10-05T08:00:00.000Z',
           }),
         ),
@@ -1360,7 +1357,6 @@ describe('data-import.service', () => {
             treatmentId: milbemax.id,
             animalId: luna.id,
             givenOn: '2026-09-09',
-            nextDueDate: '2026-09-16',
             at: instantLocal('2026-09-09T08:00:00'),
           }),
         ),
@@ -1373,7 +1369,6 @@ describe('data-import.service', () => {
             treatmentId: milbemax.id,
             animalId: luna.id,
             givenOn: '2026-09-10',
-            nextDueDate: '2026-09-17',
             at: instantLocal('2026-09-10T08:00:00'),
           }),
         ),
@@ -1383,7 +1378,7 @@ describe('data-import.service', () => {
 
       await expect(headDose(createRepositories(phoneA).treatments, milbemax.id)).resolves.toEqual({
         givenOn: '2026-09-10',
-        nextDueDate: '2026-09-17',
+        targetOn: null,
       })
       phoneB.close()
     })
@@ -1409,7 +1404,6 @@ describe('data-import.service', () => {
         name: 'Milbémax chat',
         type: 'deworming',
         frequency: { value: 3, unit: 'month' },
-        nextDueDate: '2026-09-15',
       })
       at('2026-09-10T08:00:00')
       await a.periods.stop(milbemax.id, '2026-09-10')
@@ -1451,7 +1445,6 @@ describe('data-import.service', () => {
         name: 'Milbémax chat',
         type: 'deworming',
         frequency: { value: 3, unit: 'month' },
-        nextDueDate: '2026-09-15',
       })
 
       at('2026-09-20T08:00:00')
@@ -1496,7 +1489,7 @@ describe('data-import.service', () => {
               dueTime: null,
               givenOn: '2026-06-20',
               status: 'given',
-              nextDueDate: '2026-09-20',
+              targetOn: null,
             },
           },
         ],
@@ -1507,7 +1500,6 @@ describe('data-import.service', () => {
         name: 'Milbémax chat',
         type: 'deworming',
         frequency: { value: 3, unit: 'month' },
-        nextDueDate: '2026-09-15',
       })
 
       at('2026-09-20T08:00:00')
@@ -1521,7 +1513,7 @@ describe('data-import.service', () => {
         ).resolves.toMatchObject({ name: 'Milbémax chat' })
         await expect(headDose(createRepositories(phone).treatments, milbemax.id)).resolves.toEqual({
           givenOn: '2026-06-20',
-          nextDueDate: '2026-09-20',
+          targetOn: null,
         })
       }
       phoneB.close()
@@ -1549,7 +1541,6 @@ describe('data-import.service', () => {
         name: 'Milbémax',
         type: 'deworming',
         frequency: { value: 1, unit: 'month' },
-        nextDueDate: '2026-07-15',
       })
       at('2026-09-12T08:00:00')
       await phoneB.runMany([
@@ -1559,7 +1550,6 @@ describe('data-import.service', () => {
             treatmentId: milbemax.id,
             animalId: luna.id,
             givenOn: '2026-09-12',
-            nextDueDate: '2026-12-12',
             at: instantLocal('2026-09-12T08:00:00'),
           }),
         ),
@@ -1576,12 +1566,12 @@ describe('data-import.service', () => {
         ).resolves.toMatchObject({ frequency: { value: 1, unit: 'month' } })
         await expect(headDose(createRepositories(phone).treatments, milbemax.id)).resolves.toEqual({
           givenOn: '2026-09-12',
-          nextDueDate: '2026-12-12',
+          targetOn: null,
         })
       }
       const doses = async (phone: InMemoryDb) =>
         (await createRepositories(phone).treatments.listDoses(milbemax.id)).map(
-          ({ id, givenOn, nextDueDate, frequency }) => ({ id, givenOn, nextDueDate, frequency }),
+          ({ id, givenOn, targetOn, frequency }) => ({ id, givenOn, targetOn, frequency }),
         )
       await expect(doses(phoneB)).resolves.toEqual(await doses(phoneA))
       phoneB.close()

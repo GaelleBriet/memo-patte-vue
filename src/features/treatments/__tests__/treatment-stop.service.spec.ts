@@ -333,7 +333,7 @@ describe('treatmentStopService', () => {
               dueTime: null,
               givenOn: '2026-09-21',
               status: 'given',
-              nextDueDate: '2026-09-22',
+              targetOn: null,
             },
           },
         ],

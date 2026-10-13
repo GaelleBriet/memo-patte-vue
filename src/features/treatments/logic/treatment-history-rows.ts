@@ -110,13 +110,14 @@ export function missedRow(
 
 export function moveText(
   t: Translate,
-  dose: Pick<NewTreatmentDose, 'status' | 'dueOn' | 'nextDueDate'>,
+  dose: Pick<NewTreatmentDose, 'status' | 'dueOn' | 'targetOn'>,
 ): string {
+  const arrival = dose.targetOn ?? dose.dueOn
   const dates = {
-    date: formatLongDate(dose.nextDueDate),
-    due: formatDayMonthOrYear(dose.dueOn, dose.nextDueDate),
+    date: formatLongDate(arrival),
+    due: formatDayMonthOrYear(dose.dueOn, arrival),
   }
-  return isAdvanced({ status: dose.status, dueOn: dose.dueOn, targetOn: dose.nextDueDate })
+  return isAdvanced(dose)
     ? t('treatments.history.advanced', dates)
     : t('treatments.history.postponed', dates)
 }
@@ -152,7 +153,9 @@ function shiftTitle(
 ): string {
   const { view } = reading
   const current = period.id === view.currentSetting?.id && period.stoppedOn === null
-  const next = current ? view.upcoming({ from: nextDay(dose.nextDueDate), limit: 1 })[0] : undefined
+  const next = current
+    ? view.upcoming({ from: nextDay(dose.targetOn ?? dose.dueOn), limit: 1 })[0]
+    : undefined
   return next === undefined
     ? t('treatments.history.shiftWithoutNext')
     : t('treatments.history.shift', { date: formatDayMonthOrYear(next.dueOn, dose.dueOn) })

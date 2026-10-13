@@ -29,7 +29,7 @@ function period(
 ): PeriodFields {
   return {
     firstDueOn: overrides.firstDueOn ?? overrides.startsOn,
-    referenceOn: overrides.firstDueOn ?? overrides.startsOn,
+    gridOriginOn: overrides.firstDueOn ?? overrides.startsOn,
     endsOn: null,
     stoppedOn: null,
     frequency: { value: 1, unit: 'day' },
@@ -82,7 +82,7 @@ function dose(
     dueTime: '08:00',
     givenOn: overrides.dueOn,
     status: 'given',
-    nextDueDate: overrides.dueOn,
+    targetOn: null,
     ...STAMPS,
     deletedAt: null,
     ...overrides,
@@ -98,7 +98,6 @@ const SOIR_27 = dose({
   dueTime: '20:00',
   givenOn: null,
   status: 'missed',
-  nextDueDate: '2026-09-28',
 })
 const SUPPRIMEE = dose({
   id: 'd-supprimee',

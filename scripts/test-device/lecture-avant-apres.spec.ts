@@ -23,6 +23,7 @@ import { animalOf, FIXTURE_DEVICE, periodOf } from '@/features/settings/__tests_
 import { readPdfPages } from '@/features/settings/__tests__/pdf-reader'
 import { parseExportFile } from '@/features/settings/schema/export-file.schema'
 import type { ExportData } from '@/shared/domain/carnet-data'
+import { gridOriginsOf, targetOnOf } from '@/shared/domain/dose-calendar'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const out = process.env.LECTURE_OUT
@@ -91,10 +92,12 @@ function walkData(seed: number, book: Book): ExportData {
     updatedAt: STAMP,
     ...by,
   })
-  for (const period of book.periods) {
+  const origins = gridOriginsOf(book.periods)
+  for (const { referenceOn: _, ...period } of book.periods) {
     data.treatmentPeriods.push(
       periodOf({
         ...period,
+        gridOriginOn: origins.get(period.id) ?? null,
         id: uuid(`${seed}:${period.id}`),
         treatmentId: TREATMENT,
         animalId: ANIMAL,
@@ -103,9 +106,10 @@ function walkData(seed: number, book: Book): ExportData {
       }),
     )
   }
-  for (const dose of book.doses) {
+  for (const { nextDueDate, ...dose } of book.doses) {
     data.treatmentDoses.push({
       ...dose,
+      targetOn: targetOnOf({ status: dose.status, nextDueDate }),
       id: uuid(`${seed}:${dose.id}`),
       periodId: uuid(`${seed}:${dose.periodId}`),
       treatmentId: TREATMENT,

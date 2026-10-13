@@ -45,7 +45,7 @@ const REFUSAL_WINDOW_DAYS = 62
 
 type Line = Pick<
   NewTreatmentDose,
-  'id' | 'periodId' | 'dueOn' | 'dueTime' | 'givenOn' | 'status' | 'nextDueDate'
+  'id' | 'periodId' | 'dueOn' | 'dueTime' | 'givenOn' | 'status' | 'targetOn'
 >
 
 /** La case de « Changer la date » d'une prise ou d'un report. */
@@ -68,8 +68,8 @@ function daysUpTo(today: string, count: number): string[] {
 const refused = (result: { refusal: Refusal } | GestureOutcome): result is { refusal: Refusal } =>
   'refusal' in result
 
-function movedDueOf(line: Pick<Line, 'periodId' | 'dueTime' | 'nextDueDate'>): Due {
-  return { settingId: line.periodId, dueOn: line.nextDueDate, dueTime: line.dueTime }
+function movedDueOf(line: Pick<Line, 'periodId' | 'dueOn' | 'dueTime' | 'targetOn'>): Due {
+  return { settingId: line.periodId, dueOn: line.targetOn ?? line.dueOn, dueTime: line.dueTime }
 }
 
 function moveBoxFor(

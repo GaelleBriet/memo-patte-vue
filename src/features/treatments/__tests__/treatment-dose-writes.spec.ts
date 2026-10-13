@@ -19,21 +19,21 @@ const LINE = {
 }
 
 describe('doseFieldsOf', () => {
-  it('une prise range son échéance dans la colonne que le schéma v11 exige encore', () => {
+  it('une prise n’a pas de jour d’arrivée', () => {
     expect(doseFieldsOf(LINE)).toEqual({
       periodId: 'p-1',
       dueOn: '2026-09-02',
       dueTime: null,
       givenOn: '2026-09-03',
       status: 'given',
-      nextDueDate: '2026-09-02',
+      targetOn: null,
     })
   })
 
   it('un report et un décalage rangent leur jour d’arrivée ou d’ancrage', () => {
     const report = { ...LINE, status: 'postponed' as const, givenOn: null, targetOn: '2026-09-09' }
 
-    expect(doseFieldsOf(report)).toMatchObject({ status: 'postponed', nextDueDate: '2026-09-09' })
+    expect(doseFieldsOf(report)).toMatchObject({ status: 'postponed', targetOn: '2026-09-09' })
   })
 })
 

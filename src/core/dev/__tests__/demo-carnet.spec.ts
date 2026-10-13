@@ -80,7 +80,7 @@ describe('buildDemoCarnet', () => {
             dueTime: null,
             givenOn: '2026-06-28',
             status: 'given',
-            nextDueDate: '2026-09-28',
+            targetOn: null,
           },
         ],
       },
@@ -114,8 +114,8 @@ describe('buildDemoCarnet', () => {
     expect(period).toMatchObject({ startsOn: '2025-06-24', frequency: { value: 1, unit: 'month' } })
     expect(period?.stoppedOn).toBeUndefined()
     expect(period?.doses).toHaveLength(15)
-    expect(period?.doses[0]).toMatchObject({ givenOn: '2025-06-24', nextDueDate: '2025-07-24' })
-    expect(period?.doses.at(-1)).toMatchObject({ givenOn: '2026-08-24', nextDueDate: '2026-09-24' })
+    expect(period?.doses[0]).toMatchObject({ givenOn: '2025-06-24', targetOn: null })
+    expect(period?.doses.at(-1)).toMatchObject({ givenOn: '2026-08-24', targetOn: null })
     expect(period?.doses.every(({ status }) => status === 'given')).toBe(true)
   })
 
@@ -128,8 +128,8 @@ describe('buildDemoCarnet', () => {
         frequency: { value: 15, unit: 'day' },
         stoppedOn: '2026-05-13',
         doses: [
-          expect.objectContaining({ givenOn: '2026-04-23', nextDueDate: '2026-05-08' }),
-          expect.objectContaining({ givenOn: '2026-05-08', nextDueDate: '2026-05-23' }),
+          expect.objectContaining({ givenOn: '2026-04-23', targetOn: null }),
+          expect.objectContaining({ givenOn: '2026-05-08', targetOn: null }),
         ],
       }),
     ])
@@ -177,15 +177,15 @@ describe('buildDemoCarnet', () => {
     ])
   })
 
-  it('fixe après chaque dose du traitement quotidien l’échéance suivante : le soir, puis le lendemain', () => {
+  it('note les doses du traitement quotidien à leurs heures, sans jour d’arrivée', () => {
     const [period] = treatment('Milo', 'Panacur').periods
 
-    expect(period!.doses.map(({ dueTime, nextDueDate }) => [dueTime, nextDueDate])).toEqual([
-      ['08:00', '2026-09-08'],
-      ['20:00', '2026-09-09'],
-      ['08:00', '2026-09-09'],
-      ['20:00', '2026-09-10'],
-      ['08:00', '2026-09-11'],
+    expect(period!.doses.map(({ dueTime, targetOn }) => [dueTime, targetOn])).toEqual([
+      ['08:00', null],
+      ['20:00', null],
+      ['08:00', null],
+      ['20:00', null],
+      ['08:00', null],
     ])
   })
 
@@ -201,7 +201,7 @@ describe('buildDemoCarnet', () => {
     ])
     expect(milbemax.periods[1]).toMatchObject({
       frequency: { value: 3, unit: 'month' },
-      doses: [expect.objectContaining({ givenOn: '2026-08-13', nextDueDate: '2026-11-13' })],
+      doses: [expect.objectContaining({ givenOn: '2026-08-13', targetOn: null })],
     })
   })
 
@@ -217,26 +217,26 @@ describe('buildDemoCarnet', () => {
       reminderTime: '18:00',
     })
     expect(period!.doses).toEqual([
-      expect.objectContaining({ dueOn: '2026-07-13', status: 'given', nextDueDate: '2026-08-13' }),
+      expect.objectContaining({ dueOn: '2026-07-13', status: 'given', targetOn: null }),
       {
         dueOn: '2026-08-13',
         dueTime: null,
         givenOn: null,
         status: 'postponed',
-        nextDueDate: '2026-08-16',
+        targetOn: '2026-08-16',
       },
       {
         dueOn: '2026-08-13',
         dueTime: null,
         givenOn: null,
         status: 'shift',
-        nextDueDate: '2026-08-16',
+        targetOn: '2026-08-16',
       },
       expect.objectContaining({
         dueOn: '2026-08-16',
         givenOn: '2026-08-16',
         status: 'given',
-        nextDueDate: '2026-09-16',
+        targetOn: null,
       }),
     ])
   })

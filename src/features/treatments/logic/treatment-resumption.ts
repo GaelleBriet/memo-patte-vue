@@ -111,7 +111,7 @@ export function resumptionPlan(
         { ...settingsOf(period), startsOn: today, firstDueOn: firstDoseOn },
         rhythm,
       ),
-      referenceOn: firstDoseOn,
+      gridOriginOn: firstDoseOn,
     },
     doses: [],
   }

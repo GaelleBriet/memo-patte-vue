@@ -38,7 +38,7 @@ function dose(
     dueTime: null,
     givenOn: dueOn,
     status: 'given',
-    nextDueDate: '2027-01-01',
+    targetOn: null,
     createdAt: AT,
     updatedAt: AT,
     createdByDevice: 'appareil-test',

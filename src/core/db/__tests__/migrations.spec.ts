@@ -66,9 +66,9 @@ function insertAnimal(db: InMemoryDb, values: Record<string, string | number | n
 }
 
 describe('migrations', () => {
-  it('contient la v9 et la v11, qui créent le schéma entier, et la v10 des traitements', () => {
-    expect(migrations.map(({ toVersion }) => toVersion)).toEqual([9, 10, 11])
-    expect(DATABASE_VERSION).toBe(11)
+  it('contient la v9 et la v11, qui créent le schéma entier, la v10 et la v12 des traitements', () => {
+    expect(migrations.map(({ toVersion }) => toVersion)).toEqual([9, 10, 11, 12])
+    expect(DATABASE_VERSION).toBe(12)
   })
 })
 
@@ -302,7 +302,7 @@ describe('schéma sur une installation neuve', () => {
         animal_id: MILO,
         starts_on: '2026-07-08',
         first_due_on: '2026-07-08',
-        reference_on: '2026-07-08',
+        grid_origin_on: '2026-07-08',
         frequency_value: 3,
         frequency_unit: 'month',
         created_at: NOW,
@@ -327,7 +327,6 @@ describe('schéma sur une installation neuve', () => {
         due_on: '2026-07-08',
         given_on: '2026-07-08',
         status: 'given',
-        next_due_date: '2026-10-08',
         created_at: NOW,
         updated_at: NOW,
         ...PAR_APPAREIL,
@@ -382,7 +381,7 @@ describe('schéma sur une installation neuve', () => {
         'animal_id',
         'starts_on',
         'first_due_on',
-        'reference_on',
+        'grid_origin_on',
         'ends_on',
         'stopped_on',
         'frequency_value',
@@ -497,7 +496,7 @@ describe('schéma sur une installation neuve', () => {
         'due_time',
         'given_on',
         'status',
-        'next_due_date',
+        'target_on',
         'created_at',
         'updated_at',
         'deleted_at',
@@ -532,11 +531,32 @@ describe('schéma sur une installation neuve', () => {
       },
     )
 
-    it('exige le jour de référence de la période', async () => {
+    it('garde une période sans origine de grille : elle hérite celle du réglage précédent', async () => {
       await insertTreatment()
+      await insertPeriod({ grid_origin_on: null })
 
-      expect((await columns(db, 'treatment_period')).get('reference_on')?.notnull).toBe(1)
-      await expect(insertPeriod({ reference_on: null })).rejects.toThrow(/NOT NULL/)
+      await expect(db.query('SELECT grid_origin_on FROM treatment_period')).resolves.toEqual([
+        { grid_origin_on: null },
+      ])
+    })
+
+    it('garde une prise sans jour d’arrivée, un report avec le sien', async () => {
+      await insertTreatment()
+      await insertPeriod()
+      await insertDose()
+      await insertDose({
+        id: '77777777-7777-4777-8777-777777777777',
+        status: 'postponed',
+        given_on: null,
+        target_on: '2026-07-10',
+      })
+
+      await expect(
+        db.query('SELECT status, target_on FROM treatment_dose ORDER BY status'),
+      ).resolves.toEqual([
+        { status: 'given', target_on: null },
+        { status: 'postponed', target_on: '2026-07-10' },
+      ])
     })
 
     it('garde une prise sans heure ni date réelle', async () => {

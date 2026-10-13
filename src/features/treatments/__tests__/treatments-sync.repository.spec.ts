@@ -30,13 +30,13 @@ describe('treatmentsRepository — port de synchronisation', () => {
     await db.run(
       `INSERT INTO treatment_period
          (id, treatment_id, animal_id, starts_on, first_due_on, frequency_value, frequency_unit,
-          created_at, updated_at, reference_on, created_by_device, updated_by_device)
+          created_at, updated_at, grid_origin_on, created_by_device, updated_by_device)
        VALUES (?, ?, ?, '2026-01-01', '2026-01-01', 1, 'month', ?, ?, '2026-01-01', 'appareil-test', 'appareil-test')`,
       [TREATMENT_ID, TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],
     )
     await db.run(
       `INSERT INTO treatment_dose
-         (id, period_id, treatment_id, animal_id, due_on, given_on, status, next_due_date,
+         (id, period_id, treatment_id, animal_id, due_on, given_on, status, target_on,
           created_at, updated_at, created_by_device, updated_by_device)
        VALUES (?, ?, ?, ?, '2026-01-01', '2026-01-01', 'given', '2026-02-01', ?, ?, 'appareil-test', 'appareil-test')`,
       [TREATMENT_ID, TREATMENT_ID, TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],
@@ -109,10 +109,10 @@ describe('treatmentsRepository — port de synchronisation', () => {
       stoppedOn: null,
     })
     await expect(
-      db.query('SELECT given_on, next_due_date FROM treatment_dose WHERE treatment_id = ?', [
+      db.query('SELECT given_on, target_on FROM treatment_dose WHERE treatment_id = ?', [
         TREATMENT_ID,
       ]),
-    ).resolves.toEqual([{ given_on: '2026-01-01', next_due_date: '2026-02-01' }])
+    ).resolves.toEqual([{ given_on: '2026-01-01', target_on: '2026-02-01' }])
   })
 
   it('une suppression distante plus récente se propage comme une modification normale', async () => {

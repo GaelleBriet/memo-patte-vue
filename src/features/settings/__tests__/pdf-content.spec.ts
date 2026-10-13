@@ -82,7 +82,6 @@ const SUMMARY: CarnetSummary = {
       type: 'deworming',
       frequency: { value: 3, unit: 'month' },
       lastDoseDate: '2026-06-01',
-      nextDueDate: '2026-09-01',
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
       createdByDevice: 'appareil-test',
@@ -145,7 +144,7 @@ describe('buildCarnetPdfContent', () => {
         ...period,
         startsOn: '2026-07-10',
         firstDueOn: '2026-07-10',
-        referenceOn: '2026-07-10',
+        gridOriginOn: '2026-07-10',
       })),
       treatmentDoses: [],
     }
@@ -364,7 +363,7 @@ describe('buildCarnetPdfContent — historique', () => {
       animalId: ANIMAL_ID,
       dueTime: null,
       givenOn: spec.status === 'given' || spec.status === 'extra' ? spec.dueOn : null,
-      nextDueDate: '2099-01-01',
+      targetOn: null,
       ...STAMPS,
       ...spec,
     }
@@ -539,7 +538,7 @@ describe('buildCarnetPdfContent — historique', () => {
           dueOn,
           status: 'missed',
         })),
-        { periodId: 'p1', dueOn: '2026-06-01', status: 'postponed', nextDueDate: '2026-06-04' },
+        { periodId: 'p1', dueOn: '2026-06-01', status: 'postponed', targetOn: '2026-06-04' },
         ...given('p1', '2026-06-04'),
       ],
       '2026-06-20',
@@ -581,7 +580,7 @@ describe('buildCarnetPdfContent — historique', () => {
       [{ id: 'p', startsOn: '2026-04-01' }],
       [
         ...given('p', '2026-04-01', '2026-05-01'),
-        { periodId: 'p', dueOn: '2026-06-01', status: 'postponed', nextDueDate: '2026-05-28' },
+        { periodId: 'p', dueOn: '2026-06-01', status: 'postponed', targetOn: '2026-05-28' },
         ...given('p', '2026-05-28'),
       ],
     )
@@ -634,7 +633,7 @@ describe('buildCarnetPdfContent — historique', () => {
       [
         ...given('p', '2026-05-01'),
         { periodId: 'p', dueOn: '2026-06-01', status: 'given', givenOn: '2026-06-05' },
-        { periodId: 'p', dueOn: '2026-06-01', status: 'shift', nextDueDate: '2026-06-05' },
+        { periodId: 'p', dueOn: '2026-06-01', status: 'shift', targetOn: '2026-06-05' },
       ],
     )
 
@@ -721,7 +720,7 @@ describe('buildCarnetPdfContent — historique', () => {
       [{ id: 'p', startsOn: '2026-04-01' }],
       [
         ...given('p', '2026-04-01'),
-        { periodId: 'p', dueOn: '2026-05-01', status: 'postponed', nextDueDate: '2026-05-01' },
+        { periodId: 'p', dueOn: '2026-05-01', status: 'postponed', targetOn: '2026-05-01' },
         ...given('p', '2026-05-01'),
         { periodId: 'p', dueOn: '2026-06-01', status: 'given' },
         {
@@ -773,7 +772,7 @@ describe('buildCarnetPdfContent — historique', () => {
           dueOn: '2026-03-28',
           dueTime: '20:00',
           status: 'postponed',
-          nextDueDate: '2026-03-29',
+          targetOn: '2026-03-29',
         },
         {
           periodId: 'p0',
@@ -823,7 +822,7 @@ describe('buildCarnetPdfContent — historique', () => {
       [{ id: 'p', startsOn: '2026-05-01' }],
       [
         { periodId: 'p', dueOn: '2026-05-01', status: 'given', givenOn: '2026-06-01' },
-        { periodId: 'p', dueOn: '2026-06-01', status: 'postponed', nextDueDate: '2026-06-04' },
+        { periodId: 'p', dueOn: '2026-06-01', status: 'postponed', targetOn: '2026-06-04' },
         { periodId: 'p', dueOn: '2026-06-04', status: 'missed' },
       ],
     )

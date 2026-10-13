@@ -26,7 +26,7 @@ function period(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPeriod
     animalId: MILO,
     startsOn: '2026-09-07',
     firstDueOn: '2026-09-07',
-    referenceOn: overrides.firstDueOn ?? '2026-09-07',
+    gridOriginOn: overrides.firstDueOn ?? '2026-09-07',
     endsOn: null,
     stoppedOn: null,
     frequency: { value: 1, unit: 'week' },
@@ -52,7 +52,7 @@ function dose(dueOn: string, overrides: Partial<NewTreatmentDose> = {}): NewTrea
     dueTime: null,
     givenOn: dueOn,
     status: 'given',
-    nextDueDate: dueOn,
+    targetOn: null,
     createdAt: AT,
     updatedAt: AT,
     deletedAt: null,
@@ -159,7 +159,7 @@ describe('editionPlan — « Modifier » écrit ce que le moteur propose (TR-28,
       action: 'open',
       id: IDS.periodId,
       settings: { startsOn: TODAY, times: ['09:00'] },
-      referenceOn: '2026-09-07',
+      gridOriginOn: null,
     })
   })
 
@@ -174,7 +174,7 @@ describe('editionPlan — « Modifier » écrit ce que le moteur propose (TR-28,
     expect(plan.period).toMatchObject({
       action: 'open',
       settings: { firstDueOn: '2026-09-24' },
-      referenceOn: '2026-09-24',
+      gridOriginOn: '2026-09-24',
     })
   })
 
@@ -251,7 +251,7 @@ describe('resumptionPlan — « Reprendre » ouvre un réglage (R8)', () => {
         action: 'open',
         id: IDS.periodId,
         settings: { startsOn: TODAY, firstDueOn: '2026-09-21' },
-        referenceOn: '2026-09-21',
+        gridOriginOn: '2026-09-21',
       },
       doses: [],
     })

@@ -1,7 +1,13 @@
 import type { TreatmentViewInput } from './types'
 import { buildView, type TreatmentView } from './view'
 
-export { viewInputOf, type LegacyInput } from './legacy-input'
+export {
+  gridOriginsOf,
+  legacyRecordsOf,
+  targetOnOf,
+  viewInputOf,
+  type LegacyInput,
+} from './legacy-input'
 export { applied, settingsApplied } from './gestures/changes'
 export { moveBounds, moveDose, type MoveBounds } from './gestures/move'
 export { dueForDate, noteDose } from './gestures/note'
@@ -13,7 +19,7 @@ export {
   type SettingsRequest,
   type SettingsResult,
 } from './gestures/settings'
-export { isAdvanced } from './lines'
+export { familyOf, isAdvanced } from './lines'
 export { play, preview } from './preview'
 export type { DueSlot, HistoryLine, TreatmentView, Window } from './view'
 export type * from './types'

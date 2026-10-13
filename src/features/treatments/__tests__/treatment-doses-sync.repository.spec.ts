@@ -8,6 +8,7 @@ import {
 } from '../repository/treatment-doses.repository'
 import { createTreatmentPeriodsRepository } from '../repository/treatment-periods.repository'
 import { createTreatmentsRepository } from '../repository/treatments.repository'
+import { readTreatment } from '@/shared/domain/treatment-reading'
 
 const T_OLD = '2026-01-01T00:00:00.000Z'
 const T_LOCAL = '2026-01-01T00:05:00.000Z'
@@ -28,7 +29,7 @@ function remoteDose(overrides: Record<string, string | number | null> = {}) {
     due_time: null,
     given_on: '2026-02-01',
     status: 'given',
-    next_due_date: '2026-03-01',
+    target_on: '2026-03-01',
     created_at: T_NEW,
     updated_at: T_NEW,
     deleted_at: null,
@@ -62,13 +63,13 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
     await db.run(
       `INSERT INTO treatment_period
          (id, treatment_id, animal_id, starts_on, first_due_on, frequency_value, frequency_unit,
-          created_at, updated_at, reference_on, created_by_device, updated_by_device)
+          created_at, updated_at, grid_origin_on, created_by_device, updated_by_device)
        VALUES (?, ?, ?, '2026-01-01', '2026-01-01', 1, 'month', ?, ?, '2026-01-01', 'appareil-test', 'appareil-test')`,
       [TREATMENT_ID, TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],
     )
     await db.run(
       `INSERT INTO treatment_dose
-         (id, period_id, treatment_id, animal_id, due_on, given_on, status, next_due_date,
+         (id, period_id, treatment_id, animal_id, due_on, given_on, status, target_on,
           created_at, updated_at, created_by_device, updated_by_device)
        VALUES (?, ?, ?, ?, '2026-01-01', '2026-01-01', 'given', '2026-02-01', ?, ?, 'appareil-test', 'appareil-test')`,
       [TREATMENT_ID, TREATMENT_ID, TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],
@@ -95,7 +96,7 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
       due_time: null,
       given_on: '2026-01-01',
       status: 'given',
-      next_due_date: '2026-02-01',
+      target_on: '2026-02-01',
       created_at: T_LOCAL,
       updated_at: T_LOCAL,
       deleted_at: T_NEW,
@@ -113,22 +114,22 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
 
     const history = await createTreatmentsRepository(db).getWithHistory(TREATMENT_ID)
     expect(history?.doses).toContainEqual(
-      expect.objectContaining({ id: LATER_ID, givenOn: '2026-02-01', nextDueDate: '2026-03-01' }),
+      expect.objectContaining({ id: LATER_ID, givenOn: '2026-02-01', targetOn: '2026-03-01' }),
     )
   })
 
   it("n'écrase pas une prise locale plus récente, ni à égalité d'horodatage", async () => {
     await db.runMany([
       repository.applyRemoteRowStatement(
-        remoteDose({ id: TREATMENT_ID, next_due_date: '2026-05-01', updated_at: T_OLD }),
+        remoteDose({ id: TREATMENT_ID, target_on: '2026-05-01', updated_at: T_OLD }),
       ),
       repository.applyRemoteRowStatement(
-        remoteDose({ id: TREATMENT_ID, next_due_date: '2026-05-01', updated_at: T_LOCAL }),
+        remoteDose({ id: TREATMENT_ID, target_on: '2026-05-01', updated_at: T_LOCAL }),
       ),
     ])
 
     await expect(repository.getById(TREATMENT_ID)).resolves.toMatchObject({
-      nextDueDate: '2026-02-01',
+      targetOn: '2026-02-01',
     })
   })
 
@@ -141,7 +142,7 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
           due_time: '08:00',
           given_on: null,
           status: 'missed',
-          next_due_date: '2026-01-15',
+          target_on: '2026-01-15',
         }),
       ),
     ])
@@ -151,9 +152,49 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
       dueTime: '08:00',
       givenOn: null,
       status: 'missed',
-      nextDueDate: '2026-01-15',
+      targetOn: '2026-01-15',
       frequency: { value: 1, unit: 'month' },
       updatedAt: T_NEW,
+    })
+  })
+
+  describe('ligne reçue pour une échéance qui en a déjà une (plan §3.2, R11)', () => {
+    async function effects(today: string) {
+      const history = await createTreatmentsRepository(db).getWithHistory(TREATMENT_ID)
+      const reading = readTreatment(history!, today)
+      return Object.fromEntries(
+        reading!.view.history.map(({ line, effect }) => [
+          line.id,
+          effect.kind === 'idle' ? effect.reason : effect.kind,
+        ]),
+      )
+    }
+    const doublon = (updatedAt: string, periodId = TREATMENT_ID) =>
+      remoteDose({
+        due_on: '2026-01-01',
+        given_on: '2026-01-01',
+        target_on: null,
+        period_id: periodId,
+        updated_at: updatedAt,
+      })
+
+    it('garde les deux lignes : la plus récente est lue, l’autre reste, sans effet', async () => {
+      await db.runMany([repository.applyRemoteRowStatement(doublon(T_NEW))])
+
+      await expect(repository.listByTreatment(TREATMENT_ID)).resolves.toHaveLength(2)
+      await expect(effects('2026-01-10')).resolves.toEqual({
+        [LATER_ID]: 'covers',
+        [TREATMENT_ID]: 'superseded',
+      })
+    })
+
+    it('laisse sans effet la ligne reçue quand elle est plus ancienne que la ligne locale', async () => {
+      await db.runMany([repository.applyRemoteRowStatement(doublon(T_OLD))])
+
+      await expect(effects('2026-01-10')).resolves.toEqual({
+        [TREATMENT_ID]: 'covers',
+        [LATER_ID]: 'superseded',
+      })
     })
   })
 
@@ -184,7 +225,7 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
           due_time: null,
           given_on: '2026-01-01',
           status: 'given',
-          next_due_date: '2026-02-01',
+          target_on: '2026-02-01',
           created_at: PG_LOCAL,
           updated_at: PG_LOCAL,
           deleted_at: null,

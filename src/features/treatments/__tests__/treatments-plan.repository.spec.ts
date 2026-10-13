@@ -124,7 +124,7 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
               dueOn: '2026-09-26',
               givenOn: '2026-09-26',
               status: 'given',
-              nextDueDate: '2026-09-26',
+              targetOn: null,
             },
           },
           {
@@ -134,7 +134,7 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
               dueOn: '2026-09-27',
               givenOn: null,
               status: 'missed',
-              nextDueDate: '2026-09-27',
+              targetOn: null,
             },
           },
         ],
@@ -156,7 +156,7 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
         dueTime: null,
         givenOn: '2026-09-26',
         status: 'given' as const,
-        nextDueDate: '2026-09-27',
+        targetOn: null,
       }
 
       await expect(
@@ -243,7 +243,7 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
 
       await repository.applyPlan(PANACUR, {
         ...RIEN,
-        period: { action: 'correct', id: PANACUR, settings },
+        period: { action: 'correct', id: PANACUR, settings, gridOriginOn: settings.firstDueOn },
       })
 
       await expect(repository.getWithHistory(PANACUR)).resolves.toMatchObject({
@@ -264,7 +264,7 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
 
       const updated = await repository.applyPlan(PANACUR, {
         ...RIEN,
-        period: { action: 'open', id: SECONDE, settings },
+        period: { action: 'open', id: SECONDE, settings, gridOriginOn: settings.firstDueOn },
       })
 
       expect(updated).toMatchObject({
@@ -293,7 +293,7 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
       dueTime: '08:00',
       givenOn: null,
       status: 'postponed',
-      nextDueDate: '2026-10-01',
+      targetOn: '2026-10-01',
     } as const
 
     it('crée, réécrit puis supprime une ligne de déplacement', async () => {
@@ -309,10 +309,10 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
 
       await repository.applyPlan(PANACUR, {
         ...RIEN,
-        doses: [{ action: 'rewrite', id: REPORT, dose: { ...LIGNE, nextDueDate: '2026-10-02' } }],
+        doses: [{ action: 'rewrite', id: REPORT, dose: { ...LIGNE, targetOn: null } }],
       })
       await expect(repository.getWithHistory(PANACUR)).resolves.toMatchObject({
-        doses: [{ id: REPORT, nextDueDate: '2026-10-02' }],
+        doses: [{ id: REPORT, targetOn: null }],
       })
 
       await repository.applyPlan(PANACUR, { ...RIEN, doses: [{ action: 'delete', id: REPORT }] })
@@ -329,7 +329,12 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
       await expect(
         repository.applyPlan(PANACUR, {
           treatment: { name: 'Autre', type: 'deworming' },
-          period: { action: 'correct', id: PANACUR, settings: { ...REGLAGES, endsOn: null } },
+          period: {
+            action: 'correct',
+            id: PANACUR,
+            settings: { ...REGLAGES, endsOn: null },
+            gridOriginOn: REGLAGES.firstDueOn,
+          },
           doses: [{ action: 'create', id: REPORT, dose: LIGNE }],
         }),
       ).rejects.toThrow('ligne refusée')
@@ -349,6 +354,7 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
             action: 'correct',
             id: PANACUR,
             settings: { ...REGLAGES, doseQuantity: 1, doseUnit: null },
+            gridOriginOn: REGLAGES.firstDueOn,
           },
         }),
       ).rejects.toBeInstanceOf(ZodError)

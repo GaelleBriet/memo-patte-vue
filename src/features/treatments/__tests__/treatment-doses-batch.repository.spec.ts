@@ -9,9 +9,8 @@ import {
   createTreatmentDosesRepository,
   type TreatmentDosesRepository,
 } from '../repository/treatment-doses.repository'
-import type { DoseWrite } from '../schema/treatment-dose.schema'
+import type { DoseFields, DoseWrite } from '../schema/treatment-dose.schema'
 import { createTreatmentPeriodsRepository } from '../repository/treatment-periods.repository'
-import type { DoseFields } from '@/shared/domain/treatment-schedule'
 
 const LUNA = '11111111-1111-4111-8111-111111111111'
 const METACAM = 'metacam'
@@ -28,13 +27,13 @@ function fields(overrides: Partial<DoseFields> = {}): DoseFields {
     dueTime: '08:00',
     givenOn: '2026-09-27',
     status: 'given',
-    nextDueDate: '2026-09-27',
+    targetOn: null,
     ...overrides,
   }
 }
 
 const MATIN = fields()
-const SOIR = fields({ dueTime: '20:00', nextDueDate: '2026-09-28' })
+const SOIR = fields({ dueTime: '20:00' })
 const OWNER = { treatmentId: METACAM, animalId: LUNA }
 
 /** Une autre écriture passe entre la lecture du lot et sa transaction. */
@@ -59,14 +58,14 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
   async function visible() {
     const rows = await doses.listByTreatment(METACAM)
     return rows
-      .map(({ id, periodId, dueOn, dueTime, givenOn, status, nextDueDate }) => ({
+      .map(({ id, periodId, dueOn, dueTime, givenOn, status, targetOn }) => ({
         id,
         periodId,
         dueOn,
         dueTime,
         givenOn,
         status,
-        nextDueDate,
+        targetOn,
       }))
       .sort((a, b) => a.id.localeCompare(b.id))
   }
@@ -134,12 +133,12 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
     })
 
     it('crée une prise oubliée et un report, sans date réelle', async () => {
-      const oubliee = fields({ givenOn: null, status: 'missed', nextDueDate: '2026-09-28' })
+      const oubliee = fields({ givenOn: null, status: 'missed' })
       const report = fields({
         dueOn: '2026-09-29',
         givenOn: null,
         status: 'postponed',
-        nextDueDate: '2026-10-02',
+        targetOn: '2026-10-02',
       })
 
       await db.runMany([
@@ -155,7 +154,7 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
 
     it('réécrit une ligne avec de nouveaux champs, sans changer sa création', async () => {
       await db.runMany([doses.createStatement({ id: 'matin', ...OWNER, dose: MATIN, at: T1 })])
-      const redatee = fields({ givenOn: '2026-09-28', nextDueDate: '2026-09-28' })
+      const redatee = fields({ givenOn: '2026-09-28' })
 
       await db.runMany([doses.rewriteStatement('matin', redatee, T2)])
 
@@ -204,15 +203,14 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
           dueOn: '2026-09-29',
           givenOn: null,
           status: 'postponed',
-          nextDueDate: '2026-10-02',
+          targetOn: '2026-10-02',
         }),
       },
     ]
-    const REDATEE = fields({ givenOn: '2026-09-28', nextDueDate: '2026-09-28' })
+    const REDATEE = fields({ givenOn: '2026-09-28' })
     const NOUVELLE = fields({
       dueOn: '2026-09-28',
       givenOn: '2026-09-28',
-      nextDueDate: '2026-09-28',
     })
     const LOT: DoseWrite[] = [
       { action: 'create', id: 'nouvelle', ...OWNER, dose: NOUVELLE },
@@ -256,7 +254,12 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
       const before = await visible()
       const casse: DoseWrite[] = [
         ...LOT,
-        { action: 'create', id: 'orpheline', ...OWNER, dose: fields({ periodId: 'inconnue' }) },
+        {
+          action: 'create',
+          id: 'orpheline',
+          ...OWNER,
+          dose: fields({ periodId: 'inconnue' }),
+        },
       ]
 
       await expect(doses.applyBatch(casse, T2)).rejects.toThrow(/FOREIGN KEY/i)
@@ -310,7 +313,7 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
           dueOn: '2026-09-29',
           givenOn: null,
           status: 'postponed',
-          nextDueDate: '2026-10-03',
+          targetOn: '2026-10-03',
         }),
       }
 
@@ -322,7 +325,7 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
         action: 'create',
         id: 'prise',
         ...OWNER,
-        dose: fields({ dueOn: '2026-09-29', givenOn: '2026-09-29', nextDueDate: '2026-09-30' }),
+        dose: fields({ dueOn: '2026-09-29', givenOn: '2026-09-29' }),
       }
       await doses.applyBatch([{ action: 'delete', id: 'matin' }], T2)
 
@@ -343,7 +346,7 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
           dueOn: '2026-09-29',
           givenOn: null,
           status: 'shift',
-          nextDueDate: '2026-10-03',
+          targetOn: '2026-10-03',
         }),
       })
 
@@ -402,7 +405,7 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
 
       it('D9 : un « Annuler » ancien ne réécrit pas une ligne modifiée depuis', async () => {
         const undo = await doses.applyBatch([{ action: 'rewrite', id: 'matin', dose: REDATEE }], T2)
-        const encore = fields({ givenOn: '2026-09-29', nextDueDate: '2026-09-29' })
+        const encore = fields({ givenOn: '2026-09-29' })
         await doses.applyBatch([{ action: 'rewrite', id: 'matin', dose: encore }], T3)
 
         await expect(doses.applyBatch(undo, T4)).rejects.toBeInstanceOf(ConcurrentWriteError)
@@ -479,7 +482,7 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
 
       it('D12 : deux créations de la même échéance dans un lot lèvent DuplicateDueError', async () => {
         const before = await visible()
-        const echeance = fields({ dueOn: '2026-09-30', nextDueDate: '2026-09-30' })
+        const echeance = fields({ dueOn: '2026-09-30' })
 
         await expect(
           doses.applyBatch(
