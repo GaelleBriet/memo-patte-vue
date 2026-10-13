@@ -1,3 +1,5 @@
+import { addDays, format, parseISO } from 'date-fns'
+
 import { treatmentView } from '../domain/dose-calendar'
 import type { Frequency, Line, Setting } from '../domain/dose-calendar/types'
 
@@ -11,6 +13,15 @@ let stamp = 0
 const at = () => {
   stamp += 1
   return `2026-01-01T00:${String(Math.floor(stamp / 60)).padStart(2, '0')}:${String(stamp % 60).padStart(2, '0')}.000Z`
+}
+
+/** Dates civiles de `from` à `to` inclus. */
+export function days(from: string, to: string): string[] {
+  const result: string[] = []
+  for (let day = parseISO(from); format(day, 'yyyy-MM-dd') <= to; day = addDays(day, 1)) {
+    result.push(format(day, 'yyyy-MM-dd'))
+  }
+  return result
 }
 
 export function setting(

@@ -10,8 +10,7 @@ import type {
   ExportTreatmentDose,
   ExportTreatmentPeriod,
 } from '@/shared/domain/carnet-data'
-import { play, targetOnOf, type LineChange } from '@/shared/domain/dose-calendar'
-import type { DoseFields } from '@/shared/domain/treatment-schedule'
+import { play, targetOnOf, type LegacyInput, type LineChange } from '@/shared/domain/dose-calendar'
 import { readTreatment } from '@/shared/domain/treatment-reading'
 import i18n from '@/core/i18n'
 
@@ -19,6 +18,11 @@ const MILO = '11111111-1111-4111-8111-111111111111'
 const AT = '2026-09-01T08:00:00.000Z'
 const DAILY = { value: 1, unit: 'day' } as const
 const WEEKLY = { value: 1, unit: 'week' } as const
+
+type DoseFields = Pick<
+  LegacyInput['doses'][number],
+  'periodId' | 'dueOn' | 'dueTime' | 'givenOn' | 'status' | 'nextDueDate'
+>
 
 function period(
   fields: Partial<ExportTreatmentPeriod> & { startsOn: string },

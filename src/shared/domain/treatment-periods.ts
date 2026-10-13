@@ -1,7 +1,7 @@
 import { previousDay } from './calendar-day'
-import type { TreatmentPeriodInput } from './treatment-schedule'
+import type { Setting } from './dose-calendar'
 
-type Ordered = Pick<TreatmentPeriodInput, 'id' | 'startsOn' | 'createdAt'>
+type Ordered = Pick<Setting, 'id' | 'startsOn' | 'createdAt'>
 
 /** Les périodes d'un traitement, la plus récente d'abord. */
 export function byStartDescending(a: Ordered, b: Ordered): number {
@@ -13,8 +13,8 @@ export function byStartDescending(a: Ordered, b: Ordered): number {
 
 /** Dernier jour d'une période : sa fin, son arrêt ou la veille de la suivante ; `null` si ouverte. */
 export function periodLastDay(
-  period: Pick<TreatmentPeriodInput, 'endsOn' | 'stoppedOn'>,
-  next: Pick<TreatmentPeriodInput, 'startsOn'> | undefined,
+  period: Pick<Setting, 'endsOn' | 'stoppedOn'>,
+  next: Pick<Setting, 'startsOn'> | undefined,
 ): string | null {
   const beforeNext = next === undefined ? null : previousDay(next.startsOn)
   return (
@@ -24,8 +24,8 @@ export function periodLastDay(
 
 /** Arrêtée, finie ou remplacée par `next` avant sa première échéance. */
 export function periodClosedBeforeFirstDue(
-  period: Pick<TreatmentPeriodInput, 'firstDueOn' | 'endsOn' | 'stoppedOn'>,
-  next: Pick<TreatmentPeriodInput, 'startsOn'> | undefined,
+  period: Pick<Setting, 'firstDueOn' | 'endsOn' | 'stoppedOn'>,
+  next: Pick<Setting, 'startsOn'> | undefined,
 ): boolean {
   const last = periodLastDay(period, next)
   return last !== null && last < period.firstDueOn
@@ -35,6 +35,6 @@ export function hasSeveralDoseTimes(times: readonly string[]): boolean {
   return times.length > 1
 }
 
-export function isSeveralTimesADay(period: Pick<TreatmentPeriodInput, 'times'>): boolean {
+export function isSeveralTimesADay(period: Pick<Setting, 'times'>): boolean {
   return hasSeveralDoseTimes(period.times)
 }

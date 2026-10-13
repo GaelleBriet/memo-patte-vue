@@ -16,22 +16,42 @@ import {
   type TreatmentReminderPeriod,
 } from '../domain/reminder-plan'
 import { treatmentView, viewInputOf } from '../domain/dose-calendar'
-import type { TreatmentPeriodInput } from '../domain/treatment-schedule'
-import {
-  carnet,
-  due,
-  period,
-  record,
-  stored,
-  weekly,
-  type Carnet,
-} from './treatment-schedule-fixtures'
+import { deplace, donne, type Carnet } from './dose-calendar.recette.aides'
 
 const t = i18n.global.t
 const ID = '55555555-5555-4555-8555-555555555555'
 const NBSP = ' '
 const SETTINGS: CarnetReminderSettings = { vaccineReminderTime: '09:00', remindBeforeDue: true }
 const RELAY_PIXEL = 'Pour continuer à recevoir les rappels de Pixel, ouvre MémoPatte.'
+
+type Period = Carnet['periods'][number]
+type DoseFields = Omit<Carnet['doses'][number], 'id' | 'createdAt' | 'updatedAt'>
+
+function period(overrides: Partial<Period> = {}): Period {
+  const firstDueOn = overrides.firstDueOn ?? '2026-09-01'
+  return {
+    id: 'p1',
+    startsOn: firstDueOn,
+    firstDueOn,
+    referenceOn: firstDueOn,
+    endsOn: null,
+    stoppedOn: null,
+    frequency: { value: 1, unit: 'day' },
+    times: [],
+    createdAt: '2026-08-01T08:00:00.000Z',
+    ...overrides,
+  }
+}
+
+let stamp = 0
+
+function stored(fields: DoseFields): Carnet['doses'][number] {
+  stamp += 1
+  const at = new Date(Date.UTC(2026, 0, 1, 0, 0, stamp)).toISOString()
+  return { id: `dose-${stamp}`, ...fields, createdAt: at, updatedAt: at }
+}
+
+const due = (dueOn: string) => ({ periodId: 'p1', dueOn, dueTime: null })
 
 let previousTz: string | undefined
 
@@ -50,9 +70,9 @@ afterEach(() => {
 })
 
 type Setup = {
-  input?: Partial<TreatmentPeriodInput>
+  input?: Partial<Period>
   reminders?: Partial<TreatmentReminderPeriod>
-  doses?: Parameters<typeof stored>[0][]
+  doses?: DoseFields[]
   today: string
   now: Date
   settings?: CarnetReminderSettings
@@ -72,7 +92,7 @@ function plan({
   ...rest
 }: Setup) {
   const periodInput = rest.book?.periods[0] ?? period(input)
-  const book = rest.book ?? { ...carnet(periodInput), doses: doses.map((fields) => stored(fields)) }
+  const book = rest.book ?? { periods: [periodInput], doses: doses.map((fields) => stored(fields)) }
   return treatmentReminderPlan(
     t,
     {
@@ -471,14 +491,15 @@ describe('treatmentReminderPlan, RA-6', () => {
     expect(reminders).toEqual([])
   })
 
-  const SHORT = weekly({ firstDueOn: '2026-10-05', endsOn: '2026-10-21' })
+  const SHORT = period({
+    firstDueOn: '2026-10-05',
+    endsOn: '2026-10-21',
+    frequency: { value: 1, unit: 'week' },
+  })
+  const short = (): Carnet => ({ periods: [SHORT], doses: [] })
 
   it('après la date de fin, la relance suit un report de la dernière dose', () => {
-    const book = record(carnet(SHORT), '2026-10-14', {
-      kind: 'postponed',
-      due: due('2026-10-19'),
-      to: '2026-10-21',
-    })
+    const book = deplace(short(), '2026-10-14', due('2026-10-19'), '2026-10-21')
     const { reminders } = plan({ book, today: '2026-10-22', now: new Date(2026, 9, 22, 12) })
 
     expect(reminders.map(({ key, at }) => [slot(key), at])).toEqual([
@@ -487,12 +508,7 @@ describe('treatmentReminderPlan, RA-6', () => {
   })
 
   it('après la date de fin, la relance suit un décalage de la dernière dose', () => {
-    const book = record(carnet(SHORT), '2026-10-13', {
-      kind: 'given',
-      due: due('2026-10-12'),
-      givenOn: '2026-10-13',
-      shiftsFollowing: true,
-    })
+    const book = donne(short(), '2026-10-13', due('2026-10-12'), '2026-10-13', true)
     const { reminders } = plan({ book, today: '2026-10-22', now: new Date(2026, 9, 22, 12) })
 
     expect(reminders.map(({ key, at }) => [slot(key), at])).toEqual([
@@ -501,11 +517,7 @@ describe('treatmentReminderPlan, RA-6', () => {
   })
 
   it('après la date de fin, aucune relance pour une dose plus ancienne que la dernière', () => {
-    const book = record(carnet(SHORT), '2026-10-21', {
-      kind: 'given',
-      due: due('2026-10-19'),
-      givenOn: '2026-10-21',
-    })
+    const book = donne(short(), '2026-10-21', due('2026-10-19'), '2026-10-21')
     const { reminders } = plan({ book, today: '2026-10-22', now: new Date(2026, 9, 22, 12) })
 
     expect(reminders).toEqual([])

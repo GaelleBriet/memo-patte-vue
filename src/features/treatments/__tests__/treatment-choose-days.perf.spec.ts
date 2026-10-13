@@ -12,7 +12,7 @@ import {
   toggleDay,
 } from '../logic/treatment-choose-days'
 import i18n from '@/core/i18n'
-import { days } from '@/shared/__tests__/treatment-schedule-fixtures'
+import { days } from '@/shared/__tests__/dose-calendar.v2.aides'
 import type { Due } from '@/shared/domain/dose-calendar'
 
 const t = i18n.global.t
