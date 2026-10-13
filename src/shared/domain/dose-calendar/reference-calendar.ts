@@ -161,9 +161,7 @@ export function calendarOf(
     if (waitingReplace !== undefined) replaced.push(waitingReplace)
     waitingReplace = undefined
     if (restart !== undefined) restarts.set(setting.id, restart)
-    // R9, R10 : remplacé le jour même, un réglage transmet sa grille, pas la fréquence d'avant lui.
-    const changed = lastLive !== undefined && !sameFrequency(lastLive, setting)
-    if (index > 0 && (!continued || ended || changed)) rhythmFrom = setting.startsOn
+    if (index > 0 && (!continued || ended)) rhythmFrom = setting.startsOn
     // R6 : à partir de sa journée d'origine, un décalage donne à la grille l'origine de son ancrage ;
     // écrit sous un réglage d'avant un changement de fréquence, il est dépassé par la nouvelle origine (R3).
     const turns = shifts.filter(

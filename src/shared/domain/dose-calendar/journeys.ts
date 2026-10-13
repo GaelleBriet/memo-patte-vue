@@ -162,9 +162,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     ) {
       handed.add(prior.id)
     }
-    // R9, R10 : remplacé le jour même, un réglage transmet sa grille, pas la fréquence d'avant lui.
-    const changed = prior !== undefined && !sameFrequency(prior.frequency, setting.frequency)
-    if (index > 0 && (!continued || ended || changed)) rhythmFrom = setting.startsOn
+    if (index > 0 && (!continued || ended)) rhythmFrom = setting.startsOn
     // R3 : écrit sous un réglage d'avant un changement de fréquence, un décalage est dépassé.
     const turns = lines.shifts.filter(
       (shift) =>

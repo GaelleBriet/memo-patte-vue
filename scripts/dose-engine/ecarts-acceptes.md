@@ -240,11 +240,17 @@ carnets de l'oracle `actuel,v2` (20 000 carnets à partir de 530000000, réglage
 | R9 et un traitement fini         | Sur un traitement fini (date de fin passée), le moteur actuel propose aujourd'hui ; v2 suit R9.3. Graines 530000001, 530000148.                                                                                                                                                                                                                                                                                                |
 | « même affichage »               | Les deux réglages montrent les mêmes doses ; seuls changent l'état d'une journée déjà donnée et l'effet des prises dans l'historique.                                                                                                                                                                                                                                                                                          |
 
-## Réglage remplacé le jour même après un changement de fréquence (#810, graine 991003624)
+## Écart ouvert, #810 (graine 991003624, oracle `actuel,v2`, 2026-10-13)
 
-Corrigé le 2026-10-13 : un réglage remplacé le jour même sans prise transmet sa grille au suivant
-(R10, #781), mais pas la fréquence d'avant lui. Mensuel à 6, 12, 18 et 23 h du 14 mars (fin le 24),
-12 h du 14 reportée seule au 20 ; le 22, tous les 3 jours à 8 h et 20 h dès le 23, remplacé le jour
-même par 6, 12, 18 et 23 h : la fréquence a changé par rapport au mensuel, la dose de 12 h du 20 passe
-à renseigner et la fiche montre le 23 à 6 h, comme le moteur actuel (R9 ; test daté dans
-`dose-calendar.gestures-settings-chosen.spec.ts`).
+Reproduit à l'identique sur `main` (adb1d28e, 1b4895dd), non corrigé : #810 reste ouvert. Mensuel à 6, 12, 18 et
+23 h du 14 mars (fin le 24), dose de 12 h du 14 reportée seule au 20 ; le 22, « Modifier » passe à tous
+les 3 jours à 8 h et 20 h (première dose le 23), la dose de 8 h du 23 est donnée d'avance, puis, le même
+jour, « Modifier » passe à 6, 12, 18 et 23 h, origine le 20 ; la prise de 8 h du 23 est ensuite
+supprimée. La dose de 12 h du 20 (arrivée du report) n'est pas donnée : avant la suppression, v2 la
+met « à renseigner » ; après, le réglage à 8 h et 20 h, remplacé le jour même sans prise, transmet sa
+grille au suivant (R10, #781) et v2 la montre de nouveau en retard comme dose du moment, alors que le
+moteur actuel la garde « à renseigner » et propose le 23 à 6 h. Décision du 2026-10-13 : une dose en
+retard ne disparaît que par « Elles n'étaient pas à donner » ou par une date choisie sans question ;
+un changement de fréquence seul la laisse en retard. Le correctif essayé (la fréquence d'avant le
+réglage remplacé ne compte plus) la mettait « à renseigner » : retiré, la lecture de cette décision
+face à R9 (où un changement de fréquence met la dose en retard « à renseigner ») attend Gaelle.
