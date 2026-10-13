@@ -162,10 +162,9 @@ export function calendarOf(
         setting.startsOn > inherited.floor &&
         isOnGrid(inherited.origin, setting.frequency, setting.startsOn)
       replaced.push({ from: rhythmFrom, to: setting.startsOn, onDueDay })
-    }
-    // R6, TR-9 : la grille repartie d'une date choisie, continuée par les réglages de même rythme.
-    if (kept && origin !== null && !ended) restart = setting.firstDueOn
-    else if (!continued || origin !== null || ended) restart = undefined
+      // R6, TR-9 : la grille repartie d'une date choisie, continuée par les réglages de même rythme.
+      restart = setting.firstDueOn
+    } else if (!continued || origin !== null || ended) restart = undefined
     if (restart !== undefined) restarts.set(setting.id, restart)
     if (index > 0 && (!continued || ended)) rhythmFrom = setting.startsOn
     // R6 : à partir de sa journée d'origine, un décalage donne à la grille l'origine de son ancrage ;
