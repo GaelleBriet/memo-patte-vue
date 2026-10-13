@@ -1,19 +1,18 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
+import { readFileSync } from 'node:fs'
+
 import { applyMigrations, createSqlJsDbClient, type InMemoryDb } from './in-memory-db'
-import { step } from '../../../../scripts/dose-engine/walk'
-import { startWalk, WalkStopped } from '../../../../scripts/dose-engine/walk-state'
-import type { Book } from '../../../../scripts/dose-engine/carnet'
-import { gridOriginsOf, targetOnOf } from '@/shared/domain/dose-calendar'
+import { gridOriginsOf, targetOnOf, type LegacyInput } from '@/shared/domain/dose-calendar'
 
 const MILO = '11111111-1111-4111-8111-111111111111'
 const APPAREIL = '99999999-9999-4999-8999-999999999999'
 const T1 = '2026-10-02T08:00:00.000Z'
 const SUPPRIME = '2026-10-05T08:00:00.000Z'
 
-type V11Period = Book['periods'][number] & { deletedAt?: string | null }
-type V11Dose = Book['doses'][number] & { deletedAt?: string | null }
+type V11Period = LegacyInput['periods'][number] & { deletedAt?: string | null }
+type V11Dose = LegacyInput['doses'][number] & { deletedAt?: string | null }
 type V11Treatment = { id: string; periods: V11Period[]; doses: V11Dose[] }
 
 function seedVersion11(db: InMemoryDb, treatments: V11Treatment[]): Promise<void> {
@@ -80,28 +79,28 @@ function seedVersion11(db: InMemoryDb, treatments: V11Treatment[]): Promise<void
   ])
 }
 
+// Écrits en v11 par l'ancien moteur, supprimé depuis : graines 530000000 à 530000149 et
+// 530000200 à 530000202 de sa campagne d'invariants, 24 gestes.
+const CAMPAIGN: ({ seed: number } & Omit<V11Treatment, 'id'>)[] = readFileSync(
+  new URL('./fixtures/carnets-v11.jsonl', import.meta.url),
+  'utf8',
+)
+  .trim()
+  .split('\n')
+  .map((line) => JSON.parse(line))
+
 /** Carnets de la campagne : réglages changés, reports, décalages, prises en plus, arrêts. */
 function campaignTreatments(from: number, count: number): V11Treatment[] {
-  const treatments: V11Treatment[] = []
-  for (let seed = from; seed < from + count; seed += 1) {
-    const walk = startWalk(seed, 'avec')
-    try {
-      for (let index = 0; index < 24; index += 1) step(walk, () => {})
-    } catch (error) {
-      if (!(error instanceof WalkStopped)) throw error
-    }
-    const tag = (id: string) => `${seed}-${id}`
-    treatments.push({
-      id: `t-${seed}`,
-      periods: walk.book.periods.map((period) => ({ ...period, id: tag(period.id) })),
-      doses: walk.book.doses.map((dose) => ({
-        ...dose,
-        id: tag(dose.id),
-        periodId: tag(dose.periodId),
-      })),
-    })
-  }
-  return treatments
+  return CAMPAIGN.filter(({ seed }) => seed >= from && seed < from + count).map(
+    ({ seed, periods, doses }) => {
+      const tag = (id: string) => `${seed}-${id}`
+      return {
+        id: `t-${seed}`,
+        periods: periods.map((period) => ({ ...period, id: tag(period.id) })),
+        doses: doses.map((dose) => ({ ...dose, id: tag(dose.id), periodId: tag(dose.periodId) })),
+      }
+    },
+  )
 }
 
 async function userVersion(db: InMemoryDb): Promise<number | undefined> {

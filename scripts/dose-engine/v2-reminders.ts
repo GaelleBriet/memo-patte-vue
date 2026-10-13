@@ -1,10 +1,14 @@
-import { treatmentView, type TreatmentViewInput } from '@/shared/domain/dose-calendar'
+import {
+  treatmentView,
+  type ReminderWindow,
+  type TreatmentViewInput,
+} from '@/shared/domain/dose-calendar'
 
 import { plusDays } from './carnet'
 import { dueKey } from './display'
-import { REMINDER_WINDOW } from './legacy-reminders'
 import type { Broken } from './v2-reading'
 
+const REMINDER_WINDOW: ReminderWindow = { count: 60, daysBefore: 3, daysAfter: 3 }
 const STEP_DAYS = { day: 1, week: 7, month: 28 } as const
 
 const broken = (rule: string, detail: unknown): Broken => ({

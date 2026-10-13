@@ -1,5 +1,10 @@
 # Écarts acceptés entre le moteur actuel et le moteur v2
 
+> Archive depuis le pas 10 de l'épic #758 (2026-10-13) : l'ancien moteur (« moteur actuel » ci-dessous)
+> et la reconnaissance des familles par l'oracle (`ecarts.ts`) sont supprimés. Ce fichier garde, pour
+> chaque écart, la décision qui le justifie ; les graines citées ne se rejouent plus contre l'ancien
+> moteur.
+
 Un écart n'est accepté que rattaché à un ticket ou à une décision (spec `docs/product/specs/traitements.md`
 §4.8 et §10, plan `docs/technical/moteur-doses-v2-plan.md` §6.1). Les familles sont celles que l'oracle
 reconnaît (`ecarts.ts`) ; les scénarios sont ceux du jeu de recette (`src/shared/__tests__/dose-calendar.recette-*.spec.ts`,

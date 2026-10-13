@@ -7,8 +7,6 @@ export type Display = {
   upcoming: string[]
 }
 
-export type Reading = Display | { error: string }
-
 /** Les échéances à venir sont lues jusqu'à ce nombre de jours après aujourd'hui. */
 export const HORIZON_DAYS = 120
 
@@ -18,17 +16,12 @@ export function dueKey({ dueOn, dueTime }: { dueOn: string; dueTime: string | nu
 
 const FIELDS = ['phase', 'finished', 'current', 'unlogged', 'upcoming'] as const
 
-export type Field = (typeof FIELDS)[number] | 'error'
+export type Field = (typeof FIELDS)[number]
 
 /** Ce qui sépare deux lectures : par champ, ce que l'une montre et pas l'autre. */
 export type Gap = { field: Field; onlyA: string[]; onlyB: string[] }
 
-export function gapsBetween(a: Reading, b: Reading): Gap[] {
-  if ('error' in a || 'error' in b) {
-    const text = (reading: Reading) => ('error' in reading ? [reading.error] : [])
-    const same = 'error' in a && 'error' in b
-    return same ? [] : [{ field: 'error', onlyA: text(a), onlyB: text(b) }]
-  }
+export function gapsBetween(a: Display, b: Display): Gap[] {
   return FIELDS.flatMap((field) => {
     const [left, right] = [a[field], b[field]].map((value) =>
       Array.isArray(value) ? value : [String(value)],
