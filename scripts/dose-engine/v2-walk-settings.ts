@@ -2,6 +2,7 @@ import {
   newSettings,
   treatmentView,
   type Frequency,
+  type Line,
   type Setting,
   type SettingsPlan,
   type SettingsRequest,
@@ -23,11 +24,12 @@ const MAX_SETTINGS = 5
 /** Le carnet une fois le réglage écrit, comme le repository : un identifiant et un horodatage neufs. */
 export function settingsWritten(walk: SettingsWalk, plan: SettingsPlan): TreatmentViewInput {
   const { settings } = walk.input
+  const lines = linesWritten(walk, plan.lines ?? [])
   if (plan.action === 'rewrite') {
     const rewritten = settings.map((setting) =>
       setting.id === plan.id ? { ...setting, ...plan.setting } : setting,
     )
-    return { ...walk.input, settings: rewritten }
+    return { ...walk.input, settings: rewritten, lines }
   }
   const created: Setting = {
     ...plan.setting,
@@ -35,7 +37,21 @@ export function settingsWritten(walk: SettingsWalk, plan: SettingsPlan): Treatme
     stoppedOn: null,
     createdAt: walk.stamp(),
   }
-  return { ...walk.input, settings: [...settings, created] }
+  return { ...walk.input, settings: [...settings, created], lines }
+}
+
+// R7, #796 : le report que la date choisie fait arriver, réécrit ou supprimé comme par le repository.
+function linesWritten(walk: SettingsWalk, changes: NonNullable<SettingsPlan['lines']>): Line[] {
+  return changes.reduce<Line[]>(
+    (lines, change) => {
+      if (change.action === 'delete') return lines.filter(({ id }) => id !== change.id)
+      const updatedAt = walk.stamp()
+      return lines.map((line) =>
+        line.id === change.id ? { ...change.line, id: line.id, updatedAt } : line,
+      )
+    },
+    [...walk.input.lines],
+  )
 }
 
 // « Modifier » : posologie seule, heures, fréquence, ou les deux (R3, R9) ; la première échéance

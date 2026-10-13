@@ -913,13 +913,17 @@ describe('editionPlan — période ouverte par « Modifier », encore sans prise
     expect(after.unloggedDoses).toEqual([])
   })
 
-  it.fails('pas 6, ticket moteur : date proposée selon le jour de correction', () => {
-    const { history, input } = hebdoCorrigeeLe5()
+  it.each(['2026-10-02', '2026-10-03', '2026-10-05'])(
+    '#799 : corrigée le %s en « toutes les 2 semaines », le 16 est proposé, calculé d’après la dernière prise',
+    (today) => {
+      const { history, input } = hebdoCorrigeeLe5()
 
-    expect(editionDraft(history, input, '2026-10-05').nextDose).toMatchObject({
-      proposedOn: '2026-10-16',
-    })
-  })
+      expect(editionDraft(history, input, today).nextDose).toMatchObject({
+        proposedOn: '2026-10-16',
+        help: { kind: 'calculated', on: '2026-10-16' },
+      })
+    },
+  )
 
   it('garde la première échéance choisie dans « Prochaine dose » avec la fréquence corrigée', () => {
     const history = treatment([HEBDO, QUINZAINE], [PRISE_DU_2])

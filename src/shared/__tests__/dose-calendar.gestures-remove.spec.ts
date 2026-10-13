@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { removalRefusal, removeLine } from '../domain/dose-calendar'
+import { applied, removalRefusal, removeLine, treatmentView } from '../domain/dose-calendar'
 import { line, setting, WEEK } from './dose-calendar.v2.aides'
 
 const TWO_WEEKS = { value: 2, unit: 'week' as const }
@@ -81,5 +81,64 @@ describe('« Supprimer » (R11, Q25, N8, G19)', () => {
       today: '2026-10-20',
     }
     expect(removalRefusal(input, back.id)).toBeNull()
+  })
+})
+
+describe('TR-25 : « Supprimer » une dose supprime toutes ses lignes (décision du 2026-10-12)', () => {
+  const twice = (dueOn: string) => [line('p1', 'given', dueOn), line('p1', 'given', dueOn)]
+
+  it('dose du 16 oct. de Milo notée sur chaque appareil, « Supprimer » : plus aucune ligne pour cette dose', () => {
+    const [older, newer] = twice('2026-10-16')
+    const input = { settings: [p1], lines: [older!, newer!], today: '2026-10-20' }
+    const result = removeLine(input, newer!.id)
+    expect('refusal' in result ? result : result.changes).toEqual([
+      { action: 'delete', id: newer!.id },
+      { action: 'delete', id: older!.id },
+    ])
+  })
+
+  it('une dose donnée et la même notée oubliée sur l’autre appareil : les deux lignes partent', () => {
+    const missed = line('p1', 'missed', '2026-10-16')
+    const given = line('p1', 'given', '2026-10-16')
+    const input = { settings: [p1], lines: [missed, given], today: '2026-10-20' }
+    const result = removeLine(input, given.id)
+    expect('refusal' in result ? result : result.changes).toEqual([
+      { action: 'delete', id: given.id },
+      { action: 'delete', id: missed.id },
+    ])
+  })
+
+  it('la ligne grisée « · sans effet » se supprime seule, la prise en vigueur reste', () => {
+    const [older, newer] = twice('2026-10-16')
+    const input = { settings: [p1], lines: [older!, newer!], today: '2026-10-20' }
+    const result = removeLine(input, older!.id)
+    expect('refusal' in result ? result : result.changes).toEqual([
+      { action: 'delete', id: older!.id },
+    ])
+  })
+
+  it('dose du 16 notée sous l’ancien réglage et sous celui ouvert le 16 (deux appareils) : « Supprimer » la prise en vigueur emporte l’autre, la dose n’est plus donnée', () => {
+    const p2 = setting('p2', '2026-10-16', WEEK)
+    const old = line('p1', 'given', '2026-10-16')
+    const other = line('p2', 'given', '2026-10-16')
+    const input = { settings: [p1, p2], lines: [old, other], today: '2026-10-20' }
+    const result = removeLine(input, old.id)
+    expect('refusal' in result ? result : result.changes).toEqual([
+      { action: 'delete', id: old.id },
+      { action: 'delete', id: other.id },
+    ])
+    if ('refusal' in result) return
+    const after = treatmentView(applied(input, result.changes))
+    expect(after.history.some(({ effect }) => effect.kind === 'covers')).toBe(false)
+  })
+
+  it('le report et le décalage de la même journée ne sont pas des lignes de la dose', () => {
+    const given = line('p1', 'given', '2026-10-16')
+    const shift = line('p1', 'shift', '2026-10-16', null, '2026-10-19')
+    const input = { settings: [p1], lines: [given, shift], today: '2026-10-20' }
+    const result = removeLine(input, given.id)
+    expect('refusal' in result ? result : result.changes).toEqual([
+      { action: 'delete', id: given.id },
+    ])
   })
 })

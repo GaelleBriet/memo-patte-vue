@@ -179,6 +179,8 @@ function historyLineText(line: PdfHistoryLine, t: Translate): string {
         ? t('treatments.history.advanced', dates)
         : t('treatments.history.postponed', dates)
     }
+    case 'idle':
+      return t('treatments.history.noEffect', { text: historyLineText(line.line, t) })
   }
 }
 

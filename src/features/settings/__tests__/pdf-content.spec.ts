@@ -715,7 +715,7 @@ describe('buildCarnetPdfContent — historique', () => {
     ])
   })
 
-  it('lit les lignes retenues par le moteur : une par échéance, sans report sans effet', () => {
+  it('R11, R12 : lit les lignes du moteur comme la fiche, doublons et report revenu à sa date « · sans effet » (décision du 2026-10-12)', () => {
     const row = treatmentRow(
       [{ id: 'p', startsOn: '2026-04-01' }],
       [
@@ -738,10 +738,19 @@ describe('buildCarnetPdfContent — historique', () => {
         kind: 'given',
         series: { kind: 'dates', doses: [at('2026-06-03'), at('2026-05-01'), at('2026-04-01')] },
       },
+      {
+        kind: 'idle',
+        line: { kind: 'given', series: { kind: 'dates', doses: [at('2026-06-01')] } },
+      },
+      {
+        kind: 'idle',
+        line: { kind: 'moved', dueOn: '2026-05-01', to: '2026-05-01', advanced: false },
+      },
     ])
+    expect(row.lastDoseDate).toBe('2026-06-03')
   })
 
-  it('garde un report qui n’a plus de dose à déplacer, la fréquence ayant changé le même jour', () => {
+  it('garde un report qui n’a plus de dose à déplacer, la fréquence ayant changé le même jour, « · sans effet » comme sur la fiche', () => {
     const row = treatmentRow(
       [
         {
@@ -778,8 +787,14 @@ describe('buildCarnetPdfContent — historique', () => {
     )
 
     expect(row.periods[1]!.lines).toEqual([
-      { kind: 'moved', dueOn: '2026-03-28', to: '2026-03-29', advanced: false },
-      { kind: 'given', series: { kind: 'dates', doses: [at('2026-03-25', '20:00')] } },
+      {
+        kind: 'idle',
+        line: { kind: 'moved', dueOn: '2026-03-28', to: '2026-03-29', advanced: false },
+      },
+      {
+        kind: 'idle',
+        line: { kind: 'given', series: { kind: 'dates', doses: [at('2026-03-25', '20:00')] } },
+      },
     ])
   })
 

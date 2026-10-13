@@ -12,6 +12,7 @@ import type {
 } from '../types'
 import { buildView, type TreatmentView } from '../view'
 import { settingsApplied } from './changes'
+import { withChosenDate } from './settings-chosen'
 import {
   NEXT_DAYS,
   proposedDates,
@@ -116,7 +117,11 @@ export function newSettings(input: TreatmentViewInput, request: SettingsRequest)
   if (current === null || view.phase === 'stopped') {
     throw new RangeError('Aucun réglage en cours : « Reprendre » ouvre le suivant')
   }
-  const result = settingsFor(input, view, current, request)
+  const planned = settingsFor(input, view, current, request)
+  const { firstDueOn: chosen, ...implicit } = request
+  const result = sameFrequency(current.frequency, request.frequency)
+    ? withChosenDate(input, chosen, planned, () => settingsFor(input, view, current, implicit))
+    : planned
   return leavesNoDose(input, request, result)
     ? { refusal: { reason: 'no-dose-before-end' } }
     : result

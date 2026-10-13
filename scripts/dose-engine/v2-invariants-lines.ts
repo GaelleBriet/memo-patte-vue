@@ -28,11 +28,26 @@ export function conservation(step: V2Step): Broken | null {
     step.after.lines.some(
       (now) => now.id === line.id && now.status === 'given' && now.givenOn === gesture.givenOn,
     )
+  // TR-25 : « Supprimer » la prise en vigueur emporte les autres lignes de sa dose, jour et heure.
+  const ofRemovedDose = (line: Line) => {
+    if (gesture.kind !== 'remove') return false
+    const removed = step.before.lines.find(({ id }) => id === gesture.lineId)!
+    const inForce =
+      treatmentView(step.before).history.find(({ line: { id } }) => id === removed.id)?.effect
+        .kind !== 'idle'
+    return (
+      inForce &&
+      isNote(removed) &&
+      isNote(line) &&
+      line.dueOn === removed.dueOn &&
+      line.dueTime === removed.dueTime
+    )
+  }
   const followed = new Set(step.outcome.followed.map(({ from }) => from))
   // G12, #786 : le report seul que la prise notée fait suivre est réécrit.
   const follows = (line: Line) => line.status === 'postponed' && followed.has(line.targetOn ?? '')
   const allowed = (line: Line) => {
-    if (gesture.kind === 'remove') return line.id === gesture.lineId
+    if (gesture.kind === 'remove') return line.id === gesture.lineId || ofRemovedDose(line)
     if (!isNote(line)) return gesture.kind !== 'note' || line.status === 'shift' || follows(line)
     if (becomesPrise(line)) return true
     return gesture.kind === 'redate' && line.id === gesture.lineId
