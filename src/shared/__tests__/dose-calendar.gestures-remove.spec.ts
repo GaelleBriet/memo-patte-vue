@@ -132,22 +132,33 @@ describe('TR-25 : « Supprimer » une dose supprime toutes ses lignes (décision
     expect(after.history.some(({ effect }) => effect.kind === 'covers')).toBe(false)
   })
 
-  it('entre deux périodes (décision du 2026-10-13) : tous les jours, dose du 6 donnée d’avance le 5, arrêt le 5, « Reprendre » le 5 avec première dose le 6, dose du 6 notée de nouveau : « Supprimer » la prise en vigueur emporte les deux lignes', () => {
+  it('#822, entre deux périodes (décision du 2026-10-13 au soir) : tous les jours, dose du 6 donnée d’avance le 5, arrêt le 5, « Reprendre » le 5 avec première dose le 6, dose du 6 notée de nouveau : « Supprimer » ne retire que la ligne touchée', () => {
     const stopped = setting('d1', '2026-10-01', DAY, [], { stoppedOn: '2026-10-05' })
     const resumed = setting('d2', '2026-10-06', DAY, [], { startsOn: '2026-10-05' })
     const ahead = { ...line('d1', 'given', '2026-10-06'), givenOn: '2026-10-05' }
     const again = line('d2', 'given', '2026-10-06')
     const input = { settings: [stopped, resumed], lines: [ahead, again], today: '2026-10-06' }
-    const live = treatmentView(input).history.find(({ effect }) => effect.kind === 'covers')
-    expect(live?.line.id).toBe(again.id)
     const result = removeLine(input, again.id)
     expect('refusal' in result ? result : result.changes).toEqual([
       { action: 'delete', id: again.id },
-      { action: 'delete', id: ahead.id },
+    ])
+  })
+
+  it('#822 : tous les jours à 20 h, dose du 2 avr. donnée, arrêt le 2, reprise le 2 dès le 2, la même dose notée de nouveau : « Supprimer » la prise de la reprise garde celle d’avant l’arrêt, qui couvre la dose', () => {
+    const stopped = setting('p1', '2026-03-30', DAY, ['20:00'], { stoppedOn: '2026-04-02' })
+    const resumed = setting('p2', '2026-04-02', DAY, ['20:00'])
+    const before = line('p1', 'given', '2026-04-02', '20:00')
+    const again = line('p2', 'given', '2026-04-02', '20:00')
+    const input = { settings: [stopped, resumed], lines: [before, again], today: '2026-04-02' }
+    const result = removeLine(input, again.id)
+    expect('refusal' in result ? result : result.changes).toEqual([
+      { action: 'delete', id: again.id },
     ])
     if ('refusal' in result) return
     const after = treatmentView(applied(input, result.changes))
-    expect(after.history).toEqual([])
+    expect(after.history.map(({ line, effect }) => [line.id, effect])).toEqual([
+      [before.id, { kind: 'covers', key: '2026-04-02 20:00' }],
+    ])
   })
 
   it('le report et le décalage de la même journée ne sont pas des lignes de la dose', () => {
