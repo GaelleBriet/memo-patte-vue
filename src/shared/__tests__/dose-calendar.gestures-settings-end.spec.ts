@@ -190,6 +190,51 @@ describe('#806, Q38, R12 : « Elles n’étaient pas à donner » refusé quand 
     expect(newSettings(carnet, { ...asked, firstDueOn: date })).toEqual(result)
   })
 
+  describe('#817, même carnet, fin laissée au 6 avr., « Prochaine dose » le 19 : « Elles restent à renseigner » (décision du 2026-10-13)', () => {
+    const chosen = { ...asked, endsOn: '2026-04-06', firstDueOn: '2026-03-19' }
+    const keepOf = (input: TreatmentViewInput, request: SettingsRequest) => {
+      const result = newSettings(input, request)
+      if (!('question' in result)) throw new Error(JSON.stringify(result))
+      return result.question.keep
+    }
+
+    it('la nouvelle grille part du 19, le report du 5 avr. et son décalage restent tels quels', () => {
+      const keep = keepOf(carnet, chosen)
+      expect(keep).toMatchObject({ action: 'create', setting: { firstDueOn: '2026-03-19' } })
+      expect(keep.lines).toBeUndefined()
+      const read = preview(carnet, keep)
+      expect(keys(read.upcoming({ limit: 1 }))).toEqual(['2026-03-19 08:00'])
+      const byId = (lines: readonly { id: string }[]) =>
+        [...lines].sort((a, b) => a.id.localeCompare(b.id))
+      expect(byId(read.history.map(({ line }) => line))).toEqual(byId(carnet.lines))
+    })
+
+    it.fails(
+      'la dose de 6 h du 17 reste en retard (question de #817 : le réglage écrit ne dit pas qu’une question a été posée)',
+      () => {
+        const read = preview(carnet, keepOf(carnet, chosen))
+        expect([read.phase, keys(read.currentDoses)]).toEqual(['overdue', ['2026-03-17 06:00']])
+      },
+    )
+
+    it.fails(
+      'tous les 2 jours à 8 h dès le 1er, rien de noté ; le 6, 9 h et « Prochaine dose » le 8, hors de la grille : la dose du 5 reste en retard, puis 8, 10 (question de #817)',
+      () => {
+        const everyTwo = setting('t1', '2026-10-01', TWO_DAYS, ['08:00'])
+        const input = { settings: [everyTwo], lines: [], today: '2026-10-06' }
+        const request = {
+          frequency: TWO_DAYS,
+          times: ['09:00'],
+          endsOn: null,
+          firstDueOn: '2026-10-08',
+        }
+        const read = preview(input, keepOf(input, request))
+        expect([read.phase, keys(read.currentDoses)]).toEqual(['overdue', ['2026-10-05 08:00']])
+        expect(keys(read.upcoming({ limit: 2 }))).toEqual(['2026-10-08 09:00', '2026-10-10 09:00'])
+      },
+    )
+  })
+
   it('même carnet, fin laissée au 6 avr. : les deux réponses restent possibles', () => {
     const result = newSettings(carnet, { ...asked, endsOn: '2026-04-06' })
     if (!('question' in result)) throw new Error(JSON.stringify(result))

@@ -1,11 +1,11 @@
 import type { Random } from './carnet'
 import { conservation, noDouble, undo } from './v2-invariants-lines'
 import { naive, posology, previewIsResult, symmetry, time } from './v2-invariants-readings'
-import { settingsProposal } from './v2-invariants-settings'
+import { refusedCorrection, settingsProposal } from './v2-invariants-settings'
 import type { Broken } from './v2-reading'
 import type { V2Step } from './v2-walk'
 
-/** Les neuf invariants sur un pas joué ; le premier qui ne tient pas. */
+/** Les neuf invariants sur un pas joué, et le refus de Q38 ; le premier qui ne tient pas. */
 export function brokenBy(step: V2Step, random: Random): Broken | null {
   const checks = [
     () => conservation(step),
@@ -17,6 +17,7 @@ export function brokenBy(step: V2Step, random: Random): Broken | null {
     () => previewIsResult(step),
     () => naive(step.after),
     () => settingsProposal(step),
+    () => refusedCorrection(step),
   ]
   for (const check of checks) {
     const broken = check()

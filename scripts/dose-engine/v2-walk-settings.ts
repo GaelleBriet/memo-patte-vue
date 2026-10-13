@@ -95,13 +95,12 @@ export function changedSettings(walk: SettingsWalk): SettingsPlay | null {
     walk.log.push(`${label} → ${JSON.stringify(result.plan)}`)
     return { request: asked, plan: result.plan }
   }
-  const keep = walk.random() < 0.5
-  const plan = keep ? result.question.keep : result.question.correct
-  if ('refusal' in plan) {
-    walk.log.push(`${label} Q38 corrigé refusé (${plan.refusal.reason})`)
-    return null
-  }
-  walk.log.push(`${label} Q38 ${keep ? 'à renseigner' : 'corrigé'} → ${JSON.stringify(plan)}`)
+  const { keep, correct } = result.question
+  // #806, #817 : « Elles n'étaient pas à donner » refusée, la personne garde les doses à renseigner.
+  if ('refusal' in correct) walk.log.push(`${label} Q38 corrigé refusé (${correct.refusal.reason})`)
+  const kept = walk.random() < 0.5 || 'refusal' in correct
+  const plan = kept || 'refusal' in correct ? keep : correct
+  walk.log.push(`${label} Q38 ${kept ? 'à renseigner' : 'corrigé'} → ${JSON.stringify(plan)}`)
   return { request: asked, plan }
 }
 

@@ -31,10 +31,17 @@ type Played = {
   steps: number
   failures: string[]
   byInvariant: Record<string, number>
+  refusedCorrections: number
 }
 
 function playCampaign({ from, seeds, steps }: Campaign): Played {
-  const played: Played = { carnets: 0, steps: 0, failures: [], byInvariant: {} }
+  const played: Played = {
+    carnets: 0,
+    steps: 0,
+    failures: [],
+    byInvariant: {},
+    refusedCorrections: 0,
+  }
   for (let seed = from; seed < from + seeds; seed += 1) {
     const walk = startV2Walk(seed)
     const checks = mulberry32(seed ^ 0x4f1bbcdc)
@@ -53,6 +60,9 @@ function playCampaign({ from, seeds, steps }: Campaign): Played {
     }
     for (let count = 0; count < steps && failure === null; count += 1) v2Step(walk, onStep)
     played.carnets += 1
+    played.refusedCorrections += walk.log.filter((entry) =>
+      entry.includes('Q38 corrigé refusé'),
+    ).length
     if (failure !== null) played.failures.push(failure)
   }
   return played
@@ -69,6 +79,7 @@ describe('campagne d’invariants du moteur v2', () => {
       console.warn(
         `Campagne : ${played.carnets} carnets × ${campaign.steps} gestes, graines ${campaign.from} à ${last}` +
           ` : ${played.steps} pas vérifiés, ${played.failures.length} carnets en échec` +
+          `, « pas à donner » refusé ${played.refusedCorrections} fois` +
           Object.entries(played.byInvariant)
             .map(([name, count]) => ` ; ${name} ${count}`)
             .join(''),
