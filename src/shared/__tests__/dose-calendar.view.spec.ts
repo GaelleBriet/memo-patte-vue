@@ -223,7 +223,7 @@ describe('relecture du pas 2 : frontières de réglage et historique', () => {
     expect(effectOf(read, resumed.id)).toEqual({ kind: 'covers', key: '2026-10-06 20:00' })
   })
 
-  it('R4, R8 : posologie ouverte puis arrêtée le 8, doses de 14 h et 20 h du 8 données d’avance, reprise le 8 à 20 h : chaque prise couvre la dose de son heure, celle de la reprise une seule fois (décision du 2026-10-13)', () => {
+  it('R4, R8 : posologie ouverte puis arrêtée le 8, doses de 14 h et 20 h du 8 données d’avance, reprise le 8 à 20 h : les deux prises restent comptées, la dose de 20 h de la reprise une seule fois (R8, #819)', () => {
     const p1 = setting('p1', '2026-10-05', DAY, ['08:00', '14:00', '20:00'])
     const p2 = setting('p2', '2026-10-08', DAY, ['08:00', '14:00', '20:00'], {
       stoppedOn: '2026-10-08',
