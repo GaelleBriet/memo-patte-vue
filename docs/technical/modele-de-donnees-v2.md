@@ -195,7 +195,9 @@ Le calendrier devient celui du traitement, pas de la période : `treatment_dose.
 titre d'information (posologie appliquée), `treatment_period.reference_on` devient `grid_origin_on`
 (origine de la grille, un seul sens), `treatment_dose.next_due_date` devient `target_on` (arrivée
 d'un report, ancrage d'un décalage, vide pour une prise). Règles : spec `traitements.md` §4.8 ;
-migration, export v5 et miroir Supabase : `moteur-doses-v2-plan.md` §3.
+migration, export v5 et miroir Supabase : `moteur-doses-v2-plan.md` §3. Depuis le 2026-10-13 (pas 10),
+seul le moteur v2 lit ces colonnes ; l'ancien moteur, qui relisait `reference_on` et `next_due_date`,
+est supprimé.
 
 ## 5. Décisions
 

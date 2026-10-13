@@ -29,9 +29,9 @@ Les scripts vivent dans `scripts/test-device/`, versionnés pour suivre d'un pos
   5. vérifie `main` (quatre commandes) dans `.claude/worktrees/integ`, et affiche `MAIN OK` ou `MAIN KO`.
 - Avant : `gh pr update-branch <numéro>`. Après : vérifier que le ticket est fermé.
 
-## Campagnes d'invariants du moteur d'échéances
+## Campagnes d'invariants du moteur des doses
 
-- Commande, variables posées **directement** devant elle : `INVARIANTS_FROM=120000000 INVARIANTS_SEEDS=3000 INVARIANTS_STEPS=40 pnpm exec vitest run src/shared/__tests__/treatment-schedule.invariants.spec.ts --reporter=verbose`. Jamais par une variable shell intermédiaire (`env $E` sous zsh ne découpe pas la chaîne : le 2026-10-09, des campagnes ont ainsi joué zéro carnet en s'affichant vertes, et des défauts de #692 sont passés).
+- Commande, variables posées **directement** devant elle : `INVARIANTS_FROM=120000000 INVARIANTS_SEEDS=3000 INVARIANTS_STEPS=40 pnpm exec vitest run src/shared/__tests__/dose-calendar.invariants.spec.ts --reporter=verbose` ; l'oracle (`ORACLE_*`) et la campagne des rappels (`RAPPELS_*`) se lancent de même, mode d'emploi dans `scripts/dose-engine/README.md`. Jamais par une variable shell intermédiaire (`env $E` sous zsh ne découpe pas la chaîne : le 2026-10-09, des campagnes ont ainsi joué zéro carnet en s'affichant vertes, et des défauts de #692 sont passés).
 - Une campagne ne compte que si elle **prouve ce qu'elle a joué** : la spec échoue si ses réglages sont illisibles et annonce « Campagne : N carnets × M gestes, graines A à B », visible avec `--reporter=verbose`. Le rapport d'une campagne donne ce nombre.
 - Une série longue se lance sous un verrou partagé avec les autres suites lourdes (`flock`), jamais en parallèle d'une autre suite complète.
 - Avant de merger un changement du moteur : une série jamais jouée par l'implémenteur, lancée par le relecteur ; toute graine rouge est soit corrigée, soit reproduite à l'identique par le moteur de `main` et documentée avec un exemple concret (#721).

@@ -1,6 +1,6 @@
 ---
 name: relecteur-moteur
-description: Pour le moteur des doses (shared/domain/treatment-schedule*), les migrations et la synchro : relit en lecture seule le diff d'une branche contre les critères du ticket, CLAUDE.md et les règles du dépôt ; rend des constats classés Critical / Important / Mineur.
+description: Pour le moteur des doses (shared/domain/dose-calendar/), les migrations et la synchro : relit en lecture seule le diff d'une branche contre les critères du ticket, CLAUDE.md et les règles du dépôt ; rend des constats classés Critical / Important / Mineur.
 model: opus
 effort: high
 tools: Read, Grep, Glob, Bash
