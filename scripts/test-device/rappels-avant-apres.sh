@@ -3,6 +3,7 @@
 # rappels-avant-apres.spec.ts, importe dans MémoPatte Dev, donne la permission, relance l'app (qui
 # reprogramme tout au démarrage) et relève les alarmes (`dumpsys alarm`) et les rappels en attente.
 set -e
+: "${ANDROID_SERIAL:?}"
 D=$(dirname "$0"); APP=com.gaellebriet.memopatte.dev
 CARNETS=$1; APK=$2; OUT=$3
 mkdir -p "$OUT"
