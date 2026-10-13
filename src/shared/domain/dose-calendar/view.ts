@@ -95,6 +95,7 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
     return widest.calendars
   }
   const currentSetting = episodes.at(-1)?.at(-1) ?? null
+  const currentStep = currentSetting === null ? 0 : longestStep(currentSetting.frequency)
   const moment = momentOf(calendars, currentSetting ?? undefined, today)
   const closed = moment.phase === 'stopped' || moment.phase === 'ended'
   const end = currentSetting?.endsOn ?? currentSetting?.stoppedOn ?? null
@@ -215,7 +216,7 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
           currentSetting,
           settingAt,
           upcomingUntil: (limit) =>
-            upcoming({ limit, to: plusDays(lastKnownDay, (limit + 2) * step) }),
+            upcoming({ limit, to: plusDays(lastKnownDay, (limit + 2) * currentStep) }),
         },
         window,
       ),

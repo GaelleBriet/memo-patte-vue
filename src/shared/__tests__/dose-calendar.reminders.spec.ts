@@ -120,6 +120,24 @@ describe('RA-1 à RA-6 : les rappels lus dans la vue', () => {
     expect(dues[3]!.due.dueOn).toBe('2027-01-31')
     expect(dues[4]!.due.dueOn).toBe('2027-02-28')
   })
+
+  it('RA-11 : après un réglage « tous les 365 mois », quatre heures par jour se lisent sans construire des siècles de calendrier', () => {
+    const p1 = setting('p1', '2025-01-01', { value: 365, unit: 'month' })
+    const p2 = setting('p2', '2026-10-01', DAY, ['06:00', '12:00', '18:00', '23:00'])
+    const read = view([p1, p2], [], '2026-10-13')
+    const started = performance.now()
+    const reminders = read.reminders(WINDOW)
+    expect(performance.now() - started).toBeLessThan(1000)
+    expect(reminders).toHaveLength(69)
+    expect(reminders.every(({ moment, due }) => moment === 'due' && due.settingId === 'p2')).toBe(
+      true,
+    )
+    expect(shown(reminders).slice(0, 2)).toEqual([
+      'due 2026-10-13 06:00 → 2026-10-13',
+      'due 2026-10-13 12:00 → 2026-10-13',
+    ])
+    expect(shown(reminders).at(-1)).toBe('due 2026-10-30 06:00 → 2026-10-30')
+  })
 })
 
 describe('RA-19 : une échéance notée retire sa notification du volet', () => {
