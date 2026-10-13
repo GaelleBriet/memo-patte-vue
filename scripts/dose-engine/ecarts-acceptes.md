@@ -160,8 +160,10 @@ porte la date choisie ou ouvre le nouveau rythme (R9.2). La date choisie ne ré�
 la dose du moment est son arrivée (#796). Tous les 2 jours, doses des 2 et 4 données, 6 non donnée,
 8 reportée au 10 : le 7, « Prochaine dose » le 9 : 9, 11, 13 (9, 11 avec le report réécrit et la dose
 en retard fusionnée avant ; 9, 10, 11 sur l'ancien `main`) ; le 6, « Prochaine dose » le 7 : 7, 9, 11
-(7, 9, 10, 11 avant). La règle ne vaut pas hors d'une date choisie : un report parti d'une journée
-sortie du calendrier par un changement de fréquence reste lu (tests de
+(7, 9, 10, 11 avant). Un report écrit avant la date choisie et parti de cette date même est porté
+par elle, sans effet : le 6 ou le 7, « Prochaine dose » le 8 : 8, 10, 12, comme sur `main` (lecture
+à confirmer, spec §11) ; un report écrit sous le réglage de la date choisie garde son effet. La règle
+ne vaut pas hors d'une date choisie : un report parti d'une journée sortie du calendrier par un changement de fréquence reste lu (tests de
 `dose-calendar.journees-sorties.spec.ts`). Le modèle naïf applique la même règle, report qui porte
 la date choisie compris (graine 992000111 : à plusieurs heures, l'arrivée ne garde que l'heure
 reportée ; test daté de `dose-calendar.reference-model.spec.ts`).
