@@ -183,3 +183,25 @@ describe('R9, R12 : « Modifier » propose la première dose encore à donner (d
     },
   )
 })
+
+describe('#799, R9.3 : la première dose proposée ne dépend pas du jour de la correction (décision du 2026-10-12)', () => {
+  const daily = setting('p1', '2026-09-30', { value: 1, unit: 'day' })
+  const weekly = setting('p2', '2026-10-09', WEEK, [], { startsOn: '2026-10-02' })
+  const given = ['2026-09-30', '2026-10-01', '2026-10-02'].map((day) => line('p1', 'given', day))
+  const everyTwoWeeks: SettingsRequest = {
+    frequency: { value: 2, unit: 'week' },
+    times: [],
+    endsOn: null,
+  }
+
+  it.each(['2026-10-02', '2026-10-03', '2026-10-05'])(
+    'quotidien du 30 sept., doses des 30, 1er et 2 oct. données, hebdo ouvert le 2 ; le %s, toutes les 2 semaines : le 16',
+    (today) => {
+      const input = { settings: [daily, weekly], lines: given, today }
+      expect(planOf(input, everyTwoWeeks).setting).toMatchObject({
+        firstDueOn: '2026-10-16',
+        gridOriginOn: '2026-10-16',
+      })
+    },
+  )
+})

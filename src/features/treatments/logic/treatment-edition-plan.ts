@@ -78,7 +78,8 @@ export function editionPlan(
       : sameSettings(settings, settingsOf(period))
         ? null
         : { action: 'correct' as const, id: period.id, settings, referenceOn: period.referenceOn }
-  const doses = move === null ? [] : plannedDoseWritesOf(history, move.changes, ids.newId)
+  const changes = [...(move?.changes ?? []), ...(plan?.lines ?? [])]
+  const doses = plannedDoseWritesOf(history, changes, ids.newId)
   const result: TreatmentPlanWrite = { treatment, period: written, doses }
   if (written !== null || doses.length > 0) {
     assertReadable(

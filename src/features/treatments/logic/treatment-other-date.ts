@@ -1,6 +1,6 @@
 import type { NotifiedDue } from '@/shared/domain/reminder-route'
 import { dueForDate, type Due, type Line, type TreatmentView } from '@/shared/domain/dose-calendar'
-import { shownLines, type TreatmentReading } from '@/shared/domain/treatment-reading'
+import { countedLines, type TreatmentReading } from '@/shared/domain/treatment-reading'
 import { formatClockTime, formatDayMonthOrYear } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
@@ -95,7 +95,7 @@ function isGiven({ status }: Pick<Line, 'status'>): boolean {
 /** Jours dont toutes les échéances sont données, ou qui ont une prise en plus : une autre prise ne s'y note pas. */
 export function givenDays(view: Pick<TreatmentView, 'history' | 'slots'>): string[] {
   const days = new Set(
-    shownLines(view)
+    countedLines(view)
       .filter(isGiven)
       .map(({ dueOn }) => dueOn),
   )
@@ -137,7 +137,7 @@ export function givesBeforeItsDay(
   { dueOn }: Pick<Due, 'dueOn'>,
   today: string,
 ): boolean {
-  return dueOn > today && shownLines(view).some((line) => isGiven(line) && line.givenOn === today)
+  return dueOn > today && countedLines(view).some((line) => isGiven(line) && line.givenOn === today)
 }
 
 type MomentTarget = ReturnType<typeof momentDue>

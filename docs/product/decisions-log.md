@@ -2417,3 +2417,19 @@ convient. — Raison (Gaelle) : une date choisie par la personne est celle que l
 même geste ne rend qu'un résultat ; la parité avec l'ancien moteur ne compte pas (aucune donnée
 réelle). — Alternatives écartées : la lecture étroite des décalages à fréquence gardée, le plancher
 d'un réglage jamais commencé, un refus `passes-report` propre à « Fait à une autre date ».
+
+2026-10-12 — **Moteur des doses v2 : réponses de Gaelle au bilan du pas 6** (spec `traitements.md`
+§10, entrées du 2026-10-12 au soir, R9, TR-25). Une journée déplacée à plusieurs heures ne reçoit que
+ses heures restantes ; la première dose proposée par « dernière prise + fréquence » ne dépend pas du
+jour de la correction (#799) ; une date avant une dose déjà donnée plus loin est refusée, et le refus
+vient du moteur (Q26 ; pas encore appliqué avec un réglage changé, question de la spec §11) ;
+« Supprimer » une dose supprime toutes ses lignes, quel que soit le réglage qui les porte (TR-25) ;
+la date choisie déplace la prochaine dose, et réécrit le report qui y arrive avec le décalage de sa
+journée (#796) ; une prise en plus ne change pas le calendrier ; avant une date choisie, seul le
+décalage qui la porte garde son effet ; PDF, CSV et feuilles montrent les lignes sans effet comme
+l'historique, « · sans effet » (R12 ; appliqué au PDF, le CSV attend la question de la spec §11). — Raison (Gaelle) :
+un même carnet donne la même date quel que soit le jour, une dose déplacée ne laisse pas trois prises
+sur trois jours, une seule lecture pour tous les écrans. — Alternatives écartées : 8 h, 14 h et 20 h le
+jour choisi ; le 15 les jours suivants ; ouvrir un réglage avant une dose donnée ; laisser la dose
+donnée par l'autre ligne ; laisser le report arriver à son ancienne date ou le rendre sans effet ;
+écrire un report pour une prise en plus ; cacher les lignes sans effet du PDF.

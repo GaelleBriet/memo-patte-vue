@@ -12,7 +12,7 @@ import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import { byStartDescending, periodLastDay } from '@/shared/domain/treatment-periods'
-import type { TreatmentReading } from '@/shared/domain/treatment-reading'
+import { historyEntries, type TreatmentReading } from '@/shared/domain/treatment-reading'
 import { formatLongDate, formatDayMonthOrYear } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
@@ -157,9 +157,9 @@ function entriesOf(
   { view }: TreatmentReading,
 ): Entry[] {
   const records = new Map(treatment.doses.map((dose) => [dose.id, dose]))
-  return view.history.flatMap(({ line, effect }) => {
+  return historyEntries(view).flatMap(({ line, idle }) => {
     const dose = records.get(line.id)
-    return dose === undefined ? [] : [{ dose, idle: effect.kind === 'idle' }]
+    return dose === undefined ? [] : [{ dose, idle }]
   })
 }
 

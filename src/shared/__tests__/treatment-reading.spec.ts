@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import { treatmentView, viewInputOf, type LegacyInput } from '../domain/dose-calendar'
-import { readTreatment, shownLines, treatmentReading } from '../domain/treatment-reading'
+import {
+  countedLines,
+  historyEntries,
+  readTreatment,
+  treatmentReading,
+} from '../domain/treatment-reading'
 
 type Period = LegacyInput['periods'][number]
 type Dose = LegacyInput['doses'][number]
@@ -96,7 +101,7 @@ describe('treatmentReading', () => {
   })
 })
 
-describe('shownLines', () => {
+describe('countedLines', () => {
   it('cache un report revenu à sa date et la plus ancienne de deux prises d’une même échéance', () => {
     const treatment = {
       periods: [period()],
@@ -112,7 +117,7 @@ describe('shownLines', () => {
         }),
       ],
     }
-    expect(shownLines(treatmentReading(treatment, TODAY)!).map(({ id }) => id)).toEqual(['new'])
+    expect(countedLines(treatmentReading(treatment, TODAY)!).map(({ id }) => id)).toEqual(['new'])
   })
 
   it('garde une prise qui ne couvre plus rien, à sa place', () => {
@@ -122,7 +127,7 @@ describe('shownLines', () => {
     }
     const read = treatmentReading(treatment, TODAY)!
     expect(read.history.find(({ line }) => line.id === 'off')?.effect.kind).toBe('idle')
-    expect(shownLines(read).map(({ id }) => id)).toEqual(['off', 'a'])
+    expect(countedLines(read).map(({ id }) => id)).toEqual(['off', 'a'])
   })
 
   it('garde un report qui n’a plus de dose à déplacer, la fréquence ayant changé le même jour', () => {
@@ -168,7 +173,33 @@ describe('shownLines', () => {
       kind: 'idle',
       reason: 'nothing-to-move',
     })
-    expect(shownLines(read).map(({ id }) => id)).toEqual(['report', 'prise'])
+    expect(countedLines(read).map(({ id }) => id)).toEqual(['report', 'prise'])
+  })
+})
+
+describe('historyEntries (R11, R12, décision du 2026-10-12)', () => {
+  it('rend toutes les lignes, celles sans effet marquées, comme l’historique de la fiche', () => {
+    const treatment = {
+      periods: [period()],
+      doses: [
+        dose({ id: 'old', updatedAt: '2026-10-01T08:00:00.000Z' }),
+        dose({ id: 'new', updatedAt: '2026-10-01T10:00:00.000Z' }),
+        dose({
+          id: 'back',
+          dueOn: '2026-10-02',
+          status: 'postponed',
+          givenOn: null,
+          nextDueDate: '2026-10-02',
+        }),
+      ],
+    }
+    expect(
+      historyEntries(treatmentReading(treatment, TODAY)!).map(({ line, idle }) => [line.id, idle]),
+    ).toEqual([
+      ['old', true],
+      ['new', false],
+      ['back', true],
+    ])
   })
 })
 

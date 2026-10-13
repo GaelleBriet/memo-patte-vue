@@ -186,6 +186,38 @@ describe('renderCarnetPdf — historique d’un traitement', () => {
   })
 
   it.each([
+    [
+      'fr',
+      'Reportée au 18/08/2026 (prévue le 15/08/2026) · sans effet',
+      'Prise : 01/09/2026 · sans effet',
+    ],
+    [
+      'en',
+      'Postponed to 08/18/2026 (was due 08/15/2026) · no longer applies',
+      'Dose: 09/01/2026 · no longer applies',
+    ],
+  ] as const)(
+    'R11, R12 : écrit une ligne sans effet comme l’historique de la fiche, suivie de « · sans effet » (%s)',
+    (locale, report, prise) => {
+      i18n.global.locale.value = locale
+      const lines: PdfHistoryLine[] = [
+        {
+          kind: 'idle',
+          line: { kind: 'moved', dueOn: '2026-08-15', to: '2026-08-18', advanced: false },
+        },
+        {
+          kind: 'idle',
+          line: { kind: 'given', series: { kind: 'dates', doses: [dose('2026-09-01')] } },
+        },
+      ]
+      const ecrits = textes(carnet({ treatments: [traitement({ periods: [periode({ lines })] })] }))
+
+      expect(ecrits).toContain(report)
+      expect(ecrits).toContain(prise)
+    },
+  )
+
+  it.each([
     ['fr', 0.5, '½ comprimé'],
     ['fr', 1, '1 comprimé'],
     ['fr', 1.5, '1 ½ comprimé'],

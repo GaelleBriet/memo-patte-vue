@@ -1,5 +1,5 @@
 import { isNote } from '../lines'
-import type { GestureResult, Line, Refusal, TreatmentViewInput } from '../types'
+import type { GestureResult, Line, LineChange, Refusal, TreatmentViewInput } from '../types'
 import { buildView } from '../view'
 import { without } from './changes'
 import { outcome } from './outcome'
@@ -42,9 +42,28 @@ export function removalRefusal(input: TreatmentViewInput, lineId: string): Refus
   return line.status === 'shift' ? shiftRemovalRefusal(input, line) : null
 }
 
+// TR-25 : la prise en vigueur emporte les autres lignes de sa dose (deux appareils) ; une ligne sans
+// effet part seule.
+function doseLines(input: TreatmentViewInput, removed: Line): Line[] {
+  const effect = buildView(input).history.find(({ line }) => line.id === removed.id)!.effect
+  if (!isNote(removed) || effect.kind === 'idle') return []
+  return input.lines.filter(
+    (line) =>
+      line.id !== removed.id &&
+      isNote(line) &&
+      line.dueOn === removed.dueOn &&
+      line.dueTime === removed.dueTime,
+  )
+}
+
 /** R11 : seule la personne supprime une ligne ; le décalage d'une prise ou d'un report reste (N6, N8). */
 export function removeLine(input: TreatmentViewInput, lineId: string): GestureResult {
   const refusal = removalRefusal(input, lineId)
   if (refusal !== null) return { refusal }
-  return outcome(input, [{ action: 'delete', id: lineId }])
+  const removed = input.lines.find(({ id }) => id === lineId)!
+  const ids = [lineId, ...doseLines(input, removed).map(({ id }) => id)]
+  return outcome(
+    input,
+    ids.map((id): LineChange => ({ action: 'delete', id })),
+  )
 }
