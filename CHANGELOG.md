@@ -5,6 +5,28 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.75](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.74...memo-patte-v0.1.75) (2026-10-13)
+
+
+### ✨ Fonctionnalités
+
+* **db:** schéma v12, export v5, import relu par le moteur (pas 7) ([adb1d28](https://github.com/GaelleBriet/memo-patte-vue/commit/adb1d28ea6895f3f66b3dd432dd440be5996979e))
+* **db:** schéma v12, origine de grille et jour d'arrivée (pas 7) ([3603d00](https://github.com/GaelleBriet/memo-patte-vue/commit/3603d0044b492cb53333e98177b47629bc5b3da8)), closes [#754](https://github.com/GaelleBriet/memo-patte-vue/issues/754)
+* **pdf:** lignes sans effet écrites « · sans effet » comme la fiche (R12) ([de2d70c](https://github.com/GaelleBriet/memo-patte-vue/commit/de2d70c820f1ddd6e2be9d63f263ae58942ed1b6))
+* **supabase:** miroirs v12, colonnes renommées et lignes converties ([594a8ed](https://github.com/GaelleBriet/memo-patte-vue/commit/594a8edb9054f1f9a48606a5ed016cbf73d5e48c)), closes [#754](https://github.com/GaelleBriet/memo-patte-vue/issues/754)
+
+
+### 🐛 Corrections
+
+* **dose-calendar:** « Supprimer » emporte la dose de tout réglage (TR-25) ([cdf7b61](https://github.com/GaelleBriet/memo-patte-vue/commit/cdf7b61f64708004c5ad009ed9b0d62a7f7419ea))
+* **dose-calendar:** « Supprimer » une dose supprime toutes ses lignes (TR-25) ([0423948](https://github.com/GaelleBriet/memo-patte-vue/commit/042394887a1ee44622f61ee6d01550a0084c1884))
+* **dose-calendar:** date choisie qui fait arriver le report à sa date ([#796](https://github.com/GaelleBriet/memo-patte-vue/issues/796)) ([a9b525a](https://github.com/GaelleBriet/memo-patte-vue/commit/a9b525acd1b9e4847f48eb6845caec3c94465cde))
+* **dose-calendar:** date choisie, décalage du report emmené ([#796](https://github.com/GaelleBriet/memo-patte-vue/issues/796)) ([872ba16](https://github.com/GaelleBriet/memo-patte-vue/commit/872ba1637aeb40a502f9f9737458eec00396b3ae))
+* **dose-calendar:** décisions de Gaelle du 12 oct. au soir (pas 6) ([c3bb7a8](https://github.com/GaelleBriet/memo-patte-vue/commit/c3bb7a889348798f24680cc002a8da89e7ed370a))
+* **dose-calendar:** pas de report réécrit avant une dose notée plus loin ([ee05702](https://github.com/GaelleBriet/memo-patte-vue/commit/ee0570297c09e678c1b134473cf74b5de834f816))
+* **dose-calendar:** première dose proposée identique quel que soit le jour ([#799](https://github.com/GaelleBriet/memo-patte-vue/issues/799)) ([9b47d82](https://github.com/GaelleBriet/memo-patte-vue/commit/9b47d8268e1b1bff58d9e249500f502bd7f0e9af))
+* **treatments:** garde sans enveloppe, pgTAP 31 du mois et héritage ([689a58d](https://github.com/GaelleBriet/memo-patte-vue/commit/689a58d91c8af313a58b2184baea8dd5e9a3133d))
+
 ## [0.1.74](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.73...memo-patte-v0.1.74) (2026-10-12)
 
 
