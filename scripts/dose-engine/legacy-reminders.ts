@@ -88,11 +88,7 @@ export function viewReminders(book: Book): ReminderReading {
   }
 }
 
-/**
- * #814 : la vue relance aussi une journée que la fiche montre avec moins d'heures que le réglage
- * (arrivée d'un report, R7), que l'ancienne règle taisait. Les relances en plus de la vue quand c'est
- * la seule différence, `null` sinon.
- */
+/** Relances en plus de la vue sur une journée montrée avec moins d'heures que le réglage ; `null` s'il y a une autre différence. */
 export function shortDayRelances(
   book: Book,
   old: ReminderReading,
