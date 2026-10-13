@@ -71,6 +71,16 @@ describe('RA-1 à RA-6 : les rappels lus dans la vue', () => {
     ])
   })
 
+  it('RA-4 : tous les 3 jours, le rappel du jour seul, ni prévenance ni relance', () => {
+    const read = view([setting('p1', '2026-10-10', { value: 3, unit: 'day' })], [], '2026-10-06')
+    expect(shown(read.reminders({ ...WINDOW, count: 3 })).slice(0, 3)).toEqual([
+      'due 2026-10-10 - → 2026-10-10',
+      'due 2026-10-13 - → 2026-10-13',
+      'due 2026-10-16 - → 2026-10-16',
+    ])
+    expect(read.reminders(WINDOW).every(({ moment }) => moment === 'due')).toBe(true)
+  })
+
   it('RA-4 : un report qui arrive deux jours avant la suivante retire prévenance et relance entre elles', () => {
     const p1 = setting('p1', '2026-10-05', WEEK)
     const report = line('p1', 'postponed', '2026-10-05', null, '2026-10-10')
