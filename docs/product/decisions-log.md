@@ -2493,3 +2493,22 @@ report arrivé le jour de l'arrêt qui a servi de départ à un nouveau rythme r
 le correctif, les prises du jour de l'arrêt étaient sans effet quel que soit le jour de début ; seul
 le cas d'un arrêt le jour du début l'a montré. — Alternative écartée : un jour de l'arrêt qui
 n'appartient plus au traitement, où même les prises données avant l'arrêt sont sans effet.
+
+2026-10-13 — **Moteur des doses v2 : réponses de Gaelle du soir (#810, #817, #822, #823)** (spec
+`traitements.md` TR-25, TR-30, R8, R9, R10 et §10). Le jour de l'arrêt, une reprise qui y a une dose
+y lit ses heures et chaque prise couvre la dose de son heure, jamais celle d'une autre : 8 h, 14 h et
+20 h du 8 données, arrêt et reprise le 8 à 20 h seulement, les trois prises couvrent leurs doses, la
+dose de 20 h du 8 n'existe qu'une fois. Arrêter, reprendre le même jour, arrêter de nouveau : la prise
+d'avant le premier arrêt reste comptée, quel que soit le nombre d'arrêts et de reprises ce jour-là
+(#823). « Supprimer » une prise ne retire pas la prise d'une autre période à la même date et à la même
+heure (#822, remplace la confirmation du même jour). Après « Elles restent à renseigner », la dose en
+retard reste en retard et une date choisie n'est que la première échéance de la nouvelle grille ; la
+règle « la date choisie remplace la dose en retard » ne vaut que sans question (#817 : aucun report
+n'est plus réécrit ; la dose en retard, elle, attend une donnée de plus sur le réglage, question
+ouverte au §11 de la spec). Un réglage remplacé le jour même transmet sa grille et sa date choisie,
+pas la fréquence d'avant lui (#810 : mensuel puis tous les 3 jours, la dose en retard passe à
+renseigner). — Raison (Gaelle) : une prise couvre la dose de son heure (R4), une prise notée ne se
+perd jamais, une ligne ne disparaît que par le geste qui la touche. — Alternatives écartées : la
+reprise qui range les prises du jour de l'arrêt dans l'ordre (la prise de 8 h sur la dose de 20 h) ;
+supprimer toute prise de même date et même heure ; réécrire le report et remplacer la dose en retard
+après la question.

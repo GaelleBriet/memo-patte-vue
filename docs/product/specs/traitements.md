@@ -203,8 +203,9 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   2026-10-01 ; décision du 2026-10-10.)
 - **TR-25** Une correction s'applique à toutes les lignes de la même échéance, jour et heure (deux
   appareils), et devient la modification la plus récente. « Supprimer » la prise en vigueur supprime
-  aussi les autres lignes de sa dose ; une ligne grisée « · sans effet » se supprime seule (décision
-  du 2026-10-12). (Relecture, point 5)
+  aussi les autres lignes de sa dose dans sa période ; une ligne grisée « · sans effet » se supprime
+  seule (décision du 2026-10-12), et une prise d'une autre période, même à la même date et à la même
+  heure, reste (#822, décision du 2026-10-13). (Relecture, point 5)
 - **TR-26** Pas de règle de « seule prise » : supprimer la seule prise garde le traitement (son
   échéance redevient la dose du moment, ou une dose non renseignée si une échéance plus récente est
   tombée, TR-13) ; « Marquer comme oubliée » est permis sur toute prise, y compris la seule donnée. Pour
@@ -238,10 +239,12 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   La dose du jour non notée est retirée par l'arrêt ; quand elle existe, le dialogue le dit : « La dose
   d'aujourd'hui n'est pas notée : si tu l'as donnée, touche « C'est fait » avant d'arrêter. » (Spec Q9)
   Les prises du jour de l'arrêt notées avant l'arrêt restent comptées, quel que soit le jour où le
-  traitement a commencé, dose arrivée d'un report comprise, et même repris ce jour-là quand la
-  reprise n'y a pas de dose ; une dose d'après l'arrêt donnée d'avance reste « sans effet » (#819,
-  décision du 2026-10-13). Seule une reprise qui a sa journée le jour de l'arrêt (sa première dose, ou
-  une dose reportée ou avancée à ce jour) lit ce jour à la place de l'ancienne période (R8, Q-G3). Un
+  traitement a commencé, dose arrivée d'un report comprise, et même repris ce jour-là, que la reprise
+  y ait une dose ou non, et quel que soit le nombre d'arrêts et de reprises ce jour-là ; une dose
+  d'après l'arrêt donnée d'avance reste « sans effet » (#819, #823, décisions du 2026-10-13). Une
+  reprise qui a sa journée le jour de l'arrêt (sa première dose, ou une dose reportée ou avancée à ce
+  jour) y lit ses heures : chaque prise couvre la dose de son heure, jamais celle d'une autre, et une
+  dose que la reprise porte ce jour-là n'existe qu'une fois (R1, R4, R8, Q-G3). Un
   report qui arrive le jour de l'arrêt et a servi de départ à un nouveau rythme reste verrouillé,
   comme avant l'arrêt (#780).
   Sans dose à renseigner, une confirmation simple : « Plus aucun rappel pour Milbemax. Ses prises
@@ -353,7 +356,7 @@ _= Q21, G25 (la partie « arrivée »), G7, G9, G13, G17, Q18, Q2 a, Q25 pour le
 
 #### R8 — Reprendre
 
-Après un arrêt, la reprise ouvre un nouveau réglage dont la première échéance est choisie par la personne (dès le jour de l'arrêt). Les prises **d'avant l'arrêt** ne couvrent pas la reprise, **sauf** une prise notée le jour même de la reprise, qui couvre sa première journée (décision Q-G3 du 2026-10-10), y compris quand la première dose de la reprise est avancée à ce jour-là, avec ou sans changement de posologie (#784, décision du 2026-10-12).
+Après un arrêt, la reprise ouvre un nouveau réglage dont la première échéance est choisie par la personne (dès le jour de l'arrêt). Les prises **d'avant l'arrêt** ne couvrent pas la reprise, **sauf** une prise notée le jour même de la reprise, qui couvre sa première journée (décision Q-G3 du 2026-10-10), y compris quand la première dose de la reprise est avancée à ce jour-là, avec ou sans changement de posologie (#784, décision du 2026-10-12). Elle n'y couvre que la dose de son heure : 8 h, 14 h et 20 h du 8 données, arrêt et reprise le 8 à 20 h seulement, chaque prise couvre sa dose et aucune n'est « sans effet » ; la prise de 8 h ne couvre jamais la dose de 20 h (décision du 2026-10-13).
 
 #### R9 — Où commence un réglage changé
 
@@ -363,13 +366,13 @@ Quand la fréquence ou les heures changent, la première échéance proposée es
 2. sinon, la **prochaine journée d'échéance** du calendrier en vigueur quand elle est déjà **entamée** (une de ses heures donnée en avance) ou quand c'est l'**arrivée d'un report** : elle garde son jour, ses prises couvrent les premières heures du nouveau réglage, et le nouveau rythme part d'elle ;
 3. sinon, la **dernière journée d'échéance passée plus la nouvelle fréquence**, jamais avant aujourd'hui ; une journée notée que le réglage suivant a fait sortir du calendrier compte (R4), la date ne dépend donc pas du jour de la correction (#799, décision du 2026-10-12).
 
-La date proposée et montrée est la première dose encore à donner, comme sur la fiche (une journée déjà toute notée garde son rôle de première échéance écrite) ; un nouveau rythme dont la première dose encore à donner tomberait après la date de fin est refusé, une date de fin égale à aujourd'hui n'ayant rien de spécial (« Avec ce rythme, plus aucune dose avant la date de fin. Change la date de fin ou le rythme. », #787) (décisions du 2026-10-12). La date est modifiable (« Prochaine dose ») ; une autre date choisie devient la première échéance et l'origine ; à fréquence gardée, elle remplace la dose du moment : la dose en retard, qui ne passe pas « à renseigner », ou, si le réglage commence un jour d'échéance, la dose de ce jour, les doses plus anciennes restant à renseigner ; la grille repart de la date choisie, et un report plus loin la suit si sa journée d'origine est sur la nouvelle grille, sinon il est sans effet ; parti de la date choisie elle-même, il est porté par elle, donc sans effet (R6, R11 ; décisions du 2026-10-13) ; quand la dose du moment est l'arrivée d'un report (rien en retard ni en attente avant elle), la ligne du report est réécrite pour arriver à la date choisie (R7), elle ne devient pas « sans effet » (#796, décision du 2026-10-12), et le décalage de sa journée la suit comme avec « Prochaine dose » : réécrit avec elle, ou supprimé avec elle quand la date choisie est le jour d'origine (R6, dans les bornes de « Prochaine dose », G7, G8) ; elle est montrée même plus tôt que la première échéance d'un réglage jamais commencé (TR-9, #794, décisions du 2026-10-12). Une date choisie avant une dose déjà notée est refusée, et le champ est grisé dès qu'une dose est déjà notée plus loin que le jour de la modification, ou que la date proposée, sauf quand cette dose est sur la date proposée elle-même, la prochaine dose (« Une dose plus lointaine est déjà notée. », Q26, G24, #811, décisions du 2026-10-13) ; la date proposée reste affichée et la posologie reste modifiable sans toucher la date. Quand la fréquence ne change pas (heures ou posologie seules), la première échéance est **la prochaine journée du calendrier en vigueur** (dose du moment en retard comprise : elle reste en retard, jamais déplacée vers « à renseigner », Q-retard), et l'origine est héritée (R3) : le calendrier ne bouge pas.
+La date proposée et montrée est la première dose encore à donner, comme sur la fiche (une journée déjà toute notée garde son rôle de première échéance écrite) ; un nouveau rythme dont la première dose encore à donner tomberait après la date de fin est refusé, une date de fin égale à aujourd'hui n'ayant rien de spécial (« Avec ce rythme, plus aucune dose avant la date de fin. Change la date de fin ou le rythme. », #787) (décisions du 2026-10-12). La date est modifiable (« Prochaine dose ») ; une autre date choisie devient la première échéance et l'origine ; à fréquence gardée, sauf après la question Q38 (R10), elle remplace la dose du moment : la dose en retard, qui ne passe pas « à renseigner », ou, si le réglage commence un jour d'échéance, la dose de ce jour, les doses plus anciennes restant à renseigner ; la grille repart de la date choisie, et un report plus loin la suit si sa journée d'origine est sur la nouvelle grille, sinon il est sans effet ; parti de la date choisie elle-même, il est porté par elle, donc sans effet (R6, R11 ; décisions du 2026-10-13) ; quand la dose du moment est l'arrivée d'un report (rien en retard ni en attente avant elle), la ligne du report est réécrite pour arriver à la date choisie (R7), elle ne devient pas « sans effet » (#796, décision du 2026-10-12), et le décalage de sa journée la suit comme avec « Prochaine dose » : réécrit avec elle, ou supprimé avec elle quand la date choisie est le jour d'origine (R6, dans les bornes de « Prochaine dose », G7, G8) ; elle est montrée même plus tôt que la première échéance d'un réglage jamais commencé (TR-9, #794, décisions du 2026-10-12). Une date choisie avant une dose déjà notée est refusée, et le champ est grisé dès qu'une dose est déjà notée plus loin que le jour de la modification, ou que la date proposée, sauf quand cette dose est sur la date proposée elle-même, la prochaine dose (« Une dose plus lointaine est déjà notée. », Q26, G24, #811, décisions du 2026-10-13) ; la date proposée reste affichée et la posologie reste modifiable sans toucher la date. Quand la fréquence ne change pas (heures ou posologie seules), la première échéance est **la prochaine journée du calendrier en vigueur** (dose du moment en retard comprise : elle reste en retard, jamais déplacée vers « à renseigner », Q-retard), et l'origine est héritée (R3) : le calendrier ne bouge pas.
 
 _Remplace Q7, Q36, Q37, G15, G16, G23 (la partie « où commence »), G24._
 
 #### R10 — Corriger un réglage le jour de son ouverture
 
-Un réglage ouvert aujourd'hui et encore sans prise se **remplace** quand on le modifie de nouveau le jour même : il n'en ouvre pas un troisième (décision Q-#744 du 2026-10-10). Un réglage sans aucune prise dont on change la fréquence ou les heures alors que des échéances sont tombées pose la question de la spec Q38 (garder à renseigner, ou corriger) ; « Elles n'étaient pas à donner » y est refusée, avec le texte de #787, quand elle ne laisse plus aucune dose avant la date de fin, et elle n'annonce alors aucune date (#806, décision du 2026-10-13). Un décalage écrit sous le réglage remplacé ou corrigé garde son effet seulement si sa journée d'origine est une échéance de la grille du réglage qui le remplace, telle qu'elle est avant lui, ou l'arrivée d'une dose reportée de ce rythme (R6, décision du 2026-10-12) : retour à l'hebdo du lundi, un décalage du 16 est sans effet ; une posologie seule ne change rien. Remplacé le jour même par un réglage de même fréquence sans date choisie (posologie, heures, ou réglage reçu d'un autre appareil), un réglage lui transmet sa date choisie : la dose du moment qu'elle remplaçait reste remplacée, et ses reports se lisent sur la grille repartie (TR-9, R6, décision du 2026-10-13).
+Un réglage ouvert aujourd'hui et encore sans prise se **remplace** quand on le modifie de nouveau le jour même : il n'en ouvre pas un troisième (décision Q-#744 du 2026-10-10). Un réglage sans aucune prise dont on change la fréquence ou les heures alors que des échéances sont tombées pose la question de la spec Q38 (garder à renseigner, ou corriger) ; « Elles n'étaient pas à donner » y est refusée, avec le texte de #787, quand elle ne laisse plus aucune dose avant la date de fin, et elle n'annonce alors aucune date (#806, décision du 2026-10-13). Avec « Elles restent à renseigner », la dose en retard reste en retard : une date choisie n'est que la première échéance de la nouvelle grille, elle ne remplace pas la dose du moment et ne réécrit aucun report ; la règle « la date choisie remplace la dose en retard » (R9) ne vaut que quand aucune question n'a été posée (#817, décision du 2026-10-13). Un décalage écrit sous le réglage remplacé ou corrigé garde son effet seulement si sa journée d'origine est une échéance de la grille du réglage qui le remplace, telle qu'elle est avant lui, ou l'arrivée d'une dose reportée de ce rythme (R6, décision du 2026-10-12) : retour à l'hebdo du lundi, un décalage du 16 est sans effet ; une posologie seule ne change rien. Remplacé le jour même par un réglage de même fréquence sans date choisie (posologie, heures, ou réglage reçu d'un autre appareil), un réglage lui transmet sa date choisie : la dose du moment qu'elle remplaçait reste remplacée, et ses reports se lisent sur la grille repartie (TR-9, R6, décision du 2026-10-13) ; tous les 3 jours du 3 oct., dose du 6 non donnée, le 7 « Prochaine dose » le 8 : 8, 11, 14, la dose du 6 ne revient pas. Il transmet sa grille, pas la fréquence d'avant lui : quand la fréquence a changé par rapport au réglage en vigueur avant lui, la dose en retard passe à renseigner (R9 ; mensuel puis tous les 3 jours le 22, remplacé le jour même : la dose en retard du 20 est à renseigner, #810, décision du 2026-10-13).
 
 #### R11 — Rien ne disparaît sans geste
 
@@ -1082,7 +1085,7 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
   au réglage remplacé ses journées sorties du calendrier.
 - 2026-10-13 — **TR-25 entre deux périodes : confirmé**. Une dose prise d'avance avant un arrêt,
   notée de nouveau après « Reprendre » le même jour : « Supprimer » emporte les deux lignes (jour et
-  heure).
+  heure). Remplacée le soir même (#822, plus bas).
 - 2026-10-13 — **Q38 : « Elles n'étaient pas à donner » refusée quand elle ne laisse plus aucune dose
   avant la date de fin** (#806, R12, #787). Chaque jour à 8 h, 14 h et 20 h, fin le 6 avr. ; le
   17 mars, la dose de 8 h reportée au 5 avr. avec « Décaler aussi les doses suivantes », puis les
@@ -1116,6 +1119,32 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
   retirée par l'arrêt, sans passer « à renseigner » ; arrêté avant sa première échéance sans aucune
   prise, le traitement dit toujours « Arrêté avant la première prise ». Écartée : un jour de l'arrêt
   qui n'appartient plus au traitement (ses prises sans effet, y compris celles données avant l'arrêt).
+- 2026-10-13 (soir) — **Reprise le jour de l'arrêt avec une dose ce jour-là : chaque prise couvre la
+  dose de son heure** (R1, R4, R8, TR-30). Tous les jours à 8 h, 14 h et 20 h, les trois prises du 8
+  données ; arrêt le 8, reprise le 8 à 20 h seulement dès le 8 : 8 h couvre 8 h, 14 h couvre 14 h,
+  20 h couvre 20 h, aucune n'est « sans effet ». La dose de 20 h du 8 n'existe qu'une fois, que la
+  reprise la porte ou non : pas de double comptage. Avant : la prise de 8 h couvrait la dose de 20 h
+  de la reprise, les deux autres étaient grisées. Écartée : la reprise qui lit seule le jour de
+  l'arrêt et y range les prises dans l'ordre.
+- 2026-10-13 (soir) — **#823 : arrêter, reprendre le même jour, arrêter** (TR-30, R4). Tous les jours
+  à 20 h, dose du 2 avr. donnée ; arrêt le 2, reprise le 2 dès le 2, arrêt le 2 : la prise de 20 h du
+  2 reste comptée, quel que soit le nombre d'arrêts et de reprises ce jour-là. Avant : « sans effet ».
+- 2026-10-13 (soir) — **#822 : « Supprimer » ne retire que la ligne touchée d'une autre période**
+  (TR-25). Tous les jours à 20 h, dose du 2 avr. donnée, arrêt le 2, reprise le 2 dès le 2, la même
+  dose notée de nouveau : « Supprimer » la prise de la reprise garde celle d'avant l'arrêt, qui couvre
+  alors la dose. Remplace l'entrée « TR-25 entre deux périodes : confirmé » du même jour. Écartée :
+  supprimer toute prise de même date et même heure.
+- 2026-10-13 (soir) — **#817 : Q38 et une date choisie** (R9, R10). Chaque jour à 8, 14 et 20 h, fin
+  le 6 avr. ; le 17 mars, 8 h reportée au 5 avr. avec décalage, puis 6, 12, 18 et 23 h ; le 18, retour
+  à 8, 14 et 20 h avec « Prochaine dose » le 19 : « Elles restent à renseigner » garde la dose de 6 h
+  du 17 en retard et le report du 5 avr. ; la nouvelle grille part du 19. La règle « la date choisie
+  remplace la dose en retard » ne vaut que quand aucune question n'a été posée. Écartée : réécrire le
+  report en « 6 h du 17 → 19 » et faire disparaître la dose de 6 h du 17.
+- 2026-10-13 (soir) — **#810 : réglage remplacé le jour même après un changement de fréquence** (R9,
+  R10). Mensuel à 6, 12, 18 et 23 h du 14 mars, 12 h du 14 reportée seule au 20 ; le 22, tous les
+  3 jours à 8 h et 20 h dès le 23, remplacé le jour même sans prise par 6, 12, 18 et 23 h : la dose de
+  12 h du 20 passe à renseigner, la fiche montre le 23 à 6 h. Le réglage remplacé transmet sa grille,
+  pas la fréquence d'avant lui. Écartée : garder la dose du 20 en retard comme à fréquence gardée.
 
 ## 11. Questions ouvertes
 
@@ -1144,6 +1173,12 @@ Ouvertes le 2026-10-13, en appliquant les décisions du 2026-10-12 au soir :
 
 - **CSV.** `prises.csv` liste déjà toutes les lignes, sans effet comprises ; les marquer
   « · sans effet » demande une colonne de plus, donc un titre nouveau.
+- **#817, la dose en retard après « Elles restent à renseigner » avec une date choisie.** Le réglage
+  écrit par cette réponse est le même que celui d'une date choisie sans question (R9), qui remplace la
+  dose en retard : rien, dans les données, ne dit qu'une question a été posée. La dose de 6 h du 17
+  disparaît donc encore (le report, lui, reste). Le déduire de l'absence de prise sous le réglage
+  précédent ne tient pas : dès qu'une heure de la journée en retard est notée ensuite, les autres
+  heures disparaissent. Il faut que le réglage le dise (une donnée de plus, donc une migration).
 
 
 Fermées par Gaelle le 2026-10-13 au soir (§10) : Q38 quand « Elles n'étaient pas à donner » ne laisse
