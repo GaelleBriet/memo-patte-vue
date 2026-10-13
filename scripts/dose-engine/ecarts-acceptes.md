@@ -148,8 +148,17 @@ d'avance, et une date choisie avant une dose déjà notée est refusée par le m
 compris (`later-dose`, « Une dose plus lointaine est déjà notée. »). Le même carnet sans la prise du
 19 mai montre toujours le 24 : #794 reste vrai quand rien n'est noté plus loin. La lecture d'un tel
 réglage reçu d'un autre appareil ne change pas (test de `dose-calendar.reference-model.spec.ts`
-gardé). Le champ n'est grisé que pour une dose plus lointaine que la date proposée : la dose du
-lendemain à 8 h donnée d'avance, prochaine dose proposée, le laisse libre (G24, #711).
+gardé). Le champ est grisé dès qu'une dose est notée plus loin que le jour de la modification
+(#811, décision du 2026-10-13 au soir) : tous les 2 jours, 12 donnée d'avance le 11, posologie le 11 :
+grisé, 14 proposé ; la dose du lendemain à 8 h donnée d'avance, sur la date proposée elle-même
+(prochaine dose), le laisse libre (G24, #711).
+
+## Q38 sans dose avant la date de fin (#806, décision du 2026-10-13 au soir)
+
+« Elles n'étaient pas à donner » qui ne laisse plus aucune dose avant la date de fin est refusée
+(`no-dose-before-end`, texte de #787), « Elles restent à renseigner » reste possible ; la campagne
+d'invariants ne joue plus cette réponse et ne vérifie plus sa date (graine 975000503 verte, tests
+datés dans `dose-calendar.gestures-settings-end.spec.ts` et `dose-calendar.reference-model.spec.ts`).
 
 ## Date choisie et report plus loin (décision du 2026-10-13)
 
@@ -161,14 +170,15 @@ la dose du moment est son arrivée (#796). Tous les 2 jours, doses des 2 et 4 do
 8 reportée au 10 : le 7, « Prochaine dose » le 9 : 9, 11, 13 (9, 11 avec le report réécrit et la dose
 en retard fusionnée avant ; 9, 10, 11 sur l'ancien `main`) ; le 6, « Prochaine dose » le 7 : 7, 9, 11
 (7, 9, 10, 11 avant). Un report écrit avant la date choisie et parti de cette date même est porté
-par elle, sans effet : le 6 ou le 7, « Prochaine dose » le 8 : 8, 10, 12, comme sur `main` (lecture
-à confirmer, spec §11) ; un report écrit sous le réglage de la date choisie garde son effet. La règle
+par elle, sans effet : le 6 ou le 7, « Prochaine dose » le 8 : 8, 10, 12, comme sur `main` (confirmé
+par Gaelle le 2026-10-13 au soir) ; un report écrit sous le réglage de la date choisie garde son effet. La règle
 ne vaut pas hors d'une date choisie : un report parti d'une journée sortie du calendrier par un changement de fréquence reste lu (tests de
 `dose-calendar.journees-sorties.spec.ts`). Le modèle naïf applique la même règle, report qui porte
 la date choisie compris (graine 992000111 : à plusieurs heures, l'arrivée ne garde que l'heure
 reportée ; test daté de `dose-calendar.reference-model.spec.ts`). Remplacé le jour même par un
 réglage sans date choisie, un réglage lui transmet sa date choisie, dans les deux modèles (graine
-998000832, tests datés « remplacé le jour même par un réglage sans date choisie »).
+998000832, tests datés « remplacé le jour même par un réglage sans date choisie » ; confirmé par
+Gaelle le 2026-10-13 au soir).
 
 ## Question encore ouverte du pas 4 (« Modifier »)
 
