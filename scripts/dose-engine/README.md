@@ -39,7 +39,10 @@ conservation des faits, pas de double, posologie sans effet, temps, symétrie, a
 préversion = résultat, équivalence au modèle naïf ; et un neuvième pour « Modifier » (R9, R12) : la
 fiche montre la date proposée (`shownOn`, sinon la première échéance écrite), qui a encore une dose à
 donner ; la même demande avec cette date passée en clair rend la même réponse (jamais un refus, sauf
-`no-dose-before-end`, #787) ; une autre date choisie est celle que la fiche lit. La campagne ne
+`no-dose-before-end`, #787) ; une autre date choisie est celle que la fiche lit. Heures seules
+changées à la date proposée sur un réglage sans prise (R9, #848), les journées en retard et à
+renseigner ne bougent pas, sauf pour un réglage ouvert le jour même (#849) ; un réglage avec prises,
+qui en ouvre un autre, attend #851. La campagne ne
 choisit jamais une « Prochaine dose » après la date de fin, que le formulaire refuse (Q20). Variables
 posées directement devant la commande, sous le même verrou :
 
