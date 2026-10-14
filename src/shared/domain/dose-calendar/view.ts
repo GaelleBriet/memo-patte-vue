@@ -161,14 +161,9 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
     return stateOf(slot)
   }
 
-  const upcoming: TreatmentView['upcoming'] = ({
-    from = today,
-    to = plusDays(from, UPCOMING_DAYS),
-    limit,
-  } = {}) => {
-    if (closed) return []
+  const pendingBetween = (from: Day, to: Day): Due[] => {
     const calendar = calendarsUntil(to).at(-1)!
-    const dues = calendar.slots
+    return calendar.slots
       .filter(
         ({ coveredBy, due }) =>
           coveredBy === null &&
@@ -177,7 +172,17 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
           due.dueOn <= to,
       )
       .map(({ due }) => due)
-    return limit === undefined ? dues : dues.slice(0, limit)
+  }
+  const upcoming: TreatmentView['upcoming'] = ({
+    from = today,
+    to = plusDays(from, UPCOMING_DAYS),
+    limit,
+  } = {}) => {
+    if (closed) return []
+    if (limit === undefined) return pendingBetween(from, to)
+    const near = plusDays(from, UPCOMING_DAYS)
+    const first = near < to ? pendingBetween(from, near) : []
+    return (first.length >= limit ? first : pendingBetween(from, to)).slice(0, limit)
   }
   const settingAt = (day: Day) => live.filter(({ startsOn }) => startsOn <= day).at(-1)
   const slots: TreatmentView['slots'] = (from, to) => {
