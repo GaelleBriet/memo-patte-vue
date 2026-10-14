@@ -192,7 +192,9 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   « Annuler » après chaque geste. Un déplacement dont la dose d'arrivée est déjà notée (donnée ou
   oubliée) fait partie de l'historique : sa ligne n'a plus « Changer la date » ni « Supprimer ce
   report » ; pour corriger, on passe par la prise elle-même (changer sa date, la supprimer) (spec
-  Q25). (Existant ; P5 ; report : relecture de cohérence du 2026-09-30, validé en bloc)
+  Q25) ; de même quand l'un des reports de la même dose venus de l'autre appareil, que « Supprimer ce
+  report » emporterait (TR-25), a sa nouvelle date notée (lecture à confirmer par Gaelle, §11).
+  (Existant ; P5 ; report : relecture de cohérence du 2026-09-30, validé en bloc)
 - **TR-24 bis** Changer la date d'une prise se juge **au jour de la nouvelle date**, comme si la prise
   était notée ce jour-là (R6 ; décision du 2026-10-10, Q-C1) : la case « Décaler aussi les doses
   suivantes » est proposée aux mêmes conditions que pour « Fait à une autre date », et le résultat est
@@ -215,7 +217,10 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   de sa journée, TR-24), « Modifier », « Marquer comme oubliée » et « Marquer comme donnée »
   réécrivent la ligne en vigueur et retirent les autres, sans laisser de ligne grisée ni de ligne
   « · sans effet » qui redevienne active (décisions du 2026-10-12 et du 2026-10-14, #839, #841,
-  #835) ; une ligne grisée « · sans effet » se supprime seule ; entre deux périodes, même à la
+  #835) ; « Supprimer ce décalage » emporte de même les décalages de sa journée, le report restant,
+  et « Fait à une autre date » sur une dose oubliée réécrit la ligne en vigueur et retire les autres
+  prises de sa dose (deux lectures à confirmer par Gaelle, §11) ; une ligne grisée « · sans effet »
+  se supprime seule ; entre deux périodes, même à la
   même date et à la même heure, la fiche montre deux lignes et le geste ne touche que celle choisie
   (#822, décision du 2026-10-13). (Relecture, point 5)
 - **TR-26** Pas de règle de « seule prise » : supprimer la seule prise garde le traitement (son
@@ -1318,6 +1323,26 @@ Ouvertes le 2026-10-13, en appliquant les décisions du 2026-10-12 au soir :
   proposée d'une date choisie : un fait « date choisie par la personne » sera enregistré sur le
   réglage, dans la migration de #825 (décision de Gaelle du 14 octobre 2026) ; d'ici là, des tests le
   gardent en échec attendu.
+
+Lectures à confirmer par Gaelle, ouvertes le 14 octobre 2026 avec #845 (TR-24, TR-25) :
+
+- **« Supprimer ce report » refusé aussi quand l'un des reports emportés (autre appareil) a sa
+  nouvelle date notée.** Milo, chaque vendredi depuis le 2 oct., doses du 2 et du 9 données ; le 12,
+  le téléphone A reporte la dose du 16 au 19, case décochée, et le 19 il note « C'est fait » ; le
+  téléphone B, hors ligne, avait reporté la dose du 16 au 20 (modification plus récente). Le 21, la
+  fiche montre « Reportée au 20 oct. » en vigueur et la prise du 19 compte : la ligne n'a plus de
+  menu ⋮ (Q25) et la fiche garde 23, 30, 6 nov. Sans ce refus, les deux reports partaient et la prise
+  du 19 comptait comme la dose du 23 donnée en avance : le 23 disparaissait (16 en retard, puis 30,
+  6, 13). Écartée : ne supprimer que le report en vigueur, qui rend actif le report de l'autre
+  appareil et ne fait que la moitié du geste.
+- **« Supprimer ce décalage » emporte les décalages de sa journée**, déduite de « deux décalages de
+  la même journée sont une ligne » (décision du 14 octobre) : 16 reporté au 19 avec la case, un autre
+  décalage de la journée du 16 ancré au 20 reçu de l'autre appareil : « Supprimer ce décalage »
+  retire les deux, la fiche garde « Reportée au 19 oct. ».
+- **« Fait à une autre date » sur une dose oubliée** suit la règle de TR-25 (confirmée le 14 octobre
+  pour « Modifier », « Supprimer », « Marquer comme oubliée » et « Marquer comme donnée ») : dose du
+  16 marquée oubliée sur deux appareils, « Fait à une autre date » le 17 : « Donnée le 17 » seule,
+  sans « Oubliée · sans effet ».
 
 
 Fermées par Gaelle le 2026-10-13 au soir (§10) : Q38 quand « Elles n'étaient pas à donner » ne laisse

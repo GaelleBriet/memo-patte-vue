@@ -2614,6 +2614,16 @@ aller-retour de fréquence)** (spec `traitements.md` TR-28, TR-30, R4, R8, R9, R
   et se supprime à part ». « Annuler » rend le report et son décalage. — Alternatives écartées :
   garder le décalage, qui laisse deux doses à quelques jours d'écart ; supprimer le report en gardant
   un décalage verrouillé, qui ne fait que la moitié du geste.
+- Lecture à confirmer par Gaelle (#845) : « Supprimer ce report » est refusé aussi quand l'un des
+  reports qu'il emporte (venu de l'autre appareil) a sa nouvelle date déjà notée, comme pour le report
+  en vigueur (Q25). Milo, chaque vendredi depuis le 2 oct., doses du 2 et du 9 données ; le 12, le
+  téléphone A reporte la dose du 16 au 19, case décochée, et le 19 il note « C'est fait » ; le
+  téléphone B, hors ligne, avait reporté la dose du 16 au 20 (modification plus récente) ; le 21, la
+  fiche montre « Reportée au 20 oct. » en vigueur et la prise du 19 compte : la ligne n'a plus de
+  menu ⋮, comme un report dont la nouvelle date est notée (TR-24), et la fiche garde 23, 30, 6 nov.
+  Sans ce refus, les deux reports partaient et la prise du 19 comptait comme la dose du 23 donnée en
+  avance : le 23 disparaissait (16 en retard, puis 30, 6, 13). Écartée : ne supprimer que le report
+  en vigueur, qui rend actif le report de l'autre appareil et fait la moitié du geste.
 
 2026-10-14 — **Deux décalages de la même journée sont une ligne (TR-25)** (spec `traitements.md`
 TR-25, TR-24).
@@ -2625,8 +2635,12 @@ TR-25, TR-24).
   ou plus récent), ou le même report et le même décalage écrits sur les deux appareils :
   « Supprimer ce report » montre 16, 23, 30 dans tous les cas (avant : 16, 26 ou 16, 27, un décalage
   « sans effet » redevenu actif). « Une ligne montrée = une ligne » vaut pour les prises, les reports
-  et les décalages d'une même journée ; appliqué de même à « Supprimer ce décalage », qui emporte
-  les décalages de sa journée. « Annuler » rend toutes les lignes, celle en vigueur comprise.
+  et les décalages d'une même journée. « Annuler » rend toutes les lignes, celle en vigueur comprise.
+- Lecture à confirmer par Gaelle, déduite de la décision ci-dessus : « Supprimer ce décalage »
+  emporte de même les décalages de sa journée venus de l'autre appareil (le report, lui, reste). 16
+  reporté au 19 avec la case, un autre décalage de la journée du 16 ancré au 20 reçu de l'autre
+  appareil : « Supprimer ce décalage » retire les deux décalages, la fiche garde « Reportée au
+  19 oct. ».
 
 2026-10-14 — **Tous les gestes sur une ligne de la fiche s'appliquent à ce que cette ligne montre
 (#841)** (spec `traitements.md` TR-25).
@@ -2646,3 +2660,8 @@ TR-25, TR-24).
   (avant : « Donnée le 2 · sans effet » restait).
 - Mise en œuvre : la ligne en vigueur est réécrite et les autres lignes de sa dose supprimées, comme
   pour « Modifier » ; « Annuler » rétablit la ligne qui était en vigueur.
+- Lecture à confirmer par Gaelle (non couverte par la confirmation du 14 oct., qui cite « Modifier »,
+  « Supprimer », « Marquer comme oubliée » et « Marquer comme donnée ») : « Fait à une autre date »
+  sur une dose oubliée suit la même règle : la prise notée retire les autres prises de sa dose
+  (première phrase de TR-25). Dose du 16 marquée oubliée sur deux appareils, puis « Fait à une autre
+  date » le 17 : la fiche montre « Donnée le 17 » seule, sans « Oubliée · sans effet ».
