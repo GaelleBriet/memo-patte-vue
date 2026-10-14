@@ -10,7 +10,6 @@ export function undoRanks(
   return (id) => byId.get(id)!
 }
 
-/** L'instant d'écriture d'une ligne de rang `rank` : `at` plus `rank` millisecondes. */
 export function rankedStamp(at: string, rank = 0): string {
   return rank === 0 ? at : new Date(Date.parse(at) + rank).toISOString()
 }
