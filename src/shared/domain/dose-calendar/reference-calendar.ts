@@ -34,9 +34,9 @@ export function calendarOf(
   borrowed: ReferenceLine[],
   reach: string,
 ): Calendar {
-  const lines = episodeLinesOf(episode, allLines)
-  const isLive = isLiveIn(episode, lines)
+  const isLive = isLiveIn(episode, allLines)
   const live = episode.filter(isLive)
+  const lines = episodeLinesOf(episode, live, allLines)
   const notes = lines.filter(isNote)
   const noted = new Set([...notes, ...borrowed].map((note) => keyOf(note.dueOn, note.dueTime)))
   const shifts = latestBy(

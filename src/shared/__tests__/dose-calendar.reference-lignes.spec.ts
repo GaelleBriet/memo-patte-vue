@@ -220,6 +220,29 @@ describe('R10 : un réglage remplacé le jour de son ouverture n’a aucun jour'
   })
 })
 
+describe('R11, #802 : une ligne par échéance et par famille dans la période, quel que soit le réglage', () => {
+  const p1 = setting('p1', '2026-10-01', DAY)
+  const p2 = setting('p2', '2026-10-10', DAY, [], { gridOriginOn: null })
+
+  it('report du 12 au 13 sous l’ancien réglage, puis ramené au 12 sous le nouveau (autre appareil) : la dose du 12 reste le 12', () => {
+    const lines = [
+      line('p1', 'postponed', '2026-10-12', null, '2026-10-13'),
+      line('p2', 'postponed', '2026-10-12', null, '2026-10-12'),
+    ]
+    expect(next([p1, p2], lines, '2026-10-12', 2)).toEqual(['2026-10-12', '2026-10-13'])
+  })
+
+  it('R4 : le jour où les heures changent, 20 h donnée d’avance sous 8 h et 20 h, puis 20 h sous 12 h et 20 h : rien à donner le 10', () => {
+    const before = setting('h1', '2026-10-01', DAY, H)
+    const after = setting('h2', '2026-10-10', DAY, ['12:00', '20:00'], { gridOriginOn: null })
+    const lines = [
+      line('h1', 'given', '2026-10-10', '20:00'),
+      line('h2', 'given', '2026-10-10', '20:00'),
+    ]
+    expect(next([before, after], lines, '2026-10-10', 1)).toEqual(['2026-10-11 12:00'])
+  })
+})
+
 describe('dose du moment, doses non renseignées, phases', () => {
   it('une échéance passée devient non renseignée quand une plus récente est tombée', () => {
     const reading = read([setting('p1', '2026-10-01', DAY)], [], '2026-10-03')

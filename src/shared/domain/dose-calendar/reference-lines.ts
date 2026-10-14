@@ -1,4 +1,4 @@
-import { keyOf } from './reference-grid'
+import { hoursOf, keyOf, sameHours } from './reference-grid'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 export const isNote = (line: ReferenceLine) => line.status === 'given' || line.status === 'missed'
@@ -39,17 +39,25 @@ export function latestBy(lines: ReferenceLine[], keyOfLine: (line: ReferenceLine
   return [...latest.values()].sort((a, b) => a.dueOn.localeCompare(b.dueOn))
 }
 
-// TR-25 : par réglage, échéance et famille, la ligne la plus récente d'un épisode.
+// TR-25, R11 : par échéance et famille, la ligne la plus récente d'un épisode, quel que soit son
+// réglage ; le jour où les heures changent, une prise visant d'autres heures vise une autre échéance (R4).
 export function episodeLinesOf(
   episode: readonly ReferenceSetting[],
+  live: readonly ReferenceSetting[],
   allLines: readonly ReferenceLine[],
 ): ReferenceLine[] {
-  const ids = new Set(episode.map(({ id }) => id))
-  return latestBy(
-    allLines.filter((line) => ids.has(line.settingId)),
-    (line) =>
-      `${line.settingId} ${keyOf(line.dueOn, line.dueTime)} ${isNote(line) ? 'note' : line.status}`,
-  )
+  const changes = new Set<string>()
+  live.forEach((setting, index) => {
+    if (index > 0 && !sameHours(live[index - 1]!, setting)) {
+      changes.add(setting.startsOn).add(setting.firstDueOn)
+    }
+  })
+  const own = allLines.filter((line) => episode.some(({ id }) => id === line.settingId))
+  return latestBy(own, (line) => {
+    const key = `${keyOf(line.dueOn, line.dueTime)} ${isNote(line) ? 'note' : line.status}`
+    if (!isNote(line) || !changes.has(line.dueOn)) return key
+    return `${key} ${hoursOf(episode.find(({ id }) => id === line.settingId)!).join()}`
+  })
 }
 
 // R7 : une ligne de report par journée, sans les reports revenus à leur date.
