@@ -10,6 +10,7 @@ import type {
 } from '../types'
 import { buildView, type TreatmentView } from '../view'
 import { shiftOfDay, shiftWritten, written } from './changes'
+import { doseLines } from './dose-lines'
 import { linesAfter, lostToEnd, movedAlone, outcome, shiftDayOf, withFollowed } from './outcome'
 
 export type NoteGesture = Omit<Extract<Gesture, { kind: 'note' }>, 'kind'>
@@ -64,12 +65,17 @@ function isExtra(view: TreatmentView, due: Due, givenOn: Day): boolean {
   return boundary !== null && givenOn < boundary
 }
 
-function noteChange(input: TreatmentViewInput, view: TreatmentView, line: LineFields): LineChange {
+// TR-25 : la note qui change réécrit la ligne en vigueur et retire les autres lignes de sa dose.
+function noteChanges(
+  input: TreatmentViewInput,
+  view: TreatmentView,
+  line: LineFields,
+): LineChange[] {
   const slot = view.slots(line.dueOn, line.dueOn).find(({ due }) => due.dueTime === line.dueTime)
   const exact = slot?.state === 'given' || slot?.state === 'missed' ? slot.by : null
-  return exact === null || exact === undefined
-    ? written(input.lines, line)
-    : { action: 'rewrite', id: exact.id, line }
+  if (exact === null || exact === undefined) return [written(input.lines, line)]
+  const others = doseLines(input, exact).map(({ id }): LineChange => ({ action: 'delete', id }))
+  return [{ action: 'rewrite', id: exact.id, line }, ...others]
 }
 
 /** « C'est fait », « Fait à une autre date », renseigner, « Marquer comme donnée / oubliée ». */
@@ -90,20 +96,20 @@ export function noteDose(input: TreatmentViewInput, gesture: NoteGesture): Gestu
     }
     return outcome(input, [written(input.lines, extra)])
   }
-  const note = noteChange(input, view, {
+  const notes = noteChanges(input, view, {
     ...due,
     status,
     givenOn: status === 'given' ? givenOn : null,
     targetOn: null,
   })
   const offered = status === 'given' && offersShift(input, view, due, givenOn)
-  if (!offered || !shiftsFollowing) return outcome(input, [note], { offersShift: offered })
+  if (!offered || !shiftsFollowing) return outcome(input, notes, { offersShift: offered })
   const shifted = [
-    note,
+    ...notes,
     shiftWritten(input.lines, { ...due, dueOn: shiftDayOf(view, due) }, givenOn),
   ]
   return withFollowed(input, shifted, due.dueOn, {
     offersShift: true,
-    lostToEnd: lostToEnd(input, [note], shifted, due.dueOn),
+    lostToEnd: lostToEnd(input, notes, shifted, due.dueOn),
   })
 }
