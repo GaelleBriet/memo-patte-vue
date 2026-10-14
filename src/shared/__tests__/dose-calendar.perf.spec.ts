@@ -98,6 +98,21 @@ describe('date très lointaine (fichier forgé ou faute de frappe)', () => {
     expect(elapsed).toBeLessThan(100)
   })
 
+  it('les rappels du même traitement se calculent en moins de 100 ms', () => {
+    const forged: TreatmentViewInput = {
+      settings: [setting('s1', '2026-09-01', DAY, everyHour), setting('s2', '2199-12-30', DAY)],
+      lines: [],
+      today: '2026-09-28',
+    }
+
+    const { result: reminders, elapsed } = fastest(() =>
+      treatmentView(forged).reminders({ count: 64, daysBefore: 0, daysAfter: 0 }),
+    )
+
+    expect(reminders.filter(({ moment }) => moment === 'due')).toHaveLength(67)
+    expect(elapsed).toBeLessThan(100)
+  })
+
   it('un réglage à 24 heures par jour qui finit le 30/12/2199 se lit en moins de 100 ms', () => {
     const typo: TreatmentViewInput = {
       settings: [setting('s1', '2026-09-01', DAY, everyHour, { endsOn: '2199-12-30' })],
