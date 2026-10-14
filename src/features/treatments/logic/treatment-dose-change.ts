@@ -182,10 +182,11 @@ export function doseChange(
       const line = reading.input.lines.find(({ id }) => id === action.lineId)
       if (line === undefined) throw new Error(`Prise introuvable : ${action.lineId}`)
       const outcome = played(reading, { kind: 'remove', lineId: action.lineId })
+      const after = { ...reading, input: applied(reading.input, outcome.changes) }
       return {
         ...NONE,
         writes: doseWritesOf(history, outcome.changes, newId),
-        shiftKept: line.status !== 'extra' && line.status !== 'shift' && keepsShift(reading, line),
+        shiftKept: line.status !== 'extra' && line.status !== 'shift' && keepsShift(after, line),
       }
     }
     case 'redate': {

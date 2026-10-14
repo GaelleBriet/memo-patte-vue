@@ -1,7 +1,7 @@
 import { isNote } from '../lines'
 import type { GestureResult, Line, LineChange, Refusal, TreatmentViewInput } from '../types'
 import { buildView } from '../view'
-import { without } from './changes'
+import { shiftOfDay, without } from './changes'
 import { doseLines } from './dose-lines'
 import { outcome } from './outcome'
 import { brokenReports } from './reports'
@@ -43,12 +43,28 @@ export function removalRefusal(input: TreatmentViewInput, lineId: string): Refus
   return line.status === 'shift' ? shiftRemovalRefusal(input, line) : null
 }
 
-/** R11 : seule la personne supprime une ligne ; le décalage d'une prise ou d'un report reste (N6, N8). */
+/**
+ * #835 : le décalage ancré à l'arrivée d'un report part avec lui, comme « Prochaine dose » ramenée au
+ * jour d'origine ; gardé quand il ne pourrait pas être supprimé seul (N8, G19).
+ */
+function anchoredShift(input: TreatmentViewInput, report: Line): Line[] {
+  if (report.status !== 'postponed') return []
+  const effect = buildView(input).history.find(({ line }) => line.id === report.id)!.effect
+  const shift = shiftOfDay(input.lines, report.dueOn)
+  if (effect.kind !== 'moves' || shift === undefined || shift.targetOn !== report.targetOn)
+    return []
+  return shiftRemovalRefusal(without(input, [report.id]), shift) === null ? [shift] : []
+}
+
+/** R11 : seule la personne supprime une ligne ; le décalage d'une prise reste (N6, N8). */
 export function removeLine(input: TreatmentViewInput, lineId: string): GestureResult {
   const refusal = removalRefusal(input, lineId)
   if (refusal !== null) return { refusal }
   const removed = input.lines.find(({ id }) => id === lineId)!
-  const ids = [lineId, ...doseLines(input, removed).map(({ id }) => id)]
+  const ids = [
+    lineId,
+    ...[...doseLines(input, removed), ...anchoredShift(input, removed)].map(({ id }) => id),
+  ]
   return outcome(
     input,
     ids.map((id): LineChange => ({ action: 'delete', id })),
