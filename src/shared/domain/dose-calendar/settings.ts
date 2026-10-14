@@ -98,7 +98,7 @@ export function spanOf(episode: readonly Setting[], lines: readonly Line[]): Spa
   return { episode, live, chain, endOf, closedFrom, stoppedAt, settingAt, hoursChangeOn }
 }
 
-/** R8, Q-G3 : seules les prises données d'avant l'arrêt couvrent la reprise, le jour où elle est écrite. */
+/** R8, Q-G3 : les prises d'avant l'arrêt du jour où la reprise est écrite, la plus récente par échéance. */
 export function borrowedNotes(
   episodes: Setting[][],
   index: number,
@@ -113,7 +113,7 @@ export function borrowedNotes(
       (line) => before.has(line.settingId) && isNote(line) && line.dueOn === first.startsOn,
     ),
     (line) => keyOf(line.dueOn, line.dueTime),
-  ).filter(({ status }) => status === 'given')
+  )
 }
 
 /** TR-30, #594 : chaque réglage clos avant sa première échéance, le jour de l'arrêt compris dans le réglage. */

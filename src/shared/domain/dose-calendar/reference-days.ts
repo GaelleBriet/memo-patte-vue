@@ -68,8 +68,8 @@ export function handedOf(
   )
 }
 
-// R4 : une prise dont l'échéance a quitté le calendrier couvre la première échéance qui suit, à
-// moins d'un pas de son réglage ; déjà couverte ou trop loin, la prise est sans effet.
+// R4 : une prise donnée dont l'échéance a quitté le calendrier couvre la première échéance qui suit,
+// à moins d'un pas de son réglage ; un oubli ne couvre que sa propre échéance.
 export function coverOrphans(
   notes: readonly ReferenceLine[],
   matched: ReadonlySet<ReferenceLine>,
@@ -77,7 +77,7 @@ export function coverOrphans(
   settingOf: (id: string) => ReferenceSetting,
 ): void {
   const orphans = notes
-    .filter((note) => !matched.has(note))
+    .filter((note) => note.status === 'given' && !matched.has(note))
     .sort((a, b) => keyOf(a.dueOn, a.dueTime).localeCompare(keyOf(b.dueOn, b.dueTime)))
   for (const note of orphans) {
     const { frequency } = settingOf(note.settingId)
@@ -99,8 +99,8 @@ export function lateDaysOf(replaced: readonly Replaced[], fallen: ReadonlySet<st
 }
 
 // R4 : une prise couvre son échéance ; le jour où les heures changent, celles qui visaient l'ancien
-// réglage couvrent les premières heures du nouveau, à hauteur de leur nombre ; une prise d'avant
-// l'arrêt couvre toute la première journée de la reprise (R8, Q-G3).
+// réglage couvrent les premières heures du nouveau, à hauteur de leur nombre ; une prise donnée
+// d'avant l'arrêt couvre toute la première journée de la reprise, un oubli sa seule échéance (R8).
 export function coverageOf(
   notes: readonly ReferenceLine[],
   borrowed: readonly ReferenceLine[],
@@ -124,7 +124,7 @@ export function coverageOf(
     )
     // R4 : une journée de l'ancien réglage entièrement notée n'a plus rien à donner.
     const whole =
-      ofDay.some((note) => borrowed.includes(note)) ||
+      ofDay.some((note) => borrowed.includes(note) && note.status === 'given') ||
       ofDay.some(
         (note) =>
           !exact.includes(note) &&

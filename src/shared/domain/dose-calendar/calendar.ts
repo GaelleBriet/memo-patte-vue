@@ -28,7 +28,7 @@ export type EpisodeInput = {
   settingOf: (id: string) => Setting
   span: Span
   lines: EpisodeLines
-  /** R8, Q-G3 : prises données d'avant l'arrêt le jour de la reprise, qui couvrent sa première journée. */
+  /** R8, Q-G3 : prises d'avant l'arrêt le jour de la reprise, qui couvrent sa première journée. */
   borrowed: readonly Line[]
   /** R1, R8 : échéances du jour de l'arrêt que lisent les reprises, gardées par elles seules. */
   yielded: ReadonlySet<string>
@@ -47,6 +47,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     byDay.set(note.dueOn, [...(byDay.get(note.dueOn) ?? []), note])
   }
   const isBorrowed = new Set(borrowed)
+  const isLent = (note: Line) => isBorrowed.has(note) && note.status === 'given'
   const noted = new Set(
     [...lines.notes, ...borrowed].map((note) => keyOf(note.dueOn, note.dueTime)),
   )
@@ -55,7 +56,8 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
 
   // R4 : une prise couvre son échéance ; le jour où les heures changent, celles qui visaient
   // l'ancien réglage couvrent les premières heures du nouveau, à hauteur de leur nombre ; une prise
-  // donnée d'avant l'arrêt couvre toute la première journée de la reprise (R8, Q-G3).
+  // donnée d'avant l'arrêt couvre toute la première journée de la reprise, un oubli sa seule
+  // échéance (R8, Q-G3).
   const coveredOn = (day: Day, journey: Journey): Map<Hour, Line> => {
     const ofDay = byDay.get(day) ?? []
     const exact = ofDay.filter(
@@ -74,13 +76,12 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     }
     const elsewhere = ofDay
       .filter(
-        (note) =>
-          !exact.includes(note) || (isBorrowed.has(note) && !journey.hours.includes(note.dueTime)),
+        (note) => !exact.includes(note) || (isLent(note) && !journey.hours.includes(note.dueTime)),
       )
       .sort((a, b) => (a.dueTime ?? '').localeCompare(b.dueTime ?? ''))
-    const last = elsewhere.at(-1) ?? ofDay.find((note) => isBorrowed.has(note))
+    const last = elsewhere.at(-1) ?? ofDay.find(isLent)
     const whole =
-      ofDay.some((note) => isBorrowed.has(note)) ||
+      ofDay.some(isLent) ||
       elsewhere.some((note) =>
         hoursOf(settingOf(note.settingId).times).every((hour) =>
           ofDay.some((other) => other.settingId === note.settingId && other.dueTime === hour),
@@ -216,8 +217,8 @@ function lastFallen(fallen: ReadonlySet<Day>, { from, to }: { from: Day; to: Day
     .at(-1)
 }
 
-// R4 : une prise dont l'échéance a quitté le calendrier couvre la première échéance qui suit, à
-// moins d'un pas de son réglage ; déjà couverte ou trop loin, la prise est sans effet.
+// R4 : une prise donnée dont l'échéance a quitté le calendrier couvre la première échéance qui suit,
+// à moins d'un pas de son réglage ; un oubli ne couvre que sa propre échéance.
 function coverOrphans(
   notes: readonly Line[],
   matched: ReadonlySet<Line>,
@@ -225,7 +226,7 @@ function coverOrphans(
   settingOf: (id: string) => Setting,
 ): void {
   const orphans = notes
-    .filter((note) => !matched.has(note))
+    .filter((note) => note.status === 'given' && !matched.has(note))
     .sort((a, b) => keyOf(a.dueOn, a.dueTime).localeCompare(keyOf(b.dueOn, b.dueTime)))
   for (const note of orphans) {
     const own = keyOf(note.dueOn, note.dueTime)
