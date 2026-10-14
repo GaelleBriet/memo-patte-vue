@@ -182,7 +182,8 @@ export function doseChange(
       const line = reading.input.lines.find(({ id }) => id === action.lineId)
       if (line === undefined) throw new Error(`Prise introuvable : ${action.lineId}`)
       const outcome = played(reading, { kind: 'remove', lineId: action.lineId })
-      const after = { ...reading, input: applied(reading.input, outcome.changes) }
+      const input = applied(reading.input, outcome.changes)
+      const after = { input, view: treatmentView(input) }
       return {
         ...NONE,
         writes: doseWritesOf(history, outcome.changes, newId),
