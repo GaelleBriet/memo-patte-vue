@@ -677,7 +677,7 @@ describe('treatmentHistory — ce que deux appareils ou un import peuvent laisse
     ).toEqual([
       [['15 sept. 2026', false]],
       [
-        ['Oubliée · 1er nov. 2026', false],
+        ['Oubliée · 1er nov. 2026 · sans effet', false],
         ['1er oct. 2026', true],
         ['1er sept. 2026', false],
       ],

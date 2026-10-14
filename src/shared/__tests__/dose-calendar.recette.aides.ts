@@ -228,7 +228,13 @@ export function arrete(c: Carnet, today: string): Carnet {
   return { ...c, periods }
 }
 
-export function reprend(c: Carnet, today: string, firstDueOn: string, frequency: Frequency) {
+export function reprend(
+  c: Carnet,
+  today: string,
+  firstDueOn: string,
+  frequency: Frequency,
+  times: string[] = [],
+) {
   const period = {
     id: `p${c.periods.length + 1}`,
     startsOn: today,
@@ -237,7 +243,7 @@ export function reprend(c: Carnet, today: string, firstDueOn: string, frequency:
     endsOn: null,
     stoppedOn: null,
     frequency,
-    times: [],
+    times,
     createdAt: now(),
   }
   return { ...c, periods: [...c.periods, period] }

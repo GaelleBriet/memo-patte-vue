@@ -2512,7 +2512,8 @@ la décision « une prise ne couvre que la dose de son heure » est retirée.
 - **#810** : « une dose en retard ne disparaît que par « Elles n'étaient pas à donner » (question
   ouverte) ou par une date choisie dans « Prochaine dose » sans question posée ; un changement de
   fréquence seul la laisse en retard ». Le correctif de fréquence du soir est retiré ; la graine
-  991003624 reste un écart ouvert, et #810 reste ouvert.
+  991003624 reste un écart ouvert, et #810 reste ouvert. Phrase retirée par Gaelle le 2026-10-14
+  (entrée suivante).
 - **#817** : une donnée explicite sur le traitement, nommée par ce qu'elle veut dire (« les doses
   passées du réglage précédent restent à renseigner »), jamais déduite ; sa migration (base, miroir,
   export) dans un ticket à part, rejouée sur le téléphone (#825). Le report n'est plus réécrit après
@@ -2520,3 +2521,55 @@ la décision « une prise ne couvre que la dose de son heure » est retirée.
 - **#822** : la règle du 2026-10-12 est gardée dans une même période (TR-25) : la fiche montre une
   ligne, « Supprimer » retire ce qu'elle montre (donc les deux prises de deux appareils) ; entre deux
   périodes, deux lignes, on ne retire que celle touchée.
+
+2026-10-14 — **Moteur des doses v2 : décisions de Gaelle du 14 octobre 2026 (#810, oubli,
+aller-retour de fréquence)** (spec `traitements.md` TR-28, TR-30, R4, R8, R9, R10, §10 et §11).
+
+- **#810** : « à renseigner » dans les deux cas. La phrase du 13 octobre « un changement de
+  fréquence seul la laisse en retard » est retirée : elle contredisait TR-28 (« les échéances
+  restées sans prise avant la première échéance du nouveau réglage restent à renseigner »). Tous les
+  3 jours à 8 h depuis le 3 oct., dose du 6 non donnée ; le 7, « Modifier » tous les 2 jours dès le
+  8, dose du 8 donnée d'avance, second « Modifier » identique, puis la prise du 8 supprimée : la dose
+  du 6 reste « à renseigner », comme avec un seul « Modifier ». — Raison (Gaelle) : la phrase du 13
+  octobre contredisait la spec. — Alternative écartée : laisser la dose en retard comme dose du moment
+  quand le réglage qui changeait la fréquence est remplacé le jour même.
+- **Un oubli** : « un oubli est une note sur une échéance, celle de son jour et de son heure : jamais
+  compté comme donné, jamais reporté sur une autre dose. » Heures changées le jour même : c'est la
+  même dose du matin (R9 : les prises du jour comptent pour les premières heures du nouveau réglage),
+  l'oubli reste dessus, la dose de 9 h n'est pas redemandée (inchangé). Oubli reçu d'un autre
+  téléphone sur un jour qui n'est pas une échéance : il ne porte sur rien, « sans effet » dans
+  l'historique, et la dose suivante reste demandée (tous les 2 jours à 8 h depuis le 2 oct., doses du
+  2 et du 4 données ; le 5, le téléphone B passe à tous les 3 jours, première dose le 7 ; le téléphone
+  A, hors ligne, avait marqué la dose du 6 oubliée : la dose du 7 reste demandée). Une prise donnée en
+  retard peut encore couvrir une dose orpheline, pour éviter une double dose (R4) ; un oubli jamais.
+  La reprise reste à part : elle ouvre de nouvelles échéances (R8) que seule une prise donnée couvre.
+  Reprise le même jour aux mêmes heures : c'est la même échéance (R1, même lecture que #821 pour 20 h),
+  la note posée dessus reste ; Milo à 8 h, 14 h et 20 h, 8 h oubliée le 8, arrêt, reprise le 8 aux
+  mêmes heures : 8 h n'est pas redemandée, l'oubli n'est pas « sans effet », 14 h et 20 h sont à
+  donner. — Alternatives écartées : un oubli qui couvre la dose suivante ; un oubli « sans effet »
+  quand la reprise retombe sur son échéance.
+- **Aller-retour de fréquence le même jour** : pas d'écart accepté. R10 vaut aussi pour un réglage
+  reçu d'un autre appareil : deux réglages datés du même jour, sans prise, le second remplace le
+  premier, d'où qu'il vienne ; on compare la fréquence du réglage final à celle qui valait avant ce
+  jour. Le même carnet sur deux téléphones ne peut pas montrer deux états. Tous les 3 jours à 8 h
+  depuis le 3 oct., dose du 6 non donnée ; le 7, tous les 2 jours puis retour à tous les 3 jours : la
+  dose du 6 reste en retard ; deux téléphones, l'un à tous les 2 jours le 7, l'autre, non
+  synchronisé, à 9 h en gardant tous les 3 jours : après la synchro, la dose du 6 est en retard. —
+  Alternative écartée : un réglage intermédiaire remplacé le jour même qui transmet son changement de
+  fréquence.
+- **Date choisie après deux « Modifier » le même jour, et TR-9** (décisions de Gaelle du 14 octobre
+  2026, qui remplacent celle du 12 octobre « réglage écrit juste avant ») : tous les 2 jours le 7,
+  dose du 7 donnée, retour à tous les 3 jours à 9 h dès le 9, prise du 7 supprimée : le réglage du jour
+  est sans prise et se remplace (R10), un seul réglage est à juger, fréquence gardée par rapport à
+  avant le 7, date choisie : le 9 remplace la dose du 6, ni en retard ni à renseigner. Graine
+  1500018007 de #810 : les doses de 8 h et 14 h du 5 avril disparaissent, même résultat que le geste
+  final fait directement (le 17 mai aurait remplacé la journée du 5 avril, entamée et en retard) ;
+  aucune règle sur une fréquence intermédiaire annulée le jour même. Les autres graines de #810 restent
+  « à renseigner » parce que leur fréquence a vraiment changé. La condition « réglage écrit juste
+  avant » (TR-9, 12 octobre) était une façon partielle de dire la même chose : « comparer au réglage
+  d'avant ce jour » la contient, elle est remplacée pour que personne ne la remette. — Raison (Gaelle) :
+  deux fiches différentes pour le même geste final serait une règle de plus. — Alternative écartée :
+  une fréquence intermédiaire, même annulée, laisse « à renseigner ».
+- **Lecture à confirmer par Gaelle** (rédaction de l'implémentation, pas une citation) : entre deux
+  appareils, la ligne la plus récente de la dose décide (R11) : donnée puis oubliée, rien d'autre n'est
+  couvert.

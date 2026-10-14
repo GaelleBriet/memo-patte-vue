@@ -258,17 +258,23 @@ carnets de l'oracle `actuel,v2` (20 000 carnets à partir de 530000000, réglage
 | R9 et un traitement fini         | Sur un traitement fini (date de fin passée), le moteur actuel propose aujourd'hui ; v2 suit R9.3. Graines 530000001, 530000148.                                                                                                                                                                                                                                                                                                |
 | « même affichage »               | Les deux réglages montrent les mêmes doses ; seuls changent l'état d'une journée déjà donnée et l'effet des prises dans l'historique.                                                                                                                                                                                                                                                                                          |
 
-## Écart ouvert, #810 (graine 991003624, oracle `actuel,v2`, 2026-10-13)
+## Réglage remplacé le jour même (#810, corrigé le 2026-10-14)
 
-Reproduit à l'identique sur `main` (adb1d28e, 1b4895dd), non corrigé : #810 reste ouvert. Mensuel à 6, 12, 18 et
-23 h du 14 mars (fin le 24), dose de 12 h du 14 reportée seule au 20 ; le 22, « Modifier » passe à tous
-les 3 jours à 8 h et 20 h (première dose le 23), la dose de 8 h du 23 est donnée d'avance, puis, le même
-jour, « Modifier » passe à 6, 12, 18 et 23 h, origine le 20 ; la prise de 8 h du 23 est ensuite
-supprimée. La dose de 12 h du 20 (arrivée du report) n'est pas donnée : avant la suppression, v2 la
-met « à renseigner » ; après, le réglage à 8 h et 20 h, remplacé le jour même sans prise, transmet sa
-grille au suivant (R10, #781) et v2 la montre de nouveau en retard comme dose du moment, alors que le
-moteur actuel la garde « à renseigner » et propose le 23 à 6 h. Décision du 2026-10-13 : une dose en
-retard ne disparaît que par « Elles n'étaient pas à donner » ou par une date choisie sans question ;
-un changement de fréquence seul la laisse en retard. Le correctif essayé (la fréquence d'avant le
-réglage remplacé ne compte plus) la mettait « à renseigner » : retiré, la lecture de cette décision
-face à R9 (où un changement de fréquence met la dose en retard « à renseigner ») attend Gaelle.
+Écart ouvert le 2026-10-13 (graine 991003624, oracle `actuel,v2`), puis neuf graines de la passe de
+300 000 du pas 10 (1500018007, 1500061791, 1500080102, 1500196692, 1500233661, 1500234082, 1500236809,
+1500256618, 1500290961). Geste commun : supprimer la seule prise d'un réglage remplacé le jour même par
+un autre. v2 et le modèle de référence montraient alors la dose en retard comme dose du moment ; l'ancien
+moteur la gardait « à renseigner ». Décisions de Gaelle du 14 octobre 2026 : « à renseigner » dans les
+deux cas ; un réglage remplacé le jour même sans prise ne compte pas, d'où qu'il vienne, et la fréquence
+du réglage final se compare à celle d'avant ce jour (R10). Corrigé dans v2 et le modèle de référence
+(tests de `dose-calendar.reglage-remplace.spec.ts`, carnets dans `fixtures/dose-calendar-graines.json`) :
+neuf graines lisent comme l'ancien moteur. La graine 1500018007 s'en écarte : le réglage final garde
+tous les 3 jours avec sa propre origine (première dose le 17 mai), la dose du moment du 5 avril est remplacée
+(TR-9) au lieu de rester à renseigner (décision de Gaelle du 14 octobre 2026).
+
+## Un oubli ne couvre que son échéance (2026-10-14)
+
+Décision de Gaelle du 14 octobre 2026 : un oubli dont l'échéance a quitté le calendrier (ligne reçue
+d'un autre appareil) est sans effet et ne couvre plus l'échéance suivante (R4) ; une reprise le même
+jour aux mêmes heures retombe sur son échéance, qu'il garde (R8). Un écart de l'oracle `actuel,v2` sur
+ce point est attendu quand l'ancien moteur faisait couvrir la dose suivante par l'oubli.

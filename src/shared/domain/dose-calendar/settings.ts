@@ -98,7 +98,7 @@ export function spanOf(episode: readonly Setting[], lines: readonly Line[]): Spa
   return { episode, live, chain, endOf, closedFrom, stoppedAt, settingAt, hoursChangeOn }
 }
 
-/** R8, Q-G3 : les prises d'avant l'arrêt ne couvrent la reprise que le jour où elle est écrite. */
+/** R8, Q-G3 : les prises d'avant l'arrêt du jour où la reprise est écrite, la plus récente par échéance. */
 export function borrowedNotes(
   episodes: Setting[][],
   index: number,
