@@ -140,9 +140,8 @@ export function calendarOf(
     const livesBefore = live.filter((other) => episode.indexOf(other) < episode.indexOf(setting))
     const lastLive = livesBefore[livesBefore.length - 1]
     const ended = lastLive !== undefined && (lastLive.endsOn ?? setting.startsOn) < setting.startsOn
-    // R10 : sans prise, un réglage remplacé le jour même ne compte pas : la fréquence se compare à
-    // celle du réglage en vigueur avant lui. TR-9 : à fréquence gardée, une première échéance
-    // choisie remplace la dose en retard du rythme.
+    // R10 : sans prise, un réglage remplacé le jour même ne compte pas, la fréquence se compare à
+    // celle du réglage en vigueur avant lui.
     const kept = lastLive !== undefined && sameFrequency(lastLive, setting)
     if (kept && origin !== null && !ended) {
       const onDueDay =
