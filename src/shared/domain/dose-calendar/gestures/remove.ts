@@ -32,6 +32,9 @@ function reportCompanions(input: TreatmentViewInput, report: Line): Line[] {
   return [...doseLines(input, report), ...shiftsOfDay(input, report)]
 }
 
+const arrivalLogged = (input: TreatmentViewInput, report: Line): boolean =>
+  input.lines.some((other) => isNote(other) && other.dueOn === report.targetOn)
+
 // Q25, N8, G19 : verrouillé comme « Prochaine dose » ramenée au jour d'origine, jamais à moitié.
 function reportRemovalRefusal(input: TreatmentViewInput, report: Line): Refusal | null {
   if (shiftsOfDay(input, report).length === 0) return null
@@ -46,10 +49,10 @@ function reportRemovalRefusal(input: TreatmentViewInput, report: Line): Refusal 
 }
 
 /**
- * Pourquoi « Supprimer » est refusé : report dont la dose d'arrivée est notée (Q25) ou devenue la
- * première échéance d'un nouveau rythme (#780, R9.2), ou dont le décalage ne peut pas partir avec
- * lui (#835), décalage suivi d'une prise ou d'un report seul qui ne tiendrait plus (N8, G19) ; une
- * ligne sans effet se supprime toujours (R11).
+ * Pourquoi « Supprimer » est refusé : report, ou report qu'il emporte, dont la dose d'arrivée est
+ * notée (Q25), report devenu la première échéance d'un nouveau rythme (#780, R9.2) ou dont le
+ * décalage ne peut pas partir avec lui (#835), décalage suivi d'une prise ou d'un report seul qui ne
+ * tiendrait plus (N8, G19) ; une ligne sans effet se supprime toujours (R11).
  */
 export function removalRefusal(input: TreatmentViewInput, lineId: string): Refusal | null {
   const line = input.lines.find(({ id }) => id === lineId)
@@ -57,8 +60,9 @@ export function removalRefusal(input: TreatmentViewInput, lineId: string): Refus
   const effect = buildView(input).history.find((entry) => entry.line.id === lineId)!.effect
   if (effect.kind === 'idle') return null
   if (line.status === 'postponed') {
-    const logged = input.lines.some((other) => isNote(other) && other.dueOn === line.targetOn)
-    if (logged) return { reason: 'arrival-logged' }
+    const carried = effect.kind === 'moves' ? doseLines(input, line) : []
+    const reports = [line, ...carried.filter(({ status }) => status === 'postponed')]
+    if (reports.some((report) => arrivalLogged(input, report))) return { reason: 'arrival-logged' }
     if (effect.kind === 'moves' && effect.opensRhythm) return { reason: 'not-movable' }
     return effect.kind === 'moves' ? reportRemovalRefusal(input, line) : null
   }

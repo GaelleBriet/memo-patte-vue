@@ -23,7 +23,22 @@ describe('#835 : « Supprimer ce report » emporte le décalage ancré à son ar
     vi.useRealTimers()
   })
 
-  async function miloAdvancedToThe13th(): Promise<string> {
+  async function given(day: string, dueOn = day): Promise<void> {
+    replay.clock.day = day
+    replay.tick()
+    await replay.doses.apply(ID, {
+      kind: 'note',
+      gesture: {
+        kind: 'note',
+        due: { settingId: ID, dueOn, dueTime: null },
+        status: 'given',
+        givenOn: day,
+        shiftsFollowing: false,
+      },
+    })
+  }
+
+  async function miloGivenOnThe2ndAndThe9th(): Promise<void> {
     replay.clock.day = '2026-10-02'
     replay.tick()
     await replay.treatments.create({
@@ -43,20 +58,12 @@ describe('#835 : « Supprimer ce report » emporte le décalage ancré à son ar
         reminderTime: null,
       },
     })
-    for (const day of ['2026-10-02', '2026-10-09']) {
-      replay.clock.day = day
-      replay.tick()
-      await replay.doses.apply(ID, {
-        kind: 'note',
-        gesture: {
-          kind: 'note',
-          due: { settingId: ID, dueOn: day, dueTime: null },
-          status: 'given',
-          givenOn: day,
-          shiftsFollowing: false,
-        },
-      })
-    }
+    await given('2026-10-02')
+    await given('2026-10-09')
+  }
+
+  async function miloAdvancedToThe13th(): Promise<string> {
+    await miloGivenOnThe2ndAndThe9th()
     replay.clock.day = '2026-10-12'
     replay.tick()
     await replay.doses.apply(ID, {
@@ -157,6 +164,29 @@ describe('#835 : « Supprimer ce report » emporte le décalage ancré à son ar
         expect(await sheet()).toEqual(before)
       })
     }
+
+    it('Milo : 16 reporté au 19 sans la case puis donné le 19, l’autre appareil (plus récent) l’avait reporté au 20 ; le 21, « Supprimer ce report » est refusé et rien ne change', async () => {
+      await miloGivenOnThe2ndAndThe9th()
+      replay.clock.day = '2026-10-12'
+      replay.tick()
+      await replay.doses.apply(ID, {
+        kind: 'move',
+        due: { settingId: ID, dueOn: '2026-10-16', dueTime: null },
+        to: '2026-10-19',
+        shiftsFollowing: false,
+      })
+      await given('2026-10-19')
+      await received({ id: 'autre-report', status: 'postponed', targetOn: '2026-10-20', at: NEWER })
+      replay.clock.day = '2026-10-21'
+      replay.tick()
+      const before = await storedHistory(replay.treatments, ID)
+
+      await expect(
+        replay.doses.apply(ID, { kind: 'remove', lineId: 'autre-report' }),
+      ).rejects.toThrow('arrival-logged')
+      expect(await storedHistory(replay.treatments, ID)).toEqual(before)
+      expect(await upcoming()).toEqual(['2026-10-23 ', '2026-10-30 ', '2026-11-06 '])
+    })
   })
 
   it('le 20, dose du 20 donnée ; le 21, « Supprimer ce report » est refusé et rien ne change : 13, 20, 27', async () => {

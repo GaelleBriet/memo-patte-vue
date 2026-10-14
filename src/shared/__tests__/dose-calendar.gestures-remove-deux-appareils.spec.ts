@@ -1,7 +1,14 @@
 // @vitest-environment node
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-import { applied, removalRefusal, removeLine, type Line } from '../domain/dose-calendar'
+import {
+  applied,
+  removalRefusal,
+  removeLine,
+  type Line,
+  type TreatmentViewInput,
+} from '../domain/dose-calendar'
 import { line, next, setting, WEEK } from './dose-calendar.v2.aides'
 
 // Vendredis d'octobre : 2, 9, 16, 23, 30.
@@ -66,4 +73,33 @@ describe('TR-25 : les décalages et les reports d’une même journée venus de 
 
     expect(removalRefusal(input, report.id)).toEqual({ reason: 'later-line' })
   })
+
+  it('le 21, Milo : 16 reporté au 19 et donné le 19, l’autre appareil (plus récent) au 20 ; « Supprimer ce report » est refusé, comme pour le report en vigueur', () => {
+    const report19 = line('p1', 'postponed', '2026-10-16', null, '2026-10-19')
+    const given19 = line('p1', 'given', '2026-10-19')
+    const report20 = line('p1', 'postponed', '2026-10-16', null, '2026-10-20')
+    const input = {
+      settings: [p1],
+      lines: [...GIVEN, report19, given19, report20],
+      today: '2026-10-21',
+    }
+
+    expect(removalRefusal(input, report20.id)).toEqual({ reason: 'arrival-logged' })
+    expect(removeLine(input, report20.id)).toEqual({ refusal: { reason: 'arrival-logged' } })
+  })
+})
+
+describe('TR-25 : graines du relecteur de #845, un report emporté dont l’arrivée est notée refuse le geste', () => {
+  const seeds: Record<string, { target: string; input: TreatmentViewInput }> = JSON.parse(
+    readFileSync(
+      new URL('./fixtures/dose-calendar-suppression-report-graines.json', import.meta.url),
+      'utf8',
+    ),
+  )
+
+  for (const [seed, { target, input }] of Object.entries(seeds)) {
+    it(`graine ${seed} : « Supprimer ce report » refusé, aucune prise ne perd sa dose`, () => {
+      expect(removeLine(input, target)).toEqual({ refusal: { reason: 'arrival-logged' } })
+    })
+  }
 })
