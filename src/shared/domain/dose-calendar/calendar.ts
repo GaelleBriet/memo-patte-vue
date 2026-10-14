@@ -28,7 +28,7 @@ export type EpisodeInput = {
   settingOf: (id: string) => Setting
   span: Span
   lines: EpisodeLines
-  /** R8, Q-G3 : prises d'avant l'arrêt notées le jour de la reprise, qui couvrent sa première journée. */
+  /** R8, Q-G3 : prises données d'avant l'arrêt le jour de la reprise, qui couvrent sa première journée. */
   borrowed: readonly Line[]
   /** R1, R8 : échéances du jour de l'arrêt que lisent les reprises, gardées par elles seules. */
   yielded: ReadonlySet<string>
@@ -55,7 +55,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
 
   // R4 : une prise couvre son échéance ; le jour où les heures changent, celles qui visaient
   // l'ancien réglage couvrent les premières heures du nouveau, à hauteur de leur nombre ; une prise
-  // d'avant l'arrêt couvre toute la première journée de la reprise (R8, Q-G3).
+  // donnée d'avant l'arrêt couvre toute la première journée de la reprise (R8, Q-G3).
   const coveredOn = (day: Day, journey: Journey): Map<Hour, Line> => {
     const ofDay = byDay.get(day) ?? []
     const exact = ofDay.filter(

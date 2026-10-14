@@ -20,7 +20,8 @@ export type {
 
 const dayOf = (key: string) => key.slice(0, 10)
 
-// R8, Q-G3 : une prise d'avant l'arrêt ne couvre la reprise que le jour où elle est écrite.
+// R8, Q-G3 : une prise donnée d'avant l'arrêt ne couvre la reprise que le jour où elle est écrite ;
+// un oubli ne couvre rien.
 function borrowedNotes(
   episodes: ReferenceSetting[][],
   index: number,
@@ -30,12 +31,13 @@ function borrowedNotes(
   const first = episode.filter(({ startsOn }) => startsOn === episode[0]!.startsOn).at(-1)!
   if (index === 0) return []
   const before = new Set(episodes.slice(0, index).flatMap((earlier) => earlier.map(({ id }) => id)))
-  return latestBy(
+  const latest = latestBy(
     lines.filter(
       (line) => before.has(line.settingId) && isNote(line) && line.dueOn === first.startsOn,
     ),
     (line) => keyOf(line.dueOn, line.dueTime),
   )
+  return latest.filter((line) => line.status === 'given')
 }
 
 export function referenceReading({
