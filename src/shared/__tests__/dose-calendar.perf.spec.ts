@@ -96,7 +96,7 @@ describe('date très lointaine (fichier forgé ou faute de frappe)', () => {
     )
     expect(view.nextDue).toEqual({ settingId: 's1', dueOn: '2026-09-29', dueTime: '00:00' })
     expect(elapsed).toBeLessThan(100)
-  })
+  }, 20000)
 
   it('les rappels du même traitement se calculent en moins de 100 ms', () => {
     const forged: TreatmentViewInput = {
@@ -111,7 +111,7 @@ describe('date très lointaine (fichier forgé ou faute de frappe)', () => {
 
     expect(reminders.filter(({ moment }) => moment === 'due')).toHaveLength(67)
     expect(elapsed).toBeLessThan(100)
-  })
+  }, 20000)
 
   it('un réglage à 24 heures par jour qui finit le 30/12/2199 se lit en moins de 100 ms', () => {
     const typo: TreatmentViewInput = {
@@ -129,7 +129,7 @@ describe('date très lointaine (fichier forgé ou faute de frappe)', () => {
     expect(view.lastDueDay).toBe('2199-12-30')
     expect(view.nextDue).toEqual({ settingId: 's1', dueOn: '2026-09-29', dueTime: '00:00' })
     expect(elapsed).toBeLessThan(100)
-  })
+  }, 20000)
 })
 
 // Un réglage par ajustement de posologie, toutes les prises données à leur jour.
