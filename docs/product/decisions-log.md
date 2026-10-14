@@ -2665,3 +2665,26 @@ TR-25, TR-24).
   sur une dose oubliée suit la même règle : la prise notée retire les autres prises de sa dose
   (première phrase de TR-25). Dose du 16 marquée oubliée sur deux appareils, puis « Fait à une autre
   date » le 17 : la fiche montre « Donnée le 17 » seule, sans « Oubliée · sans effet ».
+
+2026-10-14 — **Deux faits sur le réglage, une migration (#825, #836)** (spec `traitements.md` R9,
+R10, §10 et §11 ; modèle de données §4.3 ; export v6).
+
+- Décision de Gaelle du 13 octobre (#817) : « une donnée explicite sur le traitement, nommée par ce
+  qu'elle veut dire (« les doses passées du réglage précédent restent à renseigner »), jamais
+  déduite » ; écrite par la seule réponse « Elles restent à renseigner » à la question Q38.
+- Décision de Gaelle du 14 octobre (relecture de #834) : enregistrer sur le réglage le fait « date
+  choisie par la personne », jamais déduit, dans la même migration que #825. « Le moteur lit un fait,
+  il ne devine pas si une date vient de la personne ou d'une proposition. »
+- Décision de Gaelle du 14 octobre (graine 1500061791, forme B de #810) : tous les jours à 8 h et
+  20 h, dose du 15 non donnée ; le 16, « Modifier » toutes les 6 semaines, dose du 16 donnée ; le même
+  jour, retour à tous les jours à 20 h dès le 17 ; prise du 16 supprimée : la dose du 15 reste en
+  retard. « Une date proposée par l'app n'est pas une date choisie ; seule une date choisie remplace
+  la dose du moment : c'est exactement le fait que #825/#836 enregistre. » — Alternative écartée :
+  déduire la date choisie de l'origine de grille posée (la lecture d'avant), qui laissait la dose du
+  15 à renseigner.
+- Lectures à confirmer par Gaelle (rédaction de l'implémentation, pas des citations ; exemples au
+  §11 de la spec) : (1) réglages d'avant le schéma v13 (base, miroir Supabase, exports v3 à v5) :
+  « date choisie » quand une origine de grille est posée, sinon non, et « restent à renseigner » à
+  non, pour que chaque traitement se lise comme avant la migration ; (2) création et reprise écrivent
+  « date choisie » ; (3) « Elles n'étaient pas à donner » sans date choisie ne remplace plus la dose
+  du moment : une dose en retard d'avant le réglage corrigé reste visible (R11).

@@ -199,6 +199,26 @@ migration, export v5 et miroir Supabase : `moteur-doses-v2-plan.md` §3. Depuis 
 seul le moteur v2 lit ces colonnes ; l'ancien moteur, qui relisait `reference_on` et `next_due_date`,
 est supprimé.
 
+### 4.3 Évolution v13 (deux faits sur le réglage, #825 et #836)
+
+Décisions de Gaelle du 2026-10-13 (#817) et du 2026-10-14 (#836) : le réglage dit ce que la personne
+a fait, le moteur ne le devine pas. `treatment_period` gagne deux colonnes `INTEGER NOT NULL DEFAULT 0`,
+`0` ou `1` :
+
+- `first_due_chosen` : la première dose a été **choisie** par la personne (« Prochaine dose » changée,
+  création, reprise), pas proposée par l'app. Seule une date choisie, à fréquence gardée, remplace la
+  dose du moment (R9) ;
+- `past_doses_stay_unlogged` : « les doses passées du réglage précédent restent à renseigner »,
+  écrit par la seule réponse « Elles restent à renseigner » à la question Q38 (R10) ; une date choisie
+  ne remplace alors pas la dose en retard.
+
+La migration (`src/core/db/migration-v13.ts`) recrée `treatment_period` et `treatment_dose` comme la
+v12, sans `DELETE` ni `UPDATE` de premier niveau. Réglages existants : `first_due_chosen = 1` quand
+`grid_origin_on` est posée, sinon `0`, ce qui garde la lecture d'avant (toute origine posée valait une
+date choisie) ; `past_doses_stay_unlogged = 0`. Miroir Supabase :
+`supabase/migrations/20261014090000_sync_mirror_tables_v13.sql`, mêmes colonnes et mêmes valeurs ;
+export JSON v6 (`export-format.md`).
+
 ## 5. Décisions
 
 - 2026-09-29 — **M1 : une table `treatment_period` sous le traitement.** Le traitement garde l'animal,
