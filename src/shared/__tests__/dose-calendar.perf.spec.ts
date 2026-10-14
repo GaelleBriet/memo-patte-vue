@@ -2,7 +2,7 @@
 import { addMonths, format, parseISO } from 'date-fns'
 import { describe, expect, it } from 'vitest'
 
-import { treatmentView } from '../domain/dose-calendar'
+import { newSettings, treatmentView } from '../domain/dose-calendar'
 import type { Line, Setting, TreatmentViewInput } from '../domain/dose-calendar/types'
 import { DAY, days, H, setting, WEEK } from './dose-calendar.v2.aides'
 
@@ -160,6 +160,33 @@ describe('date très lointaine (fichier forgé ou faute de frappe)', () => {
     },
     20000,
   )
+
+  it('« Modifier » avec une date de fin au 30/12/2199 propose ses dates en moins de 100 ms', () => {
+    const current: TreatmentViewInput = {
+      settings: [setting('s1', '2026-09-01', DAY, everyHour)],
+      lines: [givenAt('2026-09-27', '08:00')],
+      today: '2026-09-28',
+    }
+
+    const { result, elapsed } = fastest(() =>
+      newSettings(current, { frequency: DAY, times: everyHour, endsOn: '2199-12-30' }),
+    )
+
+    expect(result).toEqual({
+      plan: {
+        action: 'create',
+        setting: {
+          startsOn: '2026-09-28',
+          firstDueOn: '2026-09-28',
+          gridOriginOn: null,
+          endsOn: '2199-12-30',
+          frequency: DAY,
+          times: everyHour,
+        },
+      },
+    })
+    expect(elapsed).toBeLessThan(100)
+  }, 20000)
 })
 
 // Un réglage par ajustement de posologie, toutes les prises données à leur jour.
