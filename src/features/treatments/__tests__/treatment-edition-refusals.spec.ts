@@ -6,6 +6,7 @@ import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentEditionInput } from '../schema/treatment-form.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import { legacyFactsOf } from '@/shared/domain/dose-calendar'
 
 const MILO = '11111111-1111-4111-8111-111111111111'
 const TREATMENT = '22222222-2222-4222-8222-222222222222'
@@ -19,7 +20,7 @@ const at = () => `2026-01-01T00:00:${String(++stamp).padStart(2, '0')}.000Z`
 
 function period(overrides: Partial<TreatmentPeriodRecord>): TreatmentPeriodRecord {
   const createdAt = at()
-  return {
+  const record = {
     id: TREATMENT,
     treatmentId: TREATMENT,
     animalId: MILO,
@@ -38,7 +39,8 @@ function period(overrides: Partial<TreatmentPeriodRecord>): TreatmentPeriodRecor
     updatedAt: createdAt,
     deletedAt: null,
     ...overrides,
-  }
+  } satisfies Partial<TreatmentPeriodRecord>
+  return { ...legacyFactsOf(record.gridOriginOn), ...record }
 }
 
 function dose(overrides: Partial<NewTreatmentDose>): NewTreatmentDose {

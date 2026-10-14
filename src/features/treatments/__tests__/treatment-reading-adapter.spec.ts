@@ -7,11 +7,12 @@ import {
 } from '../logic/treatment-reading-adapter'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
+import { legacyFactsOf } from '@/shared/domain/dose-calendar'
 
 const AT = '2026-09-01T08:00:00.000Z'
 
 function period(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPeriodRecord {
-  return {
+  const record = {
     id: 'p-1',
     treatmentId: 'metacam',
     animalId: 'luna',
@@ -30,7 +31,8 @@ function period(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPeriod
     updatedAt: AT,
     deletedAt: null,
     ...overrides,
-  }
+  } satisfies Partial<TreatmentPeriodRecord>
+  return { ...legacyFactsOf(record.gridOriginOn), ...record }
 }
 
 function metacam(periods: TreatmentPeriodRecord[]): TreatmentWithHistory {

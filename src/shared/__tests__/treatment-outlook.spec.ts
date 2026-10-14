@@ -7,6 +7,7 @@ import {
   treatmentStates,
   type TreatmentOutlook,
 } from '../domain/treatment-outlook'
+import { legacyFactsOf } from '@/shared/domain/dose-calendar'
 
 const STAMPS = {
   createdAt: '2026-09-01T08:00:00.000Z',
@@ -16,7 +17,7 @@ const STAMPS = {
 }
 
 function period(changes: Partial<ExportTreatmentPeriod> = {}): ExportTreatmentPeriod {
-  return {
+  const record = {
     id: 'p-1',
     treatmentId: 't-1',
     animalId: 'a-1',
@@ -33,7 +34,8 @@ function period(changes: Partial<ExportTreatmentPeriod> = {}): ExportTreatmentPe
     reminderTime: null,
     ...STAMPS,
     ...changes,
-  }
+  } satisfies Partial<ExportTreatmentPeriod>
+  return { ...legacyFactsOf(record.gridOriginOn), ...record }
 }
 
 function given(dueOn: string, changes: Partial<ExportTreatmentDose> = {}): ExportTreatmentDose {

@@ -74,6 +74,10 @@ export type ExportTreatmentPeriod = {
   firstDueOn: string
   /** Origine de la grille (R2) ; `null` : celle du réglage précédent (R3). */
   gridOriginOn: string | null
+  /** #836 : la première échéance vient de la personne, pas d'une date proposée. */
+  firstDueChosen: boolean
+  /** #817, Q38 : réponse « Elles restent à renseigner ». */
+  pastDosesStayUnlogged: boolean
   endsOn: string | null
   stoppedOn: string | null
   frequency: ExportFrequency

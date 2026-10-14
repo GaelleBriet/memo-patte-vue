@@ -7,6 +7,7 @@ import type {
   ExportVaccination,
   ExportWeightEntry,
 } from '@/shared/domain/carnet-data'
+import { legacyFactsOf } from '@/shared/domain/dose-calendar'
 
 export const MILO_ID = '11111111-1111-4111-8111-111111111111'
 export const LUNA_ID = '33333333-3333-4333-8333-333333333333'
@@ -62,7 +63,7 @@ export function periodOf(
   > &
     Partial<ExportTreatmentPeriod>,
 ): ExportTreatmentPeriod {
-  return {
+  const record = {
     firstDueOn: period.startsOn,
     gridOriginOn: period.firstDueOn ?? period.startsOn,
     endsOn: null,
@@ -75,7 +76,8 @@ export function periodOf(
     reminderTime: null,
     ...BY_FIXTURE_DEVICE,
     ...period,
-  }
+  } satisfies Partial<ExportTreatmentPeriod>
+  return { ...legacyFactsOf(record.gridOriginOn), ...record }
 }
 
 /** Injection, période et prise portent l'identifiant de leur parent, comme à la création dans l'app. */

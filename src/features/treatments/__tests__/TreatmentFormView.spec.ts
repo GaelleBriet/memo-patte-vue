@@ -33,6 +33,7 @@ import {
 } from '@/core/notifications/permission'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import { plain } from '@/shared/__tests__/plain'
+import { legacyFactsOf } from '@/shared/domain/dose-calendar'
 
 vi.mock('@/core/notifications/permission', () => ({
   shouldShowPriming: vi.fn<() => Promise<boolean>>(async () => false),
@@ -101,7 +102,7 @@ const MILO: Animal = {
 const ID = '22222222-2222-4222-8222-222222222222'
 
 function periode(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPeriodRecord {
-  return {
+  const record = {
     id: ID,
     treatmentId: ID,
     animalId: MILO.id,
@@ -120,7 +121,8 @@ function periode(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPerio
     updatedAt: AT,
     deletedAt: null,
     ...overrides,
-  }
+  } satisfies Partial<TreatmentPeriodRecord>
+  return { ...legacyFactsOf(record.gridOriginOn), ...record }
 }
 
 function prise(overrides: Partial<NewTreatmentDose> = {}): NewTreatmentDose {

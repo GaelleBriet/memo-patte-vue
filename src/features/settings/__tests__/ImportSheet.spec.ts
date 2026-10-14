@@ -200,7 +200,7 @@ describe('ImportSheet', () => {
 
   it.each([
     ['pas du JSON', 'Ce fichier n’est pas un export MémoPatte.'],
-    [JSON.stringify({ schemaVersion: 6 }), 'Cet export vient d’une version plus récente de l’app.'],
+    [JSON.stringify({ schemaVersion: 7 }), 'Cet export vient d’une version plus récente de l’app.'],
     [
       JSON.stringify({ schemaVersion: 2 }),
       'Cet export vient d’une version plus ancienne de MémoPatte. Il ne peut plus être importé.',

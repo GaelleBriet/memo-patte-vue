@@ -652,6 +652,8 @@ describe('treatmentsRepository — import', () => {
           startsOn: treatment.lastDoseDate,
           firstDueOn: treatment.lastDoseDate,
           gridOriginOn: treatment.lastDoseDate,
+          firstDueChosen: true,
+          pastDosesStayUnlogged: false,
           endsOn: null,
           frequency: treatment.frequency,
           stoppedOn: treatment.stoppedOn ?? null,

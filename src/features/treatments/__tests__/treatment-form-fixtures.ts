@@ -2,6 +2,7 @@ import { treatmentFormValuesFrom, type TreatmentFormValues } from '../logic/trea
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import { legacyFactsOf } from '@/shared/domain/dose-calendar'
 
 export const AT = '2026-07-01T08:00:00.000Z'
 export const MILO = '11111111-1111-4111-8111-111111111111'
@@ -9,7 +10,7 @@ export const TREATMENT = '22222222-2222-4222-8222-222222222222'
 export const TODAY = '2026-09-28'
 
 export function period(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPeriodRecord {
-  return {
+  const record = {
     id: TREATMENT,
     treatmentId: TREATMENT,
     animalId: MILO,
@@ -28,7 +29,8 @@ export function period(overrides: Partial<TreatmentPeriodRecord> = {}): Treatmen
     updatedAt: AT,
     deletedAt: null,
     ...overrides,
-  }
+  } satisfies Partial<TreatmentPeriodRecord>
+  return { ...legacyFactsOf(record.gridOriginOn), ...record }
 }
 
 export const PRISE: NewTreatmentDose = {

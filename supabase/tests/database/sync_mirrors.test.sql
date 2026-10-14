@@ -240,7 +240,9 @@ from (values
   ('dose_unit = ''spoon''', 'unité de dose hors liste refusée'),
   ('reminder_offset_minutes = 45', 'moment du rappel hors liste refusé'),
   ('frequency_value = 0', 'fréquence nulle refusée'),
-  ('frequency_unit = ''year''', 'unité de fréquence hors liste refusée')
+  ('frequency_unit = ''year''', 'unité de fréquence hors liste refusée'),
+  ('first_due_chosen = 2', 'date choisie hors 0 / 1 refusée'),
+  ('past_doses_stay_unlogged = 2', 'réponse « Elles restent à renseigner » hors 0 / 1 refusée')
 ) as bad (change, label);
 
 select throws_ok($$ update public.treatment_dose set status = 'skipped' $$, '23514', null,
@@ -464,6 +466,37 @@ select is(
 select is(
   (select grid_origin_on from public.treatment_period where id = '00000000-0000-4000-8000-0000000000e3'),
   null::date, 'réglage de même origine que le précédent : origine vide (hérite)');
+
+-- Faits de la migration v13 rejoués : colonnes retirées, puis le corps de la migration.
+alter table public.treatment_period
+  drop column first_due_chosen,
+  drop column past_doses_stay_unlogged;
+
+alter table public.treatment_period
+  add column first_due_chosen smallint not null default 0 check (first_due_chosen in (0, 1)),
+  add column past_doses_stay_unlogged smallint not null default 0
+    check (past_doses_stay_unlogged in (0, 1));
+
+grant update (first_due_chosen, past_doses_stay_unlogged)
+  on table public.treatment_period to authenticated;
+
+update public.treatment_period
+set first_due_chosen = 1
+where grid_origin_on is not null;
+
+select results_eq(
+  $$ select id::text, first_due_chosen::int, past_doses_stay_unlogged::int
+     from public.treatment_period
+     where id in ('00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-0000000000e3')
+     order by id $$,
+  $$ values ('00000000-0000-4000-8000-0000000000e1', 1, 0),
+            ('00000000-0000-4000-8000-0000000000e3', 0, 0) $$,
+  'v13 : une origine posée se lit comme une date choisie ; aucune réponse gardée');
+select ok(
+  has_column_privilege('authenticated', 'public.treatment_period', 'first_due_chosen', 'UPDATE')
+    and has_column_privilege('authenticated', 'public.treatment_period',
+      'past_doses_stay_unlogged', 'UPDATE'),
+  'v13 : les deux faits se synchronisent');
 
 select * from finish();
 rollback;

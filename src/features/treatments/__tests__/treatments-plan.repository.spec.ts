@@ -243,7 +243,14 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
 
       await repository.applyPlan(PANACUR, {
         ...RIEN,
-        period: { action: 'correct', id: PANACUR, settings, gridOriginOn: settings.firstDueOn },
+        period: {
+          action: 'correct',
+          id: PANACUR,
+          settings,
+          gridOriginOn: settings.firstDueOn,
+          firstDueChosen: true,
+          pastDosesStayUnlogged: false,
+        },
       })
 
       await expect(repository.getWithHistory(PANACUR)).resolves.toMatchObject({
@@ -264,7 +271,14 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
 
       const updated = await repository.applyPlan(PANACUR, {
         ...RIEN,
-        period: { action: 'open', id: SECONDE, settings, gridOriginOn: settings.firstDueOn },
+        period: {
+          action: 'open',
+          id: SECONDE,
+          settings,
+          gridOriginOn: settings.firstDueOn,
+          firstDueChosen: false,
+          pastDosesStayUnlogged: true,
+        },
       })
 
       expect(updated).toMatchObject({
@@ -280,6 +294,8 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
             animalId: MIETTE,
             stoppedOn: null,
             ...settings,
+            firstDueChosen: false,
+            pastDosesStayUnlogged: true,
             createdAt: T1,
             updatedAt: T1,
           },
@@ -334,6 +350,8 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
             id: PANACUR,
             settings: { ...REGLAGES, endsOn: null },
             gridOriginOn: REGLAGES.firstDueOn,
+            firstDueChosen: true,
+            pastDosesStayUnlogged: false,
           },
           doses: [{ action: 'create', id: REPORT, dose: LIGNE }],
         }),
@@ -355,6 +373,8 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
             id: PANACUR,
             settings: { ...REGLAGES, doseQuantity: 1, doseUnit: null },
             gridOriginOn: REGLAGES.firstDueOn,
+            firstDueChosen: true,
+            pastDosesStayUnlogged: false,
           },
         }),
       ).rejects.toBeInstanceOf(ZodError)

@@ -191,10 +191,15 @@ describe('treatmentPeriodsRepository', () => {
       reminderOffsetMinutes: 30,
       reminderTime: null,
     }
+    const ORIGINE = {
+      gridOriginOn: REGLAGES.firstDueOn,
+      firstDueChosen: false,
+      pastDosesStayUnlogged: true,
+    }
     const COMPLETE: TreatmentPeriodRecord = {
       ...period({ id: REPRISE, createdAt: EARLIER, updatedAt: EARLIER }),
       ...REGLAGES,
-      gridOriginOn: REGLAGES.firstDueOn,
+      ...ORIGINE,
     }
 
     it('insère une période avec tous ses réglages et la relit à l’identique', async () => {
@@ -213,15 +218,13 @@ describe('treatmentPeriodsRepository', () => {
         ),
       ])
 
-      await db.runMany([
-        periods.correctSettingsStatement(REPRISE, REGLAGES, NOW, REGLAGES.firstDueOn),
-      ])
+      await db.runMany([periods.correctSettingsStatement(REPRISE, REGLAGES, NOW, ORIGINE)])
 
       const [first, current] = await periods.listByTreatment(MILBEMAX)
       expect(current).toEqual({
         ...period({ id: REPRISE, stoppedOn: '2026-02-20', updatedAt: NOW }),
         ...REGLAGES,
-        gridOriginOn: REGLAGES.firstDueOn,
+        ...ORIGINE,
       })
       expect(first).toMatchObject({
         id: MILBEMAX,
@@ -242,9 +245,7 @@ describe('treatmentPeriodsRepository', () => {
         reminderOffsetMinutes: null,
       }
 
-      await db.runMany([
-        periods.correctSettingsStatement(REPRISE, sans, NOW, COMPLETE.gridOriginOn),
-      ])
+      await db.runMany([periods.correctSettingsStatement(REPRISE, sans, NOW, ORIGINE)])
 
       const [, current] = await periods.listByTreatment(MILBEMAX)
       expect(current).toEqual({ ...COMPLETE, ...sans, updatedAt: NOW })
@@ -254,19 +255,34 @@ describe('treatmentPeriodsRepository', () => {
       const sansUnite = { ...REGLAGES, doseUnit: null }
 
       expect(() => periods.insertStatement({ ...COMPLETE, ...sansUnite })).toThrow(ZodError)
-      expect(() => periods.correctSettingsStatement(MILBEMAX, sansUnite, NOW, null)).toThrow(
-        ZodError,
-      )
+      expect(() =>
+        periods.correctSettingsStatement(MILBEMAX, sansUnite, NOW, {
+          ...ORIGINE,
+          gridOriginOn: null,
+        }),
+      ).toThrow(ZodError)
     })
 
     it('ne date pas une période dont aucun réglage ne change', async () => {
       await db.runMany([periods.insertStatement(COMPLETE)])
 
-      await db.runMany([
-        periods.correctSettingsStatement(REPRISE, REGLAGES, NOW, COMPLETE.gridOriginOn),
-      ])
+      await db.runMany([periods.correctSettingsStatement(REPRISE, REGLAGES, NOW, ORIGINE)])
 
       await expect(row(REPRISE)).resolves.toMatchObject({ updated_at: EARLIER })
+    })
+
+    it.each([
+      ['la date choisie', { firstDueChosen: true }],
+      ['la réponse « Elles restent à renseigner »', { pastDosesStayUnlogged: false }],
+    ])('date la période quand seule %s change', async (_, fact) => {
+      await db.runMany([periods.insertStatement(COMPLETE)])
+
+      await db.runMany([
+        periods.correctSettingsStatement(REPRISE, REGLAGES, NOW, { ...ORIGINE, ...fact }),
+      ])
+
+      const [, current] = await periods.listByTreatment(MILBEMAX)
+      expect(current).toEqual({ ...COMPLETE, ...fact, updatedAt: NOW })
     })
   })
 
@@ -360,6 +376,8 @@ describe('treatmentPeriodsRepository', () => {
       startsOn: '2026-02-10',
       firstDueOn: '2026-02-11',
       gridOriginOn: '2026-01-31',
+      firstDueChosen: true,
+      pastDosesStayUnlogged: true,
       endsOn: '2026-03-10',
       stoppedOn: '2026-02-20',
       frequency: { value: 1, unit: 'day' },
@@ -391,6 +409,8 @@ describe('treatmentPeriodsRepository', () => {
       expect(listed.find(({ id }) => id === MILBEMAX)).toEqual({
         ...period(),
         gridOriginOn: '2026-01-10',
+        firstDueChosen: true,
+        pastDosesStayUnlogged: false,
         endsOn: null,
         times: [],
         doseQuantity: null,

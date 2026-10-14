@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { treatmentView } from '../domain/dose-calendar'
+import { legacyFactsOf, treatmentView } from '../domain/dose-calendar'
 import {
   countedLines,
   historyEntries,
@@ -22,6 +22,7 @@ const period = (extra: Partial<Period> = {}): Period => ({
   id: 'p-1',
   startsOn: '2026-10-01',
   firstDueOn: '2026-10-01',
+  ...legacyFactsOf(extra.gridOriginOn === undefined ? '2026-10-01' : extra.gridOriginOn),
   gridOriginOn: '2026-10-01',
   endsOn: null,
   stoppedOn: null,

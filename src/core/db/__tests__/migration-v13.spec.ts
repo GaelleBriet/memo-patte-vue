@@ -96,26 +96,28 @@ function seedVersion12(db: InMemoryDb): Promise<void> {
         ...by,
       ],
     })),
-    ...[
-      ['d1', 'p1', 't1', '2026-10-03', '08:00', 'given', '2026-10-03', null],
-      ['d2', 'p1', 't1', '2026-10-06', '08:00', 'postponed', null, '2026-10-07'],
-      ['d3', 'p1', 't1', '2026-10-06', '08:00', 'shift', null, '2026-10-07'],
-      ['d4', 'p3', 't1', '2026-10-10', '20:00', 'missed', null, null],
-      ['d5', 'p4', 't2', '2026-10-01', '08:00', 'given', '2026-10-02', null],
-    ].map(([id, periodId, treatmentId, dueOn, dueTime, status, givenOn, targetOn]) => ({
+    ...(
+      [
+        ['d1', 'p1', 't1', '2026-10-03', '08:00', 'given', '2026-10-03', null],
+        ['d2', 'p1', 't1', '2026-10-06', '08:00', 'postponed', null, '2026-10-07'],
+        ['d3', 'p1', 't1', '2026-10-06', '08:00', 'shift', null, '2026-10-07'],
+        ['d4', 'p3', 't1', '2026-10-10', '20:00', 'missed', null, null],
+        ['d5', 'p4', 't2', '2026-10-01', '08:00', 'given', '2026-10-02', null],
+      ] as [string, string, string, string, string, string, string | null, string | null][]
+    ).map(([id, periodId, treatmentId, dueOn, dueTime, status, givenOn, targetOn]) => ({
       sql: `INSERT INTO treatment_dose (id, period_id, treatment_id, animal_id, due_on, due_time,
               given_on, status, target_on, created_at, updated_at, deleted_at,
               created_by_device, updated_by_device)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       params: [
-        id!,
-        periodId!,
-        treatmentId!,
+        id,
+        periodId,
+        treatmentId,
         MILO,
-        dueOn!,
-        dueTime!,
+        dueOn,
+        dueTime,
         givenOn,
-        status!,
+        status,
         targetOn,
         T1,
         T1,
@@ -178,9 +180,13 @@ describe.each([
     await applyMigrations(db)
 
     const periodsAfter = (await rows(db, 'treatment_period')) as Record<string, unknown>[]
-    expect(
-      periodsAfter.map(({ first_due_chosen: _, past_doses_stay_unlogged: __, ...kept }) => kept),
-    ).toEqual(periodsBefore)
+    const withoutFacts = periodsAfter.map((row) => {
+      const kept = { ...row }
+      delete kept.first_due_chosen
+      delete kept.past_doses_stay_unlogged
+      return kept
+    })
+    expect(withoutFacts).toEqual(periodsBefore)
     expect(await rows(db, 'treatment_dose')).toEqual(dosesBefore)
   })
 

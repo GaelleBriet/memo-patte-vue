@@ -112,6 +112,8 @@ export function resumptionPlan(
         rhythm,
       ),
       gridOriginOn: firstDoseOn,
+      firstDueChosen: true,
+      pastDosesStayUnlogged: false,
     },
     doses: [],
   }

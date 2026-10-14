@@ -30,6 +30,10 @@ export type ReminderOffsetMinutes = (typeof REMINDER_OFFSETS_MINUTES)[number]
 export type TreatmentPeriodRecord = TreatmentPeriod & {
   /** Origine de la grille (R2) ; `null` : celle du réglage précédent (R3). */
   gridOriginOn: string | null
+  /** #836 : la première échéance vient de la personne, pas d'une date proposée par l'app. */
+  firstDueChosen: boolean
+  /** #817, Q38 : réponse « Elles restent à renseigner ». */
+  pastDosesStayUnlogged: boolean
   endsOn: string | null
   /** Heures `HH:mm` de chaque jour d'échéance ; vide pour un traitement sans heure. */
   times: string[]
@@ -38,6 +42,12 @@ export type TreatmentPeriodRecord = TreatmentPeriod & {
   reminderOffsetMinutes: ReminderOffsetMinutes | null
   reminderTime: string | null
 }
+
+/** D'où part la grille d'une période, et ce que la personne en a dit (R2, R3, R9, R10). */
+export type PeriodOrigin = Pick<
+  TreatmentPeriodRecord,
+  'gridOriginOn' | 'firstDueChosen' | 'pastDosesStayUnlogged'
+>
 
 /** Ce qu'un formulaire règle dans une période. */
 export type TreatmentPeriodSettings = Pick<
