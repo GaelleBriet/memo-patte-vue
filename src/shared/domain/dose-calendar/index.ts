@@ -1,7 +1,7 @@
 import type { TreatmentViewInput } from './types'
 import { buildView, type TreatmentView } from './view'
 
-export { gridOriginsOf, targetOnOf, viewInputOf, type LegacyInput } from './legacy-input'
+export { gridOriginsOf, targetOnOf, type LegacyDose, type LegacyPeriod } from './legacy-input'
 export { applied, settingsApplied } from './gestures/changes'
 export { moveBounds, moveDose, type MoveBounds } from './gestures/move'
 export { dueForDate, noteDose } from './gestures/note'

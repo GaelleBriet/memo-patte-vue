@@ -10,7 +10,7 @@ import type {
   ExportTreatmentDose,
   ExportTreatmentPeriod,
 } from '@/shared/domain/carnet-data'
-import { play, targetOnOf, type LegacyInput, type LineChange } from '@/shared/domain/dose-calendar'
+import { play, targetOnOf, type LegacyDose, type LineChange } from '@/shared/domain/dose-calendar'
 import { readTreatment } from '@/shared/domain/treatment-reading'
 import i18n from '@/core/i18n'
 
@@ -20,7 +20,7 @@ const DAILY = { value: 1, unit: 'day' } as const
 const WEEKLY = { value: 1, unit: 'week' } as const
 
 type DoseFields = Pick<
-  LegacyInput['doses'][number],
+  LegacyDose,
   'periodId' | 'dueOn' | 'dueTime' | 'givenOn' | 'status' | 'nextDueDate'
 >
 
