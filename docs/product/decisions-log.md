@@ -2557,8 +2557,19 @@ aller-retour de fréquence)** (spec `traitements.md` TR-28, TR-30, R4, R8, R9, R
   synchronisé, à 9 h en gardant tous les 3 jours : après la synchro, la dose du 6 est en retard. —
   Alternative écartée : un réglage intermédiaire remplacé le jour même qui transmet son changement de
   fréquence.
-- **Lectures à confirmer par Gaelle** (rédaction de l'implémentation, pas des citations) : entre deux
+- **Date choisie après deux « Modifier » le même jour, et TR-9** (décisions de Gaelle du 14 octobre
+  2026, qui remplacent celle du 12 octobre « réglage écrit juste avant ») : tous les 2 jours le 7,
+  dose du 7 donnée, retour à tous les 3 jours à 9 h dès le 9, prise du 7 supprimée : le réglage du jour
+  est sans prise et se remplace (R10), un seul réglage est à juger, fréquence gardée par rapport à
+  avant le 7, date choisie : le 9 remplace la dose du 6, ni en retard ni à renseigner. Graine
+  1500018007 de #810 : les doses de 8 h et 14 h du 5 avril disparaissent, même résultat que le geste
+  final fait directement (le 17 mai aurait remplacé la journée du 5 avril, entamée et en retard) ;
+  aucune règle sur une fréquence intermédiaire annulée le jour même. Les autres graines de #810 restent
+  « à renseigner » parce que leur fréquence a vraiment changé. La condition « réglage écrit juste
+  avant » (TR-9, 12 octobre) était une façon partielle de dire la même chose : « comparer au réglage
+  d'avant ce jour » la contient, elle est remplacée pour que personne ne la remette. — Raison (Gaelle) :
+  deux fiches différentes pour le même geste final serait une règle de plus. — Alternative écartée :
+  une fréquence intermédiaire, même annulée, laisse « à renseigner ».
+- **Lecture à confirmer par Gaelle** (rédaction de l'implémentation, pas une citation) : entre deux
   appareils, la ligne la plus récente de la dose décide (R11) : donnée puis oubliée, rien d'autre n'est
-  couvert ; tous les 2 jours le 7, dose du 7 donnée, retour à tous les 3 jours à 9 h dès le 9, prise
-  du 7 supprimée : lu comme un seul « Modifier » à fréquence gardée, le 9 remplace la dose du 6 (R10,
-  TR-9 ; même lecture pour la graine 1500018007 de #810, dose du 5 avril qui n'est plus à renseigner).
+  couvert.
