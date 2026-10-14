@@ -1,4 +1,5 @@
 import { migrationV12 } from './migration-v12'
+import { migrationV13 } from './migration-v13'
 import {
   allowedValuesTriggerStatements,
   DOSE_UNITS,
@@ -418,6 +419,7 @@ export const migrations: DbMigration[] = [
     ],
   },
   migrationV12,
+  migrationV13,
 ]
 
 export const DATABASE_VERSION = migrations.reduce(
