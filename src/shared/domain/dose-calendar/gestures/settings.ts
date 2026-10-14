@@ -188,8 +188,8 @@ function rhythmKept(
   return { plan: rewrite(current, fieldsOf(startsOn, dates, request)) }
 }
 
-// TR-28, Q38 : corrigé à fréquence gardée, le réglage garde sa grille et part de sa première journée
-// encore due à partir d'aujourd'hui ; les échéances tombées sortent du carnet.
+// TR-28, Q38 : corrigé à fréquence gardée, le réglage garde sa grille, et sa date choisie avec elle ;
+// il part de sa première journée encore due à partir d'aujourd'hui ; les échéances tombées sortent.
 function keptCorrection(
   input: TreatmentViewInput,
   current: Setting,
@@ -204,7 +204,9 @@ function keptCorrection(
     .find(({ state }) => state === 'pending')?.due.dueOn
   const first = next ?? later(firstDueOn, today)
   const kept = gridOriginOn !== null && isOnGrid(gridOriginOn, request.frequency, first)
-  return { firstDueOn: first, gridOriginOn: kept ? gridOriginOn : first, firstDueChosen: false }
+  return kept
+    ? { firstDueOn: first, gridOriginOn, firstDueChosen }
+    : { firstDueOn: first, gridOriginOn: first, firstDueChosen: false }
 }
 
 // TR-28, Q38, Q39 : sans prise depuis son début, le réglage est corrigé ; avec des échéances

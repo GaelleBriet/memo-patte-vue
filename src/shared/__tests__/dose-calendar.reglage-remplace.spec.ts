@@ -140,6 +140,36 @@ describe('R10, décision de Gaelle du 14 octobre 2026 : Milo tous les 3 jours à
   })
 })
 
+describe('R9 : heure seule changée le lendemain d’une date choisie, le calendrier ne bouge pas', () => {
+  function milo(today: string, premiere: string) {
+    const c = carnet('2026-10-03', jours(3), ['08:00'])
+    const choisie = modifie(
+      donne(c, '2026-10-03', echeance(c, '2026-10-03', '08:00')),
+      today,
+      jours(3),
+      ['08:00'],
+      premiere,
+    )
+    expect(choisie.periods.at(-1)).toMatchObject({ firstDueOn: premiere, firstDueChosen: true })
+    return choisie
+  }
+
+  it('dose du 6 non donnée ; le 7, « Prochaine dose » le 10 ; le 8, 9 h sans toucher la date : prochaine dose le 10 à 9 h, rien en retard', () => {
+    const c = modifie(milo('2026-10-07', '2026-10-10'), '2026-10-08', jours(3), ['09:00'])
+    expect(c.periods.at(-1)).toMatchObject({ firstDueOn: '2026-10-10', firstDueChosen: true })
+    const attendu = { phase: 'upcoming', moment: ['2026-10-10 09:00'], aRenseigner: [] }
+    expect(lu(c, '2026-10-08')).toEqual(attendu)
+    expect(luParLaReference(c, '2026-10-08')).toEqual(attendu)
+  })
+
+  it('dose du 6 non donnée ; le 7, « Prochaine dose » le 8 ; le 8, 9 h sans toucher la date : la dose du 8 à 9 h, la dose du 6 ne revient pas', () => {
+    const c = modifie(milo('2026-10-07', '2026-10-08'), '2026-10-08', jours(3), ['09:00'])
+    const attendu = { phase: 'today', moment: ['2026-10-08 09:00'], aRenseigner: [] }
+    expect(lu(c, '2026-10-08')).toEqual(attendu)
+    expect(luParLaReference(c, '2026-10-08')).toEqual(attendu)
+  })
+})
+
 describe('R10, décision de Gaelle du 14 octobre 2026 : chaque lundi à 8 h depuis le 5 oct., dose du 12 non donnée ; le 13, tous les 3 jours, dose du 13 donnée, retour à l’hebdo à la date proposée, puis la prise du 13 supprimée', () => {
   function semaine(heure: string) {
     let c = carnet('2026-10-05', semaines(1), ['08:00'])
