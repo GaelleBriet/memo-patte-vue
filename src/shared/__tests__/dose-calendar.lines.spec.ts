@@ -2,15 +2,19 @@
 import { describe, expect, it } from 'vitest'
 
 import { episodeLines, isAdvanced } from '../domain/dose-calendar/lines'
-import { line } from './dose-calendar.v2.aides'
+import { spanOf } from '../domain/dose-calendar/settings'
+import type { Line, Setting } from '../domain/dose-calendar/types'
+import { DAY, H, line, MONTH, setting } from './dose-calendar.v2.aides'
 
-const P1 = new Set(['p1'])
+const P1 = [setting('p1', '2026-10-01', DAY)]
+const linesOf = (lines: Line[], settings: Setting[] = P1) =>
+  episodeLines(lines, spanOf(settings, lines))
 
 describe('TR-25, R11 : les lignes lues par le calendrier', () => {
   it('deux prises de la même échéance : la plus récente est lue, l’autre est sans effet', () => {
     const old = line('p1', 'given', '2026-10-02')
     const recent = line('p1', 'missed', '2026-10-02')
-    const read = episodeLines([recent, old], P1)
+    const read = linesOf([recent, old])
     expect(read.notes).toEqual([recent])
     expect(read.idle.get(old.id)).toBe('superseded')
   })
@@ -19,7 +23,7 @@ describe('TR-25, R11 : les lignes lues par le calendrier', () => {
     const back = line('p1', 'postponed', '2026-10-02', null, '2026-10-02')
     const first = line('p1', 'postponed', '2026-10-03', '08:00', '2026-10-04')
     const second = line('p1', 'postponed', '2026-10-03', '20:00', '2026-10-05')
-    const read = episodeLines([back, first, second], P1)
+    const read = linesOf([back, first, second])
     expect(read.reports).toEqual([second])
     expect(read.idle.get(back.id)).toBe('back-to-date')
     expect(read.idle.get(first.id)).toBe('superseded')
@@ -29,10 +33,60 @@ describe('TR-25, R11 : les lignes lues par le calendrier', () => {
     const first = line('p1', 'shift', '2026-10-02', null, '2026-10-03')
     const second = line('p1', 'shift', '2026-10-02', null, '2026-10-04')
     const other = line('p2', 'given', '2026-10-02')
-    const read = episodeLines([first, second, other], P1)
+    const read = linesOf([first, second, other])
     expect(read.shifts).toEqual([second])
     expect(read.kept).not.toContain(other)
     expect(read.idle.has(other.id)).toBe(false)
+  })
+
+  it('#802 : la même échéance notée sous deux réglages de la période : la plus récente est lue, l’autre est sans effet', () => {
+    const settings = [
+      setting('p1', '2026-10-01', DAY, ['08:00']),
+      setting('p2', '2026-10-10', DAY, ['08:00'], { gridOriginOn: null }),
+    ]
+    const missed = line('p1', 'missed', '2026-10-12', '08:00')
+    const given = line('p2', 'given', '2026-10-12', '08:00')
+    const read = linesOf([given, missed], settings)
+    expect(read.notes).toEqual([given])
+    expect(read.idle.get(missed.id)).toBe('superseded')
+  })
+
+  it('#802 : un report ramené à sa date sous le nouveau réglage l’emporte sur le report plus ancien de l’autre', () => {
+    const settings = [
+      setting('p1', '2026-10-01', DAY),
+      setting('p2', '2026-10-10', DAY, [], { gridOriginOn: null }),
+    ]
+    const moving = line('p1', 'postponed', '2026-10-12', null, '2026-10-13')
+    const back = line('p2', 'postponed', '2026-10-12', null, '2026-10-12')
+    const read = linesOf([moving, back], settings)
+    expect(read.reports).toEqual([])
+    expect(read.idle.get(back.id)).toBe('back-to-date')
+    expect(read.idle.get(moving.id)).toBe('superseded')
+  })
+
+  it('R4 : le jour où les heures changent, une prise visant d’autres heures reste lue à côté', () => {
+    const settings = [
+      setting('p1', '2026-10-01', DAY, H),
+      setting('p2', '2026-10-10', DAY, ['12:00', '20:00'], { gridOriginOn: null }),
+    ]
+    const before = line('p1', 'given', '2026-10-10', '20:00')
+    const after = line('p2', 'given', '2026-10-10', '20:00')
+    const read = linesOf([before, after], settings)
+    expect(read.notes).toEqual([before, after])
+    expect(read.idle.size).toBe(0)
+  })
+
+  it('R4, R7 : le jour d’arrivée d’un report à d’autres heures, une prise visant d’autres heures reste lue à côté', () => {
+    const settings = [
+      setting('p1', '2026-10-01', { value: 2, unit: 'week' }, H),
+      setting('p2', '2026-11-15', MONTH, ['12:00', '20:00'], { startsOn: '2026-10-10' }),
+    ]
+    const report = line('p1', 'postponed', '2026-10-15', '08:00', '2026-10-20')
+    const before = line('p1', 'given', '2026-10-20', '20:00')
+    const after = line('p2', 'given', '2026-10-20', '20:00')
+    const read = linesOf([report, before, after], settings)
+    expect(read.notes).toEqual([before, after])
+    expect(read.idle.size).toBe(0)
   })
 
   it('« Avancée au … » : un report dont l’arrivée précède l’échéance, jamais un décalage', () => {

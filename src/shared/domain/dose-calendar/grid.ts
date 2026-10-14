@@ -1,4 +1,4 @@
-import type { Day, Frequency, Hour } from './types'
+import type { Day, Frequency, Hour, Setting } from './types'
 
 const DAY_MS = 86_400_000
 
@@ -47,3 +47,6 @@ export const sameFrequency = (a: Frequency, b: Frequency): boolean =>
 /** Les heures d'une journée, triées ; une seule échéance sans heure. */
 export const hoursOf = (times: readonly string[]): Hour[] =>
   times.length === 0 ? [null] : [...times].sort()
+
+export const sameHours = (a: Pick<Setting, 'times'>, b: Pick<Setting, 'times'>): boolean =>
+  hoursOf(a.times).join() === hoursOf(b.times).join()

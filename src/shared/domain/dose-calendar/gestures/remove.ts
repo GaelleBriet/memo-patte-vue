@@ -1,5 +1,5 @@
-import { isNote } from '../lines'
-import { episodeIdsOf } from '../settings'
+import { episodeLines, isNote } from '../lines'
+import { episodeOf, spanOf } from '../settings'
 import type { GestureResult, Line, LineChange, Refusal, TreatmentViewInput } from '../types'
 import { buildView } from '../view'
 import { without } from './changes'
@@ -48,14 +48,15 @@ export function removalRefusal(input: TreatmentViewInput, lineId: string): Refus
 function doseLines(input: TreatmentViewInput, removed: Line): Line[] {
   const effect = buildView(input).history.find(({ line }) => line.id === removed.id)!.effect
   if (!isNote(removed) || effect.kind === 'idle') return []
-  const period = episodeIdsOf(input.settings, removed.settingId)
+  const episode = episodeOf(input.settings, removed.settingId)
+  const period = new Set(episode.map(({ id }) => id))
+  const { doseKey } = episodeLines(input.lines, spanOf(episode, input.lines))
   return input.lines.filter(
     (line) =>
       line.id !== removed.id &&
-      isNote(line) &&
       period.has(line.settingId) &&
-      line.dueOn === removed.dueOn &&
-      line.dueTime === removed.dueTime,
+      isNote(line) &&
+      doseKey(line) === doseKey(removed),
   )
 }
 

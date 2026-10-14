@@ -84,9 +84,9 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
   const settingOf = (id: string) => byId.get(id)!
   const episodes = episodesOf(settings)
   const parts = episodes.map((episode, index) => {
-    const own = episodeLines(lines, new Set(episode.map(({ id }) => id)))
-    const borrowed = borrowedNotes(episodes, index, lines)
-    return { episode, lines: own, span: spanOf(episode, own.kept), borrowed }
+    const span = spanOf(episode, lines)
+    const own = episodeLines(lines, span)
+    return { episode, lines: own, span, borrowed: borrowedNotes(episodes, index, lines) }
   })
   const step = Math.max(0, ...settings.map(({ frequency }) => longestStep(frequency)))
   const settingDays = settings.flatMap(({ startsOn, firstDueOn }) => [startsOn, firstDueOn])

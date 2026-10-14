@@ -8,10 +8,11 @@ import type { Line, Setting } from '../domain/dose-calendar/types'
 import { DAY, H, line, MONTH, setting, TWO_DAYS, WEEK } from './dose-calendar.v2.aides'
 
 function calendar(settings: Setting[], lines: Line[]) {
-  const own = episodeLines(lines, new Set(settings.map(({ id }) => id)))
+  const span = spanOf(settings, lines)
+  const own = episodeLines(lines, span)
   return episodeCalendar({
     settingOf: (id) => settings.find((each) => each.id === id)!,
-    span: spanOf(settings, own.kept),
+    span,
     lines: own,
     borrowed: [],
     yielded: new Set(),

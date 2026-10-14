@@ -185,6 +185,19 @@ réglage sans date choisie, un réglage lui transmet sa date choisie, dans les d
 998000832, tests datés « remplacé le jour même par un réglage sans date choisie » ; confirmé par
 Gaelle le 2026-10-13 au soir).
 
+## Garde d'écriture par réglage (#802, confirmé par Gaelle le 2026-10-14)
+
+Écart au plan §3.2 et au ticket, qui demandaient une ligne par (`treatment_id`, `due_on`, `due_time`,
+famille) : la garde du repository (`duplicateWhere`) refuse une deuxième ligne de la même échéance et
+de la même famille sous le même réglage (`period_id`), pas sous tout le traitement. Tous les jours à
+8 h et 20 h, la dose de 20 h du 10 donnée d'avance ; le 10, heures passées à 12 h et 20 h ; puis
+« C'est fait » sur 20 h : une garde par traitement refuserait ce geste légitime, la prise de 20 h du
+10 existant déjà sous l'ancien réglage (les deux comptent, R4, test « R4, le jour où les heures
+changent » de `dose-calendar.deux-appareils.spec.ts`). Les doublons d'un autre réglage n'arrivent
+que par la synchro, et la lecture les écarte : la plus récente est lue, l'autre est sans effet
+(R11) ; sous un même réglage, deux appareils qui notent la même dose ne laissent qu'une ligne lue
+(test « la même dose notée sous le même réglage par deux appareils »).
+
 ## Question encore ouverte du pas 4 (« Modifier »)
 
 - **« Prochaine dose » choisie dans l'écart d'un décalage** (TR-9, G6, R6 ; question pour Gaelle) :

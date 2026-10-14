@@ -122,10 +122,10 @@ describe('TR-25 : « Supprimer » une dose supprime toutes ses lignes (décision
     const old = line('p1', 'given', '2026-10-16')
     const other = line('p2', 'given', '2026-10-16')
     const input = { settings: [p1, p2], lines: [old, other], today: '2026-10-20' }
-    const result = removeLine(input, old.id)
+    const result = removeLine(input, other.id)
     expect('refusal' in result ? result : result.changes).toEqual([
-      { action: 'delete', id: old.id },
       { action: 'delete', id: other.id },
+      { action: 'delete', id: old.id },
     ])
     if ('refusal' in result) return
     const after = treatmentView(applied(input, result.changes))
