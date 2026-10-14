@@ -47,6 +47,17 @@ export function setting(
   }
 }
 
+/** Un réglage dont la première échéance et l'origine ont été proposées par l'app, pas choisies (#836). */
+export function proposedSetting(
+  id: string,
+  firstDueOn: string,
+  frequency: Frequency,
+  times: string[] = [],
+  extra: Partial<Setting> = {},
+): Setting {
+  return setting(id, firstDueOn, frequency, times, { ...extra, firstDueChosen: false })
+}
+
 export function line(
   settingId: string,
   status: Line['status'],
