@@ -12,7 +12,19 @@ const OTHER = 'autre-appareil'
 type OtherDevice = { id: string; status: 'given' | 'missed'; givenOn: string | null }
 const GIVEN_ON_10: OtherDevice = { id: OTHER, status: 'given', givenOn: '2026-10-10' }
 
-describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-12) et « Modifier » (2026-10-14)', () => {
+const markMissed = () =>
+  ({
+    kind: 'note',
+    gesture: {
+      kind: 'note',
+      due: { settingId: ID, dueOn: '2026-10-10', dueTime: null },
+      status: 'missed',
+      givenOn: '2026-10-10',
+      shiftsFollowing: false,
+    },
+  }) as const
+
+describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-12), « Modifier » et « Marquer comme oubliée » (2026-10-14)', () => {
   let db: InMemoryDb
   let replay: Replay
 
@@ -105,6 +117,17 @@ describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-1
     ])
   })
 
+  it('#841 : dose du 10 oct. de Milo donnée sur chaque appareil, « Marquer comme oubliée » : « Oubliée » seule', async () => {
+    const shown = await miloNotedOnBothDevices()
+    replay.clock.day = '2026-10-12'
+    replay.tick()
+    await replay.doses.apply(ID, markMissed())
+
+    expect((await storedHistory(replay.treatments, ID)).doses).toMatchObject([
+      { id: shown, dueOn: '2026-10-10', givenOn: null, status: 'missed' },
+    ])
+  })
+
   describe('« Annuler » rend la fiche d’avant, même ligne en vigueur', () => {
     const others: [string, OtherDevice][] = [
       ['oubliée', { id: 'zzzz-autre', status: 'missed', givenOn: null }],
@@ -118,6 +141,7 @@ describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-1
       'Modifier au 11': (lineId: string) =>
         ({ kind: 'redate', lineId, givenOn: '2026-10-11', shiftsFollowing: false }) as const,
       Supprimer: (lineId: string) => ({ kind: 'remove', lineId }) as const,
+      'Marquer comme oubliée': () => markMissed(),
     }
 
     for (const [label, gesture] of Object.entries(gestures)) {

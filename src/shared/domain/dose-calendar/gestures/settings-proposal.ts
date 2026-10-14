@@ -1,6 +1,6 @@
 import { later, plusDays, sameFrequency, stepped } from '../grid'
 import type { Day, Frequency, Refusal, Setting, SettingFields, TreatmentViewInput } from '../types'
-import { buildView, type TreatmentView } from '../view'
+import { buildView, type DueSlot, type TreatmentView } from '../view'
 
 /** « Modifier » : les nouveaux réglages ; `firstDueOn` : la « Prochaine dose » choisie, sinon la proposée. */
 export type SettingsRequest = {
@@ -11,6 +11,18 @@ export type SettingsRequest = {
 }
 
 export const NEXT_DAYS = 800
+
+/** La première échéance sans prise de `from` à `to` ; une fin lointaine ne se déroule que sans dose avant. */
+export function firstPending(view: TreatmentView, from: Day, to: Day): DueSlot | undefined {
+  for (let start = from, size = NEXT_DAYS; start <= to; size *= 2) {
+    const last = plusDays(to, 1 - size) <= start
+    const end = last ? to : plusDays(start, size - 1)
+    const found = view.slots(start, end).find(({ state }) => state === 'pending')
+    if (found !== undefined || last) return found
+    start = plusDays(end, 1)
+  }
+  return undefined
+}
 
 // R9, R12 : à fréquence gardée, la prochaine journée du carnet une fois le réglage écrit, dose du
 // moment en retard comprise ; l'origine héritée, la première échéance ne change pas les journées.
@@ -72,11 +84,8 @@ export type Proposal = Dates & { shownOn?: Day }
 export function shownDay(dates: Dates, readWith: (dates: Dates) => TreatmentView): Day {
   const { firstDueOn } = dates
   const view = readWith(dates)
-  return (
-    view
-      .slots(firstDueOn, view.lastDueDay ?? plusDays(firstDueOn, NEXT_DAYS))
-      .find(({ state }) => state === 'pending')?.due.dueOn ?? firstDueOn
-  )
+  const until = view.lastDueDay ?? plusDays(firstDueOn, NEXT_DAYS)
+  return firstPending(view, firstDueOn, until)?.due.dueOn ?? firstDueOn
 }
 
 // R6, R12 : un décalage resté d'un réglage remplacé peut faire repartir le nouveau rythme ; la date

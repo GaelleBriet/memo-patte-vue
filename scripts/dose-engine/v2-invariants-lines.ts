@@ -7,6 +7,22 @@ import type { V2Step } from './v2-walk'
 const isNote = ({ status }: Pick<Line, 'status'>) =>
   status === 'given' || status === 'missed' || status === 'extra'
 
+const isPrise = ({ status }: Pick<Line, 'status'>) => status === 'given' || status === 'missed'
+
+const familyOf = (line: Line) => (isPrise(line) ? 'note' : line.status)
+
+/** R8 : un arrêt clôt une période ; les réglages dans l'ordre de leur écriture. */
+function periodsOf(input: TreatmentViewInput): (settingId: string) => number {
+  const ordered = [...input.settings].sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+  const periods = new Map<string, number>()
+  let period = 0
+  for (const setting of ordered) {
+    periods.set(setting.id, period)
+    if (setting.stoppedOn !== null) period += 1
+  }
+  return (settingId) => periods.get(settingId) ?? -1
+}
+
 /** 1. R11 : la lecture garde chaque ligne ; un geste ne touche que les lignes qu'il vise. */
 export function conservation(step: V2Step): Broken | null {
   const view = treatmentView(step.after)
@@ -28,26 +44,47 @@ export function conservation(step: V2Step): Broken | null {
     step.after.lines.some(
       (now) => now.id === line.id && now.status === 'given' && now.givenOn === gesture.givenOn,
     )
-  // TR-25 : « Supprimer » la prise en vigueur emporte les autres lignes de sa dose, jour et heure.
-  const ofRemovedDose = (line: Line) => {
+  const periodOf = periodsOf(step.before)
+  const deleted = (line: Line) => !step.after.lines.some(({ id }) => id === line.id)
+  const sameDose = (line: Line, of: Pick<Line, 'settingId' | 'dueOn' | 'dueTime'>) =>
+    deleted(line) &&
+    periodOf(line.settingId) === periodOf(of.settingId) &&
+    line.dueOn === of.dueOn &&
+    line.dueTime === of.dueTime
+  const arrivalLogged = (report: Line) =>
+    step.before.lines.some((other) => isPrise(other) && other.dueOn === report.targetOn)
+  // TR-25, #835 : « Supprimer » une ligne en vigueur emporte les autres lignes que la fiche montre
+  // avec elle : prises de sa dose ; reports de sa dose dont l'arrivée n'est pas notée (Q25) et
+  // décalages de sa journée.
+  const ofRemovedLine = (line: Line) => {
     if (gesture.kind !== 'remove') return false
     const removed = step.before.lines.find(({ id }) => id === gesture.lineId)!
     const inForce =
       treatmentView(step.before).history.find(({ line: { id } }) => id === removed.id)?.effect
         .kind !== 'idle'
-    return (
-      inForce &&
-      isNote(removed) &&
-      isNote(line) &&
-      line.dueOn === removed.dueOn &&
-      line.dueTime === removed.dueTime
+    if (!inForce) return false
+    if (line.status === 'shift' && ['postponed', 'shift'].includes(removed.status)) {
+      return sameDose(line, { ...removed, dueTime: line.dueTime })
+    }
+    if (line.status === 'postponed' && arrivalLogged(line)) return false
+    return familyOf(line) === familyOf(removed) && sameDose(line, removed)
+  }
+  // TR-25, #841 : la prise notée ou corrigée retire les autres prises de sa dose.
+  const ofNotedDose = (line: Line) => {
+    if (!isPrise(line)) return false
+    if (gesture.kind === 'note') return sameDose(line, gesture.due)
+    if (gesture.kind !== 'redate') return false
+    return sameDose(
+      line,
+      step.before.lines.find(({ id }) => id === gesture.lineId)!,
     )
   }
   const followed = new Set(step.outcome.followed.map(({ from }) => from))
   // G12, #786 : le report seul que la prise notée fait suivre est réécrit.
   const follows = (line: Line) => line.status === 'postponed' && followed.has(line.targetOn ?? '')
   const allowed = (line: Line) => {
-    if (gesture.kind === 'remove') return line.id === gesture.lineId || ofRemovedDose(line)
+    if (gesture.kind === 'remove') return line.id === gesture.lineId || ofRemovedLine(line)
+    if (ofNotedDose(line)) return true
     if (!isNote(line)) return gesture.kind !== 'note' || line.status === 'shift' || follows(line)
     if (becomesPrise(line)) return true
     return gesture.kind === 'redate' && line.id === gesture.lineId

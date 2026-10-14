@@ -2,6 +2,7 @@ import type { Day, SettingsPlan, TreatmentViewInput } from '../types'
 import { buildView } from '../view'
 import { settingsApplied } from './changes'
 import type { SettingsResult } from './settings'
+import { firstPending } from './settings-proposal'
 
 const NO_DOSE = { refusal: { reason: 'no-dose-before-end' } } as const
 
@@ -19,9 +20,7 @@ function leavesNoDose(input: TreatmentViewInput, endsOn: Day, plan: SettingsPlan
   return (
     setting.gridOriginOn !== null &&
     !keepsDates &&
-    !buildView(settingsApplied(input, plan))
-      .slots(setting.firstDueOn, endsOn)
-      .some(({ state }) => state === 'pending')
+    firstPending(buildView(settingsApplied(input, plan)), setting.firstDueOn, endsOn) === undefined
   )
 }
 
