@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
 
+import { treatmentView } from '../domain/dose-calendar'
 import { referenceReading } from '../domain/dose-calendar/reference-model'
 import { viewInputOf } from './dose-calendar.legacy-input.aides'
 import {
@@ -93,14 +94,26 @@ describe('R10, décision de Gaelle du 14 octobre 2026 : Milo tous les 3 jours à
   })
 
   it('deux téléphones : A passe à tous les 2 jours, B garde tous les 3 jours à 9 h ; après la synchro, la dose du 6 est en retard, dans quelque ordre que les réglages arrivent', () => {
-    const a = modifie(milo(), '2026-10-07', jours(2), ['08:00'])
-    const b = modifie(milo(), '2026-10-07', jours(3), ['09:00'])
-    const recu = { ...b.periods.at(-1)!, id: 'p3' }
-    const synchronise = { periods: [...a.periods, recu], doses: a.doses }
-    const autreOrdre = { periods: [recu, ...a.periods].reverse(), doses: [...a.doses].reverse() }
-    expect(lu(synchronise, '2026-10-07')).toEqual(enRetard)
-    expect(lu(autreOrdre, '2026-10-07')).toEqual(enRetard)
-    expect(luParLaReference(synchronise, '2026-10-07')).toEqual(enRetard)
+    const ecrit = (c: Carnet) => viewInputOf({ ...c, today: '2026-10-07' })
+    const a = ecrit(modifie(milo(), '2026-10-07', jours(2), ['08:00']))
+    const b = ecrit(modifie(milo(), '2026-10-07', jours(3), ['09:00']))
+    const recu = { ...b.settings.at(-1)!, id: 'p3' }
+    const synchronise = { ...a, settings: [...a.settings, recu] }
+    const autreOrdre = { ...a, settings: [recu, ...a.settings].reverse() }
+    for (const input of [synchronise, autreOrdre]) {
+      const view = treatmentView(input)
+      expect({
+        phase: view.phase,
+        moment: view.currentDoses.map(cle),
+        aRenseigner: view.unloggedDoses.map(cle),
+      }).toEqual(enRetard)
+      const reference = referenceReading({ ...input, until: '2026-12-31' })
+      expect([reference.phase, reference.current, reference.unlogged]).toEqual([
+        'overdue',
+        ['2026-10-06 08:00'],
+        [],
+      ])
+    }
   })
 
   it('tous les 2 jours, dose du 7 donnée, retour à tous les 3 jours à 9 h dès le 9, puis la prise du 7 supprimée : comme un seul « Modifier », le 9 remplace la dose du 6', () => {
