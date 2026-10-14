@@ -1,4 +1,4 @@
-import { keyOf, plusDays } from '../grid'
+import { plusDays } from '../grid'
 import type {
   Day,
   Due,
@@ -11,6 +11,7 @@ import type {
 import { episodeIdsOf } from '../settings'
 import { buildView } from '../view'
 import { shiftOfDay, shiftWritten, without } from './changes'
+import { doseLines } from './dose-lines'
 import { checkPast, dueForDate, noteDose } from './note'
 import { linesAfter, lostToEnd, movedAlone, outcome, shiftDayOf, withFollowed } from './outcome'
 
@@ -109,16 +110,8 @@ function redateAsNote(
   })
 }
 
-/**
- * TR-24 bis, Q-C1 : la correction se juge au jour de la nouvelle date, comme une prise notée ce
- * jour-là ; un report seul qui ne tient plus suit (G19), sinon la correction est refusée.
- */
-export function redateDose(input: TreatmentViewInput, gesture: RedateGesture): GestureResult {
-  const { lineId, givenOn, shiftsFollowing } = gesture
-  checkPast(givenOn, input.today)
-  const line = input.lines.find(({ id }) => id === lineId)
-  if (line?.status === 'extra') return redateExtra(input, line, gesture)
-  if (line?.status !== 'given') throw new RangeError(`Aucune prise donnée à redater : ${lineId}`)
+function redateGiven(input: TreatmentViewInput, line: Line, gesture: RedateGesture): GestureResult {
+  const { givenOn, shiftsFollowing } = gesture
   const view = buildView(input)
   const due = { settingId: line.settingId, dueOn: line.dueOn, dueTime: line.dueTime }
   const shiftDay = shiftDayOf(view, due)
@@ -128,12 +121,7 @@ export function redateDose(input: TreatmentViewInput, gesture: RedateGesture): G
   if (boundary !== null && givenOn < boundary) {
     return { refusal: { reason: 'too-early', earliest: boundary } }
   }
-  const sisters = input.lines.filter(
-    (other) =>
-      other.status === line.status &&
-      keyOf(other.dueOn, other.dueTime) === keyOf(line.dueOn, line.dueTime),
-  )
-  const ignored = new Set([...sisters.map(({ id }) => id), ...(own === undefined ? [] : [own.id])])
+  const ignored = new Set([line.id, ...(own === undefined ? [] : [own.id])])
   const later = linesAfter(input, line, ignored)
   const blocked = later.notes.length > 0 || later.others.some(({ status }) => status === 'shift')
   const dayDone = view
@@ -173,4 +161,22 @@ export function redateDose(input: TreatmentViewInput, gesture: RedateGesture): G
     lostToEnd:
       offered && shiftsFollowing ? lostToEnd(input, changesFor(false), changes, line.dueOn) : [],
   })
+}
+
+/**
+ * TR-24 bis, Q-C1 : la correction se juge au jour de la nouvelle date, comme une prise notée ce
+ * jour-là ; un report seul qui ne tient plus suit (G19), sinon la correction est refusée. TR-25 : les
+ * autres lignes de la dose (deux appareils) partent avec la correction.
+ */
+export function redateDose(input: TreatmentViewInput, gesture: RedateGesture): GestureResult {
+  const { lineId } = gesture
+  checkPast(gesture.givenOn, input.today)
+  const line = input.lines.find(({ id }) => id === lineId)
+  if (line?.status === 'extra') return redateExtra(input, line, gesture)
+  if (line?.status !== 'given') throw new RangeError(`Aucune prise donnée à redater : ${lineId}`)
+  const others = doseLines(input, line).map(({ id }) => id)
+  const result = redateGiven(without(input, others), line, gesture)
+  if ('refusal' in result || result.changes.length === 0) return result
+  const dropped = others.map((id): LineChange => ({ action: 'delete', id }))
+  return { ...result, changes: [...result.changes, ...dropped] }
 }

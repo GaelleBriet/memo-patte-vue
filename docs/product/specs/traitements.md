@@ -202,11 +202,13 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   la prise la suit (lecture du 2026-10-12). (Décision du 2026-09-25, point 1, transposée ; plan de livraison, T3 ; points validés en bloc du
   2026-10-01 ; décision du 2026-10-10.)
 - **TR-25** Une correction s'applique à toutes les lignes de la même échéance, jour et heure (deux
-  appareils), et devient la modification la plus récente. « Supprimer » retire ce que la fiche montre
-  comme une ligne : dans une même période, la prise en vigueur et les autres lignes de sa dose (deux
-  appareils) ; une ligne grisée « · sans effet » se supprime seule (décision du 2026-10-12) ; entre
-  deux périodes, même à la même date et à la même heure, la fiche montre deux lignes et « Supprimer »
-  ne retire que celle touchée (#822, décision du 2026-10-13). (Relecture, point 5)
+  appareils), et devient la modification la plus récente. « Supprimer » et « Modifier » s'appliquent
+  à ce que la fiche montre comme une ligne : dans une même période, la prise en vigueur et les autres
+  lignes de sa dose (deux appareils) ; « Supprimer » les retire toutes, « Modifier » réécrit la prise
+  corrigée et retire les autres, sans laisser de ligne grisée (décisions du 2026-10-12 et du
+  2026-10-14) ; une ligne grisée « · sans effet » se supprime seule ; entre deux périodes, même à la
+  même date et à la même heure, la fiche montre deux lignes et le geste ne touche que celle choisie
+  (#822, décision du 2026-10-13). (Relecture, point 5)
 - **TR-26** Pas de règle de « seule prise » : supprimer la seule prise garde le traitement (son
   échéance redevient la dose du moment, ou une dose non renseignée si une échéance plus récente est
   tombée, TR-13) ; « Marquer comme oubliée » est permis sur toute prise, y compris la seule donnée. Pour
@@ -1219,6 +1221,12 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
   règle sur une fréquence intermédiaire annulée. Écartées : laisser la dose en retard comme dose du
   moment après un réglage qui change vraiment la fréquence ; un oubli qui couvre une autre dose ;
   comparer au réglage intermédiaire remplacé le jour même.
+- 2026-10-14 — **TR-25 : « Modifier » corrige ce que la fiche montre comme une ligne** (#654). Dose
+  de Milo du 10 oct. notée sur deux téléphones, corrigée au 11 par « Modifier » : une seule prise,
+  donnée le 11, plus de ligne grisée « · sans effet » restée au 10. « Modifier » comme « Supprimer » :
+  « Laisser une ligne grisée que la personne n'a jamais créée, c'est une ligne inexpliquée sur sa
+  fiche » (Gaelle). Écartées : ne corriger que la ligne touchée ; réécrire les deux lignes à
+  l'identique, qui laisse une ligne grisée « · sans effet » à la nouvelle date.
 
 ## 11. Questions ouvertes
 

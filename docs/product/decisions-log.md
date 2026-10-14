@@ -2573,3 +2573,19 @@ aller-retour de fréquence)** (spec `traitements.md` TR-28, TR-30, R4, R8, R9, R
 - **Lecture à confirmer par Gaelle** (rédaction de l'implémentation, pas une citation) : entre deux
   appareils, la ligne la plus récente de la dose décide (R11) : donnée puis oubliée, rien d'autre n'est
   couvert.
+
+2026-10-14 — **TR-25 : « Modifier » une prise corrige ce que la fiche montre comme une ligne (#654)**
+(spec `traitements.md` TR-25).
+
+- Décision de Gaelle : « Modifier » doit corriger les deux prises quand la fiche ne montre qu'une
+  ligne : le geste s'applique à ce que la fiche montre comme une ligne, « Modifier » comme
+  « Supprimer » (règle du 12 octobre : dans une même période, deux appareils qui notent la même dose
+  font une seule ligne sur la fiche). Ses mots : « Laisser une ligne grisée que la personne n'a
+  jamais créée, c'est une ligne inexpliquée sur sa fiche ». Deux téléphones ont noté la dose de Milo
+  du 10 octobre ; corrigée au 11 par « Modifier » : une seule prise, donnée le 11.
+- Mise en œuvre : la prise corrigée est réécrite et l'autre ligne de la dose supprimée, comme le
+  fait « Supprimer » ; entre deux périodes, deux lignes, seule celle touchée change (#822).
+  « Annuler », après « Modifier » comme après « Supprimer », rétablit les lignes dans l'ordre de leurs
+  modifications : la ligne en vigueur avant le geste l'est de nouveau. Écartées : ne corriger que la
+  ligne touchée, qui laisse l'autre ligne grisée « · sans effet » au 10 ; réécrire les deux lignes à
+  l'identique, qui laisse une ligne grisée « · sans effet » à la nouvelle date.
