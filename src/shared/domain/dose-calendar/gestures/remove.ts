@@ -1,8 +1,8 @@
-import { episodeLines, isNote } from '../lines'
-import { episodeOf, spanOf } from '../settings'
+import { isNote } from '../lines'
 import type { GestureResult, Line, LineChange, Refusal, TreatmentViewInput } from '../types'
 import { buildView } from '../view'
 import { without } from './changes'
+import { doseLines } from './dose-lines'
 import { outcome } from './outcome'
 import { brokenReports } from './reports'
 
@@ -41,23 +41,6 @@ export function removalRefusal(input: TreatmentViewInput, lineId: string): Refus
     return effect.kind === 'moves' && effect.opensRhythm ? { reason: 'not-movable' } : null
   }
   return line.status === 'shift' ? shiftRemovalRefusal(input, line) : null
-}
-
-// TR-25 : la prise en vigueur emporte les autres lignes de sa dose dans sa période (deux appareils) ;
-// une ligne sans effet, ou une prise d'une autre période (#822), part seule.
-function doseLines(input: TreatmentViewInput, removed: Line): Line[] {
-  const effect = buildView(input).history.find(({ line }) => line.id === removed.id)!.effect
-  if (!isNote(removed) || effect.kind === 'idle') return []
-  const episode = episodeOf(input.settings, removed.settingId)
-  const period = new Set(episode.map(({ id }) => id))
-  const { doseKey } = episodeLines(input.lines, spanOf(episode, input.lines))
-  return input.lines.filter(
-    (line) =>
-      line.id !== removed.id &&
-      period.has(line.settingId) &&
-      isNote(line) &&
-      doseKey(line) === doseKey(removed),
-  )
 }
 
 /** R11 : seule la personne supprime une ligne ; le décalage d'une prise ou d'un report reste (N6, N8). */
