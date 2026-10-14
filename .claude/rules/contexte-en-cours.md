@@ -1,8 +1,9 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
-- 2026-10-13 : **ne pas publier avant le pas 8 du moteur v2.** Le pas 7 (#801, schéma v12) change les
-  rappels de l'ancien moteur dans de rares cas (7 états sur 120 000 où ils concordaient avec la fiche
-  avant et plus après) : les rappels passent au nouveau moteur au pas 8.
+- 2026-10-13 (nuit) : **moteur des doses v2 en place, ancien moteur supprimé** (pas 10, #757) : tous
+  les écrans, les rappels et les exports lisent `src/shared/domain/dose-calendar/` ; l'oracle compare
+  v2 au modèle naïf. Ouverts : #810 et #817 (#825). Téléphone : réinstaller le build de `main` dans
+  MémoPatte Dev.
 
 - 2026-10-09 (nuit, autonomie) : **reprendre ici.** Le 8 au soir : nouveau site en ligne sur
   `memopatte.app` (#682 socle, #683 mentions légales, #684 aide en pages, #685 vitrine). La nuit :

@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import TreatmentChooseDays from '../views/TreatmentChooseDays.vue'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
-import { days } from '@/shared/__tests__/treatment-schedule-fixtures'
+import { days } from '@/shared/__tests__/dose-calendar.v2.aides'
 import type { Due } from '@/shared/domain/dose-calendar'
 
 const NBSP = / /g

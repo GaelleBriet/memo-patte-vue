@@ -146,6 +146,8 @@ Chaque pas liste **ce qu'il livre**, **comment il se prouve**, et **ce qu'il fer
 
 ### 6.1 L'oracle (pas 1)
 
+**Pas 10, le 2026-10-13** : l'ancien moteur est supprimé ; l'oracle ne compare plus que le moteur v2 au modèle de référence naïf, sur des carnets menés par les gestes de v2 (`scripts/dose-engine/README.md`). Ce qui suit décrit l'oracle des pas 1 à 9.
+
 `scripts/dose-engine/oracle.ts` prend un générateur de carnets (celui de la campagne, avec les gestes tirés au sort et, à chaque geste, **le carnet entier rejoué par les deux moteurs**), et sort par graine : affichage ancien, affichage v2, premier geste où ils divergent, carnet extrait avant ce geste. Un écart est **accepté** seulement s'il est rattaché à un ticket (#719, #734, #738, #741, #743, #744, #745 ; #736 et sa règle G26, fermés par #747) ou à une décision (Q-C1, Q-G3, Q-#744, Q-§11, Q-purge, G19 incomplet) ; la liste des écarts acceptés vit dans `scripts/dose-engine/ecarts-acceptes.md` et tout écart hors liste bloque la PR. Volume : 300 000 carnets sans changement de réglage (où l'ancien moteur est juste), 300 000 avec.
 
 Lancement : par la spec `src/shared/__tests__/dose-calendar.oracle.spec.ts`, réglée par des variables d'environnement posées devant la commande (`ORACLE_FROM`, `ORACLE_SEEDS`, `ORACLE_STEPS`, `ORACLE_ENGINES`, `ORACLE_SETTINGS`, `ORACLE_OUT` ; mode d'emploi en tête de `scripts/dose-engine/README.md`). Les deux moteurs lisent le carnet sans la purge du moteur actuel (R11). Un écart est rattaché jour par jour à une famille (`scripts/dose-engine/ecarts.ts`), chacune décrite avec son ticket et un exemple dans `ecarts-acceptes.md`.

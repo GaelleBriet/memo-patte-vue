@@ -339,7 +339,7 @@ describe('app/, réservé au démarrage', { timeout: 30_000 }, () => {
   })
 })
 
-describe("façade du moteur d'échéances", { timeout: 30_000 }, () => {
+describe('façade du moteur des doses', { timeout: 30_000 }, () => {
   async function engineImports(filePath: string, statements: string[]) {
     const [result] = await eslint.lintText(`${statements.join('\n')}\n`, {
       filePath: `${ROOT}/${filePath}`,
@@ -351,18 +351,18 @@ describe("façade du moteur d'échéances", { timeout: 30_000 }, () => {
 
   it('interdit les fichiers internes du moteur hors du moteur', async () => {
     const feature = await engineImports('src/features/treatments/logic/treatment-plan.ts', [
-      "import { orderPeriods } from '@/shared/domain/treatment-schedule-timeline'",
-      "const m = () => import('@/shared/domain/treatment-schedule-dues')",
+      "import { buildView } from '@/shared/domain/dose-calendar/view'",
+      "const m = () => import('@/shared/domain/dose-calendar/gestures/note')",
     ])
     const shared = await engineImports('src/shared/domain/reminder-plan.ts', [
-      "import { toDate } from './treatment-schedule-dues'",
+      "import { buildView } from './dose-calendar/view'",
     ])
     const component = await engineImports('src/shared/utils/format.ts', [
-      "import { toDate } from '../domain/treatment-schedule-dues'",
+      "import { buildView } from '../domain/dose-calendar/view'",
     ])
     const nested = await engineImports('src/shared/domain/reminders/plan.ts', [
-      "import { toDate } from '../treatment-schedule-dues'",
-      "import { keyOf } from '@/shared/domain/treatment-schedule-dues'",
+      "import { buildView } from '../dose-calendar/view'",
+      "import { keyOf } from '@/shared/domain/dose-calendar/lines'",
     ])
 
     expect(feature).toBe(2)
@@ -373,16 +373,18 @@ describe("façade du moteur d'échéances", { timeout: 30_000 }, () => {
 
   it('autorise la façade, et les fichiers internes entre eux', async () => {
     const feature = await engineImports('src/features/treatments/logic/treatment-plan.ts', [
-      "import { orderPeriods } from '@/shared/domain/treatment-schedule'",
-      "import { treatmentScheduleOf } from './treatment-schedule-adapter'",
+      "import { treatmentView } from '@/shared/domain/dose-calendar'",
     ])
-    const engine = await engineImports('src/shared/domain/treatment-schedule-state.ts', [
-      "import { planPeriod } from './treatment-schedule-timeline'",
+    const shared = await engineImports('src/shared/domain/treatment-reading.ts', [
+      "import { treatmentView } from './dose-calendar'",
     ])
-    const spec = await engineImports('src/shared/__tests__/treatment-schedule.spec.ts', [
-      "import { period } from './treatment-schedule-fixtures'",
+    const engine = await engineImports('src/shared/domain/dose-calendar/gestures/note.ts', [
+      "import { buildView } from '../view'",
+    ])
+    const spec = await engineImports('src/shared/__tests__/dose-calendar.view.spec.ts', [
+      "import { buildView } from '../domain/dose-calendar/view'",
     ])
 
-    expect([feature, engine, spec]).toEqual([0, 0, 0])
+    expect([feature, shared, engine, spec]).toEqual([0, 0, 0, 0])
   })
 })

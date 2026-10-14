@@ -6,13 +6,13 @@ import {
   carnet,
   cle,
   corrige,
+  dateDonnee,
   deplace,
   donne,
   echeance,
   H,
   jours,
   journees,
-  lecture,
   ligne,
   modifie,
   mois,
@@ -73,15 +73,10 @@ describe('R6 : décalage, report seul, date de fin (vendredis d’octobre)', () 
 describe('R5, R6 : prise en plus, correction de date', () => {
   it('R5 : dose du 16 donnée le mercredi 7, un intervalle avant : prise en plus, le 16 reste dû', () => {
     const c = vendredis()
-    const schedule = lecture(c, '2026-10-10')
-    const due = schedule.dueForDate('2026-10-07')!
+    const due = dateDonnee(c, '2026-10-10', '2026-10-07')
     expect(due.dueOn).toBe('2026-10-16')
-    const noted = schedule.doseFor({ kind: 'given', due, givenOn: '2026-10-07' })
-    expect([noted.dose.status, noted.dose.dueOn, noted.shift]).toEqual([
-      'extra',
-      '2026-10-07',
-      null,
-    ])
+    const written = donne(c, '2026-10-10', due, '2026-10-07').doses.slice(c.doses.length)
+    expect(written.map(({ status, dueOn }) => [status, dueOn])).toEqual([['extra', '2026-10-07']])
     expect(journees(donne(c, '2026-10-10', due, '2026-10-07'), '2026-10-10', 3)).toEqual([
       '2026-10-16',
       '2026-10-23',
@@ -119,7 +114,7 @@ describe('R5, R6 : prise en plus, correction de date', () => {
     )
     expect(vue(corrigee, '2026-10-25').phase).toBe('upcoming')
     expect(journees(corrigee, '2026-10-25', 2)).toEqual(['2026-10-31', '2026-11-07'])
-    const autre = lecture(vendredis(), '2026-10-25').dueForDate('2026-10-24')!
+    const autre = dateDonnee(vendredis(), '2026-10-25', '2026-10-24')
     expect(
       journees(donne(vendredis(), '2026-10-25', autre, '2026-10-24', true), '2026-10-25', 2),
     ).toEqual(['2026-10-31', '2026-11-07'])

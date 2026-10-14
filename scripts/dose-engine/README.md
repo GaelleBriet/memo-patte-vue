@@ -1,48 +1,32 @@
-# Oracle des moteurs de doses
+# Oracle du moteur des doses
+
+L'ancien moteur a été supprimé au pas 10 de l'épic #758 (2026-10-13) : l'oracle compare désormais
+le moteur v2 (`treatmentView`) au modèle de référence naïf (`src/shared/domain/dose-calendar/reference-model.ts`),
+sur des carnets menés par les gestes de v2 (`v2-walk.ts`, le générateur de la campagne d'invariants).
+Chaque pas doit rendre la même lecture des deux côtés (`naive` de `v2-invariants-readings.ts`) ; un
+seul écart fait échouer la spec, qui imprime le carnet avant le geste et les gestes joués.
 
 Lancement (variables posées directement devant la commande, jamais par une variable shell
 intermédiaire), sous le verrou des suites lourdes :
 
 ```sh
-ORACLE_FROM=530000000 ORACLE_SEEDS=20000 ORACLE_STEPS=40 ORACLE_ENGINES=actuel,reference ORACLE_SETTINGS=avec \
+ORACLE_FROM=530000000 ORACLE_SEEDS=3000 ORACLE_STEPS=40 \
   flock /tmp/claude-1000/memo-patte-suite.lock nice -n 19 \
   pnpm exec vitest run src/shared/__tests__/dose-calendar.oracle.spec.ts --reporter=verbose
 ```
 
 - `ORACLE_FROM`, `ORACLE_SEEDS`, `ORACLE_STEPS` : première graine, nombre de carnets, gestes par carnet
   (par défaut 530000000, 50, 24).
-- `ORACLE_ENGINES` : les deux moteurs comparés, `actuel`, `reference` (modèle naïf de
-  `src/shared/domain/dose-calendar/`) et `v2` (`treatmentView`) ; par défaut `actuel,actuel`.
-  `reference` et `v2` reçoivent le carnet par le même adaptateur (`viewInputOf`, plan §3.1) ;
-  `reference,v2` doit rendre zéro écart. Le moteur actuel mène toujours les gestes ; placé en
-  premier, c'est contre lui que les écarts sont rattachés.
-- `ORACLE_SETTINGS` : `avec` (gestes de la campagne, « Modifier » et « Reprendre » compris) ou `sans`
-  (un seul réglage).
-- `ORACLE_FILTER` : `v2` (par défaut : un geste du moteur actuel n'est joué que si le moteur v2, pour
-  le même geste, case cochée ou non, écrit le même carnet ; les gestes écartés sont comptés par raison,
-  refus de v2 ou « v2 écrit autre chose » avec la règle en cause) ou `aucun` (tous les gestes du
-  moteur actuel, carnets inatteignables compris).
-- `ORACLE_OUT` : dossier où écrire, par graine qui diverge, le carnet avant le geste fautif
-  (`avant-<graine>.json`), et les trois premiers carnets de chaque refus à analyser
-  (`refus-<type>-<graine>-<n>.json`).
-
-La ligne « Oracle » finit par les **refus à analyser** : un refus de v2 sur une échéance que sa propre
-vue propose (dose du moment, prochaine dose, trois suivantes), et une correction de date que le moteur
-actuel accepte et que v2 refuse à cause d'un report. Chacun est soit un défaut corrigé, soit un refus
-justifié par une règle datée (`ecarts-acceptes.md`).
+- `ORACLE_ENGINES` : seul `reference,v2` reste accepté. `ORACLE_SETTINGS`, `ORACLE_FILTER` et
+  `ORACLE_OUT`, qui réglaient la comparaison avec l'ancien moteur, arrêtent l'oracle s'ils sont posés.
 
 La ligne « Oracle : N carnets × M gestes, graines A à B » dit ce qui a été joué ; un réglage illisible
-arrête l'oracle avant tout carnet. Tout écart non rattaché à `ecarts-acceptes.md` fait échouer la
-spec.
+arrête l'oracle avant tout carnet.
 
-« Modifier » (`walk-settings.ts`) n'est joué que si le réglage que v2 écrirait (`newSettings`, R9,
-R10, Q38) se lit comme celui que le moteur actuel propose (`newPeriod`) ; sinon il est compté, avec la
-branche de R9 en cause, parmi les refus à analyser (`ecarts-acceptes.md`, section du pas 4).
-
-Les carnets sont ceux de l'ancienne campagne d'invariants (`treatment-schedule.invariants.spec.ts`),
-même graine, mêmes gestes, menés par le moteur actuel (`carnet.ts`, `walk*.ts`) et filtrés par les
-refus de v2 (`walk-filter.ts`). Les lignes que le moteur actuel fait purger restent dans le carnet lu
-par les deux moteurs (R11).
+Les carnets que l'ancien moteur menait pour les graines 570005085, 570012998 et 570010320 sont gardés,
+pas à pas, dans `src/shared/__tests__/fixtures/dose-calendar-oracle-graines.jsonl`, avec ce que
+l'ancien moteur en montrait. `ecarts-acceptes.md` garde les écarts acceptés entre les deux moteurs et
+les décisions qui les justifient ; il n'est plus relu par l'oracle.
 
 ## Campagne d'invariants du moteur v2
 
@@ -78,19 +62,12 @@ moteur seul. Variables : `TREATMENT_ORACLE_FROM` (540000000), `TREATMENT_ORACLE_
 
 ## Les rappels lus dans la vue (pas 8)
 
-`src/shared/__tests__/dose-calendar.reminders-campaign.spec.ts` joue deux séries sur les mêmes
-graines :
-
-- **campagne** : des carnets menés par les gestes de v2 (`v2-walk.ts`) ; à chaque pas,
-  `v2-reminders.ts` vérifie que les rappels de `view.reminders` sont les échéances de la fiche
-  (RA-1, RA-6 : toute échéance à donner a son rappel du jour, aucune autre ; la dernière dose après
-  la date de fin), la prévenance et la relance (RA-2 à RA-5), relues sur l'état de chaque échéance, et
-  le volet (RA-19, `view.isNoted`) ;
-- **oracle** : des carnets menés par le moteur actuel (`walk.ts`) ; `legacy-reminders.ts` recopie les
-  règles des rappels d'avant le pas 8 sur l'ancien moteur. Là où les deux moteurs montrent la même
-  fiche, les rappels doivent être identiques ; seule l'échéance notée peut différer, quand le
-  calendrier la contient encore et que la fiche en décide (ligne sans effet, prise qui en couvre une
-  autre). Partout, les rappels doivent être ceux de la fiche v2.
+`src/shared/__tests__/dose-calendar.reminders-campaign.spec.ts` mène des carnets par les gestes de v2
+(`v2-walk.ts`) ; à chaque pas, `v2-reminders.ts` vérifie que les rappels de `view.reminders` sont les
+échéances de la fiche (RA-1, RA-6 : toute échéance à donner a son rappel du jour, aucune autre ; la
+dernière dose après la date de fin), la prévenance et la relance (RA-2 à RA-5), relues sur l'état de
+chaque échéance, et le volet (RA-19, `view.isNoted`). La comparaison avec les rappels de l'ancien
+moteur a disparu avec lui au pas 10.
 
 ```sh
 RAPPELS_FROM=641000000 RAPPELS_SEEDS=3000 RAPPELS_STEPS=40 \
@@ -98,5 +75,5 @@ RAPPELS_FROM=641000000 RAPPELS_SEEDS=3000 RAPPELS_STEPS=40 \
   pnpm exec vitest run src/shared/__tests__/dose-calendar.reminders-campaign.spec.ts --reporter=verbose
 ```
 
-Les lignes « Campagne rappels » et « Oracle rappels » disent ce qui a été joué. Par défaut (suite
-normale) : 25 carnets × 24 gestes.
+La ligne « Campagne rappels » dit ce qui a été joué. Par défaut (suite normale) : 25 carnets × 24
+gestes.

@@ -122,7 +122,7 @@ export const useTreatmentsStore = defineStore('treatments', () => {
       return (await requireRepository()).getById(id)
     },
 
-    /** Le traitement, toutes ses périodes et ses prises : l'entrée de `treatmentScheduleOf`. */
+    /** Le traitement, toutes ses périodes et ses prises : l'entrée de `treatmentReading`. */
     async getWithHistory(id: string): Promise<TreatmentWithHistory | null> {
       return (await requireRepository()).getWithHistory(id)
     },

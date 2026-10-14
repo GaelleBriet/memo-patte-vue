@@ -1,4 +1,5 @@
 import {
+  dueForDate,
   moveBounds,
   moveDose,
   newSettings,
@@ -7,25 +8,24 @@ import {
   removeLine,
   treatmentView,
   viewInputOf,
+  type Frequency,
   type GestureResult,
+  type LegacyInput,
   type LineChange as V2Change,
   type SettingsPlan,
   type TreatmentView,
 } from '../domain/dose-calendar'
-import {
-  treatmentSchedule,
-  type Due,
-  type Frequency,
-  type TreatmentDoseInput,
-  type TreatmentPeriodInput,
-  type TreatmentSchedule,
-} from '../domain/treatment-schedule'
 
 /**
  * Gestes et lectures du jeu de recette : lectures, gestes et réglages par le moteur v2 (épic #758).
  * Les écritures suivent le repository de l'app, sans purge (R11).
  */
-export type Carnet = { periods: TreatmentPeriodInput[]; doses: TreatmentDoseInput[] }
+export type Carnet = {
+  periods: LegacyInput['periods'][number][]
+  doses: (LegacyInput['doses'][number] & { createdAt: string })[]
+}
+
+export type Due = { periodId: string; dueOn: string; dueTime: string | null }
 
 export const H = ['08:00', '20:00']
 export const jours = (value: number): Frequency => ({ value, unit: 'day' })
@@ -60,12 +60,15 @@ export function carnet(
   return { periods: [period], doses: [] }
 }
 
-export function lecture(c: Carnet, today: string): TreatmentSchedule {
-  return treatmentSchedule({ periods: c.periods, doses: c.doses, today })
-}
-
 export function vue(c: Carnet, today: string): TreatmentView {
   return treatmentView(viewInputOf({ periods: c.periods, doses: c.doses, today }))
+}
+
+/** L'échéance que vise « Fait à une autre date » pour une prise donnée ce jour-là. */
+export function dateDonnee(c: Carnet, today: string, givenOn: string): Due {
+  const due = dueForDate(entree(c, today), givenOn, null)
+  if (due === null) throw new Error(`aucune échéance pour une prise du ${givenOn}`)
+  return { periodId: due.settingId, dueOn: due.dueOn, dueTime: due.dueTime }
 }
 
 /** L'échéance d'un jour, et de son heure, dans le réglage en cours. */

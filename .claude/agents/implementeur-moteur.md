@@ -1,6 +1,6 @@
 ---
 name: implementeur-moteur
-description: Pour le moteur des doses (shared/domain/treatment-schedule*), les migrations et la synchro : implémente un ticket décrit par un brief, dans son propre worktree et sur sa branche, tests d'abord ; ne merge jamais.
+description: Pour le moteur des doses (shared/domain/dose-calendar/), les migrations et la synchro : implémente un ticket décrit par un brief, dans son propre worktree et sur sa branche, tests d'abord ; ne merge jamais.
 model: opus
 effort: high
 ---

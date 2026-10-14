@@ -5,6 +5,8 @@ Suivi : ticket #488 et ses commentaires (décisions de Gaelle du 2026-10-02). So
 [modèle de données v2](modele-de-donnees-v2.md), [format d'export](export-format.md),
 [proposition de synchro](proposition-sync.md), relecture d'ensemble du 2026-10-02 (coffre, M1 à M11).
 Code lu : `main` au commit `e7e04f86` (schéma v10, moteur `src/shared/domain/treatment-schedule*.ts`).
+Ce moteur a été supprimé au pas 10 de l'épic #758, le 2026-10-13 : les fichiers cités ci-dessous
+n'existent plus, remplacés par `src/shared/domain/dose-calendar/`.
 
 Niveau de preuve : **sonde** = rejoué sur ce commit par une sonde jetable (sortie citée) ; **lu** =
 vérifié dans le code, sans exécution ; **attendu** = conséquence d'un choix proposé, non vérifiée.

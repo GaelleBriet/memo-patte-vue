@@ -60,4 +60,18 @@ describe('« Toutes données » entre une prise ancienne et la dose du jour', ()
     expect(writes).toHaveLength(count)
     expect(elapsed).toBeLessThan(bound)
   })
+
+  it('lignes sans effet sur chaque dose à renseigner (fichier forgé) : le calendrier n’est pas recalculé à chaque dose', () => {
+    const start = daysBefore(TODAY, 729)
+    const neutral = Array.from({ length: 729 }, (_, index) => {
+      const day = daysBefore(TODAY, 729 - index)
+      return dose(day, day, { id: `neutre-${day}`, status: 'postponed', givenOn: null })
+    })
+    const forged = treatment([period({ startsOn: start, firstDueOn: start, times: [] })], neutral)
+
+    const { result: writes, elapsed } = fastest(() => allGiven(forged))
+
+    expect(writes).toHaveLength(729)
+    expect(elapsed).toBeLessThan(300)
+  })
 })

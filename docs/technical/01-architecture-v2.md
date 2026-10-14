@@ -122,6 +122,7 @@ Chaque `features/<nom>/` range son contenu par rôle technique, en sous-dossiers
 - `core/` ne dépend jamais des features, à une exception près : `core/dev/` importe leurs repositories pour peupler le carnet de démo. C'est un outil de développement qui ne part jamais en production ; la règle ESLint `app/core-independent-of-features` interdit l'import partout ailleurs dans `core/`.
 - Aucune feature n'importe `app/` : la règle ESLint `app/feature-imports` l'interdit.
 - Ce qui garde un état ou appelle le téléphone (file des rappels, unité de poids, signaux d'usage) vit dans `core/`, jamais dans `shared/domain/`.
+- Le moteur des doses vit dans `shared/domain/dose-calendar/` et ne s'importe que par sa façade `@/shared/domain/dose-calendar` (`treatmentView`, ses gestes, `preview`), règle ESLint `app/treatment-engine-facade` ; l'ancien moteur (`treatment-schedule*.ts`) a été supprimé au pas 10 de l'épic #758, le 2026-10-13.
 - `logic/` n'importe jamais un repository : les types d'écriture qu'ils partagent (prises, plan d'un traitement, dates d'une injection) vivent dans `schema/`.
 - Tout texte visible passe par vue-i18n.
 
