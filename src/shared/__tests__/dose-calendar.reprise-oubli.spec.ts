@@ -18,8 +18,9 @@ import {
 } from './dose-calendar.recette.aides'
 import { DAY, keys, line, setting, view } from './dose-calendar.v2.aides'
 
-// R8, décision de Gaelle du 14 octobre 2026 : seule une prise donnée le jour même de la reprise
-// couvre sa première journée ; un oubli ne couvre rien.
+// R8, décisions de Gaelle du 14 octobre 2026 : seule une prise donnée le jour même de la reprise
+// couvre les autres heures de sa première journée ; reprise aux mêmes heures, la note posée sur
+// l'échéance, prise ou oubli, reste.
 
 const DAY8 = '2026-10-08'
 
@@ -61,6 +62,48 @@ describe('R8 : Milo, une dose par jour à 8 h ; le 8, arrêt puis reprise le soi
       kind: 'covers',
       key: '2026-10-08 08:00',
     })
+  })
+})
+
+describe('R8 : Milo à 8, 14 et 20 h ; le 8, dose de 8 h oubliée, arrêt puis reprise le 8 aux mêmes heures', () => {
+  const HEURES = ['08:00', '14:00', '20:00']
+
+  function reprise() {
+    let c = carnet('2026-10-07', jours(1), HEURES)
+    for (const hour of HEURES) c = donne(c, '2026-10-07', echeance(c, '2026-10-07', hour))
+    c = oublie(c, DAY8, echeance(c, DAY8, '08:00'))
+    c = arrete(c, DAY8)
+    return reprend(c, DAY8, DAY8, jours(1), HEURES)
+  }
+
+  it('la dose de 8 h n’est pas redemandée, celles de 14 et 20 h sont à donner', () => {
+    const read = vue(reprise(), DAY8)
+    expect([read.phase, read.currentDoses.map(cle)]).toEqual([
+      'today',
+      ['2026-10-08 14:00', '2026-10-08 20:00'],
+    ])
+    expect(aRenseigner(reprise(), DAY8)).toEqual([])
+  })
+
+  it('l’oubli reste sur la dose de 8 h, rien n’est sans effet', () => {
+    const c = reprise()
+    const missed = ligne(c, DAY8, '08:00', 'missed')
+    expect(vue(c, DAY8).history.find((each) => each.line.id === missed.id)!.effect).toEqual({
+      kind: 'covers',
+      key: '2026-10-08 08:00',
+    })
+  })
+
+  it('le modèle de référence lit la même chose', () => {
+    const stopped = reference.setting('p1', '2026-10-07', reference.DAY, HEURES, {
+      stoppedOn: DAY8,
+    })
+    const resumed = reference.setting('p2', DAY8, reference.DAY, HEURES)
+    const lines = [reference.line('p1', 'missed', DAY8, '08:00')]
+    expect(reference.next([stopped, resumed], lines, DAY8, 2)).toEqual([
+      '2026-10-08 14:00',
+      '2026-10-08 20:00',
+    ])
   })
 })
 
