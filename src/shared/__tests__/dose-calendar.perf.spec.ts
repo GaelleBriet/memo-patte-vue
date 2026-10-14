@@ -74,27 +74,47 @@ describe('performance', () => {
   })
 })
 
-describe('réglage suivant très lointain (fichier forgé)', () => {
-  it('un réglage à 24 heures par jour suivi d’un réglage en 2199 se lit en moins de 5 s', () => {
-    const everyHour = Array.from({ length: 24 }, (_, hour) => `${String(hour).padStart(2, '0')}:00`)
+const everyHour = Array.from({ length: 24 }, (_, hour) => `${String(hour).padStart(2, '0')}:00`)
+
+describe('date très lointaine (fichier forgé ou faute de frappe)', () => {
+  it('un réglage à 24 heures par jour suivi d’un réglage en 2199 se lit en moins de 100 ms', () => {
     const forged: TreatmentViewInput = {
       settings: [setting('s1', '2026-09-01', DAY, everyHour), setting('s2', '2199-12-30', DAY)],
       lines: [],
       today: '2026-09-28',
     }
 
-    const start = performance.now()
-    const view = treatmentView(forged)
-    view.upcoming({ limit: 400 })
-    const elapsed = performance.now() - start
+    const { result: view, elapsed } = fastest(() => {
+      const computed = treatmentView(forged)
+      computed.upcoming({ limit: 400 })
+      return computed
+    })
 
     expect(view.unloggedDoses).toHaveLength(27 * 24)
     expect(view.currentDoses).toEqual(
       everyHour.map((dueTime) => ({ settingId: 's1', dueOn: '2026-09-28', dueTime })),
     )
     expect(view.nextDue).toEqual({ settingId: 's1', dueOn: '2026-09-29', dueTime: '00:00' })
-    expect(elapsed).toBeLessThan(5000)
-  }, 20000)
+    expect(elapsed).toBeLessThan(100)
+  })
+
+  it('un réglage à 24 heures par jour qui finit le 30/12/2199 se lit en moins de 100 ms', () => {
+    const typo: TreatmentViewInput = {
+      settings: [setting('s1', '2026-09-01', DAY, everyHour, { endsOn: '2199-12-30' })],
+      lines: [],
+      today: '2026-09-28',
+    }
+
+    const { result: view, elapsed } = fastest(() => {
+      const computed = treatmentView(typo)
+      computed.upcoming({ limit: 400 })
+      return computed
+    })
+
+    expect(view.lastDueDay).toBe('2199-12-30')
+    expect(view.nextDue).toEqual({ settingId: 's1', dueOn: '2026-09-29', dueTime: '00:00' })
+    expect(elapsed).toBeLessThan(100)
+  })
 })
 
 // Un réglage par ajustement de posologie, toutes les prises données à leur jour.
