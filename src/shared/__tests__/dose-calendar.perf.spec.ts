@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 import { treatmentView } from '../domain/dose-calendar'
 import type { Line, Setting, TreatmentViewInput } from '../domain/dose-calendar/types'
-import { DAY, days, H, setting } from './dose-calendar.v2.aides'
+import { DAY, days, H, setting, WEEK } from './dose-calendar.v2.aides'
 
 const TWO_YEARS = days('2024-10-01', '2026-09-30')
 
@@ -130,6 +130,36 @@ describe('date très lointaine (fichier forgé ou faute de frappe)', () => {
     expect(view.nextDue).toEqual({ settingId: 's1', dueOn: '2026-09-29', dueTime: '00:00' })
     expect(elapsed).toBeLessThan(100)
   }, 20000)
+
+  it.each([
+    ['24 heures par jour', everyHour, 27 * 24],
+    ['8 h et 20 h', H, 27 * 2],
+  ])(
+    '%s suivi d’un réglage hebdomadaire en 2199 se lit en moins de 100 ms',
+    (_, times, late) => {
+      const forged: TreatmentViewInput = {
+        settings: [setting('s1', '2026-09-01', DAY, times), setting('s2', '2199-12-30', WEEK)],
+        lines: [],
+        today: '2026-09-28',
+      }
+
+      const { result, elapsed } = fastest(() => {
+        const computed = treatmentView(forged)
+        const upcoming = computed.upcoming({ limit: 400 })
+        const reminders = computed.reminders({ count: 64, daysBefore: 0, daysAfter: 0 })
+        return { view: computed, upcoming, reminders }
+      })
+
+      const far = { settingId: 's2', dueOn: '2199-12-30', dueTime: null }
+      expect(result.view.unloggedDoses).toHaveLength(late)
+      expect(result.view.currentDoses).toEqual([far])
+      expect(result.view.nextDue).toEqual(far)
+      expect(result.upcoming).toEqual([])
+      expect(result.reminders.filter(({ moment }) => moment === 'due')).toHaveLength(67)
+      expect(elapsed).toBeLessThan(100)
+    },
+    20000,
+  )
 })
 
 // Un réglage par ajustement de posologie, toutes les prises données à leur jour.

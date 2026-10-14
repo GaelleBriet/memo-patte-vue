@@ -5,7 +5,10 @@ import type { Day, Frequency, Hour, Line, LineEffect, Setting } from './types'
 
 export type Journey = { setting: Setting; hours: Hour[] }
 
-export type JourneyInput = { span: Span; lines: EpisodeLines; reach: Day }
+/** Journées laissées hors de la grille calculée : aucune ligne ni aucun réglage n'y tombe. */
+export type Gap = { after: Day; before: Day }
+
+export type JourneyInput = { span: Span; lines: EpisodeLines; reach: Day; gap?: Gap }
 
 type Segment = { origin: Day; from: Day; to: Day | null }
 
@@ -57,7 +60,7 @@ const turned = (turn: Line, chosenFloor: Day): Grid => ({
 
 /** R3, R6 : les journées de chaque réglage, sur la grille en vigueur, que les décalages font repartir. */
 export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) {
-  const { span, lines, reach } = input
+  const { span, lines, reach, gap } = input
   const { chain } = span
   const days = new Map<Day, Journey>()
   const translated = new Set(span.hoursChangeOn)
@@ -178,7 +181,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       if (turn !== null && !lands(turn)) continue
       const to = turn === null || turn.dueOn >= last ? last : turn.dueOn
       const start = later(from, plusDays(grid.floor, 1))
-      for (const day of gridDays(grid.origin, setting.frequency, start, to)) {
+      for (const day of gridDaysAround(grid.origin, setting.frequency, start, to, gap)) {
         days.set(day, { setting, hours: hoursOf(setting.times) })
       }
       segments.push({ origin: grid.origin, from: start, to: turn?.dueOn ?? setting.endsOn })
@@ -213,6 +216,14 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     lastPossibleDay,
     lastGridDay,
   }
+}
+
+function gridDaysAround(origin: Day, frequency: Frequency, from: Day, to: Day, gap?: Gap) {
+  if (gap === undefined) return gridDays(origin, frequency, from, to)
+  return [
+    ...gridDays(origin, frequency, from, to < gap.after ? to : gap.after),
+    ...gridDays(origin, frequency, later(from, gap.before), to),
+  ]
 }
 
 function lastDayOfGrid(origin: Day, frequency: Frequency, from: Day, to: Day): Day | null {
