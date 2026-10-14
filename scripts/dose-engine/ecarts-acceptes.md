@@ -270,7 +270,7 @@ du réglage final se compare à celle d'avant ce jour (R10). Corrigé dans v2 et
 (tests de `dose-calendar.reglage-remplace.spec.ts`, carnets dans `fixtures/dose-calendar-graines.json`) :
 neuf graines lisent comme l'ancien moteur. La graine 1500018007 s'en écarte : le réglage final garde
 tous les 3 jours avec sa propre origine (première dose le 17 mai), la dose du moment du 5 avril est remplacée
-(TR-9) au lieu de rester à renseigner (lecture à confirmer par Gaelle).
+(TR-9) au lieu de rester à renseigner (décision de Gaelle du 14 octobre 2026).
 
 ## Un oubli ne couvre que son échéance (2026-10-14)
 
