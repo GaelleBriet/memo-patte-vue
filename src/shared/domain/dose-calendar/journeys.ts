@@ -147,7 +147,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
         isOnGrid(inherited.origin, setting.frequency, setting.startsOn)
       replacing = { from: rhythmFrom, to: setting.startsOn, onDueDay }
       restart = setting.firstDueOn
-    } else if (!continued || origin !== null || ended) {
+    } else if (!continued || (origin !== null && setting.firstDueChosen) || ended) {
       replacing = null
       restart = undefined
     }
@@ -157,7 +157,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     if (restart !== undefined) restarts.set(setting.id, restart)
     if (
       prior?.startsOn === setting.startsOn &&
-      origin === null &&
+      (origin === null || !setting.firstDueChosen) &&
       restart !== undefined &&
       restarts.get(prior.id) === restart
     ) {

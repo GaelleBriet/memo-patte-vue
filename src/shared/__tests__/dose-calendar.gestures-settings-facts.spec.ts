@@ -4,8 +4,9 @@ import { describe, expect, it } from 'vitest'
 import { newSettings, type SettingsRequest } from '../domain/dose-calendar'
 import { settingsApplied } from '../domain/dose-calendar/gestures/changes'
 import type { SettingsPlan, TreatmentViewInput } from '../domain/dose-calendar/types'
+import { referenceReading } from '../domain/dose-calendar/reference-model'
 import { buildView } from '../domain/dose-calendar/view'
-import { keys, line, setting, TWO_DAYS } from './dose-calendar.v2.aides'
+import { H, keys, line, setting, TWO_DAYS } from './dose-calendar.v2.aides'
 
 const THREE_DAYS = { value: 3, unit: 'day' as const }
 
@@ -115,5 +116,46 @@ describe('#836, lecture à confirmer par Gaelle : « Elles n’étaient pas à d
     expect(keys(read.currentDoses)).toEqual(['2026-10-03 08:00'])
     expect(keys(read.unloggedDoses)).toEqual([])
     expect(keys(read.upcoming().slice(0, 2))).toEqual(['2026-10-07 10:00', '2026-10-09 10:00'])
+  })
+})
+
+describe('R9, R10 : heure seule changée le lendemain, un réglage qui a reçu la date choisie du réglage remplacé le jour même la garde', () => {
+  it('toutes les 6 semaines à 8 h et 20 h depuis le 7 mars, dose du 7 non donnée ; le 9, « Prochaine dose » le 30 mai, puis un réglage identique sans date le même jour ; le 10, 9 h et 21 h : rien en retard, prochaine dose le 30 mai', () => {
+    const sixWeeks = { value: 6, unit: 'week' as const }
+    const sameDay = { startsOn: '2026-03-09' }
+    const input = {
+      settings: [
+        setting('s1', '2026-03-07', sixWeeks, H),
+        setting('s2', '2026-05-30', sixWeeks, H, sameDay),
+        setting('s3', '2026-05-30', sixWeeks, H, { ...sameDay, gridOriginOn: null }),
+      ],
+      lines: [],
+      today: '2026-03-10',
+    }
+    const attendu = {
+      phase: 'upcoming',
+      moment: ['2026-05-30 09:00'],
+      aRenseigner: [],
+    }
+    const read = (carnet: TreatmentViewInput) => {
+      const view = buildView(carnet)
+      return {
+        phase: view.phase,
+        moment: keys(view.currentDoses).slice(0, 1),
+        aRenseigner: keys(view.unloggedDoses),
+      }
+    }
+    expect(read(input)).toEqual({ ...attendu, moment: ['2026-05-30 08:00'] })
+    const after = settingsApplied(
+      input,
+      planOf(input, { frequency: sixWeeks, times: ['09:00', '21:00'], endsOn: null }),
+    )
+    expect(read(after)).toEqual(attendu)
+    const reference = referenceReading({ ...after, until: '2026-12-31' })
+    expect([reference.phase, reference.current.slice(0, 1), reference.unlogged]).toEqual([
+      attendu.phase,
+      attendu.moment,
+      attendu.aRenseigner,
+    ])
   })
 })

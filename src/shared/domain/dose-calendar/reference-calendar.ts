@@ -153,7 +153,7 @@ export function calendarOf(
       waitingReplace = { from: rhythmFrom, to: setting.startsOn, onDueDay }
       // R6, TR-9 : la grille repartie d'une date choisie, continuée par les réglages de même rythme.
       restart = setting.firstDueOn
-    } else if (!continued || origin !== null || ended) {
+    } else if (!continued || (origin !== null && setting.firstDueChosen) || ended) {
       waitingReplace = undefined
       restart = undefined
     }

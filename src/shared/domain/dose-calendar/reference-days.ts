@@ -59,7 +59,7 @@ export function handedOf(
         return (
           successor !== undefined &&
           successor.startsOn === setting.startsOn &&
-          successor.gridOriginOn === null &&
+          (successor.gridOriginOn === null || !successor.firstDueChosen) &&
           restarts.has(setting.id) &&
           restarts.get(successor.id) === restarts.get(setting.id)
         )
