@@ -2,10 +2,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
+import { readTreatment } from '@/shared/domain/treatment-reading'
 import { createReplay, storedHistory, type Replay } from './treatment-services-replay'
 
 const ID = '22222222-2222-4222-8222-222222222222'
 const ANIMAL = '11111111-1111-4111-8111-111111111111'
+const OTHER = 'autre-appareil'
+
+type OtherDevice = { id: string; status: 'given' | 'missed'; givenOn: string | null }
+const GIVEN_ON_10: OtherDevice = { id: OTHER, status: 'given', givenOn: '2026-10-10' }
 
 describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-12) et « Modifier » (2026-10-14)', () => {
   let db: InMemoryDb
@@ -23,7 +28,7 @@ describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-1
   })
 
   // La ligne en vigueur : celle de cet appareil, plus récente que celle reçue de l'autre.
-  async function miloNotedOnBothDevices(): Promise<string> {
+  async function miloNotedOnBothDevices(other: OtherDevice = GIVEN_ON_10): Promise<string> {
     replay.clock.day = '2026-10-03'
     replay.tick()
     await replay.treatments.create({
@@ -58,12 +63,22 @@ describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-1
     await db.run(
       `INSERT INTO treatment_dose (id, period_id, treatment_id, animal_id, due_on, due_time,
          given_on, status, target_on, created_at, updated_at, created_by_device, updated_by_device)
-       VALUES ('autre-appareil', ?, ?, ?, '2026-10-10', NULL, '2026-10-10', 'given', NULL,
+       VALUES (?, ?, ?, ?, '2026-10-10', NULL, ?, ?, NULL,
          '2026-12-31T00:00:00.000Z', '2026-12-31T00:00:00.000Z', 'autre', 'autre')`,
-      [ID, ID, ANIMAL],
+      [other.id, ID, ID, ANIMAL, other.givenOn, other.status],
     )
     const doses = (await storedHistory(replay.treatments, ID)).doses
-    return doses.find(({ id }) => id !== 'autre-appareil')!.id
+    return doses.find(({ id }) => id !== other.id)!.id
+  }
+
+  async function sheetLines(): Promise<Record<string, string>> {
+    const reading = readTreatment(await storedHistory(replay.treatments, ID), replay.clock.day)
+    return Object.fromEntries(
+      reading!.view.history.map(({ line, effect }) => [
+        line.id,
+        `${line.status} ${line.givenOn ?? ''} ${effect.kind}`,
+      ]),
+    )
   }
 
   it('dose du 10 oct. de Milo notée sur chaque appareil, « Supprimer » : plus aucune ligne pour cette dose', async () => {
@@ -72,15 +87,6 @@ describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-1
     await replay.doses.apply(ID, { kind: 'remove', lineId: shown })
 
     expect((await storedHistory(replay.treatments, ID)).doses).toEqual([])
-  })
-
-  it('« Annuler » rétablit les deux lignes', async () => {
-    const shown = await miloNotedOnBothDevices()
-    replay.tick()
-    const applied = await replay.doses.apply(ID, { kind: 'remove', lineId: shown })
-    await replay.doses.undoBatch(ID, applied.undo)
-
-    expect((await storedHistory(replay.treatments, ID)).doses).toHaveLength(2)
   })
 
   it('dose du 10 oct. de Milo notée sur chaque appareil, « Modifier » au 11 : une seule ligne, donnée le 11', async () => {
@@ -99,19 +105,39 @@ describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-1
     ])
   })
 
-  it('« Annuler » après « Modifier » rétablit les deux lignes au 10', async () => {
-    const shown = await miloNotedOnBothDevices()
-    replay.clock.day = '2026-10-12'
-    replay.tick()
-    const applied = await replay.doses.apply(ID, {
-      kind: 'redate',
-      lineId: shown,
-      givenOn: '2026-10-11',
-      shiftsFollowing: false,
-    })
-    await replay.doses.undoBatch(ID, applied.undo)
+  describe('« Annuler » rend la fiche d’avant, même ligne en vigueur', () => {
+    const others: [string, OtherDevice][] = [
+      ['oubliée', { id: 'zzzz-autre', status: 'missed', givenOn: null }],
+      ['oubliée', { id: '0000-autre', status: 'missed', givenOn: null }],
+      ['donnée le 9', { id: 'zzzz-autre', status: 'given', givenOn: '2026-10-09' }],
+      ['donnée le 9', { id: '0000-autre', status: 'given', givenOn: '2026-10-09' }],
+      ['donnée le 10', { id: 'zzzz-autre', status: 'given', givenOn: '2026-10-10' }],
+      ['donnée le 10', { id: '0000-autre', status: 'given', givenOn: '2026-10-10' }],
+    ]
+    const gestures = {
+      'Modifier au 11': (lineId: string) =>
+        ({ kind: 'redate', lineId, givenOn: '2026-10-11', shiftsFollowing: false }) as const,
+      Supprimer: (lineId: string) => ({ kind: 'remove', lineId }) as const,
+    }
 
-    const doses = (await storedHistory(replay.treatments, ID)).doses
-    expect(doses.map(({ givenOn }) => givenOn)).toEqual(['2026-10-10', '2026-10-10'])
+    for (const [label, gesture] of Object.entries(gestures)) {
+      for (const [state, other] of others) {
+        it(`dose du 10 oct. de Milo, ${state} sur l'autre appareil (${other.id}), « ${label} » puis « Annuler »`, async () => {
+          const shown = await miloNotedOnBothDevices(other)
+          replay.clock.day = '2026-10-12'
+          replay.tick()
+          const before = await sheetLines()
+          replay.tick()
+          const applied = await replay.doses.apply(ID, gesture(shown))
+          const afterGesture = await sheetLines()
+          replay.tick()
+          await replay.doses.undoBatch(ID, applied.undo)
+
+          expect(before[shown]).toMatch(/ covers$/)
+          expect(afterGesture).not.toHaveProperty(other.id)
+          expect(await sheetLines()).toEqual(before)
+        })
+      }
+    }
   })
 })
