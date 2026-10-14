@@ -264,8 +264,17 @@ carnets de l'oracle `actuel,v2` (20 000 carnets à partir de 530000000, réglage
 300 000 du pas 10 (1500018007, 1500061791, 1500080102, 1500196692, 1500233661, 1500234082, 1500236809,
 1500256618, 1500290961). Geste commun : supprimer la seule prise d'un réglage remplacé le jour même par
 un autre. v2 et le modèle de référence montraient alors la dose en retard comme dose du moment ; l'ancien
-moteur la gardait « à renseigner ». Décision de Gaelle du 14 octobre 2026 : « à renseigner » dans les deux
-cas ; deux « Modifier » le même jour donnent le même résultat qu'un seul, le réglage remplacé transmet le
-changement de fréquence qu'il portait (R10). Corrigé dans v2 et le modèle de référence : les dix graines
-lisent comme l'ancien moteur (tests de `dose-calendar.reglage-remplace.spec.ts`, carnets dans
-`fixtures/dose-calendar-graines.json`).
+moteur la gardait « à renseigner ». Décisions de Gaelle du 14 octobre 2026 : « à renseigner » dans les
+deux cas ; un réglage remplacé le jour même sans prise ne compte pas, d'où qu'il vienne, et la fréquence
+du réglage final se compare à celle d'avant ce jour (R10). Corrigé dans v2 et le modèle de référence
+(tests de `dose-calendar.reglage-remplace.spec.ts`, carnets dans `fixtures/dose-calendar-graines.json`) :
+neuf graines lisent comme l'ancien moteur. La graine 1500018007 s'en écarte : le réglage final garde
+tous les 3 jours avec sa propre origine (première dose le 17 mai), la dose du moment du 5 avril est remplacée
+(TR-9) au lieu de rester à renseigner (lecture à confirmer par Gaelle).
+
+## Un oubli ne couvre que son échéance (2026-10-14)
+
+Décision de Gaelle du 14 octobre 2026 : un oubli dont l'échéance a quitté le calendrier (ligne reçue
+d'un autre appareil) est sans effet et ne couvre plus l'échéance suivante (R4) ; une reprise le même
+jour aux mêmes heures retombe sur son échéance, qu'il garde (R8). Un écart de l'oracle `actuel,v2` sur
+ce point est attendu quand l'ancien moteur faisait couvrir la dose suivante par l'oubli.
