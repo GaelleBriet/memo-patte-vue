@@ -63,7 +63,7 @@ function translatedDaysOf(
     const arrival = at.settingAt(targetOn!) ?? at.stoppedAt(targetOn!)
     const origins = [
       at.settingAt(dueOn),
-      live.find((_, index) => at.endOf(index) === dueOn),
+      ...live.filter((_, index) => at.endOf(index) === dueOn),
       episode.find(({ id }) => id === settingId),
     ]
     if (arrival !== undefined && origins.some((each) => each && !sameHours(each, arrival))) {

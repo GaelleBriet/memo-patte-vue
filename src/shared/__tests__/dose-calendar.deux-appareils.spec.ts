@@ -1,12 +1,15 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
+import { treatmentView } from '../domain/dose-calendar'
+import type { Line, Setting } from '../domain/dose-calendar/types'
 import {
   affiche,
   carnet,
   donne,
   echeance,
   deplace,
+  H,
   jours,
   modifie,
   mois,
@@ -158,5 +161,84 @@ describe('R11, #802 : la même dose notée sous deux réglages par deux appareil
     c = donne(c, '2026-10-20', echeance(c, '2026-10-20', '20:00'))
     expect(effetDe(c, '2026-10-20', davance).kind).toBe('covers')
     expect(affiche(c, '2026-10-20', 1)).toEqual(['2026-11-15 12:00'])
+  })
+})
+
+describe('R4, R7, #802 : le jour d’arrivée d’un report, chaque réglage que le calendrier peut lire au jour d’origine', () => {
+  const semaine = semaines(1)
+  const huitQuatorzeVingt = ['08:00', '14:00', '20:00']
+  let tic = 0
+
+  function reglage(id: string, startsOn: string, fields: Partial<Setting>): Setting {
+    tic += 1
+    return {
+      id,
+      startsOn,
+      firstDueOn: startsOn,
+      gridOriginOn: null,
+      endsOn: null,
+      stoppedOn: null,
+      frequency: jours(1),
+      times: H,
+      createdAt: `2026-01-01T00:00:${String(tic).padStart(2, '0')}.000Z`,
+      ...fields,
+    }
+  }
+
+  function ligneDe(
+    settingId: string,
+    status: Line['status'],
+    dueOn: string,
+    targetOn: string | null = null,
+  ) {
+    tic += 1
+    const dueTime = status === 'postponed' ? '08:00' : '20:00'
+    const givenOn = status === 'given' ? dueOn : null
+    const updatedAt = `2026-01-01T00:01:${String(tic).padStart(2, '0')}.000Z`
+    return { id: `l${tic}`, settingId, status, dueOn, dueTime, givenOn, targetOn, updatedAt }
+  }
+
+  it('réglage qui cède sa place le jour d’origine : toutes les semaines à 8 h et 20 h dès le 10 mars, première dose le 12 ; le 12, A passe à 8 h, 14 h et 20 h, puis B à 8 h et 20 h, prochaine dose le 20 ; dose du 12 reportée au 27 ; le 27, 20 h notée sur A et sur B : 8 h reste couverte', () => {
+    const settings = [
+      reglage('s1', '2026-03-10', {
+        firstDueOn: '2026-03-12',
+        gridOriginOn: '2026-03-12',
+        frequency: semaine,
+      }),
+      reglage('s2', '2026-03-12', {
+        firstDueOn: '2026-03-20',
+        frequency: semaine,
+        times: huitQuatorzeVingt,
+      }),
+      reglage('s3', '2026-03-12', {
+        firstDueOn: '2026-03-20',
+        gridOriginOn: '2026-03-20',
+        frequency: semaine,
+      }),
+    ]
+    const surA = ligneDe('s2', 'given', '2026-03-27')
+    const lines = [
+      ligneDe('s1', 'postponed', '2026-03-12', '2026-03-27'),
+      surA,
+      ligneDe('s3', 'given', '2026-03-27'),
+    ]
+    const view = treatmentView({ settings, lines, today: '2026-03-27' })
+    expect(view.dueState({ dueOn: '2026-03-27', dueTime: '08:00' })).toBe('covered')
+    expect(view.history.find(({ line }) => line.id === surA.id)!.effect.kind).toBe('covers')
+  })
+
+  it('réglage en vigueur le jour d’origine : tous les jours à 8 h et 20 h dès le 1er mars, 8 h, 14 h et 20 h dès le 10, 8 h et 20 h dès le 13 ; dose du 12 reportée au 15 ; le 15, 20 h notée sous les deux derniers réglages : 8 h reste couverte', () => {
+    const settings = [
+      reglage('s1', '2026-03-01', { gridOriginOn: '2026-03-01' }),
+      reglage('s2', '2026-03-10', { times: huitQuatorzeVingt }),
+      reglage('s3', '2026-03-13', {}),
+    ]
+    const lines = [
+      ligneDe('s1', 'postponed', '2026-03-12', '2026-03-15'),
+      ligneDe('s2', 'given', '2026-03-15'),
+      ligneDe('s3', 'given', '2026-03-15'),
+    ]
+    const view = treatmentView({ settings, lines, today: '2026-03-15' })
+    expect(view.dueState({ dueOn: '2026-03-15', dueTime: '08:00' })).toBe('covered')
   })
 })
