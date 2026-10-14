@@ -4,15 +4,20 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 
 import { applyMigrations, createSqlJsDbClient, type InMemoryDb } from './in-memory-db'
-import { gridOriginsOf, targetOnOf, type LegacyInput } from '@/shared/domain/dose-calendar'
+import {
+  gridOriginsOf,
+  targetOnOf,
+  type LegacyDose,
+  type LegacyPeriod,
+} from '@/shared/domain/dose-calendar'
 
 const MILO = '11111111-1111-4111-8111-111111111111'
 const APPAREIL = '99999999-9999-4999-8999-999999999999'
 const T1 = '2026-10-02T08:00:00.000Z'
 const SUPPRIME = '2026-10-05T08:00:00.000Z'
 
-type V11Period = LegacyInput['periods'][number] & { deletedAt?: string | null }
-type V11Dose = LegacyInput['doses'][number] & { deletedAt?: string | null }
+type V11Period = LegacyPeriod & { deletedAt?: string | null }
+type V11Dose = LegacyDose & { deletedAt?: string | null }
 type V11Treatment = { id: string; periods: V11Period[]; doses: V11Dose[] }
 
 function seedVersion11(db: InMemoryDb, treatments: V11Treatment[]): Promise<void> {

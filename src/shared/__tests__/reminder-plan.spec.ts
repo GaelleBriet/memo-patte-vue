@@ -15,7 +15,8 @@ import {
   type CarnetReminderSettings,
   type TreatmentReminderPeriod,
 } from '../domain/reminder-plan'
-import { treatmentView, viewInputOf } from '../domain/dose-calendar'
+import { treatmentView } from '../domain/dose-calendar'
+import { viewInputOf } from './dose-calendar.legacy-input.aides'
 import { deplace, donne, type Carnet } from './dose-calendar.recette.aides'
 
 const t = i18n.global.t

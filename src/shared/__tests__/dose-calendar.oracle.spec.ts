@@ -3,12 +3,13 @@ import { readFileSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
 
-import { treatmentView, viewInputOf, type LegacyInput } from '../domain/dose-calendar'
+import { treatmentView } from '../domain/dose-calendar'
 import { referenceReading } from '../domain/dose-calendar/reference-model'
 import { gapsBetween, type Display } from '../../../scripts/dose-engine/display'
 import { oracleConfig, runOracle } from '../../../scripts/dose-engine/oracle'
 import { displayOf, horizonOf } from '../../../scripts/dose-engine/v2-reading'
 import { naive } from '../../../scripts/dose-engine/v2-invariants-readings'
+import { viewInputOf, type LegacyInput } from './dose-calendar.legacy-input.aides'
 
 // Séries longues, hors `vitest run` : voir scripts/dose-engine/README.md (ORACLE_FROM, ORACLE_SEEDS,
 // ORACLE_STEPS).

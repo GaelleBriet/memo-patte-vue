@@ -7,22 +7,23 @@ import {
   redateDose,
   removeLine,
   treatmentView,
-  viewInputOf,
   type Frequency,
   type GestureResult,
-  type LegacyInput,
+  type LegacyDose,
+  type LegacyPeriod,
   type LineChange as V2Change,
   type SettingsPlan,
   type TreatmentView,
 } from '../domain/dose-calendar'
+import { viewInputOf } from './dose-calendar.legacy-input.aides'
 
 /**
  * Gestes et lectures du jeu de recette : lectures, gestes et réglages par le moteur v2 (épic #758).
  * Les écritures suivent le repository de l'app, sans purge (R11).
  */
 export type Carnet = {
-  periods: LegacyInput['periods'][number][]
-  doses: (LegacyInput['doses'][number] & { createdAt: string })[]
+  periods: LegacyPeriod[]
+  doses: (LegacyDose & { createdAt: string })[]
 }
 
 export type Due = { periodId: string; dueOn: string; dueTime: string | null }
@@ -184,8 +185,13 @@ export function proposition(c: Carnet, today: string, frequency: Frequency, time
   return plan(c, today, frequency, times).setting.firstDueOn
 }
 
-function periodOf({ gridOriginOn, ...setting }: SettingsPlan['setting']) {
-  return { ...setting, referenceOn: gridOriginOn ?? setting.firstDueOn, times: [...setting.times] }
+// Une grille héritée (R3) s'écrit au schéma v11 en reprenant la référence du réglage précédent.
+function periodOf(
+  { gridOriginOn, ...setting }: SettingsPlan['setting'],
+  previous: Carnet['periods'][number] | undefined,
+) {
+  const referenceOn = gridOriginOn ?? previous?.referenceOn ?? setting.firstDueOn
+  return { ...setting, referenceOn, times: [...setting.times] }
 }
 
 /** « Modifier » : le réglage que le moteur v2 écrit, à la date proposée ou à la « Prochaine dose » choisie. */
@@ -198,14 +204,16 @@ export function modifie(
 ): Carnet {
   const written = plan(c, today, frequency, times, premiere)
   if (written.action === 'rewrite') {
-    const periods = c.periods.map((period) =>
-      period.id === written.id ? { ...period, ...periodOf(written.setting) } : period,
+    const periods = c.periods.map((period, index) =>
+      period.id === written.id
+        ? { ...period, ...periodOf(written.setting, c.periods[index - 1]) }
+        : period,
     )
     return { ...c, periods }
   }
   const period = {
     id: `p${c.periods.length + 1}`,
-    ...periodOf(written.setting),
+    ...periodOf(written.setting, c.periods.at(-1)),
     stoppedOn: null,
     createdAt: now(),
   }

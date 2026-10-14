@@ -35,7 +35,7 @@ describe('moteur des doses v2 : frontières', () => {
       .filter(({ text }) => /\btoday\b/.test(text))
       .map(({ name }) => name)
       .filter((name) => !name.startsWith('gestures/'))
-    expect(knowsToday.sort()).toEqual(['legacy-input.ts', 'moment.ts', 'types.ts', 'view.ts'])
+    expect(knowsToday.sort()).toEqual(['moment.ts', 'types.ts', 'view.ts'])
   })
 
   it('chaque geste a son module dans gestures/, chacun avec son fichier de test', () => {
