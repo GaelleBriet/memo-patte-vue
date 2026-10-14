@@ -143,7 +143,10 @@ export function calendarOf(
     // R10 : sans prise, un réglage remplacé le jour même ne compte pas, la fréquence se compare à
     // celle du réglage en vigueur avant lui.
     const kept = lastLive !== undefined && sameFrequency(lastLive, setting)
-    if (kept && origin !== null && !ended) {
+    // R10, #817, #836 : seule une date choisie sans « Elles restent à renseigner » remplace la dose
+    // du moment ; une date proposée ou gardée à renseigner laisse le rythme et sa dose en retard.
+    const replaces = kept && setting.firstDueChosen && !setting.pastDosesStayUnlogged && !ended
+    if (replaces) {
       const onDueDay =
         setting.startsOn > inherited.floor &&
         isOnGrid(inherited.origin, setting.frequency, setting.startsOn)
@@ -158,7 +161,7 @@ export function calendarOf(
     if (waitingReplace !== undefined) replaced.push(waitingReplace)
     waitingReplace = undefined
     if (restart !== undefined) restarts.set(setting.id, restart)
-    if (index > 0 && (!continued || ended || !kept)) rhythmFrom = setting.startsOn
+    if (index > 0 && (ended || !kept || (!continued && replaces))) rhythmFrom = setting.startsOn
     // R6 : à partir de sa journée d'origine, un décalage donne à la grille l'origine de son ancrage ;
     // écrit sous un réglage d'avant un changement de fréquence, il est dépassé par la nouvelle origine (R3).
     const turns = shifts.filter(

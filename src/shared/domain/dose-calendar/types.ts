@@ -13,6 +13,10 @@ export type Setting = {
   firstDueOn: Day
   /** Origine de la grille (R2) ; `null` : celle en vigueur au premier jour du réglage (R3). */
   gridOriginOn: Day | null
+  /** #836 : la première échéance vient de la personne, pas d'une date proposée par l'app (R9, R10). */
+  firstDueChosen: boolean
+  /** #817, Q38 : réponse « Elles restent à renseigner » ; la dose en retard reste en retard (R10). */
+  pastDosesStayUnlogged: boolean
   endsOn: Day | null
   stoppedOn: Day | null
   frequency: Frequency

@@ -135,8 +135,10 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     // fréquence se compare à celle du réglage en vigueur avant lui.
     const kept = prior !== undefined && sameFrequency(prior.frequency, setting.frequency)
     // TR-9 : à fréquence gardée, une première échéance choisie remplace la dose du moment du rythme,
-    // même quand son réglage est remplacé le jour même par un réglage sans date choisie (R10).
-    if (kept && origin !== null && !ended) {
+    // même quand son réglage est remplacé le jour même par un réglage sans date choisie, sauf
+    // après « Elles restent à renseigner » (R10, #817, #836).
+    const replaces = kept && setting.firstDueChosen && !setting.pastDosesStayUnlogged && !ended
+    if (replaces) {
       const onDueDay =
         setting.startsOn > inherited.floor &&
         isOnGrid(inherited.origin, setting.frequency, setting.startsOn)
@@ -158,7 +160,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     ) {
       handed.add(prior.id)
     }
-    if (index > 0 && (!continued || ended || !kept)) rhythmFrom = setting.startsOn
+    if (index > 0 && (ended || !kept || (!continued && replaces))) rhythmFrom = setting.startsOn
     // R3 : écrit sous un réglage d'avant un changement de fréquence, un décalage est dépassé.
     const turns = lines.shifts.filter(
       (shift) =>

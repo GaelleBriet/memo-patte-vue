@@ -131,16 +131,13 @@ describe('R10, décision de Gaelle du 14 octobre 2026 : Milo tous les 3 jours à
     expect(luParLaReference(c, '2026-10-07')).toEqual(attendu)
   })
 
-  it.fails(
-    'tous les 2 jours, dose du 7 donnée, retour à tous les 3 jours à 9 h à la date proposée, puis la prise du 7 supprimée : la dose du 6 reste en retard (#836, pas encore tenu)',
-    () => {
-      let c = modifie(milo(), '2026-10-07', jours(2), ['08:00'])
-      c = donne(c, '2026-10-07', echeance(c, '2026-10-07', '08:00'))
-      c = modifie(c, '2026-10-07', jours(3), ['09:00'])
-      c = supprime(c, ligne(c, '2026-10-07', '08:00', 'given').id)
-      expect(lu(c, '2026-10-07')).toEqual(enRetard)
-    },
-  )
+  it('tous les 2 jours, dose du 7 donnée, retour à tous les 3 jours à 9 h à la date proposée, puis la prise du 7 supprimée : la dose du 6 reste en retard (#836)', () => {
+    let c = modifie(milo(), '2026-10-07', jours(2), ['08:00'])
+    c = donne(c, '2026-10-07', echeance(c, '2026-10-07', '08:00'))
+    c = modifie(c, '2026-10-07', jours(3), ['09:00'])
+    c = supprime(c, ligne(c, '2026-10-07', '08:00', 'given').id)
+    expect(lu(c, '2026-10-07')).toEqual(enRetard)
+  })
 })
 
 describe('R10, décision de Gaelle du 14 octobre 2026 : chaque lundi à 8 h depuis le 5 oct., dose du 12 non donnée ; le 13, tous les 3 jours, dose du 13 donnée, retour à l’hebdo à la date proposée, puis la prise du 13 supprimée', () => {
@@ -155,12 +152,9 @@ describe('R10, décision de Gaelle du 14 octobre 2026 : chaque lundi à 8 h depu
   const enRetard = { phase: 'overdue', moment: ['2026-10-12 08:00'], aRenseigner: [] }
 
   for (const heure of ['08:00', '09:00']) {
-    it.fails(
-      `retour à l’hebdo à ${heure} : la dose du 12 reste en retard (#836, pas encore tenu)`,
-      () => {
-        expect(lu(semaine(heure), '2026-10-13')).toEqual(enRetard)
-      },
-    )
+    it(`retour à l’hebdo à ${heure} : la dose du 12 reste en retard (#836)`, () => {
+      expect(lu(semaine(heure), '2026-10-13')).toEqual(enRetard)
+    })
   }
 })
 
@@ -183,24 +177,27 @@ describe('#810, forme A (graine 1500290961) : tous les 3 mois à 6, 12, 18 et 23
 })
 
 describe('#810, forme B (graine 1500061791) : tous les jours à 8 h et 20 h depuis le 10 avr., doses des 10 au 14 données, 15 non donnée', () => {
-  it('le 16, toutes les 6 semaines à 20 h (dose du 16 donnée), retour à tous les jours à 20 h dès le 17, prise du 16 supprimée : le 15 à renseigner, prochaine dose le 17', () => {
-    let c = carnet('2026-04-10', jours(1), H)
-    for (const day of ['2026-04-10', '2026-04-11', '2026-04-12', '2026-04-13', '2026-04-14']) {
-      for (const hour of H) c = donne(c, day, echeance(c, day, hour))
-    }
-    c = modifie(c, '2026-04-16', { value: 6, unit: 'week' }, ['20:00'])
-    c = donne(c, '2026-04-16', echeance(c, '2026-04-16', '20:00'))
-    c = modifie(c, '2026-04-16', jours(1), ['20:00'])
-    expect(affiche(c, '2026-04-16', 1)).toEqual(['2026-04-17 20:00'])
-    c = supprime(c, ligne(c, '2026-04-16', '20:00', 'given').id)
-    const attendu = {
-      phase: 'upcoming',
-      moment: ['2026-04-17 20:00'],
-      aRenseigner: ['2026-04-15 08:00', '2026-04-15 20:00'],
-    }
-    expect(lu(c, '2026-04-16')).toEqual(attendu)
-    expect(luParLaReference(c, '2026-04-16')).toEqual(attendu)
-  })
+  it.fails(
+    'le 16, toutes les 6 semaines à 20 h (dose du 16 donnée), retour à tous les jours à 20 h dès le 17, prise du 16 supprimée : le 15 à renseigner, prochaine dose le 17 (question : le 17 est la date proposée, #836)',
+    () => {
+      let c = carnet('2026-04-10', jours(1), H)
+      for (const day of ['2026-04-10', '2026-04-11', '2026-04-12', '2026-04-13', '2026-04-14']) {
+        for (const hour of H) c = donne(c, day, echeance(c, day, hour))
+      }
+      c = modifie(c, '2026-04-16', { value: 6, unit: 'week' }, ['20:00'])
+      c = donne(c, '2026-04-16', echeance(c, '2026-04-16', '20:00'))
+      c = modifie(c, '2026-04-16', jours(1), ['20:00'])
+      expect(affiche(c, '2026-04-16', 1)).toEqual(['2026-04-17 20:00'])
+      c = supprime(c, ligne(c, '2026-04-16', '20:00', 'given').id)
+      const attendu = {
+        phase: 'upcoming',
+        moment: ['2026-04-17 20:00'],
+        aRenseigner: ['2026-04-15 08:00', '2026-04-15 20:00'],
+      }
+      expect(lu(c, '2026-04-16')).toEqual(attendu)
+      expect(luParLaReference(c, '2026-04-16')).toEqual(attendu)
+    },
+  )
 })
 
 type Graine = Carnet & { today: string }

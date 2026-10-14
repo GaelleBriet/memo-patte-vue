@@ -1,14 +1,16 @@
 import {
   gridOriginsOf,
+  legacyFactsOf,
   targetOnOf,
   type LegacyDose,
   type LegacyPeriod,
+  type SettingFacts,
   type TreatmentViewInput,
 } from '../domain/dose-calendar'
 
 /** Un carnet au schéma v11, comme les carnets gelés de l'ancien moteur et le jeu de recette. */
 export type LegacyInput = {
-  periods: readonly LegacyPeriod[]
+  periods: readonly (LegacyPeriod & Partial<SettingFacts>)[]
   doses: readonly LegacyDose[]
   today: string
 }
@@ -19,7 +21,8 @@ export function viewInputOf({ periods, doses, today }: LegacyInput): TreatmentVi
   return {
     settings: periods.map((period) => {
       const { referenceOn: _, ...setting } = period
-      return { ...setting, gridOriginOn: origins.get(period.id)! }
+      const gridOriginOn = origins.get(period.id)!
+      return { ...legacyFactsOf(gridOriginOn), ...setting, gridOriginOn }
     }),
     lines: doses.map(({ periodId, nextDueDate, ...dose }) => ({
       id: dose.id,

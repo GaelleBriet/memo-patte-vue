@@ -7,6 +7,10 @@ export type ReferenceSetting = {
   firstDueOn: string
   /** `null` : l'origine en vigueur au premier jour du réglage, héritée du précédent (R3). */
   gridOriginOn: string | null
+  /** La première échéance vient de la personne, pas d'une date proposée. */
+  firstDueChosen: boolean
+  /** Réponse « Elles restent à renseigner » à la question Q38. */
+  pastDosesStayUnlogged: boolean
   endsOn: string | null
   stoppedOn: string | null
   frequency: ReferenceFrequency

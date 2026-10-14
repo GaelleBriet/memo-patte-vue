@@ -45,18 +45,24 @@ export type SettingsResult =
 function fieldsOf(startsOn: Day, dates: Dates, request: SettingsRequest): SettingFields {
   return {
     startsOn,
-    firstDueOn: dates.firstDueOn,
-    gridOriginOn: dates.gridOriginOn,
+    ...dates,
+    pastDosesStayUnlogged: false,
     endsOn: request.endsOn,
     frequency: request.frequency,
     times: [...request.times],
   }
 }
 
+// Q38 : seule une réponse à la question écrit « Elles restent à renseigner » ; une réécriture la garde.
 const rewrite = (current: Setting, setting: SettingFields): SettingsPlan => ({
   action: 'rewrite',
   id: current.id,
-  setting,
+  setting: { ...setting, pastDosesStayUnlogged: current.pastDosesStayUnlogged },
+})
+
+const answered = (plan: SettingsPlan, pastDosesStayUnlogged: boolean): SettingsPlan => ({
+  ...plan,
+  setting: { ...plan.setting, pastDosesStayUnlogged },
 })
 
 const sameHours = (a: readonly string[], b: readonly string[]) =>
@@ -169,15 +175,14 @@ function rhythmKept(
   create: (dates: Dates) => SettingsPlan,
 ): SettingsResult {
   const { today } = input
-  const { firstDueOn, gridOriginOn } = current
+  const { firstDueOn, gridOriginOn, firstDueChosen } = current
   const chosen = request.firstDueOn
   if (chosen === undefined || chosen === firstDueOn) {
-    return {
-      plan: rewrite(current, fieldsOf(current.startsOn, { firstDueOn, gridOriginOn }, request)),
-    }
+    const dates = { firstDueOn, gridOriginOn, firstDueChosen }
+    return { plan: rewrite(current, fieldsOf(current.startsOn, dates, request)) }
   }
   if (chosen < today) return { refusal: { reason: 'too-early', earliest: today } }
-  const dates = { firstDueOn: chosen, gridOriginOn: chosen }
+  const dates = { firstDueOn: chosen, gridOriginOn: chosen, firstDueChosen: true }
   if (fallenOf(view, current, today).length > 0) return { plan: create(dates) }
   const startsOn = chosen < current.startsOn ? chosen : current.startsOn
   return { plan: rewrite(current, fieldsOf(startsOn, dates, request)) }
@@ -191,14 +196,15 @@ function keptCorrection(
   request: SettingsRequest,
 ): Dates {
   const { today } = input
-  const { firstDueOn, gridOriginOn } = current
-  const draft = rewrite(current, fieldsOf(current.startsOn, { firstDueOn, gridOriginOn }, request))
+  const { firstDueOn, gridOriginOn, firstDueChosen } = current
+  const dates = { firstDueOn, gridOriginOn, firstDueChosen }
+  const draft = rewrite(current, fieldsOf(current.startsOn, dates, request))
   const next = buildView(settingsApplied(input, draft))
     .slots(today, plusDays(today, NEXT_DAYS))
     .find(({ state }) => state === 'pending')?.due.dueOn
   const first = next ?? later(firstDueOn, today)
   const kept = gridOriginOn !== null && isOnGrid(gridOriginOn, request.frequency, first)
-  return { firstDueOn: first, gridOriginOn: kept ? gridOriginOn : first }
+  return { firstDueOn: first, gridOriginOn: kept ? gridOriginOn : first, firstDueChosen: false }
 }
 
 // TR-28, Q38, Q39 : sans prise depuis son début, le réglage est corrigé ; avec des échéances
@@ -218,7 +224,8 @@ function corrected(
     return rewrite(current, fieldsOf(startsOn, dates, request))
   }
   const answer = (keep: SettingsPlan, correct: SettingsPlan, shownOn?: Day): SettingsResult => {
-    const result = fallen.length === 0 ? { plan: correct } : { question: { fallen, keep, correct } }
+    const question = { fallen, keep: answered(keep, true), correct: answered(correct, false) }
+    const result = fallen.length === 0 ? { plan: correct } : { question }
     const first = 'plan' in result ? correct : keep
     return shownOn === undefined || shownOn === first.setting.firstDueOn
       ? result
@@ -229,7 +236,11 @@ function corrected(
   const fallback = questioned ? today : later(current.firstDueOn, today)
   const proposal = proposedDates(input, current, asked, fallback, readAfter(input, create))
   if ('refusal' in proposal) return proposal
-  const own = (first: Day): Dates => ({ firstDueOn: first, gridOriginOn: first })
+  const own = (first: Day, firstDueChosen = false): Dates => ({
+    firstDueOn: first,
+    gridOriginOn: first,
+    firstDueChosen,
+  })
   const fixed = questioned
     ? own(shownFrom(today, readAfter(input, correctFrom)))
     : sameFrequency(current.frequency, request.frequency)
@@ -244,5 +255,5 @@ function corrected(
   const written = fallen.length === 0 ? fixed.firstDueOn : proposal.firstDueOn
   if (chosen === undefined || chosen === written || chosen === shown) return implicit
   if (chosen < today) return { refusal: { reason: 'too-early', earliest: today } }
-  return answer(create(own(chosen)), correctFrom(own(chosen)))
+  return answer(create(own(chosen, true)), correctFrom(own(chosen, true)))
 }

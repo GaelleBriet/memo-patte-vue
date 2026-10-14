@@ -1,6 +1,6 @@
 import { addDays, format, parseISO } from 'date-fns'
 
-import { treatmentView } from '../domain/dose-calendar'
+import { legacyFactsOf, treatmentView } from '../domain/dose-calendar'
 import type { Frequency, Line, Setting } from '../domain/dose-calendar/types'
 
 export const DAY: Frequency = { value: 1, unit: 'day' }
@@ -31,17 +31,19 @@ export function setting(
   times: string[] = [],
   extra: Partial<Setting> = {},
 ): Setting {
+  const gridOriginOn = extra.gridOriginOn === undefined ? firstDueOn : extra.gridOriginOn
   return {
     id,
     startsOn: firstDueOn,
     firstDueOn,
-    gridOriginOn: firstDueOn,
+    ...legacyFactsOf(gridOriginOn),
     endsOn: null,
     stoppedOn: null,
     frequency,
     times,
     createdAt: at(),
     ...extra,
+    gridOriginOn,
   }
 }
 

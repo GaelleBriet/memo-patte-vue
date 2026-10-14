@@ -12,6 +12,7 @@ import {
   type LegacyDose,
   type LegacyPeriod,
   type LineChange as V2Change,
+  type SettingFacts,
   type SettingsPlan,
   type TreatmentView,
 } from '../domain/dose-calendar'
@@ -22,7 +23,7 @@ import { viewInputOf } from './dose-calendar.legacy-input.aides'
  * Les écritures suivent le repository de l'app, sans purge (R11).
  */
 export type Carnet = {
-  periods: LegacyPeriod[]
+  periods: (LegacyPeriod & Partial<SettingFacts>)[]
   doses: (LegacyDose & { createdAt: string })[]
 }
 
