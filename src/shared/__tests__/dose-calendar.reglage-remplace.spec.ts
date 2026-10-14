@@ -206,7 +206,7 @@ const GRAINES = JSON.parse(
   readFileSync(new URL('./fixtures/dose-calendar-graines.json', import.meta.url), 'utf8'),
 ) as Record<string, Graine>
 
-describe('#810 : les graines de la campagne, après la suppression de la seule prise du réglage remplacé', () => {
+describe('#810 : les graines de la campagne, carnets d’avant le schéma v13 relus par la règle de la migration (origine posée : date choisie), après la suppression de la seule prise du réglage remplacé', () => {
   it.each<[number, string, string[]]>([
     [991003624, '2026-03-23 06:00', ['2026-03-14 06:00', '2026-03-20 12:00']],
     [1500018007, '2026-05-17 06:00', ['2026-03-27 08:00', '2026-03-27 20:00']],
