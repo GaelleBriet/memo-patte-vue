@@ -2,8 +2,10 @@
 import { describe, expect, it } from 'vitest'
 
 import { newSettings, type SettingsRequest } from '../domain/dose-calendar'
+import { settingsApplied } from '../domain/dose-calendar/gestures/changes'
 import type { SettingsPlan, TreatmentViewInput } from '../domain/dose-calendar/types'
-import { line, setting, TWO_DAYS } from './dose-calendar.v2.aides'
+import { buildView } from '../domain/dose-calendar/view'
+import { keys, line, setting, TWO_DAYS } from './dose-calendar.v2.aides'
 
 const THREE_DAYS = { value: 3, unit: 'day' as const }
 
@@ -89,5 +91,29 @@ describe('#817, Q38 : seule « Elles restent à renseigner » écrit que les dos
     const plan = planOf(later, { ...request, endsOn: '2026-12-31' })
     expect(plan).toMatchObject({ action: 'rewrite', id: 't2' })
     expect(plan.setting.pastDosesStayUnlogged).toBe(true)
+  })
+})
+
+describe('#836, lecture à confirmer par Gaelle : « Elles n’étaient pas à donner » sans date choisie ne remplace plus la dose du moment', () => {
+  it('tous les 2 jours à 8 h depuis le 1er oct., dose du 1er donnée, du 3 non ; le 4, 9 h ; le 6, dose du 5 non donnée, 10 h, « Elles n’étaient pas à donner » : la dose du 3 est en retard, puis 7, 9', () => {
+    const first = setting('t0', '2026-10-01', TWO_DAYS, ['08:00'])
+    const nine = setting('t1', '2026-10-05', TWO_DAYS, ['09:00'], {
+      startsOn: '2026-10-04',
+      gridOriginOn: null,
+    })
+    const input = {
+      settings: [first, nine],
+      lines: [line('t0', 'given', '2026-10-01', '08:00')],
+      today: '2026-10-06',
+    }
+    const result = newSettings(input, { frequency: TWO_DAYS, times: ['10:00'], endsOn: null })
+    if (!('question' in result) || 'refusal' in result.question.correct) {
+      throw new Error(JSON.stringify(result))
+    }
+    const read = buildView(settingsApplied(input, result.question.correct))
+    expect(read.phase).toBe('overdue')
+    expect(keys(read.currentDoses)).toEqual(['2026-10-03 08:00'])
+    expect(keys(read.unloggedDoses)).toEqual([])
+    expect(keys(read.upcoming().slice(0, 2))).toEqual(['2026-10-07 10:00', '2026-10-09 10:00'])
   })
 })
