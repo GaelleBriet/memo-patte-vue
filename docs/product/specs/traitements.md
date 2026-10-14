@@ -1224,8 +1224,9 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
 - 2026-10-14 — **TR-25 : « Modifier » corrige ce que la fiche montre comme une ligne** (#654). Dose
   de Milo du 10 oct. notée sur deux téléphones, corrigée au 11 par « Modifier » : une seule prise,
   donnée le 11, plus de ligne grisée « · sans effet » restée au 10. « Modifier » comme « Supprimer » :
-  laisser une ligne grisée que la personne n'a jamais créée, c'est une ligne inexpliquée sur sa fiche.
-  Écartée : ne corriger que la ligne touchée.
+  « Laisser une ligne grisée que la personne n'a jamais créée, c'est une ligne inexpliquée sur sa
+  fiche » (Gaelle). Écartées : ne corriger que la ligne touchée ; réécrire les deux lignes à
+  l'identique, qui laisse une ligne grisée « · sans effet » à la nouvelle date.
 
 ## 11. Questions ouvertes
 
