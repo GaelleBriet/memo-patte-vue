@@ -2512,7 +2512,8 @@ la décision « une prise ne couvre que la dose de son heure » est retirée.
 - **#810** : « une dose en retard ne disparaît que par « Elles n'étaient pas à donner » (question
   ouverte) ou par une date choisie dans « Prochaine dose » sans question posée ; un changement de
   fréquence seul la laisse en retard ». Le correctif de fréquence du soir est retiré ; la graine
-  991003624 reste un écart ouvert, et #810 reste ouvert.
+  991003624 reste un écart ouvert, et #810 reste ouvert. Phrase retirée par Gaelle le 2026-10-14
+  (entrée suivante).
 - **#817** : une donnée explicite sur le traitement, nommée par ce qu'elle veut dire (« les doses
   passées du réglage précédent restent à renseigner »), jamais déduite ; sa migration (base, miroir,
   export) dans un ticket à part, rejouée sur le téléphone (#825). Le report n'est plus réécrit après
@@ -2520,3 +2521,26 @@ la décision « une prise ne couvre que la dose de son heure » est retirée.
 - **#822** : la règle du 2026-10-12 est gardée dans une même période (TR-25) : la fiche montre une
   ligne, « Supprimer » retire ce qu'elle montre (donc les deux prises de deux appareils) ; entre deux
   périodes, deux lignes, on ne retire que celle touchée.
+
+2026-10-14 — **Moteur des doses v2 : décisions de Gaelle du 14 octobre 2026 (#810, R8)** (spec
+`traitements.md` TR-28, R8, R9, R10, §10 et §11).
+
+- **#810** : « « à renseigner » dans les deux cas. TR-30 / §4.8 : quand la fréquence change, les
+  échéances restées sans prise avant la première échéance du nouveau réglage restent à renseigner,
+  comme après un arrêt ; « la date choisie remplace la dose du moment » ne vaut qu'à fréquence
+  gardée. » La phrase du 13 octobre « un changement de fréquence seul la laisse en retard » est
+  retirée (elle contredisait la spec). « Deux « Modifier » le même jour donnent le même résultat qu'un
+  seul (R10 : le réglage remplacé transmet ce qu'il avait). » Milo, tous les 3 jours à 8 h depuis le
+  3 oct., dose du 6 non donnée ; le 7, « Modifier » tous les 2 jours dès le 8, puis le même jour un
+  second « Modifier » identique : la dose du 6 reste « à renseigner » dans les deux cas, y compris
+  quand la dose du 8, donnée d'avance entre les deux, est ensuite supprimée. Les dix graines de #810
+  (991003624 et les neuf de la passe de 300 000 du pas 10) sont lues « à renseigner », comme par
+  l'ancien moteur. — Raison (Gaelle) : la phrase du 13 octobre contredisait la spec. — Alternative
+  écartée : laisser la dose en retard comme dose
+  du moment quand le réglage qui changeait la fréquence est remplacé le jour même.
+- **R8** : « un oubli ne couvre rien. » R8 se précise : « une prise donnée le jour même de la reprise
+  couvre sa première journée » (et non « une prise notée »). Milo, une dose par jour à 8 h ; le 8, la
+  dose de 8 h est marquée oubliée, arrêt, reprise le soir à 20 h : la dose de 20 h de la reprise reste
+  à donner. L'oubli reste compté dans sa période, sur la dose de 8 h. Entre deux appareils, la ligne la
+  plus récente de la dose décide (R11) : donnée puis oubliée, rien n'est couvert. — Alternative
+  écartée : une prise oubliée qui couvre la première journée de la reprise.
