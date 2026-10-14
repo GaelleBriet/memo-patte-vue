@@ -1,8 +1,9 @@
-import { episodeCalendar, type EpisodeCalendar, type Slot } from './calendar'
+import type { Slot } from './calendar'
 import { dayOfKey, hoursOf, keyOf, later, longestStep, plusDays, stepped } from './grid'
 import { episodeLines, isNote } from './lines'
 import { momentOf } from './moment'
 import { dueReminders, type DueReminder, type ReminderWindow } from './reminders'
+import { readingOf, UPCOMING_DAYS } from './reading'
 import { borrowedNotes, closedBeforeFirstDue, episodesOf, spanOf } from './settings'
 import type {
   Day,
@@ -59,25 +60,10 @@ export type TreatmentView = {
   isNoted(dueOn: Day, dueTime: Hour): boolean
 }
 
-const UPCOMING_DAYS = 400
-
 const lineOrder = (a: Line, b: Line) =>
   keyOf(a.dueOn, a.dueTime).localeCompare(keyOf(b.dueOn, b.dueTime)) ||
   a.updatedAt.localeCompare(b.updatedAt) ||
   a.id.localeCompare(b.id)
-
-// R1, R4, R8 : les échéances que les reprises lisent le jour de l'arrêt, une seule fois chacune.
-function readOn(later: readonly EpisodeCalendar[], day: Day | null): Set<string> {
-  if (day === null) return new Set()
-  return new Set(
-    later.flatMap(({ slots, effects }) => [
-      ...slots.filter(({ due }) => due.dueOn === day).map(({ key }) => key),
-      ...[...effects.values()].flatMap((effect) =>
-        effect.kind === 'covers' && dayOfKey(effect.key) === day ? [effect.key] : [],
-      ),
-    ]),
-  )
-}
 
 export function buildView({ settings, lines, today }: TreatmentViewInput): TreatmentView {
   const byId = new Map(settings.map((setting) => [setting.id, setting]))
@@ -94,36 +80,18 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
   const latest = (known: Day[]) => [today, ...known, ...lineDays].sort().at(-1)!
   const lastKnownDay = latest(settingDays)
   const horizon = plusDays(today, UPCOMING_DAYS)
-  const base = plusDays(lastKnownDay, 2 * step)
-  const build = (reach: Day) => {
-    const built: EpisodeCalendar[] = []
-    for (const part of [...parts].reverse()) {
-      const yielded = readOn(built, part.span.live.at(-1)!.stoppedOn)
-      built.unshift(episodeCalendar({ ...part, settingOf, reach, yielded }))
-    }
-    return built
-  }
   const currentSetting = episodes.at(-1)?.at(-1) ?? null
   const currentStep = currentSetting === null ? 0 : longestStep(currentSetting.frequency)
-  // Dérouler la grille jusqu'à un réglage lointain coûte cher : seulement quand le moment en dépend.
-  const read = (reach: Day) => {
-    const calendars = build(reach)
-    const moment = momentOf(calendars, currentSetting ?? undefined, today)
-    const settled =
-      !calendars.some(({ reachTooShort }) => reachTooShort) &&
-      (moment.phase === 'stopped' || moment.open.some(({ due }) => due.dueOn > today))
-    return { reach, calendars, moment, settled }
-  }
-  const near = read(plusDays(latest(settingDays.filter((day) => day <= horizon)), 2 * step))
-  const { reach, calendars, moment } = near.settled || near.reach === base ? near : read(base)
-  let widest = { reach, calendars }
-  const calendarsUntil = (day: Day): EpisodeCalendar[] => {
-    if (day > widest.reach) {
-      const reach = plusDays(day, UPCOMING_DAYS)
-      widest = { reach, calendars: build(reach) }
-    }
-    return widest.calendars
-  }
+  const { reach, calendars, moment, calendarsUntil, calendarsOver } = readingOf({
+    parts,
+    settingOf,
+    settingDays,
+    nearDay: latest(settingDays.filter((day) => day <= horizon)),
+    lastKnownDay,
+    step,
+    momentFrom: (calendars) => momentOf(calendars, currentSetting ?? undefined, today),
+    settles: ({ phase, open }) => phase === 'stopped' || open.some(({ due }) => due.dueOn > today),
+  })
   const closed = moment.phase === 'stopped' || moment.phase === 'ended'
   const end = currentSetting?.endsOn ?? currentSetting?.stoppedOn ?? null
   const lastDueDayUntil = (end: Day): Day | null => {
@@ -144,7 +112,7 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
   }
   const live = parts.flatMap(({ span }) => span.live)
   const slotOf = (key: string): Slot | undefined =>
-    calendarsUntil(key.slice(0, 10))
+    calendarsOver(dayOfKey(key), dayOfKey(key))
       .flatMap(({ slots }) => slots)
       .filter((slot) => slot.key === key)
       .at(-1)
@@ -157,20 +125,19 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
     const key = keyOf(dueOn, dueTime)
     const slot = slotOf(key)
     if (slot === undefined) {
-      return calendarsUntil(dueOn).some(({ moved }) => moved.has(key)) ? 'moved' : 'removed'
+      return calendarsOver(dueOn, dueOn).some(({ moved }) => moved.has(key)) ? 'moved' : 'removed'
     }
     return stateOf(slot)
   }
 
-  const pendingBetween = (from: Day, to: Day): Due[] => {
-    const calendar = calendarsUntil(to).at(-1)!
-    return calendar.slots
-      .filter(
-        ({ coveredBy, due }) =>
-          coveredBy === null &&
-          due.dueOn >= calendar.rhythmFrom &&
-          due.dueOn >= from &&
-          due.dueOn <= to,
+  // R9 : seul le rythme en vigueur a des échéances à venir ; celles d'avant lui ne sont pas lues.
+  const pendingBetween = (since: Day, to: Day): Due[] => {
+    const from = later(since, calendars.at(-1)!.rhythmFrom)
+    if (from > to) return []
+    return calendarsOver(from, to)
+      .at(-1)!
+      .slots.filter(
+        ({ coveredBy, due }) => coveredBy === null && due.dueOn >= from && due.dueOn <= to,
       )
       .map(({ due }) => due)
   }
@@ -188,7 +155,7 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
   const settingAt = (day: Day) => live.filter(({ startsOn }) => startsOn <= day).at(-1)
   const slots: TreatmentView['slots'] = (from, to) => {
     const byKey = new Map<string, Slot>()
-    for (const slot of calendarsUntil(to).flatMap(({ slots }) => slots)) {
+    for (const slot of calendarsOver(from, to).flatMap(({ slots }) => slots)) {
       if (slot.due.dueOn >= from && slot.due.dueOn <= to) byKey.set(slot.key, slot)
     }
     return [...byKey.values()]
