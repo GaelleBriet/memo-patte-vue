@@ -2590,24 +2590,46 @@ aller-retour de fréquence)** (spec `traitements.md` TR-28, TR-30, R4, R8, R9, R
   ligne touchée, qui laisse l'autre ligne grisée « · sans effet » au 10 ; réécrire les deux lignes à
   l'identique, qui laisse une ligne grisée « · sans effet » à la nouvelle date.
 
-2026-10-14 — **« Supprimer ce report » emporte le décalage ancré à son arrivée (#835)** (spec
-`traitements.md` TR-24, R6).
+2026-10-14 — **« Supprimer ce report » emporte le décalage de sa journée, ou est refusé (#835)**
+(spec `traitements.md` TR-24, R6).
 
-- Décision de Gaelle : « Supprimer ce report » emporte aussi le décalage de la journée qui était
-  ancré à l'arrivée de ce report : même lecture que « Prochaine dose » ramenée au jour d'origine
-  (spec §4.8, 12 oct. : le décalage de la journée est supprimé avec la dose). Milo, chaque vendredi à
-  20 h depuis le 2 oct., dose du 9 donnée ; le lundi 12, « Prochaine dose » : la dose du vendredi 16
-  avancée au mardi 13, case « Décaler aussi les doses suivantes » cochée : la fiche montre 13, 20,
-  27 ; puis, dans l'historique, « Avancée au 13 oct. » › « Supprimer ce report » : la fiche montre
-  16, 23, 30 (avant : 16, 20, 27, deux doses à 4 jours d'écart). Autre sens : 16 reporté au 19 avec
-  la case, report supprimé : 16, 23, 30 (avant : 16, 26).
-- Le décalage reste supprimable seul, et le report gardé : « chaque ligne se supprime seule » reste
-  vrai ; seul « Supprimer ce report » emporte le décalage ancré à son arrivée. Remplace, dans TR-24,
-  « le décalage reste et se supprime à part ». « Annuler » rend le report et son décalage. —
-  Alternative écartée : garder le décalage, qui laisse deux doses à quelques jours d'écart.
+- Décision de Gaelle : « Supprimer ce report » emporte aussi le décalage de sa journée : même
+  lecture que « Prochaine dose » ramenée au jour d'origine (spec §4.8, 12 oct. : le décalage de la
+  journée est supprimé avec la dose). Milo, chaque vendredi à 20 h depuis le 2 oct., dose du 9
+  donnée ; le lundi 12, « Prochaine dose » : la dose du vendredi 16 avancée au mardi 13, case
+  « Décaler aussi les doses suivantes » cochée : la fiche montre 13, 20, 27 ; puis, dans
+  l'historique, « Avancée au 13 oct. » › « Supprimer ce report » : la fiche montre 16, 23, 30
+  (avant : 16, 20, 27, deux doses à 4 jours d'écart). Autre sens : 16 reporté au 19 avec la case,
+  report supprimé : 16, 23, 30 (avant : 16, 26).
+- Décision de Gaelle : « Supprimer ce report » est refusé quand le décalage de sa journée ne peut pas
+  partir avec lui (une dose plus lointaine est déjà notée après lui, ou une ligne plus lointaine
+  existe : même verrouillage que « Prochaine dose » ramenée au jour d'origine, Q25, N8, G19), avec le
+  texte existant « Une dose plus lointaine est déjà notée. » : « un geste ne fait jamais la moitié
+  de ce qu'il annonce ». 16 reporté au 19 avec la case, puis la dose du 26 reportée seule au 28 :
+  « Supprimer ce report » du 16 est refusé, comme « Prochaine dose » ramenée au 16 (une ligne plus
+  lointaine : texte existant « Une dose plus lointaine est déjà reportée. Supprime ce report pour
+  déplacer celle-ci. ») ; le 12, la dose du 16 avancée au 13 avec la case, le 13 non renseigné, le 20
+  donné : le 21, « Supprimer ce report » est refusé (« Une dose plus lointaine est déjà notée. »).
+- Le décalage reste supprimable seul, et le report gardé. Remplace, dans TR-24, « le décalage reste
+  et se supprime à part ». « Annuler » rend le report et son décalage. — Alternatives écartées :
+  garder le décalage, qui laisse deux doses à quelques jours d'écart ; supprimer le report en gardant
+  un décalage verrouillé, qui ne fait que la moitié du geste.
 
-2026-10-14 — **« Marquer comme oubliée » s'applique à ce que la fiche montre comme une ligne (#841)**
-(spec `traitements.md` TR-25).
+2026-10-14 — **Deux décalages de la même journée sont une ligne (TR-25)** (spec `traitements.md`
+TR-25, TR-24).
+
+- Décision de Gaelle : « deux décalages de la même journée sont une ligne, comme deux prises ou deux
+  reports de la même dose. « Supprimer ce report » emporte les deux reports et les deux décalages ;
+  aucun décalage « sans effet » ne redevient actif. » 16 reporté au 19 avec la case sur un appareil,
+  un autre décalage de la journée du 16 reçu de l'autre appareil (ancré au 19 ou au 20, plus ancien
+  ou plus récent), ou le même report et le même décalage écrits sur les deux appareils :
+  « Supprimer ce report » montre 16, 23, 30 dans tous les cas (avant : 16, 26 ou 16, 27, un décalage
+  « sans effet » redevenu actif). « Une ligne montrée = une ligne » vaut pour les prises, les reports
+  et les décalages d'une même journée ; appliqué de même à « Supprimer ce décalage », qui emporte
+  les décalages de sa journée. « Annuler » rend toutes les lignes, celle en vigueur comprise.
+
+2026-10-14 — **Tous les gestes sur une ligne de la fiche s'appliquent à ce que cette ligne montre
+(#841)** (spec `traitements.md` TR-25).
 
 - Décision de Gaelle : « Marquer comme oubliée » (depuis la feuille de la dose) suit la même règle
   que « Modifier » (#839) et « Supprimer » : le geste s'applique à ce que la fiche montre comme une
@@ -2616,8 +2638,11 @@ aller-retour de fréquence)** (spec `traitements.md` TR-28, TR-30, R4, R8, R9, R
   l'autre appareil ne reste. Dose du 16 donnée sur deux appareils, marquée oubliée : la fiche montre
   « Oubliée » seule, sans « Donnée le 16 · sans effet ». Entre deux périodes, deux lignes, on ne
   touche que celle choisie (#822).
+- Confirmé par Gaelle le 14 oct. : tous les gestes sur une ligne de la fiche (« Modifier »,
+  « Supprimer », « Marquer comme oubliée », « Marquer comme donnée ») s'appliquent à ce que cette
+  ligne montre. Vaut aussi le jour d'un arrêt suivi d'une reprise le même jour : Milo, tous les jours
+  à 20 h depuis le 30 mars, dose du 2 avr. donnée sur deux appareils ; le 2, arrêt puis reprise dès
+  le 2 ; le 4, « Marquer comme oubliée » sur la prise du 2 : la fiche montre « Oubliée » seule
+  (avant : « Donnée le 2 · sans effet » restait).
 - Mise en œuvre : la ligne en vigueur est réécrite et les autres lignes de sa dose supprimées, comme
-  pour « Modifier » ; « Annuler » rétablit la ligne qui était en vigueur. « Marquer comme donnée » et
-  « Fait à une autre date » sur une dose oubliée passent par le même geste et suivent la même règle
-  (première phrase de TR-25 : une correction s'applique à toutes les lignes de la même échéance),
-  lecture à confirmer par Gaelle.
+  pour « Modifier » ; « Annuler » rétablit la ligne qui était en vigueur.
