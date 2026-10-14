@@ -89,13 +89,11 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
     return { episode, lines: own, span: spanOf(episode, own.kept), borrowed }
   })
   const step = Math.max(0, ...settings.map(({ frequency }) => longestStep(frequency)))
-  const lastKnownDay = [
-    today,
-    ...settings.flatMap(({ startsOn, firstDueOn }) => [startsOn, firstDueOn]),
-    ...lines.flatMap(({ dueOn, targetOn }) => [dueOn, targetOn ?? dueOn]),
-  ]
-    .sort()
-    .at(-1)!
+  const settingDays = settings.flatMap(({ startsOn, firstDueOn }) => [startsOn, firstDueOn])
+  const lineDays = lines.flatMap(({ dueOn, targetOn }) => [dueOn, targetOn ?? dueOn])
+  const latest = (known: Day[]) => [today, ...known, ...lineDays].sort().at(-1)!
+  const lastKnownDay = latest(settingDays)
+  const horizon = plusDays(today, UPCOMING_DAYS)
   const base = plusDays(lastKnownDay, 2 * step)
   const build = (reach: Day) => {
     const built: EpisodeCalendar[] = []
@@ -105,8 +103,20 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
     }
     return built
   }
-  const calendars = build(base)
-  let widest = { reach: base, calendars }
+  const currentSetting = episodes.at(-1)?.at(-1) ?? null
+  const currentStep = currentSetting === null ? 0 : longestStep(currentSetting.frequency)
+  // Dérouler la grille jusqu'à un réglage lointain coûte cher : seulement quand le moment en dépend.
+  const read = (reach: Day) => {
+    const calendars = build(reach)
+    const moment = momentOf(calendars, currentSetting ?? undefined, today)
+    const settled =
+      !calendars.some(({ reachTooShort }) => reachTooShort) &&
+      (moment.phase === 'stopped' || moment.open.some(({ due }) => due.dueOn > today))
+    return { reach, calendars, moment, settled }
+  }
+  const near = read(plusDays(latest(settingDays.filter((day) => day <= horizon)), 2 * step))
+  const { reach, calendars, moment } = near.settled || near.reach === base ? near : read(base)
+  let widest = { reach, calendars }
   const calendarsUntil = (day: Day): EpisodeCalendar[] => {
     if (day > widest.reach) {
       const reach = plusDays(day, UPCOMING_DAYS)
@@ -114,13 +124,18 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
     }
     return widest.calendars
   }
-  const currentSetting = episodes.at(-1)?.at(-1) ?? null
-  const currentStep = currentSetting === null ? 0 : longestStep(currentSetting.frequency)
-  const moment = momentOf(calendars, currentSetting ?? undefined, today)
   const closed = moment.phase === 'stopped' || moment.phase === 'ended'
   const end = currentSetting?.endsOn ?? currentSetting?.stoppedOn ?? null
-  const lastSlots = end === null ? [] : (calendarsUntil(end).at(-1)?.slots ?? [])
-  const lastDueDay = lastSlots.at(-1)?.due.dueOn ?? null
+  const lastDueDayUntil = (end: Day): Day | null => {
+    const { lastGridDay = null, lastPossibleDay = null } = calendars.at(-1) ?? {}
+    if (lastGridDay !== null && lastGridDay > reach) return lastGridDay
+    return (
+      calendarsUntil(lastPossibleDay ?? end)
+        .at(-1)
+        ?.slots.at(-1)?.due.dueOn ?? null
+    )
+  }
+  const lastDueDay = end === null ? null : lastDueDayUntil(end)
   // R8, #819 : une prise d'avant l'arrêt qui couvre sa dose y reste comptée, même si elle couvre
   // aussi la première journée de la reprise, sauf quand la reprise reprend cette dose.
   const effects = new Map<string, LineEffect>()
@@ -147,14 +162,9 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
     return stateOf(slot)
   }
 
-  const upcoming: TreatmentView['upcoming'] = ({
-    from = today,
-    to = plusDays(from, UPCOMING_DAYS),
-    limit,
-  } = {}) => {
-    if (closed) return []
+  const pendingBetween = (from: Day, to: Day): Due[] => {
     const calendar = calendarsUntil(to).at(-1)!
-    const dues = calendar.slots
+    return calendar.slots
       .filter(
         ({ coveredBy, due }) =>
           coveredBy === null &&
@@ -163,7 +173,17 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
           due.dueOn <= to,
       )
       .map(({ due }) => due)
-    return limit === undefined ? dues : dues.slice(0, limit)
+  }
+  const upcoming: TreatmentView['upcoming'] = ({
+    from = today,
+    to = plusDays(from, UPCOMING_DAYS),
+    limit,
+  } = {}) => {
+    if (closed) return []
+    if (limit === undefined) return pendingBetween(from, to)
+    const near = plusDays(from, UPCOMING_DAYS)
+    const first = near < to ? pendingBetween(from, near) : []
+    return (first.length >= limit ? first : pendingBetween(from, to)).slice(0, limit)
   }
   const settingAt = (day: Day) => live.filter(({ startsOn }) => startsOn <= day).at(-1)
   const slots: TreatmentView['slots'] = (from, to) => {

@@ -1,4 +1,4 @@
-import { gridDays, hoursOf, isOnGrid, later, plusDays, sameFrequency } from './grid'
+import { gridDays, hoursOf, isOnGrid, later, longestStep, plusDays, sameFrequency } from './grid'
 import type { EpisodeLines } from './lines'
 import type { Span } from './settings'
 import type { Day, Frequency, Hour, Line, LineEffect, Setting } from './types'
@@ -79,12 +79,16 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   let chosenFloor = ''
   let rhythmFloor = ''
   let anchors = new Set<Line>()
+  const bounds: (Day | null)[] = []
+  let lastGridDay: Day | null = null
   chain.forEach((setting, position) => {
     const index = span.live.indexOf(setting)
     const end = index < 0 ? setting.startsOn : span.endOf(index)
-    const last = [reach, setting.endsOn, end === null ? null : plusDays(end, -1)]
-      .filter((day) => day !== null)
-      .sort()[0]!
+    const unbounded =
+      [setting.endsOn, end === null ? null : plusDays(end, -1)]
+        .filter((day) => day !== null)
+        .sort()[0] ?? null
+    const last = unbounded === null || reach < unbounded ? reach : unbounded
     const previous = chain[position - 1]
     const origin = setting.gridOriginOn
     const earlier = new Set(
@@ -186,16 +190,40 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
         days.set(day, { setting, hours: hoursOf(setting.times) })
       }
       segments.push({ origin: grid.origin, from: start, to: turn?.dueOn ?? setting.endsOn })
-      if (turn === null) break
+      if (turn === null) {
+        lastGridDay =
+          unbounded === null
+            ? null
+            : lastDayOfGrid(grid.origin, setting.frequency, start, unbounded)
+        break
+      }
       effects.set(turn.id, { kind: 'shifts', from: turn.dueOn })
       grid = turned(turn, chosenFloor)
       from = plusDays(turn.dueOn, 1)
     }
     claims.push({ setting, end, segments })
+    bounds.push(unbounded)
   })
   for (const shift of lines.shifts) {
     if (!effects.has(shift.id)) effects.set(shift.id, { kind: 'idle', reason: 'overtaken' })
   }
   const left = leftDays(claims, lines.reports, span.closedFrom, handed)
-  return { days, translated, left, openings, rhythmFrom, replaced, restarts }
+  const ends = bounds.filter((day) => day !== null)
+  const lastPossibleDay = ends.length < bounds.length ? null : (ends.sort().at(-1) ?? null)
+  return {
+    days,
+    translated,
+    left,
+    openings,
+    rhythmFrom,
+    replaced,
+    restarts,
+    lastPossibleDay,
+    lastGridDay,
+  }
+}
+
+function lastDayOfGrid(origin: Day, frequency: Frequency, from: Day, to: Day): Day | null {
+  const window = later(from, plusDays(to, -longestStep(frequency)))
+  return gridDays(origin, frequency, window, to).at(-1) ?? null
 }
