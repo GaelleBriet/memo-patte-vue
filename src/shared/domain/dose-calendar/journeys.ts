@@ -46,6 +46,14 @@ function leftDays(
   return left
 }
 
+/** R9, R10 : remplacé le jour même, un réglage qui changeait la fréquence la transmet à son remplaçant. */
+function changedThatDay(span: Span, prior: Setting, at: number): boolean {
+  const from = span.episode.indexOf(prior)
+  return span.episode
+    .slice(from + 1, at + 1)
+    .some(({ frequency }) => !sameFrequency(frequency, prior.frequency))
+}
+
 const isDueDay = (grid: Grid, frequency: Frequency, day: Day) =>
   day > grid.since && isOnGrid(grid.origin, frequency, day)
 
@@ -160,7 +168,9 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     ) {
       handed.add(prior.id)
     }
-    if (index > 0 && (!continued || ended)) rhythmFrom = setting.startsOn
+    if (index > 0 && (!continued || ended || changedThatDay(span, prior!, at))) {
+      rhythmFrom = setting.startsOn
+    }
     // R3 : écrit sous un réglage d'avant un changement de fréquence, un décalage est dépassé.
     const turns = lines.shifts.filter(
       (shift) =>
