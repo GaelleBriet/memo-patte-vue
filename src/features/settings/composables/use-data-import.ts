@@ -4,7 +4,7 @@ import {
   MAX_IMPORT_FILE_BYTES,
   parseExportFile,
   type ImportFileError,
-} from '../schema/export-file.schema'
+} from '../logic/parse-export-file'
 import {
   dataImportService,
   ImportRefusedError,
