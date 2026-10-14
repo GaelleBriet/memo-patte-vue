@@ -43,6 +43,28 @@ const doseDu12 = { dueOn: '2026-10-12', dueTime: '08:00' }
 const effetDe = (c: Carnet, today: string, dose: Dose) =>
   vue(c, today).history.find(({ line }) => line.id === dose.id)!.effect
 
+const lignesDu12 = (c: Carnet) =>
+  c.doses.filter(({ dueOn, dueTime }) => dueOn === doseDu12.dueOn && dueTime === doseDu12.dueTime)
+
+describe('R11 : la même dose notée sous le même réglage par deux appareils', () => {
+  it.each(['A puis B', 'B puis A'])(
+    'Milo, tous les jours à 8 h ; A note la dose du 12 oubliée le 12, B la note donnée le 13 (reçues %s) : une seule ligne lue, la plus récente, l’autre sans effet',
+    (ordre) => {
+      const c = miloA8h()
+      const parA = oublie(c, '2026-10-12', echeance(c, '2026-10-12', '08:00'))
+      const parB = donne(c, '2026-10-13', echeance(c, '2026-10-12', '08:00'), '2026-10-12', false)
+      const fusionne =
+        ordre === 'A puis B' ? recus(c.periods, parA, parB) : recus(c.periods, parB, parA)
+      const [oubli, prise] = [lignesDu12(parA)[0]!, lignesDu12(parB)[0]!]
+      expect(oubli.periodId).toBe(prise.periodId)
+      expect(lignesDu12(fusionne)).toHaveLength(2)
+      expect(vue(fusionne, '2026-10-13').dueState(doseDu12)).toBe('given')
+      expect(effetDe(fusionne, '2026-10-13', prise).kind).not.toBe('idle')
+      expect(effetDe(fusionne, '2026-10-13', oubli)).toEqual({ kind: 'idle', reason: 'superseded' })
+    },
+  )
+})
+
 describe('R11, #802 : la même dose notée sous deux réglages par deux appareils', () => {
   it.each(['A puis B', 'B puis A'])(
     'Milo, tous les jours à 8 h ; le 10, posologie changée sur B ; A, pas synchronisé, note la dose du 12 oubliée le 12, B la note donnée le 13 (reçues %s) : la plus récente, donnée, est lue',
