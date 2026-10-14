@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { parseExportFile } from '../schema/export-file.schema'
+import { parseExportFile } from '../logic/parse-export-file'
 import exportV3 from './fixtures/export-v3-0.1.56.json?raw'
 import exportV4 from './fixtures/export-v4-0.1.60.json?raw'
 import { IMPORT_FILE, IMPORT_FIXTURE, importFixtureJson, LUNA_ID, MILO_ID } from './import-fixture'
