@@ -24,8 +24,9 @@ import {
   type Carnet,
 } from './dose-calendar.recette.aides'
 
-// #810, décisions de Gaelle du 14 octobre 2026 : un réglage remplacé le jour même transmet le
-// changement de fréquence qu'il portait ; les échéances sans prise d'avant restent à renseigner.
+// #810, R10, décisions de Gaelle du 14 octobre 2026 : un réglage remplacé le jour même sans prise ne
+// compte pas ; fréquence changée par rapport à avant ce jour, les échéances sans prise d'avant
+// restent à renseigner.
 
 const QUATRE = ['06:00', '12:00', '18:00', '23:00']
 
