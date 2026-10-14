@@ -140,12 +140,10 @@ export function calendarOf(
     const livesBefore = live.filter((other) => episode.indexOf(other) < episode.indexOf(setting))
     const lastLive = livesBefore[livesBefore.length - 1]
     const ended = lastLive !== undefined && (lastLive.endsOn ?? setting.startsOn) < setting.startsOn
-    // TR-9 : à fréquence gardée, une première échéance choisie remplace la dose en retard du rythme.
-    const written = episode[episode.indexOf(setting) - 1]
-    const kept =
-      lastLive !== undefined &&
-      written !== undefined &&
-      [written, lastLive].every((other) => sameFrequency(other, setting))
+    // R10 : sans prise, un réglage remplacé le jour même ne compte pas : la fréquence se compare à
+    // celle du réglage en vigueur avant lui. TR-9 : à fréquence gardée, une première échéance
+    // choisie remplace la dose en retard du rythme.
+    const kept = lastLive !== undefined && sameFrequency(lastLive, setting)
     if (kept && origin !== null && !ended) {
       const onDueDay =
         setting.startsOn > inherited.floor &&
@@ -161,11 +159,7 @@ export function calendarOf(
     if (waitingReplace !== undefined) replaced.push(waitingReplace)
     waitingReplace = undefined
     if (restart !== undefined) restarts.set(setting.id, restart)
-    // R9, R10 : un réglage remplacé le jour même transmet le changement de fréquence qu'il portait.
-    const sameDay = episode.slice(episode.indexOf(lastLive!) + 1, episode.indexOf(setting) + 1)
-    const changed =
-      lastLive !== undefined && sameDay.some((other) => !sameFrequency(other, lastLive))
-    if (index > 0 && (!continued || ended || changed)) rhythmFrom = setting.startsOn
+    if (index > 0 && (!continued || ended || !kept)) rhythmFrom = setting.startsOn
     // R6 : à partir de sa journée d'origine, un décalage donne à la grille l'origine de son ancrage ;
     // écrit sous un réglage d'avant un changement de fréquence, il est dépassé par la nouvelle origine (R3).
     const turns = shifts.filter(

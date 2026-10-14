@@ -46,14 +46,6 @@ function leftDays(
   return left
 }
 
-/** R9, R10 : remplacé le jour même, un réglage qui changeait la fréquence la transmet à son remplaçant. */
-function changedThatDay(span: Span, prior: Setting, at: number): boolean {
-  const from = span.episode.indexOf(prior)
-  return span.episode
-    .slice(from + 1, at + 1)
-    .some(({ frequency }) => !sameFrequency(frequency, prior.frequency))
-}
-
 const isDueDay = (grid: Grid, frequency: Frequency, day: Day) =>
   day > grid.since && isOnGrid(grid.origin, frequency, day)
 
@@ -139,13 +131,11 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     const at = span.episode.indexOf(setting)
     const prior = span.live.filter((each) => span.episode.indexOf(each) < at).at(-1)
     const ended = prior !== undefined && (prior.endsOn ?? setting.startsOn) < setting.startsOn
+    // R10 : un réglage remplacé le jour même sans prise ne compte pas, d'où qu'il vienne ; la
+    // fréquence se compare à celle du réglage en vigueur avant lui.
+    const kept = prior !== undefined && sameFrequency(prior.frequency, setting.frequency)
     // TR-9 : à fréquence gardée, une première échéance choisie remplace la dose du moment du rythme,
     // même quand son réglage est remplacé le jour même par un réglage sans date choisie (R10).
-    const written = span.episode[at - 1]
-    const kept =
-      prior !== undefined &&
-      written !== undefined &&
-      [written, prior].every(({ frequency }) => sameFrequency(frequency, setting.frequency))
     if (kept && origin !== null && !ended) {
       const onDueDay =
         setting.startsOn > inherited.floor &&
@@ -168,9 +158,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     ) {
       handed.add(prior.id)
     }
-    if (index > 0 && (!continued || ended || changedThatDay(span, prior!, at))) {
-      rhythmFrom = setting.startsOn
-    }
+    if (index > 0 && (!continued || ended || !kept)) rhythmFrom = setting.startsOn
     // R3 : écrit sous un réglage d'avant un changement de fréquence, un décalage est dépassé.
     const turns = lines.shifts.filter(
       (shift) =>
