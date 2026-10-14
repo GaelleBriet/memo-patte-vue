@@ -378,7 +378,7 @@ Un réglage ouvert aujourd'hui et encore sans prise se **remplace** quand on le 
 
 #### R11 — Rien ne disparaît sans geste
 
-Une ligne écrite par la personne (prise, prise en plus, report, décalage) n'est **jamais supprimée par le moteur**. Ce qui n'a plus d'effet (un report revenu à sa date, une ligne plus ancienne de la même journée entre deux appareils, sous le même réglage ou, selon la lecture de R11, R4 et TR-25 par #802 à confirmer par Gaelle, sous un autre réglage de la période, sauf une prise traduite les jours que le calendrier traduit, changement d'heures et arrivée d'un report à d'autres heures (R4, R7), un report battu par une prise de la même échéance, un décalage d'avant la première échéance d'un réglage qui fait repartir la grille, un report parti d'une journée que la grille repartie d'une date choisie n'a pas) reste en base et dans l'historique, à sa place, grisé, son texte suivi de « · sans effet » (« Reportée au 19 oct. · sans effet »), avec « Supprimer » pour seul menu (décision de Gaelle du 2026-10-10) ; seule la personne le supprime ; aucune correction de date ne fait d'un oubli une prise donnée (TR-22 et « Marquer comme donnée » restent permis) (décision du 2026-10-12). Le moteur ne lit **que** des lignes, il n'en écrit ni n'en efface jamais à la lecture (décision Q-purge du 2026-10-10).
+Une ligne écrite par la personne (prise, prise en plus, report, décalage) n'est **jamais supprimée par le moteur**. Ce qui n'a plus d'effet (un report revenu à sa date, une ligne plus ancienne de la même journée entre deux appareils, sous le même réglage ou, selon la lecture de R11, R4 et TR-25 par #802 à confirmer par Gaelle, sous un autre réglage de la période, sauf une prise traduite les jours que le calendrier traduit, changement d'heures et arrivée d'un report à d'autres heures (R4, R7), un report battu par une prise de la même échéance, un décalage d'avant la première échéance d'un réglage qui fait repartir la grille, un report parti d'une journée que la grille repartie d'une date choisie n'a pas) reste en base et dans l'historique, à sa place, grisé, son texte suivi de « · sans effet » (« Reportée au 19 oct. · sans effet »), avec « Supprimer » pour seul menu (décision de Gaelle du 2026-10-10) ; seule la personne le supprime ; aucune correction de date ne fait d'un oubli une prise donnée (TR-22 et « Marquer comme donnée » restent permis) (décision du 2026-10-12). Le moteur ne lit **que** des lignes, il n'en écrit ni n'en efface jamais à la lecture (décision Q-purge du 2026-10-10). À l'écriture, l'app refuse une deuxième ligne de la même échéance et de la même famille sous le **même réglage** seulement : le jour où les heures changent, une prise d'avance écrite sous l'ancien réglage n'empêche pas « C'est fait » sous le nouveau (R4) ; une ligne d'un autre réglage reçue de la synchro est écartée à la lecture (écart au plan §3.2, confirmé par Gaelle le 14 octobre 2026).
 
 #### R12 — Une seule lecture pour tous les écrans
 
@@ -1170,7 +1170,12 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
   l'autre (TR-25 : la fiche montre deux lignes). Toutes les 2 semaines à 8 h et 20 h depuis le
   1er oct., le 10 dose du 15 déplacée au 20 et 20 h du 20 donnée d'avance, puis tous les mois à 12 h
   et 20 h, prochaine dose le 15 nov. : le 20, la prise d'avance couvre 12 h et « C'est fait » sur
-  20 h complète la journée. Avant : la ligne lue dépendait de l'ordre de réception.
+  20 h complète la journée. Avant : la ligne lue dépendait de l'ordre de réception. L'app refuse à
+  l'écriture une deuxième ligne de la même échéance et de la même famille sous le même réglage
+  seulement, pas sous tout le traitement (écart au plan §3.2, confirmé par Gaelle le 14 octobre
+  2026) : une garde par traitement refuserait le « C'est fait » sur 20 h du 10 de l'exemple du
+  changement d'heures ; les lignes d'un autre réglage n'arrivent que par la synchro et la lecture
+  les écarte (`scripts/dose-engine/ecarts-acceptes.md`).
 
 ## 11. Questions ouvertes
 
