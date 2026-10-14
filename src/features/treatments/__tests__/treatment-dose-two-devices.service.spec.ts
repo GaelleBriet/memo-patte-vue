@@ -7,7 +7,7 @@ import { createReplay, storedHistory, type Replay } from './treatment-services-r
 const ID = '22222222-2222-4222-8222-222222222222'
 const ANIMAL = '11111111-1111-4111-8111-111111111111'
 
-describe('TR-25 : « Supprimer » une dose notée sur deux appareils (décision du 2026-10-12)', () => {
+describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-12) et « Modifier » (2026-10-14)', () => {
   let db: InMemoryDb
   let replay: Replay
 
@@ -81,5 +81,37 @@ describe('TR-25 : « Supprimer » une dose notée sur deux appareils (décision 
     await replay.doses.undoBatch(ID, applied.undo)
 
     expect((await storedHistory(replay.treatments, ID)).doses).toHaveLength(2)
+  })
+
+  it('dose du 10 oct. de Milo notée sur chaque appareil, « Modifier » au 11 : une seule ligne, donnée le 11', async () => {
+    const shown = await miloNotedOnBothDevices()
+    replay.clock.day = '2026-10-12'
+    replay.tick()
+    await replay.doses.apply(ID, {
+      kind: 'redate',
+      lineId: shown,
+      givenOn: '2026-10-11',
+      shiftsFollowing: false,
+    })
+
+    expect((await storedHistory(replay.treatments, ID)).doses).toMatchObject([
+      { id: shown, dueOn: '2026-10-10', givenOn: '2026-10-11', status: 'given' },
+    ])
+  })
+
+  it('« Annuler » après « Modifier » rétablit les deux lignes au 10', async () => {
+    const shown = await miloNotedOnBothDevices()
+    replay.clock.day = '2026-10-12'
+    replay.tick()
+    const applied = await replay.doses.apply(ID, {
+      kind: 'redate',
+      lineId: shown,
+      givenOn: '2026-10-11',
+      shiftsFollowing: false,
+    })
+    await replay.doses.undoBatch(ID, applied.undo)
+
+    const doses = (await storedHistory(replay.treatments, ID)).doses
+    expect(doses.map(({ givenOn }) => givenOn)).toEqual(['2026-10-10', '2026-10-10'])
   })
 })
