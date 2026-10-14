@@ -2589,3 +2589,35 @@ aller-retour de fréquence)** (spec `traitements.md` TR-28, TR-30, R4, R8, R9, R
   modifications : la ligne en vigueur avant le geste l'est de nouveau. Écartées : ne corriger que la
   ligne touchée, qui laisse l'autre ligne grisée « · sans effet » au 10 ; réécrire les deux lignes à
   l'identique, qui laisse une ligne grisée « · sans effet » à la nouvelle date.
+
+2026-10-14 — **« Supprimer ce report » emporte le décalage ancré à son arrivée (#835)** (spec
+`traitements.md` TR-24, R6).
+
+- Décision de Gaelle : « Supprimer ce report » emporte aussi le décalage de la journée qui était
+  ancré à l'arrivée de ce report : même lecture que « Prochaine dose » ramenée au jour d'origine
+  (spec §4.8, 12 oct. : le décalage de la journée est supprimé avec la dose). Milo, chaque vendredi à
+  20 h depuis le 2 oct., dose du 9 donnée ; le lundi 12, « Prochaine dose » : la dose du vendredi 16
+  avancée au mardi 13, case « Décaler aussi les doses suivantes » cochée : la fiche montre 13, 20,
+  27 ; puis, dans l'historique, « Avancée au 13 oct. » › « Supprimer ce report » : la fiche montre
+  16, 23, 30 (avant : 16, 20, 27, deux doses à 4 jours d'écart). Autre sens : 16 reporté au 19 avec
+  la case, report supprimé : 16, 23, 30 (avant : 16, 26).
+- Le décalage reste supprimable seul, et le report gardé : « chaque ligne se supprime seule » reste
+  vrai ; seul « Supprimer ce report » emporte le décalage ancré à son arrivée. Remplace, dans TR-24,
+  « le décalage reste et se supprime à part ». « Annuler » rend le report et son décalage. —
+  Alternative écartée : garder le décalage, qui laisse deux doses à quelques jours d'écart.
+
+2026-10-14 — **« Marquer comme oubliée » s'applique à ce que la fiche montre comme une ligne (#841)**
+(spec `traitements.md` TR-25).
+
+- Décision de Gaelle : « Marquer comme oubliée » (depuis la feuille de la dose) suit la même règle
+  que « Modifier » (#839) et « Supprimer » : le geste s'applique à ce que la fiche montre comme une
+  ligne ; deux appareils ayant noté la même dose dans la même période font une seule ligne ;
+  « oubliée » porte sur les deux prises : les deux deviennent oubliées, aucune ligne grisée de
+  l'autre appareil ne reste. Dose du 16 donnée sur deux appareils, marquée oubliée : la fiche montre
+  « Oubliée » seule, sans « Donnée le 16 · sans effet ». Entre deux périodes, deux lignes, on ne
+  touche que celle choisie (#822).
+- Mise en œuvre : la ligne en vigueur est réécrite et les autres lignes de sa dose supprimées, comme
+  pour « Modifier » ; « Annuler » rétablit la ligne qui était en vigueur. « Marquer comme donnée » et
+  « Fait à une autre date » sur une dose oubliée passent par le même geste et suivent la même règle
+  (première phrase de TR-25 : une correction s'applique à toutes les lignes de la même échéance),
+  lecture à confirmer par Gaelle.
