@@ -9,6 +9,17 @@ import {
   type TreatmentViewInput,
 } from '../domain/dose-calendar'
 import { DAY, line, setting, WEEK } from './dose-calendar.v2.aides'
+import {
+  arrete,
+  carnet,
+  donne,
+  echeance,
+  jours,
+  oublie,
+  recoit,
+  reprend,
+  vue,
+} from './dose-calendar.recette.aides'
 
 const accepted = (result: ReturnType<typeof noteDose>) => {
   if ('refusal' in result) throw new Error(`refusé : ${result.refusal.reason}`)
@@ -88,5 +99,26 @@ describe('#841, TR-25 : « Marquer comme oubliée » s’applique à ce que la f
     expect(
       result.changes.map((change) => [change.action, 'id' in change ? change.id : null]),
     ).toEqual([['rewrite', again.id]])
+  })
+})
+
+describe('#841 : le jour d’un arrêt suivi d’une reprise le même jour', () => {
+  it('Milo, tous les jours à 20 h depuis le 30 mars, dose du 2 avr. donnée sur deux appareils ; le 2, arrêt puis reprise dès le 2 ; le 4, « Marquer comme oubliée » : « Oubliée » seule', () => {
+    let c = carnet('2026-03-30', jours(1), ['20:00'])
+    for (const day of ['2026-03-30', '2026-03-31', '2026-04-01', '2026-04-02']) {
+      c = donne(c, day, echeance(c, day, '20:00'), day, false)
+    }
+    c = recoit(c, echeance(c, '2026-04-02', '20:00'))
+    c = arrete(c, '2026-04-02')
+    c = reprend(c, '2026-04-02', '2026-04-02', jours(1), ['20:00'])
+    c = oublie(c, '2026-04-04', { periodId: 'p1', dueOn: '2026-04-02', dueTime: '20:00' })
+
+    const ofThe2nd = c.doses.filter(({ dueOn }) => dueOn === '2026-04-02')
+    expect(ofThe2nd).toMatchObject([{ periodId: 'p1', status: 'missed', givenOn: null }])
+    expect(
+      vue(c, '2026-04-04')
+        .history.filter(({ line: shown }) => shown.dueOn === '2026-04-02')
+        .map(({ line: shown, effect }) => [shown.status, effect.kind]),
+    ).toEqual([['missed', 'covers']])
   })
 })
