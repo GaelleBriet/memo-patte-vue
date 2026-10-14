@@ -5,6 +5,29 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.78](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.77...memo-patte-v0.1.78) (2026-10-14)
+
+
+### 🐛 Corrections
+
+* **dose-calendar:** « Elles restent à renseigner » ne réécrit plus le report ([#817](https://github.com/GaelleBriet/memo-patte-vue/issues/817)) ([ee065b3](https://github.com/GaelleBriet/memo-patte-vue/commit/ee065b3ffff086d6a49a5f0bd379ae45f2588c01))
+* **dose-calendar:** jour de l'arrêt, chaque prise couvre la dose de son heure ([#823](https://github.com/GaelleBriet/memo-patte-vue/issues/823)) ([7f78a59](https://github.com/GaelleBriet/memo-patte-vue/commit/7f78a5926b5772f33adff1b1b438ffc231810ddc))
+* **dose-calendar:** l'exception de r4 vaut aussi le jour d'arrivée d'un report ([#802](https://github.com/GaelleBriet/memo-patte-vue/issues/802)) ([d4fb89d](https://github.com/GaelleBriet/memo-patte-vue/commit/d4fb89d095101b7fd9ce905043e42ee9d51bff0b))
+* **dose-calendar:** la prise du jour de la reprise couvre toute sa première journée (R8) ([5bea814](https://github.com/GaelleBriet/memo-patte-vue/commit/5bea814dbdcda2c0f12ca353eb980bb9134128f2))
+* **dose-calendar:** réglage remplacé le jour même, sans la fréquence d'avant lui ([#810](https://github.com/GaelleBriet/memo-patte-vue/issues/810)) ([807506d](https://github.com/GaelleBriet/memo-patte-vue/commit/807506dd3adc9ef26e0ee8734acf3253f391cf71))
+* **dose-calendar:** réponses du 13 octobre au soir (jour de l'arrêt, suppression, Q38, réglage remplacé) ([f91e484](https://github.com/GaelleBriet/memo-patte-vue/commit/f91e484f667197cef4110a73c4136cb663078e70))
+* **dose-calendar:** supprimer une prise ne retire pas celle d'une autre période ([#822](https://github.com/GaelleBriet/memo-patte-vue/issues/822)) ([9df837b](https://github.com/GaelleBriet/memo-patte-vue/commit/9df837bcf0293ee77e9931f635c01c51653d9077))
+* **dose-calendar:** tous les réglages qui cèdent leur place au jour d'origine d'un report ([#802](https://github.com/GaelleBriet/memo-patte-vue/issues/802)) ([424871c](https://github.com/GaelleBriet/memo-patte-vue/commit/424871c8dff561b74bf589967a40e149cfe2e898))
+* **dose-calendar:** une ligne par échéance dans la période, quel que soit le réglage ([#802](https://github.com/GaelleBriet/memo-patte-vue/issues/802)) ([1428546](https://github.com/GaelleBriet/memo-patte-vue/commit/1428546dfd2b183d3c800fd494061451278a7477))
+* **dose-calendar:** une ligne par échéance dans la période, quel que soit le réglage ([#802](https://github.com/GaelleBriet/memo-patte-vue/issues/802)) ([e9f5b04](https://github.com/GaelleBriet/memo-patte-vue/commit/e9f5b049f02aefb3dad7ced13093a3177123d8f9))
+
+
+### ⚡ Performance
+
+* **dose-calendar:** la lecture ne déroule plus jusqu'à une date de fin ou un réglage lointains ([1e63623](https://github.com/GaelleBriet/memo-patte-vue/commit/1e63623d6b13f4786f55af54bff40b947902d289)), closes [#828](https://github.com/GaelleBriet/memo-patte-vue/issues/828)
+* **dose-calendar:** la lecture ne déroule plus la grille jusqu'à une date lointaine ([f8fdf14](https://github.com/GaelleBriet/memo-patte-vue/commit/f8fdf1492ef7144727413fafef253623f587d838))
+* **dose-calendar:** les échéances à venir s'arrêtent à la fenêtre qui en compte assez ([40f6cc2](https://github.com/GaelleBriet/memo-patte-vue/commit/40f6cc2dc12d00cc4e92d845e2d3459a14a9bdef)), closes [#828](https://github.com/GaelleBriet/memo-patte-vue/issues/828)
+
 ## [0.1.77](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.76...memo-patte-v0.1.77) (2026-10-13)
 
 
