@@ -58,7 +58,7 @@ function translatedDays(span: Span, reports: readonly Line[]): Set<Day> {
   for (const { dueOn, targetOn, settingId } of reports) {
     const arrival = span.settingAt(targetOn!) ?? span.stoppedAt(targetOn!)
     if (arrival === undefined) continue
-    // Le calendrier peut lire n'importe lequel de ces réglages : en oublier un rendrait sans effet une prise qui compte.
+    // Le calendrier lit l'un de ces réglages selon l'ordre de leurs écritures : tous sont marqués, car en oublier un rendrait sans effet une prise qui compte.
     const ceding = span.live.filter((_, index) => span.endOf(index) === dueOn)
     const origins = [span.settingAt(dueOn), ...ceding, byId.get(settingId)]
     if (origins.some((origin) => origin !== undefined && !sameHours(origin, arrival))) {
