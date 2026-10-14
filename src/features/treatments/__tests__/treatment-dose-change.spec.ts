@@ -149,7 +149,7 @@ describe('doseChange — corriger, déplacer, supprimer', () => {
     expect(shiftKept).toBe(false)
   })
 
-  it('supprimer un report dont le décalage est ancré ailleurs (autre appareil) : il reste, et le geste le dit', () => {
+  it('TR-25 : supprimer un report dont le décalage est ancré ailleurs (autre appareil) : le décalage de la journée part aussi', () => {
     const history = treatment(
       [VENDREDI],
       [...PIXEL.doses, shifted('2026-10-16', '2026-10-20'), postponed('2026-10-16', '2026-10-19')],
@@ -160,8 +160,11 @@ describe('doseChange — corriger, déplacer, supprimer', () => {
       lineId: 'report 2026-10-16',
     })
 
-    expect(writes).toEqual([{ action: 'delete', id: 'report 2026-10-16' }])
-    expect(shiftKept).toBe(true)
+    expect(writes).toEqual([
+      { action: 'delete', id: 'report 2026-10-16' },
+      { action: 'delete', id: 'décalage 2026-10-16' },
+    ])
+    expect(shiftKept).toBe(false)
   })
 
   it('changer la date d’une prise annonce les doses passées qu’elle fait apparaître', () => {

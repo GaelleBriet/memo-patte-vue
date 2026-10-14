@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  bornes,
   carnet,
   deplace,
   donne,
@@ -60,12 +61,25 @@ describe('#835, TR-24 : « Supprimer ce report » emporte le décalage ancré à
     expect(journees(c, '2026-10-12', 3)).toEqual(['2026-10-16', '2026-10-23', '2026-10-30'])
   })
 
-  it('question ouverte : 16 reporté au 19 avec la case, puis 26 reporté seul au 28 ; « Supprimer ce report » du 16 garde le décalage, comme avant : 16, 28, 2 nov.', () => {
+  it('16 reporté au 19 avec la case, puis 26 reporté seul au 28 : « Supprimer ce report » du 16 est refusé, comme « Prochaine dose » ramenée au 16 (later-line)', () => {
     let c = deplace(vendredis(), '2026-10-12', echeance(vendredis(), '2026-10-16'), '2026-10-19')
     c = deplace(c, '2026-10-12', echeance(c, '2026-10-26'), '2026-10-28', false)
-    c = supprimeReport(c, '2026-10-12', ligne(c, '2026-10-16', null, 'postponed').id)
-    expect(journees(c, '2026-10-12', 3)).toEqual(['2026-10-16', '2026-10-28', '2026-11-02'])
-    expect(statuses(c)).toEqual(['given', 'given', 'shift', 'postponed'])
+    expect(bornes(c, '2026-10-12', echeance(c, '2026-10-19'))).toEqual({
+      refusal: { reason: 'later-line' },
+    })
+    const report = ligne(c, '2026-10-16', null, 'postponed').id
+    expect(() => supprimeReport(c, '2026-10-12', report)).toThrow('"later-line"')
+    expect(journees(c, '2026-10-12', 3)).toEqual(['2026-10-19', '2026-10-28', '2026-11-02'])
+  })
+
+  it('le 12, dose du 16 avancée au 13 avec la case ; le 13 non renseigné, le 20 donné ; le 21, « Supprimer ce report » est refusé, comme « Prochaine dose » ramenée au 16 (later-dose)', () => {
+    let c = deplace(vendredis(), '2026-10-12', echeance(vendredis(), '2026-10-16'), '2026-10-13')
+    c = donne(c, '2026-10-20', echeance(c, '2026-10-20'), '2026-10-20', false)
+    expect(bornes(c, '2026-10-21', echeance(c, '2026-10-13'))).toEqual({
+      refusal: { reason: 'later-dose' },
+    })
+    const report = ligne(c, '2026-10-16', null, 'postponed').id
+    expect(() => supprimeReport(c, '2026-10-21', report)).toThrow('"later-dose"')
   })
 
   it('graine 3210000768 : tous les jours à 20 h, le 16 mars mensuel dès le 16 avr., 16 avr. avancé au 20 mars avec la case, mensuel identique, report supprimé : 16 avr., 16 mai', () => {
