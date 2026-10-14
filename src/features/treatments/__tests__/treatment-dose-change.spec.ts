@@ -131,7 +131,7 @@ describe('doseChange — corriger, déplacer, supprimer', () => {
     expect(moved).toMatchObject({ status: 'postponed', targetOn: '2026-10-20' })
   })
 
-  it('supprimer un report dont le décalage reste le dit', () => {
+  it('#835 : supprimer un report emporte le décalage ancré à son arrivée, et ne dit pas qu’il reste', () => {
     const history = treatment(
       [VENDREDI],
       [...PIXEL.doses, shifted('2026-10-16', '2026-10-19'), postponed('2026-10-16', '2026-10-19')],
@@ -142,8 +142,29 @@ describe('doseChange — corriger, déplacer, supprimer', () => {
       lineId: 'report 2026-10-16',
     })
 
-    expect(writes).toEqual([{ action: 'delete', id: 'report 2026-10-16' }])
-    expect(shiftKept).toBe(true)
+    expect(writes).toEqual([
+      { action: 'delete', id: 'report 2026-10-16' },
+      { action: 'delete', id: 'décalage 2026-10-16' },
+    ])
+    expect(shiftKept).toBe(false)
+  })
+
+  it('TR-25 : supprimer un report dont le décalage est ancré ailleurs (autre appareil) : le décalage de la journée part aussi', () => {
+    const history = treatment(
+      [VENDREDI],
+      [...PIXEL.doses, shifted('2026-10-16', '2026-10-20'), postponed('2026-10-16', '2026-10-19')],
+    )
+
+    const { writes, shiftKept } = change(history, '2026-10-15', {
+      kind: 'remove',
+      lineId: 'report 2026-10-16',
+    })
+
+    expect(writes).toEqual([
+      { action: 'delete', id: 'report 2026-10-16' },
+      { action: 'delete', id: 'décalage 2026-10-16' },
+    ])
+    expect(shiftKept).toBe(false)
   })
 
   it('changer la date d’une prise annonce les doses passées qu’elle fait apparaître', () => {

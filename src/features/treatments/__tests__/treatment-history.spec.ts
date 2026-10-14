@@ -771,6 +771,35 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
       'remove-shift': 'Delete the postponement to Oct 23 first.',
     })
   })
+
+  it('#835 : « Supprimer ce report » grisé quand un report plus lointain existe, comme « Prochaine dose »', () => {
+    const book = treatment([VENDREDI], [...PIXEL, postponed('2026-10-26', '2026-10-28')])
+    const report = history(book, '2026-10-15').periods[0]!.lines.find(
+      (other) => other.kind === 'move' && other.dose.dueOn === '2026-10-16',
+    )!
+
+    expect(report.actions).toEqual(['remove-move'])
+    expect(report.refused).toEqual({
+      'remove-move':
+        'Une dose plus lointaine est déjà reportée. Supprime ce report pour déplacer celle-ci.',
+    })
+  })
+
+  it('#835 : « Supprimer ce report » grisé quand une dose plus lointaine est notée', () => {
+    const book = treatment(
+      [VENDREDI],
+      [
+        dose('2026-10-09', '2026-10-13'),
+        shifted('2026-10-16', '2026-10-13'),
+        postponed('2026-10-16', '2026-10-13'),
+        dose('2026-10-20', '2026-10-27'),
+      ],
+    )
+
+    expect(line(book, '2026-10-21', 'move').refused).toEqual({
+      'remove-move': 'Une dose plus lointaine est déjà notée.',
+    })
+  })
 })
 
 describe('treatmentDeleteTexts', () => {
