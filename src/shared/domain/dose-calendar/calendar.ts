@@ -1,5 +1,5 @@
 import { hoursOf, keyOf, plusDays, sameHours, stepped } from './grid'
-import { journeys, type Journey } from './journeys'
+import { journeys, type Gap, type Journey } from './journeys'
 import type { EpisodeLines } from './lines'
 import type { Span } from './settings'
 import type { Day, Due, Hour, Line, LineEffect, Setting } from './types'
@@ -20,7 +20,7 @@ export type EpisodeCalendar = {
   lastPossibleDay: Day | null
   /** Dernière journée de la grille du dernier réglage, quelle que soit `reach` ; `null` : sans fin. */
   lastGridDay: Day | null
-  /** Une dose du moment remplacée (TR-9) se juge au-delà de `reach` : la grille calculée est trop courte. */
+  /** Une dose du moment remplacée (TR-9) se juge au-delà de `reach` ou dans `gap` : la grille calculée ne suffit pas. */
   reachTooShort: boolean
 }
 
@@ -34,6 +34,7 @@ export type EpisodeInput = {
   yielded: ReadonlySet<string>
   /** Dernier jour de la grille calculée. */
   reach: Day
+  gap?: Gap
 }
 
 /** R4, R7, R11 : le calendrier d'un épisode, une passe par étape, du réglage à la couverture. */
@@ -205,7 +206,9 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     rhythmFrom,
     lastPossibleDay: journey.lastPossibleDay,
     lastGridDay: journey.lastGridDay,
-    reachTooShort: replaced.some(({ onDueDay, to }) => !onDueDay && plusDays(to, -1) > input.reach),
+    reachTooShort: replaced.some(
+      ({ onDueDay, to }) => !onDueDay && plusDays(to, -1) > (input.gap?.after ?? input.reach),
+    ),
   }
 }
 
