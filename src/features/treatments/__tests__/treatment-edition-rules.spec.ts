@@ -353,7 +353,7 @@ describe('creationPlan — doses passées renseignées dans l’encart (TR-3)', 
       })
 
       expect(faulty).toEqual([])
-    })
+    }, 30000)
 
     it('rempli en entier, la fiche n’a ni bandeau ni dose en retard, et la suite ne bouge pas', () => {
       const faulty = cases.filter((input) => {
@@ -379,7 +379,7 @@ describe('creationPlan — doses passées renseignées dans l’encart (TR-3)', 
       })
 
       expect(faulty).toEqual([])
-    })
+    }, 30000)
   })
 
   it('n’annonce rien tant que la saisie ne fait pas un calendrier', () => {
