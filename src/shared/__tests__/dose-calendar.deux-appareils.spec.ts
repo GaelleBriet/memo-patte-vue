@@ -6,9 +6,12 @@ import {
   carnet,
   donne,
   echeance,
+  deplace,
   jours,
   modifie,
+  mois,
   oublie,
+  semaines,
   supprimeReport,
   type Carnet,
   vue,
@@ -119,5 +122,19 @@ describe('R11, #802 : la même dose notée sous deux réglages par deux appareil
     const reste = supprimeReport(c, '2026-10-10', apres!.id)
     expect(reste.doses).toContain(avant)
     expect(affiche(reste, '2026-10-10', 1)).toEqual(['2026-10-10 20:00'])
+  })
+
+  it('R4, R7, le jour d’arrivée d’un report à d’autres heures : Milo, toutes les 2 semaines à 8 h et 20 h depuis le 1er oct. ; le 10, dose du 15 déplacée au 20 sans la case, 20 h du 20 donnée d’avance, puis tous les mois à 12 h et 20 h, prochaine dose le 15 nov. ; le 20, « C’est fait » sur 20 h : journée complète', () => {
+    let c = carnet('2026-10-01', semaines(2), ['08:00', '20:00'])
+    for (const hour of ['08:00', '20:00'])
+      c = donne(c, '2026-10-01', echeance(c, '2026-10-01', hour))
+    c = deplace(c, '2026-10-10', echeance(c, '2026-10-15', '08:00'), '2026-10-20', false)
+    c = donne(c, '2026-10-10', echeance(c, '2026-10-20', '20:00'), '2026-10-10', false)
+    const davance = c.doses.at(-1)!
+    c = modifie(c, '2026-10-10', mois(1), ['12:00', '20:00'], '2026-11-15')
+    expect(vue(c, '2026-10-20').dueState({ dueOn: '2026-10-20', dueTime: '12:00' })).toBe('covered')
+    c = donne(c, '2026-10-20', echeance(c, '2026-10-20', '20:00'))
+    expect(effetDe(c, '2026-10-20', davance).kind).toBe('covers')
+    expect(affiche(c, '2026-10-20', 1)).toEqual(['2026-11-15 12:00'])
   })
 })

@@ -1,4 +1,4 @@
-import { doseKeyOf, isNote } from '../lines'
+import { episodeLines, isNote } from '../lines'
 import { episodeOf, spanOf } from '../settings'
 import type { GestureResult, Line, LineChange, Refusal, TreatmentViewInput } from '../types'
 import { buildView } from '../view'
@@ -50,7 +50,7 @@ function doseLines(input: TreatmentViewInput, removed: Line): Line[] {
   if (!isNote(removed) || effect.kind === 'idle') return []
   const episode = episodeOf(input.settings, removed.settingId)
   const period = new Set(episode.map(({ id }) => id))
-  const doseKey = doseKeyOf(episode, spanOf(episode, input.lines).hoursChangeOn)
+  const { doseKey } = episodeLines(input.lines, spanOf(episode, input.lines))
   return input.lines.filter(
     (line) =>
       line.id !== removed.id &&

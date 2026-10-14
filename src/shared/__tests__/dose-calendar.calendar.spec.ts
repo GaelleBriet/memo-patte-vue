@@ -9,7 +9,7 @@ import { DAY, H, line, MONTH, setting, TWO_DAYS, WEEK } from './dose-calendar.v2
 
 function calendar(settings: Setting[], lines: Line[]) {
   const span = spanOf(settings, lines)
-  const own = episodeLines(lines, settings, span.hoursChangeOn)
+  const own = episodeLines(lines, span)
   return episodeCalendar({
     settingOf: (id) => settings.find((each) => each.id === id)!,
     span,

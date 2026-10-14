@@ -241,6 +241,19 @@ describe('R11, #802 : une ligne par échéance et par famille dans la période, 
     ]
     expect(next([before, after], lines, '2026-10-10', 1)).toEqual(['2026-10-11 12:00'])
   })
+
+  it('R4, R7 : le jour d’arrivée d’un report à d’autres heures, 20 h donnée d’avance sous 8 h et 20 h, puis 20 h sous 12 h et 20 h : rien à donner le 20', () => {
+    const fortnight = setting('h1', '2026-10-01', { value: 2, unit: 'week' }, H)
+    const after = setting('h2', '2026-11-15', MONTH, ['12:00', '20:00'], { startsOn: '2026-10-10' })
+    const lines = [
+      line('h1', 'given', '2026-10-01', '08:00'),
+      line('h1', 'given', '2026-10-01', '20:00'),
+      line('h1', 'postponed', '2026-10-15', '08:00', '2026-10-20'),
+      line('h1', 'given', '2026-10-20', '20:00'),
+      line('h2', 'given', '2026-10-20', '20:00'),
+    ]
+    expect(next([fortnight, after], lines, '2026-10-20', 1)).toEqual(['2026-11-15 12:00'])
+  })
 })
 
 describe('dose du moment, doses non renseignées, phases', () => {

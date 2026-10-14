@@ -36,14 +36,6 @@ export function calendarOf(
 ): Calendar {
   const isLive = isLiveIn(episode, allLines)
   const live = episode.filter(isLive)
-  const lines = episodeLinesOf(episode, live, allLines)
-  const notes = lines.filter(isNote)
-  const noted = new Set([...notes, ...borrowed].map((note) => keyOf(note.dueOn, note.dueTime)))
-  const shifts = latestBy(
-    lines.filter((line) => line.status === 'shift' && line.targetOn !== null),
-    (line) => line.dueOn,
-  )
-  const reports = reportsOf(lines)
   const settingOf = (id: string) => settings.find((setting) => setting.id === id)!
   const endOf = (index: number) => live[index + 1]?.startsOn ?? live[index]!.stoppedOn
   const settingAt = (day: string) => {
@@ -54,13 +46,21 @@ export function calendarOf(
     const open = (end === null || day < end) && (setting.endsOn === null || day <= setting.endsOn)
     return open ? setting : undefined
   }
+  const { closedFrom, stoppedAt } = stopDayOf(live.at(-1)!)
+  const lines = episodeLinesOf(episode, live, allLines, { settingAt, stoppedAt, endOf })
+  const notes = lines.filter(isNote)
+  const noted = new Set([...notes, ...borrowed].map((note) => keyOf(note.dueOn, note.dueTime)))
+  const shifts = latestBy(
+    lines.filter((line) => line.status === 'shift' && line.targetOn !== null),
+    (line) => line.dueOn,
+  )
+  const reports = reportsOf(lines)
 
   const days = new Map<string, Journey>()
   // R4, R7, R9 : les jours où une prise visant d'autres heures couvre les premières heures.
   const translated = new Map<string, string>()
   const left = new Map<string, Journey>()
   const claims: Claim[] = []
-  const { closedFrom, stoppedAt } = stopDayOf(live.at(-1)!)
   // R7, R9.2 : les premières échéances des réglages qui ouvrent un nouveau rythme.
   const openings = new Set<string>()
   // R3, R10 : remplacé le jour même, un réglage transmet sa grille au suivant de même fréquence.
