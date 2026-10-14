@@ -5,6 +5,18 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.79](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.78...memo-patte-v0.1.79) (2026-10-14)
+
+
+### 🐛 Corrections
+
+* **dose-calendar:** « modifier » une prise corrige aussi la ligne de l'autre appareil (tr-25) ([36c7cdb](https://github.com/GaelleBriet/memo-patte-vue/commit/36c7cdbe458eea1cfc79558e0feaec791f204570))
+* **dose-calendar:** « modifier » une prise corrige toutes les lignes de sa dose (tr-25) ([0ef59fb](https://github.com/GaelleBriet/memo-patte-vue/commit/0ef59fb9a6c5d28bf9ed8694e5fe30da9afdf338))
+* **dose-calendar:** la fréquence se compare au réglage en vigueur avant le jour même (r10) ([ef75d3e](https://github.com/GaelleBriet/memo-patte-vue/commit/ef75d3e0534a1b16e7ae6b06093bdc4e719ef7c9))
+* **dose-calendar:** réglage remplacé le jour même et oubli à la reprise ([#810](https://github.com/GaelleBriet/memo-patte-vue/issues/810), r8) ([22e2030](https://github.com/GaelleBriet/memo-patte-vue/commit/22e2030e201c58236c040ebe91431629c2da3cf7))
+* **dose-calendar:** un oubli garde son échéance à la reprise et ne couvre jamais une autre dose ([837b242](https://github.com/GaelleBriet/memo-patte-vue/commit/837b24228630ddc0ea6991d3e565faa16c6993ad))
+* **treatments:** « annuler » rend la même ligne en vigueur sur une dose notée sur deux appareils ([1c5993b](https://github.com/GaelleBriet/memo-patte-vue/commit/1c5993bae4f9e721e5abd8f9ea214ab28afe5364))
+
 ## [0.1.78](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.77...memo-patte-v0.1.78) (2026-10-14)
 
 
