@@ -11,6 +11,7 @@ import {
   type TreatmentPeriodsRepository,
 } from '../repository/treatment-periods.repository'
 import type {
+  PeriodOrigin,
   TreatmentPeriod,
   TreatmentPeriodRecord,
   TreatmentPeriodSettings,
@@ -27,7 +28,8 @@ const T0 = '2026-01-01T00:00:00.000Z'
 const EARLIER = '2026-02-01T00:00:00.000Z'
 const NOW = '2026-03-01T10:00:00.000Z'
 
-function period(overrides: Partial<TreatmentPeriod> = {}): TreatmentPeriod {
+function period(overrides: Partial<TreatmentPeriod> = {}): TreatmentPeriod & PeriodOrigin {
+  const firstDueOn = overrides.firstDueOn ?? overrides.startsOn ?? '2026-01-10'
   return {
     id: MILBEMAX,
     treatmentId: MILBEMAX,
@@ -39,7 +41,10 @@ function period(overrides: Partial<TreatmentPeriod> = {}): TreatmentPeriod {
     updatedAt: T0,
     deletedAt: null,
     ...overrides,
-    firstDueOn: overrides.firstDueOn ?? overrides.startsOn ?? '2026-01-10',
+    firstDueOn,
+    gridOriginOn: firstDueOn,
+    firstDueChosen: true,
+    pastDosesStayUnlogged: false,
   }
 }
 

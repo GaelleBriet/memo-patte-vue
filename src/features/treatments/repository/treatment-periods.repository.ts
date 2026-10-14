@@ -216,14 +216,13 @@ export function createTreatmentPeriodsRepository(
     entity: 'treatment_period',
 
     /**
-     * Fin, heures, posologie et moment du rappel absents : la période n'en a pas ; origine absente :
-     * sa première échéance, choisie par la personne (« Première prise le »), sans réponse à Q38.
-     * Lève pour des réglages incohérents.
+     * Fin, heures, posologie et moment du rappel absents : la période n'en a pas. Lève pour des
+     * réglages incohérents.
      */
     insertStatement(
       period: TreatmentPeriod &
         Partial<TreatmentPeriodSettings> &
-        Partial<PeriodOrigin> & { deletedAt: string | null },
+        PeriodOrigin & { deletedAt: string | null },
     ): SqlStatement {
       const settings = treatmentPeriodSettingsSchema.parse({
         startsOn: period.startsOn,
@@ -245,9 +244,9 @@ export function createTreatmentPeriodsRepository(
           period.animalId,
           settings.startsOn,
           settings.firstDueOn,
-          period.gridOriginOn === undefined ? settings.firstDueOn : originOf(period.gridOriginOn),
-          flag(period.firstDueChosen ?? true),
-          flag(period.pastDosesStayUnlogged ?? false),
+          originOf(period.gridOriginOn),
+          flag(period.firstDueChosen),
+          flag(period.pastDosesStayUnlogged),
           settings.endsOn,
           period.stoppedOn,
           settings.frequency.value,
@@ -446,9 +445,10 @@ export function createTreatmentPeriodsRepository(
         ? {
             sql: `UPDATE treatment_period
                   SET starts_on = ?, first_due_on = ?, grid_origin_on = ?, first_due_chosen = ?,
-                      past_doses_stay_unlogged = ?, ends_on = ?, stopped_on = ?, frequency_value = ?, frequency_unit = ?, times = ?,
-                      dose_quantity = ?, dose_unit = ?, reminder_offset_minutes = ?,
-                      reminder_time = ?, created_at = ?, updated_at = ?, deleted_at = NULL,
+                      past_doses_stay_unlogged = ?, ends_on = ?, stopped_on = ?,
+                      frequency_value = ?, frequency_unit = ?, times = ?, dose_quantity = ?,
+                      dose_unit = ?, reminder_offset_minutes = ?, reminder_time = ?,
+                      created_at = ?, updated_at = ?, deleted_at = NULL,
                       created_by_device = ?, updated_by_device = ?
                   WHERE id = ?`,
             params: [...values, ...devices, period.id],

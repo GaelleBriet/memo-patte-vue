@@ -102,7 +102,16 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
       })
       await expect(repository.getWithHistory(PANACUR)).resolves.toMatchObject({
         periods: [
-          { id: PANACUR, treatmentId: PANACUR, animalId: MIETTE, stoppedOn: null, ...REGLAGES },
+          {
+            id: PANACUR,
+            treatmentId: PANACUR,
+            animalId: MIETTE,
+            stoppedOn: null,
+            ...REGLAGES,
+            gridOriginOn: REGLAGES.firstDueOn,
+            firstDueChosen: true,
+            pastDosesStayUnlogged: false,
+          },
         ],
         doses: [],
       })

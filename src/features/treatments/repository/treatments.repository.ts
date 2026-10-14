@@ -269,6 +269,9 @@ export function createTreatmentsRepository(
         },
         periods.insertStatement({
           ...plan.settings,
+          gridOriginOn: plan.settings.firstDueOn,
+          firstDueChosen: true,
+          pastDosesStayUnlogged: false,
           id: plan.id,
           treatmentId: plan.id,
           animalId: plan.animalId,
