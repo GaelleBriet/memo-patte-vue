@@ -80,7 +80,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   let rhythmFloor = ''
   let anchors = new Set<Line>()
   const bounds: (Day | null)[] = []
-  let tail: Day | null = null
+  let lastGridDay: Day | null = null
   chain.forEach((setting, position) => {
     const index = span.live.indexOf(setting)
     const end = index < 0 ? setting.startsOn : span.endOf(index)
@@ -191,8 +191,10 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       }
       segments.push({ origin: grid.origin, from: start, to: turn?.dueOn ?? setting.endsOn })
       if (turn === null) {
-        tail =
-          unbounded === null ? null : lastGridDay(grid.origin, setting.frequency, start, unbounded)
+        lastGridDay =
+          unbounded === null
+            ? null
+            : lastDayOfGrid(grid.origin, setting.frequency, start, unbounded)
         break
       }
       effects.set(turn.id, { kind: 'shifts', from: turn.dueOn })
@@ -206,11 +208,22 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     if (!effects.has(shift.id)) effects.set(shift.id, { kind: 'idle', reason: 'overtaken' })
   }
   const left = leftDays(claims, lines.reports, span.closedFrom, handed)
-  const bound = bounds.includes(null) ? null : ((bounds as Day[]).sort().at(-1) ?? null)
-  return { days, translated, left, openings, rhythmFrom, replaced, restarts, bound, tail }
+  const ends = bounds.filter((day) => day !== null)
+  const lastPossibleDay = ends.length < bounds.length ? null : (ends.sort().at(-1) ?? null)
+  return {
+    days,
+    translated,
+    left,
+    openings,
+    rhythmFrom,
+    replaced,
+    restarts,
+    lastPossibleDay,
+    lastGridDay,
+  }
 }
 
-function lastGridDay(origin: Day, frequency: Frequency, from: Day, to: Day): Day | null {
+function lastDayOfGrid(origin: Day, frequency: Frequency, from: Day, to: Day): Day | null {
   const window = later(from, plusDays(to, -longestStep(frequency)))
   return gridDays(origin, frequency, window, to).at(-1) ?? null
 }

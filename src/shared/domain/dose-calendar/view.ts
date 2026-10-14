@@ -105,12 +105,12 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
   }
   const currentSetting = episodes.at(-1)?.at(-1) ?? null
   const currentStep = currentSetting === null ? 0 : longestStep(currentSetting.frequency)
-  // Dérouler jusqu'à un réglage lointain coûte cher : seulement si la dose du moment ou la suivante en dépend.
+  // Dérouler la grille jusqu'à un réglage lointain coûte cher : seulement quand le moment en dépend.
   const read = (reach: Day) => {
     const calendars = build(reach)
     const moment = momentOf(calendars, currentSetting ?? undefined, today)
     const settled =
-      !calendars.some(({ clipped }) => clipped) &&
+      !calendars.some(({ reachTooShort }) => reachTooShort) &&
       (moment.phase === 'stopped' || moment.open.some(({ due }) => due.dueOn > today))
     return { reach, calendars, moment, settled }
   }
@@ -126,15 +126,16 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
   }
   const closed = moment.phase === 'stopped' || moment.phase === 'ended'
   const end = currentSetting?.endsOn ?? currentSetting?.stoppedOn ?? null
-  const { bound, tail } = calendars.at(-1) ?? { bound: null, tail: null }
-  const lastDueDay =
-    end === null
-      ? null
-      : tail !== null && tail > reach
-        ? tail
-        : (calendarsUntil(bound ?? end)
-            .at(-1)
-            ?.slots.at(-1)?.due.dueOn ?? null)
+  const lastDueDayUntil = (end: Day): Day | null => {
+    const { lastGridDay = null, lastPossibleDay = null } = calendars.at(-1) ?? {}
+    if (lastGridDay !== null && lastGridDay > reach) return lastGridDay
+    return (
+      calendarsUntil(lastPossibleDay ?? end)
+        .at(-1)
+        ?.slots.at(-1)?.due.dueOn ?? null
+    )
+  }
+  const lastDueDay = end === null ? null : lastDueDayUntil(end)
   // R8, #819 : une prise d'avant l'arrêt qui couvre sa dose y reste comptée, même si elle couvre
   // aussi la première journée de la reprise, sauf quand la reprise reprend cette dose.
   const effects = new Map<string, LineEffect>()

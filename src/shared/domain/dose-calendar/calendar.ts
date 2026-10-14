@@ -17,11 +17,11 @@ export type EpisodeCalendar = {
   /** R9, Q-retard : premier jour du rythme en vigueur, que les réglages de même fréquence continuent. */
   rhythmFrom: Day
   /** Dernier jour où l'épisode peut avoir une échéance, quelle que soit `reach` ; `null` : sans fin. */
-  bound: Day | null
+  lastPossibleDay: Day | null
   /** Dernière journée de la grille du dernier réglage, quelle que soit `reach` ; `null` : sans fin. */
-  tail: Day | null
+  lastGridDay: Day | null
   /** Une dose du moment remplacée (TR-9) se juge au-delà de `reach` : la grille calculée est trop courte. */
-  clipped: boolean
+  reachTooShort: boolean
 }
 
 export type EpisodeInput = {
@@ -40,8 +40,8 @@ export type EpisodeInput = {
 export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   const { settingOf, span, lines, borrowed, yielded } = input
   const effects = new Map<string, LineEffect>()
-  const { days, translated, left, openings, rhythmFrom, replaced, restarts, bound, tail } =
-    journeys(input, effects)
+  const journey = journeys(input, effects)
+  const { days, translated, left, openings, rhythmFrom, replaced, restarts } = journey
   const byDay = new Map<Day, Line[]>()
   for (const note of [...lines.notes, ...borrowed]) {
     byDay.set(note.dueOn, [...(byDay.get(note.dueOn) ?? []), note])
@@ -196,8 +196,16 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   // restent à renseigner.
   replaced.filter(({ onDueDay }) => onDueDay).forEach(({ to }) => fallen.add(to))
   const kept = slots.filter(({ due, coveredBy }) => coveredBy !== null || !lateDays.has(due.dueOn))
-  const clipped = replaced.some(({ onDueDay, to }) => !onDueDay && plusDays(to, -1) > input.reach)
-  return { slots: kept, fallen, moved, effects, rhythmFrom, bound, tail, clipped }
+  return {
+    slots: kept,
+    fallen,
+    moved,
+    effects,
+    rhythmFrom,
+    lastPossibleDay: journey.lastPossibleDay,
+    lastGridDay: journey.lastGridDay,
+    reachTooShort: replaced.some(({ onDueDay, to }) => !onDueDay && plusDays(to, -1) > input.reach),
+  }
 }
 
 // TR-9 : la dernière journée arrivée avant le réglage, dose du moment qu'une date choisie remplace.
