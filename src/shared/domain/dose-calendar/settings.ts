@@ -1,4 +1,4 @@
-import { keyOf, plusDays, sameFrequency } from './grid'
+import { keyOf, plusDays, sameFrequency, sameHours } from './grid'
 import { isNote, latestBy } from './lines'
 import type { Day, Line, Setting } from './types'
 
@@ -43,12 +43,17 @@ export type Span = {
   stoppedAt(day: Day): Setting | undefined
   /** Le réglage en vigueur ce jour-là, date de fin comprise ; aucun avant, après la fin ou l'arrêt. */
   settingAt(day: Day): Setting | undefined
+  /** R4 : premier jour et première échéance d'un réglage dont les heures ne sont pas celles du précédent. */
+  hoursChangeOn: ReadonlySet<Day>
 }
 
 /** R8, TR-32 : les réglages de la période (épisode) qui contient ce réglage. */
+export function episodeOf(settings: readonly Setting[], settingId: string): Setting[] {
+  return episodesOf(settings).find((each) => each.some(({ id }) => id === settingId)) ?? []
+}
+
 export function episodeIdsOf(settings: readonly Setting[], settingId: string): Set<string> {
-  const episode = episodesOf(settings).find((each) => each.some(({ id }) => id === settingId))
-  return new Set((episode ?? []).map(({ id }) => id))
+  return new Set(episodeOf(settings, settingId).map(({ id }) => id))
 }
 
 /** TR-28, R10 : une prise, donnée ou oubliée, ou un report rangés sous ce réglage. */
@@ -59,11 +64,11 @@ export const hasNotes = (setting: Setting, lines: readonly Line[]): boolean =>
 
 /** R10 : remplacé le jour même, un réglage sans prise ni report n'a jamais existé. */
 const isLiveIn =
-  (episode: readonly Setting[], kept: readonly Line[]) => (setting: Setting, index: number) =>
-    episode[index + 1]?.startsOn !== setting.startsOn || hasNotes(setting, kept)
+  (episode: readonly Setting[], lines: readonly Line[]) => (setting: Setting, index: number) =>
+    episode[index + 1]?.startsOn !== setting.startsOn || hasNotes(setting, lines)
 
-export function spanOf(episode: readonly Setting[], kept: readonly Line[]): Span {
-  const isLive = isLiveIn(episode, kept)
+export function spanOf(episode: readonly Setting[], lines: readonly Line[]): Span {
+  const isLive = isLiveIn(episode, lines)
   const live = episode.filter(isLive)
   const chain = episode.filter(
     (setting, index) =>
@@ -83,7 +88,14 @@ export function spanOf(episode: readonly Setting[], kept: readonly Line[]): Span
   }
   const stoppedAt = (day: Day) =>
     day === stop && (stopped.endsOn === null || day <= stopped.endsOn) ? stopped : undefined
-  return { episode, live, chain, endOf, closedFrom, stoppedAt, settingAt }
+  const hoursChangeOn = new Set(
+    live.flatMap((setting, index) =>
+      index > 0 && !sameHours(live[index - 1]!, setting)
+        ? [setting.startsOn, setting.firstDueOn]
+        : [],
+    ),
+  )
+  return { episode, live, chain, endOf, closedFrom, stoppedAt, settingAt, hoursChangeOn }
 }
 
 /** R8, Q-G3 : les prises d'avant l'arrêt ne couvrent la reprise que le jour où elle est écrite. */

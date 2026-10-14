@@ -1,5 +1,5 @@
-import { hoursOf, keyOf, plusDays, stepped } from './grid'
-import { journeys, sameHours, type Journey } from './journeys'
+import { hoursOf, keyOf, plusDays, sameHours, stepped } from './grid'
+import { journeys, type Journey } from './journeys'
 import type { EpisodeLines } from './lines'
 import type { Span } from './settings'
 import type { Day, Due, Hour, Line, LineEffect, Setting } from './types'
@@ -153,7 +153,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     if (arrival === undefined) continue
     // R7 : heures changées, le jour d'arrivée prend autant de dernières heures que de doses reportées.
     const kept = sameHours(arrival, from)
-    if (!kept) translated.set(targetOn!, arrival.id)
+    if (!kept) translated.add(targetOn!)
     const day = into.get(targetOn!) ?? { setting: arrival, hours: [] }
     // R7, R9.2 : un nouveau rythme qui part du jour d'arrivée d'un report lui laisse ses seules heures.
     if (openings.delete(targetOn!)) {

@@ -46,9 +46,6 @@ function leftDays(
   return left
 }
 
-export const sameHours = (a: Setting, b: Setting) =>
-  hoursOf(a.times).join() === hoursOf(b.times).join()
-
 const isDueDay = (grid: Grid, frequency: Frequency, day: Day) =>
   day > grid.since && isOnGrid(grid.origin, frequency, day)
 
@@ -63,7 +60,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   const { span, lines, reach } = input
   const { chain } = span
   const days = new Map<Day, Journey>()
-  const translated = new Map<Day, string>()
+  const translated = new Set(span.hoursChangeOn)
   const claims: Claim[] = []
   const openings = new Set<Day>()
   let grid: Grid = { origin: chain[0]!.firstDueOn, floor: '', since: '' }
@@ -113,9 +110,6 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       previous !== undefined &&
       sameFrequency(previous.frequency, setting.frequency) &&
       (origin === null || isOnGrid(inForce.origin, setting.frequency, origin))
-    if (index > 0 && !sameHours(span.live[index - 1]!, setting)) {
-      translated.set(setting.startsOn, setting.id).set(setting.firstDueOn, setting.id)
-    }
     const ownFloor = plusDays(later(setting.firstDueOn, setting.startsOn), -1)
     if (!continued) {
       for (const day of openings) if (day >= setting.startsOn) openings.delete(day)

@@ -1,5 +1,5 @@
-import { keyOf } from './grid'
-import type { IdleReason, Line } from './types'
+import { hoursOf, keyOf } from './grid'
+import type { Day, IdleReason, Line, Setting } from './types'
 
 export const isNote = (line: Pick<Line, 'status'>): boolean =>
   line.status === 'given' || line.status === 'missed'
@@ -24,9 +24,25 @@ export function latestBy(lines: readonly Line[], keyOfLine: (line: Line) => stri
   return [...latest.values()].sort((a, b) => a.dueOn.localeCompare(b.dueOn))
 }
 
+/**
+ * TR-25, R11 : l'échéance et la famille d'une ligne dans sa période, quel que soit le réglage ; le jour
+ * où les heures changent, une prise visant d'autres heures vise une autre échéance (R4).
+ */
+export function doseKeyOf(
+  episode: readonly Setting[],
+  hoursChangeOn: ReadonlySet<Day>,
+): (line: Line) => string {
+  const byId = new Map(episode.map((setting) => [setting.id, setting]))
+  return (line) => {
+    const key = `${keyOf(line.dueOn, line.dueTime)} ${familyOf(line)}`
+    if (!isNote(line) || !hoursChangeOn.has(line.dueOn)) return key
+    return `${key} ${hoursOf(byId.get(line.settingId)!.times).join()}`
+  }
+}
+
 /** Les lignes d'un épisode que le calendrier lit, et celles qu'il ne lit pas (R11), avec leur raison. */
 export type EpisodeLines = {
-  /** Une ligne par réglage, échéance et famille. */
+  /** Une ligne par échéance et famille (`doseKeyOf`). */
   kept: Line[]
   notes: Line[]
   /** Une ligne de report par journée, sans les reports revenus à leur date. */
@@ -38,13 +54,12 @@ export type EpisodeLines = {
 
 export function episodeLines(
   lines: readonly Line[],
-  settingIds: ReadonlySet<string>,
+  episode: readonly Setting[],
+  hoursChangeOn: ReadonlySet<Day>,
 ): EpisodeLines {
-  const own = lines.filter((line) => settingIds.has(line.settingId))
-  const kept = latestBy(
-    own,
-    (line) => `${line.settingId} ${keyOf(line.dueOn, line.dueTime)} ${familyOf(line)}`,
-  )
+  const ids = new Set(episode.map(({ id }) => id))
+  const own = lines.filter((line) => ids.has(line.settingId))
+  const kept = latestBy(own, doseKeyOf(episode, hoursChangeOn))
   const idle = new Map<string, IdleReason>()
   const keptIds = new Set(kept.map(({ id }) => id))
   own.filter(({ id }) => !keptIds.has(id)).forEach(({ id }) => idle.set(id, 'superseded'))
