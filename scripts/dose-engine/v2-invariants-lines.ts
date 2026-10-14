@@ -51,8 +51,11 @@ export function conservation(step: V2Step): Broken | null {
     periodOf(line.settingId) === periodOf(of.settingId) &&
     line.dueOn === of.dueOn &&
     line.dueTime === of.dueTime
+  const arrivalLogged = (report: Line) =>
+    step.before.lines.some((other) => isPrise(other) && other.dueOn === report.targetOn)
   // TR-25, #835 : « Supprimer » une ligne en vigueur emporte les autres lignes que la fiche montre
-  // avec elle : prises de sa dose ; reports de sa dose et décalages de sa journée.
+  // avec elle : prises de sa dose ; reports de sa dose dont l'arrivée n'est pas notée (Q25) et
+  // décalages de sa journée.
   const ofRemovedLine = (line: Line) => {
     if (gesture.kind !== 'remove') return false
     const removed = step.before.lines.find(({ id }) => id === gesture.lineId)!
@@ -63,6 +66,7 @@ export function conservation(step: V2Step): Broken | null {
     if (line.status === 'shift' && ['postponed', 'shift'].includes(removed.status)) {
       return sameDose(line, { ...removed, dueTime: line.dueTime })
     }
+    if (line.status === 'postponed' && arrivalLogged(line)) return false
     return familyOf(line) === familyOf(removed) && sameDose(line, removed)
   }
   // TR-25, #841 : la prise notée ou corrigée retire les autres prises de sa dose.
