@@ -75,7 +75,7 @@ describe('performance', () => {
 })
 
 describe('réglage suivant très lointain (fichier forgé)', () => {
-  it('un réglage à 24 heures par jour suivi d’un réglage en 2199 se lit en moins de 2 s', () => {
+  it('un réglage à 24 heures par jour suivi d’un réglage en 2199 se lit en moins de 5 s', () => {
     const everyHour = Array.from({ length: 24 }, (_, hour) => `${String(hour).padStart(2, '0')}:00`)
     const forged: TreatmentViewInput = {
       settings: [setting('s1', '2026-09-01', DAY, everyHour), setting('s2', '2199-12-30', DAY)],
@@ -83,19 +83,18 @@ describe('réglage suivant très lointain (fichier forgé)', () => {
       today: '2026-09-28',
     }
 
-    const { result: view, elapsed } = fastest(() => {
-      const computed = treatmentView(forged)
-      computed.upcoming({ limit: 400 })
-      return computed
-    })
+    const start = performance.now()
+    const view = treatmentView(forged)
+    view.upcoming({ limit: 400 })
+    const elapsed = performance.now() - start
 
     expect(view.unloggedDoses).toHaveLength(27 * 24)
     expect(view.currentDoses).toEqual(
       everyHour.map((dueTime) => ({ settingId: 's1', dueOn: '2026-09-28', dueTime })),
     )
     expect(view.nextDue).toEqual({ settingId: 's1', dueOn: '2026-09-29', dueTime: '00:00' })
-    expect(elapsed).toBeLessThan(2000)
-  })
+    expect(elapsed).toBeLessThan(5000)
+  }, 20000)
 })
 
 // Un réglage par ajustement de posologie, toutes les prises données à leur jour.

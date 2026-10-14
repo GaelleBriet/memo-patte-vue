@@ -99,7 +99,7 @@ describe('treatmentReading', () => {
     expect(treatmentReading({ periods: [old], doses: [] }, TODAY)).toBeNull()
   })
 
-  it('lit un traitement de tous les jours à 8 h et 20 h qui finit en 2100, comme l’ancien moteur', () => {
+  it('lit un traitement de tous les jours à 8 h et 20 h qui finit en 2100', () => {
     const milbemax = period({
       startsOn: '2026-10-12',
       firstDueOn: '2026-10-12',
