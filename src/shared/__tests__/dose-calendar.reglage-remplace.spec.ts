@@ -77,6 +77,46 @@ describe('#810, TR-28 : Milo tous les 3 jours à 8 h depuis le 3 oct., dose du 6
   })
 })
 
+describe('R10, décision de Gaelle du 14 octobre 2026 : Milo tous les 3 jours à 8 h depuis le 3 oct., dose du 6 non donnée ; le 7, aller-retour de fréquence, comparé au réglage d’avant le 7', () => {
+  function milo() {
+    const c = carnet('2026-10-03', jours(3), ['08:00'])
+    return donne(c, '2026-10-03', echeance(c, '2026-10-03', '08:00'))
+  }
+  const enRetard = { phase: 'overdue', moment: ['2026-10-06 08:00'], aRenseigner: [] }
+
+  it('un téléphone : tous les 2 jours, puis retour à tous les 3 jours : la dose du 6 reste en retard', () => {
+    const c = modifie(modifie(milo(), '2026-10-07', jours(2), ['08:00']), '2026-10-07', jours(3), [
+      '08:00',
+    ])
+    expect(lu(c, '2026-10-07')).toEqual(enRetard)
+    expect(luParLaReference(c, '2026-10-07')).toEqual(enRetard)
+  })
+
+  it('deux téléphones : A passe à tous les 2 jours, B garde tous les 3 jours à 9 h ; après la synchro, la dose du 6 est en retard, dans quelque ordre que les réglages arrivent', () => {
+    const a = modifie(milo(), '2026-10-07', jours(2), ['08:00'])
+    const b = modifie(milo(), '2026-10-07', jours(3), ['09:00'])
+    const recu = { ...b.periods.at(-1)!, id: 'p3' }
+    const synchronise = { periods: [...a.periods, recu], doses: a.doses }
+    const autreOrdre = { periods: [recu, ...a.periods].reverse(), doses: [...a.doses].reverse() }
+    expect(lu(synchronise, '2026-10-07')).toEqual(enRetard)
+    expect(lu(autreOrdre, '2026-10-07')).toEqual(enRetard)
+    expect(luParLaReference(synchronise, '2026-10-07')).toEqual(enRetard)
+  })
+
+  it('tous les 2 jours, dose du 7 donnée, retour à tous les 3 jours à 9 h dès le 9, puis la prise du 7 supprimée : comme un seul « Modifier », le 9 remplace la dose du 6', () => {
+    let c = modifie(milo(), '2026-10-07', jours(2), ['08:00'])
+    c = donne(c, '2026-10-07', echeance(c, '2026-10-07', '08:00'))
+    c = modifie(c, '2026-10-07', jours(3), ['09:00'], '2026-10-09')
+    c = supprime(c, ligne(c, '2026-10-07', '08:00', 'given').id)
+    const seul = modifie(milo(), '2026-10-07', jours(3), ['09:00'], '2026-10-09')
+    const attendu = { phase: 'upcoming', moment: ['2026-10-09 09:00'], aRenseigner: [] }
+    expect(c.periods).toHaveLength(3)
+    expect(lu(seul, '2026-10-07')).toEqual(attendu)
+    expect(lu(c, '2026-10-07')).toEqual(attendu)
+    expect(luParLaReference(c, '2026-10-07')).toEqual(attendu)
+  })
+})
+
 describe('#810, forme A (graine 1500290961) : tous les 3 mois à 6, 12, 18 et 23 h depuis le 31 mars, dose de 18 h du 31 oubliée', () => {
   it('le 1er avr., tous les 2 jours dès le 2, 6 h du 2 donnée d’avance, second « Modifier » identique, prise supprimée : 6, 12 et 23 h du 31 à renseigner, prochaine dose le 2 à 6 h', () => {
     let c = carnet('2026-03-31', mois(3), QUATRE)
