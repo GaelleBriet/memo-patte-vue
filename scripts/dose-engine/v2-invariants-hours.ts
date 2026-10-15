@@ -48,19 +48,6 @@ function pastOf(input: TreatmentViewInput) {
   return { slots, late, unlogged: view.unloggedDoses.map(dueKey), covers }
 }
 
-// Question ouverte (#854) : un report dont la journée d'origine est aujourd'hui ou plus tard, quand
-// les heures d'avant la sienne changent de nombre ou qu'aucune ne la suit ; non jugé avant réponse.
-function reportsTouched(input: TreatmentViewInput, from: readonly string[], to: readonly string[]) {
-  return input.lines.some(({ status, dueOn, dueTime, targetOn }) => {
-    if (status !== 'postponed' || targetOn === null || dueOn < input.today || dueTime === null) {
-      return false
-    }
-    const before = (times: readonly string[]) => times.filter((time) => time < dueTime).length
-    const follows = (times: readonly string[]) => times.some((time) => time >= dueTime)
-    return before(from) !== before(to) || !follows(from) || !follows(to)
-  })
-}
-
 /**
  * 3 bis. R9, décision du 15 octobre 2026 : changer seulement les heures, sans date, ne change ni l'état
  * ni l'heure d'aucune journée passée, et aucune prise n'y perd son effet ; « Elles restent à
@@ -72,7 +59,6 @@ export function hoursOnly(input: TreatmentViewInput): Broken | null {
   if (current === null || view.phase === 'stopped' || view.phase === 'ended') return null
   const before = pastOf(input)
   for (const [label, times] of hoursTried(current.times)) {
-    if (reportsTouched(input, current.times, times)) continue
     const result = newSettings(input, {
       frequency: current.frequency,
       times,

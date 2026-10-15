@@ -43,9 +43,9 @@ donner ; la même demande avec cette date passée en clair rend la même répons
 (`v2-invariants-hours.ts`, R9, décision du 15 octobre 2026) : changer seulement les heures, sans
 date (une minute plus tard, une heure ajoutée, retirée, aucune), ne change ni l'état ni l'heure
 d'aucune journée passée, et aucune prise n'y perd son effet, « Elles restent à renseigner » comprise ;
-« Elles n'étaient pas à donner » corrige le réglage (Q38) ; un report d'aujourd'hui ou plus tard dont
-les heures d'avant la sienne changent de nombre, ou qu'aucune heure ne suit, n'est pas jugé (question
-ouverte de #854). La campagne ne
+« Elles n'étaient pas à donner » corrige le réglage (Q38) ; les reports d'aujourd'hui ou plus tard
+sont jugés comme le reste (un report déplace des doses, pas des heures, décision du 15 octobre
+2026). La campagne ne
 choisit jamais une « Prochaine dose » après la date de fin, que le formulaire refuse (Q20). Variables
 posées directement devant la commande, sous le même verrou :
 
