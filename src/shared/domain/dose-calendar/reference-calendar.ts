@@ -249,6 +249,7 @@ export function calendarOf(
     const then =
       arrival === undefined ||
       sameHours(arrival, from) ||
+      !sameFrequency(arrival, from) ||
       targetOn! >= from.startsOn ||
       report!.settingId === from.id
         ? null

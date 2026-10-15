@@ -158,7 +158,7 @@ export function reportMove(
   const free = hours.filter((hour) => !covered.has(hour))
   const following = free.filter(isAfter)
   if (then === null) return { beaten: covered.has(dueTime), moved: following, bringing: following }
-  const bringing = then.filter((hour) => isAfter(hour) && !isNoted(hour))
+  const bringing = then.filter((hour) => (hour === null || isAfter(hour)) && !isNoted(hour))
   const wholeDay = hours.length > 0 && free.length === 0
   const moved =
     following.length > 0 || bringing.length === 0 ? following : free.slice(-bringing.length)

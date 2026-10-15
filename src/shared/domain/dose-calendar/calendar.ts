@@ -1,4 +1,4 @@
-import { hoursOf, keyOf, plusDays, sameHours, stepped } from './grid'
+import { hoursOf, keyOf, plusDays, sameFrequency, sameHours, stepped } from './grid'
 import { journeys, type Gap, type Journey } from './journeys'
 import type { EpisodeLines } from './lines'
 import type { Span } from './settings'
@@ -145,6 +145,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     const then =
       arrival === undefined ||
       sameHours(arrival, from) ||
+      !sameFrequency(arrival.frequency, from.frequency) ||
       targetOn! >= from.startsOn ||
       report.settingId === from.id
         ? null
@@ -157,7 +158,9 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     if (targetOn! > dueOn) fallen.add(dueOn)
     const after = (hour: Hour) => (hour ?? '') >= (dueTime ?? '')
     const open = hours.filter((hour) => !covered.has(hour))
-    const sent = then?.filter((hour) => after(hour) && !noted.has(keyOf(dueOn, hour)))
+    const sent = then?.filter(
+      (hour) => (hour === null || after(hour)) && !noted.has(keyOf(dueOn, hour)),
+    )
     const following = open.filter(after)
     const last = sent === undefined || sent.length === 0 ? [] : open.slice(-sent.length)
     const leaving = sent === undefined || following.length > 0 ? following : last
