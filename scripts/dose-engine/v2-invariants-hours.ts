@@ -77,6 +77,10 @@ export function hoursOnly(input: TreatmentViewInput): Broken | null {
     })
     if ('refusal' in result) continue
     const plan: SettingsPlan = 'plan' in result ? result.plan : result.question.keep
+    // R10 : remplacé le jour même, un réglage se recalcule comme un seul « Modifier », date comprise.
+    const { firstDueOn, gridOriginOn } = plan.setting
+    const recomputed = firstDueOn !== current.firstDueOn || gridOriginOn !== current.gridOriginOn
+    if (plan.action === 'rewrite' && current.startsOn === input.today && recomputed) continue
     const after = daysOf(settingsApplied(input, plan), touched)
     const broken = compare(`heures seules (${label})`, before, after)
     if (broken !== null) return broken

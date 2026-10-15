@@ -138,7 +138,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
         ? new Set(hours.filter((hour) => noted.has(keyOf(dueOn, hour))))
         : new Set(coveredOn(dueOn, origin).keys())
     const written = settingOf(report.settingId)
-    const source = translated.has(dueOn) && !sameHours(written, from) ? written : from
+    const source = translated.has(dueOn) && written.id !== from.id ? written : from
     if (source === from ? covered.has(dueTime) : noted.has(keyOf(dueOn, dueTime))) {
       effects.set(report.id, { kind: 'idle', reason: 'beaten' })
       continue
@@ -146,7 +146,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     if (targetOn! > dueOn) fallen.add(dueOn)
     const after = (hour: Hour) => hour === null || hour >= (dueTime ?? '')
     const leaving = hours.filter((hour) => after(hour) && !covered.has(hour))
-    // Décision du 15 octobre 2026 : parti du jour où les heures changent, un report emporte les siennes.
+    // Décision du 15 octobre 2026 : écrit avant le changement d'heures, un report emporte les siennes.
     const bringing =
       source === from
         ? leaving
