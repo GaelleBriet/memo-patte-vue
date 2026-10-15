@@ -1,10 +1,11 @@
 import {
-  applied,
   moveDose,
   newSettings,
   noteDose,
+  removeLine,
   settingsApplied,
   treatmentView,
+  type LineChange,
   type SettingsPlan,
   type SettingsRequest,
   type TreatmentViewInput,
@@ -12,14 +13,34 @@ import {
 import { referenceReading } from '../domain/dose-calendar/reference-model'
 import { keys } from './dose-calendar.v2.aides'
 
-let made = 0
+// Comme le repository : un identifiant neuf et un horodatage plus récent que tout le carnet.
+function nextStamp(input: TreatmentViewInput): string {
+  const stamps = [...input.settings.map((s) => s.createdAt), ...input.lines.map((l) => l.updatedAt)]
+  const latest = stamps.reduce((a, b) => (a > b ? a : b), '2026-02-01T00:00:00.000Z')
+  return new Date(Date.parse(latest) + 1000).toISOString()
+}
+
+function recorded(input: TreatmentViewInput, changes: readonly LineChange[]): TreatmentViewInput {
+  return changes.reduce((carnet, change) => {
+    if (change.action === 'delete') {
+      return { ...carnet, lines: carnet.lines.filter(({ id }) => id !== change.id) }
+    }
+    const updatedAt = nextStamp(carnet)
+    const lines =
+      change.action === 'rewrite'
+        ? carnet.lines.map((l) =>
+            l.id === change.id ? { ...change.line, id: l.id, updatedAt } : l,
+          )
+        : [...carnet.lines, { ...change.line, id: `l-${updatedAt}`, updatedAt }]
+    return { ...carnet, lines }
+  }, input)
+}
 
 function written(input: TreatmentViewInput, plan: SettingsPlan): TreatmentViewInput {
   if (plan.action === 'rewrite') return settingsApplied(input, plan)
-  made += 1
-  const createdAt = `2026-02-01T00:00:${String(made).padStart(2, '0')}.000Z`
-  const created = { ...plan.setting, id: `r${made}`, stoppedOn: null, createdAt }
-  return applied({ ...input, settings: [...input.settings, created] }, plan.lines ?? [])
+  const createdAt = nextStamp(input)
+  const created = { ...plan.setting, id: `r-${createdAt}`, stoppedOn: null, createdAt }
+  return recorded({ ...input, settings: [...input.settings, created] }, plan.lines ?? [])
 }
 
 export const on = (input: TreatmentViewInput, today: string) => ({ ...input, today })
@@ -35,7 +56,7 @@ export function given(
   const gesture = { due, status, givenOn: input.today, shiftsFollowing: false }
   const result = noteDose(input, gesture)
   if ('refusal' in result) throw new Error(JSON.stringify(result))
-  return applied(input, result.changes)
+  return recorded(input, result.changes)
 }
 
 export function moved(
@@ -48,7 +69,17 @@ export function moved(
   const due = { settingId: current(input), dueOn, dueTime }
   const result = moveDose(input, { due, to, shiftsFollowing: shifts })
   if ('refusal' in result) throw new Error(JSON.stringify(result))
-  return applied(input, result.changes)
+  return recorded(input, result.changes)
+}
+
+/** « Supprimer » une prise notée. */
+export function removed(input: TreatmentViewInput, dueOn: string, dueTime: string) {
+  const note = input.lines.find(
+    (line) => line.status === 'given' && line.dueOn === dueOn && line.dueTime === dueTime,
+  )!
+  const result = removeLine(input, note.id)
+  if ('refusal' in result) throw new Error(JSON.stringify(result))
+  return recorded(input, result.changes)
 }
 
 export function edited(
