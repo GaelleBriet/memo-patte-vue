@@ -2702,3 +2702,21 @@ R10, §10 et §11 ; modèle de données §4.3 ; export v6).
 - Attendu de Gaelle, exemple 2 (graine 7500002108) : rien « à renseigner » le 6 avril après
   « Elles n'étaient pas à donner ».
 - Les deux tests passent au vert dans #854, prochain ticket.
+
+2026-10-15 — **Une journée touchée garde ses heures** (spec `traitements.md` R3, R4, R7, R9, R11,
+TR-28 et §10, #854).
+
+- Décision de Gaelle du 15 octobre 2026 (soir) : « Une journée déjà déplacée ou notée garde les
+  heures qu'elle avait quand elle a été touchée ; les nouvelles heures valent pour les journées non
+  touchées ; aujourd'hui garde la règle actuelle (R4 : les prises du jour couvrent les premières heures
+  du nouveau réglage) ; la journée à venir déjà entamée (R9.2) garde aussi ses heures, pour n'avoir
+  qu'une règle. »
+- Elle remplace la décision du 15 octobre au matin sur Luna (le jour d'arrivée ne gardait qu'une
+  dose, aux nouvelles heures), la « fin de liste » de R7 (le jour d'arrivée prenait les dernières
+  nouvelles heures) et la traduction de R9.2 pour une journée à venir. Une seule traduction reste,
+  le jour où les heures changent.
+- Exemple : Luna, toutes les 2 semaines à 8 h, 14 h et 20 h ; le 12 avril, la dose du 23 avancée au
+  15, puis 6 h seule le même jour : le 15 porte 8 h, 14 h et 20 h, le 23 est vide, puis le 7 mai à
+  6 h. — Alternative écartée : faire passer les journées à venir déjà touchées aux nouvelles heures
+  (PR #858), qui devait compter et « traduire » les doses de chaque journée et lisait 65 carnets sur
+  3 000 plus mal que `main`.
