@@ -119,9 +119,8 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
         }
       }
     }
-    // R6, TR-9 : la date choisie porte le report d'avant elle qui en part ; parti d'une journée hors de
-    // sa grille, un report est sans effet, sauf s'il porte la date, arrive sur la première échéance
-    // d'une origine écrite (TR-28) ou ouvre un rythme (R9.2).
+    // R6, TR-9 : hors de sa grille, un report est sans effet, sauf s'il porte la date choisie,
+    // arrive sur la première échéance d'une origine écrite (TR-28) ou ouvre un rythme (R9.2).
     const at = span.settingAt(dueOn)?.id ?? ''
     const restartOn = restarts.get(at)
     const chosenOn = chosenRestarts.get(at)

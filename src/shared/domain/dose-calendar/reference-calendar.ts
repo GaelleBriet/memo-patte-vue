@@ -77,7 +77,6 @@ export function calendarOf(
   // R10 : la date choisie seule ; reprise par son remplaçant du jour même, elle lui passe ses journées.
   const chosenRestarts = new Map<string, string>()
   let chosenRestart: string | undefined
-  // R10, TR-9 : la date choisie d'un réglage remplacé le jour même attend le réglage qui le remplace.
   let waitingReplace: Replaced | undefined
   let chosenFloor = ''
   let rhythmFloor = ''
@@ -95,8 +94,7 @@ export function calendarOf(
     const last = [reach, setting.endsOn, end === null ? null : plusDays(end, -1)]
       .filter((day) => day !== null)
       .sort()[0]!
-    // R3 : à fréquence gardée et sur la grille en vigueur, le calendrier continue ; sinon la grille
-    // part de la première échéance du réglage (R2).
+    // R3 : à fréquence gardée et sur la grille en vigueur, le calendrier continue ; sinon, R2.
     const previous = chain[position - 1]
     const origin = setting.gridOriginOn
     const earlier = new Set(episode.slice(0, episode.indexOf(setting)).map(({ id }) => id))
@@ -127,8 +125,7 @@ export function calendarOf(
       const follows = chain.slice(0, position).some((each) => live.includes(each))
       if (follows && setting.firstDueOn >= setting.startsOn) openings.add(setting.firstDueOn)
     }
-    // R2, R9 : une origine posée sur la grille en vigueur ne lit aucune journée avant sa première
-    // échéance, ni ses suivants de même rythme, pas même après un décalage.
+    // R2, R9 : une origine sur la grille en vigueur, ni ses suivants, ne lit rien avant elle.
     chosenFloor = !continued ? '' : origin !== null ? ownFloor : chosenFloor
     if (!continued || origin !== null) rhythmFloor = ownFloor
     if (!continued || origin !== null) anchors = continued ? held : new Set()
@@ -143,8 +140,7 @@ export function calendarOf(
     const livesBefore = live.filter((other) => episode.indexOf(other) < episode.indexOf(setting))
     const lastLive = livesBefore[livesBefore.length - 1]
     const ended = lastLive !== undefined && (lastLive.endsOn ?? setting.startsOn) < setting.startsOn
-    // R10 : sans prise, un réglage remplacé le jour même ne compte pas, la fréquence se compare à
-    // celle du réglage en vigueur avant lui.
+    // R10 : la fréquence se compare au réglage d'avant celui remplacé le jour même sans prise.
     const kept = lastLive !== undefined && sameFrequency(lastLive, setting)
     // R10, #817, #836 : seule une date choisie sans « Elles restent à renseigner » remplace la dose
     // du moment ; une date proposée ou gardée à renseigner laisse le rythme et sa dose en retard.
@@ -181,9 +177,8 @@ export function calendarOf(
     )
     let from = setting.startsOn
     const segments: Segment[] = []
-    // R6 : la journée d'origine d'un décalage, échéance de la grille telle qu'elle est avant lui, ou
-    // arrivée d'une dose reportée du rythme en vigueur ; avant une date choisie, seul celui qui la
-    // porte (R3, TR-9).
+    // R6 : un décalage part d'une échéance de la grille d'avant lui ou de l'arrivée d'un report du
+    // rythme ; avant une date choisie, seul celui qui la porte (R3, TR-9).
     const lands = (turn: ReferenceLine) =>
       (isDueDay(grid, setting, turn.dueOn) && (turn.dueOn > chosenFloor || anchors.has(turn))) ||
       reports.some((report) => report.targetOn === turn.dueOn && report.dueOn > rhythmFloor)
@@ -234,9 +229,8 @@ export function calendarOf(
       origin === undefined
         ? new Set(hours.filter((hour) => noted.has(keyOf(dueOn, hour))))
         : coveredOn(dueOn, origin)
-    // R6, TR-9 : la date choisie porte le report d'avant elle qui en part ; parti d'une journée hors de
-    // sa grille, un report est sans effet, sauf s'il porte la date, arrive sur la première échéance
-    // d'une origine écrite (TR-28) ou ouvre un rythme (R9.2).
+    // R6, TR-9 : hors de sa grille, un report est sans effet, sauf s'il porte la date choisie,
+    // arrive sur la première échéance d'une origine écrite (TR-28) ou ouvre un rythme (R9.2).
     const at = settingAt(dueOn)?.id ?? ''
     const restartOn = restarts.get(at)
     const chosenOn = chosenRestarts.get(at)
