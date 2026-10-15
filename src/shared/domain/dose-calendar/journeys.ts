@@ -70,9 +70,12 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   let rhythm = new Set<string>()
   let rhythmFrom = span.live[0]!.startsOn
   const replaced: Replaced[] = []
-  // R6, TR-9 : par réglage, la date choisie dont la grille repart, que ses suivants de même rythme continuent.
+  // R6, TR-9 : par réglage, la date dont la grille repart, que ses suivants de même rythme continuent.
   const restarts = new Map<string, Day>()
   let restart: Day | undefined
+  // R10 : la date choisie seule ; reprise par son remplaçant du jour même, elle lui passe ses journées.
+  const chosenRestarts = new Map<string, Day>()
+  let chosenRestart: Day | undefined
   let replacing: Replaced | null = null
   // R10, TR-9 : remplacé le jour même par un réglage sans date choisie, un réglage lui laisse ses journées.
   const handed = new Set<string>()
@@ -147,19 +150,26 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
         isOnGrid(inherited.origin, setting.frequency, setting.startsOn)
       replacing = { from: rhythmFrom, to: setting.startsOn, onDueDay }
       restart = setting.firstDueOn
+      chosenRestart = restart
     } else if (!continued || (origin !== null && setting.firstDueChosen) || ended) {
       replacing = null
       restart = undefined
+      chosenRestart = undefined
+    } else if (origin !== null) {
+      // TR-28 : une origine écrite sans date choisie fait repartir la grille, et le report qui arrive
+      // sur sa première échéance, sans remplacer la dose du moment.
+      restart = setting.firstDueOn
     }
     if (index < 0) return
     if (replacing !== null) replaced.push(replacing)
     replacing = null
     if (restart !== undefined) restarts.set(setting.id, restart)
+    if (chosenRestart !== undefined) chosenRestarts.set(setting.id, chosenRestart)
     if (
       prior?.startsOn === setting.startsOn &&
       (origin === null || !setting.firstDueChosen) &&
-      restart !== undefined &&
-      restarts.get(prior.id) === restart
+      chosenRestart !== undefined &&
+      chosenRestarts.get(prior.id) === chosenRestart
     ) {
       handed.add(prior.id)
     }

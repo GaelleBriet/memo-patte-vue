@@ -74,6 +74,9 @@ export function calendarOf(
   const replaced: Replaced[] = []
   const restarts = new Map<string, string>()
   let restart: string | undefined
+  // R10 : la date choisie seule ; reprise par son remplaçant du jour même, elle lui passe ses journées.
+  const chosenRestarts = new Map<string, string>()
+  let chosenRestart: string | undefined
   // R10, TR-9 : la date choisie d'un réglage remplacé le jour même attend le réglage qui le remplace.
   let waitingReplace: Replaced | undefined
   let chosenFloor = ''
@@ -153,14 +156,21 @@ export function calendarOf(
       waitingReplace = { from: rhythmFrom, to: setting.startsOn, onDueDay }
       // R6, TR-9 : la grille repartie d'une date choisie, continuée par les réglages de même rythme.
       restart = setting.firstDueOn
+      chosenRestart = restart
     } else if (!continued || (origin !== null && setting.firstDueChosen) || ended) {
       waitingReplace = undefined
       restart = undefined
+      chosenRestart = undefined
+    } else if (origin !== null) {
+      // TR-28 : une origine écrite sans date choisie fait repartir la grille, et le report qui arrive
+      // sur sa première échéance, sans remplacer la dose du moment.
+      restart = setting.firstDueOn
     }
     if (index < 0) return
     if (waitingReplace !== undefined) replaced.push(waitingReplace)
     waitingReplace = undefined
     if (restart !== undefined) restarts.set(setting.id, restart)
+    if (chosenRestart !== undefined) chosenRestarts.set(setting.id, chosenRestart)
     if (index > 0 && (ended || !kept || (!continued && replaces))) rhythmFrom = setting.startsOn
     // R6 : à partir de sa journée d'origine, un décalage donne à la grille l'origine de son ancrage ;
     // écrit sous un réglage d'avant un changement de fréquence, il est dépassé par la nouvelle origine (R3).
@@ -192,7 +202,7 @@ export function calendarOf(
     claims.push({ setting, end, segments })
   })
 
-  const handed = handedOf(claims, restarts)
+  const handed = handedOf(claims, chosenRestarts)
   leftDays(
     claims.filter(({ setting }) => !handed.has(setting.id)),
     reports,
