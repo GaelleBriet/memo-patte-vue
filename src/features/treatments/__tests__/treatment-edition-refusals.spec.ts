@@ -114,14 +114,14 @@ describe('#806, Q38 : « Elles n’étaient pas à donner » refusé quand il ne
       }),
     ],
     [
-      dose({ dueOn: '2026-03-17', dueTime: '08:00', status: 'postponed', targetOn: '2026-04-05' }),
-      dose({ dueOn: '2026-03-17', dueTime: '08:00', status: 'shift', targetOn: '2026-04-05' }),
+      dose({ dueOn: '2026-03-17', dueTime: '14:00', status: 'postponed', targetOn: '2026-04-05' }),
+      dose({ dueOn: '2026-03-17', dueTime: '14:00', status: 'shift', targetOn: '2026-04-05' }),
       dose({ dueOn: '2026-03-16', dueTime: '08:00', givenOn: '2026-03-16' }),
     ],
   )
   const back = saisie(history, { times: THREE_TIMES, endsOn: '2026-03-25' })
 
-  it('chaque jour à 8, 14 et 20 h, fin le 6 avr. ; le 17 mars, 8 h reportée au 5 avr. avec décalage, puis 6, 12, 18 et 23 h ; le 18, retour à 8, 14 et 20 h, fin le 25 : la question n’annonce aucune date pour « pas à donner », le champ montre le 17', () => {
+  it('chaque jour à 8, 14 et 20 h, fin le 6 avr. ; le 17 mars, 14 h reportée au 5 avr. avec décalage, puis 6, 12, 18 et 23 h ; le 18, retour à 8, 14 et 20 h, fin le 25 : la question n’annonce aucune date pour « pas à donner », le champ montre le 17', () => {
     const draft = editionDraft(history, back, '2026-03-18')
     expect(draft.pastDuesNextDose).toEqual({ keep: '2026-03-17', drop: null })
     expect(draft.nextDose).toMatchObject({ proposedOn: '2026-03-17' })
