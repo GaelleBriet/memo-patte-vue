@@ -137,19 +137,34 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
       origin === undefined
         ? new Set(hours.filter((hour) => noted.has(keyOf(dueOn, hour))))
         : new Set(coveredOn(dueOn, origin).keys())
-    if (covered.has(dueTime)) {
+    const stopDay = span.stoppedAt(targetOn!)
+    const arrival = span.settingAt(targetOn!) ?? stopDay
+    const into = stopDay === undefined ? days : left
+    // R9 : arrivé avant le réglage qui lit sa journée d'origine, un report garde ce qu'il emportait
+    // alors ; cette journée perd autant de doses, à partir de son heure, sinon les dernières.
+    const then =
+      arrival === undefined ||
+      sameHours(arrival, from) ||
+      targetOn! >= from.startsOn ||
+      report.settingId === from.id
+        ? null
+        : hoursOf(arrival.times)
+    if (then === null ? covered.has(dueTime) : noted.has(keyOf(dueOn, dueTime))) {
       effects.set(report.id, { kind: 'idle', reason: 'beaten' })
       continue
     }
     if (targetOn! > dueOn) fallen.add(dueOn)
-    const leaving = hours.filter((hour) => (hour ?? '') >= (dueTime ?? '') && !covered.has(hour))
+    const after = (hour: Hour) => (hour ?? '') >= (dueTime ?? '')
+    const open = hours.filter((hour) => !covered.has(hour))
+    const sent = then?.filter((hour) => after(hour) && !noted.has(keyOf(dueOn, hour)))
+    const following = open.filter(after)
+    const last = sent === undefined || sent.length === 0 ? [] : open.slice(-sent.length)
+    const leaving = sent === undefined || following.length > 0 ? following : last
     if (origin !== undefined) origin.hours = origin.hours.filter((hour) => !leaving.includes(hour))
     leaving.forEach((hour) => moved.set(keyOf(dueOn, hour), report))
-    const stopDay = span.stoppedAt(targetOn!)
-    const arrival = span.settingAt(targetOn!) ?? stopDay
-    const into = stopDay === undefined ? days : left
     const keys = leaving.map((hour) => keyOf(dueOn, hour))
-    if (leaving.length === 0) {
+    const bringing = sent ?? leaving
+    if (bringing.length === 0) {
       effects.set(report.id, { kind: 'idle', reason: 'nothing-to-move' })
       continue
     }
@@ -160,7 +175,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     })
     if (arrival === undefined) continue
     // R7 : heures changées, le jour d'arrivée prend autant de dernières heures que de doses reportées.
-    const kept = sameHours(arrival, from)
+    const kept = then !== null || sameHours(arrival, from)
     if (!kept) translated.add(targetOn!)
     const day = into.get(targetOn!) ?? { setting: arrival, hours: [] }
     // R7, R9.2 : un nouveau rythme qui part du jour d'arrivée d'un report lui laisse ses seules heures.
@@ -168,7 +183,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
       day.hours = []
       effects.set(report.id, { kind: 'moves', keys, arrival: targetOn, opensRhythm: true })
     }
-    const arriving = kept ? leaving : hoursOf(arrival.times).slice(-leaving.length)
+    const arriving = kept ? bringing : hoursOf(arrival.times).slice(-bringing.length)
     day.hours = [...new Set([...day.hours, ...arriving])].sort()
     into.set(targetOn!, day)
   }

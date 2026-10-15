@@ -156,7 +156,8 @@ describe('R9 : heure seule changée le lendemain d’une date choisie, le calend
 
   it('dose du 6 non donnée ; le 7, « Prochaine dose » le 10 ; le 8, 9 h sans toucher la date : prochaine dose le 10 à 9 h, rien en retard', () => {
     const c = modifie(milo('2026-10-07', '2026-10-10'), '2026-10-08', jours(3), ['09:00'])
-    expect(c.periods.at(-1)).toMatchObject({ firstDueOn: '2026-10-10', firstDueChosen: true })
+    expect(c.periods.at(-2)).toMatchObject({ firstDueOn: '2026-10-10', firstDueChosen: true })
+    expect(c.periods.at(-1)).toMatchObject({ startsOn: '2026-10-08', firstDueChosen: false })
     const attendu = { phase: 'upcoming', moment: ['2026-10-10 09:00'], aRenseigner: [] }
     expect(lu(c, '2026-10-08')).toEqual(attendu)
     expect(luParLaReference(c, '2026-10-08')).toEqual(attendu)

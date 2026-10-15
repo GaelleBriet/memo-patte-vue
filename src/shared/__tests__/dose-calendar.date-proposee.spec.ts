@@ -90,7 +90,10 @@ describe('#836, R9 : une première échéance et une origine proposées par l’
     }
     const result = newSettings(input, { frequency: THREE_DAYS, times: ['10:00'], endsOn: null })
     if (!('plan' in result)) throw new Error(JSON.stringify(result))
-    expect(result.plan.setting).toMatchObject({ gridOriginOn: '2026-10-10', firstDueChosen: false })
+    expect(result.plan).toMatchObject({
+      action: 'create',
+      setting: { startsOn: '2026-10-08', gridOriginOn: null, firstDueChosen: false },
+    })
     const after = settingsApplied(input, result.plan)
     const attendu = {
       phase: 'overdue',

@@ -238,23 +238,38 @@ export function calendarOf(
     const before = chosenRestarts.get(report!.settingId) !== chosenOn
     if (chosenOn !== undefined && dueOn === chosenOn && before) continue
     if (origin === undefined && chosenOn !== undefined && !carries) continue
-    // R11 : un report battu par une prise de la même échéance est sans effet.
-    if (covered.has(dueTime)) continue
-    if (targetOn! > dueOn) fallen.add(dueOn)
-    const moved = hours.filter((hour) => (hour ?? '') >= (dueTime ?? '') && !covered.has(hour))
-    if (origin !== undefined) origin.hours = origin.hours.filter((hour) => !moved.includes(hour))
     const stopDay = stoppedAt(targetOn!)
     const arrival = settingAt(targetOn!) ?? stopDay
     const into = stopDay === undefined ? days : left
-    if (arrival === undefined || moved.length === 0) continue
+    // R9 : arrivé avant le réglage qui lit sa journée d'origine, un report garde ce qu'il emportait
+    // alors ; cette journée perd autant de doses, à partir de son heure, sinon les dernières.
+    const then =
+      arrival === undefined ||
+      sameHours(arrival, from) ||
+      targetOn! >= from.startsOn ||
+      report!.settingId === from.id
+        ? null
+        : hoursOf(arrival)
+    // R11 : un report battu par une prise de la même échéance est sans effet.
+    if (then === null ? covered.has(dueTime) : noted.has(keyOf(dueOn, dueTime))) continue
+    if (targetOn! > dueOn) fallen.add(dueOn)
+    const isAfter = (hour: string | null) => (hour ?? '') >= (dueTime ?? '')
+    const free = hours.filter((hour) => !covered.has(hour))
+    const sent = then?.filter((hour) => isAfter(hour) && !noted.has(keyOf(dueOn, hour))) ?? null
+    let moved = free.filter(isAfter)
+    if (sent !== null && moved.length === 0)
+      moved = sent.length === 0 ? [] : free.slice(-sent.length)
+    if (origin !== undefined) origin.hours = origin.hours.filter((hour) => !moved.includes(hour))
+    const bringing = sent ?? moved
+    if (arrival === undefined || bringing.length === 0) continue
     // R7 : heures changées, le jour d'arrivée prend autant de dernières heures que de doses reportées.
-    const kept = sameHours(arrival, from)
+    const kept = then !== null || sameHours(arrival, from)
     if (!kept) translated.set(targetOn!, arrival.id)
     const day = into.get(targetOn!) ?? { setting: arrival, hours: [] }
     // R7, R9.2 : un nouveau rythme qui part du jour d'arrivée d'un report lui laisse ses seules heures.
     if (openings.delete(targetOn!)) day.hours = []
     day.hours = [
-      ...new Set([...day.hours, ...(kept ? moved : hoursOf(arrival).slice(-moved.length))]),
+      ...new Set([...day.hours, ...(kept ? bringing : hoursOf(arrival).slice(-bringing.length))]),
     ].sort()
     into.set(targetOn!, day)
   }

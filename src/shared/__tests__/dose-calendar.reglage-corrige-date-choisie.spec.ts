@@ -51,20 +51,17 @@ describe('R3, R9 : heures seules corrigées, la « Prochaine dose » choisie res
     )
   })
 
-  it.fails(
-    'le 2 avril, 8 h 01 et 20 h 01 : la journée du 25 reste, rien en retard (#854, pas encore tenu)',
-    () => {
-      const { input, every } = milo()
-      expect(readings(edited(input, every(['08:01', '20:01'])))).toEqual(
-        both({
-          phase: 'upcoming',
-          moment: ['2026-04-18 20:01'],
-          aRenseigner: [],
-          ensuite: ['2026-04-18 20:01', '2026-04-25 08:01', '2026-04-25 20:01'],
-        }),
-      )
-    },
-  )
+  it('le 2 avril, 8 h 01 et 20 h 01 : la journée du 25 reste, rien en retard', () => {
+    const { input, every } = milo()
+    expect(readings(edited(input, every(['08:01', '20:01'])))).toEqual(
+      both({
+        phase: 'upcoming',
+        moment: ['2026-04-18 20:01'],
+        aRenseigner: [],
+        ensuite: ['2026-04-18 20:01', '2026-04-25 08:01', '2026-04-25 20:01'],
+      }),
+    )
+  })
 })
 
 describe('R3, TR-28, Q38 : heures seules corrigées, « Elles n’étaient pas à donner » garde la date choisie', () => {
@@ -92,19 +89,16 @@ describe('R3, TR-28, Q38 : heures seules corrigées, « Elles n’étaient pas �
     )
   })
 
-  it.fails(
-    'le 12, 6, 12, 18 et 23 h : rien à renseigner le 6 avril (#854, pas encore tenu)',
-    () => {
-      const { input, weekly } = luna()
-      const after = edited(input, weekly(['06:00', '12:00', '18:00', '23:00']), 'correct')
-      expect(readings(after)).toEqual(
-        both({
-          phase: 'today',
-          moment: ['2026-04-12 06:00', '2026-04-12 12:00', '2026-04-12 18:00', '2026-04-12 23:00'],
-          aRenseigner: ['2026-04-10 23:00'],
-          ensuite: ['2026-04-12 06:00', '2026-04-12 12:00', '2026-04-12 18:00'],
-        }),
-      )
-    },
-  )
+  it('le 12, 6, 12, 18 et 23 h : rien à renseigner le 6 avril', () => {
+    const { input, weekly } = luna()
+    const after = edited(input, weekly(['06:00', '12:00', '18:00', '23:00']), 'correct')
+    expect(readings(after)).toEqual(
+      both({
+        phase: 'today',
+        moment: ['2026-04-12 06:00', '2026-04-12 12:00', '2026-04-12 18:00', '2026-04-12 23:00'],
+        aRenseigner: ['2026-04-10 23:00'],
+        ensuite: ['2026-04-12 06:00', '2026-04-12 12:00', '2026-04-12 18:00'],
+      }),
+    )
+  })
 })

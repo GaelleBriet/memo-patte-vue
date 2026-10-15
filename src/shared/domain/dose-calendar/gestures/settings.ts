@@ -103,6 +103,18 @@ function replaced(
   const before = buildView(base)
   const previous = before.phase === 'stopped' ? null : before.currentSetting
   const draft = (dates: Dates) => rewrite(current, fieldsOf(current.startsOn, dates, request))
+  const { firstDueOn, gridOriginOn, firstDueChosen } = current
+  const asked = request.firstDueOn
+  // R10 : remplacé le jour même à fréquence gardée, un réglage transmet sa date choisie.
+  if (
+    firstDueChosen &&
+    sameFrequency(current.frequency, request.frequency) &&
+    (asked === undefined || asked === firstDueOn)
+  ) {
+    const dates = { firstDueOn, gridOriginOn, firstDueChosen }
+    const shownOn = shownDay(dates, readAfter(input, draft))
+    return planOf(draft, shownOn === firstDueOn ? dates : { ...dates, shownOn })
+  }
   const proposal = proposedDates(
     base,
     previous,
@@ -158,7 +170,12 @@ function settingsFor(
   if (!hasNotes(current, input.lines)) {
     if (sameRhythm) return rhythmKept(input, view, current, request, create)
     if (current.startsOn === today) return replaced(input, current, request)
-    return corrected(input, view, current, request, create)
+    // R9 : à fréquence gardée, les nouvelles heures valent à partir d'aujourd'hui ; sans dose tombée,
+    // les journées passées gardent leur réglage, comme après une prise.
+    const fromToday =
+      sameFrequency(current.frequency, request.frequency) &&
+      fallenOf(view, current, today).length === 0
+    if (!fromToday) return corrected(input, view, current, request, create)
   }
   const proposal = proposedDates(input, current, request, today, readAfter(input, create))
   return 'refusal' in proposal ? proposal : planOf(create, proposal)
@@ -203,10 +220,11 @@ function keptCorrection(
     .slots(today, plusDays(today, NEXT_DAYS))
     .find(({ state }) => state === 'pending')?.due.dueOn
   const first = next ?? later(firstDueOn, today)
-  const kept = gridOriginOn !== null && isOnGrid(gridOriginOn, request.frequency, first)
-  return kept
-    ? { firstDueOn: first, gridOriginOn, firstDueChosen }
-    : { firstDueOn: first, gridOriginOn: first, firstDueChosen: false }
+  // R3 : une date choisie reste l'origine tant qu'elle laisse une dose à donner, et garde son fait.
+  const kept =
+    gridOriginOn !== null &&
+    (firstDueChosen ? next !== undefined : isOnGrid(gridOriginOn, request.frequency, first))
+  return { firstDueOn: first, gridOriginOn: kept ? gridOriginOn : first, firstDueChosen }
 }
 
 // TR-28, Q38, Q39 : sans prise depuis son début, le réglage est corrigé ; avec des échéances
