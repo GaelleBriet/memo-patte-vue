@@ -377,7 +377,7 @@ Un report déplace la dose visée **et les heures suivantes de la même journée
 
 Le jour où les heures changent, un jour d'arrivée reçoit **autant d'échéances qu'il y avait de doses reportées**, prises **en fin de liste** des nouvelles heures (une dose reportée à 20 h, heures passées à 9 h et 21 h : 21 h).
 
-Une dose avancée à un jour passé dont la journée d'origine prend ensuite de nouvelles heures (changées à partir d'aujourd'hui, R9) : le jour d'arrivée, passé, garde les heures qu'il avait reçues ; la journée d'origine perd ses heures à partir de celle du report, ou ses dernières heures s'il n'y en a plus après elle (#854, lecture à confirmer par Gaelle, §11).
+Une dose avancée à un jour passé dont la journée d'origine prend ensuite de nouvelles heures (changées à partir d'aujourd'hui, R9) : le jour d'arrivée, passé, garde les heures qu'il avait reçues ; la journée d'origine perd ses heures à partir de celle du report, ou ses dernières heures s'il n'y en a plus après elle ; quand elle est déjà toute couverte, le report est sans effet (#854, lecture à confirmer par Gaelle, §11). Une première échéance en retard, plus tôt que le premier jour d'un réglage, n'est pas le jour où les heures changent (R4) : ses prises ne couvrent pas d'autres heures.
 
 _= Q21, G25 (la partie « arrivée »), G7, G9, G13, G17, Q18, Q2 a, Q25 pour les refus._
 
@@ -1389,7 +1389,9 @@ nouvelles heures s'appliquent à partir d'aujourd'hui seulement ») :
   8 h et 20 h dès le 1er avril ; le 2, la dose du 4 avancée au 3 sans décaler ; le 4, la dose du 3
   n'est pas donnée, heures passées à 20 h seule : les doses du 3 à 8 h et 20 h restent en retard,
   prochaine dose le 7 à 20 h (avant : seule 20 h restait en retard le 3 ; « sans heure », la journée
-  du 3 sortait du carnet). Écartée : relire le jour d'arrivée avec les heures du jour d'origine.
+  du 3 sortait du carnet). La journée d'origine perd ses heures à partir de celle du report, sinon ses
+  dernières ; toute couverte, le report est sans effet (graine 5700001922). Écartée : relire le jour
+  d'arrivée avec les heures du jour d'origine.
 - **« Elles n'étaient pas à donner » corrige les journées passées du réglage** (Q38) : graine
   7500002108, le report arrivé le 10 avril, relu avec les nouvelles heures, est à renseigner le 10 à
   23 h ; graine 7300002566, les doses du 17 avril sortent du carnet, prochaine dose le 20.
