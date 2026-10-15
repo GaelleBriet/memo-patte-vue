@@ -5,6 +5,39 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.80](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.79...memo-patte-v0.1.80) (2026-10-15)
+
+
+### ✨ Fonctionnalités
+
+* **db:** le réglage enregistre la date choisie et « elles restent à renseigner » ([#825](https://github.com/GaelleBriet/memo-patte-vue/issues/825), [#836](https://github.com/GaelleBriet/memo-patte-vue/issues/836)) ([9e9459e](https://github.com/GaelleBriet/memo-patte-vue/commit/9e9459eb98fe44d45a2d83235cbd158081e9e006))
+* **db:** schéma v13, date choisie et doses restées à renseigner sur le réglage ([#836](https://github.com/GaelleBriet/memo-patte-vue/issues/836), [#825](https://github.com/GaelleBriet/memo-patte-vue/issues/825)) ([888a53c](https://github.com/GaelleBriet/memo-patte-vue/commit/888a53ca7e5f88e72aeaa7e1b91889dd99bd9fae))
+* **treatments:** le moteur lit la date choisie et « elles restent à renseigner » ([#836](https://github.com/GaelleBriet/memo-patte-vue/issues/836), [#817](https://github.com/GaelleBriet/memo-patte-vue/issues/817)) ([73d44d9](https://github.com/GaelleBriet/memo-patte-vue/commit/73d44d9d9921e64767944f0351f1f59cb7cff92d))
+* **treatments:** wip, faits du réglage dans le modèle, l'export v6 et le miroir supabase ([645c83e](https://github.com/GaelleBriet/memo-patte-vue/commit/645c83eb422a0cf3a30406bd6e20157b874e4521))
+
+
+### 🐛 Corrections
+
+* **dose-calendar:** « marquer comme oubliée » corrige toutes les lignes de la dose (tr-25, [#841](https://github.com/GaelleBriet/memo-patte-vue/issues/841)) ([b6ffca2](https://github.com/GaelleBriet/memo-patte-vue/commit/b6ffca2336a0f216b4b2b1944f39a3ac13f31613))
+* **dose-calendar:** « supprimer ce report » emporte le décalage ancré à son arrivée ([#835](https://github.com/GaelleBriet/memo-patte-vue/issues/835)) ([4c2c8d7](https://github.com/GaelleBriet/memo-patte-vue/commit/4c2c8d723da0f4a440bb614cabf1c06dd9000204))
+* **dose-calendar:** « supprimer ce report » emporte reports et décalages du jour, ou est refusé ([7014a5e](https://github.com/GaelleBriet/memo-patte-vue/commit/7014a5ec7db8404bf3be383acb0275d973bfb7f9))
+* **dose-calendar:** « supprimer ce report » refusé quand un report emporté a son arrivée notée ([96ff7b4](https://github.com/GaelleBriet/memo-patte-vue/commit/96ff7b424ece8a6a33e633e924f12c802cad22ea))
+* **dose-calendar:** heure seule changée le lendemain, le réglage corrigé garde sa date choisie ([a9a3bc9](https://github.com/GaelleBriet/memo-patte-vue/commit/a9a3bc90e57990091767568261de129c369da3a4))
+* **dose-calendar:** heures seules sans dose tombée, le réglage corrigé garde ses dates ([166f0eb](https://github.com/GaelleBriet/memo-patte-vue/commit/166f0ebe6d892c4f65944c0fc93172949c8c9cce))
+* **dose-calendar:** heures seules, une première échéance d'avant le début reste à l'ancien calcul ([f3f4a35](https://github.com/GaelleBriet/memo-patte-vue/commit/f3f4a35795eadeeb747ddbf1adbe8d73dcb61880))
+* **dose-calendar:** la note retire les autres prises de la dose le jour d'un arrêt et d'une reprise ([2b80259](https://github.com/GaelleBriet/memo-patte-vue/commit/2b80259adcb144f8b2c464889123c3867a08f828))
+* **dose-calendar:** r10, la date choisie passe au remplaçant sans date choisie, même avec origine ([6349aca](https://github.com/GaelleBriet/memo-patte-vue/commit/6349acad53d4c24d61071af45992d4dba69346ad))
+* **dose-calendar:** seule une date choisie porte ou écarte un report, une origine écrite le reçoit ([67fff46](https://github.com/GaelleBriet/memo-patte-vue/commit/67fff466954b15df5a04d795470ba1b9f5d63dbf))
+* **dose-calendar:** supprimer un report emporte son décalage, oubliée corrige toutes les lignes ([fa326a3](https://github.com/GaelleBriet/memo-patte-vue/commit/fa326a34f1b793ce6300df389e5315656578a8bd))
+* **dose-calendar:** une origine écrite sans date choisie relance la grille sans remplacer ([cb1cd94](https://github.com/GaelleBriet/memo-patte-vue/commit/cb1cd9437ffed71a06cb21e484dcd1c4fcb56814))
+
+
+### ⚡ Performance
+
+* **dose-calendar:** la lecture laisse hors de la grille les journées avant un réglage lointain ([af0fe27](https://github.com/GaelleBriet/memo-patte-vue/commit/af0fe27054fb01ac0a0cedc962f99a8755fa4d9e))
+* **dose-calendar:** la proposition de réglages cherche sa dose par fenêtres, plus jusqu'à la fin ([d925094](https://github.com/GaelleBriet/memo-patte-vue/commit/d925094275e4b4111e3123c255564082ae28bd0f))
+* **dose-calendar:** lecture et proposition rapides avec un réglage ou une fin lointains ([a9c00c7](https://github.com/GaelleBriet/memo-patte-vue/commit/a9c00c76f5475dc6328ca17eef784854de5b3da0))
+
 ## [0.1.79](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.78...memo-patte-v0.1.79) (2026-10-14)
 
 
