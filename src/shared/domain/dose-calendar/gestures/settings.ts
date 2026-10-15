@@ -190,7 +190,7 @@ function rhythmKept(
 
 // TR-28, Q38 : corrigé à fréquence gardée, le réglage garde sa grille, et sa date choisie avec elle ;
 // avec des échéances tombées, il part de sa première journée encore due à partir d'aujourd'hui et
-// elles sortent ; sans, il garde ses dates, pour qu'aucune journée passée ne change de réglage (R9, R11).
+// elles sortent.
 function keptCorrection(
   input: TreatmentViewInput,
   current: Setting,
@@ -200,7 +200,9 @@ function keptCorrection(
   const { today } = input
   const { firstDueOn, gridOriginOn, firstDueChosen } = current
   const dates = { firstDueOn, gridOriginOn, firstDueChosen }
-  if (fallen.length === 0) return dates
+  // R9, R11 : rien de tombé, il garde ses dates, sinon ses journées passées iraient au réglage
+  // précédent ; une première échéance d’avant son début lui ferait prendre une journée du précédent.
+  if (fallen.length === 0 && firstDueOn >= current.startsOn) return dates
   const draft = rewrite(current, fieldsOf(current.startsOn, dates, request))
   const next = buildView(settingsApplied(input, draft))
     .slots(today, plusDays(today, NEXT_DAYS))

@@ -12,7 +12,7 @@ import {
   type TreatmentViewInput,
 } from '../domain/dose-calendar'
 import { referenceReading } from '../domain/dose-calendar/reference-model'
-import { keys, setting, TWO_DAYS } from './dose-calendar.v2.aides'
+import { keys, setting, TWO_DAYS, WEEK } from './dose-calendar.v2.aides'
 
 const THREE_DAYS = { value: 3, unit: 'day' as const }
 const TWO_WEEKS = { value: 2, unit: 'week' as const }
@@ -132,5 +132,48 @@ describe('R9, R11 : heures seules sur un réglage sans prise, rien de tombé, au
       journees: [...dosesDu5.map((key) => `${key} pending`), '2026-04-14 20:00 covered'],
     })
     expect(reference(apres)).toEqual(attendu)
+  })
+
+  it('graine 5000000024 : chaque semaine à 8, 14 et 20 h depuis le 9 avr., 14 h du 9 oubliée ; le 12, 20 h seule à la date proposée (première échéance le 9, encore en retard) ; le 13, 21 h : 8 h et 20 h du 9 restent en retard', () => {
+    let carnet: TreatmentViewInput = {
+      settings: [setting('t1', '2026-04-09', WEEK, H3)],
+      lines: [],
+      today: '2026-04-12',
+    }
+    carnet = gesture(carnet, {
+      kind: 'note',
+      due: dueOf(carnet, '2026-04-09', '14:00'),
+      status: 'missed',
+      givenOn: '2026-04-09',
+      shiftsFollowing: false,
+    })
+    carnet = settings(carnet, { frequency: WEEK, times: ['20:00'], endsOn: null })
+    expect(carnet.settings.at(-1)).toMatchObject({
+      startsOn: '2026-04-12',
+      firstDueOn: '2026-04-09',
+    })
+    carnet = { ...carnet, today: '2026-04-13' }
+    const enRetard = ['2026-04-09 08:00', '2026-04-09 20:00']
+    const journees = [
+      '2026-04-09 08:00 pending',
+      '2026-04-09 14:00 missed',
+      '2026-04-09 20:00 pending',
+    ]
+    expect(moteur(carnet, '2026-04-01')).toEqual({
+      phase: 'overdue',
+      moment: enRetard,
+      aRenseigner: [],
+      journees,
+    })
+
+    const apres = settings(carnet, { frequency: WEEK, times: ['21:00'], endsOn: null })
+
+    expect(moteur(apres, '2026-04-01')).toEqual({
+      phase: 'overdue',
+      moment: enRetard,
+      aRenseigner: [],
+      journees,
+    })
+    expect(reference(apres)).toEqual({ phase: 'overdue', moment: enRetard, aRenseigner: [] })
   })
 })
