@@ -1477,6 +1477,13 @@ Lectures à confirmer par Gaelle, ouvertes le 15 octobre 2026 en appliquant ces 
   qu'une prise traduite prend avant elle (graine 7300000334). Alternative : laisser une prise en trop
   couvrir la dose suivante, à moins d'un pas (R4, prise qui ne se perd jamais).
 
+Carnets encore lus autrement que `main` après « Modifier » heures seules (comparateur, 3 × 1 000
+carnets, 15 octobre 2026) : 65, dont 42 « sans heure » avec plus de prises que d'heures (lecture
+ci-dessus), 12 où une prise d'une journée sortie du calendrier perd l'heure qu'une prise traduite
+prend avant elle, 5 réponses « Elles n'étaient pas à donner » (Q38, le passé est corrigé) et 6 dont
+une journée change, à analyser (graines 7300000459, 7400000708, 7400000768, 7500000120,
+7500000641, 7500000642, 7500000720 ; 7300000459 change de fréquence le jour même).
+
 Lectures à confirmer par Gaelle, ouvertes le 14 octobre 2026 avec #845 (TR-24, TR-25) :
 
 - **« Supprimer ce report » refusé aussi quand l'un des reports emportés (autre appareil) a sa
