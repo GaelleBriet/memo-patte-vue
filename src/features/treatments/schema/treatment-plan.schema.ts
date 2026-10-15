@@ -1,5 +1,5 @@
 import type { DoseFields } from './treatment-dose.schema'
-import type { TreatmentPeriodSettings } from './treatment-period.schema'
+import type { PeriodOrigin, TreatmentPeriodSettings } from './treatment-period.schema'
 import type { Treatment } from './treatment.schema'
 
 /** Un traitement à créer avec sa première période, et les prises renseignées à la création (TR-3). */
@@ -20,13 +20,7 @@ export type PlannedDoseWrite =
 export type TreatmentPlanWrite = {
   treatment: Pick<Treatment, 'name' | 'type'> | null
   period:
-    | {
-        action: 'correct'
-        id: string
-        settings: TreatmentPeriodSettings
-        gridOriginOn: string | null
-      }
-    | { action: 'open'; id: string; settings: TreatmentPeriodSettings; gridOriginOn: string | null }
+    | ({ action: 'correct' | 'open'; id: string; settings: TreatmentPeriodSettings } & PeriodOrigin)
     | null
   doses: PlannedDoseWrite[]
 }

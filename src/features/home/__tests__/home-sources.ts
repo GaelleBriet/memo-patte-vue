@@ -1,4 +1,5 @@
 import type { HomeTreatmentSource, HomeVaccinationSource } from '../service/home-reminders.service'
+import { legacyFactsOf } from '@/shared/domain/dose-calendar'
 
 type TreatmentPeriodInput = HomeTreatmentSource['periods'][number]
 type TreatmentDoseInput = HomeTreatmentSource['doses'][number]
@@ -20,7 +21,7 @@ export function vaccination(overrides: Partial<HomeVaccinationSource> = {}): Hom
 
 export function period(overrides: Partial<TreatmentPeriodInput> = {}): TreatmentPeriodInput {
   const firstDueOn = overrides.firstDueOn ?? '2026-09-01'
-  return {
+  const record = {
     id: 'p1',
     startsOn: firstDueOn,
     firstDueOn,
@@ -31,7 +32,8 @@ export function period(overrides: Partial<TreatmentPeriodInput> = {}): Treatment
     times: [],
     createdAt: AT,
     ...overrides,
-  }
+  } satisfies Partial<TreatmentPeriodInput>
+  return { ...legacyFactsOf(record.gridOriginOn), ...record }
 }
 
 /** Prise donnée le jour de son échéance, sauf mention. */

@@ -160,7 +160,7 @@ describe('parseExportFile', () => {
     )
 
     it('signale un export d’une version plus récente, quel que soit son contenu', () => {
-      const text = JSON.stringify({ schemaVersion: 6, pets: [] })
+      const text = JSON.stringify({ schemaVersion: 7, pets: [] })
 
       expect(parseExportFile(text)).toEqual({ ok: false, reason: 'newer' })
     })
@@ -411,6 +411,20 @@ describe('parseExportFile', () => {
 
       expect(parseExportFile(text).ok).toBe(true)
     })
+
+    it.each(['firstDueChosen', 'pastDosesStayUnlogged'])(
+      'garde `%s` tel qu’exporté, et refuse une période sans lui',
+      (field) => {
+        const kept = parseExportFile(forged('treatmentPeriods', field, true, 1))
+        expect(kept.ok && kept.file.data.treatmentPeriods[1]![field as 'firstDueChosen']).toBe(true)
+        expect(parseExportFile(forged('treatmentPeriods', field, 1, 1))).toEqual(INVALID)
+        expect(
+          parseExportFile(
+            withDocument((document) => delete premier(document, 'treatmentPeriods')[field]),
+          ),
+        ).toEqual(INVALID)
+      },
+    )
   })
 
   describe('prises forgées', () => {
@@ -659,16 +673,51 @@ describe('parseExportFile', () => {
   describe('anciens exports, convertis au format courant (plan §3.3)', () => {
     const IMPORTEUR = '12121212-1212-4212-8212-121212121212'
 
+    it('relit un export v5 comme l’app qui l’a écrit : origine posée, date choisie ; aucune réponse « Elles restent à renseigner »', () => {
+      const v5 = withDocument((document) => {
+        document.schemaVersion = 5
+        const periods = rows(document, 'treatmentPeriods')
+        for (const period of periods) {
+          delete period.firstDueChosen
+          delete period.pastDosesStayUnlogged
+        }
+        periods.at(-1)!.gridOriginOn = null
+      })
+
+      const result = parseExportFile(v5, IMPORTEUR)
+
+      expect(result.ok).toBe(true)
+      if (!result.ok) return
+      const periods = result.file.data.treatmentPeriods
+      expect(periods.length).toBeGreaterThan(1)
+      expect(
+        periods.map(
+          ({ gridOriginOn, firstDueChosen }) => firstDueChosen === (gridOriginOn !== null),
+        ),
+      ).not.toContain(false)
+      expect(periods.at(-1)).toMatchObject({ firstDueChosen: false, pastDosesStayUnlogged: false })
+      expect(periods.some(({ pastDosesStayUnlogged }) => pastDosesStayUnlogged)).toBe(false)
+    })
+
     it('relit un export v4 de l’app 0.1.60 : origine de la grille, arrivée des reports, appareils', () => {
       const result = parseExportFile(exportV4, IMPORTEUR, '2026-10-12')
 
       expect(result.ok).toBe(true)
       if (!result.ok) return
       const { data } = result.file
-      expect(result.file.schemaVersion).toBe(5)
+      expect(result.file.schemaVersion).toBe(6)
       expect(data.treatmentPeriods.map(({ gridOriginOn }) => gridOriginOn)).toEqual([
         '2026-06-15',
         '2026-09-01',
+      ])
+      expect(
+        data.treatmentPeriods.map(({ firstDueChosen, pastDosesStayUnlogged }) => [
+          firstDueChosen,
+          pastDosesStayUnlogged,
+        ]),
+      ).toEqual([
+        [true, false],
+        [true, false],
       ])
       expect(data.treatmentDoses.map(({ status, targetOn }) => [status, targetOn])).toEqual([
         ['given', null],

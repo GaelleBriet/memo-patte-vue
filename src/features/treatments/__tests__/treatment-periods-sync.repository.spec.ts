@@ -24,6 +24,8 @@ const LOCAL_ROW = {
   starts_on: '2026-01-01',
   first_due_on: '2026-01-02',
   grid_origin_on: '2026-01-02',
+  first_due_chosen: 0,
+  past_doses_stay_unlogged: 0,
   ends_on: '2026-01-31',
   stopped_on: null,
   frequency_value: 1,
@@ -128,10 +130,12 @@ describe('treatmentPeriodsRepository — port de synchronisation', () => {
     await expect(localRow(TREATMENT_ID)).resolves.toEqual([LOCAL_ROW])
   })
 
-  it('remplace une période locale par une version distante plus récente, arrêt et suppression compris', async () => {
+  it('remplace une période locale par une version distante plus récente, arrêt, suppression et faits du réglage compris', async () => {
     const remote = remotePeriod({
       id: TREATMENT_ID,
       created_at: T_LOCAL,
+      first_due_chosen: 1,
+      past_doses_stay_unlogged: 1,
       stopped_on: '2026-01-10',
       frequency_value: 2,
       frequency_unit: 'week',

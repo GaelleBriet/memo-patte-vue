@@ -77,6 +77,8 @@ export function startV2Walk(seed: number): V2Walk {
     startsOn: firstDueOn,
     firstDueOn,
     gridOriginOn: firstDueOn,
+    firstDueChosen: true,
+    pastDosesStayUnlogged: false,
     endsOn: random() < 0.3 ? plusDays(firstDueOn, int(random, 3, 60)) : null,
     stoppedOn: null,
     frequency: pick(random, FREQUENCIES)!,

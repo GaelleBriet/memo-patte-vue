@@ -179,6 +179,8 @@ describe('date très lointaine (fichier forgé ou faute de frappe)', () => {
           startsOn: '2026-09-28',
           firstDueOn: '2026-09-28',
           gridOriginOn: null,
+          firstDueChosen: false,
+          pastDosesStayUnlogged: false,
           endsOn: '2199-12-30',
           frequency: DAY,
           times: everyHour,

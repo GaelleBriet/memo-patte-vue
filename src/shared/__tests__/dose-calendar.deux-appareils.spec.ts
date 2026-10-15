@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { treatmentView } from '../domain/dose-calendar'
+import { legacyFactsOf, treatmentView } from '../domain/dose-calendar'
 import type { Line, Setting } from '../domain/dose-calendar/types'
 import {
   affiche,
@@ -175,6 +175,7 @@ describe('R4, R7, #802 : le jour d’arrivée d’un report, chaque réglage que
       id,
       startsOn,
       firstDueOn: startsOn,
+      ...legacyFactsOf(fields.gridOriginOn ?? null),
       gridOriginOn: null,
       endsOn: null,
       stoppedOn: null,

@@ -21,15 +21,13 @@ function periodsAfter(
   today: string,
 ): TreatmentWithHistory['periods'] {
   const at = `${today}T23:59:59.999Z`
-  const { gridOriginOn } = period
+  const { gridOriginOn, firstDueChosen, pastDosesStayUnlogged } = period
+  const origin = { gridOriginOn, firstDueChosen, pastDosesStayUnlogged }
   if (period.action === 'open') {
-    return [
-      ...history.periods,
-      { ...draftPeriod(period.settings, at), id: period.id, gridOriginOn },
-    ]
+    return [...history.periods, { ...draftPeriod(period.settings, at), id: period.id, ...origin }]
   }
   return history.periods.map((other) =>
-    other.id === currentId ? { ...other, ...period.settings, gridOriginOn } : other,
+    other.id === currentId ? { ...other, ...period.settings, ...origin } : other,
   )
 }
 
@@ -80,7 +78,14 @@ export function editionPlan(
       ? periodWriteOf(plan, settings, () => ids.periodId)
       : sameSettings(settings, settingsOf(period))
         ? null
-        : { action: 'correct' as const, id: period.id, settings, gridOriginOn: period.gridOriginOn }
+        : {
+            action: 'correct' as const,
+            id: period.id,
+            settings,
+            gridOriginOn: period.gridOriginOn,
+            firstDueChosen: period.firstDueChosen,
+            pastDosesStayUnlogged: period.pastDosesStayUnlogged,
+          }
   const changes = [...(move?.changes ?? []), ...(plan?.lines ?? [])]
   const doses = plannedDoseWritesOf(history, changes, ids.newId)
   const result: TreatmentPlanWrite = { treatment, period: written, doses }

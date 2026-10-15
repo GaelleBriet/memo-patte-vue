@@ -11,6 +11,7 @@ import type { TreatmentFrequency } from '../schema/treatment.schema'
 import {
   calendarDaySchema,
   treatmentPeriodSettingsSchema,
+  type PeriodOrigin,
   type TreatmentPeriod,
   type TreatmentPeriodRecord,
   type TreatmentPeriodSettings,
@@ -31,6 +32,8 @@ interface PeriodRow {
   starts_on: string
   first_due_on: string
   grid_origin_on: string | null
+  first_due_chosen: number
+  past_doses_stay_unlogged: number
   ends_on: string | null
   stopped_on: string | null
   frequency_value: number
@@ -56,6 +59,8 @@ const SYNC_COLUMN_NAMES = [
   'starts_on',
   'first_due_on',
   'grid_origin_on',
+  'first_due_chosen',
+  'past_doses_stay_unlogged',
   'ends_on',
   'stopped_on',
   'frequency_value',
@@ -93,11 +98,18 @@ const SETTINGS_COLUMNS = [
   'reminder_time',
 ]
 
-const CORRECTED_COLUMNS = [...SETTINGS_COLUMNS, 'grid_origin_on']
+const CORRECTED_COLUMNS = [
+  ...SETTINGS_COLUMNS,
+  'grid_origin_on',
+  'first_due_chosen',
+  'past_doses_stay_unlogged',
+]
 
 function originOf(gridOriginOn: string | null): string | null {
   return gridOriginOn === null ? null : calendarDaySchema.parse(gridOriginOn)
 }
+
+const flag = (value: boolean) => (value ? 1 : 0)
 
 function timesColumn(times: readonly string[]): string | null {
   return times.length > 0 ? times.join(TIMES_SEPARATOR) : null
@@ -111,6 +123,8 @@ function toPeriodRecord(row: PeriodRow): TreatmentPeriodRecord {
     startsOn: row.starts_on,
     firstDueOn: row.first_due_on,
     gridOriginOn: row.grid_origin_on,
+    firstDueChosen: row.first_due_chosen === 1,
+    pastDosesStayUnlogged: row.past_doses_stay_unlogged === 1,
     endsOn: row.ends_on,
     stoppedOn: row.stopped_on,
     frequency: { value: row.frequency_value, unit: row.frequency_unit },
@@ -202,15 +216,13 @@ export function createTreatmentPeriodsRepository(
     entity: 'treatment_period',
 
     /**
-     * Fin, heures, posologie et moment du rappel absents : la période n'en a pas ; origine de la
-     * grille absente : sa première échéance. Lève pour des réglages incohérents.
+     * Fin, heures, posologie et moment du rappel absents : la période n'en a pas. Lève pour des
+     * réglages incohérents.
      */
     insertStatement(
       period: TreatmentPeriod &
-        Partial<TreatmentPeriodSettings> & {
-          deletedAt: string | null
-          gridOriginOn?: string | null
-        },
+        Partial<TreatmentPeriodSettings> &
+        PeriodOrigin & { deletedAt: string | null },
     ): SqlStatement {
       const settings = treatmentPeriodSettingsSchema.parse({
         startsOn: period.startsOn,
@@ -232,7 +244,9 @@ export function createTreatmentPeriodsRepository(
           period.animalId,
           settings.startsOn,
           settings.firstDueOn,
-          period.gridOriginOn === undefined ? settings.firstDueOn : originOf(period.gridOriginOn),
+          originOf(period.gridOriginOn),
+          flag(period.firstDueChosen),
+          flag(period.pastDosesStayUnlogged),
           settings.endsOn,
           period.stoppedOn,
           settings.frequency.value,
@@ -252,14 +266,14 @@ export function createTreatmentPeriodsRepository(
     },
 
     /**
-     * Tous les réglages de cette période et l'origine de sa grille, sauf son arrêt. Rien n'est daté
-     * si rien ne change. Lève pour des réglages incohérents.
+     * Tous les réglages de cette période et son origine, sauf son arrêt. Rien n'est daté si rien ne
+     * change. Lève pour des réglages incohérents.
      */
     correctSettingsStatement(
       periodId: string,
       input: TreatmentPeriodSettings,
       updatedAt: string,
-      gridOriginOn: string | null,
+      origin: PeriodOrigin,
     ): SqlStatement {
       const settings = treatmentPeriodSettingsSchema.parse(input)
       const values = [
@@ -273,7 +287,9 @@ export function createTreatmentPeriodsRepository(
         settings.doseUnit,
         settings.reminderOffsetMinutes,
         settings.reminderTime,
-        originOf(gridOriginOn),
+        originOf(origin.gridOriginOn),
+        flag(origin.firstDueChosen),
+        flag(origin.pastDosesStayUnlogged),
       ]
       return {
         sql: `UPDATE treatment_period
@@ -410,6 +426,8 @@ export function createTreatmentPeriodsRepository(
         period.startsOn,
         period.firstDueOn,
         period.gridOriginOn,
+        flag(period.firstDueChosen),
+        flag(period.pastDosesStayUnlogged),
         period.endsOn,
         period.stoppedOn,
         period.frequency.value,
@@ -426,17 +444,18 @@ export function createTreatmentPeriodsRepository(
       return exists
         ? {
             sql: `UPDATE treatment_period
-                  SET starts_on = ?, first_due_on = ?, grid_origin_on = ?, ends_on = ?,
-                      stopped_on = ?, frequency_value = ?, frequency_unit = ?, times = ?,
-                      dose_quantity = ?, dose_unit = ?, reminder_offset_minutes = ?,
-                      reminder_time = ?, created_at = ?, updated_at = ?, deleted_at = NULL,
+                  SET starts_on = ?, first_due_on = ?, grid_origin_on = ?, first_due_chosen = ?,
+                      past_doses_stay_unlogged = ?, ends_on = ?, stopped_on = ?,
+                      frequency_value = ?, frequency_unit = ?, times = ?, dose_quantity = ?,
+                      dose_unit = ?, reminder_offset_minutes = ?, reminder_time = ?,
+                      created_at = ?, updated_at = ?, deleted_at = NULL,
                       created_by_device = ?, updated_by_device = ?
                   WHERE id = ?`,
             params: [...values, ...devices, period.id],
           }
         : {
             sql: `INSERT INTO treatment_period (${SYNC_COLUMNS})
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)`,
+                  VALUES (${SYNC_COLUMN_NAMES.map((column) => (column === 'deleted_at' ? 'NULL' : '?')).join(', ')})`,
             params: [period.id, period.treatmentId, period.animalId, ...values, ...devices],
           }
     },

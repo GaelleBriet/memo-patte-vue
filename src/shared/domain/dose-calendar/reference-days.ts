@@ -50,7 +50,7 @@ export function stopDayOf(stopped: ReferenceSetting) {
 // un réglage n'a plus de journée sortie du calendrier : son remplaçant les lit.
 export function handedOf(
   claims: readonly Claim[],
-  restarts: ReadonlyMap<string, string>,
+  chosenRestarts: ReadonlyMap<string, string>,
 ): Set<string> {
   return new Set(
     claims
@@ -59,9 +59,9 @@ export function handedOf(
         return (
           successor !== undefined &&
           successor.startsOn === setting.startsOn &&
-          successor.gridOriginOn === null &&
-          restarts.has(setting.id) &&
-          restarts.get(successor.id) === restarts.get(setting.id)
+          (successor.gridOriginOn === null || !successor.firstDueChosen) &&
+          chosenRestarts.has(setting.id) &&
+          chosenRestarts.get(successor.id) === chosenRestarts.get(setting.id)
         )
       })
       .map(({ setting }) => setting.id),

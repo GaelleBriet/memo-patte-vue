@@ -121,7 +121,7 @@ async function schema(db: InMemoryDb) {
 
 async function freshSchema() {
   const fresh = await createSqlJsDbClient()
-  await applyMigrations(fresh)
+  await applyMigrations(fresh, 12)
   const rows = await schema(fresh)
   fresh.close()
   return rows
@@ -163,7 +163,7 @@ describe.each([
   it('porte la base en version 12, au schéma exact d’une installation neuve', async () => {
     await seedVersion11(db, campaignTreatments(530_000_000, 5))
 
-    await applyMigrations(db)
+    await applyMigrations(db, 12)
 
     expect(await userVersion(db)).toBe(12)
     expect(await schema(db)).toEqual(await freshSchema())
@@ -173,7 +173,7 @@ describe.each([
     const treatments = campaignTreatments(530_000_000, 150)
     await seedVersion11(db, treatments)
 
-    await applyMigrations(db)
+    await applyMigrations(db, 12)
 
     const origins = new Map(
       (
@@ -207,7 +207,7 @@ describe.each([
       { id: 't-1', periods: [period('p1', { startsOn: firstDueOn, firstDueOn })], doses: [] },
     ])
 
-    await applyMigrations(db)
+    await applyMigrations(db, 12)
 
     await expect(db.query('SELECT grid_origin_on FROM treatment_period')).resolves.toEqual([
       { grid_origin_on: origin },
@@ -264,7 +264,7 @@ describe.each([
         },
       ])
 
-      await applyMigrations(db)
+      await applyMigrations(db, 12)
 
       await expect(db.query('SELECT grid_origin_on FROM treatment_period')).resolves.toEqual([
         { grid_origin_on: kept ? referenceOn : firstDueOn },
@@ -292,7 +292,7 @@ describe.each([
       },
     ])
 
-    await applyMigrations(db)
+    await applyMigrations(db, 12)
 
     await expect(
       db.query('SELECT id, grid_origin_on FROM treatment_period ORDER BY id'),
@@ -320,7 +320,7 @@ describe.each([
       },
     ])
 
-    await applyMigrations(db)
+    await applyMigrations(db, 12)
 
     await expect(
       db.query('SELECT id, grid_origin_on, deleted_at FROM treatment_period ORDER BY id'),
@@ -345,7 +345,7 @@ describe.each([
     const periodsBefore = await kept('treatment_period', 'reference_on')
     const dosesBefore = await kept('treatment_dose', 'next_due_date')
 
-    await applyMigrations(db)
+    await applyMigrations(db, 12)
 
     expect(await kept('treatment_period', 'grid_origin_on')).toEqual(periodsBefore)
     expect(await kept('treatment_dose', 'target_on')).toEqual(dosesBefore)
@@ -355,14 +355,14 @@ describe.each([
     await seedVersion11(db, campaignTreatments(530_000_000, 3))
     await db.execute('DELETE FROM sync_outbox')
 
-    await applyMigrations(db)
+    await applyMigrations(db, 12)
 
     await expect(db.query('SELECT * FROM sync_outbox')).resolves.toEqual([])
   })
 
   it('met de nouveau en file d’envoi une ligne écrite après la migration', async () => {
     await seedVersion11(db, campaignTreatments(530_000_000, 1))
-    await applyMigrations(db)
+    await applyMigrations(db, 12)
     await db.execute('DELETE FROM sync_outbox')
 
     await db.run(`UPDATE treatment_period SET updated_at = ?`, ['2026-10-12T08:00:00.000Z'])
@@ -376,7 +376,7 @@ describe.each([
     const schemaAvant = await schema(db)
     const dosesAvant = await db.query('SELECT * FROM treatment_dose ORDER BY id')
 
-    await expect(applyMigrations(db)).rejects.toThrow(/already exists/)
+    await expect(applyMigrations(db, 12)).rejects.toThrow(/already exists/)
 
     expect(await userVersion(db)).toBe(11)
     expect(await schema(db)).toEqual(schemaAvant)
@@ -386,7 +386,7 @@ describe.each([
   it('laisse des clés étrangères cohérentes et actives', async () => {
     await seedVersion11(db, campaignTreatments(530_000_000, 3))
 
-    await applyMigrations(db)
+    await applyMigrations(db, 12)
     await db.execute('PRAGMA foreign_keys = ON')
 
     await expect(db.query('PRAGMA foreign_key_check')).resolves.toEqual([])

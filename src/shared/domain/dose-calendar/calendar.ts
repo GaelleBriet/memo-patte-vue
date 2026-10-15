@@ -42,7 +42,8 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   const { settingOf, span, lines, borrowed, yielded } = input
   const effects = new Map<string, LineEffect>()
   const journey = journeys(input, effects)
-  const { days, translated, left, openings, rhythmFrom, replaced, restarts } = journey
+  const { days, translated, left, openings, rhythmFrom, replaced, restarts, chosenRestarts } =
+    journey
   const byDay = new Map<Day, Line[]>()
   for (const note of [...lines.notes, ...borrowed]) {
     byDay.set(note.dueOn, [...(byDay.get(note.dueOn) ?? []), note])
@@ -118,12 +119,17 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
         }
       }
     }
-    // R6, TR-9 : la date choisie porte le report d'avant elle qui en part ; parti d'une journée hors de
-    // la grille repartie, un report est sans effet, sauf s'il porte la date ou ouvre un rythme (R9.2).
-    const chosenOn = restarts.get(span.settingAt(dueOn)?.id ?? '')
-    const carries = targetOn === chosenOn || openings.has(targetOn!)
-    const carried = dueOn === chosenOn && restarts.get(report.settingId) !== chosenOn
-    if (chosenOn !== undefined && (carried || (origin === undefined && !carries))) {
+    // R6, TR-9 : hors de sa grille, un report est sans effet, sauf s'il porte la date choisie,
+    // arrive sur la première échéance d'une origine écrite (TR-28) ou ouvre un rythme (R9.2).
+    const at = span.settingAt(dueOn)?.id ?? ''
+    const restartOn = restarts.get(at)
+    const chosenOn = chosenRestarts.get(at)
+    const carries = targetOn === restartOn || targetOn === chosenOn || openings.has(targetOn!)
+    const carried =
+      chosenOn !== undefined &&
+      dueOn === chosenOn &&
+      chosenRestarts.get(report.settingId) !== chosenOn
+    if (carried || (chosenOn !== undefined && origin === undefined && !carries)) {
       effects.set(report.id, { kind: 'idle', reason: 'nothing-to-move' })
       continue
     }

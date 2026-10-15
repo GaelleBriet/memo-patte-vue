@@ -131,16 +131,43 @@ describe('R10, décision de Gaelle du 14 octobre 2026 : Milo tous les 3 jours à
     expect(luParLaReference(c, '2026-10-07')).toEqual(attendu)
   })
 
-  it.fails(
-    'tous les 2 jours, dose du 7 donnée, retour à tous les 3 jours à 9 h à la date proposée, puis la prise du 7 supprimée : la dose du 6 reste en retard (#836, pas encore tenu)',
-    () => {
-      let c = modifie(milo(), '2026-10-07', jours(2), ['08:00'])
-      c = donne(c, '2026-10-07', echeance(c, '2026-10-07', '08:00'))
-      c = modifie(c, '2026-10-07', jours(3), ['09:00'])
-      c = supprime(c, ligne(c, '2026-10-07', '08:00', 'given').id)
-      expect(lu(c, '2026-10-07')).toEqual(enRetard)
-    },
-  )
+  it('tous les 2 jours, dose du 7 donnée, retour à tous les 3 jours à 9 h à la date proposée, puis la prise du 7 supprimée : la dose du 6 reste en retard (#836)', () => {
+    let c = modifie(milo(), '2026-10-07', jours(2), ['08:00'])
+    c = donne(c, '2026-10-07', echeance(c, '2026-10-07', '08:00'))
+    c = modifie(c, '2026-10-07', jours(3), ['09:00'])
+    c = supprime(c, ligne(c, '2026-10-07', '08:00', 'given').id)
+    expect(lu(c, '2026-10-07')).toEqual(enRetard)
+  })
+})
+
+describe('R9 : heure seule changée le lendemain d’une date choisie, le calendrier ne bouge pas', () => {
+  function milo(today: string, premiere: string) {
+    const c = carnet('2026-10-03', jours(3), ['08:00'])
+    const choisie = modifie(
+      donne(c, '2026-10-03', echeance(c, '2026-10-03', '08:00')),
+      today,
+      jours(3),
+      ['08:00'],
+      premiere,
+    )
+    expect(choisie.periods.at(-1)).toMatchObject({ firstDueOn: premiere, firstDueChosen: true })
+    return choisie
+  }
+
+  it('dose du 6 non donnée ; le 7, « Prochaine dose » le 10 ; le 8, 9 h sans toucher la date : prochaine dose le 10 à 9 h, rien en retard', () => {
+    const c = modifie(milo('2026-10-07', '2026-10-10'), '2026-10-08', jours(3), ['09:00'])
+    expect(c.periods.at(-1)).toMatchObject({ firstDueOn: '2026-10-10', firstDueChosen: true })
+    const attendu = { phase: 'upcoming', moment: ['2026-10-10 09:00'], aRenseigner: [] }
+    expect(lu(c, '2026-10-08')).toEqual(attendu)
+    expect(luParLaReference(c, '2026-10-08')).toEqual(attendu)
+  })
+
+  it('dose du 6 non donnée ; le 7, « Prochaine dose » le 8 ; le 8, 9 h sans toucher la date : la dose du 8 à 9 h, la dose du 6 ne revient pas', () => {
+    const c = modifie(milo('2026-10-07', '2026-10-08'), '2026-10-08', jours(3), ['09:00'])
+    const attendu = { phase: 'today', moment: ['2026-10-08 09:00'], aRenseigner: [] }
+    expect(lu(c, '2026-10-08')).toEqual(attendu)
+    expect(luParLaReference(c, '2026-10-08')).toEqual(attendu)
+  })
 })
 
 describe('R10, décision de Gaelle du 14 octobre 2026 : chaque lundi à 8 h depuis le 5 oct., dose du 12 non donnée ; le 13, tous les 3 jours, dose du 13 donnée, retour à l’hebdo à la date proposée, puis la prise du 13 supprimée', () => {
@@ -155,12 +182,9 @@ describe('R10, décision de Gaelle du 14 octobre 2026 : chaque lundi à 8 h depu
   const enRetard = { phase: 'overdue', moment: ['2026-10-12 08:00'], aRenseigner: [] }
 
   for (const heure of ['08:00', '09:00']) {
-    it.fails(
-      `retour à l’hebdo à ${heure} : la dose du 12 reste en retard (#836, pas encore tenu)`,
-      () => {
-        expect(lu(semaine(heure), '2026-10-13')).toEqual(enRetard)
-      },
-    )
+    it(`retour à l’hebdo à ${heure} : la dose du 12 reste en retard (#836)`, () => {
+      expect(lu(semaine(heure), '2026-10-13')).toEqual(enRetard)
+    })
   }
 })
 
@@ -183,7 +207,7 @@ describe('#810, forme A (graine 1500290961) : tous les 3 mois à 6, 12, 18 et 23
 })
 
 describe('#810, forme B (graine 1500061791) : tous les jours à 8 h et 20 h depuis le 10 avr., doses des 10 au 14 données, 15 non donnée', () => {
-  it('le 16, toutes les 6 semaines à 20 h (dose du 16 donnée), retour à tous les jours à 20 h dès le 17, prise du 16 supprimée : le 15 à renseigner, prochaine dose le 17', () => {
+  it('le 16, toutes les 6 semaines à 20 h (dose du 16 donnée), retour à tous les jours à 20 h dès le 17 à la date proposée, prise du 16 supprimée : la dose du 15 reste en retard (décision de Gaelle du 14 octobre 2026, #836)', () => {
     let c = carnet('2026-04-10', jours(1), H)
     for (const day of ['2026-04-10', '2026-04-11', '2026-04-12', '2026-04-13', '2026-04-14']) {
       for (const hour of H) c = donne(c, day, echeance(c, day, hour))
@@ -193,13 +217,16 @@ describe('#810, forme B (graine 1500061791) : tous les jours à 8 h et 20 h depu
     c = modifie(c, '2026-04-16', jours(1), ['20:00'])
     expect(affiche(c, '2026-04-16', 1)).toEqual(['2026-04-17 20:00'])
     c = supprime(c, ligne(c, '2026-04-16', '20:00', 'given').id)
-    const attendu = {
-      phase: 'upcoming',
-      moment: ['2026-04-17 20:00'],
-      aRenseigner: ['2026-04-15 08:00', '2026-04-15 20:00'],
-    }
-    expect(lu(c, '2026-04-16')).toEqual(attendu)
-    expect(luParLaReference(c, '2026-04-16')).toEqual(attendu)
+    expect(lu(c, '2026-04-16')).toEqual({
+      phase: 'overdue',
+      moment: ['2026-04-15 08:00', '2026-04-15 20:00'],
+      aRenseigner: [],
+    })
+    expect(luParLaReference(c, '2026-04-16')).toEqual({
+      phase: 'overdue',
+      moment: ['2026-04-15 08:00'],
+      aRenseigner: [],
+    })
   })
 })
 
@@ -209,7 +236,7 @@ const GRAINES = JSON.parse(
   readFileSync(new URL('./fixtures/dose-calendar-graines.json', import.meta.url), 'utf8'),
 ) as Record<string, Graine>
 
-describe('#810 : les graines de la campagne, après la suppression de la seule prise du réglage remplacé', () => {
+describe('#810 : les graines de la campagne, carnets d’avant le schéma v13 relus par la règle de la migration (origine posée : date choisie), après la suppression de la seule prise du réglage remplacé', () => {
   it.each<[number, string, string[]]>([
     [991003624, '2026-03-23 06:00', ['2026-03-14 06:00', '2026-03-20 12:00']],
     [1500018007, '2026-05-17 06:00', ['2026-03-27 08:00', '2026-03-27 20:00']],

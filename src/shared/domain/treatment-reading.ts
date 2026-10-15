@@ -29,6 +29,8 @@ function isReadablePeriod({ frequency, times, ...days }: Period): boolean {
   return (
     [days.startsOn, days.firstDueOn].every(isCalendarDay) &&
     isOptionalDay(days.gridOriginOn) &&
+    typeof days.firstDueChosen === 'boolean' &&
+    typeof days.pastDosesStayUnlogged === 'boolean' &&
     isOptionalDay(days.endsOn) &&
     isOptionalDay(days.stoppedOn) &&
     Number.isInteger(value) &&
@@ -97,6 +99,8 @@ function viewInputOf({ periods, doses }: TreatmentRecords, today: string): Treat
       startsOn: period.startsOn,
       firstDueOn: period.firstDueOn,
       gridOriginOn: period.gridOriginOn,
+      firstDueChosen: period.firstDueChosen,
+      pastDosesStayUnlogged: period.pastDosesStayUnlogged,
       endsOn: period.endsOn,
       stoppedOn: period.stoppedOn,
       frequency: period.frequency,

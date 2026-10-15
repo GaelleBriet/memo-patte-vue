@@ -184,7 +184,7 @@ describe('toJsonExport', () => {
 
   it('versionne le document pour l’import', () => {
     expect(parsed.schemaVersion).toBe(EXPORT_SCHEMA_VERSION)
-    expect(parsed.schemaVersion).toBe(5)
+    expect(parsed.schemaVersion).toBe(6)
     expect(parsed.exportedAt).toBe(META.exportedAt.toISOString())
     expect(parsed.appVersion).toBe('0.1.24')
   })
@@ -234,6 +234,8 @@ describe('toJsonExport', () => {
       startsOn: '2026-09-10',
       firstDueOn: '2026-09-10',
       gridOriginOn: '2026-09-10',
+      firstDueChosen: true,
+      pastDosesStayUnlogged: false,
       endsOn: '2026-09-20',
       stoppedOn: null,
       frequency: { value: 1, unit: 'day' },

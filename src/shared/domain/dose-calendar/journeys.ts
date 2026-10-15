@@ -70,9 +70,12 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   let rhythm = new Set<string>()
   let rhythmFrom = span.live[0]!.startsOn
   const replaced: Replaced[] = []
-  // R6, TR-9 : par réglage, la date choisie dont la grille repart, que ses suivants de même rythme continuent.
+  // R6, TR-9 : par réglage, la date dont la grille repart, que ses suivants de même rythme continuent.
   const restarts = new Map<string, Day>()
   let restart: Day | undefined
+  // R10 : la date choisie seule ; reprise par son remplaçant du jour même, elle lui passe ses journées.
+  const chosenRestarts = new Map<string, Day>()
+  let chosenRestart: Day | undefined
   let replacing: Replaced | null = null
   // R10, TR-9 : remplacé le jour même par un réglage sans date choisie, un réglage lui laisse ses journées.
   const handed = new Set<string>()
@@ -138,30 +141,39 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     // fréquence se compare à celle du réglage en vigueur avant lui.
     const kept = prior !== undefined && sameFrequency(prior.frequency, setting.frequency)
     // TR-9 : à fréquence gardée, une première échéance choisie remplace la dose du moment du rythme,
-    // même quand son réglage est remplacé le jour même par un réglage sans date choisie (R10).
-    if (kept && origin !== null && !ended) {
+    // même quand son réglage est remplacé le jour même par un réglage sans date choisie, sauf
+    // après « Elles restent à renseigner » (R10, #817, #836).
+    const replaces = kept && setting.firstDueChosen && !setting.pastDosesStayUnlogged && !ended
+    if (replaces) {
       const onDueDay =
         setting.startsOn > inherited.floor &&
         isOnGrid(inherited.origin, setting.frequency, setting.startsOn)
       replacing = { from: rhythmFrom, to: setting.startsOn, onDueDay }
       restart = setting.firstDueOn
-    } else if (!continued || origin !== null || ended) {
+      chosenRestart = restart
+    } else if (!continued || (origin !== null && setting.firstDueChosen) || ended) {
       replacing = null
       restart = undefined
+      chosenRestart = undefined
+    } else if (origin !== null) {
+      // TR-28 : une origine écrite sans date choisie fait repartir la grille, et le report qui arrive
+      // sur sa première échéance, sans remplacer la dose du moment.
+      restart = setting.firstDueOn
     }
     if (index < 0) return
     if (replacing !== null) replaced.push(replacing)
     replacing = null
     if (restart !== undefined) restarts.set(setting.id, restart)
+    if (chosenRestart !== undefined) chosenRestarts.set(setting.id, chosenRestart)
     if (
       prior?.startsOn === setting.startsOn &&
-      origin === null &&
-      restart !== undefined &&
-      restarts.get(prior.id) === restart
+      (origin === null || !setting.firstDueChosen) &&
+      chosenRestart !== undefined &&
+      chosenRestarts.get(prior.id) === chosenRestart
     ) {
       handed.add(prior.id)
     }
-    if (index > 0 && (!continued || ended || !kept)) rhythmFrom = setting.startsOn
+    if (index > 0 && (ended || !kept || (!continued && replaces))) rhythmFrom = setting.startsOn
     // R3 : écrit sous un réglage d'avant un changement de fréquence, un décalage est dépassé.
     const turns = lines.shifts.filter(
       (shift) =>
@@ -213,6 +225,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     rhythmFrom,
     replaced,
     restarts,
+    chosenRestarts,
     lastPossibleDay,
     lastGridDay,
   }

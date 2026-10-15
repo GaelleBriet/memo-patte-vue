@@ -9,15 +9,26 @@ import type {
   ExportVaccinationInjection,
   ExportWeightEntry,
 } from '@/shared/domain/carnet-data'
-import { gridOriginsOf, targetOnOf } from '@/shared/domain/dose-calendar'
+import {
+  gridOriginsOf,
+  legacyFactsOf,
+  targetOnOf,
+  type SettingFacts,
+} from '@/shared/domain/dose-calendar'
 import { readTreatment } from '@/shared/domain/treatment-reading'
 
 type Unstamped<T> = Omit<T, 'createdByDevice' | 'updatedByDevice'>
 
-export type Version4Period = Omit<ExportTreatmentPeriod, 'gridOriginOn'> & { referenceOn: string }
+export type Version5Period = Omit<ExportTreatmentPeriod, keyof SettingFacts>
+
+export type Version5Data = Omit<ExportData, 'treatmentPeriods'> & {
+  treatmentPeriods: Version5Period[]
+}
+
+export type Version4Period = Omit<Version5Period, 'gridOriginOn'> & { referenceOn: string }
 export type Version4Dose = Omit<ExportTreatmentDose, 'targetOn'> & { nextDueDate: string }
 
-export type Version4Data = Omit<ExportData, 'treatmentPeriods' | 'treatmentDoses'> & {
+export type Version4Data = Omit<Version5Data, 'treatmentPeriods' | 'treatmentDoses'> & {
   treatmentPeriods: Version4Period[]
   treatmentDoses: Version4Dose[]
 }
@@ -52,7 +63,7 @@ export function fromVersion3(data: Version3Data, deviceId: string): Version4Data
 }
 
 /** Plan §3.3 : la conversion que la migration v12 applique à la base, traitement par traitement. */
-export function fromVersion4(data: Version4Data): ExportData {
+export function fromVersion4(data: Version4Data): Version5Data {
   const treatmentIds = new Set(data.treatmentPeriods.map(({ treatmentId }) => treatmentId))
   const origins = new Map(
     [...treatmentIds].flatMap((id) => [
@@ -68,6 +79,17 @@ export function fromVersion4(data: Version4Data): ExportData {
     treatmentDoses: data.treatmentDoses.map(({ nextDueDate, ...dose }) => ({
       ...dose,
       targetOn: targetOnOf({ status: dose.status, nextDueDate }),
+    })),
+  }
+}
+
+/** La conversion que la migration v13 applique à la base : chaque réglage se relit comme avant. */
+export function fromVersion5(data: Version5Data): ExportData {
+  return {
+    ...data,
+    treatmentPeriods: data.treatmentPeriods.map((period) => ({
+      ...period,
+      ...legacyFactsOf(period.gridOriginOn),
     })),
   }
 }

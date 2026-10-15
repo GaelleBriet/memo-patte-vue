@@ -11,6 +11,7 @@ import {
 } from '../repository/treatments.repository'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
+import { legacyFactsOf } from '@/shared/domain/dose-calendar'
 
 const LUNA = '11111111-1111-4111-8111-111111111111'
 const MILO = '22222222-2222-4222-8222-222222222222'
@@ -27,7 +28,7 @@ function period(
   overrides: Pick<PeriodFields, 'id' | 'treatmentId' | 'animalId' | 'startsOn'> &
     Partial<PeriodFields>,
 ): PeriodFields {
-  return {
+  const record = {
     firstDueOn: overrides.firstDueOn ?? overrides.startsOn,
     gridOriginOn: overrides.firstDueOn ?? overrides.startsOn,
     endsOn: null,
@@ -40,7 +41,8 @@ function period(
     reminderTime: null,
     ...STAMPS,
     ...overrides,
-  }
+  } satisfies Partial<PeriodFields>
+  return { ...legacyFactsOf(record.gridOriginOn), ...record }
 }
 
 const PREMIERE = period({

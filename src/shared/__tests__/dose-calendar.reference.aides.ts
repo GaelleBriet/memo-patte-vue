@@ -21,18 +21,32 @@ export function setting(
   extra: Partial<ReferenceSetting> = {},
 ): ReferenceSetting {
   stamp += 1
+  const gridOriginOn = extra.gridOriginOn === undefined ? firstDueOn : extra.gridOriginOn
   return {
     id,
     startsOn: firstDueOn,
     firstDueOn,
-    gridOriginOn: firstDueOn,
+    firstDueChosen: gridOriginOn !== null,
+    pastDosesStayUnlogged: false,
     endsOn: null,
     stoppedOn: null,
     frequency,
     times,
     createdAt: `2026-01-01T00:${String(Math.floor(stamp / 60)).padStart(2, '0')}:${String(stamp % 60).padStart(2, '0')}.000Z`,
     ...extra,
+    gridOriginOn,
   }
+}
+
+/** Un réglage dont la première échéance et l'origine ont été proposées par l'app, pas choisies (#836). */
+export function proposedSetting(
+  id: string,
+  firstDueOn: string,
+  frequency: ReferenceFrequency,
+  times: string[] = [],
+  extra: Partial<ReferenceSetting> = {},
+): ReferenceSetting {
+  return setting(id, firstDueOn, frequency, times, { ...extra, firstDueChosen: false })
 }
 
 export function line(
