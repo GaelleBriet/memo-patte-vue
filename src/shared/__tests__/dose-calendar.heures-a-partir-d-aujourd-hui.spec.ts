@@ -254,6 +254,37 @@ describe('R9, décision du 15 octobre 2026 : changer les heures vaut à partir d
   })
 })
 
+describe('R4, R9 : une première échéance en retard n’est pas le jour où les heures changent', () => {
+  it('graine 5700000999 : chaque semaine à 6, 12, 18 et 23 h, journée du 5 avril entamée puis en retard ; le 6, une minute plus tard : 12, 18 et 23 h du 5 restent en retard', () => {
+    const input: TreatmentViewInput = {
+      settings: [
+        setting('s1', '2026-03-24', WEEK),
+        setting('s2', '2026-04-04', WEEK, FOUR, {
+          startsOn: '2026-04-03',
+          gridOriginOn: null,
+          firstDueChosen: false,
+        }),
+      ],
+      lines: [
+        line('s1', 'postponed', '2026-03-24', null, '2026-04-04'),
+        line('s1', 'shift', '2026-03-24', null, '2026-04-04'),
+        line('s1', 'postponed', '2026-04-11', null, '2026-04-05'),
+        { ...line('s1', 'given', '2026-04-05'), ...givenOn('2026-04-02') },
+        { ...line('s1', 'given', '2026-04-04'), ...givenOn('2026-04-02') },
+        line('s1', 'extra', '2026-03-30'),
+        { ...line('s2', 'given', '2026-04-18', '06:00'), ...givenOn('2026-04-01') },
+      ],
+      today: '2026-04-06',
+    }
+    const late = ['2026-04-05 12:00', '2026-04-05 18:00', '2026-04-05 23:00']
+    expect(readings(input).moteur.moment).toEqual(late)
+    const after = minuteLater(input)
+    expect(readings(after).moteur.moment).toEqual(late)
+    expect(readings(after).reference.moment).toEqual(late)
+    expect(pastSlots(after, '2026-03-24')).toEqual(pastSlots(input, '2026-03-24'))
+  })
+})
+
 describe('R7, R9 : une dose avancée dont l’arrivée est passée garde les heures de ce jour-là', () => {
   // Luna, tous les 3 jours à 8 h et 20 h dès le 1er avril ; le 2, la dose du 4 avancée au 3, sans
   // décaler la suite ; le 4, la dose du 3 n'est pas donnée.

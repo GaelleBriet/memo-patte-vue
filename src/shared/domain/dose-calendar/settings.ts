@@ -1,4 +1,4 @@
-import { keyOf, plusDays, sameFrequency, sameHours } from './grid'
+import { keyOf, later, plusDays, sameFrequency, sameHours } from './grid'
 import { isNote, latestBy } from './lines'
 import type { Day, Line, Setting } from './types'
 
@@ -91,7 +91,7 @@ export function spanOf(episode: readonly Setting[], lines: readonly Line[]): Spa
   const hoursChangeOn = new Set(
     live.flatMap((setting, index) =>
       index > 0 && !sameHours(live[index - 1]!, setting)
-        ? [setting.startsOn, setting.firstDueOn]
+        ? [setting.startsOn, later(setting.firstDueOn, setting.startsOn)]
         : [],
     ),
   )

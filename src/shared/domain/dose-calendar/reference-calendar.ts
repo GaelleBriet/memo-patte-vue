@@ -117,7 +117,8 @@ export function calendarOf(
       sameFrequency(previous, setting) &&
       (origin === null || isOnGrid(inForce.origin, setting.frequency, origin))
     if (index > 0 && !sameHours(live[index - 1]!, setting)) {
-      translated.set(setting.startsOn, setting.id).set(setting.firstDueOn, setting.id)
+      translated.set(setting.startsOn, setting.id)
+      translated.set(later(setting.firstDueOn, setting.startsOn), setting.id)
     }
     const ownFloor = plusDays(later(setting.firstDueOn, setting.startsOn), -1)
     if (!continued) {
