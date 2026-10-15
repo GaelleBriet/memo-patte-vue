@@ -1444,6 +1444,12 @@ Lectures à confirmer par Gaelle, ouvertes le 15 octobre 2026 en appliquant ces 
   1er avril, passé. Après un changement de fréquence, le report garde la lecture d'avant (R6, R9).
   Parti d'un jour d'arrivée, il compte les doses que cette arrivée portait (graine 7300000242 : la
   dose de 20 h du 14 mars reportée au 21, puis du 21 au 25 ; une minute plus tard, le 21 reste vide).
+  Un nombre de doses réduit par des heures retirées ne remonte pas quand des heures reviennent
+  (graine 7300000459 : la dose du 8 mars, à 4 heures, reportée au 2 avril quand le réglage n'avait
+  plus qu'une heure ; 6 h ajoutée ensuite : le 2 avril ne reçoit pas de dose de plus). Sur une
+  journée entamée relue à d'autres heures (R9.2), un report compte aussi ses doses avec ses propres
+  heures (graine 7300000787 : le 4 avril, 12 h et 23 h données d'avance, 18 h reportée au 12 ; 9 h
+  ajoutée : le 12 garde sa dose).
 - **Une heure ajoutée ne laisse pas de dose de plus sur une journée reportée** : la journée d'origine
   perd ses heures à partir du rang de l'heure du report. Graine 975000503 (exemple de #817) : chaque
   jour à 8 h, 14 h et 20 h, le 17 mars la dose de 8 h reportée au 5 avril avec décalage, puis 6 h,

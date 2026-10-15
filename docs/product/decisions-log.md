@@ -2747,4 +2747,5 @@ R10, §10 et §11 ; modèle de données §4.3 ; export v6).
 - Lectures à confirmer par Gaelle (§11 de la spec) : doses comptées avec les heures du premier réglage
   de même fréquence ; une heure ajoutée ne laisse pas de dose de plus sur une journée reportée
   (l'exemple de #817 se lit avec la dose de 14 h reportée) ; à venir, le jour d'arrivée reçoit ses
-  doses en fin de liste ; traduction de toute journée entamée sous un réglage plus ancien.
+  doses en fin de liste ; traduction de toute journée entamée sous un réglage plus ancien ; un
+  nombre de doses réduit par des heures retirées ne remonte pas ; prises en trop sans effet.
