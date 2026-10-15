@@ -2726,3 +2726,25 @@ R10, §10 et §11 ; modèle de données §4.3 ; export v6).
   garde le fait « date choisie », l'origine passant à la première journée due quand elle n'est pas
   sur la grille choisie.
 
+2026-10-15 — **Moteur des doses v2 : un report garde ses doses quand les heures changent ; une journée
+à venir entamée garde son jour (#854, questions 1 et 2)** (spec `traitements.md` R4, R7, R9.2, R11,
+§10 et §11).
+
+- Décision de Gaelle, question 1 : « un report déplace des doses, pas des heures : quand les heures de
+  sa journée changent, il garde le même nombre de doses, posées dans l'ordre sur les heures du nouveau
+  réglage (R9, R11) ; jamais « sans effet » par un simple changement d'heures ». Luna, toutes les
+  2 semaines à 8 h, 14 h et 20 h ; le 12 avril, la dose du 23 avancée au 15 ; le même jour « sans
+  heure » ou 6 h seule : le report du 15 survit, la dose du 9 reste à renseigner. Graine 4900002127 :
+  6 h ajoutée avant l'heure d'un report, la dose en retard ne passe pas à renseigner. — Alternative
+  écartée : la lecture qui faisait disparaître un report par un simple changement d'heures (contre la
+  décision du 10 octobre, R11).
+- Décision de Gaelle, question 2 : « c'est R9 point 2 mot pour mot : une journée à venir entamée
+  garde son jour, ses prises couvrent les premières heures du nouveau réglage, et le rythme repart
+  d'elle ». Milo, tous les 3 jours à 8 h et 20 h, première dose le 7 avril, la dose du 7 à 20 h
+  donnée d'avance, celle de 8 h reportée au 12 et donnée d'avance ; le 22 mars, 8 h 01 et 20 h 01 :
+  le 7 et le 12 couverts, puis le 10 à 8 h 01 et 20 h 01, le 13, le 16. — Alternative écartée :
+  relire ces journées aux nouvelles heures (une dose de trop le 12, une de moins le 10).
+- Lectures à confirmer par Gaelle (§11 de la spec) : doses comptées avec les heures du premier réglage
+  de même fréquence ; une heure ajoutée ne laisse pas de dose de plus sur une journée reportée
+  (l'exemple de #817 se lit avec la dose de 14 h reportée) ; à venir, le jour d'arrivée reçoit ses
+  doses en fin de liste ; traduction de toute journée entamée sous un réglage plus ancien.

@@ -347,7 +347,7 @@ Quand un réglage **garde la fréquence** du précédent, il hérite de son orig
 
 #### R4 — Ce qu'une prise couvre
 
-Une prise (donnée ou oubliée) vise une échéance, jour et heure, et la couvre dans **tout** le calendrier du traitement, quel que soit le réglage qui la produit. Sa date réelle est une information d'historique. **Une seule traduction** existe : le jour où les heures changent, les prises de ce jour (visant l'ancien réglage) couvrent les premières heures du nouveau réglage, dans l'ordre et à hauteur de leur nombre ; une journée entièrement couverte n'a plus rien à donner.
+Une prise (donnée ou oubliée) vise une échéance, jour et heure, et la couvre dans **tout** le calendrier du traitement, quel que soit le réglage qui la produit. Sa date réelle est une information d'historique. **Une seule traduction** existe : le jour où les heures changent, les prises de ce jour (visant l'ancien réglage) couvrent les premières heures du nouveau réglage, dans l'ordre et à hauteur de leur nombre ; une journée entièrement couverte n'a plus rien à donner. Il en va de même d'une journée à venir déjà entamée sous les anciennes heures (R9.2, décision de Gaelle du 15 octobre 2026).
 
 Un oubli est une note sur **une** échéance, celle de son jour et de son heure : jamais compté comme donné, jamais reporté sur une autre dose (décision de Gaelle du 14 octobre 2026). Le jour où les heures changent, la traduction vaut pour lui aussi : c'est la même dose du matin (R9), l'oubli reste dessus et la nouvelle première heure n'est pas redemandée.
 
@@ -377,7 +377,7 @@ Un report déplace la dose visée **et les heures suivantes de la même journée
 
 Le jour où les heures changent, un jour d'arrivée reçoit **autant d'échéances qu'il y avait de doses reportées**, prises **en fin de liste** des nouvelles heures (une dose reportée à 20 h, heures passées à 9 h et 21 h : 21 h).
 
-Une dose avancée à un jour passé dont la journée d'origine prend ensuite de nouvelles heures (changées à partir d'aujourd'hui, R9) : le jour d'arrivée, passé, garde les heures qu'il avait reçues ; la journée d'origine perd ses heures à partir de celle du report, ou ses dernières heures s'il n'y en a plus après elle ; quand elle est déjà toute couverte, le report est sans effet (#854, lecture à confirmer par Gaelle, §11). Une première échéance en retard, plus tôt que le premier jour d'un réglage, n'est pas le jour où les heures changent (R4) : ses prises ne couvrent pas d'autres heures.
+**Un report déplace des doses, pas des heures** (décision de Gaelle du 15 octobre 2026, question 1 de #854) : « quand les heures de sa journée changent, il garde le même nombre de doses, posées dans l'ordre sur les heures du nouveau réglage (R9, R11) ; jamais « sans effet » par un simple changement d'heures ». Une journée qui portait trois doses et passe à une heure en porte une, sur la première heure du nouveau réglage. Luna, toutes les 2 semaines à 8 h, 14 h et 20 h ; le 12 avril, la dose du 23 avancée au 15 ; le même jour, « sans heure » ou 6 h seule : le 15 garde une dose, la dose du 9 non donnée reste à renseigner. Même famille, graine 4900002127 : le 22 mars, 6 h ajoutée avant l'heure d'un report parti du 22 ; la dose en retard ne passe pas à renseigner (Q-retard). Le report compte ses doses avec les heures d'avant le changement ; sa journée d'origine les perd à partir du même rang (la dose visée et les suivantes), ou perd sa dernière heure s'il n'y en a plus à ce rang : une heure ajoutée n'y laisse pas de dose de plus. Un jour d'arrivée passé garde les heures qu'il avait reçues (R9, à partir d'aujourd'hui) ; à venir, il reçoit ces doses en fin de liste. Un report battu avant le changement le reste (lectures à confirmer, §11). Une première échéance en retard, plus tôt que le premier jour d'un réglage, n'est pas le jour où les heures changent (R4) : ses prises ne couvrent pas d'autres heures.
 
 _= Q21, G25 (la partie « arrivée »), G7, G9, G13, G17, Q18, Q2 a, Q25 pour les refus._
 
@@ -390,7 +390,7 @@ Après un arrêt, la reprise ouvre un nouveau réglage dont la première échéa
 Quand la fréquence ou les heures changent, la première échéance proposée est :
 
 1. **aujourd'hui**, si aujourd'hui est une journée d'échéance (grille ou arrivée d'un report) qui a encore des heures à donner, ou si rien n'y est noté et qu'une dose y était due ; les prises d'aujourd'hui couvrent les premières heures du nouveau réglage (R4) ;
-2. sinon, la **prochaine journée d'échéance** du calendrier en vigueur quand elle est déjà **entamée** (une de ses heures donnée en avance) ou quand c'est l'**arrivée d'un report** : elle garde son jour, ses prises couvrent les premières heures du nouveau réglage, et le nouveau rythme part d'elle ;
+2. sinon, la **prochaine journée d'échéance** du calendrier en vigueur quand elle est déjà **entamée** (une de ses heures donnée en avance) ou quand c'est l'**arrivée d'un report** : elle garde son jour, ses prises couvrent les premières heures du nouveau réglage, et le nouveau rythme part d'elle (décision de Gaelle du 15 octobre 2026, question 2 de #854 : « c'est R9 point 2 mot pour mot », y compris quand seules les heures changent ; Milo, tous les 3 jours à 8 h et 20 h, première dose le 7 avril, la dose du 7 à 20 h donnée d'avance, celle de 8 h reportée au 12 et donnée d'avance ; le 22 mars, 8 h 01 et 20 h 01 : le 7 et le 12 restent couverts, puis le 10 à 8 h 01 et 20 h 01, le 13, le 16) ;
 3. sinon, la **dernière journée d'échéance passée plus la nouvelle fréquence**, jamais avant aujourd'hui ; une journée notée que le réglage suivant a fait sortir du calendrier compte (R4), la date ne dépend donc pas du jour de la correction (#799, décision du 2026-10-12).
 
 La date proposée et montrée est la première dose encore à donner, comme sur la fiche (une journée déjà toute notée garde son rôle de première échéance écrite) ; un nouveau rythme dont la première dose encore à donner tomberait après la date de fin est refusé, une date de fin égale à aujourd'hui n'ayant rien de spécial (« Avec ce rythme, plus aucune dose avant la date de fin. Change la date de fin ou le rythme. », #787) (décisions du 2026-10-12). La date est modifiable (« Prochaine dose ») ; une autre date choisie devient la première échéance et l'origine, et le réglage enregistre qu'elle a été choisie : une date proposée, même écrite comme première échéance et origine, ne remplace jamais la dose du moment (#836, décision de Gaelle du 14 octobre 2026) ; à fréquence gardée, sauf après la question Q38 (R10), elle remplace la dose du moment : la dose en retard, qui ne passe pas « à renseigner », ou, si le réglage commence un jour d'échéance, la dose de ce jour, les doses plus anciennes restant à renseigner ; la grille repart de la date choisie, et un report plus loin la suit si sa journée d'origine est sur la nouvelle grille, sinon il est sans effet ; parti de la date choisie elle-même, il est porté par elle, donc sans effet (R6, R11 ; décisions du 2026-10-13) ; quand la dose du moment est l'arrivée d'un report (rien en retard ni en attente avant elle), la ligne du report est réécrite pour arriver à la date choisie (R7), elle ne devient pas « sans effet » (#796, décision du 2026-10-12), et le décalage de sa journée la suit comme avec « Prochaine dose » : réécrit avec elle, ou supprimé avec elle quand la date choisie est le jour d'origine (R6, dans les bornes de « Prochaine dose », G7, G8) ; elle est montrée même plus tôt que la première échéance d'un réglage jamais commencé (TR-9, #794, décisions du 2026-10-12). Une date choisie avant une dose déjà notée est refusée, et le champ est grisé dès qu'une dose est déjà notée plus loin que le jour de la modification, ou que la date proposée, sauf quand cette dose est sur la date proposée elle-même, la prochaine dose (« Une dose plus lointaine est déjà notée. », Q26, G24, #811, décisions du 2026-10-13) ; la date proposée reste affichée et la posologie reste modifiable sans toucher la date. Quand la fréquence ne change pas (heures ou posologie seules), la première échéance est **la prochaine journée du calendrier en vigueur** (dose du moment en retard comprise : elle reste en retard, jamais déplacée vers « à renseigner », Q-retard), et l'origine est héritée (R3) : le calendrier ne bouge pas. Changer les heures vaut **à partir d'aujourd'hui** seulement : une journée passée garde les heures qu'elle avait ce jour-là, ses prises gardent leur effet, et aucune dose n'apparaît en retard ou à renseigner à une heure qui n'existait pas ce jour-là (décision de Gaelle du 15 octobre 2026 : « les nouvelles heures s'appliquent à partir d'aujourd'hui seulement (R9 : « le calendrier ne bouge pas » ; les prises passées gardent leur réglage) », #854). Quand la fréquence change, les échéances restées sans prise avant la première échéance du nouveau réglage restent à renseigner (TR-28, TR-30 ; #810 : « à renseigner » dans les deux cas, décision de Gaelle du 14 octobre 2026) ; la date choisie ne remplace la dose du moment qu'à fréquence gardée, la fréquence se comparant à celle du réglage en vigueur avant le jour du changement (R10).
@@ -403,7 +403,7 @@ Un réglage ouvert aujourd'hui et encore sans prise se **remplace** quand on le 
 
 #### R11 — Rien ne disparaît sans geste
 
-Une ligne écrite par la personne (prise, prise en plus, report, décalage) n'est **jamais supprimée par le moteur**. Ce qui n'a plus d'effet (un report revenu à sa date, une ligne plus ancienne de la même journée entre deux appareils, sous le même réglage ou, selon la lecture de R11, R4 et TR-25 par #802 à confirmer par Gaelle, sous un autre réglage de la période, sauf une prise traduite les jours que le calendrier traduit, changement d'heures et arrivée d'un report à d'autres heures (R4, R7), un report battu par une prise de la même échéance, un décalage d'avant la première échéance d'un réglage qui fait repartir la grille, un report parti d'une journée que la grille repartie d'une date choisie n'a pas) reste en base et dans l'historique, à sa place, grisé, son texte suivi de « · sans effet » (« Reportée au 19 oct. · sans effet »), avec « Supprimer » pour seul menu (décision de Gaelle du 2026-10-10) ; seule la personne le supprime ; aucune correction de date ne fait d'un oubli une prise donnée (TR-22 et « Marquer comme donnée » restent permis) (décision du 2026-10-12). Le moteur ne lit **que** des lignes, il n'en écrit ni n'en efface jamais à la lecture (décision Q-purge du 2026-10-10). À l'écriture, l'app refuse une deuxième ligne de la même échéance et de la même famille sous le **même réglage** seulement : le jour où les heures changent, une prise d'avance écrite sous l'ancien réglage n'empêche pas « C'est fait » sous le nouveau (R4) ; une ligne d'un autre réglage reçue de la synchro est écartée à la lecture (écart au plan §3.2, confirmé par Gaelle le 14 octobre 2026).
+Une ligne écrite par la personne (prise, prise en plus, report, décalage) n'est **jamais supprimée par le moteur**. Ce qui n'a plus d'effet (un report revenu à sa date, une ligne plus ancienne de la même journée entre deux appareils, sous le même réglage ou, selon la lecture de R11, R4 et TR-25 par #802 à confirmer par Gaelle, sous un autre réglage de la période, sauf une prise traduite les jours que le calendrier traduit, changement d'heures, journée à venir entamée et arrivée d'un report à d'autres heures (R4, R7, R9.2), un report battu par une prise de la même échéance, un décalage d'avant la première échéance d'un réglage qui fait repartir la grille, un report parti d'une journée que la grille repartie d'une date choisie n'a pas) reste en base et dans l'historique, à sa place, grisé, son texte suivi de « · sans effet » (« Reportée au 19 oct. · sans effet »), avec « Supprimer » pour seul menu (décision de Gaelle du 2026-10-10) ; seule la personne le supprime ; aucune correction de date ne fait d'un oubli une prise donnée (TR-22 et « Marquer comme donnée » restent permis) (décision du 2026-10-12). Le moteur ne lit **que** des lignes, il n'en écrit ni n'en efface jamais à la lecture (décision Q-purge du 2026-10-10). À l'écriture, l'app refuse une deuxième ligne de la même échéance et de la même famille sous le **même réglage** seulement : le jour où les heures changent, une prise d'avance écrite sous l'ancien réglage n'empêche pas « C'est fait » sous le nouveau (R4) ; une ligne d'un autre réglage reçue de la synchro est écartée à la lecture (écart au plan §3.2, confirmé par Gaelle le 14 octobre 2026).
 
 #### R12 — Une seule lecture pour tous les écrans
 
@@ -1303,6 +1303,18 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
   avec les nouvelles heures, qui fait apparaître des doses en retard sans question (TR-28) et fait
   perdre son effet à une prise.
 
+- 2026-10-15 — **#854, questions 1 et 2 tranchées par Gaelle** (R4, R7, R9.2). Question 1 : « un
+  report déplace des doses, pas des heures : quand les heures de sa journée changent, il garde le même
+  nombre de doses, posées dans l'ordre sur les heures du nouveau réglage (R9, R11) ; jamais « sans
+  effet » par un simple changement d'heures » ; Luna, le report du 15 survit, la dose du 9 reste à
+  renseigner ; graine 4900002127, la dose en retard ne passe pas à renseigner. Écartée : la lecture de
+  la branche, qui faisait disparaître un report par un simple changement d'heures et ressortir une dose
+  en retard sans geste, contre la décision du 10 octobre (R11). Question 2 : « c'est R9 point 2 mot pour
+  mot : une journée à venir entamée garde son jour, ses prises couvrent les premières heures du nouveau
+  réglage, et le rythme repart d'elle » ; Milo (graine 7300000097), le 7 et le 12 couverts, puis 10,
+  13, 16. Écartée : relire ces journées aux nouvelles heures, qui ajoutait une dose le 12 et en perdait
+  une le 10.
+
 ## 11. Questions ouvertes
 
 Posées par la relecture de cohérence du 2026-09-30 (`technical/relecture-coherence-2026-09-30-1.md`),
@@ -1332,7 +1344,8 @@ Ouvertes le 2026-10-13, en appliquant les décisions du 2026-10-12 au soir :
   « · sans effet » demande une colonne de plus, donc un titre nouveau.
 - **#817, la dose en retard après « Elles restent à renseigner » avec une date choisie (tenu,
   #825).** Le réglage écrit par cette réponse dit que les doses passées du réglage précédent restent à
-  renseigner : la dose de 6 h du 17 reste en retard, le report du 5 avr. aussi.
+  renseigner : la dose de 6 h du 17 reste en retard, le report du 5 avr. aussi (avec la dose de 14 h
+  reportée, depuis la décision du 15 octobre 2026 : lectures à confirmer ci-dessous).
 - **#810, un changement de fréquence et la dose en retard (tranchée le 14 octobre 2026, §10).** La décision du 2026-10-13 (« un
   changement de fréquence seul la laisse en retard ») et TR-28 (« quand la fréquence change, les
   échéances restées sans prise avant la première échéance du nouveau réglage restent à renseigner »)
@@ -1385,13 +1398,12 @@ nouvelles heures s'appliquent à partir d'aujourd'hui seulement ») :
   7 (avant, `main` : la suite décalée au 12 et au 15 ; un essai retiré de #848 montrait une dose de
   8 h en retard le 7 avril). Écartée :
   corriger le réglage depuis son début, qui relit les journées passées avec les nouvelles heures.
-- **Une dose avancée à un jour passé garde les heures de ce jour** (R7). Luna, tous les 3 jours à
-  8 h et 20 h dès le 1er avril ; le 2, la dose du 4 avancée au 3 sans décaler ; le 4, la dose du 3
-  n'est pas donnée, heures passées à 20 h seule : les doses du 3 à 8 h et 20 h restent en retard,
-  prochaine dose le 7 à 20 h (avant : seule 20 h restait en retard le 3 ; « sans heure », la journée
-  du 3 sortait du carnet). La journée d'origine perd ses heures à partir de celle du report, sinon ses
-  dernières ; toute couverte, le report est sans effet (graine 5700001922). Écartée : relire le jour
-  d'arrivée avec les heures du jour d'origine.
+- **Une dose avancée à un jour passé garde les heures de ce jour** (R7), tranchée par la décision du
+  15 octobre 2026 (question 1 : le report garde ses doses). Luna, tous les 3 jours à 8 h et 20 h dès le
+  1er avril ; le 2, la dose du 4 avancée au 3 sans décaler ; le 4, la dose du 3 n'est pas donnée,
+  heures passées à 20 h seule : les doses du 3 à 8 h et 20 h restent en retard, prochaine dose le 7 à
+  20 h. La lecture « toute couverte, le report est sans effet » est retirée (jamais sans effet par un
+  simple changement d'heures) ; un report battu avant le changement le reste (graine 5700001922).
 - **« Elles n'étaient pas à donner » garde le fait « date choisie »**, l'origine passant à la première
   journée due quand celle-ci n'est pas sur la grille choisie (graine 7500002108 : origine le 12 avril,
   la dose du 6 avril que le 10 avait remplacée ne revient pas). Écartée : garder l'origine choisie
@@ -1401,7 +1413,8 @@ nouvelles heures s'appliquent à partir d'aujourd'hui seulement ») :
   7500002108, le report arrivé le 10 avril, relu avec les nouvelles heures, est à renseigner le 10 à
   23 h ; graine 7300002566, les doses du 17 avril sortent du carnet, prochaine dose le 20.
 
-Questions ouvertes le 15 octobre 2026 avec #854 :
+Questions ouvertes le 15 octobre 2026 avec #854, **tranchées le même jour par Gaelle** (§10) ; leur
+texte d'origine est gardé ci-dessous :
 
 - **Un report d'aujourd'hui ou plus tard quand les heures changent.** Luna, tous les 2 semaines à
   8 h, 14 h et 20 h ; le 12 avril, la dose du 23 avancée au 15 ; le même jour, « sans heure » (ou
@@ -1420,6 +1433,34 @@ Questions ouvertes le 15 octobre 2026 avec #854 :
   venir déjà entamée garde ses prises sur les premières heures du nouveau réglage (R9.2 étendue à
   chaque journée entamée), et qu'un report y emporte le même nombre de doses. Alternative : corriger
   le réglage (lecture de `main`) quand la correction ne fait bouger aucune journée passée.
+
+Lectures à confirmer par Gaelle, ouvertes le 15 octobre 2026 en appliquant ces deux décisions :
+
+- **Les doses d'un report se comptent avec les heures d'avant le changement**, celles du premier
+  réglage de même fréquence qui lit sa journée d'origine, pas plus tôt que le réglage du report.
+  Graine 4870001647 : une dose du 30 juin, d'un réglage trimestriel sans heure, avancée au 1er avril,
+  puis tous les mois à 8 h, 14 h et 20 h, puis une minute plus tard : le 1er avril garde ses trois
+  doses. Écartée : compter avec les heures du réglage du report (une seule dose), qui changeait le
+  1er avril, passé. Après un changement de fréquence, le report garde la lecture d'avant (R6, R9).
+- **Une heure ajoutée ne laisse pas de dose de plus sur une journée reportée** : la journée d'origine
+  perd ses heures à partir du rang de l'heure du report. Graine 975000503 (exemple de #817) : chaque
+  jour à 8 h, 14 h et 20 h, le 17 mars la dose de 8 h reportée au 5 avril avec décalage, puis 6 h,
+  12 h, 18 h et 23 h : la journée du 17 reste reportée, il n'y a plus de dose de 6 h le 17 (l'exemple
+  de #817 se lit maintenant avec la dose de 14 h reportée : la dose de 6 h du 17 reste en retard).
+  Luna (graine 7500002108) : le 6 avril, 8 h donnée, 20 h reportée ; 14 h ajoutée le 5 : le 6 n'a
+  pas de dose de 14 h. Graine 7300001299 : la journée du 6 avril, avancée au 2, reste vide après
+  l'ajout de 8 h et 14 h, prochaine dose le 21 avril. Hebdo du jeudi à 20 h, dose du 2 avril reportée
+  seule au 7, le 27 mars 8 h ajoutée : le 2 reste reporté, le 7 à 20 h, puis le 9. Écartée : comparer
+  par heure (la journée garde les heures plus tôt que celle du report), qui contredit la graine
+  4900002127.
+- **À venir, le jour d'arrivée reçoit ses doses en fin de liste** (R7, exemple 21 h). Milo : le 12
+  reçoit une dose à 20 h 01, couverte par la prise d'avance de 8 h. Alternative : les poser sur les
+  premières heures (8 h 01), lecture possible de « posée sur la première heure ».
+- **La journée entamée se traduit pour toute prise d'un réglage plus ancien aux autres heures**, y
+  compris l'arrivée d'un report (graine 4870000187 : la prise de 12 h du 17, donnée d'avance, couvre
+  8 h ; le report de 8 h du 17, écrit ensuite, est sans effet). Entre deux appareils, une prise de
+  l'ancien réglage reçue après le changement compte alors comme une prise de plus, comme le jour où les
+  heures changent.
 
 Lectures à confirmer par Gaelle, ouvertes le 14 octobre 2026 avec #845 (TR-24, TR-25) :
 
