@@ -60,16 +60,23 @@ describe('R7 : 8 h du 3 donnée, 20 h du 3 reportée au 4', () => {
     expect(affiche(c, '2026-10-04', 3)).toEqual(suite)
   })
 
-  for (const jour of ['2026-10-03', '2026-10-04']) {
-    it(`heures passées à 9 h et 21 h le ${jour.slice(8)} : 21 h le 4, puis le 5 à 9 h et 21 h`, () => {
-      const c = modifie(reporte20h(), jour, jours(2), ['09:00', '21:00'])
-      expect(affiche(c, '2026-10-04', 3)).toEqual([
-        '2026-10-04 21:00',
-        '2026-10-05 09:00',
-        '2026-10-05 21:00',
-      ])
-    })
-  }
+  it('heures passées à 9 h et 21 h le 3, jour du report : le 4, déplacé, garde 20 h, puis le 5 à 9 h et 21 h (décision du 15 octobre 2026)', () => {
+    const c = modifie(reporte20h(), '2026-10-03', jours(2), ['09:00', '21:00'])
+    expect(affiche(c, '2026-10-04', 3)).toEqual([
+      '2026-10-04 20:00',
+      '2026-10-05 09:00',
+      '2026-10-05 21:00',
+    ])
+  })
+
+  it('heures passées à 9 h et 21 h le 4 : le 4, déplacé, garde 20 h, puis le 5 à 9 h et 21 h (décision du 15 octobre 2026)', () => {
+    const c = modifie(reporte20h(), '2026-10-04', jours(2), ['09:00', '21:00'])
+    expect(affiche(c, '2026-10-04', 3)).toEqual([
+      '2026-10-04 20:00',
+      '2026-10-05 09:00',
+      '2026-10-05 21:00',
+    ])
+  })
 
   it('la dose reportée déjà donnée le 3, heures changées le 4 : rien le 4, puis le 5', () => {
     let c = reporte20h()
@@ -96,11 +103,11 @@ describe('R7 : 8 h du 3 donnée, 20 h du 3 reportée au 4', () => {
     ])
   })
 
-  it('R9.2, R3 : tous les 3 jours le 3 à partir du 4, puis heures passées à 9 h et 21 h le 4 : 21 h le 4, puis le 7', () => {
+  it('R9.2, R3 : tous les 3 jours le 3 à partir du 4, puis heures passées à 9 h et 21 h le 4 : le 4, déplacé, garde 20 h, puis le 7 (décision du 15 octobre 2026)', () => {
     let c = modifie(reporte20h(), '2026-10-03', jours(3), H, '2026-10-04')
     c = modifie(c, '2026-10-04', jours(3), ['09:00', '21:00'], '2026-10-04')
     expect(affiche(c, '2026-10-04', 3)).toEqual([
-      '2026-10-04 21:00',
+      '2026-10-04 20:00',
       '2026-10-07 09:00',
       '2026-10-07 21:00',
     ])

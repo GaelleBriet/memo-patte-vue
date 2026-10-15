@@ -103,6 +103,18 @@ function replaced(
   const before = buildView(base)
   const previous = before.phase === 'stopped' ? null : before.currentSetting
   const draft = (dates: Dates) => rewrite(current, fieldsOf(current.startsOn, dates, request))
+  const { firstDueOn, gridOriginOn, firstDueChosen } = current
+  const dates = { firstDueOn, gridOriginOn, firstDueChosen }
+  const shownOn = readAfter(input, draft)(dates).currentDoses[0]?.dueOn ?? firstDueOn
+  const asked = request.firstDueOn ?? shownOn
+  // R10, #849 : remplacé le jour même à fréquence gardée, un réglage transmet sa date choisie.
+  if (
+    firstDueChosen &&
+    sameFrequency(current.frequency, request.frequency) &&
+    (asked === firstDueOn || asked === shownOn)
+  ) {
+    return planOf(draft, shownOn === firstDueOn ? dates : { ...dates, shownOn })
+  }
   const proposal = proposedDates(
     base,
     previous,
@@ -158,7 +170,11 @@ function settingsFor(
   if (!hasNotes(current, input.lines)) {
     if (sameRhythm) return rhythmKept(input, view, current, request, create)
     if (current.startsOn === today) return replaced(input, current, request)
-    return corrected(input, view, current, request, create)
+    // R9 : à fréquence gardée et sans dose tombée, les nouvelles heures valent à partir d'aujourd'hui.
+    const fromToday =
+      sameFrequency(current.frequency, request.frequency) &&
+      fallenOf(view, current, today).length === 0
+    if (!fromToday) return corrected(input, view, current, request, create)
   }
   const proposal = proposedDates(input, current, request, today, readAfter(input, create))
   return 'refusal' in proposal ? proposal : planOf(create, proposal)

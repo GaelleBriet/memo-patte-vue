@@ -43,7 +43,7 @@ export type Span = {
   stoppedAt(day: Day): Setting | undefined
   /** Le réglage en vigueur ce jour-là, date de fin comprise ; aucun avant, après la fin ou l'arrêt. */
   settingAt(day: Day): Setting | undefined
-  /** R4 : premier jour et première échéance d'un réglage dont les heures ne sont pas celles du précédent. */
+  /** R4 : premier jour d'un réglage dont les heures ne sont pas celles du précédent, seul jour traduit. */
   hoursChangeOn: ReadonlySet<Day>
 }
 
@@ -89,11 +89,9 @@ export function spanOf(episode: readonly Setting[], lines: readonly Line[]): Spa
   const stoppedAt = (day: Day) =>
     day === stop && (stopped.endsOn === null || day <= stopped.endsOn) ? stopped : undefined
   const hoursChangeOn = new Set(
-    live.flatMap((setting, index) =>
-      index > 0 && !sameHours(live[index - 1]!, setting)
-        ? [setting.startsOn, setting.firstDueOn]
-        : [],
-    ),
+    live
+      .filter((setting, index) => index > 0 && !sameHours(live[index - 1]!, setting))
+      .map(({ startsOn }) => startsOn),
   )
   return { episode, live, chain, endOf, closedFrom, stoppedAt, settingAt, hoursChangeOn }
 }

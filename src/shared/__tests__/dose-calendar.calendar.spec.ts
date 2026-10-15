@@ -109,7 +109,7 @@ describe('R7 : le report déplace une heure et les suivantes encore sans prise',
     })
   })
 
-  it('heures changées : le jour d’arrivée prend autant de dernières heures que de doses reportées', () => {
+  it('heures changées : le jour d’arrivée reçoit la dose reportée à son heure, 20 h (décision du 15 octobre 2026)', () => {
     const p1 = setting('p1', '2026-10-01', TWO_DAYS, H)
     const p2 = setting('p2', '2026-10-05', TWO_DAYS, ['09:00', '21:00'], {
       startsOn: '2026-10-04',
@@ -119,7 +119,7 @@ describe('R7 : le report déplace une heure et les suivantes encore sans prise',
       line('p1', 'given', '2026-10-03', '08:00'),
       line('p1', 'postponed', '2026-10-03', '20:00', '2026-10-04'),
     ]
-    expect(pending([p1, p2], lines, '2026-10-04', 1)).toEqual(['2026-10-04 21:00'])
+    expect(pending([p1, p2], lines, '2026-10-04', 1)).toEqual(['2026-10-04 20:00'])
   })
 
   it('R11 : un report battu par une prise de la même échéance est sans effet', () => {

@@ -104,7 +104,7 @@ export function lateDaysOf(replaced: readonly Replaced[], fallen: ReadonlySet<st
 export function coverageOf(
   notes: readonly ReferenceLine[],
   borrowed: readonly ReferenceLine[],
-  translated: ReadonlyMap<string, string>,
+  translated: ReadonlySet<string>,
   settingOf: (id: string) => ReferenceSetting,
   matched: Set<ReferenceLine>,
 ) {

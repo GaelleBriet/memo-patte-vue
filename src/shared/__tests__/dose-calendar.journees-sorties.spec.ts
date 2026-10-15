@@ -45,10 +45,10 @@ describe('R4 : une journée qui porte des lignes et quitte le calendrier garde s
       today: '2026-03-11',
     }
 
-    it('avant : la prise de 20 h de l’ancien réglage couvre 8 h, le report est sans effet', () => {
+    it('avant : le 13 se lit avec sa ligne la plus récente (8 h et 20 h), les deux prises de 20 h sont une dose, le report emporte 8 h au 31 (décision du 15 octobre 2026)', () => {
       expect(effectsOf(input, [old20, report, new20])).toEqual([
-        { kind: 'covers', key: '2026-03-13 08:00' },
-        { kind: 'idle', reason: 'beaten' },
+        { kind: 'idle', reason: 'superseded' },
+        { kind: 'moves', keys: ['2026-03-13 08:00'], arrival: '2026-03-31' },
         { kind: 'covers', key: '2026-03-13 20:00' },
       ])
     })
@@ -58,7 +58,7 @@ describe('R4 : une journée qui porte des lignes et quitte le calendrier garde s
       expect(newSettings(input, asked)).toEqual({ refusal: { reason: 'later-dose' } })
     })
 
-    it('le même réglage reçu d’un autre appareil, première dose le 11 : le 13 sort du calendrier, rien n’arrive le 31', () => {
+    it('le même réglage reçu d’un autre appareil, première dose le 11 : le 13 sort du calendrier et garde sa lecture, 8 h arrive le 31 (décision du 15 octobre 2026)', () => {
       const plan: SettingsPlan = {
         action: 'create',
         setting: {
@@ -73,10 +73,11 @@ describe('R4 : une journée qui porte des lignes et quitte le calendrier garde s
         },
       }
       const view = preview(input, plan)
-      expect(keys(view.slots('2026-03-12', '2026-04-30').map(({ due }) => due))).toEqual([])
-      expect(view.history.find(({ line: read }) => read.id === report.id)!.effect).toEqual({
-        kind: 'idle',
-        reason: 'beaten',
+      expect(keys(view.slots('2026-03-12', '2026-04-30').map(({ due }) => due))).toEqual([
+        '2026-03-31 08:00',
+      ])
+      expect(view.history.find(({ line: read }) => read.id === report.id)!.effect).toMatchObject({
+        kind: 'moves',
       })
     })
   })
@@ -206,7 +207,7 @@ describe('R7 : un réglage remplacé le jour où il commence ne lit que ses prop
     })
   })
 
-  it('chaque jour à 8, 20 et 22 h dès le 3 oct. (8 h donnée), le 3 tous les 2 jours à 9 h ; dose du 17 reportée au 18 ; le 16, tous les 3 jours à 8, 20 et 22 h dès le 20 : le 18 ne reçoit qu’une dose', () => {
+  it('chaque jour à 8, 20 et 22 h dès le 3 oct. (8 h donnée), le 3 tous les 2 jours à 9 h ; dose du 17 reportée au 18 ; le 16, tous les 3 jours à 8, 20 et 22 h dès le 20 : le 18 ne reçoit qu’une dose, à 9 h (décision du 15 octobre 2026)', () => {
     const hours = ['08:00', '20:00', '22:00']
     const daily = setting('s1', '2026-10-03', DAY, hours)
     const everyTwo = setting('s2', '2026-10-03', TWO_DAYS, ['09:00'])
@@ -219,7 +220,7 @@ describe('R7 : un réglage remplacé le jour où il commence ne lit que ses prop
     const asked = { frequency: everyThree, times: hours, endsOn: null, firstDueOn: '2026-10-20' }
     expect(reportEffect(input, asked, report)).toEqual({
       effect: { kind: 'moves', keys: ['2026-10-17 09:00'], arrival: '2026-10-18' },
-      upcoming: ['2026-10-18 22:00', '2026-10-20 08:00', '2026-10-20 20:00'],
+      upcoming: ['2026-10-18 09:00', '2026-10-20 08:00', '2026-10-20 20:00'],
     })
   })
 })

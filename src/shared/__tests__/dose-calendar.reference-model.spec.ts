@@ -272,10 +272,10 @@ describe('R7, R9 : la journée d’arrivée devenue première échéance d’une
 
 describe('R7, R9.2 : la dose avancée dont l’arrivée devient la première échéance d’un nouveau rythme (relecture du pas 3)', () => {
   it.each([
-    ['avancée au 12', '2026-04-12', ['2026-04-12 23:00', '2026-05-24 06:00']],
-    ['reportée au 14', '2026-04-14', ['2026-04-14 23:00', '2026-05-26 06:00']],
+    ['avancée au 12', '2026-04-12', ['2026-04-12 20:00', '2026-05-24 06:00']],
+    ['reportée au 14', '2026-04-14', ['2026-04-14 20:00', '2026-05-26 06:00']],
   ])(
-    'toutes les 2 semaines à 20 h du 30 mars, dose du 13 %s, puis toutes les 6 semaines à 6, 12, 18, 23 h : la journée d’arrivée n’a que 23 h',
+    'toutes les 2 semaines à 20 h du 30 mars, dose du 13 %s, puis toutes les 6 semaines à 6, 12, 18, 23 h : la journée d’arrivée garde la dose reportée à 20 h (décision du 15 octobre 2026)',
     (_, arrival, expected) => {
       const p1 = setting('p1', '2026-03-30', { value: 2, unit: 'week' }, ['20:00'])
       const p2 = setting(
@@ -297,7 +297,7 @@ describe('R7, R9.2 : la dose avancée dont l’arrivée devient la première éc
 })
 
 describe('R7, R9.2 : un rythme qui ne part plus de l’arrivée d’un report n’en efface pas les heures (relecture du pas 3)', () => {
-  it('hebdo à 20 h, doses des 6 et 13 avr. données, dose du 20 avancée au 16 ; le 14, tous les 2 jours dès le 16 ; le 15, tous les jours à 8 et 20 h : le 16 garde 8 h', () => {
+  it('hebdo à 20 h, doses des 6 et 13 avr. données, dose du 20 avancée au 16 ; le 14, tous les 2 jours dès le 16 ; le 15, tous les jours à 8 et 20 h : le 16, jour d’arrivée, garde 20 h seule (décision du 15 octobre 2026)', () => {
     const p1 = setting('p1', '2026-04-06', WEEK, ['20:00'])
     const p2 = setting('p2', '2026-04-16', TWO_DAYS, ['20:00'], { startsOn: '2026-04-14' })
     const p3 = setting('p3', '2026-04-15', DAY, H, { startsOn: '2026-04-15' })
@@ -309,13 +309,13 @@ describe('R7, R9.2 : un rythme qui ne part plus de l’arrivée d’un report n�
     expect(next([p1, p2, p3], lines, '2026-04-15', 5)).toEqual([
       '2026-04-15 08:00',
       '2026-04-15 20:00',
-      '2026-04-16 08:00',
       '2026-04-16 20:00',
       '2026-04-17 08:00',
+      '2026-04-17 20:00',
     ])
   })
 
-  it('hebdo à 20 h, dose du 13 avr. reportée au 15 ; le 8, tous les 2 jours dès le 15 ; le 9, tous les 3 jours à 8 et 20 h dès le 12 : le 15 garde 8 h', () => {
+  it('hebdo à 20 h, dose du 13 avr. reportée au 15 ; le 8, tous les 2 jours dès le 15 ; le 9, tous les 3 jours à 8 et 20 h dès le 12 : le 15, jour d’arrivée, garde 20 h seule (décision du 15 octobre 2026)', () => {
     const p1 = setting('p1', '2026-04-06', WEEK, ['20:00'])
     const p2 = setting('p2', '2026-04-15', TWO_DAYS, ['20:00'], { startsOn: '2026-04-08' })
     const p3 = setting('p3', '2026-04-12', { value: 3, unit: 'day' }, H, { startsOn: '2026-04-09' })
@@ -324,9 +324,9 @@ describe('R7, R9.2 : un rythme qui ne part plus de l’arrivée d’un report n�
       line('p1', 'postponed', '2026-04-13', '20:00', '2026-04-15'),
     ]
     expect(read([p1, p2, p3], lines, '2026-04-09').upcoming.slice(2, 5)).toEqual([
-      '2026-04-15 08:00',
       '2026-04-15 20:00',
       '2026-04-18 08:00',
+      '2026-04-18 20:00',
     ])
   })
 })

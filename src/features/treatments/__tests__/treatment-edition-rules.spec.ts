@@ -1706,7 +1706,7 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
     },
   )
 
-  it('tous les 2 jours à 8 h et 20 h, 8 h du 3 donnée le 2, heure passée à 9 h seule : prochaine dose le 5, champ grisé par la dose du 3 (G24, #811)', () => {
+  it('tous les 2 jours à 8 h et 20 h, 8 h du 3 donnée le 2, heure passée à 9 h seule : le 3, entamé, garde ses heures, prochaine dose le 3, champ libre (décision du 15 octobre 2026)', () => {
     const matinEtSoir = period({
       startsOn: '2026-10-01',
       firstDueOn: '2026-10-01',
@@ -1726,11 +1726,7 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
 
     expect(
       editionDraft(history, saisie(history, { times: ['09:00'] }), '2026-10-02').nextDose,
-    ).toMatchObject({
-      proposedOn: '2026-10-05',
-      refusal: { reason: 'later-dose' },
-      help: { kind: 'refused', refusal: { reason: 'later-dose' } },
-    })
+    ).toMatchObject({ proposedOn: '2026-10-03', refusal: null, help: { kind: 'scheduled' } })
   })
 
   it.each(['2026-10-02', '2026-10-04'])(

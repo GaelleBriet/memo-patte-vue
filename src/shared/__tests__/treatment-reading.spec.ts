@@ -141,7 +141,7 @@ describe('countedLines', () => {
     expect(countedLines(read).map(({ id }) => id)).toEqual(['off', 'a'])
   })
 
-  it('garde un report qui n’a plus de dose à déplacer, la fréquence ayant changé le même jour', () => {
+  it('garde un report écrit sous les heures d’avant, la fréquence ayant changé le même jour : il emporte 20 h (décision du 15 octobre 2026)', () => {
     const treatment = {
       periods: [
         period({
@@ -180,8 +180,9 @@ describe('countedLines', () => {
     }
     const read = treatmentReading(treatment, '2026-03-28')!
     expect(read.history.find(({ line }) => line.id === 'report')?.effect).toEqual({
-      kind: 'idle',
-      reason: 'nothing-to-move',
+      kind: 'moves',
+      keys: ['2026-03-28 20:00'],
+      arrival: '2026-03-29',
     })
     expect(countedLines(read).map(({ id }) => id)).toEqual(['report', 'prise'])
   })
