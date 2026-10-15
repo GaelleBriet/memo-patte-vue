@@ -222,7 +222,12 @@ function keptCorrection(
       status === 'postponed' && targetOn ? [targetOn] : [],
     ),
   )
-  const due = slots.find(({ state, due }) => state === 'pending' && !arrivals.has(due.dueOn))
+  const offGrid = ({ settingId, dueOn }: Due) =>
+    arrivals.has(dueOn) &&
+    (gridOriginOn === null
+      ? settingId !== current.id
+      : !isOnGrid(gridOriginOn, request.frequency, dueOn))
+  const due = slots.find(({ state, due }) => state === 'pending' && !offGrid(due))
   const next = (due ?? slots[0])?.due.dueOn
   const first = next ?? later(firstDueOn, today)
   const kept = gridOriginOn !== null && isOnGrid(gridOriginOn, request.frequency, first)
