@@ -104,15 +104,15 @@ function replaced(
   const previous = before.phase === 'stopped' ? null : before.currentSetting
   const draft = (dates: Dates) => rewrite(current, fieldsOf(current.startsOn, dates, request))
   const { firstDueOn, gridOriginOn, firstDueChosen } = current
-  const asked = request.firstDueOn
+  const dates = { firstDueOn, gridOriginOn, firstDueChosen }
+  const shownOn = readAfter(input, draft)(dates).currentDoses[0]?.dueOn ?? firstDueOn
+  const asked = request.firstDueOn ?? shownOn
   // R10 : remplacé le jour même à fréquence gardée, un réglage transmet sa date choisie.
   if (
     firstDueChosen &&
     sameFrequency(current.frequency, request.frequency) &&
-    (asked === undefined || asked === firstDueOn)
+    (asked === firstDueOn || asked === shownOn)
   ) {
-    const dates = { firstDueOn, gridOriginOn, firstDueChosen }
-    const shownOn = shownDay(dates, readAfter(input, draft))
     return planOf(draft, shownOn === firstDueOn ? dates : { ...dates, shownOn })
   }
   const proposal = proposedDates(
