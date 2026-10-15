@@ -61,9 +61,8 @@ export function hoursOnly(input: TreatmentViewInput): Broken | null {
   if (current.times.some((time) => time.endsWith(':59'))) return null
   const { frequency, endsOn } = current
   const result = newSettings(input, { frequency, times: current.times.map(minuteLater), endsOn })
-  // Avec un report, ou un réglage avec prises qui en ouvre un autre, une journée peut encore bouger (#851).
-  const moved = input.lines.some(({ targetOn }) => targetOn !== null)
-  if (moved || !('plan' in result) || result.plan.action !== 'rewrite') return null
+  // Un réglage avec prises en ouvre un autre : l'arrivée d'un report peut encore sortir (#851).
+  if (!('plan' in result) || result.plan.action !== 'rewrite') return null
   const pastDays = (carnet: TreatmentViewInput) => {
     const after = treatmentView(carnet)
     const late = after.currentDoses.filter(({ dueOn }) => dueOn < carnet.today)

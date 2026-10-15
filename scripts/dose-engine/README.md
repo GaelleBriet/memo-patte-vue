@@ -41,8 +41,8 @@ fiche montre la date proposée (`shownOn`, sinon la première échéance écrite
 donner ; la même demande avec cette date passée en clair rend la même réponse (jamais un refus, sauf
 `no-dose-before-end`, #787) ; une autre date choisie est celle que la fiche lit. Heures seules
 changées à la date proposée sur un réglage sans prise (R9, #848), les journées en retard et à
-renseigner ne bougent pas, sauf pour un réglage ouvert le jour même (#849) ; un carnet avec un report ou
-un décalage, et un réglage avec prises qui en ouvre un autre, attendent #851. La campagne ne
+renseigner ne bougent pas, sauf pour un réglage ouvert le jour même (#849) ; un réglage avec prises,
+qui en ouvre un autre, attend #851. La campagne ne
 choisit jamais une « Prochaine dose » après la date de fin, que le formulaire refuse (Q20). Variables
 posées directement devant la commande, sous le même verrou :
 
