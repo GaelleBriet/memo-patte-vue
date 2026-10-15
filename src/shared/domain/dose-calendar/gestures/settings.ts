@@ -220,10 +220,8 @@ function keptCorrection(
     .slots(today, plusDays(today, NEXT_DAYS))
     .find(({ state }) => state === 'pending')?.due.dueOn
   const first = next ?? later(firstDueOn, today)
-  // R3 : une date choisie reste l'origine tant qu'elle laisse une dose à donner, et garde son fait.
-  const kept =
-    gridOriginOn !== null &&
-    (firstDueChosen ? next !== undefined : isOnGrid(gridOriginOn, request.frequency, first))
+  // R10 : la date choisie garde son fait même quand la première journée due fait repartir la grille.
+  const kept = gridOriginOn !== null && isOnGrid(gridOriginOn, request.frequency, first)
   return { firstDueOn: first, gridOriginOn: kept ? gridOriginOn : first, firstDueChosen }
 }
 
