@@ -597,10 +597,13 @@ describe('animalDeletionService', () => {
     })
 
     it('ne rend pas le carnet quand l’animal n’est pas rendu', async () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-03-01T10:00:00.000Z') })
       const miette = await animals.create({ name: 'Miette', species: 'cat' })
       await seedCarnet(miette.id)
       const removal = (await service.remove(miette.id))!
+      vi.setSystemTime(new Date('2026-03-01T10:01:00.000Z'))
       await service.restore(removal)
+      vi.setSystemTime(new Date('2026-03-01T10:02:00.000Z'))
       await service.remove(miette.id)
 
       await expect(service.restore(removal)).rejects.toThrow(/introuvable/)
