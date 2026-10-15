@@ -178,8 +178,7 @@ export function reportMove(now: DayCover, dueTime: Hour, before: DayCover | null
     const following = free(now).filter(isAfter)
     return { beaten: now.covered.has(dueTime), moved: following, bringing: following }
   }
-  const first = before.hours.findIndex(isAfter)
-  const rank = first < 0 || now.hours.length === 0 ? -1 : Math.min(first, now.hours.length - 1)
+  const rank = before.hours.findIndex(isAfter)
   return {
     beaten: before.covered.has(dueTime),
     moved: rank < 0 ? [] : now.hours.slice(rank).filter((hour) => !now.covered.has(hour)),

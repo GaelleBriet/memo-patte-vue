@@ -11,7 +11,7 @@ export type ReportMove = { beaten: boolean; leaving: Hour[]; brought: Hour[] }
 /**
  * R7 : un report emporte son heure et les suivantes encore sans prise. Après un changement d'heures
  * seules, il déplace des doses, pas des heures (décision de Gaelle du 15 octobre 2026) : comptées aux
- * heures d'avant (`before`), sa journée les perd à partir du même rang, sinon la dernière.
+ * heures d'avant (`before`), sa journée les perd à partir du même rang, s'il existe encore.
  */
 export function reportMove(now: DayReading, dueTime: Hour, before: DayReading | null): ReportMove {
   const isAfter = (hour: Hour) => (hour ?? '') >= (dueTime ?? '')
@@ -21,7 +21,7 @@ export function reportMove(now: DayReading, dueTime: Hour, before: DayReading | 
     const leaving = following(now)
     return { beaten: now.covered.has(dueTime), leaving, brought: leaving }
   }
-  const rank = Math.min(before.hours.findIndex(isAfter), now.hours.length - 1)
+  const rank = before.hours.findIndex(isAfter)
   return {
     beaten: before.covered.has(dueTime),
     leaving: rank < 0 ? [] : now.hours.slice(rank).filter((hour) => !now.covered.has(hour)),
