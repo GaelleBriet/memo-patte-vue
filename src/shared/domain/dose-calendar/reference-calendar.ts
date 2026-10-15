@@ -235,10 +235,13 @@ export function calendarOf(
         ? new Set(hours.filter((hour) => noted.has(keyOf(dueOn, hour))))
         : coveredOn(dueOn, origin)
     // R6, TR-9 : la date choisie porte le report d'avant elle qui en part ; parti d'une journée hors de
-    // la grille repartie, un report est sans effet, sauf s'il porte la date ou ouvre un rythme (R9.2).
-    const chosenOn = restarts.get(settingAt(dueOn)?.id ?? '')
-    const carries = targetOn === chosenOn || openings.has(targetOn!)
-    const before = restarts.get(report!.settingId) !== chosenOn
+    // sa grille, un report est sans effet, sauf s'il porte la date, arrive sur la première échéance
+    // d'une origine écrite (TR-28) ou ouvre un rythme (R9.2).
+    const at = settingAt(dueOn)?.id ?? ''
+    const restartOn = restarts.get(at)
+    const chosenOn = chosenRestarts.get(at)
+    const carries = targetOn === restartOn || targetOn === chosenOn || openings.has(targetOn!)
+    const before = chosenRestarts.get(report!.settingId) !== chosenOn
     if (chosenOn !== undefined && dueOn === chosenOn && before) continue
     if (origin === undefined && chosenOn !== undefined && !carries) continue
     // R11 : un report battu par une prise de la même échéance est sans effet.

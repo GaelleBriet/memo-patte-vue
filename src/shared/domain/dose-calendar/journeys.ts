@@ -225,6 +225,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     rhythmFrom,
     replaced,
     restarts,
+    chosenRestarts,
     lastPossibleDay,
     lastGridDay,
   }
