@@ -2702,3 +2702,26 @@ R10, §10 et §11 ; modèle de données §4.3 ; export v6).
 - Attendu de Gaelle, exemple 2 (graine 7500002108) : rien « à renseigner » le 6 avril après
   « Elles n'étaient pas à donner ».
 - Les deux tests passent au vert dans #854, prochain ticket.
+
+2026-10-15 — **Moteur des doses v2 : changer les heures vaut à partir d'aujourd'hui (#854)** (spec
+`traitements.md` R3, R7, R9, R10, TR-28, §10 et §11).
+
+- Décision de Gaelle du 15 octobre 2026 : « changer les heures d'un traitement : les nouvelles heures
+  s'appliquent à partir d'aujourd'hui seulement (R9 : « le calendrier ne bouge pas » ; les prises
+  passées gardent leur réglage) ». Attendu pour la graine 7500000173 : « la date choisie reste
+  l'origine quand seules les heures changent : prochaine dose le 25 avril, rien en retard » ; pour la
+  graine 7500002108 : rien « à renseigner » le 6 avril. — Alternative écartée : relire tout le réglage
+  avec les nouvelles heures, qui fait apparaître des doses en retard sans que Q38 soit posée (TR-28)
+  et fait perdre son effet à une prise.
+- Mise en œuvre : un réglage sans prise dont seules les heures changent, sans échéance tombée, ouvre
+  un réglage à partir d'aujourd'hui, comme après une prise ; un second « Modifier » le même jour
+  transmet la date choisie (R10, #849) ; « Elles n'étaient pas à donner » garde la date choisie et son
+  origine tant qu'elle laisse une dose à donner ; une dose avancée à un jour passé garde les heures de
+  ce jour (#851).
+- Lectures à confirmer par Gaelle (rédaction de l'implémentation, exemples au §11 de la spec) :
+  (1) le réglage sans prise ouvert à partir d'aujourd'hui (TR-28 disait « correction ») ; (2) la dose
+  avancée à un jour passé et sa journée d'origine ; (3) l'attendu détaillé de la graine 7500000173 :
+  rien en retard, le 18 avril à 20 h 01, puis la journée du 25 à 8 h 01 et 20 h 01 ; (4) celui de la
+  graine 7500002108 : seule la dose du 10 avril à 23 h reste à renseigner, le report du 10 étant relu
+  avec les nouvelles heures (« Elles n'étaient pas à donner » corrige le réglage).
+

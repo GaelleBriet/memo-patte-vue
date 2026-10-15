@@ -168,6 +168,7 @@ Réécrite pour ne vérifier **que des invariants indépendants de l'affichage d
 6. Annuler : les écritures inverses rendent la vue d'avant.
 7. Préversion : `preview(view, geste)` = `treatmentView(carnet après écriture)` pour tout geste accepté (R12 ; ferme la famille 510001190).
 8. Équivalence au modèle naïf à chaque pas.
+9. Heures seules (#854, décision du 15 octobre 2026) : changer seulement les heures, sans date, ne change l'état ni l'heure d'aucune journée passée, et aucune prise n'y perd son effet, « Elles restent à renseigner » comprise ; « Elles n'étaient pas à donner » corrige le réglage (Q38).
 
 Horizon en **jours** (pas en échéances), aucune exemption `isKnownLimit`, et la spec imprime le carnet avant le geste fautif. Mode d'emploi inchangé (`.claude/rules/outils-de-test.md`) ; séries à partir de 530 M.
 
