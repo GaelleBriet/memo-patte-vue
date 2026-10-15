@@ -189,15 +189,18 @@ function rhythmKept(
 }
 
 // TR-28, Q38 : corrigé à fréquence gardée, le réglage garde sa grille, et sa date choisie avec elle ;
-// il part de sa première journée encore due à partir d'aujourd'hui ; les échéances tombées sortent.
+// avec des échéances tombées, il part de sa première journée encore due à partir d'aujourd'hui et
+// elles sortent ; sans, il garde ses dates, pour qu'aucune journée passée ne change de réglage (R9, R11).
 function keptCorrection(
   input: TreatmentViewInput,
   current: Setting,
   request: SettingsRequest,
+  fallen: readonly Due[],
 ): Dates {
   const { today } = input
   const { firstDueOn, gridOriginOn, firstDueChosen } = current
   const dates = { firstDueOn, gridOriginOn, firstDueChosen }
+  if (fallen.length === 0) return dates
   const draft = rewrite(current, fieldsOf(current.startsOn, dates, request))
   const next = buildView(settingsApplied(input, draft))
     .slots(today, plusDays(today, NEXT_DAYS))
@@ -246,7 +249,7 @@ function corrected(
   const fixed = questioned
     ? own(shownFrom(today, readAfter(input, correctFrom)))
     : sameFrequency(current.frequency, request.frequency)
-      ? keptCorrection(input, current, request)
+      ? keptCorrection(input, current, request, fallen)
       : own(shownFrom(later(proposal.firstDueOn, today), readAfter(input, correctFrom)))
   // Q38 : la date que montre le formulaire, passée telle quelle, n'est pas une date choisie.
   const shown =
