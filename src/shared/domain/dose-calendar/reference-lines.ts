@@ -48,8 +48,8 @@ export const translatedDaysOf = (live: readonly ReferenceSetting[]): Set<string>
       .map(({ startsOn }) => startsOn),
   )
 
-// Décision du 15 octobre 2026 : hors du jour où les heures changent (R4), une journée notée,
-// déplacée ou décalée garde les heures du réglage de sa ligne la plus récente (TR-25).
+// Décision du 15 octobre 2026 : hors du jour où les heures changent (R4), une journée notée ou
+// déplacée garde les heures du réglage de sa ligne la plus récente (TR-25).
 export function touchedJourneys(
   lines: readonly ReferenceLine[],
   translated: ReadonlySet<string>,

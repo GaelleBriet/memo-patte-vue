@@ -67,7 +67,7 @@ export function calendarOf(
 
   const days = new Map<string, Journey>()
   const translated = translatedDaysOf(live)
-  const journeyOn = touchedJourneys([...notes, ...reports, ...shifts], translated, settingOf)
+  const journeyOn = touchedJourneys([...notes, ...reports], translated, settingOf)
   const left = new Map<string, Journey>()
   const claims: Claim[] = []
   // R7, R9.2 : les premières échéances des réglages qui ouvrent un nouveau rythme.

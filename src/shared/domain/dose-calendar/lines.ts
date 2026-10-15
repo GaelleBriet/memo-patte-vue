@@ -62,20 +62,20 @@ export type EpisodeLines = {
   shifts: Line[]
   idle: Map<string, IdleReason>
   doseKey: (line: Line) => string
-  /** Décision du 15 octobre 2026 : jour noté, déplacé ou décalé → réglage de sa ligne la plus récente (TR-25). */
+  /** Décision du 15 octobre 2026 : jour noté ou déplacé → réglage de sa ligne la plus récente (TR-25). */
   touched: ReadonlyMap<Day, string>
 }
 
-function touchedDays(notes: readonly Line[], moves: readonly Line[]): Map<Day, string> {
+function touchedDays(notes: readonly Line[], reports: readonly Line[]): Map<Day, string> {
   const latest = new Map<Day, Line>()
   const touch = (day: Day, line: Line) => {
     const kept = latest.get(day)
     if (kept === undefined || isMoreRecent(line, kept)) latest.set(day, line)
   }
   notes.forEach((note) => touch(note.dueOn, note))
-  for (const move of moves) {
-    touch(move.dueOn, move)
-    if (move.status === 'postponed') touch(move.targetOn!, move)
+  for (const report of reports) {
+    touch(report.dueOn, report)
+    touch(report.targetOn!, report)
   }
   return new Map([...latest].map(([day, line]) => [day, line.settingId]))
 }
@@ -108,6 +108,6 @@ export function episodeLines(lines: readonly Line[], span: Span): EpisodeLines {
     }
   }
   const notes = kept.filter(isNote)
-  const touched = touchedDays(notes, [...reports, ...shifts])
+  const touched = touchedDays(notes, reports)
   return { kept, notes, reports, shifts, idle, doseKey, touched }
 }

@@ -6,6 +6,8 @@ import {
   type TreatmentViewInput,
 } from '@/shared/domain/dose-calendar'
 
+import { episodeIdsOf } from '@/shared/domain/dose-calendar/settings'
+
 import { dueKey } from './display'
 import { compare, firstDayOf, type Broken } from './v2-reading'
 
@@ -29,14 +31,16 @@ function hoursTried(times: readonly string[]): [string, string[]][] {
   return tried
 }
 
-/** Les journées qui portent une ligne : prise, origine ou arrivée d'un report, décalage. */
-function touchedDays({ lines }: TreatmentViewInput): Set<string> {
+/** Les journées de la période en cours qui portent une prise, ou l'origine ou l'arrivée d'un report. */
+function touchedDays({ settings, lines }: TreatmentViewInput, settingId: string): Set<string> {
+  const period = episodeIdsOf(settings, settingId)
   return new Set(
-    lines.flatMap(({ status, dueOn, targetOn }) => {
-      if (status === 'extra') return []
+    lines.flatMap(({ status, dueOn, targetOn, settingId: own }) => {
+      if (!period.has(own)) return []
+      if (status === 'given' || status === 'missed') return [dueOn]
       return status === 'postponed' && targetOn !== null && targetOn !== dueOn
         ? [dueOn, targetOn]
-        : [dueOn]
+        : []
     }),
   )
 }
@@ -63,7 +67,7 @@ export function hoursOnly(input: TreatmentViewInput): Broken | null {
   const view = treatmentView(input)
   const current = view.currentSetting
   if (current === null || view.phase === 'stopped' || view.phase === 'ended') return null
-  const touched = touchedDays(input)
+  const touched = touchedDays(input, current.id)
   const before = daysOf(input, touched)
   for (const [label, times] of hoursTried(current.times)) {
     const result = newSettings(input, {
