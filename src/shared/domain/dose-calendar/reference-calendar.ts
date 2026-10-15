@@ -247,7 +247,8 @@ export function calendarOf(
     // R11 : un report battu par une prise de la même échéance est sans effet ; écrit avant le
     // changement d'heures du jour, il emporte les siennes sans prise (décision du 15 octobre 2026).
     const written = settingOf(report!.settingId)
-    const source = translated.has(dueOn) && written.id !== from.id ? written : from
+    const reread = translated.has(dueOn) && from.id === settingAt(dueOn)?.id
+    const source = reread && written.id !== from.id ? written : from
     if (source === from ? covered.has(dueTime) : noted.has(keyOf(dueOn, dueTime))) continue
     if (targetOn! > dueOn) fallen.add(dueOn)
     const after = (hour: Hour) => hour === null || hour >= (dueTime ?? '')

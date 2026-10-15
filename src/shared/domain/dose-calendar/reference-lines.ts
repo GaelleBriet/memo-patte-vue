@@ -66,7 +66,8 @@ export function touchedJourneys(
   }
   return (day: string, setting: ReferenceSetting) => {
     const line = latest.get(day)
-    const own = line === undefined || translated.has(day) ? setting : settingOf(line.settingId)
+    const touched = line === undefined ? setting : settingOf(line.settingId)
+    const own = translated.has(day) || sameHours(touched, setting) ? setting : touched
     return { setting: own, hours: hoursOf(own) }
   }
 }

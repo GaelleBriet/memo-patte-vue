@@ -138,7 +138,9 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
         ? new Set(hours.filter((hour) => noted.has(keyOf(dueOn, hour))))
         : new Set(coveredOn(dueOn, origin).keys())
     const written = settingOf(report.settingId)
-    const source = translated.has(dueOn) && written.id !== from.id ? written : from
+    // Le jour où les heures changent, sa journée relue aux nouvelles heures (R4).
+    const reread = translated.has(dueOn) && from.id === span.settingAt(dueOn)?.id
+    const source = reread && written.id !== from.id ? written : from
     if (source === from ? covered.has(dueTime) : noted.has(keyOf(dueOn, dueTime))) {
       effects.set(report.id, { kind: 'idle', reason: 'beaten' })
       continue
