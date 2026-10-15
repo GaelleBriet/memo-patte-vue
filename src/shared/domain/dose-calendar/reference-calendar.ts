@@ -212,15 +212,15 @@ export function calendarOf(
   const matched = new Set<ReferenceLine>()
   const coveredOn = coverageOf([...notes, ...borrowed], borrowed, translated, settingOf, matched)
   const unmatched = coverageOf([...notes, ...borrowed], borrowed, translated, settingOf, new Set())
-  const coverBefore = (day: string, origin: Journey, setting: ReferenceSetting | undefined) => {
-    if (setting === undefined) return null
-    const hours = arrivalHoursOf(origin.hours, hoursOf(origin.setting), hoursOf(setting))
+  const coverBefore = (day: string, origin: Journey | undefined, setting?: ReferenceSetting) => {
+    if (origin === undefined || setting === undefined) return null
+    const hours = arrivalHoursOf(origin.hours, arrived.has(day), hoursOf(setting))
     return { hours, covered: unmatched(day, { setting, hours }) }
   }
 
-  // R7 : un report emporte son heure et les suivantes encore sans prise ; les reports qui arrivent sur
-  // sa journée passent d'abord.
+  // R7 : un report emporte son heure et les suivantes sans prise ; ceux qui y arrivent passent d'abord.
   const fallen = new Set<string>()
+  const arrived = new Set<string>()
   const waiting = [...reports]
   while (waiting.length > 0) {
     const ready = waiting.findIndex(
@@ -255,11 +255,8 @@ export function calendarOf(
     // R7, R11 : battu par une prise de sa propre échéance, un report est sans effet ; après un
     // changement d'heures seules, il garde ses doses comptées aux heures d'avant.
     const reference = origin && hoursBefore(live, episode, settingOf(report!.settingId), from)
-    const { beaten, moved, bringing } = reportMove(
-      { hours, covered },
-      dueTime,
-      origin === undefined ? null : coverBefore(dueOn, origin, reference),
-    )
+    const earlier = coverBefore(dueOn, origin, reference)
+    const { beaten, moved, bringing } = reportMove({ hours, covered }, dueTime, earlier)
     if (beaten) continue
     if (targetOn! > dueOn) fallen.add(dueOn)
     if (origin !== undefined) origin.hours = origin.hours.filter((hour) => !moved.includes(hour))
@@ -267,6 +264,7 @@ export function calendarOf(
     // R7 : heures changées, le jour d'arrivée prend autant de dernières heures que de doses reportées.
     const kept = sameHours(arrival, reference ?? from)
     if (!kept) translated.set(targetOn!, arrival.id)
+    if (!into.has(targetOn!)) arrived.add(targetOn!)
     const day = into.get(targetOn!) ?? { setting: arrival, hours: [] }
     // R7, R9.2 : un nouveau rythme qui part du jour d'arrivée d'un report lui laisse ses seules heures.
     if (openings.delete(targetOn!)) day.hours = []

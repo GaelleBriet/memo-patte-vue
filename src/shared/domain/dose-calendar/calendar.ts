@@ -66,6 +66,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   // sur sa journée passent d'abord.
   const fallen = new Set<Day>()
   const moved = new Map<string, Line>()
+  const arrived = new Set<Day>()
   const waiting = [...lines.reports]
   while (waiting.length > 0) {
     const ready = waiting.findIndex(
@@ -106,7 +107,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     const prior =
       origin === undefined ? undefined : hoursChangedFrom(span, settingOf(report.settingId), from)
     const priorHours =
-      prior === undefined ? [] : hoursAsBefore(hours, hoursOf(from.times), hoursOf(prior.times))
+      prior === undefined ? [] : hoursAsBefore(hours, arrived.has(dueOn), hoursOf(prior.times))
     const before =
       prior === undefined
         ? null
@@ -136,6 +137,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     // R7 : heures changées, le jour d'arrivée prend autant de dernières heures que de doses reportées.
     const kept = sameHours(arrival, prior ?? from)
     if (!kept) translated.add(targetOn!)
+    if (!into.has(targetOn!)) arrived.add(targetOn!)
     const day = into.get(targetOn!) ?? { setting: arrival, hours: [] }
     // R7, R9.2 : un nouveau rythme qui part du jour d'arrivée d'un report lui laisse ses seules heures.
     if (openings.delete(targetOn!)) {

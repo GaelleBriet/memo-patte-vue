@@ -160,7 +160,7 @@ describe('Décision de Gaelle du 15 octobre 2026 (question 1) : un report dépla
       '2026-03-16 20:00',
     ])
   })
-  it('graine 7300000242 : la dose de 20 h du 14 mars reportée au 21, puis du 21 au 25 ; le 13, une minute plus tard : le 21 reste vide, la dose reste le 25', () => {
+  it('graine 7300000242 : la dose de 20 h du 14 mars reportée au 21, puis du 21 au 25 ; le 13, une minute plus tard, ou le 16, 20 h seule : le 21 reste vide, la dose reste le 25', () => {
     const input: TreatmentViewInput = {
       settings: [
         setting('s1', '2026-03-14', TWO_WEEKS, THREE, { endsOn: '2026-04-21' }),
@@ -189,6 +189,9 @@ describe('Décision de Gaelle du 15 octobre 2026 (question 1) : un report dépla
         ensuite: ['2026-03-25 20:01', '2026-04-14 08:01', '2026-04-14 20:01'],
       }),
     )
+    const evening = hoursOnly(on(input, '2026-03-16'), ['20:00'])
+    expect(readings(evening).moteur.ensuite).toEqual(['2026-03-25 20:00', '2026-04-14 20:00'])
+    expect(readings(evening).reference.ensuite).toEqual(['2026-03-25 20:00', '2026-04-14 20:00'])
   })
 })
 
