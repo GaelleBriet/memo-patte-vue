@@ -2,7 +2,7 @@ import { hoursOf, keyOf, plusDays, sameHours, stepped } from './grid'
 import { journeys, type Gap } from './journeys'
 import type { EpisodeLines } from './lines'
 import { coverageOf } from './coverage'
-import { dosesKept, hoursAsBefore, hoursChangedFrom, reportMove } from './report-move'
+import { dosesKept, hoursAsBefore, hoursChangedFrom, reportMove, type Brought } from './report-move'
 import type { Span } from './settings'
 import type { Day, Due, Hour, Line, LineEffect, Setting } from './types'
 
@@ -66,7 +66,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   // sur sa journée passent d'abord.
   const fallen = new Set<Day>()
   const moved = new Map<string, Line>()
-  const arrived = new Set<Day>()
+  const arrived = new Map<Day, Brought>()
   const waiting = [...lines.reports]
   while (waiting.length > 0) {
     const ready = waiting.findIndex(
@@ -108,8 +108,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     // R9.2 : sur une journée entamée relue à d'autres heures, le report compte aussi ses doses.
     const started = lines.started.has(dueOn) && !sameHours(own, from) ? own : undefined
     const prior = origin === undefined ? undefined : (hoursChangedFrom(span, own, from) ?? started)
-    const priorHours =
-      prior === undefined ? [] : hoursAsBefore(hours, arrived.has(dueOn), hoursOf(prior.times))
+    const priorHours = prior === undefined ? [] : hoursAsBefore(arrived.get(dueOn), prior)
     const before =
       prior === undefined
         ? null
@@ -141,7 +140,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
       prior === undefined ? brought.length : dosesKept(span, prior, arrival, brought.length)
     const kept = sameHours(arrival, prior ?? from) && count === brought.length
     if (!kept) translated.add(targetOn!)
-    if (!into.has(targetOn!)) arrived.add(targetOn!)
+    if (!into.has(targetOn!)) arrived.set(targetOn!, { hours: brought, of: prior ?? from })
     const day = into.get(targetOn!) ?? { setting: arrival, hours: [] }
     // R7, R9.2 : un nouveau rythme qui part du jour d'arrivée d'un report lui laisse ses seules heures.
     if (openings.delete(targetOn!)) {

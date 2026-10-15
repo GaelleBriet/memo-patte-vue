@@ -47,14 +47,14 @@ export function hoursChangedFrom(span: Span, own: Setting, from: Setting): Setti
   return reference === undefined || sameHours(reference, from) ? undefined : reference
 }
 
-/** R7 : un jour d'arrivée ne porte que les dernières heures ; lu aux heures d'avant, de même. */
-export function hoursAsBefore(
-  now: readonly Hour[],
-  arrival: boolean,
-  before: readonly Hour[],
-): Hour[] {
-  if (!arrival) return [...before]
-  return now.length === 0 ? [] : before.slice(-now.length)
+/** Les doses qu'un report a apportées à un jour qu'il a créé, aux heures de `of`. */
+export type Brought = { hours: Hour[]; of: Setting }
+
+/** R7 : un jour d'arrivée ne porte que les doses apportées ; lu aux heures d'avant, de même. */
+export function hoursAsBefore(brought: Brought | undefined, before: Setting): Hour[] {
+  if (brought === undefined) return hoursOf(before.times)
+  if (sameHours(brought.of, before)) return [...brought.hours]
+  return brought.hours.length === 0 ? [] : hoursOf(before.times).slice(-brought.hours.length)
 }
 
 /** Décision du 15 octobre 2026 : réduit par des heures retirées, le nombre de doses d'un report ne remonte pas. */

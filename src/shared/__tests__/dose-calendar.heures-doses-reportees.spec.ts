@@ -577,4 +577,134 @@ describe('Décision de Gaelle du 15 octobre 2026 (question 1) : le calendrier ne
     expect(readings(after).moteur.moment).toEqual(['2026-04-12 23:00'])
     expect(readings(after).reference.moment).toEqual(['2026-04-12 23:00'])
   })
+
+  it('graine 7300000056 : le 21 mars, arrivée du 12, 6 h restée et 12 h reportée au 23 ; le 13, « sans heure » : le 21 garde sa dose', () => {
+    const input = {
+      settings: [
+        {
+          id: 's1',
+          startsOn: '2026-03-12',
+          firstDueOn: '2026-03-12',
+          gridOriginOn: '2026-03-12',
+          firstDueChosen: true,
+          pastDosesStayUnlogged: false,
+          endsOn: '2026-03-23',
+          stoppedOn: null,
+          frequency: { value: 1, unit: 'day' },
+          times: ['06:00', '12:00', '18:00', '23:00'],
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+        {
+          startsOn: '2026-03-13',
+          firstDueOn: '2026-03-21',
+          gridOriginOn: null,
+          firstDueChosen: false,
+          pastDosesStayUnlogged: false,
+          endsOn: '2026-03-23',
+          frequency: { value: 1, unit: 'day' },
+          times: ['06:00', '12:00', '18:00', '23:00'],
+          id: 's2',
+          stoppedOn: null,
+          createdAt: '2026-01-01T00:00:13.000Z',
+        },
+      ],
+      lines: [
+        {
+          settingId: 's1',
+          dueOn: '2026-03-12',
+          dueTime: '06:00',
+          status: 'postponed',
+          givenOn: null,
+          targetOn: '2026-03-21',
+          id: 'l1',
+          updatedAt: '2026-01-01T00:00:01.000Z',
+        },
+        {
+          settingId: 's1',
+          dueOn: '2026-03-12',
+          dueTime: '06:00',
+          status: 'shift',
+          givenOn: null,
+          targetOn: '2026-03-21',
+          id: 'l2',
+          updatedAt: '2026-01-01T00:00:02.000Z',
+        },
+        {
+          settingId: 's1',
+          dueOn: '2026-03-21',
+          dueTime: '12:00',
+          status: 'postponed',
+          givenOn: null,
+          targetOn: '2026-03-23',
+          id: 'l4',
+          updatedAt: '2026-01-01T00:00:04.000Z',
+        },
+        {
+          settingId: 's1',
+          dueOn: '2026-03-23',
+          dueTime: '12:00',
+          status: 'given',
+          givenOn: '2026-03-09',
+          targetOn: null,
+          id: 'l6',
+          updatedAt: '2026-01-01T00:00:06.000Z',
+        },
+        {
+          settingId: 's1',
+          dueOn: '2026-03-23',
+          dueTime: '18:00',
+          status: 'given',
+          givenOn: '2026-03-12',
+          targetOn: null,
+          id: 'l7',
+          updatedAt: '2026-01-01T00:00:10.000Z',
+        },
+        {
+          settingId: 's1',
+          dueOn: '2026-03-23',
+          dueTime: '23:00',
+          status: 'given',
+          givenOn: '2026-03-13',
+          targetOn: null,
+          id: 'l8',
+          updatedAt: '2026-01-01T00:00:08.000Z',
+        },
+        {
+          settingId: 's1',
+          dueOn: '2026-03-23',
+          dueTime: '23:00',
+          status: 'shift',
+          givenOn: null,
+          targetOn: '2026-03-13',
+          id: 'l9',
+          updatedAt: '2026-01-01T00:00:09.000Z',
+        },
+        {
+          settingId: 's1',
+          dueOn: '2026-03-22',
+          dueTime: '12:00',
+          status: 'given',
+          givenOn: '2026-03-08',
+          targetOn: null,
+          id: 'l11',
+          updatedAt: '2026-01-01T00:00:11.000Z',
+        },
+        {
+          settingId: 's1',
+          dueOn: '2026-03-22',
+          dueTime: '18:00',
+          status: 'given',
+          givenOn: '2026-03-09',
+          targetOn: null,
+          id: 'l12',
+          updatedAt: '2026-01-01T00:00:12.000Z',
+        },
+      ],
+      today: '2026-03-13',
+    } as TreatmentViewInput
+    const after = hoursOnly(input, [])
+    expect(days(after)).toEqual(days(input))
+    expect(readings(after).moteur.moment).toEqual(['2026-03-21'])
+    expect(readings(after).reference.moment).toEqual(['2026-03-21'])
+  })
 })
