@@ -2,7 +2,7 @@ import { hoursOf, keyOf, plusDays, sameHours, stepped } from './grid'
 import { journeys, type Gap } from './journeys'
 import type { EpisodeLines } from './lines'
 import { coverageOf } from './coverage'
-import { hoursChangedFrom, reportMove } from './report-move'
+import { hoursAsBefore, hoursChangedFrom, reportMove } from './report-move'
 import type { Span } from './settings'
 import type { Day, Due, Hour, Line, LineEffect, Setting } from './types'
 
@@ -59,7 +59,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
 
   const coverage = coverageOf({ byDay, borrowed: isBorrowed, translated, settingOf })
   const coveredOn = coverage(matched)
-  const coveredBy = (day: Day, setting: Setting, hours: Hour[]) =>
+  const coverAs = (day: Day, setting: Setting, hours: Hour[]) =>
     coverage(new Set())(day, { setting, hours })
 
   // R7 : un report emporte son heure et les suivantes encore sans prise ; les reports qui arrivent
@@ -105,11 +105,12 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
         : new Set(coveredOn(dueOn, origin).keys())
     const prior =
       origin === undefined ? undefined : hoursChangedFrom(span, settingOf(report.settingId), from)
-    const priorHours = prior === undefined ? [] : hoursOf(prior.times)
+    const priorHours =
+      prior === undefined ? [] : hoursAsBefore(hours, hoursOf(from.times), hoursOf(prior.times))
     const before =
       prior === undefined
         ? null
-        : { hours: priorHours, covered: new Set(coveredBy(dueOn, prior, priorHours).keys()) }
+        : { hours: priorHours, covered: new Set(coverAs(dueOn, prior, priorHours).keys()) }
     const { beaten, leaving, brought } = reportMove({ hours, covered }, dueTime, before)
     if (beaten) {
       effects.set(report.id, { kind: 'idle', reason: 'beaten' })

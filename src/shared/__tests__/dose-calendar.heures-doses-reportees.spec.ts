@@ -160,6 +160,36 @@ describe('Décision de Gaelle du 15 octobre 2026 (question 1) : un report dépla
       '2026-03-16 20:00',
     ])
   })
+  it('graine 7300000242 : la dose de 20 h du 14 mars reportée au 21, puis du 21 au 25 ; le 13, une minute plus tard : le 21 reste vide, la dose reste le 25', () => {
+    const input: TreatmentViewInput = {
+      settings: [
+        setting('s1', '2026-03-14', TWO_WEEKS, THREE, { endsOn: '2026-04-21' }),
+        setting('s2', '2026-03-14', MONTH, H, {
+          startsOn: '2026-03-13',
+          firstDueChosen: false,
+          endsOn: '2026-04-21',
+        }),
+      ],
+      lines: [
+        line('s1', 'postponed', '2026-03-14', '14:00', '2026-03-21'),
+        line('s1', 'shift', '2026-03-14', '14:00', '2026-03-21'),
+        line('s1', 'postponed', '2026-03-21', '20:00', '2026-03-25'),
+        line('s1', 'shift', '2026-03-21', '20:00', '2026-03-25'),
+        { ...line('s2', 'given', '2026-03-14', '08:00'), ...givenOn('2026-03-13') },
+      ],
+      today: '2026-03-13',
+    }
+    expect(readings(input).moteur.moment).toEqual(['2026-03-25 20:00'])
+    const after = hoursOnly(input, ['08:01', '20:01'])
+    expect(readings(after)).toEqual(
+      both({
+        phase: 'upcoming',
+        moment: ['2026-03-25 20:01'],
+        aRenseigner: [],
+        ensuite: ['2026-03-25 20:01', '2026-04-14 08:01', '2026-04-14 20:01'],
+      }),
+    )
+  })
 })
 
 describe('Décision de Gaelle du 15 octobre 2026 (question 2) : une journée à venir entamée garde son jour (R9.2)', () => {

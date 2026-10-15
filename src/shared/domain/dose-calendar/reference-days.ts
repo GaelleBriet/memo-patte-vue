@@ -205,3 +205,9 @@ export function hoursBefore(
   const reference = live[first]
   return reference === undefined || sameHours(reference, from) ? undefined : reference
 }
+
+// R7 : un jour d'arrivée ne porte que les dernières heures ; lu aux heures d'avant, de même.
+export function arrivalHoursOf(now: readonly Hour[], full: readonly Hour[], before: Hour[]) {
+  if (now.length === 0) return []
+  return now.length === full.length ? before : before.slice(-now.length)
+}

@@ -13,6 +13,7 @@ import {
   coverOrphans,
   lateDaysOf,
   handedOf,
+  arrivalHoursOf,
   hoursBefore,
   inForceOf,
   reportMove,
@@ -211,11 +212,11 @@ export function calendarOf(
   const matched = new Set<ReferenceLine>()
   const coveredOn = coverageOf([...notes, ...borrowed], borrowed, translated, settingOf, matched)
   const unmatched = coverageOf([...notes, ...borrowed], borrowed, translated, settingOf, new Set())
-  const coverBefore = (day: string, setting: ReferenceSetting | undefined) =>
-    setting && {
-      hours: hoursOf(setting),
-      covered: unmatched(day, { setting, hours: hoursOf(setting) }),
-    }
+  const coverBefore = (day: string, origin: Journey, setting: ReferenceSetting | undefined) => {
+    if (setting === undefined) return null
+    const hours = arrivalHoursOf(origin.hours, hoursOf(origin.setting), hoursOf(setting))
+    return { hours, covered: unmatched(day, { setting, hours }) }
+  }
 
   // R7 : un report emporte son heure et les suivantes encore sans prise ; les reports qui arrivent sur
   // sa journée passent d'abord.
@@ -257,7 +258,7 @@ export function calendarOf(
     const { beaten, moved, bringing } = reportMove(
       { hours, covered },
       dueTime,
-      coverBefore(dueOn, reference) ?? null,
+      origin === undefined ? null : coverBefore(dueOn, origin, reference),
     )
     if (beaten) continue
     if (targetOn! > dueOn) fallen.add(dueOn)

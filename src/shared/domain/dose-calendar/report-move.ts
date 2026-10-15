@@ -46,3 +46,13 @@ export function hoursChangedFrom(span: Span, own: Setting, from: Setting): Setti
   const reference = live[first]
   return reference === undefined || sameHours(reference, from) ? undefined : reference
 }
+
+/** R7 : une journée d'arrivée n'a que ses dernières heures ; lue avant le changement, de même. */
+export function hoursAsBefore(
+  now: readonly Hour[],
+  full: readonly Hour[],
+  before: readonly Hour[],
+): Hour[] {
+  if (now.length === 0) return []
+  return now.length === full.length ? [...before] : before.slice(-now.length)
+}
