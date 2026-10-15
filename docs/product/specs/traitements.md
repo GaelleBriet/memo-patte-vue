@@ -1442,6 +1442,8 @@ Lectures à confirmer par Gaelle, ouvertes le 15 octobre 2026 en appliquant ces 
   puis tous les mois à 8 h, 14 h et 20 h, puis une minute plus tard : le 1er avril garde ses trois
   doses. Écartée : compter avec les heures du réglage du report (une seule dose), qui changeait le
   1er avril, passé. Après un changement de fréquence, le report garde la lecture d'avant (R6, R9).
+  Parti d'un jour d'arrivée, il compte les doses que cette arrivée portait (graine 7300000242 : la
+  dose de 20 h du 14 mars reportée au 21, puis du 21 au 25 ; une minute plus tard, le 21 reste vide).
 - **Une heure ajoutée ne laisse pas de dose de plus sur une journée reportée** : la journée d'origine
   perd ses heures à partir du rang de l'heure du report. Graine 975000503 (exemple de #817) : chaque
   jour à 8 h, 14 h et 20 h, le 17 mars la dose de 8 h reportée au 5 avril avec décalage, puis 6 h,
@@ -1461,6 +1463,13 @@ Lectures à confirmer par Gaelle, ouvertes le 15 octobre 2026 en appliquant ces 
   8 h ; le report de 8 h du 17, écrit ensuite, est sans effet). Entre deux appareils, une prise de
   l'ancien réglage reçue après le changement compte alors comme une prise de plus, comme le jour où les
   heures changent.
+- **Plus de prises que d'heures sur une journée entamée** : les prises en trop sont sans effet (R4, à
+  hauteur de leur nombre). Graine 7300000111 : tous les jours à 8 h, 14 h et 20 h, le 21 avril 8 h et
+  14 h données d'avance, 20 h reportée au 23 ; le 28 mars, « sans heure » : le 21 est couvert par la
+  prise de 8 h, celle de 14 h est sans effet, le 23 garde sa dose (avant, `main` corrigeait le réglage
+  et gardait les deux prises). Une prise d'une journée sortie du calendrier ne couvre plus l'heure
+  qu'une prise traduite prend avant elle (graine 7300000334). Alternative : laisser une prise en trop
+  couvrir la dose suivante, à moins d'un pas (R4, prise qui ne se perd jamais).
 
 Lectures à confirmer par Gaelle, ouvertes le 14 octobre 2026 avec #845 (TR-24, TR-25) :
 
