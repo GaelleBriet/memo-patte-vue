@@ -248,7 +248,7 @@ export function calendarOf(
     // heures changent, il emporte les siennes encore sans prise (décision du 15 octobre 2026).
     const written = settingOf(report!.settingId)
     const source = translated.has(dueOn) && !sameHours(written, from) ? written : from
-    if (covered.has(dueTime) || (source !== from && noted.has(keyOf(dueOn, dueTime)))) continue
+    if (source === from ? covered.has(dueTime) : noted.has(keyOf(dueOn, dueTime))) continue
     if (targetOn! > dueOn) fallen.add(dueOn)
     const after = (hour: Hour) => hour === null || hour >= (dueTime ?? '')
     const leaving = hours.filter((hour) => after(hour) && !covered.has(hour))

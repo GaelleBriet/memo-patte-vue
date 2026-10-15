@@ -139,7 +139,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
         : new Set(coveredOn(dueOn, origin).keys())
     const written = settingOf(report.settingId)
     const source = translated.has(dueOn) && !sameHours(written, from) ? written : from
-    if (covered.has(dueTime) || (source !== from && noted.has(keyOf(dueOn, dueTime)))) {
+    if (source === from ? covered.has(dueTime) : noted.has(keyOf(dueOn, dueTime))) {
       effects.set(report.id, { kind: 'idle', reason: 'beaten' })
       continue
     }
