@@ -2688,3 +2688,17 @@ R10, §10 et §11 ; modèle de données §4.3 ; export v6).
   non, pour que chaque traitement se lise comme avant la migration ; (2) création et reprise écrivent
   « date choisie » ; (3) « Elles n'étaient pas à donner » sans date choisie ne remplace plus la dose
   du moment : une dose en retard d'avant le réglage corrigé reste visible (R11).
+
+2026-10-15 — **#848 mergée avec deux cas dégradés connus, chacun fixé par un test en échec connu**
+(spec `traitements.md` §11, #854).
+
+- Décision de Gaelle du 15 octobre 2026 : elle accepte de merger #848 avec des cas dégradés connus, à
+  condition que chacun ait un test marqué en échec connu (`it.fails`) qui fixe le comportement
+  attendu. Mécanisme : un « Modifier » qui réécrit un réglage dont la date avait été choisie écrit
+  « date non choisie » avec une origine qui n'est plus celle d'avant ; ce que la date choisie avait
+  remplacé revient.
+- Attendu de Gaelle, exemple 1 (graine 7500000173) : « la date choisie reste l'origine quand seules
+  les heures changent : prochaine dose le 25 avril, rien en retard ».
+- Attendu de Gaelle, exemple 2 (graine 7500002108) : rien « à renseigner » le 6 avril après
+  « Elles n'étaient pas à donner ».
+- Les deux tests passent au vert dans #854, prochain ticket.

@@ -1353,6 +1353,26 @@ Lectures à confirmer par Gaelle, ouvertes le 15 octobre 2026 avec #825 et #836 
   validée par la personne. Écartée : « non », sans effet sur la lecture (un premier réglage ou un réglage
   d'après un arrêt ne remplace aucune dose) mais faux sur ce que la personne a fait.
 
+Cas dégradés connus de #848, acceptés par Gaelle le 15 oct. 2026 à condition d'un test en échec
+connu ; #854 est le prochain ticket. Un « Modifier » qui ne change que les heures d'un réglage dont la
+« Prochaine dose » avait été choisie réécrit le réglage en « date non choisie », avec une autre
+origine : ce que la date choisie avait remplacé revient. Attendu de Gaelle : la date choisie reste
+l'origine quand seules les heures changent. Tests `it.fails` dans
+`src/shared/__tests__/dose-calendar.reglage-corrige-date-choisie.spec.ts` :
+
+- **Une dose réapparaît en retard (graine 7500000173).** Milo, toutes les 2 semaines à 8 h et 20 h
+  depuis le 30 mars, dose de 8 h donnée ; le 31, dose de 20 h reportée au 11 avril avec décalage ;
+  le 1er avril, tous les 3 jours à 20 h, « Prochaine dose » le 25 ; le 2, retour à 2 semaines à
+  8 h et 20 h (date gardée), arrivée du report déplacée au 18 avec décalage, prise du 30 à 8 h
+  supprimée ; la fiche montre le 18 à 20 h puis la journée du 25. Le même jour, 8 h 01 et 20 h 01 :
+  attendu, rien en retard, le 18 à 20 h 01 puis la journée du 25 ; lu depuis #848 : la dose du
+  30 mars à 8 h en retard, puis 18 avril et 2 mai (avant #848 : 18 avril à 8 h 01).
+- **Une dose réapparaît à renseigner (graine 7500002108).** Luna, toutes les semaines à 8 h et 20 h,
+  première dose le 6 avril : 8 h donnée le 3, 20 h reportée au 12 ; le 5, 8, 14 et 20 h jusqu'au 13,
+  dose de 14 h donnée ; le 8, 8 h et 20 h, « Prochaine dose » le 10, prise de 14 h supprimée. Le 12,
+  6, 12, 18 et 23 h, « Elles n'étaient pas à donner » : attendu, rien à renseigner le 6 avril ; lu
+  depuis #848 : la dose du 6 avril à 14 h « à renseigner » (avant #848, non).
+
 Lectures à confirmer par Gaelle, ouvertes le 14 octobre 2026 avec #845 (TR-24, TR-25) :
 
 - **« Supprimer ce report » refusé aussi quand l'un des reports emportés (autre appareil) a sa
