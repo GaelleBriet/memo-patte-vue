@@ -1,4 +1,4 @@
-import { sameFrequency, sameHours } from './grid'
+import { hoursOf, sameFrequency, sameHours } from './grid'
 import type { Span } from './settings'
 import type { Hour, Setting } from './types'
 
@@ -55,4 +55,15 @@ export function hoursAsBefore(
 ): Hour[] {
   if (!arrival) return [...before]
   return now.length === 0 ? [] : before.slice(-now.length)
+}
+
+/** Décision du 15 octobre 2026 : réduit par des heures retirées, le nombre de doses d'un report ne remonte pas. */
+export function dosesKept(span: Span, reference: Setting, arrival: Setting, count: number): number {
+  const from = span.episode.indexOf(reference)
+  const to = span.episode.indexOf(arrival)
+  return span.live
+    .filter(
+      (setting) => span.episode.indexOf(setting) >= from && span.episode.indexOf(setting) <= to,
+    )
+    .reduce((kept, setting) => Math.min(kept, hoursOf(setting.times).length), count)
 }

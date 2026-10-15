@@ -2,7 +2,7 @@ import { hoursOf, keyOf, plusDays, sameHours, stepped } from './grid'
 import { journeys, type Gap } from './journeys'
 import type { EpisodeLines } from './lines'
 import { coverageOf } from './coverage'
-import { hoursAsBefore, hoursChangedFrom, reportMove } from './report-move'
+import { dosesKept, hoursAsBefore, hoursChangedFrom, reportMove } from './report-move'
 import type { Span } from './settings'
 import type { Day, Due, Hour, Line, LineEffect, Setting } from './types'
 
@@ -104,8 +104,10 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
       origin === undefined
         ? new Set(hours.filter((hour) => noted.has(keyOf(dueOn, hour))))
         : new Set(coveredOn(dueOn, origin).keys())
-    const prior =
-      origin === undefined ? undefined : hoursChangedFrom(span, settingOf(report.settingId), from)
+    const own = settingOf(report.settingId)
+    // R9.2 : sur une journée entamée relue à d'autres heures, le report compte aussi ses doses.
+    const started = lines.started.has(dueOn) && !sameHours(own, from) ? own : undefined
+    const prior = origin === undefined ? undefined : (hoursChangedFrom(span, own, from) ?? started)
     const priorHours =
       prior === undefined ? [] : hoursAsBefore(hours, arrived.has(dueOn), hoursOf(prior.times))
     const before =
@@ -135,7 +137,9 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     })
     if (arrival === undefined) continue
     // R7 : heures changées, le jour d'arrivée prend autant de dernières heures que de doses reportées.
-    const kept = sameHours(arrival, prior ?? from)
+    const count =
+      prior === undefined ? brought.length : dosesKept(span, prior, arrival, brought.length)
+    const kept = sameHours(arrival, prior ?? from) && count === brought.length
     if (!kept) translated.add(targetOn!)
     if (!into.has(targetOn!)) arrived.add(targetOn!)
     const day = into.get(targetOn!) ?? { setting: arrival, hours: [] }
@@ -144,7 +148,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
       day.hours = []
       effects.set(report.id, { kind: 'moves', keys, arrival: targetOn, opensRhythm: true })
     }
-    const arriving = kept ? brought : hoursOf(arrival.times).slice(-brought.length)
+    const arriving = kept ? brought : hoursOf(arrival.times).slice(-count)
     day.hours = [...new Set([...day.hours, ...arriving])].sort()
     into.set(targetOn!, day)
   }

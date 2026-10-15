@@ -14,6 +14,7 @@ import {
   lateDaysOf,
   handedOf,
   arrivalHoursOf,
+  arrivingOf,
   hoursBefore,
   inForceOf,
   reportMove,
@@ -62,7 +63,8 @@ export function calendarOf(
   const days = new Map<string, Journey>()
   // R4, R7, R9 : les jours où une prise visant d'autres heures couvre les premières heures.
   const translated = new Map<string, string>()
-  startedDaysOf(episode, allLines, { settingAt }).forEach((day) => translated.set(day, ''))
+  const started = startedDaysOf(episode, allLines, { settingAt })
+  started.forEach((day) => translated.set(day, ''))
   const left = new Map<string, Journey>()
   const claims: Claim[] = []
   // R7, R9.2 : les premières échéances des réglages qui ouvrent un nouveau rythme.
@@ -254,7 +256,9 @@ export function calendarOf(
     const into = stopDay === undefined ? days : left
     // R7, R11 : battu par une prise de sa propre échéance, un report est sans effet ; après un
     // changement d'heures seules, il garde ses doses comptées aux heures d'avant.
-    const reference = origin && hoursBefore(live, episode, settingOf(report!.settingId), from)
+    const own = settingOf(report!.settingId)
+    const startedOwn = started.has(dueOn) && !sameHours(own, from) ? own : undefined
+    const reference = origin && (hoursBefore(live, episode, own, from) ?? startedOwn)
     const earlier = coverBefore(dueOn, origin, reference)
     const { beaten, moved, bringing } = reportMove({ hours, covered }, dueTime, earlier)
     if (beaten) continue
@@ -262,15 +266,13 @@ export function calendarOf(
     if (origin !== undefined) origin.hours = origin.hours.filter((hour) => !moved.includes(hour))
     if (arrival === undefined || bringing.length === 0) continue
     // R7 : heures changées, le jour d'arrivée prend autant de dernières heures que de doses reportées.
-    const kept = sameHours(arrival, reference ?? from)
-    if (!kept) translated.set(targetOn!, arrival.id)
+    const received = arrivingOf(live, episode, arrival, reference ?? from, bringing, !!reference)
+    if (!received.kept) translated.set(targetOn!, arrival.id)
     if (!into.has(targetOn!)) arrived.add(targetOn!)
     const day = into.get(targetOn!) ?? { setting: arrival, hours: [] }
     // R7, R9.2 : un nouveau rythme qui part du jour d'arrivée d'un report lui laisse ses seules heures.
     if (openings.delete(targetOn!)) day.hours = []
-    day.hours = [
-      ...new Set([...day.hours, ...(kept ? bringing : hoursOf(arrival).slice(-bringing.length))]),
-    ].sort()
+    day.hours = [...new Set([...day.hours, ...received.hours])].sort()
     into.set(targetOn!, day)
   }
 

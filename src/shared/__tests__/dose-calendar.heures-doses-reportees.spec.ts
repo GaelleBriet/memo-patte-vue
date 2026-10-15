@@ -302,3 +302,279 @@ describe('Décision de Gaelle du 15 octobre 2026 (question 2) : une journée à 
     ])
   })
 })
+
+describe('Décision de Gaelle du 15 octobre 2026 (question 1) : le calendrier ne bouge pas, graines du comparateur', () => {
+  const days = (input: TreatmentViewInput) => [
+    ...new Set(
+      treatmentView(input)
+        .slots(input.today, '2026-06-30')
+        .map(({ due }) => due.dueOn),
+    ),
+  ]
+
+  it('graine 7300000459 : une dose reportée au 2 avril puis du 2 avril au 11 mars ; le 14, 6 h ajoutée : rien le 2 avril', () => {
+    const input = {
+      settings: [
+        {
+          id: 's1',
+          startsOn: '2026-03-08',
+          firstDueOn: '2026-03-08',
+          gridOriginOn: '2026-03-08',
+          firstDueChosen: true,
+          pastDosesStayUnlogged: false,
+          endsOn: null,
+          stoppedOn: null,
+          frequency: { value: 1, unit: 'month' },
+          times: ['06:00', '12:00', '18:00', '23:00'],
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+        {
+          startsOn: '2026-03-06',
+          firstDueOn: '2026-04-14',
+          gridOriginOn: null,
+          firstDueChosen: false,
+          pastDosesStayUnlogged: false,
+          endsOn: null,
+          frequency: { value: 1, unit: 'month' },
+          times: [],
+          id: 's2',
+          stoppedOn: null,
+          createdAt: '2026-01-01T00:00:07.000Z',
+        },
+        {
+          startsOn: '2026-03-09',
+          firstDueOn: '2026-04-14',
+          gridOriginOn: null,
+          firstDueChosen: false,
+          pastDosesStayUnlogged: false,
+          endsOn: null,
+          frequency: { value: 1, unit: 'month' },
+          times: ['20:00'],
+          id: 's3',
+          stoppedOn: null,
+          createdAt: '2026-01-01T00:00:08.000Z',
+        },
+        {
+          startsOn: '2026-03-14',
+          firstDueOn: '2026-04-08',
+          gridOriginOn: '2026-04-08',
+          firstDueChosen: false,
+          pastDosesStayUnlogged: false,
+          endsOn: null,
+          frequency: { value: 2, unit: 'day' },
+          times: ['20:00'],
+          id: 's4',
+          stoppedOn: null,
+          createdAt: '2026-01-01T00:00:18.000Z',
+        },
+      ],
+      lines: [
+        {
+          settingId: 's1',
+          dueOn: '2026-03-08',
+          dueTime: '06:00',
+          status: 'postponed',
+          givenOn: null,
+          targetOn: '2026-04-02',
+          id: 'l1',
+          updatedAt: '2026-01-01T00:00:01.000Z',
+        },
+        {
+          settingId: 's3',
+          dueOn: '2026-04-02',
+          dueTime: '20:00',
+          status: 'postponed',
+          givenOn: null,
+          targetOn: '2026-03-11',
+          id: 'l3',
+          updatedAt: '2026-01-01T00:00:09.000Z',
+        },
+        {
+          settingId: 's3',
+          dueOn: '2026-03-11',
+          dueTime: '20:00',
+          status: 'given',
+          givenOn: '2026-03-10',
+          targetOn: null,
+          id: 'l10',
+          updatedAt: '2026-01-01T00:00:14.000Z',
+        },
+        {
+          settingId: 's3',
+          dueOn: '2026-04-08',
+          dueTime: '20:00',
+          status: 'given',
+          givenOn: '2026-03-14',
+          targetOn: null,
+          id: 'l12',
+          updatedAt: '2026-01-01T00:00:12.000Z',
+        },
+        {
+          settingId: 's3',
+          dueOn: '2026-04-08',
+          dueTime: '20:00',
+          status: 'shift',
+          givenOn: null,
+          targetOn: '2026-03-14',
+          id: 'l13',
+          updatedAt: '2026-01-01T00:00:13.000Z',
+        },
+        {
+          settingId: 's3',
+          dueOn: '2026-03-10',
+          dueTime: '20:00',
+          status: 'extra',
+          givenOn: '2026-03-10',
+          targetOn: null,
+          id: 'l15',
+          updatedAt: '2026-01-01T00:00:15.000Z',
+        },
+        {
+          settingId: 's3',
+          dueOn: '2026-03-14',
+          dueTime: '20:00',
+          status: 'extra',
+          givenOn: '2026-03-14',
+          targetOn: null,
+          id: 'l16',
+          updatedAt: '2026-01-01T00:00:17.000Z',
+        },
+      ],
+      today: '2026-03-14',
+    } as TreatmentViewInput
+    const after = hoursOnly(input, ['06:00', '20:00'])
+    expect(days(after)).toEqual(days(input))
+    expect(readings(after).moteur.moment).toEqual(['2026-04-10 06:00'])
+    expect(readings(after).reference.moment).toEqual(['2026-04-10 06:00'])
+  })
+
+  it('graine 7300000787 : la journée du 4 avril entamée, 18 h reportée au 12 ; le 21 mars, 9 h ajoutée : le report garde sa dose le 12', () => {
+    const input = {
+      settings: [
+        {
+          id: 's1',
+          startsOn: '2026-03-21',
+          firstDueOn: '2026-03-21',
+          gridOriginOn: '2026-03-21',
+          firstDueChosen: true,
+          pastDosesStayUnlogged: false,
+          endsOn: null,
+          stoppedOn: null,
+          frequency: { value: 2, unit: 'day' },
+          times: ['06:00', '12:00', '18:00', '23:00'],
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+        {
+          startsOn: '2026-03-21',
+          firstDueOn: '2026-03-22',
+          gridOriginOn: '2026-03-22',
+          firstDueChosen: false,
+          pastDosesStayUnlogged: false,
+          endsOn: null,
+          frequency: { value: 3, unit: 'month' },
+          times: ['06:00', '12:00', '18:00', '23:00'],
+          id: 's2',
+          stoppedOn: null,
+          createdAt: '2026-01-01T00:00:11.000Z',
+        },
+      ],
+      lines: [
+        {
+          settingId: 's1',
+          dueOn: '2026-03-21',
+          dueTime: '06:00',
+          status: 'postponed',
+          givenOn: null,
+          targetOn: '2026-03-22',
+          id: 'l1',
+          updatedAt: '2026-01-01T00:00:01.000Z',
+        },
+        {
+          settingId: 's1',
+          dueOn: '2026-03-21',
+          dueTime: '06:00',
+          status: 'shift',
+          givenOn: null,
+          targetOn: '2026-03-22',
+          id: 'l2',
+          updatedAt: '2026-01-01T00:00:02.000Z',
+        },
+        {
+          settingId: 's1',
+          dueOn: '2026-03-22',
+          dueTime: '06:00',
+          status: 'given',
+          givenOn: '2026-03-21',
+          targetOn: null,
+          id: 'l3',
+          updatedAt: '2026-01-01T00:00:03.000Z',
+        },
+        {
+          settingId: 's1',
+          dueOn: '2026-03-22',
+          dueTime: '12:00',
+          status: 'postponed',
+          givenOn: null,
+          targetOn: '2026-04-04',
+          id: 'l4',
+          updatedAt: '2026-01-01T00:00:04.000Z',
+        },
+        {
+          settingId: 's1',
+          dueOn: '2026-03-22',
+          dueTime: '12:00',
+          status: 'shift',
+          givenOn: null,
+          targetOn: '2026-04-04',
+          id: 'l5',
+          updatedAt: '2026-01-01T00:00:05.000Z',
+        },
+        {
+          settingId: 's1',
+          dueOn: '2026-04-04',
+          dueTime: '12:00',
+          status: 'given',
+          givenOn: '2026-03-16',
+          targetOn: null,
+          id: 'l6',
+          updatedAt: '2026-01-01T00:00:07.000Z',
+        },
+        {
+          settingId: 's1',
+          dueOn: '2026-04-04',
+          dueTime: '23:00',
+          status: 'given',
+          givenOn: '2026-03-20',
+          targetOn: null,
+          id: 'l8',
+          updatedAt: '2026-01-01T00:00:08.000Z',
+        },
+        {
+          settingId: 's1',
+          dueOn: '2026-04-04',
+          dueTime: '18:00',
+          status: 'postponed',
+          givenOn: null,
+          targetOn: '2026-04-12',
+          id: 'l9',
+          updatedAt: '2026-01-01T00:00:09.000Z',
+        },
+        {
+          settingId: 's1',
+          dueOn: '2026-04-04',
+          dueTime: '18:00',
+          status: 'shift',
+          givenOn: null,
+          targetOn: '2026-04-12',
+          id: 'l10',
+          updatedAt: '2026-01-01T00:00:10.000Z',
+        },
+      ],
+      today: '2026-03-21',
+    } as TreatmentViewInput
+    const after = hoursOnly(input, ['06:00', '09:00', '12:00', '18:00', '23:00'])
+    expect(days(after)).toEqual(days(input))
+    expect(readings(after).moteur.moment).toEqual(['2026-04-12 23:00'])
+    expect(readings(after).reference.moment).toEqual(['2026-04-12 23:00'])
+  })
+})

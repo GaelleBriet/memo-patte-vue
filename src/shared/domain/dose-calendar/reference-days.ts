@@ -211,3 +211,25 @@ export function arrivalHoursOf(now: readonly Hour[], arrival: boolean, before: H
   if (!arrival) return before
   return now.length === 0 ? [] : before.slice(-now.length)
 }
+
+// R7, décision du 15 octobre 2026 : les heures que reçoit un jour d'arrivée ; un nombre de doses
+// réduit par des heures retirées ne remonte pas.
+export function arrivingOf(
+  live: readonly ReferenceSetting[],
+  episode: readonly ReferenceSetting[],
+  arrival: ReferenceSetting,
+  base: ReferenceSetting,
+  bringing: readonly Hour[],
+  capped: boolean,
+) {
+  const between = live.filter(
+    (setting) =>
+      episode.indexOf(setting) >= episode.indexOf(base) &&
+      episode.indexOf(setting) <= episode.indexOf(arrival),
+  )
+  const count = capped
+    ? between.reduce((kept, setting) => Math.min(kept, hoursOf(setting).length), bringing.length)
+    : bringing.length
+  const kept = sameHours(arrival, base) && count === bringing.length
+  return { kept, hours: kept ? [...bringing] : hoursOf(arrival).slice(-count) }
+}
