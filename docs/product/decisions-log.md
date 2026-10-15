@@ -2715,13 +2715,14 @@ R10, §10 et §11 ; modèle de données §4.3 ; export v6).
   et fait perdre son effet à une prise.
 - Mise en œuvre : un réglage sans prise dont seules les heures changent, sans échéance tombée, ouvre
   un réglage à partir d'aujourd'hui, comme après une prise ; un second « Modifier » le même jour
-  transmet la date choisie (R10, #849) ; « Elles n'étaient pas à donner » garde la date choisie et son
-  origine tant qu'elle laisse une dose à donner ; une dose avancée à un jour passé garde les heures de
-  ce jour (#851).
+  transmet la date choisie (R10, #849) ; « Elles n'étaient pas à donner » garde le fait « date choisie » ; une
+  dose avancée à un jour passé garde les heures de ce jour, à fréquence gardée (#851).
 - Lectures à confirmer par Gaelle (rédaction de l'implémentation, exemples au §11 de la spec) :
   (1) le réglage sans prise ouvert à partir d'aujourd'hui (TR-28 disait « correction ») ; (2) la dose
   avancée à un jour passé et sa journée d'origine ; (3) l'attendu détaillé de la graine 7500000173 :
   rien en retard, le 18 avril à 20 h 01, puis la journée du 25 à 8 h 01 et 20 h 01 ; (4) celui de la
   graine 7500002108 : seule la dose du 10 avril à 23 h reste à renseigner, le report du 10 étant relu
-  avec les nouvelles heures (« Elles n'étaient pas à donner » corrige le réglage).
+  avec les nouvelles heures (« Elles n'étaient pas à donner » corrige le réglage) ; (5) cette réponse
+  garde le fait « date choisie », l'origine passant à la première journée due quand elle n'est pas
+  sur la grille choisie.
 
