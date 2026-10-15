@@ -209,10 +209,21 @@ export function hoursBefore(
 // R7 : un jour d'arrivée ne porte que les doses apportées ; lu aux heures d'avant, de même.
 export type Brought = { hours: Hour[]; of: ReferenceSetting }
 
-export function arrivalHoursOf(brought: Brought | undefined, before: ReferenceSetting): Hour[] {
+function arrivalHoursOf(brought: Brought | undefined, before: ReferenceSetting): Hour[] {
   if (brought === undefined) return hoursOf(before)
   if (sameHours(brought.of, before)) return brought.hours
   return brought.hours.length === 0 ? [] : hoursOf(before).slice(-brought.hours.length)
+}
+
+// R7 : la journée d'origine d'un report lue aux heures d'avant, sans marquer les prises.
+export function arrivalCover(
+  unmatched: (day: string, journey: Journey) => Set<Hour>,
+  brought: Brought | undefined,
+  setting: ReferenceSetting,
+  day: string,
+) {
+  const hours = arrivalHoursOf(brought, setting)
+  return { hours, covered: unmatched(day, { setting, hours }) }
 }
 
 // R7, décision du 15 octobre 2026 : les heures que reçoit un jour d'arrivée ; un nombre de doses

@@ -19,6 +19,12 @@ function hoursOnly(input: TreatmentViewInput, times: string[]) {
   return edited(input, { frequency, times, endsOn })
 }
 
+const minuteLater = (input: TreatmentViewInput) =>
+  hoursOnly(
+    input,
+    treatmentView(input).currentSetting!.times.map((time) => time.replace(/0$/, '1')),
+  )
+
 const states = (input: TreatmentViewInput, from: string, to: string) =>
   treatmentView(input)
     .slots(from, to)
@@ -706,5 +712,117 @@ describe('Décision de Gaelle du 15 octobre 2026 (question 1) : le calendrier ne
     expect(days(after)).toEqual(days(input))
     expect(readings(after).moteur.moment).toEqual(['2026-03-21'])
     expect(readings(after).reference.moment).toEqual(['2026-03-21'])
+  })
+
+  it('graine 7500000393 : le 23 avril ouvre le rythme, 20 h reportée au 26 sans effet ; le 17, une minute plus tard : rien le 26', () => {
+    const input = {
+      settings: [
+        {
+          id: 's1',
+          startsOn: '2026-04-09',
+          firstDueOn: '2026-04-09',
+          gridOriginOn: '2026-04-09',
+          firstDueChosen: true,
+          pastDosesStayUnlogged: false,
+          endsOn: null,
+          stoppedOn: null,
+          frequency: { value: 2, unit: 'week' },
+          times: ['08:00', '20:00'],
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+        {
+          startsOn: '2026-04-13',
+          firstDueOn: '2026-04-23',
+          gridOriginOn: '2026-04-23',
+          firstDueChosen: true,
+          pastDosesStayUnlogged: false,
+          endsOn: null,
+          frequency: { value: 2, unit: 'week' },
+          times: ['08:00', '20:00'],
+          id: 's2',
+          stoppedOn: null,
+          createdAt: '2026-01-01T00:00:05.000Z',
+        },
+        {
+          startsOn: '2026-04-17',
+          firstDueOn: '2026-04-23',
+          gridOriginOn: '2026-04-23',
+          firstDueChosen: false,
+          pastDosesStayUnlogged: false,
+          endsOn: null,
+          frequency: { value: 2, unit: 'day' },
+          times: ['08:00', '20:00'],
+          id: 's3',
+          stoppedOn: null,
+          createdAt: '2026-01-01T00:00:12.000Z',
+        },
+      ],
+      lines: [
+        {
+          settingId: 's1',
+          dueOn: '2026-04-09',
+          dueTime: '08:00',
+          status: 'postponed',
+          givenOn: null,
+          targetOn: '2026-04-13',
+          id: 'l1',
+          updatedAt: '2026-01-01T00:00:01.000Z',
+        },
+        {
+          settingId: 's1',
+          dueOn: '2026-04-13',
+          dueTime: '20:00',
+          status: 'given',
+          givenOn: '2026-04-11',
+          targetOn: null,
+          id: 'l2',
+          updatedAt: '2026-01-01T00:00:07.000Z',
+        },
+        {
+          settingId: 's1',
+          dueOn: '2026-04-13',
+          dueTime: '08:00',
+          status: 'postponed',
+          givenOn: null,
+          targetOn: '2026-04-23',
+          id: 'l3',
+          updatedAt: '2026-01-01T00:00:04.000Z',
+        },
+        {
+          settingId: 's2',
+          dueOn: '2026-04-23',
+          dueTime: '08:00',
+          status: 'given',
+          givenOn: '2026-04-13',
+          targetOn: null,
+          id: 'l8',
+          updatedAt: '2026-01-01T00:00:08.000Z',
+        },
+        {
+          settingId: 's2',
+          dueOn: '2026-04-23',
+          dueTime: '20:00',
+          status: 'postponed',
+          givenOn: null,
+          targetOn: '2026-04-26',
+          id: 'l9',
+          updatedAt: '2026-01-01T00:00:09.000Z',
+        },
+        {
+          settingId: 's2',
+          dueOn: '2026-05-07',
+          dueTime: '08:00',
+          status: 'given',
+          givenOn: '2026-04-15',
+          targetOn: null,
+          id: 'l10',
+          updatedAt: '2026-01-01T00:00:11.000Z',
+        },
+      ],
+      today: '2026-04-17',
+    } as TreatmentViewInput
+    const after = minuteLater(input)
+    expect(days(after)).toEqual(days(input))
+    expect(readings(after).reference.ensuite).toEqual(readings(after).moteur.ensuite)
   })
 })

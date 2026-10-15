@@ -13,7 +13,7 @@ import {
   coverOrphans,
   lateDaysOf,
   handedOf,
-  arrivalHoursOf,
+  arrivalCover,
   arrivingOf,
   hoursBefore,
   inForceOf,
@@ -215,11 +215,6 @@ export function calendarOf(
   const matched = new Set<ReferenceLine>()
   const coveredOn = coverageOf([...notes, ...borrowed], borrowed, translated, settingOf, matched)
   const unmatched = coverageOf([...notes, ...borrowed], borrowed, translated, settingOf, new Set())
-  const coverBefore = (day: string, origin: Journey | undefined, setting?: ReferenceSetting) => {
-    if (origin === undefined || setting === undefined) return null
-    const hours = arrivalHoursOf(arrived.get(day), setting)
-    return { hours, covered: unmatched(day, { setting, hours }) }
-  }
 
   // R7 : un report emporte son heure et les suivantes sans prise ; ceux qui y arrivent passent d'abord.
   const fallen = new Set<string>()
@@ -259,8 +254,9 @@ export function calendarOf(
     const own = settingOf(report!.settingId)
     const startedOwn = started.has(dueOn) && !sameHours(own, from) ? own : undefined
     const reference = origin && (hoursBefore(live, episode, own, from) ?? startedOwn)
-    const earlier = coverBefore(dueOn, origin, reference)
-    const { beaten, moved, bringing } = reportMove({ hours, covered }, dueTime, earlier)
+    const earlier =
+      origin && reference && arrivalCover(unmatched, arrived.get(dueOn), reference, dueOn)
+    const { beaten, moved, bringing } = reportMove({ hours, covered }, dueTime, earlier || null)
     if (beaten) continue
     if (targetOn! > dueOn) fallen.add(dueOn)
     if (origin !== undefined) origin.hours = origin.hours.filter((hour) => !moved.includes(hour))
@@ -268,7 +264,8 @@ export function calendarOf(
     // R7 : heures changées, le jour d'arrivée prend autant de dernières heures que de doses reportées.
     const received = arrivingOf(live, episode, arrival, reference ?? from, bringing, !!reference)
     if (!received.kept) translated.set(targetOn!, arrival.id)
-    if (!into.has(targetOn!)) arrived.set(targetOn!, { hours: bringing, of: reference ?? from })
+    const fresh = !into.has(targetOn!) || openings.has(targetOn!)
+    if (fresh) arrived.set(targetOn!, { hours: bringing, of: reference ?? from })
     const day = into.get(targetOn!) ?? { setting: arrival, hours: [] }
     // R7, R9.2 : un nouveau rythme qui part du jour d'arrivée d'un report lui laisse ses seules heures.
     if (openings.delete(targetOn!)) day.hours = []

@@ -140,10 +140,12 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
       prior === undefined ? brought.length : dosesKept(span, prior, arrival, brought.length)
     const kept = sameHours(arrival, prior ?? from) && count === brought.length
     if (!kept) translated.add(targetOn!)
-    if (!into.has(targetOn!)) arrived.set(targetOn!, { hours: brought, of: prior ?? from })
+    const opens = openings.has(targetOn!)
+    if (!into.has(targetOn!) || opens) arrived.set(targetOn!, { hours: brought, of: prior ?? from })
     const day = into.get(targetOn!) ?? { setting: arrival, hours: [] }
     // R7, R9.2 : un nouveau rythme qui part du jour d'arrivée d'un report lui laisse ses seules heures.
-    if (openings.delete(targetOn!)) {
+    if (opens) {
+      openings.delete(targetOn!)
       day.hours = []
       effects.set(report.id, { kind: 'moves', keys, arrival: targetOn, opensRhythm: true })
     }
