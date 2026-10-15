@@ -1,4 +1,13 @@
-import { hoursOf, isOnGrid, keyOf, plusDays, sameHours, stepped, type Hour } from './reference-grid'
+import {
+  hoursOf,
+  isOnGrid,
+  keyOf,
+  plusDays,
+  sameFrequency,
+  sameHours,
+  stepped,
+  type Hour,
+} from './reference-grid'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 export type Journey = { setting: ReferenceSetting; hours: Hour[] }
@@ -34,6 +43,20 @@ export function leftDays(
     }
   }
   return left
+}
+
+// R1 : chaque réglage vaut jusqu'au premier jour du suivant, ou jusqu'à l'arrêt, date de fin comprise.
+export function inForceOf(live: readonly ReferenceSetting[]) {
+  const endOf = (index: number) => live[index + 1]?.startsOn ?? live[index]!.stoppedOn
+  const settingAt = (day: string) => {
+    const index = live.filter(({ startsOn }) => startsOn <= day).length - 1
+    const setting = live[index]
+    if (setting === undefined) return undefined
+    const end = endOf(index)
+    const open = (end === null || day < end) && (setting.endsOn === null || day <= setting.endsOn)
+    return open ? setting : undefined
+  }
+  return { endOf, settingAt }
 }
 
 // TR-30 : le jour de l'arrêt se lit avec le réglage arrêté, sans y laisser d'échéance ; une reprise
@@ -144,23 +167,42 @@ export function coverageOf(
 }
 
 export type ReportMove = { beaten: boolean; moved: Hour[]; bringing: Hour[] }
+export type DayCover = { hours: readonly Hour[]; covered: ReadonlySet<Hour> }
 
-// R7, R9 : ce qu'un report retire de sa journée d'origine et ce qu'il apporte ; `then` : les heures
-// d'une arrivée d'avant le réglage qui lit l'origine, que le report garde.
-export function reportMove(
-  hours: readonly Hour[],
-  covered: ReadonlySet<Hour>,
-  isNoted: (hour: Hour) => boolean,
-  dueTime: Hour,
-  then: readonly Hour[] | null,
-): ReportMove {
+// R7 : un report emporte son heure et les suivantes encore sans prise ; après un changement d'heures
+// seules, il garde ses doses comptées aux heures d'avant (`before`), retirées à partir du même rang.
+export function reportMove(now: DayCover, dueTime: Hour, before: DayCover | null): ReportMove {
   const isAfter = (hour: Hour) => (hour ?? '') >= (dueTime ?? '')
-  const free = hours.filter((hour) => !covered.has(hour))
-  const following = free.filter(isAfter)
-  if (then === null) return { beaten: covered.has(dueTime), moved: following, bringing: following }
-  const bringing = then.filter((hour) => (hour === null || isAfter(hour)) && !isNoted(hour))
-  const wholeDay = hours.length > 0 && free.length === 0
-  const moved =
-    following.length > 0 || bringing.length === 0 ? following : free.slice(-bringing.length)
-  return { beaten: wholeDay || isNoted(dueTime), moved, bringing }
+  const free = (day: DayCover) => day.hours.filter((hour) => !day.covered.has(hour))
+  if (before === null) {
+    const following = free(now).filter(isAfter)
+    return { beaten: now.covered.has(dueTime), moved: following, bringing: following }
+  }
+  const first = before.hours.findIndex(isAfter)
+  const rank = first < 0 || now.hours.length === 0 ? -1 : Math.min(first, now.hours.length - 1)
+  return {
+    beaten: before.covered.has(dueTime),
+    moved: rank < 0 ? [] : now.hours.slice(rank).filter((hour) => !now.covered.has(hour)),
+    bringing: free(before).filter(isAfter),
+  }
+}
+
+// R7 : les heures d'avant un changement d'heures seules, celles du premier réglage du rythme qui lit
+// la journée d'origine, pas plus tôt que celui du report ; aucune si elles n'ont pas changé.
+export function hoursBefore(
+  live: readonly ReferenceSetting[],
+  episode: readonly ReferenceSetting[],
+  own: ReferenceSetting,
+  from: ReferenceSetting,
+): ReferenceSetting | undefined {
+  let first = live.indexOf(from)
+  while (
+    first > 0 &&
+    sameFrequency(live[first - 1]!, from) &&
+    episode.indexOf(live[first - 1]!) >= episode.indexOf(own)
+  ) {
+    first -= 1
+  }
+  const reference = live[first]
+  return reference === undefined || sameHours(reference, from) ? undefined : reference
 }

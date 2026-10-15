@@ -68,6 +68,21 @@ function translatedDays(span: Span, reports: readonly Line[]): Set<Day> {
   return days
 }
 
+/** R9.2 : une journée à venir entamée sous d'autres heures ; ses prises couvrent les premières heures du réglage qui la lit (décision de Gaelle du 15 octobre 2026). */
+function startedDays(span: Span, notes: readonly Line[]): Set<Day> {
+  const byId = new Map(span.episode.map((setting) => [setting.id, setting]))
+  const order = (setting: Setting) => span.episode.indexOf(setting)
+  const days = new Set<Day>()
+  for (const { dueOn, settingId } of notes) {
+    const reading = span.settingAt(dueOn)
+    const own = byId.get(settingId)!
+    if (reading !== undefined && order(own) < order(reading) && !sameHours(own, reading)) {
+      days.add(dueOn)
+    }
+  }
+  return days
+}
+
 /** Les lignes d'un épisode que le calendrier lit, et celles qu'il ne lit pas (R11), avec leur raison. */
 export type EpisodeLines = {
   /** Une ligne par échéance et famille (`doseKeyOf`). */
@@ -79,6 +94,8 @@ export type EpisodeLines = {
   shifts: Line[]
   idle: Map<string, IdleReason>
   doseKey: (line: Line) => string
+  /** R9.2 : journées à venir entamées sous d'autres heures, que le calendrier traduit. */
+  started: ReadonlySet<Day>
 }
 
 export function episodeLines(lines: readonly Line[], span: Span): EpisodeLines {
@@ -88,7 +105,9 @@ export function episodeLines(lines: readonly Line[], span: Span): EpisodeLines {
     own.filter((line) => !isNote(line)),
     doseKeyOf(span.episode, new Set()),
   )
-  const doseKey = doseKeyOf(span.episode, translatedDays(span, reportsOf(moves)))
+  const started = startedDays(span, own.filter(isNote))
+  const translated = new Set([...translatedDays(span, reportsOf(moves)), ...started])
+  const doseKey = doseKeyOf(span.episode, translated)
   const kept = latestBy(own, doseKey)
   const idle = new Map<string, IdleReason>()
   const keptIds = new Set(kept.map(({ id }) => id))
@@ -112,5 +131,5 @@ export function episodeLines(lines: readonly Line[], span: Span): EpisodeLines {
       idle.set(line.id, 'superseded')
     }
   }
-  return { kept, notes: kept.filter(isNote), reports, shifts, idle, doseKey }
+  return { kept, notes: kept.filter(isNote), reports, shifts, idle, doseKey, started }
 }

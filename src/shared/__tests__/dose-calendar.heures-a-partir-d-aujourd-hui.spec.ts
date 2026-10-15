@@ -84,7 +84,7 @@ describe('R9, décision du 15 octobre 2026 : changer les heures vaut à partir d
     )
   })
 
-  it('#851, graine 4870000187 : tous les 2 jours à 8, 14 et 20 h, l’arrivée du 18 et le 19 à renseigner ; le 21, une minute plus tard : rien ne sort du carnet', () => {
+  it('#851, graine 4870000187 : tous les 2 jours à 8, 14 et 20 h, le 17 entamé d’avance couvert (R9.2), le 19 à renseigner ; le 21, une minute plus tard : rien ne sort du carnet', () => {
     const input: TreatmentViewInput = {
       settings: [
         setting('s1', '2026-03-16', WEEK),
@@ -109,8 +109,13 @@ describe('R9, décision du 15 octobre 2026 : changer les heures vaut à partir d
       ],
       today: '2026-03-21',
     }
-    const late = ['2026-03-18 08:00', '2026-03-19 08:00', '2026-03-19 14:00']
+    const late = ['2026-03-19 08:00', '2026-03-19 14:00']
     expect(readings(input).moteur.aRenseigner).toEqual(late)
+    expect(pastSlots(input, '2026-03-17').slice(0, 3)).toEqual([
+      '2026-03-17 08:00 covered',
+      '2026-03-17 14:00 given',
+      '2026-03-17 20:00 given',
+    ])
     const today = ['2026-03-21 08:01', '2026-03-21 14:01', '2026-03-21 20:01']
     expect(readings(minuteLater(input))).toEqual(
       both({ phase: 'today', moment: today, aRenseigner: late, ensuite: today }),
@@ -255,7 +260,23 @@ describe('R9, décision du 15 octobre 2026 : changer les heures vaut à partir d
 })
 
 describe('R4, R9 : une première échéance en retard n’est pas le jour où les heures changent', () => {
-  it('graine 5700000999 : chaque semaine à 6, 12, 18 et 23 h, journée du 5 avril entamée puis en retard ; le 6, une minute plus tard : 12, 18 et 23 h du 5 restent en retard', () => {
+  it('chaque semaine à 6, 12, 18 et 23 h, journée du 5 avril entamée puis en retard ; le 6, une minute plus tard : 12, 18 et 23 h du 5 restent en retard', () => {
+    let input: TreatmentViewInput = {
+      settings: [setting('s1', '2026-03-29', WEEK, FOUR)],
+      lines: [],
+      today: '2026-03-29',
+    }
+    for (const time of FOUR) input = given(input, '2026-03-29', time)
+    input = on(given(on(input, '2026-04-05'), '2026-04-05', '06:00'), '2026-04-06')
+    const late = ['2026-04-05 12:00', '2026-04-05 18:00', '2026-04-05 23:00']
+    expect(readings(input).moteur.moment).toEqual(late)
+    const after = minuteLater(input)
+    expect(readings(after).moteur.moment).toEqual(late)
+    expect(readings(after).reference.moment).toEqual(late)
+    expect(pastSlots(after, '2026-03-29')).toEqual(pastSlots(input, '2026-03-29'))
+  })
+
+  it('graine 5700000999 : la dose du 11 avril, sans heure, avancée au 5 et donnée ; le 3, 6, 12, 18 et 23 h : le 5 ne porte qu’une dose, couverte (décision du 15 octobre 2026) ; le 6, une minute plus tard : rien ne change', () => {
     const input: TreatmentViewInput = {
       settings: [
         setting('s1', '2026-03-24', WEEK),
@@ -276,11 +297,11 @@ describe('R4, R9 : une première échéance en retard n’est pas le jour où le
       ],
       today: '2026-04-06',
     }
-    const late = ['2026-04-05 12:00', '2026-04-05 18:00', '2026-04-05 23:00']
-    expect(readings(input).moteur.moment).toEqual(late)
+    expect(pastSlots(input, '2026-04-05')).toEqual(['2026-04-05 23:00 covered'])
+    expect(readings(input).moteur.moment).toEqual(['2026-04-18 12:00'])
     const after = minuteLater(input)
-    expect(readings(after).moteur.moment).toEqual(late)
-    expect(readings(after).reference.moment).toEqual(late)
+    expect(readings(after).moteur.moment).toEqual(['2026-04-18 12:01'])
+    expect(readings(after).reference.moment).toEqual(['2026-04-18 12:01'])
     expect(pastSlots(after, '2026-03-24')).toEqual(pastSlots(input, '2026-03-24'))
   })
 })

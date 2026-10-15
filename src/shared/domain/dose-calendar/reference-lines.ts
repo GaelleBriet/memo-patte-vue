@@ -73,6 +73,22 @@ function translatedDaysOf(
   return days
 }
 
+// R9.2 : une journée à venir entamée sous d'autres heures que celles du réglage qui la lit.
+export function startedDaysOf(
+  episode: readonly ReferenceSetting[],
+  allLines: readonly ReferenceLine[],
+  at: Pick<InForce, 'settingAt'>,
+): Set<string> {
+  const days = new Set<string>()
+  for (const note of allLines.filter(isNote)) {
+    const own = episode.findIndex(({ id }) => id === note.settingId)
+    const reading = at.settingAt(note.dueOn)
+    if (own < 0 || reading === undefined || own >= episode.indexOf(reading)) continue
+    if (!sameHours(episode[own]!, reading)) days.add(note.dueOn)
+  }
+  return days
+}
+
 // TR-25, R11 : par échéance et famille, la ligne la plus récente d'un épisode, quel que soit son
 // réglage ; un jour traduit, une prise visant d'autres heures vise une autre échéance (R4).
 export function episodeLinesOf(
@@ -91,7 +107,8 @@ export function episodeLinesOf(
     own.filter((line) => !isNote(line)),
     keyIn(new Set()),
   )
-  return latestBy(own, keyIn(translatedDaysOf(episode, live, moves, at)))
+  const started = startedDaysOf(episode, own, at)
+  return latestBy(own, keyIn(new Set([...translatedDaysOf(episode, live, moves, at), ...started])))
 }
 
 // R7 : une ligne de report par journée, sans les reports revenus à leur date.

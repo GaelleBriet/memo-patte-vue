@@ -359,7 +359,7 @@ describe('R9 : « Prochaine dose » choisie', () => {
 })
 
 describe('R9, R12 : la date proposée est celle que la fiche montre ensuite', () => {
-  it('hebdo du jeudi à 20 h, dose du 2 avr. reportée seule au 7 ; le 27 mars, heures 8 h et 20 h : le 2 avr. à 8 h, puis le 7', () => {
+  it('hebdo du jeudi à 20 h, dose du 2 avr. reportée seule au 7 ; le 27 mars, heures 8 h et 20 h : la journée du 2 reste reportée, le 7 à 20 h, puis le 9 (décision du 15 octobre 2026)', () => {
     const thursday = setting('t1', '2026-03-26', WEEK, ['20:00'])
     const input = {
       settings: [thursday],
@@ -369,8 +369,8 @@ describe('R9, R12 : la date proposée est celle que la fiche montre ensuite', ()
       ],
       today: '2026-03-27',
     }
-    expect(planOf(input, request(WEEK, H)).setting.firstDueOn).toBe('2026-04-02')
-    expect(shown(input, request(WEEK, H), 2)).toEqual(['2026-04-02 08:00', '2026-04-07 20:00'])
+    expect(planOf(input, request(WEEK, H)).setting.firstDueOn).toBe('2026-04-07')
+    expect(shown(input, request(WEEK, H), 2)).toEqual(['2026-04-07 20:00', '2026-04-09 08:00'])
   })
 
   it('R6, R10 : hebdo du lundi, tous les 3 jours le 14 (1re dose le 16, donnée le 14 avec décalage puis prise supprimée) ; retour à l’hebdo le 14 : le 16 n’est pas sur la grille du lundi, le décalage est sans effet : le 19, puis le 26', () => {

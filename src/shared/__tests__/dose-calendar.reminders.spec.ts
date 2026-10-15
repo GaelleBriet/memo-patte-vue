@@ -115,7 +115,7 @@ describe('RA-1 à RA-6 : les rappels lus dans la vue', () => {
       ])
     })
 
-    it('jour d’origine : 20 h reportée au 17 puis 8 h ajoutée, la fiche montre 8 h seule le 12 : relance le 15', () => {
+    it('jour d’origine : 20 h reportée au 17 puis 8 h ajoutée, la journée du 12 reste reportée : aucune relance le 12, rappel le 17 à 20 h (décision du 15 octobre 2026)', () => {
       const week = { value: 1, unit: 'week' } as const
       const first = {
         settings: [setting('p1', '2026-10-05', week, ['20:00'])],
@@ -150,11 +150,11 @@ describe('RA-1 à RA-6 : les rappels lus dans la vue', () => {
       })
       if (!('plan' in proposal)) throw new Error('plan attendu')
       const after = settingsApplied(edited, proposal.plan)
-      expect(
-        shown(treatmentView(after).reminders(WINDOW)).filter((each) =>
-          each.startsWith('overdue 2026-10-12'),
-        ),
-      ).toEqual(['overdue 2026-10-12 08:00 → 2026-10-15'])
+      const reminders = shown(treatmentView(after).reminders(WINDOW))
+      expect(reminders.filter((each) => each.includes(' 2026-10-12'))).toEqual([])
+      expect(reminders.filter((each) => each.startsWith('due 2026-10-17'))).toEqual([
+        'due 2026-10-17 20:00 → 2026-10-17',
+      ])
     })
   })
 

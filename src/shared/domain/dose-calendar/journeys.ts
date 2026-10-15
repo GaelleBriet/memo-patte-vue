@@ -63,7 +63,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   const { span, lines, reach, gap } = input
   const { chain } = span
   const days = new Map<Day, Journey>()
-  const translated = new Set(span.hoursChangeOn)
+  const translated = new Set([...span.hoursChangeOn, ...lines.started])
   const claims: Claim[] = []
   const openings = new Set<Day>()
   let grid: Grid = { origin: chain[0]!.firstDueOn, floor: '', since: '' }

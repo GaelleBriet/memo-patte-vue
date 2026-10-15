@@ -882,7 +882,7 @@ describe('#806, Q38 : « Elles n’étaient pas à donner » ne laisse plus aucu
     })
   })
 
-  it('même carnet, « Elles restent à renseigner » : la dose de 6 h du 17 reste la dose du moment, en retard', () => {
+  it('même carnet, 14 h reportée au lieu de 8 h, « Elles restent à renseigner » : la dose de 6 h du 17 reste la dose du moment, en retard', () => {
     const s2 = setting('s2', '2026-03-17', DAY, fourTimes, {
       endsOn: '2026-04-06',
       gridOriginOn: null,
@@ -892,7 +892,12 @@ describe('#806, Q38 : « Elles n’étaient pas à donner » ne laisse plus aucu
       endsOn: '2026-03-25',
       gridOriginOn: null,
     })
-    expect(read([s1, s2, kept], lines, '2026-03-18')).toMatchObject({
+    const at14 = [
+      line('s1', 'postponed', '2026-03-17', '14:00', '2026-04-05'),
+      line('s1', 'shift', '2026-03-17', '14:00', '2026-04-05'),
+      line('s1', 'given', '2026-03-16', '08:00'),
+    ]
+    expect(read([s1, s2, kept], at14, '2026-03-18')).toMatchObject({
       phase: 'overdue',
       current: ['2026-03-17 06:00'],
     })

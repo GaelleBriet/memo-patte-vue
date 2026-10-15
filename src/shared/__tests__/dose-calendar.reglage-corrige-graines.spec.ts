@@ -13,7 +13,7 @@ describe('R6, R9 : heures seules corrigées, une origine écrite par l’app ne 
     return edited(input, { frequency, times: times.map((t) => t.replace(/0$/, '1')), endsOn })
   }
 
-  it('graine 7300001299 : chaque mois ; « Elles restent à renseigner » avec la dose du 6 avr. 20 h avancée au 2 avr. et donnée ; le 25 mars, une minute plus tard : rien ne revient, dose du 6 avr. à 8 h 01', () => {
+  it('graine 7300001299 : chaque mois ; « Elles restent à renseigner » avec la dose du 6 avr. 20 h avancée au 2 avr. et donnée ; le 25 mars, une minute plus tard : rien ne revient, la journée du 6 avr. reste avancée (décision du 15 octobre 2026)', () => {
     const input: TreatmentViewInput = {
       settings: [
         setting('s1', '2026-03-06', MONTH, ['08:00', '20:00']),
@@ -37,12 +37,13 @@ describe('R6, R9 : heures seules corrigées, une origine écrite par l’app ne 
       ],
       today: '2026-03-25',
     }
+    expect(readings(input).moteur.ensuite[0]).toBe('2026-04-21 08:00')
     expect(readings(minuteLater(input))).toEqual(
       both({
         phase: 'upcoming',
-        moment: ['2026-04-06 08:01'],
+        moment: ['2026-04-21 08:01'],
         aRenseigner: [],
-        ensuite: ['2026-04-06 08:01', '2026-04-06 14:01', '2026-04-21 08:01'],
+        ensuite: ['2026-04-21 08:01', '2026-04-21 14:01', '2026-04-21 20:01'],
       }),
     )
   })
