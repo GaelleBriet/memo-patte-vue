@@ -215,9 +215,11 @@ function keptCorrection(
   const { firstDueOn, gridOriginOn, firstDueChosen } = current
   const dates = { firstDueOn, gridOriginOn, firstDueChosen }
   const draft = rewrite(current, fieldsOf(current.startsOn, dates, request))
-  const next = buildView(settingsApplied(input, draft))
-    .slots(today, plusDays(today, NEXT_DAYS))
-    .find(({ state }) => state === 'pending')?.due.dueOn
+  const slots = buildView(settingsApplied(input, draft)).slots(today, plusDays(today, NEXT_DAYS))
+  // Une journée qui garde les heures d'un autre réglage (R4) reste une journée du calendrier, pas
+  // la première dose à donner du réglage corrigé.
+  const own = slots.find(({ state, due }) => state === 'pending' && due.settingId === current.id)
+  const next = (own ?? slots[0])?.due.dueOn
   const first = next ?? later(firstDueOn, today)
   const kept = gridOriginOn !== null && isOnGrid(gridOriginOn, request.frequency, first)
   return kept

@@ -1308,6 +1308,11 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
   Attendus de #848 relus sous cette règle : graine 7500000173, rien en retard, le 18 (arrivée d'un
   report) à 20 h, puis la journée du 25 à 8 h 01 et 20 h 01 (la date choisie reste l'origine) ;
   graine 7500002108, seule la dose du 10 (arrivée d'un report) reste à renseigner, à 20 h.
+  « Elles n'étaient pas à donner » repart de la première dose encore à donner du réglage corrigé :
+  une journée qui garde les heures d'un autre réglage n'en est pas une (sinon la grille repartirait
+  d'un jour d'arrivée) ; hebdomadaire du vendredi, doses du 17 avril reportées au 21 (12 h donnée),
+  le 18 heures changées, « Elles n'étaient pas à donner » : le 21 garde 18 h et 23 h, puis 24 avril
+  et 1er mai.
 
 ## 11. Questions ouvertes
 
