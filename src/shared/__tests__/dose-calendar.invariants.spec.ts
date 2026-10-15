@@ -72,7 +72,7 @@ const campaign = campaignOf(process.env)
 
 describe('campagne d’invariants du moteur v2', () => {
   it(
-    'les invariants tiennent à chaque geste',
+    'les neuf invariants tiennent à chaque geste',
     () => {
       const played = playCampaign(campaign)
       const last = campaign.from + campaign.seeds - 1

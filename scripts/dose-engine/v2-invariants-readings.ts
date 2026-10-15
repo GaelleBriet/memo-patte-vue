@@ -43,34 +43,6 @@ export function posology(input: TreatmentViewInput): Broken | null {
   return compare('posologie sans effet', read(input), read(settingsApplied(input, result.plan)))
 }
 
-const minuteLater = (time: string) => {
-  const [hour, minute] = time.split(':').map(Number)
-  return `${String(hour).padStart(2, '0')}:${String(minute! + 1).padStart(2, '0')}`
-}
-
-/**
- * 3 bis. R9 : heures seules changées à la date proposée sur un réglage sans prise, les journées en
- * retard et à renseigner ne bougent pas, date choisie ou proposée comprise (#848).
- */
-export function hoursOnly(input: TreatmentViewInput): Broken | null {
-  const view = treatmentView(input)
-  const current = view.currentSetting
-  if (current === null || view.phase === 'stopped' || view.phase === 'ended') return null
-  // R10 : le réglage ouvert aujourd'hui se remplace, sans transmettre sa date choisie (#849).
-  if (current.startsOn === input.today || current.times.length === 0) return null
-  if (current.times.some((time) => time.endsWith(':59'))) return null
-  const { frequency, endsOn } = current
-  const result = newSettings(input, { frequency, times: current.times.map(minuteLater), endsOn })
-  // Un réglage avec prises en ouvre un autre : l'arrivée d'un report peut encore sortir (#851).
-  if (!('plan' in result) || result.plan.action !== 'rewrite') return null
-  const pastDays = (carnet: TreatmentViewInput) => {
-    const after = treatmentView(carnet)
-    const late = after.currentDoses.filter(({ dueOn }) => dueOn < carnet.today)
-    return [...new Set([...late, ...after.unloggedDoses].map(({ dueOn }) => dueOn))].sort()
-  }
-  return compare('heures seules', pastDays(input), pastDays(settingsApplied(input, result.plan)))
-}
-
 /** 4. Le temps ne change que les étiquettes : l'union des échéances sans prise jusqu'à un horizon fixe. */
 export function time(input: TreatmentViewInput, random: Random): Broken | null {
   const until = plusDays(input.today, 60)
