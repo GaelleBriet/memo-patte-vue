@@ -142,3 +142,25 @@ export function coverageOf(
     return covered
   }
 }
+
+export type ReportMove = { beaten: boolean; moved: Hour[]; bringing: Hour[] }
+
+// R7, R9 : ce qu'un report retire de sa journée d'origine et ce qu'il apporte ; `then` : les heures
+// d'une arrivée d'avant le réglage qui lit l'origine, que le report garde.
+export function reportMove(
+  hours: readonly Hour[],
+  covered: ReadonlySet<Hour>,
+  isNoted: (hour: Hour) => boolean,
+  dueTime: Hour,
+  then: readonly Hour[] | null,
+): ReportMove {
+  const isAfter = (hour: Hour) => (hour ?? '') >= (dueTime ?? '')
+  const free = hours.filter((hour) => !covered.has(hour))
+  const following = free.filter(isAfter)
+  if (then === null) return { beaten: covered.has(dueTime), moved: following, bringing: following }
+  const bringing = then.filter((hour) => isAfter(hour) && !isNoted(hour))
+  const wholeDay = hours.length > 0 && free.length === 0
+  const moved =
+    following.length > 0 || bringing.length === 0 ? following : free.slice(-bringing.length)
+  return { beaten: wholeDay || isNoted(dueTime), moved, bringing }
+}

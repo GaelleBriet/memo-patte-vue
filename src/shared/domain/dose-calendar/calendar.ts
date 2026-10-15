@@ -149,7 +149,8 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
       report.settingId === from.id
         ? null
         : hoursOf(arrival.times)
-    if (then === null ? covered.has(dueTime) : noted.has(keyOf(dueOn, dueTime))) {
+    const whole = hours.length > 0 && hours.every((hour) => covered.has(hour))
+    if (then === null ? covered.has(dueTime) : whole || noted.has(keyOf(dueOn, dueTime))) {
       effects.set(report.id, { kind: 'idle', reason: 'beaten' })
       continue
     }

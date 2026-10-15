@@ -324,6 +324,45 @@ describe('R7, R9 : une dose avancée dont l’arrivée est passée garde les heu
   }
 })
 
+describe('R4, R7, R9 : une dose avancée dont la journée d’origine est toute couverte n’apporte rien', () => {
+  it('graine 5700001922 : la dose du 18 juin avancée au 30 mars, la journée du 18 juin déjà notée ; le 31 mars, une minute plus tard : rien en retard le 30', () => {
+    const quarter = { value: 3, unit: 'month' as const }
+    const input: TreatmentViewInput = {
+      settings: [
+        setting('s1', '2026-03-13', quarter, ['20:00']),
+        setting('s2', '2026-03-30', quarter, ['20:00'], {
+          startsOn: '2026-03-21',
+          gridOriginOn: null,
+          firstDueChosen: false,
+        }),
+        setting('s3', '2026-06-18', quarter, [], {
+          startsOn: '2026-03-21',
+          gridOriginOn: null,
+          firstDueChosen: false,
+        }),
+        setting('s4', '2026-06-18', THREE_DAYS, ['08:00', '20:00'], {
+          startsOn: '2026-03-27',
+          firstDueChosen: false,
+        }),
+      ],
+      lines: [
+        line('s1', 'shift', '2026-03-13', '20:00', '2026-03-18'),
+        line('s1', 'postponed', '2026-06-18', '20:00', '2026-03-30'),
+        line('s2', 'postponed', '2026-06-30', '20:00', '2026-09-13'),
+        { ...line('s1', 'given', '2026-03-13', '20:00'), ...givenOn('2026-03-21') },
+        { ...line('s3', 'given', '2026-06-18'), ...givenOn('2026-03-27') },
+        line('s3', 'extra', '2026-03-27'),
+      ],
+      today: '2026-03-31',
+    }
+    const after = minuteLater(input)
+    expect(pastSlots(after, '2026-03-13')).toEqual(pastSlots(input, '2026-03-13'))
+    const { moteur, reference } = readings(after)
+    expect(moteur.phase).toBe('upcoming')
+    expect(reference).toEqual(moteur)
+  })
+})
+
 describe('R10, Q38 : « Elles n’étaient pas à donner » corrige le réglage, ses journées passées comprises', () => {
   it('graine 7300002566 : tous les 2 jours à 6, 12, 18 et 23 h, la dose du 18 avancée au 17 ; le 18, 8 h et 20 h : les doses du 17 sortent, prochaine dose le 20', () => {
     const input: TreatmentViewInput = {

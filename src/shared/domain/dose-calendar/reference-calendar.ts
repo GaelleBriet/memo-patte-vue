@@ -7,12 +7,14 @@ import {
   plusDays,
   sameFrequency,
   sameHours,
+  type Hour,
 } from './reference-grid'
 import {
   coverageOf,
   coverOrphans,
   lateDaysOf,
   handedOf,
+  reportMove,
   leftDays,
   stopDayOf,
   type Claim,
@@ -252,16 +254,11 @@ export function calendarOf(
         ? null
         : hoursOf(arrival)
     // R11 : un report battu par une prise de la même échéance est sans effet.
-    if (then === null ? covered.has(dueTime) : noted.has(keyOf(dueOn, dueTime))) continue
+    const isNoted = (hour: Hour) => noted.has(keyOf(dueOn, hour))
+    const { beaten, moved, bringing } = reportMove(hours, covered, isNoted, dueTime, then)
+    if (beaten) continue
     if (targetOn! > dueOn) fallen.add(dueOn)
-    const isAfter = (hour: string | null) => (hour ?? '') >= (dueTime ?? '')
-    const free = hours.filter((hour) => !covered.has(hour))
-    const sent = then?.filter((hour) => isAfter(hour) && !noted.has(keyOf(dueOn, hour))) ?? null
-    let moved = free.filter(isAfter)
-    if (sent !== null && moved.length === 0)
-      moved = sent.length === 0 ? [] : free.slice(-sent.length)
     if (origin !== undefined) origin.hours = origin.hours.filter((hour) => !moved.includes(hour))
-    const bringing = sent ?? moved
     if (arrival === undefined || bringing.length === 0) continue
     // R7 : heures changées, le jour d'arrivée prend autant de dernières heures que de doses reportées.
     const kept = then !== null || sameHours(arrival, from)
