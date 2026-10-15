@@ -216,10 +216,14 @@ function keptCorrection(
   const dates = { firstDueOn, gridOriginOn, firstDueChosen }
   const draft = rewrite(current, fieldsOf(current.startsOn, dates, request))
   const slots = buildView(settingsApplied(input, draft)).slots(today, plusDays(today, NEXT_DAYS))
-  // Une journée qui garde les heures d'un autre réglage (R4) reste une journée du calendrier, pas
-  // la première dose à donner du réglage corrigé.
-  const own = slots.find(({ state, due }) => state === 'pending' && due.settingId === current.id)
-  const next = (own ?? slots[0])?.due.dueOn
+  // R6 : un jour d'arrivée n'est pas une journée de la grille, la grille n'en repart pas.
+  const arrivals = new Set(
+    input.lines.flatMap(({ status, targetOn }) =>
+      status === 'postponed' && targetOn ? [targetOn] : [],
+    ),
+  )
+  const due = slots.find(({ state, due }) => state === 'pending' && !arrivals.has(due.dueOn))
+  const next = (due ?? slots[0])?.due.dueOn
   const first = next ?? later(firstDueOn, today)
   const kept = gridOriginOn !== null && isOnGrid(gridOriginOn, request.frequency, first)
   return kept
