@@ -82,9 +82,9 @@ function readings(input: TreatmentViewInput) {
   }
 }
 
-function expectBoth(input: TreatmentViewInput, expected: ReturnType<typeof readings>['moteur']) {
-  expect(readings(input)).toEqual({ moteur: expected, reference: expected })
-}
+type Reading = ReturnType<typeof readings>['moteur']
+
+const both = (expected: Reading) => ({ moteur: expected, reference: expected })
 
 describe('TR-28, R9 : heures seules corrigées, la première journée du réglage, arrivée d’un report décalé, reste', () => {
   // Milo, tous les 2 jours à 20 h dès le 18 mars ; le 19, « Prochaine dose » le 29 ; le 27, la dose du
@@ -104,12 +104,14 @@ describe('TR-28, R9 : heures seules corrigées, la première journée du réglag
 
   it('avant le changement : prochaine dose le 7 avril à 20 h', () => {
     const { input } = milo()
-    expectBoth(on(input, '2026-03-31'), {
-      phase: 'upcoming',
-      moment: ['2026-04-07 20:00'],
-      aRenseigner: [],
-      ensuite: ['2026-04-07 20:00', '2026-04-09 20:00', '2026-04-11 20:00'],
-    })
+    expect(readings(on(input, '2026-03-31'))).toEqual(
+      both({
+        phase: 'upcoming',
+        moment: ['2026-04-07 20:00'],
+        aRenseigner: [],
+        ensuite: ['2026-04-07 20:00', '2026-04-09 20:00', '2026-04-11 20:00'],
+      }),
+    )
   })
 
   it.each([
@@ -122,7 +124,9 @@ describe('TR-28, R9 : heures seules corrigées, la première journée du réglag
   ])('le 31 mars, %s : la dose du 7 avril garde son rappel', (_, times, ensuite) => {
     const { input, every } = milo()
     const after = edited(on(input, '2026-03-31'), every(times))
-    expectBoth(after, { phase: 'upcoming', moment: [ensuite[0]!], aRenseigner: [], ensuite })
+    expect(readings(after)).toEqual(
+      both({ phase: 'upcoming', moment: [ensuite[0]!], aRenseigner: [], ensuite }),
+    )
   })
 
   it('chaque jour à 20 h dès le 9 mars ; le 10, sans heure, « Prochaine dose » le 22, reportée le 15 au 1er avril avec décalage, puis 6, 12, 18 et 23 h ; le 18, sans heure : prochaine dose le 1er avril', () => {
@@ -136,12 +140,14 @@ describe('TR-28, R9 : heures seules corrigées, la première journée du réglag
     input = edited(on(input, '2026-03-10'), { ...daily([]), firstDueOn: '2026-03-22' })
     input = moved(on(input, '2026-03-15'), '2026-03-22', null, '2026-04-01')
     input = edited(input, daily(['06:00', '12:00', '18:00', '23:00']))
-    expectBoth(edited(on(input, '2026-03-18'), daily([])), {
-      phase: 'upcoming',
-      moment: ['2026-04-01'],
-      aRenseigner: [],
-      ensuite: ['2026-04-01', '2026-04-02', '2026-04-03'],
-    })
+    expect(readings(edited(on(input, '2026-03-18'), daily([])))).toEqual(
+      both({
+        phase: 'upcoming',
+        moment: ['2026-04-01'],
+        aRenseigner: [],
+        ensuite: ['2026-04-01', '2026-04-02', '2026-04-03'],
+      }),
+    )
   })
 })
 
@@ -158,12 +164,14 @@ describe('R9 : heures seules corrigées, une dose passée à renseigner le reste
     input = moved(input, '2026-04-05', '20:00', '2026-04-13')
     input = edited(input, every(['20:00']))
     const after = edited(on(input, '2026-04-05'), every(['20:01']))
-    expectBoth(after, {
-      phase: 'upcoming',
-      moment: ['2026-04-13 20:01'],
-      aRenseigner: ['2026-03-30 20:00'],
-      ensuite: ['2026-04-13 20:01', '2026-04-15 20:01', '2026-04-17 20:01'],
-    })
+    expect(readings(after)).toEqual(
+      both({
+        phase: 'upcoming',
+        moment: ['2026-04-13 20:01'],
+        aRenseigner: ['2026-03-30 20:00'],
+        ensuite: ['2026-04-13 20:01', '2026-04-15 20:01', '2026-04-17 20:01'],
+      }),
+    )
   })
 })
 
