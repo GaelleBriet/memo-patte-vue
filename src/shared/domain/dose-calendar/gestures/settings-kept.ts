@@ -1,8 +1,26 @@
 import { isOnGrid, later, plusDays } from '../grid'
-import type { Due, Setting, SettingsPlan, TreatmentViewInput } from '../types'
+import type { Day, Due, Setting, SettingsPlan, TreatmentViewInput } from '../types'
 import { buildView } from '../view'
 import { settingsApplied } from './changes'
 import { NEXT_DAYS, type Dates, type SettingsRequest } from './settings-proposal'
+
+// R7 : un report parti d'une journée du réglage corrigé, qui sortirait du calendrier si le réglage
+// partait après son arrivée, laisse ce jour-là comme première échéance.
+function firstArrival(input: TreatmentViewInput, current: Setting, before: Day): Day | undefined {
+  return buildView(input)
+    .history.filter(
+      ({ line, effect }) =>
+        line.status === 'postponed' &&
+        effect.kind === 'moves' &&
+        line.dueOn >= current.startsOn &&
+        line.dueOn < before &&
+        line.targetOn !== null &&
+        line.targetOn > line.dueOn &&
+        line.targetOn < before,
+    )
+    .map(({ line }) => line.targetOn!)
+    .sort()[0]
+}
 
 /**
  * TR-28, Q38 : corrigé à fréquence gardée, le réglage garde sa grille, et sa date choisie avec elle ;
@@ -38,7 +56,8 @@ export function keptCorrection(
     ({ state, due }) => !offGrid(due) && (state === 'pending' || due.settingId !== current.id),
   )
   const next = (first ?? slots[0])?.due.dueOn
-  const start = next ?? later(firstDueOn, today)
+  const due = next ?? later(firstDueOn, today)
+  const start = firstArrival(input, current, due) ?? due
   const kept = gridOriginOn !== null && isOnGrid(gridOriginOn, request.frequency, start)
   return kept
     ? { firstDueOn: start, gridOriginOn, firstDueChosen }

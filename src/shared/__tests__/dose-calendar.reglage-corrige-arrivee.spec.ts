@@ -1,8 +1,14 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { treatmentView, type Line, type TreatmentViewInput } from '../domain/dose-calendar'
-import { edited, readings } from './dose-calendar.reglage-corrige.aides'
+import {
+  noteDose,
+  treatmentView,
+  type Line,
+  type LineChange,
+  type TreatmentViewInput,
+} from '../domain/dose-calendar'
+import { edited, on, readings } from './dose-calendar.reglage-corrige.aides'
 import { TWO_DAYS, line, setting } from './dose-calendar.v2.aides'
 
 const FOUR = ['06:00', '12:00', '18:00', '23:00']
@@ -67,6 +73,61 @@ describe('R7, R9.2 : « Elles n’étaient pas à donner » ne saute pas l’arr
       '2026-04-07 23:00',
     ])
     expect(moteur.aRenseigner).toContain('2026-04-01 06:00')
+    expect(reportEffect(after, '2026-04-05')).toBe('moves')
+    expect(moteur).toEqual(reference)
+  })
+
+  // « C'est fait » sur la dose du jour telle que la fiche la montre, sous le réglage de ses heures.
+  function noted(input: TreatmentViewInput, dueOn: string, dueTime: string): TreatmentViewInput {
+    const due = treatmentView(input)
+      .slots(dueOn, dueOn)
+      .find((slot) => slot.due.dueTime === dueTime)!.due
+    const result = noteDose(input, {
+      due,
+      status: 'given',
+      givenOn: input.today,
+      shiftsFollowing: false,
+    })
+    if ('refusal' in result) throw new Error(JSON.stringify(result))
+    const created = result.changes.flatMap((change: LineChange) =>
+      change.action === 'create'
+        ? [{ ...change.line, id: 'l-noted', updatedAt: '2026-02-01T00:00:00.000Z' }]
+        : [],
+    )
+    return { ...input, lines: [...input.lines, ...created] }
+  }
+
+  const eightOh = { frequency: TWO_DAYS, times: ['08:01', '20:01'], endsOn: '2026-05-08' }
+
+  it('graine 7810000235, le lendemain de l’arrivée, 6 h du 7 donnée : le 7 et aujourd’hui gardent leurs doses, le report reste en vigueur', () => {
+    const input = on(noted(seed235(), '2026-04-07', '06:00'), '2026-04-08')
+    expect(readings(input).moteur.moment).toEqual([
+      '2026-04-08 06:00',
+      '2026-04-08 12:00',
+      '2026-04-08 18:00',
+    ])
+    const after = edited(input, eightOh, 'correct')
+    const { moteur, reference } = readings(after)
+    expect(moteur.moment).toEqual(['2026-04-08 06:00', '2026-04-08 12:00', '2026-04-08 18:00'])
+    expect(moteur.aRenseigner).toEqual(
+      expect.arrayContaining(['2026-04-07 12:00', '2026-04-07 18:00', '2026-04-07 23:00']),
+    )
+    expect(reportEffect(after, '2026-04-05')).toBe('moves')
+    expect(moteur).toEqual(reference)
+  })
+
+  it('graine 7810000235, le lendemain de l’arrivée, sans prise le 7 : les doses du 7 restent à renseigner', () => {
+    const after = edited(on(seed235(), '2026-04-08'), eightOh, 'correct')
+    const { moteur, reference } = readings(after)
+    expect(moteur.moment).toEqual(['2026-04-08 06:00', '2026-04-08 12:00', '2026-04-08 18:00'])
+    expect(moteur.aRenseigner).toEqual(
+      expect.arrayContaining([
+        '2026-04-07 06:00',
+        '2026-04-07 12:00',
+        '2026-04-07 18:00',
+        '2026-04-07 23:00',
+      ]),
+    )
     expect(reportEffect(after, '2026-04-05')).toBe('moves')
     expect(moteur).toEqual(reference)
   })
