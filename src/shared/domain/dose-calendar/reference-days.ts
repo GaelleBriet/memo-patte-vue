@@ -211,11 +211,7 @@ export function coverages({
   }
 }
 
-/**
- * #867 : deux appareils ; l'un reporte une dose, l'autre réécrit le réglage du report sans la journée de
- * cette dose (« Elles n'étaient pas à donner »). Réécriture plus récente : le report est sans effet ;
- * report plus récent : sa journée de départ ne porte que l'heure écrite dans le report.
- */
+/** #867 : réglage réécrit sans la journée de départ du report : le plus récent des deux l'emporte. */
 export function departureAfterRewrite(
   report: ReferenceLine,
   settingOf: (id: string) => ReferenceSetting,

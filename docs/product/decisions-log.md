@@ -2812,14 +2812,17 @@ transmise par la session d'analyse du moteur, mandatée par Gaelle pour les lect
   Milo, tous les 3 jours à 20 h, puis toutes les 2 semaines à 20 h dès le 3 avril ; le 7, A reporte
   la dose du 3 au 10, B passe à 6 h et répond « Elles n'étaient pas à donner » : rien le 10 et le 17
   à 6 h, ou le 10 à 20 h puis le 17 à 6 h (graine 8010002409). — Alternatives écartées : la réponse
-  qui gagne toujours (lecture d'avant, le report sans effet même écrit après) et le report qui gagne
-  toujours.
+  qui gagne toujours et le report qui gagne toujours.
 - Décisions de Gaelle du 16 octobre 2026 sur les lectures de #867 (même session) : (1) la date
   d'écriture du réglage est une colonne à part de la période, écrite seulement quand ses réglages
-  changent (migration v14 de la base et du miroir Supabase, livrée à part) ; d'ici là, le report
-  reste sans effet. — Alternative écartée : la dernière modification de la période, que l'arrêt et
-  son « Annuler » font bouger (Milo arrêté puis « Annuler » le 8 perdrait sa dose reportée au 10).
-  (2) Le report le plus récent n'emporte que l'heure écrite dans sa ligne, limite connue de la
-  réécriture sur place entre deux appareils. — Alternative écartée : les heures suivantes du
-  réglage corrigé, qui donnent une dose de trop (8 h, 9 h et 21 h). (3) La règle vaut pour toute
-  réécriture du réglage du report qui ôte sa journée de départ, « Prochaine dose » comprise.
+  changent (migration v14 de la base et du miroir Supabase, livrée à part). — Alternative écartée :
+  la dernière modification de la période, que l'arrêt et son « Annuler » font bouger (Milo arrêté
+  puis « Annuler » le 8 perdrait sa dose reportée au 10). (2) Le report le plus récent n'emporte
+  que l'heure écrite dans sa ligne, limite connue de la réécriture sur place entre deux appareils.
+  (3) La règle vaut pour toute réécriture du réglage du report qui ôte sa journée de départ,
+  « Prochaine dose » comprise.
+- Ajouts de l'implémenteur, qui ne sont pas des décisions de Gaelle : pour (2), alternative écartée,
+  les heures suivantes du réglage corrigé, qui donnent une dose de trop (8 h, 9 h et 21 h pour un
+  passage à 9 h et 21 h). Description de l'état du code : d'ici la colonne v14, la lecture d'avant
+  reste, et selon le cas le report garde ou perd son effet ; la règle (3) n'est appliquée qu'à une
+  journée de départ située avant la nouvelle première échéance, limite connue (#882).
