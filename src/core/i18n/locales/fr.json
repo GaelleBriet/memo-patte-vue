@@ -684,6 +684,7 @@
       "shiftOptions": "Options pour le décalage des doses suivantes du {date}",
       "refusal": {
         "shiftLaterDose": "Une dose plus lointaine est déjà notée.",
+        "removeMoveLaterLine": "Une dose plus lointaine est déjà reportée. Supprime d’abord son report.",
         "shiftMoveOffRhythm": "Supprime d’abord le report du {date}.",
         "shiftMovePastNext": "Change d’abord la date du report."
       }
