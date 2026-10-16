@@ -108,7 +108,11 @@ export function coverageOf(
   settingOf: (id: string) => ReferenceSetting,
   matched: Set<ReferenceLine>,
 ) {
-  return (day: string, journey: Journey, dayHours?: readonly Hour[]): Set<Hour> => {
+  return (
+    day: string,
+    journey: Journey,
+    placeable?: (note: ReferenceLine) => boolean,
+  ): Set<Hour> => {
     const ofDay = notes.filter((note) => note.dueOn === day)
     const underOldHours = (note: ReferenceLine) =>
       !borrowed.includes(note) &&
@@ -124,7 +128,7 @@ export function coverageOf(
       placed.add(note)
     }
     const waiting = ofDay
-      .filter((note) => !placed.has(note) && !dayHours?.includes(note.dueTime))
+      .filter((note) => !placed.has(note) && (placeable?.(note) ?? true))
       .sort((a, b) => (a.dueTime ?? '').localeCompare(b.dueTime ?? ''))
     for (const note of waiting) {
       if (note.status !== 'given' && !underOldHours(note)) continue
@@ -141,7 +145,7 @@ export function coverageOf(
       ofDay.some((note) => borrowed.includes(note) && note.status === 'given') ||
       ofDay.some(
         (note) =>
-          dayHours === undefined &&
+          placeable === undefined &&
           underOldHours(note) &&
           hoursOf(settingOf(note.settingId)).every((hour) =>
             ofDay.some((other) => other.settingId === note.settingId && other.dueTime === hour),
@@ -156,3 +160,9 @@ export function coverageOf(
     return covered
   }
 }
+
+// R4, R7 : aux heures d'un report, seules les prises des réglages écrits avant le sien se déplacent.
+export const writtenBefore =
+  (written: ReferenceSetting, settingOf: (id: string) => ReferenceSetting) =>
+  (note: ReferenceLine) =>
+    settingOf(note.settingId).createdAt <= written.createdAt

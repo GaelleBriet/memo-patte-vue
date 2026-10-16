@@ -12,7 +12,7 @@ export type ReportDeparture = {
   hoursChangeThatDay: boolean
   /** Le réglage en vigueur ce jour-là, celui dont les heures viennent de changer. */
   inForce: ReferenceSetting | undefined
-  /** Ce que couvrent, aux heures du report, ses prises et celles d'une heure absente de la journée. */
+  /** Aux heures du report : les prises à ces heures, et celles des réglages écrits avant le sien. */
   coveredAtItsHours: ReadonlySet<Hour>
 }
 

@@ -272,14 +272,11 @@ describe('Le jour où les heures changent, un report ne se juge sur ses heures q
     expect(reportEffects(missedOnTheTenth())).toEqual(['moves'])
   })
 
-  it.fails(
-    'graine 6100002653 : le 10, 20 h seule : l’oubli de 8 h n’a plus son heure, le 15 garde pourtant sa dose (#863, pas encore tenu)',
-    () => {
-      const after = sameHoursAgain(missedOnTheTenth(), ['20:00'])
-      expect(states(after, '2026-04-11', '2026-04-15')).toEqual(['2026-04-15 20:00 given'])
-      expect(reportEffects(after)).toEqual(['moves'])
-    },
-  )
+  it('graine 6100002653 : le 10, 20 h seule : l’oubli de 8 h, écrit après le report, ne se pose pas sur son heure ; le 15 garde sa dose (#863)', () => {
+    const after = sameHoursAgain(missedOnTheTenth(), ['20:00'])
+    expect(states(after, '2026-04-11', '2026-04-15')).toEqual(['2026-04-15 20:00 given'])
+    expect(reportEffects(after)).toEqual(['moves'])
+  })
 
   it('graine 6100001162 : le jour d’arrivée d’un report garde ses heures ; le report de 18 h écrit ensuite, aux mêmes heures, n’emporte que 18 h', () => {
     const weekly = { endsOn: '2026-04-22' }

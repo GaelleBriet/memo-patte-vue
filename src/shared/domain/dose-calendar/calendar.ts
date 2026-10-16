@@ -63,7 +63,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     day: Day,
     journey: Journey,
     read = matched,
-    dayHours?: readonly Hour[],
+    placeable?: (note: Line) => boolean,
   ): Map<Hour, Line> => {
     const ofDay = byDay.get(day) ?? []
     const foreign = (note: Line) =>
@@ -83,7 +83,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     }
     const used = new Set(covered.values())
     const elsewhere = ofDay
-      .filter((note) => !used.has(note) && !dayHours?.includes(note.dueTime))
+      .filter((note) => !used.has(note) && (placeable?.(note) ?? true))
       .sort(byTime)
     for (const note of ofDay) {
       if (foreign(note) || journey.hours.includes(note.dueTime)) read.add(note)
@@ -107,7 +107,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
       ofDay.some(isLent) ||
       ofDay.some(
         (note) =>
-          dayHours === undefined &&
+          placeable === undefined &&
           foreign(note) &&
           hoursOf(settingOf(note.settingId).times).every((hour) =>
             ofDay.some((other) => other.settingId === note.settingId && other.dueTime === hour),
@@ -167,10 +167,11 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     const reread = translated.has(dueOn) && (!sameHours(written, from) || relit)
     const source = reread ? written : from
     const writtenHours = hoursOf(written.times)
-    // R4, R7, #860 : le report garde ses heures, où se posent avant lui les prises d'une heure absente
-    // de sa journée.
+    const writtenBefore = (note: Line) => settingOf(note.settingId).createdAt <= written.createdAt
+    // R4, R7, #860 : le report garde ses heures ; une prise d'un réglage écrit avant le sien, d'une heure
+    // absente, s'y pose avant lui ; une prise des heures écrites après ne compte qu'à son heure.
     const ownNoted = new Set(
-      coveredOn(dueOn, { setting: written, hours: writtenHours }, new Set(), hours).keys(),
+      coveredOn(dueOn, { setting: written, hours: writtenHours }, new Set(), writtenBefore).keys(),
     )
     if (source === from ? covered.has(dueTime) : ownNoted.has(dueTime)) {
       effects.set(report.id, { kind: 'idle', reason: 'beaten' })

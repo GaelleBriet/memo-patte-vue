@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { treatmentView, type Frequency, type TreatmentViewInput } from '../domain/dose-calendar'
 import { edited, given, moved, on, readings, removed } from './dose-calendar.reglage-corrige.aides'
-import { DAY, H, MONTH, TWO_DAYS, line, setting } from './dose-calendar.v2.aides'
+import { DAY, H, MONTH, TWO_DAYS, WEEK, line, setting } from './dose-calendar.v2.aides'
 
 const THREE = ['08:00', '14:00', '20:00']
 
@@ -175,6 +175,46 @@ describe('Une prise sortie du calendrier couvre la première échéance libre qu
         '2026-04-16 20:00 covered',
         '2026-04-19 20:00 covered',
       ])
+    },
+  )
+})
+
+describe('Un jour d’arrivée qui mêle des heures et une dose sans heure (décision du 16 octobre 2026)', () => {
+  it.fails(
+    'graine 6300001993 : la dose du 14 reportée au 22 y porte une dose sans heure, 6 h, 12 h et 18 h ; le 14, une heure ajoutée : le 22 les garde (#864, pas encore tenu)',
+    () => {
+      const FOUR = ['06:00', '12:00', '18:00', '23:00']
+      const input: TreatmentViewInput = {
+        settings: [
+          setting('s1', '2026-04-05', WEEK, FOUR),
+          setting('s2', '2026-04-10', WEEK, FOUR, {
+            startsOn: '2026-04-07',
+            gridOriginOn: null,
+            firstDueChosen: false,
+          }),
+          setting('s3', '2026-04-12', DAY, [], { startsOn: '2026-04-11' }),
+          setting('s4', '2026-04-14', DAY, [], { gridOriginOn: null, firstDueChosen: false }),
+        ],
+        lines: [
+          line('s1', 'postponed', '2026-04-05', '06:00', '2026-04-10'),
+          { ...line('s2', 'given', '2026-04-10', '06:00'), givenOn: '2026-04-09' },
+          line('s2', 'postponed', '2026-04-11', '06:00', '2026-04-14'),
+          line('s3', 'given', '2026-04-14', '23:00'),
+          { ...line('s2', 'given', '2026-04-10', '12:00'), givenOn: '2026-04-12' },
+          line('s4', 'postponed', '2026-04-14', null, '2026-04-22'),
+          line('s4', 'shift', '2026-04-14', null, '2026-04-22'),
+        ],
+        today: '2026-04-14',
+      }
+      const reported = [
+        '2026-04-22 pending',
+        '2026-04-22 06:00 pending',
+        '2026-04-22 12:00 pending',
+        '2026-04-22 18:00 pending',
+      ]
+      expect(states(input, '2026-04-22', '2026-04-22')).toEqual(reported)
+      const after = sameHoursAgain(input, ['06:00'])
+      expect(states(after, '2026-04-22', '2026-04-22')).toEqual(reported)
     },
   )
 })

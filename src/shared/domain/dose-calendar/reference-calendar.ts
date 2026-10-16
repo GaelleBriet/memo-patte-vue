@@ -11,6 +11,7 @@ import {
   coverageOf,
   coverOrphans,
   lateDaysOf,
+  writtenBefore,
   handedOf,
   leftDays,
   stopDayOf,
@@ -252,6 +253,7 @@ export function calendarOf(
     if (chosenOn !== undefined && dueOn === chosenOn && before) continue
     if (origin === undefined && chosenOn !== undefined && !carries) continue
     const written = settingOf(report!.settingId)
+    const itsDay = { setting: written, hours: hoursOf(written) }
     const outcome = reportOutcome({
       report: report!,
       written,
@@ -259,13 +261,11 @@ export function calendarOf(
       covered,
       hoursChangeThatDay: translated.has(dueOn),
       inForce: settingAt(dueOn),
-      coveredAtItsHours: coveredAside(dueOn, { setting: written, hours: hoursOf(written) }, hours),
+      coveredAtItsHours: coveredAside(dueOn, itsDay, writtenBefore(written, settingOf)),
     })
     if (outcome.beaten) continue
     if (targetOn! > dueOn) fallen.add(dueOn)
-    if (origin !== undefined) {
-      origin.hours = origin.hours.filter((hour) => !outcome.lost.includes(hour))
-    }
+    if (origin) origin.hours = origin.hours.filter((hour) => !outcome.lost.includes(hour))
     const stopDay = stoppedAt(targetOn!)
     const arrival = settingAt(targetOn!) ?? stopDay
     const into = stopDay === undefined ? days : left
