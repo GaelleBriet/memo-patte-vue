@@ -204,10 +204,8 @@ export function calendarOf(
     closedFrom,
   ).forEach((journey, day) => left.set(day, journeyOn(day, journey.setting)))
 
-  const { matched, coveredOn, coveredAside, settle } = coverages(notes, borrowed, reports, {
-    translated,
-    settingOf,
-  })
+  const coverage = coverages({ notes, borrowed, reports, translated, settingOf })
+  const { matched, coveredOn, coveredAside, settle, notedLate } = coverage
 
   // R7 : un report emporte son heure et les suivantes encore sans prise ; les reports qui arrivent sur
   // sa journée passent d'abord.
@@ -256,6 +254,7 @@ export function calendarOf(
       inForce: settingAt(dueOn),
       itsHours: itsDay.hours,
       coveredAtItsHours: coveredAside(dueOn, itsDay, writtenBefore(written, settingOf)),
+      notedLate: (hour) => notedLate(dueOn, hour),
     })
     if (outcome.beaten) continue
     if (targetOn! > dueOn) fallen.add(dueOn)

@@ -16,6 +16,8 @@ export type ReportDeparture = {
   itsHours: Hour[]
   /** Aux heures du report : les prises à ces heures, et celles des réglages écrits avant le sien. */
   coveredAtItsHours: ReadonlySet<Hour>
+  /** L'heure n'est notée que par une prise écrite après le report, qui se posera ensuite (R4). */
+  notedLate: (hour: Hour) => boolean
 }
 
 /** Ce qu'emporte un report, sous quelles heures, et ce que perd sa journée de départ. */
@@ -39,6 +41,7 @@ export function reportOutcome(departure: ReportDeparture): ReportOutcome {
     hoursChangeThatDay,
     inForce,
     coveredAtItsHours,
+    notedLate,
     itsHours,
   } = departure
   const fromItsDose = (hour: Hour) => hour === null || hour >= (report.dueTime ?? '')
@@ -54,7 +57,7 @@ export function reportOutcome(departure: ReportDeparture): ReportOutcome {
   if (coveredAtItsHours.has(report.dueTime)) return { beaten: true }
   const carried = itsHours.filter((hour) => fromItsDose(hour) && !coveredAtItsHours.has(hour))
   const waitingBefore = itsHours.filter(
-    (hour) => !fromItsDose(hour) && !coveredAtItsHours.has(hour),
+    (hour) => !fromItsDose(hour) && (!coveredAtItsHours.has(hour) || notedLate(hour)),
   ).length
   const free = day.hours.filter((hour) => !covered.has(hour))
   const lost = free.slice(waitingBefore)

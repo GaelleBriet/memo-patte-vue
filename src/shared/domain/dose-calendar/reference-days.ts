@@ -173,15 +173,19 @@ export const writtenBefore =
     settingOf(note.settingId).createdAt <= written.createdAt
 
 // R4 : le jour où les heures changent, une prise écrite après le report du jour attend qu'il soit lu.
-export function coverages(
-  notes: readonly ReferenceLine[],
-  borrowed: readonly ReferenceLine[],
-  reports: readonly ReferenceLine[],
-  {
-    translated,
-    settingOf,
-  }: { translated: ReadonlySet<string>; settingOf: (id: string) => ReferenceSetting },
-) {
+export function coverages({
+  notes,
+  borrowed,
+  reports,
+  translated,
+  settingOf,
+}: {
+  notes: readonly ReferenceLine[]
+  borrowed: readonly ReferenceLine[]
+  reports: readonly ReferenceLine[]
+  translated: ReadonlySet<string>
+  settingOf: (id: string) => ReferenceSetting
+}) {
   let reportsRead = false
   const late = {
     is: (note: ReferenceLine) => {
@@ -193,8 +197,15 @@ export function coverages(
   const matched = new Set<ReferenceLine>()
   const coverage = (into: Set<ReferenceLine>) =>
     coverageOf([...notes, ...borrowed], borrowed, translated, settingOf, into, late)
+  // L'heure n'est notée que par une prise écrite après le report du jour.
+  const notedLate = (day: string, hour: Hour) => {
+    const atHour = [...notes, ...borrowed].filter((n) => n.dueOn === day && n.dueTime === hour)
+    const top = atHour.find((n) => atHour.every((other) => !isMoreRecent(other, n)))
+    return top !== undefined && late.is(top)
+  }
   return {
     matched,
+    notedLate,
     coveredOn: coverage(matched),
     coveredAside: coverage(new Set()),
     settle: () => (reportsRead = true),

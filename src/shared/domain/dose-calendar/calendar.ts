@@ -56,7 +56,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   )
   const matched = new Set<Line>()
   const held = new Map<Line, string>()
-  const { coveredOn, settle } = dayCoverage({
+  const { coveredOn, settle, isLate } = dayCoverage({
     notes: [...lines.notes, ...borrowed],
     borrowed,
     reports: lines.reports,
@@ -120,9 +120,13 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     const writtenBefore = (note: Line) => settingOf(note.settingId).createdAt <= written.createdAt
     // R4, R7, #860 : le report garde ses heures ; une prise d'un réglage écrit avant le sien, d'une heure
     // absente, s'y pose avant lui ; une prise des heures écrites après ne compte qu'à son heure.
-    const ownNoted = new Set(
-      coveredOn(dueOn, { setting: written, hours: writtenHours }, new Set(), writtenBefore).keys(),
+    const ownCover = coveredOn(
+      dueOn,
+      { setting: written, hours: writtenHours },
+      new Set(),
+      writtenBefore,
     )
+    const ownNoted = new Set(ownCover.keys())
     if (source === from ? covered.has(dueTime) : ownNoted.has(dueTime)) {
       effects.set(report.id, { kind: 'idle', reason: 'beaten' })
       continue
@@ -136,8 +140,9 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
         ? following
         : writtenHours.filter((hour) => after(hour) && !ownNoted.has(hour))
     // R4, R7 : relu aux nouvelles heures, le jour de départ garde autant de doses à donner que le report
-    // en a laissées avant lui, sur les premières heures.
-    const stays = writtenHours.filter((hour) => !after(hour) && !ownNoted.has(hour)).length
+    // en a laissées avant lui, sur les premières heures ; une prise écrite après lui s'y posera ensuite.
+    const notedBefore = (hour: Hour) => ownCover.has(hour) && !isLate(ownCover.get(hour)!)
+    const stays = writtenHours.filter((hour) => !after(hour) && !notedBefore(hour)).length
     const leaving = source === from ? following : free.slice(stays)
     if (origin !== undefined) origin.hours = origin.hours.filter((hour) => !leaving.includes(hour))
     const keys = bringing.map((hour) => keyOf(dueOn, hour))
