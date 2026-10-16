@@ -64,8 +64,11 @@ export function dayCoverage(input: CoverageInput): { coveredOn: DayCoverage; set
         (note) => !used.has(note) && (placeable?.(note) ?? true) && (reportsRead || !isLate(note)),
       )
       .sort(byTime)
+    // R4 : une prise écrite après le report ne cherche la suivante que si le report n'a laissé aucune heure.
+    const kept = (note: Line) =>
+      translates(note) || (foreign(note) && reportsRead && journey.hours.length > 0)
     for (const note of ofDay) {
-      if (translates(note) || journey.hours.includes(note.dueTime)) read.add(note)
+      if (kept(note) || journey.hours.includes(note.dueTime)) read.add(note)
     }
     for (const note of elsewhere) {
       if (note.status !== 'given' && !foreign(note)) continue

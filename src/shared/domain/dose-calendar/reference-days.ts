@@ -159,7 +159,13 @@ export function coverageOf(
           ),
       )
     ofDay
-      .filter((note) => placed.has(note) || journey.hours.includes(note.dueTime) || readAsOld(note))
+      .filter(
+        (note) =>
+          placed.has(note) ||
+          journey.hours.includes(note.dueTime) ||
+          readAsOld(note) ||
+          (underOldHours(note) && late.settled() && journey.hours.length > 0),
+      )
       .forEach((note) => matched.add(note))
     if (whole) journey.hours.forEach((hour) => covered.add(hour))
     return covered

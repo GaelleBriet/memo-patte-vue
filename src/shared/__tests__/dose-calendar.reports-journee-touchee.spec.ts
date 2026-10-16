@@ -346,6 +346,26 @@ describe('Le jour où les heures changent, une prise ou un oubli écrits après 
     expect(readings(after).moteur).toEqual(readings(after).reference)
   })
 
+  it('graine 6500002310 : tous les 3 jours à 6, 12, 18 et 23 h, 6 h du 30 donnée, 12 h reportée au 1er, puis 18 h notée donnée ; « sans heure » le 30 : la journée n’a qu’une dose, couverte, la prise de 18 h en trop est sans effet, le 1er reste à donner', () => {
+    const FOUR = ['06:00', '12:00', '18:00', '23:00']
+    const input: TreatmentViewInput = {
+      settings: [setting('s1', '2026-03-27', { value: 3, unit: 'day' }, FOUR)],
+      lines: [
+        line('s1', 'given', '2026-03-30', '06:00'),
+        line('s1', 'postponed', '2026-03-30', '12:00', '2026-04-01'),
+        line('s1', 'given', '2026-03-30', '18:00'),
+      ],
+      today: '2026-03-30',
+    }
+    const after = sameHoursAgain(input, [])
+    expect(states(after, '2026-03-30', '2026-04-01')).toEqual([
+      '2026-03-30 covered',
+      '2026-04-01 12:00 pending',
+      '2026-04-01 23:00 pending',
+    ])
+    expect(readings(after).moteur).toEqual(readings(after).reference)
+  })
+
   it('graine 6100001162 : le jour d’arrivée d’un report garde ses heures ; le report de 18 h écrit ensuite, aux mêmes heures, n’emporte que 18 h', () => {
     const weekly = { endsOn: '2026-04-22' }
     const FOUR = ['06:00', '12:00', '18:00', '23:00']
