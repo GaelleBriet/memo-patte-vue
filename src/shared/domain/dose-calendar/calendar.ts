@@ -59,7 +59,12 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
 
   // R4 : une prise couvre son échéance quel que soit son réglage, sinon la première échéance libre qui
   // la suit ; une journée de l'ancien réglage toute notée, ou une prise d'avant l'arrêt (R8), couvre tout.
-  const coveredOn = (day: Day, journey: Journey, read = matched): Map<Hour, Line> => {
+  const coveredOn = (
+    day: Day,
+    journey: Journey,
+    read = matched,
+    stay: readonly Hour[] = [],
+  ): Map<Hour, Line> => {
     const ofDay = byDay.get(day) ?? []
     const foreign = (note: Line) =>
       !isBorrowed.has(note) &&
@@ -77,12 +82,14 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
       if (note !== undefined) covered.set(hour, note)
     }
     const used = new Set(covered.values())
-    const elsewhere = ofDay.filter((note) => !used.has(note)).sort(byTime)
+    const elsewhere = ofDay
+      .filter((note) => !used.has(note) && !stay.includes(note.dueTime))
+      .sort(byTime)
     for (const note of ofDay) {
       if (foreign(note) || journey.hours.includes(note.dueTime)) read.add(note)
     }
     for (const note of elsewhere) {
-      if (note.status !== 'given') continue
+      if (note.status !== 'given' && !foreign(note)) continue
       const free = journey.hours.filter((each) => !covered.has(each))
       // R4 : le jour où les heures changent, une prise du jour reste à ce jour, plus tôt s'il le faut,
       // et ne couvre jamais un autre jour.
@@ -159,9 +166,10 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     const reread = translated.has(dueOn) && (!sameHours(written, from) || relit)
     const source = reread ? written : from
     const writtenHours = hoursOf(written.times)
-    // R4, R7, #860 : le report garde ses heures, où les prises du jour se posent avant lui.
+    // R4, R7, #860 : le report garde ses heures, où se posent avant lui les prises d'une heure absente
+    // de sa journée.
     const ownNoted = new Set(
-      coveredOn(dueOn, { setting: written, hours: writtenHours }, new Set()).keys(),
+      coveredOn(dueOn, { setting: written, hours: writtenHours }, new Set(), hours).keys(),
     )
     if (source === from ? covered.has(dueTime) : ownNoted.has(dueTime)) {
       effects.set(report.id, { kind: 'idle', reason: 'beaten' })

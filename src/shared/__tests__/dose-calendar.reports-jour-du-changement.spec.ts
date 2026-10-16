@@ -137,8 +137,8 @@ describe('Le jour où les heures changent, une prise du jour reste à ce jour (l
   })
 })
 
-describe('Un oubli dont l’heure n’existe plus ne couvre rien (R4, lecture à confirmer, §11)', () => {
-  it('chaque jour à 8 h et 20 h, 8 h marquée oubliée le 10 avril, puis 9 h et 21 h dès le 10 : 9 h et 21 h restent à donner', () => {
+describe('Le jour où les heures changent, un oubli du jour reste à ce jour (comme sur main, #863)', () => {
+  it('chaque jour à 8 h et 20 h, 8 h marquée oubliée le 10 avril, puis 9 h et 21 h dès le 10 : l’oubli couvre 9 h, 21 h reste à donner', () => {
     let input: TreatmentViewInput = {
       settings: [setting('s1', '2026-04-08', DAY, H)],
       lines: [],
@@ -147,7 +147,7 @@ describe('Un oubli dont l’heure n’existe plus ne couvre rien (R4, lecture à
     input = given(input, '2026-04-10', '08:00', 'missed')
     const after = sameHoursAgain(input, ['09:00', '21:00'])
     expect(states(after, '2026-04-10', '2026-04-10')).toEqual([
-      '2026-04-10 09:00 pending',
+      '2026-04-10 09:00 covered',
       '2026-04-10 21:00 pending',
     ])
     expect(readings(after).moteur).toEqual(readings(after).reference)

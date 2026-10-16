@@ -108,7 +108,7 @@ export function coverageOf(
   settingOf: (id: string) => ReferenceSetting,
   matched: Set<ReferenceLine>,
 ) {
-  return (day: string, journey: Journey): Set<Hour> => {
+  return (day: string, journey: Journey, stay: readonly Hour[] = []): Set<Hour> => {
     const ofDay = notes.filter((note) => note.dueOn === day)
     const underOldHours = (note: ReferenceLine) =>
       !borrowed.includes(note) &&
@@ -124,10 +124,10 @@ export function coverageOf(
       placed.add(note)
     }
     const waiting = ofDay
-      .filter((note) => !placed.has(note))
+      .filter((note) => !placed.has(note) && !stay.includes(note.dueTime))
       .sort((a, b) => (a.dueTime ?? '').localeCompare(b.dueTime ?? ''))
     for (const note of waiting) {
-      if (note.status !== 'given') continue
+      if (note.status !== 'given' && !underOldHours(note)) continue
       const free = journey.hours.filter((hour) => !covered.has(hour))
       const later = free.filter(
         (hour) => hour === null || note.dueTime === null || hour > note.dueTime,

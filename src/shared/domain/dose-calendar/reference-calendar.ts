@@ -259,7 +259,7 @@ export function calendarOf(
       covered,
       hoursChangeThatDay: translated.has(dueOn),
       inForce: settingAt(dueOn),
-      coveredAtItsHours: coveredAside(dueOn, { setting: written, hours: hoursOf(written) }),
+      coveredAtItsHours: coveredAside(dueOn, { setting: written, hours: hoursOf(written) }, hours),
     })
     if (outcome.beaten) continue
     if (targetOn! > dueOn) fallen.add(dueOn)
