@@ -210,3 +210,20 @@ export function coverages({
     settle: () => (reportsRead = true),
   }
 }
+
+/**
+ * #867 : deux appareils ; l'un reporte une dose, l'autre réécrit le réglage du report sans la journée de
+ * cette dose (« Elles n'étaient pas à donner »). Réécriture plus récente : le report est sans effet ;
+ * report plus récent : sa journée de départ ne porte que l'heure écrite dans le report.
+ */
+export function departureAfterRewrite(
+  report: ReferenceLine,
+  settingOf: (id: string) => ReferenceSetting,
+): Journey | 'lost' | undefined {
+  const written = settingOf(report.settingId)
+  const rewrittenAt = written.updatedAt
+  if (rewrittenAt === undefined || rewrittenAt <= written.createdAt) return undefined
+  if (report.dueOn < written.startsOn || report.dueOn >= written.firstDueOn) return undefined
+  if (rewrittenAt >= report.updatedAt) return 'lost'
+  return { setting: written, hours: [report.dueTime] }
+}

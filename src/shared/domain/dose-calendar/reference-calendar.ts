@@ -13,6 +13,7 @@ import {
 import {
   coverages,
   coverOrphans,
+  departureAfterRewrite,
   lateDaysOf,
   writtenBefore,
   handedOf,
@@ -216,9 +217,11 @@ export function calendarOf(
     )
     const [report] = waiting.splice(Math.max(0, ready), 1)
     const { dueOn, targetOn } = report!
-    const origin = days.get(dueOn) ?? left.get(dueOn)
+    const rewritten = days.has(dueOn) ? undefined : departureAfterRewrite(report!, settingOf)
+    if (rewritten === 'lost') continue
+    const origin = rewritten ? undefined : (days.get(dueOn) ?? left.get(dueOn))
     const from = origin?.setting ?? settingOf(report!.settingId)
-    const hours = origin?.hours ?? hoursOf(from)
+    const hours = origin?.hours ?? rewritten?.hours ?? hoursOf(from)
     if (origin === undefined) {
       notes
         .filter((note) => note.dueOn === dueOn && hours.includes(note.dueTime))
@@ -236,7 +239,7 @@ export function calendarOf(
     const carries = targetOn === restartOn || targetOn === chosenOn || openings.has(targetOn!)
     const before = chosenRestarts.get(report!.settingId) !== chosenOn
     if (chosenOn !== undefined && dueOn === chosenOn && before) continue
-    if (origin === undefined && chosenOn !== undefined && !carries) continue
+    if (origin === undefined && !rewritten && chosenOn !== undefined && !carries) continue
     const written = settingOf(report!.settingId)
     const arrived = arrivedHours.get(dueOn) ?? []
     const itsDay = {

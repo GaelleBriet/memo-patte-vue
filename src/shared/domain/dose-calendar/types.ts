@@ -22,6 +22,8 @@ export type Setting = {
   frequency: Frequency
   times: readonly string[]
   createdAt: string
+  /** Dernière réécriture du réglage (R10, #867) ; absente : date inconnue. */
+  updatedAt?: string
 }
 
 export type LineStatus = 'given' | 'missed' | 'extra' | 'postponed' | 'shift'
