@@ -2764,3 +2764,14 @@ les lectures de règles).
 - #864 corrigé : la journée de départ d'un report porte aussi les doses qui y étaient arrivées.
 - « Elles n'étaient pas à donner » ne saute le jour d'arrivée d'un report hors de la grille que si ce
   report part d'avant le réglage corrigé (sinon le report deviendrait sans effet, R7, R9.2).
+
+2026-10-16 — **La journée du changement n'est traduite que si le réglage qui la lit change d'heures**
+(spec `traitements.md` R4 et §10, #854 ; transmise par la session d'analyse du moteur, mandatée par
+Gaelle pour les lectures de règles).
+
+- Une journée touchée lue sous un réglage plus ancien garde ses doses quand un autre réglage change
+  d'heures ce jour-là.
+- Exemple : journée du 12 touchée sous 6, 12, 18 et 23 h (6 h et 12 h données, 23 h reportée au 13),
+  réglage en cours à 20 h, « 20 h → 20 h 01 » le 12 : le 12 garde 18 h à donner (graine 7810000428).
+  — Alternative écartée : traduire la journée vers 20 h 01, qui faisait disparaître la dose de 18 h
+  pour une minute d'écart.

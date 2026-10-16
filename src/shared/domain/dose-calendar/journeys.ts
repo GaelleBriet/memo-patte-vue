@@ -73,8 +73,8 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   const { span, lines, reach, gap } = input
   const { chain } = span
   const days = new Map<Day, Journey>()
-  const translated = span.hoursChangeOn
   const byId = new Map(span.episode.map((setting) => [setting.id, setting]))
+  const translated = translatedDays(span.live, (day) => byId.get(lines.touched.get(day) ?? ''))
   // R4 : hors du jour où les heures changent, une journée touchée garde les heures du réglage de sa
   // ligne la plus récente, celles qu'elle avait quand elle a été touchée.
   const journeyOn = (day: Day, setting: Setting): Journey => {
@@ -250,6 +250,21 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     lastPossibleDay,
     lastGridDay,
   }
+}
+
+// R4 : le premier jour d'un réglage aux heures changées est traduit, sauf une journée touchée sous
+// d'autres heures que celles du réglage qui cède la place : elle garde ses doses.
+function translatedDays(live: readonly Setting[], touchedOn: (day: Day) => Setting | undefined) {
+  const days = new Set<Day>()
+  live.forEach((setting, index) => {
+    const prior = live[index - 1]
+    if (prior === undefined || sameHours(prior, setting)) return
+    const touched = touchedOn(setting.startsOn)
+    if (touched === undefined || sameHours(touched, prior) || sameHours(touched, setting)) {
+      days.add(setting.startsOn)
+    }
+  })
+  return days
 }
 
 function gridDaysAround(origin: Day, frequency: Frequency, from: Day, to: Day, gap?: Gap) {

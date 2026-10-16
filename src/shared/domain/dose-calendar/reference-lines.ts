@@ -40,19 +40,28 @@ export function latestBy(lines: ReferenceLine[], keyOfLine: (line: ReferenceLine
 }
 
 // R4 : le seul jour où une prise visant d'autres heures couvre les premières heures : le premier jour
-// d'un réglage aux heures changées.
-export const translatedDaysOf = (live: readonly ReferenceSetting[]): Set<string> =>
-  new Set(
-    live
-      .filter((setting, index) => index > 0 && !sameHours(live[index - 1]!, setting))
-      .map(({ startsOn }) => startsOn),
-  )
+// d'un réglage aux heures changées, sauf une journée touchée sous d'autres heures que celles du réglage
+// qui cède la place, qui garde ses doses.
+function translatedDaysOf(
+  live: readonly ReferenceSetting[],
+  touchedOn: (day: string) => ReferenceSetting | undefined,
+): Set<string> {
+  const days = new Set<string>()
+  for (let index = 1; index < live.length; index += 1) {
+    const prior = live[index - 1]!
+    const setting = live[index]!
+    const touched = touchedOn(setting.startsOn)
+    const reread = touched === undefined || sameHours(touched, prior) || sameHours(touched, setting)
+    if (!sameHours(prior, setting) && reread) days.add(setting.startsOn)
+  }
+  return days
+}
 
 // R4 : hors du jour où les heures changent, une journée notée ou déplacée garde les heures du réglage
 // de sa ligne la plus récente (TR-25), celles qu'elle avait quand elle a été touchée.
 export function touchedJourneys(
   lines: readonly ReferenceLine[],
-  translated: ReadonlySet<string>,
+  live: readonly ReferenceSetting[],
   settingOf: (id: string) => ReferenceSetting,
   chosenOf: (report: ReferenceLine) => ReferenceSetting | undefined,
 ) {
@@ -66,11 +75,13 @@ export function touchedJourneys(
     const chosen = line.status === 'postponed' ? chosenOf(line) : undefined
     if (chosen !== undefined) touch(line.targetOn!, line, chosen)
   }
-  return (day: string, setting: ReferenceSetting) => {
+  const translated = translatedDaysOf(live, (day) => latest.get(day)?.hoursOf)
+  const journeyOn = (day: string, setting: ReferenceSetting) => {
     const touched = latest.get(day)?.hoursOf ?? setting
     const own = translated.has(day) || sameHours(touched, setting) ? setting : touched
     return { setting: own, hours: hoursOf(own) }
   }
+  return { translated, journeyOn }
 }
 
 // TR-25, R11 : par échéance et famille, la ligne la plus récente d'un épisode, quel que soit son

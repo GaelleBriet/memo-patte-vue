@@ -29,7 +29,6 @@ import {
   reportsOf,
   settingsIn,
   touchedJourneys,
-  translatedDaysOf,
 } from './reference-lines'
 import { arrivedOn, chosenDateOf, hoursChangedSince, reportOutcome } from './reference-reports'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
@@ -59,9 +58,13 @@ export function calendarOf(
   const reports = reportsOf(lines)
 
   const days = new Map<string, Journey>()
-  const translated = translatedDaysOf(live)
   const chosenOf = (report: ReferenceLine) => chosenDateOf(report, live, settingOf)
-  const journeyOn = touchedJourneys([...notes, ...reports], translated, settingOf, chosenOf)
+  const { translated, journeyOn } = touchedJourneys(
+    [...notes, ...reports],
+    live,
+    settingOf,
+    chosenOf,
+  )
   const left = new Map<string, Journey>()
   const claims: Claim[] = []
   // R7, R9.2 : les premières échéances des réglages qui ouvrent un nouveau rythme.
