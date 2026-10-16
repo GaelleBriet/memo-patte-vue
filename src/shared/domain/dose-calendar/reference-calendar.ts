@@ -1,15 +1,19 @@
 import {
   gridDays,
   hoursOf,
+  isDueDay,
   isOnGrid,
   keyOf,
   later,
   plusDays,
   sameFrequency,
+  turned,
+  type Grid,
 } from './reference-grid'
 import {
   coverages,
   coverOrphans,
+  departureAfterRewrite,
   lateDaysOf,
   writtenBefore,
   handedOf,
@@ -33,7 +37,6 @@ import {
 import { arrivedOn, chosenDateOf, hoursChangedSince, reportOutcome } from './reference-reports'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
-type Grid = { origin: string; floor: string; since: string }
 type Calendar = { pending: string[]; fallen: Set<string>; rhythmFrom: string }
 
 export function calendarOf(
@@ -87,13 +90,6 @@ export function calendarOf(
   let chosenFloor = ''
   let rhythmFloor = ''
   let anchors = new Set<ReferenceLine>()
-  const isDueDay = (on: Grid, setting: ReferenceSetting, day: string) =>
-    day > on.since && isOnGrid(on.origin, setting.frequency, day)
-  const turned = (turn: ReferenceLine, floor: string): Grid => ({
-    origin: turn.targetOn!,
-    floor: later(floor, later(turn.dueOn, turn.targetOn!)),
-    since: later(turn.dueOn, turn.targetOn!),
-  })
   chain.forEach((setting, position) => {
     const index = live.indexOf(setting)
     const end = index < 0 ? setting.startsOn : endOf(index)
@@ -221,9 +217,11 @@ export function calendarOf(
     )
     const [report] = waiting.splice(Math.max(0, ready), 1)
     const { dueOn, targetOn } = report!
-    const origin = days.get(dueOn) ?? left.get(dueOn)
+    const rewritten = days.has(dueOn) ? undefined : departureAfterRewrite(report!, settingOf)
+    if (rewritten === 'lost') continue
+    const origin = rewritten ? undefined : (days.get(dueOn) ?? left.get(dueOn))
     const from = origin?.setting ?? settingOf(report!.settingId)
-    const hours = origin?.hours ?? hoursOf(from)
+    const hours = origin?.hours ?? rewritten?.hours ?? hoursOf(from)
     if (origin === undefined) {
       notes
         .filter((note) => note.dueOn === dueOn && hours.includes(note.dueTime))
@@ -241,7 +239,7 @@ export function calendarOf(
     const carries = targetOn === restartOn || targetOn === chosenOn || openings.has(targetOn!)
     const before = chosenRestarts.get(report!.settingId) !== chosenOn
     if (chosenOn !== undefined && dueOn === chosenOn && before) continue
-    if (origin === undefined && chosenOn !== undefined && !carries) continue
+    if (origin === undefined && !rewritten && chosenOn !== undefined && !carries) continue
     const written = settingOf(report!.settingId)
     const arrived = arrivedHours.get(dueOn) ?? []
     const itsDay = {

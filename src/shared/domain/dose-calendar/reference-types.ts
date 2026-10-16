@@ -16,6 +16,8 @@ export type ReferenceSetting = {
   frequency: ReferenceFrequency
   times: readonly string[]
   createdAt: string
+  /** Dernière réécriture du réglage ; absente : date inconnue. */
+  updatedAt?: string
 }
 
 export type ReferenceLine = {

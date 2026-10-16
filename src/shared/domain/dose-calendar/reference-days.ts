@@ -210,3 +210,16 @@ export function coverages({
     settle: () => (reportsRead = true),
   }
 }
+
+/** #867 : réglage réécrit sans la journée de départ du report : le plus récent des deux l'emporte. */
+export function departureAfterRewrite(
+  report: ReferenceLine,
+  settingOf: (id: string) => ReferenceSetting,
+): Journey | 'lost' | undefined {
+  const written = settingOf(report.settingId)
+  const rewrittenAt = written.updatedAt
+  if (rewrittenAt === undefined || rewrittenAt <= written.createdAt) return undefined
+  if (report.dueOn < written.startsOn || report.dueOn >= written.firstDueOn) return undefined
+  if (rewrittenAt >= report.updatedAt) return 'lost'
+  return { setting: written, hours: [report.dueTime] }
+}

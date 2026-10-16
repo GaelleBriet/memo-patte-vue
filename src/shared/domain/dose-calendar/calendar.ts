@@ -77,9 +77,15 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     )
     const report = waiting.splice(Math.max(0, ready), 1)[0]!
     const { dueOn, dueTime, targetOn } = report
-    const origin = days.get(dueOn) ?? left.get(dueOn)
+    const rewrite = days.has(dueOn) ? null : rewriteAgainst(report, settingOf(report.settingId))
+    const origin = rewrite === null ? (days.get(dueOn) ?? left.get(dueOn)) : undefined
     const from = origin?.setting ?? settingOf(report.settingId)
-    const hours = origin?.hours ?? hoursOf(from.times)
+    if (rewrite === 'rewrite') {
+      effects.set(report.id, { kind: 'idle', reason: 'nothing-to-move' })
+      continue
+    }
+    // #867 : plus récent que la réécriture de son réglage, le report n'emporte que l'heure qu'il porte.
+    const hours = rewrite === 'report' ? [dueTime] : (origin?.hours ?? hoursOf(from.times))
     // R8 : au-delà de l'arrêt, une prise ne garde pas son échéance, la reprise seule la porte.
     if (origin === undefined && (span.closedFrom === null || dueOn < span.closedFrom)) {
       for (const note of byDay.get(dueOn) ?? []) {
@@ -99,7 +105,8 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
       chosenOn !== undefined &&
       dueOn === chosenOn &&
       chosenRestarts.get(report.settingId) !== chosenOn
-    if (carried || (chosenOn !== undefined && origin === undefined && !carries)) {
+    const outside = origin === undefined && rewrite === null
+    if (carried || (chosenOn !== undefined && outside && !carries)) {
       effects.set(report.id, { kind: 'idle', reason: 'nothing-to-move' })
       continue
     }
@@ -237,4 +244,13 @@ function lastFallen(fallen: ReadonlySet<Day>, { from, to }: { from: Day; to: Day
     .filter((day) => day >= from && day < to)
     .sort()
     .at(-1)
+}
+
+// #867 : la réécriture d'un réglage a ôté du calendrier la journée de départ d'un report écrit sous lui,
+// sur un autre appareil ; la plus récente des deux l'emporte.
+function rewriteAgainst(report: Line, written: Setting): 'report' | 'rewrite' | null {
+  const { updatedAt, createdAt, startsOn, firstDueOn } = written
+  if (updatedAt === undefined || updatedAt <= createdAt) return null
+  if (report.dueOn < startsOn || report.dueOn >= firstDueOn) return null
+  return report.updatedAt > updatedAt ? 'report' : 'rewrite'
 }

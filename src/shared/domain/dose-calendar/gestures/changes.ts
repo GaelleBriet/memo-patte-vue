@@ -99,7 +99,7 @@ function settingWritten(input: TreatmentViewInput, plan: SettingsPlan): Treatmen
     return { ...input, settings: [...input.settings, setting] }
   }
   const settings = input.settings.map((setting) =>
-    setting.id === plan.id ? { ...setting, ...plan.setting } : setting,
+    setting.id === plan.id ? { ...setting, ...plan.setting, updatedAt: WRITTEN_AT } : setting,
   )
   return { ...input, settings }
 }
