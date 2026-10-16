@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { treatmentView, type TreatmentViewInput } from '../domain/dose-calendar'
+import { newSettings, treatmentView, type TreatmentViewInput } from '../domain/dose-calendar'
 import type { Line, Setting } from '../domain/dose-calendar/types'
 import { edited, given, moved, on, readings } from './dose-calendar.reglage-corrige.aides'
 import { H, MONTH, keys, setting } from './dose-calendar.v2.aides'
@@ -181,6 +181,64 @@ describe('R3, #868 : graines du comparateur, fréquence gardée', () => {
       '2026-03-23 08:00 pending',
       '2026-03-23 20:00 given',
       '2026-04-18 pending',
+    ])
+    const { moteur, reference } = readings(after)
+    expect(moteur).toEqual(reference)
+  })
+
+  it('graine 8000000655 : sans journée de la grille avant la fin, la première dose à donner reste la date proposée', () => {
+    const until = { endsOn: '2026-04-24' }
+    const twoWeeks = { value: 2, unit: 'week' } as const
+    const three = ['08:00', '14:00', '20:00']
+    const at = (day: string) => ({ startsOn: day, firstDueOn: day, gridOriginOn: day })
+    const input: TreatmentViewInput = {
+      today: '2026-04-19',
+      settings: [
+        S('s1', 0, { ...at('2026-04-02'), frequency: { value: 2, unit: 'day' }, times: three }),
+        S('s2', 2, { ...at('2026-04-04'), ...until, frequency: twoWeeks, times: three }),
+        S('s3', 11, {
+          ...until,
+          startsOn: '2026-04-11',
+          firstDueOn: '2026-04-22',
+          gridOriginOn: null,
+          frequency: twoWeeks,
+          times: three,
+        }),
+        S('s4', 14, {
+          ...until,
+          startsOn: '2026-04-11',
+          firstDueOn: '2026-04-18',
+          gridOriginOn: null,
+          frequency: twoWeeks,
+          times: three,
+        }),
+        S('s5', 16, {
+          ...until,
+          startsOn: '2026-04-16',
+          firstDueOn: '2026-04-18',
+          gridOriginOn: '2026-04-18',
+          times: ['06:00', '12:00', '18:00', '23:00'],
+        }),
+      ],
+      lines: [
+        L('l3', 's2', 'postponed', '2026-04-04', '08:00', 3, { targetOn: '2026-04-05' }),
+        L('l4', 's2', 'given', '2026-04-05', '08:00', 4, { givenOn: '2026-04-04' }),
+        L('l5', 's1', 'given', '2026-04-02', '20:00', 9, { givenOn: '2026-04-03' }),
+        L('l6', 's2', 'postponed', '2026-04-05', '14:00', 6, { targetOn: '2026-04-22' }),
+        L('l8', 's2', 'given', '2026-04-22', '14:00', 12, { givenOn: '2026-04-09' }),
+        L('l13', 's3', 'given', '2026-04-18', '08:00', 13, { givenOn: '2026-04-10' }),
+        L('l15', 's4', 'given', '2026-04-18', '14:00', 15, { givenOn: '2026-04-11' }),
+        L('l17', 's2', 'postponed', '2026-04-22', '20:00', 17, { targetOn: '2026-04-24' }),
+        L('l18', 's5', 'shift', '2026-04-22', '20:00', 18, { targetOn: '2026-04-24' }),
+      ],
+    }
+    const request = { frequency: MONTH, times: ['12:00', '18:00', '23:00'], endsOn: '2026-04-24' }
+    const result = newSettings(input, { ...request, firstDueOn: '2026-04-24' })
+    expect('question' in result).toBe(true)
+    const after = edited(input, request, 'correct')
+    expect(slotsOf(after, '2026-04-19', '2026-05-31')).toEqual([
+      '2026-04-22 14:00 given',
+      '2026-04-24 20:00 pending',
     ])
     const { moteur, reference } = readings(after)
     expect(moteur).toEqual(reference)

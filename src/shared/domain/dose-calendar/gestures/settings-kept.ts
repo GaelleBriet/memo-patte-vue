@@ -66,7 +66,8 @@ export function keptCorrection(
     ({ state, due }) =>
       (state === 'pending' || due.settingId !== current.id) && !arrivalOnly(due.dueOn),
   )
-  const next = (first ?? slots[0])?.due.dueOn
+  // R9 : sans journée de la grille avant la fin, la première dose encore à donner.
+  const next = (first ?? slots.find(({ state }) => state === 'pending') ?? slots[0])?.due.dueOn
   const from = (start: Day): Dates =>
     gridOriginOn !== null && isOnGrid(gridOriginOn, request.frequency, start)
       ? { firstDueOn: start, gridOriginOn, firstDueChosen }
