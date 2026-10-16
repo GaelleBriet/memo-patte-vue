@@ -2720,3 +2720,24 @@ TR-28 et §10, #854).
   6 h. — Alternative écartée : faire passer les journées à venir déjà touchées aux nouvelles heures
   (PR #858), qui devait compter et « traduire » les doses de chaque journée et lisait 65 carnets sur
   3 000 plus mal que `main`.
+
+2026-10-16 — **Six lectures de #859 tranchées ; les prises se posent avant les reports** (spec
+`traitements.md` R4, R7, R9, TR-25, TR-28, §10 et §11, #854, #860).
+
+- Décisions de Gaelle du 16 octobre 2026 : (1) le jour du changement, le jour de départ d'un report
+  écrit avant perd autant de doses que le report en emporte ; (4) un décalage ne fixe pas les
+  heures de sa journée ; (5) sans dose tombée, changer les heures à fréquence gardée ouvre un réglage
+  à partir d'aujourd'hui ; (2) une prise couvre son échéance, jour et heure, quel que soit le
+  réglage, et une prise dont l'heure n'existe pas ce jour-là couvre la première échéance libre qui la
+  suit ; un report n'emporte que ses heures sans prise, de toute provenance ; (6) une journée
+  d'échéance qui reçoit un report garde ses doses et y ajoute les doses reportées ; (3) la date
+  choisie qui emmène un report reçoit la journée entière du nouveau réglage.
+- #860 : les prises se posent d'abord (exactes, puis sur la première échéance libre qui suit), les
+  reports se lisent ensuite ; c'est ce qui règle les deux téléphones dont l'un réécrit le réglage du
+  jour.
+- Remplacent la « traduction » du jour du changement (les prises du jour couvraient les premières
+  heures du nouveau réglage, dans l'ordre) et la date choisie « aux dernières heures de son réglage ».
+- Exemple : Milo, tous les mois à 8 h et 20 h, 20 h du 1er avril donnée d'avance, passage à 8 h,
+  14 h et 20 h, 14 h reportée au 16 : le 1er lit 8 h (à donner), 14 h et 20 h (couverte), le 16
+  reçoit 14 h seule. — Alternative écartée : la prise de 20 h couvrait 8 h et le 16 recevait 14 h et
+  20 h, une dose de trop.

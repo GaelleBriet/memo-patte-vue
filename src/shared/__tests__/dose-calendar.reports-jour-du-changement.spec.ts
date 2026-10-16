@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { treatmentView, type Frequency, type TreatmentViewInput } from '../domain/dose-calendar'
 import { edited, given, moved, on, readings, removed } from './dose-calendar.reglage-corrige.aides'
-import { MONTH, TWO_DAYS, line, setting } from './dose-calendar.v2.aides'
+import { DAY, H, MONTH, TWO_DAYS, line, setting } from './dose-calendar.v2.aides'
 
 const THREE = ['08:00', '14:00', '20:00']
 
@@ -117,5 +117,22 @@ describe('Le jour du changement, un report voit l’oubli d’avant la reprise q
     ])
     expect(readings(after).moteur).toEqual(readings(after).reference)
     expect(effectsOf(after, 'postponed')).toEqual(['moves'])
+  })
+})
+
+describe('Le jour où les heures changent, une prise du jour reste à ce jour (lecture à confirmer, §11)', () => {
+  it('chaque jour à 8 h et 20 h, 20 h donnée le 3 avril, puis 9 h seule dès le 3 : 9 h du 3 couverte, le 4 à 9 h', () => {
+    let input: TreatmentViewInput = {
+      settings: [setting('s1', '2026-04-01', DAY, H)],
+      lines: [],
+      today: '2026-04-03',
+    }
+    input = given(input, '2026-04-03', '20:00')
+    const after = sameHoursAgain(input, ['09:00'])
+    expect(states(after, '2026-04-03', '2026-04-04')).toEqual([
+      '2026-04-03 09:00 covered',
+      '2026-04-04 09:00 pending',
+    ])
+    expect(readings(after).moteur).toEqual(readings(after).reference)
   })
 })
