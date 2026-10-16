@@ -81,12 +81,13 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
       .filter((note) => !used.has(note))
       .sort((a, b) => (a.dueTime ?? '').localeCompare(b.dueTime ?? ''))
     for (const note of ofDay) {
-      if (journey.hours.includes(note.dueTime)) matched.add(note)
+      if (foreign(note) || journey.hours.includes(note.dueTime)) matched.add(note)
     }
     for (const note of elsewhere) {
       if (note.status !== 'given' && !foreign(note)) continue
       const free = journey.hours.filter((each) => !covered.has(each))
-      // R4 : le jour où les heures changent, une prise du jour reste à ce jour, plus tôt s'il le faut.
+      // R4 : le jour où les heures changent, une prise du jour reste à ce jour, plus tôt s'il le faut,
+      // et ne couvre jamais un autre jour.
       const hour =
         free.find((each) => follows(each, note.dueTime)) ?? (foreign(note) ? free[0] : undefined)
       if (hour === undefined) continue
@@ -103,7 +104,6 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
             ofDay.some((other) => other.settingId === note.settingId && other.dueTime === hour),
           ),
       )
-    if (whole) ofDay.filter(foreign).forEach((note) => matched.add(note))
     for (const hour of journey.hours.filter((each) => !covered.has(each))) {
       if (whole && last !== undefined) covered.set(hour, last)
     }

@@ -148,10 +148,7 @@ export function coverageOf(
       )
     ofDay
       .filter(
-        (note) =>
-          placed.has(note) ||
-          journey.hours.includes(note.dueTime) ||
-          (whole && underOldHours(note)),
+        (note) => placed.has(note) || journey.hours.includes(note.dueTime) || underOldHours(note),
       )
       .forEach((note) => matched.add(note))
     if (whole) journey.hours.forEach((hour) => covered.add(hour))
