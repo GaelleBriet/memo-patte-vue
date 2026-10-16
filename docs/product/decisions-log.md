@@ -2800,3 +2800,22 @@ Gaelle pour les lectures de règles).
   et 7810000909, lues comme sur `main`). Elle remplace la puce précédente (« ne saute le jour
   d'arrivée d'un report hors de la grille que si ce report part d'avant le réglage corrigé »), que
   la décision #868 contredit pour les graines 8000000154 et 8000000726.
+
+2026-10-16 — **#867 tranchée : report d'un téléphone contre « Elles n'étaient pas à donner » de
+l'autre, la plus récente des deux intentions l'emporte** (spec `traitements.md` R10, R11, §10 ;
+transmise par la session d'analyse du moteur, mandatée par Gaelle pour les lectures de règles).
+
+- Le report par sa date de modification, la réponse par la date d'écriture du réglage, comme pour
+  tout conflit entre deux appareils (« la modification la plus récente gagne »). Réponse plus
+  récente : le report est sans effet, visible dans l'historique, la dose reportée disparaît. Report
+  plus récent : il tient, le jour d'arrivée porte la dose reportée à l'heure écrite dans le report.
+  Milo, tous les 3 jours à 20 h, puis toutes les 2 semaines à 20 h dès le 3 avril ; le 7, A reporte
+  la dose du 3 au 10, B passe à 6 h et répond « Elles n'étaient pas à donner » : rien le 10 et le 17
+  à 6 h, ou le 10 à 20 h puis le 17 à 6 h (graine 8010002409). — Alternatives écartées : la réponse
+  qui gagne toujours (lecture d'avant, le report sans effet même écrit après) et le report qui gagne
+  toujours.
+- Lectures de l'implémenteur, à confirmer par Gaelle (spec §11), qui ne sont pas des décisions de
+  Gaelle : le report plus récent n'emporte que l'heure écrite dans sa ligne ; la règle vaut pour
+  toute réécriture du réglage du report qui ôte sa journée de départ (« Prochaine dose » comprise).
+- Question ouverte (spec §11) : la date d'écriture du réglage n'existe pas encore dans les données
+  de l'app ; d'ici là, la lecture d'avant reste (report sans effet).
