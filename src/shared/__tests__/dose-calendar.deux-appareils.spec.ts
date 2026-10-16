@@ -116,37 +116,47 @@ describe('R11, #802 : la même dose notée sous deux réglages par deux appareil
     expect(apres.doses.some(({ dueOn }) => dueOn === '2026-10-12')).toBe(false)
   })
 
-  function heuresChangeesLe10(): Carnet {
+  function avantLe10(): Carnet {
     let c = carnet('2026-10-08', jours(1), ['08:00', '20:00'])
     for (const on of ['2026-10-08', '2026-10-09']) {
       c = donne(c, on, echeance(c, on, '08:00'))
       c = donne(c, on, echeance(c, on, '20:00'))
     }
-    c = donne(c, '2026-10-10', echeance(c, '2026-10-10', '20:00'))
-    c = modifie(c, '2026-10-10', jours(1), ['12:00', '20:00'])
-    return donne(c, '2026-10-10', echeance(c, '2026-10-10', '20:00'))
+    return c
   }
 
-  it('R4, le jour où les heures changent : 20 h donnée d’avance le 10 sous 8 h et 20 h, heures passées à 12 h et 20 h le 10, puis 20 h donnée : les deux prises comptent, rien à donner le 10', () => {
-    const c = heuresChangeesLe10()
-    expect(affiche(c, '2026-10-10', 2)).toEqual(['2026-10-11 12:00', '2026-10-11 20:00'])
-    const vingtHeures = c.doses.filter(
-      ({ dueOn, dueTime }) => dueOn === '2026-10-10' && dueTime === '20:00',
-    )
-    expect(vingtHeures.map((dose) => effetDe(c, '2026-10-10', dose).kind)).toEqual([
-      'covers',
-      'covers',
-    ])
+  it('R4, décision du 16 octobre 2026 : 20 h donnée d’avance le 10 sous 8 h et 20 h, heures passées à 12 h et 20 h le 10 : la prise couvre 20 h, 12 h reste à donner', () => {
+    let c = donne(avantLe10(), '2026-10-10', echeance(avantLe10(), '2026-10-10', '20:00'))
+    c = modifie(c, '2026-10-10', jours(1), ['12:00', '20:00'])
+    expect(affiche(c, '2026-10-10', 2)).toEqual(['2026-10-10 12:00', '2026-10-11 12:00'])
   })
 
-  it('TR-25, R4 : ce même jour, « Supprimer » la prise de 20 h du nouveau réglage garde celle d’avant le changement, qui couvre 12 h', () => {
-    const c = heuresChangeesLe10()
-    const [avant, apres] = c.doses.filter(
-      ({ dueOn, dueTime }) => dueOn === '2026-10-10' && dueTime === '20:00',
-    )
-    const reste = supprimeReport(c, '2026-10-10', apres!.id)
-    expect(reste.doses).toContain(avant)
-    expect(affiche(reste, '2026-10-10', 1)).toEqual(['2026-10-10 20:00'])
+  // A donne 20 h d'avance le 10 sous 8 h et 20 h ; B passe à 12 h et 20 h le 10 sans voir la prise,
+  // puis donne 20 h.
+  function deuxPrisesDe20h(): { c: Carnet; parA: Dose; parB: Dose } {
+    const base = avantLe10()
+    const surA = donne(base, '2026-10-10', echeance(base, '2026-10-10', '20:00'))
+    const modifieParB = modifie(base, '2026-10-10', jours(1), ['12:00', '20:00'])
+    const surB = donne(modifieParB, '2026-10-10', echeance(modifieParB, '2026-10-10', '20:00'))
+    return {
+      c: recus(surB.periods, surA, surB),
+      parA: surA.doses.at(-1)!,
+      parB: surB.doses.at(-1)!,
+    }
+  }
+
+  it('TR-25, R4 : deux téléphones, 20 h notée sous chaque réglage : la plus récente couvre 20 h, l’autre ne se perd pas et couvre 12 h, rien à donner le 10', () => {
+    const { c, parA, parB } = deuxPrisesDe20h()
+    expect(affiche(c, '2026-10-10', 2)).toEqual(['2026-10-11 12:00', '2026-10-11 20:00'])
+    expect(effetDe(c, '2026-10-10', parB)).toEqual({ kind: 'covers', key: '2026-10-10 20:00' })
+    expect(effetDe(c, '2026-10-10', parA)).toEqual({ kind: 'covers', key: '2026-10-10 12:00' })
+  })
+
+  it('TR-25, R4 : ce même jour, « Supprimer » la prise de 20 h de B garde celle de A, qui couvre 20 h ; 12 h reste à donner', () => {
+    const { c, parA, parB } = deuxPrisesDe20h()
+    const reste = supprimeReport(c, '2026-10-10', parB.id)
+    expect(reste.doses).toContain(parA)
+    expect(affiche(reste, '2026-10-10', 1)).toEqual(['2026-10-10 12:00'])
   })
 
   it('R7, le jour d’arrivée d’un report : Milo, toutes les 2 semaines à 8 h et 20 h depuis le 1er oct. ; le 10, dose du 15 déplacée au 20 sans la case, 20 h du 20 donnée d’avance, puis tous les mois à 12 h et 20 h, prochaine dose le 15 nov. ; le 20 garde 8 h et 20 h, « C’est fait » sur 8 h : journée complète (décision du 15 octobre 2026)', () => {

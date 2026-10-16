@@ -12,7 +12,7 @@ export const isAdvanced = (line: Pick<Line, 'status' | 'dueOn' | 'targetOn'>): b
 export const familyOf = (line: Pick<Line, 'status'>): string =>
   isNote(line) ? 'note' : line.status
 
-const isMoreRecent = (a: Line, b: Line): boolean =>
+export const isMoreRecent = (a: Line, b: Line): boolean =>
   a.updatedAt > b.updatedAt || (a.updatedAt === b.updatedAt && a.id > b.id)
 
 /** TR-25 : par clé, la ligne modifiée le plus récemment ; triées par jour d'échéance. */
@@ -101,8 +101,10 @@ function touchedDays(
   notes.forEach((note) => touch(note.dueOn, note))
   for (const report of reports) {
     touch(report.dueOn, report)
-    // R7, #796 : le jour choisi qui emmène le report garde les heures du réglage qui l'a choisi.
-    touch(report.targetOn!, report, chosenArrivals.get(report)?.id)
+    // R7, #796 : le jour choisi qui emmène le report garde les heures du réglage qui l'a choisi ; une
+    // autre arrivée garde les doses de sa journée et y ajoute les siennes.
+    const chosen = chosenArrivals.get(report)
+    if (chosen !== undefined) touch(report.targetOn!, report, chosen.id)
   }
   return new Map([...latest].map(([day, { settingId }]) => [day, settingId]))
 }

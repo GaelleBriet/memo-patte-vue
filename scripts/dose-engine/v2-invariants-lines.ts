@@ -108,9 +108,16 @@ export function noDouble(input: TreatmentViewInput): Broken | null {
   )
   const twice = (keys: string[]) => keys.filter((key, index) => keys.indexOf(key) !== index)
   const most = Math.max(...input.settings.map(({ times }) => Math.max(1, times.length)))
+  // R7 : un jour d'arrivée garde ses doses et y ajoute celles qui arrivent.
+  const arriving = (day: string) =>
+    view.history.reduce(
+      (count, { effect }) =>
+        effect.kind === 'moves' && effect.arrival === day ? count + effect.keys.length : count,
+      0,
+    )
   const crowded = slots
     .map((key) => key.slice(0, 10))
-    .filter((day, _, all) => all.filter((each) => each === day).length > most)
+    .filter((day, _, all) => all.filter((each) => each === day).length > most + arriving(day))
   const found = [
     ...twice(slots),
     ...twice(covered),

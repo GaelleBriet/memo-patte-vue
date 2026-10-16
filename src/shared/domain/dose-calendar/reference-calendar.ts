@@ -66,9 +66,8 @@ export function calendarOf(
 
   const days = new Map<string, Journey>()
   const translated = translatedDaysOf(live)
-  const arrivalHoursOf = (report: ReferenceLine) =>
-    chosenDateOf(report, live, settingOf) ?? settingOf(report.settingId)
-  const journeyOn = touchedJourneys([...notes, ...reports], translated, settingOf, arrivalHoursOf)
+  const chosenOf = (report: ReferenceLine) => chosenDateOf(report, live, settingOf)
+  const journeyOn = touchedJourneys([...notes, ...reports], translated, settingOf, chosenOf)
   const left = new Map<string, Journey>()
   const claims: Claim[] = []
   // R7, R9.2 : les premières échéances des réglages qui ouvrent un nouveau rythme.
@@ -253,7 +252,6 @@ export function calendarOf(
       hoursChangeThatDay: translated.has(dueOn),
       inForce: settingAt(dueOn),
       notesOfDay: [...notes, ...borrowed].filter((note) => note.dueOn === dueOn),
-      settingOf,
     })
     if (outcome.beaten) continue
     if (targetOn! > dueOn) fallen.add(dueOn)

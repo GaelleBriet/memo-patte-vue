@@ -31,30 +31,51 @@ function hoursTried(times: readonly string[]): [string, string[]][] {
   return tried
 }
 
-/** Les journées de la période en cours qui portent une prise, ou l'origine ou l'arrivée d'un report. */
-function touchedDays({ settings, lines }: TreatmentViewInput, settingId: string): Set<string> {
-  const period = episodeIdsOf(settings, settingId)
-  return new Set(
-    lines.flatMap(({ status, dueOn, targetOn, settingId: own }) => {
-      if (!period.has(own)) return []
-      if (status === 'given' || status === 'missed') return [dueOn]
-      return status === 'postponed' && targetOn !== null && targetOn !== dueOn
-        ? [dueOn, targetOn]
-        : []
-    }),
-  )
+/**
+ * Les journées de la période en cours qui portent une prise ou l'origine d'un report, en entier ; un jour
+ * d'arrivée, ses seules doses reportées (R7 : une journée d'échéance garde ses doses et y ajoute les
+ * siennes, les doses de la grille suivent les heures en vigueur).
+ */
+function touchedDays(
+  input: TreatmentViewInput,
+  settingId: string,
+): Map<string, Set<string> | null> {
+  const period = episodeIdsOf(input.settings, settingId)
+  const touched = new Map<string, Set<string> | null>()
+  for (const { status, dueOn, settingId: own } of input.lines) {
+    if (period.has(own) && (status === 'given' || status === 'missed' || status === 'postponed')) {
+      touched.set(dueOn, null)
+    }
+  }
+  for (const { effect } of treatmentView(input).history) {
+    if (
+      effect.kind !== 'moves' ||
+      effect.arrival === null ||
+      touched.get(effect.arrival) === null
+    ) {
+      continue
+    }
+    const hours = touched.get(effect.arrival) ?? new Set<string>()
+    for (const key of effect.keys) hours.add(key.slice(11))
+    touched.set(effect.arrival, hours)
+  }
+  return touched
 }
 
 // Chaque journée d'avant aujourd'hui, et chaque journée touchée d'après : ses échéances et leur état.
-function daysOf(input: TreatmentViewInput, touched: ReadonlySet<string>) {
-  const last = [input.today, ...touched].sort().at(-1)!
+function daysOf(input: TreatmentViewInput, touched: ReadonlyMap<string, Set<string> | null>) {
+  const last = [input.today, ...touched.keys()].sort().at(-1)!
   const from = firstDayOf(input)
   if (from > last) return []
+  const kept = ({ dueOn, dueTime }: { dueOn: string; dueTime: string | null }) => {
+    if (dueOn < input.today) return true
+    if (dueOn === input.today || !touched.has(dueOn)) return false
+    const hours = touched.get(dueOn)
+    return hours === null || hours!.has(dueTime ?? '')
+  }
   return treatmentView(input)
     .slots(from, last)
-    .filter(
-      ({ due }) => due.dueOn < input.today || (due.dueOn > input.today && touched.has(due.dueOn)),
-    )
+    .filter(({ due }) => kept(due))
     .map(({ due, state }) => `${dueKey(due)} ${state}`)
 }
 
@@ -84,7 +105,7 @@ export function hoursOnly(input: TreatmentViewInput): Broken | null {
     if (sameDay && recomputed) continue
     // R7, #796 : la date choisie garde les heures de son réglage, que ce « Modifier » remplace.
     const chosenDay = sameDay && current.firstDueChosen ? current.firstDueOn : null
-    const kept = new Set([...touched].filter((day) => day !== chosenDay))
+    const kept = new Map([...touched].filter(([day]) => day !== chosenDay))
     const after = daysOf(settingsApplied(input, plan), kept)
     const broken = compare(
       `heures seules (${label})`,

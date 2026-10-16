@@ -84,7 +84,7 @@ describe('R9, décision du 15 octobre 2026 : changer les heures vaut à partir d
     )
   })
 
-  it('#851, graine 4870000187 : tous les 2 jours à 8, 14 et 20 h, carnet écrit avant la décision, le 17 garde la dose reportée à 6 h ; le 21, une minute plus tard : rien ne change avant aujourd’hui (décision du 15 octobre 2026)', () => {
+  it('#851, graine 4870000187 : tous les 2 jours à 8, 14 et 20 h, carnet écrit avant la décision, le 17 garde la dose reportée à 6 h, les prises de 14 h et 20 h couvrent 18 h et 23 h avant le report (décision du 16 octobre 2026) ; le 21, une minute plus tard : rien ne change avant aujourd’hui', () => {
     const input: TreatmentViewInput = {
       settings: [
         setting('s1', '2026-03-16', WEEK),
@@ -109,12 +109,13 @@ describe('R9, décision du 15 octobre 2026 : changer les heures vaut à partir d
       ],
       today: '2026-03-21',
     }
-    const late = ['2026-03-17 06:00', '2026-03-18 23:00', '2026-03-19 08:00', '2026-03-19 14:00']
+    const late = ['2026-03-17 06:00', '2026-03-19 08:00', '2026-03-19 14:00']
     expect(readings(input).moteur.aRenseigner).toEqual(late)
-    expect(pastSlots(input, '2026-03-17').slice(0, 3)).toEqual([
+    expect(pastSlots(input, '2026-03-17').slice(0, 4)).toEqual([
       '2026-03-17 06:00 pending',
       '2026-03-17 12:00 given',
-      '2026-03-18 18:00 covered',
+      '2026-03-17 18:00 covered',
+      '2026-03-17 23:00 covered',
     ])
     const today = ['2026-03-21 08:01', '2026-03-21 14:01', '2026-03-21 20:01']
     expect(readings(minuteLater(input))).toEqual(
@@ -188,7 +189,7 @@ describe('R9, décision du 15 octobre 2026 : changer les heures vaut à partir d
     ])
   })
 
-  it('#852, graine 4870002589 : la journée du 29, arrivée d’un report, couverte ; le 30, une minute plus tard : elle le reste (décision du 15 octobre 2026)', () => {
+  it('#852, graine 4870002589 : la date choisie du 27 reçoit la journée entière, 14 h donnée la couvre, 8 h reste à renseigner ; le report de 20 h ouvre le rythme le 29 (décisions du 16 octobre 2026) ; le 30, une minute plus tard : rien ne change avant aujourd’hui', () => {
     const input: TreatmentViewInput = {
       settings: [
         setting('s1', '2026-03-07', THREE_DAYS, ['08:00', '20:00']),
@@ -211,13 +212,17 @@ describe('R9, décision du 15 octobre 2026 : changer les heures vaut à partir d
       today: '2026-03-30',
     }
     const after = minuteLater(input)
-    expect(pastSlots(input, '2026-03-29')).toEqual(['2026-03-29 20:00 covered'])
+    expect(pastSlots(input, '2026-03-27')).toEqual([
+      '2026-03-27 08:00 pending',
+      '2026-03-27 14:00 given',
+      '2026-03-29 20:00 pending',
+    ])
     expect(pastSlots(after, '2026-03-07')).toEqual(pastSlots(input, '2026-03-07'))
     expect(readings(after)).toEqual(
       both({
-        phase: 'upcoming',
-        moment: ['2026-04-05 08:01'],
-        aRenseigner: ['2026-03-09 08:00', '2026-03-15', '2026-03-18'],
+        phase: 'overdue',
+        moment: ['2026-03-29 20:00'],
+        aRenseigner: ['2026-03-09 08:00', '2026-03-15', '2026-03-18', '2026-03-27 08:00'],
         ensuite: ['2026-04-05 08:01', '2026-04-05 14:01', '2026-04-05 20:01'],
       }),
     )

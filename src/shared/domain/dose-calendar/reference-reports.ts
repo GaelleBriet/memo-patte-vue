@@ -13,7 +13,6 @@ export type ReportDeparture = {
   /** Le réglage en vigueur ce jour-là, celui dont les heures viennent de changer. */
   inForce: ReferenceSetting | undefined
   notesOfDay: readonly ReferenceLine[]
-  settingOf: (id: string) => ReferenceSetting
 }
 
 /** Ce qu'emporte un report, sous quelles heures, et ce que perd sa journée de départ. */
@@ -23,12 +22,13 @@ export type ReportOutcome =
 /**
  * R7, R11, R4 : un report battu par une prise de sa dose est sans effet ; sinon il emporte sa dose
  * et les suivantes de sa journée encore sans prise. Le jour où les heures changent, écrit sous d'autres
- * heures que celles de la journée, ou avant le réglage qui la relit, il ne voit que les prises écrites
- * sous ses heures, emporte les siennes, et le jour de départ en perd au moins autant.
+ * heures que celles de la journée, ou avant le réglage qui la relit, il garde les heures où il a été
+ * écrit : une prise de toute provenance à l'une d'elles la note ; le jour de départ, relu aux nouvelles
+ * heures, perd celles qui suivent sa dose et au moins autant qu'il emporte, mais garde les doses qui
+ * restaient à donner avant lui.
  */
 export function reportOutcome(departure: ReportDeparture): ReportOutcome {
-  const { report, written, day, covered, hoursChangeThatDay, inForce, notesOfDay, settingOf } =
-    departure
+  const { report, written, day, covered, hoursChangeThatDay, inForce, notesOfDay } = departure
   const fromItsDose = (hour: Hour) => hour === null || hour >= (report.dueTime ?? '')
   const otherHours = !sameHours(written, day.setting)
   const readAtNewHours = day.setting === inForce && written.id !== day.setting.id
@@ -39,18 +39,17 @@ export function reportOutcome(departure: ReportDeparture): ReportOutcome {
     return { beaten: false, carried, lost: carried, hoursOf: day.setting }
   }
 
-  const seen = new Set(
-    notesOfDay
-      .filter((note) => sameHours(settingOf(note.settingId), written))
-      .map((note) => note.dueTime),
-  )
-  if (seen.has(report.dueTime)) return { beaten: true }
-  const carried = hoursOf(written).filter((hour) => fromItsDose(hour) && !seen.has(hour))
-  const lost: Hour[] = []
-  for (const hour of [...day.hours].reverse()) {
-    if (covered.has(hour)) continue
-    if (fromItsDose(hour) || lost.length < carried.length) lost.unshift(hour)
-  }
+  const itsHours = hoursOf(written)
+  const notedAt = (hour: Hour) => notesOfDay.some((note) => note.dueTime === hour)
+  if (notedAt(report.dueTime)) return { beaten: true }
+  const carried = itsHours.filter((hour) => fromItsDose(hour) && !notedAt(hour))
+  const waitingBefore = itsHours.filter((hour) => !fromItsDose(hour) && !notedAt(hour)).length
+  const takenElsewhere = notesOfDay.filter((note) => !itsHours.includes(note.dueTime)).length
+  const free = day.hours.filter((hour) => !covered.has(hour))
+  const sooner = free.filter((hour) => !fromItsDose(hour)).length
+  const missing = Math.max(0, carried.length - (free.length - sooner))
+  const stays = Math.max(0, waitingBefore - takenElsewhere, sooner - missing)
+  const lost = free.slice(stays)
   return { beaten: false, carried, lost, hoursOf: written }
 }
 
@@ -74,9 +73,8 @@ export function chosenDateOf(
 }
 
 /**
- * R7, R9.2, #796 : le jour d'arrivée reçoit les heures emportées ; une journée d'échéance à d'autres
- * heures les porte avec les siennes, sans en ajouter ; un rythme qui part de lui ne garde qu'elles.
- * La date choisie qui emmène le report en reçoit autant, aux dernières heures de son réglage.
+ * R7, R9.2, #796 : le jour d'arrivée garde ses doses et y ajoute celles qui arrivent, une heure une
+ * fois ; un rythme qui part de lui ne garde qu'elles ; la date choisie reçoit la journée de son réglage.
  */
 export function arrivedOn(
   existing: Journey | undefined,
@@ -87,12 +85,11 @@ export function arrivedOn(
   const under = chosen ?? outcome.hoursOf
   const received = {
     setting: sameHours(arrival, under) ? arrival : under,
-    hours: chosen ? hoursOf(chosen).slice(-outcome.carried.length) : outcome.carried,
+    hours: chosen ? hoursOf(chosen) : outcome.carried,
   }
   const day = opensRhythm ? undefined : existing
   if (day === undefined || day.hours.length === 0) {
     return { setting: received.setting, hours: [...received.hours].sort() }
   }
-  if (!sameHours(day.setting, received.setting)) return day
   return { setting: day.setting, hours: [...new Set([...day.hours, ...received.hours])].sort() }
 }

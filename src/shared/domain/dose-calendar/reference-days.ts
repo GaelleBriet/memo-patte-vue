@@ -1,4 +1,5 @@
 import { hoursOf, isOnGrid, keyOf, plusDays, sameHours, stepped, type Hour } from './reference-grid'
+import { isMoreRecent } from './reference-lines'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 export type Journey = { setting: ReferenceSetting; hours: Hour[] }
@@ -68,8 +69,8 @@ export function handedOf(
   )
 }
 
-// R4 : une prise donnée dont l'échéance a quitté le calendrier couvre la première échéance qui suit,
-// à moins d'un pas de son réglage ; un oubli ne couvre que sa propre échéance.
+// R4 : une prise donnée dont l'échéance a quitté le calendrier couvre la première échéance encore
+// libre qui suit, à moins d'un pas de son réglage ; un oubli ne couvre que sa propre échéance.
 export function coverOrphans(
   notes: readonly ReferenceLine[],
   matched: ReadonlySet<ReferenceLine>,
@@ -81,7 +82,7 @@ export function coverOrphans(
     .sort((a, b) => keyOf(a.dueOn, a.dueTime).localeCompare(keyOf(b.dueOn, b.dueTime)))
   for (const note of orphans) {
     const { frequency } = settingOf(note.settingId)
-    const due = dues.find((each) => each.key > keyOf(note.dueOn, note.dueTime))
+    const due = dues.find((each) => !each.covered && each.key > keyOf(note.dueOn, note.dueTime))
     if (due !== undefined && due.day < stepped(note.dueOn, frequency, 1)) due.covered = true
   }
 }
@@ -98,9 +99,8 @@ export function lateDaysOf(replaced: readonly Replaced[], fallen: ReadonlySet<st
     )
 }
 
-// R4 : une prise couvre son échéance ; le jour où les heures changent, celles qui visaient l'ancien
-// réglage couvrent les premières heures du nouveau, à hauteur de leur nombre ; une prise donnée
-// d'avant l'arrêt couvre toute la première journée de la reprise, un oubli sa seule échéance (R8).
+// R4 : une prise couvre son échéance quel que soit son réglage ; à une heure absente, la première
+// échéance libre après la sienne ; une journée de l'ancien réglage toute notée couvre tout (R8).
 export function coverageOf(
   notes: readonly ReferenceLine[],
   borrowed: readonly ReferenceLine[],
@@ -110,35 +110,51 @@ export function coverageOf(
 ) {
   return (day: string, journey: Journey): Set<Hour> => {
     const ofDay = notes.filter((note) => note.dueOn === day)
-    const exact = ofDay.filter(
-      (note) =>
-        borrowed.includes(note) ||
-        !translated.has(day) ||
-        sameHours(settingOf(note.settingId), journey.setting),
-    )
-    ofDay
-      .filter((note) => !exact.includes(note) || journey.hours.includes(note.dueTime))
-      .forEach((note) => matched.add(note))
-    const covered = new Set(
-      journey.hours.filter((hour) => exact.some((note) => note.dueTime === hour)),
-    )
-    // R4 : une journée de l'ancien réglage entièrement notée n'a plus rien à donner.
+    const underOldHours = (note: ReferenceLine) =>
+      !borrowed.includes(note) &&
+      translated.has(day) &&
+      !sameHours(settingOf(note.settingId), journey.setting)
+    const covered = new Set<Hour>()
+    const placed = new Set<ReferenceLine>()
+    for (const hour of journey.hours) {
+      const atHour = ofDay.filter((each) => each.dueTime === hour)
+      const note = atHour.find((each) => atHour.every((other) => !isMoreRecent(other, each)))
+      if (note === undefined) continue
+      covered.add(hour)
+      placed.add(note)
+    }
+    const waiting = ofDay
+      .filter((note) => !placed.has(note))
+      .sort((a, b) => (a.dueTime ?? '').localeCompare(b.dueTime ?? ''))
+    for (const note of waiting) {
+      if (note.status !== 'given' && !underOldHours(note)) continue
+      const free = journey.hours.filter((hour) => !covered.has(hour))
+      const later = free.filter(
+        (hour) => hour === null || note.dueTime === null || hour > note.dueTime,
+      )
+      const next = later[0] ?? (underOldHours(note) ? free[0] : undefined)
+      if (next === undefined) continue
+      covered.add(next)
+      placed.add(note)
+    }
     const whole =
       ofDay.some((note) => borrowed.includes(note) && note.status === 'given') ||
       ofDay.some(
         (note) =>
-          !exact.includes(note) &&
+          underOldHours(note) &&
           hoursOf(settingOf(note.settingId)).every((hour) =>
             ofDay.some((other) => other.settingId === note.settingId && other.dueTime === hour),
           ),
       )
-    let elsewhere = ofDay.length - exact.length
-    for (const hour of journey.hours) {
-      if ((elsewhere > 0 || whole) && !covered.has(hour)) {
-        covered.add(hour)
-        elsewhere -= 1
-      }
-    }
+    ofDay
+      .filter(
+        (note) =>
+          placed.has(note) ||
+          journey.hours.includes(note.dueTime) ||
+          (whole && underOldHours(note)),
+      )
+      .forEach((note) => matched.add(note))
+    if (whole) journey.hours.forEach((hour) => covered.add(hour))
     return covered
   }
 }

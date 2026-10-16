@@ -2,7 +2,7 @@ import { hoursOf, keyOf, sameHours } from './reference-grid'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 export const isNote = (line: ReferenceLine) => line.status === 'given' || line.status === 'missed'
-const isMoreRecent = (a: ReferenceLine, b: ReferenceLine) =>
+export const isMoreRecent = (a: ReferenceLine, b: ReferenceLine) =>
   a.updatedAt > b.updatedAt || (a.updatedAt === b.updatedAt && a.id > b.id)
 
 // R1, R8 : un arrêt clôt un épisode ; la reprise en ouvre un autre.
@@ -54,7 +54,7 @@ export function touchedJourneys(
   lines: readonly ReferenceLine[],
   translated: ReadonlySet<string>,
   settingOf: (id: string) => ReferenceSetting,
-  arrivalHoursOf: (report: ReferenceLine) => ReferenceSetting,
+  chosenOf: (report: ReferenceLine) => ReferenceSetting | undefined,
 ) {
   const latest = new Map<string, { line: ReferenceLine; hoursOf: ReferenceSetting }>()
   const touch = (day: string, line: ReferenceLine, hoursOf: ReferenceSetting) => {
@@ -63,7 +63,8 @@ export function touchedJourneys(
   }
   for (const line of lines) {
     touch(line.dueOn, line, settingOf(line.settingId))
-    if (line.status === 'postponed') touch(line.targetOn!, line, arrivalHoursOf(line))
+    const chosen = line.status === 'postponed' ? chosenOf(line) : undefined
+    if (chosen !== undefined) touch(line.targetOn!, line, chosen)
   }
   return (day: string, setting: ReferenceSetting) => {
     const touched = latest.get(day)?.hoursOf ?? setting

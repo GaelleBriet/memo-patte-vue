@@ -91,9 +91,14 @@ describe('R3, TR-28, Q38 : heures seules corrigées, « Elles n’étaient pas �
     return { input, weekly }
   }
 
-  it('avant le changement : la dose du 10 à 20 h en retard, rien à renseigner le 6', () => {
+  it('avant le changement : la date choisie du 10 reçoit la journée entière, 8 h et 20 h en retard (décision du 16 octobre 2026), rien à renseigner le 6', () => {
     expect(readings(luna().input)).toEqual(
-      both({ phase: 'overdue', moment: ['2026-04-10 20:00'], aRenseigner: [], ensuite: [] }),
+      both({
+        phase: 'overdue',
+        moment: ['2026-04-10 08:00', '2026-04-10 20:00'],
+        aRenseigner: [],
+        ensuite: [],
+      }),
     )
   })
 
