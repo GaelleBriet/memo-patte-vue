@@ -772,16 +772,20 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
     })
   })
 
-  it('#835 : « Supprimer ce report » grisé quand un report plus lointain existe, comme « Prochaine dose »', () => {
+  it('#835 : « Supprimer ce report » grisé quand un report plus lointain existe, avec son propre texte', () => {
     const book = treatment([VENDREDI], [...PIXEL, postponed('2026-10-26', '2026-10-28')])
-    const report = history(book, '2026-10-15').periods[0]!.lines.find(
-      (other) => other.kind === 'move' && other.dose.dueOn === '2026-10-16',
-    )!
+    const report = () =>
+      history(book, '2026-10-15').periods[0]!.lines.find(
+        (other) => other.kind === 'move' && other.dose.dueOn === '2026-10-16',
+      )!
 
-    expect(report.actions).toEqual(['remove-move'])
-    expect(report.refused).toEqual({
-      'remove-move':
-        'Une dose plus lointaine est déjà reportée. Supprime ce report pour déplacer celle-ci.',
+    expect(report().actions).toEqual(['remove-move'])
+    expect(report().refused).toEqual({
+      'remove-move': 'Une dose plus lointaine est déjà reportée. Supprime d’abord son report.',
+    })
+    applyLocale('en')
+    expect(report().refused).toEqual({
+      'remove-move': 'A later dose is already postponed. Delete its postponement first.',
     })
   })
 

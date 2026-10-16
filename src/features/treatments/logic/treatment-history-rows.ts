@@ -1,5 +1,5 @@
 import { movedDueOf } from './treatment-line-actions'
-import { refusalText } from './treatment-refusal-texts'
+import { refusalText, removeMoveRefusalText } from './treatment-refusal-texts'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import { nextDay } from '@/shared/domain/calendar-day'
@@ -139,7 +139,7 @@ function moveLine(
     actions: locked ? [] : found === null ? ['remove-move'] : ['change-date', 'remove-move'],
     ...(refusal === null || locked
       ? {}
-      : { refused: { 'remove-move': refusalText(t, refusal, today) } }),
+      : { refused: { 'remove-move': removeMoveRefusalText(t, refusal, today) } }),
     bounds: found,
   }
 }

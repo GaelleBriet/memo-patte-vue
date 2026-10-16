@@ -5,6 +5,43 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.81](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.80...memo-patte-v0.1.81) (2026-10-16)
+
+
+### 🐛 Corrections
+
+* **dose-calendar:** « elles n'étaient pas à donner » garde l'arrivée d'un report encore en vigueur ([d9416c3](https://github.com/GaelleBriet/memo-patte-vue/commit/d9416c3ee6948477427a66bd20ec3846d26b3ff1))
+* **dose-calendar:** « pas à donner » garde au calendrier une journée qui garde ses heures ([e5e6efa](https://github.com/GaelleBriet/memo-patte-vue/commit/e5e6efa4896ebe8c658f4d03f1d0c43c181ec201))
+* **dose-calendar:** « pas à donner » ne repart pas d'un jour d'arrivée (R6) ([cafc0f6](https://github.com/GaelleBriet/memo-patte-vue/commit/cafc0f6327f321a83667fc5bcd1ea4cc1e37a2c5))
+* **dose-calendar:** « pas à donner » repart d'un jour d'arrivée s'il est sur la grille ([68a2d6a](https://github.com/GaelleBriet/memo-patte-vue/commit/68a2d6ab69bdf6df6e86d7c681b7d37cbff30f14))
+* **dose-calendar:** « pas à donner » repart d'une journée du réglage corrigé, pas d'une arrivée ([0a8b2a6](https://github.com/GaelleBriet/memo-patte-vue/commit/0a8b2a67ad7e72f94b7a7813ab348eec760161e5))
+* **dose-calendar:** au jour de départ, une prise écrite après le report ne réduit pas son rang ([9188f53](https://github.com/GaelleBriet/memo-patte-vue/commit/9188f532cf688c8b009b8fc38bf0999d5f9f6345))
+* **dose-calendar:** aux heures d'un report, seules les prises d'un réglage antérieur se déplacent ([536afee](https://github.com/GaelleBriet/memo-patte-vue/commit/536afeea834a304146b8a6d719408a9a82428d01))
+* **dose-calendar:** aux heures d'un report, une journée de l'autre réglage ne couvre pas tout ([fd48972](https://github.com/GaelleBriet/memo-patte-vue/commit/fd489721be443abbbcd37ab0bb9ae1010b7aada4))
+* **dose-calendar:** décisions du 16 octobre sur les prises du jour du changement et [#864](https://github.com/GaelleBriet/memo-patte-vue/issues/864) ([719962d](https://github.com/GaelleBriet/memo-patte-vue/commit/719962d391d984f9ea67be6c37c0a9b91144e12c))
+* **dose-calendar:** l'oubli du jour garde sa traduction, le report lit seulement les heures absentes ([15fe3d0](https://github.com/GaelleBriet/memo-patte-vue/commit/15fe3d0dd804f26fc2f09fb8b2cb9894f18e0a89))
+* **dose-calendar:** la correction ne part pas après l'arrivée d'un report parti de ses journées ([74f0c17](https://github.com/GaelleBriet/memo-patte-vue/commit/74f0c1776d4047ecf96c49924745b0759c9cb2b7))
+* **dose-calendar:** la correction ne repart de l'arrivée que si le report perdrait son effet ([c9b75a7](https://github.com/GaelleBriet/memo-patte-vue/commit/c9b75a78ccfc70600ce0527b5620ce548b975924))
+* **dose-calendar:** la journée du changement n'est traduite que si son réglage change d'heures ([6b26b98](https://github.com/GaelleBriet/memo-patte-vue/commit/6b26b986186bc5b2e2ef00e11f60c967cd584d37))
+* **dose-calendar:** le jour choisi qui emmène un report garde les heures du réglage qui l'a choisi ([80ed2c2](https://github.com/GaelleBriet/memo-patte-vue/commit/80ed2c253aef2df395ec0bbd54ec0d96c5369d5c))
+* **dose-calendar:** le jour de départ garde aussi les doses d'après le report déjà notées ([5e643d4](https://github.com/GaelleBriet/memo-patte-vue/commit/5e643d493399c7454105ed111eeeaf0b37cb235e))
+* **dose-calendar:** le jour du changement, un report d'un autre réglage se juge sur ses heures ([51e3150](https://github.com/GaelleBriet/memo-patte-vue/commit/51e3150977a1bb756ddcf476013e5185eb63987c))
+* **dose-calendar:** le jour du changement, une prise du jour ne couvre jamais un autre jour ([611b9ad](https://github.com/GaelleBriet/memo-patte-vue/commit/611b9ade9340443b057c7b2ecbe8049259d22bbf))
+* **dose-calendar:** les prises se posent avant les reports, une heure d'une prise compte partout ([2392cf9](https://github.com/GaelleBriet/memo-patte-vue/commit/2392cf9d800864220a44b6d46ea2676be32cbf07))
+* **dose-calendar:** seul le réglage qui relit la journée fait juger un report sur ses heures ([3fb1e91](https://github.com/GaelleBriet/memo-patte-vue/commit/3fb1e91ad21b6b13246fe2d0b04ed94a857b7fd6))
+* **dose-calendar:** seule la journée relue aux nouvelles heures garde les heures d'un report ([93a0c9b](https://github.com/GaelleBriet/memo-patte-vue/commit/93a0c9bfaf154c9c8917b51dc12c71177a145040))
+* **dose-calendar:** un décalage ne fixe pas les heures d'une journée, invariant par période ([53fc11a](https://github.com/GaelleBriet/memo-patte-vue/commit/53fc11a078915488588280baa1260ffb4785bf6f))
+* **dose-calendar:** un réglage aux mêmes heures ne relit pas le jour de départ d'un report ([d1802fc](https://github.com/GaelleBriet/memo-patte-vue/commit/d1802fc9f3319200ea5148db41c4181acdc2d47d))
+* **dose-calendar:** un report du jour du changement se juge à ses heures, invariant heures seules ([150232f](https://github.com/GaelleBriet/memo-patte-vue/commit/150232f7062a15e703fcf782c1fe33d44fff69dc))
+* **dose-calendar:** un report écrit avant le changement d'heures du jour garde ses heures ([9c778a3](https://github.com/GaelleBriet/memo-patte-vue/commit/9c778a31680bd0e1d77c8bba669b365232007802))
+* **dose-calendar:** un report lit ses heures avec les prises posées, un oubli ne se traduit plus ([6e96ce4](https://github.com/GaelleBriet/memo-patte-vue/commit/6e96ce4414d156e908ad4dd387cf993fe6de3e36))
+* **dose-calendar:** un report se juge sur ses heures, la date choisie garde celles de son réglage ([8bd577a](https://github.com/GaelleBriet/memo-patte-vue/commit/8bd577a4b0b91a42c57bf3c078398621b8101ac4))
+* **dose-calendar:** une journée déplacée ou notée garde ses heures, seul aujourd'hui traduit ([#854](https://github.com/GaelleBriet/memo-patte-vue/issues/854)) ([d321dad](https://github.com/GaelleBriet/memo-patte-vue/commit/d321dad43459fa5e395d31446258f9ea6d8e81a0))
+* **dose-calendar:** une journée touchée garde ses heures ([#854](https://github.com/GaelleBriet/memo-patte-vue/issues/854)) ([9cf0f8f](https://github.com/GaelleBriet/memo-patte-vue/commit/9cf0f8f25efc1296778089d7bef40cd1c0e0a8ad))
+* **dose-calendar:** une prise écrite après le report ne couvre la suivante que sans heure laissée ([a1853c3](https://github.com/GaelleBriet/memo-patte-vue/commit/a1853c34f9160bff6c4f9d061889905ead0a320e))
+* **treatments:** texte du refus « Supprimer ce report » quand un report plus lointain existe ([4fea247](https://github.com/GaelleBriet/memo-patte-vue/commit/4fea24701eb4c9b0431142ea221fcd8e87725d29))
+* **treatments:** texte propre au refus « Supprimer ce report » quand un report plus lointain existe ([46fe92c](https://github.com/GaelleBriet/memo-patte-vue/commit/46fe92c394cc078eeb14d0bd56bb80e1f680569a))
+
 ## [0.1.80](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.79...memo-patte-v0.1.80) (2026-10-15)
 
 

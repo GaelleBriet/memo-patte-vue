@@ -35,3 +35,9 @@ export function refusalText(t: Translate, refusal: Refusal, today: string): stri
       return t('treatments.form.errors.nextDoseOnRefused')
   }
 }
+
+export function removeMoveRefusalText(t: Translate, refusal: Refusal, today: string): string {
+  return refusal.reason === 'later-line'
+    ? t('treatments.history.refusal.removeMoveLaterLine')
+    : refusalText(t, refusal, today)
+}

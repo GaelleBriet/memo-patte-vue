@@ -684,6 +684,7 @@
       "shiftOptions": "Options for the move of the doses after {date}",
       "refusal": {
         "shiftLaterDose": "A later dose is already logged.",
+        "removeMoveLaterLine": "A later dose is already postponed. Delete its postponement first.",
         "shiftMoveOffRhythm": "Delete the postponement to {date} first.",
         "shiftMovePastNext": "Change the postponement date first."
       }
