@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.82](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.81...memo-patte-v0.1.82) (2026-10-16)
+
+
+### 🐛 Corrections
+
+* **dose-calendar:** prise donnée avant oubli au changement d'heures, grille héritée après « pas à donner » ([19dcf60](https://github.com/GaelleBriet/memo-patte-vue/commit/19dcf60b3e153a1a1f136bd3a820074fd0e481b5))
+* **dose-calendar:** un oubli délogé par une prise donnée prend une heure restée libre ([627c00e](https://github.com/GaelleBriet/memo-patte-vue/commit/627c00e3a0077a6188865f78fee830d125a9779b))
+
 ## [0.1.81](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.80...memo-patte-v0.1.81) (2026-10-16)
 
 
