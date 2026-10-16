@@ -174,6 +174,44 @@ describe('La date choisie qui réécrit un report ne fixe pas les heures du jour
   })
 })
 
+describe('La date choisie suit les heures du réglage qui la choisit', () => {
+  function chosenOn17(): TreatmentViewInput {
+    let input: TreatmentViewInput = {
+      settings: [setting('s1', '2026-04-06', WEEK, H)],
+      lines: [],
+      today: '2026-04-06',
+    }
+    input = given(given(input, '2026-04-06', '08:00'), '2026-04-06', '20:00')
+    input = moved(on(input, '2026-04-09'), '2026-04-13', '08:00', '2026-04-15', false)
+    return edited(input, {
+      frequency: WEEK,
+      times: ['09:00'],
+      endsOn: null,
+      firstDueOn: '2026-04-17',
+    })
+  }
+
+  it('le même jour, 9 h 01 (R10, un seul « Modifier ») : le 17 à 9 h 01, puis le 24', () => {
+    const after = sameHoursAgain(chosenOn17(), ['09:01'])
+    expect(readings(after).moteur.ensuite).toEqual([
+      '2026-04-17 09:01',
+      '2026-04-24 09:01',
+      '2026-05-01 09:01',
+    ])
+    expect(readings(after).moteur).toEqual(readings(after).reference)
+  })
+
+  it('le 10, 10 h : le 17, jour choisi qui a emmené le report, garde 9 h ; le 24 à 10 h', () => {
+    const after = sameHoursAgain(on(chosenOn17(), '2026-04-10'), ['10:00'])
+    expect(readings(after).moteur.ensuite).toEqual([
+      '2026-04-17 09:00',
+      '2026-04-24 10:00',
+      '2026-05-01 10:00',
+    ])
+    expect(readings(after).moteur).toEqual(readings(after).reference)
+  })
+})
+
 describe('Deux téléphones, un réglage du jour réécrit (R10)', () => {
   // Graine 7600001452 : tous les 3 mois à 8, 14 et 20 h, première dose le 5 mars, 14 h et 20 h données
   // d'avance ; le 3, posologie seule (réglage ouvert le jour même).

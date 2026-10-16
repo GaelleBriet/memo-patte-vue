@@ -80,9 +80,17 @@ export function hoursOnly(input: TreatmentViewInput): Broken | null {
     // R10 : remplacé le jour même, un réglage se recalcule comme un seul « Modifier », date comprise.
     const { firstDueOn, gridOriginOn } = plan.setting
     const recomputed = firstDueOn !== current.firstDueOn || gridOriginOn !== current.gridOriginOn
-    if (plan.action === 'rewrite' && current.startsOn === input.today && recomputed) continue
-    const after = daysOf(settingsApplied(input, plan), touched)
-    const broken = compare(`heures seules (${label})`, before, after)
+    const sameDay = plan.action === 'rewrite' && current.startsOn === input.today
+    if (sameDay && recomputed) continue
+    // R7, #796 : la date choisie garde les heures de son réglage, que ce « Modifier » remplace.
+    const chosenDay = sameDay && current.firstDueChosen ? current.firstDueOn : null
+    const kept = new Set([...touched].filter((day) => day !== chosenDay))
+    const after = daysOf(settingsApplied(input, plan), kept)
+    const broken = compare(
+      `heures seules (${label})`,
+      chosenDay ? daysOf(input, kept) : before,
+      after,
+    )
     if (broken !== null) return broken
   }
   return null

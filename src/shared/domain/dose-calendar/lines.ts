@@ -93,17 +93,18 @@ function touchedDays(
   reports: readonly Line[],
   chosenArrivals: ReadonlyMap<Line, Setting>,
 ) {
-  const latest = new Map<Day, Line>()
-  const touch = (day: Day, line: Line) => {
+  const latest = new Map<Day, { line: Line; settingId: string }>()
+  const touch = (day: Day, line: Line, settingId = line.settingId) => {
     const kept = latest.get(day)
-    if (kept === undefined || isMoreRecent(line, kept)) latest.set(day, line)
+    if (kept === undefined || isMoreRecent(line, kept.line)) latest.set(day, { line, settingId })
   }
   notes.forEach((note) => touch(note.dueOn, note))
   for (const report of reports) {
     touch(report.dueOn, report)
-    if (!chosenArrivals.has(report)) touch(report.targetOn!, report)
+    // R7, #796 : le jour choisi qui emmène le report garde les heures du réglage qui l'a choisi.
+    touch(report.targetOn!, report, chosenArrivals.get(report)?.id)
   }
-  return new Map([...latest].map(([day, line]) => [day, line.settingId]))
+  return new Map([...latest].map(([day, { settingId }]) => [day, settingId]))
 }
 
 export function episodeLines(lines: readonly Line[], span: Span): EpisodeLines {

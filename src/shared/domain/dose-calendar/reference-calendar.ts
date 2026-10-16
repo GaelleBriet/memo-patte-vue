@@ -66,8 +66,9 @@ export function calendarOf(
 
   const days = new Map<string, Journey>()
   const translated = translatedDaysOf(live)
-  const keepsArrival = (report: ReferenceLine) => !chosenDateOf(report, live, settingOf)
-  const journeyOn = touchedJourneys([...notes, ...reports], translated, settingOf, keepsArrival)
+  const arrivalHoursOf = (report: ReferenceLine) =>
+    chosenDateOf(report, live, settingOf) ?? settingOf(report.settingId)
+  const journeyOn = touchedJourneys([...notes, ...reports], translated, settingOf, arrivalHoursOf)
   const left = new Map<string, Journey>()
   const claims: Claim[] = []
   // R7, R9.2 : les premières échéances des réglages qui ouvrent un nouveau rythme.

@@ -54,20 +54,19 @@ export function touchedJourneys(
   lines: readonly ReferenceLine[],
   translated: ReadonlySet<string>,
   settingOf: (id: string) => ReferenceSetting,
-  touchesArrival: (report: ReferenceLine) => boolean,
+  arrivalHoursOf: (report: ReferenceLine) => ReferenceSetting,
 ) {
-  const latest = new Map<string, ReferenceLine>()
-  const touch = (day: string, line: ReferenceLine) => {
+  const latest = new Map<string, { line: ReferenceLine; hoursOf: ReferenceSetting }>()
+  const touch = (day: string, line: ReferenceLine, hoursOf: ReferenceSetting) => {
     const kept = latest.get(day)
-    if (kept === undefined || isMoreRecent(line, kept)) latest.set(day, line)
+    if (kept === undefined || isMoreRecent(line, kept.line)) latest.set(day, { line, hoursOf })
   }
   for (const line of lines) {
-    touch(line.dueOn, line)
-    if (line.status === 'postponed' && touchesArrival(line)) touch(line.targetOn!, line)
+    touch(line.dueOn, line, settingOf(line.settingId))
+    if (line.status === 'postponed') touch(line.targetOn!, line, arrivalHoursOf(line))
   }
   return (day: string, setting: ReferenceSetting) => {
-    const line = latest.get(day)
-    const touched = line === undefined ? setting : settingOf(line.settingId)
+    const touched = latest.get(day)?.hoursOf ?? setting
     const own = translated.has(day) || sameHours(touched, setting) ? setting : touched
     return { setting: own, hours: hoursOf(own) }
   }
