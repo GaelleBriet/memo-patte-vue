@@ -155,7 +155,7 @@ describe.each(RYTHMES)(
       )
     })
 
-    it('lecture à confirmer : à 8 h et 20 h, A reporte la dose de 8 h (qui emmène 20 h) ; B passe à 9 h ; A plus récent : le 10 ne reçoit que 8 h, l’heure écrite dans le report', () => {
+    it('à 8 h et 20 h, A reporte la dose de 8 h (qui emmène 20 h) ; B passe à 9 h ; A plus récent : le 10 ne reçoit que 8 h, l’heure écrite dans le report (limite connue de la réécriture sur place)', () => {
       const { base, parA, parB } = conflit(['08:00', '20:00'], '08:00', ['09:00'])
       const merged = synchronises(base, parA, parB, { reportAt: SOIR, correctedAt: MATIN })
       expect(readings(merged)).toEqual(
@@ -180,3 +180,55 @@ describe.each(RYTHMES)(
     })
   },
 )
+
+describe('#867 : toute réécriture qui ôte la journée de départ du report, « Prochaine dose » comprise (décision de Gaelle du 16 octobre 2026)', () => {
+  const WEEK = { value: 1, unit: 'week' as const }
+
+  // Luna, chaque semaine à 8 h, première dose le 10 avril, sans prise ; le 8, A reporte la dose du 10
+  // au 12, B, sans voir ce report, choisit « Prochaine dose » le 15.
+  function luna(reportAt: string, rewrittenAt: string) {
+    const s1 = setting('s1', '2026-04-10', WEEK, ['08:00'], {
+      startsOn: '2026-04-03',
+      createdAt: '2026-04-03T08:00:00.000Z',
+    })
+    const base: TreatmentViewInput = { settings: [s1], lines: [], today: '2026-04-08' }
+    const parA = moved(base, '2026-04-10', '08:00', '2026-04-12', false)
+    const parB = edited(base, {
+      frequency: WEEK,
+      times: ['08:00'],
+      endsOn: null,
+      firstDueOn: '2026-04-15',
+    })
+    const report = parA.lines.at(-1)!
+    const rewritten = { ...parB.settings[0]!, updatedAt: rewrittenAt }
+    return {
+      merged: { ...base, settings: [rewritten], lines: [{ ...report, updatedAt: reportAt }] },
+      reportId: report.id,
+    }
+  }
+
+  it('B plus récent : le report est sans effet, rien le 12, puis le 15 et le 22', () => {
+    const { merged, reportId } = luna(MATIN, SOIR)
+    expect(readings(merged)).toEqual(
+      both({
+        phase: 'upcoming',
+        moment: ['2026-04-15 08:00'],
+        aRenseigner: [],
+        ensuite: ['2026-04-15 08:00', '2026-04-22 08:00', '2026-04-29 08:00'],
+      }),
+    )
+    expect(effectOf(merged, reportId)).toEqual({ kind: 'idle', reason: 'nothing-to-move' })
+  })
+
+  it('A plus récent : le 12 à 8 h, puis le 15 et le 22', () => {
+    const { merged } = luna(SOIR, MATIN)
+    expect(readings(merged)).toEqual(
+      both({
+        phase: 'upcoming',
+        moment: ['2026-04-12 08:00'],
+        aRenseigner: [],
+        ensuite: ['2026-04-12 08:00', '2026-04-15 08:00', '2026-04-22 08:00'],
+      }),
+    )
+  })
+})

@@ -2814,8 +2814,12 @@ transmise par la session d'analyse du moteur, mandatée par Gaelle pour les lect
   à 6 h, ou le 10 à 20 h puis le 17 à 6 h (graine 8010002409). — Alternatives écartées : la réponse
   qui gagne toujours (lecture d'avant, le report sans effet même écrit après) et le report qui gagne
   toujours.
-- Lectures de l'implémenteur, à confirmer par Gaelle (spec §11), qui ne sont pas des décisions de
-  Gaelle : le report plus récent n'emporte que l'heure écrite dans sa ligne ; la règle vaut pour
-  toute réécriture du réglage du report qui ôte sa journée de départ (« Prochaine dose » comprise).
-- Question ouverte (spec §11) : la date d'écriture du réglage n'existe pas encore dans les données
-  de l'app ; d'ici là, la lecture d'avant reste (report sans effet).
+- Décisions de Gaelle du 16 octobre 2026 sur les lectures de #867 (même session) : (1) la date
+  d'écriture du réglage est une colonne à part de la période, écrite seulement quand ses réglages
+  changent (migration v14 de la base et du miroir Supabase, livrée à part) ; d'ici là, le report
+  reste sans effet. — Alternative écartée : la dernière modification de la période, que l'arrêt et
+  son « Annuler » font bouger (Milo arrêté puis « Annuler » le 8 perdrait sa dose reportée au 10).
+  (2) Le report le plus récent n'emporte que l'heure écrite dans sa ligne, limite connue de la
+  réécriture sur place entre deux appareils. — Alternative écartée : les heures suivantes du
+  réglage corrigé, qui donnent une dose de trop (8 h, 9 h et 21 h). (3) La règle vaut pour toute
+  réécriture du réglage du report qui ôte sa journée de départ, « Prochaine dose » comprise.
