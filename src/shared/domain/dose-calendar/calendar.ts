@@ -1,4 +1,5 @@
-import { hoursOf, keyOf, plusDays, sameHours, stepped } from './grid'
+import { coverOrphans, noteEffects } from './calendar-notes'
+import { hoursOf, keyOf, plusDays, sameHours } from './grid'
 import { journeys, type Gap, type Journey } from './journeys'
 import type { EpisodeLines } from './lines'
 import type { Span } from './settings'
@@ -138,21 +139,30 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
         ? new Set(hours.filter((hour) => noted.has(keyOf(dueOn, hour))))
         : new Set(coveredOn(dueOn, origin).keys())
     const written = settingOf(report.settingId)
-    // Le jour où les heures changent, sa journée relue aux nouvelles heures (R4).
-    const reread = translated.has(dueOn) && from.id === span.settingAt(dueOn)?.id
-    const source = reread && written.id !== from.id ? written : from
-    if (source === from ? covered.has(dueTime) : noted.has(keyOf(dueOn, dueTime))) {
+    // R4, R7 : écrit sous d'autres heures que celles du jour où elles changent, un report se juge sur
+    // les prises écrites sous ses heures, et le jour de départ perd autant de doses qu'il en emporte.
+    const reread = translated.has(dueOn) && !sameHours(written, from)
+    const source = reread ? written : from
+    const ownNoted = new Set(
+      (byDay.get(dueOn) ?? [])
+        .filter((note) => sameHours(settingOf(note.settingId), written))
+        .map((note) => note.dueTime),
+    )
+    if (source === from ? covered.has(dueTime) : ownNoted.has(dueTime)) {
       effects.set(report.id, { kind: 'idle', reason: 'beaten' })
       continue
     }
     if (targetOn! > dueOn) fallen.add(dueOn)
     const after = (hour: Hour) => hour === null || hour >= (dueTime ?? '')
-    const leaving = hours.filter((hour) => after(hour) && !covered.has(hour))
-    // Décision du 15 octobre 2026 : écrit avant le changement d'heures, un report emporte les siennes.
+    const free = hours.filter((hour) => !covered.has(hour))
+    const following = free.filter(after)
     const bringing =
       source === from
-        ? leaving
-        : hoursOf(written.times).filter((hour) => after(hour) && !noted.has(keyOf(dueOn, hour)))
+        ? following
+        : hoursOf(written.times).filter((hour) => after(hour) && !ownNoted.has(hour))
+    const earlier = free.filter((hour) => !after(hour))
+    const short = Math.max(0, bringing.length - following.length)
+    const leaving = [...earlier.slice(Math.max(0, earlier.length - short)), ...following]
     if (origin !== undefined) origin.hours = origin.hours.filter((hour) => !leaving.includes(hour))
     const keys = bringing.map((hour) => keyOf(dueOn, hour))
     for (const key of [...leaving.map((hour) => keyOf(dueOn, hour)), ...keys])
@@ -170,8 +180,12 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
       arrival: arrival === undefined ? null : targetOn,
     })
     if (arrival === undefined) continue
-    // R7 : le jour d'arrivée ne reçoit que les heures reportées, telles qu'elles étaient au départ.
-    const own = sameHours(arrival, source) ? arrival : source
+    // R7 : le jour d'arrivée ne reçoit que les heures reportées, telles qu'elles étaient au départ ;
+    // la date choisie qui emmène le report (#796) en porte autant, aux dernières heures de son réglage.
+    const chosen = lines.chosenArrivals.get(report)
+    const under = chosen ?? source
+    const own = sameHours(arrival, under) ? arrival : under
+    const arriving = chosen ? hoursOf(chosen.times).slice(-bringing.length) : bringing
     const day = into.get(targetOn!) ?? { setting: own, hours: [] }
     // R7, R9.2 : un nouveau rythme qui part du jour d'arrivée d'un report lui laisse ses seules heures.
     if (openings.delete(targetOn!)) {
@@ -180,7 +194,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     }
     if (day.hours.length === 0) day.setting = own
     // TR-9, #796 : une journée d'échéance à d'autres heures porte la dose qui y arrive, sans en ajouter.
-    if (sameHours(day.setting, source)) day.hours = [...new Set([...day.hours, ...bringing])].sort()
+    if (sameHours(day.setting, under)) day.hours = [...new Set([...day.hours, ...arriving])].sort()
     into.set(targetOn!, day)
   }
 
@@ -235,53 +249,4 @@ function lastFallen(fallen: ReadonlySet<Day>, { from, to }: { from: Day; to: Day
     .filter((day) => day >= from && day < to)
     .sort()
     .at(-1)
-}
-
-// R4 : une prise donnée dont l'échéance a quitté le calendrier couvre la première échéance qui suit,
-// à moins d'un pas de son réglage ; un oubli ne couvre que sa propre échéance.
-function coverOrphans(
-  notes: readonly Line[],
-  matched: ReadonlySet<Line>,
-  slots: Slot[],
-  settingOf: (id: string) => Setting,
-): void {
-  const orphans = notes
-    .filter((note) => note.status === 'given' && !matched.has(note))
-    .sort((a, b) => keyOf(a.dueOn, a.dueTime).localeCompare(keyOf(b.dueOn, b.dueTime)))
-  for (const note of orphans) {
-    const own = keyOf(note.dueOn, note.dueTime)
-    const slot = slots.find(({ key }) => key > own)
-    const limit = stepped(note.dueOn, settingOf(note.settingId).frequency, 1)
-    if (slot !== undefined && slot.coveredBy === null && slot.due.dueOn < limit) {
-      slot.coveredBy = note
-    }
-  }
-}
-
-function noteEffects(
-  lines: EpisodeLines,
-  borrowed: readonly Line[],
-  slots: readonly Slot[],
-  held: ReadonlyMap<Line, string>,
-  effects: Map<string, LineEffect>,
-): void {
-  const covering = new Map<Line, string>()
-  for (const { coveredBy, key } of slots) {
-    if (coveredBy !== null && !covering.has(coveredBy)) covering.set(coveredBy, key)
-  }
-  for (const note of [...lines.notes, ...borrowed]) {
-    const key = covering.get(note)
-    if (borrowed.includes(note) && key === undefined) continue
-    const covered = key ?? held.get(note)
-    effects.set(
-      note.id,
-      covered === undefined
-        ? { kind: 'idle', reason: 'nothing-to-cover' }
-        : { kind: 'covers', key: covered },
-    )
-  }
-  for (const line of lines.kept) {
-    if (line.status === 'extra') effects.set(line.id, { kind: 'extra' })
-  }
-  lines.idle.forEach((reason, id) => effects.set(id, { kind: 'idle', reason }))
 }

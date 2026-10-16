@@ -1,13 +1,11 @@
 import {
   gridDays,
   hoursOf,
-  type Hour,
   isOnGrid,
   keyOf,
   later,
   plusDays,
   sameFrequency,
-  sameHours,
 } from './reference-grid'
 import {
   coverageOf,
@@ -31,6 +29,7 @@ import {
   touchedJourneys,
   translatedDaysOf,
 } from './reference-lines'
+import { arrivedOn, chosenDateOf, reportOutcome } from './reference-reports'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 type Grid = { origin: string; floor: string; since: string }
@@ -67,7 +66,8 @@ export function calendarOf(
 
   const days = new Map<string, Journey>()
   const translated = translatedDaysOf(live)
-  const journeyOn = touchedJourneys([...notes, ...reports], translated, settingOf)
+  const keepsArrival = (report: ReferenceLine) => !chosenDateOf(report, live, settingOf)
+  const journeyOn = touchedJourneys([...notes, ...reports], translated, settingOf, keepsArrival)
   const left = new Map<string, Journey>()
   const claims: Claim[] = []
   // R7, R9.2 : les premières échéances des réglages qui ouvrent un nouveau rythme.
@@ -222,7 +222,7 @@ export function calendarOf(
       (report) => !waiting.some((other) => other.targetOn === report.dueOn),
     )
     const [report] = waiting.splice(Math.max(0, ready), 1)
-    const { dueOn, dueTime, targetOn } = report!
+    const { dueOn, targetOn } = report!
     const origin = days.get(dueOn) ?? left.get(dueOn)
     const from = origin?.setting ?? settingOf(report!.settingId)
     const hours = origin?.hours ?? hoursOf(from)
@@ -244,33 +244,27 @@ export function calendarOf(
     const before = chosenRestarts.get(report!.settingId) !== chosenOn
     if (chosenOn !== undefined && dueOn === chosenOn && before) continue
     if (origin === undefined && chosenOn !== undefined && !carries) continue
-    // R11 : un report battu par une prise de la même échéance est sans effet ; écrit avant le
-    // changement d'heures du jour, il emporte les siennes sans prise (décision du 15 octobre 2026).
-    const written = settingOf(report!.settingId)
-    const reread = translated.has(dueOn) && from.id === settingAt(dueOn)?.id
-    const source = reread && written.id !== from.id ? written : from
-    if (source === from ? covered.has(dueTime) : noted.has(keyOf(dueOn, dueTime))) continue
+    const outcome = reportOutcome({
+      report: report!,
+      written: settingOf(report!.settingId),
+      day: origin ?? { setting: from, hours },
+      covered,
+      hoursChangeThatDay: translated.has(dueOn),
+      notesOfDay: [...notes, ...borrowed].filter((note) => note.dueOn === dueOn),
+      settingOf,
+    })
+    if (outcome.beaten) continue
     if (targetOn! > dueOn) fallen.add(dueOn)
-    const after = (hour: Hour) => hour === null || hour >= (dueTime ?? '')
-    const leaving = hours.filter((hour) => after(hour) && !covered.has(hour))
-    const moved =
-      source === from
-        ? leaving
-        : hoursOf(written).filter((hour) => after(hour) && !noted.has(keyOf(dueOn, hour)))
-    if (origin !== undefined) origin.hours = origin.hours.filter((hour) => !leaving.includes(hour))
+    if (origin !== undefined) {
+      origin.hours = origin.hours.filter((hour) => !outcome.lost.includes(hour))
+    }
     const stopDay = stoppedAt(targetOn!)
     const arrival = settingAt(targetOn!) ?? stopDay
     const into = stopDay === undefined ? days : left
-    if (arrival === undefined || moved.length === 0) continue
-    // R7 : le jour d'arrivée ne reçoit que les heures reportées, telles qu'au départ.
-    const own = sameHours(arrival, source) ? arrival : source
-    const day = into.get(targetOn!) ?? { setting: own, hours: [] }
-    // R7, R9.2 : un nouveau rythme qui part du jour d'arrivée d'un report lui laisse ses seules heures.
-    if (openings.delete(targetOn!)) day.hours = []
-    if (day.hours.length === 0) day.setting = own
-    // TR-9, #796 : une journée d'échéance à d'autres heures porte la dose reçue, sans en ajouter.
-    if (sameHours(day.setting, source)) day.hours = [...new Set([...day.hours, ...moved])].sort()
-    into.set(targetOn!, day)
+    if (arrival === undefined || outcome.carried.length === 0) continue
+    const opensRhythm = openings.delete(targetOn!)
+    const chosen = chosenDateOf(report!, live, settingOf)
+    into.set(targetOn!, arrivedOn(into.get(targetOn!), outcome, arrival, { opensRhythm, chosen }))
   }
 
   left.forEach((journey, day) => {

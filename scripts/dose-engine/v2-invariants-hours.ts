@@ -59,7 +59,7 @@ function daysOf(input: TreatmentViewInput, touched: ReadonlySet<string>) {
 }
 
 /**
- * 3 bis. R9, décision de Gaelle du 15 octobre 2026 : changer seulement les heures, sans date, ne
+ * 3 bis. R4, R9 : changer seulement les heures, sans date, ne
  * change ni les heures ni l'état d'une journée passée, ni d'une journée à venir qui porte une ligne ;
  * « Elles restent à renseigner » comprise, « Elles n'étaient pas à donner » corrige le réglage (Q38).
  */

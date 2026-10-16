@@ -188,7 +188,7 @@ describe('R9, décision du 15 octobre 2026 : changer les heures vaut à partir d
     ])
   })
 
-  it('#852, graine 4870002589 : la journée du 29, arrivée d’un report sans heure, couverte ; le 30, une minute plus tard : elle le reste (décision du 15 octobre 2026)', () => {
+  it('#852, graine 4870002589 : la journée du 29, arrivée d’un report, couverte ; le 30, une minute plus tard : elle le reste (décision du 15 octobre 2026)', () => {
     const input: TreatmentViewInput = {
       settings: [
         setting('s1', '2026-03-07', THREE_DAYS, ['08:00', '20:00']),
@@ -211,7 +211,7 @@ describe('R9, décision du 15 octobre 2026 : changer les heures vaut à partir d
       today: '2026-03-30',
     }
     const after = minuteLater(input)
-    expect(pastSlots(input, '2026-03-29')).toEqual(['2026-03-29 covered'])
+    expect(pastSlots(input, '2026-03-29')).toEqual(['2026-03-29 20:00 covered'])
     expect(pastSlots(after, '2026-03-07')).toEqual(pastSlots(input, '2026-03-07'))
     expect(readings(after)).toEqual(
       both({

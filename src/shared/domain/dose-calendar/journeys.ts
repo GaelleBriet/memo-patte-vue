@@ -75,8 +75,8 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   const days = new Map<Day, Journey>()
   const translated = span.hoursChangeOn
   const byId = new Map(span.episode.map((setting) => [setting.id, setting]))
-  // Décision du 15 octobre 2026 : hors du jour où les heures changent (R4), une journée touchée garde
-  // les heures du réglage de sa ligne la plus récente.
+  // R4 : hors du jour où les heures changent, une journée touchée garde les heures du réglage de sa
+  // ligne la plus récente, celles qu'elle avait quand elle a été touchée.
   const journeyOn = (day: Day, setting: Setting): Journey => {
     const touched = byId.get(lines.touched.get(day) ?? '')
     const own =

@@ -48,12 +48,13 @@ export const translatedDaysOf = (live: readonly ReferenceSetting[]): Set<string>
       .map(({ startsOn }) => startsOn),
   )
 
-// Décision du 15 octobre 2026 : hors du jour où les heures changent (R4), une journée notée ou
-// déplacée garde les heures du réglage de sa ligne la plus récente (TR-25).
+// R4 : hors du jour où les heures changent, une journée notée ou déplacée garde les heures du réglage
+// de sa ligne la plus récente (TR-25), celles qu'elle avait quand elle a été touchée.
 export function touchedJourneys(
   lines: readonly ReferenceLine[],
   translated: ReadonlySet<string>,
   settingOf: (id: string) => ReferenceSetting,
+  touchesArrival: (report: ReferenceLine) => boolean,
 ) {
   const latest = new Map<string, ReferenceLine>()
   const touch = (day: string, line: ReferenceLine) => {
@@ -62,7 +63,7 @@ export function touchedJourneys(
   }
   for (const line of lines) {
     touch(line.dueOn, line)
-    if (line.status === 'postponed') touch(line.targetOn!, line)
+    if (line.status === 'postponed' && touchesArrival(line)) touch(line.targetOn!, line)
   }
   return (day: string, setting: ReferenceSetting) => {
     const line = latest.get(day)

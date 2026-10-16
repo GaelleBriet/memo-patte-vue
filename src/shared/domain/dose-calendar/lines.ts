@@ -1,4 +1,4 @@
-import { hoursOf, keyOf } from './grid'
+import { hoursOf, keyOf, sameFrequency } from './grid'
 import type { Span } from './settings'
 import type { Day, IdleReason, Line, Setting } from './types'
 
@@ -62,11 +62,37 @@ export type EpisodeLines = {
   shifts: Line[]
   idle: Map<string, IdleReason>
   doseKey: (line: Line) => string
-  /** Décision du 15 octobre 2026 : jour noté ou déplacé → réglage de sa ligne la plus récente (TR-25). */
+  /** R4 : jour noté ou déplacé → réglage de sa ligne la plus récente (TR-25), dont il garde les heures. */
   touched: ReadonlyMap<Day, string>
+  /** R7, #796 : report que la date choisie emmène → le réglage dont elle est la première échéance. */
+  chosenArrivals: ReadonlyMap<Line, Setting>
 }
 
-function touchedDays(notes: readonly Line[], reports: readonly Line[]): Map<Day, string> {
+// R10 : à fréquence gardée seulement, la date choisie emmène le report (#796).
+function chosenArrivalsOf(reports: readonly Line[], span: Span): Map<Line, Setting> {
+  const createdAt = (id: string) => span.episode.find((setting) => setting.id === id)?.createdAt
+  const chosen = span.live.filter(
+    (setting, index) =>
+      setting.firstDueChosen &&
+      index > 0 &&
+      sameFrequency(span.live[index - 1]!.frequency, setting.frequency),
+  )
+  const arrivals = new Map<Line, Setting>()
+  for (const report of reports) {
+    const written = createdAt(report.settingId) ?? ''
+    const picker = chosen.find(
+      (setting) => setting.firstDueOn === report.targetOn && setting.createdAt > written,
+    )
+    if (picker !== undefined) arrivals.set(report, picker)
+  }
+  return arrivals
+}
+
+function touchedDays(
+  notes: readonly Line[],
+  reports: readonly Line[],
+  chosenArrivals: ReadonlyMap<Line, Setting>,
+) {
   const latest = new Map<Day, Line>()
   const touch = (day: Day, line: Line) => {
     const kept = latest.get(day)
@@ -75,7 +101,7 @@ function touchedDays(notes: readonly Line[], reports: readonly Line[]): Map<Day,
   notes.forEach((note) => touch(note.dueOn, note))
   for (const report of reports) {
     touch(report.dueOn, report)
-    touch(report.targetOn!, report)
+    if (!chosenArrivals.has(report)) touch(report.targetOn!, report)
   }
   return new Map([...latest].map(([day, line]) => [day, line.settingId]))
 }
@@ -108,6 +134,7 @@ export function episodeLines(lines: readonly Line[], span: Span): EpisodeLines {
     }
   }
   const notes = kept.filter(isNote)
-  const touched = touchedDays(notes, reports)
-  return { kept, notes, reports, shifts, idle, doseKey, touched }
+  const chosenArrivals = chosenArrivalsOf(reports, span)
+  const touched = touchedDays(notes, reports, chosenArrivals)
+  return { kept, notes, reports, shifts, idle, doseKey, touched, chosenArrivals }
 }
