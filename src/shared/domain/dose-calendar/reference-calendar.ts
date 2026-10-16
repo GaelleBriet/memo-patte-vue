@@ -1,11 +1,14 @@
 import {
   gridDays,
   hoursOf,
+  isDueDay,
   isOnGrid,
   keyOf,
   later,
   plusDays,
   sameFrequency,
+  turned,
+  type Grid,
 } from './reference-grid'
 import {
   coverages,
@@ -33,7 +36,6 @@ import {
 import { arrivedOn, chosenDateOf, hoursChangedSince, reportOutcome } from './reference-reports'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
-type Grid = { origin: string; floor: string; since: string }
 type Calendar = { pending: string[]; fallen: Set<string>; rhythmFrom: string }
 
 export function calendarOf(
@@ -87,13 +89,6 @@ export function calendarOf(
   let chosenFloor = ''
   let rhythmFloor = ''
   let anchors = new Set<ReferenceLine>()
-  const isDueDay = (on: Grid, setting: ReferenceSetting, day: string) =>
-    day > on.since && isOnGrid(on.origin, setting.frequency, day)
-  const turned = (turn: ReferenceLine, floor: string): Grid => ({
-    origin: turn.targetOn!,
-    floor: later(floor, later(turn.dueOn, turn.targetOn!)),
-    since: later(turn.dueOn, turn.targetOn!),
-  })
   chain.forEach((setting, position) => {
     const index = live.indexOf(setting)
     const end = index < 0 ? setting.startsOn : endOf(index)

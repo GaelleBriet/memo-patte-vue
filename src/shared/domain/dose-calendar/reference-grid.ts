@@ -1,4 +1,4 @@
-import type { ReferenceFrequency, ReferenceSetting } from './reference-types'
+import type { ReferenceFrequency, ReferenceLine, ReferenceSetting } from './reference-types'
 
 export type Hour = string | null
 
@@ -46,3 +46,16 @@ export const sameFrequency = (a: ReferenceSetting, b: ReferenceSetting) =>
 
 export const isOnGrid = (origin: string, frequency: ReferenceFrequency, day: string) =>
   gridDays(origin, frequency, day, day).length === 1
+
+/** La grille en vigueur ; `floor` : veille du premier jour lu ; `since` : veille de la première échéance. */
+export type Grid = { origin: string; floor: string; since: string }
+
+export const isDueDay = (on: Grid, setting: ReferenceSetting, day: string) =>
+  day > on.since && isOnGrid(on.origin, setting.frequency, day)
+
+/** R6 : à partir de sa journée d'origine, un décalage donne à la grille l'origine de son ancrage. */
+export const turned = (turn: ReferenceLine, floor: string): Grid => ({
+  origin: turn.targetOn!,
+  floor: later(floor, later(turn.dueOn, turn.targetOn!)),
+  since: later(turn.dueOn, turn.targetOn!),
+})
