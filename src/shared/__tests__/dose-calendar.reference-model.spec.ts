@@ -272,10 +272,10 @@ describe('R7, R9 : la journée d’arrivée devenue première échéance d’une
 
 describe('R7, R9.2 : la dose avancée dont l’arrivée devient la première échéance d’un nouveau rythme (relecture du pas 3)', () => {
   it.each([
-    ['avancée au 12', '2026-04-12', ['2026-04-12 23:00', '2026-05-24 06:00']],
-    ['reportée au 14', '2026-04-14', ['2026-04-14 23:00', '2026-05-26 06:00']],
+    ['avancée au 12', '2026-04-12', ['2026-04-12 20:00', '2026-05-24 06:00']],
+    ['reportée au 14', '2026-04-14', ['2026-04-14 20:00', '2026-05-26 06:00']],
   ])(
-    'toutes les 2 semaines à 20 h du 30 mars, dose du 13 %s, puis toutes les 6 semaines à 6, 12, 18, 23 h : la journée d’arrivée n’a que 23 h',
+    'toutes les 2 semaines à 20 h du 30 mars, dose du 13 %s, puis toutes les 6 semaines à 6, 12, 18, 23 h : la journée d’arrivée garde la dose reportée à 20 h (décision du 15 octobre 2026)',
     (_, arrival, expected) => {
       const p1 = setting('p1', '2026-03-30', { value: 2, unit: 'week' }, ['20:00'])
       const p2 = setting(
@@ -297,7 +297,7 @@ describe('R7, R9.2 : la dose avancée dont l’arrivée devient la première éc
 })
 
 describe('R7, R9.2 : un rythme qui ne part plus de l’arrivée d’un report n’en efface pas les heures (relecture du pas 3)', () => {
-  it('hebdo à 20 h, doses des 6 et 13 avr. données, dose du 20 avancée au 16 ; le 14, tous les 2 jours dès le 16 ; le 15, tous les jours à 8 et 20 h : le 16 garde 8 h', () => {
+  it('hebdo à 20 h, doses des 6 et 13 avr. données, dose du 20 avancée au 16 ; le 14, tous les 2 jours dès le 16 ; le 15, tous les jours à 8 et 20 h : le 16, jour d’arrivée et de grille, garde 8 h et y reçoit 20 h (décision du 16 octobre 2026)', () => {
     const p1 = setting('p1', '2026-04-06', WEEK, ['20:00'])
     const p2 = setting('p2', '2026-04-16', TWO_DAYS, ['20:00'], { startsOn: '2026-04-14' })
     const p3 = setting('p3', '2026-04-15', DAY, H, { startsOn: '2026-04-15' })
@@ -315,7 +315,7 @@ describe('R7, R9.2 : un rythme qui ne part plus de l’arrivée d’un report n�
     ])
   })
 
-  it('hebdo à 20 h, dose du 13 avr. reportée au 15 ; le 8, tous les 2 jours dès le 15 ; le 9, tous les 3 jours à 8 et 20 h dès le 12 : le 15 garde 8 h', () => {
+  it('hebdo à 20 h, dose du 13 avr. reportée au 15 ; le 8, tous les 2 jours dès le 15 ; le 9, tous les 3 jours à 8 et 20 h dès le 12 : le 15, jour d’arrivée et de grille, garde 8 h et y reçoit 20 h (décision du 16 octobre 2026)', () => {
     const p1 = setting('p1', '2026-04-06', WEEK, ['20:00'])
     const p2 = setting('p2', '2026-04-15', TWO_DAYS, ['20:00'], { startsOn: '2026-04-08' })
     const p3 = setting('p3', '2026-04-12', { value: 3, unit: 'day' }, H, { startsOn: '2026-04-09' })
@@ -861,17 +861,17 @@ describe('R6, R7 : le report qui porte la date choisie garde son effet (graines 
   })
 })
 
-describe('#806, Q38 : « Elles n’étaient pas à donner » ne laisse plus aucune dose avant la date de fin (graine 975000503)', () => {
+describe('#806, Q38 : « Elles n’étaient pas à donner » ne laisse plus aucune dose avant la date de fin (d’après la graine 975000503, 14 h reportée)', () => {
   const threeTimes = ['08:00', '14:00', '20:00']
   const s1 = setting('s1', '2026-03-14', DAY, threeTimes, { endsOn: '2026-04-06' })
   const lines = [
-    line('s1', 'postponed', '2026-03-17', '08:00', '2026-04-05'),
-    line('s1', 'shift', '2026-03-17', '08:00', '2026-04-05'),
+    line('s1', 'postponed', '2026-03-17', '14:00', '2026-04-05'),
+    line('s1', 'shift', '2026-03-17', '14:00', '2026-04-05'),
     line('s1', 'given', '2026-03-16', '08:00'),
   ]
   const fourTimes = ['06:00', '12:00', '18:00', '23:00']
 
-  it('chaque jour à 8, 14 et 20 h, fin le 6 avr. ; 8 h du 17 mars reportée au 5 avr. avec décalage, réglage à 6, 12, 18 et 23 h du 17 corrigé le 18 à 8, 14 et 20 h dès le 18, fin le 25 : aucune dose avant le 25', () => {
+  it('chaque jour à 8, 14 et 20 h, fin le 6 avr. ; 14 h du 17 mars reportée au 5 avr. avec décalage, réglage à 6, 12, 18 et 23 h du 17 corrigé le 18 à 8, 14 et 20 h dès le 18, fin le 25 : aucune dose avant le 25', () => {
     const corrected = setting('s2', '2026-03-18', DAY, threeTimes, {
       startsOn: '2026-03-17',
       endsOn: '2026-03-25',

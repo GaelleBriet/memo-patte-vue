@@ -356,7 +356,7 @@ describe('#811, Q26 : une dose notée plus loin que le jour de la modification g
     expect(chosenDateRefusal(without, newSettings(without, posology))).toBeNull()
   })
 
-  it('tous les 2 jours à 8 h et 20 h, 8 h du 3 donnée le 2 ; le 2, heure passée à 9 h seule : le 5 proposé, champ grisé (le 3 n’est plus la prochaine dose)', () => {
+  it('tous les 2 jours à 8 h et 20 h, 8 h du 3 donnée le 2 ; le 2, heure passée à 9 h seule : le 3, entamé, garde ses heures et reste proposé, champ libre (décision du 15 octobre 2026)', () => {
     const twice = setting('t1', '2026-10-01', TWO_DAYS, ['08:00', '20:00'])
     const early = {
       settings: [twice],
@@ -368,7 +368,9 @@ describe('#811, Q26 : une dose notée plus loin que le jour de la modification g
       today: '2026-10-02',
     }
     const nine = { frequency: TWO_DAYS, times: ['09:00'], endsOn: null }
-    expect(chosenDateRefusal(early, newSettings(early, nine))).toEqual({ reason: 'later-dose' })
+    const result = newSettings(early, nine)
+    expect(result).toMatchObject({ plan: { setting: { firstDueOn: '2026-10-03' } } })
+    expect(chosenDateRefusal(early, result)).toBeNull()
   })
 })
 

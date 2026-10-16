@@ -750,7 +750,7 @@ describe('buildCarnetPdfContent — historique', () => {
     expect(row.lastDoseDate).toBe('2026-06-03')
   })
 
-  it('garde un report qui n’a plus de dose à déplacer, la fréquence ayant changé le même jour, « · sans effet » comme sur la fiche', () => {
+  it('un report écrit sous les heures d’avant, la fréquence ayant changé le même jour, emporte 20 h : ni lui ni la prise du 29 ne sont « sans effet », comme sur la fiche (décision du 15 octobre 2026)', () => {
     const row = treatmentRow(
       [
         {
@@ -787,14 +787,8 @@ describe('buildCarnetPdfContent — historique', () => {
     )
 
     expect(row.periods[1]!.lines).toEqual([
-      {
-        kind: 'idle',
-        line: { kind: 'moved', dueOn: '2026-03-28', to: '2026-03-29', advanced: false },
-      },
-      {
-        kind: 'idle',
-        line: { kind: 'given', series: { kind: 'dates', doses: [at('2026-03-25', '20:00')] } },
-      },
+      { kind: 'moved', dueOn: '2026-03-28', to: '2026-03-29', advanced: false },
+      { kind: 'given', series: { kind: 'dates', doses: [at('2026-03-25', '20:00')] } },
     ])
   })
 

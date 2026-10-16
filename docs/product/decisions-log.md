@@ -2702,3 +2702,76 @@ R10, §10 et §11 ; modèle de données §4.3 ; export v6).
 - Attendu de Gaelle, exemple 2 (graine 7500002108) : rien « à renseigner » le 6 avril après
   « Elles n'étaient pas à donner ».
 - Les deux tests passent au vert dans #854, prochain ticket.
+
+2026-10-15 — **Une journée touchée garde ses heures** (spec `traitements.md` R3, R4, R7, R9, R11,
+TR-28 et §10, #854).
+
+- Décision de Gaelle du 15 octobre 2026 (soir) : « Une journée déjà déplacée ou notée garde les
+  heures qu'elle avait quand elle a été touchée ; les nouvelles heures valent pour les journées non
+  touchées ; aujourd'hui garde la règle actuelle (R4 : les prises du jour couvrent les premières heures
+  du nouveau réglage) ; la journée à venir déjà entamée (R9.2) garde aussi ses heures, pour n'avoir
+  qu'une règle. »
+- Elle remplace la décision du 15 octobre au matin sur Luna (le jour d'arrivée ne gardait qu'une
+  dose, aux nouvelles heures), la « fin de liste » de R7 (le jour d'arrivée prenait les dernières
+  nouvelles heures) et la traduction de R9.2 pour une journée à venir. Une seule traduction reste,
+  le jour où les heures changent.
+- Exemple : Luna, toutes les 2 semaines à 8 h, 14 h et 20 h ; le 12 avril, la dose du 23 avancée au
+  15, puis 6 h seule le même jour : le 15 porte 8 h, 14 h et 20 h, le 23 est vide, puis le 7 mai à
+  6 h. — Alternative écartée : faire passer les journées à venir déjà touchées aux nouvelles heures
+  (PR #858), qui devait compter et « traduire » les doses de chaque journée et lisait 65 carnets sur
+  3 000 plus mal que `main`.
+
+2026-10-16 — **Six lectures de #859 tranchées ; les prises se posent avant les reports** (spec
+`traitements.md` R4, R7, R9, TR-25, TR-28, §10 et §11, #854, #860).
+
+- Décisions de Gaelle du 16 octobre 2026 : (1) le jour du changement, le jour de départ d'un report
+  écrit avant perd autant de doses que le report en emporte ; (4) un décalage ne fixe pas les
+  heures de sa journée ; (5) sans dose tombée, changer les heures à fréquence gardée ouvre un réglage
+  à partir d'aujourd'hui ; (2) une prise couvre son échéance, jour et heure, quel que soit le
+  réglage, et une prise dont l'heure n'existe pas ce jour-là couvre la première échéance libre qui la
+  suit ; un report n'emporte que ses heures sans prise, de toute provenance ; (6) une journée
+  d'échéance qui reçoit un report garde ses doses et y ajoute les doses reportées ; (3) la date
+  choisie qui emmène un report reçoit la journée entière du nouveau réglage.
+- #860 : les prises se posent d'abord (exactes, puis sur la première échéance libre qui suit), les
+  reports se lisent ensuite ; c'est ce qui règle les deux téléphones dont l'un réécrit le réglage du
+  jour.
+- Remplacent la date choisie « aux dernières heures de son réglage ».
+- Exemple : Milo, tous les mois à 8 h et 20 h, 20 h du 1er avril donnée d'avance, passage à 8 h,
+  14 h et 20 h, 14 h reportée au 16 : le 1er lit 8 h (à donner), 14 h et 20 h (couverte), le 16
+  reçoit 14 h seule. — Alternative écartée : la prise de 20 h couvrait 8 h et le 16 recevait 14 h et
+  20 h, une dose de trop.
+
+2026-10-16 — **Cinq lectures de #859, #862 et #864 tranchées** (spec `traitements.md` R4, R7, R9,
+TR-25, §10 et §11, #854 ; transmises par la session d'analyse du moteur, mandatée par Gaelle pour
+les lectures de règles).
+
+- Le jour du changement, le jour de départ d'un report garde autant de doses que le report en a
+  laissées avant lui (par rang), sur les premières heures du nouveau réglage ; une dose n'apparaît
+  pas sans geste : chaque jour à 8, 14 et 20 h, 8 h du 17 mars reportée au 5 avril, puis 6, 12, 18 et
+  23 h le même jour : rien le 17. — Alternative écartée : garder les heures plus tôt que celle du
+  report, qui crée une dose.
+- Les prises du jour couvrent les premières heures du nouveau réglage, dans l'ordre ; une prise ne
+  couvre son heure que si elle existe encore (20 h donnée d'avance, 9 h et 21 h le même jour : 9 h
+  couverte, 21 h à donner).
+- Deux prises du même jour et de la même heure sont la même dose (TR-25) : la plus récente vaut,
+  l'autre est sans effet. — Alternative écartée : l'autre couvrait une heure libre, une dose
+  comptée deux fois.
+- Une prise ou un oubli écrits après un report du jour ne se posent que sur les heures qu'il a
+  laissées ; sinon une prise couvre la première échéance qui suit, un oubli est sans effet.
+- « Prochaine dose » désigne une journée : le jour choisi porte toutes les heures du nouveau réglage,
+  avec les doses reportées. « Première échéance libre » ne vaut que dans la journée ; d'un jour à
+  l'autre, la première échéance qui suit, à moins d'un pas, ou sans effet (#862).
+- #864 corrigé : la journée de départ d'un report porte aussi les doses qui y étaient arrivées.
+- « Elles n'étaient pas à donner » ne saute le jour d'arrivée d'un report hors de la grille que si ce
+  report part d'avant le réglage corrigé (sinon le report deviendrait sans effet, R7, R9.2).
+
+2026-10-16 — **La journée du changement n'est traduite que si le réglage qui la lit change d'heures**
+(spec `traitements.md` R4 et §10, #854 ; transmise par la session d'analyse du moteur, mandatée par
+Gaelle pour les lectures de règles).
+
+- Une journée touchée lue sous un réglage plus ancien garde ses doses quand un autre réglage change
+  d'heures ce jour-là.
+- Exemple : journée du 12 touchée sous 6, 12, 18 et 23 h (6 h et 12 h données, 23 h reportée au 13),
+  réglage en cours à 20 h, « 20 h → 20 h 01 » le 12 : le 12 garde 18 h à donner (graine 7810000428).
+  — Alternative écartée : traduire la journée vers 20 h 01, qui faisait disparaître la dose de 18 h
+  pour une minute d'écart.

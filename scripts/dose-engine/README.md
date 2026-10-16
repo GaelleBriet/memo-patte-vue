@@ -39,7 +39,13 @@ conservation des faits, pas de double, posologie sans effet, temps, symétrie, a
 préversion = résultat, équivalence au modèle naïf ; et un neuvième pour « Modifier » (R9, R12) : la
 fiche montre la date proposée (`shownOn`, sinon la première échéance écrite), qui a encore une dose à
 donner ; la même demande avec cette date passée en clair rend la même réponse (jamais un refus, sauf
-`no-dose-before-end`, #787) ; une autre date choisie est celle que la fiche lit. La campagne ne
+`no-dose-before-end`, #787) ; une autre date choisie est celle que la fiche lit. « Heures seules »
+(`v2-invariants-hours.ts`, décision de Gaelle du 15 octobre 2026) : changer seulement les heures,
+sans date (une minute plus tard, une heure ajoutée, retirée, aucune), ne change ni les heures ni
+l'état d'une journée passée, ni d'une journée à venir de la période qui porte une prise ou l'origine
+ou l'arrivée d'un report ; « Elles restent à renseigner » comprise, « Elles n'étaient pas à donner »
+corrige le réglage (Q38) ; un réglage ouvert aujourd'hui et remplacé, dont la date se recalcule
+comme un seul « Modifier » (R10), n'est pas jugé. La campagne ne
 choisit jamais une « Prochaine dose » après la date de fin, que le formulaire refuse (Q20). Variables
 posées directement devant la commande, sous le même verrou :
 

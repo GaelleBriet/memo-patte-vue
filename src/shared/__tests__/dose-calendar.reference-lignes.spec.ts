@@ -30,7 +30,7 @@ describe('R7 : le report déplace une heure et les suivantes encore sans prise',
     ])
   })
 
-  it('heures changées : le jour d’arrivée prend autant de dernières heures que de doses reportées', () => {
+  it('heures changées : le jour d’arrivée reçoit la dose reportée à son heure, 20 h (décision du 15 octobre 2026)', () => {
     const p1 = setting('p1', '2026-10-01', TWO_DAYS, H)
     const p2 = setting('p2', '2026-10-05', TWO_DAYS, ['09:00', '21:00'], {
       startsOn: '2026-10-04',
@@ -40,7 +40,7 @@ describe('R7 : le report déplace une heure et les suivantes encore sans prise',
       line('p1', 'given', '2026-10-03', '08:00'),
       line('p1', 'postponed', '2026-10-03', '20:00', '2026-10-04'),
     ]
-    expect(read([p1, p2], lines, '2026-10-04').current).toEqual(['2026-10-04 21:00'])
+    expect(read([p1, p2], lines, '2026-10-04').current).toEqual(['2026-10-04 20:00'])
   })
 
   it('un report garde son arrivée quand sa journée d’origine n’est plus une échéance', () => {
@@ -101,7 +101,7 @@ describe('R4 : une prise ne se perd jamais', () => {
     expect(read(WEEKLY, lines, '2026-10-18').current).toEqual(['2026-10-24'])
   })
 
-  it('le 13 mars complet (8 h couverte par traduction) sorti du calendrier : son report vers le 31 reste sans effet', () => {
+  it('le 13 mars sorti du calendrier garde la lecture de sa ligne la plus récente : les deux prises de 20 h sont une dose, le report emporte 8 h au 31 (décision du 15 octobre 2026)', () => {
     const until = { endsOn: '2026-04-03' }
     const fortnight = setting(
       's1',
@@ -117,7 +117,7 @@ describe('R4 : une prise ne se perd jamais', () => {
       line('s1', 'postponed', '2026-03-13', '08:00', '2026-03-31'),
       line('s2', 'given', '2026-03-13', '20:00'),
     ]
-    expect(read([fortnight, monthly, fromToday], lines, '2026-03-11').upcoming).not.toContain(
+    expect(read([fortnight, monthly, fromToday], lines, '2026-03-11').upcoming).toContain(
       '2026-03-31 08:00',
     )
   })
@@ -152,7 +152,7 @@ describe('R7 : un réglage remplacé le jour où il commence ne lit que ses prop
     ])
   })
 
-  it('chaque jour à 8, 20 et 22 h dès le 3 oct., le 3 tous les 2 jours à 9 h, dose du 17 reportée au 18, le 16 tous les 3 jours à 8, 20 et 22 h dès le 20 : le 18 ne reçoit qu’une dose', () => {
+  it('chaque jour à 8, 20 et 22 h dès le 3 oct., le 3 tous les 2 jours à 9 h, dose du 17 reportée au 18, le 16 tous les 3 jours à 8, 20 et 22 h dès le 20 : le 18 ne reçoit qu’une dose, à 9 h (décision du 15 octobre 2026)', () => {
     const hours = ['08:00', '20:00', '22:00']
     const settings = [
       setting('s1', '2026-10-03', DAY, hours),
@@ -164,7 +164,7 @@ describe('R7 : un réglage remplacé le jour où il commence ne lit que ses prop
       line('s2', 'postponed', '2026-10-17', '09:00', '2026-10-18'),
     ]
     expect(next(settings, lines, '2026-10-16')).toEqual([
-      '2026-10-18 22:00',
+      '2026-10-18 09:00',
       '2026-10-20 08:00',
       '2026-10-20 20:00',
     ])
@@ -232,17 +232,17 @@ describe('R11, #802 : une ligne par échéance et par famille dans la période, 
     expect(next([p1, p2], lines, '2026-10-12', 2)).toEqual(['2026-10-12', '2026-10-13'])
   })
 
-  it('R4 : le jour où les heures changent, 20 h donnée d’avance sous 8 h et 20 h, puis 20 h sous 12 h et 20 h : rien à donner le 10', () => {
+  it('TR-25 : le jour où les heures changent, 20 h donnée d’avance sous 8 h et 20 h, puis 20 h sous 12 h et 20 h : une seule dose, 12 h reste à donner le 10 (décision du 16 octobre 2026)', () => {
     const before = setting('h1', '2026-10-01', DAY, H)
     const after = setting('h2', '2026-10-10', DAY, ['12:00', '20:00'], { gridOriginOn: null })
     const lines = [
       line('h1', 'given', '2026-10-10', '20:00'),
       line('h2', 'given', '2026-10-10', '20:00'),
     ]
-    expect(next([before, after], lines, '2026-10-10', 1)).toEqual(['2026-10-11 12:00'])
+    expect(next([before, after], lines, '2026-10-10', 1)).toEqual(['2026-10-10 12:00'])
   })
 
-  it('R4, R7 : le jour d’arrivée d’un report à d’autres heures, 20 h donnée d’avance sous 8 h et 20 h, puis 20 h sous 12 h et 20 h : rien à donner le 20', () => {
+  it('R7, TR-25 : le jour d’arrivée garde 8 h et 20 h ; 20 h donnée d’avance, puis notée sous 12 h et 20 h : une seule dose, 8 h reste à donner le 20 (décision du 15 octobre 2026)', () => {
     const fortnight = setting('h1', '2026-10-01', { value: 2, unit: 'week' }, H)
     const after = setting('h2', '2026-11-15', MONTH, ['12:00', '20:00'], { startsOn: '2026-10-10' })
     const lines = [
@@ -252,7 +252,7 @@ describe('R11, #802 : une ligne par échéance et par famille dans la période, 
       line('h1', 'given', '2026-10-20', '20:00'),
       line('h2', 'given', '2026-10-20', '20:00'),
     ]
-    expect(next([fortnight, after], lines, '2026-10-20', 1)).toEqual(['2026-11-15 12:00'])
+    expect(next([fortnight, after], lines, '2026-10-20', 1)).toEqual(['2026-10-20 08:00'])
   })
 })
 

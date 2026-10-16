@@ -2,7 +2,7 @@ import { hoursOf, keyOf, sameHours } from './reference-grid'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 export const isNote = (line: ReferenceLine) => line.status === 'given' || line.status === 'missed'
-const isMoreRecent = (a: ReferenceLine, b: ReferenceLine) =>
+export const isMoreRecent = (a: ReferenceLine, b: ReferenceLine) =>
   a.updatedAt > b.updatedAt || (a.updatedAt === b.updatedAt && a.id > b.id)
 
 // R1, R8 : un arrêt clôt un épisode ; la reprise en ouvre un autre.
@@ -39,59 +39,62 @@ export function latestBy(lines: ReferenceLine[], keyOfLine: (line: ReferenceLine
   return [...latest.values()].sort((a, b) => a.dueOn.localeCompare(b.dueOn))
 }
 
-type InForce = {
-  settingAt(day: string): ReferenceSetting | undefined
-  stoppedAt(day: string): ReferenceSetting | undefined
-  endOf(index: number): string | null
-}
-
-// R4, R7 : les jours où une prise visant d'autres heures couvre les premières heures : premier jour et
-// première échéance d'un réglage aux heures changées, arrivée d'un report parti d'autres heures.
+// R4 : le seul jour où une prise visant d'autres heures couvre les premières heures : le premier jour
+// d'un réglage aux heures changées, sauf une journée touchée sous d'autres heures que celles du réglage
+// qui cède la place, qui garde ses doses.
 function translatedDaysOf(
-  episode: readonly ReferenceSetting[],
   live: readonly ReferenceSetting[],
-  moves: readonly ReferenceLine[],
-  at: InForce,
+  touchedOn: (day: string) => ReferenceSetting | undefined,
 ): Set<string> {
   const days = new Set<string>()
-  live.forEach((setting, index) => {
-    if (index > 0 && !sameHours(live[index - 1]!, setting)) {
-      days.add(setting.startsOn).add(setting.firstDueOn)
-    }
-  })
-  for (const { dueOn, targetOn, settingId } of reportsOf(moves)) {
-    const arrival = at.settingAt(targetOn!) ?? at.stoppedAt(targetOn!)
-    const origins = [
-      at.settingAt(dueOn),
-      ...live.filter((_, index) => at.endOf(index) === dueOn),
-      episode.find(({ id }) => id === settingId),
-    ]
-    if (arrival !== undefined && origins.some((each) => each && !sameHours(each, arrival))) {
-      days.add(targetOn!)
-    }
+  for (let index = 1; index < live.length; index += 1) {
+    const prior = live[index - 1]!
+    const setting = live[index]!
+    const touched = touchedOn(setting.startsOn)
+    const reread = touched === undefined || sameHours(touched, prior) || sameHours(touched, setting)
+    if (!sameHours(prior, setting) && reread) days.add(setting.startsOn)
   }
   return days
 }
 
+// R4 : hors du jour où les heures changent, une journée notée ou déplacée garde les heures du réglage
+// de sa ligne la plus récente (TR-25), celles qu'elle avait quand elle a été touchée.
+export function touchedJourneys(
+  lines: readonly ReferenceLine[],
+  live: readonly ReferenceSetting[],
+  settingOf: (id: string) => ReferenceSetting,
+  chosenOf: (report: ReferenceLine) => ReferenceSetting | undefined,
+) {
+  const latest = new Map<string, { line: ReferenceLine; hoursOf: ReferenceSetting }>()
+  const touch = (day: string, line: ReferenceLine, hoursOf: ReferenceSetting) => {
+    const kept = latest.get(day)
+    if (kept === undefined || isMoreRecent(line, kept.line)) latest.set(day, { line, hoursOf })
+  }
+  for (const line of lines) {
+    touch(line.dueOn, line, settingOf(line.settingId))
+    const chosen = line.status === 'postponed' ? chosenOf(line) : undefined
+    if (chosen !== undefined) touch(line.targetOn!, line, chosen)
+  }
+  const translated = translatedDaysOf(live, (day) => latest.get(day)?.hoursOf)
+  const journeyOn = (day: string, setting: ReferenceSetting) => {
+    const touched = latest.get(day)?.hoursOf ?? setting
+    const own = translated.has(day) || sameHours(touched, setting) ? setting : touched
+    return { setting: own, hours: hoursOf(own) }
+  }
+  return { translated, journeyOn }
+}
+
 // TR-25, R11 : par échéance et famille, la ligne la plus récente d'un épisode, quel que soit son
-// réglage ; un jour traduit, une prise visant d'autres heures vise une autre échéance (R4).
+// réglage : deux prises du même jour et de la même heure sont la même dose.
 export function episodeLinesOf(
   episode: readonly ReferenceSetting[],
-  live: readonly ReferenceSetting[],
   allLines: readonly ReferenceLine[],
-  at: InForce,
 ): ReferenceLine[] {
   const own = allLines.filter((line) => episode.some(({ id }) => id === line.settingId))
-  const keyIn = (translated: Set<string>) => (line: ReferenceLine) => {
-    const key = `${keyOf(line.dueOn, line.dueTime)} ${isNote(line) ? 'note' : line.status}`
-    if (!isNote(line) || !translated.has(line.dueOn)) return key
-    return `${key} ${hoursOf(episode.find(({ id }) => id === line.settingId)!).join()}`
-  }
-  const moves = latestBy(
-    own.filter((line) => !isNote(line)),
-    keyIn(new Set()),
+  return latestBy(
+    own,
+    (line) => `${keyOf(line.dueOn, line.dueTime)} ${isNote(line) ? 'note' : line.status}`,
   )
-  return latestBy(own, keyIn(translatedDaysOf(episode, live, moves, at)))
 }
 
 // R7 : une ligne de report par journée, sans les reports revenus à leur date.
@@ -112,3 +115,17 @@ export const isLiveIn =
     lines.some(
       (line) => line.settingId === setting.id && (isNote(line) || line.status === 'postponed'),
     )
+
+// R1, R10 : le réglage en vigueur un jour donné, et le jour où chacun cède la place.
+export function settingsIn(live: readonly ReferenceSetting[]) {
+  const endOf = (index: number) => live[index + 1]?.startsOn ?? live[index]!.stoppedOn
+  const settingAt = (day: string) => {
+    const index = live.filter(({ startsOn }) => startsOn <= day).length - 1
+    const setting = live[index]
+    if (setting === undefined) return undefined
+    const end = endOf(index)
+    const open = (end === null || day < end) && (setting.endsOn === null || day <= setting.endsOn)
+    return open ? setting : undefined
+  }
+  return { endOf, settingAt }
+}

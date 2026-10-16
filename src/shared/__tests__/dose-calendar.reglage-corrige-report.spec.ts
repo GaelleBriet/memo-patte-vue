@@ -34,19 +34,22 @@ describe('TR-28, R9 : heures seules corrigées, la première journée du réglag
   })
 
   it.each([
-    ['21 h', ['21:00'], ['2026-04-07 21:00', '2026-04-09 21:00', '2026-04-11 21:00']],
+    ['21 h', ['21:00'], ['2026-04-07 20:00', '2026-04-09 21:00', '2026-04-11 21:00']],
     [
       '8 h et 20 h',
       ['08:00', '20:00'],
       ['2026-04-07 20:00', '2026-04-09 08:00', '2026-04-09 20:00'],
     ],
-  ])('le 31 mars, %s : la dose du 7 avril garde son rappel', (_, times, ensuite) => {
-    const { input, every } = milo()
-    const after = edited(on(input, '2026-03-31'), every(times))
-    expect(readings(after)).toEqual(
-      both({ phase: 'upcoming', moment: [ensuite[0]!], aRenseigner: [], ensuite }),
-    )
-  })
+  ])(
+    'le 31 mars, %s : la dose du 7 avril, déplacée, garde son heure et son rappel (décision du 15 octobre 2026)',
+    (_, times, ensuite) => {
+      const { input, every } = milo()
+      const after = edited(on(input, '2026-03-31'), every(times))
+      expect(readings(after)).toEqual(
+        both({ phase: 'upcoming', moment: [ensuite[0]!], aRenseigner: [], ensuite }),
+      )
+    },
+  )
 
   it('chaque jour à 20 h dès le 9 mars ; le 10, sans heure, « Prochaine dose » le 22, reportée le 15 au 1er avril avec décalage, puis 6, 12, 18 et 23 h ; le 18, sans heure : prochaine dose le 1er avril', () => {
     const daily = (times: string[]) => ({ frequency: DAY, times, endsOn: null })
@@ -71,7 +74,7 @@ describe('TR-28, R9 : heures seules corrigées, la première journée du réglag
 })
 
 describe('R9 : heures seules corrigées, une dose passée à renseigner le reste et la prochaine dose garde son jour', () => {
-  it('tous les 2 jours à 20 h dès le 28 mars, dose du 28 oubliée ; le 1er avril, « Prochaine dose » le 5, reportée au 13 avec décalage, posologie seule ; le 5, 20 h 01 : 30 mars à renseigner, prochaine dose le 13', () => {
+  it('tous les 2 jours à 20 h dès le 28 mars, dose du 28 oubliée ; le 1er avril, « Prochaine dose » le 5, reportée au 13 avec décalage, posologie seule ; le 5, 20 h 01 : 30 mars à renseigner, prochaine dose le 13, déplacée, à 20 h (décision du 15 octobre 2026)', () => {
     const every = (times: string[]) => ({ frequency: TWO_DAYS, times, endsOn: null })
     let input: TreatmentViewInput = {
       settings: [setting('s1', '2026-03-28', TWO_DAYS, ['20:00'])],
@@ -86,9 +89,9 @@ describe('R9 : heures seules corrigées, une dose passée à renseigner le reste
     expect(readings(after)).toEqual(
       both({
         phase: 'upcoming',
-        moment: ['2026-04-13 20:01'],
+        moment: ['2026-04-13 20:00'],
         aRenseigner: ['2026-03-30 20:00'],
-        ensuite: ['2026-04-13 20:01', '2026-04-15 20:01', '2026-04-17 20:01'],
+        ensuite: ['2026-04-13 20:00', '2026-04-15 20:01', '2026-04-17 20:01'],
       }),
     )
   })

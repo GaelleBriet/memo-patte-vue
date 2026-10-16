@@ -1,4 +1,13 @@
-import { gridDays, hoursOf, isOnGrid, later, longestStep, plusDays, sameFrequency } from './grid'
+import {
+  gridDays,
+  hoursOf,
+  isOnGrid,
+  later,
+  longestStep,
+  plusDays,
+  sameFrequency,
+  sameHours,
+} from './grid'
 import type { EpisodeLines } from './lines'
 import type { Span } from './settings'
 import type { Day, Frequency, Hour, Line, LineEffect, Setting } from './types'
@@ -26,6 +35,7 @@ function leftDays(
   reports: readonly Line[],
   closedFrom: Day | null,
   handed: ReadonlySet<string>,
+  journeyOn: (day: Day, setting: Setting) => Journey,
 ) {
   const left = new Map<Day, Journey>()
   for (const { setting, end, segments } of claims) {
@@ -43,7 +53,7 @@ function leftDays(
           (segment.to === null || day <= segment.to) &&
           isOnGrid(segment.origin, setting.frequency, day),
       )
-      if (open && wasDay) left.set(day, { setting, hours: hoursOf(setting.times) })
+      if (open && wasDay) left.set(day, journeyOn(day, setting))
     }
   }
   return left
@@ -63,7 +73,18 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   const { span, lines, reach, gap } = input
   const { chain } = span
   const days = new Map<Day, Journey>()
-  const translated = new Set(span.hoursChangeOn)
+  const byId = new Map(span.episode.map((setting) => [setting.id, setting]))
+  const translated = translatedDays(span.live, (day) => byId.get(lines.touched.get(day) ?? ''))
+  // R4 : hors du jour où les heures changent, une journée touchée garde les heures du réglage de sa
+  // ligne la plus récente, celles qu'elle avait quand elle a été touchée.
+  const journeyOn = (day: Day, setting: Setting): Journey => {
+    const touched = byId.get(lines.touched.get(day) ?? '')
+    const own =
+      touched === undefined || translated.has(day) || sameHours(touched, setting)
+        ? setting
+        : touched
+    return { setting: own, hours: hoursOf(own.times) }
+  }
   const claims: Claim[] = []
   const openings = new Set<Day>()
   let grid: Grid = { origin: chain[0]!.firstDueOn, floor: '', since: '' }
@@ -194,7 +215,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       const to = turn === null || turn.dueOn >= last ? last : turn.dueOn
       const start = later(from, plusDays(grid.floor, 1))
       for (const day of gridDaysAround(grid.origin, setting.frequency, start, to, gap)) {
-        days.set(day, { setting, hours: hoursOf(setting.times) })
+        days.set(day, journeyOn(day, setting))
       }
       segments.push({ origin: grid.origin, from: start, to: turn?.dueOn ?? setting.endsOn })
       if (turn === null) {
@@ -214,7 +235,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   for (const shift of lines.shifts) {
     if (!effects.has(shift.id)) effects.set(shift.id, { kind: 'idle', reason: 'overtaken' })
   }
-  const left = leftDays(claims, lines.reports, span.closedFrom, handed)
+  const left = leftDays(claims, lines.reports, span.closedFrom, handed, journeyOn)
   const ends = bounds.filter((day) => day !== null)
   const lastPossibleDay = ends.length < bounds.length ? null : (ends.sort().at(-1) ?? null)
   return {
@@ -229,6 +250,21 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     lastPossibleDay,
     lastGridDay,
   }
+}
+
+// R4 : le premier jour d'un réglage aux heures changées est traduit, sauf une journée touchée sous
+// d'autres heures que celles du réglage qui cède la place : elle garde ses doses.
+function translatedDays(live: readonly Setting[], touchedOn: (day: Day) => Setting | undefined) {
+  const days = new Set<Day>()
+  live.forEach((setting, index) => {
+    const prior = live[index - 1]
+    if (prior === undefined || sameHours(prior, setting)) return
+    const touched = touchedOn(setting.startsOn)
+    if (touched === undefined || sameHours(touched, prior) || sameHours(touched, setting)) {
+      days.add(setting.startsOn)
+    }
+  })
+  return days
 }
 
 function gridDaysAround(origin: Day, frequency: Frequency, from: Day, to: Day, gap?: Gap) {

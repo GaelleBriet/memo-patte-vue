@@ -156,7 +156,8 @@ describe('R9 : heure seule changée le lendemain d’une date choisie, le calend
 
   it('dose du 6 non donnée ; le 7, « Prochaine dose » le 10 ; le 8, 9 h sans toucher la date : prochaine dose le 10 à 9 h, rien en retard', () => {
     const c = modifie(milo('2026-10-07', '2026-10-10'), '2026-10-08', jours(3), ['09:00'])
-    expect(c.periods.at(-1)).toMatchObject({ firstDueOn: '2026-10-10', firstDueChosen: true })
+    expect(c.periods.at(-2)).toMatchObject({ firstDueOn: '2026-10-10', firstDueChosen: true })
+    expect(c.periods.at(-1)).toMatchObject({ startsOn: '2026-10-08', firstDueChosen: false })
     const attendu = { phase: 'upcoming', moment: ['2026-10-10 09:00'], aRenseigner: [] }
     expect(lu(c, '2026-10-08')).toEqual(attendu)
     expect(luParLaReference(c, '2026-10-08')).toEqual(attendu)
@@ -251,7 +252,8 @@ describe('#810 : les graines de la campagne, carnets d’avant le schéma v13 re
     [1500196692, '2026-06-22 08:00', ['2026-03-22 06:00', '2026-03-22 12:00', '2026-03-22 23:00']],
     [1500233661, '2026-05-11 08:00', ['2026-03-30']],
     [1500234082, '2026-05-15 08:00', ['2026-04-03']],
-    [1500236809, '2026-04-08 08:00', QUATRE.map((hour) => `2026-04-06 ${hour}`)],
+    // Décision du 15 octobre 2026 : l'arrivée du report garde ses heures, 6 h la première.
+    [1500236809, '2026-04-08 06:00', QUATRE.map((hour) => `2026-04-06 ${hour}`)],
     [1500256618, '2026-06-10 08:00', ['2026-03-10 14:00', '2026-03-10 20:00']],
     [1500290961, '2026-04-02 06:00', ['2026-03-31 06:00', '2026-03-31 12:00', '2026-03-31 23:00']],
   ])('graine %i : à venir le %s, doses en retard à renseigner', (seed, moment, unlogged) => {

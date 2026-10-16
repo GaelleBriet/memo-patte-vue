@@ -1,4 +1,4 @@
-import { hoursOf, keyOf, sameHours } from './grid'
+import { keyOf, sameFrequency } from './grid'
 import type { Span } from './settings'
 import type { Day, IdleReason, Line, Setting } from './types'
 
@@ -12,7 +12,7 @@ export const isAdvanced = (line: Pick<Line, 'status' | 'dueOn' | 'targetOn'>): b
 export const familyOf = (line: Pick<Line, 'status'>): string =>
   isNote(line) ? 'note' : line.status
 
-const isMoreRecent = (a: Line, b: Line): boolean =>
+export const isMoreRecent = (a: Line, b: Line): boolean =>
   a.updatedAt > b.updatedAt || (a.updatedAt === b.updatedAt && a.id > b.id)
 
 /** TR-25 : par clé, la ligne modifiée le plus récemment ; triées par jour d'échéance. */
@@ -25,21 +25,8 @@ export function latestBy(lines: readonly Line[], keyOfLine: (line: Line) => stri
   return [...latest.values()].sort((a, b) => a.dueOn.localeCompare(b.dueOn))
 }
 
-/**
- * TR-25, R11 : l'échéance et la famille d'une ligne dans sa période, quel que soit le réglage ; un jour
- * que le calendrier traduit, une prise visant d'autres heures vise une autre échéance (R4).
- */
-function doseKeyOf(
-  episode: readonly Setting[],
-  translated: ReadonlySet<Day>,
-): (line: Line) => string {
-  const byId = new Map(episode.map((setting) => [setting.id, setting]))
-  return (line) => {
-    const key = `${keyOf(line.dueOn, line.dueTime)} ${familyOf(line)}`
-    if (!isNote(line) || !translated.has(line.dueOn)) return key
-    return `${key} ${hoursOf(byId.get(line.settingId)!.times).join()}`
-  }
-}
+/** TR-25, R11 : l'échéance et la famille d'une ligne, quel que soit son réglage : deux prises du même jour et de la même heure sont la même dose. */
+const doseKeyOf = (line: Line): string => `${keyOf(line.dueOn, line.dueTime)} ${familyOf(line)}`
 
 /** R7 : une ligne de report par journée, sans les reports revenus à leur date. */
 const reportsOf = (kept: readonly Line[]): Line[] =>
@@ -50,23 +37,6 @@ const reportsOf = (kept: readonly Line[]): Line[] =>
     ),
     (line) => line.dueOn,
   )
-
-/** R4, R7 : les jours que le calendrier traduit : heures changées, arrivée d'un report à d'autres heures. */
-function translatedDays(span: Span, reports: readonly Line[]): Set<Day> {
-  const byId = new Map(span.episode.map((setting) => [setting.id, setting]))
-  const days = new Set(span.hoursChangeOn)
-  for (const { dueOn, targetOn, settingId } of reports) {
-    const arrival = span.settingAt(targetOn!) ?? span.stoppedAt(targetOn!)
-    if (arrival === undefined) continue
-    // Le calendrier lit l'un de ces réglages selon l'ordre de leurs écritures : tous sont marqués, car en oublier un rendrait sans effet une prise qui compte.
-    const ceding = span.live.filter((_, index) => span.endOf(index) === dueOn)
-    const origins = [span.settingAt(dueOn), ...ceding, byId.get(settingId)]
-    if (origins.some((origin) => origin !== undefined && !sameHours(origin, arrival))) {
-      days.add(targetOn!)
-    }
-  }
-  return days
-}
 
 /** Les lignes d'un épisode que le calendrier lit, et celles qu'il ne lit pas (R11), avec leur raison. */
 export type EpisodeLines = {
@@ -79,16 +49,57 @@ export type EpisodeLines = {
   shifts: Line[]
   idle: Map<string, IdleReason>
   doseKey: (line: Line) => string
+  /** R4 : jour noté ou déplacé → réglage de sa ligne la plus récente (TR-25), dont il garde les heures. */
+  touched: ReadonlyMap<Day, string>
+  /** R7, #796 : report que la date choisie emmène → le réglage dont elle est la première échéance. */
+  chosenArrivals: ReadonlyMap<Line, Setting>
+}
+
+// R10 : à fréquence gardée seulement, la date choisie emmène le report (#796).
+function chosenArrivalsOf(reports: readonly Line[], span: Span): Map<Line, Setting> {
+  const createdAt = (id: string) => span.episode.find((setting) => setting.id === id)?.createdAt
+  const chosen = span.live.filter(
+    (setting, index) =>
+      setting.firstDueChosen &&
+      index > 0 &&
+      sameFrequency(span.live[index - 1]!.frequency, setting.frequency),
+  )
+  const arrivals = new Map<Line, Setting>()
+  for (const report of reports) {
+    const written = createdAt(report.settingId) ?? ''
+    const picker = chosen.find(
+      (setting) => setting.firstDueOn === report.targetOn && setting.createdAt > written,
+    )
+    if (picker !== undefined) arrivals.set(report, picker)
+  }
+  return arrivals
+}
+
+function touchedDays(
+  notes: readonly Line[],
+  reports: readonly Line[],
+  chosenArrivals: ReadonlyMap<Line, Setting>,
+) {
+  const latest = new Map<Day, { line: Line; settingId: string }>()
+  const touch = (day: Day, line: Line, settingId = line.settingId) => {
+    const kept = latest.get(day)
+    if (kept === undefined || isMoreRecent(line, kept.line)) latest.set(day, { line, settingId })
+  }
+  notes.forEach((note) => touch(note.dueOn, note))
+  for (const report of reports) {
+    touch(report.dueOn, report)
+    // R7, #796 : le jour choisi qui emmène le report garde les heures du réglage qui l'a choisi ; une
+    // autre arrivée garde les doses de sa journée et y ajoute les siennes.
+    const chosen = chosenArrivals.get(report)
+    if (chosen !== undefined) touch(report.targetOn!, report, chosen.id)
+  }
+  return new Map([...latest].map(([day, { settingId }]) => [day, settingId]))
 }
 
 export function episodeLines(lines: readonly Line[], span: Span): EpisodeLines {
   const ids = new Set(span.episode.map(({ id }) => id))
   const own = lines.filter((line) => ids.has(line.settingId))
-  const moves = latestBy(
-    own.filter((line) => !isNote(line)),
-    doseKeyOf(span.episode, new Set()),
-  )
-  const doseKey = doseKeyOf(span.episode, translatedDays(span, reportsOf(moves)))
+  const doseKey = doseKeyOf
   const kept = latestBy(own, doseKey)
   const idle = new Map<string, IdleReason>()
   const keptIds = new Set(kept.map(({ id }) => id))
@@ -112,5 +123,8 @@ export function episodeLines(lines: readonly Line[], span: Span): EpisodeLines {
       idle.set(line.id, 'superseded')
     }
   }
-  return { kept, notes: kept.filter(isNote), reports, shifts, idle, doseKey }
+  const notes = kept.filter(isNote)
+  const chosenArrivals = chosenArrivalsOf(reports, span)
+  const touched = touchedDays(notes, reports, chosenArrivals)
+  return { kept, notes, reports, shifts, idle, doseKey, touched, chosenArrivals }
 }

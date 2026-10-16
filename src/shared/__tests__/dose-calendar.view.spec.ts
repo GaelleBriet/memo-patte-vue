@@ -85,7 +85,7 @@ describe('R12 : la lecture d’un traitement', () => {
     ])
   })
 
-  it('état d’une échéance : à donner, donnée, oubliée, couverte, déplacée, hors calendrier', () => {
+  it('état d’une échéance : à donner, donnée, oubliée, déplacée, hors calendrier ; le 3, jour de grille, reçoit 8 h et 20 h du 2 (décision du 16 octobre 2026)', () => {
     const p1 = setting('p1', '2026-10-01', DAY, H)
     const p2 = setting('p2', '2026-10-03', DAY, ['09:00'], { gridOriginOn: null })
     const lines = [
@@ -103,7 +103,9 @@ describe('R12 : la lecture d’un traitement', () => {
       ['2026-10-04', '09:00'],
       ['2026-10-04', '08:00'],
     ].map(([dueOn, dueTime]) => read.dueState({ dueOn: dueOn!, dueTime: dueTime! }))
-    expect(states).toEqual(['given', 'missed', 'moved', 'covered', 'pending', 'removed'])
+    expect(states).toEqual(['given', 'missed', 'moved', 'pending', 'pending', 'removed'])
+    expect(read.dueState({ dueOn: '2026-10-03', dueTime: '08:00' })).toBe('pending')
+    expect(read.dueState({ dueOn: '2026-10-03', dueTime: '20:00' })).toBe('given')
   })
 
   it('TR-21, Q33 : déjà notée, par une prise ou par une prise en plus du jour', () => {
@@ -263,7 +265,7 @@ describe('relecture du pas 2 : frontières de réglage et historique', () => {
     expect(effectOf(read, evening.id)).toEqual({ kind: 'covers', key: '2026-10-03 20:00' })
   })
 
-  it('R4 : heures changées par deux réglages le même jour : la prise de l’ancien réglage couvre la première heure', () => {
+  it('R4, décision du 16 octobre 2026 : heures changées par deux réglages le même jour : la prise de 20 h de l’ancien réglage couvre la première heure du nouveau, 9 h', () => {
     const settings = [
       setting('p1', '2026-10-01', DAY, H),
       setting('p2', '2026-10-03', DAY, ['09:00', '21:00']),
@@ -409,10 +411,10 @@ describe('R7, R9.2 : la dose avancée dont l’arrivée devient la première éc
   const SIX_WEEKS = { value: 6, unit: 'week' as const }
 
   it.each([
-    ['avancée au 12', '2026-04-12', ['2026-04-12 23:00', '2026-05-24 06:00']],
-    ['reportée au 14', '2026-04-14', ['2026-04-14 23:00', '2026-05-26 06:00']],
+    ['avancée au 12', '2026-04-12', ['2026-04-12 20:00', '2026-05-24 06:00']],
+    ['reportée au 14', '2026-04-14', ['2026-04-14 20:00', '2026-05-26 06:00']],
   ])(
-    'Métacam toutes les 2 semaines à 20 h du 30 mars, dose du 13 %s le 2 avr., puis toutes les 6 semaines à 6, 12, 18, 23 h : la journée d’arrivée n’a que 23 h',
+    'Métacam toutes les 2 semaines à 20 h du 30 mars, dose du 13 %s le 2 avr., puis toutes les 6 semaines à 6, 12, 18, 23 h : la journée d’arrivée garde la dose reportée à 20 h (décision du 15 octobre 2026)',
     (_, arrival, expected) => {
       const p1 = setting('p1', '2026-03-30', TWO_WEEKS, ['20:00'])
       const p2 = setting('p2', arrival, SIX_WEEKS, H4, { startsOn: '2026-04-02' })
@@ -454,7 +456,7 @@ describe('R9 : un réglage écrit avant la première dose, fréquence changée (
 describe('R7, R9.2 : un rythme qui ne part plus de l’arrivée d’un report n’en efface pas les heures (relecture du pas 3)', () => {
   const p1 = setting('p1', '2026-04-06', WEEK, ['20:00'])
 
-  it('hebdo à 20 h, doses des 6 et 13 avr. données, dose du 20 avancée au 16 ; le 14, tous les 2 jours dès le 16 ; le 15, tous les jours à 8 et 20 h : le 16 garde 8 h', () => {
+  it('hebdo à 20 h, doses des 6 et 13 avr. données, dose du 20 avancée au 16 ; le 14, tous les 2 jours dès le 16 ; le 15, tous les jours à 8 et 20 h : le 16, jour d’arrivée et de grille, garde 8 h et y reçoit 20 h (décision du 16 octobre 2026)', () => {
     const p2 = setting('p2', '2026-04-16', TWO_DAYS, ['20:00'], { startsOn: '2026-04-14' })
     const p3 = setting('p3', '2026-04-15', DAY, H, { startsOn: '2026-04-15' })
     const lines = [
@@ -485,7 +487,7 @@ describe('R7, R9.2 : un rythme qui ne part plus de l’arrivée d’un report n�
       ['2026-04-15 08:00', '2026-04-15 20:00'],
     ],
   ])(
-    'hebdo à 20 h, dose du 13 avr. reportée au 15 ; le 8, tous les 2 jours dès le 15 ; le 9, %s : le report ne fait partir aucun rythme',
+    'hebdo à 20 h, dose du 13 avr. reportée au 15 ; le 8, tous les 2 jours dès le 15 ; le 9, %s : le report ne fait partir aucun rythme, le 15 garde les doses de sa grille et y reçoit 20 h (décision du 16 octobre 2026)',
     (_, firstDueOn, times, expected) => {
       const p2 = setting('p2', '2026-04-15', TWO_DAYS, ['20:00'], { startsOn: '2026-04-08' })
       const p3 = setting('p3', firstDueOn, { value: 3, unit: 'day' }, times, {

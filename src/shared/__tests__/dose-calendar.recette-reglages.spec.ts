@@ -160,10 +160,10 @@ describe('R4, R9 : rythme changé, journée à venir entamée en avance (G24)', 
     return donne(c, '2026-10-02', echeance(c, '2026-10-03', '08:00'))
   }
 
-  it('heures passées le 2 à 9 h et 21 h : il ne reste que 21 h le 3, puis le 5', () => {
+  it('heures passées le 2 à 9 h et 21 h : le 3, entamé, garde ses heures, il reste 20 h, puis le 5 (décision du 15 octobre 2026)', () => {
     const c = modifie(metacam(), '2026-10-02', jours(2), ['09:00', '21:00'])
     expect(affiche(c, '2026-10-02', 3)).toEqual([
-      '2026-10-03 21:00',
+      '2026-10-03 20:00',
       '2026-10-05 09:00',
       '2026-10-05 21:00',
     ])
@@ -178,9 +178,9 @@ describe('R4, R9 : rythme changé, journée à venir entamée en avance (G24)', 
     ])
   })
 
-  it('heure passée à 9 h seule : prochaine dose le 5', () => {
+  it('heure passée à 9 h seule : le 3, entamé, garde 8 h et 20 h, il reste 20 h, puis le 5 (décision du 15 octobre 2026)', () => {
     const c = modifie(metacam(), '2026-10-02', jours(2), ['09:00'])
-    expect(affiche(c, '2026-10-02', 2)).toEqual(['2026-10-05 09:00', '2026-10-07 09:00'])
+    expect(affiche(c, '2026-10-02', 2)).toEqual(['2026-10-03 20:00', '2026-10-05 09:00'])
   })
 
   it.fails(

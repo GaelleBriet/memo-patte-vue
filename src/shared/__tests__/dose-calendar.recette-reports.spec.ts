@@ -101,15 +101,15 @@ describe('R3, R7 : report seul et posologie changée', () => {
     expect(journees(c, '2026-10-09', 3)).toEqual(['2026-10-17', '2026-10-22', '2026-10-29'])
   })
 
-  it('#737 : tous les 2 jours, rien noté le 3, journée reportée seule au 4, heures passées à 9 h et 21 h le 3 : 4, 5, 7', () => {
+  it('#737 : tous les 2 jours, rien noté le 3, journée reportée seule au 4, heures passées à 9 h et 21 h le 3 : le 4, déplacé, garde 8 h et 20 h, puis 5 et 7 (décision du 15 octobre 2026)', () => {
     let c = carnet('2026-10-01', jours(2), H)
     c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '08:00'))
     c = donne(c, '2026-10-01', echeance(c, '2026-10-01', '20:00'))
     c = deplace(c, '2026-10-03', echeance(c, '2026-10-03', '08:00'), '2026-10-04', false)
     c = modifie(c, '2026-10-03', jours(2), ['09:00', '21:00'])
     expect(affiche(c, '2026-10-03', 4)).toEqual([
-      '2026-10-04 09:00',
-      '2026-10-04 21:00',
+      '2026-10-04 08:00',
+      '2026-10-04 20:00',
       '2026-10-05 09:00',
       '2026-10-05 21:00',
     ])
