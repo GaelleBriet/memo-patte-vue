@@ -216,10 +216,11 @@ function keptCorrection(
   const dates = { firstDueOn, gridOriginOn, firstDueChosen }
   const draft = rewrite(current, fieldsOf(current.startsOn, dates, request))
   const slots = buildView(settingsApplied(input, draft)).slots(today, plusDays(today, NEXT_DAYS))
-  // R6 : un jour d'arrivée n'est pas une journée de la grille, la grille n'en repart pas.
+  // R6 : un jour d'arrivée n'est pas une journée de la grille, la grille n'en repart pas ; R7 : sauf
+  // si son report partait d'une journée du réglage corrigé, qui sortirait du calendrier avec lui.
   const arrivals = new Set(
-    input.lines.flatMap(({ status, targetOn }) =>
-      status === 'postponed' && targetOn ? [targetOn] : [],
+    input.lines.flatMap(({ status, dueOn, targetOn }) =>
+      status === 'postponed' && targetOn && dueOn < current.startsOn ? [targetOn] : [],
     ),
   )
   const offGrid = ({ settingId, dueOn }: Due) =>
