@@ -265,7 +265,7 @@ describe('relecture du pas 2 : frontières de réglage et historique', () => {
     expect(effectOf(read, evening.id)).toEqual({ kind: 'covers', key: '2026-10-03 20:00' })
   })
 
-  it('R4, décision du 16 octobre 2026 : heures changées par deux réglages le même jour : la prise de 20 h de l’ancien réglage couvre la première heure qui la suit, 21 h', () => {
+  it('R4, décision du 16 octobre 2026 : heures changées par deux réglages le même jour : la prise de 20 h de l’ancien réglage couvre la première heure du nouveau, 9 h', () => {
     const settings = [
       setting('p1', '2026-10-01', DAY, H),
       setting('p2', '2026-10-03', DAY, ['09:00', '21:00']),
@@ -276,8 +276,8 @@ describe('relecture du pas 2 : frontières de réglage et historique', () => {
       line('p2', 'missed', '2026-10-05', '09:00'),
     ]
     const read = view(settings, lines, '2026-10-03')
-    expect(read.dueState({ dueOn: '2026-10-03', dueTime: '09:00' })).toBe('pending')
-    expect(read.dueState({ dueOn: '2026-10-03', dueTime: '21:00' })).toBe('covered')
+    expect(read.dueState({ dueOn: '2026-10-03', dueTime: '09:00' })).toBe('covered')
+    expect(read.dueState({ dueOn: '2026-10-03', dueTime: '21:00' })).toBe('pending')
   })
 
   it('Q41 : une dose oubliée n’est pas « déjà notée »', () => {

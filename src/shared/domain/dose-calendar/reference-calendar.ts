@@ -8,7 +8,7 @@ import {
   sameFrequency,
 } from './reference-grid'
 import {
-  coverageOf,
+  coverages,
   coverOrphans,
   lateDaysOf,
   writtenBefore,
@@ -27,6 +27,7 @@ import {
   isNote,
   latestBy,
   reportsOf,
+  settingsIn,
   touchedJourneys,
   translatedDaysOf,
 } from './reference-lines'
@@ -46,17 +47,9 @@ export function calendarOf(
   const isLive = isLiveIn(episode, allLines)
   const live = episode.filter(isLive)
   const settingOf = (id: string) => settings.find((setting) => setting.id === id)!
-  const endOf = (index: number) => live[index + 1]?.startsOn ?? live[index]!.stoppedOn
-  const settingAt = (day: string) => {
-    const index = live.filter(({ startsOn }) => startsOn <= day).length - 1
-    const setting = live[index]
-    if (setting === undefined) return undefined
-    const end = endOf(index)
-    const open = (end === null || day < end) && (setting.endsOn === null || day <= setting.endsOn)
-    return open ? setting : undefined
-  }
+  const { endOf, settingAt } = settingsIn(live)
   const { closedFrom, stoppedAt } = stopDayOf(live.at(-1)!)
-  const lines = episodeLinesOf(episode, live, allLines)
+  const lines = episodeLinesOf(episode, allLines)
   const notes = lines.filter(isNote)
   const noted = new Set([...notes, ...borrowed].map((note) => keyOf(note.dueOn, note.dueTime)))
   const shifts = latestBy(
@@ -211,19 +204,15 @@ export function calendarOf(
     closedFrom,
   ).forEach((journey, day) => left.set(day, journeyOn(day, journey.setting)))
 
-  const matched = new Set<ReferenceLine>()
-  const coveredOn = coverageOf([...notes, ...borrowed], borrowed, translated, settingOf, matched)
-  const coveredAside = coverageOf(
-    [...notes, ...borrowed],
-    borrowed,
+  const { matched, coveredOn, coveredAside, settle } = coverages(notes, borrowed, reports, {
     translated,
     settingOf,
-    new Set(),
-  )
+  })
 
   // R7 : un report emporte son heure et les suivantes encore sans prise ; les reports qui arrivent sur
   // sa journée passent d'abord.
   const fallen = new Set<string>()
+  const arrivedHours = new Map<string, (string | null)[]>()
   const waiting = [...reports]
   while (waiting.length > 0) {
     const ready = waiting.findIndex(
@@ -253,7 +242,11 @@ export function calendarOf(
     if (chosenOn !== undefined && dueOn === chosenOn && before) continue
     if (origin === undefined && chosenOn !== undefined && !carries) continue
     const written = settingOf(report!.settingId)
-    const itsDay = { setting: written, hours: hoursOf(written) }
+    const arrived = arrivedHours.get(dueOn) ?? []
+    const itsDay = {
+      setting: written,
+      hours: [...new Set([...hoursOf(written), ...arrived])].sort(),
+    }
     const outcome = reportOutcome({
       report: report!,
       written,
@@ -261,6 +254,7 @@ export function calendarOf(
       covered,
       hoursChangeThatDay: translated.has(dueOn),
       inForce: settingAt(dueOn),
+      itsHours: itsDay.hours,
       coveredAtItsHours: coveredAside(dueOn, itsDay, writtenBefore(written, settingOf)),
     })
     if (outcome.beaten) continue
@@ -272,8 +266,12 @@ export function calendarOf(
     if (arrival === undefined || outcome.carried.length === 0) continue
     const opensRhythm = openings.delete(targetOn!)
     const chosen = chosenDateOf(report!, live, settingOf)
-    into.set(targetOn!, arrivedOn(into.get(targetOn!), outcome, arrival, { opensRhythm, chosen }))
+    const day = arrivedOn(into.get(targetOn!), outcome, arrival, { opensRhythm, chosen })
+    into.set(targetOn!, day)
+    const received = chosen ? hoursOf(chosen) : outcome.carried
+    arrivedHours.set(targetOn!, [...(arrivedHours.get(targetOn!) ?? []), ...received])
   }
+  settle()
 
   left.forEach((journey, day) => {
     if (!days.has(day)) coveredOn(day, journey)

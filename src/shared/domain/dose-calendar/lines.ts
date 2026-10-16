@@ -1,4 +1,4 @@
-import { hoursOf, keyOf, sameFrequency } from './grid'
+import { keyOf, sameFrequency } from './grid'
 import type { Span } from './settings'
 import type { Day, IdleReason, Line, Setting } from './types'
 
@@ -25,21 +25,8 @@ export function latestBy(lines: readonly Line[], keyOfLine: (line: Line) => stri
   return [...latest.values()].sort((a, b) => a.dueOn.localeCompare(b.dueOn))
 }
 
-/**
- * TR-25, R11 : l'échéance et la famille d'une ligne dans sa période, quel que soit le réglage ; le jour
- * où les heures changent, une prise visant d'autres heures vise une autre échéance (R4).
- */
-function doseKeyOf(
-  episode: readonly Setting[],
-  translated: ReadonlySet<Day>,
-): (line: Line) => string {
-  const byId = new Map(episode.map((setting) => [setting.id, setting]))
-  return (line) => {
-    const key = `${keyOf(line.dueOn, line.dueTime)} ${familyOf(line)}`
-    if (!isNote(line) || !translated.has(line.dueOn)) return key
-    return `${key} ${hoursOf(byId.get(line.settingId)!.times).join()}`
-  }
-}
+/** TR-25, R11 : l'échéance et la famille d'une ligne, quel que soit son réglage : deux prises du même jour et de la même heure sont la même dose. */
+const doseKeyOf = (line: Line): string => `${keyOf(line.dueOn, line.dueTime)} ${familyOf(line)}`
 
 /** R7 : une ligne de report par journée, sans les reports revenus à leur date. */
 const reportsOf = (kept: readonly Line[]): Line[] =>
@@ -112,7 +99,7 @@ function touchedDays(
 export function episodeLines(lines: readonly Line[], span: Span): EpisodeLines {
   const ids = new Set(span.episode.map(({ id }) => id))
   const own = lines.filter((line) => ids.has(line.settingId))
-  const doseKey = doseKeyOf(span.episode, span.hoursChangeOn)
+  const doseKey = doseKeyOf
   const kept = latestBy(own, doseKey)
   const idle = new Map<string, IdleReason>()
   const keptIds = new Set(kept.map(({ id }) => id))

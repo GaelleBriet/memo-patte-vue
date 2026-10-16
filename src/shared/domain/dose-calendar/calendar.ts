@@ -1,7 +1,8 @@
+import { dayCoverage } from './calendar-coverage'
 import { coverOrphans, noteEffects } from './calendar-notes'
 import { hoursOf, keyOf, plusDays, sameHours } from './grid'
-import { journeys, type Gap, type Journey } from './journeys'
-import { isMoreRecent, type EpisodeLines } from './lines'
+import { journeys, type Gap } from './journeys'
+import type { EpisodeLines } from './lines'
 import type { Span } from './settings'
 import type { Day, Due, Hour, Line, LineEffect, Setting } from './types'
 
@@ -50,79 +51,25 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     byDay.set(note.dueOn, [...(byDay.get(note.dueOn) ?? []), note])
   }
   const isBorrowed = new Set(borrowed)
-  const isLent = (note: Line) => isBorrowed.has(note) && note.status === 'given'
   const noted = new Set(
     [...lines.notes, ...borrowed].map((note) => keyOf(note.dueOn, note.dueTime)),
   )
   const matched = new Set<Line>()
   const held = new Map<Line, string>()
-
-  // R4 : une prise couvre son échéance quel que soit son réglage, sinon la première échéance libre qui
-  // la suit ; une journée de l'ancien réglage toute notée, ou une prise d'avant l'arrêt (R8), couvre tout.
-  const coveredOn = (
-    day: Day,
-    journey: Journey,
-    read = matched,
-    placeable?: (note: Line) => boolean,
-  ): Map<Hour, Line> => {
-    const ofDay = byDay.get(day) ?? []
-    const foreign = (note: Line) =>
-      !isBorrowed.has(note) &&
-      translated.has(day) &&
-      !sameHours(settingOf(note.settingId), journey.setting)
-    const covered = new Map<Hour, Line>()
-    // TR-25 : deux prises de la même heure, la plus récente la couvre ; l'autre ne se perd pas.
-    for (const hour of journey.hours) {
-      const note = ofDay
-        .filter(({ dueTime }) => dueTime === hour)
-        .reduce<Line | undefined>(
-          (kept, each) => (kept && !isMoreRecent(each, kept) ? kept : each),
-          undefined,
-        )
-      if (note !== undefined) covered.set(hour, note)
-    }
-    const used = new Set(covered.values())
-    const elsewhere = ofDay
-      .filter((note) => !used.has(note) && (placeable?.(note) ?? true))
-      .sort(byTime)
-    for (const note of ofDay) {
-      if (foreign(note) || journey.hours.includes(note.dueTime)) read.add(note)
-    }
-    for (const note of elsewhere) {
-      if (note.status !== 'given' && !foreign(note)) continue
-      const free = journey.hours.filter((each) => !covered.has(each))
-      // R4 : le jour où les heures changent, une prise du jour reste à ce jour, plus tôt s'il le faut,
-      // et ne couvre jamais un autre jour.
-      const hour =
-        free.find((each) => follows(each, note.dueTime)) ?? (foreign(note) ? free[0] : undefined)
-      if (hour === undefined) continue
-      covered.set(hour, note)
-      read.add(note)
-    }
-    const last =
-      elsewhere.filter(foreign).sort(byTime).at(-1) ??
-      ofDay.filter(foreign).sort(byTime).at(-1) ??
-      ofDay.find(isLent)
-    const whole =
-      ofDay.some(isLent) ||
-      ofDay.some(
-        (note) =>
-          placeable === undefined &&
-          foreign(note) &&
-          hoursOf(settingOf(note.settingId).times).every((hour) =>
-            ofDay.some((other) => other.settingId === note.settingId && other.dueTime === hour),
-          ),
-      )
-    for (const hour of journey.hours.filter((each) => !covered.has(each))) {
-      if (whole && last !== undefined) covered.set(hour, last)
-    }
-    return covered
-  }
+  const { coveredOn, settle } = dayCoverage({
+    notes: [...lines.notes, ...borrowed],
+    borrowed,
+    reports: lines.reports,
+    translated,
+    settingOf,
+    matched,
+  })
 
   // R7 : un report emporte son heure et les suivantes encore sans prise ; les reports qui arrivent
   // sur sa journée passent d'abord.
   const fallen = new Set<Day>()
   const moved = new Map<string, Line>()
+  const arrived = new Map<Day, Hour[]>()
   const waiting = [...lines.reports]
   while (waiting.length > 0) {
     const ready = waiting.findIndex(
@@ -166,7 +113,10 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     const relit = from.id === span.settingAt(dueOn)?.id && written.id !== from.id
     const reread = translated.has(dueOn) && (!sameHours(written, from) || relit)
     const source = reread ? written : from
-    const writtenHours = hoursOf(written.times)
+    // R7 : la journée d'un report, telle qu'il l'a vue, porte aussi les doses qui y sont arrivées (#864).
+    const writtenHours = [
+      ...new Set([...hoursOf(written.times), ...(arrived.get(dueOn) ?? [])]),
+    ].sort()
     const writtenBefore = (note: Line) => settingOf(note.settingId).createdAt <= written.createdAt
     // R4, R7, #860 : le report garde ses heures ; une prise d'un réglage écrit avant le sien, d'une heure
     // absente, s'y pose avant lui ; une prise des heures écrites après ne compte qu'à son heure.
@@ -185,15 +135,9 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
       source === from
         ? following
         : writtenHours.filter((hour) => after(hour) && !ownNoted.has(hour))
-    // R4, R7 : relu aux nouvelles heures, le jour de départ perd celles qui suivent la dose reportée et
-    // autant qu'elle emporte, sans perdre les doses qui restaient à donner avant elle.
-    const earlier = free.filter((hour) => !after(hour))
-    const stillBefore = writtenHours.filter((hour) => !after(hour) && !ownNoted.has(hour)).length
-    const stays = Math.max(
-      0,
-      stillBefore,
-      earlier.length - Math.max(0, bringing.length - following.length),
-    )
+    // R4, R7 : relu aux nouvelles heures, le jour de départ garde autant de doses à donner que le report
+    // en a laissées avant lui, sur les premières heures.
+    const stays = writtenHours.filter((hour) => !after(hour) && !ownNoted.has(hour)).length
     const leaving = source === from ? following : free.slice(stays)
     if (origin !== undefined) origin.hours = origin.hours.filter((hour) => !leaving.includes(hour))
     const keys = bringing.map((hour) => keyOf(dueOn, hour))
@@ -228,7 +172,9 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     // R7 : une journée d'échéance garde ses doses et y ajoute celles qui arrivent, une heure une fois.
     day.hours = [...new Set([...day.hours, ...arriving])].sort()
     into.set(targetOn!, day)
+    arrived.set(targetOn!, [...(arrived.get(targetOn!) ?? []), ...arriving])
   }
+  settle()
 
   // R1, R4 : sortie du calendrier, une journée garde ses prises sur ses échéances, traduction comprise,
   // sauf celles qu'une reprise lit le jour de l'arrêt (R8).
@@ -274,11 +220,6 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     ),
   }
 }
-
-const byTime = (a: Line, b: Line) =>
-  (a.dueTime ?? '').localeCompare(b.dueTime ?? '') || a.id.localeCompare(b.id)
-
-const follows = (hour: Hour, after: Hour) => hour === null || after === null || hour > after
 
 // TR-9 : la dernière journée arrivée avant le réglage, dose du moment qu'une date choisie remplace.
 function lastFallen(fallen: ReadonlySet<Day>, { from, to }: { from: Day; to: Day }) {

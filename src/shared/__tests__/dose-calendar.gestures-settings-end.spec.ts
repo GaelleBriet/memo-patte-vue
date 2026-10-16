@@ -166,15 +166,15 @@ describe('#806, Q38, R12 : « Elles n’étaient pas à donner » refusé quand 
   const carnet = {
     settings: [s1, s2],
     lines: [
-      line('s1', 'postponed', '2026-03-17', '08:00', '2026-04-05'),
-      line('s1', 'shift', '2026-03-17', '08:00', '2026-04-05'),
+      line('s1', 'postponed', '2026-03-17', '14:00', '2026-04-05'),
+      line('s1', 'shift', '2026-03-17', '14:00', '2026-04-05'),
       line('s1', 'given', '2026-03-16', '08:00'),
     ],
     today: '2026-03-18',
   }
   const asked: SettingsRequest = { frequency: daily, times: threeTimes, endsOn: '2026-03-25' }
 
-  it('graine 975000503 : chaque jour à 8, 14 et 20 h, fin le 6 avr. ; le 17 mars, 8 h reportée au 5 avr. avec décalage, puis 6, 12, 18 et 23 h ; le 18, retour à 8, 14 et 20 h, fin le 25 mars : « pas à donner » refusé, « à renseigner » reste possible', () => {
+  it('d’après la graine 975000503 : chaque jour à 8, 14 et 20 h, fin le 6 avr. ; le 17 mars, 14 h reportée au 5 avr. avec décalage, puis 6, 12, 18 et 23 h ; le 18, retour à 8, 14 et 20 h, fin le 25 mars : « pas à donner » refusé, « à renseigner » reste possible', () => {
     const result = newSettings(carnet, asked)
     if (!('question' in result)) throw new Error(JSON.stringify(result))
     expect(result.question.correct).toEqual({ refusal: { reason: 'no-dose-before-end' } })

@@ -105,7 +105,7 @@ describe('Décision de Gaelle du 15 octobre 2026 : une journée déplacée garde
     )
   })
 
-  it('graine 4900002127 : la dose du 22 avancée au 18, celle du 26 au 21 ; le 22, 6 h ajoutée : aujourd’hui garde la règle du jour, 6 h à donner, le 26, avancé, reste vide', () => {
+  it('graine 4900002127 : la dose du 22 avancée au 18, celle du 26 au 21 ; le 22, 6 h ajoutée : le report du 22 n’a rien laissé, rien le 22, la dose du 21 reste en retard, le 26, avancé, reste vide (décision du 16 octobre 2026)', () => {
     const input: TreatmentViewInput = {
       settings: [
         setting('s1', '2026-03-12', SIX_WEEKS, ['20:00'], { stoppedOn: '2026-03-12' }),
@@ -134,14 +134,14 @@ describe('Décision de Gaelle du 15 octobre 2026 : une journée déplacée garde
     expect(readings(input).moteur.moment).toEqual(['2026-03-21 20:00'])
     expect(readings(hoursOnly(input, ['06:00', '20:00']))).toEqual(
       both({
-        phase: 'today',
-        moment: ['2026-03-22 06:00'],
-        aRenseigner: ['2026-03-21 20:00'],
-        ensuite: ['2026-03-22 06:00', '2026-04-02 06:00', '2026-04-02 20:00'],
+        phase: 'overdue',
+        moment: ['2026-03-21 20:00'],
+        aRenseigner: [],
+        ensuite: ['2026-04-02 06:00', '2026-04-02 20:00', '2026-04-09 06:00'],
       }),
     )
   })
-  it('graine 975000503 : chaque jour à 8, 14 et 20 h ; le 17 mars, 8 h reportée au 5 avr. avec décalage, puis 6, 12, 18 et 23 h le même jour : les doses reportées partent au 5 avr., 6 h, plus tôt, reste le 17 (R4, R7, comme main)', () => {
+  it('graine 975000503 : chaque jour à 8, 14 et 20 h ; le 17 mars, 8 h reportée au 5 avr. avec décalage, puis 6, 12, 18 et 23 h le même jour : les doses reportées partent au 5 avr., le report n’a rien laissé, rien le 17 (décision du 16 octobre 2026)', () => {
     const daily = { value: 1, unit: 'day' as const }
     const input: TreatmentViewInput = {
       settings: [
@@ -158,10 +158,9 @@ describe('Décision de Gaelle du 15 octobre 2026 : une journée déplacée garde
       ],
       today: '2026-03-18',
     }
-    expect(states(input, '2026-03-17', '2026-03-17')).toEqual(['2026-03-17 06:00 pending'])
+    expect(states(input, '2026-03-17', '2026-03-17')).toEqual([])
     const { moteur } = readings(input)
     expect([...moteur.moment, ...moteur.aRenseigner].filter((due) => due < '2026-03-18')).toEqual([
-      '2026-03-17 06:00',
       ...['2026-03-14', '2026-03-15'].flatMap((day) => THREE.map((time) => `${day} ${time}`)),
       '2026-03-16 14:00',
       '2026-03-16 20:00',

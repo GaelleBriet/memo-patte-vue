@@ -34,10 +34,8 @@ function milo(): TreatmentViewInput {
   input = on(given(input, '2026-04-01', '20:00'), '2026-04-01')
   input = sameHoursAgain(input, THREE)
   const daily = treatmentView(input).currentSetting!.id
-  return {
-    ...input,
-    lines: [...input.lines, line(daily, 'postponed', '2026-04-01', '14:00', '2026-04-16')],
-  }
+  const report = line(daily, 'postponed', '2026-04-01', '14:00', '2026-04-16')
+  return { ...input, lines: [...input.lines, { ...report, updatedAt: '2026-12-31T00:00:00.000Z' }] }
 }
 
 const MILO_AFTER = both({
@@ -59,11 +57,11 @@ describe('Décision du 16 octobre 2026 : la prise de 20 h couvre 20 h, le report
     expect(reportEffects(after)).toEqual(['moves'])
   })
 
-  it('Milo : heures passées à 8 h 01, 14 h 01, 20 h 01, la prise de 20 h couvre 20 h 01, 8 h 01 reste à donner, le 16 reçoit 14 h telle qu’écrite', () => {
+  it('Milo : heures passées à 8 h 01, 14 h 01, 20 h 01, la prise de 20 h couvre la première heure, 8 h 01, la dose laissée par le report reste à 14 h 01, le 16 reçoit 14 h telle qu’écrite', () => {
     const after = sameHoursAgain(milo(), ['08:01', '14:01', '20:01'])
     expect(states(after, '2026-04-01', '2026-04-16')).toEqual([
-      '2026-04-01 08:01 pending',
-      '2026-04-01 20:01 covered',
+      '2026-04-01 08:01 covered',
+      '2026-04-01 14:01 pending',
       '2026-04-16 14:00 pending',
     ])
     expect(readings(after).moteur).toEqual(readings(after).reference)
@@ -179,6 +177,39 @@ describe('La date choisie qui emmène un report reçoit la journée entière de 
       )
     },
   )
+  // Luna, chaque semaine à 8 h et 20 h dès le 6 avril ; le 3, 8 h du 6 donnée d'avance et 20 h du 6
+  // reportée au 12 ; le 8, « Prochaine dose » le 10, mêmes heures.
+  it('Luna : le 10 porte 8 h et 20 h (union avec la dose reportée, 20 h comptée une fois), puis le 17 et le 24', () => {
+    let input: TreatmentViewInput = {
+      settings: [setting('s1', '2026-04-06', WEEK, H, { startsOn: '2026-04-03' })],
+      lines: [],
+      today: '2026-04-03',
+    }
+    input = given(input, '2026-04-06', '08:00')
+    input = moved(input, '2026-04-06', '20:00', '2026-04-12', false)
+    const after = edited(on(input, '2026-04-08'), {
+      frequency: WEEK,
+      times: H,
+      endsOn: null,
+      firstDueOn: '2026-04-10',
+    })
+    expect(readings(after)).toEqual(
+      both({
+        phase: 'upcoming',
+        moment: ['2026-04-10 08:00'],
+        aRenseigner: [],
+        ensuite: ['2026-04-10 08:00', '2026-04-10 20:00', '2026-04-17 08:00'],
+      }),
+    )
+    expect(states(after, '2026-04-10', '2026-04-24')).toEqual([
+      '2026-04-10 08:00 pending',
+      '2026-04-10 20:00 pending',
+      '2026-04-17 08:00 pending',
+      '2026-04-17 20:00 pending',
+      '2026-04-24 08:00 pending',
+      '2026-04-24 20:00 pending',
+    ])
+  })
 })
 
 describe('Un jour de grille qui reçoit un report garde ses doses et y ajoute les siennes (décision du 16 octobre 2026)', () => {
@@ -245,7 +276,7 @@ describe('Le jour choisi garde ensuite les heures du réglage qui l’a choisi',
   })
 })
 
-describe('Le jour où les heures changent, un report ne se juge sur ses heures que si la journée est relue', () => {
+describe('Le jour où les heures changent, une prise ou un oubli écrits après le report du jour ne se posent que sur les heures qu’il a laissées', () => {
   // Graine 6100002653 : chaque semaine à 20 h dès le 10 avril, la dose du 10 reportée au 15 et donnée ;
   // le même jour, 8 h et 20 h, la dose de 8 h du 10 marquée oubliée.
   function missedOnTheTenth(): TreatmentViewInput {
@@ -272,10 +303,13 @@ describe('Le jour où les heures changent, un report ne se juge sur ses heures q
     expect(reportEffects(missedOnTheTenth())).toEqual(['moves'])
   })
 
-  it('graine 6100002653 : le 10, 20 h seule : l’oubli de 8 h, écrit après le report, ne se pose pas sur son heure ; le 15 garde sa dose (#863)', () => {
+  it('graine 6100002653 : le 10, 20 h seule : le report ne laisse aucune heure, l’oubli de 8 h écrit après lui est sans effet ; le 15 garde sa dose', () => {
     const after = sameHoursAgain(missedOnTheTenth(), ['20:00'])
-    expect(states(after, '2026-04-11', '2026-04-15')).toEqual(['2026-04-15 20:00 given'])
+    expect(states(after, '2026-04-10', '2026-04-15')).toEqual(['2026-04-15 20:00 given'])
     expect(reportEffects(after)).toEqual(['moves'])
+    const missed = treatmentView(after).history.find(({ line }) => line.status === 'missed')!
+    expect(missed.effect).toEqual({ kind: 'idle', reason: 'nothing-to-cover' })
+    expect(readings(after).moteur).toEqual(readings(after).reference)
   })
 
   it('graine 6100001162 : le jour d’arrivée d’un report garde ses heures ; le report de 18 h écrit ensuite, aux mêmes heures, n’emporte que 18 h', () => {

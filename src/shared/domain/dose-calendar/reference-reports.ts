@@ -12,6 +12,8 @@ export type ReportDeparture = {
   hoursChangeThatDay: boolean
   /** Le réglage en vigueur ce jour-là, celui dont les heures viennent de changer. */
   inForce: ReferenceSetting | undefined
+  /** Les heures du report et celles des doses arrivées sur sa journée (#864). */
+  itsHours: Hour[]
   /** Aux heures du report : les prises à ces heures, et celles des réglages écrits avant le sien. */
   coveredAtItsHours: ReadonlySet<Hour>
 }
@@ -29,8 +31,16 @@ export type ReportOutcome =
  * doses qui restaient à donner avant lui.
  */
 export function reportOutcome(departure: ReportDeparture): ReportOutcome {
-  const { report, written, day, covered, hoursChangeThatDay, inForce, coveredAtItsHours } =
-    departure
+  const {
+    report,
+    written,
+    day,
+    covered,
+    hoursChangeThatDay,
+    inForce,
+    coveredAtItsHours,
+    itsHours,
+  } = departure
   const fromItsDose = (hour: Hour) => hour === null || hour >= (report.dueTime ?? '')
   const otherHours = !sameHours(written, day.setting)
   const readAtNewHours = day.setting === inForce && written.id !== day.setting.id
@@ -41,17 +51,13 @@ export function reportOutcome(departure: ReportDeparture): ReportOutcome {
     return { beaten: false, carried, lost: carried, hoursOf: day.setting }
   }
 
-  const itsHours = hoursOf(written)
   if (coveredAtItsHours.has(report.dueTime)) return { beaten: true }
   const carried = itsHours.filter((hour) => fromItsDose(hour) && !coveredAtItsHours.has(hour))
   const waitingBefore = itsHours.filter(
     (hour) => !fromItsDose(hour) && !coveredAtItsHours.has(hour),
   ).length
   const free = day.hours.filter((hour) => !covered.has(hour))
-  const sooner = free.filter((hour) => !fromItsDose(hour)).length
-  const missing = Math.max(0, carried.length - (free.length - sooner))
-  const stays = Math.max(0, waitingBefore, sooner - missing)
-  const lost = free.slice(stays)
+  const lost = free.slice(waitingBefore)
   return { beaten: false, carried, lost, hoursOf: written }
 }
 

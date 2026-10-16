@@ -39,10 +39,11 @@ describe('R4, R9 : réglage changé le jour d’arrivée d’un report rangé de
     expect(rienLe(modifie(c, today, semaines(2), H), today)).toEqual([])
   })
 
-  it('graine 510000010 : dose reportée donnée, tous les jours à 6, 12, 18, 23 h le 8 : rien le 8', () => {
+  // TR-25 : les deux prises de 20 h du 8, sous deux réglages, sont la même dose (décision du 16 octobre 2026).
+  it('graine 510000010 : dose reportée donnée, tous les jours à 6, 12, 18, 23 h le 8 : seule 8 h reste le 8', () => {
     const { today, ...c } = graine(510000010)
     const changed = modifie(c, today, jours(1), ['06:00', '12:00', '18:00', '23:00'])
-    expect(rienLe(changed, today)).toEqual([])
+    expect(rienLe(changed, today)).toEqual(['2026-03-08 08:00'])
   })
 
   it('graine 500001712 : dose du 15 donnée, tous les jours à 8, 14, 20 h le 15 : rien le 15', () => {

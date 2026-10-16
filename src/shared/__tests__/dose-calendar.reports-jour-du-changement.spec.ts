@@ -37,7 +37,28 @@ function earlyDoseLeft(): TreatmentViewInput {
   return on(removed(input, '2026-04-10', '08:00'), '2026-04-10')
 }
 
-describe('Le jour du changement, le jour de départ garde les doses encore à donner avant le report', () => {
+describe('Le jour du changement, le jour de départ garde autant de doses que le report en a laissées', () => {
+  it('chaque jour à 8, 14 et 20 h, 8 h du 17 mars reportée au 5 avril avec la case, puis 6, 12, 18 et 23 h le 17 : rien le 17, 8, 14 et 20 h le 5', () => {
+    let input: TreatmentViewInput = {
+      settings: [setting('s1', '2026-03-15', DAY, THREE)],
+      lines: [],
+      today: '2026-03-15',
+    }
+    for (const day of ['2026-03-15', '2026-03-16']) {
+      for (const time of THREE) input = given(input, day, time)
+    }
+    input = moved(on(input, '2026-03-17'), '2026-03-17', '08:00', '2026-04-05', true)
+    const after = sameHoursAgain(input, ['06:00', '12:00', '18:00', '23:00'])
+    expect(states(after, '2026-03-17', '2026-03-17')).toEqual([])
+    expect(states(after, '2026-04-05', '2026-04-05')).toEqual([
+      '2026-04-05 08:00 pending',
+      '2026-04-05 14:00 pending',
+      '2026-04-05 20:00 pending',
+    ])
+    expect(readings(after).moteur).toEqual(readings(after).reference)
+    expect(effectsOf(after, 'postponed')).toEqual(['moves'])
+  })
+
   it('avant le changement : 8 h le 10, 14 h et 20 h le 11', () => {
     expect(states(earlyDoseLeft(), '2026-04-10', '2026-04-11')).toEqual([
       '2026-04-10 08:00 pending',
@@ -120,7 +141,22 @@ describe('Le jour du changement, un report voit l’oubli d’avant la reprise q
   })
 })
 
-describe('Le jour où les heures changent, une prise du jour reste à ce jour (lecture à confirmer, §11)', () => {
+describe('Le jour où les heures changent, les prises du jour couvrent les premières heures du nouveau réglage (décision du 16 octobre 2026)', () => {
+  it('chaque jour à 8 h et 20 h, 20 h donnée d’avance le 10, puis 9 h et 21 h le 10 : 9 h couverte, 21 h à donner', () => {
+    let input: TreatmentViewInput = {
+      settings: [setting('s1', '2026-04-08', DAY, H)],
+      lines: [],
+      today: '2026-04-10',
+    }
+    input = given(input, '2026-04-10', '20:00')
+    const after = sameHoursAgain(input, ['09:00', '21:00'])
+    expect(states(after, '2026-04-10', '2026-04-10')).toEqual([
+      '2026-04-10 09:00 covered',
+      '2026-04-10 21:00 pending',
+    ])
+    expect(readings(after).moteur).toEqual(readings(after).reference)
+  })
+
   it('chaque jour à 8 h et 20 h, 20 h donnée le 3 avril, puis 9 h seule dès le 3 : 9 h du 3 couverte, le 4 à 9 h', () => {
     let input: TreatmentViewInput = {
       settings: [setting('s1', '2026-04-01', DAY, H)],
@@ -154,67 +190,65 @@ describe('Le jour où les heures changent, un oubli du jour reste à ce jour (co
   })
 })
 
-describe('Une prise sortie du calendrier couvre la première échéance libre qui suit (décision du 16 octobre 2026)', () => {
-  it.fails(
-    'tous les 6 jours à 8 h et 20 h dès le 2 avril, les deux doses du 14 données d’avance le 7 ; le même jour, tous les 3 jours à 20 h dès le 7 : les prises couvrent le 16 et le 19 (#862, pas encore tenu)',
-    () => {
-      let input: TreatmentViewInput = {
-        settings: [setting('s1', '2026-04-02', { value: 6, unit: 'day' }, H)],
-        lines: [],
-        today: '2026-04-07',
-      }
-      input = given(given(input, '2026-04-14', '08:00'), '2026-04-14', '20:00')
-      const after = edited(input, {
-        frequency: { value: 3, unit: 'day' },
-        times: ['20:00'],
-        endsOn: null,
-        firstDueOn: '2026-04-07',
-      })
-      expect(states(after, '2026-04-13', '2026-04-19')).toEqual([
-        '2026-04-13 20:00 pending',
-        '2026-04-16 20:00 covered',
-        '2026-04-19 20:00 covered',
-      ])
-    },
-  )
+describe('D’un jour à l’autre, une prise sortie du calendrier couvre la première échéance qui suit, à moins d’un pas (R4)', () => {
+  it('tous les 6 jours à 8 h et 20 h dès le 2 avril, les deux doses du 14 données d’avance le 7 ; le même jour, tous les 3 jours à 20 h dès le 7 : la prise de 8 h couvre le 16, celle de 20 h est sans effet, le 19 reste à donner (#862)', () => {
+    let input: TreatmentViewInput = {
+      settings: [setting('s1', '2026-04-02', { value: 6, unit: 'day' }, H)],
+      lines: [],
+      today: '2026-04-07',
+    }
+    input = given(given(input, '2026-04-14', '08:00'), '2026-04-14', '20:00')
+    const after = edited(input, {
+      frequency: { value: 3, unit: 'day' },
+      times: ['20:00'],
+      endsOn: null,
+      firstDueOn: '2026-04-07',
+    })
+    expect(states(after, '2026-04-13', '2026-04-19')).toEqual([
+      '2026-04-13 20:00 pending',
+      '2026-04-16 20:00 covered',
+      '2026-04-19 20:00 pending',
+    ])
+    expect(effectsOf(after, 'given')).toEqual(['covers', 'idle'])
+    expect(readings(after).moteur).toEqual(readings(after).reference)
+  })
 })
 
 describe('Un jour d’arrivée qui mêle des heures et une dose sans heure (décision du 16 octobre 2026)', () => {
-  it.fails(
-    'graine 6300001993 : la dose du 14 reportée au 22 y porte une dose sans heure, 6 h, 12 h et 18 h ; le 14, une heure ajoutée : le 22 les garde (#864, pas encore tenu)',
-    () => {
-      const FOUR = ['06:00', '12:00', '18:00', '23:00']
-      const input: TreatmentViewInput = {
-        settings: [
-          setting('s1', '2026-04-05', WEEK, FOUR),
-          setting('s2', '2026-04-10', WEEK, FOUR, {
-            startsOn: '2026-04-07',
-            gridOriginOn: null,
-            firstDueChosen: false,
-          }),
-          setting('s3', '2026-04-12', DAY, [], { startsOn: '2026-04-11' }),
-          setting('s4', '2026-04-14', DAY, [], { gridOriginOn: null, firstDueChosen: false }),
-        ],
-        lines: [
-          line('s1', 'postponed', '2026-04-05', '06:00', '2026-04-10'),
-          { ...line('s2', 'given', '2026-04-10', '06:00'), givenOn: '2026-04-09' },
-          line('s2', 'postponed', '2026-04-11', '06:00', '2026-04-14'),
-          line('s3', 'given', '2026-04-14', '23:00'),
-          { ...line('s2', 'given', '2026-04-10', '12:00'), givenOn: '2026-04-12' },
-          line('s4', 'postponed', '2026-04-14', null, '2026-04-22'),
-          line('s4', 'shift', '2026-04-14', null, '2026-04-22'),
-        ],
-        today: '2026-04-14',
-      }
-      const reported = [
-        '2026-04-22 pending',
-        '2026-04-22 06:00 pending',
-        '2026-04-22 12:00 pending',
-        '2026-04-22 18:00 pending',
-      ]
-      expect(states(input, '2026-04-22', '2026-04-22')).toEqual(reported)
-      const after = sameHoursAgain(input, ['06:00'])
-      expect(states(after, '2026-04-22', '2026-04-22')).toEqual(reported)
-    },
-  )
+  it('graine 6300001993 : la dose du 14 reportée au 22 y porte une dose sans heure, 6 h, 12 h et 18 h ; le 14, une heure ajoutée : le 22 les garde (#864)', () => {
+    const FOUR = ['06:00', '12:00', '18:00', '23:00']
+    const input: TreatmentViewInput = {
+      settings: [
+        setting('s1', '2026-04-05', WEEK, FOUR),
+        setting('s2', '2026-04-10', WEEK, FOUR, {
+          startsOn: '2026-04-07',
+          gridOriginOn: null,
+          firstDueChosen: false,
+        }),
+        setting('s3', '2026-04-12', DAY, [], { startsOn: '2026-04-11' }),
+        setting('s4', '2026-04-14', DAY, [], { gridOriginOn: null, firstDueChosen: false }),
+      ],
+      lines: [
+        line('s1', 'postponed', '2026-04-05', '06:00', '2026-04-10'),
+        { ...line('s2', 'given', '2026-04-10', '06:00'), givenOn: '2026-04-09' },
+        line('s2', 'postponed', '2026-04-11', '06:00', '2026-04-14'),
+        line('s3', 'given', '2026-04-14', '23:00'),
+        { ...line('s2', 'given', '2026-04-10', '12:00'), givenOn: '2026-04-12' },
+        line('s4', 'postponed', '2026-04-14', null, '2026-04-22'),
+        line('s4', 'shift', '2026-04-14', null, '2026-04-22'),
+      ],
+      today: '2026-04-14',
+    }
+    const reported = [
+      '2026-04-22 pending',
+      '2026-04-22 06:00 pending',
+      '2026-04-22 12:00 pending',
+      '2026-04-22 18:00 pending',
+    ]
+    expect(states(input, '2026-04-22', '2026-04-22')).toEqual(reported)
+    const after = sameHoursAgain(input, ['06:00'])
+    expect(states(after, '2026-04-22', '2026-04-22')).toEqual(reported)
+    expect(effectsOf(after, 'postponed')).toEqual(['moves', 'moves', 'moves'])
+    expect(readings(after).moteur).toEqual(readings(after).reference)
+  })
 })

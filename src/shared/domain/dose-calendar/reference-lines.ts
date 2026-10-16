@@ -74,19 +74,16 @@ export function touchedJourneys(
 }
 
 // TR-25, R11 : par échéance et famille, la ligne la plus récente d'un épisode, quel que soit son
-// réglage ; un jour traduit, une prise visant d'autres heures vise une autre échéance (R4).
+// réglage : deux prises du même jour et de la même heure sont la même dose.
 export function episodeLinesOf(
   episode: readonly ReferenceSetting[],
-  live: readonly ReferenceSetting[],
   allLines: readonly ReferenceLine[],
 ): ReferenceLine[] {
   const own = allLines.filter((line) => episode.some(({ id }) => id === line.settingId))
-  const keyIn = (translated: Set<string>) => (line: ReferenceLine) => {
-    const key = `${keyOf(line.dueOn, line.dueTime)} ${isNote(line) ? 'note' : line.status}`
-    if (!isNote(line) || !translated.has(line.dueOn)) return key
-    return `${key} ${hoursOf(episode.find(({ id }) => id === line.settingId)!).join()}`
-  }
-  return latestBy(own, keyIn(translatedDaysOf(live)))
+  return latestBy(
+    own,
+    (line) => `${keyOf(line.dueOn, line.dueTime)} ${isNote(line) ? 'note' : line.status}`,
+  )
 }
 
 // R7 : une ligne de report par journée, sans les reports revenus à leur date.
@@ -107,3 +104,17 @@ export const isLiveIn =
     lines.some(
       (line) => line.settingId === setting.id && (isNote(line) || line.status === 'postponed'),
     )
+
+// R1, R10 : le réglage en vigueur un jour donné, et le jour où chacun cède la place.
+export function settingsIn(live: readonly ReferenceSetting[]) {
+  const endOf = (index: number) => live[index + 1]?.startsOn ?? live[index]!.stoppedOn
+  const settingAt = (day: string) => {
+    const index = live.filter(({ startsOn }) => startsOn <= day).length - 1
+    const setting = live[index]
+    if (setting === undefined) return undefined
+    const end = endOf(index)
+    const open = (end === null || day < end) && (setting.endsOn === null || day <= setting.endsOn)
+    return open ? setting : undefined
+  }
+  return { endOf, settingAt }
+}

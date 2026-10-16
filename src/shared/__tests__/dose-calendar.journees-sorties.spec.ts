@@ -82,7 +82,7 @@ describe('R4 : une journée qui porte des lignes et quitte le calendrier garde s
     })
   })
 
-  describe('tous les 2 jours à 8 h et 20 h dès le 3 avr. ; le 5, 20 h donnée, puis heures à 8 h, 14 h et 20 h ; 14 h donnée, 20 h oubliée', () => {
+  describe('tous les 2 jours à 8 h et 20 h dès le 3 avr. ; le 5, 20 h donnée, puis heures à 8 h, 14 h et 20 h ; 14 h donnée, 20 h oubliée (même dose que la prise de 20 h, TR-25)', () => {
     const twice = setting('s1', '2026-04-03', TWO_DAYS, H)
     const thrice = setting('s2', '2026-04-05', TWO_DAYS, THREE_HOURS, { gridOriginOn: null })
     const done = [
@@ -98,12 +98,12 @@ describe('R4 : une journée qui porte des lignes et quitte le calendrier garde s
       today: '2026-04-05',
     }
     const expected = [
-      { kind: 'covers', key: '2026-04-05 08:00' },
+      { kind: 'idle', reason: 'superseded' },
       { kind: 'covers', key: '2026-04-05 14:00' },
       { kind: 'covers', key: '2026-04-05 20:00' },
     ]
 
-    it('avant : la prise de 20 h de l’ancien réglage couvre 8 h', () => {
+    it('avant : l’oubli de 20 h, plus récent, remplace la prise de 20 h de l’ancien réglage', () => {
       expect(effectsOf(input, [old20, new14, missed20])).toEqual(expected)
     })
 
@@ -112,6 +112,7 @@ describe('R4 : une journée qui porte des lignes et quitte le calendrier garde s
         frequency: { value: 3, unit: 'day' },
         times: THREE_HOURS,
         endsOn: null,
+        firstDueOn: '2026-04-08',
       })
       expect(plan.setting.firstDueOn).toBe('2026-04-08')
       const view = preview(input, plan)

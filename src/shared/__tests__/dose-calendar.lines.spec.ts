@@ -64,7 +64,7 @@ describe('TR-25, R11 : les lignes lues par le calendrier', () => {
     expect(read.idle.get(moving.id)).toBe('superseded')
   })
 
-  it('R4 : le jour où les heures changent, une prise visant d’autres heures reste lue à côté', () => {
+  it('TR-25 : le jour où les heures changent, deux prises du même jour et de la même heure sont la même dose, la plus récente (décision du 16 octobre 2026)', () => {
     const settings = [
       setting('p1', '2026-10-01', DAY, H),
       setting('p2', '2026-10-10', DAY, ['12:00', '20:00'], { gridOriginOn: null }),
@@ -72,8 +72,8 @@ describe('TR-25, R11 : les lignes lues par le calendrier', () => {
     const before = line('p1', 'given', '2026-10-10', '20:00')
     const after = line('p2', 'given', '2026-10-10', '20:00')
     const read = linesOf([before, after], settings)
-    expect(read.notes).toEqual([before, after])
-    expect(read.idle.size).toBe(0)
+    expect(read.notes).toEqual([after])
+    expect(read.idle.get(before.id)).toBe('superseded')
   })
 
   it('TR-25 : le jour d’arrivée d’un report, deux prises de 20 h sous deux réglages sont une seule dose, la plus récente (décision du 15 octobre 2026)', () => {

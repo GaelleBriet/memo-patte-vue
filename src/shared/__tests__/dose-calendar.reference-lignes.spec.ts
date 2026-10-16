@@ -232,14 +232,14 @@ describe('R11, #802 : une ligne par échéance et par famille dans la période, 
     expect(next([p1, p2], lines, '2026-10-12', 2)).toEqual(['2026-10-12', '2026-10-13'])
   })
 
-  it('R4 : le jour où les heures changent, 20 h donnée d’avance sous 8 h et 20 h, puis 20 h sous 12 h et 20 h : rien à donner le 10', () => {
+  it('TR-25 : le jour où les heures changent, 20 h donnée d’avance sous 8 h et 20 h, puis 20 h sous 12 h et 20 h : une seule dose, 12 h reste à donner le 10 (décision du 16 octobre 2026)', () => {
     const before = setting('h1', '2026-10-01', DAY, H)
     const after = setting('h2', '2026-10-10', DAY, ['12:00', '20:00'], { gridOriginOn: null })
     const lines = [
       line('h1', 'given', '2026-10-10', '20:00'),
       line('h2', 'given', '2026-10-10', '20:00'),
     ]
-    expect(next([before, after], lines, '2026-10-10', 1)).toEqual(['2026-10-11 12:00'])
+    expect(next([before, after], lines, '2026-10-10', 1)).toEqual(['2026-10-10 12:00'])
   })
 
   it('R7, TR-25 : le jour d’arrivée garde 8 h et 20 h ; 20 h donnée d’avance, puis notée sous 12 h et 20 h : une seule dose, 8 h reste à donner le 20 (décision du 15 octobre 2026)', () => {
