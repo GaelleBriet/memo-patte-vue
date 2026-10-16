@@ -20,15 +20,15 @@ export type ReportOutcome =
 
 /**
  * R7, R11, R4 : un report battu par une prise de sa dose est sans effet ; sinon il emporte sa dose
- * et les suivantes de sa journée encore sans prise. Écrit sous d'autres heures que celles du jour où
- * elles changent, il ne voit que les prises écrites sous ses heures, emporte ses heures à lui, et le
+ * et les suivantes de sa journée encore sans prise. Écrit sous un autre réglage que celui du jour où
+ * les heures changent, il ne voit que les prises écrites sous ses heures, emporte ses heures à lui, et le
  * jour de départ perd les heures qui suivent la sienne, au moins autant qu'il en emporte.
  */
 export function reportOutcome(departure: ReportDeparture): ReportOutcome {
   const { report, written, day, covered, hoursChangeThatDay, notesOfDay, settingOf } = departure
   const fromItsDose = (hour: Hour) => hour === null || hour >= (report.dueTime ?? '')
 
-  if (!hoursChangeThatDay || sameHours(written, day.setting)) {
+  if (!hoursChangeThatDay || written.id === day.setting.id) {
     if (covered.has(report.dueTime)) return { beaten: true }
     const carried = day.hours.filter((hour) => fromItsDose(hour) && !covered.has(hour))
     return { beaten: false, carried, lost: carried, hoursOf: day.setting }

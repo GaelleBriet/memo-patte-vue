@@ -139,9 +139,9 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
         ? new Set(hours.filter((hour) => noted.has(keyOf(dueOn, hour))))
         : new Set(coveredOn(dueOn, origin).keys())
     const written = settingOf(report.settingId)
-    // R4, R7 : écrit sous d'autres heures que celles du jour où elles changent, un report se juge sur
-    // les prises écrites sous ses heures, et le jour de départ perd autant de doses qu'il en emporte.
-    const reread = translated.has(dueOn) && !sameHours(written, from)
+    // R4, R7 : écrit sous un autre réglage que celui du jour où les heures changent, un report se juge
+    // sur les prises écrites sous ses heures, et le jour de départ perd autant de doses qu'il en emporte.
+    const reread = translated.has(dueOn) && written.id !== from.id
     const source = reread ? written : from
     const ownNoted = new Set(
       (byDay.get(dueOn) ?? [])
