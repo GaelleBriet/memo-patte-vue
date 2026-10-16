@@ -1402,6 +1402,8 @@ branche) :
 - **La date choisie qui emmène un report (#796) reçoit ses doses aux dernières heures de son
   réglage.** Hebdomadaire à 8 h et 20 h, journée du 6 avril donnée ; le 9, la dose du 13 reportée au
   15 (8 h et 20 h partent) ; le même jour, 9 h, « Prochaine dose » le 17 : le 17 à 9 h, puis le 24.
+  Le jour choisi garde ensuite ces heures (le 10, 10 h : le 17 reste à 9 h, le 24 à 10 h), sauf un
+  second « Modifier » le même jour, qui remplace le premier (R10 : 9 h 01, le 17 à 9 h 01).
   Le report compte comme emmené quand la date choisie est la première échéance d'un réglage écrit
   après le sien, à fréquence gardée, même s'il arrivait déjà ce jour-là : graine 4870002589, tous les
   3 jours, la dose du 24 mars sans heure reportée au 27, puis 8 h, 14 h et 20 h avec le 27 pour
