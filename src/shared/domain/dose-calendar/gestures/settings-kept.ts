@@ -4,21 +4,34 @@ import { buildView } from '../view'
 import { settingsApplied } from './changes'
 import { NEXT_DAYS, type Dates, type SettingsRequest } from './settings-proposal'
 
-// R7 : un report parti d'une journée du réglage corrigé, qui sortirait du calendrier si le réglage
+const movingReports = (input: TreatmentViewInput) =>
+  new Set(
+    buildView(input)
+      .history.filter(({ line, effect }) => line.status === 'postponed' && effect.kind === 'moves')
+      .map(({ line }) => line.id),
+  )
+
+// R7 : un report parti d'une journée du réglage corrigé, qui deviendrait sans effet si le réglage
 // partait après son arrivée, laisse ce jour-là comme première échéance.
-function firstArrival(input: TreatmentViewInput, current: Setting, before: Day): Day | undefined {
-  return buildView(input)
-    .history.filter(
-      ({ line, effect }) =>
-        line.status === 'postponed' &&
-        effect.kind === 'moves' &&
-        line.dueOn >= current.startsOn &&
-        line.dueOn < before &&
-        line.targetOn !== null &&
-        line.targetOn > line.dueOn &&
-        line.targetOn < before,
+function strandedArrival(
+  input: TreatmentViewInput,
+  current: Setting,
+  draft: SettingsPlan,
+): Day | undefined {
+  const before = movingReports(input)
+  const after = movingReports(settingsApplied(input, draft))
+  const start = draft.setting.firstDueOn
+  return input.lines
+    .filter(
+      ({ id, dueOn, targetOn }) =>
+        before.has(id) &&
+        !after.has(id) &&
+        dueOn >= current.startsOn &&
+        targetOn !== null &&
+        targetOn > dueOn &&
+        targetOn < start,
     )
-    .map(({ line }) => line.targetOn!)
+    .map(({ targetOn }) => targetOn!)
     .sort()[0]
 }
 
@@ -56,10 +69,11 @@ export function keptCorrection(
     ({ state, due }) => !offGrid(due) && (state === 'pending' || due.settingId !== current.id),
   )
   const next = (first ?? slots[0])?.due.dueOn
-  const due = next ?? later(firstDueOn, today)
-  const start = firstArrival(input, current, due) ?? due
-  const kept = gridOriginOn !== null && isOnGrid(gridOriginOn, request.frequency, start)
-  return kept
-    ? { firstDueOn: start, gridOriginOn, firstDueChosen }
-    : { firstDueOn: start, gridOriginOn: start, firstDueChosen: false }
+  const from = (start: Day): Dates =>
+    gridOriginOn !== null && isOnGrid(gridOriginOn, request.frequency, start)
+      ? { firstDueOn: start, gridOriginOn, firstDueChosen }
+      : { firstDueOn: start, gridOriginOn: start, firstDueChosen: false }
+  const proposed = from(next ?? later(firstDueOn, today))
+  const arrival = strandedArrival(input, current, draft(proposed))
+  return arrival === undefined ? proposed : from(arrival)
 }

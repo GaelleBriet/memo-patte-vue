@@ -132,6 +132,37 @@ describe('R7, R9.2 : « Elles n’étaient pas à donner » ne saute pas l’arr
     expect(moteur).toEqual(reference)
   })
 
+  it('graine 7810000235, pas 38 : le report du 5 reste en vigueur sans repartir du 7, le rythme hebdomadaire garde le 15', () => {
+    const weekly = { value: 1, unit: 'week' } as const
+    const base = seed235()
+    const input: TreatmentViewInput = {
+      settings: [
+        ...base.settings.slice(0, 2),
+        setting('s3', '2026-04-08', weekly, ['08:00', '20:00'], {
+          startsOn: '2026-04-03',
+          endsOn: '2026-04-23',
+          firstDueChosen: false,
+        }),
+      ],
+      lines: [
+        ...base.lines.filter(({ dueOn }) => dueOn !== '2026-03-30'),
+        line('s2', 'missed', '2026-04-07', '23:00'),
+      ],
+      today: '2026-04-08',
+    }
+    const request = { frequency: weekly, times: ['06:00', '08:00', '20:00'], endsOn: '2026-04-23' }
+    const after = edited(input, request, 'correct')
+    const { moteur, reference } = readings(after)
+    expect(moteur.ensuite).toEqual(['2026-04-08 06:00', '2026-04-08 12:00', '2026-04-08 18:00'])
+    expect(
+      treatmentView(after)
+        .upcoming({ limit: 6 })
+        .map(({ dueOn }) => dueOn),
+    ).toContain('2026-04-15')
+    expect(reportEffect(after, '2026-04-05')).toBe('moves')
+    expect(moteur).toEqual(reference)
+  })
+
   // Graine 7810000909 : tous les 3 jours à 20 h dès le 29 mars, puis 6, 12, 18 et 23 h dès le 29 ; la
   // dose du 1er avril à 20 h reportée au 11 avec « Décaler aussi les doses suivantes » ; le 3, 9 h
   // ajoutée aux heures.
