@@ -63,7 +63,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     day: Day,
     journey: Journey,
     read = matched,
-    stay: readonly Hour[] = [],
+    dayHours?: readonly Hour[],
   ): Map<Hour, Line> => {
     const ofDay = byDay.get(day) ?? []
     const foreign = (note: Line) =>
@@ -83,7 +83,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     }
     const used = new Set(covered.values())
     const elsewhere = ofDay
-      .filter((note) => !used.has(note) && !stay.includes(note.dueTime))
+      .filter((note) => !used.has(note) && !dayHours?.includes(note.dueTime))
       .sort(byTime)
     for (const note of ofDay) {
       if (foreign(note) || journey.hours.includes(note.dueTime)) read.add(note)
@@ -107,6 +107,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
       ofDay.some(isLent) ||
       ofDay.some(
         (note) =>
+          dayHours === undefined &&
           foreign(note) &&
           hoursOf(settingOf(note.settingId).times).every((hour) =>
             ofDay.some((other) => other.settingId === note.settingId && other.dueTime === hour),
