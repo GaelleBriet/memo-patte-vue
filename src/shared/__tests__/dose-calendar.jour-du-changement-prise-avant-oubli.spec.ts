@@ -88,4 +88,76 @@ describe('R4, #866 : le jour du changement d’heures, une prise donnée passe a
       ],
     })
   })
+
+  function crowded(old: string[], notes: [string, 'given' | 'missed'][], times: string[]) {
+    const start: TreatmentViewInput = {
+      settings: [setting('s1', '2026-04-01', DAY, old)],
+      lines: [],
+      today: '2026-04-10',
+    }
+    const noted = notes.reduce(
+      (input, [hour, status]) => given(input, '2026-04-10', hour, status),
+      start,
+    )
+    return edited(noted, { frequency: DAY, times, endsOn: null })
+  }
+
+  it('deux oublis délogés par des prises : l’un prend l’heure restée libre, rien à donner le 10', () => {
+    const after = crowded(
+      ['06:00', '08:00', '12:00', '14:00', '22:00'],
+      [
+        ['06:00', 'given'],
+        ['08:00', 'missed'],
+        ['12:00', 'given'],
+        ['14:00', 'missed'],
+      ],
+      ['08:00', '14:00', '20:00'],
+    )
+    expect(dayOf(after, '2026-04-10').slots.map(({ state }) => state)).not.toContain('pending')
+    expect(dayOf(after, '2026-04-10').effects.filter(({ kind }) => kind === 'idle')).toHaveLength(1)
+    const { moteur, reference } = readings(after)
+    expect(moteur.moment).toEqual(['2026-04-11 08:00'])
+    expect(moteur).toEqual(reference)
+  })
+
+  it('8 h et 18 h données, 12 h et 14 h oubliées, puis 12 h, 14 h et 20 h : rien à donner le 10', () => {
+    const after = crowded(
+      ['06:00', '08:00', '12:00', '14:00', '18:00'],
+      [
+        ['08:00', 'given'],
+        ['12:00', 'missed'],
+        ['14:00', 'missed'],
+        ['18:00', 'given'],
+      ],
+      ['12:00', '14:00', '20:00'],
+    )
+    expect(dayOf(after, '2026-04-10').slots).toEqual([
+      { hour: '12:00', state: 'covered', by: 'given' },
+      { hour: '14:00', state: 'covered', by: 'given' },
+      { hour: '20:00', state: 'covered', by: 'missed' },
+    ])
+    const { moteur, reference } = readings(after)
+    expect(moteur).toEqual(reference)
+  })
+
+  it('150 journées surchargées tirées au hasard : le moteur et le modèle de référence lisent pareil', () => {
+    const ALL = ['06:00', '08:00', '10:00', '12:00', '14:00', '18:00', '20:00', '22:00']
+    let state = 866
+    const rnd = () => (state = (state * 1103515245 + 12345) % 2147483648) / 2147483648
+    let played = 0
+    while (played < 150) {
+      const old = ALL.filter(() => rnd() < 0.6)
+      const notes = old
+        .filter(() => rnd() < 0.8)
+        .map((hour): [string, 'given' | 'missed'] => [hour, rnd() < 0.5 ? 'given' : 'missed'])
+      const missed = notes.filter(([, status]) => status === 'missed').map(([hour]) => hour)
+      const times = [
+        ...new Set([...missed.filter(() => rnd() < 0.6), ...ALL.filter(() => rnd() < 0.2)]),
+      ].sort()
+      if (old.length < 2 || times.length === 0 || notes.length <= times.length) continue
+      played += 1
+      const { moteur, reference } = readings(crowded(old, notes, times))
+      expect({ old, notes, times, ...moteur }).toEqual({ old, notes, times, ...reference })
+    }
+  }, 30_000)
 })
