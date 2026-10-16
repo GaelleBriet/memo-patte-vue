@@ -227,13 +227,16 @@ function keptCorrection(
     (gridOriginOn === null
       ? settingId !== current.id
       : !isOnGrid(gridOriginOn, request.frequency, dueOn))
-  const due = slots.find(({ state, due }) => state === 'pending' && !offGrid(due))
-  const next = (due ?? slots[0])?.due.dueOn
-  const first = next ?? later(firstDueOn, today)
-  const kept = gridOriginOn !== null && isOnGrid(gridOriginOn, request.frequency, first)
+  // R4 : une journée qui garde les heures d'un autre réglage reste au calendrier, ses prises comptent.
+  const first = slots.find(
+    ({ state, due }) => !offGrid(due) && (state === 'pending' || due.settingId !== current.id),
+  )
+  const next = (first ?? slots[0])?.due.dueOn
+  const start = next ?? later(firstDueOn, today)
+  const kept = gridOriginOn !== null && isOnGrid(gridOriginOn, request.frequency, start)
   return kept
-    ? { firstDueOn: first, gridOriginOn, firstDueChosen }
-    : { firstDueOn: first, gridOriginOn: first, firstDueChosen: false }
+    ? { firstDueOn: start, gridOriginOn, firstDueChosen }
+    : { firstDueOn: start, gridOriginOn: start, firstDueChosen: false }
 }
 
 // TR-28, Q38, Q39 : sans prise depuis son début, le réglage est corrigé ; avec des échéances
