@@ -2735,9 +2735,32 @@ TR-28 et §10, #854).
 - #860 : les prises se posent d'abord (exactes, puis sur la première échéance libre qui suit), les
   reports se lisent ensuite ; c'est ce qui règle les deux téléphones dont l'un réécrit le réglage du
   jour.
-- Remplacent la « traduction » du jour du changement (les prises du jour couvraient les premières
-  heures du nouveau réglage, dans l'ordre) et la date choisie « aux dernières heures de son réglage ».
+- Remplacent la date choisie « aux dernières heures de son réglage ».
 - Exemple : Milo, tous les mois à 8 h et 20 h, 20 h du 1er avril donnée d'avance, passage à 8 h,
   14 h et 20 h, 14 h reportée au 16 : le 1er lit 8 h (à donner), 14 h et 20 h (couverte), le 16
   reçoit 14 h seule. — Alternative écartée : la prise de 20 h couvrait 8 h et le 16 recevait 14 h et
   20 h, une dose de trop.
+
+2026-10-16 — **Cinq lectures de #859, #862 et #864 tranchées** (spec `traitements.md` R4, R7, R9,
+TR-25, §10 et §11, #854 ; transmises par la session d'analyse du moteur, mandatée par Gaelle pour
+les lectures de règles).
+
+- Le jour du changement, le jour de départ d'un report garde autant de doses que le report en a
+  laissées avant lui (par rang), sur les premières heures du nouveau réglage ; une dose n'apparaît
+  pas sans geste : chaque jour à 8, 14 et 20 h, 8 h du 17 mars reportée au 5 avril, puis 6, 12, 18 et
+  23 h le même jour : rien le 17. — Alternative écartée : garder les heures plus tôt que celle du
+  report, qui crée une dose.
+- Les prises du jour couvrent les premières heures du nouveau réglage, dans l'ordre ; une prise ne
+  couvre son heure que si elle existe encore (20 h donnée d'avance, 9 h et 21 h le même jour : 9 h
+  couverte, 21 h à donner).
+- Deux prises du même jour et de la même heure sont la même dose (TR-25) : la plus récente vaut,
+  l'autre est sans effet. — Alternative écartée : l'autre couvrait une heure libre, une dose
+  comptée deux fois.
+- Une prise ou un oubli écrits après un report du jour ne se posent que sur les heures qu'il a
+  laissées ; sinon une prise couvre la première échéance qui suit, un oubli est sans effet.
+- « Prochaine dose » désigne une journée : le jour choisi porte toutes les heures du nouveau réglage,
+  avec les doses reportées. « Première échéance libre » ne vaut que dans la journée ; d'un jour à
+  l'autre, la première échéance qui suit, à moins d'un pas, ou sans effet (#862).
+- #864 corrigé : la journée de départ d'un report porte aussi les doses qui y étaient arrivées.
+- « Elles n'étaient pas à donner » ne saute le jour d'arrivée d'un report hors de la grille que si ce
+  report part d'avant le réglage corrigé (sinon le report deviendrait sans effet, R7, R9.2).
