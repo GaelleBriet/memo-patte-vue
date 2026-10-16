@@ -212,6 +212,13 @@ export function calendarOf(
 
   const matched = new Set<ReferenceLine>()
   const coveredOn = coverageOf([...notes, ...borrowed], borrowed, translated, settingOf, matched)
+  const coveredAside = coverageOf(
+    [...notes, ...borrowed],
+    borrowed,
+    translated,
+    settingOf,
+    new Set(),
+  )
 
   // R7 : un report emporte son heure et les suivantes encore sans prise ; les reports qui arrivent sur
   // sa journée passent d'abord.
@@ -244,14 +251,15 @@ export function calendarOf(
     const before = chosenRestarts.get(report!.settingId) !== chosenOn
     if (chosenOn !== undefined && dueOn === chosenOn && before) continue
     if (origin === undefined && chosenOn !== undefined && !carries) continue
+    const written = settingOf(report!.settingId)
     const outcome = reportOutcome({
       report: report!,
-      written: settingOf(report!.settingId),
+      written,
       day: origin ?? { setting: from, hours },
       covered,
       hoursChangeThatDay: translated.has(dueOn),
       inForce: settingAt(dueOn),
-      notesOfDay: [...notes, ...borrowed].filter((note) => note.dueOn === dueOn),
+      coveredAtItsHours: coveredAside(dueOn, { setting: written, hours: hoursOf(written) }),
     })
     if (outcome.beaten) continue
     if (targetOn! > dueOn) fallen.add(dueOn)

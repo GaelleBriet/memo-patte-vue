@@ -69,8 +69,8 @@ export function handedOf(
   )
 }
 
-// R4 : une prise donnée dont l'échéance a quitté le calendrier couvre la première échéance encore
-// libre qui suit, à moins d'un pas de son réglage ; un oubli ne couvre que sa propre échéance.
+// R4 : une prise donnée dont l'échéance a quitté le calendrier couvre la première échéance qui suit,
+// à moins d'un pas de son réglage ; un oubli ne couvre que sa propre échéance.
 export function coverOrphans(
   notes: readonly ReferenceLine[],
   matched: ReadonlySet<ReferenceLine>,
@@ -82,7 +82,7 @@ export function coverOrphans(
     .sort((a, b) => keyOf(a.dueOn, a.dueTime).localeCompare(keyOf(b.dueOn, b.dueTime)))
   for (const note of orphans) {
     const { frequency } = settingOf(note.settingId)
-    const due = dues.find((each) => !each.covered && each.key > keyOf(note.dueOn, note.dueTime))
+    const due = dues.find((each) => each.key > keyOf(note.dueOn, note.dueTime))
     if (due !== undefined && due.day < stepped(note.dueOn, frequency, 1)) due.covered = true
   }
 }
@@ -127,7 +127,7 @@ export function coverageOf(
       .filter((note) => !placed.has(note))
       .sort((a, b) => (a.dueTime ?? '').localeCompare(b.dueTime ?? ''))
     for (const note of waiting) {
-      if (note.status !== 'given' && !underOldHours(note)) continue
+      if (note.status !== 'given') continue
       const free = journey.hours.filter((hour) => !covered.has(hour))
       const later = free.filter(
         (hour) => hour === null || note.dueTime === null || hour > note.dueTime,

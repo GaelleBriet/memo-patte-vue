@@ -136,3 +136,45 @@ describe('Le jour où les heures changent, une prise du jour reste à ce jour (l
     expect(readings(after).moteur).toEqual(readings(after).reference)
   })
 })
+
+describe('Un oubli dont l’heure n’existe plus ne couvre rien (R4, lecture à confirmer, §11)', () => {
+  it('chaque jour à 8 h et 20 h, 8 h marquée oubliée le 10 avril, puis 9 h et 21 h dès le 10 : 9 h et 21 h restent à donner', () => {
+    let input: TreatmentViewInput = {
+      settings: [setting('s1', '2026-04-08', DAY, H)],
+      lines: [],
+      today: '2026-04-10',
+    }
+    input = given(input, '2026-04-10', '08:00', 'missed')
+    const after = sameHoursAgain(input, ['09:00', '21:00'])
+    expect(states(after, '2026-04-10', '2026-04-10')).toEqual([
+      '2026-04-10 09:00 pending',
+      '2026-04-10 21:00 pending',
+    ])
+    expect(readings(after).moteur).toEqual(readings(after).reference)
+  })
+})
+
+describe('Une prise sortie du calendrier couvre la première échéance libre qui suit (décision du 16 octobre 2026)', () => {
+  it.fails(
+    'tous les 6 jours à 8 h et 20 h dès le 2 avril, les deux doses du 14 données d’avance le 7 ; le même jour, tous les 3 jours à 20 h dès le 7 : les prises couvrent le 16 et le 19 (#862, pas encore tenu)',
+    () => {
+      let input: TreatmentViewInput = {
+        settings: [setting('s1', '2026-04-02', { value: 6, unit: 'day' }, H)],
+        lines: [],
+        today: '2026-04-07',
+      }
+      input = given(given(input, '2026-04-14', '08:00'), '2026-04-14', '20:00')
+      const after = edited(input, {
+        frequency: { value: 3, unit: 'day' },
+        times: ['20:00'],
+        endsOn: null,
+        firstDueOn: '2026-04-07',
+      })
+      expect(states(after, '2026-04-13', '2026-04-19')).toEqual([
+        '2026-04-13 20:00 pending',
+        '2026-04-16 20:00 covered',
+        '2026-04-19 20:00 covered',
+      ])
+    },
+  )
+})

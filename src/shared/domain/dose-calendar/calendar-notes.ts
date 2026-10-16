@@ -3,7 +3,7 @@ import { keyOf, stepped } from './grid'
 import type { EpisodeLines } from './lines'
 import type { Line, LineEffect, Setting } from './types'
 
-// R4 : une prise donnée dont l'échéance a quitté le calendrier couvre la première échéance libre qui suit,
+// R4 : une prise donnée dont l'échéance a quitté le calendrier couvre la première échéance qui suit,
 // à moins d'un pas de son réglage ; un oubli ne couvre que sa propre échéance.
 export function coverOrphans(
   notes: readonly Line[],
@@ -16,9 +16,9 @@ export function coverOrphans(
     .sort((a, b) => keyOf(a.dueOn, a.dueTime).localeCompare(keyOf(b.dueOn, b.dueTime)))
   for (const note of orphans) {
     const own = keyOf(note.dueOn, note.dueTime)
-    const slot = slots.find(({ key, coveredBy }) => key > own && coveredBy === null)
+    const slot = slots.find(({ key }) => key > own)
     const limit = stepped(note.dueOn, settingOf(note.settingId).frequency, 1)
-    if (slot !== undefined && slot.due.dueOn < limit) {
+    if (slot !== undefined && slot.coveredBy === null && slot.due.dueOn < limit) {
       slot.coveredBy = note
     }
   }

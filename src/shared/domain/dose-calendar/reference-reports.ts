@@ -12,7 +12,8 @@ export type ReportDeparture = {
   hoursChangeThatDay: boolean
   /** Le réglage en vigueur ce jour-là, celui dont les heures viennent de changer. */
   inForce: ReferenceSetting | undefined
-  notesOfDay: readonly ReferenceLine[]
+  /** Ce que couvrent les prises du jour posées sur les heures du report (R4). */
+  coveredAtItsHours: ReadonlySet<Hour>
 }
 
 /** Ce qu'emporte un report, sous quelles heures, et ce que perd sa journée de départ. */
@@ -23,12 +24,13 @@ export type ReportOutcome =
  * R7, R11, R4 : un report battu par une prise de sa dose est sans effet ; sinon il emporte sa dose
  * et les suivantes de sa journée encore sans prise. Le jour où les heures changent, écrit sous d'autres
  * heures que celles de la journée, ou avant le réglage qui la relit, il garde les heures où il a été
- * écrit : une prise de toute provenance à l'une d'elles la note ; le jour de départ, relu aux nouvelles
- * heures, perd celles qui suivent sa dose et au moins autant qu'il emporte, mais garde les doses qui
- * restaient à donner avant lui.
+ * écrit, où les prises du jour se posent comme sur une journée à ces heures ; le jour de départ, relu aux
+ * nouvelles heures, perd celles qui suivent sa dose et au moins autant qu'il emporte, mais garde les
+ * doses qui restaient à donner avant lui.
  */
 export function reportOutcome(departure: ReportDeparture): ReportOutcome {
-  const { report, written, day, covered, hoursChangeThatDay, inForce, notesOfDay } = departure
+  const { report, written, day, covered, hoursChangeThatDay, inForce, coveredAtItsHours } =
+    departure
   const fromItsDose = (hour: Hour) => hour === null || hour >= (report.dueTime ?? '')
   const otherHours = !sameHours(written, day.setting)
   const readAtNewHours = day.setting === inForce && written.id !== day.setting.id
@@ -40,15 +42,15 @@ export function reportOutcome(departure: ReportDeparture): ReportOutcome {
   }
 
   const itsHours = hoursOf(written)
-  const notedAt = (hour: Hour) => notesOfDay.some((note) => note.dueTime === hour)
-  if (notedAt(report.dueTime)) return { beaten: true }
-  const carried = itsHours.filter((hour) => fromItsDose(hour) && !notedAt(hour))
-  const waitingBefore = itsHours.filter((hour) => !fromItsDose(hour) && !notedAt(hour)).length
-  const takenElsewhere = notesOfDay.filter((note) => !itsHours.includes(note.dueTime)).length
+  if (coveredAtItsHours.has(report.dueTime)) return { beaten: true }
+  const carried = itsHours.filter((hour) => fromItsDose(hour) && !coveredAtItsHours.has(hour))
+  const waitingBefore = itsHours.filter(
+    (hour) => !fromItsDose(hour) && !coveredAtItsHours.has(hour),
+  ).length
   const free = day.hours.filter((hour) => !covered.has(hour))
   const sooner = free.filter((hour) => !fromItsDose(hour)).length
   const missing = Math.max(0, carried.length - (free.length - sooner))
-  const stays = Math.max(0, waitingBefore - takenElsewhere, sooner - missing)
+  const stays = Math.max(0, waitingBefore, sooner - missing)
   const lost = free.slice(stays)
   return { beaten: false, carried, lost, hoursOf: written }
 }
