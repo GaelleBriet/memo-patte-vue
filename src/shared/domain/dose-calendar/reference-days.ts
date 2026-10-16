@@ -197,15 +197,8 @@ export function coverages({
   const matched = new Set<ReferenceLine>()
   const coverage = (into: Set<ReferenceLine>) =>
     coverageOf([...notes, ...borrowed], borrowed, translated, settingOf, into, late)
-  // L'heure n'est notée que par une prise écrite après le report du jour.
-  const notedLate = (day: string, hour: Hour) => {
-    const atHour = [...notes, ...borrowed].filter((n) => n.dueOn === day && n.dueTime === hour)
-    const top = atHour.find((n) => atHour.every((other) => !isMoreRecent(other, n)))
-    return top !== undefined && late.is(top)
-  }
   return {
     matched,
-    notedLate,
     coveredOn: coverage(matched),
     coveredAside: coverage(new Set()),
     settle: () => (reportsRead = true),

@@ -25,11 +25,7 @@ export type DayCoverage = (
  * tout. Le jour où les heures changent, une prise écrite après le report du jour attend `settle()` et
  * ne se pose que sur les heures qu'il a laissées.
  */
-export function dayCoverage(input: CoverageInput): {
-  coveredOn: DayCoverage
-  settle: () => void
-  isLate: (note: Line) => boolean
-} {
+export function dayCoverage(input: CoverageInput): { coveredOn: DayCoverage; settle: () => void } {
   const { borrowed, translated, settingOf, matched } = input
   const byDay = new Map<Day, Line[]>()
   for (const note of input.notes) byDay.set(note.dueOn, [...(byDay.get(note.dueOn) ?? []), note])
@@ -102,7 +98,7 @@ export function dayCoverage(input: CoverageInput): {
     }
     return covered
   }
-  return { coveredOn, settle: () => (reportsRead = true), isLate }
+  return { coveredOn, settle: () => (reportsRead = true) }
 }
 
 const byTime = (a: Line, b: Line) =>

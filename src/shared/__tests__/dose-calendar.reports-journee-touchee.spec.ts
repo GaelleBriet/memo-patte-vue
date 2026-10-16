@@ -327,6 +327,25 @@ describe('Le jour où les heures changent, une prise ou un oubli écrits après 
     expect(readings(after).moteur).toEqual(readings(after).reference)
   })
 
+  it('graine 6500000907 : tous les 3 jours à 8 h et 20 h, 8 h du 4 reportée au 5, puis 20 h du 4 notée donnée (autre appareil) ; une minute de plus aux heures le 4 : le 4 garde une dose, couverte par la prise ; le 5 reste à donner', () => {
+    const input: TreatmentViewInput = {
+      settings: [
+        setting('s1', '2026-04-04', { value: 3, unit: 'day' }, H, { startsOn: '2026-04-02' }),
+      ],
+      lines: [
+        line('s1', 'postponed', '2026-04-04', '08:00', '2026-04-05'),
+        line('s1', 'given', '2026-04-04', '20:00'),
+      ],
+      today: '2026-04-04',
+    }
+    const after = sameHoursAgain(input, ['08:01', '20:01'])
+    expect(states(after, '2026-04-04', '2026-04-05')).toEqual([
+      '2026-04-04 08:01 covered',
+      '2026-04-05 08:00 pending',
+    ])
+    expect(readings(after).moteur).toEqual(readings(after).reference)
+  })
+
   it('graine 6100001162 : le jour d’arrivée d’un report garde ses heures ; le report de 18 h écrit ensuite, aux mêmes heures, n’emporte que 18 h', () => {
     const weekly = { endsOn: '2026-04-22' }
     const FOUR = ['06:00', '12:00', '18:00', '23:00']
