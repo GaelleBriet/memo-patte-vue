@@ -12,6 +12,8 @@ export type ReportDeparture = {
   hoursChangeThatDay: boolean
   /** Le réglage en vigueur ce jour-là, celui dont les heures viennent de changer. */
   inForce: ReferenceSetting | undefined
+  /** Un réglage écrit après celui du report change les heures de sa journée. */
+  hoursChangedSince: boolean
   /** Les heures du report et celles des doses arrivées sur sa journée (#864). */
   itsHours: Hour[]
   /** Aux heures du report : les prises à ces heures, et celles des réglages écrits avant le sien. */
@@ -38,12 +40,14 @@ export function reportOutcome(departure: ReportDeparture): ReportOutcome {
     covered,
     hoursChangeThatDay,
     inForce,
+    hoursChangedSince,
     coveredAtItsHours,
     itsHours,
   } = departure
   const fromItsDose = (hour: Hour) => hour === null || hour >= (report.dueTime ?? '')
   const otherHours = !sameHours(written, day.setting)
-  const readAtNewHours = day.setting === inForce && written.id !== day.setting.id
+  const readAtNewHours =
+    day.setting === inForce && written.id !== day.setting.id && hoursChangedSince
 
   if (!hoursChangeThatDay || !(otherHours || readAtNewHours)) {
     if (covered.has(report.dueTime)) return { beaten: true }
@@ -62,6 +66,17 @@ export function reportOutcome(departure: ReportDeparture): ReportOutcome {
   const lost = free.slice(waitingBefore)
   return { beaten: false, carried, lost, hoursOf: written }
 }
+
+/** R4, R7 : un réglage écrit après celui du report change les heures de sa journée. */
+export const hoursChangedSince = (
+  live: readonly ReferenceSetting[],
+  written: ReferenceSetting,
+  day: string,
+): boolean =>
+  live.some(
+    (each) =>
+      each.startsOn === day && each.createdAt > written.createdAt && !sameHours(each, written),
+  )
 
 /**
  * R7, R10, #796 : à fréquence gardée, la date choisie emmène le report qui arrive à la dose du

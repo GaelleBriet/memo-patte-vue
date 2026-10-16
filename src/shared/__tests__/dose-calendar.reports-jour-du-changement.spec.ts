@@ -252,3 +252,56 @@ describe('Un jour d’arrivée qui mêle des heures et une dose sans heure (déc
     expect(readings(after).moteur).toEqual(readings(after).reference)
   })
 })
+
+describe('Un réglage qui ne change que la posologie ne relit pas le jour de départ d’un report', () => {
+  const THREE_DAYS: Frequency = { value: 3, unit: 'day' }
+
+  // Graine 6600001194 : Milo, tous les 3 jours à 8, 14 et 20 h dès le 22 mars ; le 21, 14 h du 22
+  // reportée au 29 avec la case ; le 23, « sans heure » ; le 29, retour à 8, 14 et 20 h jusqu'au
+  // 1er avril, puis 20 h du 29 reportée au 30 avec la case.
+  function milo(): TreatmentViewInput {
+    let input: TreatmentViewInput = {
+      settings: [setting('s1', '2026-03-22', THREE_DAYS, THREE)],
+      lines: [],
+      today: '2026-03-21',
+    }
+    input = given(input, '2026-03-22', '08:00')
+    input = moved(input, '2026-03-22', '14:00', '2026-03-29', true)
+    input = given(input, '2026-03-29', '14:00')
+    input = sameHoursAgain(on(input, '2026-03-23'), [])
+    input = on(input, '2026-03-29')
+    input = edited(input, {
+      frequency: THREE_DAYS,
+      times: THREE,
+      endsOn: '2026-04-01',
+      firstDueOn: '2026-03-29',
+    })
+    return moved(input, '2026-03-29', '20:00', '2026-03-30', true)
+  }
+
+  const withoutNotes = (input: TreatmentViewInput) => ({
+    ...input,
+    lines: input.lines.filter(({ status }) => status !== 'given'),
+  })
+
+  it('posologie seule le 29 : 14 h du 29 donnée, la dose de 20 h reste au 30, une seule fois', () => {
+    const before = milo()
+    const after = sameHoursAgain(before, THREE)
+    expect(states(after, '2026-03-29', '2026-04-01')).toEqual([
+      '2026-03-29 14:00 given',
+      '2026-03-30 20:00 pending',
+    ])
+    expect(readings(after)).toEqual(readings(before))
+    expect(readings(after).moteur).toEqual(readings(after).reference)
+  })
+
+  it('le même carnet sans ses deux prises : la posologie seule ne change pas la lecture', () => {
+    const before = withoutNotes(milo())
+    const after = sameHoursAgain(before, THREE)
+    expect(states(after, '2026-03-29', '2026-04-01')).toEqual(
+      states(before, '2026-03-29', '2026-04-01'),
+    )
+    expect(readings(after)).toEqual(readings(before))
+    expect(readings(after).moteur).toEqual(readings(after).reference)
+  })
+})

@@ -31,7 +31,7 @@ import {
   touchedJourneys,
   translatedDaysOf,
 } from './reference-lines'
-import { arrivedOn, chosenDateOf, reportOutcome } from './reference-reports'
+import { arrivedOn, chosenDateOf, hoursChangedSince, reportOutcome } from './reference-reports'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 type Grid = { origin: string; floor: string; since: string }
@@ -252,6 +252,7 @@ export function calendarOf(
       covered,
       hoursChangeThatDay: translated.has(dueOn),
       inForce: settingAt(dueOn),
+      hoursChangedSince: hoursChangedSince(live, written, dueOn),
       itsHours: itsDay.hours,
       coveredAtItsHours: coveredAside(dueOn, itsDay, writtenBefore(written, settingOf)),
     })
