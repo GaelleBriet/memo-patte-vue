@@ -1,4 +1,4 @@
-import { hoursOf, isOnGrid, later, plusDays, sameFrequency } from '../grid'
+import { hoursOf, later, sameFrequency } from '../grid'
 import { isNote } from '../lines'
 import { episodesOf, hasNotes } from '../settings'
 import type {
@@ -14,8 +14,8 @@ import { buildView, type TreatmentView } from '../view'
 import { settingsApplied } from './changes'
 import { chosenRefusal, isChosen, withChosenDate } from './settings-chosen'
 import { endChecked } from './settings-end'
+import { keptCorrection } from './settings-kept'
 import {
-  NEXT_DAYS,
   proposedDates,
   shownDay,
   shownFrom,
@@ -204,42 +204,6 @@ function rhythmKept(
   return { plan: rewrite(current, fieldsOf(startsOn, dates, request)) }
 }
 
-// TR-28, Q38 : corrigé à fréquence gardée, le réglage garde sa grille, et sa date choisie avec elle ;
-// il part de sa première journée encore due à partir d'aujourd'hui ; les échéances tombées sortent.
-function keptCorrection(
-  input: TreatmentViewInput,
-  current: Setting,
-  request: SettingsRequest,
-): Dates {
-  const { today } = input
-  const { firstDueOn, gridOriginOn, firstDueChosen } = current
-  const dates = { firstDueOn, gridOriginOn, firstDueChosen }
-  const draft = rewrite(current, fieldsOf(current.startsOn, dates, request))
-  const slots = buildView(settingsApplied(input, draft)).slots(today, plusDays(today, NEXT_DAYS))
-  // R6 : un jour d'arrivée n'est pas une journée de la grille, la grille n'en repart pas ; R7 : sauf
-  // si son report partait d'une journée du réglage corrigé, qui sortirait du calendrier avec lui.
-  const arrivals = new Set(
-    input.lines.flatMap(({ status, dueOn, targetOn }) =>
-      status === 'postponed' && targetOn && dueOn < current.startsOn ? [targetOn] : [],
-    ),
-  )
-  const offGrid = ({ settingId, dueOn }: Due) =>
-    arrivals.has(dueOn) &&
-    (gridOriginOn === null
-      ? settingId !== current.id
-      : !isOnGrid(gridOriginOn, request.frequency, dueOn))
-  // R4 : une journée qui garde les heures d'un autre réglage reste au calendrier, ses prises comptent.
-  const first = slots.find(
-    ({ state, due }) => !offGrid(due) && (state === 'pending' || due.settingId !== current.id),
-  )
-  const next = (first ?? slots[0])?.due.dueOn
-  const start = next ?? later(firstDueOn, today)
-  const kept = gridOriginOn !== null && isOnGrid(gridOriginOn, request.frequency, start)
-  return kept
-    ? { firstDueOn: start, gridOriginOn, firstDueChosen }
-    : { firstDueOn: start, gridOriginOn: start, firstDueChosen: false }
-}
-
 // TR-28, Q38, Q39 : sans prise depuis son début, le réglage est corrigé ; avec des échéances
 // tombées, l'enregistrement demande s'il faut les garder à renseigner.
 function corrected(
@@ -277,7 +241,9 @@ function corrected(
   const fixed = questioned
     ? own(shownFrom(today, readAfter(input, correctFrom)))
     : sameFrequency(current.frequency, request.frequency)
-      ? keptCorrection(input, current, request)
+      ? keptCorrection(input, current, request, (dates) =>
+          rewrite(current, fieldsOf(current.startsOn, dates, request)),
+        )
       : own(shownFrom(later(proposal.firstDueOn, today), readAfter(input, correctFrom)))
   // Q38 : la date que montre le formulaire, passée telle quelle, n'est pas une date choisie.
   const shown =
