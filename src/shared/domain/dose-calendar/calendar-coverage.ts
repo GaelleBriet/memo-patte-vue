@@ -49,6 +49,7 @@ export function dayCoverage(input: CoverageInput): { coveredOn: DayCoverage; set
     const translates = (note: Line) => foreign(note) && !isLate(note)
     const covered = new Map<Hour, Line>()
     // TR-25 : la plus récente des prises d'une heure la couvre.
+    const atHour = new Map<Hour, Line>()
     for (const hour of journey.hours) {
       const note = ofDay
         .filter(({ dueTime }) => dueTime === hour)
@@ -56,12 +57,16 @@ export function dayCoverage(input: CoverageInput): { coveredOn: DayCoverage; set
           (kept, each) => (kept && !isMoreRecent(each, kept) ? kept : each),
           undefined,
         )
-      if (note !== undefined) covered.set(hour, note)
+      if (note !== undefined) atHour.set(hour, note)
     }
-    const used = new Set(covered.values())
+    const used = new Set(atHour.values())
     const elsewhere = ofDay
       .filter(
-        (note) => !used.has(note) && (placeable?.(note) ?? true) && (reportsRead || !isLate(note)),
+        (note) =>
+          !used.has(note) &&
+          (placeable?.(note) ?? true) &&
+          (reportsRead || !isLate(note)) &&
+          (note.status === 'given' || foreign(note)),
       )
       .sort(byTime)
     // R4 : une prise écrite après le report ne cherche la suivante que si le report n'a laissé aucune heure.
@@ -70,17 +75,31 @@ export function dayCoverage(input: CoverageInput): { coveredOn: DayCoverage; set
     for (const note of ofDay) {
       if (kept(note) || journey.hours.includes(note.dueTime)) read.add(note)
     }
-    for (const note of elsewhere) {
-      if (note.status !== 'given' && !foreign(note)) continue
-      const free = journey.hours.filter((each) => !covered.has(each))
-      // R4 : le jour où les heures changent, les prises du jour couvrent les premières heures, dans
-      // l'ordre, quelle que soit leur heure ; un autre jour, la première échéance libre qui suit.
-      const hour = foreign(note)
-        ? free[0]
-        : free.find((each) => each !== null && follows(each, note.dueTime))
-      if (hour === undefined) continue
-      covered.set(hour, note)
-      read.add(note)
+    // R4, #866 : le jour où les heures changent, plus de notes que d'heures : les prises données
+    // prennent les heures d'abord, les oublis ensuite ; un oubli délogé de son heure prend une heure libre.
+    const crowded = translated.has(day) && atHour.size + elsewhere.length > journey.hours.length
+    const rounds = crowded ? [isGiven, (note: Line) => !isGiven(note)] : [() => true]
+    const displaced = new Set<Line>()
+    for (const round of rounds) {
+      atHour.forEach((note, hour) => {
+        if (!round(note)) return
+        if (!covered.has(hour)) covered.set(hour, note)
+        else if (crowded) displaced.add(note)
+      })
+      const waiting = [...elsewhere.filter(round), ...displaced].sort(byTime)
+      displaced.clear()
+      for (const note of waiting) {
+        const free = journey.hours.filter((each) => !covered.has(each))
+        // R4 : le jour où les heures changent, les prises du jour couvrent les premières heures, dans
+        // l'ordre, quelle que soit leur heure ; un autre jour, la première échéance libre qui suit.
+        const hour =
+          foreign(note) || atHour.get(note.dueTime) === note
+            ? free[0]
+            : free.find((each) => each !== null && follows(each, note.dueTime))
+        if (hour === undefined) continue
+        covered.set(hour, note)
+        read.add(note)
+      }
     }
     const last =
       elsewhere.filter(translates).sort(byTime).at(-1) ??
@@ -103,6 +122,8 @@ export function dayCoverage(input: CoverageInput): { coveredOn: DayCoverage; set
   }
   return { coveredOn, settle: () => (reportsRead = true) }
 }
+
+const isGiven = (note: Line) => note.status === 'given'
 
 const byTime = (a: Line, b: Line) =>
   (a.dueTime ?? '').localeCompare(b.dueTime ?? '') || a.id.localeCompare(b.id)

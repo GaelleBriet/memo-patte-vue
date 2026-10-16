@@ -2775,3 +2775,28 @@ Gaelle pour les lectures de règles).
   réglage en cours à 20 h, « 20 h → 20 h 01 » le 12 : le 12 garde 18 h à donner (graine 7810000428).
   — Alternative écartée : traduire la journée vers 20 h 01, qui faisait disparaître la dose de 18 h
   pour une minute d'écart.
+
+2026-10-16 — **#866 et #868 tranchées : une prise donnée passe avant un oubli, et « Elles n'étaient
+pas à donner » ne fait pas repartir la grille d'une arrivée à fréquence gardée** (spec
+`traitements.md` R3, R4, R10, §10 ; transmises par la session d'analyse du moteur, mandatée par
+Gaelle pour les lectures de règles).
+
+- #866 : le jour du changement d'heures, quand la journée a plus de notes que d'heures, les prises
+  données prennent les heures d'abord, dans l'ordre, les oublis ensuite, sur les heures restées
+  libres ; l'oubli en trop est sans effet. Chaque jour à 8 h et 20 h, le 10, 8 h donnée et 20 h marquée oubliée, puis 20 h seule :
+  20 h couverte par la prise de 8 h, l'oubli de 20 h sans effet. Un écran ne dit jamais « oubliée »
+  un jour où la dose a été donnée. — Alternative écartée : l'oubli gardait son heure et la prise de
+  8 h était sans effet.
+- #868 : fréquence gardée (heures ou posologie seules) : l'origine est héritée, le calendrier ne
+  bouge pas, le jour d'arrivée d'un report garde ses doses reportées en plus (graine 8000000154 : le
+  17 mars garde ses trois doses à donner, puis le 6 avril). Fréquence changée : le rythme repart de
+  l'arrivée (R9 point 2). Dans les deux cas, ce geste ne retire que les doses tombées sans prise que
+  la question a listées. — Alternatives écartées : le rythme qui repartait du jour d'arrivée (le
+  17 avril au lieu du 6 ; avec une fin le 20 avril, la dose du 18 avril disparaissait, graine
+  8000000726) et la lecture d'avant #859, qui perdait les doses du jour d'arrivée.
+- Lecture de l'implémenteur de #868, à confirmer par Gaelle (spec §11), qui n'est pas une décision
+  de Gaelle : à fréquence gardée, le jour d'arrivée d'un report n'est la première échéance, et la
+  grille ne repart de lui, que si, sans cela, ce report deviendrait sans effet (graines 7810000235
+  et 7810000909, lues comme sur `main`). Elle remplace la puce précédente (« ne saute le jour
+  d'arrivée d'un report hors de la grille que si ce report part d'avant le réglage corrigé »), que
+  la décision #868 contredit pour les graines 8000000154 et 8000000726.
