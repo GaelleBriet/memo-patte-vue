@@ -251,6 +251,7 @@ export function calendarOf(
       day: origin ?? { setting: from, hours },
       covered,
       hoursChangeThatDay: translated.has(dueOn),
+      inForce: settingAt(dueOn),
       notesOfDay: [...notes, ...borrowed].filter((note) => note.dueOn === dueOn),
       settingOf,
     })

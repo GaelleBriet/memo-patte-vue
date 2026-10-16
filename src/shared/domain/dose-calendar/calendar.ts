@@ -139,9 +139,10 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
         ? new Set(hours.filter((hour) => noted.has(keyOf(dueOn, hour))))
         : new Set(coveredOn(dueOn, origin).keys())
     const written = settingOf(report.settingId)
-    // R4, R7 : écrit sous un autre réglage que celui du jour où les heures changent, un report se juge
-    // sur les prises écrites sous ses heures, et le jour de départ perd autant de doses qu'il en emporte.
-    const reread = translated.has(dueOn) && written.id !== from.id
+    // R4, R7 : le jour où les heures changent, écrit sous d'autres heures ou avant le réglage qui relit
+    // sa journée, un report se juge sur ses prises et le jour de départ perd autant qu'il emporte.
+    const relit = from.id === span.settingAt(dueOn)?.id && written.id !== from.id
+    const reread = translated.has(dueOn) && (!sameHours(written, from) || relit)
     const source = reread ? written : from
     const ownNoted = new Set(
       (byDay.get(dueOn) ?? [])

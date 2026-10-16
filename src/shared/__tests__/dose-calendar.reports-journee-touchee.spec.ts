@@ -212,6 +212,60 @@ describe('La date choisie suit les heures du réglage qui la choisit', () => {
   })
 })
 
+describe('Le jour où les heures changent, un report ne se juge sur ses heures que si la journée est relue', () => {
+  it('graine 6100002653 : une prise oubliée d’un réglage intermédiaire, traduite, ne bat pas le report écrit avant ; 20 h seule : le 15 garde sa dose', () => {
+    const input: TreatmentViewInput = {
+      settings: [
+        setting('s1', '2026-04-10', WEEK, ['20:00']),
+        setting('s2', '2026-04-10', WEEK, H, { gridOriginOn: null, firstDueChosen: false }),
+      ],
+      lines: [
+        line('s1', 'postponed', '2026-04-10', '20:00', '2026-04-15'),
+        line('s1', 'shift', '2026-04-10', '20:00', '2026-04-15'),
+        line('s1', 'given', '2026-04-15', '20:00'),
+        line('s1', 'shift', '2026-04-15', '20:00', '2026-04-10'),
+        line('s2', 'missed', '2026-04-10', '08:00'),
+      ],
+      today: '2026-04-10',
+    }
+    const after = sameHoursAgain(input, ['20:00'])
+    expect(states(input, '2026-04-11', '2026-04-15')).toEqual(['2026-04-15 20:00 given'])
+    expect(states(after, '2026-04-11', '2026-04-15')).toEqual(['2026-04-15 20:00 given'])
+    expect(reportEffects(after)).toEqual(['moves'])
+    expect(readings(after).moteur).toEqual(readings(after).reference)
+  })
+
+  it('graine 6100001162 : le jour d’arrivée d’un report garde ses heures ; le report de 18 h écrit ensuite, aux mêmes heures, n’emporte que 18 h', () => {
+    const weekly = { endsOn: '2026-04-22' }
+    const FOUR = ['06:00', '12:00', '18:00', '23:00']
+    const input: TreatmentViewInput = {
+      settings: [
+        setting('s1', '2026-03-04', WEEK, FOUR, weekly),
+        setting('s2', '2026-03-04', WEEK, FOUR, {
+          ...weekly,
+          startsOn: '2026-03-05',
+          gridOriginOn: null,
+          firstDueChosen: false,
+        }),
+      ],
+      lines: [
+        line('s1', 'given', '2026-03-04', '23:00'),
+        line('s1', 'postponed', '2026-03-04', '06:00', '2026-03-05'),
+        line('s1', 'shift', '2026-03-04', '06:00', '2026-03-05'),
+        line('s1', 'given', '2026-03-04', '12:00'),
+        line('s2', 'given', '2026-03-05', '06:00'),
+        line('s2', 'postponed', '2026-03-05', '18:00', '2026-04-09'),
+        line('s2', 'shift', '2026-03-05', '18:00', '2026-04-09'),
+      ],
+      today: '2026-03-05',
+    }
+    expect(states(input, '2026-04-09', '2026-04-09')).toEqual(['2026-04-09 18:00 pending'])
+    const after = sameHoursAgain(input, ['06:01', '12:01', '18:01', '23:01'])
+    expect(states(after, '2026-04-09', '2026-04-09')).toEqual(['2026-04-09 18:00 pending'])
+    expect(readings(after).moteur).toEqual(readings(after).reference)
+  })
+})
+
 describe('Deux téléphones, un réglage du jour réécrit (R10)', () => {
   // Graine 7600001452 : tous les 3 mois à 8, 14 et 20 h, première dose le 5 mars, 14 h et 20 h données
   // d'avance ; le 3, posologie seule (réglage ouvert le jour même).
