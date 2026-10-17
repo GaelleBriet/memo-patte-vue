@@ -1,6 +1,6 @@
 import type { Animal, AnimalInput } from '../schema/animal.schema'
 import type { AnimalsRepository } from '../repository/animals.repository'
-import { deletePhoto, savePhoto, type PhotoStorage } from '@/core/photos/photo-storage'
+import type { PhotoStorage } from '@/core/photos/photo-storage'
 
 export type PhotoChange =
   { kind: 'keep' } | { kind: 'replace'; base64: string } | { kind: 'remove' }
@@ -8,7 +8,12 @@ export type PhotoChange =
 /** Ce que `reattach` et `forgetRemoved` reprennent d'un retrait. */
 export type PhotoRemoval = { animalId: string; photoPath: string }
 
-export function createAnimalPhotoService(storage: PhotoStorage) {
+export type AnimalsRepositoryProvider = () => AnimalsRepository | Promise<AnimalsRepository>
+
+export function createAnimalPhotoService(
+  storage: PhotoStorage,
+  repositoryOf: AnimalsRepositoryProvider,
+) {
   async function writeNewPhoto(change: PhotoChange): Promise<string | null> {
     return change.kind === 'replace' ? storage.savePhoto(change.base64) : null
   }
@@ -45,12 +50,8 @@ export function createAnimalPhotoService(storage: PhotoStorage) {
     },
 
     /** Le `photoPath` de `input` est ignoré : seul `change` décide de la photo. */
-    async update(
-      repository: AnimalsRepository,
-      id: string,
-      input: AnimalInput,
-      change: PhotoChange,
-    ): Promise<Animal> {
+    async update(id: string, input: AnimalInput, change: PhotoChange): Promise<Animal> {
+      const repository = await repositoryOf()
       const existing = await repository.getById(id)
       if (!existing) throw new Error(`Animal introuvable : ${id}`)
 
@@ -65,11 +66,8 @@ export function createAnimalPhotoService(storage: PhotoStorage) {
     },
 
     /** Retire la photo en gardant son fichier pour `reattach` ; `null` pour un animal sans photo. */
-    async detach(
-      repository: AnimalsRepository,
-      id: string,
-      input: AnimalInput,
-    ): Promise<PhotoRemoval | null> {
+    async detach(id: string, input: AnimalInput): Promise<PhotoRemoval | null> {
+      const repository = await repositoryOf()
       const existing = await repository.getById(id)
       if (!existing) throw new Error(`Animal introuvable : ${id}`)
       if (existing.photoPath === null) return null
@@ -79,11 +77,8 @@ export function createAnimalPhotoService(storage: PhotoStorage) {
     },
 
     /** Rend la photo retirée, sauf si une autre a été choisie depuis : l'ancienne est alors effacée. */
-    async reattach(
-      repository: AnimalsRepository,
-      input: AnimalInput,
-      { animalId, photoPath }: PhotoRemoval,
-    ): Promise<Animal> {
+    async reattach(input: AnimalInput, { animalId, photoPath }: PhotoRemoval): Promise<Animal> {
+      const repository = await repositoryOf()
       const existing = await repository.getById(animalId)
       if (!existing) throw new Error(`Animal introuvable : ${animalId}`)
       if (existing.photoPath !== null) {
@@ -94,10 +89,8 @@ export function createAnimalPhotoService(storage: PhotoStorage) {
     },
 
     /** Efface le fichier d'une photo retirée que l'animal ne porte plus ; ne lève pas. */
-    async forgetRemoved(
-      repository: AnimalsRepository,
-      { animalId, photoPath }: PhotoRemoval,
-    ): Promise<void> {
+    async forgetRemoved({ animalId, photoPath }: PhotoRemoval): Promise<void> {
+      const repository = await repositoryOf()
       try {
         if ((await repository.getById(animalId))?.photoPath === photoPath) return
         await storage.deletePhoto(photoPath)
@@ -109,5 +102,3 @@ export function createAnimalPhotoService(storage: PhotoStorage) {
 }
 
 export type AnimalPhotoService = ReturnType<typeof createAnimalPhotoService>
-
-export const animalPhotoService = createAnimalPhotoService({ savePhoto, deletePhoto })
