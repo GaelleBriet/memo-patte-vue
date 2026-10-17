@@ -1,6 +1,9 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
+import { mulberry32 } from '../../../scripts/dose-engine/carnet'
+import { brokenBy } from '../../../scripts/dose-engine/v2-invariants'
+import { startV2Walk, v2Step, type V2Step } from '../../../scripts/dose-engine/v2-walk'
 import {
   treatmentView,
   type Line,
@@ -266,5 +269,22 @@ describe('#883 (graine 8710000013) : un report plus récent dont seule l’heure
     const { merged, report } = troisJours({ reportAt: MATIN, rewrittenAt: SOIR })
     expect(effectOf(merged, report.id)).toEqual({ kind: 'idle', reason: 'nothing-to-move' })
     expect(treatmentView(merged).slots('2026-05-06', '2026-05-06')).toEqual([])
+  })
+})
+
+describe('Un seul téléphone : une dose ôtée par un décalage, pas par la réécriture, se lit comme avant', () => {
+  // Graine 9000000692 : chaque semaine à 8 h et 20 h, réglage réécrit le 9 avril, puis reports et
+  // décalages ; la journée du 17 n'est plus au calendrier à cause d'un décalage écrit après.
+  it('graine 9000000692 : les invariants tiennent à chaque geste, posologie seule comprise', () => {
+    const seed = 9000000692
+    const walk = startV2Walk(seed)
+    const checks = mulberry32(seed ^ 0x4f1bbcdc)
+    const broken: string[] = []
+    const onStep = (step: V2Step) => {
+      const found = brokenBy(step, checks)
+      if (found !== null) broken.push(`${step.label} : ${found.invariant}`)
+    }
+    for (let count = 0; count < 40; count += 1) v2Step(walk, onStep)
+    expect(broken).toEqual([])
   })
 })

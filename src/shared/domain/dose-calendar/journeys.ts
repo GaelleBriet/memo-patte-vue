@@ -10,7 +10,7 @@ import {
 } from './grid'
 import { isDueDay, skippedDays, turned, type Grid } from './grid-in-force'
 import type { EpisodeLines } from './lines'
-import { rewriteVerdict } from './rewrite'
+import { shiftKeptByReport } from './rewrite'
 import type { Span } from './settings'
 import type { Day, Frequency, Hour, Line, LineEffect, Setting } from './types'
 
@@ -75,15 +75,15 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
         : touched
     return { setting: own, hours: hoursOf(own.times) }
   }
-  // #885 : le décalage d'un report qui l'emporte sur la réécriture de son réglage part de la journée
-  // de départ que cette réécriture a ôtée du calendrier.
-  const wins = (line: Line) =>
-    rewriteVerdict(line, byId.get(line.settingId)!, span.settingAt(line.dueOn)) === 'line'
-  const removed = (day: Day) => !days.has(day) && !lines.reports.some((r) => r.targetOn === day)
+  const bases = new Map<string, Grid>()
   const keptByReport = (turn: Line) =>
-    removed(turn.dueOn) &&
-    wins(turn) &&
-    lines.reports.some((report) => report.dueOn === turn.dueOn && wins(report))
+    shiftKeptByReport(turn, {
+      reports: lines.reports,
+      isDay: (day) => days.has(day),
+      settingOf: (id) => byId.get(id)!,
+      baseOf: (id) => bases.get(id),
+      settingAt: span.settingAt,
+    })
   const claims: Claim[] = []
   const openings = new Set<Day>()
   let grid: Grid = { origin: chain[0]!.firstDueOn, floor: '', since: '' }
@@ -157,6 +157,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       : origin !== null
         ? { ...grid, floor: ownFloor }
         : { ...grid, floor: later(grid.floor, later(chosenFloor, plusDays(setting.startsOn, -1))) }
+    bases.set(setting.id, grid)
     if (!continued) rhythmStartFloor = grid.floor
     const at = span.episode.indexOf(setting)
     const prior = span.live.filter((each) => span.episode.indexOf(each) < at).at(-1)
@@ -265,6 +266,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     chosenRestarts,
     lastPossibleDay,
     lastGridDay,
+    bases,
   }
 }
 
