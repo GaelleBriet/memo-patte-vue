@@ -10,7 +10,6 @@ import type {
 } from '../types'
 import { buildView, type TreatmentView } from '../view'
 import { shiftOfDay, shiftWritten, written } from './changes'
-import { doseLines } from './dose-lines'
 import { linesAfter, lostToEnd, movedAlone, outcome, shiftDayOf, withFollowed } from './outcome'
 
 export type NoteGesture = Omit<Extract<Gesture, { kind: 'note' }>, 'kind'>
@@ -65,21 +64,13 @@ function isExtra(view: TreatmentView, due: Due, givenOn: Day): boolean {
   return boundary !== null && givenOn < boundary
 }
 
-function noteChanges(
-  input: TreatmentViewInput,
-  view: TreatmentView,
-  line: LineFields,
-): LineChange[] {
+// TR-25 : la note réécrit la ligne en vigueur ; celles de l'autre appareil restent, sans effet.
+function noteChange(input: TreatmentViewInput, view: TreatmentView, line: LineFields): LineChange {
   const slot = view.slots(line.dueOn, line.dueOn).find(({ due }) => due.dueTime === line.dueTime)
   const exact = slot?.state === 'given' || slot?.state === 'missed' ? slot.by : null
-  const change: LineChange =
-    exact === null || exact === undefined
-      ? written(input.lines, line)
-      : { action: 'rewrite', id: exact.id, line }
-  if (change.action !== 'rewrite') return [change]
-  const shown = input.lines.find(({ id }) => id === change.id)!
-  const others = doseLines(input, shown).map(({ id }): LineChange => ({ action: 'delete', id }))
-  return [change, ...others]
+  return exact === null || exact === undefined
+    ? written(input.lines, line)
+    : { action: 'rewrite', id: exact.id, line }
 }
 
 /** « C'est fait », « Fait à une autre date », renseigner, « Marquer comme donnée / oubliée ». */
@@ -100,12 +91,14 @@ export function noteDose(input: TreatmentViewInput, gesture: NoteGesture): Gestu
     }
     return outcome(input, [written(input.lines, extra)])
   }
-  const notes = noteChanges(input, view, {
-    ...due,
-    status,
-    givenOn: status === 'given' ? givenOn : null,
-    targetOn: null,
-  })
+  const notes = [
+    noteChange(input, view, {
+      ...due,
+      status,
+      givenOn: status === 'given' ? givenOn : null,
+      targetOn: null,
+    }),
+  ]
   const offered = status === 'given' && offersShift(input, view, due, givenOn)
   if (!offered || !shiftsFollowing) return outcome(input, notes, { offersShift: offered })
   const shifted = [
