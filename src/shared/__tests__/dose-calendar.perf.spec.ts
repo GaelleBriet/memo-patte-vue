@@ -27,13 +27,19 @@ const input: TreatmentViewInput = {
   today: '2026-09-30',
 }
 
-// Meilleur de trois essais : écarte le bruit de la machine, garde visible une régression.
+// Temps de processeur du fichier (un processus par fichier) : une machine chargée ne le gonfle pas.
+function cpuMs(): number {
+  const { user, system } = process.cpuUsage()
+  return (user + system) / 1000
+}
+
+// Meilleur de trois essais : garde visible une régression, écarte le bruit.
 function fastest<T>(run: () => T): { result: T; elapsed: number } {
   let best = { result: run(), elapsed: Infinity }
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const start = performance.now()
+    const start = cpuMs()
     const result = run()
-    const elapsed = performance.now() - start
+    const elapsed = cpuMs() - start
     if (elapsed < best.elapsed) best = { result, elapsed }
   }
   return best
