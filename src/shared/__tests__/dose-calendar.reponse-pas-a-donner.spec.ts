@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { newSettings, treatmentView, type TreatmentViewInput } from '../domain/dose-calendar'
 import type { Line, Setting } from '../domain/dose-calendar/types'
-import { edited, readings } from './dose-calendar.reglage-corrige.aides'
+import { edited, given, moved, on, readings } from './dose-calendar.reglage-corrige.aides'
 import { H, MONTH, keys } from './dose-calendar.v2.aides'
 
 const THREE_DAYS = { value: 3, unit: 'day' } as const
@@ -125,6 +125,35 @@ describe('#873 : « Elles n’étaient pas à donner » retire les doses tombée
   it('« Elles restent à renseigner » : rien n’est retiré', () => {
     const after = edited(graine726(), SANS_HEURE, 'keep')
     expect(readings(after).moteur.aRenseigner).toContain('2026-03-18 14:00')
+  })
+
+  it('#872 : tous les 3 mois à 20 h, fin le 6 mai, doses du 4 et du 11 données, la dose du 18 mars reportée au 22 où elle ouvre le rythme ; le 23, 12, 18 et 23 h : « Elles n’étaient pas à donner » est refusée (#806), « Elles restent à renseigner » non', () => {
+    const QUARTER = { value: 3, unit: 'month' } as const
+    const WEEK = { value: 1, unit: 'week' } as const
+    let c: TreatmentViewInput = {
+      settings: [
+        S('w1', 0, {
+          startsOn: '2026-03-04',
+          firstDueOn: '2026-03-04',
+          gridOriginOn: '2026-03-04',
+          frequency: WEEK,
+          times: ['20:00'],
+        }),
+      ],
+      lines: [],
+      today: '2026-03-17',
+    }
+    c = given(on(c, '2026-03-04'), '2026-03-04', '20:00')
+    c = given(on(c, '2026-03-11'), '2026-03-11', '20:00')
+    c = moved(on(c, '2026-03-17'), '2026-03-18', '20:00', '2026-03-22', false)
+    c = edited(on(c, '2026-03-20'), { frequency: QUARTER, times: ['20:00'], endsOn: '2026-05-06' })
+    expect(treatmentView(on(c, '2026-03-20')).currentSetting?.firstDueOn).toBe('2026-03-22')
+    const request = { frequency: QUARTER, times: ['12:00', '18:00', '23:00'], endsOn: '2026-05-06' }
+    const asked = newSettings(on(c, '2026-03-23'), request)
+    expect(asked).toMatchObject({
+      question: { correct: { refusal: { reason: 'no-dose-before-end' } } },
+    })
+    expect('question' in asked && 'refusal' in asked.question.keep).toBe(false)
   })
 
   it('deux téléphones : un report plus récent que la réponse tient, son arrivée reste', () => {
