@@ -24,10 +24,8 @@ export function coverOrphans(
   }
 }
 
-/**
- * R4, #847 : une journée de la grille laissée avant une première échéance posée plus loin, dont une
- * prise donnée ne couvre aucune échéance qui la suit, lit les heures de ses prises : chacune y garde la sienne.
- */
+// R4, #847 : laissée avant une première échéance posée plus loin, une journée dont une prise donnée
+// ne couvre aucune échéance qui la suit lit les heures de ses prises : chacune y garde la sienne.
 export function keepSkippedDays(
   notes: readonly Line[],
   skipped: ReadonlySet<Day>,
