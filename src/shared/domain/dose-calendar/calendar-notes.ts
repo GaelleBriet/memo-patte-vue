@@ -3,9 +3,8 @@ import { keyOf } from './grid'
 import type { EpisodeLines } from './lines'
 import type { Day, Line, LineEffect } from './types'
 
-// R4, règle du 17 octobre 2026 : une prise donnée qui ne couvre aucune échéance de sa journée garde la
-// journée et l'heure de sa ligne, jamais translatée ; au-delà de l'arrêt, la reprise seule porte ces
-// jours (R8).
+// R4 : une prise donnée qui ne couvre aucune échéance de sa journée garde sa propre échéance ;
+// au-delà de l'arrêt, la reprise seule porte ces jours (R8).
 export function keepGivenNotes(
   notes: readonly Line[],
   slots: readonly Slot[],

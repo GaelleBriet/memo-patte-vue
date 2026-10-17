@@ -14,10 +14,8 @@ export const turned = (turn: Line, chosenFloor: Day): Grid => ({
   since: later(turn.dueOn, turn.targetOn!),
 })
 
-/**
- * R4, #847 : les journées de la grille en vigueur, à partir de `read`, qu'une première échéance posée
- * plus loin laisse avant elle, jusqu'à `floor` et au plus tard `last`.
- */
+/** R4, #847 : journées de la grille en vigueur qu'une première échéance posée plus loin laisse avant
+ * elle, de `read` à `floor`, au plus tard `last`. */
 export function skippedDays(
   grid: Grid,
   frequency: Frequency,
