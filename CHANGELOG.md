@@ -5,6 +5,35 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.84](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.83...memo-patte-v0.1.84) (2026-10-17)
+
+
+### 🐛 Corrections
+
+* **dose-calendar:** « Elles n'étaient pas à donner » retire les doses listées d'avant la réponse ([af61b59](https://github.com/GaelleBriet/memo-patte-vue/commit/af61b59ab42c60060850c90a23e286c2dd585025))
+* **dose-calendar:** « pas à donner » refusée aussi sur un carnet sans prise quand rien ne reste ([42086b3](https://github.com/GaelleBriet/memo-patte-vue/commit/42086b303f9f66054fc7ea50e59add262ede62a7))
+* **dose-calendar:** « pas à donner » refusée quand elle ne laisse aucune journée avant la fin ([4599443](https://github.com/GaelleBriet/memo-patte-vue/commit/4599443c96afddd402a2dc559fc350c724cfad64))
+* **dose-calendar:** après « Supprimer ce report », la journée garde les heures de ses prises ([#847](https://github.com/GaelleBriet/memo-patte-vue/issues/847)) ([f49c9b4](https://github.com/GaelleBriet/memo-patte-vue/commit/f49c9b48c95901387d59e550b1d318ccd4231d69))
+* **dose-calendar:** journées laissées avant la date choisie lues sur la grille décalée ([4b9104f](https://github.com/GaelleBriet/memo-patte-vue/commit/4b9104f52f40849272224da1dddb48c6a9c78880))
+* **dose-calendar:** le décalage d'un report gagnant exige que sa journée de départ soit ôtée ([61fd38c](https://github.com/GaelleBriet/memo-patte-vue/commit/61fd38cefb0be2d0377ce8b91af48ebdd232be11))
+* **dose-calendar:** retire [#873](https://github.com/GaelleBriet/memo-patte-vue/issues/873) et [#872](https://github.com/GaelleBriet/memo-patte-vue/issues/872) de cette PR, la réponse n'est pas tracée ([790fb31](https://github.com/GaelleBriet/memo-patte-vue/commit/790fb315a801b30a0ab0ee13754b3c7c1ad96a9c))
+* **dose-calendar:** un report plus récent que la réécriture garde son décalage ([8179ca7](https://github.com/GaelleBriet/memo-patte-vue/commit/8179ca7058c78ab597f7a58571801fe9a85b7f71))
+* **dose-calendar:** une journée laissée avant la date choisie garde les heures de ses prises ([7b98619](https://github.com/GaelleBriet/memo-patte-vue/commit/7b986197c6387ae22447c6375bc43c16d00885f3)), closes [#847](https://github.com/GaelleBriet/memo-patte-vue/issues/847)
+* **dose-calendar:** une note laisse la ligne de l'autre appareil, grisée (tr-25, [#841](https://github.com/GaelleBriet/memo-patte-vue/issues/841)) ([6cfea0d](https://github.com/GaelleBriet/memo-patte-vue/commit/6cfea0d72dab1ff15649e26acc2b44f401b00312))
+* **dose-calendar:** une note laisse la ligne de l'autre appareil, grisée (tr-25, [#841](https://github.com/GaelleBriet/memo-patte-vue/issues/841)) ([7fc6bb5](https://github.com/GaelleBriet/memo-patte-vue/commit/7fc6bb5024ef39f27c300b8135f1528bb38ef5c2))
+* **dose-calendar:** une prise d'une journée retirée ne couvre pas l'arrivée d'un report ([c47ade3](https://github.com/GaelleBriet/memo-patte-vue/commit/c47ade3a78d846f0d4c756244abd94a7cf7865ef))
+* **dose-calendar:** une prise donnée garde son échéance face à « Elles n'étaient pas à donner » ([91338fb](https://github.com/GaelleBriet/memo-patte-vue/commit/91338fb2d7821773bf8c79cbec6e7b0480a927fd))
+* **dose-calendar:** une prise garde la journée et l'heure de sa ligne (décisions du 17 octobre) ([696fc57](https://github.com/GaelleBriet/memo-patte-vue/commit/696fc57af6098020a74358c320061aeb47f432e3))
+* **dose-calendar:** une prise garde la journée et l'heure de sa ligne, jamais translatée ([cfe2b46](https://github.com/GaelleBriet/memo-patte-vue/commit/cfe2b467c4d9fc5f2c091f8fad751259c426ef61))
+* **eslint:** garder app/ et le repository de core/ et de logic/ ([c88723e](https://github.com/GaelleBriet/memo-patte-vue/commit/c88723e111ac4f8efc3a13b90033c5947a0e9254))
+* **sync:** écrêtage de settings_written_at, rejeu v12 du pgTAP et garde des appareils ([cbb9668](https://github.com/GaelleBriet/memo-patte-vue/commit/cbb9668f2c9ab8367e47a42078616df07b7d339d))
+* **sync:** le serveur écrête aussi settings_written_at trop loin dans le futur ([#888](https://github.com/GaelleBriet/memo-patte-vue/issues/888)) ([f2c9149](https://github.com/GaelleBriet/memo-patte-vue/commit/f2c914957e466368bd015212b43aa7a92373d37d))
+* **traitements:** historique sans geste de note sur une échéance hors calendrier ([94d2f6d](https://github.com/GaelleBriet/memo-patte-vue/commit/94d2f6d7a424b37ad1a03c9a3698f0a0ea82d4de))
+* **traitements:** historique sans geste de note sur une échéance hors calendrier ([#899](https://github.com/GaelleBriet/memo-patte-vue/issues/899)) ([731f544](https://github.com/GaelleBriet/memo-patte-vue/commit/731f54424c6ebe0d4858634decb59791cdf241f5))
+* **treatments:** « annuler » après « supprimer » laisse devant les lignes plus récentes du jour ([1deaa22](https://github.com/GaelleBriet/memo-patte-vue/commit/1deaa222ccd76b67b88232bb9446581a511a044f))
+* **treatments:** « annuler » après « supprimer » laisse devant les lignes plus récentes du jour ([5d2c013](https://github.com/GaelleBriet/memo-patte-vue/commit/5d2c0135198d4e4112c206c5548b8289b91362f5)), closes [#842](https://github.com/GaelleBriet/memo-patte-vue/issues/842)
+* **treatments:** « supprimer » ne réécrit plus rien, seul « annuler » garde devant ([9fdf59d](https://github.com/GaelleBriet/memo-patte-vue/commit/9fdf59dee6a9fbca5394a645a834a46ee058313e)), closes [#842](https://github.com/GaelleBriet/memo-patte-vue/issues/842)
+
 ## [0.1.83](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.82...memo-patte-v0.1.83) (2026-10-17)
 
 
