@@ -1,7 +1,8 @@
 import type { DoseFields, DoseWrite, NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { PlannedDoseWrite } from '../schema/treatment-plan.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
-import type { LineChange, LineFields } from '@/shared/domain/dose-calendar'
+import { undoRanks } from './treatment-undo-order'
+import type { Line, LineChange, LineFields } from '@/shared/domain/dose-calendar'
 
 type TreatmentToWrite = Pick<TreatmentWithHistory, 'id' | 'animalId' | 'doses'>
 
@@ -55,6 +56,17 @@ export function doseWritesOf(
         return [{ action: 'delete', id: change.id }]
     }
   })
+}
+
+/** R12, #842 : réécrites telles quelles, dans leur ordre, pour rester devant les lignes que « Annuler » rétablit. */
+export function keptAheadWritesOf(lines: readonly Line[]): DoseWrite[] {
+  const rankOf = undoRanks(lines)
+  return lines.map((line) => ({
+    action: 'rewrite',
+    id: line.id,
+    dose: doseFieldsOf(line),
+    rank: rankOf(line.id),
+  }))
 }
 
 /** Écritures de « Modifier » : celles d'un geste, sans le traitement ni l'animal que `applyPlan` pose. */

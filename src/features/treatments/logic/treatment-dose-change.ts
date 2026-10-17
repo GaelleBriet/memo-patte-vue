@@ -1,9 +1,10 @@
-import { doseWritesOf } from './treatment-dose-writes'
+import { doseWritesOf, keptAheadWritesOf } from './treatment-dose-writes'
 import { revealedDues, type RevealedDues } from './treatment-revealed-dues'
 import type { DoseWrite } from '../schema/treatment-dose.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import {
   applied,
+  keptAhead,
   play,
   treatmentView,
   type Due,
@@ -184,9 +185,15 @@ export function doseChange(
       const outcome = played(reading, { kind: 'remove', lineId: action.lineId })
       const input = applied(reading.input, outcome.changes)
       const after = { input, view: treatmentView(input) }
+      const deleted = outcome.changes.flatMap((change) =>
+        change.action === 'delete' ? [change.id] : [],
+      )
       return {
         ...NONE,
-        writes: doseWritesOf(treatment, outcome.changes, newId),
+        writes: [
+          ...doseWritesOf(treatment, outcome.changes, newId),
+          ...keptAheadWritesOf(keptAhead(reading.input, deleted)),
+        ],
         shiftKept: line.status !== 'extra' && line.status !== 'shift' && keepsShift(after, line),
       }
     }

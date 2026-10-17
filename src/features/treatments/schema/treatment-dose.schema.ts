@@ -40,7 +40,7 @@ export type DoseFields = Pick<
 type Unchanged = { expectedUpdatedAt?: string }
 
 /**
- * `rank` (lot inverse) : rang de la ligne parmi celles du lot, de la moins à la plus récemment
+ * `rank` : rang de la ligne parmi celles du lot, de la moins à la plus récemment
  * modifiée avant le geste ; elle est datée de l'instant de l'écriture plus `rank` millisecondes.
  */
 type Ranked = { rank?: number }
