@@ -18,6 +18,8 @@ export type ReferenceSetting = {
   createdAt: string
   /** Dernière réécriture du réglage ; absente : date inconnue. */
   updatedAt?: string
+  /** Jour de cette réécriture, celui de la réponse à la question Q38 ; absent : inconnu. */
+  writtenOn?: string
 }
 
 export type ReferenceLine = {

@@ -24,6 +24,8 @@ export type Setting = {
   createdAt: string
   /** Dernière réécriture du réglage (R10, #867) ; absente : date inconnue. */
   updatedAt?: string
+  /** #873 : jour de cette réécriture, celui de la réponse à la question Q38 ; absent : inconnu. */
+  writtenOn?: Day
 }
 
 export type LineStatus = 'given' | 'missed' | 'extra' | 'postponed' | 'shift'

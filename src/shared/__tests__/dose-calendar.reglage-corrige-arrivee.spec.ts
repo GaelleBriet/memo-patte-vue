@@ -99,7 +99,7 @@ describe('R7, R9.2 : « Elles n’étaient pas à donner » ne saute pas l’arr
 
   const eightOh = { frequency: TWO_DAYS, times: ['08:01', '20:01'], endsOn: '2026-05-08' }
 
-  it('graine 7810000235, le lendemain de l’arrivée, 6 h du 7 donnée : le 7 et aujourd’hui gardent leurs doses, le report reste en vigueur', () => {
+  it('graine 7810000235, le lendemain de l’arrivée, 6 h du 7 donnée : la réponse retire les doses du 7 restées sans prise, la prise de 6 h garde le 7, le report devient sans effet (#873, décision du 17 octobre 2026)', () => {
     const input = on(noted(seed235(), '2026-04-07', '06:00'), '2026-04-08')
     expect(readings(input).moteur.moment).toEqual([
       '2026-04-08 06:00',
@@ -109,26 +109,21 @@ describe('R7, R9.2 : « Elles n’étaient pas à donner » ne saute pas l’arr
     const after = edited(input, eightOh, 'correct')
     const { moteur, reference } = readings(after)
     expect(moteur.moment).toEqual(['2026-04-08 06:00', '2026-04-08 12:00', '2026-04-08 18:00'])
-    expect(moteur.aRenseigner).toEqual(
-      expect.arrayContaining(['2026-04-07 12:00', '2026-04-07 18:00', '2026-04-07 23:00']),
-    )
-    expect(reportEffect(after, '2026-04-05')).toBe('moves')
+    expect(moteur.aRenseigner.filter((key) => key.startsWith('2026-04-07'))).toEqual([])
+    const early = treatmentView(after).history.find(
+      ({ line }) => line.status === 'given' && line.dueOn === '2026-04-07',
+    )!
+    expect(early.effect).toEqual({ kind: 'covers', key: '2026-04-07 06:00' })
+    expect(reportEffect(after, '2026-04-05')).toBe('idle')
     expect(moteur).toEqual(reference)
   })
 
-  it('graine 7810000235, le lendemain de l’arrivée, sans prise le 7 : les doses du 7 restent à renseigner', () => {
+  it('graine 7810000235, le lendemain de l’arrivée, sans prise le 7 : la réponse retire les doses du 7, le report devient sans effet (#873, décision du 17 octobre 2026)', () => {
     const after = edited(on(seed235(), '2026-04-08'), eightOh, 'correct')
     const { moteur, reference } = readings(after)
     expect(moteur.moment).toEqual(['2026-04-08 06:00', '2026-04-08 12:00', '2026-04-08 18:00'])
-    expect(moteur.aRenseigner).toEqual(
-      expect.arrayContaining([
-        '2026-04-07 06:00',
-        '2026-04-07 12:00',
-        '2026-04-07 18:00',
-        '2026-04-07 23:00',
-      ]),
-    )
-    expect(reportEffect(after, '2026-04-05')).toBe('moves')
+    expect(moteur.aRenseigner.filter((key) => key.startsWith('2026-04-07'))).toEqual([])
+    expect(reportEffect(after, '2026-04-05')).toBe('idle')
     expect(moteur).toEqual(reference)
   })
 

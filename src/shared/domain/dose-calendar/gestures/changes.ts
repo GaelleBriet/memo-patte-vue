@@ -98,8 +98,24 @@ function settingWritten(input: TreatmentViewInput, plan: SettingsPlan): Treatmen
     }
     return { ...input, settings: [...input.settings, setting] }
   }
-  const settings = input.settings.map((setting) =>
-    setting.id === plan.id ? { ...setting, ...plan.setting, updatedAt: WRITTEN_AT } : setting,
-  )
+  const settings = input.settings.map((setting) => {
+    if (setting.id !== plan.id) return setting
+    const next = { ...setting, ...plan.setting }
+    return calendarOf(next) === calendarOf(setting)
+      ? next
+      : { ...next, updatedAt: WRITTEN_AT, writtenOn: input.today }
+  })
   return { ...input, settings }
 }
+
+// R10, #867 : comme le repository, seule une réécriture du calendrier date le réglage.
+const calendarOf = (setting: Setting): string =>
+  JSON.stringify([
+    setting.startsOn,
+    setting.firstDueOn,
+    setting.frequency,
+    setting.times,
+    setting.gridOriginOn,
+    setting.firstDueChosen,
+    setting.pastDosesStayUnlogged,
+  ])

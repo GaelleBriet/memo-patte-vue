@@ -1,6 +1,6 @@
 import { differenceInCalendarDays } from 'date-fns'
 
-import { isCalendarDay, previousDay, toDate } from './calendar-day'
+import { isCalendarDay, previousDay, toDate, toDay } from './calendar-day'
 import { isClockTime } from './clock-time'
 import {
   treatmentView,
@@ -93,6 +93,14 @@ function estimatedDues({ settings, lines, today }: TreatmentViewInput): number {
   }, 0)
 }
 
+// #873 : le jour de la réponse Q38 est le jour local de la réécriture, jamais après aujourd'hui.
+function writtenOnOf(writtenAt: string | undefined, today: string): string | undefined {
+  const date = writtenAt === undefined ? undefined : new Date(writtenAt)
+  if (date === undefined || Number.isNaN(date.getTime())) return undefined
+  const day = toDay(date)
+  return day > today ? today : day
+}
+
 function viewInputOf({ periods, doses }: TreatmentRecords, today: string): TreatmentViewInput {
   return {
     settings: periods.map((period) => ({
@@ -108,6 +116,7 @@ function viewInputOf({ periods, doses }: TreatmentRecords, today: string): Treat
       times: period.times,
       createdAt: period.createdAt,
       updatedAt: period.settingsWrittenAt,
+      writtenOn: writtenOnOf(period.settingsWrittenAt, today),
     })),
     lines: doses.map((dose) => ({
       id: dose.id,

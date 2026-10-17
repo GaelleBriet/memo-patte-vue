@@ -46,7 +46,8 @@ export function settingsWritten(walk: SettingsWalk, plan: SettingsPlan): Treatme
     const rewritten = settings.map((setting) => {
       if (setting.id !== plan.id) return setting
       const next = { ...setting, ...plan.setting }
-      return calendarOf(next) === calendarOf(setting) ? next : { ...next, updatedAt: at }
+      const writtenOn = walk.input.today
+      return calendarOf(next) === calendarOf(setting) ? next : { ...next, updatedAt: at, writtenOn }
     })
     return { ...walk.input, settings: rewritten, lines }
   }

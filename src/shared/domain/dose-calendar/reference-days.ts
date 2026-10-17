@@ -193,6 +193,18 @@ export function coverages({
   }
 }
 
+/** #873 : « Elles n'étaient pas à donner » retire les doses tombées sans prise avant le jour de la réponse. */
+export function answeredAwayOn(
+  setting: ReferenceSetting,
+  report: ReferenceLine,
+  day: string,
+): boolean {
+  const { updatedAt, createdAt, writtenOn, pastDosesStayUnlogged, startsOn } = setting
+  if (pastDosesStayUnlogged || writtenOn === undefined || updatedAt === undefined) return false
+  if (updatedAt <= createdAt || report.updatedAt > updatedAt) return false
+  return day >= startsOn && day < writtenOn
+}
+
 /** #885 : le décalage d'un report plus récent que la réécriture de son réglage tient avec lui. */
 export function shiftKeptByReport(
   turn: ReferenceLine,

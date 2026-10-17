@@ -102,14 +102,14 @@ describe('R3, TR-28, Q38 : heures seules corrigées, « Elles n’étaient pas �
     )
   })
 
-  it('le 12, 6, 12, 18 et 23 h : rien à renseigner le 6 avril, seule la dose du 10, déplacée, reste à renseigner à 20 h (décision du 15 octobre 2026)', () => {
+  it('le 12, 6, 12, 18 et 23 h : rien à renseigner le 6 avril ; la dose du 10 à 20 h, arrivée du report et listée par la question, sort avec la réponse (#873, décision du 17 octobre 2026)', () => {
     const { input, weekly } = luna()
     const after = edited(input, weekly(['06:00', '12:00', '18:00', '23:00']), 'correct')
     expect(readings(after)).toEqual(
       both({
         phase: 'today',
         moment: ['2026-04-12 06:00', '2026-04-12 12:00', '2026-04-12 18:00', '2026-04-12 23:00'],
-        aRenseigner: ['2026-04-10 20:00'],
+        aRenseigner: [],
         ensuite: ['2026-04-12 06:00', '2026-04-12 12:00', '2026-04-12 18:00'],
       }),
     )

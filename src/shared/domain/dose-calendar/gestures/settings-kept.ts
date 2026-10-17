@@ -12,7 +12,8 @@ const movingReports = (input: TreatmentViewInput) =>
   )
 
 // R7 : un report parti d'une journée du réglage corrigé, qui deviendrait sans effet si le réglage
-// partait après son arrivée, laisse ce jour-là comme première échéance.
+// partait après son arrivée, laisse ce jour-là comme première échéance ; une arrivée passée, que la
+// question liste, sort avec la réponse (#873).
 function strandedArrival(
   input: TreatmentViewInput,
   current: Setting,
@@ -29,6 +30,7 @@ function strandedArrival(
         dueOn >= current.startsOn &&
         targetOn !== null &&
         targetOn > dueOn &&
+        targetOn >= input.today &&
         targetOn < start,
     )
     .map(({ targetOn }) => targetOn!)

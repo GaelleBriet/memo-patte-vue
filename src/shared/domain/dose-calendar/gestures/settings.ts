@@ -1,3 +1,4 @@
+import { isListed } from '../answer'
 import { hoursOf, later, sameFrequency } from '../grid'
 import { isNote } from '../lines'
 import { episodesOf, hasNotes } from '../settings'
@@ -127,9 +128,8 @@ function replaced(
 
 // Q38 : les doses non renseignées du réglage en cours et sa dose du moment en retard.
 function fallenOf(view: TreatmentView, current: Setting, today: Day): Due[] {
-  const late = view.currentDoses.filter(({ dueOn }) => dueOn < today)
-  return [...view.unloggedDoses, ...late]
-    .filter(({ dueOn }) => dueOn >= current.startsOn)
+  return [...view.unloggedDoses, ...view.currentDoses]
+    .filter(({ dueOn }) => isListed(current, today, dueOn))
     .sort((a, b) => `${a.dueOn} ${a.dueTime}`.localeCompare(`${b.dueOn} ${b.dueTime}`))
 }
 

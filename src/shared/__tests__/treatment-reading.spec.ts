@@ -115,6 +115,24 @@ describe('treatmentReading', () => {
   })
 })
 
+describe('#873 : le jour de la réponse « Elles n’étaient pas à donner » est le jour local de la réécriture', () => {
+  const writtenOn = (settingsWrittenAt: string | undefined) =>
+    readTreatment({ periods: [period({ settingsWrittenAt })], doses: [] }, TODAY)!.input
+      .settings[0]!.writtenOn
+
+  it('à 0 h 30, heure du téléphone, le 2 : le 2', () => {
+    expect(writtenOn(new Date(2026, 9, 2, 0, 30).toISOString())).toBe('2026-10-02')
+  })
+
+  it('une date plus loin qu’aujourd’hui (horloge d’un autre appareil) vaut aujourd’hui', () => {
+    expect(writtenOn(new Date(2026, 11, 1, 12, 0).toISOString())).toBe(TODAY)
+  })
+
+  it('sans date d’écriture : inconnu', () => {
+    expect(writtenOn(undefined)).toBeUndefined()
+  })
+})
+
 describe('countedLines', () => {
   it('cache un report revenu à sa date et la plus ancienne de deux prises d’une même échéance', () => {
     const treatment = {
