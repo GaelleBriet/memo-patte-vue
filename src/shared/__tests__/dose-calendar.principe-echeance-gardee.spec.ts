@@ -266,6 +266,22 @@ describe('Règle unique : une prise garde la journée et l’heure de sa ligne, 
     ])
   })
 
+  it('graine 8810000692, pas 14 : toutes les 6 semaines, la dose du 27 avril donnée d’avance, puis une fin le 25 avril : la prise reste « donnée », jamais grisée, rien n’est à donner', () => {
+    const SIX_WEEKS = { value: 6, unit: 'week' } as const
+    let c: TreatmentViewInput = {
+      settings: [setting('f1', '2026-03-16', SIX_WEEKS, ['08:00', '20:00'])],
+      lines: [],
+      today: '2026-03-24',
+    }
+    c = given(c, '2026-04-27', '08:00')
+    c = edited(c, { frequency: SIX_WEEKS, times: ['08:00', '20:00'], endsOn: '2026-04-25' })
+    expect(effectOf(c, noteOf(c, '2026-04-27').id)).toEqual({
+      kind: 'covers',
+      key: '2026-04-27 08:00',
+    })
+    expect(readings(c).moteur.ensuite).toEqual([])
+  })
+
   it('mensuel à 8 h et 20 h, la dose de 8 h du 2 avril donnée d’avance, « Prochaine dose » le 2 juin ; le 3 avril, chaque semaine : date proposée le 9 avril', () => {
     let c: TreatmentViewInput = {
       settings: [setting('n1', '2026-03-02', MONTH, ['08:00', '20:00'])],
