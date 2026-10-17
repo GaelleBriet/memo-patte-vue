@@ -1,26 +1,28 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-import type { DbClient, SqlParam, SqlStatement } from '@/core/db/db-client'
+import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
 import { currentDeviceId } from '@/core/device/device-identity'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import type { DoseFields, DoseWrite } from '../schema/treatment-dose.schema'
+import { COLUMNS, fieldsOf, placeholders, type DoseRow } from './treatment-dose-row.repository'
 import {
-  COLUMNS,
-  NOT_DELETED,
-  fieldsOf,
-  placeholders,
-  type DoseRow,
-} from './treatment-dose-row.repository'
+  DuplicateDueError,
+  assertNoDuplicateInBatch,
+  duplicateGuardStatement,
+  duplicateWhere,
+  liveParentGuardStatement,
+  unchangedGuardStatement,
+} from './treatment-dose-guards.repository'
 import { createDoseCascadeStatements } from './treatment-dose-cascade-statements.repository'
 import { restoreStatement } from './treatment-dose-import.repository'
 import { createDoseLineStatements } from './treatment-dose-line-statements.repository'
 import { createDoseSync } from './treatment-dose-sync.repository'
 import { createDoseReads } from './treatment-dose-reads.repository'
 import { rankedStamp, undoRanks } from '../logic/treatment-undo-order'
-import { familyOf } from '@/shared/domain/dose-calendar'
 
 export type { TreatmentDoseVersion } from './treatment-dose-reads.repository'
+export { DuplicateDueError } from './treatment-dose-guards.repository'
 export type { RestoredTreatmentDose } from './treatment-dose-import.repository'
 
 type Step = {
@@ -29,9 +31,6 @@ type Step = {
   after?: SqlStatement
   inverse: DoseWrite
 }
-
-/** Un `create` vise une échéance qui a déjà une ligne visible de même nature : rien n'a été écrit. */
-export class DuplicateDueError extends Error {}
 
 /**
  * Une autre écriture est passée depuis la lecture : ligne modifiée, supprimée ou rétablie, ou
@@ -53,61 +52,6 @@ export function createTreatmentDosesRepository(
 ) {
   const { reviveStatement, ...lineStatements } = createDoseLineStatements(deviceId)
   const { createStatement, rewriteStatement, markDeletedStatement } = lineStatements
-
-  // Q5 : une échéance a au plus une ligne visible écrite ici par famille ; la synchronisation peut en
-  // apporter une seconde, dont une des deux devient sans effet pour le moteur (R11).
-  function duplicateWhere(dose: DoseFields): { sql: string; params: SqlParam[] } {
-    const family = familyOf(dose) === 'note' ? ['given', 'missed'] : [dose.status]
-    return {
-      sql: `period_id = ? AND due_on = ? AND due_time IS ? AND ${NOT_DELETED}
-            AND status IN (${placeholders(family)})`,
-      params: [dose.periodId, dose.dueOn, dose.dueTime, ...family],
-    }
-  }
-
-  // Réinsère la ligne en double sous son propre identifiant : la clé primaire fait échouer le lot.
-  function duplicateGuardStatement(dose: DoseFields): SqlStatement {
-    const where = duplicateWhere(dose)
-    return {
-      sql: `INSERT INTO treatment_dose (${COLUMNS})
-            SELECT ${COLUMNS} FROM treatment_dose WHERE ${where.sql} LIMIT 1`,
-      params: where.params,
-    }
-  }
-
-  // Réinsère la ligne qui a changé depuis sa lecture : la clé primaire fait échouer le lot.
-  function unchangedGuardStatement(row: DoseRow): SqlStatement {
-    return {
-      sql: `INSERT INTO treatment_dose (${COLUMNS})
-            SELECT ${COLUMNS} FROM treatment_dose
-            WHERE id = ? AND (deleted_at IS NOT ? OR updated_at IS NOT ?)`,
-      params: [row.id, row.deleted_at, row.updated_at],
-    }
-  }
-
-  // Réinsère la prise écrite sous un traitement ou une période supprimés : la clé primaire fait échouer le lot.
-  function liveParentGuardStatement(id: string): SqlStatement {
-    return {
-      sql: `INSERT INTO treatment_dose (${COLUMNS})
-            SELECT ${COLUMNS} FROM treatment_dose dose
-            WHERE dose.id = ? AND NOT EXISTS (
-              SELECT 1 FROM treatment_period period
-              JOIN treatment ON treatment.id = period.treatment_id
-              WHERE period.id = dose.period_id AND period.deleted_at IS NULL
-                AND treatment.deleted_at IS NULL)`,
-      params: [id],
-    }
-  }
-
-  function assertNoDuplicateInBatch(writes: readonly DoseWrite[]): void {
-    const dues = new Set<string>()
-    for (const write of writes) {
-      if (write.action !== 'create') continue
-      const due = JSON.stringify(duplicateWhere(write.dose).params)
-      if (dues.has(due)) throw new DuplicateDueError(`Échéance en double dans le lot : ${write.id}`)
-      dues.add(due)
-    }
-  }
 
   async function hasDuplicate(dose: DoseFields): Promise<boolean> {
     const where = duplicateWhere(dose)
