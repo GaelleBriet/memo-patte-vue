@@ -448,3 +448,53 @@ describe('façade du moteur des doses', { timeout: 30_000 }, () => {
     expect([feature, shared, engine, spec]).toEqual([0, 0, 0, 0])
   })
 })
+
+describe('services sans interface', { timeout: 30_000 }, () => {
+  const SERVICE = 'src/features/treatments/service/reminder-actions.service.ts'
+
+  async function interfaceImports(filePath: string, statements: string[]) {
+    const [result] = await eslint.lintText(`${statements.join('\n')}\n`, {
+      filePath: `${ROOT}/${filePath}`,
+    })
+    const messages = result?.messages ?? []
+    expect(messages.filter((m) => m.fatal)).toEqual([])
+    return messages.filter((m) => m.ruleId === 'app/no-restricted-interface-imports').length
+  }
+
+  it("interdit à un service le toast, les composables, Vuetify, vue-i18n et les composants d'écran", async () => {
+    const count = await interfaceImports(SERVICE, [
+      "import { showToast } from '@/shared/utils/toast'",
+      "import { confirmUndoable } from '@/shared/composables/use-guarded-gestures'",
+      "import { useI18n } from 'vue-i18n'",
+      "import { useDisplay } from 'vuetify'",
+      "import Sheet from '../views/TreatmentSheet.vue'",
+      "const lazy = () => import('@/shared/utils/toast')",
+    ])
+
+    expect(count).toBe(6)
+  })
+
+  it("autorise ce qu'un service importe sans connaître l'interface", async () => {
+    const count = await interfaceImports(SERVICE, [
+      "import type { Router } from 'vue-router'",
+      "import { watch } from 'vue'",
+      "import type { Translate } from '@/core/i18n/translate'",
+      "import { formatDayMonthOrYear } from '@/shared/utils/format'",
+    ])
+    const view = await interfaceImports('src/features/treatments/views/TreatmentSheet.vue', [
+      "import { showToast } from '@/shared/utils/toast'",
+    ])
+
+    expect(count).toBe(0)
+    expect(view).toBe(0)
+  })
+
+  it("garde les autres interdits d'un service actifs", async () => {
+    const result = await restrictedImports(SERVICE, [
+      '@supabase/supabase-js',
+      '@/features/vaccinations/store/vaccinations.store',
+    ])
+
+    expect(result).toEqual({ feature: 1, legacy: 1 })
+  })
+})

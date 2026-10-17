@@ -330,6 +330,32 @@ export default defineConfigWithVueTs(
     },
   },
 
+  {
+    name: 'app/services-without-interface',
+    files: ['src/**/*.service.ts'],
+    rules: {
+      'app/no-restricted-interface-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                '@/shared/utils/toast',
+                '@/shared/composables/*',
+                'vuetify',
+                'vuetify/*',
+                'vue-i18n',
+                '**/*.vue',
+              ],
+              message:
+                'Un service de cas d’usage ne connaît pas l’interface : il rend un résultat que l’appelant affiche.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // Règle distincte de no-restricted-imports pour se cumuler avec les interdits ci-dessus.
   ...FEATURES.map((feature) => ({
     name: `app/feature-imports/${feature}`,
