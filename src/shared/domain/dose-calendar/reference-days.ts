@@ -211,6 +211,18 @@ export function coverages({
   }
 }
 
+/** Principe du 17 octobre 2026 : une prise donnée sous un réglage réécrit sans sa journée la garde. */
+export function keptByRewrite(
+  note: ReferenceLine,
+  settingOf: (id: string) => ReferenceSetting,
+): boolean {
+  const written = settingOf(note.settingId)
+  const rewrittenAt = written.updatedAt
+  if (note.status !== 'given' || rewrittenAt === undefined) return false
+  if (rewrittenAt <= written.createdAt) return false
+  return note.dueOn >= written.startsOn && note.dueOn < written.firstDueOn
+}
+
 /** #867 : réglage réécrit sans la journée de départ du report : le plus récent des deux l'emporte. */
 export function departureAfterRewrite(
   report: ReferenceLine,

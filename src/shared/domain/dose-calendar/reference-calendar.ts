@@ -14,6 +14,7 @@ import {
   coverages,
   coverOrphans,
   departureAfterRewrite,
+  keptByRewrite,
   lateDaysOf,
   writtenBefore,
   handedOf,
@@ -285,6 +286,7 @@ export function calendarOf(
       ...journey.hours.map((hour) => ({ key: keyOf(day, hour), day, covered: covered.has(hour) })),
     )
   }
+  notes.filter((note) => keptByRewrite(note, settingOf)).forEach((note) => matched.add(note))
   coverOrphans(notes, matched, dues, settingOf)
   // TR-9 : la date choisie remplace la dose du moment : celle du premier jour du réglage s'il est une
   // échéance, sinon la dernière journée arrivée avant lui.

@@ -7,12 +7,12 @@ import type { Day, Line, LineEffect, Setting } from './types'
 // à moins d'un pas de son réglage ; un oubli ne couvre que sa propre échéance.
 export function coverOrphans(
   notes: readonly Line[],
-  matched: ReadonlySet<Line>,
+  placed: (note: Line) => boolean,
   slots: Slot[],
   settingOf: (id: string) => Setting,
 ): void {
   const orphans = notes
-    .filter((note) => note.status === 'given' && !matched.has(note))
+    .filter((note) => note.status === 'given' && !placed(note))
     .sort((a, b) => keyOf(a.dueOn, a.dueTime).localeCompare(keyOf(b.dueOn, b.dueTime)))
   for (const note of orphans) {
     const own = keyOf(note.dueOn, note.dueTime)
@@ -21,6 +21,20 @@ export function coverOrphans(
     if (slot !== undefined && slot.coveredBy === null && slot.due.dueOn < limit) {
       slot.coveredBy = note
     }
+  }
+}
+
+// Principe du 17 octobre 2026 : une prise donnée dont une réécriture de réglage a ôté l'échéance la
+// garde telle qu'écrite, jamais translatée sur une autre (R4).
+export function keepRewrittenAway(
+  notes: readonly Line[],
+  read: ReadonlySet<Line>,
+  held: Map<Line, string>,
+  rewrittenAway: (note: Line) => boolean,
+): void {
+  for (const note of notes) {
+    if (note.status !== 'given' || read.has(note) || held.has(note)) continue
+    if (rewrittenAway(note)) held.set(note, keyOf(note.dueOn, note.dueTime))
   }
 }
 

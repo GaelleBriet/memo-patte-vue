@@ -1,10 +1,15 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { treatmentView, type TreatmentViewInput } from '../domain/dose-calendar'
+import { treatmentView, type Frequency, type TreatmentViewInput } from '../domain/dose-calendar'
 import type { Line, Setting } from '../domain/dose-calendar/types'
+import { both, edited, given, on, readings } from './dose-calendar.reglage-corrige.aides'
+import { proposedSetting, setting, TWO_DAYS } from './dose-calendar.v2.aides'
 
 const THREE_DAYS = { value: 3, unit: 'day' } as const
+const TWO_WEEKS = { value: 2, unit: 'week' } as const
+const MATIN = '2026-04-07T09:00:00.000Z'
+const SOIR = '2026-04-07T18:00:00.000Z'
 
 const stampOf = (n: number) => `2026-01-01T00:00:${String(n).padStart(2, '0')}.000Z`
 
@@ -84,3 +89,81 @@ describe('R4, #847 : les journées laissées avant une première échéance pos�
     ])
   })
 })
+
+// Milo, tous les 3 jours (ou tous les 2 jours) à 20 h depuis le 26 mars, doses données ; le 3 avril,
+// toutes les 2 semaines, première dose le 3 ; le 7, la dose du 3 est en retard (#867).
+type Rythme = { frequency: Frequency; donnees: string[] }
+
+const RYTHMES: [string, Rythme][] = [
+  [
+    'tous les 3 jours',
+    { frequency: THREE_DAYS, donnees: ['2026-03-26', '2026-03-29', '2026-04-01'] },
+  ],
+  [
+    'tous les 2 jours',
+    { frequency: TWO_DAYS, donnees: ['2026-03-26', '2026-03-28', '2026-03-30', '2026-04-01'] },
+  ],
+]
+
+function milo({ frequency, donnees }: Rythme): TreatmentViewInput {
+  let input: TreatmentViewInput = {
+    settings: [setting('s1', '2026-03-26', frequency, ['20:00'])],
+    lines: [],
+    today: '2026-03-26',
+  }
+  for (const day of donnees) input = given(on(input, day), day, '20:00')
+  const s2 = proposedSetting('s2', '2026-04-03', TWO_WEEKS, ['20:00'], {
+    createdAt: '2026-04-03T08:00:00.000Z',
+  })
+  return { ...input, settings: [...input.settings, s2], today: '2026-04-07' }
+}
+
+// La synchro : le réglage réécrit par B, les lignes écrites par A, chacun à son heure.
+function synchronises(
+  base: TreatmentViewInput,
+  parA: TreatmentViewInput,
+  parB: TreatmentViewInput,
+  { linesAt, correctedAt }: { linesAt: string; correctedAt: string },
+): TreatmentViewInput {
+  const added = parA.lines.filter(({ id }) => !base.lines.some((line) => line.id === id))
+  const corrected = { ...parB.settings.find(({ id }) => id === 's2')!, updatedAt: correctedAt }
+  return {
+    ...base,
+    settings: base.settings.map((each) => (each.id === 's2' ? corrected : each)),
+    lines: [...base.lines, ...added.map((line) => ({ ...line, updatedAt: linesAt }))],
+  }
+}
+
+const passeA6h = (base: TreatmentViewInput) =>
+  edited(base, { frequency: TWO_WEEKS, times: ['06:00'], endsOn: null }, 'correct')
+
+const noteOf = (input: TreatmentViewInput, dueOn: string) =>
+  input.lines.find((line) => line.dueOn === dueOn && line.status === 'given')!
+
+describe.each(RYTHMES)(
+  '#892 : la prise de A tient face à « Elles n’étaient pas à donner » de B et garde son échéance (décision du 17 octobre 2026), ancien rythme %s',
+  (_, rythme) => {
+    it.each([
+      ['plus ancienne', MATIN, SOIR],
+      ['plus récente', SOIR, MATIN],
+    ])(
+      'le 7, A note donnée la dose du 3 à 20 h, B passe à 6 h et répond « Elles n’étaient pas à donner » ; prise %s : « donnée le 7, en retard » sur le 3, puis le 17 à 6 h',
+      (_, linesAt, correctedAt) => {
+        const base = milo(rythme)
+        const parA = given(base, '2026-04-03', '20:00')
+        const merged = synchronises(base, parA, passeA6h(base), { linesAt, correctedAt })
+        const note = noteOf(merged, '2026-04-03')
+        expect(note.givenOn).toBe('2026-04-07')
+        expect(effectOf(merged, note.id)).toEqual({ kind: 'covers', key: '2026-04-03 20:00' })
+        expect(readings(merged)).toEqual(
+          both({
+            phase: 'upcoming',
+            moment: ['2026-04-17 06:00'],
+            aRenseigner: [],
+            ensuite: ['2026-04-17 06:00', '2026-05-01 06:00', '2026-05-15 06:00'],
+          }),
+        )
+      },
+    )
+  },
+)
