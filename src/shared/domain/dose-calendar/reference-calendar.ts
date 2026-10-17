@@ -17,6 +17,7 @@ import {
   departureAfterRewrite,
   keptByRewrite,
   lateDaysOf,
+  shiftKeptByReport,
   writtenBefore,
   handedOf,
   leftDays,
@@ -169,10 +170,11 @@ export function calendarOf(
     let from = setting.startsOn
     const segments: Segment[] = []
     // R6 : un décalage part d'une échéance de la grille d'avant lui ou de l'arrivée d'un report du
-    // rythme ; avant une date choisie, seul celui qui la porte (R3, TR-9).
+    // rythme ; avant une date choisie, seul celui qui la porte (R3, TR-9) ou celui d'un report gagnant (#885).
     const lands = (turn: ReferenceLine) =>
       (isDueDay(grid, setting, turn.dueOn) && (turn.dueOn > chosenFloor || anchors.has(turn))) ||
-      reports.some((report) => report.targetOn === turn.dueOn && report.dueOn > rhythmFloor)
+      reports.some((report) => report.targetOn === turn.dueOn && report.dueOn > rhythmFloor) ||
+      shiftKeptByReport(turn, reports, settingOf)
     for (const turn of [...turns, null]) {
       if (turn !== null && !lands(turn)) continue
       const to = turn === null ? last : turn.dueOn < last ? turn.dueOn : last
@@ -288,8 +290,7 @@ export function calendarOf(
     .filter((note) => keptByRewrite(note, settingOf, rewrittenArrivals))
     .forEach((note) => matched.add(note))
   coverOrphans(notes, matched, dues, settingOf)
-  // TR-9 : la date choisie remplace la dose du moment : celle du premier jour s'il est une échéance,
-  // sinon la dernière journée arrivée avant lui.
+  // TR-9 : la date choisie remplace la dose du premier jour, ou de la dernière journée arrivée avant lui.
   const lateDays = lateDaysOf(replaced, fallen)
   replaced.filter(({ onDueDay }) => onDueDay).forEach(({ to }) => fallen.add(to))
   const pending = dues

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { treatmentView, type Frequency, type TreatmentViewInput } from '../domain/dose-calendar'
 import type { Line, Setting } from '../domain/dose-calendar/types'
-import { both, edited, given, on, readings } from './dose-calendar.reglage-corrige.aides'
+import { both, edited, given, moved, on, readings } from './dose-calendar.reglage-corrige.aides'
 import { proposedSetting, setting, TWO_DAYS } from './dose-calendar.v2.aides'
 
 const THREE_DAYS = { value: 3, unit: 'day' } as const
@@ -165,6 +165,52 @@ describe.each(RYTHMES)(
         )
       },
     )
+  },
+)
+
+describe.each(RYTHMES)(
+  '#885 : un report plus récent fait avec « Décaler aussi les doses suivantes » tient avec son décalage (décision du 17 octobre 2026), ancien rythme %s',
+  (_, rythme) => {
+    const shiftOf = (input: TreatmentViewInput) =>
+      input.lines.find((line) => line.status === 'shift')!
+
+    it.each([
+      ['date proposée (le 17)', undefined],
+      ['« Prochaine dose » choisie le 17', '2026-04-17'],
+    ])(
+      'le 7, A reporte la dose du 3 au 10 avec la case, B passe à 6 h et répond « Elles n’étaient pas à donner », %s ; A plus récent : le 10 à 20 h, puis le 24 et le 8 mai à 6 h',
+      (_, firstDueOn) => {
+        const base = milo(rythme)
+        const parA = moved(base, '2026-04-03', '20:00', '2026-04-10', true)
+        const request = { frequency: TWO_WEEKS, times: ['06:00'], endsOn: null, firstDueOn }
+        const parB = edited(base, request, 'correct')
+        const merged = synchronises(base, parA, parB, { linesAt: SOIR, correctedAt: MATIN })
+        expect(effectOf(merged, shiftOf(merged).id)).toEqual({ kind: 'shifts', from: '2026-04-03' })
+        expect(readings(merged)).toEqual(
+          both({
+            phase: 'upcoming',
+            moment: ['2026-04-10 20:00'],
+            aRenseigner: [],
+            ensuite: ['2026-04-10 20:00', '2026-04-24 06:00', '2026-05-08 06:00'],
+          }),
+        )
+      },
+    )
+
+    it('B plus récent : le report et son décalage sont sans effet, rien le 10, puis le 17 à 6 h', () => {
+      const base = milo(rythme)
+      const parA = moved(base, '2026-04-03', '20:00', '2026-04-10', true)
+      const merged = synchronises(base, parA, passeA6h(base), { linesAt: MATIN, correctedAt: SOIR })
+      expect(effectOf(merged, shiftOf(merged).id)).toEqual({ kind: 'idle', reason: 'overtaken' })
+      expect(readings(merged)).toEqual(
+        both({
+          phase: 'upcoming',
+          moment: ['2026-04-17 06:00'],
+          aRenseigner: [],
+          ensuite: ['2026-04-17 06:00', '2026-05-01 06:00', '2026-05-15 06:00'],
+        }),
+      )
+    })
   },
 )
 
