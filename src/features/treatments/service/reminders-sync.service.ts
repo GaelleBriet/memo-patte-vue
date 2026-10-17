@@ -11,7 +11,7 @@ import {
 import { treatmentReminders } from '../logic/treatment-reminders'
 import {
   getTreatmentsRepository,
-  type TreatmentsRepository,
+  type AllTreatmentsWithHistoryReader,
 } from '../repository/treatments.repository'
 import {
   getVaccinationsRepository,
@@ -81,7 +81,7 @@ function isAlreadyScheduled(
 export type RemindersSyncDependencies = {
   animals: Provider<Pick<AnimalsRepository, 'list'>>
   vaccinations: Provider<Pick<VaccinationsRepository, 'listAll' | 'listAllReplacedDues'>>
-  treatments: Provider<Pick<TreatmentsRepository, 'listAllWithHistory'>>
+  treatments: Provider<AllTreatmentsWithHistoryReader>
   carnetSettings: Provider<Pick<CarnetSettingsRepository, 'get'>>
   notifications: Pick<
     ReminderNotifications,

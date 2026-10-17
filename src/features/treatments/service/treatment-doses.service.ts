@@ -22,12 +22,12 @@ import {
 import {
   DuplicateDueError,
   getTreatmentDosesRepository,
-  type TreatmentDosesRepository,
+  type TreatmentDoseWriter,
 } from '../repository/treatment-doses.repository'
 import type { DoseWrite } from '../schema/treatment-dose.schema'
 import {
   getTreatmentsRepository,
-  type TreatmentsRepository,
+  type TreatmentWithHistoryReader,
 } from '../repository/treatments.repository'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import {
@@ -38,8 +38,8 @@ import {
 type Provider<T> = () => T | Promise<T>
 
 export type TreatmentDosesDependencies = {
-  treatments: Provider<Pick<TreatmentsRepository, 'getWithHistory'>>
-  doses: Provider<Pick<TreatmentDosesRepository, 'applyBatch'>>
+  treatments: Provider<TreatmentWithHistoryReader>
+  doses: Provider<TreatmentDoseWriter>
   reminders: Pick<TreatmentRemindersService, 'reschedule'>
   now: () => Date
   today?: () => string

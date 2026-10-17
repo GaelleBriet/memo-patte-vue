@@ -13,14 +13,14 @@ import type { CarnetReminderSettings } from '@/shared/domain/reminder-plan'
 import { treatmentReminders } from '../logic/treatment-reminders'
 import {
   getTreatmentsRepository,
-  type TreatmentsRepository,
+  type TreatmentWithHistoryReader,
 } from '../repository/treatments.repository'
 import type { Translate } from '@/core/i18n/translate'
 
 type Provider<T> = () => T | Promise<T>
 
 export type TreatmentRemindersDependencies = {
-  treatments: Provider<Pick<TreatmentsRepository, 'getWithHistory'>>
+  treatments: Provider<TreatmentWithHistoryReader>
   animals: Provider<Pick<AnimalsRepository, 'getById'>>
   settings?: Provider<CarnetReminderSettings>
   notifications: ReminderNotifications

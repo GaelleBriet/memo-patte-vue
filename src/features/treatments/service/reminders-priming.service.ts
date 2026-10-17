@@ -12,7 +12,7 @@ import {
 import { readableReadingOf } from '../logic/treatment-reading-adapter'
 import {
   getTreatmentsRepository,
-  type TreatmentsRepository,
+  type AllTreatmentsWithHistoryReader,
 } from '../repository/treatments.repository'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
@@ -71,7 +71,7 @@ export type RemindersPrimingDependencies = {
   shouldShowPriming: () => Promise<boolean>
   animals: Provider<Pick<AnimalsRepository, 'list'>>
   vaccinations: Provider<Pick<VaccinationsRepository, 'listAll'>>
-  treatments: Provider<Pick<TreatmentsRepository, 'listAllWithHistory'>>
+  treatments: Provider<AllTreatmentsWithHistoryReader>
   today: () => string
 }
 
