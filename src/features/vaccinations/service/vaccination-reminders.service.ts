@@ -13,14 +13,14 @@ import type { CarnetReminderSettings } from '@/shared/domain/reminder-plan'
 import { vaccinationReminders } from '@/shared/domain/vaccination-reminders'
 import {
   getVaccinationsRepository,
-  type VaccinationsRepository,
+  type VaccinationReplacedDuesReader,
 } from '../repository/vaccinations.repository'
 import type { Translate } from '@/core/i18n/translate'
 
 type Provider<T> = () => T | Promise<T>
 
 export type VaccinationRemindersDependencies = {
-  vaccinations: Provider<Pick<VaccinationsRepository, 'getById' | 'listReplacedDues'>>
+  vaccinations: Provider<VaccinationReplacedDuesReader>
   animals: Provider<Pick<AnimalsRepository, 'getById'>>
   settings?: Provider<CarnetReminderSettings>
   notifications: ReminderNotifications

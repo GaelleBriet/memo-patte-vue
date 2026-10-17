@@ -5,7 +5,7 @@ import {
 } from '@/features/treatments/repository/treatments.repository'
 import {
   getVaccinationsRepository,
-  type VaccinationsRepository,
+  type AllVaccinationsReader,
 } from '@/features/vaccinations/repository/vaccinations.repository'
 import type { ReminderSource } from '@/shared/domain/reminders'
 import type { TreatmentRecords } from '@/shared/domain/treatment-reading'
@@ -33,7 +33,7 @@ export type HomeTreatmentSource = {
 export type HomeReminderSource = HomeVaccinationSource | HomeTreatmentSource
 
 export function createHomeRemindersService(
-  vaccinations: Provider<Pick<VaccinationsRepository, 'listAll'>>,
+  vaccinations: Provider<AllVaccinationsReader>,
   treatments: Provider<AllTreatmentsWithHistoryReader>,
 ) {
   return {

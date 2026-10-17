@@ -18,7 +18,7 @@ import type { TreatmentWithHistory } from '../schema/treatment-with-history.sche
 import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import {
   getVaccinationsRepository,
-  type VaccinationsRepository,
+  type AllVaccinationsReader,
 } from '@/features/vaccinations/repository/vaccinations.repository'
 import { DAYS_OVERDUE } from '@/shared/domain/due-reminders'
 import { primingRouteFrom } from '@/shared/domain/notification-priming'
@@ -70,7 +70,7 @@ export type RemindersPrimingDependencies = {
   isNativePlatform: () => boolean
   shouldShowPriming: () => Promise<boolean>
   animals: Provider<Pick<AnimalsRepository, 'list'>>
-  vaccinations: Provider<Pick<VaccinationsRepository, 'listAll'>>
+  vaccinations: Provider<AllVaccinationsReader>
   treatments: Provider<AllTreatmentsWithHistoryReader>
   today: () => string
 }
