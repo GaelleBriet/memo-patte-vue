@@ -204,6 +204,7 @@ export function shiftKeptByReport(
   if (rewrittenAt === undefined || rewrittenAt <= written.createdAt) return false
   if (turn.dueOn < written.startsOn || turn.dueOn >= written.firstDueOn) return false
   if (rewrittenAt >= turn.updatedAt) return false
+  if (reports.some(({ targetOn }) => targetOn === turn.dueOn)) return false
   return reports.some(
     (report) =>
       report.dueOn === turn.dueOn && typeof departureAfterRewrite(report, settingOf) === 'object',

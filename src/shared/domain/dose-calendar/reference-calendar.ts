@@ -172,7 +172,7 @@ export function calendarOf(
     const lands = (turn: ReferenceLine) =>
       (isDueDay(grid, setting, turn.dueOn) && (turn.dueOn > chosenFloor || anchors.has(turn))) ||
       reports.some((report) => report.targetOn === turn.dueOn && report.dueOn > rhythmFloor) ||
-      shiftKeptByReport(turn, reports, settingOf)
+      (!days.has(turn.dueOn) && shiftKeptByReport(turn, reports, settingOf))
     for (const turn of [...turns, null]) {
       if (turn !== null && !lands(turn)) continue
       const to = turn === null ? last : turn.dueOn < last ? turn.dueOn : last

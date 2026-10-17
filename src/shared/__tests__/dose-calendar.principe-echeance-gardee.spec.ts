@@ -173,6 +173,61 @@ describe.each(RYTHMES)(
   },
 )
 
+describe('#885 : le décalage d’un report ne part de sa journée que si la réécriture l’a ôtée du calendrier', () => {
+  // Graine 8840000633, pas 26 (un téléphone) : toutes les 2 semaines à 6, 12, 18 et 23 h, puis toutes
+  // les 6 semaines, « Prochaine dose » le 4 avril ; le 1er avril, arrivée d'un report parti du 27 mars,
+  // la dose de 18 h reportée au 17 mai avec « Décaler aussi les doses suivantes ».
+  const H4 = ['06:00', '12:00', '18:00', '23:00']
+  const TWO_WEEKS_4 = { value: 2, unit: 'week' } as const
+  const end = { endsOn: '2026-05-23' }
+  const s1 = S('s1', 0, {
+    startsOn: '2026-03-27',
+    firstDueOn: '2026-03-27',
+    gridOriginOn: '2026-03-27',
+    frequency: TWO_WEEKS_4,
+    times: H4,
+    ...end,
+    updatedAt: stampOf(1),
+  })
+  const s2 = S('s2', 4, {
+    startsOn: '2026-03-26',
+    firstDueOn: '2026-03-27',
+    gridOriginOn: null,
+    frequency: TWO_WEEKS_4,
+    times: H4,
+    ...end,
+  })
+  const s3 = S('s3', 7, {
+    startsOn: '2026-03-26',
+    firstDueOn: '2026-04-04',
+    gridOriginOn: '2026-04-04',
+    firstDueChosen: true,
+    frequency: { value: 6, unit: 'week' },
+    times: H4,
+    ...end,
+  })
+  const lines = [
+    L('l2', 's1', 'given', '2026-03-27', '06:00', 17, { givenOn: '2026-03-24' }),
+    L('l5', 's2', 'postponed', '2026-03-27', '12:00', 12, { targetOn: '2026-04-01' }),
+    L('l18', 's1', 'missed', '2026-04-01', '12:00', 18),
+    L('l20', 's3', 'postponed', '2026-04-01', '18:00', 20, { targetOn: '2026-05-17' }),
+    L('l21', 's3', 'shift', '2026-04-01', '18:00', 21, { targetOn: '2026-05-17' }),
+  ]
+  const carnet = (third: Setting): TreatmentViewInput => ({
+    today: '2026-04-01',
+    settings: [s1, s2, third],
+    lines,
+  })
+
+  it('réglage réécrit ou créé, même lecture : le décalage est sans effet, le 4 avril reste', () => {
+    const rewritten = carnet({ ...s3, updatedAt: stampOf(19) })
+    const created = carnet({ ...s3, createdAt: stampOf(19) })
+    expect(effectOf(rewritten, 'l21')).toEqual({ kind: 'idle', reason: 'overtaken' })
+    expect(readings(rewritten)).toEqual(readings(created))
+    expect(readings(rewritten).moteur.ensuite[0]).toBe('2026-04-04 06:00')
+  })
+})
+
 describe.each(RYTHMES)(
   '#885 : un report plus récent fait avec « Décaler aussi les doses suivantes » tient avec son décalage (décision du 17 octobre 2026), ancien rythme %s',
   (_, rythme) => {
