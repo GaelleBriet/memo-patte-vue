@@ -13,9 +13,7 @@ import {
 } from './reference-grid'
 import {
   coverages,
-  coverOrphans,
   departureAfterRewrite,
-  keptByRewrite,
   lateDaysOf,
   shiftKeptByReport,
   writtenBefore,
@@ -203,8 +201,6 @@ export function calendarOf(
   // R7 : un report emporte son heure et les suivantes sans prise ; ceux qui arrivent sur sa journée d'abord.
   const fallen = new Set<string>()
   const arrivedHours = new Map<string, (string | null)[]>()
-  // Principe du 17 octobre 2026 : arrivées des reports qu'une réécriture de réglage rend sans effet.
-  const rewrittenArrivals = new Set<string>()
   const waiting = [...reports]
   while (waiting.length > 0) {
     const ready = waiting.findIndex(
@@ -213,10 +209,7 @@ export function calendarOf(
     const [report] = waiting.splice(Math.max(0, ready), 1)
     const { dueOn, targetOn } = report!
     const rewritten = days.has(dueOn) ? undefined : departureAfterRewrite(report!, settingOf)
-    if (rewritten === 'lost') {
-      rewrittenArrivals.add(targetOn!)
-      continue
-    }
+    if (rewritten === 'lost') continue
     const origin = rewritten ? undefined : (days.get(dueOn) ?? left.get(dueOn))
     const from = origin?.setting ?? settingOf(report!.settingId)
     const hours = origin?.hours ?? rewritten?.hours ?? hoursOf(from)
@@ -237,10 +230,7 @@ export function calendarOf(
     const carries = targetOn === restartOn || targetOn === chosenOn || openings.has(targetOn!)
     const before = chosenRestarts.get(report!.settingId) !== chosenOn
     const outside = (dueOn === chosenOn && before) || (!origin && !rewritten && !carries)
-    if (chosenOn !== undefined && outside) {
-      rewrittenArrivals.add(targetOn!)
-      continue
-    }
+    if (chosenOn !== undefined && outside) continue
     const written = settingOf(report!.settingId)
     const arrived = arrivedHours.get(dueOn) ?? []
     const itsDay = {
@@ -286,10 +276,6 @@ export function calendarOf(
       ...journey.hours.map((hour) => ({ key: keyOf(day, hour), day, covered: covered.has(hour) })),
     )
   }
-  notes
-    .filter((note) => keptByRewrite(note, settingOf, rewrittenArrivals))
-    .forEach((note) => matched.add(note))
-  coverOrphans(notes, matched, dues, settingOf)
   // TR-9 : la date choisie remplace la dose du premier jour, ou de la dernière journée arrivée avant lui.
   const lateDays = lateDaysOf(replaced, fallen)
   replaced.filter(({ onDueDay }) => onDueDay).forEach(({ to }) => fallen.add(to))

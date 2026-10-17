@@ -190,8 +190,8 @@ describe('Le jour où les heures changent, un oubli du jour reste à ce jour (co
   })
 })
 
-describe('D’un jour à l’autre, une prise sortie du calendrier couvre la première échéance qui suit, à moins d’un pas (R4)', () => {
-  it('tous les 6 jours à 8 h et 20 h dès le 2 avril, les deux doses du 14 données d’avance le 7 ; le même jour, tous les 3 jours à 20 h dès le 7 : la prise de 8 h couvre le 16, celle de 20 h est sans effet, le 19 reste à donner (#862)', () => {
+describe('Une prise garde la journée et l’heure écrites dans sa ligne, jamais translatée sur une autre journée (R4, décision du 17 octobre 2026 qui amende #862)', () => {
+  it('tous les 6 jours à 8 h et 20 h dès le 2 avril, les deux doses du 14 données d’avance le 7 ; le même jour, tous les 3 jours à 20 h dès le 7 : les deux prises gardent le 14, le 16 et le 19 restent à donner', () => {
     let input: TreatmentViewInput = {
       settings: [setting('s1', '2026-04-02', { value: 6, unit: 'day' }, H)],
       lines: [],
@@ -206,10 +206,16 @@ describe('D’un jour à l’autre, une prise sortie du calendrier couvre la pre
     })
     expect(states(after, '2026-04-13', '2026-04-19')).toEqual([
       '2026-04-13 20:00 pending',
-      '2026-04-16 20:00 covered',
+      '2026-04-16 20:00 pending',
       '2026-04-19 20:00 pending',
     ])
-    expect(effectsOf(after, 'given')).toEqual(['covers', 'idle'])
+    const kept = treatmentView(after)
+      .history.filter(({ line }) => line.status === 'given')
+      .map(({ effect }) => effect)
+    expect(kept).toEqual([
+      { kind: 'covers', key: '2026-04-14 08:00' },
+      { kind: 'covers', key: '2026-04-14 20:00' },
+    ])
     expect(readings(after).moteur).toEqual(readings(after).reference)
   })
 })

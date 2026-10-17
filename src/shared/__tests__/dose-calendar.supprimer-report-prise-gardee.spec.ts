@@ -5,6 +5,7 @@ import { removeLine, type Line } from '../domain/dose-calendar'
 import {
   affiche,
   carnet,
+  cle,
   deplace,
   donne,
   echeance,
@@ -31,11 +32,12 @@ function lundis(): Carnet {
 }
 
 describe('#847, R4 : après « Supprimer ce report », la journée lit les heures de ses prises restantes (décision du 16 octobre 2026)', () => {
-  it('Milo, chaque lundi à 8 h et 20 h ; le 9 mars, 20 h du 16 donnée d’avance ; le 11, 9 h et « Prochaine dose » le 23 ; le 14, le 23 avancé au 17 avec la case, que la prise couvre (R4) ; le 18, report supprimé : la prise du 16 reste en vigueur, puis le 23 à 9 h', () => {
+  it('Milo, chaque lundi à 8 h et 20 h ; le 9 mars, 20 h du 16 donnée d’avance ; le 11, 9 h et « Prochaine dose » le 23 ; le 14, le 23 avancé au 17 avec la case : la prise garde le 16, le 17 est à donner (règle du 17 octobre 2026) ; le 18, report supprimé : la prise du 16 reste en vigueur, puis le 23 à 9 h', () => {
     let c = lundis()
     const prise = ligne(c, '2026-03-16', '20:00', 'given').id
     c = deplace(c, '2026-03-14', echeance(c, '2026-03-23', '09:00'), '2026-03-17')
-    expect(effetDe(c, '2026-03-18', prise)).toEqual({ kind: 'covers', key: '2026-03-17 09:00' })
+    expect(effetDe(c, '2026-03-18', prise)).toEqual({ kind: 'covers', key: '2026-03-16 20:00' })
+    expect(vue(c, '2026-03-18').currentDoses.map(cle)).toEqual(['2026-03-17 09:00'])
     c = supprimeReport(c, '2026-03-18', ligne(c, '2026-03-23', '09:00', 'postponed').id)
     expect(effetDe(c, '2026-03-18', prise)).toEqual({ kind: 'covers', key: '2026-03-16 20:00' })
     expect(affiche(c, '2026-03-18', 3)).toEqual([

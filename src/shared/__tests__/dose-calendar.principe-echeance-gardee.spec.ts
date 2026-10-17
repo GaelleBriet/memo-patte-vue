@@ -1,10 +1,15 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { treatmentView, type Frequency, type TreatmentViewInput } from '../domain/dose-calendar'
+import {
+  newSettings,
+  treatmentView,
+  type Frequency,
+  type TreatmentViewInput,
+} from '../domain/dose-calendar'
 import type { Line, Setting } from '../domain/dose-calendar/types'
 import { both, edited, given, moved, on, readings } from './dose-calendar.reglage-corrige.aides'
-import { proposedSetting, setting, TWO_DAYS } from './dose-calendar.v2.aides'
+import { MONTH, proposedSetting, setting, TWO_DAYS, WEEK as WEEKLY } from './dose-calendar.v2.aides'
 
 const THREE_DAYS = { value: 3, unit: 'day' } as const
 const TWO_WEEKS = { value: 2, unit: 'week' } as const
@@ -213,6 +218,76 @@ describe.each(RYTHMES)(
     })
   },
 )
+
+describe('Règle unique : une prise garde la journée et l’heure de sa ligne, quelle que soit la cause (décision du 17 octobre 2026)', () => {
+  // Milo, chaque lundi à 8 h et 20 h ; le 9 mars, la dose de 20 h du 16 donnée d'avance ; le 11,
+  // 9 h et « Prochaine dose » le 23.
+  function lundis(): TreatmentViewInput {
+    let c: TreatmentViewInput = {
+      settings: [setting('m1', '2026-03-02', WEEKLY, ['08:00', '20:00'])],
+      lines: [],
+      today: '2026-03-02',
+    }
+    for (const day of ['2026-03-02', '2026-03-09']) {
+      for (const hour of ['08:00', '20:00']) c = given(on(c, day), day, hour)
+    }
+    c = given(on(c, '2026-03-09'), '2026-03-16', '20:00')
+    const request = { frequency: WEEKLY, times: ['09:00'], endsOn: null, firstDueOn: '2026-03-23' }
+    return edited(on(c, '2026-03-11'), request)
+  }
+
+  it('le 14, la dose du 23 avancée au 17 avec la case : le 16 garde sa prise, le 17 à 9 h est à donner, puis 24 et 31 ; en retard le 18', () => {
+    const c = moved(on(lundis(), '2026-03-14'), '2026-03-23', '09:00', '2026-03-17', true)
+    expect(effectOf(c, noteOf(c, '2026-03-16').id)).toEqual({
+      kind: 'covers',
+      key: '2026-03-16 20:00',
+    })
+    expect(readings(on(c, '2026-03-14'))).toEqual(
+      both({
+        phase: 'upcoming',
+        moment: ['2026-03-17 09:00'],
+        aRenseigner: [],
+        ensuite: ['2026-03-17 09:00', '2026-03-24 09:00', '2026-03-31 09:00'],
+      }),
+    )
+    expect(readings(on(c, '2026-03-18')).moteur.phase).toBe('overdue')
+  })
+
+  it('le 18, tous les 3 jours à 9 h : la première échéance, le 19 à 9 h, est à donner (« Prochaine dose » ne dit pas 22)', () => {
+    const request = { frequency: THREE_DAYS, times: ['09:00'], endsOn: null }
+    const result = newSettings(on(lundis(), '2026-03-18'), request)
+    expect(result).toMatchObject({ plan: { setting: { firstDueOn: '2026-03-19' } } })
+    expect(result).not.toHaveProperty('shownOn')
+    const after = edited(on(lundis(), '2026-03-18'), request)
+    expect(readings(after).moteur.ensuite).toEqual([
+      '2026-03-19 09:00',
+      '2026-03-22 09:00',
+      '2026-03-25 09:00',
+    ])
+  })
+
+  it('mensuel à 8 h et 20 h, la dose de 8 h du 2 avril donnée d’avance, « Prochaine dose » le 2 juin ; le 3 avril, chaque semaine : date proposée le 9 avril', () => {
+    let c: TreatmentViewInput = {
+      settings: [setting('n1', '2026-03-02', MONTH, ['08:00', '20:00'])],
+      lines: [],
+      today: '2026-03-02',
+    }
+    for (const hour of ['08:00', '20:00']) c = given(c, '2026-03-02', hour)
+    c = given(on(c, '2026-03-30'), '2026-04-02', '08:00')
+    c = edited(on(c, '2026-03-31'), {
+      frequency: MONTH,
+      times: ['08:00', '20:00'],
+      endsOn: null,
+      firstDueOn: '2026-06-02',
+    })
+    const result = newSettings(on(c, '2026-04-03'), {
+      frequency: WEEKLY,
+      times: ['08:00', '20:00'],
+      endsOn: null,
+    })
+    expect(result).toMatchObject({ plan: { setting: { firstDueOn: '2026-04-09' } } })
+  })
+})
 
 describe('#893 : une prise d’une journée retirée par une réécriture ne couvre pas l’arrivée d’un report plus récent (décision du 17 octobre 2026)', () => {
   // Graine 8810000692 : Milo, toutes les 6 semaines à 8 h et 20 h depuis le 16 mars ; la dose du 27

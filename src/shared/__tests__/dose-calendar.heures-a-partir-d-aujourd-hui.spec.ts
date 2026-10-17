@@ -123,7 +123,7 @@ describe('R9, décision du 15 octobre 2026 : changer les heures vaut à partir d
     )
   })
 
-  it('#852, graine 4900001764 : l’arrivée du 16 couverte et donnée ; le 17, une minute plus tard : rien en retard, le 20, entamé, garde ses heures (décision du 15 octobre 2026)', () => {
+  it('#852, graine 4900001764 : la prise de 14 h du 13 garde le 13 (règle du 17 octobre 2026), le 16 à 8 h est en retard ; le 17, une minute plus tard : il le reste, le 20, entamé, garde ses heures (décision du 15 octobre 2026)', () => {
     const input: TreatmentViewInput = {
       settings: [
         setting('s1', '2026-03-30', WEEK, THREE),
@@ -152,15 +152,23 @@ describe('R9, décision du 15 octobre 2026 : changer les heures vaut à partir d
       today: '2026-04-17',
     }
     const after = minuteLater(input)
+    const early = input.lines.find(({ dueOn }) => dueOn === '2026-04-13')!
+    const effect = treatmentView(input).history.find(({ line }) => line.id === early.id)!.effect
+    expect(effect).toEqual({ kind: 'covers', key: '2026-04-13 14:00' })
+    expect(pastSlots(input, '2026-04-16')).toEqual([
+      '2026-04-16 08:00 pending',
+      '2026-04-16 14:00 given',
+      '2026-04-16 20:00 given',
+    ])
     expect(pastSlots(after, '2026-03-30')).toEqual(pastSlots(input, '2026-03-30'))
-    expect(readings(after)).toEqual(
-      both({
-        phase: 'upcoming',
-        moment: ['2026-04-20 08:00'],
-        aRenseigner: ['2026-03-30 08:00'],
-        ensuite: ['2026-04-20 08:00', '2026-04-20 14:00'],
-      }),
-    )
+    const late = {
+      phase: 'overdue' as const,
+      moment: ['2026-04-16 08:00'],
+      aRenseigner: ['2026-03-30 08:00'],
+      ensuite: ['2026-04-20 08:00', '2026-04-20 14:00'],
+    }
+    expect(readings(input)).toEqual(both(late))
+    expect(readings(after)).toEqual(both(late))
   })
 
   it('#852, graine 4900002127 : la journée du 12 couverte par l’oubli ; le 14, 20 h 01 : elle le reste', () => {

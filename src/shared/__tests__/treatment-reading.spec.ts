@@ -134,13 +134,16 @@ describe('countedLines', () => {
     expect(countedLines(treatmentReading(treatment, TODAY)!).map(({ id }) => id)).toEqual(['new'])
   })
 
-  it('garde une prise qui ne couvre plus rien, à sa place', () => {
+  it('garde une prise hors du calendrier, à sa place, sur sa propre journée (règle du 17 octobre 2026)', () => {
     const treatment = {
       periods: [period({ frequency: { value: 1, unit: 'week' } })],
       doses: [dose({ id: 'a' }), dose({ id: 'off', dueOn: '2026-09-20', givenOn: '2026-09-20' })],
     }
     const read = treatmentReading(treatment, TODAY)!
-    expect(read.history.find(({ line }) => line.id === 'off')?.effect.kind).toBe('idle')
+    expect(read.history.find(({ line }) => line.id === 'off')?.effect).toEqual({
+      kind: 'covers',
+      key: '2026-09-20',
+    })
     expect(countedLines(read).map(({ id }) => id)).toEqual(['off', 'a'])
   })
 

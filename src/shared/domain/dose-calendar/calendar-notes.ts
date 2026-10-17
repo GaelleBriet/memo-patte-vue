@@ -1,45 +1,27 @@
 import type { Slot } from './calendar'
-import { keyOf, stepped } from './grid'
+import { keyOf } from './grid'
 import type { EpisodeLines } from './lines'
-import type { Day, Line, LineEffect, Setting } from './types'
+import type { Day, Line, LineEffect } from './types'
 
-// R4 : une prise donnée dont l'échéance a quitté le calendrier couvre la première échéance qui suit,
-// à moins d'un pas de son réglage ; un oubli ne couvre que sa propre échéance.
-export function coverOrphans(
+// R4, règle du 17 octobre 2026 : une prise donnée qui ne couvre aucune échéance de sa journée garde la
+// journée et l'heure de sa ligne, jamais translatée ; au-delà de l'arrêt, la reprise seule porte ces
+// jours (R8).
+export function keepGivenNotes(
   notes: readonly Line[],
-  placed: (note: Line) => boolean,
-  slots: Slot[],
-  settingOf: (id: string) => Setting,
-): void {
-  const orphans = notes
-    .filter((note) => note.status === 'given' && !placed(note))
-    .sort((a, b) => keyOf(a.dueOn, a.dueTime).localeCompare(keyOf(b.dueOn, b.dueTime)))
-  for (const note of orphans) {
-    const own = keyOf(note.dueOn, note.dueTime)
-    const slot = slots.find(({ key }) => key > own)
-    const limit = stepped(note.dueOn, settingOf(note.settingId).frequency, 1)
-    if (slot !== undefined && slot.coveredBy === null && slot.due.dueOn < limit) {
-      slot.coveredBy = note
-    }
-  }
-}
-
-// Principe du 17 octobre 2026 : une prise donnée dont une réécriture de réglage a ôté l'échéance la
-// garde telle qu'écrite, jamais translatée sur une autre (R4).
-export function keepRewrittenAway(
-  notes: readonly Line[],
-  read: ReadonlySet<Line>,
+  slots: readonly Slot[],
   held: Map<Line, string>,
-  rewrittenAway: (note: Line) => boolean,
+  { yielded, closedFrom }: { yielded: ReadonlySet<string>; closedFrom: Day | null },
 ): void {
+  const placed = new Set(slots.map(({ coveredBy }) => coveredBy))
   for (const note of notes) {
-    if (note.status !== 'given' || read.has(note) || held.has(note)) continue
-    if (rewrittenAway(note)) held.set(note, keyOf(note.dueOn, note.dueTime))
+    const key = keyOf(note.dueOn, note.dueTime)
+    if (note.status !== 'given' || placed.has(note) || held.has(note) || yielded.has(key)) continue
+    if (closedFrom === null || note.dueOn < closedFrom) held.set(note, key)
   }
 }
 
-// R4, #847 : laissée avant une première échéance posée plus loin, une journée dont une prise donnée
-// ne couvre aucune échéance qui la suit lit les heures de ses prises : chacune y garde la sienne.
+// R4, #847 : laissée avant une première échéance posée plus loin, une journée qui porte une prise
+// donnée lit les heures de ses prises : chacune, oubli compris, y garde la sienne.
 export function keepSkippedDays(
   notes: readonly Line[],
   skipped: ReadonlySet<Day>,
