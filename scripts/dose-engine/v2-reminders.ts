@@ -53,9 +53,9 @@ export function remindersBrokenBy(input: TreatmentViewInput): Broken | null {
     const onLastDay = reminded.filter((key) => key.slice(0, 10) === lastReminded)
     const lastShown = shown.filter((key) => key.slice(0, 10) === lastReminded)
     if (lastShown.length > onLastDay.length) cutDay = lastReminded!
-    const prefix =
-      JSON.stringify(lastShown.slice(0, onLastDay.length)) === JSON.stringify(onLastDay)
-    if (JSON.stringify(before(shown)) !== JSON.stringify(before(reminded)) || !prefix) {
+    // Pas d'ordre imposé dans la journée coupée : la fiche met la dose sans heure en tête, le moteur à la fin.
+    const partOfDay = onLastDay.every((key) => lastShown.includes(key))
+    if (JSON.stringify(before(shown)) !== JSON.stringify(before(reminded)) || !partOfDay) {
       return broken('RA-1, RA-6, échéances de la fiche', {
         fiche: shown.filter((key) => !reminded.includes(key)),
         rappels: reminded.filter((key) => !shown.includes(key)),

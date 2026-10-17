@@ -17,6 +17,7 @@ import {
 } from '../domain/reminder-plan'
 import { treatmentView } from '../domain/dose-calendar'
 import { viewInputOf } from './dose-calendar.legacy-input.aides'
+import { line, proposedSetting, setting } from './dose-calendar.v2.aides'
 import { deplace, donne, type Carnet } from './dose-calendar.recette.aides'
 
 const t = i18n.global.t
@@ -573,6 +574,36 @@ describe('plannedReminders, plafond et relais', () => {
     expect(scheduled).toHaveLength(MAX_REMINDERS_PER_CARE)
     expect(scheduled.at(-1)?.body).toBe(RELAY_PIXEL)
     expect(scheduled.filter(({ body }) => body.includes(RELAY_PIXEL))).toHaveLength(1)
+  })
+
+  it('#929 : tous les 3 jours sans heure, le 14 avril 2027 et son report de 8 h viennent après le dernier rappel, qui porte le relais', () => {
+    const every3 = { value: 3, unit: 'day' } as const
+    const p1 = setting('p1', '2026-10-07', every3, ['08:00', '20:00'], { startsOn: '2026-10-01' })
+    const p2 = proposedSetting('p2', '2026-10-07', every3, [], { startsOn: '2026-10-05' })
+    const report = line('p1', 'postponed', '2027-04-11', '08:00', '2027-04-14')
+    const care = treatmentReminderPlan(
+      t,
+      {
+        id: ID,
+        name: 'Panacur',
+        animalName: 'Pixel',
+        period: {
+          reminderOffsetMinutes: null,
+          reminderTime: null,
+          doseQuantity: null,
+          doseUnit: null,
+        },
+        view: treatmentView({ settings: [p1, p2], lines: [report], today: '2026-10-05' }),
+      },
+      SETTINGS,
+      new Date(2026, 9, 5, 12),
+    )
+    const scheduled = plannedReminders([care], MAX_SCHEDULED_REMINDERS)
+
+    expect(scheduled).toHaveLength(MAX_REMINDERS_PER_CARE)
+    expect(slots(scheduled)[0]).toBe('2026-10-07::due')
+    expect(slots(scheduled).at(-1)).toBe('2027-04-02::due')
+    expect(scheduled.at(-1)?.body).toBe(RELAY_PIXEL)
   })
 
   it('pas de relais quand une date de fin proche laisse tout programmer', () => {
