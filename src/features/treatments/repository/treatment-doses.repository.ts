@@ -7,28 +7,24 @@ import type { SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { createRemoteSyncTable } from '@/core/sync/repository/remote-sync-table.repository'
 import { syncField } from '@/core/sync/service/syncable-table'
-import type {
-  DoseFields,
-  DoseOwner,
-  DoseWrite,
-  NewTreatmentDose,
-} from '../schema/treatment-dose.schema'
+import type { DoseFields, DoseWrite } from '../schema/treatment-dose.schema'
 import {
   COLUMNS,
   NOT_DELETED,
   PLACEHOLDERS,
   fieldsOf,
   placeholders,
-  valuesOf,
   type DoseRow,
 } from './treatment-dose-row.repository'
+import { createDoseCascadeStatements } from './treatment-dose-cascade-statements.repository'
+import { restoreStatement } from './treatment-dose-import.repository'
+import { createDoseLineStatements } from './treatment-dose-line-statements.repository'
 import { createDoseReads } from './treatment-dose-reads.repository'
 import { rankedStamp, undoRanks } from '../logic/treatment-undo-order'
-import type { Stamped } from '@/shared/domain/carnet-data'
 import { familyOf } from '@/shared/domain/dose-calendar'
 
 export type { TreatmentDoseVersion } from './treatment-dose-reads.repository'
-export type RestoredTreatmentDose = Omit<Stamped<NewTreatmentDose>, 'deletedAt'>
+export type { RestoredTreatmentDose } from './treatment-dose-import.repository'
 
 type Step = {
   guard?: SqlStatement
@@ -58,57 +54,8 @@ export function createTreatmentDosesRepository(
     deviceId = currentDeviceId,
   }: TreatmentDosesRepositoryDependencies = {},
 ) {
-  function insertStatement(dose: NewTreatmentDose): SqlStatement {
-    const device = deviceId()
-    return {
-      sql: `INSERT INTO treatment_dose (${COLUMNS}) VALUES (${PLACEHOLDERS})`,
-      params: valuesOf({ ...dose, createdByDevice: device, updatedByDevice: device }),
-    }
-  }
-
-  function createStatement({
-    dose,
-    at,
-    ...owner
-  }: DoseOwner & { dose: DoseFields; at: string }): SqlStatement {
-    return insertStatement({ ...owner, ...dose, createdAt: at, updatedAt: at, deletedAt: null })
-  }
-
-  function rewriteStatement(id: string, dose: DoseFields, updatedAt: string): SqlStatement {
-    return {
-      sql: `UPDATE treatment_dose
-            SET period_id = ?, due_on = ?, due_time = ?, given_on = ?, status = ?,
-                target_on = ?, updated_at = ?, updated_by_device = ?
-            WHERE id = ? AND ${NOT_DELETED}`,
-      params: [
-        dose.periodId,
-        dose.dueOn,
-        dose.dueTime,
-        dose.givenOn,
-        dose.status,
-        dose.targetOn,
-        updatedAt,
-        deviceId(),
-        id,
-      ],
-    }
-  }
-
-  function markDeletedStatement(ids: readonly string[], deletedAt: string): SqlStatement {
-    return {
-      sql: `UPDATE treatment_dose SET deleted_at = ?, updated_at = ?, updated_by_device = ?
-            WHERE id IN (${placeholders(ids)}) AND ${NOT_DELETED}`,
-      params: [deletedAt, deletedAt, deviceId(), ...ids],
-    }
-  }
-
-  function reviveStatement(id: string, updatedAt: string): SqlStatement {
-    return {
-      sql: `UPDATE treatment_dose SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
-            WHERE id = ?`,
-      params: [updatedAt, deviceId(), id],
-    }
-  }
+  const { reviveStatement, ...lineStatements } = createDoseLineStatements(deviceId)
+  const { createStatement, rewriteStatement, markDeletedStatement } = lineStatements
 
   // Q5 : une échéance a au plus une ligne visible écrite ici par famille ; la synchronisation peut en
   // apporter une seconde, dont une des deux devient sans effet pour le moteur (R11).
@@ -214,15 +161,7 @@ export function createTreatmentDosesRepository(
 
     ...createDoseReads(db),
 
-    insertStatement,
-
-    /** Prise calculée par le moteur d'échéances : aucune garde par jour, l'unicité est celle de l'échéance. */
-    createStatement,
-
-    /** Sans effet sur une ligne supprimée. */
-    rewriteStatement,
-
-    markDeletedStatement,
+    ...lineStatements,
 
     /**
      * Tout ou rien, `also` compris : les instructions d'une autre table à jouer dans la même
@@ -321,85 +260,11 @@ export function createTreatmentDosesRepository(
       return steps.map(({ inverse }) => inverse).reverse()
     },
 
-    markDeletedByTreatmentStatement(treatmentId: string, deletedAt: string): SqlStatement {
-      return {
-        sql: `UPDATE treatment_dose SET deleted_at = ?, updated_at = ?, updated_by_device = ?
-              WHERE treatment_id = ? AND ${NOT_DELETED}`,
-        params: [deletedAt, deletedAt, deviceId(), treatmentId],
-      }
-    },
-
-    /** Les prises supprimées à cet instant, avec leur traitement. */
-    reviveByTreatmentStatement(
-      treatmentId: string,
-      deletedAt: string,
-      updatedAt: string,
-    ): SqlStatement {
-      return {
-        sql: `UPDATE treatment_dose SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
-              WHERE treatment_id = ? AND deleted_at = ?`,
-        params: [updatedAt, deviceId(), treatmentId, deletedAt],
-      }
-    },
-
-    markDeletedByAnimalStatement(animalId: string, deletedAt: string): SqlStatement {
-      return {
-        sql: `UPDATE treatment_dose SET deleted_at = ?, updated_at = ?, updated_by_device = ?
-              WHERE animal_id = ? AND ${NOT_DELETED}`,
-        params: [deletedAt, deletedAt, deviceId(), animalId],
-      }
-    },
-
-    /** Les lignes supprimées à cet instant, avec leur animal. */
-    reviveByAnimalStatement(animalId: string, deletedAt: string, updatedAt: string): SqlStatement {
-      return {
-        sql: `UPDATE treatment_dose SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
-              WHERE animal_id = ? AND deleted_at = ?`,
-        params: [updatedAt, deviceId(), animalId, deletedAt],
-      }
-    },
-
-    eraseAllStatement(): SqlStatement {
-      return { sql: 'DELETE FROM treatment_dose' }
-    },
-
-    markAllDeletedStatement(deletedAt: string): SqlStatement {
-      return {
-        sql: `UPDATE treatment_dose SET deleted_at = ?, updated_at = ?, updated_by_device = ?
-              WHERE ${NOT_DELETED}`,
-        params: [deletedAt, deletedAt, deviceId()],
-      }
-    },
+    ...createDoseCascadeStatements(deviceId),
 
     reviveStatement,
 
-    /** Une prise existante garde sa période, son traitement et son animal : le reste suit le fichier. */
-    restoreStatement(dose: RestoredTreatmentDose, exists: boolean): SqlStatement {
-      return exists
-        ? {
-            sql: `UPDATE treatment_dose
-                  SET due_on = ?, due_time = ?, given_on = ?, status = ?, target_on = ?,
-                      created_at = ?, updated_at = ?, deleted_at = NULL, created_by_device = ?,
-                      updated_by_device = ?
-                  WHERE id = ?`,
-            params: [
-              dose.dueOn,
-              dose.dueTime,
-              dose.givenOn,
-              dose.status,
-              dose.targetOn,
-              dose.createdAt,
-              dose.updatedAt,
-              dose.createdByDevice,
-              dose.updatedByDevice,
-              dose.id,
-            ],
-          }
-        : {
-            sql: `INSERT INTO treatment_dose (${COLUMNS}) VALUES (${PLACEHOLDERS})`,
-            params: valuesOf({ ...dose, deletedAt: null }),
-          }
-    },
+    restoreStatement,
 
     /** Tombstones compris : le push doit pouvoir renvoyer une suppression comme une ligne normale. */
     async getRowForPush(id: string): Promise<SyncRow | null> {
