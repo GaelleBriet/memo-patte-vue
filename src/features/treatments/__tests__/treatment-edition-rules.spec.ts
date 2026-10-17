@@ -15,7 +15,6 @@ import {
   resumptionPlan,
   treatmentResumptionSchemaFor,
 } from '../logic/treatment-resumption'
-import { assertReadable } from '../logic/treatment-settings'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
 const viewOf = (history: Pick<TreatmentWithHistory, 'periods' | 'doses'>, today: string) =>
   treatmentReadingOf(history, today).view
@@ -550,9 +549,12 @@ describe('plan que le moteur ne saurait pas relire', () => {
     })
     const history = treatment([ancien])
 
-    expect(() => assertReadable(history, TODAY)).not.toThrow()
+    expect(() => treatmentReadingOf(history, TODAY)).not.toThrow()
     expect(() =>
-      assertReadable({ ...history, periods: [{ ...ancien, times: ['08:00', '20:00'] }] }, TODAY),
+      treatmentReadingOf(
+        { ...history, periods: [{ ...ancien, times: ['08:00', '20:00'] }] },
+        TODAY,
+      ),
     ).toThrow(RangeError)
   })
 })

@@ -30,3 +30,22 @@ export function periodWriteOf(plan: SettingsPlan, extras: Extras, newId: () => s
     ? { action: 'open', id: newId(), settings, ...origin }
     : { action: 'correct', id: plan.id, settings, ...origin }
 }
+
+/** Le réglage que pose l'écriture de la période, à jouer sur le carnet du moteur. */
+export function settingsPlanOf(written: Written): SettingsPlan {
+  const { startsOn, firstDueOn, endsOn, frequency, times } = written.settings
+  const { gridOriginOn, firstDueChosen, pastDosesStayUnlogged } = written
+  const setting = {
+    startsOn,
+    firstDueOn,
+    gridOriginOn,
+    firstDueChosen,
+    pastDosesStayUnlogged,
+    endsOn,
+    frequency,
+    times,
+  }
+  return written.action === 'open'
+    ? { action: 'create', setting }
+    : { action: 'rewrite', id: written.id, setting }
+}

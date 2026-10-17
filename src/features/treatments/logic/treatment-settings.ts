@@ -1,4 +1,4 @@
-import { currentPeriodOf, treatmentReadingOf } from './treatment-reading-adapter'
+import { currentPeriodOf } from './treatment-reading-adapter'
 import type { TreatmentRhythm } from '../schema/treatment-form.schema'
 import {
   treatmentPeriodSettingsSchema,
@@ -68,19 +68,6 @@ export function changesRhythm(period: TreatmentPeriodRecord, rhythm: TreatmentRh
   })
 }
 
-export function withPeriodSettings(
-  history: TreatmentWithHistory,
-  periodId: string,
-  settings: TreatmentPeriodSettings,
-): TreatmentWithHistory {
-  return {
-    ...history,
-    periods: history.periods.map((other) =>
-      other.id === periodId ? { ...other, ...settings } : other,
-    ),
-  }
-}
-
 export function currentPeriod(
   history: TreatmentWithHistory,
   view: Pick<TreatmentView, 'currentSetting'>,
@@ -109,14 +96,6 @@ export function changesSchedule(period: TreatmentPeriodRecord, rhythm: Treatment
     JSON.stringify([period.frequency, sortedTimes(period.times)]) !==
     JSON.stringify([rhythm.frequency, sortedTimes(rhythm.times)])
   )
-}
-
-/** Lève une `RangeError` quand l'app ne saurait pas relire cet historique. */
-export function assertReadable(
-  history: Pick<TreatmentWithHistory, 'periods' | 'doses'>,
-  today: string,
-): void {
-  treatmentReadingOf(history, today)
 }
 
 export const DRAFT_ID = 'draft'
