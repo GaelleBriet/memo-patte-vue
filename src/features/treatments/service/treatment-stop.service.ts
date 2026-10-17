@@ -13,7 +13,7 @@ import {
 import {
   DuplicateDueError,
   getTreatmentDosesRepository,
-  type TreatmentDosesRepository,
+  type TreatmentDoseWriter,
 } from '../repository/treatment-doses.repository'
 import type { DoseWrite } from '../schema/treatment-dose.schema'
 import {
@@ -40,7 +40,7 @@ export type TreatmentStopDependencies = {
       'stop' | 'undoStop' | 'stopStatement' | 'notStoppedGuardStatement' | 'undoStopStatement'
     >
   >
-  doses: Provider<Pick<TreatmentDosesRepository, 'applyBatch'>>
+  doses: Provider<TreatmentDoseWriter>
   reminders: Pick<TreatmentRemindersService, 'reschedule'>
   today: () => string
   now: () => Date
