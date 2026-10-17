@@ -1,5 +1,5 @@
-import { isNote } from '../lines'
-import type { GestureResult, Line, LineChange, Refusal, TreatmentViewInput } from '../types'
+import { isMoreRecent, isNote } from '../lines'
+import type { Day, GestureResult, Line, LineChange, Refusal, TreatmentViewInput } from '../types'
 import { buildView } from '../view'
 import { without } from './changes'
 import { doseLines, shiftsOfDay } from './dose-lines'
@@ -67,6 +67,38 @@ export function removalRefusal(input: TreatmentViewInput, lineId: string): Refus
     return effect.kind === 'moves' ? reportRemovalRefusal(input, line) : null
   }
   return line.status === 'shift' ? shiftRemovalRefusal(input, line) : null
+}
+
+const daysOf = ({ dueOn, targetOn }: Line): Day[] =>
+  targetOn === null ? [dueOn] : [dueOn, targetOn]
+
+const shareDay = (a: Line, b: Line): boolean => daysOf(a).some((day) => daysOf(b).includes(day))
+
+// #867 : réécrit, ce report passerait devant la réécriture de son réglage.
+const olderThanItsSetting = (input: TreatmentViewInput, line: Line): boolean => {
+  const rewrittenAt = input.settings.find(({ id }) => id === line.settingId)?.updatedAt
+  return line.status === 'postponed' && rewrittenAt !== undefined && rewrittenAt >= line.updatedAt
+}
+
+/**
+ * R12, #842 : les lignes plus récentes qu'une ligne supprimée dans une de ses journées, de proche en
+ * proche, de la moins à la plus récente : « Annuler » doit les laisser devant les lignes rétablies.
+ */
+export function keptAhead(input: TreatmentViewInput, deletedIds: readonly string[]): Line[] {
+  const reached = input.lines.filter(({ id }) => deletedIds.includes(id))
+  let frontier = [...reached]
+  while (frontier.length > 0) {
+    frontier = input.lines.filter(
+      (line) =>
+        !reached.includes(line) &&
+        frontier.some((other) => isMoreRecent(line, other) && shareDay(line, other)),
+    )
+    reached.push(...frontier)
+  }
+  const ahead = reached
+    .filter(({ id }) => !deletedIds.includes(id))
+    .sort((a, b) => (isMoreRecent(a, b) ? 1 : -1))
+  return ahead.some((line) => olderThanItsSetting(input, line)) ? [] : ahead
 }
 
 /** R11 : seule la personne supprime une ligne ; le décalage d'une prise reste (N6, N8). */

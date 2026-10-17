@@ -50,7 +50,7 @@ describe('moteur des doses v2 : frontières', () => {
 
   it('seul le calendrier produit des échéances à partir de la grille', () => {
     const readers = modules.filter(({ text }) => /\bgridDays\(/.test(text)).map(({ name }) => name)
-    expect(readers.sort()).toEqual(['grid.ts', 'journeys.ts'])
+    expect(readers.sort()).toEqual(['grid-in-force.ts', 'grid.ts', 'journeys.ts'])
   })
 
   it('aucun module ne dépasse 300 lignes', () => {

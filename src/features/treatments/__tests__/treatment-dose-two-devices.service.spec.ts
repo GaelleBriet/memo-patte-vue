@@ -170,5 +170,23 @@ describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-1
         })
       }
     }
+
+    for (const [state, other] of others) {
+      it(`#842 : dose du 10 oct. de Milo donnée ici, ${state} sur l'autre appareil (${other.id}), « Supprimer » la ligne grisée puis « Annuler »`, async () => {
+        const shown = await miloNotedOnBothDevices(other)
+        replay.clock.day = '2026-10-12'
+        replay.tick()
+        const before = await sheetLines()
+        replay.tick()
+        const applied = await replay.doses.apply(ID, { kind: 'remove', lineId: other.id })
+        const afterGesture = await sheetLines()
+        replay.tick()
+        await replay.doses.undoBatch(ID, applied.undo)
+
+        expect(before[other.id]).toMatch(/ idle$/)
+        expect(afterGesture).toEqual({ [shown]: before[shown] })
+        expect(await sheetLines()).toEqual(before)
+      })
+    }
   })
 })

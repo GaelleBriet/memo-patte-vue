@@ -23,6 +23,7 @@ import {
   toastMessage,
   toastTone,
 } from '@/shared/utils/toast'
+import { showReminderFeedback } from '@/app/reminder-actions'
 import { createReminderActions } from '../service/reminder-actions.service'
 import { plain } from '@/shared/__tests__/plain'
 
@@ -110,7 +111,7 @@ function handler() {
     now: () => new Date(`${today}T10:00:00.000Z`),
     today: () => today,
   })
-  return createReminderActions({
+  const handle = createReminderActions({
     router,
     animals: () => ({
       getById: async (id) => [LUNA, BOREE].find((candidate) => candidate.id === id) ?? null,
@@ -125,6 +126,7 @@ function handler() {
     t: i18n.global.t,
     today: () => today,
   })
+  return async (action: ReminderAction) => showReminderFeedback(await handle(action))
 }
 
 beforeEach(async () => {

@@ -128,7 +128,17 @@ const APP_RESTRICTION = {
     "app/ ne fait que démarrer l'app : une feature n'en importe rien (cf. CLAUDE.md, « Règles strictes de structure »).",
 }
 
-function featureImportsRule(feature: string, allowedElsewhere: string[] = []): Linter.RulesRecord {
+const REPOSITORY_OUT_OF_LOGIC = {
+  group: ['**/repository', '**/repository/*', '**/*.repository'],
+  message:
+    "logic/ n'importe jamais un repository : les types d'écriture partagés vivent dans schema/ (cf. CLAUDE.md, « Règles strictes de structure »).",
+}
+
+function featureImportsRule(
+  feature: string,
+  allowedElsewhere: string[] = [],
+  extraPatterns: object[] = [],
+): Linter.RulesRecord {
   return restrictFeatureImports({
     patterns: [
       {
@@ -150,6 +160,7 @@ function featureImportsRule(feature: string, allowedElsewhere: string[] = []): L
           'Import interdit depuis une autre feature : passe par shared/ ou core/ (cf. CLAUDE.md, « Règles strictes de structure »).',
       },
       APP_RESTRICTION,
+      ...extraPatterns,
       ...(feature === 'animals' ? [] : [ANIMALS_STORE_READ_ONLY]),
       ...(feature === 'purchase' ? [] : [PURCHASE_STORE_READ_ONLY]),
       {
@@ -158,6 +169,30 @@ function featureImportsRule(feature: string, allowedElsewhere: string[] = []): L
       },
     ],
   })
+}
+
+const DATA_ACCESS_RESTRICTIONS = {
+  paths: [
+    {
+      name: '@supabase/supabase-js',
+      message: "Import interdit hors de core/supabase/ ou d'un repository (cf. CLAUDE.md).",
+    },
+    {
+      name: '@capacitor-community/sqlite',
+      message: "Import interdit hors de core/db/ ou d'un repository (cf. CLAUDE.md).",
+    },
+    {
+      name: '@capacitor/local-notifications',
+      message:
+        'Import interdit hors de core/notifications/ : utilise notifications.service (cf. CLAUDE.md).',
+    },
+  ],
+  patterns: [
+    {
+      group: ['**/core/supabase/*', '**/core/db/*', '@/core/supabase/*', '@/core/db/*'],
+      message: 'Utilise un repository, pas le client directement (cf. CLAUDE.md).',
+    },
+  ],
 }
 
 export default defineConfigWithVueTs(
@@ -227,35 +262,23 @@ export default defineConfigWithVueTs(
       '**/*.service.spec.ts',
       '**/*.integration.spec.ts',
     ],
+    rules: restrictImports(DATA_ACCESS_RESTRICTIONS),
+  },
+
+  {
+    name: 'app/shared-not-app',
+    files: ['src/shared/**/*.{ts,vue}'],
+    ignores: ['**/*.repository.spec.ts', '**/*.service.spec.ts', '**/*.integration.spec.ts'],
     rules: restrictImports({
-      paths: [
-        {
-          name: '@supabase/supabase-js',
-          message: "Import interdit hors de core/supabase/ ou d'un repository (cf. CLAUDE.md).",
-        },
-        {
-          name: '@capacitor-community/sqlite',
-          message: "Import interdit hors de core/db/ ou d'un repository (cf. CLAUDE.md).",
-        },
-        {
-          name: '@capacitor/local-notifications',
-          message:
-            'Import interdit hors de core/notifications/ : utilise notifications.service (cf. CLAUDE.md).',
-        },
-      ],
-      patterns: [
-        {
-          group: ['**/core/supabase/*', '**/core/db/*', '@/core/supabase/*', '@/core/db/*'],
-          message: 'Utilise un repository, pas le client directement (cf. CLAUDE.md).',
-        },
-      ],
+      ...DATA_ACCESS_RESTRICTIONS,
+      patterns: [...DATA_ACCESS_RESTRICTIONS.patterns, APP_RESTRICTION],
     }),
   },
 
-  // Là où le bloc précédent ne s'applique pas (tout core/ et les repositories), deux
-  // interdits restent : le plugin de notifications hors de core/notifications/, et
-  // core/ qui dépend des features, hors de core/dev/ (exception consignée le
-  // 2026-09-13 dans docs/product/decisions-log.md).
+  // Là où les blocs précédents ne s'appliquent pas (tout core/ et les repositories), trois
+  // interdits restent : le plugin de notifications hors de core/notifications/, core/ qui
+  // dépend des features, hors de core/dev/ (exception consignée le 2026-09-13 dans
+  // docs/product/decisions-log.md), et core/ qui importe app/.
   // Blocs séparés et sans recouvrement, car en flat config deux blocs qui déclarent
   // la même règle sur un même fichier s'écrasent au lieu de se cumuler.
   {
@@ -264,19 +287,27 @@ export default defineConfigWithVueTs(
     ignores: ['src/core/notifications/**', 'src/core/dev/**'],
     rules: restrictImports({
       paths: [NOTIFICATIONS_PLUGIN_RESTRICTION],
-      patterns: [FEATURES_RESTRICTION],
+      patterns: [FEATURES_RESTRICTION, APP_RESTRICTION],
     }),
   },
   {
     name: 'app/core-notifications-independent-of-features',
     files: ['src/core/notifications/**/*.{ts,vue}'],
-    rules: restrictImports({ patterns: [FEATURES_RESTRICTION] }),
+    rules: restrictImports({ patterns: [FEATURES_RESTRICTION, APP_RESTRICTION] }),
   },
   {
     name: 'app/notifications-service-only',
-    files: ['src/core/dev/**/*.{ts,vue}', 'src/**/*.repository.ts'],
-    ignores: ['src/core/notifications/**'],
+    files: ['src/**/*.repository.ts'],
+    ignores: ['src/core/**'],
     rules: restrictImports({ paths: [NOTIFICATIONS_PLUGIN_RESTRICTION] }),
+  },
+  {
+    name: 'app/core-dev-not-app',
+    files: ['src/core/dev/**/*.{ts,vue}'],
+    rules: restrictImports({
+      paths: [NOTIFICATIONS_PLUGIN_RESTRICTION],
+      patterns: [APP_RESTRICTION],
+    }),
   },
 
   {
@@ -292,6 +323,32 @@ export default defineConfigWithVueTs(
               group: ['**/domain/dose-calendar/**', './dose-calendar/**', '../dose-calendar/**'],
               message:
                 "Le moteur des doses s'importe par sa façade, `@/shared/domain/dose-calendar`.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  {
+    name: 'app/services-without-interface',
+    files: ['src/**/*.service.ts'],
+    rules: {
+      'app/no-restricted-interface-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                '@/shared/utils/toast',
+                '@/shared/composables/*',
+                'vuetify',
+                'vuetify/*',
+                'vue-i18n',
+                '**/*.vue',
+              ],
+              message:
+                'Un service de cas d’usage ne connaît pas l’interface : il rend un résultat que l’appelant affiche.',
             },
           ],
         },
@@ -317,6 +374,12 @@ export default defineConfigWithVueTs(
       '@/features/*/service',
       '@/features/*/service/*.service',
     ]),
+  })),
+  ...FEATURES.map((feature) => ({
+    name: `app/feature-imports/${feature}-logic`,
+    files: [`src/features/${feature}/logic/**/*.ts`],
+    ignores: ['**/__tests__/**'],
+    rules: featureImportsRule(feature, [], [REPOSITORY_OUT_OF_LOGIC]),
   })),
   {
     name: 'app/feature-imports/export-file-schema',

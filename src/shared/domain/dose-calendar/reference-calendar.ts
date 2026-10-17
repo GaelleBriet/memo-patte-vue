@@ -1,6 +1,7 @@
 import {
   gridDays,
   hoursOf,
+  inForceAt,
   isDueDay,
   isOnGrid,
   keyOf,
@@ -12,9 +13,9 @@ import {
 } from './reference-grid'
 import {
   coverages,
-  coverOrphans,
   departureAfterRewrite,
   lateDaysOf,
+  shiftKeptByReport,
   writtenBefore,
   handedOf,
   leftDays,
@@ -103,17 +104,7 @@ export function calendarOf(
     const within = ({ dueOn }: ReferenceLine) =>
       dueOn >= setting.startsOn && (end === null || dueOn < end)
     // R3, R9 : une origine choisie se juge sur la grille en vigueur à la première échéance.
-    const held = new Set<ReferenceLine>()
-    const inForce = shifts
-      .filter(
-        ({ dueOn, settingId }) =>
-          dueOn >= setting.startsOn && dueOn < setting.firstDueOn && rhythm.has(settingId),
-      )
-      .reduce((on, shift) => {
-        if (!isDueDay(on, setting, shift.dueOn)) return on
-        held.add(shift)
-        return turned(shift, '')
-      }, grid)
+    const { inForce, held } = inForceAt(grid, setting, shifts, rhythm)
     const continued =
       previous !== undefined &&
       sameFrequency(previous, setting) &&
@@ -177,10 +168,11 @@ export function calendarOf(
     let from = setting.startsOn
     const segments: Segment[] = []
     // R6 : un décalage part d'une échéance de la grille d'avant lui ou de l'arrivée d'un report du
-    // rythme ; avant une date choisie, seul celui qui la porte (R3, TR-9).
+    // rythme ; avant une date choisie, seul celui qui la porte (R3, TR-9) ou celui d'un report gagnant (#885).
     const lands = (turn: ReferenceLine) =>
       (isDueDay(grid, setting, turn.dueOn) && (turn.dueOn > chosenFloor || anchors.has(turn))) ||
-      reports.some((report) => report.targetOn === turn.dueOn && report.dueOn > rhythmFloor)
+      reports.some((report) => report.targetOn === turn.dueOn && report.dueOn > rhythmFloor) ||
+      (!days.has(turn.dueOn) && shiftKeptByReport(turn, reports, settingOf))
     for (const turn of [...turns, null]) {
       if (turn !== null && !lands(turn)) continue
       const to = turn === null ? last : turn.dueOn < last ? turn.dueOn : last
@@ -206,8 +198,7 @@ export function calendarOf(
   const coverage = coverages({ notes, borrowed, reports, translated, settingOf })
   const { matched, coveredOn, coveredAside, settle } = coverage
 
-  // R7 : un report emporte son heure et les suivantes encore sans prise ; les reports qui arrivent sur
-  // sa journée passent d'abord.
+  // R7 : un report emporte son heure et les suivantes sans prise ; ceux qui arrivent sur sa journée d'abord.
   const fallen = new Set<string>()
   const arrivedHours = new Map<string, (string | null)[]>()
   const waiting = [...reports]
@@ -238,8 +229,8 @@ export function calendarOf(
     const chosenOn = chosenRestarts.get(at)
     const carries = targetOn === restartOn || targetOn === chosenOn || openings.has(targetOn!)
     const before = chosenRestarts.get(report!.settingId) !== chosenOn
-    if (chosenOn !== undefined && dueOn === chosenOn && before) continue
-    if (origin === undefined && !rewritten && chosenOn !== undefined && !carries) continue
+    const outside = (dueOn === chosenOn && before) || (!origin && !rewritten && !carries)
+    if (chosenOn !== undefined && outside) continue
     const written = settingOf(report!.settingId)
     const arrived = arrivedHours.get(dueOn) ?? []
     const itsDay = {
@@ -285,9 +276,7 @@ export function calendarOf(
       ...journey.hours.map((hour) => ({ key: keyOf(day, hour), day, covered: covered.has(hour) })),
     )
   }
-  coverOrphans(notes, matched, dues, settingOf)
-  // TR-9 : la date choisie remplace la dose du moment : celle du premier jour du réglage s'il est une
-  // échéance, sinon la dernière journée arrivée avant lui.
+  // TR-9 : la date choisie remplace la dose du premier jour, ou de la dernière journée arrivée avant lui.
   const lateDays = lateDaysOf(replaced, fallen)
   replaced.filter(({ onDueDay }) => onDueDay).forEach(({ to }) => fallen.add(to))
   const pending = dues
