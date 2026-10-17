@@ -8,6 +8,7 @@ import {
   sameFrequency,
   sameHours,
 } from './grid'
+import { isDueDay, skippedDays, turned, type Grid } from './grid-in-force'
 import type { EpisodeLines } from './lines'
 import type { Span } from './settings'
 import type { Day, Frequency, Hour, Line, LineEffect, Setting } from './types'
@@ -20,9 +21,6 @@ export type Gap = { after: Day; before: Day }
 export type JourneyInput = { span: Span; lines: EpisodeLines; reach: Day; gap?: Gap }
 
 type Segment = { origin: Day; from: Day; to: Day | null }
-
-// `floor` : veille du premier jour que la fiche lit ; `since` : veille de la première échéance.
-type Grid = { origin: Day; floor: Day; since: Day }
 
 type Claim = { setting: Setting; end: Day | null; segments: Segment[] }
 
@@ -58,15 +56,6 @@ function leftDays(
   }
   return left
 }
-
-const isDueDay = (grid: Grid, frequency: Frequency, day: Day) =>
-  day > grid.since && isOnGrid(grid.origin, frequency, day)
-
-const turned = (turn: Line, chosenFloor: Day): Grid => ({
-  origin: turn.targetOn!,
-  floor: later(chosenFloor, later(turn.dueOn, turn.targetOn!)),
-  since: later(turn.dueOn, turn.targetOn!),
-})
 
 /** R3, R6 : les journées de chaque réglage, sur la grille en vigueur, que les décalages font repartir. */
 export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) {
@@ -200,9 +189,8 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     }
     if (index > 0 && (ended || !kept || (!continued && replaces))) rhythmFrom = setting.startsOn
     if (continued) {
-      const to = grid.floor < last ? grid.floor : last
       const read = later(setting.startsOn, plusDays(rhythmStartFloor, 1))
-      for (const day of gridDays(grid.origin, setting.frequency, read, to)) {
+      for (const day of skippedDays(grid, setting.frequency, read, grid.floor, last)) {
         skipped.add(day)
       }
     }
