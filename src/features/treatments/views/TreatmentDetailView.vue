@@ -104,7 +104,7 @@ const lessPrecise = computed(() =>
     ? lessPreciseReminder(t, treatment.value, reading.value.view, exactReminders.status.value)
     : null,
 )
-const history = computed(() =>
+const doseHistory = computed(() =>
   treatment.value && reading.value
     ? treatmentHistory(t, treatment.value, reading.value, today.value)
     : null,
@@ -240,7 +240,7 @@ onMounted(() => {
     </template>
 
     <div class="treatment-detail__content">
-      <template v-if="treatment && card && history && actions">
+      <template v-if="treatment && card && doseHistory && actions">
         <TreatmentDoseCard
           ref="doseCardRef"
           :card="card"
@@ -259,7 +259,7 @@ onMounted(() => {
           @act="onUnloggedAction"
         />
 
-        <TreatmentHistory :history="history" @select="onLineAction" />
+        <TreatmentHistory :dose-history="doseHistory" @select="onLineAction" />
 
         <button
           v-if="actions.canStop"
