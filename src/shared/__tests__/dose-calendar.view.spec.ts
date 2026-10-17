@@ -252,7 +252,7 @@ describe('relecture du pas 2 : frontières de réglage et historique', () => {
     expect(effectOf(read, evening.id)).toEqual({ kind: 'covers', key: '2026-10-03 21:00' })
   })
 
-  it('R1, R4 : deux réglages qui cèdent la place le même jour : la journée se lit avec le dernier, traduction comprise', () => {
+  it('R1, R4 : deux réglages qui cèdent la place le même jour : la journée se lit avec le dernier, traduction comprise ; la prise de 6 h garde son heure (règle du 17 octobre 2026)', () => {
     const morning = line('p1', 'given', '2026-10-03', '06:00')
     const evening = line('p2', 'given', '2026-10-03', '20:00')
     const settings = [
@@ -261,7 +261,7 @@ describe('relecture du pas 2 : frontières de réglage et historique', () => {
       setting('p3', '2026-10-10', WEEK, ['09:00'], { startsOn: '2026-10-03' }),
     ]
     const read = view(settings, [morning, evening], '2026-10-03')
-    expect(effectOf(read, morning.id)).toEqual({ kind: 'idle', reason: 'nothing-to-cover' })
+    expect(effectOf(read, morning.id)).toEqual({ kind: 'covers', key: '2026-10-03 06:00' })
     expect(effectOf(read, evening.id)).toEqual({ kind: 'covers', key: '2026-10-03 20:00' })
   })
 

@@ -9,7 +9,7 @@ export {
   type LegacyPeriod,
   type SettingFacts,
 } from './legacy-input'
-export { applied, settingsApplied } from './gestures/changes'
+export { applied, rewritesCalendar, settingsApplied } from './gestures/changes'
 export { moveBounds, moveDose, type MoveBounds } from './gestures/move'
 export { dueForDate, noteDose } from './gestures/note'
 export { redateDose } from './gestures/redate'

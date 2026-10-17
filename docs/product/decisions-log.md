@@ -2846,3 +2846,78 @@ session d'analyse du moteur, mandatée par Gaelle, et principe du 17 octobre 202
   jamais translatée. Portée : ni le jour où les heures changent (R4), ni #862, ni R9.2 / G26.
   Appliqué à #847 ; le reste et la question « une prise gardée couvre-t-elle aussi la première
   échéance du nouveau rythme ? » sont au §11 de la spec.
+
+2026-10-17 — **Principe du 17 octobre : une réécriture de réglage ne retire que les doses non
+données qu'elle visait** (spec `traitements.md` R4, R6, R9, R10, R11, §10, §11 ; décision de Gaelle
+du 17 octobre 2026, par la session d'analyse du moteur à qui elle a délégué les lectures de règles).
+
+- Principe : « Elles n'étaient pas à donner », « Prochaine dose » et une date choisie ne retirent
+  que les doses non données qu'elles visaient. Une ligne qui l'emporte sur la réécriture (prise
+  donnée, ou report plus récent, #867) garde son échéance telle qu'écrite dans sa ligne, jour et
+  heure, jamais translatée sur un autre jour à cause de cette réécriture, et ne compte qu'une fois.
+  Portée : seulement quand une réécriture a retiré l'échéance d'une ligne ; ni le jour où les
+  heures changent (R4), ni une dose déplacée par un report (#862), ni R9.2 / G26.
+- #892 : la prise de A tient toujours, même plus ancienne que la réponse de B. Milo, toutes les
+  2 semaines à 20 h, première dose le 3 avril ; le 7, A note donnée la dose du 3, B passe à 6 h et
+  répond « Elles n'étaient pas à donner » : le 3 à 20 h « donnée le 7, en retard », puis le 17 à
+  6 h. — Écartés : translater la prise sur le 17 ; la griser.
+- #893 : Milo, toutes les 6 semaines à 8 h et 20 h, les deux doses du 23 mars données d'avance sur
+  l'arrivée d'un report ; A avance la dose du 28 avril au 23 avril, B choisit « Prochaine dose » le
+  9 juin, A plus récent : la prise du 13 mars garde le 23 mars à 8 h, le 23 avril reste à donner
+  (graine 8810000692). — Écartée : la prise sans effet.
+- #885 : un report plus récent fait avec la case tient avec son décalage, accroché à sa journée de
+  départ, qui translate la grille du réglage réécrit, date choisie comprise, à ses heures. Report
+  du 3 au 10 (20 h) avec la case, B passe à 6 h, première dose le 17 : le 10 à 20 h, puis le 24 et
+  le 8 mai à 6 h. — Écarté : le report sans son décalage (le 10 puis le 17).
+- #873 : les doses que la question liste sur le jour d'arrivée passé d'un report sortent du
+  calendrier ; ce report, plus ancien que la réponse, devient sans effet ; plus récent, il tient.
+  — Écarté : ne pas lister ces doses.
+- La question « Elles restent à renseigner / Elles n'étaient pas à donner » se lit après les
+  décalages, sur le calendrier que montre la fiche ; une prise gardée compte comme dernière journée
+  passée (R9.3) et ne couvre pas la première échéance du nouveau rythme (Milo, le 18 mars, tous les
+  3 jours à 9 h : le 19 à donner ; mensuel du 2 avril : date proposée le 9 avril).
+- Appliqués dans la PR du 17 octobre (#914), avec la règle unique ci-dessous.
+
+2026-10-17 — **Règle unique : une prise garde toujours la journée et l'heure écrites dans sa ligne**
+(spec `traitements.md` R4, R6, R9, R10, R11, §10, §11 ; décisions de Gaelle du 17 octobre 2026 sur les
+arrêts de la PR #914, par la session d'analyse du moteur à qui elle a délégué les lectures de règles).
+
+- Une prise ne se translate jamais sur une autre journée, quelle que soit la cause (réécriture,
+  « Prochaine dose », date choisie, changement de fréquence, correction sur place, date de fin) et
+  la naissance du réglage. La lecture du 16 octobre pour #862 (« entre journées, R4 comme écrit »)
+  est retirée pour les prises. Reste de R4 : la traduction des heures dans la même journée et les
+  décisions du 16 octobre sur la journée touchée. Une prise donnée n'est plus jamais « sans effet » ;
+  seule une prise plus récente sur la même dose la remplace. L'oubli garde sa lecture. Tous les
+  6 jours à 8 h et 20 h, les deux doses du 14 données d'avance, puis tous les 3 jours à 20 h dès le
+  7 : les deux prises gardent le 14, le 16 et le 19 restent à donner. — Écartée : la prise qui
+  couvre la première échéance qui suit, à moins d'un pas.
+- #852 (graine 4900001764) : la prise de 14 h du 13 avril reste « donnée en avance » sur le 13 ; le 16
+  à 8 h est à donner, en retard le 17, avant comme après le passage à 8 h 01.
+- Date proposée (R9.3) : la journée gardée est la dernière journée passée, la nouvelle grille part
+  d'elle ; Milo, le 19 à 9 h à donner ; mensuel, le 9 avril ; après un changement de fréquence, la
+  première échéance du nouveau rythme est à donner même si une dose a été donnée d'avance pour une
+  journée disparue.
+- #873 : la date de la réponse est la date d'écriture du réglage (v14) ; sortent les doses tombées
+  sans prise strictement avant ce jour, sous le réglage remplacé ; le jour de la réponse et la suite
+  restent (graine 8000000726 : le 18 mars sort, le 23 reste) ; la question et le retrait se lisent
+  de la même façon. — Écartées : réécrire la première échéance ; une colonne « réponse du ». Non
+  livré par #914 : la réponse n'est pas tracée dans les données (spec §11, piste (a) recommandée).
+- #872 (Q4) : « Elles n'étaient pas à donner » refusée avec le texte de #806 quand, une fois les
+  doses retirées, il ne reste aucune dose avant la date de fin, carnet avec ou sans prise (Q38 ou
+  Q39) ; « Elles restent à renseigner » n'est pas refusée ; rien ne repart d'aujourd'hui sans geste.
+  Non livré par #914 : dépend de #873. Tous les 3 mois
+  à 20 h, fin le 6 mai, la dose du 18 mars reportée au 22 où elle ouvre le rythme ; le 23, passage à
+  12, 18 et 23 h : refusée.
+- Q1 (#884, #861) et Q2 (#865, #874, #876, #877, #881, #898) : la prise garde sa journée ; une dose
+  reportée est toujours portée par son jour d'arrivée. La prise de 20 h du 23 mars (#893) est
+  gardée, jamais grisée. Une date de fin retire les doses non données après elle ; une dose donnée
+  après la fin reste « donnée ».
+- Lectures de la PR #914, décidées le 17 octobre 2026 : (1) une journée qui porte une prise est une
+  journée touchée (TR-25) : son échéance n'a pas disparu et un oubli y reste ; « échéance disparue =
+  sans effet » ne vaut que pour une journée entière sortie du calendrier sans prise (graine
+  901836). (2) « Elles n'étaient pas à donner » se lit par dose : sortent les doses tombées sans prise,
+  pas les journées (graine 7810000235). (3) Le refus de #806 vaut sur un carnet sans aucune prise
+  comme sur les autres (Q39). (2) et (3) ne sont pas livrés par #914, avec #873.
+- Réconciliation avec #841 : la règle unique protège une prise des effets de bord d'un réglage, pas
+  d'un geste fait exprès sur la dose elle-même ; une prise remplacée par un oubli de la même dose est
+  grisée « sans effet » (décision du 17 octobre 2026 sur #841).

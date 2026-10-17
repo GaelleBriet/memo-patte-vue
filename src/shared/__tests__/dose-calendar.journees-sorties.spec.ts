@@ -146,7 +146,7 @@ describe('R3, R4 : une journée sortie du calendrier n’est pas reprise par la 
 })
 
 describe('R1, R4 : seul le réglage qui cède la place lit sa journée de fin', () => {
-  it('tous les 2 jours dès le 1er avr., dose du 9 donnée en avance ; le 5, tous les 3 jours dès le 12 (12 donné) ; posologie le 9 : la prise du 9 reste sans effet', () => {
+  it('tous les 2 jours dès le 1er avr., dose du 9 donnée en avance ; le 5, tous les 3 jours dès le 12 (12 donné) ; posologie le 9 : la prise du 9 garde sa journée, avant comme après (règle du 17 octobre 2026)', () => {
     const everyTwo = setting('s1', '2026-04-01', TWO_DAYS)
     const everyThree = setting('s2', '2026-04-12', { value: 3, unit: 'day' }, [], {
       startsOn: '2026-04-05',
@@ -154,7 +154,7 @@ describe('R1, R4 : seul le réglage qui cède la place lit sa journée de fin', 
     const ninth = { ...line('s1', 'given', '2026-04-09'), givenOn: '2026-04-04' }
     const twelfth = { ...line('s2', 'given', '2026-04-12'), givenOn: '2026-04-06' }
     const input = { settings: [everyTwo, everyThree], lines: [ninth, twelfth], today: '2026-04-09' }
-    const idle = [{ kind: 'idle', reason: 'nothing-to-cover' }]
+    const idle = [{ kind: 'covers', key: '2026-04-09' }]
     expect(effectsOf(input, [ninth])).toEqual(idle)
     const plan = planOf(input, { frequency: { value: 3, unit: 'day' }, times: [], endsOn: null })
     expect(plan.action).toBe('create')

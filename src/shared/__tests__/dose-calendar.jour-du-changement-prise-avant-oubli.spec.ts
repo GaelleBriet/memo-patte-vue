@@ -67,7 +67,7 @@ describe('R4, #866 : le jour du changement d’heures, une prise donnée passe a
     expect(moteur).toEqual(reference)
   })
 
-  it('8 h oubliée, 14 h et 20 h données, puis 20 h seule : la prise de 20 h couvre son heure, l’oubli sans effet', () => {
+  it('8 h oubliée, 14 h et 20 h données, puis 20 h seule : la prise de 20 h couvre son heure, celle de 14 h garde la sienne, l’oubli sans effet (règle du 17 octobre 2026)', () => {
     const three = (): TreatmentViewInput => ({
       settings: [setting('s1', '2026-04-01', DAY, ['08:00', '14:00', '20:00'])],
       lines: [],
@@ -83,7 +83,7 @@ describe('R4, #866 : le jour du changement d’heures, une prise donnée passe a
       slots: [{ hour: '20:00', state: 'given', by: 'given' }],
       effects: [
         { status: 'missed', hour: '08:00', kind: 'idle' },
-        { status: 'given', hour: '14:00', kind: 'idle' },
+        { status: 'given', hour: '14:00', kind: 'covers' },
         { status: 'given', hour: '20:00', kind: 'covers' },
       ],
     })

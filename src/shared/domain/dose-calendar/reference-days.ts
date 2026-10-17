@@ -1,4 +1,4 @@
-import { hoursOf, isOnGrid, keyOf, plusDays, sameHours, stepped, type Hour } from './reference-grid'
+import { hoursOf, isOnGrid, plusDays, sameHours, type Hour } from './reference-grid'
 import { isMoreRecent } from './reference-lines'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
@@ -67,24 +67,6 @@ export function handedOf(
       })
       .map(({ setting }) => setting.id),
   )
-}
-
-// R4 : une prise donnée dont l'échéance a quitté le calendrier couvre la première échéance qui suit,
-// à moins d'un pas de son réglage ; un oubli ne couvre que sa propre échéance.
-export function coverOrphans(
-  notes: readonly ReferenceLine[],
-  matched: ReadonlySet<ReferenceLine>,
-  dues: ReferenceDue[],
-  settingOf: (id: string) => ReferenceSetting,
-): void {
-  const orphans = notes
-    .filter((note) => note.status === 'given' && !matched.has(note))
-    .sort((a, b) => keyOf(a.dueOn, a.dueTime).localeCompare(keyOf(b.dueOn, b.dueTime)))
-  for (const note of orphans) {
-    const { frequency } = settingOf(note.settingId)
-    const due = dues.find((each) => each.key > keyOf(note.dueOn, note.dueTime))
-    if (due !== undefined && due.day < stepped(note.dueOn, frequency, 1)) due.covered = true
-  }
 }
 
 // TR-9 : la dernière journée arrivée avant un réglage qui ne commence pas un jour d'échéance.
@@ -209,6 +191,24 @@ export function coverages({
     coveredAside: coverage(new Set()),
     settle: () => (reportsRead = true),
   }
+}
+
+/** #885 : le décalage d'un report plus récent que la réécriture de son réglage tient avec lui. */
+export function shiftKeptByReport(
+  turn: ReferenceLine,
+  reports: readonly ReferenceLine[],
+  settingOf: (id: string) => ReferenceSetting,
+): boolean {
+  const written = settingOf(turn.settingId)
+  const rewrittenAt = written.updatedAt
+  if (rewrittenAt === undefined || rewrittenAt <= written.createdAt) return false
+  if (turn.dueOn < written.startsOn || turn.dueOn >= written.firstDueOn) return false
+  if (rewrittenAt >= turn.updatedAt) return false
+  if (reports.some(({ targetOn }) => targetOn === turn.dueOn)) return false
+  return reports.some(
+    (report) =>
+      report.dueOn === turn.dueOn && typeof departureAfterRewrite(report, settingOf) === 'object',
+  )
 }
 
 /** #867 : réglage réécrit sans la journée de départ du report : le plus récent des deux l'emporte. */

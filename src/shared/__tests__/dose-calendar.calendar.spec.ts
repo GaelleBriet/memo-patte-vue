@@ -51,19 +51,16 @@ describe('R4 : ce qu’une prise couvre', () => {
     expect(read.effects.get(note.id)).toEqual({ kind: 'covers', key: '2026-10-02 09:00' })
   })
 
-  it('sortie du calendrier, une prise couvre la première échéance qui suit à moins d’un pas', () => {
+  it('sortie du calendrier, une prise garde la journée et l’heure de sa ligne, jamais translatée ni sans effet (règle du 17 octobre 2026)', () => {
     const p1 = setting('p1', '2026-10-02', WEEK)
     const note = line('p1', 'given', '2026-10-16')
+    const own = { kind: 'covers', key: '2026-10-16' }
     const lines = [note, line('p1', 'shift', '2026-10-09', null, '2026-10-10')]
-    expect(calendar([p1], lines).effects.get(note.id)).toEqual({
-      kind: 'covers',
-      key: '2026-10-17',
-    })
+    const read = calendar([p1], lines)
+    expect(read.effects.get(note.id)).toEqual(own)
+    expect(read.slots.find(({ key }) => key === '2026-10-17')?.coveredBy).toBeNull()
     const far = [note, line('p1', 'shift', '2026-10-09', null, '2026-10-17')]
-    expect(calendar([p1], far).effects.get(note.id)).toEqual({
-      kind: 'idle',
-      reason: 'nothing-to-cover',
-    })
+    expect(calendar([p1], far).effects.get(note.id)).toEqual(own)
   })
 })
 

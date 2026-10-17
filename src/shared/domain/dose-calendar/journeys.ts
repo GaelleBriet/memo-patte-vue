@@ -8,7 +8,9 @@ import {
   sameFrequency,
   sameHours,
 } from './grid'
+import { isDueDay, skippedDays, turned, type Grid } from './grid-in-force'
 import type { EpisodeLines } from './lines'
+import { rewriteVerdict } from './rewrite'
 import type { Span } from './settings'
 import type { Day, Frequency, Hour, Line, LineEffect, Setting } from './types'
 
@@ -20,9 +22,6 @@ export type Gap = { after: Day; before: Day }
 export type JourneyInput = { span: Span; lines: EpisodeLines; reach: Day; gap?: Gap }
 
 type Segment = { origin: Day; from: Day; to: Day | null }
-
-// `floor` : veille du premier jour que la fiche lit ; `since` : veille de la première échéance.
-type Grid = { origin: Day; floor: Day; since: Day }
 
 type Claim = { setting: Setting; end: Day | null; segments: Segment[] }
 
@@ -59,15 +58,6 @@ function leftDays(
   return left
 }
 
-const isDueDay = (grid: Grid, frequency: Frequency, day: Day) =>
-  day > grid.since && isOnGrid(grid.origin, frequency, day)
-
-const turned = (turn: Line, chosenFloor: Day): Grid => ({
-  origin: turn.targetOn!,
-  floor: later(chosenFloor, later(turn.dueOn, turn.targetOn!)),
-  since: later(turn.dueOn, turn.targetOn!),
-})
-
 /** R3, R6 : les journées de chaque réglage, sur la grille en vigueur, que les décalages font repartir. */
 export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) {
   const { span, lines, reach, gap } = input
@@ -85,6 +75,14 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
         : touched
     return { setting: own, hours: hoursOf(own.times) }
   }
+  // #885 : le décalage d'un report qui l'emporte sur la réécriture de son réglage part de la journée
+  // de départ que cette réécriture a ôtée du calendrier.
+  const wins = (line: Line) => rewriteVerdict(line, byId.get(line.settingId)!) === 'line'
+  const removed = (day: Day) => !days.has(day) && !lines.reports.some((r) => r.targetOn === day)
+  const keptByReport = (turn: Line) =>
+    removed(turn.dueOn) &&
+    wins(turn) &&
+    lines.reports.some((report) => report.dueOn === turn.dueOn && wins(report))
   const claims: Claim[] = []
   const openings = new Set<Day>()
   let grid: Grid = { origin: chain[0]!.firstDueOn, floor: '', since: '' }
@@ -199,13 +197,9 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       handed.add(prior.id)
     }
     if (index > 0 && (ended || !kept || (!continued && replaces))) rhythmFrom = setting.startsOn
-    if (continued) {
-      const to = grid.floor < last ? grid.floor : last
-      const read = later(setting.startsOn, plusDays(rhythmStartFloor, 1))
-      for (const day of gridDays(grid.origin, setting.frequency, read, to)) {
-        skipped.add(day)
-      }
-    }
+    const skip = continued
+      ? { from: later(setting.startsOn, plusDays(rhythmStartFloor, 1)), to: grid.floor }
+      : null
     // R3 : écrit sous un réglage d'avant un changement de fréquence, un décalage est dépassé.
     const turns = lines.shifts.filter(
       (shift) =>
@@ -220,10 +214,18 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     const lands = (turn: Line) =>
       (isDueDay(grid, setting.frequency, turn.dueOn) &&
         (turn.dueOn > chosenFloor || anchors.has(turn))) ||
-      lines.reports.some((report) => report.targetOn === turn.dueOn && report.dueOn > rhythmFloor)
+      lines.reports.some(
+        (report) => report.targetOn === turn.dueOn && report.dueOn > rhythmFloor,
+      ) ||
+      keptByReport(turn)
     for (const turn of [...turns, null]) {
       if (turn !== null && !lands(turn)) continue
       const to = turn === null || turn.dueOn >= last ? last : turn.dueOn
+      // R4, #847 : les journées laissées avant une date posée plus loin, telles que la fiche les montrait.
+      if (skip !== null) {
+        const read = later(later(from, skip.from), plusDays(grid.since, 1))
+        for (const day of skippedDays(grid, setting.frequency, read, skip.to, to)) skipped.add(day)
+      }
       const start = later(from, plusDays(grid.floor, 1))
       for (const day of gridDaysAround(grid.origin, setting.frequency, start, to, gap)) {
         days.set(day, journeyOn(day, setting))
