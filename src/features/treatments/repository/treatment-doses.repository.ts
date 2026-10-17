@@ -609,6 +609,7 @@ export function createTreatmentDosesRepository(
 }
 
 export type TreatmentDosesRepository = ReturnType<typeof createTreatmentDosesRepository>
+export type TreatmentDoseWriter = Pick<TreatmentDosesRepository, 'applyBatch'>
 
 let repository: Promise<TreatmentDosesRepository> | null = null
 

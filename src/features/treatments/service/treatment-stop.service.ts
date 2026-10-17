@@ -13,16 +13,16 @@ import {
 import {
   DuplicateDueError,
   getTreatmentDosesRepository,
-  type TreatmentDosesRepository,
+  type TreatmentDoseWriter,
 } from '../repository/treatment-doses.repository'
 import type { DoseWrite } from '../schema/treatment-dose.schema'
 import {
   getTreatmentPeriodsRepository,
-  type TreatmentPeriodsRepository,
+  type TreatmentPeriodStopper,
 } from '../repository/treatment-periods.repository'
 import {
   getTreatmentsRepository,
-  type TreatmentsRepository,
+  type TreatmentWithHistoryReader,
 } from '../repository/treatments.repository'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import {
@@ -33,14 +33,9 @@ import {
 type Provider<T> = () => T | Promise<T>
 
 export type TreatmentStopDependencies = {
-  treatments: Provider<Pick<TreatmentsRepository, 'getWithHistory'>>
-  periods: Provider<
-    Pick<
-      TreatmentPeriodsRepository,
-      'stop' | 'undoStop' | 'stopStatement' | 'notStoppedGuardStatement' | 'undoStopStatement'
-    >
-  >
-  doses: Provider<Pick<TreatmentDosesRepository, 'applyBatch'>>
+  treatments: Provider<TreatmentWithHistoryReader>
+  periods: Provider<TreatmentPeriodStopper>
+  doses: Provider<TreatmentDoseWriter>
   reminders: Pick<TreatmentRemindersService, 'reschedule'>
   today: () => string
   now: () => Date
