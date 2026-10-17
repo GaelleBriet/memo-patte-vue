@@ -1,8 +1,8 @@
-import type { TreatmentsRepository } from '../repository/treatments.repository'
+import type { TreatmentRemover } from '../repository/treatments.repository'
 import type { TreatmentRemindersService } from './treatment-reminders.service'
 
 export type TreatmentRemovalDependencies = {
-  treatments: Pick<TreatmentsRepository, 'remove' | 'restore'>
+  treatments: TreatmentRemover
   reminders: () => Pick<TreatmentRemindersService, 'reschedule'>
 }
 
