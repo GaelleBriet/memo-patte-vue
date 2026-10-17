@@ -176,4 +176,23 @@ describe('#842 : « Supprimer » une ligne grisée ne réécrit rien ; un geste 
     await expect(phoneA.doses.undoBatch(ID, removal.undo)).rejects.toThrow(ConcurrentWriteError)
     expect(await sheet(phoneA)).toEqual(['given 2026-10-09 covers'])
   })
+
+  it('garde : A supprime la ligne grisée (synchro vers B), B corrige la prise au 9 (synchro vers A), puis A touche « Annuler » : refusé, la correction de B reste', async () => {
+    const shown = await miloNotedOnBothPhones('given', 'missed')
+    at(100)
+    const removal = await phoneA.doses.apply(ID, { kind: 'remove', lineId: OTHER })
+    await syncDoses(dbA, dbB)
+    at(102)
+    await phoneB.doses.apply(ID, {
+      kind: 'redate',
+      lineId: shown,
+      givenOn: '2026-10-09',
+      shiftsFollowing: false,
+    })
+    await syncDoses(dbB, dbA)
+    at(104)
+
+    await expect(phoneA.doses.undoBatch(ID, removal.undo)).rejects.toThrow(ConcurrentWriteError)
+    expect(await sheet(phoneA)).toEqual(['given 2026-10-09 covers'])
+  })
 })
