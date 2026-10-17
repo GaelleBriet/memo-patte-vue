@@ -1,7 +1,7 @@
 import { isFuture, parseISO } from 'date-fns'
 import { z } from 'zod'
 
-import { MAX_MODEL_LENGTH } from '@/core/device/device.repository'
+import { MAX_MODEL_LENGTH } from '@/core/device/device-model'
 import { isPhotoFileName } from '@/core/photos/photo-storage'
 import {
   animalInputSchema,

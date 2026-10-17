@@ -1,7 +1,7 @@
 import type { Slot } from './calendar'
 import { keyOf, stepped } from './grid'
 import type { EpisodeLines } from './lines'
-import type { Line, LineEffect, Setting } from './types'
+import type { Day, Line, LineEffect, Setting } from './types'
 
 // R4 : une prise donnée dont l'échéance a quitté le calendrier couvre la première échéance qui suit,
 // à moins d'un pas de son réglage ; un oubli ne couvre que sa propre échéance.
@@ -21,6 +21,24 @@ export function coverOrphans(
     if (slot !== undefined && slot.coveredBy === null && slot.due.dueOn < limit) {
       slot.coveredBy = note
     }
+  }
+}
+
+// R4, #847 : laissée avant une première échéance posée plus loin, une journée dont une prise donnée
+// ne couvre aucune échéance qui la suit lit les heures de ses prises : chacune y garde la sienne.
+export function keepSkippedDays(
+  notes: readonly Line[],
+  skipped: ReadonlySet<Day>,
+  slots: readonly Slot[],
+  held: Map<Line, string>,
+): void {
+  const placed = new Set(slots.map(({ coveredBy }) => coveredBy))
+  const free = (note: Line) => skipped.has(note.dueOn) && !placed.has(note) && !held.has(note)
+  const days = new Set(
+    notes.filter((note) => note.status === 'given' && free(note)).map(({ dueOn }) => dueOn),
+  )
+  for (const note of notes) {
+    if (days.has(note.dueOn) && free(note)) held.set(note, keyOf(note.dueOn, note.dueTime))
   }
 }
 

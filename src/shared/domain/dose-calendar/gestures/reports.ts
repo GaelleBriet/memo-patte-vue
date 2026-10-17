@@ -132,7 +132,10 @@ export function arrivesOnOrigin(
   })
 }
 
-/** R6 : une prise qui couvrait sa propre échéance la couvre encore après le geste. */
+/**
+ * R6 : une prise qui couvrait sa propre échéance la couvre encore après le geste ; gardée sur une
+ * journée hors du calendrier (R4, #847), il lui suffit de couvrir encore une échéance.
+ */
 export function strandsNote(before: TreatmentView, after: TreatmentView): boolean {
   const effects = new Map(after.history.map(({ line, effect }) => [line.id, { line, effect }]))
   return before.history.some(({ line, effect }) => {
@@ -141,6 +144,10 @@ export function strandsNote(before: TreatmentView, after: TreatmentView): boolea
     if (now === undefined || now.line.dueOn !== line.dueOn || now.line.dueTime !== line.dueTime) {
       return false
     }
-    return now.effect.kind !== 'covers' || now.effect.key !== effect.key
+    if (now.effect.kind !== 'covers') return true
+    const onCalendar = before
+      .slots(line.dueOn, line.dueOn)
+      .some(({ due }) => due.dueTime === line.dueTime)
+    return onCalendar && now.effect.key !== effect.key
   })
 }
