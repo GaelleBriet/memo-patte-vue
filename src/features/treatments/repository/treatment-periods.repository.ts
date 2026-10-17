@@ -9,7 +9,6 @@ import { createRemoteSyncTable } from '@/core/sync/repository/remote-sync-table.
 import { syncField } from '@/core/sync/service/syncable-table'
 import type { TreatmentPeriod } from '../schema/treatment-period.schema'
 import {
-  NOT_DELETED,
   SYNC_COLUMN_NAMES,
   SYNC_COLUMNS,
   flag,
@@ -18,6 +17,7 @@ import {
   type StampedTreatmentPeriod,
 } from './treatment-period-row.repository'
 import { createPeriodReads } from './treatment-period-reads.repository'
+import { createPeriodDeletion } from './treatment-period-deletion.repository'
 import { createPeriodStop } from './treatment-period-stop.repository'
 import { createPeriodCorrection } from './treatment-period-correction.repository'
 import { createPeriodCreation } from './treatment-period-creation.repository'
@@ -55,55 +55,7 @@ export function createTreatmentPeriodsRepository(
 
     ...createPeriodStop(db, deviceId),
 
-    markDeletedByTreatmentStatement(treatmentId: string, deletedAt: string): SqlStatement {
-      return {
-        sql: `UPDATE treatment_period SET deleted_at = ?, updated_at = ?, updated_by_device = ?
-              WHERE treatment_id = ? AND ${NOT_DELETED}`,
-        params: [deletedAt, deletedAt, deviceId(), treatmentId],
-      }
-    },
-
-    /** Les périodes supprimées à cet instant, avec leur traitement. */
-    reviveByTreatmentStatement(
-      treatmentId: string,
-      deletedAt: string,
-      updatedAt: string,
-    ): SqlStatement {
-      return {
-        sql: `UPDATE treatment_period SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
-              WHERE treatment_id = ? AND deleted_at = ?`,
-        params: [updatedAt, deviceId(), treatmentId, deletedAt],
-      }
-    },
-
-    markDeletedByAnimalStatement(animalId: string, deletedAt: string): SqlStatement {
-      return {
-        sql: `UPDATE treatment_period SET deleted_at = ?, updated_at = ?, updated_by_device = ?
-              WHERE animal_id = ? AND ${NOT_DELETED}`,
-        params: [deletedAt, deletedAt, deviceId(), animalId],
-      }
-    },
-
-    /** Les lignes supprimées à cet instant, avec leur animal. */
-    reviveByAnimalStatement(animalId: string, deletedAt: string, updatedAt: string): SqlStatement {
-      return {
-        sql: `UPDATE treatment_period SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
-              WHERE animal_id = ? AND deleted_at = ?`,
-        params: [updatedAt, deviceId(), animalId, deletedAt],
-      }
-    },
-
-    eraseAllStatement(): SqlStatement {
-      return { sql: 'DELETE FROM treatment_period' }
-    },
-
-    markAllDeletedStatement(deletedAt: string): SqlStatement {
-      return {
-        sql: `UPDATE treatment_period SET deleted_at = ?, updated_at = ?, updated_by_device = ?
-              WHERE ${NOT_DELETED}`,
-        params: [deletedAt, deletedAt, deviceId()],
-      }
-    },
+    ...createPeriodDeletion(deviceId),
 
     ...createPeriodReads(db),
 
