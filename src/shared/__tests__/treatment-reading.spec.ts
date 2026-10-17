@@ -226,4 +226,17 @@ describe('readTreatment', () => {
     const treatment = { periods: [period({ firstDueOn: '2026-02-30' })], doses: [] }
     expect(readTreatment(treatment, TODAY)).toBeNull()
   })
+
+  it('date chaque réglage de l’écriture de son calendrier, jamais de sa dernière modification (R10, #867)', () => {
+    const written = {
+      ...period({ settingsWrittenAt: '2026-10-02T20:00:00.000Z' }),
+      updatedAt: '2026-10-03T07:00:00.000Z',
+    }
+
+    const reading = readTreatment({ periods: [written], doses: [dose()] }, TODAY)
+
+    expect(reading?.input.settings).toEqual([
+      expect.objectContaining({ id: 'p-1', updatedAt: '2026-10-02T20:00:00.000Z' }),
+    ])
+  })
 })

@@ -89,9 +89,9 @@ describe('clearAllTables', () => {
       },
       {
         sql: `INSERT INTO treatment_period (id, treatment_id, animal_id, starts_on, first_due_on,
-                frequency_value, frequency_unit, created_at, updated_at, grid_origin_on, created_by_device, updated_by_device)
-              VALUES ('t-1', 't-1', 'a-2', '2026-08-01', '2026-08-01', 3, 'month', ?, ?, '2026-08-01', 'appareil-test', 'appareil-test')`,
-        params: [NOW, NOW],
+                frequency_value, frequency_unit, created_at, updated_at, settings_written_at, grid_origin_on, created_by_device, updated_by_device)
+              VALUES ('t-1', 't-1', 'a-2', '2026-08-01', '2026-08-01', 3, 'month', ?, ?, ?, '2026-08-01', 'appareil-test', 'appareil-test')`,
+        params: [NOW, NOW, NOW],
       },
       {
         sql: `INSERT INTO treatment_dose (id, period_id, treatment_id, animal_id, due_on, given_on,

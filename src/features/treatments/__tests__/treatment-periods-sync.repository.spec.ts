@@ -37,6 +37,7 @@ const LOCAL_ROW = {
   reminder_time: null,
   created_at: T_LOCAL,
   updated_at: T_LOCAL,
+  settings_written_at: T_LOCAL,
   deleted_at: null,
   created_by_device: 'appareil-test',
   updated_by_device: 'appareil-test',
@@ -75,10 +76,10 @@ describe('treatmentPeriodsRepository — port de synchronisation', () => {
       `INSERT INTO treatment_period
          (id, treatment_id, animal_id, starts_on, first_due_on, ends_on, frequency_value,
           frequency_unit, times, dose_quantity, dose_unit, reminder_offset_minutes, created_at,
-          updated_at, grid_origin_on, created_by_device, updated_by_device)
+          updated_at, settings_written_at, grid_origin_on, created_by_device, updated_by_device)
        VALUES (?, ?, ?, '2026-01-01', '2026-01-02', '2026-01-31', 1, 'day', '08:00,20:00', 0.5,
-               'tablet', 15, ?, ?, '2026-01-02', 'appareil-test', 'appareil-test')`,
-      [TREATMENT_ID, TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],
+               'tablet', 15, ?, ?, ?, '2026-01-02', 'appareil-test', 'appareil-test')`,
+      [TREATMENT_ID, TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL, T_LOCAL],
     )
   })
 
@@ -130,12 +131,13 @@ describe('treatmentPeriodsRepository — port de synchronisation', () => {
     await expect(localRow(TREATMENT_ID)).resolves.toEqual([LOCAL_ROW])
   })
 
-  it('remplace une période locale par une version distante plus récente, arrêt, suppression et faits du réglage compris', async () => {
+  it('remplace une période locale par une version distante plus récente, arrêt, suppression, faits et date d’écriture du réglage compris', async () => {
     const remote = remotePeriod({
       id: TREATMENT_ID,
       created_at: T_LOCAL,
       first_due_chosen: 1,
       past_doses_stay_unlogged: 1,
+      settings_written_at: T_NEW,
       stopped_on: '2026-01-10',
       frequency_value: 2,
       frequency_unit: 'week',
@@ -164,7 +166,14 @@ describe('treatmentPeriodsRepository — port de synchronisation', () => {
     const [pushed] = server.rows('treatment_period')
     expect(pushed).toMatchObject({ user_id: USER_ID, id: TREATMENT_ID })
     expect(page).toEqual({
-      rows: [{ ...LOCAL_ROW, created_at: PG_LOCAL, updated_at: PG_LOCAL }],
+      rows: [
+        {
+          ...LOCAL_ROW,
+          created_at: PG_LOCAL,
+          updated_at: PG_LOCAL,
+          settings_written_at: PG_LOCAL,
+        },
+      ],
       cursor: pushed?.server_updated_at,
     })
     await expect(repository.pullPage('autre-compte', T_OLD, 500)).resolves.toEqual({

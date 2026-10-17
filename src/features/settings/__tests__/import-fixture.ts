@@ -158,6 +158,7 @@ export const IMPORT_FIXTURE: ExportData = {
       reminderOffsetMinutes: 30,
       createdAt: PANACUR.createdAt,
       updatedAt: PANACUR.updatedAt,
+      settingsWrittenAt: '2026-09-02T08:00:00.000Z',
       ...BY_FIXTURE_DEVICE,
     }),
   ],
@@ -235,10 +236,10 @@ export const IMPORT_FIXTURE: ExportData = {
   ],
 }
 
-export const IMPORT_FILE: ImportFile = { schemaVersion: 6, data: IMPORT_FIXTURE }
+export const IMPORT_FILE: ImportFile = { schemaVersion: 7, data: IMPORT_FIXTURE }
 
 export function importFile(data: ExportData = IMPORT_FIXTURE): ImportFile {
-  return { schemaVersion: 6, data }
+  return { schemaVersion: 7, data }
 }
 
 export function importFixtureJson(data: ExportData = IMPORT_FIXTURE): string {

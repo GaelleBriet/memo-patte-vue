@@ -66,9 +66,9 @@ function insertAnimal(db: InMemoryDb, values: Record<string, string | number | n
 }
 
 describe('migrations', () => {
-  it('contient la v9 et la v11, qui créent le schéma entier, la v10, la v12 et la v13 des traitements', () => {
-    expect(migrations.map(({ toVersion }) => toVersion)).toEqual([9, 10, 11, 12, 13])
-    expect(DATABASE_VERSION).toBe(13)
+  it('contient la v9 et la v11, qui créent le schéma entier, la v10, la v12, la v13 et la v14 des traitements', () => {
+    expect(migrations.map(({ toVersion }) => toVersion)).toEqual([9, 10, 11, 12, 13, 14])
+    expect(DATABASE_VERSION).toBe(14)
   })
 })
 
@@ -307,6 +307,7 @@ describe('schéma sur une installation neuve', () => {
         frequency_unit: 'month',
         created_at: NOW,
         updated_at: NOW,
+        settings_written_at: NOW,
         ...PAR_APPAREIL,
         ...values,
       }
@@ -395,6 +396,7 @@ describe('schéma sur une installation neuve', () => {
         'reminder_time',
         'created_at',
         'updated_at',
+        'settings_written_at',
         'deleted_at',
         'created_by_device',
         'updated_by_device',

@@ -77,7 +77,11 @@ export function periodOf(
     ...BY_FIXTURE_DEVICE,
     ...period,
   } satisfies Partial<ExportTreatmentPeriod>
-  return { ...legacyFactsOf(record.gridOriginOn), ...record }
+  return {
+    ...legacyFactsOf(record.gridOriginOn),
+    settingsWrittenAt: period.createdAt,
+    ...record,
+  }
 }
 
 /** Injection, période et prise portent l'identifiant de leur parent, comme à la création dans l'app. */

@@ -45,6 +45,7 @@ interface PeriodRow {
   reminder_time: string | null
   created_at: string
   updated_at: string
+  settings_written_at: string
   deleted_at: string | null
   created_by_device: string
   updated_by_device: string
@@ -72,6 +73,7 @@ const SYNC_COLUMN_NAMES = [
   'reminder_time',
   'created_at',
   'updated_at',
+  'settings_written_at',
   'deleted_at',
   'created_by_device',
   'updated_by_device',
@@ -100,6 +102,17 @@ const SETTINGS_COLUMNS = [
 
 const CORRECTED_COLUMNS = [
   ...SETTINGS_COLUMNS,
+  'grid_origin_on',
+  'first_due_chosen',
+  'past_doses_stay_unlogged',
+]
+
+const CALENDAR_COLUMNS = [
+  'starts_on',
+  'first_due_on',
+  'frequency_value',
+  'frequency_unit',
+  'times',
   'grid_origin_on',
   'first_due_chosen',
   'past_doses_stay_unlogged',
@@ -136,6 +149,7 @@ function toPeriodRecord(row: PeriodRow): TreatmentPeriodRecord {
     reminderTime: row.reminder_time,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    settingsWrittenAt: row.settings_written_at,
     deletedAt: row.deleted_at,
   }
 }
@@ -258,6 +272,7 @@ export function createTreatmentPeriodsRepository(
           settings.reminderTime,
           period.createdAt,
           period.updatedAt,
+          period.createdAt,
           period.deletedAt,
           deviceId(),
           deviceId(),
@@ -267,7 +282,8 @@ export function createTreatmentPeriodsRepository(
 
     /**
      * Tous les réglages de cette période et son origine, sauf son arrêt. Rien n'est daté si rien ne
-     * change. Lève pour des réglages incohérents.
+     * change ; la date d'écriture des réglages ne suit que le calendrier. Lève pour des réglages
+     * incohérents.
      */
     correctSettingsStatement(
       periodId: string,
@@ -291,13 +307,26 @@ export function createTreatmentPeriodsRepository(
         flag(origin.firstDueChosen),
         flag(origin.pastDosesStayUnlogged),
       ]
+      const isCalendar = (_: unknown, index: number) =>
+        CALENDAR_COLUMNS.includes(CORRECTED_COLUMNS[index]!)
+      const changed = (columns: string[]) =>
+        columns.map((column) => `${column} IS NOT ?`).join(' OR ')
       return {
         sql: `UPDATE treatment_period
               SET ${CORRECTED_COLUMNS.map((column) => `${column} = ?`).join(', ')},
+                  settings_written_at = CASE WHEN ${changed(CORRECTED_COLUMNS.filter(isCalendar))}
+                    THEN ? ELSE settings_written_at END,
                   updated_at = ?, updated_by_device = ?
-              WHERE id = ?
-                AND (${CORRECTED_COLUMNS.map((column) => `${column} IS NOT ?`).join(' OR ')})`,
-        params: [...values, updatedAt, deviceId(), periodId, ...values],
+              WHERE id = ? AND (${changed(CORRECTED_COLUMNS)})`,
+        params: [
+          ...values,
+          ...values.filter(isCalendar),
+          updatedAt,
+          updatedAt,
+          deviceId(),
+          periodId,
+          ...values,
+        ],
       }
     },
 
@@ -439,6 +468,7 @@ export function createTreatmentPeriodsRepository(
         period.reminderTime,
         period.createdAt,
         period.updatedAt,
+        period.settingsWrittenAt,
       ]
       const devices = [period.createdByDevice, period.updatedByDevice]
       return exists
@@ -448,7 +478,7 @@ export function createTreatmentPeriodsRepository(
                       past_doses_stay_unlogged = ?, ends_on = ?, stopped_on = ?,
                       frequency_value = ?, frequency_unit = ?, times = ?, dose_quantity = ?,
                       dose_unit = ?, reminder_offset_minutes = ?, reminder_time = ?,
-                      created_at = ?, updated_at = ?, deleted_at = NULL,
+                      created_at = ?, updated_at = ?, settings_written_at = ?, deleted_at = NULL,
                       created_by_device = ?, updated_by_device = ?
                   WHERE id = ?`,
             params: [...values, ...devices, period.id],

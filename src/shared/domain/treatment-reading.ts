@@ -12,7 +12,8 @@ import {
 } from './dose-calendar'
 import { DAYS_PER_STEP, FREQUENCY_UNITS, MAX_FREQUENCY_VALUE } from './treatment-frequency'
 
-type Period = Setting
+/** `settingsWrittenAt` : dernière écriture de ce qui fait le calendrier (R10, #867). */
+type Period = Omit<Setting, 'updatedAt'> & { settingsWrittenAt?: string }
 type Dose = Omit<Line, 'settingId'> & { periodId: string }
 
 /** Les périodes et les prises d'un traitement telles que la base les rend. */
@@ -106,6 +107,7 @@ function viewInputOf({ periods, doses }: TreatmentRecords, today: string): Treat
       frequency: period.frequency,
       times: period.times,
       createdAt: period.createdAt,
+      updatedAt: period.settingsWrittenAt,
     })),
     lines: doses.map((dose) => ({
       id: dose.id,

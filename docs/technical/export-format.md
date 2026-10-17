@@ -1,4 +1,4 @@
-# Format d'export des données (#80, v3 : #454, v4 : #501, v5 : #754, v6 : #825 et #836)
+# Format d'export des données (#80, v3 : #454, v4 : #501, v5 : #754, v6 : #825 et #836, v7 : #867)
 
 Contrat entre l'export (Paramètres → « Exporter mes données ») et l'import (#84, section
 [Import](#import--importer-un-export-mémopatte)).
@@ -89,7 +89,7 @@ Date du nom de fichier : minute locale de l'export. Encodage UTF-8, sans BOM, in
 
 ```json
 {
-  "schemaVersion": 6,
+  "schemaVersion": 7,
   "exportedAt": "2026-10-01T08:30:00.000Z",
   "appVersion": "0.1.48",
   "carnetSettings": null,
@@ -130,14 +130,17 @@ d'ancrage) seulement, `null` pour une prise.
 une période porte deux faits, `firstDueChosen` (première dose choisie par la personne, pas proposée
 par l'app) et `pastDosesStayUnlogged` (réponse « Elles restent à renseigner » à la question Q38).
 
+**Version 7** (#867, schéma v14, [`modele-de-donnees-v2.md`](modele-de-donnees-v2.md) §4.4) : une
+période porte `settingsWrittenAt`, la dernière écriture de ce qui fait son calendrier (R10).
+
 | Champ           | Type                   | Sens                                                                 |
 | --------------- | ---------------------- | -------------------------------------------------------------------- |
 | `schemaVersion` | entier                 | Version du contrat. Toute rupture (champ retiré, renommé, sens changé) l'incrémente ; un ajout de champ optionnel ne l'incrémente pas |
 | `exportedAt`    | ISO 8601 UTC           | Instant de l'export                                                  |
 | `appVersion`    | texte                  | Version de l'app (`package.json`) qui a produit le fichier           |
 
-L'import relit les versions **3, 4, 5 et 6** (plan du moteur v2 §3.3) : un fichier v3, v4 ou v5 est
-converti au format v6 avant toute autre étape. `referenceOn` devient `gridOriginOn` par la règle de la migration
+L'import relit les versions **3, 4, 5, 6 et 7** (plan du moteur v2 §3.3) : un fichier v3, v4, v5 ou v6
+est converti au format v7 avant toute autre étape. `referenceOn` devient `gridOriginOn` par la règle de la migration
 v12 (`gridOriginsOf`, `src/shared/domain/dose-calendar/legacy-input.ts`) : `null` quand la période suit
 sans arrêt une période de même fréquence et de même `referenceOn`, sinon `referenceOn` s'il est sur la
 grille qui passe par `firstDueOn`, sinon `firstDueOn` ; `nextDueDate` devient `targetOn` pour un report
@@ -145,7 +148,9 @@ et un décalage, `null` pour une prise. Un fichier v3, qui n'a ni appareils ni `
 par l'appareil qui importe (`createdByDevice`, `updatedByDevice`) et part de `referenceOn` = `firstDueOn`.
 Un fichier v3, v4 ou v5 reçoit ensuite les deux faits par la règle de la migration v13
 (`legacyFactsOf`) : `firstDueChosen` vaut `true` quand `gridOriginOn` est posée, sinon `false` ;
-`pastDosesStayUnlogged` vaut `false`.
+`pastDosesStayUnlogged` vaut `false`. Un fichier v3 à v6 reçoit enfin `settingsWrittenAt` par la règle
+de la migration v14 : la date de création de la période (`createdAt`), que le moteur lit comme un
+réglage jamais réécrit.
 Un `schemaVersion` supérieur est refusé (« Cet export vient d'une version plus récente de l'app. »), un
 `schemaVersion` inférieur à 3 aussi (« Cet export vient d'une version plus ancienne de MémoPatte. Il ne
 peut plus être importé. ») : les formats v1 (jusqu'à la 0.1.40) et v2 (jusqu'à la 0.1.48) ne se relisent
@@ -243,6 +248,7 @@ n'en exporte pas, et l'import le refuse jusqu'au lot 3, comme `"medication"`.
 | `gridOriginOn`          | `AAAA-MM-JJ` \| `null`                                        | Origine de la grille (R2) ; `null` : celle du réglage précédent (R3)  |
 | `firstDueChosen`        | booléen                                                       | Première dose choisie par la personne (R9), pas proposée par l'app    |
 | `pastDosesStayUnlogged` | booléen                                                       | « Elles restent à renseigner » répondu à la question Q38 (R10)        |
+| `settingsWrittenAt`     | ISO 8601 UTC                                                  | Dernière écriture du calendrier (R10, #867) ; `createdAt` sinon       |
 | `endsOn`                | `AAAA-MM-JJ` \| `null`                                        | Date de fin, facultative                                              |
 | `stoppedOn`             | `AAAA-MM-JJ` \| `null`                                        | Date d'arrêt, `null` en cours                                         |
 | `frequency`             | `{ "value": 1 à 365, "unit": "day" \| "week" \| "month" }`    |                                                                       |

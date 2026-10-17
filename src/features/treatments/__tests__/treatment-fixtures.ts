@@ -27,7 +27,11 @@ export function period(overrides: Partial<TreatmentPeriodRecord> = {}): Treatmen
     deletedAt: null,
     ...overrides,
   } satisfies Partial<TreatmentPeriodRecord>
-  return { ...legacyFactsOf(record.gridOriginOn), ...record }
+  return {
+    ...legacyFactsOf(record.gridOriginOn),
+    settingsWrittenAt: record.createdAt,
+    ...record,
+  }
 }
 
 /**

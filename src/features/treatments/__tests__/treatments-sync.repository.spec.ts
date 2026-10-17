@@ -30,9 +30,10 @@ describe('treatmentsRepository — port de synchronisation', () => {
     await db.run(
       `INSERT INTO treatment_period
          (id, treatment_id, animal_id, starts_on, first_due_on, frequency_value, frequency_unit,
-          created_at, updated_at, grid_origin_on, created_by_device, updated_by_device)
-       VALUES (?, ?, ?, '2026-01-01', '2026-01-01', 1, 'month', ?, ?, '2026-01-01', 'appareil-test', 'appareil-test')`,
-      [TREATMENT_ID, TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],
+          created_at, updated_at, settings_written_at, grid_origin_on, created_by_device,
+        updated_by_device)
+       VALUES (?, ?, ?, '2026-01-01', '2026-01-01', 1, 'month', ?, ?, ?, '2026-01-01', 'appareil-test', 'appareil-test')`,
+      [TREATMENT_ID, TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL, T_LOCAL],
     )
     await db.run(
       `INSERT INTO treatment_dose

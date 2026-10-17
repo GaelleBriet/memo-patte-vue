@@ -215,6 +215,7 @@ export function createDataExportService({
         reminderTime: period.reminderTime,
         createdAt: period.createdAt,
         updatedAt: period.updatedAt,
+        settingsWrittenAt: period.settingsWrittenAt,
         createdByDevice: period.createdByDevice,
         updatedByDevice: period.updatedByDevice,
       })),

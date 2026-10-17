@@ -133,6 +133,7 @@ export function draftPeriod(settings: TreatmentPeriodSettings, at: string): Trea
     stoppedOn: null,
     createdAt: at,
     updatedAt: at,
+    settingsWrittenAt: at,
     deletedAt: null,
   }
 }

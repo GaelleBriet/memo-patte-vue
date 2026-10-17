@@ -101,6 +101,7 @@ const HISTORY: TreatmentWithHistory = {
       reminderTime: null,
       createdAt: AT,
       updatedAt: AT,
+      settingsWrittenAt: AT,
       deletedAt: null,
     },
   ],

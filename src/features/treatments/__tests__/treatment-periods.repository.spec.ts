@@ -205,6 +205,7 @@ describe('treatmentPeriodsRepository', () => {
       ...period({ id: REPRISE, createdAt: EARLIER, updatedAt: EARLIER }),
       ...REGLAGES,
       ...ORIGINE,
+      settingsWrittenAt: EARLIER,
     }
 
     it('insère une période avec tous ses réglages et la relit à l’identique', async () => {
@@ -230,6 +231,7 @@ describe('treatmentPeriodsRepository', () => {
         ...period({ id: REPRISE, stoppedOn: '2026-02-20', updatedAt: NOW }),
         ...REGLAGES,
         ...ORIGINE,
+        settingsWrittenAt: NOW,
       })
       expect(first).toMatchObject({
         id: MILBEMAX,
@@ -253,7 +255,7 @@ describe('treatmentPeriodsRepository', () => {
       await db.runMany([periods.correctSettingsStatement(REPRISE, sans, NOW, ORIGINE)])
 
       const [, current] = await periods.listByTreatment(MILBEMAX)
-      expect(current).toEqual({ ...COMPLETE, ...sans, updatedAt: NOW })
+      expect(current).toEqual({ ...COMPLETE, ...sans, updatedAt: NOW, settingsWrittenAt: NOW })
     })
 
     it('refuse d’insérer ou de corriger des réglages incohérents, sans rien écrire', async () => {
@@ -287,7 +289,92 @@ describe('treatmentPeriodsRepository', () => {
       ])
 
       const [, current] = await periods.listByTreatment(MILBEMAX)
-      expect(current).toEqual({ ...COMPLETE, ...fact, updatedAt: NOW })
+      expect(current).toEqual({ ...COMPLETE, ...fact, updatedAt: NOW, settingsWrittenAt: NOW })
+    })
+
+    describe('date d’écriture des réglages (R10, #867)', () => {
+      async function writtenAt(): Promise<{ updated_at: string; settings_written_at: string }> {
+        const [found] = await db.query<{ updated_at: string; settings_written_at: string }>(
+          'SELECT updated_at, settings_written_at FROM treatment_period WHERE id = ?',
+          [REPRISE],
+        )
+        return found!
+      }
+
+      beforeEach(async () => {
+        await db.runMany([periods.insertStatement(COMPLETE)])
+      })
+
+      it('vaut la création à l’écriture d’une période', async () => {
+        await expect(writtenAt()).resolves.toEqual({
+          updated_at: EARLIER,
+          settings_written_at: EARLIER,
+        })
+      })
+
+      it.each<[string, Partial<TreatmentPeriodSettings>, Partial<PeriodOrigin>]>([
+        ['le début', { startsOn: '2026-02-12', firstDueOn: '2026-02-12' }, {}],
+        ['la première échéance', { firstDueOn: '2026-02-13' }, {}],
+        ['la fréquence', { frequency: { value: 2, unit: 'day' } }, {}],
+        ['les heures', { times: ['06:00'] }, {}],
+        ['l’origine de la grille', {}, { gridOriginOn: null }],
+        ['la date choisie', {}, { firstDueChosen: true }],
+        ['la réponse « Elles restent à renseigner »', {}, { pastDosesStayUnlogged: false }],
+      ])('avance quand %s change', async (_, settings, origin) => {
+        await db.runMany([
+          periods.correctSettingsStatement(REPRISE, { ...REGLAGES, ...settings }, NOW, {
+            ...ORIGINE,
+            ...origin,
+          }),
+        ])
+
+        await expect(writtenAt()).resolves.toEqual({ updated_at: NOW, settings_written_at: NOW })
+      })
+
+      it.each<[string, Partial<TreatmentPeriodSettings>]>([
+        ['la date de fin', { endsOn: '2026-03-20' }],
+        ['la posologie', { doseQuantity: 1, doseUnit: 'capsule' }],
+        ['le moment du rappel', { reminderOffsetMinutes: 60 }],
+        ['l’heure du rappel', { reminderTime: '07:00' }],
+      ])('reste quand seule %s change', async (_, settings) => {
+        await db.runMany([
+          periods.correctSettingsStatement(REPRISE, { ...REGLAGES, ...settings }, NOW, ORIGINE),
+        ])
+
+        await expect(writtenAt()).resolves.toEqual({
+          updated_at: NOW,
+          settings_written_at: EARLIER,
+        })
+      })
+
+      it('reste à l’arrêt et à son « Annuler », par chaque chemin', async () => {
+        vi.useFakeTimers({ now: new Date(NOW) })
+        await periods.stop(REPRISE, '2026-03-01')
+        await periods.undoStop(REPRISE)
+        await db.runMany([
+          periods.stopPeriodStatement(REPRISE, '2026-03-01', NOW),
+          periods.undoStopPeriodStatement(REPRISE, '2026-03-01', NOW),
+          periods.stopStatement(REPRISE, '2026-03-01', NOW),
+          periods.undoStopStatement(REPRISE, NOW),
+        ])
+
+        await expect(writtenAt()).resolves.toEqual({
+          updated_at: NOW,
+          settings_written_at: EARLIER,
+        })
+      })
+
+      it('reste à la suppression d’un traitement et à son « Annuler »', async () => {
+        await db.runMany([
+          periods.markDeletedByTreatmentStatement(MILBEMAX, NOW),
+          periods.reviveByTreatmentStatement(MILBEMAX, NOW, NOW),
+        ])
+
+        await expect(writtenAt()).resolves.toEqual({
+          updated_at: NOW,
+          settings_written_at: EARLIER,
+        })
+      })
     })
   })
 
@@ -393,6 +480,7 @@ describe('treatmentPeriodsRepository', () => {
       reminderTime: null,
       createdAt: EARLIER,
       updatedAt: NOW,
+      settingsWrittenAt: '2026-02-15T09:00:00.000Z',
       createdByDevice: 'appareil-du-fichier',
       updatedByDevice: 'appareil-du-fichier',
     }
@@ -422,6 +510,7 @@ describe('treatmentPeriodsRepository', () => {
         doseUnit: null,
         reminderOffsetMinutes: null,
         reminderTime: null,
+        settingsWrittenAt: T0,
       })
     })
 

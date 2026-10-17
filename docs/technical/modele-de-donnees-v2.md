@@ -219,6 +219,24 @@ date choisie) ; `past_doses_stay_unlogged = 0`. Miroir Supabase :
 `supabase/migrations/20261014090000_sync_mirror_tables_v13.sql`, mêmes colonnes et mêmes valeurs ;
 export JSON v6 (`export-format.md`).
 
+### 4.4 Évolution v14 (date d'écriture du réglage, #867)
+
+Décision de Gaelle du 2026-10-16 (#867) : entre le report d'un téléphone et la réécriture du réglage
+par l'autre, la plus récente des deux intentions l'emporte ; le report par sa date de modification,
+la réécriture par la date d'écriture du réglage. `treatment_period` gagne `settings_written_at`
+(`TEXT NOT NULL`, instant ISO 8601), qui avance seulement quand change ce qui fait le calendrier :
+début, première échéance, fréquence, heures, origine de la grille et les deux faits de la v13. L'arrêt,
+son « Annuler », la suppression, la date de fin, la posologie et le rappel font bouger `updated_at`,
+jamais `settings_written_at` (posologie exclue et valeur des données d'avant = date de création : lectures de l'implémenteur de la v14, à confirmer par Gaelle, spec R10) ; écartée : `updated_at`, qu'un arrêt annulé rendrait plus récent qu'un
+report (Milo arrêté puis « Annuler » le 8 perdrait sa dose reportée au 10). Le moteur la lit comme
+`Setting.updatedAt` (`viewInputOf`, `src/shared/domain/treatment-reading.ts`).
+
+La migration (`src/core/db/migration-v14.ts`) recrée `treatment_period` et `treatment_dose` comme la
+v13, sans `DELETE` ni `UPDATE` de premier niveau. Réglages existants : `settings_written_at` vaut
+`created_at`, ce que le moteur lit comme « jamais réécrit » : la lecture d'avant reste. Miroir
+Supabase : `supabase/migrations/20261017100000_sync_mirror_treatment_period_settings_written_at.sql`,
+même colonne et même valeur ; export JSON v7 (`export-format.md`).
+
 ## 5. Décisions
 
 - 2026-09-29 — **M1 : une table `treatment_period` sous le traitement.** Le traitement garde l'animal,
