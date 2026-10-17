@@ -167,3 +167,79 @@ describe.each(RYTHMES)(
     )
   },
 )
+
+describe('#893 : une prise d’une journée retirée par une réécriture ne couvre pas l’arrivée d’un report plus récent (décision du 17 octobre 2026)', () => {
+  // Graine 8810000692 : Milo, toutes les 6 semaines à 8 h et 20 h depuis le 16 mars ; la dose du 27
+  // avril avancée au 23 mars (suite décalée au 17 mars), les deux doses du 23 mars données d'avance
+  // (8 h le 13 mars, 20 h le 17 mars) ; le 24 mars, réglage aux mêmes heures, première dose le 28 avril.
+  // Le téléphone A avance la dose du 28 avril au 23 avril ; le téléphone B choisit « Prochaine dose »
+  // le 9 juin. A est le plus récent.
+  const SIX_WEEKS = { value: 6, unit: 'week' } as const
+  const H = ['08:00', '20:00']
+  const s1 = S('s1', 0, {
+    startsOn: '2026-03-16',
+    firstDueOn: '2026-03-16',
+    gridOriginOn: '2026-03-16',
+    firstDueChosen: true,
+    frequency: SIX_WEEKS,
+    times: H,
+  })
+  const s2 = S('s2', 8, {
+    startsOn: '2026-03-24',
+    firstDueOn: '2026-04-28',
+    gridOriginOn: null,
+    frequency: SIX_WEEKS,
+    times: H,
+  })
+  const parB = {
+    ...s2,
+    firstDueOn: '2026-06-09',
+    gridOriginOn: '2026-06-09',
+    firstDueChosen: true,
+    updatedAt: '2026-06-01T00:00:01.000Z',
+  }
+  const base = [
+    L('l1', 's1', 'missed', '2026-03-16', '08:00', 1),
+    L('l2', 's1', 'postponed', '2026-04-27', '08:00', 2, { targetOn: '2026-03-23' }),
+    L('l3', 's1', 'shift', '2026-04-27', '08:00', 7, { targetOn: '2026-03-17' }),
+    L('l4', 's1', 'given', '2026-03-23', '08:00', 4, { givenOn: '2026-03-13' }),
+    L('l5', 's1', 'given', '2026-03-16', '20:00', 5, { givenOn: '2026-03-12' }),
+    L('l6', 's1', 'given', '2026-03-23', '20:00', 6, { givenOn: '2026-03-17' }),
+  ]
+  const avance: Line = {
+    ...L('A2', 's2', 'postponed', '2026-04-28', '08:00', 0, { targetOn: '2026-04-23' }),
+    updatedAt: '2026-06-01T00:00:02.000Z',
+  }
+  const carnet = (lines: Line[]): TreatmentViewInput => ({
+    today: '2026-03-24',
+    settings: [s1, parB],
+    lines: [...base, ...lines],
+  })
+
+  it('après la synchro : la prise du 13 mars garde le 23 mars à 8 h, le 23 avril à 8 h reste à donner', () => {
+    const merged = carnet([avance])
+    expect(effectOf(merged, 'l4')).toEqual({ kind: 'covers', key: '2026-03-23 08:00' })
+    expect(effectOf(merged, 'l6')).toEqual({ kind: 'covers', key: '2026-03-23 20:00' })
+    expect(effectOf(merged, 'l2')).toEqual({ kind: 'idle', reason: 'nothing-to-move' })
+    expect(effectOf(merged, 'A2')).toMatchObject({ kind: 'moves', arrival: '2026-04-23' })
+    expect(readings(merged)).toEqual(
+      both({
+        phase: 'upcoming',
+        moment: ['2026-04-23 08:00'],
+        aRenseigner: [],
+        ensuite: ['2026-04-23 08:00', '2026-06-09 08:00', '2026-06-09 20:00'],
+      }),
+    )
+  })
+
+  it('sur le téléphone B seul : les deux prises du 23 mars gardent leur échéance au lieu d’être sans effet', () => {
+    const alone = carnet([])
+    expect(effectOf(alone, 'l4')).toEqual({ kind: 'covers', key: '2026-03-23 08:00' })
+    expect(effectOf(alone, 'l6')).toEqual({ kind: 'covers', key: '2026-03-23 20:00' })
+    expect(readings(alone).moteur.ensuite).toEqual([
+      '2026-06-09 08:00',
+      '2026-06-09 20:00',
+      '2026-07-21 08:00',
+    ])
+  })
+})

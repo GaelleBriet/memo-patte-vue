@@ -71,6 +71,8 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   const fallen = new Set<Day>()
   const moved = new Map<string, Line>()
   const arrived = new Map<Day, Hour[]>()
+  // Principe du 17 octobre 2026 : arrivées des reports qu'une réécriture de réglage rend sans effet.
+  const rewrittenArrivals = new Set<Day>()
   const waiting = [...lines.reports]
   while (waiting.length > 0) {
     const ready = waiting.findIndex(
@@ -83,6 +85,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     const from = origin?.setting ?? settingOf(report.settingId)
     if (rewrite === 'rewrite') {
       effects.set(report.id, { kind: 'idle', reason: 'nothing-to-move' })
+      rewrittenArrivals.add(targetOn!)
       continue
     }
     // #867 : plus récent que la réécriture de son réglage, le report n'emporte que l'heure qu'il porte.
@@ -109,6 +112,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     const outside = origin === undefined && rewrite === null
     if (carried || (chosenOn !== undefined && outside && !carries)) {
       effects.set(report.id, { kind: 'idle', reason: 'nothing-to-move' })
+      rewrittenArrivals.add(targetOn!)
       continue
     }
     const covered =
@@ -216,7 +220,8 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
       slots.push({ due, key: keyOf(day, hour), coveredBy: note, exact })
     }
   }
-  const rewrittenAway = (note: Line) => rewriteVerdict(note, settingOf(note.settingId)) === 'line'
+  const rewrittenAway = (note: Line) =>
+    rewrittenArrivals.has(note.dueOn) || rewriteVerdict(note, settingOf(note.settingId)) === 'line'
   keepRewrittenAway(lines.notes, matched, held, rewrittenAway)
   coverOrphans(lines.notes, (note) => matched.has(note) || held.has(note), slots, settingOf)
   const unread = [...journey.skipped].filter((day) => !days.has(day) && !left.has(day))

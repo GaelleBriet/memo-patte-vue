@@ -211,14 +211,20 @@ export function coverages({
   }
 }
 
-/** Principe du 17 octobre 2026 : une prise donnée sous un réglage réécrit sans sa journée la garde. */
+/**
+ * Principe du 17 octobre 2026 : une prise donnée garde son échéance quand une réécriture de réglage a
+ * ôté sa journée, ou l'arrivée du report qu'elle a rendu sans effet.
+ */
 export function keptByRewrite(
   note: ReferenceLine,
   settingOf: (id: string) => ReferenceSetting,
+  rewrittenArrivals: ReadonlySet<string>,
 ): boolean {
+  if (note.status !== 'given') return false
+  if (rewrittenArrivals.has(note.dueOn)) return true
   const written = settingOf(note.settingId)
   const rewrittenAt = written.updatedAt
-  if (note.status !== 'given' || rewrittenAt === undefined) return false
+  if (rewrittenAt === undefined) return false
   if (rewrittenAt <= written.createdAt) return false
   return note.dueOn >= written.startsOn && note.dueOn < written.firstDueOn
 }

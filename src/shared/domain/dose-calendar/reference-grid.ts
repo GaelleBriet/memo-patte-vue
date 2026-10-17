@@ -59,3 +59,24 @@ export const turned = (turn: ReferenceLine, floor: string): Grid => ({
   floor: later(floor, later(turn.dueOn, turn.targetOn!)),
   since: later(turn.dueOn, turn.targetOn!),
 })
+
+/** R3, R9 : la grille en vigueur à la première échéance d'un réglage, et les décalages du rythme qui la portent. */
+export function inForceAt(
+  grid: Grid,
+  setting: ReferenceSetting,
+  shifts: readonly ReferenceLine[],
+  rhythm: ReadonlySet<string>,
+): { inForce: Grid; held: Set<ReferenceLine> } {
+  const held = new Set<ReferenceLine>()
+  const inForce = shifts
+    .filter(
+      ({ dueOn, settingId }) =>
+        dueOn >= setting.startsOn && dueOn < setting.firstDueOn && rhythm.has(settingId),
+    )
+    .reduce((on, shift) => {
+      if (!isDueDay(on, setting, shift.dueOn)) return on
+      held.add(shift)
+      return turned(shift, '')
+    }, grid)
+  return { inForce, held }
+}

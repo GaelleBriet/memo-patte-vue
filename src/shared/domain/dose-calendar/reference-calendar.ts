@@ -1,6 +1,7 @@
 import {
   gridDays,
   hoursOf,
+  inForceAt,
   isDueDay,
   isOnGrid,
   keyOf,
@@ -104,17 +105,7 @@ export function calendarOf(
     const within = ({ dueOn }: ReferenceLine) =>
       dueOn >= setting.startsOn && (end === null || dueOn < end)
     // R3, R9 : une origine choisie se juge sur la grille en vigueur à la première échéance.
-    const held = new Set<ReferenceLine>()
-    const inForce = shifts
-      .filter(
-        ({ dueOn, settingId }) =>
-          dueOn >= setting.startsOn && dueOn < setting.firstDueOn && rhythm.has(settingId),
-      )
-      .reduce((on, shift) => {
-        if (!isDueDay(on, setting, shift.dueOn)) return on
-        held.add(shift)
-        return turned(shift, '')
-      }, grid)
+    const { inForce, held } = inForceAt(grid, setting, shifts, rhythm)
     const continued =
       previous !== undefined &&
       sameFrequency(previous, setting) &&
@@ -207,10 +198,11 @@ export function calendarOf(
   const coverage = coverages({ notes, borrowed, reports, translated, settingOf })
   const { matched, coveredOn, coveredAside, settle } = coverage
 
-  // R7 : un report emporte son heure et les suivantes encore sans prise ; les reports qui arrivent sur
-  // sa journée passent d'abord.
+  // R7 : un report emporte son heure et les suivantes sans prise ; ceux qui arrivent sur sa journée d'abord.
   const fallen = new Set<string>()
   const arrivedHours = new Map<string, (string | null)[]>()
+  // Principe du 17 octobre 2026 : arrivées des reports qu'une réécriture de réglage rend sans effet.
+  const rewrittenArrivals = new Set<string>()
   const waiting = [...reports]
   while (waiting.length > 0) {
     const ready = waiting.findIndex(
@@ -219,7 +211,10 @@ export function calendarOf(
     const [report] = waiting.splice(Math.max(0, ready), 1)
     const { dueOn, targetOn } = report!
     const rewritten = days.has(dueOn) ? undefined : departureAfterRewrite(report!, settingOf)
-    if (rewritten === 'lost') continue
+    if (rewritten === 'lost') {
+      rewrittenArrivals.add(targetOn!)
+      continue
+    }
     const origin = rewritten ? undefined : (days.get(dueOn) ?? left.get(dueOn))
     const from = origin?.setting ?? settingOf(report!.settingId)
     const hours = origin?.hours ?? rewritten?.hours ?? hoursOf(from)
@@ -239,8 +234,11 @@ export function calendarOf(
     const chosenOn = chosenRestarts.get(at)
     const carries = targetOn === restartOn || targetOn === chosenOn || openings.has(targetOn!)
     const before = chosenRestarts.get(report!.settingId) !== chosenOn
-    if (chosenOn !== undefined && dueOn === chosenOn && before) continue
-    if (origin === undefined && !rewritten && chosenOn !== undefined && !carries) continue
+    const outside = (dueOn === chosenOn && before) || (!origin && !rewritten && !carries)
+    if (chosenOn !== undefined && outside) {
+      rewrittenArrivals.add(targetOn!)
+      continue
+    }
     const written = settingOf(report!.settingId)
     const arrived = arrivedHours.get(dueOn) ?? []
     const itsDay = {
@@ -286,10 +284,12 @@ export function calendarOf(
       ...journey.hours.map((hour) => ({ key: keyOf(day, hour), day, covered: covered.has(hour) })),
     )
   }
-  notes.filter((note) => keptByRewrite(note, settingOf)).forEach((note) => matched.add(note))
+  notes
+    .filter((note) => keptByRewrite(note, settingOf, rewrittenArrivals))
+    .forEach((note) => matched.add(note))
   coverOrphans(notes, matched, dues, settingOf)
-  // TR-9 : la date choisie remplace la dose du moment : celle du premier jour du réglage s'il est une
-  // échéance, sinon la dernière journée arrivée avant lui.
+  // TR-9 : la date choisie remplace la dose du moment : celle du premier jour s'il est une échéance,
+  // sinon la dernière journée arrivée avant lui.
   const lateDays = lateDaysOf(replaced, fallen)
   replaced.filter(({ onDueDay }) => onDueDay).forEach(({ to }) => fallen.add(to))
   const pending = dues
