@@ -5,6 +5,20 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.83](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.82...memo-patte-v0.1.83) (2026-10-17)
+
+
+### ✨ Fonctionnalités
+
+* **db:** v14, date d'écriture du réglage écrite seulement quand son calendrier change ([#867](https://github.com/GaelleBriet/memo-patte-vue/issues/867)) ([20176e0](https://github.com/GaelleBriet/memo-patte-vue/commit/20176e024d45cc35f58f3a56fd05b06c4cac8eac))
+* **db:** v14, date d'écriture du réglage, le plus récent du report et de la réécriture gagne ([#867](https://github.com/GaelleBriet/memo-patte-vue/issues/867)) ([ce2fcd7](https://github.com/GaelleBriet/memo-patte-vue/commit/ce2fcd7464231ae6b7dbacd2e8cfca6aaea075a4))
+
+
+### 🐛 Corrections
+
+* **dose-calendar:** report contre « pas à donner » sur deux téléphones : le plus récent l'emporte ([b8b9b47](https://github.com/GaelleBriet/memo-patte-vue/commit/b8b9b47c22e89a3ce40d40aa19f33642e16cf44a))
+* **dose-calendar:** report contre « pas à donner » sur deux téléphones : le plus récent l'emporte ([88751e0](https://github.com/GaelleBriet/memo-patte-vue/commit/88751e0b87a741f8a3d93bb8801a89ed0884085e))
+
 ## [0.1.82](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.81...memo-patte-v0.1.82) (2026-10-16)
 
 
