@@ -48,6 +48,14 @@ export function createTreatmentPeriodsRepository(
 }
 
 export type TreatmentPeriodsRepository = ReturnType<typeof createTreatmentPeriodsRepository>
+export type TreatmentPeriodStopper = Pick<
+  TreatmentPeriodsRepository,
+  'stop' | 'undoStop' | 'stopStatement' | 'notStoppedGuardStatement' | 'undoStopStatement'
+>
+export type TreatmentPeriodStopStatements = Pick<
+  TreatmentPeriodsRepository,
+  'stopPeriodStatement' | 'undoStopPeriodStatement'
+>
 
 let repository: Promise<TreatmentPeriodsRepository> | null = null
 

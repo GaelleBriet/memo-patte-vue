@@ -1,7 +1,7 @@
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import {
   getTreatmentPeriodsRepository,
-  type TreatmentPeriodsRepository,
+  type TreatmentPeriodStopStatements,
 } from '@/features/treatments/repository/treatment-periods.repository'
 import {
   getTreatmentsRepository,
@@ -18,9 +18,7 @@ type Provider<T> = () => T | Promise<T>
 export type AnimalFollowDependencies = {
   animals: Provider<Pick<AnimalsRepository, 'getDeparture' | 'setDeparture'>>
   treatments: Provider<Pick<TreatmentsRepository, 'listWithHistoryByAnimal'>>
-  periods: Provider<
-    Pick<TreatmentPeriodsRepository, 'stopPeriodStatement' | 'undoStopPeriodStatement'>
-  >
+  periods: Provider<TreatmentPeriodStopStatements>
   reminders: Pick<AnimalRemindersService, 'withdraw' | 'reschedule'>
   today: () => string
 }

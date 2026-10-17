@@ -18,7 +18,7 @@ import {
 import type { DoseWrite } from '../schema/treatment-dose.schema'
 import {
   getTreatmentPeriodsRepository,
-  type TreatmentPeriodsRepository,
+  type TreatmentPeriodStopper,
 } from '../repository/treatment-periods.repository'
 import {
   getTreatmentsRepository,
@@ -34,12 +34,7 @@ type Provider<T> = () => T | Promise<T>
 
 export type TreatmentStopDependencies = {
   treatments: Provider<TreatmentWithHistoryReader>
-  periods: Provider<
-    Pick<
-      TreatmentPeriodsRepository,
-      'stop' | 'undoStop' | 'stopStatement' | 'notStoppedGuardStatement' | 'undoStopStatement'
-    >
-  >
+  periods: Provider<TreatmentPeriodStopper>
   doses: Provider<TreatmentDoseWriter>
   reminders: Pick<TreatmentRemindersService, 'reschedule'>
   today: () => string
