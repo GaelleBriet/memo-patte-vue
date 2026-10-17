@@ -22,7 +22,8 @@ export function showReminderFeedback(feedback: ReminderFeedback | null): void {
     showToast(feedback.message, { tone: feedback.tone })
     return
   }
-  confirmUndoable(i18n.global.t, feedback.message, feedback)
+  const { kind: _kind, message, ...gesture } = feedback
+  confirmUndoable(i18n.global.t, message, gesture)
 }
 
 /** Branché sur la base locale et l'accueil ; Pinia doit être actif à la première action. */
