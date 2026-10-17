@@ -17,15 +17,17 @@ import {
   type UnfollowUndo,
 } from '../service/animal-follow.service'
 import {
-  animalPhotoService,
+  createAnimalPhotoService,
+  type AnimalsRepositoryFactory,
   type PhotoChange,
   type PhotoRemoval,
 } from '../service/animal-photo.service'
 import type { AnimalsRepository } from '../repository/animals.repository'
+import { deletePhoto, savePhoto } from '@/core/photos/photo-storage'
 import { track } from '@/core/analytics'
 import { recordUsageSignal } from '@/core/usage/usage-signals'
 
-export type AnimalsRepositoryProvider = () => AnimalsRepository | Promise<AnimalsRepository>
+export type AnimalsRepositoryProvider = AnimalsRepositoryFactory
 export type AnimalDeletionServiceProvider = () => AnimalDeletionService
 export type AnimalCreationServiceProvider = () => Pick<AnimalCreationService, 'create'>
 export type AnimalFollowServiceProvider = () => AnimalFollowService
@@ -56,6 +58,15 @@ export function provideAnimalFollowService(next: AnimalFollowServiceProvider | n
   followProvider = next ?? (() => animalFollowService)
 }
 
+function requireRepository(): Promise<AnimalsRepository> {
+  if (!provider) {
+    throw new Error('Repository des animaux absent : appelle provideAnimalsRepository().')
+  }
+  return Promise.resolve(provider())
+}
+
+const animalPhotoService = createAnimalPhotoService({ savePhoto, deletePhoto }, requireRepository)
+
 export const useAnimalsStore = defineStore('animals', () => {
   const animals = ref<Animal[]>([])
   /** `null` signifie « tous les animaux ». */
@@ -77,13 +88,6 @@ export const useAnimalsStore = defineStore('animals', () => {
   const selectedAnimal = computed(
     () => animals.value.find((animal) => animal.id === selectedAnimalId.value) ?? null,
   )
-
-  function requireRepository(): Promise<AnimalsRepository> {
-    if (!provider) {
-      throw new Error('Repository des animaux absent : appelle provideAnimalsRepository().')
-    }
-    return Promise.resolve(provider())
-  }
 
   // Relire la liste est le seul moment où l'état affiché redevient sain.
   async function refresh(repository: AnimalsRepository): Promise<void> {
@@ -145,24 +149,22 @@ export const useAnimalsStore = defineStore('animals', () => {
 
     /** Sans `photo`, la photo en place est gardée quel que soit `input.photoPath`. */
     async update(id: string, input: AnimalInput, photo: PhotoChange = KEEP_PHOTO): Promise<Animal> {
-      const animal = await write((repository) =>
-        animalPhotoService.update(repository, id, input, photo),
-      )
+      const animal = await write(() => animalPhotoService.update(id, input, photo))
       if (photo.kind === 'replace') recordUsageSignal('photo')
       return animal
     },
 
     /** Rend ce qu'il faut passer à `undoRemovePhoto` ou `forgetRemovedPhoto` ; `null` sans photo. */
     removePhoto(id: string, input: AnimalInput): Promise<PhotoRemoval | null> {
-      return write((repository) => animalPhotoService.detach(repository, id, input))
+      return write(() => animalPhotoService.detach(id, input))
     },
 
     async undoRemovePhoto(input: AnimalInput, removal: PhotoRemoval): Promise<void> {
-      await write((repository) => animalPhotoService.reattach(repository, input, removal))
+      await write(() => animalPhotoService.reattach(input, removal))
     },
 
     async forgetRemovedPhoto(removal: PhotoRemoval): Promise<void> {
-      await animalPhotoService.forgetRemoved(await requireRepository(), removal)
+      await animalPhotoService.forgetRemoved(removal)
     },
 
     /** Rend ce qu'il faut passer à `undoRemove` ou `forgetPhoto` ; `null` si rien n'a été supprimé. */

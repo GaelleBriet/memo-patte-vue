@@ -19,10 +19,12 @@ let storage: {
 }
 let service: ReturnType<typeof createAnimalPhotoService>
 let savedNames: string[]
+let creator: { create: AnimalsRepository['create'] }
 
 beforeEach(async () => {
   db = await createInMemoryDb()
   repository = createAnimalsRepository(db)
+  creator = repository
   savedNames = []
   storage = {
     savePhoto: vi.fn<PhotoStorage['savePhoto']>(async () => {
@@ -32,7 +34,7 @@ beforeEach(async () => {
     }),
     deletePhoto: vi.fn<PhotoStorage['deletePhoto']>(async () => {}),
   }
-  service = createAnimalPhotoService(storage)
+  service = createAnimalPhotoService(storage, () => repository)
 })
 
 afterEach(() => {
@@ -40,12 +42,12 @@ afterEach(() => {
 })
 
 async function miloAvecPhoto(): Promise<Animal> {
-  return service.create(repository, MILO, NOUVELLE)
+  return service.create(creator, MILO, NOUVELLE)
 }
 
 describe('création', () => {
   it('sans photo, n’écrit aucun fichier et laisse photoPath à null', async () => {
-    const animal = await service.create(repository, MILO, { kind: 'keep' })
+    const animal = await service.create(creator, MILO, { kind: 'keep' })
 
     expect(animal.photoPath).toBeNull()
     expect(storage.savePhoto).not.toHaveBeenCalled()
@@ -60,9 +62,9 @@ describe('création', () => {
   })
 
   it('supprime la photo écrite si l’animal n’a pas pu être créé', async () => {
-    await expect(
-      service.create(repository, { name: '', species: 'dog' }, NOUVELLE),
-    ).rejects.toThrow(ZodError)
+    await expect(service.create(creator, { name: '', species: 'dog' }, NOUVELLE)).rejects.toThrow(
+      ZodError,
+    )
 
     expect(storage.deletePhoto).toHaveBeenCalledExactlyOnceWith('photo-1.jpg')
   })
@@ -73,7 +75,6 @@ describe('édition', () => {
     const milo = await miloAvecPhoto()
 
     const animal = await service.update(
-      repository,
       milo.id,
       { ...MILO, name: 'Milou', photoPath: null },
       { kind: 'keep' },
@@ -87,7 +88,7 @@ describe('édition', () => {
   it('remplacer la photo écrit la nouvelle et supprime l’ancienne', async () => {
     const milo = await miloAvecPhoto()
 
-    const animal = await service.update(repository, milo.id, MILO, NOUVELLE)
+    const animal = await service.update(milo.id, MILO, NOUVELLE)
 
     expect(animal.photoPath).toBe('photo-2.jpg')
     expect(storage.deletePhoto).toHaveBeenCalledExactlyOnceWith('photo-1.jpg')
@@ -96,16 +97,16 @@ describe('édition', () => {
   it('retirer la photo remet photoPath à null et supprime le fichier', async () => {
     const milo = await miloAvecPhoto()
 
-    const animal = await service.update(repository, milo.id, MILO, { kind: 'remove' })
+    const animal = await service.update(milo.id, MILO, { kind: 'remove' })
 
     expect(animal.photoPath).toBeNull()
     expect(storage.deletePhoto).toHaveBeenCalledExactlyOnceWith('photo-1.jpg')
   })
 
   it('retirer la photo d’un animal qui n’en a pas ne supprime rien', async () => {
-    const milo = await service.create(repository, MILO, { kind: 'keep' })
+    const milo = await service.create(creator, MILO, { kind: 'keep' })
 
-    await service.update(repository, milo.id, MILO, { kind: 'remove' })
+    await service.update(milo.id, MILO, { kind: 'remove' })
 
     expect(storage.deletePhoto).not.toHaveBeenCalled()
   })
@@ -113,9 +114,9 @@ describe('édition', () => {
   it('un échec d’enregistrement supprime la nouvelle photo et garde l’ancienne', async () => {
     const milo = await miloAvecPhoto()
 
-    await expect(
-      service.update(repository, milo.id, { name: '', species: 'dog' }, NOUVELLE),
-    ).rejects.toThrow(ZodError)
+    await expect(service.update(milo.id, { name: '', species: 'dog' }, NOUVELLE)).rejects.toThrow(
+      ZodError,
+    )
 
     expect(storage.deletePhoto).toHaveBeenCalledExactlyOnceWith('photo-2.jpg')
     expect((await repository.getById(milo.id))?.photoPath).toBe('photo-1.jpg')
@@ -125,14 +126,14 @@ describe('édition', () => {
     const milo = await miloAvecPhoto()
     storage.deletePhoto.mockRejectedValue(new Error('fichier absent'))
 
-    const animal = await service.update(repository, milo.id, MILO, NOUVELLE)
+    const animal = await service.update(milo.id, MILO, NOUVELLE)
 
     expect(animal.photoPath).toBe('photo-2.jpg')
   })
 
   it('refuse un animal inconnu sans écrire de photo', async () => {
     await expect(
-      service.update(repository, '11111111-1111-4111-8111-111111111111', MILO, NOUVELLE),
+      service.update('11111111-1111-4111-8111-111111111111', MILO, NOUVELLE),
     ).rejects.toThrow('Animal introuvable')
 
     expect(storage.savePhoto).not.toHaveBeenCalled()
@@ -143,7 +144,7 @@ describe('retrait réversible', () => {
   it('retire la photo de l’animal sans effacer son fichier', async () => {
     const milo = await miloAvecPhoto()
 
-    const removal = await service.detach(repository, milo.id, MILO)
+    const removal = await service.detach(milo.id, MILO)
 
     expect(removal).toEqual({ animalId: milo.id, photoPath: 'photo-1.jpg' })
     expect((await repository.getById(milo.id))?.photoPath).toBeNull()
@@ -151,16 +152,16 @@ describe('retrait réversible', () => {
   })
 
   it('ne retire rien d’un animal sans photo', async () => {
-    const milo = await service.create(repository, MILO, { kind: 'keep' })
+    const milo = await service.create(creator, MILO, { kind: 'keep' })
 
-    expect(await service.detach(repository, milo.id, MILO)).toBeNull()
+    expect(await service.detach(milo.id, MILO)).toBeNull()
   })
 
   it('« Annuler » rend la même photo et garde son fichier', async () => {
     const milo = await miloAvecPhoto()
-    const removal = await service.detach(repository, milo.id, MILO)
+    const removal = await service.detach(milo.id, MILO)
 
-    const animal = await service.reattach(repository, { ...MILO, name: 'Milou' }, removal!)
+    const animal = await service.reattach({ ...MILO, name: 'Milou' }, removal!)
 
     expect(animal.photoPath).toBe('photo-1.jpg')
     expect(animal.name).toBe('Milou')
@@ -169,10 +170,10 @@ describe('retrait réversible', () => {
 
   it('« Annuler » garde une photo choisie entre-temps et efface l’ancienne', async () => {
     const milo = await miloAvecPhoto()
-    const removal = await service.detach(repository, milo.id, MILO)
-    await service.update(repository, milo.id, MILO, NOUVELLE)
+    const removal = await service.detach(milo.id, MILO)
+    await service.update(milo.id, MILO, NOUVELLE)
 
-    const animal = await service.reattach(repository, MILO, removal!)
+    const animal = await service.reattach(MILO, removal!)
 
     expect(animal.photoPath).toBe('photo-2.jpg')
     expect(storage.deletePhoto).toHaveBeenCalledExactlyOnceWith('photo-1.jpg')
@@ -180,28 +181,55 @@ describe('retrait réversible', () => {
 
   it('efface le fichier une fois le retrait définitif', async () => {
     const milo = await miloAvecPhoto()
-    const removal = await service.detach(repository, milo.id, MILO)
+    const removal = await service.detach(milo.id, MILO)
 
-    await service.forgetRemoved(repository, removal!)
+    await service.forgetRemoved(removal!)
 
     expect(storage.deletePhoto).toHaveBeenCalledExactlyOnceWith('photo-1.jpg')
   })
 
   it('n’efface pas un fichier que l’animal porte de nouveau', async () => {
     const milo = await miloAvecPhoto()
-    const removal = await service.detach(repository, milo.id, MILO)
-    await service.reattach(repository, MILO, removal!)
+    const removal = await service.detach(milo.id, MILO)
+    await service.reattach(MILO, removal!)
 
-    await service.forgetRemoved(repository, removal!)
+    await service.forgetRemoved(removal!)
 
     expect(storage.deletePhoto).not.toHaveBeenCalled()
   })
 
   it('un fichier impossible à effacer ne lève pas', async () => {
     const milo = await miloAvecPhoto()
-    const removal = await service.detach(repository, milo.id, MILO)
+    const removal = await service.detach(milo.id, MILO)
     storage.deletePhoto.mockRejectedValue(new Error('fichier absent'))
 
-    await expect(service.forgetRemoved(repository, removal!)).resolves.toBeUndefined()
+    await expect(service.forgetRemoved(removal!)).resolves.toBeUndefined()
+  })
+})
+
+describe('fabrique du repository', () => {
+  it('redemande le repository à chaque opération : une ouverture ratée n’est pas mise en cache', async () => {
+    const milo = await miloAvecPhoto()
+    const open = vi
+      .fn<() => Promise<AnimalsRepository>>()
+      .mockRejectedValueOnce(new Error('base fermée'))
+      .mockResolvedValue(repository)
+    const lazy = createAnimalPhotoService(storage, open)
+
+    await expect(lazy.detach(milo.id, MILO)).rejects.toThrow('base fermée')
+    await expect(lazy.detach(milo.id, MILO)).resolves.toEqual({
+      animalId: milo.id,
+      photoPath: 'photo-1.jpg',
+    })
+    expect(open).toHaveBeenCalledTimes(2)
+  })
+
+  it('n’ouvre pas la base pour une création', async () => {
+    const open = vi.fn<() => Promise<AnimalsRepository>>()
+    const lazy = createAnimalPhotoService(storage, open)
+
+    await lazy.create(creator, MILO, { kind: 'keep' })
+
+    expect(open).not.toHaveBeenCalled()
   })
 })
