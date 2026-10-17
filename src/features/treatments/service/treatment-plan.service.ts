@@ -10,6 +10,7 @@ import {
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,
+  type TreatmentWithHistoryReader,
 } from '../repository/treatments.repository'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type {
@@ -26,7 +27,9 @@ import {
 type Provider<T> = () => T | Promise<T>
 
 export type TreatmentPlanDependencies = {
-  treatments: Provider<Pick<TreatmentsRepository, 'create' | 'applyPlan' | 'getWithHistory'>>
+  treatments: Provider<
+    Pick<TreatmentsRepository, 'create' | 'applyPlan'> & TreatmentWithHistoryReader
+  >
   reminders: Pick<TreatmentRemindersService, 'reschedule'>
   today: () => string
   newId: () => string
