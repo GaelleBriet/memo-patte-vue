@@ -24,7 +24,7 @@ const markMissed = () =>
     },
   }) as const
 
-describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-12), « Modifier » et « Marquer comme oubliée » (2026-10-14)', () => {
+describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-12), « Modifier » (2026-10-14) et « Marquer comme oubliée » (2026-10-17)', () => {
   let db: InMemoryDb
   let replay: Replay
 
@@ -117,15 +117,16 @@ describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-1
     ])
   })
 
-  it('#841 : dose du 10 oct. de Milo donnée sur chaque appareil, « Marquer comme oubliée » : « Oubliée » seule', async () => {
+  it('#841 : dose du 10 oct. de Milo donnée sur chaque appareil, « Marquer comme oubliée » : « Oubliée », la prise de l’autre appareil reste, sans effet', async () => {
     const shown = await miloNotedOnBothDevices()
     replay.clock.day = '2026-10-12'
     replay.tick()
     await replay.doses.apply(ID, markMissed())
 
-    expect((await storedHistory(replay.treatments, ID)).doses).toMatchObject([
-      { id: shown, dueOn: '2026-10-10', givenOn: null, status: 'missed' },
-    ])
+    expect(await sheetLines()).toEqual({
+      [shown]: 'missed  covers',
+      [OTHER]: 'given 2026-10-10 idle',
+    })
   })
 
   describe('« Annuler » rend la fiche d’avant, même ligne en vigueur', () => {
@@ -144,6 +145,12 @@ describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-1
       'Marquer comme oubliée': () => markMissed(),
     }
 
+    const otherAfter: Record<string, RegExp> = {
+      'Modifier au 11': /^retirée$/,
+      Supprimer: /^retirée$/,
+      'Marquer comme oubliée': / idle$/,
+    }
+
     for (const [label, gesture] of Object.entries(gestures)) {
       for (const [state, other] of others) {
         it(`dose du 10 oct. de Milo, ${state} sur l'autre appareil (${other.id}), « ${label} » puis « Annuler »`, async () => {
@@ -158,7 +165,7 @@ describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-1
           await replay.doses.undoBatch(ID, applied.undo)
 
           expect(before[shown]).toMatch(/ covers$/)
-          expect(afterGesture).not.toHaveProperty(other.id)
+          expect(afterGesture[other.id] ?? 'retirée').toMatch(otherAfter[label]!)
           expect(await sheetLines()).toEqual(before)
         })
       }
