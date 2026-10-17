@@ -1529,6 +1529,10 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
   données d'avance ; A reporte 8 h du 5 au 6, B passe à 8 h 01, 14 h 01 et 20 h 01 : B plus récent,
   le report est sans effet, le 5 réclame 8 h 01, rien le 6 (avant : le 6 à 8 h 01). L'heure de
   départ se juge sur la journée telle qu'elle était, doses arrivées d'un autre report comprises.
+  La règle ne vaut que pour une dose ôtée par la réécriture : journée absente de la grille du
+  réglage réécrit avant ses décalages, ou heure absente de ses heures ; une journée ôtée par un
+  décalage se lit comme avant (graine 9000000692 : sur un seul téléphone, une posologie seule
+  changeait sinon la fiche).
   Limite connue, question au §11 : quand la journée de départ garde une dose encore libre après
   l'heure ôtée, le report plus récent se lit comme avant.
 
