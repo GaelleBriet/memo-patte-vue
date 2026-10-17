@@ -14,6 +14,7 @@ import {
   readableReadingOf,
   treatmentReadingOf,
 } from '../logic/treatment-reading-adapter'
+import { undoKeepingAhead } from '../logic/treatment-undo-order'
 import {
   createWriteQueue,
   treatmentWriteQueue,
@@ -46,7 +47,7 @@ export type TreatmentDosesDependencies = {
   queue?: WriteQueue
 }
 
-export type AppliedDoseChange = Omit<DoseChange, 'writes'> & {
+export type AppliedDoseChange = Omit<DoseChange, 'writes' | 'keptAhead'> & {
   animalId: string
   /** Le geste a terminé le traitement : plus rien à noter ni à renseigner (TR-31). */
   finishes: boolean
@@ -114,10 +115,13 @@ export function createTreatmentDosesService({
     reading: TreatmentReading,
     action: DoseAction,
   ): Promise<AppliedDoseChange> {
-    const { writes, ...change } = doseChange(treatment, reading, action, () => crypto.randomUUID())
+    const { writes, keptAhead, ...change } = doseChange(treatment, reading, action, () =>
+      crypto.randomUUID(),
+    )
     const { animalId } = treatment
     try {
-      const undo = await write(treatment.id, writes)
+      const inverse = await write(treatment.id, writes)
+      const undo = keptAhead === undefined ? inverse : undoKeepingAhead(inverse, keptAhead)
       const finishes = undo.length > 0 && (await finishedBy(treatment, reading.view))
       return { ...change, animalId, finishes, undo }
     } catch (cause) {

@@ -1,5 +1,6 @@
-import { doseWritesOf, keptAheadWritesOf } from './treatment-dose-writes'
+import { doseWritesOf } from './treatment-dose-writes'
 import { revealedDues, type RevealedDues } from './treatment-revealed-dues'
+import type { KeptAhead } from './treatment-undo-order'
 import type { DoseWrite } from '../schema/treatment-dose.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import {
@@ -47,6 +48,8 @@ export type DoseChange = {
   heldBy?: string
   /** G21 : les doses passées que le geste fait apparaître, à renseigner ou en retard. */
   revealed: RevealedDues | null
+  /** R12, #842 : les lignes que « Annuler » doit laisser devant les lignes supprimées. */
+  keptAhead?: KeptAhead
 }
 
 export class DoseAlreadyLoggedError extends Error {}
@@ -185,16 +188,16 @@ export function doseChange(
       const outcome = played(reading, { kind: 'remove', lineId: action.lineId })
       const input = applied(reading.input, outcome.changes)
       const after = { input, view: treatmentView(input) }
-      const deleted = outcome.changes.flatMap((change) =>
+      const deletedIds = outcome.changes.flatMap((change) =>
         change.action === 'delete' ? [change.id] : [],
       )
+      const ahead = keptAhead(reading.input, deletedIds)
+      const deleted = reading.input.lines.filter(({ id }) => deletedIds.includes(id))
       return {
         ...NONE,
-        writes: [
-          ...doseWritesOf(treatment, outcome.changes, newId),
-          ...keptAheadWritesOf(keptAhead(reading.input, deleted)),
-        ],
+        writes: doseWritesOf(treatment, outcome.changes, newId),
         shiftKept: line.status !== 'extra' && line.status !== 'shift' && keepsShift(after, line),
+        ...(ahead.length === 0 ? {} : { keptAhead: { deleted, ahead } }),
       }
     }
     case 'redate': {
