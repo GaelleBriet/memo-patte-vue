@@ -47,13 +47,14 @@ describe('#882 : Luna, chaque semaine à 8 h, première dose le 10 avril, sans p
     to: string,
     chosen: string,
     stamps: { reportAt: string; rewrittenAt: string },
+    shifts = false,
   ) {
     const s1 = setting('s1', '2026-04-10', WEEK, ['08:00'], {
       startsOn: '2026-04-03',
       createdAt: '2026-04-03T08:00:00.000Z',
     })
     const base: TreatmentViewInput = { settings: [s1], lines: [], today: '2026-04-08' }
-    const parA = moved(base, from, '08:00', to, false)
+    const parA = moved(base, from, '08:00', to, shifts)
     const parB = edited(base, {
       frequency: WEEK,
       times: ['08:00'],
@@ -93,6 +94,43 @@ describe('#882 : Luna, chaque semaine à 8 h, première dose le 10 avril, sans p
       }),
     )
     expect(effectOf(merged, report.id)).toMatchObject({ kind: 'moves', arrival: '2026-04-12' })
+  })
+
+  it('avec « Décaler aussi les doses suivantes », A plus récent : le report et son décalage tiennent (#885)', () => {
+    const { merged, report } = luna(
+      '2026-04-10',
+      '2026-04-12',
+      '2026-04-09',
+      { reportAt: SOIR, rewrittenAt: MATIN },
+      true,
+    )
+    const shift = merged.lines.find(({ status }) => status === 'shift')!
+    expect(effectOf(merged, report.id)).toMatchObject({ kind: 'moves', arrival: '2026-04-12' })
+    expect(effectOf(merged, shift.id)).toEqual({ kind: 'shifts', from: '2026-04-10' })
+    expect(readings(merged).moteur.ensuite.slice(0, 2)).toEqual([
+      '2026-04-09 08:00',
+      '2026-04-12 08:00',
+    ])
+    expect(readings(merged).reference).toEqual(readings(merged).moteur)
+  })
+
+  it('avec « Décaler aussi les doses suivantes », B plus récent : le report et son décalage sont sans effet, puis le 9, le 16 et le 23', () => {
+    const { merged, report } = luna(
+      '2026-04-10',
+      '2026-04-12',
+      '2026-04-09',
+      { reportAt: MATIN, rewrittenAt: SOIR },
+      true,
+    )
+    const shift = merged.lines.find(({ status }) => status === 'shift')!
+    expect(effectOf(merged, report.id)).toEqual({ kind: 'idle', reason: 'nothing-to-move' })
+    expect(effectOf(merged, shift.id)).toEqual({ kind: 'idle', reason: 'overtaken' })
+    expect(readings(merged).moteur.ensuite).toEqual([
+      '2026-04-09 08:00',
+      '2026-04-16 08:00',
+      '2026-04-23 08:00',
+    ])
+    expect(readings(merged).reference).toEqual(readings(merged).moteur)
   })
 
   it('A reporte la dose du 17 au 19, B, plus récent, choisit le 11 : rien le 19, le 11, le 18, puis le 25', () => {
