@@ -371,6 +371,27 @@ describe('logic/, sans repository', { timeout: 30_000 }, () => {
   })
 })
 
+describe('app/ hors de shared/ et de core/', { timeout: 30_000 }, () => {
+  it("interdit à shared/ et à core/ d'importer app/", async () => {
+    const results = await Promise.all([
+      restrictedImports('src/shared/utils/format.ts', ['@/app/sync']),
+      restrictedImports('src/shared/domain/due-reminders.ts', ['@/app/sync']),
+      restrictedImports('src/core/db/sqlite.ts', ['@/app/sync']),
+      restrictedImports('src/core/notifications/reminder.ts', ['@/app/sync']),
+      restrictedImports('src/core/dev/fixtures.ts', ['@/app/sync']),
+      restrictedDynamicImports('src/shared/composables/use-x.ts', ['@/app/sync']),
+    ])
+
+    expect(results.map(({ feature, legacy }) => feature + legacy)).toEqual([1, 1, 1, 1, 1, 1])
+  })
+
+  it('laisse app/ importer app/', async () => {
+    const result = await restrictedImports('src/app/sync.ts', ['@/app/reminders-sync'])
+
+    expect(result).toEqual({ feature: 0, legacy: 0 })
+  })
+})
+
 describe('façade du moteur des doses', { timeout: 30_000 }, () => {
   async function engineImports(filePath: string, statements: string[]) {
     const [result] = await eslint.lintText(`${statements.join('\n')}\n`, {

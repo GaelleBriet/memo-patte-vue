@@ -171,6 +171,30 @@ function featureImportsRule(
   })
 }
 
+const DATA_ACCESS_RESTRICTIONS = {
+  paths: [
+    {
+      name: '@supabase/supabase-js',
+      message: "Import interdit hors de core/supabase/ ou d'un repository (cf. CLAUDE.md).",
+    },
+    {
+      name: '@capacitor-community/sqlite',
+      message: "Import interdit hors de core/db/ ou d'un repository (cf. CLAUDE.md).",
+    },
+    {
+      name: '@capacitor/local-notifications',
+      message:
+        'Import interdit hors de core/notifications/ : utilise notifications.service (cf. CLAUDE.md).',
+    },
+  ],
+  patterns: [
+    {
+      group: ['**/core/supabase/*', '**/core/db/*', '@/core/supabase/*', '@/core/db/*'],
+      message: 'Utilise un repository, pas le client directement (cf. CLAUDE.md).',
+    },
+  ],
+}
+
 export default defineConfigWithVueTs(
   {
     name: 'app/files-to-lint',
@@ -238,28 +262,16 @@ export default defineConfigWithVueTs(
       '**/*.service.spec.ts',
       '**/*.integration.spec.ts',
     ],
+    rules: restrictImports(DATA_ACCESS_RESTRICTIONS),
+  },
+
+  {
+    name: 'app/shared-not-app',
+    files: ['src/shared/**/*.{ts,vue}'],
+    ignores: ['**/*.repository.spec.ts', '**/*.service.spec.ts', '**/*.integration.spec.ts'],
     rules: restrictImports({
-      paths: [
-        {
-          name: '@supabase/supabase-js',
-          message: "Import interdit hors de core/supabase/ ou d'un repository (cf. CLAUDE.md).",
-        },
-        {
-          name: '@capacitor-community/sqlite',
-          message: "Import interdit hors de core/db/ ou d'un repository (cf. CLAUDE.md).",
-        },
-        {
-          name: '@capacitor/local-notifications',
-          message:
-            'Import interdit hors de core/notifications/ : utilise notifications.service (cf. CLAUDE.md).',
-        },
-      ],
-      patterns: [
-        {
-          group: ['**/core/supabase/*', '**/core/db/*', '@/core/supabase/*', '@/core/db/*'],
-          message: 'Utilise un repository, pas le client directement (cf. CLAUDE.md).',
-        },
-      ],
+      ...DATA_ACCESS_RESTRICTIONS,
+      patterns: [...DATA_ACCESS_RESTRICTIONS.patterns, APP_RESTRICTION],
     }),
   },
 
@@ -275,19 +287,27 @@ export default defineConfigWithVueTs(
     ignores: ['src/core/notifications/**', 'src/core/dev/**'],
     rules: restrictImports({
       paths: [NOTIFICATIONS_PLUGIN_RESTRICTION],
-      patterns: [FEATURES_RESTRICTION],
+      patterns: [FEATURES_RESTRICTION, APP_RESTRICTION],
     }),
   },
   {
     name: 'app/core-notifications-independent-of-features',
     files: ['src/core/notifications/**/*.{ts,vue}'],
-    rules: restrictImports({ patterns: [FEATURES_RESTRICTION] }),
+    rules: restrictImports({ patterns: [FEATURES_RESTRICTION, APP_RESTRICTION] }),
   },
   {
     name: 'app/notifications-service-only',
     files: ['src/core/dev/**/*.{ts,vue}', 'src/**/*.repository.ts'],
     ignores: ['src/core/notifications/**'],
     rules: restrictImports({ paths: [NOTIFICATIONS_PLUGIN_RESTRICTION] }),
+  },
+  {
+    name: 'app/core-dev-not-app',
+    files: ['src/core/dev/**/*.{ts,vue}'],
+    rules: restrictImports({
+      paths: [NOTIFICATIONS_PLUGIN_RESTRICTION],
+      patterns: [APP_RESTRICTION],
+    }),
   },
 
   {
