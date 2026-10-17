@@ -100,6 +100,9 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   let replacing: Replaced | null = null
   // R10, TR-9 : remplacé le jour même par un réglage sans date choisie, un réglage lui laisse ses journées.
   const handed = new Set<string>()
+  // R4, #847 : journées de la grille en vigueur qu'une première échéance posée plus loin laisse avant elle.
+  const skipped = new Set<Day>()
+  let rhythmStartFloor = ''
   let chosenFloor = ''
   let rhythmFloor = ''
   let anchors = new Set<Line>()
@@ -155,6 +158,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       : origin !== null
         ? { ...grid, floor: ownFloor }
         : { ...grid, floor: later(grid.floor, later(chosenFloor, plusDays(setting.startsOn, -1))) }
+    if (!continued) rhythmStartFloor = grid.floor
     const at = span.episode.indexOf(setting)
     const prior = span.live.filter((each) => span.episode.indexOf(each) < at).at(-1)
     const ended = prior !== undefined && (prior.endsOn ?? setting.startsOn) < setting.startsOn
@@ -195,6 +199,13 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       handed.add(prior.id)
     }
     if (index > 0 && (ended || !kept || (!continued && replaces))) rhythmFrom = setting.startsOn
+    if (continued) {
+      const to = grid.floor < last ? grid.floor : last
+      const read = later(setting.startsOn, plusDays(rhythmStartFloor, 1))
+      for (const day of gridDays(grid.origin, setting.frequency, read, to)) {
+        skipped.add(day)
+      }
+    }
     // R3 : écrit sous un réglage d'avant un changement de fréquence, un décalage est dépassé.
     const turns = lines.shifts.filter(
       (shift) =>
@@ -227,6 +238,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       }
       effects.set(turn.id, { kind: 'shifts', from: turn.dueOn })
       grid = turned(turn, chosenFloor)
+      rhythmStartFloor = later(turn.dueOn, turn.targetOn!)
       from = plusDays(turn.dueOn, 1)
     }
     claims.push({ setting, end, segments })
@@ -242,6 +254,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     days,
     translated,
     left,
+    skipped,
     openings,
     rhythmFrom,
     replaced,

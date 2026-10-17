@@ -1,5 +1,5 @@
 import { dayCoverage } from './calendar-coverage'
-import { coverOrphans, noteEffects } from './calendar-notes'
+import { coverOrphans, keepSkippedDays, noteEffects } from './calendar-notes'
 import { hoursOf, keyOf, plusDays, sameHours } from './grid'
 import { journeys, type Gap } from './journeys'
 import type { EpisodeLines } from './lines'
@@ -216,6 +216,8 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     }
   }
   coverOrphans(lines.notes, matched, slots, settingOf)
+  const unread = [...journey.skipped].filter((day) => !days.has(day) && !left.has(day))
+  keepSkippedDays(lines.notes, new Set(unread), slots, held)
   noteEffects(lines, borrowed, slots, held, effects)
   const lateDays = new Set(
     replaced.filter(({ onDueDay }) => !onDueDay).map((range) => lastFallen(fallen, range)),

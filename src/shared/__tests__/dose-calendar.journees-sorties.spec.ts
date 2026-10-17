@@ -125,7 +125,7 @@ describe('R4 : une journée qui porte des lignes et quitte le calendrier garde s
 })
 
 describe('R3, R4 : une journée sortie du calendrier n’est pas reprise par la posologie', () => {
-  it('tous les 3 jours à 6, 12, 18 et 23 h dès le 30 mars, 6, 12 et 18 h données en avance, remplacé le 29 par le même rythme dès le 2 avr. (6 h du 2 donnée) ; posologie le 30 : les prises du 30 restent sans effet', () => {
+  it('tous les 3 jours à 6, 12, 18 et 23 h dès le 30 mars, 6, 12 et 18 h données en avance, remplacé le 29 par le même rythme dès le 2 avr. (6 h du 2 donnée) ; posologie le 30 : les prises du 30 gardent leurs heures, avant comme après (R4, #847)', () => {
     const hours = ['06:00', '12:00', '18:00', '23:00']
     const everyThree: Frequency = { value: 3, unit: 'day' }
     const first = setting('s1', '2026-03-30', everyThree, hours)
@@ -135,13 +135,13 @@ describe('R3, R4 : une journée sortie du calendrier n’est pas reprise par la 
     )
     const ahead = given('s2', '2026-04-02', '06:00', '2026-03-29')
     const input = { settings: [first, replacing], lines: [...notes, ahead], today: '2026-03-30' }
-    const idle = notes.map(() => ({ kind: 'idle', reason: 'nothing-to-cover' }))
-    expect(effectsOf(input, notes)).toEqual(idle)
+    const kept = notes.map(({ dueTime }) => ({ kind: 'covers', key: `2026-03-30 ${dueTime}` }))
+    expect(effectsOf(input, notes)).toEqual(kept)
     const plan = planOf(input, { frequency: everyThree, times: hours, endsOn: null })
     const view = preview(input, plan)
     expect(
       notes.map((each) => view.history.find(({ line: read }) => read.id === each.id)!.effect),
-    ).toEqual(idle)
+    ).toEqual(kept)
   })
 })
 
