@@ -115,7 +115,7 @@ describe('date très lointaine (fichier forgé ou faute de frappe)', () => {
       treatmentView(forged).reminders({ count: 64, daysBefore: 0, daysAfter: 0 }),
     )
 
-    expect(reminders.filter(({ moment }) => moment === 'due')).toHaveLength(67)
+    expect(reminders.filter(({ moment }) => moment === 'due')).toHaveLength(5 * 24)
     expect(elapsed).toBeLessThan(100)
   }, 20000)
 
