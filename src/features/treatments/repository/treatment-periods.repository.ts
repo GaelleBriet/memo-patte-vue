@@ -7,16 +7,9 @@ import type { SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { createRemoteSyncTable } from '@/core/sync/repository/remote-sync-table.repository'
 import { syncField } from '@/core/sync/service/syncable-table'
-import type { TreatmentPeriod } from '../schema/treatment-period.schema'
-import {
-  SYNC_COLUMN_NAMES,
-  SYNC_COLUMNS,
-  flag,
-  timesColumn,
-  type PeriodRow,
-  type StampedTreatmentPeriod,
-} from './treatment-period-row.repository'
+import { SYNC_COLUMN_NAMES, SYNC_COLUMNS } from './treatment-period-row.repository'
 import { createPeriodReads } from './treatment-period-reads.repository'
+import { createPeriodImport } from './treatment-period-import.repository'
 import { createPeriodDeletion } from './treatment-period-deletion.repository'
 import { createPeriodStop } from './treatment-period-stop.repository'
 import { createPeriodCorrection } from './treatment-period-correction.repository'
@@ -24,11 +17,10 @@ import { createPeriodCreation } from './treatment-period-creation.repository'
 
 export { currentPeriodIdSql } from './treatment-period-reads.repository'
 export type { StampedTreatmentPeriod } from './treatment-period-row.repository'
-export type RestoredTreatmentPeriod = Omit<StampedTreatmentPeriod, 'deletedAt'>
-export type TreatmentPeriodVersion = Pick<
-  TreatmentPeriod,
-  'id' | 'treatmentId' | 'animalId' | 'updatedAt' | 'deletedAt'
->
+export type {
+  RestoredTreatmentPeriod,
+  TreatmentPeriodVersion,
+} from './treatment-period-import.repository'
 
 export interface TreatmentPeriodsRepositoryDependencies {
   loadSupabaseClient?: () => Promise<SupabaseClient>
@@ -59,68 +51,7 @@ export function createTreatmentPeriodsRepository(
 
     ...createPeriodReads(db),
 
-    /** Lignes supprimées comprises : l'import compare les versions avant d'écrire. */
-    async listVersions(): Promise<TreatmentPeriodVersion[]> {
-      const rows = await db.query<
-        Pick<PeriodRow, 'id' | 'treatment_id' | 'animal_id' | 'updated_at' | 'deleted_at'>
-      >('SELECT id, treatment_id, animal_id, updated_at, deleted_at FROM treatment_period')
-      return rows.map((row) => ({
-        id: row.id,
-        treatmentId: row.treatment_id,
-        animalId: row.animal_id,
-        updatedAt: row.updated_at,
-        deletedAt: row.deleted_at,
-      }))
-    },
-
-    /** Une période existante garde son traitement et son animal : ses réglages suivent le fichier. */
-    restoreStatement(period: RestoredTreatmentPeriod, exists: boolean): SqlStatement {
-      const values = [
-        period.startsOn,
-        period.firstDueOn,
-        period.gridOriginOn,
-        flag(period.firstDueChosen),
-        flag(period.pastDosesStayUnlogged),
-        period.endsOn,
-        period.stoppedOn,
-        period.frequency.value,
-        period.frequency.unit,
-        timesColumn(period.times),
-        period.doseQuantity,
-        period.doseUnit,
-        period.reminderOffsetMinutes,
-        period.reminderTime,
-        period.createdAt,
-        period.updatedAt,
-        period.settingsWrittenAt,
-      ]
-      const devices = [period.createdByDevice, period.updatedByDevice]
-      return exists
-        ? {
-            sql: `UPDATE treatment_period
-                  SET starts_on = ?, first_due_on = ?, grid_origin_on = ?, first_due_chosen = ?,
-                      past_doses_stay_unlogged = ?, ends_on = ?, stopped_on = ?,
-                      frequency_value = ?, frequency_unit = ?, times = ?, dose_quantity = ?,
-                      dose_unit = ?, reminder_offset_minutes = ?, reminder_time = ?,
-                      created_at = ?, updated_at = ?, settings_written_at = ?, deleted_at = NULL,
-                      created_by_device = ?, updated_by_device = ?
-                  WHERE id = ?`,
-            params: [...values, ...devices, period.id],
-          }
-        : {
-            sql: `INSERT INTO treatment_period (${SYNC_COLUMNS})
-                  VALUES (${SYNC_COLUMN_NAMES.map((column) => (column === 'deleted_at' ? 'NULL' : '?')).join(', ')})`,
-            params: [period.id, period.treatmentId, period.animalId, ...values, ...devices],
-          }
-    },
-
-    reviveStatement(id: string, updatedAt: string): SqlStatement {
-      return {
-        sql: `UPDATE treatment_period SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
-              WHERE id = ?`,
-        params: [updatedAt, deviceId(), id],
-      }
-    },
+    ...createPeriodImport(db, deviceId),
 
     /** Tombstones compris : le push doit pouvoir renvoyer une suppression comme une ligne normale. */
     async getRowForPush(id: string): Promise<SyncRow | null> {
