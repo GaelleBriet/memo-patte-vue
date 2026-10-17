@@ -806,6 +806,68 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
   })
 })
 
+describe('treatmentHistory — une prise dont l’échéance a quitté le calendrier (#899, #841)', () => {
+  const MARS = '2026-03-09T08:00:00.000Z'
+  const LUNDIS = period({
+    startsOn: '2026-03-02',
+    firstDueOn: '2026-03-02',
+    frequency: { value: 1, unit: 'week' },
+    times: ['08:00', '20:00'],
+    createdAt: MARS,
+    updatedAt: MARS,
+  })
+  const A_9H = period({
+    id: 'p-2',
+    startsOn: '2026-03-11',
+    firstDueOn: '2026-03-23',
+    frequency: { value: 1, unit: 'week' },
+    times: ['09:00'],
+    createdAt: '2026-03-11T08:00:00.000Z',
+    updatedAt: '2026-03-11T08:00:00.000Z',
+  })
+  const DOSES = [
+    dose('2026-03-02', '2026-03-02', { dueTime: '08:00', createdAt: MARS, updatedAt: MARS }),
+    dose('2026-03-02', '2026-03-02', { dueTime: '20:00', createdAt: MARS, updatedAt: MARS }),
+    dose('2026-03-09', '2026-03-09', { dueTime: '08:00', createdAt: MARS, updatedAt: MARS }),
+    dose('2026-03-09', '2026-03-09', { dueTime: '20:00', createdAt: MARS, updatedAt: MARS }),
+  ]
+  const PRISE_DU_16 = { dueTime: '20:00', createdAt: MARS, updatedAt: MARS }
+
+  function actionsOf(book: TreatmentWithHistory, id: string) {
+    const lines = history(book, '2026-03-12').periods.flatMap(({ lines }) => lines)
+    const rows = lines.flatMap((line) => (line.kind === 'missed' ? line.rows : [line]))
+    return rows.find((row) => row.dose.id === id)!.actions
+  }
+
+  it('Milo : la prise du 16 à 20 h, donnée d’avance puis quittée par le changement d’heure, ne propose pas « Marquer comme oubliée »', () => {
+    const book = treatment(
+      [LUNDIS, A_9H],
+      [...DOSES, dose('2026-03-16', '2026-03-16', { ...PRISE_DU_16, givenOn: '2026-03-09' })],
+    )
+
+    expect(actionsOf(book, '2026-03-16 20:00')).toEqual(['change-date', 'remove'])
+  })
+
+  it('Milo : 8 h du 16 oubliée, 20 h donnée d’avance ; l’oubli, resté hors du calendrier, ne propose pas « Marquer comme donnée »', () => {
+    const book = treatment(
+      [LUNDIS, A_9H],
+      [
+        ...DOSES,
+        missed('2026-03-16', '2026-03-16', { ...PRISE_DU_16, dueTime: '08:00' }),
+        dose('2026-03-16', '2026-03-16', { ...PRISE_DU_16, givenOn: '2026-03-09' }),
+      ],
+    )
+
+    expect(actionsOf(book, '2026-03-16 08:00')).toEqual(['remove'])
+  })
+
+  it('garde « Marquer comme oubliée » sur une prise dont l’échéance est au calendrier', () => {
+    const book = treatment([LUNDIS], DOSES)
+
+    expect(actionsOf(book, '2026-03-09 20:00')).toEqual(['change-date', 'mark-missed', 'remove'])
+  })
+})
+
 describe('treatmentDeleteTexts', () => {
   it('confirme la suppression du traitement, avec ses prises et ses rappels', () => {
     expect(treatmentDeleteTexts(t, 'Bravecto')).toEqual({
