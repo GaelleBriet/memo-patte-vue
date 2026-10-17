@@ -172,7 +172,7 @@ export function calendarOf(
     const lands = (turn: ReferenceLine) =>
       (isDueDay(grid, setting, turn.dueOn) && (turn.dueOn > chosenFloor || anchors.has(turn))) ||
       reports.some((report) => report.targetOn === turn.dueOn && report.dueOn > rhythmFloor) ||
-      (!days.has(turn.dueOn) && shiftKeptByReport(turn, reports, settingOf))
+      (!days.has(turn.dueOn) && shiftKeptByReport(turn, reports, settingOf, settingAt))
     for (const turn of [...turns, null]) {
       if (turn !== null && !lands(turn)) continue
       const to = turn === null ? last : turn.dueOn < last ? turn.dueOn : last
@@ -208,7 +208,9 @@ export function calendarOf(
     )
     const [report] = waiting.splice(Math.max(0, ready), 1)
     const { dueOn, targetOn } = report!
-    const rewritten = days.has(dueOn) ? undefined : departureAfterRewrite(report!, settingOf)
+    const rewritten = days.has(dueOn)
+      ? undefined
+      : departureAfterRewrite(report!, settingOf, settingAt)
     if (rewritten === 'lost') continue
     const origin = rewritten ? undefined : (days.get(dueOn) ?? left.get(dueOn))
     const from = origin?.setting ?? settingOf(report!.settingId)

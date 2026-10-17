@@ -77,7 +77,8 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   }
   // #885 : le décalage d'un report qui l'emporte sur la réécriture de son réglage part de la journée
   // de départ que cette réécriture a ôtée du calendrier.
-  const wins = (line: Line) => rewriteVerdict(line, byId.get(line.settingId)!) === 'line'
+  const wins = (line: Line) =>
+    rewriteVerdict(line, byId.get(line.settingId)!, span.settingAt(line.dueOn)) === 'line'
   const removed = (day: Day) => !days.has(day) && !lines.reports.some((r) => r.targetOn === day)
   const keptByReport = (turn: Line) =>
     removed(turn.dueOn) &&

@@ -193,33 +193,48 @@ export function coverages({
   }
 }
 
+type SettingAt = (day: string) => ReferenceSetting | undefined
+
+// #867, #882 : une ligne et la réécriture de son réglage, faite ailleurs, se contredisent ; la plus
+// récente des deux écritures l'emporte. Après la première échéance, le jour doit être à ce réglage.
+function newerThanRewrite(
+  line: ReferenceLine,
+  settingOf: (id: string) => ReferenceSetting,
+  settingAt: SettingAt,
+): boolean | undefined {
+  const written = settingOf(line.settingId)
+  const rewrittenAt = written.updatedAt
+  if (rewrittenAt === undefined || rewrittenAt <= written.createdAt) return undefined
+  if (line.dueOn < written.startsOn) return undefined
+  const ownDay = line.dueOn < written.firstDueOn || settingAt(line.dueOn) === written
+  if (!ownDay) return undefined
+  return line.updatedAt > rewrittenAt
+}
+
 /** #885 : le décalage d'un report plus récent que la réécriture de son réglage tient avec lui. */
 export function shiftKeptByReport(
   turn: ReferenceLine,
   reports: readonly ReferenceLine[],
   settingOf: (id: string) => ReferenceSetting,
+  settingAt: SettingAt,
 ): boolean {
-  const written = settingOf(turn.settingId)
-  const rewrittenAt = written.updatedAt
-  if (rewrittenAt === undefined || rewrittenAt <= written.createdAt) return false
-  if (turn.dueOn < written.startsOn || turn.dueOn >= written.firstDueOn) return false
-  if (rewrittenAt >= turn.updatedAt) return false
+  if (newerThanRewrite(turn, settingOf, settingAt) !== true) return false
   if (reports.some(({ targetOn }) => targetOn === turn.dueOn)) return false
   return reports.some(
     (report) =>
-      report.dueOn === turn.dueOn && typeof departureAfterRewrite(report, settingOf) === 'object',
+      report.dueOn === turn.dueOn &&
+      typeof departureAfterRewrite(report, settingOf, settingAt) === 'object',
   )
 }
 
-/** #867 : réglage réécrit sans la journée de départ du report : le plus récent des deux l'emporte. */
+/** #867 : réglage réécrit sans la dose de départ du report : le plus récent des deux l'emporte. */
 export function departureAfterRewrite(
   report: ReferenceLine,
   settingOf: (id: string) => ReferenceSetting,
+  settingAt: SettingAt,
 ): Journey | 'lost' | undefined {
-  const written = settingOf(report.settingId)
-  const rewrittenAt = written.updatedAt
-  if (rewrittenAt === undefined || rewrittenAt <= written.createdAt) return undefined
-  if (report.dueOn < written.startsOn || report.dueOn >= written.firstDueOn) return undefined
-  if (rewrittenAt >= report.updatedAt) return 'lost'
-  return { setting: written, hours: [report.dueTime] }
+  const newer = newerThanRewrite(report, settingOf, settingAt)
+  if (newer === undefined) return undefined
+  if (!newer) return 'lost'
+  return { setting: settingOf(report.settingId), hours: [report.dueTime] }
 }

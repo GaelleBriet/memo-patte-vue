@@ -78,7 +78,9 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     )
     const report = waiting.splice(Math.max(0, ready), 1)[0]!
     const { dueOn, dueTime, targetOn } = report
-    const rewrite = days.has(dueOn) ? null : rewriteVerdict(report, settingOf(report.settingId))
+    const rewrite = days.has(dueOn)
+      ? null
+      : rewriteVerdict(report, settingOf(report.settingId), span.settingAt(dueOn))
     const origin = rewrite === null ? (days.get(dueOn) ?? left.get(dueOn)) : undefined
     const from = origin?.setting ?? settingOf(report.settingId)
     if (rewrite === 'rewrite') {
