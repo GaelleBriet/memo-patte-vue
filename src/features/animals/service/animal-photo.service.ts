@@ -8,11 +8,11 @@ export type PhotoChange =
 /** Ce que `reattach` et `forgetRemoved` reprennent d'un retrait. */
 export type PhotoRemoval = { animalId: string; photoPath: string }
 
-export type AnimalsRepositoryFactory = () => AnimalsRepository | Promise<AnimalsRepository>
+export type AnimalsRepositoryProvider = () => AnimalsRepository | Promise<AnimalsRepository>
 
 export function createAnimalPhotoService(
   storage: PhotoStorage,
-  repositoryOf: AnimalsRepositoryFactory,
+  repositoryOf: AnimalsRepositoryProvider,
 ) {
   async function writeNewPhoto(change: PhotoChange): Promise<string | null> {
     return change.kind === 'replace' ? storage.savePhoto(change.base64) : null

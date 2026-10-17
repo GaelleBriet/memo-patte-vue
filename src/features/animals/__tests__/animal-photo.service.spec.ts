@@ -19,12 +19,10 @@ let storage: {
 }
 let service: ReturnType<typeof createAnimalPhotoService>
 let savedNames: string[]
-let creator: { create: AnimalsRepository['create'] }
 
 beforeEach(async () => {
   db = await createInMemoryDb()
   repository = createAnimalsRepository(db)
-  creator = repository
   savedNames = []
   storage = {
     savePhoto: vi.fn<PhotoStorage['savePhoto']>(async () => {
@@ -42,12 +40,12 @@ afterEach(() => {
 })
 
 async function miloAvecPhoto(): Promise<Animal> {
-  return service.create(creator, MILO, NOUVELLE)
+  return service.create(repository, MILO, NOUVELLE)
 }
 
 describe('création', () => {
   it('sans photo, n’écrit aucun fichier et laisse photoPath à null', async () => {
-    const animal = await service.create(creator, MILO, { kind: 'keep' })
+    const animal = await service.create(repository, MILO, { kind: 'keep' })
 
     expect(animal.photoPath).toBeNull()
     expect(storage.savePhoto).not.toHaveBeenCalled()
@@ -62,9 +60,9 @@ describe('création', () => {
   })
 
   it('supprime la photo écrite si l’animal n’a pas pu être créé', async () => {
-    await expect(service.create(creator, { name: '', species: 'dog' }, NOUVELLE)).rejects.toThrow(
-      ZodError,
-    )
+    await expect(
+      service.create(repository, { name: '', species: 'dog' }, NOUVELLE),
+    ).rejects.toThrow(ZodError)
 
     expect(storage.deletePhoto).toHaveBeenCalledExactlyOnceWith('photo-1.jpg')
   })
@@ -104,7 +102,7 @@ describe('édition', () => {
   })
 
   it('retirer la photo d’un animal qui n’en a pas ne supprime rien', async () => {
-    const milo = await service.create(creator, MILO, { kind: 'keep' })
+    const milo = await service.create(repository, MILO, { kind: 'keep' })
 
     await service.update(milo.id, MILO, { kind: 'remove' })
 
@@ -152,7 +150,7 @@ describe('retrait réversible', () => {
   })
 
   it('ne retire rien d’un animal sans photo', async () => {
-    const milo = await service.create(creator, MILO, { kind: 'keep' })
+    const milo = await service.create(repository, MILO, { kind: 'keep' })
 
     expect(await service.detach(milo.id, MILO)).toBeNull()
   })
@@ -224,11 +222,22 @@ describe('fabrique du repository', () => {
     expect(open).toHaveBeenCalledTimes(2)
   })
 
+  it('forgetRemoved rejette quand la fabrique échoue', async () => {
+    const lazy = createAnimalPhotoService(storage, () => Promise.reject(new Error('base fermée')))
+
+    await expect(
+      lazy.forgetRemoved({
+        animalId: '11111111-1111-4111-8111-111111111111',
+        photoPath: 'photo-1.jpg',
+      }),
+    ).rejects.toThrow('base fermée')
+  })
+
   it('n’ouvre pas la base pour une création', async () => {
     const open = vi.fn<() => Promise<AnimalsRepository>>()
     const lazy = createAnimalPhotoService(storage, open)
 
-    await lazy.create(creator, MILO, { kind: 'keep' })
+    await lazy.create(repository, MILO, { kind: 'keep' })
 
     expect(open).not.toHaveBeenCalled()
   })

@@ -18,7 +18,7 @@ import {
 } from '../service/animal-follow.service'
 import {
   createAnimalPhotoService,
-  type AnimalsRepositoryFactory,
+  type AnimalsRepositoryProvider,
   type PhotoChange,
   type PhotoRemoval,
 } from '../service/animal-photo.service'
@@ -27,7 +27,6 @@ import { deletePhoto, savePhoto } from '@/core/photos/photo-storage'
 import { track } from '@/core/analytics'
 import { recordUsageSignal } from '@/core/usage/usage-signals'
 
-export type AnimalsRepositoryProvider = AnimalsRepositoryFactory
 export type AnimalDeletionServiceProvider = () => AnimalDeletionService
 export type AnimalCreationServiceProvider = () => Pick<AnimalCreationService, 'create'>
 export type AnimalFollowServiceProvider = () => AnimalFollowService
