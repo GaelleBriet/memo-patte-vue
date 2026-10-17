@@ -33,21 +33,57 @@ function repositorySources(): { path: string; source: string }[] {
   })
 }
 
+/** Le source sans ses `${…}` : un gabarit imbriqué dans une interpolation ne ferme plus le SQL. */
+function withoutInterpolations(source: string): string {
+  let kept = ''
+  let depth = 0
+  for (let index = 0; index < source.length; index++) {
+    const char = source[index]
+    if (depth === 0 && source.startsWith('${', index)) {
+      depth = 1
+      index++
+      kept += ' '
+    } else if (depth > 0) {
+      if (char === '{') depth++
+      else if (char === '}') depth--
+    } else {
+      kept += char
+    }
+  }
+  return kept
+}
+
 /** Chaque `SET` d'une instruction : jusqu'au `WHERE`, ou jusqu'à la fin du gabarit SQL. */
 function setClauses(source: string): string[] {
-  return [...source.matchAll(/\bSET\b([\s\S]*?)(?:\bWHERE\b|`)/g)].map((match) => match[1] ?? '')
+  return [...withoutInterpolations(source).matchAll(/\bSET\b([\s\S]*?)(?:\bWHERE\b|`)/g)].map(
+    (match) => match[1] ?? '',
+  )
+}
+
+function offenders(path: string, source: string): string[] {
+  return setClauses(source)
+    .filter((clause) => /\bupdated_at\s*=/.test(clause))
+    .filter((clause) => !/\bupdated_by_device\s*=/.test(clause))
+    .map((clause) => `${path} : SET${clause.trim().slice(0, 80)}`)
 }
 
 describe('appareil posé à chaque écriture', () => {
   it('toute écriture qui date une ligne nomme l’appareil qui l’écrit', () => {
-    const offenders = repositorySources().flatMap(({ path, source }) =>
-      setClauses(source)
-        .filter((clause) => /\bupdated_at\s*=/.test(clause))
-        .filter((clause) => !/\bupdated_by_device\s*=/.test(clause))
-        .map((clause) => `${path} : SET${clause.trim().slice(0, 80)}`),
-    )
+    expect(repositorySources().flatMap(({ path, source }) => offenders(path, source))).toEqual([])
+  })
 
-    expect(offenders).toEqual([])
+  it('voit le SET d’une instruction dont les colonnes sont composées à la volée', () => {
+    const path = join(
+      FEATURES,
+      'treatments',
+      'repository',
+      'treatment-period-correction.repository.ts',
+    )
+    const source = readFileSync(path, 'utf8')
+    const withoutDevice = source.replace(', updated_by_device = ?', '')
+
+    expect(withoutDevice).not.toBe(source)
+    expect(offenders(path, withoutDevice)).toHaveLength(1)
   })
 
   describe('dans une vraie base', () => {
