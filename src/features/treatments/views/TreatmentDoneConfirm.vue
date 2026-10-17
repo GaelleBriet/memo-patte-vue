@@ -16,7 +16,7 @@ const props = withDefaults(
     name: string
     animal: string
     icon: string
-    history: TreatmentWithHistory
+    treatment: TreatmentWithHistory
     reading: TreatmentReading
     today: string
     /** L'échéance que « C'est fait » note aujourd'hui. */
@@ -41,7 +41,7 @@ const recap = computed(() =>
     t,
     props.due,
     props.today,
-    props.due !== null && hasSeveralTimes(props.history, props.due.settingId),
+    props.due !== null && hasSeveralTimes(props.treatment, props.due.settingId),
   ),
 )
 const box = computed(() =>
@@ -49,7 +49,7 @@ const box = computed(() =>
     t,
     props.due,
     props.today,
-    { history: props.history, reading: props.reading, today: props.today },
+    { treatment: props.treatment, reading: props.reading, today: props.today },
     shifts.value,
   ),
 )

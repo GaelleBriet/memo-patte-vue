@@ -83,28 +83,28 @@ function refusalIssue(
 }
 
 function endsOnIssue(
-  history: TreatmentWithHistory,
+  treatment: TreatmentWithHistory,
   period: TreatmentPeriodRecord,
   endsOn: string,
   today: string,
   corrects: boolean,
   move: GestureOutcome | null,
 ): EndsOnIssueReason | null {
-  const reading = treatmentReadingOf(history, today)
+  const reading = treatmentReadingOf(treatment, today)
   const view = move === null ? reading.view : treatmentView(applied(reading.input, move.changes))
   const farthest = corrects ? farthestMoveOf(view, period.id) : null
   if (farthest !== null && endsOn < farthest.arrivesOn) {
     const which = farthest.isNext ? '' : 'Far'
     return `before${which}${farthest.advanced ? 'Advanced' : 'Postponed'}Dose`
   }
-  const lastDoseOn = lastNotedDueOn(history, period.id)
+  const lastDoseOn = lastNotedDueOn(treatment, period.id)
   if (endsOn < period.firstDueOn && corrects) return 'beforeFirstDose'
   return lastDoseOn !== null && endsOn < lastDoseOn ? 'beforeLastDose' : null
 }
 
-function editionIssues(history: TreatmentWithHistory, data: Edition, today: string): DateIssue[] {
+function editionIssues(treatment: TreatmentWithHistory, data: Edition, today: string): DateIssue[] {
   const { period, change, plan, move, refusal, pastDues } = resolve(
-    history,
+    treatment,
     data,
     { chosenOn: data.nextDoseOn, shiftsFollowing: data.shiftsFollowing ?? true },
     today,
@@ -116,14 +116,14 @@ function editionIssues(history: TreatmentWithHistory, data: Edition, today: stri
   }
   if (refusal !== null) return [{ path: 'nextDoseOn', message: refusalIssue(refusal, data) }]
   if (data.endsOn === null || data.endsOn === period.endsOn) return []
-  const message = endsOnIssue(history, period, data.endsOn, today, plan === null, move)
+  const message = endsOnIssue(treatment, period, data.endsOn, today, plan === null, move)
   return message === null ? [] : [{ path: 'endsOn', message }]
 }
 
 /** Le schéma de « Modifier » avec ses bornes de dates, celles du moteur pour « Prochaine dose ». */
-export function treatmentEditionSchemaFor(history: TreatmentWithHistory, today: string) {
+export function treatmentEditionSchemaFor(treatment: TreatmentWithHistory, today: string) {
   return treatmentEditionSchema.superRefine((data, context) => {
-    for (const { path, message } of editionIssues(history, data, today)) {
+    for (const { path, message } of editionIssues(treatment, data, today)) {
       context.addIssue({ code: 'custom', path: [path], message })
     }
   })

@@ -74,7 +74,7 @@ export function useTreatmentDoseFlow(
       line,
       reading.value === null
         ? null
-        : restoredSuiteFor({ history: current, reading: reading.value }, action),
+        : restoredSuiteFor({ treatment: current, reading: reading.value }, action),
     )
     const applied = await gestures.applyDose(current, action, texts)
     if (applied) exits.settled?.()

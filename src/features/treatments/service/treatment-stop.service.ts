@@ -68,36 +68,36 @@ export function createTreatmentStopService({
   newId,
   queue = createWriteQueue(),
 }: TreatmentStopDependencies) {
-  async function historyOf(treatmentId: string): Promise<TreatmentWithHistory> {
-    const history = await (await treatments()).getWithHistory(treatmentId)
-    if (history === null) throw new Error(`Traitement introuvable : ${treatmentId}`)
-    return history
+  async function treatmentOf(treatmentId: string): Promise<TreatmentWithHistory> {
+    const treatment = await (await treatments()).getWithHistory(treatmentId)
+    if (treatment === null) throw new Error(`Traitement introuvable : ${treatmentId}`)
+    return treatment
   }
 
   // Le réglage en cours est celui que lit le moteur, pas la période que la base classe en dernier.
-  function currentPeriodId(history: TreatmentWithHistory): string {
-    const current = readableReadingOf(history, today())?.view.currentSetting
-    const id = current?.id ?? history.periods.at(-1)?.id
-    if (id === undefined) throw new Error(`Traitement sans période : ${history.id}`)
+  function currentPeriodId(treatment: TreatmentWithHistory): string {
+    const current = readableReadingOf(treatment, today())?.view.currentSetting
+    const id = current?.id ?? treatment.periods.at(-1)?.id
+    if (id === undefined) throw new Error(`Traitement sans période : ${treatment.id}`)
     return id
   }
 
   /** Rien à écrire : traitement déjà arrêté, ou fini par sa date de fin ; `null` sinon. */
-  function unchanged(history: TreatmentWithHistory): StoppedTreatment | null {
-    const view = readableReadingOf(history, today())?.view
+  function unchanged(treatment: TreatmentWithHistory): StoppedTreatment | null {
+    const view = readableReadingOf(treatment, today())?.view
     if (view === undefined || (view.phase !== 'stopped' && view.phase !== 'ended')) return null
-    return { animalId: history.animalId, stopped: false, finished: view.finished, undo: [] }
+    return { animalId: treatment.animalId, stopped: false, finished: view.finished, undo: [] }
   }
 
   async function logAndStop(
-    history: TreatmentWithHistory,
+    treatment: TreatmentWithHistory,
     gestures: readonly NoteGesture[],
   ): Promise<DoseWrite[]> {
-    const reading = treatmentReadingOf(history, today())
-    const { writes } = doseChange(history, reading, { kind: 'log', gestures }, newId)
+    const reading = treatmentReadingOf(treatment, today())
+    const { writes } = doseChange(treatment, reading, { kind: 'log', gestures }, newId)
     const at = now().toISOString()
     const repository = await periods()
-    const periodId = currentPeriodId(history)
+    const periodId = currentPeriodId(treatment)
     const stop = [
       repository.notStoppedGuardStatement(periodId),
       repository.stopStatement(periodId, today(), at),
@@ -116,31 +116,31 @@ export function createTreatmentStopService({
     treatmentId: string,
     gestures: readonly NoteGesture[],
   ): Promise<StoppedTreatment> {
-    const history = await historyOf(treatmentId)
-    const notStopped = unchanged(history)
+    const treatment = await treatmentOf(treatmentId)
+    const notStopped = unchanged(treatment)
     if (notStopped !== null) return notStopped
 
     let undo: DoseWrite[] = []
     if (gestures.length > 0) {
       try {
-        undo = await logAndStop(history, gestures)
+        undo = await logAndStop(treatment, gestures)
       } catch (cause) {
         if (cause instanceof DoseAlreadyLoggedError) throw cause
-        const stoppedElsewhere = unchanged(await historyOf(treatmentId))
+        const stoppedElsewhere = unchanged(await treatmentOf(treatmentId))
         if (stoppedElsewhere === null) throw cause
         return stoppedElsewhere
       }
     }
     const stopped =
-      gestures.length > 0 || (await (await periods()).stop(currentPeriodId(history), today()))
+      gestures.length > 0 || (await (await periods()).stop(currentPeriodId(treatment), today()))
     await reminders.reschedule(treatmentId)
     const finished =
-      readableReadingOf(await historyOf(treatmentId), today())?.view.finished ?? false
-    return { animalId: history.animalId, stopped, finished, undo }
+      readableReadingOf(await treatmentOf(treatmentId), today())?.view.finished ?? false
+    return { animalId: treatment.animalId, stopped, finished, undo }
   }
 
   async function undone(treatmentId: string, writes: readonly DoseWrite[]): Promise<void> {
-    const periodId = currentPeriodId(await historyOf(treatmentId))
+    const periodId = currentPeriodId(await treatmentOf(treatmentId))
     if (writes.length === 0) await (await periods()).undoStop(periodId)
     else {
       const at = now().toISOString()

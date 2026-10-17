@@ -169,7 +169,7 @@ function onLineAction(row: DoseRow, choice: DoseLineAction, bounds: MoveBounds |
   })
   if (change === null) return
   const box = dateChangeBox(t, row.dose, {
-    history: treatment.value,
+    treatment: treatment.value,
     reading: reading.value,
     today: today.value,
   })
@@ -293,7 +293,7 @@ onMounted(() => {
       :name="named.name"
       :animal="named.animal"
       :icon="reminderIcon('treatment', treatment.type)"
-      :history="treatment"
+      :treatment="treatment"
       :reading="reading"
       :today="today"
       :min="animal?.birthDate ?? null"
@@ -307,7 +307,7 @@ onMounted(() => {
       :name="named.name"
       :animal="named.animal"
       :icon="reminderIcon('treatment', treatment.type)"
-      :history="treatment"
+      :treatment="treatment"
       :reading="reading"
       :today="today"
       :due="confirming"
