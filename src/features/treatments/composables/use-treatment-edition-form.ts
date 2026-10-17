@@ -16,7 +16,7 @@ import { useFormValidation } from '@/shared/form/use-form-validation'
 
 type Inputs = {
   values: Ref<TreatmentFormValues>
-  history: Ref<TreatmentWithHistory | null>
+  treatment: Ref<TreatmentWithHistory | null>
   today: Readonly<Ref<string>>
 }
 
@@ -24,7 +24,7 @@ type Inputs = {
  * « Modifier » : la prochaine dose proposée et reportée dans la saisie, la question des échéances
  * tombées, puis la modification écrite.
  */
-export function useTreatmentEditionForm({ values, history, today }: Inputs) {
+export function useTreatmentEditionForm({ values, treatment, today }: Inputs) {
   const { t } = useI18n()
   const treatments = useTreatmentsStore()
 
@@ -33,9 +33,9 @@ export function useTreatmentEditionForm({ values, history, today }: Inputs) {
   const isPastDuesOpen = ref(false)
 
   const draft = computed(() => {
-    if (history.value === null) return null
+    if (treatment.value === null) return null
     try {
-      return editionDraftOf(values.value, history.value, today.value)
+      return editionDraftOf(values.value, treatment.value, today.value)
     } catch {
       return null
     }
@@ -84,13 +84,13 @@ export function useTreatmentEditionForm({ values, history, today }: Inputs) {
   )
 
   function requireHistory(): TreatmentWithHistory {
-    if (history.value === null) throw new Error('Formulaire traitement ouvert sans traitement.')
-    return history.value
+    if (treatment.value === null) throw new Error('Formulaire traitement ouvert sans traitement.')
+    return treatment.value
   }
 
   function open(loaded: TreatmentWithHistory): boolean {
     values.value = editedFormValues(loaded, today.value)
-    history.value = loaded
+    treatment.value = loaded
     return true
   }
 

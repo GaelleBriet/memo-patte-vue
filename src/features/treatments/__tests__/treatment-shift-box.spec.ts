@@ -27,7 +27,7 @@ const PIXEL = treatment([VENDREDI], [dose('2026-10-09', '2026-10-16')])
 const DUE_16 = { settingId: 'p-1', dueOn: '2026-10-16', dueTime: null }
 
 function carnet(history: TreatmentWithHistory, today: string) {
-  return { history, reading: treatmentReadingOf(history, today), today }
+  return { treatment: history, reading: treatmentReadingOf(history, today), today }
 }
 
 function help(view: { help: { text: string; warning: boolean } | null }) {

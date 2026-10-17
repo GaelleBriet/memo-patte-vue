@@ -100,7 +100,7 @@ function changeDateHelp(
   date: string,
   today: string,
 ) {
-  const carnet = { history, reading: treatmentReadingOf(history, today), today }
+  const carnet = { treatment: history, reading: treatmentReadingOf(history, today), today }
   return dateChangeBox(t, prise, carnet)!.view(date, true).help?.text
 }
 
@@ -142,7 +142,7 @@ const CASES: Case[] = [
         t,
         due('2026-10-23'),
         '2026-10-19',
-        { history: AUTRE, reading: treatmentReadingOf(AUTRE, HEBDO_TODAY), today: HEBDO_TODAY },
+        { treatment: AUTRE, reading: treatmentReadingOf(AUTRE, HEBDO_TODAY), today: HEBDO_TODAY },
         true,
       ).help?.text,
     announced: { unlogged: [], overdue: ['2026-10-26'] },
@@ -372,7 +372,7 @@ describe('l’aide sous la case ne cite que des dates à venir', () => {
       t,
       due('2026-10-23'),
       '2026-10-19',
-      { history: AUTRE, reading: treatmentReadingOf(AUTRE, HEBDO_TODAY), today: HEBDO_TODAY },
+      { treatment: AUTRE, reading: treatmentReadingOf(AUTRE, HEBDO_TODAY), today: HEBDO_TODAY },
       true,
     ).help?.text
 
@@ -385,7 +385,7 @@ describe('l’aide sous la case ne cite que des dates à venir', () => {
 describe('finitions de la revue', () => {
   it('le jour même de l’échéance, sans case, l’aide annonce aussi les doses passées', () => {
     const carnet = {
-      history: HEBDO,
+      treatment: HEBDO,
       reading: treatmentReadingOf(HEBDO, HEBDO_TODAY),
       today: HEBDO_TODAY,
     }

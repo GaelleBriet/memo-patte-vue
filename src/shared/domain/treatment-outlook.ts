@@ -48,12 +48,12 @@ export function treatmentStates(
   return (treatmentId) => {
     const known = states.get(treatmentId)
     if (known) return known
-    const history = {
+    const treatment = {
       periods: data.treatmentPeriods.filter((period) => period.treatmentId === treatmentId),
       doses: data.treatmentDoses.filter((dose) => dose.treatmentId === treatmentId),
     }
-    const view = treatmentReading(history, today)
-    const state = { ...history, view, outlook: outlookOf(history.periods, view) }
+    const view = treatmentReading(treatment, today)
+    const state = { ...treatment, view, outlook: outlookOf(treatment.periods, view) }
     states.set(treatmentId, state)
     return state
   }

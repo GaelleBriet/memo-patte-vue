@@ -26,7 +26,7 @@ export function treatmentStopTexts(t: Translate, named: { name: string; animal: 
 
 /** La période de l'échéance de la ligne, sinon la dernière. */
 export function sheetPeriod(
-  history: Pick<TreatmentWithHistory, 'periods'>,
+  treatment: Pick<TreatmentWithHistory, 'periods'>,
   view: Pick<TreatmentView, 'slots' | 'unloggedDoses'> | null,
   due: TodoDue | null,
 ): TreatmentPeriodRecord | undefined {
@@ -37,8 +37,8 @@ export function sheetPeriod(
         ? view.unloggedDoses[0]
         : notifiedDues(view, due)[0]?.due
   return (
-    history.periods.find(({ id }) => id === target?.settingId) ??
-    history.periods.at(-1) ??
+    treatment.periods.find(({ id }) => id === target?.settingId) ??
+    treatment.periods.at(-1) ??
     undefined
   )
 }

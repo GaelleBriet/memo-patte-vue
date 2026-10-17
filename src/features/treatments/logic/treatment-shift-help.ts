@@ -24,7 +24,7 @@ export type ShiftHelp = { text: string; warning: boolean }
 const SHOWN_DAYS = 2
 
 export type Carnet = {
-  history: Pick<TreatmentWithHistory, 'periods' | 'doses'>
+  treatment: Pick<TreatmentWithHistory, 'periods' | 'doses'>
   reading: TreatmentReading
   today: string
 }
@@ -122,10 +122,10 @@ function namesReport(
 // R12 : l'aide se lit sur la vue que le geste laisserait, jamais sur un calendrier recalculé ici.
 export function suiteHelpOf(
   t: Translate,
-  { history, reading, today }: Carnet,
+  { treatment, reading, today }: Carnet,
   { outcome, settingId, newDay, shifts }: GestureHelp,
 ): { help: ShiftHelp | null; namesReport: boolean } {
-  const period = history.periods.find(({ id }) => id === settingId)
+  const period = treatment.periods.find(({ id }) => id === settingId)
   if (period === undefined) return { help: null, namesReport: false }
   const after = treatmentView(applied(reading.input, outcome.changes))
   const following = followingDays(after, period, laterOf(nextDay(newDay), today))

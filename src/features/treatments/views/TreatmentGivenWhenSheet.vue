@@ -51,7 +51,7 @@ const gestures = useTreatmentGestures(() => emit('changed'))
 
 const isBusy = gestures.isBusy
 
-const history = ref<TreatmentWithHistory | null>(null)
+const treatment = ref<TreatmentWithHistory | null>(null)
 const step = ref<'when' | 'hour'>('when')
 const givenOn = ref<string | null>(null)
 const isOtherDateOpen = ref(false)
@@ -59,13 +59,13 @@ const isConfirmOpen = ref(false)
 const confirming = ref<Due | null>(null)
 
 const isShown = computed({
-  get: () => open.value && history.value !== null,
+  get: () => open.value && treatment.value !== null,
   set: (shown) => {
     if (!shown) open.value = false
   },
 })
 
-const reading = computed(() => readableReadingOf(history.value, today.value))
+const reading = computed(() => readableReadingOf(treatment.value, today.value))
 const plan = computed(() =>
   reading.value && props.due ? notifiedPlan(t, reading.value.view, props.due) : null,
 )
@@ -73,13 +73,15 @@ const firstDue = computed(
   () => plan.value?.due ?? plan.value?.hours.find(({ due }) => due !== null)?.due ?? null,
 )
 const period = computed(() =>
-  history.value?.periods.find(({ id }) => id === firstDue.value?.settingId),
+  treatment.value?.periods.find(({ id }) => id === firstDue.value?.settingId),
 )
 const named = computed(() => ({
-  name: history.value?.name ?? '',
-  animal: history.value ? (animals.byId(history.value.animalId)?.name ?? '') : '',
+  name: treatment.value?.name ?? '',
+  animal: treatment.value ? (animals.byId(treatment.value.animalId)?.name ?? '') : '',
 }))
-const icon = computed(() => (history.value ? reminderIcon('treatment', history.value.type) : ''))
+const icon = computed(() =>
+  treatment.value ? reminderIcon('treatment', treatment.value.type) : '',
+)
 const texts = computed(() =>
   givenWhenTexts(
     t,
@@ -96,8 +98,8 @@ const hourTexts = computed(() =>
   otherDateTexts(t, { ...named.value, today: today.value }, givenOn.value ?? today.value, true),
 )
 const otherDateMin = computed(() => {
-  if (!reading.value || !firstDue.value || !history.value) return null
-  const birth = animals.byId(history.value.animalId)?.birthDate ?? null
+  if (!reading.value || !firstDue.value || !treatment.value) return null
+  const birth = animals.byId(treatment.value.animalId)?.birthDate ?? null
   return givenWhenMin(reading.value.view, firstDue.value, birth)
 })
 
@@ -108,12 +110,12 @@ watch(
     refreshToday()
     step.value = 'when'
     givenOn.value = null
-    history.value = null
+    treatment.value = null
     if (!animals.hasLoaded) void animals.load()
     const id = props.treatmentId
-    history.value = id ? await treatments.getWithHistory(id).catch(() => null) : null
+    treatment.value = id ? await treatments.getWithHistory(id).catch(() => null) : null
     if (!open.value) return
-    if (history.value === null) {
+    if (treatment.value === null) {
       open.value = false
       showToast(t('treatments.form.errors.load'), { tone: 'error' })
       return
@@ -170,7 +172,7 @@ function chooseOtherDate(): void {
 }
 
 async function note(gesture: NoteGesture, heldBy?: string): Promise<void> {
-  const current = history.value
+  const current = treatment.value
   if (current === null) return
   const action: DoseAction = { kind: 'note', gesture, heldBy }
   const toast = doseActionTexts(
@@ -279,12 +281,12 @@ async function note(gesture: NoteGesture, heldBy?: string): Promise<void> {
   </BottomSheet>
 
   <TreatmentOtherDateSheet
-    v-if="history && reading"
+    v-if="treatment && reading"
     v-model="isOtherDateOpen"
     :name="named.name"
     :animal="named.animal"
     :icon="icon"
-    :history="history"
+    :treatment="treatment"
     :reading="reading"
     :today="today"
     :min="otherDateMin"
@@ -294,12 +296,12 @@ async function note(gesture: NoteGesture, heldBy?: string): Promise<void> {
   />
 
   <TreatmentDoneConfirm
-    v-if="history && reading"
+    v-if="treatment && reading"
     v-model="isConfirmOpen"
     :name="named.name"
     :animal="named.animal"
     :icon="icon"
-    :history="history"
+    :treatment="treatment"
     :reading="reading"
     :today="today"
     :due="confirming"

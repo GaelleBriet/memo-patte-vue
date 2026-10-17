@@ -13,7 +13,7 @@ import type { OverflowMenuItem } from '@/shared/components/OverflowMenu.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import type { MoveBounds } from '@/shared/domain/dose-calendar'
 
-defineProps<{ history: TreatmentHistory }>()
+defineProps<{ doseHistory: TreatmentHistory }>()
 
 const emit = defineEmits<{
   select: [row: DoseRow, action: DoseLineAction, bounds: MoveBounds | null]
@@ -67,9 +67,9 @@ function select(row: DoseRow, action: string, bounds: MoveBounds | null = null):
   <SectionCard
     class="treatment-history"
     :title="t('treatments.detail.doses')"
-    :counter="history.counter"
+    :counter="doseHistory.counter"
   >
-    <template v-for="period in history.periods" :key="period.id">
+    <template v-for="period in doseHistory.periods" :key="period.id">
       <div v-if="period.head" class="treatment-history__item treatment-history__head">
         <v-icon icon="ms:date_range" size="22" />
         <div>

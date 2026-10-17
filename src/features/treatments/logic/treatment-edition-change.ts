@@ -75,10 +75,10 @@ const refusalOf = (answer: ReturnType<typeof answerOf>): Refusal | null =>
 // Q29 : la première dose calculée à partir de la dernière prise, avant d'être ramenée à aujourd'hui.
 function calculatedOn(
   { input }: TreatmentReading,
-  history: TreatmentWithHistory,
+  treatment: TreatmentWithHistory,
   rhythm: TreatmentRhythm,
 ): Day | null {
-  const lastNotedOn = lastNotedDueOn(history)
+  const lastNotedOn = lastNotedDueOn(treatment)
   if (lastNotedOn === null) return null
   try {
     const result = newSettings({ ...input, today: lastNotedOn }, requestOf(rhythm))
@@ -92,7 +92,7 @@ function calculatedOn(
 
 function helpOf(
   reading: TreatmentReading,
-  history: TreatmentWithHistory,
+  treatment: TreatmentWithHistory,
   period: TreatmentPeriodRecord,
   rhythm: TreatmentRhythm,
   proposedOn: Day,
@@ -108,7 +108,7 @@ function helpOf(
     return due?.dueOn === proposedOn ? { kind: 'scheduled', on: proposedOn } : null
   }
   if (reportArrivingOn(view, proposedOn) !== undefined) return { kind: 'scheduled', on: proposedOn }
-  const calculated = calculatedOn(reading, history, rhythm)
+  const calculated = calculatedOn(reading, treatment, rhythm)
   if (calculated === proposedOn) return { kind: 'calculated', on: proposedOn }
   if (proposedOn > today && view.currentDoses[0]?.dueOn === proposedOn) {
     return { kind: 'scheduled', on: proposedOn }
@@ -166,14 +166,14 @@ function lockedBy(period: TreatmentPeriodRecord, reading: TreatmentReading): boo
  * le moteur ; la date saisie ne compte que si elle diffère de celle proposée.
  */
 export function resolve(
-  history: TreatmentWithHistory,
+  treatment: TreatmentWithHistory,
   rhythm: TreatmentRhythm | null,
   choice: NextDoseChoice,
   today: Day,
   pastDuesChoice?: PastDuesChoice,
 ): Answered {
-  const reading = treatmentReadingOf(history, today)
-  const period = currentPeriod(history, reading.view)
+  const reading = treatmentReadingOf(treatment, today)
+  const period = currentPeriod(treatment, reading.view)
   if (lockedBy(period, reading)) return unchanged(period, 'locked')
   const next = rhythm ?? rhythmOf(period)
   if (!changesRhythm(period, next) && hasDoseLine(reading.view, period.id)) {
@@ -181,14 +181,14 @@ export function resolve(
     const due = moving.view.currentDoses[0]
     return due === undefined
       ? unchanged(period, 'edit')
-      : resolveMoved({ period, history, reading: moving, due, next, choice, today })
+      : resolveMoved({ period, treatment, reading: moving, due, next, choice, today })
   }
   const { chosenOn } = choice
   const typed = chosenOn !== null && isCalendarDay(chosenOn) ? chosenOn : null
   const base = newSettings(reading.input, requestOf(next))
   const proposedOn = shownOf(base) ?? reading.view.currentDoses[0]?.dueOn ?? today
   const answer = typed === null ? base : newSettings(reading.input, requestOf(next, typed))
-  const hasNote = history.doses.some(({ status }) => status === 'given' || status === 'missed')
+  const hasNote = treatment.doses.some(({ status }) => status === 'given' || status === 'missed')
   const writes = (typed !== null && typed !== proposedOn) || changesRhythm(period, next)
   const chosen = answerOf(answer, pastDuesChoice)
   const fieldRefusal = chosenDateRefusal(reading.input, base)
@@ -203,7 +203,7 @@ export function resolve(
       refusal: fieldRefusal,
       help:
         fieldRefusal === null
-          ? helpOf(reading, history, period, next, proposedOn, today, hasNote)
+          ? helpOf(reading, treatment, period, next, proposedOn, today, hasNote)
           : { kind: 'refused', refusal: fieldRefusal },
       shift: null,
       shiftInitial: true,
