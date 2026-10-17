@@ -68,19 +68,6 @@ export function changesRhythm(period: TreatmentPeriodRecord, rhythm: TreatmentRh
   })
 }
 
-export function withPeriodSettings(
-  history: TreatmentWithHistory,
-  periodId: string,
-  settings: TreatmentPeriodSettings,
-): TreatmentWithHistory {
-  return {
-    ...history,
-    periods: history.periods.map((other) =>
-      other.id === periodId ? { ...other, ...settings } : other,
-    ),
-  }
-}
-
 export function currentPeriod(
   history: TreatmentWithHistory,
   view: Pick<TreatmentView, 'currentSetting'>,

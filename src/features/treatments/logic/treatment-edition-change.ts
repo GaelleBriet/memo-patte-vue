@@ -6,15 +6,13 @@ import type {
   PastDuesNextDose,
 } from './treatment-edition-resolution'
 import { hasDoseLine, reportArrivingOn, resolveMoved } from './treatment-next-dose-move'
-import { treatmentReadingOf } from './treatment-reading-adapter'
+import { carnetReadingOf, treatmentReadingOf } from './treatment-reading-adapter'
 import {
   changesRhythm,
   changesSchedule,
   currentPeriod,
   lastNotedDueOn,
   rhythmOf,
-  settingsOf,
-  withPeriodSettings,
 } from './treatment-settings'
 import type { PastDuesChoice, TreatmentRhythm } from '../schema/treatment-form.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
@@ -29,6 +27,7 @@ import {
   type SettingsPlan,
   type SettingsRequest,
   type SettingsResult,
+  type TreatmentViewInput,
 } from '@/shared/domain/dose-calendar'
 import type { TreatmentReading } from '@/shared/domain/treatment-reading'
 
@@ -132,26 +131,30 @@ function unchanged(period: TreatmentPeriodRecord, change: Answered['change']): A
   }
 }
 
+const withEndsOn = (
+  input: TreatmentViewInput,
+  settingId: string,
+  endsOn: Day | null,
+): TreatmentViewInput => ({
+  ...input,
+  settings: input.settings.map((setting) =>
+    setting.id === settingId ? { ...setting, endsOn } : setting,
+  ),
+})
+
 /** La lecture sur laquelle la dose du moment se déplace : celle avec la date de fin saisie, sauf quand elle ferait sortir le report en vigueur (Q30). */
 function movingReading(
-  history: TreatmentWithHistory,
+  reading: TreatmentReading,
   period: TreatmentPeriodRecord,
   endsOn: Day | null,
-  today: Day,
 ): TreatmentReading {
-  const readWith = (day: Day | null) =>
-    treatmentReadingOf(
-      withPeriodSettings(history, period.id, { ...settingsOf(period), endsOn: day }),
-      today,
-    )
-  const corrected = readWith(endsOn)
-  if (endsOn === period.endsOn) return corrected
-  const kept = readWith(period.endsOn)
-  const keptDue = kept.view.currentDoses[0]
+  if (endsOn === period.endsOn) return reading
+  const corrected = carnetReadingOf(withEndsOn(reading.input, period.id, endsOn))
+  const keptDue = reading.view.currentDoses[0]
   const correctedDue = corrected.view.currentDoses[0]
   const holdsReport =
-    keptDue !== undefined && reportArrivingOn(kept.view, keptDue.dueOn) !== undefined
-  return holdsReport && correctedDue?.dueOn !== keptDue.dueOn ? kept : corrected
+    keptDue !== undefined && reportArrivingOn(reading.view, keptDue.dueOn) !== undefined
+  return holdsReport && correctedDue?.dueOn !== keptDue.dueOn ? reading : corrected
 }
 
 function lockedBy(period: TreatmentPeriodRecord, reading: TreatmentReading): boolean {
@@ -174,7 +177,7 @@ export function resolve(
   if (lockedBy(period, reading)) return unchanged(period, 'locked')
   const next = rhythm ?? rhythmOf(period)
   if (!changesRhythm(period, next) && hasDoseLine(reading.view, period.id)) {
-    const moving = movingReading(history, period, next.endsOn, today)
+    const moving = movingReading(reading, period, next.endsOn)
     const due = moving.view.currentDoses[0]
     return due === undefined
       ? unchanged(period, 'edit')
