@@ -102,14 +102,14 @@ export function buildCarnetPdfContent(
   const vaccinations: PdfVaccinationRow[] = data.vaccinations
     .filter((item) => item.animalId === animalId)
     .map((item) => {
-      const history = injections.get(item.id) ?? []
-      const head = history[0]
+      const itemInjections = injections.get(item.id) ?? []
+      const head = itemInjections[0]
       const dueDate = head ? head.nextDueDate : item.plannedDueDate
       const state = dueState(dueDate, today, 'vaccination')
       return {
         name: item.name,
         lastInjectionDate: head?.injectedOn ?? null,
-        injectionDates: history.map(({ injectedOn }) => injectedOn),
+        injectionDates: itemInjections.map(({ injectedOn }) => injectedOn),
         dueDate,
         state: !followed ? null : !head && state === 'upToDate' ? 'planned' : state,
       }
