@@ -1475,7 +1475,7 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
   session d'analyse du moteur à qui elle a délégué les lectures de règles). Elle ne se translate
   jamais sur une autre journée, quelle que soit la cause et la naissance du réglage ; la lecture du
   16 octobre pour #862 (« entre journées, R4 comme écrit ») est retirée pour les prises ; une prise
-  donnée n'est plus jamais sans effet, seule une prise plus récente sur la même dose la remplace ;
+  donnée n'est plus jamais sans effet, seule une ligne plus récente de la même dose (prise ou oubli) la remplace ;
   l'oubli garde sa lecture. (1) #852, graine 4900001764 : la prise de 14 h du 13 reste « donnée en
   avance » sur le 13, le 16 à 8 h est à donner, en retard le 17, avant comme après le passage à
   8 h 01. (2) Date proposée : la journée gardée est la dernière journée passée (R9.3) ; Milo, le 16
@@ -1617,6 +1617,16 @@ Lectures à confirmer par Gaelle, ouvertes le 14 octobre 2026 avec #845 (TR-24, 
 Décidé le 17 octobre 2026 avec #841 : **le libellé d'une ligne remplacée par une ligne plus récente
 de la même dose** (deux appareils) reste « · sans effet », comme toute ligne grisée ; aucun texte
 nouveau (décision de Gaelle, transmise par la session d'analyse du moteur).
+
+Limite connue de #841 (relecture du 17 octobre) : quand la ligne de l'**autre** téléphone est la plus
+récente de la dose, « Marquer comme oubliée » réécrit cette ligne (la ligne en vigueur), pas celle du
+téléphone, car le moteur ne connaît pas l'appareil d'une ligne. Les deux téléphones montrent le même
+écran, mais il dépend de l'ordre de synchro quand les deux lignes n'ont pas la même date. Milo, chaque
+lundi à 8 h : la dose du 16 mars est donnée sur B le 16 et sur A le 17 ; le 18, sur B, « Marquer comme
+oubliée » : si la prise de A est arrivée avant le geste, « Oubliée » et « Donnée le 16 · sans effet » ;
+si elle arrive après, « Oubliée » et « Donnée le 17 · sans effet ». Aucune dose n'est perdue ni inventée.
+Alternative : le service donne au moteur la ligne du téléphone (`created_by_device`), un choix de modèle
+à faire trancher.
 
 Principe du 17 octobre 2026 (§10), ouvert le 17 octobre avec #847 : une réécriture de réglage ne
 retire que les doses non données qu'elle visait ; une prise donnée ou un report plus récent garde
