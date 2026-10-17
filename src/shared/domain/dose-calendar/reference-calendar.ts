@@ -13,8 +13,8 @@ import {
 } from './reference-grid'
 import {
   coverages,
-  departureAfterRewrite,
   lateDaysOf,
+  rewrittenDeparture,
   shiftKeptByReport,
   writtenBefore,
   handedOf,
@@ -208,9 +208,12 @@ export function calendarOf(
     )
     const [report] = waiting.splice(Math.max(0, ready), 1)
     const { dueOn, targetOn } = report!
-    const rewritten = days.has(dueOn)
-      ? undefined
-      : departureAfterRewrite(report!, settingOf, settingAt)
+    const rewritten = rewrittenDeparture(report!, days.get(dueOn), {
+      arrived: arrivedHours.get(dueOn) ?? [],
+      uncovered: (day) => day.hours.filter((hour) => !coveredAside(dueOn, day).has(hour)),
+      settingOf,
+      settingAt,
+    })
     if (rewritten === 'lost') continue
     const origin = rewritten ? undefined : (days.get(dueOn) ?? left.get(dueOn))
     const from = origin?.setting ?? settingOf(report!.settingId)

@@ -227,8 +227,30 @@ export function shiftKeptByReport(
   )
 }
 
+/** #882, #883 : la dose de départ du report, jour et heure, que la journée portait avant les reports
+ * déjà lus ; ôtée par la réécriture de son réglage, `departureAfterRewrite` en décide. */
+export function rewrittenDeparture(
+  report: ReferenceLine,
+  dayOfDeparture: Journey | undefined,
+  context: {
+    arrived: readonly Hour[]
+    uncovered: (day: Journey) => Hour[]
+    settingOf: (id: string) => ReferenceSetting
+    settingAt: SettingAt
+  },
+): Journey | 'lost' | undefined {
+  const { arrived, uncovered, settingOf, settingAt } = context
+  if (dayOfDeparture === undefined) return departureAfterRewrite(report, settingOf, settingAt)
+  if ([...hoursOf(dayOfDeparture.setting), ...arrived].includes(report.dueTime)) return undefined
+  const outcome = departureAfterRewrite(report, settingOf, settingAt)
+  if (outcome === undefined || outcome === 'lost') return outcome
+  // §11 : une dose encore libre après l'heure ôtée peut être la même dose à une autre heure.
+  const after = (hour: Hour) => hour === null || hour >= (report.dueTime ?? '')
+  return uncovered(dayOfDeparture).some(after) ? undefined : outcome
+}
+
 /** #867 : réglage réécrit sans la dose de départ du report : le plus récent des deux l'emporte. */
-export function departureAfterRewrite(
+function departureAfterRewrite(
   report: ReferenceLine,
   settingOf: (id: string) => ReferenceSetting,
   settingAt: SettingAt,

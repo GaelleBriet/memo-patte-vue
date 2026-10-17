@@ -1,7 +1,12 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { treatmentView, type Setting, type TreatmentViewInput } from '../domain/dose-calendar'
+import {
+  treatmentView,
+  type Line,
+  type Setting,
+  type TreatmentViewInput,
+} from '../domain/dose-calendar'
 import { both, edited, given, moved, on, readings } from './dose-calendar.reglage-corrige.aides'
 import { setting, WEEK } from './dose-calendar.v2.aides'
 
@@ -10,6 +15,7 @@ import { setting, WEEK } from './dose-calendar.v2.aides'
 
 const MATIN = '2026-04-08T09:00:00.000Z'
 const SOIR = '2026-04-08T18:00:00.000Z'
+const THREE_DAYS = { value: 3, unit: 'day' as const }
 const TWO_WEEKS = { value: 2, unit: 'week' as const }
 
 // Le report écrit par A et le réglage réécrit par B, chacun daté de son écriture.
@@ -150,5 +156,77 @@ describe('#882, sens inverse (graine 8710000057) : un report plus récent tient 
     const { merged, report } = deuxSemaines({ reportAt: MATIN, rewrittenAt: SOIR })
     expect(effectOf(merged, report.id)).toEqual({ kind: 'idle', reason: 'nothing-to-move' })
     expect(treatmentView(merged).slots('2026-03-15', '2026-03-27')).toEqual([])
+  })
+})
+
+describe('#883 (graine 8710000013) : un report plus récent dont seule l’heure disparaît du réglage réécrit garde son jour et son heure', () => {
+  // Tous les 3 jours à 8 h, 14 h et 20 h depuis le 3 avril, fin le 28 mai ; le 3, 8 h marquée oubliée,
+  // 20 h donnée d'avance le 1er ; A reporte 14 h au 6 mai avec « Décaler aussi les doses suivantes » ;
+  // B, sans voir ce report, passe à 8 h et 20 h.
+  function troisJours(stamps: { reportAt: string; rewrittenAt: string }) {
+    const HOURS = ['08:00', '14:00', '20:00']
+    const facts = { endsOn: '2026-05-28', createdAt: '2026-04-01T08:00:00.000Z' }
+    const s1 = setting('s1', '2026-04-03', THREE_DAYS, HOURS, facts)
+    const notes: Line[] = [
+      {
+        id: 'l1',
+        settingId: 's1',
+        dueOn: '2026-04-03',
+        dueTime: '08:00',
+        status: 'missed',
+        givenOn: null,
+        targetOn: null,
+        updatedAt: '2026-04-01T09:00:00.000Z',
+      },
+      {
+        id: 'l2',
+        settingId: 's1',
+        dueOn: '2026-04-03',
+        dueTime: '20:00',
+        status: 'given',
+        givenOn: '2026-04-01',
+        targetOn: null,
+        updatedAt: '2026-04-01T10:00:00.000Z',
+      },
+    ]
+    const s2 = setting('s2', '2026-04-03', THREE_DAYS, HOURS, {
+      ...facts,
+      gridOriginOn: null,
+      firstDueChosen: false,
+      createdAt: '2026-04-02T08:00:00.000Z',
+    })
+    const base: TreatmentViewInput = { settings: [s1, s2], lines: notes, today: '2026-04-03' }
+    const parA = moved(base, '2026-04-03', '14:00', '2026-05-06', true)
+    const parB = edited(base, {
+      frequency: THREE_DAYS,
+      times: ['08:00', '20:00'],
+      endsOn: '2026-05-28',
+    })
+    return synchronises(base, parA, parB, stamps)
+  }
+
+  it('B réécrit le réglage sur place, à 8 h et 20 h, première dose le 3 avril', () => {
+    const { merged } = troisJours({ reportAt: SOIR, rewrittenAt: MATIN })
+    expect(merged.settings).toHaveLength(2)
+    expect(merged.settings[1]).toMatchObject({ times: ['08:00', '20:00'], updatedAt: MATIN })
+  })
+
+  it('A plus récent : le 6 mai à 14 h, puis le 9 mai à 8 h et 20 h', () => {
+    const { merged, report } = troisJours({ reportAt: SOIR, rewrittenAt: MATIN })
+    expect(readings(merged)).toEqual(
+      both({
+        phase: 'upcoming',
+        moment: ['2026-05-06 14:00'],
+        aRenseigner: [],
+        ensuite: ['2026-05-06 14:00', '2026-05-09 08:00', '2026-05-09 20:00'],
+      }),
+    )
+    expect(effectOf(merged, report.id)).toMatchObject({ kind: 'moves', arrival: '2026-05-06' })
+  })
+
+  it('B plus récent : le report est sans effet, la dose de 14 h n’arrive pas le 6 mai', () => {
+    const { merged, report } = troisJours({ reportAt: MATIN, rewrittenAt: SOIR })
+    expect(effectOf(merged, report.id)).toEqual({ kind: 'idle', reason: 'nothing-to-move' })
+    expect(treatmentView(merged).slots('2026-05-06', '2026-05-06')).toEqual([])
   })
 })

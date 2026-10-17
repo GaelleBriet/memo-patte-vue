@@ -411,13 +411,25 @@ describe('Deux téléphones, un réglage du jour réécrit (R10)', () => {
     return sameHoursAgain(input, THREE)
   }
 
-  // Fiche de #860 (16 octobre 2026) : les prises se posent d'abord, le report n'emporte que les heures
-  // restées sans prise.
-  it('graines 7600001452 et 7600002410 : A reporte 8 h du 5 au 6, B passe à 8 h 01, 14 h 01, 20 h 01 sans voir le report : 14 h 01 et 20 h 01 couvertes, le 6 ne réclame qu’une dose', () => {
+  // Le report de A et le réglage réécrit par B, chacun daté de son écriture (#867, #883).
+  function syncedAt(reportAt: string, rewrittenAt: string): TreatmentViewInput {
     const phoneA = moved(base(), '2026-03-05', '08:00', '2026-03-06', false)
     const phoneB = sameHoursAgain(base(), ['08:01', '14:01', '20:01'])
     expect(phoneB.settings).toHaveLength(2)
-    const synced = { ...phoneB, lines: phoneA.lines }
+    const report = phoneA.lines.at(-1)!
+    return {
+      ...phoneB,
+      settings: phoneB.settings.map((each) =>
+        each.updatedAt === undefined ? each : { ...each, updatedAt: rewrittenAt },
+      ),
+      lines: [...phoneA.lines.slice(0, -1), { ...report, updatedAt: reportAt }],
+    }
+  }
+
+  // Fiche de #860 (16 octobre 2026) : les prises se posent d'abord, le report n'emporte que les heures
+  // restées sans prise ; le 5 garde une dose libre après 8 h, la lecture d'avant reste (§11, #883).
+  it('graines 7600001452 et 7600002410 : A reporte 8 h du 5 au 6, B passe à 8 h 01, 14 h 01, 20 h 01 sans voir le report, A plus récent : 14 h 01 et 20 h 01 couvertes, le 6 ne réclame qu’une dose', () => {
+    const synced = syncedAt('2026-03-04T18:00:00.000Z', '2026-03-04T09:00:00.000Z')
     const givenEffects = treatmentView(synced)
       .history.filter(({ line }) => line.status === 'given')
       .map(({ effect }) => effect.kind)
@@ -426,6 +438,20 @@ describe('Deux téléphones, un réglage du jour réécrit (R10)', () => {
       '2026-03-05 14:01 covered',
       '2026-03-05 20:01 covered',
       '2026-03-06 08:01 pending',
+      '2026-06-05 08:01 pending',
+      '2026-06-05 14:01 pending',
+      '2026-06-05 20:01 pending',
+    ])
+    expect(readings(synced).moteur).toEqual(readings(synced).reference)
+  })
+
+  it('même carnet, B plus récent : le report est sans effet, le 5 réclame 8 h 01, rien le 6 (#867, #883)', () => {
+    const synced = syncedAt('2026-03-04T09:00:00.000Z', '2026-03-04T18:00:00.000Z')
+    expect(reportEffects(synced)).toEqual(['idle'])
+    expect(states(synced, '2026-03-05', '2026-06-05')).toEqual([
+      '2026-03-05 08:01 pending',
+      '2026-03-05 14:01 covered',
+      '2026-03-05 20:01 covered',
       '2026-06-05 08:01 pending',
       '2026-06-05 14:01 pending',
       '2026-06-05 20:01 pending',

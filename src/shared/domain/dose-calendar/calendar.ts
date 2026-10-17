@@ -78,9 +78,23 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     )
     const report = waiting.splice(Math.max(0, ready), 1)[0]!
     const { dueOn, dueTime, targetOn } = report
-    const rewrite = days.has(dueOn)
-      ? null
-      : rewriteVerdict(report, settingOf(report.settingId), span.settingAt(dueOn))
+    const departure = days.get(dueOn)
+    // #883 : l'heure de départ se juge sur la journée telle qu'elle était, avant les reports déjà lus.
+    const hourGone =
+      departure !== undefined &&
+      ![...hoursOf(departure.setting.times), ...(arrived.get(dueOn) ?? [])].includes(dueTime)
+    const verdict =
+      departure === undefined || hourGone
+        ? rewriteVerdict(report, settingOf(report.settingId), span.settingAt(dueOn))
+        : null
+    // §11 : une dose encore libre après l'heure ôtée peut être la même dose à une autre heure.
+    const stillFree = () => {
+      const noted = coveredOn(dueOn, departure!, new Set())
+      return departure!.hours.some(
+        (hour) => !noted.has(hour) && (hour === null || hour >= (dueTime ?? '')),
+      )
+    }
+    const rewrite = verdict === 'line' && hourGone && stillFree() ? null : verdict
     const origin = rewrite === null ? (days.get(dueOn) ?? left.get(dueOn)) : undefined
     const from = origin?.setting ?? settingOf(report.settingId)
     if (rewrite === 'rewrite') {
