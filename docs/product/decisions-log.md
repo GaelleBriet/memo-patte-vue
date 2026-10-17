@@ -2943,3 +2943,27 @@ prise de l'autre appareil, grisée** (spec `traitements.md` TR-25, §10, §11 ; 
   un oubli ne redevient pas « donné » depuis la feuille ou une notification (décision du 2 octobre).
 - Libellé : « · sans effet » partout, une ligne remplacée par un oubli comprise ; aucun texte
   nouveau FR/EN (décision de Gaelle, 17 octobre 2026).
+
+2026-10-17 — **#882 et #883 : « le plus récent l'emporte » (#867) vaut à chaque contradiction
+entre un report et la réécriture de son réglage** (spec `traitements.md` R10, R11, §10, §11 ;
+décision de Gaelle du 17 octobre 2026, par la session d'analyse du moteur à qui elle a délégué les
+lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
+
+- #882 : la règle ne s'arrête plus à une journée de départ située avant la nouvelle première
+  échéance. Luna, chaque semaine à 8 h, première dose le 10 avril, sans prise ; le 8, A reporte la
+  dose du 10 au 12, B choisit « Prochaine dose » le 9 : B plus récent, rien le 12, puis le 9, le 16
+  et le 23 (avant : 9, 12, 16) ; A plus récent, le 9, le 12 à 8 h, puis le 16. Un report plus récent
+  dont la journée de départ a été ôtée après la nouvelle première échéance tient (graine
+  8710000057), et son décalage avec lui (#885).
+- #883 : la ligne gagnante garde son jour et son heure, même quand seule son heure a disparu du
+  réglage réécrit. Tous les 3 jours à 8 h, 14 h et 20 h depuis le 3 avril, le 3, 8 h oubliée et
+  20 h donnée d'avance ; A reporte 14 h au 6 mai avec la case, B passe à 8 h et 20 h : A plus
+  récent, le 6 mai à 14 h, puis le 9 mai (avant : la dose de 14 h perdue) ; B plus récent, le report
+  est sans effet (graine 8710000013).
+- Raison : la modification la plus récente gagne, comme pour tout conflit entre deux appareils ;
+  le perdant reste une ligne grisée. — Alternative écartée : garder la limite du 16 octobre (journée
+  de départ avant la nouvelle première échéance seulement).
+- Questions ouvertes nées de la livraison (§11) : une heure ôtée quand la journée de départ garde
+  une dose libre après elle (lue comme avant en attendant) ; le décalage d'un report battu dont la
+  journée de départ reste au calendrier ; le décalage gagnant sur une grille réécrite hors de la
+  grille vue par A.
