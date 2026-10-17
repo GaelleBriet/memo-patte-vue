@@ -25,7 +25,7 @@ const UNITS: readonly string[] = FREQUENCY_UNITS
 
 const isOptionalDay = (day: unknown) => day === null || isCalendarDay(day)
 
-function isReadablePeriod({ frequency, times, ...days }: Period): boolean {
+function isReadableSetting({ frequency, times, ...days }: Setting): boolean {
   const { value, unit } = frequency ?? {}
   return (
     [days.startsOn, days.firstDueOn].every(isCalendarDay) &&
@@ -44,52 +44,52 @@ function isReadablePeriod({ frequency, times, ...days }: Period): boolean {
   )
 }
 
-function isReadableDose(dose: Dose): boolean {
-  const moves = dose.status === 'postponed' || dose.status === 'shift'
+function isReadableLine(line: Line): boolean {
+  const moves = line.status === 'postponed' || line.status === 'shift'
   return (
-    STATUSES.includes(dose.status) &&
-    isCalendarDay(dose.dueOn) &&
-    isOptionalDay(dose.givenOn) &&
-    (dose.dueTime === null || isClockTime(dose.dueTime)) &&
-    isOptionalDay(dose.targetOn) &&
-    (!moves || dose.targetOn !== null)
+    STATUSES.includes(line.status) &&
+    isCalendarDay(line.dueOn) &&
+    isOptionalDay(line.givenOn) &&
+    (line.dueTime === null || isClockTime(line.dueTime)) &&
+    isOptionalDay(line.targetOn) &&
+    (!moves || line.targetOn !== null)
   )
 }
 
-function byStart(a: Period, b: Period): number {
-  const key = ({ startsOn, createdAt, id }: Period) => `${startsOn} ${createdAt} ${id}`
+function byStart(a: Setting, b: Setting): number {
+  const key = ({ startsOn, createdAt, id }: Setting) => `${startsOn} ${createdAt} ${id}`
   return key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0
 }
 
-function estimatedPeriodDues(
-  period: Period,
-  next: Period | undefined,
-  doses: readonly Dose[],
+function estimatedSettingDues(
+  setting: Setting,
+  next: Setting | undefined,
+  lines: readonly Line[],
   today: string,
 ): number {
-  const keys = doses.map(({ dueOn }) => dueOn)
-  const arrivals = doses.flatMap(({ status, targetOn }) =>
+  const keys = lines.map(({ dueOn }) => dueOn)
+  const arrivals = lines.flatMap(({ status, targetOn }) =>
     status === 'postponed' && targetOn !== null ? [targetOn] : [],
   )
-  const first = [period.firstDueOn, ...keys, ...arrivals].sort()[0]!
-  const closesOn = [period.stoppedOn, next?.startsOn ?? null]
+  const first = [setting.firstDueOn, ...keys, ...arrivals].sort()[0]!
+  const closesOn = [setting.stoppedOn, next?.startsOn ?? null]
     .filter((day) => day !== null)
     .sort()[0]
   const close = closesOn === undefined ? null : previousDay(closesOn)
-  const end = [period.endsOn, close, today].filter((day) => day !== null).sort()[0]!
+  const end = [setting.endsOn, close, today].filter((day) => day !== null).sort()[0]!
   const last = [end, ...keys].sort().at(-1)!
   const span = Math.max(0, differenceInCalendarDays(toDate(last), toDate(first)))
-  const stepDays = DAYS_PER_STEP[period.frequency.unit] * period.frequency.value
-  const perDay = Math.max(1, period.times.length)
-  return (Math.floor(span / stepDays) + 2) * perDay + doses.length
+  const stepDays = DAYS_PER_STEP[setting.frequency.unit] * setting.frequency.value
+  const perDay = Math.max(1, setting.times.length)
+  return (Math.floor(span / stepDays) + 2) * perDay + lines.length
 }
 
 /** Réglage par réglage, jusqu'à aujourd'hui ou sa fin. */
-function estimatedDues({ periods, doses }: TreatmentRecords, today: string): number {
-  const ordered = [...periods].sort(byStart)
-  return ordered.reduce((sum, period, index) => {
-    const own = doses.filter(({ periodId }) => periodId === period.id)
-    return sum + estimatedPeriodDues(period, ordered[index + 1], own, today)
+function estimatedDues({ settings, lines, today }: TreatmentViewInput): number {
+  const ordered = [...settings].sort(byStart)
+  return ordered.reduce((sum, setting, index) => {
+    const own = lines.filter(({ settingId }) => settingId === setting.id)
+    return sum + estimatedSettingDues(setting, ordered[index + 1], own, today)
   }, 0)
 }
 
@@ -126,15 +126,18 @@ function viewInputOf({ periods, doses }: TreatmentRecords, today: string): Treat
 /** La vue d'un traitement et le carnet qu'elle lit : les gestes et leur aperçu jouent sur ce carnet. */
 export type TreatmentReading = { view: TreatmentView; input: TreatmentViewInput }
 
+/** R12 : la lecture d'un carnet du moteur, enregistré ou simulé ; `null` quand il est illisible. */
+export function readCarnet(input: TreatmentViewInput): TreatmentReading | null {
+  const readable =
+    input.settings.every(isReadableSetting) &&
+    input.lines.every(isReadableLine) &&
+    estimatedDues(input) <= MAX_DUES
+  return readable ? { view: treatmentView(input), input } : null
+}
+
 /** R12 : la lecture d'un traitement enregistré ; `null` quand ses données sont illisibles. */
 export function readTreatment(treatment: TreatmentRecords, today: string): TreatmentReading | null {
-  const readable =
-    treatment.periods.every(isReadablePeriod) &&
-    treatment.doses.every(isReadableDose) &&
-    estimatedDues(treatment, today) <= MAX_DUES
-  if (!readable) return null
-  const input = viewInputOf(treatment, today)
-  return { view: treatmentView(input), input }
+  return readCarnet(viewInputOf(treatment, today))
 }
 
 export function treatmentReading(treatment: TreatmentRecords, today: string): TreatmentView | null {
