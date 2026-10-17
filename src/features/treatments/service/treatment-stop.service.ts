@@ -22,7 +22,7 @@ import {
 } from '../repository/treatment-periods.repository'
 import {
   getTreatmentsRepository,
-  type TreatmentsRepository,
+  type TreatmentWithHistoryReader,
 } from '../repository/treatments.repository'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import {
@@ -33,7 +33,7 @@ import {
 type Provider<T> = () => T | Promise<T>
 
 export type TreatmentStopDependencies = {
-  treatments: Provider<Pick<TreatmentsRepository, 'getWithHistory'>>
+  treatments: Provider<TreatmentWithHistoryReader>
   periods: Provider<
     Pick<
       TreatmentPeriodsRepository,

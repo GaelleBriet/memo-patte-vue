@@ -478,6 +478,7 @@ export function createTreatmentsRepository(
 }
 
 export type TreatmentsRepository = ReturnType<typeof createTreatmentsRepository>
+export type TreatmentWithHistoryReader = Pick<TreatmentsRepository, 'getWithHistory'>
 
 let repository: Promise<TreatmentsRepository> | null = null
 
