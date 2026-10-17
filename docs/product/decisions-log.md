@@ -2826,3 +2826,23 @@ transmise par la session d'analyse du moteur, mandatée par Gaelle pour les lect
   passage à 9 h et 21 h). Description de l'état du code : d'ici la colonne v14, la lecture d'avant
   reste, et selon le cas le report garde ou perd son effet ; la règle (3) n'est appliquée qu'à une
   journée de départ située avant la nouvelle première échéance, limite connue (#882).
+
+2026-10-17 — **#847 : une journée laissée avant une première échéance posée plus loin garde ses
+prises** (spec `traitements.md` R4, R6, R9, R11, §10, §11 ; décision du 16 octobre 2026 de la
+session d'analyse du moteur, mandatée par Gaelle, et principe du 17 octobre 2026).
+
+- À fréquence gardée, une journée de la grille qu'une « Prochaine dose » choisie (ou une origine
+  écrite) laisse avant elle garde chaque prise sur son échéance quand aucune prise donnée de la
+  journée ne couvre une échéance qui la suit. Milo, chaque lundi à 8 h et 20 h ; le 9 mars, 20 h du
+  16 donnée d'avance ; le 11, 9 h et « Prochaine dose » le 23 ; le 14, le 23 avancé au 17 avec la
+  case ; le 18, « Supprimer ce report » : la prise du 16 couvre 20 h le 16 au lieu de devenir sans
+  effet, prochaine dose le 23 à 9 h. — Alternative écartée : le 16 qui garde toujours sa prise (le
+  17 alors à donner avant la suppression), contraire à #852.
+- Conséquences : « Prochaine dose » grisée par Q26 quand une telle prise est plus loin que le jour
+  de la modification ; la journée gardée compte comme dernière journée passée (R9.3) ; un geste qui
+  fait passer une telle prise sur une autre échéance reste permis (R6).
+- Principe du 17 octobre 2026 : une réécriture de réglage ne retire que les doses non données
+  qu'elle visait ; une prise donnée ou un report plus récent garde son échéance telle qu'écrite,
+  jamais translatée. Portée : ni le jour où les heures changent (R4), ni #862, ni R9.2 / G26.
+  Appliqué à #847 ; le reste et la question « une prise gardée couvre-t-elle aussi la première
+  échéance du nouveau rythme ? » sont au §11 de la spec.
