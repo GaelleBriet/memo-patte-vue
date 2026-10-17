@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   applied,
+  keptAhead,
   removalRefusal,
   removeLine,
   type Line,
@@ -102,4 +103,35 @@ describe('TR-25 : graines du relecteur de #845, un report emporté dont l’arri
       expect(removeLine(input, target)).toEqual({ refusal: { reason: 'arrival-logged' } })
     })
   }
+})
+
+describe('#842, R12 : les lignes que « Annuler » doit laisser devant les lignes supprimées', () => {
+  const ids = (lines: Line[]) => lines.map(({ id }) => id)
+
+  it('9 oct., Milo : oubliée sur l’autre appareil puis donnée ici ; « Supprimer » la ligne grisée garde « Donnée » devant', () => {
+    const missed = line('p1', 'missed', '2026-10-09')
+    const given = line('p1', 'given', '2026-10-09')
+    const later = line('p1', 'given', '2026-10-16')
+    const input = { settings: [p1], lines: [GIVEN[0]!, missed, given, later], today: TODAY }
+
+    expect(ids(keptAhead(input, [missed.id]))).toEqual([given.id])
+  })
+
+  it('de proche en proche : le report du 16 au 19, puis la prise du 19 ; dans l’ordre où elles ont été écrites', () => {
+    const shift = line('p1', 'shift', '2026-10-16', null, '2026-10-20')
+    const report = line('p1', 'postponed', '2026-10-16', null, '2026-10-19')
+    const given19 = line('p1', 'given', '2026-10-19')
+    const input = { settings: [p1], lines: [...GIVEN, shift, report, given19], today: '2026-10-21' }
+
+    expect(ids(keptAhead(input, [shift.id]))).toEqual([report.id, given19.id])
+  })
+
+  it('#867 : un report plus ancien que la réécriture de son réglage n’est pas réécrit, rien ne l’est', () => {
+    const shift = line('p1', 'shift', '2026-10-16', null, '2026-10-20')
+    const report = line('p1', 'postponed', '2026-10-16', null, '2026-10-19')
+    const rewritten = { ...p1, updatedAt: line('p1', 'given', '2026-10-30').updatedAt }
+    const input = { settings: [rewritten], lines: [...GIVEN, shift, report], today: '2026-10-21' }
+
+    expect(keptAhead(input, [shift.id])).toEqual([])
+  })
 })
