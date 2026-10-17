@@ -4,6 +4,7 @@ import { legacyFactsOf, treatmentView } from '../domain/dose-calendar'
 import {
   countedLines,
   historyEntries,
+  readCarnet,
   readTreatment,
   treatmentReading,
   type TreatmentRecords,
@@ -46,6 +47,36 @@ const dose = (extra: Partial<Dose> = {}): Dose => ({
 
 const TODAY = '2026-10-03'
 
+const UNREADABLE: [string, TreatmentRecords][] = [
+  ['un jour de période invalide', { periods: [period({ firstDueOn: '2026-02-30' })], doses: [] }],
+  ['une heure invalide', { periods: [period({ times: ['25:00'] })], doses: [] }],
+  ['deux fois la même heure', { periods: [period({ times: ['08:00', '08:00'] })], doses: [] }],
+  [
+    'une fréquence invalide',
+    { periods: [period({ frequency: { value: 0, unit: 'day' } })], doses: [] },
+  ],
+  [
+    'un état de prise inconnu',
+    { periods: [period()], doses: [dose({ status: 'lost' as 'given' })] },
+  ],
+  ['une échéance de prise invalide', { periods: [period()], doses: [dose({ dueOn: 'demain' })] }],
+  [
+    'une arrivée de report invalide',
+    {
+      periods: [period()],
+      doses: [dose({ status: 'postponed', givenOn: null, targetOn: '' })],
+    },
+  ],
+  [
+    'un report sans arrivée',
+    { periods: [period()], doses: [dose({ status: 'postponed', givenOn: null })] },
+  ],
+  [
+    'un jour d’arrivée invalide sur une prise',
+    { periods: [period()], doses: [dose({ targetOn: 'jamais' })] },
+  ],
+]
+
 describe('treatmentReading', () => {
   it('lit un traitement enregistré par le moteur v2, comme sa lecture directe', () => {
     const treatment = { periods: [period()], doses: [dose()] }
@@ -57,35 +88,7 @@ describe('treatmentReading', () => {
     expect(read?.unloggedDoses).toEqual(direct.unloggedDoses)
   })
 
-  it.each([
-    ['un jour de période invalide', { periods: [period({ firstDueOn: '2026-02-30' })], doses: [] }],
-    ['une heure invalide', { periods: [period({ times: ['25:00'] })], doses: [] }],
-    ['deux fois la même heure', { periods: [period({ times: ['08:00', '08:00'] })], doses: [] }],
-    [
-      'une fréquence invalide',
-      { periods: [period({ frequency: { value: 0, unit: 'day' } })], doses: [] },
-    ],
-    [
-      'un état de prise inconnu',
-      { periods: [period()], doses: [dose({ status: 'lost' as 'given' })] },
-    ],
-    ['une échéance de prise invalide', { periods: [period()], doses: [dose({ dueOn: 'demain' })] }],
-    [
-      'une arrivée de report invalide',
-      {
-        periods: [period()],
-        doses: [dose({ status: 'postponed', givenOn: null, targetOn: '' })],
-      },
-    ],
-    [
-      'un report sans arrivée',
-      { periods: [period()], doses: [dose({ status: 'postponed', givenOn: null })] },
-    ],
-    [
-      'un jour d’arrivée invalide sur une prise',
-      { periods: [period()], doses: [dose({ targetOn: 'jamais' })] },
-    ],
-  ])('rend null pour %s', (_, treatment) => {
+  it.each(UNREADABLE)('rend null pour %s', (_, treatment) => {
     expect(treatmentReading(treatment, TODAY)).toBeNull()
   })
 
@@ -238,5 +241,26 @@ describe('readTreatment', () => {
     expect(reading?.input.settings).toEqual([
       expect.objectContaining({ id: 'p-1', updatedAt: '2026-10-02T20:00:00.000Z' }),
     ])
+  })
+})
+
+describe('readCarnet', () => {
+  it('lit le carnet du moteur comme readTreatment lit les données enregistrées', () => {
+    const treatment = { periods: [period()], doses: [dose()] }
+    const reading = readTreatment(treatment, TODAY)!
+    const carnet = readCarnet(reading.input)
+    expect(carnet?.input).toBe(reading.input)
+    expect(carnet?.view.currentDoses).toEqual(reading.view.currentDoses)
+    expect(carnet?.view.unloggedDoses).toEqual(reading.view.unloggedDoses)
+  })
+
+  it.each(UNREADABLE)('rend null pour un carnet avec %s', (_, treatment) => {
+    expect(readCarnet(inputOf(treatment, TODAY))).toBeNull()
+  })
+
+  it('rend null pour un carnet démesuré, sans le calculer', () => {
+    const times = Array.from({ length: 24 }, (_, hour) => `${String(hour).padStart(2, '0')}:00`)
+    const old = period({ startsOn: '1900-01-01', firstDueOn: '1900-01-01', times })
+    expect(readCarnet(inputOf({ periods: [old], doses: [] }, TODAY))).toBeNull()
   })
 })

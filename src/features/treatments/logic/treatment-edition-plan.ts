@@ -1,58 +1,13 @@
 import { plannedDoseWritesOf } from './treatment-dose-writes'
 import { resolve } from './treatment-edition-change'
 import { treatmentEditionSchemaFor } from './treatment-edition-checks'
-import { periodWriteOf } from './treatment-settings-writes'
-import {
-  assertReadable,
-  draftPeriod,
-  sameSettings,
-  settingsOf,
-  withRhythm,
-  type PlanIds,
-} from './treatment-settings'
-import type { PlannedDoseWrite, TreatmentPlanWrite } from '../schema/treatment-plan.schema'
+import { carnetReadingOf, treatmentReadingOf } from './treatment-reading-adapter'
+import { periodWriteOf, settingsPlanOf } from './treatment-settings-writes'
+import { sameSettings, settingsOf, withRhythm, type PlanIds } from './treatment-settings'
+import type { TreatmentPlanWrite } from '../schema/treatment-plan.schema'
 import type { TreatmentEditionInput } from '../schema/treatment-form.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
-
-function periodsAfter(
-  history: TreatmentWithHistory,
-  currentId: string,
-  period: NonNullable<TreatmentPlanWrite['period']>,
-  today: string,
-): TreatmentWithHistory['periods'] {
-  const at = `${today}T23:59:59.999Z`
-  const { gridOriginOn, firstDueChosen, pastDosesStayUnlogged } = period
-  const origin = { gridOriginOn, firstDueChosen, pastDosesStayUnlogged }
-  if (period.action === 'open') {
-    return [...history.periods, { ...draftPeriod(period.settings, at), id: period.id, ...origin }]
-  }
-  return history.periods.map((other) =>
-    other.id === currentId ? { ...other, ...period.settings, ...origin } : other,
-  )
-}
-
-function dosesAfter(
-  history: TreatmentWithHistory,
-  writes: PlannedDoseWrite[],
-  today: string,
-): TreatmentWithHistory['doses'] {
-  const at = `${today}T23:59:59.999Z`
-  const stamps = {
-    treatmentId: history.id,
-    animalId: history.animalId,
-    createdAt: at,
-    updatedAt: at,
-  }
-  return writes.reduce((lines, write) => {
-    if (write.action === 'delete') return lines.filter(({ id }) => id !== write.id)
-    if (write.action === 'create') {
-      return [...lines, { ...write.dose, ...stamps, id: write.id, deletedAt: null }]
-    }
-    return lines.map((line) =>
-      line.id === write.id ? { ...line, ...write.dose, updatedAt: at } : line,
-    )
-  }, history.doses)
-}
+import { applied, settingsApplied } from '@/shared/domain/dose-calendar'
 
 /** Lève une `ZodError` pour une saisie refusée : rien n'est alors à écrire. */
 export function editionPlan(
@@ -90,14 +45,9 @@ export function editionPlan(
   const doses = plannedDoseWritesOf(history, changes, ids.newId)
   const result: TreatmentPlanWrite = { treatment, period: written, doses }
   if (written !== null || doses.length > 0) {
-    assertReadable(
-      {
-        doses: dosesAfter(history, doses, today),
-        periods:
-          written === null ? history.periods : periodsAfter(history, period.id, written, today),
-      },
-      today,
-    )
+    const carnet = treatmentReadingOf(history, today).input
+    const settled = written === null ? carnet : settingsApplied(carnet, settingsPlanOf(written))
+    carnetReadingOf(applied(settled, changes))
   }
   return result
 }
