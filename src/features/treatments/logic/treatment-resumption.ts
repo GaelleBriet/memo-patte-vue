@@ -39,12 +39,12 @@ export type ResumptionDraft = {
 // prises même notées en avance, ou au lendemain de la date de fin et de la dernière prise notée
 // d'une période finie.
 function resumptionEarliestOn(
-  history: TreatmentWithHistory,
+  treatment: TreatmentWithHistory,
   period: TreatmentPeriodRecord,
 ): string {
   if (period.stoppedOn !== null)
     return latestOf([period.startsOn, period.stoppedOn]) ?? period.stoppedOn
-  const after = latestOf([lastNotedDueOn(history, period.id), period.endsOn]) ?? null
+  const after = latestOf([lastNotedDueOn(treatment, period.id), period.endsOn]) ?? null
   return latestOf([period.startsOn, after === null ? null : nextDay(after)]) ?? period.startsOn
 }
 
@@ -52,9 +52,9 @@ export function isResumablePhase(phase: Phase): boolean {
   return phase === 'stopped' || phase === 'ended'
 }
 
-export function resumptionDraft(history: TreatmentWithHistory, today: string): ResumptionDraft {
-  const { view } = treatmentReadingOf(history, today)
-  const period = currentPeriod(history, view)
+export function resumptionDraft(treatment: TreatmentWithHistory, today: string): ResumptionDraft {
+  const { view } = treatmentReadingOf(treatment, today)
+  const period = currentPeriod(treatment, view)
   const durationDays =
     period.endsOn === null
       ? null
@@ -64,7 +64,7 @@ export function resumptionDraft(history: TreatmentWithHistory, today: string): R
     canResume: isResumablePhase(view.phase),
     startedOn: period.firstDueOn,
     endedOn: period.stoppedOn ?? period.endsOn,
-    earliestOn: resumptionEarliestOn(history, period),
+    earliestOn: resumptionEarliestOn(treatment, period),
     durationDays,
     endsOnFor: (firstDoseOn) =>
       durationDays === null || durationDays < 1 || !isCalendarDay(firstDoseOn)
@@ -74,8 +74,8 @@ export function resumptionDraft(history: TreatmentWithHistory, today: string): R
 }
 
 /** Le schéma de « Reprendre », la première prise après la dernière période. */
-export function treatmentResumptionSchemaFor(history: TreatmentWithHistory, today: string) {
-  const { period, earliestOn } = resumptionDraft(history, today)
+export function treatmentResumptionSchemaFor(treatment: TreatmentWithHistory, today: string) {
+  const { period, earliestOn } = resumptionDraft(treatment, today)
   return treatmentResumptionSchema
     .refine(({ firstDoseOn }) => firstDoseOn >= earliestOn, {
       path: ['firstDoseOn'],
@@ -86,7 +86,7 @@ export function treatmentResumptionSchemaFor(history: TreatmentWithHistory, toda
         { ...settingsOf(period), startsOn: today, firstDueOn: firstDoseOn },
         rhythm,
       )
-      if (firstDoseOn >= earliestOn && startsTooFarBack(history, settings, today)) {
+      if (firstDoseOn >= earliestOn && startsTooFarBack(treatment, settings, today)) {
         context.addIssue(tooOld())
       }
     })
@@ -94,14 +94,14 @@ export function treatmentResumptionSchemaFor(history: TreatmentWithHistory, toda
 
 /** Lève pour un traitement en cours ou une saisie refusée ; la période précédente n'est jamais touchée. */
 export function resumptionPlan(
-  history: TreatmentWithHistory,
+  treatment: TreatmentWithHistory,
   input: TreatmentResumptionInput,
   today: string,
   ids: PlanIds,
 ): TreatmentPlanWrite {
-  const { period, canResume } = resumptionDraft(history, today)
-  if (!canResume) throw new Error(`Traitement en cours, rien à reprendre : ${history.id}`)
-  const { firstDoseOn, ...rhythm } = treatmentResumptionSchemaFor(history, today).parse(input)
+  const { period, canResume } = resumptionDraft(treatment, today)
+  if (!canResume) throw new Error(`Traitement en cours, rien à reprendre : ${treatment.id}`)
+  const { firstDoseOn, ...rhythm } = treatmentResumptionSchemaFor(treatment, today).parse(input)
   return {
     treatment: null,
     period: {

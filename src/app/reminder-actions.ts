@@ -9,15 +9,28 @@ import { getTreatmentsRepository } from '@/features/treatments/repository/treatm
 import {
   createReminderActions,
   type ReminderActionsDependencies,
+  type ReminderFeedback,
 } from '@/features/treatments/service/reminder-actions.service'
 import { treatmentDosesService } from '@/features/treatments/service/treatment-doses.service'
 import { getVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
+import { confirmUndoable } from '@/shared/composables/use-guarded-gestures'
+import { showToast } from '@/shared/utils/toast'
+
+export function showReminderFeedback(feedback: ReminderFeedback | null): void {
+  if (feedback === null) return
+  if (feedback.kind === 'toast') {
+    showToast(feedback.message, { tone: feedback.tone })
+    return
+  }
+  const { kind: _kind, message, ...gesture } = feedback
+  confirmUndoable(i18n.global.t, message, gesture)
+}
 
 /** Branché sur la base locale et l'accueil ; Pinia doit être actif à la première action. */
 export function reminderActions(
   router: ReminderActionsDependencies['router'],
 ): (action: ReminderAction) => Promise<void> {
-  return createReminderActions({
+  const handle = createReminderActions({
     router,
     animals: getAnimalsRepository,
     treatments: getTreatmentsRepository,
@@ -27,6 +40,7 @@ export function reminderActions(
     t: i18n.global.t,
     today: todayIsoDate,
   })
+  return async (action) => showReminderFeedback(await handle(action))
 }
 
 /**

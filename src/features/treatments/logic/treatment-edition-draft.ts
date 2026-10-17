@@ -21,19 +21,21 @@ export type EditionDraft = Pick<EditionResolution, 'period' | 'change' | 'nextDo
  * les réglages enregistrés servent alors. Lève une `RangeError` quand l'historique est illisible.
  */
 export function editionDraft(
-  history: TreatmentWithHistory,
+  treatment: TreatmentWithHistory,
   rhythm: TreatmentRhythm | null,
   today: string,
   chosenOn: string | null = null,
   shiftsFollowing = true,
 ): EditionDraft {
   const { period, change, nextDose, pastDues, pastDuesNextDose } = resolve(
-    history,
+    treatment,
     rhythm,
     { chosenOn, shiftsFollowing },
     today,
   )
   const farthestMove =
-    change === 'locked' ? null : farthestMoveOf(treatmentReadingOf(history, today).view, period.id)
+    change === 'locked'
+      ? null
+      : farthestMoveOf(treatmentReadingOf(treatment, today).view, period.id)
   return { period, change, nextDose, farthestMove, pastDues, pastDuesNextDose }
 }

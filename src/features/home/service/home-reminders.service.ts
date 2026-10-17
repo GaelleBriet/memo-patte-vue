@@ -1,7 +1,7 @@
 import type { TreatmentType } from '@/features/treatments/schema/treatment.schema'
 import {
   getTreatmentsRepository,
-  type TreatmentsRepository,
+  type AllTreatmentsWithHistoryReader,
 } from '@/features/treatments/repository/treatments.repository'
 import {
   getVaccinationsRepository,
@@ -34,7 +34,7 @@ export type HomeReminderSource = HomeVaccinationSource | HomeTreatmentSource
 
 export function createHomeRemindersService(
   vaccinations: Provider<Pick<VaccinationsRepository, 'listAll'>>,
-  treatments: Provider<Pick<TreatmentsRepository, 'listAllWithHistory'>>,
+  treatments: Provider<AllTreatmentsWithHistoryReader>,
 ) {
   return {
     async listSources(): Promise<HomeReminderSource[]> {

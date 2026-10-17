@@ -42,7 +42,7 @@ function modification(loaded: TreatmentWithHistory = milbemax()) {
   mount(
     defineComponent({
       setup() {
-        form = useTreatmentEditionForm({ values, history, today: ref(TODAY) })
+        form = useTreatmentEditionForm({ values, treatment: history, today: ref(TODAY) })
         return () => null
       },
     }),
@@ -86,7 +86,7 @@ describe('useTreatmentEditionForm — prochaine dose', () => {
     mount(
       defineComponent({
         setup() {
-          form = useTreatmentEditionForm({ values, history, today: ref(TODAY) })
+          form = useTreatmentEditionForm({ values, treatment: history, today: ref(TODAY) })
           return () => null
         },
       }),

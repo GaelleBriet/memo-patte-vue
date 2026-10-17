@@ -21,12 +21,12 @@ export type TreatmentEditionResult =
 /** Ce que « Modifier » ferait de la saisie en cours ; lève quand l'historique est illisible. */
 export function editionDraftOf(
   values: TreatmentFormValues,
-  history: TreatmentWithHistory,
+  treatment: TreatmentWithHistory,
   today: string,
 ): EditionDraft {
   const chosenOn = values.nextDoseOn.trim()
   return editionDraft(
-    history,
+    treatment,
     rhythmOfValues(values),
     today,
     isCalendarDay(chosenOn) ? chosenOn : null,
@@ -43,15 +43,15 @@ export function editionDraftOf(
  */
 export function validateTreatmentEdition(
   values: TreatmentFormValues,
-  history: TreatmentWithHistory,
+  treatment: TreatmentWithHistory,
   today: string,
   pastDues: PastDuesChoice | null = null,
   draft: EditionDraft | null = null,
 ): TreatmentEditionResult {
-  const { nextDose, pastDuesNextDose } = draft ?? editionDraftOf(values, history, today)
+  const { nextDose, pastDuesNextDose } = draft ?? editionDraftOf(values, treatment, today)
   const typed = values.nextDoseOn.trim()
   const announcedOn = pastDues === null ? null : (pastDuesNextDose?.[pastDues] ?? null)
-  const result = treatmentEditionSchemaFor(history, today).safeParse({
+  const result = treatmentEditionSchemaFor(treatment, today).safeParse({
     name: values.name,
     type: values.type,
     ...rhythmInput(values),

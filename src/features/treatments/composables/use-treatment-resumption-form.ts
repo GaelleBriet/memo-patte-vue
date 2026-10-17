@@ -18,13 +18,13 @@ import { returnTo } from '@/shared/utils/return-to'
 
 type Inputs = {
   values: Ref<TreatmentFormValues>
-  history: Ref<TreatmentWithHistory | null>
+  treatment: Ref<TreatmentWithHistory | null>
   today: Readonly<Ref<string>>
   endsOnTouched: Readonly<Ref<boolean>>
 }
 
 /** « Reprendre » : une nouvelle période, sa date de fin qui reprend la durée de la précédente. */
-export function useTreatmentResumptionForm({ values, history, today, endsOnTouched }: Inputs) {
+export function useTreatmentResumptionForm({ values, treatment, today, endsOnTouched }: Inputs) {
   const router = useRouter()
   const animals = useAnimalsStore()
   const treatments = useTreatmentsStore()
@@ -34,7 +34,7 @@ export function useTreatmentResumptionForm({ values, history, today, endsOnTouch
   )
 
   const previous = computed(() =>
-    history.value === null ? null : resumptionDraft(history.value, today.value),
+    treatment.value === null ? null : resumptionDraft(treatment.value, today.value),
   )
   const canSave = computed(() => canSubmitResumption(values.value))
   const errorParams = computed(() => formErrorParams(null, previous.value, today.value))
@@ -48,8 +48,8 @@ export function useTreatmentResumptionForm({ values, history, today, endsOnTouch
   )
 
   function requireHistory(): TreatmentWithHistory {
-    if (history.value === null) throw new Error('Formulaire traitement ouvert sans traitement.')
-    return history.value
+    if (treatment.value === null) throw new Error('Formulaire traitement ouvert sans traitement.')
+    return treatment.value
   }
 
   /** Faux quand le traitement n'a rien à reprendre : retour à sa fiche. */
@@ -61,7 +61,7 @@ export function useTreatmentResumptionForm({ values, history, today, endsOnTouch
       return false
     }
     values.value = opened.values
-    history.value = loaded
+    treatment.value = loaded
     return true
   }
 

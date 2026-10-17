@@ -56,7 +56,7 @@ export class GestureRefusedError extends Error {
   }
 }
 
-type History = Pick<TreatmentWithHistory, 'id' | 'animalId' | 'doses'>
+type TreatmentToWrite = Pick<TreatmentWithHistory, 'id' | 'animalId' | 'doses'>
 
 const NONE = {
   alreadyGivenOn: null,
@@ -98,7 +98,7 @@ function movedOf(changes: GestureOutcome['changes']): DoseChange['moved'] {
 }
 
 function noteChange(
-  history: History,
+  treatment: TreatmentToWrite,
   reading: TreatmentReading,
   gesture: NoteGesture,
   heldBy: string | undefined,
@@ -112,7 +112,7 @@ function noteChange(
   const wasGiven = reading.view.dueState(gesture.due) === 'given'
   return {
     ...NONE,
-    writes: doseWritesOf(history, outcome.changes, newId),
+    writes: doseWritesOf(treatment, outcome.changes, newId),
     lostToEnd: outcome.lostToEnd,
     shiftKept: gesture.status === 'missed' && wasGiven && keepsShift(reading, gesture.due),
     revealed: gesture.status === 'given' ? revealedBy(reading, outcome) : null,
@@ -132,7 +132,7 @@ function stateOf(view: TreatmentView, dues: readonly Due[]): Map<string, DueStat
 
 // Chaque dose a sa ligne, à son jour : une seule lecture du carnet pour tout le lot, sinon un geste après l'autre.
 function logChange(
-  history: History,
+  treatment: TreatmentToWrite,
   reading: TreatmentReading,
   gestures: readonly NoteGesture[],
   newId: () => string,
@@ -150,7 +150,7 @@ function logChange(
   }
   if (!gestures.every(isOnItsDay)) {
     const changes = gestures.flatMap((gesture) => played(reading, gesture).changes)
-    return { ...NONE, writes: doseWritesOf(history, changes, newId) }
+    return { ...NONE, writes: doseWritesOf(treatment, changes, newId) }
   }
   const changes = gestures.map(({ due, status }): LineChange => ({
     action: 'create',
@@ -163,21 +163,21 @@ function logChange(
       targetOn: null,
     },
   }))
-  return { ...NONE, writes: doseWritesOf(history, changes, newId) }
+  return { ...NONE, writes: doseWritesOf(treatment, changes, newId) }
 }
 
 /** Écritures d'un geste sur les prises, jouées par le moteur ; lève quand il le refuse. */
 export function doseChange(
-  history: History,
+  treatment: TreatmentToWrite,
   reading: TreatmentReading,
   action: DoseAction,
   newId: () => string,
 ): DoseChange {
   switch (action.kind) {
     case 'note':
-      return noteChange(history, reading, action.gesture, action.heldBy, newId)
+      return noteChange(treatment, reading, action.gesture, action.heldBy, newId)
     case 'log':
-      return logChange(history, reading, action.gestures, newId)
+      return logChange(treatment, reading, action.gestures, newId)
     case 'remove': {
       const line = reading.input.lines.find(({ id }) => id === action.lineId)
       if (line === undefined) throw new Error(`Prise introuvable : ${action.lineId}`)
@@ -186,7 +186,7 @@ export function doseChange(
       const after = { input, view: treatmentView(input) }
       return {
         ...NONE,
-        writes: doseWritesOf(history, outcome.changes, newId),
+        writes: doseWritesOf(treatment, outcome.changes, newId),
         shiftKept: line.status !== 'extra' && line.status !== 'shift' && keepsShift(after, line),
       }
     }
@@ -195,7 +195,7 @@ export function doseChange(
       const outcome = played(reading, { kind: 'redate', lineId, givenOn, shiftsFollowing })
       return {
         ...NONE,
-        writes: doseWritesOf(history, outcome.changes, newId),
+        writes: doseWritesOf(treatment, outcome.changes, newId),
         lostToEnd: outcome.lostToEnd,
         followed: outcome.followed,
         revealed: revealedBy(reading, outcome),
@@ -210,7 +210,7 @@ export function doseChange(
       })
       return {
         ...NONE,
-        writes: doseWritesOf(history, outcome.changes, newId),
+        writes: doseWritesOf(treatment, outcome.changes, newId),
         lostToEnd: outcome.lostToEnd,
         moved: movedOf(outcome.changes),
       }

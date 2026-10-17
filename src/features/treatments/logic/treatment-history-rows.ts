@@ -50,6 +50,11 @@ export type Entry = { dose: NewTreatmentDose; idle: boolean }
 
 export type RowContext = { reading: TreatmentReading; today: string }
 
+function isOnCalendar({ reading }: RowContext, dose: NewTreatmentDose): boolean {
+  const state = reading.view.dueState({ dueOn: dose.dueOn, dueTime: dose.dueTime })
+  return state !== 'moved' && state !== 'removed'
+}
+
 function dueTitle(t: Translate, dose: NewTreatmentDose, period: TreatmentPeriodRecord): string {
   const date = formatLongDate(dose.dueOn)
   return isSeveralTimesADay(period) && dose.dueTime !== null
@@ -97,6 +102,7 @@ export function missedTitle(
 
 export function missedRow(
   t: Translate,
+  context: RowContext,
   dose: NewTreatmentDose,
   period: TreatmentPeriodRecord,
 ): DoseRow {
@@ -104,7 +110,7 @@ export function missedRow(
     dose,
     title: missedTitle(t, [dose], period),
     optionsLabel: doseOptionsLabel(t, dose, period),
-    actions: ['mark-given', 'remove'],
+    actions: isOnCalendar(context, dose) ? ['mark-given', 'remove'] : ['remove'],
   }
 }
 
@@ -211,6 +217,7 @@ function idleLine(
 
 export function givenLine(
   t: Translate,
+  context: RowContext,
   dose: NewTreatmentDose,
   period: TreatmentPeriodRecord,
   isLast: boolean,
@@ -225,7 +232,9 @@ export function givenLine(
         : t('treatments.history.givenOn', { date: formatLongDate(dose.givenOn) }),
     isLast,
     optionsLabel: doseOptionsLabel(t, dose, period),
-    actions: ['change-date', 'mark-missed', 'remove'],
+    actions: isOnCalendar(context, dose)
+      ? ['change-date', 'mark-missed', 'remove']
+      : ['change-date', 'remove'],
   }
 }
 
@@ -257,7 +266,7 @@ export function lineOf(
     case 'extra':
       return extraLine(t, dose)
     case 'given':
-      return givenLine(t, dose, period, dose.id === lastGivenId)
+      return givenLine(t, context, dose, period, dose.id === lastGivenId)
     case 'missed':
       return null
   }

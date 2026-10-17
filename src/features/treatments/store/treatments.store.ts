@@ -25,7 +25,11 @@ import type { Treatment } from '../schema/treatment.schema'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { DoseWrite } from '../schema/treatment-dose.schema'
 import type { DoseAction, NoteGesture } from '../logic/treatment-dose-change'
-import type { TreatmentsRepository as FullTreatmentsRepository } from '../repository/treatments.repository'
+import type {
+  TreatmentRemover,
+  TreatmentsRepository as FullTreatmentsRepository,
+  TreatmentWithHistoryReader,
+} from '../repository/treatments.repository'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import { track } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
@@ -34,8 +38,10 @@ import { recordUsageSignal } from '@/core/usage/usage-signals'
 
 type TreatmentsRepository = Pick<
   FullTreatmentsRepository,
-  'getById' | 'remove' | 'restore' | 'listDoses' | 'getWithHistory' | 'listWithHistoryByAnimal'
->
+  'getById' | 'listDoses' | 'listWithHistoryByAnimal'
+> &
+  TreatmentWithHistoryReader &
+  TreatmentRemover
 
 export type TreatmentsRepositoryProvider = () =>
   TreatmentsRepository | Promise<TreatmentsRepository>

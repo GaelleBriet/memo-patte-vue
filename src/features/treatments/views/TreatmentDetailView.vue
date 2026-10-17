@@ -104,7 +104,7 @@ const lessPrecise = computed(() =>
     ? lessPreciseReminder(t, treatment.value, reading.value.view, exactReminders.status.value)
     : null,
 )
-const history = computed(() =>
+const doseHistory = computed(() =>
   treatment.value && reading.value
     ? treatmentHistory(t, treatment.value, reading.value, today.value)
     : null,
@@ -169,7 +169,7 @@ function onLineAction(row: DoseRow, choice: DoseLineAction, bounds: MoveBounds |
   })
   if (change === null) return
   const box = dateChangeBox(t, row.dose, {
-    history: treatment.value,
+    treatment: treatment.value,
     reading: reading.value,
     today: today.value,
   })
@@ -240,7 +240,7 @@ onMounted(() => {
     </template>
 
     <div class="treatment-detail__content">
-      <template v-if="treatment && card && history && actions">
+      <template v-if="treatment && card && doseHistory && actions">
         <TreatmentDoseCard
           ref="doseCardRef"
           :card="card"
@@ -259,7 +259,7 @@ onMounted(() => {
           @act="onUnloggedAction"
         />
 
-        <TreatmentHistory :history="history" @select="onLineAction" />
+        <TreatmentHistory :dose-history="doseHistory" @select="onLineAction" />
 
         <button
           v-if="actions.canStop"
@@ -293,7 +293,7 @@ onMounted(() => {
       :name="named.name"
       :animal="named.animal"
       :icon="reminderIcon('treatment', treatment.type)"
-      :history="treatment"
+      :treatment="treatment"
       :reading="reading"
       :today="today"
       :min="animal?.birthDate ?? null"
@@ -307,7 +307,7 @@ onMounted(() => {
       :name="named.name"
       :animal="named.animal"
       :icon="reminderIcon('treatment', treatment.type)"
-      :history="treatment"
+      :treatment="treatment"
       :reading="reading"
       :today="today"
       :due="confirming"
