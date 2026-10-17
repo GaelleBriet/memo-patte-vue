@@ -188,12 +188,9 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       handed.add(prior.id)
     }
     if (index > 0 && (ended || !kept || (!continued && replaces))) rhythmFrom = setting.startsOn
-    if (continued) {
-      const read = later(setting.startsOn, plusDays(rhythmStartFloor, 1))
-      for (const day of skippedDays(grid, setting.frequency, read, grid.floor, last)) {
-        skipped.add(day)
-      }
-    }
+    const skip = continued
+      ? { from: later(setting.startsOn, plusDays(rhythmStartFloor, 1)), to: grid.floor }
+      : null
     // R3 : écrit sous un réglage d'avant un changement de fréquence, un décalage est dépassé.
     const turns = lines.shifts.filter(
       (shift) =>
@@ -212,6 +209,11 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     for (const turn of [...turns, null]) {
       if (turn !== null && !lands(turn)) continue
       const to = turn === null || turn.dueOn >= last ? last : turn.dueOn
+      // R4, #847 : les journées laissées avant une date posée plus loin, telles que la fiche les montrait.
+      if (skip !== null) {
+        const read = later(later(from, skip.from), plusDays(grid.since, 1))
+        for (const day of skippedDays(grid, setting.frequency, read, skip.to, to)) skipped.add(day)
+      }
       const start = later(from, plusDays(grid.floor, 1))
       for (const day of gridDaysAround(grid.origin, setting.frequency, start, to, gap)) {
         days.set(day, journeyOn(day, setting))
