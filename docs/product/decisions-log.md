@@ -2867,5 +2867,5 @@ prise de l'autre appareil, grisée** (spec `traitements.md` TR-25, §10, §11 ; 
   dose oubliée (un seul geste au moteur) : l'oubli venu de l'autre téléphone reste visible et
   grisé. Sur un seul téléphone, rien ne change. « Modifier » garde la décision du 14 octobre (#839) ;
   un oubli ne redevient pas « donné » depuis la feuille ou une notification (décision du 2 octobre).
-- Reste à trancher par Gaelle : le libellé « remplacée » voulu pour ces lignes grisées, texte
-  nouveau non codé ; d'ici là, elles disent « · sans effet ».
+- Libellé : « · sans effet » partout, une ligne remplacée par un oubli comprise ; aucun texte
+  nouveau FR/EN (décision de Gaelle, 17 octobre 2026).

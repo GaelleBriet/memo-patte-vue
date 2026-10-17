@@ -1568,12 +1568,9 @@ Lectures à confirmer par Gaelle, ouvertes le 14 octobre 2026 avec #845 (TR-24, 
   marquée oubliée sur deux appareils, « Fait à une autre date » le 17 sur B : « Donnée le 17 », et
   l'oubli de A reste visible et grisé.
 
-Question ouverte le 17 octobre 2026 avec #841, pour Gaelle :
-
-- **Le libellé d'une ligne remplacée par une ligne plus récente de la même dose** (deux appareils).
-  La décision du 17 octobre la veut « remplacée », et « · sans effet » garde son sens d'une ligne qui
-  n'a plus d'échéance ; c'est un texte nouveau (français, anglais, glossaire), qui n'est pas codé :
-  la ligne grisée dit encore « · sans effet ».
+Décidé le 17 octobre 2026 avec #841 : **le libellé d'une ligne remplacée par une ligne plus récente
+de la même dose** (deux appareils) reste « · sans effet », comme toute ligne grisée ; aucun texte
+nouveau (décision de Gaelle, transmise par la session d'analyse du moteur).
 
 Principe du 17 octobre 2026 (§10), ouvert le 17 octobre avec #847 : une réécriture de réglage ne
 retire que les doses non données qu'elle visait ; une prise donnée ou un report plus récent garde
