@@ -1,5 +1,4 @@
 import { dayCoverage } from './calendar-coverage'
-import { withoutAnswered } from './answer'
 import { keepGivenNotes, keepSkippedDays, noteEffects } from './calendar-notes'
 import { hoursOf, keyOf, plusDays, sameHours } from './grid'
 import { journeys, type Gap } from './journeys'
@@ -72,7 +71,6 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   const fallen = new Set<Day>()
   const moved = new Map<string, Line>()
   const arrived = new Map<Day, Hour[]>()
-  const arrivedBy = new Map<string, Line>()
   const waiting = [...lines.reports]
   while (waiting.length > 0) {
     const ready = waiting.findIndex(
@@ -182,7 +180,6 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     const under = chosen ?? source
     const own = sameHours(arrival, under) ? arrival : under
     const arriving = chosen ? hoursOf(chosen.times) : bringing
-    for (const hour of arriving) arrivedBy.set(keyOf(targetOn!, hour), report)
     const day = into.get(targetOn!) ?? { setting: own, hours: [] }
     // R7, R9.2 : un nouveau rythme qui part du jour d'arrivée d'un report lui laisse ses seules heures.
     if (openings.delete(targetOn!)) {
@@ -207,7 +204,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     })
   })
 
-  const built: Slot[] = []
+  const slots: Slot[] = []
   for (const [day, journey] of [...days].sort(([a], [b]) => a.localeCompare(b))) {
     if (journey.hours.length > 0) fallen.add(day)
     const covered = coveredOn(day, journey)
@@ -216,10 +213,9 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
       const exact =
         note !== null && note.dueTime === hour && note.dueOn === day && !isBorrowed.has(note)
       const due = { settingId: journey.setting.id, dueOn: day, dueTime: hour }
-      built.push({ due, key: keyOf(day, hour), coveredBy: note, exact })
+      slots.push({ due, key: keyOf(day, hour), coveredBy: note, exact })
     }
   }
-  const slots = withoutAnswered(built, arrivedBy, span.settingAt, effects)
   const unread = [...journey.skipped].filter((day) => !days.has(day) && !left.has(day))
   keepSkippedDays(lines.notes, new Set(unread), slots, held)
   keepGivenNotes(lines.notes, slots, held, { yielded, closedFrom: span.closedFrom })

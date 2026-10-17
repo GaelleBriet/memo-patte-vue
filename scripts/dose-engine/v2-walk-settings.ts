@@ -1,5 +1,6 @@
 import {
   newSettings,
+  rewritesCalendar,
   treatmentView,
   type Frequency,
   type Line,
@@ -21,19 +22,6 @@ export type SettingsWalk = {
 
 const MAX_SETTINGS = 5
 
-const CALENDAR = [
-  'startsOn',
-  'firstDueOn',
-  'frequency',
-  'times',
-  'gridOriginOn',
-  'firstDueChosen',
-  'pastDosesStayUnlogged',
-] as const
-
-const calendarOf = (setting: Pick<Setting, (typeof CALENDAR)[number]>) =>
-  JSON.stringify(CALENDAR.map((field) => setting[field]))
-
 /**
  * Le carnet une fois le réglage écrit, comme le repository : un identifiant et un horodatage neufs ;
  * réécrit, le réglage prend une date d'écriture quand son calendrier change (v14, #867).
@@ -46,8 +34,7 @@ export function settingsWritten(walk: SettingsWalk, plan: SettingsPlan): Treatme
     const rewritten = settings.map((setting) => {
       if (setting.id !== plan.id) return setting
       const next = { ...setting, ...plan.setting }
-      const writtenOn = walk.input.today
-      return calendarOf(next) === calendarOf(setting) ? next : { ...next, updatedAt: at, writtenOn }
+      return rewritesCalendar(setting, next) ? { ...next, updatedAt: at } : next
     })
     return { ...walk.input, settings: rewritten, lines }
   }

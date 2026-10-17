@@ -12,7 +12,6 @@ import {
   type Grid,
 } from './reference-grid'
 import {
-  answeredAwayOn,
   coverages,
   departureAfterRewrite,
   lateDaysOf,
@@ -202,7 +201,6 @@ export function calendarOf(
   // R7 : un report emporte son heure et les suivantes sans prise ; ceux qui arrivent sur sa journée d'abord.
   const fallen = new Set<string>()
   const arrivedHours = new Map<string, (string | null)[]>()
-  const arrivedBy = new Map<string, ReferenceLine>()
   const waiting = [...reports]
   while (waiting.length > 0) {
     const ready = waiting.findIndex(
@@ -262,7 +260,6 @@ export function calendarOf(
     const day = arrivedOn(into.get(targetOn!), outcome, arrival, { opensRhythm, chosen })
     into.set(targetOn!, day)
     const received = chosen ? hoursOf(chosen) : outcome.carried
-    received.forEach((hour) => arrivedBy.set(keyOf(targetOn!, hour), report!))
     arrivedHours.set(targetOn!, [...(arrivedHours.get(targetOn!) ?? []), ...received])
   }
   settle()
@@ -282,13 +279,8 @@ export function calendarOf(
   // TR-9 : la date choisie remplace la dose du premier jour, ou de la dernière journée arrivée avant lui.
   const lateDays = lateDaysOf(replaced, fallen)
   replaced.filter(({ onDueDay }) => onDueDay).forEach(({ to }) => fallen.add(to))
-  // #873 : « Elles n'étaient pas à donner » retire les doses arrivées sans prise qu'elle a listées.
-  const listed = ({ key, day }: ReferenceDue) => {
-    const [report, setting] = [arrivedBy.get(key), settingAt(day)]
-    return report !== undefined && setting !== undefined && answeredAwayOn(setting, report, day)
-  }
   const pending = dues
-    .filter((due) => !due.covered && !lateDays.includes(due.day) && !listed(due))
+    .filter(({ covered, day }) => !covered && !lateDays.includes(day))
     .map(({ key }) => key)
   return { pending, fallen, rhythmFrom }
 }
