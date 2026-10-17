@@ -11,21 +11,21 @@ import { applied, settingsApplied } from '@/shared/domain/dose-calendar'
 
 /** Lève une `ZodError` pour une saisie refusée : rien n'est alors à écrire. */
 export function editionPlan(
-  history: TreatmentWithHistory,
+  treatment: TreatmentWithHistory,
   input: TreatmentEditionInput,
   today: string,
   ids: PlanIds,
 ): TreatmentPlanWrite {
-  const data = treatmentEditionSchemaFor(history, today).parse(input)
+  const data = treatmentEditionSchemaFor(treatment, today).parse(input)
   const { period, change, plan, move } = resolve(
-    history,
+    treatment,
     data,
     { chosenOn: data.nextDoseOn, shiftsFollowing: data.shiftsFollowing ?? true },
     today,
     data.pastDues,
   )
-  const treatment = { name: data.name, type: data.type }
-  if (change === 'locked') return { treatment, period: null, doses: [] }
+  const identity = { name: data.name, type: data.type }
+  if (change === 'locked') return { treatment: identity, period: null, doses: [] }
 
   const settings = withRhythm(settingsOf(period), data)
   const written =
@@ -42,10 +42,10 @@ export function editionPlan(
             pastDosesStayUnlogged: period.pastDosesStayUnlogged,
           }
   const changes = [...(move?.changes ?? []), ...(plan?.lines ?? [])]
-  const doses = plannedDoseWritesOf(history, changes, ids.newId)
-  const result: TreatmentPlanWrite = { treatment, period: written, doses }
+  const doses = plannedDoseWritesOf(treatment, changes, ids.newId)
+  const result: TreatmentPlanWrite = { treatment: identity, period: written, doses }
   if (written !== null || doses.length > 0) {
-    const carnet = treatmentReadingOf(history, today).input
+    const carnet = treatmentReadingOf(treatment, today).input
     const settled = written === null ? carnet : settingsApplied(carnet, settingsPlanOf(written))
     carnetReadingOf(applied(settled, changes))
   }

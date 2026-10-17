@@ -46,7 +46,12 @@ function reprise() {
   mount(
     defineComponent({
       setup() {
-        form = useTreatmentResumptionForm({ values, history, today: ref(TODAY), endsOnTouched })
+        form = useTreatmentResumptionForm({
+          values,
+          treatment: history,
+          today: ref(TODAY),
+          endsOnTouched,
+        })
         return () => null
       },
     }),

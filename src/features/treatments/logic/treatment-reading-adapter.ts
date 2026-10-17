@@ -3,7 +3,7 @@ import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { TreatmentView, TreatmentViewInput } from '@/shared/domain/dose-calendar'
 import { readCarnet, readTreatment, type TreatmentReading } from '@/shared/domain/treatment-reading'
 
-type History = Pick<TreatmentWithHistory, 'periods' | 'doses'>
+type TreatmentToRead = Pick<TreatmentWithHistory, 'periods' | 'doses'>
 
 function readable(reading: TreatmentReading | null): TreatmentReading {
   if (reading === null) throw new RangeError('Traitement illisible')
@@ -11,7 +11,7 @@ function readable(reading: TreatmentReading | null): TreatmentReading {
 }
 
 /** Lève une `RangeError` quand une période ou une prise est illisible. */
-export function treatmentReadingOf(treatment: History, today: string): TreatmentReading {
+export function treatmentReadingOf(treatment: TreatmentToRead, today: string): TreatmentReading {
   return readable(readTreatment(treatment, today))
 }
 
@@ -22,7 +22,7 @@ export function carnetReadingOf(input: TreatmentViewInput): TreatmentReading {
 
 /** `null` sans traitement, ou quand le moteur d'échéances le refuse comme illisible. */
 export function readableReadingOf(
-  treatment: History | null,
+  treatment: TreatmentToRead | null,
   today: string,
 ): TreatmentReading | null {
   return treatment === null ? null : readTreatment(treatment, today)

@@ -69,18 +69,18 @@ export function changesRhythm(period: TreatmentPeriodRecord, rhythm: TreatmentRh
 }
 
 export function currentPeriod(
-  history: TreatmentWithHistory,
+  treatment: TreatmentWithHistory,
   view: Pick<TreatmentView, 'currentSetting'>,
 ): TreatmentPeriodRecord {
-  const period = currentPeriodOf(history, view)
-  if (period === null) throw new Error(`Traitement sans période : ${history.id}`)
+  const period = currentPeriodOf(treatment, view)
+  if (period === null) throw new Error(`Traitement sans période : ${treatment.id}`)
   return period
 }
 
-export function lastNotedDueOn(history: TreatmentWithHistory, periodId?: string): string | null {
+export function lastNotedDueOn(treatment: TreatmentWithHistory, periodId?: string): string | null {
   return (
     latestOf(
-      history.doses
+      treatment.doses
         .filter(
           (dose) =>
             (dose.status === 'given' || dose.status === 'missed') &&
@@ -119,13 +119,13 @@ export function draftPeriod(settings: TreatmentPeriodSettings, at: string): Trea
 
 // Une première prise trop ancienne pour le rythme donnerait un calendrier que le moteur refuse de lire.
 export function startsTooFarBack(
-  history: Pick<TreatmentWithHistory, 'periods' | 'doses'>,
+  treatment: Pick<TreatmentWithHistory, 'periods' | 'doses'>,
   settings: TreatmentPeriodSettings,
   today: string,
 ): boolean {
   if (!treatmentPeriodSettingsSchema.safeParse(settings).success) return false
   const at = `${today}T23:59:59.999Z`
-  const drafted = { ...history, periods: [...history.periods, draftPeriod(settings, at)] }
+  const drafted = { ...treatment, periods: [...treatment.periods, draftPeriod(settings, at)] }
   return readTreatment(drafted, today) === null
 }
 

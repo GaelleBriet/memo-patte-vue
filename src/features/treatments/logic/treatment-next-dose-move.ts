@@ -41,7 +41,7 @@ export function hasDoseLine(view: Pick<TreatmentView, 'history'>, settingId: str
 
 type Moved = {
   period: TreatmentPeriodRecord
-  history: TreatmentWithHistory
+  treatment: TreatmentWithHistory
   reading: TreatmentReading
   due: Due
   next: Pick<TreatmentRhythm, 'endsOn'>
@@ -57,7 +57,7 @@ const movesALine = ({ changes }: GestureOutcome): boolean =>
 /** TR-9 : seule la date de « Prochaine dose » change, la dose du moment est déplacée (R7, Q17, Q18, Q21). */
 export function resolveMoved({
   period,
-  history,
+  treatment,
   reading,
   due,
   next,
@@ -106,7 +106,7 @@ export function resolveMoved({
       help,
       shift:
         typed !== null && offered
-          ? { due, chosenOn: typed, carnet: { history, reading, today } }
+          ? { due, chosenOn: typed, carnet: { treatment, reading, today } }
           : null,
       shiftInitial: !onlyAlone && (report === undefined || keepsShift(reading, report)),
     },

@@ -15,11 +15,11 @@ export type TreatmentResumptionResult = TreatmentFormResult<
 
 export function validateTreatmentResumption(
   values: TreatmentFormValues,
-  history: TreatmentWithHistory,
+  treatment: TreatmentWithHistory,
   today: string,
 ): TreatmentResumptionResult {
   return treatmentFormResultOf(
-    treatmentResumptionSchemaFor(history, today).safeParse({
+    treatmentResumptionSchemaFor(treatment, today).safeParse({
       firstDoseOn: values.firstDoseOn.trim(),
       ...rhythmInput(values),
     }),

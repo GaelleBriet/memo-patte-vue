@@ -99,7 +99,7 @@ describe('buildDemoCarnet', () => {
   it('donne à Milo un CHPPi de trois injections, les plus anciennes avant la dernière (F7)', () => {
     const chppi = find('Milo').vaccinations.find(({ name }) => name === 'CHPPi')
 
-    expect(chppi?.history).toEqual([
+    expect(chppi?.injections).toEqual([
       { injectedOn: '2024-07-30', nextDueDate: '2025-07-30' },
       { injectedOn: '2024-06-30', nextDueDate: '2024-07-30' },
     ])
@@ -259,7 +259,7 @@ describe('buildDemoCarnet', () => {
     for (const { vaccinations, treatments } of buildDemoCarnet(TODAY)) {
       for (const vaccination of vaccinations) {
         const head = vaccination.lastInjectionDate
-        for (const { injectedOn } of vaccination.history ?? []) {
+        for (const { injectedOn } of vaccination.injections ?? []) {
           expect(head !== null && head !== undefined && injectedOn < head).toBe(true)
         }
       }

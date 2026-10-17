@@ -64,7 +64,7 @@ create function pg_temp.carnet_of(account uuid) returns text language sql as $fn
     created_at, updated_at, settings_written_at, created_by_device, updated_by_device, server_updated_at)
   values ('%1$s', '00000000-0000-4000-8000-0000000000a6',
     '00000000-0000-4000-8000-0000000000a5', '00000000-0000-4000-8000-0000000000a1', '2026-01-01',
-    '2026-01-01', '2026-01-01', '2026-01-10', 1, 'day', '08:00,20:00', 0.5, 'tablet', 15, now(), now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', '2001-01-01T00:00:00Z');
+    '2026-01-01', '2026-01-01', '2026-01-10', 1, 'day', '08:00,20:00', 0.5, 'tablet', 15, now(), now(), now() + interval '3 days', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', '2001-01-01T00:00:00Z');
   insert into public.treatment_dose (user_id, id, period_id, treatment_id, animal_id, due_on, due_time,
     given_on, status, target_on, created_at, updated_at, created_by_device, updated_by_device, server_updated_at)
   values ('%1$s', '00000000-0000-4000-8000-0000000000a7',
@@ -152,6 +152,13 @@ select ok(not has_function_privilege('anon', 'public.has_active_plus()', 'EXECUT
   'anon n''appelle pas has_active_plus');
 select ok(not has_function_privilege('authenticated', 'public.clamp_sync_timestamps()', 'EXECUTE'),
   'clamp_sync_timestamps n''est pas appelable en RPC');
+select ok(
+  coalesce((select not prosecdef and proconfig = array['search_path=""']
+     and not has_function_privilege('authenticated', oid, 'EXECUTE')
+     and not has_function_privilege('anon', oid, 'EXECUTE')
+   from pg_proc
+   where proname = 'clamp_settings_written_at' and pronamespace = 'public'::regnamespace), false),
+  'clamp_settings_written_at : security invoker, search_path fixé, pas appelable en RPC');
 
 select ok(
   (select relrowsecurity and relforcerowsecurity from pg_class
@@ -190,6 +197,22 @@ from mirror;
 
 select ok((select updated_at <= now() from public.animal),
   'le serveur écrête un updated_at trop loin dans le futur');
+select ok((select settings_written_at <= now() from public.treatment_period),
+  'le serveur écrête une date d''écriture des réglages trop loin dans le futur');
+
+select lives_ok($$
+  update public.treatment_period set settings_written_at = now() + interval '1 hour', updated_at = now()
+  where id = '00000000-0000-4000-8000-0000000000a6'
+$$, 'il réécrit la date d''écriture des réglages');
+select is((select settings_written_at from public.treatment_period), now() + interval '1 hour',
+  'une date d''écriture des réglages à moins de 24 h dans le futur est gardée');
+
+select lives_ok($$
+  update public.treatment_period set settings_written_at = now() + interval '25 hours', updated_at = now()
+  where id = '00000000-0000-4000-8000-0000000000a6'
+$$, 'il réécrit la date d''écriture des réglages loin dans le futur');
+select is((select settings_written_at from public.treatment_period), now(),
+  'une date d''écriture des réglages réécrite trop loin dans le futur est écrêtée');
 
 select lives_ok($$
   update public.treatment_period set stopped_on = '2026-01-05', updated_at = now()
@@ -385,6 +408,8 @@ select pg_temp.as_owner();
 alter table public.treatment_period rename column grid_origin_on to reference_on;
 alter table public.treatment_period alter column reference_on set not null;
 alter table public.treatment_dose rename column target_on to next_due_date;
+-- En v11, toute prise portait une date ; la prise oubliée du carnet de d n'en a plus depuis la v12.
+update public.treatment_dose set next_due_date = due_on where next_due_date is null;
 alter table public.treatment_dose alter column next_due_date set not null;
 
 insert into public.device (user_id, id, installed_at, created_at, updated_at)
@@ -467,6 +492,9 @@ select is(
 select is(
   (select grid_origin_on from public.treatment_period where id = '00000000-0000-4000-8000-0000000000e3'),
   null::date, 'réglage de même origine que le précédent : origine vide (hérite)');
+select is(
+  (select target_on from public.treatment_dose where id = '00000000-0000-4000-8000-0000000000a7'),
+  null::date, 'prise oubliée : sa date de la v11 est effacée');
 
 -- Faits de la migration v13 rejoués : colonnes retirées, puis le corps de la migration.
 alter table public.treatment_period

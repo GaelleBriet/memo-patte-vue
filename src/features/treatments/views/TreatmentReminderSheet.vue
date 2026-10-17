@@ -46,7 +46,7 @@ const treatments = useTreatmentsStore()
 const { today, refresh: refreshToday } = useToday()
 const gestures = useTreatmentGestures(() => emit('changed'))
 
-const history = ref<TreatmentWithHistory | null>(null)
+const treatment = ref<TreatmentWithHistory | null>(null)
 const isBusy = gestures.isBusy
 const isStopDialogOpen = ref(false)
 const isOtherDateOpen = ref(false)
@@ -54,13 +54,14 @@ const isConfirmOpen = ref(false)
 const confirming = ref<Due | null>(null)
 
 const isShown = computed({
-  get: () => open.value && history.value !== null && !isOtherDateOpen.value && !isConfirmOpen.value,
+  get: () =>
+    open.value && treatment.value !== null && !isOtherDateOpen.value && !isConfirmOpen.value,
   set: (shown) => {
     if (!shown) open.value = false
   },
 })
 
-const reading = computed(() => readableReadingOf(history.value, today.value))
+const reading = computed(() => readableReadingOf(treatment.value, today.value))
 
 const {
   animal,
@@ -76,11 +77,13 @@ const {
   onUnloggedAction,
   onStopAction,
   confirmChosenDays,
-} = useTreatmentDoseFlow({ treatment: history, reading, today }, gestures, {
+} = useTreatmentDoseFlow({ treatment, reading, today }, gestures, {
   settled: () => (open.value = false),
 })
 
-const icon = computed(() => (history.value ? reminderIcon('treatment', history.value.type) : ''))
+const icon = computed(() =>
+  treatment.value ? reminderIcon('treatment', treatment.value.type) : '',
+)
 const isUnloggedSheet = computed(() => props.due === 'unlogged' && unlogged.value !== null)
 const doseDue = computed<NotifiedDue | null>(() => {
   if (props.due !== null && props.due !== 'unlogged') return props.due
@@ -88,11 +91,11 @@ const doseDue = computed<NotifiedDue | null>(() => {
   return current === undefined ? null : { dueOn: current.dueOn, dueTime: current.dueTime }
 })
 const texts = computed(() =>
-  history.value
+  treatment.value
     ? treatmentSheetTexts(
         t,
-        history.value,
-        sheetPeriod(history.value, reading.value?.view ?? null, props.due),
+        treatment.value,
+        sheetPeriod(treatment.value, reading.value?.view ?? null, props.due),
         isUnloggedSheet.value ? 'unlogged' : doseDue.value,
         { animal: named.value.animal, today: today.value },
       )
@@ -101,12 +104,12 @@ const texts = computed(() =>
 const canStop = computed(() => reading.value !== null && detailActions(reading.value.view).canStop)
 const otherDateMin = computed(() => {
   const birth = animal.value?.birthDate ?? null
-  if (!history.value || !reading.value || !doseDue.value) return birth
+  if (!treatment.value || !reading.value || !doseDue.value) return birth
   return sheetOtherDateMin(reading.value.view, doseDue.value, birth)
 })
 
 const actions = useTreatmentSheetActions(
-  { treatmentId: computed(() => history.value?.id ?? null), reading, doseDue, today, named },
+  { treatmentId: computed(() => treatment.value?.id ?? null), reading, doseDue, today, named },
   {
     note: (gesture) => void note(gesture),
     confirm: (due) => {
@@ -127,11 +130,11 @@ watch(
       return
     }
     refreshToday()
-    history.value = null
+    treatment.value = null
     if (!animals.hasLoaded) void animals.load()
     const id = props.treatmentId
-    history.value = id ? await treatments.getWithHistory(id).catch(() => null) : null
-    if (history.value === null && open.value) {
+    treatment.value = id ? await treatments.getWithHistory(id).catch(() => null) : null
+    if (treatment.value === null && open.value) {
       open.value = false
       showToast(t('treatments.form.errors.load'), { tone: 'error' })
     }
@@ -152,7 +155,7 @@ function onChildModel(shown: boolean): void {
 }
 
 function edit(): void {
-  if (history.value !== null) void actions.edit(history.value.id, props.due)
+  if (treatment.value !== null) void actions.edit(treatment.value.id, props.due)
 }
 </script>
 
@@ -166,7 +169,7 @@ function edit(): void {
     :icon="icon || null"
     :persistent="isBusy"
   >
-    <template v-if="history && texts">
+    <template v-if="treatment && texts">
       <TreatmentUnloggedPrompt
         v-if="isUnloggedSheet && unlogged"
         class="treatment-reminder-sheet__unlogged"
@@ -211,12 +214,12 @@ function edit(): void {
   </BottomSheet>
 
   <TreatmentOtherDateSheet
-    v-if="history && reading"
+    v-if="treatment && reading"
     :model-value="isOtherDateOpen"
     :name="named.name"
     :animal="named.animal"
     :icon="icon"
-    :history="history"
+    :treatment="treatment"
     :reading="reading"
     :today="today"
     :min="otherDateMin"
@@ -229,12 +232,12 @@ function edit(): void {
   />
 
   <TreatmentDoneConfirm
-    v-if="history && reading"
+    v-if="treatment && reading"
     :model-value="isConfirmOpen"
     :name="named.name"
     :animal="named.animal"
     :icon="icon"
-    :history="history"
+    :treatment="treatment"
     :reading="reading"
     :today="today"
     :due="confirming"

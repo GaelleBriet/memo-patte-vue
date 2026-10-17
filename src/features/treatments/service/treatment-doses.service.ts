@@ -82,23 +82,23 @@ export function createTreatmentDosesService({
     return inverse
   }
 
-  async function historyOf(treatmentId: string): Promise<TreatmentWithHistory> {
-    const history = await (await treatments()).getWithHistory(treatmentId)
-    if (history === null) throw new Error(`Traitement introuvable : ${treatmentId}`)
-    return history
+  async function treatmentOf(treatmentId: string): Promise<TreatmentWithHistory> {
+    const treatment = await (await treatments()).getWithHistory(treatmentId)
+    if (treatment === null) throw new Error(`Traitement introuvable : ${treatmentId}`)
+    return treatment
   }
 
   // Seule une période close ou à date de fin peut se terminer : les autres ne sont pas relues.
   async function finishedBy(before: TreatmentWithHistory, view: TreatmentView): Promise<boolean> {
     const current = currentPeriodOf(before, view)
     if (view.finished || (current?.endsOn ?? current?.stoppedOn ?? null) === null) return false
-    return readableReadingOf(await historyOf(before.id), today())?.view.finished ?? false
+    return readableReadingOf(await treatmentOf(before.id), today())?.view.finished ?? false
   }
 
   async function alreadyNoted(action: DoseAction, treatmentId: string): Promise<string | null> {
     if (action.kind !== 'note' || action.gesture.status !== 'given') return null
     const { due, givenOn } = action.gesture
-    const { doses: lines } = await historyOf(treatmentId)
+    const { doses: lines } = await treatmentOf(treatmentId)
     const line = lines.find(
       (dose) =>
         dose.periodId === due.settingId &&
@@ -110,22 +110,22 @@ export function createTreatmentDosesService({
   }
 
   async function run(
-    history: TreatmentWithHistory,
+    treatment: TreatmentWithHistory,
     reading: TreatmentReading,
     action: DoseAction,
   ): Promise<AppliedDoseChange> {
-    const { writes, ...change } = doseChange(history, reading, action, () => crypto.randomUUID())
-    const { animalId } = history
+    const { writes, ...change } = doseChange(treatment, reading, action, () => crypto.randomUUID())
+    const { animalId } = treatment
     try {
-      const undo = await write(history.id, writes)
-      const finishes = undo.length > 0 && (await finishedBy(history, reading.view))
+      const undo = await write(treatment.id, writes)
+      const finishes = undo.length > 0 && (await finishedBy(treatment, reading.view))
       return { ...change, animalId, finishes, undo }
     } catch (cause) {
       if (cause instanceof DuplicateDueError && action.kind === 'log') {
         throw new DoseAlreadyLoggedError(cause.message, { cause })
       }
       const alreadyGivenOn =
-        cause instanceof DuplicateDueError ? await alreadyNoted(action, history.id) : null
+        cause instanceof DuplicateDueError ? await alreadyNoted(action, treatment.id) : null
       if (alreadyGivenOn === null) throw cause
       return {
         animalId,
@@ -147,10 +147,10 @@ export function createTreatmentDosesService({
     notifiedDueOn: string | null,
   ): Promise<NotedMoment> {
     const day = today()
-    const history = await historyOf(treatmentId)
-    const reading = treatmentReadingOf(history, day)
+    const treatment = await treatmentOf(treatmentId)
+    const reading = treatmentReadingOf(treatment, day)
     const nothing = {
-      animalId: history.animalId,
+      animalId: treatment.animalId,
       finishes: false,
       undo: [],
       alreadyGivenOn: null,
@@ -173,7 +173,7 @@ export function createTreatmentDosesService({
       return { ...nothing, outcome: 'already', alreadyGivenOn: target.alreadyGivenOn }
     }
     const { due } = target
-    const applied = await run(history, reading, {
+    const applied = await run(treatment, reading, {
       kind: 'note',
       gesture: { kind: 'note', due, status: 'given', givenOn, shiftsFollowing: false },
     })
@@ -182,7 +182,7 @@ export function createTreatmentDosesService({
       ...applied,
       outcome: 'noted',
       due,
-      severalTimes: hasSeveralTimes(history, due.settingId),
+      severalTimes: hasSeveralTimes(treatment, due.settingId),
     }
   }
 
@@ -193,8 +193,8 @@ export function createTreatmentDosesService({
      */
     apply(treatmentId: string, action: DoseAction): Promise<AppliedDoseChange> {
       return queue(async () => {
-        const history = await historyOf(treatmentId)
-        return run(history, treatmentReadingOf(history, today()), action)
+        const treatment = await treatmentOf(treatmentId)
+        return run(treatment, treatmentReadingOf(treatment, today()), action)
       })
     },
 
