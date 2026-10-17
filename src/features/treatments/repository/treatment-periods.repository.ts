@@ -11,7 +11,6 @@ import {
   treatmentPeriodSettingsSchema,
   type PeriodOrigin,
   type TreatmentPeriod,
-  type TreatmentPeriodRecord,
   type TreatmentPeriodSettings,
 } from '../schema/treatment-period.schema'
 import {
@@ -21,12 +20,12 @@ import {
   flag,
   originOf,
   timesColumn,
-  toPeriodRecord,
-  toStampedPeriod,
   type PeriodRow,
   type StampedTreatmentPeriod,
 } from './treatment-period-row.repository'
+import { createPeriodReads } from './treatment-period-reads.repository'
 
+export { currentPeriodIdSql } from './treatment-period-reads.repository'
 export type { StampedTreatmentPeriod } from './treatment-period-row.repository'
 export type RestoredTreatmentPeriod = Omit<StampedTreatmentPeriod, 'deletedAt'>
 export type TreatmentPeriodVersion = Pick<
@@ -71,17 +70,6 @@ const CALENDAR_COLUMNS = [
 ]
 
 /**
- * Sous-requête de la période en cours d'un traitement (`treatmentId` est une expression SQL) : la
- * période non supprimée qui commence le plus tard, puis la dernière saisie, puis par identifiant.
- */
-export function currentPeriodIdSql(treatmentId: string): string {
-  return `(SELECT candidate.id FROM treatment_period candidate
-           WHERE candidate.treatment_id = ${treatmentId} AND candidate.deleted_at IS NULL
-           ORDER BY candidate.starts_on DESC, candidate.created_at DESC, candidate.id DESC
-           LIMIT 1)`
-}
-
-/**
  * Écrit seul l'arrêt d'une période ; ses autres écritures sont des instructions que le repository
  * des traitements ou un service joue.
  */
@@ -92,18 +80,6 @@ export function createTreatmentPeriodsRepository(
     deviceId = currentDeviceId,
   }: TreatmentPeriodsRepositoryDependencies = {},
 ) {
-  async function visibleRows(scope = '', params: string[] = []): Promise<PeriodRow[]> {
-    return db.query<PeriodRow>(
-      `SELECT ${SYNC_COLUMNS} FROM treatment_period WHERE ${NOT_DELETED} ${scope}
-       ORDER BY treatment_id, starts_on, created_at, id`,
-      params,
-    )
-  }
-
-  async function listVisible(scope = '', params: string[] = []): Promise<TreatmentPeriodRecord[]> {
-    return (await visibleRows(scope, params)).map(toPeriodRecord)
-  }
-
   function stopStatement(
     periodId: string,
     stoppedOn: string,
@@ -325,23 +301,7 @@ export function createTreatmentPeriodsRepository(
       }
     },
 
-    /** Périodes visibles, toutes colonnes comprises, celles d'un même traitement de la première à la dernière. */
-    listAll(): Promise<TreatmentPeriodRecord[]> {
-      return listVisible()
-    },
-
-    /** Comme `listAll`, appareils compris : ce que l'export emporte. */
-    async listRecords(): Promise<StampedTreatmentPeriod[]> {
-      return (await visibleRows()).map(toStampedPeriod)
-    },
-
-    listByTreatment(treatmentId: string): Promise<TreatmentPeriodRecord[]> {
-      return listVisible('AND treatment_id = ?', [treatmentId])
-    },
-
-    listByAnimal(animalId: string): Promise<TreatmentPeriodRecord[]> {
-      return listVisible('AND animal_id = ?', [animalId])
-    },
+    ...createPeriodReads(db),
 
     /** Lignes supprimées comprises : l'import compare les versions avant d'écrire. */
     async listVersions(): Promise<TreatmentPeriodVersion[]> {
