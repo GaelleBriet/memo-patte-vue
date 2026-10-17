@@ -10,6 +10,7 @@ import {
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,
+  type TreatmentWithHistoryReader,
 } from '../repository/treatments.repository'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type {
@@ -26,7 +27,9 @@ import {
 type Provider<T> = () => T | Promise<T>
 
 export type TreatmentPlanDependencies = {
-  treatments: Provider<Pick<TreatmentsRepository, 'create' | 'applyPlan' | 'getWithHistory'>>
+  treatments: Provider<
+    Pick<TreatmentsRepository, 'create' | 'applyPlan'> & TreatmentWithHistoryReader
+  >
   reminders: Pick<TreatmentRemindersService, 'reschedule'>
   today: () => string
   newId: () => string
@@ -41,10 +44,10 @@ export function createTreatmentPlanService({
   newId,
   queue = createWriteQueue(),
 }: TreatmentPlanDependencies) {
-  async function historyOf(id: string): Promise<TreatmentWithHistory> {
-    const history = await (await treatments()).getWithHistory(id)
-    if (history === null) throw new Error(`Traitement introuvable : ${id}`)
-    return history
+  async function treatmentOf(id: string): Promise<TreatmentWithHistory> {
+    const treatment = await (await treatments()).getWithHistory(id)
+    if (treatment === null) throw new Error(`Traitement introuvable : ${id}`)
+    return treatment
   }
 
   function ids() {
@@ -64,7 +67,7 @@ export function createTreatmentPlanService({
     /** Correction, nouvelle période ou déplacement de la prochaine dose, selon le carnet du jour. */
     async update(id: string, input: TreatmentEditionInput): Promise<Treatment> {
       const updated = await queue(async () => {
-        const plan = editionPlan(await historyOf(id), input, today(), ids())
+        const plan = editionPlan(await treatmentOf(id), input, today(), ids())
         return (await treatments()).applyPlan(id, plan)
       })
       await reminders.reschedule(id)
@@ -74,7 +77,7 @@ export function createTreatmentPlanService({
     /** Nouvelle période d'un traitement fini ou arrêté ; la précédente n'est jamais modifiée. */
     async resume(id: string, input: TreatmentResumptionInput): Promise<Treatment> {
       const resumed = await queue(async () => {
-        const plan = resumptionPlan(await historyOf(id), input, today(), ids())
+        const plan = resumptionPlan(await treatmentOf(id), input, today(), ids())
         return (await treatments()).applyPlan(id, plan)
       })
       await reminders.reschedule(id)

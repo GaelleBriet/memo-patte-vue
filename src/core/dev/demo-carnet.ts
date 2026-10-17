@@ -19,7 +19,7 @@ import type { WeightEntryInput } from '@/features/weight/schema/weight.schema'
  */
 export interface DemoVaccination extends Omit<VaccinationInput, 'animalId'> {
   /** Injections antérieures à la dernière, la plus récente d'abord. */
-  history?: { injectedOn: string; nextDueDate: string | null }[]
+  injections?: { injectedOn: string; nextDueDate: string | null }[]
 }
 
 export type DemoDose = Pick<
@@ -136,7 +136,7 @@ export function buildDemoCarnet(today: Date): DemoAnimal[] {
           name: 'CHPPi',
           lastInjectionDate: day(chppiLast),
           dueDate: day(subDays(today, 45)),
-          history: [
+          injections: [
             { injectedOn: day(subYears(chppiLast, 1)), nextDueDate: day(chppiLast) },
             {
               injectedOn: day(subMonths(chppiLast, 13)),

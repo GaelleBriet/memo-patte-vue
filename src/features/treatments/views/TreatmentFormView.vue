@@ -64,7 +64,7 @@ const exactReminders = useExactReminders()
 const mode = props.id === undefined ? 'create' : props.resume ? 'resume' : 'edit'
 
 const values = ref(emptyTreatmentFormValues())
-const history = ref<TreatmentWithHistory | null>(null)
+const treatment = ref<TreatmentWithHistory | null>(null)
 const endsOnTouched = ref(false)
 const hasDuplicateTime = ref(false)
 const isSuggestingExact = ref(false)
@@ -88,7 +88,7 @@ const {
   animals,
   id: () => props.id,
   animalId: () => props.animalId,
-  openedAnimalId: () => history.value?.animalId,
+  openedAnimalId: () => treatment.value?.animalId,
   allowsUnfollowedAnimal: () => mode === 'edit',
   load: (id) => treatments.getWithHistory(id),
   open,
@@ -103,9 +103,9 @@ const creation =
         targetAnimal,
       })
     : null
-const edition = mode === 'edit' ? useTreatmentEditionForm({ values, history, today }) : null
+const edition = mode === 'edit' ? useTreatmentEditionForm({ values, treatment, today }) : null
 const resumption =
-  mode === 'resume' ? useTreatmentResumptionForm({ values, history, today, endsOnTouched }) : null
+  mode === 'resume' ? useTreatmentResumptionForm({ values, treatment, today, endsOnTouched }) : null
 const form = creation ?? edition ?? resumption
 const isChooseDaysOpen = creation?.isChooseDaysOpen ?? ref(false)
 const isPastDuesOpen = edition?.isPastDuesOpen ?? ref(false)
@@ -132,12 +132,12 @@ const pastDues = computed(() => edition?.pastDues.value ?? null)
 const hasSettings = computed(() => edition?.hasSettings.value ?? true)
 const previous = computed(() => resumption?.previous.value ?? null)
 const isReady = computed(
-  () => mode === 'create' || (history.value !== null && !notFound.value && !loadFailed.value),
+  () => mode === 'create' || (treatment.value !== null && !notFound.value && !loadFailed.value),
 )
 const title = computed(() => {
   if (mode === 'create') return t('treatments.form.title')
-  if (history.value === null || !isReady.value) return ''
-  const name = { name: history.value.name }
+  if (treatment.value === null || !isReady.value) return ''
+  const name = { name: treatment.value.name }
   return mode === 'resume'
     ? t('treatments.form.resumeTitle', name)
     : t('treatments.form.editTitle', name)

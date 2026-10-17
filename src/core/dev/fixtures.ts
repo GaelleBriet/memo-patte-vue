@@ -116,12 +116,12 @@ async function seedDemoCarnet(repositories: FixturesRepositories, today: Date): 
   }
   for (const { animal, vaccinations, treatments, weights } of buildDemoCarnet(today)) {
     const { id: animalId } = await repositories.animals.create(animal)
-    for (const { history = [], ...vaccination } of vaccinations) {
+    for (const { injections = [], ...vaccination } of vaccinations) {
       const { id: vaccinationId } = await repositories.vaccinations.create({
         ...vaccination,
         animalId,
       })
-      for (const past of history) {
+      for (const past of injections) {
         await repositories.vaccinationInjections.record({
           ...past,
           ...stamps,

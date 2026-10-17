@@ -6,7 +6,7 @@ import type { NoteGesture } from '../logic/treatment-dose-change'
 import { doseActionTexts, hasSeveralTimes } from '../logic/treatment-gestures'
 import { notificationTarget } from '../logic/treatment-notification'
 import { readableReadingOf } from '../logic/treatment-reading-adapter'
-import type { TreatmentsRepository } from '../repository/treatments.repository'
+import type { TreatmentWithHistoryReader } from '../repository/treatments.repository'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { AppliedDoseChange, TreatmentDosesService } from './treatment-doses.service'
 import type { VaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
@@ -29,7 +29,7 @@ type Provider<T> = () => T | Promise<T>
 export type ReminderActionsDependencies = {
   router: Pick<Router, 'currentRoute' | 'push' | 'replace'>
   animals: Provider<Pick<AnimalsRepository, 'getById'>>
-  treatments: Provider<Pick<TreatmentsRepository, 'getWithHistory'>>
+  treatments: Provider<TreatmentWithHistoryReader>
   vaccinations: Provider<Pick<VaccinationsRepository, 'getById' | 'listReplacedDues'>>
   doses: Pick<TreatmentDosesService, 'apply' | 'noteMoment' | 'undoBatch'>
   refreshHome: () => unknown

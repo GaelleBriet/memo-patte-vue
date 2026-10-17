@@ -24,7 +24,7 @@ const props = withDefaults(
     name: string
     animal: string
     icon: string
-    history: TreatmentWithHistory
+    treatment: TreatmentWithHistory
     reading: TreatmentReading
     today: string
     min?: string | null
@@ -76,7 +76,7 @@ const recap = computed(() =>
     t,
     due.value,
     givenOn.value,
-    due.value !== null && hasSeveralTimes(props.history, due.value.settingId),
+    due.value !== null && hasSeveralTimes(props.treatment, due.value.settingId),
   ),
 )
 const box = computed(() =>
@@ -84,7 +84,7 @@ const box = computed(() =>
     t,
     due.value,
     givenOn.value,
-    { history: props.history, reading: props.reading, today: props.today },
+    { treatment: props.treatment, reading: props.reading, today: props.today },
     shifts.value,
   ),
 )

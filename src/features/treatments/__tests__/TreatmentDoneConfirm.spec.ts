@@ -39,7 +39,7 @@ async function ouvrir(endsOn: string | null = null) {
       name: 'Milbemax',
       animal: 'Pixel',
       icon: 'ms:medication',
-      history,
+      treatment: history,
       reading: treatmentReadingOf(history, TODAY),
       today: TODAY,
       due: DUE_16,
