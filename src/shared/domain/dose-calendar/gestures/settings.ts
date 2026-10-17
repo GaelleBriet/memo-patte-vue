@@ -238,12 +238,17 @@ function corrected(
     gridOriginOn: first,
     firstDueChosen,
   })
-  const fixed = questioned
-    ? own(shownFrom(today, readAfter(input, correctFrom)))
-    : sameFrequency(current.frequency, request.frequency)
-      ? keptCorrection(input, current, request, (dates) =>
-          rewrite(current, fieldsOf(current.startsOn, dates, request)),
-        )
+  // #872 : à fréquence gardée, avec ou sans prise, la correction garde sa grille et ne repart pas
+  // d'aujourd'hui ; la date de fin la refuse quand rien ne reste (#806).
+  const kept = () =>
+    keptCorrection(input, current, request, (dates) =>
+      rewrite(current, fieldsOf(current.startsOn, dates, request)),
+    )
+  // #836 : sans prise, la date de la correction reste une date proposée, jamais une date choisie.
+  const fixed = sameFrequency(current.frequency, request.frequency)
+    ? { ...kept(), ...(questioned ? { firstDueChosen: false } : {}) }
+    : questioned
+      ? own(shownFrom(today, readAfter(input, correctFrom)))
       : own(shownFrom(later(proposal.firstDueOn, today), readAfter(input, correctFrom)))
   // Q38 : la date que montre le formulaire, passée telle quelle, n'est pas une date choisie.
   const shown =
