@@ -214,13 +214,21 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   ce que cette ligne montre : dans une même période, une ligne montrée est une ligne, qu'il s'agisse
   des prises d'une même dose, des reports d'une même dose ou des décalages d'une même journée (deux
   appareils) ; « Supprimer » les retire toutes (« Supprimer ce report » emporte aussi les décalages
-  de sa journée, TR-24), « Modifier », « Marquer comme oubliée » et « Marquer comme donnée »
-  réécrivent la ligne en vigueur et retirent les autres, sans laisser de ligne grisée ni de ligne
-  « · sans effet » qui redevienne active (décisions du 2026-10-12 et du 2026-10-14, #839, #841,
-  #835) ; « Supprimer ce décalage » emporte de même les décalages de sa journée, le report restant,
-  et « Fait à une autre date » sur une dose oubliée réécrit la ligne en vigueur et retire les autres
-  prises de sa dose (deux lectures à confirmer par Gaelle, §11) ; une ligne grisée « · sans effet »
-  se supprime seule ; entre deux périodes, même à la
+  de sa journée, TR-24), « Modifier » réécrit la ligne en vigueur et retire les autres, sans laisser
+  de ligne grisée ni de ligne « · sans effet » qui redevienne active (décisions du 2026-10-12 et du
+  2026-10-14, #839, #835) ; « Supprimer ce décalage » emporte de même les décalages de sa journée, le
+  report restant (lecture à confirmer par Gaelle, §11). « Marquer comme oubliée » (feuille de la dose
+  ou historique), « Marquer comme donnée » (historique) et « Fait à une autre date » sur une dose
+  oubliée réécrivent la ligne en vigueur, qui devient la modification la plus récente, et laissent
+  les autres lignes de la dose, venues de l'autre appareil : elles restent visibles et grisées
+  (« · sans effet »), supprimables une par une ; un téléphone n'a qu'une ligne « donnée ou oubliée »
+  par dose, et sur un seul téléphone le geste ne laisse aucune ligne grisée (décision de Gaelle du
+  17 octobre 2026, #841). Milo, chaque lundi à 8 h ; la dose du 16 mars à 8 h donnée sur A à 9 h 02,
+  puis sur B à 9 h 05 ; B touche « Marquer comme oubliée » : les deux téléphones montrent « Oubliée »
+  et la prise de A grisée, que la prise de A soit arrivée sur B avant ou après le geste (avant le
+  17 octobre : « Oubliée » seule dans un ordre, « Oubliée » et la prise de A « · sans effet » dans
+  l'autre). Le libellé de la ligne grisée reste « · sans effet » (question ouverte au §11) ; une
+  ligne grisée « · sans effet » se supprime seule ; entre deux périodes, même à la
   même date et à la même heure, la fiche montre deux lignes et le geste ne touche que celle choisie
   (#822, décision du 2026-10-13). (Relecture, point 5)
 - **TR-26** Pas de règle de « seule prise » : supprimer la seule prise garde le traitement (son
@@ -1277,7 +1285,9 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
   sur deux appareils, arrêt et reprise dès le 2 ; le 4, « Marquer comme oubliée » sur la prise du 2 :
   « Oubliée » seule) ; entre deux périodes, on ne touche que la ligne choisie (#822). « Annuler »
   rétablit la ligne qui était en vigueur. Écartée : ne réécrire que la ligne touchée, qui laisse la
-  ligne grisée de l'autre appareil.
+  ligne grisée de l'autre appareil. Pour « Marquer comme oubliée », « Marquer comme donnée » et
+  « Fait à une autre date » sur une dose oubliée : remplacé par la décision du 17 octobre 2026
+  ci-dessous.
 - 2026-10-14 — **#836 et #825 : deux faits sur le réglage** (R9, R10, TR-9). Le réglage enregistre
   « date choisie par la personne » et « les doses passées du réglage précédent restent à renseigner »,
   jamais déduits, dans une même migration (schéma v13, export v6). « Le moteur lit un fait, il ne
@@ -1434,6 +1444,22 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
   les prises du jour couvrent les premières heures du nouveau réglage), ni une journée sortie par un
   changement de fréquence (#862), ni la journée à venir déjà entamée (R9.2, G26). Appliqué ici à
   #847 seulement ; le reste est au §11.
+- 2026-10-17 — **#841 : « Marquer comme oubliée » sur une dose donnée sur deux appareils laisse la
+  prise de l'autre appareil, grisée** (TR-25 ; décision de Gaelle du 17 octobre 2026, par la session
+  d'analyse du moteur à qui elle a délégué les lectures de règles). Le geste réécrit la ligne en
+  vigueur ; les autres lignes de la dose restent visibles et grisées, supprimables une par une
+  (#822). Même règle pour « Marquer comme donnée » depuis l'historique et « Fait à une autre date »
+  sur une dose oubliée (un geste au moteur, une règle). Raison : la règle unique (une prise garde sa
+  journée et son heure) protège une prise des effets de bord d'un réglage, pas d'un geste fait exprès
+  sur la dose elle-même ; la modification la plus récente gagne, comme entre deux prises sur la même
+  dose ; les deux téléphones montrent la même fiche dans les deux ordres de synchro. Milo, chaque
+  lundi à 8 h ; dose du 16 mars donnée sur A à 9 h 02 et sur B à 9 h 05 ; B touche « Marquer comme
+  oubliée » : « Oubliée » et la prise de A grisée sur les deux téléphones. Un téléphone garde une
+  seule ligne « donnée ou oubliée » par dose (règle du 12 octobre, non levée) : sur un seul
+  téléphone, rien ne change. « Modifier » garde la décision du 14 octobre (#839). Un oubli ne
+  redevient pas « donné » depuis la feuille ou une notification (décision du 2 octobre). Écartées :
+  refuser le geste ; garder aussi la prise du téléphone qui fait le geste, qui demande de lever la
+  règle d'une ligne par dose et par téléphone.
 
 ## 11. Questions ouvertes
 
@@ -1537,10 +1563,17 @@ Lectures à confirmer par Gaelle, ouvertes le 14 octobre 2026 avec #845 (TR-24, 
   la même journée sont une ligne » (décision du 14 octobre) : 16 reporté au 19 avec la case, un autre
   décalage de la journée du 16 ancré au 20 reçu de l'autre appareil : « Supprimer ce décalage »
   retire les deux, la fiche garde « Reportée au 19 oct. ».
-- **« Fait à une autre date » sur une dose oubliée** suit la règle de TR-25 (confirmée le 14 octobre
-  pour « Modifier », « Supprimer », « Marquer comme oubliée » et « Marquer comme donnée ») : dose du
-  16 marquée oubliée sur deux appareils, « Fait à une autre date » le 17 : « Donnée le 17 » seule,
-  sans « Oubliée · sans effet ».
+- **« Fait à une autre date » sur une dose oubliée** : décidé le 17 octobre 2026 (§10, TR-25), même
+  règle que « Marquer comme donnée » depuis l'historique, un seul geste au moteur : dose du 16
+  marquée oubliée sur deux appareils, « Fait à une autre date » le 17 sur B : « Donnée le 17 », et
+  l'oubli de A reste visible et grisé.
+
+Question ouverte le 17 octobre 2026 avec #841, pour Gaelle :
+
+- **Le libellé d'une ligne remplacée par une ligne plus récente de la même dose** (deux appareils).
+  La décision du 17 octobre la veut « remplacée », et « · sans effet » garde son sens d'une ligne qui
+  n'a plus d'échéance ; c'est un texte nouveau (français, anglais, glossaire), qui n'est pas codé :
+  la ligne grisée dit encore « · sans effet ».
 
 Principe du 17 octobre 2026 (§10), ouvert le 17 octobre avec #847 : une réécriture de réglage ne
 retire que les doses non données qu'elle visait ; une prise donnée ou un report plus récent garde

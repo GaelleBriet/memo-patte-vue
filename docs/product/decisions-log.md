@@ -2846,3 +2846,26 @@ session d'analyse du moteur, mandatée par Gaelle, et principe du 17 octobre 202
   jamais translatée. Portée : ni le jour où les heures changent (R4), ni #862, ni R9.2 / G26.
   Appliqué à #847 ; le reste et la question « une prise gardée couvre-t-elle aussi la première
   échéance du nouveau rythme ? » sont au §11 de la spec.
+
+2026-10-17 — **#841 : « Marquer comme oubliée » sur une dose donnée sur deux appareils laisse la
+prise de l'autre appareil, grisée** (spec `traitements.md` TR-25, §10, §11 ; décision de Gaelle du
+17 octobre 2026, par la session d'analyse du moteur à qui elle a délégué les lectures de règles).
+
+- « Marquer comme oubliée » depuis la feuille d'une dose déjà donnée remplace la prise par un
+  oubli : le geste réécrit la ligne en vigueur, et les lignes de la même dose venues de l'autre
+  appareil restent visibles et grisées, supprimables une par une (#822). Milo, chaque lundi à 8 h ;
+  dose du 16 mars à 8 h donnée sur A à 9 h 02 et sur B à 9 h 05 ; B touche « Marquer comme
+  oubliée » : « Oubliée » et la prise de A grisée, sur les deux téléphones et dans les deux ordres
+  de synchro (avant : « Oubliée » seule si la prise de A était arrivée sur B avant le geste,
+  « Oubliée » et la prise de A « · sans effet » sinon). — Raison : la règle unique (une prise garde
+  sa journée et son heure) protège une prise des effets de bord d'un réglage, pas d'un geste fait
+  exprès sur la dose elle-même ; la modification la plus récente gagne, comme entre deux prises sur
+  la même dose. — Alternatives écartées : refuser le geste ; garder aussi la prise du téléphone qui
+  fait le geste, qui demande de lever la règle d'une ligne « donnée ou oubliée » par dose et par
+  téléphone (règle du 12 octobre, gardée).
+- Même règle pour « Marquer comme donnée » depuis l'historique et « Fait à une autre date » sur une
+  dose oubliée (un seul geste au moteur) : l'oubli venu de l'autre téléphone reste visible et
+  grisé. Sur un seul téléphone, rien ne change. « Modifier » garde la décision du 14 octobre (#839) ;
+  un oubli ne redevient pas « donné » depuis la feuille ou une notification (décision du 2 octobre).
+- Reste à trancher par Gaelle : le libellé « remplacée » voulu pour ces lignes grisées, texte
+  nouveau non codé ; d'ici là, elles disent « · sans effet ».
