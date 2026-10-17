@@ -385,6 +385,8 @@ select pg_temp.as_owner();
 alter table public.treatment_period rename column grid_origin_on to reference_on;
 alter table public.treatment_period alter column reference_on set not null;
 alter table public.treatment_dose rename column target_on to next_due_date;
+-- En v11, toute prise portait une date ; la prise oubliée du carnet de d n'en a plus depuis la v12.
+update public.treatment_dose set next_due_date = due_on where next_due_date is null;
 alter table public.treatment_dose alter column next_due_date set not null;
 
 insert into public.device (user_id, id, installed_at, created_at, updated_at)
@@ -467,6 +469,9 @@ select is(
 select is(
   (select grid_origin_on from public.treatment_period where id = '00000000-0000-4000-8000-0000000000e3'),
   null::date, 'réglage de même origine que le précédent : origine vide (hérite)');
+select is(
+  (select target_on from public.treatment_dose where id = '00000000-0000-4000-8000-0000000000a7'),
+  null::date, 'prise oubliée : sa date de la v11 est effacée');
 
 -- Faits de la migration v13 rejoués : colonnes retirées, puis le corps de la migration.
 alter table public.treatment_period
