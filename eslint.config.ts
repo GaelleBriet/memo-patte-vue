@@ -129,7 +129,7 @@ const APP_RESTRICTION = {
 }
 
 const REPOSITORY_OUT_OF_LOGIC = {
-  group: ['**/repository', '**/repository/*'],
+  group: ['**/repository', '**/repository/*', '**/*.repository'],
   message:
     "logic/ n'importe jamais un repository : les types d'écriture partagés vivent dans schema/ (cf. CLAUDE.md, « Règles strictes de structure »).",
 }
@@ -275,10 +275,10 @@ export default defineConfigWithVueTs(
     }),
   },
 
-  // Là où le bloc précédent ne s'applique pas (tout core/ et les repositories), deux
-  // interdits restent : le plugin de notifications hors de core/notifications/, et
-  // core/ qui dépend des features, hors de core/dev/ (exception consignée le
-  // 2026-09-13 dans docs/product/decisions-log.md).
+  // Là où les blocs précédents ne s'appliquent pas (tout core/ et les repositories), trois
+  // interdits restent : le plugin de notifications hors de core/notifications/, core/ qui
+  // dépend des features, hors de core/dev/ (exception consignée le 2026-09-13 dans
+  // docs/product/decisions-log.md), et core/ qui importe app/.
   // Blocs séparés et sans recouvrement, car en flat config deux blocs qui déclarent
   // la même règle sur un même fichier s'écrasent au lieu de se cumuler.
   {
@@ -297,8 +297,8 @@ export default defineConfigWithVueTs(
   },
   {
     name: 'app/notifications-service-only',
-    files: ['src/core/dev/**/*.{ts,vue}', 'src/**/*.repository.ts'],
-    ignores: ['src/core/notifications/**'],
+    files: ['src/**/*.repository.ts'],
+    ignores: ['src/core/**'],
     rules: restrictImports({ paths: [NOTIFICATIONS_PLUGIN_RESTRICTION] }),
   },
   {

@@ -351,9 +351,12 @@ describe('logic/, sans repository', { timeout: 30_000 }, () => {
       restrictedDynamicImports('src/features/home/logic/todo-items.ts', [
         '../repository/home.repository',
       ]),
+      restrictedImports('src/features/home/logic/todo-items.ts', [
+        '@/core/device/device.repository',
+      ]),
     ])
 
-    expect(results.map(({ feature }) => feature)).toEqual([1, 1, 1])
+    expect(results.map(({ feature }) => feature)).toEqual([1, 1, 1, 1])
   })
 
   it('laisse logic/ importer schémas et modules partagés, et un service son repository', async () => {
@@ -379,10 +382,14 @@ describe('app/ hors de shared/ et de core/', { timeout: 30_000 }, () => {
       restrictedImports('src/core/db/sqlite.ts', ['@/app/sync']),
       restrictedImports('src/core/notifications/reminder.ts', ['@/app/sync']),
       restrictedImports('src/core/dev/fixtures.ts', ['@/app/sync']),
+      restrictedImports('src/core/device/device.repository.ts', ['@/app/sync']),
+      restrictedImports('src/core/device/device.repository.ts', [
+        '@/features/animals/store/animals.store',
+      ]),
       restrictedDynamicImports('src/shared/composables/use-x.ts', ['@/app/sync']),
     ])
 
-    expect(results.map(({ feature, legacy }) => feature + legacy)).toEqual([1, 1, 1, 1, 1, 1])
+    expect(results.map(({ feature, legacy }) => feature + legacy)).toEqual([1, 1, 1, 1, 1, 1, 1, 1])
   })
 
   it('laisse app/ importer app/', async () => {
