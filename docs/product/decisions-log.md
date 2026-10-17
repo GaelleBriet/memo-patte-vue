@@ -2900,10 +2900,12 @@ arrêts de la PR #914, par la session d'analyse du moteur à qui elle a délégu
 - #873 : la date de la réponse est la date d'écriture du réglage (v14) ; sortent les doses tombées
   sans prise strictement avant ce jour, sous le réglage remplacé ; le jour de la réponse et la suite
   restent (graine 8000000726 : le 18 mars sort, le 23 reste) ; la question et le retrait se lisent
-  de la même façon. — Écartées : réécrire la première échéance ; une colonne « réponse du ».
+  de la même façon. — Écartées : réécrire la première échéance ; une colonne « réponse du ». Non
+  livré par #914 : la réponse n'est pas tracée dans les données (spec §11, piste (a) recommandée).
 - #872 (Q4) : « Elles n'étaient pas à donner » refusée avec le texte de #806 quand, une fois les
   doses retirées, il ne reste aucune dose avant la date de fin, carnet avec ou sans prise (Q38 ou
-  Q39) ; « Elles restent à renseigner » n'est pas refusée ; rien ne repart d'aujourd'hui sans geste. Tous les 3 mois
+  Q39) ; « Elles restent à renseigner » n'est pas refusée ; rien ne repart d'aujourd'hui sans geste.
+  Non livré par #914 : dépend de #873. Tous les 3 mois
   à 20 h, fin le 6 mai, la dose du 18 mars reportée au 22 où elle ouvre le rythme ; le 23, passage à
   12, 18 et 23 h : refusée.
 - Q1 (#884, #861) et Q2 (#865, #874, #876, #877, #881, #898) : la prise garde sa journée ; une dose
@@ -2915,4 +2917,7 @@ arrêts de la PR #914, par la session d'analyse du moteur à qui elle a délégu
   sans effet » ne vaut que pour une journée entière sortie du calendrier sans prise (graine
   901836). (2) « Elles n'étaient pas à donner » se lit par dose : sortent les doses tombées sans prise,
   pas les journées (graine 7810000235). (3) Le refus de #806 vaut sur un carnet sans aucune prise
-  comme sur les autres (Q39).
+  comme sur les autres (Q39). (2) et (3) ne sont pas livrés par #914, avec #873.
+- Réconciliation avec #841 : la règle unique protège une prise des effets de bord d'un réglage, pas
+  d'un geste fait exprès sur la dose elle-même ; une prise remplacée par un oubli de la même dose est
+  grisée « sans effet » (décision du 17 octobre 2026 sur #841).
