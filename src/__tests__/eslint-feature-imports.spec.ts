@@ -339,6 +339,38 @@ describe('app/, réservé au démarrage', { timeout: 30_000 }, () => {
   })
 })
 
+describe('logic/, sans repository', { timeout: 30_000 }, () => {
+  it("interdit à logic/ d'importer un repository, de sa feature ou d'une autre", async () => {
+    const results = await Promise.all([
+      restrictedImports('src/features/treatments/logic/treatment-card.ts', [
+        '../repository/treatments.repository',
+      ]),
+      restrictedImports('src/features/treatments/logic/treatment-card.ts', [
+        '@/features/treatments/repository/treatments.repository',
+      ]),
+      restrictedDynamicImports('src/features/home/logic/todo-items.ts', [
+        '../repository/home.repository',
+      ]),
+    ])
+
+    expect(results.map(({ feature }) => feature)).toEqual([1, 1, 1])
+  })
+
+  it('laisse logic/ importer schémas et modules partagés, et un service son repository', async () => {
+    const logic = await restrictedImports('src/features/treatments/logic/treatment-card.ts', [
+      '../schema/treatment.schema',
+      '@/shared/domain/due-reminders',
+    ])
+    const service = await restrictedImports(
+      'src/features/treatments/service/treatment-doses.service.ts',
+      ['../repository/treatments.repository'],
+    )
+
+    expect(logic).toEqual({ feature: 0, legacy: 0 })
+    expect(service).toEqual({ feature: 0, legacy: 0 })
+  })
+})
+
 describe('façade du moteur des doses', { timeout: 30_000 }, () => {
   async function engineImports(filePath: string, statements: string[]) {
     const [result] = await eslint.lintText(`${statements.join('\n')}\n`, {

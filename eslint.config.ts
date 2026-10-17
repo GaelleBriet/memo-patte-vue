@@ -128,7 +128,17 @@ const APP_RESTRICTION = {
     "app/ ne fait que démarrer l'app : une feature n'en importe rien (cf. CLAUDE.md, « Règles strictes de structure »).",
 }
 
-function featureImportsRule(feature: string, allowedElsewhere: string[] = []): Linter.RulesRecord {
+const REPOSITORY_OUT_OF_LOGIC = {
+  group: ['**/repository', '**/repository/*'],
+  message:
+    "logic/ n'importe jamais un repository : les types d'écriture partagés vivent dans schema/ (cf. CLAUDE.md, « Règles strictes de structure »).",
+}
+
+function featureImportsRule(
+  feature: string,
+  allowedElsewhere: string[] = [],
+  extraPatterns: object[] = [],
+): Linter.RulesRecord {
   return restrictFeatureImports({
     patterns: [
       {
@@ -150,6 +160,7 @@ function featureImportsRule(feature: string, allowedElsewhere: string[] = []): L
           'Import interdit depuis une autre feature : passe par shared/ ou core/ (cf. CLAUDE.md, « Règles strictes de structure »).',
       },
       APP_RESTRICTION,
+      ...extraPatterns,
       ...(feature === 'animals' ? [] : [ANIMALS_STORE_READ_ONLY]),
       ...(feature === 'purchase' ? [] : [PURCHASE_STORE_READ_ONLY]),
       {
@@ -317,6 +328,12 @@ export default defineConfigWithVueTs(
       '@/features/*/service',
       '@/features/*/service/*.service',
     ]),
+  })),
+  ...FEATURES.map((feature) => ({
+    name: `app/feature-imports/${feature}-logic`,
+    files: [`src/features/${feature}/logic/**/*.ts`],
+    ignores: ['**/__tests__/**'],
+    rules: featureImportsRule(feature, [], [REPOSITORY_OUT_OF_LOGIC]),
   })),
   {
     name: 'app/feature-imports/export-file-schema',
