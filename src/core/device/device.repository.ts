@@ -7,6 +7,7 @@ import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { createRemoteSyncTable } from '@/core/sync/repository/remote-sync-table.repository'
 import { syncField } from '@/core/sync/service/syncable-table'
 import type { DeviceIdentity } from './device-identity'
+import { MAX_MODEL_LENGTH } from './device-model'
 
 export type DeviceRecord = {
   id: string
@@ -30,8 +31,6 @@ interface DeviceRow {
 const COLUMN_NAMES = ['id', 'model', 'installed_at', 'created_at', 'updated_at', 'deleted_at']
 const COLUMNS = COLUMN_NAMES.join(', ')
 const PLACEHOLDERS = COLUMN_NAMES.map(() => '?').join(', ')
-
-export const MAX_MODEL_LENGTH = 200
 
 function toRecord(row: DeviceRow): DeviceRecord {
   return {
