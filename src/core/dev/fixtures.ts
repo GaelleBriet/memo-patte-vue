@@ -157,6 +157,7 @@ async function seedDemoCarnet(repositories: FixturesRepositories, today: Date): 
                 firstDueChosen: true,
                 pastDosesStayUnlogged: false,
                 ...stamps,
+                settingsWrittenAt: stamps.createdAt,
                 id: periodId,
                 treatmentId,
                 animalId,

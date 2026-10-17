@@ -23,7 +23,12 @@ import {
 } from '@/features/treatments/schema/treatment.schema'
 import { vaccinationInputSchema } from '@/features/vaccinations/schema/vaccination.schema'
 import { weightEntryInputSchema } from '@/features/weight/schema/weight.schema'
-import { fromVersion3, fromVersion4, fromVersion5 } from '../logic/export-file-versions'
+import {
+  fromVersion3,
+  fromVersion4,
+  fromVersion5,
+  fromVersion6,
+} from '../logic/export-file-versions'
 import { carnetSettingsSchema } from './carnet-settings.schema'
 import { isCalendarDay, MAX_CALENDAR_YEAR, MIN_CALENDAR_YEAR } from '@/shared/domain/calendar-day'
 import { CLOCK_TIME_PATTERN } from '@/shared/domain/clock-time'
@@ -192,17 +197,31 @@ const signedCarnet = {
   devices: z.array(deviceFileSchema).refine(hasUniqueIds),
 }
 
-const version6FileSchema = z
+const version6PeriodShape = {
+  ...periodShape,
+  gridOriginOn: day.nullable(),
+  firstDueChosen: z.boolean(),
+  pastDosesStayUnlogged: z.boolean(),
+}
+
+const version7FileSchema = z
   .object({
     ...signedCarnet,
     treatmentPeriods: z.array(
-      signed({
-        ...periodShape,
-        gridOriginOn: day.nullable(),
-        firstDueChosen: z.boolean(),
-        pastDosesStayUnlogged: z.boolean(),
-      }).refine(isConsistentPeriod),
+      signed({ ...version6PeriodShape, settingsWrittenAt: instant }).refine(isConsistentPeriod),
     ),
+    treatmentDoses: z.array(
+      signed({ ...doseShape, targetOn: day.nullable() })
+        .refine(isConsistentDose)
+        .refine(({ status, targetOn }) => isMove(status) === (targetOn !== null)),
+    ),
+  })
+  .refine(isConsistentCarnet)
+
+const version6FileSchema = z
+  .object({
+    ...signedCarnet,
+    treatmentPeriods: z.array(signed(version6PeriodShape).refine(isConsistentPeriod)),
     treatmentDoses: z.array(
       signed({ ...doseShape, targetOn: day.nullable() })
         .refine(isConsistentDose)
@@ -253,9 +272,12 @@ export const exportVersionSchema = z.object({ schemaVersion: z.number().int().po
 export function exportFileSchemaOf(version: number, deviceId: string): z.ZodType<ExportData> {
   if (version === 3) {
     return version3FileSchema.transform((data) =>
-      fromVersion5(fromVersion4(fromVersion3(data, deviceId))),
+      fromVersion6(fromVersion5(fromVersion4(fromVersion3(data, deviceId)))),
     )
   }
-  if (version === 4) return version4FileSchema.transform((data) => fromVersion5(fromVersion4(data)))
-  return version === 5 ? version5FileSchema.transform(fromVersion5) : version6FileSchema
+  if (version === 4) {
+    return version4FileSchema.transform((data) => fromVersion6(fromVersion5(fromVersion4(data))))
+  }
+  if (version === 5) return version5FileSchema.transform((data) => fromVersion6(fromVersion5(data)))
+  return version === 6 ? version6FileSchema.transform(fromVersion6) : version7FileSchema
 }

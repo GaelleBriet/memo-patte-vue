@@ -19,7 +19,13 @@ import { readTreatment } from '@/shared/domain/treatment-reading'
 
 type Unstamped<T> = Omit<T, 'createdByDevice' | 'updatedByDevice'>
 
-export type Version5Period = Omit<ExportTreatmentPeriod, keyof SettingFacts>
+export type Version6Period = Omit<ExportTreatmentPeriod, 'settingsWrittenAt'>
+
+export type Version6Data = Omit<ExportData, 'treatmentPeriods'> & {
+  treatmentPeriods: Version6Period[]
+}
+
+export type Version5Period = Omit<Version6Period, keyof SettingFacts>
 
 export type Version5Data = Omit<ExportData, 'treatmentPeriods'> & {
   treatmentPeriods: Version5Period[]
@@ -84,12 +90,23 @@ export function fromVersion4(data: Version4Data): Version5Data {
 }
 
 /** La conversion que la migration v13 applique à la base : chaque réglage se relit comme avant. */
-export function fromVersion5(data: Version5Data): ExportData {
+export function fromVersion5(data: Version5Data): Version6Data {
   return {
     ...data,
     treatmentPeriods: data.treatmentPeriods.map((period) => ({
       ...period,
       ...legacyFactsOf(period.gridOriginOn),
+    })),
+  }
+}
+
+/** La conversion que la migration v14 applique à la base : date d'écriture inconnue, lue comme jamais réécrit. */
+export function fromVersion6(data: Version6Data): ExportData {
+  return {
+    ...data,
+    treatmentPeriods: data.treatmentPeriods.map((period) => ({
+      ...period,
+      settingsWrittenAt: period.createdAt,
     })),
   }
 }

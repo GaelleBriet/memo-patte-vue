@@ -41,7 +41,11 @@ function period(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPeriod
     deletedAt: null,
     ...overrides,
   } satisfies Partial<TreatmentPeriodRecord>
-  return { ...legacyFactsOf(record.gridOriginOn), ...record }
+  return {
+    ...legacyFactsOf(record.gridOriginOn),
+    settingsWrittenAt: record.createdAt,
+    ...record,
+  }
 }
 
 function dose(dueOn: string, overrides: Partial<NewTreatmentDose> = {}): NewTreatmentDose {

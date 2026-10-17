@@ -33,7 +33,11 @@ export function period(overrides: Partial<TreatmentPeriodInput> = {}): Treatment
     createdAt: AT,
     ...overrides,
   } satisfies Partial<TreatmentPeriodInput>
-  return { ...legacyFactsOf(record.gridOriginOn), ...record }
+  return {
+    ...legacyFactsOf(record.gridOriginOn),
+    settingsWrittenAt: record.createdAt,
+    ...record,
+  }
 }
 
 /** Prise donnée le jour de son échéance, sauf mention. */

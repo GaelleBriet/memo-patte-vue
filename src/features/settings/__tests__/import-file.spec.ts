@@ -160,7 +160,7 @@ describe('parseExportFile', () => {
     )
 
     it('signale un export d’une version plus récente, quel que soit son contenu', () => {
-      const text = JSON.stringify({ schemaVersion: 7, pets: [] })
+      const text = JSON.stringify({ schemaVersion: 8, pets: [] })
 
       expect(parseExportFile(text)).toEqual({ ok: false, reason: 'newer' })
     })
@@ -673,6 +673,38 @@ describe('parseExportFile', () => {
   describe('anciens exports, convertis au format courant (plan §3.3)', () => {
     const IMPORTEUR = '12121212-1212-4212-8212-121212121212'
 
+    it('relit un export v6 : chaque réglage est daté de sa création, lu comme jamais réécrit (R10)', () => {
+      const v6 = withDocument((document) => {
+        document.schemaVersion = 6
+        for (const period of rows(document, 'treatmentPeriods')) delete period.settingsWrittenAt
+      })
+
+      const result = parseExportFile(v6, IMPORTEUR)
+
+      expect(result.ok).toBe(true)
+      if (!result.ok) return
+      expect(result.file.schemaVersion).toBe(7)
+      expect(
+        result.file.data.treatmentPeriods.map(({ createdAt, settingsWrittenAt }) => [
+          createdAt,
+          settingsWrittenAt,
+        ]),
+      ).toEqual(IMPORT_FIXTURE.treatmentPeriods.map(({ createdAt }) => [createdAt, createdAt]))
+    })
+
+    it('refuse un export v7 dont un réglage n’a pas de date d’écriture', () => {
+      expect(
+        parseExportFile(
+          withDocument(
+            (document) => delete premier(document, 'treatmentPeriods').settingsWrittenAt,
+          ),
+        ),
+      ).toEqual(INVALID)
+      expect(
+        parseExportFile(forged('treatmentPeriods', 'settingsWrittenAt', '2026-09-02')),
+      ).toEqual(INVALID)
+    })
+
     it('relit un export v5 comme l’app qui l’a écrit : origine posée, date choisie ; aucune réponse « Elles restent à renseigner »', () => {
       const v5 = withDocument((document) => {
         document.schemaVersion = 5
@@ -680,6 +712,7 @@ describe('parseExportFile', () => {
         for (const period of periods) {
           delete period.firstDueChosen
           delete period.pastDosesStayUnlogged
+          delete period.settingsWrittenAt
         }
         periods.at(-1)!.gridOriginOn = null
       })
@@ -705,7 +738,7 @@ describe('parseExportFile', () => {
       expect(result.ok).toBe(true)
       if (!result.ok) return
       const { data } = result.file
-      expect(result.file.schemaVersion).toBe(6)
+      expect(result.file.schemaVersion).toBe(7)
       expect(data.treatmentPeriods.map(({ gridOriginOn }) => gridOriginOn)).toEqual([
         '2026-06-15',
         '2026-09-01',

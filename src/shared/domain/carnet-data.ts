@@ -89,6 +89,8 @@ export type ExportTreatmentPeriod = {
   reminderTime: string | null
   createdAt: string
   updatedAt: string
+  /** R10, #867 : dernière écriture de ce qui fait le calendrier ; la création tant que rien n'a changé. */
+  settingsWrittenAt: string
   createdByDevice: string
   updatedByDevice: string
 }

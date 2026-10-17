@@ -29,7 +29,13 @@ export const MIRROR_FOREIGN_KEYS: Record<string, ForeignKey[]> = {
   weight_entry: [{ column: 'animal_id', parent: 'animal' }],
 }
 
-const TIMESTAMP_COLUMNS = ['created_at', 'updated_at', 'deleted_at', 'server_updated_at']
+const TIMESTAMP_COLUMNS = [
+  'created_at',
+  'updated_at',
+  'settings_written_at',
+  'deleted_at',
+  'server_updated_at',
+]
 const SERVER_EPOCH = Date.UTC(2026, 8, 25, 12)
 
 export interface FakeSyncServer {

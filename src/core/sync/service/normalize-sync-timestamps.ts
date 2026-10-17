@@ -1,6 +1,6 @@
 import type { SyncRow } from '@/core/supabase/guarded-upsert'
 
-const TIMESTAMP_COLUMNS = ['created_at', 'updated_at', 'deleted_at']
+const TIMESTAMP_COLUMNS = ['created_at', 'updated_at', 'settings_written_at', 'deleted_at']
 
 /**
  * PostgREST rend un `timestamptz` en `+00:00`, jamais en `Z` : la garde locale compare des chaînes

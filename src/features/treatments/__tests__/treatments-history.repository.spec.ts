@@ -42,7 +42,11 @@ function period(
     ...STAMPS,
     ...overrides,
   } satisfies Partial<PeriodFields>
-  return { ...legacyFactsOf(record.gridOriginOn), ...record }
+  return {
+    ...legacyFactsOf(record.gridOriginOn),
+    settingsWrittenAt: record.createdAt,
+    ...record,
+  }
 }
 
 const PREMIERE = period({

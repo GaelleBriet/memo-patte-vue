@@ -673,6 +673,7 @@ describe('treatmentsRepository — import', () => {
           reminderTime: null,
           createdAt: treatment.createdAt,
           updatedAt: treatment.updatedAt,
+          settingsWrittenAt: treatment.createdAt,
           ...PAR_FICHIER,
         },
         exists,

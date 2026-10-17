@@ -141,7 +141,7 @@ async function schema(db: InMemoryDb) {
 
 async function freshSchema() {
   const fresh = await createSqlJsDbClient()
-  await applyMigrations(fresh)
+  await applyMigrations(fresh, 13)
   const rows = await schema(fresh)
   fresh.close()
   return rows
@@ -167,7 +167,7 @@ describe.each([
   })
 
   it('porte la base en version 13, au schéma exact d’une installation neuve', async () => {
-    await applyMigrations(db)
+    await applyMigrations(db, 13)
 
     expect(await userVersion(db)).toBe(13)
     expect(await schema(db)).toEqual(await freshSchema())
@@ -177,7 +177,7 @@ describe.each([
     const periodsBefore = await rows(db, 'treatment_period')
     const dosesBefore = await rows(db, 'treatment_dose')
 
-    await applyMigrations(db)
+    await applyMigrations(db, 13)
 
     const periodsAfter = (await rows(db, 'treatment_period')) as Record<string, unknown>[]
     const withoutFacts = periodsAfter.map((row) => {
@@ -191,7 +191,7 @@ describe.each([
   })
 
   it('lit chaque réglage comme avant : origine posée, date choisie ; aucune réponse gardée', async () => {
-    await applyMigrations(db)
+    await applyMigrations(db, 13)
 
     const facts = await db.query<{
       id: string
@@ -214,13 +214,13 @@ describe.each([
   it('n’envoie rien à la synchronisation : la migration Supabase pose les mêmes valeurs', async () => {
     await db.execute('DELETE FROM sync_outbox')
 
-    await applyMigrations(db)
+    await applyMigrations(db, 13)
 
     await expect(db.query('SELECT * FROM sync_outbox')).resolves.toEqual([])
   })
 
   it('met de nouveau en file d’envoi une ligne écrite après la migration', async () => {
-    await applyMigrations(db)
+    await applyMigrations(db, 13)
     await db.execute('DELETE FROM sync_outbox')
 
     await db.run(
@@ -245,7 +245,7 @@ describe.each([
     const periodsAvant = await rows(db, 'treatment_period')
     const dosesAvant = await rows(db, 'treatment_dose')
 
-    await expect(applyMigrations(db)).rejects.toThrow(/already exists/)
+    await expect(applyMigrations(db, 13)).rejects.toThrow(/already exists/)
 
     expect(await userVersion(db)).toBe(12)
     expect(await schema(db)).toEqual(schemaAvant)
@@ -254,7 +254,7 @@ describe.each([
   })
 
   it('laisse des clés étrangères cohérentes et actives', async () => {
-    await applyMigrations(db)
+    await applyMigrations(db, 13)
     await db.execute('PRAGMA foreign_keys = ON')
 
     await expect(db.query('PRAGMA foreign_key_check')).resolves.toEqual([])
@@ -274,7 +274,7 @@ describe('schéma v13 sur une installation neuve', () => {
 
   beforeEach(async () => {
     db = await createSqlJsDbClient()
-    await applyMigrations(db)
+    await applyMigrations(db, 13)
     await seedVersion12(db)
   })
 

@@ -36,6 +36,16 @@ describe('normalizeSyncTimestamps', () => {
     expect(normalizeSyncTimestamps(row).deleted_at).toBe('2026-02-01T07:00:00.000Z')
   })
 
+  it('normalise la date d’écriture des réglages, que le moteur compare à celle d’un report', () => {
+    const row = {
+      id: 'p1',
+      updated_at: '2026-04-07T20:00:00+00:00',
+      settings_written_at: '2026-04-07T20:00:00.5+00:00',
+    }
+
+    expect(normalizeSyncTimestamps(row).settings_written_at).toBe('2026-04-07T20:00:00.500Z')
+  })
+
   it("ne mute pas la ligne d'origine", () => {
     const row = { id: 'a1', updated_at: '2026-01-01T00:00:00+00:00' }
 

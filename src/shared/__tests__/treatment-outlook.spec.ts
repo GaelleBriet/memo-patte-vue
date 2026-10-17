@@ -35,7 +35,11 @@ function period(changes: Partial<ExportTreatmentPeriod> = {}): ExportTreatmentPe
     ...STAMPS,
     ...changes,
   } satisfies Partial<ExportTreatmentPeriod>
-  return { ...legacyFactsOf(record.gridOriginOn), ...record }
+  return {
+    ...legacyFactsOf(record.gridOriginOn),
+    settingsWrittenAt: record.createdAt,
+    ...record,
+  }
 }
 
 function given(dueOn: string, changes: Partial<ExportTreatmentDose> = {}): ExportTreatmentDose {

@@ -61,10 +61,10 @@ create function pg_temp.carnet_of(account uuid) returns text language sql as $fn
     '00000000-0000-4000-8000-0000000000a1', 'Amoxicilline', 'medication', now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', '2001-01-01T00:00:00Z');
   insert into public.treatment_period (user_id, id, treatment_id, animal_id, starts_on, first_due_on,
     grid_origin_on, ends_on, frequency_value, frequency_unit, times, dose_quantity, dose_unit, reminder_offset_minutes,
-    created_at, updated_at, created_by_device, updated_by_device, server_updated_at)
+    created_at, updated_at, settings_written_at, created_by_device, updated_by_device, server_updated_at)
   values ('%1$s', '00000000-0000-4000-8000-0000000000a6',
     '00000000-0000-4000-8000-0000000000a5', '00000000-0000-4000-8000-0000000000a1', '2026-01-01',
-    '2026-01-01', '2026-01-01', '2026-01-10', 1, 'day', '08:00,20:00', 0.5, 'tablet', 15, now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', '2001-01-01T00:00:00Z');
+    '2026-01-01', '2026-01-01', '2026-01-10', 1, 'day', '08:00,20:00', 0.5, 'tablet', 15, now(), now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', '2001-01-01T00:00:00Z');
   insert into public.treatment_dose (user_id, id, period_id, treatment_id, animal_id, due_on, due_time,
     given_on, status, target_on, created_at, updated_at, created_by_device, updated_by_device, server_updated_at)
   values ('%1$s', '00000000-0000-4000-8000-0000000000a7',
@@ -305,11 +305,11 @@ $$, '23503', null, 'il ne rattache pas une pesée à l''animal d''un autre');
 
 select throws_ok($$
   insert into public.treatment_period (user_id, id, treatment_id, animal_id, starts_on, first_due_on,
-    grid_origin_on, frequency_value, frequency_unit, created_at, updated_at, created_by_device,
-    updated_by_device)
+    grid_origin_on, frequency_value, frequency_unit, created_at, updated_at, settings_written_at,
+    created_by_device, updated_by_device)
   values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', gen_random_uuid(),
     '00000000-0000-4000-8000-0000000000a5', '00000000-0000-4000-8000-0000000000a1', '2026-01-01',
-    '2026-01-01', '2026-01-01', 1, 'day', now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee')
+    '2026-01-01', '2026-01-01', 1, 'day', now(), now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee')
 $$, '23503', null, 'il ne rattache pas une période au traitement d''un autre');
 
 select lives_ok($$
@@ -395,11 +395,12 @@ insert into public.treatment (user_id, id, animal_id, name, type, created_at, up
 values ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '00000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-0000000000c1', 'Mensuel', 'antiparasitic', now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'),
        ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '00000000-0000-4000-8000-0000000000d2', '00000000-0000-4000-8000-0000000000c1', 'Quotidien', 'medication', now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
 insert into public.treatment_period (user_id, id, treatment_id, animal_id, starts_on, first_due_on,
-  reference_on, frequency_value, frequency_unit, created_at, updated_at, created_by_device, updated_by_device)
+  reference_on, frequency_value, frequency_unit, created_at, updated_at, settings_written_at,
+  created_by_device, updated_by_device)
 values
-  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-0000000000c1', '2026-01-31', '2026-02-28', '2026-01-31', 1, 'month', now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'),
-  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '00000000-0000-4000-8000-0000000000e2', '00000000-0000-4000-8000-0000000000d2', '00000000-0000-4000-8000-0000000000c1', '2026-01-01', '2026-01-01', '2026-01-01', 1, 'day', now() - interval '2 hours', now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'),
-  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '00000000-0000-4000-8000-0000000000e3', '00000000-0000-4000-8000-0000000000d2', '00000000-0000-4000-8000-0000000000c1', '2026-02-01', '2026-02-01', '2026-01-01', 1, 'day', now() - interval '1 hour', now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-0000000000c1', '2026-01-31', '2026-02-28', '2026-01-31', 1, 'month', now(), now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'),
+  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '00000000-0000-4000-8000-0000000000e2', '00000000-0000-4000-8000-0000000000d2', '00000000-0000-4000-8000-0000000000c1', '2026-01-01', '2026-01-01', '2026-01-01', 1, 'day', now() - interval '2 hours', now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'),
+  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '00000000-0000-4000-8000-0000000000e3', '00000000-0000-4000-8000-0000000000d2', '00000000-0000-4000-8000-0000000000c1', '2026-02-01', '2026-02-01', '2026-01-01', 1, 'day', now() - interval '1 hour', now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
 alter table public.treatment_period rename column reference_on to grid_origin_on;
 alter table public.treatment_period alter column grid_origin_on drop not null;
 
@@ -497,6 +498,34 @@ select ok(
     and has_column_privilege('authenticated', 'public.treatment_period',
       'past_doses_stay_unlogged', 'UPDATE'),
   'v13 : les deux faits se synchronisent');
+
+-- Date d'écriture de la migration v14 rejouée : colonne retirée, puis le corps de la migration.
+alter table public.treatment_period drop column settings_written_at;
+
+alter table public.treatment_period add column settings_written_at timestamptz;
+
+update public.treatment_period
+set settings_written_at = created_at;
+
+alter table public.treatment_period alter column settings_written_at set not null;
+
+grant update (settings_written_at) on table public.treatment_period to authenticated;
+
+select is(
+  (select count(*) from public.treatment_period where settings_written_at is distinct from created_at),
+  0::bigint, 'v14 : chaque réglage est daté de sa création, lu comme jamais réécrit');
+select ok(
+  (select settings_written_at from public.treatment_period
+   where id = '00000000-0000-4000-8000-0000000000e2')
+    < (select updated_at from public.treatment_period
+       where id = '00000000-0000-4000-8000-0000000000e2'),
+  'v14 : un réglage modifié après sa création garde sa création comme date d''écriture');
+select throws_ok(
+  $$ update public.treatment_period set settings_written_at = null $$, '23502', null,
+  'v14 : un réglage sans date d''écriture est refusé');
+select ok(
+  has_column_privilege('authenticated', 'public.treatment_period', 'settings_written_at', 'UPDATE'),
+  'v14 : la date d''écriture se synchronise');
 
 select * from finish();
 rollback;
