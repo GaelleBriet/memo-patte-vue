@@ -227,7 +227,7 @@ la réécriture par la date d'écriture du réglage. `treatment_period` gagne `s
 (`TEXT NOT NULL`, instant ISO 8601), qui avance seulement quand change ce qui fait le calendrier :
 début, première échéance, fréquence, heures, origine de la grille et les deux faits de la v13. L'arrêt,
 son « Annuler », la suppression, la date de fin, la posologie et le rappel font bouger `updated_at`,
-jamais `settings_written_at` ; écartée : `updated_at`, qu'un arrêt annulé rendrait plus récent qu'un
+jamais `settings_written_at` (posologie exclue et valeur des données d'avant = date de création : lectures de l'implémenteur de la v14, à confirmer par Gaelle, spec R10) ; écartée : `updated_at`, qu'un arrêt annulé rendrait plus récent qu'un
 report (Milo arrêté puis « Annuler » le 8 perdrait sa dose reportée au 10). Le moteur la lit comme
 `Setting.updatedAt` (`viewInputOf`, `src/shared/domain/treatment-reading.ts`).
 
