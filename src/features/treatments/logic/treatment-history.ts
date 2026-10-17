@@ -87,7 +87,7 @@ function linesOf(
     const previous = lines.at(-1)
     const rows: DoseRow[] = [
       ...(previous?.kind === 'missed' ? previous.rows : []),
-      missedRow(t, entry.dose, period),
+      missedRow(t, context, entry.dose, period),
     ]
     if (previous?.kind === 'missed') lines.pop()
     lines.push({
