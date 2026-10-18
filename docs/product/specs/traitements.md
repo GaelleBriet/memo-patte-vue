@@ -176,7 +176,7 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
 
 ### 4.5 Corriger une prise
 
-- **TR-24** Menu ⋮ d'une prise : changer la date, supprimer, « Marquer comme donnée / oubliée » ;
+- **TR-24** Menu ⋮ d'une prise : changer la date, supprimer, « Marquer comme donnée / oubliée » (le second jamais sur une échéance future, TR-26) ;
   d'une prise en plus : « Changer la date » et « Supprimer cette prise » seulement (décision du
   2026-10-05 ; changer sa date la fait viser ce que viserait une prise notée ce jour-là, TR-13) ; d'une
   ligne « Reportée au … » ou « Avancée au … » : « Changer la date », « Supprimer ce report »
@@ -233,7 +233,7 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   (#822, décision du 2026-10-13). (Relecture, point 5)
 - **TR-26** Pas de règle de « seule prise » : supprimer la seule prise garde le traitement (son
   échéance redevient la dose du moment, ou une dose non renseignée si une échéance plus récente est
-  tombée, TR-13) ; « Marquer comme oubliée » est permis sur toute prise, y compris la seule donnée. Pour
+  tombée, TR-13) ; « Marquer comme oubliée » est permis sur toute prise, y compris la seule donnée, sauf sur une prise dont l'échéance est future (une dose pas encore due ne peut pas avoir été oubliée : pour défaire une prise d'avance, « Supprimer » ; décision du 18 octobre 2026, #920). Pour
   tout effacer : « Supprimer ce traitement ». (Spec Q4, 2026-09-29 ; remplace le point 4 des réponses à
   la relecture du 2026-09-28)
 
