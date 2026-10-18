@@ -20,6 +20,9 @@ export const familyOf = (line: Pick<Line, 'status'>): string =>
 export const isMoreRecent = (a: Line, b: Line): boolean =>
   a.updatedAt > b.updatedAt || (a.updatedAt === b.updatedAt && a.id > b.id)
 
+/** #867, #873 : entre un report et la ligne « pas à donner » de sa dose, au départ comme à l'arrivée, le plus récent l'emporte. */
+export const reportBeats = (report: Line, note: Line): boolean => isMoreRecent(report, note)
+
 /** TR-25 : par clé, la ligne modifiée le plus récemment ; triées par jour d'échéance. */
 export function latestBy(lines: readonly Line[], keyOfLine: (line: Line) => string): Line[] {
   const latest = new Map<string, Line>()
@@ -159,9 +162,7 @@ export function episodeLines(lines: readonly Line[], span: Span): EpisodeLines {
     note.status === 'not-due' &&
     reports.some(
       (report) =>
-        report.dueOn === note.dueOn &&
-        report.dueTime === note.dueTime &&
-        isMoreRecent(report, note),
+        report.dueOn === note.dueOn && report.dueTime === note.dueTime && reportBeats(report, note),
     )
   kept.filter(beaten).forEach(({ id }) => idle.set(id, 'beaten'))
   const notes = kept.filter((line) => isNote(line) && !beaten(line))

@@ -219,7 +219,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   for (const [day, journey] of [...days].sort(([a], [b]) => a.localeCompare(b))) {
     const covered = coveredOn(day, journey)
     // #873 : une dose « pas à donner » n'est nulle part ; une journée qui n'a plus qu'elles n'est pas arrivée.
-    const hours = notDue.hoursOf(day, journey.hours, covered, held)
+    const hours = notDue.hoursOf(day, journey.hours, covered, held, byDay.get(day) ?? [])
     if (hours.length > 0) fallen.add(day)
     for (const hour of hours) {
       const note = covered.get(hour) ?? null

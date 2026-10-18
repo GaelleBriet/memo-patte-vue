@@ -18,13 +18,15 @@ type Inputs = {
   values: Ref<TreatmentFormValues>
   treatment: Ref<TreatmentWithHistory | null>
   today: Readonly<Ref<string>>
+  /** Relit la date du jour : la question se repose si ses échéances ont changé depuis (#873). */
+  refreshToday?: () => void
 }
 
 /**
  * « Modifier » : la prochaine dose proposée et reportée dans la saisie, la question des échéances
  * tombées, puis la modification écrite.
  */
-export function useTreatmentEditionForm({ values, treatment, today }: Inputs) {
+export function useTreatmentEditionForm({ values, treatment, today, refreshToday }: Inputs) {
   const { t } = useI18n()
   const treatments = useTreatmentsStore()
 
@@ -101,6 +103,7 @@ export function useTreatmentEditionForm({ values, treatment, today }: Inputs) {
   /** Sans écriture possible, ouvre la question des échéances tombées quand c'est elle qui manque. */
   function write(): (() => Promise<unknown>) | null {
     const id = requireHistory().id
+    refreshToday?.()
     const result = validation.validate()
     if (result.success) return () => treatments.update(id, result.data)
     isPastDuesOpen.value = result.needsPastDuesChoice

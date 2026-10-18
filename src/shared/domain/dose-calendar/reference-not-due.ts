@@ -40,3 +40,13 @@ export const departureBeaten = (
         ),
     ),
   )
+
+/** C2 : une journée sans prise dont toutes les lignes sont « pas à donner » a été listée en entier. */
+export const listedWholeDay = (
+  day: string,
+  notes: readonly ReferenceLine[],
+  beaten: ReadonlySet<ReferenceLine>,
+): boolean => {
+  const ofDay = notes.filter((note) => note.dueOn === day && !beaten.has(note))
+  return ofDay.length > 0 && ofDay.every((note) => note.status === 'not-due')
+}

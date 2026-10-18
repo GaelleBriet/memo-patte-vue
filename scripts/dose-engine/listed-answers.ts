@@ -60,7 +60,12 @@ export function listedInput(input: TreatmentViewInput, listed: ReadonlySet<strin
       return !lost && listed.has(keyOf(line)) && (stillDue || dayLeftUncovered)
     })
     .map(keyOf)
-  return { removed, unlisted: removed.filter((key) => !listed.has(key)), reshown }
+  // C2 : une journée dont toutes les doses ont été listées sort en entier, quelles que soient ses heures.
+  const wholeDayOut = (key: string) =>
+    [...listed].some((each) => each.slice(0, 10) === key.slice(0, 10)) &&
+    ![...shown.keys()].some((each) => each.slice(0, 10) === key.slice(0, 10))
+  const unlisted = removed.filter((key) => !listed.has(key) && !wholeDayOut(key))
+  return { removed, unlisted, reshown }
 }
 
 export function listedReport(seed: number, steps: number): ListedReport {

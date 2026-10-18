@@ -34,7 +34,7 @@ import {
   settingsIn,
   touchedJourneys,
 } from './reference-lines'
-import { beatenNotDue, departureBeaten, existingHours } from './reference-not-due'
+import { beatenNotDue, departureBeaten, existingHours, listedWholeDay } from './reference-not-due'
 import { arrivedOn, chosenDateOf, hoursChangedSince, reportOutcome } from './reference-reports'
 import { rewrittenDeparture, shiftKeptByReport, type RewriteContext } from './reference-rewrite'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
@@ -303,6 +303,7 @@ export function calendarOf(
 
   const dues: ReferenceDue[] = []
   for (const [day, journey] of [...days].sort(([a], [b]) => a.localeCompare(b))) {
+    if (listedWholeDay(day, notes, beaten)) continue
     const covered = beaten.size > 0 ? standing(day, journey) : coveredOn(day, journey)
     // #873 : une échéance que seule une ligne « pas à donner » couvre n'existe pas.
     const hours = existingHours(journey.hours, covered, takenOn(day, journey))

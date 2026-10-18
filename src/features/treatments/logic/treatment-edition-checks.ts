@@ -9,6 +9,7 @@ import type { TreatmentWithHistory } from '../schema/treatment-with-history.sche
 import {
   applied,
   treatmentView,
+  type Due,
   type GestureOutcome,
   type Refusal,
   type TreatmentView,
@@ -102,6 +103,13 @@ function endsOnIssue(
   return lastDoseOn !== null && endsOn < lastDoseOn ? 'beforeLastDose' : null
 }
 
+// #873 : la réponse ne vaut que pour les échéances que la question a montrées ; sinon elle se repose.
+function answersShown(dues: readonly Due[], { pastDuesShown }: Edition): boolean {
+  if (pastDuesShown === undefined) return true
+  const keys = dues.map(({ dueOn, dueTime }) => (dueTime === null ? dueOn : `${dueOn} ${dueTime}`))
+  return JSON.stringify([...keys].sort()) === JSON.stringify([...pastDuesShown].sort())
+}
+
 function editionIssues(treatment: TreatmentWithHistory, data: Edition, today: string): DateIssue[] {
   const { period, change, plan, move, refusal, pastDues } = resolve(
     treatment,
@@ -111,7 +119,7 @@ function editionIssues(treatment: TreatmentWithHistory, data: Edition, today: st
     data.pastDues,
   )
   if (change === 'locked') return []
-  if (pastDues.length > 0 && data.pastDues === undefined) {
+  if (pastDues.length > 0 && (data.pastDues === undefined || !answersShown(pastDues, data))) {
     return [{ path: 'pastDues', message: 'required' }]
   }
   if (refusal !== null) return [{ path: 'nextDoseOn', message: refusalIssue(refusal, data) }]
