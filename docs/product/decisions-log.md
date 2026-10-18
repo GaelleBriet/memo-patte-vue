@@ -2974,6 +2974,11 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
+## 2026-10-18 — « Marquer comme oubliée » n'est pas proposé sur une échéance future (#920)
+
+- Décision de Gaelle du 18 octobre 2026, par la session d'analyse du moteur à qui elle a délégué les lectures de règles : une dose pas encore due ne peut pas avoir été oubliée ; sur une prise donnée d'avance, le menu de l'historique ne propose pas « Marquer comme oubliée » (« Changer la date » et « Supprimer » restent). Même principe que #899 : jamais un geste que le moteur refusera. Milo, chaque lundi à 8 h : le 11 mars la dose du 16 est donnée d'avance ; le 12 le menu de la ligne du 16 ne propose plus le geste ; le 16 il revient.
+- Alternative écartée : le permettre avec une règle écrite.
+
 2026-10-18 — **#873 et #872 : la réponse à la question des doses tombées est écrite sur le réglage,
 à trois états** (spec `traitements.md` R10, R11, §10, §11 ; migration v15, export v8 ; décision de
 Gaelle du 18 octobre 2026, par la session d'analyse du moteur).
