@@ -245,18 +245,21 @@ la personne a répondu à la question Q38, le moteur ne le devine pas. `past_dos
 (booléen) est remplacée par `fallen_doses_answer` (`TEXT NOT NULL DEFAULT 'unasked'`), à trois états :
 `unasked` (aucune question posée), `stay-unlogged` (« Elles restent à renseigner »), `not-due`
 (« Elles n'étaient pas à donner »). `fallen_doses_answered_at` (`TEXT`, instant ISO 8601, `NULL` sans
-réponse datée) est l'instant de la réponse, posé par le même geste et jamais réécrit sans question.
-Le moteur ne retire une dose tombée que sous `not-due`, strictement avant le jour local de cette date ;
-un report plus récent que la réponse tient (#867). `settings_written_at` (v14) avance sans toucher à
+réponse datée) est l'instant de la réponse, et `fallen_doses_listed` (`TEXT`, tableau JSON de clés
+`AAAA-MM-JJ HH:mm` ou `AAAA-MM-JJ`, `NULL` sans réponse) les échéances que la question a montrées ;
+les deux sont posés par le même geste, jamais réécrits sans question. Le moteur ne retire, sous
+`not-due`, que les échéances de cette liste encore sans prise ; un report plus récent que la réponse
+tient (#867). `settings_written_at` (v14) avance sans toucher à
 la réponse, et la réponse seule ne la fait pas avancer. Une réécriture sans question garde la réponse
 et sa date. Écartées : déduire la réponse d'un réglage réécrit (une simple « Prochaine dose » retirait
-des doses, relecture de #914), dater la réponse par `settings_written_at` (une dose non listée
-retirée après une réécriture plus tardive), une ligne par dose retirée.
+des doses, relecture de #914), borner le retrait par une date, `settings_written_at` ou celle de la
+réponse (une dose dont la prise est supprimée plus tard retirée sans avoir été listée, relectures de
+la PR #948), une ligne par dose retirée.
 
 La migration (`src/core/db/migration-v15.ts`) recrée `treatment_period` et `treatment_dose` comme la
 v14, sans `DELETE` ni `UPDATE` de premier niveau. Réglages existants : `stay-unlogged` quand
-`past_doses_stay_unlogged = 1`, sinon `unasked`, jamais `not-due`, et `fallen_doses_answered_at` vaut
-`NULL` (le booléen ne distinguait pas cette réponse d'aucune question et ne la datait pas : rien n'est
+`past_doses_stay_unlogged = 1`, sinon `unasked`, jamais `not-due`, et `fallen_doses_answered_at` et
+`fallen_doses_listed` valent `NULL` (le booléen ne distinguait pas cette réponse d'aucune question et ne la datait pas : rien n'est
 retiré après coup). Miroir Supabase :
 `supabase/migrations/20261018090000_sync_mirror_treatment_period_fallen_doses_answer.sql`, mêmes
 colonnes, mêmes valeurs, l'ancienne colonne retirée, la date de réponse écrêtée à 24 h dans le futur

@@ -137,7 +137,8 @@ période porte `settingsWrittenAt`, la dernière écriture de ce qui fait son ca
 période porte `fallenDosesAnswer`, la réponse à la question Q38 des doses tombées, à la place du
 booléen `pastDosesStayUnlogged` : `"unasked"` (aucune question posée), `"stay-unlogged"` (« Elles
 restent à renseigner ») ou `"not-due"` (« Elles n'étaient pas à donner »), et `fallenDosesAnsweredAt`,
-l'instant de cette réponse (`null` sans réponse datée).
+l'instant de cette réponse (`null` sans réponse datée), et `fallenDosesListed`, les échéances que
+la question a montrées (`AAAA-MM-JJ HH:mm` ou `AAAA-MM-JJ`, `null` sans réponse).
 
 | Champ           | Type                   | Sens                                                                 |
 | --------------- | ---------------------- | -------------------------------------------------------------------- |
@@ -158,7 +159,7 @@ Un fichier v3, v4 ou v5 reçoit ensuite les deux faits par la règle de la migra
 de la migration v14 : la date de création de la période (`createdAt`), que le moteur lit comme un
 réglage jamais réécrit. Un fichier v3 à v7 reçoit enfin `fallenDosesAnswer` par la règle de la
 migration v15 : `"stay-unlogged"` quand `pastDosesStayUnlogged` vaut `true`, sinon `"unasked"`, jamais
-`"not-due"`, et `fallenDosesAnsweredAt` vaut `null` (le booléen ne distinguait pas cette réponse
+`"not-due"`, et `fallenDosesAnsweredAt` et `fallenDosesListed` valent `null` (le booléen ne distinguait pas cette réponse
 d'aucune question et ne la datait pas : rien n'est retiré après coup).
 Un `schemaVersion` supérieur est refusé (« Cet export vient d'une version plus récente de l'app. »), un
 `schemaVersion` inférieur à 3 aussi (« Cet export vient d'une version plus ancienne de MémoPatte. Il ne
@@ -258,6 +259,7 @@ n'en exporte pas, et l'import le refuse jusqu'au lot 3, comme `"medication"`.
 | `firstDueChosen`        | booléen                                                       | Première dose choisie par la personne (R9), pas proposée par l'app    |
 | `fallenDosesAnswer`     | `"unasked"` \| `"stay-unlogged"` \| `"not-due"`                | Réponse à la question Q38 (R10, #873) : aucune question, « Elles restent à renseigner », « Elles n'étaient pas à donner » |
 | `fallenDosesAnsweredAt` | ISO 8601 UTC \| `null`                                         | Instant de la réponse à la question Q38, posé par elle seule (#873) ; `null` sans réponse datée |
+| `fallenDosesListed`     | liste de `AAAA-MM-JJ HH:mm` ou `AAAA-MM-JJ` \| `null`        | Échéances que la question Q38 a montrées, posées par la réponse ; seules elles sortent sous « Elles n'étaient pas à donner » (#873) |
 | `settingsWrittenAt`     | ISO 8601 UTC                                                  | Dernière écriture du calendrier (R10, #867) ; `createdAt` sinon       |
 | `endsOn`                | `AAAA-MM-JJ` \| `null`                                        | Date de fin, facultative                                              |
 | `stoppedOn`             | `AAAA-MM-JJ` \| `null`                                        | Date d'arrêt, `null` en cours                                         |
