@@ -3000,6 +3000,19 @@ moteur).
   perdant grisé « sans effet » (graine 8000000726) ; une prise donnée sur une arrivée ne change pas.
 - #872 : « Elles n'étaient pas à donner » qui vide la période est refusée avec le texte de #806, avec
   ou sans prise ; la correction à fréquence gardée ne repart plus d'aujourd'hui.
+- Une prise l'emporte toujours sur une ligne « pas à donner » de sa dose, quel que soit l'ordre et
+  la date de chacune : une prise est un fait (#892), la réponse est groupée et ne vise pas cette dose
+  précise. La ligne est grisée « sans effet », jamais la prise. « Elles n'étaient pas à donner » crée
+  toujours sa ligne et ne réécrit jamais une prise de la même dose ; la base accepte donc les deux
+  sur la même échéance (I1, Q-a).
+- Un report dont une dose d'arrivée a été donnée a servi : il est verrouillé (Q25) et actif, jamais
+  « sans effet ». Il n'est sans effet que quand toutes les doses de son arrivée qui restent sont
+  « pas à donner ». La correction à fréquence gardée part alors de cette arrivée, même passée
+  (Q-b, graine 7810000235).
+- Quand « Modifier » est refusé parce que la question a changé entre l'affichage et l'enregistrement
+  (synchro), le traitement est relu et la question se repose, sans texte nouveau.
+- L'affichage de la ligne « pas à donner » dans l'historique, avec son libellé et « Supprimer »,
+  reste à livrer avant toute publication.
 - Raison : la donnée dit ce que la personne a répondu, dose par dose, avec les règles de ligne que
   le moteur sait déjà lire. — Écartées : déduire la réponse d'un réglage réécrit (relecture de
   #914) ; une date ou une liste de doses sur le réglage (relectures de la PR #948 : une dose non

@@ -249,8 +249,9 @@ réponse seule ne fait pas avancer `settings_written_at` (v14). `treatment_dose.
 `not-due` : « Elles n'étaient pas à donner » écrit une ligne `not-due` par dose que la question a
 montrée (jour, heure, réglage, date de modification, appareil), par le même geste ; une réécriture
 sans question n'en écrit ni n'en efface. Une ligne `not-due` compte comme une ligne (journée touchée
-R4, « le plus récent l'emporte » TR-25, suppression seule #822) et jamais comme une prise ; sa dose
-n'existe nulle part. Écartées : déduire la réponse d'un réglage réécrit (une simple « Prochaine dose »
+R4, suppression seule #822) et jamais comme une prise ; sa dose n'existe nulle part. Elle forme sa
+propre famille : une prise et une ligne `not-due` de la même échéance coexistent en base, et la
+prise l'emporte toujours, la ligne `not-due` étant alors sans effet (I1, Q-a, 18 octobre 2026). Écartées : déduire la réponse d'un réglage réécrit (une simple « Prochaine dose »
 retirait des doses, relecture de #914) ; une date ou une liste de doses sur le réglage (une dose dont
 la prise était supprimée plus tard sortait sans avoir été listée, et une seconde réponse remplaçait
 la première : relectures de la PR #948, fermée).
