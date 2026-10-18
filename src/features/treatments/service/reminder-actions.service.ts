@@ -9,7 +9,7 @@ import { readableReadingOf } from '../logic/treatment-reading-adapter'
 import type { TreatmentWithHistoryReader } from '../repository/treatments.repository'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { AppliedDoseChange, TreatmentDosesService } from './treatment-doses.service'
-import type { VaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
+import type { VaccinationReplacedDuesReader } from '@/features/vaccinations/repository/vaccinations.repository'
 import { isLegacyReminderKey, parseReminderKey } from '@/shared/domain/due-reminders'
 import {
   parseReminderQuery,
@@ -28,7 +28,7 @@ export type ReminderActionsDependencies = {
   router: Pick<Router, 'currentRoute' | 'push' | 'replace'>
   animals: Provider<Pick<AnimalsRepository, 'getById'>>
   treatments: Provider<TreatmentWithHistoryReader>
-  vaccinations: Provider<Pick<VaccinationsRepository, 'getById' | 'listReplacedDues'>>
+  vaccinations: Provider<VaccinationReplacedDuesReader>
   doses: Pick<TreatmentDosesService, 'apply' | 'noteMoment' | 'undoBatch'>
   refreshHome: () => unknown
   t: Translate
