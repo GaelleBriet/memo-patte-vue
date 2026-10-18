@@ -81,6 +81,8 @@ export type ExportTreatmentPeriod = {
   fallenDosesAnswer: FallenDosesAnswer
   /** #873 : instant de cette réponse, posé par elle seule ; `null` : aucune réponse datée. */
   fallenDosesAnsweredAt: string | null
+  /** #873 : échéances que la question a montrées, posées par la réponse ; `null` : aucune réponse. */
+  fallenDosesListed: string[] | null
   endsOn: string | null
   stoppedOn: string | null
   frequency: ExportFrequency

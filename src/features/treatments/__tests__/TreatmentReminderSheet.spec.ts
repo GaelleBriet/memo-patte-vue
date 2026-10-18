@@ -92,6 +92,7 @@ const HISTORY: TreatmentWithHistory = {
       firstDueChosen: true,
       fallenDosesAnswer: 'unasked',
       fallenDosesAnsweredAt: null,
+      fallenDosesListed: null,
       endsOn: null,
       stoppedOn: null,
       frequency: BRAVECTO.frequency,

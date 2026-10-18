@@ -509,7 +509,8 @@ drop trigger treatment_period_clamp_fallen_doses_answered_at on public.treatment
 alter table public.treatment_period
   drop column first_due_chosen,
   drop column fallen_doses_answer,
-  drop column fallen_doses_answered_at;
+  drop column fallen_doses_answered_at,
+  drop column fallen_doses_listed;
 
 alter table public.treatment_period
   add column first_due_chosen smallint not null default 0 check (first_due_chosen in (0, 1)),
@@ -576,7 +577,8 @@ create temp table before_v15 as
 alter table public.treatment_period
   add column fallen_doses_answer text not null default 'unasked'
     check (fallen_doses_answer in ('unasked', 'stay-unlogged', 'not-due')),
-  add column fallen_doses_answered_at timestamptz;
+  add column fallen_doses_answered_at timestamptz,
+  add column fallen_doses_listed text;
 
 update public.treatment_period
 set fallen_doses_answer = 'stay-unlogged'
@@ -584,7 +586,7 @@ where past_doses_stay_unlogged = 1;
 
 alter table public.treatment_period drop column past_doses_stay_unlogged;
 
-grant update (fallen_doses_answer, fallen_doses_answered_at)
+grant update (fallen_doses_answer, fallen_doses_answered_at, fallen_doses_listed)
   on table public.treatment_period to authenticated;
 
 create trigger treatment_period_clamp_fallen_doses_answered_at
@@ -613,13 +615,16 @@ select throws_ok(
   $$ update public.treatment_period set fallen_doses_answer = 'oui' $$, '23514', null,
   'v15 : une réponse hors des trois états est refusée');
 select is(
-  (select count(*) from public.treatment_period where fallen_doses_answered_at is not null),
-  0::bigint, 'v15 : aucune réponse d''avant n''est datée');
+  (select count(*) from public.treatment_period
+   where fallen_doses_answered_at is not null or fallen_doses_listed is not null),
+  0::bigint, 'v15 : aucune réponse d''avant n''est datée ni listée');
 select ok(
   has_column_privilege('authenticated', 'public.treatment_period', 'fallen_doses_answer', 'UPDATE')
     and has_column_privilege('authenticated', 'public.treatment_period',
-      'fallen_doses_answered_at', 'UPDATE'),
-  'v15 : la réponse et sa date se synchronisent');
+      'fallen_doses_answered_at', 'UPDATE')
+    and has_column_privilege('authenticated', 'public.treatment_period',
+      'fallen_doses_listed', 'UPDATE'),
+  'v15 : la réponse, sa date et sa liste se synchronisent');
 update public.treatment_period set fallen_doses_answered_at = now() + interval '25 hours'
 where id = '00000000-0000-4000-8000-0000000000e1';
 select is(

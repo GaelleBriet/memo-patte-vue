@@ -237,6 +237,7 @@ describe('toJsonExport', () => {
       firstDueChosen: true,
       fallenDosesAnswer: 'unasked',
       fallenDosesAnsweredAt: null,
+      fallenDosesListed: null,
       endsOn: '2026-09-20',
       stoppedOn: null,
       frequency: { value: 1, unit: 'day' },

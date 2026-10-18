@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { forksOf, type Fork } from '../../../scripts/dose-engine/two-devices'
 import { constatsOf, type Reader } from '../../../scripts/dose-engine/two-devices-constats'
+import fork1753 from './fixtures/dose-calendar-deux-appareils-8710001753.json'
 
 // Campagne à deux téléphones (#867, #882, #883) : TW_FROM, TW_SEEDS, TW_STEPS, et TW_MAIN (moteur de
 // `main`, pour ne compter que ses écarts) posées devant la commande (`scripts/dose-engine/README.md`).
@@ -86,6 +87,12 @@ describe('campagne à deux téléphones', () => {
     [9530001637, 18],
   ])('graine %i, pas %i : le report de A n’est pas perdu', (seed, step) => {
     expect(constatsOf(forkAt(seed, step))).toEqual([])
+  })
+
+  // Relecture de la PR #934, carnet figé tel que la marche de `main` le menait : depuis #872, la
+  // correction à fréquence gardée garde sa grille et la marche n'y arrive plus.
+  it('graine 8710001753, pas 20 (carnet figé) : le report de A n’est pas perdu', () => {
+    expect(constatsOf(fork1753 as unknown as Fork)).toEqual([])
   })
 
   it.each([

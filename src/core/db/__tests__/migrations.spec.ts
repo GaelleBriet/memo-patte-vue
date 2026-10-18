@@ -386,6 +386,7 @@ describe('schéma sur une installation neuve', () => {
         'first_due_chosen',
         'fallen_doses_answer',
         'fallen_doses_answered_at',
+        'fallen_doses_listed',
         'ends_on',
         'stopped_on',
         'frequency_value',

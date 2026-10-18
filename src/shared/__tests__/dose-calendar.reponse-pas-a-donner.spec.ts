@@ -124,7 +124,7 @@ describe('#873 : « Elles n’étaient pas à donner » retire les doses listée
     const after = edited(input, SANS_HEURE, 'correct')
     expect(after.settings.find(({ id }) => id === 's3')).toMatchObject({
       fallenDosesAnswer: 'not-due',
-      answeredOn: '2026-03-23',
+      answeredDues: ['2026-03-18 14:00', '2026-03-18 20:00'],
     })
     expect(slotsOf(after, '2026-03-13', '2026-05-31')).toEqual([
       '2026-03-13 08:00 given',
@@ -136,6 +136,19 @@ describe('#873 : « Elles n’étaient pas à donner » retire les doses listée
     expect(effectOf(after, 'l17')).toMatchObject({ kind: 'moves', arrival: '2026-03-23' })
     const { moteur, reference } = readings(after)
     expect(moteur.aRenseigner).toEqual(['2026-03-10 08:00', '2026-03-10 20:00'])
+    expect(moteur).toEqual(reference)
+  })
+
+  it('graine 8000000726 : le 25, la prise du 13 à 8 h, jamais listée, supprimée : la dose du 13 à 8 h revient, le 18 reste retiré', () => {
+    const after = edited(graine726(), SANS_HEURE, 'correct')
+    expect(after.settings.find(({ id }) => id === 's3')!.answeredDues).toEqual([
+      '2026-03-18 14:00',
+      '2026-03-18 20:00',
+    ])
+    const c = removed(on(after, '2026-03-25'), '2026-03-13', '08:00')
+    const { moteur, reference } = readings(c)
+    expect([...moteur.moment, ...moteur.aRenseigner]).toContain('2026-03-13 08:00')
+    expect([...moteur.moment, ...moteur.aRenseigner]).not.toContain('2026-03-18 14:00')
     expect(moteur).toEqual(reference)
   })
 
@@ -219,20 +232,22 @@ describe('#873 : « Elles n’étaient pas à donner » retire les doses listée
     expect(moteur).toEqual(reference)
   })
 
-  it('une réécriture sans question garde la réponse et sa date ; seule une réponse à la question la date', () => {
+  it('une réécriture sans question garde la réponse, sa date et sa liste ; seule une réponse à la question les écrit', () => {
     const c = milo()
     const current = treatmentView(c).currentSetting!
     expect(current.fallenDosesAnswer).toBe('unasked')
-    expect(current.answeredOn).toBeUndefined()
+    expect(current.answeredDues).toBeUndefined()
     const answered = settingsApplied(c, {
       action: 'rewrite',
       id: current.id,
       setting: { ...current, fallenDosesAnswer: 'not-due' },
-      answered: true,
+      answered: { listed: ['2026-03-11 08:00'] },
     })
+    const answeredAt = answered.settings.find(({ id }) => id === current.id)!.answeredAt
+    expect(answeredAt).toBeDefined()
     expect(answered.settings.find(({ id }) => id === current.id)).toMatchObject({
       fallenDosesAnswer: 'not-due',
-      answeredOn: '2026-03-13',
+      answeredDues: ['2026-03-11 08:00'],
     })
     const later = on(answered, '2026-03-15')
     const rewritten = settingsApplied(later, {
@@ -242,7 +257,8 @@ describe('#873 : « Elles n’étaient pas à donner » retire les doses listée
     })
     expect(rewritten.settings.find(({ id }) => id === current.id)).toMatchObject({
       fallenDosesAnswer: 'not-due',
-      answeredOn: '2026-03-13',
+      answeredAt,
+      answeredDues: ['2026-03-11 08:00'],
     })
   })
 })
@@ -301,7 +317,7 @@ describe('#873 : la date de la réponse est une donnée à part, que la date d�
     const answeredId = treatmentView(day20).currentSetting!.id
     expect(day22.settings.find(({ id }) => id === answeredId)).toMatchObject({
       fallenDosesAnswer: 'not-due',
-      answeredOn: '2026-03-20',
+      answeredDues: ['2026-03-09 08:00', '2026-03-16 08:00'],
     })
     expect(treatmentView(day22).currentSetting).toMatchObject({
       fallenDosesAnswer: 'unasked',
@@ -325,7 +341,7 @@ describe('#873 : la date de la réponse est une donnée à part, que la date d�
     expect(moteur).toEqual(reference)
   })
 
-  it('une dose tombée après le jour de la réponse reste, même quand le réglage a été réécrit plus tard', () => {
+  it('une dose que la réponse n’a pas listée reste, même tombée sans prise avant la réponse', () => {
     const answered: TreatmentViewInput = {
       today: '2026-03-25',
       settings: [
@@ -336,8 +352,8 @@ describe('#873 : la date de la réponse est une donnée à part, que la date d�
           frequency: WEEK,
           times: ['10:00'],
           fallenDosesAnswer: 'not-due',
-          answeredAt: '2026-03-20T09:00:00.000Z',
-          answeredOn: '2026-03-20',
+          answeredAt: '2026-03-24T09:00:00.000Z',
+          answeredDues: ['2026-03-09 10:00', '2026-03-16 10:00'],
           updatedAt: '2026-03-24T09:00:00.000Z',
         }),
       ],

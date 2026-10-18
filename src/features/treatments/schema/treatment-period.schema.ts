@@ -37,6 +37,8 @@ export type TreatmentPeriodRecord = TreatmentPeriod & {
   fallenDosesAnswer: FallenDosesAnswer
   /** #873 : instant de cette réponse, posé par elle seule ; `null` : aucune réponse datée. */
   fallenDosesAnsweredAt: string | null
+  /** #873 : échéances que la question a montrées, posées par la réponse ; `null` : aucune réponse. */
+  fallenDosesListed: string[] | null
   endsOn: string | null
   /** Heures `HH:mm` de chaque jour d'échéance ; vide pour un traitement sans heure. */
   times: string[]

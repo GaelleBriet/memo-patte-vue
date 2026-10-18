@@ -16,7 +16,7 @@ type Unstamped<T> = Omit<T, 'createdByDevice' | 'updatedByDevice'>
 
 export type Version7Period = Omit<
   ExportTreatmentPeriod,
-  'fallenDosesAnswer' | 'fallenDosesAnsweredAt'
+  'fallenDosesAnswer' | 'fallenDosesAnsweredAt' | 'fallenDosesListed'
 > & {
   pastDosesStayUnlogged: boolean
 }
@@ -126,6 +126,7 @@ export function fromVersion7(data: Version7Data): ExportData {
       ...period,
       fallenDosesAnswer: pastDosesStayUnlogged ? 'stay-unlogged' : 'unasked',
       fallenDosesAnsweredAt: null,
+      fallenDosesListed: null,
     })),
   }
 }

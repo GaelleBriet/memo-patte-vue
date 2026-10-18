@@ -1,5 +1,5 @@
 import { isListed } from '../answer'
-import { hoursOf, later, sameFrequency } from '../grid'
+import { hoursOf, keyOf, later, sameFrequency } from '../grid'
 import { isNote } from '../lines'
 import { episodesOf, hasNotes } from '../settings'
 import type {
@@ -62,10 +62,14 @@ const rewrite = (current: Setting, setting: SettingFields): SettingsPlan => ({
   setting: { ...setting, fallenDosesAnswer: current.fallenDosesAnswer },
 })
 
-const answered = (plan: SettingsPlan, fallenDosesAnswer: FallenDosesAnswer): SettingsPlan => ({
+const answered = (
+  plan: SettingsPlan,
+  fallenDosesAnswer: FallenDosesAnswer,
+  fallen: readonly Due[],
+): SettingsPlan => ({
   ...plan,
   setting: { ...plan.setting, fallenDosesAnswer },
-  answered: true,
+  answered: { listed: fallen.map(({ dueOn, dueTime }) => keyOf(dueOn, dueTime)) },
 })
 
 const sameHours = (a: readonly string[], b: readonly string[]) =>
@@ -225,8 +229,8 @@ function corrected(
   const answer = (keep: SettingsPlan, correct: SettingsPlan, shownOn?: Day): SettingsResult => {
     const question = {
       fallen,
-      keep: answered(keep, 'stay-unlogged'),
-      correct: answered(correct, 'not-due'),
+      keep: answered(keep, 'stay-unlogged', fallen),
+      correct: answered(correct, 'not-due', fallen),
     }
     const result = fallen.length === 0 ? { plan: correct } : { question }
     const first = 'plan' in result ? correct : keep

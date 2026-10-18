@@ -30,7 +30,8 @@ const NOW = '2026-03-01T10:00:00.000Z'
 
 function period(
   overrides: Partial<TreatmentPeriod> = {},
-): TreatmentPeriod & PeriodOrigin & { fallenDosesAnsweredAt: string | null } {
+): TreatmentPeriod &
+  PeriodOrigin & { fallenDosesAnsweredAt: string | null; fallenDosesListed: string[] | null } {
   const firstDueOn = overrides.firstDueOn ?? overrides.startsOn ?? '2026-01-10'
   return {
     id: MILBEMAX,
@@ -48,6 +49,7 @@ function period(
     firstDueChosen: true,
     fallenDosesAnswer: 'unasked',
     fallenDosesAnsweredAt: null,
+    fallenDosesListed: null,
   }
 }
 
@@ -210,6 +212,7 @@ describe('treatmentPeriodsRepository', () => {
       ...ORIGINE,
       settingsWrittenAt: EARLIER,
       fallenDosesAnsweredAt: EARLIER,
+      fallenDosesListed: ['2026-02-08'],
     }
 
     it('insère une période avec tous ses réglages et la relit à l’identique', async () => {
@@ -321,20 +324,25 @@ describe('treatmentPeriodsRepository', () => {
 
       await db.runMany([periods.correctSettingsStatement(REPRISE, heures, NOW, ORIGINE)])
       const [, kept] = await periods.listByTreatment(MILBEMAX)
-      expect(kept).toMatchObject({ settingsWrittenAt: NOW, fallenDosesAnsweredAt: EARLIER })
+      expect(kept).toMatchObject({
+        settingsWrittenAt: NOW,
+        fallenDosesAnsweredAt: EARLIER,
+        fallenDosesListed: ['2026-02-08'],
+      })
 
       const LATER = '2026-03-02T10:00:00.000Z'
       await db.runMany([
         periods.correctSettingsStatement(REPRISE, heures, LATER, {
           ...ORIGINE,
           fallenDosesAnswer: 'not-due',
-          answered: true,
+          answered: { listed: ['2026-02-15 08:00'] },
         }),
       ])
       const [, answered] = await periods.listByTreatment(MILBEMAX)
       expect(answered).toMatchObject({
         fallenDosesAnswer: 'not-due',
         fallenDosesAnsweredAt: LATER,
+        fallenDosesListed: ['2026-02-15 08:00'],
         settingsWrittenAt: NOW,
       })
     })
@@ -517,6 +525,7 @@ describe('treatmentPeriodsRepository', () => {
       firstDueChosen: true,
       fallenDosesAnswer: 'not-due',
       fallenDosesAnsweredAt: '2026-02-09T08:00:00.000Z',
+      fallenDosesListed: ['2026-02-08'],
       endsOn: '2026-03-10',
       stoppedOn: '2026-02-20',
       frequency: { value: 1, unit: 'day' },
@@ -552,6 +561,7 @@ describe('treatmentPeriodsRepository', () => {
         firstDueChosen: true,
         fallenDosesAnswer: 'unasked',
         fallenDosesAnsweredAt: null,
+        fallenDosesListed: null,
         endsOn: null,
         times: [],
         doseQuantity: null,

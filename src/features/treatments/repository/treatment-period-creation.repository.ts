@@ -9,6 +9,7 @@ import {
   SYNC_COLUMN_NAMES,
   SYNC_COLUMNS,
   flag,
+  listedColumn,
   originOf,
   timesColumn,
 } from './treatment-period-row.repository'
@@ -22,7 +23,11 @@ export function createPeriodCreation(deviceId: () => string) {
     insertStatement(
       period: TreatmentPeriod &
         Partial<TreatmentPeriodSettings> &
-        PeriodOrigin & { deletedAt: string | null; fallenDosesAnsweredAt?: string | null },
+        PeriodOrigin & {
+          deletedAt: string | null
+          fallenDosesAnsweredAt?: string | null
+          fallenDosesListed?: readonly string[] | null
+        },
     ): SqlStatement {
       const settings = treatmentPeriodSettingsSchema.parse({
         startsOn: period.startsOn,
@@ -48,6 +53,7 @@ export function createPeriodCreation(deviceId: () => string) {
           flag(period.firstDueChosen),
           period.fallenDosesAnswer,
           period.fallenDosesAnsweredAt ?? null,
+          listedColumn(period.fallenDosesListed),
           settings.endsOn,
           period.stoppedOn,
           settings.frequency.value,

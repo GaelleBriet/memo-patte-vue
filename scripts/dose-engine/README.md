@@ -95,7 +95,8 @@ avec ou sans « Décaler aussi les doses suivantes », prise, dose à renseigner
 « Modifier » (heures, date, fréquence, fin) sans le voir, chacun dans un ordre tiré au sort, puis la
 synchro garde, par ligne et par réglage, la modification la plus récente. La date d'écriture d'un
 réglage n'avance que si son calendrier change (migration v14) ; la réponse à la question Q38 porte
-sa propre date, posée par elle seule (#873, migration v15). Constats : le report de A, qui
+sa propre date et la liste des doses qu'elle a montrées, posées par elle seule (#873, migration
+v15). Constats : le report de A, qui
 déplaçait une dose sur A, est sans effet après la synchro alors que la réécriture de B, sur le réglage
 du report, n'a pas ôté sa dose de départ (la journée lue sans ce report l'a encore) ; une dose de trop
 sur le jour d'arrivée du report (une heure que ni A ni B n'y montraient). Un report écrit sous un
@@ -115,3 +116,19 @@ TW_MAIN=/tmp/claude-1000/main-moteur/src/shared/domain/dose-calendar/index.ts \
 La ligne « Campagne deux téléphones : N carnets × M pas, graines A à B, comparée à main : F
 fourches, C constats » dit ce qui a été joué ; un réglage illisible arrête la campagne. Par défaut
 (suite normale) : 10 carnets × 30 pas, sans `main`.
+
+## Seules les doses listées sortent (#873)
+
+`src/shared/__tests__/dose-calendar.reponses-listees.spec.ts` mène des carnets par les gestes de v2
+(`listed-answers.ts`) et, après chaque réponse « Elles n'étaient pas à donner », repose la question
+sur le carnet d'avant la réponse pour relire les doses qu'elle a montrées ; à chaque pas, une dose que
+la fiche ne montre plus à cause d'une réponse doit être de ces doses-là (relecture de la PR #948).
+
+```sh
+LISTED_FROM=9760000000 LISTED_SEEDS=3000 LISTED_STEPS=40 \
+  flock /tmp/claude-1000/memo-patte-suite.lock nice -n 19 \
+  pnpm exec vitest run src/shared/__tests__/dose-calendar.reponses-listees.spec.ts --reporter=verbose
+```
+
+La ligne « Campagne doses listées : N carnets × M gestes, graines A à B » dit ce qui a été joué. Par
+défaut (suite normale) : 20 carnets × 40 gestes.

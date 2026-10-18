@@ -38,6 +38,7 @@ function period(changes: Partial<ExportTreatmentPeriod> = {}): ExportTreatmentPe
   return {
     ...legacyFactsOf(record.gridOriginOn),
     fallenDosesAnsweredAt: null,
+    fallenDosesListed: null,
     settingsWrittenAt: record.createdAt,
     ...record,
   }

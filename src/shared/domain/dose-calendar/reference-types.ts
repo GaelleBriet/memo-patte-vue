@@ -20,8 +20,8 @@ export type ReferenceSetting = {
   updatedAt?: string
   /** Instant de la réponse à la question Q38 ; absent : aucune réponse datée. */
   answeredAt?: string
-  /** Jour de cette réponse. */
-  answeredOn?: string
+  /** Échéances que la question a montrées, gardées par la réponse. */
+  answeredDues?: readonly string[]
 }
 
 export type ReferenceLine = {

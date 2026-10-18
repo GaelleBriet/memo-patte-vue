@@ -431,6 +431,25 @@ describe('parseExportFile', () => {
       },
     )
 
+    it('garde les échéances listées par la réponse, refuse une échéance illisible, et une période sans liste', () => {
+      const listed = ['2026-09-02 08:00', '2026-09-03']
+      const kept = parseExportFile(forged('treatmentPeriods', 'fallenDosesListed', listed, 1))
+      expect(kept.ok && kept.file.data.treatmentPeriods[1]!.fallenDosesListed).toEqual(listed)
+      expect(
+        parseExportFile(forged('treatmentPeriods', 'fallenDosesListed', ['2026-02-30 08:00'], 1)),
+      ).toEqual(INVALID)
+      expect(
+        parseExportFile(forged('treatmentPeriods', 'fallenDosesListed', ['2026-09-02 25:00'], 1)),
+      ).toEqual(INVALID)
+      expect(
+        parseExportFile(
+          withDocument(
+            (document) => delete premier(document, 'treatmentPeriods').fallenDosesListed,
+          ),
+        ),
+      ).toEqual(INVALID)
+    })
+
     it('garde la date de la réponse telle qu’exportée, refuse une date qui n’est pas un instant, et une période sans elle', () => {
       const at = '2026-09-02T08:00:00.000Z'
       const kept = parseExportFile(forged('treatmentPeriods', 'fallenDosesAnsweredAt', at, 1))
@@ -718,6 +737,7 @@ describe('parseExportFile', () => {
         period.pastDosesStayUnlogged = period.fallenDosesAnswer === 'stay-unlogged'
         delete period.fallenDosesAnswer
         delete period.fallenDosesAnsweredAt
+        delete period.fallenDosesListed
       }
       return periods
     }
@@ -740,7 +760,8 @@ describe('parseExportFile', () => {
       expect(answers.slice(1)).toEqual(answers.slice(1).map(() => 'unasked'))
       expect(
         result.file.data.treatmentPeriods.every(
-          ({ fallenDosesAnsweredAt }) => fallenDosesAnsweredAt === null,
+          ({ fallenDosesAnsweredAt, fallenDosesListed }) =>
+            fallenDosesAnsweredAt === null && fallenDosesListed === null,
         ),
       ).toBe(true)
       expect(
@@ -798,6 +819,7 @@ describe('parseExportFile', () => {
           delete period.firstDueChosen
           delete period.fallenDosesAnswer
           delete period.fallenDosesAnsweredAt
+          delete period.fallenDosesListed
           delete period.settingsWrittenAt
         }
         periods.at(-1)!.gridOriginOn = null

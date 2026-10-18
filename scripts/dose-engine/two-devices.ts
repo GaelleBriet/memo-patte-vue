@@ -61,7 +61,7 @@ function writeLines(
 function writePlan(input: TreatmentViewInput, plan: SettingsPlan, clock: Clock, tag: string) {
   const { lines } = writeLines(input, plan.lines ?? [], clock, tag)
   const at = stamp(clock)
-  const answered = plan.answered ? { answeredAt: at, answeredOn: input.today } : {}
+  const answered = plan.answered ? { answeredAt: at, answeredDues: plan.answered.listed } : {}
   if (plan.action === 'rewrite') {
     const settings = input.settings.map((setting) => {
       if (setting.id !== plan.id) return setting

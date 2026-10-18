@@ -1,6 +1,6 @@
 import { differenceInCalendarDays } from 'date-fns'
 
-import { isCalendarDay, previousDay, toDate, toDay } from './calendar-day'
+import { isCalendarDay, previousDay, toDate } from './calendar-day'
 import { isClockTime } from './clock-time'
 import {
   FALLEN_DOSES_ANSWERS,
@@ -14,9 +14,10 @@ import {
 import { DAYS_PER_STEP, FREQUENCY_UNITS, MAX_FREQUENCY_VALUE } from './treatment-frequency'
 
 /** `settingsWrittenAt` : dernière écriture de ce qui fait le calendrier (R10, #867). */
-type Period = Omit<Setting, 'updatedAt' | 'answeredAt' | 'answeredOn'> & {
+type Period = Omit<Setting, 'updatedAt' | 'answeredAt' | 'answeredDues'> & {
   settingsWrittenAt?: string
   fallenDosesAnsweredAt?: string | null
+  fallenDosesListed?: readonly string[] | null
 }
 type Dose = Omit<Line, 'settingId'> & { periodId: string }
 
@@ -98,14 +99,6 @@ function estimatedDues({ settings, lines, today }: TreatmentViewInput): number {
   }, 0)
 }
 
-// #873 : le jour de la réponse Q38 est son jour local, jamais après aujourd'hui.
-function answerOf(answeredAt: string | null | undefined, today: string) {
-  const date = answeredAt ? new Date(answeredAt) : undefined
-  if (date === undefined || Number.isNaN(date.getTime())) return {}
-  const day = toDay(date)
-  return { answeredAt: answeredAt!, answeredOn: day > today ? today : day }
-}
-
 function viewInputOf({ periods, doses }: TreatmentRecords, today: string): TreatmentViewInput {
   return {
     settings: periods.map((period) => ({
@@ -121,7 +114,8 @@ function viewInputOf({ periods, doses }: TreatmentRecords, today: string): Treat
       times: period.times,
       createdAt: period.createdAt,
       updatedAt: period.settingsWrittenAt,
-      ...answerOf(period.fallenDosesAnsweredAt, today),
+      ...(period.fallenDosesAnsweredAt ? { answeredAt: period.fallenDosesAnsweredAt } : {}),
+      ...(period.fallenDosesListed ? { answeredDues: period.fallenDosesListed } : {}),
     })),
     lines: doses.map((dose) => ({
       id: dose.id,

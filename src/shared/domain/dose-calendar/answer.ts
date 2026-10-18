@@ -1,28 +1,21 @@
 import type { Slot } from './calendar'
 import type { Day, Line, LineEffect, Setting } from './types'
 
-/** Q38, #873 : une dose tombée que la question liste, du premier jour du réglage à la veille de la réponse. */
+/** Q38 : une dose tombée que la question montre, du premier jour du réglage à la veille de la réponse. */
 export const isListed = (
   setting: Pick<Setting, 'startsOn'>,
   answeredOn: Day,
   dueOn: Day,
 ): boolean => dueOn >= setting.startsOn && dueOn < answeredOn
 
-/**
- * #873 : « Elles n'étaient pas à donner » retire les doses qu'elle a listées ; le report plus récent
- * qu'elle qui y faisait arriver la dose tient (#867).
- */
-function answeredAway(setting: Setting, dueOn: Day, report: Line | undefined): boolean {
-  const { fallenDosesAnswer, answeredOn, answeredAt } = setting
-  if (fallenDosesAnswer !== 'not-due' || answeredOn === undefined) return false
-  const newer = report !== undefined && answeredAt !== undefined && report.updatedAt > answeredAt
-  return isListed(setting, answeredOn, dueOn) && !newer
+/** #873 : seules les échéances listées par la question sortent ; un report plus récent que la réponse tient (#867). */
+function answeredAway(setting: Setting, key: string, report: Line | undefined): boolean {
+  const { fallenDosesAnswer, answeredDues, answeredAt } = setting
+  if (fallenDosesAnswer !== 'not-due' || !answeredDues?.includes(key)) return false
+  return report === undefined || answeredAt === undefined || report.updatedAt <= answeredAt
 }
 
-/**
- * #873 : les doses restées sans prise que la réponse a listées sortent du calendrier ; un report qui
- * n'apporte plus rien est sans effet, son départ ne les reprend pas.
- */
+/** #873 : les doses listées sans prise sortent ; un report qui n'apporte plus rien est sans effet. */
 export function withoutAnswered(
   slots: readonly Slot[],
   arrivedBy: ReadonlyMap<string, Line>,
@@ -32,7 +25,7 @@ export function withoutAnswered(
   const listed = ({ key, due, coveredBy }: Slot) => {
     const setting = settingAt(due.dueOn)
     return coveredBy === null && setting !== undefined
-      ? answeredAway(setting, due.dueOn, arrivedBy.get(key))
+      ? answeredAway(setting, key, arrivedBy.get(key))
       : false
   }
   const kept = slots.filter((slot) => !listed(slot))

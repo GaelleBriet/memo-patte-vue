@@ -16,7 +16,7 @@ export type PlannedDoseWrite =
 /**
  * Ce que « Modifier » ou « Reprendre » écrit en une fois ; `null` : rien à écrire dans cette table.
  * `gridOriginOn` `null` : l'origine de la grille du réglage précédent (R3) ; `answered` : la période
- * répond à la question Q38, ce qui date la réponse (#873).
+ * répond à la question Q38, date la réponse et garde les échéances qu'elle a montrées (#873).
  */
 export type TreatmentPlanWrite = {
   treatment: Pick<Treatment, 'name' | 'type'> | null
@@ -26,7 +26,7 @@ export type TreatmentPlanWrite = {
         id: string
         settings: TreatmentPeriodSettings
       } & PeriodOrigin & {
-          answered?: true
+          answered?: { listed: readonly string[] }
         })
     | null
   doses: PlannedDoseWrite[]

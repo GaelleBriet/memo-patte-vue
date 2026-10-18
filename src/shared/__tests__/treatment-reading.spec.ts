@@ -115,26 +115,22 @@ describe('treatmentReading', () => {
   })
 })
 
-describe('#873 : la date de la réponse à la question Q38 est une donnée à part, son jour est le jour local', () => {
-  const answerOf = (fallenDosesAnsweredAt: string | null) => {
+describe('#873 : la réponse à la question Q38 porte sa date et les échéances qu’elle a montrées', () => {
+  const answerOf = (fallenDosesAnsweredAt: string | null, fallenDosesListed: string[] | null) => {
     const setting = readTreatment(
-      { periods: [period({ fallenDosesAnsweredAt })], doses: [] },
+      { periods: [period({ fallenDosesAnsweredAt, fallenDosesListed })], doses: [] },
       TODAY,
     )!.input.settings[0]!
-    return [setting.answeredAt, setting.answeredOn]
+    return [setting.answeredAt, setting.answeredDues]
   }
 
-  it('à 0 h 30, heure du téléphone, le 2 : le 2', () => {
-    const at = new Date(2026, 9, 2, 0, 30).toISOString()
-    expect(answerOf(at)).toEqual([at, '2026-10-02'])
+  it('relit la date et la liste telles qu’écrites', () => {
+    const at = '2026-10-02T08:00:00.000Z'
+    expect(answerOf(at, ['2026-10-01 08:00'])).toEqual([at, ['2026-10-01 08:00']])
   })
 
-  it('une date plus loin qu’aujourd’hui (horloge d’un autre appareil) vaut aujourd’hui', () => {
-    expect(answerOf(new Date(2026, 11, 1, 12, 0).toISOString())[1]).toBe(TODAY)
-  })
-
-  it('sans réponse datée : inconnue', () => {
-    expect(answerOf(null)).toEqual([undefined, undefined])
+  it('sans réponse : ni date ni liste', () => {
+    expect(answerOf(null, null)).toEqual([undefined, undefined])
   })
 
   it('la date d’écriture du réglage ne date pas la réponse', () => {
@@ -142,7 +138,7 @@ describe('#873 : la date de la réponse à la question Q38 est une donnée à pa
       { periods: [period({ settingsWrittenAt: '2026-10-02T08:00:00.000Z' })], doses: [] },
       TODAY,
     )!.input.settings[0]!
-    expect(setting.answeredOn).toBeUndefined()
+    expect(setting.answeredAt).toBeUndefined()
   })
 
   it('une réponse hors des trois états rend le traitement illisible', () => {

@@ -193,7 +193,10 @@ describe.each([
       return kept
     }
     expect(
-      periodsAfter.map(without('fallen_doses_answer')).map(without('fallen_doses_answered_at')),
+      periodsAfter
+        .map(without('fallen_doses_answer'))
+        .map(without('fallen_doses_answered_at'))
+        .map(without('fallen_doses_listed')),
     ).toEqual(periodsBefore.map(without('past_doses_stay_unlogged')))
     expect(await rows(db, 'treatment_dose')).toEqual(dosesBefore)
   })
@@ -211,12 +214,14 @@ describe.each([
     ])
   })
 
-  it('aucune réponse d’avant n’est datée : la date de la réponse vaut NULL, jamais la date d’écriture du réglage', async () => {
+  it('aucune réponse d’avant n’est datée ni listée : NULL, jamais la date d’écriture du réglage', async () => {
     await applyMigrations(db, 15)
 
     await expect(
-      db.query('SELECT DISTINCT fallen_doses_answered_at FROM treatment_period'),
-    ).resolves.toEqual([{ fallen_doses_answered_at: null }])
+      db.query(
+        'SELECT DISTINCT fallen_doses_answered_at, fallen_doses_listed FROM treatment_period',
+      ),
+    ).resolves.toEqual([{ fallen_doses_answered_at: null, fallen_doses_listed: null }])
   })
 
   it('n’envoie rien à la synchronisation : la migration Supabase pose les mêmes valeurs', async () => {

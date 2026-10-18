@@ -28,7 +28,7 @@ export function settingsWritten(walk: SettingsWalk, plan: SettingsPlan): Treatme
   const { settings } = walk.input
   const at = walk.stamp()
   const lines = linesWritten(walk, plan.lines ?? [], at)
-  const answered = plan.answered ? { answeredAt: at, answeredOn: walk.input.today } : {}
+  const answered = plan.answered ? { answeredAt: at, answeredDues: plan.answered.listed } : {}
   if (plan.action === 'rewrite') {
     const rewritten = settings.map((setting) => {
       if (setting.id !== plan.id) return setting

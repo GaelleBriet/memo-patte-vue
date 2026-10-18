@@ -206,6 +206,7 @@ export function createDataExportService({
         firstDueChosen: period.firstDueChosen,
         fallenDosesAnswer: period.fallenDosesAnswer,
         fallenDosesAnsweredAt: period.fallenDosesAnsweredAt,
+        fallenDosesListed: period.fallenDosesListed,
         endsOn: period.endsOn,
         stoppedOn: period.stoppedOn,
         frequency: { value: period.frequency.value, unit: period.frequency.unit },

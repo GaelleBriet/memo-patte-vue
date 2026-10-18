@@ -4,7 +4,7 @@ import {
   type PeriodOrigin,
   type TreatmentPeriodSettings,
 } from '../schema/treatment-period.schema'
-import { flag, originOf, timesColumn } from './treatment-period-row.repository'
+import { flag, listedColumn, originOf, timesColumn } from './treatment-period-row.repository'
 
 const SETTINGS_COLUMNS = [
   'starts_on',
@@ -41,13 +41,13 @@ export function createPeriodCorrection(deviceId: () => string) {
     /**
      * Tous les réglages de cette période et son origine, sauf son arrêt. Rien n'est daté si rien ne
      * change ; la date d'écriture des réglages ne suit que le calendrier, celle de la réponse Q38
-     * seulement `answered`. Lève pour des réglages incohérents.
+     * et les échéances qu'elle a montrées seulement `answered`. Lève pour des réglages incohérents.
      */
     correctSettingsStatement(
       periodId: string,
       input: TreatmentPeriodSettings,
       updatedAt: string,
-      origin: PeriodOrigin & { answered?: true },
+      origin: PeriodOrigin & { answered?: { listed: readonly string[] } },
     ): SqlStatement {
       const settings = treatmentPeriodSettingsSchema.parse(input)
       const values = [
@@ -69,7 +69,7 @@ export function createPeriodCorrection(deviceId: () => string) {
         CALENDAR_COLUMNS.includes(CORRECTED_COLUMNS[index]!)
       const changed = (columns: string[]) =>
         columns.map((column) => `${column} IS NOT ?`).join(' OR ')
-      const answered = origin.answered === true ? 1 : 0
+      const answered = origin.answered === undefined ? 0 : 1
       return {
         sql: `UPDATE treatment_period
               SET ${CORRECTED_COLUMNS.map((column) => `${column} = ?`).join(', ')},
@@ -77,6 +77,7 @@ export function createPeriodCorrection(deviceId: () => string) {
                     THEN ? ELSE settings_written_at END,
                   fallen_doses_answered_at = CASE WHEN ? = 1 THEN ?
                     ELSE fallen_doses_answered_at END,
+                  fallen_doses_listed = CASE WHEN ? = 1 THEN ? ELSE fallen_doses_listed END,
                   updated_at = ?, updated_by_device = ?
               WHERE id = ? AND (${changed(CORRECTED_COLUMNS)} OR ? = 1)`,
         params: [
@@ -85,6 +86,8 @@ export function createPeriodCorrection(deviceId: () => string) {
           updatedAt,
           answered,
           updatedAt,
+          answered,
+          listedColumn(origin.answered?.listed),
           updatedAt,
           deviceId(),
           periodId,

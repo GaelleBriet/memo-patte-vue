@@ -66,6 +66,7 @@ export const migrationV15: DbMigration = {
         fallen_doses_answer TEXT NOT NULL DEFAULT 'unasked'
           CHECK (fallen_doses_answer IN ('unasked', 'stay-unlogged', 'not-due')),
         fallen_doses_answered_at TEXT,
+        fallen_doses_listed TEXT,
         ends_on TEXT,
         stopped_on TEXT,
         frequency_value INTEGER NOT NULL CHECK (frequency_value > 0),
@@ -99,12 +100,12 @@ export const migrationV15: DbMigration = {
         updated_by_device TEXT NOT NULL
       );`,
 
-    // Le booléen ne distinguait pas « n'étaient pas à donner » d'aucune question, et ne datait pas la
-    // réponse : rien n'est retiré après coup.
+    // Le booléen ne distinguait pas « n'étaient pas à donner » d'aucune question, ni ne datait ou
+    // listait la réponse : rien n'est retiré après coup.
     `INSERT INTO treatment_period (${KEPT_PERIOD_COLUMNS.join(', ')}, fallen_doses_answer,
-       fallen_doses_answered_at)
+       fallen_doses_answered_at, fallen_doses_listed)
      SELECT ${KEPT_PERIOD_COLUMNS.join(', ')},
-            CASE WHEN past_doses_stay_unlogged = 1 THEN 'stay-unlogged' ELSE 'unasked' END, NULL
+            CASE WHEN past_doses_stay_unlogged = 1 THEN 'stay-unlogged' ELSE 'unasked' END, NULL, NULL
      FROM treatment_period_v14`,
     `INSERT INTO treatment_dose (${DOSE_COLUMNS.join(', ')})
      SELECT ${DOSE_COLUMNS.join(', ')} FROM treatment_dose_v14`,

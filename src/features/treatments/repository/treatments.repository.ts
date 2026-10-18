@@ -323,6 +323,7 @@ export function createTreatmentsRepository(
             firstDueChosen: plan.period.firstDueChosen,
             fallenDosesAnswer: plan.period.fallenDosesAnswer,
             fallenDosesAnsweredAt: plan.period.answered ? at : null,
+            fallenDosesListed: plan.period.answered ? [...plan.period.answered.listed] : null,
             id: plan.period.id,
             treatmentId: id,
             animalId: current.animalId,

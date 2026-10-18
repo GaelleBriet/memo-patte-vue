@@ -15,6 +15,7 @@ export interface PeriodRow {
   first_due_chosen: number
   fallen_doses_answer: FallenDosesAnswer
   fallen_doses_answered_at: string | null
+  fallen_doses_listed: string | null
   ends_on: string | null
   stopped_on: string | null
   frequency_value: number
@@ -44,6 +45,7 @@ export const SYNC_COLUMN_NAMES = [
   'first_due_chosen',
   'fallen_doses_answer',
   'fallen_doses_answered_at',
+  'fallen_doses_listed',
   'ends_on',
   'stopped_on',
   'frequency_value',
@@ -70,6 +72,14 @@ export function originOf(gridOriginOn: string | null): string | null {
 
 export const flag = (value: boolean) => (value ? 1 : 0)
 
+export const listedColumn = (listed: readonly string[] | null | undefined): string | null =>
+  listed ? JSON.stringify(listed) : null
+
+function listedOf(column: string | null): string[] | null {
+  const parsed: unknown = column === null ? null : JSON.parse(column)
+  return Array.isArray(parsed) && parsed.every((key) => typeof key === 'string') ? parsed : null
+}
+
 export function timesColumn(times: readonly string[]): string | null {
   return times.length > 0 ? times.join(TIMES_SEPARATOR) : null
 }
@@ -85,6 +95,7 @@ export function toPeriodRecord(row: PeriodRow): TreatmentPeriodRecord {
     firstDueChosen: row.first_due_chosen === 1,
     fallenDosesAnswer: row.fallen_doses_answer,
     fallenDosesAnsweredAt: row.fallen_doses_answered_at,
+    fallenDosesListed: listedOf(row.fallen_doses_listed),
     endsOn: row.ends_on,
     stoppedOn: row.stopped_on,
     frequency: { value: row.frequency_value, unit: row.frequency_unit },

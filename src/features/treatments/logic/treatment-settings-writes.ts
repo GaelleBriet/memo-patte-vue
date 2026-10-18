@@ -29,7 +29,7 @@ export function periodWriteOf(plan: SettingsPlan, extras: Extras, newId: () => s
     gridOriginOn,
     firstDueChosen,
     fallenDosesAnswer,
-    ...(plan.answered ? { answered: true as const } : {}),
+    ...(plan.answered ? { answered: plan.answered } : {}),
   }
   return plan.action === 'create'
     ? { action: 'open', id: newId(), settings, ...origin }
@@ -50,7 +50,7 @@ export function settingsPlanOf(written: Written): SettingsPlan {
     frequency,
     times,
   }
-  const answered = written.answered ? { answered: true as const } : {}
+  const answered = written.answered ? { answered: written.answered } : {}
   return written.action === 'open'
     ? { action: 'create', setting, ...answered }
     : { action: 'rewrite', id: written.id, setting, ...answered }

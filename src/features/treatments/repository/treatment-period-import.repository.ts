@@ -4,6 +4,7 @@ import {
   SYNC_COLUMN_NAMES,
   SYNC_COLUMNS,
   flag,
+  listedColumn,
   timesColumn,
   type PeriodRow,
   type StampedTreatmentPeriod,
@@ -40,6 +41,7 @@ export function createPeriodImport(db: DbClient, deviceId: () => string) {
         flag(period.firstDueChosen),
         period.fallenDosesAnswer,
         period.fallenDosesAnsweredAt,
+        listedColumn(period.fallenDosesListed),
         period.endsOn,
         period.stoppedOn,
         period.frequency.value,
@@ -58,8 +60,8 @@ export function createPeriodImport(db: DbClient, deviceId: () => string) {
         ? {
             sql: `UPDATE treatment_period
                   SET starts_on = ?, first_due_on = ?, grid_origin_on = ?, first_due_chosen = ?,
-                      fallen_doses_answer = ?, fallen_doses_answered_at = ?, ends_on = ?,
-                      stopped_on = ?,
+                      fallen_doses_answer = ?, fallen_doses_answered_at = ?,
+                      fallen_doses_listed = ?, ends_on = ?, stopped_on = ?,
                       frequency_value = ?, frequency_unit = ?, times = ?, dose_quantity = ?,
                       dose_unit = ?, reminder_offset_minutes = ?, reminder_time = ?,
                       created_at = ?, updated_at = ?, settings_written_at = ?, deleted_at = NULL,

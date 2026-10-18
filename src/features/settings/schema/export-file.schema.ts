@@ -48,6 +48,11 @@ function isYearInRange(value: string): boolean {
 const day = z.string().refine(isCalendarDay)
 const pastDay = day.refine((value) => !isFuture(parseISO(value)))
 const clockTime = z.string().regex(CLOCK_TIME_PATTERN)
+const MAX_LISTED = 10_000
+const dueKey = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}( ([01]\d|2[0-3]):[0-5]\d)?$/)
+  .refine((key) => isCalendarDay(key.slice(0, 10)))
 // La synchronisation compare les instants comme des chaînes : un seul format entre en base.
 const instant = z.iso
   .datetime()
@@ -219,6 +224,7 @@ const version8PeriodShape = {
   firstDueChosen: z.boolean(),
   fallenDosesAnswer: z.enum(FALLEN_DOSES_ANSWERS),
   fallenDosesAnsweredAt: instant.nullable(),
+  fallenDosesListed: z.array(dueKey).max(MAX_LISTED).nullable(),
   settingsWrittenAt: instant,
 }
 

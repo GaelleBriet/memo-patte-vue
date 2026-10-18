@@ -45,8 +45,22 @@ function extraWith(fork: Fork, read: Reader, report: Line): string[] {
     .map((hour) => `${day} ${hour}`)
 }
 
+// Le carnet tel que `main` le lit : avant la v15, la réponse Q38 était le booléen « restent à renseigner ».
+function readByMain(main: Reader): Reader {
+  return (input) =>
+    main({
+      ...input,
+      settings: input.settings.map(({ fallenDosesAnswer, ...setting }) => ({
+        ...setting,
+        fallenDosesAnswer,
+        pastDosesStayUnlogged: fallenDosesAnswer === 'stay-unlogged',
+      })),
+    })
+}
+
 /** Les constats d'une fourche ; avec `main`, seuls ceux que `main` n'a pas aussi. */
-export function constatsOf(fork: Fork, main?: Reader): string[] {
+export function constatsOf(fork: Fork, mainReader?: Reader): string[] {
+  const main = mainReader === undefined ? undefined : readByMain(mainReader)
   const report = newReport(fork)
   if (report === undefined) return []
   const where = `graine ${fork.seed}, pas ${fork.step}, ${fork.aFirst ? 'B' : 'A'} plus récent`

@@ -31,8 +31,8 @@ export type Setting = {
   updatedAt?: string
   /** #873 : instant de la réponse à la question Q38, posé par elle seule ; absent : aucune réponse datée. */
   answeredAt?: string
-  /** #873 : jour local de cette réponse ; les doses listées tombent strictement avant lui. */
-  answeredOn?: Day
+  /** #873 : échéances que la question a montrées, posées par la réponse ; seules elles sortent. */
+  answeredDues?: readonly string[]
 }
 
 export type LineStatus = 'given' | 'missed' | 'extra' | 'postponed' | 'shift'
@@ -94,18 +94,21 @@ export type LineFields = Omit<Line, 'id' | 'updatedAt'>
 /** Les champs d'un réglage à écrire ; l'arrêt passe par « Arrêter », l'identifiant par le repository. */
 export type SettingFields = Omit<
   Setting,
-  'id' | 'createdAt' | 'stoppedOn' | 'answeredAt' | 'answeredOn'
+  'id' | 'createdAt' | 'stoppedOn' | 'answeredAt' | 'answeredDues'
 >
 
 /**
  * Ce que « Modifier » écrit : un réglage ouvert aujourd'hui, ou le réglage en cours corrigé (R10,
  * TR-28) ; `lines` : le report que la date choisie fait arriver ce jour-là (R7, #796) ; `answered` :
- * le plan répond à la question Q38, qui date la réponse (#873).
+ * le plan répond à la question Q38 et garde les échéances qu'elle a montrées (#873).
  */
 export type SettingsPlan = (
   | { action: 'create'; setting: SettingFields }
   | { action: 'rewrite'; id: string; setting: SettingFields }
-) & { lines?: Exclude<LineChange, { action: 'create' }>[]; answered?: true }
+) & {
+  lines?: Exclude<LineChange, { action: 'create' }>[]
+  answered?: { listed: readonly string[] }
+}
 
 /** Ce qu'un geste écrit : une ligne créée, réécrite ou supprimée ; le moteur n'écrit jamais lui-même. */
 export type LineChange =
