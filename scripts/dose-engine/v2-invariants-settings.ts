@@ -96,8 +96,9 @@ export function settingsProposal(step: V2Step): Broken | null {
 }
 
 /**
- * #806, #817 : « Elles n'étaient pas à donner » n'est refusée que si son rythme, sans date de fin, n'a
- * plus aucune dose à donner avant elle.
+ * #806, #817, #872 : « Elles n'étaient pas à donner » n'est refusée que si son rythme, sans date de fin,
+ * n'a plus aucune dose à donner avant elle ; la date que montre le formulaire, passée telle quelle,
+ * n'est pas une date choisie (Q38), elle ne se garde pas sans date de fin.
  */
 export function refusedCorrection(step: V2Step): Broken | null {
   const { before, request } = step
@@ -105,7 +106,11 @@ export function refusedCorrection(step: V2Step): Broken | null {
   const result = newSettings(before, request)
   if (!('question' in result) || !('refusal' in result.question.correct)) return null
   const { endsOn } = request
-  const open = newSettings(before, { ...request, endsOn: null })
+  const { keep } = result.question
+  const shown = result.shownOn ?? ('setting' in keep ? keep.setting.firstDueOn : undefined)
+  const { firstDueOn, ...unchosen } = request
+  const asked = firstDueOn === shown ? unchosen : request
+  const open = newSettings(before, { ...asked, endsOn: null })
   const correct = 'question' in open ? open.question.correct : null
   if (correct === null || 'refusal' in correct) {
     return {

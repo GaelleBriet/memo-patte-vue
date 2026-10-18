@@ -91,6 +91,12 @@ describe('campagne d’invariants du moteur v2', () => {
     60_000 + campaign.seeds * campaign.steps * 40,
   )
 
+  // #872 : mensuel du 9 mars fini le 13, le 19 « sans heure », fin le 5 avril, « Prochaine dose » le 19
+  // montrée par le formulaire : la correction garde sa grille (9 avril), « pas à donner » refusée.
+  it('graine 9800001094 : la date montrée passée telle quelle n’est pas une date choisie pour juger le refus', () => {
+    expect(playCampaign({ from: 9_800_001_094, seeds: 1, steps: 40 }).failures).toEqual([])
+  })
+
   it.each([
     ['INVARIANTS_SEEDS', 'mille'],
     ['INVARIANTS_FROM', '-3'],
