@@ -17,6 +17,7 @@ export function createDoseLineStatements(deviceId: () => string) {
     }
   }
 
+  /** Prise calculée par le moteur d'échéances : aucune garde par jour, l'unicité est celle de l'échéance. */
   function createStatement({
     dose,
     at,
@@ -25,6 +26,7 @@ export function createDoseLineStatements(deviceId: () => string) {
     return insertStatement({ ...owner, ...dose, createdAt: at, updatedAt: at, deletedAt: null })
   }
 
+  /** Sans effet sur une ligne supprimée. */
   function rewriteStatement(id: string, dose: DoseFields, updatedAt: string): SqlStatement {
     return {
       sql: `UPDATE treatment_dose
