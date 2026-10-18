@@ -6,6 +6,7 @@ import { dose, period, treatment } from './treatment-fixtures'
 import { doseChange } from '../logic/treatment-dose-change'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
 import { choiceGestures } from '../logic/treatment-choose-days'
+import { cpuMs } from '@/shared/__tests__/cpu-time'
 
 const TODAY = '2026-09-28'
 
@@ -30,9 +31,9 @@ function gap(days: number, times: string[]) {
 function fastest<T>(run: () => T): { result: T; elapsed: number } {
   let best = { result: run(), elapsed: Infinity }
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const start = performance.now()
+    const start = cpuMs()
     const result = run()
-    const elapsed = performance.now() - start
+    const elapsed = cpuMs() - start
     if (elapsed < best.elapsed) best = { result, elapsed }
   }
   return best
