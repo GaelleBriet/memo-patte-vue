@@ -34,7 +34,7 @@ import {
   settingsIn,
   touchedJourneys,
 } from './reference-lines'
-import { existingHours } from './reference-not-due'
+import { beatenNotDue, departureBeaten, existingHours } from './reference-not-due'
 import { arrivedOn, chosenDateOf, hoursChangedSince, reportOutcome } from './reference-reports'
 import { rewrittenDeparture, shiftKeptByReport, type RewriteContext } from './reference-rewrite'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
@@ -55,13 +55,14 @@ export function calendarOf(
   const { endOf, settingAt } = settingsIn(live)
   const { closedFrom, stoppedAt } = stopDayOf(live.at(-1)!)
   const lines = episodeLinesOf(episode, allLines)
-  const notes = lines.filter(isNote)
+  const reports = reportsOf(lines)
+  const onDeparture = departureBeaten(lines.filter(isNote), reports)
+  const notes = lines.filter((line) => isNote(line) && !onDeparture.has(line))
   const noted = new Set([...notes, ...borrowed].map((note) => keyOf(note.dueOn, note.dueTime)))
   const shifts = latestBy(
     lines.filter((line) => line.status === 'shift' && line.targetOn !== null),
     (line) => line.dueOn,
   )
-  const reports = reportsOf(lines)
 
   const days = new Map<string, Journey>()
   const chosenOf = (report: ReferenceLine) => chosenDateOf(report, live, settingOf)
@@ -210,6 +211,7 @@ export function calendarOf(
 
   // R7 : un report emporte son heure et les suivantes sans prise ; ceux qui arrivent sur sa journée d'abord.
   const fallen = new Set<string>()
+  const arrivedBy = new Map<string, ReferenceLine>()
   const arrivedHours = new Map<string, (string | null)[]>()
   const rewriteContext: RewriteContext = {
     settingOf,
@@ -283,8 +285,17 @@ export function calendarOf(
     into.set(targetOn!, day)
     const received = chosen ? hoursOf(chosen) : outcome.carried
     arrivedHours.set(targetOn!, [...(arrivedHours.get(targetOn!) ?? []), ...received])
+    received.forEach((hour) => arrivedBy.set(keyOf(targetOn!, hour), report!))
   }
   settle()
+  const beaten = beatenNotDue(notes, arrivedBy)
+  const standing = coverages({
+    notes: notes.filter((note) => !beaten.has(note)),
+    borrowed,
+    reports,
+    translated,
+    settingOf,
+  }).coveredAside
 
   left.forEach((journey, day) => {
     if (!days.has(day)) coveredOn(day, journey)
@@ -292,7 +303,7 @@ export function calendarOf(
 
   const dues: ReferenceDue[] = []
   for (const [day, journey] of [...days].sort(([a], [b]) => a.localeCompare(b))) {
-    const covered = coveredOn(day, journey)
+    const covered = beaten.size > 0 ? standing(day, journey) : coveredOn(day, journey)
     // #873 : une échéance que seule une ligne « pas à donner » couvre n'existe pas.
     const hours = existingHours(journey.hours, covered, takenOn(day, journey))
     if (hours.length > 0) fallen.add(day)

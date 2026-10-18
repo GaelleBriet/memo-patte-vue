@@ -37,7 +37,9 @@ function recorded(input: TreatmentViewInput, changes: readonly LineChange[]): Tr
 }
 
 function written(input: TreatmentViewInput, plan: SettingsPlan): TreatmentViewInput {
-  if (plan.action === 'rewrite') return settingsApplied(input, plan)
+  if (plan.action === 'rewrite') {
+    return recorded(settingsApplied(input, { ...plan, lines: [] }), plan.lines ?? [])
+  }
   const createdAt = nextStamp(input)
   const created = { ...plan.setting, id: `r-${createdAt}`, stoppedOn: null, createdAt }
   return recorded({ ...input, settings: [...input.settings, created] }, plan.lines ?? [])

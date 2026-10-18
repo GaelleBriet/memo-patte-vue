@@ -154,7 +154,17 @@ export function episodeLines(lines: readonly Line[], span: Span): EpisodeLines {
       idle.set(line.id, 'superseded')
     }
   }
-  const notes = kept.filter(isNote)
+  // #867, #873 : un report plus récent que la ligne « pas à donner » de sa dose de départ l'emporte.
+  const beaten = (note: Line) =>
+    note.status === 'not-due' &&
+    reports.some(
+      (report) =>
+        report.dueOn === note.dueOn &&
+        report.dueTime === note.dueTime &&
+        isMoreRecent(report, note),
+    )
+  kept.filter(beaten).forEach(({ id }) => idle.set(id, 'beaten'))
+  const notes = kept.filter((line) => isNote(line) && !beaten(line))
   const chosenArrivals = chosenArrivalsOf(reports, span)
   const touched = touchedDays(notes, reports, chosenArrivals)
   return { kept, notes, reports, shifts, idle, doseKey, touched, chosenArrivals }

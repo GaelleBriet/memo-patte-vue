@@ -552,6 +552,17 @@ describe('TR-28, Q38, Q39 : un réglage sans prise', () => {
           action: 'rewrite',
           id: 'p1',
           setting: expect.objectContaining({ startsOn: '2026-10-03', firstDueOn: '2026-10-08' }),
+          lines: ['2026-10-03', '2026-10-05', '2026-10-07'].map((dueOn) => ({
+            action: 'create',
+            line: {
+              settingId: 'p1',
+              dueOn,
+              dueTime: null,
+              status: 'not-due',
+              givenOn: null,
+              targetOn: null,
+            },
+          })),
         },
       },
     })

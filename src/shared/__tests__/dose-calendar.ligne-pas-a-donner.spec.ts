@@ -86,4 +86,31 @@ describe('#873 : une ligne « pas à donner » retire sa dose de partout (décis
     expect(view.phase).toBe('overdue')
     expect(keys(view.currentDoses)).toEqual(['2026-03-02 08:00'])
   })
+
+  it('#867 : un report de la dose du 16 plus récent que sa ligne « pas à donner » l’emporte, la ligne est sans effet ; plus ancien, il est battu', () => {
+    const weekly = setting('m1', '2026-03-02', WEEK, ['08:00'])
+    const notDue = {
+      ...line('m1', 'not-due', '2026-03-16', '08:00'),
+      updatedAt: '2026-03-17T09:00:00.000Z',
+    }
+    const report = {
+      ...line('m1', 'postponed', '2026-03-16', '08:00', '2026-03-19'),
+      updatedAt: '2026-03-17T10:00:00.000Z',
+    }
+    const newer = { settings: [weekly], lines: [notDue, report], today: '2026-03-18' }
+    const effects = (input: TreatmentViewInput) =>
+      treatmentView(input)
+        .history.map(({ line: each, effect }) => `${each.status} ${effect.kind}`)
+        .sort()
+    expect(effects(newer)).toEqual(['not-due idle', 'postponed moves'])
+    expect(shown(newer)).toContain('2026-03-19 08:00 pending')
+    expect(readings(newer).moteur).toEqual(readings(newer).reference)
+    const older = {
+      ...newer,
+      lines: [notDue, { ...report, updatedAt: '2026-03-17T08:00:00.000Z' }],
+    }
+    expect(effects(older)).toEqual(['not-due covers', 'postponed idle'])
+    expect(shown(older).some((key) => key.startsWith('2026-03-19'))).toBe(false)
+    expect(readings(older).moteur).toEqual(readings(older).reference)
+  })
 })

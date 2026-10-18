@@ -12,7 +12,7 @@ import type {
   TreatmentViewInput,
 } from '../types'
 import { buildView, type TreatmentView } from '../view'
-import { settingsApplied } from './changes'
+import { settingsApplied, written } from './changes'
 import { chosenRefusal, isChosen, withChosenDate } from './settings-chosen'
 import { endChecked } from './settings-end'
 import { keptCorrection } from './settings-kept'
@@ -65,6 +65,25 @@ const answered = (plan: SettingsPlan, fallenDosesAnswer: FallenDosesAnswer): Set
   ...plan,
   setting: { ...plan.setting, fallenDosesAnswer },
 })
+
+// #873 : « Elles n'étaient pas à donner » écrit une ligne par dose que la question a montrée.
+function notDue(
+  input: TreatmentViewInput,
+  plan: SettingsPlan,
+  fallen: readonly Due[],
+): SettingsPlan {
+  const lines = fallen.map(({ settingId, dueOn, dueTime }) =>
+    written(input.lines, {
+      settingId,
+      dueOn,
+      dueTime,
+      status: 'not-due',
+      givenOn: null,
+      targetOn: null,
+    }),
+  )
+  return { ...answered(plan, 'not-due'), lines: [...(plan.lines ?? []), ...lines] }
+}
 
 const sameHours = (a: readonly string[], b: readonly string[]) =>
   hoursOf(a).join() === hoursOf(b).join()
@@ -225,7 +244,7 @@ function corrected(
     const question = {
       fallen,
       keep: answered(keep, 'stay-unlogged'),
-      correct: answered(correct, 'not-due'),
+      correct: notDue(input, correct, fallen),
     }
     const result = fallen.length === 0 ? { plan: correct } : { question }
     const first = 'plan' in result ? correct : keep
@@ -243,12 +262,17 @@ function corrected(
     gridOriginOn: first,
     firstDueChosen,
   })
-  const fixed = questioned
-    ? own(shownFrom(today, readAfter(input, correctFrom)))
-    : sameFrequency(current.frequency, request.frequency)
-      ? keptCorrection(input, current, request, (dates) =>
-          rewrite(current, fieldsOf(current.startsOn, dates, request)),
-        )
+  // #872 : à fréquence gardée, avec ou sans prise, la correction garde sa grille et ne repart pas
+  // d'aujourd'hui ; la date de fin la refuse quand rien ne reste (#806).
+  const kept = () =>
+    keptCorrection(input, current, request, (dates) =>
+      rewrite(current, fieldsOf(current.startsOn, dates, request)),
+    )
+  // #836 : sans prise, la date de la correction reste une date proposée, jamais une date choisie.
+  const fixed = sameFrequency(current.frequency, request.frequency)
+    ? { ...kept(), ...(questioned ? { firstDueChosen: false } : {}) }
+    : questioned
+      ? own(shownFrom(today, readAfter(input, correctFrom)))
       : own(shownFrom(later(proposal.firstDueOn, today), readAfter(input, correctFrom)))
   // Q38 : la date que montre le formulaire, passée telle quelle, n'est pas une date choisie.
   const shown =

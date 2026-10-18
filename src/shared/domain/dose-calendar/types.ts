@@ -92,12 +92,13 @@ export type SettingFields = Omit<Setting, 'id' | 'createdAt' | 'stoppedOn'>
 
 /**
  * Ce que « Modifier » écrit : un réglage ouvert aujourd'hui, ou le réglage en cours corrigé (R10,
- * TR-28) ; `lines` : le report que la date choisie fait arriver ce jour-là (R7, #796).
+ * TR-28) ; `lines` : le report que la date choisie fait arriver ce jour-là (R7, #796), ou une ligne
+ * « pas à donner » par dose que la question a montrée (#873).
  */
 export type SettingsPlan = (
   | { action: 'create'; setting: SettingFields }
   | { action: 'rewrite'; id: string; setting: SettingFields }
-) & { lines?: Exclude<LineChange, { action: 'create' }>[] }
+) & { lines?: LineChange[] }
 
 /** Ce qu'un geste écrit : une ligne créée, réécrite ou supprimée ; le moteur n'écrit jamais lui-même. */
 export type LineChange =

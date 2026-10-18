@@ -1,6 +1,6 @@
 import type { Slot } from './calendar'
 import { dayOfKey, hoursOf, keyOf, later, longestStep, plusDays, stepped } from './grid'
-import { episodeLines, isNote, isTaken } from './lines'
+import { episodeLines, isTaken } from './lines'
 import { momentOf } from './moment'
 import { dueReminders, type DueReminder, type ReminderWindow } from './reminders'
 import { readingOf, UPCOMING_DAYS } from './reading'
@@ -238,7 +238,7 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
       const matches = (hour: Hour) => dueTime === null || hour === dueTime
       const ofDay = slots(dueOn, dueOn).filter(({ due }) => matches(due.dueTime))
       if (ofDay.length > 0) return ofDay.some(({ state }) => state !== 'pending')
-      return lines.some((line) => isNote(line) && line.dueOn === dueOn && matches(line.dueTime))
+      return lines.some((line) => isTaken(line) && line.dueOn === dueOn && matches(line.dueTime))
     },
   }
 }
