@@ -147,11 +147,63 @@ describe('#931 : un geste de note réécrit la ligne du téléphone qui le fait 
     },
   )
 
-  it('un téléphone sans ligne sur la dose réécrit la ligne en vigueur, comme avant', () => {
+  it('un téléphone sans ligne sur la dose réécrit la plus récente, comme avant', () => {
     const input = { settings: [milo], lines: synced(parB, parA), today: '2026-03-18', device: 'C' }
     expect(accepted(marqueeOubliee(input)).changes).toMatchObject([
       { action: 'rewrite', id: 'a16' },
     ])
+  })
+
+  describe('trois téléphones : A et C ont chacun une ligne sur la dose du 16 mars, B aucune ; le 18, sur B, « Marquer comme oubliée », les deux lignes reçues', () => {
+    const deA = (at: string) => [prise('a16', 'A', 'given', '2026-03-16', at)]
+    const deC = (at: string) => [prise('c16', 'C', 'given', '2026-03-17', at)]
+
+    it.each([
+      [
+        'C plus récente, reçue après A',
+        deA('2026-03-16T09:00:00.000Z'),
+        deC('2026-03-17T09:00:00.000Z'),
+        'c16',
+      ],
+      [
+        'C plus récente, reçue avant A',
+        deC('2026-03-17T09:00:00.000Z'),
+        deA('2026-03-16T09:00:00.000Z'),
+        'c16',
+      ],
+      [
+        'A plus récente, reçue après C',
+        deC('2026-03-16T09:00:00.000Z'),
+        deA('2026-03-17T10:00:00.000Z'),
+        'a16',
+      ],
+      [
+        'A plus récente, reçue avant C',
+        deA('2026-03-17T10:00:00.000Z'),
+        deC('2026-03-16T09:00:00.000Z'),
+        'a16',
+      ],
+    ])(
+      '%s : B réécrit la ligne la plus récente, et les trois téléphones montrent la même fiche',
+      (_, first, second, rewritten) => {
+        const input = {
+          settings: [milo],
+          lines: [...first, ...second],
+          today: '2026-03-18',
+          device: 'B',
+        }
+        const result = accepted(marqueeOubliee(input))
+        expect(result.changes).toMatchObject([{ action: 'rewrite', id: rewritten }])
+        const surB = written(input.lines, result, 'B', '2026-03-18T09:00:00.000Z')
+        const fiches = [synced(first, surB), synced(second, surB), surB].map((lines) =>
+          fiche(synced(first, second, lines), '2026-03-18'),
+        )
+        for (const each of fiches) expect(each).toEqual(fiches[0])
+        expect(fiches[0]).toContainEqual(
+          expect.objectContaining({ status: 'missed', effet: 'covers' }),
+        )
+      },
+    )
   })
 
   it('sans téléphone connu (hors de l’app), la ligne en vigueur est réécrite, comme avant', () => {

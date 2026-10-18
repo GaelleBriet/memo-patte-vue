@@ -67,14 +67,13 @@ function isExtra(view: TreatmentView, due: Due, givenOn: Day): boolean {
   return boundary !== null && givenOn < boundary
 }
 
-/** TR-25, #931 : la prise de ce téléphone sur la même dose, dans sa période. */
-function ownLine(input: TreatmentViewInput, of: LineFields | Line): Line | undefined {
-  if (input.device === undefined) return undefined
+/** TR-25, #931 : la prise la plus récente de la même dose, dans sa période, de `device` s'il est donné. */
+function latestOfDose(input: TreatmentViewInput, of: LineFields | Line, device?: string) {
   const period = episodeIdsOf(input.settings, of.settingId)
   return input.lines
     .filter(
       (line) =>
-        line.createdByDevice === input.device &&
+        (device === undefined || line.createdByDevice === device) &&
         isTaken(line) &&
         line.dueOn === of.dueOn &&
         line.dueTime === of.dueTime &&
@@ -86,12 +85,14 @@ function ownLine(input: TreatmentViewInput, of: LineFields | Line): Line | undef
     )
 }
 
-// TR-25 : la note réécrit la ligne de ce téléphone, sinon la ligne en vigueur ; les autres restent,
-// sans effet, et la fiche ne dépend pas de l'ordre de synchro.
+// TR-25 : la note réécrit la ligne de ce téléphone, sinon la plus récente de la dose ; les autres
+// restent, sans effet.
 function noteChange(input: TreatmentViewInput, view: TreatmentView, line: LineFields): LineChange {
   const slot = view.slots(line.dueOn, line.dueOn).find(({ due }) => due.dueTime === line.dueTime)
   const exact = slot?.state === 'given' || slot?.state === 'missed' ? (slot.by ?? null) : null
-  const target = ownLine(input, exact ?? line) ?? exact
+  const of = exact ?? line
+  const own = input.device === undefined ? undefined : latestOfDose(input, of, input.device)
+  const target = own ?? latestOfDose(input, of) ?? exact
   return target === null ? written(input.lines, line) : { action: 'rewrite', id: target.id, line }
 }
 
