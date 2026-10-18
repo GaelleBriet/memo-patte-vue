@@ -9,8 +9,8 @@ import {
   sameHours,
 } from './grid'
 import { isDueDay, skippedDays, turned, type Grid } from './grid-in-force'
-import { touchedWithout, translatedDays, type EpisodeLines } from './lines'
-import { shiftKeptByReport } from './rewrite'
+import { translatedDays, type EpisodeLines } from './lines'
+import { shiftKeptByReport, shiftLostWithReport } from './rewrite'
 import type { Span } from './settings'
 import type { Day, Frequency, Hour, Line, LineEffect, Setting } from './types'
 
@@ -67,27 +67,24 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   const translated = translatedDays(span.live, (day) => byId.get(lines.touched.get(day) ?? ''))
   // R4 : hors du jour où les heures changent, une journée touchée garde les heures du réglage de sa
   // ligne la plus récente, celles qu'elle avait quand elle a été touchée.
-  const journeyOn = (day: Day, setting: Setting, touchedId = lines.touched.get(day)): Journey => {
-    const touched = byId.get(touchedId ?? '')
+  const journeyOn = (day: Day, setting: Setting): Journey => {
+    const touched = byId.get(lines.touched.get(day) ?? '')
     const own =
       touched === undefined || translated.has(day) || sameHours(touched, setting)
         ? setting
         : touched
     return { setting: own, hours: hoursOf(own.times) }
   }
-  // #883 : la journée de départ d'un report telle qu'elle se lit sans lui.
-  const grids = new Map<Day, Setting>()
-  const relit = (day: Day, without: Line): Journey | undefined => {
-    const setting = grids.get(day)
-    return setting && journeyOn(day, setting, touchedWithout(lines, day, without))
+  // R3 : par réglage, celui qui a tracé sa grille (lui-même, ou le dernier qui a posé la sienne).
+  const drawnBy = new Map<string, string>()
+  let drawer = ''
+  const shiftContext = {
+    reports: lines.reports,
+    settingOf: (id: string) => byId.get(id)!,
+    reachOf: (day: Day) => ({ drawnBy: drawnBy.get(span.settingAt(day)?.id ?? '') }),
   }
-  const owns = new Set<string>()
   const keptByReport = (turn: Line) =>
-    shiftKeptByReport(turn, {
-      reports: lines.reports,
-      isDay: (day) => days.has(day),
-      settingOf: (id) => byId.get(id)!,
-    })
+    shiftKeptByReport(turn, { ...shiftContext, isDay: (day) => days.has(day) })
   const claims: Claim[] = []
   const openings = new Set<Day>()
   let grid: Grid = { origin: chain[0]!.firstDueOn, floor: '', since: '' }
@@ -161,7 +158,8 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       : origin !== null
         ? { ...grid, floor: ownFloor }
         : { ...grid, floor: later(grid.floor, later(chosenFloor, plusDays(setting.startsOn, -1))) }
-    if (!continued || origin !== null) owns.add(setting.id)
+    if (!continued || origin !== null) drawer = setting.id
+    drawnBy.set(setting.id, drawer)
     if (!continued) rhythmStartFloor = grid.floor
     const at = span.episode.indexOf(setting)
     const prior = span.live.filter((each) => span.episode.indexOf(each) < at).at(-1)
@@ -225,8 +223,13 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
         (report) => report.targetOn === turn.dueOn && report.dueOn > rhythmFloor,
       ) ||
       keptByReport(turn)
+    // 6b : seulement sur une journée de départ que la grille lit, comme le verdict du report.
+    const lostWithReport = (turn: Line) =>
+      turn.dueOn <= last &&
+      isDueDay(grid, setting.frequency, turn.dueOn) &&
+      shiftLostWithReport(turn, { ...shiftContext, departure: journeyOn(turn.dueOn, setting) })
     for (const turn of [...turns, null]) {
-      if (turn !== null && !lands(turn)) continue
+      if (turn !== null && (!lands(turn) || lostWithReport(turn))) continue
       const to = turn === null || turn.dueOn >= last ? last : turn.dueOn
       // R4, #847 : les journées laissées avant une date posée plus loin, telles que la fiche les montrait.
       if (skip !== null) {
@@ -236,7 +239,6 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       const start = later(from, plusDays(grid.floor, 1))
       for (const day of gridDaysAround(grid.origin, setting.frequency, start, to, gap)) {
         days.set(day, journeyOn(day, setting))
-        grids.set(day, setting)
       }
       segments.push({ origin: grid.origin, from: start, to: turn?.dueOn ?? setting.endsOn })
       if (turn === null) {
@@ -272,8 +274,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     chosenRestarts,
     lastPossibleDay,
     lastGridDay,
-    owns,
-    relit,
+    drawnBy,
   }
 }
 

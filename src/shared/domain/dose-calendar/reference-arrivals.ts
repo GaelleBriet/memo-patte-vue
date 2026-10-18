@@ -39,8 +39,20 @@ export function arriveReports(context: ArrivalContext) {
     )
     const [report] = waiting.splice(Math.max(0, ready), 1)
     const { dueOn, targetOn } = report!
-    const rewritten = rewrite === undefined ? undefined : rewrittenDeparture(report!, rewrite)
+    const departure = days.get(dueOn)
+    const rewritten =
+      rewrite === undefined
+        ? undefined
+        : rewrittenDeparture(report!, settingOf(report!.settingId), rewrite, departure)
     if (rewritten === 'lost') continue
+    // 6a : gagnant, le report n'emporte que son heure ; sa journée perd la dose libre qui la suit.
+    if (rewritten !== undefined && departure !== undefined) {
+      const noted = coveredAside(dueOn, departure)
+      const taken = departure.hours
+        .filter((hour) => !noted.has(hour))
+        .find((hour) => hour === null || hour >= (report!.dueTime ?? ''))
+      if (taken !== undefined) departure.hours = departure.hours.filter((hour) => hour !== taken)
+    }
     const origin = rewritten ? undefined : (days.get(dueOn) ?? left.get(dueOn))
     const from = origin?.setting ?? settingOf(report!.settingId)
     const hours = origin?.hours ?? rewritten?.hours ?? hoursOf(from)

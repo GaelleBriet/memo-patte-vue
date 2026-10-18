@@ -4,7 +4,7 @@ import { keepGivenNotes, keepSkippedDays, noteEffects } from './calendar-notes'
 import { hoursOf, keyOf, plusDays, sameHours } from './grid'
 import { journeys, type Gap } from './journeys'
 import type { EpisodeLines } from './lines'
-import { departureVerdict } from './rewrite'
+import { departureVerdict, freeDoseTaken } from './rewrite'
 import type { Span } from './settings'
 import type { Day, Due, Hour, Line, LineEffect, Setting } from './types'
 
@@ -80,14 +80,12 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     )
     const report = waiting.splice(Math.max(0, ready), 1)[0]!
     const { dueOn, dueTime, targetOn } = report
+    const departure = days.get(dueOn)
     const rewrite = departureVerdict(report, {
-      departure: days.get(dueOn),
-      relit: journey.relit(dueOn, report),
+      departure,
       arrived: arrived.get(dueOn) ?? [],
       written: settingOf(report.settingId),
-      owns: journey.owns.has(report.settingId),
-      inForce: span.settingAt(dueOn),
-      covered: (day) => coveredOn(dueOn, day, new Set()),
+      drawnBy: journey.drawnBy.get(span.settingAt(dueOn)?.id ?? ''),
     })
     const origin = rewrite === null ? (days.get(dueOn) ?? left.get(dueOn)) : undefined
     const from = origin?.setting ?? settingOf(report.settingId)
@@ -97,6 +95,17 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     }
     // #867 : plus récent que la réécriture de son réglage, le report n'emporte que l'heure qu'il porte.
     const hours = rewrite === 'line' ? [dueTime] : (origin?.hours ?? hoursOf(from.times))
+    if (rewrite === 'line' && departure !== undefined) {
+      const noted = coveredOn(dueOn, departure, new Set())
+      const taken = freeDoseTaken(
+        report,
+        departure.hours.filter((hour) => !noted.has(hour)),
+      )
+      if (taken !== undefined) {
+        departure.hours = departure.hours.filter((hour) => hour !== taken)
+        moved.set(keyOf(dueOn, taken), report)
+      }
+    }
     // R8 : au-delà de l'arrêt, une prise ne garde pas son échéance, la reprise seule la porte.
     if (origin === undefined && (span.closedFrom === null || dueOn < span.closedFrom)) {
       for (const note of byDay.get(dueOn) ?? []) {

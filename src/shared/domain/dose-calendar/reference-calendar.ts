@@ -33,7 +33,7 @@ import {
 import { departureBeaten, duesOf } from './reference-not-due'
 import { arriveReports } from './reference-arrivals'
 import { chosenDateOf } from './reference-reports'
-import { shiftKeptByReport, type RewriteContext } from './reference-rewrite'
+import { shiftKeptByReport, shiftLostWithReport, type RewriteContext } from './reference-rewrite'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 type Calendar = { pending: string[]; fallen: Set<string>; rhythmFrom: string; dues: Set<string> }
@@ -69,6 +69,12 @@ export function calendarOf(
     settingOf,
     chosenOf,
   )
+  const rewriteContext: RewriteContext = {
+    settingOf,
+    settingAt,
+    chain: [],
+    read: (only) => calendarOf(only, only, [], [], reach, true).dues,
+  }
   const left = new Map<string, Journey>()
   const claims: Claim[] = []
   // R7, R9.2 : les premières échéances des réglages qui ouvrent un nouveau rythme.
@@ -77,6 +83,7 @@ export function calendarOf(
   const chain = episode.filter(
     (setting, index) => isLive(setting, index) || sameFrequency(setting, episode[index + 1]!),
   )
+  rewriteContext.chain = chain
   let grid: Grid = { origin: chain[0]!.firstDueOn, floor: '', since: '' }
   // R9, Q-retard : les réglages de même fréquence continuent le rythme, et sa dose en retard.
   let rhythm = new Set<string>()
@@ -173,9 +180,15 @@ export function calendarOf(
     const lands = (turn: ReferenceLine) =>
       (isDueDay(grid, setting, turn.dueOn) && (turn.dueOn > chosenFloor || anchors.has(turn))) ||
       reports.some((report) => report.targetOn === turn.dueOn && report.dueOn > rhythmFloor) ||
-      (!days.has(turn.dueOn) && shiftKeptByReport(turn, reports, settingOf))
+      (!plain && !days.has(turn.dueOn) && shiftKeptByReport(turn, reports, rewriteContext))
+    // 6b : le décalage d'un report battu par la réécriture de son réglage part avec lui.
+    const lost = (turn: ReferenceLine) =>
+      !plain &&
+      turn.dueOn <= last &&
+      isDueDay(grid, setting, turn.dueOn) &&
+      shiftLostWithReport(turn, reports, rewriteContext, journeyOn(turn.dueOn, setting))
     for (const turn of [...turns, null]) {
-      if (turn !== null && !lands(turn)) continue
+      if (turn !== null && (!lands(turn) || lost(turn))) continue
       const to = turn === null ? last : turn.dueOn < last ? turn.dueOn : last
       const start = later(from, plusDays(grid.floor, 1))
       for (const day of gridDays(grid.origin, setting.frequency, start, to)) {
@@ -197,20 +210,8 @@ export function calendarOf(
   ).forEach((journey, day) => left.set(day, journeyOn(day, journey.setting)))
 
   const coverage = coverages({ notes, borrowed, reports, translated, settingOf })
-  const { coveredOn, coveredAside, settle } = coverage
+  const { coveredOn, settle } = coverage
 
-  const rewriteContext: RewriteContext = {
-    settingOf,
-    settingAt,
-    chain,
-    lines: allLines,
-    read: (only, lines) =>
-      calendarOf(only ?? settings, only ?? episode, lines, [], reach, true).dues,
-    uncovered: ({ dueOn }) => {
-      const day = days.get(dueOn)
-      return day?.hours.filter((hour) => !coveredAside(dueOn, day).has(hour)) ?? []
-    },
-  }
   // R7 : un report emporte son heure et les suivantes sans prise.
   const { fallen, arrivedBy } = arriveReports({
     reports,

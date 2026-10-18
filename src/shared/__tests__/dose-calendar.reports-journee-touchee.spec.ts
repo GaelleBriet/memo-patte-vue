@@ -427,8 +427,8 @@ describe('Deux téléphones, un réglage du jour réécrit (R10)', () => {
   }
 
   // Fiche de #860 (16 octobre 2026) : les prises se posent d'abord, le report n'emporte que les heures
-  // restées sans prise.
-  it('graines 7600001452 et 7600002410 : A reporte 8 h du 5 au 6, B passe à 8 h 01, 14 h 01, 20 h 01 sans voir le report, A plus récent : 14 h 01 et 20 h 01 couvertes, le 6 ne réclame qu’une dose', () => {
+  // restées sans prise ; 6a (18 octobre 2026) : il emporte son heure, le 5 perd la dose libre de 8 h 01.
+  it('graines 7600001452 et 7600002410 : A reporte 8 h du 5 au 6, B passe à 8 h 01, 14 h 01, 20 h 01 sans voir le report, A plus récent : 14 h 01 et 20 h 01 couvertes, le 6 à 8 h, une seule dose', () => {
     const synced = syncedAt('2026-03-04T18:00:00.000Z', '2026-03-04T09:00:00.000Z')
     const givenEffects = treatmentView(synced)
       .history.filter(({ line }) => line.status === 'given')
@@ -437,7 +437,7 @@ describe('Deux téléphones, un réglage du jour réécrit (R10)', () => {
     expect(states(synced, '2026-03-05', '2026-06-05')).toEqual([
       '2026-03-05 14:01 covered',
       '2026-03-05 20:01 covered',
-      '2026-03-06 08:01 pending',
+      '2026-03-06 08:00 pending',
       '2026-06-05 08:01 pending',
       '2026-06-05 14:01 pending',
       '2026-06-05 20:01 pending',
@@ -446,13 +446,15 @@ describe('Deux téléphones, un réglage du jour réécrit (R10)', () => {
   })
 
   // Lu sans le report, le 5 garde 8 h (journée touchée par les prises) : la réécriture ne l'a pas ôtée.
-  it('même carnet, B plus récent : la réécriture n’a pas ôté 8 h du 5, le report tient, le 6 ne réclame qu’une dose (#883)', () => {
+  // Réécrit après lui, le réglage du report ne donne pas ses heures au 5 (#938) : le 5 garde celles de
+  // ses prises, comme sur B, et le report emmène 8 h, comme sur A.
+  it('même carnet, B plus récent : la réécriture n’a pas ôté 8 h du 5, le report tient, le 6 ne réclame qu’une dose (#883, #938)', () => {
     const synced = syncedAt('2026-03-04T09:00:00.000Z', '2026-03-04T18:00:00.000Z')
     expect(reportEffects(synced)).toEqual(['moves'])
     expect(states(synced, '2026-03-05', '2026-06-05')).toEqual([
-      '2026-03-05 14:01 covered',
-      '2026-03-05 20:01 covered',
-      '2026-03-06 08:01 pending',
+      '2026-03-05 14:00 given',
+      '2026-03-05 20:00 given',
+      '2026-03-06 08:00 pending',
       '2026-06-05 08:01 pending',
       '2026-06-05 14:01 pending',
       '2026-06-05 20:01 pending',
