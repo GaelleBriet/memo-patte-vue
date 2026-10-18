@@ -16,12 +16,7 @@ const broken = (rule: string, detail: unknown): Broken => ({
   detail: JSON.stringify(detail).slice(0, 900),
 })
 
-/**
- * Les rappels programmés sont les échéances que montre la fiche (RA-1, RA-6) : de la première à la
- * dernière rappelée, toute échéance à donner a son rappel du jour, aucune autre ; prévenance et
- * relance selon RA-2 à RA-5, relues sur l'état de chaque échéance ; RA-19 sur chaque ligne ; la
- * lecture dit tout lu si et seulement si aucune échéance à donner ne reste après sa dernière journée.
- */
+/** Les rappels sont les échéances de la fiche (RA-1 à RA-6, RA-19) ; `readAll` vaut vrai si et seulement si rien ne reste après la dernière journée lue. */
 export function remindersBrokenBy(input: TreatmentViewInput): Broken | null {
   const view = treatmentView(input)
   const { reminders, readAll } = view.reminders(REMINDER_WINDOW)

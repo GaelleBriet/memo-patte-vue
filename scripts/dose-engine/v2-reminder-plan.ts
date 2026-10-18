@@ -1,5 +1,6 @@
 import {
   treatmentView,
+  type ReminderReading,
   type ReminderWindow,
   type TreatmentView,
   type TreatmentViewInput,
@@ -14,6 +15,7 @@ import {
 import { plusDays } from './carnet'
 import { dueKey } from './display'
 import type { Broken } from './v2-reading'
+import { REMINDER_WINDOW } from './v2-reminders'
 
 /** Les heures où la campagne ouvre l'app : au tout début et à la toute fin de la journée. */
 export const OPENING_TIMES = ['00:00', '23:59'] as const
@@ -33,7 +35,7 @@ function localInstant(day: string, time: string, minutesBefore = 0): Date {
 }
 
 function onceRead(view: TreatmentView): Pick<TreatmentView, 'reminders'> {
-  const read = new Map<string, ReturnType<TreatmentView['reminders']>>()
+  const read = new Map<string, ReminderReading>()
   return {
     reminders: (window: ReminderWindow) => {
       const key = JSON.stringify(window)
@@ -63,6 +65,7 @@ function brokenIn(
       : []
   })
   if (programmed.length === 0) return null
+  const readAll = reminders.reminders(REMINDER_WINDOW).readAll
   const last = programmed.at(-1)!
   const keys = new Set(programmed.map(({ key }) => key))
   const unlogged = new Set(view.unloggedDoses.map(dueKey))
@@ -81,23 +84,21 @@ function brokenIn(
     .upcoming({ from: lastDay, to: plusDays(lastDay, 3000), limit: 50 })
     .filter((due) => later(due) && ringsAt(due) > last.at)
     .map(dueKey)
-  if (missing.length === 0 && (!care.complete || after.length === 0)) return null
+  const completeUnread = care.complete && !readAll
+  if (missing.length === 0 && !completeUnread && (!care.complete || after.length === 0)) return null
   return {
     invariant: `rappel ${period.reminderOffsetMinutes} min avant, sans heure à ${period.reminderTime}`,
     detail: JSON.stringify({
       manquantes: missing.slice(0, 6),
       complet: care.complete,
+      toutLu: readAll,
       apres: after.slice(0, 6),
       dernier: last.key,
     }).slice(0, 900),
   }
 }
 
-/**
- * RA-1, RA-11, RA-12 lus dans le plan de l'app ouverte à `time`, pour chaque écart et chaque heure de
- * rappel : aucune échéance de la fiche ne manque entre maintenant et le dernier rappel programmé ;
- * sans relais, plus rien ne reste après.
- */
+/** RA-1, RA-11, RA-12 dans le plan de l'app ouverte à `time` : rien ne manque avant le dernier rappel ; sans relais, plus rien après. */
 export function planBrokenBy(input: TreatmentViewInput, time: string): Broken | null {
   const view = treatmentView(input)
   if (view.phase === 'stopped' || view.phase === 'ended') return null
