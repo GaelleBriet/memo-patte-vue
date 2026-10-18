@@ -95,19 +95,21 @@ function settingWritten(input: TreatmentViewInput, plan: SettingsPlan): Treatmen
       id: 'réglage-écrit',
       stoppedOn: null,
       createdAt: WRITTEN_AT,
-      writtenOn: input.today,
+      ...answerOf(input, plan),
     }
     return { ...input, settings: [...input.settings, setting] }
   }
   const settings = input.settings.map((setting) => {
     if (setting.id !== plan.id) return setting
-    const next = { ...setting, ...plan.setting }
-    return rewritesCalendar(setting, next)
-      ? { ...next, updatedAt: WRITTEN_AT, writtenOn: input.today }
-      : next
+    const next = { ...setting, ...plan.setting, ...answerOf(input, plan) }
+    return rewritesCalendar(setting, next) ? { ...next, updatedAt: WRITTEN_AT } : next
   })
   return { ...input, settings }
 }
+
+// #873 : seule une réponse à la question date la réponse ; une réécriture sans question garde la sienne.
+const answerOf = (input: TreatmentViewInput, plan: SettingsPlan) =>
+  plan.answered ? { answeredAt: WRITTEN_AT, answeredOn: input.today } : {}
 
 const CALENDAR = [
   'startsOn',

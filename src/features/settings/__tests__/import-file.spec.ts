@@ -431,6 +431,22 @@ describe('parseExportFile', () => {
       },
     )
 
+    it('garde la date de la réponse telle qu’exportée, refuse une date qui n’est pas un instant, et une période sans elle', () => {
+      const at = '2026-09-02T08:00:00.000Z'
+      const kept = parseExportFile(forged('treatmentPeriods', 'fallenDosesAnsweredAt', at, 1))
+      expect(kept.ok && kept.file.data.treatmentPeriods[1]!.fallenDosesAnsweredAt).toBe(at)
+      expect(
+        parseExportFile(forged('treatmentPeriods', 'fallenDosesAnsweredAt', '2026-09-02', 1)),
+      ).toEqual(INVALID)
+      expect(
+        parseExportFile(
+          withDocument(
+            (document) => delete premier(document, 'treatmentPeriods').fallenDosesAnsweredAt,
+          ),
+        ),
+      ).toEqual(INVALID)
+    })
+
     it.each([
       ['une réponse inconnue', 'oui'],
       ['un booléen', true],
@@ -701,6 +717,7 @@ describe('parseExportFile', () => {
       for (const period of periods) {
         period.pastDosesStayUnlogged = period.fallenDosesAnswer === 'stay-unlogged'
         delete period.fallenDosesAnswer
+        delete period.fallenDosesAnsweredAt
       }
       return periods
     }
@@ -721,6 +738,11 @@ describe('parseExportFile', () => {
       )
       expect(answers[0]).toBe('stay-unlogged')
       expect(answers.slice(1)).toEqual(answers.slice(1).map(() => 'unasked'))
+      expect(
+        result.file.data.treatmentPeriods.every(
+          ({ fallenDosesAnsweredAt }) => fallenDosesAnsweredAt === null,
+        ),
+      ).toBe(true)
       expect(
         result.file.data.treatmentPeriods.map(({ settingsWrittenAt }) => settingsWrittenAt),
       ).toEqual(IMPORT_FIXTURE.treatmentPeriods.map(({ settingsWrittenAt }) => settingsWrittenAt))
@@ -775,6 +797,7 @@ describe('parseExportFile', () => {
         for (const period of periods) {
           delete period.firstDueChosen
           delete period.fallenDosesAnswer
+          delete period.fallenDosesAnsweredAt
           delete period.settingsWrittenAt
         }
         periods.at(-1)!.gridOriginOn = null

@@ -28,7 +28,9 @@ const T0 = '2026-01-01T00:00:00.000Z'
 const EARLIER = '2026-02-01T00:00:00.000Z'
 const NOW = '2026-03-01T10:00:00.000Z'
 
-function period(overrides: Partial<TreatmentPeriod> = {}): TreatmentPeriod & PeriodOrigin {
+function period(
+  overrides: Partial<TreatmentPeriod> = {},
+): TreatmentPeriod & PeriodOrigin & { fallenDosesAnsweredAt: string | null } {
   const firstDueOn = overrides.firstDueOn ?? overrides.startsOn ?? '2026-01-10'
   return {
     id: MILBEMAX,
@@ -45,6 +47,7 @@ function period(overrides: Partial<TreatmentPeriod> = {}): TreatmentPeriod & Per
     gridOriginOn: firstDueOn,
     firstDueChosen: true,
     fallenDosesAnswer: 'unasked',
+    fallenDosesAnsweredAt: null,
   }
 }
 
@@ -206,6 +209,7 @@ describe('treatmentPeriodsRepository', () => {
       ...REGLAGES,
       ...ORIGINE,
       settingsWrittenAt: EARLIER,
+      fallenDosesAnsweredAt: EARLIER,
     }
 
     it('insère une période avec tous ses réglages et la relit à l’identique', async () => {
@@ -308,6 +312,30 @@ describe('treatmentPeriodsRepository', () => {
         fallenDosesAnswer: 'not-due',
         updatedAt: NOW,
         settingsWrittenAt: EARLIER,
+      })
+    })
+
+    it('#873 : seule une réponse à la question date la réponse ; une réécriture sans question garde sa date', async () => {
+      await db.runMany([periods.insertStatement(COMPLETE)])
+      const heures = { ...REGLAGES, times: ['06:00'] }
+
+      await db.runMany([periods.correctSettingsStatement(REPRISE, heures, NOW, ORIGINE)])
+      const [, kept] = await periods.listByTreatment(MILBEMAX)
+      expect(kept).toMatchObject({ settingsWrittenAt: NOW, fallenDosesAnsweredAt: EARLIER })
+
+      const LATER = '2026-03-02T10:00:00.000Z'
+      await db.runMany([
+        periods.correctSettingsStatement(REPRISE, heures, LATER, {
+          ...ORIGINE,
+          fallenDosesAnswer: 'not-due',
+          answered: true,
+        }),
+      ])
+      const [, answered] = await periods.listByTreatment(MILBEMAX)
+      expect(answered).toMatchObject({
+        fallenDosesAnswer: 'not-due',
+        fallenDosesAnsweredAt: LATER,
+        settingsWrittenAt: NOW,
       })
     })
 
@@ -487,7 +515,8 @@ describe('treatmentPeriodsRepository', () => {
       firstDueOn: '2026-02-11',
       gridOriginOn: '2026-01-31',
       firstDueChosen: true,
-      fallenDosesAnswer: 'stay-unlogged',
+      fallenDosesAnswer: 'not-due',
+      fallenDosesAnsweredAt: '2026-02-09T08:00:00.000Z',
       endsOn: '2026-03-10',
       stoppedOn: '2026-02-20',
       frequency: { value: 1, unit: 'day' },
@@ -522,6 +551,7 @@ describe('treatmentPeriodsRepository', () => {
         gridOriginOn: '2026-01-10',
         firstDueChosen: true,
         fallenDosesAnswer: 'unasked',
+        fallenDosesAnsweredAt: null,
         endsOn: null,
         times: [],
         doseQuantity: null,

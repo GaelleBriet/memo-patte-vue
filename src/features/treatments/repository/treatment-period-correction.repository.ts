@@ -40,14 +40,14 @@ export function createPeriodCorrection(deviceId: () => string) {
   return {
     /**
      * Tous les réglages de cette période et son origine, sauf son arrêt. Rien n'est daté si rien ne
-     * change ; la date d'écriture des réglages ne suit que le calendrier. Lève pour des réglages
-     * incohérents.
+     * change ; la date d'écriture des réglages ne suit que le calendrier, celle de la réponse Q38
+     * seulement `answered`. Lève pour des réglages incohérents.
      */
     correctSettingsStatement(
       periodId: string,
       input: TreatmentPeriodSettings,
       updatedAt: string,
-      origin: PeriodOrigin,
+      origin: PeriodOrigin & { answered?: true },
     ): SqlStatement {
       const settings = treatmentPeriodSettingsSchema.parse(input)
       const values = [
@@ -69,21 +69,27 @@ export function createPeriodCorrection(deviceId: () => string) {
         CALENDAR_COLUMNS.includes(CORRECTED_COLUMNS[index]!)
       const changed = (columns: string[]) =>
         columns.map((column) => `${column} IS NOT ?`).join(' OR ')
+      const answered = origin.answered === true ? 1 : 0
       return {
         sql: `UPDATE treatment_period
               SET ${CORRECTED_COLUMNS.map((column) => `${column} = ?`).join(', ')},
                   settings_written_at = CASE WHEN ${changed(CORRECTED_COLUMNS.filter(isCalendar))}
                     THEN ? ELSE settings_written_at END,
+                  fallen_doses_answered_at = CASE WHEN ? = 1 THEN ?
+                    ELSE fallen_doses_answered_at END,
                   updated_at = ?, updated_by_device = ?
-              WHERE id = ? AND (${changed(CORRECTED_COLUMNS)})`,
+              WHERE id = ? AND (${changed(CORRECTED_COLUMNS)} OR ? = 1)`,
         params: [
           ...values,
           ...values.filter(isCalendar),
+          updatedAt,
+          answered,
           updatedAt,
           updatedAt,
           deviceId(),
           periodId,
           ...values,
+          answered,
         ],
       }
     },

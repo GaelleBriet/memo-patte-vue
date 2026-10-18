@@ -65,6 +65,7 @@ const rewrite = (current: Setting, setting: SettingFields): SettingsPlan => ({
 const answered = (plan: SettingsPlan, fallenDosesAnswer: FallenDosesAnswer): SettingsPlan => ({
   ...plan,
   setting: { ...plan.setting, fallenDosesAnswer },
+  answered: true,
 })
 
 const sameHours = (a: readonly string[], b: readonly string[]) =>

@@ -106,6 +106,7 @@ export function draftPeriod(settings: TreatmentPeriodSettings, at: string): Trea
     gridOriginOn: settings.firstDueOn,
     firstDueChosen: true,
     fallenDosesAnswer: 'unasked',
+    fallenDosesAnsweredAt: null,
     id: DRAFT_ID,
     treatmentId: DRAFT_ID,
     animalId: DRAFT_ID,

@@ -29,6 +29,7 @@ export function period(overrides: Partial<TreatmentPeriodRecord> = {}): Treatmen
   } satisfies Partial<TreatmentPeriodRecord>
   return {
     ...legacyFactsOf(record.gridOriginOn),
+    fallenDosesAnsweredAt: null,
     settingsWrittenAt: record.createdAt,
     ...record,
   }

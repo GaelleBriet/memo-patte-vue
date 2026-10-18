@@ -14,6 +14,7 @@ export interface PeriodRow {
   grid_origin_on: string | null
   first_due_chosen: number
   fallen_doses_answer: FallenDosesAnswer
+  fallen_doses_answered_at: string | null
   ends_on: string | null
   stopped_on: string | null
   frequency_value: number
@@ -42,6 +43,7 @@ export const SYNC_COLUMN_NAMES = [
   'grid_origin_on',
   'first_due_chosen',
   'fallen_doses_answer',
+  'fallen_doses_answered_at',
   'ends_on',
   'stopped_on',
   'frequency_value',
@@ -82,6 +84,7 @@ export function toPeriodRecord(row: PeriodRow): TreatmentPeriodRecord {
     gridOriginOn: row.grid_origin_on,
     firstDueChosen: row.first_due_chosen === 1,
     fallenDosesAnswer: row.fallen_doses_answer,
+    fallenDosesAnsweredAt: row.fallen_doses_answered_at,
     endsOn: row.ends_on,
     stoppedOn: row.stopped_on,
     frequency: { value: row.frequency_value, unit: row.frequency_unit },

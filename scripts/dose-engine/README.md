@@ -64,7 +64,7 @@ Par défaut (suite normale) : 25 carnets × 24 gestes.
 `src/features/treatments/__tests__/treatment-services.oracle.service.spec.ts` rejoue les gestes du
 moteur v2 par les services (base SQLite en mémoire) et compare les lignes écrites à la lecture du
 moteur seul. Variables : `TREATMENT_ORACLE_FROM` (540000000), `TREATMENT_ORACLE_SEEDS` (20 par défaut),
-`TREATMENT_ORACLE_STEPS` (30). Un geste que l'écran refuse n'est pas joué. L'horloge des écritures suit le jour mené : le jour de la réponse à la question Q38 se lit sur la date d'écriture du réglage (#873), comme sur le téléphone. Les gestes « Prochaine dose » de la dose du moment passent par le formulaire (report ou date de fin corrigée sur place) ; une suite arrêtée par un refus du formulaire est comptée, et seule une date de fin refusée (TR-6) est admise.
+`TREATMENT_ORACLE_STEPS` (30). Un geste que l'écran refuse n'est pas joué. L'horloge des écritures suit le jour mené : le jour de la réponse à la question Q38 se lit sur sa date (#873), comme sur le téléphone. Les gestes « Prochaine dose » de la dose du moment passent par le formulaire (report ou date de fin corrigée sur place) ; une suite arrêtée par un refus du formulaire est comptée, et seule une date de fin refusée (TR-6) est admise.
 
 ## Les rappels lus dans la vue (pas 8)
 
@@ -94,8 +94,8 @@ de v2 et, à certains pas, fourche le carnet (`two-devices.ts`, constats dans `t
 avec ou sans « Décaler aussi les doses suivantes », prise, dose à renseigner), le téléphone B fait
 « Modifier » (heures, date, fréquence, fin) sans le voir, chacun dans un ordre tiré au sort, puis la
 synchro garde, par ligne et par réglage, la modification la plus récente. La date d'écriture d'un
-réglage n'avance que si son calendrier change (migration v14), et son jour est celui de la réponse
-à la question Q38 (#873, migration v15). Constats : le report de A, qui
+réglage n'avance que si son calendrier change (migration v14) ; la réponse à la question Q38 porte
+sa propre date, posée par elle seule (#873, migration v15). Constats : le report de A, qui
 déplaçait une dose sur A, est sans effet après la synchro alors que la réécriture de B, sur le réglage
 du report, n'a pas ôté sa dose de départ (la journée lue sans ce report l'a encore) ; une dose de trop
 sur le jour d'arrivée du report (une heure que ni A ni B n'y montraient). Un report écrit sous un

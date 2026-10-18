@@ -13,9 +13,8 @@ function answeredOut(
   broughtBy: ReferenceLine | undefined,
 ): boolean {
   if (covered || setting === undefined || setting.fallenDosesAnswer !== 'not-due') return false
-  const answeredOn = setting.writtenOn
+  const { answeredOn, answeredAt } = setting
   if (answeredOn === undefined || day < setting.startsOn || day >= answeredOn) return false
-  const answeredAt = setting.updatedAt
   return broughtBy === undefined || answeredAt === undefined || broughtBy.updatedAt <= answeredAt
 }
 

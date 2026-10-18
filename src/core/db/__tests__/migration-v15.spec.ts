@@ -192,9 +192,9 @@ describe.each([
       delete kept[column]
       return kept
     }
-    expect(periodsAfter.map(without('fallen_doses_answer'))).toEqual(
-      periodsBefore.map(without('past_doses_stay_unlogged')),
-    )
+    expect(
+      periodsAfter.map(without('fallen_doses_answer')).map(without('fallen_doses_answered_at')),
+    ).toEqual(periodsBefore.map(without('past_doses_stay_unlogged')))
     expect(await rows(db, 'treatment_dose')).toEqual(dosesBefore)
   })
 
@@ -211,6 +211,14 @@ describe.each([
     ])
   })
 
+  it('aucune réponse d’avant n’est datée : la date de la réponse vaut NULL, jamais la date d’écriture du réglage', async () => {
+    await applyMigrations(db, 15)
+
+    await expect(
+      db.query('SELECT DISTINCT fallen_doses_answered_at FROM treatment_period'),
+    ).resolves.toEqual([{ fallen_doses_answered_at: null }])
+  })
+
   it('n’envoie rien à la synchronisation : la migration Supabase pose les mêmes valeurs', async () => {
     await db.execute('DELETE FROM sync_outbox')
 
@@ -224,8 +232,9 @@ describe.each([
     await db.execute('DELETE FROM sync_outbox')
 
     await db.run(
-      `UPDATE treatment_period SET fallen_doses_answer = 'not-due', updated_at = ? WHERE id = 'p1'`,
-      ['2026-10-18T08:00:00.000Z'],
+      `UPDATE treatment_period SET fallen_doses_answer = 'not-due', fallen_doses_answered_at = ?,
+         updated_at = ? WHERE id = 'p1'`,
+      ['2026-10-18T08:00:00.000Z', '2026-10-18T08:00:00.000Z'],
     )
     await db.run(`UPDATE treatment_dose SET updated_at = ? WHERE id = 'd1'`, [
       '2026-10-18T08:00:00.000Z',
@@ -315,9 +324,9 @@ describe('schéma v15 sur une installation neuve', () => {
       },
     ])
 
-    await expect(db.query('SELECT fallen_doses_answer FROM treatment_period')).resolves.toEqual([
-      { fallen_doses_answer: 'unasked' },
-    ])
+    await expect(
+      db.query('SELECT fallen_doses_answer, fallen_doses_answered_at FROM treatment_period'),
+    ).resolves.toEqual([{ fallen_doses_answer: 'unasked', fallen_doses_answered_at: null }])
     db.close()
   })
 })

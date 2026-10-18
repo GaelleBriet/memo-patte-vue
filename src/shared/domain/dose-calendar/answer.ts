@@ -13,10 +13,10 @@ export const isListed = (
  * qu'elle qui y faisait arriver la dose tient (#867).
  */
 function answeredAway(setting: Setting, dueOn: Day, report: Line | undefined): boolean {
-  const { fallenDosesAnswer, writtenOn, updatedAt } = setting
-  if (fallenDosesAnswer !== 'not-due' || writtenOn === undefined) return false
-  const newer = report !== undefined && updatedAt !== undefined && report.updatedAt > updatedAt
-  return isListed(setting, writtenOn, dueOn) && !newer
+  const { fallenDosesAnswer, answeredOn, answeredAt } = setting
+  if (fallenDosesAnswer !== 'not-due' || answeredOn === undefined) return false
+  const newer = report !== undefined && answeredAt !== undefined && report.updatedAt > answeredAt
+  return isListed(setting, answeredOn, dueOn) && !newer
 }
 
 /**

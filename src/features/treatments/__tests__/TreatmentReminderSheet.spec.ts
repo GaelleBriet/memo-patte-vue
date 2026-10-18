@@ -91,6 +91,7 @@ const HISTORY: TreatmentWithHistory = {
       gridOriginOn: '2026-08-28',
       firstDueChosen: true,
       fallenDosesAnswer: 'unasked',
+      fallenDosesAnsweredAt: null,
       endsOn: null,
       stoppedOn: null,
       frequency: BRAVECTO.frequency,

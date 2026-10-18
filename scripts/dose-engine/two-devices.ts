@@ -60,13 +60,13 @@ function writeLines(
 
 function writePlan(input: TreatmentViewInput, plan: SettingsPlan, clock: Clock, tag: string) {
   const { lines } = writeLines(input, plan.lines ?? [], clock, tag)
+  const at = stamp(clock)
+  const answered = plan.answered ? { answeredAt: at, answeredOn: input.today } : {}
   if (plan.action === 'rewrite') {
     const settings = input.settings.map((setting) => {
       if (setting.id !== plan.id) return setting
-      const next = { ...setting, ...plan.setting }
-      return rewritesCalendar(setting, next)
-        ? { ...next, updatedAt: stamp(clock), writtenOn: input.today }
-        : next
+      const next = { ...setting, ...plan.setting, ...answered }
+      return rewritesCalendar(setting, next) ? { ...next, updatedAt: at } : next
     })
     return { ...input, lines, settings }
   }
@@ -74,7 +74,8 @@ function writePlan(input: TreatmentViewInput, plan: SettingsPlan, clock: Clock, 
     ...plan.setting,
     id: `${tag}s${clock.n}`,
     stoppedOn: null,
-    createdAt: stamp(clock),
+    createdAt: at,
+    ...answered,
   }
   return { ...input, lines, settings: [...input.settings, created] }
 }

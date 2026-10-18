@@ -25,7 +25,12 @@ export function periodWriteOf(plan: SettingsPlan, extras: Extras, newId: () => s
     reminderOffsetMinutes,
     reminderTime,
   }
-  const origin = { gridOriginOn, firstDueChosen, fallenDosesAnswer }
+  const origin = {
+    gridOriginOn,
+    firstDueChosen,
+    fallenDosesAnswer,
+    ...(plan.answered ? { answered: true as const } : {}),
+  }
   return plan.action === 'create'
     ? { action: 'open', id: newId(), settings, ...origin }
     : { action: 'correct', id: plan.id, settings, ...origin }
@@ -45,7 +50,8 @@ export function settingsPlanOf(written: Written): SettingsPlan {
     frequency,
     times,
   }
+  const answered = written.answered ? { answered: true as const } : {}
   return written.action === 'open'
-    ? { action: 'create', setting }
-    : { action: 'rewrite', id: written.id, setting }
+    ? { action: 'create', setting, ...answered }
+    : { action: 'rewrite', id: written.id, setting, ...answered }
 }

@@ -115,21 +115,34 @@ describe('treatmentReading', () => {
   })
 })
 
-describe('#873 : le jour de la réponse « Elles n’étaient pas à donner » est le jour local de la réécriture du calendrier', () => {
-  const writtenOn = (settingsWrittenAt: string | undefined) =>
-    readTreatment({ periods: [period({ settingsWrittenAt })], doses: [] }, TODAY)!.input
-      .settings[0]!.writtenOn
+describe('#873 : la date de la réponse à la question Q38 est une donnée à part, son jour est le jour local', () => {
+  const answerOf = (fallenDosesAnsweredAt: string | null) => {
+    const setting = readTreatment(
+      { periods: [period({ fallenDosesAnsweredAt })], doses: [] },
+      TODAY,
+    )!.input.settings[0]!
+    return [setting.answeredAt, setting.answeredOn]
+  }
 
   it('à 0 h 30, heure du téléphone, le 2 : le 2', () => {
-    expect(writtenOn(new Date(2026, 9, 2, 0, 30).toISOString())).toBe('2026-10-02')
+    const at = new Date(2026, 9, 2, 0, 30).toISOString()
+    expect(answerOf(at)).toEqual([at, '2026-10-02'])
   })
 
   it('une date plus loin qu’aujourd’hui (horloge d’un autre appareil) vaut aujourd’hui', () => {
-    expect(writtenOn(new Date(2026, 11, 1, 12, 0).toISOString())).toBe(TODAY)
+    expect(answerOf(new Date(2026, 11, 1, 12, 0).toISOString())[1]).toBe(TODAY)
   })
 
-  it('sans date d’écriture : inconnu', () => {
-    expect(writtenOn(undefined)).toBeUndefined()
+  it('sans réponse datée : inconnue', () => {
+    expect(answerOf(null)).toEqual([undefined, undefined])
+  })
+
+  it('la date d’écriture du réglage ne date pas la réponse', () => {
+    const setting = readTreatment(
+      { periods: [period({ settingsWrittenAt: '2026-10-02T08:00:00.000Z' })], doses: [] },
+      TODAY,
+    )!.input.settings[0]!
+    expect(setting.answeredOn).toBeUndefined()
   })
 
   it('une réponse hors des trois états rend le traitement illisible', () => {

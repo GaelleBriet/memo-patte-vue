@@ -44,6 +44,7 @@ function period(
   } satisfies Partial<PeriodFields>
   return {
     ...legacyFactsOf(record.gridOriginOn),
+    fallenDosesAnsweredAt: null,
     settingsWrittenAt: record.createdAt,
     ...record,
   }

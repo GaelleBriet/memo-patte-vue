@@ -23,17 +23,17 @@ export type SettingsWalk = {
 const MAX_SETTINGS = 5
 
 /** Le carnet une fois le réglage écrit, comme le repository : identifiant, horodatage et date
- * d'écriture quand le calendrier change (#867), dont le jour est celui de la réponse Q38 (#873). */
+ * d'écriture quand le calendrier change (#867), date de la réponse Q38 posée par elle seule (#873). */
 export function settingsWritten(walk: SettingsWalk, plan: SettingsPlan): TreatmentViewInput {
   const { settings } = walk.input
   const at = walk.stamp()
   const lines = linesWritten(walk, plan.lines ?? [], at)
+  const answered = plan.answered ? { answeredAt: at, answeredOn: walk.input.today } : {}
   if (plan.action === 'rewrite') {
     const rewritten = settings.map((setting) => {
       if (setting.id !== plan.id) return setting
-      const next = { ...setting, ...plan.setting }
-      const writtenOn = walk.input.today
-      return rewritesCalendar(setting, next) ? { ...next, updatedAt: at, writtenOn } : next
+      const next = { ...setting, ...plan.setting, ...answered }
+      return rewritesCalendar(setting, next) ? { ...next, updatedAt: at } : next
     })
     return { ...walk.input, settings: rewritten, lines }
   }
@@ -42,6 +42,7 @@ export function settingsWritten(walk: SettingsWalk, plan: SettingsPlan): Treatme
     id: `s${settings.length + 1}`,
     stoppedOn: null,
     createdAt: at,
+    ...answered,
   }
   return { ...walk.input, settings: [...settings, created], lines }
 }

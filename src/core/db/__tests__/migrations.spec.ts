@@ -385,6 +385,7 @@ describe('schéma sur une installation neuve', () => {
         'grid_origin_on',
         'first_due_chosen',
         'fallen_doses_answer',
+        'fallen_doses_answered_at',
         'ends_on',
         'stopped_on',
         'frequency_value',

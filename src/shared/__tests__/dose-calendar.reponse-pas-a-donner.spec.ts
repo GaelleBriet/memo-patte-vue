@@ -124,7 +124,7 @@ describe('#873 : « Elles n’étaient pas à donner » retire les doses listée
     const after = edited(input, SANS_HEURE, 'correct')
     expect(after.settings.find(({ id }) => id === 's3')).toMatchObject({
       fallenDosesAnswer: 'not-due',
-      writtenOn: '2026-03-23',
+      answeredOn: '2026-03-23',
     })
     expect(slotsOf(after, '2026-03-13', '2026-05-31')).toEqual([
       '2026-03-13 08:00 given',
@@ -162,7 +162,7 @@ describe('#873 : « Elles n’étaient pas à donner » retire les doses listée
     const after = edited(graine726(), SANS_HEURE, 'correct')
     const answeredAt = '2026-03-23T09:00:00.000Z'
     const settings = after.settings.map((each) =>
-      each.id === 's3' ? { ...each, updatedAt: answeredAt } : each,
+      each.id === 's3' ? { ...each, answeredAt, updatedAt: '2026-03-24T09:00:00.000Z' } : each,
     )
     const fresh = after.lines.map((line) =>
       line.id === 'l10' ? { ...line, updatedAt: '2026-03-23T18:00:00.000Z' } : line,
@@ -219,19 +219,133 @@ describe('#873 : « Elles n’étaient pas à donner » retire les doses listée
     expect(moteur).toEqual(reference)
   })
 
-  it('la réponse seule ne date pas le réglage : le jour de la réponse reste celui de la réécriture du calendrier (v14)', () => {
+  it('une réécriture sans question garde la réponse et sa date ; seule une réponse à la question la date', () => {
     const c = milo()
     const current = treatmentView(c).currentSetting!
     expect(current.fallenDosesAnswer).toBe('unasked')
+    expect(current.answeredOn).toBeUndefined()
     const answered = settingsApplied(c, {
       action: 'rewrite',
       id: current.id,
       setting: { ...current, fallenDosesAnswer: 'not-due' },
+      answered: true,
     })
     expect(answered.settings.find(({ id }) => id === current.id)).toMatchObject({
       fallenDosesAnswer: 'not-due',
-      writtenOn: '2026-03-12',
+      answeredOn: '2026-03-13',
     })
+    const later = on(answered, '2026-03-15')
+    const rewritten = settingsApplied(later, {
+      action: 'rewrite',
+      id: current.id,
+      setting: { ...treatmentView(later).currentSetting!, times: ['09:00'] },
+    })
+    expect(rewritten.settings.find(({ id }) => id === current.id)).toMatchObject({
+      fallenDosesAnswer: 'not-due',
+      answeredOn: '2026-03-13',
+    })
+  })
+})
+
+describe('#873 : la date de la réponse est une donnée à part, que la date d’écriture du réglage ne déplace pas (décision du 18 octobre 2026)', () => {
+  // Milo, chaque semaine depuis le 2 mars, 7 h 30 puis 8 h dès le 3 (dose du 2 donnée) ; le 20, 9 h et
+  // « Elles n'étaient pas à donner » pour le 9 et le 16 ; le 22, 10 h sans question ; le 23, « C'est
+  // fait » ; le 25, la prise du 23 supprimée.
+  function miloAnswered(): { day20: TreatmentViewInput; day22: TreatmentViewInput } {
+    let c: TreatmentViewInput = {
+      settings: [
+        S('m1', 0, {
+          startsOn: '2026-03-02',
+          firstDueOn: '2026-03-02',
+          gridOriginOn: '2026-03-02',
+          firstDueChosen: true,
+          frequency: WEEK,
+          times: ['07:30'],
+        }),
+      ],
+      lines: [],
+      today: '2026-03-02',
+    }
+    c = given(c, '2026-03-02', '07:30')
+    c = edited(on(c, '2026-03-03'), { frequency: WEEK, times: ['08:00'], endsOn: null })
+    const asked = newSettings(on(c, '2026-03-20'), {
+      frequency: WEEK,
+      times: ['09:00'],
+      endsOn: null,
+    })
+    expect('question' in asked && keys(asked.question.fallen)).toEqual([
+      '2026-03-09 08:00',
+      '2026-03-16 08:00',
+    ])
+    const day20 = edited(
+      on(c, '2026-03-20'),
+      { frequency: WEEK, times: ['09:00'], endsOn: null },
+      'correct',
+    )
+    const asked22 = newSettings(on(day20, '2026-03-22'), {
+      frequency: WEEK,
+      times: ['10:00'],
+      endsOn: null,
+    })
+    expect('plan' in asked22).toBe(true)
+    const day22 = edited(on(day20, '2026-03-22'), {
+      frequency: WEEK,
+      times: ['10:00'],
+      endsOn: null,
+    })
+    return { day20, day22 }
+  }
+
+  it('Milo : le 22, 10 h sans question ouvre un réglage sans réponse ; la réponse reste datée du 20 ; le 9 et le 16 restent retirés', () => {
+    const { day20, day22 } = miloAnswered()
+    const answeredId = treatmentView(day20).currentSetting!.id
+    expect(day22.settings.find(({ id }) => id === answeredId)).toMatchObject({
+      fallenDosesAnswer: 'not-due',
+      answeredOn: '2026-03-20',
+    })
+    expect(treatmentView(day22).currentSetting).toMatchObject({
+      fallenDosesAnswer: 'unasked',
+      times: ['10:00'],
+    })
+    const { moteur, reference } = readings(day22)
+    expect(moteur).toMatchObject({
+      phase: 'upcoming',
+      moment: ['2026-03-23 10:00'],
+      aRenseigner: [],
+    })
+    expect(moteur).toEqual(reference)
+  })
+
+  it('Milo : le 25, la prise du 23 supprimée, la dose du 23, jamais listée, revient ; le 9 et le 16 restent retirés', () => {
+    const { day22 } = miloAnswered()
+    let c = given(on(day22, '2026-03-23'), '2026-03-23', '10:00')
+    c = removed(on(c, '2026-03-25'), '2026-03-23', '10:00')
+    const { moteur, reference } = readings(c)
+    expect([...moteur.moment, ...moteur.aRenseigner]).toEqual(['2026-03-23 10:00'])
+    expect(moteur).toEqual(reference)
+  })
+
+  it('une dose tombée après le jour de la réponse reste, même quand le réglage a été réécrit plus tard', () => {
+    const answered: TreatmentViewInput = {
+      today: '2026-03-25',
+      settings: [
+        S('a1', 0, {
+          startsOn: '2026-03-02',
+          firstDueOn: '2026-03-23',
+          gridOriginOn: '2026-03-02',
+          frequency: WEEK,
+          times: ['10:00'],
+          fallenDosesAnswer: 'not-due',
+          answeredAt: '2026-03-20T09:00:00.000Z',
+          answeredOn: '2026-03-20',
+          updatedAt: '2026-03-24T09:00:00.000Z',
+        }),
+      ],
+      lines: [],
+    }
+    const { moteur, reference } = readings(answered)
+    expect([...moteur.moment, ...moteur.aRenseigner]).toEqual(['2026-03-23 10:00'])
+    expect(moteur).toEqual(reference)
   })
 })
 

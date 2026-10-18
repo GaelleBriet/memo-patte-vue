@@ -14,7 +14,10 @@ import {
 import { DAYS_PER_STEP, FREQUENCY_UNITS, MAX_FREQUENCY_VALUE } from './treatment-frequency'
 
 /** `settingsWrittenAt` : dernière écriture de ce qui fait le calendrier (R10, #867). */
-type Period = Omit<Setting, 'updatedAt' | 'writtenOn'> & { settingsWrittenAt?: string }
+type Period = Omit<Setting, 'updatedAt' | 'answeredAt' | 'answeredOn'> & {
+  settingsWrittenAt?: string
+  fallenDosesAnsweredAt?: string | null
+}
 type Dose = Omit<Line, 'settingId'> & { periodId: string }
 
 /** Les périodes et les prises d'un traitement telles que la base les rend. */
@@ -95,12 +98,12 @@ function estimatedDues({ settings, lines, today }: TreatmentViewInput): number {
   }, 0)
 }
 
-// #873 : le jour de la réponse Q38 est le jour local de la réécriture, jamais après aujourd'hui.
-function writtenOnOf(writtenAt: string | undefined, today: string): string | undefined {
-  const date = writtenAt === undefined ? undefined : new Date(writtenAt)
-  if (date === undefined || Number.isNaN(date.getTime())) return undefined
+// #873 : le jour de la réponse Q38 est son jour local, jamais après aujourd'hui.
+function answerOf(answeredAt: string | null | undefined, today: string) {
+  const date = answeredAt ? new Date(answeredAt) : undefined
+  if (date === undefined || Number.isNaN(date.getTime())) return {}
   const day = toDay(date)
-  return day > today ? today : day
+  return { answeredAt: answeredAt!, answeredOn: day > today ? today : day }
 }
 
 function viewInputOf({ periods, doses }: TreatmentRecords, today: string): TreatmentViewInput {
@@ -118,7 +121,7 @@ function viewInputOf({ periods, doses }: TreatmentRecords, today: string): Treat
       times: period.times,
       createdAt: period.createdAt,
       updatedAt: period.settingsWrittenAt,
-      writtenOn: writtenOnOf(period.settingsWrittenAt, today),
+      ...answerOf(period.fallenDosesAnsweredAt, today),
     })),
     lines: doses.map((dose) => ({
       id: dose.id,

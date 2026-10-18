@@ -79,6 +79,7 @@ export function periodOf(
   } satisfies Partial<ExportTreatmentPeriod>
   return {
     ...legacyFactsOf(record.gridOriginOn),
+    fallenDosesAnsweredAt: null,
     settingsWrittenAt: period.createdAt,
     ...record,
   }

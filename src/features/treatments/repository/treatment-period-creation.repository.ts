@@ -22,7 +22,7 @@ export function createPeriodCreation(deviceId: () => string) {
     insertStatement(
       period: TreatmentPeriod &
         Partial<TreatmentPeriodSettings> &
-        PeriodOrigin & { deletedAt: string | null },
+        PeriodOrigin & { deletedAt: string | null; fallenDosesAnsweredAt?: string | null },
     ): SqlStatement {
       const settings = treatmentPeriodSettingsSchema.parse({
         startsOn: period.startsOn,
@@ -47,6 +47,7 @@ export function createPeriodCreation(deviceId: () => string) {
           originOf(period.gridOriginOn),
           flag(period.firstDueChosen),
           period.fallenDosesAnswer,
+          period.fallenDosesAnsweredAt ?? null,
           settings.endsOn,
           period.stoppedOn,
           settings.frequency.value,

@@ -79,6 +79,8 @@ export type ExportTreatmentPeriod = {
   firstDueChosen: boolean
   /** Q38, #873 : réponse à la question des doses tombées ; `unasked` : aucune question posée. */
   fallenDosesAnswer: FallenDosesAnswer
+  /** #873 : instant de cette réponse, posé par elle seule ; `null` : aucune réponse datée. */
+  fallenDosesAnsweredAt: string | null
   endsOn: string | null
   stoppedOn: string | null
   frequency: ExportFrequency

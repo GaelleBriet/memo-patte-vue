@@ -218,6 +218,7 @@ const version8PeriodShape = {
   gridOriginOn: day.nullable(),
   firstDueChosen: z.boolean(),
   fallenDosesAnswer: z.enum(FALLEN_DOSES_ANSWERS),
+  fallenDosesAnsweredAt: instant.nullable(),
   settingsWrittenAt: instant,
 }
 

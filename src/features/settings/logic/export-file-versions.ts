@@ -14,7 +14,10 @@ import { readTreatment } from '@/shared/domain/treatment-reading'
 
 type Unstamped<T> = Omit<T, 'createdByDevice' | 'updatedByDevice'>
 
-export type Version7Period = Omit<ExportTreatmentPeriod, 'fallenDosesAnswer'> & {
+export type Version7Period = Omit<
+  ExportTreatmentPeriod,
+  'fallenDosesAnswer' | 'fallenDosesAnsweredAt'
+> & {
   pastDosesStayUnlogged: boolean
 }
 
@@ -115,13 +118,14 @@ export function fromVersion6(data: Version6Data): Version7Data {
   }
 }
 
-/** La conversion que la migration v15 applique à la base : rien ne passe à « n'étaient pas à donner ». */
+/** La conversion que la migration v15 applique à la base : rien ne passe à « n'étaient pas à donner », aucune réponse datée. */
 export function fromVersion7(data: Version7Data): ExportData {
   return {
     ...data,
     treatmentPeriods: data.treatmentPeriods.map(({ pastDosesStayUnlogged, ...period }) => ({
       ...period,
       fallenDosesAnswer: pastDosesStayUnlogged ? 'stay-unlogged' : 'unasked',
+      fallenDosesAnsweredAt: null,
     })),
   }
 }

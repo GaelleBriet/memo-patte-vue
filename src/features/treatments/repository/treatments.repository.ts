@@ -322,6 +322,7 @@ export function createTreatmentsRepository(
             gridOriginOn: plan.period.gridOriginOn,
             firstDueChosen: plan.period.firstDueChosen,
             fallenDosesAnswer: plan.period.fallenDosesAnswer,
+            fallenDosesAnsweredAt: plan.period.answered ? at : null,
             id: plan.period.id,
             treatmentId: id,
             animalId: current.animalId,
