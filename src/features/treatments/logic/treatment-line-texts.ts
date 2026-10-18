@@ -1,5 +1,5 @@
 import type { DoseActionTexts, DueDay, RestoredSuite, TextTools } from './treatment-gestures'
-import { answeredOn } from './treatment-not-due-text'
+import { answeredOn } from '@/shared/domain/treatment-not-due-text'
 import { withRevealed } from './treatment-revealed-dues'
 import { isAdvanced } from '@/shared/domain/dose-calendar'
 import {

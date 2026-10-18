@@ -1,5 +1,6 @@
 import { animalAge, animalAgeText } from '@/shared/domain/animal-age'
 import { dosageText } from '@/shared/domain/dosage'
+import { notDueTextOn } from '@/shared/domain/treatment-not-due-text'
 import { weightText } from '@/shared/domain/weight-display'
 import {
   formatClockTime,
@@ -179,6 +180,8 @@ function historyLineText(line: PdfHistoryLine, t: Translate): string {
         ? t('treatments.history.advanced', dates)
         : t('treatments.history.postponed', dates)
     }
+    case 'not-due':
+      return `${doseText({ on: line.dueOn, time: line.time, extra: false }, t)} · ${notDueTextOn(t, line.answeredOn)}`
     case 'idle':
       return t('treatments.history.noEffect', { text: historyLineText(line.line, t) })
   }
