@@ -2954,7 +2954,12 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   dose du 10 au 12, B choisit « Prochaine dose » le 9 : B plus récent, rien le 12, puis le 9, le 16
   et le 23 (avant : 9, 12, 16) ; A plus récent, le 9, le 12 à 8 h, puis le 16. Un report plus récent
   dont la journée de départ a été ôtée après la nouvelle première échéance tient (graine
-  8710000057), et son décalage avec lui (#885).
+  8710000057) ; son décalage garde la lecture d'avant (question au §11).
+- La règle ne juge qu'une dose ôtée par la réécriture elle-même, sur la journée de départ lue sans
+  le report : son heure absente des heures du réglage réécrit, ou sa journée absente de la grille
+  d'un réglage réécrit qui a pu la déplacer (relecture de la PR #934 : sans cela, une journée
+  touchée par une prise plus ancienne perdait le report, et sur un seul téléphone une journée qui
+  n'existait que par un décalage supprimé changeait de lecture à une posologie seule).
 - #883 : la ligne gagnante garde son jour et son heure, même quand seule son heure a disparu du
   réglage réécrit. Tous les 3 jours à 8 h, 14 h et 20 h depuis le 3 avril, le 3, 8 h oubliée et
   20 h donnée d'avance ; A reporte 14 h au 6 mai avec la case, B passe à 8 h et 20 h : A plus
@@ -2965,5 +2970,5 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   de départ avant la nouvelle première échéance seulement).
 - Questions ouvertes nées de la livraison (§11) : une heure ôtée quand la journée de départ garde
   une dose libre après elle (lue comme avant en attendant) ; le décalage d'un report battu dont la
-  journée de départ reste au calendrier ; le décalage gagnant sur une grille réécrite hors de la
-  grille vue par A.
+  journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
+  échéance (lu comme avant en attendant).

@@ -83,3 +83,25 @@ RAPPELS_FROM=641000000 RAPPELS_SEEDS=3000 RAPPELS_STEPS=40 \
 
 La ligne « Campagne rappels » dit ce qui a été joué. Par défaut (suite normale) : 25 carnets × 24
 gestes.
+
+## Deux téléphones (#867, #882, #883)
+
+`src/shared/__tests__/dose-calendar.deux-appareils-campagne.spec.ts` mène des carnets par les gestes
+de v2 et, à certains pas, fourche le carnet (`two-devices.ts`) : le téléphone A fait un geste (report,
+avec ou sans « Décaler aussi les doses suivantes », prise, dose à renseigner), le téléphone B fait
+« Modifier » (heures, date, fréquence, fin) sans le voir, chacun dans un ordre tiré au sort, puis la
+synchro garde, par ligne et par réglage, la modification la plus récente. La date d'écriture d'un
+réglage n'avance que si son calendrier change (migration v14). Un constat : le report de A, qui
+déplaçait une dose sur A, est sans effet après la synchro alors que la réécriture de B, sur le réglage
+du report, n'a pas ôté sa dose de départ (la journée lue sans ce report l'a encore). Un report écrit
+sous un autre réglage que celui que B réécrit n'est pas jugé.
+
+```sh
+TW_FROM=9050000000 TW_SEEDS=3000 TW_STEPS=30 \
+  flock /tmp/claude-1000/memo-patte-suite.lock nice -n 19 \
+  pnpm exec vitest run src/shared/__tests__/dose-calendar.deux-appareils-campagne.spec.ts --reporter=verbose
+```
+
+La ligne « Campagne deux téléphones : N carnets × M pas, graines A à B : F fourches, R reports
+perdus » dit ce qui a été joué ; un réglage illisible arrête la campagne. Par défaut (suite normale) :
+10 carnets × 30 pas.
