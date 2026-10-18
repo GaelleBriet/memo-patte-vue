@@ -1,12 +1,8 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import {
-  constatsOf,
-  forksOf,
-  type Fork,
-  type Reader,
-} from '../../../scripts/dose-engine/two-devices'
+import { forksOf, type Fork } from '../../../scripts/dose-engine/two-devices'
+import { constatsOf, type Reader } from '../../../scripts/dose-engine/two-devices-constats'
 
 // Campagne à deux téléphones (#867, #882, #883) : TW_FROM, TW_SEEDS, TW_STEPS, et TW_MAIN (moteur de
 // `main`, pour ne compter que ses écarts) posées devant la commande (`scripts/dose-engine/README.md`).

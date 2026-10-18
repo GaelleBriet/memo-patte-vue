@@ -87,7 +87,7 @@ gestes.
 ## Deux téléphones (#867, #882, #883)
 
 `src/shared/__tests__/dose-calendar.deux-appareils-campagne.spec.ts` mène des carnets par les gestes
-de v2 et, à certains pas, fourche le carnet (`two-devices.ts`) : le téléphone A fait un geste (report,
+de v2 et, à certains pas, fourche le carnet (`two-devices.ts`, constats dans `two-devices-constats.ts`) : le téléphone A fait un geste (report,
 avec ou sans « Décaler aussi les doses suivantes », prise, dose à renseigner), le téléphone B fait
 « Modifier » (heures, date, fréquence, fin) sans le voir, chacun dans un ordre tiré au sort, puis la
 synchro garde, par ligne et par réglage, la modification la plus récente. La date d'écriture d'un

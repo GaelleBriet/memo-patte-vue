@@ -50,7 +50,11 @@ const postponed = (id: string, settingId: string, dueOn: string, targetOn: strin
     updatedAt: at,
   }) as Line
 
-function written(input: TreatmentViewInput, changes: readonly LineChange[], at: string) {
+function written(
+  input: TreatmentViewInput,
+  changes: readonly LineChange[],
+  at: string,
+): TreatmentViewInput {
   let lines = [...input.lines]
   changes.forEach((change, index) => {
     if (change.action === 'delete') lines = lines.filter(({ id }) => id !== change.id)
@@ -59,7 +63,12 @@ function written(input: TreatmentViewInput, changes: readonly LineChange[], at: 
   return { ...input, lines }
 }
 
-function modified(input: TreatmentViewInput, request: SettingsRequest, at: string, id: string) {
+function modified(
+  input: TreatmentViewInput,
+  request: SettingsRequest,
+  at: string,
+  id: string,
+): TreatmentViewInput {
   const answer = newSettings(input, request)
   if ('refusal' in answer) throw new Error(JSON.stringify(answer))
   const plan = 'plan' in answer ? answer.plan : answer.question.keep
