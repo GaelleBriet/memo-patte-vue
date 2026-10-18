@@ -14,8 +14,8 @@ export function notDueArrivals(effects: Map<string, LineEffect>) {
     arrive(report: Line, day: Day, hours: readonly Hour[]) {
       for (const hour of hours) arrivedBy.set(keyOf(day, hour), report)
     },
-    // C2 : une journée sans prise sort en entier si ses heures ont changé depuis ses lignes « pas à
-    // donner », sinon heure par heure ; une ligne battue ne couvre plus rien.
+    // Une journée sans prise sort en entier si aucune de ses heures n'est celle d'une de ses lignes
+    // « pas à donner », sinon heure par heure ; une ligne battue ne couvre plus rien.
     hoursOf(
       day: Day,
       hours: readonly Hour[],

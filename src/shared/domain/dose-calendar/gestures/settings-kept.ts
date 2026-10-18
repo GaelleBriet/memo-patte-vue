@@ -12,7 +12,7 @@ const movingReports = (input: TreatmentViewInput) =>
       .map(({ line }) => line.id),
   )
 
-// Q25, Q-b : une journée d'arrivée où une dose a été donnée ou oubliée a servi.
+// Q25 : une journée d'arrivée où une dose a été donnée ou oubliée a servi.
 const servedDays = (input: TreatmentViewInput) =>
   new Set(
     buildView(input).history.flatMap(({ line, effect }) =>

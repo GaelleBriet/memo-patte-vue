@@ -14,7 +14,7 @@ export const isNote = (line: Pick<Line, 'status'>): boolean =>
 export const isAdvanced = (line: Pick<Line, 'status' | 'dueOn' | 'targetOn'>): boolean =>
   line.status === 'postponed' && line.targetOn !== null && line.targetOn < line.dueOn
 
-/** I1, Q-a : une prise et la ligne « pas à donner » de la même dose ne se remplacent jamais. */
+/** #873 : une prise et la ligne « pas à donner » de la même dose ne se remplacent jamais. */
 export const familyOf = (line: Pick<Line, 'status'>): string =>
   isTaken(line) ? 'note' : line.status
 
@@ -158,7 +158,7 @@ export function episodeLines(lines: readonly Line[], span: Span): EpisodeLines {
       idle.set(line.id, 'superseded')
     }
   }
-  // I1 : une prise l'emporte toujours sur la ligne « pas à donner » de sa dose ; #867 : un report plus
+  // #873 : une prise l'emporte toujours sur la ligne « pas à donner » de sa dose ; #867 : un report plus
   // récent qu'elle sur sa dose de départ aussi.
   const taken = new Set(kept.filter(isTaken).map(({ dueOn, dueTime }) => keyOf(dueOn, dueTime)))
   const beaten = (note: Line) =>

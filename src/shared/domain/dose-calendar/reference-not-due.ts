@@ -44,7 +44,7 @@ export const departureBeaten = (
     ),
   )
 
-/** C2 : une journée sans prise listée en entier, dont aucune heure n'est plus celle d'une de ses lignes. */
+/** Une journée sans prise listée en entier, dont aucune heure n'est plus celle d'une de ses lignes. */
 export const listedWholeDay = (
   day: string,
   hours: readonly Hour[],
