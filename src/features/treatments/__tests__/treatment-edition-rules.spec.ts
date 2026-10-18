@@ -2161,7 +2161,7 @@ describe('editionPlan — échéances tombées d’une période sans prise', () 
         TODAY,
         IDS,
       ),
-    ).toThrow()
+    ).toThrow(ZodError)
   })
 
   it('garde une « Prochaine dose » choisie à la main quand elle vaut pour le chemin choisi, la refuse sinon', () => {
