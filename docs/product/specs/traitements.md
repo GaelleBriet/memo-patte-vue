@@ -223,7 +223,8 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   ou historique), « Marquer comme donnée » (historique) et « Fait à une autre date » sur une dose
   oubliée réécrivent la ligne du téléphone qui fait le geste, sinon la plus récente de la dose, qui
   devient la modification la plus récente (décisions du 18 octobre 2026, #931 : le geste porte sur ce
-  que le téléphone a reçu ; à deux téléphones, le résultat ne dépend plus de l'ordre de synchro, §11), et
+  que le téléphone a reçu ; quand il a sa propre ligne sur la dose, l'ordre d'arrivée de la ligne de
+  l'autre ne change plus le résultat, §11), et
   laissent les autres lignes de la dose, venues de l'autre appareil : elles restent visibles et grisées
   (« · sans effet »), supprimables une par une ; un téléphone n'a qu'une ligne « donnée ou oubliée »
   par dose, et sur un seul téléphone le geste ne laisse aucune ligne grisée (décision de Gaelle du
@@ -1504,10 +1505,11 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
   que soit l'ordre de synchro. Milo, chaque lundi à 8 h ; dose du 16 mars donnée sur B le 16 et sur A
   le 17 ; le 18, sur B, « Marquer comme oubliée » : « Oubliée » et « Donnée le 17 · sans effet »,
   dans les deux ordres. Sans sa propre ligne, le téléphone réécrit la plus récente de la dose. Un geste
-  porte sur ce que le téléphone a reçu : à n téléphones, le résultat ne dépend pas de l'ordre dès que
-  celui qui fait le geste a reçu les mêmes lignes ; sinon une ou deux prises restent grisées, toutes
-  visibles et supprimables, rien de perdu (Milo à trois téléphones, §11). Écartée : réécrire la ligne
-  en vigueur (#841, résultat selon l'ordre).
+  porte sur ce que le téléphone a reçu : l'ordre d'arrivée ne change plus le résultat quand le
+  téléphone a sa propre ligne sur la dose (à n téléphones, dès qu'il a reçu les mêmes lignes) ; un
+  geste fait avant réception dépend, dès deux téléphones, de ce que le téléphone a reçu, comme sur
+  `main`, et l'écran final dit la vérité (exemples de Milo, §11). Écartée : réécrire la ligne en
+  vigueur (#841, résultat selon l'ordre).
 - 2026-10-18 — **#873 et #872 : la réponse à la question des doses tombées sur le réglage, une ligne
   « pas à donner » par dose listée** (R4, R6, R10, R11, TR-25 ; décisions de Gaelle du 18 octobre
   2026, par la session d'analyse du moteur ; migration v15, export v8). (1) Réponse à trois états sur
@@ -1707,14 +1709,17 @@ réécrit la plus récente (`updatedAt`) des lignes de cette dose (décision du 
 d'analyse du moteur) ; à deux téléphones, c'est la ligne en vigueur : Milo, B réécrit la ligne de A,
 seule.
 
-Un geste porte sur ce que le téléphone a reçu (décision du 18 octobre 2026, session d'analyse du
-moteur) : c'est l'effet normal d'un geste fait hors ligne, pas un défaut du moteur. #931 garantit le
-même résultat dans tous les ordres à deux téléphones, et à n téléphones dès que celui qui fait le
-geste a reçu les mêmes lignes avant lui. Dans tous les cas, l'écran final dit la vérité : « Oubliée »
-en vigueur, toutes les prises visibles, grisées, supprimables une par une, rien de perdu en silence.
-Milo, chaque lundi à 8 h, trois téléphones : la dose du 16 mars donnée sur A le 16 et sur C le 17 ; le
-18, B, qui n'a pas de ligne sur la dose, touche « Marquer comme oubliée ». Selon ce que B a reçu
-avant son geste :
+Garantie de #931 : à deux téléphones, quand le téléphone qui fait le geste a sa propre ligne sur la
+dose, l'ordre d'arrivée de la ligne de l'autre ne change plus le résultat ; à n téléphones, dès qu'il
+a reçu les mêmes lignes avant son geste. Hors de ça (geste avant réception, dès deux téléphones), le
+résultat dépend de ce que le téléphone a reçu : effet normal d'un geste hors ligne, identique à
+`main` ; l'écran final dit la vérité dans les deux cas (« Oubliée » en vigueur, prise visible grisée
+ou réécrite, rien de perdu) (décisions du 18 octobre 2026, session d'analyse du moteur). Milo, chaque
+lundi à 8 h, deux téléphones : la dose du 16 mars donnée sur A le 17 ; B n'a pas de ligne sur la
+dose ; le 18, B note « Oubliée » : si la prise de A est arrivée avant, B la réécrit et il ne reste
+qu'une ligne, « Oubliée » ; si elle arrive après, « Oubliée » et « Donnée le 17 · sans effet ». Trois
+téléphones : la dose du 16 mars donnée sur A le 16 et sur C le 17 ; le 18, B, sans ligne sur la dose,
+touche « Marquer comme oubliée ». Selon ce que B a reçu avant son geste :
 
 | Reçu par B avant le geste | Après la synchro, sur les trois téléphones |
 | --- | --- |
