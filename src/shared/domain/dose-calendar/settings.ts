@@ -1,5 +1,5 @@
 import { keyOf, plusDays, sameFrequency } from './grid'
-import { isNote, isTaken, latestBy } from './lines'
+import { isTaken, latestBy } from './lines'
 import type { Day, Line, Setting } from './types'
 
 /** R9, R10 : un réglage remplacé avant son premier jour par un réglage écrit après lui cède sa place ce jour-là. */
@@ -101,7 +101,7 @@ export function borrowedNotes(
   const before = new Set(episodes.slice(0, index).flatMap((earlier) => earlier.map(({ id }) => id)))
   return latestBy(
     lines.filter(
-      (line) => before.has(line.settingId) && isNote(line) && line.dueOn === first.startsOn,
+      (line) => before.has(line.settingId) && isTaken(line) && line.dueOn === first.startsOn,
     ),
     (line) => keyOf(line.dueOn, line.dueTime),
   )

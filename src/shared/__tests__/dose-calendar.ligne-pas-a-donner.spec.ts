@@ -203,4 +203,29 @@ describe('#873 : une ligne « pas à donner » retire sa dose de partout (décis
       expect(notDue.sort()).toEqual([...listed].sort())
     }
   })
+
+  it('deux téléphones : la reprise du jour de l’arrêt n’emprunte pas la ligne « pas à donner » de B, comme une prise', () => {
+    const stopped = setting('m1', '2026-03-02', WEEK, ['08:00'], {
+      createdAt: '2026-02-01T00:00:00.000Z',
+      stoppedOn: '2026-03-16',
+    })
+    const resumed = setting('m2', '2026-03-16', WEEK, ['08:00'], {
+      createdAt: '2026-03-16T09:00:00.000Z',
+    })
+    const onThe16 = (status: 'given' | 'not-due') => ({
+      settings: [stopped, resumed],
+      lines: [
+        { ...line('m1', status, '2026-03-16', '08:00'), updatedAt: '2026-03-16T10:00:00.000Z' },
+      ],
+      today: '2026-03-17',
+    })
+    const due16 = (input: TreatmentViewInput) =>
+      treatmentView(input)
+        .slots('2026-03-16', '2026-03-16')
+        .map(({ due, state }) => `${due.settingId} ${due.dueTime} ${state}`)
+    expect(due16(onThe16('given'))).toEqual(['m2 08:00 covered'])
+    const withNotDue = onThe16('not-due')
+    expect(due16(withNotDue)).toEqual(['m2 08:00 pending'])
+    expect(readings(withNotDue).moteur).toEqual(readings(withNotDue).reference)
+  })
 })
