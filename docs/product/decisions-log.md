@@ -2997,10 +2997,10 @@ moteur).
   a changé à l'enregistrement.
 - Une ligne « pas à donner » compte comme une ligne (journée touchée, le plus récent l'emporte,
   suppression seule) et jamais comme une prise ; sa dose n'est nulle part.
-- Une journée sans prise dont toutes les doses portent une ligne « pas à donner » sort en entier,
-  même quand ses heures ont changé depuis la réponse (graine 9850000047) ; tant qu'une de ses
-  heures est celle d'une de ses lignes, elle se lit heure par heure : une prise supprimée y rend sa
-  dose (relecture de la PR #951, graines 9710000218 et 9710000737).
+- Une journée sans prise qui porte des lignes « pas à donner » ne sort en entier que si aucune de
+  ses heures actuelles n'est celle d'une de ses lignes (heures changées depuis la réponse, graine
+  9850000047) ; sinon elle se lit heure par heure : une prise supprimée y rend sa dose (relecture de
+  la PR #951, graines 9710000218 et 9710000737).
 - Report contre ligne « pas à donner », au départ comme à l'arrivée : le plus récent l'emporte, le
   perdant grisé « sans effet » (graine 8000000726) ; une prise donnée sur une arrivée ne change pas.
 - #872 : « Elles n'étaient pas à donner » qui vide la période est refusée avec le texte de #806, avec
@@ -3009,19 +3009,18 @@ moteur).
   la date de chacune : une prise est un fait (#892), la réponse est groupée et ne vise pas cette dose
   précise. La ligne est grisée « sans effet », jamais la prise. « Elles n'étaient pas à donner » crée
   toujours sa ligne et ne réécrit jamais une prise de la même dose ; la base accepte donc les deux
-  sur la même échéance (I1, Q-a).
+  sur la même échéance (relecture de la PR #951).
 - Un report dont une dose d'arrivée a été donnée a servi : il est verrouillé (Q25) et actif, jamais
   « sans effet ». Il n'est sans effet que quand toutes les doses de son arrivée qui restent sont
   « pas à donner ». La correction à fréquence gardée part alors de cette arrivée, même passée
-  (Q-b, graine 7810000235).
+  (relecture de la PR #951, graine 7810000235).
 - Quand « Modifier » est refusé parce que la question a changé entre l'affichage et l'enregistrement
   (synchro), le traitement est relu et la question se repose, sans texte nouveau.
-- L'affichage de la ligne « pas à donner » dans l'historique, avec son libellé et « Supprimer »,
-  reste à livrer avant toute publication.
 - Raison : la donnée dit ce que la personne a répondu, dose par dose, avec les règles de ligne que
   le moteur sait déjà lire. — Écartées : déduire la réponse d'un réglage réécrit (relecture de
   #914) ; une date ou une liste de doses sur le réglage (relectures de la PR #948 : une dose non
   listée sortait, une seconde réponse remplaçait la première, une journée aux heures changées restait
   à renseigner).
-- En attente : le libellé de la ligne dans l'historique (question posée à Gaelle).
+- En attente, avant toute publication : l'affichage de la ligne « pas à donner » dans l'historique,
+  avec son libellé et « Supprimer » (#952, libellé à valider par Gaelle).
 
