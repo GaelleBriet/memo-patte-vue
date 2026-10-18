@@ -1,4 +1,4 @@
-import { isOnGrid, later, plusDays } from '../grid'
+import { isOnGrid, later, plusDays, stepped } from '../grid'
 import type { Day, Setting, SettingsPlan, TreatmentViewInput } from '../types'
 import { buildView } from '../view'
 import { settingsApplied } from './changes'
@@ -12,7 +12,8 @@ const movingReports = (input: TreatmentViewInput) =>
   )
 
 // R7 : un report parti d'une journée du réglage corrigé, qui deviendrait sans effet si le réglage
-// partait après son arrivée, laisse ce jour-là comme première échéance.
+// partait après son arrivée, laisse ce jour-là comme première échéance ; une arrivée passée, que la
+// question liste, sort avec la réponse (#873).
 function strandedArrival(
   input: TreatmentViewInput,
   current: Setting,
@@ -29,6 +30,7 @@ function strandedArrival(
         dueOn >= current.startsOn &&
         targetOn !== null &&
         targetOn > dueOn &&
+        targetOn >= input.today &&
         targetOn < start,
     )
     .map(({ targetOn }) => targetOn!)
@@ -72,7 +74,17 @@ export function keptCorrection(
     gridOriginOn !== null && isOnGrid(gridOriginOn, request.frequency, start)
       ? { firstDueOn: start, gridOriginOn, firstDueChosen }
       : { firstDueOn: start, gridOriginOn: start, firstDueChosen: false }
-  const proposed = from(next ?? later(firstDueOn, today))
+  // #872 : sans plus aucune journée, la correction garde sa grille au lieu de repartir d'aujourd'hui ;
+  // la date de fin la refuse alors (#806).
+  const proposed = from(
+    next ?? onGridFrom(gridOriginOn ?? firstDueOn, request, later(firstDueOn, today)),
+  )
   const arrival = strandedArrival(input, current, draft(proposed))
   return arrival === undefined ? proposed : from(arrival)
+}
+
+function onGridFrom(origin: Day, { frequency }: SettingsRequest, day: Day): Day {
+  let step = 0
+  while (stepped(origin, frequency, step) < day) step += 1
+  return stepped(origin, frequency, step)
 }

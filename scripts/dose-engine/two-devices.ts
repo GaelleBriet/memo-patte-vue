@@ -64,7 +64,9 @@ function writePlan(input: TreatmentViewInput, plan: SettingsPlan, clock: Clock, 
     const settings = input.settings.map((setting) => {
       if (setting.id !== plan.id) return setting
       const next = { ...setting, ...plan.setting }
-      return rewritesCalendar(setting, next) ? { ...next, updatedAt: stamp(clock) } : next
+      return rewritesCalendar(setting, next)
+        ? { ...next, updatedAt: stamp(clock), writtenOn: input.today }
+        : next
     })
     return { ...input, lines, settings }
   }

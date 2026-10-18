@@ -33,6 +33,7 @@ import {
   settingsIn,
   touchedJourneys,
 } from './reference-lines'
+import { pendingKeys } from './reference-answer'
 import { arrivedOn, chosenDateOf, hoursChangedSince, reportOutcome } from './reference-reports'
 import { rewrittenDeparture, shiftKeptByReport, type RewriteContext } from './reference-rewrite'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
@@ -202,6 +203,7 @@ export function calendarOf(
   // R7 : un report emporte son heure et les suivantes sans prise ; ceux qui arrivent sur sa journée d'abord.
   const fallen = new Set<string>()
   const arrivedHours = new Map<string, (string | null)[]>()
+  const arrivedBy = new Map<string, ReferenceLine>()
   const rewriteContext: RewriteContext = {
     settingOf,
     settingAt,
@@ -273,6 +275,7 @@ export function calendarOf(
     const day = arrivedOn(into.get(targetOn!), outcome, arrival, { opensRhythm, chosen })
     into.set(targetOn!, day)
     const received = chosen ? hoursOf(chosen) : outcome.carried
+    received.forEach((hour) => arrivedBy.set(keyOf(targetOn!, hour), report!))
     arrivedHours.set(targetOn!, [...(arrivedHours.get(targetOn!) ?? []), ...received])
   }
   settle()
@@ -292,8 +295,6 @@ export function calendarOf(
   // TR-9 : la date choisie remplace la dose du premier jour, ou de la dernière journée arrivée avant lui.
   const lateDays = lateDaysOf(replaced, fallen)
   replaced.filter(({ onDueDay }) => onDueDay).forEach(({ to }) => fallen.add(to))
-  const pending = dues
-    .filter(({ covered, day }) => !covered && !lateDays.includes(day))
-    .map(({ key }) => key)
+  const pending = pendingKeys(dues, lateDays, settingAt, arrivedBy)
   return { pending, fallen, rhythmFrom, dues: new Set(dues.map(({ key }) => key)) }
 }

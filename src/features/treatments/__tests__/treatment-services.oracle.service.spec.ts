@@ -161,7 +161,8 @@ describe('les services des traitements rejouent les gestes du moteur v2', () => 
   beforeEach(async () => {
     vi.useFakeTimers({ toFake: ['Date'], now: Date.UTC(2027, 0, 1) })
     db = await createInMemoryDb()
-    replay = await createReplay(db)
+    // #873 : le jour de la réponse Q38 se lit sur la date d'écriture du réglage.
+    replay = await createReplay(db, { followsDay: true })
   })
 
   afterEach(() => {

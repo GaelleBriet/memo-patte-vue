@@ -27,14 +27,18 @@ export type Replay = Awaited<ReturnType<typeof createReplay>>
 /** Les services des traitements sur une base SQLite en mémoire, horloge et jour menés par le test. */
 type Db = Parameters<typeof createTreatmentsRepository>[0]
 
-export async function createReplay(db: Db) {
+/**
+ * `followsDay` : l'horloge suit le jour mené, comme sur le téléphone ; sinon elle part du 1er janvier
+ * 2027, plus récente que toute écriture d'un autre appareil posée par le test.
+ */
+export async function createReplay(db: Db, { followsDay = false } = {}) {
   await db.execute('PRAGMA foreign_keys = ON')
   await db.run(
     `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device)
      VALUES (?, 'Milo', 'dog', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z', 'test', 'test')`,
     [ANIMAL],
   )
-  const clock = { day: '2026-01-01', seconds: 0 }
+  const clock = { day: '2026-01-01', seconds: 0, secondsOf: '' }
   const treatments = createTreatmentsRepository(db)
   const reminders = { reschedule: async () => {} }
   const doses = createTreatmentDosesService({
@@ -68,11 +72,19 @@ export async function createReplay(db: Db) {
     treatments,
     /** Chaque écriture a son horodatage : jamais deux dans la même milliseconde. */
     tick(): void {
+      if (!followsDay) {
+        clock.seconds += 1
+        vi.setSystemTime(BASE + clock.seconds * 1000)
+        return
+      }
+      if (clock.secondsOf !== clock.day) Object.assign(clock, { seconds: 0, secondsOf: clock.day })
       clock.seconds += 1
-      vi.setSystemTime(BASE + clock.seconds * 1000)
+      const [year, month, day] = clock.day.split('-').map(Number) as [number, number, number]
+      vi.setSystemTime(new Date(year, month - 1, day, 1, 0, clock.seconds))
     },
     async start(walk: V2Walk, id: string): Promise<TreatmentWithHistory> {
       const [setting] = walk.input.settings as [Setting]
+      if (followsDay) clock.day = walk.input.today
       this.tick()
       await treatments.create({
         id,

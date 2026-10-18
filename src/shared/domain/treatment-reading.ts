@@ -1,6 +1,6 @@
 import { differenceInCalendarDays } from 'date-fns'
 
-import { isCalendarDay, previousDay, toDate } from './calendar-day'
+import { isCalendarDay, previousDay, toDate, toDay } from './calendar-day'
 import { isClockTime } from './clock-time'
 import {
   FALLEN_DOSES_ANSWERS,
@@ -14,7 +14,7 @@ import {
 import { DAYS_PER_STEP, FREQUENCY_UNITS, MAX_FREQUENCY_VALUE } from './treatment-frequency'
 
 /** `settingsWrittenAt` : dernière écriture de ce qui fait le calendrier (R10, #867). */
-type Period = Omit<Setting, 'updatedAt'> & { settingsWrittenAt?: string }
+type Period = Omit<Setting, 'updatedAt' | 'writtenOn'> & { settingsWrittenAt?: string }
 type Dose = Omit<Line, 'settingId'> & { periodId: string }
 
 /** Les périodes et les prises d'un traitement telles que la base les rend. */
@@ -95,6 +95,14 @@ function estimatedDues({ settings, lines, today }: TreatmentViewInput): number {
   }, 0)
 }
 
+// #873 : le jour de la réponse Q38 est le jour local de la réécriture, jamais après aujourd'hui.
+function writtenOnOf(writtenAt: string | undefined, today: string): string | undefined {
+  const date = writtenAt === undefined ? undefined : new Date(writtenAt)
+  if (date === undefined || Number.isNaN(date.getTime())) return undefined
+  const day = toDay(date)
+  return day > today ? today : day
+}
+
 function viewInputOf({ periods, doses }: TreatmentRecords, today: string): TreatmentViewInput {
   return {
     settings: periods.map((period) => ({
@@ -110,6 +118,7 @@ function viewInputOf({ periods, doses }: TreatmentRecords, today: string): Treat
       times: period.times,
       createdAt: period.createdAt,
       updatedAt: period.settingsWrittenAt,
+      writtenOn: writtenOnOf(period.settingsWrittenAt, today),
     })),
     lines: doses.map((dose) => ({
       id: dose.id,

@@ -95,13 +95,16 @@ function settingWritten(input: TreatmentViewInput, plan: SettingsPlan): Treatmen
       id: 'réglage-écrit',
       stoppedOn: null,
       createdAt: WRITTEN_AT,
+      writtenOn: input.today,
     }
     return { ...input, settings: [...input.settings, setting] }
   }
   const settings = input.settings.map((setting) => {
     if (setting.id !== plan.id) return setting
     const next = { ...setting, ...plan.setting }
-    return rewritesCalendar(setting, next) ? { ...next, updatedAt: WRITTEN_AT } : next
+    return rewritesCalendar(setting, next)
+      ? { ...next, updatedAt: WRITTEN_AT, writtenOn: input.today }
+      : next
   })
   return { ...input, settings }
 }
