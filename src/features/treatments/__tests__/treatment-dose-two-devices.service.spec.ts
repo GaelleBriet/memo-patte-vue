@@ -39,8 +39,12 @@ describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-1
     vi.useRealTimers()
   })
 
-  // La ligne en vigueur : celle de cet appareil, plus récente que celle reçue de l'autre.
-  async function miloNotedOnBothDevices(other: OtherDevice = GIVEN_ON_10): Promise<string> {
+  // Par défaut, la ligne en vigueur : celle de cet appareil, plus récente que celle reçue de l'autre.
+  async function miloNotedOnBothDevices(
+    other: OtherDevice = GIVEN_ON_10,
+    otherAt = '2026-12-31T00:00:00.000Z',
+    mine: 'given' | 'missed' = 'given',
+  ): Promise<string> {
     replay.clock.day = '2026-10-03'
     replay.tick()
     await replay.treatments.create({
@@ -67,7 +71,7 @@ describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-1
       gesture: {
         kind: 'note',
         due: { settingId: ID, dueOn: '2026-10-10', dueTime: null },
-        status: 'given',
+        status: mine,
         givenOn: '2026-10-10',
         shiftsFollowing: false,
       },
@@ -75,9 +79,8 @@ describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-1
     await db.run(
       `INSERT INTO treatment_dose (id, period_id, treatment_id, animal_id, due_on, due_time,
          given_on, status, target_on, created_at, updated_at, created_by_device, updated_by_device)
-       VALUES (?, ?, ?, ?, '2026-10-10', NULL, ?, ?, NULL,
-         '2026-12-31T00:00:00.000Z', '2026-12-31T00:00:00.000Z', 'autre', 'autre')`,
-      [other.id, ID, ID, ANIMAL, other.givenOn, other.status],
+       VALUES (?, ?, ?, ?, '2026-10-10', NULL, ?, ?, NULL, ?, ?, 'autre', 'autre')`,
+      [other.id, ID, ID, ANIMAL, other.givenOn, other.status, otherAt, otherAt],
     )
     const doses = (await storedHistory(replay.treatments, ID)).doses
     return doses.find(({ id }) => id !== other.id)!.id
@@ -126,6 +129,69 @@ describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-1
     expect(await sheetLines()).toEqual({
       [shown]: 'missed  covers',
       [OTHER]: 'given 2026-10-10 idle',
+    })
+  })
+
+  it('#931 : dose du 10 oct. de Milo donnée ici le 10, puis sur l’autre appareil le 11, « Marquer comme oubliée » ici : la ligne de cet appareil devient « Oubliée », la prise du 11 reste, sans effet', async () => {
+    const givenOn11: OtherDevice = { id: OTHER, status: 'given', givenOn: '2026-10-11' }
+    const shown = await miloNotedOnBothDevices(givenOn11, '2027-01-01T00:00:02.500Z')
+    replay.clock.day = '2026-10-12'
+    replay.tick()
+    await replay.doses.apply(ID, markMissed())
+
+    expect(await sheetLines()).toEqual({
+      [shown]: 'missed  covers',
+      [OTHER]: 'given 2026-10-11 idle',
+    })
+  })
+
+  describe('#931 : la ligne de cet appareil, grisée, a déjà les champs du geste', () => {
+    const LATER = '2027-01-01T00:00:02.500Z'
+    const markGiven = () =>
+      ({
+        kind: 'note',
+        gesture: { ...markMissed().gesture, status: 'given', givenOn: '2026-10-10' },
+      }) as const
+
+    it('oubliée ici le 10, donnée sur l’autre appareil le 11 ; le 12 ici, « Marquer comme oubliée » : la dose passe à « Oubliée »', async () => {
+      const given11: OtherDevice = { id: OTHER, status: 'given', givenOn: '2026-10-11' }
+      const shown = await miloNotedOnBothDevices(given11, LATER, 'missed')
+      replay.clock.day = '2026-10-12'
+      replay.tick()
+      await replay.doses.apply(ID, markMissed())
+
+      expect(await sheetLines()).toEqual({
+        [shown]: 'missed  covers',
+        [OTHER]: 'given 2026-10-11 idle',
+      })
+    })
+
+    it('donnée ici le 10, oubliée sur l’autre appareil ensuite ; le 12 ici, « Marquer comme donnée » : la dose passe à « Donnée le 10 »', async () => {
+      const missed: OtherDevice = { id: OTHER, status: 'missed', givenOn: null }
+      const shown = await miloNotedOnBothDevices(missed, LATER)
+      replay.clock.day = '2026-10-12'
+      replay.tick()
+      await replay.doses.apply(ID, markGiven())
+
+      expect(await sheetLines()).toEqual({
+        [shown]: 'given 2026-10-10 covers',
+        [OTHER]: 'missed  idle',
+      })
+    })
+
+    it('donnée ici le 10, donnée sur l’autre appareil le 11 ; le 12 ici, « Marquer comme oubliée » puis « Annuler » : « Donnée le 11 » de nouveau en vigueur', async () => {
+      const given11: OtherDevice = { id: OTHER, status: 'given', givenOn: '2026-10-11' }
+      await miloNotedOnBothDevices(given11, LATER)
+      replay.clock.day = '2026-10-12'
+      replay.tick()
+      const before = await sheetLines()
+      replay.tick()
+      const applied = await replay.doses.apply(ID, markMissed())
+      replay.tick()
+      await replay.doses.undoBatch(ID, applied.undo)
+
+      expect(before[OTHER]).toBe('given 2026-10-11 covers')
+      expect(await sheetLines()).toEqual(before)
     })
   })
 

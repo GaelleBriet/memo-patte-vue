@@ -10,9 +10,13 @@ function readable(reading: TreatmentReading | null): TreatmentReading {
   return reading
 }
 
-/** Lève une `RangeError` quand une période ou une prise est illisible. */
-export function treatmentReadingOf(treatment: TreatmentToRead, today: string): TreatmentReading {
-  return readable(readTreatment(treatment, today))
+/** Lève une `RangeError` quand une période ou une prise est illisible ; `device` : celui du geste. */
+export function treatmentReadingOf(
+  treatment: TreatmentToRead,
+  today: string,
+  device?: string,
+): TreatmentReading {
+  return readable(readTreatment(treatment, today, device))
 }
 
 /** Lève une `RangeError` quand un réglage ou une ligne du carnet est illisible. */

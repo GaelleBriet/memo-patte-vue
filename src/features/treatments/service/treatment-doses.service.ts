@@ -1,4 +1,5 @@
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
+import { currentDeviceId } from '@/core/device/device-identity'
 import type { Due, TreatmentView } from '@/shared/domain/dose-calendar'
 import type { TreatmentReading } from '@/shared/domain/treatment-reading'
 import {
@@ -45,6 +46,7 @@ export type TreatmentDosesDependencies = {
   now: () => Date
   today?: () => string
   queue?: WriteQueue
+  deviceId?: () => string
 }
 
 export type AppliedDoseChange = Omit<DoseChange, 'writes' | 'keptAhead'> & {
@@ -75,6 +77,7 @@ export function createTreatmentDosesService({
   now,
   today = todayIsoDate,
   queue = createWriteQueue(),
+  deviceId = currentDeviceId,
 }: TreatmentDosesDependencies) {
   async function write(treatmentId: string, writes: readonly DoseWrite[]): Promise<DoseWrite[]> {
     if (writes.length === 0) return []
@@ -152,7 +155,7 @@ export function createTreatmentDosesService({
   ): Promise<NotedMoment> {
     const day = today()
     const treatment = await treatmentOf(treatmentId)
-    const reading = treatmentReadingOf(treatment, day)
+    const reading = treatmentReadingOf(treatment, day, deviceId())
     const nothing = {
       animalId: treatment.animalId,
       finishes: false,
@@ -198,7 +201,7 @@ export function createTreatmentDosesService({
     apply(treatmentId: string, action: DoseAction): Promise<AppliedDoseChange> {
       return queue(async () => {
         const treatment = await treatmentOf(treatmentId)
-        return run(treatment, treatmentReadingOf(treatment, today()), action)
+        return run(treatment, treatmentReadingOf(treatment, today(), deviceId()), action)
       })
     },
 

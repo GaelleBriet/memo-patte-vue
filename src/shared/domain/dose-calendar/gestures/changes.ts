@@ -58,7 +58,13 @@ export function shiftWritten(
     : { action: 'rewrite', id: existing.id, line }
 }
 
-/** Le carnet une fois les lignes écrites, chacune plus récente que tout le carnet (simulation, R12). */
+const withDevice = (line: Line, device: string | undefined): Line =>
+  device === undefined ? line : { ...line, createdByDevice: device }
+
+/**
+ * Le carnet une fois les lignes écrites, chacune plus récente que tout le carnet (simulation, R12) ;
+ * une ligne réécrite garde le téléphone qui l'a créée, comme le repository.
+ */
 export function applied(
   input: TreatmentViewInput,
   changes: readonly LineChange[],
@@ -73,8 +79,8 @@ export function applied(
     const line: Line = { ...change.line, id, updatedAt: WRITTEN_AT }
     lines =
       change.action === 'rewrite'
-        ? lines.map((each) => (each.id === id ? line : each))
-        : [...lines, line]
+        ? lines.map((each) => (each.id === id ? withDevice(line, each.createdByDevice) : each))
+        : [...lines, withDevice(line, input.device)]
   })
   return { ...input, lines }
 }

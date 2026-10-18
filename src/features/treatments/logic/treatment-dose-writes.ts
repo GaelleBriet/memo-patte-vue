@@ -28,11 +28,16 @@ function isUnchanged(line: NewTreatmentDose | undefined, dose: DoseFields): bool
   )
 }
 
-/** Les écritures d'un geste : chaque `LineChange` du moteur devient une écriture du repository. */
+/**
+ * Les écritures d'un geste : chaque `LineChange` du moteur devient une écriture du repository ; une
+ * réécriture aux champs inchangés est sautée, sauf pour une ligne de `restamped`, que l'écriture remet
+ * en tête de sa dose (TR-25).
+ */
 export function doseWritesOf(
   treatment: TreatmentToWrite,
   changes: readonly LineChange[],
   newId: () => string,
+  restamped: ReadonlySet<string> = new Set(),
 ): DoseWrite[] {
   return changes.flatMap((change): DoseWrite[] => {
     switch (change.action) {
@@ -49,7 +54,9 @@ export function doseWritesOf(
       case 'rewrite': {
         const dose = doseFieldsOf(change.line)
         const existing = treatment.doses.find(({ id }) => id === change.id)
-        return isUnchanged(existing, dose) ? [] : [{ action: 'rewrite', id: change.id, dose }]
+        return isUnchanged(existing, dose) && !restamped.has(change.id)
+          ? []
+          : [{ action: 'rewrite', id: change.id, dose }]
       }
       case 'delete':
         return [{ action: 'delete', id: change.id }]

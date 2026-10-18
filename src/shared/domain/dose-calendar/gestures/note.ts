@@ -1,9 +1,12 @@
 import { keyOf, plusDays } from '../grid'
+import { isMoreRecent, isTaken } from '../lines'
+import { episodeIdsOf } from '../settings'
 import type {
   Day,
   Due,
   Gesture,
   GestureResult,
+  Line,
   LineChange,
   LineFields,
   TreatmentViewInput,
@@ -64,13 +67,33 @@ function isExtra(view: TreatmentView, due: Due, givenOn: Day): boolean {
   return boundary !== null && givenOn < boundary
 }
 
-// TR-25 : la note réécrit la ligne en vigueur ; celles de l'autre appareil restent, sans effet.
+// TR-25 : la prise la plus récente de la dose dans sa période, de `device` s'il est donné.
+function latestOfDose(input: TreatmentViewInput, of: LineFields | Line, device?: string) {
+  const period = episodeIdsOf(input.settings, of.settingId)
+  return input.lines
+    .filter(
+      (line) =>
+        (device === undefined || line.createdByDevice === device) &&
+        isTaken(line) &&
+        line.dueOn === of.dueOn &&
+        line.dueTime === of.dueTime &&
+        period.has(line.settingId),
+    )
+    .reduce<Line | undefined>(
+      (latest, line) => (latest === undefined || isMoreRecent(line, latest) ? line : latest),
+      undefined,
+    )
+}
+
+// TR-25 : la note réécrit la ligne de ce téléphone, sinon la plus récente de la dose ; les autres
+// restent, sans effet.
 function noteChange(input: TreatmentViewInput, view: TreatmentView, line: LineFields): LineChange {
   const slot = view.slots(line.dueOn, line.dueOn).find(({ due }) => due.dueTime === line.dueTime)
-  const exact = slot?.state === 'given' || slot?.state === 'missed' ? slot.by : null
-  return exact === null || exact === undefined
-    ? written(input.lines, line)
-    : { action: 'rewrite', id: exact.id, line }
+  const exact = slot?.state === 'given' || slot?.state === 'missed' ? (slot.by ?? null) : null
+  const of = exact ?? line
+  const own = input.device === undefined ? undefined : latestOfDose(input, of, input.device)
+  const target = own ?? latestOfDose(input, of) ?? exact
+  return target === null ? written(input.lines, line) : { action: 'rewrite', id: target.id, line }
 }
 
 /** « C'est fait », « Fait à une autre date », renseigner, « Marquer comme donnée / oubliée ». */
