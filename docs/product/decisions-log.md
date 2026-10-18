@@ -2974,6 +2974,11 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
+## 2026-10-18 — Rappels : le moteur dit s'il a tout lu, le plan s'en déduit (#933)
+
+- Décision de Gaelle du 18 octobre 2026, par la session d'analyse du moteur à qui elle a délégué les lectures de règles : le moteur rend toujours la dernière journée entière et dit s'il a tout lu ; « complet » dans le plan des rappels s'en déduit ; la reprogrammation à chaque ouverture (RA-13) est un filet, pas une règle de calcul. Milo, rappel « 1 h avant », app ouverte le 10 octobre à 23 h 59 : 59 rappels jusqu'au 9 décembre et le dernier porte le relais (avant : plan « complet » sans relais, plus aucun rappel dès le 10 décembre).
+- Alternative écartée : ne rien faire, RA-13 rattrape.
+
 ## 2026-10-18 — « Marquer comme oubliée » n'est pas proposé sur une échéance future (#920)
 
 - Décision de Gaelle du 18 octobre 2026, par la session d'analyse du moteur à qui elle a délégué les lectures de règles : une dose pas encore due ne peut pas avoir été oubliée ; sur une prise donnée d'avance, le menu de l'historique ne propose pas « Marquer comme oubliée » (« Changer la date » et « Supprimer » restent). Même principe que #899 : jamais un geste que le moteur refusera. Milo, chaque lundi à 8 h : le 11 mars la dose du 16 est donnée d'avance ; le 12 le menu de la ligne du 16 ne propose plus le geste ; le 16 il revient.

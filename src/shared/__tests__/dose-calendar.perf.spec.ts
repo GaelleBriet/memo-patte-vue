@@ -106,8 +106,8 @@ describe('date très lointaine (fichier forgé ou faute de frappe)', () => {
       today: '2026-09-28',
     }
 
-    const { result: reminders, elapsed } = fastest(() =>
-      treatmentView(forged).reminders({ count: 64, daysBefore: 0, daysAfter: 0 }),
+    const { result: reminders, elapsed } = fastest(
+      () => treatmentView(forged).reminders({ count: 64, daysBefore: 0, daysAfter: 0 }).reminders,
     )
 
     expect(reminders.filter(({ moment }) => moment === 'due')).toHaveLength(5 * 24)
@@ -147,7 +147,7 @@ describe('date très lointaine (fichier forgé ou faute de frappe)', () => {
       const { result, elapsed } = fastest(() => {
         const computed = treatmentView(forged)
         const upcoming = computed.upcoming({ limit: 400 })
-        const reminders = computed.reminders({ count: 64, daysBefore: 0, daysAfter: 0 })
+        const reminders = computed.reminders({ count: 64, daysBefore: 0, daysAfter: 0 }).reminders
         return { view: computed, upcoming, reminders }
       })
 

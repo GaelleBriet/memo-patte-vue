@@ -137,8 +137,8 @@ export function treatmentReminderPlan(
     daysBefore: DAYS_BEFORE_DUE,
     daysAfter: DAYS_OVERDUE,
   }
-  const all = view
-    .reminders(window)
+  const { reminders, readAll } = view.reminders(window)
+  const all = reminders
     .filter(({ moment }) => moment !== 'before' || settings.remindBeforeDue)
     .map((each) =>
       reminder(
@@ -156,7 +156,7 @@ export function treatmentReminderPlan(
   return {
     entry,
     reminders: future.slice(0, MAX_REMINDERS_PER_CARE),
-    complete: future.length <= MAX_REMINDERS_PER_CARE,
+    complete: readAll && future.length <= MAX_REMINDERS_PER_CARE,
     relay: t('reminders.plan.relay', { animal: animalName }),
   }
 }

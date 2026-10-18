@@ -2,7 +2,7 @@ import type { Slot } from './calendar'
 import { dayOfKey, hoursOf, keyOf, later, longestStep, plusDays, stepped } from './grid'
 import { episodeLines, isTaken } from './lines'
 import { momentOf } from './moment'
-import { dueReminders, type DueReminder, type ReminderWindow } from './reminders'
+import { dueReminders, type ReminderReading, type ReminderWindow } from './reminders'
 import { readingOf, UPCOMING_DAYS } from './reading'
 import { borrowedNotes, closedBeforeFirstDue, episodesOf, spanOf } from './settings'
 import type {
@@ -52,7 +52,7 @@ export type TreatmentView = {
   currentSetting: Setting | null
   settingAt(day: Day): Setting | undefined
   /** RA-1 à RA-6 : les rappels des échéances encore à donner, la lecture unique des rappels. */
-  reminders(window: ReminderWindow): DueReminder[]
+  reminders(window: ReminderWindow): ReminderReading
   /**
    * RA-19 : l'échéance est donnée, oubliée ou couverte, ou sortie du calendrier avec une prise écrite
    * pour elle ; `dueTime` `null` : une échéance de sa journée.
@@ -231,6 +231,10 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
           upcomingUntil: (limit) =>
             upcoming({ limit, to: plusDays(lastKnownDay, (limit + 2) * currentStep) }),
           pendingOn: (day) => upcoming({ from: day, to: day }),
+          pendingAfter: (day) => {
+            const to = plusDays(later(day, lastKnownDay), 2 * currentStep)
+            return upcoming({ from: plusDays(day, 1), to, limit: 1 }).length > 0
+          },
         },
         window,
       ),

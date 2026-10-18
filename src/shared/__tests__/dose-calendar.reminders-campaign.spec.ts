@@ -107,6 +107,15 @@ describe('rappels lus dans la vue (pas 8)', () => {
     expect(planBrokenBy(seed9200000052 as TreatmentViewInput, '23:59')).toBeNull()
   })
 
+  it('#933 : tous les jours à 0 h 15, 0 h 30 et 0 h 45, « Modifier » le 5 octobre à 0 h 15 seulement, la dose de 0 h 30 du 9 reportée au 11, l’app ouverte le 10 à 23 h 59 : le plan « 1 h avant » garde son relais', () => {
+    const daily = { value: 1, unit: 'day' } as const
+    const p1 = setting('p1', '2026-10-01', daily, ['00:15', '00:30', '00:45'])
+    const p2 = proposedSetting('p2', '2026-10-06', daily, ['00:15'], { startsOn: '2026-10-05' })
+    const lines = [line('p1', 'postponed', '2026-10-09', '00:30', '2026-10-11')]
+
+    expect(planBrokenBy({ settings: [p1, p2], lines, today: '2026-10-10' }, '23:59')).toBeNull()
+  })
+
   it.each([
     ['RAPPELS_SEEDS', 'mille'],
     ['RAPPELS_FROM', '-3'],

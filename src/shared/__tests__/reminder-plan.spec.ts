@@ -630,6 +630,54 @@ describe('plannedReminders, plafond et relais', () => {
     })
   })
 
+  describe('#933 : Milo, médicament tous les jours à 0 h 15, 0 h 30 et 0 h 45, puis « Modifier » le 5 octobre 2026, à 0 h 15 seulement', () => {
+    const daily = { value: 1, unit: 'day' } as const
+    const p1 = setting('p1', '2026-10-01', daily, ['00:15', '00:30', '00:45'])
+    const p2 = proposedSetting('p2', '2026-10-06', daily, ['00:15'], { startsOn: '2026-10-05' })
+    const report = line('p1', 'postponed', '2026-10-09', '00:30', '2026-10-11')
+    const RELAY_MILO = 'Pour continuer à recevoir les rappels de Milo, ouvre MémoPatte.'
+    const scheduledAt = (settings: (typeof p1)[], offset: 0 | 60) => {
+      const view = treatmentView({ settings, lines: [report], today: '2026-10-10' })
+      const period = {
+        reminderOffsetMinutes: offset,
+        reminderTime: null,
+        doseQuantity: null,
+        doseUnit: null,
+      }
+      const source = { id: ID, name: 'Médicament', animalName: 'Milo', period, view }
+      const care = treatmentReminderPlan(t, source, SETTINGS, new Date(2026, 9, 10, 23, 59))
+      return { care, scheduled: plannedReminders([care], MAX_SCHEDULED_REMINDERS) }
+    }
+
+    it('la dose de 0 h 30 du 9 octobre reportée au 11, rappel « 1 h avant », app ouverte le 10 à 23 h 59 : les trois rappels du 11 sont passés, le dernier, le 9 décembre, porte le relais', () => {
+      const { care, scheduled } = scheduledAt([p1, p2], 60)
+
+      expect(scheduled).toHaveLength(MAX_REMINDERS_PER_CARE - 1)
+      expect(care.complete).toBe(false)
+      expect(slots(scheduled)[0]).toBe('2026-10-12:0015:due')
+      expect(slots(scheduled).at(-1)).toBe('2026-12-09:0015:due')
+      expect(scheduled.at(-1)?.body).toBe(RELAY_MILO)
+    })
+
+    it('le même carnet « à l’heure » : 60 rappels, le dernier porte le relais', () => {
+      const { care, scheduled } = scheduledAt([p1, p2], 0)
+
+      expect(scheduled).toHaveLength(MAX_REMINDERS_PER_CARE)
+      expect(care.complete).toBe(false)
+      expect(scheduled.at(-1)?.body).toBe(RELAY_MILO)
+    })
+
+    it('avec une date de fin le 9 décembre, « 1 h avant » : tout reste programmé, pas de relais', () => {
+      const ending = { ...p2, endsOn: '2026-12-09' }
+      const { care, scheduled } = scheduledAt([p1, ending], 60)
+
+      expect(scheduled).toHaveLength(MAX_REMINDERS_PER_CARE - 1)
+      expect(care.complete).toBe(true)
+      expect(slots(scheduled).at(-1)).toBe('2026-12-09:0015:due')
+      expect(scheduled.some(({ body }) => body.includes(RELAY_MILO))).toBe(false)
+    })
+  })
+
   it('pas de relais quand une date de fin proche laisse tout programmer', () => {
     const care = plan({
       input: { firstDueOn: '2026-10-06', times: ['08:00', '20:00'], endsOn: '2026-10-10' },
