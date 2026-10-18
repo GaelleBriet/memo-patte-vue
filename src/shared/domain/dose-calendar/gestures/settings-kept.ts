@@ -1,5 +1,6 @@
 import { isOnGrid, later, plusDays, stepped } from '../grid'
 import type { Day, Setting, SettingsPlan, TreatmentViewInput } from '../types'
+import { isTaken } from '../lines'
 import { buildView } from '../view'
 import { settingsApplied } from './changes'
 import { NEXT_DAYS, type Dates, type SettingsRequest } from './settings-proposal'
@@ -11,9 +12,17 @@ const movingReports = (input: TreatmentViewInput) =>
       .map(({ line }) => line.id),
   )
 
+// Q25, Q-b : une journée d'arrivée où une dose a été donnée ou oubliée a servi.
+const servedDays = (input: TreatmentViewInput) =>
+  new Set(
+    buildView(input).history.flatMap(({ line, effect }) =>
+      isTaken(line) && effect.kind === 'covers' ? [effect.key.slice(0, 10)] : [],
+    ),
+  )
+
 // R7 : un report parti d'une journée du réglage corrigé, qui deviendrait sans effet si le réglage
-// partait après son arrivée, laisse ce jour-là comme première échéance ; une arrivée passée, que la
-// question liste, sort avec la réponse (#873).
+// partait après son arrivée, laisse ce jour-là comme première échéance ; une arrivée passée qui n'a
+// pas servi, que la question liste, sort avec la réponse (#873).
 function strandedArrival(
   input: TreatmentViewInput,
   current: Setting,
@@ -21,6 +30,7 @@ function strandedArrival(
 ): Day | undefined {
   const before = movingReports(input)
   const after = movingReports(settingsApplied(input, draft))
+  const served = servedDays(input)
   const start = draft.setting.firstDueOn
   return input.lines
     .filter(
@@ -30,7 +40,7 @@ function strandedArrival(
         dueOn >= current.startsOn &&
         targetOn !== null &&
         targetOn > dueOn &&
-        targetOn >= input.today &&
+        (targetOn >= input.today || served.has(targetOn)) &&
         targetOn < start,
     )
     .map(({ targetOn }) => targetOn!)

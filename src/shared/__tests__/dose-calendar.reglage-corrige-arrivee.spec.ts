@@ -99,7 +99,7 @@ describe('R7, R9.2 : « Elles n’étaient pas à donner » ne saute pas l’arr
 
   const eightOh = { frequency: TWO_DAYS, times: ['08:01', '20:01'], endsOn: '2026-05-08' }
 
-  it('graine 7810000235, le lendemain de l’arrivée, 6 h du 7 donnée : la réponse retire les doses du 7 restées sans prise, la prise de 6 h garde le 7, le report devient sans effet (#873, décision du 18 octobre 2026)', () => {
+  it('graine 7810000235, le lendemain de l’arrivée, 6 h du 7 donnée : la réponse retire les doses du 7 restées sans prise, le report a servi et reste actif (Q-b, décision du 18 octobre 2026)', () => {
     const input = on(noted(seed235(), '2026-04-07', '06:00'), '2026-04-08')
     expect(readings(input).moteur.moment).toEqual([
       '2026-04-08 06:00',
@@ -114,7 +114,12 @@ describe('R7, R9.2 : « Elles n’étaient pas à donner » ne saute pas l’arr
       ({ line }) => line.status === 'given' && line.dueOn === '2026-04-07',
     )!
     expect(early.effect).toEqual({ kind: 'covers', key: '2026-04-07 06:00' })
-    expect(reportEffect(after, '2026-04-05')).toBe('idle')
+    expect(reportEffect(after, '2026-04-05')).toBe('moves')
+    expect(
+      treatmentView(after)
+        .slots('2026-04-07', '2026-04-07')
+        .map(({ due, state }) => `${due.dueTime} ${state}`),
+    ).toEqual(['06:00 given'])
     expect(moteur).toEqual(reference)
   })
 
