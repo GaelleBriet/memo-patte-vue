@@ -62,13 +62,34 @@ function readByMain(main: Reader): Reader {
     })
 }
 
-/** Les constats d'une fourche ; avec `main`, seuls ceux que `main` n'a pas aussi. */
+const keyOf = (line: Line) => `${line.dueOn} ${line.dueTime}`
+
+// #873 : une prise l'emporte toujours sur la ligne « pas à donner » de sa dose.
+function takenGreyedByNotDue({ merged }: Fork): Line[] {
+  const notDue = new Set(merged.lines.filter(({ status }) => status === 'not-due').map(keyOf))
+  const taken = treatmentView(merged).history.filter(
+    ({ line }) => line.status === 'given' || line.status === 'missed',
+  )
+  const counted = new Set(
+    taken.filter(({ effect }) => effect.kind !== 'idle').map(({ line }) => keyOf(line)),
+  )
+  return taken
+    .filter(({ line }) => notDue.has(keyOf(line)) && !counted.has(keyOf(line)))
+    .map(({ line }) => line)
+}
+
+/**
+ * Les constats d'une fourche ; avec `main`, seuls ceux que `main` n'a pas aussi, sauf une prise
+ * grisée par une ligne « pas à donner », que `main` ne sait pas lire.
+ */
 export function constatsOf(fork: Fork, mainReader?: Reader): string[] {
   const main = mainReader === undefined ? undefined : readByMain(mainReader)
-  const report = newReport(fork)
-  if (report === undefined) return []
   const where = `graine ${fork.seed}, pas ${fork.step}, ${fork.aFirst ? 'B' : 'A'} plus récent`
-  const found: string[] = []
+  const found = takenGreyedByNotDue(fork).map(
+    (line) => `${where} : prise ${line.dueOn} ${line.dueTime} grisée par « pas à donner »`,
+  )
+  const report = newReport(fork)
+  if (report === undefined) return found
   if (lostWith(fork, treatmentView, report) && !(main && lostWith(fork, main, report))) {
     found.push(`${where} : report ${report.dueOn} ${report.dueTime} → ${report.targetOn} perdu`)
   }
