@@ -30,7 +30,7 @@ import type {
   PlannedDoseWrite,
   TreatmentPlanWrite,
 } from '../schema/treatment-plan.schema'
-import type { DeviceStamps, Stamped } from '@/shared/domain/carnet-data'
+import type { Stamped } from '@/shared/domain/carnet-data'
 import { groupBy } from '@/shared/utils/group-by'
 
 interface TreatmentRow {
@@ -98,7 +98,7 @@ function toStampedRecord(row: TreatmentRow): StampedTreatmentRecord {
 function withHistory(
   rows: TreatmentRow[],
   periods: TreatmentPeriodRecord[],
-  doses: (TreatmentDose & Partial<DeviceStamps>)[],
+  doses: Stamped<TreatmentDose>[],
 ): TreatmentWithHistory[] {
   const periodsOf = groupBy(periods, ({ treatmentId }) => treatmentId)
   const dosesOf = groupBy(doses, ({ periodId }) => periodId)
@@ -240,7 +240,7 @@ export function createTreatmentsRepository(
           [animalId],
         ),
         periods.listByAnimal(animalId),
-        doses.listByAnimal(animalId),
+        doses.listRecordsByAnimal(animalId),
       ])
       return withHistory(rows, ownPeriods, ownDoses)
     },
@@ -253,7 +253,7 @@ export function createTreatmentsRepository(
            ORDER BY animal_id, created_at, id`,
         ),
         periods.listAll(),
-        doses.listAll(),
+        doses.listRecords(),
       ])
       return withHistory(rows, allPeriods, allDoses)
     },
