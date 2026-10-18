@@ -1501,8 +1501,8 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
 - 2026-10-18 — **#931 : un geste de note réécrit la ligne du téléphone qui le fait** (TR-25 ;
   décision de Gaelle du 18 octobre 2026, par la session d'analyse du moteur). « Marquer comme
   oubliée », « Marquer comme donnée » et « Fait à une autre date » sur un oubli réécrivent la ligne
-  créée par ce téléphone, sinon la plus récente de la dose : les deux téléphones montrent la même fiche quel
-  que soit l'ordre de synchro. Milo, chaque lundi à 8 h ; dose du 16 mars donnée sur B le 16 et sur A
+  créée par ce téléphone, sinon la plus récente de la dose : quand le téléphone a sa propre ligne sur
+  la dose, les deux téléphones montrent la même fiche quel que soit l'ordre de synchro. Milo, chaque lundi à 8 h ; dose du 16 mars donnée sur B le 16 et sur A
   le 17 ; le 18, sur B, « Marquer comme oubliée » : « Oubliée » et « Donnée le 17 · sans effet »,
   dans les deux ordres. Sans sa propre ligne, le téléphone réécrit la plus récente de la dose. Un geste
   porte sur ce que le téléphone a reçu : l'ordre d'arrivée ne change plus le résultat quand le
@@ -1700,8 +1700,8 @@ de la même dose** (deux appareils) reste « · sans effet », comme toute ligne
 nouveau (décision de Gaelle, transmise par la session d'analyse du moteur).
 
 Limite de #841 décidée le 18 octobre 2026 (#931, session d'analyse du moteur) : le geste réécrit la
-ligne du téléphone qui le fait (`created_by_device`), plus la ligne en vigueur ; le résultat ne dépend
-plus de l'ordre de synchro (TR-25). Milo, chaque lundi à 8 h : la dose du 16 mars est donnée sur B le
+ligne du téléphone qui le fait (`created_by_device`), plus la ligne en vigueur ; quand le téléphone a
+sa propre ligne sur la dose, le résultat ne dépend plus de l'ordre de synchro (TR-25). Milo, chaque lundi à 8 h : la dose du 16 mars est donnée sur B le
 16 et sur A le 17 ; le 18, sur B, « Marquer comme oubliée » : « Oubliée » et « Donnée le 17 · sans
 effet » sur les deux téléphones, quel que soit l'ordre d'arrivée (avant : « Donnée le 16 · sans effet »
 si la prise de A était arrivée avant le geste). Un téléphone qui n'a pas sa propre ligne sur la dose
