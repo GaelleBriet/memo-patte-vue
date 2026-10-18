@@ -6,6 +6,11 @@ export type Hour = string | null
 
 export type Frequency = { value: number; unit: 'day' | 'week' | 'month' }
 
+export const FALLEN_DOSES_ANSWERS = ['unasked', 'stay-unlogged', 'not-due'] as const
+
+/** Q38, #873 : réponse à la question des doses tombées ; `unasked` : aucune question posée. */
+export type FallenDosesAnswer = (typeof FALLEN_DOSES_ANSWERS)[number]
+
 /** Réglage (R1) : valable de `startsOn` jusqu'au premier jour du réglage suivant. */
 export type Setting = {
   id: string
@@ -15,8 +20,8 @@ export type Setting = {
   gridOriginOn: Day | null
   /** #836 : la première échéance vient de la personne, pas d'une date proposée par l'app (R9, R10). */
   firstDueChosen: boolean
-  /** #817, Q38 : réponse « Elles restent à renseigner » ; la dose en retard reste en retard (R10). */
-  pastDosesStayUnlogged: boolean
+  /** #817 : avec « Elles restent à renseigner », la dose en retard reste en retard (R10). */
+  fallenDosesAnswer: FallenDosesAnswer
   endsOn: Day | null
   stoppedOn: Day | null
   frequency: Frequency

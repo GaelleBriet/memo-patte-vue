@@ -134,7 +134,8 @@ export function calendarOf(
     const kept = lastLive !== undefined && sameFrequency(lastLive, setting)
     // R10, #817, #836 : seule une date choisie sans « Elles restent à renseigner » remplace la dose
     // du moment ; une date proposée ou gardée à renseigner laisse le rythme et sa dose en retard.
-    const replaces = kept && setting.firstDueChosen && !setting.pastDosesStayUnlogged && !ended
+    const replaces =
+      kept && setting.firstDueChosen && setting.fallenDosesAnswer !== 'stay-unlogged' && !ended
     if (replaces) {
       const onDueDay =
         setting.startsOn > inherited.floor &&

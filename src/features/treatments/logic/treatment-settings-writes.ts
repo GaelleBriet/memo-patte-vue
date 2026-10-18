@@ -12,7 +12,7 @@ type Extras = Pick<
 /** L'écriture de la période que `newSettings` demande : un réglage ouvert aujourd'hui, ou le courant corrigé. */
 export function periodWriteOf(plan: SettingsPlan, extras: Extras, newId: () => string): Written {
   const { startsOn, firstDueOn, endsOn, frequency, times } = plan.setting
-  const { gridOriginOn, firstDueChosen, pastDosesStayUnlogged } = plan.setting
+  const { gridOriginOn, firstDueChosen, fallenDosesAnswer } = plan.setting
   const { doseQuantity, doseUnit, reminderOffsetMinutes, reminderTime } = extras
   const settings: TreatmentPeriodSettings = {
     startsOn,
@@ -25,7 +25,7 @@ export function periodWriteOf(plan: SettingsPlan, extras: Extras, newId: () => s
     reminderOffsetMinutes,
     reminderTime,
   }
-  const origin = { gridOriginOn, firstDueChosen, pastDosesStayUnlogged }
+  const origin = { gridOriginOn, firstDueChosen, fallenDosesAnswer }
   return plan.action === 'create'
     ? { action: 'open', id: newId(), settings, ...origin }
     : { action: 'correct', id: plan.id, settings, ...origin }
@@ -34,13 +34,13 @@ export function periodWriteOf(plan: SettingsPlan, extras: Extras, newId: () => s
 /** Le réglage que pose l'écriture de la période, à jouer sur le carnet du moteur. */
 export function settingsPlanOf(written: Written): SettingsPlan {
   const { startsOn, firstDueOn, endsOn, frequency, times } = written.settings
-  const { gridOriginOn, firstDueChosen, pastDosesStayUnlogged } = written
+  const { gridOriginOn, firstDueChosen, fallenDosesAnswer } = written
   const setting = {
     startsOn,
     firstDueOn,
     gridOriginOn,
     firstDueChosen,
-    pastDosesStayUnlogged,
+    fallenDosesAnswer,
     endsOn,
     frequency,
     times,

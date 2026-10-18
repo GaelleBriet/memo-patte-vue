@@ -113,7 +113,7 @@ export function resumptionPlan(
       ),
       gridOriginOn: firstDoseOn,
       firstDueChosen: true,
-      pastDosesStayUnlogged: false,
+      fallenDosesAnswer: 'unasked',
     },
     doses: [],
   }

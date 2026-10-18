@@ -3,6 +3,7 @@ import { differenceInCalendarDays } from 'date-fns'
 import { isCalendarDay, previousDay, toDate } from './calendar-day'
 import { isClockTime } from './clock-time'
 import {
+  FALLEN_DOSES_ANSWERS,
   treatmentView,
   type IdleReason,
   type Line,
@@ -22,6 +23,7 @@ export type TreatmentRecords = { periods: readonly Period[]; doses: readonly Dos
 const MAX_DUES = 50_000
 const STATUSES: readonly string[] = ['given', 'missed', 'postponed', 'extra', 'shift']
 const UNITS: readonly string[] = FREQUENCY_UNITS
+const ANSWERS: readonly string[] = FALLEN_DOSES_ANSWERS
 
 const isOptionalDay = (day: unknown) => day === null || isCalendarDay(day)
 
@@ -31,7 +33,7 @@ function isReadableSetting({ frequency, times, ...days }: Setting): boolean {
     [days.startsOn, days.firstDueOn].every(isCalendarDay) &&
     isOptionalDay(days.gridOriginOn) &&
     typeof days.firstDueChosen === 'boolean' &&
-    typeof days.pastDosesStayUnlogged === 'boolean' &&
+    ANSWERS.includes(days.fallenDosesAnswer) &&
     isOptionalDay(days.endsOn) &&
     isOptionalDay(days.stoppedOn) &&
     Number.isInteger(value) &&
@@ -101,7 +103,7 @@ function viewInputOf({ periods, doses }: TreatmentRecords, today: string): Treat
       firstDueOn: period.firstDueOn,
       gridOriginOn: period.gridOriginOn,
       firstDueChosen: period.firstDueChosen,
-      pastDosesStayUnlogged: period.pastDosesStayUnlogged,
+      fallenDosesAnswer: period.fallenDosesAnswer,
       endsOn: period.endsOn,
       stoppedOn: period.stoppedOn,
       frequency: period.frequency,

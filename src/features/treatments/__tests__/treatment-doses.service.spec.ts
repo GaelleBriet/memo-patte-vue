@@ -134,7 +134,7 @@ describe('treatmentDosesService', () => {
           firstDueOn: settings.firstDueOn,
           gridOriginOn: settings.firstDueOn,
           firstDueChosen: true,
-          pastDosesStayUnlogged: false,
+          fallenDosesAnswer: 'unasked',
           endsOn: settings.endsOn ?? null,
           frequency: settings.frequency,
           times: settings.times ?? [],

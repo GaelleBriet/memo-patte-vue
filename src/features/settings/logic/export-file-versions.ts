@@ -9,23 +9,26 @@ import type {
   ExportVaccinationInjection,
   ExportWeightEntry,
 } from '@/shared/domain/carnet-data'
-import {
-  gridOriginsOf,
-  legacyFactsOf,
-  targetOnOf,
-  type SettingFacts,
-} from '@/shared/domain/dose-calendar'
+import { gridOriginsOf, legacyFactsOf, targetOnOf } from '@/shared/domain/dose-calendar'
 import { readTreatment } from '@/shared/domain/treatment-reading'
 
 type Unstamped<T> = Omit<T, 'createdByDevice' | 'updatedByDevice'>
 
-export type Version6Period = Omit<ExportTreatmentPeriod, 'settingsWrittenAt'>
+export type Version7Period = Omit<ExportTreatmentPeriod, 'fallenDosesAnswer'> & {
+  pastDosesStayUnlogged: boolean
+}
+
+export type Version7Data = Omit<ExportData, 'treatmentPeriods'> & {
+  treatmentPeriods: Version7Period[]
+}
+
+export type Version6Period = Omit<Version7Period, 'settingsWrittenAt'>
 
 export type Version6Data = Omit<ExportData, 'treatmentPeriods'> & {
   treatmentPeriods: Version6Period[]
 }
 
-export type Version5Period = Omit<Version6Period, keyof SettingFacts>
+export type Version5Period = Omit<Version6Period, 'firstDueChosen' | 'pastDosesStayUnlogged'>
 
 export type Version5Data = Omit<ExportData, 'treatmentPeriods'> & {
   treatmentPeriods: Version5Period[]
@@ -95,18 +98,30 @@ export function fromVersion5(data: Version5Data): Version6Data {
     ...data,
     treatmentPeriods: data.treatmentPeriods.map((period) => ({
       ...period,
-      ...legacyFactsOf(period.gridOriginOn),
+      firstDueChosen: legacyFactsOf(period.gridOriginOn).firstDueChosen,
+      pastDosesStayUnlogged: false,
     })),
   }
 }
 
 /** La conversion que la migration v14 applique à la base : date d'écriture inconnue, lue comme jamais réécrit. */
-export function fromVersion6(data: Version6Data): ExportData {
+export function fromVersion6(data: Version6Data): Version7Data {
   return {
     ...data,
     treatmentPeriods: data.treatmentPeriods.map((period) => ({
       ...period,
       settingsWrittenAt: period.createdAt,
+    })),
+  }
+}
+
+/** La conversion que la migration v15 applique à la base : rien ne passe à « n'étaient pas à donner ». */
+export function fromVersion7(data: Version7Data): ExportData {
+  return {
+    ...data,
+    treatmentPeriods: data.treatmentPeriods.map(({ pastDosesStayUnlogged, ...period }) => ({
+      ...period,
+      fallenDosesAnswer: pastDosesStayUnlogged ? 'stay-unlogged' : 'unasked',
     })),
   }
 }

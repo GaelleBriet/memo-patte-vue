@@ -38,7 +38,7 @@ export function createPeriodImport(db: DbClient, deviceId: () => string) {
         period.firstDueOn,
         period.gridOriginOn,
         flag(period.firstDueChosen),
-        flag(period.pastDosesStayUnlogged),
+        period.fallenDosesAnswer,
         period.endsOn,
         period.stoppedOn,
         period.frequency.value,
@@ -57,7 +57,7 @@ export function createPeriodImport(db: DbClient, deviceId: () => string) {
         ? {
             sql: `UPDATE treatment_period
                   SET starts_on = ?, first_due_on = ?, grid_origin_on = ?, first_due_chosen = ?,
-                      past_doses_stay_unlogged = ?, ends_on = ?, stopped_on = ?,
+                      fallen_doses_answer = ?, ends_on = ?, stopped_on = ?,
                       frequency_value = ?, frequency_unit = ?, times = ?, dose_quantity = ?,
                       dose_unit = ?, reminder_offset_minutes = ?, reminder_time = ?,
                       created_at = ?, updated_at = ?, settings_written_at = ?, deleted_at = NULL,

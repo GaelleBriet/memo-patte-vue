@@ -66,7 +66,7 @@ describe('R4 : une journée qui porte des lignes et quitte le calendrier garde s
           firstDueOn: '2026-03-11',
           gridOriginOn: '2026-03-11',
           firstDueChosen: true,
-          pastDosesStayUnlogged: false,
+          fallenDosesAnswer: 'unasked',
           endsOn: '2026-04-03',
           frequency: MONTH,
           times: H,

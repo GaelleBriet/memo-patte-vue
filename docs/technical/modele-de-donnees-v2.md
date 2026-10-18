@@ -225,7 +225,8 @@ Décision de Gaelle du 2026-10-16 (#867) : entre le report d'un téléphone et l
 par l'autre, la plus récente des deux intentions l'emporte ; le report par sa date de modification,
 la réécriture par la date d'écriture du réglage. `treatment_period` gagne `settings_written_at`
 (`TEXT NOT NULL`, instant ISO 8601), qui avance seulement quand change ce qui fait le calendrier :
-début, première échéance, fréquence, heures, origine de la grille et les deux faits de la v13. L'arrêt,
+début, première échéance, fréquence, heures, origine de la grille et les deux faits de la v13 (depuis
+la v15, la réponse à la question des doses tombées n'en fait plus partie, §4.5). L'arrêt,
 son « Annuler », la suppression, la date de fin, la posologie et le rappel font bouger `updated_at`,
 jamais `settings_written_at` (posologie exclue et valeur des données d'avant = date de création : lectures de l'implémenteur de la v14, à confirmer par Gaelle, spec R10) ; écartée : `updated_at`, qu'un arrêt annulé rendrait plus récent qu'un
 report (Milo arrêté puis « Annuler » le 8 perdrait sa dose reportée au 10). Le moteur la lit comme
@@ -236,6 +237,25 @@ v13, sans `DELETE` ni `UPDATE` de premier niveau. Réglages existants : `setting
 `created_at`, ce que le moteur lit comme « jamais réécrit » : la lecture d'avant reste. Miroir
 Supabase : `supabase/migrations/20261017100000_sync_mirror_treatment_period_settings_written_at.sql`,
 même colonne et même valeur ; export JSON v7 (`export-format.md`).
+
+### 4.5 Évolution v15 (réponse à la question des doses tombées, #873)
+
+Décision de Gaelle du 2026-10-18 (#873, par la session d'analyse du moteur) : le réglage dit ce que
+la personne a répondu à la question Q38, le moteur ne le devine pas. `past_doses_stay_unlogged`
+(booléen) est remplacée par `fallen_doses_answer` (`TEXT NOT NULL DEFAULT 'unasked'`), à trois états :
+`unasked` (aucune question posée), `stay-unlogged` (« Elles restent à renseigner »), `not-due`
+(« Elles n'étaient pas à donner »). Le moteur ne retire une dose tombée que sous `not-due` ; le jour
+de la réponse est le jour local de `settings_written_at` (v14), que la réponse seule ne fait pas
+avancer : elle est écrite avec le réglage qui répond, dont le calendrier change. Une réécriture sans
+question garde la réponse du réglage. Écartées : déduire la réponse d'un réglage réécrit (une simple
+« Prochaine dose » retirait des doses, relecture de #914), une ligne par dose retirée.
+
+La migration (`src/core/db/migration-v15.ts`) recrée `treatment_period` et `treatment_dose` comme la
+v14, sans `DELETE` ni `UPDATE` de premier niveau. Réglages existants : `stay-unlogged` quand
+`past_doses_stay_unlogged = 1`, sinon `unasked`, jamais `not-due` (le booléen ne distinguait pas cette
+réponse d'aucune question : rien n'est retiré après coup). Miroir Supabase :
+`supabase/migrations/20261018090000_sync_mirror_treatment_period_fallen_doses_answer.sql`, même
+colonne, mêmes valeurs, l'ancienne colonne retirée ; export JSON v8 (`export-format.md`).
 
 ## 5. Décisions
 

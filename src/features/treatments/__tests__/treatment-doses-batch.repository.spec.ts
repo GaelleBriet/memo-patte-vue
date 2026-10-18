@@ -102,7 +102,7 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
         firstDueOn: '2026-09-21',
         gridOriginOn: '2026-09-21',
         firstDueChosen: true,
-        pastDosesStayUnlogged: false,
+        fallenDosesAnswer: 'unasked',
         frequency: { value: 1, unit: 'day' },
         times: ['08:00', '20:00'],
         stoppedOn: null,
