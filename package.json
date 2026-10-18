@@ -82,7 +82,7 @@
     "@types/jsdom": "^30.0.0",
     "@types/node": "^26.4.1",
     "@types/sql.js": "^1.4.11",
-    "@vitejs/plugin-vue": "^6.0.9",
+    "@vitejs/plugin-vue": "^6.0.10",
     "@vitest/eslint-plugin": "^1.6.23",
     "@vue/eslint-config-prettier": "^10.2.0",
     "@vue/eslint-config-typescript": "^14.9.0",
