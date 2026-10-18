@@ -3028,8 +3028,9 @@ moteur).
   à renseigner).
 - En attente, avant toute publication : l'affichage de la ligne « pas à donner » dans l'historique,
   avec son libellé et « Supprimer » (#952, libellé à valider par Gaelle).
-- Repli de l'historique : une date n'est jamais coupée en deux, décision du 18 octobre 2026. Une
-  journée à deux prises, une ligne « pas à donner » et les autres lignes de sa date (groupes
-  d'oubliées compris : on compte leur dernière date) restent ensemble, repliées ou dépliées, jusqu'à
-  une ligne de plus que les trois montrées avant « Voir les prises précédentes ».
+- Repli de l'historique : une date n'est jamais coupée en deux, décision du 18 octobre 2026. Replié,
+  l'historique montre les trois premières lignes, plus les lignes qui suivent tant qu'elles ont la
+  même date d'échéance que la troisième : une date se lit entière, l'historique reste repliable. Un
+  groupe d'oubliées qui couvre plusieurs dates n'a pas une date : il ne prolonge jamais la coupe et
+  n'est jamais tiré par elle.
 

@@ -131,7 +131,7 @@ describe('historique : lignes « pas à donner » (#952)', () => {
     expect(only!.lines[only!.visibleLines]?.dose.dueOn).not.toBe(last.dose.dueOn)
   })
 
-  it('ne laisse pas la ligne d’une date couverte par un groupe d’oublis repliée seule', () => {
+  it('laisse repliée la réponse « pas à donner » d’une date que touche le groupe d’oublis, troisième ligne (question posée)', () => {
     const twice = period({
       frequency: { value: 1, unit: 'day' },
       times: ['08:00', '20:00'],
@@ -155,10 +155,11 @@ describe('historique : lignes « pas à donner » (#952)', () => {
     )
     const [only] = plain(treatmentHistory(t, book, treatmentReadingOf(book, TODAY), TODAY)).periods
 
-    expect(only!.toggle).not.toBeNull()
-    expect(only!.lines.slice(only!.visibleLines).map(({ dose: { dueOn } }) => dueOn)).not.toContain(
-      '2026-03-04',
-    )
+    const shown = only!.lines.slice(0, only!.visibleLines)
+    const folded = only!.lines.slice(only!.visibleLines)
+
+    expect(shown.map(({ kind }) => kind)).toEqual(['given', 'given', 'missed'])
+    expect(folded.map(({ kind }) => kind)).toContain('not-due')
   })
 
   it('range une prise avant la réponse « pas à donner » de la même échéance', () => {

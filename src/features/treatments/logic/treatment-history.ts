@@ -127,12 +127,16 @@ function emptyText(
     : t('treatments.history.empty')
 }
 
-const lastDayOf = (line: HistoryLine): string =>
-  line.kind === 'missed' ? line.rows.at(-1)!.dose.dueOn : line.dose.dueOn
+function singleDayOf(line: HistoryLine): string | null {
+  if (line.kind !== 'missed') return line.dose.dueOn
+  const days = new Set(line.rows.map(({ dose }) => dose.dueOn))
+  return days.size === 1 ? line.dose.dueOn : null
+}
 
 function foldAt(lines: HistoryLine[]): number {
+  const day = lines[LINES_BEFORE_TOGGLE - 1] && singleDayOf(lines[LINES_BEFORE_TOGGLE - 1]!)
   let cut = LINES_BEFORE_TOGGLE
-  while (cut < lines.length && lines[cut]!.dose.dueOn === lastDayOf(lines[cut - 1]!)) cut += 1
+  while (day && cut < lines.length && singleDayOf(lines[cut]!) === day) cut += 1
   return cut
 }
 

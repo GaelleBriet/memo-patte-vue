@@ -44,12 +44,10 @@ export function removeTexts(
     }
   }
   if (removed.status === 'not-due' && removed.createdAt !== undefined) {
-    const answered = day(answeredOn({ createdAt: removed.createdAt }))
+    const answered = answeredOn({ createdAt: removed.createdAt })
     return {
-      done: () => t('treatments.history.toast.notDueRemoved', { date: answered }),
-      undo: t('treatments.history.toast.undoNotDueRemoved', {
-        date: formatFullDate(answeredOn({ createdAt: removed.createdAt })),
-      }),
+      done: () => t('treatments.history.toast.notDueRemoved', { date: day(answered) }),
+      undo: t('treatments.history.toast.undoNotDueRemoved', { date: formatFullDate(answered) }),
       already,
     }
   }
