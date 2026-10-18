@@ -32,25 +32,32 @@ describe('#873 : « Elles n’étaient pas à donner » ne retire que les doses 
       let removed = 0
       const unlisted: string[] = []
       const reshown: string[] = []
+      const lineless: string[] = []
       for (let seed = campaign.from; seed < campaign.from + campaign.seeds; seed += 1) {
         const report = listedReport(seed, campaign.steps)
         answers += report.answers
         removed += report.removed
         unlisted.push(...report.unlisted)
         reshown.push(...report.reshown)
+        lineless.push(...report.lineless)
       }
       const last = campaign.from + campaign.seeds - 1
       console.warn(
         `Campagne doses listées : ${campaign.seeds} carnets × ${campaign.steps} gestes, graines ` +
           `${campaign.from} à ${last} : ${answers} réponses « pas à donner », ${removed} doses ` +
           `retirées, ${unlisted.length} états avec une dose retirée sans être listée, ${reshown.length} ` +
-          `états avec une dose listée encore à donner`,
+          `états avec une dose listée encore à donner, ${lineless.length} doses listées sans leur ligne`,
       )
       expect(unlisted.slice(0, 5)).toEqual([])
       expect(reshown.slice(0, 5)).toEqual([])
+      expect(lineless.slice(0, 5)).toEqual([])
     },
     60_000 + campaign.seeds * campaign.steps * 40,
   )
+
+  it('graine 9760001904 : avec une « Prochaine dose » choisie qui emmène un report, chaque dose listée a sa ligne', () => {
+    expect(listedReport(9_760_001_904, 40).lineless).toEqual([])
+  })
 
   // Relecture de la PR #948 : la prise d'une dose non listée, supprimée après la réponse.
   it.each([9_760_000_253, 9_761_001_562, 9_761_002_009, 9_761_008_508])(

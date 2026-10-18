@@ -9,7 +9,7 @@ import {
 } from '../domain/dose-calendar'
 import { written } from '../domain/dose-calendar/gestures/changes'
 import type { Line } from '../domain/dose-calendar/types'
-import { readings } from './dose-calendar.reglage-corrige.aides'
+import { edited, given, moved, on, readings } from './dose-calendar.reglage-corrige.aides'
 import { WEEK, keys, line, setting } from './dose-calendar.v2.aides'
 
 // Milo, chaque lundi à 8 h depuis le 2 mars, rien de noté ; le 9 et le 16 répondus « pas à donner ».
@@ -165,5 +165,42 @@ describe('#873 : une ligne « pas à donner » retire sa dose de partout (décis
     expect(effects(older)).toEqual(['not-due covers', 'postponed idle'])
     expect(shown(older).some((key) => key.startsWith('2026-03-19'))).toBe(false)
     expect(readings(older).moteur).toEqual(readings(older).reference)
+  })
+
+  it('avec une « Prochaine dose » choisie qui emmène un report, chaque dose listée garde sa ligne', () => {
+    const TWO_DAYS = { value: 2, unit: 'day' } as const
+    let luna: TreatmentViewInput = {
+      settings: [
+        setting('s1', '2026-02-23', WEEK, ['08:00'], { createdAt: '2026-02-01T00:00:00.000Z' }),
+      ],
+      lines: [],
+      today: '2026-02-23',
+    }
+    luna = given(luna, '2026-02-23', '08:00')
+    luna = moved(on(luna, '2026-03-01'), '2026-03-02', '08:00', '2026-03-06', false)
+    luna = edited(on(luna, '2026-03-03'), {
+      frequency: TWO_DAYS,
+      times: ['09:00'],
+      endsOn: null,
+      firstDueOn: '2026-03-04',
+    })
+    luna = on(luna, '2026-03-06')
+    for (const firstDueOn of [undefined, '2026-03-07']) {
+      const asked = newSettings(luna, {
+        frequency: TWO_DAYS,
+        times: ['10:00'],
+        endsOn: null,
+        firstDueOn,
+      })
+      if (!('question' in asked) || 'refusal' in asked.question.correct) {
+        throw new Error(JSON.stringify(asked))
+      }
+      const listed = keys(asked.question.fallen)
+      expect(listed).toContain('2026-03-04 09:00')
+      const notDue = (asked.question.correct.lines ?? []).flatMap((change) =>
+        change.action === 'create' && change.line.status === 'not-due' ? keys([change.line]) : [],
+      )
+      expect(notDue.sort()).toEqual([...listed].sort())
+    }
   })
 })

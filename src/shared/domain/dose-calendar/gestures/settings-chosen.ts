@@ -84,7 +84,7 @@ export function withChosenDate(
   if (!isChosen(chosen, implicit) || 'refusal' in result) return result
   const lines = arrivalMoved(input, chosen)
   if (lines.length === 0) return result
-  const carry = (plan: SettingsPlan) => ({ ...plan, lines })
+  const carry = (plan: SettingsPlan) => ({ ...plan, lines: [...(plan.lines ?? []), ...lines] })
   if ('plan' in result) return { ...result, plan: carry(result.plan) }
   const { correct } = result.question
   if ('refusal' in correct) return result

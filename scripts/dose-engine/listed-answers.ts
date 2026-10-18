@@ -10,13 +10,14 @@ import { startV2Walk, v2Step, type V2Step } from './v2-walk'
 
 /**
  * Ce qu'un carnet a montré : réponses « pas à donner », doses retirées, celles retirées sans avoir été
- * listées, et celles listées qui se montrent encore à donner.
+ * listées, celles listées qui se montrent encore à donner, et celles listées sans leur ligne.
  */
 export type ListedReport = {
   answers: number
   removed: number
   unlisted: string[]
   reshown: string[]
+  lineless: string[]
 }
 
 const keyOf = ({ dueOn, dueTime }: Pick<Due, 'dueOn' | 'dueTime'>) =>
@@ -61,7 +62,7 @@ export function listedInput(input: TreatmentViewInput, listed: ReadonlySet<strin
       return !lost && listed.has(keyOf(line)) && (stillDue || dayLeftUncovered)
     })
     .map(keyOf)
-  // C2 : une journée dont toutes les doses ont été listées sort en entier si ses heures ont changé.
+  // Une journée dont toutes les doses ont été listées sort en entier si ses heures ont changé.
   const sameDay = (a: string, b: string) => a.slice(0, 10) === b.slice(0, 10)
   const wholeDayOut = (key: string) =>
     [...listed].some((each) => sameDay(each, key)) &&
@@ -74,7 +75,7 @@ export function listedInput(input: TreatmentViewInput, listed: ReadonlySet<strin
 export function listedReport(seed: number, steps: number): ListedReport {
   const walk = startV2Walk(seed)
   const listed = new Set<string>()
-  const report: ListedReport = { answers: 0, removed: 0, unlisted: [], reshown: [] }
+  const report: ListedReport = { answers: 0, removed: 0, unlisted: [], reshown: [], lineless: [] }
   for (let count = 0; count < steps; count += 1) {
     let played: V2Step | null = null
     v2Step(walk, (step) => {
@@ -89,6 +90,17 @@ export function listedReport(seed: number, steps: number): ListedReport {
       ) {
         report.answers += 1
         asked.question.fallen.forEach((due) => listed.add(keyOf(due)))
+        const written = new Set(
+          (step.plan.lines ?? []).flatMap((change) =>
+            change.action === 'create' && change.line.status === 'not-due'
+              ? [keyOf(change.line)]
+              : [],
+          ),
+        )
+        const missing = asked.question.fallen.map(keyOf).filter((key) => !written.has(key))
+        if (missing.length > 0) {
+          report.lineless.push(`graine ${seed}, ${step.before.today} : ${missing.join(', ')}`)
+        }
       }
     }
     const found = listedInput(walk.input, listed)
