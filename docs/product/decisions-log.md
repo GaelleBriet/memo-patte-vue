@@ -2982,6 +2982,7 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
 ## 2026-10-18 — Un geste de note réécrit la ligne du téléphone qui le fait (#931)
 
 - Décision de Gaelle du 18 octobre 2026, par la session d'analyse du moteur à qui elle a délégué les lectures de règles : « Marquer comme oubliée », « Marquer comme donnée » et « Fait à une autre date » sur un oubli réécrivent la ligne créée par le téléphone qui fait le geste, plus la ligne en vigueur (TR-25) ; le résultat ne dépend plus de l'ordre de synchro. Milo, chaque lundi à 8 h : dose du 16 mars donnée sur B le 16 et sur A le 17 ; le 18, sur B, « Marquer comme oubliée » : « Oubliée » et « Donnée le 17 · sans effet » sur les deux téléphones, quel que soit l'ordre d'arrivée (avant : « Donnée le 16 · sans effet » si la prise de A était arrivée avant le geste).
+- Un téléphone qui n'a pas sa propre ligne sur la dose réécrit la plus récente (`updatedAt`) des lignes de cette dose ; à deux téléphones, c'est la ligne en vigueur, rien ne change (Milo : B réécrit la ligne de A, seule).
 - Alternative écartée : réécrire la ligne en vigueur (#841), qui laissait l'écran dépendre de l'ordre de synchro.
 
 ## 2026-10-18 — « Marquer comme oubliée » n'est pas proposé sur une échéance future (#920)
