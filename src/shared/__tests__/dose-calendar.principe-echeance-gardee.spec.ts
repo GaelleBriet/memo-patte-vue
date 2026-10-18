@@ -44,7 +44,7 @@ const S = (id: string, n: number, fields: Partial<Setting>): Setting => ({
   firstDueOn: '2026-03-17',
   gridOriginOn: '2026-03-17',
   firstDueChosen: false,
-  pastDosesStayUnlogged: false,
+  fallenDosesAnswer: 'unasked',
   endsOn: null,
   stoppedOn: null,
   frequency: THREE_DAYS,

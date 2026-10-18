@@ -236,10 +236,10 @@ export const IMPORT_FIXTURE: ExportData = {
   ],
 }
 
-export const IMPORT_FILE: ImportFile = { schemaVersion: 7, data: IMPORT_FIXTURE }
+export const IMPORT_FILE: ImportFile = { schemaVersion: 8, data: IMPORT_FIXTURE }
 
 export function importFile(data: ExportData = IMPORT_FIXTURE): ImportFile {
-  return { schemaVersion: 7, data }
+  return { schemaVersion: 8, data }
 }
 
 export function importFixtureJson(data: ExportData = IMPORT_FIXTURE): string {

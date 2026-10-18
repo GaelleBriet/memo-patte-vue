@@ -110,7 +110,7 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
             ...REGLAGES,
             gridOriginOn: REGLAGES.firstDueOn,
             firstDueChosen: true,
-            pastDosesStayUnlogged: false,
+            fallenDosesAnswer: 'unasked',
           },
         ],
         doses: [],
@@ -258,7 +258,7 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
           settings,
           gridOriginOn: settings.firstDueOn,
           firstDueChosen: true,
-          pastDosesStayUnlogged: false,
+          fallenDosesAnswer: 'unasked',
         },
       })
 
@@ -286,7 +286,7 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
           settings,
           gridOriginOn: settings.firstDueOn,
           firstDueChosen: false,
-          pastDosesStayUnlogged: true,
+          fallenDosesAnswer: 'stay-unlogged',
         },
       })
 
@@ -304,7 +304,7 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
             stoppedOn: null,
             ...settings,
             firstDueChosen: false,
-            pastDosesStayUnlogged: true,
+            fallenDosesAnswer: 'stay-unlogged',
             createdAt: T1,
             updatedAt: T1,
           },
@@ -360,7 +360,7 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
             settings: { ...REGLAGES, endsOn: null },
             gridOriginOn: REGLAGES.firstDueOn,
             firstDueChosen: true,
-            pastDosesStayUnlogged: false,
+            fallenDosesAnswer: 'unasked',
           },
           doses: [{ action: 'create', id: REPORT, dose: LIGNE }],
         }),
@@ -383,7 +383,7 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
             settings: { ...REGLAGES, doseQuantity: 1, doseUnit: null },
             gridOriginOn: REGLAGES.firstDueOn,
             firstDueChosen: true,
-            pastDosesStayUnlogged: false,
+            fallenDosesAnswer: 'unasked',
           },
         }),
       ).rejects.toBeInstanceOf(ZodError)

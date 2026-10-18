@@ -23,7 +23,7 @@ const CORRECTED_COLUMNS = [
   ...SETTINGS_COLUMNS,
   'grid_origin_on',
   'first_due_chosen',
-  'past_doses_stay_unlogged',
+  'fallen_doses_answer',
 ]
 
 const CALENDAR_COLUMNS = [
@@ -34,7 +34,6 @@ const CALENDAR_COLUMNS = [
   'times',
   'grid_origin_on',
   'first_due_chosen',
-  'past_doses_stay_unlogged',
 ]
 
 export function createPeriodCorrection(deviceId: () => string) {
@@ -64,7 +63,7 @@ export function createPeriodCorrection(deviceId: () => string) {
         settings.reminderTime,
         originOf(origin.gridOriginOn),
         flag(origin.firstDueChosen),
-        flag(origin.pastDosesStayUnlogged),
+        origin.fallenDosesAnswer,
       ]
       const isCalendar = (_: unknown, index: number) =>
         CALENDAR_COLUMNS.includes(CORRECTED_COLUMNS[index]!)

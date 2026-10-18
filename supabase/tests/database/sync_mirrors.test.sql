@@ -265,7 +265,7 @@ from (values
   ('frequency_value = 0', 'fréquence nulle refusée'),
   ('frequency_unit = ''year''', 'unité de fréquence hors liste refusée'),
   ('first_due_chosen = 2', 'date choisie hors 0 / 1 refusée'),
-  ('past_doses_stay_unlogged = 2', 'réponse « Elles restent à renseigner » hors 0 / 1 refusée')
+  ('fallen_doses_answer = ''oui''', 'réponse à la question des doses tombées hors des trois états refusée')
 ) as bad (change, label);
 
 select throws_ok($$ update public.treatment_dose set status = 'skipped' $$, '23514', null,
@@ -496,10 +496,11 @@ select is(
   (select target_on from public.treatment_dose where id = '00000000-0000-4000-8000-0000000000a7'),
   null::date, 'prise oubliée : sa date de la v11 est effacée');
 
--- Faits de la migration v13 rejoués : colonnes retirées, puis le corps de la migration.
+-- Faits de la migration v13 rejoués : colonnes retirées (la réponse à trois états de la v15 aussi),
+-- puis le corps de la migration.
 alter table public.treatment_period
   drop column first_due_chosen,
-  drop column past_doses_stay_unlogged;
+  drop column fallen_doses_answer;
 
 alter table public.treatment_period
   add column first_due_chosen smallint not null default 0 check (first_due_chosen in (0, 1)),
@@ -554,6 +555,50 @@ select throws_ok(
 select ok(
   has_column_privilege('authenticated', 'public.treatment_period', 'settings_written_at', 'UPDATE'),
   'v14 : la date d''écriture se synchronise');
+
+-- Réponse à trois états de la migration v15 rejouée sur des réglages v14, l'un « Elles restent à renseigner ».
+update public.treatment_period
+set past_doses_stay_unlogged = 1
+where id = '00000000-0000-4000-8000-0000000000e2';
+
+create temp table before_v15 as
+  select id, updated_at, settings_written_at from public.treatment_period;
+
+alter table public.treatment_period
+  add column fallen_doses_answer text not null default 'unasked'
+    check (fallen_doses_answer in ('unasked', 'stay-unlogged', 'not-due'));
+
+update public.treatment_period
+set fallen_doses_answer = 'stay-unlogged'
+where past_doses_stay_unlogged = 1;
+
+alter table public.treatment_period drop column past_doses_stay_unlogged;
+
+grant update (fallen_doses_answer) on table public.treatment_period to authenticated;
+
+select results_eq(
+  $$ select id::text, fallen_doses_answer from public.treatment_period
+     where id in ('00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-0000000000e2')
+     order by id $$,
+  $$ values ('00000000-0000-4000-8000-0000000000e1', 'unasked'),
+            ('00000000-0000-4000-8000-0000000000e2', 'stay-unlogged') $$,
+  'v15 : « Elles restent à renseigner » se garde, sinon aucune question posée');
+select is(
+  (select count(*) from public.treatment_period where fallen_doses_answer = 'not-due'),
+  0::bigint, 'v15 : aucun réglage ne passe à « n''étaient pas à donner »');
+select is(
+  (select count(*) from public.treatment_period p join before_v15 b using (id)
+   where p.updated_at is distinct from b.updated_at
+      or p.settings_written_at is distinct from b.settings_written_at),
+  0::bigint, 'v15 : ni la date de modification ni la date d''écriture des réglages ne bougent');
+select hasnt_column('public', 'treatment_period', 'past_doses_stay_unlogged',
+  'v15 : l''ancienne colonne booléenne est retirée');
+select throws_ok(
+  $$ update public.treatment_period set fallen_doses_answer = 'oui' $$, '23514', null,
+  'v15 : une réponse hors des trois états est refusée');
+select ok(
+  has_column_privilege('authenticated', 'public.treatment_period', 'fallen_doses_answer', 'UPDATE'),
+  'v15 : la réponse se synchronise');
 
 select * from finish();
 rollback;

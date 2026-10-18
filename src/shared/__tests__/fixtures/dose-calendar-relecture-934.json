@@ -9,7 +9,7 @@
           "firstDueOn": "2026-03-02",
           "gridOriginOn": "2026-03-02",
           "firstDueChosen": true,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "stoppedOn": null,
           "frequency": {
@@ -24,7 +24,7 @@
           "firstDueOn": "2026-03-12",
           "gridOriginOn": "2026-03-12",
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": true,
+          "fallenDosesAnswer": "stay-unlogged",
           "endsOn": "2026-04-07",
           "frequency": {
             "value": 1,
@@ -41,7 +41,7 @@
           "firstDueOn": "2026-03-26",
           "gridOriginOn": "2026-03-26",
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": "2026-04-07",
           "frequency": {
             "value": 3,
@@ -154,7 +154,7 @@
           "firstDueOn": "2026-03-10",
           "gridOriginOn": "2026-03-10",
           "firstDueChosen": true,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "stoppedOn": null,
           "frequency": {
@@ -169,7 +169,7 @@
           "firstDueOn": "2026-03-24",
           "gridOriginOn": "2026-03-24",
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "frequency": {
             "value": 2,
@@ -186,7 +186,7 @@
           "firstDueOn": "2026-03-24",
           "gridOriginOn": "2026-03-24",
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "frequency": {
             "value": 1,
@@ -312,7 +312,7 @@
           "firstDueOn": "2026-04-07",
           "gridOriginOn": "2026-04-07",
           "firstDueChosen": true,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "stoppedOn": "2026-04-08",
           "frequency": {
@@ -328,7 +328,7 @@
           "firstDueOn": "2026-04-09",
           "gridOriginOn": "2026-04-09",
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "stoppedOn": null,
           "frequency": {
@@ -344,7 +344,7 @@
           "firstDueOn": "2026-05-01",
           "gridOriginOn": "2026-05-01",
           "firstDueChosen": true,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "frequency": {
             "value": 6,
@@ -500,7 +500,7 @@
           "firstDueOn": "2026-04-07",
           "gridOriginOn": "2026-04-07",
           "firstDueChosen": true,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "stoppedOn": null,
           "frequency": {
@@ -516,7 +516,7 @@
           "firstDueOn": "2026-04-18",
           "gridOriginOn": null,
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": "2026-04-29",
           "frequency": {
             "value": 1,
@@ -579,7 +579,7 @@
           "firstDueOn": "2026-03-04",
           "gridOriginOn": "2026-03-04",
           "firstDueChosen": true,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "stoppedOn": null,
           "frequency": {
@@ -594,7 +594,7 @@
           "firstDueOn": "2026-04-01",
           "gridOriginOn": "2026-04-01",
           "firstDueChosen": true,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "frequency": {
             "value": 2,
@@ -611,7 +611,7 @@
           "firstDueOn": "2026-04-01",
           "gridOriginOn": "2026-04-01",
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "frequency": {
             "value": 6,
@@ -747,7 +747,7 @@
           "firstDueOn": "2026-03-02",
           "gridOriginOn": "2026-03-02",
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "stoppedOn": null,
           "frequency": {
@@ -763,7 +763,7 @@
           "firstDueOn": "2026-04-13",
           "gridOriginOn": "2026-04-13",
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "frequency": {
             "value": 6,
@@ -780,7 +780,7 @@
           "firstDueOn": "2026-04-13",
           "gridOriginOn": "2026-04-13",
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "frequency": {
             "value": 1,
@@ -916,7 +916,7 @@
           "firstDueOn": "2026-04-05",
           "gridOriginOn": "2026-04-05",
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "stoppedOn": null,
           "frequency": {
@@ -932,7 +932,7 @@
           "firstDueOn": "2026-04-12",
           "gridOriginOn": "2026-04-12",
           "firstDueChosen": true,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": "2026-05-07",
           "frequency": {
             "value": 1,
@@ -949,7 +949,7 @@
           "firstDueOn": "2026-04-12",
           "gridOriginOn": "2026-04-12",
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": "2026-05-07",
           "frequency": {
             "value": 2,
@@ -1075,7 +1075,7 @@
           "firstDueOn": "2026-04-04",
           "gridOriginOn": "2026-04-04",
           "firstDueChosen": true,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "stoppedOn": null,
           "frequency": {
@@ -1090,7 +1090,7 @@
           "firstDueOn": "2026-04-08",
           "gridOriginOn": "2026-04-08",
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "frequency": {
             "value": 1,
@@ -1107,7 +1107,7 @@
           "firstDueOn": "2026-05-08",
           "gridOriginOn": "2026-05-08",
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "frequency": {
             "value": 3,
@@ -1293,7 +1293,7 @@
           "firstDueOn": "2026-03-10",
           "gridOriginOn": "2026-03-10",
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "stoppedOn": null,
           "frequency": {
@@ -1309,7 +1309,7 @@
           "firstDueOn": "2026-03-29",
           "gridOriginOn": "2026-03-29",
           "firstDueChosen": true,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "frequency": {
             "value": 2,
@@ -1426,7 +1426,7 @@
           "firstDueOn": "2026-03-02",
           "gridOriginOn": "2026-03-02",
           "firstDueChosen": true,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "stoppedOn": null,
           "frequency": {
@@ -1441,7 +1441,7 @@
           "firstDueOn": "2026-03-18",
           "gridOriginOn": "2026-03-18",
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "frequency": {
             "value": 2,
@@ -1458,7 +1458,7 @@
           "firstDueOn": "2026-03-18",
           "gridOriginOn": "2026-03-18",
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "frequency": {
             "value": 1,
@@ -1584,7 +1584,7 @@
           "firstDueOn": "2026-03-11",
           "gridOriginOn": "2026-03-11",
           "firstDueChosen": true,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "stoppedOn": null,
           "frequency": {
@@ -1600,7 +1600,7 @@
           "firstDueOn": "2026-09-21",
           "gridOriginOn": "2026-09-21",
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "frequency": {
             "value": 3,
@@ -1714,7 +1714,7 @@
           "firstDueOn": "2026-04-20",
           "gridOriginOn": "2026-04-20",
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "stoppedOn": null,
           "frequency": {
@@ -1730,7 +1730,7 @@
           "firstDueOn": "2026-04-26",
           "gridOriginOn": "2026-04-26",
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "frequency": {
             "value": 1,
@@ -1856,7 +1856,7 @@
           "firstDueOn": "2026-04-10",
           "gridOriginOn": "2026-04-10",
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "stoppedOn": null,
           "frequency": {
@@ -1872,7 +1872,7 @@
           "firstDueOn": "2026-04-15",
           "gridOriginOn": "2026-04-15",
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "frequency": {
             "value": 1,
@@ -1978,7 +1978,7 @@
           "firstDueOn": "2026-03-10",
           "gridOriginOn": "2026-03-10",
           "firstDueChosen": true,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": "2026-04-12",
           "stoppedOn": null,
           "frequency": {
@@ -1993,7 +1993,7 @@
           "firstDueOn": "2026-03-24",
           "gridOriginOn": "2026-03-24",
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": "2026-03-31",
           "frequency": {
             "value": 2,
@@ -2010,7 +2010,7 @@
           "firstDueOn": "2026-03-24",
           "gridOriginOn": null,
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": "2026-03-31",
           "frequency": {
             "value": 2,
@@ -2026,7 +2026,7 @@
           "firstDueOn": "2026-03-27",
           "gridOriginOn": "2026-03-27",
           "firstDueChosen": true,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": "2026-03-31",
           "frequency": {
             "value": 2,
@@ -2129,7 +2129,7 @@
           "firstDueOn": "2026-03-18",
           "gridOriginOn": "2026-03-18",
           "firstDueChosen": true,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "stoppedOn": null,
           "frequency": {
@@ -2144,7 +2144,7 @@
           "firstDueOn": "2026-04-13",
           "gridOriginOn": "2026-04-13",
           "firstDueChosen": true,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": "2026-04-22",
           "frequency": {
             "value": 2,
@@ -2161,7 +2161,7 @@
           "firstDueOn": "2026-04-02",
           "gridOriginOn": null,
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": "2026-04-22",
           "frequency": {
             "value": 2,
@@ -2177,7 +2177,7 @@
           "firstDueOn": "2026-04-02",
           "gridOriginOn": null,
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": "2026-04-22",
           "frequency": {
             "value": 2,
@@ -2193,7 +2193,7 @@
           "firstDueOn": "2026-04-06",
           "gridOriginOn": "2026-04-06",
           "firstDueChosen": true,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": "2026-04-22",
           "frequency": {
             "value": 2,
@@ -2316,7 +2316,7 @@
           "firstDueOn": "2026-04-03",
           "gridOriginOn": "2026-04-03",
           "firstDueChosen": true,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "stoppedOn": null,
           "frequency": {
@@ -2331,7 +2331,7 @@
           "firstDueOn": "2026-04-07",
           "gridOriginOn": "2026-04-07",
           "firstDueChosen": true,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "frequency": {
             "value": 3,
@@ -2348,7 +2348,7 @@
           "firstDueOn": "2026-04-04",
           "gridOriginOn": "2026-04-04",
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "frequency": {
             "value": 3,
@@ -2524,7 +2524,7 @@
           "firstDueOn": "2026-03-18",
           "gridOriginOn": "2026-03-18",
           "firstDueChosen": true,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "stoppedOn": null,
           "frequency": {
@@ -2539,7 +2539,7 @@
           "firstDueOn": "2026-03-28",
           "gridOriginOn": "2026-03-28",
           "firstDueChosen": true,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "frequency": {
             "value": 1,
@@ -2556,7 +2556,7 @@
           "firstDueOn": "2026-03-31",
           "gridOriginOn": "2026-03-31",
           "firstDueChosen": false,
-          "pastDosesStayUnlogged": false,
+          "fallenDosesAnswer": "unasked",
           "endsOn": null,
           "frequency": {
             "value": 1,

@@ -44,7 +44,7 @@ function period(overrides: Partial<TreatmentPeriod> = {}): TreatmentPeriod & Per
     firstDueOn,
     gridOriginOn: firstDueOn,
     firstDueChosen: true,
-    pastDosesStayUnlogged: false,
+    fallenDosesAnswer: 'unasked',
   }
 }
 
@@ -196,10 +196,10 @@ describe('treatmentPeriodsRepository', () => {
       reminderOffsetMinutes: 30,
       reminderTime: null,
     }
-    const ORIGINE = {
+    const ORIGINE: PeriodOrigin = {
       gridOriginOn: REGLAGES.firstDueOn,
       firstDueChosen: false,
-      pastDosesStayUnlogged: true,
+      fallenDosesAnswer: 'stay-unlogged',
     }
     const COMPLETE: TreatmentPeriodRecord = {
       ...period({ id: REPRISE, createdAt: EARLIER, updatedAt: EARLIER }),
@@ -278,18 +278,37 @@ describe('treatmentPeriodsRepository', () => {
       await expect(row(REPRISE)).resolves.toMatchObject({ updated_at: EARLIER })
     })
 
-    it.each([
-      ['la date choisie', { firstDueChosen: true }],
-      ['la réponse « Elles restent à renseigner »', { pastDosesStayUnlogged: false }],
-    ])('date la période quand seule %s change', async (_, fact) => {
+    it.each<[string, Partial<PeriodOrigin>]>([['la date choisie', { firstDueChosen: true }]])(
+      'date la période quand seule %s change',
+      async (_, fact) => {
+        await db.runMany([periods.insertStatement(COMPLETE)])
+
+        await db.runMany([
+          periods.correctSettingsStatement(REPRISE, REGLAGES, NOW, { ...ORIGINE, ...fact }),
+        ])
+
+        const [, current] = await periods.listByTreatment(MILBEMAX)
+        expect(current).toEqual({ ...COMPLETE, ...fact, updatedAt: NOW, settingsWrittenAt: NOW })
+      },
+    )
+
+    it('écrit seule la réponse à la question des doses tombées sans dater le calendrier (v15)', async () => {
       await db.runMany([periods.insertStatement(COMPLETE)])
 
       await db.runMany([
-        periods.correctSettingsStatement(REPRISE, REGLAGES, NOW, { ...ORIGINE, ...fact }),
+        periods.correctSettingsStatement(REPRISE, REGLAGES, NOW, {
+          ...ORIGINE,
+          fallenDosesAnswer: 'not-due',
+        }),
       ])
 
       const [, current] = await periods.listByTreatment(MILBEMAX)
-      expect(current).toEqual({ ...COMPLETE, ...fact, updatedAt: NOW, settingsWrittenAt: NOW })
+      expect(current).toEqual({
+        ...COMPLETE,
+        fallenDosesAnswer: 'not-due',
+        updatedAt: NOW,
+        settingsWrittenAt: EARLIER,
+      })
     })
 
     describe('date d’écriture des réglages (R10, #867)', () => {
@@ -319,7 +338,6 @@ describe('treatmentPeriodsRepository', () => {
         ['les heures', { times: ['06:00'] }, {}],
         ['l’origine de la grille', {}, { gridOriginOn: null }],
         ['la date choisie', {}, { firstDueChosen: true }],
-        ['la réponse « Elles restent à renseigner »', {}, { pastDosesStayUnlogged: false }],
       ])('avance quand %s change', async (_, settings, origin) => {
         await db.runMany([
           periods.correctSettingsStatement(REPRISE, { ...REGLAGES, ...settings }, NOW, {
@@ -469,7 +487,7 @@ describe('treatmentPeriodsRepository', () => {
       firstDueOn: '2026-02-11',
       gridOriginOn: '2026-01-31',
       firstDueChosen: true,
-      pastDosesStayUnlogged: true,
+      fallenDosesAnswer: 'stay-unlogged',
       endsOn: '2026-03-10',
       stoppedOn: '2026-02-20',
       frequency: { value: 1, unit: 'day' },
@@ -503,7 +521,7 @@ describe('treatmentPeriodsRepository', () => {
         ...period(),
         gridOriginOn: '2026-01-10',
         firstDueChosen: true,
-        pastDosesStayUnlogged: false,
+        fallenDosesAnswer: 'unasked',
         endsOn: null,
         times: [],
         doseQuantity: null,

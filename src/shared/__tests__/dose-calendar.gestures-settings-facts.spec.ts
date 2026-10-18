@@ -10,9 +10,9 @@ import { H, keys, line, setting, TWO_DAYS } from './dose-calendar.v2.aides'
 
 const THREE_DAYS = { value: 3, unit: 'day' as const }
 
-const facts = ({ setting: { firstDueChosen, pastDosesStayUnlogged } }: SettingsPlan) => ({
+const facts = ({ setting: { firstDueChosen, fallenDosesAnswer } }: SettingsPlan) => ({
   firstDueChosen,
-  pastDosesStayUnlogged,
+  fallenDosesAnswer,
 })
 
 function planOf(input: TreatmentViewInput, request: SettingsRequest): SettingsPlan {
@@ -32,7 +32,7 @@ describe('#836 : le réglage écrit dit si sa première dose a été choisie dan
 
   it('tous les 3 jours depuis le 3 oct. ; le 7, tous les 2 jours à la date proposée : date non choisie', () => {
     const plan = planOf(input, everyTwo)
-    expect(facts(plan)).toEqual({ firstDueChosen: false, pastDosesStayUnlogged: false })
+    expect(facts(plan)).toEqual({ firstDueChosen: false, fallenDosesAnswer: 'unasked' })
     expect(facts(planOf(input, { ...everyTwo, firstDueOn: plan.setting.firstDueOn }))).toEqual(
       facts(plan),
     )
@@ -41,7 +41,7 @@ describe('#836 : le réglage écrit dit si sa première dose a été choisie dan
   it('même carnet, « Prochaine dose » le 10 : date choisie', () => {
     expect(facts(planOf(input, { ...everyTwo, firstDueOn: '2026-10-10' }))).toEqual({
       firstDueChosen: true,
-      pastDosesStayUnlogged: false,
+      fallenDosesAnswer: 'unasked',
     })
   })
 
@@ -74,10 +74,13 @@ describe('#817, Q38 : seule « Elles restent à renseigner » écrit que les dos
       if (!('question' in result) || 'refusal' in result.question.correct) {
         throw new Error(JSON.stringify(result))
       }
-      expect(facts(result.question.keep)).toEqual({ firstDueChosen, pastDosesStayUnlogged: true })
+      expect(facts(result.question.keep)).toEqual({
+        firstDueChosen,
+        fallenDosesAnswer: 'stay-unlogged',
+      })
       expect(facts(result.question.correct)).toEqual({
         firstDueChosen,
-        pastDosesStayUnlogged: false,
+        fallenDosesAnswer: 'not-due',
       })
     },
   )
@@ -86,12 +89,12 @@ describe('#817, Q38 : seule « Elles restent à renseigner » écrit que les dos
     const kept = setting('t2', '2026-10-06', TWO_DAYS, ['09:00'], {
       firstDueOn: '2026-10-08',
       gridOriginOn: '2026-10-08',
-      pastDosesStayUnlogged: true,
+      fallenDosesAnswer: 'stay-unlogged',
     })
     const later = { ...input, settings: [everyTwo, kept] }
     const plan = planOf(later, { ...request, endsOn: '2026-12-31' })
     expect(plan).toMatchObject({ action: 'rewrite', id: 't2' })
-    expect(plan.setting.pastDosesStayUnlogged).toBe(true)
+    expect(plan.setting.fallenDosesAnswer).toBe('stay-unlogged')
   })
 })
 

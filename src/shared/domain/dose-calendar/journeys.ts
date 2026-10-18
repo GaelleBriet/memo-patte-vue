@@ -172,7 +172,8 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     // TR-9 : à fréquence gardée, une première échéance choisie remplace la dose du moment du rythme,
     // même quand son réglage est remplacé le jour même par un réglage sans date choisie, sauf
     // après « Elles restent à renseigner » (R10, #817, #836).
-    const replaces = kept && setting.firstDueChosen && !setting.pastDosesStayUnlogged && !ended
+    const replaces =
+      kept && setting.firstDueChosen && setting.fallenDosesAnswer !== 'stay-unlogged' && !ended
     if (replaces) {
       const onDueDay =
         setting.startsOn > inherited.floor &&

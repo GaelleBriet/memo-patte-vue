@@ -138,7 +138,7 @@ export function resumed(walk: SettingsWalk): TreatmentViewInput | null {
     firstDueOn,
     gridOriginOn: firstDueOn,
     firstDueChosen: true,
-    pastDosesStayUnlogged: false,
+    fallenDosesAnswer: 'unasked',
     endsOn: random() < 0.2 ? plusDays(firstDueOn, int(random, 3, 40)) : null,
     stoppedOn: null,
     frequency: pick(random, FREQUENCIES)!,

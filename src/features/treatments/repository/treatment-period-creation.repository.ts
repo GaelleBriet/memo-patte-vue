@@ -46,7 +46,7 @@ export function createPeriodCreation(deviceId: () => string) {
           settings.firstDueOn,
           originOf(period.gridOriginOn),
           flag(period.firstDueChosen),
-          flag(period.pastDosesStayUnlogged),
+          period.fallenDosesAnswer,
           settings.endsOn,
           period.stoppedOn,
           settings.frequency.value,

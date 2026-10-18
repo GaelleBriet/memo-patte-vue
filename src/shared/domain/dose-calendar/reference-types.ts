@@ -9,8 +9,8 @@ export type ReferenceSetting = {
   gridOriginOn: string | null
   /** La première échéance vient de la personne, pas d'une date proposée. */
   firstDueChosen: boolean
-  /** Réponse « Elles restent à renseigner » à la question Q38. */
-  pastDosesStayUnlogged: boolean
+  /** Réponse à la question Q38 des doses tombées : aucune question, « restent à renseigner », « n'étaient pas à donner ». */
+  fallenDosesAnswer: 'unasked' | 'stay-unlogged' | 'not-due'
   endsOn: string | null
   stoppedOn: string | null
   frequency: ReferenceFrequency

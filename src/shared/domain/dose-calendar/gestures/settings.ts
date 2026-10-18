@@ -4,6 +4,7 @@ import { episodesOf, hasNotes } from '../settings'
 import type {
   Day,
   Due,
+  FallenDosesAnswer,
   Refusal,
   Setting,
   SettingFields,
@@ -46,23 +47,23 @@ function fieldsOf(startsOn: Day, dates: Dates, request: SettingsRequest): Settin
   return {
     startsOn,
     ...dates,
-    pastDosesStayUnlogged: false,
+    fallenDosesAnswer: 'unasked',
     endsOn: request.endsOn,
     frequency: request.frequency,
     times: [...request.times],
   }
 }
 
-// Q38 : seule une réponse à la question écrit « Elles restent à renseigner » ; une réécriture la garde.
+// Q38 : seule une réponse à la question écrit la réponse ; une réécriture la garde.
 const rewrite = (current: Setting, setting: SettingFields): SettingsPlan => ({
   action: 'rewrite',
   id: current.id,
-  setting: { ...setting, pastDosesStayUnlogged: current.pastDosesStayUnlogged },
+  setting: { ...setting, fallenDosesAnswer: current.fallenDosesAnswer },
 })
 
-const answered = (plan: SettingsPlan, pastDosesStayUnlogged: boolean): SettingsPlan => ({
+const answered = (plan: SettingsPlan, fallenDosesAnswer: FallenDosesAnswer): SettingsPlan => ({
   ...plan,
-  setting: { ...plan.setting, pastDosesStayUnlogged },
+  setting: { ...plan.setting, fallenDosesAnswer },
 })
 
 const sameHours = (a: readonly string[], b: readonly string[]) =>
@@ -221,7 +222,11 @@ function corrected(
     return rewrite(current, fieldsOf(startsOn, dates, request))
   }
   const answer = (keep: SettingsPlan, correct: SettingsPlan, shownOn?: Day): SettingsResult => {
-    const question = { fallen, keep: answered(keep, true), correct: answered(correct, false) }
+    const question = {
+      fallen,
+      keep: answered(keep, 'stay-unlogged'),
+      correct: answered(correct, 'not-due'),
+    }
     const result = fallen.length === 0 ? { plan: correct } : { question }
     const first = 'plan' in result ? correct : keep
     return shownOn === undefined || shownOn === first.setting.firstDueOn

@@ -20,7 +20,7 @@ describe('R6, R9 : heures seules corrigées, une origine écrite par l’app ne 
         setting('s2', '2026-04-06', MONTH, ['20:00'], {
           startsOn: '2026-03-07',
           firstDueChosen: false,
-          pastDosesStayUnlogged: true,
+          fallenDosesAnswer: 'stay-unlogged',
         }),
         setting('s3', '2026-04-02', MONTH, ['08:00', '14:00', '20:00'], {
           startsOn: '2026-03-21',

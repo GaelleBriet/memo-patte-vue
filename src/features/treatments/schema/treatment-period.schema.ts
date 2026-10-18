@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { treatmentFrequencySchema } from './treatment.schema'
 import { isCalendarDay } from '@/shared/domain/calendar-day'
 import { CLOCK_TIME_PATTERN, MAX_TIMES_PER_DAY } from '@/shared/domain/clock-time'
+import type { FallenDosesAnswer } from '@/shared/domain/dose-calendar'
 import { DOSE_UNITS, type DoseUnit } from '@/shared/domain/dosage'
 
 export const treatmentPeriodSchema = z.object({
@@ -32,8 +33,8 @@ export type TreatmentPeriodRecord = TreatmentPeriod & {
   gridOriginOn: string | null
   /** #836 : la première échéance vient de la personne, pas d'une date proposée par l'app. */
   firstDueChosen: boolean
-  /** #817, Q38 : réponse « Elles restent à renseigner ». */
-  pastDosesStayUnlogged: boolean
+  /** Q38, #873 : réponse à la question des doses tombées ; `unasked` : aucune question posée. */
+  fallenDosesAnswer: FallenDosesAnswer
   endsOn: string | null
   /** Heures `HH:mm` de chaque jour d'échéance ; vide pour un traitement sans heure. */
   times: string[]
@@ -48,7 +49,7 @@ export type TreatmentPeriodRecord = TreatmentPeriod & {
 /** D'où part la grille d'une période, et ce que la personne en a dit (R2, R3, R9, R10). */
 export type PeriodOrigin = Pick<
   TreatmentPeriodRecord,
-  'gridOriginOn' | 'firstDueChosen' | 'pastDosesStayUnlogged'
+  'gridOriginOn' | 'firstDueChosen' | 'fallenDosesAnswer'
 >
 
 /** Ce qu'un formulaire règle dans une période. */

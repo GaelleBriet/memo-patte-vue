@@ -27,7 +27,7 @@ export function setting(
     startsOn: firstDueOn,
     firstDueOn,
     firstDueChosen: gridOriginOn !== null,
-    pastDosesStayUnlogged: false,
+    fallenDosesAnswer: 'unasked',
     endsOn: null,
     stoppedOn: null,
     frequency,

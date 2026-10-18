@@ -28,11 +28,14 @@ import {
   fromVersion4,
   fromVersion5,
   fromVersion6,
+  fromVersion7,
+  type Version5Data,
 } from '../logic/export-file-versions'
 import { carnetSettingsSchema } from './carnet-settings.schema'
 import { isCalendarDay, MAX_CALENDAR_YEAR, MIN_CALENDAR_YEAR } from '@/shared/domain/calendar-day'
 import { CLOCK_TIME_PATTERN } from '@/shared/domain/clock-time'
 import type { ExportData } from '@/shared/domain/carnet-data'
+import { FALLEN_DOSES_ANSWERS } from '@/shared/domain/dose-calendar'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
 const MAX_TEXT_LENGTH = 200
@@ -197,6 +200,12 @@ const signedCarnet = {
   devices: z.array(deviceFileSchema).refine(hasUniqueIds),
 }
 
+const movedDoses = z.array(
+  signed({ ...doseShape, targetOn: day.nullable() })
+    .refine(isConsistentDose)
+    .refine(({ status, targetOn }) => isMove(status) === (targetOn !== null)),
+)
+
 const version6PeriodShape = {
   ...periodShape,
   gridOriginOn: day.nullable(),
@@ -204,17 +213,29 @@ const version6PeriodShape = {
   pastDosesStayUnlogged: z.boolean(),
 }
 
+const version8PeriodShape = {
+  ...periodShape,
+  gridOriginOn: day.nullable(),
+  firstDueChosen: z.boolean(),
+  fallenDosesAnswer: z.enum(FALLEN_DOSES_ANSWERS),
+  settingsWrittenAt: instant,
+}
+
+const version8FileSchema = z
+  .object({
+    ...signedCarnet,
+    treatmentPeriods: z.array(signed(version8PeriodShape).refine(isConsistentPeriod)),
+    treatmentDoses: movedDoses,
+  })
+  .refine(isConsistentCarnet)
+
 const version7FileSchema = z
   .object({
     ...signedCarnet,
     treatmentPeriods: z.array(
       signed({ ...version6PeriodShape, settingsWrittenAt: instant }).refine(isConsistentPeriod),
     ),
-    treatmentDoses: z.array(
-      signed({ ...doseShape, targetOn: day.nullable() })
-        .refine(isConsistentDose)
-        .refine(({ status, targetOn }) => isMove(status) === (targetOn !== null)),
-    ),
+    treatmentDoses: movedDoses,
   })
   .refine(isConsistentCarnet)
 
@@ -222,11 +243,7 @@ const version6FileSchema = z
   .object({
     ...signedCarnet,
     treatmentPeriods: z.array(signed(version6PeriodShape).refine(isConsistentPeriod)),
-    treatmentDoses: z.array(
-      signed({ ...doseShape, targetOn: day.nullable() })
-        .refine(isConsistentDose)
-        .refine(({ status, targetOn }) => isMove(status) === (targetOn !== null)),
-    ),
+    treatmentDoses: movedDoses,
   })
   .refine(isConsistentCarnet)
 
@@ -236,11 +253,7 @@ const version5FileSchema = z
     treatmentPeriods: z.array(
       signed({ ...periodShape, gridOriginOn: day.nullable() }).refine(isConsistentPeriod),
     ),
-    treatmentDoses: z.array(
-      signed({ ...doseShape, targetOn: day.nullable() })
-        .refine(isConsistentDose)
-        .refine(({ status, targetOn }) => isMove(status) === (targetOn !== null)),
-    ),
+    treatmentDoses: movedDoses,
   })
   .refine(isConsistentCarnet)
 
@@ -270,14 +283,15 @@ const version3FileSchema = z
 export const exportVersionSchema = z.object({ schemaVersion: z.number().int().positive() })
 
 export function exportFileSchemaOf(version: number, deviceId: string): z.ZodType<ExportData> {
+  const fromVersion5To8 = (data: Version5Data) => fromVersion7(fromVersion6(fromVersion5(data)))
   if (version === 3) {
     return version3FileSchema.transform((data) =>
-      fromVersion6(fromVersion5(fromVersion4(fromVersion3(data, deviceId)))),
+      fromVersion5To8(fromVersion4(fromVersion3(data, deviceId))),
     )
   }
-  if (version === 4) {
-    return version4FileSchema.transform((data) => fromVersion6(fromVersion5(fromVersion4(data))))
-  }
-  if (version === 5) return version5FileSchema.transform((data) => fromVersion6(fromVersion5(data)))
-  return version === 6 ? version6FileSchema.transform(fromVersion6) : version7FileSchema
+  if (version === 4)
+    return version4FileSchema.transform((data) => fromVersion5To8(fromVersion4(data)))
+  if (version === 5) return version5FileSchema.transform(fromVersion5To8)
+  if (version === 6) return version6FileSchema.transform((data) => fromVersion7(fromVersion6(data)))
+  return version === 7 ? version7FileSchema.transform(fromVersion7) : version8FileSchema
 }
