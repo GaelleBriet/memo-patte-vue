@@ -240,22 +240,29 @@ même colonne et même valeur ; export JSON v7 (`export-format.md`).
 
 ### 4.5 Évolution v15 (réponse à la question des doses tombées, #873)
 
-Décision de Gaelle du 2026-10-18 (#873, par la session d'analyse du moteur) : le réglage dit ce que
-la personne a répondu à la question Q38, le moteur ne le devine pas. `past_doses_stay_unlogged`
-(booléen) est remplacée par `fallen_doses_answer` (`TEXT NOT NULL DEFAULT 'unasked'`), à trois états :
-`unasked` (aucune question posée), `stay-unlogged` (« Elles restent à renseigner »), `not-due`
-(« Elles n'étaient pas à donner »). Le moteur ne retire une dose tombée que sous `not-due` ; le jour
-de la réponse est le jour local de `settings_written_at` (v14), que la réponse seule ne fait pas
-avancer : elle est écrite avec le réglage qui répond, dont le calendrier change. Une réécriture sans
-question garde la réponse du réglage. Écartées : déduire la réponse d'un réglage réécrit (une simple
-« Prochaine dose » retirait des doses, relecture de #914), une ligne par dose retirée.
+Décisions de Gaelle du 2026-10-18 (#873, par la session d'analyse du moteur) : le réglage dit ce que
+la personne a répondu à la question Q38, et chaque dose qu'elle a déclarée « pas à donner » est une
+ligne. `past_doses_stay_unlogged` (booléen) est remplacée par `fallen_doses_answer`
+(`TEXT NOT NULL DEFAULT 'unasked'`), à trois états : `unasked` (aucune question posée),
+`stay-unlogged` (« Elles restent à renseigner »), `not-due` (« Elles n'étaient pas à donner ») ; la
+réponse seule ne fait pas avancer `settings_written_at` (v14). `treatment_dose.status` accepte
+`not-due` : « Elles n'étaient pas à donner » écrit une ligne `not-due` par dose que la question a
+montrée (jour, heure, réglage, date de modification, appareil), par le même geste ; une réécriture
+sans question n'en écrit ni n'en efface. Une ligne `not-due` compte comme une ligne (journée touchée
+R4, « le plus récent l'emporte » TR-25, suppression seule #822) et jamais comme une prise ; sa dose
+n'existe nulle part. Écartées : déduire la réponse d'un réglage réécrit (une simple « Prochaine dose »
+retirait des doses, relecture de #914) ; une date ou une liste de doses sur le réglage (une dose dont
+la prise était supprimée plus tard sortait sans avoir été listée, et une seconde réponse remplaçait
+la première : relectures de la PR #948, fermée).
 
 La migration (`src/core/db/migration-v15.ts`) recrée `treatment_period` et `treatment_dose` comme la
 v14, sans `DELETE` ni `UPDATE` de premier niveau. Réglages existants : `stay-unlogged` quand
 `past_doses_stay_unlogged = 1`, sinon `unasked`, jamais `not-due` (le booléen ne distinguait pas cette
-réponse d'aucune question : rien n'est retiré après coup). Miroir Supabase :
+réponse d'aucune question : rien n'est retiré après coup) ; aucune ligne `not-due` n'est créée.
+Miroir Supabase :
 `supabase/migrations/20261018090000_sync_mirror_treatment_period_fallen_doses_answer.sql`, même
-colonne, mêmes valeurs, l'ancienne colonne retirée ; export JSON v8 (`export-format.md`).
+colonne, mêmes valeurs, l'ancienne colonne retirée, contrainte d'état des prises élargie à `not-due` ;
+export JSON v8 (`export-format.md`).
 
 ## 5. Décisions
 

@@ -136,7 +136,8 @@ période porte `settingsWrittenAt`, la dernière écriture de ce qui fait son ca
 **Version 8** (#873, schéma v15, [`modele-de-donnees-v2.md`](modele-de-donnees-v2.md) §4.5) : une
 période porte `fallenDosesAnswer`, la réponse à la question Q38 des doses tombées, à la place du
 booléen `pastDosesStayUnlogged` : `"unasked"` (aucune question posée), `"stay-unlogged"` (« Elles
-restent à renseigner ») ou `"not-due"` (« Elles n'étaient pas à donner »).
+restent à renseigner ») ou `"not-due"` (« Elles n'étaient pas à donner ») ; une prise peut valoir
+`"not-due"` (dose déclarée pas à donner par cette réponse, #873).
 
 | Champ           | Type                   | Sens                                                                 |
 | --------------- | ---------------------- | -------------------------------------------------------------------- |
@@ -286,7 +287,7 @@ la décrit dans le fichier.
 | `dueOn`       | `AAAA-MM-JJ`                             | Jour de l'échéance couverte                                              |
 | `dueTime`     | `HH:mm` \| `null`                        | Heure de l'échéance ; `null` sans heure                                  |
 | `givenOn`     | `AAAA-MM-JJ` \| `null`                   | Date réelle, jamais dans le futur ; `null` pour une oubliée ou un report |
-| `status`      | `"given"` \| `"missed"` \| `"postponed"` \| `"extra"` \| `"shift"` | Donnée, oubliée, reportée, prise en plus, ligne de décalage |
+| `status`      | `"given"` \| `"missed"` \| `"postponed"` \| `"extra"` \| `"shift"` \| `"not-due"` | Donnée, oubliée, reportée, prise en plus, ligne de décalage, pas à donner (v8, #873) |
 | `targetOn`    | `AAAA-MM-JJ` \| `null`                   | Report : jour d'arrivée ; décalage : jour d'ancrage ; `null` pour une prise |
 | `createdAt`   | ISO 8601 UTC                             |                                                                          |
 | `updatedAt`   | ISO 8601 UTC                             |                                                                          |
