@@ -8,7 +8,7 @@ const WRITTEN = '2026-03-09T08:00:00.000Z'
 const written = { createdAt: WRITTEN, updatedAt: WRITTEN }
 
 // Milo, chaque lundi à 8 h et 20 h ; la dose du 16 à 20 h est donnée le 9 ; le 11 passage à 9 h
-// avec « Prochaine dose » le 23 ; aujourd'hui le 12 mars (#921 : refus `later-dose` d'avant #882).
+// avec « Prochaine dose » le 23 ; aujourd'hui le 12 mars.
 function milo() {
   const week = { value: 1, unit: 'week' as const }
   return treatment(
