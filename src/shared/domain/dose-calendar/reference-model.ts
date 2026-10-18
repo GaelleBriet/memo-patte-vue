@@ -1,6 +1,6 @@
 import { calendarOf } from './reference-calendar'
 import { keyOf, longestStep, plusDays } from './reference-grid'
-import { episodesOf, isNote, latestBy } from './reference-lines'
+import { episodesOf, isTaken, latestBy } from './reference-lines'
 import type {
   ReferenceInput,
   ReferenceLine,
@@ -32,7 +32,7 @@ function borrowedNotes(
   const before = new Set(episodes.slice(0, index).flatMap((earlier) => earlier.map(({ id }) => id)))
   return latestBy(
     lines.filter(
-      (line) => before.has(line.settingId) && isNote(line) && line.dueOn === first.startsOn,
+      (line) => before.has(line.settingId) && isTaken(line) && line.dueOn === first.startsOn,
     ),
     (line) => keyOf(line.dueOn, line.dueTime),
   )

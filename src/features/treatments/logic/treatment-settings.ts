@@ -105,7 +105,7 @@ export function draftPeriod(settings: TreatmentPeriodSettings, at: string): Trea
     ...settings,
     gridOriginOn: settings.firstDueOn,
     firstDueChosen: true,
-    pastDosesStayUnlogged: false,
+    fallenDosesAnswer: 'unasked',
     id: DRAFT_ID,
     treatmentId: DRAFT_ID,
     animalId: DRAFT_ID,

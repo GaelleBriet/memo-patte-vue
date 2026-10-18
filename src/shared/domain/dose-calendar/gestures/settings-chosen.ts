@@ -1,5 +1,5 @@
 import { dayOfKey } from '../grid'
-import { isNote } from '../lines'
+import { isTaken } from '../lines'
 import { episodesOf } from '../settings'
 import type { Day, Refusal, SettingsPlan, TreatmentViewInput } from '../types'
 import { buildView } from '../view'
@@ -39,7 +39,7 @@ function laterNote(input: TreatmentViewInput, isLater: (day: Day) => boolean): R
   const episode = new Set((episodesOf(input.settings).at(-1) ?? []).map(({ id }) => id))
   const later = buildView(input).history.some(
     ({ line, effect }) =>
-      isNote(line) &&
+      isTaken(line) &&
       episode.has(line.settingId) &&
       effect.kind === 'covers' &&
       isLater(dayOfKey(effect.key)),
@@ -84,7 +84,7 @@ export function withChosenDate(
   if (!isChosen(chosen, implicit) || 'refusal' in result) return result
   const lines = arrivalMoved(input, chosen)
   if (lines.length === 0) return result
-  const carry = (plan: SettingsPlan) => ({ ...plan, lines })
+  const carry = (plan: SettingsPlan) => ({ ...plan, lines: [...(plan.lines ?? []), ...lines] })
   if ('plan' in result) return { ...result, plan: carry(result.plan) }
   const { correct } = result.question
   if ('refusal' in correct) return result

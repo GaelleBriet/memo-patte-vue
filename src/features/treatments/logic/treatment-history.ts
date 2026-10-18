@@ -40,6 +40,7 @@ const FAMILY_RANK: Record<NewTreatmentDose['status'], number> = {
   postponed: 0,
   given: 1,
   missed: 1,
+  'not-due': 1,
   extra: 1,
   shift: 2,
 }

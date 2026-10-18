@@ -108,6 +108,7 @@ function eventOf(dose: ShownDose, severalTimes: boolean): Event[] {
         },
       ]
     case 'shift':
+    case 'not-due':
       return []
   }
 }

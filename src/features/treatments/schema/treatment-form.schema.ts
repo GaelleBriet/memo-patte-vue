@@ -92,6 +92,8 @@ export const treatmentEditionSchema = z
     /** La case « Décaler aussi les doses suivantes », cochée par défaut. */
     shiftsFollowing: z.boolean().optional(),
     pastDues: pastDuesChoiceSchema.optional(),
+    /** #873 : les échéances que la question a montrées, que la réponse vise. */
+    pastDuesShown: z.array(z.string()).optional(),
   })
   .refine(hasWholeDosage, WHOLE_DOSAGE)
 

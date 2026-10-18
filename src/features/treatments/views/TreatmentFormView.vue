@@ -58,7 +58,7 @@ const props = defineProps<{
 const { t } = useI18n()
 const animals = useAnimalsStore()
 const treatments = useTreatmentsStore()
-const { today } = useToday()
+const { today, refresh: refreshToday } = useToday()
 const exactReminders = useExactReminders()
 
 const mode = props.id === undefined ? 'create' : props.resume ? 'resume' : 'edit'
@@ -103,7 +103,8 @@ const creation =
         targetAnimal,
       })
     : null
-const edition = mode === 'edit' ? useTreatmentEditionForm({ values, treatment, today }) : null
+const edition =
+  mode === 'edit' ? useTreatmentEditionForm({ values, treatment, today, refreshToday }) : null
 const resumption =
   mode === 'resume' ? useTreatmentResumptionForm({ values, treatment, today, endsOnTouched }) : null
 const form = creation ?? edition ?? resumption

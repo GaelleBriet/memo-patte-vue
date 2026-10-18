@@ -45,16 +45,19 @@ export function settingsWritten(walk: SettingsWalk, plan: SettingsPlan): Treatme
   return { ...walk.input, settings: [...settings, created], lines }
 }
 
-// R7, #796 : le report que la date choisie fait arriver, réécrit ou supprimé comme par le repository,
-// au même instant que le réglage.
+// R7, #796, #873 : le report que la date choisie fait arriver et les lignes « pas à donner », écrits
+// comme par le repository, au même instant que le réglage.
 function linesWritten(
   walk: SettingsWalk,
   changes: NonNullable<SettingsPlan['lines']>,
   updatedAt: string,
 ): Line[] {
   return changes.reduce<Line[]>(
-    (lines, change) => {
+    (lines, change, index) => {
       if (change.action === 'delete') return lines.filter(({ id }) => id !== change.id)
+      if (change.action === 'create') {
+        return [...lines, { ...change.line, id: `r${updatedAt}-${index}`, updatedAt }]
+      }
       return lines.map((line) =>
         line.id === change.id ? { ...change.line, id: line.id, updatedAt } : line,
       )
@@ -138,7 +141,7 @@ export function resumed(walk: SettingsWalk): TreatmentViewInput | null {
     firstDueOn,
     gridOriginOn: firstDueOn,
     firstDueChosen: true,
-    pastDosesStayUnlogged: false,
+    fallenDosesAnswer: 'unasked',
     endsOn: random() < 0.2 ? plusDays(firstDueOn, int(random, 3, 40)) : null,
     stoppedOn: null,
     frequency: pick(random, FREQUENCIES)!,

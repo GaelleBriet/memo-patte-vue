@@ -1,6 +1,6 @@
 import type { z } from 'zod'
 
-import { treatmentEditionSchemaFor } from './treatment-edition-checks'
+import { shownDueKey, treatmentEditionSchemaFor } from './treatment-edition-checks'
 import { editionDraft, type EditionDraft } from './treatment-edition-draft'
 import {
   emptyTreatmentFormValues,
@@ -36,7 +36,8 @@ export function editionDraftOf(
 
 /**
  * « Prochaine dose » n'est envoyée que si elle est proposée : vide, elle est alors refusée. Avec une
- * réponse `pastDues`, la date envoyée est celle que la question a annoncée pour ce choix.
+ * réponse `pastDues`, la date envoyée est celle que la question a annoncée pour ce choix, avec les
+ * échéances qu'elle a montrées (#873).
  * `needsPastDuesChoice` : la saisie est valide, il reste à poser la question des échéances tombées.
  * `draft` : le brouillon déjà calculé de cette saisie ; sans lui, il est recalculé et lève quand
  * l'historique est illisible.
@@ -48,7 +49,11 @@ export function validateTreatmentEdition(
   pastDues: PastDuesChoice | null = null,
   draft: EditionDraft | null = null,
 ): TreatmentEditionResult {
-  const { nextDose, pastDuesNextDose } = draft ?? editionDraftOf(values, treatment, today)
+  const {
+    nextDose,
+    pastDuesNextDose,
+    pastDues: shown,
+  } = draft ?? editionDraftOf(values, treatment, today)
   const typed = values.nextDoseOn.trim()
   const announcedOn = pastDues === null ? null : (pastDuesNextDose?.[pastDues] ?? null)
   const result = treatmentEditionSchemaFor(treatment, today).safeParse({
@@ -57,7 +62,12 @@ export function validateTreatmentEdition(
     ...rhythmInput(values),
     nextDoseOn: announcedOn ?? (nextDose === null ? null : typed),
     ...(values.shiftsFollowing ? {} : { shiftsFollowing: false }),
-    ...(pastDues === null ? {} : { pastDues }),
+    ...(pastDues === null
+      ? {}
+      : {
+          pastDues,
+          pastDuesShown: shown.map(shownDueKey),
+        }),
   })
   if (result.success) return { success: true, data: result.data }
   return {

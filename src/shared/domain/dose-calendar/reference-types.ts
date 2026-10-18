@@ -9,8 +9,8 @@ export type ReferenceSetting = {
   gridOriginOn: string | null
   /** La première échéance vient de la personne, pas d'une date proposée. */
   firstDueChosen: boolean
-  /** Réponse « Elles restent à renseigner » à la question Q38. */
-  pastDosesStayUnlogged: boolean
+  /** Réponse à la question Q38 des doses tombées : aucune question, « restent à renseigner », « n'étaient pas à donner ». */
+  fallenDosesAnswer: 'unasked' | 'stay-unlogged' | 'not-due'
   endsOn: string | null
   stoppedOn: string | null
   frequency: ReferenceFrequency
@@ -25,7 +25,7 @@ export type ReferenceLine = {
   settingId: string
   dueOn: string
   dueTime: string | null
-  status: 'given' | 'missed' | 'extra' | 'postponed' | 'shift'
+  status: 'given' | 'missed' | 'extra' | 'postponed' | 'shift' | 'not-due'
   /** Report : jour d'arrivée ; décalage : jour d'ancrage. */
   targetOn: string | null
   updatedAt: string

@@ -28,7 +28,7 @@ function luna(extra: Partial<Setting> = {}): Setting {
     firstDueOn: '2026-04-10',
     gridOriginOn: '2026-04-10',
     firstDueChosen: true,
-    pastDosesStayUnlogged: false,
+    fallenDosesAnswer: 'unasked',
     endsOn: null,
     stoppedOn: null,
     frequency: WEEK,

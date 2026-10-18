@@ -1,3 +1,4 @@
+import type { FallenDosesAnswer } from './dose-calendar'
 import type { DoseUnit } from './dosage'
 
 /** L'appareil qui a créé la ligne, et celui qui a écrit sa valeur actuelle (suppression comprise). */
@@ -76,8 +77,8 @@ export type ExportTreatmentPeriod = {
   gridOriginOn: string | null
   /** #836 : la première échéance vient de la personne, pas d'une date proposée. */
   firstDueChosen: boolean
-  /** #817, Q38 : réponse « Elles restent à renseigner ». */
-  pastDosesStayUnlogged: boolean
+  /** Q38, #873 : réponse à la question des doses tombées ; `unasked` : aucune question posée. */
+  fallenDosesAnswer: FallenDosesAnswer
   endsOn: string | null
   stoppedOn: string | null
   frequency: ExportFrequency
@@ -104,7 +105,7 @@ export type ExportTreatmentDose = {
   dueTime: string | null
   /** `null` pour une prise oubliée ou reportée. */
   givenOn: string | null
-  status: 'given' | 'missed' | 'postponed' | 'extra' | 'shift'
+  status: 'given' | 'missed' | 'postponed' | 'extra' | 'shift' | 'not-due'
   /** Report : jour d'arrivée ; décalage : jour d'ancrage ; `null` pour une prise. */
   targetOn: string | null
   createdAt: string

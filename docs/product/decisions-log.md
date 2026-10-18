@@ -2983,3 +2983,49 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
 
 - Décision de Gaelle du 18 octobre 2026, par la session d'analyse du moteur à qui elle a délégué les lectures de règles : une dose pas encore due ne peut pas avoir été oubliée ; sur une prise donnée d'avance, le menu de l'historique ne propose pas « Marquer comme oubliée » (« Changer la date » et « Supprimer » restent). Même principe que #899 : jamais un geste que le moteur refusera. Milo, chaque lundi à 8 h : le 11 mars la dose du 16 est donnée d'avance ; le 12 le menu de la ligne du 16 ne propose plus le geste ; le 16 il revient.
 - Alternative écartée : le permettre avec une règle écrite.
+
+2026-10-18 — **#873 et #872 : la réponse à la question des doses tombées sur le réglage, une ligne
+« pas à donner » par dose listée** (spec `traitements.md` R4, R6, R10, R11, TR-25, §10, §11 ;
+migration v15, export v8 ; décisions de Gaelle du 18 octobre 2026, par la session d'analyse du
+moteur).
+
+- Le réglage porte la réponse : aucune question posée, « Elles restent à renseigner », « Elles
+  n'étaient pas à donner » ; données d'avant : vrai → « restent à renseigner », faux → « aucune
+  question posée », jamais « n'étaient pas à donner ».
+- « Elles n'étaient pas à donner » écrit une ligne « pas à donner » par dose que la question a
+  montrée, ni plus ni moins ; le formulaire envoie la liste montrée et la question se repose si elle
+  a changé à l'enregistrement.
+- Une ligne « pas à donner » compte comme une ligne (journée touchée, le plus récent l'emporte,
+  suppression seule) et jamais comme une prise ; sa dose n'est nulle part.
+- Une journée sans prise qui porte des lignes « pas à donner » ne sort en entier que si aucune de
+  ses heures actuelles n'est celle d'une de ses lignes (heures changées depuis la réponse, graine
+  9850000047) ; sinon elle se lit heure par heure : une prise supprimée y rend sa dose (relecture de
+  la PR #951, graines 9710000218 et 9710000737).
+- Report contre ligne « pas à donner », au départ comme à l'arrivée : le plus récent l'emporte, le
+  perdant grisé « sans effet » (graine 8000000726) ; une prise donnée sur une arrivée ne change pas.
+- #872 : « Elles n'étaient pas à donner » qui vide la période est refusée avec le texte de #806, avec
+  ou sans prise ; la correction à fréquence gardée ne repart plus d'aujourd'hui.
+- Une prise l'emporte toujours sur une ligne « pas à donner » de sa dose, quel que soit l'ordre et
+  la date de chacune : une prise est un fait (#892), la réponse est groupée et ne vise pas cette dose
+  précise. La ligne est grisée « sans effet », jamais la prise. « Elles n'étaient pas à donner » crée
+  toujours sa ligne et ne réécrit jamais une prise de la même dose ; la base accepte donc les deux
+  sur la même échéance (relecture de la PR #951).
+- Un report dont une dose d'arrivée a été donnée a servi : il est verrouillé (Q25) et actif, jamais
+  « sans effet ». Il n'est sans effet que quand toutes les doses de son arrivée qui restent sont
+  « pas à donner ». La correction à fréquence gardée part alors de cette arrivée, même passée
+  (relecture de la PR #951, graine 7810000235).
+- Quand « Modifier » est refusé parce que la question a changé entre l'affichage et l'enregistrement
+  (synchro), le traitement est relu et la question se repose, sans texte nouveau.
+- La reprise du jour de l'arrêt n'emprunte jamais une ligne « pas à donner » d'avant l'arrêt : la
+  dose de la reprise reste à donner (deux téléphones ; une prise, elle, est empruntée).
+- « Supprimer » un report ou un décalage, et déplacer une dose, ne comptent pas les lignes « pas à
+  donner » plus loin (le refus « déjà notée » serait faux) : celles dont l'échéance quitte le
+  calendrier deviennent sans effet, comme un oubli (décision du 16 octobre). Milo, chaque lundi à 8 h depuis le 2 mars ; le 8, la dose du 9 reportée au 11 en décalant la suite (18, 25) ; des lignes « pas à donner » sur le 18 et le 25 : « Supprimer » le décalage est permis, les deux lignes deviennent sans effet, le 16 et le 23 reviennent à renseigner.
+- Raison : la donnée dit ce que la personne a répondu, dose par dose, avec les règles de ligne que
+  le moteur sait déjà lire. — Écartées : déduire la réponse d'un réglage réécrit (relecture de
+  #914) ; une date ou une liste de doses sur le réglage (relectures de la PR #948 : une dose non
+  listée sortait, une seconde réponse remplaçait la première, une journée aux heures changées restait
+  à renseigner).
+- En attente, avant toute publication : l'affichage de la ligne « pas à donner » dans l'historique,
+  avec son libellé et « Supprimer » (#952, libellé à valider par Gaelle).
+

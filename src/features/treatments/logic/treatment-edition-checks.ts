@@ -1,4 +1,4 @@
-import type { z } from 'zod'
+import { ZodError, type z } from 'zod'
 
 import { resolve } from './treatment-edition-change'
 import { treatmentReadingOf } from './treatment-reading-adapter'
@@ -9,6 +9,7 @@ import type { TreatmentWithHistory } from '../schema/treatment-with-history.sche
 import {
   applied,
   treatmentView,
+  type Due,
   type GestureOutcome,
   type Refusal,
   type TreatmentView,
@@ -102,6 +103,17 @@ function endsOnIssue(
   return lastDoseOn !== null && endsOn < lastDoseOn ? 'beforeLastDose' : null
 }
 
+/** #873 : la clé d'une échéance montrée par la question, envoyée avec la réponse. */
+export const shownDueKey = ({ dueOn, dueTime }: Pick<Due, 'dueOn' | 'dueTime'>): string =>
+  dueTime === null ? dueOn : `${dueOn} ${dueTime}`
+
+// #873 : la réponse ne vaut que pour les échéances que la question a montrées ; sinon elle se repose.
+function answersShown(dues: readonly Due[], { pastDuesShown }: Edition): boolean {
+  if (pastDuesShown === undefined) return true
+  const keys = dues.map(shownDueKey)
+  return JSON.stringify([...keys].sort()) === JSON.stringify([...pastDuesShown].sort())
+}
+
 function editionIssues(treatment: TreatmentWithHistory, data: Edition, today: string): DateIssue[] {
   const { period, change, plan, move, refusal, pastDues } = resolve(
     treatment,
@@ -111,7 +123,7 @@ function editionIssues(treatment: TreatmentWithHistory, data: Edition, today: st
     data.pastDues,
   )
   if (change === 'locked') return []
-  if (pastDues.length > 0 && data.pastDues === undefined) {
+  if (pastDues.length > 0 && (data.pastDues === undefined || !answersShown(pastDues, data))) {
     return [{ path: 'pastDues', message: 'required' }]
   }
   if (refusal !== null) return [{ path: 'nextDoseOn', message: refusalIssue(refusal, data) }]
@@ -119,6 +131,11 @@ function editionIssues(treatment: TreatmentWithHistory, data: Edition, today: st
   const message = endsOnIssue(treatment, period, data.endsOn, today, plan === null, move)
   return message === null ? [] : [{ path: 'endsOn', message }]
 }
+
+/** #873 : l'écriture a été refusée parce que la question des échéances tombées a changé. */
+export const pastDuesAskedAgain = (error: unknown): boolean =>
+  error instanceof ZodError &&
+  error.issues.some(({ path, message }) => path[0] === 'pastDues' && message === 'required')
 
 /** Le schéma de « Modifier » avec ses bornes de dates, celles du moteur pour « Prochaine dose ». */
 export function treatmentEditionSchemaFor(treatment: TreatmentWithHistory, today: string) {

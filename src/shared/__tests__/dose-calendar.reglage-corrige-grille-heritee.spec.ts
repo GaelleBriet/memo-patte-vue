@@ -95,7 +95,7 @@ const S = (id: string, stamp: number, fields: Partial<Setting>): Setting => ({
   firstDueOn: '2026-03-06',
   gridOriginOn: '2026-03-06',
   firstDueChosen: false,
-  pastDosesStayUnlogged: false,
+  fallenDosesAnswer: 'unasked',
   endsOn: null,
   stoppedOn: null,
   frequency: MONTH,

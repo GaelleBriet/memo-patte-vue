@@ -1,4 +1,5 @@
 import { dayCoverage } from './calendar-coverage'
+import { notDueArrivals } from './calendar-not-due'
 import { keepGivenNotes, keepSkippedDays, noteEffects } from './calendar-notes'
 import { hoursOf, keyOf, plusDays, sameHours } from './grid'
 import { journeys, type Gap } from './journeys'
@@ -44,6 +45,7 @@ export type EpisodeInput = {
 export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   const { settingOf, span, lines, borrowed, yielded } = input
   const effects = new Map<string, LineEffect>()
+  const notDue = notDueArrivals(effects)
   const journey = journeys(input, effects)
   const { days, translated, left, openings, rhythmFrom, replaced, restarts, chosenRestarts } =
     journey
@@ -188,6 +190,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     const under = chosen ?? source
     const own = sameHours(arrival, under) ? arrival : under
     const arriving = chosen ? hoursOf(chosen.times) : bringing
+    notDue.arrive(report, targetOn!, arriving)
     const day = into.get(targetOn!) ?? { setting: own, hours: [] }
     // R7, R9.2 : un nouveau rythme qui part du jour d'arrivée d'un report lui laisse ses seules heures.
     if (openings.delete(targetOn!)) {
@@ -214,9 +217,11 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
 
   const slots: Slot[] = []
   for (const [day, journey] of [...days].sort(([a], [b]) => a.localeCompare(b))) {
-    if (journey.hours.length > 0) fallen.add(day)
     const covered = coveredOn(day, journey)
-    for (const hour of journey.hours) {
+    // #873 : une dose « pas à donner » n'est nulle part ; une journée qui n'a plus qu'elles n'est pas arrivée.
+    const hours = notDue.hoursOf(day, journey.hours, covered, held, byDay.get(day) ?? [])
+    if (hours.length > 0) fallen.add(day)
+    for (const hour of hours) {
       const note = covered.get(hour) ?? null
       const exact =
         note !== null && note.dueTime === hour && note.dueOn === day && !isBorrowed.has(note)
@@ -228,6 +233,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   keepSkippedDays(lines.notes, new Set(unread), slots, held)
   keepGivenNotes(lines.notes, slots, held, { yielded, closedFrom: span.closedFrom })
   noteEffects(lines, borrowed, slots, held, effects)
+  notDue.settle()
   const lateDays = new Set(
     replaced.filter(({ onDueDay }) => !onDueDay).map((range) => lastFallen(fallen, range)),
   )

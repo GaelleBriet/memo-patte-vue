@@ -2,18 +2,27 @@ import { keyOf, sameFrequency, sameHours } from './grid'
 import type { Span } from './settings'
 import type { Day, IdleReason, Line, Setting } from './types'
 
-export const isNote = (line: Pick<Line, 'status'>): boolean =>
+/** Une prise : donnée ou oubliée ; une ligne « pas à donner » n'en est jamais une (#873). */
+export const isTaken = (line: Pick<Line, 'status'>): boolean =>
   line.status === 'given' || line.status === 'missed'
+
+/** #873 : une ligne qui couvre son échéance, « pas à donner » comprise (journée touchée, TR-25). */
+export const isNote = (line: Pick<Line, 'status'>): boolean =>
+  isTaken(line) || line.status === 'not-due'
 
 /** « Avancée au … » plutôt que « Reportée au … » : la nouvelle date précède l'échéance remplacée. */
 export const isAdvanced = (line: Pick<Line, 'status' | 'dueOn' | 'targetOn'>): boolean =>
   line.status === 'postponed' && line.targetOn !== null && line.targetOn < line.dueOn
 
+/** #873 : une prise et la ligne « pas à donner » de la même dose ne se remplacent jamais. */
 export const familyOf = (line: Pick<Line, 'status'>): string =>
-  isNote(line) ? 'note' : line.status
+  isTaken(line) ? 'note' : line.status
 
 export const isMoreRecent = (a: Line, b: Line): boolean =>
   a.updatedAt > b.updatedAt || (a.updatedAt === b.updatedAt && a.id > b.id)
+
+/** #867, #873 : entre un report et la ligne « pas à donner » de sa dose, au départ comme à l'arrivée, le plus récent l'emporte. */
+export const reportBeats = (report: Line, note: Line): boolean => isMoreRecent(report, note)
 
 /** TR-25 : par clé, la ligne modifiée le plus récemment ; triées par jour d'échéance. */
 export function latestBy(lines: readonly Line[], keyOfLine: (line: Line) => string): Line[] {
@@ -149,7 +158,20 @@ export function episodeLines(lines: readonly Line[], span: Span): EpisodeLines {
       idle.set(line.id, 'superseded')
     }
   }
-  const notes = kept.filter(isNote)
+  // #873 : une prise l'emporte toujours sur la ligne « pas à donner » de sa dose ; #867 : un report plus
+  // récent qu'elle sur sa dose de départ aussi.
+  const taken = new Set(kept.filter(isTaken).map(({ dueOn, dueTime }) => keyOf(dueOn, dueTime)))
+  const beaten = (note: Line) =>
+    note.status === 'not-due' &&
+    (taken.has(keyOf(note.dueOn, note.dueTime)) ||
+      reports.some(
+        (report) =>
+          report.dueOn === note.dueOn &&
+          report.dueTime === note.dueTime &&
+          reportBeats(report, note),
+      ))
+  kept.filter(beaten).forEach(({ id }) => idle.set(id, 'beaten'))
+  const notes = kept.filter((line) => isNote(line) && !beaten(line))
   const chosenArrivals = chosenArrivalsOf(reports, span)
   const touched = touchedDays(notes, reports, chosenArrivals)
   return { kept, notes, reports, shifts, idle, doseKey, touched, chosenArrivals }

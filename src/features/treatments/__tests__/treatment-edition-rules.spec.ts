@@ -7,7 +7,7 @@ import {
   creationPlan,
   treatmentCreationSchemaFor,
 } from '../logic/treatment-creation'
-import { treatmentEditionSchemaFor } from '../logic/treatment-edition-checks'
+import { pastDuesAskedAgain, treatmentEditionSchemaFor } from '../logic/treatment-edition-checks'
 import { editionDraft } from '../logic/treatment-edition-draft'
 import { editionPlan } from '../logic/treatment-edition-plan'
 import {
@@ -594,7 +594,7 @@ describe('moment du rappel (RA-7, RA-8)', () => {
         id: TREATMENT,
         gridOriginOn: '2026-07-10',
         firstDueChosen: true,
-        pastDosesStayUnlogged: false,
+        fallenDosesAnswer: 'unasked',
         settings: {
           startsOn: '2026-07-10',
           firstDueOn: '2026-07-10',
@@ -688,7 +688,7 @@ describe('editionPlan — fréquence, heures, posologie (TR-28)', () => {
       id: TREATMENT,
       gridOriginOn: '2026-10-10',
       firstDueChosen: false,
-      pastDosesStayUnlogged: false,
+      fallenDosesAnswer: 'unasked',
       settings: {
         startsOn: '2026-10-10',
         firstDueOn: '2026-10-10',
@@ -729,7 +729,7 @@ describe('editionPlan — fréquence, heures, posologie (TR-28)', () => {
       id: NEW_PERIOD,
       gridOriginOn: '2026-09-29',
       firstDueChosen: false,
-      pastDosesStayUnlogged: false,
+      fallenDosesAnswer: 'unasked',
       settings: {
         startsOn: '2026-09-29',
         firstDueOn: '2026-09-29',
@@ -757,7 +757,7 @@ describe('editionPlan — fréquence, heures, posologie (TR-28)', () => {
     expect(plan.period).toMatchObject({
       action: 'open',
       firstDueChosen: true,
-      pastDosesStayUnlogged: false,
+      fallenDosesAnswer: 'unasked',
       settings: { startsOn: '2026-09-28', firstDueOn: '2026-10-20', doseQuantity: 0.5 },
     })
     expect(plan.doses).toEqual([])
@@ -2036,7 +2036,7 @@ describe('editionPlan — échéances tombées d’une période sans prise', () 
               ...write.settings,
               gridOriginOn: write.gridOriginOn,
               firstDueChosen: write.firstDueChosen,
-              pastDosesStayUnlogged: write.pastDosesStayUnlogged,
+              fallenDosesAnswer: write.fallenDosesAnswer,
               id: write.id,
               createdAt: `${TODAY}T10:00:00.000Z`,
             },
@@ -2048,7 +2048,7 @@ describe('editionPlan — échéances tombées d’une période sans prise', () 
               ...write.settings,
               gridOriginOn: write.gridOriginOn,
               firstDueChosen: write.firstDueChosen,
-              pastDosesStayUnlogged: write.pastDosesStayUnlogged,
+              fallenDosesAnswer: write.fallenDosesAnswer,
             },
           ]
     return viewOf({ ...history, periods }, TODAY)
@@ -2080,7 +2080,7 @@ describe('editionPlan — échéances tombées d’une période sans prise', () 
     expect(plan.period).toMatchObject({
       action: 'open',
       firstDueChosen: false,
-      pastDosesStayUnlogged: true,
+      fallenDosesAnswer: 'stay-unlogged',
       settings: { startsOn: TODAY, firstDueOn: TODAY, frequency: { value: 3, unit: 'day' } },
     })
     const schedule = apres(history, plan)
@@ -2101,12 +2101,74 @@ describe('editionPlan — échéances tombées d’une période sans prise', () 
     expect(plan.period).toMatchObject({
       action: 'correct',
       firstDueChosen: false,
-      pastDosesStayUnlogged: false,
+      fallenDosesAnswer: 'not-due',
       settings: { startsOn: '2026-10-02', firstDueOn: TODAY, frequency: { value: 3, unit: 'day' } },
     })
     const schedule = apres(history, plan)
     expect(schedule.unloggedDoses).toEqual([])
     expect(jours(schedule.currentDoses)).toEqual([TODAY])
+  })
+
+  it('#873 : écrit une ligne « pas à donner » par dose montrée par la question', () => {
+    const history = treatment([TOUS_LES_2_JOURS])
+    const shown = editionPlan(
+      history,
+      saisie(history, { ...TROIS_JOURS, pastDues: 'keep' }),
+      TODAY,
+      IDS,
+    )
+    expect(shown.doses).toEqual([])
+    const plan = editionPlan(
+      history,
+      saisie(history, { ...TROIS_JOURS, pastDues: 'drop' }),
+      TODAY,
+      IDS,
+    )
+    expect(plan.doses.length).toBeGreaterThan(0)
+    expect(
+      plan.doses.every((write) => write.action === 'create' && write.dose.status === 'not-due'),
+    ).toBe(true)
+  })
+
+  it('#873 : la liste montrée envoyée avec la réponse doit être celle de la question au moment d’écrire, sinon la question se repose', () => {
+    const history = treatment([TOUS_LES_2_JOURS])
+    const shownNow = editionPlan(
+      history,
+      saisie(history, { ...TROIS_JOURS, pastDues: 'drop' }),
+      TODAY,
+      IDS,
+    ).doses.flatMap((write) =>
+      write.action === 'create'
+        ? [
+            write.dose.dueTime === null
+              ? write.dose.dueOn
+              : `${write.dose.dueOn} ${write.dose.dueTime}`,
+          ]
+        : [],
+    )
+    expect(() =>
+      editionPlan(
+        history,
+        saisie(history, { ...TROIS_JOURS, pastDues: 'drop', pastDuesShown: shownNow }),
+        TODAY,
+        IDS,
+      ),
+    ).not.toThrow()
+    const refused = (() => {
+      try {
+        editionPlan(
+          history,
+          saisie(history, { ...TROIS_JOURS, pastDues: 'drop', pastDuesShown: shownNow.slice(1) }),
+          TODAY,
+          IDS,
+        )
+        return null
+      } catch (error) {
+        return error
+      }
+    })()
+    expect(refused).toBeInstanceOf(ZodError)
+    expect(pastDuesAskedAgain(refused)).toBe(true)
   })
 
   it('garde une « Prochaine dose » choisie à la main quand elle vaut pour le chemin choisi, la refuse sinon', () => {
@@ -2117,7 +2179,7 @@ describe('editionPlan — échéances tombées d’une période sans prise', () 
     for (const pastDues of ['keep', 'drop'] as const) {
       expect(editionPlan(history, input({ pastDues }), TODAY, IDS).period).toMatchObject({
         firstDueChosen: true,
-        pastDosesStayUnlogged: pastDues === 'keep',
+        fallenDosesAnswer: pastDues === 'keep' ? 'stay-unlogged' : 'not-due',
         settings: { firstDueOn: '2026-10-12' },
       })
       expect(champsRefuses(history, input({ pastDues, endsOn: '2026-10-10' }), TODAY)).toEqual([
@@ -2344,7 +2406,7 @@ describe('resumptionPlan (TR-32)', () => {
         id: NEW_PERIOD,
         gridOriginOn: '2026-11-03',
         firstDueChosen: true,
-        pastDosesStayUnlogged: false,
+        fallenDosesAnswer: 'unasked',
         settings: {
           startsOn: '2026-11-02',
           firstDueOn: '2026-11-03',

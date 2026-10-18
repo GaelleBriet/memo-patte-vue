@@ -155,7 +155,7 @@ async function seedDemoCarnet(repositories: FixturesRepositories, today: Date): 
                 ...period,
                 gridOriginOn: period.firstDueOn ?? period.startsOn,
                 firstDueChosen: true,
-                pastDosesStayUnlogged: false,
+                fallenDosesAnswer: 'unasked',
                 ...stamps,
                 settingsWrittenAt: stamps.createdAt,
                 id: periodId,

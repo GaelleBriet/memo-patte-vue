@@ -85,7 +85,7 @@ export function useCareForm<T, A extends CareFormAnimal>(options: CareFormOption
     returnTo(router, primingReturnRoute(from, reminder))
   }
 
-  /** `write` rend `null` quand rien n'est à écrire ; après une écriture réussie, l'écran se quitte. */
+  /** `write`, ou l'écriture qu'il rend, donne `null` quand rien n'est écrit ; sinon l'écran se quitte. */
   async function saveThenLeave(
     write: () => Promise<unknown> | null,
     hasDueDate: boolean,
@@ -95,8 +95,7 @@ export function useCareForm<T, A extends CareFormAnimal>(options: CareFormOption
 
     try {
       const pending = write()
-      if (pending === null) return
-      await pending
+      if (pending === null || (await pending) === null) return
       isSaved.value = true
     } catch {
       saveFailed.value = true

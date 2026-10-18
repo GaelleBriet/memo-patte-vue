@@ -200,12 +200,8 @@ describe.each([
     }>('SELECT id, first_due_chosen, past_doses_stay_unlogged FROM treatment_period ORDER BY id')
     expect(facts).toEqual(
       PERIODS.map(({ id, gridOriginOn }) => {
-        const { firstDueChosen, pastDosesStayUnlogged } = legacyFactsOf(gridOriginOn)
-        return {
-          id,
-          first_due_chosen: Number(firstDueChosen),
-          past_doses_stay_unlogged: Number(pastDosesStayUnlogged),
-        }
+        const { firstDueChosen } = legacyFactsOf(gridOriginOn)
+        return { id, first_due_chosen: Number(firstDueChosen), past_doses_stay_unlogged: 0 }
       }),
     )
     expect(facts.map(({ first_due_chosen }) => first_due_chosen)).toEqual([1, 0, 1, 1, 0])

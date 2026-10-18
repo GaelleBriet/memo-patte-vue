@@ -116,3 +116,20 @@ TW_MAIN=/tmp/claude-1000/main-moteur/src/shared/domain/dose-calendar/index.ts \
 La ligne « Campagne deux téléphones : N carnets × M pas, graines A à B, comparée à main : F
 fourches, C constats » dit ce qui a été joué ; un réglage illisible arrête la campagne. Par défaut
 (suite normale) : 10 carnets × 30 pas, sans `main`.
+
+## Doses listées (#873)
+
+`src/shared/__tests__/dose-calendar.reponses-listees.spec.ts` mène des carnets par les gestes de v2
+(`listed-answers.ts`) et, après chaque réponse « Elles n'étaient pas à donner », repose la question sur
+le carnet d'avant la réponse pour relire les doses qu'elle a montrées. À chaque pas : seules ces doses
+sortent (une journée sans prise toute listée sort en entier), et une dose listée ne se montre plus à
+donner tant que sa ligne « pas à donner » n'est ni supprimée ni battue par une ligne plus récente.
+
+```sh
+LISTED_FROM=9760000000 LISTED_SEEDS=3000 LISTED_STEPS=40 \
+  flock /tmp/claude-1000/memo-patte-suite.lock nice -n 19 \
+  pnpm exec vitest run src/shared/__tests__/dose-calendar.reponses-listees.spec.ts --reporter=verbose
+```
+
+La ligne « Campagne doses listées : N carnets × M gestes, graines A à B » dit ce qui a été joué. Par
+défaut (suite normale) : 20 carnets × 40 gestes.

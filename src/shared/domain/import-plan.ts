@@ -13,7 +13,7 @@ import type {
 
 export type ImportMode = 'merge' | 'replace'
 
-export type ImportFile = { schemaVersion: 7; data: ExportData }
+export type ImportFile = { schemaVersion: 8; data: ExportData }
 
 type Versioned = { id: string; updatedAt: string }
 type Deletable = Versioned & { deletedAt: string | null }

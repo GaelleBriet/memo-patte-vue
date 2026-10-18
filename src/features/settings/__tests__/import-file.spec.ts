@@ -160,7 +160,7 @@ describe('parseExportFile', () => {
     )
 
     it('signale un export d’une version plus récente, quel que soit son contenu', () => {
-      const text = JSON.stringify({ schemaVersion: 8, pets: [] })
+      const text = JSON.stringify({ schemaVersion: 9, pets: [] })
 
       expect(parseExportFile(text)).toEqual({ ok: false, reason: 'newer' })
     })
@@ -412,19 +412,41 @@ describe('parseExportFile', () => {
       expect(parseExportFile(text).ok).toBe(true)
     })
 
-    it.each(['firstDueChosen', 'pastDosesStayUnlogged'])(
-      'garde `%s` tel qu’exporté, et refuse une période sans lui',
-      (field) => {
-        const kept = parseExportFile(forged('treatmentPeriods', field, true, 1))
-        expect(kept.ok && kept.file.data.treatmentPeriods[1]![field as 'firstDueChosen']).toBe(true)
-        expect(parseExportFile(forged('treatmentPeriods', field, 1, 1))).toEqual(INVALID)
-        expect(
-          parseExportFile(
-            withDocument((document) => delete premier(document, 'treatmentPeriods')[field]),
-          ),
-        ).toEqual(INVALID)
+    it('garde `firstDueChosen` tel qu’exporté, et refuse une période sans lui', () => {
+      const kept = parseExportFile(forged('treatmentPeriods', 'firstDueChosen', true, 1))
+      expect(kept.ok && kept.file.data.treatmentPeriods[1]!.firstDueChosen).toBe(true)
+      expect(parseExportFile(forged('treatmentPeriods', 'firstDueChosen', 1, 1))).toEqual(INVALID)
+      expect(
+        parseExportFile(
+          withDocument((document) => delete premier(document, 'treatmentPeriods').firstDueChosen),
+        ),
+      ).toEqual(INVALID)
+    })
+
+    it.each(['unasked', 'stay-unlogged', 'not-due'])(
+      'garde la réponse à la question des doses tombées « %s » telle qu’exportée',
+      (answer) => {
+        const kept = parseExportFile(forged('treatmentPeriods', 'fallenDosesAnswer', answer, 1))
+        expect(kept.ok && kept.file.data.treatmentPeriods[1]!.fallenDosesAnswer).toBe(answer)
       },
     )
+
+    it.each([
+      ['une réponse inconnue', 'oui'],
+      ['un booléen', true],
+      ['un nombre', 1],
+    ])('refuse %s à la question des doses tombées, et une période sans réponse', (_, answer) => {
+      expect(parseExportFile(forged('treatmentPeriods', 'fallenDosesAnswer', answer, 1))).toEqual(
+        INVALID,
+      )
+      expect(
+        parseExportFile(
+          withDocument(
+            (document) => delete premier(document, 'treatmentPeriods').fallenDosesAnswer,
+          ),
+        ),
+      ).toEqual(INVALID)
+    })
   })
 
   describe('prises forgées', () => {
@@ -673,17 +695,58 @@ describe('parseExportFile', () => {
   describe('anciens exports, convertis au format courant (plan §3.3)', () => {
     const IMPORTEUR = '12121212-1212-4212-8212-121212121212'
 
+    function toVersion7(document: Document): Record<string, unknown>[] {
+      document.schemaVersion = 7
+      const periods = rows(document, 'treatmentPeriods')
+      for (const period of periods) {
+        period.pastDosesStayUnlogged = period.fallenDosesAnswer === 'stay-unlogged'
+        delete period.fallenDosesAnswer
+      }
+      return periods
+    }
+
+    it('relit un export v7 : « Elles restent à renseigner » se garde, sinon aucune question posée, jamais « n’étaient pas à donner » (#873)', () => {
+      const v7 = withDocument((document) => {
+        const periods = toVersion7(document)
+        periods[0]!.pastDosesStayUnlogged = true
+      })
+
+      const result = parseExportFile(v7, IMPORTEUR)
+
+      expect(result.ok).toBe(true)
+      if (!result.ok) return
+      expect(result.file.schemaVersion).toBe(8)
+      const answers = result.file.data.treatmentPeriods.map(
+        ({ fallenDosesAnswer }) => fallenDosesAnswer,
+      )
+      expect(answers[0]).toBe('stay-unlogged')
+      expect(answers.slice(1)).toEqual(answers.slice(1).map(() => 'unasked'))
+      expect(
+        result.file.data.treatmentPeriods.map(({ settingsWrittenAt }) => settingsWrittenAt),
+      ).toEqual(IMPORT_FIXTURE.treatmentPeriods.map(({ settingsWrittenAt }) => settingsWrittenAt))
+    })
+
+    it('refuse un export v7 dont un réglage porte la réponse à trois états au lieu du booléen', () => {
+      const v7 = withDocument((document) => {
+        const [period] = toVersion7(document)
+        delete period!.pastDosesStayUnlogged
+        period!.fallenDosesAnswer = 'not-due'
+      })
+
+      expect(parseExportFile(v7, IMPORTEUR)).toEqual(INVALID)
+    })
+
     it('relit un export v6 : chaque réglage est daté de sa création, lu comme jamais réécrit (R10)', () => {
       const v6 = withDocument((document) => {
+        for (const period of toVersion7(document)) delete period.settingsWrittenAt
         document.schemaVersion = 6
-        for (const period of rows(document, 'treatmentPeriods')) delete period.settingsWrittenAt
       })
 
       const result = parseExportFile(v6, IMPORTEUR)
 
       expect(result.ok).toBe(true)
       if (!result.ok) return
-      expect(result.file.schemaVersion).toBe(7)
+      expect(result.file.schemaVersion).toBe(8)
       expect(
         result.file.data.treatmentPeriods.map(({ createdAt, settingsWrittenAt }) => [
           createdAt,
@@ -692,7 +755,7 @@ describe('parseExportFile', () => {
       ).toEqual(IMPORT_FIXTURE.treatmentPeriods.map(({ createdAt }) => [createdAt, createdAt]))
     })
 
-    it('refuse un export v7 dont un réglage n’a pas de date d’écriture', () => {
+    it('refuse un export v8 dont un réglage n’a pas de date d’écriture', () => {
       expect(
         parseExportFile(
           withDocument(
@@ -711,7 +774,7 @@ describe('parseExportFile', () => {
         const periods = rows(document, 'treatmentPeriods')
         for (const period of periods) {
           delete period.firstDueChosen
-          delete period.pastDosesStayUnlogged
+          delete period.fallenDosesAnswer
           delete period.settingsWrittenAt
         }
         periods.at(-1)!.gridOriginOn = null
@@ -728,8 +791,8 @@ describe('parseExportFile', () => {
           ({ gridOriginOn, firstDueChosen }) => firstDueChosen === (gridOriginOn !== null),
         ),
       ).not.toContain(false)
-      expect(periods.at(-1)).toMatchObject({ firstDueChosen: false, pastDosesStayUnlogged: false })
-      expect(periods.some(({ pastDosesStayUnlogged }) => pastDosesStayUnlogged)).toBe(false)
+      expect(periods.at(-1)).toMatchObject({ firstDueChosen: false, fallenDosesAnswer: 'unasked' })
+      expect(periods.every(({ fallenDosesAnswer }) => fallenDosesAnswer === 'unasked')).toBe(true)
     })
 
     it('relit un export v4 de l’app 0.1.60 : origine de la grille, arrivée des reports, appareils', () => {
@@ -738,19 +801,19 @@ describe('parseExportFile', () => {
       expect(result.ok).toBe(true)
       if (!result.ok) return
       const { data } = result.file
-      expect(result.file.schemaVersion).toBe(7)
+      expect(result.file.schemaVersion).toBe(8)
       expect(data.treatmentPeriods.map(({ gridOriginOn }) => gridOriginOn)).toEqual([
         '2026-06-15',
         '2026-09-01',
       ])
       expect(
-        data.treatmentPeriods.map(({ firstDueChosen, pastDosesStayUnlogged }) => [
+        data.treatmentPeriods.map(({ firstDueChosen, fallenDosesAnswer }) => [
           firstDueChosen,
-          pastDosesStayUnlogged,
+          fallenDosesAnswer,
         ]),
       ).toEqual([
-        [true, false],
-        [true, false],
+        [true, 'unasked'],
+        [true, 'unasked'],
       ])
       expect(data.treatmentDoses.map(({ status, targetOn }) => [status, targetOn])).toEqual([
         ['given', null],
@@ -800,6 +863,28 @@ describe('parseExportFile', () => {
       expect(
         result.ok && result.file.data.treatmentPeriods.map(({ gridOriginOn }) => gridOriginOn),
       ).toEqual(['2026-06-15', '2026-09-01', null])
+    })
+
+    function asNotDue(document: Document) {
+      const dose = rows(document, 'treatmentDoses').find(({ status }) =>
+        ['given', 'missed'].includes(status as string),
+      )!
+      dose.status = 'not-due'
+      dose.givenOn = null
+    }
+
+    it('accepte une ligne « pas à donner » dans un export v8 (#873)', () => {
+      expect(parseExportFile(withDocument(asNotDue), IMPORTEUR).ok).toBe(true)
+    })
+
+    it.each([
+      ['v7', () => withDocument(toVersion7)],
+      ['v4', () => exportV4],
+      ['v3', () => exportV3],
+    ])('refuse une ligne « pas à donner » dans un export %s, plus ancien qu’elle', (_, file) => {
+      const document = JSON.parse(file()) as Document
+      asNotDue(document)
+      expect(parseExportFile(JSON.stringify(document), IMPORTEUR, '2026-10-12')).toEqual(INVALID)
     })
 
     it('refuse un export v4 dont un report n’a pas de date suivante', () => {

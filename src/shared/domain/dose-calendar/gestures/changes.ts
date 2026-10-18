@@ -113,7 +113,6 @@ const CALENDAR = [
   'times',
   'gridOriginOn',
   'firstDueChosen',
-  'pastDosesStayUnlogged',
 ] as const
 
 /** R10, #867 : seule une réécriture du calendrier date le réglage, comme le fait le repository. */

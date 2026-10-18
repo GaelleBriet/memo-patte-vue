@@ -28,11 +28,15 @@ import {
   fromVersion4,
   fromVersion5,
   fromVersion6,
+  fromVersion7,
+  type Version5Data,
 } from '../logic/export-file-versions'
+import { hasUniqueIds, isConsistentCarnet } from '../logic/export-carnet-links'
 import { carnetSettingsSchema } from './carnet-settings.schema'
 import { isCalendarDay, MAX_CALENDAR_YEAR, MIN_CALENDAR_YEAR } from '@/shared/domain/calendar-day'
 import { CLOCK_TIME_PATTERN } from '@/shared/domain/clock-time'
 import type { ExportData } from '@/shared/domain/carnet-data'
+import { FALLEN_DOSES_ANSWERS } from '@/shared/domain/dose-calendar'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
 const MAX_TEXT_LENGTH = 200
@@ -116,6 +120,7 @@ const doseShape = {
   givenOn: pastDay.nullable(),
   status: z.enum(DOSE_STATUSES),
 }
+const legacyDoseShape = { ...doseShape, status: z.enum(DOSE_STATUSES).exclude(['not-due']) }
 const weightEntryShape = {
   id: z.uuid(),
   animalId: z.uuid(),
@@ -143,43 +148,6 @@ const deviceFileSchema = z.object({
   ...timestamps,
 })
 
-type Row = { id: string; animalId: string }
-type Carnet = {
-  animals: { id: string }[]
-  treatments: Row[]
-  treatmentPeriods: (Row & { treatmentId: string })[]
-} & Record<'vaccinations' | 'vaccinationInjections' | 'treatmentDoses' | 'weightEntries', Row[]>
-
-const hasUniqueIds = (rows: { id: string }[]) =>
-  new Set(rows.map(({ id }) => id)).size === rows.length
-
-function isConsistentCarnet(data: Carnet): boolean {
-  const { animals, treatments, treatmentPeriods } = data
-  const children = [
-    ...treatments,
-    ...treatmentPeriods,
-    ...data.vaccinations,
-    ...data.vaccinationInjections,
-    ...data.treatmentDoses,
-    ...data.weightEntries,
-  ]
-  const animalIds = new Set(animals.map(({ id }) => id))
-  const withPeriod = new Set(treatmentPeriods.map(({ treatmentId }) => treatmentId))
-  return (
-    [
-      animals,
-      treatments,
-      treatmentPeriods,
-      data.vaccinations,
-      data.vaccinationInjections,
-      data.treatmentDoses,
-      data.weightEntries,
-    ].every(hasUniqueIds) &&
-    children.every(({ animalId }) => animalIds.has(animalId)) &&
-    treatments.every(({ id }) => withPeriod.has(id))
-  )
-}
-
 const signed = <S extends z.ZodRawShape>(shape: S) => z.object({ ...shape, ...stamps })
 const dated = <S extends z.ZodRawShape>(shape: S) => z.object({ ...shape, ...timestamps })
 export const exportHeaderSchema = z.object({
@@ -197,6 +165,15 @@ const signedCarnet = {
   devices: z.array(deviceFileSchema).refine(hasUniqueIds),
 }
 
+const movedDosesOf = (shape: typeof doseShape | typeof legacyDoseShape) =>
+  z.array(
+    signed({ ...shape, targetOn: day.nullable() })
+      .refine(isConsistentDose)
+      .refine(({ status, targetOn }) => isMove(status) === (targetOn !== null)),
+  )
+const movedDoses = movedDosesOf(doseShape)
+const legacyMovedDoses = movedDosesOf(legacyDoseShape)
+
 const version6PeriodShape = {
   ...periodShape,
   gridOriginOn: day.nullable(),
@@ -204,17 +181,29 @@ const version6PeriodShape = {
   pastDosesStayUnlogged: z.boolean(),
 }
 
+const version8PeriodShape = {
+  ...periodShape,
+  gridOriginOn: day.nullable(),
+  firstDueChosen: z.boolean(),
+  fallenDosesAnswer: z.enum(FALLEN_DOSES_ANSWERS),
+  settingsWrittenAt: instant,
+}
+
+const version8FileSchema = z
+  .object({
+    ...signedCarnet,
+    treatmentPeriods: z.array(signed(version8PeriodShape).refine(isConsistentPeriod)),
+    treatmentDoses: movedDoses,
+  })
+  .refine(isConsistentCarnet)
+
 const version7FileSchema = z
   .object({
     ...signedCarnet,
     treatmentPeriods: z.array(
       signed({ ...version6PeriodShape, settingsWrittenAt: instant }).refine(isConsistentPeriod),
     ),
-    treatmentDoses: z.array(
-      signed({ ...doseShape, targetOn: day.nullable() })
-        .refine(isConsistentDose)
-        .refine(({ status, targetOn }) => isMove(status) === (targetOn !== null)),
-    ),
+    treatmentDoses: legacyMovedDoses,
   })
   .refine(isConsistentCarnet)
 
@@ -222,11 +211,7 @@ const version6FileSchema = z
   .object({
     ...signedCarnet,
     treatmentPeriods: z.array(signed(version6PeriodShape).refine(isConsistentPeriod)),
-    treatmentDoses: z.array(
-      signed({ ...doseShape, targetOn: day.nullable() })
-        .refine(isConsistentDose)
-        .refine(({ status, targetOn }) => isMove(status) === (targetOn !== null)),
-    ),
+    treatmentDoses: legacyMovedDoses,
   })
   .refine(isConsistentCarnet)
 
@@ -236,11 +221,7 @@ const version5FileSchema = z
     treatmentPeriods: z.array(
       signed({ ...periodShape, gridOriginOn: day.nullable() }).refine(isConsistentPeriod),
     ),
-    treatmentDoses: z.array(
-      signed({ ...doseShape, targetOn: day.nullable() })
-        .refine(isConsistentDose)
-        .refine(({ status, targetOn }) => isMove(status) === (targetOn !== null)),
-    ),
+    treatmentDoses: legacyMovedDoses,
   })
   .refine(isConsistentCarnet)
 
@@ -250,7 +231,9 @@ const version4FileSchema = z
     treatmentPeriods: z.array(
       signed({ ...periodShape, referenceOn: day }).refine(isConsistentPeriod),
     ),
-    treatmentDoses: z.array(signed({ ...doseShape, nextDueDate: day }).refine(isConsistentDose)),
+    treatmentDoses: z.array(
+      signed({ ...legacyDoseShape, nextDueDate: day }).refine(isConsistentDose),
+    ),
   })
   .refine(isConsistentCarnet)
 
@@ -262,7 +245,9 @@ const version3FileSchema = z
     vaccinationInjections: z.array(dated(injectionShape)),
     treatments: z.array(dated(treatmentShape)),
     treatmentPeriods: z.array(dated(periodShape).refine(isConsistentPeriod)),
-    treatmentDoses: z.array(dated({ ...doseShape, nextDueDate: day }).refine(isConsistentDose)),
+    treatmentDoses: z.array(
+      dated({ ...legacyDoseShape, nextDueDate: day }).refine(isConsistentDose),
+    ),
     weightEntries: z.array(dated(weightEntryShape)),
   })
   .refine(isConsistentCarnet)
@@ -270,14 +255,15 @@ const version3FileSchema = z
 export const exportVersionSchema = z.object({ schemaVersion: z.number().int().positive() })
 
 export function exportFileSchemaOf(version: number, deviceId: string): z.ZodType<ExportData> {
+  const fromVersion5To8 = (data: Version5Data) => fromVersion7(fromVersion6(fromVersion5(data)))
   if (version === 3) {
     return version3FileSchema.transform((data) =>
-      fromVersion6(fromVersion5(fromVersion4(fromVersion3(data, deviceId)))),
+      fromVersion5To8(fromVersion4(fromVersion3(data, deviceId))),
     )
   }
-  if (version === 4) {
-    return version4FileSchema.transform((data) => fromVersion6(fromVersion5(fromVersion4(data))))
-  }
-  if (version === 5) return version5FileSchema.transform((data) => fromVersion6(fromVersion5(data)))
-  return version === 6 ? version6FileSchema.transform(fromVersion6) : version7FileSchema
+  if (version === 4)
+    return version4FileSchema.transform((data) => fromVersion5To8(fromVersion4(data)))
+  if (version === 5) return version5FileSchema.transform(fromVersion5To8)
+  if (version === 6) return version6FileSchema.transform((data) => fromVersion7(fromVersion6(data)))
+  return version === 7 ? version7FileSchema.transform(fromVersion7) : version8FileSchema
 }

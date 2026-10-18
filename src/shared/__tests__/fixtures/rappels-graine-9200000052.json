@@ -6,7 +6,7 @@
       "firstDueOn": "2026-04-03",
       "gridOriginOn": "2026-04-03",
       "firstDueChosen": true,
-      "pastDosesStayUnlogged": false,
+      "fallenDosesAnswer": "unasked",
       "endsOn": null,
       "stoppedOn": null,
       "frequency": {
@@ -21,7 +21,7 @@
       "firstDueOn": "2026-04-13",
       "gridOriginOn": null,
       "firstDueChosen": false,
-      "pastDosesStayUnlogged": false,
+      "fallenDosesAnswer": "unasked",
       "endsOn": null,
       "frequency": {
         "value": 1,
@@ -37,7 +37,7 @@
       "firstDueOn": "2026-04-13",
       "gridOriginOn": null,
       "firstDueChosen": false,
-      "pastDosesStayUnlogged": false,
+      "fallenDosesAnswer": "unasked",
       "endsOn": null,
       "frequency": {
         "value": 1,

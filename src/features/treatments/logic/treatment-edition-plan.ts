@@ -39,7 +39,7 @@ export function editionPlan(
             settings,
             gridOriginOn: period.gridOriginOn,
             firstDueChosen: period.firstDueChosen,
-            pastDosesStayUnlogged: period.pastDosesStayUnlogged,
+            fallenDosesAnswer: period.fallenDosesAnswer,
           }
   const changes = [...(move?.changes ?? []), ...(plan?.lines ?? [])]
   const doses = plannedDoseWritesOf(treatment, changes, ids.newId)

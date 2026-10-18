@@ -1,5 +1,5 @@
 import { keyOf, plusDays } from '../grid'
-import { isAdvanced, isNote } from '../lines'
+import { isAdvanced, isTaken } from '../lines'
 import { episodeIdsOf } from '../settings'
 import type {
   Day,
@@ -41,7 +41,10 @@ export function movedAlone(view: TreatmentView, lines: readonly Line[], day: Day
 export const livesOn = ({ dueOn, targetOn }: Pick<Line, 'dueOn' | 'targetOn'>): Day =>
   targetOn !== null && targetOn < dueOn ? targetOn : dueOn
 
-/** R6, G7, TR-32 : une prise, ou une ligne de décalage, ou un report, existe après cette journée dans sa période. */
+/**
+ * R6, G7, TR-32 : une prise, ou une ligne de décalage, ou un report, existe après cette journée dans sa
+ * période ; une ligne « pas à donner » ne compte pas (#873).
+ */
 export function linesAfter(
   input: Pick<TreatmentViewInput, 'settings' | 'lines'>,
   from: Pick<Due, 'settingId' | 'dueOn'>,
@@ -54,9 +57,10 @@ export function linesAfter(
       !ignored.has(line.id) &&
       (episode.size === 0 || episode.has(line.settingId)) &&
       dayOf(line) > from.dueOn &&
-      line.status !== 'extra',
+      line.status !== 'extra' &&
+      line.status !== 'not-due',
   )
-  return { notes: later.filter(isNote), others: later.filter((line) => !isNote(line)) }
+  return { notes: later.filter(isTaken), others: later.filter((line) => !isTaken(line)) }
 }
 
 const overdue = (view: TreatmentView, today: Day): Due[] => [

@@ -1,6 +1,6 @@
 import type { Slot } from './calendar'
 import { dayOfKey, hoursOf, keyOf, later, longestStep, plusDays, stepped } from './grid'
-import { episodeLines, isNote } from './lines'
+import { episodeLines, isTaken } from './lines'
 import { momentOf } from './moment'
 import { dueReminders, type ReminderReading, type ReminderWindow } from './reminders'
 import { readingOf, UPCOMING_DAYS } from './reading'
@@ -172,7 +172,7 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
       moment.phase === 'stopped' &&
       moment.unlogged.length === 0 &&
       closedBeforeFirstDue(settings) &&
-      !lines.some((line) => isNote(line) || line.status === 'extra'),
+      !lines.some((line) => isTaken(line) || line.status === 'extra'),
     endedOn:
       moment.phase === 'stopped'
         ? (currentSetting?.stoppedOn ?? null)
@@ -242,7 +242,7 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
       const matches = (hour: Hour) => dueTime === null || hour === dueTime
       const ofDay = slots(dueOn, dueOn).filter(({ due }) => matches(due.dueTime))
       if (ofDay.length > 0) return ofDay.some(({ state }) => state !== 'pending')
-      return lines.some((line) => isNote(line) && line.dueOn === dueOn && matches(line.dueTime))
+      return lines.some((line) => isTaken(line) && line.dueOn === dueOn && matches(line.dueTime))
     },
   }
 }

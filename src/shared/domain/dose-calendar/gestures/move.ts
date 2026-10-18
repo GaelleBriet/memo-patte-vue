@@ -1,5 +1,5 @@
 import { keyOf, later, plusDays, stepped } from '../grid'
-import { isNote } from '../lines'
+import { isTaken } from '../lines'
 import { episodesOf } from '../settings'
 import type {
   Day,
@@ -118,7 +118,7 @@ function planOf(input: TreatmentViewInput, due: Due, shiftsFollowing: boolean): 
   const episode = episodesOf(input.settings).at(-1)!
   const ids = new Set(episode.map(({ id }) => id))
   const notedOn = (day: Day) =>
-    input.lines.some((line) => isNote(line) && ids.has(line.settingId) && line.dueOn === day)
+    input.lines.some((line) => isTaken(line) && ids.has(line.settingId) && line.dueOn === day)
   const existing = reportsOf(view, ids)
     .filter(
       (report) =>

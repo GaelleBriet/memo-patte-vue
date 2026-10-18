@@ -1,9 +1,10 @@
 import { hoursOf, later, sameFrequency } from '../grid'
-import { isNote } from '../lines'
+import { isTaken } from '../lines'
 import { episodesOf, hasNotes } from '../settings'
 import type {
   Day,
   Due,
+  FallenDosesAnswer,
   Refusal,
   Setting,
   SettingFields,
@@ -11,7 +12,7 @@ import type {
   TreatmentViewInput,
 } from '../types'
 import { buildView, type TreatmentView } from '../view'
-import { settingsApplied } from './changes'
+import { settingsApplied, written } from './changes'
 import { chosenRefusal, isChosen, withChosenDate } from './settings-chosen'
 import { endChecked } from './settings-end'
 import { keptCorrection } from './settings-kept'
@@ -46,24 +47,43 @@ function fieldsOf(startsOn: Day, dates: Dates, request: SettingsRequest): Settin
   return {
     startsOn,
     ...dates,
-    pastDosesStayUnlogged: false,
+    fallenDosesAnswer: 'unasked',
     endsOn: request.endsOn,
     frequency: request.frequency,
     times: [...request.times],
   }
 }
 
-// Q38 : seule une réponse à la question écrit « Elles restent à renseigner » ; une réécriture la garde.
+// Q38 : seule une réponse à la question écrit la réponse ; une réécriture la garde.
 const rewrite = (current: Setting, setting: SettingFields): SettingsPlan => ({
   action: 'rewrite',
   id: current.id,
-  setting: { ...setting, pastDosesStayUnlogged: current.pastDosesStayUnlogged },
+  setting: { ...setting, fallenDosesAnswer: current.fallenDosesAnswer },
 })
 
-const answered = (plan: SettingsPlan, pastDosesStayUnlogged: boolean): SettingsPlan => ({
+const answered = (plan: SettingsPlan, fallenDosesAnswer: FallenDosesAnswer): SettingsPlan => ({
   ...plan,
-  setting: { ...plan.setting, pastDosesStayUnlogged },
+  setting: { ...plan.setting, fallenDosesAnswer },
 })
+
+// #873 : « Elles n'étaient pas à donner » écrit une ligne par dose que la question a montrée.
+function notDue(
+  input: TreatmentViewInput,
+  plan: SettingsPlan,
+  fallen: readonly Due[],
+): SettingsPlan {
+  const lines = fallen.map(({ settingId, dueOn, dueTime }) =>
+    written(input.lines, {
+      settingId,
+      dueOn,
+      dueTime,
+      status: 'not-due',
+      givenOn: null,
+      targetOn: null,
+    }),
+  )
+  return { ...answered(plan, 'not-due'), lines: [...(plan.lines ?? []), ...lines] }
+}
 
 const sameHours = (a: readonly string[], b: readonly string[]) =>
   hoursOf(a).join() === hoursOf(b).join()
@@ -221,14 +241,18 @@ function corrected(
     return rewrite(current, fieldsOf(startsOn, dates, request))
   }
   const answer = (keep: SettingsPlan, correct: SettingsPlan, shownOn?: Day): SettingsResult => {
-    const question = { fallen, keep: answered(keep, true), correct: answered(correct, false) }
+    const question = {
+      fallen,
+      keep: answered(keep, 'stay-unlogged'),
+      correct: notDue(input, correct, fallen),
+    }
     const result = fallen.length === 0 ? { plan: correct } : { question }
     const first = 'plan' in result ? correct : keep
     return shownOn === undefined || shownOn === first.setting.firstDueOn
       ? result
       : { ...result, shownOn }
   }
-  const neverNoted = !input.lines.some(isNote)
+  const neverNoted = !input.lines.some(isTaken)
   const questioned = neverNoted && fallen.length > 0
   const fallback = questioned ? today : later(current.firstDueOn, today)
   const proposal = proposedDates(input, current, asked, fallback, readAfter(input, create))
@@ -238,12 +262,17 @@ function corrected(
     gridOriginOn: first,
     firstDueChosen,
   })
-  const fixed = questioned
-    ? own(shownFrom(today, readAfter(input, correctFrom)))
-    : sameFrequency(current.frequency, request.frequency)
-      ? keptCorrection(input, current, request, (dates) =>
-          rewrite(current, fieldsOf(current.startsOn, dates, request)),
-        )
+  // #872 : à fréquence gardée, avec ou sans prise, la correction garde sa grille et ne repart pas
+  // d'aujourd'hui ; la date de fin la refuse quand rien ne reste (#806).
+  const kept = () =>
+    keptCorrection(input, current, request, (dates) =>
+      rewrite(current, fieldsOf(current.startsOn, dates, request)),
+    )
+  // #836 : sans prise, la date de la correction reste une date proposée, jamais une date choisie.
+  const fixed = sameFrequency(current.frequency, request.frequency)
+    ? { ...kept(), ...(questioned ? { firstDueChosen: false } : {}) }
+    : questioned
+      ? own(shownFrom(today, readAfter(input, correctFrom)))
       : own(shownFrom(later(proposal.firstDueOn, today), readAfter(input, correctFrom)))
   // Q38 : la date que montre le formulaire, passée telle quelle, n'est pas une date choisie.
   const shown =

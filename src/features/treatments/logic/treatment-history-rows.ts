@@ -201,9 +201,13 @@ function idleTitle(t: Translate, dose: NewTreatmentDose, period: TreatmentPeriod
     case 'missed':
       return missedTitle(t, [dose], period)
     case 'given':
+    case 'not-due':
       return dueTitle(t, dose, period)
   }
 }
+
+// La ligne « pas à donner » n'a pas encore de libellé : elle ne s'affiche pas.
+const notDueLine = (): HistoryLine | null => null
 
 function idleLine(
   t: Translate,
@@ -261,6 +265,7 @@ export function lineOf(
   { dose, idle }: Entry,
   lastGivenId: string | undefined,
 ): HistoryLine | null {
+  if (dose.status === 'not-due') return notDueLine()
   if (idle) return idleLine(t, dose, period)
   switch (dose.status) {
     case 'postponed':

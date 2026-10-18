@@ -1,7 +1,10 @@
 import { hoursOf, keyOf, sameHours } from './reference-grid'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
-export const isNote = (line: ReferenceLine) => line.status === 'given' || line.status === 'missed'
+/** Une prise ; « pas à donner » n'en est jamais une. */
+export const isTaken = (line: ReferenceLine) => line.status === 'given' || line.status === 'missed'
+/** Une ligne posée sur une échéance : une prise, ou « pas à donner ». */
+export const isNote = (line: ReferenceLine) => isTaken(line) || line.status === 'not-due'
 export const isMoreRecent = (a: ReferenceLine, b: ReferenceLine) =>
   a.updatedAt > b.updatedAt || (a.updatedAt === b.updatedAt && a.id > b.id)
 
@@ -91,9 +94,14 @@ export function episodeLinesOf(
   allLines: readonly ReferenceLine[],
 ): ReferenceLine[] {
   const own = allLines.filter((line) => episode.some(({ id }) => id === line.settingId))
-  return latestBy(
+  const latest = latestBy(
     own,
-    (line) => `${keyOf(line.dueOn, line.dueTime)} ${isNote(line) ? 'note' : line.status}`,
+    (line) => `${keyOf(line.dueOn, line.dueTime)} ${isTaken(line) ? 'note' : line.status}`,
+  )
+  // #873 : une prise l'emporte toujours sur la ligne « pas à donner » de la même dose.
+  const given = latest.filter(isTaken).map((line) => keyOf(line.dueOn, line.dueTime))
+  return latest.filter(
+    (line) => line.status !== 'not-due' || !given.includes(keyOf(line.dueOn, line.dueTime)),
   )
 }
 
@@ -113,7 +121,7 @@ export const isLiveIn =
   (setting: ReferenceSetting, index: number) =>
     episode[index + 1]?.startsOn !== setting.startsOn ||
     lines.some(
-      (line) => line.settingId === setting.id && (isNote(line) || line.status === 'postponed'),
+      (line) => line.settingId === setting.id && (isTaken(line) || line.status === 'postponed'),
     )
 
 // R1, R10 : le réglage en vigueur un jour donné, et le jour où chacun cède la place.

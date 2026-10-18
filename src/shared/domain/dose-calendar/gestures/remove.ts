@@ -1,4 +1,4 @@
-import { isMoreRecent, isNote } from '../lines'
+import { isMoreRecent, isTaken } from '../lines'
 import type { Day, GestureResult, Line, LineChange, Refusal, TreatmentViewInput } from '../types'
 import { buildView } from '../view'
 import { without } from './changes'
@@ -14,7 +14,7 @@ function shiftRemovalRefusal(input: TreatmentViewInput, shift: Line): Refusal | 
       line.status === 'postponed' && effect.kind === 'moves' && line.dueOn === shift.dueOn,
   )?.line.targetOn
   const later = input.lines.some(
-    (line) => isNote(line) && line.dueOn > shift.dueOn && line.dueOn !== arrival,
+    (line) => isTaken(line) && line.dueOn > shift.dueOn && line.dueOn !== arrival,
   )
   if (later) return { reason: 'later-dose' }
   const rest = without(
@@ -33,7 +33,7 @@ function reportCompanions(input: TreatmentViewInput, report: Line): Line[] {
 }
 
 const arrivalLogged = (input: TreatmentViewInput, report: Line): boolean =>
-  input.lines.some((other) => isNote(other) && other.dueOn === report.targetOn)
+  input.lines.some((other) => isTaken(other) && other.dueOn === report.targetOn)
 
 // Q25, N8, G19 : verrouillé comme « Prochaine dose » ramenée au jour d'origine, jamais à moitié.
 function reportRemovalRefusal(input: TreatmentViewInput, report: Line): Refusal | null {

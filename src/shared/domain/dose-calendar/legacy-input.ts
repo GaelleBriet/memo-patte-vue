@@ -1,17 +1,17 @@
 import { isOnGrid, sameFrequency } from './grid'
 import type { Day, Line, LineStatus, Setting } from './types'
 
-export type SettingFacts = Pick<Setting, 'firstDueChosen' | 'pastDosesStayUnlogged'>
+export type SettingFacts = Pick<Setting, 'firstDueChosen' | 'fallenDosesAnswer'>
 
 /** Réglage tel que le schéma v11 l'enregistre : `referenceOn` porte encore plusieurs sens. */
 export type LegacyPeriod = Omit<Setting, 'gridOriginOn' | keyof SettingFacts> & { referenceOn: Day }
 
 /**
  * Schéma v12 → v13 : un réglage écrit sans ces faits se lit comme avant eux, toute origine posée
- * comme une date choisie, aucune réponse « Elles restent à renseigner ».
+ * comme une date choisie, aucune question des doses tombées posée.
  */
 export function legacyFactsOf(gridOriginOn: Day | null): SettingFacts {
-  return { firstDueChosen: gridOriginOn !== null, pastDosesStayUnlogged: false }
+  return { firstDueChosen: gridOriginOn !== null, fallenDosesAnswer: 'unasked' }
 }
 
 /** Ligne telle que le schéma v11 l'enregistre : `nextDueDate`, relu seulement pour un report ou un décalage. */

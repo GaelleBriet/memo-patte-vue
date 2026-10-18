@@ -1,6 +1,7 @@
 import type { TreatmentFrequency } from '../schema/treatment.schema'
 import { calendarDaySchema, type TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { Stamped } from '@/shared/domain/carnet-data'
+import type { FallenDosesAnswer } from '@/shared/domain/dose-calendar'
 
 export type StampedTreatmentPeriod = Stamped<TreatmentPeriodRecord>
 
@@ -12,7 +13,7 @@ export interface PeriodRow {
   first_due_on: string
   grid_origin_on: string | null
   first_due_chosen: number
-  past_doses_stay_unlogged: number
+  fallen_doses_answer: FallenDosesAnswer
   ends_on: string | null
   stopped_on: string | null
   frequency_value: number
@@ -40,7 +41,7 @@ export const SYNC_COLUMN_NAMES = [
   'first_due_on',
   'grid_origin_on',
   'first_due_chosen',
-  'past_doses_stay_unlogged',
+  'fallen_doses_answer',
   'ends_on',
   'stopped_on',
   'frequency_value',
@@ -80,7 +81,7 @@ export function toPeriodRecord(row: PeriodRow): TreatmentPeriodRecord {
     firstDueOn: row.first_due_on,
     gridOriginOn: row.grid_origin_on,
     firstDueChosen: row.first_due_chosen === 1,
-    pastDosesStayUnlogged: row.past_doses_stay_unlogged === 1,
+    fallenDosesAnswer: row.fallen_doses_answer,
     endsOn: row.ends_on,
     stoppedOn: row.stopped_on,
     frequency: { value: row.frequency_value, unit: row.frequency_unit },

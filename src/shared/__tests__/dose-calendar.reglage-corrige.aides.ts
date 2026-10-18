@@ -37,7 +37,9 @@ function recorded(input: TreatmentViewInput, changes: readonly LineChange[]): Tr
 }
 
 function written(input: TreatmentViewInput, plan: SettingsPlan): TreatmentViewInput {
-  if (plan.action === 'rewrite') return settingsApplied(input, plan)
+  if (plan.action === 'rewrite') {
+    return recorded(settingsApplied(input, { ...plan, lines: [] }), plan.lines ?? [])
+  }
   const createdAt = nextStamp(input)
   const created = { ...plan.setting, id: `r-${createdAt}`, stoppedOn: null, createdAt }
   return recorded({ ...input, settings: [...input.settings, created] }, plan.lines ?? [])
@@ -54,6 +56,22 @@ export function given(
 ) {
   const due = { settingId: current(input), dueOn, dueTime }
   const gesture = { due, status, givenOn: input.today, shiftsFollowing: false }
+  const result = noteDose(input, gesture)
+  if ('refusal' in result) throw new Error(JSON.stringify(result))
+  return recorded(input, result.changes)
+}
+
+/** « C'est fait » sur la dose que le calendrier montre ce jour-là, quel que soit son réglage. */
+export function givenAsShown(input: TreatmentViewInput, dueOn: string, dueTime: string) {
+  const slot = treatmentView(input)
+    .slots(dueOn, dueOn)
+    .find(({ due }) => due.dueTime === dueTime)!
+  const gesture = {
+    due: slot.due,
+    status: 'given' as const,
+    givenOn: input.today,
+    shiftsFollowing: false,
+  }
   const result = noteDose(input, gesture)
   if ('refusal' in result) throw new Error(JSON.stringify(result))
   return recorded(input, result.changes)

@@ -1,4 +1,4 @@
-# Format d'export des données (#80, v3 : #454, v4 : #501, v5 : #754, v6 : #825 et #836, v7 : #867)
+# Format d'export des données (#80, v3 : #454, v4 : #501, v5 : #754, v6 : #825 et #836, v7 : #867, v8 : #873)
 
 Contrat entre l'export (Paramètres → « Exporter mes données ») et l'import (#84, section
 [Import](#import--importer-un-export-mémopatte)).
@@ -89,7 +89,7 @@ Date du nom de fichier : minute locale de l'export. Encodage UTF-8, sans BOM, in
 
 ```json
 {
-  "schemaVersion": 7,
+  "schemaVersion": 8,
   "exportedAt": "2026-10-01T08:30:00.000Z",
   "appVersion": "0.1.48",
   "carnetSettings": null,
@@ -133,14 +133,20 @@ par l'app) et `pastDosesStayUnlogged` (réponse « Elles restent à renseigner �
 **Version 7** (#867, schéma v14, [`modele-de-donnees-v2.md`](modele-de-donnees-v2.md) §4.4) : une
 période porte `settingsWrittenAt`, la dernière écriture de ce qui fait son calendrier (R10).
 
+**Version 8** (#873, schéma v15, [`modele-de-donnees-v2.md`](modele-de-donnees-v2.md) §4.5) : une
+période porte `fallenDosesAnswer`, la réponse à la question Q38 des doses tombées, à la place du
+booléen `pastDosesStayUnlogged` : `"unasked"` (aucune question posée), `"stay-unlogged"` (« Elles
+restent à renseigner ») ou `"not-due"` (« Elles n'étaient pas à donner ») ; une prise peut valoir
+`"not-due"` (dose déclarée pas à donner par cette réponse, #873).
+
 | Champ           | Type                   | Sens                                                                 |
 | --------------- | ---------------------- | -------------------------------------------------------------------- |
 | `schemaVersion` | entier                 | Version du contrat. Toute rupture (champ retiré, renommé, sens changé) l'incrémente ; un ajout de champ optionnel ne l'incrémente pas |
 | `exportedAt`    | ISO 8601 UTC           | Instant de l'export                                                  |
 | `appVersion`    | texte                  | Version de l'app (`package.json`) qui a produit le fichier           |
 
-L'import relit les versions **3, 4, 5, 6 et 7** (plan du moteur v2 §3.3) : un fichier v3, v4, v5 ou v6
-est converti au format v7 avant toute autre étape. `referenceOn` devient `gridOriginOn` par la règle de la migration
+L'import relit les versions **3, 4, 5, 6, 7 et 8** (plan du moteur v2 §3.3) : un fichier v3 à v7
+est converti au format v8 avant toute autre étape. `referenceOn` devient `gridOriginOn` par la règle de la migration
 v12 (`gridOriginsOf`, `src/shared/domain/dose-calendar/legacy-input.ts`) : `null` quand la période suit
 sans arrêt une période de même fréquence et de même `referenceOn`, sinon `referenceOn` s'il est sur la
 grille qui passe par `firstDueOn`, sinon `firstDueOn` ; `nextDueDate` devient `targetOn` pour un report
@@ -150,7 +156,10 @@ Un fichier v3, v4 ou v5 reçoit ensuite les deux faits par la règle de la migra
 (`legacyFactsOf`) : `firstDueChosen` vaut `true` quand `gridOriginOn` est posée, sinon `false` ;
 `pastDosesStayUnlogged` vaut `false`. Un fichier v3 à v6 reçoit enfin `settingsWrittenAt` par la règle
 de la migration v14 : la date de création de la période (`createdAt`), que le moteur lit comme un
-réglage jamais réécrit.
+réglage jamais réécrit. Un fichier v3 à v7 reçoit enfin `fallenDosesAnswer` par la règle de la
+migration v15 : `"stay-unlogged"` quand `pastDosesStayUnlogged` vaut `true`, sinon `"unasked"`, jamais
+`"not-due"` (le booléen ne distinguait pas cette réponse d'aucune question : rien n'est retiré après
+coup).
 Un `schemaVersion` supérieur est refusé (« Cet export vient d'une version plus récente de l'app. »), un
 `schemaVersion` inférieur à 3 aussi (« Cet export vient d'une version plus ancienne de MémoPatte. Il ne
 peut plus être importé. ») : les formats v1 (jusqu'à la 0.1.40) et v2 (jusqu'à la 0.1.48) ne se relisent
@@ -247,7 +256,7 @@ n'en exporte pas, et l'import le refuse jusqu'au lot 3, comme `"medication"`.
 | `firstDueOn`            | `AAAA-MM-JJ`                                                  | Première échéance de la période                                       |
 | `gridOriginOn`          | `AAAA-MM-JJ` \| `null`                                        | Origine de la grille (R2) ; `null` : celle du réglage précédent (R3)  |
 | `firstDueChosen`        | booléen                                                       | Première dose choisie par la personne (R9), pas proposée par l'app    |
-| `pastDosesStayUnlogged` | booléen                                                       | « Elles restent à renseigner » répondu à la question Q38 (R10)        |
+| `fallenDosesAnswer`     | `"unasked"` \| `"stay-unlogged"` \| `"not-due"`                | Réponse à la question Q38 (R10, #873) : aucune question, « Elles restent à renseigner », « Elles n'étaient pas à donner » |
 | `settingsWrittenAt`     | ISO 8601 UTC                                                  | Dernière écriture du calendrier (R10, #867) ; `createdAt` sinon       |
 | `endsOn`                | `AAAA-MM-JJ` \| `null`                                        | Date de fin, facultative                                              |
 | `stoppedOn`             | `AAAA-MM-JJ` \| `null`                                        | Date d'arrêt, `null` en cours                                         |
@@ -278,7 +287,7 @@ la décrit dans le fichier.
 | `dueOn`       | `AAAA-MM-JJ`                             | Jour de l'échéance couverte                                              |
 | `dueTime`     | `HH:mm` \| `null`                        | Heure de l'échéance ; `null` sans heure                                  |
 | `givenOn`     | `AAAA-MM-JJ` \| `null`                   | Date réelle, jamais dans le futur ; `null` pour une oubliée ou un report |
-| `status`      | `"given"` \| `"missed"` \| `"postponed"` \| `"extra"` \| `"shift"` | Donnée, oubliée, reportée, prise en plus, ligne de décalage |
+| `status`      | `"given"` \| `"missed"` \| `"postponed"` \| `"extra"` \| `"shift"` \| `"not-due"` | Donnée, oubliée, reportée, prise en plus, ligne de décalage, pas à donner (v8, #873) |
 | `targetOn`    | `AAAA-MM-JJ` \| `null`                   | Report : jour d'arrivée ; décalage : jour d'ancrage ; `null` pour une prise |
 | `createdAt`   | ISO 8601 UTC                             |                                                                          |
 | `updatedAt`   | ISO 8601 UTC                             |                                                                          |

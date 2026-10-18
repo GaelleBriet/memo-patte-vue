@@ -25,6 +25,7 @@ export { familyOf, isAdvanced } from './lines'
 export { play, preview } from './preview'
 export type { DueReminder, ReminderMoment, ReminderReading, ReminderWindow } from './reminders'
 export type { DueSlot, HistoryLine, TreatmentView, Window } from './view'
+export { FALLEN_DOSES_ANSWERS } from './types'
 export type * from './types'
 
 /** R12 : la lecture d'un traitement, seule entrée du moteur des doses. */
