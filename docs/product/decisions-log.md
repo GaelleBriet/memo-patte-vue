@@ -3036,3 +3036,25 @@ moteur).
 - En attente, avant toute publication : l'affichage de la ligne « pas à donner » dans l'historique,
   avec son libellé et « Supprimer » (#952, libellé à valider par Gaelle).
 
+2026-10-18 — **Report contre réécriture d'un réglage : la plus récente des deux écritures, jusqu'au
+bout** (spec `traitements.md` R6, R10, R11, §10, §11 ; décisions de la session d'analyse du moteur
+du 18 octobre 2026, à qui Gaelle a délégué les lectures de règles ; #938, #882).
+
+- #938 : réécrit après le report sur un autre téléphone, son réglage ne donne pas ses heures à la
+  journée de départ, qui garde celles de ses autres lignes. Milo, tous les jours à 6, 12, 18 et
+  23 h, 6 h du 4 mars donnée d'avance ; A reporte 12 h du 4 au 5 avec la case, B, plus récent,
+  passe à 8 h, 14 h et 20 h : le 5 reçoit 12 h, 18 h et 23 h (avant : 14 h et 20 h, une dose perdue).
+- 6a : le report plus récent emporte son heure ; sa journée perd la première dose libre qui la suit.
+  Tous les 3 mois à 8 h, 14 h et 20 h, A reporte 8 h du 5 mars au 6, B passe à 8 h 01, 14 h 01 et
+  20 h 01 : le 6 à 8 h, le 5 garde 14 h 01 et 20 h 01. — Écartées : la lettre de #883 (deux doses
+  du matin), la lecture de `main` (le 6 à 8 h 01).
+- 6b : le décalage suit son report, sans effet avec lui. — Écartée : R6 seule (un mois sans dose).
+- 6c : parti après la première échéance réécrite, le décalage du report gagnant garde le rythme de A
+  depuis le jour d'arrivée : Luna, 9, 12, 19, 26. — Écartées : la lecture de `main`, la translation
+  de la grille de B (9, 12, 18, 25).
+- 8a : le conflit se détecte dans le calendrier, sans migration : après la première échéance, une
+  journée ôtée par la réécriture elle-même se juge dans les deux sens (graine 8710000057 : le 16 à
+  6 h) ; une journée ôtée par une autre ligne ou un réglage créé ensuite garde la lecture d'avant.
+  — Écartées : la date du réglage vu notée sur le report (migration), trancher à la synchro.
+- Reste en question (§11) : #939, le report écrit sous un réglage plus ancien que celui que B
+  réécrit.
