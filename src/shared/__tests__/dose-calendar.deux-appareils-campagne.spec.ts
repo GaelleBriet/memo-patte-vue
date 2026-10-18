@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { forksOf, type Fork } from '../../../scripts/dose-engine/two-devices'
 import { constatsOf, type Reader } from '../../../scripts/dose-engine/two-devices-constats'
 import {
+  appConstatsOf,
   notesForksOf,
   screensOf,
   type Engine,
@@ -75,6 +76,7 @@ describe('campagne à deux téléphones', () => {
         path === undefined ? undefined : await import(/* @vite-ignore */ path)
       const branch: Engine = await import('../domain/dose-calendar')
       let forks = 0
+      let played = 0
       let mainFound = 0
       const found: string[] = []
       for (let seed = campaign.from; seed < campaign.from + campaign.seeds; seed += 1) {
@@ -83,6 +85,11 @@ describe('campagne à deux téléphones', () => {
           if (screens === null) return
           forks += 1
           if (screens[0] !== screens[1]) found.push(`graine ${fork.seed}, pas ${fork.step}`)
+          const app = appConstatsOf(branch, fork)
+          if (app !== null) {
+            played += 1
+            found.push(...app)
+          }
           const before = main === undefined ? null : screensOf(main, fork)
           if (before !== null && before[0] !== before[1]) mainFound += 1
         })
@@ -90,7 +97,8 @@ describe('campagne à deux téléphones', () => {
       const last = campaign.from + campaign.seeds - 1
       console.warn(
         `Campagne deux téléphones, notes : ${campaign.seeds} carnets × ${campaign.steps} pas, ` +
-          `graines ${campaign.from} à ${last} : ${forks} fourches, ${found.length} selon l’ordre` +
+          `graines ${campaign.from} à ${last} : ${forks} fourches (${played} jouées comme l’app), ` +
+          `${found.length} constats` +
           `${main ? ` (main : ${mainFound})` : ''}`,
       )
       expect(forks).toBeGreaterThan(0)

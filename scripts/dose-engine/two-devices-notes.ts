@@ -8,6 +8,7 @@ import {
 } from '@/shared/domain/dose-calendar'
 
 import { int, mulberry32, pick, plusDays, type Random } from './carnet'
+import { applyBatch, noteByApp, type Clock, type Phone } from './two-devices-app'
 import { startV2Walk, v2Step } from './v2-walk'
 
 /** Un moteur qui joue les gestes et lit le carnet : celui de la branche, ou celui de `main`. */
@@ -132,6 +133,87 @@ export function screensOf(engine: Engine, fork: NotesFork): [string, string] | n
     return signature(engine, { ...fork.base, lines: merged })
   })
   return [screens[0]!, screens[1]!]
+}
+
+const otherOf = (device: Device): Device => (device === 'A' ? 'B' : 'A')
+
+function slotOf(fork: NotesFork, lines: readonly Line[]) {
+  const { dueOn, dueTime } = fork.due
+  return treatmentView({ ...fork.base, lines })
+    .slots(dueOn, dueOn)
+    .find(({ due }) => due.dueTime === dueTime)
+}
+
+// Le geste n'est proposé que sur une dose à renseigner ou notée autrement (#920, R12).
+const offered = (fork: NotesFork, lines: readonly Line[]) =>
+  ['pending', fork.gesture.status === 'given' ? 'missed' : 'given'].includes(
+    slotOf(fork, lines)?.state ?? '',
+  )
+
+// La ligne qui couvre la dose porte le statut et la date du geste.
+function showsGesture(fork: NotesFork, lines: readonly Line[]): boolean {
+  const slot = slotOf(fork, lines)
+  if (slot?.state !== fork.gesture.status) return false
+  return fork.gesture.status === 'missed' || slot.by?.givenOn === fork.gesture.givenOn
+}
+
+const copyOf = (phone: Phone): Phone => ({
+  device: phone.device,
+  lines: [...phone.lines],
+  deleted: new Map(phone.deleted),
+})
+
+/**
+ * Les constats d'une fourche jouée comme par l'app (écritures du service, réécritures inchangées
+ * sautées, « Annuler ») : la dose montre le geste, « Annuler » rend la fiche d'avant, les deux ordres
+ * donnent le même écran ; `null` quand une note de départ est refusée.
+ */
+export function appConstatsOf(engine: Engine, fork: NotesFork): string[] | null {
+  const clock: Clock = { n: 0 }
+  const start = (device: Device): Phone => ({
+    device,
+    lines: [...fork.base.lines],
+    deleted: new Map(),
+  })
+  const phones = { A: start('A'), B: start('B') }
+  for (const device of [fork.first, otherOf(fork.first)]) {
+    const note = gestureOf(fork.due, fork.notes[device])
+    const done = noteByApp(phones[device], fork.base, note, clock)
+    if (done === null || done.change.alreadyGivenOn !== null) return null
+  }
+  const other = phones[otherOf(fork.device)]
+  const screen = (lines: readonly Line[]) => signature(engine, { ...fork.base, lines })
+  const where = `graine ${fork.seed}, pas ${fork.step}`
+  const found: string[] = []
+  const at = clock.n
+  const screens = [true, false].map((receivedBefore) => {
+    clock.n = at
+    const mine = phones[fork.device]
+    const phone: Phone = {
+      ...copyOf(mine),
+      lines: receivedBefore ? synced(fork.base.lines, mine.lines, other.lines) : [...mine.lines],
+    }
+    if (!offered(fork, phone.lines)) return null
+    const order = receivedBefore ? 'ligne de l’autre reçue avant' : 'reçue après'
+    const before = screen(phone.lines)
+    const done = noteByApp(phone, fork.base, gestureOf(fork.due, fork.gesture), clock)
+    if (done === null) return 'refusé'
+    if (!showsGesture(fork, phone.lines)) found.push(`${where}, ${order} : dose sans le geste`)
+    const undone = copyOf(phone)
+    try {
+      applyBatch(undone, done.undo, { n: clock.n })
+      if (screen(undone.lines) !== before) found.push(`${where}, ${order} : « Annuler » rate`)
+    } catch {
+      found.push(`${where}, ${order} : « Annuler » refusé`)
+    }
+    const merged = synced(fork.base.lines, phone.lines, other.lines)
+    if (!showsGesture(fork, merged)) found.push(`${where}, ${order} : synchro sans le geste`)
+    return screen(merged)
+  })
+  if (screens.every((each) => each !== null) && screens[0] !== screens[1]) {
+    found.push(`${where} : écran selon l'ordre de synchro`)
+  }
+  return found
 }
 
 function noteOf(random: Random, due: Due, today: string, given: number): Note {
