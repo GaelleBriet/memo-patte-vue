@@ -55,6 +55,10 @@ function isOnCalendar({ reading }: RowContext, dose: NewTreatmentDose): boolean 
   return state !== 'moved' && state !== 'removed'
 }
 
+function canMarkMissed(context: RowContext, dose: NewTreatmentDose): boolean {
+  return isOnCalendar(context, dose) && dose.dueOn <= context.today
+}
+
 function dueTitle(t: Translate, dose: NewTreatmentDose, period: TreatmentPeriodRecord): string {
   const date = formatLongDate(dose.dueOn)
   return isSeveralTimesADay(period) && dose.dueTime !== null
@@ -232,7 +236,7 @@ export function givenLine(
         : t('treatments.history.givenOn', { date: formatLongDate(dose.givenOn) }),
     isLast,
     optionsLabel: doseOptionsLabel(t, dose, period),
-    actions: isOnCalendar(context, dose)
+    actions: canMarkMissed(context, dose)
       ? ['change-date', 'mark-missed', 'remove']
       : ['change-date', 'remove'],
   }
