@@ -32,7 +32,7 @@ describe('RA-1 à RA-6 : les rappels lus dans la vue', () => {
   it('RA-1, RA-4, RA-6 : quotidien à 8 h et 20 h, un rappel par heure, ni prévenance ni relance, rien pour la veille à renseigner', () => {
     const p1 = setting('p1', '2026-10-05', DAY, H, { endsOn: '2026-10-07' })
     const read = view([p1], [line('p1', 'given', '2026-10-05', '08:00')], '2026-10-06')
-    expect(shown(read.reminders(WINDOW))).toEqual([
+    expect(shown(read.reminders(WINDOW).reminders)).toEqual([
       'due 2026-10-06 08:00 → 2026-10-06',
       'due 2026-10-06 20:00 → 2026-10-06',
       'due 2026-10-07 08:00 → 2026-10-07',
@@ -42,7 +42,7 @@ describe('RA-1 à RA-6 : les rappels lus dans la vue', () => {
 
   it('RA-2, RA-3 : hebdomadaire sans heure, prévenance 3 jours avant, relance 3 jours après', () => {
     const read = view([setting('p1', '2026-10-12', WEEK)], [], '2026-10-06')
-    expect(shown(read.reminders({ ...WINDOW, count: 1 })).slice(0, 9)).toEqual([
+    expect(shown(read.reminders({ ...WINDOW, count: 1 }).reminders).slice(0, 9)).toEqual([
       'due 2026-10-12 - → 2026-10-12',
       'before 2026-10-12 - → 2026-10-09 []',
       'overdue 2026-10-12 - → 2026-10-15',
@@ -57,7 +57,7 @@ describe('RA-1 à RA-6 : les rappels lus dans la vue', () => {
 
   it('RA-5 : à plusieurs heures, une prévenance à la première heure, une relance si toutes les heures sont encore dues', () => {
     const p1 = setting('p1', '2026-10-05', WEEK, ['20:00', '08:00'], { endsOn: '2026-10-12' })
-    expect(shown(view([p1], [], '2026-10-06').reminders(WINDOW))).toEqual([
+    expect(shown(view([p1], [], '2026-10-06').reminders(WINDOW).reminders)).toEqual([
       'due 2026-10-05 08:00 → 2026-10-05',
       'due 2026-10-05 20:00 → 2026-10-05',
       'before 2026-10-05 08:00 → 2026-10-02 [08:00,20:00]',
@@ -68,9 +68,9 @@ describe('RA-1 à RA-6 : les rappels lus dans la vue', () => {
       'overdue 2026-10-12 08:00 → 2026-10-15',
     ])
     const halfDone = view([p1], [line('p1', 'given', '2026-10-05', '08:00')], '2026-10-06')
-    expect(shown(halfDone.reminders(WINDOW)).filter((each) => each.includes('2026-10-05'))).toEqual(
-      ['due 2026-10-05 20:00 → 2026-10-05', 'before 2026-10-05 20:00 → 2026-10-02 [20:00]'],
-    )
+    expect(
+      shown(halfDone.reminders(WINDOW).reminders).filter((each) => each.includes('2026-10-05')),
+    ).toEqual(['due 2026-10-05 20:00 → 2026-10-05', 'before 2026-10-05 20:00 → 2026-10-02 [20:00]'])
   })
 
   describe('RA-3, RA-5 : la relance compare aux heures de la journée que montre la fiche (R7, #814)', () => {
@@ -83,7 +83,9 @@ describe('RA-1 à RA-6 : les rappels lus dans la vue', () => {
         line('p1', 'given', '2026-10-05', '08:00'),
         line('p1', 'postponed', '2026-10-05', '20:00', '2026-10-08'),
       ]
-      expect(ofDay('2026-10-08', view([p1], lines, '2026-10-06').reminders(WINDOW))).toEqual([
+      expect(
+        ofDay('2026-10-08', view([p1], lines, '2026-10-06').reminders(WINDOW).reminders),
+      ).toEqual([
         'due 2026-10-08 20:00 → 2026-10-08',
         'before 2026-10-08 20:00 → 2026-10-05 [20:00]',
         'overdue 2026-10-08 20:00 → 2026-10-11',
@@ -96,19 +98,24 @@ describe('RA-1 à RA-6 : les rappels lus dans la vue', () => {
         line('p1', 'postponed', '2026-10-05', '20:00', '2026-10-08'),
         line('p1', 'given', '2026-10-08', '20:00'),
       ]
-      expect(ofDay('2026-10-08', view([p1], lines, '2026-10-09').reminders(WINDOW))).toEqual([])
+      expect(
+        ofDay('2026-10-08', view([p1], lines, '2026-10-09').reminders(WINDOW).reminders),
+      ).toEqual([])
     })
 
     it('journée entière reportée : les deux heures arrivent, relance tant qu’aucune n’est notée', () => {
       const report = line('p1', 'postponed', '2026-10-05', '08:00', '2026-10-08')
       expect(
-        ofDay('2026-10-08', view([p1], [report], '2026-10-06').reminders(WINDOW)).filter((each) =>
-          each.startsWith('overdue'),
+        ofDay('2026-10-08', view([p1], [report], '2026-10-06').reminders(WINDOW).reminders).filter(
+          (each) => each.startsWith('overdue'),
         ),
       ).toEqual(['overdue 2026-10-08 08:00 → 2026-10-11'])
       const morning = line('p1', 'given', '2026-10-08', '08:00')
       expect(
-        ofDay('2026-10-08', view([p1], [report, morning], '2026-10-09').reminders(WINDOW)),
+        ofDay(
+          '2026-10-08',
+          view([p1], [report, morning], '2026-10-09').reminders(WINDOW).reminders,
+        ),
       ).toEqual([
         'due 2026-10-08 20:00 → 2026-10-08',
         'before 2026-10-08 20:00 → 2026-10-05 [20:00]',
@@ -150,7 +157,7 @@ describe('RA-1 à RA-6 : les rappels lus dans la vue', () => {
       })
       if (!('plan' in proposal)) throw new Error('plan attendu')
       const after = settingsApplied(edited, proposal.plan)
-      const reminders = shown(treatmentView(after).reminders(WINDOW))
+      const reminders = shown(treatmentView(after).reminders(WINDOW).reminders)
       expect(reminders.filter((each) => each.includes(' 2026-10-12'))).toEqual([])
       expect(reminders.filter((each) => each.startsWith('due 2026-10-17'))).toEqual([
         'due 2026-10-17 20:00 → 2026-10-17',
@@ -160,7 +167,7 @@ describe('RA-1 à RA-6 : les rappels lus dans la vue', () => {
 
   it('RA-4 : tous les 4 jours, prévenance après l’échéance d’avant, relance avant la suivante', () => {
     const read = view([setting('p1', '2026-10-10', { value: 4, unit: 'day' })], [], '2026-10-06')
-    expect(shown(read.reminders({ ...WINDOW, count: 1 })).slice(0, 6)).toEqual([
+    expect(shown(read.reminders({ ...WINDOW, count: 1 }).reminders).slice(0, 6)).toEqual([
       'due 2026-10-10 - → 2026-10-10',
       'before 2026-10-10 - → 2026-10-07 []',
       'overdue 2026-10-10 - → 2026-10-13',
@@ -172,19 +179,22 @@ describe('RA-1 à RA-6 : les rappels lus dans la vue', () => {
 
   it('RA-4 : tous les 3 jours, le rappel du jour seul, ni prévenance ni relance', () => {
     const read = view([setting('p1', '2026-10-10', { value: 3, unit: 'day' })], [], '2026-10-06')
-    expect(shown(read.reminders({ ...WINDOW, count: 3 })).slice(0, 3)).toEqual([
+    expect(shown(read.reminders({ ...WINDOW, count: 3 }).reminders).slice(0, 3)).toEqual([
       'due 2026-10-10 - → 2026-10-10',
       'due 2026-10-13 - → 2026-10-13',
       'due 2026-10-16 - → 2026-10-16',
     ])
-    expect(read.reminders(WINDOW).every(({ moment }) => moment === 'due')).toBe(true)
+    expect(read.reminders(WINDOW).reminders.every(({ moment }) => moment === 'due')).toBe(true)
   })
 
   it('RA-4 : un report qui arrive deux jours avant la suivante retire prévenance et relance entre elles', () => {
     const p1 = setting('p1', '2026-10-05', WEEK)
     const report = line('p1', 'postponed', '2026-10-05', null, '2026-10-10')
     expect(
-      shown(view([p1], [report], '2026-10-06').reminders({ ...WINDOW, count: 2 })).slice(0, 7),
+      shown(view([p1], [report], '2026-10-06').reminders({ ...WINDOW, count: 2 }).reminders).slice(
+        0,
+        7,
+      ),
     ).toEqual([
       'due 2026-10-10 - → 2026-10-10',
       'before 2026-10-10 - → 2026-10-07 []',
@@ -198,7 +208,7 @@ describe('RA-1 à RA-6 : les rappels lus dans la vue', () => {
 
   it('RA-6 : aucun rappel pour une dose à renseigner, la dose du moment seule', () => {
     const p1 = setting('p1', '2026-10-01', DAY, ['20:00'], { endsOn: '2026-10-08' })
-    expect(shown(view([p1], [], '2026-10-06').reminders(WINDOW))).toEqual([
+    expect(shown(view([p1], [], '2026-10-06').reminders(WINDOW).reminders)).toEqual([
       'due 2026-10-06 20:00 → 2026-10-06',
       'due 2026-10-07 20:00 → 2026-10-07',
       'due 2026-10-08 20:00 → 2026-10-08',
@@ -207,23 +217,57 @@ describe('RA-1 à RA-6 : les rappels lus dans la vue', () => {
 
   it('RA-6 : après la date de fin, la dernière dose non notée garde sa relance ; une plus ancienne, rien', () => {
     const p1 = setting('p1', '2026-10-12', WEEK, [], { endsOn: '2026-10-19' })
-    expect(shown(view([p1], [], '2026-10-20').reminders(WINDOW))).toEqual([
+    expect(shown(view([p1], [], '2026-10-20').reminders(WINDOW).reminders)).toEqual([
       'due 2026-10-19 - → 2026-10-19',
       'before 2026-10-19 - → 2026-10-16 []',
       'overdue 2026-10-19 - → 2026-10-22',
     ])
     const lastGiven = [line('p1', 'given', '2026-10-19')]
-    expect(view([p1], lastGiven, '2026-10-20').reminders(WINDOW)).toEqual([])
+    expect(view([p1], lastGiven, '2026-10-20').reminders(WINDOW).reminders).toEqual([])
   })
 
   it('RA-6 : aucun rappel pour un traitement arrêté', () => {
     const p1 = setting('p1', '2026-10-01', DAY, [], { stoppedOn: '2026-10-05' })
-    expect(view([p1], [], '2026-10-06').reminders(WINDOW)).toEqual([])
+    expect(view([p1], [], '2026-10-06').reminders(WINDOW).reminders).toEqual([])
+  })
+
+  describe('#933 : la lecture dit s’il reste des échéances après la dernière journée lue', () => {
+    it('quotidien à 8 h sans fin : il en reste', () => {
+      const read = view([setting('p1', '2026-10-06', DAY, ['08:00'])], [], '2026-10-06')
+      expect(read.reminders({ ...WINDOW, count: 3 }).readAll).toBe(false)
+    })
+
+    it('quotidien à 8 h jusqu’au 8 octobre, trois rappels demandés : le 8 est lu, rien ne reste', () => {
+      const p1 = setting('p1', '2026-10-06', DAY, ['08:00'], { endsOn: '2026-10-08' })
+      const reading = view([p1], [], '2026-10-06').reminders({ ...WINDOW, count: 3 })
+      expect(reading.reminders.at(-1)!.due.dueOn).toBe('2026-10-08')
+      expect(reading.readAll).toBe(true)
+    })
+
+    it('quotidien à 8 h jusqu’au 9 octobre, la dose du 9 donnée d’avance : rien ne reste après le 8', () => {
+      const p1 = setting('p1', '2026-10-06', DAY, ['08:00'], { endsOn: '2026-10-09' })
+      const given = [line('p1', 'given', '2026-10-09', '08:00')]
+      const reading = view([p1], given, '2026-10-06').reminders({ ...WINDOW, count: 1 })
+      expect(reading.reminders.at(-1)!.due.dueOn).toBe('2026-10-08')
+      expect(reading.readAll).toBe(true)
+    })
+
+    it('mensuel sans fin, vingt rappels demandés : il en reste après le 31 août 2028', () => {
+      const read = view([setting('p1', '2026-10-31', MONTH)], [], '2026-10-13')
+      expect(read.reminders({ ...WINDOW, count: 20 }).readAll).toBe(false)
+    })
+
+    it('traitement arrêté : tout est lu', () => {
+      const p1 = setting('p1', '2026-10-01', DAY, [], { stoppedOn: '2026-10-05' })
+      expect(view([p1], [], '2026-10-06').reminders(WINDOW).readAll).toBe(true)
+    })
   })
 
   it('RA-11 : mensuel sans fin, les échéances au-delà de 400 jours sont lues jusqu’au nombre demandé', () => {
     const read = view([setting('p1', '2026-10-31', MONTH)], [], '2026-10-13')
-    const dues = read.reminders({ ...WINDOW, count: 20 }).filter(({ moment }) => moment === 'due')
+    const dues = read
+      .reminders({ ...WINDOW, count: 20 })
+      .reminders.filter(({ moment }) => moment === 'due')
     expect(dues).toHaveLength(23)
     expect(dues.at(-1)!.due.dueOn).toBe('2028-08-31')
     expect(dues[3]!.due.dueOn).toBe('2027-01-31')
@@ -236,7 +280,7 @@ describe('RA-1 à RA-6 : les rappels lus dans la vue', () => {
       [],
       '2026-10-06',
     )
-    expect(shown(read.reminders({ ...WINDOW, count: 1 })).slice(-3)).toEqual([
+    expect(shown(read.reminders({ ...WINDOW, count: 1 }).reminders).slice(-3)).toEqual([
       'due 2026-10-08 08:00 → 2026-10-08',
       'due 2026-10-08 14:00 → 2026-10-08',
       'due 2026-10-08 20:00 → 2026-10-08',
@@ -248,7 +292,7 @@ describe('RA-1 à RA-6 : les rappels lus dans la vue', () => {
     const p2 = setting('p2', '2026-10-01', DAY, ['06:00', '12:00', '18:00', '23:00'])
     const read = view([p1, p2], [], '2026-10-13')
     const started = performance.now()
-    const reminders = read.reminders(WINDOW)
+    const reminders = read.reminders(WINDOW).reminders
     expect(performance.now() - started).toBeLessThan(1000)
     expect(reminders).toHaveLength(72)
     expect(reminders.every(({ moment, due }) => moment === 'due' && due.settingId === 'p2')).toBe(

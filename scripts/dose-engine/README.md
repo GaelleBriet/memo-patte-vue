@@ -72,8 +72,10 @@ moteur seul. Variables : `TREATMENT_ORACLE_FROM` (540000000), `TREATMENT_ORACLE_
 (`v2-walk.ts`) ; à chaque pas, `v2-reminders.ts` vérifie que les rappels de `view.reminders` sont les
 échéances de la fiche (RA-1, RA-6 : toute échéance à donner a son rappel du jour, aucune autre ; la
 dernière dose après la date de fin), la prévenance et la relance (RA-2 à RA-5), relues sur l'état de
-chaque échéance, et le volet (RA-19, `view.isNoted`). La dernière journée lue est entière (#933).
-`v2-reminder-plan.ts` relit ensuite le plan de l'app ouverte à 0 h et à 23 h 59 (RA-11, RA-12) :
+chaque échéance, et le volet (RA-19, `view.isNoted`). La dernière journée lue est entière, et la
+lecture dit « tout lu » si et seulement si rien ne reste à donner après elle (#933).
+`v2-reminder-plan.ts` relit ensuite le plan de l'app ouverte à 0 h et à 23 h 59, rappel « à l'heure »
+et « 1 h avant », traitement sans heure rappelé à 7 h, 9 h et 21 h (RA-7, RA-8, RA-11, RA-12) :
 aucune échéance de la fiche ne manque avant le dernier rappel programmé, et un plan sans relais
 ne laisse rien après lui. La comparaison avec les rappels de l'ancien moteur a disparu avec lui au
 pas 10.

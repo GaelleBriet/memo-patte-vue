@@ -19,11 +19,12 @@ const broken = (rule: string, detail: unknown): Broken => ({
 /**
  * Les rappels programmés sont les échéances que montre la fiche (RA-1, RA-6) : de la première à la
  * dernière rappelée, toute échéance à donner a son rappel du jour, aucune autre ; prévenance et
- * relance selon RA-2 à RA-5, relues sur l'état de chaque échéance ; RA-19 sur chaque ligne.
+ * relance selon RA-2 à RA-5, relues sur l'état de chaque échéance ; RA-19 sur chaque ligne ; la
+ * lecture dit tout lu si et seulement si aucune échéance à donner ne reste après sa dernière journée.
  */
 export function remindersBrokenBy(input: TreatmentViewInput): Broken | null {
   const view = treatmentView(input)
-  const reminders = view.reminders(REMINDER_WINDOW)
+  const { reminders, readAll } = view.reminders(REMINDER_WINDOW)
   const closed = view.phase === 'stopped' || view.phase === 'ended'
   const unlogged = new Set(view.unloggedDoses.map(dueKey))
   const lastDay = view.phase === 'ended' ? view.lastDueDay : null
@@ -60,6 +61,14 @@ export function remindersBrokenBy(input: TreatmentViewInput): Broken | null {
       view.upcoming({ to: plusDays(input.today, 3000) }).length,
     )
     if (reminded.length < wanted) return broken('RA-11, assez d’échéances', { wanted, reminded })
+  }
+  const lastRead = dues.at(-1)?.dueOn
+  const left =
+    closed || lastRead === undefined
+      ? []
+      : view.upcoming({ from: plusDays(lastRead, 1), to: plusDays(lastRead, 3000), limit: 1 })
+  if (readAll !== (left.length === 0)) {
+    return broken('RA-12, tout lu', { readAll, lastRead, left: left.map(dueKey) })
   }
 
   const days = [...new Set(dues.map(({ dueOn }) => dueOn))]
