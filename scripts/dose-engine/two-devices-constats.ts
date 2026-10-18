@@ -63,19 +63,28 @@ function readByMain(main: Reader): Reader {
 }
 
 const keyOf = (line: Line) => `${line.dueOn} ${line.dueTime}`
+const isTaken = ({ status }: Line) => status === 'given' || status === 'missed'
 
-// #873 : une prise l'emporte toujours sur la ligne « pas à donner » de sa dose.
+// #873 : une prise l'emporte toujours sur la ligne « pas à donner » de sa dose ; un oubli dont
+// l'échéance a quitté le calendrier reste sans effet sans elle (R4) et ne compte pas.
 function takenGreyedByNotDue({ merged }: Fork): Line[] {
   const notDue = new Set(merged.lines.filter(({ status }) => status === 'not-due').map(keyOf))
-  const taken = treatmentView(merged).history.filter(
-    ({ line }) => line.status === 'given' || line.status === 'missed',
+  const countedIn = (input: TreatmentViewInput) =>
+    new Set(
+      treatmentView(input)
+        .history.filter(({ line, effect }) => isTaken(line) && effect.kind !== 'idle')
+        .map(({ line }) => keyOf(line)),
+    )
+  const counted = countedIn(merged)
+  const greyed = merged.lines.filter(
+    (line) => isTaken(line) && notDue.has(keyOf(line)) && !counted.has(keyOf(line)),
   )
-  const counted = new Set(
-    taken.filter(({ effect }) => effect.kind !== 'idle').map(({ line }) => keyOf(line)),
-  )
-  return taken
-    .filter(({ line }) => notDue.has(keyOf(line)) && !counted.has(keyOf(line)))
-    .map(({ line }) => line)
+  if (greyed.length === 0) return []
+  const withoutNotDue = countedIn({
+    ...merged,
+    lines: merged.lines.filter(({ status }) => status !== 'not-due'),
+  })
+  return greyed.filter((line) => withoutNotDue.has(keyOf(line)))
 }
 
 /**
