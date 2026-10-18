@@ -216,6 +216,19 @@ describe('useCareForm — enregistrement', () => {
     expect(replace).not.toHaveBeenCalled()
   })
 
+  it('reste sur l’écran, sans échec, quand l’écriture finit sans rien écrire', async () => {
+    const { form, animals } = monter({ animalId: 'milo' })
+    await flushPromises()
+
+    await form.saveThenLeave(async () => null, true)
+
+    expect(form.saveFailed.value).toBe(false)
+    expect(form.isSaved.value).toBe(false)
+    expect(form.canSave.value).toBe(true)
+    expect(animals.select).not.toHaveBeenCalled()
+    expect(replace).not.toHaveBeenCalled()
+  })
+
   it('dit l’échec de l’écriture et reste sur l’écran', async () => {
     const { form, animals } = monter({ animalId: 'milo' })
     await flushPromises()

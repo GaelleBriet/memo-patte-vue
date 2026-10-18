@@ -1,6 +1,7 @@
 import { computed, ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import { pastDuesAskedAgain } from '../logic/treatment-edition-checks'
 import {
   editedFormValues,
   editionDraftOf,
@@ -105,9 +106,22 @@ export function useTreatmentEditionForm({ values, treatment, today, refreshToday
     const id = requireHistory().id
     refreshToday?.()
     const result = validation.validate()
-    if (result.success) return () => treatments.update(id, result.data)
+    if (result.success) return () => updated(id, result.data)
     isPastDuesOpen.value = result.needsPastDuesChoice
     return null
+  }
+
+  /** La question a changé depuis l'affichage (synchro) : le traitement relu, elle se repose. */
+  async function updated(id: string, data: Parameters<typeof treatments.update>[1]) {
+    try {
+      return await treatments.update(id, data)
+    } catch (error) {
+      const fresh = pastDuesAskedAgain(error) ? await treatments.getWithHistory(id) : null
+      if (fresh === null) throw error
+      treatment.value = fresh
+      isPastDuesOpen.value = pastDues.value !== null
+      return null
+    }
   }
 
   return {

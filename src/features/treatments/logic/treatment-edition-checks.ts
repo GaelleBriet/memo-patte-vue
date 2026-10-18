@@ -1,4 +1,4 @@
-import type { z } from 'zod'
+import { ZodError, type z } from 'zod'
 
 import { resolve } from './treatment-edition-change'
 import { treatmentReadingOf } from './treatment-reading-adapter'
@@ -127,6 +127,11 @@ function editionIssues(treatment: TreatmentWithHistory, data: Edition, today: st
   const message = endsOnIssue(treatment, period, data.endsOn, today, plan === null, move)
   return message === null ? [] : [{ path: 'endsOn', message }]
 }
+
+/** #873 : l'écriture a été refusée parce que la question des échéances tombées a changé. */
+export const pastDuesAskedAgain = (error: unknown): boolean =>
+  error instanceof ZodError &&
+  error.issues.some(({ path, message }) => path[0] === 'pastDues' && message === 'required')
 
 /** Le schéma de « Modifier » avec ses bornes de dates, celles du moteur pour « Prochaine dose ». */
 export function treatmentEditionSchemaFor(treatment: TreatmentWithHistory, today: string) {

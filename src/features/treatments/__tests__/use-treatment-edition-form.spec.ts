@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import { defineComponent, nextTick, ref } from 'vue'
+import { ZodError } from 'zod'
 
 import { milbemax, period, TODAY } from './treatment-form-fixtures'
 import { useTreatmentEditionForm } from '../composables/use-treatment-edition-form'
@@ -125,6 +126,33 @@ describe('useTreatmentEditionForm — échéances tombées', () => {
       SANS_PRISE().id,
       expect.objectContaining({ pastDues: 'keep', nextDoseOn: TODAY }),
     )
+  })
+
+  it('la question a changé entre l’affichage et l’enregistrement : recharge le traitement et la repose, sans échec', async () => {
+    const { form, history } = await aDemander()
+    form.answerPastDues('drop')
+    const changed = new ZodError([
+      { code: 'custom', path: ['pastDues'], message: 'required', input: undefined },
+    ])
+    update.mockRejectedValueOnce(changed)
+    const fresh = { ...SANS_PRISE(), name: 'Milbemax relu' }
+    const reload = vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue(fresh)
+
+    await expect(form.write()?.()).resolves.toBeNull()
+
+    expect(reload).toHaveBeenCalledWith(SANS_PRISE().id)
+    expect(history.value).toEqual(fresh)
+    expect(form.isPastDuesOpen.value).toBe(true)
+  })
+
+  it('une autre erreur d’écriture remonte telle quelle, sans recharger', async () => {
+    const { form } = await aDemander()
+    form.answerPastDues('drop')
+    update.mockRejectedValueOnce(new Error('disque plein'))
+    const reload = vi.spyOn(useTreatmentsStore(), 'getWithHistory')
+
+    await expect(form.write()?.()).rejects.toThrow('disque plein')
+    expect(reload).not.toHaveBeenCalled()
   })
 
   it('oublie la réponse quand la fréquence change de nouveau', async () => {
