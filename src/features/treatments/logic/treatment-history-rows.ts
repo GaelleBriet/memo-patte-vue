@@ -206,7 +206,7 @@ function idleTitle(t: Translate, dose: NewTreatmentDose, period: TreatmentPeriod
   }
 }
 
-// #873 : la ligne « pas à donner » attend son libellé (question posée à Gaelle) ; rien ne s'affiche d'ici là.
+// La ligne « pas à donner » n'a pas encore de libellé : elle ne s'affiche pas.
 const notDueLine = (): HistoryLine | null => null
 
 function idleLine(
