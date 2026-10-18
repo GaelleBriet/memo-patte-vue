@@ -865,6 +865,28 @@ describe('parseExportFile', () => {
       ).toEqual(['2026-06-15', '2026-09-01', null])
     })
 
+    function asNotDue(document: Document) {
+      const dose = rows(document, 'treatmentDoses').find(({ status }) =>
+        ['given', 'missed'].includes(status as string),
+      )!
+      dose.status = 'not-due'
+      dose.givenOn = null
+    }
+
+    it('accepte une ligne « pas à donner » dans un export v8 (#873)', () => {
+      expect(parseExportFile(withDocument(asNotDue), IMPORTEUR).ok).toBe(true)
+    })
+
+    it.each([
+      ['v7', () => withDocument(toVersion7)],
+      ['v4', () => exportV4],
+      ['v3', () => exportV3],
+    ])('refuse une ligne « pas à donner » dans un export %s, plus ancien qu’elle', (_, file) => {
+      const document = JSON.parse(file()) as Document
+      asNotDue(document)
+      expect(parseExportFile(JSON.stringify(document), IMPORTEUR, '2026-10-12')).toEqual(INVALID)
+    })
+
     it('refuse un export v4 dont un report n’a pas de date suivante', () => {
       const v4 = JSON.parse(exportV4) as Document
       delete rows(v4, 'treatmentDoses')[1]!.nextDueDate

@@ -119,6 +119,7 @@ const doseShape = {
   givenOn: pastDay.nullable(),
   status: z.enum(DOSE_STATUSES),
 }
+const legacyDoseShape = { ...doseShape, status: z.enum(DOSE_STATUSES).exclude(['not-due']) }
 const weightEntryShape = {
   id: z.uuid(),
   animalId: z.uuid(),
@@ -200,11 +201,14 @@ const signedCarnet = {
   devices: z.array(deviceFileSchema).refine(hasUniqueIds),
 }
 
-const movedDoses = z.array(
-  signed({ ...doseShape, targetOn: day.nullable() })
-    .refine(isConsistentDose)
-    .refine(({ status, targetOn }) => isMove(status) === (targetOn !== null)),
-)
+const movedDosesOf = (shape: typeof doseShape | typeof legacyDoseShape) =>
+  z.array(
+    signed({ ...shape, targetOn: day.nullable() })
+      .refine(isConsistentDose)
+      .refine(({ status, targetOn }) => isMove(status) === (targetOn !== null)),
+  )
+const movedDoses = movedDosesOf(doseShape)
+const legacyMovedDoses = movedDosesOf(legacyDoseShape)
 
 const version6PeriodShape = {
   ...periodShape,
@@ -235,7 +239,7 @@ const version7FileSchema = z
     treatmentPeriods: z.array(
       signed({ ...version6PeriodShape, settingsWrittenAt: instant }).refine(isConsistentPeriod),
     ),
-    treatmentDoses: movedDoses,
+    treatmentDoses: legacyMovedDoses,
   })
   .refine(isConsistentCarnet)
 
@@ -243,7 +247,7 @@ const version6FileSchema = z
   .object({
     ...signedCarnet,
     treatmentPeriods: z.array(signed(version6PeriodShape).refine(isConsistentPeriod)),
-    treatmentDoses: movedDoses,
+    treatmentDoses: legacyMovedDoses,
   })
   .refine(isConsistentCarnet)
 
@@ -253,7 +257,7 @@ const version5FileSchema = z
     treatmentPeriods: z.array(
       signed({ ...periodShape, gridOriginOn: day.nullable() }).refine(isConsistentPeriod),
     ),
-    treatmentDoses: movedDoses,
+    treatmentDoses: legacyMovedDoses,
   })
   .refine(isConsistentCarnet)
 
@@ -263,7 +267,9 @@ const version4FileSchema = z
     treatmentPeriods: z.array(
       signed({ ...periodShape, referenceOn: day }).refine(isConsistentPeriod),
     ),
-    treatmentDoses: z.array(signed({ ...doseShape, nextDueDate: day }).refine(isConsistentDose)),
+    treatmentDoses: z.array(
+      signed({ ...legacyDoseShape, nextDueDate: day }).refine(isConsistentDose),
+    ),
   })
   .refine(isConsistentCarnet)
 
@@ -275,7 +281,9 @@ const version3FileSchema = z
     vaccinationInjections: z.array(dated(injectionShape)),
     treatments: z.array(dated(treatmentShape)),
     treatmentPeriods: z.array(dated(periodShape).refine(isConsistentPeriod)),
-    treatmentDoses: z.array(dated({ ...doseShape, nextDueDate: day }).refine(isConsistentDose)),
+    treatmentDoses: z.array(
+      dated({ ...legacyDoseShape, nextDueDate: day }).refine(isConsistentDose),
+    ),
     weightEntries: z.array(dated(weightEntryShape)),
   })
   .refine(isConsistentCarnet)
