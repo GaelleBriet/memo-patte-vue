@@ -31,7 +31,7 @@ import {
   fromVersion7,
   type Version5Data,
 } from '../logic/export-file-versions'
-import { isConsistentCarnet } from '../logic/export-carnet-links'
+import { hasUniqueIds, isConsistentCarnet } from '../logic/export-carnet-links'
 import { carnetSettingsSchema } from './carnet-settings.schema'
 import { isCalendarDay, MAX_CALENDAR_YEAR, MIN_CALENDAR_YEAR } from '@/shared/domain/calendar-day'
 import { CLOCK_TIME_PATTERN } from '@/shared/domain/clock-time'

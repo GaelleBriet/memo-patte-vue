@@ -5,7 +5,7 @@ type Carnet = {
   treatmentPeriods: (Row & { treatmentId: string })[]
 } & Record<'vaccinations' | 'vaccinationInjections' | 'treatmentDoses' | 'weightEntries', Row[]>
 
-const hasUniqueIds = (rows: { id: string }[]) =>
+export const hasUniqueIds = (rows: { id: string }[]) =>
   new Set(rows.map(({ id }) => id)).size === rows.length
 
 /** Identifiants uniques ; chaque ligne rattachée à un animal, chaque traitement à une période. */
