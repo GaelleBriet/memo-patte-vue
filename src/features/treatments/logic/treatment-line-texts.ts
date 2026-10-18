@@ -47,7 +47,9 @@ export function removeTexts(
     const answered = day(answeredOn({ createdAt: removed.createdAt }))
     return {
       done: () => t('treatments.history.toast.notDueRemoved', { date: answered }),
-      undo: t('treatments.history.toast.undoNotDueRemoved', { date: answered }),
+      undo: t('treatments.history.toast.undoNotDueRemoved', {
+        date: formatFullDate(answeredOn({ createdAt: removed.createdAt })),
+      }),
       already,
     }
   }

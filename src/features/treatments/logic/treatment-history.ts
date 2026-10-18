@@ -16,7 +16,7 @@ import { historyEntries, type TreatmentReading } from '@/shared/domain/treatment
 import { formatLongDate, formatDayMonthOrYear } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
-export { moveText } from './treatment-history-rows'
+export { moveText } from './treatment-move-text'
 export type { DoseLineAction, DoseRow, HistoryLine } from './treatment-history-rows'
 
 /** Lignes d'une période montrées avant « Voir les prises précédentes ». */
@@ -40,9 +40,9 @@ const FAMILY_RANK: Record<NewTreatmentDose['status'], number> = {
   postponed: 0,
   given: 1,
   missed: 1,
-  'not-due': 1,
   extra: 1,
-  shift: 2,
+  'not-due': 2,
+  shift: 3,
 }
 
 function rangeDates(from: string, to: string): { from: string; to: string } {
@@ -127,9 +127,19 @@ function emptyText(
     : t('treatments.history.empty')
 }
 
+const lastDayOf = (line: HistoryLine): string =>
+  line.kind === 'missed' ? line.rows.at(-1)!.dose.dueOn : line.dose.dueOn
+
+const isAnswer = ({ dose }: HistoryLine): boolean => dose.status === 'not-due'
+
 function foldAt(lines: HistoryLine[]): number {
   let cut = LINES_BEFORE_TOGGLE
-  while (cut < lines.length && lines[cut]!.dose.dueOn === lines[cut - 1]!.dose.dueOn) cut += 1
+  while (cut < lines.length) {
+    const [before, after] = [lines[cut - 1]!, lines[cut]!]
+    const sameDay = after.dose.dueOn === lastDayOf(before)
+    if (!sameDay || !(isAnswer(before) || isAnswer(after))) break
+    cut += 1
+  }
   return cut
 }
 

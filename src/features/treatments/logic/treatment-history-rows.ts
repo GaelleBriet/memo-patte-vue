@@ -1,15 +1,11 @@
 import { movedDueOf } from './treatment-line-actions'
+import { moveText } from './treatment-move-text'
 import { notDueText } from './treatment-not-due-text'
 import { refusalText, removeMoveRefusalText } from './treatment-refusal-texts'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import { nextDay } from '@/shared/domain/calendar-day'
-import {
-  isAdvanced,
-  moveBounds,
-  removalRefusal,
-  type MoveBounds,
-} from '@/shared/domain/dose-calendar'
+import { moveBounds, removalRefusal, type MoveBounds } from '@/shared/domain/dose-calendar'
 import { isSeveralTimesADay } from '@/shared/domain/treatment-periods'
 import type { TreatmentReading } from '@/shared/domain/treatment-reading'
 import {
@@ -46,7 +42,6 @@ export type HistoryLine =
   | (DoseRow & { kind: 'shift' })
   /** R11 : une ligne que le calendrier ne lit plus ; seule la personne la supprime. */
   | (DoseRow & { kind: 'idle'; detail: string | null })
-  /** Réponse « Elle n'était pas à donner » : l'échéance sort du calendrier. */
   | (DoseRow & { kind: 'not-due'; detail: string })
 
 export type Entry = { dose: NewTreatmentDose; idle: boolean }
@@ -119,20 +114,6 @@ export function missedRow(
     optionsLabel: doseOptionsLabel(t, dose, period),
     actions: isOnCalendar(context, dose) ? ['mark-given', 'remove'] : ['remove'],
   }
-}
-
-export function moveText(
-  t: Translate,
-  dose: Pick<NewTreatmentDose, 'status' | 'dueOn' | 'targetOn'>,
-): string {
-  const arrival = dose.targetOn ?? dose.dueOn
-  const dates = {
-    date: formatLongDate(arrival),
-    due: formatDayMonthOrYear(dose.dueOn, arrival),
-  }
-  return isAdvanced(dose)
-    ? t('treatments.history.advanced', dates)
-    : t('treatments.history.postponed', dates)
 }
 
 function moveLine(
@@ -215,8 +196,7 @@ function idleLine(
   dose: NewTreatmentDose,
   period: TreatmentPeriodRecord,
 ): HistoryLine {
-  const text = idleTitle(t, dose, period)
-  const noEffect = t('treatments.history.noEffect', { text })
+  const noEffect = t('treatments.history.noEffect', { text: idleTitle(t, dose, period) })
   const answered = dose.status === 'not-due'
   return {
     kind: 'idle',
@@ -286,8 +266,9 @@ export function lineOf(
   lastGivenId: string | undefined,
 ): HistoryLine | null {
   if (idle) return idleLine(t, dose, period)
-  if (dose.status === 'not-due') return notDueLine(t, dose, period)
   switch (dose.status) {
+    case 'not-due':
+      return notDueLine(t, dose, period)
     case 'postponed':
       return moveLine(t, context, dose)
     case 'shift':
