@@ -2992,8 +2992,10 @@ moteur).
   a changé à l'enregistrement.
 - Une ligne « pas à donner » compte comme une ligne (journée touchée, le plus récent l'emporte,
   suppression seule) et jamais comme une prise ; sa dose n'est nulle part.
-- Une journée sans prise dont toutes les lignes sont « pas à donner » sort en entier, quelles que
-  soient ses heures d'après (graine 9850000047).
+- Une journée sans prise dont toutes les doses portent une ligne « pas à donner » sort en entier,
+  même quand ses heures ont changé depuis la réponse (graine 9850000047) ; tant qu'une de ses
+  heures est celle d'une de ses lignes, elle se lit heure par heure : une prise supprimée y rend sa
+  dose (relecture de la PR #951, graines 9710000218 et 9710000737).
 - Report contre ligne « pas à donner », au départ comme à l'arrivée : le plus récent l'emporte, le
   perdant grisé « sans effet » (graine 8000000726) ; une prise donnée sur une arrivée ne change pas.
 - #872 : « Elles n'étaient pas à donner » qui vide la période est refusée avec le texte de #806, avec

@@ -44,14 +44,18 @@ export const departureBeaten = (
     ),
   )
 
-/** C2 : une journée sans prise dont toutes les lignes sont « pas à donner » a été listée en entier. */
+/** C2 : une journée sans prise listée en entier, dont aucune heure n'est plus celle d'une de ses lignes. */
 export const listedWholeDay = (
   day: string,
+  hours: readonly Hour[],
   notes: readonly ReferenceLine[],
   beaten: ReadonlySet<ReferenceLine>,
 ): boolean => {
   const ofDay = notes.filter((note) => note.dueOn === day && !beaten.has(note))
-  return ofDay.length > 0 && ofDay.every((note) => note.status === 'not-due')
+  return (
+    ofDay.length > 0 &&
+    ofDay.every((note) => note.status === 'not-due' && !hours.includes(note.dueTime))
+  )
 }
 
 type CoverageInput = {
@@ -79,7 +83,7 @@ export function duesOf(
   }).coveredAside
   const dues: ReferenceDue[] = []
   for (const [day, journey] of [...days].sort(([a], [b]) => a.localeCompare(b))) {
-    if (listedWholeDay(day, notes, beaten)) continue
+    if (listedWholeDay(day, journey.hours, notes, beaten)) continue
     const covered = beaten.size > 0 ? standing(day, journey) : coveredOn(day, journey)
     // Une échéance que seule une ligne « pas à donner » couvre n'existe pas.
     const hours = existingHours(journey.hours, covered, takenOn(day, journey))

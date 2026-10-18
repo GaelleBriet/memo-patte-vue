@@ -61,6 +61,22 @@ export function given(
   return recorded(input, result.changes)
 }
 
+/** « C'est fait » sur la dose que le calendrier montre ce jour-là, quel que soit son réglage. */
+export function givenAsShown(input: TreatmentViewInput, dueOn: string, dueTime: string) {
+  const slot = treatmentView(input)
+    .slots(dueOn, dueOn)
+    .find(({ due }) => due.dueTime === dueTime)!
+  const gesture = {
+    due: slot.due,
+    status: 'given' as const,
+    givenOn: input.today,
+    shiftsFollowing: false,
+  }
+  const result = noteDose(input, gesture)
+  if ('refusal' in result) throw new Error(JSON.stringify(result))
+  return recorded(input, result.changes)
+}
+
 export function moved(
   input: TreatmentViewInput,
   dueOn: string,

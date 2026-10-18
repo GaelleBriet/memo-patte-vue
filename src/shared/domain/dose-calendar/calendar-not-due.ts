@@ -14,11 +14,8 @@ export function notDueArrivals(effects: Map<string, LineEffect>) {
     arrive(report: Line, day: Day, hours: readonly Hour[]) {
       for (const hour of hours) arrivedBy.set(keyOf(day, hour), report)
     },
-    /**
-     * Les heures d'une journée qui restent des échéances ; une ligne battue ne couvre plus rien. Une
-     * journée sans prise dont toutes les lignes sont « pas à donner » sort en entier, quelles que soient
-     * ses heures d'après (C2).
-     */
+    // C2 : une journée sans prise sort en entier si ses heures ont changé depuis ses lignes « pas à
+    // donner », sinon heure par heure ; une ligne battue ne couvre plus rien.
     hoursOf(
       day: Day,
       hours: readonly Hour[],
@@ -32,7 +29,8 @@ export function notDueArrivals(effects: Map<string, LineEffect>) {
       }
       if (
         dayNotes.length > 0 &&
-        dayNotes.every((note) => note.status === 'not-due' && standing(note))
+        dayNotes.every((note) => note.status === 'not-due' && standing(note)) &&
+        !dayNotes.some((note) => hours.includes(note.dueTime))
       ) {
         dayNotes.forEach((note) => held.set(note, keyOf(note.dueOn, note.dueTime)))
         for (const [key, report] of arrivedBy) {
