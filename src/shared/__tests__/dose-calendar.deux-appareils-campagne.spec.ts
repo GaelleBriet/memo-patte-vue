@@ -89,6 +89,20 @@ describe('campagne à deux téléphones', () => {
     expect(constatsOf(forkAt(seed, step))).toEqual([])
   })
 
+  // Prise sans effet pour une autre raison que « pas à donner » : oubli dont l'échéance a quitté le
+  // calendrier (R4), prise d'avant l'arrêt datée après lui (R8).
+  it.each([
+    [4450000079, 10],
+    [4450000583, 11],
+    [4450000620, 0],
+    [4450000828, 6],
+    [4450000848, 24],
+    [9840000261, 0],
+    [9840001132, 1],
+  ])('graine %i, pas %i : aucune prise grisée par « pas à donner »', (seed, step) => {
+    expect(constatsOf(forkAt(seed, step))).toEqual([])
+  })
+
   // Relecture de la PR #934, carnet figé tel que la marche de `main` le menait : depuis #872, la
   // correction à fréquence gardée garde sa grille et la marche n'y arrive plus.
   it('graine 8710001753, pas 20 (carnet figé) : le report de A n’est pas perdu', () => {
