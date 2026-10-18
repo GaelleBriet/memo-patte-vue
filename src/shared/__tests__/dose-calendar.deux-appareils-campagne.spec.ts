@@ -1,11 +1,15 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { forksOf, lostReport, type Fork } from '../../../scripts/dose-engine/two-devices'
+import {
+  constatsOf,
+  forksOf,
+  type Fork,
+  type Reader,
+} from '../../../scripts/dose-engine/two-devices'
 
-// Campagne à deux téléphones (#867, #882, #883) : à chaque fourche, A fait un geste, B « Modifier »
-// sans le voir, puis la synchro. Séries longues : TW_FROM, TW_SEEDS, TW_STEPS posées directement
-// devant la commande (`scripts/dose-engine/README.md`).
+// Campagne à deux téléphones (#867, #882, #883) : TW_FROM, TW_SEEDS, TW_STEPS, et TW_MAIN (moteur de
+// `main`, pour ne compter que ses écarts) posées devant la commande (`scripts/dose-engine/README.md`).
 
 type Campaign = { from: number; seeds: number; steps: number }
 
@@ -36,24 +40,27 @@ function forkAt(seed: number, step: number): Fork {
 
 describe('campagne à deux téléphones', () => {
   it(
-    'aucun report perdu quand la réécriture n’a pas ôté sa dose de départ',
-    () => {
+    'ni report perdu ni dose de trop quand la réécriture n’a pas ôté la dose de départ',
+    async () => {
+      const path = process.env.TW_MAIN
+      const main: Reader | undefined =
+        path === undefined ? undefined : (await import(/* @vite-ignore */ path)).treatmentView
       let forks = 0
-      const lost: string[] = []
+      const found: string[] = []
       for (let seed = campaign.from; seed < campaign.from + campaign.seeds; seed += 1) {
         forksOf(seed, campaign.steps, (fork) => {
           forks += 1
-          const found = lostReport(fork)
-          if (found !== null) lost.push(found)
+          found.push(...constatsOf(fork, main))
         })
       }
       const last = campaign.from + campaign.seeds - 1
       console.warn(
         `Campagne deux téléphones : ${campaign.seeds} carnets × ${campaign.steps} pas, graines ` +
-          `${campaign.from} à ${last} : ${forks} fourches, ${lost.length} reports perdus`,
+          `${campaign.from} à ${last}${main ? ', comparée à main' : ''} : ${forks} fourches, ` +
+          `${found.length} constats`,
       )
       expect(forks).toBeGreaterThan(0)
-      expect(lost.slice(0, 5)).toEqual([])
+      expect(found.slice(0, 5)).toEqual([])
     },
     60_000 + campaign.seeds * campaign.steps * 60,
   )
@@ -83,7 +90,7 @@ describe('campagne à deux téléphones', () => {
     [9530001286, 18],
     [9530001637, 18],
   ])('graine %i, pas %i : le report de A n’est pas perdu', (seed, step) => {
-    expect(lostReport(forkAt(seed, step))).toBeNull()
+    expect(constatsOf(forkAt(seed, step))).toEqual([])
   })
 
   it.each([

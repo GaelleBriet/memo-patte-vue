@@ -121,10 +121,8 @@ describe('Un seul téléphone : une dose ôtée par un décalage, pas par la ré
     expect(seedHolds(9500001489, 40)).toEqual([])
   })
 
-  // Milo, toutes les 2 semaines à 20 h depuis le 13 mars, fin le 26 avril ; le 15 mars : dose du 13
-  // donnée, dose du 27 donnée d'avance avec la case ; fin le 16 avril, puis 8 h, 14 h et 20 h le même
-  // jour ; la dose de 8 h du 29 mars reportée au 8 avril avec la case ; puis « Supprimer » le décalage
-  // du 27 mars.
+  // Milo, toutes les 2 semaines à 20 h : 27 mars donné d'avance avec la case, puis 8 h, 14 h et 20 h,
+  // la dose de 8 h du 29 mars reportée au 8 avril avec la case, puis le décalage du 27 supprimé.
   it('Milo : supprimer le décalage du 27 mars ne retire pas les doses de 14 h et 20 h, et une posologie seule ne change rien', () => {
     const milo = phone({
       settings: [
