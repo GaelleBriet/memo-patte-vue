@@ -16,7 +16,7 @@ import { historyEntries, type TreatmentReading } from '@/shared/domain/treatment
 import { formatLongDate, formatDayMonthOrYear } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
-export { moveText } from './treatment-history-rows'
+export { moveText } from './treatment-move-text'
 export type { DoseLineAction, DoseRow, HistoryLine } from './treatment-history-rows'
 
 /** Lignes d'une période montrées avant « Voir les prises précédentes ». */
@@ -40,9 +40,9 @@ const FAMILY_RANK: Record<NewTreatmentDose['status'], number> = {
   postponed: 0,
   given: 1,
   missed: 1,
-  'not-due': 1,
   extra: 1,
-  shift: 2,
+  'not-due': 2,
+  shift: 3,
 }
 
 function rangeDates(from: string, to: string): { from: string; to: string } {
@@ -127,13 +127,29 @@ function emptyText(
     : t('treatments.history.empty')
 }
 
+function singleDayOf(line: HistoryLine): string | null {
+  if (line.kind !== 'missed') return line.dose.dueOn
+  const days = new Set(line.rows.map(({ dose }) => dose.dueOn))
+  return days.size === 1 ? line.dose.dueOn : null
+}
+
+function foldAt(lines: HistoryLine[]): number {
+  const day = lines[LINES_BEFORE_TOGGLE - 1] && singleDayOf(lines[LINES_BEFORE_TOGGLE - 1]!)
+  let cut = LINES_BEFORE_TOGGLE
+  while (day && cut < lines.length && singleDayOf(lines[cut]!) === day) cut += 1
+  return cut
+}
+
 function notesIn(lines: HistoryLine[]): number {
   return lines.reduce(
     (count, line) =>
       count +
       (line.kind === 'missed'
         ? line.rows.length
-        : line.kind === 'move' || line.kind === 'shift' || line.kind === 'idle'
+        : line.kind === 'move' ||
+            line.kind === 'shift' ||
+            line.kind === 'idle' ||
+            line.kind === 'not-due'
           ? 0
           : 1),
     0,
@@ -191,7 +207,8 @@ export function treatmentHistory(
     periods: periods.map((period, index): HistoryPeriod => {
       const own = entries.filter(({ dose }) => dose.periodId === period.id)
       const lines = linesOf(t, context, period, own, last?.id)
-      const hidden = notesIn(lines.slice(LINES_BEFORE_TOGGLE))
+      const cut = foldAt(lines)
+      const hidden = notesIn(lines.slice(cut))
       const others = index === 0 && !isAlone
       return {
         id: period.id,
@@ -203,7 +220,7 @@ export function treatmentHistory(
             },
         lines,
         emptyText: lines.length === 0 ? emptyText(t, period, periods[index - 1], context) : null,
-        visibleLines: hidden === 0 ? lines.length : LINES_BEFORE_TOGGLE,
+        visibleLines: hidden === 0 ? lines.length : cut,
         toggle:
           hidden === 0
             ? null

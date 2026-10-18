@@ -1,4 +1,5 @@
 import type { DoseActionTexts, DueDay, RestoredSuite, TextTools } from './treatment-gestures'
+import { answeredOn } from './treatment-not-due-text'
 import { withRevealed } from './treatment-revealed-dues'
 import { isAdvanced } from '@/shared/domain/dose-calendar'
 import {
@@ -39,6 +40,14 @@ export function removeTexts(
           ? t('treatments.history.toast.moveRemovedShiftKept')
           : t('treatments.history.toast.moveRemoved'),
       undo: t('treatments.history.toast.undoMoveRemoved'),
+      already,
+    }
+  }
+  if (removed.status === 'not-due' && removed.createdAt !== undefined) {
+    const answered = answeredOn({ createdAt: removed.createdAt })
+    return {
+      done: () => t('treatments.history.toast.notDueRemoved', { date: day(answered) }),
+      undo: t('treatments.history.toast.undoNotDueRemoved', { date: formatFullDate(answered) }),
       already,
     }
   }

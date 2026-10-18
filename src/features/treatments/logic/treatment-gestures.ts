@@ -32,7 +32,10 @@ export type DoseActionTexts = {
   already(givenOn: string): string
 }
 
-export type DueDay = Pick<Due, 'dueOn' | 'dueTime'> & { status?: NewTreatmentDose['status'] }
+export type DueDay = Pick<Due, 'dueOn' | 'dueTime'> & {
+  status?: NewTreatmentDose['status']
+  createdAt?: string
+}
 
 export function hasSeveralTimes(
   treatment: Pick<TreatmentWithHistory, 'periods'>,

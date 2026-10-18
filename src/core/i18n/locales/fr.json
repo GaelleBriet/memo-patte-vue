@@ -676,8 +676,11 @@
         "shiftRemoved": "Décalage supprimé",
         "shiftRemovedWeekday": "Décalage supprimé. Les doses suivantes reviennent au {weekday}.",
         "shiftRemovedOn": "Décalage supprimé. Prochaine dose le {date}.",
-        "undoShiftRemoved": "Annuler la suppression du décalage"
+        "undoShiftRemoved": "Annuler la suppression du décalage",
+        "notDueRemoved": "Réponse du {date} supprimée",
+        "undoNotDueRemoved": "Annuler la suppression de la réponse du {date}"
       },
+      "notDue": "Pas à donner · répondu le {date}",
       "noEffect": "{text} · sans effet",
       "shiftWithoutNext": "Doses suivantes décalées",
       "shift": "Doses suivantes décalées · prochaine le {date}",
