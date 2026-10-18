@@ -20,7 +20,6 @@ import {
   stopDayOf,
   type Claim,
   type Journey,
-  type ReferenceDue,
   type Replaced,
   type Segment,
 } from './reference-days'
@@ -28,13 +27,12 @@ import {
   episodeLinesOf,
   isLiveIn,
   isNote,
-  isTaken,
   latestBy,
   reportsOf,
   settingsIn,
   touchedJourneys,
 } from './reference-lines'
-import { beatenNotDue, departureBeaten, existingHours, listedWholeDay } from './reference-not-due'
+import { departureBeaten, duesOf } from './reference-not-due'
 import { arrivedOn, chosenDateOf, hoursChangedSince, reportOutcome } from './reference-reports'
 import { rewrittenDeparture, shiftKeptByReport, type RewriteContext } from './reference-rewrite'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
@@ -201,13 +199,6 @@ export function calendarOf(
 
   const coverage = coverages({ notes, borrowed, reports, translated, settingOf })
   const { matched, coveredOn, coveredAside, settle } = coverage
-  const takenOn = coverages({
-    notes: notes.filter(isTaken),
-    borrowed,
-    reports,
-    translated,
-    settingOf,
-  }).coveredAside
 
   // R7 : un report emporte son heure et les suivantes sans prise ; ceux qui arrivent sur sa journée d'abord.
   const fallen = new Set<string>()
@@ -288,28 +279,19 @@ export function calendarOf(
     received.forEach((hour) => arrivedBy.set(keyOf(targetOn!, hour), report!))
   }
   settle()
-  const beaten = beatenNotDue(notes, arrivedBy)
-  const standing = coverages({
-    notes: notes.filter((note) => !beaten.has(note)),
-    borrowed,
-    reports,
-    translated,
-    settingOf,
-  }).coveredAside
 
   left.forEach((journey, day) => {
     if (!days.has(day)) coveredOn(day, journey)
   })
 
-  const dues: ReferenceDue[] = []
-  for (const [day, journey] of [...days].sort(([a], [b]) => a.localeCompare(b))) {
-    if (listedWholeDay(day, notes, beaten)) continue
-    const covered = beaten.size > 0 ? standing(day, journey) : coveredOn(day, journey)
-    // #873 : une échéance que seule une ligne « pas à donner » couvre n'existe pas.
-    const hours = existingHours(journey.hours, covered, takenOn(day, journey))
-    if (hours.length > 0) fallen.add(day)
-    dues.push(...hours.map((hour) => ({ key: keyOf(day, hour), day, covered: covered.has(hour) })))
-  }
+  const dues = duesOf(days, fallen, coveredOn, {
+    notes,
+    borrowed,
+    reports,
+    translated,
+    settingOf,
+    arrivedBy,
+  })
   // TR-9 : la date choisie remplace la dose du premier jour, ou de la dernière journée arrivée avant lui.
   const lateDays = lateDaysOf(replaced, fallen)
   replaced.filter(({ onDueDay }) => onDueDay).forEach(({ to }) => fallen.add(to))

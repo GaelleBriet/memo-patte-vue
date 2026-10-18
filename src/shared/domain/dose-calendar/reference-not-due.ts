@@ -1,6 +1,9 @@
-import type { ReferenceLine } from './reference-types'
+import { coverages, type Journey, type ReferenceDue } from './reference-days'
+import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 type Hour = string | null
+
+const isTaken = (line: ReferenceLine) => line.status === 'given' || line.status === 'missed'
 
 const keyOf = (day: string, hour: Hour) => (hour === null ? day : `${day} ${hour}`)
 const newer = (a: ReferenceLine, b: ReferenceLine) =>
@@ -49,4 +52,39 @@ export const listedWholeDay = (
 ): boolean => {
   const ofDay = notes.filter((note) => note.dueOn === day && !beaten.has(note))
   return ofDay.length > 0 && ofDay.every((note) => note.status === 'not-due')
+}
+
+type CoverageInput = {
+  notes: readonly ReferenceLine[]
+  borrowed: readonly ReferenceLine[]
+  reports: readonly ReferenceLine[]
+  translated: ReadonlySet<string>
+  settingOf: (id: string) => ReferenceSetting
+  arrivedBy: ReadonlyMap<string, ReferenceLine>
+}
+
+/** Les échéances des journées du calendrier, sans celles que les lignes « pas à donner » retirent (#873). */
+export function duesOf(
+  days: ReadonlyMap<string, Journey>,
+  fallen: Set<string>,
+  coveredOn: (day: string, journey: Journey) => ReadonlySet<Hour>,
+  { arrivedBy, ...input }: CoverageInput,
+): ReferenceDue[] {
+  const { notes } = input
+  const takenOn = coverages({ ...input, notes: notes.filter(isTaken) }).coveredAside
+  const beaten = beatenNotDue(notes, arrivedBy)
+  const standing = coverages({
+    ...input,
+    notes: notes.filter((note) => !beaten.has(note)),
+  }).coveredAside
+  const dues: ReferenceDue[] = []
+  for (const [day, journey] of [...days].sort(([a], [b]) => a.localeCompare(b))) {
+    if (listedWholeDay(day, notes, beaten)) continue
+    const covered = beaten.size > 0 ? standing(day, journey) : coveredOn(day, journey)
+    // Une échéance que seule une ligne « pas à donner » couvre n'existe pas.
+    const hours = existingHours(journey.hours, covered, takenOn(day, journey))
+    if (hours.length > 0) fallen.add(day)
+    dues.push(...hours.map((hour) => ({ key: keyOf(day, hour), day, covered: covered.has(hour) })))
+  }
+  return dues
 }
