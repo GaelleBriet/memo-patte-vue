@@ -101,6 +101,18 @@ function movedOf(changes: GestureOutcome['changes']): DoseChange['moved'] {
   return changes.some((change) => change.action === 'delete') ? 'removed' : null
 }
 
+// TR-25, #931 : la ligne de ce téléphone, grisée, que la note remet en tête de sa dose.
+function greyedRewrites({ view }: TreatmentReading, changes: readonly LineChange[]): Set<string> {
+  const idle = new Set(
+    view.history.flatMap(({ line, effect }) => (effect.kind === 'idle' ? [line.id] : [])),
+  )
+  return new Set(
+    changes.flatMap((change) =>
+      change.action === 'rewrite' && idle.has(change.id) ? [change.id] : [],
+    ),
+  )
+}
+
 function noteChange(
   treatment: TreatmentToWrite,
   reading: TreatmentReading,
@@ -114,13 +126,17 @@ function noteChange(
   }
   const outcome = played(reading, gesture)
   const wasGiven = reading.view.dueState(gesture.due) === 'given'
+  const greyed = greyedRewrites(reading, outcome.changes)
+  const ahead = keptAhead(reading.input, [...greyed])
+  const touched = reading.input.lines.filter(({ id }) => greyed.has(id))
   return {
     ...NONE,
-    writes: doseWritesOf(treatment, outcome.changes, newId),
+    writes: doseWritesOf(treatment, outcome.changes, newId, greyed),
     lostToEnd: outcome.lostToEnd,
     shiftKept: gesture.status === 'missed' && wasGiven && keepsShift(reading, gesture.due),
     revealed: gesture.status === 'given' ? revealedBy(reading, outcome) : null,
     ...(heldBy === undefined ? {} : { heldBy }),
+    ...(ahead.length === 0 ? {} : { keptAhead: { touched, ahead } }),
   }
 }
 
@@ -192,12 +208,12 @@ export function doseChange(
         change.action === 'delete' ? [change.id] : [],
       )
       const ahead = keptAhead(reading.input, deletedIds)
-      const deleted = reading.input.lines.filter(({ id }) => deletedIds.includes(id))
+      const touched = reading.input.lines.filter(({ id }) => deletedIds.includes(id))
       return {
         ...NONE,
         writes: doseWritesOf(treatment, outcome.changes, newId),
         shiftKept: line.status !== 'extra' && line.status !== 'shift' && keepsShift(after, line),
-        ...(ahead.length === 0 ? {} : { keptAhead: { deleted, ahead } }),
+        ...(ahead.length === 0 ? {} : { keptAhead: { touched, ahead } }),
       }
     }
     case 'redate': {

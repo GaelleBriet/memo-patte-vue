@@ -98,7 +98,7 @@ function toStampedRecord(row: TreatmentRow): StampedTreatmentRecord {
 function withHistory(
   rows: TreatmentRow[],
   periods: TreatmentPeriodRecord[],
-  doses: TreatmentDose[],
+  doses: Stamped<TreatmentDose>[],
 ): TreatmentWithHistory[] {
   const periodsOf = groupBy(periods, ({ treatmentId }) => treatmentId)
   const dosesOf = groupBy(doses, ({ periodId }) => periodId)
@@ -110,7 +110,9 @@ function withHistory(
         ...toRecord(row),
         periods: own,
         doses: own.flatMap(({ id }) =>
-          (dosesOf.get(id) ?? []).map(({ frequency: _frequency, ...dose }) => dose),
+          (dosesOf.get(id) ?? []).map(
+            ({ frequency: _frequency, updatedByDevice: _updatedBy, ...dose }) => dose,
+          ),
         ),
       },
     ]
@@ -224,7 +226,7 @@ export function createTreatmentsRepository(
           id,
         ]),
         periods.listByTreatment(id),
-        doses.listByTreatment(id),
+        doses.listRecordsByTreatment(id),
       ])
       return withHistory(rows, ownPeriods, ownDoses)[0] ?? null
     },
@@ -238,7 +240,7 @@ export function createTreatmentsRepository(
           [animalId],
         ),
         periods.listByAnimal(animalId),
-        doses.listByAnimal(animalId),
+        doses.listRecordsByAnimal(animalId),
       ])
       return withHistory(rows, ownPeriods, ownDoses)
     },
@@ -251,7 +253,7 @@ export function createTreatmentsRepository(
            ORDER BY animal_id, created_at, id`,
         ),
         periods.listAll(),
-        doses.listAll(),
+        doses.listRecords(),
       ])
       return withHistory(rows, allPeriods, allDoses)
     },

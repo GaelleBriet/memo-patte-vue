@@ -1,4 +1,5 @@
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
+import { currentDeviceId } from '@/core/device/device-identity'
 import {
   DoseAlreadyLoggedError,
   doseChange,
@@ -41,6 +42,7 @@ export type TreatmentStopDependencies = {
   now: () => Date
   newId: () => string
   queue?: WriteQueue
+  deviceId?: () => string
 }
 
 export type StoppedTreatment = {
@@ -62,6 +64,7 @@ export function createTreatmentStopService({
   now,
   newId,
   queue = createWriteQueue(),
+  deviceId = currentDeviceId,
 }: TreatmentStopDependencies) {
   async function treatmentOf(treatmentId: string): Promise<TreatmentWithHistory> {
     const treatment = await (await treatments()).getWithHistory(treatmentId)
@@ -88,7 +91,7 @@ export function createTreatmentStopService({
     treatment: TreatmentWithHistory,
     gestures: readonly NoteGesture[],
   ): Promise<DoseWrite[]> {
-    const reading = treatmentReadingOf(treatment, today())
+    const reading = treatmentReadingOf(treatment, today(), deviceId())
     const { writes } = doseChange(treatment, reading, { kind: 'log', gestures }, newId)
     const at = now().toISOString()
     const repository = await periods()

@@ -131,10 +131,10 @@ describe('treatmentDosesRepository', () => {
     const recente = prise(milbemax, 'recente', '2026-04-10', { targetOn: null })
     await db.runMany([doses.insertStatement(recente)])
 
-    const liste = await doses.listAll()
+    const liste = await doses.listRecords()
 
     expect(liste.map(({ id }) => id).sort()).toEqual(['recente', milbemax, bravecto].sort())
-    expect(liste).toContainEqual({ ...recente, ...TRIMESTRIELLE })
+    expect(liste).toContainEqual(expect.objectContaining({ ...recente, ...TRIMESTRIELLE }))
   })
 
   it('restaure une prise existante aux valeurs du fichier, date de création comprise, sans changer sa période, son traitement ni son animal', async () => {

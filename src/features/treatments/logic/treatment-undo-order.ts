@@ -18,8 +18,11 @@ export function rankedStamp(at: string, rank = 0): string {
   return rank === 0 ? at : new Date(Date.parse(at) + rank).toISOString()
 }
 
-/** Les lignes supprimées par « Supprimer », et celles plus récentes de leurs journées, telles que lues avant. */
-export type KeptAhead = { deleted: readonly Line[]; ahead: readonly Line[] }
+/**
+ * Les lignes supprimées par « Supprimer » ou réécrites par une note alors qu'elles étaient grisées
+ * (TR-25), et celles plus récentes de leurs journées, telles que lues avant le geste.
+ */
+export type KeptAhead = { touched: readonly Line[]; ahead: readonly Line[] }
 
 /**
  * R12, #842 : « Annuler » réécrit aussi telles quelles les lignes gardées devant, toutes rangées dans
@@ -27,13 +30,13 @@ export type KeptAhead = { deleted: readonly Line[]; ahead: readonly Line[] }
  */
 export function undoKeepingAhead(
   inverse: readonly DoseWrite[],
-  { deleted, ahead }: KeptAhead,
+  { touched, ahead }: KeptAhead,
 ): DoseWrite[] {
-  const rankOf = undoRanks([...deleted, ...ahead])
-  const isDeleted = new Set(deleted.map(({ id }) => id))
+  const rankOf = undoRanks([...touched, ...ahead])
+  const isTouched = new Set(touched.map(({ id }) => id))
   return [
     ...inverse.map((write) =>
-      write.action === 'restore' && isDeleted.has(write.id)
+      write.action === 'restore' && isTouched.has(write.id)
         ? { ...write, rank: rankOf(write.id) }
         : write,
     ),

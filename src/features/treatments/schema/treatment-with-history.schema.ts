@@ -8,8 +8,11 @@ export type TreatmentRecord = Pick<
   'id' | 'animalId' | 'name' | 'type' | 'createdAt' | 'updatedAt'
 >
 
-/** Ce que le moteur d'échéances lit : toutes les périodes, de la première à la dernière, et les prises visibles. */
+/**
+ * Ce que le moteur d'échéances lit : toutes les périodes, de la première à la dernière, et les prises
+ * visibles ; `createdByDevice` présent à la lecture de la base, absent des jeux de test.
+ */
 export type TreatmentWithHistory = TreatmentRecord & {
   periods: TreatmentPeriodRecord[]
-  doses: NewTreatmentDose[]
+  doses: (NewTreatmentDose & { createdByDevice?: string })[]
 }

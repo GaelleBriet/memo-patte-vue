@@ -1,6 +1,6 @@
 import { keyOf, later, longestStep, plusDays, stepped } from '../grid'
 import { episodeIdsOf } from '../settings'
-import type { Day, Line, LineChange, Setting, TreatmentViewInput } from '../types'
+import type { Day, Line, LineChange, LineEffect, Setting, TreatmentViewInput } from '../types'
 import { buildView, type TreatmentView } from '../view'
 import { without } from './changes'
 
@@ -133,11 +133,17 @@ export function arrivesOnOrigin(
 }
 
 /**
- * R6 : une prise qui couvrait sa propre échéance au calendrier la couvre encore après le geste ; une
- * prise qui garde sa journée hors du calendrier (R4) n'en a pas à perdre.
+ * R6 : une prise qui couvrait sa propre échéance au calendrier la couvre encore après le geste, ou une
+ * prise plus récente de la même dose la couvre (TR-25) ; une prise qui garde sa journée hors du
+ * calendrier (R4) n'en a pas à perdre.
  */
 export function strandsNote(before: TreatmentView, after: TreatmentView): boolean {
   const effects = new Map(after.history.map(({ line, effect }) => [line.id, { line, effect }]))
+  const covered = new Set(
+    after.history.flatMap(({ effect }) => (effect.kind === 'covers' ? [effect.key] : [])),
+  )
+  const replaced = ({ effect }: { effect: LineEffect }, key: string) =>
+    effect.kind === 'idle' && effect.reason === 'superseded' && covered.has(key)
   const onCalendar = (view: TreatmentView, { dueOn, dueTime }: Line) =>
     view.slots(dueOn, dueOn).some(({ due }) => due.dueTime === dueTime)
   return before.history.some(({ line, effect }) => {
@@ -146,7 +152,7 @@ export function strandsNote(before: TreatmentView, after: TreatmentView): boolea
     if (now === undefined || now.line.dueOn !== line.dueOn || now.line.dueTime !== line.dueTime) {
       return false
     }
-    if (!onCalendar(before, line)) return false
+    if (!onCalendar(before, line) || replaced(now, effect.key)) return false
     return now.effect.kind !== 'covers' || now.effect.key !== effect.key || !onCalendar(after, line)
   })
 }

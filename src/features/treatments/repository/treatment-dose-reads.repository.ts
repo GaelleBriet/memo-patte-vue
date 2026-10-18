@@ -28,17 +28,21 @@ export function createDoseReads(db: DbClient) {
       return rows.map(toDose)
     },
 
-    /** Prises visibles de tous les traitements, celles d'un même traitement la dernière d'abord. */
-    async listAll(): Promise<TreatmentDose[]> {
+    /** Comme `listByTreatment`, toutes colonnes comprises : l'appareil de chaque ligne (TR-25). */
+    async listRecordsByTreatment(treatmentId: string): Promise<Stamped<TreatmentDose>[]> {
       const rows = await db.query<DoseWithFrequencyRow>(
         `${WITH_FREQUENCY}
-         WHERE dose.deleted_at IS NULL
-         ORDER BY dose.treatment_id, ${HEAD_FIRST}`,
+         WHERE dose.treatment_id = ? AND dose.deleted_at IS NULL
+         ORDER BY ${HEAD_FIRST}`,
+        [treatmentId],
       )
-      return rows.map(toDose)
+      return rows.map(toRecord)
     },
 
-    /** Comme `listAll`, toutes colonnes comprises : ce que l'export emporte. */
+    /**
+     * Prises visibles de tous les traitements, celles d'un même traitement la dernière d'abord, toutes
+     * colonnes comprises : ce que l'export emporte.
+     */
     async listRecords(): Promise<Stamped<TreatmentDose>[]> {
       const rows = await db.query<DoseWithFrequencyRow>(
         `${WITH_FREQUENCY}
@@ -49,14 +53,14 @@ export function createDoseReads(db: DbClient) {
     },
 
     /** Prises visibles des traitements d'un animal, celles d'un même traitement la dernière d'abord. */
-    async listByAnimal(animalId: string): Promise<TreatmentDose[]> {
+    async listRecordsByAnimal(animalId: string): Promise<Stamped<TreatmentDose>[]> {
       const rows = await db.query<DoseWithFrequencyRow>(
         `${WITH_FREQUENCY}
          WHERE dose.animal_id = ? AND dose.deleted_at IS NULL
          ORDER BY dose.treatment_id, ${HEAD_FIRST}`,
         [animalId],
       )
-      return rows.map(toDose)
+      return rows.map(toRecord)
     },
 
     async getById(id: string): Promise<TreatmentDose | null> {
