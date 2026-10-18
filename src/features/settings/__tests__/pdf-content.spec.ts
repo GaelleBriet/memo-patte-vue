@@ -390,10 +390,8 @@ describe('buildCarnetPdfContent — historique', () => {
 
   describe('« pas à donner »', () => {
     const WEEKLY = { frequency: { value: 1, unit: 'week' }, startsOn: '2026-03-02' } as const
-    const ANSWERED = {
-      createdAt: '2026-03-20T10:00:00.000Z',
-      updatedAt: '2026-03-20T10:00:00.000Z',
-    }
+    const ANSWERED_AT = new Date(2026, 2, 20, 10).toISOString()
+    const ANSWERED = { createdAt: ANSWERED_AT, updatedAt: ANSWERED_AT }
     const notDue = (dueOn: string, extra: Partial<ExportTreatmentDose> = {}): DoseSpec => ({
       periodId: 'p',
       dueOn,
@@ -427,8 +425,8 @@ describe('buildCarnetPdfContent — historique', () => {
             periodId: 'p',
             dueOn: '2026-03-16',
             status: 'given',
-            createdAt: '2026-03-21T10:00:00.000Z',
-            updatedAt: '2026-03-21T10:00:00.000Z',
+            createdAt: new Date(2026, 2, 21, 10).toISOString(),
+            updatedAt: new Date(2026, 2, 21, 10).toISOString(),
           },
         ],
         '2026-03-23',
@@ -438,6 +436,23 @@ describe('buildCarnetPdfContent — historique', () => {
         kind: 'idle',
         line: { kind: 'not-due', dueOn: '2026-03-16', time: null, answeredOn: '2026-03-20' },
       })
+    })
+
+    it('écrit la réponse au-dessus de la prise datée du même jour', () => {
+      const row = treatmentRow(
+        [{ id: 'p', ...WEEKLY }],
+        [
+          ...given('p', '2026-03-02'),
+          { periodId: 'p', dueOn: '2026-03-09', status: 'given', givenOn: '2026-03-16' },
+          notDue('2026-03-16'),
+        ],
+        '2026-03-23',
+      )
+
+      expect(row.periods[0]!.lines.slice(0, 2)).toEqual([
+        { kind: 'not-due', dueOn: '2026-03-16', time: null, answeredOn: '2026-03-20' },
+        { kind: 'given', series: { kind: 'dates', doses: [at('2026-03-16')] } },
+      ])
     })
 
     it('garde l’heure de l’échéance quand la période a plusieurs heures', () => {

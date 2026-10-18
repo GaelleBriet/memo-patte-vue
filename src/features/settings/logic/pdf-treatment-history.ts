@@ -153,7 +153,7 @@ function compare(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0
 }
 
-// Lue de la plus récente, sur une même échéance : le report, puis la prise, l'oubli, le non renseigné.
+// Lue de la plus récente, sur une même échéance : le report ou la réponse « pas à donner », puis la prise, l'oubli, le non renseigné.
 const LINE_RANK: Record<Event['kind'], number> = {
   moved: 0,
   'not-due': 0,
