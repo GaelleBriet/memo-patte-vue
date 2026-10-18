@@ -45,7 +45,8 @@ const withoutNotDue = (input: TreatmentViewInput): TreatmentViewInput => ({
  */
 export function listedInput(input: TreatmentViewInput, listed: ReadonlySet<string>) {
   const shown = shownKeys(input)
-  const removed = [...shownKeys(withoutNotDue(input)).keys()].filter((key) => !shown.has(key))
+  const before = shownKeys(withoutNotDue(input))
+  const removed = [...before.keys()].filter((key) => !shown.has(key))
   const effects = new Map(treatmentView(input).history.map(({ line, effect }) => [line.id, effect]))
   const reshown = input.lines
     .filter(({ status }) => status === 'not-due')
@@ -60,10 +61,12 @@ export function listedInput(input: TreatmentViewInput, listed: ReadonlySet<strin
       return !lost && listed.has(keyOf(line)) && (stillDue || dayLeftUncovered)
     })
     .map(keyOf)
-  // C2 : une journée dont toutes les doses ont été listées sort en entier, quelles que soient ses heures.
+  // C2 : une journée dont toutes les doses ont été listées sort en entier si ses heures ont changé.
+  const sameDay = (a: string, b: string) => a.slice(0, 10) === b.slice(0, 10)
   const wholeDayOut = (key: string) =>
-    [...listed].some((each) => each.slice(0, 10) === key.slice(0, 10)) &&
-    ![...shown.keys()].some((each) => each.slice(0, 10) === key.slice(0, 10))
+    [...listed].some((each) => sameDay(each, key)) &&
+    ![...shown.keys()].some((each) => sameDay(each, key)) &&
+    ![...before.keys()].some((each) => sameDay(each, key) && listed.has(each))
   const unlisted = removed.filter((key) => !listed.has(key) && !wholeDayOut(key))
   return { removed, unlisted, reshown }
 }
