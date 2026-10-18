@@ -3016,6 +3016,8 @@ moteur).
   (relecture de la PR #951, graine 7810000235).
 - Quand « Modifier » est refusé parce que la question a changé entre l'affichage et l'enregistrement
   (synchro), le traitement est relu et la question se repose, sans texte nouveau.
+- La reprise du jour de l'arrêt n'emprunte jamais une ligne « pas à donner » d'avant l'arrêt : la
+  dose de la reprise reste à donner (deux téléphones ; une prise, elle, est empruntée).
 - « Supprimer » un report ou un décalage, et déplacer une dose, ne comptent pas les lignes « pas à
   donner » plus loin (le refus « déjà notée » serait faux) : celles dont l'échéance quitte le
   calendrier deviennent sans effet, comme un oubli (décision du 16 octobre). Milo, chaque lundi à 8 h depuis le 2 mars ; le 8, la dose du 9 reportée au 11 en décalant la suite (18, 25) ; des lignes « pas à donner » sur le 18 et le 25 : « Supprimer » le décalage est permis, les deux lignes deviennent sans effet, le 16 et le 23 reviennent à renseigner.
