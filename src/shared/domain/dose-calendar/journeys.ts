@@ -81,14 +81,12 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     const setting = grids.get(day)
     return setting && journeyOn(day, setting, touchedWithout(lines, day, without))
   }
-  const bases = new Map<string, Grid>()
   const owns = new Set<string>()
   const keptByReport = (turn: Line) =>
     shiftKeptByReport(turn, {
       reports: lines.reports,
       isDay: (day) => days.has(day),
       settingOf: (id) => byId.get(id)!,
-      baseOf: (id) => bases.get(id),
     })
   const claims: Claim[] = []
   const openings = new Set<Day>()
@@ -163,7 +161,6 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       : origin !== null
         ? { ...grid, floor: ownFloor }
         : { ...grid, floor: later(grid.floor, later(chosenFloor, plusDays(setting.startsOn, -1))) }
-    bases.set(setting.id, grid)
     if (!continued || origin !== null) owns.add(setting.id)
     if (!continued) rhythmStartFloor = grid.floor
     const at = span.episode.indexOf(setting)
@@ -274,7 +271,6 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     chosenRestarts,
     lastPossibleDay,
     lastGridDay,
-    bases,
     owns,
     relit,
   }

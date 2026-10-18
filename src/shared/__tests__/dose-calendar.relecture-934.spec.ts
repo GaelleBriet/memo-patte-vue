@@ -31,7 +31,7 @@ describe('relecture de la PR #934 : un seul téléphone et réglages créés ens
           .map(({ line, effect }) => `${line.id} ${effect.kind}`),
       }).toEqual(main)
       const reference = referenceReading({ ...carnet, until: '2027-12-31' })
-      expect(reference.upcoming.slice(0, 12)).toEqual(main.upcoming)
+      expect(reference.upcoming.slice(0, main.upcoming.length)).toEqual(main.upcoming)
     },
   )
 })

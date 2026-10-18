@@ -83,8 +83,8 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
       relit: journey.relit(dueOn, report),
       arrived: arrived.get(dueOn) ?? [],
       written: settingOf(report.settingId),
-      base: journey.bases.get(report.settingId),
       owns: journey.owns.has(report.settingId),
+      inForce: span.settingAt(dueOn),
       covered: (day) => coveredOn(dueOn, day, new Set()),
     })
     const origin = rewrite === null ? (days.get(dueOn) ?? left.get(dueOn)) : undefined

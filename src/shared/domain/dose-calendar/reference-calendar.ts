@@ -203,11 +203,11 @@ export function calendarOf(
   const arrivedHours = new Map<string, (string | null)[]>()
   const rewriteContext: RewriteContext = {
     settingOf,
-    previousOf: (setting) => chain[chain.indexOf(setting) - 1],
-    duesWithout: (report) => {
-      const others = allLines.filter((line) => line !== report)
-      return calendarOf(settings, episode, others, borrowed, reach, true).dues
-    },
+    settingAt,
+    chain,
+    lines: allLines,
+    read: (only, lines) =>
+      calendarOf(only ?? settings, only ?? episode, lines, [], reach, true).dues,
     uncovered: ({ dueOn }) => {
       const day = days.get(dueOn)
       return day?.hours.filter((hour) => !coveredAside(dueOn, day).has(hour)) ?? []

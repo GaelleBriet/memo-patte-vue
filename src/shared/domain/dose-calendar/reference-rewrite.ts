@@ -1,14 +1,17 @@
 import type { Journey } from './reference-days'
-import { hoursOf, isOnGrid, keyOf, sameFrequency, type Hour } from './reference-grid'
+import { hoursOf, keyOf, sameFrequency, type Hour } from './reference-grid'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 /** Ce que le modèle sait du carnet autour d'un report. */
 export type RewriteContext = {
   settingOf: (id: string) => ReferenceSetting
-  /** Le réglage que suit celui-ci dans l'épisode, `undefined` pour le premier. */
-  previousOf: (setting: ReferenceSetting) => ReferenceSetting | undefined
-  /** Les échéances, prises comprises, du carnet lu sans ce report et sans la règle de #867. */
-  duesWithout: (report: ReferenceLine) => ReadonlySet<string>
+  /** Le réglage qui porte ce jour-là, jusqu'à sa fin. */
+  settingAt: (day: string) => ReferenceSetting | undefined
+  /** Les réglages lus dans l'ordre. */
+  chain: readonly ReferenceSetting[]
+  lines: readonly ReferenceLine[]
+  /** Les échéances, prises comprises, sans la règle de #867 : du carnet, ou des seuls réglages `only`. */
+  read: (only: ReferenceSetting[] | undefined, lines: ReferenceLine[]) => ReadonlySet<string>
   /** Les heures encore sans prise de sa journée, lue avec lui. */
   uncovered: (report: ReferenceLine) => Hour[]
 }
@@ -42,8 +45,24 @@ function drawsItsGrid(setting: ReferenceSetting, previous: ReferenceSetting | un
   )
 }
 
+// Après la première échéance, la journée manque au réglage réécrit lu seul, lui-même ou un réglage
+// qui reprend sa grille sans la changer portant ce jour-là.
+function dayTakenAfterFirstDue(report: ReferenceLine, context: RewriteContext): boolean {
+  const written = context.settingOf(report.settingId)
+  if (!drawsItsGrid(written, context.chain[context.chain.indexOf(written) - 1])) return false
+  const reading = context.settingAt(report.dueOn)
+  const sameGrid =
+    reading === written ||
+    (reading !== undefined &&
+      reading.createdAt > written.createdAt &&
+      reading.gridOriginOn === null &&
+      sameFrequency(reading, written))
+  if (!sameGrid) return false
+  return ![...context.read([written], [])].some((key) => key.slice(0, 10) === report.dueOn)
+}
+
 /** #867, #882, #883 : la réécriture a ôté la dose de départ du carnet lu sans le report ; la plus
- * récente des deux écritures l'emporte, la ligne gardant son jour et son heure. */
+ * récente des deux écritures l'emporte, sauf un report plus récent après la première échéance. */
 export function rewrittenDeparture(
   report: ReferenceLine,
   context: RewriteContext,
@@ -52,18 +71,22 @@ export function rewrittenDeparture(
   const rewrittenAt = written.updatedAt
   if (rewrittenAt === undefined || rewrittenAt <= written.createdAt) return undefined
   if (report.dueOn < written.startsOn) return undefined
-  const dues = context.duesWithout(report)
+  const dues = context.read(
+    undefined,
+    context.lines.filter((line) => line !== report),
+  )
   if (dues.has(keyOf(report.dueOn, report.dueTime))) return undefined
-  const dayStays = [...dues].some((key) => key.slice(0, 10) === report.dueOn)
-  const takenAway = dayStays
-    ? !hoursOf(written).includes(report.dueTime)
-    : report.dueOn < written.firstDueOn ||
-      (drawsItsGrid(written, context.previousOf(written)) &&
-        !isOnGrid(written.gridOriginOn ?? written.firstDueOn, written.frequency, report.dueOn))
-  if (!takenAway) return undefined
-  if (rewrittenAt >= report.updatedAt) return 'lost'
+  const kept: Journey = { setting: written, hours: [report.dueTime] }
+  if (![...dues].some((key) => key.slice(0, 10) === report.dueOn)) {
+    if (report.dueOn < written.firstDueOn) return rewrittenAt >= report.updatedAt ? 'lost' : kept
+    return rewrittenAt > report.updatedAt && dayTakenAfterFirstDue(report, context)
+      ? 'lost'
+      : undefined
+  }
+  if (hoursOf(written).includes(report.dueTime) || rewrittenAt === report.updatedAt)
+    return undefined
+  if (rewrittenAt > report.updatedAt) return 'lost'
   // §11 : une dose encore libre après l'heure ôtée peut être la même dose à une autre heure.
   const later = (hour: Hour) => hour === null || hour >= (report.dueTime ?? '')
-  if (dayStays && context.uncovered(report).some(later)) return undefined
-  return { setting: written, hours: [report.dueTime] }
+  return context.uncovered(report).some(later) ? undefined : kept
 }

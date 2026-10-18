@@ -154,7 +154,7 @@ describe('#882 : Luna, chaque semaine à 8 h, première dose le 10 avril, sans p
   })
 })
 
-describe('#882, sens inverse (graine 8710000057) : un report plus récent tient quand « Prochaine dose » a ôté sa journée de départ après la nouvelle première échéance', () => {
+describe('#882, sens inverse (graine 8710000057) : « Prochaine dose » a ôté la journée de départ après la nouvelle première échéance', () => {
   // Toutes les 2 semaines à 6 h, 12 h, 18 h et 23 h depuis le 11 mars, 12 h du 11 donnée ; le 14,
   // « Modifier » sans changement de rythme ; A avance la dose du 25 à 6 h au 16, B choisit
   // « Prochaine dose » le 14.
@@ -176,22 +176,12 @@ describe('#882, sens inverse (graine 8710000057) : un report plus récent tient 
     return synchronises(base, parA, parB, stamps)
   }
 
-  it('A plus récent : le 16 porte la dose de 6 h reportée, entre le 14 et le 28', () => {
+  // Un seul téléphone ne distingue pas ce report d'un report dont la journée n'existait que par une
+  // ligne supprimée ensuite : la lecture d'avant reste (§11, relecture de la PR #934).
+  it('A plus récent : la lecture d’avant, le report reste sans effet', () => {
     const { merged, report } = deuxSemaines({ reportAt: SOIR, rewrittenAt: MATIN })
-    expect(effectOf(merged, report.id)).toMatchObject({ kind: 'moves', arrival: '2026-03-16' })
-    const upcoming = (input: TreatmentViewInput) =>
-      treatmentView(input)
-        .upcoming({ limit: 7 })
-        .map(({ dueOn, dueTime }) => `${dueOn} ${dueTime}`)
-    expect(upcoming(merged)).toEqual([
-      '2026-03-14 06:00',
-      '2026-03-14 12:00',
-      '2026-03-14 18:00',
-      '2026-03-14 23:00',
-      '2026-03-16 06:00',
-      '2026-03-28 06:00',
-      '2026-03-28 12:00',
-    ])
+    expect(effectOf(merged, report.id)).toEqual({ kind: 'idle', reason: 'nothing-to-move' })
+    expect(treatmentView(merged).slots('2026-03-15', '2026-03-27')).toEqual([])
   })
 
   it('B plus récent : le report est sans effet, rien le 16', () => {
