@@ -2979,11 +2979,17 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
 Gaelle du 18 octobre 2026, par la session d'analyse du moteur).
 
 - Le réglage porte la réponse : aucune question posée, « Elles restent à renseigner », « Elles
-  n'étaient pas à donner ». Le moteur ne retire une dose que sous « n'étaient pas à donner » ; la date
-  de la réponse reste la date d'écriture du réglage (v14), que la réponse seule ne fait pas avancer.
+  n'étaient pas à donner ». Le moteur ne retire une dose que sous « n'étaient pas à donner ».
+- La réponse a sa propre date (décision du même jour sur la lecture laissée ouverte par la PR #948),
+  posée par le même geste et jamais réécrite sans question ; la date d'écriture du réglage (v14)
+  avance sans elle et la réponse seule ne la fait pas avancer. Milo, chaque semaine à 8 h depuis le
+  2 mars ; le 20 mars, 9 h et « Elles n'étaient pas à donner » pour le 9 et le 16 ; le 22, 10 h sans
+  question ; le 25, la prise du 23 supprimée : réponse toujours datée du 20, le 9 et le 16 restent
+  retirés, le 23 revient. Écartées : la date d'écriture du réglage (une dose non listée retirée) ;
+  remettre « aucune question posée » à la réécriture (la réponse perdue en silence).
 - Données d'avant : le booléen vrai devient « restent à renseigner », faux « aucune question
-  posée », jamais « n'étaient pas à donner » (rien n'est retiré après coup) ; export v7 et antérieurs
-  de même.
+  posée », jamais « n'étaient pas à donner », sans date de réponse (rien n'est retiré après coup) ;
+  export v7 et antérieurs de même.
 - Lecture par dose : la réponse retire exactement les doses tombées sans prise listées, celles du
   jour d'arrivée passé d'un report comprises (le report devient sans effet s'il n'apporte plus rien,
   il tient s'il est plus récent que la réponse) ; la journée touchée garde ses heures.
