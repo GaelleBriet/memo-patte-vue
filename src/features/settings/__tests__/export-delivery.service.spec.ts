@@ -14,17 +14,23 @@ vi.mock('@capacitor/filesystem', () => ({
   Encoding: { UTF8: 'utf8' },
   Filesystem: {
     deleteFile: vi.fn<() => Promise<void>>(async () => {}),
-    readdir: vi.fn<() => Promise<{ files: object[] }>>(async () => ({
-      files: [
-        { name: 'exports', type: 'directory', size: 0, mtime: 0, uri: 'file:///cache/exports' },
-      ],
-    })),
+    readdir: vi.fn<(options: { path: string; directory: string }) => Promise<{ files: object[] }>>(
+      async ({ directory }) => ({
+        files:
+          directory === 'CACHE'
+            ? [
+                {
+                  name: 'exports',
+                  type: 'directory',
+                  size: 0,
+                  mtime: 0,
+                  uri: 'file:///cache/exports',
+                },
+              ]
+            : [],
+      }),
+    ),
     rmdir: vi.fn<() => Promise<void>>(async () => {}),
-    stat: vi.fn<(options: { path: string }) => Promise<object>>(async ({ path }) => {
-      throw Object.assign(new Error(`'stat' failed because file at '${path}' does not exist.`), {
-        code: 'OS-PLUG-FILE-0008',
-      })
-    }),
     writeFile: vi.fn<(options: { path: string }) => Promise<{ uri: string }>>(async ({ path }) => ({
       uri: `file:///cache/${path}`,
     })),
@@ -47,6 +53,14 @@ const WEBVIEW_CACHE: FileInfo = {
   size: 0,
   mtime: 0,
   uri: 'file:///cache/WebView',
+}
+
+function inDocuments(...saved: string[]) {
+  vi.mocked(Filesystem.readdir).mockImplementation(async ({ path, directory }) => {
+    if (directory !== Directory.Documents) return { files: [] }
+    if (path === '') return { files: saved.length ? [{ ...FILE_INFO, name: 'MémoPatte' }] : [] }
+    return { files: saved.map((name) => ({ ...FILE_INFO, name })) }
+  })
 }
 
 function pluginError(message: string, code: string): Error {
@@ -225,10 +239,7 @@ describe('deliverExportFile — enregistrer sur le téléphone', () => {
   )
 
   it('ne remplace jamais un export de la même minute : le nouveau prend un numéro', async () => {
-    vi.mocked(Filesystem.stat).mockImplementation(async ({ path }) => {
-      if (path === 'MémoPatte/memopatte-export-20260923-1432.json') return FILE_INFO
-      throw pluginError("'stat' failed because file does not exist.", 'OS-PLUG-FILE-0008')
-    })
+    inDocuments('memopatte-export-20260923-1432.json')
 
     await expect(
       deliverExportFile(
@@ -239,24 +250,33 @@ describe('deliverExportFile — enregistrer sur le téléphone', () => {
     ).resolves.toMatchObject({ status: 'saved' })
 
     expect(writtenPaths()).toEqual(['MémoPatte/memopatte-export-20260923-1432 (1).json'])
-    expect(Filesystem.stat).toHaveBeenCalledWith({
-      path: 'MémoPatte/memopatte-export-20260923-1432.json',
-      directory: Directory.Documents,
-    })
   })
 
-  it('tient pour libre un nom que le système dit introuvable', async () => {
+  it('ne sonde jamais un fichier absent : le dossier de sauvegarde se liste seulement s’il existe', async () => {
     await deliverExportFile({ name: 'a.json', content: '{}' }, 'save', 'x')
 
-    await expect(vi.mocked(Filesystem.stat).mock.results[0]!.value).rejects.toMatchObject({
-      code: 'OS-PLUG-FILE-0008',
+    expect(Filesystem.readdir).toHaveBeenCalledExactlyOnceWith({
+      path: '',
+      directory: Directory.Documents,
+    })
+    expect(writtenPaths()).toEqual(['MémoPatte/a.json'])
+  })
+
+  it('liste le dossier de sauvegarde quand il existe', async () => {
+    inDocuments('b.json')
+
+    await deliverExportFile({ name: 'a.json', content: '{}' }, 'save', 'x')
+
+    expect(Filesystem.readdir).toHaveBeenLastCalledWith({
+      path: 'MémoPatte',
+      directory: Directory.Documents,
     })
     expect(writtenPaths()).toEqual(['MémoPatte/a.json'])
   })
 
   it('ne tient pas un nom pour libre quand le système ne sait pas dire s’il est pris', async () => {
-    vi.mocked(Filesystem.stat).mockRejectedValue(
-      pluginError("'stat' failed with: EIO (I/O error)", 'OS-PLUG-FILE-0013'),
+    vi.mocked(Filesystem.readdir).mockRejectedValue(
+      pluginError("'readdir' failed with: EIO (I/O error)", 'OS-PLUG-FILE-0013'),
     )
 
     await expect(deliverExportFile({ name: 'a.json', content: '{}' }, 'save', 'x')).rejects.toThrow(
@@ -306,15 +326,11 @@ describe('deliverExportFile — enregistrer sur le téléphone', () => {
   })
 
   it('lève sans rien écrire quand tous les numéros sont déjà pris', async () => {
-    vi.mocked(Filesystem.stat).mockResolvedValue(FILE_INFO)
+    inDocuments('a.json', ...Array.from({ length: 99 }, (_, copy) => `a (${copy + 1}).json`))
 
     await expect(deliverExportFile({ name: 'a.json', content: '{}' }, 'save', 'x')).rejects.toThrow(
       'Aucun nom libre',
     )
-    expect(Filesystem.stat).toHaveBeenLastCalledWith({
-      path: 'MémoPatte/a (99).json',
-      directory: Directory.Documents,
-    })
     expect(Filesystem.writeFile).not.toHaveBeenCalled()
   })
 
@@ -352,7 +368,7 @@ describe('deliverExportFile — enregistrer sur le téléphone', () => {
       const [blob] = vi.mocked(URL.createObjectURL).mock.calls[0]! as [Blob]
       await expect(blob.text()).resolves.toBe('{}')
       expect(Filesystem.writeFile).not.toHaveBeenCalled()
-      expect(Filesystem.stat).not.toHaveBeenCalled()
+      expect(Filesystem.readdir).not.toHaveBeenCalled()
     })
   })
 })
