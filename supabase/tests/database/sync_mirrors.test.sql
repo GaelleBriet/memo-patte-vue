@@ -274,7 +274,9 @@ select throws_ok($$ update public.treatment_dose set status = 'skipped' $$, '235
 select lives_ok($$
   update public.treatment_dose set status = 'extra', given_on = '2026-01-01', updated_at = now();
   update public.treatment_dose set status = 'shift', given_on = null, updated_at = now();
-$$, 'prise en plus et ligne de décalage acceptées');
+  update public.treatment_dose set status = 'not-due', updated_at = now();
+  update public.treatment_dose set status = 'missed', updated_at = now();
+$$, 'prise en plus, ligne de décalage et ligne « pas à donner » acceptées');
 
 select throws_ok($$ update public.device set model = repeat('x', 201) $$, '23514', null,
   'modèle d''appareil de plus de 200 caractères refusé');

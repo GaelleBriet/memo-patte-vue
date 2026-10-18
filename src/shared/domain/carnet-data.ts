@@ -105,7 +105,7 @@ export type ExportTreatmentDose = {
   dueTime: string | null
   /** `null` pour une prise oubliée ou reportée. */
   givenOn: string | null
-  status: 'given' | 'missed' | 'postponed' | 'extra' | 'shift'
+  status: 'given' | 'missed' | 'postponed' | 'extra' | 'shift' | 'not-due'
   /** Report : jour d'arrivée ; décalage : jour d'ancrage ; `null` pour une prise. */
   targetOn: string | null
   createdAt: string

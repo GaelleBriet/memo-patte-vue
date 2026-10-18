@@ -31,7 +31,7 @@ export type Setting = {
   updatedAt?: string
 }
 
-export type LineStatus = 'given' | 'missed' | 'extra' | 'postponed' | 'shift'
+export type LineStatus = 'given' | 'missed' | 'extra' | 'postponed' | 'shift' | 'not-due'
 
 /** Ligne écrite par la personne : prise, prise en plus, report, décalage. */
 export type Line = {

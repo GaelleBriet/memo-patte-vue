@@ -268,6 +268,17 @@ describe.each([
     ).rejects.toThrow(/FOREIGN KEY constraint failed/)
   })
 
+  it('#873 : accepte une ligne « pas à donner » et refuse un état inconnu', async () => {
+    await applyMigrations(db, 15)
+
+    await expect(
+      db.run(`UPDATE treatment_dose SET status = 'not-due', given_on = NULL WHERE id = 'd3'`),
+    ).resolves.toBe(1)
+    await expect(
+      db.run(`UPDATE treatment_dose SET status = 'skipped' WHERE id = 'd3'`),
+    ).rejects.toThrow(/CHECK constraint failed/)
+  })
+
   it('garde le contrôle des unités de dose et refuse une réponse hors des trois états', async () => {
     await applyMigrations(db, 15)
 

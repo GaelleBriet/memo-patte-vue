@@ -21,7 +21,7 @@ type Dose = Omit<Line, 'settingId'> & { periodId: string }
 export type TreatmentRecords = { periods: readonly Period[]; doses: readonly Dose[] }
 
 const MAX_DUES = 50_000
-const STATUSES: readonly string[] = ['given', 'missed', 'postponed', 'extra', 'shift']
+const STATUSES: readonly string[] = ['given', 'missed', 'postponed', 'extra', 'shift', 'not-due']
 const UNITS: readonly string[] = FREQUENCY_UNITS
 const ANSWERS: readonly string[] = FALLEN_DOSES_ANSWERS
 

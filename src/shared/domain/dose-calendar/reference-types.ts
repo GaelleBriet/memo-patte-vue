@@ -25,7 +25,7 @@ export type ReferenceLine = {
   settingId: string
   dueOn: string
   dueTime: string | null
-  status: 'given' | 'missed' | 'extra' | 'postponed' | 'shift'
+  status: 'given' | 'missed' | 'extra' | 'postponed' | 'shift' | 'not-due'
   /** Report : jour d'arrivée ; décalage : jour d'ancrage. */
   targetOn: string | null
   updatedAt: string

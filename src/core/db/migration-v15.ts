@@ -89,7 +89,8 @@ export const migrationV15: DbMigration = {
         due_on TEXT NOT NULL,
         due_time TEXT,
         given_on TEXT,
-        status TEXT NOT NULL CHECK (status IN ('given', 'missed', 'postponed', 'extra', 'shift')),
+        status TEXT NOT NULL
+          CHECK (status IN ('given', 'missed', 'postponed', 'extra', 'shift', 'not-due')),
         target_on TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
