@@ -10,6 +10,7 @@ import { createTreatmentRemindersService } from '@/features/treatments/service/t
 import { createFakeNotifications } from '@/shared/__tests__/fake-notifications'
 import { MAX_SCHEDULED_REMINDERS } from '@/core/notifications/due-reminders-schedule'
 import { createRemindersSync } from '../service/reminders-sync.service'
+import { cpuMs } from '@/shared/__tests__/cpu-time'
 
 const NOW = new Date(2026, 8, 30, 12)
 const STAMP = '2024-10-01T08:00:00.000Z'
@@ -51,9 +52,9 @@ const CARNET = Array.from({ length: 8 }, (_, index) => dailyForTwoYears(`daily-$
 async function fastest(run: () => Promise<void>): Promise<number> {
   let best = Infinity
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const start = performance.now()
+    const start = cpuMs()
     await run()
-    best = Math.min(best, performance.now() - start)
+    best = Math.min(best, cpuMs() - start)
   }
   return best
 }
