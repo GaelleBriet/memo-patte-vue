@@ -36,7 +36,7 @@ export function undoKeepingAhead(
   const isTouched = new Set(touched.map(({ id }) => id))
   return [
     ...inverse.map((write) =>
-      (write.action === 'restore' || write.action === 'rewrite') && isTouched.has(write.id)
+      write.action === 'restore' && isTouched.has(write.id)
         ? { ...write, rank: rankOf(write.id) }
         : write,
     ),
