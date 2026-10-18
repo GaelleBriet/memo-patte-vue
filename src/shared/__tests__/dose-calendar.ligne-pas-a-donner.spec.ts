@@ -60,7 +60,7 @@ describe('#873 : une ligne « pas à donner » retire sa dose de partout (décis
     expect(keys(treatmentView(after).currentDoses)).toEqual(['2026-03-16 08:00'])
   })
 
-  it('I1 : une prise l’emporte toujours sur la ligne « pas à donner » de sa dose, plus récente ou plus ancienne ; la ligne est sans effet', () => {
+  it('une prise l’emporte toujours sur la ligne « pas à donner » de sa dose, plus récente ou plus ancienne ; la ligne est sans effet', () => {
     const effects = (input: TreatmentViewInput) =>
       treatmentView(input)
         .history.filter(({ line: each }) => each.dueOn === '2026-03-16')
@@ -75,7 +75,7 @@ describe('#873 : une ligne « pas à donner » retire sa dose de partout (décis
     }
   })
 
-  it('Q-a : « pas à donner » crée sa ligne, sans jamais réécrire la prise de la même dose', () => {
+  it('« pas à donner » crée sa ligne, sans jamais réécrire la prise de la même dose', () => {
     const given = line('m1', 'given', '2026-03-16', '08:00')
     const notDue = {
       settingId: 'm1',

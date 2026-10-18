@@ -31,7 +31,7 @@ describe('relectures de la PR #948 : carnets figés, lignes « pas à donner »'
     },
   )
 
-  it('graine 9850000047, pas 15 (C2) : le 17 mars, toutes ses doses listées, sort en entier ; les quatre lignes restent en vigueur', () => {
+  it('graine 9850000047, pas 15 : le 17 mars, toutes ses doses listées, sort en entier ; les quatre lignes restent en vigueur', () => {
     const { carnet } = (cases as Case[])[0]!
     const view = treatmentView(carnet)
     expect(view.slots('2026-03-17', '2026-03-17')).toEqual([])

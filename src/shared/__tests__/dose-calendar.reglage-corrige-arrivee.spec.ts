@@ -99,7 +99,7 @@ describe('R7, R9.2 : « Elles n’étaient pas à donner » ne saute pas l’arr
 
   const eightOh = { frequency: TWO_DAYS, times: ['08:01', '20:01'], endsOn: '2026-05-08' }
 
-  it('graine 7810000235, le lendemain de l’arrivée, 6 h du 7 donnée : la réponse retire les doses du 7 restées sans prise, le report a servi et reste actif (Q-b, décision du 18 octobre 2026)', () => {
+  it('graine 7810000235, le lendemain de l’arrivée, 6 h du 7 donnée : la réponse retire les doses du 7 restées sans prise, le report a servi et reste actif (décision du 18 octobre 2026)', () => {
     const input = on(noted(seed235(), '2026-04-07', '06:00'), '2026-04-08')
     expect(readings(input).moteur.moment).toEqual([
       '2026-04-08 06:00',

@@ -103,10 +103,14 @@ function endsOnIssue(
   return lastDoseOn !== null && endsOn < lastDoseOn ? 'beforeLastDose' : null
 }
 
+/** #873 : la clé d'une échéance montrée par la question, envoyée avec la réponse. */
+export const shownDueKey = ({ dueOn, dueTime }: Pick<Due, 'dueOn' | 'dueTime'>): string =>
+  dueTime === null ? dueOn : `${dueOn} ${dueTime}`
+
 // #873 : la réponse ne vaut que pour les échéances que la question a montrées ; sinon elle se repose.
 function answersShown(dues: readonly Due[], { pastDuesShown }: Edition): boolean {
   if (pastDuesShown === undefined) return true
-  const keys = dues.map(({ dueOn, dueTime }) => (dueTime === null ? dueOn : `${dueOn} ${dueTime}`))
+  const keys = dues.map(shownDueKey)
   return JSON.stringify([...keys].sort()) === JSON.stringify([...pastDuesShown].sort())
 }
 

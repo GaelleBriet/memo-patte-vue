@@ -1,9 +1,8 @@
 import { coverages, type Journey, type ReferenceDue } from './reference-days'
+import { isTaken } from './reference-lines'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 type Hour = string | null
-
-const isTaken = (line: ReferenceLine) => line.status === 'given' || line.status === 'missed'
 
 const keyOf = (day: string, hour: Hour) => (hour === null ? day : `${day} ${hour}`)
 const newer = (a: ReferenceLine, b: ReferenceLine) =>

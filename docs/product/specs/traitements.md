@@ -1697,7 +1697,7 @@ son échéance telle qu'écrite, jamais translatée. Hors de sa portée : le jou
 (R4), une journée sortie par un changement de fréquence (#862), la journée à venir déjà entamée
 (R9.2, G26). Appliqué à #847, puis le même jour à #892, #893, #885 et remplacé par la règle unique « une prise garde la journée et l'heure de sa ligne » (§10, décisions du 17 octobre 2026 sur les arrêts de la PR #914). Restent :
 
-Décidés le 17 octobre 2026 (lectures de la PR #914) : l'oubli d'une journée touchée garde son heure (R4, livré) ; « Elles n'étaient pas à donner » se lit par dose ; le refus de #806 vaut quel que soit le chemin, avec ou sans prise (Q38 ou Q39). Ces deux derniers points ne sont pas livrés (question suivante). Restent :
+Décidés le 17 octobre 2026 (lectures de la PR #914) : l'oubli d'une journée touchée garde son heure (R4, livré) ; « Elles n'étaient pas à donner » se lit par dose ; le refus de #806 vaut quel que soit le chemin, avec ou sans prise (Q38 ou Q39). Ces deux derniers points sont livrés le 18 octobre 2026 avec la ligne « pas à donner » (point suivant). Restent :
 
 - **#873 et #872, livrés le 18 octobre 2026 sans l'affichage de l'historique** (§10 ; le libellé de la ligne « pas à donner » et son « Supprimer » attendent Gaelle, #952, avant toute publication) : réponse à trois états sur le réglage et une ligne « pas à donner » par dose listée. La liste ou la date sur le réglage, essayées dans la PR #948, sont écartées (une dose non listée sortait, une seconde réponse remplaçait la première).
 Livrés le 17 octobre 2026 : #882 et #883 (§10, la règle de #867 à chaque contradiction entre un report et la réécriture de son réglage). Restent, posées par leur livraison :

@@ -173,7 +173,7 @@ describe('#873 : « Elles n’étaient pas à donner » écrit une ligne par dos
     expect(moteur).toEqual(reference)
   })
 
-  it('C1’ : le 25, « Modifier » à 9 h, la question ne liste que ce qui est tombé depuis ; une seconde réponse ajoute ses lignes, le 18 reste retiré', () => {
+  it('le 25, « Modifier » à 9 h, la question ne liste que ce qui est tombé depuis ; une seconde réponse ajoute ses lignes, le 18 reste retiré', () => {
     const after = edited(graine726(), SANS_HEURE, 'correct')
     const request = { frequency: MONTH, times: ['09:00'], endsOn: '2026-04-20' }
     const asked = newSettings(on(after, '2026-03-25'), request)

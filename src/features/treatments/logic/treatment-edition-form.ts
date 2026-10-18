@@ -1,6 +1,6 @@
 import type { z } from 'zod'
 
-import { treatmentEditionSchemaFor } from './treatment-edition-checks'
+import { shownDueKey, treatmentEditionSchemaFor } from './treatment-edition-checks'
 import { editionDraft, type EditionDraft } from './treatment-edition-draft'
 import {
   emptyTreatmentFormValues,
@@ -66,9 +66,7 @@ export function validateTreatmentEdition(
       ? {}
       : {
           pastDues,
-          pastDuesShown: shown.map(({ dueOn, dueTime }) =>
-            dueTime === null ? dueOn : `${dueOn} ${dueTime}`,
-          ),
+          pastDuesShown: shown.map(shownDueKey),
         }),
   })
   if (result.success) return { success: true, data: result.data }

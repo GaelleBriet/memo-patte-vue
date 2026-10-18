@@ -359,7 +359,7 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
       await expect(visible()).resolves.toHaveLength(4)
     })
 
-    it('I1, Q-a : crée « pas à donner » sur une échéance notée et une prise sur une échéance « pas à donner », jamais deux « pas à donner »', async () => {
+    it('#873 : crée « pas à donner » sur une échéance notée et une prise sur une échéance « pas à donner », jamais deux « pas à donner »', async () => {
       const notDue = (dueOn: string) => fields({ dueOn, givenOn: null, status: 'not-due' })
       await doses.applyBatch(
         [
