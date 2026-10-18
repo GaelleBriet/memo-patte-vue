@@ -1,6 +1,6 @@
 import type { Slot } from './calendar'
 import { dayOfKey, hoursOf, keyOf, later, longestStep, plusDays, stepped } from './grid'
-import { episodeLines, isNote } from './lines'
+import { episodeLines, isNote, isTaken } from './lines'
 import { momentOf } from './moment'
 import { dueReminders, type DueReminder, type ReminderWindow } from './reminders'
 import { readingOf, UPCOMING_DAYS } from './reading'
@@ -172,7 +172,7 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
       moment.phase === 'stopped' &&
       moment.unlogged.length === 0 &&
       closedBeforeFirstDue(settings) &&
-      !lines.some((line) => isNote(line) || line.status === 'extra'),
+      !lines.some((line) => isTaken(line) || line.status === 'extra'),
     endedOn:
       moment.phase === 'stopped'
         ? (currentSetting?.stoppedOn ?? null)

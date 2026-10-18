@@ -1,5 +1,5 @@
 import { hoursOf, later, sameFrequency } from '../grid'
-import { isNote } from '../lines'
+import { isTaken } from '../lines'
 import { episodesOf, hasNotes } from '../settings'
 import type {
   Day,
@@ -233,7 +233,7 @@ function corrected(
       ? result
       : { ...result, shownOn }
   }
-  const neverNoted = !input.lines.some(isNote)
+  const neverNoted = !input.lines.some(isTaken)
   const questioned = neverNoted && fallen.length > 0
   const fallback = questioned ? today : later(current.firstDueOn, today)
   const proposal = proposedDates(input, current, asked, fallback, readAfter(input, create))

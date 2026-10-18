@@ -54,7 +54,9 @@ function heldNextDay(view: TreatmentView, today: Day): Day | undefined {
 // reste la dernière journée d'échéance passée quel que soit le jour de la correction.
 function lastNotedDay(view: TreatmentView, today: Day): Day | undefined {
   return view.history
-    .flatMap(({ effect }) => (effect.kind === 'covers' ? [effect.key.slice(0, 10)] : []))
+    .flatMap(({ line, effect }) =>
+      effect.kind === 'covers' && line.status !== 'not-due' ? [effect.key.slice(0, 10)] : [],
+    )
     .filter((day) => day <= today)
     .sort()
     .at(-1)

@@ -2,8 +2,13 @@ import { keyOf, sameFrequency, sameHours } from './grid'
 import type { Span } from './settings'
 import type { Day, IdleReason, Line, Setting } from './types'
 
-export const isNote = (line: Pick<Line, 'status'>): boolean =>
+/** Une prise : donnée ou oubliée ; une ligne « pas à donner » n'en est jamais une (#873). */
+export const isTaken = (line: Pick<Line, 'status'>): boolean =>
   line.status === 'given' || line.status === 'missed'
+
+/** #873 : une ligne qui couvre son échéance, « pas à donner » comprise (journée touchée, TR-25). */
+export const isNote = (line: Pick<Line, 'status'>): boolean =>
+  isTaken(line) || line.status === 'not-due'
 
 /** « Avancée au … » plutôt que « Reportée au … » : la nouvelle date précède l'échéance remplacée. */
 export const isAdvanced = (line: Pick<Line, 'status' | 'dueOn' | 'targetOn'>): boolean =>

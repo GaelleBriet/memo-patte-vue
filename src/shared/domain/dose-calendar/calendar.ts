@@ -214,9 +214,13 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
 
   const slots: Slot[] = []
   for (const [day, journey] of [...days].sort(([a], [b]) => a.localeCompare(b))) {
-    if (journey.hours.length > 0) fallen.add(day)
     const covered = coveredOn(day, journey)
-    for (const hour of journey.hours) {
+    // #873 : une dose « pas à donner » n'est nulle part ; une journée qui n'a plus qu'elles n'est pas arrivée.
+    const notDue = (hour: Hour) => covered.get(hour)?.status === 'not-due'
+    journey.hours.filter(notDue).forEach((hour) => held.set(covered.get(hour)!, keyOf(day, hour)))
+    const hours = journey.hours.filter((hour) => !notDue(hour))
+    if (hours.length > 0) fallen.add(day)
+    for (const hour of hours) {
       const note = covered.get(hour) ?? null
       const exact =
         note !== null && note.dueTime === hour && note.dueOn === day && !isBorrowed.has(note)

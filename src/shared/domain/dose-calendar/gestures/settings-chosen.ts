@@ -1,5 +1,5 @@
 import { dayOfKey } from '../grid'
-import { isNote } from '../lines'
+import { isTaken } from '../lines'
 import { episodesOf } from '../settings'
 import type { Day, Refusal, SettingsPlan, TreatmentViewInput } from '../types'
 import { buildView } from '../view'
@@ -39,7 +39,7 @@ function laterNote(input: TreatmentViewInput, isLater: (day: Day) => boolean): R
   const episode = new Set((episodesOf(input.settings).at(-1) ?? []).map(({ id }) => id))
   const later = buildView(input).history.some(
     ({ line, effect }) =>
-      isNote(line) &&
+      isTaken(line) &&
       episode.has(line.settingId) &&
       effect.kind === 'covers' &&
       isLater(dayOfKey(effect.key)),
