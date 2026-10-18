@@ -95,7 +95,11 @@ function estimatedDues({ settings, lines, today }: TreatmentViewInput): number {
   }, 0)
 }
 
-function viewInputOf({ periods, doses }: TreatmentRecords, today: string): TreatmentViewInput {
+function viewInputOf(
+  { periods, doses }: TreatmentRecords,
+  today: string,
+  device: string | undefined,
+): TreatmentViewInput {
   return {
     settings: periods.map((period) => ({
       id: period.id,
@@ -120,8 +124,10 @@ function viewInputOf({ periods, doses }: TreatmentRecords, today: string): Treat
       givenOn: dose.givenOn,
       targetOn: dose.targetOn,
       updatedAt: dose.updatedAt,
+      ...(dose.createdByDevice === undefined ? {} : { createdByDevice: dose.createdByDevice }),
     })),
     today,
+    ...(device === undefined ? {} : { device }),
   }
 }
 
@@ -137,9 +143,16 @@ export function readCarnet(input: TreatmentViewInput): TreatmentReading | null {
   return readable ? { view: treatmentView(input), input } : null
 }
 
-/** R12 : la lecture d'un traitement enregistré ; `null` quand ses données sont illisibles. */
-export function readTreatment(treatment: TreatmentRecords, today: string): TreatmentReading | null {
-  return readCarnet(viewInputOf(treatment, today))
+/**
+ * R12 : la lecture d'un traitement enregistré ; `null` quand ses données sont illisibles. `device` : le
+ * téléphone qui fait le geste (TR-25).
+ */
+export function readTreatment(
+  treatment: TreatmentRecords,
+  today: string,
+  device?: string,
+): TreatmentReading | null {
+  return readCarnet(viewInputOf(treatment, today, device))
 }
 
 export function treatmentReading(treatment: TreatmentRecords, today: string): TreatmentView | null {

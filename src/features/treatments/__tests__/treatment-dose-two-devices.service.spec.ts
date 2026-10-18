@@ -39,8 +39,11 @@ describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-1
     vi.useRealTimers()
   })
 
-  // La ligne en vigueur : celle de cet appareil, plus récente que celle reçue de l'autre.
-  async function miloNotedOnBothDevices(other: OtherDevice = GIVEN_ON_10): Promise<string> {
+  // Par défaut, la ligne en vigueur : celle de cet appareil, plus récente que celle reçue de l'autre.
+  async function miloNotedOnBothDevices(
+    other: OtherDevice = GIVEN_ON_10,
+    otherAt = '2026-12-31T00:00:00.000Z',
+  ): Promise<string> {
     replay.clock.day = '2026-10-03'
     replay.tick()
     await replay.treatments.create({
@@ -75,9 +78,8 @@ describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-1
     await db.run(
       `INSERT INTO treatment_dose (id, period_id, treatment_id, animal_id, due_on, due_time,
          given_on, status, target_on, created_at, updated_at, created_by_device, updated_by_device)
-       VALUES (?, ?, ?, ?, '2026-10-10', NULL, ?, ?, NULL,
-         '2026-12-31T00:00:00.000Z', '2026-12-31T00:00:00.000Z', 'autre', 'autre')`,
-      [other.id, ID, ID, ANIMAL, other.givenOn, other.status],
+       VALUES (?, ?, ?, ?, '2026-10-10', NULL, ?, ?, NULL, ?, ?, 'autre', 'autre')`,
+      [other.id, ID, ID, ANIMAL, other.givenOn, other.status, otherAt, otherAt],
     )
     const doses = (await storedHistory(replay.treatments, ID)).doses
     return doses.find(({ id }) => id !== other.id)!.id
@@ -126,6 +128,19 @@ describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-1
     expect(await sheetLines()).toEqual({
       [shown]: 'missed  covers',
       [OTHER]: 'given 2026-10-10 idle',
+    })
+  })
+
+  it('#931 : dose du 10 oct. de Milo donnée ici le 10, puis sur l’autre appareil le 11, « Marquer comme oubliée » ici : la ligne de cet appareil devient « Oubliée », la prise du 11 reste, sans effet', async () => {
+    const givenOn11: OtherDevice = { id: OTHER, status: 'given', givenOn: '2026-10-11' }
+    const shown = await miloNotedOnBothDevices(givenOn11, '2027-01-01T00:00:02.500Z')
+    replay.clock.day = '2026-10-12'
+    replay.tick()
+    await replay.doses.apply(ID, markMissed())
+
+    expect(await sheetLines()).toEqual({
+      [shown]: 'missed  covers',
+      [OTHER]: 'given 2026-10-11 idle',
     })
   })
 

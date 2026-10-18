@@ -28,6 +28,17 @@ export function createDoseReads(db: DbClient) {
       return rows.map(toDose)
     },
 
+    /** Comme `listByTreatment`, avec l'appareil de chaque ligne : ce que lit un geste (TR-25). */
+    async listRecordsByTreatment(treatmentId: string): Promise<Stamped<TreatmentDose>[]> {
+      const rows = await db.query<DoseWithFrequencyRow>(
+        `${WITH_FREQUENCY}
+         WHERE dose.treatment_id = ? AND dose.deleted_at IS NULL
+         ORDER BY ${HEAD_FIRST}`,
+        [treatmentId],
+      )
+      return rows.map(toRecord)
+    },
+
     /** Prises visibles de tous les traitements, celles d'un même traitement la dernière d'abord. */
     async listAll(): Promise<TreatmentDose[]> {
       const rows = await db.query<DoseWithFrequencyRow>(
