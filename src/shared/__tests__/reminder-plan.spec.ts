@@ -17,6 +17,7 @@ import {
 } from '../domain/reminder-plan'
 import { treatmentView } from '../domain/dose-calendar'
 import { viewInputOf } from './dose-calendar.legacy-input.aides'
+import { line, proposedSetting, setting } from './dose-calendar.v2.aides'
 import { deplace, donne, type Carnet } from './dose-calendar.recette.aides'
 
 const t = i18n.global.t
@@ -573,6 +574,60 @@ describe('plannedReminders, plafond et relais', () => {
     expect(scheduled).toHaveLength(MAX_REMINDERS_PER_CARE)
     expect(scheduled.at(-1)?.body).toBe(RELAY_PIXEL)
     expect(scheduled.filter(({ body }) => body.includes(RELAY_PIXEL))).toHaveLength(1)
+  })
+
+  describe('#929, #933 : Panacur tous les 3 jours à 8 h et 20 h, puis « Modifier » le 5 octobre 2026, sans heure dès le 7', () => {
+    const every3 = { value: 3, unit: 'day' } as const
+    const p1 = setting('p1', '2026-10-07', every3, ['08:00', '20:00'], { startsOn: '2026-10-01' })
+    const p2 = proposedSetting('p2', '2026-10-07', every3, [], { startsOn: '2026-10-05' })
+    const NO_DOSAGE = {
+      reminderOffsetMinutes: null,
+      reminderTime: null,
+      doseQuantity: null,
+      doseUnit: null,
+    }
+    const scheduledOn = (lines: ReturnType<typeof line>[], today: string, now: Date) => {
+      const view = treatmentView({ settings: [p1, p2], lines, today })
+      const source = { id: ID, name: 'Panacur', animalName: 'Pixel', period: NO_DOSAGE, view }
+      const care = treatmentReminderPlan(t, source, SETTINGS, now)
+      return { care, scheduled: plannedReminders([care], MAX_SCHEDULED_REMINDERS) }
+    }
+
+    it('la dose de 8 h du 11 avril 2027 reportée au 14, ouverte le 5 octobre à midi : le 14 avril vient après le dernier rappel, qui porte le relais', () => {
+      const report = line('p1', 'postponed', '2027-04-11', '08:00', '2027-04-14')
+      const { scheduled } = scheduledOn([report], '2026-10-05', new Date(2026, 9, 5, 12))
+
+      expect(scheduled).toHaveLength(MAX_REMINDERS_PER_CARE)
+      expect(slots(scheduled)[0]).toBe('2026-10-07::due')
+      expect(slots(scheduled).at(-1)).toBe('2027-04-02::due')
+      expect(scheduled.at(-1)?.body).toBe(RELAY_PIXEL)
+    })
+
+    it('la dose de 8 h du 10 octobre reportée au 13, ouverte le 13 à 23 h : les trois doses du jour sont passées, le 60e rappel, le 11 avril 2027, porte quand même le relais', () => {
+      const report = line('p1', 'postponed', '2026-10-10', '08:00', '2026-10-13')
+      const { care, scheduled } = scheduledOn([report], '2026-10-13', new Date(2026, 9, 13, 23))
+
+      expect(scheduled).toHaveLength(MAX_REMINDERS_PER_CARE)
+      expect(care.complete).toBe(false)
+      expect(slots(scheduled).at(-1)).toBe('2027-04-11::due')
+      expect(scheduled.at(-1)?.body).toBe(RELAY_PIXEL)
+    })
+
+    it('et la dose de 8 h du 8 avril 2027 reportée au 11 : le 11 avril garde 8 h puis la dose sans heure de 9 h, avant 20 h', () => {
+      const reports = [
+        line('p1', 'postponed', '2026-10-10', '08:00', '2026-10-13'),
+        line('p1', 'postponed', '2027-04-08', '08:00', '2027-04-11'),
+      ]
+      const { scheduled } = scheduledOn(reports, '2026-10-13', new Date(2026, 9, 13, 23))
+
+      expect(scheduled).toHaveLength(MAX_REMINDERS_PER_CARE)
+      expect(slots(scheduled).slice(-3)).toEqual([
+        '2027-04-05::due',
+        '2027-04-11:0800:due',
+        '2027-04-11::due',
+      ])
+      expect(scheduled.at(-1)?.body).toBe(RELAY_PIXEL)
+    })
   })
 
   it('pas de relais quand une date de fin proche laisse tout programmer', () => {

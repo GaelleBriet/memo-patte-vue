@@ -427,6 +427,11 @@ export function createVaccinationsRepository(
 }
 
 export type VaccinationsRepository = ReturnType<typeof createVaccinationsRepository>
+export type AllVaccinationsReader = Pick<VaccinationsRepository, 'listAll'>
+export type VaccinationReplacedDuesReader = Pick<
+  VaccinationsRepository,
+  'getById' | 'listReplacedDues'
+>
 
 let repository: Promise<VaccinationsRepository> | null = null
 
