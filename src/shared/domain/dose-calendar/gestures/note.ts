@@ -1,9 +1,12 @@
 import { keyOf, plusDays } from '../grid'
+import { isMoreRecent, isTaken } from '../lines'
+import { episodeIdsOf } from '../settings'
 import type {
   Day,
   Due,
   Gesture,
   GestureResult,
+  Line,
   LineChange,
   LineFields,
   TreatmentViewInput,
@@ -64,13 +67,32 @@ function isExtra(view: TreatmentView, due: Due, givenOn: Day): boolean {
   return boundary !== null && givenOn < boundary
 }
 
-// TR-25 : la note réécrit la ligne en vigueur ; celles de l'autre appareil restent, sans effet.
+/** TR-25, #931 : la prise de ce téléphone sur la même dose, dans sa période. */
+function ownLine(input: TreatmentViewInput, of: LineFields | Line): Line | undefined {
+  if (input.device === undefined) return undefined
+  const period = episodeIdsOf(input.settings, of.settingId)
+  return input.lines
+    .filter(
+      (line) =>
+        line.createdByDevice === input.device &&
+        isTaken(line) &&
+        line.dueOn === of.dueOn &&
+        line.dueTime === of.dueTime &&
+        period.has(line.settingId),
+    )
+    .reduce<Line | undefined>(
+      (latest, line) => (latest === undefined || isMoreRecent(line, latest) ? line : latest),
+      undefined,
+    )
+}
+
+// TR-25 : la note réécrit la ligne de ce téléphone, sinon la ligne en vigueur ; les autres restent,
+// sans effet, et la fiche ne dépend pas de l'ordre de synchro.
 function noteChange(input: TreatmentViewInput, view: TreatmentView, line: LineFields): LineChange {
   const slot = view.slots(line.dueOn, line.dueOn).find(({ due }) => due.dueTime === line.dueTime)
-  const exact = slot?.state === 'given' || slot?.state === 'missed' ? slot.by : null
-  return exact === null || exact === undefined
-    ? written(input.lines, line)
-    : { action: 'rewrite', id: exact.id, line }
+  const exact = slot?.state === 'given' || slot?.state === 'missed' ? (slot.by ?? null) : null
+  const target = ownLine(input, exact ?? line) ?? exact
+  return target === null ? written(input.lines, line) : { action: 'rewrite', id: target.id, line }
 }
 
 /** « C'est fait », « Fait à une autre date », renseigner, « Marquer comme donnée / oubliée ». */
