@@ -230,6 +230,19 @@ describe('RA-1 à RA-6 : les rappels lus dans la vue', () => {
     expect(dues[4]!.due.dueOn).toBe('2027-02-28')
   })
 
+  it('RA-1, RA-11 : quotidien à 8 h, 14 h et 20 h, la dernière journée lue garde ses trois heures', () => {
+    const read = view(
+      [setting('p1', '2026-10-06', DAY, ['08:00', '14:00', '20:00'])],
+      [],
+      '2026-10-06',
+    )
+    expect(shown(read.reminders({ ...WINDOW, count: 1 })).slice(-3)).toEqual([
+      'due 2026-10-08 08:00 → 2026-10-08',
+      'due 2026-10-08 14:00 → 2026-10-08',
+      'due 2026-10-08 20:00 → 2026-10-08',
+    ])
+  })
+
   it('RA-11 : après un réglage « tous les 365 mois », quatre heures par jour se lisent sans construire des siècles de calendrier', () => {
     const p1 = setting('p1', '2025-01-01', { value: 365, unit: 'month' })
     const p2 = setting('p2', '2026-10-01', DAY, ['06:00', '12:00', '18:00', '23:00'])
@@ -237,7 +250,7 @@ describe('RA-1 à RA-6 : les rappels lus dans la vue', () => {
     const started = performance.now()
     const reminders = read.reminders(WINDOW)
     expect(performance.now() - started).toBeLessThan(1000)
-    expect(reminders).toHaveLength(69)
+    expect(reminders).toHaveLength(72)
     expect(reminders.every(({ moment, due }) => moment === 'due' && due.settingId === 'p2')).toBe(
       true,
     )
@@ -245,7 +258,7 @@ describe('RA-1 à RA-6 : les rappels lus dans la vue', () => {
       'due 2026-10-13 06:00 → 2026-10-13',
       'due 2026-10-13 12:00 → 2026-10-13',
     ])
-    expect(shown(reminders).at(-1)).toBe('due 2026-10-30 06:00 → 2026-10-30')
+    expect(shown(reminders).at(-1)).toBe('due 2026-10-30 23:00 → 2026-10-30')
   })
 })
 
