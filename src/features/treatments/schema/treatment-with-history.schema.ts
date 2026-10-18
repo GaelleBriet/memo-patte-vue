@@ -10,7 +10,7 @@ export type TreatmentRecord = Pick<
 
 /**
  * Ce que le moteur d'échéances lit : toutes les périodes, de la première à la dernière, et les prises
- * visibles ; `createdByDevice` quand le traitement est lu pour un geste (TR-25).
+ * visibles ; `createdByDevice` présent à la lecture de la base, absent des jeux de test.
  */
 export type TreatmentWithHistory = TreatmentRecord & {
   periods: TreatmentPeriodRecord[]

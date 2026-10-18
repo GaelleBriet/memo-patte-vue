@@ -67,7 +67,7 @@ function isExtra(view: TreatmentView, due: Due, givenOn: Day): boolean {
   return boundary !== null && givenOn < boundary
 }
 
-/** TR-25, #931 : la prise la plus récente de la même dose, dans sa période, de `device` s'il est donné. */
+// TR-25 : la prise la plus récente de la dose dans sa période, de `device` s'il est donné.
 function latestOfDose(input: TreatmentViewInput, of: LineFields | Line, device?: string) {
   const period = episodeIdsOf(input.settings, of.settingId)
   return input.lines
