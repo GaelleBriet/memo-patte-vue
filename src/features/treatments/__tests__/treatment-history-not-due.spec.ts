@@ -105,6 +105,30 @@ describe('historique : lignes « pas à donner » (#952)', () => {
     )
   })
 
+  it('ne sépare jamais une ligne « pas à donner » des autres lignes de sa date quand le reste est replié', () => {
+    const twice = period({
+      frequency: { value: 1, unit: 'day' },
+      times: ['08:00', '20:00'],
+      startsOn: '2026-03-01',
+      firstDueOn: '2026-03-01',
+    })
+    const days = ['2026-03-01', '2026-03-02', '2026-03-03', '2026-03-04']
+    const book = treatment(
+      [twice],
+      [
+        ...days.flatMap((day) => [dose(day, day, { dueTime: '08:00' })]),
+        ...days.slice(0, 3).map((day) => dose(day, day, { dueTime: '20:00' })),
+        notDue('2026-03-04', { dueTime: '20:00' }),
+      ],
+    )
+    const [only] = plain(treatmentHistory(t, book, treatmentReadingOf(book, TODAY), TODAY)).periods
+    const shown = only!.lines.slice(0, only!.visibleLines)
+    const last = shown.at(-1)!
+
+    expect(only!.toggle).not.toBeNull()
+    expect(only!.lines[only!.visibleLines]?.dose.dueOn).not.toBe(last.dose.dueOn)
+  })
+
   it('propose Supprimer, et seulement lui', () => {
     const [, idle, active] = lines()
 

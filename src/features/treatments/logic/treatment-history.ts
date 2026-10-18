@@ -127,6 +127,12 @@ function emptyText(
     : t('treatments.history.empty')
 }
 
+function foldAt(lines: HistoryLine[]): number {
+  let cut = LINES_BEFORE_TOGGLE
+  while (cut < lines.length && lines[cut]!.dose.dueOn === lines[cut - 1]!.dose.dueOn) cut += 1
+  return cut
+}
+
 function notesIn(lines: HistoryLine[]): number {
   return lines.reduce(
     (count, line) =>
@@ -194,7 +200,8 @@ export function treatmentHistory(
     periods: periods.map((period, index): HistoryPeriod => {
       const own = entries.filter(({ dose }) => dose.periodId === period.id)
       const lines = linesOf(t, context, period, own, last?.id)
-      const hidden = notesIn(lines.slice(LINES_BEFORE_TOGGLE))
+      const cut = foldAt(lines)
+      const hidden = notesIn(lines.slice(cut))
       const others = index === 0 && !isAlone
       return {
         id: period.id,
@@ -206,7 +213,7 @@ export function treatmentHistory(
             },
         lines,
         emptyText: lines.length === 0 ? emptyText(t, period, periods[index - 1], context) : null,
-        visibleLines: hidden === 0 ? lines.length : LINES_BEFORE_TOGGLE,
+        visibleLines: hidden === 0 ? lines.length : cut,
         toggle:
           hidden === 0
             ? null
