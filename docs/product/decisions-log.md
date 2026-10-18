@@ -2973,3 +2973,25 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   une dose libre après elle (lue comme avant en attendant) ; le décalage d'un report battu dont la
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
+
+2026-10-18 — **#873 et #872 : la réponse à la question des doses tombées est écrite sur le réglage,
+à trois états** (spec `traitements.md` R10, R11, §10, §11 ; migration v15, export v8 ; décision de
+Gaelle du 18 octobre 2026, par la session d'analyse du moteur).
+
+- Le réglage porte la réponse : aucune question posée, « Elles restent à renseigner », « Elles
+  n'étaient pas à donner ». Le moteur ne retire une dose que sous « n'étaient pas à donner » ; la date
+  de la réponse reste la date d'écriture du réglage (v14), que la réponse seule ne fait pas avancer.
+- Données d'avant : le booléen vrai devient « restent à renseigner », faux « aucune question
+  posée », jamais « n'étaient pas à donner » (rien n'est retiré après coup) ; export v7 et antérieurs
+  de même.
+- Lecture par dose : la réponse retire exactement les doses tombées sans prise listées, celles du
+  jour d'arrivée passé d'un report comprises (le report devient sans effet s'il n'apporte plus rien,
+  il tient s'il est plus récent que la réponse) ; la journée touchée garde ses heures.
+- #872 : « Elles n'étaient pas à donner » qui vide la période est refusée avec le texte de #806, avec
+  ou sans prise (Q38, Q39) ; jamais « Elles restent à renseigner » ; la correction à fréquence gardée
+  ne repart plus d'aujourd'hui. Carnet sans prise, tous les 3 mois à 20 h, fin le 6 mai, dose du
+  18 mars reportée au 22 ; le 23, 12, 18 et 23 h puis « Elles n'étaient pas à donner » : refusée.
+- Raison : la relecture de #914 a montré qu'une simple « Prochaine dose » valait réponse quand la
+  réponse se déduisait du réglage réécrit (Milo, graine 8840000838 : la dose du 11 disparaissait
+  après la suppression de sa prise). — Alternatives écartées : ne retirer que les doses jamais
+  retouchées depuis la réponse (fragile) ; une ligne par dose retirée (statut et texte nouveaux).
