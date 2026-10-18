@@ -14,6 +14,7 @@ import {
 import i18n from '@/core/i18n'
 import { days } from '@/shared/__tests__/dose-calendar.v2.aides'
 import type { Due } from '@/shared/domain/dose-calendar'
+import { cpuMs } from '@/shared/__tests__/cpu-time'
 
 const t = i18n.global.t
 const TROIS_ANS: Due[] = days('2023-09-28', '2026-09-27').flatMap((dueOn) =>
@@ -24,9 +25,9 @@ const TROIS_ANS: Due[] = days('2023-09-28', '2026-09-27').flatMap((dueOn) =>
 function fastest<T>(run: () => T): { result: T; elapsed: number } {
   let best = { result: run(), elapsed: Infinity }
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const start = performance.now()
+    const start = cpuMs()
     const result = run()
-    const elapsed = performance.now() - start
+    const elapsed = cpuMs() - start
     if (elapsed < best.elapsed) best = { result, elapsed }
   }
   return best

@@ -10,6 +10,7 @@ import {
   shifted,
   treatment,
 } from './treatment-fixtures'
+import { givenLine, missedRow } from '../logic/treatment-history-rows'
 import {
   LINES_BEFORE_TOGGLE,
   treatmentDeleteTexts,
@@ -866,6 +867,71 @@ describe('treatmentHistory — une prise dont l’échéance a quitté le calend
 
     expect(actionsOf(book, '2026-03-09 20:00')).toEqual(['change-date', 'mark-missed', 'remove'])
   })
+})
+
+describe('treatmentHistory — une prise dont l’échéance est future ou déplacée (#920)', () => {
+  const MARS = '2026-03-02T08:00:00.000Z'
+  const LUNDIS = period({
+    startsOn: '2026-03-02',
+    firstDueOn: '2026-03-02',
+    frequency: { value: 1, unit: 'week' },
+    times: ['08:00'],
+    createdAt: MARS,
+    updatedAt: MARS,
+  })
+  const AT_8 = { dueTime: '08:00', createdAt: MARS, updatedAt: MARS }
+
+  function actionsOf(book: TreatmentWithHistory, today: string, id: string) {
+    const lines = history(book, today).periods.flatMap(({ lines }) => lines)
+    const rows = lines.flatMap((line) => (line.kind === 'missed' ? line.rows : [line]))
+    return rows.find((row) => row.dose.id === id)!.actions
+  }
+
+  it('Milo : la prise du 16 donnée d’avance le 11, le 12 mars, ne propose pas « Marquer comme oubliée »', () => {
+    const book = treatment(
+      [LUNDIS],
+      [
+        dose('2026-03-02', '2026-03-02', AT_8),
+        dose('2026-03-09', '2026-03-09', AT_8),
+        dose('2026-03-16', '2026-03-16', { ...AT_8, givenOn: '2026-03-11' }),
+      ],
+    )
+
+    expect(actionsOf(book, '2026-03-12', '2026-03-16 08:00')).toEqual(['change-date', 'remove'])
+  })
+
+  it('propose « Marquer comme oubliée » le jour même de l’échéance', () => {
+    const book = treatment(
+      [LUNDIS],
+      [
+        dose('2026-03-02', '2026-03-02', AT_8),
+        dose('2026-03-09', '2026-03-09', AT_8),
+        dose('2026-03-16', '2026-03-16', AT_8),
+      ],
+    )
+
+    expect(actionsOf(book, '2026-03-16', '2026-03-16 08:00')).toEqual([
+      'change-date',
+      'mark-missed',
+      'remove',
+    ])
+  })
+
+  it.each(['moved', 'removed'] as const)(
+    'une échéance « %s » du calendrier ne propose ni « Marquer comme oubliée » ni « Marquer comme donnée »',
+    (state) => {
+      const book = treatment([LUNDIS], [dose('2026-03-02', '2026-03-02', AT_8)])
+      const reading = treatmentReadingOf(book, '2026-03-12')
+      const context = {
+        reading: { ...reading, view: { ...reading.view, dueState: () => state } },
+        today: '2026-03-12',
+      }
+      const given = book.doses[0]!
+
+      expect(givenLine(t, context, given, LUNDIS, false).actions).toEqual(['change-date', 'remove'])
+      expect(missedRow(t, context, given, LUNDIS).actions).toEqual(['remove'])
+    },
+  )
 })
 
 describe('treatmentDeleteTexts', () => {

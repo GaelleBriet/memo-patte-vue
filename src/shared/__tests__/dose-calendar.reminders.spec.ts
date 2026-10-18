@@ -11,6 +11,7 @@ import {
   type ReminderWindow,
 } from '../domain/dose-calendar'
 import { DAY, H, line, MONTH, setting, view, WEEK } from './dose-calendar.v2.aides'
+import { cpuMs } from './cpu-time'
 
 const played = (input: Parameters<typeof play>[0], gesture: Parameters<typeof play>[1]) => {
   const result = play(input, gesture)
@@ -291,9 +292,9 @@ describe('RA-1 à RA-6 : les rappels lus dans la vue', () => {
     const p1 = setting('p1', '2025-01-01', { value: 365, unit: 'month' })
     const p2 = setting('p2', '2026-10-01', DAY, ['06:00', '12:00', '18:00', '23:00'])
     const read = view([p1, p2], [], '2026-10-13')
-    const started = performance.now()
+    const started = cpuMs()
     const reminders = read.reminders(WINDOW).reminders
-    expect(performance.now() - started).toBeLessThan(1000)
+    expect(cpuMs() - started).toBeLessThan(1000)
     expect(reminders).toHaveLength(72)
     expect(reminders.every(({ moment, due }) => moment === 'due' && due.settingId === 'p2')).toBe(
       true,

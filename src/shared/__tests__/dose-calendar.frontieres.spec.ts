@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest'
 import { plusDays } from '../domain/dose-calendar/grid'
 import type { Line } from '../domain/dose-calendar/types'
 import { DAY, line, setting, view } from './dose-calendar.v2.aides'
+import { cpuMs } from './cpu-time'
 
 const folder = fileURLToPath(new URL('../domain/dose-calendar/', import.meta.url))
 const modules = readdirSync(folder, { recursive: true, encoding: 'utf8' })
@@ -78,9 +79,9 @@ describe('moteur des doses v2 : une passe par étape', () => {
     for (let warm = 0; warm < 5; warm += 1) read()
     const times: number[] = []
     for (let run = 0; run < 21; run += 1) {
-      const start = performance.now()
+      const start = cpuMs()
       read()
-      times.push(performance.now() - start)
+      times.push(cpuMs() - start)
     }
     expect(read()[1]!.length).toBeGreaterThan(50)
     expect(times.sort((a, b) => a - b)[10]).toBeLessThan(20)
@@ -90,11 +91,11 @@ describe('moteur des doses v2 : une passe par étape', () => {
     const read = view([setting('p1', '2026-01-01', DAY)], [], '2026-01-01')
     const times: number[] = []
     for (let run = 0; run < 5; run += 1) {
-      const start = performance.now()
+      const start = cpuMs()
       for (let index = 0; index < 400; index += 1) {
         read.dueState({ dueOn: plusDays('2026-03-01', run * 400 + index), dueTime: null })
       }
-      times.push(performance.now() - start)
+      times.push(cpuMs() - start)
     }
     expect(times.sort((a, b) => a - b)[2]).toBeLessThan(100)
   })

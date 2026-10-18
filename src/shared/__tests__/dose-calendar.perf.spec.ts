@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { newSettings, treatmentView } from '../domain/dose-calendar'
 import type { Line, Setting, TreatmentViewInput } from '../domain/dose-calendar/types'
 import { DAY, days, H, setting, WEEK } from './dose-calendar.v2.aides'
+import { cpuMs } from './cpu-time'
 
 const TWO_YEARS = days('2024-10-01', '2026-09-30')
 
@@ -25,12 +26,6 @@ const input: TreatmentViewInput = {
   settings: [setting('s1', '2024-10-01', DAY, H)],
   lines: TWO_YEARS.flatMap((day) => H.map((time) => givenAt(day, time))),
   today: '2026-09-30',
-}
-
-// Temps de processeur du fichier (un processus par fichier) : une machine chargée ne le gonfle pas.
-function cpuMs(): number {
-  const { user, system } = process.cpuUsage()
-  return (user + system) / 1000
 }
 
 // Meilleur de trois essais : garde visible une régression, écarte le bruit.
