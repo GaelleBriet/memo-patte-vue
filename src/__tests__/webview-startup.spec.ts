@@ -25,7 +25,7 @@ describe('démarrage de la WebView sans erreur de console', () => {
   })
 
   it('laisse SystemBars sans injection CSS, car aucun style ne lit --safe-area-inset-*', () => {
-    const readers = sourceFiles('src').filter((file) =>
+    const readers = [...sourceFiles('src'), 'index.html'].filter((file) =>
       readFileSync(file, 'utf8').includes('--safe-area-inset'),
     )
 

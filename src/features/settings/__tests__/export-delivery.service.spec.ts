@@ -56,11 +56,9 @@ const WEBVIEW_CACHE: FileInfo = {
 }
 
 function inDocuments(...saved: string[]) {
-  vi.mocked(Filesystem.readdir).mockImplementation(async ({ path, directory }) => {
-    if (directory !== Directory.Documents) return { files: [] }
-    if (path === '') return { files: saved.length ? [{ ...FILE_INFO, name: 'MémoPatte' }] : [] }
-    return { files: saved.map((name) => ({ ...FILE_INFO, name })) }
-  })
+  vi.mocked(Filesystem.readdir).mockImplementation(async ({ directory }) => ({
+    files: directory === Directory.Documents ? saved.map((name) => ({ ...FILE_INFO, name })) : [],
+  }))
 }
 
 function pluginError(message: string, code: string): Error {
@@ -252,26 +250,35 @@ describe('deliverExportFile — enregistrer sur le téléphone', () => {
     expect(writtenPaths()).toEqual(['MémoPatte/memopatte-export-20260923-1432 (1).json'])
   })
 
-  it('ne sonde jamais un fichier absent : le dossier de sauvegarde se liste seulement s’il existe', async () => {
+  it('liste directement le dossier de sauvegarde, sans lire la racine de Documents', async () => {
+    inDocuments('b.json')
+
     await deliverExportFile({ name: 'a.json', content: '{}' }, 'save', 'x')
 
     expect(Filesystem.readdir).toHaveBeenCalledExactlyOnceWith({
-      path: '',
+      path: 'MémoPatte',
       directory: Directory.Documents,
     })
     expect(writtenPaths()).toEqual(['MémoPatte/a.json'])
   })
 
-  it('liste le dossier de sauvegarde quand il existe', async () => {
-    inDocuments('b.json')
+  it('tient le dossier pour vide au premier export, quand il n’existe pas encore', async () => {
+    vi.mocked(Filesystem.readdir).mockRejectedValue(
+      pluginError("'readdir' failed because directory does not exist.", 'OS-PLUG-FILE-0008'),
+    )
 
     await deliverExportFile({ name: 'a.json', content: '{}' }, 'save', 'x')
 
-    expect(Filesystem.readdir).toHaveBeenLastCalledWith({
-      path: 'MémoPatte',
-      directory: Directory.Documents,
-    })
     expect(writtenPaths()).toEqual(['MémoPatte/a.json'])
+  })
+
+  it('ne tient pas le nom pour pris ou libre à tort : majuscules et Unicode ignorés', async () => {
+    inDocuments('A.JSON', 'é.json'.normalize('NFD'))
+
+    await deliverExportFile({ name: 'a.json', content: '{}' }, 'save', 'x')
+    await deliverExportFile({ name: 'é.json', content: '{}' }, 'save', 'x')
+
+    expect(writtenPaths()).toEqual(['MémoPatte/a (1).json', 'MémoPatte/é (1).json'])
   })
 
   it('ne tient pas un nom pour libre quand le système ne sait pas dire s’il est pris', async () => {
