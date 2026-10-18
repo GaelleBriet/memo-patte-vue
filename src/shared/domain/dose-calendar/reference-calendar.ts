@@ -1,6 +1,5 @@
 import {
   gridDays,
-  hoursOf,
   inForceAt,
   isDueDay,
   isOnGrid,
@@ -14,7 +13,6 @@ import {
 import {
   coverages,
   lateDaysOf,
-  writtenBefore,
   handedOf,
   leftDays,
   stopDayOf,
@@ -33,8 +31,9 @@ import {
   touchedJourneys,
 } from './reference-lines'
 import { departureBeaten, duesOf } from './reference-not-due'
-import { arrivedOn, chosenDateOf, hoursChangedSince, reportOutcome } from './reference-reports'
-import { rewrittenDeparture, shiftKeptByReport, type RewriteContext } from './reference-rewrite'
+import { arriveReports } from './reference-arrivals'
+import { chosenDateOf } from './reference-reports'
+import { shiftKeptByReport, type RewriteContext } from './reference-rewrite'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 type Calendar = { pending: string[]; fallen: Set<string>; rhythmFrom: string; dues: Set<string> }
@@ -198,12 +197,8 @@ export function calendarOf(
   ).forEach((journey, day) => left.set(day, journeyOn(day, journey.setting)))
 
   const coverage = coverages({ notes, borrowed, reports, translated, settingOf })
-  const { matched, coveredOn, coveredAside, settle } = coverage
+  const { coveredOn, coveredAside, settle } = coverage
 
-  // R7 : un report emporte son heure et les suivantes sans prise ; ceux qui arrivent sur sa journée d'abord.
-  const fallen = new Set<string>()
-  const arrivedBy = new Map<string, ReferenceLine>()
-  const arrivedHours = new Map<string, (string | null)[]>()
   const rewriteContext: RewriteContext = {
     settingOf,
     settingAt,
@@ -216,68 +211,24 @@ export function calendarOf(
       return day?.hours.filter((hour) => !coveredAside(dueOn, day).has(hour)) ?? []
     },
   }
-  const waiting = [...reports]
-  while (waiting.length > 0) {
-    const ready = waiting.findIndex(
-      (report) => !waiting.some((other) => other.targetOn === report.dueOn),
-    )
-    const [report] = waiting.splice(Math.max(0, ready), 1)
-    const { dueOn, targetOn } = report!
-    const rewritten = plain ? undefined : rewrittenDeparture(report!, rewriteContext)
-    if (rewritten === 'lost') continue
-    const origin = rewritten ? undefined : (days.get(dueOn) ?? left.get(dueOn))
-    const from = origin?.setting ?? settingOf(report!.settingId)
-    const hours = origin?.hours ?? rewritten?.hours ?? hoursOf(from)
-    if (origin === undefined) {
-      notes
-        .filter((note) => note.dueOn === dueOn && hours.includes(note.dueTime))
-        .forEach((note) => matched.add(note))
-    }
-    const covered =
-      origin === undefined
-        ? new Set(hours.filter((hour) => noted.has(keyOf(dueOn, hour))))
-        : coveredOn(dueOn, origin)
-    // R6, TR-9 : hors de sa grille, un report est sans effet, sauf s'il porte la date choisie,
-    // arrive sur la première échéance d'une origine écrite (TR-28) ou ouvre un rythme (R9.2).
-    const at = settingAt(dueOn)?.id ?? ''
-    const restartOn = restarts.get(at)
-    const chosenOn = chosenRestarts.get(at)
-    const carries = targetOn === restartOn || targetOn === chosenOn || openings.has(targetOn!)
-    const before = chosenRestarts.get(report!.settingId) !== chosenOn
-    const outside = (dueOn === chosenOn && before) || (!origin && !rewritten && !carries)
-    if (chosenOn !== undefined && outside) continue
-    const written = settingOf(report!.settingId)
-    const arrived = arrivedHours.get(dueOn) ?? []
-    const itsDay = {
-      setting: written,
-      hours: [...new Set([...hoursOf(written), ...arrived])].sort(),
-    }
-    const outcome = reportOutcome({
-      report: report!,
-      written,
-      day: origin ?? { setting: from, hours },
-      covered,
-      hoursChangeThatDay: translated.has(dueOn),
-      inForce: settingAt(dueOn),
-      hoursChangedSince: hoursChangedSince(live, written, dueOn),
-      itsHours: itsDay.hours,
-      coveredAtItsHours: coveredAside(dueOn, itsDay, writtenBefore(written, settingOf)),
-    })
-    if (outcome.beaten) continue
-    if (targetOn! > dueOn) fallen.add(dueOn)
-    if (origin) origin.hours = origin.hours.filter((hour) => !outcome.lost.includes(hour))
-    const stopDay = stoppedAt(targetOn!)
-    const arrival = settingAt(targetOn!) ?? stopDay
-    const into = stopDay === undefined ? days : left
-    if (arrival === undefined || outcome.carried.length === 0) continue
-    const opensRhythm = openings.delete(targetOn!)
-    const chosen = chosenDateOf(report!, live, settingOf)
-    const day = arrivedOn(into.get(targetOn!), outcome, arrival, { opensRhythm, chosen })
-    into.set(targetOn!, day)
-    const received = chosen ? hoursOf(chosen) : outcome.carried
-    arrivedHours.set(targetOn!, [...(arrivedHours.get(targetOn!) ?? []), ...received])
-    received.forEach((hour) => arrivedBy.set(keyOf(targetOn!, hour), report!))
-  }
+  // R7 : un report emporte son heure et les suivantes sans prise.
+  const { fallen, arrivedBy } = arriveReports({
+    reports,
+    days,
+    left,
+    notes,
+    noted,
+    coverage,
+    restarts,
+    chosenRestarts,
+    openings,
+    translated,
+    live,
+    settingOf,
+    settingAt,
+    stoppedAt,
+    rewrite: plain ? undefined : rewriteContext,
+  })
   settle()
 
   left.forEach((journey, day) => {
