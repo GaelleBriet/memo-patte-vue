@@ -117,6 +117,13 @@ La ligne « Campagne deux téléphones : N carnets × M pas, graines A à B, com
 fourches, C constats » dit ce qui a été joué ; un réglage illisible arrête la campagne. Par défaut
 (suite normale) : 10 carnets × 30 pas, sans `main`.
 
+Fourches de notes (#931, `two-devices-notes.ts`), avec les mêmes variables : la même dose notée sur
+A et sur B (donnée ou oubliée, chacun sans voir l'autre), puis un geste de note sur la même dose sur
+l'un d'eux (« Marquer comme oubliée », « Marquer comme donnée », « Fait à une autre date »), l'autre
+ligne reçue avant ou après le geste. Les deux ordres doivent donner le même écran après la synchro.
+La ligne « Campagne deux téléphones, notes : … F fourches, D selon l'ordre (main : M) » dit ce qui a
+été joué ; avec `TW_MAIN`, M compte les fourches où le moteur de `main` donne deux écrans.
+
 ## Doses listées (#873)
 
 `src/shared/__tests__/dose-calendar.reponses-listees.spec.ts` mène des carnets par les gestes de v2

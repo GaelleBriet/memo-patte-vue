@@ -3,6 +3,11 @@ import { describe, expect, it } from 'vitest'
 
 import { forksOf, type Fork } from '../../../scripts/dose-engine/two-devices'
 import { constatsOf, type Reader } from '../../../scripts/dose-engine/two-devices-constats'
+import {
+  notesForksOf,
+  screensOf,
+  type Engine,
+} from '../../../scripts/dose-engine/two-devices-notes'
 import fork1753 from './fixtures/dose-calendar-deux-appareils-8710001753.json'
 
 // Campagne à deux téléphones (#867, #882, #883) : TW_FROM, TW_SEEDS, TW_STEPS, et TW_MAIN (moteur de
@@ -55,6 +60,38 @@ describe('campagne à deux téléphones', () => {
         `Campagne deux téléphones : ${campaign.seeds} carnets × ${campaign.steps} pas, graines ` +
           `${campaign.from} à ${last}${main ? ', comparée à main' : ''} : ${forks} fourches, ` +
           `${found.length} constats`,
+      )
+      expect(forks).toBeGreaterThan(0)
+      expect(found.slice(0, 5)).toEqual([])
+    },
+    60_000 + campaign.seeds * campaign.steps * 60,
+  )
+
+  it(
+    '#931 : une dose notée sur les deux téléphones, puis un geste de note sur l’un d’eux : même fiche dans les deux ordres de synchro',
+    async () => {
+      const path = process.env.TW_MAIN
+      const main: Engine | undefined =
+        path === undefined ? undefined : await import(/* @vite-ignore */ path)
+      const branch: Engine = await import('../domain/dose-calendar')
+      let forks = 0
+      let mainFound = 0
+      const found: string[] = []
+      for (let seed = campaign.from; seed < campaign.from + campaign.seeds; seed += 1) {
+        notesForksOf(seed, campaign.steps, (fork) => {
+          const screens = screensOf(branch, fork)
+          if (screens === null) return
+          forks += 1
+          if (screens[0] !== screens[1]) found.push(`graine ${fork.seed}, pas ${fork.step}`)
+          const before = main === undefined ? null : screensOf(main, fork)
+          if (before !== null && before[0] !== before[1]) mainFound += 1
+        })
+      }
+      const last = campaign.from + campaign.seeds - 1
+      console.warn(
+        `Campagne deux téléphones, notes : ${campaign.seeds} carnets × ${campaign.steps} pas, ` +
+          `graines ${campaign.from} à ${last} : ${forks} fourches, ${found.length} selon l’ordre` +
+          `${main ? ` (main : ${mainFound})` : ''}`,
       )
       expect(forks).toBeGreaterThan(0)
       expect(found.slice(0, 5)).toEqual([])
