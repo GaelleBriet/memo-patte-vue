@@ -359,6 +359,27 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
       await expect(visible()).resolves.toHaveLength(4)
     })
 
+    it('I1, Q-a : crée « pas à donner » sur une échéance notée et une prise sur une échéance « pas à donner », jamais deux « pas à donner »', async () => {
+      const notDue = (dueOn: string) => fields({ dueOn, givenOn: null, status: 'not-due' })
+      await doses.applyBatch(
+        [
+          { action: 'create', id: 'pas-matin', ...OWNER, dose: notDue('2026-09-27') },
+          { action: 'create', id: 'pas-28', ...OWNER, dose: notDue('2026-09-28') },
+        ],
+        T2,
+      )
+      const prise28 = fields({ dueOn: '2026-09-28', givenOn: '2026-09-28' })
+      await doses.applyBatch([{ action: 'create', id: 'prise-28', ...OWNER, dose: prise28 }], T3)
+
+      await expect(visible()).resolves.toHaveLength(6)
+      await expect(
+        doses.applyBatch(
+          [{ action: 'create', id: 'pas-bis', ...OWNER, dose: notDue('2026-09-28') }],
+          T3,
+        ),
+      ).rejects.toBeInstanceOf(DuplicateDueError)
+    })
+
     it('crée le décalage d’une échéance reportée, mais jamais un second décalage (Q5)', async () => {
       const shift = (id: string): DoseWrite => ({
         action: 'create',

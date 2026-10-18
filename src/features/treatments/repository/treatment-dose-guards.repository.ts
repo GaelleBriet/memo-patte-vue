@@ -9,7 +9,7 @@ export class DuplicateDueError extends Error {}
 // Q5 : une échéance a au plus une ligne visible écrite ici par famille ; la synchronisation peut en
 // apporter une seconde, dont une des deux devient sans effet pour le moteur (R11).
 export function duplicateWhere(dose: DoseFields): { sql: string; params: SqlParam[] } {
-  const family = familyOf(dose) === 'note' ? ['given', 'missed', 'not-due'] : [dose.status]
+  const family = familyOf(dose) === 'note' ? ['given', 'missed'] : [dose.status]
   return {
     sql: `period_id = ? AND due_on = ? AND due_time IS ? AND ${NOT_DELETED}
             AND status IN (${placeholders(family)})`,

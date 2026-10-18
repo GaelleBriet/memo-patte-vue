@@ -7,6 +7,7 @@ import {
   treatmentView,
   type TreatmentViewInput,
 } from '../domain/dose-calendar'
+import { written } from '../domain/dose-calendar/gestures/changes'
 import type { Line } from '../domain/dose-calendar/types'
 import { readings } from './dose-calendar.reglage-corrige.aides'
 import { WEEK, keys, line, setting } from './dose-calendar.v2.aides'
@@ -59,17 +60,59 @@ describe('#873 : une ligne « pas à donner » retire sa dose de partout (décis
     expect(keys(treatmentView(after).currentDoses)).toEqual(['2026-03-16 08:00'])
   })
 
-  it('TR-25 : une prise plus récente sur la même dose la remplace ; plus ancienne, la ligne « pas à donner » l’emporte', () => {
-    const older = milo()
-    const given = {
-      ...line('m1', 'given', '2026-03-16', '08:00'),
-      updatedAt: '2027-01-01T00:00:00.000Z',
+  it('I1 : une prise l’emporte toujours sur la ligne « pas à donner » de sa dose, plus récente ou plus ancienne ; la ligne est sans effet', () => {
+    const effects = (input: TreatmentViewInput) =>
+      treatmentView(input)
+        .history.filter(({ line: each }) => each.dueOn === '2026-03-16')
+        .map(({ line: each, effect }) => `${each.status} ${effect.kind}`)
+        .sort()
+    for (const updatedAt of ['2027-01-01T00:00:00.000Z', '2025-01-01T00:00:00.000Z']) {
+      const given = { ...line('m1', 'given', '2026-03-16', '08:00'), updatedAt }
+      const input = milo([given])
+      expect(shown(input)).toContain('2026-03-16 08:00 given')
+      expect(effects(input)).toEqual(['given covers', 'not-due idle'])
+      expect(readings(input).moteur).toEqual(readings(input).reference)
     }
-    const withGiven = { ...older, lines: [...older.lines, given] }
-    expect(shown(withGiven)).toContain('2026-03-16 08:00 given')
-    const stale = { ...given, updatedAt: '2025-01-01T00:00:00.000Z' }
-    const withStale = { ...older, lines: [...older.lines, stale] }
-    expect(shown(withStale).some((key) => key.startsWith('2026-03-16'))).toBe(false)
+  })
+
+  it('Q-a : « pas à donner » crée sa ligne, sans jamais réécrire la prise de la même dose', () => {
+    const given = line('m1', 'given', '2026-03-16', '08:00')
+    const notDue = {
+      settingId: 'm1',
+      dueOn: '2026-03-16',
+      dueTime: '08:00',
+      status: 'not-due' as const,
+      givenOn: null,
+      targetOn: null,
+    }
+    expect(written([given], notDue)).toEqual({ action: 'create', line: notDue })
+    const prise = { ...notDue, status: 'given' as const, givenOn: '2026-03-16' }
+    const onlyNotDue = line('m1', 'not-due', '2026-03-16', '08:00')
+    expect(written([onlyNotDue], prise)).toEqual({ action: 'create', line: prise })
+  })
+
+  it('deux téléphones : B donne la dose du 16, A répond « pas à donner » en la listant ; après la synchro, dans les deux ordres, la prise du 16 compte', () => {
+    const weekly = setting('m1', '2026-03-02', WEEK, ['08:00'])
+    const onA: TreatmentViewInput = { settings: [weekly], lines: [], today: '2026-03-18' }
+    const asked = newSettings(onA, { frequency: WEEK, times: ['09:00'], endsOn: null })
+    if (!('question' in asked) || 'refusal' in asked.question.correct) {
+      throw new Error(JSON.stringify(asked))
+    }
+    expect(keys(asked.question.fallen)).toContain('2026-03-16 08:00')
+    const answer: Line[] = (asked.question.correct.lines ?? []).flatMap((change, index) =>
+      change.action === 'create'
+        ? [{ ...change.line, id: `a${index}`, updatedAt: '2026-03-18T10:00:00.000Z' }]
+        : [],
+    )
+    for (const updatedAt of ['2026-03-18T09:00:00.000Z', '2026-03-18T11:00:00.000Z']) {
+      const fromB = { ...line('m1', 'given', '2026-03-16', '08:00'), updatedAt }
+      const merged = { ...onA, lines: [...answer, fromB] }
+      const view = treatmentView(merged)
+      expect(view.history.find(({ line: each }) => each.id === fromB.id)?.effect.kind).toBe(
+        'covers',
+      )
+      expect(readings(merged).moteur).toEqual(readings(merged).reference)
+    }
   })
 
   it('n’est pas une prise : le réglage reste sans prise, « Modifier » repose la question sur ce qui est tombé depuis', () => {

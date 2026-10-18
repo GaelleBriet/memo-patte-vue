@@ -14,8 +14,9 @@ export const isNote = (line: Pick<Line, 'status'>): boolean =>
 export const isAdvanced = (line: Pick<Line, 'status' | 'dueOn' | 'targetOn'>): boolean =>
   line.status === 'postponed' && line.targetOn !== null && line.targetOn < line.dueOn
 
+/** I1, Q-a : une prise et la ligne « pas à donner » de la même dose ne se remplacent jamais. */
 export const familyOf = (line: Pick<Line, 'status'>): string =>
-  isNote(line) ? 'note' : line.status
+  isTaken(line) ? 'note' : line.status
 
 export const isMoreRecent = (a: Line, b: Line): boolean =>
   a.updatedAt > b.updatedAt || (a.updatedAt === b.updatedAt && a.id > b.id)
@@ -157,13 +158,18 @@ export function episodeLines(lines: readonly Line[], span: Span): EpisodeLines {
       idle.set(line.id, 'superseded')
     }
   }
-  // #867, #873 : un report plus récent que la ligne « pas à donner » de sa dose de départ l'emporte.
+  // I1 : une prise l'emporte toujours sur la ligne « pas à donner » de sa dose ; #867 : un report plus
+  // récent qu'elle sur sa dose de départ aussi.
+  const taken = new Set(kept.filter(isTaken).map(({ dueOn, dueTime }) => keyOf(dueOn, dueTime)))
   const beaten = (note: Line) =>
     note.status === 'not-due' &&
-    reports.some(
-      (report) =>
-        report.dueOn === note.dueOn && report.dueTime === note.dueTime && reportBeats(report, note),
-    )
+    (taken.has(keyOf(note.dueOn, note.dueTime)) ||
+      reports.some(
+        (report) =>
+          report.dueOn === note.dueOn &&
+          report.dueTime === note.dueTime &&
+          reportBeats(report, note),
+      ))
   kept.filter(beaten).forEach(({ id }) => idle.set(id, 'beaten'))
   const notes = kept.filter((line) => isNote(line) && !beaten(line))
   const chosenArrivals = chosenArrivalsOf(reports, span)

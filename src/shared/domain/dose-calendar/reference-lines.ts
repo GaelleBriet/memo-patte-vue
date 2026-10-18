@@ -94,9 +94,14 @@ export function episodeLinesOf(
   allLines: readonly ReferenceLine[],
 ): ReferenceLine[] {
   const own = allLines.filter((line) => episode.some(({ id }) => id === line.settingId))
-  return latestBy(
+  const latest = latestBy(
     own,
-    (line) => `${keyOf(line.dueOn, line.dueTime)} ${isNote(line) ? 'note' : line.status}`,
+    (line) => `${keyOf(line.dueOn, line.dueTime)} ${isTaken(line) ? 'note' : line.status}`,
+  )
+  // I1 : une prise l'emporte toujours sur la ligne « pas à donner » de la même dose.
+  const given = latest.filter(isTaken).map((line) => keyOf(line.dueOn, line.dueTime))
+  return latest.filter(
+    (line) => line.status !== 'not-due' || !given.includes(keyOf(line.dueOn, line.dueTime)),
   )
 }
 
