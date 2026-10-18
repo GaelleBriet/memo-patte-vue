@@ -130,16 +130,9 @@ function emptyText(
 const lastDayOf = (line: HistoryLine): string =>
   line.kind === 'missed' ? line.rows.at(-1)!.dose.dueOn : line.dose.dueOn
 
-const isAnswer = ({ dose }: HistoryLine): boolean => dose.status === 'not-due'
-
 function foldAt(lines: HistoryLine[]): number {
   let cut = LINES_BEFORE_TOGGLE
-  while (cut < lines.length) {
-    const [before, after] = [lines[cut - 1]!, lines[cut]!]
-    const sameDay = after.dose.dueOn === lastDayOf(before)
-    if (!sameDay || !(isAnswer(before) || isAnswer(after))) break
-    cut += 1
-  }
+  while (cut < lines.length && lines[cut]!.dose.dueOn === lastDayOf(lines[cut - 1]!)) cut += 1
   return cut
 }
 

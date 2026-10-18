@@ -730,24 +730,35 @@ describe('TreatmentDetailView — historique', () => {
     ).toEqual(['Marquer comme donnée', 'Supprimer cette prise'])
   })
 
-  it('replie chaque période après ses premières lignes, et la déplie', async () => {
+  it('ne replie pas la prise du 25 sept. 8 h : sa date est couverte par le groupe d’oubliées, une date ne se coupe pas en deux', async () => {
     const view = await monter(DEUX_PERIODES)
 
     expect(lignes(view)).toEqual([
       '27 sept. 2026 · 8 h',
       '26 sept. 2026 · 20 h',
+      '25 sept. 2026 · 8 h',
       '20 sept. 2026',
       '19 sept. 2026',
     ])
-    const [voir] = view.findAll('.treatment-history__toggle')
-    expect(texte(voir!)).toBe('Voir l’autre prise de cette période')
+    expect(view.findAll('.treatment-history__toggle')).toHaveLength(0)
+  })
 
-    await voir!.trigger('click')
-
-    expect(lignes(view)).toContain('25 sept. 2026 · 8 h')
-    expect(texte(view.get('.treatment-history__toggle'))).toBe(
-      'Masquer les autres prises de cette période',
+  it('replie les prises après les trois premières lignes, et les déplie', async () => {
+    const view = await monter(
+      treatment(
+        [period({ startsOn: '2026-09-20', firstDueOn: '2026-09-20' })],
+        ['20', '21', '22', '23', '24'].map((day) => dose(`2026-09-${day}`, `2026-09-${day}`)),
+      ),
     )
+
+    expect(lignes(view)).toEqual(['24 sept. 2026', '23 sept. 2026', '22 sept. 2026'])
+    const voir = view.get('.treatment-history__toggle')
+    expect(texte(voir)).toBe('Voir les 2 prises précédentes')
+
+    await voir.trigger('click')
+
+    expect(lignes(view)).toHaveLength(5)
+    expect(texte(view.get('.treatment-history__toggle'))).toBe('Masquer les prises précédentes')
   })
 
   it('dit qu’une période n’a encore aucune prise', async () => {
