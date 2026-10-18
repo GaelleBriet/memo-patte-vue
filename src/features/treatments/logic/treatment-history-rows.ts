@@ -1,4 +1,5 @@
 import { movedDueOf } from './treatment-line-actions'
+import { notDueText } from './treatment-not-due-text'
 import { refusalText, removeMoveRefusalText } from './treatment-refusal-texts'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
@@ -44,7 +45,9 @@ export type HistoryLine =
   /** Ligne de décalage des doses suivantes (N7). */
   | (DoseRow & { kind: 'shift' })
   /** R11 : une ligne que le calendrier ne lit plus ; seule la personne la supprime. */
-  | (DoseRow & { kind: 'idle' })
+  | (DoseRow & { kind: 'idle'; detail: string | null })
+  /** Réponse « Elle n'était pas à donner » : l'échéance sort du calendrier. */
+  | (DoseRow & { kind: 'not-due'; detail: string })
 
 export type Entry = { dose: NewTreatmentDose; idle: boolean }
 
@@ -201,23 +204,40 @@ function idleTitle(t: Translate, dose: NewTreatmentDose, period: TreatmentPeriod
     case 'missed':
       return missedTitle(t, [dose], period)
     case 'given':
-    case 'not-due':
       return dueTitle(t, dose, period)
+    case 'not-due':
+      return notDueText(t, dose)
   }
 }
-
-// La ligne « pas à donner » n'a pas encore de libellé : elle ne s'affiche pas.
-const notDueLine = (): HistoryLine | null => null
 
 function idleLine(
   t: Translate,
   dose: NewTreatmentDose,
   period: TreatmentPeriodRecord,
 ): HistoryLine {
+  const text = idleTitle(t, dose, period)
+  const noEffect = t('treatments.history.noEffect', { text })
+  const answered = dose.status === 'not-due'
   return {
     kind: 'idle',
     dose,
-    title: t('treatments.history.noEffect', { text: idleTitle(t, dose, period) }),
+    title: answered ? dueTitle(t, dose, period) : noEffect,
+    detail: answered ? noEffect : null,
+    optionsLabel: doseOptionsLabel(t, dose, period),
+    actions: ['remove'],
+  }
+}
+
+function notDueLine(
+  t: Translate,
+  dose: NewTreatmentDose,
+  period: TreatmentPeriodRecord,
+): HistoryLine {
+  return {
+    kind: 'not-due',
+    dose,
+    title: dueTitle(t, dose, period),
+    detail: notDueText(t, dose),
     optionsLabel: doseOptionsLabel(t, dose, period),
     actions: ['remove'],
   }
@@ -265,8 +285,8 @@ export function lineOf(
   { dose, idle }: Entry,
   lastGivenId: string | undefined,
 ): HistoryLine | null {
-  if (dose.status === 'not-due') return notDueLine()
   if (idle) return idleLine(t, dose, period)
+  if (dose.status === 'not-due') return notDueLine(t, dose, period)
   switch (dose.status) {
     case 'postponed':
       return moveLine(t, context, dose)

@@ -133,7 +133,10 @@ function notesIn(lines: HistoryLine[]): number {
       count +
       (line.kind === 'missed'
         ? line.rows.length
-        : line.kind === 'move' || line.kind === 'shift' || line.kind === 'idle'
+        : line.kind === 'move' ||
+            line.kind === 'shift' ||
+            line.kind === 'idle' ||
+            line.kind === 'not-due'
           ? 0
           : 1),
     0,

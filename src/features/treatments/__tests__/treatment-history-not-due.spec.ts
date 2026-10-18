@@ -1,0 +1,150 @@
+import { afterEach, describe, expect, it } from 'vitest'
+
+import { dose, period, plain, treatment } from './treatment-fixtures'
+import { doseChange } from '../logic/treatment-dose-change'
+import { treatmentHistory } from '../logic/treatment-history'
+import { lineAction } from '../logic/treatment-line-actions'
+import { doseActionTexts } from '../logic/treatment-gestures'
+import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
+import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import i18n, { applyLocale } from '@/core/i18n'
+
+const t = i18n.global.t
+
+const ANSWERED_AT = new Date(2026, 2, 20, 12).toISOString()
+const LATER_AT = new Date(2026, 2, 21, 12).toISOString()
+const TODAY = '2026-03-25'
+
+function notDue(dueOn: string, overrides: Partial<NewTreatmentDose> = {}): NewTreatmentDose {
+  return dose(dueOn, dueOn, {
+    id: `pas à donner ${dueOn}`,
+    givenOn: null,
+    status: 'not-due',
+    createdAt: ANSWERED_AT,
+    updatedAt: ANSWERED_AT,
+    ...overrides,
+  })
+}
+
+const WEEKLY = period({
+  frequency: { value: 1, unit: 'week' },
+  startsOn: '2026-03-02',
+  firstDueOn: '2026-03-02',
+})
+
+const MILO = treatment(
+  [WEEKLY],
+  [
+    dose('2026-03-02', '2026-03-02'),
+    notDue('2026-03-09'),
+    notDue('2026-03-16'),
+    dose('2026-03-16', '2026-03-16', {
+      id: 'prise du 16',
+      givenOn: '2026-03-17',
+      createdAt: LATER_AT,
+      updatedAt: LATER_AT,
+    }),
+  ],
+)
+
+function lines(book = MILO) {
+  const [only] = plain(treatmentHistory(t, book, treatmentReadingOf(book, TODAY), TODAY)).periods
+  return only!.lines
+}
+
+function removeTexts(line: NewTreatmentDose) {
+  return doseActionTexts(
+    t,
+    { name: 'Métacam', animal: 'Milo', today: TODAY, severalTimes: false },
+    { kind: 'remove', lineId: line.id },
+    line,
+  )
+}
+
+afterEach(() => applyLocale('fr'))
+
+describe('historique : lignes « pas à donner » (#952)', () => {
+  it('les montre sous leur échéance, la sans effet grisée, en français', () => {
+    expect(lines().map(({ title }) => title)).toEqual([
+      '16 mars 2026',
+      '16 mars 2026',
+      '9 mars 2026',
+      '2 mars 2026',
+    ])
+    expect(lines().map(({ kind }) => kind)).toEqual(['given', 'idle', 'not-due', 'given'])
+    expect(lines().map((line) => 'detail' in line && line.detail)).toEqual([
+      'Donnée le 17 mars 2026',
+      'Pas à donner · répondu le 20 mars 2026 · sans effet',
+      'Pas à donner · répondu le 20 mars 2026',
+      null,
+    ])
+  })
+
+  it('les montre en anglais', () => {
+    applyLocale('en')
+
+    expect(lines().map((line) => 'detail' in line && line.detail)).toEqual([
+      'Given on Mar 17, 2026',
+      'Not meant to be given · answered Mar 20, 2026 · no longer applies',
+      'Not meant to be given · answered Mar 20, 2026',
+      null,
+    ])
+  })
+
+  it('ajoute l’heure quand le traitement a plusieurs prises par jour', () => {
+    const twice = period({
+      frequency: { value: 1, unit: 'day' },
+      times: ['08:00', '20:00'],
+      startsOn: '2026-03-09',
+      firstDueOn: '2026-03-09',
+    })
+    const book = treatment([twice], [notDue('2026-03-09', { dueTime: '20:00' })])
+
+    expect(lines(book).find(({ kind }) => kind === 'not-due')?.title).toBe(
+      t('treatments.history.dueAt', { date: '9 mars 2026', time: '20 h' }),
+    )
+  })
+
+  it('propose Supprimer, et seulement lui', () => {
+    const [, idle, active] = lines()
+
+    expect(active!.actions).toEqual(['remove'])
+    expect(idle!.actions).toEqual(['remove'])
+  })
+
+  it('Supprimer écrit la suppression de la ligne seule', () => {
+    const [, , active] = lines()
+
+    expect(lineAction(active!.dose, 'remove', TODAY)).toEqual({
+      kind: 'remove',
+      lineId: active!.dose.id,
+    })
+  })
+
+  it('dit « Réponse du … supprimée » avec son Annuler', () => {
+    const [, , active] = lines()
+
+    expect(plain(removeTexts(active!.dose).done({ shiftKept: false } as never))).toBe(
+      'Réponse du 20 mars supprimée',
+    )
+    expect(plain(removeTexts(active!.dose).undo)).toBe(
+      'Annuler la suppression de la réponse du 20 mars',
+    )
+    applyLocale('en')
+    expect(plain(removeTexts(active!.dose).done({ shiftKept: false } as never))).toBe(
+      'Answer on Mar 20 deleted',
+    )
+  })
+
+  it('le geste supprime la ligne seule, sans toucher aux autres', () => {
+    const [, , active] = lines()
+    const change = doseChange(
+      MILO,
+      treatmentReadingOf(MILO, TODAY),
+      { kind: 'remove', lineId: active!.dose.id },
+      () => 'new',
+    )
+
+    expect(change.writes).toMatchObject([{ action: 'delete', id: active!.dose.id }])
+  })
+})

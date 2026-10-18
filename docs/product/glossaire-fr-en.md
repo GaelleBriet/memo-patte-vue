@@ -87,6 +87,7 @@ et une relecture s'y réfère plutôt que de rouvrir le débat.
 | Reprendre (traitement)   | Resume                           | Restart                                  | « Reprendre ce traitement » = Resume this treatment                     |
 | Rythme (d'un traitement) | frequency                        | rhythm, schedule                          | le champ du formulaire s'appelle « Fréquence » : « Avec ce rythme, plus aucune dose avant la date de fin. » = At this frequency, no dose is left before the end date. |
 | · sans effet             | · no longer applies              | · no effect, · inactive                   | ligne de l'historique sans effet (R11) : « Reportée au 19 oct. · sans effet » = Postponed to Oct 19 · no longer applies |
+| Pas à donner · répondu le … | Not meant to be given · answered … | not due, skipped                  | réponse à « Modifier » quand une dose retirée n'était pas à donner : « Pas à donner · répondu le 20 mars » = Not meant to be given · answered Mar 20 ; toast « Réponse du 20 mars supprimée » = Answer on Mar 20 deleted |
 | Événement daté           | on {date}                        | of {date}                            | « Injection du 20 juin ajoutée » = Injection on Jun 20 added ; « Prise en plus du 5 oct. » = Extra dose on Oct 5 |
 
 ## Ton

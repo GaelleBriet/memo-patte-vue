@@ -102,6 +102,15 @@ function select(row: DoseRow, action: string, bounds: MoveBounds | null = null):
           @select="select(line, $event)"
         />
         <HistoryRow
+          v-else-if="line.kind === 'not-due'"
+          class="treatment-history__item"
+          :date="line.title"
+          :detail="line.detail"
+          :options-label="line.optionsLabel"
+          :items="itemsOf(line)"
+          @select="select(line, $event)"
+        />
+        <HistoryRow
           v-else-if="line.kind === 'move'"
           class="treatment-history__item treatment-history__move"
           muted
@@ -126,6 +135,7 @@ function select(row: DoseRow, action: string, bounds: MoveBounds | null = null):
           class="treatment-history__item treatment-history__idle"
           muted
           :date="line.title"
+          :detail="line.detail"
           :options-label="line.optionsLabel"
           :items="itemsOf(line)"
           @select="select(line, $event)"
