@@ -240,10 +240,8 @@ function forkAt(
   return { seed, step, aFirst, gesture, plan, base, phoneA, phoneB, merged }
 }
 
-/**
- * #867, #883 : le report de A est perdu après la synchro alors que la réécriture de B, sur le réglage
- * du report, n'a pas ôté sa dose de départ : la journée lue sans ce report l'a encore.
- */
+/** #867, #883 : report de A perdu après la synchro alors que la réécriture de B, sur son réglage, n'a
+ * pas ôté sa dose de départ (la journée lue sans ce report l'a encore). */
 export function lostReport(fork: Fork): string | null {
   const { base, phoneA, merged, plan } = fork
   const report = phoneA.lines.find(

@@ -167,4 +167,67 @@ describe('Un seul téléphone : une dose ôtée par un décalage, pas par la ré
     milo.modify({ frequency: TWO_WEEKS, times: ['08:00', '14:00', '20:00'], endsOn: '2026-04-16' })
     expect(upcoming(milo.input)).toEqual({ moteur: expected, reference: expected })
   })
+
+  // Chaque mercredi à 20 h, puis à 8 h dès le 1er avril (réglage réécrit plus tard) ; la dose de 20 h
+  // du 25 mars reportée au 8 avril, puis reportée de nouveau du 8 au 9.
+  it('une heure arrivée par un autre report n’est pas ôtée par la réécriture : le second report tient', () => {
+    const WEEK = { value: 1, unit: 'week' as const }
+    const base = {
+      startsOn: '2026-03-25',
+      gridOriginOn: '2026-03-25',
+      firstDueChosen: true,
+      pastDosesStayUnlogged: false,
+      endsOn: null,
+      stoppedOn: null,
+      frequency: WEEK,
+    }
+    const input: TreatmentViewInput = {
+      settings: [
+        {
+          ...base,
+          id: 's0',
+          firstDueOn: '2026-03-25',
+          times: ['20:00'],
+          createdAt: '2026-03-01T08:00:00.000Z',
+        },
+        {
+          ...base,
+          id: 's1',
+          startsOn: '2026-04-01',
+          firstDueOn: '2026-04-01',
+          gridOriginOn: '2026-04-01',
+          times: ['08:00'],
+          createdAt: '2026-03-30T08:00:00.000Z',
+          updatedAt: '2026-04-07T08:00:00.000Z',
+        },
+      ],
+      lines: [
+        {
+          id: 'r1',
+          settingId: 's0',
+          dueOn: '2026-03-25',
+          dueTime: '20:00',
+          status: 'postponed',
+          givenOn: null,
+          targetOn: '2026-04-08',
+          updatedAt: '2026-03-24T08:00:00.000Z',
+        },
+        {
+          id: 'r2',
+          settingId: 's1',
+          dueOn: '2026-04-08',
+          dueTime: '20:00',
+          status: 'postponed',
+          givenOn: null,
+          targetOn: '2026-04-09',
+          updatedAt: '2026-04-06T08:00:00.000Z',
+        },
+      ],
+      today: '2026-04-07',
+    }
+    const effect = treatmentView(input).history.find(({ line }) => line.id === 'r2')!.effect
+    expect(effect).toMatchObject({ kind: 'moves', arrival: '2026-04-09' })
+    expect(upcoming(input).moteur.slice(0, 2)).toEqual(['2026-04-08 08:00', '2026-04-09 20:00'])
+    expect(upcoming(input).reference).toEqual(upcoming(input).moteur)
+  })
 })

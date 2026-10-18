@@ -1,76 +1,69 @@
 import type { Journey } from './reference-days'
-import { hoursOf, isDueDay, type Grid, type Hour } from './reference-grid'
+import { hoursOf, isOnGrid, keyOf, sameFrequency, type Hour } from './reference-grid'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
-/** Ce que le modèle sait des réglages : leur grille avant décalages, celui en vigueur un jour donné. */
-export type RewriteWorld = {
+/** Ce que le modèle sait du carnet autour d'un report. */
+export type RewriteContext = {
   settingOf: (id: string) => ReferenceSetting
-  settingAt: (day: string) => ReferenceSetting | undefined
-  gridOf: (settingId: string) => Grid | undefined
+  /** Le réglage que suit celui-ci dans l'épisode, `undefined` pour le premier. */
+  previousOf: (setting: ReferenceSetting) => ReferenceSetting | undefined
+  /** Les échéances, prises comprises, du carnet lu sans ce report et sans la règle de #867. */
+  duesWithout: (report: ReferenceLine) => ReadonlySet<string>
+  /** Les heures encore sans prise de sa journée, lue avec lui. */
+  uncovered: (report: ReferenceLine) => Hour[]
 }
 
-// #867, #882, #883 : la ligne et la réécriture de son réglage, faite ailleurs, se contredisent quand
-// celle-ci a ôté la dose de départ (journée ou heure) ; la plus récente des deux écritures l'emporte.
-function newerThanRewrite(
-  line: ReferenceLine,
-  world: RewriteWorld,
-  lacking: 'day' | 'hour',
-): boolean | undefined {
-  const written = world.settingOf(line.settingId)
+// #867 avant la première échéance : la ligne écrite après la réécriture de son réglage.
+function newerBeforeFirstDue(line: ReferenceLine, written: ReferenceSetting): boolean {
   const rewrittenAt = written.updatedAt
-  if (rewrittenAt === undefined || rewrittenAt <= written.createdAt) return undefined
-  if (line.dueOn < written.startsOn) return undefined
-  const beforeFirstDue = line.dueOn < written.firstDueOn
-  const grid = world.gridOf(written.id)
-  const takenAway =
-    lacking === 'hour'
-      ? !hoursOf(written).includes(line.dueTime)
-      : beforeFirstDue || grid === undefined || !isDueDay(grid, written, line.dueOn)
-  if (!takenAway) return undefined
-  if (!beforeFirstDue && world.settingAt(line.dueOn) !== written) return undefined
+  if (rewrittenAt === undefined || rewrittenAt <= written.createdAt) return false
+  if (line.dueOn < written.startsOn || line.dueOn >= written.firstDueOn) return false
   return line.updatedAt > rewrittenAt
-}
-
-function departureAfterRewrite(
-  report: ReferenceLine,
-  world: RewriteWorld,
-  lacking: 'day' | 'hour',
-): Journey | 'lost' | undefined {
-  const newer = newerThanRewrite(report, world, lacking)
-  if (newer === undefined) return undefined
-  if (!newer) return 'lost'
-  return { setting: world.settingOf(report.settingId), hours: [report.dueTime] }
 }
 
 /** #885 : le décalage d'un report plus récent que la réécriture de son réglage tient avec lui. */
 export function shiftKeptByReport(
   turn: ReferenceLine,
   reports: readonly ReferenceLine[],
-  world: RewriteWorld,
+  settingOf: (id: string) => ReferenceSetting,
 ): boolean {
-  if (newerThanRewrite(turn, world, 'day') !== true) return false
+  if (!newerBeforeFirstDue(turn, settingOf(turn.settingId))) return false
   if (reports.some(({ targetOn }) => targetOn === turn.dueOn)) return false
   return reports.some(
     (report) =>
-      report.dueOn === turn.dueOn &&
-      typeof departureAfterRewrite(report, world, 'day') === 'object',
+      report.dueOn === turn.dueOn && newerBeforeFirstDue(report, settingOf(report.settingId)),
   )
 }
 
-/** #882, #883 : la dose de départ du report, jour et heure, que la journée portait avant les reports
- * déjà lus (`arrived` : les heures qui y sont arrivées) ; ôtée par la réécriture de son réglage, la
- * plus récente des deux écritures l'emporte. */
+// Une réécriture déplace la grille quand le réglage pose sa propre origine ou change de rythme.
+function drawsItsGrid(setting: ReferenceSetting, previous: ReferenceSetting | undefined) {
+  return (
+    previous === undefined || !sameFrequency(previous, setting) || setting.gridOriginOn !== null
+  )
+}
+
+/** #867, #882, #883 : la réécriture a ôté la dose de départ du carnet lu sans le report ; la plus
+ * récente des deux écritures l'emporte, la ligne gardant son jour et son heure. */
 export function rewrittenDeparture(
   report: ReferenceLine,
-  dayOfDeparture: Journey | undefined,
-  context: { arrived: readonly Hour[]; uncovered: (day: Journey) => Hour[]; world: RewriteWorld },
+  context: RewriteContext,
 ): Journey | 'lost' | undefined {
-  const { arrived, uncovered, world } = context
-  if (dayOfDeparture === undefined) return departureAfterRewrite(report, world, 'day')
-  if ([...hoursOf(dayOfDeparture.setting), ...arrived].includes(report.dueTime)) return undefined
-  const outcome = departureAfterRewrite(report, world, 'hour')
-  if (outcome === undefined || outcome === 'lost') return outcome
+  const written = context.settingOf(report.settingId)
+  const rewrittenAt = written.updatedAt
+  if (rewrittenAt === undefined || rewrittenAt <= written.createdAt) return undefined
+  if (report.dueOn < written.startsOn) return undefined
+  const dues = context.duesWithout(report)
+  if (dues.has(keyOf(report.dueOn, report.dueTime))) return undefined
+  const dayStays = [...dues].some((key) => key.slice(0, 10) === report.dueOn)
+  const takenAway = dayStays
+    ? !hoursOf(written).includes(report.dueTime)
+    : report.dueOn < written.firstDueOn ||
+      (drawsItsGrid(written, context.previousOf(written)) &&
+        !isOnGrid(written.gridOriginOn ?? written.firstDueOn, written.frequency, report.dueOn))
+  if (!takenAway) return undefined
+  if (rewrittenAt >= report.updatedAt) return 'lost'
   // §11 : une dose encore libre après l'heure ôtée peut être la même dose à une autre heure.
-  const after = (hour: Hour) => hour === null || hour >= (report.dueTime ?? '')
-  return uncovered(dayOfDeparture).some(after) ? undefined : outcome
+  const later = (hour: Hour) => hour === null || hour >= (report.dueTime ?? '')
+  if (dayStays && context.uncovered(report).some(later)) return undefined
+  return { setting: written, hours: [report.dueTime] }
 }

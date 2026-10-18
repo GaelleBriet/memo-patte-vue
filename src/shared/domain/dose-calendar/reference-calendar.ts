@@ -34,10 +34,10 @@ import {
   touchedJourneys,
 } from './reference-lines'
 import { arrivedOn, chosenDateOf, hoursChangedSince, reportOutcome } from './reference-reports'
-import { rewrittenDeparture, shiftKeptByReport } from './reference-rewrite'
+import { rewrittenDeparture, shiftKeptByReport, type RewriteContext } from './reference-rewrite'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
-type Calendar = { pending: string[]; fallen: Set<string>; rhythmFrom: string }
+type Calendar = { pending: string[]; fallen: Set<string>; rhythmFrom: string; dues: Set<string> }
 
 export function calendarOf(
   settings: readonly ReferenceSetting[],
@@ -45,6 +45,7 @@ export function calendarOf(
   allLines: readonly ReferenceLine[],
   borrowed: ReferenceLine[],
   reach: string,
+  plain = false,
 ): Calendar {
   const isLive = isLiveIn(episode, allLines)
   const live = episode.filter(isLive)
@@ -77,8 +78,6 @@ export function calendarOf(
     (setting, index) => isLive(setting, index) || sameFrequency(setting, episode[index + 1]!),
   )
   let grid: Grid = { origin: chain[0]!.firstDueOn, floor: '', since: '' }
-  const gridsBeforeShifts = new Map<string, Grid>()
-  const world = { settingOf, settingAt, gridOf: (id: string) => gridsBeforeShifts.get(id) }
   // R9, Q-retard : les réglages de même fréquence continuent le rythme, et sa dose en retard.
   let rhythm = new Set<string>()
   let rhythmFrom = live[0]!.startsOn
@@ -128,7 +127,6 @@ export function calendarOf(
       : origin !== null
         ? { ...grid, floor: ownFloor }
         : { ...grid, floor: later(grid.floor, later(chosenFloor, plusDays(setting.startsOn, -1))) }
-    gridsBeforeShifts.set(setting.id, grid)
     const livesBefore = live.filter((other) => episode.indexOf(other) < episode.indexOf(setting))
     const lastLive = livesBefore[livesBefore.length - 1]
     const ended = lastLive !== undefined && (lastLive.endsOn ?? setting.startsOn) < setting.startsOn
@@ -174,7 +172,7 @@ export function calendarOf(
     const lands = (turn: ReferenceLine) =>
       (isDueDay(grid, setting, turn.dueOn) && (turn.dueOn > chosenFloor || anchors.has(turn))) ||
       reports.some((report) => report.targetOn === turn.dueOn && report.dueOn > rhythmFloor) ||
-      (!days.has(turn.dueOn) && shiftKeptByReport(turn, reports, world))
+      (!days.has(turn.dueOn) && shiftKeptByReport(turn, reports, settingOf))
     for (const turn of [...turns, null]) {
       if (turn !== null && !lands(turn)) continue
       const to = turn === null ? last : turn.dueOn < last ? turn.dueOn : last
@@ -203,6 +201,18 @@ export function calendarOf(
   // R7 : un report emporte son heure et les suivantes sans prise ; ceux qui arrivent sur sa journée d'abord.
   const fallen = new Set<string>()
   const arrivedHours = new Map<string, (string | null)[]>()
+  const rewriteContext: RewriteContext = {
+    settingOf,
+    previousOf: (setting) => chain[chain.indexOf(setting) - 1],
+    duesWithout: (report) => {
+      const others = allLines.filter((line) => line !== report)
+      return calendarOf(settings, episode, others, borrowed, reach, true).dues
+    },
+    uncovered: ({ dueOn }) => {
+      const day = days.get(dueOn)
+      return day?.hours.filter((hour) => !coveredAside(dueOn, day).has(hour)) ?? []
+    },
+  }
   const waiting = [...reports]
   while (waiting.length > 0) {
     const ready = waiting.findIndex(
@@ -210,11 +220,7 @@ export function calendarOf(
     )
     const [report] = waiting.splice(Math.max(0, ready), 1)
     const { dueOn, targetOn } = report!
-    const rewritten = rewrittenDeparture(report!, days.get(dueOn), {
-      arrived: arrivedHours.get(dueOn) ?? [],
-      uncovered: (day) => day.hours.filter((hour) => !coveredAside(dueOn, day).has(hour)),
-      world,
-    })
+    const rewritten = plain ? undefined : rewrittenDeparture(report!, rewriteContext)
     if (rewritten === 'lost') continue
     const origin = rewritten ? undefined : (days.get(dueOn) ?? left.get(dueOn))
     const from = origin?.setting ?? settingOf(report!.settingId)
@@ -288,5 +294,5 @@ export function calendarOf(
   const pending = dues
     .filter(({ covered, day }) => !covered && !lateDays.includes(day))
     .map(({ key }) => key)
-  return { pending, fallen, rhythmFrom }
+  return { pending, fallen, rhythmFrom, dues: new Set(dues.map(({ key }) => key)) }
 }

@@ -80,10 +80,11 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     const { dueOn, dueTime, targetOn } = report
     const rewrite = departureVerdict(report, {
       departure: days.get(dueOn),
+      relit: journey.relit(dueOn, report),
       arrived: arrived.get(dueOn) ?? [],
       written: settingOf(report.settingId),
       base: journey.bases.get(report.settingId),
-      inForce: span.settingAt(dueOn),
+      owns: journey.owns.has(report.settingId),
       covered: (day) => coveredOn(dueOn, day, new Set()),
     })
     const origin = rewrite === null ? (days.get(dueOn) ?? left.get(dueOn)) : undefined

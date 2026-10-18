@@ -96,7 +96,8 @@ describe('#882 : Luna, chaque semaine à 8 h, première dose le 10 avril, sans p
     expect(effectOf(merged, report.id)).toMatchObject({ kind: 'moves', arrival: '2026-04-12' })
   })
 
-  it('avec « Décaler aussi les doses suivantes », A plus récent : le report et son décalage tiennent (#885)', () => {
+  // Le décalage d'un report gagnant parti après la première échéance garde la lecture d'avant (§11).
+  it('avec « Décaler aussi les doses suivantes », A plus récent : le report tient, son décalage reste dépassé : le 9, le 12, puis le 16', () => {
     const { merged, report } = luna(
       '2026-04-10',
       '2026-04-12',
@@ -106,12 +107,15 @@ describe('#882 : Luna, chaque semaine à 8 h, première dose le 10 avril, sans p
     )
     const shift = merged.lines.find(({ status }) => status === 'shift')!
     expect(effectOf(merged, report.id)).toMatchObject({ kind: 'moves', arrival: '2026-04-12' })
-    expect(effectOf(merged, shift.id)).toEqual({ kind: 'shifts', from: '2026-04-10' })
-    expect(readings(merged).moteur.ensuite.slice(0, 2)).toEqual([
-      '2026-04-09 08:00',
-      '2026-04-12 08:00',
-    ])
-    expect(readings(merged).reference).toEqual(readings(merged).moteur)
+    expect(effectOf(merged, shift.id)).toEqual({ kind: 'idle', reason: 'overtaken' })
+    expect(readings(merged)).toEqual(
+      both({
+        phase: 'upcoming',
+        moment: ['2026-04-09 08:00'],
+        aRenseigner: [],
+        ensuite: ['2026-04-09 08:00', '2026-04-12 08:00', '2026-04-16 08:00'],
+      }),
+    )
   })
 
   it('avec « Décaler aussi les doses suivantes », B plus récent : le report et son décalage sont sans effet, puis le 9, le 16 et le 23', () => {
