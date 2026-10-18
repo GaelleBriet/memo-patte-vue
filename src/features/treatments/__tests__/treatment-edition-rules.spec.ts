@@ -7,7 +7,7 @@ import {
   creationPlan,
   treatmentCreationSchemaFor,
 } from '../logic/treatment-creation'
-import { treatmentEditionSchemaFor } from '../logic/treatment-edition-checks'
+import { pastDuesAskedAgain, treatmentEditionSchemaFor } from '../logic/treatment-edition-checks'
 import { editionDraft } from '../logic/treatment-edition-draft'
 import { editionPlan } from '../logic/treatment-edition-plan'
 import {
@@ -2130,7 +2130,7 @@ describe('editionPlan — échéances tombées d’une période sans prise', () 
     ).toBe(true)
   })
 
-  it('#873 (I1) : la liste montrée envoyée avec la réponse doit être celle de la question au moment d’écrire, sinon la question se repose', () => {
+  it('#873 : la liste montrée envoyée avec la réponse doit être celle de la question au moment d’écrire, sinon la question se repose', () => {
     const history = treatment([TOUS_LES_2_JOURS])
     const shownNow = editionPlan(
       history,
@@ -2154,14 +2154,21 @@ describe('editionPlan — échéances tombées d’une période sans prise', () 
         IDS,
       ),
     ).not.toThrow()
-    expect(() =>
-      editionPlan(
-        history,
-        saisie(history, { ...TROIS_JOURS, pastDues: 'drop', pastDuesShown: shownNow.slice(1) }),
-        TODAY,
-        IDS,
-      ),
-    ).toThrow(ZodError)
+    const refused = (() => {
+      try {
+        editionPlan(
+          history,
+          saisie(history, { ...TROIS_JOURS, pastDues: 'drop', pastDuesShown: shownNow.slice(1) }),
+          TODAY,
+          IDS,
+        )
+        return null
+      } catch (error) {
+        return error
+      }
+    })()
+    expect(refused).toBeInstanceOf(ZodError)
+    expect(pastDuesAskedAgain(refused)).toBe(true)
   })
 
   it('garde une « Prochaine dose » choisie à la main quand elle vaut pour le chemin choisi, la refuse sinon', () => {

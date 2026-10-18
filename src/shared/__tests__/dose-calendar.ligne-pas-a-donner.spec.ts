@@ -104,14 +104,24 @@ describe('#873 : une ligne « pas à donner » retire sa dose de partout (décis
         ? [{ ...change.line, id: `a${index}`, updatedAt: '2026-03-18T10:00:00.000Z' }]
         : [],
     )
+    const notDueOn16 = answer.find(({ dueOn }) => dueOn === '2026-03-16')!
     for (const updatedAt of ['2026-03-18T09:00:00.000Z', '2026-03-18T11:00:00.000Z']) {
       const fromB = { ...line('m1', 'given', '2026-03-16', '08:00'), updatedAt }
-      const merged = { ...onA, lines: [...answer, fromB] }
-      const view = treatmentView(merged)
-      expect(view.history.find(({ line: each }) => each.id === fromB.id)?.effect.kind).toBe(
-        'covers',
-      )
-      expect(readings(merged).moteur).toEqual(readings(merged).reference)
+      for (const lines of [
+        [...answer, fromB],
+        [fromB, ...answer],
+      ]) {
+        const merged = { ...onA, lines }
+        const view = treatmentView(merged)
+        const effectOf = (id: string) =>
+          view.history.find(({ line: each }) => each.id === id)?.effect.kind
+        expect(effectOf(fromB.id)).toBe('covers')
+        expect(effectOf(notDueOn16.id)).toBe('idle')
+        expect(
+          view.slots('2026-03-16', '2026-03-16').map(({ due, state }) => `${due.dueTime} ${state}`),
+        ).toEqual(['08:00 given'])
+        expect(readings(merged).moteur).toEqual(readings(merged).reference)
+      }
     }
   })
 

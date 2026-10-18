@@ -20,7 +20,7 @@ type Case = { name: string; back: string; carnet: TreatmentViewInput }
 const key = (due: { dueOn: string; dueTime: string | null }) =>
   due.dueTime === null ? due.dueOn : `${due.dueOn} ${due.dueTime}`
 
-describe('C2 : une journée ne sort en entier que si toutes ses doses portent une ligne « pas à donner »', () => {
+describe('#873 : une journée sans prise ne sort en entier que si aucune de ses heures n’est celle d’une de ses lignes « pas à donner »', () => {
   it('Milo : la prise du 11 à 8 h supprimée, la dose revient en retard ; 20 h, listée, reste retirée ; le report du 9 reste en vigueur', () => {
     const start = {
       settings: [
