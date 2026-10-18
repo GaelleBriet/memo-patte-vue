@@ -1,6 +1,6 @@
 import { movedDueOf } from './treatment-line-actions'
 import { moveText } from './treatment-move-text'
-import { notDueText } from './treatment-not-due-text'
+import { notDueText } from '@/shared/domain/treatment-not-due-text'
 import { refusalText, removeMoveRefusalText } from './treatment-refusal-texts'
 import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'

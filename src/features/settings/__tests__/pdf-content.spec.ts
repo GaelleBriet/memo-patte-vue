@@ -388,6 +388,74 @@ describe('buildCarnetPdfContent — historique', () => {
     return { on, time, extra }
   }
 
+  describe('« pas à donner »', () => {
+    const WEEKLY = { frequency: { value: 1, unit: 'week' }, startsOn: '2026-03-02' } as const
+    const ANSWERED = {
+      createdAt: '2026-03-20T10:00:00.000Z',
+      updatedAt: '2026-03-20T10:00:00.000Z',
+    }
+    const notDue = (dueOn: string, extra: Partial<ExportTreatmentDose> = {}): DoseSpec => ({
+      periodId: 'p',
+      dueOn,
+      status: 'not-due',
+      ...ANSWERED,
+      ...extra,
+    })
+
+    it('écrit la ligne sous son échéance, sans la compter comme une dose', () => {
+      const row = treatmentRow(
+        [{ id: 'p', ...WEEKLY }],
+        [notDue('2026-03-09'), notDue('2026-03-16'), ...given('p', '2026-03-02')],
+        '2026-03-23',
+      )
+
+      expect(row.periods[0]!.lines).toEqual([
+        { kind: 'not-due', dueOn: '2026-03-16', time: null, answeredOn: '2026-03-20' },
+        { kind: 'not-due', dueOn: '2026-03-09', time: null, answeredOn: '2026-03-20' },
+        { kind: 'given', series: { kind: 'dates', doses: [at('2026-03-02')] } },
+      ])
+      expect(row.lastDoseDate).toBe('2026-03-02')
+      expect(row.due).toEqual({ kind: 'due', dueOn: '2026-03-23', dueTime: null, overdue: false })
+    })
+
+    it('la marque sans effet quand une prise arrive ensuite sur la même échéance', () => {
+      const row = treatmentRow(
+        [{ id: 'p', ...WEEKLY }],
+        [
+          notDue('2026-03-16'),
+          {
+            periodId: 'p',
+            dueOn: '2026-03-16',
+            status: 'given',
+            createdAt: '2026-03-21T10:00:00.000Z',
+            updatedAt: '2026-03-21T10:00:00.000Z',
+          },
+        ],
+        '2026-03-23',
+      )
+
+      expect(row.periods[0]!.lines).toContainEqual({
+        kind: 'idle',
+        line: { kind: 'not-due', dueOn: '2026-03-16', time: null, answeredOn: '2026-03-20' },
+      })
+    })
+
+    it('garde l’heure de l’échéance quand la période a plusieurs heures', () => {
+      const row = treatmentRow(
+        [{ id: 'p', ...WEEKLY, times: ['08:00', '20:00'] }],
+        [notDue('2026-03-09', { dueTime: '20:00' })],
+        '2026-03-23',
+      )
+
+      expect(row.periods[0]!.lines).toContainEqual({
+        kind: 'not-due',
+        dueOn: '2026-03-09',
+        time: '20:00',
+        answeredOn: '2026-03-20',
+      })
+    })
+  })
+
   it('liste toutes les injections d’un vaccin, la plus récente d’abord, jamais regroupées', () => {
     const years = ['2021-01-01', '2025-01-01', '2022-01-01', '2024-01-01', '2023-01-01']
     const data = {

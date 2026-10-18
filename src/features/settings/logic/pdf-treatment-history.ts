@@ -10,6 +10,7 @@ import {
   periodClosedBeforeFirstDue,
   periodLastDay,
 } from '@/shared/domain/treatment-periods'
+import { answeredOn } from '@/shared/domain/treatment-not-due-text'
 import { countedLines, historyEntries } from '@/shared/domain/treatment-reading'
 
 /** `time` : seulement quand la période a plusieurs heures. */
@@ -27,6 +28,7 @@ type PdfLoggedLine =
   | { kind: 'given'; series: PdfDoseSeries }
   | { kind: 'missed'; series: PdfDoseSeries }
   | { kind: 'moved'; dueOn: string; to: string; advanced: boolean }
+  | { kind: 'not-due'; dueOn: string; time: string | null; answeredOn: string }
 
 /** `idle` : une ligne sans effet, écrite seule et suivie de « · sans effet » comme sur la fiche (R11). */
 export type PdfHistoryLine =
@@ -76,9 +78,14 @@ type DoseKind = 'given' | 'missed' | 'unlogged'
 type Event =
   | { kind: DoseKind; dose: PdfDose }
   | { kind: 'moved'; time: string | null; line: MovedLine }
+  | { kind: 'not-due'; time: string | null; line: NotDueLine }
   | { kind: 'idle'; key: string; line: Extract<PdfHistoryLine, { kind: 'idle' }> }
 
 type MovedLine = Extract<PdfHistoryLine, { kind: 'moved' }>
+
+type NotDueLine = Extract<PdfHistoryLine, { kind: 'not-due' }>
+
+type AloneEvent = Extract<Event, { kind: 'moved' | 'not-due' | 'idle' }>
 
 type ShownDose = Pick<
   ExportTreatmentDose,
@@ -107,15 +114,22 @@ function eventOf(dose: ShownDose, severalTimes: boolean): Event[] {
           },
         },
       ]
-    case 'shift':
     case 'not-due':
+      return [
+        {
+          kind: 'not-due',
+          time,
+          line: { kind: 'not-due', dueOn: dose.dueOn, time, answeredOn: answeredOn(dose) },
+        },
+      ]
+    case 'shift':
       return []
   }
 }
 
 function keyOf(event: Event): string {
   if (event.kind === 'idle') return event.key
-  return event.kind === 'moved'
+  return event.kind === 'moved' || event.kind === 'not-due'
     ? `${event.line.dueOn} ${event.time ?? ''}`
     : `${event.dose.on} ${event.dose.time ?? ''}`
 }
@@ -123,7 +137,7 @@ function keyOf(event: Event): string {
 // R11 : une ligne sans effet ne se regroupe avec aucune autre.
 function idleEvents(events: Event[]): Event[] {
   return events.map((event): Event => {
-    if (event.kind === 'moved')
+    if (event.kind === 'moved' || event.kind === 'not-due')
       return { kind: 'idle', key: keyOf(event), line: { kind: 'idle', line: event.line } }
     if (event.kind !== 'given' && event.kind !== 'missed') return event
     const series: PdfDoseSeries = { kind: 'dates', doses: [event.dose] }
@@ -142,6 +156,7 @@ function compare(a: string, b: string): number {
 // Lue de la plus récente, sur une même échéance : le report, puis la prise, l'oubli, le non renseigné.
 const LINE_RANK: Record<Event['kind'], number> = {
   moved: 0,
+  'not-due': 0,
   given: 1,
   missed: 2,
   unlogged: 3,
@@ -150,19 +165,21 @@ const LINE_RANK: Record<Event['kind'], number> = {
 
 type DoseRun = { kind: DoseKind; doses: PdfDose[] }
 
-type Run = DoseRun | Extract<Event, { kind: 'moved' | 'idle' }>
+type Run = DoseRun | AloneEvent
+
+function isAlone(run: Run | Event): run is AloneEvent {
+  return run.kind === 'moved' || run.kind === 'not-due' || run.kind === 'idle'
+}
 
 function lineOf(run: Run): PdfHistoryLine {
-  if (run.kind === 'moved' || run.kind === 'idle') return run.line
+  if (isAlone(run)) return run.line
   if (run.kind !== 'unlogged') return { kind: run.kind, series: seriesOf(run.doses) }
   const [first, last] = [run.doses[0]!, run.doses.at(-1)!]
   return { kind: 'unlogged', from: first.on, to: last.on, time: commonTime(run.doses) }
 }
 
 function lastKeyOf(run: Run): string {
-  return run.kind === 'moved' || run.kind === 'idle'
-    ? keyOf(run)
-    : keyOf({ kind: run.kind, dose: run.doses.at(-1)! })
+  return isAlone(run) ? keyOf(run) : keyOf({ kind: run.kind, dose: run.doses.at(-1)! })
 }
 
 /** Chaque type se regroupe sur ses jours qui se suivent, même quand une autre heure s'intercale. */
@@ -171,7 +188,7 @@ function linesOf(events: Event[], frequency: ExportFrequency): PdfHistoryLine[] 
   const runs: Run[] = []
   const open = new Map<DoseKind, DoseRun>()
   for (const event of sorted) {
-    if (event.kind === 'moved' || event.kind === 'idle') {
+    if (isAlone(event)) {
       runs.push(event)
       continue
     }
