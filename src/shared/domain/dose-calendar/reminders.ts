@@ -17,6 +17,8 @@ type ReminderSource = {
   unloggedDoses: Due[]
   currentSetting: Setting | null
   upcomingUntil(limit: number): Due[]
+  /** Les échéances encore à donner de ce jour, toutes. */
+  pendingOn(day: Day): Due[]
   settingAt(day: Day): Setting | undefined
   /** Les échéances que la fiche montre de `from` à `to`, notées ou non. */
   calendarDues(from: Day, to: Day): Due[]
@@ -35,11 +37,22 @@ function lastDoseAfterEnd({ phase, lastDueDay, unloggedDoses }: ReminderSource):
   return unloggedDoses.filter(({ dueOn }) => dueOn === lastDueDay)
 }
 
-// Les heures en trop rattrapent les échéances déjà passées d'une journée, que le plan écarte.
+// La marge couvre les échéances déjà passées du premier jour lu, que le plan écarte : il lui en
+// reste plus que `count`, donc son relais (RA-12). La dernière journée lue est entière (RA-11).
 function remindedDues(source: ReminderSource, count: number): Due[] {
   const perDay = Math.max(1, source.currentSetting?.times.length ?? 0)
-  const upcoming = source.upcomingUntil(count + 2 * perDay + 1)
-  return uniqueSorted([...lastDoseAfterEnd(source), ...source.currentDoses, ...upcoming])
+  const first = source.upcomingUntil(count + 2 * perDay + 1)
+  const firstDay = first[0]?.dueOn
+  const sameDay = firstDay === undefined ? 0 : source.pendingOn(firstDay).length
+  const upcoming = sameDay > perDay ? source.upcomingUntil(count + 2 * sameDay + 1) : first
+  const lastDay = upcoming.at(-1)?.dueOn
+  const wholeLastDay = lastDay === undefined ? [] : source.pendingOn(lastDay)
+  return uniqueSorted([
+    ...lastDoseAfterEnd(source),
+    ...source.currentDoses,
+    ...upcoming,
+    ...wholeLastDay,
+  ])
 }
 
 function byDay(dues: readonly Due[]): Map<Day, Due[]> {

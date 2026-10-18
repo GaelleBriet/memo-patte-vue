@@ -8,7 +8,7 @@ import { plusDays } from './carnet'
 import { dueKey } from './display'
 import type { Broken } from './v2-reading'
 
-const REMINDER_WINDOW: ReminderWindow = { count: 60, daysBefore: 3, daysAfter: 3 }
+export const REMINDER_WINDOW: ReminderWindow = { count: 60, daysBefore: 3, daysAfter: 3 }
 const STEP_DAYS = { day: 1, week: 7, month: 28 } as const
 
 const broken = (rule: string, detail: unknown): Broken => ({
@@ -32,8 +32,6 @@ export function remindersBrokenBy(input: TreatmentViewInput): Broken | null {
   const dues = reminders.filter(({ moment }) => moment === 'due').map(({ due }) => due)
   const reminded = dues.map(dueKey)
   if (new Set(reminded).size !== reminded.length) return broken('un rappel par échéance', reminded)
-  // La dernière journée lue peut être coupée par le nombre de rappels : sa relance, au-delà, n'est pas comptée.
-  let cutDay: string | null = null
   if (closed) {
     const extra = reminded.filter((key) => !afterEnd.includes(key))
     if (extra.length > 0 || reminded.length !== afterEnd.length) {
@@ -48,14 +46,8 @@ export function remindersBrokenBy(input: TreatmentViewInput): Broken | null {
     const shown = toGive
       .filter(({ due, state }) => state === 'pending' && !unlogged.has(dueKey(due)))
       .map(({ due }) => dueKey(due))
-    const lastReminded = dues.at(-1)?.dueOn
-    const before = (keys: string[]) => keys.filter((key) => key.slice(0, 10) !== lastReminded)
-    const onLastDay = reminded.filter((key) => key.slice(0, 10) === lastReminded)
-    const lastShown = shown.filter((key) => key.slice(0, 10) === lastReminded)
-    if (lastShown.length > onLastDay.length) cutDay = lastReminded!
-    const prefix =
-      JSON.stringify(lastShown.slice(0, onLastDay.length)) === JSON.stringify(onLastDay)
-    if (JSON.stringify(before(shown)) !== JSON.stringify(before(reminded)) || !prefix) {
+    // RA-1, RA-11 : la dernière journée lue est entière, le plan trie ensuite à l'heure (#929, #933).
+    if (JSON.stringify(shown) !== JSON.stringify(reminded)) {
       return broken('RA-1, RA-6, échéances de la fiche', {
         fiche: shown.filter((key) => !reminded.includes(key)),
         rappels: reminded.filter((key) => !shown.includes(key)),
@@ -85,7 +77,7 @@ export function remindersBrokenBy(input: TreatmentViewInput): Broken | null {
     const overdue = plusDays(day, REMINDER_WINDOW.daysAfter)
     const allPending = view.slots(day, day).every(({ state }) => state === 'pending')
     const beforeNext = index === days.length - 1 || overdue < days[index + 1]!
-    if (allPending && beforeNext && day !== cutDay) expected.push(`overdue ${first} → ${overdue}`)
+    if (allPending && beforeNext) expected.push(`overdue ${first} → ${overdue}`)
   })
   const got = reminders.filter(({ moment }) => moment !== 'due')
   const gotLines = got.map(({ moment, due, on }) => `${moment} ${dueKey(due)} → ${on}`)
