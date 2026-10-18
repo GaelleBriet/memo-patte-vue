@@ -13,9 +13,7 @@ import {
 } from './reference-grid'
 import {
   coverages,
-  departureAfterRewrite,
   lateDaysOf,
-  shiftKeptByReport,
   writtenBefore,
   handedOf,
   leftDays,
@@ -36,9 +34,10 @@ import {
   touchedJourneys,
 } from './reference-lines'
 import { arrivedOn, chosenDateOf, hoursChangedSince, reportOutcome } from './reference-reports'
+import { rewrittenDeparture, shiftKeptByReport, type RewriteContext } from './reference-rewrite'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
-type Calendar = { pending: string[]; fallen: Set<string>; rhythmFrom: string }
+type Calendar = { pending: string[]; fallen: Set<string>; rhythmFrom: string; dues: Set<string> }
 
 export function calendarOf(
   settings: readonly ReferenceSetting[],
@@ -46,6 +45,7 @@ export function calendarOf(
   allLines: readonly ReferenceLine[],
   borrowed: ReferenceLine[],
   reach: string,
+  plain = false,
 ): Calendar {
   const isLive = isLiveIn(episode, allLines)
   const live = episode.filter(isLive)
@@ -201,6 +201,18 @@ export function calendarOf(
   // R7 : un report emporte son heure et les suivantes sans prise ; ceux qui arrivent sur sa journée d'abord.
   const fallen = new Set<string>()
   const arrivedHours = new Map<string, (string | null)[]>()
+  const rewriteContext: RewriteContext = {
+    settingOf,
+    settingAt,
+    chain,
+    lines: allLines,
+    read: (only, lines) =>
+      calendarOf(only ?? settings, only ?? episode, lines, [], reach, true).dues,
+    uncovered: ({ dueOn }) => {
+      const day = days.get(dueOn)
+      return day?.hours.filter((hour) => !coveredAside(dueOn, day).has(hour)) ?? []
+    },
+  }
   const waiting = [...reports]
   while (waiting.length > 0) {
     const ready = waiting.findIndex(
@@ -208,7 +220,7 @@ export function calendarOf(
     )
     const [report] = waiting.splice(Math.max(0, ready), 1)
     const { dueOn, targetOn } = report!
-    const rewritten = days.has(dueOn) ? undefined : departureAfterRewrite(report!, settingOf)
+    const rewritten = plain ? undefined : rewrittenDeparture(report!, rewriteContext)
     if (rewritten === 'lost') continue
     const origin = rewritten ? undefined : (days.get(dueOn) ?? left.get(dueOn))
     const from = origin?.setting ?? settingOf(report!.settingId)
@@ -282,5 +294,5 @@ export function calendarOf(
   const pending = dues
     .filter(({ covered, day }) => !covered && !lateDays.includes(day))
     .map(({ key }) => key)
-  return { pending, fallen, rhythmFrom }
+  return { pending, fallen, rhythmFrom, dues: new Set(dues.map(({ key }) => key)) }
 }

@@ -1,4 +1,4 @@
-import { keyOf, sameFrequency } from './grid'
+import { keyOf, sameFrequency, sameHours } from './grid'
 import type { Span } from './settings'
 import type { Day, IdleReason, Line, Setting } from './types'
 
@@ -95,6 +95,32 @@ function touchedDays(
   }
   return new Map([...latest].map(([day, { settingId }]) => [day, settingId]))
 }
+
+/** R4 : le premier jour d'un réglage aux heures changées est traduit, sauf une journée touchée sous
+ * d'autres heures que celles du réglage qui cède la place : elle garde ses doses. */
+export function translatedDays(
+  live: readonly Setting[],
+  touchedOn: (day: Day) => Setting | undefined,
+): Set<Day> {
+  const days = new Set<Day>()
+  live.forEach((setting, index) => {
+    const prior = live[index - 1]
+    if (prior === undefined || sameHours(prior, setting)) return
+    const touched = touchedOn(setting.startsOn)
+    if (touched === undefined || sameHours(touched, prior) || sameHours(touched, setting)) {
+      days.add(setting.startsOn)
+    }
+  })
+  return days
+}
+
+/** R4 : le réglage de la ligne la plus récente d'une journée, sans compter `without`. */
+export const touchedWithout = (lines: EpisodeLines, day: Day, without: Line): string | undefined =>
+  touchedDays(
+    lines.notes,
+    lines.reports.filter((report) => report !== without),
+    lines.chosenArrivals,
+  ).get(day)
 
 export function episodeLines(lines: readonly Line[], span: Span): EpisodeLines {
   const ids = new Set(span.episode.map(({ id }) => id))

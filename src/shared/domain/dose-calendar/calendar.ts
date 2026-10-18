@@ -3,7 +3,7 @@ import { keepGivenNotes, keepSkippedDays, noteEffects } from './calendar-notes'
 import { hoursOf, keyOf, plusDays, sameHours } from './grid'
 import { journeys, type Gap } from './journeys'
 import type { EpisodeLines } from './lines'
-import { rewriteVerdict } from './rewrite'
+import { departureVerdict } from './rewrite'
 import type { Span } from './settings'
 import type { Day, Due, Hour, Line, LineEffect, Setting } from './types'
 
@@ -78,7 +78,15 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     )
     const report = waiting.splice(Math.max(0, ready), 1)[0]!
     const { dueOn, dueTime, targetOn } = report
-    const rewrite = days.has(dueOn) ? null : rewriteVerdict(report, settingOf(report.settingId))
+    const rewrite = departureVerdict(report, {
+      departure: days.get(dueOn),
+      relit: journey.relit(dueOn, report),
+      arrived: arrived.get(dueOn) ?? [],
+      written: settingOf(report.settingId),
+      owns: journey.owns.has(report.settingId),
+      inForce: span.settingAt(dueOn),
+      covered: (day) => coveredOn(dueOn, day, new Set()),
+    })
     const origin = rewrite === null ? (days.get(dueOn) ?? left.get(dueOn)) : undefined
     const from = origin?.setting ?? settingOf(report.settingId)
     if (rewrite === 'rewrite') {

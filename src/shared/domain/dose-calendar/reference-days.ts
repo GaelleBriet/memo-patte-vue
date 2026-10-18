@@ -192,34 +192,3 @@ export function coverages({
     settle: () => (reportsRead = true),
   }
 }
-
-/** #885 : le décalage d'un report plus récent que la réécriture de son réglage tient avec lui. */
-export function shiftKeptByReport(
-  turn: ReferenceLine,
-  reports: readonly ReferenceLine[],
-  settingOf: (id: string) => ReferenceSetting,
-): boolean {
-  const written = settingOf(turn.settingId)
-  const rewrittenAt = written.updatedAt
-  if (rewrittenAt === undefined || rewrittenAt <= written.createdAt) return false
-  if (turn.dueOn < written.startsOn || turn.dueOn >= written.firstDueOn) return false
-  if (rewrittenAt >= turn.updatedAt) return false
-  if (reports.some(({ targetOn }) => targetOn === turn.dueOn)) return false
-  return reports.some(
-    (report) =>
-      report.dueOn === turn.dueOn && typeof departureAfterRewrite(report, settingOf) === 'object',
-  )
-}
-
-/** #867 : réglage réécrit sans la journée de départ du report : le plus récent des deux l'emporte. */
-export function departureAfterRewrite(
-  report: ReferenceLine,
-  settingOf: (id: string) => ReferenceSetting,
-): Journey | 'lost' | undefined {
-  const written = settingOf(report.settingId)
-  const rewrittenAt = written.updatedAt
-  if (rewrittenAt === undefined || rewrittenAt <= written.createdAt) return undefined
-  if (report.dueOn < written.startsOn || report.dueOn >= written.firstDueOn) return undefined
-  if (rewrittenAt >= report.updatedAt) return 'lost'
-  return { setting: written, hours: [report.dueTime] }
-}
