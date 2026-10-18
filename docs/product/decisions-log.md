@@ -2979,6 +2979,11 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
 - Décision de Gaelle du 18 octobre 2026, par la session d'analyse du moteur à qui elle a délégué les lectures de règles : le moteur rend toujours la dernière journée entière et dit s'il a tout lu ; « complet » dans le plan des rappels s'en déduit ; la reprogrammation à chaque ouverture (RA-13) est un filet, pas une règle de calcul. Milo, rappel « 1 h avant », app ouverte le 10 octobre à 23 h 59 : 59 rappels jusqu'au 9 décembre et le dernier porte le relais (avant : plan « complet » sans relais, plus aucun rappel dès le 10 décembre).
 - Alternative écartée : ne rien faire, RA-13 rattrape.
 
+## 2026-10-18 — Un geste de note réécrit la ligne du téléphone qui le fait (#931)
+
+- Décision de Gaelle du 18 octobre 2026, par la session d'analyse du moteur à qui elle a délégué les lectures de règles : « Marquer comme oubliée », « Marquer comme donnée » et « Fait à une autre date » sur un oubli réécrivent la ligne créée par le téléphone qui fait le geste, plus la ligne en vigueur (TR-25) ; le résultat ne dépend plus de l'ordre de synchro. Milo, chaque lundi à 8 h : dose du 16 mars donnée sur B le 16 et sur A le 17 ; le 18, sur B, « Marquer comme oubliée » : « Oubliée » et « Donnée le 17 · sans effet » sur les deux téléphones, quel que soit l'ordre d'arrivée (avant : « Donnée le 16 · sans effet » si la prise de A était arrivée avant le geste).
+- Alternative écartée : réécrire la ligne en vigueur (#841), qui laissait l'écran dépendre de l'ordre de synchro.
+
 ## 2026-10-18 — « Marquer comme oubliée » n'est pas proposé sur une échéance future (#920)
 
 - Décision de Gaelle du 18 octobre 2026, par la session d'analyse du moteur à qui elle a délégué les lectures de règles : une dose pas encore due ne peut pas avoir été oubliée ; sur une prise donnée d'avance, le menu de l'historique ne propose pas « Marquer comme oubliée » (« Changer la date » et « Supprimer » restent). Même principe que #899 : jamais un geste que le moteur refusera. Milo, chaque lundi à 8 h : le 11 mars la dose du 16 est donnée d'avance ; le 12 le menu de la ligne du 16 ne propose plus le geste ; le 16 il revient.

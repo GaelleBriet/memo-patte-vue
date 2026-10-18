@@ -221,15 +221,19 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   2026-10-14, #839, #835) ; « Supprimer ce décalage » emporte de même les décalages de sa journée, le
   report restant (lecture à confirmer par Gaelle, §11). « Marquer comme oubliée » (feuille de la dose
   ou historique), « Marquer comme donnée » (historique) et « Fait à une autre date » sur une dose
-  oubliée réécrivent la ligne en vigueur, qui devient la modification la plus récente, et laissent
-  les autres lignes de la dose, venues de l'autre appareil : elles restent visibles et grisées
+  oubliée réécrivent la ligne du téléphone qui fait le geste, qui devient la modification la plus
+  récente (décision du 18 octobre 2026, #931 : le résultat ne dépend plus de l'ordre de synchro), et
+  laissent les autres lignes de la dose, venues de l'autre appareil : elles restent visibles et grisées
   (« · sans effet »), supprimables une par une ; un téléphone n'a qu'une ligne « donnée ou oubliée »
   par dose, et sur un seul téléphone le geste ne laisse aucune ligne grisée (décision de Gaelle du
   17 octobre 2026, #841). Milo, chaque lundi à 8 h ; la dose du 16 mars à 8 h donnée sur A à 9 h 02,
   puis sur B à 9 h 05 ; B touche « Marquer comme oubliée » : les deux téléphones montrent « Oubliée »
   et la prise de A grisée, que la prise de A soit arrivée sur B avant ou après le geste (avant le
   17 octobre : « Oubliée » seule dans un ordre, « Oubliée » et la prise de A « · sans effet » dans
-  l'autre). Le libellé de la ligne grisée reste « · sans effet » (décidé le 17 octobre 2026, §11) ;
+  l'autre). Milo, chaque lundi à 8 h ; la dose du 16 mars donnée sur B le 16 et sur A le 17 ; le 18,
+  sur B, « Marquer comme oubliée » : les deux téléphones montrent « Oubliée » et « Donnée le 17 · sans
+  effet », que la prise de A soit arrivée sur B avant ou après le geste (#931). Le libellé de la ligne
+  grisée reste « · sans effet » (décidé le 17 octobre 2026, §11) ;
   une ligne grisée « · sans effet » se supprime seule ; entre deux périodes, même à la
   même date et à la même heure, la fiche montre deux lignes et le geste ne touche que celle choisie
   (#822, décision du 2026-10-13). (Relecture, point 5)
@@ -1492,6 +1496,13 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
   après la fin reste « donnée », jamais grisée. Écartées : la translation d'une prise sur la
   journée suivante (#862 du 16 octobre) ; une colonne « réponse du » ou une première échéance
   réécrite pour #873.
+- 2026-10-18 — **#931 : un geste de note réécrit la ligne du téléphone qui le fait** (TR-25 ;
+  décision de Gaelle du 18 octobre 2026, par la session d'analyse du moteur). « Marquer comme
+  oubliée », « Marquer comme donnée » et « Fait à une autre date » sur un oubli réécrivent la ligne
+  créée par ce téléphone, plus la ligne en vigueur : les deux téléphones montrent la même fiche quel
+  que soit l'ordre de synchro. Milo, chaque lundi à 8 h ; dose du 16 mars donnée sur B le 16 et sur A
+  le 17 ; le 18, sur B, « Marquer comme oubliée » : « Oubliée » et « Donnée le 17 · sans effet »,
+  dans les deux ordres. Écartée : réécrire la ligne en vigueur (#841, résultat selon l'ordre).
 - 2026-10-18 — **#873 et #872 : la réponse à la question des doses tombées sur le réglage, une ligne
   « pas à donner » par dose listée** (R4, R6, R10, R11, TR-25 ; décisions de Gaelle du 18 octobre
   2026, par la session d'analyse du moteur ; migration v15, export v8). (1) Réponse à trois états sur
@@ -1681,15 +1692,14 @@ Décidé le 17 octobre 2026 avec #841 : **le libellé d'une ligne remplacée par
 de la même dose** (deux appareils) reste « · sans effet », comme toute ligne grisée ; aucun texte
 nouveau (décision de Gaelle, transmise par la session d'analyse du moteur).
 
-Limite connue de #841 (relecture du 17 octobre) : quand la ligne de l'**autre** téléphone est la plus
-récente de la dose, « Marquer comme oubliée » réécrit cette ligne (la ligne en vigueur), pas celle du
-téléphone, car le moteur ne connaît pas l'appareil d'une ligne. Les deux téléphones montrent le même
-écran, mais il dépend de l'ordre de synchro quand les deux lignes n'ont pas la même date. Milo, chaque
-lundi à 8 h : la dose du 16 mars est donnée sur B le 16 et sur A le 17 ; le 18, sur B, « Marquer comme
-oubliée » : si la prise de A est arrivée avant le geste, « Oubliée » et « Donnée le 16 · sans effet » ;
-si elle arrive après, « Oubliée » et « Donnée le 17 · sans effet ». Aucune dose n'est perdue ni inventée.
-Alternative : le service donne au moteur la ligne du téléphone (`created_by_device`), un choix de modèle
-à faire trancher.
+Limite de #841 décidée le 18 octobre 2026 (#931, session d'analyse du moteur) : le geste réécrit la
+ligne du téléphone qui le fait (`created_by_device`), plus la ligne en vigueur ; le résultat ne dépend
+plus de l'ordre de synchro (TR-25). Milo, chaque lundi à 8 h : la dose du 16 mars est donnée sur B le
+16 et sur A le 17 ; le 18, sur B, « Marquer comme oubliée » : « Oubliée » et « Donnée le 17 · sans
+effet » sur les deux téléphones, quel que soit l'ordre d'arrivée (avant : « Donnée le 16 · sans effet »
+si la prise de A était arrivée avant le geste). À confirmer : un téléphone qui n'a pas de ligne sur la
+dose réécrit la ligne en vigueur, comme avant (l'app refuse d'y créer une seconde ligne de la même
+échéance, R11).
 
 Principe du 17 octobre 2026 (§10), ouvert le 17 octobre avec #847 : une réécriture de réglage ne
 retire que les doses non données qu'elle visait ; une prise donnée ou un report plus récent garde
