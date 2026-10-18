@@ -9,8 +9,8 @@ import {
   sameHours,
 } from './grid'
 import { isDueDay, skippedDays, turned, type Grid } from './grid-in-force'
-import type { EpisodeLines } from './lines'
-import { rewriteVerdict } from './rewrite'
+import { touchedWithout, translatedDays, type EpisodeLines } from './lines'
+import { shiftKeptByReport } from './rewrite'
 import type { Span } from './settings'
 import type { Day, Frequency, Hour, Line, LineEffect, Setting } from './types'
 
@@ -67,22 +67,27 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   const translated = translatedDays(span.live, (day) => byId.get(lines.touched.get(day) ?? ''))
   // R4 : hors du jour où les heures changent, une journée touchée garde les heures du réglage de sa
   // ligne la plus récente, celles qu'elle avait quand elle a été touchée.
-  const journeyOn = (day: Day, setting: Setting): Journey => {
-    const touched = byId.get(lines.touched.get(day) ?? '')
+  const journeyOn = (day: Day, setting: Setting, touchedId = lines.touched.get(day)): Journey => {
+    const touched = byId.get(touchedId ?? '')
     const own =
       touched === undefined || translated.has(day) || sameHours(touched, setting)
         ? setting
         : touched
     return { setting: own, hours: hoursOf(own.times) }
   }
-  // #885 : le décalage d'un report qui l'emporte sur la réécriture de son réglage part de la journée
-  // de départ que cette réécriture a ôtée du calendrier.
-  const wins = (line: Line) => rewriteVerdict(line, byId.get(line.settingId)!) === 'line'
-  const removed = (day: Day) => !days.has(day) && !lines.reports.some((r) => r.targetOn === day)
+  // #883 : la journée de départ d'un report telle qu'elle se lit sans lui.
+  const grids = new Map<Day, Setting>()
+  const relit = (day: Day, without: Line): Journey | undefined => {
+    const setting = grids.get(day)
+    return setting && journeyOn(day, setting, touchedWithout(lines, day, without))
+  }
+  const owns = new Set<string>()
   const keptByReport = (turn: Line) =>
-    removed(turn.dueOn) &&
-    wins(turn) &&
-    lines.reports.some((report) => report.dueOn === turn.dueOn && wins(report))
+    shiftKeptByReport(turn, {
+      reports: lines.reports,
+      isDay: (day) => days.has(day),
+      settingOf: (id) => byId.get(id)!,
+    })
   const claims: Claim[] = []
   const openings = new Set<Day>()
   let grid: Grid = { origin: chain[0]!.firstDueOn, floor: '', since: '' }
@@ -156,6 +161,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       : origin !== null
         ? { ...grid, floor: ownFloor }
         : { ...grid, floor: later(grid.floor, later(chosenFloor, plusDays(setting.startsOn, -1))) }
+    if (!continued || origin !== null) owns.add(setting.id)
     if (!continued) rhythmStartFloor = grid.floor
     const at = span.episode.indexOf(setting)
     const prior = span.live.filter((each) => span.episode.indexOf(each) < at).at(-1)
@@ -229,6 +235,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       const start = later(from, plusDays(grid.floor, 1))
       for (const day of gridDaysAround(grid.origin, setting.frequency, start, to, gap)) {
         days.set(day, journeyOn(day, setting))
+        grids.set(day, setting)
       }
       segments.push({ origin: grid.origin, from: start, to: turn?.dueOn ?? setting.endsOn })
       if (turn === null) {
@@ -264,22 +271,9 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     chosenRestarts,
     lastPossibleDay,
     lastGridDay,
+    owns,
+    relit,
   }
-}
-
-// R4 : le premier jour d'un réglage aux heures changées est traduit, sauf une journée touchée sous
-// d'autres heures que celles du réglage qui cède la place : elle garde ses doses.
-function translatedDays(live: readonly Setting[], touchedOn: (day: Day) => Setting | undefined) {
-  const days = new Set<Day>()
-  live.forEach((setting, index) => {
-    const prior = live[index - 1]
-    if (prior === undefined || sameHours(prior, setting)) return
-    const touched = touchedOn(setting.startsOn)
-    if (touched === undefined || sameHours(touched, prior) || sameHours(touched, setting)) {
-      days.add(setting.startsOn)
-    }
-  })
-  return days
 }
 
 function gridDaysAround(origin: Day, frequency: Frequency, from: Day, to: Day, gap?: Gap) {
