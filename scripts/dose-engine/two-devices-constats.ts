@@ -16,14 +16,15 @@ function newReport(fork: Fork): Line | undefined {
 const effectOf = (read: Reader, input: TreatmentViewInput, id: string) =>
   read(input).history.find(({ line }) => line.id === id)?.effect
 
-// #867, #883 : report de A perdu après la synchro alors que la réécriture de B, sur son réglage, n'a
-// pas ôté sa dose de départ (la journée lue sans ce report l'a encore).
+// #867, #882, #883, #939 : report de A perdu après la synchro alors que A est le plus récent, ou que
+// la réécriture de B n'a pas ôté sa dose de départ (la journée lue sans ce report l'a encore).
 function lostWith(fork: Fork, read: Reader, report: Line): boolean {
-  const { plan, phoneA, merged } = fork
-  if (plan.action !== 'rewrite' || plan.id !== report.settingId) return false
+  const { plan, phoneA, merged, aFirst } = fork
+  if (plan.action !== 'rewrite') return false
   if (effectOf(read, phoneA, report.id)?.kind !== 'moves') return false
   const effect = effectOf(read, merged, report.id)
   if (effect?.kind !== 'idle' || effect.reason !== 'nothing-to-move') return false
+  if (!aFirst) return true
   const without = { ...merged, lines: merged.lines.filter(({ id }) => id !== report.id) }
   return read(without)
     .slots(report.dueOn, report.dueOn)
