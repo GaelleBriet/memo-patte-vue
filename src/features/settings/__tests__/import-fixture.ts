@@ -164,6 +164,9 @@ export const IMPORT_FIXTURE: ExportData = {
   ],
   treatmentDoses: [
     {
+      previousTargetOn: null,
+      previousTargetTime: null,
+      dueRank: null,
       id: MILBEMAX_ID,
       periodId: MILBEMAX_ID,
       treatmentId: MILBEMAX_ID,
@@ -178,6 +181,9 @@ export const IMPORT_FIXTURE: ExportData = {
       ...BY_FIXTURE_DEVICE,
     },
     {
+      previousTargetOn: null,
+      previousTargetTime: null,
+      dueRank: null,
       ...PANACUR,
       id: PANACUR_REPORT_ID,
       dueOn: '2026-09-02',
@@ -187,6 +193,9 @@ export const IMPORT_FIXTURE: ExportData = {
       targetOn: '2026-09-03',
     },
     {
+      previousTargetOn: null,
+      previousTargetTime: null,
+      dueRank: null,
       ...PANACUR,
       id: PANACUR_SOIR_ID,
       dueOn: '2026-09-01',
@@ -196,6 +205,9 @@ export const IMPORT_FIXTURE: ExportData = {
       targetOn: null,
     },
     {
+      previousTargetOn: null,
+      previousTargetTime: null,
+      dueRank: null,
       ...PANACUR,
       id: PANACUR_MATIN_ID,
       dueOn: '2026-09-01',
@@ -236,10 +248,10 @@ export const IMPORT_FIXTURE: ExportData = {
   ],
 }
 
-export const IMPORT_FILE: ImportFile = { schemaVersion: 8, data: IMPORT_FIXTURE }
+export const IMPORT_FILE: ImportFile = { schemaVersion: 9, data: IMPORT_FIXTURE }
 
 export function importFile(data: ExportData = IMPORT_FIXTURE): ImportFile {
-  return { schemaVersion: 8, data }
+  return { schemaVersion: 9, data }
 }
 
 export function importFixtureJson(data: ExportData = IMPORT_FIXTURE): string {

@@ -14,28 +14,37 @@ import { readTreatment } from '@/shared/domain/treatment-reading'
 
 type Unstamped<T> = Omit<T, 'createdByDevice' | 'updatedByDevice'>
 
+export type Version8Dose = Omit<
+  ExportTreatmentDose,
+  'previousTargetOn' | 'previousTargetTime' | 'dueRank'
+>
+
+export type Version8Data = Omit<ExportData, 'treatmentDoses'> & {
+  treatmentDoses: Version8Dose[]
+}
+
 export type Version7Period = Omit<ExportTreatmentPeriod, 'fallenDosesAnswer'> & {
   pastDosesStayUnlogged: boolean
 }
 
-export type Version7Data = Omit<ExportData, 'treatmentPeriods'> & {
+export type Version7Data = Omit<Version8Data, 'treatmentPeriods'> & {
   treatmentPeriods: Version7Period[]
 }
 
 export type Version6Period = Omit<Version7Period, 'settingsWrittenAt'>
 
-export type Version6Data = Omit<ExportData, 'treatmentPeriods'> & {
+export type Version6Data = Omit<Version8Data, 'treatmentPeriods'> & {
   treatmentPeriods: Version6Period[]
 }
 
 export type Version5Period = Omit<Version6Period, 'firstDueChosen' | 'pastDosesStayUnlogged'>
 
-export type Version5Data = Omit<ExportData, 'treatmentPeriods'> & {
+export type Version5Data = Omit<Version8Data, 'treatmentPeriods'> & {
   treatmentPeriods: Version5Period[]
 }
 
 export type Version4Period = Omit<Version5Period, 'gridOriginOn'> & { referenceOn: string }
-export type Version4Dose = Omit<ExportTreatmentDose, 'targetOn'> & { nextDueDate: string }
+export type Version4Dose = Omit<Version8Dose, 'targetOn'> & { nextDueDate: string }
 
 export type Version4Data = Omit<Version5Data, 'treatmentPeriods' | 'treatmentDoses'> & {
   treatmentPeriods: Version4Period[]
@@ -116,12 +125,25 @@ export function fromVersion6(data: Version6Data): Version7Data {
 }
 
 /** La conversion que la migration v15 applique à la base : rien ne passe à « n'étaient pas à donner ». */
-export function fromVersion7(data: Version7Data): ExportData {
+export function fromVersion7(data: Version7Data): Version8Data {
   return {
     ...data,
     treatmentPeriods: data.treatmentPeriods.map(({ pastDosesStayUnlogged, ...period }) => ({
       ...period,
       fallenDosesAnswer: pastDosesStayUnlogged ? 'stay-unlogged' : 'unasked',
+    })),
+  }
+}
+
+/** Arrivée d'avant inconnue, rang inconnu : le moteur lit le rang dans les heures en vigueur. */
+export function fromVersion8(data: Version8Data): ExportData {
+  return {
+    ...data,
+    treatmentDoses: data.treatmentDoses.map((dose) => ({
+      ...dose,
+      previousTargetOn: null,
+      previousTargetTime: null,
+      dueRank: null,
     })),
   }
 }

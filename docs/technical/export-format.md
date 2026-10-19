@@ -1,4 +1,4 @@
-# Format d'export des données (#80, v3 : #454, v4 : #501, v5 : #754, v6 : #825 et #836, v7 : #867, v8 : #873)
+# Format d'export des données (#80, v3 : #454, v4 : #501, v5 : #754, v6 : #825 et #836, v7 : #867, v8 : #873, v9 : #939)
 
 Contrat entre l'export (Paramètres → « Exporter mes données ») et l'import (#84, section
 [Import](#import--importer-un-export-mémopatte)).
@@ -89,7 +89,7 @@ Date du nom de fichier : minute locale de l'export. Encodage UTF-8, sans BOM, in
 
 ```json
 {
-  "schemaVersion": 8,
+  "schemaVersion": 9,
   "exportedAt": "2026-10-01T08:30:00.000Z",
   "appVersion": "0.1.48",
   "carnetSettings": null,
@@ -139,14 +139,19 @@ booléen `pastDosesStayUnlogged` : `"unasked"` (aucune question posée), `"stay-
 restent à renseigner ») ou `"not-due"` (« Elles n'étaient pas à donner ») ; une prise peut valoir
 `"not-due"` (dose déclarée pas à donner par cette réponse, #873).
 
+**Version 9** (#939, schéma v16, [`modele-de-donnees-v2.md`](modele-de-donnees-v2.md) §4.6) : une
+ligne de report porte `previousTargetOn` et `previousTargetTime`, le jour et l'heure de son arrivée
+d'avant quand la dose a été déplacée de nouveau, et `dueRank`, le rang (à partir de 1) de son heure
+dans sa journée d'origine ; `null` pour toute autre ligne, ou quand ils sont inconnus.
+
 | Champ           | Type                   | Sens                                                                 |
 | --------------- | ---------------------- | -------------------------------------------------------------------- |
 | `schemaVersion` | entier                 | Version du contrat. Toute rupture (champ retiré, renommé, sens changé) l'incrémente ; un ajout de champ optionnel ne l'incrémente pas |
 | `exportedAt`    | ISO 8601 UTC           | Instant de l'export                                                  |
 | `appVersion`    | texte                  | Version de l'app (`package.json`) qui a produit le fichier           |
 
-L'import relit les versions **3, 4, 5, 6, 7 et 8** (plan du moteur v2 §3.3) : un fichier v3 à v7
-est converti au format v8 avant toute autre étape. `referenceOn` devient `gridOriginOn` par la règle de la migration
+L'import relit les versions **3, 4, 5, 6, 7, 8 et 9** (plan du moteur v2 §3.3) : un fichier v3 à v8
+est converti au format v9 avant toute autre étape. `referenceOn` devient `gridOriginOn` par la règle de la migration
 v12 (`gridOriginsOf`, `src/shared/domain/dose-calendar/legacy-input.ts`) : `null` quand la période suit
 sans arrêt une période de même fréquence et de même `referenceOn`, sinon `referenceOn` s'il est sur la
 grille qui passe par `firstDueOn`, sinon `firstDueOn` ; `nextDueDate` devient `targetOn` pour un report
@@ -159,7 +164,8 @@ de la migration v14 : la date de création de la période (`createdAt`), que le 
 réglage jamais réécrit. Un fichier v3 à v7 reçoit enfin `fallenDosesAnswer` par la règle de la
 migration v15 : `"stay-unlogged"` quand `pastDosesStayUnlogged` vaut `true`, sinon `"unasked"`, jamais
 `"not-due"` (le booléen ne distinguait pas cette réponse d'aucune question : rien n'est retiré après
-coup).
+coup). Un fichier v3 à v8 reçoit enfin, sur chaque ligne, `previousTargetOn`, `previousTargetTime` et
+`dueRank` vides (`null`) : le moteur lit alors le rang dans les heures en vigueur.
 Un `schemaVersion` supérieur est refusé (« Cet export vient d'une version plus récente de l'app. »), un
 `schemaVersion` inférieur à 3 aussi (« Cet export vient d'une version plus ancienne de MémoPatte. Il ne
 peut plus être importé. ») : les formats v1 (jusqu'à la 0.1.40) et v2 (jusqu'à la 0.1.48) ne se relisent
@@ -289,6 +295,9 @@ la décrit dans le fichier.
 | `givenOn`     | `AAAA-MM-JJ` \| `null`                   | Date réelle, jamais dans le futur ; `null` pour une oubliée ou un report |
 | `status`      | `"given"` \| `"missed"` \| `"postponed"` \| `"extra"` \| `"shift"` \| `"not-due"` | Donnée, oubliée, reportée, prise en plus, ligne de décalage, pas à donner (v8, #873) |
 | `targetOn`    | `AAAA-MM-JJ` \| `null`                   | Report : jour d'arrivée ; décalage : jour d'ancrage ; `null` pour une prise |
+| `previousTargetOn` | `AAAA-MM-JJ` \| `null`              | Report déplacé de nouveau : jour de son arrivée d'avant (v9) ; `null` sinon |
+| `previousTargetTime` | `HH:mm` \| `null`                  | Report déplacé de nouveau : heure de son arrivée d'avant (v9) ; `null` sinon |
+| `dueRank`     | entier ≥ 1 \| `null`                     | Report : rang de son heure dans sa journée d'origine (v9) ; `null` : inconnu |
 | `createdAt`   | ISO 8601 UTC                             |                                                                          |
 | `updatedAt`   | ISO 8601 UTC                             |                                                                          |
 

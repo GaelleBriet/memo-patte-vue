@@ -184,7 +184,7 @@ describe('toJsonExport', () => {
 
   it('versionne le document pour l’import', () => {
     expect(parsed.schemaVersion).toBe(EXPORT_SCHEMA_VERSION)
-    expect(parsed.schemaVersion).toBe(8)
+    expect(parsed.schemaVersion).toBe(9)
     expect(parsed.exportedAt).toBe(META.exportedAt.toISOString())
     expect(parsed.appVersion).toBe('0.1.24')
   })
@@ -263,6 +263,9 @@ describe('toJsonExport', () => {
       givenOn: null,
       status: 'missed',
       targetOn: null,
+      previousTargetOn: null,
+      previousTargetTime: null,
+      dueRank: null,
       createdAt: '2026-09-10T07:00:00.000Z',
       updatedAt: '2026-09-10T07:00:00.000Z',
       createdByDevice: FIXTURE_DEVICE,

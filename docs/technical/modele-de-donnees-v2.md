@@ -265,6 +265,25 @@ Miroir Supabase :
 colonne, mêmes valeurs, l'ancienne colonne retirée, contrainte d'état des prises élargie à `not-due` ;
 export JSON v8 (`export-format.md`).
 
+### 4.6 Évolution v16 (arrivée d'avant et rang d'un report, #939)
+
+Décisions du 19 octobre 2026 de la session d'analyse du moteur (Q1 et Q4, valent comme celles de
+Gaelle ; migrations accordées par Gaelle le 16 octobre) : une ligne de report garde ce que la
+réécriture sur place (G13, G17) effaçait. `treatment_dose` reçoit `previous_target_on` (`TEXT`) et
+`previous_target_time` (`TEXT`), le jour et l'heure de l'arrivée d'avant quand la dose est déplacée de
+nouveau, et `due_rank` (`INTEGER`, au moins 1), le rang de son heure dans sa journée d'origine ; nuls
+pour toute autre ligne. L'écriture d'un report les pose (`reportFactsOf`,
+`src/shared/domain/dose-calendar/report-facts.ts`) : une réécriture vers une autre arrivée garde
+l'arrivée qu'elle quitte, et l'heure de la dose ; à la même échéance, le rang est gardé, sinon il se
+lit dans les heures du réglage de la ligne. Le moteur lit ces champs ; les règles qui s'en servent
+viennent avec la PR #958.
+
+La migration (`src/core/db/migration-v16.ts`) recrée `treatment_dose` comme la v15, sans `DELETE` ni
+`UPDATE` de premier niveau. Lignes existantes : arrivée d'avant inconnue ; rang lu dans les heures du
+réglage de la ligne au moment de la migration (1 pour un réglage sans heure), sinon vide. Miroir
+Supabase : `supabase/migrations/20261019090000_sync_mirror_treatment_dose_report_facts.sql`, mêmes
+colonnes, mêmes valeurs ; export JSON v9 (`export-format.md`).
+
 ## 5. Décisions
 
 - 2026-09-29 — **M1 : une table `treatment_period` sous le traitement.** Le traitement garde l'animal,

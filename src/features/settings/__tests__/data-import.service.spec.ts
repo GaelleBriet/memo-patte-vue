@@ -84,6 +84,9 @@ function prise(
 ): TreatmentDose {
   const { at, ...fields } = dose
   return {
+    previousTargetOn: null,
+    previousTargetTime: null,
+    dueRank: null,
     ...fields,
     periodId: dose.treatmentId,
     dueOn: dose.givenOn,
@@ -229,7 +232,7 @@ describe('data-import.service', () => {
       ),
     }
 
-    await service.importData({ schemaVersion: 8, data }, 'replace')
+    await service.importData({ schemaVersion: 9, data }, 'replace')
 
     await expect(repositories.treatments.getById(milbemax!.id)).resolves.toMatchObject({
       type: 'medication',
@@ -1484,6 +1487,9 @@ describe('data-import.service', () => {
             action: 'rewrite',
             id: milbemax.id,
             dose: {
+              previousTargetOn: null,
+              previousTargetTime: null,
+              dueRank: null,
               periodId: milbemax.periodId,
               dueOn: '2026-06-20',
               dueTime: null,
