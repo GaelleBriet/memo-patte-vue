@@ -1,4 +1,4 @@
-import { isOnGrid, sameFrequency } from './grid'
+import { continuesGrid, isOnGrid } from './grid'
 import type { Day, Setting, SettingFields } from './types'
 
 /** Ce qui fait la grille d'une période, et son arrêt. */
@@ -9,14 +9,17 @@ export type GridFacts = Pick<
 
 type Opening = Pick<SettingFields, 'startsOn' | Exclude<keyof GridFacts, 'stoppedOn'>>
 
-// R3 : sans origine propre, une période de même fréquence garde la grille de la précédente.
+// L'origine que le moteur garde dans l'épisode en cours, décalages exclus.
 function originOf(periods: readonly GridFacts[]): Day {
-  for (let index = periods.length - 1; index > 0; index -= 1) {
-    const period = periods[index]!
-    if (period.gridOriginOn !== null) return period.gridOriginOn
-    if (!sameFrequency(periods[index - 1]!.frequency, period.frequency)) return period.firstDueOn
-  }
-  return periods[0]!.gridOriginOn ?? periods[0]!.firstDueOn
+  const stops = periods.map(({ stoppedOn }, index) => (stoppedOn === null ? -1 : index))
+  const episode = periods.slice(Math.max(...stops) + 1)
+  let origin = episode[0]!.gridOriginOn ?? episode[0]!.firstDueOn
+  episode.forEach((period, index) => {
+    if (index > 0 && !continuesGrid(origin, episode[index - 1], period)) {
+      origin = period.gridOriginOn ?? period.firstDueOn
+    }
+  })
+  return origin
 }
 
 /**
@@ -30,9 +33,8 @@ export function keepsGrid(periods: readonly GridFacts[], opening: Opening): bool
   if (previous.endsOn !== null && previous.endsOn < opening.startsOn) return false
   const origin = originOf(periods)
   return (
-    sameFrequency(previous.frequency, opening.frequency) &&
     previous.endsOn === opening.endsOn &&
-    (opening.gridOriginOn === null || isOnGrid(origin, opening.frequency, opening.gridOriginOn)) &&
+    continuesGrid(origin, previous, opening) &&
     (!opening.firstDueChosen || isOnGrid(origin, opening.frequency, opening.firstDueOn))
   )
 }

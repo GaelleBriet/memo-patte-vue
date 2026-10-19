@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import { settingsApplied, type Setting, type TreatmentViewInput } from '../domain/dose-calendar'
 
-// Décision 1 du 19 octobre 2026 : la grille d'un réglage n'est datée que par ce qui fait ses
-// échéances (première échéance, fréquence, origine, fin), jamais par ses heures.
+// La grille d'un réglage n'est datée que par ce qui fait ses échéances (première échéance,
+// fréquence, origine, fin), jamais par ses heures.
 
 const CREE = '2026-03-01T08:00:00.000Z'
 const ECRIT = '2026-03-02T08:00:00.000Z'

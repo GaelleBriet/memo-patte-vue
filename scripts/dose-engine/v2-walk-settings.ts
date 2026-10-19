@@ -24,8 +24,8 @@ export type SettingsWalk = {
 
 const MAX_SETTINGS = 5
 
-/** Le carnet une fois le réglage écrit, comme le repository : identifiant, horodatage et date
- * d'écriture quand le calendrier change (#867). */
+/** Le carnet une fois le réglage écrit, comme le repository : identifiant, horodatage, date
+ * d'écriture quand le calendrier change (#867) et date de grille, héritée ou écrite. */
 export function settingsWritten(walk: SettingsWalk, plan: SettingsPlan): TreatmentViewInput {
   const { settings } = walk.input
   const at = walk.stamp()

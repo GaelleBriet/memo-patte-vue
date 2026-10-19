@@ -6,8 +6,8 @@ import { editionDraft } from '../logic/treatment-edition-draft'
 import type { TreatmentEditionInput } from '../schema/treatment-form.schema'
 import { createReplay, storedTreatment, type Replay } from './treatment-services-replay'
 
-// Décision du 19 octobre 2026 : une période qui reprend la grille de la précédente sans la changer
-// garde sa date de grille. Milo, tous les 3 jours à 20 h depuis le 26 mars, prises du 26 et du 29.
+// Une période qui reprend la grille de la précédente sans la changer garde sa date de grille.
+// Milo, tous les 3 jours à 20 h depuis le 26 mars, prises du 26 et du 29.
 
 const ANIMAL = '11111111-1111-4111-8111-111111111111'
 const CREATED = '2026-03-26T07:00:00.000Z'
@@ -150,5 +150,89 @@ describe('date de grille d’une période ouverte par « Modifier » ou « Repre
     })
 
     expect((await opened()).gridWrittenAt).toBe('2026-04-01T09:00:00.000Z')
+  })
+})
+
+describe('en mois, la grille gardée est celle que le moteur continue', () => {
+  // Luna, chaque mois à 20 h depuis le 31 janvier, prises du 31 janvier et du 28 février.
+  const MONTHLY = { value: 1, unit: 'month' } as const
+  const LUNA_CREATED = '2026-01-31T07:00:00.000Z'
+  let db: InMemoryDb
+  let app: Replay
+  let id: string
+
+  const at = (day: string, time: string) => {
+    app.clock.day = day
+    vi.setSystemTime(new Date(`${day}T${time}:00.000Z`))
+  }
+  const given = async (day: string, time = '20:00') => {
+    at(day, time)
+    const treatment = await storedTreatment(app.treatments, id)
+    await app.doses.apply(id, {
+      kind: 'note',
+      gesture: {
+        kind: 'note',
+        due: { settingId: treatment.periods.at(-1)!.id, dueOn: day, dueTime: time },
+        status: 'given',
+        givenOn: day,
+        shiftsFollowing: false,
+      },
+    })
+  }
+  const modified = (times: string[], nextDoseOn: string) =>
+    app.plans.update(id, {
+      ...edition({ name: 'Bravecto', type: 'antiparasitic', frequency: MONTHLY }),
+      times,
+      nextDoseOn,
+    })
+  const gridDates = async () =>
+    (await storedTreatment(app.treatments, id)).periods.map(({ gridWrittenAt }) => gridWrittenAt)
+
+  beforeEach(async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date(LUNA_CREATED) })
+    db = await createInMemoryDb()
+    app = await createReplay(db)
+    app.clock.day = '2026-01-31'
+    ;({ id } = await app.plans.create({
+      animalId: ANIMAL,
+      name: 'Bravecto',
+      type: 'antiparasitic',
+      firstDoseOn: '2026-01-31',
+      frequency: MONTHLY,
+      times: ['20:00'],
+      doseQuantity: null,
+      doseUnit: null,
+      endsOn: null,
+      reminderOffsetMinutes: null,
+      reminderTime: null,
+    }))
+    await given('2026-01-31')
+    await given('2026-02-28')
+    at('2026-04-02', '09:00')
+    await modified(['08:00'], '2026-04-30')
+    await given('2026-04-30', '08:00')
+  })
+
+  afterEach(() => {
+    db.close()
+    vi.useRealTimers()
+  })
+
+  it('le 2 avril, « Prochaine dose » le 30 avril garde la grille du 31 janvier', async () => {
+    expect(await gridDates()).toEqual([LUNA_CREATED, LUNA_CREATED])
+  })
+
+  it('le 5 mai, « Prochaine dose » le 30 mai change la grille : datée de sa création', async () => {
+    at('2026-05-05', '09:00')
+    await modified(['09:00'], '2026-05-30')
+
+    expect((await gridDates()).at(-1)).toBe('2026-05-05T09:00:00.000Z')
+  })
+
+  it('le 5 mai, « Prochaine dose » le 31 juillet garde la grille du 31 janvier', async () => {
+    at('2026-05-05', '09:00')
+    await modified(['09:00'], '2026-07-31')
+
+    expect((await gridDates()).at(-1)).toBe(LUNA_CREATED)
   })
 })
