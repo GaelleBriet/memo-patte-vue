@@ -151,8 +151,10 @@ date postérieure de plus de 24 h à `exportedAt` devient `exportedAt`, une date
 création du traitement devient ce `createdAt` (une période qui hérite de la grille de la précédente
 porte une date plus ancienne qu'elle-même) ; seule une valeur illisible refuse le fichier. Elle porte
 aussi `gridBefore`, la grille que le moteur lisait juste avant son ouverture par « Modifier »
-(`{ frequency, endsOn, runs: [[premier jour, dernier jour ou null, origine], …] }`), ou `null` ; une
-valeur illisible ou trop longue se lit `null`, sans refuser le fichier.
+(`{ frequency, endsOn, writtenAt, runs: [[premier jour, dernier jour ou null], …] }` : suites triées
+et disjointes, chacune sur la grille de son premier jour, seule la dernière sans fin ; `writtenAt`, la
+date de grille de la période remplacée, s'écrête comme `gridWrittenAt`), ou `null`. Une valeur
+absente, illisible, incohérente ou trop longue se lit `null`, sans refuser le fichier.
 
 | Champ           | Type                   | Sens                                                                 |
 | --------------- | ---------------------- | -------------------------------------------------------------------- |

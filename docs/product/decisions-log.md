@@ -3091,7 +3091,7 @@ migration accordée ; schéma v17, export v10).
   période qui reprend la grille de la précédente sans la changer garde sa date. Les échéances en
   décident, pas les colonnes : à fin égale et à fréquence équivalente, la période hérite quand le
   moteur lit les mêmes jours de grille avec et sans elle, à partir de sa première échéance
-  (`judgedGridAt`, `src/shared/domain/dose-calendar/gestures/changes.ts`). Les jours de grille se
+  (`judgedGrid`, `src/shared/domain/dose-calendar/gestures/changes.ts`). Les jours de grille se
   lisent décalages et reports compris, une dose reportée comptée à son départ : un report seul ne
   date jamais la grille. Le jugement porte sur tout ce que le même « Modifier » écrit, lignes
   réécrites comprises (Milo, tous les jours depuis le 1er mars, la dose du 6 reportée au 21 en
@@ -3124,8 +3124,9 @@ migration accordée ; schéma v17, export v10).
 - Règle exacte (décision du 19 octobre 2026, remplace les lectures approchées des relectures) : **une
   période hérite si sa grille est celle d'avant son ouverture**. À l'ouverture par « Modifier », la
   période garde dans `treatment_period.grid_before` la grille que le moteur lisait juste avant (suites
-  régulières `[premier jour, dernier jour ou vide, origine]`, fréquence, fin) ; une réécriture du jour
-  hérite si les jours lus sont ceux de `grid_before`. Le second « Modifier » du jour se juge donc
+  régulières `[premier jour, dernier jour ou vide]`, fréquence, fin) et la date de grille de la
+  période remplacée ; une réécriture du jour hérite si les jours lus sont ceux de `grid_before`, et
+  reprend alors cette date. Le second « Modifier » du jour se juge donc
   contre la même grille que le premier (I-3) : un ou deux « Modifier » donnent la même date (Milo,
   tous les 3 jours depuis le 1er mars, la dose du 4 reportée au 6 en décalant ; le 3, « 22 h et le 5 »
   en un ou deux gestes : datée du 3 mars à 8 h). Les prises n'entrent pas dans la grille et la phase
@@ -3141,12 +3142,21 @@ migration accordée ; schéma v17, export v10).
   400 jours sans fin (une grille qui ne diffère qu'au 22 mars est datée) ; la lecture « après » d'une
   réécriture est datée comme l'écriture réelle.
 - La grille gardée se vérifie par un schéma à l'import et à la lecture de la synchro : une valeur
-  illisible ou trop longue se lit vide (pas d'héritage), le fichier n'est jamais refusé pour elle.
+  absente, illisible, incohérente (suites en désordre, qui se chevauchent, qui finissent avant de
+  commencer) ou trop longue se lit vide (pas d'héritage), le fichier n'est jamais refusé pour elle.
+- Deux téléphones le même jour (6e relecture de #977) : la réécriture reprend la date de grille gardée
+  à l'ouverture, pas celle de la période qu'un autre téléphone a ouverte entre-temps. Milo, tous les
+  3 jours à 20 h depuis le 1er mars, prises du 1er, du 4 et du 7, date de grille du 1er mars 7 h ; le
+  10 mars à 8 h, A passe à tous les 2 jours (datée du 10 mars 8 h) ; à 9 h, B, pas encore
+  synchronisé, passe à 21 h (hérite du 1er mars 7 h) ; après la synchro, à 10 h, B passe à 22 h :
+  1er mars 7 h, comme le même geste en un seul « Modifier » (avant : 10 mars 8 h). — Écartée : relire
+  la période d'avant au moment de la réécriture (après la synchro, celle de A s'intercale).
 - La date héritée se juge à l'écriture (plan de « Modifier », marches des campagnes) ; la simulation
   du moteur (aperçus, contrôles) date la grille comme une écriture neuve, pour ne pas payer deux
   lectures du carnet à chaque aperçu.
 - Import : une date de grille absurde s'écrête comme au serveur, le fichier n'est jamais refusé pour
   elle (données jamais otages) : postérieure de plus de 24 h à l'export, elle devient la date de
-  l'export ; antérieure à la création du traitement, elle devient cette création. Correction de la
+  l'export ; antérieure à la création du traitement, elle devient cette création ; la date gardée dans
+  la grille d'avant l'ouverture s'écrête de même. Correction de la
   première borne (« la création de la période »), qui contredisait l'héritage : une période qui
   hérite porte une date de grille plus ancienne que sa propre création.

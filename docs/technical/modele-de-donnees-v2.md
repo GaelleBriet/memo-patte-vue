@@ -294,13 +294,15 @@ heures, de la posologie, du rappel, du seul fait que la date soit choisie ou de 
 question des doses tombées ne la change pas, un arrêt ou une suppression non plus. `settings_written_at` garde sa règle (#867).
 L'écriture d'une période la pose à sa création, ou reprend celle de la période qu'elle remplace quand
 elle en garde la grille : une période hérite si sa grille est celle d'avant son ouverture
-(`judgedGridAt`, `src/shared/domain/dose-calendar/gestures/changes.ts`). `treatment_period` reçoit
+(`judgedGrid`, `src/shared/domain/dose-calendar/gestures/changes.ts`). `treatment_period` reçoit
 aussi `grid_before` (`TEXT`, JSON, facultatif) : la grille que le moteur lisait juste avant
 l'ouverture par « Modifier » (`src/shared/domain/dose-calendar/grid-before.ts`), en suites régulières
-`[premier jour, dernier jour ou null, origine]` avec la fréquence et la fin ; vide sans période d'avant,
+`[premier jour, dernier jour ou null]`, triées et disjointes, chacune sur la grille de son premier
+jour, avec la fréquence, la fin et la date de grille de la période remplacée ; vide sans période d'avant,
 après « Reprendre » ou pour une période écrite avant la colonne. Une correction sur place le jour de
-l'ouverture hérite si les jours lus sont ceux de `grid_before`, et pose alors telle quelle la date
-héritée que le plan lui donne (`treatment-period-correction.repository.ts`) ; elle ne change pas
+l'ouverture hérite si les jours lus sont ceux de `grid_before`, et pose alors la date gardée dans
+`grid_before`, jamais celle d'une période ouverte entre-temps par un autre téléphone, telle quelle
+comme le plan la lui donne (`treatment-period-correction.repository.ts`) ; elle ne change pas
 `grid_before`. Une valeur illisible ou trop longue (schéma `grid-before.schema.ts`) se lit vide, à
 l'import comme à la synchro. Une autre correction sur place
 (`treatment-period-correction.repository.ts`) ne la date que si l'une de ces colonnes change. Le moteur
@@ -312,7 +314,7 @@ v16, sans `DELETE` ni `UPDATE` de premier niveau. Réglages existants : `grid_wr
 `settings_written_at`, la date de la dernière écriture de la grille seule étant inconnue. Miroir
 Supabase : `supabase/migrations/20261019100000_sync_mirror_treatment_period_grid_written_at.sql`, mêmes
 colonnes, mêmes valeurs, `grid_written_at` écrêtée à 24 h dans le futur comme `settings_written_at`,
-`grid_before` sans contrôle (un téléphone qui ne la connaît pas encore pousse sa ligne) ; réglages
+`grid_before` sans contrôle (une valeur que l'app lit vide ne doit jamais bloquer la file d'envoi) ; réglages
 existants : `grid_before` vide ; export JSON v10 (`export-format.md`).
 
 ## 5. Décisions
