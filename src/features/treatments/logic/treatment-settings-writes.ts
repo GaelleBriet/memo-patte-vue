@@ -34,6 +34,18 @@ export function periodWriteOf(plan: SettingsPlan, extras: Extras, newId: () => s
     : { action: 'correct', id: plan.id, settings, ...origin }
 }
 
+/** La période qu'ouvre « Reprendre » : sa première échéance, choisie, fixe sa grille. */
+export function openingOf(settings: TreatmentPeriodSettings, id: string) {
+  return {
+    action: 'open' as const,
+    id,
+    settings,
+    gridOriginOn: settings.firstDueOn,
+    firstDueChosen: true,
+    fallenDosesAnswer: 'unasked' as const,
+  } satisfies Written
+}
+
 /** La période en cours corrigée sur place : elle garde sa grille et la réponse à la question. */
 export function correctionOf(period: TreatmentPeriodRecord, settings: TreatmentPeriodSettings) {
   return {
