@@ -31,7 +31,8 @@ export function createDoseLineStatements(deviceId: () => string) {
     return {
       sql: `UPDATE treatment_dose
             SET period_id = ?, due_on = ?, due_time = ?, given_on = ?, status = ?,
-                target_on = ?, updated_at = ?, updated_by_device = ?
+                target_on = ?, previous_target_on = ?, previous_target_time = ?, due_rank = ?,
+                updated_at = ?, updated_by_device = ?
             WHERE id = ? AND ${NOT_DELETED}`,
       params: [
         dose.periodId,
@@ -40,6 +41,9 @@ export function createDoseLineStatements(deviceId: () => string) {
         dose.givenOn,
         dose.status,
         dose.targetOn,
+        dose.previousTargetOn,
+        dose.previousTargetTime,
+        dose.dueRank,
         updatedAt,
         deviceId(),
         id,

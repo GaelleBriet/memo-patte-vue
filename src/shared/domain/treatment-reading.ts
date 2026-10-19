@@ -54,7 +54,14 @@ function isReadableLine(line: Line): boolean {
     isOptionalDay(line.givenOn) &&
     (line.dueTime === null || isClockTime(line.dueTime)) &&
     isOptionalDay(line.targetOn) &&
-    (!moves || line.targetOn !== null)
+    (!moves || line.targetOn !== null) &&
+    isOptionalDay(line.previousTargetOn ?? null) &&
+    (line.previousTargetTime === undefined ||
+      line.previousTargetTime === null ||
+      isClockTime(line.previousTargetTime)) &&
+    (line.dueRank === undefined ||
+      line.dueRank === null ||
+      (Number.isInteger(line.dueRank) && line.dueRank >= 1))
   )
 }
 
@@ -124,6 +131,13 @@ function viewInputOf(
       givenOn: dose.givenOn,
       targetOn: dose.targetOn,
       updatedAt: dose.updatedAt,
+      ...(dose.status === 'postponed' && dose.dueRank !== undefined
+        ? {
+            previousTargetOn: dose.previousTargetOn ?? null,
+            previousTargetTime: dose.previousTargetTime ?? null,
+            dueRank: dose.dueRank,
+          }
+        : {}),
       ...(dose.createdByDevice === undefined ? {} : { createdByDevice: dose.createdByDevice }),
     })),
     today,

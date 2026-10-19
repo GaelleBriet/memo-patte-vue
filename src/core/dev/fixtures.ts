@@ -31,6 +31,7 @@ import {
   type WeightRepository,
 } from '@/features/weight/repository/weight.repository'
 import { buildDemoCarnet, DEMO_CARNET_MARKER } from './demo-carnet'
+import { reportFactsOf } from '@/shared/domain/dose-calendar'
 
 /**
  * Fixtures de développement : un point de départ commun entre `pnpm dev`
@@ -166,7 +167,15 @@ async function seedDemoCarnet(repositories: FixturesRepositories, today: Date): 
             ),
             ...doses.map((dose) =>
               repositories.treatmentDoses.restoreStatement(
-                { ...dose, ...stamps, id: crypto.randomUUID(), periodId, treatmentId, animalId },
+                {
+                  ...reportFactsOf({ ...dose, settingId: periodId }, undefined, period.times ?? []),
+                  ...dose,
+                  ...stamps,
+                  id: crypto.randomUUID(),
+                  periodId,
+                  treatmentId,
+                  animalId,
+                },
                 false,
               ),
             ),

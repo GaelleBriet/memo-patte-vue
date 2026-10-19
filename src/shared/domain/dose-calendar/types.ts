@@ -44,6 +44,11 @@ export type Line = {
   givenOn: Day | null
   /** Report : jour d'arrivée ; décalage : jour d'ancrage ; `null` pour une prise. */
   targetOn: Day | null
+  /** Report déplacé de nouveau (G13) : jour et heure de son arrivée d'avant ; absent ou `null` sinon. */
+  previousTargetOn?: Day | null
+  previousTargetTime?: Hour
+  /** Report : rang, à partir de 1, de son heure dans sa journée d'origine ; absent ou `null` : inconnu. */
+  dueRank?: number | null
   updatedAt: string
   /** Téléphone qui a créé la ligne ; absent hors de l'app. */
   createdByDevice?: string

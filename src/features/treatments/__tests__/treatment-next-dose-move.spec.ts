@@ -106,6 +106,9 @@ describe('« Prochaine dose » seule : un report, jamais un nouveau réglage (TR
           givenOn: null,
           status: 'postponed',
           targetOn: '2026-09-24',
+          previousTargetOn: null,
+          previousTargetTime: null,
+          dueRank: 1,
         },
       },
     ])

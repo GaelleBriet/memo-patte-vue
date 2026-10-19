@@ -60,7 +60,7 @@ export class GestureRefusedError extends Error {
   }
 }
 
-type TreatmentToWrite = Pick<TreatmentWithPeriods, 'id' | 'animalId' | 'doses'>
+type TreatmentToWrite = Pick<TreatmentWithPeriods, 'id' | 'animalId' | 'doses' | 'periods'>
 
 const NONE = {
   alreadyGivenOn: null,

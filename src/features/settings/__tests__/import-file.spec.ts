@@ -160,7 +160,7 @@ describe('parseExportFile', () => {
     )
 
     it('signale un export d’une version plus récente, quel que soit son contenu', () => {
-      const text = JSON.stringify({ schemaVersion: 9, pets: [] })
+      const text = JSON.stringify({ schemaVersion: 10, pets: [] })
 
       expect(parseExportFile(text)).toEqual({ ok: false, reason: 'newer' })
     })
@@ -695,6 +695,75 @@ describe('parseExportFile', () => {
   describe('anciens exports, convertis au format courant (plan §3.3)', () => {
     const IMPORTEUR = '12121212-1212-4212-8212-121212121212'
 
+    it('relit un export v8 : arrivée d’avant et rang des reports vides', () => {
+      const v8 = withDocument((document) => {
+        document.schemaVersion = 8
+        for (const dose of rows(document, 'treatmentDoses')) {
+          delete dose.previousTargetOn
+          delete dose.previousTargetTime
+          delete dose.dueRank
+        }
+      })
+
+      const result = parseExportFile(v8, IMPORTEUR)
+
+      expect(result.ok).toBe(true)
+      if (!result.ok) return
+      expect(result.file.schemaVersion).toBe(9)
+      expect(
+        result.file.data.treatmentDoses.every(
+          (dose) =>
+            dose.previousTargetOn === null &&
+            dose.previousTargetTime === null &&
+            dose.dueRank === null,
+        ),
+      ).toBe(true)
+    })
+
+    it('relit un export v9 avec l’arrivée d’avant et le rang d’un report ; refuse un rang nul', () => {
+      const report = (document: Document) =>
+        rows(document, 'treatmentDoses').find(({ status }) => status === 'postponed')!
+      const v9 = withDocument((document) => {
+        Object.assign(report(document), {
+          previousTargetOn: '2026-09-09',
+          previousTargetTime: '20:00',
+          dueRank: 2,
+        })
+      })
+
+      const result = parseExportFile(v9, IMPORTEUR)
+
+      expect(result.ok).toBe(true)
+      if (!result.ok) return
+      expect(
+        result.file.data.treatmentDoses.find(({ status }) => status === 'postponed'),
+      ).toMatchObject({
+        previousTargetOn: '2026-09-09',
+        previousTargetTime: '20:00',
+        dueRank: 2,
+      })
+      const zero = withDocument((document) => Object.assign(report(document), { dueRank: 0 }))
+      expect(parseExportFile(zero, IMPORTEUR)).toMatchObject({ ok: false })
+    })
+
+    it('refuse des faits de report sur une ligne qui n’est pas un report, et une heure d’arrivée d’avant sans son jour', () => {
+      const prise = withDocument((document) =>
+        Object.assign(
+          rows(document, 'treatmentDoses').find(({ status }) => status === 'given')!,
+          { previousTargetOn: '2026-09-09', previousTargetTime: '20:00', dueRank: 3 },
+        ),
+      )
+      const sansJour = withDocument((document) =>
+        Object.assign(
+          rows(document, 'treatmentDoses').find(({ status }) => status === 'postponed')!,
+          { previousTargetOn: null, previousTargetTime: '20:00' },
+        ),
+      )
+
+      expect(parseExportFile(prise, IMPORTEUR)).toEqual(INVALID)
+      expect(parseExportFile(sansJour, IMPORTEUR)).toEqual(INVALID)
+    })
+
     function toVersion7(document: Document): Record<string, unknown>[] {
       document.schemaVersion = 7
       const periods = rows(document, 'treatmentPeriods')
@@ -715,7 +784,7 @@ describe('parseExportFile', () => {
 
       expect(result.ok).toBe(true)
       if (!result.ok) return
-      expect(result.file.schemaVersion).toBe(8)
+      expect(result.file.schemaVersion).toBe(9)
       const answers = result.file.data.treatmentPeriods.map(
         ({ fallenDosesAnswer }) => fallenDosesAnswer,
       )
@@ -746,7 +815,7 @@ describe('parseExportFile', () => {
 
       expect(result.ok).toBe(true)
       if (!result.ok) return
-      expect(result.file.schemaVersion).toBe(8)
+      expect(result.file.schemaVersion).toBe(9)
       expect(
         result.file.data.treatmentPeriods.map(({ createdAt, settingsWrittenAt }) => [
           createdAt,
@@ -801,7 +870,7 @@ describe('parseExportFile', () => {
       expect(result.ok).toBe(true)
       if (!result.ok) return
       const { data } = result.file
-      expect(result.file.schemaVersion).toBe(8)
+      expect(result.file.schemaVersion).toBe(9)
       expect(data.treatmentPeriods.map(({ gridOriginOn }) => gridOriginOn)).toEqual([
         '2026-06-15',
         '2026-09-01',

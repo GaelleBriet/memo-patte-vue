@@ -364,6 +364,9 @@ describe('buildCarnetPdfContent — historique', () => {
       dueTime: null,
       givenOn: spec.status === 'given' || spec.status === 'extra' ? spec.dueOn : null,
       targetOn: null,
+      previousTargetOn: null,
+      previousTargetTime: null,
+      dueRank: null,
       ...STAMPS,
       ...spec,
     }

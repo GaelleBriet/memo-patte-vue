@@ -43,6 +43,9 @@ function line({ nextDueDate, ...fields }: DoseFields): ExportTreatmentDose {
   sequence += 1
   const stamp = new Date(Date.parse(AT) + sequence * 1000).toISOString()
   return {
+    previousTargetOn: null,
+    previousTargetTime: null,
+    dueRank: null,
     id: `d-${sequence}`,
     treatmentId: 't-1',
     animalId: MILO,

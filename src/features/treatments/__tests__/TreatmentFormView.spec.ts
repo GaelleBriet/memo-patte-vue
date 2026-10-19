@@ -131,6 +131,9 @@ function periode(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPerio
 
 function prise(overrides: Partial<TreatmentDose> = {}): TreatmentDose {
   return {
+    previousTargetOn: null,
+    previousTargetTime: null,
+    dueRank: null,
     id: 'd-1',
     periodId: ID,
     treatmentId: ID,

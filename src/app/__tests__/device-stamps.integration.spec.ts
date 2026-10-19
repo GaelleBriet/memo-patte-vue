@@ -163,6 +163,9 @@ describe('appareil posé à chaque écriture', () => {
           {
             id,
             dose: {
+              previousTargetOn: null,
+              previousTargetTime: null,
+              dueRank: null,
               periodId: id,
               dueOn: '2026-09-01',
               dueTime: null,

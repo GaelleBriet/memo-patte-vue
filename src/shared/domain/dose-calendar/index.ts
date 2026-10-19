@@ -23,6 +23,7 @@ export {
 export { chosenDateRefusal } from './gestures/settings-chosen'
 export { familyOf, isAdvanced } from './lines'
 export { play, preview } from './preview'
+export { reportFactsIn, reportFactsOf, withReportFacts, type ReportFacts } from './report-facts'
 export type { DueReminder, ReminderMoment, ReminderReading, ReminderWindow } from './reminders'
 export type { DueSlot, HistoryLine, TreatmentView, Window } from './view'
 export { FALLEN_DOSES_ANSWERS } from './types'

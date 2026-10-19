@@ -82,6 +82,9 @@ describe('treatmentPlanService', () => {
           treatmentId,
           animalId: MILO,
           dose: {
+            previousTargetOn: null,
+            previousTargetTime: null,
+            dueRank: null,
             periodId: treatmentId,
             dueOn,
             dueTime: null,
@@ -533,6 +536,9 @@ describe('treatmentPlanService', () => {
             treatmentId,
             animalId: MILO,
             dose: {
+              previousTargetOn: null,
+              previousTargetTime: null,
+              dueRank: null,
               periodId: treatmentId,
               dueOn,
               dueTime,

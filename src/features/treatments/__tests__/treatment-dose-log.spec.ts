@@ -73,6 +73,9 @@ describe('doseChange — renseigner des doses en un lot', () => {
           givenOn: '2026-09-03',
           status: 'given',
           targetOn: null,
+          previousTargetOn: null,
+          previousTargetTime: null,
+          dueRank: null,
         },
       },
       {
@@ -86,6 +89,9 @@ describe('doseChange — renseigner des doses en un lot', () => {
           givenOn: null,
           status: 'missed',
           targetOn: null,
+          previousTargetOn: null,
+          previousTargetTime: null,
+          dueRank: null,
         },
       },
     ])

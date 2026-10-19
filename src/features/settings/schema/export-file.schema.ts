@@ -29,7 +29,9 @@ import {
   fromVersion5,
   fromVersion6,
   fromVersion7,
+  fromVersion8,
   type Version5Data,
+  type Version7Data,
 } from '../logic/export-file-versions'
 import { hasUniqueIds, isConsistentCarnet } from '../logic/export-carnet-links'
 import { carnetSettingsSchema } from './carnet-settings.schema'
@@ -140,6 +142,14 @@ const isConsistentDose = (dose: DoseRow) =>
   ['given', 'extra'].includes(dose.status) === (dose.givenOn !== null) &&
   (dose.status !== 'extra' || dose.dueOn === dose.givenOn)
 const isMove = (status: string) => status === 'postponed' || status === 'shift'
+const hasReportFactsOnlyOnReport = (dose: {
+  status: string
+  previousTargetOn: string | null
+  previousTargetTime: string | null
+  dueRank: number | null
+}) =>
+  dose.status === 'postponed' ||
+  (dose.previousTargetOn === null && dose.previousTargetTime === null && dose.dueRank === null)
 
 const deviceFileSchema = z.object({
   id: z.uuid(),
@@ -173,6 +183,22 @@ const movedDosesOf = (shape: typeof doseShape | typeof legacyDoseShape) =>
   )
 const movedDoses = movedDosesOf(doseShape)
 const legacyMovedDoses = movedDosesOf(legacyDoseShape)
+const reportedDoses = z.array(
+  signed({
+    ...doseShape,
+    targetOn: day.nullable(),
+    previousTargetOn: day.nullable(),
+    previousTargetTime: clockTime.nullable(),
+    dueRank: z.number().int().min(1).nullable(),
+  })
+    .refine(isConsistentDose)
+    .refine(({ status, targetOn }) => isMove(status) === (targetOn !== null))
+    .refine(hasReportFactsOnlyOnReport)
+    .refine(
+      ({ previousTargetOn, previousTargetTime }) =>
+        previousTargetTime === null || previousTargetOn !== null,
+    ),
+)
 
 const version6PeriodShape = {
   ...periodShape,
@@ -188,6 +214,14 @@ const version8PeriodShape = {
   fallenDosesAnswer: z.enum(FALLEN_DOSES_ANSWERS),
   settingsWrittenAt: instant,
 }
+
+const version9FileSchema = z
+  .object({
+    ...signedCarnet,
+    treatmentPeriods: z.array(signed(version8PeriodShape).refine(isConsistentPeriod)),
+    treatmentDoses: reportedDoses,
+  })
+  .refine(isConsistentCarnet)
 
 const version8FileSchema = z
   .object({
@@ -255,15 +289,18 @@ const version3FileSchema = z
 export const exportVersionSchema = z.object({ schemaVersion: z.number().int().positive() })
 
 export function exportFileSchemaOf(version: number, deviceId: string): z.ZodType<ExportData> {
-  const fromVersion5To8 = (data: Version5Data) => fromVersion7(fromVersion6(fromVersion5(data)))
+  const fromVersion7To9 = (data: Version7Data) => fromVersion8(fromVersion7(data))
+  const fromVersion5To9 = (data: Version5Data) => fromVersion7To9(fromVersion6(fromVersion5(data)))
   if (version === 3) {
     return version3FileSchema.transform((data) =>
-      fromVersion5To8(fromVersion4(fromVersion3(data, deviceId))),
+      fromVersion5To9(fromVersion4(fromVersion3(data, deviceId))),
     )
   }
   if (version === 4)
-    return version4FileSchema.transform((data) => fromVersion5To8(fromVersion4(data)))
-  if (version === 5) return version5FileSchema.transform(fromVersion5To8)
-  if (version === 6) return version6FileSchema.transform((data) => fromVersion7(fromVersion6(data)))
-  return version === 7 ? version7FileSchema.transform(fromVersion7) : version8FileSchema
+    return version4FileSchema.transform((data) => fromVersion5To9(fromVersion4(data)))
+  if (version === 5) return version5FileSchema.transform(fromVersion5To9)
+  if (version === 6)
+    return version6FileSchema.transform((data) => fromVersion7To9(fromVersion6(data)))
+  if (version === 7) return version7FileSchema.transform(fromVersion7To9)
+  return version === 8 ? version8FileSchema.transform(fromVersion8) : version9FileSchema
 }

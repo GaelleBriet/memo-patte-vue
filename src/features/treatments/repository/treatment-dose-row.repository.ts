@@ -12,6 +12,9 @@ export interface DoseRow {
   given_on: string | null
   status: TreatmentDose['status']
   target_on: string | null
+  previous_target_on: string | null
+  previous_target_time: string | null
+  due_rank: number | null
   created_at: string
   updated_at: string
   deleted_at: string | null
@@ -26,6 +29,7 @@ export type DoseVersionRow = Pick<
 
 export const COLUMNS =
   'id, period_id, treatment_id, animal_id, due_on, due_time, given_on, status, target_on, ' +
+  'previous_target_on, previous_target_time, due_rank, ' +
   'created_at, updated_at, deleted_at, created_by_device, updated_by_device'
 
 const COLUMN_NAMES = COLUMNS.split(', ')
@@ -48,6 +52,9 @@ export function toDose(row: DoseRow): TreatmentDose {
     givenOn: row.given_on,
     status: row.status,
     targetOn: row.target_on,
+    previousTargetOn: row.previous_target_on,
+    previousTargetTime: row.previous_target_time,
+    dueRank: row.due_rank,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     deletedAt: row.deleted_at,
@@ -73,6 +80,9 @@ export function valuesOf(dose: Stamped<TreatmentDose>): SqlParam[] {
     dose.givenOn,
     dose.status,
     dose.targetOn,
+    dose.previousTargetOn,
+    dose.previousTargetTime,
+    dose.dueRank,
     dose.createdAt,
     dose.updatedAt,
     dose.deletedAt,
@@ -89,6 +99,9 @@ export function fieldsOf(row: DoseRow): DoseFields {
     givenOn: row.given_on,
     status: row.status,
     targetOn: row.target_on,
+    previousTargetOn: row.previous_target_on,
+    previousTargetTime: row.previous_target_time,
+    dueRank: row.due_rank,
   }
 }
 

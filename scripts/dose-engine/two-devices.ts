@@ -9,6 +9,7 @@ import {
   type Setting,
   type SettingsPlan,
   type TreatmentViewInput,
+  withReportFacts,
 } from '@/shared/domain/dose-calendar'
 
 import { FREQUENCIES, TIMES, int, mulberry32, pick, plusDays } from './carnet'
@@ -48,12 +49,13 @@ function writeLines(
       continue
     }
     const updatedAt = stamp(clock)
+    const { line: fields } = withReportFacts(lines, input.settings, change)
     lines =
       change.action === 'rewrite'
         ? lines.map((line) =>
-            line.id === change.id ? { ...change.line, id: line.id, updatedAt } : line,
+            line.id === change.id ? { ...fields, id: line.id, updatedAt } : line,
           )
-        : [...lines, { ...change.line, id: `${tag}${clock.n}`, updatedAt }]
+        : [...lines, { ...fields, id: `${tag}${clock.n}`, updatedAt }]
   }
   return { ...input, lines }
 }
