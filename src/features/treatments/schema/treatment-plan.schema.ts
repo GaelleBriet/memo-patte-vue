@@ -16,7 +16,7 @@ export type PlannedDoseWrite =
 
 /**
  * Ce que « Modifier » ou « Reprendre » écrit en une fois ; `null` : rien à écrire dans cette table.
- * `gridOriginOn` `null` : l'origine de la grille du réglage précédent (R3). `judgedGridAt` : la
+ * `gridOriginOn` `null` : l'origine de la grille du réglage précédent (R3). `judgedGrid` : la
  * date de grille jugée par le moteur (`judgedGrid`), à poser telle quelle.
  */
 export type TreatmentPlanWrite = {
@@ -26,7 +26,7 @@ export type TreatmentPlanWrite = {
         action: 'correct' | 'open'
         id: string
         settings: TreatmentPeriodSettings
-        judgedGridAt?: string
+        judgedGrid?: string
         /** À l'ouverture : la grille d'avant, que garde la période. */
         gridBefore?: GridBefore | null
       } & PeriodOrigin)

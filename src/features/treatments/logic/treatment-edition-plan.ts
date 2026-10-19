@@ -42,7 +42,7 @@ export function editionPlan(
   const written =
     opened === null || grid?.writtenAt === undefined
       ? opened
-      : { ...opened, judgedGridAt: grid.writtenAt }
+      : { ...opened, judgedGrid: grid.writtenAt }
   const doses = plannedDoseWritesOf(treatment, changes, ids.newId)
   const result: TreatmentPlanWrite = { treatment: identity, period: written, doses }
   if (written !== null || doses.length > 0) {
