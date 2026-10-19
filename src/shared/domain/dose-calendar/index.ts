@@ -13,7 +13,7 @@ export { applied, rewritesCalendar, settingsApplied } from './gestures/changes'
 export { moveBounds, moveDose, type MoveBounds } from './gestures/move'
 export { dueForDate, noteDose } from './gestures/note'
 export { redateDose } from './gestures/redate'
-export { keptAhead, removalRefusal, removeLine } from './gestures/remove'
+export { keptAhead, removalRefusal, removeLine, reportRemovalLock } from './gestures/remove'
 export {
   newSettings,
   type FallenQuestion,

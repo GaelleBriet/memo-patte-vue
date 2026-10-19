@@ -26,12 +26,27 @@ function history(book: TreatmentWithPeriods, today: string) {
   return plain(treatmentHistory(t, book, treatmentReadingOf(book, today), today))
 }
 
-/** Les choix du menu ⋮ de la prise `id`, lus comme à l'ouverture du menu. */
-function menuOf(book: TreatmentWithPeriods, today: string, id: string) {
+function choicesOf(book: TreatmentWithPeriods, today: string, id: string) {
   const history = treatmentHistory(t, book, treatmentReadingOf(book, today), today)
   const lines = history.periods.flatMap(({ lines }) => lines)
   const rows = lines.flatMap((line) => (line.kind === 'missed' ? line.rows : [line]))
-  return history.menuOf(rows.find((row) => row.dose.id === id)!).map(({ action }) => action)
+  return history.menuOf(rows.find((row) => row.dose.id === id)!)
+}
+
+/** Les choix du menu ⋮ de la prise `id`, lus comme à l'ouverture du menu. */
+function menuOf(book: TreatmentWithPeriods, today: string, id: string) {
+  return choicesOf(book, today, id).map(({ action }) => action)
+}
+
+/** Les choix grisés du menu ⋮ de la ligne `id`, avec leur aide. */
+function refusedOf(book: TreatmentWithPeriods, today: string, id: string) {
+  return plain(
+    Object.fromEntries(
+      choicesOf(book, today, id).flatMap(({ action, hint }) =>
+        hint === undefined ? [] : [[action, hint]],
+      ),
+    ),
+  )
 }
 
 function titles(book: TreatmentWithPeriods, today: string): string[][] {
@@ -126,7 +141,7 @@ describe('treatmentHistory — une période (planches A · V1 quinquies bis, V5 
         actions: ['remove-shift'],
       },
     ])
-    expect(only!.lines[1]).not.toHaveProperty('refused')
+    expect(refusedOf(book, '2026-09-28', only!.lines[1]!.dose.id)).toEqual({})
   })
 
   it('dit « Avancée » quand la nouvelle date précède l’échéance', () => {
@@ -191,7 +206,7 @@ describe('treatmentHistory — une période (planches A · V1 quinquies bis, V5 
       .find(({ kind }) => kind === 'move')
 
     expect(report).toMatchObject({ actions: [] })
-    expect(report).not.toHaveProperty('refused')
+    expect(choicesOf(book, '2026-04-02', report!.dose.id)).toEqual([])
   })
 
   it('garde l’échéance en titre d’une prise notée un autre jour, sans heure pour une seule heure', () => {
@@ -710,6 +725,9 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
     return history(book, today).periods[0]!.lines.find((other) => other.kind === kind)!
   }
 
+  const refused = (book: TreatmentWithPeriods, today: string, kind: string) =>
+    refusedOf(book, today, line(book, today, kind).dose.id)
+
   it('discrète sous son report, « Supprimer ce décalage » permis', () => {
     const book = treatment([VENDREDI], PIXEL)
 
@@ -720,7 +738,7 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
         '9 oct. 2026',
       ],
     ])
-    expect(line(book, '2026-10-15', 'shift')).not.toHaveProperty('refused')
+    expect(refused(book, '2026-10-15', 'shift')).toEqual({})
   })
 
   it('sans « prochaine » quand la suite décalée dépasse la date de fin : traitement terminé', () => {
@@ -755,7 +773,7 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
   it('grisée quand une dose plus lointaine est notée', () => {
     const book = treatment([VENDREDI], [...PIXEL, dose('2026-10-26', '2026-11-02')])
 
-    expect(line(book, '2026-10-27', 'shift').refused).toEqual({
+    expect(refused(book, '2026-10-27', 'shift')).toEqual({
       'remove-shift': 'Une dose plus lointaine est déjà notée.',
     })
   })
@@ -771,11 +789,11 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
       ],
     )
 
-    expect(line(book, '2026-10-15', 'shift').refused).toEqual({
+    expect(refused(book, '2026-10-15', 'shift')).toEqual({
       'remove-shift': 'Supprime d’abord le report du 23 oct.',
     })
     applyLocale('en')
-    expect(line(book, '2026-10-15', 'shift').refused).toEqual({
+    expect(refused(book, '2026-10-15', 'shift')).toEqual({
       'remove-shift': 'Delete the postponement to Oct 23 first.',
     })
   })
@@ -788,11 +806,11 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
       )!
 
     expect(report().actions).toEqual(['remove-move'])
-    expect(report().refused).toEqual({
+    expect(refusedOf(book, '2026-10-15', report().dose.id)).toEqual({
       'remove-move': 'Une dose plus lointaine est déjà reportée. Supprime d’abord son report.',
     })
     applyLocale('en')
-    expect(report().refused).toEqual({
+    expect(refusedOf(book, '2026-10-15', report().dose.id)).toEqual({
       'remove-move': 'A later dose is already postponed. Delete its postponement first.',
     })
   })
@@ -808,7 +826,7 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
       ],
     )
 
-    expect(line(book, '2026-10-21', 'move').refused).toEqual({
+    expect(refused(book, '2026-10-21', 'move')).toEqual({
       'remove-move': 'Une dose plus lointaine est déjà notée.',
     })
   })

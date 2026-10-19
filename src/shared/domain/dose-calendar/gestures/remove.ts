@@ -56,23 +56,42 @@ function reportRemovalRefusal(input: TreatmentViewInput, report: Line): Refusal 
   return after.others.length > 0 ? { reason: 'later-line' } : null
 }
 
+function lock(input: TreatmentViewInput, line: Line, effect: LineEffect): Refusal | null {
+  if (effect.kind === 'idle' || line.status !== 'postponed') return null
+  const carried = effect.kind === 'moves' ? doseLines(input, line) : []
+  const reports = [line, ...carried.filter(({ status }) => status === 'postponed')]
+  if (reports.some((report) => arrivalLogged(input, report))) return { reason: 'arrival-logged' }
+  return effect.kind === 'moves' && effect.opensRhythm ? { reason: 'not-movable' } : null
+}
+
 function ownRefusal(input: TreatmentViewInput, line: Line, effect: LineEffect): Refusal | null {
   if (effect.kind === 'idle') return null
   if (line.status === 'postponed') {
-    const carried = effect.kind === 'moves' ? doseLines(input, line) : []
-    const reports = [line, ...carried.filter(({ status }) => status === 'postponed')]
-    if (reports.some((report) => arrivalLogged(input, report))) return { reason: 'arrival-logged' }
-    if (effect.kind === 'moves' && effect.opensRhythm) return { reason: 'not-movable' }
-    return effect.kind === 'moves' ? reportRemovalRefusal(input, line) : null
+    const locked = lock(input, line, effect)
+    if (locked !== null || effect.kind !== 'moves') return locked
+    return reportRemovalRefusal(input, line)
   }
   return line.status === 'shift' ? shiftRemovalRefusal(input, line) : null
 }
 
-function removal(input: TreatmentViewInput, lineId: string) {
+function lineAndEffect(input: TreatmentViewInput, lineId: string, view = buildView(input)) {
   const line = input.lines.find(({ id }) => id === lineId)
   if (line === undefined) throw new RangeError(`Aucune ligne à supprimer : ${lineId}`)
+  return { line, effect: view.history.find((entry) => entry.line.id === lineId)!.effect }
+}
+
+/**
+ * Le refus de « Supprimer » qui verrouille un report : sa dose d'arrivée, ou celle d'un report qu'il
+ * emporte, est notée (Q25), ou il est devenu la première échéance d'un nouveau rythme (#780, R9.2).
+ */
+export function reportRemovalLock(input: TreatmentViewInput, lineId: string): Refusal | null {
+  const { line, effect } = lineAndEffect(input, lineId)
+  return lock(input, line, effect)
+}
+
+function removal(input: TreatmentViewInput, lineId: string) {
   const before = buildView(input)
-  const effect = before.history.find((entry) => entry.line.id === lineId)!.effect
+  const { line, effect } = lineAndEffect(input, lineId, before)
   const companions =
     line.status === 'postponed' && effect.kind === 'moves'
       ? reportCompanions(input, line)
@@ -88,7 +107,8 @@ function removal(input: TreatmentViewInput, lineId: string) {
  * Pourquoi « Supprimer » est refusé : report, ou report qu'il emporte, dont la dose d'arrivée est
  * notée (Q25), report devenu la première échéance d'un nouveau rythme (#780, R9.2) ou dont le
  * décalage ne peut pas partir avec lui (#835), décalage suivi d'une prise ou d'un report seul qui ne
- * tiendrait plus (N8, G19), et, pour toute ligne, le refus du geste écrit (R6, R7).
+ * tiendrait plus (N8, G19), et, pour toute ligne, le refus du geste écrit (R6, R7) ; une ligne sans
+ * effet se supprime toujours (R11).
  */
 export function removalRefusal(input: TreatmentViewInput, lineId: string): Refusal | null {
   return removal(input, lineId).refusal
