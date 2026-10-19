@@ -40,7 +40,7 @@ afterEach(() => {
 
 function reprise() {
   const values = ref(emptyTreatmentFormValues())
-  const history = ref<TreatmentWithPeriods | null>(null)
+  const withPeriods = ref<TreatmentWithPeriods | null>(null)
   const endsOnTouched = ref(false)
   let form: ReturnType<typeof useTreatmentResumptionForm> | undefined
   mount(
@@ -48,7 +48,7 @@ function reprise() {
       setup() {
         form = useTreatmentResumptionForm({
           values,
-          treatment: history,
+          treatment: withPeriods,
           today: ref(TODAY),
           endsOnTouched,
         })
@@ -57,27 +57,27 @@ function reprise() {
     }),
     { global: { plugins: [router] } },
   )
-  return { values, history, endsOnTouched, form: form! }
+  return { values, withPeriods, endsOnTouched, form: form! }
 }
 
 describe('useTreatmentResumptionForm — ouverture', () => {
   it('part des réglages de la dernière période, sans date de fin ni première prise', () => {
-    const { values, history, form } = reprise()
+    const { values, withPeriods, form } = reprise()
 
     expect(form.open(ARRETE())).toBe(true)
-    expect(history.value?.id).toBe(ARRETE().id)
+    expect(withPeriods.value?.id).toBe(ARRETE().id)
     expect(values.value).toMatchObject({ name: 'Milbemax', firstDoseOn: '', endsOn: '' })
     expect(form.previous.value).toMatchObject({ startedOn: '2026-07-10', endedOn: '2026-08-01' })
   })
 
   it('revient à la fiche d’un traitement en cours, qui n’a rien à reprendre', async () => {
     const select = vi.spyOn(useAnimalsStore(), 'select')
-    const { history, form } = reprise()
+    const { withPeriods, form } = reprise()
 
     expect(form.open(milbemax())).toBe(false)
     await flushPromises()
 
-    expect(history.value).toBeNull()
+    expect(withPeriods.value).toBeNull()
     expect(select).toHaveBeenCalledWith(milbemax().animalId)
     expect(router.currentRoute.value.name).toBe('treatment-detail')
   })

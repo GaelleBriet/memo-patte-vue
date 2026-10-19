@@ -38,26 +38,26 @@ afterEach(() => {
 
 function modification(loaded: TreatmentWithPeriods = milbemax()) {
   const values = ref(emptyTreatmentFormValues())
-  const history = ref<TreatmentWithPeriods | null>(null)
+  const withPeriods = ref<TreatmentWithPeriods | null>(null)
   let form: ReturnType<typeof useTreatmentEditionForm> | undefined
   mount(
     defineComponent({
       setup() {
-        form = useTreatmentEditionForm({ values, treatment: history, today: ref(TODAY) })
+        form = useTreatmentEditionForm({ values, treatment: withPeriods, today: ref(TODAY) })
         return () => null
       },
     }),
     { global: { plugins: [i18n] } },
   )
   form!.open(loaded)
-  return { values, history, form: form! }
+  return { values, withPeriods, form: form! }
 }
 
 describe('useTreatmentEditionForm — prochaine dose', () => {
   it('ouvre sur les réglages en cours et la prochaine dose proposée', () => {
-    const { values, history, form } = modification()
+    const { values, withPeriods, form } = modification()
 
-    expect(history.value?.id).toBe(milbemax().id)
+    expect(withPeriods.value?.id).toBe(milbemax().id)
     expect(values.value).toMatchObject({ name: 'Milbemax', nextDoseOn: '2026-10-10' })
     expect(form.nextDose.value).toMatchObject({ proposedOn: '2026-10-10' })
     expect(form.hasSettings.value).toBe(true)
@@ -82,12 +82,12 @@ describe('useTreatmentEditionForm — prochaine dose', () => {
 
   it('sans brouillon lisible, ne propose rien et lève à l’enregistrement', () => {
     const values = ref(emptyTreatmentFormValues())
-    const history = ref<TreatmentWithPeriods | null>(milbemax([period({ times: ['8h'] })]))
+    const withPeriods = ref<TreatmentWithPeriods | null>(milbemax([period({ times: ['8h'] })]))
     let form: ReturnType<typeof useTreatmentEditionForm> | undefined
     mount(
       defineComponent({
         setup() {
-          form = useTreatmentEditionForm({ values, treatment: history, today: ref(TODAY) })
+          form = useTreatmentEditionForm({ values, treatment: withPeriods, today: ref(TODAY) })
           return () => null
         },
       }),
@@ -129,7 +129,7 @@ describe('useTreatmentEditionForm — échéances tombées', () => {
   })
 
   it('la question a changé entre l’affichage et l’enregistrement : recharge le traitement et la repose, sans échec', async () => {
-    const { form, history } = await aDemander()
+    const { form, withPeriods } = await aDemander()
     form.answerPastDues('drop')
     const changed = new ZodError([
       { code: 'custom', path: ['pastDues'], message: 'required', input: undefined },
@@ -141,7 +141,7 @@ describe('useTreatmentEditionForm — échéances tombées', () => {
     await expect(form.write()?.()).resolves.toBeNull()
 
     expect(reload).toHaveBeenCalledWith(SANS_PRISE().id)
-    expect(history.value).toEqual(fresh)
+    expect(withPeriods.value).toEqual(fresh)
     expect(form.isPastDuesOpen.value).toBe(true)
   })
 

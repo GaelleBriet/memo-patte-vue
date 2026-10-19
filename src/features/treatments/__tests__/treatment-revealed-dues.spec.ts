@@ -64,7 +64,7 @@ function pastWithoutDose(view: TreatmentView, today: string) {
 
 type Case = {
   name: string
-  history: TreatmentWithPeriods
+  withPeriods: TreatmentWithPeriods
   today: string
   action: DoseAction
   help: () => string | undefined
@@ -107,7 +107,7 @@ function changeDateHelp(
 const CASES: Case[] = [
   {
     name: 'hebdomadaire, prise corrigée plus tôt',
-    history: HEBDO,
+    withPeriods: HEBDO,
     today: HEBDO_TODAY,
     action: { kind: 'redate', lineId: PRISE_16.id, givenOn: '2026-10-12', shiftsFollowing: true },
     help: () => changeDateHelp(HEBDO, PRISE_16, '2026-10-12', HEBDO_TODAY),
@@ -116,7 +116,7 @@ const CASES: Case[] = [
   },
   {
     name: 'mensuel, prise corrigée plus tôt',
-    history: MENSUEL,
+    withPeriods: MENSUEL,
     today: MENS_TODAY,
     action: { kind: 'redate', lineId: PRISE_30.id, givenOn: '2026-09-28', shiftsFollowing: true },
     help: () => changeDateHelp(MENSUEL, PRISE_30, '2026-09-28', MENS_TODAY),
@@ -125,7 +125,7 @@ const CASES: Case[] = [
   },
   {
     name: '« Fait à une autre date », case cochée',
-    history: AUTRE,
+    withPeriods: AUTRE,
     today: HEBDO_TODAY,
     action: {
       kind: 'note',
@@ -152,8 +152,8 @@ const CASES: Case[] = [
 
 describe('revealedDues — les doses passées qu’un geste fait apparaître', () => {
   it.each(CASES)('$name : les dates annoncées sont celles du calendrier enregistré', async (c) => {
-    const before = pastWithoutDose(treatmentReadingOf(c.history, c.today).view, c.today)
-    const { change, after } = await saved(c.history, c.action, c.today)
+    const before = pastWithoutDose(treatmentReadingOf(c.withPeriods, c.today).view, c.today)
+    const { change, after } = await saved(c.withPeriods, c.action, c.today)
     const now = pastWithoutDose(after, c.today)
 
     const announced = {
