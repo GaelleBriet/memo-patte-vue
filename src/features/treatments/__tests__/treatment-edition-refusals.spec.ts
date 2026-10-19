@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { treatmentEditionSchemaFor } from '../logic/treatment-edition-checks'
 import { editionDraft } from '../logic/treatment-edition-draft'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentEditionInput } from '../schema/treatment-form.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
@@ -47,7 +47,7 @@ function period(overrides: Partial<TreatmentPeriodRecord>): TreatmentPeriodRecor
   }
 }
 
-function dose(overrides: Partial<NewTreatmentDose>): NewTreatmentDose {
+function dose(overrides: Partial<TreatmentDose>): TreatmentDose {
   const createdAt = at()
   return {
     id: `d-${stamp}`,
@@ -66,7 +66,7 @@ function dose(overrides: Partial<NewTreatmentDose>): NewTreatmentDose {
   }
 }
 
-function treatment(periods: TreatmentPeriodRecord[], doses: NewTreatmentDose[]) {
+function treatment(periods: TreatmentPeriodRecord[], doses: TreatmentDose[]) {
   return {
     id: TREATMENT,
     animalId: MILO,

@@ -34,7 +34,7 @@ import { createDeviceRepository } from '@/core/device/device.repository'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { createTreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
 import { createTreatmentPeriodsRepository } from '@/features/treatments/repository/treatment-periods.repository'
-import type { NewTreatmentDose } from '@/features/treatments/schema/treatment-dose.schema'
+import type { TreatmentDose } from '@/features/treatments/schema/treatment-dose.schema'
 import { createTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
 import { createVaccinationInjectionsRepository } from '@/features/vaccinations/repository/vaccination-injections.repository'
 import { createVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
@@ -77,11 +77,11 @@ function createRepositories(client: InMemoryDb) {
 
 /** Prise donnée à son échéance, dans la première période de son traitement. */
 function prise(
-  dose: Pick<NewTreatmentDose, 'id' | 'treatmentId' | 'animalId'> & {
+  dose: Pick<TreatmentDose, 'id' | 'treatmentId' | 'animalId'> & {
     givenOn: string
     at: string
   },
-): NewTreatmentDose {
+): TreatmentDose {
   const { at, ...fields } = dose
   return {
     ...fields,

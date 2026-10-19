@@ -1,4 +1,4 @@
-import type { NewTreatmentDose } from './treatment-dose.schema'
+import type { TreatmentDose } from './treatment-dose.schema'
 import type { TreatmentPeriodRecord } from './treatment-period.schema'
 import type { Treatment } from './treatment.schema'
 
@@ -14,5 +14,5 @@ export type TreatmentRecord = Pick<
  */
 export type TreatmentWithHistory = TreatmentRecord & {
   periods: TreatmentPeriodRecord[]
-  doses: (NewTreatmentDose & { createdByDevice?: string })[]
+  doses: (TreatmentDose & { createdByDevice?: string })[]
 }

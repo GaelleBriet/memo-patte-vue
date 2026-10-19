@@ -1,6 +1,6 @@
 import type { SqlParam } from '@/core/db/db-client'
 import type { Stamped } from '@/shared/domain/carnet-data'
-import type { DoseFields, NewTreatmentDose, TreatmentDose } from '../schema/treatment-dose.schema'
+import type { DoseFields, TreatmentDose } from '../schema/treatment-dose.schema'
 
 export interface DoseRow {
   id: string
@@ -62,7 +62,7 @@ export function toRecord(row: DoseRow): Stamped<TreatmentDose> {
   }
 }
 
-export function valuesOf(dose: Stamped<NewTreatmentDose>): SqlParam[] {
+export function valuesOf(dose: Stamped<TreatmentDose>): SqlParam[] {
   return [
     dose.id,
     dose.periodId,

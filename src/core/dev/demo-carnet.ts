@@ -1,6 +1,6 @@
 import { addDays, addMonths, format, subDays, subMonths, subYears } from 'date-fns'
 import type { AnimalInput } from '@/features/animals/schema/animal.schema'
-import type { NewTreatmentDose } from '@/features/treatments/schema/treatment-dose.schema'
+import type { TreatmentDose } from '@/features/treatments/schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '@/features/treatments/schema/treatment-period.schema'
 import type { TreatmentType } from '@/features/treatments/schema/treatment.schema'
 import type { VaccinationInput } from '@/features/vaccinations/schema/vaccination.schema'
@@ -22,10 +22,7 @@ export interface DemoVaccination extends Omit<VaccinationInput, 'animalId'> {
   injections?: { injectedOn: string; nextDueDate: string | null }[]
 }
 
-export type DemoDose = Pick<
-  NewTreatmentDose,
-  'dueOn' | 'dueTime' | 'givenOn' | 'status' | 'targetOn'
->
+export type DemoDose = Pick<TreatmentDose, 'dueOn' | 'dueTime' | 'givenOn' | 'status' | 'targetOn'>
 
 /** Une échéance sans ligne dans `doses` est une dose non renseignée. */
 export type DemoPeriod = Pick<TreatmentPeriodRecord, 'startsOn' | 'frequency'> &

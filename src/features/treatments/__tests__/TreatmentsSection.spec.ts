@@ -6,7 +6,7 @@ import TreatmentsSection from '../views/TreatmentsSection.vue'
 import ListRowIcon from '@/shared/components/ListRowIcon.vue'
 import type { TreatmentsRepository } from '../repository/treatments.repository'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import { provideTreatmentsRepository } from '../store/treatments.store'
 import { fakeTreatmentsRepository } from './fake-treatments-repository'
@@ -22,7 +22,7 @@ const NBSP = /\u00a0/g
 
 type Overrides = Partial<Pick<TreatmentWithHistory, 'animalId' | 'name' | 'type'>> & {
   period?: Partial<TreatmentPeriodRecord>
-  doses?: NewTreatmentDose[]
+  doses?: TreatmentDose[]
 }
 
 /** Trimestriel sans prise, première dose le 24 sept. : à venir le 9 sept. */

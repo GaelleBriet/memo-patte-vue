@@ -5,7 +5,7 @@ import { creationPastDues, creationPlan } from '../logic/treatment-creation'
 import { editionDraft } from '../logic/treatment-edition-draft'
 import { editionPlan } from '../logic/treatment-edition-plan'
 import { resumptionDraft, resumptionPlan } from '../logic/treatment-resumption'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type {
   TreatmentCreationInput,
   TreatmentEditionInput,
@@ -48,7 +48,7 @@ function period(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPeriod
   }
 }
 
-function dose(dueOn: string, overrides: Partial<NewTreatmentDose> = {}): NewTreatmentDose {
+function dose(dueOn: string, overrides: Partial<TreatmentDose> = {}): TreatmentDose {
   return {
     id: `d-${dueOn}`,
     periodId: TREATMENT,
@@ -68,7 +68,7 @@ function dose(dueOn: string, overrides: Partial<NewTreatmentDose> = {}): NewTrea
 
 function treatment(
   periods: TreatmentPeriodRecord[],
-  doses: NewTreatmentDose[] = [],
+  doses: TreatmentDose[] = [],
 ): TreatmentWithHistory {
   return {
     id: TREATMENT,

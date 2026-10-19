@@ -1,6 +1,6 @@
 import type { DbClient } from '@/core/db/db-client'
 import type { Stamped } from '@/shared/domain/carnet-data'
-import type { NewTreatmentDose, TreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import {
   HEAD_FIRST,
   FROM_DOSES,
@@ -11,7 +11,7 @@ import {
 } from './treatment-dose-row.repository'
 
 export type TreatmentDoseVersion = Pick<
-  NewTreatmentDose,
+  TreatmentDose,
   'id' | 'periodId' | 'treatmentId' | 'updatedAt' | 'deletedAt'
 >
 

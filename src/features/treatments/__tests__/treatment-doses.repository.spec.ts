@@ -8,7 +8,7 @@ import {
   getTreatmentDosesRepository,
   type TreatmentDosesRepository,
 } from '../repository/treatment-doses.repository'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import { seedTreatmentWithDose } from './seed-treatment'
 
 vi.mock('@/core/db/sqlite', () => ({ getDb: vi.fn<() => Promise<DbClient>>() }))
@@ -31,8 +31,8 @@ function prise(
   treatmentId: string,
   id: string,
   givenOn: string,
-  surcharges: Partial<NewTreatmentDose> = {},
-): NewTreatmentDose {
+  surcharges: Partial<TreatmentDose> = {},
+): TreatmentDose {
   return {
     id,
     periodId: treatmentId,
@@ -225,7 +225,7 @@ describe('treatmentDosesRepository — historique', () => {
   let doses: TreatmentDosesRepository
   let milbemax: string
 
-  function prisePlan(id: string, givenOn: string, surcharges: Partial<NewTreatmentDose> = {}) {
+  function prisePlan(id: string, givenOn: string, surcharges: Partial<TreatmentDose> = {}) {
     return prise(milbemax, id, givenOn, surcharges)
   }
 

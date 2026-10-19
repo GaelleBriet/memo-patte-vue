@@ -1,5 +1,5 @@
 import { treatmentFormValuesFrom, type TreatmentFormValues } from '../logic/treatment-form-values'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import { legacyFactsOf } from '@/shared/domain/dose-calendar'
@@ -37,7 +37,7 @@ export function period(overrides: Partial<TreatmentPeriodRecord> = {}): Treatmen
   }
 }
 
-export const PRISE: NewTreatmentDose = {
+export const PRISE: TreatmentDose = {
   id: 'd-1',
   periodId: TREATMENT,
   treatmentId: TREATMENT,
@@ -54,7 +54,7 @@ export const PRISE: NewTreatmentDose = {
 
 export function milbemax(
   periods: TreatmentPeriodRecord[] = [period()],
-  doses: NewTreatmentDose[] = [PRISE],
+  doses: TreatmentDose[] = [PRISE],
 ): TreatmentWithHistory {
   return {
     id: TREATMENT,

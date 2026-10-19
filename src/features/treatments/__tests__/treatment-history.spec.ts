@@ -17,7 +17,7 @@ import {
 } from '../logic/treatment-history'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const t = i18n.global.t
@@ -43,8 +43,8 @@ function daily(
   from: number,
   to: number,
   times: (string | null)[],
-  overrides: Partial<NewTreatmentDose> = {},
-): NewTreatmentDose[] {
+  overrides: Partial<TreatmentDose> = {},
+): TreatmentDose[] {
   return Array.from({ length: to - from + 1 }, (_, index) => {
     const day = `2026-09-${String(from + index).padStart(2, '0')}`
     return times.map((dueTime) => dose(day, day, { dueTime, ...overrides }))

@@ -22,15 +22,13 @@ export const treatmentDoseSchema = z.object({
 })
 
 /** Ce qu'une prise écrit en base. */
-export type NewTreatmentDose = z.output<typeof treatmentDoseSchema>
+export type TreatmentDose = z.output<typeof treatmentDoseSchema>
 
-export type TreatmentDose = NewTreatmentDose
-
-export type DoseOwner = Pick<NewTreatmentDose, 'id' | 'treatmentId' | 'animalId'>
+export type DoseOwner = Pick<TreatmentDose, 'id' | 'treatmentId' | 'animalId'>
 
 /** Ce qu'une écriture pose sur une ligne ; son traitement et son animal ne changent jamais. */
 export type DoseFields = Pick<
-  NewTreatmentDose,
+  TreatmentDose,
   'periodId' | 'dueOn' | 'dueTime' | 'givenOn' | 'status' | 'targetOn'
 >
 

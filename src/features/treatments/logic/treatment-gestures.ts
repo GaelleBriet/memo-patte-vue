@@ -2,7 +2,7 @@ import { logTexts, noteTexts } from './treatment-dose-texts'
 import type { DoseAction, DoseChange } from './treatment-dose-change'
 import { moveTexts, redateTexts, removeTexts } from './treatment-line-texts'
 import type { RevealedDues } from './treatment-revealed-dues'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { Due } from '@/shared/domain/dose-calendar'
 import { isSeveralTimesADay } from '@/shared/domain/treatment-periods'
@@ -33,7 +33,7 @@ export type DoseActionTexts = {
 }
 
 export type DueDay = Pick<Due, 'dueOn' | 'dueTime'> & {
-  status?: NewTreatmentDose['status']
+  status?: TreatmentDose['status']
   createdAt?: string
 }
 

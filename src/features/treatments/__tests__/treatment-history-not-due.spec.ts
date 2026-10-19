@@ -6,7 +6,7 @@ import { treatmentHistory } from '../logic/treatment-history'
 import { lineAction } from '../logic/treatment-line-actions'
 import { doseActionTexts } from '../logic/treatment-gestures'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const t = i18n.global.t
@@ -15,7 +15,7 @@ const ANSWERED_AT = new Date(2026, 2, 20, 12).toISOString()
 const LATER_AT = new Date(2026, 2, 21, 12).toISOString()
 const TODAY = '2026-03-25'
 
-function notDue(dueOn: string, overrides: Partial<NewTreatmentDose> = {}): NewTreatmentDose {
+function notDue(dueOn: string, overrides: Partial<TreatmentDose> = {}): TreatmentDose {
   return dose(dueOn, dueOn, {
     id: `pas à donner ${dueOn}`,
     givenOn: null,
@@ -52,7 +52,7 @@ function lines(book = MILO) {
   return only!.lines
 }
 
-function removeTexts(line: NewTreatmentDose) {
+function removeTexts(line: TreatmentDose) {
   return doseActionTexts(
     t,
     { name: 'Métacam', animal: 'Milo', today: TODAY, severalTimes: false },

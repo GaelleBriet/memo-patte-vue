@@ -19,7 +19,7 @@ import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
 const viewOf = (history: Pick<TreatmentWithHistory, 'periods' | 'doses'>, today: string) =>
   treatmentReadingOf(history, today).view
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type {
   TreatmentCreationInput,
   TreatmentEditionInput,
@@ -65,7 +65,7 @@ function period(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPeriod
   }
 }
 
-function dose(overrides: Partial<NewTreatmentDose> = {}): NewTreatmentDose {
+function dose(overrides: Partial<TreatmentDose> = {}): TreatmentDose {
   return {
     id: 'd-1',
     periodId: TREATMENT,
@@ -85,7 +85,7 @@ function dose(overrides: Partial<NewTreatmentDose> = {}): NewTreatmentDose {
 
 function treatment(
   periods: TreatmentPeriodRecord[],
-  doses: NewTreatmentDose[] = [],
+  doses: TreatmentDose[] = [],
 ): TreatmentWithHistory {
   return {
     id: TREATMENT,

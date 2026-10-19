@@ -1,4 +1,4 @@
-import type { DoseFields, DoseWrite, NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { DoseFields, DoseWrite, TreatmentDose } from '../schema/treatment-dose.schema'
 import type { PlannedDoseWrite } from '../schema/treatment-plan.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
 import type { LineChange, LineFields } from '@/shared/domain/dose-calendar'
@@ -16,7 +16,7 @@ export function doseFieldsOf(line: LineFields): DoseFields {
   }
 }
 
-function isUnchanged(line: NewTreatmentDose | undefined, dose: DoseFields): boolean {
+function isUnchanged(line: TreatmentDose | undefined, dose: DoseFields): boolean {
   return (
     line !== undefined &&
     line.periodId === dose.periodId &&

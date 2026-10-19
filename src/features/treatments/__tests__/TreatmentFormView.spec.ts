@@ -5,7 +5,7 @@ import { createMemoryHistory, createRouter, createWebHistory, type Router } from
 
 import TreatmentFormView from '../views/TreatmentFormView.vue'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type {
   TreatmentCreationInput,
   TreatmentEditionInput,
@@ -129,7 +129,7 @@ function periode(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPerio
   }
 }
 
-function prise(overrides: Partial<NewTreatmentDose> = {}): NewTreatmentDose {
+function prise(overrides: Partial<TreatmentDose> = {}): TreatmentDose {
   return {
     id: 'd-1',
     periodId: ID,
@@ -149,7 +149,7 @@ function prise(overrides: Partial<NewTreatmentDose> = {}): NewTreatmentDose {
 
 function milbemax(
   periods: TreatmentPeriodRecord[] = [periode()],
-  doses: NewTreatmentDose[] = [prise()],
+  doses: TreatmentDose[] = [prise()],
 ): TreatmentWithHistory {
   return {
     id: ID,

@@ -1,6 +1,6 @@
 import type { DoseWrite } from '../schema/treatment-dose.schema'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import { legacyFactsOf } from '@/shared/domain/dose-calendar'
 
@@ -41,8 +41,8 @@ export function period(overrides: Partial<TreatmentPeriodRecord> = {}): Treatmen
 export function dose(
   dueOn: string,
   next: string,
-  overrides: Partial<NewTreatmentDose> = {},
-): NewTreatmentDose {
+  overrides: Partial<TreatmentDose> = {},
+): TreatmentDose {
   const dueTime = overrides.dueTime ?? null
   const status = overrides.status ?? 'given'
   return {
@@ -65,16 +65,16 @@ export function dose(
 export function missed(
   dueOn: string,
   next: string,
-  overrides: Partial<NewTreatmentDose> = {},
-): NewTreatmentDose {
+  overrides: Partial<TreatmentDose> = {},
+): TreatmentDose {
   return dose(dueOn, next, { givenOn: null, status: 'missed', ...overrides })
 }
 
 export function postponed(
   dueOn: string,
   to: string,
-  overrides: Partial<NewTreatmentDose> = {},
-): NewTreatmentDose {
+  overrides: Partial<TreatmentDose> = {},
+): TreatmentDose {
   return dose(dueOn, to, {
     id: `report ${dueOn}`,
     givenOn: null,
@@ -87,8 +87,8 @@ export function postponed(
 export function shifted(
   dueOn: string,
   anchoredOn: string,
-  overrides: Partial<NewTreatmentDose> = {},
-): NewTreatmentDose {
+  overrides: Partial<TreatmentDose> = {},
+): TreatmentDose {
   return dose(dueOn, anchoredOn, {
     id: `décalage ${dueOn}`,
     givenOn: null,
@@ -101,14 +101,14 @@ export function shifted(
 export function extra(
   givenOn: string,
   next: string,
-  overrides: Partial<NewTreatmentDose> = {},
-): NewTreatmentDose {
+  overrides: Partial<TreatmentDose> = {},
+): TreatmentDose {
   return dose(givenOn, next, { id: `en plus ${givenOn}`, status: 'extra', ...overrides })
 }
 
 export function treatment(
   periods: TreatmentPeriodRecord[],
-  doses: NewTreatmentDose[] = [],
+  doses: TreatmentDose[] = [],
 ): TreatmentWithHistory {
   return {
     id: 'metacam',
