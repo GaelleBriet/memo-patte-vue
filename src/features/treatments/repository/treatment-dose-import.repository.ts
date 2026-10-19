@@ -1,9 +1,9 @@
 import type { SqlStatement } from '@/core/db/db-client'
 import type { Stamped } from '@/shared/domain/carnet-data'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import { COLUMNS, PLACEHOLDERS, valuesOf } from './treatment-dose-row.repository'
 
-export type RestoredTreatmentDose = Omit<Stamped<NewTreatmentDose>, 'deletedAt'>
+export type RestoredTreatmentDose = Omit<Stamped<TreatmentDose>, 'deletedAt'>
 
 /** Une prise existante garde sa période, son traitement et son animal : le reste suit le fichier. */
 export function restoreStatement(dose: RestoredTreatmentDose, exists: boolean): SqlStatement {

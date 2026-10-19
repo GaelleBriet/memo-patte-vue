@@ -13,7 +13,7 @@ import {
   createTreatmentPeriodsRepository,
   type TreatmentPeriodsRepository,
 } from '../repository/treatment-periods.repository'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { Treatment } from '../schema/treatment.schema'
 import { seedTreatmentWithDose } from './seed-treatment'
@@ -303,7 +303,7 @@ describe('treatmentsRepository — périodes et prises', () => {
       createdAt = '2026-09-20T10:00:00.000Z',
       id = crypto.randomUUID(),
       ...surcharges
-    }: Partial<NewTreatmentDose> = {},
+    }: Partial<TreatmentDose> = {},
   ): Promise<string> {
     await db.runMany([
       doses.insertStatement({

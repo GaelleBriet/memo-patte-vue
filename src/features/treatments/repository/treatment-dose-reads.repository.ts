@@ -1,17 +1,17 @@
 import type { DbClient } from '@/core/db/db-client'
 import type { Stamped } from '@/shared/domain/carnet-data'
-import type { NewTreatmentDose, TreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import {
   HEAD_FIRST,
-  WITH_FREQUENCY,
+  FROM_DOSES,
   toDose,
   toRecord,
+  type DoseRow,
   type DoseVersionRow,
-  type DoseWithFrequencyRow,
 } from './treatment-dose-row.repository'
 
 export type TreatmentDoseVersion = Pick<
-  NewTreatmentDose,
+  TreatmentDose,
   'id' | 'periodId' | 'treatmentId' | 'updatedAt' | 'deletedAt'
 >
 
@@ -19,8 +19,8 @@ export function createDoseReads(db: DbClient) {
   return {
     /** Prises visibles, la dernière ligne d'abord. */
     async listByTreatment(treatmentId: string): Promise<TreatmentDose[]> {
-      const rows = await db.query<DoseWithFrequencyRow>(
-        `${WITH_FREQUENCY}
+      const rows = await db.query<DoseRow>(
+        `${FROM_DOSES}
          WHERE dose.treatment_id = ? AND dose.deleted_at IS NULL
          ORDER BY ${HEAD_FIRST}`,
         [treatmentId],
@@ -30,8 +30,8 @@ export function createDoseReads(db: DbClient) {
 
     /** Comme `listByTreatment`, toutes colonnes comprises : l'appareil de chaque ligne (TR-25). */
     async listRecordsByTreatment(treatmentId: string): Promise<Stamped<TreatmentDose>[]> {
-      const rows = await db.query<DoseWithFrequencyRow>(
-        `${WITH_FREQUENCY}
+      const rows = await db.query<DoseRow>(
+        `${FROM_DOSES}
          WHERE dose.treatment_id = ? AND dose.deleted_at IS NULL
          ORDER BY ${HEAD_FIRST}`,
         [treatmentId],
@@ -44,8 +44,8 @@ export function createDoseReads(db: DbClient) {
      * colonnes comprises : ce que l'export emporte.
      */
     async listRecords(): Promise<Stamped<TreatmentDose>[]> {
-      const rows = await db.query<DoseWithFrequencyRow>(
-        `${WITH_FREQUENCY}
+      const rows = await db.query<DoseRow>(
+        `${FROM_DOSES}
          WHERE dose.deleted_at IS NULL
          ORDER BY dose.treatment_id, ${HEAD_FIRST}`,
       )
@@ -54,8 +54,8 @@ export function createDoseReads(db: DbClient) {
 
     /** Prises visibles des traitements d'un animal, celles d'un même traitement la dernière d'abord. */
     async listRecordsByAnimal(animalId: string): Promise<Stamped<TreatmentDose>[]> {
-      const rows = await db.query<DoseWithFrequencyRow>(
-        `${WITH_FREQUENCY}
+      const rows = await db.query<DoseRow>(
+        `${FROM_DOSES}
          WHERE dose.animal_id = ? AND dose.deleted_at IS NULL
          ORDER BY dose.treatment_id, ${HEAD_FIRST}`,
         [animalId],
@@ -64,8 +64,8 @@ export function createDoseReads(db: DbClient) {
     },
 
     async getById(id: string): Promise<TreatmentDose | null> {
-      const rows = await db.query<DoseWithFrequencyRow>(
-        `${WITH_FREQUENCY} WHERE dose.id = ? AND dose.deleted_at IS NULL`,
+      const rows = await db.query<DoseRow>(
+        `${FROM_DOSES} WHERE dose.id = ? AND dose.deleted_at IS NULL`,
         [id],
       )
       const row = rows[0]

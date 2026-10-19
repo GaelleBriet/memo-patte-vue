@@ -1,12 +1,12 @@
 import type { DoseAction } from './treatment-dose-change'
 import { moveText, type DoseLineAction } from './treatment-history'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { Due, MoveBounds, TreatmentView } from '@/shared/domain/dose-calendar'
 import { formatLongDate } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
 type Line = Pick<
-  NewTreatmentDose,
+  TreatmentDose,
   'id' | 'periodId' | 'dueOn' | 'dueTime' | 'givenOn' | 'status' | 'targetOn'
 >
 

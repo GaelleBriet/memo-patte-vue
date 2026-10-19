@@ -1,11 +1,11 @@
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import { isAdvanced } from '@/shared/domain/dose-calendar'
 import { formatDayMonthOrYear, formatLongDate } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
 export function moveText(
   t: Translate,
-  dose: Pick<NewTreatmentDose, 'status' | 'dueOn' | 'targetOn'>,
+  dose: Pick<TreatmentDose, 'status' | 'dueOn' | 'targetOn'>,
 ): string {
   const arrival = dose.targetOn ?? dose.dueOn
   const dates = {

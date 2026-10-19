@@ -16,7 +16,7 @@ import { fakeTreatmentsRepository } from './fake-treatments-repository'
 import { dose, missed, period, postponed, shifted, treatment } from './treatment-fixtures'
 import { DoseAlreadyLoggedError } from '../logic/treatment-dose-change'
 import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentDosesService } from '../service/treatment-doses.service'
 import type { TreatmentStopService } from '../service/treatment-stop.service'
 import {
@@ -82,7 +82,7 @@ const LUNA: Animal = {
 }
 
 const MATIN_ET_SOIR = period({ times: ['08:00', '20:00'], doseQuantity: 0.3, doseUnit: 'ml' })
-const HIER: NewTreatmentDose[] = [
+const HIER: TreatmentDose[] = [
   dose('2026-09-27', '2026-09-27', { dueTime: '08:00' }),
   dose('2026-09-27', '2026-09-28', { dueTime: '20:00' }),
 ]

@@ -9,7 +9,7 @@ import {
   createTreatmentsRepository,
   type TreatmentsRepository,
 } from '../repository/treatments.repository'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import { legacyFactsOf } from '@/shared/domain/dose-calendar'
 
@@ -80,8 +80,8 @@ const DE_PANACUR = period({
 })
 
 function dose(
-  overrides: Pick<NewTreatmentDose, 'id' | 'periodId' | 'dueOn'> & Partial<NewTreatmentDose>,
-): NewTreatmentDose {
+  overrides: Pick<TreatmentDose, 'id' | 'periodId' | 'dueOn'> & Partial<TreatmentDose>,
+): TreatmentDose {
   return {
     treatmentId: METACAM.id,
     animalId: LUNA,

@@ -6,7 +6,7 @@ import { parseReminderKey } from '@/shared/domain/due-reminders'
 import type { CarnetReminderSettings } from '@/shared/domain/reminder-plan'
 import type { TreatmentFrequency } from '../schema/treatment.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import { treatmentReminders } from '../logic/treatment-reminders'
 import { dose, missed, period, postponed, shifted, treatment } from './treatment-fixtures'
 
@@ -25,7 +25,7 @@ type Options = { now?: Date; settings?: CarnetReminderSettings }
 
 function remindersOf(
   overrides: Partial<TreatmentPeriodRecord>,
-  doses: NewTreatmentDose[] = [],
+  doses: TreatmentDose[] = [],
   { now = NOW, settings = SETTINGS }: Options = {},
 ) {
   return treatmentReminders(t, treatment([period(overrides)], doses), LUNA, settings, now)
@@ -37,7 +37,7 @@ const typed = (text = '') => text.replace(/\s/gu, ' ')
 /** `jour heure moment` de chaque rappel programmé, dans l'ordre. */
 function slots(
   overrides: Partial<TreatmentPeriodRecord>,
-  doses: NewTreatmentDose[] = [],
+  doses: TreatmentDose[] = [],
   options: Options = {},
 ): string[] {
   return (remindersOf(overrides, doses, options).care?.reminders ?? []).map(({ key }) => {

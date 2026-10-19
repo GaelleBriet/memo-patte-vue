@@ -1,5 +1,5 @@
 import type { SqlStatement } from '@/core/db/db-client'
-import type { DoseFields, DoseOwner, NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { DoseFields, DoseOwner, TreatmentDose } from '../schema/treatment-dose.schema'
 import {
   COLUMNS,
   NOT_DELETED,
@@ -9,7 +9,7 @@ import {
 } from './treatment-dose-row.repository'
 
 export function createDoseLineStatements(deviceId: () => string) {
-  function insertStatement(dose: NewTreatmentDose): SqlStatement {
+  function insertStatement(dose: TreatmentDose): SqlStatement {
     const device = deviceId()
     return {
       sql: `INSERT INTO treatment_dose (${COLUMNS}) VALUES (${PLACEHOLDERS})`,
