@@ -150,7 +150,9 @@ défaut (suite normale) : 20 carnets × 40 gestes.
 `src/shared/__tests__/dose-calendar.menu-historique.spec.ts` mène des carnets par les gestes de v2
 (`history-menu.ts`) et, à chaque pas, ouvre le menu ⋮ de chaque ligne de l'historique : chaque note
 proposée (« Marquer comme oubliée », « Marquer comme donnée ») est jouée par le moteur, qui ne doit
-ni la refuser ni lever. Les suppressions ne sont pas jouées.
+ni la refuser ni lever. Les suppressions ne sont pas jouées. C'est une non-régression : les graines
+fixes 977001278, 977003652 et 9600000073, où le menu proposait une note refusée avant #947, en sont
+la preuve.
 
 ```sh
 MENU_FROM=9600000000 MENU_SEEDS=1500 MENU_STEPS=40 \

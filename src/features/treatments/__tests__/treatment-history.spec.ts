@@ -852,6 +852,15 @@ describe('treatmentHistory — une prise dont l’échéance a quitté le calend
     expect(actionsOf(book, '2026-03-16 20:00')).toEqual(['change-date', 'remove'])
   })
 
+  it('Milo, le 20 mars : la prise du 16 à 20 h, passée, dont l’échéance a quitté le calendrier, ne propose pas « Marquer comme oubliée »', () => {
+    const book = treatment(
+      [LUNDIS, A_9H],
+      [...DOSES, dose('2026-03-16', '2026-03-16', { ...PRISE_DU_16, givenOn: '2026-03-09' })],
+    )
+
+    expect(menuOf(book, '2026-03-20', '2026-03-16 20:00')).toEqual(['change-date', 'remove'])
+  })
+
   it('Milo : 8 h du 16 oubliée, 20 h donnée d’avance ; l’oubli, resté hors du calendrier, ne propose pas « Marquer comme donnée »', () => {
     const book = treatment(
       [LUNDIS, A_9H],
