@@ -3,6 +3,7 @@ import {
   newSettings,
   play,
   rewritesCalendar,
+  rewritesGrid,
   rewrittenSetting,
   treatmentView,
   type Line,
@@ -105,25 +106,34 @@ function synced(base: TreatmentViewInput, a: TreatmentViewInput, b: TreatmentVie
   }
 }
 
-// La date d'écriture du réglage n'avance que si son calendrier change (migration v14).
+type Written = { settings: Map<string, string>; grids: Map<string, string> }
+
+// Comme le repository : un seul instant par réécriture, posé sur les réglages si leur calendrier
+// change (v14) et sur la grille si ses échéances changent (v17).
 function writtenDates(
   before: readonly Setting[],
   after: readonly Setting[],
-  written: Map<string, string>,
+  written: Written,
   next: () => string,
 ) {
   for (const setting of after) {
     const old = before.find(({ id }) => id === setting.id)
     if (old === undefined) {
-      if (!written.has(setting.id)) written.set(setting.id, setting.createdAt)
-    } else if (rewritesCalendar(old, setting)) written.set(setting.id, next())
+      if (!written.settings.has(setting.id)) written.settings.set(setting.id, setting.createdAt)
+      continue
+    }
+    const [calendar, grid] = [rewritesCalendar(old, setting), rewritesGrid(old, setting)]
+    if (!calendar && !grid) continue
+    const at = next()
+    if (calendar) written.settings.set(setting.id, at)
+    if (grid) written.grids.set(setting.id, at)
   }
 }
 
 /** Les fourches d'un carnet mené par les gestes de v2, une chance sur deux et demie par pas. */
 export function forksOf(seed: number, steps: number, onFork: (fork: Fork) => void): void {
   const walk = startV2Walk(seed)
-  const written = new Map<string, string>()
+  const written: Written = { settings: new Map(), grids: new Map() }
   const random = mulberry32(seed ^ 0x7f4a7c15)
   for (let step = 0; step < steps; step += 1) {
     const before = walk.input.settings
@@ -133,8 +143,13 @@ export function forksOf(seed: number, steps: number, onFork: (fork: Fork) => voi
     const base: TreatmentViewInput = {
       ...walk.input,
       settings: walk.input.settings.map((setting) => {
-        const at = written.get(setting.id)
-        return at !== undefined && at > setting.createdAt ? { ...setting, updatedAt: at } : setting
+        const at = written.settings.get(setting.id)
+        const grid = written.grids.get(setting.id)
+        return {
+          ...setting,
+          ...(at !== undefined && at > setting.createdAt ? { updatedAt: at } : {}),
+          ...(grid === undefined ? {} : { gridWrittenAt: grid }),
+        }
       }),
     }
     const view = treatmentView(base)

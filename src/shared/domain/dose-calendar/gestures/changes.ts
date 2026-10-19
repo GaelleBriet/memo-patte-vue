@@ -139,7 +139,7 @@ const CALENDAR = [
   'firstDueChosen',
 ] as const
 
-const GRID = ['firstDueOn', 'firstDueChosen', 'frequency', 'gridOriginOn', 'endsOn'] as const
+const GRID = ['firstDueOn', 'frequency', 'gridOriginOn', 'endsOn'] as const
 
 const changes =
   (fields: readonly (keyof Setting)[]) =>
@@ -149,5 +149,4 @@ const changes =
 /** R10, #867 : seule une réécriture du calendrier date le réglage, comme le fait le repository. */
 export const rewritesCalendar = changes(CALENDAR)
 
-/** Seul ce qui fait les échéances date la grille, heures exclues, comme le fait le repository. */
-const rewritesGrid = changes(GRID)
+export const rewritesGrid = changes(GRID)

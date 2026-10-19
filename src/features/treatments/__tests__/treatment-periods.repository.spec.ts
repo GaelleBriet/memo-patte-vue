@@ -301,7 +301,6 @@ describe('treatmentPeriodsRepository', () => {
           ...fact,
           updatedAt: NOW,
           settingsWrittenAt: NOW,
-          gridWrittenAt: NOW,
         })
       },
     )
@@ -430,7 +429,6 @@ describe('treatmentPeriodsRepository', () => {
         ['la première échéance', { firstDueOn: '2026-02-13' }, {}],
         ['la fréquence', { frequency: { value: 2, unit: 'day' } }, {}],
         ['l’origine de la grille', {}, { gridOriginOn: null }],
-        ['la date choisie', {}, { firstDueChosen: true }],
         ['la date de fin', { endsOn: '2026-03-20' }, {}],
       ])('avance quand %s change', async (_, settings, origin) => {
         await db.runMany([
@@ -448,6 +446,7 @@ describe('treatmentPeriodsRepository', () => {
         ['la posologie', { doseQuantity: 1, doseUnit: 'capsule' }, {}],
         ['le moment du rappel', { reminderOffsetMinutes: 60 }, {}],
         ['l’heure du rappel', { reminderTime: '07:00' }, {}],
+        ['le seul fait que la date soit choisie', {}, { firstDueChosen: true }],
         ['la réponse à la question des doses tombées', {}, { fallenDosesAnswer: 'not-due' }],
       ])('reste quand seule %s change', async (_, settings, origin) => {
         await db.runMany([

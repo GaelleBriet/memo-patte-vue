@@ -38,7 +38,6 @@ const CALENDAR_COLUMNS = [
 
 const GRID_COLUMNS = [
   'first_due_on',
-  'first_due_chosen',
   'frequency_value',
   'frequency_unit',
   'grid_origin_on',

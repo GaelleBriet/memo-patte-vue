@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { settingsApplied, type Setting, type TreatmentViewInput } from '../domain/dose-calendar'
 
 // Décision 1 du 19 octobre 2026 : la grille d'un réglage n'est datée que par ce qui fait ses
-// échéances (première échéance, date choisie, fréquence, origine, fin), jamais par ses heures.
+// échéances (première échéance, fréquence, origine, fin), jamais par ses heures.
 
 const CREE = '2026-03-01T08:00:00.000Z'
 const ECRIT = '2026-03-02T08:00:00.000Z'
@@ -35,7 +35,6 @@ function rewritten(change: Partial<Setting>): Setting {
 describe('date d’écriture de la grille dans le carnet que le moteur rejoue', () => {
   it.each<[string, Partial<Setting>]>([
     ['la première échéance', { firstDueOn: '2026-03-09' }],
-    ['la date choisie', { firstDueChosen: false }],
     ['la fréquence', { frequency: { value: 2, unit: 'week' } }],
     ['l’origine de la grille', { gridOriginOn: null }],
     ['la fin', { endsOn: '2026-06-30' }],
@@ -45,6 +44,7 @@ describe('date d’écriture de la grille dans le carnet que le moteur rejoue', 
 
   it.each<[string, Partial<Setting>]>([
     ['les heures', { times: ['07:00', '21:00'] }],
+    ['seul le fait que la date soit choisie', { firstDueChosen: false }],
     ['la réponse à la question des doses tombées', { fallenDosesAnswer: 'not-due' }],
     ['rien', {}],
   ])('reste quand seule %s change', (_, change) => {
