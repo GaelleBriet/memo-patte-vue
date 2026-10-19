@@ -159,6 +159,7 @@ export const IMPORT_FIXTURE: ExportData = {
       createdAt: PANACUR.createdAt,
       updatedAt: PANACUR.updatedAt,
       settingsWrittenAt: '2026-09-02T08:00:00.000Z',
+      gridWrittenAt: '2026-09-01T18:00:00.000Z',
       ...BY_FIXTURE_DEVICE,
     }),
   ],
@@ -248,10 +249,10 @@ export const IMPORT_FIXTURE: ExportData = {
   ],
 }
 
-export const IMPORT_FILE: ImportFile = { schemaVersion: 9, data: IMPORT_FIXTURE }
+export const IMPORT_FILE: ImportFile = { schemaVersion: 10, data: IMPORT_FIXTURE }
 
 export function importFile(data: ExportData = IMPORT_FIXTURE): ImportFile {
-  return { schemaVersion: 9, data }
+  return { schemaVersion: 10, data }
 }
 
 export function importFixtureJson(data: ExportData = IMPORT_FIXTURE): string {

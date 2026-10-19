@@ -26,6 +26,7 @@ const periodOf = (setting: Setting): TreatmentWithPeriods['periods'][number] => 
   reminderTime: null,
   updatedAt: setting.updatedAt ?? setting.createdAt,
   settingsWrittenAt: setting.updatedAt ?? setting.createdAt,
+  gridWrittenAt: setting.gridWrittenAt ?? setting.updatedAt ?? setting.createdAt,
   deletedAt: null,
 })
 

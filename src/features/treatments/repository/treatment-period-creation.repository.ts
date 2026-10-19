@@ -59,6 +59,7 @@ export function createPeriodCreation(deviceId: () => string) {
           period.createdAt,
           period.updatedAt,
           period.createdAt,
+          period.createdAt,
           period.deletedAt,
           deviceId(),
           deviceId(),

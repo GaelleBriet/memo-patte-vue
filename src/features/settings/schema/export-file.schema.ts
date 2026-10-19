@@ -30,8 +30,10 @@ import {
   fromVersion6,
   fromVersion7,
   fromVersion8,
+  fromVersion9,
   type Version5Data,
   type Version7Data,
+  type Version8Data,
 } from '../logic/export-file-versions'
 import { hasUniqueIds, isConsistentCarnet } from '../logic/export-carnet-links'
 import { carnetSettingsSchema } from './carnet-settings.schema'
@@ -215,6 +217,16 @@ const version8PeriodShape = {
   settingsWrittenAt: instant,
 }
 
+const version10FileSchema = z
+  .object({
+    ...signedCarnet,
+    treatmentPeriods: z.array(
+      signed({ ...version8PeriodShape, gridWrittenAt: instant }).refine(isConsistentPeriod),
+    ),
+    treatmentDoses: reportedDoses,
+  })
+  .refine(isConsistentCarnet)
+
 const version9FileSchema = z
   .object({
     ...signedCarnet,
@@ -289,18 +301,21 @@ const version3FileSchema = z
 export const exportVersionSchema = z.object({ schemaVersion: z.number().int().positive() })
 
 export function exportFileSchemaOf(version: number, deviceId: string): z.ZodType<ExportData> {
-  const fromVersion7To9 = (data: Version7Data) => fromVersion8(fromVersion7(data))
-  const fromVersion5To9 = (data: Version5Data) => fromVersion7To9(fromVersion6(fromVersion5(data)))
+  const fromVersion8To10 = (data: Version8Data) => fromVersion9(fromVersion8(data))
+  const fromVersion7To10 = (data: Version7Data) => fromVersion8To10(fromVersion7(data))
+  const fromVersion5To10 = (data: Version5Data) =>
+    fromVersion7To10(fromVersion6(fromVersion5(data)))
   if (version === 3) {
     return version3FileSchema.transform((data) =>
-      fromVersion5To9(fromVersion4(fromVersion3(data, deviceId))),
+      fromVersion5To10(fromVersion4(fromVersion3(data, deviceId))),
     )
   }
   if (version === 4)
-    return version4FileSchema.transform((data) => fromVersion5To9(fromVersion4(data)))
-  if (version === 5) return version5FileSchema.transform(fromVersion5To9)
+    return version4FileSchema.transform((data) => fromVersion5To10(fromVersion4(data)))
+  if (version === 5) return version5FileSchema.transform(fromVersion5To10)
   if (version === 6)
-    return version6FileSchema.transform((data) => fromVersion7To9(fromVersion6(data)))
-  if (version === 7) return version7FileSchema.transform(fromVersion7To9)
-  return version === 8 ? version8FileSchema.transform(fromVersion8) : version9FileSchema
+    return version6FileSchema.transform((data) => fromVersion7To10(fromVersion6(data)))
+  if (version === 7) return version7FileSchema.transform(fromVersion7To10)
+  if (version === 8) return version8FileSchema.transform(fromVersion8To10)
+  return version === 9 ? version9FileSchema.transform(fromVersion9) : version10FileSchema
 }

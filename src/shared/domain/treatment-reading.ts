@@ -121,6 +121,7 @@ function viewInputOf(
       times: period.times,
       createdAt: period.createdAt,
       updatedAt: period.settingsWrittenAt,
+      ...(period.gridWrittenAt === undefined ? {} : { gridWrittenAt: period.gridWrittenAt }),
     })),
     lines: doses.map((dose) => ({
       id: dose.id,

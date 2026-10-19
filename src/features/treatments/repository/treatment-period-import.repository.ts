@@ -51,6 +51,7 @@ export function createPeriodImport(db: DbClient, deviceId: () => string) {
         period.createdAt,
         period.updatedAt,
         period.settingsWrittenAt,
+        period.gridWrittenAt,
       ]
       const devices = [period.createdByDevice, period.updatedByDevice]
       return exists
@@ -60,7 +61,8 @@ export function createPeriodImport(db: DbClient, deviceId: () => string) {
                       fallen_doses_answer = ?, ends_on = ?, stopped_on = ?,
                       frequency_value = ?, frequency_unit = ?, times = ?, dose_quantity = ?,
                       dose_unit = ?, reminder_offset_minutes = ?, reminder_time = ?,
-                      created_at = ?, updated_at = ?, settings_written_at = ?, deleted_at = NULL,
+                      created_at = ?, updated_at = ?, settings_written_at = ?, grid_written_at = ?,
+                      deleted_at = NULL,
                       created_by_device = ?, updated_by_device = ?
                   WHERE id = ?`,
             params: [...values, ...devices, period.id],

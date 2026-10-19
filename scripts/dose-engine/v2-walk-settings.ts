@@ -1,6 +1,6 @@
 import {
   newSettings,
-  rewritesCalendar,
+  rewrittenSetting,
   treatmentView,
   type Frequency,
   type Line,
@@ -30,11 +30,9 @@ export function settingsWritten(walk: SettingsWalk, plan: SettingsPlan): Treatme
   const at = walk.stamp()
   const lines = linesWritten(walk, plan.lines ?? [], at)
   if (plan.action === 'rewrite') {
-    const rewritten = settings.map((setting) => {
-      if (setting.id !== plan.id) return setting
-      const next = { ...setting, ...plan.setting }
-      return rewritesCalendar(setting, next) ? { ...next, updatedAt: at } : next
-    })
+    const rewritten = settings.map((setting) =>
+      setting.id === plan.id ? rewrittenSetting(setting, plan.setting, () => at) : setting,
+    )
     return { ...walk.input, settings: rewritten, lines }
   }
   const created: Setting = {

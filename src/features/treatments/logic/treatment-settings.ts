@@ -114,6 +114,7 @@ export function draftPeriod(settings: TreatmentPeriodSettings, at: string): Trea
     createdAt: at,
     updatedAt: at,
     settingsWrittenAt: at,
+    gridWrittenAt: at,
     deletedAt: null,
   }
 }

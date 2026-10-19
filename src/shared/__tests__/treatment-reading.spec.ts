@@ -245,6 +245,21 @@ describe('readTreatment', () => {
       expect.objectContaining({ id: 'p-1', updatedAt: '2026-10-02T20:00:00.000Z' }),
     ])
   })
+
+  it('passe au moteur la date d’écriture de la grille, et rien quand elle est inconnue', () => {
+    const written = {
+      ...period({ settingsWrittenAt: '2026-10-02T20:00:00.000Z' }),
+      gridWrittenAt: '2026-10-01T08:00:00.000Z',
+    }
+
+    const reading = readTreatment({ periods: [written], doses: [dose()] }, TODAY)
+    const unknown = readTreatment({ periods: [period()], doses: [dose()] }, TODAY)
+
+    expect(reading?.input.settings).toEqual([
+      expect.objectContaining({ id: 'p-1', gridWrittenAt: '2026-10-01T08:00:00.000Z' }),
+    ])
+    expect(unknown?.input.settings[0]).not.toHaveProperty('gridWrittenAt')
+  })
 })
 
 describe('readCarnet', () => {

@@ -216,6 +216,7 @@ export function createDataExportService({
         createdAt: period.createdAt,
         updatedAt: period.updatedAt,
         settingsWrittenAt: period.settingsWrittenAt,
+        gridWrittenAt: period.gridWrittenAt,
         createdByDevice: period.createdByDevice,
         updatedByDevice: period.updatedByDevice,
       })),

@@ -3,6 +3,7 @@ import {
   newSettings,
   play,
   rewritesCalendar,
+  rewrittenSetting,
   treatmentView,
   type Line,
   type LineChange,
@@ -63,11 +64,11 @@ function writeLines(
 function writePlan(input: TreatmentViewInput, plan: SettingsPlan, clock: Clock, tag: string) {
   const { lines } = writeLines(input, plan.lines ?? [], clock, tag)
   if (plan.action === 'rewrite') {
-    const settings = input.settings.map((setting) => {
-      if (setting.id !== plan.id) return setting
-      const next = { ...setting, ...plan.setting }
-      return rewritesCalendar(setting, next) ? { ...next, updatedAt: stamp(clock) } : next
-    })
+    const settings = input.settings.map((setting) =>
+      setting.id === plan.id
+        ? rewrittenSetting(setting, plan.setting, () => stamp(clock))
+        : setting,
+    )
     return { ...input, lines, settings }
   }
   const created: Setting = {

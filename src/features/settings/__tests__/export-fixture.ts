@@ -80,6 +80,7 @@ export function periodOf(
   return {
     ...legacyFactsOf(record.gridOriginOn),
     settingsWrittenAt: period.createdAt,
+    gridWrittenAt: period.createdAt,
     ...record,
   }
 }

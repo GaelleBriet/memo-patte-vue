@@ -44,6 +44,8 @@ export type TreatmentPeriodRecord = TreatmentPeriod & {
   reminderTime: string | null
   /** R10, #867 : dernière écriture de ce qui fait le calendrier ; la création tant que rien n'a changé. */
   settingsWrittenAt: string
+  /** Dernière écriture de ce qui fait les échéances (date choisie, fréquence, origine, fin), heures exclues. */
+  gridWrittenAt: string
 }
 
 /** D'où part la grille d'une période, et ce que la personne en a dit (R2, R3, R9, R10). */

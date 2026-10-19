@@ -163,6 +163,20 @@ describe('#867 : date d’écriture du réglage, deux téléphones, de la base �
     ])
   })
 
+  it('la réponse de B, qui retire la dose du 3, date aussi la grille, sur les deux téléphones', async () => {
+    await rewriteOnB('2026-04-07T18:00:00.000Z')
+    await synced(dbB, dbA)
+
+    for (const replay of [a, b]) {
+      const current = (await storedTreatment(replay.treatments, id)).periods.at(-1)!
+      expect([current.firstDueOn, current.settingsWrittenAt, current.gridWrittenAt]).toEqual([
+        '2026-04-17',
+        '2026-04-07T18:00:00.000Z',
+        '2026-04-07T18:00:00.000Z',
+      ])
+    }
+  })
+
   it('report de A plus récent que la réponse de B : il tient, le 10 à 20 h, puis le 17 à 6 h', async () => {
     await rewriteOnB('2026-04-07T09:00:00.000Z')
     await reportOnA('2026-04-07T18:00:00.000Z')

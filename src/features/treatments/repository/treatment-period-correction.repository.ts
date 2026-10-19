@@ -36,6 +36,15 @@ const CALENDAR_COLUMNS = [
   'first_due_chosen',
 ]
 
+const GRID_COLUMNS = [
+  'first_due_on',
+  'first_due_chosen',
+  'frequency_value',
+  'frequency_unit',
+  'grid_origin_on',
+  'ends_on',
+]
+
 export function createPeriodCorrection(deviceId: () => string) {
   return {
     /**
@@ -65,20 +74,24 @@ export function createPeriodCorrection(deviceId: () => string) {
         flag(origin.firstDueChosen),
         origin.fallenDosesAnswer,
       ]
-      const isCalendar = (_: unknown, index: number) =>
-        CALENDAR_COLUMNS.includes(CORRECTED_COLUMNS[index]!)
+      const among = (columns: string[]) => (_: unknown, index: number) =>
+        columns.includes(CORRECTED_COLUMNS[index]!)
       const changed = (columns: string[]) =>
         columns.map((column) => `${column} IS NOT ?`).join(' OR ')
       return {
         sql: `UPDATE treatment_period
               SET ${CORRECTED_COLUMNS.map((column) => `${column} = ?`).join(', ')},
-                  settings_written_at = CASE WHEN ${changed(CORRECTED_COLUMNS.filter(isCalendar))}
+                  settings_written_at = CASE WHEN ${changed(CORRECTED_COLUMNS.filter(among(CALENDAR_COLUMNS)))}
                     THEN ? ELSE settings_written_at END,
+                  grid_written_at = CASE WHEN ${changed(CORRECTED_COLUMNS.filter(among(GRID_COLUMNS)))}
+                    THEN ? ELSE grid_written_at END,
                   updated_at = ?, updated_by_device = ?
               WHERE id = ? AND (${changed(CORRECTED_COLUMNS)})`,
         params: [
           ...values,
-          ...values.filter(isCalendar),
+          ...values.filter(among(CALENDAR_COLUMNS)),
+          updatedAt,
+          ...values.filter(among(GRID_COLUMNS)),
           updatedAt,
           updatedAt,
           deviceId(),

@@ -29,6 +29,8 @@ export type Setting = {
   createdAt: string
   /** Dernière réécriture du réglage (R10, #867) ; absente : date inconnue. */
   updatedAt?: string
+  /** Dernière écriture de la grille (date choisie, fréquence, origine, fin), heures exclues ; absente : inconnue. */
+  gridWrittenAt?: string
 }
 
 export type LineStatus = 'given' | 'missed' | 'extra' | 'postponed' | 'shift' | 'not-due'

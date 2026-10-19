@@ -7,6 +7,7 @@ import type {
   LineChange,
   LineFields,
   Setting,
+  SettingFields,
   SettingsPlan,
   TreatmentViewInput,
 } from '../types'
@@ -106,12 +107,27 @@ function settingWritten(input: TreatmentViewInput, plan: SettingsPlan): Treatmen
     }
     return { ...input, settings: [...input.settings, setting] }
   }
-  const settings = input.settings.map((setting) => {
-    if (setting.id !== plan.id) return setting
-    const next = { ...setting, ...plan.setting }
-    return rewritesCalendar(setting, next) ? { ...next, updatedAt: WRITTEN_AT } : next
-  })
+  const settings = input.settings.map((setting) =>
+    setting.id === plan.id ? rewrittenSetting(setting, plan.setting, () => WRITTEN_AT) : setting,
+  )
   return { ...input, settings }
+}
+
+/** Le réglage réécrit sur place, daté comme par le repository ; `at` n'est lu que si une date change. */
+export function rewrittenSetting(
+  setting: Setting,
+  fields: SettingFields,
+  at: () => string,
+): Setting {
+  const next = { ...setting, ...fields }
+  const [calendar, grid] = [rewritesCalendar(setting, next), rewritesGrid(setting, next)]
+  if (!calendar && !grid) return next
+  const written = at()
+  return {
+    ...next,
+    ...(calendar ? { updatedAt: written } : {}),
+    ...(grid ? { gridWrittenAt: written } : {}),
+  }
 }
 
 const CALENDAR = [
@@ -123,6 +139,15 @@ const CALENDAR = [
   'firstDueChosen',
 ] as const
 
+const GRID = ['firstDueOn', 'firstDueChosen', 'frequency', 'gridOriginOn', 'endsOn'] as const
+
+const changes =
+  (fields: readonly (keyof Setting)[]) =>
+  (before: Setting, after: Setting): boolean =>
+    fields.some((field) => JSON.stringify(before[field]) !== JSON.stringify(after[field]))
+
 /** R10, #867 : seule une réécriture du calendrier date le réglage, comme le fait le repository. */
-export const rewritesCalendar = (before: Setting, after: Setting): boolean =>
-  CALENDAR.some((field) => JSON.stringify(before[field]) !== JSON.stringify(after[field]))
+export const rewritesCalendar = changes(CALENDAR)
+
+/** Seul ce qui fait les échéances date la grille, heures exclues, comme le fait le repository. */
+const rewritesGrid = changes(GRID)
