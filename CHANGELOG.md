@@ -5,6 +5,27 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.85](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.84...memo-patte-v0.1.85) (2026-10-19)
+
+
+### ✨ Fonctionnalités
+
+* **db:** v16, arrivée d'avant et rang de l'heure sur la ligne de report (migration seule) ([93af83c](https://github.com/GaelleBriet/memo-patte-vue/commit/93af83c281498839a5566904b27c54c475d41a2c))
+* **db:** v16, arrivée d'avant et rang de l'heure sur la ligne de report, miroir Supabase ([2ea33bd](https://github.com/GaelleBriet/memo-patte-vue/commit/2ea33bd886edd305ce8f3fe6dc2e6ac254a5e061))
+* **export:** format v9, arrivée d'avant et rang des reports ; v3 à v8 relus avec des champs vides ([c3cb279](https://github.com/GaelleBriet/memo-patte-vue/commit/c3cb2794ccc4500d9e2e8a4539ad94e16a5c278e))
+* **traitements:** l'écriture d'un report pose son arrivée d'avant et le rang de son heure ([72ba1e5](https://github.com/GaelleBriet/memo-patte-vue/commit/72ba1e5a9faa4181884b876486257fe087405602))
+
+
+### 🐛 Corrections
+
+* **db:** rang d'un report dans l'ordre de la journée, import v9 et réécriture identique ([696764f](https://github.com/GaelleBriet/memo-patte-vue/commit/696764fcd1ee326c4b708d9460b40b2acd47e4f5))
+* **traitements:** « supprimer » grisé quand le moteur le refuse ([46ced0f](https://github.com/GaelleBriet/memo-patte-vue/commit/46ced0f10d19241abfdc4f2f44459973c313bb50))
+
+
+### ⚡ Performance
+
+* **traitements:** le refus de « supprimer » un report ou un décalage se lit à l'ouverture du menu ([95b6b75](https://github.com/GaelleBriet/memo-patte-vue/commit/95b6b7535cc90ab61215ea58c199b0f4a6bb6643)), closes [#961](https://github.com/GaelleBriet/memo-patte-vue/issues/961)
+
 ## [0.1.84](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.83...memo-patte-v0.1.84) (2026-10-19)
 
 
