@@ -1,6 +1,7 @@
 import { writtenBefore, type coverages, type Journey } from './reference-days'
 import { hoursOf, keyOf } from './reference-grid'
 import { arrivedOn, chosenDateOf, hoursChangedSince, reportOutcome } from './reference-reports'
+import { chosenDayOf, takenByRank } from './reference-ranks'
 import { rewrittenDeparture, type RewriteContext } from './reference-rewrite'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
@@ -22,6 +23,8 @@ export type ArrivalContext = {
   settingAt: (day: string) => ReferenceSetting | undefined
   stoppedAt: (day: string) => ReferenceSetting | undefined
   rewrite: RewriteContext | undefined
+  /** Les jours qui portent une ligne de décalage. */
+  shiftedDays: ReadonlySet<string>
 }
 
 /** R7 : chaque report part de sa journée et arrive sur la sienne ; ceux qui arrivent sur sa journée d'abord. */
@@ -40,18 +43,45 @@ export function arriveReports(context: ArrivalContext) {
     const [report] = waiting.splice(Math.max(0, ready), 1)
     const { dueOn, targetOn } = report!
     const departure = days.get(dueOn)
+    const withFollowing = context.shiftedDays.has(dueOn)
+    // Q1 : la dose du report est sur la date choisie qui était son arrivée ; elle en part par son rang.
+    const chosenDay = chosenDayOf(report!, settingAt)
+    const oldArrival = chosenDay === undefined ? undefined : days.get(chosenDay)
+    if (oldArrival !== undefined) {
+      if (departure !== undefined) {
+        const taken = coveredAside(dueOn, departure)
+        departure.hours = departure.hours.filter(
+          (hour) => taken.has(hour) || (hour !== null && hour < (report!.dueTime ?? '')),
+        )
+      }
+      const byRank = takenByRank(
+        report!,
+        oldArrival.hours,
+        coveredAside(chosenDay!, oldArrival),
+        withFollowing,
+      )
+      oldArrival.hours = oldArrival.hours.filter((hour) => !byRank.lost.includes(hour))
+      if (targetOn! > dueOn) fallen.add(dueOn)
+      const carried = [...new Set([report!.dueTime, ...byRank.alsoCarried])].sort()
+      land(report!, { carried, hoursOf: settingOf(report!.settingId) })
+      continue
+    }
     const rewritten =
       rewrite === undefined
         ? undefined
         : rewrittenDeparture(report!, settingOf(report!.settingId), rewrite, departure)
     if (rewritten === 'lost') continue
-    // 6a : gagnant, le report n'emporte que son heure ; sa journée perd la dose libre qui la suit.
+    // Q4 : gagnant, le report emporte son heure ; sa journée perd la dose libre de son rang.
+    let alsoCarried: Hour[] = []
     if (rewritten !== undefined && departure !== undefined) {
-      const noted = coveredAside(dueOn, departure)
-      const taken = departure.hours
-        .filter((hour) => !noted.has(hour))
-        .find((hour) => hour === null || hour >= (report!.dueTime ?? ''))
-      if (taken !== undefined) departure.hours = departure.hours.filter((hour) => hour !== taken)
+      const byRank = takenByRank(
+        report!,
+        departure.hours,
+        coveredAside(dueOn, departure),
+        withFollowing,
+      )
+      departure.hours = departure.hours.filter((hour) => !byRank.lost.includes(hour))
+      alsoCarried = byRank.alsoCarried
     }
     const origin = rewritten ? undefined : (days.get(dueOn) ?? left.get(dueOn))
     const from = origin?.setting ?? settingOf(report!.settingId)
@@ -94,17 +124,23 @@ export function arriveReports(context: ArrivalContext) {
     if (outcome.beaten) continue
     if (targetOn! > dueOn) fallen.add(dueOn)
     if (origin) origin.hours = origin.hours.filter((hour) => !outcome.lost.includes(hour))
-    const stopDay = stoppedAt(targetOn!)
-    const arrival = settingAt(targetOn!) ?? stopDay
-    const into = stopDay === undefined ? days : left
-    if (arrival === undefined || outcome.carried.length === 0) continue
-    const opensRhythm = openings.delete(targetOn!)
-    const chosen = chosenDateOf(report!, live, settingOf)
-    const day = arrivedOn(into.get(targetOn!), outcome, arrival, { opensRhythm, chosen })
-    into.set(targetOn!, day)
-    const received = chosen ? hoursOf(chosen) : outcome.carried
-    arrivedHours.set(targetOn!, [...(arrivedHours.get(targetOn!) ?? []), ...received])
-    received.forEach((hour) => arrivedBy.set(keyOf(targetOn!, hour), report!))
+    const carried = [...new Set([...outcome.carried, ...alsoCarried])].sort()
+    land(report!, { carried, hoursOf: outcome.hoursOf })
   }
   return { fallen, arrivedBy }
+
+  function land(report: ReferenceLine, outcome: { carried: Hour[]; hoursOf: ReferenceSetting }) {
+    const targetOn = report.targetOn!
+    const stopDay = stoppedAt(targetOn)
+    const arrival = settingAt(targetOn) ?? stopDay
+    const into = stopDay === undefined ? days : left
+    if (arrival === undefined || outcome.carried.length === 0) return
+    const opensRhythm = openings.delete(targetOn)
+    const chosen = chosenDateOf(report, live, settingOf)
+    const day = arrivedOn(into.get(targetOn), outcome, arrival, { opensRhythm, chosen })
+    into.set(targetOn, day)
+    const received = chosen ? hoursOf(chosen) : outcome.carried
+    arrivedHours.set(targetOn, [...(arrivedHours.get(targetOn) ?? []), ...received])
+    received.forEach((hour) => arrivedBy.set(keyOf(targetOn, hour), report))
+  }
 }

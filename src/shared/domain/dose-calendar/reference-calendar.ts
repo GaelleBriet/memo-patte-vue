@@ -229,6 +229,7 @@ export function calendarOf(
     settingAt,
     stoppedAt,
     rewrite: plain ? undefined : rewriteContext,
+    shiftedDays: new Set(shifts.map(({ dueOn }) => dueOn)),
   })
   settle()
 

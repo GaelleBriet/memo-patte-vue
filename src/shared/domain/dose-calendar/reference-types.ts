@@ -28,6 +28,10 @@ export type ReferenceLine = {
   status: 'given' | 'missed' | 'extra' | 'postponed' | 'shift' | 'not-due'
   /** Report : jour d'arrivée ; décalage : jour d'ancrage. */
   targetOn: string | null
+  /** Report déplacé de nouveau : jour de son arrivée d'avant. */
+  previousTargetOn?: string | null
+  /** Report : rang de son heure dans sa journée d'origine. */
+  dueRank?: number | null
   updatedAt: string
 }
 

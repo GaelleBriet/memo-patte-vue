@@ -93,9 +93,3 @@ export function departureVerdict(
   if ([...departure.hours, ...arrived].includes(report.dueTime)) return null
   return rewriteVerdict(report, written, 'hour', context)
 }
-
-/** 6a : gagnant, le report n'emporte que son heure ; sa journée de départ perd la première dose
- * libre qui la suit, la même dose à une autre heure. */
-export function freeDoseTaken(report: Line, free: readonly Hour[]): Hour | undefined {
-  return free.find((hour) => hour === null || hour >= (report.dueTime ?? ''))
-}

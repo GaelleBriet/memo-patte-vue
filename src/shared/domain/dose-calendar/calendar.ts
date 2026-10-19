@@ -1,12 +1,12 @@
 import { dayCoverage } from './calendar-coverage'
 import { notDueArrivals } from './calendar-not-due'
+import { moveReports } from './calendar-reports'
 import { keepGivenNotes, keepSkippedDays, noteEffects } from './calendar-notes'
-import { hoursOf, keyOf, plusDays, sameHours } from './grid'
+import { keyOf, plusDays } from './grid'
 import { journeys, type Gap } from './journeys'
 import type { EpisodeLines } from './lines'
-import { departureVerdict, freeDoseTaken } from './rewrite'
 import type { Span } from './settings'
-import type { Day, Due, Hour, Line, LineEffect, Setting } from './types'
+import type { Day, Due, Line, LineEffect, Setting } from './types'
 
 /** Une échéance du calendrier, et la prise qui la couvre ; `exact` : la prise vise cette échéance. */
 export type Slot = { due: Due; key: string; coveredBy: Line | null; exact: boolean }
@@ -47,8 +47,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   const effects = new Map<string, LineEffect>()
   const notDue = notDueArrivals(effects)
   const journey = journeys(input, effects)
-  const { days, translated, left, openings, rhythmFrom, replaced, restarts, chosenRestarts } =
-    journey
+  const { days, translated, left, rhythmFrom, replaced } = journey
   const byDay = new Map<Day, Line[]>()
   for (const note of [...lines.notes, ...borrowed]) {
     byDay.set(note.dueOn, [...(byDay.get(note.dueOn) ?? []), note])
@@ -68,150 +67,20 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
     matched,
   })
 
-  // R7 : un report emporte son heure et les suivantes encore sans prise ; les reports qui arrivent
-  // sur sa journée passent d'abord.
-  const fallen = new Set<Day>()
-  const moved = new Map<string, Line>()
-  const arrived = new Map<Day, Hour[]>()
-  const waiting = [...lines.reports]
-  while (waiting.length > 0) {
-    const ready = waiting.findIndex(
-      (report) => !waiting.some((other) => other.targetOn === report.dueOn),
-    )
-    const report = waiting.splice(Math.max(0, ready), 1)[0]!
-    const { dueOn, dueTime, targetOn } = report
-    const departure = days.get(dueOn)
-    const rewrite = departureVerdict(report, {
-      departure,
-      arrived: arrived.get(dueOn) ?? [],
-      written: settingOf(report.settingId),
-      drawnBy: journey.drawnBy.get(span.settingAt(dueOn)?.id ?? ''),
-    })
-    const origin = rewrite === null ? (days.get(dueOn) ?? left.get(dueOn)) : undefined
-    const from = origin?.setting ?? settingOf(report.settingId)
-    if (rewrite === 'rewrite') {
-      effects.set(report.id, { kind: 'idle', reason: 'nothing-to-move' })
-      continue
-    }
-    // #867 : plus récent que la réécriture de son réglage, le report n'emporte que l'heure qu'il porte.
-    const hours = rewrite === 'line' ? [dueTime] : (origin?.hours ?? hoursOf(from.times))
-    if (rewrite === 'line' && departure !== undefined) {
-      const noted = coveredOn(dueOn, departure, new Set())
-      const taken = freeDoseTaken(
-        report,
-        departure.hours.filter((hour) => !noted.has(hour)),
-      )
-      if (taken !== undefined) {
-        departure.hours = departure.hours.filter((hour) => hour !== taken)
-        moved.set(keyOf(dueOn, taken), report)
-      }
-    }
-    // R8 : au-delà de l'arrêt, une prise ne garde pas son échéance, la reprise seule la porte.
-    if (origin === undefined && (span.closedFrom === null || dueOn < span.closedFrom)) {
-      for (const note of byDay.get(dueOn) ?? []) {
-        if (!isBorrowed.has(note) && hours.includes(note.dueTime)) {
-          matched.add(note)
-          held.set(note, keyOf(note.dueOn, note.dueTime))
-        }
-      }
-    }
-    // R6, TR-9 : hors de sa grille, un report est sans effet, sauf s'il porte la date choisie,
-    // arrive sur la première échéance d'une origine écrite (TR-28) ou ouvre un rythme (R9.2).
-    const at = span.settingAt(dueOn)?.id ?? ''
-    const restartOn = restarts.get(at)
-    const chosenOn = chosenRestarts.get(at)
-    const carries = targetOn === restartOn || targetOn === chosenOn || openings.has(targetOn!)
-    const carried =
-      chosenOn !== undefined &&
-      dueOn === chosenOn &&
-      chosenRestarts.get(report.settingId) !== chosenOn
-    const outside = origin === undefined && rewrite === null
-    if (carried || (chosenOn !== undefined && outside && !carries)) {
-      effects.set(report.id, { kind: 'idle', reason: 'nothing-to-move' })
-      continue
-    }
-    const covered =
-      origin === undefined
-        ? new Set(hours.filter((hour) => noted.has(keyOf(dueOn, hour))))
-        : new Set(coveredOn(dueOn, origin).keys())
-    const written = settingOf(report.settingId)
-    // R4, R7 : le jour où les heures changent, écrit sous d'autres heures ou avant un changement d'heures
-    // de sa journée, un report se juge sur ses prises et le jour de départ perd autant qu'il emporte.
-    const relit =
-      from.id === span.settingAt(dueOn)?.id &&
-      written.id !== from.id &&
-      span.live.some(
-        (each) =>
-          each.startsOn === dueOn &&
-          each.createdAt > written.createdAt &&
-          !sameHours(each, written),
-      )
-    const reread = translated.has(dueOn) && (!sameHours(written, from) || relit)
-    const source = reread ? written : from
-    // R7 : la journée d'un report, telle qu'il l'a vue, porte aussi les doses qui y sont arrivées (#864).
-    const writtenHours = [
-      ...new Set([...hoursOf(written.times), ...(arrived.get(dueOn) ?? [])]),
-    ].sort()
-    const writtenBefore = (note: Line) => settingOf(note.settingId).createdAt <= written.createdAt
-    // R4, R7, #860 : le report garde ses heures ; une prise d'un réglage écrit avant le sien, d'une heure
-    // absente, s'y pose avant lui ; une prise des heures écrites après ne compte qu'à son heure.
-    const ownNoted = new Set(
-      coveredOn(dueOn, { setting: written, hours: writtenHours }, new Set(), writtenBefore).keys(),
-    )
-    if (source === from ? covered.has(dueTime) : ownNoted.has(dueTime)) {
-      effects.set(report.id, { kind: 'idle', reason: 'beaten' })
-      continue
-    }
-    if (targetOn! > dueOn) fallen.add(dueOn)
-    const after = (hour: Hour) => hour === null || hour >= (dueTime ?? '')
-    const free = hours.filter((hour) => !covered.has(hour))
-    const following = free.filter(after)
-    const bringing =
-      source === from
-        ? following
-        : writtenHours.filter((hour) => after(hour) && !ownNoted.has(hour))
-    // R4, R7 : relu aux nouvelles heures, le jour de départ garde les doses que le report a laissées : celles
-    // d'avant lui et celles d'après déjà notées ; les prises écrites après lui s'y posent ensuite.
-    const notedAfter = writtenHours.filter((hour) => after(hour) && ownNoted.has(hour)).length
-    const rank = writtenHours.filter((hour) => !after(hour)).length
-    const stays = Math.max(0, rank + notedAfter - covered.size)
-    const leaving = source === from ? following : free.slice(stays)
-    if (origin !== undefined) origin.hours = origin.hours.filter((hour) => !leaving.includes(hour))
-    const keys = bringing.map((hour) => keyOf(dueOn, hour))
-    for (const key of [...leaving.map((hour) => keyOf(dueOn, hour)), ...keys])
-      moved.set(key, report)
-    const stopDay = span.stoppedAt(targetOn!)
-    const arrival = span.settingAt(targetOn!) ?? stopDay
-    const into = stopDay === undefined ? days : left
-    if (bringing.length === 0) {
-      effects.set(report.id, { kind: 'idle', reason: 'nothing-to-move' })
-      continue
-    }
-    effects.set(report.id, {
-      kind: 'moves',
-      keys,
-      arrival: arrival === undefined ? null : targetOn,
-    })
-    if (arrival === undefined) continue
-    // R7 : le jour d'arrivée ne reçoit que les heures reportées, telles qu'elles étaient au départ ;
-    // la date choisie qui emmène le report (#796) reçoit la journée entière de son réglage.
-    const chosen = lines.chosenArrivals.get(report)
-    const under = chosen ?? source
-    const own = sameHours(arrival, under) ? arrival : under
-    const arriving = chosen ? hoursOf(chosen.times) : bringing
-    notDue.arrive(report, targetOn!, arriving)
-    const day = into.get(targetOn!) ?? { setting: own, hours: [] }
-    // R7, R9.2 : un nouveau rythme qui part du jour d'arrivée d'un report lui laisse ses seules heures.
-    if (openings.delete(targetOn!)) {
-      day.hours = []
-      effects.set(report.id, { kind: 'moves', keys, arrival: targetOn, opensRhythm: true })
-    }
-    if (day.hours.length === 0) day.setting = own
-    // R7 : une journée d'échéance garde ses doses et y ajoute celles qui arrivent, une heure une fois.
-    day.hours = [...new Set([...day.hours, ...arriving])].sort()
-    into.set(targetOn!, day)
-    arrived.set(targetOn!, [...(arrived.get(targetOn!) ?? []), ...arriving])
-  }
+  const { fallen, moved } = moveReports({
+    span,
+    lines,
+    settingOf,
+    journey,
+    effects,
+    notDue,
+    coveredOn,
+    noted,
+    byDay,
+    isBorrowed,
+    matched,
+    held,
+  })
   settle()
 
   // R1, R4 : sortie du calendrier, une journée garde ses prises sur ses échéances, traduction comprise,

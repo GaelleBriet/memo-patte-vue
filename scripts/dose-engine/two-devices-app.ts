@@ -33,18 +33,27 @@ const lineFieldsOf = (dose: DoseFields): LineFields => ({
   status: dose.status,
   givenOn: dose.givenOn,
   targetOn: dose.targetOn,
+  ...(dose.status === 'postponed'
+    ? {
+        previousTargetOn: dose.previousTargetOn,
+        previousTargetTime: dose.previousTargetTime,
+        dueRank: dose.dueRank,
+      }
+    : {}),
 })
 
-// Ce que `doseWritesOf` lit d'une prise : son identifiant et ses champs.
+// Ce que `doseWritesOf` lit du traitement : ses prises et les heures de ses réglages.
 function treatmentOf(
   lines: readonly Line[],
+  settings: TreatmentViewInput['settings'],
 ): Pick<TreatmentWithPeriods, 'id' | 'animalId' | 'doses' | 'periods'> {
   const doses = lines.map((line) => ({ id: line.id, ...doseFieldsOf(line) }))
+  const periods = settings.map(({ id, times }) => ({ id, times: [...times] }))
   return {
     id: 't',
     animalId: 'a',
     doses: doses as unknown as TreatmentWithPeriods['doses'],
-    periods: [],
+    periods: periods as unknown as TreatmentWithPeriods['periods'],
   }
 }
 
@@ -114,10 +123,15 @@ export function noteByApp(
   let ids = 0
   let change: DoseChange
   try {
-    change = doseChange(treatmentOf(phone.lines), reading, { kind: 'note', gesture }, () => {
-      ids += 1
-      return `${phone.device}-${clock.n}-${ids}`
-    })
+    change = doseChange(
+      treatmentOf(phone.lines, base.settings),
+      reading,
+      { kind: 'note', gesture },
+      () => {
+        ids += 1
+        return `${phone.device}-${clock.n}-${ids}`
+      },
+    )
   } catch {
     return null
   }
