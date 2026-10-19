@@ -1,81 +1,8 @@
 import type { AST, Rule, Scope, SourceCode } from 'eslint'
+import { CALLEE_GROUPS, G, GROUPS } from './script-order/groups.ts'
 
 type Node = Rule.Node
 type NodeOf<T extends Node['type']> = Extract<Node, { type: T }>
-
-export const GROUPS = [
-  'imports',
-  'types et constantes',
-  'macros (defineProps, defineEmits…)',
-  'outils (useI18n, stores, composables)',
-  'état (ref, reactive…)',
-  'computed',
-  'watch',
-  'fonctions',
-  'cycle de vie (onMounted…)',
-  'defineExpose',
-] as const
-
-const G = {
-  imports: 0,
-  constants: 1,
-  macros: 2,
-  tools: 3,
-  state: 4,
-  computed: 5,
-  watch: 6,
-  functions: 7,
-  lifecycle: 8,
-  expose: 9,
-} as const
-
-const CALLEE_GROUPS: Record<string, number> = {
-  defineAsyncComponent: G.constants,
-  defineProps: G.macros,
-  withDefaults: G.macros,
-  defineEmits: G.macros,
-  defineModel: G.macros,
-  defineSlots: G.macros,
-  defineOptions: G.macros,
-  ref: G.state,
-  reactive: G.state,
-  shallowRef: G.state,
-  shallowReactive: G.state,
-  useTemplateRef: G.state,
-  useId: G.state,
-  toRef: G.state,
-  toRefs: G.state,
-  inject: G.state,
-  provide: G.state,
-  readonly: G.state,
-  shallowReadonly: G.state,
-  customRef: G.state,
-  markRaw: G.state,
-  effectScope: G.state,
-  getCurrentInstance: G.state,
-  nextTick: G.lifecycle,
-  computed: G.computed,
-  watch: G.watch,
-  watchEffect: G.watch,
-  watchPostEffect: G.watch,
-  watchSyncEffect: G.watch,
-  onBeforeMount: G.lifecycle,
-  onMounted: G.lifecycle,
-  onBeforeUpdate: G.lifecycle,
-  onUpdated: G.lifecycle,
-  onBeforeUnmount: G.lifecycle,
-  onUnmounted: G.lifecycle,
-  onActivated: G.lifecycle,
-  onDeactivated: G.lifecycle,
-  onErrorCaptured: G.lifecycle,
-  onRenderTracked: G.lifecycle,
-  onRenderTriggered: G.lifecycle,
-  onServerPrefetch: G.lifecycle,
-  onScopeDispose: G.lifecycle,
-  onBeforeRouteLeave: G.lifecycle,
-  onBeforeRouteUpdate: G.lifecycle,
-  defineExpose: G.expose,
-}
 
 const WRAPPERS = new Set([
   'AwaitExpression',
