@@ -1,7 +1,7 @@
 import { readdirSync } from 'node:fs'
 import type { Linter } from 'eslint'
-import { APP_RESTRICTION } from './import-restrictions.ts'
-import { restrictFeatureImports } from './restrict-imports.ts'
+import { APP_RESTRICTION } from './import-restriction-patterns.ts'
+import { restrictFeatureImports } from './import-restriction-rules.ts'
 
 const FEATURES = readdirSync(new URL('../../src/features', import.meta.url), {
   withFileTypes: true,

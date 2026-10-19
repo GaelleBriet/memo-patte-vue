@@ -75,7 +75,6 @@ export const vueI18nRulesBlock = {
   },
 } satisfies Omit<Linter.Config, 'plugins'> & { plugins: object }
 
-// En dernier : le bloc app/memo-patte-rules, sans `files`, s'applique aussi aux JSON.
 export const vueI18nLocalesBlock = {
   name: 'app/vue-i18n-locales',
   files: [LOCALE_FILES],

@@ -3,8 +3,8 @@ import {
   APP_RESTRICTION,
   DATA_ACCESS_RESTRICTIONS,
   NOTIFICATIONS_PLUGIN_RESTRICTION,
-} from './import-restrictions.ts'
-import { restrictImports } from './restrict-imports.ts'
+} from './import-restriction-patterns.ts'
+import { restrictImports } from './import-restriction-rules.ts'
 
 const FEATURES_RESTRICTION = {
   group: ['@/features/**', '**/features/**'],

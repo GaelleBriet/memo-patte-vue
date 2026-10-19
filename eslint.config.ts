@@ -89,5 +89,6 @@ export default defineConfigWithVueTs(
     },
   },
 
+  // En dernier : le bloc app/memo-patte-rules, sans `files`, s'applique aussi aux JSON.
   vueI18nLocalesBlock,
 )
