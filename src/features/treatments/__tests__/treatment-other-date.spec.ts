@@ -9,7 +9,7 @@ import {
   otherDateTexts,
 } from '../logic/treatment-other-date'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const t = i18n.global.t
@@ -27,7 +27,7 @@ const PUIS_MATIN_ET_SOIR = period({
   createdAt: '2026-09-28T08:00:00.000Z',
 })
 
-function plan(book: TreatmentWithHistory, today: string, givenOn: string) {
+function plan(book: TreatmentWithPeriods, today: string, givenOn: string) {
   return plain(otherDatePlan(t, treatmentReadingOf(book, today), givenOn))
 }
 
@@ -174,7 +174,7 @@ describe('givenDays', () => {
 })
 
 describe('momentDue — ce que notent la feuille « À faire » et une notification', () => {
-  const due = (book: TreatmentWithHistory, today: string, givenOn = today) =>
+  const due = (book: TreatmentWithPeriods, today: string, givenOn = today) =>
     momentDue(treatmentReadingOf(book, today), givenOn, today)
 
   it('à plusieurs heures, la première heure du jour encore sans prise', () => {
@@ -303,7 +303,7 @@ describe('momentDue — ce que notent la feuille « À faire » et une notificat
 
 describe('notifiedDue — ce que note « C’est fait » d’une notification, garde par garde', () => {
   const HEBDO = period({ frequency: { value: 1, unit: 'week' } })
-  const target = (book: TreatmentWithHistory, today: string, notifiedDueOn: string) =>
+  const target = (book: TreatmentWithPeriods, today: string, notifiedDueOn: string) =>
     notifiedDue(treatmentReadingOf(book, today), notifiedDueOn, today)
 
   it('1. toutes les échéances du jour notifié sont notées, une donnée : « déjà notée », à sa date', () => {

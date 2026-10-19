@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { createHomeRemindersService } from '../service/home-reminders.service'
 import { period, treatment, dose } from '@/features/treatments/__tests__/treatment-fixtures'
-import type { TreatmentWithHistory } from '@/features/treatments/schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '@/features/treatments/schema/treatment-with-history.schema'
 import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 
 const STAMPS = {
@@ -27,11 +27,11 @@ const METACAM = treatment(
   [dose('2026-09-01', '2026-09-02')],
 )
 
-function service(vaccinations: Vaccination[], treatments: TreatmentWithHistory[]) {
+function service(vaccinations: Vaccination[], treatments: TreatmentWithPeriods[]) {
   return createHomeRemindersService(
     () => ({ listAll: vi.fn<() => Promise<Vaccination[]>>(async () => vaccinations) }),
     async () => ({
-      listAllWithHistory: vi.fn<() => Promise<TreatmentWithHistory[]>>(async () => treatments),
+      listAllWithHistory: vi.fn<() => Promise<TreatmentWithPeriods[]>>(async () => treatments),
     }),
   )
 }
@@ -96,7 +96,7 @@ describe('homeRemindersService', () => {
         ),
       }),
       () => ({
-        listAllWithHistory: vi.fn<() => Promise<TreatmentWithHistory[]>>(async () => []),
+        listAllWithHistory: vi.fn<() => Promise<TreatmentWithPeriods[]>>(async () => []),
       }),
     )
 

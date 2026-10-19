@@ -6,7 +6,7 @@ import {
   type TreatmentPeriodRecord,
   type TreatmentPeriodSettings,
 } from '../schema/treatment-period.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import { latestOf } from '@/shared/domain/calendar-day'
 import { sortedTimes } from '@/shared/domain/clock-time'
 import { settingsApplied, type TreatmentView } from '@/shared/domain/dose-calendar'
@@ -70,7 +70,7 @@ export function changesRhythm(period: TreatmentPeriodRecord, rhythm: TreatmentRh
 }
 
 export function currentPeriod(
-  treatment: TreatmentWithHistory,
+  treatment: TreatmentWithPeriods,
   view: Pick<TreatmentView, 'currentSetting'>,
 ): TreatmentPeriodRecord {
   const period = currentPeriodOf(treatment, view)
@@ -78,7 +78,7 @@ export function currentPeriod(
   return period
 }
 
-export function lastNotedDueOn(treatment: TreatmentWithHistory, periodId?: string): string | null {
+export function lastNotedDueOn(treatment: TreatmentWithPeriods, periodId?: string): string | null {
   return (
     latestOf(
       treatment.doses
@@ -120,7 +120,7 @@ export function draftPeriod(settings: TreatmentPeriodSettings, at: string): Trea
 
 // Une première prise trop ancienne pour le rythme donnerait un calendrier que le moteur refuse de lire.
 export function startsTooFarBack(
-  treatment: Pick<TreatmentWithHistory, 'periods' | 'doses'>,
+  treatment: Pick<TreatmentWithPeriods, 'periods' | 'doses'>,
   settings: TreatmentPeriodSettings,
   today: string,
 ): boolean {

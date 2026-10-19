@@ -14,7 +14,7 @@ import {
   getTreatmentsRepository,
   type AllTreatmentsWithHistoryReader,
 } from '../repository/treatments.repository'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import {
   getVaccinationsRepository,
@@ -28,7 +28,7 @@ type Provider<T> = () => T | Promise<T>
 export type CarnetDueDates = {
   animals: Pick<Animal, 'id' | 'deletedAt' | 'unfollowedOn'>[]
   vaccinations: Pick<Vaccination, 'animalId' | 'dueDate' | 'deletedAt'>[]
-  treatments: Pick<TreatmentWithHistory, 'animalId' | 'periods' | 'doses'>[]
+  treatments: Pick<TreatmentWithPeriods, 'animalId' | 'periods' | 'doses'>[]
 }
 
 /** D'après le moteur : ni fini, ni arrêté, ni illisible, avec une dose du moment ou à venir. */

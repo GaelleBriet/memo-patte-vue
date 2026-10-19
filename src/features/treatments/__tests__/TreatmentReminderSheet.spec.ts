@@ -16,7 +16,7 @@ import {
 import { dose, period, plain, postponed, treatment } from './treatment-fixtures'
 import TreatmentChooseDays from '../views/TreatmentChooseDays.vue'
 import TreatmentReminderSheet from '../views/TreatmentReminderSheet.vue'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import type { Treatment } from '../schema/treatment.schema'
 import type { AppliedDoseChange } from '../service/treatment-doses.service'
 import { useTreatmentsStore } from '../store/treatments.store'
@@ -74,7 +74,7 @@ const BRAVECTO: Treatment = {
 }
 
 const AT = '2026-09-01T09:00:00.000Z'
-const HISTORY: TreatmentWithHistory = {
+const HISTORY: TreatmentWithPeriods = {
   id: BRAVECTO.id,
   animalId: BRAVECTO.animalId,
   name: BRAVECTO.name,
@@ -219,7 +219,7 @@ const VENDREDIS = {
   }),
   animalId: BOREE.id,
 }
-const HEBDO: TreatmentWithHistory = {
+const HEBDO: TreatmentWithPeriods = {
   ...treatment([VENDREDIS], [dose('2026-10-09', '2026-10-16', { animalId: BOREE.id })]),
   animalId: BOREE.id,
   name: 'Milbemax',
@@ -228,7 +228,7 @@ const HEBDO: TreatmentWithHistory = {
 const DOSE_16 = { settingId: 'p-1', dueOn: '2026-10-16', dueTime: null }
 const LIGNE_16 = { dueOn: '2026-10-16', dueTime: null }
 
-function lePlus(history: TreatmentWithHistory, aujourdhui: string) {
+function lePlus(history: TreatmentWithPeriods, aujourdhui: string) {
   vi.setSystemTime(new Date(`${aujourdhui}T10:00:00`))
   vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue(history)
 }
@@ -536,7 +536,7 @@ describe('TreatmentReminderSheet — F2, la feuille de l’échéance touchée',
 })
 
 describe('TreatmentReminderSheet — plusieurs heures par jour : l’heure de la ligne', () => {
-  const DEUX_HEURES: TreatmentWithHistory = {
+  const DEUX_HEURES: TreatmentWithPeriods = {
     ...HEBDO,
     periods: [{ ...VENDREDIS, frequency: { value: 1, unit: 'day' }, times: ['08:00', '20:00'] }],
     doses: [],
@@ -708,7 +708,7 @@ describe('TreatmentReminderSheet — fait à une autre date, avec la case (#527)
 
 describe('TreatmentReminderSheet — doses non renseignées (AC-9, TR-15)', () => {
   /** Quotidien depuis le 20 sept., rien de noté : trois doses à renseigner, dose du jour le 23. */
-  const QUOTIDIEN: TreatmentWithHistory = {
+  const QUOTIDIEN: TreatmentWithPeriods = {
     ...HISTORY,
     periods: [
       {
@@ -908,7 +908,7 @@ describe('TreatmentReminderSheet — arrêt raté', () => {
 
 describe('TreatmentReminderSheet — arrêter avec des doses à renseigner (TR-30)', () => {
   /** Quotidien depuis le 20 sept., rien de noté : trois doses à renseigner, dose du jour le 23. */
-  const QUOTIDIEN: TreatmentWithHistory = {
+  const QUOTIDIEN: TreatmentWithPeriods = {
     ...HISTORY,
     periods: [
       {

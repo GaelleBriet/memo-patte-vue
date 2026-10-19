@@ -9,7 +9,7 @@ import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
 import { nextDoseShiftHelp } from '../logic/treatment-form-texts'
 import type { TreatmentEditionInput } from '../schema/treatment-form.schema'
 import type { TreatmentPlanWrite } from '../schema/treatment-plan.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const t = i18n.global.t
@@ -20,7 +20,7 @@ function ids() {
 }
 
 function saisie(
-  history: TreatmentWithHistory,
+  history: TreatmentWithPeriods,
   changes: Partial<TreatmentEditionInput> = {},
 ): TreatmentEditionInput {
   const current = history.periods.at(-1)!
@@ -38,7 +38,7 @@ function saisie(
 }
 
 function champsRefuses(
-  history: TreatmentWithHistory,
+  history: TreatmentWithPeriods,
   input: TreatmentEditionInput,
   today: string,
 ): string[] {
@@ -48,7 +48,7 @@ function champsRefuses(
     : result.error.issues.map((issue) => `${String(issue.path[0])}:${issue.message}`)
 }
 
-function dosesAfter(history: TreatmentWithHistory, { doses }: TreatmentPlanWrite) {
+function dosesAfter(history: TreatmentWithPeriods, { doses }: TreatmentPlanWrite) {
   return doses.reduce((lines, write) => {
     if (write.action === 'delete') return lines.filter(({ id }) => id !== write.id)
     if (write.action === 'rewrite') {
@@ -60,7 +60,7 @@ function dosesAfter(history: TreatmentWithHistory, { doses }: TreatmentPlanWrite
 }
 
 function upcomingAfter(
-  history: TreatmentWithHistory,
+  history: TreatmentWithPeriods,
   plan: TreatmentPlanWrite,
   today: string,
   count: number,
@@ -410,7 +410,7 @@ describe('la case « Décaler aussi les doses suivantes » de « Prochaine dose 
   const PIXEL = treatment([VENDREDI], [dose('2026-10-09', '2026-10-16')])
   const TODAY = '2026-10-14'
 
-  function helpOf(history: TreatmentWithHistory, nextDoseOn: string, shiftsFollowing: boolean) {
+  function helpOf(history: TreatmentWithPeriods, nextDoseOn: string, shiftsFollowing: boolean) {
     const draft = editionDraft(history, null, TODAY, nextDoseOn, shiftsFollowing)
     const help = nextDoseShiftHelp(t, draft, { shiftsFollowing })
     return help === null ? null : { ...help, text: plain(help.text) }

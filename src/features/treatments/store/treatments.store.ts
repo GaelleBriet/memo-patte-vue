@@ -30,7 +30,7 @@ import type {
   TreatmentsRepository as FullTreatmentsRepository,
   TreatmentWithHistoryReader,
 } from '../repository/treatments.repository'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import { track } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { useAnimalScopedList } from '@/shared/composables/use-animal-scoped-list'
@@ -129,11 +129,11 @@ export const useTreatmentsStore = defineStore('treatments', () => {
     },
 
     /** Le traitement, toutes ses périodes et ses prises : l'entrée de `treatmentReading`. */
-    async getWithHistory(id: string): Promise<TreatmentWithHistory | null> {
+    async getWithHistory(id: string): Promise<TreatmentWithPeriods | null> {
       return (await requireRepository()).getWithHistory(id)
     },
 
-    async listWithHistoryByAnimal(id: string): Promise<TreatmentWithHistory[]> {
+    async listWithHistoryByAnimal(id: string): Promise<TreatmentWithPeriods[]> {
       return (await requireRepository()).listWithHistoryByAnimal(id)
     },
 

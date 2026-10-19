@@ -5,7 +5,7 @@ import {
   readableReadingOf,
   treatmentReadingOf,
 } from '../logic/treatment-reading-adapter'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import { legacyFactsOf } from '@/shared/domain/dose-calendar'
 
@@ -39,7 +39,7 @@ function period(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPeriod
   }
 }
 
-function metacam(periods: TreatmentPeriodRecord[]): TreatmentWithHistory {
+function metacam(periods: TreatmentPeriodRecord[]): TreatmentWithPeriods {
   return {
     id: 'metacam',
     animalId: 'luna',
@@ -68,7 +68,7 @@ describe('treatmentReadingOf', () => {
   })
 
   it('lit les prises telles que la base les rend', () => {
-    const treatment: TreatmentWithHistory = {
+    const treatment: TreatmentWithPeriods = {
       ...metacam([period()]),
       doses: [
         {

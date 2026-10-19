@@ -8,7 +8,7 @@ import { useTreatmentDoseFlow, type DoseFlowExits } from '../composables/use-tre
 import { useTreatmentGestures } from '../composables/use-treatment-gestures'
 import { DoseAlreadyLoggedError, type NoteGesture } from '../logic/treatment-dose-change'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import type { AppliedDoseChange } from '../service/treatment-doses.service'
 import { useTreatmentsStore } from '../store/treatments.store'
 import i18n from '@/core/i18n'
@@ -36,7 +36,7 @@ const LUNA: Animal = {
 }
 
 /** Quotidien, dernière prise le 2 sept. : 25 doses non renseignées le 28. */
-const PANACUR: TreatmentWithHistory = {
+const PANACUR: TreatmentWithPeriods = {
   ...treatment([period()], [dose('2026-09-01', '2026-09-02'), dose('2026-09-02', '2026-09-03')]),
   name: 'Panacur',
 }
@@ -76,7 +76,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-function flow(exits: DoseFlowExits = {}, history: TreatmentWithHistory | null = PANACUR) {
+function flow(exits: DoseFlowExits = {}, history: TreatmentWithPeriods | null = PANACUR) {
   let result: ReturnType<typeof useTreatmentDoseFlow> | undefined
   mount(
     defineComponent({

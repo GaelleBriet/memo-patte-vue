@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } fr
 import { createMemoryHistory, createRouter, createWebHistory, type Router } from 'vue-router'
 
 import TreatmentFormView from '../views/TreatmentFormView.vue'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type {
   TreatmentCreationInput,
@@ -150,7 +150,7 @@ function prise(overrides: Partial<TreatmentDose> = {}): TreatmentDose {
 function milbemax(
   periods: TreatmentPeriodRecord[] = [periode()],
   doses: TreatmentDose[] = [prise()],
-): TreatmentWithHistory {
+): TreatmentWithPeriods {
   return {
     id: ID,
     animalId: MILO.id,
@@ -180,7 +180,7 @@ let loadAnimals: MockInstance
 let create: MockInstance<(input: TreatmentCreationInput) => Promise<Treatment>>
 let update: MockInstance<(id: string, input: TreatmentEditionInput) => Promise<Treatment>>
 let resume: MockInstance<(id: string, input: TreatmentResumptionInput) => Promise<Treatment>>
-let getWithHistory: MockInstance<(id: string) => Promise<TreatmentWithHistory | null>>
+let getWithHistory: MockInstance<(id: string) => Promise<TreatmentWithPeriods | null>>
 let replace: MockInstance
 let routeur: Router
 const formulairesMontes: VueWrapper[] = []
@@ -1942,7 +1942,7 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
   ])(
     'en %s, ne montre ni « Nouveau traitement » ni champ tant que le traitement charge',
     async (_, monter) => {
-      getWithHistory.mockReturnValueOnce(new Promise<TreatmentWithHistory>(() => {}))
+      getWithHistory.mockReturnValueOnce(new Promise<TreatmentWithPeriods>(() => {}))
       const wrapper = await monter()
 
       attenduSansFormulaire(wrapper)
@@ -2369,7 +2369,7 @@ describe('TreatmentFormView — reprise (TR-32, planche V7)', () => {
     givenOn: '2026-10-10',
   })
 
-  function panacur(periods = [PANACUR]): TreatmentWithHistory {
+  function panacur(periods = [PANACUR]): TreatmentWithPeriods {
     return { ...milbemax(periods, [DERNIERE]), name: 'Panacur' }
   }
 

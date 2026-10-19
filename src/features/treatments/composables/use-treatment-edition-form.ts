@@ -11,13 +11,13 @@ import { formErrorParams, nextDoseShiftHelp } from '../logic/treatment-form-text
 import type { TreatmentFormValues } from '../logic/treatment-form-values'
 import { pastDuesTexts } from '../logic/treatment-past-dues'
 import type { PastDuesChoice } from '../schema/treatment-form.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 
 type Inputs = {
   values: Ref<TreatmentFormValues>
-  treatment: Ref<TreatmentWithHistory | null>
+  treatment: Ref<TreatmentWithPeriods | null>
   today: Readonly<Ref<string>>
   /** Relit la date du jour : la question se repose si ses échéances ont changé depuis (#873). */
   refreshToday?: () => void
@@ -86,12 +86,12 @@ export function useTreatmentEditionForm({ values, treatment, today, refreshToday
     },
   )
 
-  function requireTreatment(): TreatmentWithHistory {
+  function requireTreatment(): TreatmentWithPeriods {
     if (treatment.value === null) throw new Error('Formulaire traitement ouvert sans traitement.')
     return treatment.value
   }
 
-  function open(loaded: TreatmentWithHistory): boolean {
+  function open(loaded: TreatmentWithPeriods): boolean {
     values.value = editedFormValues(loaded, today.value)
     treatment.value = loaded
     return true

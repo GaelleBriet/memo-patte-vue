@@ -13,7 +13,7 @@ import type { TreatmentDosesService } from '../service/treatment-doses.service'
 import type { TreatmentRemindersService } from '../service/treatment-reminders.service'
 import type { TreatmentStopService } from '../service/treatment-stop.service'
 import type { TreatmentsRepository } from '../repository/treatments.repository'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import {
   provideTreatmentDosesService,
   provideTreatmentPlanService,
@@ -127,9 +127,9 @@ function reprise(surcharges: Partial<TreatmentResumptionInput> = {}): TreatmentR
 describe('useTreatmentsStore', () => {
   it('garde la liste du dernier animal demandé quand la réponse du précédent arrive après', async () => {
     repository.seed(vermifuge(LUNA))
-    let finishMilo: (items: TreatmentWithHistory[]) => void = () => {}
+    let finishMilo: (items: TreatmentWithPeriods[]) => void = () => {}
     repository.listWithHistoryByAnimal.mockReturnValueOnce(
-      new Promise<TreatmentWithHistory[]>((resolve) => {
+      new Promise<TreatmentWithPeriods[]>((resolve) => {
         finishMilo = resolve
       }),
     )
@@ -170,7 +170,7 @@ describe('useTreatmentsStore', () => {
   it('ignore l’échec d’un chargement dépassé par celui d’un autre animal', async () => {
     let failMilo: (cause: Error) => void = () => {}
     repository.listWithHistoryByAnimal.mockReturnValueOnce(
-      new Promise<TreatmentWithHistory[]>((_resolve, reject) => {
+      new Promise<TreatmentWithPeriods[]>((_resolve, reject) => {
         failMilo = reject
       }),
     )
@@ -211,9 +211,9 @@ describe('useTreatmentsStore', () => {
   })
 
   it('signale le chargement en cours pendant l’appel au repository', async () => {
-    let finishList: (treatments: TreatmentWithHistory[]) => void = () => {}
+    let finishList: (treatments: TreatmentWithPeriods[]) => void = () => {}
     repository.listWithHistoryByAnimal.mockReturnValueOnce(
-      new Promise<TreatmentWithHistory[]>((resolve) => {
+      new Promise<TreatmentWithPeriods[]>((resolve) => {
         finishList = resolve
       }),
     )
@@ -593,7 +593,7 @@ describe('useTreatmentsStore — gestes d’un rappel', () => {
 })
 
 describe('useTreatmentsStore — traitement avec ses périodes et ses prises', () => {
-  const METACAM: TreatmentWithHistory = {
+  const METACAM: TreatmentWithPeriods = {
     id: 't1',
     animalId: LUNA,
     name: 'Métacam',

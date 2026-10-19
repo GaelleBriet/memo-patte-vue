@@ -12,7 +12,7 @@ import {
   otherDateRecap,
 } from '../logic/treatment-shift-box'
 import { shiftHelpText } from '../logic/treatment-shift-help'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const t = i18n.global.t
@@ -26,7 +26,7 @@ const VENDREDI = period({
 const PIXEL = treatment([VENDREDI], [dose('2026-10-09', '2026-10-16')])
 const DUE_16 = { settingId: 'p-1', dueOn: '2026-10-16', dueTime: null }
 
-function carnet(history: TreatmentWithHistory, today: string) {
+function carnet(history: TreatmentWithPeriods, today: string) {
   return { treatment: history, reading: treatmentReadingOf(history, today), today }
 }
 
@@ -178,7 +178,7 @@ describe('dateChangeBox — « Changer la date » (V30, N2)', () => {
   )
   const seul = treatment([VENDREDI], [...PIXEL.doses, report])
 
-  function boxOf(history: TreatmentWithHistory) {
+  function boxOf(history: TreatmentWithPeriods) {
     return dateChangeBox(t, report, carnet(history, today))!
   }
 

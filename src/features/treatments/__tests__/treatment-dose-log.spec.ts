@@ -7,7 +7,7 @@ import {
   type NoteGesture,
 } from '../logic/treatment-dose-change'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import type { Due } from '@/shared/domain/dose-calendar'
 
 const OWNER = { treatmentId: 'metacam', animalId: 'luna' }
@@ -25,7 +25,7 @@ function forgotten(due: Due): NoteGesture {
   return note(due, 'missed')
 }
 
-function log(history: TreatmentWithHistory, today: string, gestures: NoteGesture[]) {
+function log(history: TreatmentWithPeriods, today: string, gestures: NoteGesture[]) {
   let next = 0
   return doseChange(history, treatmentReadingOf(history, today), { kind: 'log', gestures }, () => {
     next += 1
@@ -33,7 +33,7 @@ function log(history: TreatmentWithHistory, today: string, gestures: NoteGesture
   })
 }
 
-function moment(history: TreatmentWithHistory, today: string) {
+function moment(history: TreatmentWithPeriods, today: string) {
   const { view } = treatmentReadingOf(history, today)
   return {
     phase: view.phase,
@@ -143,7 +143,7 @@ describe('doseChange — renseigner des doses en un lot', () => {
 describe('renseigner ne déplace ni la dose du moment ni les échéances à venir (TR-18)', () => {
   const MATIN_ET_SOIR = period({ times: ['08:00', '20:00'] })
   const HEBDO = period({ frequency: { value: 1, unit: 'week' } })
-  const cases: [string, TreatmentWithHistory, string][] = [
+  const cases: [string, TreatmentWithPeriods, string][] = [
     ['quotidien, 25 jours sans prise', PANACUR, TODAY],
     ['jamais noté', treatment([period()]), TODAY],
     [

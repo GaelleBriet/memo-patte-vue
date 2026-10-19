@@ -7,7 +7,7 @@ import type { Animal } from '@/features/animals/schema/animal.schema'
 import type { AnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { provideAnimalsRepository, useAnimalsStore } from '@/features/animals/store/animals.store'
 import { dose, period, treatment } from '@/features/treatments/__tests__/treatment-fixtures'
-import type { TreatmentWithHistory } from '@/features/treatments/schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '@/features/treatments/schema/treatment-with-history.schema'
 import type { TreatmentPeriodRecord } from '@/features/treatments/schema/treatment-period.schema'
 import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import {
@@ -72,7 +72,7 @@ function milbemax(
   overrides: Partial<TreatmentPeriodRecord> = {},
   id = MILBEMAX_ID,
   doses: Parameters<typeof treatment>[1] = [],
-): TreatmentWithHistory {
+): TreatmentWithPeriods {
   const periods = [
     period({ firstDueOn: '2026-09-17', frequency: { value: 3, unit: 'month' }, ...overrides }),
   ]
@@ -86,7 +86,7 @@ let notifications: FakeNotifications
 let list: ReturnType<typeof vi.fn<() => Promise<Animal[]>>>
 let listVaccinations: ReturnType<typeof vi.fn<() => Promise<Vaccination[]>>>
 let listAllReplacedDues: ReturnType<typeof vi.fn<() => Promise<Map<string, string[]>>>>
-let listTreatments: ReturnType<typeof vi.fn<() => Promise<TreatmentWithHistory[]>>>
+let listTreatments: ReturnType<typeof vi.fn<() => Promise<TreatmentWithPeriods[]>>>
 let getSettings: ReturnType<typeof vi.fn<() => Promise<CarnetReminderSettings>>>
 
 function sync() {
@@ -116,7 +116,7 @@ beforeEach(() => {
   list = vi.fn<() => Promise<Animal[]>>().mockResolvedValue([MILO, LUNA])
   listVaccinations = vi.fn<() => Promise<Vaccination[]>>().mockResolvedValue([])
   listAllReplacedDues = vi.fn<() => Promise<Map<string, string[]>>>().mockResolvedValue(new Map())
-  listTreatments = vi.fn<() => Promise<TreatmentWithHistory[]>>().mockResolvedValue([])
+  listTreatments = vi.fn<() => Promise<TreatmentWithPeriods[]>>().mockResolvedValue([])
   getSettings = vi.fn<() => Promise<CarnetReminderSettings>>().mockResolvedValue(SETTINGS)
 })
 

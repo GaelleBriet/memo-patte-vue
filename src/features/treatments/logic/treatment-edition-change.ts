@@ -18,7 +18,7 @@ import {
 import { correctionOf, settingsPlanOf } from './treatment-settings-writes'
 import type { PastDuesChoice, TreatmentRhythm } from '../schema/treatment-form.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import { isCalendarDay } from '@/shared/domain/calendar-day'
 import { sortedTimes } from '@/shared/domain/clock-time'
 import {
@@ -77,7 +77,7 @@ const refusalOf = (answer: ReturnType<typeof answerOf>): Refusal | null =>
 // Q29 : la première dose calculée à partir de la dernière prise, avant d'être ramenée à aujourd'hui.
 function calculatedOn(
   { input }: TreatmentReading,
-  treatment: TreatmentWithHistory,
+  treatment: TreatmentWithPeriods,
   rhythm: TreatmentRhythm,
 ): Day | null {
   const lastNotedOn = lastNotedDueOn(treatment)
@@ -94,7 +94,7 @@ function calculatedOn(
 
 function helpOf(
   reading: TreatmentReading,
-  treatment: TreatmentWithHistory,
+  treatment: TreatmentWithPeriods,
   period: TreatmentPeriodRecord,
   rhythm: TreatmentRhythm,
   proposedOn: Day,
@@ -158,7 +158,7 @@ function lockedBy(period: TreatmentPeriodRecord, reading: TreatmentReading): boo
  * le moteur ; la date saisie ne compte que si elle diffère de celle proposée.
  */
 export function resolve(
-  treatment: TreatmentWithHistory,
+  treatment: TreatmentWithPeriods,
   rhythm: TreatmentRhythm | null,
   choice: NextDoseChoice,
   today: Day,

@@ -25,7 +25,7 @@ import {
   getTreatmentsRepository,
   type TreatmentWithHistoryReader,
 } from '../repository/treatments.repository'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import {
   treatmentRemindersService,
   type TreatmentRemindersService,
@@ -66,14 +66,14 @@ export function createTreatmentStopService({
   queue = createWriteQueue(),
   deviceId = currentDeviceId,
 }: TreatmentStopDependencies) {
-  async function treatmentOf(treatmentId: string): Promise<TreatmentWithHistory> {
+  async function treatmentOf(treatmentId: string): Promise<TreatmentWithPeriods> {
     const treatment = await (await treatments()).getWithHistory(treatmentId)
     if (treatment === null) throw new Error(`Traitement introuvable : ${treatmentId}`)
     return treatment
   }
 
   // Le réglage en cours est celui que lit le moteur, pas la période que la base classe en dernier.
-  function currentPeriodId(treatment: TreatmentWithHistory): string {
+  function currentPeriodId(treatment: TreatmentWithPeriods): string {
     const current = readableReadingOf(treatment, today())?.view.currentSetting
     const id = current?.id ?? treatment.periods.at(-1)?.id
     if (id === undefined) throw new Error(`Traitement sans période : ${treatment.id}`)
@@ -81,14 +81,14 @@ export function createTreatmentStopService({
   }
 
   /** Rien à écrire : traitement déjà arrêté, ou fini par sa date de fin ; `null` sinon. */
-  function unchanged(treatment: TreatmentWithHistory): StoppedTreatment | null {
+  function unchanged(treatment: TreatmentWithPeriods): StoppedTreatment | null {
     const view = readableReadingOf(treatment, today())?.view
     if (view === undefined || (view.phase !== 'stopped' && view.phase !== 'ended')) return null
     return { animalId: treatment.animalId, stopped: false, finished: view.finished, undo: [] }
   }
 
   async function logAndStop(
-    treatment: TreatmentWithHistory,
+    treatment: TreatmentWithPeriods,
     gestures: readonly NoteGesture[],
   ): Promise<DoseWrite[]> {
     const reading = treatmentReadingOf(treatment, today(), deviceId())

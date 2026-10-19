@@ -12,7 +12,7 @@ import {
   otherDateTexts,
 } from '../logic/treatment-other-date'
 import { otherDateBox, otherDateNote, otherDateRecap } from '../logic/treatment-shift-box'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
 import DateCalendar from '@/shared/components/DateCalendar.vue'
 import type { NotifiedDue } from '@/shared/domain/reminder-route'
@@ -24,7 +24,7 @@ const props = withDefaults(
     name: string
     animal: string
     icon: string
-    treatment: TreatmentWithHistory
+    treatment: TreatmentWithPeriods
     reading: TreatmentReading
     today: string
     min?: string | null

@@ -24,7 +24,7 @@ import {
   resumeInfoText,
 } from '../logic/treatment-form-texts'
 import type { PromptActionId } from '../logic/treatment-unlogged'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import type { PastDuesChoice } from '../schema/treatment-form.schema'
 import type { ReminderOffsetMinutes } from '../schema/treatment-period.schema'
 import { FREQUENCY_UNITS, TREATMENT_TYPES, type FrequencyUnit } from '../schema/treatment.schema'
@@ -64,7 +64,7 @@ const exactReminders = useExactReminders()
 const mode = props.id === undefined ? 'create' : props.resume ? 'resume' : 'edit'
 
 const values = ref(emptyTreatmentFormValues())
-const treatment = ref<TreatmentWithHistory | null>(null)
+const treatment = ref<TreatmentWithPeriods | null>(null)
 const endsOnTouched = ref(false)
 const hasDuplicateTime = ref(false)
 const isSuggestingExact = ref(false)
@@ -192,7 +192,7 @@ function errorText(key: string | undefined): string | null {
   return t(key, errorParams.value)
 }
 
-function open(loaded: TreatmentWithHistory): void {
+function open(loaded: TreatmentWithPeriods): void {
   const opened = edition?.open(loaded) ?? resumption?.open(loaded) ?? false
   if (opened) keptOffset.value = values.value.reminderOffset
 }

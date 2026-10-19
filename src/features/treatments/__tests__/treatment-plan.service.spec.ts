@@ -12,7 +12,7 @@ import {
   type TreatmentsRepository,
 } from '../repository/treatments.repository'
 import type { TreatmentCreationInput, TreatmentEditionInput } from '../schema/treatment-form.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import { createWriteQueue } from '../logic/treatment-write-queue'
 import { createTreatmentDosesService, type NotedMoment } from '../service/treatment-doses.service'
 import {
@@ -640,7 +640,7 @@ describe('treatmentPlanService', () => {
   })
 
   describe('rappels', () => {
-    let seenAtReschedule: TreatmentWithHistory | null
+    let seenAtReschedule: TreatmentWithPeriods | null
 
     beforeEach(() => {
       seenAtReschedule = null

@@ -3,13 +3,13 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { dose, missed, period, plain, postponed, shifted, treatment } from './treatment-fixtures'
 import { detailActions, doseCard, lessPreciseReminder } from '../logic/treatment-card'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const t = i18n.global.t
 const MATIN_ET_SOIR = period({ times: ['08:00', '20:00'], doseQuantity: 0.3, doseUnit: 'ml' })
 
-function card(history: TreatmentWithHistory, today: string) {
+function card(history: TreatmentWithPeriods, today: string) {
   return plain(
     doseCard(t, history, treatmentReadingOf(history, today).view, { animal: 'Luna', today }),
   )
@@ -326,7 +326,7 @@ describe('lessPreciseReminder (TR-34, Rappels Q6)', () => {
     [dose('2026-09-27', '2026-09-28', { dueTime: '20:00' })],
   )
 
-  function ligne(history: TreatmentWithHistory, exact: Parameters<typeof lessPreciseReminder>[3]) {
+  function ligne(history: TreatmentWithPeriods, exact: Parameters<typeof lessPreciseReminder>[3]) {
     return lessPreciseReminder(t, history, treatmentReadingOf(history, '2026-09-28').view, exact)
   }
 

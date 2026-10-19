@@ -6,12 +6,12 @@ import { correctionOf, periodWriteOf, settingsPlanOf } from './treatment-setting
 import { sameSettings, settingsOf, withRhythm, type PlanIds } from './treatment-settings'
 import type { TreatmentPlanWrite } from '../schema/treatment-plan.schema'
 import type { TreatmentEditionInput } from '../schema/treatment-form.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import { applied, settingsApplied } from '@/shared/domain/dose-calendar'
 
 /** Lève une `ZodError` pour une saisie refusée : rien n'est alors à écrire. */
 export function editionPlan(
-  treatment: TreatmentWithHistory,
+  treatment: TreatmentWithPeriods,
   input: TreatmentEditionInput,
   today: string,
   ids: PlanIds,

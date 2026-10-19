@@ -7,7 +7,7 @@ import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 import { milbemax, period, TODAY } from './treatment-form-fixtures'
 import { useTreatmentResumptionForm } from '../composables/use-treatment-resumption-form'
 import { emptyTreatmentFormValues } from '../logic/treatment-form-values'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import type { Treatment } from '../schema/treatment.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
@@ -40,7 +40,7 @@ afterEach(() => {
 
 function reprise() {
   const values = ref(emptyTreatmentFormValues())
-  const history = ref<TreatmentWithHistory | null>(null)
+  const history = ref<TreatmentWithPeriods | null>(null)
   const endsOnTouched = ref(false)
   let form: ReturnType<typeof useTreatmentResumptionForm> | undefined
   mount(

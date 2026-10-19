@@ -24,7 +24,7 @@ import {
   type Treatment,
   type TreatmentType,
 } from '../schema/treatment.schema'
-import type { TreatmentRecord, TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentRecord, TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import type {
   NewTreatmentPlan,
   PlannedDoseWrite,
@@ -99,7 +99,7 @@ function withHistory(
   rows: TreatmentRow[],
   periods: TreatmentPeriodRecord[],
   doses: Stamped<TreatmentDose>[],
-): TreatmentWithHistory[] {
+): TreatmentWithPeriods[] {
   const periodsOf = groupBy(periods, ({ treatmentId }) => treatmentId)
   const dosesOf = groupBy(doses, ({ periodId }) => periodId)
   return rows.flatMap((row) => {
@@ -218,7 +218,7 @@ export function createTreatmentsRepository(
       return rows.map(toStampedRecord)
     },
 
-    async getWithHistory(id: string): Promise<TreatmentWithHistory | null> {
+    async getWithHistory(id: string): Promise<TreatmentWithPeriods | null> {
       const [rows, ownPeriods, ownDoses] = await Promise.all([
         db.query<TreatmentRow>(`SELECT ${COLUMNS} FROM treatment WHERE ${NOT_DELETED} AND id = ?`, [
           id,
@@ -230,7 +230,7 @@ export function createTreatmentsRepository(
     },
 
     /** Dans l'ordre de saisie des traitements. */
-    async listWithHistoryByAnimal(animalId: string): Promise<TreatmentWithHistory[]> {
+    async listWithHistoryByAnimal(animalId: string): Promise<TreatmentWithPeriods[]> {
       const [rows, ownPeriods, ownDoses] = await Promise.all([
         db.query<TreatmentRow>(
           `SELECT ${COLUMNS} FROM treatment WHERE ${NOT_DELETED} AND animal_id = ?
@@ -244,7 +244,7 @@ export function createTreatmentsRepository(
     },
 
     /** Par animal, puis dans l'ordre de saisie des traitements. */
-    async listAllWithHistory(): Promise<TreatmentWithHistory[]> {
+    async listAllWithHistory(): Promise<TreatmentWithPeriods[]> {
       const [rows, allPeriods, allDoses] = await Promise.all([
         db.query<TreatmentRow>(
           `SELECT ${COLUMNS} FROM treatment WHERE ${NOT_DELETED}

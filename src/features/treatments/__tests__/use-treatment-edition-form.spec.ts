@@ -7,7 +7,7 @@ import { ZodError } from 'zod'
 import { milbemax, period, TODAY } from './treatment-form-fixtures'
 import { useTreatmentEditionForm } from '../composables/use-treatment-edition-form'
 import { emptyTreatmentFormValues } from '../logic/treatment-form-values'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import type { Treatment } from '../schema/treatment.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import i18n from '@/core/i18n'
@@ -36,9 +36,9 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-function modification(loaded: TreatmentWithHistory = milbemax()) {
+function modification(loaded: TreatmentWithPeriods = milbemax()) {
   const values = ref(emptyTreatmentFormValues())
-  const history = ref<TreatmentWithHistory | null>(null)
+  const history = ref<TreatmentWithPeriods | null>(null)
   let form: ReturnType<typeof useTreatmentEditionForm> | undefined
   mount(
     defineComponent({
@@ -82,7 +82,7 @@ describe('useTreatmentEditionForm — prochaine dose', () => {
 
   it('sans brouillon lisible, ne propose rien et lève à l’enregistrement', () => {
     const values = ref(emptyTreatmentFormValues())
-    const history = ref<TreatmentWithHistory | null>(milbemax([period({ times: ['8h'] })]))
+    const history = ref<TreatmentWithPeriods | null>(milbemax([period({ times: ['8h'] })]))
     let form: ReturnType<typeof useTreatmentEditionForm> | undefined
     mount(
       defineComponent({

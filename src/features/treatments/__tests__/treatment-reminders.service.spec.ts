@@ -9,7 +9,7 @@ import {
   createFakeNotifications,
   type FakeNotifications,
 } from '@/shared/__tests__/fake-notifications'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import {
   createTreatmentRemindersService,
   type TreatmentRemindersService,
@@ -44,7 +44,7 @@ const OTHER = `treatment:55555555-5555-4555-8555-555555555555:2026-10-01::due`
 
 let notifications: FakeNotifications
 let getAnimal: ReturnType<typeof vi.fn<(id: string) => Promise<Animal | null>>>
-let getWithHistory: ReturnType<typeof vi.fn<(id: string) => Promise<TreatmentWithHistory | null>>>
+let getWithHistory: ReturnType<typeof vi.fn<(id: string) => Promise<TreatmentWithPeriods | null>>>
 let settings: ReturnType<typeof vi.fn<() => Promise<CarnetReminderSettings>>>
 let service: TreatmentRemindersService
 
@@ -55,7 +55,7 @@ function programmes(): Date[] {
     .sort((a, b) => a.getTime() - b.getTime())
 }
 
-function withFirstDue(firstDueOn: string): TreatmentWithHistory {
+function withFirstDue(firstDueOn: string): TreatmentWithPeriods {
   return treatment([period({ firstDueOn, frequency: { value: 3, unit: 'month' } })])
 }
 
@@ -63,7 +63,7 @@ beforeEach(() => {
   notifications = createFakeNotifications()
   getAnimal = vi.fn<(id: string) => Promise<Animal | null>>().mockResolvedValue(LUNA)
   getWithHistory = vi
-    .fn<(id: string) => Promise<TreatmentWithHistory | null>>()
+    .fn<(id: string) => Promise<TreatmentWithPeriods | null>>()
     .mockResolvedValue(MILBEMAX)
   settings = vi.fn<() => Promise<CarnetReminderSettings>>().mockResolvedValue(SETTINGS)
   service = createTreatmentRemindersService({

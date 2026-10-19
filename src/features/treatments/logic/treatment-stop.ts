@@ -1,6 +1,6 @@
 import { hasSeveralTimes } from './treatment-gestures'
 import { unloggedWhen, type PromptAction } from './treatment-unlogged'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import type { Due, TreatmentView } from '@/shared/domain/dose-calendar'
 import type { Translate } from '@/core/i18n/translate'
 
@@ -61,7 +61,7 @@ function actionsOf(t: Translate, name: string, count: number, when: string): Pro
 
 export function stopPrompt(
   t: Translate,
-  treatment: Pick<TreatmentWithHistory, 'name' | 'periods'>,
+  treatment: Pick<TreatmentWithPeriods, 'name' | 'periods'>,
   view: StopView,
   today: string,
 ): StopPrompt {

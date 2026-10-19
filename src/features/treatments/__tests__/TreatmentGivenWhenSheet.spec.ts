@@ -3,7 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 
 import { dose, missed, period, plain, treatment } from './treatment-fixtures'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import type { AppliedDoseChange } from '../service/treatment-doses.service'
 import { useTreatmentsStore } from '../store/treatments.store'
 import TreatmentGivenWhenSheet from '../views/TreatmentGivenWhenSheet.vue'
@@ -86,7 +86,7 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-async function ouvrir(book: TreatmentWithHistory, today: string, due: NotifiedDue) {
+async function ouvrir(book: TreatmentWithPeriods, today: string, due: NotifiedDue) {
   vi.useFakeTimers({ now: new Date(`${today}T10:00:00`), toFake: ['Date'] })
   vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue(book)
   wrapper = mount(TreatmentGivenWhenSheet, {

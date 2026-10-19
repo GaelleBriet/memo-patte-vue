@@ -9,7 +9,7 @@ import {
   resumedFormValues,
   validateTreatmentResumption,
 } from '../logic/treatment-resumption-form'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { detailRoute } from '@/shared/domain/reminder-route'
@@ -18,7 +18,7 @@ import { returnTo } from '@/shared/utils/return-to'
 
 type Inputs = {
   values: Ref<TreatmentFormValues>
-  treatment: Ref<TreatmentWithHistory | null>
+  treatment: Ref<TreatmentWithPeriods | null>
   today: Readonly<Ref<string>>
   endsOnTouched: Readonly<Ref<boolean>>
 }
@@ -47,13 +47,13 @@ export function useTreatmentResumptionForm({ values, treatment, today, endsOnTou
     },
   )
 
-  function requireTreatment(): TreatmentWithHistory {
+  function requireTreatment(): TreatmentWithPeriods {
     if (treatment.value === null) throw new Error('Formulaire traitement ouvert sans traitement.')
     return treatment.value
   }
 
   /** Faux quand le traitement n'a rien à reprendre : retour à sa fiche. */
-  function open(loaded: TreatmentWithHistory): boolean {
+  function open(loaded: TreatmentWithPeriods): boolean {
     const opened = resumedFormValues(loaded, today.value)
     if (opened.status === 'not-resumable') {
       animals.select(loaded.animalId)

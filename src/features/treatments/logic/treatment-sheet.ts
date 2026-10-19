@@ -1,7 +1,7 @@
 import { givenWhenMin, isExtraOn } from './treatment-notification'
 import { givesBeforeItsDay, notifiedDues } from './treatment-other-date'
 import { doneGesture } from './treatment-shift-box'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import type { Treatment } from '../schema/treatment.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { NoteGesture } from './treatment-dose-change'
@@ -26,7 +26,7 @@ export function treatmentStopTexts(t: Translate, named: { name: string; animal: 
 
 /** La période de l'échéance de la ligne, sinon la dernière. */
 export function sheetPeriod(
-  treatment: Pick<TreatmentWithHistory, 'periods'>,
+  treatment: Pick<TreatmentWithPeriods, 'periods'>,
   view: Pick<TreatmentView, 'slots' | 'unloggedDoses'> | null,
   due: TodoDue | null,
 ): TreatmentPeriodRecord | undefined {

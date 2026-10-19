@@ -13,7 +13,7 @@ import {
   written,
 } from '@/features/treatments/__tests__/treatment-fixtures'
 import type { DoseWrite } from '@/features/treatments/schema/treatment-dose.schema'
-import type { TreatmentWithHistory } from '@/features/treatments/schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '@/features/treatments/schema/treatment-with-history.schema'
 import { createTreatmentDosesService } from '@/features/treatments/service/treatment-doses.service'
 import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import {
@@ -91,7 +91,7 @@ const Vide = { render: () => null }
 
 let router: Router
 let today: string
-let book: TreatmentWithHistory | null
+let book: TreatmentWithPeriods | null
 let vaccination: Vaccination | null
 let replacedDues: string[]
 let applyBatch: Mock<(writes: readonly DoseWrite[], at: string) => Promise<DoseWrite[]>>

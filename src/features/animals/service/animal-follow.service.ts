@@ -7,7 +7,7 @@ import {
   getTreatmentsRepository,
   type TreatmentsRepository,
 } from '@/features/treatments/repository/treatments.repository'
-import type { TreatmentWithHistory } from '@/features/treatments/schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '@/features/treatments/schema/treatment-with-history.schema'
 import { readTreatment } from '@/shared/domain/treatment-reading'
 import { getAnimalsRepository, type AnimalsRepository } from '../repository/animals.repository'
 import type { Departure } from '../schema/animal.schema'
@@ -32,7 +32,7 @@ export type FollowUndo = { animalId: string; departure: Departure }
 const FOLLOWED: Departure = { unfollowedOn: null, departureReason: null, departureDate: null }
 
 /** La période en cours d'un traitement ni arrêté ni fini par sa date de fin. */
-function ongoingPeriodId(treatment: TreatmentWithHistory, today: string): string | null {
+function ongoingPeriodId(treatment: TreatmentWithPeriods, today: string): string | null {
   const current = treatment.periods.at(-1)
   if (current === undefined || current.stoppedOn !== null) return null
   const view = readTreatment(treatment, today)?.view

@@ -11,7 +11,7 @@ import {
   unloggedBanner,
   unloggedWhen,
 } from '../logic/treatment-unlogged'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const t = i18n.global.t
@@ -22,7 +22,7 @@ const PANACUR = {
 }
 const HEBDO = period({ frequency: { value: 1, unit: 'week' } })
 
-function banner(history: TreatmentWithHistory, today = TODAY) {
+function banner(history: TreatmentWithPeriods, today = TODAY) {
   return plain(unloggedBanner(t, history, treatmentReadingOf(history, today).view, today))
 }
 

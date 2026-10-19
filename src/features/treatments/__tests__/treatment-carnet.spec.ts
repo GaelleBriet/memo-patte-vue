@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { dose, extra, missed, period, plain, treatment } from './treatment-fixtures'
 import { carnetViewCache, carnetTreatments } from '../logic/treatment-carnet'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import i18n, { applyLocale } from '@/core/i18n'
@@ -15,16 +15,16 @@ function named(
   name: string,
   periods: TreatmentPeriodRecord[],
   doses: TreatmentDose[] = [],
-  type: TreatmentWithHistory['type'] = 'deworming',
-): TreatmentWithHistory {
+  type: TreatmentWithPeriods['type'] = 'deworming',
+): TreatmentWithPeriods {
   return { ...treatment(periods, doses), id: name.toLowerCase(), name, type }
 }
 
-function carnet(treatments: TreatmentWithHistory[], today = TODAY) {
+function carnet(treatments: TreatmentWithPeriods[], today = TODAY) {
   return plain(carnetTreatments(t, treatments, today))
 }
 
-function row(book: TreatmentWithHistory, today = TODAY) {
+function row(book: TreatmentWithPeriods, today = TODAY) {
   const [only] = carnet([book], today).ongoing
   if (!only) throw new Error('Pas de ligne en cours')
   return only

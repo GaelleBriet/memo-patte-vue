@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import i18n from '@/core/i18n'
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import { dose, period, treatment } from '@/features/treatments/__tests__/treatment-fixtures'
-import type { TreatmentWithHistory } from '@/features/treatments/schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '@/features/treatments/schema/treatment-with-history.schema'
 import { createTreatmentRemindersService } from '@/features/treatments/service/treatment-reminders.service'
 import { createFakeNotifications } from '@/shared/__tests__/fake-notifications'
 import { MAX_SCHEDULED_REMINDERS } from '@/core/notifications/due-reminders-schedule'
@@ -32,7 +32,7 @@ const LUNA: Animal = {
 const SETTINGS = { vaccineReminderTime: '09:00', remindBeforeDue: true }
 
 /** Quotidien à 8 h et 20 h depuis deux ans, chaque prise notée : le carnet le plus lourd à relire. */
-function dailyForTwoYears(id: string): TreatmentWithHistory {
+function dailyForTwoYears(id: string): TreatmentWithPeriods {
   const doses = []
   for (let day = parseISO('2024-10-01'); day < NOW; day = addDays(day, 1)) {
     const dueOn = format(day, 'yyyy-MM-dd')

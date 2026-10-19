@@ -16,25 +16,25 @@ import {
   treatmentHistory,
 } from '../logic/treatment-history'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const t = i18n.global.t
 
-function history(book: TreatmentWithHistory, today: string) {
+function history(book: TreatmentWithPeriods, today: string) {
   return plain(treatmentHistory(t, book, treatmentReadingOf(book, today), today))
 }
 
 /** Les choix du menu ⋮ de la prise `id`, lus comme à l'ouverture du menu. */
-function menuOf(book: TreatmentWithHistory, today: string, id: string) {
+function menuOf(book: TreatmentWithPeriods, today: string, id: string) {
   const history = treatmentHistory(t, book, treatmentReadingOf(book, today), today)
   const lines = history.periods.flatMap(({ lines }) => lines)
   const rows = lines.flatMap((line) => (line.kind === 'missed' ? line.rows : [line]))
   return history.menuOf(rows.find((row) => row.dose.id === id)!)
 }
 
-function titles(book: TreatmentWithHistory, today: string): string[][] {
+function titles(book: TreatmentWithPeriods, today: string): string[][] {
   return history(book, today).periods.map(({ lines }) => lines.map(({ title }) => title))
 }
 
@@ -706,7 +706,7 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
     postponed('2026-10-16', '2026-10-19'),
   ]
 
-  function line(book: TreatmentWithHistory, today: string, kind: string) {
+  function line(book: TreatmentWithPeriods, today: string, kind: string) {
     return history(book, today).periods[0]!.lines.find((other) => other.kind === kind)!
   }
 
@@ -841,7 +841,7 @@ describe('treatmentHistory — une prise dont l’échéance a quitté le calend
   ]
   const PRISE_DU_16 = { dueTime: '20:00', createdAt: MARS, updatedAt: MARS }
 
-  const actionsOf = (book: TreatmentWithHistory, id: string) => menuOf(book, '2026-03-12', id)
+  const actionsOf = (book: TreatmentWithPeriods, id: string) => menuOf(book, '2026-03-12', id)
 
   it('Milo : la prise du 16 à 20 h, donnée d’avance puis quittée par le changement d’heure, ne propose pas « Marquer comme oubliée »', () => {
     const book = treatment(

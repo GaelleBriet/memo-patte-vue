@@ -4,7 +4,7 @@ import {
 } from '@/features/treatments/logic/treatment-history'
 import { lineAction } from '@/features/treatments/logic/treatment-line-actions'
 import { carnetReadingOf } from '@/features/treatments/logic/treatment-reading-adapter'
-import type { TreatmentWithHistory } from '@/features/treatments/schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '@/features/treatments/schema/treatment-with-history.schema'
 import {
   play,
   type Line,
@@ -17,7 +17,7 @@ import { startV2Walk, v2Step } from './v2-walk'
 
 const AT = '2026-01-01T00:00:00.000Z'
 
-const periodOf = (setting: Setting): TreatmentWithHistory['periods'][number] => ({
+const periodOf = (setting: Setting): TreatmentWithPeriods['periods'][number] => ({
   ...setting,
   times: [...setting.times],
   treatmentId: 't',

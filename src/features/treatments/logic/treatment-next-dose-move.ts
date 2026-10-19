@@ -6,7 +6,7 @@ import type {
 } from './treatment-edition-resolution'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { TreatmentRhythm } from '../schema/treatment-form.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import { isCalendarDay } from '@/shared/domain/calendar-day'
 import {
   moveBounds,
@@ -41,7 +41,7 @@ export function hasDoseLine(view: Pick<TreatmentView, 'history'>, settingId: str
 
 type Moved = {
   period: TreatmentPeriodRecord
-  treatment: TreatmentWithHistory
+  treatment: TreatmentWithPeriods
   reading: TreatmentReading
   due: Due
   next: Pick<TreatmentRhythm, 'endsOn'>

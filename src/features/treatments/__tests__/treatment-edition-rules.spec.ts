@@ -16,9 +16,9 @@ import {
   treatmentResumptionSchemaFor,
 } from '../logic/treatment-resumption'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
-const viewOf = (history: Pick<TreatmentWithHistory, 'periods' | 'doses'>, today: string) =>
+const viewOf = (history: Pick<TreatmentWithPeriods, 'periods' | 'doses'>, today: string) =>
   treatmentReadingOf(history, today).view
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type {
   TreatmentCreationInput,
@@ -86,7 +86,7 @@ function dose(overrides: Partial<TreatmentDose> = {}): TreatmentDose {
 function treatment(
   periods: TreatmentPeriodRecord[],
   doses: TreatmentDose[] = [],
-): TreatmentWithHistory {
+): TreatmentWithPeriods {
   return {
     id: TREATMENT,
     animalId: MILO,
@@ -100,7 +100,7 @@ function treatment(
 }
 
 function saisie(
-  history: TreatmentWithHistory,
+  history: TreatmentWithPeriods,
   changes: Partial<TreatmentEditionInput> = {},
 ): TreatmentEditionInput {
   const current = history.periods.at(-1)!
@@ -118,7 +118,7 @@ function saisie(
 }
 
 function champsRefuses(
-  history: TreatmentWithHistory,
+  history: TreatmentWithPeriods,
   input: TreatmentEditionInput,
   today: string,
 ): string[] {
@@ -1040,7 +1040,7 @@ describe('editionPlan — période ouverte par « Modifier », encore sans prise
   it('ne repropose rien pour une période ouverte par « Reprendre » : sa première prise a été saisie', () => {
     const arretee = { ...HEBDO, stoppedOn: '2026-10-02' }
     const finie = { ...HEBDO, endsOn: '2026-10-01' }
-    const input = (history: TreatmentWithHistory) =>
+    const input = (history: TreatmentWithPeriods) =>
       saisie(history, { frequency: { value: 2, unit: 'day' } })
 
     for (const precedente of [arretee, finie]) {
@@ -2046,7 +2046,7 @@ describe('editionPlan — échéances tombées d’une période sans prise', () 
     return dues.map(({ dueOn, dueTime }) => (dueTime === null ? dueOn : `${dueOn} ${dueTime}`))
   }
 
-  function apres(history: TreatmentWithHistory, plan: ReturnType<typeof editionPlan>) {
+  function apres(history: TreatmentWithPeriods, plan: ReturnType<typeof editionPlan>) {
     const { period: write } = plan
     if (write === null) return viewOf(history, TODAY)
     const [current] = history.periods.slice(-1)

@@ -9,7 +9,7 @@ import {
   type NoteGesture,
 } from '../logic/treatment-dose-change'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 
 const VENDREDI = period({
   startsOn: '2026-10-09',
@@ -26,7 +26,7 @@ const note = (
   due = DUE_16,
 ): NoteGesture => ({ kind: 'note', due, status, givenOn, shiftsFollowing })
 
-function change(history: TreatmentWithHistory, today: string, action: DoseAction) {
+function change(history: TreatmentWithPeriods, today: string, action: DoseAction) {
   let count = 0
   return doseChange(history, treatmentReadingOf(history, today), action, () => `n-${(count += 1)}`)
 }

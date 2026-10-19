@@ -1,7 +1,7 @@
 import { currentPeriodOf } from './treatment-reading-adapter'
 import { isResumablePhase } from './treatment-resumption'
 import { periodRhythmText } from './treatment-rhythm'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import type { ExactRemindersStatus } from '@/core/notifications'
 import { currentDoseText } from '@/shared/domain/current-dose'
 import { dosageText } from '@/shared/domain/dosage'
@@ -33,7 +33,7 @@ type CardView = Pick<
 
 export function doseCard(
   t: Translate,
-  treatment: Pick<TreatmentWithHistory, 'name' | 'periods'>,
+  treatment: Pick<TreatmentWithPeriods, 'name' | 'periods'>,
   view: CardView,
   { animal, today }: { animal: string; today: string },
 ): DoseCard {
@@ -77,7 +77,7 @@ export function doseCard(
 /** « Rappel 30 min avant · peut arriver en retard » sous les heures, rappels précis retirés (TR-34). */
 export function lessPreciseReminder(
   t: Translate,
-  treatment: Pick<TreatmentWithHistory, 'periods'>,
+  treatment: Pick<TreatmentWithPeriods, 'periods'>,
   view: CardView,
   exact: ExactRemindersStatus | null,
 ): string | null {

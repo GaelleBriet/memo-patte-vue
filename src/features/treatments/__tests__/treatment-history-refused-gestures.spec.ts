@@ -4,7 +4,7 @@ import { dose, missed, period, postponed, shifted, treatment } from './treatment
 import { treatmentHistory, type DoseLineAction } from '../logic/treatment-history'
 import { lineAction } from '../logic/treatment-line-actions'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import { play } from '@/shared/domain/dose-calendar'
 import i18n from '@/core/i18n'
 
@@ -12,14 +12,14 @@ const t = i18n.global.t
 
 const at = (second: number) => new Date(Date.UTC(2026, 0, 1, 0, 0, second)).toISOString()
 
-function actionsOf(book: TreatmentWithHistory, today: string, id: string): DoseLineAction[] {
+function actionsOf(book: TreatmentWithPeriods, today: string, id: string): DoseLineAction[] {
   const history = treatmentHistory(t, book, treatmentReadingOf(book, today), today)
   const lines = history.periods.flatMap(({ lines }) => lines)
   const rows = lines.flatMap((line) => (line.kind === 'missed' ? line.rows : [line]))
   return history.menuOf(rows.find((row) => row.dose.id === id)!)
 }
 
-function refusalOf(book: TreatmentWithHistory, today: string, id: string, choice: DoseLineAction) {
+function refusalOf(book: TreatmentWithPeriods, today: string, id: string, choice: DoseLineAction) {
   const action = lineAction(
     book.doses.find((line) => line.id === id)!,
     choice,

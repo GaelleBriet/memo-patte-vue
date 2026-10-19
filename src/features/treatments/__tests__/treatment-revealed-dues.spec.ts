@@ -8,7 +8,7 @@ import { dateChangeBox, otherDateBox } from '../logic/treatment-shift-box'
 import { shiftHelpText } from '../logic/treatment-shift-help'
 import { doseActionTexts } from '../logic/treatment-gestures'
 import type { DoseWrite } from '../schema/treatment-dose.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import { createTreatmentDosesService } from '../service/treatment-doses.service'
 import i18n, { applyLocale } from '@/core/i18n'
 import type { Due, TreatmentView } from '@/shared/domain/dose-calendar'
@@ -37,7 +37,7 @@ function due(dueOn: string, dueTime: string | null = null): Due {
 const days = (dues: readonly Due[]) => dues.map(({ dueOn }) => dueOn)
 
 // Le service réel, sur un carnet en mémoire que chaque lot réécrit.
-async function saved(history: TreatmentWithHistory, action: DoseAction, today: string) {
+async function saved(history: TreatmentWithPeriods, action: DoseAction, today: string) {
   let current = history
   const service = createTreatmentDosesService({
     treatments: () => ({ getWithHistory: () => Promise.resolve(current) }),
@@ -64,7 +64,7 @@ function pastWithoutDose(view: TreatmentView, today: string) {
 
 type Case = {
   name: string
-  history: TreatmentWithHistory
+  history: TreatmentWithPeriods
   today: string
   action: DoseAction
   help: () => string | undefined
@@ -95,7 +95,7 @@ const AUTRE = treatment(
 )
 
 function changeDateHelp(
-  history: TreatmentWithHistory,
+  history: TreatmentWithPeriods,
   prise: typeof PRISE_16,
   date: string,
   today: string,

@@ -5,7 +5,7 @@ import { editionDraft } from '../logic/treatment-edition-draft'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentEditionInput } from '../schema/treatment-form.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import { legacyFactsOf } from '@/shared/domain/dose-calendar'
 
 const MILO = '11111111-1111-4111-8111-111111111111'
@@ -76,11 +76,11 @@ function treatment(periods: TreatmentPeriodRecord[], doses: TreatmentDose[]) {
     updatedAt: at(),
     periods,
     doses,
-  } satisfies TreatmentWithHistory
+  } satisfies TreatmentWithPeriods
 }
 
 function saisie(
-  history: TreatmentWithHistory,
+  history: TreatmentWithPeriods,
   changes: Partial<TreatmentEditionInput>,
 ): TreatmentEditionInput {
   const current = history.periods.at(-1)!
@@ -97,7 +97,7 @@ function saisie(
   }
 }
 
-function refusedFields(history: TreatmentWithHistory, input: TreatmentEditionInput, today: string) {
+function refusedFields(history: TreatmentWithPeriods, input: TreatmentEditionInput, today: string) {
   const result = treatmentEditionSchemaFor(history, today).safeParse(input)
   return result.success
     ? []

@@ -23,7 +23,7 @@ import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
 import AnimalChipSelector from '@/shared/components/AnimalChipSelector.vue'
 import type { TreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
-import type { TreatmentWithHistory } from '@/features/treatments/schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '@/features/treatments/schema/treatment-with-history.schema'
 import { provideTreatmentsRepository } from '@/features/treatments/store/treatments.store'
 import { fakeTreatmentsRepository } from '@/features/treatments/__tests__/fake-treatments-repository'
 import {
@@ -112,7 +112,7 @@ function vaccination(animalId: string, dueDate: string | null): Vaccination {
 }
 
 /** Trimestriel sans prise : sa première dose, `firstDueOn`, est la dose du moment. */
-function treatment(animalId: string, firstDueOn: string): TreatmentWithHistory {
+function treatment(animalId: string, firstDueOn: string): TreatmentWithPeriods {
   const id = crypto.randomUUID()
   return {
     ...treatmentWith([
@@ -139,7 +139,7 @@ function weight(animalId: string, weightKg: number, measuredOn: string): WeightE
 let store: ReturnType<typeof useAnimalsStore>
 let animals: Animal[]
 let vaccinations: Vaccination[]
-let treatments: TreatmentWithHistory[]
+let treatments: TreatmentWithPeriods[]
 let weights: WeightEntry[]
 let load: MockInstance
 let push: MockInstance

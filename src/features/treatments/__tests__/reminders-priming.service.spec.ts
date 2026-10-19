@@ -7,7 +7,7 @@ import {
   period,
   treatment as withHistory,
 } from '@/features/treatments/__tests__/treatment-fixtures'
-import type { TreatmentWithHistory } from '@/features/treatments/schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '@/features/treatments/schema/treatment-with-history.schema'
 import type { TreatmentPeriodRecord } from '@/features/treatments/schema/treatment-period.schema'
 import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import { createRemindersPriming, hasUpcomingDueDates } from '../service/reminders-priming.service'
@@ -58,12 +58,12 @@ function treatment(
   overrides: Partial<TreatmentPeriodRecord>,
   animalId = MILO.id,
   doses: Parameters<typeof withHistory>[1] = [],
-): TreatmentWithHistory {
+): TreatmentWithPeriods {
   const periods = [period({ frequency: { value: 3, unit: 'month' }, ...overrides })]
   return { ...withHistory(periods, doses), animalId }
 }
 
-function withTreatment(entry: TreatmentWithHistory, animals = [MILO]): boolean {
+function withTreatment(entry: TreatmentWithPeriods, animals = [MILO]): boolean {
   return hasUpcomingDueDates({ animals, vaccinations: [], treatments: [entry] }, TODAY)
 }
 
@@ -190,7 +190,7 @@ describe('promptNotificationsIfReminders', () => {
   let router: Router
   let shouldShowPriming: ReturnType<typeof vi.fn<() => Promise<boolean>>>
   let vaccinations: Vaccination[]
-  let treatments: TreatmentWithHistory[]
+  let treatments: TreatmentWithPeriods[]
   let listAll: ReturnType<typeof vi.fn<() => Promise<Vaccination[]>>>
   let isNativePlatform: boolean
 

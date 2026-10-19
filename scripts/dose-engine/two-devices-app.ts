@@ -10,7 +10,7 @@ import {
   undoRanks,
 } from '@/features/treatments/logic/treatment-undo-order'
 import type { DoseFields, DoseWrite } from '@/features/treatments/schema/treatment-dose.schema'
-import type { TreatmentWithHistory } from '@/features/treatments/schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '@/features/treatments/schema/treatment-with-history.schema'
 import type { Line, LineFields, TreatmentViewInput } from '@/shared/domain/dose-calendar'
 import { readCarnet } from '@/shared/domain/treatment-reading'
 
@@ -38,9 +38,9 @@ const lineFieldsOf = (dose: DoseFields): LineFields => ({
 // Ce que `doseWritesOf` lit d'une prise : son identifiant et ses champs.
 function treatmentOf(
   lines: readonly Line[],
-): Pick<TreatmentWithHistory, 'id' | 'animalId' | 'doses'> {
+): Pick<TreatmentWithPeriods, 'id' | 'animalId' | 'doses'> {
   const doses = lines.map((line) => ({ id: line.id, ...doseFieldsOf(line) }))
-  return { id: 't', animalId: 'a', doses: doses as unknown as TreatmentWithHistory['doses'] }
+  return { id: 't', animalId: 'a', doses: doses as unknown as TreatmentWithPeriods['doses'] }
 }
 
 /** Comme `applyBatch` : chaque écriture datée de l'instant du lot (plus son rang), et le lot inverse. */

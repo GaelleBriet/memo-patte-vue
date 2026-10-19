@@ -3,7 +3,7 @@ import type { DoseAction, DoseChange } from './treatment-dose-change'
 import { moveTexts, redateTexts, removeTexts } from './treatment-line-texts'
 import type { RevealedDues } from './treatment-revealed-dues'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import type { Due } from '@/shared/domain/dose-calendar'
 import { isSeveralTimesADay } from '@/shared/domain/treatment-periods'
 import { formatClockTime, formatDayMonthOrYear } from '@/shared/utils/format'
@@ -38,7 +38,7 @@ export type DueDay = Pick<Due, 'dueOn' | 'dueTime'> & {
 }
 
 export function hasSeveralTimes(
-  treatment: Pick<TreatmentWithHistory, 'periods'>,
+  treatment: Pick<TreatmentWithPeriods, 'periods'>,
   periodId: string,
 ): boolean {
   const period = treatment.periods.find(({ id }) => id === periodId)
