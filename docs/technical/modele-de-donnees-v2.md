@@ -284,6 +284,26 @@ réglage de la ligne au moment de la migration (1 pour un réglage sans heure), 
 Supabase : `supabase/migrations/20261019090000_sync_mirror_treatment_dose_report_facts.sql`, mêmes
 colonnes, mêmes valeurs ; export JSON v9 (`export-format.md`).
 
+### 4.7 Évolution v17 (date d'écriture de la grille d'un réglage)
+
+Décision 1 du 19 octobre 2026 de la session d'analyse du moteur (vaut comme celle de Gaelle ;
+migration accordée) : un report n'entre en conflit qu'avec ce qui fait les échéances, jamais avec les
+heures. `treatment_period` reçoit `grid_written_at` (`TEXT`, obligatoire), la dernière écriture de la
+première échéance, de la date choisie, de la fréquence, de l'origine de la grille ou de la fin ; un
+changement des heures, de la posologie, du rappel ou de la réponse à la question des doses tombées ne
+la change pas, un arrêt ou une suppression non plus. `settings_written_at` garde sa règle (#867).
+L'écriture d'une période la pose à sa création ; la correction sur place
+(`treatment-period-correction.repository.ts`) ne la date que si l'une de ces colonnes change. Le moteur
+la reçoit (`Setting.gridWrittenAt`) ; la règle qui la compare à la date d'un report vient avec la
+PR #958.
+
+La migration (`src/core/db/migration-v17.ts`) recrée `treatment_period` et `treatment_dose` comme la
+v16, sans `DELETE` ni `UPDATE` de premier niveau. Réglages existants : `grid_written_at` vaut
+`settings_written_at`, la date de la dernière écriture de la grille seule étant inconnue. Miroir
+Supabase : `supabase/migrations/20261019100000_sync_mirror_treatment_period_grid_written_at.sql`, même
+colonne, même valeur, écrêtée à 24 h dans le futur comme `settings_written_at` ; export JSON v10
+(`export-format.md`).
+
 ## 5. Décisions
 
 - 2026-09-29 — **M1 : une table `treatment_period` sous le traitement.** Le traitement garde l'animal,

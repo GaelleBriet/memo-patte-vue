@@ -3072,3 +3072,19 @@ le 16 octobre ; schéma v16, export v9).
   A plus récent) : aucune dose de B n'est reconnaissable comme celle que A a déplacée, les deux
   restent (9, 12, 16), rien de grisé, chacune supprimable.
 
+
+2026-10-19 — **Un report n'entre en conflit qu'avec ce qui fait les échéances, jamais avec les
+heures : le réglage garde la date de la dernière écriture de sa grille** (#939 ; décision 1 du
+19 octobre 2026 de la session d'analyse du moteur, à qui Gaelle a délégué les lectures de règles ;
+migration accordée ; schéma v17, export v10).
+
+- Règle : « le plus récent l'emporte » compare la date d'un report à la dernière écriture de la
+  **grille** de son réglage : première échéance, date choisie, fréquence, origine de la grille, fin.
+  Un changement des heures seules, de la posologie ou du rappel ne rend pas le réglage plus récent
+  que le report. `settings_written_at` garde sa règle (#867) ; « Modifier » ne change pas sur un
+  seul téléphone. Codée avec la PR #958.
+- Donnée : `treatment_period.grid_written_at`, posée à la création d'une période et par une
+  correction sur place qui change l'une de ces colonnes. Réglages existants : la date d'écriture
+  des réglages, celle de la grille seule étant inconnue. — Écartées : figer le réglage dès qu'il
+  porte un report d'un réglage plus ancien (28 tests de règles décidées cassaient) ; garder sur la
+  ligne du report la date d'écriture du réglage qu'il a vue.
