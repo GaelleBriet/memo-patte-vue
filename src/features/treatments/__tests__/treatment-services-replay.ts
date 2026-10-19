@@ -17,7 +17,7 @@ import { createTreatmentsRepository } from '../repository/treatments.repository'
 import { createTreatmentDosesService } from '../service/treatment-doses.service'
 import { createTreatmentPlanService } from '../service/treatment-plan.service'
 import { createTreatmentStopService } from '../service/treatment-stop.service'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 
 const ANIMAL = '11111111-1111-4111-8111-111111111111'
 const BASE = Date.UTC(2027, 0, 1)
@@ -71,7 +71,7 @@ export async function createReplay(db: Db) {
       clock.seconds += 1
       vi.setSystemTime(BASE + clock.seconds * 1000)
     },
-    async start(walk: V2Walk, id: string): Promise<TreatmentWithHistory> {
+    async start(walk: V2Walk, id: string): Promise<TreatmentWithPeriods> {
       const [setting] = walk.input.settings as [Setting]
       this.tick()
       await treatments.create({
@@ -92,16 +92,16 @@ export async function createReplay(db: Db) {
         },
       })
       clock.day = walk.input.today
-      return history(treatments, id)
+      return storedTreatment(treatments, id)
     },
   }
 }
 
-async function history(
+async function storedTreatment(
   treatments: Awaited<ReturnType<typeof createReplay>>['treatments'],
   id: string,
-): Promise<TreatmentWithHistory> {
-  const found = await treatments.getWithHistory(id)
+): Promise<TreatmentWithPeriods> {
+  const found = await treatments.getWithPeriods(id)
   if (found === null) throw new Error(`Traitement introuvable : ${id}`)
   return found
 }
@@ -126,14 +126,14 @@ export function signatureOf(view: TreatmentView): string[] {
 }
 
 export async function readingAfter(replay: Replay, id: string): Promise<string[] | null> {
-  const reading = readTreatment(await history(replay.treatments, id), replay.clock.day)
+  const reading = readTreatment(await storedTreatment(replay.treatments, id), replay.clock.day)
   return reading === null ? null : signatureOf(reading.view)
 }
 
 export const expectedSignature = (step: V2Step): string[] => signatureOf(treatmentView(step.after))
 
 // Le identifiant d'une ligne du carnet de la marche, retrouvé par son contenu dans la base.
-function dbLineId(lines: TreatmentWithHistory['doses'], line: Line, periodId: string): string {
+function dbLineId(lines: TreatmentWithPeriods['doses'], line: Line, periodId: string): string {
   const found = lines
     .filter(
       (dose) =>
@@ -152,7 +152,7 @@ function dbLineId(lines: TreatmentWithHistory['doses'], line: Line, periodId: st
 export function actionOf(
   gesture: Gesture,
   before: V2Step['before'],
-  stored: TreatmentWithHistory,
+  stored: TreatmentWithPeriods,
   periodOf: (settingId: string) => string,
 ): DoseAction {
   switch (gesture.kind) {
@@ -187,4 +187,4 @@ export function actionOf(
   }
 }
 
-export { history as storedHistory, newSettings }
+export { newSettings, storedTreatment }

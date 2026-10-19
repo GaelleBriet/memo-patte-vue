@@ -9,7 +9,7 @@ import { createTreatmentDosesRepository } from '../repository/treatment-doses.re
 import { createTreatmentPeriodsRepository } from '../repository/treatment-periods.repository'
 import { createTreatmentsRepository } from '../repository/treatments.repository'
 import type { TreatmentEditionInput } from '../schema/treatment-form.schema'
-import { createReplay, storedHistory, type Replay } from './treatment-services-replay'
+import { createReplay, storedTreatment, type Replay } from './treatment-services-replay'
 
 // #867 (décision de Gaelle du 16 octobre 2026) : Milo, tous les 3 jours à 20 h depuis le 26 mars,
 // puis toutes les 2 semaines à 20 h dès le 3 avril ; le 7, la dose du 3 est en retard. Le téléphone A
@@ -90,7 +90,7 @@ describe('#867 : date d’écriture du réglage, deux téléphones, de la base �
     for (const day of ['2026-03-26', '2026-03-29', '2026-04-01']) {
       a.clock.day = day
       at(`${day}T20:00:00.000Z`)
-      const periodId = (await storedHistory(a.treatments, id)).periods[0]!.id
+      const periodId = (await storedTreatment(a.treatments, id)).periods[0]!.id
       await a.doses.apply(id, {
         kind: 'note',
         gesture: {
@@ -118,7 +118,7 @@ describe('#867 : date d’écriture du réglage, deux téléphones, de la base �
 
   async function reportOnA(instant: string): Promise<void> {
     at(instant)
-    const period = (await storedHistory(a.treatments, id)).periods.at(-1)!
+    const period = (await storedTreatment(a.treatments, id)).periods.at(-1)!
     await a.doses.apply(id, {
       kind: 'move',
       due: { settingId: period.id, dueOn: '2026-04-03', dueTime: '20:00' },
@@ -133,7 +133,7 @@ describe('#867 : date d’écriture du réglage, deux téléphones, de la base �
   }
 
   async function sheet(replay: Replay) {
-    const reading = readTreatment(await storedHistory(replay.treatments, id), replay.clock.day)
+    const reading = readTreatment(await storedTreatment(replay.treatments, id), replay.clock.day)
     const view = reading!.view
     return {
       next: view.upcoming({ limit: 2 }).map(({ dueOn, dueTime }) => `${dueOn} ${dueTime}`),
@@ -154,7 +154,7 @@ describe('#867 : date d’écriture du réglage, deux téléphones, de la base �
   it('la réécriture du réglage par B est datée ; le premier réglage, jamais réécrit, garde sa création', async () => {
     await rewriteOnB('2026-04-07T18:00:00.000Z')
 
-    const periods = (await storedHistory(b.treatments, id)).periods
+    const periods = (await storedTreatment(b.treatments, id)).periods
     expect(
       periods.map(({ createdAt, settingsWrittenAt }) => [createdAt, settingsWrittenAt]),
     ).toEqual([
@@ -187,7 +187,7 @@ describe('#867 : date d’écriture du réglage, deux téléphones, de la base �
     await rewriteOnB('2026-04-07T09:00:00.000Z')
     await reportOnA('2026-04-07T18:00:00.000Z')
     await synced(dbB, dbA)
-    const before = (await storedHistory(a.treatments, id)).periods.at(-1)!
+    const before = (await storedTreatment(a.treatments, id)).periods.at(-1)!
 
     a.clock.day = '2026-04-08'
     at('2026-04-08T07:00:00.000Z')
@@ -195,7 +195,7 @@ describe('#867 : date d’écriture du réglage, deux téléphones, de la base �
     at('2026-04-08T07:00:05.000Z')
     await a.stops.undo(id)
 
-    const after = (await storedHistory(a.treatments, id)).periods.at(-1)!
+    const after = (await storedTreatment(a.treatments, id)).periods.at(-1)!
     expect(after.updatedAt).toBe('2026-04-08T07:00:05.000Z')
     expect(after.settingsWrittenAt).toBe(before.settingsWrittenAt)
     b.clock.day = '2026-04-08'

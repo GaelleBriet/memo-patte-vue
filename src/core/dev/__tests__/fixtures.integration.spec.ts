@@ -85,12 +85,20 @@ describe('carnet de démo dans une vraie base', () => {
     expect(data.treatmentDoses).toHaveLength(30)
   })
 
-  it('s’exporte en un fichier v8 que l’import accepte : le jeu de démo est un carnet valide', async () => {
+  it('s’exporte en un fichier v9 que l’import accepte : le jeu de démo est un carnet valide', async () => {
     const data = await carnet()
 
     const parsed = parseExportFile(toJsonExport(data, { exportedAt: TODAY, appVersion: 'test' }))
 
-    expect(parsed).toEqual({ ok: true, file: { schemaVersion: 8, data } })
+    expect(parsed).toEqual({ ok: true, file: { schemaVersion: 9, data } })
+  })
+
+  it('chaque report de la démo porte le rang de son heure dans les heures de son réglage', async () => {
+    const data = await carnet()
+    const reports = data.treatmentDoses.filter(({ status }) => status === 'postponed')
+
+    expect(reports.length).toBeGreaterThan(0)
+    expect(reports.every(({ dueRank }) => dueRank !== null && dueRank >= 1)).toBe(true)
   })
 
   it('porte les cas du modèle : deux heures par jour, date de fin, deux périodes, oubli, report', async () => {

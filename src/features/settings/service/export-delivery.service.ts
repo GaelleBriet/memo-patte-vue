@@ -91,20 +91,28 @@ function hasCode(cause: unknown, code: string): boolean {
   return typeof cause === 'object' && cause !== null && 'code' in cause && cause.code === code
 }
 
-async function exists(path: string): Promise<boolean> {
+function comparable(name: string): string {
+  return name.normalize('NFC').toLowerCase()
+}
+
+async function savedNames(): Promise<Set<string>> {
   try {
-    await Filesystem.stat({ path, directory: Directory.Documents })
-    return true
+    const { files } = await Filesystem.readdir({
+      path: SAVED_EXPORTS_DIR,
+      directory: Directory.Documents,
+    })
+    return new Set(files.map(({ name }) => comparable(name)))
   } catch (cause) {
-    if (hasCode(cause, DOES_NOT_EXIST)) return false
+    if (hasCode(cause, DOES_NOT_EXIST)) return new Set()
     throw cause
   }
 }
 
 async function freePath(name: string): Promise<string> {
+  const taken = await savedNames()
   for (let copy = 0; copy < MAX_COPIES; copy += 1) {
-    const path = `${SAVED_EXPORTS_DIR}/${numbered(name, copy)}`
-    if (!(await exists(path))) return path
+    const candidate = numbered(name, copy)
+    if (!taken.has(comparable(candidate))) return `${SAVED_EXPORTS_DIR}/${candidate}`
   }
   throw new Error(`Aucun nom libre pour ${name} dans ${SAVED_EXPORTS_DIR}/`)
 }

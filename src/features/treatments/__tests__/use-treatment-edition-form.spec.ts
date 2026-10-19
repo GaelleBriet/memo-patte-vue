@@ -7,7 +7,7 @@ import { ZodError } from 'zod'
 import { milbemax, period, TODAY } from './treatment-form-fixtures'
 import { useTreatmentEditionForm } from '../composables/use-treatment-edition-form'
 import { emptyTreatmentFormValues } from '../logic/treatment-form-values'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { Treatment } from '../schema/treatment.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import i18n from '@/core/i18n'
@@ -36,28 +36,28 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-function modification(loaded: TreatmentWithHistory = milbemax()) {
+function modification(loaded: TreatmentWithPeriods = milbemax()) {
   const values = ref(emptyTreatmentFormValues())
-  const history = ref<TreatmentWithHistory | null>(null)
+  const withPeriods = ref<TreatmentWithPeriods | null>(null)
   let form: ReturnType<typeof useTreatmentEditionForm> | undefined
   mount(
     defineComponent({
       setup() {
-        form = useTreatmentEditionForm({ values, treatment: history, today: ref(TODAY) })
+        form = useTreatmentEditionForm({ values, treatment: withPeriods, today: ref(TODAY) })
         return () => null
       },
     }),
     { global: { plugins: [i18n] } },
   )
   form!.open(loaded)
-  return { values, history, form: form! }
+  return { values, withPeriods, form: form! }
 }
 
 describe('useTreatmentEditionForm — prochaine dose', () => {
   it('ouvre sur les réglages en cours et la prochaine dose proposée', () => {
-    const { values, history, form } = modification()
+    const { values, withPeriods, form } = modification()
 
-    expect(history.value?.id).toBe(milbemax().id)
+    expect(withPeriods.value?.id).toBe(milbemax().id)
     expect(values.value).toMatchObject({ name: 'Milbemax', nextDoseOn: '2026-10-10' })
     expect(form.nextDose.value).toMatchObject({ proposedOn: '2026-10-10' })
     expect(form.hasSettings.value).toBe(true)
@@ -82,12 +82,12 @@ describe('useTreatmentEditionForm — prochaine dose', () => {
 
   it('sans brouillon lisible, ne propose rien et lève à l’enregistrement', () => {
     const values = ref(emptyTreatmentFormValues())
-    const history = ref<TreatmentWithHistory | null>(milbemax([period({ times: ['8h'] })]))
+    const withPeriods = ref<TreatmentWithPeriods | null>(milbemax([period({ times: ['8h'] })]))
     let form: ReturnType<typeof useTreatmentEditionForm> | undefined
     mount(
       defineComponent({
         setup() {
-          form = useTreatmentEditionForm({ values, treatment: history, today: ref(TODAY) })
+          form = useTreatmentEditionForm({ values, treatment: withPeriods, today: ref(TODAY) })
           return () => null
         },
       }),
@@ -129,19 +129,19 @@ describe('useTreatmentEditionForm — échéances tombées', () => {
   })
 
   it('la question a changé entre l’affichage et l’enregistrement : recharge le traitement et la repose, sans échec', async () => {
-    const { form, history } = await aDemander()
+    const { form, withPeriods } = await aDemander()
     form.answerPastDues('drop')
     const changed = new ZodError([
       { code: 'custom', path: ['pastDues'], message: 'required', input: undefined },
     ])
     update.mockRejectedValueOnce(changed)
     const fresh = { ...SANS_PRISE(), name: 'Milbemax relu' }
-    const reload = vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue(fresh)
+    const reload = vi.spyOn(useTreatmentsStore(), 'getWithPeriods').mockResolvedValue(fresh)
 
     await expect(form.write()?.()).resolves.toBeNull()
 
     expect(reload).toHaveBeenCalledWith(SANS_PRISE().id)
-    expect(history.value).toEqual(fresh)
+    expect(withPeriods.value).toEqual(fresh)
     expect(form.isPastDuesOpen.value).toBe(true)
   })
 
@@ -149,7 +149,7 @@ describe('useTreatmentEditionForm — échéances tombées', () => {
     const { form } = await aDemander()
     form.answerPastDues('drop')
     update.mockRejectedValueOnce(new Error('disque plein'))
-    const reload = vi.spyOn(useTreatmentsStore(), 'getWithHistory')
+    const reload = vi.spyOn(useTreatmentsStore(), 'getWithPeriods')
 
     await expect(form.write()?.()).rejects.toThrow('disque plein')
     expect(reload).not.toHaveBeenCalled()

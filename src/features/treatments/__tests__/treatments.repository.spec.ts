@@ -13,7 +13,7 @@ import {
   createTreatmentPeriodsRepository,
   type TreatmentPeriodsRepository,
 } from '../repository/treatment-periods.repository'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { Treatment } from '../schema/treatment.schema'
 import { seedTreatmentWithDose } from './seed-treatment'
@@ -303,7 +303,7 @@ describe('treatmentsRepository — périodes et prises', () => {
       createdAt = '2026-09-20T10:00:00.000Z',
       id = crypto.randomUUID(),
       ...surcharges
-    }: Partial<NewTreatmentDose> = {},
+    }: Partial<TreatmentDose> = {},
   ): Promise<string> {
     await db.runMany([
       doses.insertStatement({
@@ -316,6 +316,9 @@ describe('treatmentsRepository — périodes et prises', () => {
         givenOn,
         status: 'given',
         targetOn: null,
+        previousTargetOn: null,
+        previousTargetTime: null,
+        dueRank: null,
         createdAt,
         updatedAt: createdAt,
         deletedAt: null,
@@ -568,7 +571,7 @@ describe('treatmentsRepository — périodes et prises', () => {
       await repository.restore(created.id, deletedAt)
 
       expect(deletedAt).toBe(REMOVED_AT)
-      await expect(repository.getWithHistory(created.id)).resolves.toMatchObject({
+      await expect(repository.getWithPeriods(created.id)).resolves.toMatchObject({
         id: created.id,
         updatedAt: UNDONE_AT,
         periods: [{ id: created.id }],
@@ -613,7 +616,7 @@ describe('treatmentsRepository — périodes et prises', () => {
       await repository.restore(created.id, again)
 
       expect(again).toBe(UNDONE_AT)
-      await expect(repository.getWithHistory(created.id)).resolves.toBeNull()
+      await expect(repository.getWithPeriods(created.id)).resolves.toBeNull()
     })
   })
 
@@ -689,6 +692,9 @@ describe('treatmentsRepository — import', () => {
           givenOn: treatment.lastDoseDate,
           status: 'given',
           targetOn: treatment.targetOn,
+          previousTargetOn: null,
+          previousTargetTime: null,
+          dueRank: null,
           createdAt: treatment.createdAt,
           updatedAt: treatment.updatedAt,
           ...PAR_FICHIER,

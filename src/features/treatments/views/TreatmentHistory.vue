@@ -9,11 +9,11 @@ import type {
   TreatmentHistory,
 } from '../logic/treatment-history'
 import HistoryRow from '@/shared/components/HistoryRow.vue'
-import type { OverflowMenuItem } from '@/shared/components/OverflowMenu.vue'
+import type { OverflowMenuItem, OverflowMenuItems } from '@/shared/components/OverflowMenu.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import type { MoveBounds } from '@/shared/domain/dose-calendar'
 
-defineProps<{ doseHistory: TreatmentHistory }>()
+const props = defineProps<{ doseHistory: TreatmentHistory }>()
 
 const emit = defineEmits<{
   select: [row: DoseRow, action: DoseLineAction, bounds: MoveBounds | null]
@@ -41,11 +41,14 @@ const menu = computed<Record<DoseLineAction, Omit<OverflowMenuItem, 'id'>>>(() =
   },
 }))
 
-function itemsOf({ actions, refused = {} }: DoseRow): OverflowMenuItem[] {
-  return actions.map((id) => {
-    const hint = refused[id]
-    return { ...menu.value[id], id, ...(hint === undefined ? {} : { hint }) }
-  })
+function itemsOf(row: DoseRow): OverflowMenuItems {
+  if (row.actions.length === 0) return []
+  return () =>
+    props.doseHistory.menuOf(row).map(({ action, hint }) => ({
+      ...menu.value[action],
+      id: action,
+      ...(hint === undefined ? {} : { hint }),
+    }))
 }
 
 function toggled(list: string[], id: string): string[] {
@@ -102,6 +105,15 @@ function select(row: DoseRow, action: string, bounds: MoveBounds | null = null):
           @select="select(line, $event)"
         />
         <HistoryRow
+          v-else-if="line.kind === 'not-due'"
+          class="treatment-history__item"
+          :date="line.title"
+          :detail="line.detail"
+          :options-label="line.optionsLabel"
+          :items="itemsOf(line)"
+          @select="select(line, $event)"
+        />
+        <HistoryRow
           v-else-if="line.kind === 'move'"
           class="treatment-history__item treatment-history__move"
           muted
@@ -126,6 +138,7 @@ function select(row: DoseRow, action: string, bounds: MoveBounds | null = null):
           class="treatment-history__item treatment-history__idle"
           muted
           :date="line.title"
+          :detail="line.detail"
           :options-label="line.optionsLabel"
           :items="itemsOf(line)"
           @select="select(line, $event)"

@@ -1,5 +1,5 @@
 import type { SqlStatement } from '@/core/db/db-client'
-import type { DoseFields, DoseOwner, NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { DoseFields, DoseOwner, TreatmentDose } from '../schema/treatment-dose.schema'
 import {
   COLUMNS,
   NOT_DELETED,
@@ -9,7 +9,7 @@ import {
 } from './treatment-dose-row.repository'
 
 export function createDoseLineStatements(deviceId: () => string) {
-  function insertStatement(dose: NewTreatmentDose): SqlStatement {
+  function insertStatement(dose: TreatmentDose): SqlStatement {
     const device = deviceId()
     return {
       sql: `INSERT INTO treatment_dose (${COLUMNS}) VALUES (${PLACEHOLDERS})`,
@@ -31,7 +31,8 @@ export function createDoseLineStatements(deviceId: () => string) {
     return {
       sql: `UPDATE treatment_dose
             SET period_id = ?, due_on = ?, due_time = ?, given_on = ?, status = ?,
-                target_on = ?, updated_at = ?, updated_by_device = ?
+                target_on = ?, previous_target_on = ?, previous_target_time = ?, due_rank = ?,
+                updated_at = ?, updated_by_device = ?
             WHERE id = ? AND ${NOT_DELETED}`,
       params: [
         dose.periodId,
@@ -40,6 +41,9 @@ export function createDoseLineStatements(deviceId: () => string) {
         dose.givenOn,
         dose.status,
         dose.targetOn,
+        dose.previousTargetOn,
+        dose.previousTargetTime,
+        dose.dueRank,
         updatedAt,
         deviceId(),
         id,

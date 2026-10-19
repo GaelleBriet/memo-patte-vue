@@ -23,7 +23,7 @@ import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
 import AnimalChipSelector from '@/shared/components/AnimalChipSelector.vue'
 import type { TreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
-import type { TreatmentWithHistory } from '@/features/treatments/schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '@/features/treatments/schema/treatment-with-periods.schema'
 import { provideTreatmentsRepository } from '@/features/treatments/store/treatments.store'
 import { fakeTreatmentsRepository } from '@/features/treatments/__tests__/fake-treatments-repository'
 import {
@@ -112,7 +112,7 @@ function vaccination(animalId: string, dueDate: string | null): Vaccination {
 }
 
 /** Trimestriel sans prise : sa première dose, `firstDueOn`, est la dose du moment. */
-function treatment(animalId: string, firstDueOn: string): TreatmentWithHistory {
+function treatment(animalId: string, firstDueOn: string): TreatmentWithPeriods {
   const id = crypto.randomUUID()
   return {
     ...treatmentWith([
@@ -139,12 +139,12 @@ function weight(animalId: string, weightKg: number, measuredOn: string): WeightE
 let store: ReturnType<typeof useAnimalsStore>
 let animals: Animal[]
 let vaccinations: Vaccination[]
-let treatments: TreatmentWithHistory[]
+let treatments: TreatmentWithPeriods[]
 let weights: WeightEntry[]
 let load: MockInstance
 let push: MockInstance
 let listVaccinations: Mock<VaccinationsRepository['listByAnimal']>
-let listTreatments: Mock<TreatmentsRepository['listWithHistoryByAnimal']>
+let listTreatments: Mock<TreatmentsRepository['listWithPeriodsByAnimal']>
 let listWeights: Mock<WeightRepository['listByAnimal']>
 
 beforeEach(async () => {
@@ -164,14 +164,14 @@ beforeEach(async () => {
   listVaccinations = vi.fn<VaccinationsRepository['listByAnimal']>(async (id) =>
     vaccinations.filter((v) => v.animalId === id),
   )
-  listTreatments = vi.fn<TreatmentsRepository['listWithHistoryByAnimal']>(async (id) =>
+  listTreatments = vi.fn<TreatmentsRepository['listWithPeriodsByAnimal']>(async (id) =>
     treatments.filter((t) => t.animalId === id),
   )
   listWeights = vi.fn<WeightRepository['listByAnimal']>(async (id) =>
     weights.filter((w) => w.animalId === id),
   )
   const vaccinationsRepository = fakeVaccinationsRepository({ listByAnimal: listVaccinations })
-  const treatmentsRepository = fakeTreatmentsRepository({ listWithHistoryByAnimal: listTreatments })
+  const treatmentsRepository = fakeTreatmentsRepository({ listWithPeriodsByAnimal: listTreatments })
   const weightRepository = fakeWeightRepository({ listByAnimal: listWeights })
   provideVaccinationsRepository(() => vaccinationsRepository)
   provideTreatmentsRepository(() => treatmentsRepository)

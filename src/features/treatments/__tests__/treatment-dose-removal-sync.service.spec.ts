@@ -5,7 +5,7 @@ import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory
 import { readTreatment } from '@/shared/domain/treatment-reading'
 import { ConcurrentWriteError } from '../repository/treatment-doses.repository'
 import { createTreatmentDosesRepository } from '../repository/treatment-doses.repository'
-import { createReplay, storedHistory, type Replay } from './treatment-services-replay'
+import { createReplay, storedTreatment, type Replay } from './treatment-services-replay'
 
 const ID = '22222222-2222-4222-8222-222222222222'
 const ANIMAL = '11111111-1111-4111-8111-111111111111'
@@ -68,7 +68,7 @@ describe('#842 : « Supprimer » une ligne grisée ne réécrit rien ; un geste 
   })
 
   async function sheet(phone: Replay): Promise<string[]> {
-    const reading = readTreatment(await storedHistory(phone.treatments, ID), phone.clock.day)!
+    const reading = readTreatment(await storedTreatment(phone.treatments, ID), phone.clock.day)!
     return reading.view.history.map(
       ({ line, effect }) => `${line.status} ${line.givenOn ?? ''} ${effect.kind}`,
     )
@@ -112,7 +112,7 @@ describe('#842 : « Supprimer » une ligne grisée ne réécrit rien ; un geste 
     await copy(dbA, dbB)
     phoneA.clock.day = '2026-10-12'
     phoneB.clock.day = '2026-10-12'
-    return (await storedHistory(phoneA.treatments, ID)).doses.find(({ id }) => id !== OTHER)!.id
+    return (await storedTreatment(phoneA.treatments, ID)).doses.find(({ id }) => id !== OTHER)!.id
   }
 
   async function syncBothWays() {

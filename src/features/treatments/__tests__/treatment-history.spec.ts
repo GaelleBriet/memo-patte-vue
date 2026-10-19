@@ -10,24 +10,46 @@ import {
   shifted,
   treatment,
 } from './treatment-fixtures'
-import { givenLine, missedRow } from '../logic/treatment-history-rows'
 import {
   LINES_BEFORE_TOGGLE,
   treatmentDeleteTexts,
   treatmentHistory,
 } from '../logic/treatment-history'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const t = i18n.global.t
 
-function history(book: TreatmentWithHistory, today: string) {
+function history(book: TreatmentWithPeriods, today: string) {
   return plain(treatmentHistory(t, book, treatmentReadingOf(book, today), today))
 }
 
-function titles(book: TreatmentWithHistory, today: string): string[][] {
+function choicesOf(book: TreatmentWithPeriods, today: string, id: string) {
+  const history = treatmentHistory(t, book, treatmentReadingOf(book, today), today)
+  const lines = history.periods.flatMap(({ lines }) => lines)
+  const rows = lines.flatMap((line) => (line.kind === 'missed' ? line.rows : [line]))
+  return history.menuOf(rows.find((row) => row.dose.id === id)!)
+}
+
+/** Les choix du menu ⋮ de la prise `id`, lus comme à l'ouverture du menu. */
+function menuOf(book: TreatmentWithPeriods, today: string, id: string) {
+  return choicesOf(book, today, id).map(({ action }) => action)
+}
+
+/** Les choix grisés du menu ⋮ de la ligne `id`, avec leur aide. */
+function refusedOf(book: TreatmentWithPeriods, today: string, id: string) {
+  return plain(
+    Object.fromEntries(
+      choicesOf(book, today, id).flatMap(({ action, hint }) =>
+        hint === undefined ? [] : [[action, hint]],
+      ),
+    ),
+  )
+}
+
+function titles(book: TreatmentWithPeriods, today: string): string[][] {
   return history(book, today).periods.map(({ lines }) => lines.map(({ title }) => title))
 }
 
@@ -36,8 +58,8 @@ function daily(
   from: number,
   to: number,
   times: (string | null)[],
-  overrides: Partial<NewTreatmentDose> = {},
-): NewTreatmentDose[] {
+  overrides: Partial<TreatmentDose> = {},
+): TreatmentDose[] {
   return Array.from({ length: to - from + 1 }, (_, index) => {
     const day = `2026-09-${String(from + index).padStart(2, '0')}`
     return times.map((dueTime) => dose(day, day, { dueTime, ...overrides }))
@@ -119,7 +141,7 @@ describe('treatmentHistory — une période (planches A · V1 quinquies bis, V5 
         actions: ['remove-shift'],
       },
     ])
-    expect(only!.lines[1]).not.toHaveProperty('refused')
+    expect(refusedOf(book, '2026-09-28', only!.lines[1]!.dose.id)).toEqual({})
   })
 
   it('dit « Avancée » quand la nouvelle date précède l’échéance', () => {
@@ -184,7 +206,7 @@ describe('treatmentHistory — une période (planches A · V1 quinquies bis, V5 
       .find(({ kind }) => kind === 'move')
 
     expect(report).toMatchObject({ actions: [] })
-    expect(report).not.toHaveProperty('refused')
+    expect(choicesOf(book, '2026-04-02', report!.dose.id)).toEqual([])
   })
 
   it('garde l’échéance en titre d’une prise notée un autre jour, sans heure pour une seule heure', () => {
@@ -699,9 +721,12 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
     postponed('2026-10-16', '2026-10-19'),
   ]
 
-  function line(book: TreatmentWithHistory, today: string, kind: string) {
+  function line(book: TreatmentWithPeriods, today: string, kind: string) {
     return history(book, today).periods[0]!.lines.find((other) => other.kind === kind)!
   }
+
+  const refused = (book: TreatmentWithPeriods, today: string, kind: string) =>
+    refusedOf(book, today, line(book, today, kind).dose.id)
 
   it('discrète sous son report, « Supprimer ce décalage » permis', () => {
     const book = treatment([VENDREDI], PIXEL)
@@ -713,7 +738,7 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
         '9 oct. 2026',
       ],
     ])
-    expect(line(book, '2026-10-15', 'shift')).not.toHaveProperty('refused')
+    expect(refused(book, '2026-10-15', 'shift')).toEqual({})
   })
 
   it('sans « prochaine » quand la suite décalée dépasse la date de fin : traitement terminé', () => {
@@ -748,7 +773,7 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
   it('grisée quand une dose plus lointaine est notée', () => {
     const book = treatment([VENDREDI], [...PIXEL, dose('2026-10-26', '2026-11-02')])
 
-    expect(line(book, '2026-10-27', 'shift').refused).toEqual({
+    expect(refused(book, '2026-10-27', 'shift')).toEqual({
       'remove-shift': 'Une dose plus lointaine est déjà notée.',
     })
   })
@@ -764,11 +789,11 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
       ],
     )
 
-    expect(line(book, '2026-10-15', 'shift').refused).toEqual({
+    expect(refused(book, '2026-10-15', 'shift')).toEqual({
       'remove-shift': 'Supprime d’abord le report du 23 oct.',
     })
     applyLocale('en')
-    expect(line(book, '2026-10-15', 'shift').refused).toEqual({
+    expect(refused(book, '2026-10-15', 'shift')).toEqual({
       'remove-shift': 'Delete the postponement to Oct 23 first.',
     })
   })
@@ -781,11 +806,11 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
       )!
 
     expect(report().actions).toEqual(['remove-move'])
-    expect(report().refused).toEqual({
+    expect(refusedOf(book, '2026-10-15', report().dose.id)).toEqual({
       'remove-move': 'Une dose plus lointaine est déjà reportée. Supprime d’abord son report.',
     })
     applyLocale('en')
-    expect(report().refused).toEqual({
+    expect(refusedOf(book, '2026-10-15', report().dose.id)).toEqual({
       'remove-move': 'A later dose is already postponed. Delete its postponement first.',
     })
   })
@@ -801,7 +826,7 @@ describe('treatmentHistory — la ligne de décalage et ses refus (V31, V31 ter,
       ],
     )
 
-    expect(line(book, '2026-10-21', 'move').refused).toEqual({
+    expect(refused(book, '2026-10-21', 'move')).toEqual({
       'remove-move': 'Une dose plus lointaine est déjà notée.',
     })
   })
@@ -834,11 +859,7 @@ describe('treatmentHistory — une prise dont l’échéance a quitté le calend
   ]
   const PRISE_DU_16 = { dueTime: '20:00', createdAt: MARS, updatedAt: MARS }
 
-  function actionsOf(book: TreatmentWithHistory, id: string) {
-    const lines = history(book, '2026-03-12').periods.flatMap(({ lines }) => lines)
-    const rows = lines.flatMap((line) => (line.kind === 'missed' ? line.rows : [line]))
-    return rows.find((row) => row.dose.id === id)!.actions
-  }
+  const actionsOf = (book: TreatmentWithPeriods, id: string) => menuOf(book, '2026-03-12', id)
 
   it('Milo : la prise du 16 à 20 h, donnée d’avance puis quittée par le changement d’heure, ne propose pas « Marquer comme oubliée »', () => {
     const book = treatment(
@@ -847,6 +868,15 @@ describe('treatmentHistory — une prise dont l’échéance a quitté le calend
     )
 
     expect(actionsOf(book, '2026-03-16 20:00')).toEqual(['change-date', 'remove'])
+  })
+
+  it('Milo, le 20 mars : la prise du 16 à 20 h, passée, dont l’échéance a quitté le calendrier, ne propose pas « Marquer comme oubliée »', () => {
+    const book = treatment(
+      [LUNDIS, A_9H],
+      [...DOSES, dose('2026-03-16', '2026-03-16', { ...PRISE_DU_16, givenOn: '2026-03-09' })],
+    )
+
+    expect(menuOf(book, '2026-03-20', '2026-03-16 20:00')).toEqual(['change-date', 'remove'])
   })
 
   it('Milo : 8 h du 16 oubliée, 20 h donnée d’avance ; l’oubli, resté hors du calendrier, ne propose pas « Marquer comme donnée »', () => {
@@ -881,11 +911,7 @@ describe('treatmentHistory — une prise dont l’échéance est future ou dépl
   })
   const AT_8 = { dueTime: '08:00', createdAt: MARS, updatedAt: MARS }
 
-  function actionsOf(book: TreatmentWithHistory, today: string, id: string) {
-    const lines = history(book, today).periods.flatMap(({ lines }) => lines)
-    const rows = lines.flatMap((line) => (line.kind === 'missed' ? line.rows : [line]))
-    return rows.find((row) => row.dose.id === id)!.actions
-  }
+  const actionsOf = menuOf
 
   it('Milo : la prise du 16 donnée d’avance le 11, le 12 mars, ne propose pas « Marquer comme oubliée »', () => {
     const book = treatment(
@@ -916,22 +942,6 @@ describe('treatmentHistory — une prise dont l’échéance est future ou dépl
       'remove',
     ])
   })
-
-  it.each(['moved', 'removed'] as const)(
-    'une échéance « %s » du calendrier ne propose ni « Marquer comme oubliée » ni « Marquer comme donnée »',
-    (state) => {
-      const book = treatment([LUNDIS], [dose('2026-03-02', '2026-03-02', AT_8)])
-      const reading = treatmentReadingOf(book, '2026-03-12')
-      const context = {
-        reading: { ...reading, view: { ...reading.view, dueState: () => state } },
-        today: '2026-03-12',
-      }
-      const given = book.doses[0]!
-
-      expect(givenLine(t, context, given, LUNDIS, false).actions).toEqual(['change-date', 'remove'])
-      expect(missedRow(t, context, given, LUNDIS).actions).toEqual(['remove'])
-    },
-  )
 })
 
 describe('treatmentDeleteTexts', () => {

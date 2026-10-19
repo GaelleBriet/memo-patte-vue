@@ -5,14 +5,14 @@ import { creationPastDues, creationPlan } from '../logic/treatment-creation'
 import { editionDraft } from '../logic/treatment-edition-draft'
 import { editionPlan } from '../logic/treatment-edition-plan'
 import { resumptionDraft, resumptionPlan } from '../logic/treatment-resumption'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type {
   TreatmentCreationInput,
   TreatmentEditionInput,
   TreatmentResumptionInput,
 } from '../schema/treatment-form.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { legacyFactsOf } from '@/shared/domain/dose-calendar'
 
 const AT = '2026-07-01T08:00:00.000Z'
@@ -48,8 +48,11 @@ function period(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPeriod
   }
 }
 
-function dose(dueOn: string, overrides: Partial<NewTreatmentDose> = {}): NewTreatmentDose {
+function dose(dueOn: string, overrides: Partial<TreatmentDose> = {}): TreatmentDose {
   return {
+    previousTargetOn: null,
+    previousTargetTime: null,
+    dueRank: null,
     id: `d-${dueOn}`,
     periodId: TREATMENT,
     treatmentId: TREATMENT,
@@ -68,8 +71,8 @@ function dose(dueOn: string, overrides: Partial<NewTreatmentDose> = {}): NewTrea
 
 function treatment(
   periods: TreatmentPeriodRecord[],
-  doses: NewTreatmentDose[] = [],
-): TreatmentWithHistory {
+  doses: TreatmentDose[] = [],
+): TreatmentWithPeriods {
   return {
     id: TREATMENT,
     animalId: MILO,
@@ -200,21 +203,21 @@ describe('editionPlan — « Modifier » écrit ce que le moteur propose (TR-28,
   })
 
   it('une fréquence qui change sans prise mais avec des échéances tombées pose la question (Q38)', () => {
-    const history = treatment([period({ startsOn: '2026-09-01', firstDueOn: '2026-09-01' })])
+    const withPeriods = treatment([period({ startsOn: '2026-09-01', firstDueOn: '2026-09-01' })])
     const input = { ...EDITION, frequency: { value: 2, unit: 'week' as const } }
 
-    const draft = editionDraft(history, input, TODAY)
+    const draft = editionDraft(withPeriods, input, TODAY)
     expect(draft.pastDues.length).toBeGreaterThan(0)
     expect(draft.pastDuesNextDose).toMatchObject({
       keep: expect.any(String),
       drop: expect.any(String),
     })
     expect(() =>
-      editionPlan(history, { ...input, nextDoseOn: draft.nextDose!.proposedOn }, TODAY, IDS),
+      editionPlan(withPeriods, { ...input, nextDoseOn: draft.nextDose!.proposedOn }, TODAY, IDS),
     ).toThrow(ZodError)
     expect(
       editionPlan(
-        history,
+        withPeriods,
         { ...input, nextDoseOn: draft.nextDose!.proposedOn, pastDues: 'keep' },
         TODAY,
         IDS,

@@ -1,9 +1,9 @@
 import type { SqlStatement } from '@/core/db/db-client'
 import type { Stamped } from '@/shared/domain/carnet-data'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import { COLUMNS, PLACEHOLDERS, valuesOf } from './treatment-dose-row.repository'
 
-export type RestoredTreatmentDose = Omit<Stamped<NewTreatmentDose>, 'deletedAt'>
+export type RestoredTreatmentDose = Omit<Stamped<TreatmentDose>, 'deletedAt'>
 
 /** Une prise existante garde sa période, son traitement et son animal : le reste suit le fichier. */
 export function restoreStatement(dose: RestoredTreatmentDose, exists: boolean): SqlStatement {
@@ -11,6 +11,7 @@ export function restoreStatement(dose: RestoredTreatmentDose, exists: boolean): 
     ? {
         sql: `UPDATE treatment_dose
                   SET due_on = ?, due_time = ?, given_on = ?, status = ?, target_on = ?,
+                      previous_target_on = ?, previous_target_time = ?, due_rank = ?,
                       created_at = ?, updated_at = ?, deleted_at = NULL, created_by_device = ?,
                       updated_by_device = ?
                   WHERE id = ?`,
@@ -20,6 +21,9 @@ export function restoreStatement(dose: RestoredTreatmentDose, exists: boolean): 
           dose.givenOn,
           dose.status,
           dose.targetOn,
+          dose.previousTargetOn,
+          dose.previousTargetTime,
+          dose.dueRank,
           dose.createdAt,
           dose.updatedAt,
           dose.createdByDevice,

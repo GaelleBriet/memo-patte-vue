@@ -9,7 +9,7 @@ import {
   createTreatmentsRepository,
   type TreatmentsRepository,
 } from '../repository/treatments.repository'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import { legacyFactsOf } from '@/shared/domain/dose-calendar'
 
@@ -80,8 +80,8 @@ const DE_PANACUR = period({
 })
 
 function dose(
-  overrides: Pick<NewTreatmentDose, 'id' | 'periodId' | 'dueOn'> & Partial<NewTreatmentDose>,
-): NewTreatmentDose {
+  overrides: Pick<TreatmentDose, 'id' | 'periodId' | 'dueOn'> & Partial<TreatmentDose>,
+): TreatmentDose {
   return {
     treatmentId: METACAM.id,
     animalId: LUNA,
@@ -89,6 +89,9 @@ function dose(
     givenOn: overrides.dueOn,
     status: 'given',
     targetOn: null,
+    previousTargetOn: null,
+    previousTargetTime: null,
+    dueRank: null,
     ...STAMPS,
     deletedAt: null,
     ...overrides,
@@ -142,7 +145,7 @@ describe('treatmentsRepository — traitement avec ses périodes et ses prises',
   })
 
   it('lit un traitement avec toutes ses périodes, de la première à la dernière, et ses prises visibles', async () => {
-    const metacam = await repository.getWithHistory(METACAM.id)
+    const metacam = await repository.getWithPeriods(METACAM.id)
 
     expect(metacam).toMatchObject({ ...METACAM, ...STAMPS })
     expect(metacam?.periods).toEqual([
@@ -154,7 +157,7 @@ describe('treatmentsRepository — traitement avec ses périodes et ses prises',
   })
 
   it('lit un traitement sans prise', async () => {
-    await expect(repository.getWithHistory(PANACUR.id)).resolves.toMatchObject({
+    await expect(repository.getWithPeriods(PANACUR.id)).resolves.toMatchObject({
       ...PANACUR,
       periods: [{ id: PANACUR.id, firstDueOn: '2026-10-10' }],
       doses: [],
@@ -168,52 +171,52 @@ describe('treatmentsRepository — traitement avec ses périodes et ses prises',
       METACAM.id,
     ])
 
-    await expect(repository.getWithHistory('inconnu')).resolves.toBeNull()
-    await expect(repository.getWithHistory(PANACUR.id)).resolves.toBeNull()
-    await expect(repository.getWithHistory(METACAM.id)).resolves.toBeNull()
-    await expect(repository.listAllWithHistory()).resolves.toEqual([])
+    await expect(repository.getWithPeriods('inconnu')).resolves.toBeNull()
+    await expect(repository.getWithPeriods(PANACUR.id)).resolves.toBeNull()
+    await expect(repository.getWithPeriods(METACAM.id)).resolves.toBeNull()
+    await expect(repository.listAllWithPeriods()).resolves.toEqual([])
   })
 
   it('laisse de côté une période supprimée et ses prises', async () => {
     await db.run('UPDATE treatment_period SET deleted_at = ? WHERE id = ?', [AT, PREMIERE.id])
 
-    const metacam = await repository.getWithHistory(METACAM.id)
+    const metacam = await repository.getWithPeriods(METACAM.id)
 
     expect(metacam?.periods.map(({ id }) => id)).toEqual([EN_COURS.id])
     expect(metacam?.doses.map(({ id }) => id).sort()).toEqual(['d-27-matin', 'd-27-soir'])
   })
 
   it('liste les traitements d’un animal, chacun avec ses périodes et ses prises', async () => {
-    const [metacam, ...others] = await repository.listWithHistoryByAnimal(LUNA)
+    const [metacam, ...others] = await repository.listWithPeriodsByAnimal(LUNA)
 
     expect(others).toEqual([])
-    expect(metacam).toEqual(await repository.getWithHistory(METACAM.id))
-    await expect(repository.listWithHistoryByAnimal('inconnu')).resolves.toEqual([])
+    expect(metacam).toEqual(await repository.getWithPeriods(METACAM.id))
+    await expect(repository.listWithPeriodsByAnimal('inconnu')).resolves.toEqual([])
   })
 
   it('liste les traitements de tous les animaux', async () => {
-    const all = await repository.listAllWithHistory()
+    const all = await repository.listAllWithPeriods()
 
     expect(all).toEqual([
-      await repository.getWithHistory(METACAM.id),
-      await repository.getWithHistory(PANACUR.id),
+      await repository.getWithPeriods(METACAM.id),
+      await repository.getWithPeriods(PANACUR.id),
     ])
   })
 
   it('lit en trois requêtes, quel que soit le nombre de traitements', async () => {
     const query = vi.spyOn(db, 'query')
 
-    await repository.listAllWithHistory()
+    await repository.listAllWithPeriods()
     expect(query).toHaveBeenCalledTimes(3)
 
     query.mockClear()
-    await repository.listWithHistoryByAnimal(LUNA)
+    await repository.listWithPeriodsByAnimal(LUNA)
     expect(query).toHaveBeenCalledTimes(3)
   })
 
   it('donne au moteur d’échéances de quoi calculer la dose du moment', async () => {
-    const metacam = await repository.getWithHistory(METACAM.id)
-    const panacur = await repository.getWithHistory(PANACUR.id)
+    const metacam = await repository.getWithPeriods(METACAM.id)
+    const panacur = await repository.getWithPeriods(PANACUR.id)
 
     const { view } = treatmentReadingOf(metacam!, '2026-09-28')
     expect(view.phase).toBe('today')

@@ -43,6 +43,13 @@ describe('HistoryRow', () => {
     expect(wrapper.findComponent(OverflowMenu).exists()).toBe(false)
   })
 
+  it('a un menu quand sa liste est donnée en fonction, et passe la fonction sans la lire', () => {
+    const list = () => ITEMS
+    const wrapper = monter({ items: list })
+
+    expect(wrapper.getComponent(OverflowMenu).props('items')).toBe(list)
+  })
+
   it('se réduit à la date sans pastille ni détail', () => {
     const wrapper = monter()
 

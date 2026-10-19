@@ -1,3 +1,4 @@
+import { menuOf, type MenuChoice } from './treatment-history-menu'
 import { periodSettingsText } from './treatment-rhythm'
 import {
   lineOf,
@@ -8,15 +9,15 @@ import {
   type HistoryLine,
   type RowContext,
 } from './treatment-history-rows'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { byStartDescending, periodLastDay } from '@/shared/domain/treatment-periods'
 import { historyEntries, type TreatmentReading } from '@/shared/domain/treatment-reading'
 import { formatLongDate, formatDayMonthOrYear } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
-export { moveText } from './treatment-history-rows'
+export { moveText } from './treatment-move-text'
 export type { DoseLineAction, DoseRow, HistoryLine } from './treatment-history-rows'
 
 /** Lignes d'une période montrées avant « Voir les prises précédentes ». */
@@ -32,17 +33,22 @@ export type HistoryPeriod = {
   toggle: { show: string; hide: string } | null
 }
 
-export type TreatmentHistory = { counter: string | null; periods: HistoryPeriod[] }
+export type TreatmentHistory = {
+  counter: string | null
+  periods: HistoryPeriod[]
+  /** Les choix du menu ⋮ d'une ligne, à lire à son ouverture. */
+  menuOf: (row: DoseRow) => MenuChoice[]
+}
 
 type Period = TreatmentPeriodRecord
 
-const FAMILY_RANK: Record<NewTreatmentDose['status'], number> = {
+const FAMILY_RANK: Record<TreatmentDose['status'], number> = {
   postponed: 0,
   given: 1,
   missed: 1,
-  'not-due': 1,
   extra: 1,
-  shift: 2,
+  'not-due': 2,
+  shift: 3,
 }
 
 function rangeDates(from: string, to: string): { from: string; to: string } {
@@ -88,7 +94,7 @@ function linesOf(
     const previous = lines.at(-1)
     const rows: DoseRow[] = [
       ...(previous?.kind === 'missed' ? previous.rows : []),
-      missedRow(t, context, entry.dose, period),
+      missedRow(t, entry.dose, period),
     ]
     if (previous?.kind === 'missed') lines.pop()
     lines.push({
@@ -127,26 +133,42 @@ function emptyText(
     : t('treatments.history.empty')
 }
 
+function singleDayOf(line: HistoryLine): string | null {
+  if (line.kind !== 'missed') return line.dose.dueOn
+  const days = new Set(line.rows.map(({ dose }) => dose.dueOn))
+  return days.size === 1 ? line.dose.dueOn : null
+}
+
+function foldAt(lines: HistoryLine[]): number {
+  const day = lines[LINES_BEFORE_TOGGLE - 1] && singleDayOf(lines[LINES_BEFORE_TOGGLE - 1]!)
+  let cut = LINES_BEFORE_TOGGLE
+  while (day && cut < lines.length && singleDayOf(lines[cut]!) === day) cut += 1
+  return cut
+}
+
 function notesIn(lines: HistoryLine[]): number {
   return lines.reduce(
     (count, line) =>
       count +
       (line.kind === 'missed'
         ? line.rows.length
-        : line.kind === 'move' || line.kind === 'shift' || line.kind === 'idle'
+        : line.kind === 'move' ||
+            line.kind === 'shift' ||
+            line.kind === 'idle' ||
+            line.kind === 'not-due'
           ? 0
           : 1),
     0,
   )
 }
 
-function lastPlannedDoseGiven(entries: Entry[]): NewTreatmentDose | undefined {
-  const rank = ({ givenOn, dueOn, dueTime }: NewTreatmentDose) =>
+function lastPlannedDoseGiven(entries: Entry[]): TreatmentDose | undefined {
+  const rank = ({ givenOn, dueOn, dueTime }: TreatmentDose) =>
     `${givenOn ?? ''} ${dueOn} ${dueTime ?? ''}`
   return entries
     .filter(({ dose, idle }) => !idle && dose.status === 'given')
     .map(({ dose }) => dose)
-    .reduce<NewTreatmentDose | undefined>(
+    .reduce<TreatmentDose | undefined>(
       (last, dose) => (last === undefined || rank(dose) >= rank(last) ? dose : last),
       undefined,
     )
@@ -154,7 +176,7 @@ function lastPlannedDoseGiven(entries: Entry[]): NewTreatmentDose | undefined {
 
 // R12 : chaque ligne du traitement, lue avec son effet sur le calendrier.
 function entriesOf(
-  treatment: Pick<TreatmentWithHistory, 'doses'>,
+  treatment: Pick<TreatmentWithPeriods, 'doses'>,
   { view }: TreatmentReading,
 ): Entry[] {
   const records = new Map(treatment.doses.map((dose) => [dose.id, dose]))
@@ -166,7 +188,7 @@ function entriesOf(
 
 export function treatmentHistory(
   t: Translate,
-  treatment: Pick<TreatmentWithHistory, 'periods' | 'doses'>,
+  treatment: Pick<TreatmentWithPeriods, 'periods' | 'doses'>,
   reading: TreatmentReading,
   today: string,
 ): TreatmentHistory {
@@ -188,10 +210,12 @@ export function treatmentHistory(
             n: given.length,
             date: formatLongDate(oldest.dose.dueOn),
           }),
+    menuOf: (row) => menuOf(t, context, row),
     periods: periods.map((period, index): HistoryPeriod => {
       const own = entries.filter(({ dose }) => dose.periodId === period.id)
       const lines = linesOf(t, context, period, own, last?.id)
-      const hidden = notesIn(lines.slice(LINES_BEFORE_TOGGLE))
+      const cut = foldAt(lines)
+      const hidden = notesIn(lines.slice(cut))
       const others = index === 0 && !isAlone
       return {
         id: period.id,
@@ -203,7 +227,7 @@ export function treatmentHistory(
             },
         lines,
         emptyText: lines.length === 0 ? emptyText(t, period, periods[index - 1], context) : null,
-        visibleLines: hidden === 0 ? lines.length : LINES_BEFORE_TOGGLE,
+        visibleLines: hidden === 0 ? lines.length : cut,
         toggle:
           hidden === 0
             ? null

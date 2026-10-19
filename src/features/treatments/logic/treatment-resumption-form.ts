@@ -7,7 +7,7 @@ import {
   type TreatmentFormValues,
 } from './treatment-form-values'
 import { treatmentFormResultOf, type TreatmentFormResult } from './treatment-form-errors'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 
 export type TreatmentResumptionResult = TreatmentFormResult<
   z.output<ReturnType<typeof treatmentResumptionSchemaFor>>
@@ -15,7 +15,7 @@ export type TreatmentResumptionResult = TreatmentFormResult<
 
 export function validateTreatmentResumption(
   values: TreatmentFormValues,
-  treatment: TreatmentWithHistory,
+  treatment: TreatmentWithPeriods,
   today: string,
 ): TreatmentResumptionResult {
   return treatmentFormResultOf(
@@ -31,7 +31,7 @@ type ResumedTreatmentForm =
 
 /** Les valeurs d'un traitement relu ; un traitement ni terminé ni arrêté n'a rien à reprendre : retour à sa fiche. */
 export function resumedFormValues(
-  loaded: TreatmentWithHistory,
+  loaded: TreatmentWithPeriods,
   today: string,
 ): ResumedTreatmentForm {
   const { period, canResume } = resumptionDraft(loaded, today)

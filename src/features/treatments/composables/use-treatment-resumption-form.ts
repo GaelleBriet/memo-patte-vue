@@ -9,7 +9,7 @@ import {
   resumedFormValues,
   validateTreatmentResumption,
 } from '../logic/treatment-resumption-form'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { detailRoute } from '@/shared/domain/reminder-route'
@@ -18,7 +18,7 @@ import { returnTo } from '@/shared/utils/return-to'
 
 type Inputs = {
   values: Ref<TreatmentFormValues>
-  treatment: Ref<TreatmentWithHistory | null>
+  treatment: Ref<TreatmentWithPeriods | null>
   today: Readonly<Ref<string>>
   endsOnTouched: Readonly<Ref<boolean>>
 }
@@ -30,7 +30,7 @@ export function useTreatmentResumptionForm({ values, treatment, today, endsOnTou
   const treatments = useTreatmentsStore()
 
   const validation = useFormValidation(values, (current) =>
-    validateTreatmentResumption(current, requireHistory(), today.value),
+    validateTreatmentResumption(current, requireTreatment(), today.value),
   )
 
   const previous = computed(() =>
@@ -47,13 +47,13 @@ export function useTreatmentResumptionForm({ values, treatment, today, endsOnTou
     },
   )
 
-  function requireHistory(): TreatmentWithHistory {
+  function requireTreatment(): TreatmentWithPeriods {
     if (treatment.value === null) throw new Error('Formulaire traitement ouvert sans traitement.')
     return treatment.value
   }
 
   /** Faux quand le traitement n'a rien à reprendre : retour à sa fiche. */
-  function open(loaded: TreatmentWithHistory): boolean {
+  function open(loaded: TreatmentWithPeriods): boolean {
     const opened = resumedFormValues(loaded, today.value)
     if (opened.status === 'not-resumable') {
       animals.select(loaded.animalId)
@@ -66,7 +66,7 @@ export function useTreatmentResumptionForm({ values, treatment, today, endsOnTou
   }
 
   function write(): (() => Promise<unknown>) | null {
-    const id = requireHistory().id
+    const id = requireTreatment().id
     const result = validation.validate()
     return result.success ? () => treatments.resume(id, result.data) : null
   }

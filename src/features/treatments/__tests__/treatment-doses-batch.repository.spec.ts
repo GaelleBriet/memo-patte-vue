@@ -28,6 +28,9 @@ function fields(overrides: Partial<DoseFields> = {}): DoseFields {
     givenOn: '2026-09-27',
     status: 'given',
     targetOn: null,
+    previousTargetOn: null,
+    previousTargetTime: null,
+    dueRank: null,
     ...overrides,
   }
 }
@@ -58,7 +61,7 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
   async function visible() {
     const rows = await doses.listByTreatment(METACAM)
     return rows
-      .map(({ id, periodId, dueOn, dueTime, givenOn, status, targetOn }) => ({
+      .map(({ id, periodId, dueOn, dueTime, givenOn, status, targetOn, ...facts }) => ({
         id,
         periodId,
         dueOn,
@@ -66,6 +69,9 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
         givenOn,
         status,
         targetOn,
+        previousTargetOn: facts.previousTargetOn,
+        previousTargetTime: facts.previousTargetTime,
+        dueRank: facts.dueRank,
       }))
       .sort((a, b) => a.id.localeCompare(b.id))
   }
@@ -142,6 +148,7 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
         givenOn: null,
         status: 'postponed',
         targetOn: '2026-10-02',
+        dueRank: 1,
       })
 
       await db.runMany([
@@ -153,6 +160,26 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
         { id: 'oubliee', ...oubliee },
         { id: 'report', ...report },
       ])
+    })
+
+    it('réécrit un report déplacé de nouveau avec son arrivée d’avant et son rang', async () => {
+      const report = fields({
+        givenOn: null,
+        status: 'postponed',
+        targetOn: '2026-09-28',
+        dueRank: 1,
+      })
+      await db.runMany([doses.createStatement({ id: 'report', ...OWNER, dose: report, at: T1 })])
+      const moved = {
+        ...report,
+        targetOn: '2026-09-30',
+        previousTargetOn: '2026-09-28',
+        previousTargetTime: '08:00',
+      }
+
+      await db.runMany([doses.rewriteStatement('report', moved, T2)])
+
+      await expect(visible()).resolves.toEqual([{ id: 'report', ...moved }])
     })
 
     it('réécrit une ligne avec de nouveaux champs, sans changer sa création', async () => {

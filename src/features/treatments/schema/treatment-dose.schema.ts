@@ -1,6 +1,5 @@
 import { z } from 'zod'
 
-import type { TreatmentFrequency } from './treatment.schema'
 import { CLOCK_TIME_PATTERN } from '@/shared/domain/clock-time'
 
 export const DOSE_STATUSES = ['given', 'missed', 'postponed', 'extra', 'shift', 'not-due'] as const
@@ -17,23 +16,33 @@ export const treatmentDoseSchema = z.object({
   status: z.enum(DOSE_STATUSES),
   /** Report : jour d'arrivée ; décalage : jour d'ancrage ; `null` pour une prise. */
   targetOn: z.iso.date().nullable(),
+  /** Report déplacé de nouveau : jour et heure de son arrivée d'avant ; `null` sinon. */
+  previousTargetOn: z.iso.date().nullable(),
+  previousTargetTime: z.string().regex(CLOCK_TIME_PATTERN).nullable(),
+  /** Report : rang, à partir de 1, de son heure dans sa journée d'origine ; `null` : inconnu. */
+  dueRank: z.number().int().min(1).nullable(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
   deletedAt: z.iso.datetime().nullable(),
 })
 
-/** Ce qu'une prise écrit en base. */
-export type NewTreatmentDose = z.output<typeof treatmentDoseSchema>
+/** Une prise, lue telle qu'écrite. */
+export type TreatmentDose = z.output<typeof treatmentDoseSchema>
 
-/** Une prise lue, avec la fréquence de sa période. */
-export type TreatmentDose = NewTreatmentDose & { frequency: TreatmentFrequency }
-
-export type DoseOwner = Pick<NewTreatmentDose, 'id' | 'treatmentId' | 'animalId'>
+export type DoseOwner = Pick<TreatmentDose, 'id' | 'treatmentId' | 'animalId'>
 
 /** Ce qu'une écriture pose sur une ligne ; son traitement et son animal ne changent jamais. */
 export type DoseFields = Pick<
-  NewTreatmentDose,
-  'periodId' | 'dueOn' | 'dueTime' | 'givenOn' | 'status' | 'targetOn'
+  TreatmentDose,
+  | 'periodId'
+  | 'dueOn'
+  | 'dueTime'
+  | 'givenOn'
+  | 'status'
+  | 'targetOn'
+  | 'previousTargetOn'
+  | 'previousTargetTime'
+  | 'dueRank'
 >
 
 /** `expectedUpdatedAt` : la ligne doit être restée telle qu'un geste l'a écrite (lot inverse). */

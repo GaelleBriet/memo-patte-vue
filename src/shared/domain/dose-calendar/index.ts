@@ -13,7 +13,7 @@ export { applied, rewritesCalendar, settingsApplied } from './gestures/changes'
 export { moveBounds, moveDose, type MoveBounds } from './gestures/move'
 export { dueForDate, noteDose } from './gestures/note'
 export { redateDose } from './gestures/redate'
-export { keptAhead, removalRefusal, removeLine } from './gestures/remove'
+export { keptAhead, removalRefusal, removeLine, reportRemovalLock } from './gestures/remove'
 export {
   newSettings,
   type FallenQuestion,
@@ -23,6 +23,7 @@ export {
 export { chosenDateRefusal } from './gestures/settings-chosen'
 export { familyOf, isAdvanced } from './lines'
 export { play, preview } from './preview'
+export { reportFactsIn, reportFactsOf, withReportFacts, type ReportFacts } from './report-facts'
 export type { DueReminder, ReminderMoment, ReminderReading, ReminderWindow } from './reminders'
 export type { DueSlot, HistoryLine, TreatmentView, Window } from './view'
 export { FALLEN_DOSES_ANSWERS } from './types'

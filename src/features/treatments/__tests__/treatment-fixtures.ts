@@ -1,6 +1,6 @@
 import type { DoseWrite } from '../schema/treatment-dose.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import { legacyFactsOf } from '@/shared/domain/dose-calendar'
 
@@ -41,11 +41,14 @@ export function period(overrides: Partial<TreatmentPeriodRecord> = {}): Treatmen
 export function dose(
   dueOn: string,
   next: string,
-  overrides: Partial<NewTreatmentDose> = {},
-): NewTreatmentDose {
+  overrides: Partial<TreatmentDose> = {},
+): TreatmentDose {
   const dueTime = overrides.dueTime ?? null
   const status = overrides.status ?? 'given'
   return {
+    previousTargetOn: null,
+    previousTargetTime: null,
+    dueRank: null,
     id: dueTime === null ? dueOn : `${dueOn} ${dueTime}`,
     periodId: 'p-1',
     treatmentId: 'metacam',
@@ -65,16 +68,16 @@ export function dose(
 export function missed(
   dueOn: string,
   next: string,
-  overrides: Partial<NewTreatmentDose> = {},
-): NewTreatmentDose {
+  overrides: Partial<TreatmentDose> = {},
+): TreatmentDose {
   return dose(dueOn, next, { givenOn: null, status: 'missed', ...overrides })
 }
 
 export function postponed(
   dueOn: string,
   to: string,
-  overrides: Partial<NewTreatmentDose> = {},
-): NewTreatmentDose {
+  overrides: Partial<TreatmentDose> = {},
+): TreatmentDose {
   return dose(dueOn, to, {
     id: `report ${dueOn}`,
     givenOn: null,
@@ -87,8 +90,8 @@ export function postponed(
 export function shifted(
   dueOn: string,
   anchoredOn: string,
-  overrides: Partial<NewTreatmentDose> = {},
-): NewTreatmentDose {
+  overrides: Partial<TreatmentDose> = {},
+): TreatmentDose {
   return dose(dueOn, anchoredOn, {
     id: `décalage ${dueOn}`,
     givenOn: null,
@@ -101,15 +104,15 @@ export function shifted(
 export function extra(
   givenOn: string,
   next: string,
-  overrides: Partial<NewTreatmentDose> = {},
-): NewTreatmentDose {
+  overrides: Partial<TreatmentDose> = {},
+): TreatmentDose {
   return dose(givenOn, next, { id: `en plus ${givenOn}`, status: 'extra', ...overrides })
 }
 
 export function treatment(
   periods: TreatmentPeriodRecord[],
-  doses: NewTreatmentDose[] = [],
-): TreatmentWithHistory {
+  doses: TreatmentDose[] = [],
+): TreatmentWithPeriods {
   return {
     id: 'metacam',
     animalId: 'luna',
@@ -124,10 +127,10 @@ export function treatment(
 
 /** Le carnet après un lot d'écritures, comme `applyBatch` le laisserait. */
 export function written(
-  history: TreatmentWithHistory,
+  withPeriods: TreatmentWithPeriods,
   writes: readonly DoseWrite[],
   at = '2026-09-28T12:00:00.000Z',
-): TreatmentWithHistory {
+): TreatmentWithPeriods {
   const doses = writes.reduce((lines, write) => {
     switch (write.action) {
       case 'create':
@@ -152,8 +155,8 @@ export function written(
       case 'restore':
         throw new Error('Une restauration ne se rejoue pas sur un carnet de test.')
     }
-  }, history.doses)
-  return { ...history, doses }
+  }, withPeriods.doses)
+  return { ...withPeriods, doses }
 }
 
 export { plain } from '@/shared/__tests__/plain'

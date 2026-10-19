@@ -1,7 +1,7 @@
 import { refusalText } from './treatment-refusal-texts'
 import { revealedDues, revealedDuesText } from './treatment-revealed-dues'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { nextDay } from '@/shared/domain/calendar-day'
 import {
   applied,
@@ -24,7 +24,7 @@ export type ShiftHelp = { text: string; warning: boolean }
 const SHOWN_DAYS = 2
 
 export type Carnet = {
-  treatment: Pick<TreatmentWithHistory, 'periods' | 'doses'>
+  treatment: Pick<TreatmentWithPeriods, 'periods' | 'doses'>
   reading: TreatmentReading
   today: string
 }

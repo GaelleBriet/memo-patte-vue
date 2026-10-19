@@ -108,6 +108,11 @@ export type ExportTreatmentDose = {
   status: 'given' | 'missed' | 'postponed' | 'extra' | 'shift' | 'not-due'
   /** Report : jour d'arrivée ; décalage : jour d'ancrage ; `null` pour une prise. */
   targetOn: string | null
+  /** Report déplacé de nouveau : jour et heure de son arrivée d'avant ; `null` sinon. */
+  previousTargetOn: string | null
+  previousTargetTime: string | null
+  /** Report : rang, à partir de 1, de son heure dans sa journée d'origine ; `null` : inconnu. */
+  dueRank: number | null
   createdAt: string
   updatedAt: string
   createdByDevice: string

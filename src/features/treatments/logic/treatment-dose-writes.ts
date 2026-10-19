@@ -1,9 +1,9 @@
-import type { DoseFields, DoseWrite, NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { DoseFields, DoseWrite, TreatmentDose } from '../schema/treatment-dose.schema'
 import type { PlannedDoseWrite } from '../schema/treatment-plan.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
-import type { LineChange, LineFields } from '@/shared/domain/dose-calendar'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
+import { reportFactsIn, type LineChange, type LineFields } from '@/shared/domain/dose-calendar'
 
-type TreatmentToWrite = Pick<TreatmentWithHistory, 'id' | 'animalId' | 'doses'>
+type TreatmentToWrite = Pick<TreatmentWithPeriods, 'id' | 'animalId' | 'doses' | 'periods'>
 
 export function doseFieldsOf(line: LineFields): DoseFields {
   return {
@@ -13,10 +13,16 @@ export function doseFieldsOf(line: LineFields): DoseFields {
     givenOn: line.givenOn,
     status: line.status,
     targetOn: line.targetOn,
+    previousTargetOn: line.previousTargetOn ?? null,
+    previousTargetTime: line.previousTargetTime ?? null,
+    dueRank: line.dueRank ?? null,
   }
 }
 
-function isUnchanged(line: NewTreatmentDose | undefined, dose: DoseFields): boolean {
+// Un fait de report vide en base que l'écriture remplit (rang calculé) ne justifie pas une réécriture.
+const factKept = <T>(stored: T | null, written: T | null) => stored === null || stored === written
+
+function isUnchanged(line: TreatmentDose | undefined, dose: DoseFields): boolean {
   return (
     line !== undefined &&
     line.periodId === dose.periodId &&
@@ -24,7 +30,10 @@ function isUnchanged(line: NewTreatmentDose | undefined, dose: DoseFields): bool
     line.dueTime === dose.dueTime &&
     line.givenOn === dose.givenOn &&
     line.status === dose.status &&
-    line.targetOn === dose.targetOn
+    line.targetOn === dose.targetOn &&
+    factKept(line.previousTargetOn, dose.previousTargetOn) &&
+    factKept(line.previousTargetTime, dose.previousTargetTime) &&
+    factKept(line.dueRank, dose.dueRank)
   )
 }
 
@@ -39,6 +48,9 @@ export function doseWritesOf(
   newId: () => string,
   restamped: ReadonlySet<string> = new Set(),
 ): DoseWrite[] {
+  const book = { lines: treatment.doses, settings: treatment.periods }
+  const factsOf = (line: LineFields, id?: string) =>
+    line.status === 'postponed' ? { ...line, ...reportFactsIn(book, line, id) } : line
   return changes.flatMap((change): DoseWrite[] => {
     switch (change.action) {
       case 'create':
@@ -48,11 +60,11 @@ export function doseWritesOf(
             id: newId(),
             treatmentId: treatment.id,
             animalId: treatment.animalId,
-            dose: doseFieldsOf(change.line),
+            dose: doseFieldsOf(factsOf(change.line)),
           },
         ]
       case 'rewrite': {
-        const dose = doseFieldsOf(change.line)
+        const dose = doseFieldsOf(factsOf(change.line, change.id))
         const existing = treatment.doses.find(({ id }) => id === change.id)
         return isUnchanged(existing, dose) && !restamped.has(change.id)
           ? []

@@ -364,6 +364,9 @@ describe('buildCarnetPdfContent — historique', () => {
       dueTime: null,
       givenOn: spec.status === 'given' || spec.status === 'extra' ? spec.dueOn : null,
       targetOn: null,
+      previousTargetOn: null,
+      previousTargetTime: null,
+      dueRank: null,
       ...STAMPS,
       ...spec,
     }
@@ -387,6 +390,89 @@ describe('buildCarnetPdfContent — historique', () => {
   function at(on: string, time: string | null = null, extra = false) {
     return { on, time, extra }
   }
+
+  describe('« pas à donner »', () => {
+    const WEEKLY = { frequency: { value: 1, unit: 'week' }, startsOn: '2026-03-02' } as const
+    const ANSWERED_AT = new Date(2026, 2, 20, 10).toISOString()
+    const ANSWERED = { createdAt: ANSWERED_AT, updatedAt: ANSWERED_AT }
+    const notDue = (dueOn: string, extra: Partial<ExportTreatmentDose> = {}): DoseSpec => ({
+      periodId: 'p',
+      dueOn,
+      status: 'not-due',
+      ...ANSWERED,
+      ...extra,
+    })
+
+    it('écrit la ligne sous son échéance, sans la compter comme une dose', () => {
+      const row = treatmentRow(
+        [{ id: 'p', ...WEEKLY }],
+        [notDue('2026-03-09'), notDue('2026-03-16'), ...given('p', '2026-03-02')],
+        '2026-03-23',
+      )
+
+      expect(row.periods[0]!.lines).toEqual([
+        { kind: 'not-due', dueOn: '2026-03-16', time: null, answeredOn: '2026-03-20' },
+        { kind: 'not-due', dueOn: '2026-03-09', time: null, answeredOn: '2026-03-20' },
+        { kind: 'given', series: { kind: 'dates', doses: [at('2026-03-02')] } },
+      ])
+      expect(row.lastDoseDate).toBe('2026-03-02')
+      expect(row.due).toEqual({ kind: 'due', dueOn: '2026-03-23', dueTime: null, overdue: false })
+    })
+
+    it('la marque sans effet quand une prise arrive ensuite sur la même échéance', () => {
+      const row = treatmentRow(
+        [{ id: 'p', ...WEEKLY }],
+        [
+          notDue('2026-03-16'),
+          {
+            periodId: 'p',
+            dueOn: '2026-03-16',
+            status: 'given',
+            createdAt: new Date(2026, 2, 21, 10).toISOString(),
+            updatedAt: new Date(2026, 2, 21, 10).toISOString(),
+          },
+        ],
+        '2026-03-23',
+      )
+
+      expect(row.periods[0]!.lines).toContainEqual({
+        kind: 'idle',
+        line: { kind: 'not-due', dueOn: '2026-03-16', time: null, answeredOn: '2026-03-20' },
+      })
+    })
+
+    it('écrit la réponse au-dessus de la prise datée du même jour', () => {
+      const row = treatmentRow(
+        [{ id: 'p', ...WEEKLY }],
+        [
+          ...given('p', '2026-03-02'),
+          { periodId: 'p', dueOn: '2026-03-09', status: 'given', givenOn: '2026-03-16' },
+          notDue('2026-03-16'),
+        ],
+        '2026-03-23',
+      )
+
+      expect(row.periods[0]!.lines.slice(0, 2)).toEqual([
+        { kind: 'not-due', dueOn: '2026-03-16', time: null, answeredOn: '2026-03-20' },
+        { kind: 'given', series: { kind: 'dates', doses: [at('2026-03-16')] } },
+      ])
+    })
+
+    it('garde l’heure de l’échéance quand la période a plusieurs heures', () => {
+      const row = treatmentRow(
+        [{ id: 'p', ...WEEKLY, times: ['08:00', '20:00'] }],
+        [notDue('2026-03-09', { dueTime: '20:00' })],
+        '2026-03-23',
+      )
+
+      expect(row.periods[0]!.lines).toContainEqual({
+        kind: 'not-due',
+        dueOn: '2026-03-09',
+        time: '20:00',
+        answeredOn: '2026-03-20',
+      })
+    })
+  })
 
   it('liste toutes les injections d’un vaccin, la plus récente d’abord, jamais regroupées', () => {
     const years = ['2021-01-01', '2025-01-01', '2022-01-01', '2024-01-01', '2023-01-01']

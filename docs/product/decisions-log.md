@@ -3035,6 +3035,42 @@ moteur).
   à renseigner).
 - En attente, avant toute publication : l'affichage de la ligne « pas à donner » dans l'historique,
   avec son libellé et « Supprimer » (#952, libellé à valider par Gaelle).
+- Repli de l'historique : une date n'est jamais coupée en deux, décision du 18 octobre 2026. Replié,
+  l'historique montre les trois premières lignes, plus les lignes qui suivent tant qu'elles ont la
+  même date d'échéance que la troisième : une date se lit entière, l'historique reste repliable. Un
+  groupe d'oubliées qui couvre plusieurs dates n'a pas une date : il ne prolonge jamais la coupe et
+  n'est jamais tiré par elle.
+
+2026-10-19 — **Report contre réglage : la ligne de report garde son arrivée d'avant et le rang de
+son heure** (#939 ; spec `traitements.md` R7, R10 ; décisions du 19 octobre 2026 de la session
+d'analyse du moteur, à qui Gaelle a délégué les lectures de règles ; migrations accordées par Gaelle
+le 16 octobre ; schéma v16, export v9).
+
+- Règle : un report l'emporte sur le réglage **pour sa dose seulement**. Il s'applique si sa dose de
+  départ, ou son ancienne arrivée (jour et heure), existe dans le réglage en vigueur ; il ne retire
+  jamais une autre échéance du réglage. Milo, chaque semaine à 20 h depuis le 4 mars, un nouveau
+  réglage le 6 ; la dose du 11 reportée au 12 ; le 10, le téléphone A la déplace au 15, le téléphone
+  B, sans le voir, choisit « Prochaine dose » le 12 : l'ancienne arrivée du report (le 12 à 20 h) est
+  la date choisie par B, la journée du 12 part au 15 : 15, 19, 26 (« 12, 15, 19, 26 » doublait la
+  dose). Codée avec la PR #958.
+- Q1 (b) : l'ancienne arrivée (jour et heure) se garde sur la ligne du report, par une migration ;
+  G13 et G17 (une journée n'a qu'une ligne de déplacement, la redéplacer la réécrit) restent intacts.
+  L'heure gardée est celle de la dose, l'heure écrite sur la ligne du report (#867, point 2), même
+  quand l'arrivée était une date choisie à d'autres heures (#796) : Milo, chaque lundi à 8 h et
+  20 h, la dose de 20 h du 9 mars reportée au 11, « Prochaine dose » le 11 à 9 h et 21 h, puis la
+  dose redéplacée du 11 au 13 : l'ancienne arrivée gardée est le 11 à 20 h. — Écartées : garder la
+  lecture de `main` ; une heuristique dans le moteur (contraire à #882, Luna).
+- Q4 (b) : la ligne du report garde le rang (entier, à partir de 1) de l'heure déplacée dans sa
+  journée d'origine ; lignes existantes : rang lu dans les heures du réglage de la ligne au moment de
+  la migration, à défaut vide. La journée de départ perd la dose libre de même rang que l'heure
+  emportée, jamais « celle qui la suit » ni « la plus proche » : tous les 3 mois à 8 h, 14 h et 20 h,
+  le report de 8 h du 5 mars au 6 (rang 1), B passe à 7 h 59, 13 h 59 et 19 h 59 : le 5 perd 7 h 59,
+  garde 13 h 59 et 19 h 59, le 6 reçoit 8 h. Codée avec la PR #958. Le rang d'un report écrit par
+  « Modifier » se lit dans les heures du réglage d'avant le plan : celles que le report avait vues.
+- Correction de la décision 8a du 18 octobre (Luna, A plus récent, « 12, 16, 23 ») : la date choisie
+  par B ne s'efface jamais sans ligne qui la vise. Les six autres graines de #939 et Luna (#882,
+  A plus récent) : aucune dose de B n'est reconnaissable comme celle que A a déplacée, les deux
+  restent (9, 12, 16), rien de grisé, chacune supprimable.
 
 2026-10-18 — **Report contre réécriture d'un réglage : la plus récente des deux écritures, jusqu'au
 bout** (spec `traitements.md` R6, R10, R11, §10, §11 ; décisions de la session d'analyse du moteur

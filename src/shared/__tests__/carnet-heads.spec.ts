@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { givenDoseHistories, vaccinationHeads, vaccinationHistories } from '../domain/carnet-heads'
+import {
+  givenDosesByTreatment,
+  vaccinationHeads,
+  injectionsByVaccination,
+} from '../domain/carnet-heads'
 import type { ExportTreatmentDose, ExportVaccinationInjection } from '../domain/carnet-data'
 
 const AT = '2026-01-01T00:00:00.000Z'
@@ -39,6 +43,9 @@ function dose(
     givenOn: dueOn,
     status: 'given',
     targetOn: null,
+    previousTargetOn: null,
+    previousTargetTime: null,
+    dueRank: null,
     createdAt: AT,
     updatedAt: AT,
     createdByDevice: 'appareil-test',
@@ -63,13 +70,13 @@ describe('têtes du carnet', () => {
   })
 
   it('range l’historique de chaque vaccin du plus récent au plus ancien', () => {
-    const histories = vaccinationHistories([
+    const byVaccination = injectionsByVaccination([
       injection('rage-2019', 'rage', '2019-05-20'),
       injection('rage-2025', 'rage', '2025-05-20'),
       injection('rage-2022', 'rage', '2022-05-20'),
     ])
 
-    expect(histories.get('rage')?.map(({ id }) => id)).toEqual([
+    expect(byVaccination.get('rage')?.map(({ id }) => id)).toEqual([
       'rage-2025',
       'rage-2022',
       'rage-2019',
@@ -77,13 +84,13 @@ describe('têtes du carnet', () => {
   })
 
   it('range les prises données par leur date réelle, sans les oubliées ni les reportées', () => {
-    const histories = givenDoseHistories([
+    const byTreatment = givenDosesByTreatment([
       dose('a-l-heure', '2026-09-02'),
       dose('oubliee', '2026-09-03', { givenOn: null, status: 'missed' }),
       dose('reportee', '2026-09-04', { givenOn: null, status: 'postponed' }),
       dose('en-retard', '2026-09-01', { givenOn: '2026-09-05' }),
     ])
 
-    expect(histories.get('bravecto')?.map(({ id }) => id)).toEqual(['en-retard', 'a-l-heure'])
+    expect(byTreatment.get('bravecto')?.map(({ id }) => id)).toEqual(['en-retard', 'a-l-heure'])
   })
 })

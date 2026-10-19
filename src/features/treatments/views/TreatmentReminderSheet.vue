@@ -13,7 +13,7 @@ import { useTreatmentSheetActions } from '../composables/use-treatment-sheet-act
 import { detailActions } from '../logic/treatment-card'
 import { readableReadingOf } from '../logic/treatment-reading-adapter'
 import { sheetOtherDateMin, sheetPeriod, treatmentSheetTexts } from '../logic/treatment-sheet'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
@@ -46,7 +46,7 @@ const treatments = useTreatmentsStore()
 const { today, refresh: refreshToday } = useToday()
 const gestures = useTreatmentGestures(() => emit('changed'))
 
-const treatment = ref<TreatmentWithHistory | null>(null)
+const treatment = ref<TreatmentWithPeriods | null>(null)
 const isBusy = gestures.isBusy
 const isStopDialogOpen = ref(false)
 const isOtherDateOpen = ref(false)
@@ -133,7 +133,7 @@ watch(
     treatment.value = null
     if (!animals.hasLoaded) void animals.load()
     const id = props.treatmentId
-    treatment.value = id ? await treatments.getWithHistory(id).catch(() => null) : null
+    treatment.value = id ? await treatments.getWithPeriods(id).catch(() => null) : null
     if (treatment.value === null && open.value) {
       open.value = false
       showToast(t('treatments.form.errors.load'), { tone: 'error' })

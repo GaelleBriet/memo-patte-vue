@@ -218,6 +218,35 @@ describe('renderCarnetPdf — historique d’un traitement', () => {
   )
 
   it.each([
+    [
+      'fr',
+      '16/03/2026 · Pas à donner · répondu le 20 mars 2026',
+      '09/03/2026 à 20 h · Pas à donner · répondu le 20 mars 2026 · sans effet',
+    ],
+    [
+      'en',
+      '03/16/2026 · Not meant to be given · answered Mar 20, 2026',
+      '03/09/2026 at 8 pm · Not meant to be given · answered Mar 20, 2026 · no longer applies',
+    ],
+  ] as const)(
+    'écrit « pas à donner » comme la fiche, avec « sans effet » au besoin (%s)',
+    (locale, ligne, sansEffet) => {
+      i18n.global.locale.value = locale
+      const lines: PdfHistoryLine[] = [
+        { kind: 'not-due', dueOn: '2026-03-16', time: null, answeredOn: '2026-03-20' },
+        {
+          kind: 'idle',
+          line: { kind: 'not-due', dueOn: '2026-03-09', time: '20:00', answeredOn: '2026-03-20' },
+        },
+      ]
+      const ecrits = textes(carnet({ treatments: [traitement({ periods: [periode({ lines })] })] }))
+
+      expect(ecrits).toContain(ligne)
+      expect(ecrits).toContain(sansEffet)
+    },
+  )
+
+  it.each([
     ['fr', 0.5, '½ comprimé'],
     ['fr', 1, '1 comprimé'],
     ['fr', 1.5, '1 ½ comprimé'],

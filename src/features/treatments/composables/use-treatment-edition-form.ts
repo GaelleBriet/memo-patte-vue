@@ -11,13 +11,13 @@ import { formErrorParams, nextDoseShiftHelp } from '../logic/treatment-form-text
 import type { TreatmentFormValues } from '../logic/treatment-form-values'
 import { pastDuesTexts } from '../logic/treatment-past-dues'
 import type { PastDuesChoice } from '../schema/treatment-form.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 
 type Inputs = {
   values: Ref<TreatmentFormValues>
-  treatment: Ref<TreatmentWithHistory | null>
+  treatment: Ref<TreatmentWithPeriods | null>
   today: Readonly<Ref<string>>
   /** Relit la date du jour : la question se repose si ses échéances ont changé depuis (#873). */
   refreshToday?: () => void
@@ -64,7 +64,7 @@ export function useTreatmentEditionForm({ values, treatment, today, refreshToday
   const validation = useFormValidation(values, (current) =>
     validateTreatmentEdition(
       current,
-      requireHistory(),
+      requireTreatment(),
       today.value,
       pastDuesChoice.value,
       draft.value,
@@ -86,12 +86,12 @@ export function useTreatmentEditionForm({ values, treatment, today, refreshToday
     },
   )
 
-  function requireHistory(): TreatmentWithHistory {
+  function requireTreatment(): TreatmentWithPeriods {
     if (treatment.value === null) throw new Error('Formulaire traitement ouvert sans traitement.')
     return treatment.value
   }
 
-  function open(loaded: TreatmentWithHistory): boolean {
+  function open(loaded: TreatmentWithPeriods): boolean {
     values.value = editedFormValues(loaded, today.value)
     treatment.value = loaded
     return true
@@ -103,7 +103,7 @@ export function useTreatmentEditionForm({ values, treatment, today, refreshToday
 
   /** Sans écriture possible, ouvre la question des échéances tombées quand c'est elle qui manque. */
   function write(): (() => Promise<unknown>) | null {
-    const id = requireHistory().id
+    const id = requireTreatment().id
     refreshToday?.()
     const result = validation.validate()
     if (result.success) return () => updated(id, result.data)
@@ -116,7 +116,7 @@ export function useTreatmentEditionForm({ values, treatment, today, refreshToday
     try {
       return await treatments.update(id, data)
     } catch (error) {
-      const fresh = pastDuesAskedAgain(error) ? await treatments.getWithHistory(id) : null
+      const fresh = pastDuesAskedAgain(error) ? await treatments.getWithPeriods(id) : null
       if (fresh === null) throw error
       treatment.value = fresh
       isPastDuesOpen.value = pastDues.value !== null

@@ -24,7 +24,7 @@ import {
   type Treatment,
   type TreatmentType,
 } from '../schema/treatment.schema'
-import type { TreatmentRecord, TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentRecord, TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type {
   NewTreatmentPlan,
   PlannedDoseWrite,
@@ -95,11 +95,11 @@ function toStampedRecord(row: TreatmentRow): StampedTreatmentRecord {
 }
 
 /** Sans période visible, un traitement ne se lit pas ; les prises d'une période supprimée non plus. */
-function withHistory(
+function withPeriods(
   rows: TreatmentRow[],
   periods: TreatmentPeriodRecord[],
   doses: Stamped<TreatmentDose>[],
-): TreatmentWithHistory[] {
+): TreatmentWithPeriods[] {
   const periodsOf = groupBy(periods, ({ treatmentId }) => treatmentId)
   const dosesOf = groupBy(doses, ({ periodId }) => periodId)
   return rows.flatMap((row) => {
@@ -110,9 +110,7 @@ function withHistory(
         ...toRecord(row),
         periods: own,
         doses: own.flatMap(({ id }) =>
-          (dosesOf.get(id) ?? []).map(
-            ({ frequency: _frequency, updatedByDevice: _updatedBy, ...dose }) => dose,
-          ),
+          (dosesOf.get(id) ?? []).map(({ updatedByDevice: _updatedBy, ...dose }) => dose),
         ),
       },
     ]
@@ -220,7 +218,7 @@ export function createTreatmentsRepository(
       return rows.map(toStampedRecord)
     },
 
-    async getWithHistory(id: string): Promise<TreatmentWithHistory | null> {
+    async getWithPeriods(id: string): Promise<TreatmentWithPeriods | null> {
       const [rows, ownPeriods, ownDoses] = await Promise.all([
         db.query<TreatmentRow>(`SELECT ${COLUMNS} FROM treatment WHERE ${NOT_DELETED} AND id = ?`, [
           id,
@@ -228,11 +226,11 @@ export function createTreatmentsRepository(
         periods.listByTreatment(id),
         doses.listRecordsByTreatment(id),
       ])
-      return withHistory(rows, ownPeriods, ownDoses)[0] ?? null
+      return withPeriods(rows, ownPeriods, ownDoses)[0] ?? null
     },
 
     /** Dans l'ordre de saisie des traitements. */
-    async listWithHistoryByAnimal(animalId: string): Promise<TreatmentWithHistory[]> {
+    async listWithPeriodsByAnimal(animalId: string): Promise<TreatmentWithPeriods[]> {
       const [rows, ownPeriods, ownDoses] = await Promise.all([
         db.query<TreatmentRow>(
           `SELECT ${COLUMNS} FROM treatment WHERE ${NOT_DELETED} AND animal_id = ?
@@ -242,11 +240,11 @@ export function createTreatmentsRepository(
         periods.listByAnimal(animalId),
         doses.listRecordsByAnimal(animalId),
       ])
-      return withHistory(rows, ownPeriods, ownDoses)
+      return withPeriods(rows, ownPeriods, ownDoses)
     },
 
     /** Par animal, puis dans l'ordre de saisie des traitements. */
-    async listAllWithHistory(): Promise<TreatmentWithHistory[]> {
+    async listAllWithPeriods(): Promise<TreatmentWithPeriods[]> {
       const [rows, allPeriods, allDoses] = await Promise.all([
         db.query<TreatmentRow>(
           `SELECT ${COLUMNS} FROM treatment WHERE ${NOT_DELETED}
@@ -255,7 +253,7 @@ export function createTreatmentsRepository(
         periods.listAll(),
         doses.listRecords(),
       ])
-      return withHistory(rows, allPeriods, allDoses)
+      return withPeriods(rows, allPeriods, allDoses)
     },
 
     /** Le traitement, sa première période, de même identifiant, et les prises du plan : tout ou rien. */
@@ -480,8 +478,8 @@ export function createTreatmentsRepository(
 }
 
 export type TreatmentsRepository = ReturnType<typeof createTreatmentsRepository>
-export type TreatmentWithHistoryReader = Pick<TreatmentsRepository, 'getWithHistory'>
-export type AllTreatmentsWithHistoryReader = Pick<TreatmentsRepository, 'listAllWithHistory'>
+export type TreatmentWithPeriodsReader = Pick<TreatmentsRepository, 'getWithPeriods'>
+export type AllTreatmentsWithPeriodsReader = Pick<TreatmentsRepository, 'listAllWithPeriods'>
 export type TreatmentRemover = Pick<TreatmentsRepository, 'remove' | 'restore'>
 
 let repository: Promise<TreatmentsRepository> | null = null

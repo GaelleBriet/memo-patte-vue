@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import TreatmentShiftCheckbox from './TreatmentShiftCheckbox.vue'
 import { hasSeveralTimes } from '../logic/treatment-gestures'
 import { otherDateBox, otherDateNote, otherDateRecap } from '../logic/treatment-shift-box'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
 import type { NoteGesture } from '../logic/treatment-dose-change'
 import type { Due } from '@/shared/domain/dose-calendar'
@@ -16,7 +16,7 @@ const props = withDefaults(
     name: string
     animal: string
     icon: string
-    treatment: TreatmentWithHistory
+    treatment: TreatmentWithPeriods
     reading: TreatmentReading
     today: string
     /** L'échéance que « C'est fait » note aujourd'hui. */

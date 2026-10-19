@@ -2,16 +2,16 @@ import { plannedDoseWritesOf } from './treatment-dose-writes'
 import { resolve } from './treatment-edition-change'
 import { treatmentEditionSchemaFor } from './treatment-edition-checks'
 import { carnetReadingOf, treatmentReadingOf } from './treatment-reading-adapter'
-import { periodWriteOf, settingsPlanOf } from './treatment-settings-writes'
+import { correctionOf, periodWriteOf, settingsPlanOf } from './treatment-settings-writes'
 import { sameSettings, settingsOf, withRhythm, type PlanIds } from './treatment-settings'
 import type { TreatmentPlanWrite } from '../schema/treatment-plan.schema'
 import type { TreatmentEditionInput } from '../schema/treatment-form.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { applied, settingsApplied } from '@/shared/domain/dose-calendar'
 
 /** Lève une `ZodError` pour une saisie refusée : rien n'est alors à écrire. */
 export function editionPlan(
-  treatment: TreatmentWithHistory,
+  treatment: TreatmentWithPeriods,
   input: TreatmentEditionInput,
   today: string,
   ids: PlanIds,
@@ -33,14 +33,7 @@ export function editionPlan(
       ? periodWriteOf(plan, settings, () => ids.periodId)
       : sameSettings(settings, settingsOf(period))
         ? null
-        : {
-            action: 'correct' as const,
-            id: period.id,
-            settings,
-            gridOriginOn: period.gridOriginOn,
-            firstDueChosen: period.firstDueChosen,
-            fallenDosesAnswer: period.fallenDosesAnswer,
-          }
+        : correctionOf(period, settings)
   const changes = [...(move?.changes ?? []), ...(plan?.lines ?? [])]
   const doses = plannedDoseWritesOf(treatment, changes, ids.newId)
   const result: TreatmentPlanWrite = { treatment: identity, period: written, doses }

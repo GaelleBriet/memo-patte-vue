@@ -4,8 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } fr
 import { createMemoryHistory, createRouter, createWebHistory, type Router } from 'vue-router'
 
 import TreatmentFormView from '../views/TreatmentFormView.vue'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type {
   TreatmentCreationInput,
   TreatmentEditionInput,
@@ -129,8 +129,11 @@ function periode(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPerio
   }
 }
 
-function prise(overrides: Partial<NewTreatmentDose> = {}): NewTreatmentDose {
+function prise(overrides: Partial<TreatmentDose> = {}): TreatmentDose {
   return {
+    previousTargetOn: null,
+    previousTargetTime: null,
+    dueRank: null,
     id: 'd-1',
     periodId: ID,
     treatmentId: ID,
@@ -149,8 +152,8 @@ function prise(overrides: Partial<NewTreatmentDose> = {}): NewTreatmentDose {
 
 function milbemax(
   periods: TreatmentPeriodRecord[] = [periode()],
-  doses: NewTreatmentDose[] = [prise()],
-): TreatmentWithHistory {
+  doses: TreatmentDose[] = [prise()],
+): TreatmentWithPeriods {
   return {
     id: ID,
     animalId: MILO.id,
@@ -180,7 +183,7 @@ let loadAnimals: MockInstance
 let create: MockInstance<(input: TreatmentCreationInput) => Promise<Treatment>>
 let update: MockInstance<(id: string, input: TreatmentEditionInput) => Promise<Treatment>>
 let resume: MockInstance<(id: string, input: TreatmentResumptionInput) => Promise<Treatment>>
-let getWithHistory: MockInstance<(id: string) => Promise<TreatmentWithHistory | null>>
+let getWithPeriods: MockInstance<(id: string) => Promise<TreatmentWithPeriods | null>>
 let replace: MockInstance
 let routeur: Router
 const formulairesMontes: VueWrapper[] = []
@@ -202,7 +205,7 @@ beforeEach(async () => {
   create = vi.spyOn(treatments, 'create').mockResolvedValue(ECRIT)
   update = vi.spyOn(treatments, 'update').mockResolvedValue(ECRIT)
   resume = vi.spyOn(treatments, 'resume').mockResolvedValue(ECRIT)
-  getWithHistory = vi.spyOn(treatments, 'getWithHistory').mockResolvedValue(milbemax())
+  getWithPeriods = vi.spyOn(treatments, 'getWithPeriods').mockResolvedValue(milbemax())
   routeur = routeurMemoire()
   await routeur.push('/animals')
   replace = vi.spyOn(routeur, 'replace').mockResolvedValue()
@@ -618,7 +621,7 @@ describe('TreatmentFormView — champ « Rappel » (RA-7, RA-8, RA-23, planches 
 
   it('corrige seulement le rappel d’un traitement qui a des prises (B3)', async () => {
     vi.mocked(getExactRemindersStatus).mockResolvedValue('precise')
-    getWithHistory.mockResolvedValue(milbemax([periode({ times: ['21:00'] })]))
+    getWithPeriods.mockResolvedValue(milbemax([periode({ times: ['21:00'] })]))
     const wrapper = await monterEdition()
 
     await choisirMoment(wrapper, '30 min avant')
@@ -630,7 +633,7 @@ describe('TreatmentFormView — champ « Rappel » (RA-7, RA-8, RA-23, planches 
   describe('rappels précis retirés (V2 ter)', () => {
     beforeEach(() => {
       vi.mocked(getExactRemindersStatus).mockResolvedValue('removed')
-      getWithHistory.mockResolvedValue(
+      getWithPeriods.mockResolvedValue(
         milbemax([periode({ times: ['21:00'], reminderOffsetMinutes: 30 })]),
       )
     })
@@ -706,7 +709,7 @@ describe('TreatmentFormView — champ « Rappel » (RA-7, RA-8, RA-23, planches 
     })
 
     it('n’apparaît pas à l’ouverture d’un traitement qui a déjà une heure', async () => {
-      getWithHistory.mockResolvedValue(milbemax([periode({ times: ['21:00'] })]))
+      getWithPeriods.mockResolvedValue(milbemax([periode({ times: ['21:00'] })]))
       const wrapper = await monterEdition()
 
       expect(wrapper.find('.treatment-reminder__suggest').exists()).toBe(false)
@@ -1383,7 +1386,7 @@ describe('TreatmentFormView — encart des doses passées (TR-3, planches A · V
     montes.push(edition)
     expect(encart(edition).exists()).toBe(false)
 
-    getWithHistory.mockResolvedValue(milbemax([periode({ stoppedOn: '2026-08-01' })]))
+    getWithPeriods.mockResolvedValue(milbemax([periode({ stoppedOn: '2026-08-01' })]))
     const reprise = await monterReprise()
     montes.push(reprise)
     await champ(reprise, 'treatment-first-dose-on').setValue('2026-08-10')
@@ -1410,7 +1413,7 @@ describe('TreatmentFormView — écran d’explication des notifications', () =>
 
   it('n’envoie pas de prénom quand l’animal du traitement est introuvable', async () => {
     vi.mocked(shouldShowPriming).mockResolvedValueOnce(true)
-    getWithHistory.mockResolvedValue({
+    getWithPeriods.mockResolvedValue({
       ...milbemax(),
       animalId: '99999999-9999-4999-8999-999999999999',
     })
@@ -1562,12 +1565,12 @@ describe('TreatmentFormView — pile de navigation', () => {
 
 describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater et quinquies)', () => {
   it('titre « Modifier Milbemax », bouton « Enregistrer », champs préremplis par la période en cours', async () => {
-    getWithHistory.mockResolvedValue(
+    getWithPeriods.mockResolvedValue(
       milbemax([periode({ times: ['20:00', '08:00'], endsOn: '2026-12-31' })]),
     )
     const wrapper = await monterEdition()
 
-    expect(getWithHistory).toHaveBeenCalledWith(ID)
+    expect(getWithPeriods).toHaveBeenCalledWith(ID)
     expect(wrapper.get('.pushed-screen__title').text()).toBe('Modifier Milbemax')
     expect(wrapper.get('.pushed-screen__subtitle').text()).toBe('Pour Milo')
     expect(wrapper.get('.form-screen__submit').text()).toBe('Enregistrer')
@@ -1663,7 +1666,7 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
   })
 
   it('propose aujourd’hui quand la fréquence change après des prises : une nouvelle période s’ouvrira (V1 quater)', async () => {
-    getWithHistory.mockResolvedValue(
+    getWithPeriods.mockResolvedValue(
       milbemax(
         [
           periode({
@@ -1742,7 +1745,7 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
   })
 
   it('refuse une date de fin avant la dernière prise notée (TR-6)', async () => {
-    getWithHistory.mockResolvedValue(
+    getWithPeriods.mockResolvedValue(
       milbemax(
         [periode({ frequency: { value: 1, unit: 'week' } })],
         [prise({ dueOn: '2026-09-26', givenOn: '2026-09-26' })],
@@ -1760,7 +1763,7 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
   })
 
   it('grise « Prochaine dose » et dit pourquoi quand une dose plus lointaine est déjà reportée (Q26)', async () => {
-    getWithHistory.mockResolvedValue(
+    getWithPeriods.mockResolvedValue(
       milbemax(
         [
           periode({
@@ -1788,7 +1791,7 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
   })
 
   it('ne propose pas « Prochaine dose » sans prise notée d’aide calculée', async () => {
-    getWithHistory.mockResolvedValue(
+    getWithPeriods.mockResolvedValue(
       milbemax([periode({ startsOn: '2026-10-10', firstDueOn: '2026-10-10' })], []),
     )
     const wrapper = await monterEdition()
@@ -1798,7 +1801,7 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
   })
 
   it('ne laisse corriger que le nom et le type d’un traitement fini par sa date de fin', async () => {
-    getWithHistory.mockResolvedValue(milbemax([periode({ endsOn: '2026-08-01' })]))
+    getWithPeriods.mockResolvedValue(milbemax([periode({ endsOn: '2026-08-01' })]))
     const wrapper = await monterEdition()
 
     expect(libelles(wrapper)).toEqual(['Nom du produit', 'Type'])
@@ -1813,7 +1816,7 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
   })
 
   it('garde la date d’une dose en retard et le dit ; changée, elle n’accepte qu’une date à partir d’aujourd’hui', async () => {
-    getWithHistory.mockResolvedValue(
+    getWithPeriods.mockResolvedValue(
       milbemax(
         [
           periode({
@@ -1845,7 +1848,7 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
   })
 
   it('refuse une date de fin avant l’arrivée d’un report, et l’accepte quand « Prochaine dose » repasse avant elle', async () => {
-    getWithHistory.mockResolvedValue(
+    getWithPeriods.mockResolvedValue(
       milbemax(
         [periode()],
         [
@@ -1883,7 +1886,7 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
   })
 
   it('nomme « une dose » quand le report en cause n’est pas celui de la prochaine dose', async () => {
-    getWithHistory.mockResolvedValue(
+    getWithPeriods.mockResolvedValue(
       milbemax(
         [
           periode({
@@ -1919,7 +1922,7 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
   })
 
   it('ne laisse corriger que le nom et le type d’un traitement arrêté', async () => {
-    getWithHistory.mockResolvedValue(milbemax([periode({ stoppedOn: '2026-08-01' })]))
+    getWithPeriods.mockResolvedValue(milbemax([periode({ stoppedOn: '2026-08-01' })]))
     const wrapper = await monterEdition()
 
     expect(libelles(wrapper)).toEqual(['Nom du produit', 'Type'])
@@ -1942,7 +1945,7 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
   ])(
     'en %s, ne montre ni « Nouveau traitement » ni champ tant que le traitement charge',
     async (_, monter) => {
-      getWithHistory.mockReturnValueOnce(new Promise<TreatmentWithHistory>(() => {}))
+      getWithPeriods.mockReturnValueOnce(new Promise<TreatmentWithPeriods>(() => {}))
       const wrapper = await monter()
 
       attenduSansFormulaire(wrapper)
@@ -1960,7 +1963,7 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
     ['modification', monterEdition],
     ['reprise', monterReprise],
   ])('en %s, prévient sans formulaire quand le traitement est introuvable', async (_, monter) => {
-    getWithHistory.mockResolvedValueOnce(null)
+    getWithPeriods.mockResolvedValueOnce(null)
     const wrapper = await monter()
 
     attenduSansFormulaire(wrapper)
@@ -1974,7 +1977,7 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
   })
 
   it('prévient sans formulaire quand la fiche n’a pas pu être lue, ou est illisible', async () => {
-    getWithHistory.mockRejectedValueOnce(new Error('base verrouillée'))
+    getWithPeriods.mockRejectedValueOnce(new Error('base verrouillée'))
     const wrapper = await monterEdition()
 
     attenduSansFormulaire(wrapper)
@@ -1982,7 +1985,7 @@ describe('TreatmentFormView — modification (TR-27, TR-28, planches V1 quater e
       'Ce traitement n’a pas pu être chargé. Réessaie.',
     )
 
-    getWithHistory.mockResolvedValueOnce(milbemax([periode({ times: ['8h'] })]))
+    getWithPeriods.mockResolvedValueOnce(milbemax([periode({ times: ['8h'] })]))
     const illisible = await monterEdition()
 
     attenduSansFormulaire(illisible)
@@ -2036,7 +2039,7 @@ describe('TreatmentFormView — échéances tombées d’une période sans prise
   let wrapper: VueWrapper | null = null
 
   async function corrigerLaFrequence() {
-    getWithHistory.mockResolvedValue(SANS_PRISE())
+    getWithPeriods.mockResolvedValue(SANS_PRISE())
     wrapper = await monterEdition()
     await champ(wrapper, 'treatment-frequency-value').setValue('3')
     await soumettre(wrapper)
@@ -2124,7 +2127,7 @@ describe('TreatmentFormView — échéances tombées d’une période sans prise
   })
 
   it('annonce et écrit la « Prochaine dose » choisie à la main quand elle vaut pour le choix', async () => {
-    getWithHistory.mockResolvedValue(SANS_PRISE())
+    getWithPeriods.mockResolvedValue(SANS_PRISE())
     wrapper = await monterEdition()
     await champ(wrapper, 'treatment-frequency-value').setValue('3')
     await champ(wrapper, 'treatment-next-dose-on').setValue('2026-10-05')
@@ -2145,7 +2148,7 @@ describe('TreatmentFormView — échéances tombées d’une période sans prise
   })
 
   it('annonce pour chaque choix la date que ce choix écrit', async () => {
-    getWithHistory.mockResolvedValue(
+    getWithPeriods.mockResolvedValue(
       milbemax(
         [
           periode({
@@ -2229,7 +2232,7 @@ describe('TreatmentFormView — échéances tombées d’une période sans prise
   })
 
   it('pose la question pour des heures seules changées', async () => {
-    getWithHistory.mockResolvedValue(SANS_PRISE())
+    getWithPeriods.mockResolvedValue(SANS_PRISE())
     wrapper = await monterEdition()
     await ajouterHeure(wrapper, '09:00')
 
@@ -2240,7 +2243,7 @@ describe('TreatmentFormView — échéances tombées d’une période sans prise
   })
 
   it('ne pose aucune question pour la posologie, le nom ou la date de fin', async () => {
-    getWithHistory.mockResolvedValue(SANS_PRISE())
+    getWithPeriods.mockResolvedValue(SANS_PRISE())
     wrapper = await monterEdition()
     await champ(wrapper, 'treatment-name').setValue('Autre')
     await champ(wrapper, 'treatment-dose-quantity').setValue('2')
@@ -2272,7 +2275,7 @@ describe('TreatmentFormView — échéances tombées d’une période sans prise
     expect(create).toHaveBeenCalledOnce()
     wrapper.unmount()
 
-    getWithHistory.mockResolvedValue(milbemax([periode({ stoppedOn: '2026-08-01' })]))
+    getWithPeriods.mockResolvedValue(milbemax([periode({ stoppedOn: '2026-08-01' })]))
     wrapper = await monterReprise()
     await champ(wrapper, 'treatment-frequency-value').setValue('1')
     await champ(wrapper, 'treatment-first-dose-on').setValue('2026-09-29')
@@ -2369,13 +2372,13 @@ describe('TreatmentFormView — reprise (TR-32, planche V7)', () => {
     givenOn: '2026-10-10',
   })
 
-  function panacur(periods = [PANACUR]): TreatmentWithHistory {
+  function panacur(periods = [PANACUR]): TreatmentWithPeriods {
     return { ...milbemax(periods, [DERNIERE]), name: 'Panacur' }
   }
 
   beforeEach(() => {
     vi.setSystemTime(new Date('2026-11-02T09:41:00'))
-    getWithHistory.mockResolvedValue(panacur())
+    getWithPeriods.mockResolvedValue(panacur())
   })
 
   it('titre « Reprendre Panacur », bouton « Reprendre », sans nom ni type', async () => {
@@ -2395,7 +2398,7 @@ describe('TreatmentFormView — reprise (TR-32, planche V7)', () => {
   })
 
   it('reprend le rappel de la dernière période et l’écrit avec la reprise', async () => {
-    getWithHistory.mockResolvedValue(panacur([{ ...PANACUR, reminderOffsetMinutes: 60 }]))
+    getWithPeriods.mockResolvedValue(panacur([{ ...PANACUR, reminderOffsetMinutes: 60 }]))
     const wrapper = await monterReprise()
 
     expect(wrapper.get('.treatment-reminder__choice[aria-checked="true"]').text()).toBe('1 h avant')
@@ -2510,7 +2513,7 @@ describe('TreatmentFormView — reprise (TR-32, planche V7)', () => {
   })
 
   it('date la dernière période de son arrêt, sans durée à reprendre, pour un traitement arrêté', async () => {
-    getWithHistory.mockResolvedValue(
+    getWithPeriods.mockResolvedValue(
       panacur([{ ...PANACUR, endsOn: null, stoppedOn: '2026-10-12' }]),
     )
     const wrapper = await monterReprise()
@@ -2523,7 +2526,7 @@ describe('TreatmentFormView — reprise (TR-32, planche V7)', () => {
 
   describe('traitement en cours, rien à reprendre (#673)', () => {
     beforeEach(async () => {
-      getWithHistory.mockResolvedValue(panacur([{ ...PANACUR, endsOn: null }]))
+      getWithPeriods.mockResolvedValue(panacur([{ ...PANACUR, endsOn: null }]))
       routeur = createRouter({
         history: createMemoryHistory(),
         routes: [
@@ -2610,7 +2613,7 @@ describe('TreatmentFormView — animal qu’on ne suit plus (AN-9)', () => {
   })
 
   it('n’ouvre pas la reprise d’un de ses traitements', async () => {
-    getWithHistory.mockResolvedValue(milbemax([periode({ stoppedOn: '2026-09-01' })]))
+    getWithPeriods.mockResolvedValue(milbemax([periode({ stoppedOn: '2026-09-01' })]))
     await monterReprise()
 
     expect(replace).toHaveBeenCalledWith({ name: 'carnet' })
@@ -2768,7 +2771,7 @@ describe('TreatmentFormView — routes', () => {
 
 describe('TreatmentFormView — changement de jour', () => {
   it('repropose « Prochaine dose » d’après le nouveau jour après un retour au premier plan', async () => {
-    getWithHistory.mockResolvedValue(
+    getWithPeriods.mockResolvedValue(
       milbemax(
         [periode({ frequency: { value: 1, unit: 'day' } })],
         [prise({ dueOn: '2026-09-27', givenOn: '2026-09-27' })],

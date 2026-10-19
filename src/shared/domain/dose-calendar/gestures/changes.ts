@@ -1,5 +1,6 @@
 import { keyOf } from '../grid'
 import { familyOf } from '../lines'
+import { withReportFacts } from '../report-facts'
 import type {
   Day,
   Line,
@@ -76,7 +77,8 @@ export function applied(
       return
     }
     const id = change.action === 'rewrite' ? change.id : `écrite-${index}`
-    const line: Line = { ...change.line, id, updatedAt: WRITTEN_AT }
+    const facts = withReportFacts(lines, input.settings, change)
+    const line: Line = { ...facts.line, id, updatedAt: WRITTEN_AT }
     lines =
       change.action === 'rewrite'
         ? lines.map((each) => (each.id === id ? withDevice(line, each.createdByDevice) : each))

@@ -15,8 +15,8 @@ import {
 import { fakeTreatmentsRepository } from './fake-treatments-repository'
 import { dose, missed, period, postponed, shifted, treatment } from './treatment-fixtures'
 import { DoseAlreadyLoggedError } from '../logic/treatment-dose-change'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentDosesService } from '../service/treatment-doses.service'
 import type { TreatmentStopService } from '../service/treatment-stop.service'
 import {
@@ -45,6 +45,7 @@ import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import DateCalendar from '@/shared/components/DateCalendar.vue'
 import HistoryRow from '@/shared/components/HistoryRow.vue'
 import OverflowMenu from '@/shared/components/OverflowMenu.vue'
+import { menuLabels } from '@/shared/__tests__/menu-labels'
 import {
   dismissToast,
   runToastAction,
@@ -81,7 +82,7 @@ const LUNA: Animal = {
 }
 
 const MATIN_ET_SOIR = period({ times: ['08:00', '20:00'], doseQuantity: 0.3, doseUnit: 'ml' })
-const HIER: NewTreatmentDose[] = [
+const HIER: TreatmentDose[] = [
   dose('2026-09-27', '2026-09-27', { dueTime: '08:00' }),
   dose('2026-09-27', '2026-09-28', { dueTime: '20:00' }),
 ]
@@ -114,11 +115,11 @@ const APPLIED = {
   shiftKept: false,
 }
 
-let book: TreatmentWithHistory | null
+let book: TreatmentWithPeriods | null
 let remove: MockInstance
 let restore: MockInstance
 let reschedule: Mock<(id: string) => Promise<void>>
-let read: Mock<(id: string) => Promise<TreatmentWithHistory | null>>
+let read: Mock<(id: string) => Promise<TreatmentWithPeriods | null>>
 let push: MockInstance
 let service: {
   [K in 'apply' | 'noteMoment' | 'undoBatch']: Mock<TreatmentDosesService[K]>
@@ -142,11 +143,11 @@ beforeEach(async () => {
   animals.animals = [LUNA]
   animals.hasLoaded = true
   book = METACAM
-  read = vi.fn<(id: string) => Promise<TreatmentWithHistory | null>>(async (id) =>
+  read = vi.fn<(id: string) => Promise<TreatmentWithPeriods | null>>(async (id) =>
     book !== null && id === book.id ? book : null,
   )
   const repository = fakeTreatmentsRepository({
-    getWithHistory: read,
+    getWithPeriods: read,
     remove: async () => REMOVED_AT,
     restore: async () => {},
   })
@@ -192,7 +193,7 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-async function monter(shown: TreatmentWithHistory | null = METACAM) {
+async function monter(shown: TreatmentWithPeriods | null = METACAM) {
   book = shown
   wrapper = mount(TreatmentDetailView, {
     props: { id: METACAM.id },
@@ -473,7 +474,7 @@ describe('TreatmentDetailView — carte de la dose du moment', () => {
 })
 
 describe('TreatmentDetailView — « Fait à une autre date »', () => {
-  async function ouvrir(shown: TreatmentWithHistory = METACAM) {
+  async function ouvrir(shown: TreatmentWithPeriods = METACAM) {
     const view = await monter(shown)
     await view.get('.treatment-dose-card__other-date').trigger('click')
     await flushPromises()
@@ -723,11 +724,10 @@ describe('TreatmentDetailView — historique', () => {
     expect(String(oubliee.props('optionsLabel')).replace(NBSP, ' ')).toBe(
       'Options pour la prise du 25 septembre 2026 à 20 h',
     )
-    expect(
-      ligne(view, 'Oubliée · 25 sept. 2026, 20 h')
-        .props('items')
-        .map(({ label }: { label: string }) => label),
-    ).toEqual(['Marquer comme donnée', 'Supprimer cette prise'])
+    expect(menuLabels(ligne(view, 'Oubliée · 25 sept. 2026, 20 h').props('items'))).toEqual([
+      'Marquer comme donnée',
+      'Supprimer cette prise',
+    ])
   })
 
   it('replie chaque période après ses premières lignes, et la déplie', async () => {
@@ -750,6 +750,24 @@ describe('TreatmentDetailView — historique', () => {
     )
   })
 
+  it('replie les prises après les trois premières lignes, et les déplie', async () => {
+    const view = await monter(
+      treatment(
+        [period({ startsOn: '2026-09-20', firstDueOn: '2026-09-20' })],
+        ['20', '21', '22', '23', '24'].map((day) => dose(`2026-09-${day}`, `2026-09-${day}`)),
+      ),
+    )
+
+    expect(lignes(view)).toEqual(['24 sept. 2026', '23 sept. 2026', '22 sept. 2026'])
+    const voir = view.get('.treatment-history__toggle')
+    expect(texte(voir)).toBe('Voir les 2 prises précédentes')
+
+    await voir.trigger('click')
+
+    expect(lignes(view)).toHaveLength(5)
+    expect(texte(view.get('.treatment-history__toggle'))).toBe('Masquer les prises précédentes')
+  })
+
   it('dit qu’une période n’a encore aucune prise', async () => {
     const view = await monter(
       treatment([period({ startsOn: '2026-09-29', firstDueOn: '2026-09-29' })]),
@@ -766,11 +784,11 @@ describe('TreatmentDetailView — menu ⋮ d’une prise', () => {
   it('propose de changer la date, de la marquer oubliée et de la supprimer', async () => {
     const view = await monter()
 
-    expect(
-      ligne(view, '27 sept. 2026 · 20 h')
-        .props('items')
-        .map(({ label }: { label: string }) => label),
-    ).toEqual(['Changer la date', 'Marquer comme oubliée', 'Supprimer cette prise'])
+    expect(menuLabels(ligne(view, '27 sept. 2026 · 20 h').props('items'))).toEqual([
+      'Changer la date',
+      'Marquer comme oubliée',
+      'Supprimer cette prise',
+    ])
   })
 
   it('supprime une prise sans dialogue, même la seule, toast avec « Annuler »', async () => {
@@ -855,11 +873,10 @@ describe('TreatmentDetailView — ligne « Reportée » (planche A · V1 quinqui
 
     expect(lignes(view)).toEqual([REPORT, '10 juil. 2026', '10 avr. 2026'])
     expect(ligne(view, REPORT).props()).toMatchObject({ muted: true, icon: 'ms:event_repeat' })
-    expect(
-      ligne(view, REPORT)
-        .props('items')
-        .map(({ label }: { label: string }) => label),
-    ).toEqual(['Changer la date', 'Supprimer ce report'])
+    expect(menuLabels(ligne(view, REPORT).props('items'))).toEqual([
+      'Changer la date',
+      'Supprimer ce report',
+    ])
   })
 
   it('supprime le report, toast avec « Annuler »', async () => {
@@ -958,11 +975,7 @@ describe('TreatmentDetailView — « Décaler aussi les doses suivantes » (V29,
       '18 sept. 2026',
     ])
     expect(ligne(view, DECALAGE).props()).toMatchObject({ muted: true, icon: 'ms:event_upcoming' })
-    expect(
-      ligne(view, DECALAGE)
-        .props('items')
-        .map(({ label }: { label: string }) => label),
-    ).toEqual(['Supprimer ce décalage'])
+    expect(menuLabels(ligne(view, DECALAGE).props('items'))).toEqual(['Supprimer ce décalage'])
 
     await choisir(view, DECALAGE, 'remove-shift')
 
@@ -1064,7 +1077,7 @@ describe('TreatmentDetailView — « C’est fait » ne décale rien sans l’av
   const EN_RETARD = treatment([VENDREDI], [dose('2026-09-18', '2026-09-25')])
   const DUE_25 = { settingId: 'p-1', dueOn: '2026-09-25', dueTime: null }
 
-  async function cestFait(book: TreatmentWithHistory) {
+  async function cestFait(book: TreatmentWithPeriods) {
     const view = await monter(book)
     await view.get('.treatment-dose-card__done').trigger('click')
     await flushPromises()

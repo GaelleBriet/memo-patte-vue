@@ -20,6 +20,7 @@ import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import HistoryRow from '@/shared/components/HistoryRow.vue'
+import { menuLabels } from '@/shared/__tests__/menu-labels'
 import { dismissToast } from '@/shared/utils/toast'
 
 vi.mock('@/core/notifications/permission', () => ({
@@ -119,6 +120,9 @@ describe('formulaire et fiche d’un traitement, sur la même base', () => {
           treatmentId: id,
           animalId: MILO,
           dose: {
+            previousTargetOn: null,
+            previousTargetTime: null,
+            dueRank: null,
             periodId: id,
             dueOn: '2026-07-10',
             dueTime: null,
@@ -220,10 +224,7 @@ describe('formulaire et fiche d’un traitement, sur la même base', () => {
       .findAllComponents(HistoryRow)
       .find((row) => String(row.props('date')).replaceAll('\u00a0', ' ') === REPORT)!
 
-    expect(report.props('items').map(({ label }: { label: string }) => label)).toEqual([
-      'Changer la date',
-      'Supprimer ce report',
-    ])
+    expect(menuLabels(report.props('items'))).toEqual(['Changer la date', 'Supprimer ce report'])
 
     report.vm.$emit('select', 'remove-move')
     await flushPromises()

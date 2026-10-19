@@ -98,6 +98,9 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
       given_on: '2026-01-01',
       status: 'given',
       target_on: '2026-02-01',
+      previous_target_on: null,
+      previous_target_time: null,
+      due_rank: null,
       created_at: T_LOCAL,
       updated_at: T_LOCAL,
       deleted_at: T_NEW,
@@ -113,8 +116,8 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
   it('crée localement une prise distante inconnue, lue dans l’historique de son traitement', async () => {
     await db.runMany([repository.applyRemoteRowStatement(remoteDose())])
 
-    const history = await createTreatmentsRepository(db).getWithHistory(TREATMENT_ID)
-    expect(history?.doses).toContainEqual(
+    const treatment = await createTreatmentsRepository(db).getWithPeriods(TREATMENT_ID)
+    expect(treatment?.doses).toContainEqual(
       expect.objectContaining({ id: LATER_ID, givenOn: '2026-02-01', targetOn: '2026-03-01' }),
     )
   })
@@ -154,15 +157,44 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
       givenOn: null,
       status: 'missed',
       targetOn: '2026-01-15',
-      frequency: { value: 1, unit: 'month' },
       updatedAt: T_NEW,
+    })
+  })
+
+  it('reçoit l’arrivée d’avant et le rang d’un report ; une ligne distante qui ne les porte pas les laisse vides', async () => {
+    await db.runMany([
+      repository.applyRemoteRowStatement(
+        remoteDose({
+          id: TREATMENT_ID,
+          due_time: '20:00',
+          given_on: null,
+          status: 'postponed',
+          target_on: '2026-02-08',
+          previous_target_on: '2026-02-05',
+          previous_target_time: '20:00',
+          due_rank: 2,
+        }),
+      ),
+      repository.applyRemoteRowStatement(remoteDose({ status: 'postponed', given_on: null })),
+    ])
+
+    await expect(repository.getById(TREATMENT_ID)).resolves.toMatchObject({
+      targetOn: '2026-02-08',
+      previousTargetOn: '2026-02-05',
+      previousTargetTime: '20:00',
+      dueRank: 2,
+    })
+    await expect(repository.getById(LATER_ID)).resolves.toMatchObject({
+      previousTargetOn: null,
+      previousTargetTime: null,
+      dueRank: null,
     })
   })
 
   describe('ligne reçue pour une échéance qui en a déjà une (plan §3.2, R11)', () => {
     async function effects(today: string) {
-      const history = await createTreatmentsRepository(db).getWithHistory(TREATMENT_ID)
-      const reading = readTreatment(history!, today)
+      const treatment = await createTreatmentsRepository(db).getWithPeriods(TREATMENT_ID)
+      const reading = readTreatment(treatment!, today)
       return Object.fromEntries(
         reading!.view.history.map(({ line, effect }) => [
           line.id,
@@ -227,6 +259,9 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
           given_on: '2026-01-01',
           status: 'given',
           target_on: '2026-02-01',
+          previous_target_on: null,
+          previous_target_time: null,
+          due_rank: null,
           created_at: PG_LOCAL,
           updated_at: PG_LOCAL,
           deleted_at: null,

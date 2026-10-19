@@ -34,7 +34,7 @@ import { createDeviceRepository } from '@/core/device/device.repository'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { createTreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
 import { createTreatmentPeriodsRepository } from '@/features/treatments/repository/treatment-periods.repository'
-import type { NewTreatmentDose } from '@/features/treatments/schema/treatment-dose.schema'
+import type { TreatmentDose } from '@/features/treatments/schema/treatment-dose.schema'
 import { createTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
 import { createVaccinationInjectionsRepository } from '@/features/vaccinations/repository/vaccination-injections.repository'
 import { createVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
@@ -77,13 +77,16 @@ function createRepositories(client: InMemoryDb) {
 
 /** Prise donnée à son échéance, dans la première période de son traitement. */
 function prise(
-  dose: Pick<NewTreatmentDose, 'id' | 'treatmentId' | 'animalId'> & {
+  dose: Pick<TreatmentDose, 'id' | 'treatmentId' | 'animalId'> & {
     givenOn: string
     at: string
   },
-): NewTreatmentDose {
+): TreatmentDose {
   const { at, ...fields } = dose
   return {
+    previousTargetOn: null,
+    previousTargetTime: null,
+    dueRank: null,
     ...fields,
     periodId: dose.treatmentId,
     dueOn: dose.givenOn,
@@ -229,12 +232,12 @@ describe('data-import.service', () => {
       ),
     }
 
-    await service.importData({ schemaVersion: 8, data }, 'replace')
+    await service.importData({ schemaVersion: 9, data }, 'replace')
 
     await expect(repositories.treatments.getById(milbemax!.id)).resolves.toMatchObject({
       type: 'medication',
     })
-    await expect(repositories.treatments.getWithHistory(milbemax!.id)).resolves.toMatchObject({
+    await expect(repositories.treatments.getWithPeriods(milbemax!.id)).resolves.toMatchObject({
       periods: [{ firstDueOn: '2026-10-05' }],
       doses: [],
     })
@@ -308,7 +311,7 @@ describe('data-import.service', () => {
       frequency: { value: 1, unit: 'day' },
       stoppedOn: null,
     })
-    const panacur = await repositories.treatments.getWithHistory(PANACUR_ID)
+    const panacur = await repositories.treatments.getWithPeriods(PANACUR_ID)
     expect(treatmentReadingOf(panacur!, '2026-09-02').view.nextDue).toMatchObject({
       dueOn: '2026-09-03',
     })
@@ -1484,6 +1487,9 @@ describe('data-import.service', () => {
             action: 'rewrite',
             id: milbemax.id,
             dose: {
+              previousTargetOn: null,
+              previousTargetTime: null,
+              dueRank: null,
               periodId: milbemax.periodId,
               dueOn: '2026-06-20',
               dueTime: null,
@@ -1571,7 +1577,7 @@ describe('data-import.service', () => {
       }
       const doses = async (phone: InMemoryDb) =>
         (await createRepositories(phone).treatments.listDoses(milbemax.id)).map(
-          ({ id, givenOn, targetOn, frequency }) => ({ id, givenOn, targetOn, frequency }),
+          ({ id, givenOn, targetOn }) => ({ id, givenOn, targetOn }),
         )
       await expect(doses(phoneB)).resolves.toEqual(await doses(phoneA))
       phoneB.close()

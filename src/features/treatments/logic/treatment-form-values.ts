@@ -1,5 +1,5 @@
 import { parseDoseQuantity } from './treatment-dosage-input'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { treatmentRhythmSchema, type TreatmentRhythm } from '../schema/treatment-form.schema'
 import type {
   ReminderOffsetMinutes,
@@ -50,7 +50,7 @@ export function emptyTreatmentFormValues(): TreatmentFormValues {
 
 /** Les réglages d'une période, tels que le formulaire les montre ; ses dates restent à choisir. */
 export function treatmentFormValuesFrom(
-  treatment: Pick<TreatmentWithHistory, 'name' | 'type'>,
+  treatment: Pick<TreatmentWithPeriods, 'name' | 'type'>,
   period: TreatmentPeriodRecord,
 ): TreatmentFormValues {
   return {

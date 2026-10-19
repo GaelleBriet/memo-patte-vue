@@ -1,7 +1,6 @@
 import type { SqlParam } from '@/core/db/db-client'
 import type { Stamped } from '@/shared/domain/carnet-data'
-import type { DoseFields, NewTreatmentDose, TreatmentDose } from '../schema/treatment-dose.schema'
-import type { FrequencyUnit } from '../schema/treatment.schema'
+import type { DoseFields, TreatmentDose } from '../schema/treatment-dose.schema'
 
 export interface DoseRow {
   id: string
@@ -13,16 +12,14 @@ export interface DoseRow {
   given_on: string | null
   status: TreatmentDose['status']
   target_on: string | null
+  previous_target_on: string | null
+  previous_target_time: string | null
+  due_rank: number | null
   created_at: string
   updated_at: string
   deleted_at: string | null
   created_by_device: string
   updated_by_device: string
-}
-
-export interface DoseWithFrequencyRow extends DoseRow {
-  frequency_value: number
-  frequency_unit: FrequencyUnit
 }
 
 export type DoseVersionRow = Pick<
@@ -32,6 +29,7 @@ export type DoseVersionRow = Pick<
 
 export const COLUMNS =
   'id, period_id, treatment_id, animal_id, due_on, due_time, given_on, status, target_on, ' +
+  'previous_target_on, previous_target_time, due_rank, ' +
   'created_at, updated_at, deleted_at, created_by_device, updated_by_device'
 
 const COLUMN_NAMES = COLUMNS.split(', ')
@@ -39,16 +37,11 @@ export const PLACEHOLDERS = COLUMN_NAMES.map(() => '?').join(', ')
 
 export const NOT_DELETED = 'deleted_at IS NULL'
 
-/** Une prise lue porte la fréquence de sa période : elle n'est jamais recopiée. */
-export const WITH_FREQUENCY = `
-  SELECT ${COLUMN_NAMES.map((column) => `dose.${column}`).join(', ')},
-         period.frequency_value, period.frequency_unit
-  FROM treatment_dose dose
-  JOIN treatment_period period ON period.id = dose.period_id`
+export const FROM_DOSES = `SELECT ${COLUMNS} FROM treatment_dose dose`
 
 export const HEAD_FIRST = 'dose.due_on DESC, dose.due_time DESC, dose.created_at DESC, dose.id DESC'
 
-export function toDose(row: DoseWithFrequencyRow): TreatmentDose {
+export function toDose(row: DoseRow): TreatmentDose {
   return {
     id: row.id,
     periodId: row.period_id,
@@ -59,14 +52,16 @@ export function toDose(row: DoseWithFrequencyRow): TreatmentDose {
     givenOn: row.given_on,
     status: row.status,
     targetOn: row.target_on,
-    frequency: { value: row.frequency_value, unit: row.frequency_unit },
+    previousTargetOn: row.previous_target_on,
+    previousTargetTime: row.previous_target_time,
+    dueRank: row.due_rank,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     deletedAt: row.deleted_at,
   }
 }
 
-export function toRecord(row: DoseWithFrequencyRow): Stamped<TreatmentDose> {
+export function toRecord(row: DoseRow): Stamped<TreatmentDose> {
   return {
     ...toDose(row),
     createdByDevice: row.created_by_device,
@@ -74,7 +69,7 @@ export function toRecord(row: DoseWithFrequencyRow): Stamped<TreatmentDose> {
   }
 }
 
-export function valuesOf(dose: Stamped<NewTreatmentDose>): SqlParam[] {
+export function valuesOf(dose: Stamped<TreatmentDose>): SqlParam[] {
   return [
     dose.id,
     dose.periodId,
@@ -85,6 +80,9 @@ export function valuesOf(dose: Stamped<NewTreatmentDose>): SqlParam[] {
     dose.givenOn,
     dose.status,
     dose.targetOn,
+    dose.previousTargetOn,
+    dose.previousTargetTime,
+    dose.dueRank,
     dose.createdAt,
     dose.updatedAt,
     dose.deletedAt,
@@ -101,6 +99,9 @@ export function fieldsOf(row: DoseRow): DoseFields {
     givenOn: row.given_on,
     status: row.status,
     targetOn: row.target_on,
+    previousTargetOn: row.previous_target_on,
+    previousTargetTime: row.previous_target_time,
+    dueRank: row.due_rank,
   }
 }
 
