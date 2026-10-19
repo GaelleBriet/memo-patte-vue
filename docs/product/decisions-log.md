@@ -3047,19 +3047,23 @@ d'analyse du moteur, à qui Gaelle a délégué les lectures de règles ; migrat
 le 16 octobre ; schéma v16, export v9).
 
 - Règle : un report l'emporte sur le réglage **pour sa dose seulement**. Il s'applique si sa dose de
-  départ, ou son ancienne arrivée (jour et heure), existe dans le réglage en vigueur ; il ne retire
-  jamais une autre échéance du réglage. Milo, chaque semaine à 20 h depuis le 4 mars, un nouveau
+  départ, ou son ancienne arrivée, reconnue au **jour**, existe dans le réglage en vigueur ; il ne
+  retire jamais une autre échéance du réglage. Milo, chaque semaine à 20 h depuis le 4 mars, un nouveau
   réglage le 6 ; la dose du 11 reportée au 12 ; le 10, le téléphone A la déplace au 15, le téléphone
   B, sans le voir, choisit « Prochaine dose » le 12 : l'ancienne arrivée du report (le 12 à 20 h) est
   la date choisie par B, la journée du 12 part au 15 : 15, 19, 26 (« 12, 15, 19, 26 » doublait la
   dose). Codée avec la PR #958.
 - Q1 (b) : l'ancienne arrivée (jour et heure) se garde sur la ligne du report, par une migration ;
   G13 et G17 (une journée n'a qu'une ligne de déplacement, la redéplacer la réécrit) restent intacts.
-  L'heure gardée est celle de la dose, l'heure écrite sur la ligne du report (#867, point 2), même
-  quand l'arrivée était une date choisie à d'autres heures (#796) : Milo, chaque lundi à 8 h et
-  20 h, la dose de 20 h du 9 mars reportée au 11, « Prochaine dose » le 11 à 9 h et 21 h, puis la
-  dose redéplacée du 11 au 13 : l'ancienne arrivée gardée est le 11 à 20 h. — Écartées : garder la
-  lecture de `main` ; une heuristique dans le moteur (contraire à #882, Luna).
+  L'heure gardée est l'heure écrite sur la ligne du report (#867, point 2). La correspondance se fait
+  au **jour** : une date choisie est une journée (décision du 16 octobre : elle reçoit la journée
+  entière) et l'ancienne arrivée aussi ; ce qui part est ce que le report emporte, par rang. Milo,
+  chaque lundi à 8 h et 20 h ; la dose de 20 h du 9 mars reportée au 11 (rang 2 de 8 h et 20 h) ; B
+  choisit « Prochaine dose » le 11 à 9 h et 21 h ; A redéplace la dose du 11 au 13 : sur le 11 de B,
+  le rang 2 part au 13 et s'affiche à 20 h, l'heure écrite du report ; le 11 garde son rang 1 (9 h) ;
+  avec la case, les rangs suivants partent aussi. Sur un seul téléphone, un redéplacement fait après
+  la réécriture donne le même résultat. Pas d'identité inventée entre jours différents. — Écartées :
+  garder la lecture de `main` ; une heuristique dans le moteur (contraire à #882, Luna).
 - Q4 (b) : la ligne du report garde le rang (entier, à partir de 1) de l'heure déplacée dans sa
   journée d'origine ; lignes existantes : rang lu dans les heures du réglage de la ligne au moment de
   la migration, à défaut vide. La journée de départ perd la dose libre de même rang que l'heure
@@ -3067,8 +3071,9 @@ le 16 octobre ; schéma v16, export v9).
   le report de 8 h du 5 mars au 6 (rang 1), B passe à 7 h 59, 13 h 59 et 19 h 59 : le 5 perd 7 h 59,
   garde 13 h 59 et 19 h 59, le 6 reçoit 8 h. Codée avec la PR #958. Le rang d'un report écrit par
   « Modifier » se lit dans les heures du réglage d'avant le plan : celles que le report avait vues.
-- Correction de la décision 8a du 18 octobre (Luna, A plus récent, « 12, 16, 23 ») : la date choisie
-  par B ne s'efface jamais sans ligne qui la vise. Les six autres graines de #939 et Luna (#882,
+- Correction d'une lecture transmise avec la décision 8a du 18 octobre, qui donnait pour Luna, A plus
+  récent, « 12, 16, 23 » : corrigée le 19 octobre en « 9, 12, 16 », la date choisie par B ne
+  s'efface jamais sans ligne qui la vise. Les six autres graines de #939 et Luna (#882,
   A plus récent) : aucune dose de B n'est reconnaissable comme celle que A a déplacée, les deux
   restent (9, 12, 16), rien de grisé, chacune supprimable.
 
