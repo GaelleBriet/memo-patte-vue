@@ -680,5 +680,74 @@ select ok(
     and has_column_privilege('authenticated', 'public.treatment_dose', 'due_rank', 'UPDATE'),
   'v16 : l''arrivée d''avant et le rang se synchronisent');
 
+-- Envois de la synchro.
+select pg_temp.as_owner();
+select ok(
+  (select relrowsecurity from pg_class where oid = 'public.sync_push'::regclass),
+  'sync_push : RLS activée');
+select ok(
+  not has_table_privilege('anon', 'public.sync_push', 'SELECT, INSERT, UPDATE, DELETE, TRUNCATE')
+  and not has_table_privilege('authenticated', 'public.sync_push', 'UPDATE, TRUNCATE')
+  and not has_column_privilege('authenticated', 'public.sync_push', 'received_at', 'INSERT'),
+  'sync_push : anon n''a aucun droit, authenticated ne pose ni ne change l''heure de réception');
+select ok(
+  (select not prosecdef and proconfig = array['search_path=""']
+     and not has_function_privilege('authenticated', oid, 'EXECUTE')
+   from pg_proc where oid = 'public.forget_old_sync_pushes()'::regprocedure),
+  'forget_old_sync_pushes : security invoker, search_path fixé, pas appelable en RPC');
+insert into public.sync_push (user_id, id, sent_at, received_at) values
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '00000000-0000-4000-8000-0000000000e1',
+    now() - interval '2 days', now() - interval '2 days'),
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '00000000-0000-4000-8000-0000000000e2',
+    now() - interval '1 hour', now() - interval '1 hour'),
+  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '00000000-0000-4000-8000-0000000000e3',
+    now() - interval '2 days', now() - interval '2 days');
+select is((select count(*) from public.sync_push), 1::bigint,
+  'un envoi ouvert plus d''un jour après son heure de réception est effacé aussitôt');
+alter table public.sync_push disable trigger sync_push_forget_old;
+insert into public.sync_push (user_id, id, sent_at, received_at) values
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '00000000-0000-4000-8000-0000000000e1',
+    now() - interval '2 days', now() - interval '2 days'),
+  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '00000000-0000-4000-8000-0000000000e3',
+    now() - interval '2 days', now() - interval '2 days');
+alter table public.sync_push enable trigger sync_push_forget_old;
+
+select pg_temp.as_user('b');
+select lives_ok($$
+  insert into public.sync_push (user_id, id, sent_at) values
+    ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '00000000-0000-4000-8000-0000000000e4',
+      now() + interval '3 days')
+$$, 'un compte Plus ouvre un envoi daté par son téléphone');
+select is(
+  (select received_at from public.sync_push where id = '00000000-0000-4000-8000-0000000000e4'),
+  now(), 'le serveur date la réception de l''envoi');
+select results_eq(
+  $$ select id from public.sync_push order by id $$,
+  $$ values ('00000000-0000-4000-8000-0000000000e2'::uuid), ('00000000-0000-4000-8000-0000000000e4'::uuid) $$,
+  'il ne voit que ses envois, et ceux de la veille sont effacés à l''ouverture du suivant');
+select throws_ok($$
+  insert into public.sync_push (user_id, id, sent_at, received_at) values
+    ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '00000000-0000-4000-8000-0000000000e5', now(), now())
+$$, '42501', null, 'l''heure de réception ne vient pas du téléphone');
+select throws_ok($$
+  insert into public.sync_push (user_id, id, sent_at) values
+    ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '00000000-0000-4000-8000-0000000000e6', now())
+$$, '42501', null, 'il n''ouvre pas d''envoi au nom d''un autre compte');
+
+select pg_temp.as_user('d');
+select throws_ok($$
+  insert into public.sync_push (user_id, id, sent_at) values
+    ('dddddddd-dddd-4ddd-8ddd-dddddddddddd', '00000000-0000-4000-8000-0000000000e7', now())
+$$, '42501', null, 'un compte qui a perdu Plus n''ouvre pas d''envoi');
+
+select pg_temp.as_owner();
+select is(
+  (select count(*) from public.sync_push where user_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'),
+  1::bigint, 'les envois d''un autre compte ne sont pas effacés');
+delete from auth.users where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+select is(
+  (select count(*) from public.sync_push where user_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'),
+  0::bigint, 'les envois d''un compte supprimé partent avec lui');
+
 select * from finish();
 rollback;
