@@ -1,6 +1,6 @@
 import { choiceSummary, type DayChoice } from './treatment-choose-days'
 import { hasSeveralTimes } from './treatment-gestures'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { PastDose } from '../schema/treatment-form.schema'
 import type { Due, TreatmentView } from '@/shared/domain/dose-calendar'
 import {
@@ -116,7 +116,7 @@ export function promptChoice(
  */
 export function unloggedBanner(
   t: Translate,
-  treatment: Pick<TreatmentWithHistory, 'name' | 'periods'>,
+  treatment: Pick<TreatmentWithPeriods, 'name' | 'periods'>,
   view: Pick<TreatmentView, 'unloggedDoses'>,
   today: string,
   { followed = true }: { followed?: boolean } = {},

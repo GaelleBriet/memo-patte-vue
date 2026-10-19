@@ -3,15 +3,18 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { dose, missed, period, plain, postponed, shifted, treatment } from './treatment-fixtures'
 import { detailActions, doseCard, lessPreciseReminder } from '../logic/treatment-card'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const t = i18n.global.t
 const MATIN_ET_SOIR = period({ times: ['08:00', '20:00'], doseQuantity: 0.3, doseUnit: 'ml' })
 
-function card(history: TreatmentWithHistory, today: string) {
+function card(withPeriods: TreatmentWithPeriods, today: string) {
   return plain(
-    doseCard(t, history, treatmentReadingOf(history, today).view, { animal: 'Luna', today }),
+    doseCard(t, withPeriods, treatmentReadingOf(withPeriods, today).view, {
+      animal: 'Luna',
+      today,
+    }),
   )
 }
 
@@ -19,12 +22,12 @@ afterEach(() => applyLocale('fr'))
 
 describe('doseCard', () => {
   it('donne le rythme et la posologie de la période en cours', () => {
-    const history = treatment([
+    const withPeriods = treatment([
       period({ stoppedOn: '2026-09-21' }),
       { ...MATIN_ET_SOIR, id: 'p-2', startsOn: '2026-09-21', firstDueOn: '2026-09-21' },
     ])
 
-    expect(card(history, '2026-09-28')).toMatchObject({
+    expect(card(withPeriods, '2026-09-28')).toMatchObject({
       rhythm: 'Tous les jours · 8 h et 20 h',
       dosage: '0,3 ml',
     })
@@ -41,15 +44,15 @@ describe('doseCard', () => {
     ['en', 2, '2 tablets'],
   ] as const)('accorde la posologie en %s : %f donne « %s »', (locale, doseQuantity, dosage) => {
     applyLocale(locale)
-    const history = treatment([period({ doseQuantity, doseUnit: 'tablet' })])
+    const withPeriods = treatment([period({ doseQuantity, doseUnit: 'tablet' })])
 
-    expect(card(history, '2026-09-28').dosage).toBe(dosage)
+    expect(card(withPeriods, '2026-09-28').dosage).toBe(dosage)
   })
 
   it('dit la dose du jour, sans heure pour un traitement sans heure (critère 1)', () => {
-    const history = treatment([period()], [dose('2026-09-02', '2026-09-03')])
+    const withPeriods = treatment([period()], [dose('2026-09-02', '2026-09-03')])
 
-    expect(card(history, '2026-09-28')).toEqual({
+    expect(card(withPeriods, '2026-09-28')).toEqual({
       rhythm: 'Tous les jours',
       dosage: null,
       entries: [
@@ -66,12 +69,12 @@ describe('doseCard', () => {
   })
 
   it('à plusieurs heures, donne chaque heure du jour encore sans prise, même passée', () => {
-    const history = treatment(
+    const withPeriods = treatment(
       [MATIN_ET_SOIR],
       [dose('2026-09-27', '2026-09-28', { dueTime: '20:00' })],
     )
 
-    expect(card(history, '2026-09-28').entries).toEqual([
+    expect(card(withPeriods, '2026-09-28').entries).toEqual([
       {
         due: { settingId: 'p-1', dueOn: '2026-09-28', dueTime: '08:00' },
         label: 'Dose du jour',
@@ -90,37 +93,37 @@ describe('doseCard', () => {
   })
 
   it('ne garde que l’heure restante une fois la première notée', () => {
-    const history = treatment(
+    const withPeriods = treatment(
       [MATIN_ET_SOIR],
       [dose('2026-09-28', '2026-09-28', { dueTime: '08:00' })],
     )
 
-    expect(card(history, '2026-09-28').entries.map(({ value }) => value)).toEqual([
+    expect(card(withPeriods, '2026-09-28').entries.map(({ value }) => value)).toEqual([
       '28 sept. à 20 h',
     ])
   })
 
   it('après la prise du jour, annonce la prochaine dose, jamais une date passée (critère 2)', () => {
-    const history = treatment(
+    const withPeriods = treatment(
       [period()],
       [dose('2026-09-02', '2026-09-03'), dose('2026-09-28', '2026-09-29')],
     )
 
-    expect(card(history, '2026-09-28').entries).toMatchObject([
+    expect(card(withPeriods, '2026-09-28').entries).toMatchObject([
       { label: 'Prochaine dose', value: 'demain, 29 sept.', overdue: false },
     ])
   })
 
   it('annonce « demain » pour une première prise demain (critère 6)', () => {
-    const history = treatment([period({ startsOn: '2026-09-29', firstDueOn: '2026-09-29' })])
+    const withPeriods = treatment([period({ startsOn: '2026-09-29', firstDueOn: '2026-09-29' })])
 
-    expect(card(history, '2026-09-28').entries).toMatchObject([
+    expect(card(withPeriods, '2026-09-28').entries).toMatchObject([
       { label: 'Prochaine dose', value: 'demain, 29 sept.' },
     ])
   })
 
   it('un mensuel donné le 2 août puis le 28 sept. a sa prochaine dose le 28 oct. (critère 3)', () => {
-    const history = treatment(
+    const withPeriods = treatment(
       [
         period({
           frequency: { value: 1, unit: 'month' },
@@ -134,27 +137,27 @@ describe('doseCard', () => {
         shifted('2026-09-02', '2026-09-28'),
       ],
     )
-    const schedule = treatmentReadingOf(history, '2026-09-28').view
+    const schedule = treatmentReadingOf(withPeriods, '2026-09-28').view
 
     expect(schedule.unloggedDoses).toEqual([])
-    expect(card(history, '2026-09-28').entries).toMatchObject([
+    expect(card(withPeriods, '2026-09-28').entries).toMatchObject([
       { label: 'Prochaine dose', value: '28 oct.' },
     ])
   })
 
   it('dit le retard d’une dose passée, sans titre', () => {
-    const history = treatment(
+    const withPeriods = treatment(
       [period({ frequency: { value: 1, unit: 'week' } })],
       [dose('2026-09-01', '2026-09-08')],
     )
 
-    expect(card(history, '2026-09-10').entries).toMatchObject([
+    expect(card(withPeriods, '2026-09-10').entries).toMatchObject([
       { label: null, value: 'en retard depuis le 8 sept.', overdue: true },
     ])
   })
 
   it('dit la fin du traitement après la date de fin, sans geste', () => {
-    const history = treatment(
+    const withPeriods = treatment(
       [period({ endsOn: '2026-09-03' })],
       [
         dose('2026-09-01', '2026-09-02'),
@@ -163,7 +166,7 @@ describe('doseCard', () => {
       ],
     )
 
-    expect(card(history, '2026-09-10')).toMatchObject({
+    expect(card(withPeriods, '2026-09-10')).toMatchObject({
       rhythm: 'Tous les jours · jusqu’au 3 sept.',
       entries: [],
       end: { label: 'Fin du traitement', value: 'Terminé le 3 sept.' },
@@ -171,20 +174,20 @@ describe('doseCard', () => {
   })
 
   it('dit l’arrêt et sa date', () => {
-    const history = treatment([period({ stoppedOn: '2026-09-28' })])
+    const withPeriods = treatment([period({ stoppedOn: '2026-09-28' })])
 
-    expect(card(history, '2026-10-02')).toMatchObject({
+    expect(card(withPeriods, '2026-10-02')).toMatchObject({
       entries: [],
       end: { label: 'Fin du traitement', value: 'Arrêté le 28 sept.' },
     })
   })
 
   it('arrêté avant son début, dit « Arrêté avant la première prise » (#594)', () => {
-    const history = treatment([
+    const withPeriods = treatment([
       period({ startsOn: '2026-10-07', firstDueOn: '2026-10-07', stoppedOn: '2026-10-06' }),
     ])
 
-    expect(card(history, '2026-10-06')).toMatchObject({
+    expect(card(withPeriods, '2026-10-06')).toMatchObject({
       entries: [],
       end: { label: 'Fin du traitement', value: 'Arrêté avant la première prise' },
     })
@@ -243,12 +246,12 @@ describe('doseCard', () => {
 
   it('s’écrit en anglais', () => {
     applyLocale('en')
-    const history = treatment(
+    const withPeriods = treatment(
       [MATIN_ET_SOIR],
       [dose('2026-09-28', '2026-09-28', { dueTime: '08:00' })],
     )
 
-    expect(card(history, '2026-09-28')).toMatchObject({
+    expect(card(withPeriods, '2026-09-28')).toMatchObject({
       rhythm: 'Every day · 8 am and 8 pm',
       entries: [
         {
@@ -326,8 +329,16 @@ describe('lessPreciseReminder (TR-34, Rappels Q6)', () => {
     [dose('2026-09-27', '2026-09-28', { dueTime: '20:00' })],
   )
 
-  function ligne(history: TreatmentWithHistory, exact: Parameters<typeof lessPreciseReminder>[3]) {
-    return lessPreciseReminder(t, history, treatmentReadingOf(history, '2026-09-28').view, exact)
+  function ligne(
+    withPeriods: TreatmentWithPeriods,
+    exact: Parameters<typeof lessPreciseReminder>[3],
+  ) {
+    return lessPreciseReminder(
+      t,
+      withPeriods,
+      treatmentReadingOf(withPeriods, '2026-09-28').view,
+      exact,
+    )
   }
 
   it('dit le rappel choisi, peut arriver en retard, quand les rappels précis ont été retirés', () => {

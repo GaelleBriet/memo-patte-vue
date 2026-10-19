@@ -91,7 +91,7 @@ async function createCarnet(device: Device) {
   return { milo, carre, bravecto }
 }
 
-async function historyOf(device: Device, vaccinationId: string) {
+async function injectionsOf(device: Device, vaccinationId: string) {
   return (await device.vaccinations.listInjections(vaccinationId)).map(({ id }) => id)
 }
 
@@ -151,8 +151,8 @@ describe('synchro de l’historique entre deux appareils', () => {
     await tablet.sync()
     await phone.sync()
 
-    expect(await historyOf(phone, carre.id)).toHaveLength(3)
-    expect(await historyOf(tablet, carre.id)).toEqual(await historyOf(phone, carre.id))
+    expect(await injectionsOf(phone, carre.id)).toHaveLength(3)
+    expect(await injectionsOf(tablet, carre.id)).toEqual(await injectionsOf(phone, carre.id))
     const head = { lastInjectionDate: '2026-09-25', dueDate: '2027-09-25' }
     await expect(phone.vaccinations.getById(carre.id)).resolves.toMatchObject(head)
     await expect(tablet.vaccinations.getById(carre.id)).resolves.toMatchObject(head)

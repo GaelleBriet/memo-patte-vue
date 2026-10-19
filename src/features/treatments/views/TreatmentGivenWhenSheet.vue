@@ -17,7 +17,7 @@ import { notifiedPlan, otherDateTexts } from '../logic/treatment-other-date'
 import { readableReadingOf } from '../logic/treatment-reading-adapter'
 import { doneGesture } from '../logic/treatment-shift-box'
 import type { DoseAction, NoteGesture } from '../logic/treatment-dose-change'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
@@ -51,7 +51,7 @@ const gestures = useTreatmentGestures(() => emit('changed'))
 
 const isBusy = gestures.isBusy
 
-const treatment = ref<TreatmentWithHistory | null>(null)
+const treatment = ref<TreatmentWithPeriods | null>(null)
 const step = ref<'when' | 'hour'>('when')
 const givenOn = ref<string | null>(null)
 const isOtherDateOpen = ref(false)
@@ -113,7 +113,7 @@ watch(
     treatment.value = null
     if (!animals.hasLoaded) void animals.load()
     const id = props.treatmentId
-    treatment.value = id ? await treatments.getWithHistory(id).catch(() => null) : null
+    treatment.value = id ? await treatments.getWithPeriods(id).catch(() => null) : null
     if (!open.value) return
     if (treatment.value === null) {
       open.value = false

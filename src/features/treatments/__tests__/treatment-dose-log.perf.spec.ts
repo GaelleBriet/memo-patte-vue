@@ -39,11 +39,11 @@ function fastest<T>(run: () => T): { result: T; elapsed: number } {
   return best
 }
 
-function allGiven(history: ReturnType<typeof gap>) {
+function allGiven(withPeriods: ReturnType<typeof gap>) {
   let id = 0
-  const reading = treatmentReadingOf(history, TODAY)
+  const reading = treatmentReadingOf(withPeriods, TODAY)
   return doseChange(
-    history,
+    withPeriods,
     reading,
     { kind: 'log', gestures: choiceGestures({ given: reading.view.unloggedDoses, missed: [] }) },
     () => String((id += 1)),

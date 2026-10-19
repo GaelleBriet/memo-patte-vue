@@ -8,7 +8,7 @@ import { dateChangeBox, otherDateBox } from '../logic/treatment-shift-box'
 import { shiftHelpText } from '../logic/treatment-shift-help'
 import { doseActionTexts } from '../logic/treatment-gestures'
 import type { DoseWrite } from '../schema/treatment-dose.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { createTreatmentDosesService } from '../service/treatment-doses.service'
 import i18n, { applyLocale } from '@/core/i18n'
 import type { Due, TreatmentView } from '@/shared/domain/dose-calendar'
@@ -37,10 +37,10 @@ function due(dueOn: string, dueTime: string | null = null): Due {
 const days = (dues: readonly Due[]) => dues.map(({ dueOn }) => dueOn)
 
 // Le service réel, sur un carnet en mémoire que chaque lot réécrit.
-async function saved(history: TreatmentWithHistory, action: DoseAction, today: string) {
-  let current = history
+async function saved(withPeriods: TreatmentWithPeriods, action: DoseAction, today: string) {
+  let current = withPeriods
   const service = createTreatmentDosesService({
-    treatments: () => ({ getWithHistory: () => Promise.resolve(current) }),
+    treatments: () => ({ getWithPeriods: () => Promise.resolve(current) }),
     doses: () => ({
       applyBatch: (writes: readonly DoseWrite[]) => {
         current = written(current, writes)
@@ -51,7 +51,7 @@ async function saved(history: TreatmentWithHistory, action: DoseAction, today: s
     now: () => new Date(`${today}T12:00:00.000Z`),
     today: () => today,
   })
-  const change = await service.apply(history.id, action)
+  const change = await service.apply(withPeriods.id, action)
   return { change, after: treatmentReadingOf(current, today).view }
 }
 
@@ -64,7 +64,7 @@ function pastWithoutDose(view: TreatmentView, today: string) {
 
 type Case = {
   name: string
-  history: TreatmentWithHistory
+  withPeriods: TreatmentWithPeriods
   today: string
   action: DoseAction
   help: () => string | undefined
@@ -95,19 +95,19 @@ const AUTRE = treatment(
 )
 
 function changeDateHelp(
-  history: TreatmentWithHistory,
+  withPeriods: TreatmentWithPeriods,
   prise: typeof PRISE_16,
   date: string,
   today: string,
 ) {
-  const carnet = { treatment: history, reading: treatmentReadingOf(history, today), today }
+  const carnet = { treatment: withPeriods, reading: treatmentReadingOf(withPeriods, today), today }
   return dateChangeBox(t, prise, carnet)!.view(date, true).help?.text
 }
 
 const CASES: Case[] = [
   {
     name: 'hebdomadaire, prise corrigée plus tôt',
-    history: HEBDO,
+    withPeriods: HEBDO,
     today: HEBDO_TODAY,
     action: { kind: 'redate', lineId: PRISE_16.id, givenOn: '2026-10-12', shiftsFollowing: true },
     help: () => changeDateHelp(HEBDO, PRISE_16, '2026-10-12', HEBDO_TODAY),
@@ -116,7 +116,7 @@ const CASES: Case[] = [
   },
   {
     name: 'mensuel, prise corrigée plus tôt',
-    history: MENSUEL,
+    withPeriods: MENSUEL,
     today: MENS_TODAY,
     action: { kind: 'redate', lineId: PRISE_30.id, givenOn: '2026-09-28', shiftsFollowing: true },
     help: () => changeDateHelp(MENSUEL, PRISE_30, '2026-09-28', MENS_TODAY),
@@ -125,7 +125,7 @@ const CASES: Case[] = [
   },
   {
     name: '« Fait à une autre date », case cochée',
-    history: AUTRE,
+    withPeriods: AUTRE,
     today: HEBDO_TODAY,
     action: {
       kind: 'note',
@@ -152,8 +152,8 @@ const CASES: Case[] = [
 
 describe('revealedDues — les doses passées qu’un geste fait apparaître', () => {
   it.each(CASES)('$name : les dates annoncées sont celles du calendrier enregistré', async (c) => {
-    const before = pastWithoutDose(treatmentReadingOf(c.history, c.today).view, c.today)
-    const { change, after } = await saved(c.history, c.action, c.today)
+    const before = pastWithoutDose(treatmentReadingOf(c.withPeriods, c.today).view, c.today)
+    const { change, after } = await saved(c.withPeriods, c.action, c.today)
     const now = pastWithoutDose(after, c.today)
 
     const announced = {
@@ -195,14 +195,14 @@ describe('revealedDues — les doses passées qu’un geste fait apparaître', (
   describe('quotidien, doses des 7 et 8 oct. données, aujourd’hui le 11', () => {
     const today = '2026-10-11'
     const QUOTIDIEN = period({ startsOn: '2026-10-07', firstDueOn: '2026-10-07' })
-    const history = treatment(
+    const withPeriods = treatment(
       [QUOTIDIEN],
       ['2026-10-07', '2026-10-08'].map((day) => dose(day, day)),
     )
 
     it('dose donnée le lendemain : aucune dose passée annoncée', async () => {
       const { change, after } = await saved(
-        history,
+        withPeriods,
         {
           kind: 'note',
           gesture: {
@@ -222,7 +222,7 @@ describe('revealedDues — les doses passées qu’un geste fait apparaître', (
 
     it('prise du 8 corrigée au 9 (Q-C1) : elle note la dose du 9, celle du 8 est à renseigner', async () => {
       const { change } = await saved(
-        history,
+        withPeriods,
         { kind: 'redate', lineId: '2026-10-08', givenOn: '2026-10-09', shiftsFollowing: true },
         today,
       )

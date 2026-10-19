@@ -3,7 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { readTreatment } from '@/shared/domain/treatment-reading'
-import { createReplay, readingAfter, storedHistory, type Replay } from './treatment-services-replay'
+import {
+  createReplay,
+  readingAfter,
+  storedTreatment,
+  type Replay,
+} from './treatment-services-replay'
 
 const ID = '22222222-2222-4222-8222-222222222222'
 const ANIMAL = '11111111-1111-4111-8111-111111111111'
@@ -72,7 +77,7 @@ describe('#835 : « Supprimer ce report » emporte le décalage ancré à son ar
       to: '2026-10-13',
       shiftsFollowing: true,
     })
-    const doses = (await storedHistory(replay.treatments, ID)).doses
+    const doses = (await storedTreatment(replay.treatments, ID)).doses
     return doses.find(({ status }) => status === 'postponed')!.id
   }
 
@@ -85,7 +90,9 @@ describe('#835 : « Supprimer ce report » emporte le décalage ancré à son ar
     await replay.doses.apply(ID, { kind: 'remove', lineId: report })
 
     expect(await upcoming()).toEqual(['2026-10-16 ', '2026-10-23 ', '2026-10-30 '])
-    const statuses = (await storedHistory(replay.treatments, ID)).doses.map(({ status }) => status)
+    const statuses = (await storedTreatment(replay.treatments, ID)).doses.map(
+      ({ status }) => status,
+    )
     expect(statuses).toEqual(['given', 'given'])
   })
 
@@ -115,7 +122,7 @@ describe('#835 : « Supprimer ce report » emporte le décalage ancré à son ar
     }
 
     async function sheet(): Promise<Record<string, string>> {
-      const reading = readTreatment(await storedHistory(replay.treatments, ID), replay.clock.day)
+      const reading = readTreatment(await storedTreatment(replay.treatments, ID), replay.clock.day)
       return Object.fromEntries(
         reading!.view.history.map(({ line, effect }) => [
           line.id,
@@ -155,7 +162,7 @@ describe('#835 : « Supprimer ce report » emporte le décalage ancré à son ar
         const applied = await replay.doses.apply(ID, { kind: 'remove', lineId: report })
 
         expect(await upcoming()).toEqual(['2026-10-16 ', '2026-10-23 ', '2026-10-30 '])
-        const statuses = (await storedHistory(replay.treatments, ID)).doses.map(
+        const statuses = (await storedTreatment(replay.treatments, ID)).doses.map(
           ({ status }) => status,
         )
         expect(statuses).toEqual(['given', 'given'])
@@ -179,12 +186,12 @@ describe('#835 : « Supprimer ce report » emporte le décalage ancré à son ar
       await received({ id: 'autre-report', status: 'postponed', targetOn: '2026-10-20', at: NEWER })
       replay.clock.day = '2026-10-21'
       replay.tick()
-      const before = await storedHistory(replay.treatments, ID)
+      const before = await storedTreatment(replay.treatments, ID)
 
       await expect(
         replay.doses.apply(ID, { kind: 'remove', lineId: 'autre-report' }),
       ).rejects.toThrow('arrival-logged')
-      expect(await storedHistory(replay.treatments, ID)).toEqual(before)
+      expect(await storedTreatment(replay.treatments, ID)).toEqual(before)
       expect(await upcoming()).toEqual(['2026-10-23 ', '2026-10-30 ', '2026-11-06 '])
     })
   })
@@ -205,11 +212,11 @@ describe('#835 : « Supprimer ce report » emporte le décalage ancré à son ar
     })
     replay.clock.day = '2026-10-21'
     replay.tick()
-    const before = await storedHistory(replay.treatments, ID)
+    const before = await storedTreatment(replay.treatments, ID)
 
     await expect(replay.doses.apply(ID, { kind: 'remove', lineId: report })).rejects.toThrow(
       'later-dose',
     )
-    expect(await storedHistory(replay.treatments, ID)).toEqual(before)
+    expect(await storedTreatment(replay.treatments, ID)).toEqual(before)
   })
 })

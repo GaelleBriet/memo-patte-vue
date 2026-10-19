@@ -3,7 +3,7 @@ import { farthestMoveOf, type FarthestMove } from './treatment-edition-checks'
 import type { EditionResolution, PastDuesNextDose } from './treatment-edition-resolution'
 import { treatmentReadingOf } from './treatment-reading-adapter'
 import type { TreatmentRhythm } from '../schema/treatment-form.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { Due } from '@/shared/domain/dose-calendar'
 
 export type EditionDraft = Pick<EditionResolution, 'period' | 'change' | 'nextDose'> & {
@@ -21,7 +21,7 @@ export type EditionDraft = Pick<EditionResolution, 'period' | 'change' | 'nextDo
  * les réglages enregistrés servent alors. Lève une `RangeError` quand l'historique est illisible.
  */
 export function editionDraft(
-  treatment: TreatmentWithHistory,
+  treatment: TreatmentWithPeriods,
   rhythm: TreatmentRhythm | null,
   today: string,
   chosenOn: string | null = null,

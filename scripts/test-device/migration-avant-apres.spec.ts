@@ -45,7 +45,7 @@ async function openFile(file: string): Promise<DbClient> {
 
 describe.skipIf(path === undefined || out === undefined)('lecture d’une base de l’appareil', () => {
   it('écrit ce que montrent les écrans, traitement par traitement', async () => {
-    const treatments = await createTreatmentsRepository(await openFile(path!)).listAllWithHistory()
+    const treatments = await createTreatmentsRepository(await openFile(path!)).listAllWithPeriods()
     const shown = Object.fromEntries(
       treatments.map((treatment) => {
         const view = treatmentReading(treatment, TODAY)

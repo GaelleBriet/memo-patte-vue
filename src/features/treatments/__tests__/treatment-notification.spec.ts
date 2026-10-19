@@ -10,7 +10,7 @@ import {
 } from '../logic/treatment-notification'
 import { notifiedPlan } from '../logic/treatment-other-date'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const t = i18n.global.t
@@ -33,7 +33,7 @@ const TOUS_LES_3_JOURS = period({
   times: ['08:00', '20:00'],
 })
 
-function target(book: TreatmentWithHistory, today: string, dueOn: string, dueTime: string | null) {
+function target(book: TreatmentWithPeriods, today: string, dueOn: string, dueTime: string | null) {
   return notificationTarget(treatmentReadingOf(book, today).view, { dueOn, dueTime }, today)
 }
 

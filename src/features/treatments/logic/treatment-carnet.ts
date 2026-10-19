@@ -1,5 +1,5 @@
 import { currentPeriodOf, readableReadingOf } from './treatment-reading-adapter'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { currentDoseText } from '@/shared/domain/current-dose'
 import { overdueDays } from '@/shared/domain/due-delay'
 import { reminderIcon, type ReminderCounts } from '@/shared/domain/reminders'
@@ -31,7 +31,7 @@ export type CarnetTreatments = {
   summary: TreatmentsSummary
 }
 
-type Read = { treatment: TreatmentWithHistory; view: TreatmentView | null }
+type Read = { treatment: TreatmentWithPeriods; view: TreatmentView | null }
 
 function isOpen(view: TreatmentView): boolean {
   return view.phase !== 'ended' && view.phase !== 'stopped'
@@ -154,11 +154,11 @@ function compare(a: string, b: string): number {
 }
 
 export type ViewCache = {
-  read(treatment: TreatmentWithHistory, today: string): TreatmentView | null
+  read(treatment: TreatmentWithPeriods, today: string): TreatmentView | null
 }
 
 // Chaque ligne compte : une ligne synchronisée peut être réécrite avec une date plus ancienne que la plus récente.
-function versionOf({ updatedAt, periods, doses }: TreatmentWithHistory, today: string): string {
+function versionOf({ updatedAt, periods, doses }: TreatmentWithPeriods, today: string): string {
   const lines = [...periods, ...doses].map((line) => `${line.id}:${line.updatedAt}`)
   return [today, updatedAt, ...lines].join(' ')
 }
@@ -185,7 +185,7 @@ export function carnetViewCache(): ViewCache {
  */
 export function carnetTreatments(
   t: Translate,
-  treatments: readonly TreatmentWithHistory[],
+  treatments: readonly TreatmentWithPeriods[],
   today: string,
   views: ViewCache = carnetViewCache(),
   { followed = true }: { followed?: boolean } = {},

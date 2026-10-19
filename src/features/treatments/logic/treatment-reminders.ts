@@ -4,13 +4,13 @@ import type { Animal } from '@/features/animals/schema/animal.schema'
 import type { EntryReminders } from '@/core/notifications/due-reminders-schedule'
 import { treatmentReminderPlan, type CarnetReminderSettings } from '@/shared/domain/reminder-plan'
 import { currentPeriodOf, readableReadingOf } from './treatment-reading-adapter'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { Translate } from '@/core/i18n/translate'
 
 /** Un traitement illisible n'a ni rappel ni échéance notée. */
 export function treatmentReminders(
   t: Translate,
-  treatment: TreatmentWithHistory,
+  treatment: TreatmentWithPeriods,
   animal: Pick<Animal, 'name' | 'deletedAt' | 'unfollowedOn'> | null,
   settings: CarnetReminderSettings,
   now: Date,

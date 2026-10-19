@@ -13,7 +13,7 @@ import type { TreatmentDosesService } from '../service/treatment-doses.service'
 import type { TreatmentRemindersService } from '../service/treatment-reminders.service'
 import type { TreatmentStopService } from '../service/treatment-stop.service'
 import type { TreatmentsRepository } from '../repository/treatments.repository'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import {
   provideTreatmentDosesService,
   provideTreatmentPlanService,
@@ -127,9 +127,9 @@ function reprise(surcharges: Partial<TreatmentResumptionInput> = {}): TreatmentR
 describe('useTreatmentsStore', () => {
   it('garde la liste du dernier animal demandé quand la réponse du précédent arrive après', async () => {
     repository.seed(vermifuge(LUNA))
-    let finishMilo: (items: TreatmentWithHistory[]) => void = () => {}
-    repository.listWithHistoryByAnimal.mockReturnValueOnce(
-      new Promise<TreatmentWithHistory[]>((resolve) => {
+    let finishMilo: (items: TreatmentWithPeriods[]) => void = () => {}
+    repository.listWithPeriodsByAnimal.mockReturnValueOnce(
+      new Promise<TreatmentWithPeriods[]>((resolve) => {
         finishMilo = resolve
       }),
     )
@@ -169,8 +169,8 @@ describe('useTreatmentsStore', () => {
 
   it('ignore l’échec d’un chargement dépassé par celui d’un autre animal', async () => {
     let failMilo: (cause: Error) => void = () => {}
-    repository.listWithHistoryByAnimal.mockReturnValueOnce(
-      new Promise<TreatmentWithHistory[]>((_resolve, reject) => {
+    repository.listWithPeriodsByAnimal.mockReturnValueOnce(
+      new Promise<TreatmentWithPeriods[]>((_resolve, reject) => {
         failMilo = reject
       }),
     )
@@ -203,7 +203,7 @@ describe('useTreatmentsStore', () => {
 
     await expect(store.loadForAnimal(MILO)).resolves.toBe(true)
 
-    expect(repository.listWithHistoryByAnimal).toHaveBeenCalledWith(MILO)
+    expect(repository.listWithPeriodsByAnimal).toHaveBeenCalledWith(MILO)
     expect(store.treatments.map((treatment) => treatment.name)).toEqual(['Bravecto', 'Milbemax'])
     expect(store.animalId).toBe(MILO)
     expect(store.hasLoaded).toBe(true)
@@ -211,9 +211,9 @@ describe('useTreatmentsStore', () => {
   })
 
   it('signale le chargement en cours pendant l’appel au repository', async () => {
-    let finishList: (treatments: TreatmentWithHistory[]) => void = () => {}
-    repository.listWithHistoryByAnimal.mockReturnValueOnce(
-      new Promise<TreatmentWithHistory[]>((resolve) => {
+    let finishList: (treatments: TreatmentWithPeriods[]) => void = () => {}
+    repository.listWithPeriodsByAnimal.mockReturnValueOnce(
+      new Promise<TreatmentWithPeriods[]>((resolve) => {
         finishList = resolve
       }),
     )
@@ -231,7 +231,7 @@ describe('useTreatmentsStore', () => {
   })
 
   it('range l’erreur du repository dans l’état sans faire planter le store', async () => {
-    repository.listWithHistoryByAnimal.mockRejectedValueOnce(new Error('base indisponible'))
+    repository.listWithPeriodsByAnimal.mockRejectedValueOnce(new Error('base indisponible'))
     const store = useTreatmentsStore()
 
     await expect(store.loadForAnimal(MILO)).resolves.toBe(false)
@@ -242,7 +242,7 @@ describe('useTreatmentsStore', () => {
   })
 
   it('mémorise l’animal demandé même si le chargement a échoué', async () => {
-    repository.listWithHistoryByAnimal.mockRejectedValueOnce(new Error('base indisponible'))
+    repository.listWithPeriodsByAnimal.mockRejectedValueOnce(new Error('base indisponible'))
     const store = useTreatmentsStore()
 
     await store.loadForAnimal(MILO)
@@ -251,7 +251,7 @@ describe('useTreatmentsStore', () => {
   })
 
   it('efface l’erreur précédente dès qu’un chargement réussit', async () => {
-    repository.listWithHistoryByAnimal.mockRejectedValueOnce(new Error('base indisponible'))
+    repository.listWithPeriodsByAnimal.mockRejectedValueOnce(new Error('base indisponible'))
     const store = useTreatmentsStore()
     await store.loadForAnimal(MILO)
 
@@ -310,7 +310,7 @@ describe('useTreatmentsStore', () => {
 
     await store.create(creation(MILO))
 
-    expect(repository.listWithHistoryByAnimal).not.toHaveBeenCalled()
+    expect(repository.listWithPeriodsByAnimal).not.toHaveBeenCalled()
     expect(store.treatments).toEqual([])
   })
 
@@ -318,11 +318,11 @@ describe('useTreatmentsStore', () => {
     repository.seed(vermifuge(MILO))
     const store = useTreatmentsStore()
     await store.loadForAnimal(MILO)
-    repository.listWithHistoryByAnimal.mockClear()
+    repository.listWithPeriodsByAnimal.mockClear()
 
     await store.create(creation(LUNA, { name: 'Frontline' }))
 
-    expect(repository.listWithHistoryByAnimal).not.toHaveBeenCalled()
+    expect(repository.listWithPeriodsByAnimal).not.toHaveBeenCalled()
     expect(store.treatments.map((treatment) => treatment.name)).toEqual(['Milbemax'])
   })
 
@@ -435,7 +435,7 @@ describe('useTreatmentsStore', () => {
   })
 
   it('laisse la bannière de chargement intacte quand une écriture échoue', async () => {
-    repository.listWithHistoryByAnimal.mockRejectedValueOnce(new Error('base indisponible'))
+    repository.listWithPeriodsByAnimal.mockRejectedValueOnce(new Error('base indisponible'))
     const store = useTreatmentsStore()
     await store.loadForAnimal(MILO)
     repository.create.mockRejectedValueOnce(new Error('nom invalide'))
@@ -446,7 +446,7 @@ describe('useTreatmentsStore', () => {
   })
 
   it('efface la bannière de chargement dès qu’une écriture réussit', async () => {
-    repository.listWithHistoryByAnimal.mockRejectedValueOnce(new Error('base indisponible'))
+    repository.listWithPeriodsByAnimal.mockRejectedValueOnce(new Error('base indisponible'))
     const store = useTreatmentsStore()
     await store.loadForAnimal(MILO)
 
@@ -469,13 +469,13 @@ describe('useTreatmentsStore', () => {
     const seme = repository.seed(vermifuge())
     const store = useTreatmentsStore()
     await store.loadForAnimal(MILO)
-    repository.listWithHistoryByAnimal.mockClear()
+    repository.listWithPeriodsByAnimal.mockClear()
 
     const repris = await store.resume(seme.id, reprise())
 
     expect(repository.resume).toHaveBeenCalledWith(seme.id, reprise())
     expect(repris).toMatchObject({ id: seme.id, stoppedOn: null })
-    expect(repository.listWithHistoryByAnimal).toHaveBeenCalledWith(MILO)
+    expect(repository.listWithPeriodsByAnimal).toHaveBeenCalledWith(MILO)
   })
 
   it('compte une reprise comme un soin enregistré, pas comme une saisie', async () => {
@@ -569,7 +569,7 @@ describe('useTreatmentsStore — gestes d’un rappel', () => {
       shiftKept: false,
     }
     doses.apply.mockResolvedValue(applied)
-    repository.listWithHistoryByAnimal.mockClear()
+    repository.listWithPeriodsByAnimal.mockClear()
 
     await expect(store.applyDoseAction(seme.id, { kind: 'remove', lineId: 'p1' })).resolves.toEqual(
       applied,
@@ -578,7 +578,7 @@ describe('useTreatmentsStore — gestes d’un rappel', () => {
 
     expect(doses.apply).toHaveBeenCalledWith(seme.id, { kind: 'remove', lineId: 'p1' })
     expect(doses.undoBatch).toHaveBeenCalledWith(seme.id, applied.undo)
-    expect(repository.listWithHistoryByAnimal).toHaveBeenCalledTimes(2)
+    expect(repository.listWithPeriodsByAnimal).toHaveBeenCalledTimes(2)
   })
 
   it('propage l’échec d’un geste', async () => {
@@ -593,7 +593,7 @@ describe('useTreatmentsStore — gestes d’un rappel', () => {
 })
 
 describe('useTreatmentsStore — traitement avec ses périodes et ses prises', () => {
-  const METACAM: TreatmentWithHistory = {
+  const METACAM: TreatmentWithPeriods = {
     id: 't1',
     animalId: LUNA,
     name: 'Métacam',
@@ -605,28 +605,28 @@ describe('useTreatmentsStore — traitement avec ses périodes et ses prises', (
   }
 
   it('lit un traitement tel que le repository le rend, sans toucher à la liste affichée', async () => {
-    repository.getWithHistory.mockResolvedValue(METACAM)
+    repository.getWithPeriods.mockResolvedValue(METACAM)
     const store = useTreatmentsStore()
 
-    await expect(store.getWithHistory('t1')).resolves.toBe(METACAM)
-    expect(repository.getWithHistory).toHaveBeenCalledExactlyOnceWith('t1')
+    await expect(store.getWithPeriods('t1')).resolves.toBe(METACAM)
+    expect(repository.getWithPeriods).toHaveBeenCalledExactlyOnceWith('t1')
     expect(store.treatments).toEqual([])
     expect(store.isLoading).toBe(false)
   })
 
   it('lit les traitements d’un animal', async () => {
-    repository.listWithHistoryByAnimal.mockResolvedValue([METACAM])
+    repository.listWithPeriodsByAnimal.mockResolvedValue([METACAM])
     const store = useTreatmentsStore()
 
-    await expect(store.listWithHistoryByAnimal(LUNA)).resolves.toEqual([METACAM])
-    expect(repository.listWithHistoryByAnimal).toHaveBeenCalledExactlyOnceWith(LUNA)
+    await expect(store.listWithPeriodsByAnimal(LUNA)).resolves.toEqual([METACAM])
+    expect(repository.listWithPeriodsByAnimal).toHaveBeenCalledExactlyOnceWith(LUNA)
     expect(store.animalId).toBeNull()
   })
 
   it('laisse remonter l’échec de la lecture', async () => {
-    repository.getWithHistory.mockRejectedValue(new Error('base verrouillée'))
+    repository.getWithPeriods.mockRejectedValue(new Error('base verrouillée'))
 
-    await expect(useTreatmentsStore().getWithHistory('t1')).rejects.toThrow('base verrouillée')
+    await expect(useTreatmentsStore().getWithPeriods('t1')).rejects.toThrow('base verrouillée')
   })
 })
 
@@ -639,8 +639,8 @@ interface FakeTreatmentsRepository {
   restore: Mock<TreatmentsRepository['restore']>
   resume: Mock<TreatmentPlanService['resume']>
   listDoses: Mock<TreatmentsRepository['listDoses']>
-  getWithHistory: Mock<TreatmentsRepository['getWithHistory']>
-  listWithHistoryByAnimal: Mock<TreatmentsRepository['listWithHistoryByAnimal']>
+  getWithPeriods: Mock<TreatmentsRepository['getWithPeriods']>
+  listWithPeriodsByAnimal: Mock<TreatmentsRepository['listWithPeriodsByAnimal']>
 }
 
 // Repository et service des écritures du formulaire, sans SQLite. `update` remplace l'objet : la liste du store ne bouge que si elle est relue.
@@ -710,8 +710,8 @@ function createFakeRepository(): FakeTreatmentsRepository {
       return { ...treatment }
     }),
     listDoses: vi.fn<TreatmentsRepository['listDoses']>(async () => []),
-    getWithHistory: vi.fn<TreatmentsRepository['getWithHistory']>(async () => null),
-    listWithHistoryByAnimal: vi.fn<TreatmentsRepository['listWithHistoryByAnimal']>(
+    getWithPeriods: vi.fn<TreatmentsRepository['getWithPeriods']>(async () => null),
+    listWithPeriodsByAnimal: vi.fn<TreatmentsRepository['listWithPeriodsByAnimal']>(
       async (animalId) =>
         living()
           .filter((treatment) => treatment.animalId === animalId)

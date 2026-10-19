@@ -12,7 +12,7 @@ import type {
   TreatmentResumptionInput,
 } from '../schema/treatment-form.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { legacyFactsOf } from '@/shared/domain/dose-calendar'
 
 const AT = '2026-07-01T08:00:00.000Z'
@@ -69,7 +69,7 @@ function dose(dueOn: string, overrides: Partial<TreatmentDose> = {}): TreatmentD
 function treatment(
   periods: TreatmentPeriodRecord[],
   doses: TreatmentDose[] = [],
-): TreatmentWithHistory {
+): TreatmentWithPeriods {
   return {
     id: TREATMENT,
     animalId: MILO,
@@ -200,21 +200,21 @@ describe('editionPlan — « Modifier » écrit ce que le moteur propose (TR-28,
   })
 
   it('une fréquence qui change sans prise mais avec des échéances tombées pose la question (Q38)', () => {
-    const history = treatment([period({ startsOn: '2026-09-01', firstDueOn: '2026-09-01' })])
+    const withPeriods = treatment([period({ startsOn: '2026-09-01', firstDueOn: '2026-09-01' })])
     const input = { ...EDITION, frequency: { value: 2, unit: 'week' as const } }
 
-    const draft = editionDraft(history, input, TODAY)
+    const draft = editionDraft(withPeriods, input, TODAY)
     expect(draft.pastDues.length).toBeGreaterThan(0)
     expect(draft.pastDuesNextDose).toMatchObject({
       keep: expect.any(String),
       drop: expect.any(String),
     })
     expect(() =>
-      editionPlan(history, { ...input, nextDoseOn: draft.nextDose!.proposedOn }, TODAY, IDS),
+      editionPlan(withPeriods, { ...input, nextDoseOn: draft.nextDose!.proposedOn }, TODAY, IDS),
     ).toThrow(ZodError)
     expect(
       editionPlan(
-        history,
+        withPeriods,
         { ...input, nextDoseOn: draft.nextDose!.proposedOn, pastDues: 'keep' },
         TODAY,
         IDS,

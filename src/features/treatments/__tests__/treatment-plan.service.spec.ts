@@ -12,7 +12,7 @@ import {
   type TreatmentsRepository,
 } from '../repository/treatments.repository'
 import type { TreatmentCreationInput, TreatmentEditionInput } from '../schema/treatment-form.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { createWriteQueue } from '../logic/treatment-write-queue'
 import { createTreatmentDosesService, type NotedMoment } from '../service/treatment-doses.service'
 import {
@@ -95,10 +95,10 @@ describe('treatmentPlanService', () => {
     )
   }
 
-  async function historyOf(id: string) {
-    const history = await treatments.getWithHistory(id)
-    if (history === null) throw new Error('introuvable')
-    return history
+  async function storedTreatment(id: string) {
+    const treatment = await treatments.getWithPeriods(id)
+    if (treatment === null) throw new Error('introuvable')
+    return treatment
   }
 
   it('crée le traitement avec sa période, sans rien noter comme donné (TR-3)', async () => {
@@ -108,7 +108,7 @@ describe('treatmentPlanService', () => {
       name: 'Milbemax',
       periodId: created.id,
     })
-    await expect(historyOf(created.id)).resolves.toMatchObject({
+    await expect(storedTreatment(created.id)).resolves.toMatchObject({
       periods: [
         {
           id: created.id,
@@ -135,17 +135,17 @@ describe('treatmentPlanService', () => {
       ],
     })
 
-    const history = await historyOf(created.id)
-    const schedule = treatmentReadingOf(history, today).view
+    const treatment = await storedTreatment(created.id)
+    const schedule = treatmentReadingOf(treatment, today).view
     expect(
-      history.doses.map(({ dueOn, status, periodId }) => ({ dueOn, status, periodId })),
+      treatment.doses.map(({ dueOn, status, periodId }) => ({ dueOn, status, periodId })),
     ).toEqual(
       expect.arrayContaining([
         { dueOn: '2026-09-05', status: 'given', periodId: created.id },
         { dueOn: '2026-09-12', status: 'missed', periodId: created.id },
       ]),
     )
-    expect(history.doses).toHaveLength(2)
+    expect(treatment.doses).toHaveLength(2)
     expect(schedule.unloggedDoses.map(({ dueOn }) => dueOn)).toEqual(['2026-09-19'])
     expect(schedule.currentDoses.map(({ dueOn }) => dueOn)).toEqual(['2026-09-26'])
   })
@@ -192,7 +192,7 @@ describe('treatmentPlanService', () => {
 
     await service.update(id, saisie({ frequency: { value: 2, unit: 'day' }, times: ['08:00'] }))
 
-    await expect(historyOf(id)).resolves.toMatchObject({
+    await expect(storedTreatment(id)).resolves.toMatchObject({
       periods: [{ id, frequency: { value: 2, unit: 'day' }, times: ['08:00'] }],
     })
   })
@@ -219,27 +219,27 @@ describe('treatmentPlanService', () => {
 
     it('n’écrit rien tant que la question n’a pas de réponse', async () => {
       const { id } = await service.create(TOUS_LES_2_JOURS)
-      const before = await historyOf(id)
+      const before = await storedTreatment(id)
 
       await expect(service.update(id, correction())).rejects.toBeInstanceOf(ZodError)
 
-      await expect(historyOf(id)).resolves.toEqual(before)
+      await expect(storedTreatment(id)).resolves.toEqual(before)
     })
 
     it('« Elles restent à renseigner » : nouvelle période aujourd’hui, les 3, 5 et 7 oct. restent à renseigner', async () => {
       const { id } = await service.create(TOUS_LES_2_JOURS)
-      const [before] = (await historyOf(id)).periods
+      const [before] = (await storedTreatment(id)).periods
 
       await service.update(id, correction({ pastDues: 'keep' }))
 
-      const history = await historyOf(id)
-      expect(history.periods[0]).toEqual(before)
-      expect(history.periods[1]).toMatchObject({
+      const treatment = await storedTreatment(id)
+      expect(treatment.periods[0]).toEqual(before)
+      expect(treatment.periods[1]).toMatchObject({
         startsOn: '2026-10-08',
         firstDueOn: '2026-10-08',
         frequency: { value: 3, unit: 'day' },
       })
-      const schedule = treatmentReadingOf(history, today).view
+      const schedule = treatmentReadingOf(treatment, today).view
       expect(jours(schedule.unloggedDoses)).toEqual(['2026-10-03', '2026-10-05', '2026-10-07'])
       expect(jours(schedule.currentDoses)).toEqual(['2026-10-08'])
       expect(schedule.phase).toBe('today')
@@ -250,14 +250,14 @@ describe('treatmentPlanService', () => {
 
       await service.update(id, correction({ pastDues: 'drop' }))
 
-      const history = await historyOf(id)
-      expect(history.periods).toHaveLength(1)
-      expect(history.periods[0]).toMatchObject({
+      const treatment = await storedTreatment(id)
+      expect(treatment.periods).toHaveLength(1)
+      expect(treatment.periods[0]).toMatchObject({
         startsOn: '2026-10-03',
         firstDueOn: '2026-10-08',
         frequency: { value: 3, unit: 'day' },
       })
-      const schedule = treatmentReadingOf(history, today).view
+      const schedule = treatmentReadingOf(treatment, today).view
       expect(schedule.unloggedDoses).toEqual([])
       expect(jours(schedule.currentDoses)).toEqual(['2026-10-08'])
     })
@@ -318,17 +318,17 @@ describe('treatmentPlanService', () => {
           treatments = createTreatmentsRepository(db)
           today = '2026-10-08'
           const id = await prepare()
-          const history = await historyOf(id)
-          const current = history.periods.at(-1)!
+          const treatment = await storedTreatment(id)
+          const current = treatment.periods.at(-1)!
           const input = {
             ...correction({ frequency, times: current.times }),
           }
-          const announced = editionDraft(history, input, today).pastDuesNextDose
+          const announced = editionDraft(treatment, input, today).pastDuesNextDose
 
           expect(announced?.[pastDues]).toBe(expected)
           await service.update(id, { ...input, pastDues, nextDoseOn: announced![pastDues] })
 
-          expect((await historyOf(id)).periods.at(-1)?.firstDueOn).toBe(expected)
+          expect((await storedTreatment(id)).periods.at(-1)?.firstDueOn).toBe(expected)
         }
       })
     })
@@ -338,7 +338,7 @@ describe('treatmentPlanService', () => {
 
       await service.update(id, correction({ times: ['09:00', '21:00'], pastDues: 'keep' }))
 
-      const schedule = treatmentReadingOf(await historyOf(id), today).view
+      const schedule = treatmentReadingOf(await storedTreatment(id), today).view
       expect(jours(schedule.unloggedDoses)).toEqual([
         '2026-10-03 08:00',
         '2026-10-03 20:00',
@@ -354,11 +354,11 @@ describe('treatmentPlanService', () => {
   it('ouvre une nouvelle période aujourd’hui quand une prise est notée, l’ancienne intacte (TR-28)', async () => {
     const { id } = await service.create(MILBEMAX)
     await give(id, '2026-09-26')
-    const [before] = (await historyOf(id)).periods
+    const [before] = (await storedTreatment(id)).periods
 
     const updated = await service.update(id, saisie({ frequency: { value: 2, unit: 'day' } }))
 
-    const { periods } = await historyOf(id)
+    const { periods } = await storedTreatment(id)
     expect(periods).toHaveLength(2)
     expect(periods[0]).toEqual(before)
     expect(periods[1]).toMatchObject({
@@ -379,7 +379,7 @@ describe('treatmentPlanService', () => {
     const updated = await service.update(id, saisie({ nextDoseOn: '2026-10-06' }))
 
     expect(updated.periodId).toBe(id)
-    const { periods, doses } = await historyOf(id)
+    const { periods, doses } = await storedTreatment(id)
     expect(periods).toHaveLength(1)
     expect(doses.filter(({ status }) => status !== 'shift')).toMatchObject([
       { dueOn: '2026-10-03', givenOn: null, status: 'postponed', targetOn: '2026-10-06' },
@@ -406,11 +406,11 @@ describe('treatmentPlanService', () => {
     const planning = createTreatmentPlanService({
       treatments: () => ({
         create: (plan) => treatments.create(plan),
-        async getWithHistory(treatmentId) {
-          const history = await treatments.getWithHistory(treatmentId)
+        async getWithPeriods(treatmentId) {
+          const treatment = await treatments.getWithPeriods(treatmentId)
           notification ??= doses.noteMoment(treatmentId, today)
           await new Promise((resolve) => setTimeout(resolve, 50))
-          return history
+          return treatment
         },
         applyPlan: (treatmentId, plan) => treatments.applyPlan(treatmentId, plan),
       }),
@@ -423,7 +423,7 @@ describe('treatmentPlanService', () => {
     await planning.update(id, saisie({ nextDoseOn: '2026-10-06' }))
     await notification
 
-    const { doses: lines } = await historyOf(id)
+    const { doses: lines } = await storedTreatment(id)
     const report = lines.find(({ status }) => status === 'postponed')
     expect(report).toMatchObject({ dueOn: '2026-10-03' })
     expect(
@@ -434,7 +434,7 @@ describe('treatmentPlanService', () => {
   it('refuse une prochaine dose après la date de fin d’une période qui a déjà une prise, sans rien écrire (Q20)', async () => {
     const { id } = await service.create(MILBEMAX)
     await give(id, '2026-09-26')
-    const before = await historyOf(id)
+    const before = await storedTreatment(id)
 
     const refus = await service
       .update(id, saisie({ name: 'Autre', nextDoseOn: '2026-11-01' }))
@@ -444,14 +444,14 @@ describe('treatmentPlanService', () => {
     expect((refus as ZodError).issues).toMatchObject([
       { path: ['nextDoseOn'], message: 'afterEnd' },
     ])
-    await expect(historyOf(id)).resolves.toEqual(before)
+    await expect(storedTreatment(id)).resolves.toEqual(before)
   })
 
   it('reprend un traitement arrêté dans une nouvelle période, la précédente intacte (TR-32)', async () => {
     const { id } = await service.create(MILBEMAX)
     await give(id, '2026-09-26')
     await createTreatmentPeriodsRepository(db).stop(id, '2026-09-28')
-    const [before] = (await historyOf(id)).periods
+    const [before] = (await storedTreatment(id)).periods
     today = '2026-11-02'
 
     const resumed = await service.resume(id, {
@@ -466,7 +466,7 @@ describe('treatmentPlanService', () => {
     expect(resumed).toMatchObject({
       stoppedOn: null,
     })
-    const { periods } = await historyOf(id)
+    const { periods } = await storedTreatment(id)
     expect(resumed.periodId).toBe(periods[1]?.id)
     expect(periods[0]).toEqual(before)
     expect(periods[1]).toMatchObject({
@@ -484,7 +484,7 @@ describe('treatmentPlanService', () => {
     const { id } = await service.create({ ...MILBEMAX, firstDoseOn: '2026-09-25', endsOn: null })
     await give(id, '2026-10-02')
     await createTreatmentPeriodsRepository(db).stop(id, '2026-10-02')
-    const before = await historyOf(id)
+    const before = await storedTreatment(id)
 
     await service.resume(id, {
       firstDoseOn: '2026-10-02',
@@ -495,7 +495,7 @@ describe('treatmentPlanService', () => {
       endsOn: null,
     })
 
-    const after = await historyOf(id)
+    const after = await storedTreatment(id)
     expect(after.periods[0]).toEqual(before.periods[0])
     expect(after.doses).toEqual(before.doses)
     expect(after.periods[1]).toMatchObject({ startsOn: '2026-10-02', firstDueOn: '2026-10-02' })
@@ -547,7 +547,7 @@ describe('treatmentPlanService', () => {
     }
 
     async function scheduleOf(id: string) {
-      return treatmentReadingOf(await historyOf(id), today).view
+      return treatmentReadingOf(await storedTreatment(id), today).view
     }
 
     function times(dues: { dueOn: string; dueTime: string | null }[]): string[] {
@@ -567,7 +567,7 @@ describe('treatmentPlanService', () => {
 
       await service.update(id, reglages({ ...TOUS_LES_2_JOURS, nextDoseOn: '2026-09-29' }))
 
-      const { periods, doses } = await historyOf(id)
+      const { periods, doses } = await storedTreatment(id)
       expect(periods).toHaveLength(1)
       expect(doses.filter(({ status }) => status === 'postponed')).toMatchObject([
         { dueOn: '2026-09-27', dueTime: '08:00', targetOn: '2026-09-29' },
@@ -587,7 +587,7 @@ describe('treatmentPlanService', () => {
 
       await service.update(id, reglages({ ...TOUS_LES_2_JOURS, nextDoseOn: '2026-09-29' }))
 
-      const { doses } = await historyOf(id)
+      const { doses } = await storedTreatment(id)
       expect(doses.filter(({ status }) => status === 'postponed')).toMatchObject([
         { dueOn: '2026-09-27', dueTime: '20:00', targetOn: '2026-09-29' },
       ])
@@ -607,7 +607,7 @@ describe('treatmentPlanService', () => {
 
       await service.update(id, reglages({ times: ['09:00', '21:00'] }))
 
-      const { periods } = await historyOf(id)
+      const { periods } = await storedTreatment(id)
       expect(periods[1]).toMatchObject({
         startsOn: '2026-09-28',
         firstDueOn: '2026-09-28',
@@ -625,7 +625,7 @@ describe('treatmentPlanService', () => {
 
       await service.update(id, reglages({ times: ['09:00', '21:00'] }))
 
-      const { periods } = await historyOf(id)
+      const { periods } = await storedTreatment(id)
       expect(periods[1]).toMatchObject({ startsOn: '2026-09-28', firstDueOn: '2026-09-28' })
       const schedule = await scheduleOf(id)
       expect(times(schedule.currentDoses)).toEqual(['2026-09-28 09:00', '2026-09-28 21:00'])
@@ -640,12 +640,12 @@ describe('treatmentPlanService', () => {
   })
 
   describe('rappels', () => {
-    let seenAtReschedule: TreatmentWithHistory | null
+    let seenAtReschedule: TreatmentWithPeriods | null
 
     beforeEach(() => {
       seenAtReschedule = null
       reminders.reschedule.mockImplementation(async (id) => {
-        seenAtReschedule = await treatments.getWithHistory(id)
+        seenAtReschedule = await treatments.getWithPeriods(id)
       })
     })
 

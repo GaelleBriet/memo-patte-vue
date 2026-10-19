@@ -16,7 +16,7 @@ import {
 import { dose, period, plain, postponed, treatment } from './treatment-fixtures'
 import TreatmentChooseDays from '../views/TreatmentChooseDays.vue'
 import TreatmentReminderSheet from '../views/TreatmentReminderSheet.vue'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { Treatment } from '../schema/treatment.schema'
 import type { AppliedDoseChange } from '../service/treatment-doses.service'
 import { useTreatmentsStore } from '../store/treatments.store'
@@ -74,7 +74,7 @@ const BRAVECTO: Treatment = {
 }
 
 const AT = '2026-09-01T09:00:00.000Z'
-const HISTORY: TreatmentWithHistory = {
+const HISTORY: TreatmentWithPeriods = {
   id: BRAVECTO.id,
   animalId: BRAVECTO.animalId,
   name: BRAVECTO.name,
@@ -155,7 +155,7 @@ beforeEach(async () => {
   animals.animals = [BOREE]
   animals.hasLoaded = true
   const treatments = useTreatmentsStore()
-  vi.spyOn(treatments, 'getWithHistory').mockResolvedValue(HISTORY)
+  vi.spyOn(treatments, 'getWithPeriods').mockResolvedValue(HISTORY)
   apply = vi.spyOn(treatments, 'applyDoseAction').mockResolvedValue(APPLIED)
   undoDose = vi.spyOn(treatments, 'undoDoseAction').mockResolvedValue()
   stop = vi.spyOn(treatments, 'stop').mockResolvedValue({
@@ -219,7 +219,7 @@ const VENDREDIS = {
   }),
   animalId: BOREE.id,
 }
-const HEBDO: TreatmentWithHistory = {
+const HEBDO: TreatmentWithPeriods = {
   ...treatment([VENDREDIS], [dose('2026-10-09', '2026-10-16', { animalId: BOREE.id })]),
   animalId: BOREE.id,
   name: 'Milbemax',
@@ -228,9 +228,9 @@ const HEBDO: TreatmentWithHistory = {
 const DOSE_16 = { settingId: 'p-1', dueOn: '2026-10-16', dueTime: null }
 const LIGNE_16 = { dueOn: '2026-10-16', dueTime: null }
 
-function lePlus(history: TreatmentWithHistory, aujourdhui: string) {
+function lePlus(withPeriods: TreatmentWithPeriods, aujourdhui: string) {
   vi.setSystemTime(new Date(`${aujourdhui}T10:00:00`))
-  vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue(history)
+  vi.spyOn(useTreatmentsStore(), 'getWithPeriods').mockResolvedValue(withPeriods)
 }
 
 function geste() {
@@ -536,7 +536,7 @@ describe('TreatmentReminderSheet — F2, la feuille de l’échéance touchée',
 })
 
 describe('TreatmentReminderSheet — plusieurs heures par jour : l’heure de la ligne', () => {
-  const DEUX_HEURES: TreatmentWithHistory = {
+  const DEUX_HEURES: TreatmentWithPeriods = {
     ...HEBDO,
     periods: [{ ...VENDREDIS, frequency: { value: 1, unit: 'day' }, times: ['08:00', '20:00'] }],
     doses: [],
@@ -708,7 +708,7 @@ describe('TreatmentReminderSheet — fait à une autre date, avec la case (#527)
 
 describe('TreatmentReminderSheet — doses non renseignées (AC-9, TR-15)', () => {
   /** Quotidien depuis le 20 sept., rien de noté : trois doses à renseigner, dose du jour le 23. */
-  const QUOTIDIEN: TreatmentWithHistory = {
+  const QUOTIDIEN: TreatmentWithPeriods = {
     ...HISTORY,
     periods: [
       {
@@ -723,7 +723,7 @@ describe('TreatmentReminderSheet — doses non renseignées (AC-9, TR-15)', () =
 
   it('TR-37 : rien à renseigner pour un animal qu’on ne suit plus', async () => {
     useAnimalsStore().animals = [{ ...BOREE, unfollowedOn: '2026-09-21' }]
-    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue(QUOTIDIEN)
+    vi.spyOn(useTreatmentsStore(), 'getWithPeriods').mockResolvedValue(QUOTIDIEN)
 
     await monter('unlogged')
 
@@ -735,7 +735,7 @@ describe('TreatmentReminderSheet — doses non renseignées (AC-9, TR-15)', () =
     animals.animals = []
     animals.hasLoaded = false
     vi.spyOn(animals, 'load').mockReturnValue(new Promise(() => {}))
-    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue(QUOTIDIEN)
+    vi.spyOn(useTreatmentsStore(), 'getWithPeriods').mockResolvedValue(QUOTIDIEN)
 
     await monter('unlogged')
 
@@ -743,7 +743,7 @@ describe('TreatmentReminderSheet — doses non renseignées (AC-9, TR-15)', () =
   })
 
   it('la ligne « À renseigner » propose directement « Toutes données » et « Choisir les jours »', async () => {
-    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue(QUOTIDIEN)
+    vi.spyOn(useTreatmentsStore(), 'getWithPeriods').mockResolvedValue(QUOTIDIEN)
     const sheet = await monter('unlogged')
 
     expect(texte('.bottom-sheet__title')).toBe('Bravecto')
@@ -771,7 +771,7 @@ describe('TreatmentReminderSheet — doses non renseignées (AC-9, TR-15)', () =
   })
 
   it('« Choisir les jours » ouvre le calendrier des doses à renseigner', async () => {
-    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue(QUOTIDIEN)
+    vi.spyOn(useTreatmentsStore(), 'getWithPeriods').mockResolvedValue(QUOTIDIEN)
     const sheet = await monter('unlogged')
 
     bouton('.treatment-unlogged__action--choose-days').click()
@@ -790,7 +790,7 @@ describe('TreatmentReminderSheet — doses non renseignées (AC-9, TR-15)', () =
   })
 
   it('une seule dose : « Donnée » et « Oubliée »', async () => {
-    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue({
+    vi.spyOn(useTreatmentsStore(), 'getWithPeriods').mockResolvedValue({
       ...QUOTIDIEN,
       periods: [{ ...QUOTIDIEN.periods[0]!, startsOn: '2026-09-22', firstDueOn: '2026-09-22' }],
     })
@@ -804,7 +804,7 @@ describe('TreatmentReminderSheet — doses non renseignées (AC-9, TR-15)', () =
   })
 
   it('la feuille d’une dose montre le bandeau compact, sans sa note', async () => {
-    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue(QUOTIDIEN)
+    vi.spyOn(useTreatmentsStore(), 'getWithPeriods').mockResolvedValue(QUOTIDIEN)
     await monter({ dueOn: '2026-09-23', dueTime: null })
 
     expect(texte('.reminder-actions__due')).toBe('Prochaine dose le 23 sept.')
@@ -908,7 +908,7 @@ describe('TreatmentReminderSheet — arrêt raté', () => {
 
 describe('TreatmentReminderSheet — arrêter avec des doses à renseigner (TR-30)', () => {
   /** Quotidien depuis le 20 sept., rien de noté : trois doses à renseigner, dose du jour le 23. */
-  const QUOTIDIEN: TreatmentWithHistory = {
+  const QUOTIDIEN: TreatmentWithPeriods = {
     ...HISTORY,
     periods: [
       {
@@ -932,7 +932,7 @@ describe('TreatmentReminderSheet — arrêter avec des doses à renseigner (TR-3
   }
 
   beforeEach(() => {
-    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue(QUOTIDIEN)
+    vi.spyOn(useTreatmentsStore(), 'getWithPeriods').mockResolvedValue(QUOTIDIEN)
   })
 
   it('propose de renseigner les doses, puis arrête en un geste', async () => {
@@ -1007,7 +1007,7 @@ describe('TreatmentReminderSheet — arrêter avec des doses à renseigner (TR-3
 
 describe('TreatmentReminderSheet — traitement fini par sa date de fin', () => {
   it('ne propose pas d’arrêter', async () => {
-    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue({
+    vi.spyOn(useTreatmentsStore(), 'getWithPeriods').mockResolvedValue({
       ...HISTORY,
       periods: [{ ...HISTORY.periods[0]!, endsOn: '2026-09-21' }],
     })
@@ -1042,7 +1042,7 @@ describe('TreatmentReminderSheet — confirmation simple de l’arrêt', () => {
   })
 
   it('dit que la dose du jour n’est pas notée, même sans dose à renseigner (Q9)', async () => {
-    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue({
+    vi.spyOn(useTreatmentsStore(), 'getWithPeriods').mockResolvedValue({
       ...HISTORY,
       periods: [
         {
@@ -1064,7 +1064,7 @@ describe('TreatmentReminderSheet — confirmation simple de l’arrêt', () => {
   })
 
   it('traitement illisible : pas de « Arrêter », comme sur la fiche', async () => {
-    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue({
+    vi.spyOn(useTreatmentsStore(), 'getWithPeriods').mockResolvedValue({
       ...HISTORY,
       periods: [{ ...HISTORY.periods[0]!, times: ['8h'] }],
     })

@@ -5,9 +5,9 @@ import type { Animal } from '@/features/animals/schema/animal.schema'
 import {
   dose,
   period,
-  treatment as withHistory,
+  treatment as withPeriods,
 } from '@/features/treatments/__tests__/treatment-fixtures'
-import type { TreatmentWithHistory } from '@/features/treatments/schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '@/features/treatments/schema/treatment-with-periods.schema'
 import type { TreatmentPeriodRecord } from '@/features/treatments/schema/treatment-period.schema'
 import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import { createRemindersPriming, hasUpcomingDueDates } from '../service/reminders-priming.service'
@@ -57,13 +57,13 @@ function vaccination(dueDate: string | null, animalId = MILO.id): Vaccination {
 function treatment(
   overrides: Partial<TreatmentPeriodRecord>,
   animalId = MILO.id,
-  doses: Parameters<typeof withHistory>[1] = [],
-): TreatmentWithHistory {
+  doses: Parameters<typeof withPeriods>[1] = [],
+): TreatmentWithPeriods {
   const periods = [period({ frequency: { value: 3, unit: 'month' }, ...overrides })]
-  return { ...withHistory(periods, doses), animalId }
+  return { ...withPeriods(periods, doses), animalId }
 }
 
-function withTreatment(entry: TreatmentWithHistory, animals = [MILO]): boolean {
+function withTreatment(entry: TreatmentWithPeriods, animals = [MILO]): boolean {
   return hasUpcomingDueDates({ animals, vaccinations: [], treatments: [entry] }, TODAY)
 }
 
@@ -190,7 +190,7 @@ describe('promptNotificationsIfReminders', () => {
   let router: Router
   let shouldShowPriming: ReturnType<typeof vi.fn<() => Promise<boolean>>>
   let vaccinations: Vaccination[]
-  let treatments: TreatmentWithHistory[]
+  let treatments: TreatmentWithPeriods[]
   let listAll: ReturnType<typeof vi.fn<() => Promise<Vaccination[]>>>
   let isNativePlatform: boolean
 
@@ -200,7 +200,7 @@ describe('promptNotificationsIfReminders', () => {
       shouldShowPriming,
       animals: () => ({ list: async () => [MILO] }),
       vaccinations: () => ({ listAll }),
-      treatments: () => ({ listAllWithHistory: async () => treatments }),
+      treatments: () => ({ listAllWithPeriods: async () => treatments }),
       today: () => TODAY,
     })(router, from)
   }

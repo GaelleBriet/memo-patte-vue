@@ -568,7 +568,7 @@ describe('treatmentsRepository — périodes et prises', () => {
       await repository.restore(created.id, deletedAt)
 
       expect(deletedAt).toBe(REMOVED_AT)
-      await expect(repository.getWithHistory(created.id)).resolves.toMatchObject({
+      await expect(repository.getWithPeriods(created.id)).resolves.toMatchObject({
         id: created.id,
         updatedAt: UNDONE_AT,
         periods: [{ id: created.id }],
@@ -613,7 +613,7 @@ describe('treatmentsRepository — périodes et prises', () => {
       await repository.restore(created.id, again)
 
       expect(again).toBe(UNDONE_AT)
-      await expect(repository.getWithHistory(created.id)).resolves.toBeNull()
+      await expect(repository.getWithPeriods(created.id)).resolves.toBeNull()
     })
   })
 

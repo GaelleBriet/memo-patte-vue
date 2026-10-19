@@ -1,5 +1,5 @@
 import type { DoseWrite } from '../schema/treatment-dose.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import { legacyFactsOf } from '@/shared/domain/dose-calendar'
@@ -109,7 +109,7 @@ export function extra(
 export function treatment(
   periods: TreatmentPeriodRecord[],
   doses: TreatmentDose[] = [],
-): TreatmentWithHistory {
+): TreatmentWithPeriods {
   return {
     id: 'metacam',
     animalId: 'luna',
@@ -124,10 +124,10 @@ export function treatment(
 
 /** Le carnet après un lot d'écritures, comme `applyBatch` le laisserait. */
 export function written(
-  history: TreatmentWithHistory,
+  withPeriods: TreatmentWithPeriods,
   writes: readonly DoseWrite[],
   at = '2026-09-28T12:00:00.000Z',
-): TreatmentWithHistory {
+): TreatmentWithPeriods {
   const doses = writes.reduce((lines, write) => {
     switch (write.action) {
       case 'create':
@@ -152,8 +152,8 @@ export function written(
       case 'restore':
         throw new Error('Une restauration ne se rejoue pas sur un carnet de test.')
     }
-  }, history.doses)
-  return { ...history, doses }
+  }, withPeriods.doses)
+  return { ...withPeriods, doses }
 }
 
 export { plain } from '@/shared/__tests__/plain'

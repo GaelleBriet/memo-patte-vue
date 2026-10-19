@@ -21,7 +21,7 @@ import type {
   TreatmentPeriodRecord,
   TreatmentPeriodSettings,
 } from '../schema/treatment-period.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { isCalendarDay, latestOf, nextDay } from '@/shared/domain/calendar-day'
 import type { Phase } from '@/shared/domain/dose-calendar'
 
@@ -44,7 +44,7 @@ export type ResumptionDraft = {
 // prises même notées en avance, ou au lendemain de la date de fin et de la dernière prise notée
 // d'une période finie.
 function resumptionEarliestOn(
-  treatment: TreatmentWithHistory,
+  treatment: TreatmentWithPeriods,
   period: TreatmentPeriodRecord,
 ): string {
   if (period.stoppedOn !== null)
@@ -57,7 +57,7 @@ export function isResumablePhase(phase: Phase): boolean {
   return phase === 'stopped' || phase === 'ended'
 }
 
-export function resumptionDraft(treatment: TreatmentWithHistory, today: string): ResumptionDraft {
+export function resumptionDraft(treatment: TreatmentWithPeriods, today: string): ResumptionDraft {
   const { view } = treatmentReadingOf(treatment, today)
   const period = currentPeriod(treatment, view)
   const durationDays =
@@ -87,7 +87,7 @@ function resumedSettings(
 }
 
 /** Le schéma de « Reprendre », la première prise après la dernière période. */
-export function treatmentResumptionSchemaFor(treatment: TreatmentWithHistory, today: string) {
+export function treatmentResumptionSchemaFor(treatment: TreatmentWithPeriods, today: string) {
   const { period, earliestOn } = resumptionDraft(treatment, today)
   return treatmentResumptionSchema
     .refine(({ firstDoseOn }) => firstDoseOn >= earliestOn, {
@@ -104,7 +104,7 @@ export function treatmentResumptionSchemaFor(treatment: TreatmentWithHistory, to
 
 /** Lève pour un traitement en cours ou une saisie refusée ; la période précédente n'est jamais touchée. */
 export function resumptionPlan(
-  treatment: TreatmentWithHistory,
+  treatment: TreatmentWithPeriods,
   input: TreatmentResumptionInput,
   today: string,
   ids: PlanIds,

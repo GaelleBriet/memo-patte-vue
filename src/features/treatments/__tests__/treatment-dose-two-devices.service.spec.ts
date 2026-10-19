@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { readTreatment } from '@/shared/domain/treatment-reading'
-import { createReplay, storedHistory, type Replay } from './treatment-services-replay'
+import { createReplay, storedTreatment, type Replay } from './treatment-services-replay'
 
 const ID = '22222222-2222-4222-8222-222222222222'
 const ANIMAL = '11111111-1111-4111-8111-111111111111'
@@ -82,12 +82,12 @@ describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-1
        VALUES (?, ?, ?, ?, '2026-10-10', NULL, ?, ?, NULL, ?, ?, 'autre', 'autre')`,
       [other.id, ID, ID, ANIMAL, other.givenOn, other.status, otherAt, otherAt],
     )
-    const doses = (await storedHistory(replay.treatments, ID)).doses
+    const doses = (await storedTreatment(replay.treatments, ID)).doses
     return doses.find(({ id }) => id !== other.id)!.id
   }
 
   async function sheetLines(): Promise<Record<string, string>> {
-    const reading = readTreatment(await storedHistory(replay.treatments, ID), replay.clock.day)
+    const reading = readTreatment(await storedTreatment(replay.treatments, ID), replay.clock.day)
     return Object.fromEntries(
       reading!.view.history.map(({ line, effect }) => [
         line.id,
@@ -101,7 +101,7 @@ describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-1
     replay.tick()
     await replay.doses.apply(ID, { kind: 'remove', lineId: shown })
 
-    expect((await storedHistory(replay.treatments, ID)).doses).toEqual([])
+    expect((await storedTreatment(replay.treatments, ID)).doses).toEqual([])
   })
 
   it('dose du 10 oct. de Milo notée sur chaque appareil, « Modifier » au 11 : une seule ligne, donnée le 11', async () => {
@@ -115,7 +115,7 @@ describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-1
       shiftsFollowing: false,
     })
 
-    expect((await storedHistory(replay.treatments, ID)).doses).toMatchObject([
+    expect((await storedTreatment(replay.treatments, ID)).doses).toMatchObject([
       { id: shown, dueOn: '2026-10-10', givenOn: '2026-10-11', status: 'given' },
     ])
   })

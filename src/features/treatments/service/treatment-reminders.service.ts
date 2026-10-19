@@ -13,14 +13,14 @@ import type { CarnetReminderSettings } from '@/shared/domain/reminder-plan'
 import { treatmentReminders } from '../logic/treatment-reminders'
 import {
   getTreatmentsRepository,
-  type TreatmentWithHistoryReader,
+  type TreatmentWithPeriodsReader,
 } from '../repository/treatments.repository'
 import type { Translate } from '@/core/i18n/translate'
 
 type Provider<T> = () => T | Promise<T>
 
 export type TreatmentRemindersDependencies = {
-  treatments: Provider<TreatmentWithHistoryReader>
+  treatments: Provider<TreatmentWithPeriodsReader>
   animals: Provider<Pick<AnimalsRepository, 'getById'>>
   settings?: Provider<CarnetReminderSettings>
   notifications: ReminderNotifications
@@ -41,7 +41,7 @@ export function createTreatmentRemindersService({
     /** Relit le traitement et son historique dans la file des rappels : supprimé, il n'a plus de rappel. */
     async reschedule(id: string): Promise<void> {
       await replaceDueReminders(notifications, { kind: 'treatment', id }, async () => {
-        const treatment = await (await treatments()).getWithHistory(id)
+        const treatment = await (await treatments()).getWithPeriods(id)
         if (treatment === null) return { care: null, isNoted: () => false }
         const animal = await (await animals()).getById(treatment.animalId)
         return treatmentReminders(t, treatment, animal, await settings(), now())

@@ -10,7 +10,7 @@ import {
   type TreatmentFormValues,
 } from './treatment-form-values'
 import { treatmentFormErrorsOf, type TreatmentFormErrors } from './treatment-form-errors'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { PastDuesChoice } from '../schema/treatment-form.schema'
 import { isCalendarDay } from '@/shared/domain/calendar-day'
 
@@ -21,7 +21,7 @@ export type TreatmentEditionResult =
 /** Ce que « Modifier » ferait de la saisie en cours ; lève quand l'historique est illisible. */
 export function editionDraftOf(
   values: TreatmentFormValues,
-  treatment: TreatmentWithHistory,
+  treatment: TreatmentWithPeriods,
   today: string,
 ): EditionDraft {
   const chosenOn = values.nextDoseOn.trim()
@@ -44,7 +44,7 @@ export function editionDraftOf(
  */
 export function validateTreatmentEdition(
   values: TreatmentFormValues,
-  treatment: TreatmentWithHistory,
+  treatment: TreatmentWithPeriods,
   today: string,
   pastDues: PastDuesChoice | null = null,
   draft: EditionDraft | null = null,
@@ -78,7 +78,7 @@ export function validateTreatmentEdition(
 }
 
 /** Les valeurs d'un traitement relu : ses réglages en cours et la prochaine dose proposée. */
-export function editedFormValues(loaded: TreatmentWithHistory, today: string): TreatmentFormValues {
+export function editedFormValues(loaded: TreatmentWithPeriods, today: string): TreatmentFormValues {
   const first = editionDraftOf(emptyTreatmentFormValues(), loaded, today)
   return {
     ...treatmentFormValuesFrom(loaded, first.period),

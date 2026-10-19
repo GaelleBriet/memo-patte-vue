@@ -12,7 +12,7 @@ import {
 } from './treatment-history-rows'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { byStartDescending, periodLastDay } from '@/shared/domain/treatment-periods'
 import { historyEntries, type TreatmentReading } from '@/shared/domain/treatment-reading'
 import { formatLongDate, formatDayMonthOrYear } from '@/shared/utils/format'
@@ -177,7 +177,7 @@ function lastPlannedDoseGiven(entries: Entry[]): TreatmentDose | undefined {
 
 // R12 : chaque ligne du traitement, lue avec son effet sur le calendrier.
 function entriesOf(
-  treatment: Pick<TreatmentWithHistory, 'doses'>,
+  treatment: Pick<TreatmentWithPeriods, 'doses'>,
   { view }: TreatmentReading,
 ): Entry[] {
   const records = new Map(treatment.doses.map((dose) => [dose.id, dose]))
@@ -189,7 +189,7 @@ function entriesOf(
 
 export function treatmentHistory(
   t: Translate,
-  treatment: Pick<TreatmentWithHistory, 'periods' | 'doses'>,
+  treatment: Pick<TreatmentWithPeriods, 'periods' | 'doses'>,
   reading: TreatmentReading,
   today: string,
 ): TreatmentHistory {
