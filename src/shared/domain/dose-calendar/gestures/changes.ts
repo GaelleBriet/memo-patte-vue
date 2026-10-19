@@ -1,4 +1,4 @@
-import { keyOf, later, longestStep, plusDays, sameFrequency } from '../grid'
+import { keyOf, later, plusDays, sameFrequency } from '../grid'
 import { familyOf } from '../lines'
 import { withReportFacts } from '../report-facts'
 import { episodesOf } from '../settings'
@@ -150,13 +150,13 @@ export function rewrittenSetting(
   }
 }
 
-const COMPARED_DUES = 6
+const GRID_SPAN_DAYS = 400
 const DAYS_PER_UNIT = { day: 1, week: 7 } as const
 
 const gridDateOf = (setting: Setting) =>
   setting.gridWrittenAt ?? setting.updatedAt ?? setting.createdAt
 
-// M2 : la même suite de jours ; un mois n'équivaut jamais à des jours.
+// La même suite de jours : semaines et jours se convertissent, un mois jamais.
 function equivalentSteps(a: Setting['frequency'], b: Setting['frequency']): boolean {
   if (a.unit === 'month' || b.unit === 'month') return sameFrequency(a, b)
   return a.value * DAYS_PER_UNIT[a.unit] === b.value * DAYS_PER_UNIT[b.unit]
@@ -177,7 +177,7 @@ function readDays(view: TreatmentView, from: Day, to: Day): Day[] {
     if (line.targetOn !== null) days.delete(line.targetOn)
     if (line.dueOn >= from && line.dueOn <= to) days.add(line.dueOn)
   }
-  return [...days].sort().slice(0, COMPARED_DUES)
+  return [...days].sort()
 }
 
 function judged(
@@ -189,8 +189,7 @@ function judged(
   if (previous === undefined || previous.endsOn !== opening.endsOn) return undefined
   if (!equivalentSteps(previous.frequency, opening.frequency)) return undefined
   const from = later(opening.startsOn, opening.firstDueOn)
-  const steps = Math.max(longestStep(previous.frequency), longestStep(opening.frequency))
-  const to = plusDays(from, (COMPARED_DUES + 1) * steps)
+  const to = opening.endsOn ?? plusDays(from, GRID_SPAN_DAYS)
   const days = (input: TreatmentViewInput) => JSON.stringify(readDays(gridView(input), from, to))
   if (days(before) !== days(after)) return undefined
   // Arrêté ou fini, prises comprises : une reprise ouvre une grille neuve.
@@ -224,7 +223,17 @@ export function inheritedGridAt(input: TreatmentViewInput, plan: SettingsPlan): 
     lines: input.lines.filter(({ settingId }) => settingId !== plan.id),
   }
   if (before.settings.length === 0) return undefined
-  const next = { ...current, ...plan.setting }
+  const previous = episodesOf(before.settings).at(-1)?.at(-1)
+  const ownDate = previous !== undefined && current.gridWrittenAt !== gridDateOf(previous)
+  // Datée par elle-même puis touchée par un report d'une autre période : un seul « Modifier » l'aurait datée.
+  const touched = input.lines.some(
+    ({ settingId, status, updatedAt }) =>
+      settingId !== plan.id &&
+      (status === 'postponed' || status === 'shift') &&
+      updatedAt >= current.createdAt,
+  )
+  if (ownDate && touched) return undefined
+  const next = rewrittenSetting(current, plan.setting, () => WRITTEN_AT)
   return judged(before, applied({ ...before, settings: [...before.settings, next] }, changes), next)
 }
 

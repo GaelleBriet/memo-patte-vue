@@ -9,7 +9,10 @@ import {
   type Line,
   type Setting,
   type SettingFields,
+  type SettingsPlan,
+  type TreatmentViewInput,
 } from '../domain/dose-calendar'
+import seeds from './fixtures/dose-calendar-grille-heritee-graines.json'
 
 // Une période qui reprend la grille de la précédente sans la changer garde sa date de grille : la
 // grille se lit comme le moteur la lit, décalages compris, à partir de la nouvelle première échéance.
@@ -349,4 +352,22 @@ describe('à l’écriture : la simulation date la grille comme une écriture ne
       expect(rewritten('2026-04-02').gridWrittenAt).toBe('2026-04-01T06:05:00.000Z')
     })
   })
+})
+
+// Graines de la propriété de la 5e relecture (#977), écrites telles qu'elles ont été relevées.
+describe('graines relevées contre la lecture du moteur', () => {
+  it.each(seeds.map((seed) => [seed.seed, seed.step, seed.expected, seed] as const))(
+    'graine %i, pas %i : %s',
+    (_, __, expected, seed) => {
+      const input = {
+        settings: seed.settings,
+        lines: seed.lines,
+        today: seed.today,
+      } as TreatmentViewInput
+      const verdict =
+        inheritedGridAt(input, seed.plan as SettingsPlan) === undefined ? 'datée' : 'hérite'
+
+      expect(verdict).toBe(expected)
+    },
+  )
 })

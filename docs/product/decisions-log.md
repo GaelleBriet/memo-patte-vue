@@ -3125,6 +3125,19 @@ migration accordée ; schéma v17, export v10).
   d'un décalage ramène la même suite de jours que la période d'avant, la date héritée revient,
   quelle que soit la correction qui déclenche le jugement. Une réécriture un autre jour garde la
   règle des colonnes (date de grille posée quand l'un des quatre champs change).
+- « Prochaine dose » seule est un déplacement (un report) : elle n'ouvre pas de période et ne date
+  jamais la grille ; combinée à un changement d'heures dans le même « Modifier », c'est l'ouverture
+  qui est jugée, donc datée : le nombre de « Modifier » change ici le résultat parce que les gestes
+  ne sont pas les mêmes (Q2, 19 octobre 2026). Le jugement lit l'état actuel des lignes : supprimer
+  une prise entre deux gestes est un vrai changement du carnet (Q1).
+- Une période datée par elle-même, puis touchée par un report ou un décalage d'une autre période
+  écrit depuis son ouverture, ne ré-hérite jamais : un second « Modifier » garde sa date, comme un
+  seul l'aurait fait (I-1 de la 5e relecture). Milo, tous les 3 jours à 20 h depuis le 1er mars, dose
+  du 1er donnée ; le 2, la dose du 4 reportée au 6 en décalant ; le 3, un « Modifier » (22 h,
+  « Prochaine dose » le 5) ou deux (21 h et le 5, puis 22 h) : datée du 3 mars à 8 h.
+- La comparaison des jours de grille porte sur la fenêtre utile : jusqu'à la fin du traitement, ou
+  400 jours sans fin (une grille qui ne diffère qu'au 22 mars est datée) ; la lecture « après » d'une
+  réécriture est datée comme l'écriture réelle.
 - Le second « Modifier » du jour se juge contre les périodes d'avant le jour, sans les lignes de la
   période du jour (I-3, décision du 19 octobre 2026 de la session d'analyse du moteur) ; aucune
   colonne ne garde la grille d'avant la première ouverture. Résidu accepté : une réécriture du jour

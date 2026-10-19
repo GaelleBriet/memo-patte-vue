@@ -416,6 +416,25 @@ describe('reports, décalages et lignes que le même « Modifier » réécrit', 
     expect(results).toEqual([false, false, true])
   })
 
+  it('tous les 3 jours depuis le 1er mars, dose du 1er donnée, la dose du 4 reportée au 6 en décalant ; le 3, un ou deux « Modifier » (22 h et le 5) : datée du 3 mars à 8 h', async () => {
+    const results: string[] = []
+    for (const steps of [[['22:00']], [['21:00'], ['22:00']]]) {
+      at('2026-03-01', '07:00')
+      const id = await create('2026-03-01', { value: 3, unit: 'day' }, ['20:00'])
+      at('2026-03-01', '21:00')
+      await note(id, '2026-03-01', '20:00', 'given', '2026-03-01')
+      at('2026-03-02', '09:00')
+      await move(id, '2026-03-04', '20:00', '2026-03-06')
+      for (const [index, times] of steps.entries()) {
+        at('2026-03-03', `0${8 + index}:00`)
+        await modify(id, { value: 3, unit: 'day' }, times, '2026-03-05')
+      }
+      results.push((await storedTreatment(app.treatments, id)).periods.at(-1)!.gridWrittenAt)
+    }
+
+    expect(results).toEqual(['2026-03-03T08:00:00.000Z', '2026-03-03T08:00:00.000Z'])
+  })
+
   it('tous les 3 jours depuis le 1er mars, la dose du 4 reportée au 8 en décalant ; le 5, un ou deux « Modifier » vers le 9 : la même date de grille, datée', async () => {
     const results: [boolean, string][] = []
     for (const steps of [['2026-03-09'], ['2026-03-06', '2026-03-09']]) {
