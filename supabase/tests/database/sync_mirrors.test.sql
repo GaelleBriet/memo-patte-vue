@@ -105,6 +105,13 @@ select col_not_null('public', 'treatment_period', 'grid_written_at',
 select ok(
   has_column_privilege('authenticated', 'public.treatment_period', 'grid_written_at', 'UPDATE'),
   'v17 (fichier) : la date d''écriture de la grille se synchronise');
+select col_type_is('public', 'treatment_period', 'grid_before', 'text',
+  'v17 (fichier) : la grille d''avant l''ouverture est un texte');
+select col_is_null('public', 'treatment_period', 'grid_before',
+  'v17 (fichier) : une période peut n''avoir aucune grille d''avant');
+select ok(
+  has_column_privilege('authenticated', 'public.treatment_period', 'grid_before', 'UPDATE'),
+  'v17 (fichier) : la grille d''avant l''ouverture se synchronise');
 
 -- Structure : RLS forcée, politiques par opération, droits minimaux.
 select is(
@@ -716,6 +723,7 @@ select ok(
 -- lit), puis le corps de la migration, sur des réglages dont un a été réécrit après sa création.
 drop trigger treatment_period_clamp_grid_written_at on public.treatment_period;
 alter table public.treatment_period drop column grid_written_at;
+alter table public.treatment_period drop column grid_before;
 
 update public.treatment_period
 set settings_written_at = now() - interval '30 minutes'
@@ -725,13 +733,14 @@ create temp table before_v17 as
   select user_id, id, updated_at, settings_written_at from public.treatment_period;
 
 alter table public.treatment_period add column grid_written_at timestamptz;
+alter table public.treatment_period add column grid_before text;
 
 update public.treatment_period
 set grid_written_at = settings_written_at;
 
 alter table public.treatment_period alter column grid_written_at set not null;
 
-grant update (grid_written_at) on table public.treatment_period to authenticated;
+grant update (grid_written_at, grid_before) on table public.treatment_period to authenticated;
 
 create trigger treatment_period_clamp_grid_written_at
   before insert or update on public.treatment_period
@@ -757,6 +766,12 @@ select throws_ok(
 select ok(
   has_column_privilege('authenticated', 'public.treatment_period', 'grid_written_at', 'UPDATE'),
   'v17 : la date d''écriture de la grille se synchronise');
+select is(
+  (select count(*) from public.treatment_period where grid_before is not null),
+  0::bigint, 'v17 : aucune grille d''avant n''est connue des périodes existantes');
+select ok(
+  has_column_privilege('authenticated', 'public.treatment_period', 'grid_before', 'UPDATE'),
+  'v17 : la grille d''avant l''ouverture se synchronise');
 
 select * from finish();
 rollback;

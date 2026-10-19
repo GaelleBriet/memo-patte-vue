@@ -160,6 +160,7 @@ async function seedDemoCarnet(repositories: FixturesRepositories, today: Date): 
                 ...stamps,
                 settingsWrittenAt: stamps.createdAt,
                 gridWrittenAt: stamps.createdAt,
+                gridBefore: null,
                 id: periodId,
                 treatmentId,
                 animalId,

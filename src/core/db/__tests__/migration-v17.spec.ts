@@ -124,21 +124,22 @@ describe.each([
     const without = (row: Record<string, unknown>) => {
       const kept = { ...row }
       delete kept.grid_written_at
+      delete kept.grid_before
       return kept
     }
     expect((await rows(db, 'treatment_period')).map(without)).toEqual(periodsBefore)
     expect(await rows(db, 'treatment_dose')).toEqual(dosesBefore)
   })
 
-  it('la dernière écriture de la grille vaut celle des réglages', async () => {
+  it('la dernière écriture de la grille vaut celle des réglages ; aucune grille d’avant n’est connue', async () => {
     await applyMigrations(db, 17)
 
     await expect(
-      db.query('SELECT id, grid_written_at FROM treatment_period ORDER BY id'),
+      db.query('SELECT id, grid_written_at, grid_before FROM treatment_period ORDER BY id'),
     ).resolves.toEqual([
-      { id: 'p1', grid_written_at: CREE },
-      { id: 'p2', grid_written_at: REGLE },
-      { id: 'p3', grid_written_at: REGLE },
+      { id: 'p1', grid_written_at: CREE, grid_before: null },
+      { id: 'p2', grid_written_at: REGLE, grid_before: null },
+      { id: 'p3', grid_written_at: REGLE, grid_before: null },
     ])
   })
 

@@ -401,6 +401,7 @@ describe('schéma sur une installation neuve', () => {
         'updated_at',
         'settings_written_at',
         'grid_written_at',
+        'grid_before',
         'deleted_at',
         'created_by_device',
         'updated_by_device',

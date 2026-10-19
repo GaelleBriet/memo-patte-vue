@@ -82,6 +82,7 @@ export const migrationV17: DbMigration = {
         updated_at TEXT NOT NULL,
         settings_written_at TEXT NOT NULL,
         grid_written_at TEXT NOT NULL,
+        grid_before TEXT,
         deleted_at TEXT,
         created_by_device TEXT NOT NULL,
         updated_by_device TEXT NOT NULL
