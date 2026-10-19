@@ -68,7 +68,10 @@ function writePlan(input: TreatmentViewInput, plan: SettingsPlan, clock: Clock, 
   if (plan.action === 'rewrite') {
     const settings = input.settings.map((setting) =>
       setting.id === plan.id
-        ? rewrittenSetting(setting, plan.setting, () => stamp(clock), input)
+        ? rewrittenSetting(setting, plan.setting, () => stamp(clock), {
+            input,
+            lines: plan.lines ?? [],
+          })
         : setting,
     )
     return { ...input, lines, settings }

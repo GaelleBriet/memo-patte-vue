@@ -293,7 +293,7 @@ première échéance, de la fréquence, de l'origine de la grille ou de la fin ;
 heures, de la posologie, du rappel, du seul fait que la date soit choisie ou de la réponse à la
 question des doses tombées ne la change pas, un arrêt ou une suppression non plus. `settings_written_at` garde sa règle (#867).
 L'écriture d'une période la pose à sa création, ou reprend celle de la période qu'elle remplace quand
-elle en garde la grille (`inheritedGridAt`, `src/shared/domain/dose-calendar/gestures/grid-heritage.ts`, qui compare les jours que lit le moteur) ; la correction sur place
+elle en garde la grille (`inheritedGridAt`, `src/shared/domain/dose-calendar/gestures/changes.ts`, qui compare les jours de grille que lit le moteur) ; une correction sur place le jour de l'ouverture pose telle quelle la date héritée que le plan lui donne (`treatment-period-correction.repository.ts`) ; une autre correction sur place
 (`treatment-period-correction.repository.ts`) ne la date que si l'une de ces colonnes change. Le moteur
 la reçoit (`Setting.gridWrittenAt`) ; la règle qui la compare à la date d'un report vient avec la
 PR #958.

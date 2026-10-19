@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   inheritedGridAt,
+  rewrittenSetting,
   settingsApplied,
   treatmentView,
   type Frequency,
@@ -315,17 +316,13 @@ describe('fréquences lues sur la suite de jours', () => {
   })
 })
 
-describe('dans le carnet que le moteur rejoue', () => {
-  it('la période qui hérite prend la date de grille de la précédente, sinon sa création', () => {
+describe('à l’écriture : la simulation date la grille comme une écriture neuve', () => {
+  it('la simulation ne juge pas l’héritage, l’écriture si', () => {
     const input = { settings: [milo], lines: [], today: '2026-04-01' }
-    const opened = (change: Partial<SettingFields>) =>
-      settingsApplied(input, {
-        action: 'create',
-        setting: { ...hoursOnly, ...change },
-      }).settings.at(-1)!
+    const plan = { action: 'create', setting: hoursOnly } as const
 
-    expect(opened({}).gridWrittenAt).toBe(WRITTEN)
-    expect(opened({ endsOn: '2026-06-30' }).gridWrittenAt).toBe(opened({}).createdAt)
+    expect(settingsApplied(input, plan).settings.at(-1)!.gridWrittenAt).toBeUndefined()
+    expect(inheritedGridAt(input, plan)).toBe(WRITTEN)
   })
 
   describe('un réglage ouvert aujourd’hui et réécrit sur place se juge comme une ouverture', () => {
@@ -339,17 +336,17 @@ describe('dans le carnet que le moteur rejoue', () => {
       gridWrittenAt: '2026-04-01T06:00:00.000Z',
     })
     const rewritten = (today: string) =>
-      settingsApplied(
-        { settings: [milo, s2], lines: [], today },
-        { action: 'rewrite', id: 's2', setting: hoursOnly },
-      ).settings.at(-1)!
+      rewrittenSetting(s2, hoursOnly, () => '2026-04-01T06:05:00.000Z', {
+        input: { settings: [milo, s2], lines: [], today },
+        lines: [],
+      })
 
     it('remis à tous les 3 jours le jour même : la date de grille du 26 mars', () => {
       expect(rewritten('2026-04-01').gridWrittenAt).toBe(WRITTEN)
     })
 
     it('un autre jour, la réécriture date la grille', () => {
-      expect(rewritten('2026-04-02').gridWrittenAt).not.toBe(WRITTEN)
+      expect(rewritten('2026-04-02').gridWrittenAt).toBe('2026-04-01T06:05:00.000Z')
     })
   })
 })

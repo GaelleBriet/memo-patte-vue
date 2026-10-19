@@ -3089,9 +3089,13 @@ migration accordée ; schéma v17, export v10).
   ligne du report la date d'écriture du réglage qu'il a vue.
 - Héritage : la date de grille d'une période est celle de sa dernière écriture de grille ; une
   période qui reprend la grille de la précédente sans la changer garde sa date. Les échéances en
-  décident, pas les colonnes : à fin égale, la période hérite quand le moteur lit les mêmes jours avec
-  et sans elle à partir de sa première échéance (`inheritedGridAt`,
-  `src/shared/domain/dose-calendar/gestures/grid-heritage.ts`). Milo, tous les 3 jours à 20 h depuis le
+  décident, pas les colonnes : à fin égale et à fréquence équivalente, la période hérite quand le
+  moteur lit les mêmes jours de grille avec et sans elle, à partir de sa première échéance
+  (`inheritedGridAt`, `src/shared/domain/dose-calendar/gestures/changes.ts`). Les jours de grille se
+  lisent décalages et reports compris, une dose reportée comptée à son départ : un report seul ne
+  date jamais la grille. Le jugement porte sur tout ce que le même « Modifier » écrit, lignes
+  réécrites comprises (Milo, tous les jours depuis le 1er mars, la dose du 6 reportée au 21 en
+  décalant ; le 6, « Prochaine dose » le 15 réécrit le report et le décalage : datée). Milo, tous les 3 jours à 20 h depuis le
   26 mars, prises du 26 et du 29 ; le 1er avril, « Modifier » à 6 h : la nouvelle période garde la
   date de grille, un report de A du 31 mars n'est pas battu. Héritent : « Modifier » aux heures
   seules, « Elles restent à renseigner » (mêmes jours). Datées de leur création : « Prochaine dose »
@@ -3115,8 +3119,15 @@ migration accordée ; schéma v17, export v10).
   report n'avait pas vu : la grille est datée (grille qui commence le 10 avril, « Prochaine dose »
   le 7). La première échéance se compare à celle que lit le moteur, pas à l'origine.
 - « Même fréquence » se lit sur la suite de jours : 2 semaines et 14 jours, 1 semaine et 7 jours ont
-  la même grille ; un mois n'équivaut jamais à des jours. À fréquence seulement équivalente, la
-  première échéance doit tomber sur l'ancienne grille, même proposée.
+  la même grille ; un mois n'équivaut jamais à des jours, même quand une seule dose reste avant la
+  fin (cas prudent) : la grille est alors datée.
+- Une réécriture le jour même de l'ouverture se juge face à la grille d'avant ; si la suppression
+  d'un décalage ramène la même suite de jours que la période d'avant, la date héritée revient,
+  quelle que soit la correction qui déclenche le jugement. Une réécriture un autre jour garde la
+  règle des colonnes (date de grille posée quand l'un des quatre champs change).
+- La date héritée se juge à l'écriture (plan de « Modifier », marches des campagnes) ; la simulation
+  du moteur (aperçus, contrôles) date la grille comme une écriture neuve, pour ne pas payer deux
+  lectures du carnet à chaque aperçu.
 - Import : une date de grille absurde s'écrête comme au serveur, le fichier n'est jamais refusé pour
   elle (données jamais otages) : postérieure de plus de 24 h à l'export, elle devient la date de
   l'export ; antérieure à la création du traitement, elle devient cette création. Correction de la

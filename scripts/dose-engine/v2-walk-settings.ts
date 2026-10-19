@@ -33,7 +33,10 @@ export function settingsWritten(walk: SettingsWalk, plan: SettingsPlan): Treatme
   if (plan.action === 'rewrite') {
     const rewritten = settings.map((setting) =>
       setting.id === plan.id
-        ? rewrittenSetting(setting, plan.setting, () => at, walk.input)
+        ? rewrittenSetting(setting, plan.setting, () => at, {
+            input: walk.input,
+            lines: plan.lines ?? [],
+          })
         : setting,
     )
     return { ...walk.input, settings: rewritten, lines }

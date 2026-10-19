@@ -280,3 +280,159 @@ describe('en mois, la grille gardée est celle que le moteur continue', () => {
     expect((await gridDates()).at(-1)).toBe(LUNA_CREATED)
   })
 })
+
+describe('reports, décalages et lignes que le même « Modifier » réécrit', () => {
+  type Frequency = { value: number; unit: 'day' | 'week' | 'month' }
+  let db: InMemoryDb
+  let app: Replay
+
+  const at = (day: string, time: string) => {
+    app.clock.day = day
+    vi.setSystemTime(new Date(`${day}T${time}:00.000Z`))
+  }
+  const create = async (firstDoseOn: string, frequency: Frequency, times: string[]) =>
+    (
+      await app.plans.create({
+        animalId: ANIMAL,
+        name: 'Metacam',
+        type: 'medication',
+        firstDoseOn,
+        frequency,
+        times,
+        doseQuantity: null,
+        doseUnit: null,
+        endsOn: null,
+        reminderOffsetMinutes: null,
+        reminderTime: null,
+      })
+    ).id
+  const periodOf = async (id: string) => (await storedTreatment(app.treatments, id)).periods.at(-1)!
+  const move = async (id: string, dueOn: string, dueTime: string, to: string) =>
+    app.doses.apply(id, {
+      kind: 'move',
+      due: { settingId: (await periodOf(id)).id, dueOn, dueTime },
+      to,
+      shiftsFollowing: true,
+    })
+  const note = async (
+    id: string,
+    dueOn: string,
+    dueTime: string,
+    status: 'given' | 'missed',
+    givenOn: string,
+    shiftsFollowing = false,
+  ) =>
+    app.doses.apply(id, {
+      kind: 'note',
+      gesture: {
+        kind: 'note',
+        due: { settingId: (await periodOf(id)).id, dueOn, dueTime },
+        status,
+        givenOn,
+        shiftsFollowing,
+      },
+    })
+  const modify = (
+    id: string,
+    frequency: Frequency,
+    times: string[],
+    nextDoseOn: string | null = null,
+  ) => app.plans.update(id, { ...edition({ frequency, times }), nextDoseOn })
+  const inherited = async (id: string) => {
+    const periods = (await storedTreatment(app.treatments, id)).periods
+    return periods.at(-1)!.gridWrittenAt === periods[0]!.gridWrittenAt
+  }
+
+  beforeEach(async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-01-01T00:00:00.000Z') })
+    db = await createInMemoryDb()
+    app = await createReplay(db)
+  })
+
+  afterEach(() => {
+    db.close()
+    vi.useRealTimers()
+  })
+
+  it('tous les jours depuis le 1er mars, la dose du 6 reportée au 21 en décalant ; le 6, « Prochaine dose » le 15 réécrit report et décalage : datée', async () => {
+    const daily = { value: 1, unit: 'day' } as const
+    at('2026-03-01', '07:00')
+    const id = await create('2026-03-01', daily, ['20:00'])
+    at('2026-03-06', '07:00')
+    await move(id, '2026-03-06', '20:00', '2026-03-21')
+    at('2026-03-06', '08:00')
+    await modify(id, daily, ['21:00'], '2026-03-15')
+
+    expect(await inherited(id)).toBe(false)
+  })
+
+  it('même carnet, le 6, « Modifier » 21 h seules : hérite', async () => {
+    const daily = { value: 1, unit: 'day' } as const
+    at('2026-03-01', '07:00')
+    const id = await create('2026-03-01', daily, ['20:00'])
+    at('2026-03-06', '07:00')
+    await move(id, '2026-03-06', '20:00', '2026-03-21')
+    at('2026-03-06', '08:00')
+    await modify(id, daily, ['21:00'])
+
+    expect(await inherited(id)).toBe(true)
+  })
+
+  it('toutes les 3 semaines depuis le 22 septembre ; la dose du 22 reportée au 23, celle du 23 donnée le 25, en décalant ; le 25, tous les 21 jours : datée', async () => {
+    const threeWeeks = { value: 3, unit: 'week' } as const
+    at('2026-09-22', '07:00')
+    const id = await create('2026-09-22', threeWeeks, ['08:00'])
+    await move(id, '2026-09-22', '08:00', '2026-09-23')
+    at('2026-09-25', '07:00')
+    await note(id, '2026-09-23', '08:00', 'given', '2026-09-25', true)
+    at('2026-09-25', '08:00')
+    await modify(id, { value: 21, unit: 'day' }, ['08:00'])
+
+    expect(await inherited(id)).toBe(false)
+  })
+
+  it('tous les 2 mois à 8 h et 20 h depuis le 11 novembre, 20 h oubliée, la dose du 11 janvier à 8 h avancée au 19 novembre en décalant ; le 11, 9 h et 21 h, « Prochaine dose » le 19 : hérite', async () => {
+    const twoMonths = { value: 2, unit: 'month' } as const
+    at('2026-11-11', '07:00')
+    const id = await create('2026-11-11', twoMonths, ['08:00', '20:00'])
+    await note(id, '2026-11-11', '20:00', 'missed', '2026-11-11')
+    await move(id, '2027-01-11', '08:00', '2026-11-19')
+    at('2026-11-11', '09:00')
+    await modify(id, twoMonths, ['09:00', '21:00'], '2026-11-19')
+
+    expect(await inherited(id)).toBe(true)
+  })
+
+  it('une grille qui commence le 10 avril : « Prochaine dose » le 7 ou le 4 datée, le 13 hérite', async () => {
+    const results: boolean[] = []
+    for (const nextDoseOn of ['2026-04-07', '2026-04-04', '2026-04-13']) {
+      at('2026-03-30', '07:00')
+      const id = await create('2026-04-10', { value: 3, unit: 'day' }, ['20:00'])
+      at('2026-03-31', '09:00')
+      await modify(id, { value: 3, unit: 'day' }, ['07:00'], nextDoseOn)
+      results.push(await inherited(id))
+    }
+
+    expect(results).toEqual([false, false, true])
+  })
+
+  it('tous les 3 jours depuis le 1er mars, la dose du 4 reportée au 8 en décalant ; le 5, un ou deux « Modifier » vers le 9 : la même date de grille, datée', async () => {
+    const results: [boolean, string][] = []
+    for (const steps of [['2026-03-09'], ['2026-03-06', '2026-03-09']]) {
+      at('2026-03-01', '07:00')
+      const id = await create('2026-03-01', { value: 3, unit: 'day' }, ['20:00'])
+      at('2026-03-04', '07:00')
+      await move(id, '2026-03-04', '20:00', '2026-03-08')
+      for (const [index, nextDoseOn] of steps.entries()) {
+        at('2026-03-05', `0${8 + index}:00`)
+        await modify(id, { value: 3, unit: 'day' }, ['21:00'], nextDoseOn)
+      }
+      const read = readTreatment(await storedTreatment(app.treatments, id), '2026-03-05')!
+      const days = read.view.upcoming({ limit: 3 }).map(({ dueOn }) => dueOn)
+      results.push([await inherited(id), days.join(' ')])
+    }
+
+    expect(results[1]).toEqual(results[0])
+    expect(results[0]![0]).toBe(false)
+  })
+})

@@ -11,6 +11,7 @@ export {
 } from './legacy-input'
 export {
   applied,
+  inheritedGridAt,
   rewritesCalendar,
   rewritesGrid,
   rewrittenSetting,
@@ -27,7 +28,6 @@ export {
   type SettingsResult,
 } from './gestures/settings'
 export { chosenDateRefusal } from './gestures/settings-chosen'
-export { inheritedGridAt } from './gestures/grid-heritage'
 export { familyOf, isAdvanced } from './lines'
 export { play, preview } from './preview'
 export { reportFactsIn, reportFactsOf, withReportFacts, type ReportFacts } from './report-facts'

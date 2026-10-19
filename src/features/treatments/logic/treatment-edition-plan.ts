@@ -35,10 +35,13 @@ export function editionPlan(
         ? null
         : correctionOf(period, settings)
   const carnet = treatmentReadingOf(treatment, today).input
-  const inherited = write === null ? undefined : inheritedGridAt(carnet, settingsPlanOf(write))
+  const changes = [...(move?.changes ?? []), ...(plan?.lines ?? [])]
+  const inherited =
+    write === null
+      ? undefined
+      : inheritedGridAt(carnet, { ...settingsPlanOf(write), lines: changes })
   const written =
     write === null || inherited === undefined ? write : { ...write, inheritedGridAt: inherited }
-  const changes = [...(move?.changes ?? []), ...(plan?.lines ?? [])]
   const doses = plannedDoseWritesOf(treatment, changes, ids.newId)
   const result: TreatmentPlanWrite = { treatment: identity, period: written, doses }
   if (written !== null || doses.length > 0) {
