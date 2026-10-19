@@ -42,16 +42,9 @@ const doseOf = ({ settingId, updatedAt, createdByDevice, ...line }: Line) => ({
   ...(createdByDevice === undefined ? {} : { createdByDevice }),
 })
 
-/** Les gestes du menu ⋮ que le moteur joue sans date à choisir ; « Changer la date » attend un jour. */
-const PLAYED: readonly DoseLineAction[] = [
-  'mark-missed',
-  'mark-given',
-  'remove',
-  'remove-move',
-  'remove-shift',
-]
+const PLAYED: readonly DoseLineAction[] = ['mark-missed', 'mark-given']
 
-/** Chaque geste du menu ⋮ (non grisé) de l'historique, joué par le moteur : ceux qu'il refuse ou qui lèvent. */
+/** Chaque note du menu ⋮ de l'historique, jouée par le moteur : celles qu'il refuse ou qui lèvent. */
 export function refusedOffers(input: TreatmentViewInput): { offered: number; refused: string[] } {
   const book = { periods: input.settings.map(periodOf), doses: input.lines.map(doseOf) }
   const history = treatmentHistory(i18n.global.t, book, carnetReadingOf(input), input.today)
@@ -62,13 +55,11 @@ export function refusedOffers(input: TreatmentViewInput): { offered: number; ref
   const refused: string[] = []
   for (const row of rows) {
     for (const choice of history.menuOf(row)) {
-      if (!PLAYED.includes(choice) || row.refused?.[choice] !== undefined) continue
+      const action = lineAction(row.dose, choice, input.today)
+      if (!PLAYED.includes(choice) || action?.kind !== 'note') continue
       offered += 1
-      const action = lineAction(row.dose, choice, input.today)!
-      const gesture =
-        action.kind === 'note' ? action.gesture : { kind: 'remove' as const, lineId: row.dose.id }
       try {
-        const result = play(input, gesture)
+        const result = play(input, action.gesture)
         if ('refusal' in result) refused.push(`${choice} ${row.dose.id} : ${result.refusal.reason}`)
       } catch (error) {
         refused.push(`${choice} ${row.dose.id} : ${(error as Error).message}`)
