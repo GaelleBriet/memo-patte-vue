@@ -10,12 +10,14 @@ alter table public.treatment_dose
   add column previous_target_time text,
   add column due_rank integer check (due_rank is null or due_rank >= 1);
 
--- Heures `HH:mm` jointes par une virgule : la position de l'heure dans le texte donne son rang.
+-- Heures `HH:mm` jointes par une virgule, dans l'ordre de stockage : le rang compte celles qui
+-- précèdent l'heure du report dans la journée.
 update public.treatment_dose dose
 set due_rank = case
     when period.times is null and dose.due_time is null then 1
-    when dose.due_time is not null and strpos(period.times, dose.due_time) > 0
-      then (strpos(period.times, dose.due_time) - 1) / 6 + 1
+    when dose.due_time = any (string_to_array(period.times, ','))
+      then 1 + (select count(*) from unnest(string_to_array(period.times, ',')) hour
+                where hour < dose.due_time)
   end
 from public.treatment_period period
 where dose.status = 'postponed'

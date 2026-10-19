@@ -135,7 +135,7 @@ export function fromVersion7(data: Version7Data): Version8Data {
   }
 }
 
-/** Arrivée d'avant inconnue, rang inconnu : le moteur lit le rang dans les heures en vigueur. */
+/** La conversion que la migration v16 applique à une ligne écrite sans elle : arrivée d'avant et rang inconnus. */
 export function fromVersion8(data: Version8Data): ExportData {
   return {
     ...data,

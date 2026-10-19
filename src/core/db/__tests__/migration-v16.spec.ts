@@ -13,6 +13,7 @@ const PERIODS: [string, string | null][] = [
   ['p1', '08:00,14:00,20:00'],
   ['p2', null],
   ['p3', '06:00,12:00,18:00,23:00'],
+  ['p4', '20:00,08:00'],
 ]
 
 type Dose = [string, string, string, string | null, string, string | null, string | null]
@@ -26,6 +27,8 @@ const DOSES: Dose[] = [
   ['d5', 'p2', '2026-10-11', null, 'postponed', null, '2026-10-12'],
   ['d6', 'p3', '2026-10-13', '23:00', 'postponed', null, '2026-10-14'],
   ['d7', 'p3', '2026-10-16', '06:00', 'postponed', null, '2026-10-17'],
+  ['d8', 'p4', '2026-10-18', '08:00', 'postponed', null, '2026-10-19'],
+  ['d9', 'p4', '2026-10-20', '20:00', 'postponed', null, '2026-10-21'],
 ]
 
 function seedVersion15(db: InMemoryDb): Promise<void> {
@@ -147,7 +150,7 @@ describe.each([
     expect(await rows(db, 'treatment_period')).toEqual(periodsBefore)
   })
 
-  it('l’ancienne arrivée d’un report est inconnue ; son rang se lit dans les heures de son réglage', async () => {
+  it('l’ancienne arrivée d’un report est inconnue ; son rang se lit dans les heures de son réglage, dans l’ordre de la journée', async () => {
     await applyMigrations(db, 16)
 
     await expect(
@@ -163,6 +166,8 @@ describe.each([
       { id: 'd5', previous_target_on: null, previous_target_time: null, due_rank: 1 },
       { id: 'd6', previous_target_on: null, previous_target_time: null, due_rank: 4 },
       { id: 'd7', previous_target_on: null, previous_target_time: null, due_rank: 1 },
+      { id: 'd8', previous_target_on: null, previous_target_time: null, due_rank: 1 },
+      { id: 'd9', previous_target_on: null, previous_target_time: null, due_rank: 2 },
     ])
   })
 
@@ -186,15 +191,15 @@ describe.each([
     await db.run(
       `INSERT INTO treatment_dose (id, period_id, treatment_id, animal_id, due_on, due_time, status,
          target_on, due_rank, created_at, updated_at, created_by_device, updated_by_device)
-       VALUES ('d8', 'p1', 't1', ?, '2026-10-20', '20:00', 'postponed', '2026-10-21', 3, ?, ?, ?, ?)`,
+       VALUES ('d10', 'p1', 't1', ?, '2026-10-22', '20:00', 'postponed', '2026-10-23', 3, ?, ?, ?, ?)`,
       [MILO, T1, T1, APPAREIL, APPAREIL],
     )
 
     await expect(
       db.query('SELECT entity, entity_id FROM sync_outbox ORDER BY entity_id'),
     ).resolves.toEqual([
+      { entity: 'treatment_dose', entity_id: 'd10' },
       { entity: 'treatment_dose', entity_id: 'd2' },
-      { entity: 'treatment_dose', entity_id: 'd8' },
     ])
   })
 

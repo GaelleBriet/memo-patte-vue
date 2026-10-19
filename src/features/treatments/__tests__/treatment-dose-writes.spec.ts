@@ -148,6 +148,20 @@ describe('doseWritesOf — l’arrivée d’avant et le rang d’un report', () 
     expect(doseWritesOf(written, [same], newId)).toEqual([])
   })
 
+  it('un report stocké sans rang, réécrit à l’identique : rien ne s’écrit, le rang calculé ne suffit pas', () => {
+    const written = treatment(HOURS.periods, [
+      dose('2026-09-04', '2026-09-05', {
+        id: 'r1',
+        dueTime: '14:00',
+        status: 'postponed',
+        givenOn: null,
+      }),
+    ])
+    const same: LineChange = { action: 'rewrite', id: 'r1', line: REPORT }
+
+    expect(doseWritesOf(written, [same], newId)).toEqual([])
+  })
+
   it('une heure absente des heures de son réglage : rang inconnu', () => {
     const line = { ...REPORT, dueTime: '09:00' }
     expect(doseWritesOf(HOURS, [{ action: 'create', line }], newId)).toMatchObject([

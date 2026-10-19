@@ -142,6 +142,14 @@ const isConsistentDose = (dose: DoseRow) =>
   ['given', 'extra'].includes(dose.status) === (dose.givenOn !== null) &&
   (dose.status !== 'extra' || dose.dueOn === dose.givenOn)
 const isMove = (status: string) => status === 'postponed' || status === 'shift'
+const hasReportFactsOnlyOnReport = (dose: {
+  status: string
+  previousTargetOn: string | null
+  previousTargetTime: string | null
+  dueRank: number | null
+}) =>
+  dose.status === 'postponed' ||
+  (dose.previousTargetOn === null && dose.previousTargetTime === null && dose.dueRank === null)
 
 const deviceFileSchema = z.object({
   id: z.uuid(),
@@ -184,7 +192,12 @@ const reportedDoses = z.array(
     dueRank: z.number().int().min(1).nullable(),
   })
     .refine(isConsistentDose)
-    .refine(({ status, targetOn }) => isMove(status) === (targetOn !== null)),
+    .refine(({ status, targetOn }) => isMove(status) === (targetOn !== null))
+    .refine(hasReportFactsOnlyOnReport)
+    .refine(
+      ({ previousTargetOn, previousTargetTime }) =>
+        previousTargetTime === null || previousTargetOn !== null,
+    ),
 )
 
 const version6PeriodShape = {

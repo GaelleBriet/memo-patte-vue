@@ -1,7 +1,7 @@
 import type { DoseFields, DoseWrite, TreatmentDose } from '../schema/treatment-dose.schema'
 import type { PlannedDoseWrite } from '../schema/treatment-plan.schema'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
-import { reportFactsOf, type LineChange, type LineFields } from '@/shared/domain/dose-calendar'
+import { reportFactsIn, type LineChange, type LineFields } from '@/shared/domain/dose-calendar'
 
 type TreatmentToWrite = Pick<TreatmentWithPeriods, 'id' | 'animalId' | 'doses' | 'periods'>
 
@@ -19,6 +19,9 @@ export function doseFieldsOf(line: LineFields): DoseFields {
   }
 }
 
+// Un fait de report vide en base que l'écriture remplit (rang calculé) ne justifie pas une réécriture.
+const factKept = <T>(stored: T | null, written: T | null) => stored === null || stored === written
+
 function isUnchanged(line: TreatmentDose | undefined, dose: DoseFields): boolean {
   return (
     line !== undefined &&
@@ -28,9 +31,9 @@ function isUnchanged(line: TreatmentDose | undefined, dose: DoseFields): boolean
     line.givenOn === dose.givenOn &&
     line.status === dose.status &&
     line.targetOn === dose.targetOn &&
-    line.previousTargetOn === dose.previousTargetOn &&
-    line.previousTargetTime === dose.previousTargetTime &&
-    line.dueRank === dose.dueRank
+    factKept(line.previousTargetOn, dose.previousTargetOn) &&
+    factKept(line.previousTargetTime, dose.previousTargetTime) &&
+    factKept(line.dueRank, dose.dueRank)
   )
 }
 
@@ -45,11 +48,9 @@ export function doseWritesOf(
   newId: () => string,
   restamped: ReadonlySet<string> = new Set(),
 ): DoseWrite[] {
-  const factsOf = (line: LineFields, id?: string) => {
-    const before = id === undefined ? undefined : treatment.doses.find((dose) => dose.id === id)
-    const times = treatment.periods.find((period) => period.id === line.settingId)?.times
-    return { ...line, ...(line.status === 'postponed' ? reportFactsOf(line, before, times) : {}) }
-  }
+  const book = { lines: treatment.doses, settings: treatment.periods }
+  const factsOf = (line: LineFields, id?: string) =>
+    line.status === 'postponed' ? { ...line, ...reportFactsIn(book, line, id) } : line
   return changes.flatMap((change): DoseWrite[] => {
     switch (change.action) {
       case 'create':

@@ -17,11 +17,15 @@ const DOSE_COLUMNS = [
   'updated_by_device',
 ]
 
-// Heures `HH:mm` jointes par une virgule : la position de l'heure dans le texte donne son rang.
+// Heures `HH:mm` jointes par une virgule, dans l'ordre de stockage : le rang compte celles qui
+// précèdent l'heure du report dans la journée (24 heures au plus).
+const POSITIONS = Array.from({ length: 24 }, (_, index) => `(${index})`).join(', ')
 const RANK_OF_REPORT = `CASE WHEN old.status <> 'postponed' THEN NULL
        WHEN period.times IS NULL AND old.due_time IS NULL THEN 1
        WHEN old.due_time IS NOT NULL AND instr(period.times, old.due_time) > 0
-         THEN (instr(period.times, old.due_time) - 1) / 6 + 1
+         THEN 1 + (SELECT count(*) FROM (VALUES ${POSITIONS}) slot
+                   WHERE slot.column1 * 6 < length(period.times)
+                     AND substr(period.times, slot.column1 * 6 + 1, 5) < old.due_time)
        ELSE NULL END`
 
 export const migrationV16: DbMigration = {

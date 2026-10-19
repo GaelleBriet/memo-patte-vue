@@ -695,7 +695,7 @@ describe('parseExportFile', () => {
   describe('anciens exports, convertis au format courant (plan §3.3)', () => {
     const IMPORTEUR = '12121212-1212-4212-8212-121212121212'
 
-    it('relit un export v8 : arrivée d’avant et rang des reports vides, le moteur lit le rang dans les heures en vigueur', () => {
+    it('relit un export v8 : arrivée d’avant et rang des reports vides', () => {
       const v8 = withDocument((document) => {
         document.schemaVersion = 8
         for (const dose of rows(document, 'treatmentDoses')) {
@@ -744,6 +744,24 @@ describe('parseExportFile', () => {
       })
       const zero = withDocument((document) => Object.assign(report(document), { dueRank: 0 }))
       expect(parseExportFile(zero, IMPORTEUR)).toMatchObject({ ok: false })
+    })
+
+    it('refuse des faits de report sur une ligne qui n’est pas un report, et une heure d’arrivée d’avant sans son jour', () => {
+      const prise = withDocument((document) =>
+        Object.assign(
+          rows(document, 'treatmentDoses').find(({ status }) => status === 'given')!,
+          { previousTargetOn: '2026-09-09', previousTargetTime: '20:00', dueRank: 3 },
+        ),
+      )
+      const sansJour = withDocument((document) =>
+        Object.assign(
+          rows(document, 'treatmentDoses').find(({ status }) => status === 'postponed')!,
+          { previousTargetOn: null, previousTargetTime: '20:00' },
+        ),
+      )
+
+      expect(parseExportFile(prise, IMPORTEUR)).toEqual(INVALID)
+      expect(parseExportFile(sansJour, IMPORTEUR)).toEqual(INVALID)
     })
 
     function toVersion7(document: Document): Record<string, unknown>[] {

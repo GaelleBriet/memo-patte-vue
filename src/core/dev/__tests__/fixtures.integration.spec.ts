@@ -93,6 +93,14 @@ describe('carnet de démo dans une vraie base', () => {
     expect(parsed).toEqual({ ok: true, file: { schemaVersion: 9, data } })
   })
 
+  it('chaque report de la démo porte le rang de son heure dans les heures de son réglage', async () => {
+    const data = await carnet()
+    const reports = data.treatmentDoses.filter(({ status }) => status === 'postponed')
+
+    expect(reports.length).toBeGreaterThan(0)
+    expect(reports.every(({ dueRank }) => dueRank !== null && dueRank >= 1)).toBe(true)
+  })
+
   it('porte les cas du modèle : deux heures par jour, date de fin, deux périodes, oubli, report', async () => {
     const { treatments, treatmentPeriods, treatmentDoses } = await carnet()
     const periodsOf = (name: string) => {

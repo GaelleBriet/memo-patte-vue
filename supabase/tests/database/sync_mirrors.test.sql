@@ -79,6 +79,23 @@ create temp table carnet as
   from (values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid), ('dddddddd-dddd-4ddd-8ddd-dddddddddddd')) as owner (account);
 grant select on carnet to authenticated;
 
+-- Migration v16 telle qu'appliquée par son fichier : colonnes, contrôle du rang et droits de synchro.
+select ok(
+  has_column_privilege('authenticated', 'public.treatment_dose', 'previous_target_on', 'UPDATE')
+    and has_column_privilege('authenticated', 'public.treatment_dose', 'previous_target_time',
+      'UPDATE')
+    and has_column_privilege('authenticated', 'public.treatment_dose', 'due_rank', 'UPDATE'),
+  'v16 (fichier) : l''arrivée d''avant et le rang se synchronisent');
+select col_type_is('public', 'treatment_dose', 'previous_target_on', 'date',
+  'v16 (fichier) : le jour de l''arrivée d''avant est une date');
+select col_type_is('public', 'treatment_dose', 'due_rank', 'integer',
+  'v16 (fichier) : le rang est un entier');
+select ok(
+  exists (select 1 from pg_constraint
+          where conrelid = 'public.treatment_dose'::regclass and contype = 'c'
+            and pg_get_constraintdef(oid) like '%due_rank >= 1%'),
+  'v16 (fichier) : un rang nul est refusé');
+
 -- Structure : RLS forcée, politiques par opération, droits minimaux.
 select is(
   (select count(*)::int from pg_class c join mirror m on c.oid = ('public.' || m.name)::regclass
@@ -609,8 +626,12 @@ alter table public.treatment_dose
   drop column previous_target_time,
   drop column due_rank;
 
+update public.treatment_period
+set times = '20:00,08:00'
+where id = '00000000-0000-4000-8000-0000000000a6';
+
 update public.treatment_dose
-set status = 'postponed', given_on = null, due_time = '20:00', target_on = due_on + 1
+set status = 'postponed', given_on = null, due_time = '08:00', target_on = due_on + 1
 where id = '00000000-0000-4000-8000-0000000000a7';
 
 create temp table before_v16 as
@@ -624,8 +645,9 @@ alter table public.treatment_dose
 update public.treatment_dose dose
 set due_rank = case
     when period.times is null and dose.due_time is null then 1
-    when dose.due_time is not null and strpos(period.times, dose.due_time) > 0
-      then (strpos(period.times, dose.due_time) - 1) / 6 + 1
+    when dose.due_time = any (string_to_array(period.times, ','))
+      then 1 + (select count(*) from unnest(string_to_array(period.times, ',')) hour
+                where hour < dose.due_time)
   end
 from public.treatment_period period
 where dose.status = 'postponed'
@@ -638,8 +660,8 @@ grant update (previous_target_on, previous_target_time, due_rank)
 select results_eq(
   $$ select distinct due_rank from public.treatment_dose
      where id = '00000000-0000-4000-8000-0000000000a7' $$,
-  $$ values (2) $$,
-  'v16 : le rang d''un report se lit dans les heures de son réglage (20 h sur 8 h et 20 h)');
+  $$ values (1) $$,
+  'v16 : le rang d''un report suit l''ordre de la journée (8 h sur des heures rangées 20 h, 8 h)');
 select is(
   (select count(*) from public.treatment_dose
    where previous_target_on is not null or previous_target_time is not null),

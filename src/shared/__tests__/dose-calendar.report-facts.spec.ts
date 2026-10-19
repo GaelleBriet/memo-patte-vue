@@ -31,6 +31,15 @@ describe('reportFactsOf', () => {
     })
   })
 
+  it('le rang suit l’ordre de la journée, quel que soit l’ordre de stockage des heures', () => {
+    expect(
+      reportFactsOf({ ...REPORT, dueTime: '08:00' }, undefined, ['20:00', '08:00']).dueRank,
+    ).toBe(1)
+    expect(
+      reportFactsOf({ ...REPORT, dueTime: '20:00' }, undefined, ['20:00', '08:00']).dueRank,
+    ).toBe(2)
+  })
+
   it('sans heure : rang 1 ; heure absente ou réglage inconnu : rang inconnu', () => {
     expect(reportFactsOf({ ...REPORT, dueTime: null }, undefined, []).dueRank).toBe(1)
     expect(reportFactsOf(REPORT, undefined, ['08:00', '20:00']).dueRank).toBeNull()

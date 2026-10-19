@@ -165,7 +165,7 @@ réglage jamais réécrit. Un fichier v3 à v7 reçoit enfin `fallenDosesAnswer`
 migration v15 : `"stay-unlogged"` quand `pastDosesStayUnlogged` vaut `true`, sinon `"unasked"`, jamais
 `"not-due"` (le booléen ne distinguait pas cette réponse d'aucune question : rien n'est retiré après
 coup). Un fichier v3 à v8 reçoit enfin, sur chaque ligne, `previousTargetOn`, `previousTargetTime` et
-`dueRank` vides (`null`) : le moteur lit alors le rang dans les heures en vigueur.
+`dueRank` vides (`null`) : arrivée d'avant et rang inconnus.
 Un `schemaVersion` supérieur est refusé (« Cet export vient d'une version plus récente de l'app. »), un
 `schemaVersion` inférieur à 3 aussi (« Cet export vient d'une version plus ancienne de MémoPatte. Il ne
 peut plus être importé. ») : les formats v1 (jusqu'à la 0.1.40) et v2 (jusqu'à la 0.1.48) ne se relisent

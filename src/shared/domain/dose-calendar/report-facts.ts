@@ -9,11 +9,16 @@ export type ReportFacts = {
 
 type Before = Pick<Line, 'status' | 'dueOn' | 'dueTime' | 'targetOn'> & Partial<ReportFacts>
 
+/** Ce que l'écriture d'un report lit du carnet : les lignes écrites et les heures des réglages. */
+type Book = {
+  lines: readonly (Before & { id: string })[]
+  settings: readonly { id: string; times: readonly string[] }[]
+}
+
 const NONE: ReportFacts = { previousTargetOn: null, previousTargetTime: null, dueRank: null }
 
-/** Le rang, à partir de 1, d'une heure dans les heures d'un réglage ; `null` : absente. */
-export function rankIn(times: readonly string[], dueTime: Hour): number | null {
-  const hours: Hour[] = times.length > 0 ? [...times] : [null]
+function rankIn(times: readonly string[], dueTime: Hour): number | null {
+  const hours: Hour[] = times.length > 0 ? [...times].sort() : [null]
   const index = hours.indexOf(dueTime)
   return index < 0 ? null : index + 1
 }
@@ -47,6 +52,13 @@ export function reportFactsOf(
   }
 }
 
+/** Les faits d'un report écrit sur le carnet ; `id` : la ligne qu'il réécrit. */
+export function reportFactsIn(book: Book, line: LineFields, id?: string): ReportFacts {
+  const before = id === undefined ? undefined : book.lines.find((each) => each.id === id)
+  const times = book.settings.find((setting) => setting.id === line.settingId)?.times
+  return reportFactsOf(line, before, times)
+}
+
 /** Une écriture de ligne avec les faits de report que le repository posera, lus sur le carnet. */
 export function withReportFacts<C extends LineChange>(
   lines: readonly Line[],
@@ -54,7 +66,9 @@ export function withReportFacts<C extends LineChange>(
   change: C,
 ): C {
   if (change.action === 'delete' || change.line.status !== 'postponed') return change
-  const before = change.action === 'rewrite' ? lines.find(({ id }) => id === change.id) : undefined
-  const times = settings.find(({ id }) => id === change.line.settingId)?.times
-  return { ...change, line: { ...change.line, ...reportFactsOf(change.line, before, times) } }
+  const id = change.action === 'rewrite' ? change.id : undefined
+  return {
+    ...change,
+    line: { ...change.line, ...reportFactsIn({ lines, settings }, change.line, id) },
+  }
 }
