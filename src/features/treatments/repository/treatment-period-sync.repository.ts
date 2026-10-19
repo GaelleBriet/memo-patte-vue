@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import type { SyncRow } from '@/core/supabase/guarded-upsert'
+import { createPushedRowReplacement } from '@/core/sync/repository/pushed-row-replacement'
 import { createRemoteSyncTable } from '@/core/sync/repository/remote-sync-table.repository'
 import { syncField } from '@/core/sync/service/syncable-table'
 import { SYNC_COLUMN_NAMES, SYNC_COLUMNS } from './treatment-period-row.repository'
@@ -18,6 +19,7 @@ export function createPeriodSync(db: DbClient, loadClient: () => Promise<Supabas
     },
 
     ...createRemoteSyncTable({ table: 'treatment_period', columns: SYNC_COLUMNS, loadClient }),
+    ...createPushedRowReplacement({ table: 'treatment_period', columns: SYNC_COLUMNS }),
 
     applyRemoteRowStatement(row: SyncRow): SqlStatement {
       return {

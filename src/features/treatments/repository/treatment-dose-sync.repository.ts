@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import type { SyncRow } from '@/core/supabase/guarded-upsert'
+import { createPushedRowReplacement } from '@/core/sync/repository/pushed-row-replacement'
 import { createRemoteSyncTable } from '@/core/sync/repository/remote-sync-table.repository'
 import { syncField } from '@/core/sync/service/syncable-table'
 import { COLUMNS, PLACEHOLDERS, type DoseRow } from './treatment-dose-row.repository'
@@ -17,6 +18,7 @@ export function createDoseSync(db: DbClient, loadClient: () => Promise<SupabaseC
     },
 
     ...createRemoteSyncTable({ table: 'treatment_dose', columns: COLUMNS, loadClient }),
+    ...createPushedRowReplacement({ table: 'treatment_dose', columns: COLUMNS }),
 
     applyRemoteRowStatement(row: SyncRow): SqlStatement {
       return {

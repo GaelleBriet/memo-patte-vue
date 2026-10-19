@@ -2,6 +2,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { describe, expect, it, vi } from 'vitest'
 import { createRemoteSyncTable } from '../repository/remote-sync-table.repository'
+import { createFakeSyncServer } from './fake-sync-server'
 
 const USER_ID = 'utilisateur-1'
 const ROW = { id: 'ligne-1', name: 'Milo', updated_at: '2026-01-01T00:10:00.000Z' }
@@ -47,43 +48,10 @@ function fakePullClient(result: FakeResult) {
   return { client: { from } as unknown as SupabaseClient, from, calls }
 }
 
-interface FakePushBuilder {
-  update: (patch: unknown) => FakePushBuilder
-  match: (match: unknown) => FakePushBuilder
-  lt: (column: string, value: unknown) => FakePushBuilder
-  select: (columns: string) => Promise<FakeResult>
-  upsert: (row: unknown, options: unknown) => Promise<{ error: unknown }>
-}
-
-function fakePushClient(updated: unknown[]) {
-  const calls: Record<string, unknown> = {}
-  const builder: FakePushBuilder = {
-    update: vi.fn<FakePushBuilder['update']>((patch) => {
-      calls.update = patch
-      return builder
-    }),
-    match: vi.fn<FakePushBuilder['match']>((match) => {
-      calls.match = match
-      return builder
-    }),
-    lt: vi.fn<FakePushBuilder['lt']>((column, value) => {
-      calls.lt = [column, value]
-      return builder
-    }),
-    select: vi.fn<FakePushBuilder['select']>(() => Promise.resolve({ data: updated, error: null })),
-    upsert: vi.fn<FakePushBuilder['upsert']>((row, options) => {
-      calls.upsert = [row, options]
-      return Promise.resolve({ error: null })
-    }),
-  }
-  const from = vi.fn<(table: string) => FakePushBuilder>(() => builder)
-  return { client: { from } as unknown as SupabaseClient, from, calls }
-}
-
-function remoteAnimalTable(client: SupabaseClient) {
+function remoteAnimalTable(client: SupabaseClient, columns = 'id, name') {
   return createRemoteSyncTable({
     table: 'animal',
-    columns: 'id, name',
+    columns,
     loadClient: () => Promise.resolve(client),
   })
 }
@@ -100,28 +68,53 @@ describe('createRemoteSyncTable', () => {
     expect(loadClient).toHaveBeenCalledOnce()
   })
 
-  it("pushRow met à jour la ligne de l'utilisateur, gardée par updated_at, sans la recréer", async () => {
-    const { client, from, calls } = fakePushClient([{ id: ROW.id }])
+  it("pushRow crée la ligne de l'utilisateur et la rend telle que le serveur l'a gardée", async () => {
+    const server = createFakeSyncServer()
 
-    await remoteAnimalTable(client).pushRow(USER_ID, ROW)
+    const kept = await remoteAnimalTable(server.client, 'id, name, updated_at').pushRow(
+      USER_ID,
+      ROW,
+    )
 
-    expect(from.mock.calls).toEqual([['animal']])
-    expect(calls.update).toEqual({ name: ROW.name, updated_at: ROW.updated_at })
-    expect(calls.match).toEqual({ user_id: USER_ID, id: ROW.id })
-    expect(calls.lt).toEqual(['updated_at', ROW.updated_at])
-    expect(calls.upsert).toBeUndefined()
+    expect(kept).toEqual({ ...ROW, updated_at: '2026-01-01T00:10:00.000+00:00' })
+    expect(server.rows('animal')).toEqual([
+      expect.objectContaining({ ...ROW, user_id: USER_ID, updated_at: kept?.updated_at }),
+    ])
   })
 
-  it("pushRow crée la ligne sur la clé (user_id, id) quand la mise à jour n'a rien touché", async () => {
-    const { client, from, calls } = fakePushClient([])
+  it('pushRow met à jour la ligne plus ancienne du serveur, sans la recréer', async () => {
+    const server = createFakeSyncServer()
+    const remote = remoteAnimalTable(server.client, 'id, name, updated_at')
+    await remote.pushRow(USER_ID, ROW)
 
-    await remoteAnimalTable(client).pushRow(USER_ID, ROW)
+    await remote.pushRow(USER_ID, { ...ROW, name: 'Luna', updated_at: '2026-01-01T00:20:00.000Z' })
 
-    expect(from.mock.calls).toEqual([['animal'], ['animal']])
-    expect(calls.update).toEqual({ name: ROW.name, updated_at: ROW.updated_at })
-    expect(calls.upsert).toEqual([
-      { ...ROW, user_id: USER_ID },
-      { onConflict: 'user_id,id', ignoreDuplicates: true },
+    expect(server.rows('animal').map(({ name }) => name)).toEqual(['Luna'])
+  })
+
+  it('pushRow rend la ligne plus récente du serveur quand il garde la sienne', async () => {
+    const server = createFakeSyncServer()
+    const remote = remoteAnimalTable(server.client, 'id, name, updated_at')
+    await remote.pushRow(USER_ID, { ...ROW, name: 'Luna', updated_at: '2026-01-01T00:20:00.000Z' })
+
+    await expect(remote.pushRow(USER_ID, ROW)).resolves.toEqual({
+      ...ROW,
+      name: 'Luna',
+      updated_at: '2026-01-01T00:20:00.000+00:00',
+    })
+  })
+
+  it("pushRow se réclame de l'envoi par son en-tête", async () => {
+    const server = createFakeSyncServer()
+    const remote = remoteAnimalTable(server.client, 'id, name, updated_at')
+    await server.client
+      .from('sync_push')
+      .insert({ user_id: USER_ID, id: 'envoi-1', sent_at: '2026-01-01T00:11:00.000Z' })
+
+    await remote.pushRow(USER_ID, ROW, { id: 'envoi-1', sentAt: '2026-01-01T00:11:00.000Z' })
+
+    expect(server.pushes()).toEqual([
+      expect.objectContaining({ id: 'envoi-1', writes: ['animal'] }),
     ])
   })
 

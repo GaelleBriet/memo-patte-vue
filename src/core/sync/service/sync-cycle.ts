@@ -1,7 +1,7 @@
-import type { DbClient } from '@/core/db/db-client'
+import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import type { SyncOutboxEntry } from '../repository/sync-outbox.repository'
 import { normalizeSyncTimestamps } from './normalize-sync-timestamps'
-import type { SyncRow, SyncableTable } from './syncable-table'
+import type { SyncPush, SyncRow, SyncableTable } from './syncable-table'
 
 const PUSH_CLAIM_SIZE = 200
 const PULL_PAGE_SIZE = 500
@@ -25,9 +25,14 @@ export interface SyncCycleOutbox {
   setLastSyncedAt(lastSyncedAt: string): Promise<void>
 }
 
+export interface SyncCyclePushes {
+  open(userId: string, sentAt: string): Promise<SyncPush>
+}
+
 export interface SyncCycleDependencies {
   db: DbClient
   outbox: SyncCycleOutbox
+  pushes: SyncCyclePushes
   /** Dans l'ordre de `SYNC_ENTITY_ORDER` : un parent est tiré avant ses enfants. */
   tables: SyncableTable[]
   userId: () => string | null
@@ -43,16 +48,46 @@ export interface SyncCycle {
 export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
   const tablesByEntity = new Map(deps.tables.map((table) => [table.entity, table]))
 
-  async function push(userId: string): Promise<void> {
+  /** Les écritures de la synchro ne repartent pas dans la file d'envoi. */
+  async function runUnqueued(statements: SqlStatement[]): Promise<void> {
+    const wasEnabled = await deps.outbox.isEnabled()
+    await deps.db.runMany([
+      { sql: 'UPDATE sync_state SET enabled = 0 WHERE id = 1' },
+      ...statements,
+      { sql: 'UPDATE sync_state SET enabled = ? WHERE id = 1', params: [wasEnabled ? 1 : 0] },
+    ])
+  }
+
+  async function keepServerRow(
+    table: SyncableTable,
+    sent: SyncRow,
+    kept: SyncRow,
+    onReplaced: () => void,
+  ): Promise<void> {
+    const normalized = normalizeSyncTimestamps(kept)
+    const unchanged = Object.keys(normalized).every(
+      (column) => (sent[column] ?? null) === (normalized[column] ?? null),
+    )
+    if (unchanged) return
+    await runUnqueued([table.replacePushedRowStatement(normalized, sent.updated_at)])
+    onReplaced()
+  }
+
+  async function push(userId: string, onRemindersTouched: (entity: string) => void): Promise<void> {
+    let envoi: SyncPush | null = null
     for (;;) {
       const claimed = (await deps.outbox.listPending()).slice(0, PUSH_CLAIM_SIZE)
       if (claimed.length === 0) return
+      envoi ??= await deps.pushes.open(userId, new Date().toISOString())
 
       for (const entry of claimed) {
         const table = tablesByEntity.get(entry.entity)
         if (table) {
           const row = await table.getRowForPush(entry.entityId)
-          if (row) await table.pushRow(userId, row)
+          const kept = row && (await table.pushRow(userId, row, envoi))
+          if (row && kept) {
+            await keepServerRow(table, row, kept, () => onRemindersTouched(table.entity))
+          }
         }
         await deps.outbox.removeIfUnchanged(entry)
       }
@@ -62,13 +97,8 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
   }
 
   async function applyPage(table: SyncableTable, rows: SyncRow[]): Promise<void> {
-    const wasEnabled = await deps.outbox.isEnabled()
     const normalized = rows.map(normalizeSyncTimestamps)
-    await deps.db.runMany([
-      { sql: 'UPDATE sync_state SET enabled = 0 WHERE id = 1' },
-      ...normalized.map((row) => table.applyRemoteRowStatement(row)),
-      { sql: 'UPDATE sync_state SET enabled = ? WHERE id = 1', params: [wasEnabled ? 1 : 0] },
-    ])
+    await runUnqueued(normalized.map((row) => table.applyRemoteRowStatement(row)))
   }
 
   async function pullTable(
@@ -98,31 +128,32 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
     }
   }
 
-  /**
-   * Une ligne passée derrière son curseur ne revient plus : ses rappels se reconstruisent même si
-   * la suite du pull échoue.
-   */
-  async function pull(userId: string): Promise<void> {
-    let touchedReminders = false
-    try {
-      for (const table of deps.tables) {
-        await pullTable(userId, table, () => {
-          if (REMINDER_ENTITIES.has(table.entity)) touchedReminders = true
-        })
-      }
-    } finally {
-      if (touchedReminders) await deps.onRemindersOutdated?.()
+  async function pull(userId: string, onRemindersTouched: (entity: string) => void): Promise<void> {
+    for (const table of deps.tables) {
+      await pullTable(userId, table, () => onRemindersTouched(table.entity))
     }
   }
 
   return {
+    /**
+     * Une ligne passée derrière son curseur ne revient plus : ses rappels se reconstruisent même si
+     * la suite du cycle échoue.
+     */
     async runCycle(): Promise<void> {
       if (!deps.isEligible()) return
       const userId = deps.userId()
       if (!userId) return
 
-      await push(userId)
-      await pull(userId)
+      let touchedReminders = false
+      const onRemindersTouched = (entity: string) => {
+        if (REMINDER_ENTITIES.has(entity)) touchedReminders = true
+      }
+      try {
+        await push(userId, onRemindersTouched)
+        await pull(userId, onRemindersTouched)
+      } finally {
+        if (touchedReminders) await deps.onRemindersOutdated?.()
+      }
       await deps.outbox.setLastSyncedAt(new Date().toISOString())
     },
   }

@@ -38,24 +38,38 @@ const TIMESTAMP_COLUMNS = [
 ]
 const SERVER_EPOCH = Date.UTC(2026, 8, 25, 12)
 
+type Hook = () => Promise<void> | void
+
 export interface FakeSyncServer {
   client: SupabaseClient
   /** Lignes d'une table telles que PostgREST les rend, `server_updated_at` compris. */
   rows(table: string): ServerRow[]
+  /** Envois ouverts, avec l'en-tête de chaque écriture qui s'en est réclamée. */
+  pushes(): Array<{
+    user_id: SyncRowValue
+    id: SyncRowValue
+    sent_at: SyncRowValue
+    writes: string[]
+  }>
   /** Joué juste avant de répondre au prochain pull de `table` : une écriture « pendant » le parcours. */
-  beforeNextPull(table: string, hook: () => Promise<void> | void): void
+  beforeNextPull(table: string, hook: Hook): void
+  /** Joué juste après la prochaine écriture de `table`, refusée ou non, avant la réponse au téléphone. */
+  afterNextWrite(table: string, hook: Hook): void
   /** La connexion coupe au pull de `table` qui suit `pagesServed` pages servies. */
   cutPull(table: string, pagesServed?: number): void
 }
 
 /**
  * PostgREST réduit aux appels de la synchro : `select … eq gte order limit`, l'`update … match lt
- * select` et l'`upsert` de `guardedUpsert`. Le déclencheur `server_updated_at` et les clés
- * étrangères y sont reproduits, et les horodatages rendus en `+00:00`, comme Postgres.
+ * select` et l'`upsert … select` de `guardedUpsert`, sa relecture `select … match maybeSingle`, et
+ * l'ouverture d'un envoi. Le déclencheur `server_updated_at` et les clés étrangères y sont reproduits,
+ * et les horodatages rendus en `+00:00`, comme Postgres.
  */
 export function createFakeSyncServer(): FakeSyncServer {
   const tables = new Map<string, ServerRow[]>()
-  const pullHooks = new Map<string, () => Promise<void> | void>()
+  const pushes: ReturnType<FakeSyncServer['pushes']> = []
+  const pullHooks = new Map<string, Hook>()
+  const writeHooks = new Map<string, Hook>()
   const pullCuts = new Map<string, number>()
   let clock = 0
 
@@ -92,6 +106,39 @@ export function createFakeSyncServer(): FakeSyncServer {
     return null
   }
 
+  function picked(row: ServerRow, columns: string): ServerRow {
+    const names = columns.split(',').map((column) => column.trim())
+    return asPostgrest(Object.fromEntries(names.map((key) => [key, row[key] ?? null])))
+  }
+
+  /** Jouée au tour suivant : les `select` et `setHeader` chaînés avant l'attente sont déjà posés. */
+  function write(table: string, run: () => ServerRow[] | Result['error']) {
+    const headers: Record<string, string> = {}
+    let columns = 'id'
+    const result = Promise.resolve().then(async (): Promise<Result> => {
+      const written = run()
+      if (!Array.isArray(written)) return { data: null, error: written }
+      if (written.length > 0) {
+        pushes.find(({ id }) => id === headers['x-memopatte-sync-push'])?.writes.push(table)
+      }
+      const hook = writeHooks.get(table)
+      writeHooks.delete(table)
+      await hook?.()
+      return { data: written.map((row) => picked(row, columns)), error: null }
+    })
+    const request = Object.assign(result, {
+      setHeader(name: string, value: string) {
+        headers[name] = value
+        return request
+      },
+      select(names: string) {
+        columns = names
+        return request
+      },
+    })
+    return request
+  }
+
   function select(table: string, columns: string) {
     const filters: Array<(row: ServerRow) => boolean> = []
     let orderColumn: string | null = null
@@ -99,6 +146,14 @@ export function createFakeSyncServer(): FakeSyncServer {
       eq(column: string, value: SyncRowValue) {
         filters.push((row) => row[column] === value)
         return builder
+      },
+      match(values: ServerRow) {
+        for (const [column, value] of Object.entries(values)) builder.eq(column, value)
+        return builder
+      },
+      async maybeSingle(): Promise<{ data: ServerRow | null; error: null }> {
+        const found = tableRows(table).find((row) => filters.every((filter) => filter(row)))
+        return { data: found ? picked(found, columns) : null, error: null }
       },
       gte(column: string, value: string) {
         filters.push((row) => Date.parse(String(row[column])) >= Date.parse(value))
@@ -120,16 +175,13 @@ export function createFakeSyncServer(): FakeSyncServer {
         }
         if (pagesBeforeCut !== undefined) pullCuts.set(table, pagesBeforeCut - 1)
 
-        const picked = columns.split(',').map((column) => column.trim())
         const rows = tableRows(table)
           .filter((row) => filters.every((filter) => filter(row)))
           .sort((a, b) =>
             orderColumn ? String(a[orderColumn]).localeCompare(String(b[orderColumn])) : 0,
           )
           .slice(0, count)
-          .map((row) =>
-            asPostgrest(Object.fromEntries(picked.map((key) => [key, row[key] ?? null]))),
-          )
+          .map((row) => picked(row, columns))
         return { data: rows, error: null }
       },
     }
@@ -139,6 +191,18 @@ export function createFakeSyncServer(): FakeSyncServer {
   function update(table: string, patch: ServerRow) {
     let match: ServerRow = {}
     let olderThan: string | null = null
+    const request = write(table, () => {
+      const updated = tableRows(table).filter(
+        (row) =>
+          Object.entries(match).every(([column, value]) => row[column] === value) &&
+          (olderThan === null || Date.parse(String(row.updated_at)) < Date.parse(olderThan)),
+      )
+      for (const row of updated) {
+        Object.assign(row, patch)
+        stamp(row)
+      }
+      return updated
+    })
     const builder = {
       match(values: ServerRow) {
         match = values
@@ -148,34 +212,28 @@ export function createFakeSyncServer(): FakeSyncServer {
         olderThan = value
         return builder
       },
-      async select(): Promise<Result> {
-        const updated = tableRows(table).filter(
-          (row) =>
-            Object.entries(match).every(([column, value]) => row[column] === value) &&
-            (olderThan === null || Date.parse(String(row.updated_at)) < Date.parse(olderThan)),
-        )
-        for (const row of updated) {
-          Object.assign(row, patch)
-          stamp(row)
-        }
-        return { data: updated.map((row) => ({ id: row.id ?? null })), error: null }
-      },
+      select: (columns: string) => request.select(columns),
     }
     return builder
   }
 
-  async function upsert(table: string, row: ServerRow): Promise<Result> {
-    const rows = tableRows(table)
-    if (rows.some((existing) => existing.user_id === row.user_id && existing.id === row.id)) {
-      return { data: null, error: null }
-    }
-    const missing = missingParent(table, row)
-    if (missing) {
-      return { data: null, error: { message: `clé étrangère ${missing}`, code: '23503' } }
-    }
-    const inserted = { ...row }
-    stamp(inserted)
-    rows.push(inserted)
+  function upsert(table: string, row: ServerRow) {
+    return write(table, () => {
+      const rows = tableRows(table)
+      if (rows.some((existing) => existing.user_id === row.user_id && existing.id === row.id)) {
+        return []
+      }
+      const missing = missingParent(table, row)
+      if (missing) return { message: `clé étrangère ${missing}`, code: '23503' }
+      const inserted = { ...row }
+      stamp(inserted)
+      rows.push(inserted)
+      return [inserted]
+    })
+  }
+
+  async function openPush({ user_id, id, sent_at }: ServerRow): Promise<Result> {
+    pushes.push({ user_id: user_id ?? null, id: id ?? null, sent_at: sent_at ?? null, writes: [] })
     return { data: null, error: null }
   }
 
@@ -185,6 +243,7 @@ export function createFakeSyncServer(): FakeSyncServer {
         select: (columns: string) => select(table, columns),
         update: (patch: ServerRow) => update(table, patch),
         upsert: (row: ServerRow) => upsert(table, row),
+        insert: (row: ServerRow) => openPush(row),
       }
     },
   }
@@ -192,8 +251,12 @@ export function createFakeSyncServer(): FakeSyncServer {
   return {
     client: client as unknown as SupabaseClient,
     rows: (table) => tableRows(table).map(asPostgrest),
+    pushes: () => pushes.map((push) => ({ ...push, writes: [...push.writes] })),
     beforeNextPull(table, hook) {
       pullHooks.set(table, hook)
+    },
+    afterNextWrite(table, hook) {
+      writeHooks.set(table, hook)
     },
     cutPull(table, pagesServed = 0) {
       pullCuts.set(table, pagesServed)

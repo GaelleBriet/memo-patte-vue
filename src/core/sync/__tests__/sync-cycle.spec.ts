@@ -5,6 +5,7 @@ import { createSyncCycle, type SyncCycleOutbox } from '../service/sync-cycle'
 import {
   syncField,
   type SyncPullPage,
+  type SyncPush,
   type SyncRow,
   type SyncableTable,
 } from '../service/syncable-table'
@@ -60,17 +61,32 @@ function createFakeOutbox(
   }
 }
 
+function createFakePushes() {
+  const opened: SyncPush[] = []
+  return {
+    opened,
+    async open(_userId: string, sentAt: string): Promise<SyncPush> {
+      const push = { id: `envoi-${opened.length + 1}`, sentAt }
+      opened.push(push)
+      return push
+    },
+  }
+}
+
 function fakeTable(
   entity: string,
   pages: SyncPullPage[] = [],
 ): SyncableTable & {
-  pushed: Array<{ userId: string; row: SyncRow }>
+  pushed: Array<{ userId: string; row: SyncRow; push?: SyncPush }>
   pullCalls: Array<{ since: string; limit: number }>
   localRows: Map<string, SyncRow>
+  /** Ligne que le serveur rend pour un identifiant, au lieu de celle envoyée. */
+  serverKeeps: Map<string, SyncRow>
 } {
-  const pushed: Array<{ userId: string; row: SyncRow }> = []
+  const pushed: Array<{ userId: string; row: SyncRow; push?: SyncPush }> = []
   const pullCalls: Array<{ since: string; limit: number }> = []
   const localRows = new Map<string, SyncRow>()
+  const serverKeeps = new Map<string, SyncRow>()
   let pageIndex = 0
 
   return {
@@ -78,11 +94,19 @@ function fakeTable(
     pushed,
     pullCalls,
     localRows,
+    serverKeeps,
     async getRowForPush(id) {
       return localRows.get(id) ?? null
     },
-    async pushRow(userId, row) {
-      pushed.push({ userId, row })
+    async pushRow(userId, row, push) {
+      pushed.push({ userId, row, push })
+      return serverKeeps.get(row.id) ?? row
+    },
+    replacePushedRowStatement(row, sentUpdatedAt): SqlStatement {
+      return {
+        sql: 'UPDATE sync_scratch SET value = ?, updated_at = ? WHERE id = ? AND updated_at = ?',
+        params: [(row.value as string | null) ?? null, row.updated_at, row.id, sentUpdatedAt],
+      }
     },
     async pullPage(_userId, since, limit) {
       pullCalls.push({ since, limit })
@@ -115,8 +139,10 @@ function row(id: string, updatedAt: string, value: string): SyncRow {
 
 describe('createSyncCycle', () => {
   let db: DbClient & { close(): void }
+  let pushes: ReturnType<typeof createFakePushes>
 
   beforeEach(async () => {
+    pushes = createFakePushes()
     db = await createSyncTestDb()
     await db.execute(
       'CREATE TABLE IF NOT EXISTS sync_scratch (id TEXT PRIMARY KEY, entity TEXT, value TEXT, updated_at TEXT NOT NULL)',
@@ -134,6 +160,7 @@ describe('createSyncCycle', () => {
       const cycle = createSyncCycle({
         db,
         outbox,
+        pushes,
         tables: [animal],
         userId: () => 'user-1',
         isEligible: () => false,
@@ -151,6 +178,7 @@ describe('createSyncCycle', () => {
       const cycle = createSyncCycle({
         db,
         outbox,
+        pushes,
         tables: [animal],
         userId: () => null,
         isEligible: () => true,
@@ -177,6 +205,7 @@ describe('createSyncCycle', () => {
       const cycle = createSyncCycle({
         db,
         outbox,
+        pushes,
         tables: [animal],
         userId: () => 'user-1',
         isEligible: () => true,
@@ -185,9 +214,136 @@ describe('createSyncCycle', () => {
       await cycle.runCycle()
 
       expect(animal.pushed).toEqual([
-        { userId: 'user-1', row: row(ANIMAL_ID, '2026-01-01T00:00:00.000Z', 'Milo') },
+        {
+          userId: 'user-1',
+          row: row(ANIMAL_ID, '2026-01-01T00:00:00.000Z', 'Milo'),
+          push: pushes.opened[0],
+        },
       ])
       expect(outbox.entries()).toEqual([])
+    })
+
+    it('ouvre un seul envoi par cycle, daté par le téléphone quand il commence', async () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-22T08:06:00.000Z') })
+      const animal = fakeTable('animal')
+      const entries: FakeOutboxEntry[] = []
+      for (let index = 0; index < 250; index += 1) {
+        const id = `animal-${index}`
+        animal.localRows.set(id, row(id, '2026-01-01T00:00:00.000Z', 'x'))
+        entries.push({ entity: 'animal', entityId: id, queuedAt: T_ROW, attempts: 0 })
+      }
+      const cycle = createSyncCycle({
+        db,
+        outbox: createFakeOutbox(entries),
+        pushes,
+        tables: [animal],
+        userId: () => 'user-1',
+        isEligible: () => true,
+      })
+
+      await cycle.runCycle()
+      vi.useRealTimers()
+
+      expect(pushes.opened).toEqual([{ id: 'envoi-1', sentAt: '2026-10-22T08:06:00.000Z' }])
+      expect(new Set(animal.pushed.map(({ push }) => push))).toEqual(new Set([pushes.opened[0]]))
+    })
+
+    it("n'ouvre aucun envoi quand la file est vide", async () => {
+      const cycle = createSyncCycle({
+        db,
+        outbox: createFakeOutbox(),
+        pushes,
+        tables: [fakeTable('animal')],
+        userId: () => 'user-1',
+        isEligible: () => true,
+      })
+
+      await cycle.runCycle()
+
+      expect(pushes.opened).toEqual([])
+    })
+
+    describe('ligne gardée par le serveur', () => {
+      const SENT = row('a1', '2026-10-22T08:05:00.000Z', 'Milbemax')
+      const KEPT = { ...row('a1', '2026-10-19T08:05:00+00:00', 'Milbemax') }
+
+      async function pushOnce(animal: ReturnType<typeof fakeTable>) {
+        await db.run(
+          'INSERT INTO sync_scratch (id, entity, value, updated_at) VALUES (?, ?, ?, ?)',
+          [SENT.id, 'animal', 'Milbemax', SENT.updated_at],
+        )
+        animal.localRows.set(SENT.id, SENT)
+        const onRemindersOutdated = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
+        const cycle = createSyncCycle({
+          db,
+          outbox: createFakeOutbox([
+            { entity: 'animal', entityId: SENT.id, queuedAt: T_ROW, attempts: 0 },
+          ]),
+          pushes,
+          tables: [animal],
+          userId: () => 'user-1',
+          isEligible: () => true,
+          onRemindersOutdated,
+        })
+        await cycle.runCycle()
+        return { onRemindersOutdated }
+      }
+
+      const local = () => db.query<SyncRow>('SELECT id, value, updated_at FROM sync_scratch')
+
+      it('remplace la ligne locale par celle du serveur, date ramenée en ISO', async () => {
+        const animal = fakeTable('animal')
+        animal.serverKeeps.set(SENT.id, KEPT)
+
+        const { onRemindersOutdated } = await pushOnce(animal)
+
+        expect(await local()).toEqual([
+          { id: 'a1', value: 'Milbemax', updated_at: '2026-10-19T08:05:00.000Z' },
+        ])
+        expect(onRemindersOutdated).toHaveBeenCalledOnce()
+      })
+
+      it('remplace même par une ligne plus ancienne : le serveur a gardé la sienne', async () => {
+        const animal = fakeTable('animal')
+        animal.serverKeeps.set(SENT.id, row('a1', '2026-10-19T09:30:00.000Z', 'Drontal'))
+
+        await pushOnce(animal)
+
+        expect(await local()).toEqual([
+          { id: 'a1', value: 'Drontal', updated_at: '2026-10-19T09:30:00.000Z' },
+        ])
+      })
+
+      it('ne touche à rien quand le serveur a gardé la ligne envoyée', async () => {
+        const animal = fakeTable('animal')
+        const run = vi.spyOn(db, 'runMany')
+
+        const { onRemindersOutdated } = await pushOnce(animal)
+
+        expect(run).not.toHaveBeenCalled()
+        expect(onRemindersOutdated).not.toHaveBeenCalled()
+      })
+
+      it('garde une écriture locale faite entre l’envoi et la relecture', async () => {
+        const animal = fakeTable('animal')
+        const pushRow = animal.pushRow.bind(animal)
+        animal.serverKeeps.set(SENT.id, KEPT)
+        animal.pushRow = async (userId, sent, push) => {
+          const kept = await pushRow(userId, sent, push)
+          await db.run('UPDATE sync_scratch SET value = ?, updated_at = ? WHERE id = ?', [
+            'Milpro',
+            '2026-10-22T08:07:00.000Z',
+            SENT.id,
+          ])
+          return kept
+        }
+
+        await pushOnce(animal)
+
+        expect(await local()).toEqual([
+          { id: 'a1', value: 'Milpro', updated_at: '2026-10-22T08:07:00.000Z' },
+        ])
+      })
     })
 
     it("retire l'entrée sans pousser quand la ligne n'existe plus localement", async () => {
@@ -203,6 +359,7 @@ describe('createSyncCycle', () => {
       const cycle = createSyncCycle({
         db,
         outbox,
+        pushes,
         tables: [animal],
         userId: () => 'user-1',
         isEligible: () => true,
@@ -221,6 +378,7 @@ describe('createSyncCycle', () => {
       const cycle = createSyncCycle({
         db,
         outbox,
+        pushes,
         tables: [],
         userId: () => 'user-1',
         isEligible: () => true,
@@ -248,6 +406,7 @@ describe('createSyncCycle', () => {
       const cycle = createSyncCycle({
         db,
         outbox,
+        pushes,
         tables: [animal],
         userId: () => 'user-1',
         isEligible: () => true,
@@ -268,13 +427,13 @@ describe('createSyncCycle', () => {
       const order: string[] = []
       const originalAnimalPush = animal.pushRow.bind(animal)
       const originalVaccinationPush = vaccination.pushRow.bind(vaccination)
-      animal.pushRow = async (userId, r) => {
+      animal.pushRow = async (userId, r, push) => {
         order.push('animal')
-        await originalAnimalPush(userId, r)
+        return originalAnimalPush(userId, r, push)
       }
-      vaccination.pushRow = async (userId, r) => {
+      vaccination.pushRow = async (userId, r, push) => {
         order.push('vaccination')
-        await originalVaccinationPush(userId, r)
+        return originalVaccinationPush(userId, r, push)
       }
       const outbox = createFakeOutbox([
         {
@@ -288,6 +447,7 @@ describe('createSyncCycle', () => {
       const cycle = createSyncCycle({
         db,
         outbox,
+        pushes,
         tables: [animal, vaccination],
         userId: () => 'user-1',
         isEligible: () => true,
@@ -308,6 +468,7 @@ describe('createSyncCycle', () => {
       const cycle = createSyncCycle({
         db,
         outbox,
+        pushes,
         tables: [animal],
         userId: () => 'user-1',
         isEligible: () => true,
@@ -334,6 +495,7 @@ describe('createSyncCycle', () => {
       const cycle = createSyncCycle({
         db,
         outbox,
+        pushes,
         tables: [animal, vaccination],
         userId: () => 'user-1',
         isEligible: () => true,
@@ -368,6 +530,7 @@ describe('createSyncCycle', () => {
       const cycle = createSyncCycle({
         db,
         outbox: createFakeOutbox(),
+        pushes,
         tables: [animal, weight],
         userId: () => 'user-1',
         isEligible: () => true,
@@ -395,6 +558,7 @@ describe('createSyncCycle', () => {
       const cycle = createSyncCycle({
         db,
         outbox,
+        pushes,
         tables: [animal],
         userId: () => 'user-1',
         isEligible: () => true,
@@ -421,6 +585,7 @@ describe('createSyncCycle', () => {
       const cycle = createSyncCycle({
         db,
         outbox,
+        pushes,
         tables: [animal],
         userId: () => 'user-1',
         isEligible: () => true,
@@ -445,6 +610,7 @@ describe('createSyncCycle', () => {
       const cycle = createSyncCycle({
         db,
         outbox,
+        pushes,
         tables: [animal, vaccination],
         userId: () => 'user-1',
         isEligible: () => true,
@@ -477,6 +643,7 @@ describe('createSyncCycle', () => {
       const cycle = createSyncCycle({
         db,
         outbox,
+        pushes,
         tables: [animal],
         userId: () => 'user-1',
         isEligible: () => true,
@@ -498,6 +665,7 @@ describe('createSyncCycle', () => {
       const cycle = createSyncCycle({
         db,
         outbox: createFakeOutbox(),
+        pushes,
         tables: [vaccination, weight],
         userId: () => 'user-1',
         isEligible: () => true,
@@ -521,6 +689,7 @@ describe('createSyncCycle', () => {
       const cycle = createSyncCycle({
         db,
         outbox,
+        pushes,
         tables: [animal],
         userId: () => 'user-1',
         isEligible: () => true,
@@ -541,6 +710,7 @@ describe('createSyncCycle', () => {
       const cycle = createSyncCycle({
         db,
         outbox: createFakeOutbox(),
+        pushes,
         tables: [weight],
         userId: () => 'user-1',
         isEligible: () => true,
@@ -560,6 +730,7 @@ describe('createSyncCycle', () => {
       const cycle = createSyncCycle({
         db,
         outbox: createFakeOutbox(),
+        pushes,
         tables: [vaccination],
         userId: () => 'user-1',
         isEligible: () => true,
@@ -581,6 +752,7 @@ describe('createSyncCycle', () => {
         const cycle = createSyncCycle({
           db,
           outbox: createFakeOutbox(),
+          pushes,
           tables: [events],
           userId: () => 'user-1',
           isEligible: () => true,
@@ -600,6 +772,7 @@ describe('createSyncCycle', () => {
       const cycle = createSyncCycle({
         db,
         outbox: createFakeOutbox([], { vaccination: seen }),
+        pushes,
         tables: [vaccination],
         userId: () => 'user-1',
         isEligible: () => true,
@@ -623,6 +796,7 @@ describe('createSyncCycle', () => {
       const cycle = createSyncCycle({
         db,
         outbox,
+        pushes,
         tables: [fakeTable('animal')],
         userId: () => 'user-1',
         isEligible: () => true,
@@ -640,6 +814,7 @@ describe('createSyncCycle', () => {
       const cycle = createSyncCycle({
         db,
         outbox,
+        pushes,
         tables: [animal],
         userId: () => 'user-1',
         isEligible: () => true,
@@ -655,6 +830,7 @@ describe('createSyncCycle', () => {
       const cycle = createSyncCycle({
         db,
         outbox,
+        pushes,
         tables: [fakeTable('animal')],
         userId: () => 'user-1',
         isEligible: () => false,
@@ -675,9 +851,9 @@ describe('createSyncCycle', () => {
       animal.localRows.set('a1', row('a1', '2026-01-01T00:00:00.000Z', 'Milo'))
       const originalPush = animal.pushRow.bind(animal)
       const originalPull = animal.pullPage.bind(animal)
-      animal.pushRow = async (userId, r) => {
+      animal.pushRow = async (userId, r, push) => {
         order.push('push')
-        await originalPush(userId, r)
+        return originalPush(userId, r, push)
       }
       animal.pullPage = async (userId, since, limit) => {
         order.push('pull')
@@ -689,6 +865,7 @@ describe('createSyncCycle', () => {
       const cycle = createSyncCycle({
         db,
         outbox,
+        pushes,
         tables: [animal],
         userId: () => 'user-1',
         isEligible: () => true,
@@ -707,7 +884,8 @@ describe('createSyncCycle', () => {
       const animal: SyncableTable = {
         entity: 'animal',
         getRowForPush: async () => null,
-        pushRow: async () => {},
+        pushRow: async () => null,
+        replacePushedRowStatement: () => ({ sql: 'SELECT 1' }),
         pullPage: (() => {
           let called = false
           return async () => {
@@ -738,6 +916,7 @@ describe('createSyncCycle', () => {
       const cycle = createSyncCycle({
         db,
         outbox,
+        pushes,
         tables: [animal],
         userId: () => 'user-1',
         isEligible: () => true,
