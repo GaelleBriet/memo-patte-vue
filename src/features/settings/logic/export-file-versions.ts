@@ -165,6 +165,22 @@ export function fromVersion9(data: Version9Data): ExportData {
   }
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/** Comme le serveur : une date de grille hors bornes s'écrête, le fichier n'est jamais refusé pour elle. */
+export function withGridDatesClamped(data: ExportData, exportedAt: string): ExportData {
+  const latest = Date.parse(exportedAt) + DAY_MS
+  return {
+    ...data,
+    treatmentPeriods: data.treatmentPeriods.map((period) => {
+      const at = Date.parse(period.gridWrittenAt)
+      if (at > latest) return { ...period, gridWrittenAt: exportedAt }
+      if (at < Date.parse(period.createdAt)) return { ...period, gridWrittenAt: period.createdAt }
+      return period
+    }),
+  }
+}
+
 /** Q40 : l'import relit chaque traitement par le moteur avant d'écrire. */
 export function everyTreatmentReadable(data: ExportData, today: string): boolean {
   return data.treatments.every(

@@ -730,6 +730,43 @@ describe('parseExportFile', () => {
       )
     })
 
+    it.each([
+      ['avant la création de la période', '2000-01-01T00:00:00.000Z', 'createdAt'],
+      ['plus de 24 h après l’export', '2099-01-01T00:00:00.000Z', 'exportedAt'],
+    ] as const)(
+      'écrête une date d’écriture de la grille %s, sans refuser le fichier',
+      (_, gridWrittenAt, bound) => {
+        const document = JSON.parse(importFixtureJson()) as Document
+        premier(document, 'treatmentPeriods').gridWrittenAt = gridWrittenAt
+        const expected =
+          bound === 'createdAt'
+            ? premier(document, 'treatmentPeriods').createdAt
+            : document.exportedAt
+
+        const result = parseExportFile(JSON.stringify(document), IMPORTEUR)
+
+        expect(result.ok).toBe(true)
+        if (!result.ok) return
+        expect(result.file.data.treatmentPeriods[0]!.gridWrittenAt).toBe(expected)
+      },
+    )
+
+    it('garde une date d’écriture de la grille à 24 h de l’export, et la création elle-même', () => {
+      const document = JSON.parse(importFixtureJson()) as Document
+      const [first, second] = rows(document, 'treatmentPeriods')
+      first!.gridWrittenAt = '2026-09-16T08:30:00.000Z'
+      second!.gridWrittenAt = second!.createdAt
+
+      const result = parseExportFile(JSON.stringify(document), IMPORTEUR)
+
+      expect(result.ok).toBe(true)
+      if (!result.ok) return
+      expect(result.file.data.treatmentPeriods.map(({ gridWrittenAt }) => gridWrittenAt)).toEqual([
+        '2026-09-16T08:30:00.000Z',
+        second!.createdAt,
+      ])
+    })
+
     it('relit un export v8 : arrivée d’avant et rang des reports vides', () => {
       const v8 = withDocument((document) => {
         document.schemaVersion = 8

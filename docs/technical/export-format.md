@@ -145,8 +145,10 @@ d'avant quand la dose a été déplacée de nouveau, et `dueRank`, le rang (à p
 dans sa journée d'origine ; `null` pour toute autre ligne, ou quand ils sont inconnus.
 
 **Version 10** (schéma v17, [`modele-de-donnees-v2.md`](modele-de-donnees-v2.md) §4.7) : une période
-porte `gridWrittenAt`, la dernière écriture de ce qui fait ses échéances (première échéance, date
-choisie, fréquence, origine, fin), les heures exclues.
+porte `gridWrittenAt`, la dernière écriture de ce qui fait ses échéances (première échéance,
+fréquence, origine, fin), les heures exclues. L'import ne refuse jamais un fichier pour elle : une
+date postérieure de plus de 24 h à `exportedAt` devient `exportedAt`, une date antérieure à la
+création de la période devient `createdAt` ; seule une valeur illisible refuse le fichier.
 
 | Champ           | Type                   | Sens                                                                 |
 | --------------- | ---------------------- | -------------------------------------------------------------------- |
