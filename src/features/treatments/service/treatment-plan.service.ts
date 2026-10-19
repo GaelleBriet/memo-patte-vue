@@ -12,7 +12,7 @@ import {
   type TreatmentsRepository,
   type TreatmentWithPeriodsReader,
 } from '../repository/treatments.repository'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type {
   TreatmentCreationInput,
   TreatmentEditionInput,

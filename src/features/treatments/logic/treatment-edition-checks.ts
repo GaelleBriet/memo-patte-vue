@@ -5,7 +5,7 @@ import { treatmentReadingOf } from './treatment-reading-adapter'
 import { lastNotedDueOn } from './treatment-settings'
 import { treatmentEditionSchema } from '../schema/treatment-form.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import {
   applied,
   treatmentView,

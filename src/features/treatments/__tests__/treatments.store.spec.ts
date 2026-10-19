@@ -13,7 +13,7 @@ import type { TreatmentDosesService } from '../service/treatment-doses.service'
 import type { TreatmentRemindersService } from '../service/treatment-reminders.service'
 import type { TreatmentStopService } from '../service/treatment-stop.service'
 import type { TreatmentsRepository } from '../repository/treatments.repository'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import {
   provideTreatmentDosesService,
   provideTreatmentPlanService,

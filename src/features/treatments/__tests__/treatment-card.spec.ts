@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { dose, missed, period, plain, postponed, shifted, treatment } from './treatment-fixtures'
 import { detailActions, doseCard, lessPreciseReminder } from '../logic/treatment-card'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const t = i18n.global.t

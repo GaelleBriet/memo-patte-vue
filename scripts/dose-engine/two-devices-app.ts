@@ -10,7 +10,7 @@ import {
   undoRanks,
 } from '@/features/treatments/logic/treatment-undo-order'
 import type { DoseFields, DoseWrite } from '@/features/treatments/schema/treatment-dose.schema'
-import type { TreatmentWithPeriods } from '@/features/treatments/schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '@/features/treatments/schema/treatment-with-periods.schema'
 import type { Line, LineFields, TreatmentViewInput } from '@/shared/domain/dose-calendar'
 import { readCarnet } from '@/shared/domain/treatment-reading'
 

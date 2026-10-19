@@ -9,7 +9,7 @@ import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
 import { nextDoseShiftHelp } from '../logic/treatment-form-texts'
 import type { TreatmentEditionInput } from '../schema/treatment-form.schema'
 import type { TreatmentPlanWrite } from '../schema/treatment-plan.schema'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const t = i18n.global.t

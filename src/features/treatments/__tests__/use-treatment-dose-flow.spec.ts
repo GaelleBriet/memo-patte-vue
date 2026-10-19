@@ -8,7 +8,7 @@ import { useTreatmentDoseFlow, type DoseFlowExits } from '../composables/use-tre
 import { useTreatmentGestures } from '../composables/use-treatment-gestures'
 import { DoseAlreadyLoggedError, type NoteGesture } from '../logic/treatment-dose-change'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { AppliedDoseChange } from '../service/treatment-doses.service'
 import { useTreatmentsStore } from '../store/treatments.store'
 import i18n from '@/core/i18n'

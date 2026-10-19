@@ -7,7 +7,7 @@ import {
   getTreatmentsRepository,
   type TreatmentsRepository,
 } from '@/features/treatments/repository/treatments.repository'
-import type { TreatmentWithPeriods } from '@/features/treatments/schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '@/features/treatments/schema/treatment-with-periods.schema'
 import { readTreatment } from '@/shared/domain/treatment-reading'
 import { getAnimalsRepository, type AnimalsRepository } from '../repository/animals.repository'
 import type { Departure } from '../schema/animal.schema'

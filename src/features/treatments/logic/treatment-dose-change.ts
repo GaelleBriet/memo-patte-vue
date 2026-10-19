@@ -2,7 +2,7 @@ import { doseWritesOf } from './treatment-dose-writes'
 import { revealedDues, type RevealedDues } from './treatment-revealed-dues'
 import type { KeptAhead } from './treatment-undo-order'
 import type { DoseWrite } from '../schema/treatment-dose.schema'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import {
   applied,
   keptAhead,

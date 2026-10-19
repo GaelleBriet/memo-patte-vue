@@ -30,7 +30,7 @@ import type {
   TreatmentsRepository as FullTreatmentsRepository,
   TreatmentWithPeriodsReader,
 } from '../repository/treatments.repository'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { track } from '@/core/analytics'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { useAnimalScopedList } from '@/shared/composables/use-animal-scoped-list'

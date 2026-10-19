@@ -24,7 +24,7 @@ import {
   type Treatment,
   type TreatmentType,
 } from '../schema/treatment.schema'
-import type { TreatmentRecord, TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentRecord, TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type {
   NewTreatmentPlan,
   PlannedDoseWrite,

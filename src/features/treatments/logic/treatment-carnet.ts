@@ -1,5 +1,5 @@
 import { currentPeriodOf, readableReadingOf } from './treatment-reading-adapter'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { currentDoseText } from '@/shared/domain/current-dose'
 import { overdueDays } from '@/shared/domain/due-delay'
 import { reminderIcon, type ReminderCounts } from '@/shared/domain/reminders'

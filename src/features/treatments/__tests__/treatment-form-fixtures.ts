@@ -1,7 +1,7 @@
 import { treatmentFormValuesFrom, type TreatmentFormValues } from '../logic/treatment-form-values'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { legacyFactsOf } from '@/shared/domain/dose-calendar'
 
 export const AT = '2026-07-01T08:00:00.000Z'

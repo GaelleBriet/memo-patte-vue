@@ -18,7 +18,7 @@ import {
 import { correctionOf, settingsPlanOf } from './treatment-settings-writes'
 import type { PastDuesChoice, TreatmentRhythm } from '../schema/treatment-form.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { isCalendarDay } from '@/shared/domain/calendar-day'
 import { sortedTimes } from '@/shared/domain/clock-time'
 import {

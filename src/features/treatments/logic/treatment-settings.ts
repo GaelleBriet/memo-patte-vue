@@ -6,7 +6,7 @@ import {
   type TreatmentPeriodRecord,
   type TreatmentPeriodSettings,
 } from '../schema/treatment-period.schema'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { latestOf } from '@/shared/domain/calendar-day'
 import { sortedTimes } from '@/shared/domain/clock-time'
 import { settingsApplied, type TreatmentView } from '@/shared/domain/dose-calendar'

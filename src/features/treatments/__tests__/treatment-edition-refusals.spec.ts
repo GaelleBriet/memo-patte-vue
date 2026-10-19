@@ -5,7 +5,7 @@ import { editionDraft } from '../logic/treatment-edition-draft'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentEditionInput } from '../schema/treatment-form.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { legacyFactsOf } from '@/shared/domain/dose-calendar'
 
 const MILO = '11111111-1111-4111-8111-111111111111'

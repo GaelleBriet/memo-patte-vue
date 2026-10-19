@@ -1,7 +1,7 @@
 import { givenWhenMin, isExtraOn } from './treatment-notification'
 import { givesBeforeItsDay, notifiedDues } from './treatment-other-date'
 import { doneGesture } from './treatment-shift-box'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { Treatment } from '../schema/treatment.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { NoteGesture } from './treatment-dose-change'

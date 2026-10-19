@@ -1,5 +1,5 @@
 import { parseDoseQuantity } from './treatment-dosage-input'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { treatmentRhythmSchema, type TreatmentRhythm } from '../schema/treatment-form.schema'
 import type {
   ReminderOffsetMinutes,

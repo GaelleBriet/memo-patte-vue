@@ -12,7 +12,7 @@ import {
   otherDateRecap,
 } from '../logic/treatment-shift-box'
 import { shiftHelpText } from '../logic/treatment-shift-help'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const t = i18n.global.t

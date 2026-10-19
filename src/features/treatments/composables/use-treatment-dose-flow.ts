@@ -8,7 +8,7 @@ import { doseActionTexts, hasSeveralTimes, type DueDay } from '../logic/treatmen
 import { restoredSuiteFor } from '../logic/treatment-restored-suite'
 import { stopPrompt } from '../logic/treatment-stop'
 import { promptChoice, unloggedBanner, type PromptActionId } from '../logic/treatment-unlogged'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import type { TreatmentReading } from '@/shared/domain/treatment-reading'
 

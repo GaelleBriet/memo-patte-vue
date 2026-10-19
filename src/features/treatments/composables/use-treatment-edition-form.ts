@@ -11,7 +11,7 @@ import { formErrorParams, nextDoseShiftHelp } from '../logic/treatment-form-text
 import type { TreatmentFormValues } from '../logic/treatment-form-values'
 import { pastDuesTexts } from '../logic/treatment-past-dues'
 import type { PastDuesChoice } from '../schema/treatment-form.schema'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 

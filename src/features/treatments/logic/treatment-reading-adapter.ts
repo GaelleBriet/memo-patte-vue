@@ -1,4 +1,4 @@
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { TreatmentView, TreatmentViewInput } from '@/shared/domain/dose-calendar'
 import { readCarnet, readTreatment, type TreatmentReading } from '@/shared/domain/treatment-reading'

@@ -4,7 +4,7 @@ import { dose, missed, period, postponed, shifted, treatment } from './treatment
 import { treatmentHistory, type DoseLineAction } from '../logic/treatment-history'
 import { lineAction } from '../logic/treatment-line-actions'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { play } from '@/shared/domain/dose-calendar'
 import i18n from '@/core/i18n'
 

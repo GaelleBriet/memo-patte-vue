@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vite
 import TreatmentsSection from '../views/TreatmentsSection.vue'
 import ListRowIcon from '@/shared/components/ListRowIcon.vue'
 import type { TreatmentsRepository } from '../repository/treatments.repository'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import { provideTreatmentsRepository } from '../store/treatments.store'

@@ -14,7 +14,7 @@ import {
   getTreatmentsRepository,
   type AllTreatmentsWithPeriodsReader,
 } from '../repository/treatments.repository'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import {
   getVaccinationsRepository,

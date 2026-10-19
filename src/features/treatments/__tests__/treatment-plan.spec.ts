@@ -12,7 +12,7 @@ import type {
   TreatmentResumptionInput,
 } from '../schema/treatment-form.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { legacyFactsOf } from '@/shared/domain/dose-calendar'
 
 const AT = '2026-07-01T08:00:00.000Z'

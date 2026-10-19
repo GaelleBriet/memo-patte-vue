@@ -13,7 +13,7 @@ import {
   written,
 } from '@/features/treatments/__tests__/treatment-fixtures'
 import type { DoseWrite } from '@/features/treatments/schema/treatment-dose.schema'
-import type { TreatmentWithPeriods } from '@/features/treatments/schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '@/features/treatments/schema/treatment-with-periods.schema'
 import { createTreatmentDosesService } from '@/features/treatments/service/treatment-doses.service'
 import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import {

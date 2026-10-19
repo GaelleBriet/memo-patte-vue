@@ -12,7 +12,7 @@ import {
 } from './treatment-history-rows'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { byStartDescending, periodLastDay } from '@/shared/domain/treatment-periods'
 import { historyEntries, type TreatmentReading } from '@/shared/domain/treatment-reading'
 import { formatLongDate, formatDayMonthOrYear } from '@/shared/utils/format'

@@ -4,7 +4,7 @@ import {
 } from '@/features/treatments/logic/treatment-history'
 import { lineAction } from '@/features/treatments/logic/treatment-line-actions'
 import { carnetReadingOf } from '@/features/treatments/logic/treatment-reading-adapter'
-import type { TreatmentWithPeriods } from '@/features/treatments/schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '@/features/treatments/schema/treatment-with-periods.schema'
 import {
   play,
   type Line,

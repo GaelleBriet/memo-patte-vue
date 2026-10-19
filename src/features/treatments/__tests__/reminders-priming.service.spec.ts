@@ -7,7 +7,7 @@ import {
   period,
   treatment as withPeriods,
 } from '@/features/treatments/__tests__/treatment-fixtures'
-import type { TreatmentWithPeriods } from '@/features/treatments/schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '@/features/treatments/schema/treatment-with-periods.schema'
 import type { TreatmentPeriodRecord } from '@/features/treatments/schema/treatment-period.schema'
 import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
 import { createRemindersPriming, hasUpcomingDueDates } from '../service/reminders-priming.service'

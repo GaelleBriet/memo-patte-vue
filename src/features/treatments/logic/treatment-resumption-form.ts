@@ -7,7 +7,7 @@ import {
   type TreatmentFormValues,
 } from './treatment-form-values'
 import { treatmentFormResultOf, type TreatmentFormResult } from './treatment-form-errors'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 
 export type TreatmentResumptionResult = TreatmentFormResult<
   z.output<ReturnType<typeof treatmentResumptionSchemaFor>>

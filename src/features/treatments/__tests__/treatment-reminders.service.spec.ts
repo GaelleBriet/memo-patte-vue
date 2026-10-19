@@ -9,7 +9,7 @@ import {
   createFakeNotifications,
   type FakeNotifications,
 } from '@/shared/__tests__/fake-notifications'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import {
   createTreatmentRemindersService,
   type TreatmentRemindersService,

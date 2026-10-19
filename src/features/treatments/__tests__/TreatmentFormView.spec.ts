@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } fr
 import { createMemoryHistory, createRouter, createWebHistory, type Router } from 'vue-router'
 
 import TreatmentFormView from '../views/TreatmentFormView.vue'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type {
   TreatmentCreationInput,

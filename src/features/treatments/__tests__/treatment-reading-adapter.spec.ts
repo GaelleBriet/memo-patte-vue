@@ -5,7 +5,7 @@ import {
   readableReadingOf,
   treatmentReadingOf,
 } from '../logic/treatment-reading-adapter'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import { legacyFactsOf } from '@/shared/domain/dose-calendar'
 

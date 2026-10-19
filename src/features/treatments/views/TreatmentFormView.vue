@@ -24,7 +24,7 @@ import {
   resumeInfoText,
 } from '../logic/treatment-form-texts'
 import type { PromptActionId } from '../logic/treatment-unlogged'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { PastDuesChoice } from '../schema/treatment-form.schema'
 import type { ReminderOffsetMinutes } from '../schema/treatment-period.schema'
 import { FREQUENCY_UNITS, TREATMENT_TYPES, type FrequencyUnit } from '../schema/treatment.schema'

@@ -1,5 +1,5 @@
 import type { DoseWrite } from '../schema/treatment-dose.schema'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import { legacyFactsOf } from '@/shared/domain/dose-calendar'

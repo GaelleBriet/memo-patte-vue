@@ -21,7 +21,7 @@ import type {
   TreatmentPeriodRecord,
   TreatmentPeriodSettings,
 } from '../schema/treatment-period.schema'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { isCalendarDay, latestOf, nextDay } from '@/shared/domain/calendar-day'
 import type { Phase } from '@/shared/domain/dose-calendar'
 

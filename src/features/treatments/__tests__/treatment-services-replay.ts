@@ -17,7 +17,7 @@ import { createTreatmentsRepository } from '../repository/treatments.repository'
 import { createTreatmentDosesService } from '../service/treatment-doses.service'
 import { createTreatmentPlanService } from '../service/treatment-plan.service'
 import { createTreatmentStopService } from '../service/treatment-stop.service'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 
 const ANIMAL = '11111111-1111-4111-8111-111111111111'
 const BASE = Date.UTC(2027, 0, 1)

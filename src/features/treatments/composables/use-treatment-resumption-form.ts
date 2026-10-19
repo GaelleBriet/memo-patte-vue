@@ -9,7 +9,7 @@ import {
   resumedFormValues,
   validateTreatmentResumption,
 } from '../logic/treatment-resumption-form'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { detailRoute } from '@/shared/domain/reminder-route'

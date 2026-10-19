@@ -18,7 +18,7 @@ import {
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
 const viewOf = (history: Pick<TreatmentWithPeriods, 'periods' | 'doses'>, today: string) =>
   treatmentReadingOf(history, today).view
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type {
   TreatmentCreationInput,

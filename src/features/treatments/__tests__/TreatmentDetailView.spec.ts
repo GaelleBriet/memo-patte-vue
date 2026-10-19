@@ -15,7 +15,7 @@ import {
 import { fakeTreatmentsRepository } from './fake-treatments-repository'
 import { dose, missed, period, postponed, shifted, treatment } from './treatment-fixtures'
 import { DoseAlreadyLoggedError } from '../logic/treatment-dose-change'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentDosesService } from '../service/treatment-doses.service'
 import type { TreatmentStopService } from '../service/treatment-stop.service'

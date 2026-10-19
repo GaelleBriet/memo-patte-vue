@@ -6,7 +6,7 @@ import { correctionOf, periodWriteOf, settingsPlanOf } from './treatment-setting
 import { sameSettings, settingsOf, withRhythm, type PlanIds } from './treatment-settings'
 import type { TreatmentPlanWrite } from '../schema/treatment-plan.schema'
 import type { TreatmentEditionInput } from '../schema/treatment-form.schema'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { applied, settingsApplied } from '@/shared/domain/dose-calendar'
 
 /** Lève une `ZodError` pour une saisie refusée : rien n'est alors à écrire. */

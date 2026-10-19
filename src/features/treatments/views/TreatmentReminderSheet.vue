@@ -13,7 +13,7 @@ import { useTreatmentSheetActions } from '../composables/use-treatment-sheet-act
 import { detailActions } from '../logic/treatment-card'
 import { readableReadingOf } from '../logic/treatment-reading-adapter'
 import { sheetOtherDateMin, sheetPeriod, treatmentSheetTexts } from '../logic/treatment-sheet'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'

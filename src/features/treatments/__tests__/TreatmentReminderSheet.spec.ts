@@ -16,7 +16,7 @@ import {
 import { dose, period, plain, postponed, treatment } from './treatment-fixtures'
 import TreatmentChooseDays from '../views/TreatmentChooseDays.vue'
 import TreatmentReminderSheet from '../views/TreatmentReminderSheet.vue'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { Treatment } from '../schema/treatment.schema'
 import type { AppliedDoseChange } from '../service/treatment-doses.service'
 import { useTreatmentsStore } from '../store/treatments.store'

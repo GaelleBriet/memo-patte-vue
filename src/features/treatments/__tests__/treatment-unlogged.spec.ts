@@ -11,7 +11,7 @@ import {
   unloggedBanner,
   unloggedWhen,
 } from '../logic/treatment-unlogged'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const t = i18n.global.t

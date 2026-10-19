@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { dose, extra, missed, period, plain, treatment } from './treatment-fixtures'
 import { carnetViewCache, carnetTreatments } from '../logic/treatment-carnet'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import i18n, { applyLocale } from '@/core/i18n'

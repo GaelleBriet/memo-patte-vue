@@ -6,7 +6,7 @@ import type {
 } from './treatment-edition-resolution'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { TreatmentRhythm } from '../schema/treatment-form.schema'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { isCalendarDay } from '@/shared/domain/calendar-day'
 import {
   moveBounds,

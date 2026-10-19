@@ -9,7 +9,7 @@ import {
   type NoteGesture,
 } from '../logic/treatment-dose-change'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 
 const VENDREDI = period({
   startsOn: '2026-10-09',

@@ -1,7 +1,7 @@
 import { currentPeriodOf } from './treatment-reading-adapter'
 import { isResumablePhase } from './treatment-resumption'
 import { periodRhythmText } from './treatment-rhythm'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { ExactRemindersStatus } from '@/core/notifications'
 import { currentDoseText } from '@/shared/domain/current-dose'
 import { dosageText } from '@/shared/domain/dosage'

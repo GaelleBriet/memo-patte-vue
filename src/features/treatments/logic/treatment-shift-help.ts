@@ -1,7 +1,7 @@
 import { refusalText } from './treatment-refusal-texts'
 import { revealedDues, revealedDuesText } from './treatment-revealed-dues'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { nextDay } from '@/shared/domain/calendar-day'
 import {
   applied,

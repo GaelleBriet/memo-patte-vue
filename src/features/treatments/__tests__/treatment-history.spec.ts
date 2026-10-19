@@ -16,7 +16,7 @@ import {
   treatmentHistory,
 } from '../logic/treatment-history'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 

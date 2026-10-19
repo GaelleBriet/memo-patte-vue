@@ -10,7 +10,7 @@ import {
   type TreatmentFormValues,
 } from './treatment-form-values'
 import { treatmentFormErrorsOf, type TreatmentFormErrors } from './treatment-form-errors'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { PastDuesChoice } from '../schema/treatment-form.schema'
 import { isCalendarDay } from '@/shared/domain/calendar-day'
 

@@ -1,6 +1,6 @@
 import { hasSeveralTimes } from './treatment-gestures'
 import { unloggedWhen, type PromptAction } from './treatment-unlogged'
-import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { Due, TreatmentView } from '@/shared/domain/dose-calendar'
 import type { Translate } from '@/core/i18n/translate'
 
