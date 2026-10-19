@@ -53,6 +53,9 @@ function given(dueOn: string, changes: Partial<ExportTreatmentDose> = {}): Expor
     givenOn: dueOn,
     status: 'given',
     targetOn: null,
+    previousTargetOn: null,
+    previousTargetTime: null,
+    dueRank: null,
     ...STAMPS,
     ...changes,
   }

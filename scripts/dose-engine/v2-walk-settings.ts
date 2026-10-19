@@ -8,6 +8,7 @@ import {
   type SettingsPlan,
   type SettingsRequest,
   type TreatmentViewInput,
+  withReportFacts,
 } from '@/shared/domain/dose-calendar'
 
 import { FREQUENCIES, int, pick, plusDays, TIMES, type Random } from './carnet'
@@ -55,11 +56,12 @@ function linesWritten(
   return changes.reduce<Line[]>(
     (lines, change, index) => {
       if (change.action === 'delete') return lines.filter(({ id }) => id !== change.id)
+      const { line: fields } = withReportFacts(lines, walk.input.settings, change)
       if (change.action === 'create') {
-        return [...lines, { ...change.line, id: `r${updatedAt}-${index}`, updatedAt }]
+        return [...lines, { ...fields, id: `r${updatedAt}-${index}`, updatedAt }]
       }
       return lines.map((line) =>
-        line.id === change.id ? { ...change.line, id: line.id, updatedAt } : line,
+        line.id === change.id ? { ...fields, id: line.id, updatedAt } : line,
       )
     },
     [...walk.input.lines],

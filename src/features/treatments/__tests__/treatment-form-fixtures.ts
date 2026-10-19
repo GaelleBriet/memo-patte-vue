@@ -38,6 +38,9 @@ export function period(overrides: Partial<TreatmentPeriodRecord> = {}): Treatmen
 }
 
 export const PRISE: TreatmentDose = {
+  previousTargetOn: null,
+  previousTargetTime: null,
+  dueRank: null,
   id: 'd-1',
   periodId: TREATMENT,
   treatmentId: TREATMENT,

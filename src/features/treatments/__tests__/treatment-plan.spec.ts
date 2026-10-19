@@ -50,6 +50,9 @@ function period(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPeriod
 
 function dose(dueOn: string, overrides: Partial<TreatmentDose> = {}): TreatmentDose {
   return {
+    previousTargetOn: null,
+    previousTargetTime: null,
+    dueRank: null,
     id: `d-${dueOn}`,
     periodId: TREATMENT,
     treatmentId: TREATMENT,

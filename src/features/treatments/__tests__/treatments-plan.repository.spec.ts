@@ -39,6 +39,7 @@ const PLAN: NewTreatmentPlan = {
 }
 
 const RIEN: TreatmentPlanWrite = { treatment: null, period: null, doses: [] }
+const SANS_FAITS = { previousTargetOn: null, previousTargetTime: null, dueRank: null }
 
 describe('treatmentsRepository — créer et écrire un plan', () => {
   let db: InMemoryDb
@@ -120,7 +121,7 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
 
     it('écrit les prises du plan avec le traitement et sa période, en une seule transaction', async () => {
       const runMany = vi.spyOn(db, 'runMany')
-      const fields = { periodId: PANACUR, dueTime: '08:00' }
+      const fields = { periodId: PANACUR, dueTime: '08:00', ...SANS_FAITS }
 
       await repository.create({
         ...PLAN,
@@ -160,6 +161,7 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
 
     it('n’écrit ni traitement ni période quand une prise du plan est refusée', async () => {
       const dose = {
+        ...SANS_FAITS,
         periodId: PANACUR,
         dueOn: '2026-09-26',
         dueTime: null,
@@ -313,6 +315,7 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
     })
 
     const LIGNE = {
+      ...SANS_FAITS,
       periodId: PANACUR,
       dueOn: '2026-09-29',
       dueTime: '08:00',

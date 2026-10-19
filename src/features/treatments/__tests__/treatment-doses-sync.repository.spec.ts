@@ -98,6 +98,9 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
       given_on: '2026-01-01',
       status: 'given',
       target_on: '2026-02-01',
+      previous_target_on: null,
+      previous_target_time: null,
+      due_rank: null,
       created_at: T_LOCAL,
       updated_at: T_LOCAL,
       deleted_at: T_NEW,
@@ -155,6 +158,36 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
       status: 'missed',
       targetOn: '2026-01-15',
       updatedAt: T_NEW,
+    })
+  })
+
+  it('reçoit l’arrivée d’avant et le rang d’un report ; une ligne distante qui ne les porte pas les laisse vides', async () => {
+    await db.runMany([
+      repository.applyRemoteRowStatement(
+        remoteDose({
+          id: TREATMENT_ID,
+          due_time: '20:00',
+          given_on: null,
+          status: 'postponed',
+          target_on: '2026-02-08',
+          previous_target_on: '2026-02-05',
+          previous_target_time: '20:00',
+          due_rank: 2,
+        }),
+      ),
+      repository.applyRemoteRowStatement(remoteDose({ status: 'postponed', given_on: null })),
+    ])
+
+    await expect(repository.getById(TREATMENT_ID)).resolves.toMatchObject({
+      targetOn: '2026-02-08',
+      previousTargetOn: '2026-02-05',
+      previousTargetTime: '20:00',
+      dueRank: 2,
+    })
+    await expect(repository.getById(LATER_ID)).resolves.toMatchObject({
+      previousTargetOn: null,
+      previousTargetTime: null,
+      dueRank: null,
     })
   })
 
@@ -226,6 +259,9 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
           given_on: '2026-01-01',
           status: 'given',
           target_on: '2026-02-01',
+          previous_target_on: null,
+          previous_target_time: null,
+          due_rank: null,
           created_at: PG_LOCAL,
           updated_at: PG_LOCAL,
           deleted_at: null,

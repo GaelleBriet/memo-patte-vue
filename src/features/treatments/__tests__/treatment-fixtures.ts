@@ -46,6 +46,9 @@ export function dose(
   const dueTime = overrides.dueTime ?? null
   const status = overrides.status ?? 'given'
   return {
+    previousTargetOn: null,
+    previousTargetTime: null,
+    dueRank: null,
     id: dueTime === null ? dueOn : `${dueOn} ${dueTime}`,
     periodId: 'p-1',
     treatmentId: 'metacam',

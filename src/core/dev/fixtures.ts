@@ -166,7 +166,17 @@ async function seedDemoCarnet(repositories: FixturesRepositories, today: Date): 
             ),
             ...doses.map((dose) =>
               repositories.treatmentDoses.restoreStatement(
-                { ...dose, ...stamps, id: crypto.randomUUID(), periodId, treatmentId, animalId },
+                {
+                  previousTargetOn: null,
+                  previousTargetTime: null,
+                  dueRank: null,
+                  ...dose,
+                  ...stamps,
+                  id: crypto.randomUUID(),
+                  periodId,
+                  treatmentId,
+                  animalId,
+                },
                 false,
               ),
             ),

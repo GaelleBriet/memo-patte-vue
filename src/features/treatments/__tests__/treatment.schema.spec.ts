@@ -135,6 +135,9 @@ describe('treatmentDoseSchema', () => {
     givenOn: '2026-06-02',
     status: 'given',
     targetOn: null,
+    previousTargetOn: null,
+    previousTargetTime: null,
+    dueRank: null,
     createdAt: '2026-06-02T10:00:00.000Z',
     updatedAt: '2026-06-02T10:00:00.000Z',
     deletedAt: null,
@@ -165,6 +168,24 @@ describe('treatmentDoseSchema', () => {
     const report = { ...dose, status: 'postponed', givenOn: null, targetOn: '2026-06-05' } as const
     expect(treatmentDoseSchema.parse(report)).toEqual(report)
     expect(treatmentDoseSchema.safeParse({ ...report, targetOn: '05/06/2026' }).success).toBe(false)
+  })
+
+  it('range l’arrivée d’avant d’un report déplacé de nouveau et le rang de son heure', () => {
+    const report = {
+      ...dose,
+      dueTime: '20:00',
+      status: 'postponed',
+      givenOn: null,
+      targetOn: '2026-06-08',
+      previousTargetOn: '2026-06-05',
+      previousTargetTime: '20:00',
+      dueRank: 2,
+    } as const
+    expect(treatmentDoseSchema.parse(report)).toEqual(report)
+    expect(treatmentDoseSchema.safeParse({ ...report, dueRank: 0 }).success).toBe(false)
+    expect(treatmentDoseSchema.safeParse({ ...report, previousTargetTime: '8h' }).success).toBe(
+      false,
+    )
   })
 })
 

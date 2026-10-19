@@ -38,9 +38,14 @@ const lineFieldsOf = (dose: DoseFields): LineFields => ({
 // Ce que `doseWritesOf` lit d'une prise : son identifiant et ses champs.
 function treatmentOf(
   lines: readonly Line[],
-): Pick<TreatmentWithPeriods, 'id' | 'animalId' | 'doses'> {
+): Pick<TreatmentWithPeriods, 'id' | 'animalId' | 'doses' | 'periods'> {
   const doses = lines.map((line) => ({ id: line.id, ...doseFieldsOf(line) }))
-  return { id: 't', animalId: 'a', doses: doses as unknown as TreatmentWithPeriods['doses'] }
+  return {
+    id: 't',
+    animalId: 'a',
+    doses: doses as unknown as TreatmentWithPeriods['doses'],
+    periods: [],
+  }
 }
 
 /** Comme `applyBatch` : chaque écriture datée de l'instant du lot (plus son rang), et le lot inverse. */

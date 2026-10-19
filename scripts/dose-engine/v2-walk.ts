@@ -12,6 +12,7 @@ import {
   type SettingsPlan,
   type SettingsRequest,
   type TreatmentViewInput,
+  withReportFacts,
 } from '@/shared/domain/dose-calendar'
 
 import { FREQUENCIES, int, mulberry32, pick, plusDays, TIMES, type Random } from './carnet'
@@ -98,12 +99,13 @@ export function written(walk: V2Walk, changes: readonly LineChange[]): Treatment
       continue
     }
     const updatedAt = stampOf(walk)
+    const { line: fields } = withReportFacts(lines, walk.input.settings, change)
     if (change.action === 'rewrite') {
       lines = lines.map((line) =>
-        line.id === change.id ? { ...change.line, id: line.id, updatedAt } : line,
+        line.id === change.id ? { ...fields, id: line.id, updatedAt } : line,
       )
     } else {
-      lines = [...lines, { ...change.line, id: `l${walk.stamp}`, updatedAt }]
+      lines = [...lines, { ...fields, id: `l${walk.stamp}`, updatedAt }]
     }
   }
   return { ...walk.input, lines }

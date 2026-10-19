@@ -328,6 +328,9 @@ describe('treatmentStopService', () => {
             treatmentId: panacur,
             animalId: BOREE,
             dose: {
+              previousTargetOn: null,
+              previousTargetTime: null,
+              dueRank: null,
               periodId: panacur,
               dueOn: '2026-09-21',
               dueTime: null,

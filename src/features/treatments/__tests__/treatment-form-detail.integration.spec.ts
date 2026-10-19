@@ -120,6 +120,9 @@ describe('formulaire et fiche d’un traitement, sur la même base', () => {
           treatmentId: id,
           animalId: MILO,
           dose: {
+            previousTargetOn: null,
+            previousTargetTime: null,
+            dueRank: null,
             periodId: id,
             dueOn: '2026-07-10',
             dueTime: null,

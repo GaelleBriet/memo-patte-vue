@@ -34,6 +34,9 @@ function prise(
   surcharges: Partial<TreatmentDose> = {},
 ): TreatmentDose {
   return {
+    previousTargetOn: null,
+    previousTargetTime: null,
+    dueRank: null,
     id,
     periodId: treatmentId,
     treatmentId,
@@ -210,6 +213,9 @@ describe('treatmentDosesRepository', () => {
         given_on: '2025-10-10',
         status: 'given',
         target_on: null,
+        previous_target_on: null,
+        previous_target_time: null,
+        due_rank: null,
         created_at: T0,
         updated_at: NOW,
         deleted_at: null,

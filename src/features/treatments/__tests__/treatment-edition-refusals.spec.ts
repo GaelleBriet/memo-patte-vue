@@ -50,6 +50,9 @@ function period(overrides: Partial<TreatmentPeriodRecord>): TreatmentPeriodRecor
 function dose(overrides: Partial<TreatmentDose>): TreatmentDose {
   const createdAt = at()
   return {
+    previousTargetOn: null,
+    previousTargetTime: null,
+    dueRank: null,
     id: `d-${stamp}`,
     periodId: TREATMENT,
     treatmentId: TREATMENT,
