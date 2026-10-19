@@ -1,7 +1,6 @@
 import {
   newSettings,
-  openingGridDate,
-  reopenedSetting,
+  inheritedGridDate,
   rewrittenSetting,
   treatmentView,
   type Frequency,
@@ -34,12 +33,7 @@ export function settingsWritten(walk: SettingsWalk, plan: SettingsPlan): Treatme
   if (plan.action === 'rewrite') {
     const rewritten = settings.map((setting) =>
       setting.id === plan.id
-        ? reopenedSetting(
-            settings,
-            setting,
-            rewrittenSetting(setting, plan.setting, () => at),
-            walk.input.today,
-          )
+        ? rewrittenSetting(setting, plan.setting, () => at, walk.input)
         : setting,
     )
     return { ...walk.input, settings: rewritten, lines }
@@ -49,7 +43,7 @@ export function settingsWritten(walk: SettingsWalk, plan: SettingsPlan): Treatme
     id: `s${settings.length + 1}`,
     stoppedOn: null,
     createdAt: at,
-    gridWrittenAt: openingGridDate(settings, plan.setting, at),
+    gridWrittenAt: inheritedGridDate(settings, plan.setting) ?? at,
   }
   return { ...walk.input, settings: [...settings, created], lines }
 }

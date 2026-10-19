@@ -645,6 +645,7 @@ describe('moment du rappel (RA-7, RA-8)', () => {
       period: {
         action: 'correct',
         id: TREATMENT,
+        writtenOn: '2026-09-28',
         gridOriginOn: '2026-07-10',
         firstDueChosen: true,
         fallenDosesAnswer: 'unasked',
@@ -744,6 +745,7 @@ describe('editionPlan — fréquence, heures, posologie (TR-28)', () => {
     expect(plan.period).toEqual({
       action: 'correct',
       id: TREATMENT,
+      writtenOn: '2026-09-28',
       gridOriginOn: '2026-10-10',
       firstDueChosen: false,
       fallenDosesAnswer: 'unasked',

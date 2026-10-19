@@ -52,30 +52,34 @@ export function keepsGrid(periods: readonly GridFacts[], opening: Opening): bool
   )
 }
 
-const gridDateOf = (setting: Setting) =>
-  setting.gridWrittenAt ?? setting.updatedAt ?? setting.createdAt
-
-/** La date de grille d'une période ouverte à `at` : celle de la précédente quand elle en reprend la grille. */
-export function openingGridDate(
-  settings: readonly Setting[],
-  opening: SettingFields,
-  at: string,
-): string {
-  const previous = settings.at(-1)
-  return previous !== undefined && keepsGrid(settings, opening) ? gridDateOf(previous) : at
+/** Une période telle qu'on la lit pour sa date de grille. */
+export type DatedGrid = GridFacts & {
+  id: string
+  startsOn: Day
+  createdAt: string
+  updatedAt?: string
+  gridWrittenAt?: string
 }
 
-/** Ouvert le jour même de sa réécriture sur place, un réglage se juge comme une ouverture face à ceux d'avant. */
-export function reopenedSetting(
-  settings: readonly Setting[],
-  before: Setting,
-  rewritten: Setting,
-  writtenOn: Day,
-): Setting {
-  const index = settings.findIndex(({ id }) => id === before.id)
-  if (before.startsOn !== writtenOn || index <= 0) return rewritten
-  const earlier = settings.slice(0, index)
-  return keepsGrid(earlier, rewritten)
-    ? { ...rewritten, gridWrittenAt: gridDateOf(earlier.at(-1)!) }
-    : rewritten
+const gridDateOf = (period: DatedGrid) =>
+  period.gridWrittenAt ?? period.updatedAt ?? period.createdAt
+
+/**
+ * La date de grille héritée de la période précédente quand `opening` en reprend la grille ; `undefined` :
+ * la période écrite la date elle-même. Une période ouverte (`reopened` absent) se juge face à toutes ;
+ * une période réécrite sur place le jour même de son ouverture, face à celles qui la précèdent.
+ */
+export function inheritedGridDate(
+  periods: readonly DatedGrid[],
+  opening: Opening,
+  reopened?: { id: string; writtenOn: Day },
+): string | undefined {
+  const index =
+    reopened === undefined ? periods.length : periods.findIndex(({ id }) => id === reopened.id)
+  if (reopened !== undefined && (index <= 0 || periods[index]!.startsOn !== reopened.writtenOn)) {
+    return undefined
+  }
+  const earlier = periods.slice(0, index)
+  const previous = earlier.at(-1)
+  return previous !== undefined && keepsGrid(earlier, opening) ? gridDateOf(previous) : undefined
 }

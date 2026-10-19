@@ -15,8 +15,8 @@ export type PlannedDoseWrite =
 
 /**
  * Ce que « Modifier » ou « Reprendre » écrit en une fois ; `null` : rien à écrire dans cette table.
- * `gridOriginOn` `null` : l'origine de la grille du réglage précédent (R3). `openedToday` : la
- * période corrigée a été ouverte aujourd'hui, sa date de grille se juge comme à son ouverture.
+ * `gridOriginOn` `null` : l'origine de la grille du réglage précédent (R3). `writtenOn` : le jour
+ * de la correction, qui juge la date de grille d'une période ouverte ce jour-là (`inheritedGridDate`).
  */
 export type TreatmentPlanWrite = {
   treatment: Pick<Treatment, 'name' | 'type'> | null
@@ -25,7 +25,7 @@ export type TreatmentPlanWrite = {
         action: 'correct' | 'open'
         id: string
         settings: TreatmentPeriodSettings
-        openedToday?: boolean
+        writtenOn?: string
       } & PeriodOrigin)
     | null
   doses: PlannedDoseWrite[]

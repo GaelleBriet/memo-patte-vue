@@ -1,8 +1,7 @@
 import {
   moveBounds,
   newSettings,
-  openingGridDate,
-  reopenedSetting,
+  inheritedGridDate,
   play,
   rewritesCalendar,
   rewritesGrid,
@@ -69,12 +68,7 @@ function writePlan(input: TreatmentViewInput, plan: SettingsPlan, clock: Clock, 
   if (plan.action === 'rewrite') {
     const settings = input.settings.map((setting) =>
       setting.id === plan.id
-        ? reopenedSetting(
-            input.settings,
-            setting,
-            rewrittenSetting(setting, plan.setting, () => stamp(clock)),
-            input.today,
-          )
+        ? rewrittenSetting(setting, plan.setting, () => stamp(clock), input)
         : setting,
     )
     return { ...input, lines, settings }
@@ -85,7 +79,7 @@ function writePlan(input: TreatmentViewInput, plan: SettingsPlan, clock: Clock, 
     id: `${tag}s${clock.n}`,
     stoppedOn: null,
     createdAt,
-    gridWrittenAt: openingGridDate(input.settings, plan.setting, createdAt),
+    gridWrittenAt: inheritedGridDate(input.settings, plan.setting) ?? createdAt,
   }
   return { ...input, lines, settings: [...input.settings, created] }
 }

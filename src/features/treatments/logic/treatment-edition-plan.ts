@@ -34,10 +34,7 @@ export function editionPlan(
       : sameSettings(settings, settingsOf(period))
         ? null
         : correctionOf(period, settings)
-  const written =
-    write?.action === 'correct' && period.startsOn === today
-      ? { ...write, openedToday: true }
-      : write
+  const written = write?.action === 'correct' ? { ...write, writtenOn: today } : write
   const changes = [...(move?.changes ?? []), ...(plan?.lines ?? [])]
   const doses = plannedDoseWritesOf(treatment, changes, ids.newId)
   const result: TreatmentPlanWrite = { treatment: identity, period: written, doses }

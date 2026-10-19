@@ -1,5 +1,5 @@
 import { keyOf } from '../grid'
-import { openingGridDate, reopenedSetting } from '../grid-heritage'
+import { inheritedGridDate } from '../grid-heritage'
 import { familyOf } from '../lines'
 import { withReportFacts } from '../report-facts'
 import type {
@@ -105,18 +105,13 @@ function settingWritten(input: TreatmentViewInput, plan: SettingsPlan): Treatmen
       id: 'réglage-écrit',
       stoppedOn: null,
       createdAt: WRITTEN_AT,
-      gridWrittenAt: openingGridDate(input.settings, plan.setting, WRITTEN_AT),
+      gridWrittenAt: inheritedGridDate(input.settings, plan.setting) ?? WRITTEN_AT,
     }
     return { ...input, settings: [...input.settings, setting] }
   }
   const settings = input.settings.map((setting) =>
     setting.id === plan.id
-      ? reopenedSetting(
-          input.settings,
-          setting,
-          rewrittenSetting(setting, plan.setting, () => WRITTEN_AT),
-          input.today,
-        )
+      ? rewrittenSetting(setting, plan.setting, () => WRITTEN_AT, input)
       : setting,
   )
   return { ...input, settings }
@@ -127,15 +122,22 @@ export function rewrittenSetting(
   setting: Setting,
   fields: SettingFields,
   at: () => string,
+  carnet: Pick<TreatmentViewInput, 'settings' | 'today'>,
 ): Setting {
   const next = { ...setting, ...fields }
-  const [calendar, grid] = [rewritesCalendar(setting, next), rewritesGrid(setting, next)]
-  if (!calendar && !grid) return next
+  const inherited = inheritedGridDate(carnet.settings, next, {
+    id: setting.id,
+    writtenOn: carnet.today,
+  })
+  const calendar = rewritesCalendar(setting, next)
+  const grid = inherited === undefined && rewritesGrid(setting, next)
+  const kept = inherited === undefined ? {} : { gridWrittenAt: inherited }
+  if (!calendar && !grid) return { ...next, ...kept }
   const written = at()
   return {
     ...next,
     ...(calendar ? { updatedAt: written } : {}),
-    ...(grid ? { gridWrittenAt: written } : {}),
+    ...(grid ? { gridWrittenAt: written } : kept),
   }
 }
 

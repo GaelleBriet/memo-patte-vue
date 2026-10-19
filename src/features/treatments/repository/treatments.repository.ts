@@ -31,7 +31,7 @@ import type {
   TreatmentPlanWrite,
 } from '../schema/treatment-plan.schema'
 import type { Stamped } from '@/shared/domain/carnet-data'
-import { keepsGrid } from '@/shared/domain/dose-calendar'
+import { inheritedGridDate } from '@/shared/domain/dose-calendar'
 import { groupBy } from '@/shared/utils/group-by'
 
 interface TreatmentRow {
@@ -312,26 +312,16 @@ export function createTreatmentsRepository(
           params: [name, type, at, deviceId(), id, name, type],
         })
       }
+      const known = plan.period === null ? [] : await periods.listByTreatment(id)
       if (plan.period?.action === 'correct') {
-        const { id: periodId, settings, openedToday, ...origin } = plan.period
-        const all = openedToday === true ? await periods.listByTreatment(id) : []
-        const earlier = all.slice(
-          0,
-          Math.max(
-            0,
-            all.findIndex(({ id }) => id === periodId),
-          ),
-        )
-        const inherited =
-          earlier.length > 0 && keepsGrid(earlier, { ...settings, ...origin })
-            ? earlier.at(-1)!.gridWrittenAt
-            : undefined
+        const { id: periodId, settings, writtenOn, ...origin } = plan.period
+        const reopened = writtenOn === undefined ? undefined : { id: periodId, writtenOn }
+        const inherited = reopened && inheritedGridDate(known, { ...settings, ...origin }, reopened)
         statements.push(periods.correctSettingsStatement(periodId, settings, at, origin, inherited))
       }
       if (plan.period?.action === 'open') {
         const { settings, gridOriginOn, firstDueChosen } = plan.period
-        const earlier = await periods.listByTreatment(id)
-        const kept = keepsGrid(earlier, { ...settings, gridOriginOn, firstDueChosen })
+        const opening = { ...settings, gridOriginOn, firstDueChosen }
         statements.push(
           periods.insertStatement({
             ...settings,
@@ -344,7 +334,7 @@ export function createTreatmentsRepository(
             stoppedOn: null,
             createdAt: at,
             updatedAt: at,
-            gridWrittenAt: kept ? earlier.at(-1)!.gridWrittenAt : at,
+            gridWrittenAt: inheritedGridDate(known, opening) ?? at,
             deletedAt: null,
           }),
         )
