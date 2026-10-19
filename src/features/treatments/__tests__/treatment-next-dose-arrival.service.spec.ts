@@ -2,7 +2,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
-import { createReplay, readingAfter, storedHistory, type Replay } from './treatment-services-replay'
+import {
+  createReplay,
+  readingAfter,
+  storedTreatment,
+  type Replay,
+} from './treatment-services-replay'
 
 const ID = '22222222-2222-4222-8222-222222222222'
 const ANIMAL = '11111111-1111-4111-8111-111111111111'
@@ -88,11 +93,11 @@ describe('#796 : « Prochaine dose » avec une posologie déplace l’arrivée d
 
     const read = await readingAfter(replay, ID)
     expect(read?.[4]?.split(',').slice(0, 2)).toEqual(['2026-10-11 ', '2026-10-13 '])
-    const report = (await storedHistory(replay.treatments, ID)).doses.find(
+    const report = (await storedTreatment(replay.treatments, ID)).doses.find(
       ({ status }) => status === 'postponed',
     )
     expect(report).toMatchObject({ dueOn: '2026-10-08', targetOn: '2026-10-11' })
-    const shift = (await storedHistory(replay.treatments, ID)).doses.find(
+    const shift = (await storedTreatment(replay.treatments, ID)).doses.find(
       ({ status }) => status === 'shift',
     )
     expect(shift).toMatchObject({ dueOn: '2026-10-08', targetOn: '2026-10-11' })
@@ -104,7 +109,9 @@ describe('#796 : « Prochaine dose » avec une posologie déplace l’arrivée d
 
     const read = await readingAfter(replay, ID)
     expect(read?.[4]?.split(',').slice(0, 3)).toEqual(['2026-10-08 ', '2026-10-10 ', '2026-10-12 '])
-    const statuses = (await storedHistory(replay.treatments, ID)).doses.map(({ status }) => status)
+    const statuses = (await storedTreatment(replay.treatments, ID)).doses.map(
+      ({ status }) => status,
+    )
     expect(statuses).not.toContain('postponed')
     expect(statuses).not.toContain('shift')
   })

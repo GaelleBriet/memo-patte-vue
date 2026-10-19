@@ -92,12 +92,12 @@ export async function createReplay(db: Db) {
         },
       })
       clock.day = walk.input.today
-      return history(treatments, id)
+      return storedTreatment(treatments, id)
     },
   }
 }
 
-async function history(
+async function storedTreatment(
   treatments: Awaited<ReturnType<typeof createReplay>>['treatments'],
   id: string,
 ): Promise<TreatmentWithPeriods> {
@@ -126,7 +126,7 @@ export function signatureOf(view: TreatmentView): string[] {
 }
 
 export async function readingAfter(replay: Replay, id: string): Promise<string[] | null> {
-  const reading = readTreatment(await history(replay.treatments, id), replay.clock.day)
+  const reading = readTreatment(await storedTreatment(replay.treatments, id), replay.clock.day)
   return reading === null ? null : signatureOf(reading.view)
 }
 
@@ -187,4 +187,4 @@ export function actionOf(
   }
 }
 
-export { history as storedHistory, newSettings }
+export { newSettings, storedTreatment }
