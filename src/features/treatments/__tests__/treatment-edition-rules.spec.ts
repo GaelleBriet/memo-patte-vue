@@ -322,6 +322,23 @@ describe('creationPlan — doses passées renseignées dans l’encart (TR-3)', 
     }
   })
 
+  it('range les doses passées écrites dans la période créée, de même identifiant que le traitement', () => {
+    const plan = creationPlan(
+      {
+        ...PANACUR,
+        pastDoses: [
+          { dueOn: '2026-09-25', dueTime: null, status: 'given' },
+          { dueOn: '2026-09-26', dueTime: null, status: 'missed' },
+        ],
+      },
+      TREATMENT,
+      '2026-09-28',
+      ids(),
+    )
+
+    expect(plan.doses?.map(({ dose }) => dose.periodId)).toEqual([TREATMENT, TREATMENT])
+  })
+
   describe('le nombre annoncé est ce que la fiche aurait à noter du passé (matrice)', () => {
     const TODAY = '2026-10-31'
     const firsts = ['2026-10-31', '2026-10-30', '2026-10-29', '2026-10-01', '2026-08-31']
