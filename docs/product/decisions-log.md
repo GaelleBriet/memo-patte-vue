@@ -3125,6 +3125,14 @@ migration accordée ; schéma v17, export v10).
   d'un décalage ramène la même suite de jours que la période d'avant, la date héritée revient,
   quelle que soit la correction qui déclenche le jugement. Une réécriture un autre jour garde la
   règle des colonnes (date de grille posée quand l'un des quatre champs change).
+- Le second « Modifier » du jour se juge contre les périodes d'avant le jour, sans les lignes de la
+  période du jour (I-3, décision du 19 octobre 2026 de la session d'analyse du moteur) ; aucune
+  colonne ne garde la grille d'avant la première ouverture. Résidu accepté : une réécriture du jour
+  d'un réglage qui porte son propre décalage peut hériter à tort (graine 9381000864, pas 22, 1 cas
+  sur 75 059 jugements). Un faux héritage ne fait que protéger un report qui ne s'applique de toute
+  façon que si sa dose de départ ou son ancienne arrivée existe encore (8a), alors qu'un faux datage
+  perdrait un report sans raison visible. — Écartée : une colonne de plus, à synchroniser et
+  exporter, pour un geste rare.
 - La date héritée se juge à l'écriture (plan de « Modifier », marches des campagnes) ; la simulation
   du moteur (aperçus, contrôles) date la grille comme une écriture neuve, pour ne pas payer deux
   lectures du carnet à chaque aperçu.
