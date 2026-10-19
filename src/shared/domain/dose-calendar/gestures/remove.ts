@@ -1,9 +1,17 @@
 import { isMoreRecent, isTaken } from '../lines'
-import type { Day, GestureResult, Line, LineChange, Refusal, TreatmentViewInput } from '../types'
+import type {
+  Day,
+  GestureResult,
+  Line,
+  LineChange,
+  LineEffect,
+  Refusal,
+  TreatmentViewInput,
+} from '../types'
 import { buildView } from '../view'
-import { without } from './changes'
+import { applied, without } from './changes'
 import { doseLines, shiftsOfDay } from './dose-lines'
-import { linesAfter, livesOn, outcome } from './outcome'
+import { harm, linesAfter, livesOn, outcome } from './outcome'
 import { brokenReports } from './reports'
 
 // N8 : la prise de la dose déplacée par le report de la même journée n'est pas une dose plus lointaine.
@@ -48,16 +56,7 @@ function reportRemovalRefusal(input: TreatmentViewInput, report: Line): Refusal 
   return after.others.length > 0 ? { reason: 'later-line' } : null
 }
 
-/**
- * Pourquoi « Supprimer » est refusé : report, ou report qu'il emporte, dont la dose d'arrivée est
- * notée (Q25), report devenu la première échéance d'un nouveau rythme (#780, R9.2) ou dont le
- * décalage ne peut pas partir avec lui (#835), décalage suivi d'une prise ou d'un report seul qui ne
- * tiendrait plus (N8, G19) ; une ligne sans effet se supprime toujours (R11).
- */
-export function removalRefusal(input: TreatmentViewInput, lineId: string): Refusal | null {
-  const line = input.lines.find(({ id }) => id === lineId)
-  if (line === undefined) throw new RangeError(`Aucune ligne à supprimer : ${lineId}`)
-  const effect = buildView(input).history.find((entry) => entry.line.id === lineId)!.effect
+function ownRefusal(input: TreatmentViewInput, line: Line, effect: LineEffect): Refusal | null {
   if (effect.kind === 'idle') return null
   if (line.status === 'postponed') {
     const carried = effect.kind === 'moves' ? doseLines(input, line) : []
@@ -67,6 +66,32 @@ export function removalRefusal(input: TreatmentViewInput, lineId: string): Refus
     return effect.kind === 'moves' ? reportRemovalRefusal(input, line) : null
   }
   return line.status === 'shift' ? shiftRemovalRefusal(input, line) : null
+}
+
+function removal(input: TreatmentViewInput, lineId: string) {
+  const line = input.lines.find(({ id }) => id === lineId)
+  if (line === undefined) throw new RangeError(`Aucune ligne à supprimer : ${lineId}`)
+  const before = buildView(input)
+  const effect = before.history.find((entry) => entry.line.id === lineId)!.effect
+  const companions =
+    line.status === 'postponed' && effect.kind === 'moves'
+      ? reportCompanions(input, line)
+      : doseLines(input, line)
+  const changes = [line, ...companions].map(({ id }): LineChange => ({ action: 'delete', id }))
+  const refusal =
+    ownRefusal(input, line, effect) ??
+    harm(before, buildView(applied(input, changes)), input.settings, changes)
+  return { changes, refusal }
+}
+
+/**
+ * Pourquoi « Supprimer » est refusé : report, ou report qu'il emporte, dont la dose d'arrivée est
+ * notée (Q25), report devenu la première échéance d'un nouveau rythme (#780, R9.2) ou dont le
+ * décalage ne peut pas partir avec lui (#835), décalage suivi d'une prise ou d'un report seul qui ne
+ * tiendrait plus (N8, G19), et, pour toute ligne, le refus du geste écrit (R6, R7).
+ */
+export function removalRefusal(input: TreatmentViewInput, lineId: string): Refusal | null {
+  return removal(input, lineId).refusal
 }
 
 const daysOf = ({ dueOn, targetOn }: Line): Day[] =>
@@ -103,16 +128,6 @@ export function keptAhead(input: TreatmentViewInput, deletedIds: readonly string
 
 /** R11 : seule la personne supprime une ligne ; le décalage d'une prise reste (N6, N8). */
 export function removeLine(input: TreatmentViewInput, lineId: string): GestureResult {
-  const refusal = removalRefusal(input, lineId)
-  if (refusal !== null) return { refusal }
-  const removed = input.lines.find(({ id }) => id === lineId)!
-  const effect = buildView(input).history.find(({ line }) => line.id === lineId)!.effect
-  const companions =
-    removed.status === 'postponed' && effect.kind === 'moves'
-      ? reportCompanions(input, removed)
-      : doseLines(input, removed)
-  return outcome(input, [
-    { action: 'delete', id: lineId },
-    ...companions.map(({ id }): LineChange => ({ action: 'delete', id })),
-  ])
+  const { changes, refusal } = removal(input, lineId)
+  return refusal === null ? outcome(input, changes) : { refusal }
 }
