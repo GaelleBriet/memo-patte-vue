@@ -1,5 +1,6 @@
 import {
   newSettings,
+  openingGridDate,
   rewrittenSetting,
   treatmentView,
   type Frequency,
@@ -40,6 +41,7 @@ export function settingsWritten(walk: SettingsWalk, plan: SettingsPlan): Treatme
     id: `s${settings.length + 1}`,
     stoppedOn: null,
     createdAt: at,
+    gridWrittenAt: openingGridDate(settings, plan.setting, at),
   }
   return { ...walk.input, settings: [...settings, created], lines }
 }

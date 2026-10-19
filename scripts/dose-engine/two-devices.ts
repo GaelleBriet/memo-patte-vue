@@ -1,6 +1,7 @@
 import {
   moveBounds,
   newSettings,
+  openingGridDate,
   play,
   rewritesCalendar,
   rewritesGrid,
@@ -72,11 +73,13 @@ function writePlan(input: TreatmentViewInput, plan: SettingsPlan, clock: Clock, 
     )
     return { ...input, lines, settings }
   }
+  const createdAt = stamp(clock)
   const created: Setting = {
     ...plan.setting,
     id: `${tag}s${clock.n}`,
     stoppedOn: null,
-    createdAt: stamp(clock),
+    createdAt,
+    gridWrittenAt: openingGridDate(input.settings, plan.setting, createdAt),
   }
   return { ...input, lines, settings: [...input.settings, created] }
 }

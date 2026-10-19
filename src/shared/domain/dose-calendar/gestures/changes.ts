@@ -1,4 +1,5 @@
 import { keyOf } from '../grid'
+import { openingGridDate } from '../grid-heritage'
 import { familyOf } from '../lines'
 import { withReportFacts } from '../report-facts'
 import type {
@@ -104,6 +105,7 @@ function settingWritten(input: TreatmentViewInput, plan: SettingsPlan): Treatmen
       id: 'réglage-écrit',
       stoppedOn: null,
       createdAt: WRITTEN_AT,
+      gridWrittenAt: openingGridDate(input.settings, plan.setting, WRITTEN_AT),
     }
     return { ...input, settings: [...input.settings, setting] }
   }

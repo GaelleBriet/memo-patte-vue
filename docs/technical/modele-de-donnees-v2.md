@@ -292,7 +292,8 @@ heures. `treatment_period` reçoit `grid_written_at` (`TEXT`, obligatoire), la d
 première échéance, de la fréquence, de l'origine de la grille ou de la fin ; un changement des
 heures, de la posologie, du rappel, du seul fait que la date soit choisie ou de la réponse à la
 question des doses tombées ne la change pas, un arrêt ou une suppression non plus. `settings_written_at` garde sa règle (#867).
-L'écriture d'une période la pose à sa création ; la correction sur place
+L'écriture d'une période la pose à sa création, ou reprend celle de la période qu'elle remplace quand
+elle en garde la grille (`keepsGrid`, `src/shared/domain/dose-calendar/grid-heritage.ts`) ; la correction sur place
 (`treatment-period-correction.repository.ts`) ne la date que si l'une de ces colonnes change. Le moteur
 la reçoit (`Setting.gridWrittenAt`) ; la règle qui la compare à la date d'un report vient avec la
 PR #958.

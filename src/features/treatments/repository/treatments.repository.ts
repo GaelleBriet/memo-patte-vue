@@ -31,6 +31,7 @@ import type {
   TreatmentPlanWrite,
 } from '../schema/treatment-plan.schema'
 import type { Stamped } from '@/shared/domain/carnet-data'
+import { keepsGrid } from '@/shared/domain/dose-calendar'
 import { groupBy } from '@/shared/utils/group-by'
 
 interface TreatmentRow {
@@ -316,11 +317,14 @@ export function createTreatmentsRepository(
         statements.push(periods.correctSettingsStatement(periodId, settings, at, origin))
       }
       if (plan.period?.action === 'open') {
+        const { settings, gridOriginOn, firstDueChosen } = plan.period
+        const earlier = await periods.listByTreatment(id)
+        const kept = keepsGrid(earlier, { ...settings, gridOriginOn, firstDueChosen })
         statements.push(
           periods.insertStatement({
-            ...plan.period.settings,
-            gridOriginOn: plan.period.gridOriginOn,
-            firstDueChosen: plan.period.firstDueChosen,
+            ...settings,
+            gridOriginOn,
+            firstDueChosen,
             fallenDosesAnswer: plan.period.fallenDosesAnswer,
             id: plan.period.id,
             treatmentId: id,
@@ -328,6 +332,7 @@ export function createTreatmentsRepository(
             stoppedOn: null,
             createdAt: at,
             updatedAt: at,
+            gridWrittenAt: kept ? earlier.at(-1)!.gridWrittenAt : at,
             deletedAt: null,
           }),
         )
