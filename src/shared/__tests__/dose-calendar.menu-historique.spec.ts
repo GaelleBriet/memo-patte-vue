@@ -26,7 +26,7 @@ const campaign = campaignOf(process.env)
 
 describe('#947 : le menu ⋮ de l’historique ne propose que des gestes que le moteur accepte', () => {
   it(
-    'aucun geste proposé refusé par le moteur',
+    'aucun geste proposé refusé par le moteur, aucun « Supprimer » grisé qu’il accepte',
     () => {
       let offered = 0
       const refused: string[] = []
@@ -38,7 +38,8 @@ describe('#947 : le menu ⋮ de l’historique ne propose que des gestes que le 
       const last = campaign.from + campaign.seeds - 1
       console.warn(
         `Campagne menu de l’historique : ${campaign.seeds} carnets × ${campaign.steps} gestes, ` +
-          `graines ${campaign.from} à ${last} : ${offered} gestes proposés, ${refused.length} refusés`,
+          `graines ${campaign.from} à ${last} : ${offered} gestes proposés, ${refused.length} refusés` +
+          refused.map((text) => `\n  ${text}`).join(''),
       )
       expect(refused.slice(0, 5)).toEqual([])
     },
@@ -53,6 +54,13 @@ describe('#947 : le menu ⋮ de l’historique ne propose que des gestes que le 
     'graine %i : le geste refusé par « une prise resterait sans échéance » n’est plus proposé',
     (seed, steps) => {
       expect(historyMenuReport(seed, steps).refused).toEqual([])
+    },
+  )
+
+  it.each([9_600_000_154, 9_600_000_163, 9_600_000_418, 9_600_001_479])(
+    'graine %i (#961) : « Supprimer » que le moteur refuse est grisé, jamais proposé actif',
+    (seed) => {
+      expect(historyMenuReport(seed, 40).refused).toEqual([])
     },
   )
 
