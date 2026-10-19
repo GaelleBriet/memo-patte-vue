@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { SyncRowValue } from '@/core/supabase/guarded-upsert'
-import { clampedWrite, serverInstant } from './fake-sync-clamp'
+import { clampedWrite, postgrestInstant, serverInstant } from './fake-sync-clamp'
 
 type ServerRow = Record<string, SyncRowValue>
 type Result = { data: ServerRow[] | null; error: { message: string; code?: string } | null }
@@ -30,11 +30,14 @@ export const MIRROR_FOREIGN_KEYS: Record<string, ForeignKey[]> = {
   weight_entry: [{ column: 'animal_id', parent: 'animal' }],
 }
 
+/** Toutes les colonnes `timestamptz` des miroirs (`supabase/migrations/`). */
 const TIMESTAMP_COLUMNS = [
   'created_at',
   'updated_at',
   'settings_written_at',
+  'grid_written_at',
   'deleted_at',
+  'installed_at',
   'server_updated_at',
 ]
 const SERVER_EPOCH = Date.UTC(2026, 8, 25, 12)
@@ -95,7 +98,7 @@ export function createFakeSyncServer({
     const copy = { ...row }
     for (const column of TIMESTAMP_COLUMNS) {
       const value = copy[column]
-      if (typeof value === 'string') copy[column] = value.replace('Z', '+00:00')
+      if (typeof value === 'string') copy[column] = postgrestInstant(value)
     }
     return copy
   }

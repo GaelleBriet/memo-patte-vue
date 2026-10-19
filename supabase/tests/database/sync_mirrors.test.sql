@@ -817,6 +817,11 @@ select is(
   array['Luna B', (now() + interval '10 minutes')::text],
   'une écriture décalée qui n''est pas plus récente que celle du serveur est refusée');
 
+update public.animal set name = 'Nom seul' where id = '00000000-0000-4000-8000-0000000000b1';
+select is((select name from public.animal where id = '00000000-0000-4000-8000-0000000000b1'),
+  'Nom seul', 'sous un envoi en avance, une écriture qui ne change aucune date passe');
+update public.animal set name = 'Luna B' where id = '00000000-0000-4000-8000-0000000000b1';
+
 select pg_temp.in_push('00000000-0000-4000-8000-0000000000f2');
 update public.animal set updated_at = now() + interval '30 hours'
 where id = '00000000-0000-4000-8000-0000000000b2';

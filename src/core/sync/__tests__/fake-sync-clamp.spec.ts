@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
-import { clampedWrite, serverInstant } from './fake-sync-clamp'
+import { clampedWrite, postgrestInstant, serverInstant } from './fake-sync-clamp'
 
 const NOW = Date.parse('2026-10-19T08:00:00.000Z')
 const at = (offsetMs: number) => new Date(NOW + offsetMs).toISOString()
@@ -54,6 +54,25 @@ describe('clampedWrite, la règle du serveur rejouée par le faux serveur', () =
       created_at: '2026-10-18T08:00:00.000000Z',
       updated_at: '2026-10-19T08:00:00.000000Z',
     })
+  })
+
+  it('sous un envoi en avance, une écriture qui ne change aucune date passe telle quelle', () => {
+    const stored = { id: 'a', name: 'Luna', updated_at: at(-HOUR) }
+    const incoming = { ...stored, name: 'Nom seul' }
+
+    expect(clampedWrite(incoming, stored, ahead(3 * DAY), NOW)).toBe(incoming)
+  })
+
+  it('PostgREST rend un instant en +00:00, sans zéros de fraction', () => {
+    expect(
+      ['2026-10-01T07:00:00.000Z', '2026-10-01T07:00:00.120Z', '2026-10-01T07:00:00.000718Z'].map(
+        postgrestInstant,
+      ),
+    ).toEqual([
+      '2026-10-01T07:00:00+00:00',
+      '2026-10-01T07:00:00.12+00:00',
+      '2026-10-01T07:00:00.000718+00:00',
+    ])
   })
 
   it('à moins de 24 h d’avance, rien ne bouge', () => {

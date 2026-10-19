@@ -25,6 +25,16 @@ function iso(us: number): string {
 
 const truncMs = (us: number) => Math.floor(us / 1000) * 1000
 
+/** Un `timestamptz` tel que PostgREST le rend : décalage `+00:00`, fraction sans zéros de queue. */
+export function postgrestInstant(value: SyncRowValue): string {
+  const us = micros(value)
+  const seconds = new Date(Math.floor(us / 1_000_000) * 1000).toISOString().slice(0, 19)
+  const fraction = String(((us % 1_000_000) + 1_000_000) % 1_000_000)
+    .padStart(6, '0')
+    .replace(/0+$/, '')
+  return `${seconds}${fraction ? `.${fraction}` : ''}+00:00`
+}
+
 /** L'heure de réception d'un envoi, telle que Postgres la date. */
 export function serverInstant(nowMs: number): string {
   return iso(nowMs * 1000 + SERVER_MICROSECONDS)
@@ -54,7 +64,7 @@ export function clampedWrite(
   }
   const latest = Math.max(...written.map((column) => micros(incoming[column]!)))
   if (latest + (shift ?? 0) > now + DAY_US) shift = now - latest
-  if (shift === null) return incoming
+  if (shift === null || written.length === 0) return incoming
 
   const row = { ...incoming }
   for (const column of written) row[column] = iso(micros(incoming[column]!) + shift)

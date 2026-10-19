@@ -76,7 +76,7 @@ describe('createRemoteSyncTable', () => {
       ROW,
     )
 
-    expect(kept).toEqual({ ...ROW, updated_at: '2026-01-01T00:10:00.000+00:00' })
+    expect(kept).toEqual({ ...ROW, updated_at: '2026-01-01T00:10:00+00:00' })
     expect(server.rows('animal')).toEqual([
       expect.objectContaining({ ...ROW, user_id: USER_ID, updated_at: kept?.updated_at }),
     ])
@@ -100,7 +100,7 @@ describe('createRemoteSyncTable', () => {
     await expect(remote.pushRow(USER_ID, ROW)).resolves.toEqual({
       ...ROW,
       name: 'Luna',
-      updated_at: '2026-01-01T00:20:00.000+00:00',
+      updated_at: '2026-01-01T00:20:00+00:00',
     })
   })
 

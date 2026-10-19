@@ -41,7 +41,7 @@ begin
     shift := now_ms - latest;
   end if;
 
-  if shift is not null then
+  if shift is not null and cardinality(written) > 0 then
     foreach dated_column in array written loop
       shifted := shifted || jsonb_build_object(
         dated_column, (incoming ->> dated_column)::timestamptz + shift);

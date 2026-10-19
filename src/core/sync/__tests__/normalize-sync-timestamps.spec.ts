@@ -20,6 +20,16 @@ describe('normalizeSyncTimestamps', () => {
     expect(normalized.birth_date).toBe('2020-05-01')
   })
 
+  it('normalise la date d’installation d’un appareil, que l’import n’accepte qu’en Z', () => {
+    const row = {
+      id: 'a1',
+      updated_at: '2026-01-01T00:00:00Z',
+      installed_at: '2026-10-01T07:00:00+00:00',
+    }
+
+    expect(normalizeSyncTimestamps(row).installed_at).toBe('2026-10-01T07:00:00.000Z')
+  })
+
   it('laisse une colonne déjà au format toISOString identique', () => {
     const row = { id: 'a1', updated_at: '2026-01-01T00:00:00.000Z' }
 
