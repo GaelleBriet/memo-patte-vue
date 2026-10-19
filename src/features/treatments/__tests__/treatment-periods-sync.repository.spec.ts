@@ -40,6 +40,7 @@ const LOCAL_ROW = {
   updated_at: T_LOCAL,
   settings_written_at: T_LOCAL,
   grid_written_at: T_OLD,
+  grid_before: null,
   deleted_at: null,
   created_by_device: 'appareil-test',
   updated_by_device: 'appareil-test',
@@ -132,6 +133,25 @@ describe('treatmentPeriodsRepository — port de synchronisation', () => {
     ])
 
     await expect(localRow(TREATMENT_ID)).resolves.toEqual([LOCAL_ROW])
+  })
+
+  it.each<[string, string | null]>([
+    [
+      'une grille lisible se garde',
+      JSON.stringify({
+        frequency: { value: 1, unit: 'day' },
+        endsOn: '2026-01-31',
+        runs: [['2026-01-02', null, '2026-01-02']],
+      }),
+    ],
+    ['une grille illisible se lit vide', '{"runs": "pas une liste"}'],
+  ])('reçoit la grille d’avant l’ouverture : %s', async (label, gridBefore) => {
+    const remote = remotePeriod({ id: TREATMENT_ID, created_at: T_LOCAL, grid_before: gridBefore })
+
+    await db.runMany([repository.applyRemoteRowStatement(remote)])
+
+    const [stored] = (await localRow(TREATMENT_ID)) as { grid_before: string | null }[]
+    expect(stored!.grid_before).toBe(label.includes('illisible') ? null : gridBefore)
   })
 
   it('remplace une période locale par une version distante plus récente, arrêt, suppression, faits, dates d’écriture du réglage et de sa grille compris', async () => {

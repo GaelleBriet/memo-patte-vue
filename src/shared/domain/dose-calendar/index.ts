@@ -11,7 +11,7 @@ export {
 } from './legacy-input'
 export {
   applied,
-  inheritedGridAt,
+  judgedGridAt,
   rewritesCalendar,
   rewritesGrid,
   rewrittenSetting,
@@ -33,6 +33,7 @@ export { play, preview } from './preview'
 export { reportFactsIn, reportFactsOf, withReportFacts, type ReportFacts } from './report-facts'
 export type { DueReminder, ReminderMoment, ReminderReading, ReminderWindow } from './reminders'
 export type { DueSlot, HistoryLine, TreatmentView, Window } from './view'
+export { gridBeforeOf } from './grid-before'
 export { FALLEN_DOSES_ANSWERS } from './types'
 export type * from './types'
 

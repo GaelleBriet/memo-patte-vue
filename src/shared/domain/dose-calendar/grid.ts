@@ -1,4 +1,4 @@
-import type { Day, Frequency, Hour, Setting } from './types'
+import type { Day, Frequency, GridRun, Hour, Setting } from './types'
 
 const DAY_MS = 86_400_000
 
@@ -36,6 +36,14 @@ export function gridDays(origin: Day, frequency: Frequency, from: Day, to: Day):
     if (day >= from) days.push(day)
   }
   return days
+}
+
+/** Les journées de suites régulières, de `from` à `to` inclus. */
+export function runDays(runs: readonly GridRun[], frequency: Frequency, from: Day, to: Day): Day[] {
+  return runs.flatMap(([start, end, origin]) => {
+    const last = end === null || end > to ? to : end
+    return gridDays(origin, frequency, later(from, start), last)
+  })
 }
 
 export const isOnGrid = (origin: Day, frequency: Frequency, day: Day): boolean =>

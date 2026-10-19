@@ -39,6 +39,7 @@ function period(changes: Partial<ExportTreatmentPeriod> = {}): ExportTreatmentPe
     ...legacyFactsOf(record.gridOriginOn),
     settingsWrittenAt: record.createdAt,
     gridWrittenAt: record.createdAt,
+    gridBefore: null,
     ...record,
   }
 }

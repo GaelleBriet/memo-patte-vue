@@ -7,7 +7,7 @@ import { sameSettings, settingsOf, withRhythm, type PlanIds } from './treatment-
 import type { TreatmentPlanWrite } from '../schema/treatment-plan.schema'
 import type { TreatmentEditionInput } from '../schema/treatment-form.schema'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
-import { applied, inheritedGridAt, settingsApplied } from '@/shared/domain/dose-calendar'
+import { applied, gridBeforeOf, judgedGridAt, settingsApplied } from '@/shared/domain/dose-calendar'
 
 /** Lève une `ZodError` pour une saisie refusée : rien n'est alors à écrire. */
 export function editionPlan(
@@ -37,11 +37,13 @@ export function editionPlan(
   const carnet = treatmentReadingOf(treatment, today).input
   const changes = [...(move?.changes ?? []), ...(plan?.lines ?? [])]
   const inherited =
-    write === null
-      ? undefined
-      : inheritedGridAt(carnet, { ...settingsPlanOf(write), lines: changes })
+    write === null ? undefined : judgedGridAt(carnet, { ...settingsPlanOf(write), lines: changes })
+  const opened =
+    write?.action === 'open'
+      ? { ...write, gridBefore: gridBeforeOf(carnet, write.settings.startsOn) }
+      : write
   const written =
-    write === null || inherited === undefined ? write : { ...write, inheritedGridAt: inherited }
+    opened === null || inherited === undefined ? opened : { ...opened, judgedGridAt: inherited }
   const doses = plannedDoseWritesOf(treatment, changes, ids.newId)
   const result: TreatmentPlanWrite = { treatment: identity, period: written, doses }
   if (written !== null || doses.length > 0) {

@@ -207,7 +207,25 @@ describe('treatmentPeriodsRepository', () => {
       ...ORIGINE,
       settingsWrittenAt: EARLIER,
       gridWrittenAt: EARLIER,
+      gridBefore: null,
     }
+
+    it('garde la grille d’avant l’ouverture que la création lui donne, et une grille vide sinon', async () => {
+      const gridBefore = {
+        frequency: { value: 1, unit: 'day' as const },
+        endsOn: '2026-03-10',
+        runs: [['2026-02-11', null, '2026-02-11'] as const],
+      }
+      await db.runMany([periods.insertStatement({ ...COMPLETE, gridBefore })])
+
+      const [, current] = await periods.listByTreatment(MILBEMAX)
+      expect(current!.gridBefore).toEqual(gridBefore)
+      await db.runMany([
+        periods.correctSettingsStatement(REPRISE, { ...REGLAGES, times: ['06:00'] }, NOW, ORIGINE),
+      ])
+      const [, corrected] = await periods.listByTreatment(MILBEMAX)
+      expect(corrected!.gridBefore).toEqual(gridBefore)
+    })
 
     it('insère une période avec tous ses réglages et la relit à l’identique', async () => {
       await db.runMany([periods.insertStatement(COMPLETE)])
@@ -234,6 +252,7 @@ describe('treatmentPeriodsRepository', () => {
         ...ORIGINE,
         settingsWrittenAt: NOW,
         gridWrittenAt: NOW,
+        gridBefore: null,
       })
       expect(first).toMatchObject({
         id: MILBEMAX,
@@ -577,6 +596,11 @@ describe('treatmentPeriodsRepository', () => {
       updatedAt: NOW,
       settingsWrittenAt: '2026-02-15T09:00:00.000Z',
       gridWrittenAt: '2026-02-12T09:00:00.000Z',
+      gridBefore: {
+        frequency: { value: 1, unit: 'day' },
+        endsOn: '2026-03-10',
+        runs: [['2026-02-11', null, '2026-02-11']],
+      },
       createdByDevice: 'appareil-du-fichier',
       updatedByDevice: 'appareil-du-fichier',
     }
@@ -608,6 +632,7 @@ describe('treatmentPeriodsRepository', () => {
         reminderTime: null,
         settingsWrittenAt: T0,
         gridWrittenAt: T0,
+        gridBefore: null,
       })
     })
 

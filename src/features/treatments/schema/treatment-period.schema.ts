@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { treatmentFrequencySchema } from './treatment.schema'
 import { isCalendarDay } from '@/shared/domain/calendar-day'
 import { CLOCK_TIME_PATTERN, MAX_TIMES_PER_DAY } from '@/shared/domain/clock-time'
-import type { FallenDosesAnswer } from '@/shared/domain/dose-calendar'
+import type { FallenDosesAnswer, GridBefore } from '@/shared/domain/dose-calendar'
 import { DOSE_UNITS, type DoseUnit } from '@/shared/domain/dosage'
 
 export const treatmentPeriodSchema = z.object({
@@ -46,6 +46,8 @@ export type TreatmentPeriodRecord = TreatmentPeriod & {
   settingsWrittenAt: string
   /** Dernière écriture de ce qui fait les échéances (première échéance, fréquence, origine, fin), heures exclues. */
   gridWrittenAt: string
+  /** La grille que le moteur lisait juste avant l'ouverture de la période ; `null` : aucune à reprendre. */
+  gridBefore: GridBefore | null
 }
 
 /** D'où part la grille d'une période, et ce que la personne en a dit (R2, R3, R9, R10). */

@@ -19,7 +19,7 @@ export type Version8Dose = Omit<
   'previousTargetOn' | 'previousTargetTime' | 'dueRank'
 >
 
-export type Version9Period = Omit<ExportTreatmentPeriod, 'gridWrittenAt'>
+export type Version9Period = Omit<ExportTreatmentPeriod, 'gridWrittenAt' | 'gridBefore'>
 
 export type Version9Data = Omit<ExportData, 'treatmentPeriods'> & {
   treatmentPeriods: Version9Period[]
@@ -154,13 +154,14 @@ export function fromVersion8(data: Version8Data): Version9Data {
   }
 }
 
-/** La conversion que la migration v17 applique à la base : la grille datée de la dernière écriture des réglages. */
+/** La conversion que la migration v17 applique à la base : la grille datée de la dernière écriture des réglages, aucune grille d'avant. */
 export function fromVersion9(data: Version9Data): ExportData {
   return {
     ...data,
     treatmentPeriods: data.treatmentPeriods.map((period) => ({
       ...period,
       gridWrittenAt: period.settingsWrittenAt,
+      gridBefore: null,
     })),
   }
 }

@@ -1,4 +1,5 @@
 import type { TreatmentFrequency } from '../schema/treatment.schema'
+import { gridBeforeFromColumn } from '../schema/grid-before.schema'
 import { calendarDaySchema, type TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { Stamped } from '@/shared/domain/carnet-data'
 import type { FallenDosesAnswer } from '@/shared/domain/dose-calendar'
@@ -27,6 +28,7 @@ export interface PeriodRow {
   updated_at: string
   settings_written_at: string
   grid_written_at: string
+  grid_before: string | null
   deleted_at: string | null
   created_by_device: string
   updated_by_device: string
@@ -56,6 +58,7 @@ export const SYNC_COLUMN_NAMES = [
   'updated_at',
   'settings_written_at',
   'grid_written_at',
+  'grid_before',
   'deleted_at',
   'created_by_device',
   'updated_by_device',
@@ -97,6 +100,7 @@ export function toPeriodRecord(row: PeriodRow): TreatmentPeriodRecord {
     updatedAt: row.updated_at,
     settingsWrittenAt: row.settings_written_at,
     gridWrittenAt: row.grid_written_at,
+    gridBefore: gridBeforeFromColumn(row.grid_before),
     deletedAt: row.deleted_at,
   }
 }

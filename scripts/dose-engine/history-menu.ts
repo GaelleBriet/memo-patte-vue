@@ -27,6 +27,7 @@ const periodOf = (setting: Setting): TreatmentWithPeriods['periods'][number] => 
   updatedAt: setting.updatedAt ?? setting.createdAt,
   settingsWrittenAt: setting.updatedAt ?? setting.createdAt,
   gridWrittenAt: setting.gridWrittenAt ?? setting.updatedAt ?? setting.createdAt,
+  gridBefore: setting.gridBefore ?? null,
   deletedAt: null,
 })
 

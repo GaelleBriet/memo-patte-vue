@@ -1,4 +1,5 @@
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
+import { gridBeforeColumn } from '../schema/grid-before.schema'
 import type { TreatmentPeriod } from '../schema/treatment-period.schema'
 import {
   SYNC_COLUMN_NAMES,
@@ -52,6 +53,7 @@ export function createPeriodImport(db: DbClient, deviceId: () => string) {
         period.updatedAt,
         period.settingsWrittenAt,
         period.gridWrittenAt,
+        gridBeforeColumn(period.gridBefore),
       ]
       const devices = [period.createdByDevice, period.updatedByDevice]
       return exists
@@ -61,7 +63,7 @@ export function createPeriodImport(db: DbClient, deviceId: () => string) {
                       fallen_doses_answer = ?, ends_on = ?, stopped_on = ?,
                       frequency_value = ?, frequency_unit = ?, times = ?, dose_quantity = ?,
                       dose_unit = ?, reminder_offset_minutes = ?, reminder_time = ?,
-                      created_at = ?, updated_at = ?, settings_written_at = ?, grid_written_at = ?,
+                      created_at = ?, updated_at = ?, settings_written_at = ?, grid_written_at = ?, grid_before = ?,
                       deleted_at = NULL,
                       created_by_device = ?, updated_by_device = ?
                   WHERE id = ?`,

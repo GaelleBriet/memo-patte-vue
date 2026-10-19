@@ -1,8 +1,8 @@
-import { keyOf, later, plusDays, sameFrequency } from '../grid'
+import { keyOf } from '../grid'
+import { gridBeforeOf, keepsGridBefore } from '../grid-before'
 import { familyOf } from '../lines'
 import { withReportFacts } from '../report-facts'
 import { episodesOf } from '../settings'
-import { buildView } from '../view'
 import type {
   Day,
   Line,
@@ -13,7 +13,6 @@ import type {
   SettingsPlan,
   TreatmentViewInput,
 } from '../types'
-import type { TreatmentView } from '../view'
 
 const WRITTEN_AT = '9999-12-31T23:59:59.999Z'
 
@@ -97,7 +96,7 @@ export function without(input: TreatmentViewInput, ids: readonly string[]): Trea
 
 /**
  * Le carnet une fois le réglage écrit, plus récent que tout le carnet (simulation, R12). La date de
- * grille héritée ne se juge qu'à l'écriture (`inheritedGridAt`) : la simulation date la grille comme
+ * grille héritée ne se juge qu'à l'écriture (`judgedGridAt`) : la simulation date la grille comme
  * une écriture neuve.
  */
 export function settingsApplied(input: TreatmentViewInput, plan: SettingsPlan): TreatmentViewInput {
@@ -122,7 +121,7 @@ function settingWritten(input: TreatmentViewInput, plan: SettingsPlan): Treatmen
 
 /**
  * Le réglage réécrit sur place, daté comme par le repository ; `at` n'est lu que si une date change.
- * Avec le carnet où il s'écrit, sa date de grille se juge comme à l'écriture (`inheritedGridAt`).
+ * Avec le carnet où il s'écrit, sa date de grille se juge comme à l'écriture (`judgedGridAt`).
  */
 export function rewrittenSetting(
   setting: Setting,
@@ -137,7 +136,7 @@ export function rewrittenSetting(
     setting: fields,
     lines: [...(carnet?.lines ?? [])],
   }
-  const inherited = carnet === undefined ? undefined : inheritedGridAt(carnet.input, plan)
+  const inherited = carnet === undefined ? undefined : judgedGridAt(carnet.input, plan)
   const calendar = rewritesCalendar(setting, next)
   const grid = inherited === undefined && rewritesGrid(setting, next)
   const kept = inherited === undefined ? {} : { gridWrittenAt: inherited }
@@ -150,62 +149,24 @@ export function rewrittenSetting(
   }
 }
 
-const GRID_SPAN_DAYS = 400
-const DAYS_PER_UNIT = { day: 1, week: 7 } as const
-
 const gridDateOf = (setting: Setting) =>
   setting.gridWrittenAt ?? setting.updatedAt ?? setting.createdAt
 
-// La même suite de jours : semaines et jours se convertissent, un mois jamais.
-function equivalentSteps(a: Setting['frequency'], b: Setting['frequency']): boolean {
-  if (a.unit === 'month' || b.unit === 'month') return sameFrequency(a, b)
-  return a.value * DAYS_PER_UNIT[a.unit] === b.value * DAYS_PER_UNIT[b.unit]
-}
-
-// La grille que lit le moteur : décalages et reports seuls, sans prise ni autre ligne.
-const gridView = (input: TreatmentViewInput) =>
-  buildView({
-    ...input,
-    lines: input.lines.filter(({ status }) => status === 'shift' || status === 'postponed'),
-  })
-
-// Une dose reportée y compte à son départ.
-function readDays(view: TreatmentView, from: Day, to: Day): Day[] {
-  const days = new Set(view.slots(from, to).map(({ due }) => due.dueOn))
-  for (const { line, effect } of view.history) {
-    if (effect.kind !== 'moves') continue
-    if (line.targetOn !== null) days.delete(line.targetOn)
-    if (line.dueOn >= from && line.dueOn <= to) days.add(line.dueOn)
-  }
-  return [...days].sort()
-}
-
-function judged(
-  before: TreatmentViewInput,
-  after: TreatmentViewInput,
-  opening: Setting,
-): string | undefined {
-  const previous = episodesOf(before.settings).at(-1)?.at(-1)
-  if (previous === undefined || previous.endsOn !== opening.endsOn) return undefined
-  if (!equivalentSteps(previous.frequency, opening.frequency)) return undefined
-  const from = later(opening.startsOn, opening.firstDueOn)
-  const to = opening.endsOn ?? plusDays(from, GRID_SPAN_DAYS)
-  const days = (input: TreatmentViewInput) => JSON.stringify(readDays(gridView(input), from, to))
-  if (days(before) !== days(after)) return undefined
-  // Arrêté ou fini, prises comprises : une reprise ouvre une grille neuve.
-  const { phase } = buildView(before)
-  return phase === 'stopped' || phase === 'ended' ? undefined : gridDateOf(previous)
-}
+const previousOf = (settings: readonly Setting[]) => episodesOf(settings).at(-1)?.at(-1)
 
 /**
- * La date de grille que la période écrite par `plan` (réglage et lignes) hérite de celle qu'elle
- * remplace : à fin égale et à fréquence équivalente, quand le moteur lit les mêmes jours de grille avec
- * et sans elle à partir de sa première échéance ; `undefined` : la période date sa grille elle-même. Une
- * réécriture ne se juge ainsi que le jour où la période s'est ouverte, face aux périodes d'avant.
+ * La date de grille, jugée par le moteur, que l'écriture de `plan` (réglage et lignes) pose telle
+ * quelle : celle de la période remplacée si les jours lus sont ceux de la grille d'avant l'ouverture ;
+ * pour une réécriture du jour jugée datée, l'ouverture de la période à la place d'une date héritée ;
+ * `undefined` : la période date sa grille elle-même. Une réécriture ne se juge que le jour de
+ * l'ouverture, contre la grille gardée à l'ouverture.
  */
-export function inheritedGridAt(input: TreatmentViewInput, plan: SettingsPlan): string | undefined {
+export function judgedGridAt(input: TreatmentViewInput, plan: SettingsPlan): string | undefined {
   const changes = plan.lines ?? []
   if (plan.action === 'create') {
+    const gridBefore = gridBeforeOf(input, plan.setting.startsOn)
+    const previous = previousOf(input.settings)
+    if (gridBefore === null || previous === undefined) return undefined
     const opening: Setting = {
       ...plan.setting,
       id: 'période-ouverte',
@@ -213,28 +174,22 @@ export function inheritedGridAt(input: TreatmentViewInput, plan: SettingsPlan): 
       createdAt: WRITTEN_AT,
     }
     const after = applied({ ...input, settings: [...input.settings, opening] }, changes)
-    return judged(input, after, opening)
+    return keepsGridBefore(gridBefore, opening, after) ? gridDateOf(previous) : undefined
   }
   const current = input.settings.find(({ id }) => id === plan.id)
-  if (current === undefined || current.startsOn !== input.today) return undefined
-  const before = {
-    ...input,
-    settings: input.settings.filter(({ id }) => id !== plan.id),
-    lines: input.lines.filter(({ settingId }) => settingId !== plan.id),
-  }
-  if (before.settings.length === 0) return undefined
-  const previous = episodesOf(before.settings).at(-1)?.at(-1)
-  const ownDate = previous !== undefined && current.gridWrittenAt !== gridDateOf(previous)
-  // Datée par elle-même puis touchée par un report d'une autre période : un seul « Modifier » l'aurait datée.
-  const touched = input.lines.some(
-    ({ settingId, status, updatedAt }) =>
-      settingId !== plan.id &&
-      (status === 'postponed' || status === 'shift') &&
-      updatedAt >= current.createdAt,
-  )
-  if (ownDate && touched) return undefined
+  const gridBefore = current?.gridBefore ?? null
+  if (current === undefined || gridBefore === null || current.startsOn !== input.today)
+    return undefined
+  const previous = previousOf(input.settings.filter(({ id }) => id !== plan.id))
+  if (previous === undefined) return undefined
   const next = rewrittenSetting(current, plan.setting, () => WRITTEN_AT)
-  return judged(before, applied({ ...before, settings: [...before.settings, next] }, changes), next)
+  const settings = input.settings.map((setting) => (setting.id === plan.id ? next : setting))
+  if (keepsGridBefore(gridBefore, next, applied({ ...input, settings }, changes))) {
+    return gridDateOf(previous)
+  }
+  // Jugée datée : une date héritée plus tôt dans la journée cède la place à l'ouverture de la période.
+  const inherited = current.gridWrittenAt !== undefined && current.gridWrittenAt < current.createdAt
+  return inherited ? current.createdAt : undefined
 }
 
 const CALENDAR = [

@@ -34,6 +34,7 @@ export function period(overrides: Partial<TreatmentPeriodRecord> = {}): Treatmen
     ...legacyFactsOf(record.gridOriginOn),
     settingsWrittenAt: record.createdAt,
     gridWrittenAt: record.createdAt,
+    gridBefore: null,
     ...record,
   }
 }

@@ -45,6 +45,7 @@ function period(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPeriod
     ...legacyFactsOf(record.gridOriginOn),
     settingsWrittenAt: record.createdAt,
     gridWrittenAt: record.createdAt,
+    gridBefore: null,
     ...record,
   }
 }

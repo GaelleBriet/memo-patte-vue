@@ -103,6 +103,7 @@ const HISTORY: TreatmentWithPeriods = {
       updatedAt: AT,
       settingsWrittenAt: AT,
       gridWrittenAt: AT,
+      gridBefore: null,
       deletedAt: null,
     },
   ],

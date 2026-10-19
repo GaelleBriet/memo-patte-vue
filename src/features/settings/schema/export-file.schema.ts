@@ -8,6 +8,7 @@ import {
   animalSpeciesSchema,
   departureReasonSchema,
 } from '@/features/animals/schema/animal.schema'
+import { gridBeforeFromValue } from '@/features/treatments/schema/grid-before.schema'
 import { DOSE_STATUSES } from '@/features/treatments/schema/treatment-dose.schema'
 import {
   doseQuantitySchema,
@@ -221,7 +222,11 @@ const version10FileSchema = z
   .object({
     ...signedCarnet,
     treatmentPeriods: z.array(
-      signed({ ...version8PeriodShape, gridWrittenAt: instant }).refine(isConsistentPeriod),
+      signed({
+        ...version8PeriodShape,
+        gridWrittenAt: instant,
+        gridBefore: z.unknown().transform(gridBeforeFromValue),
+      }).refine(isConsistentPeriod),
     ),
     treatmentDoses: reportedDoses,
   })

@@ -678,6 +678,7 @@ describe('treatmentsRepository — import', () => {
           updatedAt: treatment.updatedAt,
           settingsWrittenAt: treatment.createdAt,
           gridWrittenAt: treatment.createdAt,
+          gridBefore: null,
           ...PAR_FICHIER,
         },
         exists,

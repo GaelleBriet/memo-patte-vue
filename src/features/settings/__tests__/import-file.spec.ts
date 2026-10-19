@@ -719,6 +719,45 @@ describe('parseExportFile', () => {
       )
     })
 
+    it('garde la grille d’avant l’ouverture d’un export v10, et lit vide une grille illisible sans refuser le fichier', () => {
+      const grid = {
+        frequency: { value: 1, unit: 'day' },
+        endsOn: '2026-09-20',
+        runs: [['2026-09-02', null, '2026-09-02']],
+      }
+      const kept = withDocument((document) => {
+        rows(document, 'treatmentPeriods')[1]!.gridBefore = grid
+      })
+      const forgedGrid = withDocument((document) => {
+        rows(document, 'treatmentPeriods')[1]!.gridBefore = { runs: 'pas une liste' }
+      })
+
+      const result = parseExportFile(kept, IMPORTEUR)
+      const forgedResult = parseExportFile(forgedGrid, IMPORTEUR)
+
+      expect(result.ok && result.file.data.treatmentPeriods[1]!.gridBefore).toEqual(grid)
+      expect(forgedResult.ok && forgedResult.file.data.treatmentPeriods[1]!.gridBefore).toBeNull()
+    })
+
+    it('relit un export v9 sans grille d’avant l’ouverture', () => {
+      const v9 = withDocument((document) => {
+        document.schemaVersion = 9
+        for (const period of rows(document, 'treatmentPeriods')) {
+          delete period.gridWrittenAt
+          delete period.gridBefore
+        }
+      })
+
+      const result = parseExportFile(v9, IMPORTEUR)
+
+      expect(result.ok).toBe(true)
+      if (!result.ok) return
+      expect(result.file.data.treatmentPeriods.map(({ gridBefore }) => gridBefore)).toEqual([
+        null,
+        null,
+      ])
+    })
+
     it('refuse un export v10 dont un réglage n’a pas de date d’écriture de la grille', () => {
       expect(
         parseExportFile(

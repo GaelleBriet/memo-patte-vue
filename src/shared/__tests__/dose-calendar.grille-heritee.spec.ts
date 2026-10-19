@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  inheritedGridAt,
+  gridBeforeOf,
+  judgedGridAt,
   rewrittenSetting,
   settingsApplied,
   treatmentView,
@@ -61,7 +62,7 @@ function inherits(
 ): boolean {
   const opening = { ...hoursOnly, ...change }
   const input = { settings, lines, today: opening.startsOn }
-  return inheritedGridAt(input, { action: 'create', setting: opening }) !== undefined
+  return judgedGridAt(input, { action: 'create', setting: opening }) !== undefined
 }
 
 const shift = (settingId: string, dueOn: string, targetOn: string): Line => ({
@@ -325,7 +326,7 @@ describe('à l’écriture : la simulation date la grille comme une écriture ne
     const plan = { action: 'create', setting: hoursOnly } as const
 
     expect(settingsApplied(input, plan).settings.at(-1)!.gridWrittenAt).toBeUndefined()
-    expect(inheritedGridAt(input, plan)).toBe(WRITTEN)
+    expect(judgedGridAt(input, plan)).toBe(WRITTEN)
   })
 
   describe('un réglage ouvert aujourd’hui et réécrit sur place se juge comme une ouverture', () => {
@@ -337,6 +338,7 @@ describe('à l’écriture : la simulation date la grille comme une écriture ne
       times: ['06:00'],
       createdAt: '2026-04-01T06:00:00.000Z',
       gridWrittenAt: '2026-04-01T06:00:00.000Z',
+      gridBefore: gridBeforeOf({ settings: [milo], lines: [], today: '2026-04-01' }, '2026-04-01'),
     })
     const rewritten = (today: string) =>
       rewrittenSetting(s2, hoursOnly, () => '2026-04-01T06:05:00.000Z', {
@@ -354,18 +356,21 @@ describe('à l’écriture : la simulation date la grille comme une écriture ne
   })
 })
 
-// Graines de la propriété de la 5e relecture (#977), écrites telles qu'elles ont été relevées.
+// Graines des propriétés de relecture (#977), verdict de la lecture de référence (grille d'avant l'ouverture).
 describe('graines relevées contre la lecture du moteur', () => {
-  it.each(seeds.map((seed) => [seed.seed, seed.step, seed.expected, seed] as const))(
-    'graine %i, pas %i : %s',
-    (_, __, expected, seed) => {
+  it.each(seeds.map((seed) => [seed.seed, seed.step, seed.probe, seed.expected, seed] as const))(
+    'graine %i, pas %i, essai %i : %s',
+    (_, __, ___, expected, seed) => {
       const input = {
         settings: seed.settings,
         lines: seed.lines,
         today: seed.today,
       } as TreatmentViewInput
-      const verdict =
-        inheritedGridAt(input, seed.plan as SettingsPlan) === undefined ? 'datée' : 'hérite'
+      const plan = seed.plan as SettingsPlan
+      const opened =
+        plan.action === 'rewrite' ? input.settings.find(({ id }) => id === plan.id) : undefined
+      const date = judgedGridAt(input, plan)
+      const verdict = date === undefined || date === opened?.createdAt ? 'datée' : 'hérite'
 
       expect(verdict).toBe(expected)
     },

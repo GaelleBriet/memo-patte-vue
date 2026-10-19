@@ -49,14 +49,14 @@ export function createPeriodCorrection(deviceId: () => string) {
     /**
      * Tous les réglages de cette période et son origine, sauf son arrêt. Rien n'est daté si rien ne
      * change ; la date d'écriture des réglages ne suit que le calendrier, celle de la grille ses
-     * échéances, sauf `inheritedGridAt`, posée telle quelle. Lève pour des réglages incohérents.
+     * échéances, sauf `judgedGridAt`, posée telle quelle. Lève pour des réglages incohérents.
      */
     correctSettingsStatement(
       periodId: string,
       input: TreatmentPeriodSettings,
       updatedAt: string,
       origin: PeriodOrigin,
-      inheritedGridAt?: string,
+      judgedGridAt?: string,
     ): SqlStatement {
       const settings = treatmentPeriodSettingsSchema.parse(input)
       const values = [
@@ -79,13 +79,13 @@ export function createPeriodCorrection(deviceId: () => string) {
       const changed = (columns: string[]) =>
         columns.map((column) => `${column} IS NOT ?`).join(' OR ')
       const grid =
-        inheritedGridAt === undefined
+        judgedGridAt === undefined
           ? {
               sql: `CASE WHEN ${changed(CORRECTED_COLUMNS.filter(among(GRID_COLUMNS)))}
                     THEN ? ELSE grid_written_at END`,
               params: [...values.filter(among(GRID_COLUMNS)), updatedAt],
             }
-          : { sql: '?', params: [inheritedGridAt] }
+          : { sql: '?', params: [judgedGridAt] }
       return {
         sql: `UPDATE treatment_period
               SET ${CORRECTED_COLUMNS.map((column) => `${column} = ?`).join(', ')},

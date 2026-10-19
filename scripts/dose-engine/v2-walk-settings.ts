@@ -1,6 +1,7 @@
 import {
   newSettings,
-  inheritedGridAt,
+  gridBeforeOf,
+  judgedGridAt,
   rewrittenSetting,
   treatmentView,
   type Frequency,
@@ -46,7 +47,8 @@ export function settingsWritten(walk: SettingsWalk, plan: SettingsPlan): Treatme
     id: `s${settings.length + 1}`,
     stoppedOn: null,
     createdAt: at,
-    gridWrittenAt: inheritedGridAt(walk.input, plan) ?? at,
+    gridWrittenAt: judgedGridAt(walk.input, plan) ?? at,
+    gridBefore: gridBeforeOf(walk.input, plan.setting.startsOn),
   }
   return { ...walk.input, settings: [...settings, created], lines }
 }

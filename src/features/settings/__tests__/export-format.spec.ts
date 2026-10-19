@@ -248,6 +248,7 @@ describe('toJsonExport', () => {
       updatedAt: '2026-09-10T07:00:00.000Z',
       settingsWrittenAt: '2026-09-10T07:00:00.000Z',
       gridWrittenAt: '2026-09-10T07:00:00.000Z',
+      gridBefore: null,
       createdByDevice: FIXTURE_DEVICE,
       updatedByDevice: FIXTURE_DEVICE,
     })
