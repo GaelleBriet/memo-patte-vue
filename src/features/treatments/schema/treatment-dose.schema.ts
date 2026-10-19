@@ -21,7 +21,7 @@ export const treatmentDoseSchema = z.object({
   deletedAt: z.iso.datetime().nullable(),
 })
 
-/** Ce qu'une prise écrit en base. */
+/** Une prise, lue telle qu'écrite. */
 export type TreatmentDose = z.output<typeof treatmentDoseSchema>
 
 export type DoseOwner = Pick<TreatmentDose, 'id' | 'treatmentId' | 'animalId'>
