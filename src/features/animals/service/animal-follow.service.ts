@@ -61,8 +61,8 @@ export function createAnimalFollowService({
       if ((await departureOf(animalId)).unfollowedOn !== null) return null
       const day = today()
       const at = new Date().toISOString()
-      const histories = await (await treatments()).listWithHistoryByAnimal(animalId)
-      const stoppedPeriodIds = histories.flatMap((treatment) => {
+      const carnetTreatments = await (await treatments()).listWithHistoryByAnimal(animalId)
+      const stoppedPeriodIds = carnetTreatments.flatMap((treatment) => {
         const id = ongoingPeriodId(treatment, day)
         return id === null ? [] : [id]
       })

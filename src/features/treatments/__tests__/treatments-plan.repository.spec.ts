@@ -150,9 +150,9 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
       })
 
       expect(runMany).toHaveBeenCalledOnce()
-      const history = await repository.getWithHistory(PANACUR)
-      expect(history?.doses.map(({ id }) => id).sort()).toEqual([SECONDE, REPORT])
-      expect(history?.doses).toMatchObject([
+      const treatment = await repository.getWithHistory(PANACUR)
+      expect(treatment?.doses.map(({ id }) => id).sort()).toEqual([SECONDE, REPORT])
+      expect(treatment?.doses).toMatchObject([
         { treatmentId: PANACUR, animalId: MIETTE, periodId: PANACUR },
         { treatmentId: PANACUR, animalId: MIETTE, periodId: PANACUR },
       ])

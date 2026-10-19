@@ -64,7 +64,7 @@ export function useTreatmentEditionForm({ values, treatment, today, refreshToday
   const validation = useFormValidation(values, (current) =>
     validateTreatmentEdition(
       current,
-      requireHistory(),
+      requireTreatment(),
       today.value,
       pastDuesChoice.value,
       draft.value,
@@ -86,7 +86,7 @@ export function useTreatmentEditionForm({ values, treatment, today, refreshToday
     },
   )
 
-  function requireHistory(): TreatmentWithHistory {
+  function requireTreatment(): TreatmentWithHistory {
     if (treatment.value === null) throw new Error('Formulaire traitement ouvert sans traitement.')
     return treatment.value
   }
@@ -103,7 +103,7 @@ export function useTreatmentEditionForm({ values, treatment, today, refreshToday
 
   /** Sans écriture possible, ouvre la question des échéances tombées quand c'est elle qui manque. */
   function write(): (() => Promise<unknown>) | null {
-    const id = requireHistory().id
+    const id = requireTreatment().id
     refreshToday?.()
     const result = validation.validate()
     if (result.success) return () => updated(id, result.data)

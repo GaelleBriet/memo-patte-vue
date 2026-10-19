@@ -96,9 +96,9 @@ describe('treatmentPlanService', () => {
   }
 
   async function historyOf(id: string) {
-    const history = await treatments.getWithHistory(id)
-    if (history === null) throw new Error('introuvable')
-    return history
+    const treatment = await treatments.getWithHistory(id)
+    if (treatment === null) throw new Error('introuvable')
+    return treatment
   }
 
   it('crée le traitement avec sa période, sans rien noter comme donné (TR-3)', async () => {
@@ -135,17 +135,17 @@ describe('treatmentPlanService', () => {
       ],
     })
 
-    const history = await historyOf(created.id)
-    const schedule = treatmentReadingOf(history, today).view
+    const treatment = await historyOf(created.id)
+    const schedule = treatmentReadingOf(treatment, today).view
     expect(
-      history.doses.map(({ dueOn, status, periodId }) => ({ dueOn, status, periodId })),
+      treatment.doses.map(({ dueOn, status, periodId }) => ({ dueOn, status, periodId })),
     ).toEqual(
       expect.arrayContaining([
         { dueOn: '2026-09-05', status: 'given', periodId: created.id },
         { dueOn: '2026-09-12', status: 'missed', periodId: created.id },
       ]),
     )
-    expect(history.doses).toHaveLength(2)
+    expect(treatment.doses).toHaveLength(2)
     expect(schedule.unloggedDoses.map(({ dueOn }) => dueOn)).toEqual(['2026-09-19'])
     expect(schedule.currentDoses.map(({ dueOn }) => dueOn)).toEqual(['2026-09-26'])
   })
@@ -232,14 +232,14 @@ describe('treatmentPlanService', () => {
 
       await service.update(id, correction({ pastDues: 'keep' }))
 
-      const history = await historyOf(id)
-      expect(history.periods[0]).toEqual(before)
-      expect(history.periods[1]).toMatchObject({
+      const treatment = await historyOf(id)
+      expect(treatment.periods[0]).toEqual(before)
+      expect(treatment.periods[1]).toMatchObject({
         startsOn: '2026-10-08',
         firstDueOn: '2026-10-08',
         frequency: { value: 3, unit: 'day' },
       })
-      const schedule = treatmentReadingOf(history, today).view
+      const schedule = treatmentReadingOf(treatment, today).view
       expect(jours(schedule.unloggedDoses)).toEqual(['2026-10-03', '2026-10-05', '2026-10-07'])
       expect(jours(schedule.currentDoses)).toEqual(['2026-10-08'])
       expect(schedule.phase).toBe('today')
@@ -250,14 +250,14 @@ describe('treatmentPlanService', () => {
 
       await service.update(id, correction({ pastDues: 'drop' }))
 
-      const history = await historyOf(id)
-      expect(history.periods).toHaveLength(1)
-      expect(history.periods[0]).toMatchObject({
+      const treatment = await historyOf(id)
+      expect(treatment.periods).toHaveLength(1)
+      expect(treatment.periods[0]).toMatchObject({
         startsOn: '2026-10-03',
         firstDueOn: '2026-10-08',
         frequency: { value: 3, unit: 'day' },
       })
-      const schedule = treatmentReadingOf(history, today).view
+      const schedule = treatmentReadingOf(treatment, today).view
       expect(schedule.unloggedDoses).toEqual([])
       expect(jours(schedule.currentDoses)).toEqual(['2026-10-08'])
     })
@@ -318,12 +318,12 @@ describe('treatmentPlanService', () => {
           treatments = createTreatmentsRepository(db)
           today = '2026-10-08'
           const id = await prepare()
-          const history = await historyOf(id)
-          const current = history.periods.at(-1)!
+          const treatment = await historyOf(id)
+          const current = treatment.periods.at(-1)!
           const input = {
             ...correction({ frequency, times: current.times }),
           }
-          const announced = editionDraft(history, input, today).pastDuesNextDose
+          const announced = editionDraft(treatment, input, today).pastDuesNextDose
 
           expect(announced?.[pastDues]).toBe(expected)
           await service.update(id, { ...input, pastDues, nextDoseOn: announced![pastDues] })
@@ -407,10 +407,10 @@ describe('treatmentPlanService', () => {
       treatments: () => ({
         create: (plan) => treatments.create(plan),
         async getWithHistory(treatmentId) {
-          const history = await treatments.getWithHistory(treatmentId)
+          const treatment = await treatments.getWithHistory(treatmentId)
           notification ??= doses.noteMoment(treatmentId, today)
           await new Promise((resolve) => setTimeout(resolve, 50))
-          return history
+          return treatment
         },
         applyPlan: (treatmentId, plan) => treatments.applyPlan(treatmentId, plan),
       }),

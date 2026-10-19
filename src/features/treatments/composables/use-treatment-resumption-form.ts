@@ -30,7 +30,7 @@ export function useTreatmentResumptionForm({ values, treatment, today, endsOnTou
   const treatments = useTreatmentsStore()
 
   const validation = useFormValidation(values, (current) =>
-    validateTreatmentResumption(current, requireHistory(), today.value),
+    validateTreatmentResumption(current, requireTreatment(), today.value),
   )
 
   const previous = computed(() =>
@@ -47,7 +47,7 @@ export function useTreatmentResumptionForm({ values, treatment, today, endsOnTou
     },
   )
 
-  function requireHistory(): TreatmentWithHistory {
+  function requireTreatment(): TreatmentWithHistory {
     if (treatment.value === null) throw new Error('Formulaire traitement ouvert sans traitement.')
     return treatment.value
   }
@@ -66,7 +66,7 @@ export function useTreatmentResumptionForm({ values, treatment, today, endsOnTou
   }
 
   function write(): (() => Promise<unknown>) | null {
-    const id = requireHistory().id
+    const id = requireTreatment().id
     const result = validation.validate()
     return result.success ? () => treatments.resume(id, result.data) : null
   }
