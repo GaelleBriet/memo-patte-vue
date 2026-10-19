@@ -27,7 +27,7 @@ export {
   type SettingsResult,
 } from './gestures/settings'
 export { chosenDateRefusal } from './gestures/settings-chosen'
-export { inheritedGridDate, keepsGrid, type DatedGrid, type GridFacts } from './grid-heritage'
+export { inheritedGridAt } from './gestures/grid-heritage'
 export { familyOf, isAdvanced } from './lines'
 export { play, preview } from './preview'
 export { reportFactsIn, reportFactsOf, withReportFacts, type ReportFacts } from './report-facts'

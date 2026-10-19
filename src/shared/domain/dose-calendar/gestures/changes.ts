@@ -1,7 +1,7 @@
 import { keyOf } from '../grid'
-import { inheritedGridDate } from '../grid-heritage'
 import { familyOf } from '../lines'
 import { withReportFacts } from '../report-facts'
+import { inheritedGridAt } from './grid-heritage'
 import type {
   Day,
   Line,
@@ -105,7 +105,7 @@ function settingWritten(input: TreatmentViewInput, plan: SettingsPlan): Treatmen
       id: 'réglage-écrit',
       stoppedOn: null,
       createdAt: WRITTEN_AT,
-      gridWrittenAt: inheritedGridDate(input.settings, plan.setting) ?? WRITTEN_AT,
+      gridWrittenAt: inheritedGridAt(input, plan) ?? WRITTEN_AT,
     }
     return { ...input, settings: [...input.settings, setting] }
   }
@@ -122,13 +122,10 @@ export function rewrittenSetting(
   setting: Setting,
   fields: SettingFields,
   at: () => string,
-  carnet: Pick<TreatmentViewInput, 'settings' | 'today'>,
+  carnet: TreatmentViewInput,
 ): Setting {
   const next = { ...setting, ...fields }
-  const inherited = inheritedGridDate(carnet.settings, next, {
-    id: setting.id,
-    writtenOn: carnet.today,
-  })
+  const inherited = inheritedGridAt(carnet, { action: 'rewrite', id: setting.id, setting: fields })
   const calendar = rewritesCalendar(setting, next)
   const grid = inherited === undefined && rewritesGrid(setting, next)
   const kept = inherited === undefined ? {} : { gridWrittenAt: inherited }

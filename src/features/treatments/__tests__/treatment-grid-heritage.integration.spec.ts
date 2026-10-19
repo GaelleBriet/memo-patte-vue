@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { editionDraft } from '../logic/treatment-edition-draft'
 import type { TreatmentEditionInput } from '../schema/treatment-form.schema'
+import { readTreatment } from '@/shared/domain/treatment-reading'
 import { createReplay, storedTreatment, type Replay } from './treatment-services-replay'
 
 // Une période qui reprend la grille de la précédente sans la changer garde sa date de grille.
@@ -88,6 +89,21 @@ describe('date de grille d’une période ouverte par « Modifier » ou « Repre
 
     const period = await opened()
     expect([period.createdAt, period.gridWrittenAt]).toEqual(['2026-04-01T09:00:00.000Z', CREATED])
+  })
+
+  it('le 31 mars, « Modifier » 7 h et « Prochaine dose » le 1er avril : la fiche lit 1er, 4, 7… avant comme après, la grille hérite', async () => {
+    at('2026-03-31', '09:00')
+    const read = async () =>
+      readTreatment(await storedTreatment(app.treatments, id), '2026-03-31')!
+        .view.upcoming({ limit: 3 })
+        .map(({ dueOn }) => dueOn)
+    const before = await read()
+
+    await app.plans.update(id, edition({ times: ['07:00'], nextDoseOn: '2026-04-01' }))
+
+    expect(before).toEqual(['2026-04-01', '2026-04-04', '2026-04-07'])
+    expect(await read()).toEqual(before)
+    expect((await opened()).gridWrittenAt).toBe(CREATED)
   })
 
   it('« Elles restent à renseigner » sur un traitement sans prise : mêmes jours, la date de grille est gardée', async () => {

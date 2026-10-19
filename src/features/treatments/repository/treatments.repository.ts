@@ -31,7 +31,6 @@ import type {
   TreatmentPlanWrite,
 } from '../schema/treatment-plan.schema'
 import type { Stamped } from '@/shared/domain/carnet-data'
-import { inheritedGridDate } from '@/shared/domain/dose-calendar'
 import { groupBy } from '@/shared/utils/group-by'
 
 interface TreatmentRow {
@@ -312,21 +311,18 @@ export function createTreatmentsRepository(
           params: [name, type, at, deviceId(), id, name, type],
         })
       }
-      const known = plan.period === null ? [] : await periods.listByTreatment(id)
       if (plan.period?.action === 'correct') {
-        const { id: periodId, settings, writtenOn, ...origin } = plan.period
-        const reopened = writtenOn === undefined ? undefined : { id: periodId, writtenOn }
-        const inherited = reopened && inheritedGridDate(known, { ...settings, ...origin }, reopened)
-        statements.push(periods.correctSettingsStatement(periodId, settings, at, origin, inherited))
+        const { id: periodId, settings, inheritedGridAt, ...origin } = plan.period
+        statements.push(
+          periods.correctSettingsStatement(periodId, settings, at, origin, inheritedGridAt),
+        )
       }
       if (plan.period?.action === 'open') {
-        const { settings, gridOriginOn, firstDueChosen } = plan.period
-        const opening = { ...settings, gridOriginOn, firstDueChosen }
         statements.push(
           periods.insertStatement({
-            ...settings,
-            gridOriginOn,
-            firstDueChosen,
+            ...plan.period.settings,
+            gridOriginOn: plan.period.gridOriginOn,
+            firstDueChosen: plan.period.firstDueChosen,
             fallenDosesAnswer: plan.period.fallenDosesAnswer,
             id: plan.period.id,
             treatmentId: id,
@@ -334,7 +330,7 @@ export function createTreatmentsRepository(
             stoppedOn: null,
             createdAt: at,
             updatedAt: at,
-            gridWrittenAt: inheritedGridDate(known, opening) ?? at,
+            gridWrittenAt: plan.period.inheritedGridAt ?? at,
             deletedAt: null,
           }),
         )

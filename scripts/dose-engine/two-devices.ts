@@ -1,7 +1,7 @@
 import {
   moveBounds,
   newSettings,
-  inheritedGridDate,
+  inheritedGridAt,
   play,
   rewritesCalendar,
   rewritesGrid,
@@ -79,7 +79,7 @@ function writePlan(input: TreatmentViewInput, plan: SettingsPlan, clock: Clock, 
     id: `${tag}s${clock.n}`,
     stoppedOn: null,
     createdAt,
-    gridWrittenAt: inheritedGridDate(input.settings, plan.setting) ?? createdAt,
+    gridWrittenAt: inheritedGridAt(input, plan) ?? createdAt,
   }
   return { ...input, lines, settings: [...input.settings, created] }
 }

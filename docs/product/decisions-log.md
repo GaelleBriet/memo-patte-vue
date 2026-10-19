@@ -3089,24 +3089,31 @@ migration accordée ; schéma v17, export v10).
   ligne du report la date d'écriture du réglage qu'il a vue.
 - Héritage : la date de grille d'une période est celle de sa dernière écriture de grille ; une
   période qui reprend la grille de la précédente sans la changer garde sa date. Les échéances en
-  décident, pas les colonnes : même fréquence, même fin, origine vide ou sur l'ancienne grille,
-  première échéance proposée par l'app ou sur l'ancienne grille (`keepsGrid`,
-  `src/shared/domain/dose-calendar/grid-heritage.ts`). Milo, tous les 3 jours à 20 h depuis le
+  décident, pas les colonnes : à fin égale, la période hérite quand le moteur lit les mêmes jours avec
+  et sans elle à partir de sa première échéance (`inheritedGridAt`,
+  `src/shared/domain/dose-calendar/gestures/grid-heritage.ts`). Milo, tous les 3 jours à 20 h depuis le
   26 mars, prises du 26 et du 29 ; le 1er avril, « Modifier » à 6 h : la nouvelle période garde la
   date de grille, un report de A du 31 mars n'est pas battu. Héritent : « Modifier » aux heures
   seules, « Elles restent à renseigner » (mêmes jours). Datées de leur création : « Prochaine dose »
   hors de la grille, autre fréquence, autre fin, « Reprendre » après un arrêt ou une fin (une reprise
   ouvre une grille neuve, même si un jour coïncide). — Écartée : comparer les colonnes telles quelles
   (tout « Modifier » d'heures sur une période avec prises ferait perdre ses reports).
-- L'ancienne grille est celle que le moteur continue (même règle, `continuesGrid`) : en mois, une
-  origine propre sur la grille en vigueur ne la remplace pas (Luna, chaque mois depuis le 31 janvier,
-  « Prochaine dose » le 30 avril puis le 30 mai : datée ; le 31 juillet : hérite).
+- L'ancienne grille se lit comme le moteur la lit, décalages compris (correction de la lecture du
+  19 octobre « sans les décalages ») : ce qu'un report a vu, c'est la grille tournée. Milo, tous les
+  2 jours à 20 h depuis le 10 mars, la dose du 12 donnée le 13 en décalant la suite (15, 17, 19) :
+  « Prochaine dose » le 18 change la grille, datée ; les heures seules héritent ; 1 semaine devenue
+  7 jours sous un décalage hérite si les jours sont les mêmes. — Écarté : dater dès qu'un décalage
+  est actif (un changement d'heures ferait perdre un report sans qu'aucun jour n'ait bougé). En mois,
+  l'origine est celle que le moteur continue (Luna, chaque mois depuis le 31 janvier, « Prochaine
+  dose » le 30 avril puis le 30 mai : datée ; le 31 juillet : hérite).
 - Un réglage ouvert aujourd'hui sans prise et réécrit sur place se juge comme une ouverture, face
   aux périodes qui le précèdent : un report ne dépend pas du nombre de « Modifier ». Milo, le
   1er avril : un « Modifier » (6 h et « Prochaine dose » le 4) ou deux (6 h, puis le 4) donnent la
   même date de grille, celle du 26 mars ; tous les 2 jours puis de nouveau tous les 3 jours le même
   matin : celle du 26 mars.
-- Une première échéance avant le début de l'ancienne grille est datée de sa création (cas prudent).
+- Une première échéance choisie avant celle que l'ancienne grille lisait ajoute un jour qu'un
+  report n'avait pas vu : la grille est datée (grille qui commence le 10 avril, « Prochaine dose »
+  le 7). La première échéance se compare à celle que lit le moteur, pas à l'origine.
 - « Même fréquence » se lit sur la suite de jours : 2 semaines et 14 jours, 1 semaine et 7 jours ont
   la même grille ; un mois n'équivaut jamais à des jours. À fréquence seulement équivalente, la
   première échéance doit tomber sur l'ancienne grille, même proposée.
