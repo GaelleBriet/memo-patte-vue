@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import OverflowMenu, { type OverflowMenuItem } from './OverflowMenu.vue'
+import { computed } from 'vue'
 
-withDefaults(
+import OverflowMenu, { type OverflowMenuItems } from './OverflowMenu.vue'
+
+const props = withDefaults(
   defineProps<{
     date: string
     detail?: string | null
@@ -14,8 +16,8 @@ withDefaults(
     icon?: string | null
     /** Nom du menu ⋮ de la ligne, date en toutes lettres. */
     optionsLabel: string
-    /** Vide : la ligne n'a pas de menu. */
-    items: readonly OverflowMenuItem[]
+    /** Vide : la ligne n'a pas de menu ; une fonction donne toujours un menu, lu à son ouverture. */
+    items: OverflowMenuItems
   }>(),
   { detail: null, badge: null, regular: false, muted: false, icon: null },
 )
@@ -23,6 +25,8 @@ withDefaults(
 const emit = defineEmits<{
   select: [id: string]
 }>()
+
+const hasMenu = computed(() => typeof props.items === 'function' || props.items.length > 0)
 </script>
 
 <template>
@@ -40,7 +44,7 @@ const emit = defineEmits<{
       <p v-if="detail" class="history-row__detail">{{ detail }}</p>
     </div>
     <OverflowMenu
-      v-if="items.length > 0"
+      v-if="hasMenu"
       :label="optionsLabel"
       :items="items"
       @select="emit('select', $event)"

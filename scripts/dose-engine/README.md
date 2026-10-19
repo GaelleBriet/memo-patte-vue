@@ -144,3 +144,21 @@ LISTED_FROM=9760000000 LISTED_SEEDS=3000 LISTED_STEPS=40 \
 
 La ligne « Campagne doses listées : N carnets × M gestes, graines A à B » dit ce qui a été joué. Par
 défaut (suite normale) : 20 carnets × 40 gestes.
+
+## Menu ⋮ de l'historique (#947)
+
+`src/shared/__tests__/dose-calendar.menu-historique.spec.ts` mène des carnets par les gestes de v2
+(`history-menu.ts`) et, à chaque pas, ouvre le menu ⋮ de chaque ligne de l'historique : chaque note
+proposée (« Marquer comme oubliée », « Marquer comme donnée ») est jouée par le moteur, qui ne doit
+ni la refuser ni lever. Les suppressions ne sont pas jouées. C'est une non-régression : les graines
+fixes 977001278, 977003652 et 9600000073, où le menu proposait une note refusée avant #947, en sont
+la preuve.
+
+```sh
+MENU_FROM=9600000000 MENU_SEEDS=1500 MENU_STEPS=40 \
+  flock /tmp/claude-1000/memo-patte-suite.lock nice -n 19 \
+  pnpm exec vitest run src/shared/__tests__/dose-calendar.menu-historique.spec.ts --reporter=verbose
+```
+
+La ligne « Campagne menu de l'historique : N carnets × M gestes, graines A à B » dit ce qui a été
+joué. Par défaut (suite normale) : 10 carnets × 40 gestes.
