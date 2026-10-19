@@ -134,6 +134,28 @@ const REPOSITORY_OUT_OF_LOGIC = {
     "logic/ n'importe jamais un repository : les types d'écriture partagés vivent dans schema/ (cf. CLAUDE.md, « Règles strictes de structure »).",
 }
 
+const FEATURES_OUT_OF_SHARED = {
+  group: ['@/features/**', '**/features/**'],
+  message: 'shared/ ne dépend pas des features : la dépendance va des features vers shared/.',
+}
+
+const PHONE_AND_STATE_OUT_OF_SHARED_DOMAIN = {
+  paths: [
+    {
+      name: 'pinia',
+      message:
+        'Un état vit dans core/ ou dans un store, jamais dans shared/domain/ (cf. CLAUDE.md).',
+    },
+  ],
+  patterns: [
+    {
+      group: ['@capacitor/*', '@capacitor-community/*', 'vuetify', 'vuetify/*'],
+      message:
+        "Ce qui appelle le téléphone ou l'interface ne vit pas dans shared/domain/ : le téléphone, c'est core/ (cf. CLAUDE.md, « Règles strictes de structure »).",
+    },
+  ],
+}
+
 function featureImportsRule(
   feature: string,
   allowedElsewhere: string[] = [],
@@ -272,6 +294,34 @@ export default defineConfigWithVueTs(
     rules: restrictImports({
       ...DATA_ACCESS_RESTRICTIONS,
       patterns: [...DATA_ACCESS_RESTRICTIONS.patterns, APP_RESTRICTION],
+    }),
+  },
+  {
+    name: 'app/shared-not-features',
+    files: ['src/shared/**/*.{ts,vue}'],
+    ignores: [
+      '**/__tests__/**',
+      '**/*.repository.spec.ts',
+      '**/*.service.spec.ts',
+      '**/*.integration.spec.ts',
+    ],
+    rules: restrictImports({
+      ...DATA_ACCESS_RESTRICTIONS,
+      patterns: [...DATA_ACCESS_RESTRICTIONS.patterns, APP_RESTRICTION, FEATURES_OUT_OF_SHARED],
+    }),
+  },
+  {
+    name: 'app/shared-domain-without-phone-or-state',
+    files: ['src/shared/domain/**/*.ts'],
+    ignores: ['**/__tests__/**'],
+    rules: restrictImports({
+      paths: [...DATA_ACCESS_RESTRICTIONS.paths, ...PHONE_AND_STATE_OUT_OF_SHARED_DOMAIN.paths],
+      patterns: [
+        ...DATA_ACCESS_RESTRICTIONS.patterns,
+        APP_RESTRICTION,
+        FEATURES_OUT_OF_SHARED,
+        ...PHONE_AND_STATE_OUT_OF_SHARED_DOMAIN.patterns,
+      ],
     }),
   },
 
