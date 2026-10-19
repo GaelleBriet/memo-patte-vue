@@ -99,24 +99,7 @@ export function changesSchedule(period: TreatmentPeriodRecord, rhythm: Treatment
   )
 }
 
-export const DRAFT_ID = 'draft'
-
-export function draftPeriod(settings: TreatmentPeriodSettings, at: string): TreatmentPeriodRecord {
-  return {
-    ...settings,
-    gridOriginOn: settings.firstDueOn,
-    firstDueChosen: true,
-    fallenDosesAnswer: 'unasked',
-    id: DRAFT_ID,
-    treatmentId: DRAFT_ID,
-    animalId: DRAFT_ID,
-    stoppedOn: null,
-    createdAt: at,
-    updatedAt: at,
-    settingsWrittenAt: at,
-    deletedAt: null,
-  }
-}
+const DRAFT_ID = 'draft'
 
 /** Le carnet du moteur une fois ouverte la période de `settings` ; `null` quand il est illisible. */
 export function openedReading(
