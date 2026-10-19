@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import {
   removalRefusal,
   removeLine,
+  treatmentView,
   type Line,
   type TreatmentViewInput,
 } from '../domain/dose-calendar'
@@ -15,7 +16,7 @@ function line(
   id: string,
   settingId: string,
   status: Line['status'],
-  [dueOn, dueTime]: [string, string],
+  [dueOn, dueTime]: [string, string | null],
   { givenOn = null, targetOn = null }: { givenOn?: string | null; targetOn?: string | null },
   second: number,
 ): Line {
@@ -120,6 +121,22 @@ describe('#961 : « Supprimer » lit le même refus que la suppression écrite (
   it('Milo, chaque mois ; le 23 mai à 14 h reporté au 8 juin, le 8 juin à 20 h reporté au 12, le 12 à 20 h donné d’avance le 9 avril : supprimer le premier report est refusé', () => {
     expect(played(DEUX_REPORTS, 'report')).toEqual({ reason: 'later-dose' })
     expect(removalRefusal(DEUX_REPORTS, 'report')).toEqual({ reason: 'later-dose' })
+  })
+
+  it('R11 : Milo, chaque vendredi, la dose du 16 octobre notée sur chaque téléphone et celle du 23 donnée : la ligne sans effet du 16 se supprime toujours', () => {
+    const input: TreatmentViewInput = {
+      settings: [setting('s1', '2026-10-02', WEEK, [], { createdAt: at(0) })],
+      lines: [
+        line('ancienne', 's1', 'given', ['2026-10-16', null], { givenOn: '2026-10-16' }, 1),
+        line('récente', 's1', 'given', ['2026-10-16', null], { givenOn: '2026-10-16' }, 2),
+        line('le 23', 's1', 'given', ['2026-10-23', null], { givenOn: '2026-10-23' }, 3),
+      ],
+      today: '2026-10-24',
+    }
+    const effect = treatmentView(input).history.find(({ line }) => line.id === 'ancienne')!.effect
+    expect(effect.kind).toBe('idle')
+    expect(removalRefusal(input, 'ancienne')).toBeNull()
+    expect(played(input, 'ancienne')).toBeNull()
   })
 
   it.each([
