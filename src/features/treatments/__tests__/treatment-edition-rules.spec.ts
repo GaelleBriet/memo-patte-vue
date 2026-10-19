@@ -541,6 +541,29 @@ describe('plan que le moteur ne saurait pas relire', () => {
     ).toEqual(['firstDoseOn:tooOld'])
   })
 
+  it('accepte la reprise la plus ancienne que le moteur sait encore relire, refuse la veille', () => {
+    const history = treatment(
+      [period({ startsOn: '1940-01-01', firstDueOn: '1940-01-01', stoppedOn: '1940-02-01' })],
+      [dose({ dueOn: '1940-01-10', givenOn: '1940-01-10' })],
+    )
+    const refusReprise = (firstDoseOn: string) => {
+      const result = treatmentResumptionSchemaFor(history, TODAY).safeParse({
+        firstDoseOn,
+        frequency: { value: 1, unit: 'day' },
+        times: ['08:00', '20:00'],
+        doseQuantity: null,
+        doseUnit: null,
+        endsOn: null,
+      })
+      return result.success
+        ? []
+        : result.error.issues.map((issue) => `${String(issue.path[0])}:${issue.message}`)
+    }
+
+    expect(refusReprise(ilYA(24_996))).toEqual([])
+    expect(refusReprise(ilYA(24_997))).toEqual(['firstDoseOn:tooOld'])
+  })
+
   it('refuse une modification qui rendrait le calendrier illisible : heures ajoutées sur un très long historique', () => {
     const ancien = period({
       startsOn: '1950-01-01',
