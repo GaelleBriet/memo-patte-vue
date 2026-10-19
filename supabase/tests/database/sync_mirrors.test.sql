@@ -602,5 +602,61 @@ select ok(
   has_column_privilege('authenticated', 'public.treatment_period', 'fallen_doses_answer', 'UPDATE'),
   'v15 : la réponse se synchronise');
 
+-- Arrivée d'avant et rang des reports de la migration v16 rejoués : colonnes retirées, la ligne
+-- d'une prise devenue un report de 20 h, puis le corps de la migration.
+alter table public.treatment_dose
+  drop column previous_target_on,
+  drop column previous_target_time,
+  drop column due_rank;
+
+update public.treatment_dose
+set status = 'postponed', given_on = null, due_time = '20:00', target_on = due_on + 1
+where id = '00000000-0000-4000-8000-0000000000a7';
+
+create temp table before_v16 as
+  select user_id, id, updated_at from public.treatment_dose;
+
+alter table public.treatment_dose
+  add column previous_target_on date,
+  add column previous_target_time text,
+  add column due_rank integer check (due_rank is null or due_rank >= 1);
+
+update public.treatment_dose dose
+set due_rank = case
+    when period.times is null and dose.due_time is null then 1
+    when dose.due_time is not null and strpos(period.times, dose.due_time) > 0
+      then (strpos(period.times, dose.due_time) - 1) / 6 + 1
+  end
+from public.treatment_period period
+where dose.status = 'postponed'
+  and period.user_id = dose.user_id
+  and period.id = dose.period_id;
+
+grant update (previous_target_on, previous_target_time, due_rank)
+  on table public.treatment_dose to authenticated;
+
+select results_eq(
+  $$ select distinct due_rank from public.treatment_dose
+     where id = '00000000-0000-4000-8000-0000000000a7' $$,
+  $$ values (2) $$,
+  'v16 : le rang d''un report se lit dans les heures de son réglage (20 h sur 8 h et 20 h)');
+select is(
+  (select count(*) from public.treatment_dose
+   where previous_target_on is not null or previous_target_time is not null),
+  0::bigint, 'v16 : l''arrivée d''avant d''un report existant reste inconnue');
+select is(
+  (select count(*) from public.treatment_dose d join before_v16 b using (user_id, id)
+   where d.updated_at is distinct from b.updated_at),
+  0::bigint, 'v16 : la date de modification des lignes ne bouge pas');
+select throws_ok(
+  $$ update public.treatment_dose set due_rank = 0 $$, '23514', null,
+  'v16 : un rang nul est refusé');
+select ok(
+  has_column_privilege('authenticated', 'public.treatment_dose', 'previous_target_on', 'UPDATE')
+    and has_column_privilege('authenticated', 'public.treatment_dose', 'previous_target_time',
+      'UPDATE')
+    and has_column_privilege('authenticated', 'public.treatment_dose', 'due_rank', 'UPDATE'),
+  'v16 : l''arrivée d''avant et le rang se synchronisent');
+
 select * from finish();
 rollback;
