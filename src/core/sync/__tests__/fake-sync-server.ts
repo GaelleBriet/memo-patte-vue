@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { SyncRowValue } from '@/core/supabase/guarded-upsert'
+import { clampedWrite } from './fake-sync-clamp'
 
 type ServerRow = Record<string, SyncRowValue>
 type Result = { data: ServerRow[] | null; error: { message: string; code?: string } | null }
@@ -49,6 +50,7 @@ export interface FakeSyncServer {
     user_id: SyncRowValue
     id: SyncRowValue
     sent_at: SyncRowValue
+    received_at: string
     writes: string[]
   }>
   /** Joué juste avant de répondre au prochain pull de `table` : une écriture « pendant » le parcours. */
@@ -62,10 +64,12 @@ export interface FakeSyncServer {
 /**
  * PostgREST réduit aux appels de la synchro : `select … eq gte order limit`, l'`update … match lt
  * select` et l'`upsert … select` de `guardedUpsert`, sa relecture `select … match maybeSingle`, et
- * l'ouverture d'un envoi. Le déclencheur `server_updated_at` et les clés étrangères y sont reproduits,
- * et les horodatages rendus en `+00:00`, comme Postgres.
+ * l'ouverture d'un envoi. Les déclencheurs `server_updated_at` et d'écrêtage, sur l'horloge `now` du
+ * serveur, et les clés étrangères y sont reproduits, et les horodatages rendus en `+00:00`, comme Postgres.
  */
-export function createFakeSyncServer(): FakeSyncServer {
+export function createFakeSyncServer({
+  now = () => Date.now(),
+}: { now?: () => number } = {}): FakeSyncServer {
   const tables = new Map<string, ServerRow[]>()
   const pushes: ReturnType<FakeSyncServer['pushes']> = []
   const pullHooks = new Map<string, Hook>()
@@ -112,15 +116,28 @@ export function createFakeSyncServer(): FakeSyncServer {
   }
 
   /** Jouée au tour suivant : les `select` et `setHeader` chaînés avant l'attente sont déjà posés. */
-  function write(table: string, run: () => ServerRow[] | Result['error']) {
+  function write(
+    table: string,
+    run: (
+      clamp: (incoming: ServerRow, stored: ServerRow | null) => ServerRow | null,
+    ) => ServerRow[] | Result['error'],
+  ) {
     const headers: Record<string, string> = {}
     let columns = 'id'
     const result = Promise.resolve().then(async (): Promise<Result> => {
-      const written = run()
+      const push = pushes.find(
+        (candidate) => candidate.id === headers['x-memopatte-sync-push'] && candidate.id !== null,
+      )
+      const written = run((incoming, stored) =>
+        clampedWrite(
+          incoming,
+          stored,
+          push && push.user_id === incoming.user_id ? push : null,
+          now(),
+        ),
+      )
       if (!Array.isArray(written)) return { data: null, error: written }
-      if (written.length > 0) {
-        pushes.find(({ id }) => id === headers['x-memopatte-sync-push'])?.writes.push(table)
-      }
+      if (written.length > 0) push?.writes.push(table)
       const hook = writeHooks.get(table)
       writeHooks.delete(table)
       await hook?.()
@@ -191,15 +208,17 @@ export function createFakeSyncServer(): FakeSyncServer {
   function update(table: string, patch: ServerRow) {
     let match: ServerRow = {}
     let olderThan: string | null = null
-    const request = write(table, () => {
-      const updated = tableRows(table).filter(
-        (row) =>
+    const request = write(table, (clamp) => {
+      const updated: ServerRow[] = []
+      for (const row of tableRows(table)) {
+        const matches =
           Object.entries(match).every(([column, value]) => row[column] === value) &&
-          (olderThan === null || Date.parse(String(row.updated_at)) < Date.parse(olderThan)),
-      )
-      for (const row of updated) {
-        Object.assign(row, patch)
+          (olderThan === null || Date.parse(String(row.updated_at)) < Date.parse(olderThan))
+        const next = matches ? clamp({ ...row, ...patch }, row) : null
+        if (next === null) continue
+        Object.assign(row, next)
         stamp(row)
+        updated.push(row)
       }
       return updated
     })
@@ -218,14 +237,14 @@ export function createFakeSyncServer(): FakeSyncServer {
   }
 
   function upsert(table: string, row: ServerRow) {
-    return write(table, () => {
+    return write(table, (clamp) => {
       const rows = tableRows(table)
       if (rows.some((existing) => existing.user_id === row.user_id && existing.id === row.id)) {
         return []
       }
       const missing = missingParent(table, row)
       if (missing) return { message: `clé étrangère ${missing}`, code: '23503' }
-      const inserted = { ...row }
+      const inserted = { ...clamp(row, null)! }
       stamp(inserted)
       rows.push(inserted)
       return [inserted]
@@ -233,7 +252,13 @@ export function createFakeSyncServer(): FakeSyncServer {
   }
 
   async function openPush({ user_id, id, sent_at }: ServerRow): Promise<Result> {
-    pushes.push({ user_id: user_id ?? null, id: id ?? null, sent_at: sent_at ?? null, writes: [] })
+    pushes.push({
+      user_id: user_id ?? null,
+      id: id ?? null,
+      sent_at: sent_at ?? null,
+      received_at: new Date(now()).toISOString(),
+      writes: [],
+    })
     return { data: null, error: null }
   }
 
