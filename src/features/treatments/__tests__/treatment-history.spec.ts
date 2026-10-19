@@ -31,7 +31,7 @@ function menuOf(book: TreatmentWithPeriods, today: string, id: string) {
   const history = treatmentHistory(t, book, treatmentReadingOf(book, today), today)
   const lines = history.periods.flatMap(({ lines }) => lines)
   const rows = lines.flatMap((line) => (line.kind === 'missed' ? line.rows : [line]))
-  return history.menuOf(rows.find((row) => row.dose.id === id)!)
+  return history.menuOf(rows.find((row) => row.dose.id === id)!).map(({ action }) => action)
 }
 
 function titles(book: TreatmentWithPeriods, today: string): string[][] {

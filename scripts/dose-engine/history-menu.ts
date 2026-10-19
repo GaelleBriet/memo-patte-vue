@@ -1,12 +1,10 @@
-import {
-  treatmentHistory,
-  type DoseLineAction,
-} from '@/features/treatments/logic/treatment-history'
+import { treatmentHistory } from '@/features/treatments/logic/treatment-history'
 import { lineAction } from '@/features/treatments/logic/treatment-line-actions'
 import { carnetReadingOf } from '@/features/treatments/logic/treatment-reading-adapter'
 import type { TreatmentWithPeriods } from '@/features/treatments/schema/treatment-with-periods.schema'
 import {
   play,
+  type Gesture,
   type Line,
   type Setting,
   type TreatmentViewInput,
@@ -42,9 +40,19 @@ const doseOf = ({ settingId, updatedAt, createdByDevice, ...line }: Line) => ({
   ...(createdByDevice === undefined ? {} : { createdByDevice }),
 })
 
-const PLAYED: readonly DoseLineAction[] = ['mark-missed', 'mark-given']
+function verdict(input: TreatmentViewInput, gesture: Gesture): string | null {
+  try {
+    const result = play(input, gesture)
+    return 'refusal' in result ? result.refusal.reason : null
+  } catch (error) {
+    return (error as Error).message
+  }
+}
 
-/** Chaque note du menu ⋮ de l'historique, jouée par le moteur : celles qu'il refuse ou qui lèvent. */
+/**
+ * Chaque choix du menu ⋮ de l'historique, joué par le moteur : une note ou un « Supprimer » actif
+ * qu'il refuse ou qui lève, un « Supprimer » grisé qu'il accepte.
+ */
 export function refusedOffers(input: TreatmentViewInput): { offered: number; refused: string[] } {
   const book = { periods: input.settings.map(periodOf), doses: input.lines.map(doseOf) }
   const history = treatmentHistory(i18n.global.t, book, carnetReadingOf(input), input.today)
@@ -54,16 +62,16 @@ export function refusedOffers(input: TreatmentViewInput): { offered: number; ref
   let offered = 0
   const refused: string[] = []
   for (const row of rows) {
-    for (const choice of history.menuOf(row)) {
+    for (const { action: choice, hint } of history.menuOf(row)) {
       const action = lineAction(row.dose, choice, input.today)
-      if (!PLAYED.includes(choice) || action?.kind !== 'note') continue
+      if (action?.kind !== 'note' && action?.kind !== 'remove') continue
+      const gesture: Gesture =
+        action.kind === 'note' ? action.gesture : { kind: 'remove', lineId: action.lineId }
+      const grayed = hint !== undefined
       offered += 1
-      try {
-        const result = play(input, action.gesture)
-        if ('refusal' in result) refused.push(`${choice} ${row.dose.id} : ${result.refusal.reason}`)
-      } catch (error) {
-        refused.push(`${choice} ${row.dose.id} : ${(error as Error).message}`)
-      }
+      const reason = verdict(input, gesture)
+      if (!grayed && reason !== null) refused.push(`${choice} ${row.dose.id} : ${reason}`)
+      if (grayed && reason === null) refused.push(`${choice} ${row.dose.id} grisé : accepté`)
     }
   }
   return { offered, refused }

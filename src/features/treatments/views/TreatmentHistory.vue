@@ -42,13 +42,13 @@ const menu = computed<Record<DoseLineAction, Omit<OverflowMenuItem, 'id'>>>(() =
 }))
 
 function itemsOf(row: DoseRow): OverflowMenuItems {
-  const { refused = {} } = row
   if (row.actions.length === 0) return []
   return () =>
-    props.doseHistory.menuOf(row).map((id) => {
-      const hint = refused[id]
-      return { ...menu.value[id], id, ...(hint === undefined ? {} : { hint }) }
-    })
+    props.doseHistory.menuOf(row).map(({ action, hint }) => ({
+      ...menu.value[action],
+      id: action,
+      ...(hint === undefined ? {} : { hint }),
+    }))
 }
 
 function toggled(list: string[], id: string): string[] {

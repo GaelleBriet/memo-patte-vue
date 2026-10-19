@@ -1,10 +1,9 @@
-import { menuOf } from './treatment-history-menu'
+import { menuOf, type MenuChoice } from './treatment-history-menu'
 import { periodSettingsText } from './treatment-rhythm'
 import {
   lineOf,
   missedRow,
   missedTitle,
-  type DoseLineAction,
   type DoseRow,
   type Entry,
   type HistoryLine,
@@ -38,7 +37,7 @@ export type TreatmentHistory = {
   counter: string | null
   periods: HistoryPeriod[]
   /** Les choix du menu ⋮ d'une ligne, à lire à son ouverture. */
-  menuOf: (row: DoseRow) => DoseLineAction[]
+  menuOf: (row: DoseRow) => MenuChoice[]
 }
 
 type Period = TreatmentPeriodRecord
@@ -211,7 +210,7 @@ export function treatmentHistory(
             n: given.length,
             date: formatLongDate(oldest.dose.dueOn),
           }),
-    menuOf: (row) => menuOf(context, row),
+    menuOf: (row) => menuOf(t, context, row),
     periods: periods.map((period, index): HistoryPeriod => {
       const own = entries.filter(({ dose }) => dose.periodId === period.id)
       const lines = linesOf(t, context, period, own, last?.id)
