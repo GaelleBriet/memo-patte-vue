@@ -24,7 +24,7 @@ export type DoseRow = {
   dose: NewTreatmentDose
   title: string
   optionsLabel: string
-  /** Vide : la ligne n'a pas de menu. */
+  /** Vide : la ligne n'a pas de menu ; le menu montre ceux que garde `menuOf`. */
   actions: DoseLineAction[]
   /** Actions grisées, avec l'aide qui dit pourquoi. */
   refused?: Partial<Record<DoseLineAction, string>>
@@ -47,15 +47,6 @@ export type HistoryLine =
 export type Entry = { dose: NewTreatmentDose; idle: boolean }
 
 export type RowContext = { reading: TreatmentReading; today: string }
-
-function isOnCalendar({ reading }: RowContext, dose: NewTreatmentDose): boolean {
-  const state = reading.view.dueState({ dueOn: dose.dueOn, dueTime: dose.dueTime })
-  return state !== 'moved' && state !== 'removed'
-}
-
-function canMarkMissed(context: RowContext, dose: NewTreatmentDose): boolean {
-  return isOnCalendar(context, dose) && dose.dueOn <= context.today
-}
 
 function dueTitle(t: Translate, dose: NewTreatmentDose, period: TreatmentPeriodRecord): string {
   const date = formatLongDate(dose.dueOn)
@@ -104,7 +95,6 @@ export function missedTitle(
 
 export function missedRow(
   t: Translate,
-  context: RowContext,
   dose: NewTreatmentDose,
   period: TreatmentPeriodRecord,
 ): DoseRow {
@@ -112,7 +102,7 @@ export function missedRow(
     dose,
     title: missedTitle(t, [dose], period),
     optionsLabel: doseOptionsLabel(t, dose, period),
-    actions: isOnCalendar(context, dose) ? ['mark-given', 'remove'] : ['remove'],
+    actions: ['mark-given', 'remove'],
   }
 }
 
@@ -240,9 +230,10 @@ export function givenLine(
         : t('treatments.history.givenOn', { date: formatLongDate(dose.givenOn) }),
     isLast,
     optionsLabel: doseOptionsLabel(t, dose, period),
-    actions: canMarkMissed(context, dose)
-      ? ['change-date', 'mark-missed', 'remove']
-      : ['change-date', 'remove'],
+    actions:
+      dose.dueOn <= context.today
+        ? ['change-date', 'mark-missed', 'remove']
+        : ['change-date', 'remove'],
   }
 }
 

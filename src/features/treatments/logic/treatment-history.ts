@@ -1,8 +1,10 @@
+import { menuOf } from './treatment-history-menu'
 import { periodSettingsText } from './treatment-rhythm'
 import {
   lineOf,
   missedRow,
   missedTitle,
+  type DoseLineAction,
   type DoseRow,
   type Entry,
   type HistoryLine,
@@ -32,7 +34,12 @@ export type HistoryPeriod = {
   toggle: { show: string; hide: string } | null
 }
 
-export type TreatmentHistory = { counter: string | null; periods: HistoryPeriod[] }
+export type TreatmentHistory = {
+  counter: string | null
+  periods: HistoryPeriod[]
+  /** Les choix du menu ⋮ d'une ligne, à lire à son ouverture. */
+  menuOf: (row: DoseRow) => DoseLineAction[]
+}
 
 type Period = TreatmentPeriodRecord
 
@@ -88,7 +95,7 @@ function linesOf(
     const previous = lines.at(-1)
     const rows: DoseRow[] = [
       ...(previous?.kind === 'missed' ? previous.rows : []),
-      missedRow(t, context, entry.dose, period),
+      missedRow(t, entry.dose, period),
     ]
     if (previous?.kind === 'missed') lines.pop()
     lines.push({
@@ -204,6 +211,7 @@ export function treatmentHistory(
             n: given.length,
             date: formatLongDate(oldest.dose.dueOn),
           }),
+    menuOf: (row) => menuOf(context, row),
     periods: periods.map((period, index): HistoryPeriod => {
       const own = entries.filter(({ dose }) => dose.periodId === period.id)
       const lines = linesOf(t, context, period, own, last?.id)

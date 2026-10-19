@@ -45,6 +45,7 @@ import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import DateCalendar from '@/shared/components/DateCalendar.vue'
 import HistoryRow from '@/shared/components/HistoryRow.vue'
 import OverflowMenu from '@/shared/components/OverflowMenu.vue'
+import { menuLabels } from '@/shared/__tests__/menu-labels'
 import {
   dismissToast,
   runToastAction,
@@ -723,11 +724,10 @@ describe('TreatmentDetailView — historique', () => {
     expect(String(oubliee.props('optionsLabel')).replace(NBSP, ' ')).toBe(
       'Options pour la prise du 25 septembre 2026 à 20 h',
     )
-    expect(
-      ligne(view, 'Oubliée · 25 sept. 2026, 20 h')
-        .props('items')
-        .map(({ label }: { label: string }) => label),
-    ).toEqual(['Marquer comme donnée', 'Supprimer cette prise'])
+    expect(menuLabels(ligne(view, 'Oubliée · 25 sept. 2026, 20 h').props('items'))).toEqual([
+      'Marquer comme donnée',
+      'Supprimer cette prise',
+    ])
   })
 
   it('replie chaque période après ses premières lignes, et la déplie', async () => {
@@ -784,11 +784,11 @@ describe('TreatmentDetailView — menu ⋮ d’une prise', () => {
   it('propose de changer la date, de la marquer oubliée et de la supprimer', async () => {
     const view = await monter()
 
-    expect(
-      ligne(view, '27 sept. 2026 · 20 h')
-        .props('items')
-        .map(({ label }: { label: string }) => label),
-    ).toEqual(['Changer la date', 'Marquer comme oubliée', 'Supprimer cette prise'])
+    expect(menuLabels(ligne(view, '27 sept. 2026 · 20 h').props('items'))).toEqual([
+      'Changer la date',
+      'Marquer comme oubliée',
+      'Supprimer cette prise',
+    ])
   })
 
   it('supprime une prise sans dialogue, même la seule, toast avec « Annuler »', async () => {
@@ -873,11 +873,10 @@ describe('TreatmentDetailView — ligne « Reportée » (planche A · V1 quinqui
 
     expect(lignes(view)).toEqual([REPORT, '10 juil. 2026', '10 avr. 2026'])
     expect(ligne(view, REPORT).props()).toMatchObject({ muted: true, icon: 'ms:event_repeat' })
-    expect(
-      ligne(view, REPORT)
-        .props('items')
-        .map(({ label }: { label: string }) => label),
-    ).toEqual(['Changer la date', 'Supprimer ce report'])
+    expect(menuLabels(ligne(view, REPORT).props('items'))).toEqual([
+      'Changer la date',
+      'Supprimer ce report',
+    ])
   })
 
   it('supprime le report, toast avec « Annuler »', async () => {
@@ -976,11 +975,7 @@ describe('TreatmentDetailView — « Décaler aussi les doses suivantes » (V29,
       '18 sept. 2026',
     ])
     expect(ligne(view, DECALAGE).props()).toMatchObject({ muted: true, icon: 'ms:event_upcoming' })
-    expect(
-      ligne(view, DECALAGE)
-        .props('items')
-        .map(({ label }: { label: string }) => label),
-    ).toEqual(['Supprimer ce décalage'])
+    expect(menuLabels(ligne(view, DECALAGE).props('items'))).toEqual(['Supprimer ce décalage'])
 
     await choisir(view, DECALAGE, 'remove-shift')
 

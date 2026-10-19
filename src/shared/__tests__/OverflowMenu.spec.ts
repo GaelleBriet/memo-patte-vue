@@ -169,6 +169,26 @@ describe('OverflowMenu', () => {
     wrapper.unmount()
   })
 
+  it('ne lit une liste donnée en fonction qu’à l’ouverture du menu', async () => {
+    const list = vi.fn<() => typeof ITEMS>(() => ITEMS)
+    const wrapper = mount(OverflowMenu, {
+      props: { label: 'Options pour la prise du 16 mars 2026', items: list },
+      global: { plugins: [vuetify], stubs: { transition: false } },
+      attachTo: document.body,
+    })
+    await flushPromises()
+
+    expect(list).not.toHaveBeenCalled()
+    await wrapper.get('.overflow-menu__button').trigger('click')
+    await flushPromises()
+    expect(list).toHaveBeenCalled()
+    expect(items().map((item) => item.textContent?.trim())).toEqual([
+      'Changer la date',
+      'Supprimer cette injection',
+    ])
+    wrapper.unmount()
+  })
+
   it('émet l’action choisie', async () => {
     const wrapper = await ouvrir()
 

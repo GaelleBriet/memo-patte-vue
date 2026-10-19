@@ -35,6 +35,7 @@ import HistoryRow from '@/shared/components/HistoryRow.vue'
 import NextDueCard from '@/shared/components/NextDueCard.vue'
 import OverflowMenu from '@/shared/components/OverflowMenu.vue'
 import { dismissToast, runToastAction, toastAction, toastMessage } from '@/shared/utils/toast'
+import { menuLabels } from '@/shared/__tests__/menu-labels'
 import { plain } from '@/shared/__tests__/plain'
 
 const TODAY = new Date('2026-09-23T10:00:00')
@@ -234,11 +235,10 @@ describe('VaccinationDetailView — F7', () => {
     expect(plain(lignes(view)[1]!.props('optionsLabel'))).toBe(
       'Options pour l’injection du 27 juillet 2026',
     )
-    expect(
-      lignes(view)[0]!
-        .props('items')
-        .map(({ label }) => label),
-    ).toEqual(['Changer la date', 'Supprimer cette injection'])
+    expect(menuLabels(lignes(view)[0]!.props('items'))).toEqual([
+      'Changer la date',
+      'Supprimer cette injection',
+    ])
   })
 
   it('« C’est fait » ouvre la feuille « Fait » du vaccin (F5)', async () => {
@@ -532,12 +532,9 @@ describe('VaccinationDetailView — suppression du vaccin', () => {
       title: 'Supprimer Carré ?',
       text: 'Ses injections et ses rappels seront supprimés du carnet.',
     })
-    expect(
-      view
-        .findAllComponents(OverflowMenu)[0]!
-        .props('items')
-        .map(({ label }) => label),
-    ).toEqual(['Supprimer ce vaccin'])
+    expect(menuLabels(view.findAllComponents(OverflowMenu)[0]!.props('items'))).toEqual([
+      'Supprimer ce vaccin',
+    ])
 
     dialogue(view).vm.$emit('confirm')
     await flushPromises()

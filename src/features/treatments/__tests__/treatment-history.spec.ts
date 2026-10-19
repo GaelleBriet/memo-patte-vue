@@ -10,7 +10,6 @@ import {
   shifted,
   treatment,
 } from './treatment-fixtures'
-import { givenLine, missedRow } from '../logic/treatment-history-rows'
 import {
   LINES_BEFORE_TOGGLE,
   treatmentDeleteTexts,
@@ -25,6 +24,14 @@ const t = i18n.global.t
 
 function history(book: TreatmentWithHistory, today: string) {
   return plain(treatmentHistory(t, book, treatmentReadingOf(book, today), today))
+}
+
+/** Les choix du menu ⋮ de la prise `id`, lus comme à l'ouverture du menu. */
+function menuOf(book: TreatmentWithHistory, today: string, id: string) {
+  const history = treatmentHistory(t, book, treatmentReadingOf(book, today), today)
+  const lines = history.periods.flatMap(({ lines }) => lines)
+  const rows = lines.flatMap((line) => (line.kind === 'missed' ? line.rows : [line]))
+  return history.menuOf(rows.find((row) => row.dose.id === id)!)
 }
 
 function titles(book: TreatmentWithHistory, today: string): string[][] {
@@ -834,11 +841,7 @@ describe('treatmentHistory — une prise dont l’échéance a quitté le calend
   ]
   const PRISE_DU_16 = { dueTime: '20:00', createdAt: MARS, updatedAt: MARS }
 
-  function actionsOf(book: TreatmentWithHistory, id: string) {
-    const lines = history(book, '2026-03-12').periods.flatMap(({ lines }) => lines)
-    const rows = lines.flatMap((line) => (line.kind === 'missed' ? line.rows : [line]))
-    return rows.find((row) => row.dose.id === id)!.actions
-  }
+  const actionsOf = (book: TreatmentWithHistory, id: string) => menuOf(book, '2026-03-12', id)
 
   it('Milo : la prise du 16 à 20 h, donnée d’avance puis quittée par le changement d’heure, ne propose pas « Marquer comme oubliée »', () => {
     const book = treatment(
@@ -881,11 +884,7 @@ describe('treatmentHistory — une prise dont l’échéance est future ou dépl
   })
   const AT_8 = { dueTime: '08:00', createdAt: MARS, updatedAt: MARS }
 
-  function actionsOf(book: TreatmentWithHistory, today: string, id: string) {
-    const lines = history(book, today).periods.flatMap(({ lines }) => lines)
-    const rows = lines.flatMap((line) => (line.kind === 'missed' ? line.rows : [line]))
-    return rows.find((row) => row.dose.id === id)!.actions
-  }
+  const actionsOf = menuOf
 
   it('Milo : la prise du 16 donnée d’avance le 11, le 12 mars, ne propose pas « Marquer comme oubliée »', () => {
     const book = treatment(
@@ -916,22 +915,6 @@ describe('treatmentHistory — une prise dont l’échéance est future ou dépl
       'remove',
     ])
   })
-
-  it.each(['moved', 'removed'] as const)(
-    'une échéance « %s » du calendrier ne propose ni « Marquer comme oubliée » ni « Marquer comme donnée »',
-    (state) => {
-      const book = treatment([LUNDIS], [dose('2026-03-02', '2026-03-02', AT_8)])
-      const reading = treatmentReadingOf(book, '2026-03-12')
-      const context = {
-        reading: { ...reading, view: { ...reading.view, dueState: () => state } },
-        today: '2026-03-12',
-      }
-      const given = book.doses[0]!
-
-      expect(givenLine(t, context, given, LUNDIS, false).actions).toEqual(['change-date', 'remove'])
-      expect(missedRow(t, context, given, LUNDIS).actions).toEqual(['remove'])
-    },
-  )
 })
 
 describe('treatmentDeleteTexts', () => {

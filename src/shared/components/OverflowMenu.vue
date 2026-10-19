@@ -8,17 +8,20 @@ export type OverflowMenuItem = {
   /** Action grisée : l'aide qui dit pourquoi elle est refusée. */
   hint?: string
 }
+
+/** Une fonction : la liste, coûteuse, n'est lue qu'à l'ouverture du menu. */
+export type OverflowMenuItems = readonly OverflowMenuItem[] | (() => readonly OverflowMenuItem[])
 </script>
 
 <script setup lang="ts">
-import { nextTick, onScopeDispose, ref, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, onScopeDispose, ref, useTemplateRef, watch } from 'vue'
 
 import { onBackButton } from '@/core/app-lifecycle/back-button'
 
-defineProps<{
+const props = defineProps<{
   /** Nom du bouton ⋮ lu par le lecteur d'écran. */
   label: string
-  items: readonly OverflowMenuItem[]
+  items: OverflowMenuItems
 }>()
 
 const emit = defineEmits<{
@@ -29,6 +32,8 @@ const isOpen = ref(false)
 const button = useTemplateRef<{ $el: HTMLElement }>('button')
 const list = useTemplateRef<{ $el: HTMLElement }>('list')
 let releaseBackButton: (() => void) | null = null
+
+const shownItems = computed(() => (typeof props.items === 'function' ? props.items() : props.items))
 
 // Le focus ne revient au bouton que s'il était resté dans le menu : un choix a déjà pu le déplacer.
 watch(isOpen, async (open) => {
@@ -88,7 +93,7 @@ onScopeDispose(releaseBack)
     </template>
     <v-list ref="list" class="overflow-menu__list" role="menu">
       <v-list-item
-        v-for="item in items"
+        v-for="item in shownItems"
         :key="item.id"
         class="overflow-menu__item"
         :class="{
