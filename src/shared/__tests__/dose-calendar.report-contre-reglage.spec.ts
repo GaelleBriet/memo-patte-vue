@@ -203,6 +203,29 @@ describe('#882, sens inverse (décision 8a) : un report plus récent dont la jou
   })
 })
 
+// Q2 (décision du 19 octobre 2026) : la note est un fait, le report de A n'a plus rien à déplacer.
+describe('Q2 : un report de A plus récent battu par une note que la réécriture de B pose sur son heure', () => {
+  it.each([
+    [9050002175, 4, '2026-03-29'],
+    [9050002204, 27, '2026-05-12'],
+  ])(
+    'graine %i, pas %i : la note garde sa dose du %s, le report est sans effet',
+    (seed, step, day) => {
+      const fork = forkAt(seed, step)
+      expect(fork.aFirst).toBe(false)
+      const report = fork.phoneA.lines.find(
+        (line) =>
+          line.status === 'postponed' &&
+          !fork.base.lines.some((old) => old.id === line.id && old.updatedAt === line.updatedAt),
+      )!
+      expect(effectOf(fork.merged, report.id)).toEqual({ kind: 'idle', reason: 'beaten' })
+      expect(states(fork.merged, day, day)).toContainEqual(
+        expect.stringMatching(/20:00 (covered|given|missed)$/),
+      )
+    },
+  )
+})
+
 describe('6a : une heure ôtée quand la journée de départ garde une dose libre après elle, A plus récent', () => {
   // Tous les 3 mois à 8 h, 14 h et 20 h, sans prise, première dose le 5 mars ; le 3, A reporte 8 h du 5
   // au 6, B passe à 8 h 01, 14 h 01 et 20 h 01.

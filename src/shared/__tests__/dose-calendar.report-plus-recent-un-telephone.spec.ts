@@ -133,6 +133,15 @@ describe('Un seul téléphone : une dose ôtée par un décalage, pas par la ré
     expect(upcoming(walk.input).reference).toEqual(upcoming(walk.input).moteur)
   })
 
+  // Q3 (décision du 19 octobre 2026) : un report porte l'heure écrite dans sa ligne (#867), même quand
+  // elle n'existe pas dans son réglage : la dose de 8 h du 28 mars avancée au 25 y arrive à 8 h.
+  it('graine 9000000824 : le report de la dose de 8 h arrive à 8 h, même dans un réglage à 20 h', () => {
+    const walk = startV2Walk(9000000824)
+    for (let count = 0; count <= 38; count += 1) v2Step(walk, () => {})
+    expect(upcoming(walk.input).moteur[0]).toBe('2026-03-25 08:00')
+    expect(upcoming(walk.input).reference).toEqual(upcoming(walk.input).moteur)
+  })
+
   it('graine 9500001489 : les invariants tiennent à chaque geste, posologie seule comprise', () => {
     expect(seedHolds(9500001489, 40)).toEqual([])
   })
