@@ -154,7 +154,6 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
       givenOn: null,
       status: 'missed',
       targetOn: '2026-01-15',
-      frequency: { value: 1, unit: 'month' },
       updatedAt: T_NEW,
     })
   })

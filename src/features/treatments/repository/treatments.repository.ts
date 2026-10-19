@@ -110,9 +110,7 @@ function withHistory(
         ...toRecord(row),
         periods: own,
         doses: own.flatMap(({ id }) =>
-          (dosesOf.get(id) ?? []).map(
-            ({ frequency: _frequency, updatedByDevice: _updatedBy, ...dose }) => dose,
-          ),
+          (dosesOf.get(id) ?? []).map(({ updatedByDevice: _updatedBy, ...dose }) => dose),
         ),
       },
     ]

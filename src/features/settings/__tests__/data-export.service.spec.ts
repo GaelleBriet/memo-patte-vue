@@ -33,7 +33,6 @@ const periods: Stamped<TreatmentPeriodRecord>[] = EXPORT_FIXTURE.treatmentPeriod
 }))
 const doses: Stamped<TreatmentDose>[] = EXPORT_FIXTURE.treatmentDoses.map((row) => ({
   ...row,
-  frequency: { value: 3, unit: 'month' },
   deletedAt: null,
 }))
 const weightEntries: Stamped<WeightEntry>[] = EXPORT_FIXTURE.weightEntries.map((row) => ({
@@ -117,7 +116,7 @@ describe('data-export.service', () => {
     expect(treatmentDoses.map(({ id }) => id)).toEqual(['d-panacur-soir', 'd-panacur-matin'])
   })
 
-  it('exporte chaque ligne d’un traitement, oubliée ou reportée comprise, sans la fréquence de sa période', async () => {
+  it('exporte chaque ligne d’un traitement, oubliée ou reportée comprise', async () => {
     const reportee: Stamped<TreatmentDose> = {
       ...doses[0]!,
       id: 'd-reportee',
@@ -132,7 +131,7 @@ describe('data-export.service', () => {
 
     const { treatmentDoses } = await service.collect()
 
-    const { frequency: _, deletedAt: __, ...exported } = reportee
+    const { deletedAt: _, ...exported } = reportee
     expect(treatmentDoses).toEqual([exported, ...EXPORT_FIXTURE.treatmentDoses])
   })
 

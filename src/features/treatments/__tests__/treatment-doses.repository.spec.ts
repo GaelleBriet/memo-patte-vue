@@ -26,8 +26,6 @@ const plan = {
   lastDoseDate: '2026-01-10',
 } as const
 
-const TRIMESTRIELLE = { frequency: { value: 3, unit: 'month' } } as const
-
 /** Première période et première prise d'un traitement créé portent son identifiant. */
 function prise(
   treatmentId: string,
@@ -127,14 +125,18 @@ describe('treatmentDosesRepository', () => {
     })
   })
 
-  it('liste les prises visibles de tous les traitements, avec la fréquence de leur période', async () => {
+  it('liste les prises visibles de tous les traitements, telles qu’écrites', async () => {
     const recente = prise(milbemax, 'recente', '2026-04-10', { targetOn: null })
     await db.runMany([doses.insertStatement(recente)])
 
     const liste = await doses.listRecords()
 
     expect(liste.map(({ id }) => id).sort()).toEqual(['recente', milbemax, bravecto].sort())
-    expect(liste).toContainEqual(expect.objectContaining({ ...recente, ...TRIMESTRIELLE }))
+    expect(liste.find(({ id }) => id === 'recente')).toEqual({
+      ...recente,
+      createdByDevice: expect.any(String),
+      updatedByDevice: expect.any(String),
+    })
   })
 
   it('restaure une prise existante aux valeurs du fichier, date de création comprise, sans changer sa période, son traitement ni son animal', async () => {
@@ -227,10 +229,6 @@ describe('treatmentDosesRepository — historique', () => {
     return prise(milbemax, id, givenOn, surcharges)
   }
 
-  function lue(id: string, givenOn: string, surcharges: Partial<NewTreatmentDose> = {}) {
-    return { ...prisePlan(id, givenOn, surcharges), ...TRIMESTRIELLE }
-  }
-
   beforeEach(async () => {
     db = await createInMemoryDb()
     await db.execute('PRAGMA foreign_keys = ON')
@@ -257,7 +255,7 @@ describe('treatmentDosesRepository — historique', () => {
     const liste = await doses.listByTreatment(milbemax)
 
     expect(liste.map(({ id }) => id)).toEqual(['recente', milbemax, 'ancienne'])
-    expect(liste[0]).toEqual(lue('recente', '2026-04-10'))
+    expect(liste[0]).toEqual(prisePlan('recente', '2026-04-10'))
   })
 
   it('trie par échéance, jour puis heure, puis par saisie, jamais par date réelle', async () => {
@@ -283,7 +281,7 @@ describe('treatmentDosesRepository — historique', () => {
   it('lit une prise visible, jamais une prise supprimée', async () => {
     await db.runMany([doses.insertStatement(prisePlan('p1', '2026-04-10'))])
 
-    await expect(doses.getById('p1')).resolves.toEqual(lue('p1', '2026-04-10'))
+    await expect(doses.getById('p1')).resolves.toEqual(prisePlan('p1', '2026-04-10'))
     await db.runMany([doses.markDeletedStatement(['p1'], NOW)])
     await expect(doses.getById('p1')).resolves.toBeNull()
   })

@@ -1571,7 +1571,7 @@ describe('data-import.service', () => {
       }
       const doses = async (phone: InMemoryDb) =>
         (await createRepositories(phone).treatments.listDoses(milbemax.id)).map(
-          ({ id, givenOn, targetOn, frequency }) => ({ id, givenOn, targetOn, frequency }),
+          ({ id, givenOn, targetOn }) => ({ id, givenOn, targetOn }),
         )
       await expect(doses(phoneB)).resolves.toEqual(await doses(phoneA))
       phoneB.close()

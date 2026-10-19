@@ -1,6 +1,5 @@
 import { z } from 'zod'
 
-import type { TreatmentFrequency } from './treatment.schema'
 import { CLOCK_TIME_PATTERN } from '@/shared/domain/clock-time'
 
 export const DOSE_STATUSES = ['given', 'missed', 'postponed', 'extra', 'shift', 'not-due'] as const
@@ -25,8 +24,7 @@ export const treatmentDoseSchema = z.object({
 /** Ce qu'une prise écrit en base. */
 export type NewTreatmentDose = z.output<typeof treatmentDoseSchema>
 
-/** Une prise lue, avec la fréquence de sa période. */
-export type TreatmentDose = NewTreatmentDose & { frequency: TreatmentFrequency }
+export type TreatmentDose = NewTreatmentDose
 
 export type DoseOwner = Pick<NewTreatmentDose, 'id' | 'treatmentId' | 'animalId'>
 
