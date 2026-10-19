@@ -5,6 +5,7 @@ import {
   removeLine,
   settingsApplied,
   treatmentView,
+  withReportFacts,
   type LineChange,
   type SettingsPlan,
   type SettingsRequest,
@@ -26,12 +27,11 @@ function recorded(input: TreatmentViewInput, changes: readonly LineChange[]): Tr
       return { ...carnet, lines: carnet.lines.filter(({ id }) => id !== change.id) }
     }
     const updatedAt = nextStamp(carnet)
+    const { line } = withReportFacts(carnet.lines, carnet.settings, change)
     const lines =
       change.action === 'rewrite'
-        ? carnet.lines.map((l) =>
-            l.id === change.id ? { ...change.line, id: l.id, updatedAt } : l,
-          )
-        : [...carnet.lines, { ...change.line, id: `l-${updatedAt}`, updatedAt }]
+        ? carnet.lines.map((l) => (l.id === change.id ? { ...line, id: l.id, updatedAt } : l))
+        : [...carnet.lines, { ...line, id: `l-${updatedAt}`, updatedAt }]
     return { ...carnet, lines }
   }, input)
 }
