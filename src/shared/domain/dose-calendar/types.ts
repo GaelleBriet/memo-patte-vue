@@ -6,11 +6,19 @@ export type Hour = string | null
 
 export type Frequency = { value: number; unit: 'day' | 'week' | 'month' }
 
-/** Une suite régulière de journées : du premier au dernier jour (`null` : sans fin), sur la grille de son origine. */
-export type GridRun = readonly [from: Day, to: Day | null, origin: Day]
+/** Une suite régulière de journées, sur la grille de son premier jour, jusqu'au dernier (`null` : sans fin). */
+export type GridRun = readonly [from: Day, to: Day | null]
 
-/** La grille que le moteur lisait juste avant l'ouverture d'une période, à partir de son premier jour. */
-export type GridBefore = { frequency: Frequency; endsOn: Day | null; runs: readonly GridRun[] }
+/**
+ * La grille que le moteur lisait juste avant l'ouverture d'une période, à partir de son premier jour,
+ * et la date de grille de la période qu'elle remplaçait.
+ */
+export type GridBefore = {
+  frequency: Frequency
+  endsOn: Day | null
+  writtenAt: string
+  runs: readonly GridRun[]
+}
 
 export const FALLEN_DOSES_ANSWERS = ['unasked', 'stay-unlogged', 'not-due'] as const
 

@@ -225,7 +225,7 @@ const version10FileSchema = z
       signed({
         ...version8PeriodShape,
         gridWrittenAt: instant,
-        gridBefore: z.unknown().transform(gridBeforeFromValue),
+        gridBefore: z.unknown().optional().transform(gridBeforeFromValue),
       }).refine(isConsistentPeriod),
     ),
     treatmentDoses: reportedDoses,

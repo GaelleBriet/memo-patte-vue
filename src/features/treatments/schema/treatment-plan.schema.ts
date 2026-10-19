@@ -17,7 +17,7 @@ export type PlannedDoseWrite =
 /**
  * Ce que « Modifier » ou « Reprendre » écrit en une fois ; `null` : rien à écrire dans cette table.
  * `gridOriginOn` `null` : l'origine de la grille du réglage précédent (R3). `judgedGridAt` : la
- * date de grille jugée par le moteur (`judgedGridAt`), à poser telle quelle.
+ * date de grille jugée par le moteur (`judgedGrid`), à poser telle quelle.
  */
 export type TreatmentPlanWrite = {
   treatment: Pick<Treatment, 'name' | 'type'> | null

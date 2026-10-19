@@ -9,11 +9,22 @@ export const MAX_GRID_BEFORE_LENGTH = 20_000
 
 const day = z.string().refine(isCalendarDay)
 
+const run = z.tuple([day, day.nullable()]).refine(([from, to]) => to === null || from <= to)
+
+// Suites triées et disjointes ; seule la dernière peut être sans fin.
+const inOrder = (runs: readonly (readonly [string, string | null])[]) =>
+  runs.every(([from], index) => {
+    if (index === 0) return true
+    const previousEnd = runs[index - 1]![1]
+    return previousEnd !== null && previousEnd < from
+  })
+
 export const gridBeforeSchema = z
   .object({
     frequency: treatmentFrequencySchema,
     endsOn: day.nullable(),
-    runs: z.array(z.tuple([day, day.nullable(), day])),
+    writtenAt: z.iso.datetime().transform((value) => new Date(value).toISOString()),
+    runs: z.array(run).refine(inOrder),
   })
   .strict()
 

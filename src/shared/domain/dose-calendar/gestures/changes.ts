@@ -2,9 +2,9 @@ import { keyOf } from '../grid'
 import { gridBeforeOf, keepsGridBefore } from '../grid-before'
 import { familyOf } from '../lines'
 import { withReportFacts } from '../report-facts'
-import { episodesOf } from '../settings'
 import type {
   Day,
+  GridBefore,
   Line,
   LineChange,
   LineFields,
@@ -96,7 +96,7 @@ export function without(input: TreatmentViewInput, ids: readonly string[]): Trea
 
 /**
  * Le carnet une fois le réglage écrit, plus récent que tout le carnet (simulation, R12). La date de
- * grille héritée ne se juge qu'à l'écriture (`judgedGridAt`) : la simulation date la grille comme
+ * grille héritée ne se juge qu'à l'écriture (`judgedGrid`) : la simulation date la grille comme
  * une écriture neuve.
  */
 export function settingsApplied(input: TreatmentViewInput, plan: SettingsPlan): TreatmentViewInput {
@@ -121,7 +121,7 @@ function settingWritten(input: TreatmentViewInput, plan: SettingsPlan): Treatmen
 
 /**
  * Le réglage réécrit sur place, daté comme par le repository ; `at` n'est lu que si une date change.
- * Avec le carnet où il s'écrit, sa date de grille se juge comme à l'écriture (`judgedGridAt`).
+ * Avec le carnet où il s'écrit, sa date de grille se juge comme à l'écriture (`judgedGrid`).
  */
 export function rewrittenSetting(
   setting: Setting,
@@ -136,7 +136,7 @@ export function rewrittenSetting(
     setting: fields,
     lines: [...(carnet?.lines ?? [])],
   }
-  const inherited = carnet === undefined ? undefined : judgedGridAt(carnet.input, plan)
+  const inherited = carnet === undefined ? undefined : judgedGrid(carnet.input, plan).writtenAt
   const calendar = rewritesCalendar(setting, next)
   const grid = inherited === undefined && rewritesGrid(setting, next)
   const kept = inherited === undefined ? {} : { gridWrittenAt: inherited }
@@ -149,24 +149,21 @@ export function rewrittenSetting(
   }
 }
 
-const gridDateOf = (setting: Setting) =>
-  setting.gridWrittenAt ?? setting.updatedAt ?? setting.createdAt
-
-const previousOf = (settings: readonly Setting[]) => episodesOf(settings).at(-1)?.at(-1)
+/** La grille d'avant l'ouverture que garde la période écrite, et sa date de grille jugée. */
+export type JudgedGrid = { writtenAt?: string; before: GridBefore | null }
 
 /**
  * La date de grille, jugée par le moteur, que l'écriture de `plan` (réglage et lignes) pose telle
- * quelle : celle de la période remplacée si les jours lus sont ceux de la grille d'avant l'ouverture ;
+ * quelle : celle gardée à l'ouverture si les jours lus sont ceux de la grille d'avant l'ouverture ;
  * pour une réécriture du jour jugée datée, l'ouverture de la période à la place d'une date héritée ;
- * `undefined` : la période date sa grille elle-même. Une réécriture ne se juge que le jour de
+ * `writtenAt` absente : la période date sa grille elle-même. Une réécriture ne se juge que le jour de
  * l'ouverture, contre la grille gardée à l'ouverture.
  */
-export function judgedGridAt(input: TreatmentViewInput, plan: SettingsPlan): string | undefined {
+export function judgedGrid(input: TreatmentViewInput, plan: SettingsPlan): JudgedGrid {
   const changes = plan.lines ?? []
   if (plan.action === 'create') {
-    const gridBefore = gridBeforeOf(input, plan.setting.startsOn)
-    const previous = previousOf(input.settings)
-    if (gridBefore === null || previous === undefined) return undefined
+    const before = gridBeforeOf(input, plan.setting.startsOn)
+    if (before === null) return { before }
     const opening: Setting = {
       ...plan.setting,
       id: 'période-ouverte',
@@ -174,22 +171,22 @@ export function judgedGridAt(input: TreatmentViewInput, plan: SettingsPlan): str
       createdAt: WRITTEN_AT,
     }
     const after = applied({ ...input, settings: [...input.settings, opening] }, changes)
-    return keepsGridBefore(gridBefore, opening, after) ? gridDateOf(previous) : undefined
+    return keepsGridBefore(before, opening, after)
+      ? { writtenAt: before.writtenAt, before }
+      : { before }
   }
   const current = input.settings.find(({ id }) => id === plan.id)
-  const gridBefore = current?.gridBefore ?? null
-  if (current === undefined || gridBefore === null || current.startsOn !== input.today)
-    return undefined
-  const previous = previousOf(input.settings.filter(({ id }) => id !== plan.id))
-  if (previous === undefined) return undefined
+  const before = current?.gridBefore ?? null
+  if (current === undefined || before === null || current.startsOn !== input.today)
+    return { before }
   const next = rewrittenSetting(current, plan.setting, () => WRITTEN_AT)
   const settings = input.settings.map((setting) => (setting.id === plan.id ? next : setting))
-  if (keepsGridBefore(gridBefore, next, applied({ ...input, settings }, changes))) {
-    return gridDateOf(previous)
+  if (keepsGridBefore(before, next, applied({ ...input, settings }, changes))) {
+    return { writtenAt: before.writtenAt, before }
   }
   // Jugée datée : une date héritée plus tôt dans la journée cède la place à l'ouverture de la période.
   const inherited = current.gridWrittenAt !== undefined && current.gridWrittenAt < current.createdAt
-  return inherited ? current.createdAt : undefined
+  return inherited ? { writtenAt: current.createdAt, before } : { before }
 }
 
 const CALENDAR = [

@@ -1,8 +1,7 @@
 import {
   moveBounds,
   newSettings,
-  gridBeforeOf,
-  judgedGridAt,
+  judgedGrid,
   play,
   rewritesCalendar,
   rewritesGrid,
@@ -78,13 +77,14 @@ function writePlan(input: TreatmentViewInput, plan: SettingsPlan, clock: Clock, 
     return { ...input, lines, settings }
   }
   const createdAt = stamp(clock)
+  const grid = judgedGrid(input, plan)
   const created: Setting = {
     ...plan.setting,
     id: `${tag}s${clock.n}`,
     stoppedOn: null,
     createdAt,
-    gridWrittenAt: judgedGridAt(input, plan) ?? createdAt,
-    gridBefore: gridBeforeOf(input, plan.setting.startsOn),
+    gridWrittenAt: grid.writtenAt ?? createdAt,
+    gridBefore: grid.before,
   }
   return { ...input, lines, settings: [...input.settings, created] }
 }

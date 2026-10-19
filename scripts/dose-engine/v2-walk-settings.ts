@@ -1,7 +1,6 @@
 import {
   newSettings,
-  gridBeforeOf,
-  judgedGridAt,
+  judgedGrid,
   rewrittenSetting,
   treatmentView,
   type Frequency,
@@ -42,13 +41,14 @@ export function settingsWritten(walk: SettingsWalk, plan: SettingsPlan): Treatme
     )
     return { ...walk.input, settings: rewritten, lines }
   }
+  const grid = judgedGrid(walk.input, plan)
   const created: Setting = {
     ...plan.setting,
     id: `s${settings.length + 1}`,
     stoppedOn: null,
     createdAt: at,
-    gridWrittenAt: judgedGridAt(walk.input, plan) ?? at,
-    gridBefore: gridBeforeOf(walk.input, plan.setting.startsOn),
+    gridWrittenAt: grid.writtenAt ?? at,
+    gridBefore: grid.before,
   }
   return { ...walk.input, settings: [...settings, created], lines }
 }

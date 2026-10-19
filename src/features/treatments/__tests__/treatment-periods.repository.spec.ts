@@ -214,7 +214,8 @@ describe('treatmentPeriodsRepository', () => {
       const gridBefore = {
         frequency: { value: 1, unit: 'day' as const },
         endsOn: '2026-03-10',
-        runs: [['2026-02-11', null, '2026-02-11'] as const],
+        writtenAt: '2026-02-01T08:00:00.000Z',
+        runs: [['2026-02-11', '2026-03-10'] as const],
       }
       await db.runMany([periods.insertStatement({ ...COMPLETE, gridBefore })])
 
@@ -599,7 +600,8 @@ describe('treatmentPeriodsRepository', () => {
       gridBefore: {
         frequency: { value: 1, unit: 'day' },
         endsOn: '2026-03-10',
-        runs: [['2026-02-11', null, '2026-02-11']],
+        writtenAt: '2026-02-01T08:00:00.000Z',
+        runs: [['2026-02-11', '2026-03-10']],
       },
       createdByDevice: 'appareil-du-fichier',
       updatedByDevice: 'appareil-du-fichier',

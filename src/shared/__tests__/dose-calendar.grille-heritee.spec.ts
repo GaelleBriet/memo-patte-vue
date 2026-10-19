@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  gridBeforeOf,
-  judgedGridAt,
+  judgedGrid,
+  newSettings,
   rewrittenSetting,
   settingsApplied,
   treatmentView,
@@ -11,6 +11,7 @@ import {
   type Setting,
   type SettingFields,
   type SettingsPlan,
+  type SettingsRequest,
   type TreatmentViewInput,
 } from '../domain/dose-calendar'
 import seeds from './fixtures/dose-calendar-grille-heritee-graines.json'
@@ -62,7 +63,7 @@ function inherits(
 ): boolean {
   const opening = { ...hoursOnly, ...change }
   const input = { settings, lines, today: opening.startsOn }
-  return judgedGridAt(input, { action: 'create', setting: opening }) !== undefined
+  return judgedGrid(input, { action: 'create', setting: opening }).writtenAt !== undefined
 }
 
 const shift = (settingId: string, dueOn: string, targetOn: string): Line => ({
@@ -326,7 +327,18 @@ describe('à l’écriture : la simulation date la grille comme une écriture ne
     const plan = { action: 'create', setting: hoursOnly } as const
 
     expect(settingsApplied(input, plan).settings.at(-1)!.gridWrittenAt).toBeUndefined()
-    expect(judgedGridAt(input, plan)).toBe(WRITTEN)
+    expect(judgedGrid(input, plan).writtenAt).toBe(WRITTEN)
+  })
+
+  it('l’ouverture garde la grille d’avant et sa date', () => {
+    const input = { settings: [milo], lines: [], today: '2026-04-01' }
+
+    expect(judgedGrid(input, { action: 'create', setting: hoursOnly }).before).toEqual({
+      frequency: EVERY_3_DAYS,
+      endsOn: null,
+      writtenAt: WRITTEN,
+      runs: [['2026-04-01', null]],
+    })
   })
 
   describe('un réglage ouvert aujourd’hui et réécrit sur place se juge comme une ouverture', () => {
@@ -338,7 +350,10 @@ describe('à l’écriture : la simulation date la grille comme une écriture ne
       times: ['06:00'],
       createdAt: '2026-04-01T06:00:00.000Z',
       gridWrittenAt: '2026-04-01T06:00:00.000Z',
-      gridBefore: gridBeforeOf({ settings: [milo], lines: [], today: '2026-04-01' }, '2026-04-01'),
+      gridBefore: judgedGrid(
+        { settings: [milo], lines: [], today: '2026-04-01' },
+        { action: 'create', setting: hoursOnly },
+      ).before,
     })
     const rewritten = (today: string) =>
       rewrittenSetting(s2, hoursOnly, () => '2026-04-01T06:05:00.000Z', {
@@ -352,6 +367,75 @@ describe('à l’écriture : la simulation date la grille comme une écriture ne
 
     it('un autre jour, la réécriture date la grille', () => {
       expect(rewritten('2026-04-02').gridWrittenAt).toBe('2026-04-01T06:05:00.000Z')
+    })
+  })
+
+  describe('deux téléphones le même jour : la réécriture reprend la date gardée à l’ouverture', () => {
+    // Milo, tous les 3 jours à 20 h depuis le 1er mars, prises du 1er, du 4 et du 7 ; le 10 mars.
+    const p1 = setting('p1', {
+      startsOn: '2026-03-01',
+      createdAt: '2026-03-01T07:00:00.000Z',
+      gridWrittenAt: '2026-03-01T07:00:00.000Z',
+    })
+    const given = ['2026-03-01', '2026-03-04', '2026-03-07'].map((day): Line => ({
+      id: `prise-${day}`,
+      settingId: 'p1',
+      dueOn: day,
+      dueTime: '20:00',
+      status: 'given',
+      givenOn: day,
+      targetOn: null,
+      updatedAt: `${day}T20:00:00.000Z`,
+    }))
+    const base: TreatmentViewInput = { settings: [p1], lines: given, today: '2026-03-10' }
+    const opened = (request: SettingsRequest, id: string, at: string): Setting => {
+      const result = newSettings(base, request)
+      if (!('plan' in result) || result.plan.action !== 'create')
+        throw new Error('pas une ouverture')
+      const grid = judgedGrid(base, result.plan)
+      const { setting: fields } = result.plan
+      return {
+        ...fields,
+        id,
+        stoppedOn: null,
+        createdAt: at,
+        gridWrittenAt: grid.writtenAt ?? at,
+        gridBefore: grid.before,
+      }
+    }
+    const atNine: SettingsRequest = { frequency: EVERY_3_DAYS, times: ['21:00'], endsOn: null }
+    const atTen: SettingsRequest = { frequency: EVERY_3_DAYS, times: ['22:00'], endsOn: null }
+
+    it('A passe à tous les 2 jours à 8 h, B à 21 h à 9 h, puis B à 22 h à 10 h : le 1er mars 7 h', () => {
+      const onA = opened(
+        { frequency: { value: 2, unit: 'day' }, times: ['20:00'], endsOn: null },
+        'p2A',
+        '2026-03-10T08:00:00.000Z',
+      )
+      const onB = opened(atNine, 'p3B', '2026-03-10T09:00:00.000Z')
+      const synced = { ...base, settings: [p1, onA, onB] }
+      const second = newSettings(synced, atTen)
+      if (!('plan' in second) || second.plan.action !== 'rewrite')
+        throw new Error('pas une réécriture')
+      const rewrittenOnB = rewrittenSetting(
+        onB,
+        second.plan.setting,
+        () => '2026-03-10T10:00:00.000Z',
+        {
+          input: synced,
+          lines: second.plan.lines ?? [],
+        },
+      )
+
+      expect(onA.gridWrittenAt).toBe('2026-03-10T08:00:00.000Z')
+      expect(onB.gridWrittenAt).toBe('2026-03-01T07:00:00.000Z')
+      expect(rewrittenOnB.gridWrittenAt).toBe('2026-03-01T07:00:00.000Z')
+    })
+
+    it('le même geste en un seul « Modifier » sur B : la même date', () => {
+      expect(opened(atTen, 'p3B', '2026-03-10T09:00:00.000Z').gridWrittenAt).toBe(
+        '2026-03-01T07:00:00.000Z',
+      )
     })
   })
 })
@@ -369,7 +453,7 @@ describe('graines relevées contre la lecture du moteur', () => {
       const plan = seed.plan as SettingsPlan
       const opened =
         plan.action === 'rewrite' ? input.settings.find(({ id }) => id === plan.id) : undefined
-      const date = judgedGridAt(input, plan)
+      const date = judgedGrid(input, plan).writtenAt
       const verdict = date === undefined || date === opened?.createdAt ? 'datée' : 'hérite'
 
       expect(verdict).toBe(expected)

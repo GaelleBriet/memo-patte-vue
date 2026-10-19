@@ -723,7 +723,8 @@ describe('parseExportFile', () => {
       const grid = {
         frequency: { value: 1, unit: 'day' },
         endsOn: '2026-09-20',
-        runs: [['2026-09-02', null, '2026-09-02']],
+        writtenAt: IMPORT_FIXTURE.treatmentPeriods[1]!.createdAt,
+        runs: [['2026-09-02', '2026-09-20']],
       }
       const kept = withDocument((document) => {
         rows(document, 'treatmentPeriods')[1]!.gridBefore = grid
@@ -731,13 +732,43 @@ describe('parseExportFile', () => {
       const forgedGrid = withDocument((document) => {
         rows(document, 'treatmentPeriods')[1]!.gridBefore = { runs: 'pas une liste' }
       })
+      const missing = withDocument((document) => {
+        delete rows(document, 'treatmentPeriods')[1]!.gridBefore
+      })
 
       const result = parseExportFile(kept, IMPORTEUR)
       const forgedResult = parseExportFile(forgedGrid, IMPORTEUR)
+      const missingResult = parseExportFile(missing, IMPORTEUR)
 
       expect(result.ok && result.file.data.treatmentPeriods[1]!.gridBefore).toEqual(grid)
       expect(forgedResult.ok && forgedResult.file.data.treatmentPeriods[1]!.gridBefore).toBeNull()
+      expect(missingResult.ok && missingResult.file.data.treatmentPeriods[1]!.gridBefore).toBeNull()
     })
+
+    it.each([
+      ['avant la création du traitement', '2000-01-01T00:00:00.000Z', 'createdAt'],
+      ['plus de 24 h après l’export', '2099-01-01T00:00:00.000Z', 'exportedAt'],
+    ] as const)(
+      'écrête la date gardée dans la grille d’avant l’ouverture %s, comme une date de grille',
+      (_, writtenAt, bound) => {
+        const document = JSON.parse(importFixtureJson()) as Document
+        const period = rows(document, 'treatmentPeriods')[1]!
+        period.gridBefore = {
+          frequency: { value: 1, unit: 'day' },
+          endsOn: null,
+          writtenAt,
+          runs: [['2026-09-02', null]],
+        }
+        const treatment = rows(document, 'treatments').find(({ id }) => id === period.treatmentId)
+        const expected = bound === 'createdAt' ? treatment!.createdAt : document.exportedAt
+
+        const result = parseExportFile(JSON.stringify(document), IMPORTEUR)
+
+        expect(result.ok && result.file.data.treatmentPeriods[1]!.gridBefore?.writtenAt).toBe(
+          expected,
+        )
+      },
+    )
 
     it('relit un export v9 sans grille d’avant l’ouverture', () => {
       const v9 = withDocument((document) => {

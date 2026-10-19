@@ -168,18 +168,29 @@ export function fromVersion9(data: Version9Data): ExportData {
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
-/** Date de grille écrêtée entre la création du traitement et l'export plus 24 h, jamais refusée. */
+/**
+ * Dates de grille, celle de la période et celle gardée dans sa grille d'avant l'ouverture, écrêtées
+ * entre la création du traitement et l'export plus 24 h, jamais refusées.
+ */
 export function withGridDatesClamped(data: ExportData, exportedAt: string): ExportData {
   const latest = Date.parse(exportedAt) + DAY_MS
   const createdAt = new Map(data.treatments.map((treatment) => [treatment.id, treatment.createdAt]))
   return {
     ...data,
     treatmentPeriods: data.treatmentPeriods.map((period) => {
-      const at = Date.parse(period.gridWrittenAt)
       const earliest = createdAt.get(period.treatmentId) ?? period.createdAt
-      if (at > latest) return { ...period, gridWrittenAt: exportedAt }
-      if (at < Date.parse(earliest)) return { ...period, gridWrittenAt: earliest }
-      return period
+      const clamped = (written: string) => {
+        const at = Date.parse(written)
+        if (at > latest) return exportedAt
+        return at < Date.parse(earliest) ? earliest : written
+      }
+      const { gridBefore } = period
+      return {
+        ...period,
+        gridWrittenAt: clamped(period.gridWrittenAt),
+        gridBefore:
+          gridBefore === null ? null : { ...gridBefore, writtenAt: clamped(gridBefore.writtenAt) },
+      }
     }),
   }
 }

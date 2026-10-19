@@ -141,17 +141,27 @@ describe('treatmentPeriodsRepository — port de synchronisation', () => {
       JSON.stringify({
         frequency: { value: 1, unit: 'day' },
         endsOn: '2026-01-31',
-        runs: [['2026-01-02', null, '2026-01-02']],
+        writtenAt: '2026-01-01T08:00:00.000Z',
+        runs: [['2026-01-02', '2026-01-31']],
       }),
     ],
     ['une grille illisible se lit vide', '{"runs": "pas une liste"}'],
+    [
+      'une grille aux suites incohérentes se lit vide',
+      JSON.stringify({
+        frequency: { value: 1, unit: 'day' },
+        endsOn: null,
+        writtenAt: '2026-01-01T08:00:00.000Z',
+        runs: [['2026-01-31', '2026-01-02']],
+      }),
+    ],
   ])('reçoit la grille d’avant l’ouverture : %s', async (label, gridBefore) => {
     const remote = remotePeriod({ id: TREATMENT_ID, created_at: T_LOCAL, grid_before: gridBefore })
 
     await db.runMany([repository.applyRemoteRowStatement(remote)])
 
     const [stored] = (await localRow(TREATMENT_ID)) as { grid_before: string | null }[]
-    expect(stored!.grid_before).toBe(label.includes('illisible') ? null : gridBefore)
+    expect(stored!.grid_before).toBe(label.includes('garde') ? gridBefore : null)
   })
 
   it('remplace une période locale par une version distante plus récente, arrêt, suppression, faits, dates d’écriture du réglage et de sa grille compris', async () => {

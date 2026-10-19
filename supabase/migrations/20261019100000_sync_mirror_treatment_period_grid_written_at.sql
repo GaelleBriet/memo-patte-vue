@@ -7,7 +7,7 @@
 set row_security = off;
 
 alter table public.treatment_period add column grid_written_at timestamptz;
--- Sans contrôle : un téléphone qui ne connaît pas encore la colonne doit pouvoir pousser sa ligne.
+-- Sans contrôle : une valeur que l'app lit vide ne doit jamais bloquer la file d'envoi.
 alter table public.treatment_period add column grid_before text;
 
 -- Dernière écriture de la grille seule inconnue : celle des réglages, qui la contient.

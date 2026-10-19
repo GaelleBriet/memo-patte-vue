@@ -40,9 +40,9 @@ export function gridDays(origin: Day, frequency: Frequency, from: Day, to: Day):
 
 /** Les journées de suites régulières, de `from` à `to` inclus. */
 export function runDays(runs: readonly GridRun[], frequency: Frequency, from: Day, to: Day): Day[] {
-  return runs.flatMap(([start, end, origin]) => {
+  return runs.flatMap(([start, end]) => {
     const last = end === null || end > to ? to : end
-    return gridDays(origin, frequency, later(from, start), last)
+    return gridDays(start, frequency, later(from, start), last)
   })
 }
 
