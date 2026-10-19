@@ -9,7 +9,11 @@ import {
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { latestOf } from '@/shared/domain/calendar-day'
 import { sortedTimes } from '@/shared/domain/clock-time'
-import { settingsApplied, type TreatmentView } from '@/shared/domain/dose-calendar'
+import {
+  settingsApplied,
+  type TreatmentView,
+  type TreatmentViewInput,
+} from '@/shared/domain/dose-calendar'
 import { readCarnet, readTreatment } from '@/shared/domain/treatment-reading'
 
 export type PlanIds = { periodId: string; newId: () => string }
@@ -99,23 +103,14 @@ export function changesSchedule(period: TreatmentPeriodRecord, rhythm: Treatment
   )
 }
 
-export const DRAFT_ID = 'draft'
+const DRAFT_ID = 'draft'
 
-export function draftPeriod(settings: TreatmentPeriodSettings, at: string): TreatmentPeriodRecord {
-  return {
-    ...settings,
-    gridOriginOn: settings.firstDueOn,
-    firstDueChosen: true,
-    fallenDosesAnswer: 'unasked',
-    id: DRAFT_ID,
-    treatmentId: DRAFT_ID,
-    animalId: DRAFT_ID,
-    stoppedOn: null,
-    createdAt: at,
-    updatedAt: at,
-    settingsWrittenAt: at,
-    deletedAt: null,
-  }
+/** Le carnet du moteur une fois ouverte la période de `settings`. */
+export function openedCarnet(
+  input: TreatmentViewInput,
+  settings: TreatmentPeriodSettings,
+): TreatmentViewInput {
+  return settingsApplied(input, settingsPlanOf(openingOf(settings, DRAFT_ID)))
 }
 
 // Une première prise trop ancienne pour le rythme donnerait un calendrier que le moteur refuse de lire.
@@ -126,9 +121,7 @@ export function startsTooFarBack(
 ): boolean {
   if (!treatmentPeriodSettingsSchema.safeParse(settings).success) return false
   const reading = readTreatment(treatment, today)
-  if (reading === null) return true
-  const opening = settingsPlanOf(openingOf(settings, DRAFT_ID))
-  return readCarnet(settingsApplied(reading.input, opening)) === null
+  return reading === null || readCarnet(openedCarnet(reading.input, settings)) === null
 }
 
 export function tooOld() {
