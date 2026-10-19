@@ -5,8 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vite
 import TreatmentsSection from '../views/TreatmentsSection.vue'
 import ListRowIcon from '@/shared/components/ListRowIcon.vue'
 import type { TreatmentsRepository } from '../repository/treatments.repository'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import { provideTreatmentsRepository } from '../store/treatments.store'
 import { fakeTreatmentsRepository } from './fake-treatments-repository'
@@ -20,9 +20,9 @@ const LUNA = '33333333-3333-4333-8333-333333333333'
 const TODAY = '2026-09-09'
 const NBSP = /\u00a0/g
 
-type Overrides = Partial<Pick<TreatmentWithHistory, 'animalId' | 'name' | 'type'>> & {
+type Overrides = Partial<Pick<TreatmentWithPeriods, 'animalId' | 'name' | 'type'>> & {
   period?: Partial<TreatmentPeriodRecord>
-  doses?: NewTreatmentDose[]
+  doses?: TreatmentDose[]
 }
 
 /** Trimestriel sans prise, première dose le 24 sept. : à venir le 9 sept. */
@@ -32,7 +32,7 @@ function treatment({
   type = 'antiparasitic',
   period: settings = {},
   doses = [],
-}: Overrides = {}): TreatmentWithHistory {
+}: Overrides = {}): TreatmentWithPeriods {
   const id = crypto.randomUUID()
   return {
     id,
@@ -67,16 +67,16 @@ const QUOTIDIEN = {
 } as const
 const DEUX_PRISES = [dose('2026-09-01', '2026-09-02'), dose('2026-09-02', '2026-09-03')]
 
-let treatments: TreatmentWithHistory[]
-let list: Mock<TreatmentsRepository['listWithHistoryByAnimal']>
+let treatments: TreatmentWithPeriods[]
+let list: Mock<TreatmentsRepository['listWithPeriodsByAnimal']>
 
 beforeEach(async () => {
   setActivePinia(createPinia())
   treatments = []
-  list = vi.fn<TreatmentsRepository['listWithHistoryByAnimal']>(async (animalId) =>
+  list = vi.fn<TreatmentsRepository['listWithPeriodsByAnimal']>(async (animalId) =>
     treatments.filter((item) => item.animalId === animalId),
   )
-  const repository = fakeTreatmentsRepository({ listWithHistoryByAnimal: list })
+  const repository = fakeTreatmentsRepository({ listWithPeriodsByAnimal: list })
   provideTreatmentsRepository(() => repository)
   await router.push({ name: 'carnet' })
 })

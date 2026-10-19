@@ -13,21 +13,23 @@ import {
   currentPeriod,
   lastNotedDueOn,
   rhythmOf,
+  settingsOf,
 } from './treatment-settings'
+import { correctionOf, settingsPlanOf } from './treatment-settings-writes'
 import type { PastDuesChoice, TreatmentRhythm } from '../schema/treatment-form.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { isCalendarDay } from '@/shared/domain/calendar-day'
 import { sortedTimes } from '@/shared/domain/clock-time'
 import {
   chosenDateRefusal,
   newSettings,
+  settingsApplied,
   type Day,
   type Refusal,
   type SettingsPlan,
   type SettingsRequest,
   type SettingsResult,
-  type TreatmentViewInput,
 } from '@/shared/domain/dose-calendar'
 import type { TreatmentReading } from '@/shared/domain/treatment-reading'
 
@@ -75,7 +77,7 @@ const refusalOf = (answer: ReturnType<typeof answerOf>): Refusal | null =>
 // Q29 : la première dose calculée à partir de la dernière prise, avant d'être ramenée à aujourd'hui.
 function calculatedOn(
   { input }: TreatmentReading,
-  treatment: TreatmentWithHistory,
+  treatment: TreatmentWithPeriods,
   rhythm: TreatmentRhythm,
 ): Day | null {
   const lastNotedOn = lastNotedDueOn(treatment)
@@ -92,7 +94,7 @@ function calculatedOn(
 
 function helpOf(
   reading: TreatmentReading,
-  treatment: TreatmentWithHistory,
+  treatment: TreatmentWithPeriods,
   period: TreatmentPeriodRecord,
   rhythm: TreatmentRhythm,
   proposedOn: Day,
@@ -131,17 +133,6 @@ function unchanged(period: TreatmentPeriodRecord, change: Answered['change']): A
   }
 }
 
-const withEndsOn = (
-  input: TreatmentViewInput,
-  settingId: string,
-  endsOn: Day | null,
-): TreatmentViewInput => ({
-  ...input,
-  settings: input.settings.map((setting) =>
-    setting.id === settingId ? { ...setting, endsOn } : setting,
-  ),
-})
-
 /** La lecture sur laquelle la dose du moment se déplace : celle avec la date de fin saisie, sauf quand elle ferait sortir le report en vigueur (Q30). */
 function movingReading(
   reading: TreatmentReading,
@@ -149,7 +140,8 @@ function movingReading(
   endsOn: Day | null,
 ): TreatmentReading {
   if (endsOn === period.endsOn) return reading
-  const corrected = carnetReadingOf(withEndsOn(reading.input, period.id, endsOn))
+  const correction = settingsPlanOf(correctionOf(period, { ...settingsOf(period), endsOn }))
+  const corrected = carnetReadingOf(settingsApplied(reading.input, correction))
   const keptDue = reading.view.currentDoses[0]
   const correctedDue = corrected.view.currentDoses[0]
   const holdsReport =
@@ -166,7 +158,7 @@ function lockedBy(period: TreatmentPeriodRecord, reading: TreatmentReading): boo
  * le moteur ; la date saisie ne compte que si elle diffère de celle proposée.
  */
 export function resolve(
-  treatment: TreatmentWithHistory,
+  treatment: TreatmentWithPeriods,
   rhythm: TreatmentRhythm | null,
   choice: NextDoseChoice,
   today: Day,

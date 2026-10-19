@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { dose, missed, period, plain, treatment } from './treatment-fixtures'
 import { treatmentHistory } from '../logic/treatment-history'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import { applyLocale } from '@/core/i18n'
 import i18n from '@/core/i18n'
 
@@ -22,7 +22,7 @@ function folded(entries: Entry[], times: string[]) {
         firstDueOn: '2026-03-01',
       }),
     ],
-    entries.map(([day, time, status]): NewTreatmentDose => {
+    entries.map(([day, time, status]): TreatmentDose => {
       const on = `2026-03-${String(day).padStart(2, '0')}`
       return (status === 'g' ? dose : missed)(on, on, { dueTime: time, id: `${on} ${time}` })
     }),

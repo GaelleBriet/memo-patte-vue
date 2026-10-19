@@ -1,6 +1,5 @@
 import { z } from 'zod'
 
-import type { TreatmentFrequency } from './treatment.schema'
 import { CLOCK_TIME_PATTERN } from '@/shared/domain/clock-time'
 
 export const DOSE_STATUSES = ['given', 'missed', 'postponed', 'extra', 'shift', 'not-due'] as const
@@ -22,17 +21,14 @@ export const treatmentDoseSchema = z.object({
   deletedAt: z.iso.datetime().nullable(),
 })
 
-/** Ce qu'une prise écrit en base. */
-export type NewTreatmentDose = z.output<typeof treatmentDoseSchema>
+/** Une prise, lue telle qu'écrite. */
+export type TreatmentDose = z.output<typeof treatmentDoseSchema>
 
-/** Une prise lue, avec la fréquence de sa période. */
-export type TreatmentDose = NewTreatmentDose & { frequency: TreatmentFrequency }
-
-export type DoseOwner = Pick<NewTreatmentDose, 'id' | 'treatmentId' | 'animalId'>
+export type DoseOwner = Pick<TreatmentDose, 'id' | 'treatmentId' | 'animalId'>
 
 /** Ce qu'une écriture pose sur une ligne ; son traitement et son animal ne changent jamais. */
 export type DoseFields = Pick<
-  NewTreatmentDose,
+  TreatmentDose,
   'periodId' | 'dueOn' | 'dueTime' | 'givenOn' | 'status' | 'targetOn'
 >
 

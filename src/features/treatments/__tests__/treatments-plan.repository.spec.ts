@@ -100,7 +100,7 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
         updatedAt: T0,
         deletedAt: null,
       })
-      await expect(repository.getWithHistory(PANACUR)).resolves.toMatchObject({
+      await expect(repository.getWithPeriods(PANACUR)).resolves.toMatchObject({
         periods: [
           {
             id: PANACUR,
@@ -150,9 +150,9 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
       })
 
       expect(runMany).toHaveBeenCalledOnce()
-      const history = await repository.getWithHistory(PANACUR)
-      expect(history?.doses.map(({ id }) => id).sort()).toEqual([SECONDE, REPORT])
-      expect(history?.doses).toMatchObject([
+      const treatment = await repository.getWithPeriods(PANACUR)
+      expect(treatment?.doses.map(({ id }) => id).sort()).toEqual([SECONDE, REPORT])
+      expect(treatment?.doses).toMatchObject([
         { treatmentId: PANACUR, animalId: MIETTE, periodId: PANACUR },
         { treatmentId: PANACUR, animalId: MIETTE, periodId: PANACUR },
       ])
@@ -262,7 +262,7 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
         },
       })
 
-      await expect(repository.getWithHistory(PANACUR)).resolves.toMatchObject({
+      await expect(repository.getWithPeriods(PANACUR)).resolves.toMatchObject({
         periods: [{ id: PANACUR, ...settings, updatedAt: T1 }],
       })
       await expect(stamps()).resolves.toEqual({ treatment: T0, periods: [T1] })
@@ -294,7 +294,7 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
         periodId: SECONDE,
         frequency: { value: 2, unit: 'day' },
       })
-      await expect(repository.getWithHistory(PANACUR)).resolves.toMatchObject({
+      await expect(repository.getWithPeriods(PANACUR)).resolves.toMatchObject({
         periods: [
           { id: PANACUR, ...REGLAGES, updatedAt: T0 },
           {
@@ -328,7 +328,7 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
         ...RIEN,
         doses: [{ action: 'create', id: REPORT, dose: LIGNE }],
       })
-      await expect(repository.getWithHistory(PANACUR)).resolves.toMatchObject({
+      await expect(repository.getWithPeriods(PANACUR)).resolves.toMatchObject({
         doses: [{ id: REPORT, treatmentId: PANACUR, animalId: MIETTE, ...LIGNE, createdAt: T1 }],
       })
 
@@ -336,12 +336,12 @@ describe('treatmentsRepository — créer et écrire un plan', () => {
         ...RIEN,
         doses: [{ action: 'rewrite', id: REPORT, dose: { ...LIGNE, targetOn: null } }],
       })
-      await expect(repository.getWithHistory(PANACUR)).resolves.toMatchObject({
+      await expect(repository.getWithPeriods(PANACUR)).resolves.toMatchObject({
         doses: [{ id: REPORT, targetOn: null }],
       })
 
       await repository.applyPlan(PANACUR, { ...RIEN, doses: [{ action: 'delete', id: REPORT }] })
-      await expect(repository.getWithHistory(PANACUR)).resolves.toMatchObject({ doses: [] })
+      await expect(repository.getWithPeriods(PANACUR)).resolves.toMatchObject({ doses: [] })
     })
 
     it('n’écrit ni le nom, ni la période, ni la ligne quand une des écritures échoue', async () => {

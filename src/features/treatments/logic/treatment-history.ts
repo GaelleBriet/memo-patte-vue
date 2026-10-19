@@ -10,9 +10,9 @@ import {
   type HistoryLine,
   type RowContext,
 } from './treatment-history-rows'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { byStartDescending, periodLastDay } from '@/shared/domain/treatment-periods'
 import { historyEntries, type TreatmentReading } from '@/shared/domain/treatment-reading'
 import { formatLongDate, formatDayMonthOrYear } from '@/shared/utils/format'
@@ -43,7 +43,7 @@ export type TreatmentHistory = {
 
 type Period = TreatmentPeriodRecord
 
-const FAMILY_RANK: Record<NewTreatmentDose['status'], number> = {
+const FAMILY_RANK: Record<TreatmentDose['status'], number> = {
   postponed: 0,
   given: 1,
   missed: 1,
@@ -163,13 +163,13 @@ function notesIn(lines: HistoryLine[]): number {
   )
 }
 
-function lastPlannedDoseGiven(entries: Entry[]): NewTreatmentDose | undefined {
-  const rank = ({ givenOn, dueOn, dueTime }: NewTreatmentDose) =>
+function lastPlannedDoseGiven(entries: Entry[]): TreatmentDose | undefined {
+  const rank = ({ givenOn, dueOn, dueTime }: TreatmentDose) =>
     `${givenOn ?? ''} ${dueOn} ${dueTime ?? ''}`
   return entries
     .filter(({ dose, idle }) => !idle && dose.status === 'given')
     .map(({ dose }) => dose)
-    .reduce<NewTreatmentDose | undefined>(
+    .reduce<TreatmentDose | undefined>(
       (last, dose) => (last === undefined || rank(dose) >= rank(last) ? dose : last),
       undefined,
     )
@@ -177,7 +177,7 @@ function lastPlannedDoseGiven(entries: Entry[]): NewTreatmentDose | undefined {
 
 // R12 : chaque ligne du traitement, lue avec son effet sur le calendrier.
 function entriesOf(
-  treatment: Pick<TreatmentWithHistory, 'doses'>,
+  treatment: Pick<TreatmentWithPeriods, 'doses'>,
   { view }: TreatmentReading,
 ): Entry[] {
   const records = new Map(treatment.doses.map((dose) => [dose.id, dose]))
@@ -189,7 +189,7 @@ function entriesOf(
 
 export function treatmentHistory(
   t: Translate,
-  treatment: Pick<TreatmentWithHistory, 'periods' | 'doses'>,
+  treatment: Pick<TreatmentWithPeriods, 'periods' | 'doses'>,
   reading: TreatmentReading,
   today: string,
 ): TreatmentHistory {

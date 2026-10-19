@@ -10,13 +10,18 @@ import {
   withRhythm,
   type PlanIds,
 } from './treatment-settings'
+import { openingOf } from './treatment-settings-writes'
 import type { TreatmentPlanWrite } from '../schema/treatment-plan.schema'
 import {
   treatmentResumptionSchema,
   type TreatmentResumptionInput,
+  type TreatmentRhythm,
 } from '../schema/treatment-form.schema'
-import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type {
+  TreatmentPeriodRecord,
+  TreatmentPeriodSettings,
+} from '../schema/treatment-period.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { isCalendarDay, latestOf, nextDay } from '@/shared/domain/calendar-day'
 import type { Phase } from '@/shared/domain/dose-calendar'
 
@@ -39,7 +44,7 @@ export type ResumptionDraft = {
 // prises même notées en avance, ou au lendemain de la date de fin et de la dernière prise notée
 // d'une période finie.
 function resumptionEarliestOn(
-  treatment: TreatmentWithHistory,
+  treatment: TreatmentWithPeriods,
   period: TreatmentPeriodRecord,
 ): string {
   if (period.stoppedOn !== null)
@@ -52,7 +57,7 @@ export function isResumablePhase(phase: Phase): boolean {
   return phase === 'stopped' || phase === 'ended'
 }
 
-export function resumptionDraft(treatment: TreatmentWithHistory, today: string): ResumptionDraft {
+export function resumptionDraft(treatment: TreatmentWithPeriods, today: string): ResumptionDraft {
   const { view } = treatmentReadingOf(treatment, today)
   const period = currentPeriod(treatment, view)
   const durationDays =
@@ -73,20 +78,25 @@ export function resumptionDraft(treatment: TreatmentWithHistory, today: string):
   }
 }
 
+function resumedSettings(
+  period: TreatmentPeriodRecord,
+  { firstDoseOn, ...rhythm }: TreatmentRhythm & { firstDoseOn: string },
+  today: string,
+): TreatmentPeriodSettings {
+  return withRhythm({ ...settingsOf(period), startsOn: today, firstDueOn: firstDoseOn }, rhythm)
+}
+
 /** Le schéma de « Reprendre », la première prise après la dernière période. */
-export function treatmentResumptionSchemaFor(treatment: TreatmentWithHistory, today: string) {
+export function treatmentResumptionSchemaFor(treatment: TreatmentWithPeriods, today: string) {
   const { period, earliestOn } = resumptionDraft(treatment, today)
   return treatmentResumptionSchema
     .refine(({ firstDoseOn }) => firstDoseOn >= earliestOn, {
       path: ['firstDoseOn'],
       message: 'tooEarly',
     })
-    .superRefine(({ firstDoseOn, ...rhythm }, context) => {
-      const settings = withRhythm(
-        { ...settingsOf(period), startsOn: today, firstDueOn: firstDoseOn },
-        rhythm,
-      )
-      if (firstDoseOn >= earliestOn && startsTooFarBack(treatment, settings, today)) {
+    .superRefine((data, context) => {
+      const settings = resumedSettings(period, data, today)
+      if (data.firstDoseOn >= earliestOn && startsTooFarBack(treatment, settings, today)) {
         context.addIssue(tooOld())
       }
     })
@@ -94,27 +104,14 @@ export function treatmentResumptionSchemaFor(treatment: TreatmentWithHistory, to
 
 /** Lève pour un traitement en cours ou une saisie refusée ; la période précédente n'est jamais touchée. */
 export function resumptionPlan(
-  treatment: TreatmentWithHistory,
+  treatment: TreatmentWithPeriods,
   input: TreatmentResumptionInput,
   today: string,
   ids: PlanIds,
 ): TreatmentPlanWrite {
   const { period, canResume } = resumptionDraft(treatment, today)
   if (!canResume) throw new Error(`Traitement en cours, rien à reprendre : ${treatment.id}`)
-  const { firstDoseOn, ...rhythm } = treatmentResumptionSchemaFor(treatment, today).parse(input)
-  return {
-    treatment: null,
-    period: {
-      action: 'open',
-      id: ids.periodId,
-      settings: withRhythm(
-        { ...settingsOf(period), startsOn: today, firstDueOn: firstDoseOn },
-        rhythm,
-      ),
-      gridOriginOn: firstDoseOn,
-      firstDueChosen: true,
-      fallenDosesAnswer: 'unasked',
-    },
-    doses: [],
-  }
+  const data = treatmentResumptionSchemaFor(treatment, today).parse(input)
+  const settings = resumedSettings(period, data, today)
+  return { treatment: null, period: openingOf(settings, ids.periodId), doses: [] }
 }

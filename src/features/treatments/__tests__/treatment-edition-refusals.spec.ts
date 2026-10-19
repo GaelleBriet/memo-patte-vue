@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest'
 
 import { treatmentEditionSchemaFor } from '../logic/treatment-edition-checks'
 import { editionDraft } from '../logic/treatment-edition-draft'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentEditionInput } from '../schema/treatment-form.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { legacyFactsOf } from '@/shared/domain/dose-calendar'
 
 const MILO = '11111111-1111-4111-8111-111111111111'
@@ -47,7 +47,7 @@ function period(overrides: Partial<TreatmentPeriodRecord>): TreatmentPeriodRecor
   }
 }
 
-function dose(overrides: Partial<NewTreatmentDose>): NewTreatmentDose {
+function dose(overrides: Partial<TreatmentDose>): TreatmentDose {
   const createdAt = at()
   return {
     id: `d-${stamp}`,
@@ -66,7 +66,7 @@ function dose(overrides: Partial<NewTreatmentDose>): NewTreatmentDose {
   }
 }
 
-function treatment(periods: TreatmentPeriodRecord[], doses: NewTreatmentDose[]) {
+function treatment(periods: TreatmentPeriodRecord[], doses: TreatmentDose[]) {
   return {
     id: TREATMENT,
     animalId: MILO,
@@ -76,17 +76,17 @@ function treatment(periods: TreatmentPeriodRecord[], doses: NewTreatmentDose[]) 
     updatedAt: at(),
     periods,
     doses,
-  } satisfies TreatmentWithHistory
+  } satisfies TreatmentWithPeriods
 }
 
 function saisie(
-  history: TreatmentWithHistory,
+  withPeriods: TreatmentWithPeriods,
   changes: Partial<TreatmentEditionInput>,
 ): TreatmentEditionInput {
-  const current = history.periods.at(-1)!
+  const current = withPeriods.periods.at(-1)!
   return {
-    name: history.name,
-    type: history.type,
+    name: withPeriods.name,
+    type: withPeriods.type,
     frequency: current.frequency,
     times: current.times,
     doseQuantity: current.doseQuantity,
@@ -97,15 +97,19 @@ function saisie(
   }
 }
 
-function refusedFields(history: TreatmentWithHistory, input: TreatmentEditionInput, today: string) {
-  const result = treatmentEditionSchemaFor(history, today).safeParse(input)
+function refusedFields(
+  withPeriods: TreatmentWithPeriods,
+  input: TreatmentEditionInput,
+  today: string,
+) {
+  const result = treatmentEditionSchemaFor(withPeriods, today).safeParse(input)
   return result.success
     ? []
     : result.error.issues.map((issue) => `${String(issue.path[0])}:${issue.message}`)
 }
 
 describe('#806, Q38 : « Elles n’étaient pas à donner » refusé quand il ne laisse plus aucune dose avant la date de fin (décision du 2026-10-13)', () => {
-  const history = treatment(
+  const withPeriods = treatment(
     [
       period({ times: THREE_TIMES, endsOn: '2026-04-06' }),
       period({
@@ -123,20 +127,24 @@ describe('#806, Q38 : « Elles n’étaient pas à donner » refusé quand il ne
       dose({ dueOn: '2026-03-16', dueTime: '08:00', givenOn: '2026-03-16' }),
     ],
   )
-  const back = saisie(history, { times: THREE_TIMES, endsOn: '2026-03-25' })
+  const back = saisie(withPeriods, { times: THREE_TIMES, endsOn: '2026-03-25' })
 
   it('chaque jour à 8, 14 et 20 h, fin le 6 avr. ; le 17 mars, 14 h reportée au 5 avr. avec décalage, puis 6, 12, 18 et 23 h ; le 18, retour à 8, 14 et 20 h, fin le 25 : la question n’annonce aucune date pour « pas à donner », le champ montre le 17', () => {
-    const draft = editionDraft(history, back, '2026-03-18')
+    const draft = editionDraft(withPeriods, back, '2026-03-18')
     expect(draft.pastDuesNextDose).toEqual({ keep: '2026-03-17', drop: null })
     expect(draft.nextDose).toMatchObject({ proposedOn: '2026-03-17' })
   })
 
   it('même carnet, « Elles n’étaient pas à donner » : refusé avec le texte de #787 ; « Elles restent à renseigner » : accepté', () => {
-    expect(refusedFields(history, { ...back, pastDues: 'drop' }, '2026-03-18')).toEqual([
+    expect(refusedFields(withPeriods, { ...back, pastDues: 'drop' }, '2026-03-18')).toEqual([
       'nextDoseOn:noDoseBeforeEnd',
     ])
     expect(
-      refusedFields(history, { ...back, pastDues: 'keep', nextDoseOn: '2026-03-17' }, '2026-03-18'),
+      refusedFields(
+        withPeriods,
+        { ...back, pastDues: 'keep', nextDoseOn: '2026-03-17' },
+        '2026-03-18',
+      ),
     ).toEqual([])
   })
 })
@@ -146,13 +154,13 @@ describe('#811, Q26 : une dose notée plus loin que le jour de la modification g
   const given = ['02', '04', '06', '08', '10'].map((day) =>
     dose({ dueOn: `2026-10-${day}`, givenOn: `2026-10-${day}` }),
   )
-  const history = treatment(
+  const withPeriods = treatment(
     [metacam],
     [...given, dose({ dueOn: '2026-10-12', givenOn: '2026-10-11' })],
   )
 
   it('tous les 2 jours, doses du 2 au 10 données, celle du 12 donnée d’avance le 11 ; le 11, posologie : le 14 proposé, champ grisé', () => {
-    const draft = editionDraft(history, saisie(history, { doseQuantity: 2 }), '2026-10-11')
+    const draft = editionDraft(withPeriods, saisie(withPeriods, { doseQuantity: 2 }), '2026-10-11')
     expect(draft.nextDose).toMatchObject({
       proposedOn: '2026-10-14',
       refusal: { reason: 'later-dose' },
@@ -163,15 +171,15 @@ describe('#811, Q26 : une dose notée plus loin que le jour de la modification g
   it('même carnet, posologie seule à la date proposée : acceptée ; « Prochaine dose » le 13 : refusée', () => {
     expect(
       refusedFields(
-        history,
-        saisie(history, { doseQuantity: 2, nextDoseOn: '2026-10-14' }),
+        withPeriods,
+        saisie(withPeriods, { doseQuantity: 2, nextDoseOn: '2026-10-14' }),
         '2026-10-11',
       ),
     ).toEqual([])
     expect(
       refusedFields(
-        history,
-        saisie(history, { doseQuantity: 2, nextDoseOn: '2026-10-13' }),
+        withPeriods,
+        saisie(withPeriods, { doseQuantity: 2, nextDoseOn: '2026-10-13' }),
         '2026-10-11',
       ),
     ).toEqual(['nextDoseOn:refused'])

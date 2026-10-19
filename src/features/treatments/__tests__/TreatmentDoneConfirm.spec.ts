@@ -32,15 +32,15 @@ const DUE_16 = { settingId: 'p-1', dueOn: '2026-10-16', dueTime: null }
 const TODAY = '2026-10-19'
 
 async function ouvrir(endsOn: string | null = null) {
-  const history = treatment([{ ...VENDREDI, endsOn }], [dose('2026-10-09', '2026-10-16')])
+  const withPeriods = treatment([{ ...VENDREDI, endsOn }], [dose('2026-10-09', '2026-10-16')])
   const wrapper = mount(TreatmentDoneConfirm, {
     props: {
       modelValue: false,
       name: 'Milbemax',
       animal: 'Pixel',
       icon: 'ms:medication',
-      treatment: history,
-      reading: treatmentReadingOf(history, TODAY),
+      treatment: withPeriods,
+      reading: treatmentReadingOf(withPeriods, TODAY),
       today: TODAY,
       due: DUE_16,
     },

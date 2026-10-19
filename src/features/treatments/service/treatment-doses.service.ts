@@ -29,9 +29,9 @@ import {
 import type { DoseWrite } from '../schema/treatment-dose.schema'
 import {
   getTreatmentsRepository,
-  type TreatmentWithHistoryReader,
+  type TreatmentWithPeriodsReader,
 } from '../repository/treatments.repository'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import {
   treatmentRemindersService,
   type TreatmentRemindersService,
@@ -40,7 +40,7 @@ import {
 type Provider<T> = () => T | Promise<T>
 
 export type TreatmentDosesDependencies = {
-  treatments: Provider<TreatmentWithHistoryReader>
+  treatments: Provider<TreatmentWithPeriodsReader>
   doses: Provider<TreatmentDoseWriter>
   reminders: Pick<TreatmentRemindersService, 'reschedule'>
   now: () => Date
@@ -86,14 +86,14 @@ export function createTreatmentDosesService({
     return inverse
   }
 
-  async function treatmentOf(treatmentId: string): Promise<TreatmentWithHistory> {
-    const treatment = await (await treatments()).getWithHistory(treatmentId)
+  async function treatmentOf(treatmentId: string): Promise<TreatmentWithPeriods> {
+    const treatment = await (await treatments()).getWithPeriods(treatmentId)
     if (treatment === null) throw new Error(`Traitement introuvable : ${treatmentId}`)
     return treatment
   }
 
   // Seule une période close ou à date de fin peut se terminer : les autres ne sont pas relues.
-  async function finishedBy(before: TreatmentWithHistory, view: TreatmentView): Promise<boolean> {
+  async function finishedBy(before: TreatmentWithPeriods, view: TreatmentView): Promise<boolean> {
     const current = currentPeriodOf(before, view)
     if (view.finished || (current?.endsOn ?? current?.stoppedOn ?? null) === null) return false
     return readableReadingOf(await treatmentOf(before.id), today())?.view.finished ?? false
@@ -114,7 +114,7 @@ export function createTreatmentDosesService({
   }
 
   async function run(
-    treatment: TreatmentWithHistory,
+    treatment: TreatmentWithPeriods,
     reading: TreatmentReading,
     action: DoseAction,
   ): Promise<AppliedDoseChange> {

@@ -5,7 +5,7 @@ import { treatmentReadingOf } from './treatment-reading-adapter'
 import { lastNotedDueOn } from './treatment-settings'
 import { treatmentEditionSchema } from '../schema/treatment-form.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import {
   applied,
   treatmentView,
@@ -84,7 +84,7 @@ function refusalIssue(
 }
 
 function endsOnIssue(
-  treatment: TreatmentWithHistory,
+  treatment: TreatmentWithPeriods,
   period: TreatmentPeriodRecord,
   endsOn: string,
   today: string,
@@ -114,7 +114,7 @@ function answersShown(dues: readonly Due[], { pastDuesShown }: Edition): boolean
   return JSON.stringify([...keys].sort()) === JSON.stringify([...pastDuesShown].sort())
 }
 
-function editionIssues(treatment: TreatmentWithHistory, data: Edition, today: string): DateIssue[] {
+function editionIssues(treatment: TreatmentWithPeriods, data: Edition, today: string): DateIssue[] {
   const { period, change, plan, move, refusal, pastDues } = resolve(
     treatment,
     data,
@@ -138,7 +138,7 @@ export const pastDuesAskedAgain = (error: unknown): boolean =>
   error.issues.some(({ path, message }) => path[0] === 'pastDues' && message === 'required')
 
 /** Le schéma de « Modifier » avec ses bornes de dates, celles du moteur pour « Prochaine dose ». */
-export function treatmentEditionSchemaFor(treatment: TreatmentWithHistory, today: string) {
+export function treatmentEditionSchemaFor(treatment: TreatmentWithPeriods, today: string) {
   return treatmentEditionSchema.superRefine((data, context) => {
     for (const { path, message } of editionIssues(treatment, data, today)) {
       context.addIssue({ code: 'custom', path: [path], message })

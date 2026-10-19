@@ -10,7 +10,7 @@ import {
   type ShiftHelp,
 } from './treatment-shift-help'
 import { revealedDues, revealedDuesText } from './treatment-revealed-dues'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import {
   applied,
   moveBounds,
@@ -44,7 +44,7 @@ export type ShiftBoxView = {
 const REFUSAL_WINDOW_DAYS = 62
 
 type Line = Pick<
-  NewTreatmentDose,
+  TreatmentDose,
   'id' | 'periodId' | 'dueOn' | 'dueTime' | 'givenOn' | 'status' | 'targetOn'
 >
 

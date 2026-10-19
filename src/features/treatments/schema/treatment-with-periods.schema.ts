@@ -1,4 +1,4 @@
-import type { NewTreatmentDose } from './treatment-dose.schema'
+import type { TreatmentDose } from './treatment-dose.schema'
 import type { TreatmentPeriodRecord } from './treatment-period.schema'
 import type { Treatment } from './treatment.schema'
 
@@ -12,7 +12,7 @@ export type TreatmentRecord = Pick<
  * Ce que le moteur d'échéances lit : toutes les périodes, de la première à la dernière, et les prises
  * visibles ; `createdByDevice` présent à la lecture de la base, absent des jeux de test.
  */
-export type TreatmentWithHistory = TreatmentRecord & {
+export type TreatmentWithPeriods = TreatmentRecord & {
   periods: TreatmentPeriodRecord[]
-  doses: (NewTreatmentDose & { createdByDevice?: string })[]
+  doses: (TreatmentDose & { createdByDevice?: string })[]
 }

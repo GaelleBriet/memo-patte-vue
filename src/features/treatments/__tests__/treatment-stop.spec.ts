@@ -3,12 +3,12 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { dose, period, plain, treatment } from './treatment-fixtures'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
 import { stopDues, stopPrompt, stoppedText } from '../logic/treatment-stop'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const t = i18n.global.t
 
-function prompt(book: TreatmentWithHistory, today: string) {
+function prompt(book: TreatmentWithPeriods, today: string) {
   return plain(stopPrompt(t, book, treatmentReadingOf(book, today).view, today))
 }
 

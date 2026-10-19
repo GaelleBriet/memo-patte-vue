@@ -36,8 +36,8 @@ describe('renseigner les doses non renseignées (TR-17)', () => {
   }
 
   async function schedule() {
-    const history = await treatments.getWithHistory(PANACUR)
-    return treatmentReadingOf(history!, TODAY).view
+    const treatment = await treatments.getWithPeriods(PANACUR)
+    return treatmentReadingOf(treatment!, TODAY).view
   }
 
   function statuses() {

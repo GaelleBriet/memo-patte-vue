@@ -2,8 +2,8 @@ import { logTexts, noteTexts } from './treatment-dose-texts'
 import type { DoseAction, DoseChange } from './treatment-dose-change'
 import { moveTexts, redateTexts, removeTexts } from './treatment-line-texts'
 import type { RevealedDues } from './treatment-revealed-dues'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { Due } from '@/shared/domain/dose-calendar'
 import { isSeveralTimesADay } from '@/shared/domain/treatment-periods'
 import { formatClockTime, formatDayMonthOrYear } from '@/shared/utils/format'
@@ -33,12 +33,12 @@ export type DoseActionTexts = {
 }
 
 export type DueDay = Pick<Due, 'dueOn' | 'dueTime'> & {
-  status?: NewTreatmentDose['status']
+  status?: TreatmentDose['status']
   createdAt?: string
 }
 
 export function hasSeveralTimes(
-  treatment: Pick<TreatmentWithHistory, 'periods'>,
+  treatment: Pick<TreatmentWithPeriods, 'periods'>,
   periodId: string,
 ): boolean {
   const period = treatment.periods.find(({ id }) => id === periodId)

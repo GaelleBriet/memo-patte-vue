@@ -5,7 +5,7 @@ import { lastIntake, treatmentPeriods, type PdfTreatmentPeriod } from './pdf-tre
 import { treatmentStates, type TreatmentOutlook } from '@/shared/domain/treatment-outlook'
 import { buildReminders, type ReminderKind } from '@/shared/domain/reminders'
 import type { ExportData } from '@/shared/domain/carnet-data'
-import { vaccinationHistories } from '@/shared/domain/carnet-heads'
+import { injectionsByVaccination } from '@/shared/domain/carnet-heads'
 
 export type {
   PdfDose,
@@ -95,7 +95,7 @@ export function buildCarnetPdfContent(
   if (!animal) return null
 
   const followed = animal.unfollowedOn === null
-  const injections = vaccinationHistories(data.vaccinationInjections)
+  const injections = injectionsByVaccination(data.vaccinationInjections)
   const states = treatmentStates(data, today)
   const treatedIds = new Set(data.treatmentPeriods.map(({ treatmentId }) => treatmentId))
 

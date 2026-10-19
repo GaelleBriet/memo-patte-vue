@@ -12,7 +12,7 @@ import {
   otherDateRecap,
 } from '../logic/treatment-shift-box'
 import { shiftHelpText } from '../logic/treatment-shift-help'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const t = i18n.global.t
@@ -26,8 +26,8 @@ const VENDREDI = period({
 const PIXEL = treatment([VENDREDI], [dose('2026-10-09', '2026-10-16')])
 const DUE_16 = { settingId: 'p-1', dueOn: '2026-10-16', dueTime: null }
 
-function carnet(history: TreatmentWithHistory, today: string) {
-  return { treatment: history, reading: treatmentReadingOf(history, today), today }
+function carnet(withPeriods: TreatmentWithPeriods, today: string) {
+  return { treatment: withPeriods, reading: treatmentReadingOf(withPeriods, today), today }
 }
 
 function help(view: { help: { text: string; warning: boolean } | null }) {
@@ -178,8 +178,8 @@ describe('dateChangeBox — « Changer la date » (V30, N2)', () => {
   )
   const seul = treatment([VENDREDI], [...PIXEL.doses, report])
 
-  function boxOf(history: TreatmentWithHistory) {
-    return dateChangeBox(t, report, carnet(history, today))!
+  function boxOf(withPeriods: TreatmentWithPeriods) {
+    return dateChangeBox(t, report, carnet(withPeriods, today))!
   }
 
   it('se rouvre telle qu’elle a été laissée', () => {
@@ -207,11 +207,11 @@ describe('dateChangeBox — « Changer la date » (V30, N2)', () => {
 
   it('d’une prise : la case pour une prise qui a décalé la suite, cochée si son décalage existe', () => {
     const prise = dose('2026-10-16', '2026-10-26', { givenOn: '2026-10-19' })
-    const history = treatment(
+    const withPeriods = treatment(
       [VENDREDI],
       [...PIXEL.doses, prise, shifted('2026-10-16', '2026-10-19')],
     )
-    const box = dateChangeBox(t, prise, carnet(history, '2026-10-21'))!
+    const box = dateChangeBox(t, prise, carnet(withPeriods, '2026-10-21'))!
 
     expect(box.initial).toBe(true)
     expect(box.view('2026-10-19', true).shown).toBe(false)
@@ -227,7 +227,7 @@ describe('dateChangeBox — « Changer la date » (V30, N2)', () => {
 describe('G19 : les jours qui ne laisseraient aucune date au report seul sont refusés', () => {
   // Vendredis ; le 16 donnée le lundi 19 avec décalage, le 26 reporté seul au 30 ; aujourd’hui le 8 nov.
   const prise = dose('2026-10-16', '2026-10-26', { givenOn: '2026-10-19' })
-  const history = treatment(
+  const withPeriods = treatment(
     [VENDREDI],
     [
       dose('2026-10-09', '2026-10-16'),
@@ -239,7 +239,7 @@ describe('G19 : les jours qui ne laisseraient aucune date au report seul sont re
   const today = '2026-11-08'
 
   it('« Changer la date » grise ces jours et le dit', () => {
-    const box = dateChangeBox(t, prise, carnet(history, today))!
+    const box = dateChangeBox(t, prise, carnet(withPeriods, today))!
 
     expect(box.refusedDays(true)).toContain('2026-10-17')
     expect(box.view('2026-10-17', true)).toMatchObject({ blocked: true })
@@ -286,7 +286,7 @@ describe('otherDateNote — ce que « Fait à une autre date » enregistre', () 
 describe('G19 : la correction fait suivre le report seul, et l’aide dit le calendrier enregistré', () => {
   // Vendredis ; le 16 donnée le lundi 19 avec décalage (26, 2 nov.), le 26 reporté seul au 30.
   const prise = dose('2026-10-16', '2026-10-26', { givenOn: '2026-10-19' })
-  const history = treatment(
+  const withPeriods = treatment(
     [VENDREDI],
     [
       dose('2026-10-09', '2026-10-16'),
@@ -296,12 +296,12 @@ describe('G19 : la correction fait suivre le report seul, et l’aide dit le cal
     ],
   )
   const today = '2026-10-27'
-  const reading = treatmentReadingOf(history, today)
-  const box = dateChangeBox(t, prise, carnet(history, today))!
+  const reading = treatmentReadingOf(withPeriods, today)
+  const box = dateChangeBox(t, prise, carnet(withPeriods, today))!
 
   function saved(date: string, shifts: boolean) {
     const { writes } = doseChange(
-      history,
+      withPeriods,
       reading,
       { kind: 'redate', lineId: prise.id, givenOn: date, shiftsFollowing: shifts },
       () => 'n',
@@ -313,9 +313,9 @@ describe('G19 : la correction fait suivre le report seul, et l’aide dit le cal
           : write.action === 'delete'
             ? all.filter(({ id }) => id !== write.id)
             : all,
-      history.doses,
+      withPeriods.doses,
     )
-    return treatmentReadingOf({ ...history, doses: lines }, today).view
+    return treatmentReadingOf({ ...withPeriods, doses: lines }, today).view
   }
 
   it.each(['2026-10-12', '2026-10-15', '2026-10-17', '2026-10-18'])(
@@ -398,11 +398,11 @@ describe('G19 : la correction fait suivre le report seul, et l’aide dit le cal
 
 describe('restoredSuiteFor — le toast de « Supprimer ce décalage » (V31 quater)', () => {
   it('la prochaine dose après la dose déplacée, sans le décalage', () => {
-    const history = treatment(
+    const withPeriods = treatment(
       [VENDREDI],
       [...PIXEL.doses, shifted('2026-10-16', '2026-10-19'), postponed('2026-10-16', '2026-10-19')],
     )
-    const book = carnet(history, '2026-10-15')
+    const book = carnet(withPeriods, '2026-10-15')
 
     expect(restoredSuiteFor(book, { kind: 'remove', lineId: 'décalage 2026-10-16' })).toEqual({
       nextOn: '2026-10-23',

@@ -17,7 +17,7 @@ import {
   createReplay,
   expectedSignature,
   readingAfter,
-  storedHistory,
+  storedTreatment,
   type Replay,
 } from './treatment-services-replay'
 
@@ -112,7 +112,7 @@ async function replayStep(replay: Replay, id: string, periods: Periods, step: V2
       shiftsFollowing,
     })
   } else if (step.gesture !== null) {
-    const stored = await storedHistory(replay.treatments, id)
+    const stored = await storedTreatment(replay.treatments, id)
     await replay.doses.apply(id, actionOf(step.gesture, step.before, stored, periodOf))
   } else if (step.plan !== null && step.request !== undefined) {
     const { request } = step
@@ -148,7 +148,7 @@ async function replayStep(replay: Replay, id: string, periods: Periods, step: V2
   const added = step.after.settings.filter(
     ({ id: settingId }) => !step.before.settings.some((setting) => setting.id === settingId),
   )
-  const stored = await storedHistory(replay.treatments, id)
+  const stored = await storedTreatment(replay.treatments, id)
   const known = new Set(periods.values())
   const fresh = stored.periods.filter((period) => !known.has(period.id))
   added.forEach((setting, index) => periods.set(setting.id, fresh[index]?.id ?? setting.id))
@@ -202,7 +202,7 @@ describe('les services des traitements rejouent les gestes du moteur v2', () => 
           const read = await readingAfter(replay, id)
           const expected = expectedSignature(step)
           if (JSON.stringify(read) !== JSON.stringify(expected)) {
-            const stored = await storedHistory(replay.treatments, id)
+            const stored = await storedTreatment(replay.treatments, id)
             const shape = ({
               id: i,
               startsOn,

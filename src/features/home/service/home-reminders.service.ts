@@ -1,7 +1,7 @@
 import type { TreatmentType } from '@/features/treatments/schema/treatment.schema'
 import {
   getTreatmentsRepository,
-  type AllTreatmentsWithHistoryReader,
+  type AllTreatmentsWithPeriodsReader,
 } from '@/features/treatments/repository/treatments.repository'
 import {
   getVaccinationsRepository,
@@ -34,7 +34,7 @@ export type HomeReminderSource = HomeVaccinationSource | HomeTreatmentSource
 
 export function createHomeRemindersService(
   vaccinations: Provider<AllVaccinationsReader>,
-  treatments: Provider<AllTreatmentsWithHistoryReader>,
+  treatments: Provider<AllTreatmentsWithPeriodsReader>,
 ) {
   return {
     async listSources(): Promise<HomeReminderSource[]> {
@@ -44,7 +44,7 @@ export function createHomeRemindersService(
       ])
       const [vaccinationRows, treatmentRows] = await Promise.all([
         vaccinationsRepository.listAll(),
-        treatmentsRepository.listAllWithHistory(),
+        treatmentsRepository.listAllWithPeriods(),
       ])
 
       return [

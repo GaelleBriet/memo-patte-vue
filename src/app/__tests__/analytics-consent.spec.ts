@@ -78,7 +78,7 @@ describe('installConsentGate', () => {
       }),
       vaccinations: () => ({ listAll: async () => [] }),
       treatments: () => ({
-        listAllWithHistory: async () => [
+        listAllWithPeriods: async () => [
           {
             ...treatment([period({ firstDueOn: '2026-10-01' })]),
             animalId: '11111111-1111-4111-8111-111111111111',

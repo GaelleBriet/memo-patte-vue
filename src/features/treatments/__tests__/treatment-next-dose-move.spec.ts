@@ -9,7 +9,7 @@ import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
 import { nextDoseShiftHelp } from '../logic/treatment-form-texts'
 import type { TreatmentEditionInput } from '../schema/treatment-form.schema'
 import type { TreatmentPlanWrite } from '../schema/treatment-plan.schema'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const t = i18n.global.t
@@ -20,13 +20,13 @@ function ids() {
 }
 
 function saisie(
-  history: TreatmentWithHistory,
+  withPeriods: TreatmentWithPeriods,
   changes: Partial<TreatmentEditionInput> = {},
 ): TreatmentEditionInput {
-  const current = history.periods.at(-1)!
+  const current = withPeriods.periods.at(-1)!
   return {
-    name: history.name,
-    type: history.type,
+    name: withPeriods.name,
+    type: withPeriods.type,
     frequency: current.frequency,
     times: current.times,
     doseQuantity: current.doseQuantity,
@@ -38,17 +38,17 @@ function saisie(
 }
 
 function champsRefuses(
-  history: TreatmentWithHistory,
+  withPeriods: TreatmentWithPeriods,
   input: TreatmentEditionInput,
   today: string,
 ): string[] {
-  const result = treatmentEditionSchemaFor(history, today).safeParse(input)
+  const result = treatmentEditionSchemaFor(withPeriods, today).safeParse(input)
   return result.success
     ? []
     : result.error.issues.map((issue) => `${String(issue.path[0])}:${issue.message}`)
 }
 
-function dosesAfter(history: TreatmentWithHistory, { doses }: TreatmentPlanWrite) {
+function dosesAfter(withPeriods: TreatmentWithPeriods, { doses }: TreatmentPlanWrite) {
   return doses.reduce((lines, write) => {
     if (write.action === 'delete') return lines.filter(({ id }) => id !== write.id)
     if (write.action === 'rewrite') {
@@ -56,16 +56,16 @@ function dosesAfter(history: TreatmentWithHistory, { doses }: TreatmentPlanWrite
     }
     const { id, dose: fields } = write
     return [...lines, { ...dose(fields.dueOn, fields.targetOn ?? fields.dueOn), ...fields, id }]
-  }, history.doses)
+  }, withPeriods.doses)
 }
 
 function upcomingAfter(
-  history: TreatmentWithHistory,
+  withPeriods: TreatmentWithPeriods,
   plan: TreatmentPlanWrite,
   today: string,
   count: number,
 ): string[] {
-  const after = { ...history, doses: dosesAfter(history, plan) }
+  const after = { ...withPeriods, doses: dosesAfter(withPeriods, plan) }
   return treatmentReadingOf(after, today)
     .view.upcoming({ limit: count })
     .map(({ dueOn }) => dueOn)
@@ -338,33 +338,35 @@ describe('« Prochaine dose » et la date de fin', () => {
     const TODAY = '2026-10-08'
 
     it('refuse une date de fin avant l’arrivée du report, sans rien écrire', () => {
-      const history = reported('2026-10-14')
-      const input = saisie(history, { endsOn: '2026-10-12' })
+      const withPeriods = reported('2026-10-14')
+      const input = saisie(withPeriods, { endsOn: '2026-10-12' })
 
-      expect(champsRefuses(history, input, TODAY)).toEqual(['endsOn:beforePostponedDose'])
-      expect(() => editionPlan(history, input, TODAY, ids())).toThrow(ZodError)
+      expect(champsRefuses(withPeriods, input, TODAY)).toEqual(['endsOn:beforePostponedDose'])
+      expect(() => editionPlan(withPeriods, input, TODAY, ids())).toThrow(ZodError)
     })
 
     it('refuse de même une date de fin avant l’arrivée d’une dose avancée', () => {
-      const history = reported('2026-10-05')
+      const withPeriods = reported('2026-10-05')
 
       expect(
-        champsRefuses(history, saisie(history, { endsOn: '2026-10-04' }), '2026-10-03'),
+        champsRefuses(withPeriods, saisie(withPeriods, { endsOn: '2026-10-04' }), '2026-10-03'),
       ).toEqual(['endsOn:beforeAdvancedDose'])
     })
 
     it('accepte une date de fin le jour d’arrivée du report', () => {
-      const history = reported('2026-10-14')
+      const withPeriods = reported('2026-10-14')
 
-      expect(champsRefuses(history, saisie(history, { endsOn: '2026-10-14' }), TODAY)).toEqual([])
+      expect(
+        champsRefuses(withPeriods, saisie(withPeriods, { endsOn: '2026-10-14' }), TODAY),
+      ).toEqual([])
     })
 
     it('accepte la date de fin quand « Prochaine dose » est remise avant elle dans la même saisie', () => {
-      const history = reported('2026-10-14', [shifted('2026-10-07', '2026-10-14')])
+      const withPeriods = reported('2026-10-14', [shifted('2026-10-07', '2026-10-14')])
 
       const plan = editionPlan(
-        history,
-        saisie(history, { endsOn: '2026-10-12', nextDoseOn: '2026-10-11' }),
+        withPeriods,
+        saisie(withPeriods, { endsOn: '2026-10-12', nextDoseOn: '2026-10-11' }),
         TODAY,
         ids(),
       )
@@ -382,20 +384,20 @@ describe('« Prochaine dose » et la date de fin', () => {
         firstDueOn: '2026-09-25',
         frequency: { value: 1, unit: 'week' },
       })
-      const history = treatment(
+      const withPeriods = treatment(
         [hebdo],
         [dose('2026-09-25', '2026-10-02'), postponed('2026-10-09', '2026-10-20')],
       )
 
-      expect(editionDraft(history, null, '2026-10-03')).toMatchObject({
+      expect(editionDraft(withPeriods, null, '2026-10-03')).toMatchObject({
         nextDose: { proposedOn: '2026-10-02' },
         farthestMove: { arrivesOn: '2026-10-20', advanced: false },
       })
       expect(
-        champsRefuses(history, saisie(history, { endsOn: '2026-10-15' }), '2026-10-03'),
+        champsRefuses(withPeriods, saisie(withPeriods, { endsOn: '2026-10-15' }), '2026-10-03'),
       ).toEqual(['endsOn:beforeFarPostponedDose'])
       expect(
-        champsRefuses(history, saisie(history, { endsOn: '2026-10-20' }), '2026-10-03'),
+        champsRefuses(withPeriods, saisie(withPeriods, { endsOn: '2026-10-20' }), '2026-10-03'),
       ).toEqual([])
     })
   })
@@ -410,8 +412,8 @@ describe('la case « Décaler aussi les doses suivantes » de « Prochaine dose 
   const PIXEL = treatment([VENDREDI], [dose('2026-10-09', '2026-10-16')])
   const TODAY = '2026-10-14'
 
-  function helpOf(history: TreatmentWithHistory, nextDoseOn: string, shiftsFollowing: boolean) {
-    const draft = editionDraft(history, null, TODAY, nextDoseOn, shiftsFollowing)
+  function helpOf(withPeriods: TreatmentWithPeriods, nextDoseOn: string, shiftsFollowing: boolean) {
+    const draft = editionDraft(withPeriods, null, TODAY, nextDoseOn, shiftsFollowing)
     const help = nextDoseShiftHelp(t, draft, { shiftsFollowing })
     return help === null ? null : { ...help, text: plain(help.text) }
   }

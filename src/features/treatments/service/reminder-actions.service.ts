@@ -6,8 +6,8 @@ import type { NoteGesture } from '../logic/treatment-dose-change'
 import { doseActionTexts, hasSeveralTimes } from '../logic/treatment-gestures'
 import { notificationTarget } from '../logic/treatment-notification'
 import { readableReadingOf } from '../logic/treatment-reading-adapter'
-import type { TreatmentWithHistoryReader } from '../repository/treatments.repository'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriodsReader } from '../repository/treatments.repository'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { AppliedDoseChange, TreatmentDosesService } from './treatment-doses.service'
 import type { VaccinationReplacedDuesReader } from '@/features/vaccinations/repository/vaccinations.repository'
 import { isLegacyReminderKey, parseReminderKey } from '@/shared/domain/due-reminders'
@@ -27,7 +27,7 @@ type Provider<T> = () => T | Promise<T>
 export type ReminderActionsDependencies = {
   router: Pick<Router, 'currentRoute' | 'push' | 'replace'>
   animals: Provider<Pick<AnimalsRepository, 'getById'>>
-  treatments: Provider<TreatmentWithHistoryReader>
+  treatments: Provider<TreatmentWithPeriodsReader>
   vaccinations: Provider<VaccinationReplacedDuesReader>
   doses: Pick<TreatmentDosesService, 'apply' | 'noteMoment' | 'undoBatch'>
   refreshHome: () => unknown
@@ -110,7 +110,7 @@ export function createReminderActions({
   }
 
   function doseAlreadyNoted(
-    treatment: TreatmentWithHistory,
+    treatment: TreatmentWithPeriods,
     doneOn: string,
   ): Promise<ReminderFeedback> {
     return alreadyNoted(ALREADY_DOSE, {
@@ -126,7 +126,7 @@ export function createReminderActions({
   }
 
   async function confirmNoted(
-    treatment: TreatmentWithHistory,
+    treatment: TreatmentWithPeriods,
     due: Due,
     givenOn: string,
     noted: AppliedDoseChange,
@@ -154,7 +154,7 @@ export function createReminderActions({
   }
 
   async function noteToday(
-    treatment: TreatmentWithHistory,
+    treatment: TreatmentWithPeriods,
     due: Due,
   ): Promise<ReminderFeedback | null> {
     const { id } = treatment
@@ -173,7 +173,7 @@ export function createReminderActions({
 
   /** Notification du jour à la clé sans heure, d'avant les rappels par heure : le geste d'avant (Q32). */
   async function legacyDone(
-    treatment: TreatmentWithHistory,
+    treatment: TreatmentWithPeriods,
     dueDate: string,
   ): Promise<ReminderFeedback | null> {
     const { id } = treatment
@@ -201,7 +201,7 @@ export function createReminderActions({
     notified: NotifiedDue,
     legacy: boolean,
   ): Promise<ReminderFeedback | null> {
-    const treatment = await (await treatments()).getWithHistory(id)
+    const treatment = await (await treatments()).getWithPeriods(id)
     if (treatment === null) return openHome()
     const day = today()
     const reading = readableReadingOf(treatment, day)

@@ -9,7 +9,7 @@ import {
   createFakeNotifications,
   type FakeNotifications,
 } from '@/shared/__tests__/fake-notifications'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import {
   createTreatmentRemindersService,
   type TreatmentRemindersService,
@@ -44,7 +44,7 @@ const OTHER = `treatment:55555555-5555-4555-8555-555555555555:2026-10-01::due`
 
 let notifications: FakeNotifications
 let getAnimal: ReturnType<typeof vi.fn<(id: string) => Promise<Animal | null>>>
-let getWithHistory: ReturnType<typeof vi.fn<(id: string) => Promise<TreatmentWithHistory | null>>>
+let getWithPeriods: ReturnType<typeof vi.fn<(id: string) => Promise<TreatmentWithPeriods | null>>>
 let settings: ReturnType<typeof vi.fn<() => Promise<CarnetReminderSettings>>>
 let service: TreatmentRemindersService
 
@@ -55,19 +55,19 @@ function programmes(): Date[] {
     .sort((a, b) => a.getTime() - b.getTime())
 }
 
-function withFirstDue(firstDueOn: string): TreatmentWithHistory {
+function withFirstDue(firstDueOn: string): TreatmentWithPeriods {
   return treatment([period({ firstDueOn, frequency: { value: 3, unit: 'month' } })])
 }
 
 beforeEach(() => {
   notifications = createFakeNotifications()
   getAnimal = vi.fn<(id: string) => Promise<Animal | null>>().mockResolvedValue(LUNA)
-  getWithHistory = vi
-    .fn<(id: string) => Promise<TreatmentWithHistory | null>>()
+  getWithPeriods = vi
+    .fn<(id: string) => Promise<TreatmentWithPeriods | null>>()
     .mockResolvedValue(MILBEMAX)
   settings = vi.fn<() => Promise<CarnetReminderSettings>>().mockResolvedValue(SETTINGS)
   service = createTreatmentRemindersService({
-    treatments: () => ({ getWithHistory }),
+    treatments: () => ({ getWithPeriods }),
     animals: () => ({ getById: getAnimal }),
     settings,
     notifications,
@@ -80,7 +80,7 @@ describe('treatmentRemindersService', () => {
   it('relit le traitement et son historique, puis programme les rappels du moteur', async () => {
     await service.reschedule(ID)
 
-    expect(getWithHistory).toHaveBeenCalledWith(ID)
+    expect(getWithPeriods).toHaveBeenCalledWith(ID)
     expect(getAnimal).toHaveBeenCalledWith(LUNA.id)
     expect(programmes().slice(0, 3)).toEqual([
       new Date(2026, 9, 12, 9),
@@ -99,7 +99,7 @@ describe('treatmentRemindersService', () => {
 
   it('lit l’historique au moment de reprogrammer, pas celui d’avant l’écriture', async () => {
     await service.reschedule(ID)
-    getWithHistory.mockResolvedValue(withFirstDue('2026-11-20'))
+    getWithPeriods.mockResolvedValue(withFirstDue('2026-11-20'))
 
     await service.reschedule(ID)
 
@@ -112,7 +112,7 @@ describe('treatmentRemindersService', () => {
 
     const reprogrammation = service.reschedule(ID)
     await new Promise((resolve) => setTimeout(resolve, 0))
-    getWithHistory.mockResolvedValue(withFirstDue('2026-11-20'))
+    getWithPeriods.mockResolvedValue(withFirstDue('2026-11-20'))
     liberer()
     await reprogrammation
 
@@ -120,7 +120,7 @@ describe('treatmentRemindersService', () => {
   })
 
   it('programme tous les rappels d’un traitement quotidien en un seul appel au plugin', async () => {
-    getWithHistory.mockResolvedValue(treatment([period({ firstDueOn: '2026-09-16' })]))
+    getWithPeriods.mockResolvedValue(treatment([period({ firstDueOn: '2026-09-16' })]))
 
     await service.reschedule(ID)
 
@@ -130,7 +130,7 @@ describe('treatmentRemindersService', () => {
 
   it('RA-19 : retire du volet la notification affichée de l’échéance que la prise a notée', async () => {
     const daily = period({ startsOn: '2026-09-14', firstDueOn: '2026-09-14', times: ['08:00'] })
-    getWithHistory.mockResolvedValue(
+    getWithPeriods.mockResolvedValue(
       treatment([daily], [dose('2026-09-15', '2026-09-16', { dueTime: '08:00' })]),
     )
     const noted = `treatment:${ID}:2026-09-15:0800:due`
@@ -153,7 +153,7 @@ describe('treatmentRemindersService', () => {
 
     await service.reschedule(ID)
 
-    expect(getWithHistory).not.toHaveBeenCalled()
+    expect(getWithPeriods).not.toHaveBeenCalled()
     expect(notifications.scheduleReminders).not.toHaveBeenCalled()
   })
 
@@ -161,7 +161,7 @@ describe('treatmentRemindersService', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {})
     await service.reschedule(ID)
     const before = programmes()
-    getWithHistory.mockRejectedValue(new Error('base verrouillée'))
+    getWithPeriods.mockRejectedValue(new Error('base verrouillée'))
 
     await service.reschedule(ID)
 
@@ -173,12 +173,12 @@ describe('treatmentRemindersService', () => {
     ['arrêté', treatment([period({ firstDueOn: '2026-09-16', stoppedOn: '2026-09-15' })])],
     ['illisible (Q40)', treatment([period({ firstDueOn: '2026-02-30' })])],
   ])('retire tous les rappels d’un traitement %s, et les siens seulement', async (_etat, relu) => {
-    getWithHistory.mockResolvedValue(treatment([period({ firstDueOn: '2026-09-16' })]))
+    getWithPeriods.mockResolvedValue(treatment([period({ firstDueOn: '2026-09-16' })]))
     await service.reschedule(ID)
     notifications.pending.set(OTHER, { key: OTHER, title: '', body: '', at: new Date() })
     expect(notifications.pending.size).toBeGreaterThan(10)
 
-    getWithHistory.mockResolvedValue(relu)
+    getWithPeriods.mockResolvedValue(relu)
     await service.reschedule(ID)
 
     expect([...notifications.pending.keys()]).toEqual([OTHER])

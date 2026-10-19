@@ -1,9 +1,9 @@
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { TreatmentView, TreatmentViewInput } from '@/shared/domain/dose-calendar'
 import { readCarnet, readTreatment, type TreatmentReading } from '@/shared/domain/treatment-reading'
 
-type TreatmentToRead = Pick<TreatmentWithHistory, 'periods' | 'doses'>
+type TreatmentToRead = Pick<TreatmentWithPeriods, 'periods' | 'doses'>
 
 function readable(reading: TreatmentReading | null): TreatmentReading {
   if (reading === null) throw new RangeError('Traitement illisible')
@@ -33,7 +33,7 @@ export function readableReadingOf(
 }
 
 export function currentPeriodOf(
-  treatment: Pick<TreatmentWithHistory, 'periods'>,
+  treatment: Pick<TreatmentWithPeriods, 'periods'>,
   view: Pick<TreatmentView, 'currentSetting'>,
 ): TreatmentPeriodRecord | null {
   return treatment.periods.find(({ id }) => id === view.currentSetting?.id) ?? null

@@ -15,8 +15,8 @@ import {
 import { fakeTreatmentsRepository } from './fake-treatments-repository'
 import { dose, missed, period, postponed, shifted, treatment } from './treatment-fixtures'
 import { DoseAlreadyLoggedError } from '../logic/treatment-dose-change'
-import type { TreatmentWithHistory } from '../schema/treatment-with-history.schema'
-import type { NewTreatmentDose } from '../schema/treatment-dose.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
+import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentDosesService } from '../service/treatment-doses.service'
 import type { TreatmentStopService } from '../service/treatment-stop.service'
 import {
@@ -82,7 +82,7 @@ const LUNA: Animal = {
 }
 
 const MATIN_ET_SOIR = period({ times: ['08:00', '20:00'], doseQuantity: 0.3, doseUnit: 'ml' })
-const HIER: NewTreatmentDose[] = [
+const HIER: TreatmentDose[] = [
   dose('2026-09-27', '2026-09-27', { dueTime: '08:00' }),
   dose('2026-09-27', '2026-09-28', { dueTime: '20:00' }),
 ]
@@ -115,11 +115,11 @@ const APPLIED = {
   shiftKept: false,
 }
 
-let book: TreatmentWithHistory | null
+let book: TreatmentWithPeriods | null
 let remove: MockInstance
 let restore: MockInstance
 let reschedule: Mock<(id: string) => Promise<void>>
-let read: Mock<(id: string) => Promise<TreatmentWithHistory | null>>
+let read: Mock<(id: string) => Promise<TreatmentWithPeriods | null>>
 let push: MockInstance
 let service: {
   [K in 'apply' | 'noteMoment' | 'undoBatch']: Mock<TreatmentDosesService[K]>
@@ -143,11 +143,11 @@ beforeEach(async () => {
   animals.animals = [LUNA]
   animals.hasLoaded = true
   book = METACAM
-  read = vi.fn<(id: string) => Promise<TreatmentWithHistory | null>>(async (id) =>
+  read = vi.fn<(id: string) => Promise<TreatmentWithPeriods | null>>(async (id) =>
     book !== null && id === book.id ? book : null,
   )
   const repository = fakeTreatmentsRepository({
-    getWithHistory: read,
+    getWithPeriods: read,
     remove: async () => REMOVED_AT,
     restore: async () => {},
   })
@@ -193,7 +193,7 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-async function monter(shown: TreatmentWithHistory | null = METACAM) {
+async function monter(shown: TreatmentWithPeriods | null = METACAM) {
   book = shown
   wrapper = mount(TreatmentDetailView, {
     props: { id: METACAM.id },
@@ -474,7 +474,7 @@ describe('TreatmentDetailView — carte de la dose du moment', () => {
 })
 
 describe('TreatmentDetailView — « Fait à une autre date »', () => {
-  async function ouvrir(shown: TreatmentWithHistory = METACAM) {
+  async function ouvrir(shown: TreatmentWithPeriods = METACAM) {
     const view = await monter(shown)
     await view.get('.treatment-dose-card__other-date').trigger('click')
     await flushPromises()
@@ -1077,7 +1077,7 @@ describe('TreatmentDetailView — « C’est fait » ne décale rien sans l’av
   const EN_RETARD = treatment([VENDREDI], [dose('2026-09-18', '2026-09-25')])
   const DUE_25 = { settingId: 'p-1', dueOn: '2026-09-25', dueTime: null }
 
-  async function cestFait(book: TreatmentWithHistory) {
+  async function cestFait(book: TreatmentWithPeriods) {
     const view = await monter(book)
     await view.get('.treatment-dose-card__done').trigger('click')
     await flushPromises()
