@@ -3100,4 +3100,6 @@ migration accordée ; schéma v17, export v10).
   (tout « Modifier » d'heures sur une période avec prises ferait perdre ses reports).
 - Import : une date de grille absurde s'écrête comme au serveur, le fichier n'est jamais refusé pour
   elle (données jamais otages) : postérieure de plus de 24 h à l'export, elle devient la date de
-  l'export ; antérieure à la création de la période, elle devient cette création.
+  l'export ; antérieure à la création du traitement, elle devient cette création. Correction de la
+  première borne (« la création de la période »), qui contredisait l'héritage : une période qui
+  hérite porte une date de grille plus ancienne que sa propre création.

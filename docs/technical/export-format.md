@@ -148,7 +148,8 @@ dans sa journée d'origine ; `null` pour toute autre ligne, ou quand ils sont in
 porte `gridWrittenAt`, la dernière écriture de ce qui fait ses échéances (première échéance,
 fréquence, origine, fin), les heures exclues. L'import ne refuse jamais un fichier pour elle : une
 date postérieure de plus de 24 h à `exportedAt` devient `exportedAt`, une date antérieure à la
-création de la période devient `createdAt` ; seule une valeur illisible refuse le fichier.
+création du traitement devient ce `createdAt` (une période qui hérite de la grille de la précédente
+porte une date plus ancienne qu'elle-même) ; seule une valeur illisible refuse le fichier.
 
 | Champ           | Type                   | Sens                                                                 |
 | --------------- | ---------------------- | -------------------------------------------------------------------- |
@@ -271,7 +272,7 @@ n'en exporte pas, et l'import le refuse jusqu'au lot 3, comme `"medication"`.
 | `firstDueChosen`        | booléen                                                       | Première dose choisie par la personne (R9), pas proposée par l'app    |
 | `fallenDosesAnswer`     | `"unasked"` \| `"stay-unlogged"` \| `"not-due"`                | Réponse à la question Q38 (R10, #873) : aucune question, « Elles restent à renseigner », « Elles n'étaient pas à donner » |
 | `settingsWrittenAt`     | ISO 8601 UTC                                                  | Dernière écriture du calendrier (R10, #867) ; `createdAt` sinon       |
-| `gridWrittenAt`         | ISO 8601 UTC                                                  | Dernière écriture des échéances, heures exclues (v10) ; `createdAt` sinon |
+| `gridWrittenAt`         | ISO 8601 UTC                                                  | Dernière écriture des échéances, heures exclues (v10) ; héritée de la période précédente qui avait la même grille |
 | `endsOn`                | `AAAA-MM-JJ` \| `null`                                        | Date de fin, facultative                                              |
 | `stoppedOn`             | `AAAA-MM-JJ` \| `null`                                        | Date d'arrêt, `null` en cours                                         |
 | `frequency`             | `{ "value": 1 à 365, "unit": "day" \| "week" \| "month" }`    |                                                                       |

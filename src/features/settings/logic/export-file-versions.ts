@@ -167,15 +167,21 @@ export function fromVersion9(data: Version9Data): ExportData {
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
-/** Comme le serveur : une date de grille hors bornes s'écrête, le fichier n'est jamais refusé pour elle. */
+/**
+ * Une date de grille hors bornes s'écrête, le fichier n'est jamais refusé pour elle : plus de 24 h
+ * après l'export, l'export ; avant la création du traitement (pas de la période, qui peut l'hériter),
+ * cette création.
+ */
 export function withGridDatesClamped(data: ExportData, exportedAt: string): ExportData {
   const latest = Date.parse(exportedAt) + DAY_MS
+  const createdAt = new Map(data.treatments.map((treatment) => [treatment.id, treatment.createdAt]))
   return {
     ...data,
     treatmentPeriods: data.treatmentPeriods.map((period) => {
       const at = Date.parse(period.gridWrittenAt)
+      const earliest = createdAt.get(period.treatmentId) ?? period.createdAt
       if (at > latest) return { ...period, gridWrittenAt: exportedAt }
-      if (at < Date.parse(period.createdAt)) return { ...period, gridWrittenAt: period.createdAt }
+      if (at < Date.parse(earliest)) return { ...period, gridWrittenAt: earliest }
       return period
     }),
   }

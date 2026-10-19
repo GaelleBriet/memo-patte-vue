@@ -731,7 +731,7 @@ describe('parseExportFile', () => {
     })
 
     it.each([
-      ['avant la création de la période', '2000-01-01T00:00:00.000Z', 'createdAt'],
+      ['avant la création du traitement', '2000-01-01T00:00:00.000Z', 'createdAt'],
       ['plus de 24 h après l’export', '2099-01-01T00:00:00.000Z', 'exportedAt'],
     ] as const)(
       'écrête une date d’écriture de la grille %s, sans refuser le fichier',
@@ -739,9 +739,7 @@ describe('parseExportFile', () => {
         const document = JSON.parse(importFixtureJson()) as Document
         premier(document, 'treatmentPeriods').gridWrittenAt = gridWrittenAt
         const expected =
-          bound === 'createdAt'
-            ? premier(document, 'treatmentPeriods').createdAt
-            : document.exportedAt
+          bound === 'createdAt' ? premier(document, 'treatments').createdAt : document.exportedAt
 
         const result = parseExportFile(JSON.stringify(document), IMPORTEUR)
 
@@ -765,6 +763,26 @@ describe('parseExportFile', () => {
         '2026-09-16T08:30:00.000Z',
         second!.createdAt,
       ])
+    })
+
+    it('garde une date de grille héritée, plus ancienne que sa période mais pas que son traitement', () => {
+      const document = JSON.parse(importFixtureJson()) as Document
+      const [, panacur] = rows(document, 'treatments')
+      const [, period] = rows(document, 'treatmentPeriods')
+      panacur!.createdAt = '2026-08-01T07:00:00.000Z'
+      period!.gridWrittenAt = '2026-08-15T07:00:00.000Z'
+
+      const result = parseExportFile(JSON.stringify(document), IMPORTEUR)
+
+      expect(result.ok).toBe(true)
+      if (!result.ok) return
+      expect(result.file.data.treatmentPeriods[1]!.gridWrittenAt).toBe('2026-08-15T07:00:00.000Z')
+    })
+
+    it('refuse un fichier dont la création d’un traitement est illisible', () => {
+      expect(parseExportFile(forged('treatments', 'createdAt', '2026-08-01'), IMPORTEUR)).toEqual(
+        INVALID,
+      )
     })
 
     it('relit un export v8 : arrivée d’avant et rang des reports vides', () => {
