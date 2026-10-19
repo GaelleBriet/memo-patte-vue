@@ -1,6 +1,7 @@
 import {
   newSettings,
   openingGridDate,
+  reopenedSetting,
   rewrittenSetting,
   treatmentView,
   type Frequency,
@@ -32,7 +33,14 @@ export function settingsWritten(walk: SettingsWalk, plan: SettingsPlan): Treatme
   const lines = linesWritten(walk, plan.lines ?? [], at)
   if (plan.action === 'rewrite') {
     const rewritten = settings.map((setting) =>
-      setting.id === plan.id ? rewrittenSetting(setting, plan.setting, () => at) : setting,
+      setting.id === plan.id
+        ? reopenedSetting(
+            settings,
+            setting,
+            rewrittenSetting(setting, plan.setting, () => at),
+            walk.input.today,
+          )
+        : setting,
     )
     return { ...walk.input, settings: rewritten, lines }
   }

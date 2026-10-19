@@ -2,6 +2,7 @@ import {
   moveBounds,
   newSettings,
   openingGridDate,
+  reopenedSetting,
   play,
   rewritesCalendar,
   rewritesGrid,
@@ -68,7 +69,12 @@ function writePlan(input: TreatmentViewInput, plan: SettingsPlan, clock: Clock, 
   if (plan.action === 'rewrite') {
     const settings = input.settings.map((setting) =>
       setting.id === plan.id
-        ? rewrittenSetting(setting, plan.setting, () => stamp(clock))
+        ? reopenedSetting(
+            input.settings,
+            setting,
+            rewrittenSetting(setting, plan.setting, () => stamp(clock)),
+            input.today,
+          )
         : setting,
     )
     return { ...input, lines, settings }
@@ -125,7 +131,14 @@ function writtenDates(
       if (!written.settings.has(setting.id)) written.settings.set(setting.id, setting.createdAt)
       continue
     }
-    const [calendar, grid] = [rewritesCalendar(old, setting), rewritesGrid(old, setting)]
+    const calendar = rewritesCalendar(old, setting)
+    // Une date de grille héritée, plus ancienne que le réglage, se garde telle quelle.
+    const inherited =
+      setting.gridWrittenAt !== undefined &&
+      setting.gridWrittenAt !== old.gridWrittenAt &&
+      setting.gridWrittenAt < setting.createdAt
+    const grid = !inherited && rewritesGrid(old, setting)
+    if (inherited) written.grids.set(setting.id, setting.gridWrittenAt!)
     if (!calendar && !grid) continue
     const at = next()
     if (calendar) written.settings.set(setting.id, at)

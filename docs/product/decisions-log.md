@@ -3098,6 +3098,18 @@ migration accordée ; schéma v17, export v10).
   hors de la grille, autre fréquence, autre fin, « Reprendre » après un arrêt ou une fin (une reprise
   ouvre une grille neuve, même si un jour coïncide). — Écartée : comparer les colonnes telles quelles
   (tout « Modifier » d'heures sur une période avec prises ferait perdre ses reports).
+- L'ancienne grille est celle que le moteur continue (même règle, `continuesGrid`) : en mois, une
+  origine propre sur la grille en vigueur ne la remplace pas (Luna, chaque mois depuis le 31 janvier,
+  « Prochaine dose » le 30 avril puis le 30 mai : datée ; le 31 juillet : hérite).
+- Un réglage ouvert aujourd'hui sans prise et réécrit sur place se juge comme une ouverture, face
+  aux périodes qui le précèdent : un report ne dépend pas du nombre de « Modifier ». Milo, le
+  1er avril : un « Modifier » (6 h et « Prochaine dose » le 4) ou deux (6 h, puis le 4) donnent la
+  même date de grille, celle du 26 mars ; tous les 2 jours puis de nouveau tous les 3 jours le même
+  matin : celle du 26 mars.
+- Une première échéance avant le début de l'ancienne grille est datée de sa création (cas prudent).
+- « Même fréquence » se lit sur la suite de jours : 2 semaines et 14 jours, 1 semaine et 7 jours ont
+  la même grille ; un mois n'équivaut jamais à des jours. À fréquence seulement équivalente, la
+  première échéance doit tomber sur l'ancienne grille, même proposée.
 - Import : une date de grille absurde s'écrête comme au serveur, le fichier n'est jamais refusé pour
   elle (données jamais otages) : postérieure de plus de 24 h à l'export, elle devient la date de
   l'export ; antérieure à la création du traitement, elle devient cette création. Correction de la

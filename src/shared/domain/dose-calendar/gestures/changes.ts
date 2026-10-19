@@ -1,5 +1,5 @@
 import { keyOf } from '../grid'
-import { openingGridDate } from '../grid-heritage'
+import { openingGridDate, reopenedSetting } from '../grid-heritage'
 import { familyOf } from '../lines'
 import { withReportFacts } from '../report-facts'
 import type {
@@ -110,7 +110,14 @@ function settingWritten(input: TreatmentViewInput, plan: SettingsPlan): Treatmen
     return { ...input, settings: [...input.settings, setting] }
   }
   const settings = input.settings.map((setting) =>
-    setting.id === plan.id ? rewrittenSetting(setting, plan.setting, () => WRITTEN_AT) : setting,
+    setting.id === plan.id
+      ? reopenedSetting(
+          input.settings,
+          setting,
+          rewrittenSetting(setting, plan.setting, () => WRITTEN_AT),
+          input.today,
+        )
+      : setting,
   )
   return { ...input, settings }
 }

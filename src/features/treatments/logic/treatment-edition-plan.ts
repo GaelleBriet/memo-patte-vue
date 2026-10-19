@@ -28,12 +28,16 @@ export function editionPlan(
   if (change === 'locked') return { treatment: identity, period: null, doses: [] }
 
   const settings = withRhythm(settingsOf(period), data)
-  const written =
+  const write =
     plan !== null
       ? periodWriteOf(plan, settings, () => ids.periodId)
       : sameSettings(settings, settingsOf(period))
         ? null
         : correctionOf(period, settings)
+  const written =
+    write?.action === 'correct' && period.startsOn === today
+      ? { ...write, openedToday: true }
+      : write
   const changes = [...(move?.changes ?? []), ...(plan?.lines ?? [])]
   const doses = plannedDoseWritesOf(treatment, changes, ids.newId)
   const result: TreatmentPlanWrite = { treatment: identity, period: written, doses }

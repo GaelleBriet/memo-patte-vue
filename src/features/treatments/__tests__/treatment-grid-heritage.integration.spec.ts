@@ -134,6 +134,34 @@ describe('date de grille d’une période ouverte par « Modifier » ou « Repre
     expect((await opened()).gridWrittenAt).toBe('2026-04-01T09:00:00.000Z')
   })
 
+  it('un ou deux « Modifier » le 1er avril (6 h, puis « Prochaine dose » le 4) : la même date de grille', async () => {
+    at('2026-04-01', '06:00')
+    await app.plans.update(id, edition({ times: ['06:00'] }))
+    at('2026-04-01', '06:05')
+    await app.plans.update(id, edition({ times: ['06:00'], nextDoseOn: '2026-04-04' }))
+    const twice = await opened()
+
+    expect([twice.firstDueOn, twice.gridWrittenAt]).toEqual(['2026-04-04', CREATED])
+  })
+
+  it('« Prochaine dose » le 4 avril en un seul « Modifier » : la date de grille du 26 mars', async () => {
+    at('2026-04-01', '06:05')
+    await app.plans.update(id, edition({ times: ['06:00'], nextDoseOn: '2026-04-04' }))
+    const once = await opened()
+
+    expect([once.firstDueOn, once.gridWrittenAt]).toEqual(['2026-04-04', CREATED])
+  })
+
+  it('tous les 2 jours puis de nouveau tous les 3 jours le même matin : la date de grille du 26 mars', async () => {
+    at('2026-04-01', '06:00')
+    await app.plans.update(id, edition({ frequency: { value: 2, unit: 'day' } }))
+    expect((await opened()).gridWrittenAt).toBe('2026-04-01T06:00:00.000Z')
+    at('2026-04-01', '06:05')
+    await app.plans.update(id, edition({}))
+
+    expect((await opened()).gridWrittenAt).toBe(CREATED)
+  })
+
   it('« Reprendre » après un arrêt : la nouvelle période est datée de sa création', async () => {
     at('2026-03-30', '09:00')
     await app.stops.stop(id)

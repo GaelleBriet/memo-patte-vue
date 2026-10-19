@@ -209,3 +209,103 @@ describe('en mois, l’ancienne grille est celle que le moteur continue (jours 2
     )
   })
 })
+
+describe('cas limites de l’ouverture', () => {
+  it('une première échéance choisie avant le début de l’ancienne grille est datée de sa création', () => {
+    const future: GridFacts = { ...milo, firstDueOn: '2026-04-10', gridOriginOn: '2026-04-10' }
+    const opening = { ...hoursOnly, firstDueChosen: true, firstDueOn: '2026-04-07' }
+
+    expect(keepsGrid([future], opening)).toBe(false)
+    expect(keepsGrid([future], { ...opening, firstDueOn: '2026-04-13' })).toBe(true)
+  })
+
+  it.each<[string, GridFacts['frequency'], GridFacts['frequency'], boolean]>([
+    ['2 semaines et 14 jours', { value: 2, unit: 'week' }, { value: 14, unit: 'day' }, true],
+    ['1 semaine et 7 jours', { value: 1, unit: 'week' }, { value: 7, unit: 'day' }, true],
+    ['14 jours et 2 semaines', { value: 14, unit: 'day' }, { value: 2, unit: 'week' }, true],
+    ['1 mois et 30 jours', { value: 1, unit: 'month' }, { value: 30, unit: 'day' }, false],
+    ['4 semaines et 1 mois', { value: 4, unit: 'week' }, { value: 1, unit: 'month' }, false],
+  ])('fréquences lues sur la suite de jours : %s', (_, before, after, kept) => {
+    const previous: GridFacts = {
+      ...milo,
+      firstDueOn: '2026-03-02',
+      gridOriginOn: '2026-03-02',
+      frequency: before,
+    }
+    const opening = {
+      ...hoursOnly,
+      startsOn: '2026-03-20',
+      firstDueOn: '2026-03-30',
+      frequency: after,
+    }
+
+    expect(keepsGrid([previous], opening)).toBe(kept)
+  })
+
+  it('à fréquence équivalente, la première échéance doit tomber sur l’ancienne grille, même proposée', () => {
+    const previous: GridFacts = {
+      ...milo,
+      firstDueOn: '2026-03-02',
+      gridOriginOn: '2026-03-02',
+      frequency: { value: 2, unit: 'week' },
+    }
+    const opening: Opening = {
+      ...hoursOnly,
+      startsOn: '2026-03-20',
+      firstDueOn: '2026-04-01',
+      frequency: { value: 14, unit: 'day' },
+    }
+
+    expect(keepsGrid([previous], opening)).toBe(false)
+  })
+})
+
+describe('un réglage ouvert aujourd’hui et réécrit sur place se juge comme une ouverture', () => {
+  const WRITTEN = '2026-03-26T07:00:00.000Z'
+  const s1: Setting = {
+    ...milo,
+    id: 's1',
+    startsOn: '2026-03-26',
+    fallenDosesAnswer: 'unasked',
+    times: ['20:00'],
+    createdAt: WRITTEN,
+  }
+  const s2: Setting = {
+    ...s1,
+    id: 's2',
+    startsOn: '2026-04-01',
+    firstDueOn: '2026-04-01',
+    gridOriginOn: null,
+    firstDueChosen: false,
+    frequency: { value: 2, unit: 'day' },
+    times: ['06:00'],
+    createdAt: '2026-04-01T06:00:00.000Z',
+    gridWrittenAt: '2026-04-01T06:00:00.000Z',
+  }
+  const rewritten = (today: string) =>
+    settingsApplied(
+      { settings: [s1, s2], lines: [], today },
+      {
+        action: 'rewrite',
+        id: 's2',
+        setting: {
+          startsOn: '2026-04-01',
+          firstDueOn: '2026-04-01',
+          gridOriginOn: null,
+          firstDueChosen: false,
+          fallenDosesAnswer: 'unasked',
+          endsOn: null,
+          frequency: EVERY_3_DAYS,
+          times: ['06:00'],
+        },
+      },
+    ).settings.at(-1)!
+
+  it('remis à tous les 3 jours le jour même : la date de grille du 26 mars', () => {
+    expect(rewritten('2026-04-01').gridWrittenAt).toBe(WRITTEN)
+  })
+
+  it('un autre jour, la réécriture date la grille', () => {
+    expect(rewritten('2026-04-02').gridWrittenAt).not.toBe(WRITTEN)
+  })
+})

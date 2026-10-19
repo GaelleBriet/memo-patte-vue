@@ -313,8 +313,20 @@ export function createTreatmentsRepository(
         })
       }
       if (plan.period?.action === 'correct') {
-        const { id: periodId, settings, ...origin } = plan.period
-        statements.push(periods.correctSettingsStatement(periodId, settings, at, origin))
+        const { id: periodId, settings, openedToday, ...origin } = plan.period
+        const all = openedToday === true ? await periods.listByTreatment(id) : []
+        const earlier = all.slice(
+          0,
+          Math.max(
+            0,
+            all.findIndex(({ id }) => id === periodId),
+          ),
+        )
+        const inherited =
+          earlier.length > 0 && keepsGrid(earlier, { ...settings, ...origin })
+            ? earlier.at(-1)!.gridWrittenAt
+            : undefined
+        statements.push(periods.correctSettingsStatement(periodId, settings, at, origin, inherited))
       }
       if (plan.period?.action === 'open') {
         const { settings, gridOriginOn, firstDueChosen } = plan.period
