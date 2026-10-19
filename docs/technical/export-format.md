@@ -149,7 +149,10 @@ porte `gridWrittenAt`, la dernière écriture de ce qui fait ses échéances (pr
 fréquence, origine, fin), les heures exclues. L'import ne refuse jamais un fichier pour elle : une
 date postérieure de plus de 24 h à `exportedAt` devient `exportedAt`, une date antérieure à la
 création du traitement devient ce `createdAt` (une période qui hérite de la grille de la précédente
-porte une date plus ancienne qu'elle-même) ; seule une valeur illisible refuse le fichier.
+porte une date plus ancienne qu'elle-même) ; seule une valeur illisible refuse le fichier. Elle porte
+aussi `gridBefore`, la grille que le moteur lisait juste avant son ouverture par « Modifier »
+(`{ frequency, endsOn, runs: [[premier jour, dernier jour ou null, origine], …] }`), ou `null` ; une
+valeur illisible ou trop longue se lit `null`, sans refuser le fichier.
 
 | Champ           | Type                   | Sens                                                                 |
 | --------------- | ---------------------- | -------------------------------------------------------------------- |
@@ -173,7 +176,8 @@ migration v15 : `"stay-unlogged"` quand `pastDosesStayUnlogged` vaut `true`, sin
 `"not-due"` (le booléen ne distinguait pas cette réponse d'aucune question : rien n'est retiré après
 coup). Un fichier v3 à v8 reçoit enfin, sur chaque ligne, `previousTargetOn`, `previousTargetTime` et
 `dueRank` vides (`null`) : arrivée d'avant et rang inconnus. Un fichier v3 à v9 reçoit enfin
-`gridWrittenAt` par la règle de la migration v17 : la valeur de `settingsWrittenAt`.
+`gridWrittenAt` par la règle de la migration v17 : la valeur de `settingsWrittenAt`, et `gridBefore`
+vide (`null`).
 Un `schemaVersion` supérieur est refusé (« Cet export vient d'une version plus récente de l'app. »), un
 `schemaVersion` inférieur à 3 aussi (« Cet export vient d'une version plus ancienne de MémoPatte. Il ne
 peut plus être importé. ») : les formats v1 (jusqu'à la 0.1.40) et v2 (jusqu'à la 0.1.48) ne se relisent
@@ -273,6 +277,7 @@ n'en exporte pas, et l'import le refuse jusqu'au lot 3, comme `"medication"`.
 | `fallenDosesAnswer`     | `"unasked"` \| `"stay-unlogged"` \| `"not-due"`                | Réponse à la question Q38 (R10, #873) : aucune question, « Elles restent à renseigner », « Elles n'étaient pas à donner » |
 | `settingsWrittenAt`     | ISO 8601 UTC                                                  | Dernière écriture du calendrier (R10, #867) ; `createdAt` sinon       |
 | `gridWrittenAt`         | ISO 8601 UTC                                                  | Dernière écriture des échéances, heures exclues (v10) ; héritée de la période précédente qui avait la même grille |
+| `gridBefore`            | objet \| `null`                                              | Grille d'avant l'ouverture par « Modifier » (v10) ; `null` : aucune |
 | `endsOn`                | `AAAA-MM-JJ` \| `null`                                        | Date de fin, facultative                                              |
 | `stoppedOn`             | `AAAA-MM-JJ` \| `null`                                        | Date d'arrêt, `null` en cours                                         |
 | `frequency`             | `{ "value": 1 à 365, "unit": "day" \| "week" \| "month" }`    |                                                                       |

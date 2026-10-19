@@ -3091,7 +3091,7 @@ migration accordée ; schéma v17, export v10).
   période qui reprend la grille de la précédente sans la changer garde sa date. Les échéances en
   décident, pas les colonnes : à fin égale et à fréquence équivalente, la période hérite quand le
   moteur lit les mêmes jours de grille avec et sans elle, à partir de sa première échéance
-  (`inheritedGridAt`, `src/shared/domain/dose-calendar/gestures/changes.ts`). Les jours de grille se
+  (`judgedGridAt`, `src/shared/domain/dose-calendar/gestures/changes.ts`). Les jours de grille se
   lisent décalages et reports compris, une dose reportée comptée à son départ : un report seul ne
   date jamais la grille. Le jugement porte sur tout ce que le même « Modifier » écrit, lignes
   réécrites comprises (Milo, tous les jours depuis le 1er mars, la dose du 6 reportée au 21 en
@@ -3110,8 +3110,8 @@ migration accordée ; schéma v17, export v10).
   est actif (un changement d'heures ferait perdre un report sans qu'aucun jour n'ait bougé). En mois,
   l'origine est celle que le moteur continue (Luna, chaque mois depuis le 31 janvier, « Prochaine
   dose » le 30 avril puis le 30 mai : datée ; le 31 juillet : hérite).
-- Un réglage ouvert aujourd'hui sans prise et réécrit sur place se juge comme une ouverture, face
-  aux périodes qui le précèdent : un report ne dépend pas du nombre de « Modifier ». Milo, le
+- Un réglage ouvert aujourd'hui et réécrit sur place se juge comme une ouverture, contre la grille
+  gardée à son ouverture : à gestes identiques, un report ne dépend pas du nombre de « Modifier ». Milo, le
   1er avril : un « Modifier » (6 h et « Prochaine dose » le 4) ou deux (6 h, puis le 4) donnent la
   même date de grille, celle du 26 mars ; tous les 2 jours puis de nouveau tous les 3 jours le même
   matin : celle du 26 mars.
@@ -3121,31 +3121,27 @@ migration accordée ; schéma v17, export v10).
 - « Même fréquence » se lit sur la suite de jours : 2 semaines et 14 jours, 1 semaine et 7 jours ont
   la même grille ; un mois n'équivaut jamais à des jours, même quand une seule dose reste avant la
   fin (cas prudent) : la grille est alors datée.
-- Une réécriture le jour même de l'ouverture se juge face à la grille d'avant ; si la suppression
-  d'un décalage ramène la même suite de jours que la période d'avant, la date héritée revient,
-  quelle que soit la correction qui déclenche le jugement. Une réécriture un autre jour garde la
-  règle des colonnes (date de grille posée quand l'un des quatre champs change).
+- Règle exacte (décision du 19 octobre 2026, remplace les lectures approchées des relectures) : **une
+  période hérite si sa grille est celle d'avant son ouverture**. À l'ouverture par « Modifier », la
+  période garde dans `treatment_period.grid_before` la grille que le moteur lisait juste avant (suites
+  régulières `[premier jour, dernier jour ou vide, origine]`, fréquence, fin) ; une réécriture du jour
+  hérite si les jours lus sont ceux de `grid_before`. Le second « Modifier » du jour se juge donc
+  contre la même grille que le premier (I-3) : un ou deux « Modifier » donnent la même date (Milo,
+  tous les 3 jours depuis le 1er mars, la dose du 4 reportée au 6 en décalant ; le 3, « 22 h et le 5 »
+  en un ou deux gestes : datée du 3 mars à 8 h). Les prises n'entrent pas dans la grille et la phase
+  (arrêté ou fini) est celle de l'ouverture : supprimer une prise entre deux gestes ne change pas le
+  verdict (Q1 révisé). Pas de période d'avant, ou « Reprendre » : grille vide, jamais d'héritage ;
+  import ancien : grille vide. Une réécriture un autre jour garde la règle des colonnes. — Écartées :
+  les lectures approchées (faux héritages et faux datages mesurés à 0,5 % et 0,08 %).
 - « Prochaine dose » seule est un déplacement (un report) : elle n'ouvre pas de période et ne date
   jamais la grille ; combinée à un changement d'heures dans le même « Modifier », c'est l'ouverture
   qui est jugée, donc datée : le nombre de « Modifier » change ici le résultat parce que les gestes
-  ne sont pas les mêmes (Q2, 19 octobre 2026). Le jugement lit l'état actuel des lignes : supprimer
-  une prise entre deux gestes est un vrai changement du carnet (Q1).
-- Une période datée par elle-même, puis touchée par un report ou un décalage d'une autre période
-  écrit depuis son ouverture, ne ré-hérite jamais : un second « Modifier » garde sa date, comme un
-  seul l'aurait fait (I-1 de la 5e relecture). Milo, tous les 3 jours à 20 h depuis le 1er mars, dose
-  du 1er donnée ; le 2, la dose du 4 reportée au 6 en décalant ; le 3, un « Modifier » (22 h,
-  « Prochaine dose » le 5) ou deux (21 h et le 5, puis 22 h) : datée du 3 mars à 8 h.
+  ne sont pas les mêmes (Q2, 19 octobre 2026).
 - La comparaison des jours de grille porte sur la fenêtre utile : jusqu'à la fin du traitement, ou
   400 jours sans fin (une grille qui ne diffère qu'au 22 mars est datée) ; la lecture « après » d'une
   réécriture est datée comme l'écriture réelle.
-- Le second « Modifier » du jour se juge contre les périodes d'avant le jour, sans les lignes de la
-  période du jour (I-3, décision du 19 octobre 2026 de la session d'analyse du moteur) ; aucune
-  colonne ne garde la grille d'avant la première ouverture. Résidu accepté : une réécriture du jour
-  d'un réglage qui porte son propre décalage peut hériter à tort (graine 9381000864, pas 22, 1 cas
-  sur 75 059 jugements). Un faux héritage ne fait que protéger un report qui ne s'applique de toute
-  façon que si sa dose de départ ou son ancienne arrivée existe encore (8a), alors qu'un faux datage
-  perdrait un report sans raison visible. — Écartée : une colonne de plus, à synchroniser et
-  exporter, pour un geste rare.
+- La grille gardée se vérifie par un schéma à l'import et à la lecture de la synchro : une valeur
+  illisible ou trop longue se lit vide (pas d'héritage), le fichier n'est jamais refusé pour elle.
 - La date héritée se juge à l'écriture (plan de « Modifier », marches des campagnes) ; la simulation
   du moteur (aperçus, contrôles) date la grille comme une écriture neuve, pour ne pas payer deux
   lectures du carnet à chaque aperçu.
