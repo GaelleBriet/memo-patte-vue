@@ -140,18 +140,21 @@ const FEATURES_OUT_OF_SHARED = {
 }
 
 const PHONE_AND_STATE_OUT_OF_SHARED_DOMAIN = {
-  paths: [
+  paths: [],
+  patterns: [
     {
-      name: 'pinia',
+      group: ['pinia', 'pinia/*'],
       message:
         'Un état vit dans core/ ou dans un store, jamais dans shared/domain/ (cf. CLAUDE.md).',
     },
-  ],
-  patterns: [
     {
-      group: ['@capacitor/*', '@capacitor-community/*', 'vuetify', 'vuetify/*'],
+      group: ['@capacitor/*', '@capawesome-team/*', '@revenuecat/*', 'capacitor-native-settings'],
       message:
-        "Ce qui appelle le téléphone ou l'interface ne vit pas dans shared/domain/ : le téléphone, c'est core/ (cf. CLAUDE.md, « Règles strictes de structure »).",
+        "Ce qui appelle le téléphone ne vit pas dans shared/domain/ : c'est core/ (cf. CLAUDE.md, « Règles strictes de structure »).",
+    },
+    {
+      group: ['vuetify', 'vuetify/*'],
+      message: "L'interface vit dans shared/components/, pas dans shared/domain/.",
     },
   ],
 }

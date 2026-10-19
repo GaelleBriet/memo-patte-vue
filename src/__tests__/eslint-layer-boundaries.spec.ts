@@ -70,9 +70,15 @@ describe('shared/domain/, sans téléphone ni état', { timeout: 30_000 }, () =>
       restricted(DOMAIN, "import { defineStore } from 'pinia'"),
       restricted(DOMAIN, "import { useDisplay } from 'vuetify'"),
       restricted(DOMAIN, "const m = () => import('@capacitor/app')"),
+      restricted(DOMAIN, "import { FileOpener } from '@capawesome-team/capacitor-file-opener'"),
+      restricted(DOMAIN, "import { Purchases } from '@revenuecat/purchases-capacitor'"),
+      restricted(DOMAIN, "import { NativeSettings } from 'capacitor-native-settings'"),
+      restricted(DOMAIN, "import { storeToRefs } from 'pinia/dist/pinia'"),
+      restricted(DOMAIN, "import type { Directory } from '@capacitor/filesystem'"),
+      restricted(DOMAIN, "import { CapacitorSQLite } from '@capacitor-community/sqlite'"),
     ])
 
-    expect(results).toEqual([1, 1, 1, 1])
+    expect(results).toEqual([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
   })
 
   it('laisse shared/domain/ importer vue-router en type, core/ et date-fns', async () => {
