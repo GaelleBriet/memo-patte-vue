@@ -92,8 +92,26 @@ retard de dix minutes pousse une ligne datée dans le passé, que les autres app
 **jamais**, leur curseur ayant déjà dépassé cette date. Le curseur vient donc d'une horloge unique.
 
 Garde-fou contre une horloge partie en avant, dans le même trigger `before insert or update` :
-tout `updated_at` à plus de 24 h dans le futur est ramené à `now()`, et `server_updated_at := now()`.
-Sans ça, une ligne datée 2030 gagne pour toujours et ne peut plus jamais être modifiée.
+sans lui, une ligne datée 2030 gagne pour toujours et ne peut plus jamais être modifiée. Depuis #904
+(décisions du 19 octobre 2026) :
+
+- chaque cycle qui envoie ouvre d'abord un **envoi** (`sync_push` : heure du téléphone `sent_at`,
+  heure du serveur `received_at`), et chaque écriture s'en réclame par l'en-tête
+  `x-memopatte-sync-push` ;
+- si le téléphone avance de plus de 24 h (`sent_at > received_at + 24 h`), le serveur décale d'**un
+  seul écart par envoi** (`received_at - sent_at`) les dates que l'écriture **change** par rapport à
+  la ligne qu'il tient (`created_at`, `updated_at`, `deleted_at`, `settings_written_at`,
+  `grid_written_at` ; toutes à la création) : l'ordre des gestes d'un même téléphone est gardé, une
+  date déjà écrêtée ou écrite par un autre téléphone ne bouge pas, `installed_at` jamais ;
+- sans envoi lisible (ancienne version), l'écart vient de la date changée la plus récente, ramenée à
+  `now()` si elle dépasse `now() + 24 h` ;
+- une ligne décalée qui n'est pas plus récente que celle du serveur est **refusée** (la plus récente
+  gagne) ;
+- le téléphone qui a poussé relit la ligne gardée par le serveur (`guardedUpsert` la rend) et la
+  reprend en local sans la garde, si sa ligne n'a pas changé depuis l'envoi
+  (`replacePushedRowStatement`).
+
+`server_updated_at := now()` dans tous les cas.
 
 ### 1.4 RLS
 

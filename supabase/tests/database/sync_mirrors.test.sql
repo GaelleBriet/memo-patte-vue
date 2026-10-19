@@ -169,13 +169,15 @@ select ok(not has_function_privilege('anon', 'public.has_active_plus()', 'EXECUT
   'anon n''appelle pas has_active_plus');
 select ok(not has_function_privilege('authenticated', 'public.clamp_sync_timestamps()', 'EXECUTE'),
   'clamp_sync_timestamps n''est pas appelable en RPC');
-select ok(
-  coalesce((select not prosecdef and proconfig = array['search_path=""']
-     and not has_function_privilege('authenticated', oid, 'EXECUTE')
-     and not has_function_privilege('anon', oid, 'EXECUTE')
-   from pg_proc
-   where proname = 'clamp_settings_written_at' and pronamespace = 'public'::regnamespace), false),
-  'clamp_settings_written_at : security invoker, search_path fixé, pas appelable en RPC');
+select is(
+  (select count(*) from pg_proc
+   where proname in ('clamp_settings_written_at', 'clamp_grid_written_at')
+     and pronamespace = 'public'::regnamespace),
+  0::bigint, 'plus d''écrêtage colonne par colonne : un seul déclencheur décale toute la ligne');
+select is(
+  (select string_agg(tgname::text, ',') from pg_trigger
+   where tgrelid = 'public.treatment_period'::regclass and not tgisinternal),
+  'treatment_period_clamp_sync_timestamps', 'treatment_period n''a qu''un déclencheur d''écrêtage');
 
 select ok(
   (select relrowsecurity and relforcerowsecurity from pg_class
@@ -217,19 +219,28 @@ select ok((select updated_at <= now() from public.animal),
 select ok((select settings_written_at <= now() from public.treatment_period),
   'le serveur écrête une date d''écriture des réglages trop loin dans le futur');
 
+select is(
+  (select array[created_at, updated_at, settings_written_at] from public.treatment_period),
+  array[now() - interval '3 days', now() - interval '3 days', now()],
+  'une création trop loin dans le futur décale toutes ses dates du même écart');
+
 select lives_ok($$
-  update public.treatment_period set settings_written_at = now() + interval '1 hour', updated_at = now()
+  update public.treatment_period
+  set settings_written_at = now() + interval '1 hour', updated_at = now() - interval '1 hour'
   where id = '00000000-0000-4000-8000-0000000000a6'
 $$, 'il réécrit la date d''écriture des réglages');
 select is((select settings_written_at from public.treatment_period), now() + interval '1 hour',
   'une date d''écriture des réglages à moins de 24 h dans le futur est gardée');
 
 select lives_ok($$
-  update public.treatment_period set settings_written_at = now() + interval '25 hours', updated_at = now()
+  update public.treatment_period
+  set settings_written_at = now() + interval '25 hours', updated_at = now() + interval '25 hours'
   where id = '00000000-0000-4000-8000-0000000000a6'
 $$, 'il réécrit la date d''écriture des réglages loin dans le futur');
-select is((select settings_written_at from public.treatment_period), now(),
-  'une date d''écriture des réglages réécrite trop loin dans le futur est écrêtée');
+select is(
+  (select array[created_at, updated_at, settings_written_at] from public.treatment_period),
+  array[now() - interval '3 days', now(), now()],
+  'sans envoi, les dates changées reculent de l''écart de la plus récente ; la création ne bouge pas');
 
 select lives_ok($$
   update public.treatment_period set stopped_on = '2026-01-05', updated_at = now()
@@ -748,6 +759,96 @@ delete from auth.users where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 select is(
   (select count(*) from public.sync_push where user_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'),
   0::bigint, 'les envois d''un compte supprimé partent avec lui');
+
+-- Un seul écart par envoi : le téléphone de b avance de 3 jours.
+select pg_temp.as_user('b');
+insert into public.sync_push (user_id, id, sent_at) values
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '00000000-0000-4000-8000-0000000000f1',
+    now() + interval '3 days'),
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '00000000-0000-4000-8000-0000000000f2',
+    now() + interval '1 hour');
+create function pg_temp.in_push(push text) returns void language sql as $$
+  select set_config('request.headers', json_build_object('x-memopatte-sync-push', push)::text, true)
+$$;
+
+select pg_temp.in_push('00000000-0000-4000-8000-0000000000f1');
+insert into public.animal (user_id, id, name, species, created_at, updated_at, created_by_device,
+  updated_by_device) values
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '00000000-0000-4000-8000-0000000000b1', 'Luna', 'cat',
+    now() + interval '3 days' - interval '1 hour', now() + interval '3 days',
+    'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'),
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '00000000-0000-4000-8000-0000000000b2', 'Milo', 'dog',
+    now() + interval '3 days' - interval '2 hours', now() + interval '3 days' - interval '2 hours',
+    'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+select results_eq(
+  $$ select created_at, updated_at from public.animal
+     where id in ('00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-0000000000b2')
+     order by id $$,
+  $$ values (now() - interval '1 hour', now()), (now() - interval '2 hours', now() - interval '2 hours') $$,
+  'les lignes d''un envoi reculent toutes du même écart : leur ordre est gardé');
+
+insert into public.device (user_id, id, model, installed_at, created_at, updated_at) values
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'eeeeeeee-eeee-4eee-8eee-0000000000f1', 'Pixel 8',
+    now() + interval '3 days', now() + interval '3 days', now() + interval '3 days');
+select is(
+  (select array[installed_at, created_at, updated_at] from public.device
+   where id = 'eeeeeeee-eeee-4eee-8eee-0000000000f1'),
+  array[now() + interval '3 days', now(), now()],
+  'la date d''installation, jamais écrêtée, ne recule pas');
+
+update public.animal
+set name = 'Luna B', created_at = now() - interval '1 hour', updated_at = now() + interval '3 days 10 minutes'
+where id = '00000000-0000-4000-8000-0000000000b1';
+select is(
+  (select array[created_at, updated_at] from public.animal
+   where id = '00000000-0000-4000-8000-0000000000b1'),
+  array[now() - interval '1 hour', now() + interval '10 minutes'],
+  'une modification ne décale que les dates qu''elle change : la création déjà écrêtée ne recule pas');
+
+update public.animal set name = 'Luna A', updated_at = now() + interval '3 days 5 minutes'
+where id = '00000000-0000-4000-8000-0000000000b1';
+select is(
+  (select array[name, updated_at::text] from public.animal
+   where id = '00000000-0000-4000-8000-0000000000b1'),
+  array['Luna B', (now() + interval '10 minutes')::text],
+  'une écriture décalée qui n''est pas plus récente que celle du serveur est refusée');
+
+select pg_temp.in_push('00000000-0000-4000-8000-0000000000f2');
+update public.animal set updated_at = now() + interval '30 hours'
+where id = '00000000-0000-4000-8000-0000000000b2';
+select is(
+  (select updated_at from public.animal where id = '00000000-0000-4000-8000-0000000000b2'),
+  now(), 'dans un envoi à moins de 24 h d''avance, une date trop loin est ramenée à now()');
+update public.animal set updated_at = now() + interval '2 hours'
+where id = '00000000-0000-4000-8000-0000000000b2';
+select is(
+  (select updated_at from public.animal where id = '00000000-0000-4000-8000-0000000000b2'),
+  now() + interval '2 hours', 'un envoi à moins de 24 h d''avance ne décale rien d''autre');
+
+select pg_temp.in_push('pas-un-identifiant');
+select lives_ok($$
+  insert into public.animal (user_id, id, name, species, created_at, updated_at, created_by_device,
+    updated_by_device) values
+    ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '00000000-0000-4000-8000-0000000000b3', 'Plume', 'cat',
+      now() + interval '2 days', now() + interval '3 days',
+      'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee')
+$$, 'un en-tête illisible ne fait pas échouer l''écriture');
+select is(
+  (select array[created_at, updated_at] from public.animal
+   where id = '00000000-0000-4000-8000-0000000000b3'),
+  array[now() - interval '1 day', now()],
+  'sans envoi lisible, l''écart vient de la date la plus récente de la ligne');
+
+select pg_temp.in_push('00000000-0000-4000-8000-0000000000e3');
+insert into public.animal (user_id, id, name, species, created_at, updated_at, created_by_device,
+  updated_by_device) values
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '00000000-0000-4000-8000-0000000000b4', 'Nala', 'cat',
+    now(), now() + interval '1 hour', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+    'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+select is(
+  (select updated_at from public.animal where id = '00000000-0000-4000-8000-0000000000b4'),
+  now() + interval '1 hour', 'l''envoi d''un autre compte n''est pas lu');
+select set_config('request.headers', '', true);
 
 select * from finish();
 rollback;
