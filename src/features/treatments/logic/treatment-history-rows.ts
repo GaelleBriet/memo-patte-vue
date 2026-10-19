@@ -1,11 +1,10 @@
 import { movedDueOf } from './treatment-line-actions'
 import { moveText } from './treatment-move-text'
 import { notDueText } from '@/shared/domain/treatment-not-due-text'
-import { refusalText, removeMoveRefusalText } from './treatment-refusal-texts'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import { nextDay } from '@/shared/domain/calendar-day'
-import { moveBounds, removalRefusal, type MoveBounds } from '@/shared/domain/dose-calendar'
+import { moveBounds, reportRemovalLock, type MoveBounds } from '@/shared/domain/dose-calendar'
 import { isSeveralTimesADay } from '@/shared/domain/treatment-periods'
 import type { TreatmentReading } from '@/shared/domain/treatment-reading'
 import {
@@ -26,8 +25,6 @@ export type DoseRow = {
   optionsLabel: string
   /** Vide : la ligne n'a pas de menu ; le menu montre ceux que garde `menuOf`. */
   actions: DoseLineAction[]
-  /** Actions grisées, avec l'aide qui dit pourquoi. */
-  refused?: Partial<Record<DoseLineAction, string>>
 }
 
 export type HistoryLine =
@@ -102,20 +99,16 @@ export function missedRow(
   }
 }
 
-function moveLine(t: Translate, { reading, today }: RowContext, dose: TreatmentDose): HistoryLine {
+function moveLine(t: Translate, { reading }: RowContext, dose: TreatmentDose): HistoryLine {
   const bounds = moveBounds(reading.input, movedDueOf(dose), true)
-  const refusal = removalRefusal(reading.input, dose.id)
   const found = 'refusal' in bounds ? null : bounds
-  const locked = refusal?.reason === 'arrival-logged' || refusal?.reason === 'not-movable'
+  const locked = reportRemovalLock(reading.input, dose.id) !== null
   return {
     kind: 'move',
     dose,
     title: moveText(t, dose),
     optionsLabel: t('treatments.history.moveOptions', { date: formatFullDate(dose.dueOn) }),
     actions: locked ? [] : found === null ? ['remove-move'] : ['change-date', 'remove-move'],
-    ...(refusal === null || locked
-      ? {}
-      : { refused: { 'remove-move': removeMoveRefusalText(t, refusal, today) } }),
     bounds: found,
   }
 }
@@ -143,16 +136,12 @@ function shiftLine(
   dose: TreatmentDose,
   period: TreatmentPeriodRecord,
 ): HistoryLine {
-  const refusal = removalRefusal(context.reading.input, dose.id)
   return {
     kind: 'shift',
     dose,
     title: shiftTitle(t, context, dose, period),
     optionsLabel: t('treatments.history.shiftOptions', { date: formatFullDate(dose.dueOn) }),
     actions: ['remove-shift'],
-    ...(refusal === null
-      ? {}
-      : { refused: { 'remove-shift': refusalText(t, refusal, context.today) } }),
   }
 }
 
