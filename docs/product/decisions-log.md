@@ -3072,3 +3072,37 @@ le 16 octobre ; schéma v16, export v9).
   A plus récent) : aucune dose de B n'est reconnaissable comme celle que A a déplacée, les deux
   restent (9, 12, 16), rien de grisé, chacune supprimable.
 
+
+2026-10-19 — **Horloge en avance de plus de 24 h : un seul écart par envoi, repris par le téléphone
+qui pousse** (#904, PR #980 ; décisions du 19 octobre 2026 de la session d'analyse du moteur, à qui
+Gaelle a délégué les lectures de règles ; migrations accordées par Gaelle le 16 octobre). Exemple :
+lundi 19 octobre 10 h, le téléphone A croit être jeudi 22 ; il crée le vermifuge de Luna à 9 h
+réelles puis corrige ses heures à 10 h 05 ; B, à l'heure, avait reporté une dose à 10 h 03.
+
+- 8.1 : après l'envoi, le téléphone qui pousse relit la ligne telle que le serveur l'a gardée et la
+  reprend en local sans la garde « la plus récente gagne », sur toutes les tables, si sa ligne n'a
+  pas changé depuis l'envoi (même `updated_at`). — Raison : sinon A garde ses dates de jeudi, refuse
+  ensuite les modifications de B faites lundi, et les deux téléphones lisent deux calendriers.
+- 8.3 : chaque cycle qui envoie ouvre un envoi daté par le téléphone (`sync_push`, en-tête
+  `x-memopatte-sync-push`) ; le serveur en tire **un seul écart** (son heure de réception moins
+  l'heure du téléphone), appliqué à toutes les lignes de l'envoi : l'ordre des gestes d'un même
+  téléphone est gardé. Un téléphone d'une ancienne version, sans en-tête, retombe sur un écart par
+  ligne, depuis la date changée la plus récente. — Écarté : un `now()` par ligne, qui inverse un
+  report et un réglage écrits à deux minutes d'écart.
+- 8.2 corrigée : seules les dates que l'écriture **change** par rapport à la ligne du serveur sont
+  décalées (toutes à la création), comparées à la milliseconde, comme le téléphone les relit ;
+  `installed_at`, jamais écrêtée, ne bouge pas. — Écarté : « toutes les dates de la ligne », qui
+  ferait reculer `created_at` de 3 jours à chaque modification et inverserait le verdict du moteur
+  sur un report qu'on retouche.
+- Garde : la valeur **décalée** est comparée à celle du serveur ; si elle n'est pas plus récente,
+  l'écriture est refusée et le téléphone reprend la ligne du serveur. Borne : une date changée qui
+  dépasse encore `now() + 24 h` après décalage (ou sans décalage) est ramenée à `now()`. — Écarté :
+  garder l'écriture (les deux téléphones divergent) ; aucune borne pour un envoi lisible (A, 10 jours
+  d'avance au geste et 25 h à l'envoi, bloquerait B pendant 9 jours).
+- Accepté : une vraie modification peut se perdre après un saut d'horloge, sur un conflit de la même
+  ligne. Lundi 19 octobre, B renomme Luna à 8 h 30 ; A, à l'heure, la renomme à 9 h hors ligne ; son
+  horloge saute de +3 jours, puis il synchronise : sa modification recule au 16 octobre, est refusée,
+  le nom de B reste. — Raison : le cas est rare (hors ligne, puis saut d'horloge, puis conflit sur la
+  même ligne), il n'y a jamais de perte hors conflit ni de divergence, et le nom de B reste visible :
+  la personne peut le refaire. Faire confiance à la date du téléphone rouvrirait « une ligne datée
+  2030 gagne pour toujours ».

@@ -99,12 +99,14 @@ sans lui, une ligne datée 2030 gagne pour toujours et ne peut plus jamais être
   heure du serveur `received_at`), et chaque écriture s'en réclame par l'en-tête
   `x-memopatte-sync-push` ;
 - si le téléphone avance de plus de 24 h (`sent_at > received_at + 24 h`), le serveur décale d'**un
-  seul écart par envoi** (`received_at - sent_at`) les dates que l'écriture **change** par rapport à
-  la ligne qu'il tient (`created_at`, `updated_at`, `deleted_at`, `settings_written_at`,
-  `grid_written_at` ; toutes à la création) : l'ordre des gestes d'un même téléphone est gardé, une
-  date déjà écrêtée ou écrite par un autre téléphone ne bouge pas, `installed_at` jamais ;
-- sans envoi lisible (ancienne version), l'écart vient de la date changée la plus récente, ramenée à
-  `now()` si elle dépasse `now() + 24 h` ;
+  seul écart par envoi** (`received_at - sent_at`, à la milliseconde) les dates que l'écriture
+  **change** par rapport à la ligne qu'il tient, comparées à la milliseconde comme le téléphone les
+  relit (`created_at`, `updated_at`, `deleted_at`, `settings_written_at`, `grid_written_at` ; toutes
+  à la création) : l'ordre des gestes d'un même téléphone est gardé, une date déjà écrêtée ou écrite
+  par un autre téléphone ne bouge pas, `installed_at` jamais ;
+- **borne dans tous les cas** : si la date changée la plus récente, une fois décalée (ou sans
+  décalage : envoi absent, illisible, d'un autre compte, ou en avance de moins de 24 h), dépasse
+  encore `now() + 24 h`, l'écart devient celui qui la ramène à `now()` ;
 - une ligne décalée qui n'est pas plus récente que celle du serveur est **refusée** (la plus récente
   gagne) ;
 - le téléphone qui a poussé relit la ligne gardée par le serveur (`guardedUpsert` la rend) et la
@@ -397,7 +399,8 @@ confidentialité doit nommer une région précise.
 
 2. **Écrêter une date future côté serveur.** _Tranché le 2026-09-19 avec Gaelle, la reco est retenue._
    _Reco_ : un trigger ramène à `now()` tout `updated_at` à
-   plus de 24 h dans le futur. _Raison_ : sinon une ligne datée 2030 gagne pour toujours et
+   plus de 24 h dans le futur (depuis #904, du même écart pour toutes les dates changées de
+   l'envoi : voir §1.3). _Raison_ : sinon une ligne datée 2030 gagne pour toujours et
    l'utilisateur ne peut plus jamais la modifier. _Alternative écartée_ : refuser l'écriture — il
    serait bloqué sans comprendre pourquoi, et sans recours depuis l'app.
 
