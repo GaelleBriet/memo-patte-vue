@@ -10,7 +10,7 @@ import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.sche
 import { latestOf } from '@/shared/domain/calendar-day'
 import { sortedTimes } from '@/shared/domain/clock-time'
 import { settingsApplied, type TreatmentView } from '@/shared/domain/dose-calendar'
-import { readCarnet, readTreatment } from '@/shared/domain/treatment-reading'
+import { readCarnet, readTreatment, type TreatmentReading } from '@/shared/domain/treatment-reading'
 
 export type PlanIds = { periodId: string; newId: () => string }
 
@@ -118,6 +118,18 @@ export function draftPeriod(settings: TreatmentPeriodSettings, at: string): Trea
   }
 }
 
+/** Le carnet du moteur une fois ouverte la période de `settings` ; `null` quand il est illisible. */
+export function openedReading(
+  treatment: Pick<TreatmentWithPeriods, 'periods' | 'doses'>,
+  settings: TreatmentPeriodSettings,
+  today: string,
+): TreatmentReading | null {
+  const reading = readTreatment(treatment, today)
+  if (reading === null) return null
+  const opening = settingsPlanOf(openingOf(settings, DRAFT_ID))
+  return readCarnet(settingsApplied(reading.input, opening))
+}
+
 // Une première prise trop ancienne pour le rythme donnerait un calendrier que le moteur refuse de lire.
 export function startsTooFarBack(
   treatment: Pick<TreatmentWithPeriods, 'periods' | 'doses'>,
@@ -125,10 +137,7 @@ export function startsTooFarBack(
   today: string,
 ): boolean {
   if (!treatmentPeriodSettingsSchema.safeParse(settings).success) return false
-  const reading = readTreatment(treatment, today)
-  if (reading === null) return true
-  const opening = settingsPlanOf(openingOf(settings, DRAFT_ID))
-  return readCarnet(settingsApplied(reading.input, opening)) === null
+  return openedReading(treatment, settings, today) === null
 }
 
 export function tooOld() {
