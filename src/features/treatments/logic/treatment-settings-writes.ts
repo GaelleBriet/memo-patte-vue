@@ -34,7 +34,7 @@ export function periodWriteOf(plan: SettingsPlan, extras: Extras, newId: () => s
     : { action: 'correct', id: plan.id, settings, ...origin }
 }
 
-/** La période qu'ouvre « Reprendre » : sa première échéance, choisie, fixe sa grille. */
+/** La période qu'ouvre une création ou « Reprendre » : sa première échéance, choisie, fixe sa grille. */
 export function openingOf(settings: TreatmentPeriodSettings, id: string) {
   return {
     action: 'open' as const,
