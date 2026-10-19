@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { treatmentFrequencySchema } from './treatment.schema'
 import { isCalendarDay } from '@/shared/domain/calendar-day'
 import type { GridBefore } from '@/shared/domain/dose-calendar'
+import { instantSchema } from '@/shared/domain/instant'
 
 /** Au-delà, la grille gardée se lit vide : elle ne sert qu'à une réécriture le jour même. */
 export const MAX_GRID_BEFORE_LENGTH = 20_000
@@ -11,7 +12,6 @@ const day = z.string().refine(isCalendarDay)
 
 const run = z.tuple([day, day.nullable()]).refine(([from, to]) => to === null || from <= to)
 
-// Suites triées et disjointes ; seule la dernière peut être sans fin.
 const inOrder = (runs: readonly (readonly [string, string | null])[]) =>
   runs.every(([from], index) => {
     if (index === 0) return true
@@ -23,7 +23,7 @@ export const gridBeforeSchema = z
   .object({
     frequency: treatmentFrequencySchema,
     endsOn: day.nullable(),
-    writtenAt: z.iso.datetime().transform((value) => new Date(value).toISOString()),
+    writtenAt: instantSchema,
     runs: z.array(run).refine(inOrder),
   })
   .strict()
