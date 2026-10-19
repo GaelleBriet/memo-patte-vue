@@ -9,8 +9,12 @@ import {
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { latestOf } from '@/shared/domain/calendar-day'
 import { sortedTimes } from '@/shared/domain/clock-time'
-import { settingsApplied, type TreatmentView } from '@/shared/domain/dose-calendar'
-import { readCarnet, readTreatment, type TreatmentReading } from '@/shared/domain/treatment-reading'
+import {
+  settingsApplied,
+  type TreatmentView,
+  type TreatmentViewInput,
+} from '@/shared/domain/dose-calendar'
+import { readCarnet, readTreatment } from '@/shared/domain/treatment-reading'
 
 export type PlanIds = { periodId: string; newId: () => string }
 
@@ -101,16 +105,12 @@ export function changesSchedule(period: TreatmentPeriodRecord, rhythm: Treatment
 
 const DRAFT_ID = 'draft'
 
-/** Le carnet du moteur une fois ouverte la période de `settings` ; `null` quand il est illisible. */
-export function openedReading(
-  treatment: Pick<TreatmentWithPeriods, 'periods' | 'doses'>,
+/** Le carnet du moteur une fois ouverte la période de `settings`. */
+export function openedCarnet(
+  input: TreatmentViewInput,
   settings: TreatmentPeriodSettings,
-  today: string,
-): TreatmentReading | null {
-  const reading = readTreatment(treatment, today)
-  if (reading === null) return null
-  const opening = settingsPlanOf(openingOf(settings, DRAFT_ID))
-  return readCarnet(settingsApplied(reading.input, opening))
+): TreatmentViewInput {
+  return settingsApplied(input, settingsPlanOf(openingOf(settings, DRAFT_ID)))
 }
 
 // Une première prise trop ancienne pour le rythme donnerait un calendrier que le moteur refuse de lire.
@@ -120,7 +120,8 @@ export function startsTooFarBack(
   today: string,
 ): boolean {
   if (!treatmentPeriodSettingsSchema.safeParse(settings).success) return false
-  return openedReading(treatment, settings, today) === null
+  const reading = readTreatment(treatment, today)
+  return reading === null || readCarnet(openedCarnet(reading.input, settings)) === null
 }
 
 export function tooOld() {

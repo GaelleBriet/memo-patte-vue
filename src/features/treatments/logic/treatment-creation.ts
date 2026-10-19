@@ -1,5 +1,6 @@
 import { doseFieldsOf } from './treatment-dose-writes'
-import { openedReading, startsTooFarBack, tooOld, withRhythm } from './treatment-settings'
+import { carnetReadingOf, treatmentReadingOf } from './treatment-reading-adapter'
+import { openedCarnet, startsTooFarBack, tooOld, withRhythm } from './treatment-settings'
 import type { NewTreatmentPlan } from '../schema/treatment-plan.schema'
 import {
   treatmentCalendarSchema,
@@ -42,9 +43,8 @@ export function treatmentCreationSchemaFor(today: string) {
 }
 
 function creationReading(settings: TreatmentPeriodSettings, today: string): TreatmentReading {
-  const reading = openedReading({ periods: [], doses: [] }, settings, today)
-  if (reading === null) throw new RangeError('Traitement illisible')
-  return reading
+  const empty = treatmentReadingOf({ periods: [], doses: [] }, today)
+  return carnetReadingOf(openedCarnet(empty.input, settings))
 }
 
 // Q42 : les doses non renseignées, et la dose du moment quand elle est déjà passée (jamais celle du jour).
