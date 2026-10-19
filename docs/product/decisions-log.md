@@ -3087,6 +3087,17 @@ migration accordée ; schéma v17, export v10).
   des réglages, celle de la grille seule étant inconnue. — Écartées : figer le réglage dès qu'il
   porte un report d'un réglage plus ancien (28 tests de règles décidées cassaient) ; garder sur la
   ligne du report la date d'écriture du réglage qu'il a vue.
+- Héritage : la date de grille d'une période est celle de sa dernière écriture de grille ; une
+  période qui reprend la grille de la précédente sans la changer garde sa date. Les échéances en
+  décident, pas les colonnes : même fréquence, même fin, origine vide ou sur l'ancienne grille,
+  première échéance proposée par l'app ou sur l'ancienne grille (`keepsGrid`,
+  `src/shared/domain/dose-calendar/grid-heritage.ts`). Milo, tous les 3 jours à 20 h depuis le
+  26 mars, prises du 26 et du 29 ; le 1er avril, « Modifier » à 6 h : la nouvelle période garde la
+  date de grille, un report de A du 31 mars n'est pas battu. Héritent : « Modifier » aux heures
+  seules, « Elles restent à renseigner » (mêmes jours). Datées de leur création : « Prochaine dose »
+  hors de la grille, autre fréquence, autre fin, « Reprendre » après un arrêt ou une fin (une reprise
+  ouvre une grille neuve, même si un jour coïncide). — Écartée : comparer les colonnes telles quelles
+  (tout « Modifier » d'heures sur une période avec prises ferait perdre ses reports).
 - Import : une date de grille absurde s'écrête comme au serveur, le fichier n'est jamais refusé pour
   elle (données jamais otages) : postérieure de plus de 24 h à l'export, elle devient la date de
   l'export ; antérieure à la création de la période, elle devient cette création.
