@@ -16,8 +16,8 @@ import {
   treatmentResumptionSchemaFor,
 } from '../logic/treatment-resumption'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
-const viewOf = (history: Pick<TreatmentWithPeriods, 'periods' | 'doses'>, today: string) =>
-  treatmentReadingOf(history, today).view
+const viewOf = (withPeriods: Pick<TreatmentWithPeriods, 'periods' | 'doses'>, today: string) =>
+  treatmentReadingOf(withPeriods, today).view
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type {
@@ -100,13 +100,13 @@ function treatment(
 }
 
 function saisie(
-  history: TreatmentWithPeriods,
+  withPeriods: TreatmentWithPeriods,
   changes: Partial<TreatmentEditionInput> = {},
 ): TreatmentEditionInput {
-  const current = history.periods.at(-1)!
+  const current = withPeriods.periods.at(-1)!
   return {
-    name: history.name,
-    type: history.type,
+    name: withPeriods.name,
+    type: withPeriods.type,
     frequency: current.frequency,
     times: current.times,
     doseQuantity: current.doseQuantity,
@@ -118,11 +118,11 @@ function saisie(
 }
 
 function champsRefuses(
-  history: TreatmentWithPeriods,
+  withPeriods: TreatmentWithPeriods,
   input: TreatmentEditionInput,
   today: string,
 ): string[] {
-  const result = treatmentEditionSchemaFor(history, today).safeParse(input)
+  const result = treatmentEditionSchemaFor(withPeriods, today).safeParse(input)
   return result.success
     ? []
     : result.error.issues.map((issue) => `${String(issue.path[0])}:${issue.message}`)
@@ -524,10 +524,10 @@ describe('plan que le moteur ne saurait pas relire', () => {
   })
 
   it('refuse de même une reprise dont la première prise est trop ancienne', () => {
-    const history = treatment([
+    const withPeriods = treatment([
       period({ startsOn: '1940-01-01', firstDueOn: '1940-01-01', stoppedOn: '1940-02-01' }),
     ])
-    const result = treatmentResumptionSchemaFor(history, TODAY).safeParse({
+    const result = treatmentResumptionSchemaFor(withPeriods, TODAY).safeParse({
       firstDoseOn: '1950-01-01',
       frequency: { value: 1, unit: 'day' },
       times: ['08:00', '20:00'],
@@ -542,12 +542,12 @@ describe('plan que le moteur ne saurait pas relire', () => {
   })
 
   it('accepte la reprise la plus ancienne que le moteur sait encore relire, refuse la veille', () => {
-    const history = treatment(
+    const withPeriods = treatment(
       [period({ startsOn: '1940-01-01', firstDueOn: '1940-01-01', stoppedOn: '1940-02-01' })],
       [dose({ dueOn: '1940-01-10', givenOn: '1940-01-10' })],
     )
     const refusReprise = (firstDoseOn: string) => {
-      const result = treatmentResumptionSchemaFor(history, TODAY).safeParse({
+      const result = treatmentResumptionSchemaFor(withPeriods, TODAY).safeParse({
         firstDoseOn,
         frequency: { value: 1, unit: 'day' },
         times: ['08:00', '20:00'],
@@ -570,12 +570,12 @@ describe('plan que le moteur ne saurait pas relire', () => {
       firstDueOn: '1950-01-01',
       frequency: { value: 1, unit: 'day' },
     })
-    const history = treatment([ancien])
+    const withPeriods = treatment([ancien])
 
-    expect(() => treatmentReadingOf(history, TODAY)).not.toThrow()
+    expect(() => treatmentReadingOf(withPeriods, TODAY)).not.toThrow()
     expect(() =>
       treatmentReadingOf(
-        { ...history, periods: [{ ...ancien, times: ['08:00', '20:00'] }] },
+        { ...withPeriods, periods: [{ ...ancien, times: ['08:00', '20:00'] }] },
         TODAY,
       ),
     ).toThrow(RangeError)
@@ -606,11 +606,14 @@ describe('moment du rappel (RA-7, RA-8)', () => {
   })
 
   it('corrige la période en cours quand seul le rappel change, même avec des prises (B3)', () => {
-    const history = treatment([period({ times: ['21:00'], reminderOffsetMinutes: 0 })], [dose()])
-    const input = saisie(history, { reminderOffsetMinutes: 30, reminderTime: null })
+    const withPeriods = treatment(
+      [period({ times: ['21:00'], reminderOffsetMinutes: 0 })],
+      [dose()],
+    )
+    const input = saisie(withPeriods, { reminderOffsetMinutes: 30, reminderTime: null })
 
-    expect(editionDraft(history, input, '2026-09-28').change).toBe('edit')
-    expect(editionPlan(history, input, '2026-09-28', IDS)).toEqual({
+    expect(editionDraft(withPeriods, input, '2026-09-28').change).toBe('edit')
+    expect(editionPlan(withPeriods, input, '2026-09-28', IDS)).toEqual({
       treatment: { name: 'Milbemax', type: 'deworming' },
       period: {
         action: 'correct',
@@ -635,20 +638,25 @@ describe('moment du rappel (RA-7, RA-8)', () => {
   })
 
   it('corrige de même l’heure du rappel d’un traitement sans heure', () => {
-    const history = treatment([period()], [dose()])
+    const withPeriods = treatment([period()], [dose()])
 
-    const plan = editionPlan(history, saisie(history, { reminderTime: '07:30' }), '2026-09-28', IDS)
+    const plan = editionPlan(
+      withPeriods,
+      saisie(withPeriods, { reminderTime: '07:30' }),
+      '2026-09-28',
+      IDS,
+    )
 
     expect(plan.period).toMatchObject({ action: 'correct', settings: { reminderTime: '07:30' } })
     expect(plan.doses).toEqual([])
   })
 
   it('ouvre la nouvelle période avec le rappel saisi quand un autre réglage change aussi', () => {
-    const history = treatment([period({ times: ['21:00'] })], [dose()])
+    const withPeriods = treatment([period({ times: ['21:00'] })], [dose()])
 
     const plan = editionPlan(
-      history,
-      saisie(history, { doseQuantity: 0.5, reminderOffsetMinutes: 60 }),
+      withPeriods,
+      saisie(withPeriods, { doseQuantity: 0.5, reminderOffsetMinutes: 60 }),
       '2026-09-28',
       IDS,
     )
@@ -660,25 +668,25 @@ describe('moment du rappel (RA-7, RA-8)', () => {
   })
 
   it('garde le rappel de la période quand la saisie n’en dit rien', () => {
-    const history = treatment(
+    const withPeriods = treatment(
       [period({ times: ['21:00'], reminderOffsetMinutes: 15, reminderTime: '08:00' })],
       [dose()],
     )
 
-    expect(editionPlan(history, saisie(history), '2026-09-28', IDS).period).toBeNull()
+    expect(editionPlan(withPeriods, saisie(withPeriods), '2026-09-28', IDS).period).toBeNull()
     expect(
-      editionPlan(history, saisie(history, { doseQuantity: 2 }), '2026-09-28', IDS).period,
+      editionPlan(withPeriods, saisie(withPeriods, { doseQuantity: 2 }), '2026-09-28', IDS).period,
     ).toMatchObject({ settings: { reminderOffsetMinutes: 15, reminderTime: '08:00' } })
   })
 })
 
 describe('editionPlan — nom et type (TR-27)', () => {
   it('corrige le nom et le type sans toucher à la période ni aux prises', () => {
-    const history = treatment([period()], [dose()])
+    const withPeriods = treatment([period()], [dose()])
 
     const plan = editionPlan(
-      history,
-      saisie(history, { name: 'Milbemax chat', type: 'medication' }),
+      withPeriods,
+      saisie(withPeriods, { name: 'Milbemax chat', type: 'medication' }),
       '2026-09-28',
       IDS,
     )
@@ -693,11 +701,11 @@ describe('editionPlan — nom et type (TR-27)', () => {
 
 describe('editionPlan — fréquence, heures, posologie (TR-28)', () => {
   it('corrige les réglages tant qu’aucune prise n’est notée dans la période', () => {
-    const history = treatment([period({ firstDueOn: '2026-10-10', startsOn: '2026-10-10' })])
+    const withPeriods = treatment([period({ firstDueOn: '2026-10-10', startsOn: '2026-10-10' })])
 
     const plan = editionPlan(
-      history,
-      saisie(history, {
+      withPeriods,
+      saisie(withPeriods, {
         frequency: { value: 2, unit: 'week' },
         times: ['20:00', '08:00'],
         doseQuantity: 0.5,
@@ -734,10 +742,10 @@ describe('editionPlan — fréquence, heures, posologie (TR-28)', () => {
       frequency: { value: 1, unit: 'week' },
       doseUnit: 'pipette',
     })
-    const history = treatment([hebdo], [dose({ dueOn: '2026-09-08', givenOn: '2026-09-08' })])
-    const input = saisie(history, { frequency: { value: 15, unit: 'day' } })
+    const withPeriods = treatment([hebdo], [dose({ dueOn: '2026-09-08', givenOn: '2026-09-08' })])
+    const input = saisie(withPeriods, { frequency: { value: 15, unit: 'day' } })
 
-    expect(editionDraft(history, input, '2026-09-29')).toMatchObject({
+    expect(editionDraft(withPeriods, input, '2026-09-29')).toMatchObject({
       change: 'edit',
       nextDose: {
         change: 'first-due',
@@ -747,7 +755,7 @@ describe('editionPlan — fréquence, heures, posologie (TR-28)', () => {
         help: { kind: 'calculated-passed', on: '2026-09-23' },
       },
     })
-    expect(editionPlan(history, input, '2026-09-29', IDS).period).toEqual({
+    expect(editionPlan(withPeriods, input, '2026-09-29', IDS).period).toEqual({
       action: 'open',
       id: NEW_PERIOD,
       gridOriginOn: '2026-09-29',
@@ -768,11 +776,11 @@ describe('editionPlan — fréquence, heures, posologie (TR-28)', () => {
   })
 
   it('ouvre la nouvelle période à la première dose choisie dans « Prochaine dose »', () => {
-    const history = treatment([period()], [dose()])
+    const withPeriods = treatment([period()], [dose()])
 
     const plan = editionPlan(
-      history,
-      saisie(history, { doseQuantity: 0.5, nextDoseOn: '2026-10-20' }),
+      withPeriods,
+      saisie(withPeriods, { doseQuantity: 0.5, nextDoseOn: '2026-10-20' }),
       '2026-09-28',
       IDS,
     )
@@ -787,49 +795,54 @@ describe('editionPlan — fréquence, heures, posologie (TR-28)', () => {
   })
 
   it('ouvre une nouvelle période pour des heures changées, même sans changer la fréquence', () => {
-    const history = treatment([period()], [dose()])
+    const withPeriods = treatment([period()], [dose()])
 
     expect(
-      editionPlan(history, saisie(history, { times: ['09:00'] }), '2026-09-28', IDS).period,
+      editionPlan(withPeriods, saisie(withPeriods, { times: ['09:00'] }), '2026-09-28', IDS).period,
     ).toMatchObject({ action: 'open' })
   })
 
   it('refuse une première dose de la nouvelle période avant aujourd’hui ou après la date de fin', () => {
-    const history = treatment([period()], [dose()])
+    const withPeriods = treatment([period()], [dose()])
     const changed = { frequency: { value: 1, unit: 'month' } } as const
 
     expect(
       champsRefuses(
-        history,
-        saisie(history, { ...changed, nextDoseOn: '2026-09-27' }),
+        withPeriods,
+        saisie(withPeriods, { ...changed, nextDoseOn: '2026-09-27' }),
         '2026-09-28',
       ),
     ).toEqual(['nextDoseOn:tooEarly'])
     expect(
       champsRefuses(
-        history,
-        saisie(history, { ...changed, endsOn: '2026-10-15', nextDoseOn: '2026-10-16' }),
+        withPeriods,
+        saisie(withPeriods, { ...changed, endsOn: '2026-10-15', nextDoseOn: '2026-10-16' }),
         '2026-09-28',
       ),
     ).toEqual(['nextDoseOn:noDoseBeforeEnd'])
   })
 
   it('refuse une date de fin restée avant la première dose de la nouvelle période', () => {
-    const history = treatment([period({ endsOn: '2026-10-15' })], [dose()])
+    const withPeriods = treatment([period({ endsOn: '2026-10-15' })], [dose()])
 
     expect(
       champsRefuses(
-        history,
-        saisie(history, { frequency: { value: 6, unit: 'month' } }),
+        withPeriods,
+        saisie(withPeriods, { frequency: { value: 6, unit: 'month' } }),
         '2026-09-28',
       ),
     ).toEqual(['nextDoseOn:noDoseBeforeEnd'])
   })
 
   it('corrige la date de fin seule sans ouvrir de période, même avec des prises', () => {
-    const history = treatment([period()], [dose()])
+    const withPeriods = treatment([period()], [dose()])
 
-    const plan = editionPlan(history, saisie(history, { endsOn: '2026-12-31' }), '2026-09-28', IDS)
+    const plan = editionPlan(
+      withPeriods,
+      saisie(withPeriods, { endsOn: '2026-12-31' }),
+      '2026-09-28',
+      IDS,
+    )
 
     expect(plan.period).toMatchObject({
       action: 'correct',
@@ -838,12 +851,12 @@ describe('editionPlan — fréquence, heures, posologie (TR-28)', () => {
   })
 
   it('refuse une date de fin avant la dernière prise notée, égale acceptée (TR-6)', () => {
-    const history = treatment(
+    const withPeriods = treatment(
       [period()],
       [dose(), dose({ id: 'd-2', dueOn: '2026-10-10', givenOn: '2026-10-12' })],
     )
     const refus = (endsOn: string) =>
-      champsRefuses(history, saisie(history, { endsOn }), '2026-10-20')
+      champsRefuses(withPeriods, saisie(withPeriods, { endsOn }), '2026-10-20')
 
     expect(refus('2026-10-09')).toEqual(['endsOn:beforeLastDose'])
     expect(refus('2026-10-10')).toEqual([])
@@ -851,16 +864,16 @@ describe('editionPlan — fréquence, heures, posologie (TR-28)', () => {
   })
 
   it('ne corrige que le nom et le type d’un traitement arrêté', () => {
-    const history = treatment([period({ stoppedOn: '2026-08-01' })], [dose()])
+    const withPeriods = treatment([period({ stoppedOn: '2026-08-01' })], [dose()])
 
     const plan = editionPlan(
-      history,
-      saisie(history, { name: 'Milbemax chat', frequency: { value: 1, unit: 'day' } }),
+      withPeriods,
+      saisie(withPeriods, { name: 'Milbemax chat', frequency: { value: 1, unit: 'day' } }),
       '2026-09-28',
       IDS,
     )
 
-    expect(editionDraft(history, null, '2026-09-28')).toMatchObject({
+    expect(editionDraft(withPeriods, null, '2026-09-28')).toMatchObject({
       change: 'locked',
       nextDose: null,
     })
@@ -888,10 +901,10 @@ describe('editionPlan — période ouverte par « Modifier », encore sans prise
   })
 
   it('repropose la première échéance quand la fréquence est corrigée : dernière prise plus la nouvelle fréquence', () => {
-    const history = treatment([HEBDO, QUINZAINE], [PRISE_DU_2])
-    const input = saisie(history, { frequency: { value: 2, unit: 'day' } })
+    const withPeriods = treatment([HEBDO, QUINZAINE], [PRISE_DU_2])
+    const input = saisie(withPeriods, { frequency: { value: 2, unit: 'day' } })
 
-    expect(editionDraft(history, input, '2026-10-02')).toMatchObject({
+    expect(editionDraft(withPeriods, input, '2026-10-02')).toMatchObject({
       change: 'edit',
       nextDose: {
         change: 'first-due',
@@ -900,7 +913,7 @@ describe('editionPlan — période ouverte par « Modifier », encore sans prise
         help: { kind: 'calculated', on: '2026-10-04' },
       },
     })
-    expect(editionPlan(history, input, '2026-10-02', IDS)).toMatchObject({
+    expect(editionPlan(withPeriods, input, '2026-10-02', IDS)).toMatchObject({
       period: {
         action: 'correct',
         settings: {
@@ -929,22 +942,22 @@ describe('editionPlan — période ouverte par « Modifier », encore sans prise
     const prises = ['2026-09-30', '2026-10-01', '2026-10-02'].map((day) =>
       dose({ id: day, dueOn: day, givenOn: day }),
     )
-    const history = treatment([quotidien, hebdo], prises)
-    const input = saisie(history, { frequency: { value: 2, unit: 'week' } })
-    return { quotidien, hebdo, history, input }
+    const withPeriods = treatment([quotidien, hebdo], prises)
+    const input = saisie(withPeriods, { frequency: { value: 2, unit: 'week' } })
+    return { quotidien, hebdo, withPeriods, input }
   }
 
   it('corrigée un autre jour que son ouverture, garde son début : aucune dose non renseignée nouvelle', () => {
-    const { quotidien, hebdo, history, input } = hebdoCorrigeeLe5()
+    const { quotidien, hebdo, withPeriods, input } = hebdoCorrigeeLe5()
 
-    expect(editionDraft(history, input, '2026-10-05').nextDose).toMatchObject({
+    expect(editionDraft(withPeriods, input, '2026-10-05').nextDose).toMatchObject({
       earliest: '2026-10-05',
     })
-    const plan = editionPlan(history, input, '2026-10-05', IDS)
+    const plan = editionPlan(withPeriods, input, '2026-10-05', IDS)
     expect(plan.period).toMatchObject({ action: 'correct', settings: { startsOn: '2026-10-02' } })
     const after = viewOf(
       {
-        ...history,
+        ...withPeriods,
         periods: [quotidien, { ...hebdo, ...(plan.period as { settings: object }).settings }],
       },
       '2026-10-05',
@@ -955,9 +968,9 @@ describe('editionPlan — période ouverte par « Modifier », encore sans prise
   it.each(['2026-10-02', '2026-10-03', '2026-10-05'])(
     '#799 : corrigée le %s en « toutes les 2 semaines », le 16 est proposé, calculé d’après la dernière prise',
     (today) => {
-      const { history, input } = hebdoCorrigeeLe5()
+      const { withPeriods, input } = hebdoCorrigeeLe5()
 
-      expect(editionDraft(history, input, today).nextDose).toMatchObject({
+      expect(editionDraft(withPeriods, input, today).nextDose).toMatchObject({
         proposedOn: '2026-10-16',
         help: { kind: 'calculated', on: '2026-10-16' },
       })
@@ -965,11 +978,11 @@ describe('editionPlan — période ouverte par « Modifier », encore sans prise
   )
 
   it('garde la première échéance choisie dans « Prochaine dose » avec la fréquence corrigée', () => {
-    const history = treatment([HEBDO, QUINZAINE], [PRISE_DU_2])
+    const withPeriods = treatment([HEBDO, QUINZAINE], [PRISE_DU_2])
 
     const plan = editionPlan(
-      history,
-      saisie(history, { frequency: { value: 2, unit: 'day' }, nextDoseOn: '2026-10-06' }),
+      withPeriods,
+      saisie(withPeriods, { frequency: { value: 2, unit: 'day' }, nextDoseOn: '2026-10-06' }),
       '2026-10-02',
       IDS,
     )
@@ -978,25 +991,25 @@ describe('editionPlan — période ouverte par « Modifier », encore sans prise
   })
 
   it('garde la première échéance quand seule la posologie ou la date de fin change', () => {
-    const history = treatment([HEBDO, QUINZAINE], [PRISE_DU_2])
-    const input = saisie(history, { doseQuantity: 2, endsOn: '2026-12-31' })
+    const withPeriods = treatment([HEBDO, QUINZAINE], [PRISE_DU_2])
+    const input = saisie(withPeriods, { doseQuantity: 2, endsOn: '2026-12-31' })
 
-    expect(editionDraft(history, input, '2026-10-02').nextDose).toMatchObject({
+    expect(editionDraft(withPeriods, input, '2026-10-02').nextDose).toMatchObject({
       proposedOn: '2026-10-17',
       help: { kind: 'scheduled', on: '2026-10-17' },
     })
-    expect(editionPlan(history, input, '2026-10-02', IDS).period).toMatchObject({
+    expect(editionPlan(withPeriods, input, '2026-10-02', IDS).period).toMatchObject({
       settings: { firstDueOn: '2026-10-17', doseQuantity: 2 },
     })
   })
 
   it('refuse une date de fin avant la première échéance reproposée', () => {
-    const history = treatment([HEBDO, QUINZAINE], [PRISE_DU_2])
+    const withPeriods = treatment([HEBDO, QUINZAINE], [PRISE_DU_2])
 
     expect(
       champsRefuses(
-        history,
-        saisie(history, { frequency: { value: 1, unit: 'month' }, endsOn: '2026-10-20' }),
+        withPeriods,
+        saisie(withPeriods, { frequency: { value: 1, unit: 'month' }, endsOn: '2026-10-20' }),
         '2026-10-02',
       ),
     ).toEqual(['nextDoseOn:noDoseBeforeEnd'])
@@ -1017,7 +1030,7 @@ describe('editionPlan — période ouverte par « Modifier », encore sans prise
       times: ['09:00', '21:00'],
       createdAt: '2026-10-02T09:00:00.000Z',
     })
-    const history = treatment(
+    const withPeriods = treatment(
       [matinEtSoir, neufHeures],
       [
         dose({
@@ -1029,24 +1042,27 @@ describe('editionPlan — période ouverte par « Modifier », encore sans prise
     )
 
     expect(
-      editionDraft(history, saisie(history, { times: ['09:00', '14:00', '21:00'] }), '2026-10-02')
-        .nextDose,
+      editionDraft(
+        withPeriods,
+        saisie(withPeriods, { times: ['09:00', '14:00', '21:00'] }),
+        '2026-10-02',
+      ).nextDose,
     ).toMatchObject({ proposedOn: '2026-10-02' })
     expect(
-      editionDraft(history, saisie(history, { times: ['09:00'] }), '2026-10-02').nextDose,
+      editionDraft(withPeriods, saisie(withPeriods, { times: ['09:00'] }), '2026-10-02').nextDose,
     ).toMatchObject({ proposedOn: '2026-10-03' })
   })
 
   it('ne repropose rien pour une période ouverte par « Reprendre » : sa première prise a été saisie', () => {
     const arretee = { ...HEBDO, stoppedOn: '2026-10-02' }
     const finie = { ...HEBDO, endsOn: '2026-10-01' }
-    const input = (history: TreatmentWithPeriods) =>
-      saisie(history, { frequency: { value: 2, unit: 'day' } })
+    const input = (withPeriods: TreatmentWithPeriods) =>
+      saisie(withPeriods, { frequency: { value: 2, unit: 'day' } })
 
     for (const precedente of [arretee, finie]) {
-      const history = treatment([precedente, QUINZAINE], [])
+      const withPeriods = treatment([precedente, QUINZAINE], [])
 
-      expect(editionDraft(history, input(history), '2026-10-02').nextDose).toMatchObject({
+      expect(editionDraft(withPeriods, input(withPeriods), '2026-10-02').nextDose).toMatchObject({
         proposedOn: '2026-10-17',
       })
     }
@@ -1066,13 +1082,13 @@ describe('editionPlan — correction d’une période qui n’a plus qu’un dé
     status: 'shift',
     targetOn: '2026-10-19',
   })
-  const history = treatment([vendredi], [decalage])
+  const withPeriods = treatment([vendredi], [decalage])
 
   it.each([
     ['la posologie seule', { doseQuantity: 0.5 }],
     ['la date de fin seule', { endsOn: '2026-12-31' }],
   ])('corrigée sur %s, la grille ne change pas : le décalage reste', (_, changes) => {
-    const plan = editionPlan(history, saisie(history, changes), '2026-10-12', IDS)
+    const plan = editionPlan(withPeriods, saisie(withPeriods, changes), '2026-10-12', IDS)
 
     expect(plan.period).toMatchObject({ action: 'correct', settings: changes })
     expect(plan.doses).toEqual([])
@@ -1090,7 +1106,12 @@ describe('editionPlan — correction d’une période qui n’a plus qu’un dé
   ])(
     'corrigée au %s, la grille repart de la date choisie : le décalage est supprimé',
     (on, dues) => {
-      const plan = editionPlan(history, saisie(history, { nextDoseOn: on }), '2026-10-12', IDS)
+      const plan = editionPlan(
+        withPeriods,
+        saisie(withPeriods, { nextDoseOn: on }),
+        '2026-10-12',
+        IDS,
+      )
 
       expect(plan.period).toMatchObject({ action: 'correct', settings: { firstDueOn: on } })
       expect(plan.doses).toEqual([])
@@ -1126,12 +1147,12 @@ describe('editionPlan — période qui n’a que des prises en plus (TR-28)', ()
     givenOn: '2026-10-09',
     status: 'extra',
   })
-  const history = treatment([vendredi], [enPlus])
+  const withPeriods = treatment([vendredi], [enPlus])
 
   it('se corrige comme une période sans prise, et garde sa prise en plus', () => {
     const plan = editionPlan(
-      history,
-      saisie(history, { nextDoseOn: '2026-10-23' }),
+      withPeriods,
+      saisie(withPeriods, { nextDoseOn: '2026-10-23' }),
       '2026-10-12',
       IDS,
     )
@@ -1158,9 +1179,9 @@ describe('editionPlan — période qui n’a que des prises en plus (TR-28)', ()
 
 describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
   it('propose la prochaine dose calculée d’après la dernière prise, avec les bornes du moteur', () => {
-    const history = treatment([period()], [dose()])
+    const withPeriods = treatment([period()], [dose()])
 
-    expect(editionDraft(history, null, '2026-09-28').nextDose).toEqual({
+    expect(editionDraft(withPeriods, null, '2026-09-28').nextDose).toEqual({
       change: 'move',
       proposedOn: '2026-10-10',
       earliest: '2026-09-28',
@@ -1173,11 +1194,11 @@ describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
   })
 
   it('reporte la dose par une ligne « Reportée », sans période nouvelle (Q17)', () => {
-    const history = treatment([period()], [dose()])
+    const withPeriods = treatment([period()], [dose()])
 
     const plan = editionPlan(
-      history,
-      saisie(history, { nextDoseOn: '2026-10-14' }),
+      withPeriods,
+      saisie(withPeriods, { nextDoseOn: '2026-10-14' }),
       '2026-09-28',
       IDS,
     )
@@ -1215,11 +1236,11 @@ describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
   })
 
   it('avance la dose par la même ligne, d’après son échéance d’origine', () => {
-    const history = treatment([period()], [dose()])
+    const withPeriods = treatment([period()], [dose()])
 
     const plan = editionPlan(
-      history,
-      saisie(history, { nextDoseOn: '2026-10-08' }),
+      withPeriods,
+      saisie(withPeriods, { nextDoseOn: '2026-10-08' }),
       '2026-09-28',
       IDS,
     )
@@ -1242,14 +1263,15 @@ describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
   const REPORT_SHIFT = { ...REPORT, id: 'd-2s', status: 'shift' as const }
 
   it('garde en aide la date calculée d’une dose déjà reportée, et réécrit sa ligne (Q18)', () => {
-    const history = treatment([period()], [dose(), REPORT, REPORT_SHIFT])
+    const withPeriods = treatment([period()], [dose(), REPORT, REPORT_SHIFT])
 
-    expect(editionDraft(history, null, '2026-09-28').nextDose).toMatchObject({
+    expect(editionDraft(withPeriods, null, '2026-09-28').nextDose).toMatchObject({
       proposedOn: '2026-10-14',
       help: { kind: 'calculated', on: '2026-10-10' },
     })
     expect(
-      editionPlan(history, saisie(history, { nextDoseOn: '2026-10-18' }), '2026-09-28', IDS).doses,
+      editionPlan(withPeriods, saisie(withPeriods, { nextDoseOn: '2026-10-18' }), '2026-09-28', IDS)
+        .doses,
     ).toMatchObject([
       { action: 'rewrite', id: 'd-2', dose: { dueOn: '2026-10-10', targetOn: '2026-10-18' } },
       { action: 'rewrite', id: 'd-2s', dose: { status: 'shift', targetOn: '2026-10-18' } },
@@ -1257,10 +1279,11 @@ describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
   })
 
   it('supprime la ligne et son décalage quand la dose revient à sa date d’origine', () => {
-    const history = treatment([period()], [dose(), REPORT, REPORT_SHIFT])
+    const withPeriods = treatment([period()], [dose(), REPORT, REPORT_SHIFT])
 
     expect(
-      editionPlan(history, saisie(history, { nextDoseOn: '2026-10-10' }), '2026-09-28', IDS).doses,
+      editionPlan(withPeriods, saisie(withPeriods, { nextDoseOn: '2026-10-10' }), '2026-09-28', IDS)
+        .doses,
     ).toEqual([
       { action: 'delete', id: 'd-2' },
       { action: 'delete', id: 'd-2s' },
@@ -1268,15 +1291,16 @@ describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
   })
 
   it('n’écrit rien quand « Prochaine dose » garde la date proposée', () => {
-    const history = treatment([period()], [dose(), REPORT])
+    const withPeriods = treatment([period()], [dose(), REPORT])
 
     expect(
-      editionPlan(history, saisie(history, { nextDoseOn: '2026-10-14' }), '2026-09-28', IDS).doses,
+      editionPlan(withPeriods, saisie(withPeriods, { nextDoseOn: '2026-10-14' }), '2026-09-28', IDS)
+        .doses,
     ).toEqual([])
   })
 
   it('refuse une prochaine dose après la date de fin et n’écrit rien (Q20)', () => {
-    const history = treatment(
+    const withPeriods = treatment(
       [
         period({
           startsOn: '2026-09-26',
@@ -1287,14 +1311,14 @@ describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
       ],
       [dose({ dueOn: '2026-09-26', givenOn: '2026-09-26' })],
     )
-    const input = saisie(history, { nextDoseOn: '2026-11-01' })
+    const input = saisie(withPeriods, { nextDoseOn: '2026-11-01' })
 
-    expect(champsRefuses(history, input, '2026-09-28')).toEqual(['nextDoseOn:afterEnd'])
-    expect(() => editionPlan(history, input, '2026-09-28', IDS)).toThrow(ZodError)
+    expect(champsRefuses(withPeriods, input, '2026-09-28')).toEqual(['nextDoseOn:afterEnd'])
+    expect(() => editionPlan(withPeriods, input, '2026-09-28', IDS)).toThrow(ZodError)
   })
 
   it('refuse, case décochée, une prochaine dose au-delà de la date de fin comme après la fin, non comme après la dose suivante', () => {
-    const history = treatment(
+    const withPeriods = treatment(
       [
         period({
           startsOn: '2026-09-26',
@@ -1305,13 +1329,13 @@ describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
       ],
       [dose({ dueOn: '2026-09-26', givenOn: '2026-09-26' })],
     )
-    const input = saisie(history, { nextDoseOn: '2026-11-01', shiftsFollowing: false })
+    const input = saisie(withPeriods, { nextDoseOn: '2026-11-01', shiftsFollowing: false })
 
-    expect(champsRefuses(history, input, '2026-09-28')).toEqual(['nextDoseOn:afterEnd'])
+    expect(champsRefuses(withPeriods, input, '2026-09-28')).toEqual(['nextDoseOn:afterEnd'])
   })
 
   it('accepte une prochaine dose au-delà de l’ancienne fin quand la date de fin change dans la même saisie', () => {
-    const history = treatment(
+    const withPeriods = treatment(
       [
         period({
           frequency: { value: 1, unit: 'week' },
@@ -1324,8 +1348,8 @@ describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
     )
 
     const plan = editionPlan(
-      history,
-      saisie(history, { endsOn: '2026-11-05', nextDoseOn: '2026-10-08' }),
+      withPeriods,
+      saisie(withPeriods, { endsOn: '2026-11-05', nextDoseOn: '2026-10-08' }),
       '2026-09-28',
       IDS,
     )
@@ -1338,17 +1362,17 @@ describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
   })
 
   it('refuse une prochaine dose avant la borne du moteur', () => {
-    const history = treatment([period()], [dose()])
+    const withPeriods = treatment([period()], [dose()])
 
     expect(
-      champsRefuses(history, saisie(history, { nextDoseOn: '2026-09-27' }), '2026-09-28'),
+      champsRefuses(withPeriods, saisie(withPeriods, { nextDoseOn: '2026-09-27' }), '2026-09-28'),
     ).toEqual(['nextDoseOn:tooEarly'])
   })
 
   it('corrige la première échéance d’une période sans prise, sans ligne de déplacement', () => {
-    const history = treatment([period({ startsOn: '2026-10-10', firstDueOn: '2026-10-10' })])
+    const withPeriods = treatment([period({ startsOn: '2026-10-10', firstDueOn: '2026-10-10' })])
 
-    expect(editionDraft(history, null, '2026-09-28').nextDose).toEqual({
+    expect(editionDraft(withPeriods, null, '2026-09-28').nextDose).toEqual({
       change: 'first-due',
       proposedOn: '2026-10-10',
       earliest: '2026-09-28',
@@ -1359,8 +1383,8 @@ describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
       shiftInitial: true,
     })
     const plan = editionPlan(
-      history,
-      saisie(history, { nextDoseOn: '2026-10-02' }),
+      withPeriods,
+      saisie(withPeriods, { nextDoseOn: '2026-10-02' }),
       '2026-09-28',
       IDS,
     )
@@ -1373,16 +1397,16 @@ describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
   })
 
   it('ne corrige que le nom et le type d’un traitement fini par sa date de fin : on le reprend par « Reprendre »', () => {
-    const history = treatment([period({ endsOn: '2026-08-01' })], [dose()])
+    const withPeriods = treatment([period({ endsOn: '2026-08-01' })], [dose()])
 
-    expect(editionDraft(history, null, '2026-09-28')).toMatchObject({
+    expect(editionDraft(withPeriods, null, '2026-09-28')).toMatchObject({
       change: 'locked',
       nextDose: null,
     })
     expect(
       editionPlan(
-        history,
-        saisie(history, {
+        withPeriods,
+        saisie(withPeriods, {
           name: 'Milbemax chat',
           frequency: { value: 1, unit: 'day' },
           endsOn: '2026-12-31',
@@ -1394,12 +1418,12 @@ describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
   })
 
   it('verrouille aussi un traitement dont la dernière échéance avant la fin est notée', () => {
-    const history = treatment(
+    const withPeriods = treatment(
       [period({ frequency: { value: 1, unit: 'week' }, endsOn: '2026-10-01' })],
       [dose({ dueOn: '2026-09-25', givenOn: '2026-09-25' })],
     )
 
-    expect(editionDraft(history, null, '2026-09-28').change).toBe('locked')
+    expect(editionDraft(withPeriods, null, '2026-09-28').change).toBe('locked')
   })
 
   it('donne la raison du moteur quand une dose plus lointaine est déjà reportée (Q26)', () => {
@@ -1408,7 +1432,7 @@ describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
       startsOn: '2026-09-20',
       firstDueOn: '2026-09-20',
     })
-    const history = treatment(
+    const withPeriods = treatment(
       [quotidien],
       [
         dose({
@@ -1421,18 +1445,18 @@ describe('editionPlan — « Prochaine dose » (TR-7, TR-9)', () => {
       ],
     )
 
-    const draft = editionDraft(history, null, '2026-09-28')
+    const draft = editionDraft(withPeriods, null, '2026-09-28')
 
     expect(draft.nextDose).toMatchObject({ change: 'move', refusal: { reason: 'later-line' } })
     expect(
-      champsRefuses(history, saisie(history, { nextDoseOn: '2026-09-30' }), '2026-09-28'),
+      champsRefuses(withPeriods, saisie(withPeriods, { nextDoseOn: '2026-09-30' }), '2026-09-28'),
     ).toEqual(['nextDoseOn:refused'])
   })
 
   it('supprime avec l’écriture les déplacements que le moteur dit sans effet', () => {
-    const history = treatment([period()], [dose(), dose({ ...REPORT, id: 'd-revenu' })])
+    const withPeriods = treatment([period()], [dose(), dose({ ...REPORT, id: 'd-revenu' })])
 
-    const plan = editionPlan(history, saisie(history), '2026-09-28', IDS)
+    const plan = editionPlan(withPeriods, saisie(withPeriods), '2026-09-28', IDS)
 
     expect(plan.doses).toEqual([])
   })
@@ -1445,12 +1469,12 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
       firstDueOn: '2026-09-07',
       frequency: { value: 1, unit: 'month' },
     })
-    const history = treatment([mensuel], [dose({ dueOn: '2026-09-07', givenOn: '2026-09-07' })])
+    const withPeriods = treatment([mensuel], [dose({ dueOn: '2026-09-07', givenOn: '2026-09-07' })])
 
     expect(
       editionDraft(
-        history,
-        saisie(history, { frequency: { value: 1, unit: 'week' } }),
+        withPeriods,
+        saisie(withPeriods, { frequency: { value: 1, unit: 'week' } }),
         '2026-09-17',
       ).nextDose,
     ).toMatchObject({
@@ -1465,7 +1489,7 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
       firstDueOn: '2026-09-07',
       frequency: { value: 1, unit: 'month' },
     })
-    const history = treatment(
+    const withPeriods = treatment(
       [mensuel],
       [
         dose({ dueOn: '2026-09-07', givenOn: '2026-09-07' }),
@@ -1480,7 +1504,7 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
     )
 
     expect(
-      editionDraft(history, saisie(history, { times: ['09:00'] }), '2026-10-08').nextDose,
+      editionDraft(withPeriods, saisie(withPeriods, { times: ['09:00'] }), '2026-10-08').nextDose,
     ).toMatchObject({ proposedOn: '2026-10-14', help: { kind: 'scheduled', on: '2026-10-14' } })
   })
 
@@ -1491,7 +1515,7 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
       frequency: { value: 1, unit: 'day' },
       times: ['08:00', '20:00'],
     })
-    const history = treatment(
+    const withPeriods = treatment(
       [matinEtSoir],
       [
         dose({
@@ -1503,7 +1527,8 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
     )
 
     expect(
-      editionDraft(history, saisie(history, { times: ['09:00', '21:00'] }), '2026-10-02').nextDose,
+      editionDraft(withPeriods, saisie(withPeriods, { times: ['09:00', '21:00'] }), '2026-10-02')
+        .nextDose,
     ).toMatchObject({ proposedOn: '2026-10-02', help: { kind: 'today' } })
   })
 
@@ -1534,7 +1559,7 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
   })
 
   it('garde la date d’une dose en retard après une prise, n’écrit rien sans y toucher, et n’accepte qu’une date à partir d’aujourd’hui', () => {
-    const history = treatment(
+    const withPeriods = treatment(
       [
         period({
           startsOn: '2026-09-13',
@@ -1545,20 +1570,22 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
       [dose({ dueOn: '2026-09-20', givenOn: '2026-09-20' })],
     )
 
-    expect(editionDraft(history, null, '2026-10-02').nextDose).toMatchObject({
+    expect(editionDraft(withPeriods, null, '2026-10-02').nextDose).toMatchObject({
       change: 'move',
       proposedOn: '2026-09-27',
       earliest: '2026-10-02',
       help: { kind: 'overdue', since: '2026-09-27' },
     })
     expect(
-      editionPlan(history, saisie(history, { nextDoseOn: '2026-09-27' }), '2026-10-02', IDS).doses,
+      editionPlan(withPeriods, saisie(withPeriods, { nextDoseOn: '2026-09-27' }), '2026-10-02', IDS)
+        .doses,
     ).toEqual([])
     expect(
-      champsRefuses(history, saisie(history, { nextDoseOn: '2026-10-01' }), '2026-10-02'),
+      champsRefuses(withPeriods, saisie(withPeriods, { nextDoseOn: '2026-10-01' }), '2026-10-02'),
     ).toEqual(['nextDoseOn:tooEarly'])
     expect(
-      editionPlan(history, saisie(history, { nextDoseOn: '2026-10-02' }), '2026-10-02', IDS).doses,
+      editionPlan(withPeriods, saisie(withPeriods, { nextDoseOn: '2026-10-02' }), '2026-10-02', IDS)
+        .doses,
     ).toMatchObject([
       { action: 'create', dose: { dueOn: '2026-09-27', targetOn: '2026-10-02' } },
       { action: 'create', dose: { status: 'shift', targetOn: '2026-10-02' } },
@@ -1572,7 +1599,7 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
       frequency: { value: 1, unit: 'day' },
       times: ['08:00', '20:00'],
     })
-    const history = treatment(
+    const withPeriods = treatment(
       [matinEtSoir],
       [
         dose({
@@ -1591,8 +1618,11 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
     )
 
     expect(
-      editionDraft(history, saisie(history, { frequency: { value: 2, unit: 'day' } }), '2026-10-02')
-        .nextDose,
+      editionDraft(
+        withPeriods,
+        saisie(withPeriods, { frequency: { value: 2, unit: 'day' } }),
+        '2026-10-02',
+      ).nextDose,
     ).toMatchObject({
       proposedOn: '2026-10-02',
       help: { kind: 'calculated-passed', on: '2026-09-29' },
@@ -1605,22 +1635,22 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
       firstDueOn: '2026-09-14',
       frequency: { value: 1, unit: 'week' },
     })
-    const history = treatment([hebdo], [dose({ dueOn: '2026-09-21', givenOn: '2026-09-21' })])
+    const withPeriods = treatment([hebdo], [dose({ dueOn: '2026-09-21', givenOn: '2026-09-21' })])
 
     expect(
       editionDraft(
-        history,
-        saisie(history, { frequency: { value: 2, unit: 'week' } }),
+        withPeriods,
+        saisie(withPeriods, { frequency: { value: 2, unit: 'week' } }),
         '2026-09-28',
       ).nextDose,
     ).toMatchObject({ proposedOn: '2026-09-28', help: { kind: 'today' } })
   })
 
   it('garde « calculée d’après la dernière prise » quand seule la posologie change (Q37)', () => {
-    const history = treatment([period()], [dose()])
+    const withPeriods = treatment([period()], [dose()])
 
     expect(
-      editionDraft(history, saisie(history, { doseQuantity: 0.5 }), '2026-09-28').nextDose,
+      editionDraft(withPeriods, saisie(withPeriods, { doseQuantity: 0.5 }), '2026-09-28').nextDose,
     ).toMatchObject({ proposedOn: '2026-10-10', help: { kind: 'scheduled', on: '2026-10-10' } })
   })
 
@@ -1681,7 +1711,7 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
     })
     const prise = (id: string, dueOn: string, dueTime: string, givenOn: string) =>
       dose({ id, dueOn, dueTime, givenOn })
-    const history = treatment(
+    const withPeriods = treatment(
       [matinEtSoir],
       [
         prise('a', '2026-10-01', '08:00', '2026-10-01'),
@@ -1691,7 +1721,7 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
     )
 
     expect(
-      editionDraft(history, saisie(history, { doseQuantity: 0.5 }), '2026-10-02').nextDose,
+      editionDraft(withPeriods, saisie(withPeriods, { doseQuantity: 0.5 }), '2026-10-02').nextDose,
     ).toMatchObject({ proposedOn: '2026-10-03', help: { kind: 'scheduled', on: '2026-10-03' } })
   })
 
@@ -1713,7 +1743,7 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
       })
       const prise = (id: string, dueOn: string, dueTime: string, givenOn: string) =>
         dose({ id, dueOn, dueTime, givenOn })
-      const history = treatment(
+      const withPeriods = treatment(
         [matinEtSoir],
         [
           prise('a', '2026-10-01', '08:00', '2026-10-01'),
@@ -1721,13 +1751,13 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
           prise('c', '2026-10-03', '08:00', '2026-10-02'),
         ],
       )
-      const saisie711 = saisie(history, changes)
+      const saisie711 = saisie(withPeriods, changes)
 
-      expect(editionDraft(history, saisie711, '2026-10-02').nextDose).toMatchObject({
+      expect(editionDraft(withPeriods, saisie711, '2026-10-02').nextDose).toMatchObject({
         proposedOn: '2026-10-03',
         help: { kind: 'scheduled', on: '2026-10-03' },
       })
-      expect(editionPlan(history, saisie711, '2026-10-02', IDS).period).toMatchObject({
+      expect(editionPlan(withPeriods, saisie711, '2026-10-02', IDS).period).toMatchObject({
         action: 'open',
         gridOriginOn,
         settings: { startsOn: '2026-10-02', firstDueOn: '2026-10-03' },
@@ -1744,7 +1774,7 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
     })
     const prise = (id: string, dueOn: string, dueTime: string, givenOn: string) =>
       dose({ id, dueOn, dueTime, givenOn })
-    const history = treatment(
+    const withPeriods = treatment(
       [matinEtSoir],
       [
         prise('a', '2026-10-01', '08:00', '2026-10-01'),
@@ -1754,7 +1784,7 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
     )
 
     expect(
-      editionDraft(history, saisie(history, { times: ['09:00'] }), '2026-10-02').nextDose,
+      editionDraft(withPeriods, saisie(withPeriods, { times: ['09:00'] }), '2026-10-02').nextDose,
     ).toMatchObject({ proposedOn: '2026-10-03', refusal: null, help: { kind: 'scheduled' } })
   })
 
@@ -1766,7 +1796,7 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
         firstDueOn: '2026-10-01',
         frequency: { value: 2, unit: 'day' },
       })
-      const history = treatment(
+      const withPeriods = treatment(
         [tousLes2Jours],
         [
           dose({ dueOn: '2026-10-01', givenOn: '2026-10-01' }),
@@ -1779,13 +1809,13 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
           }),
         ],
       )
-      const changes = saisie(history, { doseQuantity: 0.5 })
+      const changes = saisie(withPeriods, { doseQuantity: 0.5 })
 
-      expect(editionDraft(history, changes, today).nextDose).toMatchObject({
+      expect(editionDraft(withPeriods, changes, today).nextDose).toMatchObject({
         proposedOn: '2026-10-04',
         help: { kind: 'scheduled', on: '2026-10-04' },
       })
-      const plan = editionPlan(history, changes, today, IDS)
+      const plan = editionPlan(withPeriods, changes, today, IDS)
       expect(plan.period).toMatchObject({
         action: 'open',
         gridOriginOn: null,
@@ -1801,7 +1831,7 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
         createdAt: `${today}T09:00:00.000Z`,
       })
       expect(
-        viewOf(treatment([tousLes2Jours, opened], history.doses), today)
+        viewOf(treatment([tousLes2Jours, opened], withPeriods.doses), today)
           .upcoming({ limit: 3 })
           .map(({ dueOn }) => dueOn),
       ).toEqual(['2026-10-04', '2026-10-05', '2026-10-07'])
@@ -1852,7 +1882,7 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
       times: ['09:00', '21:00'],
       createdAt: '2026-10-01T09:00:00.000Z',
     })
-    const history = treatment(
+    const withPeriods = treatment(
       [matinEtSoir, ouverte],
       [
         dose({
@@ -1865,8 +1895,8 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
 
     expect(
       editionDraft(
-        history,
-        saisie(history, { times: ['10:00', '22:00'], pastDues: 'drop' }),
+        withPeriods,
+        saisie(withPeriods, { times: ['10:00', '22:00'], pastDues: 'drop' }),
         '2026-10-03',
       ).nextDose,
     ).toMatchObject({ proposedOn: '2026-10-03', help: { kind: 'today' } })
@@ -1878,21 +1908,25 @@ describe('editionDraft — aides de « Prochaine dose »', () => {
       firstDueOn: '2026-09-14',
       frequency: { value: 1, unit: 'week' },
     })
-    const history = treatment([hebdo], [dose({ dueOn: '2026-09-14', givenOn: '2026-09-14' })])
+    const withPeriods = treatment([hebdo], [dose({ dueOn: '2026-09-14', givenOn: '2026-09-14' })])
 
-    const { nextDose } = editionDraft(history, saisie(history, { doseQuantity: 0.5 }), '2026-09-30')
+    const { nextDose } = editionDraft(
+      withPeriods,
+      saisie(withPeriods, { doseQuantity: 0.5 }),
+      '2026-09-30',
+    )
 
     expect(nextDose).toMatchObject({ proposedOn: '2026-09-28' })
     expect(nextDose?.help).toEqual({ kind: 'overdue', since: '2026-09-28' })
   })
 
   it('garde l’aide courte quand la date calculée est aujourd’hui ou plus tard', () => {
-    const history = treatment([period()], [dose()])
+    const withPeriods = treatment([period()], [dose()])
 
     expect(
       editionDraft(
-        history,
-        saisie(history, { frequency: { value: 6, unit: 'month' } }),
+        withPeriods,
+        saisie(withPeriods, { frequency: { value: 6, unit: 'month' } }),
         '2026-09-28',
       ).nextDose,
     ).toMatchObject({ proposedOn: '2027-01-10', help: { kind: 'calculated', on: '2027-01-10' } })
@@ -1911,36 +1945,36 @@ describe('editionPlan — date de fin et report en vigueur', () => {
   const DECALAGE = { ...REPORTEE, id: 'd-shift', status: 'shift' as const }
 
   it('refuse une date de fin avant l’arrivée d’un report, sans rien écrire', () => {
-    const history = treatment([period()], [dose(), REPORTEE])
-    const input = saisie(history, { endsOn: '2026-10-12', nextDoseOn: '2026-10-14' })
+    const withPeriods = treatment([period()], [dose(), REPORTEE])
+    const input = saisie(withPeriods, { endsOn: '2026-10-12', nextDoseOn: '2026-10-14' })
 
-    expect(editionDraft(history, input, '2026-09-28').nextDose).toMatchObject({
+    expect(editionDraft(withPeriods, input, '2026-09-28').nextDose).toMatchObject({
       change: 'move',
       proposedOn: '2026-10-14',
       latest: '2026-10-12',
     })
-    expect(champsRefuses(history, input, '2026-09-28')).toEqual(['endsOn:beforePostponedDose'])
-    expect(() => editionPlan(history, input, '2026-09-28', IDS)).toThrow(ZodError)
+    expect(champsRefuses(withPeriods, input, '2026-09-28')).toEqual(['endsOn:beforePostponedDose'])
+    expect(() => editionPlan(withPeriods, input, '2026-09-28', IDS)).toThrow(ZodError)
   })
 
   it('refuse de même une date de fin avant l’arrivée d’une dose avancée', () => {
-    const history = treatment([period()], [dose(), AVANCEE])
+    const withPeriods = treatment([period()], [dose(), AVANCEE])
 
     expect(
       champsRefuses(
-        history,
-        saisie(history, { endsOn: '2026-10-05', nextDoseOn: null }),
+        withPeriods,
+        saisie(withPeriods, { endsOn: '2026-10-05', nextDoseOn: null }),
         '2026-09-28',
       ),
     ).toEqual(['endsOn:beforeAdvancedDose'])
   })
 
   it('accepte la date de fin quand « Prochaine dose » est remise avant elle dans la même saisie', () => {
-    const history = treatment([period()], [dose(), REPORTEE, DECALAGE])
+    const withPeriods = treatment([period()], [dose(), REPORTEE, DECALAGE])
 
     const plan = editionPlan(
-      history,
-      saisie(history, { endsOn: '2026-10-12', nextDoseOn: '2026-10-11' }),
+      withPeriods,
+      saisie(withPeriods, { endsOn: '2026-10-12', nextDoseOn: '2026-10-11' }),
       '2026-09-28',
       IDS,
     )
@@ -1962,7 +1996,7 @@ describe('editionPlan — date de fin et report en vigueur', () => {
       firstDueOn: '2026-09-25',
       frequency: { value: 1, unit: 'week' },
     })
-    const history = treatment(
+    const withPeriods = treatment(
       [hebdo],
       [
         dose({
@@ -1974,21 +2008,21 @@ describe('editionPlan — date de fin et report en vigueur', () => {
       ],
     )
 
-    expect(editionDraft(history, null, '2026-10-03')).toMatchObject({
+    expect(editionDraft(withPeriods, null, '2026-10-03')).toMatchObject({
       nextDose: { proposedOn: '2026-10-02' },
       farthestMove: { arrivesOn: '2026-10-20', advanced: false },
     })
     expect(
       champsRefuses(
-        history,
-        saisie(history, { endsOn: '2026-10-15', nextDoseOn: null }),
+        withPeriods,
+        saisie(withPeriods, { endsOn: '2026-10-15', nextDoseOn: null }),
         '2026-10-03',
       ),
     ).toEqual(['endsOn:beforeFarPostponedDose'])
     expect(
       champsRefuses(
-        history,
-        saisie(history, { endsOn: '2026-10-20', nextDoseOn: null }),
+        withPeriods,
+        saisie(withPeriods, { endsOn: '2026-10-20', nextDoseOn: null }),
         '2026-10-03',
       ),
     ).toEqual([])
@@ -2000,33 +2034,33 @@ describe('editionPlan — date de fin et report en vigueur', () => {
       firstDueOn: '2026-09-25',
       frequency: { value: 1, unit: 'week' },
     })
-    const history = treatment(
+    const withPeriods = treatment(
       [hebdo],
       [
         dose({ dueOn: '2026-10-02', givenOn: '2026-10-02' }),
         dose({ ...REPORTEE, dueOn: '2026-10-09', targetOn: '2026-10-20' }),
       ],
     )
-    const input = saisie(history, {
+    const input = saisie(withPeriods, {
       frequency: { value: 2, unit: 'week' },
       endsOn: '2026-10-15',
       nextDoseOn: '2026-10-10',
     })
 
-    expect(champsRefuses(history, input, '2026-10-03')).toEqual([])
-    expect(editionPlan(history, input, '2026-10-03', IDS).period).toMatchObject({
+    expect(champsRefuses(withPeriods, input, '2026-10-03')).toEqual([])
+    expect(editionPlan(withPeriods, input, '2026-10-03', IDS).period).toMatchObject({
       action: 'open',
       settings: { firstDueOn: '2026-10-10', endsOn: '2026-10-15' },
     })
   })
 
   it('accepte une date de fin le jour d’arrivée du report', () => {
-    const history = treatment([period()], [dose(), REPORTEE])
+    const withPeriods = treatment([period()], [dose(), REPORTEE])
 
     expect(
       champsRefuses(
-        history,
-        saisie(history, { endsOn: '2026-10-14', nextDoseOn: '2026-10-14' }),
+        withPeriods,
+        saisie(withPeriods, { endsOn: '2026-10-14', nextDoseOn: '2026-10-14' }),
         '2026-09-28',
       ),
     ).toEqual([])
@@ -2046,14 +2080,14 @@ describe('editionPlan — échéances tombées d’une période sans prise', () 
     return dues.map(({ dueOn, dueTime }) => (dueTime === null ? dueOn : `${dueOn} ${dueTime}`))
   }
 
-  function apres(history: TreatmentWithPeriods, plan: ReturnType<typeof editionPlan>) {
+  function apres(withPeriods: TreatmentWithPeriods, plan: ReturnType<typeof editionPlan>) {
     const { period: write } = plan
-    if (write === null) return viewOf(history, TODAY)
-    const [current] = history.periods.slice(-1)
+    if (write === null) return viewOf(withPeriods, TODAY)
+    const [current] = withPeriods.periods.slice(-1)
     const periods =
       write.action === 'open'
         ? [
-            ...history.periods,
+            ...withPeriods.periods,
             {
               ...current!,
               ...write.settings,
@@ -2065,7 +2099,7 @@ describe('editionPlan — échéances tombées d’une période sans prise', () 
             },
           ]
         : [
-            ...history.periods.slice(0, -1),
+            ...withPeriods.periods.slice(0, -1),
             {
               ...current!,
               ...write.settings,
@@ -2074,28 +2108,28 @@ describe('editionPlan — échéances tombées d’une période sans prise', () 
               fallenDosesAnswer: write.fallenDosesAnswer,
             },
           ]
-    return viewOf({ ...history, periods }, TODAY)
+    return viewOf({ ...withPeriods, periods }, TODAY)
   }
 
   it('annonce les échéances tombées et ne décide pas seule', () => {
-    const history = treatment([TOUS_LES_2_JOURS])
-    const input = saisie(history, TROIS_JOURS)
+    const withPeriods = treatment([TOUS_LES_2_JOURS])
+    const input = saisie(withPeriods, TROIS_JOURS)
 
-    expect(jours(editionDraft(history, input, TODAY).pastDues)).toEqual([
+    expect(jours(editionDraft(withPeriods, input, TODAY).pastDues)).toEqual([
       '2026-10-03',
       '2026-10-05',
       '2026-10-07',
     ])
-    expect(champsRefuses(history, input, TODAY)).toEqual(['pastDues:required'])
-    expect(() => editionPlan(history, input, TODAY, IDS)).toThrow(ZodError)
+    expect(champsRefuses(withPeriods, input, TODAY)).toEqual(['pastDues:required'])
+    expect(() => editionPlan(withPeriods, input, TODAY, IDS)).toThrow(ZodError)
   })
 
   it('« Elles restent à renseigner » ouvre une période aujourd’hui : les trois doses restent à renseigner', () => {
-    const history = treatment([TOUS_LES_2_JOURS])
+    const withPeriods = treatment([TOUS_LES_2_JOURS])
 
     const plan = editionPlan(
-      history,
-      saisie(history, { ...TROIS_JOURS, pastDues: 'keep' }),
+      withPeriods,
+      saisie(withPeriods, { ...TROIS_JOURS, pastDues: 'keep' }),
       TODAY,
       IDS,
     )
@@ -2106,17 +2140,17 @@ describe('editionPlan — échéances tombées d’une période sans prise', () 
       fallenDosesAnswer: 'stay-unlogged',
       settings: { startsOn: TODAY, firstDueOn: TODAY, frequency: { value: 3, unit: 'day' } },
     })
-    const schedule = apres(history, plan)
+    const schedule = apres(withPeriods, plan)
     expect(jours(schedule.unloggedDoses)).toEqual(['2026-10-03', '2026-10-05', '2026-10-07'])
     expect(jours(schedule.currentDoses)).toEqual([TODAY])
   })
 
   it('« Elles n’étaient pas à donner » corrige la période : plus rien à renseigner, première échéance aujourd’hui', () => {
-    const history = treatment([TOUS_LES_2_JOURS])
+    const withPeriods = treatment([TOUS_LES_2_JOURS])
 
     const plan = editionPlan(
-      history,
-      saisie(history, { ...TROIS_JOURS, pastDues: 'drop' }),
+      withPeriods,
+      saisie(withPeriods, { ...TROIS_JOURS, pastDues: 'drop' }),
       TODAY,
       IDS,
     )
@@ -2127,23 +2161,23 @@ describe('editionPlan — échéances tombées d’une période sans prise', () 
       fallenDosesAnswer: 'not-due',
       settings: { startsOn: '2026-10-02', firstDueOn: TODAY, frequency: { value: 3, unit: 'day' } },
     })
-    const schedule = apres(history, plan)
+    const schedule = apres(withPeriods, plan)
     expect(schedule.unloggedDoses).toEqual([])
     expect(jours(schedule.currentDoses)).toEqual([TODAY])
   })
 
   it('#873 : écrit une ligne « pas à donner » par dose montrée par la question', () => {
-    const history = treatment([TOUS_LES_2_JOURS])
+    const withPeriods = treatment([TOUS_LES_2_JOURS])
     const shown = editionPlan(
-      history,
-      saisie(history, { ...TROIS_JOURS, pastDues: 'keep' }),
+      withPeriods,
+      saisie(withPeriods, { ...TROIS_JOURS, pastDues: 'keep' }),
       TODAY,
       IDS,
     )
     expect(shown.doses).toEqual([])
     const plan = editionPlan(
-      history,
-      saisie(history, { ...TROIS_JOURS, pastDues: 'drop' }),
+      withPeriods,
+      saisie(withPeriods, { ...TROIS_JOURS, pastDues: 'drop' }),
       TODAY,
       IDS,
     )
@@ -2154,10 +2188,10 @@ describe('editionPlan — échéances tombées d’une période sans prise', () 
   })
 
   it('#873 : la liste montrée envoyée avec la réponse doit être celle de la question au moment d’écrire, sinon la question se repose', () => {
-    const history = treatment([TOUS_LES_2_JOURS])
+    const withPeriods = treatment([TOUS_LES_2_JOURS])
     const shownNow = editionPlan(
-      history,
-      saisie(history, { ...TROIS_JOURS, pastDues: 'drop' }),
+      withPeriods,
+      saisie(withPeriods, { ...TROIS_JOURS, pastDues: 'drop' }),
       TODAY,
       IDS,
     ).doses.flatMap((write) =>
@@ -2171,8 +2205,8 @@ describe('editionPlan — échéances tombées d’une période sans prise', () 
     )
     expect(() =>
       editionPlan(
-        history,
-        saisie(history, { ...TROIS_JOURS, pastDues: 'drop', pastDuesShown: shownNow }),
+        withPeriods,
+        saisie(withPeriods, { ...TROIS_JOURS, pastDues: 'drop', pastDuesShown: shownNow }),
         TODAY,
         IDS,
       ),
@@ -2180,8 +2214,12 @@ describe('editionPlan — échéances tombées d’une période sans prise', () 
     const refused = (() => {
       try {
         editionPlan(
-          history,
-          saisie(history, { ...TROIS_JOURS, pastDues: 'drop', pastDuesShown: shownNow.slice(1) }),
+          withPeriods,
+          saisie(withPeriods, {
+            ...TROIS_JOURS,
+            pastDues: 'drop',
+            pastDuesShown: shownNow.slice(1),
+          }),
           TODAY,
           IDS,
         )
@@ -2195,17 +2233,17 @@ describe('editionPlan — échéances tombées d’une période sans prise', () 
   })
 
   it('garde une « Prochaine dose » choisie à la main quand elle vaut pour le chemin choisi, la refuse sinon', () => {
-    const history = treatment([TOUS_LES_2_JOURS])
+    const withPeriods = treatment([TOUS_LES_2_JOURS])
     const input = (changes: Partial<TreatmentEditionInput>) =>
-      saisie(history, { ...TROIS_JOURS, nextDoseOn: '2026-10-12', ...changes })
+      saisie(withPeriods, { ...TROIS_JOURS, nextDoseOn: '2026-10-12', ...changes })
 
     for (const pastDues of ['keep', 'drop'] as const) {
-      expect(editionPlan(history, input({ pastDues }), TODAY, IDS).period).toMatchObject({
+      expect(editionPlan(withPeriods, input({ pastDues }), TODAY, IDS).period).toMatchObject({
         firstDueChosen: true,
         fallenDosesAnswer: pastDues === 'keep' ? 'stay-unlogged' : 'not-due',
         settings: { firstDueOn: '2026-10-12' },
       })
-      expect(champsRefuses(history, input({ pastDues, endsOn: '2026-10-10' }), TODAY)).toEqual([
+      expect(champsRefuses(withPeriods, input({ pastDues, endsOn: '2026-10-10' }), TODAY)).toEqual([
         'nextDoseOn:noDoseBeforeEnd',
       ])
     }
@@ -2233,15 +2271,19 @@ describe('editionPlan — échéances tombées d’une période sans prise', () 
   })
 
   it('annonce la prochaine dose de chaque choix, celle que ce choix écrit', () => {
-    const history = treatment([TOUS_LES_2_JOURS])
-    const input = saisie(history, TROIS_JOURS)
-    const annoncees = editionDraft(history, input, TODAY).pastDuesNextDose
+    const withPeriods = treatment([TOUS_LES_2_JOURS])
+    const input = saisie(withPeriods, TROIS_JOURS)
+    const annoncees = editionDraft(withPeriods, input, TODAY).pastDuesNextDose
 
     expect(annoncees).toEqual({ keep: '2026-10-08', drop: '2026-10-08' })
     for (const pastDues of ['keep', 'drop'] as const) {
       expect(
-        editionPlan(history, { ...input, pastDues, nextDoseOn: annoncees![pastDues] }, TODAY, IDS)
-          .period,
+        editionPlan(
+          withPeriods,
+          { ...input, pastDues, nextDoseOn: annoncees![pastDues] },
+          TODAY,
+          IDS,
+        ).period,
       ).toMatchObject({ settings: { firstDueOn: annoncees![pastDues] } })
     }
   })
@@ -2259,22 +2301,22 @@ describe('editionPlan — échéances tombées d’une période sans prise', () 
       frequency: { value: 10, unit: 'day' },
       createdAt: '2026-10-02T09:00:00.000Z',
     })
-    const history = treatment(
+    const withPeriods = treatment(
       [hebdo, dixJours],
       [
         dose({ id: 'a', dueOn: '2026-09-18', givenOn: '2026-09-18' }),
         dose({ id: 'b', dueOn: '2026-09-25', givenOn: '2026-09-25' }),
       ],
     )
-    const input = saisie(history, { frequency: { value: 20, unit: 'day' } })
+    const input = saisie(withPeriods, { frequency: { value: 20, unit: 'day' } })
     const ids = { ...IDS, periodId: '55555555-5555-4555-8555-555555555555' }
-    const draft = editionDraft(history, input, '2026-10-04')
+    const draft = editionDraft(withPeriods, input, '2026-10-04')
 
     expect(jours(draft.pastDues)).toEqual(['2026-10-02'])
     expect(draft.pastDuesNextDose).toEqual({ keep: '2026-10-15', drop: '2026-10-15' })
     expect(
       editionPlan(
-        history,
+        withPeriods,
         { ...input, pastDues: 'keep', nextDoseOn: '2026-10-15' },
         '2026-10-04',
         ids,
@@ -2282,7 +2324,7 @@ describe('editionPlan — échéances tombées d’une période sans prise', () 
     ).toMatchObject({ action: 'open', settings: { firstDueOn: '2026-10-15' } })
     expect(
       editionPlan(
-        history,
+        withPeriods,
         { ...input, pastDues: 'drop', nextDoseOn: '2026-10-15' },
         '2026-10-04',
         ids,
@@ -2291,39 +2333,44 @@ describe('editionPlan — échéances tombées d’une période sans prise', () 
   })
 
   it('annonce la date choisie à la main pour les chemins où elle vaut, la date calculée sinon', () => {
-    const history = treatment([TOUS_LES_2_JOURS])
+    const withPeriods = treatment([TOUS_LES_2_JOURS])
 
     expect(
-      editionDraft(history, saisie(history, TROIS_JOURS), TODAY, '2026-10-12').pastDuesNextDose,
+      editionDraft(withPeriods, saisie(withPeriods, TROIS_JOURS), TODAY, '2026-10-12')
+        .pastDuesNextDose,
     ).toEqual({ keep: '2026-10-12', drop: '2026-10-12' })
     expect(
       champsRefuses(
-        history,
-        saisie(history, { ...TROIS_JOURS, endsOn: '2026-10-10', pastDues: 'keep' }),
+        withPeriods,
+        saisie(withPeriods, { ...TROIS_JOURS, endsOn: '2026-10-10', pastDues: 'keep' }),
         TODAY,
       ),
     ).toEqual([])
   })
 
   it('annonce la prochaine dose à plusieurs heures', () => {
-    const history = treatment([{ ...TOUS_LES_2_JOURS, times: ['08:00', '20:00'] }])
+    const withPeriods = treatment([{ ...TOUS_LES_2_JOURS, times: ['08:00', '20:00'] }])
 
-    expect(editionDraft(history, saisie(history, TROIS_JOURS), TODAY).pastDuesNextDose).toEqual({
+    expect(
+      editionDraft(withPeriods, saisie(withPeriods, TROIS_JOURS), TODAY).pastDuesNextDose,
+    ).toEqual({
       keep: '2026-10-08',
       drop: '2026-10-08',
     })
   })
 
   it('n’annonce rien sans question à poser', () => {
-    const history = treatment([period()], [dose()])
+    const withPeriods = treatment([period()], [dose()])
 
-    expect(editionDraft(history, null, '2026-09-28').pastDuesNextDose).toBeNull()
+    expect(editionDraft(withPeriods, null, '2026-09-28').pastDuesNextDose).toBeNull()
   })
 
   it('compte chaque heure d’une journée tombée', () => {
-    const history = treatment([{ ...TOUS_LES_2_JOURS, times: ['08:00', '20:00'] }])
+    const withPeriods = treatment([{ ...TOUS_LES_2_JOURS, times: ['08:00', '20:00'] }])
 
-    expect(jours(editionDraft(history, saisie(history, TROIS_JOURS), TODAY).pastDues)).toEqual([
+    expect(
+      jours(editionDraft(withPeriods, saisie(withPeriods, TROIS_JOURS), TODAY).pastDues),
+    ).toEqual([
       '2026-10-03 08:00',
       '2026-10-03 20:00',
       '2026-10-05 08:00',
@@ -2334,15 +2381,15 @@ describe('editionPlan — échéances tombées d’une période sans prise', () 
   })
 
   it('pose la question pour des heures seules changées, pas pour la posologie, la date de fin, le nom ou le type', () => {
-    const history = treatment([TOUS_LES_2_JOURS])
+    const withPeriods = treatment([TOUS_LES_2_JOURS])
     const tombees = (changes: Partial<TreatmentEditionInput>) =>
-      editionDraft(history, saisie(history, changes), TODAY).pastDues.length
+      editionDraft(withPeriods, saisie(withPeriods, changes), TODAY).pastDues.length
 
     expect(tombees({ times: ['09:00'] })).toBe(3)
     expect(tombees({ doseQuantity: 2 })).toBe(0)
     expect(tombees({ endsOn: '2026-12-31' })).toBe(0)
     expect(tombees({ name: 'Autre', type: 'medication' })).toBe(0)
-    expect(champsRefuses(history, saisie(history, { doseQuantity: 2 }), TODAY)).toEqual([])
+    expect(champsRefuses(withPeriods, saisie(withPeriods, { doseQuantity: 2 }), TODAY)).toEqual([])
   })
 
   it('ne pose aucune question sans échéance tombée, ni quand une prise est notée dans la période (TR-28)', () => {
@@ -2362,11 +2409,11 @@ describe('editionPlan — échéances tombées d’une période sans prise', () 
   })
 
   it('n’annonce qu’une dose quand une seule est tombée', () => {
-    const history = treatment([{ ...TOUS_LES_2_JOURS, firstDueOn: '2026-10-07' }])
+    const withPeriods = treatment([{ ...TOUS_LES_2_JOURS, firstDueOn: '2026-10-07' }])
 
-    expect(jours(editionDraft(history, saisie(history, TROIS_JOURS), TODAY).pastDues)).toEqual([
-      '2026-10-07',
-    ])
+    expect(
+      jours(editionDraft(withPeriods, saisie(withPeriods, TROIS_JOURS), TODAY).pastDues),
+    ).toEqual(['2026-10-07'])
   })
 
   it('pose aussi la question pour une période ouverte par « Modifier », et garde alors l’ancienne période intacte', () => {
@@ -2376,16 +2423,18 @@ describe('editionPlan — échéances tombées d’une période sans prise', () 
       frequency: { value: 1, unit: 'week' },
     })
     const ouverte = { ...TOUS_LES_2_JOURS, id: NEW_PERIOD, createdAt: '2026-10-02T09:00:00.000Z' }
-    const history = treatment(
+    const withPeriods = treatment(
       [hebdo, ouverte],
       [dose({ dueOn: '2026-09-25', givenOn: '2026-09-25' })],
     )
     const ids = { ...IDS, periodId: '55555555-5555-4555-8555-555555555555' }
 
-    expect(editionDraft(history, saisie(history, TROIS_JOURS), TODAY).pastDues).toHaveLength(3)
+    expect(
+      editionDraft(withPeriods, saisie(withPeriods, TROIS_JOURS), TODAY).pastDues,
+    ).toHaveLength(3)
     const plan = editionPlan(
-      history,
-      saisie(history, { ...TROIS_JOURS, pastDues: 'keep' }),
+      withPeriods,
+      saisie(withPeriods, { ...TROIS_JOURS, pastDues: 'keep' }),
       TODAY,
       ids,
     )
@@ -2420,9 +2469,9 @@ describe('resumptionPlan (TR-32)', () => {
   }
 
   it('ouvre une nouvelle période à la première prise choisie, sans toucher à la précédente', () => {
-    const history = treatment([ARRETEE], [PRISE])
+    const withPeriods = treatment([ARRETEE], [PRISE])
 
-    expect(resumptionPlan(history, REPRISE, '2026-11-02', IDS)).toEqual({
+    expect(resumptionPlan(withPeriods, REPRISE, '2026-11-02', IDS)).toEqual({
       treatment: null,
       period: {
         action: 'open',
@@ -2447,18 +2496,19 @@ describe('resumptionPlan (TR-32)', () => {
   })
 
   it('écrit le rappel changé dans le formulaire de reprise', () => {
-    const history = treatment([ARRETEE], [PRISE])
+    const withPeriods = treatment([ARRETEE], [PRISE])
 
     expect(
-      resumptionPlan(history, { ...REPRISE, reminderOffsetMinutes: 60 }, '2026-11-02', IDS).period,
+      resumptionPlan(withPeriods, { ...REPRISE, reminderOffsetMinutes: 60 }, '2026-11-02', IDS)
+        .period,
     ).toMatchObject({ settings: { reminderOffsetMinutes: 60, reminderTime: null } })
   })
 
   it('reprend aussi un traitement arrivé à sa date de fin', () => {
     const finie = { ...ARRETEE, stoppedOn: null }
-    const history = treatment([finie], [PRISE])
+    const withPeriods = treatment([finie], [PRISE])
 
-    expect(resumptionPlan(history, REPRISE, '2026-11-02', IDS).period).toMatchObject({
+    expect(resumptionPlan(withPeriods, REPRISE, '2026-11-02', IDS).period).toMatchObject({
       action: 'open',
     })
   })
@@ -2488,9 +2538,9 @@ describe('resumptionPlan (TR-32)', () => {
   })
 
   it('refuse une première prise avant l’arrêt ou une prise de la période précédente', () => {
-    const history = treatment([ARRETEE], [PRISE])
+    const withPeriods = treatment([ARRETEE], [PRISE])
     const refus = (firstDoseOn: string) => {
-      const result = treatmentResumptionSchemaFor(history, '2026-11-02').safeParse({
+      const result = treatmentResumptionSchemaFor(withPeriods, '2026-11-02').safeParse({
         ...REPRISE,
         firstDoseOn,
         endsOn: null,
@@ -2499,7 +2549,7 @@ describe('resumptionPlan (TR-32)', () => {
     }
 
     expect(refus('2026-10-08')).toEqual(['tooEarly'])
-    expect(resumptionDraft(history, '2026-11-02').earliestOn).toBe('2026-10-09')
+    expect(resumptionDraft(withPeriods, '2026-11-02').earliestOn).toBe('2026-10-09')
     expect(refus('2026-10-09')).toEqual([])
   })
 
@@ -2511,7 +2561,7 @@ describe('resumptionPlan (TR-32)', () => {
       startsOn: '2026-09-25',
       firstDueOn: '2026-09-25',
     }
-    const history = treatment(
+    const withPeriods = treatment(
       [arretee],
       [
         dose({
@@ -2523,14 +2573,16 @@ describe('resumptionPlan (TR-32)', () => {
     )
     const input = { ...REPRISE, firstDoseOn: '2026-10-02', endsOn: null }
 
-    expect(treatmentResumptionSchemaFor(history, '2026-10-02').safeParse(input).success).toBe(true)
+    expect(treatmentResumptionSchemaFor(withPeriods, '2026-10-02').safeParse(input).success).toBe(
+      true,
+    )
     expect(
-      treatmentResumptionSchemaFor(history, '2026-10-02').safeParse({
+      treatmentResumptionSchemaFor(withPeriods, '2026-10-02').safeParse({
         ...input,
         firstDoseOn: '2026-10-01',
       }).success,
     ).toBe(false)
-    expect(resumptionPlan(history, input, '2026-10-02', IDS).period).toMatchObject({
+    expect(resumptionPlan(withPeriods, input, '2026-10-02', IDS).period).toMatchObject({
       action: 'open',
       settings: { startsOn: '2026-10-02', firstDueOn: '2026-10-02' },
     })
@@ -2543,7 +2595,7 @@ describe('resumptionPlan (TR-32)', () => {
       frequency: { value: 1, unit: 'month' },
       stoppedOn: '2026-10-02',
     })
-    const history = treatment(
+    const withPeriods = treatment(
       [mensuel],
       [
         dose({ id: 'a', dueOn: '2026-09-05', givenOn: '2026-09-05' }),
@@ -2551,17 +2603,17 @@ describe('resumptionPlan (TR-32)', () => {
       ],
     )
 
-    expect(resumptionDraft(history, '2026-10-02').earliestOn).toBe('2026-10-02')
+    expect(resumptionDraft(withPeriods, '2026-10-02').earliestOn).toBe('2026-10-02')
     for (const firstDoseOn of ['2026-10-02', '2026-10-05']) {
       const plan = resumptionPlan(
-        history,
+        withPeriods,
         { ...REPRISE, firstDoseOn, endsOn: null },
         '2026-10-02',
         IDS,
       )
       const after = viewOf(
         {
-          ...history,
+          ...withPeriods,
           periods: [
             mensuel,
             {
@@ -2582,14 +2634,14 @@ describe('resumptionPlan (TR-32)', () => {
   })
 
   it('donne la première date acceptée après une période finie par sa date de fin', () => {
-    const history = treatment([{ ...ARRETEE, stoppedOn: null }], [PRISE])
+    const withPeriods = treatment([{ ...ARRETEE, stoppedOn: null }], [PRISE])
 
-    expect(resumptionDraft(history, '2026-11-02').earliestOn).toBe('2026-10-11')
+    expect(resumptionDraft(withPeriods, '2026-11-02').earliestOn).toBe('2026-10-11')
   })
 
   it('refuse une première prise jusqu’à la date de fin d’une période finie', () => {
-    const history = treatment([{ ...ARRETEE, stoppedOn: null }], [PRISE])
-    const schema = treatmentResumptionSchemaFor(history, '2026-11-02')
+    const withPeriods = treatment([{ ...ARRETEE, stoppedOn: null }], [PRISE])
+    const schema = treatmentResumptionSchemaFor(withPeriods, '2026-11-02')
 
     expect(schema.safeParse({ ...REPRISE, firstDoseOn: '2026-10-10', endsOn: null }).success).toBe(
       false,
@@ -2600,19 +2652,19 @@ describe('resumptionPlan (TR-32)', () => {
   })
 
   it('refuse de reprendre un traitement en cours', () => {
-    const history = treatment([period()], [dose()])
+    const withPeriods = treatment([period()], [dose()])
 
-    expect(resumptionDraft(history, '2026-09-28').canResume).toBe(false)
-    expect(() => resumptionPlan(history, REPRISE, '2026-09-28', IDS)).toThrow(
+    expect(resumptionDraft(withPeriods, '2026-09-28').canResume).toBe(false)
+    expect(() => resumptionPlan(withPeriods, REPRISE, '2026-09-28', IDS)).toThrow(
       'Traitement en cours, rien à reprendre',
     )
   })
 
   it('refuse une date de fin avant la première prise', () => {
-    const history = treatment([ARRETEE], [PRISE])
+    const withPeriods = treatment([ARRETEE], [PRISE])
 
     expect(() =>
-      resumptionPlan(history, { ...REPRISE, endsOn: '2026-11-02' }, '2026-11-02', IDS),
+      resumptionPlan(withPeriods, { ...REPRISE, endsOn: '2026-11-02' }, '2026-11-02', IDS),
     ).toThrow(ZodError)
   })
 })

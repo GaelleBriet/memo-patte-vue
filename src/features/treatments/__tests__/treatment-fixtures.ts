@@ -124,7 +124,7 @@ export function treatment(
 
 /** Le carnet après un lot d'écritures, comme `applyBatch` le laisserait. */
 export function written(
-  history: TreatmentWithPeriods,
+  withPeriods: TreatmentWithPeriods,
   writes: readonly DoseWrite[],
   at = '2026-09-28T12:00:00.000Z',
 ): TreatmentWithPeriods {
@@ -152,8 +152,8 @@ export function written(
       case 'restore':
         throw new Error('Une restauration ne se rejoue pas sur un carnet de test.')
     }
-  }, history.doses)
-  return { ...history, doses }
+  }, withPeriods.doses)
+  return { ...withPeriods, doses }
 }
 
 export { plain } from '@/shared/__tests__/plain'

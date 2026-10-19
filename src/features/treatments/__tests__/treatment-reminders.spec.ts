@@ -149,18 +149,18 @@ describe('treatmentReminders', () => {
   })
 
   it('aucun rappel quand l’animal est supprimé ou introuvable', () => {
-    const history = treatment([period({ firstDueOn: '2026-09-16' })])
+    const withPeriods = treatment([period({ firstDueOn: '2026-09-16' })])
     const deleted = { ...LUNA, deletedAt: '2026-09-15T08:00:00.000Z' }
 
-    expect(treatmentReminders(t, history, deleted, SETTINGS, NOW).care).toBeNull()
-    expect(treatmentReminders(t, history, null, SETTINGS, NOW).care).toBeNull()
+    expect(treatmentReminders(t, withPeriods, deleted, SETTINGS, NOW).care).toBeNull()
+    expect(treatmentReminders(t, withPeriods, null, SETTINGS, NOW).care).toBeNull()
   })
 
   it('AN-9 : aucun rappel pour un animal qu’on ne suit plus', () => {
-    const history = treatment([period({ firstDueOn: '2026-09-16' })])
+    const withPeriods = treatment([period({ firstDueOn: '2026-09-16' })])
     const unfollowed = { ...LUNA, unfollowedOn: '2026-09-15' }
 
-    expect(treatmentReminders(t, history, unfollowed, SETTINGS, NOW).care).toBeNull()
+    expect(treatmentReminders(t, withPeriods, unfollowed, SETTINGS, NOW).care).toBeNull()
   })
 
   it('traduit les rappels en anglais', () => {

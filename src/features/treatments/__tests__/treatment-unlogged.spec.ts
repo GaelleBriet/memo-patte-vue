@@ -22,8 +22,8 @@ const PANACUR = {
 }
 const HEBDO = period({ frequency: { value: 1, unit: 'week' } })
 
-function banner(history: TreatmentWithPeriods, today = TODAY) {
-  return plain(unloggedBanner(t, history, treatmentReadingOf(history, today).view, today))
+function banner(withPeriods: TreatmentWithPeriods, today = TODAY) {
+  return plain(unloggedBanner(t, withPeriods, treatmentReadingOf(withPeriods, today).view, today))
 }
 
 afterEach(() => applyLocale('fr'))
@@ -60,18 +60,18 @@ describe('unloggedBanner (TR-15)', () => {
   })
 
   it('cite les jours quand il y en a trois au plus', () => {
-    const history = treatment([HEBDO], [dose('2026-09-01', '2026-09-08')])
+    const withPeriods = treatment([HEBDO], [dose('2026-09-01', '2026-09-08')])
 
-    expect(banner(history)).toMatchObject({
+    expect(banner(withPeriods)).toMatchObject({
       title: '2 doses non renseignées',
       subtitle: '8 et 15 sept.',
     })
   })
 
   it('propose « Donnée » et « Oubliée » pour une seule dose', () => {
-    const history = treatment([period({ startsOn: '2026-09-27', firstDueOn: '2026-09-27' })])
+    const withPeriods = treatment([period({ startsOn: '2026-09-27', firstDueOn: '2026-09-27' })])
 
-    expect(banner(history)).toMatchObject({
+    expect(banner(withPeriods)).toMatchObject({
       title: '1 dose non renseignée',
       subtitle: '27 sept.',
       note: 'Indique si elle a été donnée.',
@@ -94,52 +94,52 @@ describe('unloggedBanner (TR-15)', () => {
   })
 
   it('dit l’heure d’une seule dose à plusieurs heures', () => {
-    const history = treatment(
+    const withPeriods = treatment(
       [period({ startsOn: '2026-09-27', firstDueOn: '2026-09-27', times: ['08:00', '20:00'] })],
       [dose('2026-09-27', '2026-09-27', { dueTime: '08:00' })],
     )
 
-    expect(banner(history)).toMatchObject({
+    expect(banner(withPeriods)).toMatchObject({
       subtitle: '27 sept. à 20 h',
       actions: [{ label: 'Noter la dose du 27 sept. à 20 h comme donnée' }, { id: 'missed' }],
     })
   })
 
   it('compte les doses, pas les jours, à plusieurs heures', () => {
-    const history = treatment([period({ times: ['08:00', '20:00'] })])
+    const withPeriods = treatment([period({ times: ['08:00', '20:00'] })])
 
-    expect(banner(history, '2026-09-04')).toMatchObject({
+    expect(banner(withPeriods, '2026-09-04')).toMatchObject({
       title: '6 doses non renseignées',
       subtitle: '1er, 2 et 3 sept.',
     })
   })
 
   it('écrit l’année quand la plage sort de l’année en cours', () => {
-    const history = treatment([period({ startsOn: '2025-12-20', firstDueOn: '2025-12-20' })])
+    const withPeriods = treatment([period({ startsOn: '2025-12-20', firstDueOn: '2025-12-20' })])
 
-    expect(banner(history, '2026-01-05')?.when).toBe('du 20 déc. 2025 au 4 janv. 2026')
-    expect(banner(history, '2025-12-22')?.when).toBe('20 et 21 déc.')
+    expect(banner(withPeriods, '2026-01-05')?.when).toBe('du 20 déc. 2025 au 4 janv. 2026')
+    expect(banner(withPeriods, '2025-12-22')?.when).toBe('20 et 21 déc.')
     expect(
       banner(
-        { ...history, periods: [{ ...history.periods[0]!, endsOn: '2025-12-21' }] },
+        { ...withPeriods, periods: [{ ...withPeriods.periods[0]!, endsOn: '2025-12-21' }] },
         '2026-01-05',
       )?.when,
     ).toBe('du 20 déc. 2025 au 21 déc. 2025')
   })
 
   it('n’existe pas sans dose non renseignée', () => {
-    const history = treatment([period({ startsOn: TODAY, firstDueOn: TODAY })])
+    const withPeriods = treatment([period({ startsOn: TODAY, firstDueOn: TODAY })])
 
-    expect(banner(history)).toBeNull()
+    expect(banner(withPeriods)).toBeNull()
   })
 
   it.each([
     ['arrêté', period({ stoppedOn: '2026-09-20' })],
     ['fini', period({ endsOn: '2026-09-10' })],
   ])('reste sur un traitement %s', (_, closed) => {
-    const history = treatment([closed], [dose('2026-09-01', '2026-09-02')])
+    const withPeriods = treatment([closed], [dose('2026-09-01', '2026-09-02')])
 
-    expect(banner(history)?.dues.length).toBeGreaterThan(0)
+    expect(banner(withPeriods)?.dues.length).toBeGreaterThan(0)
   })
 
   it('en anglais', () => {
@@ -164,9 +164,9 @@ describe('une dose non renseignée n’est jamais un retard (TR-14)', () => {
   })
 
   it('en retard, la carte ne compte que la dose du moment', () => {
-    const history = treatment([HEBDO], [dose('2026-09-01', '2026-09-08')])
-    const schedule = treatmentReadingOf(history, '2026-09-24').view
-    const card = doseCard(t, history, schedule, { animal: 'Milo', today: '2026-09-24' })
+    const withPeriods = treatment([HEBDO], [dose('2026-09-01', '2026-09-08')])
+    const schedule = treatmentReadingOf(withPeriods, '2026-09-24').view
+    const card = doseCard(t, withPeriods, schedule, { animal: 'Milo', today: '2026-09-24' })
 
     expect(card.entries).toHaveLength(1)
     expect(card.entries[0]).toMatchObject({ overdue: true, due: { dueOn: '2026-09-22' } })

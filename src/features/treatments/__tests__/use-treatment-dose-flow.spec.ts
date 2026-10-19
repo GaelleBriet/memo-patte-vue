@@ -76,12 +76,12 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-function flow(exits: DoseFlowExits = {}, history: TreatmentWithPeriods | null = PANACUR) {
+function flow(exits: DoseFlowExits = {}, withPeriods: TreatmentWithPeriods | null = PANACUR) {
   let result: ReturnType<typeof useTreatmentDoseFlow> | undefined
   mount(
     defineComponent({
       setup() {
-        const current = ref(history)
+        const current = ref(withPeriods)
         const today = ref(TODAY)
         const reading = computed(() =>
           current.value ? treatmentReadingOf(current.value, today.value) : null,

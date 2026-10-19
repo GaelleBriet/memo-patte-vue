@@ -228,9 +228,9 @@ const HEBDO: TreatmentWithPeriods = {
 const DOSE_16 = { settingId: 'p-1', dueOn: '2026-10-16', dueTime: null }
 const LIGNE_16 = { dueOn: '2026-10-16', dueTime: null }
 
-function lePlus(history: TreatmentWithPeriods, aujourdhui: string) {
+function lePlus(withPeriods: TreatmentWithPeriods, aujourdhui: string) {
   vi.setSystemTime(new Date(`${aujourdhui}T10:00:00`))
-  vi.spyOn(useTreatmentsStore(), 'getWithPeriods').mockResolvedValue(history)
+  vi.spyOn(useTreatmentsStore(), 'getWithPeriods').mockResolvedValue(withPeriods)
 }
 
 function geste() {

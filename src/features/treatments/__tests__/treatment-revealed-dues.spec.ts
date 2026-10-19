@@ -37,8 +37,8 @@ function due(dueOn: string, dueTime: string | null = null): Due {
 const days = (dues: readonly Due[]) => dues.map(({ dueOn }) => dueOn)
 
 // Le service réel, sur un carnet en mémoire que chaque lot réécrit.
-async function saved(history: TreatmentWithPeriods, action: DoseAction, today: string) {
-  let current = history
+async function saved(withPeriods: TreatmentWithPeriods, action: DoseAction, today: string) {
+  let current = withPeriods
   const service = createTreatmentDosesService({
     treatments: () => ({ getWithPeriods: () => Promise.resolve(current) }),
     doses: () => ({
@@ -51,7 +51,7 @@ async function saved(history: TreatmentWithPeriods, action: DoseAction, today: s
     now: () => new Date(`${today}T12:00:00.000Z`),
     today: () => today,
   })
-  const change = await service.apply(history.id, action)
+  const change = await service.apply(withPeriods.id, action)
   return { change, after: treatmentReadingOf(current, today).view }
 }
 
@@ -95,12 +95,12 @@ const AUTRE = treatment(
 )
 
 function changeDateHelp(
-  history: TreatmentWithPeriods,
+  withPeriods: TreatmentWithPeriods,
   prise: typeof PRISE_16,
   date: string,
   today: string,
 ) {
-  const carnet = { treatment: history, reading: treatmentReadingOf(history, today), today }
+  const carnet = { treatment: withPeriods, reading: treatmentReadingOf(withPeriods, today), today }
   return dateChangeBox(t, prise, carnet)!.view(date, true).help?.text
 }
 
@@ -195,14 +195,14 @@ describe('revealedDues — les doses passées qu’un geste fait apparaître', (
   describe('quotidien, doses des 7 et 8 oct. données, aujourd’hui le 11', () => {
     const today = '2026-10-11'
     const QUOTIDIEN = period({ startsOn: '2026-10-07', firstDueOn: '2026-10-07' })
-    const history = treatment(
+    const withPeriods = treatment(
       [QUOTIDIEN],
       ['2026-10-07', '2026-10-08'].map((day) => dose(day, day)),
     )
 
     it('dose donnée le lendemain : aucune dose passée annoncée', async () => {
       const { change, after } = await saved(
-        history,
+        withPeriods,
         {
           kind: 'note',
           gesture: {
@@ -222,7 +222,7 @@ describe('revealedDues — les doses passées qu’un geste fait apparaître', (
 
     it('prise du 8 corrigée au 9 (Q-C1) : elle note la dose du 9, celle du 8 est à renseigner', async () => {
       const { change } = await saved(
-        history,
+        withPeriods,
         { kind: 'redate', lineId: '2026-10-08', givenOn: '2026-10-09', shiftsFollowing: true },
         today,
       )

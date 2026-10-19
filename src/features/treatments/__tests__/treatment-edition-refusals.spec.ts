@@ -80,13 +80,13 @@ function treatment(periods: TreatmentPeriodRecord[], doses: TreatmentDose[]) {
 }
 
 function saisie(
-  history: TreatmentWithPeriods,
+  withPeriods: TreatmentWithPeriods,
   changes: Partial<TreatmentEditionInput>,
 ): TreatmentEditionInput {
-  const current = history.periods.at(-1)!
+  const current = withPeriods.periods.at(-1)!
   return {
-    name: history.name,
-    type: history.type,
+    name: withPeriods.name,
+    type: withPeriods.type,
     frequency: current.frequency,
     times: current.times,
     doseQuantity: current.doseQuantity,
@@ -97,8 +97,12 @@ function saisie(
   }
 }
 
-function refusedFields(history: TreatmentWithPeriods, input: TreatmentEditionInput, today: string) {
-  const result = treatmentEditionSchemaFor(history, today).safeParse(input)
+function refusedFields(
+  withPeriods: TreatmentWithPeriods,
+  input: TreatmentEditionInput,
+  today: string,
+) {
+  const result = treatmentEditionSchemaFor(withPeriods, today).safeParse(input)
   return result.success
     ? []
     : result.error.issues.map((issue) => `${String(issue.path[0])}:${issue.message}`)
