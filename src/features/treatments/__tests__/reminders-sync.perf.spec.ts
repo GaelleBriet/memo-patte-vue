@@ -65,7 +65,7 @@ describe('performance des rappels', () => {
     const sync = createRemindersSync({
       animals: () => ({ list: async () => [LUNA] }),
       vaccinations: () => ({ listAll: async () => [], listAllReplacedDues: async () => new Map() }),
-      treatments: () => ({ listAllWithHistory: async () => CARNET }),
+      treatments: () => ({ listAllWithPeriods: async () => CARNET }),
       carnetSettings: () => ({ get: async () => SETTINGS }),
       notifications,
       t: i18n.global.t,
@@ -84,7 +84,7 @@ describe('performance des rappels', () => {
   it('reprogramme un traitement quotidien de deux ans en moins de 200 ms', async () => {
     const notifications = createFakeNotifications()
     const service = createTreatmentRemindersService({
-      treatments: () => ({ getWithHistory: async () => CARNET[0]! }),
+      treatments: () => ({ getWithPeriods: async () => CARNET[0]! }),
       animals: () => ({ getById: async () => LUNA }),
       settings: async () => SETTINGS,
       notifications,

@@ -90,7 +90,7 @@ const {
   animalId: () => props.animalId,
   openedAnimalId: () => treatment.value?.animalId,
   allowsUnfollowedAnimal: () => mode === 'edit',
-  load: (id) => treatments.getWithHistory(id),
+  load: (id) => treatments.getWithPeriods(id),
   open,
 })
 

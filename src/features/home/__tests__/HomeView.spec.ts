@@ -749,7 +749,7 @@ describe('HomeView — traitements lus par le moteur d’échéances', () => {
   const BOTH = ['08:00', '20:00']
 
   beforeEach(() => {
-    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockReturnValue(new Promise(() => {}))
+    vi.spyOn(useTreatmentsStore(), 'getWithPeriods').mockReturnValue(new Promise(() => {}))
   })
 
   afterEach(() => applyLocale('fr'))
@@ -983,7 +983,7 @@ describe('HomeView — vaccins dans « À faire »', () => {
 
   beforeEach(() => {
     animals = [MILO, LUNA, PIXEL]
-    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockReturnValue(new Promise(() => {}))
+    vi.spyOn(useTreatmentsStore(), 'getWithPeriods').mockReturnValue(new Promise(() => {}))
   })
 
   afterEach(() => applyLocale('fr'))
@@ -1686,7 +1686,7 @@ describe('HomeView — feuille d’un rappel', () => {
       updatedAt: '2026-09-01T09:00:00.000Z',
       deletedAt: null,
     }
-    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockReturnValue(new Promise(() => {}))
+    vi.spyOn(useTreatmentsStore(), 'getWithPeriods').mockReturnValue(new Promise(() => {}))
     vi.spyOn(useVaccinationsStore(), 'getById').mockResolvedValue({
       id: CHPPIL_MILO_RETARD.id,
       animalId: MILO.id,
@@ -1850,7 +1850,7 @@ describe('HomeView — feuille d’un rappel', () => {
   })
 
   it('ouvre « Donnée quand ? » demandé par une notification d’un jour passé (V5), puis l’efface de l’adresse', async () => {
-    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockReturnValue(new Promise(() => {}))
+    vi.spyOn(useTreatmentsStore(), 'getWithPeriods').mockReturnValue(new Promise(() => {}))
     await router.replace({
       name: 'home',
       query: {
@@ -1873,7 +1873,7 @@ describe('HomeView — feuille d’un rappel', () => {
   })
 
   it('ouvre la feuille du soin quand « Donnée quand ? » n’a plus rien à noter', async () => {
-    vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockReturnValue(new Promise(() => {}))
+    vi.spyOn(useTreatmentsStore(), 'getWithPeriods').mockReturnValue(new Promise(() => {}))
     await router.replace({
       name: 'home',
       query: {

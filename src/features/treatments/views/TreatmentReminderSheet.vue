@@ -133,7 +133,7 @@ watch(
     treatment.value = null
     if (!animals.hasLoaded) void animals.load()
     const id = props.treatmentId
-    treatment.value = id ? await treatments.getWithHistory(id).catch(() => null) : null
+    treatment.value = id ? await treatments.getWithPeriods(id).catch(() => null) : null
     if (treatment.value === null && open.value) {
       open.value = false
       showToast(t('treatments.form.errors.load'), { tone: 'error' })

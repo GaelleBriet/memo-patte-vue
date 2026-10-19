@@ -6,7 +6,7 @@ import type { NoteGesture } from '../logic/treatment-dose-change'
 import { doseActionTexts, hasSeveralTimes } from '../logic/treatment-gestures'
 import { notificationTarget } from '../logic/treatment-notification'
 import { readableReadingOf } from '../logic/treatment-reading-adapter'
-import type { TreatmentWithHistoryReader } from '../repository/treatments.repository'
+import type { TreatmentWithPeriodsReader } from '../repository/treatments.repository'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import type { AppliedDoseChange, TreatmentDosesService } from './treatment-doses.service'
 import type { VaccinationReplacedDuesReader } from '@/features/vaccinations/repository/vaccinations.repository'
@@ -27,7 +27,7 @@ type Provider<T> = () => T | Promise<T>
 export type ReminderActionsDependencies = {
   router: Pick<Router, 'currentRoute' | 'push' | 'replace'>
   animals: Provider<Pick<AnimalsRepository, 'getById'>>
-  treatments: Provider<TreatmentWithHistoryReader>
+  treatments: Provider<TreatmentWithPeriodsReader>
   vaccinations: Provider<VaccinationReplacedDuesReader>
   doses: Pick<TreatmentDosesService, 'apply' | 'noteMoment' | 'undoBatch'>
   refreshHome: () => unknown
@@ -201,7 +201,7 @@ export function createReminderActions({
     notified: NotifiedDue,
     legacy: boolean,
   ): Promise<ReminderFeedback | null> {
-    const treatment = await (await treatments()).getWithHistory(id)
+    const treatment = await (await treatments()).getWithPeriods(id)
     if (treatment === null) return openHome()
     const day = today()
     const reading = readableReadingOf(treatment, day)

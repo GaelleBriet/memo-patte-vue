@@ -12,7 +12,7 @@ import {
 import { readableReadingOf } from '../logic/treatment-reading-adapter'
 import {
   getTreatmentsRepository,
-  type AllTreatmentsWithHistoryReader,
+  type AllTreatmentsWithPeriodsReader,
 } from '../repository/treatments.repository'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import type { Vaccination } from '@/features/vaccinations/schema/vaccination.schema'
@@ -71,7 +71,7 @@ export type RemindersPrimingDependencies = {
   shouldShowPriming: () => Promise<boolean>
   animals: Provider<Pick<AnimalsRepository, 'list'>>
   vaccinations: Provider<AllVaccinationsReader>
-  treatments: Provider<AllTreatmentsWithHistoryReader>
+  treatments: Provider<AllTreatmentsWithPeriodsReader>
   today: () => string
 }
 
@@ -95,7 +95,7 @@ export function createRemindersPriming({
       const [animalRows, vaccinationRows, treatmentRows] = await Promise.all([
         animalsRepository.list(),
         vaccinationsRepository.listAll(),
-        treatmentsRepository.listAllWithHistory(),
+        treatmentsRepository.listAllWithPeriods(),
       ])
       const carnet = {
         animals: animalRows,

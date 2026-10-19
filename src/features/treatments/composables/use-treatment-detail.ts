@@ -10,7 +10,7 @@ export function useTreatmentDetail(id: () => string) {
   const store = useTreatmentsStore()
   const { today, refresh: refreshToday } = useToday()
   const { data, state, reload } = useDetailLoad(id, (treatmentId) =>
-    store.getWithHistory(treatmentId),
+    store.getWithPeriods(treatmentId),
   )
 
   const reading = computed(() => readableReadingOf(data.value, today.value))

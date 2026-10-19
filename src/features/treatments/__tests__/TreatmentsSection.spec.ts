@@ -68,15 +68,15 @@ const QUOTIDIEN = {
 const DEUX_PRISES = [dose('2026-09-01', '2026-09-02'), dose('2026-09-02', '2026-09-03')]
 
 let treatments: TreatmentWithPeriods[]
-let list: Mock<TreatmentsRepository['listWithHistoryByAnimal']>
+let list: Mock<TreatmentsRepository['listWithPeriodsByAnimal']>
 
 beforeEach(async () => {
   setActivePinia(createPinia())
   treatments = []
-  list = vi.fn<TreatmentsRepository['listWithHistoryByAnimal']>(async (animalId) =>
+  list = vi.fn<TreatmentsRepository['listWithPeriodsByAnimal']>(async (animalId) =>
     treatments.filter((item) => item.animalId === animalId),
   )
-  const repository = fakeTreatmentsRepository({ listWithHistoryByAnimal: list })
+  const repository = fakeTreatmentsRepository({ listWithPeriodsByAnimal: list })
   provideTreatmentsRepository(() => repository)
   await router.push({ name: 'carnet' })
 })

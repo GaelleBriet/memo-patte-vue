@@ -136,7 +136,7 @@ describe('useTreatmentEditionForm — échéances tombées', () => {
     ])
     update.mockRejectedValueOnce(changed)
     const fresh = { ...SANS_PRISE(), name: 'Milbemax relu' }
-    const reload = vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue(fresh)
+    const reload = vi.spyOn(useTreatmentsStore(), 'getWithPeriods').mockResolvedValue(fresh)
 
     await expect(form.write()?.()).resolves.toBeNull()
 
@@ -149,7 +149,7 @@ describe('useTreatmentEditionForm — échéances tombées', () => {
     const { form } = await aDemander()
     form.answerPastDues('drop')
     update.mockRejectedValueOnce(new Error('disque plein'))
-    const reload = vi.spyOn(useTreatmentsStore(), 'getWithHistory')
+    const reload = vi.spyOn(useTreatmentsStore(), 'getWithPeriods')
 
     await expect(form.write()?.()).rejects.toThrow('disque plein')
     expect(reload).not.toHaveBeenCalled()

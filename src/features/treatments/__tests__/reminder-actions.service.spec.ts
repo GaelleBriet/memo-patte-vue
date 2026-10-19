@@ -105,7 +105,7 @@ function inverseOf(writes: readonly DoseWrite[]): DoseWrite[] {
 
 function handler() {
   const doses = createTreatmentDosesService({
-    treatments: () => ({ getWithHistory: async (id) => (book?.id === id ? book : null) }),
+    treatments: () => ({ getWithPeriods: async (id) => (book?.id === id ? book : null) }),
     doses: () => ({ applyBatch }),
     reminders: { reschedule: async () => {} },
     now: () => new Date(`${today}T10:00:00.000Z`),
@@ -116,7 +116,7 @@ function handler() {
     animals: () => ({
       getById: async (id) => [LUNA, BOREE].find((candidate) => candidate.id === id) ?? null,
     }),
-    treatments: () => ({ getWithHistory: async (id) => (book?.id === id ? book : null) }),
+    treatments: () => ({ getWithPeriods: async (id) => (book?.id === id ? book : null) }),
     vaccinations: () => ({
       getById: async (id) => (vaccination?.id === id ? vaccination : null),
       listReplacedDues: async () => replacedDues,

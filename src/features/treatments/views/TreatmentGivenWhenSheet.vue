@@ -113,7 +113,7 @@ watch(
     treatment.value = null
     if (!animals.hasLoaded) void animals.load()
     const id = props.treatmentId
-    treatment.value = id ? await treatments.getWithHistory(id).catch(() => null) : null
+    treatment.value = id ? await treatments.getWithPeriods(id).catch(() => null) : null
     if (!open.value) return
     if (treatment.value === null) {
       open.value = false

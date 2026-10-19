@@ -40,7 +40,7 @@ const days = (dues: readonly Due[]) => dues.map(({ dueOn }) => dueOn)
 async function saved(history: TreatmentWithPeriods, action: DoseAction, today: string) {
   let current = history
   const service = createTreatmentDosesService({
-    treatments: () => ({ getWithHistory: () => Promise.resolve(current) }),
+    treatments: () => ({ getWithPeriods: () => Promise.resolve(current) }),
     doses: () => ({
       applyBatch: (writes: readonly DoseWrite[]) => {
         current = written(current, writes)

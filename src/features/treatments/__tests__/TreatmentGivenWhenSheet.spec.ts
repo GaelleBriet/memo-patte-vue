@@ -88,7 +88,7 @@ afterEach(() => {
 
 async function ouvrir(book: TreatmentWithPeriods, today: string, due: NotifiedDue) {
   vi.useFakeTimers({ now: new Date(`${today}T10:00:00`), toFake: ['Date'] })
-  vi.spyOn(useTreatmentsStore(), 'getWithHistory').mockResolvedValue(book)
+  vi.spyOn(useTreatmentsStore(), 'getWithPeriods').mockResolvedValue(book)
   wrapper = mount(TreatmentGivenWhenSheet, {
     props: {
       modelValue: true,

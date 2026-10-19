@@ -96,7 +96,7 @@ describe('treatmentPlanService', () => {
   }
 
   async function historyOf(id: string) {
-    const treatment = await treatments.getWithHistory(id)
+    const treatment = await treatments.getWithPeriods(id)
     if (treatment === null) throw new Error('introuvable')
     return treatment
   }
@@ -406,8 +406,8 @@ describe('treatmentPlanService', () => {
     const planning = createTreatmentPlanService({
       treatments: () => ({
         create: (plan) => treatments.create(plan),
-        async getWithHistory(treatmentId) {
-          const treatment = await treatments.getWithHistory(treatmentId)
+        async getWithPeriods(treatmentId) {
+          const treatment = await treatments.getWithPeriods(treatmentId)
           notification ??= doses.noteMoment(treatmentId, today)
           await new Promise((resolve) => setTimeout(resolve, 50))
           return treatment
@@ -645,7 +645,7 @@ describe('treatmentPlanService', () => {
     beforeEach(() => {
       seenAtReschedule = null
       reminders.reschedule.mockImplementation(async (id) => {
-        seenAtReschedule = await treatments.getWithHistory(id)
+        seenAtReschedule = await treatments.getWithPeriods(id)
       })
     })
 

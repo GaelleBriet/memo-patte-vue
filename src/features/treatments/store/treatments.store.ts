@@ -28,7 +28,7 @@ import type { DoseAction, NoteGesture } from '../logic/treatment-dose-change'
 import type {
   TreatmentRemover,
   TreatmentsRepository as FullTreatmentsRepository,
-  TreatmentWithHistoryReader,
+  TreatmentWithPeriodsReader,
 } from '../repository/treatments.repository'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import { track } from '@/core/analytics'
@@ -38,9 +38,9 @@ import { recordUsageSignal } from '@/core/usage/usage-signals'
 
 type TreatmentsRepository = Pick<
   FullTreatmentsRepository,
-  'getById' | 'listDoses' | 'listWithHistoryByAnimal'
+  'getById' | 'listDoses' | 'listWithPeriodsByAnimal'
 > &
-  TreatmentWithHistoryReader &
+  TreatmentWithPeriodsReader &
   TreatmentRemover
 
 export type TreatmentsRepositoryProvider = () =>
@@ -105,7 +105,7 @@ export const useTreatmentsStore = defineStore('treatments', () => {
     loadForAnimal,
     write,
   } = useAnimalScopedList(requireRepository, (repository, id) =>
-    repository.listWithHistoryByAnimal(id),
+    repository.listWithPeriodsByAnimal(id),
   )
 
   function removalOn(repository: TreatmentsRepository) {
@@ -129,12 +129,12 @@ export const useTreatmentsStore = defineStore('treatments', () => {
     },
 
     /** Le traitement, toutes ses périodes et ses prises : l'entrée de `treatmentReading`. */
-    async getWithHistory(id: string): Promise<TreatmentWithPeriods | null> {
-      return (await requireRepository()).getWithHistory(id)
+    async getWithPeriods(id: string): Promise<TreatmentWithPeriods | null> {
+      return (await requireRepository()).getWithPeriods(id)
     },
 
-    async listWithHistoryByAnimal(id: string): Promise<TreatmentWithPeriods[]> {
-      return (await requireRepository()).listWithHistoryByAnimal(id)
+    async listWithPeriodsByAnimal(id: string): Promise<TreatmentWithPeriods[]> {
+      return (await requireRepository()).listWithPeriodsByAnimal(id)
     },
 
     /** Prises visibles, la tête d'abord ; la liste affichée ne change pas. */

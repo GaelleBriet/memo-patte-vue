@@ -101,7 +101,7 @@ async function history(
   treatments: Awaited<ReturnType<typeof createReplay>>['treatments'],
   id: string,
 ): Promise<TreatmentWithPeriods> {
-  const found = await treatments.getWithHistory(id)
+  const found = await treatments.getWithPeriods(id)
   if (found === null) throw new Error(`Traitement introuvable : ${id}`)
   return found
 }

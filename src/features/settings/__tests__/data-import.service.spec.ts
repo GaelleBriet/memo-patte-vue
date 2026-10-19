@@ -234,7 +234,7 @@ describe('data-import.service', () => {
     await expect(repositories.treatments.getById(milbemax!.id)).resolves.toMatchObject({
       type: 'medication',
     })
-    await expect(repositories.treatments.getWithHistory(milbemax!.id)).resolves.toMatchObject({
+    await expect(repositories.treatments.getWithPeriods(milbemax!.id)).resolves.toMatchObject({
       periods: [{ firstDueOn: '2026-10-05' }],
       doses: [],
     })
@@ -308,7 +308,7 @@ describe('data-import.service', () => {
       frequency: { value: 1, unit: 'day' },
       stoppedOn: null,
     })
-    const panacur = await repositories.treatments.getWithHistory(PANACUR_ID)
+    const panacur = await repositories.treatments.getWithPeriods(PANACUR_ID)
     expect(treatmentReadingOf(panacur!, '2026-09-02').view.nextDue).toMatchObject({
       dueOn: '2026-09-03',
     })

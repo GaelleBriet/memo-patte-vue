@@ -93,7 +93,7 @@ function sync() {
   return createRemindersSync({
     animals: () => ({ list }),
     vaccinations: () => ({ listAll: listVaccinations, listAllReplacedDues }),
-    treatments: () => ({ listAllWithHistory: listTreatments }),
+    treatments: () => ({ listAllWithPeriods: listTreatments }),
     carnetSettings: () => ({ get: getSettings }),
     notifications,
     t: i18n.global.t,

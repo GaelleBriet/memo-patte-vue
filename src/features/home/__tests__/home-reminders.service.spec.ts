@@ -31,7 +31,7 @@ function service(vaccinations: Vaccination[], treatments: TreatmentWithPeriods[]
   return createHomeRemindersService(
     () => ({ listAll: vi.fn<() => Promise<Vaccination[]>>(async () => vaccinations) }),
     async () => ({
-      listAllWithHistory: vi.fn<() => Promise<TreatmentWithPeriods[]>>(async () => treatments),
+      listAllWithPeriods: vi.fn<() => Promise<TreatmentWithPeriods[]>>(async () => treatments),
     }),
   )
 }
@@ -96,7 +96,7 @@ describe('homeRemindersService', () => {
         ),
       }),
       () => ({
-        listAllWithHistory: vi.fn<() => Promise<TreatmentWithPeriods[]>>(async () => []),
+        listAllWithPeriods: vi.fn<() => Promise<TreatmentWithPeriods[]>>(async () => []),
       }),
     )
 

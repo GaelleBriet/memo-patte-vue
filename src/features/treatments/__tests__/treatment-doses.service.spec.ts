@@ -157,7 +157,7 @@ describe('treatmentDosesService', () => {
     }
 
     async function fiche(id: string) {
-      const treatment = await treatments.getWithHistory(id)
+      const treatment = await treatments.getWithPeriods(id)
       return treatmentReadingOf(treatment!, todayIsoDate()).view
     }
 
@@ -717,7 +717,7 @@ describe('treatmentDosesService', () => {
       const { undo } = await service.apply(bravecto, { kind: 'remove', lineId: bravecto })
 
       await expect(visibleDoses()).resolves.toEqual([])
-      const treatment = await treatments.getWithHistory(bravecto)
+      const treatment = await treatments.getWithPeriods(bravecto)
       const { view } = treatmentReadingOf(treatment!, todayIsoDate())
       expect(view.phase).toBe('overdue')
       expect(view.currentDoses).toMatchObject([{ dueOn: '2026-08-28' }])

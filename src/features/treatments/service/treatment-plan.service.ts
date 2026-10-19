@@ -10,7 +10,7 @@ import {
 import {
   getTreatmentsRepository,
   type TreatmentsRepository,
-  type TreatmentWithHistoryReader,
+  type TreatmentWithPeriodsReader,
 } from '../repository/treatments.repository'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-history.schema'
 import type {
@@ -28,7 +28,7 @@ type Provider<T> = () => T | Promise<T>
 
 export type TreatmentPlanDependencies = {
   treatments: Provider<
-    Pick<TreatmentsRepository, 'create' | 'applyPlan'> & TreatmentWithHistoryReader
+    Pick<TreatmentsRepository, 'create' | 'applyPlan'> & TreatmentWithPeriodsReader
   >
   reminders: Pick<TreatmentRemindersService, 'reschedule'>
   today: () => string
@@ -45,7 +45,7 @@ export function createTreatmentPlanService({
   queue = createWriteQueue(),
 }: TreatmentPlanDependencies) {
   async function treatmentOf(id: string): Promise<TreatmentWithPeriods> {
-    const treatment = await (await treatments()).getWithHistory(id)
+    const treatment = await (await treatments()).getWithPeriods(id)
     if (treatment === null) throw new Error(`Traitement introuvable : ${id}`)
     return treatment
   }

@@ -113,7 +113,7 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
   it('crée localement une prise distante inconnue, lue dans l’historique de son traitement', async () => {
     await db.runMany([repository.applyRemoteRowStatement(remoteDose())])
 
-    const treatment = await createTreatmentsRepository(db).getWithHistory(TREATMENT_ID)
+    const treatment = await createTreatmentsRepository(db).getWithPeriods(TREATMENT_ID)
     expect(treatment?.doses).toContainEqual(
       expect.objectContaining({ id: LATER_ID, givenOn: '2026-02-01', targetOn: '2026-03-01' }),
     )
@@ -160,7 +160,7 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
 
   describe('ligne reçue pour une échéance qui en a déjà une (plan §3.2, R11)', () => {
     async function effects(today: string) {
-      const treatment = await createTreatmentsRepository(db).getWithHistory(TREATMENT_ID)
+      const treatment = await createTreatmentsRepository(db).getWithPeriods(TREATMENT_ID)
       const reading = readTreatment(treatment!, today)
       return Object.fromEntries(
         reading!.view.history.map(({ line, effect }) => [

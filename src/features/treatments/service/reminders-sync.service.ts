@@ -11,7 +11,7 @@ import {
 import { treatmentReminders } from '../logic/treatment-reminders'
 import {
   getTreatmentsRepository,
-  type AllTreatmentsWithHistoryReader,
+  type AllTreatmentsWithPeriodsReader,
 } from '../repository/treatments.repository'
 import {
   getVaccinationsRepository,
@@ -81,7 +81,7 @@ function isAlreadyScheduled(
 export type RemindersSyncDependencies = {
   animals: Provider<Pick<AnimalsRepository, 'list'>>
   vaccinations: Provider<Pick<VaccinationsRepository, 'listAll' | 'listAllReplacedDues'>>
-  treatments: Provider<AllTreatmentsWithHistoryReader>
+  treatments: Provider<AllTreatmentsWithPeriodsReader>
   carnetSettings: Provider<Pick<CarnetSettingsRepository, 'get'>>
   notifications: Pick<
     ReminderNotifications,
@@ -116,7 +116,7 @@ export function createRemindersSync({
           animalsRepository.list(),
           vaccinationsRepository.listAll(),
           vaccinationsRepository.listAllReplacedDues(),
-          treatmentsRepository.listAllWithHistory(),
+          treatmentsRepository.listAllWithPeriods(),
           settingsRepository.get(),
         ])
       const animalsById = new Map(animalRows.map((animal) => [animal.id, animal]))

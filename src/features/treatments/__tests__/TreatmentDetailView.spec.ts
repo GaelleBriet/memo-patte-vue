@@ -147,7 +147,7 @@ beforeEach(async () => {
     book !== null && id === book.id ? book : null,
   )
   const repository = fakeTreatmentsRepository({
-    getWithHistory: read,
+    getWithPeriods: read,
     remove: async () => REMOVED_AT,
     restore: async () => {},
   })

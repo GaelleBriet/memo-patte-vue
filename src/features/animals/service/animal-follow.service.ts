@@ -17,7 +17,7 @@ type Provider<T> = () => T | Promise<T>
 
 export type AnimalFollowDependencies = {
   animals: Provider<Pick<AnimalsRepository, 'getDeparture' | 'setDeparture'>>
-  treatments: Provider<Pick<TreatmentsRepository, 'listWithHistoryByAnimal'>>
+  treatments: Provider<Pick<TreatmentsRepository, 'listWithPeriodsByAnimal'>>
   periods: Provider<TreatmentPeriodStopStatements>
   reminders: Pick<AnimalRemindersService, 'withdraw' | 'reschedule'>
   today: () => string
@@ -61,7 +61,7 @@ export function createAnimalFollowService({
       if ((await departureOf(animalId)).unfollowedOn !== null) return null
       const day = today()
       const at = new Date().toISOString()
-      const carnetTreatments = await (await treatments()).listWithHistoryByAnimal(animalId)
+      const carnetTreatments = await (await treatments()).listWithPeriodsByAnimal(animalId)
       const stoppedPeriodIds = carnetTreatments.flatMap((treatment) => {
         const id = ongoingPeriodId(treatment, day)
         return id === null ? [] : [id]

@@ -116,7 +116,7 @@ export function useTreatmentEditionForm({ values, treatment, today, refreshToday
     try {
       return await treatments.update(id, data)
     } catch (error) {
-      const fresh = pastDuesAskedAgain(error) ? await treatments.getWithHistory(id) : null
+      const fresh = pastDuesAskedAgain(error) ? await treatments.getWithPeriods(id) : null
       if (fresh === null) throw error
       treatment.value = fresh
       isPastDuesOpen.value = pastDues.value !== null

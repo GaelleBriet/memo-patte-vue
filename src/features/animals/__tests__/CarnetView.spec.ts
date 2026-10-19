@@ -144,7 +144,7 @@ let weights: WeightEntry[]
 let load: MockInstance
 let push: MockInstance
 let listVaccinations: Mock<VaccinationsRepository['listByAnimal']>
-let listTreatments: Mock<TreatmentsRepository['listWithHistoryByAnimal']>
+let listTreatments: Mock<TreatmentsRepository['listWithPeriodsByAnimal']>
 let listWeights: Mock<WeightRepository['listByAnimal']>
 
 beforeEach(async () => {
@@ -164,14 +164,14 @@ beforeEach(async () => {
   listVaccinations = vi.fn<VaccinationsRepository['listByAnimal']>(async (id) =>
     vaccinations.filter((v) => v.animalId === id),
   )
-  listTreatments = vi.fn<TreatmentsRepository['listWithHistoryByAnimal']>(async (id) =>
+  listTreatments = vi.fn<TreatmentsRepository['listWithPeriodsByAnimal']>(async (id) =>
     treatments.filter((t) => t.animalId === id),
   )
   listWeights = vi.fn<WeightRepository['listByAnimal']>(async (id) =>
     weights.filter((w) => w.animalId === id),
   )
   const vaccinationsRepository = fakeVaccinationsRepository({ listByAnimal: listVaccinations })
-  const treatmentsRepository = fakeTreatmentsRepository({ listWithHistoryByAnimal: listTreatments })
+  const treatmentsRepository = fakeTreatmentsRepository({ listWithPeriodsByAnimal: listTreatments })
   const weightRepository = fakeWeightRepository({ listByAnimal: listWeights })
   provideVaccinationsRepository(() => vaccinationsRepository)
   provideTreatmentsRepository(() => treatmentsRepository)
