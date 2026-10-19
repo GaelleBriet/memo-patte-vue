@@ -117,6 +117,22 @@ describe('Un seul téléphone : une dose ôtée par un décalage, pas par la ré
     expect(seedHolds(9000000692, 40)).toEqual([])
   })
 
+  // Tous les mois à 8 h et 20 h depuis le 16 mars, réglage réécrit le jour même ; la dose du 16 donnée
+  // d'avance avec la case (grille au 11), celle du 11 avril avancée au 31 mars ; le 15, « Prochaine
+  // dose » le 19 (nouveau réglage, origine propre), puis posologie seule : le 11 avril n'est plus une
+  // échéance, ôté par le réglage du 15 et non par la réécriture du 16.
+  it('graine 9000001436 : un réglage intermédiaire qui pose sa propre origine n’est pas une réécriture, le report reste sans effet', () => {
+    const walk = startV2Walk(9000001436)
+    for (let count = 0; count <= 14; count += 1) v2Step(walk, () => {})
+    const report = walk.input.lines.find(
+      ({ status, dueOn }) => status === 'postponed' && dueOn === '2026-04-11',
+    )!
+    const effect = treatmentView(walk.input).history.find(({ line }) => line.id === report.id)!
+    expect(effect.effect).toEqual({ kind: 'idle', reason: 'nothing-to-move' })
+    expect(upcoming(walk.input).moteur).toEqual(['2026-03-19 20:00'])
+    expect(upcoming(walk.input).reference).toEqual(upcoming(walk.input).moteur)
+  })
+
   it('graine 9500001489 : les invariants tiennent à chaque geste, posologie seule comprise', () => {
     expect(seedHolds(9500001489, 40)).toEqual([])
   })
