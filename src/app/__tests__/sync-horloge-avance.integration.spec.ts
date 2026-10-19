@@ -242,9 +242,9 @@ describe('#904 : une horloge en avance de 3 jours, deux téléphones, de la base
       expect(
         server
           .rows('treatment_period')
-          .map(({ created_at }) => created_at)
+          .map(({ created_at }) => new Date(String(created_at)).toISOString())
           .sort(),
-      ).toEqual(['2026-10-19T07:00:00.000+00:00', '2026-10-19T08:00:00.000+00:00'])
+      ).toEqual(['2026-10-19T07:00:00.000Z', '2026-10-19T08:00:00.000Z'])
     })
   })
 

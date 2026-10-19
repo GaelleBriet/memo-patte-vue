@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { SyncRowValue } from '@/core/supabase/guarded-upsert'
-import { clampedWrite } from './fake-sync-clamp'
+import { clampedWrite, serverInstant } from './fake-sync-clamp'
 
 type ServerRow = Record<string, SyncRowValue>
 type Result = { data: ServerRow[] | null; error: { message: string; code?: string } | null }
@@ -256,7 +256,7 @@ export function createFakeSyncServer({
       user_id: user_id ?? null,
       id: id ?? null,
       sent_at: sent_at ?? null,
-      received_at: new Date(now()).toISOString(),
+      received_at: serverInstant(now()),
       writes: [],
     })
     return { data: null, error: null }

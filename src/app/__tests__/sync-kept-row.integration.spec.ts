@@ -103,7 +103,7 @@ describe('la ligne que le serveur a gardée, reprise par le téléphone qui a po
       user_id: USER_ID,
       id: expect.any(String),
       sent_at: '2026-10-19T08:06:00.000Z',
-      received_at: '2026-10-19T08:06:00.000Z',
+      received_at: '2026-10-19T08:06:00.000718Z',
       writes: ['animal', 'animal'],
     })
   })
