@@ -1,7 +1,4 @@
--- Une horloge déréglée de plus de 24 h : les dates que l'écriture change sont décalées d'un même
--- écart, celui de son envoi (heure du serveur à sa réception moins heure du téléphone), sinon celui
--- de sa date la plus récente ramenée à now() ; une ligne décalée qui n'est pas plus récente que celle
--- du serveur est refusée. Aucune ligne existante n'est réécrite.
+-- Une horloge en avance de plus de 24 h : les dates que l'écriture change reculent d'un seul écart par envoi.
 create or replace function public.clamp_sync_timestamps()
 returns trigger
 language plpgsql
@@ -16,6 +13,8 @@ declare
   stored constant jsonb := case when tg_op = 'UPDATE' then to_jsonb(old) else '{}'::jsonb end;
   push_id constant text :=
     nullif(current_setting('request.headers', true), '')::jsonb ->> 'x-memopatte-sync-push';
+  -- Le téléphone relit les dates à la milliseconde : une microseconde de plus les ferait « changées ».
+  now_ms constant timestamptz := date_trunc('milliseconds', now());
   written text[];
   latest timestamptz;
   shift interval;
@@ -24,21 +23,22 @@ declare
 begin
   select coalesce(array_agg(c), '{}') into written
   from unnest(dated) c
-  where incoming ->> c is not null and (incoming -> c) is distinct from (stored -> c);
+  where incoming ->> c is not null
+    and date_trunc('milliseconds', (incoming ->> c)::timestamptz)
+      is distinct from date_trunc('milliseconds', (stored ->> c)::timestamptz);
 
   if push_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
-    select p.received_at - p.sent_at into shift
+    select date_trunc('milliseconds', p.received_at) - date_trunc('milliseconds', p.sent_at)
+    into shift
     from public.sync_push p
     where p.user_id = new.user_id
       and p.id = push_id::uuid
       and p.sent_at > p.received_at + interval '24 hours';
   end if;
 
-  if shift is null then
-    select max((incoming ->> c)::timestamptz) into latest from unnest(written) c;
-    if latest > now() + interval '24 hours' then
-      shift := now() - latest;
-    end if;
+  select max((incoming ->> c)::timestamptz) into latest from unnest(written) c;
+  if latest + coalesce(shift, interval '0') > now_ms + interval '24 hours' then
+    shift := now_ms - latest;
   end if;
 
   if shift is not null then
