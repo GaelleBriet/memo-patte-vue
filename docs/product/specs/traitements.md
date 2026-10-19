@@ -1572,10 +1572,12 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
   récent, le report est sans effet. Tous les 3 mois à 8 h, 14 h et 20 h, sans prise le 5 mars ; A
   reporte 8 h du 5 au 6, B passe à 8 h 01, 14 h 01 et 20 h 01 : B plus récent, le report est sans
   effet, le 5 réclame 8 h 01, 14 h 01 et 20 h 01 (avant : tout au 6). (3) La dose de départ se juge
-  sur sa journée lue sans le report, doses arrivées d'un autre report comprises, et la règle ne vaut
+  sur sa journée lue sans le report (depuis le 18 octobre 2026 : telle qu'elle se lit, voir l'entrée
+  de ce jour, #938), doses arrivées d'un autre report comprises, et la règle ne vaut
   que pour une dose ôtée par la réécriture ; une ligne écrite au même instant que le réglage (le
   même « Modifier ») ne le contredit pas. Même carnet avec 14 h et 20 h du 5 données d'avance : sur B, le 5 garde 8 h (journée
-  touchée par les prises), la réécriture ne l'a pas ôtée, le report tient, le 6 à 8 h 01 (relecture
+  touchée par les prises), la réécriture ne l'a pas ôtée, le report tient, le 6 à 8 h 01 (le 6 à 8 h
+  depuis le 18 octobre 2026, #938 ; relecture
   de la PR #934, graines 9050001002 et vingt autres). Sur un seul téléphone, une journée qui n'existait
   que par un décalage supprimé se lit comme avant : Milo, toutes les 2 semaines à 20 h depuis le 13
   mars, fin le 26 avril ; le 15 mars, dose du 13 donnée, dose du 27 donnée d'avance avec la case ;

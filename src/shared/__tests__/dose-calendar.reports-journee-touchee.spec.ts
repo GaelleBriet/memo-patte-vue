@@ -445,9 +445,8 @@ describe('Deux téléphones, un réglage du jour réécrit (R10)', () => {
     expect(readings(synced).moteur).toEqual(readings(synced).reference)
   })
 
-  // Lu sans le report, le 5 garde 8 h (journée touchée par les prises) : la réécriture ne l'a pas ôtée.
   // Réécrit après lui, le réglage du report ne donne pas ses heures au 5 (#938) : le 5 garde celles de
-  // ses prises, comme sur B, et le report emmène 8 h, comme sur A.
+  // ses prises et 8 h, comme sur B ; la réécriture ne l'a pas ôtée, le report emmène 8 h, comme sur A.
   it('même carnet, B plus récent : la réécriture n’a pas ôté 8 h du 5, le report tient, le 6 ne réclame qu’une dose (#883, #938)', () => {
     const synced = syncedAt('2026-03-04T09:00:00.000Z', '2026-03-04T18:00:00.000Z')
     expect(reportEffects(synced)).toEqual(['moves'])

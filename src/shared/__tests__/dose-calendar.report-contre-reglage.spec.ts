@@ -103,8 +103,8 @@ describe('#938 : Milo, tous les jours à 6, 12, 18 et 23 h ; la dose de 6 h du 4
     })
   })
 
-  // Lue sans le report, la journée du 4 garde 12 h : la réécriture ne l'a pas ôtée, le report emmène
-  // les trois doses qu'il emmenait sur A.
+  // Réécrit après le report, son réglage ne donne pas ses heures au 4, qui garde celles de sa prise :
+  // 12 h y reste, le report emmène les trois doses qu'il emmenait sur A.
   it('B plus récent : le 4 garde la prise de 6 h, le 5 reçoit 12 h, 18 h et 23 h, puis le 6 aux heures de B', () => {
     const { merged, report } = milo({ aAt: MATIN, bAt: SOIR })
     expect(effectOf(merged, report.id)).toMatchObject({ kind: 'moves', arrival: '2026-03-05' })
