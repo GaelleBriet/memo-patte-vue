@@ -3200,9 +3200,17 @@ délégué les lectures de règles ; #939, #938, #882).
   8 h, le 5 garde 14 h 01 et 20 h 01 (avant, B plus récent : report sans effet). Carnet de #883 (B
   passe à 8 h et 20 h) : dans les deux ordres, le 6 mai à 14 h puis le 9 mai à 8 h et 20 h.
 - #939 : quand la journée de départ est lue par un réglage créé après celui du report, réécrit sur
-  place depuis, et que la ligne a connu, le report plus récent que sa grille l'emporte aussi ; plus
-  ancien, la lecture de son propre réglage reste. Les six graines (9050000090, 9050001220,
+  place depuis, et que la ligne a connu, le report plus récent que sa grille se lit comme avant, sans
+  être écarté hors de la grille : il emmène toutes ses doses, comme sur le téléphone qui l'a écrit ;
+  plus ancien, la lecture de son propre réglage reste. Les six graines (9050000090, 9050001220,
   9050001496, 9050001518, 9050002324, 9050002340) : la date choisie par B reste, le report aussi.
+- L'aperçu d'une réécriture (« Modifier » sur place) date sa grille comme l'écriture : le report se
+  jugeant contre elle, l'aperçu et le résultat ne doivent pas différer (graines 9110000172,
+  9110000229, 9110000309).
+- Q1 : une date choisie reprise par un réglage suivant de même fréquence, sans origine à lui
+  (« Modifier » des heures seules), reste l'ancienne arrivée d'un report ; et ce que le report
+  emporte encore de sa journée de départ arrive avec lui (graine 9050001926 : avant, les doses de
+  14 h et 20 h du 16 disparaissaient).
 - Q5, correction de la lecture du 19 octobre (« sauf le jour même ») : R4 dans la journée gagne
   partout ; carnet de #938, A plus récent : 8 h couverte par la prise de 6 h, le report emporte le
   rang 2 (12 h) et, avec la case, le rang 3 (20 h). 7700002507, 4870000187, 7600001452 inchangées.
