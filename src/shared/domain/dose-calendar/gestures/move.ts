@@ -60,12 +60,13 @@ function movedDue(view: TreatmentView, rest: TreatmentView, due: Due, existing?:
       .slots(day, day)
       .filter(({ state }) => state === 'pending')
       .map((slot) => slot.due)
+  // R7 : la dose touchée part, avec les heures suivantes encore sans prise de sa journée.
   if (existing === undefined) {
-    const sameDay = pendingOn(view, due.dueOn)
-    const known = sameDay.some(
-      (other) => keyOf(other.dueOn, other.dueTime) === keyOf(due.dueOn, due.dueTime),
+    const touched = keyOf(due.dueOn, due.dueTime)
+    return (
+      pendingOn(view, due.dueOn).find((other) => keyOf(other.dueOn, other.dueTime) === touched) ??
+      null
     )
-    return known ? sameDay[0]! : null
   }
   if (due.dueOn === existing.dueOn && due.dueOn !== existing.targetOn) {
     return pendingOn(rest, due.dueOn)[0] ?? due

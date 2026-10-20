@@ -62,14 +62,12 @@ export function arriveReports(context: ArrivalContext) {
           ? { ...report!, dueTime: touchedHour, dueRank: null }
           : undefined
       // Ce que le report emporte de sa journée de départ, si elle se lit encore, arrive aussi : son heure
-      // et, avec la case, les suivantes (R7, Q-c), ou, son heure absente, la dose de son rang (Q4).
+      // et les suivantes (R7), ou, son heure absente, la dose de son rang (Q4).
       let leftDeparture: Hour[] = []
       if (from !== undefined && from.hours.includes(report!.dueTime)) {
         const taken = coveredAside(dueOn, from)
         const stays = (hour: Hour) =>
-          taken.has(hour) ||
-          (hour !== null && hour < (report!.dueTime ?? '')) ||
-          (!withFollowing && hour !== report!.dueTime)
+          taken.has(hour) || (hour !== null && hour < (report!.dueTime ?? ''))
         leftDeparture = from.hours.filter((hour) => !stays(hour))
         from.hours = from.hours.filter(stays)
       } else if (from !== undefined) {
@@ -85,15 +83,16 @@ export function arriveReports(context: ArrivalContext) {
         // G13, R9 : la journée entière de la date choisie arrive ; la série repart de l'arrivée.
         carried = wholeDayOf(touched ?? report!, chosenHours)
       } else {
+        // R7 : la dose touchée part avec les heures suivantes de sa journée, case ou non.
         const byRank = takenByRank(
           touched ?? report!,
           oldArrival!.hours,
           exactAt(chosenDay!, oldArrival!),
-          withFollowing,
+          touched !== undefined || withFollowing,
         )
         // #796 : les doses parties arrivent aux heures du réglage qui a choisi la date.
         const relaid = touched
-          ? takenByRank(touched, chosenHours, new Set(), withFollowing).carried
+          ? takenByRank(touched, chosenHours, new Set(), true).carried
           : byRank.carried
         oldArrival!.hours = oldArrival!.hours.filter((hour) => !byRank.lost.includes(hour))
         // Lue au départ comme sur l'ancienne arrivée, c'est la même dose : elle arrive une fois.
