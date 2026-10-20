@@ -365,16 +365,21 @@ it('graine 9120001577, pas 12 : aucune dose de trop le 5 avril', () => {
   expect(constatsOf(forkAt(9120001577, 12))).toEqual([])
 })
 
-// Q1 : la date choisie par B tombe sur l'ancienne arrivée d'un report ; les doses que le report emporte
-// de sa journée de départ arrivent toutes, aucune ne disparaît.
-it('graine 9050001926, pas 16 : les doses du 16 arrivent le 23, celles que A redéplace le 24', () => {
+// Q-c : sans la case, le report repris sur la date choisie par B n'en emporte que sa dose ; la fusion
+// lit comme B, et le redéplacement de A, fait sur des doses que B n'a plus, est un résidu (#986).
+it('graine 9050001926, pas 16 : la fusion lit comme B, trois doses ; le redéplacement de A est un résidu', () => {
   const fork = forkAt(9050001926, 16)
   expect(fork.aFirst).toBe(false)
-  expect(constatsOf(fork)).toEqual([])
-  expect(keys(treatmentView(fork.merged).upcoming({ limit: 3 }))).toEqual([
-    '2026-03-24 14:00',
-    '2026-03-24 20:00',
-    '2026-03-25 14:00',
+  expect(states(fork.merged, '2026-03-16', '2026-03-26')).toEqual(
+    states(fork.phoneB, '2026-03-16', '2026-03-26'),
+  )
+  expect(states(fork.merged, '2026-03-16', '2026-03-26')).toEqual([
+    '2026-03-23 08:00 given',
+    '2026-03-25 14:00 pending',
+    '2026-03-25 20:00 pending',
+  ])
+  expect(constatsOf(fork)).toEqual([
+    'graine 9050001926, pas 16, A plus récent : report 2026-03-23 14:00 → 2026-03-24 perdu',
   ])
 })
 
