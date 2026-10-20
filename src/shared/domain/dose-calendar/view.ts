@@ -47,7 +47,9 @@ export type TreatmentView = {
   slots(from: Day, to: Day): DueSlot[]
   /** TR-21, Q33 : le jour où cette échéance a déjà été notée, `null` si elle ne l'est pas. */
   alreadyNotedOn(due: Pick<Due, 'dueOn' | 'dueTime'>, today: Day): Day | null
-  /** R5 : premier jour où une prise couvre encore cette échéance ; `null` : pas de borne. */
+  /** TR-24 bis : premier jour où une prise donnée couvre encore cette échéance, à une ou plusieurs heures. */
+  earliestGivenOn(due: Due): Day | null
+  /** R5 : avant ce jour, une prise est une prise en plus ; `null` : jamais, à plusieurs heures par jour. */
   extraBoundary(due: Due): Day | null
   currentSetting: Setting | null
   settingAt(day: Day): Setting | undefined
@@ -154,6 +156,14 @@ export function buildView({ settings, lines: given, today }: TreatmentViewInput)
     return (first.length >= limit ? first : pendingBetween(from, to)).slice(0, limit)
   }
   const settingAt = (day: Day) => live.filter(({ startsOn }) => startsOn <= day).at(-1)
+  const earliestGivenOn = (due: Due): Day | null => {
+    const setting = byId.get(due.settingId)
+    if (setting === undefined) return null
+    let day = stepped(due.dueOn, setting.frequency, -1)
+    while (stepped(day, setting.frequency, 1) <= due.dueOn) day = plusDays(day, 1)
+    const start = settings.map(({ startsOn }) => startsOn).sort()[0]!
+    return later(day, start)
+  }
   const slots: TreatmentView['slots'] = (from, to) => {
     const byKey = new Map<string, Slot>()
     for (const slot of calendarsOver(from, to).flatMap(({ slots }) => slots)) {
@@ -209,13 +219,12 @@ export function buildView({ settings, lines: given, today }: TreatmentViewInput)
       )
       return extra ? day : null
     },
+    earliestGivenOn,
     extraBoundary: (due) => {
       const setting = byId.get(due.settingId)
-      if (setting === undefined || hoursOf(setting.times).length > 1) return null
-      let day = stepped(due.dueOn, setting.frequency, -1)
-      while (stepped(day, setting.frequency, 1) <= due.dueOn) day = plusDays(day, 1)
-      const start = settings.map(({ startsOn }) => startsOn).sort()[0]!
-      return later(day, start)
+      return setting === undefined || hoursOf(setting.times).length > 1
+        ? null
+        : earliestGivenOn(due)
     },
     currentSetting,
     settingAt,
