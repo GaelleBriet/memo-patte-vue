@@ -87,8 +87,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       reachOf: (day) => ({ drawnBy: drawnBy.get(span.settingAt(day)?.id ?? '') }),
       isDay: (day) => days.has(day),
     })
-  // G13 : le décalage d'une dose redéplacée depuis la date choisie qui la portait se juge depuis cette
-  // ancienne arrivée ; les journées suivantes avancent ou reculent d'autant.
+  // G13 : le décalage d'une dose redéplacée depuis sa date choisie part de cette ancienne arrivée.
   const fromOldArrival = (turn: Line) => chooserOfTurn(turn, lines.reports, span) !== undefined
   const claims: Claim[] = []
   const openings = new Set<Day>()
@@ -110,6 +109,8 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   let rhythmStartFloor = ''
   let chosenFloor = ''
   let rhythmFloor = ''
+  // R9 : l'arrivée qui ouvre la série du rythme ; un décalage peut en partir.
+  let seriesStart: Day | undefined
   let anchors = new Set<Line>()
   const bounds: (Day | null)[] = []
   let lastGridDay: Day | null = null
@@ -148,8 +149,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       const follows = chain.slice(0, position).some((each) => span.live.includes(each))
       if (follows && setting.firstDueOn >= setting.startsOn) openings.add(setting.firstDueOn)
     }
-    // R2, R9 : une origine posée sur la grille en vigueur ne lit aucune journée avant sa première
-    // échéance, ni ses suivants de même rythme, même après un décalage, sauf celui qui part d'elle.
+    // R2, R9 : rien avant une origine posée sur la grille en vigueur, sauf la série qui repart d'elle.
     chosenFloor = !continued ? '' : origin !== null ? ownFloor : chosenFloor
     if (!continued || origin !== null) rhythmFloor = ownFloor
     if (!continued || origin !== null) anchors = continued ? held : new Set()
@@ -164,10 +164,12 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     drawnBy.set(setting.id, drawer)
     if (!continued) rhythmStartFloor = grid.floor
     const early = earlyTurnOf(setting, lines, span, effects)
+    if (!continued) seriesStart = undefined
     if (early !== undefined) {
       chosenFloor = ''
       grid = turned(early, '')
       rhythmStartFloor = grid.floor
+      seriesStart = early.targetOn!
     }
     const at = span.episode.indexOf(setting)
     const prior = span.live.filter((each) => span.episode.indexOf(each) < at).at(-1)
@@ -175,9 +177,8 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     // R10 : un réglage remplacé le jour même sans prise ne compte pas, d'où qu'il vienne ; la
     // fréquence se compare à celle du réglage en vigueur avant lui.
     const kept = prior !== undefined && sameFrequency(prior.frequency, setting.frequency)
-    // TR-9 : à fréquence gardée, une première échéance choisie remplace la dose du moment du rythme,
-    // même quand son réglage est remplacé le jour même par un réglage sans date choisie, sauf
-    // après « Elles restent à renseigner » (R10, #817, #836).
+    // TR-9, R10 : à fréquence gardée, une date choisie remplace la dose du moment, même remplacée le
+    // jour même par un réglage sans date choisie, sauf après « Elles restent à renseigner » (#817).
     const replaces =
       kept && setting.firstDueChosen && setting.fallenDosesAnswer !== 'stay-unlogged' && !ended
     if (replaces) {
@@ -221,15 +222,15 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     )
     let from = setting.startsOn
     const segments: Segment[] = []
-    // R6 : un décalage ne vaut que si sa journée d'origine est une échéance de la grille telle qu'elle
-    // est avant lui, ou l'arrivée d'une dose reportée du rythme en vigueur ; avant une date choisie,
-    // seul celui qui la porte (R3, TR-9).
+    // R6 : un décalage part d'une échéance de la grille d'avant lui ou d'une arrivée de report du rythme
+    // en vigueur ; avant une date choisie, seul celui qui la porte (R3, TR-9).
     const lands = (turn: Line) =>
       (isDueDay(grid, setting.frequency, turn.dueOn) &&
         (turn.dueOn > chosenFloor || anchors.has(turn))) ||
       lines.reports.some(
         (report) => report.targetOn === turn.dueOn && report.dueOn > rhythmFloor,
       ) ||
+      turn.dueOn === seriesStart ||
       keptByReport(turn) ||
       fromOldArrival(turn)
     for (const turn of [...turns, null]) {

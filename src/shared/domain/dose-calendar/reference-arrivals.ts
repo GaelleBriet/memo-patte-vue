@@ -98,7 +98,9 @@ export function arriveReports(context: ArrivalContext) {
         // Lue au départ comme sur l'ancienne arrivée, c'est la même dose : elle arrive une fois.
         carried = touched || leftDeparture.length === 0 ? relaid : leftDeparture
       }
-      land(report!, { carried, hoursOf: settingOf(report!.settingId) })
+      // #796 : la journée venue de la date choisie appartient au réglage qui l'a choisie.
+      const owner = turned || touched ? chooser! : settingOf(report!.settingId)
+      land(report!, { carried, hoursOf: owner })
       continue
     }
     const verdict =

@@ -29,8 +29,6 @@ export function moveReports(input: ReportsInput) {
   const { span, lines, settingOf, journey, effects, notDue, coveredOn, noted, byDay } = input
   const { isBorrowed, matched, held } = input
   const { days, translated, left, openings, restarts, chosenRestarts } = journey
-  // R7 : un report emporte son heure et les suivantes encore sans prise ; les reports qui arrivent
-  // sur sa journée passent d'abord.
   const fallen = new Set<Day>()
   const moved = new Map<string, Line>()
   const arrived = new Map<Day, Hour[]>()
@@ -44,13 +42,11 @@ export function moveReports(input: ReportsInput) {
     const departure = days.get(dueOn)
     const after = (hour: Hour) => hour === null || hour >= (dueTime ?? '')
     const withFollowing = lines.shifts.some((shift) => shift.dueOn === dueOn)
-    // Q1 : sur la date choisie qui portait sa dose, le report reprend sa dose par son rang ; ce qu'il
-    // emporte de sa journée de départ, quand elle se lit encore, arrive avec elle.
+    // Q1 : sur la date choisie qui portait sa dose, le report reprend sa dose par son rang.
     const chooser = oldArrivalChooser(report, span)
     const oldOn = chooser?.firstDueOn
     const oldDay = oldOn === undefined ? undefined : days.get(oldOn)
-    // G13, R9 : avancée avec la case depuis cette date choisie, elle emmène la journée entière et son
-    // arrivée devient le premier jour de la série, que le décalage fait repartir.
+    // G13, R9 : avec la case, la journée entière part et son arrivée ouvre la série.
     const turned =
       oldOn !== undefined &&
       lines.shifts.some(
@@ -60,8 +56,7 @@ export function moveReports(input: ReportsInput) {
           effects.get(shift.id)?.kind === 'shifts',
       )
     if (oldDay !== undefined || turned) {
-      // Q-a : la dose qu'on a touchée sur la date choisie part, par le rang de son heure, et arrive à
-      // cette heure.
+      // Q-a : la dose touchée part par le rang de son heure, et arrive à cette heure.
       const chosenHours = hoursOf(chooser!.times)
       const touched = report.previousTargetTime
       const asTouched =
@@ -78,8 +73,7 @@ export function moveReports(input: ReportsInput) {
       if (turned) {
         bringing = wholeDay(asTouched ?? report, chosenHours)
       } else {
-        // R7, Q-c : la dose touchée part avec les heures suivantes de sa journée, aux heures du réglage
-        // qui a choisi la date (#796).
+        // R7, Q-c, #796 : avec les heures suivantes de sa journée, aux heures du réglage qui l'a choisie.
         const following = asTouched !== undefined || withFollowing
         const atHour = exactlyNoted(oldOn!, oldDay!)
         const ranks = rankedMove(asTouched ?? report, oldDay!.hours, atHour, following)
@@ -94,7 +88,9 @@ export function moveReports(input: ReportsInput) {
       }
       keys.forEach((key) => moved.set(key, report))
       if (targetOn! > dueOn) fallen.add(dueOn)
-      arrive(report, keys, bringing, settingOf(report.settingId))
+      // #796 : la journée apportée depuis la date choisie appartient au réglage qui l'a choisie.
+      const owner = turned || asTouched !== undefined ? chooser! : settingOf(report.settingId)
+      arrive(report, keys, bringing, owner)
       continue
     }
     const verdict = departureVerdict(report, {
@@ -131,8 +127,7 @@ export function moveReports(input: ReportsInput) {
         }
       }
     }
-    // R6, TR-9 : hors de sa grille, un report est sans effet, sauf s'il porte la date choisie,
-    // arrive sur la première échéance d'une origine écrite (TR-28) ou ouvre un rythme (R9.2).
+    // R6, TR-9 : hors de sa grille, sans effet, sauf vers la date choisie, une origine écrite ou un rythme.
     const at = span.settingAt(dueOn)?.id ?? ''
     const restartOn = restarts.get(at)
     const chosenOn = chosenRestarts.get(at)
@@ -256,8 +251,7 @@ export function moveReports(input: ReportsInput) {
     arrived.set(targetOn!, [...(arrived.get(targetOn!) ?? []), ...arriving])
   }
 
-  // R7 : de sa journée de départ, le report emporte son heure et les suivantes ; Q4 : son heure
-  // absente de la journée, il en emporte la dose de son rang, et les suivantes avec la case.
+  // R7, Q4 : son heure et les suivantes ; son heure absente, la dose de son rang.
   function fromDeparture(
     report: Line,
     departure: Journey,
@@ -274,8 +268,7 @@ export function moveReports(input: ReportsInput) {
     return { gone: leaving, bringing: leaving.length > 0 ? carried : [] }
   }
 
-  // Q4 : le rang du report ne cède qu'à une prise posée à son heure ; une prise posée ailleurs par R4
-  // se repose sur les doses qu'il laisse.
+  // Q4 : le rang du report ne cède qu'à une prise posée à son heure.
   function exactlyNoted(day: Day, journey: Journey): Set<Hour> {
     const covered = [...coveredOn(day, journey, new Set())]
     return new Set(covered.filter(([hour, note]) => note.dueTime === hour).map(([hour]) => hour))

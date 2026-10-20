@@ -106,12 +106,17 @@ export function hoursOnly(input: TreatmentViewInput): Broken | null {
     const sameDay = plan.action === 'rewrite' && current.startsOn === input.today
     if (sameDay && recomputed) continue
     // R7, #796 : la date choisie garde les heures de son réglage, que ce « Modifier » remplace, et
-    // sa dose redéplacée les emmène (Q-a, G13).
+    // sa dose redéplacée les emmène (Q-a, G13), sur une journée encore sans prise.
     const chosenDay = sameDay && current.firstDueChosen ? current.firstDueOn : null
+    const taken = (day: string | null) =>
+      input.lines.some(
+        ({ status, dueOn }) => (status === 'given' || status === 'missed') && dueOn === day,
+      )
     const fromChosen = new Set(
       input.lines
         .filter((line) => chosenDay !== null && line.previousTargetOn === chosenDay)
-        .map((line) => line.targetOn),
+        .map((line) => line.targetOn)
+        .filter((day) => !taken(day)),
     )
     const kept = new Map([...touched].filter(([day]) => day !== chosenDay && !fromChosen.has(day)))
     const after = daysOf(settingsApplied(input, plan), kept)

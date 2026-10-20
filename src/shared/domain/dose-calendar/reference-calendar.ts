@@ -118,6 +118,8 @@ export function calendarOf(
   let chosenRestart: string | undefined
   let waitingReplace: Replaced | undefined
   let chosenFloor = ''
+  // R9 : l'arrivée d'une date choisie avancée avec la case ouvre la série ; un décalage peut en partir.
+  let opensSeries: string | undefined
   let rhythmFloor = ''
   let anchors = new Set<ReferenceLine>()
   chain.forEach((setting, position) => {
@@ -161,10 +163,12 @@ export function calendarOf(
       const report = reports.find((each) => moveKeyOf(each) === key)!
       return report.dueOn < setting.startsOn && chooserOf(report, settingAt, live) === setting
     })
+    if (!continued) opensSeries = undefined
     if (early !== undefined) {
       const report = reports.find((each) => moveKeyOf(each) === early)!
       chosenFloor = ''
       grid = turned(report, '')
+      opensSeries = report.targetOn!
     }
     const livesBefore = live.filter((other) => episode.indexOf(other) < episode.indexOf(setting))
     const lastLive = livesBefore[livesBefore.length - 1]
@@ -213,6 +217,7 @@ export function calendarOf(
     const lands = (turn: ReferenceLine) =>
       (isDueDay(grid, setting, turn.dueOn) && (turn.dueOn > chosenFloor || anchors.has(turn))) ||
       reports.some((report) => report.targetOn === turn.dueOn && report.dueOn > rhythmFloor) ||
+      turn.dueOn === opensSeries ||
       (!plain && !days.has(turn.dueOn) && shiftKeptByReport(turn, reports, rewriteContext)) ||
       movedFromChosenDay(turn)
     for (const turn of [...turns, null]) {
