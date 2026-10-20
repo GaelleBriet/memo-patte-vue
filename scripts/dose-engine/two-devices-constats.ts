@@ -1,5 +1,7 @@
 import { treatmentView, type Line, type TreatmentViewInput } from '@/shared/domain/dose-calendar'
 
+import { episodeOf, spanOf } from '@/shared/domain/dose-calendar/settings'
+
 import type { Fork } from './two-devices'
 
 /** Un moteur qui lit un carnet : celui de la branche, ou celui de `main` pour comparer. */
@@ -42,17 +44,9 @@ function lostWith(fork: Fork, read: Reader, report: Line): boolean {
     .some(({ due }) => due.dueTime === report.dueTime)
 }
 
-// Les heures du réglage qui porte une journée, dans le carnet fusionné.
-function hoursCountOn(input: TreatmentViewInput, day: string): number {
-  const reading = input.settings
-    .filter(({ startsOn }) => startsOn <= day)
-    .sort((a, b) => a.startsOn.localeCompare(b.startsOn) || a.createdAt.localeCompare(b.createdAt))
-    .at(-1)
-  return Math.max(1, reading?.times.length ?? 1)
-}
-
 // Dose de trop (Q4, 20 octobre 2026) : la journée de départ et ce que le report pose sur son arrivée
-// comptent plus de doses que le réglage en vigueur n'a d'heures ; la dose du report n'apparaît qu'une fois.
+// comptent plus de doses que le réglage en vigueur au départ n'a d'heures, ou que la journée sans lui
+// (une date choisie garde les heures de son réglage, #796) ; la dose du report n'apparaît qu'une fois.
 function extraWith(fork: Fork, read: Reader, report: Line): string[] {
   const effect = effectOf(read, fork.merged, report.id)
   if (effect?.kind !== 'moves' || !effect.arrival) return []
@@ -60,9 +54,11 @@ function extraWith(fork: Fork, read: Reader, report: Line): string[] {
   const without = { ...fork.merged, lines: fork.merged.lines.filter(({ id }) => id !== report.id) }
   const arrived = count(fork.merged, effect.arrival) - count(without, effect.arrival)
   const doses = count(fork.merged, report.dueOn) + arrived
-  const hours = hoursCountOn(fork.merged, report.dueOn)
+  const { settings, lines } = fork.merged
+  const inForce = spanOf(episodeOf(settings, report.settingId), lines).settingAt(report.dueOn)
+  const hours = Math.max(1, inForce?.times.length ?? 1, count(without, report.dueOn))
   return doses > hours
-    ? [`${report.dueOn} et ${effect.arrival} : ${doses} doses pour ${hours} heures`]
+    ? [`${report.dueOn} et ${effect.arrival} : ${doses} doses pour ${hours}`]
     : []
 }
 
@@ -106,6 +102,12 @@ function takenGreyedByNotDue({ merged }: Fork): Line[] {
     lines: merged.lines.filter(({ status }) => status !== 'not-due'),
   })
   return greyed.filter((line) => withoutNotDue.has(keyOf(line)))
+}
+
+/** La dose de trop d'une fourche, lue par le moteur de la branche. */
+export function extraDosesOf(fork: Fork): string[] {
+  const report = newReport(fork)
+  return report === undefined ? [] : extraWith(fork, treatmentView, report)
 }
 
 /**

@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { forksOf, type Fork } from '../../../scripts/dose-engine/two-devices'
-import { constatsOf } from '../../../scripts/dose-engine/two-devices-constats'
+import { constatsOf, extraDosesOf } from '../../../scripts/dose-engine/two-devices-constats'
 import {
   treatmentView,
   type Line,
@@ -539,6 +539,7 @@ describe('Report par rang, compté en doses (20 octobre 2026)', () => {
       '2026-03-30 12:00 pending',
       '2026-03-30 20:00 pending',
     ])
+    expect(extraDosesOf(fork)).toEqual([])
     expect(constatsOf(fork)).toEqual([])
   })
 
@@ -550,6 +551,7 @@ describe('Report par rang, compté en doses (20 octobre 2026)', () => {
       '2026-04-15 20:00 pending',
       '2026-04-15 23:00 pending',
     ])
+    expect(extraDosesOf(fork)).toEqual([])
     expect(constatsOf(fork)).toEqual([])
   })
 
@@ -559,7 +561,13 @@ describe('Report par rang, compté en doses (20 octobre 2026)', () => {
     expect(shown(fork, '2026-03-14', '2026-03-14')).toEqual(
       expect.arrayContaining(['2026-03-14 20:00 pending', '2026-03-14 23:00 pending']),
     )
+    expect(extraDosesOf(fork)).toEqual([])
     expect(constatsOf(fork)).toEqual([])
+  })
+
+  // Le constat compte les heures du réglage en vigueur au départ, pas celles du dernier réglage créé.
+  it('graine 9050000373, pas 8 : départ et arrivée ne comptent pas plus de doses que le réglage en vigueur n’a d’heures', () => {
+    expect(extraDosesOf(forkAt(9050000373, 8))).toEqual([])
   })
 
   // R9 : le report vers une journée d'avant la date choisie n'arrive qu'avec sa dose, aucune heure du
@@ -567,6 +575,7 @@ describe('Report par rang, compté en doses (20 octobre 2026)', () => {
   it('graine 9140001597, pas 17 : le 1er avril ne reçoit que 20 h', () => {
     const fork = forkAt(9140001597, 17)
     expect(shown(fork, '2026-04-01', '2026-04-01')).toEqual(['2026-04-01 20:00 pending'])
+    expect(extraDosesOf(fork)).toEqual([])
     expect(constatsOf(fork)).toEqual([])
   })
 
