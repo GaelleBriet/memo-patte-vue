@@ -14,6 +14,13 @@ export type MenuChoice = { action: DoseLineAction; hint?: string }
  */
 export function menuOf(t: Translate, { reading, today }: RowContext, row: DoseRow): MenuChoice[] {
   return row.actions.flatMap((action): MenuChoice[] => {
+    if (action === 'change-date' && row.dose.status === 'given') {
+      const { dueOn, dueTime, periodId } = row.dose
+      const earliest = reading.view.earliestGivenOn({ settingId: periodId, dueOn, dueTime })
+      if (earliest !== null && earliest > today) {
+        return [{ action, hint: refusalText(t, { reason: 'too-early', earliest }, today) }]
+      }
+    }
     const gesture = lineAction(row.dose, action, today)
     if (gesture?.kind === 'note') {
       return 'refusal' in play(reading.input, gesture.gesture) ? [] : [{ action }]

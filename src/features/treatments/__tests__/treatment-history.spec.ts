@@ -944,6 +944,40 @@ describe('treatmentHistory — une prise dont l’échéance est future ou dépl
   })
 })
 
+describe('menu ⋮ : « Changer la date » sans jour à proposer', () => {
+  const MARS = '2026-03-01T08:00:00.000Z'
+  const MATIN_ET_SOIR = period({
+    startsOn: '2026-03-18',
+    firstDueOn: '2026-03-18',
+    frequency: { value: 1, unit: 'day' },
+    times: ['08:00', '20:00'],
+    createdAt: MARS,
+    updatedAt: MARS,
+  })
+  const AT_8 = { dueTime: '08:00', createdAt: MARS, updatedAt: MARS }
+
+  it('grise « Changer la date » avec l’aide existante quand la date minimale dépasse aujourd’hui, « Supprimer » reste', () => {
+    const book = treatment(
+      [MATIN_ET_SOIR],
+      [dose('2026-03-21', '2026-03-21', { ...AT_8, givenOn: '2026-03-20' })],
+    )
+
+    expect(menuOf(book, '2026-03-20', '2026-03-21 08:00')).toEqual(['change-date', 'remove'])
+    expect(refusedOf(book, '2026-03-20', '2026-03-21 08:00')).toEqual({
+      'change-date': t('treatments.form.errors.nextDoseOnRefused'),
+    })
+  })
+
+  it('ne grise pas « Changer la date » quand un jour reste proposable', () => {
+    const book = treatment(
+      [MATIN_ET_SOIR],
+      [dose('2026-03-21', '2026-03-21', { ...AT_8, givenOn: '2026-03-20' })],
+    )
+
+    expect(refusedOf(book, '2026-03-21', '2026-03-21 08:00')).toEqual({})
+  })
+})
+
 describe('treatmentDeleteTexts', () => {
   it('confirme la suppression du traitement, avec ses prises et ses rappels', () => {
     expect(treatmentDeleteTexts(t, 'Bravecto')).toEqual({
