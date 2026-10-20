@@ -83,7 +83,7 @@ export function calendarOf(
   const movedFromChosenDay = (turn: ReferenceLine) =>
     reports.some(
       (report) =>
-        moveKeyOf(report) === moveKeyOf(turn) && chosenDayOf(report, settingAt) !== undefined,
+        moveKeyOf(report) === moveKeyOf(turn) && chosenDayOf(report, settingAt, live) !== undefined,
     )
   const turnedFromChosen = new Set<string>()
   // R7, R9.2 : les premières échéances des réglages qui ouvrent un nouveau rythme.

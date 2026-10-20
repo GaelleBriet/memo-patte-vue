@@ -70,17 +70,17 @@ function newerRewritten(report: Line, own: Setting, reading: Setting | undefined
 }
 
 // #939 : la journée de départ ôtée ; plus récent que la grille du réglage qui la lit, réécrit sur
-// place après la création de celui du report, le report l'emporte ; sinon la lecture de son réglage.
+// place après la création de celui du report, le report se lit comme avant sans être écarté (`kept`).
 function dayVerdict(report: Line, own: Setting, reading: Setting | undefined, reach: Reach) {
   const verdict = rewriteVerdict(report, own, 'day', reach)
-  if (verdict === 'line') return verdict
+  if (verdict !== null) return verdict
   const newer = newerRewritten(report, own, reading)
-  return newer !== null && rewriteVerdict(report, newer, 'day', reach) === 'line' ? 'line' : verdict
+  return newer !== null && rewriteVerdict(report, newer, 'day', reach) === 'line' ? 'kept' : null
 }
 
 /** #882, #883, #939 : le verdict d'un report dont la dose de départ manque à sa journée, telle qu'elle
  * se lit avec les heures que d'autres reports y ont amenées (`arrived`) ; `reading` : le réglage qui
- * lit sa journée de départ. */
+ * lit sa journée de départ ; `kept` : la lecture d'avant, sans être écarté hors de la grille. */
 export function departureVerdict(
   report: Line,
   context: Reach & {
@@ -89,7 +89,7 @@ export function departureVerdict(
     written: Setting
     reading: Setting | undefined
   },
-): 'line' | 'rewrite' | null {
+): 'line' | 'rewrite' | 'kept' | null {
   const { departure, arrived, written, reading } = context
   if (departure === undefined) return dayVerdict(report, written, reading, context)
   if ([...departure.hours, ...arrived].includes(report.dueTime)) return null

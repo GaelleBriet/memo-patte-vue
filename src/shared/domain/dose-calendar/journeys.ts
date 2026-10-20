@@ -94,7 +94,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       (report) =>
         report.dueOn === turn.dueOn &&
         report.targetOn === turn.targetOn &&
-        chosenOldArrival(report, span.settingAt) !== undefined,
+        chosenOldArrival(report, span) !== undefined,
     )
   const claims: Claim[] = []
   const openings = new Set<Day>()

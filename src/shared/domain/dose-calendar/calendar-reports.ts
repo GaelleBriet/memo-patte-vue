@@ -46,7 +46,7 @@ export function moveReports(input: ReportsInput) {
     const withFollowing = lines.shifts.some((shift) => shift.dueOn === dueOn)
     // Q1 : sur la date choisie qui portait sa dose, le report reprend sa dose par son rang ; ce qu'il
     // emporte de sa journée de départ, quand elle se lit encore, arrive avec elle.
-    const oldOn = chosenOldArrival(report, span.settingAt)
+    const oldOn = chosenOldArrival(report, span)
     const oldDay = oldOn === undefined ? undefined : days.get(oldOn)
     if (oldDay !== undefined) {
       const gone = departure === undefined ? [] : leaveFrom(dueOn, departure, after)
@@ -71,13 +71,14 @@ export function moveReports(input: ReportsInput) {
       arrive(report, keys, bringing, settingOf(report.settingId))
       continue
     }
-    const rewrite = departureVerdict(report, {
+    const verdict = departureVerdict(report, {
       departure,
       arrived: arrived.get(dueOn) ?? [],
       written: settingOf(report.settingId),
       reading: span.settingAt(dueOn),
       drawnBy: journey.drawnBy.get(span.settingAt(dueOn)?.id ?? ''),
     })
+    const rewrite = verdict === 'kept' ? null : verdict
     const origin = rewrite === null ? (days.get(dueOn) ?? left.get(dueOn)) : undefined
     const from = origin?.setting ?? settingOf(report.settingId)
     if (rewrite === 'rewrite') {
@@ -114,7 +115,7 @@ export function moveReports(input: ReportsInput) {
       chosenOn !== undefined &&
       dueOn === chosenOn &&
       chosenRestarts.get(report.settingId) !== chosenOn
-    const outside = origin === undefined && rewrite === null
+    const outside = origin === undefined && verdict === null
     if (carried || (chosenOn !== undefined && outside && !carries)) {
       effects.set(report.id, { kind: 'idle', reason: 'nothing-to-move' })
       continue

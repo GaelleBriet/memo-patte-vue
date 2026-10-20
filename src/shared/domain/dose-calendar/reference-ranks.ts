@@ -43,11 +43,19 @@ export function takenByRank(
 export function chosenDayOf(
   report: ReferenceLine,
   settingAt: (day: string) => ReferenceSetting | undefined,
+  live: readonly ReferenceSetting[],
 ): string | undefined {
   const day = report.previousTargetOn ?? null
   if (day === null || day === report.targetOn) return undefined
   const setting = settingAt(day)
-  return setting !== undefined && setting.firstDueChosen && setting.firstDueOn === day
-    ? day
-    : undefined
+  if (setting === undefined) return undefined
+  if (setting.firstDueChosen && setting.firstDueOn === day) return day
+  // R3 : un réglage suivant de même fréquence, sans origine à lui, garde la date choisie avant lui.
+  const keeps = (earlier: ReferenceSetting) =>
+    earlier.createdAt < setting.createdAt &&
+    earlier.firstDueChosen &&
+    earlier.firstDueOn === day &&
+    earlier.frequency.value === setting.frequency.value &&
+    earlier.frequency.unit === setting.frequency.unit
+  return setting.gridOriginOn === null && live.some(keeps) ? day : undefined
 }

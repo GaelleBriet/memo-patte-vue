@@ -47,7 +47,7 @@ export function arriveReports(context: ArrivalContext) {
     const departure = days.get(dueOn)
     const withFollowing = context.shiftedDays.has(dueOn)
     // Q1 : la dose du report est sur la date choisie qui était son arrivée ; elle en part par son rang.
-    const chosenDay = chosenDayOf(report!, settingAt)
+    const chosenDay = chosenDayOf(report!, settingAt, live)
     const oldArrival = chosenDay === undefined ? undefined : days.get(chosenDay)
     if (oldArrival !== undefined) {
       // Ce que le report emporte de sa journée de départ, si elle se lit encore, arrive aussi.
@@ -75,11 +75,12 @@ export function arriveReports(context: ArrivalContext) {
       land(report!, { carried, hoursOf: settingOf(report!.settingId) })
       continue
     }
-    const rewritten =
+    const verdict =
       rewrite === undefined
         ? undefined
         : rewrittenDeparture(report!, settingOf(report!.settingId), rewrite, departure)
-    if (rewritten === 'lost') continue
+    if (verdict === 'lost') continue
+    const rewritten = verdict === 'read' ? undefined : verdict
     // Q4 : gagnant, le report emporte son heure ; sa journée perd la dose libre de son rang.
     let alsoCarried: Hour[] = []
     if (rewritten !== undefined && departure !== undefined) {
@@ -111,7 +112,7 @@ export function arriveReports(context: ArrivalContext) {
     const chosenOn = chosenRestarts.get(at)
     const carries = targetOn === restartOn || targetOn === chosenOn || openings.has(targetOn!)
     const before = chosenRestarts.get(report!.settingId) !== chosenOn
-    const outside = (dueOn === chosenOn && before) || (!origin && !rewritten && !carries)
+    const outside = (dueOn === chosenOn && before) || (!origin && verdict === undefined && !carries)
     if (chosenOn !== undefined && outside) continue
     const written = settingOf(report!.settingId)
     const arrived = arrivedHours.get(dueOn) ?? []

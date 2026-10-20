@@ -1,4 +1,6 @@
-import type { Hour, Line, Setting } from './types'
+import { sameFrequency } from './grid'
+import type { Span } from './settings'
+import type { Hour, Line } from './types'
 
 /** Ce qu'un report prend à une journée : les heures qui la quittent, et celles qui arrivent. */
 export type RankedMove = { leaving: Hour[]; carried: Hour[] }
@@ -33,10 +35,24 @@ export function rankedMove(
   return { leaving, carried: [...new Set(carried)].sort() }
 }
 
-/** La date choisie qui portait la dose d'un report déplacé de nouveau : son ancienne arrivée. */
-export function chosenOldArrival(report: Line, settingAt: (day: string) => Setting | undefined) {
+/**
+ * La date choisie qui portait la dose d'un report déplacé de nouveau : son ancienne arrivée, première
+ * échéance choisie du réglage en vigueur, ou d'un réglage d'avant que celui-ci continue (R3, même
+ * fréquence, sans origine propre).
+ */
+export function chosenOldArrival(report: Line, span: Pick<Span, 'settingAt' | 'live'>) {
   const day = report.previousTargetOn
   if (day === undefined || day === null || day === report.targetOn) return undefined
-  const setting = settingAt(day)
-  return setting?.firstDueChosen && setting.firstDueOn === day ? day : undefined
+  const setting = span.settingAt(day)
+  if (setting === undefined) return undefined
+  if (setting.firstDueChosen && setting.firstDueOn === day) return day
+  if (setting.gridOriginOn !== null) return undefined
+  const chooser = span.live.find(
+    (each) =>
+      each.createdAt < setting.createdAt &&
+      each.firstDueChosen &&
+      each.firstDueOn === day &&
+      sameFrequency(each.frequency, setting.frequency),
+  )
+  return chooser === undefined ? undefined : day
 }
