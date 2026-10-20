@@ -213,7 +213,8 @@ function rhythmKept(
   const { today } = input
   const { firstDueOn, gridOriginOn, firstDueChosen } = current
   const chosen = request.firstDueOn
-  const shownOn = view.currentDoses[0]?.dueOn ?? firstDueOn
+  const next = view.currentDoses[0]?.dueOn
+  const shownOn = next !== undefined && next > firstDueOn ? next : firstDueOn
   if (chosen === undefined || chosen === firstDueOn || chosen === shownOn) {
     const dates = { firstDueOn, gridOriginOn, firstDueChosen }
     const plan = rewrite(current, fieldsOf(current.startsOn, dates, request))
