@@ -1,5 +1,6 @@
 import { format, parseISO, subDays } from 'date-fns'
 
+import { isExtraOn } from './treatment-notification'
 import { keepsShift, type NoteGesture } from './treatment-dose-change'
 import type { NextDoseShift } from './treatment-edition-resolution'
 import {
@@ -20,6 +21,7 @@ import {
   type Gesture,
   type GestureOutcome,
   type Refusal,
+  type TreatmentView,
 } from '@/shared/domain/dose-calendar'
 import type { TreatmentReading } from '@/shared/domain/treatment-reading'
 import {
@@ -263,14 +265,20 @@ export function otherDateNote(
   }
 }
 
-/** « Dose du vendredi 16 oct., donnée le lundi 19 oct. » ; `null` quand la prise est à son jour. */
+/** « Dose du vendredi 16 oct., donnée le lundi 19 oct. » ou « Prise en plus le … » ; `null` quand la prise est à son jour. */
 export function otherDateRecap(
   t: Translate,
   due: Due | null,
   givenOn: string | null,
   severalTimes: boolean,
+  view: Pick<TreatmentView, 'extraBoundary'>,
 ): string | null {
   if (due === null || givenOn === null || givenOn === due.dueOn) return null
+  if (isExtraOn(view, due, givenOn))
+    return t('treatments.shift.recapExtra', {
+      given: formatWeekdayDayMonth(givenOn),
+      due: formatWeekdayDayMonth(due.dueOn),
+    })
   const dates = { due: formatWeekdayDayMonth(due.dueOn), given: formatWeekdayDayMonth(givenOn) }
   return severalTimes && due.dueTime !== null
     ? t('treatments.shift.recapAt', { ...dates, time: formatClockTime(due.dueTime) })
