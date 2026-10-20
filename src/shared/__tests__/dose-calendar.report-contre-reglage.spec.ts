@@ -337,6 +337,19 @@ describe('Q2 : un report de A plus récent battu par une note que la réécritur
   )
 })
 
+// Q1 : la date choisie par B tombe sur l'ancienne arrivée d'un report ; les doses que le report emporte
+// de sa journée de départ arrivent toutes, aucune ne disparaît.
+it('graine 9050001926, pas 16 : les doses du 16 arrivent le 23, celles que A redéplace le 24', () => {
+  const fork = forkAt(9050001926, 16)
+  expect(fork.aFirst).toBe(false)
+  expect(constatsOf(fork)).toEqual([])
+  expect(keys(treatmentView(fork.merged).upcoming({ limit: 3 }))).toEqual([
+    '2026-03-24 14:00',
+    '2026-03-24 20:00',
+    '2026-03-25 14:00',
+  ])
+})
+
 // Q2 (décision du 19 octobre 2026) : la journée de départ existe encore (la note la porte), la ligne de
 // décalage, autonome, tient seule : le 30 et le 31 mars sont décalés, pas supprimés.
 it('graine 9050002175, pas 4 : le décalage tient seul, la suite reprend le 1er avril', () => {

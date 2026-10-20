@@ -44,8 +44,8 @@ export function moveReports(input: ReportsInput) {
     const departure = days.get(dueOn)
     const after = (hour: Hour) => hour === null || hour >= (dueTime ?? '')
     const withFollowing = lines.shifts.some((shift) => shift.dueOn === dueOn)
-    // Q1 : sur la date choisie qui portait sa dose, le report reprend sa dose par son rang ; sa journée
-    // de départ, déjà quittée, ne donne rien de plus.
+    // Q1 : sur la date choisie qui portait sa dose, le report reprend sa dose par son rang ; ce qu'il
+    // emporte de sa journée de départ, quand elle se lit encore, arrive avec elle.
     const oldOn = chosenOldArrival(report, span.settingAt)
     const oldDay = oldOn === undefined ? undefined : days.get(oldOn)
     if (oldDay !== undefined) {
@@ -67,7 +67,8 @@ export function moveReports(input: ReportsInput) {
       ]
       keys.forEach((key) => moved.set(key, report))
       if (targetOn! > dueOn) fallen.add(dueOn)
-      arrive(report, keys, carried, settingOf(report.settingId))
+      const bringing = [...new Set([...gone, ...carried])].sort()
+      arrive(report, keys, bringing, settingOf(report.settingId))
       continue
     }
     const rewrite = departureVerdict(report, {

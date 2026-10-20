@@ -50,11 +50,14 @@ export function arriveReports(context: ArrivalContext) {
     const chosenDay = chosenDayOf(report!, settingAt)
     const oldArrival = chosenDay === undefined ? undefined : days.get(chosenDay)
     if (oldArrival !== undefined) {
+      // Ce que le report emporte de sa journée de départ, si elle se lit encore, arrive aussi.
+      let leftDeparture: Hour[] = []
       if (departure !== undefined) {
         const taken = coveredAside(dueOn, departure)
-        departure.hours = departure.hours.filter(
-          (hour) => taken.has(hour) || (hour !== null && hour < (report!.dueTime ?? '')),
-        )
+        const stays = (hour: Hour) =>
+          taken.has(hour) || (hour !== null && hour < (report!.dueTime ?? ''))
+        leftDeparture = departure.hours.filter((hour) => !stays(hour))
+        departure.hours = departure.hours.filter(stays)
       }
       const byRank = takenByRank(
         report!,
@@ -66,7 +69,9 @@ export function arriveReports(context: ArrivalContext) {
       const turned = context.turnedFromChosen.has(`${dueOn}>${targetOn}`)
       if (!turned) oldArrival.hours = oldArrival.hours.filter((hour) => !byRank.lost.includes(hour))
       if (targetOn! > dueOn) fallen.add(dueOn)
-      const carried = [...new Set([report!.dueTime, ...byRank.alsoCarried])].sort()
+      const carried = [
+        ...new Set([report!.dueTime, ...byRank.alsoCarried, ...leftDeparture]),
+      ].sort()
       land(report!, { carried, hoursOf: settingOf(report!.settingId) })
       continue
     }
