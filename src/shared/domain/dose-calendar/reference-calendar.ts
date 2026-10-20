@@ -32,6 +32,7 @@ import {
 } from './reference-lines'
 import { departureBeaten, duesOf } from './reference-not-due'
 import { arriveReports } from './reference-arrivals'
+import { chooserOf } from './reference-ranks'
 import { chosenDateOf } from './reference-reports'
 import { shiftKeptByReport, type RewriteContext } from './reference-rewrite'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
@@ -69,14 +70,42 @@ export function calendarOf(
     settingOf,
     chosenOf,
   )
+  const rewriteContext: RewriteContext = {
+    settingOf,
+    settingAt,
+    chain: [],
+    read: (only) => calendarOf(only, only, [], [], reach, true).dues,
+  }
   const left = new Map<string, Journey>()
   const claims: Claim[] = []
+  // G13 : redéplacée depuis la date choisie qui la portait, une dose fait partir son décalage de là.
+  const moveKeyOf = (line: ReferenceLine) => `${line.dueOn}>${line.targetOn}`
+  const movedFromChosenDay = (turn: ReferenceLine) =>
+    reports.some(
+      (report) =>
+        moveKeyOf(report) === moveKeyOf(turn) && chooserOf(report, settingAt, live) !== undefined,
+    )
+  const turnedFromChosen = new Set<string>()
   // R7, R9.2 : les premières échéances des réglages qui ouvrent un nouveau rythme.
   const openings = new Set<string>()
   // R3, R10 : remplacé le jour même, un réglage transmet sa grille au suivant de même fréquence.
   const chain = episode.filter(
     (setting, index) => isLive(setting, index) || sameFrequency(setting, episode[index + 1]!),
   )
+  rewriteContext.chain = chain
+  rewriteContext.chooserAt = (day) => {
+    const reading = settingAt(day)
+    if (reading === undefined) return undefined
+    const chosenOn = chosenRestarts.get(reading.id)
+    return live
+      .filter(
+        (each) =>
+          each.firstDueChosen &&
+          each.firstDueOn === chosenOn &&
+          each.createdAt <= reading.createdAt,
+      )
+      .at(-1)
+  }
   let grid: Grid = { origin: chain[0]!.firstDueOn, floor: '', since: '' }
   // R9, Q-retard : les réglages de même fréquence continuent le rythme, et sa dose en retard.
   let rhythm = new Set<string>()
@@ -89,6 +118,8 @@ export function calendarOf(
   let chosenRestart: string | undefined
   let waitingReplace: Replaced | undefined
   let chosenFloor = ''
+  // R9 : l'arrivée d'une date choisie avancée avec la case ouvre la série ; un décalage peut en partir.
+  let opensSeries: string | undefined
   let rhythmFloor = ''
   let anchors = new Set<ReferenceLine>()
   chain.forEach((setting, position) => {
@@ -127,6 +158,18 @@ export function calendarOf(
       : origin !== null
         ? { ...grid, floor: ownFloor }
         : { ...grid, floor: later(grid.floor, later(chosenFloor, plusDays(setting.startsOn, -1))) }
+    // R9 : un décalage parti d'avant ce réglage, depuis sa date choisie, fait repartir sa série de l'arrivée.
+    const early = [...turnedFromChosen].find((key) => {
+      const report = reports.find((each) => moveKeyOf(each) === key)!
+      return report.dueOn < setting.startsOn && chooserOf(report, settingAt, live) === setting
+    })
+    if (!continued) opensSeries = undefined
+    if (early !== undefined) {
+      const report = reports.find((each) => moveKeyOf(each) === early)!
+      chosenFloor = ''
+      grid = turned(report, '')
+      opensSeries = report.targetOn!
+    }
     const livesBefore = live.filter((other) => episode.indexOf(other) < episode.indexOf(setting))
     const lastLive = livesBefore[livesBefore.length - 1]
     const ended = lastLive !== undefined && (lastLive.endsOn ?? setting.startsOn) < setting.startsOn
@@ -168,14 +211,18 @@ export function calendarOf(
     )
     let from = setting.startsOn
     const segments: Segment[] = []
-    // R6 : un décalage part d'une échéance de la grille d'avant lui ou de l'arrivée d'un report du
-    // rythme ; avant une date choisie, seul celui qui la porte (R3, TR-9) ou celui d'un report gagnant (#885).
+    // R6 : un décalage, autonome, part d'une échéance de la grille d'avant lui ou de l'arrivée d'un
+    // report du rythme ; avant une date choisie, seul celui qui la porte (R3, TR-9) ; hors de la grille,
+    // celui d'un report gagnant (#885, Q2).
     const lands = (turn: ReferenceLine) =>
       (isDueDay(grid, setting, turn.dueOn) && (turn.dueOn > chosenFloor || anchors.has(turn))) ||
       reports.some((report) => report.targetOn === turn.dueOn && report.dueOn > rhythmFloor) ||
-      (!days.has(turn.dueOn) && shiftKeptByReport(turn, reports, settingOf))
+      turn.dueOn === opensSeries ||
+      (!plain && !days.has(turn.dueOn) && shiftKeptByReport(turn, reports, rewriteContext)) ||
+      movedFromChosenDay(turn)
     for (const turn of [...turns, null]) {
       if (turn !== null && !lands(turn)) continue
+      if (turn !== null && movedFromChosenDay(turn)) turnedFromChosen.add(moveKeyOf(turn))
       const to = turn === null ? last : turn.dueOn < last ? turn.dueOn : last
       const start = later(from, plusDays(grid.floor, 1))
       for (const day of gridDays(grid.origin, setting.frequency, start, to)) {
@@ -183,6 +230,8 @@ export function calendarOf(
       }
       segments.push({ origin: grid.origin, from: start, to: turn?.dueOn ?? setting.endsOn })
       if (turn === null) break
+      // R9 : la date choisie avancée avec la case : la série part de son arrivée.
+      if (movedFromChosenDay(turn)) chosenFloor = ''
       grid = turned(turn, chosenFloor)
       from = plusDays(turn.dueOn, 1)
     }
@@ -197,20 +246,8 @@ export function calendarOf(
   ).forEach((journey, day) => left.set(day, journeyOn(day, journey.setting)))
 
   const coverage = coverages({ notes, borrowed, reports, translated, settingOf })
-  const { coveredOn, coveredAside, settle } = coverage
+  const { coveredOn, settle } = coverage
 
-  const rewriteContext: RewriteContext = {
-    settingOf,
-    settingAt,
-    chain,
-    lines: allLines,
-    read: (only, lines) =>
-      calendarOf(only ?? settings, only ?? episode, lines, [], reach, true).dues,
-    uncovered: ({ dueOn }) => {
-      const day = days.get(dueOn)
-      return day?.hours.filter((hour) => !coveredAside(dueOn, day).has(hour)) ?? []
-    },
-  }
   // R7 : un report emporte son heure et les suivantes sans prise.
   const { fallen, arrivedBy } = arriveReports({
     reports,
@@ -228,6 +265,8 @@ export function calendarOf(
     settingAt,
     stoppedAt,
     rewrite: plain ? undefined : rewriteContext,
+    shiftedDays: new Set(shifts.map(({ dueOn }) => dueOn)),
+    turnedFromChosen,
   })
   settle()
 

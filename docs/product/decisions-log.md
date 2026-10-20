@@ -3047,19 +3047,23 @@ d'analyse du moteur, à qui Gaelle a délégué les lectures de règles ; migrat
 le 16 octobre ; schéma v16, export v9).
 
 - Règle : un report l'emporte sur le réglage **pour sa dose seulement**. Il s'applique si sa dose de
-  départ, ou son ancienne arrivée (jour et heure), existe dans le réglage en vigueur ; il ne retire
-  jamais une autre échéance du réglage. Milo, chaque semaine à 20 h depuis le 4 mars, un nouveau
+  départ, ou son ancienne arrivée, reconnue au **jour**, existe dans le réglage en vigueur ; il ne
+  retire jamais une autre échéance du réglage. Milo, chaque semaine à 20 h depuis le 4 mars, un nouveau
   réglage le 6 ; la dose du 11 reportée au 12 ; le 10, le téléphone A la déplace au 15, le téléphone
   B, sans le voir, choisit « Prochaine dose » le 12 : l'ancienne arrivée du report (le 12 à 20 h) est
   la date choisie par B, la journée du 12 part au 15 : 15, 19, 26 (« 12, 15, 19, 26 » doublait la
   dose). Codée avec la PR #958.
 - Q1 (b) : l'ancienne arrivée (jour et heure) se garde sur la ligne du report, par une migration ;
   G13 et G17 (une journée n'a qu'une ligne de déplacement, la redéplacer la réécrit) restent intacts.
-  L'heure gardée est celle de la dose, l'heure écrite sur la ligne du report (#867, point 2), même
-  quand l'arrivée était une date choisie à d'autres heures (#796) : Milo, chaque lundi à 8 h et
-  20 h, la dose de 20 h du 9 mars reportée au 11, « Prochaine dose » le 11 à 9 h et 21 h, puis la
-  dose redéplacée du 11 au 13 : l'ancienne arrivée gardée est le 11 à 20 h. — Écartées : garder la
-  lecture de `main` ; une heuristique dans le moteur (contraire à #882, Luna).
+  L'heure gardée est l'heure écrite sur la ligne du report (#867, point 2). La correspondance se fait
+  au **jour** : une date choisie est une journée (décision du 16 octobre : elle reçoit la journée
+  entière) et l'ancienne arrivée aussi ; ce qui part est ce que le report emporte, par rang. Milo,
+  chaque lundi à 8 h et 20 h ; la dose de 20 h du 9 mars reportée au 11 (rang 2 de 8 h et 20 h) ; B
+  choisit « Prochaine dose » le 11 à 9 h et 21 h ; A redéplace la dose du 11 au 13 : sur le 11 de B,
+  le rang 2 part au 13 et s'affiche à 20 h, l'heure écrite du report ; le 11 garde son rang 1 (9 h) ;
+  avec la case, les rangs suivants partent aussi. Sur un seul téléphone, un redéplacement fait après
+  la réécriture donne le même résultat. Pas d'identité inventée entre jours différents. — Écartées :
+  garder la lecture de `main` ; une heuristique dans le moteur (contraire à #882, Luna).
 - Q4 (b) : la ligne du report garde le rang (entier, à partir de 1) de l'heure déplacée dans sa
   journée d'origine ; lignes existantes : rang lu dans les heures du réglage de la ligne au moment de
   la migration, à défaut vide. La journée de départ perd la dose libre de même rang que l'heure
@@ -3067,10 +3071,34 @@ le 16 octobre ; schéma v16, export v9).
   le report de 8 h du 5 mars au 6 (rang 1), B passe à 7 h 59, 13 h 59 et 19 h 59 : le 5 perd 7 h 59,
   garde 13 h 59 et 19 h 59, le 6 reçoit 8 h. Codée avec la PR #958. Le rang d'un report écrit par
   « Modifier » se lit dans les heures du réglage d'avant le plan : celles que le report avait vues.
-- Correction de la décision 8a du 18 octobre (Luna, A plus récent, « 12, 16, 23 ») : la date choisie
-  par B ne s'efface jamais sans ligne qui la vise. Les six autres graines de #939 et Luna (#882,
+- Correction d'une lecture transmise avec la décision 8a du 18 octobre, qui donnait pour Luna, A plus
+  récent, « 12, 16, 23 » : corrigée le 19 octobre en « 9, 12, 16 », la date choisie par B ne
+  s'efface jamais sans ligne qui la vise. Les six autres graines de #939 et Luna (#882,
   A plus récent) : aucune dose de B n'est reconnaissable comme celle que A a déplacée, les deux
   restent (9, 12, 16), rien de grisé, chacune supprimable.
+
+2026-10-18 — **Report contre réécriture d'un réglage : la plus récente des deux écritures, jusqu'au
+bout** (spec `traitements.md` R6, R10, R11, §10, §11 ; décisions de la session d'analyse du moteur
+du 18 octobre 2026, à qui Gaelle a délégué les lectures de règles ; #938, #882).
+
+- #938 : réécrit après le report sur un autre téléphone, son réglage ne donne pas ses heures à la
+  journée de départ, qui garde celles de ses autres lignes. Milo, tous les jours à 6, 12, 18 et
+  23 h, 6 h du 4 mars donnée d'avance ; A reporte 12 h du 4 au 5 avec la case, B, plus récent,
+  passe à 8 h, 14 h et 20 h : le 5 reçoit 12 h, 18 h et 23 h (avant : 14 h et 20 h, une dose perdue).
+- 6a : le report plus récent emporte son heure ; sa journée perd la première dose libre qui la suit.
+  Tous les 3 mois à 8 h, 14 h et 20 h, A reporte 8 h du 5 mars au 6, B passe à 8 h 01, 14 h 01 et
+  20 h 01 : le 6 à 8 h, le 5 garde 14 h 01 et 20 h 01. — Écartées : la lettre de #883 (deux doses
+  du matin), la lecture de `main` (le 6 à 8 h 01).
+- 6b : le décalage suit son report, sans effet avec lui. — Écartée : R6 seule (un mois sans dose).
+- 6c : parti après la première échéance réécrite, le décalage du report gagnant garde le rythme de A
+  depuis le jour d'arrivée : Luna, 9, 12, 19, 26. — Écartées : la lecture de `main`, la translation
+  de la grille de B (9, 12, 18, 25).
+- 8a : le conflit se détecte dans le calendrier, sans migration : après la première échéance, une
+  journée ôtée par la réécriture elle-même se juge dans les deux sens (graine 8710000057 : le 16 à
+  6 h) ; une journée ôtée par une autre ligne ou un réglage créé ensuite garde la lecture d'avant.
+  — Écartées : la date du réglage vu notée sur le report (migration), trancher à la synchro.
+- Reste en question (§11) : #939, le report écrit sous un réglage plus ancien que celui que B
+  réécrit.
 
 2026-10-19 — **Un report n'entre en conflit qu'avec ce qui fait les échéances, jamais avec les
 heures : le réglage garde la date de la dernière écriture de sa grille** (#939 ; décision 1 du
@@ -3160,6 +3188,120 @@ migration accordée ; schéma v17, export v10).
   la grille d'avant l'ouverture s'écrête de même. Correction de la
   première borne (« la création de la période »), qui contredisait l'héritage : une période qui
   hérite porte une date de grille plus ancienne que sa propre création.
+
+2026-10-20 — **Report contre réglage, codé sur la date de grille (PR #958)** (spec `traitements.md`
+R6, R10 ; décisions des 19 et 20 octobre 2026 de la session d'analyse du moteur, à qui Gaelle a
+délégué les lectures de règles ; #939, #938, #882).
+
+- Arbitrage : la date d'un report se compare à la date de grille du réglage qui a ôté sa journée de
+  départ (repli : date d'écriture des réglages, puis création). Une heure ôtée n'est jamais un
+  conflit : le report l'emporte et part par son rang (Q4). Tous les 3 mois à 8 h, 14 h et 20 h, A
+  reporte 8 h du 5 mars au 6, B passe à 8 h 01, 14 h 01 et 20 h 01 : dans les deux ordres, le 6 à
+  8 h, le 5 garde 14 h 01 et 20 h 01 (avant, B plus récent : report sans effet). Carnet de #883 (B
+  passe à 8 h et 20 h) : dans les deux ordres, le 6 mai à 14 h puis le 9 mai à 8 h et 20 h.
+- #939 : quand la journée de départ, ou l'ancienne arrivée d'un report redéplacé, est lue par un
+  réglage créé après celui du report, réécrit sur
+  place depuis, et que la ligne a connu, le report plus récent que sa grille se lit comme avant, sans
+  être écarté hors de la grille : il emmène toutes ses doses, comme sur le téléphone qui l'a écrit ;
+  plus ancien, la lecture de son propre réglage reste. Les six graines (9050000090, 9050001220,
+  9050001496, 9050001518, 9050002324, 9050002340) : la date choisie par B reste, le report aussi.
+- L'aperçu d'une réécriture (« Modifier » sur place) date sa grille comme l'écriture : le report se
+  jugeant contre elle, l'aperçu et le résultat ne doivent pas différer (graines 9110000172,
+  9110000229, 9110000309).
+- Q1 : une date choisie reprise par un réglage suivant de même fréquence, sans origine à lui
+  (« Modifier » des heures seules), reste l'ancienne arrivée d'un report ; et ce que le report
+  emporte encore de sa journée de départ arrive avec lui (graine 9050001926 : avant, les doses de
+  14 h et 20 h du 16 disparaissaient).
+- Q5, correction de la lecture du 19 octobre (« sauf le jour même ») : R4 dans la journée gagne
+  partout ; carnet de #938, A plus récent : 8 h couverte par la prise de 6 h, le report emporte le
+  rang 2 (12 h) et, avec la case, le rang 3 (20 h). 7700002507, 4870000187, 7600001452 inchangées.
+- Q2, correction de la lecture du 19 octobre (« toute cause ») : la ligne de décalage est autonome et
+  vaut tant que sa journée d'origine est une échéance de la grille (R6) ; elle suit son report
+  seulement quand la journée de départ sort de la grille (6b, 6c). Une note qui bat le report laisse
+  la journée de départ : le décalage tient seul (graine 9050002175 : le 30 et le 31 mars sont
+  décalés, pas supprimés). 998000832, #893 (8810000692), 9640000934 inchangées.
+- G13 appliqué au décalage : une dose redéplacée depuis la date choisie qui la portait fait partir son
+  décalage de cette ancienne arrivée, les journées suivantes avancent ou reculent d'autant. Tous les
+  jours à 20 h, la dose reportée du 19 mars sur la date choisie du 27, avancée au 26 avec la case :
+  26, 27, 28… (graine 9100000170 ; avant : 26, 28, 29, une dose sautée). — Écartée : la case ne fait
+  partir que les rangs du même jour. Avancer avec la case la dose de la date choisie déplace la
+  journée **entière** (aux heures du réglage qui a choisi la date, #796, et avec ce que le report y avait
+  apporté) et fait de l'arrivée le premier jour de la série : chaque mois à 8 h et 20 h, date choisie le
+  21 avril, la dose avancée au 17 mars donne le 17 mars à 8 h et 20 h, puis le 17 avril (graines
+  9100001223 et 9100000406 ; avant, la dose disparaissait) ; toutes les deux semaines à 8 h et 20 h,
+  date choisie le 6 avril, avancée au 17 mars : le 17 mars à 8 h et 20 h, puis 31 mars, 14 avril
+  (graine 9100001351 ; avant, le 8 h et le 31 mars se perdaient).
+- Q3, heure prise (20 octobre 2026) : la dose du report arrive à son heure écrite ; si un rang qui
+  l'accompagne arrive déjà à cette heure, elle prend l'heure de son propre rang : trois doses ne
+  deviennent jamais deux. Tous les deux jours, date choisie le 9 avril à 8 h, 14 h et 20 h, la dose
+  du rang 1 écrite 20 h, reculée du 9 au 14 avec la case : le 14 à 8 h, 14 h et 20 h (graine
+  9160000115 ; avant, 14 h et 20 h seulement). La règle de la journée entière vaut que la dose soit
+  avancée ou reculée.
+- I1 (20 octobre 2026) : la série repart de l'arrivée même quand le report part d'un jour antérieur au
+  réglage qui a choisi la date. Milo, chaque jeudi à 8 h et 20 h depuis le 5 mars ; le 8 mars, la dose
+  du 5 à 8 h reportée au 16 avec la case ; « Modifier » : 8 h, 14 h et 20 h, « Prochaine dose » le
+  lundi 6 avril ; la dose du 6 avril avancée au jeudi 12 mars avec la case : 12, 19, 26 mars, 2 et
+  9 avril (avant : le 12 mars, puis encore le 6 avril, la dose deux fois ; graines 9991000402 et
+  9991000831).
+- Q-a (20 octobre 2026, corrigée le même jour) : la dose qui part est celle qu'on a touchée, pas la
+  première de la journée ; le report garde son heure (heure de l'ancienne arrivée, sur une date
+  choisie) et part par son rang. R7 vaut pour tout report : la dose touchée part avec les heures
+  suivantes encore sans prise de sa journée, avec ou sans la case ; la case ne gouverne que les
+  journées suivantes. Luna, chaque jour à 20 h, la dose du 15 mars reportée au 18 avec la case,
+  « Modifier » : 8 h et 20 h, « Prochaine dose » le 25 ; la dose de 20 h du 25 avancée au 20 sans la
+  case : le 20 à 20 h, le 25 à 8 h ; celle de 8 h : le 20 à 8 h et 20 h, le 25 ne garde rien (la
+  première lecture, « le 20 à 8 h, le 25 à 20 h », est corrigée). Tous les 3 jours à 8 h et 20 h, la
+  dose de 20 h du 10 mars reportée au 12 sans la case : le 10 garde 8 h, le 12 reçoit 20 h (avant, la
+  dose de 8 h partait aussi). Une date choisie sans heure garde l'heure écrite du report (graine
+  9140001597 : le 1er avril à 20 h).
+- Q-b (20 octobre 2026) : une heure écrite vide dans un réglage qui a des heures vaut « déjà prise » :
+  la dose arrive à l'heure de son propre rang. Milo, chaque jour sans heure depuis le 16 mars, la dose
+  du 16 reportée au 28 avec la case, « Modifier » : 8 h et 20 h jusqu'au 29, « Prochaine dose » le 20 ;
+  la dose du 20 à 8 h reculée au 28 avec la case : 28 et 29 mars à 8 h et 20 h.
+- Q-c (20 octobre 2026, corrigée le même jour) : repris sur une date choisie, sans la case, le
+  report emporte la dose touchée et les heures suivantes de cette journée (R7), et la dose arrive une
+  seule fois (graine 9991000606 : le 26 juin à 8 h, 14 h et 20 h ; la dose de 8 h avancée au 21 mai :
+  le 21 mai à 8 h, 14 h et 20 h, le 26 juin ne garde rien ; avant, quatre doses). La première lecture
+  (« le report emporte son rang seul ») est corrigée. Principe : un déplacement ne change jamais le
+  nombre de doses ; ce qui part d'une journée, c'est la dose touchée et celles d'après.
+- Re-relecture de #958 (20 octobre 2026) :
+  - R4, R7 : la journée qu'une date choisie avancée ou reculée apporte appartient au réglage qui a
+    choisi la date ; ses prises la gardent quand ce réglage change d'heures, et un report qui en part
+    emporte ses heures telles qu'elles étaient. Milo, chaque mois à 20 h ; le 2 avril reçoit 6, 12, 18
+    et 23 h ; 6, 12 et 18 h données d'avance ; 23 h reportée au 26 sans la case ; « Modifier » le même
+    jour : 12, 18 et 23 h : le 2 avril garde ses trois prises, le 26 garde 23 h (graine 9996000444 ;
+    avant, le 26 disparaissait et 12 h n'était plus donnée).
+  - R6, R7 : un décalage peut partir de l'arrivée qui ouvre la série. Cas I1, puis 8 h du 12 mars
+    donnée d'avance, la dose de 14 h du 12 reportée au 14 avec la case : 14 mars à 14 h et 20 h, puis
+    21, 28 mars, 4 avril (avant : le décalage était dépassé, 19, 26 mars ; graine 9991000412 : le 6 avril
+    à 18 h, puis le 18 mai au lieu du 11 mai). Sans prise le 12, même geste : comme `main`, ticket à
+    part, non codé ici.
+  - Q4 sur une journée de départ relue aux heures d'un autre réglage : inchangé ; les onze constats à
+    deux téléphones de la série 9996500000 vont dans #986.
+- I2 (20 octobre 2026) : non codé ici, ticket #988 (report réactivé par la suppression d'une ligne
+  après une réécriture sur place ; graine 9991000760 ; chemin rare, `main` est faux aussi).
+- Q4, précision du 20 octobre 2026 : sur la journée de départ lue aux heures du réglage en vigueur, le
+  report emporte la dose de son rang, qui arrive à son heure écrite (Q3) ; avec la case, les rangs
+  suivants partent avec elle et arrivent à leurs heures. La dose du report n'apparaît qu'une fois :
+  départ et arrivée comptent autant de doses que le réglage a d'heures, jamais une de plus. Seule une
+  prise posée à l'heure même d'une dose en garde le rang ; une prise posée ailleurs par R4 se repose
+  sur les doses que le report laisse. Graine 9140000270 (6 h, 12 h, 18 h et 23 h ; report du rang 2
+  écrit 20 h, avec la case ; fin le 16 avril) : le 13 avril 6 h, le 15 avril 18 h, 20 h et 23 h
+  (avant : 6 h et 12 h le 13, cinq doses pour quatre heures). Graine 9150002037 : inchangée.
+- R4, lecture ajoutée le 20 octobre 2026 : sans dose libre après son heure, une prise couvre la dose
+  libre la plus proche avant elle ; une prise couvre une dose de sa journée tant qu'il en reste une
+  (graine 9150002829 : la prise de 8 h du 11 mars couvre 6 h, le report emportant 12 h, 18 h et 23 h).
+- R9, **correction** de la lecture du matin du 20 octobre 2026 (« aucune journée avant la date choisie,
+  pas même après un décalage ») : quand la dose de la date choisie est avancée avec la case, la série
+  repart de son arrivée, et « aucune journée avant la date choisie » se lit depuis ce nouveau premier
+  jour. Tous les jours sans heure, date choisie le 7 avril, dose du 7 avancée au 1er avril avec la case :
+  1er avril (à 20 h, l'heure écrite du report), 2, 3 avril… (graine 9140001597 ; le matin : 1er puis 7,
+  8). Raison : cocher « Décaler aussi les doses suivantes » sur la première dose dit que le traitement
+  commence plus tôt ; cacher les journées entre l'arrivée et l'ancienne date perdrait des doses sur un
+  seul téléphone (9100001390 : 24, 25, 26 mars…). Le 1er avril ne reçoit aucune heure du réglage de
+  l'autre téléphone (20 h seule).
+- R8 : une fin posée par B avant l'arrivée du report arrête le traitement ; le report est sans effet,
+  quel que soit son âge (graines 9050002774, 9140002364), comme en 8a.
 
 2026-10-19 — **Horloge en avance de plus de 24 h : un seul écart par envoi, repris par le téléphone
 qui pousse** (#904, PR #980 ; décisions du 19 octobre 2026 de la session d'analyse du moteur, à qui

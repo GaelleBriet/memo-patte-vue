@@ -17,6 +17,7 @@ import {
   type TreatmentViewInput,
 } from '../domain/dose-calendar'
 import { referenceReading } from '../domain/dose-calendar/reference-model'
+import { rewrittenOn } from './dose-calendar.reglage-corrige.aides'
 import { keys } from './dose-calendar.v2.aides'
 
 // #882, #883 sur un seul téléphone : une dose ôtée par un décalage ou par sa suppression, pas par la
@@ -58,8 +59,8 @@ function phone(start: TreatmentViewInput) {
     if (plan.action === 'rewrite') {
       const at = stamp()
       const applied = settingsApplied({ ...input, lines: [] }, { ...plan, lines: [] })
-      const settings = applied.settings.map((s) =>
-        s.updatedAt?.startsWith('9999') ? { ...s, updatedAt: at } : s,
+      const settings = applied.settings.map((s, index) =>
+        s.id === plan.id ? rewrittenOn(input.settings[index]!, s, at) : s,
       )
       input = { ...input, settings }
     } else {
@@ -115,6 +116,112 @@ const upcoming = (input: TreatmentViewInput) => ({
 describe('Un seul téléphone : une dose ôtée par un décalage, pas par la réécriture, se lit comme avant', () => {
   it('graine 9000000692 : les invariants tiennent à chaque geste, posologie seule comprise', () => {
     expect(seedHolds(9000000692, 40)).toEqual([])
+  })
+
+  // Tous les mois à 8 h et 20 h depuis le 16 mars, réglage réécrit le jour même ; la dose du 16 donnée
+  // d'avance avec la case (grille au 11), celle du 11 avril avancée au 31 mars ; le 15, « Prochaine
+  // dose » le 19 (nouveau réglage, origine propre), puis posologie seule : le 11 avril n'est plus une
+  // échéance, ôté par le réglage du 15 et non par la réécriture du 16.
+  it('graine 9000001436 : un réglage intermédiaire qui pose sa propre origine n’est pas une réécriture, le report reste sans effet', () => {
+    const walk = startV2Walk(9000001436)
+    for (let count = 0; count <= 14; count += 1) v2Step(walk, () => {})
+    const report = walk.input.lines.find(
+      ({ status, dueOn }) => status === 'postponed' && dueOn === '2026-04-11',
+    )!
+    const effect = treatmentView(walk.input).history.find(({ line }) => line.id === report.id)!
+    expect(effect.effect).toEqual({ kind: 'idle', reason: 'nothing-to-move' })
+    expect(upcoming(walk.input).moteur).toEqual(['2026-03-19 20:00'])
+    expect(upcoming(walk.input).reference).toEqual(upcoming(walk.input).moteur)
+  })
+
+  // Q3 (décision du 19 octobre 2026) : un report porte l'heure écrite dans sa ligne (#867), même quand
+  // elle n'existe pas dans son réglage : la dose de 8 h du 28 mars avancée au 25 y arrive à 8 h.
+  it('graine 9000000824 : le report de la dose de 8 h arrive à 8 h, même dans un réglage à 20 h', () => {
+    const walk = startV2Walk(9000000824)
+    for (let count = 0; count <= 38; count += 1) v2Step(walk, () => {})
+    expect(upcoming(walk.input).moteur[0]).toBe('2026-03-25 08:00')
+    expect(upcoming(walk.input).reference).toEqual(upcoming(walk.input).moteur)
+  })
+
+  // Décision du 19 octobre 2026 (G13 appliqué au décalage) : tous les jours à 20 h, la dose reportée du
+  // 19 sur la date choisie du 27, puis avancée au 26 avec la case : le décalage se juge depuis son
+  // ancienne arrivée, le 27, et les jours suivants avancent d'autant.
+  it('graine 9100000170, pas 12 : la dose du 27 avancée au 26 avec la case : le 26, le 27, le 28', () => {
+    const walk = startV2Walk(9100000170)
+    for (let count = 0; count <= 12; count += 1) v2Step(walk, () => {})
+    expect(upcoming(walk.input).moteur.slice(0, 4)).toEqual([
+      '2026-03-26 20:00',
+      '2026-03-27 20:00',
+      '2026-03-28 20:00',
+      '2026-03-29 20:00',
+    ])
+    expect(upcoming(walk.input).reference).toEqual(upcoming(walk.input).moteur)
+  })
+
+  // G13 et R9 : avancée avec la case, la dose de la date choisie emmène sa journée entière et fait de
+  // son arrivée le premier jour de la série ; une heure écrite déjà prise par un rang qui l'accompagne
+  // laisse la dose à l'heure de son propre rang.
+  it.each([
+    [9100000406, 19, ['2026-04-07', '2026-07-07', '2026-10-07']],
+    [
+      9100001223,
+      8,
+      ['2026-03-17 08:00', '2026-03-17 20:00', '2026-04-17 08:00', '2026-04-17 20:00'],
+    ],
+    [
+      9100001351,
+      6,
+      [
+        '2026-03-17 08:00',
+        '2026-03-17 20:00',
+        '2026-03-31 08:00',
+        '2026-03-31 20:00',
+        '2026-04-14 08:00',
+      ],
+    ],
+    [9100001390, 20, ['2026-03-24 20:00', '2026-03-25 20:00', '2026-03-26 20:00']],
+    [9100001362, 10, ['2026-03-23 20:00', '2026-03-26 20:00', '2026-03-29 20:00']],
+    [9991000412, 13, ['2026-04-06 18:00', '2026-05-18 06:00']],
+    [
+      9991000402,
+      14,
+      ['2026-03-08 08:00', '2026-03-08 14:00', '2026-03-08 20:00', '2026-03-15 08:00'],
+    ],
+    [
+      9991000831,
+      8,
+      ['2026-04-22 08:00', '2026-04-22 20:00', '2026-05-06 08:00', '2026-05-06 20:00'],
+    ],
+    [
+      9991000606,
+      14,
+      ['2026-05-21 08:00', '2026-05-21 14:00', '2026-05-21 20:00', '2026-07-26 08:00'],
+    ],
+    [
+      9160000115,
+      5,
+      ['2026-04-14 08:00', '2026-04-14 14:00', '2026-04-14 20:00', '2026-04-16 08:00'],
+    ],
+  ])(
+    'graine %i, pas %i : la dose de la date choisie part une seule fois',
+    (seed, step, expected) => {
+      const walk = startV2Walk(seed)
+      for (let count = 0; count <= step; count += 1) v2Step(walk, () => {})
+      const { moteur, reference } = upcoming(walk.input)
+      expect(moteur.slice(0, expected.length)).toEqual(expected)
+      expect(reference).toEqual(moteur.filter((key) => key <= '2026-06-30 23:59'))
+    },
+  )
+
+  // #939 : l'aperçu date la grille d'une réécriture comme l'écriture, puisque le report se juge contre
+  // elle : préversion et résultat restent les mêmes ; une posologie seule ne change rien.
+  // Q1 : la date choisie se lit sur le réglage qui a tracé la grille du jour, que continuent les
+  // réglages suivants sans origine à eux ; lue au départ et sur l'ancienne arrivée, la dose arrive une fois.
+  it.each([
+    9110000172, 9110000229, 9110000309, 9120000384, 9120001368, 9140000610, 9140000713, 9140000967,
+    9996000444,
+  ])('graine %i : les invariants tiennent à chaque geste', (seed) => {
+    expect(seedHolds(seed, 40)).toEqual([])
   })
 
   it('graine 9500001489 : les invariants tiennent à chaque geste, posologie seule comprise', () => {

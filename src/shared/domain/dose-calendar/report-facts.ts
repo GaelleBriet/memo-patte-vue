@@ -24,8 +24,9 @@ function rankIn(times: readonly string[], dueTime: Hour): number | null {
 }
 
 /**
- * Une ligne de report réécrite vers une autre arrivée garde celle d'avant, jour et heure ; à la même
- * échéance, elle garde son rang, sinon il se lit dans les heures de son réglage (`times`).
+ * Une ligne de report réécrite vers une autre arrivée garde celle d'avant, jour et heure (l'heure
+ * touchée, quand le geste la donne) ; à la même échéance, elle garde son rang, sinon il se lit dans
+ * les heures de son réglage (`times`).
  */
 export function reportFactsOf(
   line: LineFields,
@@ -43,7 +44,9 @@ export function reportFactsOf(
         : rankIn(times, line.dueTime)
   if (report === undefined) return { ...NONE, dueRank }
   if (report.targetOn !== line.targetOn) {
-    return { previousTargetOn: report.targetOn, previousTargetTime: report.dueTime, dueRank }
+    const previousTargetTime =
+      line.previousTargetTime !== undefined ? line.previousTargetTime : report.dueTime
+    return { previousTargetOn: report.targetOn, previousTargetTime, dueRank }
   }
   return {
     previousTargetOn: report.previousTargetOn ?? null,

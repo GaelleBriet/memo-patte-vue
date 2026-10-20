@@ -1,6 +1,7 @@
 import { writtenBefore, type coverages, type Journey } from './reference-days'
 import { hoursOf, keyOf } from './reference-grid'
 import { arrivedOn, chosenDateOf, hoursChangedSince, reportOutcome } from './reference-reports'
+import { chooserOf, takenByRank, wholeDayOf } from './reference-ranks'
 import { rewrittenDeparture, type RewriteContext } from './reference-rewrite'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
@@ -22,6 +23,10 @@ export type ArrivalContext = {
   settingAt: (day: string) => ReferenceSetting | undefined
   stoppedAt: (day: string) => ReferenceSetting | undefined
   rewrite: RewriteContext | undefined
+  /** Les jours qui portent une ligne de décalage. */
+  shiftedDays: ReadonlySet<string>
+  /** G13 : les déplacements (`départ>arrivée`) dont le décalage est parti de la date choisie. */
+  turnedFromChosen: ReadonlySet<string>
 }
 
 /** R7 : chaque report part de sa journée et arrive sur la sienne ; ceux qui arrivent sur sa journée d'abord. */
@@ -39,8 +44,78 @@ export function arriveReports(context: ArrivalContext) {
     )
     const [report] = waiting.splice(Math.max(0, ready), 1)
     const { dueOn, targetOn } = report!
-    const rewritten = rewrite === undefined ? undefined : rewrittenDeparture(report!, rewrite)
-    if (rewritten === 'lost') continue
+    const departure = days.get(dueOn)
+    const withFollowing = context.shiftedDays.has(dueOn)
+    // Q1 : la dose du report est sur la date choisie qui était son arrivée ; elle en part par son rang.
+    const chooser = chooserOf(report!, settingAt, live)
+    const chosenDay = chooser?.firstDueOn
+    const oldArrival = chosenDay === undefined ? undefined : days.get(chosenDay)
+    // G13 : son décalage a déjà fait avancer depuis la date choisie les doses qui la suivaient.
+    const turned = chosenDay !== undefined && context.turnedFromChosen.has(`${dueOn}>${targetOn}`)
+    if (oldArrival !== undefined || turned) {
+      const from = departure ?? left.get(dueOn)
+      const chosenHours = hoursOf(chooser!)
+      // Q-a : sur la date choisie, c'est la dose touchée qui part, par le rang de son heure.
+      const touchedHour = report!.previousTargetTime
+      const touched =
+        touchedHour !== undefined && touchedHour !== null && !chosenHours.includes(null)
+          ? { ...report!, dueTime: touchedHour, dueRank: null }
+          : undefined
+      // Ce que le report emporte de sa journée de départ, si elle se lit encore, arrive aussi : son heure
+      // et les suivantes (R7), ou, son heure absente, la dose de son rang (Q4).
+      let leftDeparture: Hour[] = []
+      if (from !== undefined && from.hours.includes(report!.dueTime)) {
+        const taken = coveredAside(dueOn, from)
+        const stays = (hour: Hour) =>
+          taken.has(hour) || (hour !== null && hour < (report!.dueTime ?? ''))
+        leftDeparture = from.hours.filter((hour) => !stays(hour))
+        from.hours = from.hours.filter(stays)
+      } else if (from !== undefined) {
+        const atRank = takenByRank(report!, from.hours, exactAt(dueOn, from), withFollowing)
+        from.hours = from.hours.filter((hour) => !atRank.lost.includes(hour))
+        if (atRank.lost.length > 0) {
+          leftDeparture = atRank.carried
+        }
+      }
+      if (targetOn! > dueOn) fallen.add(dueOn)
+      let carried: Hour[]
+      if (turned) {
+        // G13, R9 : la journée entière de la date choisie arrive ; la série repart de l'arrivée.
+        carried = wholeDayOf(touched ?? report!, chosenHours)
+      } else {
+        // R7 : la dose touchée part avec les heures suivantes de sa journée, case ou non.
+        const byRank = takenByRank(
+          touched ?? report!,
+          oldArrival!.hours,
+          exactAt(chosenDay!, oldArrival!),
+          touched !== undefined || withFollowing,
+        )
+        // #796 : les doses parties arrivent aux heures du réglage qui a choisi la date.
+        const relaid = touched
+          ? takenByRank(touched, chosenHours, new Set(), true).carried
+          : byRank.carried
+        oldArrival!.hours = oldArrival!.hours.filter((hour) => !byRank.lost.includes(hour))
+        // Lue au départ comme sur l'ancienne arrivée, c'est la même dose : elle arrive une fois.
+        carried = touched || leftDeparture.length === 0 ? relaid : leftDeparture
+      }
+      // #796 : la journée venue de la date choisie appartient au réglage qui l'a choisie.
+      const owner = turned || touched ? chooser! : settingOf(report!.settingId)
+      land(report!, { carried, hoursOf: owner })
+      continue
+    }
+    const verdict =
+      rewrite === undefined
+        ? undefined
+        : rewrittenDeparture(report!, settingOf(report!.settingId), rewrite, departure)
+    if (verdict === 'lost') continue
+    const rewritten = verdict === 'read' ? undefined : verdict
+    // Q4 : gagnant, le report emporte son heure ; sa journée perd la dose libre de son rang.
+    let rankCarried: Hour[] = []
+    if (rewritten !== undefined && departure !== undefined) {
+      const byRank = takenByRank(report!, departure.hours, exactAt(dueOn, departure), withFollowing)
+      departure.hours = departure.hours.filter((hour) => !byRank.lost.includes(hour))
+      rankCarried = byRank.carried
+    }
     const origin = rewritten ? undefined : (days.get(dueOn) ?? left.get(dueOn))
     const from = origin?.setting ?? settingOf(report!.settingId)
     const hours = origin?.hours ?? rewritten?.hours ?? hoursOf(from)
@@ -60,7 +135,7 @@ export function arriveReports(context: ArrivalContext) {
     const chosenOn = chosenRestarts.get(at)
     const carries = targetOn === restartOn || targetOn === chosenOn || openings.has(targetOn!)
     const before = chosenRestarts.get(report!.settingId) !== chosenOn
-    const outside = (dueOn === chosenOn && before) || (!origin && !rewritten && !carries)
+    const outside = (dueOn === chosenOn && before) || (!origin && verdict === undefined && !carries)
     if (chosenOn !== undefined && outside) continue
     const written = settingOf(report!.settingId)
     const arrived = arrivedHours.get(dueOn) ?? []
@@ -82,17 +157,31 @@ export function arriveReports(context: ArrivalContext) {
     if (outcome.beaten) continue
     if (targetOn! > dueOn) fallen.add(dueOn)
     if (origin) origin.hours = origin.hours.filter((hour) => !outcome.lost.includes(hour))
-    const stopDay = stoppedAt(targetOn!)
-    const arrival = settingAt(targetOn!) ?? stopDay
-    const into = stopDay === undefined ? days : left
-    if (arrival === undefined || outcome.carried.length === 0) continue
-    const opensRhythm = openings.delete(targetOn!)
-    const chosen = chosenDateOf(report!, live, settingOf)
-    const day = arrivedOn(into.get(targetOn!), outcome, arrival, { opensRhythm, chosen })
-    into.set(targetOn!, day)
-    const received = chosen ? hoursOf(chosen) : outcome.carried
-    arrivedHours.set(targetOn!, [...(arrivedHours.get(targetOn!) ?? []), ...received])
-    received.forEach((hour) => arrivedBy.set(keyOf(targetOn!, hour), report!))
+    const carried = [...new Set([...outcome.carried, ...rankCarried])].sort()
+    land(report!, { carried, hoursOf: outcome.hoursOf })
   }
   return { fallen, arrivedBy }
+
+  // Q4 : seule une prise posée à l'heure même d'une dose en garde le rang.
+  function exactAt(day: string, journey: Journey): Set<Hour> {
+    const atHour = notes.filter(
+      (note) => note.dueOn === day && journey.hours.includes(note.dueTime),
+    )
+    return new Set(atHour.map(({ dueTime }) => dueTime))
+  }
+
+  function land(report: ReferenceLine, outcome: { carried: Hour[]; hoursOf: ReferenceSetting }) {
+    const targetOn = report.targetOn!
+    const stopDay = stoppedAt(targetOn)
+    const arrival = settingAt(targetOn) ?? stopDay
+    const into = stopDay === undefined ? days : left
+    if (arrival === undefined || outcome.carried.length === 0) return
+    const opensRhythm = openings.delete(targetOn)
+    const chosen = chosenDateOf(report, live, settingOf)
+    const day = arrivedOn(into.get(targetOn), outcome, arrival, { opensRhythm, chosen })
+    into.set(targetOn, day)
+    const received = chosen ? hoursOf(chosen) : outcome.carried
+    arrivedHours.set(targetOn, [...(arrivedHours.get(targetOn) ?? []), ...received])
+    received.forEach((hour) => arrivedBy.set(keyOf(targetOn, hour), report))
+  }
 }

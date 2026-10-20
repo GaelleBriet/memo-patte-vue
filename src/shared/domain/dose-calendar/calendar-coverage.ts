@@ -21,7 +21,7 @@ export type DayCoverage = (
 
 /**
  * R4 : une prise couvre son échéance quel que soit son réglage, sinon la première échéance libre qui
- * la suit ; une journée de l'ancien réglage toute notée, ou une prise d'avant l'arrêt (R8), couvre
+ * la suit, sinon la plus proche avant elle ; une journée de l'ancien réglage toute notée, ou une prise d'avant l'arrêt (R8), couvre
  * tout. Le jour où les heures changent, une prise écrite après le report du jour attend `settle()` et
  * ne se pose que sur les heures qu'il a laissées.
  */
@@ -91,11 +91,13 @@ export function dayCoverage(input: CoverageInput): { coveredOn: DayCoverage; set
       for (const note of waiting) {
         const free = journey.hours.filter((each) => !covered.has(each))
         // R4 : le jour où les heures changent, les prises du jour couvrent les premières heures, dans
-        // l'ordre, quelle que soit leur heure ; un autre jour, la première échéance libre qui suit.
+        // l'ordre, quelle que soit leur heure ; un autre jour, la première échéance libre qui suit, sinon
+        // la plus proche avant elle : une prise couvre une dose de sa journée tant qu'il en reste une.
         const hour =
           foreign(note) || atHour.get(note.dueTime) === note
             ? free[0]
-            : free.find((each) => each !== null && follows(each, note.dueTime))
+            : (free.find((each) => each !== null && follows(each, note.dueTime)) ??
+              free.filter((each) => each !== null && note.dueTime !== null).at(-1))
         if (hour === undefined) continue
         covered.set(hour, note)
         read.add(note)

@@ -2,7 +2,15 @@
 import { describe, expect, it } from 'vitest'
 
 import { treatmentView, type Frequency, type TreatmentViewInput } from '../domain/dose-calendar'
-import { both, edited, given, moved, on, readings } from './dose-calendar.reglage-corrige.aides'
+import {
+  both,
+  edited,
+  given,
+  moved,
+  on,
+  readings,
+  rewrittenOn,
+} from './dose-calendar.reglage-corrige.aides'
 import { H, MONTH, TWO_DAYS, WEEK, keys, line, setting } from './dose-calendar.v2.aides'
 
 const THREE = ['08:00', '14:00', '20:00']
@@ -419,16 +427,18 @@ describe('Deux téléphones, un réglage du jour réécrit (R10)', () => {
     const report = phoneA.lines.at(-1)!
     return {
       ...phoneB,
-      settings: phoneB.settings.map((each) =>
-        each.updatedAt === undefined ? each : { ...each, updatedAt: rewrittenAt },
+      settings: phoneB.settings.map((each, index) =>
+        each.updatedAt === undefined
+          ? each
+          : rewrittenOn(base().settings[index] ?? each, each, rewrittenAt),
       ),
       lines: [...phoneA.lines.slice(0, -1), { ...report, updatedAt: reportAt }],
     }
   }
 
   // Fiche de #860 (16 octobre 2026) : les prises se posent d'abord, le report n'emporte que les heures
-  // restées sans prise.
-  it('graines 7600001452 et 7600002410 : A reporte 8 h du 5 au 6, B passe à 8 h 01, 14 h 01, 20 h 01 sans voir le report, A plus récent : 14 h 01 et 20 h 01 couvertes, le 6 ne réclame qu’une dose', () => {
+  // restées sans prise ; 6a (18 octobre 2026) : il emporte son heure, le 5 perd la dose libre de 8 h 01.
+  it('graines 7600001452 et 7600002410 : A reporte 8 h du 5 au 6, B passe à 8 h 01, 14 h 01, 20 h 01 sans voir le report, A plus récent : 14 h 01 et 20 h 01 couvertes, le 6 à 8 h, une seule dose', () => {
     const synced = syncedAt('2026-03-04T18:00:00.000Z', '2026-03-04T09:00:00.000Z')
     const givenEffects = treatmentView(synced)
       .history.filter(({ line }) => line.status === 'given')
@@ -437,7 +447,7 @@ describe('Deux téléphones, un réglage du jour réécrit (R10)', () => {
     expect(states(synced, '2026-03-05', '2026-06-05')).toEqual([
       '2026-03-05 14:01 covered',
       '2026-03-05 20:01 covered',
-      '2026-03-06 08:01 pending',
+      '2026-03-06 08:00 pending',
       '2026-06-05 08:01 pending',
       '2026-06-05 14:01 pending',
       '2026-06-05 20:01 pending',
@@ -445,14 +455,15 @@ describe('Deux téléphones, un réglage du jour réécrit (R10)', () => {
     expect(readings(synced).moteur).toEqual(readings(synced).reference)
   })
 
-  // Lu sans le report, le 5 garde 8 h (journée touchée par les prises) : la réécriture ne l'a pas ôtée.
-  it('même carnet, B plus récent : la réécriture n’a pas ôté 8 h du 5, le report tient, le 6 ne réclame qu’une dose (#883)', () => {
+  // Réécrit après lui, le réglage du report ne donne pas ses heures au 5 (#938) : le 5 garde celles de
+  // ses prises et 8 h, comme sur B ; la réécriture ne l'a pas ôtée, le report emmène 8 h, comme sur A.
+  it('même carnet, B plus récent : la réécriture n’a pas ôté 8 h du 5, le report tient, le 6 ne réclame qu’une dose (#883, #938)', () => {
     const synced = syncedAt('2026-03-04T09:00:00.000Z', '2026-03-04T18:00:00.000Z')
     expect(reportEffects(synced)).toEqual(['moves'])
     expect(states(synced, '2026-03-05', '2026-06-05')).toEqual([
-      '2026-03-05 14:01 covered',
-      '2026-03-05 20:01 covered',
-      '2026-03-06 08:01 pending',
+      '2026-03-05 14:00 given',
+      '2026-03-05 20:00 given',
+      '2026-03-06 08:00 pending',
       '2026-06-05 08:01 pending',
       '2026-06-05 14:01 pending',
       '2026-06-05 20:01 pending',
@@ -479,5 +490,22 @@ describe('Deux téléphones, un réglage du jour réécrit (R10)', () => {
     ])
     expect(treatmentView(synced).history.map(({ effect }) => effect.kind)).not.toContain('idle')
     expect(readings(synced).moteur).toEqual(readings(synced).reference)
+  })
+})
+
+// R4 (20 octobre 2026) : sans dose libre après son heure, une prise couvre la dose libre la plus proche
+// avant elle ; une prise couvre une dose de sa journée tant qu'il en reste une.
+describe('R4 : une prise après la dernière heure du jour', () => {
+  it('tous les 2 jours à 6 h et 12 h, une dose donnée à 14 h le 9 : 12 h couverte, 6 h à donner', () => {
+    const input: TreatmentViewInput = {
+      settings: [setting('s1', '2026-04-07', TWO_DAYS, ['06:00', '12:00'])],
+      lines: [line('s1', 'given', '2026-04-09', '14:00')],
+      today: '2026-04-09',
+    }
+    expect(states(input, '2026-04-09', '2026-04-09')).toEqual([
+      '2026-04-09 06:00 pending',
+      '2026-04-09 12:00 covered',
+    ])
+    expect(readings(input).moteur).toEqual(readings(input).reference)
   })
 })

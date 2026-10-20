@@ -60,12 +60,13 @@ function movedDue(view: TreatmentView, rest: TreatmentView, due: Due, existing?:
       .slots(day, day)
       .filter(({ state }) => state === 'pending')
       .map((slot) => slot.due)
+  // R7 : la dose touchée part, avec les heures suivantes encore sans prise de sa journée.
   if (existing === undefined) {
-    const sameDay = pendingOn(view, due.dueOn)
-    const known = sameDay.some(
-      (other) => keyOf(other.dueOn, other.dueTime) === keyOf(due.dueOn, due.dueTime),
+    const touched = keyOf(due.dueOn, due.dueTime)
+    return (
+      pendingOn(view, due.dueOn).find((other) => keyOf(other.dueOn, other.dueTime) === touched) ??
+      null
     )
-    return known ? sameDay[0]! : null
   }
   if (due.dueOn === existing.dueOn && due.dueOn !== existing.targetOn) {
     return pendingOn(rest, due.dueOn)[0] ?? due
@@ -212,6 +213,7 @@ function reportLines(
   { moved, existing, dayShift }: MovePlan,
   to: Day,
   shiftsFollowing: boolean,
+  due: Due,
 ): LineChange[] {
   const dropShift: LineChange[] =
     dayShift === undefined ? [] : [{ action: 'delete', id: dayShift.id }]
@@ -219,10 +221,17 @@ function reportLines(
     return existing === undefined ? [] : [{ action: 'delete', id: existing.id }, ...dropShift]
   }
   const line: LineFields = { ...moved, status: 'postponed', givenOn: null, targetOn: to }
+  // Q-a : repris sur son arrivée, le report garde l'heure de la dose qu'on y a touchée.
+  const touched =
+    existing !== undefined && due.dueOn === existing.targetOn ? due.dueTime : undefined
   const report: LineChange =
     existing === undefined
       ? written(input.lines, line)
-      : { action: 'rewrite', id: existing.id, line }
+      : {
+          action: 'rewrite',
+          id: existing.id,
+          line: touched === undefined ? line : { ...line, previousTargetTime: touched },
+        }
   if (!shiftsFollowing) return [report, ...dropShift]
   // R6, R7 : le décalage appartient au rythme en vigueur ce jour-là, sinon il serait dépassé.
   const inForce = buildView(input).settingAt(moved.dueOn)?.id ?? moved.settingId
@@ -248,12 +257,13 @@ export function moveDose(input: TreatmentViewInput, gesture: MoveGesture): Gestu
   const { moved, existing } = plan
   if (existing !== undefined && to === existing.targetOn)
     return outcome(input, [], { offersShift: true })
-  const changes = reportLines(input, plan, to, shiftsFollowing)
+  const changes = reportLines(input, plan, to, shiftsFollowing, due)
   if (to === moved.dueOn) return outcome(input, changes)
   if (!shiftsFollowing) return outcome(input, changes, { offersShift: true })
+  const alone = reportLines(input, plan, to, false, due)
   return outcome(input, changes, {
     offersShift: true,
-    lostToEnd: lostToEnd(input, reportLines(input, plan, to, false), changes, moved.dueOn),
+    lostToEnd: lostToEnd(input, alone, changes, moved.dueOn),
   })
 }
 
@@ -265,5 +275,5 @@ export function arrivalFollowing(input: TreatmentViewInput, due: Due, to: Day): 
   const plan = planOf(input, due, true)
   if ('reason' in plan || plan.existing === undefined) return []
   if (boundsRefusal(plan.bounds, to) !== null) return []
-  return reportLines(input, plan, to, plan.dayShift !== undefined)
+  return reportLines(input, plan, to, plan.dayShift !== undefined, due)
 }

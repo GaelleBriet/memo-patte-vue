@@ -125,7 +125,13 @@ export function coverageOf(
       const later = free.filter(
         (hour) => hour === null || note.dueTime === null || hour > note.dueTime,
       )
-      const next = underOldHours(note) ? free[0] : later.find((hour) => hour !== null)
+      // R4 : sans dose libre après elle, la plus proche avant : elle couvre une dose tant qu'il en reste.
+      const before = free.filter(
+        (hour) => hour !== null && note.dueTime !== null && hour < note.dueTime,
+      )
+      const next = underOldHours(note)
+        ? free[0]
+        : (later.find((hour) => hour !== null) ?? before.at(-1))
       if (next === undefined) continue
       covered.add(next)
       placed.add(note)

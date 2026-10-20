@@ -89,7 +89,7 @@ RAPPELS_FROM=641000000 RAPPELS_SEEDS=3000 RAPPELS_STEPS=40 \
 La ligne « Campagne rappels » dit ce qui a été joué. Par défaut (suite normale) : 25 carnets × 24
 gestes.
 
-## Deux téléphones (#867, #882, #883)
+## Deux téléphones (#867, #882, #883, #938, #939)
 
 `src/shared/__tests__/dose-calendar.deux-appareils-campagne.spec.ts` mène des carnets par les gestes
 de v2 et, à certains pas, fourche le carnet (`two-devices.ts`, constats dans `two-devices-constats.ts`) : le téléphone A fait un geste (report,
@@ -97,10 +97,10 @@ avec ou sans « Décaler aussi les doses suivantes », prise, dose à renseigner
 « Modifier » (heures, date, fréquence, fin) sans le voir, chacun dans un ordre tiré au sort, puis la
 synchro garde, par ligne et par réglage, la modification la plus récente. La date d'écriture d'un
 réglage n'avance que si son calendrier change (migration v14). Constats : le report de A, qui
-déplaçait une dose sur A, est sans effet après la synchro alors que la réécriture de B, sur le réglage
-du report, n'a pas ôté sa dose de départ (la journée lue sans ce report l'a encore) ; une dose de trop
-sur le jour d'arrivée du report (une heure que ni A ni B n'y montraient). Un report écrit sous un
-autre réglage que celui que B réécrit n'est pas jugé.
+déplaçait une dose sur A, est sans effet après la synchro alors que A est le plus récent (#882, #939),
+ou que la réécriture de B n'a pas ôté sa dose de départ (la journée lue sans ce report l'a encore),
+quel que soit le réglage du report ; une dose de trop sur le jour d'arrivée du report (une heure que
+ni A ni B n'y montraient).
 
 Une série longue se compare au moteur de `main` (`TW_MAIN`, chemin de son `index.ts`) : un constat
 que `main` a aussi n'est pas compté ; les doses de trop ne sont jugées qu'avec `main`.

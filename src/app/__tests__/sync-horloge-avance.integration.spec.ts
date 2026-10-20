@@ -138,10 +138,11 @@ describe('#904 : une horloge en avance de 3 jours, deux téléphones, de la base
       at('2026-10-19T08:05:00.000Z')
       await rewriteOn(a, ['09:00'])
 
+      // R10 : des heures changées ne battent pas un report, qui part par son rang (#939).
       at('2026-10-19T08:06:00.000Z')
       await expect(bothSynced()).resolves.toEqual({
-        next: ['2026-10-25 09:00', '2026-10-28 09:00'],
-        report: ['2026-10-25 → 2026-10-26 idle'],
+        next: ['2026-10-26 08:00', '2026-10-28 09:00'],
+        report: ['2026-10-25 → 2026-10-26 moves'],
       })
       const expected = [
         '2026-10-19T07:00:00.000Z 2026-10-19T07:00:00.000Z',

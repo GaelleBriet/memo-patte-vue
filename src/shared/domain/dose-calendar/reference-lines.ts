@@ -74,7 +74,15 @@ export function touchedJourneys(
     if (kept === undefined || isMoreRecent(line, kept.line)) latest.set(day, { line, hoursOf })
   }
   for (const line of lines) {
-    touch(line.dueOn, line, settingOf(line.settingId))
+    // #938 : un report ne garde pas à sa journée les heures d'un réglage réécrit après lui.
+    const written = settingOf(line.settingId)
+    const rewrittenAt = written.updatedAt
+    const unseen =
+      line.status === 'postponed' &&
+      rewrittenAt !== undefined &&
+      rewrittenAt > written.createdAt &&
+      rewrittenAt > line.updatedAt
+    if (!unseen) touch(line.dueOn, line, written)
     const chosen = line.status === 'postponed' ? chosenOf(line) : undefined
     if (chosen !== undefined) touch(line.targetOn!, line, chosen)
   }

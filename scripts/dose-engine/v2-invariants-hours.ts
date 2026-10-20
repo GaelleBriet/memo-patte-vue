@@ -47,7 +47,7 @@ function touchedDays(
       touched.set(dueOn, null)
     }
   }
-  for (const { effect } of treatmentView(input).history) {
+  for (const { line, effect } of treatmentView(input).history) {
     if (
       effect.kind !== 'moves' ||
       effect.arrival === null ||
@@ -56,7 +56,9 @@ function touchedDays(
       continue
     }
     const hours = touched.get(effect.arrival) ?? new Set<string>()
-    for (const key of effect.keys) hours.add(key.slice(11))
+    // Q1 : la dose retirée de l'ancienne arrivée n'est pas une heure qui arrive.
+    const departing = effect.keys.filter((key) => key.startsWith(line.dueOn))
+    for (const key of departing.length > 0 ? departing : effect.keys) hours.add(key.slice(11))
     touched.set(effect.arrival, hours)
   }
   return touched
@@ -103,9 +105,20 @@ export function hoursOnly(input: TreatmentViewInput): Broken | null {
     const recomputed = firstDueOn !== current.firstDueOn || gridOriginOn !== current.gridOriginOn
     const sameDay = plan.action === 'rewrite' && current.startsOn === input.today
     if (sameDay && recomputed) continue
-    // R7, #796 : la date choisie garde les heures de son réglage, que ce « Modifier » remplace.
+    // R7, #796 : la date choisie garde les heures de son réglage, que ce « Modifier » remplace, et
+    // sa dose redéplacée les emmène (Q-a, G13), sur une journée encore sans prise.
     const chosenDay = sameDay && current.firstDueChosen ? current.firstDueOn : null
-    const kept = new Map([...touched].filter(([day]) => day !== chosenDay))
+    const taken = (day: string | null) =>
+      input.lines.some(
+        ({ status, dueOn }) => (status === 'given' || status === 'missed') && dueOn === day,
+      )
+    const fromChosen = new Set(
+      input.lines
+        .filter((line) => chosenDay !== null && line.previousTargetOn === chosenDay)
+        .map((line) => line.targetOn)
+        .filter((day) => !taken(day)),
+    )
+    const kept = new Map([...touched].filter(([day]) => day !== chosenDay && !fromChosen.has(day)))
     const after = daysOf(settingsApplied(input, plan), kept)
     const broken = compare(
       `heures seules (${label})`,

@@ -95,15 +95,16 @@ export function without(input: TreatmentViewInput, ids: readonly string[]): Trea
 }
 
 /**
- * Le carnet une fois le réglage écrit, plus récent que tout le carnet (simulation, R12). La date de
- * grille héritée ne se juge qu'à l'écriture (`judgedGrid`) : la simulation date la grille comme
- * une écriture neuve.
+ * Le carnet une fois le réglage écrit, plus récent que tout le carnet (simulation, R12). Une
+ * réécriture date sa grille comme à l'écriture (`judgedGrid`), puisque le report se juge contre elle
+ * (#939) ; une période ouverte, jamais réécrite, n'est jugée contre aucun report.
  */
 export function settingsApplied(input: TreatmentViewInput, plan: SettingsPlan): TreatmentViewInput {
   return applied(settingWritten(input, plan), plan.lines ?? [])
 }
 
 function settingWritten(input: TreatmentViewInput, plan: SettingsPlan): TreatmentViewInput {
+  const lines = plan.lines ?? []
   if (plan.action === 'create') {
     const setting: Setting = {
       ...plan.setting,
@@ -114,7 +115,9 @@ function settingWritten(input: TreatmentViewInput, plan: SettingsPlan): Treatmen
     return { ...input, settings: [...input.settings, setting] }
   }
   const settings = input.settings.map((setting) =>
-    setting.id === plan.id ? rewrittenSetting(setting, plan.setting, () => WRITTEN_AT) : setting,
+    setting.id === plan.id
+      ? rewrittenSetting(setting, plan.setting, () => WRITTEN_AT, { input, lines })
+      : setting,
   )
   return { ...input, settings }
 }

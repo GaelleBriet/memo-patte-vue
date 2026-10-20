@@ -84,10 +84,18 @@ function chosenArrivalsOf(reports: readonly Line[], span: Span): Map<Line, Setti
   return arrivals
 }
 
+// #938 : réécrit après lui sur un autre téléphone, le réglage d'un report n'a plus les heures vues ;
+// les heures se jugent sur la date des réglages, le conflit sur celle de la grille (#939).
+function rewrittenAfter(line: Line, setting: Setting | undefined): boolean {
+  const at = setting?.updatedAt
+  return at !== undefined && at > setting!.createdAt && at > line.updatedAt
+}
+
 function touchedDays(
   notes: readonly Line[],
   reports: readonly Line[],
   chosenArrivals: ReadonlyMap<Line, Setting>,
+  settingOf: (id: string) => Setting | undefined,
 ) {
   const latest = new Map<Day, { line: Line; settingId: string }>()
   const touch = (day: Day, line: Line, settingId = line.settingId) => {
@@ -96,7 +104,8 @@ function touchedDays(
   }
   notes.forEach((note) => touch(note.dueOn, note))
   for (const report of reports) {
-    touch(report.dueOn, report)
+    // R4 : sa journée de départ se lit alors comme sans lui.
+    if (!rewrittenAfter(report, settingOf(report.settingId))) touch(report.dueOn, report)
     // R7, #796 : le jour choisi qui emmène le report garde les heures du réglage qui l'a choisi ; une
     // autre arrivée garde les doses de sa journée et y ajoute les siennes.
     const chosen = chosenArrivals.get(report)
@@ -122,14 +131,6 @@ export function translatedDays(
   })
   return days
 }
-
-/** R4 : le réglage de la ligne la plus récente d'une journée, sans compter `without`. */
-export const touchedWithout = (lines: EpisodeLines, day: Day, without: Line): string | undefined =>
-  touchedDays(
-    lines.notes,
-    lines.reports.filter((report) => report !== without),
-    lines.chosenArrivals,
-  ).get(day)
 
 export function episodeLines(lines: readonly Line[], span: Span): EpisodeLines {
   const ids = new Set(span.episode.map(({ id }) => id))
@@ -173,6 +174,7 @@ export function episodeLines(lines: readonly Line[], span: Span): EpisodeLines {
   kept.filter(beaten).forEach(({ id }) => idle.set(id, 'beaten'))
   const notes = kept.filter((line) => isNote(line) && !beaten(line))
   const chosenArrivals = chosenArrivalsOf(reports, span)
-  const touched = touchedDays(notes, reports, chosenArrivals)
+  const settingOf = (id: string) => span.episode.find((setting) => setting.id === id)
+  const touched = touchedDays(notes, reports, chosenArrivals, settingOf)
   return { kept, notes, reports, shifts, idle, doseKey, touched, chosenArrivals }
 }

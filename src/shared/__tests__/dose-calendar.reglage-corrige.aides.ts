@@ -3,15 +3,31 @@ import {
   newSettings,
   noteDose,
   removeLine,
+  rewritesCalendar,
+  rewritesGrid,
   settingsApplied,
   treatmentView,
+  withReportFacts,
   type LineChange,
+  type Setting,
   type SettingsPlan,
   type SettingsRequest,
   type TreatmentViewInput,
 } from '../domain/dose-calendar'
 import { referenceReading } from '../domain/dose-calendar/reference-model'
 import { keys } from './dose-calendar.v2.aides'
+
+/** Le réglage réécrit sur place, daté de `at` comme par le repository : la date de grille ne bouge
+ * que si la grille change (v17). */
+export function rewrittenOn(old: Setting, next: Setting, at: string): Setting {
+  return {
+    ...next,
+    updatedAt: rewritesCalendar(old, next) ? at : old.updatedAt,
+    gridWrittenAt: rewritesGrid(old, next) ? at : (old.gridWrittenAt ?? old.createdAt),
+  }
+}
+
+const LATER = '9999-12-31T23:59:59.999Z'
 
 // Comme le repository : un identifiant neuf et un horodatage plus récent que tout le carnet.
 function nextStamp(input: TreatmentViewInput): string {
@@ -26,19 +42,23 @@ function recorded(input: TreatmentViewInput, changes: readonly LineChange[]): Tr
       return { ...carnet, lines: carnet.lines.filter(({ id }) => id !== change.id) }
     }
     const updatedAt = nextStamp(carnet)
+    const { line } = withReportFacts(carnet.lines, carnet.settings, change)
     const lines =
       change.action === 'rewrite'
-        ? carnet.lines.map((l) =>
-            l.id === change.id ? { ...change.line, id: l.id, updatedAt } : l,
-          )
-        : [...carnet.lines, { ...change.line, id: `l-${updatedAt}`, updatedAt }]
+        ? carnet.lines.map((l) => (l.id === change.id ? { ...line, id: l.id, updatedAt } : l))
+        : [...carnet.lines, { ...line, id: `l-${updatedAt}`, updatedAt }]
     return { ...carnet, lines }
   }, input)
 }
 
 function written(input: TreatmentViewInput, plan: SettingsPlan): TreatmentViewInput {
   if (plan.action === 'rewrite') {
-    return recorded(settingsApplied(input, { ...plan, lines: [] }), plan.lines ?? [])
+    // Daté après tout le carnet, comme une réécriture faite après coup sur un autre téléphone.
+    const applied = settingsApplied(input, { ...plan, lines: [] })
+    const settings = applied.settings.map((each, index) =>
+      each.id === plan.id ? rewrittenOn(input.settings[index]!, each, LATER) : each,
+    )
+    return recorded({ ...applied, settings }, plan.lines ?? [])
   }
   const createdAt = nextStamp(input)
   const created = { ...plan.setting, id: `r-${createdAt}`, stoppedOn: null, createdAt }

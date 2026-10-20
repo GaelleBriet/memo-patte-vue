@@ -101,6 +101,7 @@ const S = (id: string, stamp: number, fields: Partial<Setting>): Setting => ({
   frequency: MONTH,
   times: [],
   createdAt: `2026-01-01T00:00:${String(stamp).padStart(2, '0')}.000Z`,
+  gridWrittenAt: `2026-01-01T00:00:${String(stamp).padStart(2, '0')}.000Z`,
   ...fields,
 })
 
