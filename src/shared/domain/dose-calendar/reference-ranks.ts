@@ -47,15 +47,15 @@ export function chosenDayOf(
 ): string | undefined {
   const day = report.previousTargetOn ?? null
   if (day === null || day === report.targetOn) return undefined
-  const setting = settingAt(day)
-  if (setting === undefined) return undefined
-  if (setting.firstDueChosen && setting.firstDueOn === day) return day
-  // R3 : un réglage suivant de même fréquence, sans origine à lui, garde la date choisie avant lui.
-  const keeps = (earlier: ReferenceSetting) =>
-    earlier.createdAt < setting.createdAt &&
-    earlier.firstDueChosen &&
-    earlier.firstDueOn === day &&
-    earlier.frequency.value === setting.frequency.value &&
-    earlier.frequency.unit === setting.frequency.unit
-  return setting.gridOriginOn === null && live.some(keeps) ? day : undefined
+  const inForce = settingAt(day)
+  if (inForce === undefined) return undefined
+  // R3 : la grille du jour est celle du dernier réglage qui a posé sa propre origine, que les réglages
+  // suivants de même fréquence, sans origine à eux, continuent.
+  const before = live.slice(0, live.indexOf(inForce) + 1).reverse()
+  const sameRhythm = (a: ReferenceSetting) =>
+    a.frequency.value === inForce.frequency.value && a.frequency.unit === inForce.frequency.unit
+  const drawer = before.find((each) => each.gridOriginOn !== null || !sameRhythm(each))
+  if (drawer === undefined || !sameRhythm(drawer)) return undefined
+  const continued = before.slice(0, before.indexOf(drawer)).every(sameRhythm)
+  return continued && drawer.firstDueChosen && drawer.firstDueOn === day ? day : undefined
 }

@@ -1,6 +1,6 @@
 import { sameFrequency } from './grid'
 import type { Span } from './settings'
-import type { Hour, Line } from './types'
+import type { Hour, Line, Setting } from './types'
 
 /** Ce qu'un report prend à une journée : les heures qui la quittent, et celles qui arrivent. */
 export type RankedMove = { leaving: Hour[]; carried: Hour[] }
@@ -43,16 +43,14 @@ export function rankedMove(
 export function chosenOldArrival(report: Line, span: Pick<Span, 'settingAt' | 'live'>) {
   const day = report.previousTargetOn
   if (day === undefined || day === null || day === report.targetOn) return undefined
-  const setting = span.settingAt(day)
-  if (setting === undefined) return undefined
-  if (setting.firstDueChosen && setting.firstDueOn === day) return day
-  if (setting.gridOriginOn !== null) return undefined
-  const chooser = span.live.find(
-    (each) =>
-      each.createdAt < setting.createdAt &&
-      each.firstDueChosen &&
-      each.firstDueOn === day &&
-      sameFrequency(each.frequency, setting.frequency),
-  )
-  return chooser === undefined ? undefined : day
+  let setting = span.settingAt(day)
+  let index = setting === undefined ? -1 : span.live.indexOf(setting)
+  // R3 : en remontant les réglages qui continuent la grille, jusqu'à celui qui l'a tracée.
+  while (setting !== undefined && setting.gridOriginOn === null && index > 0) {
+    const previous: Setting = span.live[index - 1]!
+    if (!sameFrequency(previous.frequency, setting.frequency)) return undefined
+    setting = previous
+    index -= 1
+  }
+  return setting?.firstDueChosen && setting.firstDueOn === day ? day : undefined
 }

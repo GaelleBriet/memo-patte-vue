@@ -67,7 +67,8 @@ export function moveReports(input: ReportsInput) {
       ]
       keys.forEach((key) => moved.set(key, report))
       if (targetOn! > dueOn) fallen.add(dueOn)
-      const bringing = [...new Set([...gone, ...carried])].sort()
+      // La même dose, lue au départ et sur l'ancienne arrivée : elle arrive une fois, aux heures du départ.
+      const bringing = gone.length > 0 ? gone : carried
       arrive(report, keys, bringing, settingOf(report.settingId))
       continue
     }

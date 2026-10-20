@@ -69,9 +69,11 @@ export function arriveReports(context: ArrivalContext) {
       const turned = context.turnedFromChosen.has(`${dueOn}>${targetOn}`)
       if (!turned) oldArrival.hours = oldArrival.hours.filter((hour) => !byRank.lost.includes(hour))
       if (targetOn! > dueOn) fallen.add(dueOn)
-      const carried = [
-        ...new Set([report!.dueTime, ...byRank.alsoCarried, ...leftDeparture]),
-      ].sort()
+      // Lue au départ comme sur l'ancienne arrivée, c'est la même dose : elle arrive une fois.
+      const carried =
+        leftDeparture.length > 0
+          ? leftDeparture
+          : [...new Set([report!.dueTime, ...byRank.alsoCarried])].sort()
       land(report!, { carried, hoursOf: settingOf(report!.settingId) })
       continue
     }
