@@ -1,5 +1,5 @@
 import { writtenBefore, type coverages, type Journey } from './reference-days'
-import { hoursOf, keyOf } from './reference-grid'
+import { hoursOf, keyOf, sameFrequency } from './reference-grid'
 import { arrivedOn, chosenDateOf, hoursChangedSince, reportOutcome } from './reference-reports'
 import { chooserOf, takenByRank, wholeDayOf } from './reference-ranks'
 import { rewrittenDeparture, type RewriteContext } from './reference-rewrite'
@@ -189,12 +189,16 @@ export function arriveReports(context: ArrivalContext) {
     const into = stopDay === undefined ? days : left
     if (arrival === undefined || outcome.carried.length === 0) return
     const opensRhythm = openings.delete(targetOn)
-    const chosen = chosenDateOf(report, live, settingOf)
+    // R4 : à fréquence gardée, le jour où les heures changent, la date choisie prend les nouvelles heures.
+    const picker = chosenDateOf(report, live, settingOf)
+    const relaid = picker && translated.has(targetOn) && sameFrequency(arrival, picker)
+    const chosen = relaid ? arrival : picker
     if (into === days && !days.has(targetOn)) arrivalsOnly.add(targetOn)
     const day = arrivedOn(into.get(targetOn), outcome, arrival, { opensRhythm, chosen })
     into.set(targetOn, day)
     const received = chosen ? hoursOf(chosen) : outcome.carried
-    arrivedHours.set(targetOn, [...(arrivedHours.get(targetOn) ?? []), ...received])
+    const seen = relaid ? [] : received
+    arrivedHours.set(targetOn, [...(arrivedHours.get(targetOn) ?? []), ...seen])
     received.forEach((hour) => arrivedBy.set(keyOf(targetOn, hour), report))
   }
 }
