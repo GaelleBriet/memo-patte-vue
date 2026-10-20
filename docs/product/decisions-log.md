@@ -3188,3 +3188,31 @@ migration accordée ; schéma v17, export v10).
   la grille d'avant l'ouverture s'écrête de même. Correction de la
   première borne (« la création de la période »), qui contredisait l'héritage : une période qui
   hérite porte une date de grille plus ancienne que sa propre création.
+
+2026-10-20 — **Report contre réglage, codé sur la date de grille (PR #958)** (spec `traitements.md`
+R6, R10 ; décisions des 19 et 20 octobre 2026 de la session d'analyse du moteur, à qui Gaelle a
+délégué les lectures de règles ; #939, #938, #882).
+
+- Arbitrage : la date d'un report se compare à la date de grille du réglage qui a ôté sa journée de
+  départ (repli : date d'écriture des réglages, puis création). Une heure ôtée n'est jamais un
+  conflit : le report l'emporte et part par son rang (Q4). Tous les 3 mois à 8 h, 14 h et 20 h, A
+  reporte 8 h du 5 mars au 6, B passe à 8 h 01, 14 h 01 et 20 h 01 : dans les deux ordres, le 6 à
+  8 h, le 5 garde 14 h 01 et 20 h 01 (avant, B plus récent : report sans effet). Carnet de #883 (B
+  passe à 8 h et 20 h) : dans les deux ordres, le 6 mai à 14 h puis le 9 mai à 8 h et 20 h.
+- #939 : quand la journée de départ est lue par un réglage créé après celui du report, réécrit sur
+  place depuis, et que la ligne a connu, le report plus récent que sa grille l'emporte aussi ; plus
+  ancien, la lecture de son propre réglage reste. Les six graines (9050000090, 9050001220,
+  9050001496, 9050001518, 9050002324, 9050002340) : la date choisie par B reste, le report aussi.
+- Q5, correction de la lecture du 19 octobre (« sauf le jour même ») : R4 dans la journée gagne
+  partout ; carnet de #938, A plus récent : 8 h couverte par la prise de 6 h, le report emporte le
+  rang 2 (12 h) et, avec la case, le rang 3 (20 h). 7700002507, 4870000187, 7600001452 inchangées.
+- Q2, correction de la lecture du 19 octobre (« toute cause ») : la ligne de décalage est autonome et
+  vaut tant que sa journée d'origine est une échéance de la grille (R6) ; elle suit son report
+  seulement quand la journée de départ sort de la grille (6b, 6c). Une note qui bat le report laisse
+  la journée de départ : le décalage tient seul (graine 9050002175 : le 30 et le 31 mars sont
+  décalés, pas supprimés). 998000832, #893 (8810000692), 9640000934 inchangées.
+- G13 appliqué au décalage : une dose redéplacée depuis la date choisie qui la portait fait partir son
+  décalage de cette ancienne arrivée, les journées suivantes avancent ou reculent d'autant. Tous les
+  jours à 20 h, la dose reportée du 19 mars sur la date choisie du 27, avancée au 26 avec la case :
+  26, 27, 28… (graine 9100000170 ; avant : 26, 28, 29, une dose sautée). — Écartée : la case ne fait
+  partir que les rangs du même jour.

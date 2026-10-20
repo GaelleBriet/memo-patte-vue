@@ -337,6 +337,18 @@ describe('Q2 : un report de A plus récent battu par une note que la réécritur
   )
 })
 
+// Q2 (décision du 19 octobre 2026) : la journée de départ existe encore (la note la porte), la ligne de
+// décalage, autonome, tient seule : le 30 et le 31 mars sont décalés, pas supprimés.
+it('graine 9050002175, pas 4 : le décalage tient seul, la suite reprend le 1er avril', () => {
+  const fork = forkAt(9050002175, 4)
+  const shift = fork.merged.lines.find(({ status }) => status === 'shift')!
+  expect(effectOf(fork.merged, shift.id)).toEqual({ kind: 'shifts', from: '2026-03-29' })
+  expect(keys(treatmentView(fork.merged).upcoming({ limit: 2 }))).toEqual([
+    '2026-04-01 20:00',
+    '2026-04-02 20:00',
+  ])
+})
+
 describe('6a : une heure ôtée quand la journée de départ garde une dose libre après elle, A plus récent', () => {
   // Tous les 3 mois à 8 h, 14 h et 20 h, sans prise, première dose le 5 mars ; le 3, A reporte 8 h du 5
   // au 6, B passe à 8 h 01, 14 h 01 et 20 h 01.
