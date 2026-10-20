@@ -347,6 +347,10 @@ it('graine 9110001016, pas 23 : les quatre doses arrivent le 23 avril, comme sur
   expect(shown(fork.merged)).toEqual(expected)
 })
 
+it('graine 9120001577, pas 12 : aucune dose de trop le 5 avril', () => {
+  expect(constatsOf(forkAt(9120001577, 12))).toEqual([])
+})
+
 // Q1 : la date choisie par B tombe sur l'ancienne arrivée d'un report ; les doses que le report emporte
 // de sa journée de départ arrivent toutes, aucune ne disparaît.
 it('graine 9050001926, pas 16 : les doses du 16 arrivent le 23, celles que A redéplace le 24', () => {
