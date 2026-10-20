@@ -70,7 +70,7 @@ export function dateChangeOf(
     today,
     earliest,
     view,
-  }: { today: string; earliest: string | null; view: Pick<TreatmentView, 'extraBoundary'> },
+  }: { today: string; earliest: string | null; view: Pick<TreatmentView, 'earliestGivenOn'> },
 ): DateChange | null {
   if (line.status === 'postponed') {
     if (bounds === null) return null
@@ -90,10 +90,10 @@ export function dateChangeOf(
   }
   if (line.givenOn === null) return null
   const date = formatLongDate(line.givenOn)
-  // M1 : une prise donnée ne descend pas au jour où elle deviendrait une prise en plus.
+  // M1, TR-24 bis : une prise donnée ne descend pas un intervalle ou plus avant son échéance.
   const boundary =
     line.status === 'given'
-      ? view.extraBoundary({ settingId: line.periodId, dueOn: line.dueOn, dueTime: line.dueTime })
+      ? view.earliestGivenOn({ settingId: line.periodId, dueOn: line.dueOn, dueTime: line.dueTime })
       : null
   return {
     subtitle:

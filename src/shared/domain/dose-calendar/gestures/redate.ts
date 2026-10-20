@@ -117,7 +117,7 @@ function redateGiven(input: TreatmentViewInput, line: Line, gesture: RedateGestu
   const shiftDay = shiftDayOf(view, due)
   const own = shiftOfDay(input.lines, shiftDay)
   if (givenOn === line.givenOn) return outcome(input, [], { offersShift: own !== undefined })
-  const boundary = view.extraBoundary(due)
+  const boundary = view.earliestGivenOn(due)
   if (boundary !== null && givenOn < boundary) {
     return { refusal: { reason: 'too-early', earliest: boundary } }
   }

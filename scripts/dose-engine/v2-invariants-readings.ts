@@ -71,7 +71,7 @@ export function symmetry(input: TreatmentViewInput, random: Random): Broken | nu
     status === 'shift' && dueOn === shiftDay && targetOn === input.today
   if (input.lines.some(anchoredToday)) return null
   const givenOn = plusDays(input.today, -int(random, 0, 6))
-  const boundary = view.extraBoundary(due)
+  const boundary = view.earliestGivenOn(due)
   if (boundary !== null && givenOn < boundary) return null
   const checked = random() < 0.65
   const direct = play(input, {
