@@ -155,7 +155,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       if (follows && setting.firstDueOn >= setting.startsOn) openings.add(setting.firstDueOn)
     }
     // R2, R9 : une origine posée sur la grille en vigueur ne lit aucune journée avant sa première
-    // échéance, ni ses suivants de même rythme, pas même après un décalage.
+    // échéance, ni ses suivants de même rythme, même après un décalage, sauf celui qui part d'elle.
     chosenFloor = !continued ? '' : origin !== null ? ownFloor : chosenFloor
     if (!continued || origin !== null) rhythmFloor = ownFloor
     if (!continued || origin !== null) anchors = continued ? held : new Set()
@@ -253,6 +253,8 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
         break
       }
       effects.set(turn.id, { kind: 'shifts', from: turn.dueOn })
+      // R9 : la date choisie avancée avec la case fait de son arrivée le premier jour de la série.
+      if (fromOldArrival(turn)) chosenFloor = ''
       grid = turned(turn, chosenFloor)
       rhythmStartFloor = later(turn.dueOn, turn.targetOn!)
       from = plusDays(turn.dueOn, 1)

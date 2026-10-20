@@ -1,7 +1,7 @@
 import { writtenBefore, type coverages, type Journey } from './reference-days'
 import { hoursOf, keyOf } from './reference-grid'
 import { arrivedOn, chosenDateOf, hoursChangedSince, reportOutcome } from './reference-reports'
-import { chooserOf, takenByRank } from './reference-ranks'
+import { chooserOf, takenByRank, wholeDayOf } from './reference-ranks'
 import { rewrittenDeparture, type RewriteContext } from './reference-rewrite'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
@@ -53,42 +53,39 @@ export function arriveReports(context: ArrivalContext) {
     // G13 : son décalage a déjà fait avancer depuis la date choisie les doses qui la suivaient.
     const turned = chosenDay !== undefined && context.turnedFromChosen.has(`${dueOn}>${targetOn}`)
     if (oldArrival !== undefined || turned) {
+      const from = departure ?? left.get(dueOn)
       // Ce que le report emporte de sa journée de départ, si elle se lit encore, arrive aussi : son heure
       // et les suivantes (R7), ou, son heure absente, la dose de son rang (Q4).
       let leftDeparture: Hour[] = []
-      if (departure !== undefined && departure.hours.includes(report!.dueTime)) {
-        const taken = coveredAside(dueOn, departure)
+      if (from !== undefined && from.hours.includes(report!.dueTime)) {
+        const taken = coveredAside(dueOn, from)
         const stays = (hour: Hour) =>
           taken.has(hour) || (hour !== null && hour < (report!.dueTime ?? ''))
-        leftDeparture = departure.hours.filter((hour) => !stays(hour))
-        departure.hours = departure.hours.filter(stays)
-      } else if (departure !== undefined) {
-        const atRank = takenByRank(
-          report!,
-          departure.hours,
-          exactAt(dueOn, departure),
-          withFollowing,
-        )
-        departure.hours = departure.hours.filter((hour) => !atRank.lost.includes(hour))
+        leftDeparture = from.hours.filter((hour) => !stays(hour))
+        from.hours = from.hours.filter(stays)
+      } else if (from !== undefined) {
+        const atRank = takenByRank(report!, from.hours, exactAt(dueOn, from), withFollowing)
+        from.hours = from.hours.filter((hour) => !atRank.lost.includes(hour))
         if (atRank.lost.length > 0) {
-          leftDeparture = [...new Set([report!.dueTime, ...atRank.alsoCarried])].sort()
+          leftDeparture = atRank.carried
         }
       }
-      const byRank =
-        oldArrival === undefined
-          ? takenByRank(report!, hoursOf(chooser!), new Set(), withFollowing)
-          : takenByRank(report!, oldArrival.hours, exactAt(chosenDay!, oldArrival), withFollowing)
-      if (!turned && oldArrival !== undefined) {
-        oldArrival.hours = oldArrival.hours.filter((hour) => !byRank.lost.includes(hour))
-      }
       if (targetOn! > dueOn) fallen.add(dueOn)
-      // Lue au départ comme sur l'ancienne arrivée, c'est la même dose : elle arrive une fois.
-      const carried =
-        leftDeparture.length > 0
-          ? leftDeparture
-          : turned && oldArrival !== undefined
-            ? [report!.dueTime]
-            : [...new Set([report!.dueTime, ...byRank.alsoCarried])].sort()
+      let carried: Hour[]
+      if (turned) {
+        // G13, R9 : la journée entière de la date choisie arrive ; la série repart de l'arrivée.
+        carried = [...new Set([...leftDeparture, ...wholeDayOf(report!, hoursOf(chooser!))])].sort()
+      } else {
+        const byRank = takenByRank(
+          report!,
+          oldArrival!.hours,
+          exactAt(chosenDay!, oldArrival!),
+          withFollowing,
+        )
+        oldArrival!.hours = oldArrival!.hours.filter((hour) => !byRank.lost.includes(hour))
+        // Lue au départ comme sur l'ancienne arrivée, c'est la même dose : elle arrive une fois.
+        carried = leftDeparture.length > 0 ? leftDeparture : byRank.carried
+      }
       land(report!, { carried, hoursOf: settingOf(report!.settingId) })
       continue
     }
@@ -99,11 +96,11 @@ export function arriveReports(context: ArrivalContext) {
     if (verdict === 'lost') continue
     const rewritten = verdict === 'read' ? undefined : verdict
     // Q4 : gagnant, le report emporte son heure ; sa journée perd la dose libre de son rang.
-    let alsoCarried: Hour[] = []
+    let rankCarried: Hour[] = []
     if (rewritten !== undefined && departure !== undefined) {
       const byRank = takenByRank(report!, departure.hours, exactAt(dueOn, departure), withFollowing)
       departure.hours = departure.hours.filter((hour) => !byRank.lost.includes(hour))
-      alsoCarried = byRank.alsoCarried
+      rankCarried = byRank.carried
     }
     const origin = rewritten ? undefined : (days.get(dueOn) ?? left.get(dueOn))
     const from = origin?.setting ?? settingOf(report!.settingId)
@@ -146,7 +143,7 @@ export function arriveReports(context: ArrivalContext) {
     if (outcome.beaten) continue
     if (targetOn! > dueOn) fallen.add(dueOn)
     if (origin) origin.hours = origin.hours.filter((hour) => !outcome.lost.includes(hour))
-    const carried = [...new Set([...outcome.carried, ...alsoCarried])].sort()
+    const carried = [...new Set([...outcome.carried, ...rankCarried])].sort()
     land(report!, { carried, hoursOf: outcome.hoursOf })
   }
   return { fallen, arrivedBy }

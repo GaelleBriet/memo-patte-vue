@@ -1,8 +1,11 @@
 import type { Hour } from './reference-grid'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
-/** Ce qu'un report prend à une journée par rang : ce qu'elle perd, et les heures qu'il emmène en plus de la sienne. */
-export type ByRank = { lost: Hour[]; alsoCarried: Hour[] }
+/**
+ * Ce qu'un report prend à une journée par rang : ce qu'elle perd, les heures qu'il emmène en plus de la
+ * sienne, et toutes celles qui arrivent.
+ */
+export type ByRank = { lost: Hour[]; alsoCarried: Hour[]; carried: Hour[] }
 
 // Q4 : le rang écrit sur la ligne, sinon la place de l'heure du report parmi les heures de la journée.
 function rankIn(report: ReferenceLine, hours: readonly Hour[]): number {
@@ -36,7 +39,28 @@ export function takenByRank(
       alsoCarried.push(hour)
     }
   })
-  return { lost, alsoCarried }
+  return { lost, alsoCarried, carried: landing(report, ordered[rank - 1], alsoCarried) }
+}
+
+/** G13, R9 : la journée entière d'une date choisie, que sa dose avancée avec la case emmène. */
+export function wholeDayOf(report: ReferenceLine, hours: readonly Hour[]): Hour[] {
+  const ordered = hours.slice().sort((a, b) => (a ?? '').localeCompare(b ?? ''))
+  const rank = rankIn(report, ordered)
+  return landing(
+    report,
+    ordered[rank - 1],
+    ordered.filter((_, index) => index + 1 !== rank),
+  )
+}
+
+// Q3 : à son heure écrite, ou à celle de son rang quand une dose qui l'accompagne y arrive déjà.
+function landing(
+  report: ReferenceLine,
+  ownHour: Hour | undefined,
+  joining: readonly Hour[],
+): Hour[] {
+  const at = joining.includes(report.dueTime) && ownHour !== undefined ? ownHour : report.dueTime
+  return [...new Set([at, ...joining])].sort()
 }
 
 /** Q1 : le réglage dont la date choisie était l'ancienne arrivée d'un report. */

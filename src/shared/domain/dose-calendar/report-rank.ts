@@ -26,13 +26,31 @@ export function rankedMove(
   const rank = rankOf(report, sorted)
   const own = sorted[rank - 1]
   const leaving: Hour[] = own === undefined || noted.has(own) ? [] : [own]
-  const carried: Hour[] = [report.dueTime]
-  if (withFollowing) {
-    const following = sorted.slice(rank).filter((hour) => !noted.has(hour))
-    leaving.push(...following)
-    carried.push(...following)
-  }
-  return { leaving, carried: [...new Set(carried)].sort() }
+  const following = withFollowing ? sorted.slice(rank).filter((hour) => !noted.has(hour)) : []
+  leaving.push(...following)
+  return { leaving, carried: arriving(report, own, following) }
+}
+
+/**
+ * G13, R9 : avancée avec la case depuis la date choisie qui la portait, la dose du report emmène la
+ * journée entière de cette date, aux heures de son réglage (#796).
+ */
+export function wholeDay(report: Line, hours: readonly Hour[]): Hour[] {
+  const sorted = [...hours].sort()
+  const rank = rankOf(report, sorted)
+  const own = sorted[rank - 1]
+  return arriving(
+    report,
+    own,
+    sorted.filter((_, index) => index !== rank - 1),
+  )
+}
+
+// Q3 : la dose du report arrive à son heure écrite, sauf si un rang qui l'accompagne la prend déjà :
+// elle garde alors l'heure de son propre rang, une dose ne se perd pas.
+function arriving(report: Line, own: Hour | undefined, others: readonly Hour[]): Hour[] {
+  const taken = others.includes(report.dueTime) && own !== undefined
+  return [...new Set([taken ? own : report.dueTime, ...others])].sort()
 }
 
 /**

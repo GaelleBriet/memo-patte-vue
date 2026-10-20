@@ -215,6 +215,8 @@ export function calendarOf(
       }
       segments.push({ origin: grid.origin, from: start, to: turn?.dueOn ?? setting.endsOn })
       if (turn === null) break
+      // R9 : la date choisie avancée avec la case : la série part de son arrivée.
+      if (movedFromChosenDay(turn)) chosenFloor = ''
       grid = turned(turn, chosenFloor)
       from = plusDays(turn.dueOn, 1)
     }
