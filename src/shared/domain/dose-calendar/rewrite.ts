@@ -1,95 +1,97 @@
-import { hoursOf, isOnGrid } from './grid'
+import { gridDateOf, hoursOf, isOnGrid } from './grid'
 import type { Journey } from './journeys'
 import type { Day, Hour, Line, Setting } from './types'
 
 /** Ce que la réécriture a pu ôter : `drawnBy`, le réglage qui a tracé la grille du jour. */
 type Reach = { drawnBy: string | undefined }
 
-// #867 : la journée de départ, ôtée avant la première échéance, se juge dans les deux sens (main).
-function beforeFirstDue(line: Line, written: Setting): 'line' | 'rewrite' {
-  return line.updatedAt > written.updatedAt! ? 'line' : 'rewrite'
+// #867 : la journée de départ, ôtée avant la première échéance, se juge dans les deux sens.
+function beforeFirstDue(line: Line, gridAt: string): 'line' | 'rewrite' {
+  return line.updatedAt > gridAt ? 'line' : 'rewrite'
 }
 
 // #882, 8a : après la première échéance, la journée ôtée par la réécriture elle-même (grille propre
 // du réglage réécrit), pas par une autre ligne, se juge dans les deux sens.
-function afterFirstDue(line: Line, written: Setting, { drawnBy }: Reach) {
+function afterFirstDue(line: Line, written: Setting, gridAt: string, { drawnBy }: Reach) {
   const origin = written.gridOriginOn ?? written.firstDueOn
   if (drawnBy !== written.id || isOnGrid(origin, written.frequency, line.dueOn)) return null
-  if (line.updatedAt === written.updatedAt) return null
-  return written.updatedAt! > line.updatedAt ? 'rewrite' : 'line'
+  if (line.updatedAt === gridAt) return null
+  return gridAt > line.updatedAt ? 'rewrite' : 'line'
 }
 
-// #883 : l'heure ôtée des heures du réglage réécrit ; une écriture du même instant ne contredit rien.
-function hourTaken(line: Line, written: Setting): 'line' | 'rewrite' | null {
-  if (hoursOf(written.times).includes(line.dueTime)) return null
-  if (line.updatedAt === written.updatedAt) return null
-  return line.updatedAt > written.updatedAt! ? 'line' : 'rewrite'
+// #939 : un report n'entre jamais en conflit avec les heures ; l'heure ôtée par la réécriture, il
+// l'emporte et part par son rang (Q4).
+function hourTaken(line: Line, written: Setting): 'line' | null {
+  return hoursOf(written.times).includes(line.dueTime) ? null : 'line'
 }
 
+// #939 : la journée de départ ôtée par la réécriture sur place se juge contre la dernière écriture de
+// la grille du réglage, jamais contre ses heures.
 function rewriteVerdict(
   line: Line,
   written: Setting,
   missing: 'day' | 'hour',
   reach: Reach,
 ): 'line' | 'rewrite' | null {
-  const { updatedAt, createdAt, startsOn, firstDueOn } = written
-  if (updatedAt === undefined || updatedAt <= createdAt || line.dueOn < startsOn) return null
+  const { updatedAt, createdAt } = written
+  if (updatedAt === undefined || updatedAt <= createdAt || line.dueOn < written.startsOn)
+    return null
   if (missing === 'hour') return hourTaken(line, written)
-  return line.dueOn < firstDueOn
-    ? beforeFirstDue(line, written)
-    : afterFirstDue(line, written, reach)
+  const gridAt = gridDateOf(written)
+  return line.dueOn < written.firstDueOn
+    ? beforeFirstDue(line, gridAt)
+    : afterFirstDue(line, written, gridAt, reach)
 }
 
 type ShiftContext = {
   reports: readonly Line[]
   settingOf: (id: string) => Setting
   reachOf: (day: Day) => Reach
+  isDay: (day: Day) => boolean
 }
 
-/** #885, 6c : le décalage d'un report qui l'emporte sur la réécriture de son réglage part de la
- * journée de départ que cette réécriture a ôtée, avant comme après sa première échéance. */
-export function shiftKeptByReport(
-  turn: Line,
-  context: ShiftContext & { isDay: (day: Day) => boolean },
-): boolean {
+/** #885, 6c, Q2 : la journée de départ sortie de la grille, le décalage suit le report qui l'emporte
+ * sur la réécriture de son propre réglage, avant comme après sa première échéance. */
+export function shiftKeptByReport(turn: Line, context: ShiftContext): boolean {
   const { reports, isDay, settingOf, reachOf } = context
   if (isDay(turn.dueOn)) return false
   if (reports.some(({ targetOn }) => targetOn === turn.dueOn)) return false
-  const wins = (line: Line) => {
-    const written = settingOf(line.settingId)
-    return rewriteVerdict(line, written, 'day', reachOf(turn.dueOn)) === 'line'
-  }
+  const wins = (line: Line) =>
+    rewriteVerdict(line, settingOf(line.settingId), 'day', reachOf(turn.dueOn)) === 'line'
   return wins(turn) && reports.some((report) => report.dueOn === turn.dueOn && wins(report))
 }
 
-/** 6b : le décalage écrit avec un report dont la réécriture plus récente a ôté l'heure de départ
- * part avec lui ; une journée qui reçoit un autre report n'est pas jugée. */
-export function shiftLostWithReport(
-  turn: Line,
-  context: ShiftContext & { departure: Journey },
-): boolean {
-  const { reports, settingOf, reachOf, departure } = context
-  if (reports.some(({ targetOn }) => targetOn === turn.dueOn)) return false
-  const report = reports.find(
-    ({ dueOn, dueTime }) => dueOn === turn.dueOn && dueTime === turn.dueTime,
-  )
-  if (report === undefined || departure.hours.includes(report.dueTime)) return false
-  const written = settingOf(report.settingId)
-  return rewriteVerdict(report, written, 'hour', reachOf(turn.dueOn)) === 'rewrite'
+// #939 : un réglage plus récent que celui du report, réécrit sur place, que la ligne a connu.
+function newerRewritten(report: Line, own: Setting, reading: Setting | undefined): Setting | null {
+  if (reading === undefined || reading.id === own.id || reading.createdAt <= own.createdAt)
+    return null
+  const rewritten = reading.updatedAt !== undefined && reading.updatedAt > reading.createdAt
+  return rewritten && report.updatedAt > reading.createdAt ? reading : null
 }
 
-/** #882, #883 : le verdict d'un report dont la dose de départ manque à sa journée, telle qu'elle se
- * lit avec les heures que d'autres reports y ont amenées (`arrived`). */
+// #939 : la journée de départ ôtée ; plus récent que la grille du réglage qui la lit, réécrit sur
+// place après la création de celui du report, le report l'emporte ; sinon la lecture de son réglage.
+function dayVerdict(report: Line, own: Setting, reading: Setting | undefined, reach: Reach) {
+  const verdict = rewriteVerdict(report, own, 'day', reach)
+  if (verdict === 'line') return verdict
+  const newer = newerRewritten(report, own, reading)
+  return newer !== null && rewriteVerdict(report, newer, 'day', reach) === 'line' ? 'line' : verdict
+}
+
+/** #882, #883, #939 : le verdict d'un report dont la dose de départ manque à sa journée, telle qu'elle
+ * se lit avec les heures que d'autres reports y ont amenées (`arrived`) ; `reading` : le réglage qui
+ * lit sa journée de départ. */
 export function departureVerdict(
   report: Line,
   context: Reach & {
     departure: Journey | undefined
     arrived: readonly Hour[]
     written: Setting
+    reading: Setting | undefined
   },
 ): 'line' | 'rewrite' | null {
-  const { departure, arrived, written } = context
-  if (departure === undefined) return rewriteVerdict(report, written, 'day', context)
+  const { departure, arrived, written, reading } = context
+  if (departure === undefined) return dayVerdict(report, written, reading, context)
   if ([...departure.hours, ...arrived].includes(report.dueTime)) return null
   return rewriteVerdict(report, written, 'hour', context)
 }

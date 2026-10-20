@@ -25,6 +25,8 @@ export type ArrivalContext = {
   rewrite: RewriteContext | undefined
   /** Les jours qui portent une ligne de décalage. */
   shiftedDays: ReadonlySet<string>
+  /** G13 : les déplacements (`départ>arrivée`) dont le décalage est parti de la date choisie. */
+  turnedFromChosen: ReadonlySet<string>
 }
 
 /** R7 : chaque report part de sa journée et arrive sur la sienne ; ceux qui arrivent sur sa journée d'abord. */
@@ -60,7 +62,9 @@ export function arriveReports(context: ArrivalContext) {
         coveredAside(chosenDay!, oldArrival),
         withFollowing,
       )
-      oldArrival.hours = oldArrival.hours.filter((hour) => !byRank.lost.includes(hour))
+      // G13 : son décalage a déjà fait avancer jusqu'à la date choisie les doses qui la suivaient.
+      const turned = context.turnedFromChosen.has(`${dueOn}>${targetOn}`)
+      if (!turned) oldArrival.hours = oldArrival.hours.filter((hour) => !byRank.lost.includes(hour))
       if (targetOn! > dueOn) fallen.add(dueOn)
       const carried = [...new Set([report!.dueTime, ...byRank.alsoCarried])].sort()
       land(report!, { carried, hoursOf: settingOf(report!.settingId) })

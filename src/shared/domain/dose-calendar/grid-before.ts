@@ -1,4 +1,4 @@
-import { later, longestStep, plusDays, runDays, sameFrequency, stepped } from './grid'
+import { gridDateOf, later, longestStep, plusDays, runDays, sameFrequency, stepped } from './grid'
 import { episodesOf } from './settings'
 import type { Day, Frequency, GridBefore, GridRun, Setting, TreatmentViewInput } from './types'
 import { buildView } from './view'
@@ -70,7 +70,7 @@ export function gridBeforeOf(input: TreatmentViewInput, startsOn: Day): GridBefo
   return {
     frequency,
     endsOn,
-    writtenAt: previous.gridWrittenAt ?? previous.updatedAt ?? previous.createdAt,
+    writtenAt: gridDateOf(previous),
     runs: runsOf(gridDaysRead(input, startsOn, to), frequency, endsOn === null),
   }
 }

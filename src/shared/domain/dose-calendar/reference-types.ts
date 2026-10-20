@@ -18,6 +18,8 @@ export type ReferenceSetting = {
   createdAt: string
   /** Dernière réécriture du réglage ; absente : date inconnue. */
   updatedAt?: string
+  /** Dernière écriture de sa grille (première échéance, fréquence, origine, fin) ; absente : `updatedAt`. */
+  gridWrittenAt?: string
 }
 
 export type ReferenceLine = {

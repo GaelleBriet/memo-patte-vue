@@ -51,7 +51,15 @@ export function moveReports(input: ReportsInput) {
     if (oldDay !== undefined) {
       const gone = departure === undefined ? [] : leaveFrom(dueOn, departure, after)
       const noted = new Set(coveredOn(oldOn!, oldDay, new Set()).keys())
-      const { leaving, carried } = rankedMove(report, oldDay.hours, noted, withFollowing)
+      const { leaving: ranked, carried } = rankedMove(report, oldDay.hours, noted, withFollowing)
+      // G13 : son décalage a déjà fait avancer les journées suivantes jusqu'à l'ancienne arrivée.
+      const turned = lines.shifts.some(
+        (shift) =>
+          shift.dueOn === dueOn &&
+          shift.targetOn === targetOn &&
+          effects.get(shift.id)?.kind === 'shifts',
+      )
+      const leaving = turned ? [] : ranked
       oldDay.hours = oldDay.hours.filter((hour) => !leaving.includes(hour))
       const keys = [
         ...gone.map((hour) => keyOf(dueOn, hour)),
@@ -66,6 +74,7 @@ export function moveReports(input: ReportsInput) {
       departure,
       arrived: arrived.get(dueOn) ?? [],
       written: settingOf(report.settingId),
+      reading: span.settingAt(dueOn),
       drawnBy: journey.drawnBy.get(span.settingAt(dueOn)?.id ?? ''),
     })
     const origin = rewrite === null ? (days.get(dueOn) ?? left.get(dueOn)) : undefined

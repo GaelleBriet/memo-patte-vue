@@ -84,7 +84,8 @@ function chosenArrivalsOf(reports: readonly Line[], span: Span): Map<Line, Setti
   return arrivals
 }
 
-// #938 : réécrit après lui sur un autre téléphone, le réglage d'un report n'a plus les heures vues.
+// #938 : réécrit après lui sur un autre téléphone, le réglage d'un report n'a plus les heures vues ;
+// les heures se jugent sur la date des réglages, le conflit sur celle de la grille (#939).
 function rewrittenAfter(line: Line, setting: Setting | undefined): boolean {
   const at = setting?.updatedAt
   return at !== undefined && at > setting!.createdAt && at > line.updatedAt

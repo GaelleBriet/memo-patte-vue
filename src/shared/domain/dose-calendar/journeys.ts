@@ -11,7 +11,8 @@ import {
 } from './grid'
 import { isDueDay, skippedDays, turned, type Grid } from './grid-in-force'
 import { translatedDays, type EpisodeLines } from './lines'
-import { shiftKeptByReport, shiftLostWithReport } from './rewrite'
+import { chosenOldArrival } from './report-rank'
+import { shiftKeptByReport } from './rewrite'
 import type { Span } from './settings'
 import type { Day, Frequency, Hour, Line, LineEffect, Setting } from './types'
 
@@ -79,13 +80,22 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   // R3 : par réglage, celui qui a tracé sa grille (lui-même, ou le dernier qui a posé la sienne).
   const drawnBy = new Map<string, string>()
   let drawer = ''
-  const shiftContext = {
-    reports: lines.reports,
-    settingOf: (id: string) => byId.get(id)!,
-    reachOf: (day: Day) => ({ drawnBy: drawnBy.get(span.settingAt(day)?.id ?? '') }),
-  }
   const keptByReport = (turn: Line) =>
-    shiftKeptByReport(turn, { ...shiftContext, isDay: (day) => days.has(day) })
+    shiftKeptByReport(turn, {
+      reports: lines.reports,
+      settingOf: (id) => byId.get(id)!,
+      reachOf: (day) => ({ drawnBy: drawnBy.get(span.settingAt(day)?.id ?? '') }),
+      isDay: (day) => days.has(day),
+    })
+  // G13 : le décalage d'une dose redéplacée depuis la date choisie qui la portait se juge depuis cette
+  // ancienne arrivée ; les journées suivantes avancent ou reculent d'autant.
+  const fromOldArrival = (turn: Line) =>
+    lines.reports.some(
+      (report) =>
+        report.dueOn === turn.dueOn &&
+        report.targetOn === turn.targetOn &&
+        chosenOldArrival(report, span.settingAt) !== undefined,
+    )
   const claims: Claim[] = []
   const openings = new Set<Day>()
   let grid: Grid = { origin: chain[0]!.firstDueOn, floor: '', since: '' }
@@ -220,14 +230,10 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       lines.reports.some(
         (report) => report.targetOn === turn.dueOn && report.dueOn > rhythmFloor,
       ) ||
-      keptByReport(turn)
-    // 6b : seulement sur une journée de départ que la grille lit, comme le verdict du report.
-    const lostWithReport = (turn: Line) =>
-      turn.dueOn <= last &&
-      isDueDay(grid, setting.frequency, turn.dueOn) &&
-      shiftLostWithReport(turn, { ...shiftContext, departure: journeyOn(turn.dueOn, setting) })
+      keptByReport(turn) ||
+      fromOldArrival(turn)
     for (const turn of [...turns, null]) {
-      if (turn !== null && (!lands(turn) || lostWithReport(turn))) continue
+      if (turn !== null && !lands(turn)) continue
       const to = turn === null || turn.dueOn >= last ? last : turn.dueOn
       // R4, #847 : les journées laissées avant une date posée plus loin, telles que la fiche les montrait.
       if (skip !== null) {

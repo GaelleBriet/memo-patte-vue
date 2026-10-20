@@ -32,8 +32,9 @@ import {
 } from './reference-lines'
 import { departureBeaten, duesOf } from './reference-not-due'
 import { arriveReports } from './reference-arrivals'
+import { chosenDayOf } from './reference-ranks'
 import { chosenDateOf } from './reference-reports'
-import { shiftKeptByReport, shiftLostWithReport, type RewriteContext } from './reference-rewrite'
+import { shiftKeptByReport, type RewriteContext } from './reference-rewrite'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 type Calendar = { pending: string[]; fallen: Set<string>; rhythmFrom: string; dues: Set<string> }
@@ -77,6 +78,14 @@ export function calendarOf(
   }
   const left = new Map<string, Journey>()
   const claims: Claim[] = []
+  // G13 : redéplacée depuis la date choisie qui la portait, une dose fait partir son décalage de là.
+  const moveKeyOf = (line: ReferenceLine) => `${line.dueOn}>${line.targetOn}`
+  const movedFromChosenDay = (turn: ReferenceLine) =>
+    reports.some(
+      (report) =>
+        moveKeyOf(report) === moveKeyOf(turn) && chosenDayOf(report, settingAt) !== undefined,
+    )
+  const turnedFromChosen = new Set<string>()
   // R7, R9.2 : les premières échéances des réglages qui ouvrent un nouveau rythme.
   const openings = new Set<string>()
   // R3, R10 : remplacé le jour même, un réglage transmet sa grille au suivant de même fréquence.
@@ -175,20 +184,17 @@ export function calendarOf(
     )
     let from = setting.startsOn
     const segments: Segment[] = []
-    // R6 : un décalage part d'une échéance de la grille d'avant lui ou de l'arrivée d'un report du
-    // rythme ; avant une date choisie, seul celui qui la porte (R3, TR-9) ou celui d'un report gagnant (#885).
+    // R6 : un décalage, autonome, part d'une échéance de la grille d'avant lui ou de l'arrivée d'un
+    // report du rythme ; avant une date choisie, seul celui qui la porte (R3, TR-9) ; hors de la grille,
+    // celui d'un report gagnant (#885, Q2).
     const lands = (turn: ReferenceLine) =>
       (isDueDay(grid, setting, turn.dueOn) && (turn.dueOn > chosenFloor || anchors.has(turn))) ||
       reports.some((report) => report.targetOn === turn.dueOn && report.dueOn > rhythmFloor) ||
-      (!plain && !days.has(turn.dueOn) && shiftKeptByReport(turn, reports, rewriteContext))
-    // 6b : le décalage d'un report battu par la réécriture de son réglage part avec lui.
-    const lost = (turn: ReferenceLine) =>
-      !plain &&
-      turn.dueOn <= last &&
-      isDueDay(grid, setting, turn.dueOn) &&
-      shiftLostWithReport(turn, reports, rewriteContext, journeyOn(turn.dueOn, setting))
+      (!plain && !days.has(turn.dueOn) && shiftKeptByReport(turn, reports, rewriteContext)) ||
+      movedFromChosenDay(turn)
     for (const turn of [...turns, null]) {
-      if (turn !== null && (!lands(turn) || lost(turn))) continue
+      if (turn !== null && !lands(turn)) continue
+      if (turn !== null && movedFromChosenDay(turn)) turnedFromChosen.add(moveKeyOf(turn))
       const to = turn === null ? last : turn.dueOn < last ? turn.dueOn : last
       const start = later(from, plusDays(grid.floor, 1))
       for (const day of gridDays(grid.origin, setting.frequency, start, to)) {
@@ -230,6 +236,7 @@ export function calendarOf(
     stoppedAt,
     rewrite: plain ? undefined : rewriteContext,
     shiftedDays: new Set(shifts.map(({ dueOn }) => dueOn)),
+    turnedFromChosen,
   })
   settle()
 

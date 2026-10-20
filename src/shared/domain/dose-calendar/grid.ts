@@ -62,6 +62,11 @@ export const continuesGrid = (
   sameFrequency(previous.frequency, setting.frequency) &&
   (setting.gridOriginOn === null || isOnGrid(origin, setting.frequency, setting.gridOriginOn))
 
+/** La dernière écriture de la grille d'un réglage (v17), sinon celle de ses réglages, sinon sa création. */
+export const gridDateOf = (
+  setting: Pick<Setting, 'gridWrittenAt' | 'updatedAt' | 'createdAt'>,
+): string => setting.gridWrittenAt ?? setting.updatedAt ?? setting.createdAt
+
 /** Les heures d'une journée, triées ; une seule échéance sans heure. */
 export const hoursOf = (times: readonly string[]): Hour[] =>
   times.length === 0 ? [null] : [...times].sort()
