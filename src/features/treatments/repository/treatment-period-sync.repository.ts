@@ -5,6 +5,7 @@ import type { SyncRow } from '@/core/supabase/guarded-upsert'
 import { createRemoteSyncTable } from '@/core/sync/repository/remote-sync-table.repository'
 import { syncField } from '@/core/sync/service/syncable-table'
 import { SYNC_COLUMN_NAMES, SYNC_COLUMNS } from './treatment-period-row.repository'
+import { gridBeforeColumn, gridBeforeFromColumn } from '../schema/grid-before.schema'
 
 export function createPeriodSync(db: DbClient, loadClient: () => Promise<SupabaseClient>) {
   return {
@@ -28,7 +29,11 @@ export function createPeriodSync(db: DbClient, loadClient: () => Promise<Supabas
                   .map((column) => `${column} = excluded.${column}`)
                   .join(', ')}
               WHERE excluded.updated_at > treatment_period.updated_at`,
-        params: SYNC_COLUMN_NAMES.map((column) => syncField(row, column)),
+        params: SYNC_COLUMN_NAMES.map((column) =>
+          column === 'grid_before'
+            ? gridBeforeColumn(gridBeforeFromColumn(row.grid_before))
+            : syncField(row, column),
+        ),
       }
     },
   }

@@ -1,4 +1,5 @@
 import {
+  continuesGrid,
   gridDays,
   hoursOf,
   isOnGrid,
@@ -139,10 +140,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
         held.add(shift)
       }
     }
-    const continued =
-      previous !== undefined &&
-      sameFrequency(previous.frequency, setting.frequency) &&
-      (origin === null || isOnGrid(inForce.origin, setting.frequency, origin))
+    const continued = continuesGrid(inForce.origin, previous, setting)
     const ownFloor = plusDays(later(setting.firstDueOn, setting.startsOn), -1)
     if (!continued) {
       for (const day of openings) if (day >= setting.startsOn) openings.delete(day)

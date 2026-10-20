@@ -61,6 +61,8 @@ function period(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPeriod
   return {
     ...legacyFactsOf(record.gridOriginOn),
     settingsWrittenAt: record.createdAt,
+    gridWrittenAt: record.createdAt,
+    gridBefore: null,
     ...record,
   }
 }
@@ -784,6 +786,7 @@ describe('editionPlan — fréquence, heures, posologie (TR-28)', () => {
     expect(editionPlan(withPeriods, input, '2026-09-29', IDS).period).toEqual({
       action: 'open',
       id: NEW_PERIOD,
+      gridBefore: expect.objectContaining({ frequency: { value: 1, unit: 'week' }, endsOn: null }),
       gridOriginOn: '2026-09-29',
       firstDueChosen: false,
       fallenDosesAnswer: 'unasked',

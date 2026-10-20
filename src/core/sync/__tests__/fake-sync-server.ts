@@ -33,6 +33,7 @@ const TIMESTAMP_COLUMNS = [
   'created_at',
   'updated_at',
   'settings_written_at',
+  'grid_written_at',
   'deleted_at',
   'server_updated_at',
 ]

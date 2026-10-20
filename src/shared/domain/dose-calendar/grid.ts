@@ -1,4 +1,4 @@
-import type { Day, Frequency, Hour, Setting } from './types'
+import type { Day, Frequency, GridRun, Hour, Setting } from './types'
 
 const DAY_MS = 86_400_000
 
@@ -38,11 +38,29 @@ export function gridDays(origin: Day, frequency: Frequency, from: Day, to: Day):
   return days
 }
 
+/** Les journées de suites régulières, de `from` à `to` inclus. */
+export function runDays(runs: readonly GridRun[], frequency: Frequency, from: Day, to: Day): Day[] {
+  return runs.flatMap(([start, end]) => {
+    const last = end === null || end > to ? to : end
+    return gridDays(start, frequency, later(from, start), last)
+  })
+}
+
 export const isOnGrid = (origin: Day, frequency: Frequency, day: Day): boolean =>
   gridDays(origin, frequency, day, day).length === 1
 
 export const sameFrequency = (a: Frequency, b: Frequency): boolean =>
   a.value === b.value && a.unit === b.unit
+
+/** R3, R9 : à fréquence gardée, un réglage sans origine, ou dont l'origine tombe sur la grille en vigueur, la continue. */
+export const continuesGrid = (
+  origin: Day,
+  previous: Pick<Setting, 'frequency'> | undefined,
+  setting: Pick<Setting, 'frequency' | 'gridOriginOn'>,
+): boolean =>
+  previous !== undefined &&
+  sameFrequency(previous.frequency, setting.frequency) &&
+  (setting.gridOriginOn === null || isOnGrid(origin, setting.frequency, setting.gridOriginOn))
 
 /** Les heures d'une journée, triées ; une seule échéance sans heure. */
 export const hoursOf = (times: readonly string[]): Hour[] =>

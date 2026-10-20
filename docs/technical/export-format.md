@@ -1,4 +1,4 @@
-# Format d'export des données (#80, v3 : #454, v4 : #501, v5 : #754, v6 : #825 et #836, v7 : #867, v8 : #873, v9 : #939)
+# Format d'export des données (#80, v3 : #454, v4 : #501, v5 : #754, v6 : #825 et #836, v7 : #867, v8 : #873, v9 : #939, v10 : décision 1 du 19 octobre 2026)
 
 Contrat entre l'export (Paramètres → « Exporter mes données ») et l'import (#84, section
 [Import](#import--importer-un-export-mémopatte)).
@@ -89,7 +89,7 @@ Date du nom de fichier : minute locale de l'export. Encodage UTF-8, sans BOM, in
 
 ```json
 {
-  "schemaVersion": 9,
+  "schemaVersion": 10,
   "exportedAt": "2026-10-01T08:30:00.000Z",
   "appVersion": "0.1.48",
   "carnetSettings": null,
@@ -144,14 +144,26 @@ ligne de report porte `previousTargetOn` et `previousTargetTime`, le jour et l'h
 d'avant quand la dose a été déplacée de nouveau, et `dueRank`, le rang (à partir de 1) de son heure
 dans sa journée d'origine ; `null` pour toute autre ligne, ou quand ils sont inconnus.
 
+**Version 10** (schéma v17, [`modele-de-donnees-v2.md`](modele-de-donnees-v2.md) §4.7) : une période
+porte `gridWrittenAt`, la dernière écriture de ce qui fait ses échéances (première échéance,
+fréquence, origine, fin), les heures exclues. L'import ne refuse jamais un fichier pour elle : une
+date postérieure de plus de 24 h à `exportedAt` devient `exportedAt`, une date antérieure à la
+création du traitement devient ce `createdAt` (une période qui hérite de la grille de la précédente
+porte une date plus ancienne qu'elle-même) ; seule une valeur illisible refuse le fichier. Elle porte
+aussi `gridBefore`, la grille que le moteur lisait juste avant son ouverture par « Modifier »
+(`{ frequency, endsOn, writtenAt, runs: [[premier jour, dernier jour ou null], …] }` : suites triées
+et disjointes, chacune sur la grille de son premier jour, seule la dernière sans fin ; `writtenAt`, la
+date de grille de la période remplacée, s'écrête comme `gridWrittenAt`), ou `null`. Une valeur
+absente, illisible, incohérente ou trop longue se lit `null`, sans refuser le fichier.
+
 | Champ           | Type                   | Sens                                                                 |
 | --------------- | ---------------------- | -------------------------------------------------------------------- |
 | `schemaVersion` | entier                 | Version du contrat. Toute rupture (champ retiré, renommé, sens changé) l'incrémente ; un ajout de champ optionnel ne l'incrémente pas |
 | `exportedAt`    | ISO 8601 UTC           | Instant de l'export                                                  |
 | `appVersion`    | texte                  | Version de l'app (`package.json`) qui a produit le fichier           |
 
-L'import relit les versions **3, 4, 5, 6, 7, 8 et 9** (plan du moteur v2 §3.3) : un fichier v3 à v8
-est converti au format v9 avant toute autre étape. `referenceOn` devient `gridOriginOn` par la règle de la migration
+L'import relit les versions **3, 4, 5, 6, 7, 8, 9 et 10** (plan du moteur v2 §3.3) : un fichier v3 à v9
+est converti au format v10 avant toute autre étape. `referenceOn` devient `gridOriginOn` par la règle de la migration
 v12 (`gridOriginsOf`, `src/shared/domain/dose-calendar/legacy-input.ts`) : `null` quand la période suit
 sans arrêt une période de même fréquence et de même `referenceOn`, sinon `referenceOn` s'il est sur la
 grille qui passe par `firstDueOn`, sinon `firstDueOn` ; `nextDueDate` devient `targetOn` pour un report
@@ -165,7 +177,9 @@ réglage jamais réécrit. Un fichier v3 à v7 reçoit enfin `fallenDosesAnswer`
 migration v15 : `"stay-unlogged"` quand `pastDosesStayUnlogged` vaut `true`, sinon `"unasked"`, jamais
 `"not-due"` (le booléen ne distinguait pas cette réponse d'aucune question : rien n'est retiré après
 coup). Un fichier v3 à v8 reçoit enfin, sur chaque ligne, `previousTargetOn`, `previousTargetTime` et
-`dueRank` vides (`null`) : arrivée d'avant et rang inconnus.
+`dueRank` vides (`null`) : arrivée d'avant et rang inconnus. Un fichier v3 à v9 reçoit enfin
+`gridWrittenAt` par la règle de la migration v17 : la valeur de `settingsWrittenAt`, et `gridBefore`
+vide (`null`).
 Un `schemaVersion` supérieur est refusé (« Cet export vient d'une version plus récente de l'app. »), un
 `schemaVersion` inférieur à 3 aussi (« Cet export vient d'une version plus ancienne de MémoPatte. Il ne
 peut plus être importé. ») : les formats v1 (jusqu'à la 0.1.40) et v2 (jusqu'à la 0.1.48) ne se relisent
@@ -264,6 +278,8 @@ n'en exporte pas, et l'import le refuse jusqu'au lot 3, comme `"medication"`.
 | `firstDueChosen`        | booléen                                                       | Première dose choisie par la personne (R9), pas proposée par l'app    |
 | `fallenDosesAnswer`     | `"unasked"` \| `"stay-unlogged"` \| `"not-due"`                | Réponse à la question Q38 (R10, #873) : aucune question, « Elles restent à renseigner », « Elles n'étaient pas à donner » |
 | `settingsWrittenAt`     | ISO 8601 UTC                                                  | Dernière écriture du calendrier (R10, #867) ; `createdAt` sinon       |
+| `gridWrittenAt`         | ISO 8601 UTC                                                  | Dernière écriture des échéances, heures exclues (v10) ; héritée de la période précédente qui avait la même grille |
+| `gridBefore`            | objet \| `null`                                              | Grille d'avant l'ouverture par « Modifier » (v10) ; `null` : aucune |
 | `endsOn`                | `AAAA-MM-JJ` \| `null`                                        | Date de fin, facultative                                              |
 | `stoppedOn`             | `AAAA-MM-JJ` \| `null`                                        | Date d'arrêt, `null` en cours                                         |
 | `frequency`             | `{ "value": 1 à 365, "unit": "day" \| "week" \| "month" }`    |                                                                       |

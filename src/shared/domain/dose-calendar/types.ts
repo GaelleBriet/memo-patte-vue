@@ -6,6 +6,20 @@ export type Hour = string | null
 
 export type Frequency = { value: number; unit: 'day' | 'week' | 'month' }
 
+/** Une suite régulière de journées, sur la grille de son premier jour, jusqu'au dernier (`null` : sans fin). */
+export type GridRun = readonly [from: Day, to: Day | null]
+
+/**
+ * La grille que le moteur lisait juste avant l'ouverture d'une période, à partir de son premier jour,
+ * et la date de grille de la période qu'elle remplaçait.
+ */
+export type GridBefore = {
+  frequency: Frequency
+  endsOn: Day | null
+  writtenAt: string
+  runs: readonly GridRun[]
+}
+
 export const FALLEN_DOSES_ANSWERS = ['unasked', 'stay-unlogged', 'not-due'] as const
 
 /** Q38, #873 : réponse à la question des doses tombées ; `unasked` : aucune question posée. */
@@ -29,6 +43,10 @@ export type Setting = {
   createdAt: string
   /** Dernière réécriture du réglage (R10, #867) ; absente : date inconnue. */
   updatedAt?: string
+  /** Dernière écriture de la grille (première échéance, fréquence, origine, fin), heures exclues ; absente : inconnue. */
+  gridWrittenAt?: string
+  /** La grille d'avant l'ouverture, posée par « Modifier » ; absente ou `null` : aucune à reprendre. */
+  gridBefore?: GridBefore | null
 }
 
 export type LineStatus = 'given' | 'missed' | 'extra' | 'postponed' | 'shift' | 'not-due'

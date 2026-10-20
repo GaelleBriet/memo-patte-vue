@@ -7,7 +7,7 @@ import { givenDosesByTreatment, vaccinationHeads } from '@/shared/domain/carnet-
 import { recordedWeightIn, type WeightUnit } from '@/shared/domain/weight-unit'
 
 /** Contrat documenté dans `docs/technical/export-format.md` : toute rupture incrémente la version. */
-export const EXPORT_SCHEMA_VERSION = 9
+export const EXPORT_SCHEMA_VERSION = 10
 
 export type ExportFormat = 'json' | 'csv'
 
