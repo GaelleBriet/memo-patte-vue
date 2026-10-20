@@ -4,7 +4,7 @@ import { hoursOf, keyOf, sameHours } from './grid'
 import type { Journey, journeys } from './journeys'
 import type { EpisodeLines } from './lines'
 import { chosenOldArrival, rankedMove } from './report-rank'
-import { departureVerdict } from './rewrite'
+import { departureVerdict, type Reading } from './rewrite'
 import type { Span } from './settings'
 import type { Day, Hour, Line, LineEffect, Setting } from './types'
 
@@ -49,7 +49,10 @@ export function moveReports(input: ReportsInput) {
     const oldOn = chosenOldArrival(report, span)
     const oldDay = oldOn === undefined ? undefined : days.get(oldOn)
     if (oldDay !== undefined) {
-      const gone = departure === undefined ? [] : leaveFrom(dueOn, departure, after)
+      const { gone, bringing: departing } =
+        departure === undefined
+          ? { gone: [], bringing: [] }
+          : fromDeparture(report, departure, after, withFollowing)
       const noted = new Set(coveredOn(oldOn!, oldDay, new Set()).keys())
       const { leaving: ranked, carried } = rankedMove(report, oldDay.hours, noted, withFollowing)
       // G13 : son décalage a déjà fait avancer les journées suivantes jusqu'à l'ancienne arrivée.
@@ -67,8 +70,8 @@ export function moveReports(input: ReportsInput) {
       ]
       keys.forEach((key) => moved.set(key, report))
       if (targetOn! > dueOn) fallen.add(dueOn)
-      // La même dose, lue au départ et sur l'ancienne arrivée : elle arrive une fois, aux heures du départ.
-      const bringing = gone.length > 0 ? gone : carried
+      // La même dose, lue au départ et sur l'ancienne arrivée : elle arrive une fois, prise au départ.
+      const bringing = departing.length > 0 ? departing : carried
       arrive(report, keys, bringing, settingOf(report.settingId))
       continue
     }
@@ -76,9 +79,8 @@ export function moveReports(input: ReportsInput) {
       departure,
       arrived: arrived.get(dueOn) ?? [],
       written: settingOf(report.settingId),
-      reading: span.settingAt(dueOn),
       drawnBy: journey.drawnBy.get(span.settingAt(dueOn)?.id ?? ''),
-      oldReading: readingOn(report.previousTargetOn),
+      readings: [dueOn, report.previousTargetOn].flatMap(readingsOn),
     })
     const rewrite = verdict === 'kept' ? null : verdict
     const origin = rewrite === null ? (days.get(dueOn) ?? left.get(dueOn)) : undefined
@@ -175,10 +177,26 @@ export function moveReports(input: ReportsInput) {
     arrive(report, keys, bringing, source)
   }
 
-  function readingOn(day: Day | null | undefined) {
-    if (day === null || day === undefined) return undefined
+  // #939 : les réglages qui peuvent garder un report : celui qui lit la journée, et celui dont vient la
+  // date choisie qu'il continue (TR-9), qu'un « Modifier » de posologie ne remplace pas.
+  function readingsOn(day: Day | null | undefined): Reading[] {
+    if (day === null || day === undefined) return []
     const setting = span.settingAt(day)
-    return { setting, drawnBy: journey.drawnBy.get(setting?.id ?? '') }
+    const chosenOn = chosenRestarts.get(setting?.id ?? '')
+    const chooser = span.live
+      .filter(
+        (each) =>
+          setting !== undefined &&
+          each.firstDueChosen &&
+          each.firstDueOn === chosenOn &&
+          each.createdAt <= setting.createdAt,
+      )
+      .at(-1)
+    return [setting, chooser].map((each) => ({
+      day,
+      setting: each,
+      drawnBy: journey.drawnBy.get(each?.id ?? ''),
+    }))
   }
 
   // R7 : le jour d'arrivée ne reçoit que les heures reportées, telles qu'elles étaient au départ ;
@@ -214,6 +232,24 @@ export function moveReports(input: ReportsInput) {
     day.hours = [...new Set([...day.hours, ...arriving])].sort()
     into.set(targetOn!, day)
     arrived.set(targetOn!, [...(arrived.get(targetOn!) ?? []), ...arriving])
+  }
+
+  // R7 : de sa journée de départ, le report emporte son heure et les suivantes ; Q4 : son heure
+  // absente de la journée, il en emporte la dose de son rang, et les suivantes avec la case.
+  function fromDeparture(
+    report: Line,
+    departure: Journey,
+    after: (hour: Hour) => boolean,
+    withFollowing: boolean,
+  ): { gone: Hour[]; bringing: Hour[] } {
+    if (departure.hours.includes(report.dueTime)) {
+      const gone = leaveFrom(report.dueOn, departure, after)
+      return { gone, bringing: gone }
+    }
+    const noted = new Set(coveredOn(report.dueOn, departure, new Set()).keys())
+    const { leaving, carried } = rankedMove(report, departure.hours, noted, withFollowing)
+    departure.hours = departure.hours.filter((hour) => !leaving.includes(hour))
+    return { gone: leaving, bringing: leaving.length > 0 ? carried : [] }
   }
 
   // R7 : un report quitte sa journée avec son heure et les suivantes encore sans prise.

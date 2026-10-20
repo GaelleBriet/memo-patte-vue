@@ -93,6 +93,19 @@ export function calendarOf(
     (setting, index) => isLive(setting, index) || sameFrequency(setting, episode[index + 1]!),
   )
   rewriteContext.chain = chain
+  rewriteContext.chooserAt = (day) => {
+    const reading = settingAt(day)
+    if (reading === undefined) return undefined
+    const chosenOn = chosenRestarts.get(reading.id)
+    return live
+      .filter(
+        (each) =>
+          each.firstDueChosen &&
+          each.firstDueOn === chosenOn &&
+          each.createdAt <= reading.createdAt,
+      )
+      .at(-1)
+  }
   let grid: Grid = { origin: chain[0]!.firstDueOn, floor: '', since: '' }
   // R9, Q-retard : les réglages de même fréquence continuent le rythme, et sa dose en retard.
   let rhythm = new Set<string>()

@@ -50,14 +50,26 @@ export function arriveReports(context: ArrivalContext) {
     const chosenDay = chosenDayOf(report!, settingAt, live)
     const oldArrival = chosenDay === undefined ? undefined : days.get(chosenDay)
     if (oldArrival !== undefined) {
-      // Ce que le report emporte de sa journée de départ, si elle se lit encore, arrive aussi.
+      // Ce que le report emporte de sa journée de départ, si elle se lit encore, arrive aussi : son heure
+      // et les suivantes (R7), ou, son heure absente, la dose de son rang (Q4).
       let leftDeparture: Hour[] = []
-      if (departure !== undefined) {
+      if (departure !== undefined && departure.hours.includes(report!.dueTime)) {
         const taken = coveredAside(dueOn, departure)
         const stays = (hour: Hour) =>
           taken.has(hour) || (hour !== null && hour < (report!.dueTime ?? ''))
         leftDeparture = departure.hours.filter((hour) => !stays(hour))
         departure.hours = departure.hours.filter(stays)
+      } else if (departure !== undefined) {
+        const atRank = takenByRank(
+          report!,
+          departure.hours,
+          coveredAside(dueOn, departure),
+          withFollowing,
+        )
+        departure.hours = departure.hours.filter((hour) => !atRank.lost.includes(hour))
+        if (atRank.lost.length > 0) {
+          leftDeparture = [...new Set([report!.dueTime, ...atRank.alsoCarried])].sort()
+        }
       }
       const byRank = takenByRank(
         report!,

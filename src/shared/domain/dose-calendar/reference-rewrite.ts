@@ -7,6 +7,8 @@ export type RewriteContext = {
   settingOf: (id: string) => ReferenceSetting
   /** Le réglage qui porte ce jour-là, jusqu'à sa fin. */
   settingAt: (day: string) => ReferenceSetting | undefined
+  /** Le réglage dont vient la date choisie que le réglage de ce jour-là continue (TR-9). */
+  chooserAt?: (day: string) => ReferenceSetting | undefined
   /** Les réglages lus dans l'ordre. */
   chain: readonly ReferenceSetting[]
   /** Les échéances des seuls réglages `only`, sans ligne. */
@@ -42,14 +44,19 @@ function dayTakenAfterFirstDue(
   return ![...context.read([written])].some((key) => key.slice(0, 10) === report.dueOn)
 }
 
-// #939 : le réglage qui lit la journée de départ, créé après celui du report et réécrit sur place
-// depuis, que la ligne a connu (écrite après sa création) ; à défaut, aucun.
-function laterRewriter(report: ReferenceLine, own: ReferenceSetting, context: RewriteContext) {
-  const reading = context.settingAt(report.dueOn)
-  if (reading === undefined || reading.id === own.id) return undefined
-  const inPlace = reading.updatedAt !== undefined && reading.updatedAt > reading.createdAt
-  const known = reading.createdAt > own.createdAt && report.updatedAt > reading.createdAt
-  return inPlace && known ? reading : undefined
+// #939 : les réglages qui lisent la journée de départ, ou dont vient sa date choisie, créés après celui
+// du report et réécrits sur place depuis, que la ligne a connus (écrite après leur création).
+function laterRewriters(report: ReferenceLine, own: ReferenceSetting, context: RewriteContext) {
+  const candidates = [context.settingAt(report.dueOn), context.chooserAt?.(report.dueOn)]
+  return candidates.filter(
+    (reading): reading is ReferenceSetting =>
+      reading !== undefined &&
+      reading.id !== own.id &&
+      reading.updatedAt !== undefined &&
+      reading.updatedAt > reading.createdAt &&
+      reading.createdAt > own.createdAt &&
+      report.updatedAt > reading.createdAt,
+  )
 }
 
 /** #867, #882, #939 : la réécriture de la grille a ôté la journée de départ ; la plus récente des
@@ -75,10 +82,9 @@ export function rewrittenDeparture(
   // de départ ou son ancienne arrivée, il se lit comme avant, sans être écarté hors de la grille (`read`).
   const previous = report.previousTargetOn
   const days = previous ? [report, { ...report, dueOn: previous }] : [report]
-  const read = days.some((line) => {
-    const later = laterRewriter(line, own, context)
-    return later !== undefined && dayTakenBy(line, later, context) === 'kept'
-  })
+  const read = days.some((line) =>
+    laterRewriters(line, own, context).some((later) => dayTakenBy(line, later, context) === 'kept'),
+  )
   return read ? 'read' : undefined
 }
 
