@@ -8,14 +8,6 @@ const FIRST_DUE_REACH_DAYS = 800
 // Assez de pas pour qu'une suite en mois ait traversé toutes les fins de mois, février compris.
 const CHECKED_STEPS = 14
 
-const DAYS_PER_UNIT = { day: 1, week: 7 } as const
-
-// La même suite de jours : semaines et jours se convertissent, un mois jamais.
-function equivalentSteps(a: Frequency, b: Frequency): boolean {
-  if (a.unit === 'month' || b.unit === 'month') return sameFrequency(a, b)
-  return a.value * DAYS_PER_UNIT[a.unit] === b.value * DAYS_PER_UNIT[b.unit]
-}
-
 // Décalages et reports seuls : une dose reportée compte à son départ, jamais à son arrivée.
 function gridDaysRead(input: TreatmentViewInput, from: Day, to: Day): Day[] {
   const lines = input.lines.filter(({ status }) => status === 'shift' || status === 'postponed')
@@ -85,7 +77,7 @@ export function keepsGridBefore(
   after: TreatmentViewInput,
 ): boolean {
   if (gridBefore.endsOn !== opening.endsOn) return false
-  if (!equivalentSteps(gridBefore.frequency, opening.frequency)) return false
+  if (!sameFrequency(gridBefore.frequency, opening.frequency)) return false
   const from = later(opening.startsOn, opening.firstDueOn)
   const to = opening.endsOn ?? plusDays(from, WINDOW_DAYS)
   const before = runDays(gridBefore.runs, gridBefore.frequency, from, to)
