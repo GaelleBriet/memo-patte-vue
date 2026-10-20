@@ -40,28 +40,31 @@ function milo() {
   )
 }
 
+const redate = (givenOn: string, shiftsFollowing: boolean) => () => {
+  const book = milo()
+  doseChange(
+    book,
+    treatmentReadingOf(book, '2026-03-12')!,
+    { kind: 'redate', lineId: '2026-03-16 20:00', givenOn, shiftsFollowing },
+    () => 'n',
+  )
+}
+
 describe('« Changer la date » d’une prise donnée d’avance (#921)', () => {
   it.each([true, false])(
-    'le moteur accepte la correction à toute date passée (décaler la suite : %s)',
+    'le moteur accepte la correction à toute date passée à moins d’un intervalle de l’échéance (décaler la suite : %s)',
     (shiftsFollowing) => {
-      const book = milo()
-      const reading = treatmentReadingOf(book, '2026-03-12')!
+      for (const givenOn of ['2026-03-10', '2026-03-11', '2026-03-12']) {
+        expect(redate(givenOn, shiftsFollowing)).not.toThrow()
+      }
+    },
+  )
 
-      for (const givenOn of [
-        '2026-03-01',
-        '2026-03-05',
-        '2026-03-09',
-        '2026-03-10',
-        '2026-03-12',
-      ]) {
-        expect(() =>
-          doseChange(
-            book,
-            reading,
-            { kind: 'redate', lineId: '2026-03-16 20:00', givenOn, shiftsFollowing },
-            () => 'n',
-          ),
-        ).not.toThrow()
+  it.each([true, false])(
+    'TR-24 bis, #1004 : un intervalle ou plus avant l’échéance du 16, la correction est refusée (décaler la suite : %s)',
+    (shiftsFollowing) => {
+      for (const givenOn of ['2026-03-01', '2026-03-05', '2026-03-08']) {
+        expect(redate(givenOn, shiftsFollowing)).toThrow('too-early')
       }
     },
   )
