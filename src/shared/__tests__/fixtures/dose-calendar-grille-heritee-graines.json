@@ -735,7 +735,7 @@
     "seed": 9698000361,
     "step": 24,
     "probe": 2,
-    "expected": "datée",
+    "expected": "hérite",
     "today": "2028-01-09",
     "plan": {
       "action": "rewrite",
@@ -1031,7 +1031,7 @@
     "seed": 9698000812,
     "step": 9,
     "probe": 0,
-    "expected": "datée",
+    "expected": "hérite",
     "today": "2026-08-05",
     "plan": {
       "action": "rewrite",
@@ -1126,7 +1126,7 @@
     "seed": 9698000812,
     "step": 9,
     "probe": 1,
-    "expected": "datée",
+    "expected": "hérite",
     "today": "2026-08-05",
     "plan": {
       "action": "rewrite",

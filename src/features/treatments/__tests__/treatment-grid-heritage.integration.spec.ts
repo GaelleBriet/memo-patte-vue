@@ -378,7 +378,7 @@ describe('reports, décalages et lignes que le même « Modifier » réécrit', 
     expect(await inherited(id)).toBe(true)
   })
 
-  it('toutes les 3 semaines depuis le 22 septembre ; la dose du 22 reportée au 23, celle du 23 donnée le 25, en décalant ; le 25, tous les 21 jours : datée', async () => {
+  it('toutes les 3 semaines depuis le 22 septembre ; la dose du 22 reportée au 23, celle du 23 donnée le 25, en décalant ; le 25, tous les 21 jours : hérite, comme à 3 semaines (#979)', async () => {
     const threeWeeks = { value: 3, unit: 'week' } as const
     at('2026-09-22', '07:00')
     const id = await create('2026-09-22', threeWeeks, ['08:00'])
@@ -388,7 +388,7 @@ describe('reports, décalages et lignes que le même « Modifier » réécrit', 
     at('2026-09-25', '08:00')
     await modify(id, { value: 21, unit: 'day' }, ['08:00'])
 
-    expect(await inherited(id)).toBe(false)
+    expect(await inherited(id)).toBe(true)
   })
 
   it('tous les 2 mois à 8 h et 20 h depuis le 11 novembre, 20 h oubliée, la dose du 11 janvier à 8 h avancée au 19 novembre en décalant ; le 11, 9 h et 21 h, « Prochaine dose » le 19 : hérite', async () => {
