@@ -4,6 +4,7 @@ import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
 import type { SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
+import { createPushedRowReplacement } from '@/core/sync/repository/pushed-row-replacement'
 import { createRemoteSyncTable } from '@/core/sync/repository/remote-sync-table.repository'
 import { syncField } from '@/core/sync/service/syncable-table'
 import type { DeviceIdentity } from './device-identity'
@@ -103,6 +104,7 @@ export function createDeviceRepository(
     },
 
     ...createRemoteSyncTable({ table: 'device', columns: COLUMNS, loadClient }),
+    ...createPushedRowReplacement({ table: 'device', columns: COLUMNS }),
 
     applyRemoteRowStatement(row: SyncRow): SqlStatement {
       return {

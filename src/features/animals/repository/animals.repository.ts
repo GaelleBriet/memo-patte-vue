@@ -5,6 +5,7 @@ import { getDb } from '@/core/db/sqlite'
 import { currentDeviceId } from '@/core/device/device-identity'
 import type { SyncRow } from '@/core/supabase/guarded-upsert'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
+import { createPushedRowReplacement } from '@/core/sync/repository/pushed-row-replacement'
 import { createRemoteSyncTable } from '@/core/sync/repository/remote-sync-table.repository'
 import { syncField } from '@/core/sync/service/syncable-table'
 import {
@@ -357,6 +358,7 @@ export function createAnimalsRepository(
     },
 
     ...createRemoteSyncTable({ table: 'animal', columns: COLUMNS, loadClient }),
+    ...createPushedRowReplacement({ table: 'animal', columns: COLUMNS }),
 
     applyRemoteRowStatement(row: SyncRow): SqlStatement {
       return {

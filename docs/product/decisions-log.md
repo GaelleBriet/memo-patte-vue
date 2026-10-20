@@ -3160,3 +3160,67 @@ migration accordée ; schéma v17, export v10).
   la grille d'avant l'ouverture s'écrête de même. Correction de la
   première borne (« la création de la période »), qui contredisait l'héritage : une période qui
   hérite porte une date de grille plus ancienne que sa propre création.
+
+2026-10-19 — **Horloge en avance de plus de 24 h : un seul écart par envoi, repris par le téléphone
+qui pousse** (#904, PR #980 ; décisions du 19 octobre 2026 de la session d'analyse du moteur, à qui
+Gaelle a délégué les lectures de règles ; migrations accordées par Gaelle le 16 octobre). Exemple :
+lundi 19 octobre 10 h, le téléphone A croit être jeudi 22 ; il crée le vermifuge de Luna à 9 h
+réelles puis corrige ses heures à 10 h 05 ; B, à l'heure, avait reporté une dose à 10 h 03.
+
+- 8.1 : après l'envoi, le téléphone qui pousse relit la ligne telle que le serveur l'a gardée et la
+  reprend en local sans la garde « la plus récente gagne », sur toutes les tables, si sa ligne n'a
+  pas changé depuis l'envoi (même `updated_at`). — Raison : sinon A garde ses dates de jeudi, refuse
+  ensuite les modifications de B faites lundi, et les deux téléphones lisent deux calendriers.
+- 8.3 : chaque cycle qui envoie ouvre un envoi daté par le téléphone (`sync_push`, en-tête
+  `x-memopatte-sync-push`) ; le serveur en tire **un seul écart** (son heure de réception moins
+  l'heure du téléphone), appliqué à toutes les lignes de l'envoi : l'ordre des gestes d'un même
+  téléphone est gardé. Un téléphone d'une ancienne version, sans en-tête, retombe sur un écart par
+  ligne, depuis la date changée la plus récente. — Écarté : un `now()` par ligne, qui inverse un
+  report et un réglage écrits à deux minutes d'écart.
+- 8.2 corrigée : seules les dates que l'écriture **change** par rapport à la ligne du serveur sont
+  décalées (toutes à la création), comparées à la milliseconde, comme le téléphone les relit ;
+  `installed_at`, jamais écrêtée, ne bouge pas. — Écarté : « toutes les dates de la ligne », qui
+  ferait reculer `created_at` de 3 jours à chaque modification et inverserait le verdict du moteur
+  sur un report qu'on retouche.
+- Garde : la valeur **décalée** est comparée à celle du serveur ; si elle n'est pas plus récente,
+  l'écriture est refusée et le téléphone reprend la ligne du serveur. Borne : une date changée qui
+  dépasse encore `now() + 24 h` après décalage (ou sans décalage) est ramenée à `now()`. — Écarté :
+  garder l'écriture (les deux téléphones divergent) ; aucune borne pour un envoi lisible (A, 10 jours
+  d'avance au geste et 25 h à l'envoi, bloquerait B pendant 9 jours).
+- Accepté : une vraie modification peut se perdre après un saut d'horloge, sur un conflit de la même
+  ligne. Lundi 19 octobre, B renomme Luna à 8 h 30 ; A, à l'heure, la renomme à 9 h hors ligne ; son
+  horloge saute de +3 jours, puis il synchronise : sa modification recule au 16 octobre, est refusée,
+  le nom de B reste. — Raison : le cas est rare (hors ligne, puis saut d'horloge, puis conflit sur la
+  même ligne), il n'y a jamais de perte hors conflit ni de divergence, et le nom de B reste visible :
+  la personne peut le refaire. Faire confiance à la date du téléphone rouvrirait « une ligne datée
+  2030 gagne pour toujours ».
+- Grille d'avant et dates héritées (20 octobre 2026, même session) : la date gardée dans la grille
+  d'avant (`grid_before`, champ `writtenAt`) recule avec les autres quand l'écriture la change ;
+  seule la clé de premier niveau change ; une valeur vide, illisible ou sans date passe telle
+  quelle. À la création
+  d'une période, une date de grille héritée égale, à la milliseconde, à une date de grille que le
+  serveur tient déjà pour une autre période du **même** traitement ne recule pas. Exemple : B crée le
+  traitement de Milo le 1er mars à 7 h ; A, en avance de 3 jours, passe à « tous les 2 jours » le
+  9 mars à 8 h réelles ; la grille d'avant de la nouvelle période garde « 1er mars 7 h » : elle reste
+  au 1er mars au lieu de reculer au 26 février, avant la création du traitement. — Écarté : reculer
+  toutes les dates à la création, qui fausse une date déjà juste de l'écart de l'horloge et peut
+  renverser un report. Une date héritée qui ne correspond à rien de tenu (même envoi, autre
+  traitement, autre compte) recule comme les autres.
+- Dates tenues, à la modification aussi (20 octobre 2026, même session) : la règle vaut à la
+  création comme à la modification ; une date tenue est la date de grille, ou de grille d'avant,
+  d'une autre période du même traitement et du même compte (une période supprimée compte), ou la
+  création que le serveur tient pour la ligne elle-même. — Raison : une date que le serveur connaît
+  est juste par construction, quel que soit le geste qui la recopie ; limitée à la création, la règle
+  laissait Milo au 26 février après deux « Modifier » le même jour. Une date tenue n'est retenue
+  que si elle ne dépasse pas `now()` + 24 h, et la date de la grille d'avant n'est lue qu'entre
+  1900 et `now()` + 100 ans. Limite acceptée : seules des données écrites avant la migration
+  (données de test) peuvent tenir une date plus lointaine ; recopiée, elle fait reculer toute la
+  ligne. Exemple : une période écrite avant la migration porte une date de grille au 1er janvier
+  2030 ; B, à l'heure, ouvre une nouvelle période qui la reprend : la date de grille revient à
+  maintenant, mais la création, la modification et les autres dates reculent de 1 168 jours, en
+  août 2023 ; une modification qui la recopie est refusée.
+- Reprise et course avec un autre téléphone (PR #980) : la ligne gardée par le serveur se reprend
+  après le pull ; si le pull tire une version plus récente de la même ligne, c'est elle qui est
+  posée. Exemple : lundi 19 octobre, A a 3 jours d'avance ; à 8 h réelles il renomme Luna « Luna A »
+  et son cycle commence ; avant que A tire les animaux, B renomme Luna « Luna B » à 8 h 00 min 05 s
+  et synchronise ; A finit avec « Luna B », comme le serveur.

@@ -8,52 +8,32 @@ interface FakeResult {
   error: unknown
 }
 
-interface FakeBuilder {
-  update: (patch: unknown) => FakeBuilder
-  match: (match: unknown) => FakeBuilder
-  lt: (column: string, value: unknown) => FakeBuilder
-  select: () => Promise<FakeResult>
-  upsert: (row: unknown, options: unknown) => Promise<FakeResult>
-}
+type Call = [method: string, ...args: unknown[]]
 
-function createFakeSupabase(
-  updateResult: FakeResult,
-  insertResult: FakeResult = { data: [], error: null },
-) {
-  const updateCalls: { patch?: unknown; match?: unknown; lt?: [string, unknown] } = {}
-  let insertRow: unknown
-  let insertOptions: unknown
-
-  const builder: FakeBuilder = {
-    update: vi.fn<FakeBuilder['update']>((patch) => {
-      updateCalls.patch = patch
-      return builder
-    }),
-    match: vi.fn<FakeBuilder['match']>((match) => {
-      updateCalls.match = match
-      return builder
-    }),
-    lt: vi.fn<FakeBuilder['lt']>((column, value) => {
-      updateCalls.lt = [column, value]
-      return builder
-    }),
-    select: vi.fn<FakeBuilder['select']>(() => Promise.resolve(updateResult)),
-    upsert: vi.fn<FakeBuilder['upsert']>((row, options) => {
-      insertRow = row
-      insertOptions = options
-      return Promise.resolve(insertResult)
-    }),
-  }
-
-  const from = vi.fn<() => FakeBuilder>(() => builder)
-
-  return {
-    client: { from } as unknown as SupabaseClient,
-    from,
-    updateCalls,
-    getInsertRow: () => insertRow,
-    getInsertOptions: () => insertOptions,
-  }
+/** Chaque requête note ses appels et rend, une fois attendue, le résultat suivant de la file. */
+function createFakeSupabase(results: FakeResult[]) {
+  const requests: Array<{ table: string; calls: Call[] }> = []
+  const from = vi.fn<(table: string) => unknown>((table) => {
+    const request = { table, calls: [] as Call[] }
+    requests.push(request)
+    const result = results.shift() ?? { data: [], error: null }
+    const builder: object = new Proxy(
+      {},
+      {
+        get(_target, property) {
+          if (property === 'then') {
+            return (resolve: (value: FakeResult) => unknown) => resolve(result)
+          }
+          return (...args: unknown[]) => {
+            request.calls.push([String(property), ...args])
+            return builder
+          }
+        },
+      },
+    )
+    return builder
+  })
+  return { client: { from } as unknown as SupabaseClient, requests }
 }
 
 const ROW: SyncRow = {
@@ -62,55 +42,97 @@ const ROW: SyncRow = {
   name: 'Milo',
   updated_at: '2026-01-01T00:00:00.000Z',
 }
+const KEPT = { id: 'a1', name: 'Milo', updated_at: '2025-12-29T00:00:00+00:00' }
+const OPTIONS = { columns: 'id, name, updated_at', headers: { 'x-envoi': 'envoi-1' } }
 
 describe('guardedUpsert', () => {
-  it('ne tente pas de création quand la mise à jour conditionnée a trouvé une ligne', async () => {
-    const fake = createFakeSupabase({ data: [{ id: 'a1' }], error: null })
+  it('rend la ligne gardée par la mise à jour conditionnée, sans tenter de création', async () => {
+    const fake = createFakeSupabase([{ data: [KEPT], error: null }])
 
-    await guardedUpsert(fake.client, 'animal', ['user_id', 'id'], ROW)
+    await expect(
+      guardedUpsert(fake.client, 'animal', ['user_id', 'id'], ROW, OPTIONS),
+    ).resolves.toEqual(KEPT)
 
-    expect(fake.from).toHaveBeenCalledExactlyOnceWith('animal')
-    expect(fake.updateCalls.match).toEqual({ user_id: 'u1', id: 'a1' })
-    expect(fake.updateCalls.lt).toEqual(['updated_at', ROW.updated_at])
-    expect(fake.updateCalls.patch).toEqual({ name: 'Milo', updated_at: ROW.updated_at })
+    expect(fake.requests).toEqual([
+      {
+        table: 'animal',
+        calls: [
+          ['update', { name: 'Milo', updated_at: ROW.updated_at }],
+          ['match', { user_id: 'u1', id: 'a1' }],
+          ['lt', 'updated_at', ROW.updated_at],
+          ['select', OPTIONS.columns],
+          ['setHeader', 'x-envoi', 'envoi-1'],
+        ],
+      },
+    ])
   })
 
-  it('exclut les colonnes de conflit du corps de la mise à jour', async () => {
-    const fake = createFakeSupabase({ data: [{ id: 'a1' }], error: null })
+  it("crée la ligne quand la mise à jour n'a rien trouvé, et rend la ligne créée", async () => {
+    const fake = createFakeSupabase([
+      { data: [], error: null },
+      { data: [KEPT], error: null },
+    ])
 
-    await guardedUpsert(fake.client, 'animal', ['user_id', 'id'], ROW)
+    await expect(
+      guardedUpsert(fake.client, 'animal', ['user_id', 'id'], ROW, OPTIONS),
+    ).resolves.toEqual(KEPT)
 
-    expect(fake.updateCalls.patch).not.toHaveProperty('id')
-    expect(fake.updateCalls.patch).not.toHaveProperty('user_id')
+    expect(fake.requests[1]).toEqual({
+      table: 'animal',
+      calls: [
+        ['upsert', ROW, { onConflict: 'user_id,id', ignoreDuplicates: true }],
+        ['select', OPTIONS.columns],
+        ['setHeader', 'x-envoi', 'envoi-1'],
+      ],
+    })
   })
 
-  it("crée la ligne quand la mise à jour conditionnée n'a rien trouvé", async () => {
-    const fake = createFakeSupabase({ data: [], error: null })
+  it('relit la ligne du serveur quand il a gardé la sienne, plus récente', async () => {
+    const fake = createFakeSupabase([
+      { data: [], error: null },
+      { data: [], error: null },
+      { data: KEPT, error: null },
+    ])
 
-    await guardedUpsert(fake.client, 'animal', ['user_id', 'id'], ROW)
+    await expect(
+      guardedUpsert(fake.client, 'animal', ['user_id', 'id'], ROW, OPTIONS),
+    ).resolves.toEqual(KEPT)
 
-    expect(fake.from).toHaveBeenCalledTimes(2)
-    expect(fake.getInsertRow()).toEqual(ROW)
-    expect(fake.getInsertOptions()).toEqual({ onConflict: 'user_id,id', ignoreDuplicates: true })
+    expect(fake.requests[2]).toEqual({
+      table: 'animal',
+      calls: [['select', OPTIONS.columns], ['match', { user_id: 'u1', id: 'a1' }], ['maybeSingle']],
+    })
   })
 
   it("lève l'erreur de la mise à jour sans tenter de création", async () => {
-    const fake = createFakeSupabase({ data: null, error: new Error('réseau') })
+    const fake = createFakeSupabase([{ data: null, error: new Error('réseau') }])
 
-    await expect(guardedUpsert(fake.client, 'animal', ['user_id', 'id'], ROW)).rejects.toThrow(
-      'réseau',
-    )
-    expect(fake.getInsertRow()).toBeUndefined()
+    await expect(
+      guardedUpsert(fake.client, 'animal', ['user_id', 'id'], ROW, OPTIONS),
+    ).rejects.toThrow('réseau')
+    expect(fake.requests).toHaveLength(1)
   })
 
   it("lève l'erreur de la création", async () => {
-    const fake = createFakeSupabase(
+    const fake = createFakeSupabase([
       { data: [], error: null },
       { data: null, error: new Error('403') },
-    )
+    ])
 
-    await expect(guardedUpsert(fake.client, 'animal', ['user_id', 'id'], ROW)).rejects.toThrow(
-      '403',
-    )
+    await expect(
+      guardedUpsert(fake.client, 'animal', ['user_id', 'id'], ROW, OPTIONS),
+    ).rejects.toThrow('403')
+  })
+
+  it("lève l'erreur de la relecture", async () => {
+    const fake = createFakeSupabase([
+      { data: [], error: null },
+      { data: [], error: null },
+      { data: null, error: new Error('relecture') },
+    ])
+
+    await expect(
+      guardedUpsert(fake.client, 'animal', ['user_id', 'id'], ROW, OPTIONS),
+    ).rejects.toThrow('relecture')
   })
 })
