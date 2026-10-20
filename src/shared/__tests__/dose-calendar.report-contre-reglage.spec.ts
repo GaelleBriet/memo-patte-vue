@@ -337,6 +337,16 @@ describe('Q2 : un report de A plus récent battu par une note que la réécritur
   )
 })
 
+// #939 : plus récent que la grille du réglage qui lit sa journée de départ, le report se lit comme
+// avant : il emmène toutes ses doses, sur A comme après la synchro.
+it('graine 9110001016, pas 23 : les quatre doses arrivent le 23 avril, comme sur A', () => {
+  const fork = forkAt(9110001016, 23)
+  const shown = (input: TreatmentViewInput) => keys(treatmentView(input).upcoming({ limit: 4 }))
+  const expected = ['06:00', '12:00', '18:00', '23:00'].map((hour) => `2026-04-23 ${hour}`)
+  expect(shown(fork.phoneA)).toEqual(expected)
+  expect(shown(fork.merged)).toEqual(expected)
+})
+
 // Q1 : la date choisie par B tombe sur l'ancienne arrivée d'un report ; les doses que le report emporte
 // de sa journée de départ arrivent toutes, aucune ne disparaît.
 it('graine 9050001926, pas 16 : les doses du 16 arrivent le 23, celles que A redéplace le 24', () => {

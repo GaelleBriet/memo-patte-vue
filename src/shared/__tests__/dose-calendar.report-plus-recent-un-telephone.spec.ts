@@ -158,6 +158,15 @@ describe('Un seul téléphone : une dose ôtée par un décalage, pas par la ré
     expect(upcoming(walk.input).reference).toEqual(upcoming(walk.input).moteur)
   })
 
+  // #939 : l'aperçu date la grille d'une réécriture comme l'écriture, puisque le report se juge contre
+  // elle : préversion et résultat restent les mêmes ; une posologie seule ne change rien.
+  it.each([9110000172, 9110000229, 9110000309])(
+    'graine %i : les invariants tiennent à chaque geste',
+    (seed) => {
+      expect(seedHolds(seed, 40)).toEqual([])
+    },
+  )
+
   it('graine 9500001489 : les invariants tiennent à chaque geste, posologie seule comprise', () => {
     expect(seedHolds(9500001489, 40)).toEqual([])
   })
