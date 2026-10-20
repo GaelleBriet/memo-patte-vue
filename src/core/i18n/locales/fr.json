@@ -785,6 +785,7 @@
       "lost": "Avec le décalage, la dose du {dates} ne sera plus prévue (date de fin). | Avec le décalage, les doses du {dates} ne seront plus prévues (date de fin).",
       "aloneLatest": "Seule, cette dose va au plus tard au {date}. Coche « Décaler aussi les doses suivantes » pour aller plus loin.",
       "recap": "Dose du {due}, donnée le {given}",
+      "recapExtra": "Prise en plus le {given} · la prochaine dose reste le {due}",
       "recapAt": "Dose de {time} du {due}, donnée le {given}",
       "save": "Enregistrer",
       "suiteCut": "{done}. La dose du {dates} n’est plus prévue (date de fin). | {done}. Les doses du {dates} ne sont plus prévues (date de fin).",

@@ -785,6 +785,7 @@
       "lost": "With the move, the {dates} dose will no longer be scheduled (end date). | With the move, the {dates} doses will no longer be scheduled (end date).",
       "aloneLatest": "On its own, this dose can go up to {date}. Check the “Also move the following doses” box to go further.",
       "recap": "{due} dose, given on {given}",
+      "recapExtra": "Extra dose on {given} · next dose still due {due}",
       "recapAt": "{due}, {time} dose, given on {given}",
       "save": "Save",
       "suiteCut": "{done}. The {dates} dose is no longer scheduled (end date). | {done}. The {dates} doses are no longer scheduled (end date).",
