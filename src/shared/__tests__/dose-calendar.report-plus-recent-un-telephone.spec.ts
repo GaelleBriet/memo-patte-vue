@@ -181,6 +181,7 @@ describe('Un seul téléphone : une dose ôtée par un décalage, pas par la ré
     ],
     [9100001390, 20, ['2026-03-24 20:00', '2026-03-25 20:00', '2026-03-26 20:00']],
     [9100001362, 10, ['2026-03-23 20:00', '2026-03-26 20:00', '2026-03-29 20:00']],
+    [9991000412, 13, ['2026-04-06 18:00', '2026-05-18 06:00']],
     [
       9991000402,
       14,
@@ -218,6 +219,7 @@ describe('Un seul téléphone : une dose ôtée par un décalage, pas par la ré
   // réglages suivants sans origine à eux ; lue au départ et sur l'ancienne arrivée, la dose arrive une fois.
   it.each([
     9110000172, 9110000229, 9110000309, 9120000384, 9120001368, 9140000610, 9140000713, 9140000967,
+    9996000444,
   ])('graine %i : les invariants tiennent à chaque geste', (seed) => {
     expect(seedHolds(seed, 40)).toEqual([])
   })

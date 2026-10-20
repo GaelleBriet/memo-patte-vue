@@ -56,13 +56,38 @@ async function carnet(
       .slice()
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
       .at(-1)!.id
+  const settingOn = async (dueOn: string, dueTime: Hour) => {
+    const reading = readTreatment(await stored(), replay.clock.day)!
+    const slot = reading.view.slots(dueOn, dueOn).find(({ due }) => due.dueTime === dueTime)
+    return slot?.due.settingId ?? (await latestPeriod())
+  }
+  const note = async (
+    dueOn: string,
+    dueTime: Hour,
+    status: 'given' | 'missed',
+    givenOn: string,
+    shiftsFollowing: boolean,
+  ) => {
+    replay.tick()
+    const settingId = await settingOn(dueOn, dueTime)
+    await replay.doses.apply(id, {
+      kind: 'note',
+      gesture: {
+        kind: 'note',
+        due: { settingId, dueOn, dueTime },
+        status,
+        givenOn,
+        shiftsFollowing,
+      },
+    })
+  }
   return {
     day(on: string) {
       replay.clock.day = on
     },
     async move(dueOn: string, dueTime: Hour, to: string, shiftsFollowing: boolean) {
       replay.tick()
-      const settingId = await latestPeriod()
+      const settingId = await settingOn(dueOn, dueTime)
       await replay.doses.apply(id, {
         kind: 'move',
         due: { settingId, dueOn, dueTime },
@@ -70,23 +95,22 @@ async function carnet(
         shiftsFollowing,
       })
     },
-    async give(dueOn: string, dueTime: Hour, givenOn: string, shiftsFollowing: boolean) {
-      replay.tick()
-      const settingId = await latestPeriod()
-      await replay.doses.apply(id, {
-        kind: 'note',
-        gesture: {
-          kind: 'note',
-          due: { settingId, dueOn, dueTime },
-          status: 'given',
-          givenOn,
-          shiftsFollowing,
-        },
-      })
-    },
+    give: (dueOn: string, dueTime: Hour, givenOn: string, shiftsFollowing: boolean) =>
+      note(dueOn, dueTime, 'given', givenOn, shiftsFollowing),
+    miss: (dueOn: string, dueTime: Hour) => note(dueOn, dueTime, 'missed', dueOn, false),
     async modify(times: string[], nextDoseOn: string | null, end: string | null = null) {
       replay.tick()
       await replay.plans.update(id, { ...ASKED, frequency, times, endsOn: end, nextDoseOn })
+    },
+    async modifyAs(rhythm: Frequency, times: string[], nextDoseOn: string | null) {
+      replay.tick()
+      await replay.plans.update(id, {
+        ...ASKED,
+        frequency: rhythm,
+        times,
+        endsOn: null,
+        nextDoseOn,
+      })
     },
     async removeShiftOf(dueOn: string) {
       const shift = (await stored()).doses.find(
@@ -183,6 +207,52 @@ describe('La date choisie, déplacée par les vrais services', () => {
       '2026-03-12 20:00 pending',
       '2026-03-13 08:00 pending',
       '2026-03-13 20:00 pending',
+    ])
+  })
+
+  // I1, R7 : avec la case, le décalage écrit après la date choisie avancée repart de son arrivée.
+  it('Milo, I1 puis 8 h du 12 mars donnée d’avance ; la dose de 14 h du 12 reportée au 14 avec la case : 14 mars, puis 21 et 28 mars, 4 avril', async () => {
+    const milo = await carnet('2026-03-05', WEEK, ['08:00', '20:00'], '2026-03-08')
+    await milo.move('2026-03-05', '08:00', '2026-03-16', true)
+    await milo.modify(['08:00', '14:00', '20:00'], '2026-04-06')
+    await milo.move('2026-04-06', '08:00', '2026-03-12', true)
+    await milo.give('2026-03-12', '08:00', '2026-03-08', false)
+    await milo.move('2026-03-12', '14:00', '2026-03-14', true)
+    expect(await milo.slots('2026-03-12', '2026-04-04')).toEqual([
+      '2026-03-12 08:00 given',
+      '2026-03-14 14:00 pending',
+      '2026-03-14 20:00 pending',
+      '2026-03-21 08:00 pending',
+      '2026-03-21 14:00 pending',
+      '2026-03-21 20:00 pending',
+      '2026-03-28 08:00 pending',
+      '2026-03-28 14:00 pending',
+      '2026-03-28 20:00 pending',
+      '2026-04-04 08:00 pending',
+      '2026-04-04 14:00 pending',
+      '2026-04-04 20:00 pending',
+    ])
+  })
+
+  // R4, R7 : un report emporte ses heures telles qu'elles étaient quand il a été écrit ; ses prises
+  // gardent leur journée quand les heures changent ensuite.
+  it('Milo, chaque mois à 20 h ; le 2 avril à 6, 12, 18 et 23 h ; 23 h reportée au 26 ; « Modifier » : 12, 18 et 23 h : le 26 garde 23 h, le 2 ses trois prises', async () => {
+    const MONTH: Frequency = { value: 1, unit: 'month' }
+    const milo = await carnet('2026-03-20', MONTH, ['20:00'], '2026-03-24')
+    await milo.move('2026-04-20', '20:00', '2026-04-04', true)
+    await milo.miss('2026-03-20', '20:00')
+    await milo.modify(['06:00', '12:00', '18:00', '23:00'], '2026-06-04')
+    await milo.move('2026-06-04', '06:00', '2026-04-02', true)
+    for (const hour of ['06:00', '12:00', '18:00']) {
+      await milo.give('2026-04-02', hour, '2026-03-24', false)
+    }
+    await milo.move('2026-04-02', '23:00', '2026-04-26', false)
+    await milo.modifyAs(MONTH, ['12:00', '18:00', '23:00'], null)
+    expect(await milo.slots('2026-04-02', '2026-04-26')).toEqual([
+      '2026-04-02 06:00 given',
+      '2026-04-02 12:00 given',
+      '2026-04-02 18:00 given',
+      '2026-04-26 23:00 pending',
     ])
   })
 
