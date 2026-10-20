@@ -3224,11 +3224,18 @@ délégué les lectures de règles ; #939, #938, #882).
   décalage de cette ancienne arrivée, les journées suivantes avancent ou reculent d'autant. Tous les
   jours à 20 h, la dose reportée du 19 mars sur la date choisie du 27, avancée au 26 avec la case :
   26, 27, 28… (graine 9100000170 ; avant : 26, 28, 29, une dose sautée). — Écartée : la case ne fait
-  partir que les rangs du même jour. Quand ce décalage sort l'ancienne arrivée de la grille, la dose
-  arrive quand même, avec les rangs qu'elle emmène, aux heures du réglage qui a choisi la date (#796) :
-  chaque mois à 8 h et 20 h, date choisie le 21 avril, la dose avancée au 17 mars avec la case donne
-  le 17 mars à 8 h et 20 h, puis le 17 avril (graines 9100001223 et 9100000406 ; avant, la dose
-  disparaissait).
+  partir que les rangs du même jour. Avancer avec la case la dose de la date choisie déplace la
+  journée **entière** (aux heures du réglage qui a choisi la date, #796, et avec ce que le report y avait
+  apporté) et fait de l'arrivée le premier jour de la série : chaque mois à 8 h et 20 h, date choisie le
+  21 avril, la dose avancée au 17 mars donne le 17 mars à 8 h et 20 h, puis le 17 avril (graines
+  9100001223 et 9100000406 ; avant, la dose disparaissait) ; toutes les deux semaines à 8 h et 20 h,
+  date choisie le 6 avril, avancée au 17 mars : le 17 mars à 8 h et 20 h, puis 31 mars, 14 avril
+  (graine 9100001351 ; avant, le 8 h et le 31 mars se perdaient).
+- Q3, heure prise (20 octobre 2026) : la dose du report arrive à son heure écrite ; si un rang qui
+  l'accompagne arrive déjà à cette heure, elle prend l'heure de son propre rang : trois doses ne
+  deviennent jamais deux. Tous les deux jours, date choisie le 9 avril à 8 h, 14 h et 20 h, la dose
+  du rang 1 écrite 20 h, avancée au 14 avec la case : le 14 à 8 h, 14 h et 20 h (graine 9160000115 ;
+  avant, 14 h et 20 h seulement).
 - Q4, précision du 20 octobre 2026 : sur la journée de départ lue aux heures du réglage en vigueur, le
   report emporte la dose de son rang, qui arrive à son heure écrite (Q3) ; avec la case, les rangs
   suivants partent avec elle et arrivent à leurs heures. La dose du report n'apparaît qu'une fois :
@@ -3240,8 +3247,15 @@ délégué les lectures de règles ; #939, #938, #882).
 - R4, lecture ajoutée le 20 octobre 2026 : sans dose libre après son heure, une prise couvre la dose
   libre la plus proche avant elle ; une prise couvre une dose de sa journée tant qu'il en reste une
   (graine 9150002829 : la prise de 8 h du 11 mars couvre 6 h, le report emportant 12 h, 18 h et 23 h).
-- R9 : un report vers une journée d'avant la date choisie, décalé depuis elle, n'arrive qu'avec sa
-  dose, aucune heure du réglage de l'autre téléphone (graine 9140001597 : le 1er avril, 20 h seule).
+- R9, **correction** de la lecture du matin du 20 octobre 2026 (« aucune journée avant la date choisie,
+  pas même après un décalage ») : quand la dose de la date choisie est avancée avec la case, la série
+  repart de son arrivée, et « aucune journée avant la date choisie » se lit depuis ce nouveau premier
+  jour. Tous les jours sans heure, date choisie le 7 avril, dose du 7 avancée au 1er avril avec la case :
+  1er avril (à 20 h, l'heure écrite du report), 2, 3 avril… (graine 9140001597 ; le matin : 1er puis 7,
+  8). Raison : cocher « Décaler aussi les doses suivantes » sur la première dose dit que le traitement
+  commence plus tôt ; cacher les journées entre l'arrivée et l'ancienne date perdrait des doses sur un
+  seul téléphone (9100001390 : 24, 25, 26 mars…). Le 1er avril ne reçoit aucune heure du réglage de
+  l'autre téléphone (20 h seule).
 - R8 : une fin posée par B avant l'arrivée du report arrête le traitement ; le report est sans effet,
   quel que soit son âge (graines 9050002774, 9140002364), comme en 8a.
 
