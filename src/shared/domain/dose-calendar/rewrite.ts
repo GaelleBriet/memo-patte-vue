@@ -69,18 +69,26 @@ function newerRewritten(report: Line, own: Setting, reading: Setting | undefined
   return rewritten && report.updatedAt > reading.createdAt ? reading : null
 }
 
-// #939 : la journée de départ ôtée ; plus récent que la grille du réglage qui la lit, réécrit sur
-// place après la création de celui du report, le report se lit comme avant sans être écarté (`kept`).
-function dayVerdict(report: Line, own: Setting, reading: Setting | undefined, reach: Reach) {
-  const verdict = rewriteVerdict(report, own, 'day', reach)
+/** Le réglage qui lit une journée, et celui qui a tracé sa grille. */
+type Reading = Reach & { setting: Setting | undefined }
+
+// #939 : la journée de départ, ou l'ancienne arrivée d'un report redéplacé, ôtée ; plus récent que la
+// grille du réglage qui la lit, réécrit sur place après la création de celui du report, le report se
+// lit comme avant sans être écarté (`kept`).
+function dayVerdict(report: Line, own: Setting, readings: readonly [Line, Reading][]) {
+  const verdict = rewriteVerdict(report, own, 'day', readings[0]![1])
   if (verdict !== null) return verdict
-  const newer = newerRewritten(report, own, reading)
-  return newer !== null && rewriteVerdict(report, newer, 'day', reach) === 'line' ? 'kept' : null
+  const kept = readings.some(([line, reading]) => {
+    const newer = newerRewritten(line, own, reading.setting)
+    return newer !== null && rewriteVerdict(line, newer, 'day', reading) === 'line'
+  })
+  return kept ? 'kept' : null
 }
 
 /** #882, #883, #939 : le verdict d'un report dont la dose de départ manque à sa journée, telle qu'elle
- * se lit avec les heures que d'autres reports y ont amenées (`arrived`) ; `reading` : le réglage qui
- * lit sa journée de départ ; `kept` : la lecture d'avant, sans être écarté hors de la grille. */
+ * se lit avec les heures que d'autres reports y ont amenées (`arrived`) ; `reading` et `oldReading` :
+ * les réglages qui lisent sa journée de départ et son ancienne arrivée ; `kept` : la lecture d'avant,
+ * sans être écarté hors de la grille. */
 export function departureVerdict(
   report: Line,
   context: Reach & {
@@ -88,10 +96,18 @@ export function departureVerdict(
     arrived: readonly Hour[]
     written: Setting
     reading: Setting | undefined
+    oldReading?: Reading
   },
 ): 'line' | 'rewrite' | 'kept' | null {
-  const { departure, arrived, written, reading } = context
-  if (departure === undefined) return dayVerdict(report, written, reading, context)
+  const { departure, arrived, written, reading, oldReading } = context
+  if (departure === undefined) {
+    const readings: [Line, Reading][] = [[report, { ...context, setting: reading }]]
+    const oldOn = report.previousTargetOn
+    if (oldReading !== undefined && oldOn !== undefined && oldOn !== null) {
+      readings.push([{ ...report, dueOn: oldOn }, oldReading])
+    }
+    return dayVerdict(report, written, readings)
+  }
   if ([...departure.hours, ...arrived].includes(report.dueTime)) return null
   return rewriteVerdict(report, written, 'hour', context)
 }

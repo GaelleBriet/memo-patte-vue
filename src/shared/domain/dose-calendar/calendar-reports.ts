@@ -78,6 +78,7 @@ export function moveReports(input: ReportsInput) {
       written: settingOf(report.settingId),
       reading: span.settingAt(dueOn),
       drawnBy: journey.drawnBy.get(span.settingAt(dueOn)?.id ?? ''),
+      oldReading: readingOn(report.previousTargetOn),
     })
     const rewrite = verdict === 'kept' ? null : verdict
     const origin = rewrite === null ? (days.get(dueOn) ?? left.get(dueOn)) : undefined
@@ -172,6 +173,12 @@ export function moveReports(input: ReportsInput) {
     for (const key of [...leaving.map((hour) => keyOf(dueOn, hour)), ...keys])
       moved.set(key, report)
     arrive(report, keys, bringing, source)
+  }
+
+  function readingOn(day: Day | null | undefined) {
+    if (day === null || day === undefined) return undefined
+    const setting = span.settingAt(day)
+    return { setting, drawnBy: journey.drawnBy.get(setting?.id ?? '') }
   }
 
   // R7 : le jour d'arrivée ne reçoit que les heures reportées, telles qu'elles étaient au départ ;

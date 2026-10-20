@@ -71,10 +71,15 @@ export function rewrittenDeparture(
   const outcome = dayTakenBy(report, own, context)
   if (outcome === 'kept') return kept
   if (outcome === 'lost') return outcome
-  // #939 : plus récent que la grille d'un réglage réécrit après la création du sien, il se lit comme
-  // avant, sans être écarté hors de la grille (`read`).
-  const later = laterRewriter(report, own, context)
-  return later !== undefined && dayTakenBy(report, later, context) === 'kept' ? 'read' : undefined
+  // #939 : plus récent que la grille d'un réglage réécrit après la création du sien, qui lit sa journée
+  // de départ ou son ancienne arrivée, il se lit comme avant, sans être écarté hors de la grille (`read`).
+  const previous = report.previousTargetOn
+  const days = previous ? [report, { ...report, dueOn: previous }] : [report]
+  const read = days.some((line) => {
+    const later = laterRewriter(line, own, context)
+    return later !== undefined && dayTakenBy(line, later, context) === 'kept'
+  })
+  return read ? 'read' : undefined
 }
 
 // La journée de départ ôtée par la réécriture de `written` : le plus récent des deux l'emporte.
