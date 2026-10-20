@@ -1,45 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { SyncRowValue } from '@/core/supabase/guarded-upsert'
 import { clampedWrite, postgrestInstant, serverInstant } from './fake-sync-clamp'
+import { MIRROR_FOREIGN_KEYS, TIMESTAMP_COLUMNS } from './fake-sync-schema'
 
 type ServerRow = Record<string, SyncRowValue>
 type Result = { data: ServerRow[] | null; error: { message: string; code?: string } | null }
 
-interface ForeignKey {
-  column: string
-  parent: string
-}
-
-/** Clés étrangères des tables miroir (`supabase/migrations/`), toutes rattachées au même `user_id`. */
-export const MIRROR_FOREIGN_KEYS: Record<string, ForeignKey[]> = {
-  vaccination: [{ column: 'animal_id', parent: 'animal' }],
-  vaccination_injection: [
-    { column: 'vaccination_id', parent: 'vaccination' },
-    { column: 'animal_id', parent: 'animal' },
-  ],
-  treatment: [{ column: 'animal_id', parent: 'animal' }],
-  treatment_period: [
-    { column: 'treatment_id', parent: 'treatment' },
-    { column: 'animal_id', parent: 'animal' },
-  ],
-  treatment_dose: [
-    { column: 'period_id', parent: 'treatment_period' },
-    { column: 'treatment_id', parent: 'treatment' },
-    { column: 'animal_id', parent: 'animal' },
-  ],
-  weight_entry: [{ column: 'animal_id', parent: 'animal' }],
-}
-
-/** Toutes les colonnes `timestamptz` des miroirs (`supabase/migrations/`). */
-const TIMESTAMP_COLUMNS = [
-  'created_at',
-  'updated_at',
-  'settings_written_at',
-  'grid_written_at',
-  'deleted_at',
-  'installed_at',
-  'server_updated_at',
-]
 const SERVER_EPOCH = Date.UTC(2026, 8, 25, 12)
 
 type Hook = () => Promise<void> | void
@@ -113,6 +79,18 @@ export function createFakeSyncServer({
     return null
   }
 
+  function heldGridDates(period: ServerRow): SyncRowValue[] {
+    return tableRows('treatment_period')
+      .filter(
+        (other) =>
+          other.user_id === period.user_id &&
+          other.treatment_id === period.treatment_id &&
+          other.id !== period.id,
+      )
+      .map(({ grid_written_at }) => grid_written_at ?? null)
+      .filter((value) => value !== null)
+  }
+
   function picked(row: ServerRow, columns: string): ServerRow {
     const names = columns.split(',').map((column) => column.trim())
     return asPostgrest(Object.fromEntries(names.map((key) => [key, row[key] ?? null])))
@@ -137,6 +115,7 @@ export function createFakeSyncServer({
           stored,
           push && push.user_id === incoming.user_id ? push : null,
           now(),
+          table === 'treatment_period' ? heldGridDates(incoming) : [],
         ),
       )
       if (!Array.isArray(written)) return { data: null, error: written }

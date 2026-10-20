@@ -3194,3 +3194,14 @@ réelles puis corrige ses heures à 10 h 05 ; B, à l'heure, avait reporté une 
   même ligne), il n'y a jamais de perte hors conflit ni de divergence, et le nom de B reste visible :
   la personne peut le refaire. Faire confiance à la date du téléphone rouvrirait « une ligne datée
   2030 gagne pour toujours ».
+- Grille d'avant et dates héritées (20 octobre 2026, même session) : la date gardée dans la grille
+  d'avant (`grid_before`, champ `writtenAt`) recule avec les autres quand l'écriture la change, le
+  reste du texte intact ; une valeur vide, illisible ou sans date passe telle quelle. À la création
+  d'une période, une date de grille héritée égale, à la milliseconde, à une date de grille que le
+  serveur tient déjà pour une autre période du **même** traitement ne recule pas. Exemple : B crée le
+  traitement de Milo le 1er mars à 7 h ; A, en avance de 3 jours, passe à « tous les 2 jours » le
+  9 mars à 8 h réelles ; la grille d'avant de la nouvelle période garde « 1er mars 7 h » : elle reste
+  au 1er mars au lieu de reculer au 26 février, avant la création du traitement. — Écarté : reculer
+  toutes les dates à la création, qui fausse une date déjà juste de l'écart de l'horloge et peut
+  renverser un report. Une date héritée qui ne correspond à rien de tenu (même envoi, autre
+  traitement, autre compte) recule comme les autres.

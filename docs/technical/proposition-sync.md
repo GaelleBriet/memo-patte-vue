@@ -103,7 +103,11 @@ sans lui, une ligne datée 2030 gagne pour toujours et ne peut plus jamais être
   **change** par rapport à la ligne qu'il tient, comparées à la milliseconde comme le téléphone les
   relit (`created_at`, `updated_at`, `deleted_at`, `settings_written_at`, `grid_written_at` ; toutes
   à la création) : l'ordre des gestes d'un même téléphone est gardé, une date déjà écrêtée ou écrite
-  par un autre téléphone ne bouge pas, `installed_at` jamais ;
+  par un autre téléphone ne bouge pas, `installed_at` jamais. La date gardée dans `grid_before`
+  (`writtenAt`) en est une : elle recule quand l'écriture la change, le reste du texte intact ; une
+  valeur vide, illisible ou sans date passe telle quelle. À la création d'une période, une date de
+  grille héritée (`grid_written_at` ou `writtenAt`) égale à une date de grille que le serveur tient
+  déjà pour une autre période du même traitement ne recule pas : elle est déjà juste ;
 - **borne dans tous les cas** : si la date changée la plus récente, une fois décalée (ou sans
   décalage : envoi absent, illisible, d'un autre compte, ou en avance de moins de 24 h), dépasse
   encore `now() + 24 h`, l'écart devient celui qui la ramène à `now()` ;

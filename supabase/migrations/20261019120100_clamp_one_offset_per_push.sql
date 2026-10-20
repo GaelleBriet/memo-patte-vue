@@ -51,7 +51,26 @@ begin
     end if;
   end if;
 
-  if push_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
+  -- Une date de grille héritée que le serveur tient déjà pour une autre période du traitement est juste.
+  if tg_op = 'INSERT' and tg_table_name = 'treatment_period' then
+    if 'grid_written_at' = any(written) and exists (
+      select 1 from public.treatment_period p
+      where p.user_id = new.user_id and p.treatment_id = new.treatment_id and p.id <> new.id
+        and date_trunc('milliseconds', p.grid_written_at)
+          = date_trunc('milliseconds', new.grid_written_at)
+    ) then
+      written := array_remove(written, 'grid_written_at');
+    end if;
+    if grid_written is not null and exists (
+      select 1 from public.treatment_period p
+      where p.user_id = new.user_id and p.treatment_id = new.treatment_id and p.id <> new.id
+        and date_trunc('milliseconds', p.grid_written_at) = date_trunc('milliseconds', grid_written)
+    ) then
+      grid_written := null;
+    end if;
+  end if;
+
+  if push_id ~*'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
     select date_trunc('milliseconds', p.received_at) - date_trunc('milliseconds', p.sent_at)
     into shift
     from public.sync_push p

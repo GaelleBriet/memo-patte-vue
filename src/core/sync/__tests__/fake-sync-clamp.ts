@@ -49,15 +49,21 @@ export function clampedWrite(
   stored: ServerRow | null,
   push: ClampPush | null,
   nowMs: number,
+  /** À la création d'une période, les dates de grille des autres périodes de son traitement. */
+  heldGridDates: readonly SyncRowValue[] = [],
 ): ServerRow | null {
+  const held = new Set(heldGridDates.map((value) => truncMs(micros(value))))
+  const isHeld = (us: number) => stored === null && held.has(truncMs(us))
   const written = DATED.filter(
     (column) =>
       typeof incoming[column] === 'string' &&
       (typeof stored?.[column] !== 'string' ||
-        truncMs(micros(stored[column])) !== truncMs(micros(incoming[column]!))),
+        truncMs(micros(stored[column])) !== truncMs(micros(incoming[column]!))) &&
+      !(column === 'grid_written_at' && isHeld(micros(incoming[column]!))),
   )
 
-  const grid = changedGridWritten(incoming, stored)
+  const changedGrid = changedGridWritten(incoming, stored)
+  const grid = changedGrid && !isHeld(changedGrid.us) ? changedGrid : null
 
   const now = truncMs(nowMs * 1000 + SERVER_MICROSECONDS)
   let shift: number | null = null

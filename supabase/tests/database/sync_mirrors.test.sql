@@ -1035,6 +1035,37 @@ insert into public.treatment (user_id, id, animal_id, name, type, created_at, up
     '00000000-0000-4000-8000-0000000000b1', 'Milbemax', 'deworming',
     pg_temp.now_ms() + interval '3 days', pg_temp.now_ms() + interval '3 days',
     'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+create function pg_temp.period(id uuid, treatment_id uuid, created_at timestamptz,
+  grid_written_at timestamptz, grid_before text) returns void language sql as $$
+  insert into public.treatment_period (user_id, id, treatment_id, animal_id, starts_on, first_due_on,
+    frequency_value, frequency_unit, times, created_at, updated_at, settings_written_at,
+    grid_written_at, grid_before, created_by_device, updated_by_device) values
+    ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', id, treatment_id, '00000000-0000-4000-8000-0000000000b1',
+      '2026-03-01', '2026-03-01', 3, 'day', '20:00', created_at, created_at, created_at,
+      grid_written_at, grid_before,
+      'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee')
+$$;
+
+-- P1, créée par B à l'heure le 1er mars : sa date de grille est juste, le serveur la tient.
+select set_config('request.headers', '', true);
+select pg_temp.period('00000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-0000000000c1',
+  pg_temp.now_ms() - interval '8 days', pg_temp.now_ms() - interval '8 days', null);
+select pg_temp.in_push('00000000-0000-4000-8000-0000000000f6');
+select pg_temp.period('00000000-0000-4000-8000-0000000000d5', '00000000-0000-4000-8000-0000000000c1',
+  pg_temp.now_ms() + interval '3 days' - interval '10 minutes', pg_temp.now_ms() - interval '8 days',
+  pg_temp.grid(pg_temp.now_ms() - interval '8 days'));
+select is(
+  (select array[created_at::text, grid_written_at::text, grid_before] from public.treatment_period
+   where id = '00000000-0000-4000-8000-0000000000d5'),
+  array[(pg_temp.now_ms() - interval '10 minutes')::text,
+    (pg_temp.now_ms() - interval '8 days')::text, pg_temp.grid(pg_temp.now_ms() - interval '8 days')],
+  'une date de grille héritée que le serveur tient pour une autre période du traitement ne recule pas');
+
+-- P2 puis P3 dans le même envoi : P3 hérite de la date de P2, encore à l'heure de A.
+select pg_temp.period('00000000-0000-4000-8000-0000000000d2', '00000000-0000-4000-8000-0000000000c1',
+  pg_temp.now_ms() + interval '3 days' - interval '5 minutes',
+  pg_temp.now_ms() + interval '3 days' - interval '5 minutes',
+  pg_temp.grid(pg_temp.now_ms() - interval '8 days'));
 insert into public.treatment_period (user_id, id, treatment_id, animal_id, starts_on, first_due_on,
   frequency_value, frequency_unit, times, created_at, updated_at, settings_written_at,
   grid_written_at, grid_before, created_by_device, updated_by_device) values
@@ -1086,6 +1117,51 @@ where id = '00000000-0000-4000-8000-0000000000d3';
 select is(
   (select grid_before from public.treatment_period where id = '00000000-0000-4000-8000-0000000000d3'),
   '{"frequency":{"value":2,"unit":"day"}}', 'une grille d''avant sans date passe telle quelle');
+
+-- Garde-fous : seules comptent les périodes du même traitement, du même compte.
+select set_config('request.headers', '', true);
+insert into public.treatment (user_id, id, animal_id, name, type, created_at, updated_at,
+  created_by_device, updated_by_device) values
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '00000000-0000-4000-8000-0000000000c2',
+    '00000000-0000-4000-8000-0000000000b1', 'Drontal', 'deworming',
+    pg_temp.now_ms() - interval '20 days', pg_temp.now_ms() - interval '20 days',
+    'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+select pg_temp.period('00000000-0000-4000-8000-0000000000d6', '00000000-0000-4000-8000-0000000000c2',
+  pg_temp.now_ms() - interval '20 days', pg_temp.now_ms() - interval '20 days', null);
+select pg_temp.as_owner();
+insert into public.animal (user_id, id, name, species, created_at, updated_at, created_by_device,
+  updated_by_device) values
+  ('dddddddd-dddd-4ddd-8ddd-dddddddddddd', '00000000-0000-4000-8000-0000000000b1', 'Luna', 'cat',
+    now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+insert into public.treatment (user_id, id, animal_id, name, type, created_at, updated_at,
+  created_by_device, updated_by_device) values
+  ('dddddddd-dddd-4ddd-8ddd-dddddddddddd', '00000000-0000-4000-8000-0000000000c1',
+    '00000000-0000-4000-8000-0000000000b1', 'Milbemax', 'deworming', now(), now(),
+    'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+insert into public.treatment_period (user_id, id, treatment_id, animal_id, starts_on, first_due_on,
+  frequency_value, frequency_unit, times, created_at, updated_at, settings_written_at,
+  grid_written_at, created_by_device, updated_by_device) values
+  ('dddddddd-dddd-4ddd-8ddd-dddddddddddd', '00000000-0000-4000-8000-0000000000d8',
+    '00000000-0000-4000-8000-0000000000c1', '00000000-0000-4000-8000-0000000000b1',
+    '2026-03-01', '2026-03-01', 3, 'day', '20:00', now(), now(), now(),
+    pg_temp.now_ms() - interval '30 days',
+    'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+select pg_temp.as_user('b');
+select pg_temp.in_push('00000000-0000-4000-8000-0000000000f6');
+select pg_temp.period('00000000-0000-4000-8000-0000000000d7', '00000000-0000-4000-8000-0000000000c1',
+  pg_temp.now_ms() + interval '3 days', pg_temp.now_ms() - interval '20 days',
+  pg_temp.grid(pg_temp.now_ms() - interval '20 days'));
+select pg_temp.period('00000000-0000-4000-8000-0000000000d9', '00000000-0000-4000-8000-0000000000c1',
+  pg_temp.now_ms() + interval '3 days', pg_temp.now_ms() - interval '30 days',
+  pg_temp.grid(pg_temp.now_ms() - interval '30 days'));
+select results_eq(
+  $$ select grid_written_at, grid_before from public.treatment_period
+     where id in ('00000000-0000-4000-8000-0000000000d7', '00000000-0000-4000-8000-0000000000d9')
+     order by id $$,
+  $$ values
+     (pg_temp.now_ms() - interval '23 days', pg_temp.grid(pg_temp.now_ms() - interval '23 days')),
+     (pg_temp.now_ms() - interval '33 days', pg_temp.grid(pg_temp.now_ms() - interval '33 days')) $$,
+  'une date tenue pour un autre traitement ou un autre compte ne compte pas : elle recule');
 
 select set_config('request.headers', '', true);
 insert into public.treatment_period (user_id, id, treatment_id, animal_id, starts_on, first_due_on,
