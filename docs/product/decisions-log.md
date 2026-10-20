@@ -3224,7 +3224,11 @@ délégué les lectures de règles ; #939, #938, #882).
   décalage de cette ancienne arrivée, les journées suivantes avancent ou reculent d'autant. Tous les
   jours à 20 h, la dose reportée du 19 mars sur la date choisie du 27, avancée au 26 avec la case :
   26, 27, 28… (graine 9100000170 ; avant : 26, 28, 29, une dose sautée). — Écartée : la case ne fait
-  partir que les rangs du même jour.
+  partir que les rangs du même jour. Quand ce décalage sort l'ancienne arrivée de la grille, la dose
+  arrive quand même, avec les rangs qu'elle emmène, aux heures du réglage qui a choisi la date (#796) :
+  chaque mois à 8 h et 20 h, date choisie le 21 avril, la dose avancée au 17 mars avec la case donne
+  le 17 mars à 8 h et 20 h, puis le 17 avril (graines 9100001223 et 9100000406 ; avant, la dose
+  disparaissait).
 - Q4, précision du 20 octobre 2026 : sur la journée de départ lue aux heures du réglage en vigueur, le
   report emporte la dose de son rang, qui arrive à son heure écrite (Q3) ; avec la case, les rangs
   suivants partent avec elle et arrivent à leurs heures. La dose du report n'apparaît qu'une fois :
