@@ -142,7 +142,7 @@ Gratuit, sans compte :
 MémoPatte Plus (1,49 €/mois, 9,99 €/an ou 29,99 € à vie) :
 
 - Compte + sauvegarde cloud Supabase + restauration
-- Même carnet sur plusieurs appareils (push + pull, la modification la plus récente gagne)
+- Même carnet sur tablette et téléphone, **un appareil à la fois** (push + pull, la modification la plus récente remplace l'autre, sans fusion fine entre deux appareils ; décision du 2026-10-20)
 - Photos sauvegardées
 
 Hors scope :
