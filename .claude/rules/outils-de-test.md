@@ -35,6 +35,7 @@ Les scripts vivent dans `scripts/test-device/`, versionnés pour suivre d'un pos
 - Une campagne ne compte que si elle **prouve ce qu'elle a joué** : la spec échoue si ses réglages sont illisibles et annonce « Campagne : N carnets × M gestes, graines A à B », visible avec `--reporter=verbose`. Le rapport d'une campagne donne ce nombre.
 - Une série longue se lance sous un verrou partagé avec les autres suites lourdes (`flock`), jamais en parallèle d'une autre suite complète.
 - Avant de merger un changement du moteur : une série jamais jouée par l'implémenteur, lancée par le relecteur ; toute graine rouge est soit corrigée, soit reproduite à l'identique par le moteur de `main` et documentée avec un exemple concret (#721).
+- **Volume fixé (Gaelle, 2026-10-20, « ce moteur v2 est vraiment trop long »)** : avant un merge, seules bloquent les campagnes **à un téléphone** (invariants, oracle, rappels), **une** série de 1 000 carnets × 30 gestes chacune sur des graines neuves, lancée par le relecteur. Les campagnes à deux téléphones, notes, doses listées et menu sont **informatives** : au plus une fois par PR, 500 carnets, jamais relancées « jusqu'à ce que ça passe » ; un rouge y fait un ticket, pas un blocage. Pas de propriété de dizaines de milliers de jugements à chaque passe de relecture.
 
 ## Pièges
 
