@@ -1,5 +1,6 @@
 import type { DayCoverage } from './calendar-coverage'
 import type { notDueArrivals } from './calendar-not-due'
+import { withCededDoses } from './ceded-day'
 import { hoursOf, keyOf, sameFrequency, sameHours } from './grid'
 import type { Journey, journeys } from './journeys'
 import type { EpisodeLines } from './lines'
@@ -103,7 +104,8 @@ export function moveReports(input: ReportsInput) {
     })
     const rewrite = verdict === 'kept' ? null : verdict
     const origin = rewrite === null ? (days.get(dueOn) ?? left.get(dueOn)) : undefined
-    const read = origin === undefined ? undefined : withCededDoses(dueOn, origin)
+    const ceded = arrivalsOnly.has(dueOn) ? left.get(dueOn) : undefined
+    const read = origin && withCededDoses(origin, ceded)
     const from = origin?.setting ?? settingOf(report.settingId)
     if (rewrite === 'rewrite') {
       effects.set(report.id, { kind: 'idle', reason: 'nothing-to-move' })
@@ -246,9 +248,8 @@ export function moveReports(input: ReportsInput) {
     const own = sameHours(arrival, under) ? arrival : under
     const arriving = chosen ? hoursOf(chosen.times) : bringing
     notDue.arrive(report, targetOn!, arriving)
-    const existing = into.get(targetOn!)
-    if (existing === undefined && into === days) arrivalsOnly.add(targetOn!)
-    const day = existing ?? { setting: own, hours: [] }
+    if (into === days && !days.has(targetOn!)) arrivalsOnly.add(targetOn!)
+    const day = into.get(targetOn!) ?? { setting: own, hours: [] }
     // R7, R9.2 : un nouveau rythme qui part du jour d'arrivée d'un report lui laisse ses seules heures.
     if (openings.delete(targetOn!)) {
       day.hours = []
@@ -261,16 +262,6 @@ export function moveReports(input: ReportsInput) {
     // R7 : relue aux nouvelles heures, la date choisie n'apporte rien de plus au report qui en part.
     const seen = relaid ? [] : arriving
     arrived.set(targetOn!, [...(arrived.get(targetOn!) ?? []), ...seen])
-  }
-
-  // R4, R7 : faite des seules doses arrivées, la journée où un réglage cède la place garde aussi les siennes.
-  function withCededDoses(day: Day, origin: Journey): Journey {
-    const ceded = arrivalsOnly.has(day) ? left.get(day) : undefined
-    if (ceded === undefined) return origin
-    return {
-      setting: origin.setting,
-      hours: [...new Set([...origin.hours, ...ceded.hours])].sort(),
-    }
   }
 
   // R7, Q4 : son heure et les suivantes ; son heure absente, la dose de son rang.
