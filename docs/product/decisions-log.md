@@ -3212,3 +3212,10 @@ réelles puis corrige ses heures à 10 h 05 ; B, à l'heure, avait reporté une 
   création que le serveur tient pour la ligne elle-même. — Raison : une date que le serveur connaît
   est juste par construction, quel que soit le geste qui la recopie ; limitée à la création, la règle
   laissait Milo au 26 février après deux « Modifier » le même jour.
+- Reprise et course avec un autre téléphone (20 octobre 2026, relecture de la PR #980, bonne
+  pratique tranchée par la session) : la ligne gardée par le serveur se reprend après le pull ; si
+  le pull tire une version plus récente de la même ligne, c'est elle qui est posée. Exemple : lundi
+  19 octobre, A a 3 jours d'avance ; à 8 h réelles il renomme Luna « Luna A » et son cycle commence ;
+  avant que A tire les animaux, B renomme Luna « Luna B » à 8 h 00 min 05 s et synchronise ; A finit
+  avec « Luna B », comme le serveur. — Écarté : poser la version gardée à l'envoi, qui écrasait
+  « Luna B » sur A pour toujours.

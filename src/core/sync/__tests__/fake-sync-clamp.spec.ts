@@ -121,7 +121,16 @@ describe('clampedWrite, la règle du serveur rejouée par le faux serveur', () =
     })
 
     it('hors du format ISO de l’app, elle passe telle quelle', () => {
-      for (const value of ['infinity', 'now', 'Oct 25 2026', '200000-01-01T00:00:00Z']) {
+      for (const value of [
+        'infinity',
+        'now',
+        'Oct 25 2026',
+        '200000-01-01T00:00:00Z',
+        '2026-02-30T00:00Z',
+        '0000-01-01T00:00Z',
+        '9999-12-31T23:59:59.999Z',
+        '0001-01-01T00:00Z',
+      ]) {
         const text = `{"writtenAt":"${value}","runs":[]}`
         const row = { id: 'p3', updated_at: at(3 * DAY), grid_before: text }
 

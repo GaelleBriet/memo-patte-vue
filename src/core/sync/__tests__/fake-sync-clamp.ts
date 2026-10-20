@@ -42,9 +42,9 @@ export function serverInstant(nowMs: number): string {
 }
 
 /** Les dates de grille d'une période, en microsecondes : la colonne et celle de sa grille d'avant. */
-export function gridDatesOf(period: ServerRow): number[] {
+export function gridDatesOf(period: ServerRow, nowMs: number): number[] {
   const column = typeof period.grid_written_at === 'string' ? [micros(period.grid_written_at)] : []
-  const before = gridWrittenOf(period.grid_before)
+  const before = gridWrittenOf(period.grid_before, nowMs)
   return before ? [...column, before.us] : column
 }
 
@@ -61,7 +61,10 @@ export function clampedWrite(
   heldGridDates: readonly number[] | null = null,
 ): ServerRow | null {
   const createdAt = typeof stored?.created_at === 'string' ? [micros(stored.created_at)] : []
-  const held = heldGridDates && new Set([...heldGridDates, ...createdAt].map(truncMs))
+  const bound = truncMs(nowMs * 1000 + SERVER_MICROSECONDS) + DAY_US
+  const held =
+    heldGridDates &&
+    new Set([...heldGridDates, ...createdAt].map(truncMs).filter((us) => us <= bound))
   const isHeld = (us: number) => held?.has(truncMs(us)) ?? false
   const written = DATED.filter(
     (column) =>
@@ -71,7 +74,7 @@ export function clampedWrite(
       !(column === 'grid_written_at' && isHeld(micros(incoming[column]!))),
   )
 
-  const changedGrid = changedGridWritten(incoming, stored)
+  const changedGrid = changedGridWritten(incoming, stored, nowMs)
   const grid = changedGrid && !isHeld(changedGrid.us) ? changedGrid : null
 
   const now = truncMs(nowMs * 1000 + SERVER_MICROSECONDS)
@@ -94,11 +97,15 @@ export function clampedWrite(
 }
 
 /** La date de grille de `grid_before`, quand l'écriture change la colonne et cette date. */
-function changedGridWritten(incoming: ServerRow, stored: ServerRow | null): GridWritten | null {
+function changedGridWritten(
+  incoming: ServerRow,
+  stored: ServerRow | null,
+  nowMs: number,
+): GridWritten | null {
   const text = incoming.grid_before
   if (typeof text !== 'string' || text === (stored?.grid_before ?? null)) return null
-  const written = gridWrittenOf(text)
-  const before = gridWrittenOf(stored?.grid_before)
+  const written = gridWrittenOf(text, nowMs)
+  const before = gridWrittenOf(stored?.grid_before, nowMs)
   if (written === null || (before !== null && truncMs(before.us) === truncMs(written.us))) {
     return null
   }

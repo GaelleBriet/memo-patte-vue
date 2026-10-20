@@ -324,6 +324,55 @@ describe('createSyncCycle', () => {
         expect(onRemindersOutdated).not.toHaveBeenCalled()
       })
 
+      it.each(['animal', 'treatment_period', 'treatment_dose'])(
+        '%s : une ligne tirée plus récente que celle gardée à l’envoi la remplace pour la reprise',
+        async (entity) => {
+          const pulled = row('a1', '2026-10-19T08:06:00.000Z', 'Luna B')
+          const table = fakeTable(entity, [page([pulled], '2026-10-19T08:07:00.000Z')])
+          table.serverKeeps.set(SENT.id, KEPT)
+          await db.run(
+            'INSERT INTO sync_scratch (id, entity, value, updated_at) VALUES (?, ?, ?, ?)',
+            [SENT.id, entity, 'Milbemax', SENT.updated_at],
+          )
+          table.localRows.set(SENT.id, SENT)
+
+          await createSyncCycle({
+            db,
+            outbox: createFakeOutbox([{ entity, entityId: SENT.id, queuedAt: T_ROW, attempts: 0 }]),
+            pushes,
+            tables: [table],
+            userId: () => 'user-1',
+            isEligible: () => true,
+          }).runCycle()
+
+          expect(await local()).toEqual([
+            { id: 'a1', value: 'Luna B', updated_at: '2026-10-19T08:06:00.000Z' },
+          ])
+        },
+      )
+
+      it('à partir de 200 entrées toutes gardées autrement, chaque ligne part une seule fois', async () => {
+        const animal = fakeTable('animal')
+        const entries: FakeOutboxEntry[] = []
+        for (let index = 0; index < 201; index += 1) {
+          const id = `animal-${index}`
+          animal.localRows.set(id, row(id, '2026-10-22T08:00:00.000Z', 'x'))
+          animal.serverKeeps.set(id, row(id, '2026-10-19T08:00:00.000Z', 'x'))
+          entries.push({ entity: 'animal', entityId: id, queuedAt: T_ROW, attempts: 0 })
+        }
+
+        await createSyncCycle({
+          db,
+          outbox: createFakeOutbox(entries),
+          pushes,
+          tables: [animal],
+          userId: () => 'user-1',
+          isEligible: () => true,
+        }).runCycle()
+
+        expect(animal.pushed).toHaveLength(201)
+      })
+
       it('une reprise impossible ne fait pas échouer le cycle : l’entrée reste en file', async () => {
         const animal = fakeTable('animal')
         animal.serverKeeps.set(SENT.id, KEPT)

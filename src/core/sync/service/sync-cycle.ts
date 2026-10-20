@@ -52,6 +52,8 @@ interface KeptRow {
   kept: SyncRow
 }
 
+const keyOf = (entity: string, id: string) => `${entity}/${id}`
+
 const sameRow = (sent: SyncRow, kept: SyncRow) =>
   Object.keys(kept).every((column) => (sent[column] ?? null) === (kept[column] ?? null))
 
@@ -75,13 +77,13 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
     let envoi: SyncPush | null = null
     for (;;) {
       const claimed = (await deps.outbox.listPending())
-        .filter(({ entity, entityId }) => !handled.has(`${entity}/${entityId}`))
+        .filter(({ entity, entityId }) => !handled.has(keyOf(entity, entityId)))
         .slice(0, PUSH_CLAIM_SIZE)
       if (claimed.length === 0) return keptRows
       envoi ??= await deps.pushes.open(userId, new Date().toISOString())
 
       for (const entry of claimed) {
-        handled.add(`${entry.entity}/${entry.entityId}`)
+        handled.add(keyOf(entry.entity, entry.entityId))
         const table = tablesByEntity.get(entry.entity)
         const sent = table ? await table.getRowForPush(entry.entityId) : null
         const kept = table && sent ? await table.pushRow(userId, sent, envoi) : null
@@ -116,14 +118,27 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
     }
   }
 
-  async function applyPage(table: SyncableTable, rows: SyncRow[]): Promise<void> {
+  /**
+   * Une ligne tirée plus récente que celle gardée à l'envoi la remplace pour la reprise : la ligne
+   * locale, encore datée par l'horloge du téléphone, refuserait sinon la garde du pull.
+   */
+  async function applyPage(
+    table: SyncableTable,
+    rows: SyncRow[],
+    keptByKey: ReadonlyMap<string, KeptRow>,
+  ): Promise<void> {
     const normalized = rows.map(normalizeSyncTimestamps)
     await runUnqueued(normalized.map((row) => table.applyRemoteRowStatement(row)))
+    for (const row of normalized) {
+      const kept = keptByKey.get(keyOf(table.entity, row.id))
+      if (kept && row.updated_at > kept.kept.updated_at) kept.kept = row
+    }
   }
 
   async function pullTable(
     userId: string,
     table: SyncableTable,
+    keptByKey: ReadonlyMap<string, KeptRow>,
     onCursorAdvanced: () => void,
   ): Promise<void> {
     let pageCursor = (await deps.outbox.getLastPulledAt(table.entity)) ?? EPOCH
@@ -132,7 +147,7 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
       const page = await table.pullPage(userId, pageCursor, PULL_PAGE_SIZE)
       if (page.rows.length === 0) break
 
-      await applyPage(table, page.rows)
+      await applyPage(table, page.rows, keptByKey)
 
       const cursor = page.cursor
       if (cursor === null || cursor <= pageCursor) {
@@ -148,9 +163,16 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
     }
   }
 
-  async function pull(userId: string, onRemindersTouched: (entity: string) => void): Promise<void> {
+  async function pull(
+    userId: string,
+    keptRows: readonly KeptRow[],
+    onRemindersTouched: (entity: string) => void,
+  ): Promise<void> {
+    const keptByKey = new Map(
+      keptRows.map((kept) => [keyOf(kept.table.entity, kept.sent.id), kept]),
+    )
     for (const table of deps.tables) {
-      await pullTable(userId, table, () => onRemindersTouched(table.entity))
+      await pullTable(userId, table, keptByKey, () => onRemindersTouched(table.entity))
     }
   }
 
@@ -168,7 +190,7 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
       let keptRows: KeptRow[] = []
       try {
         keptRows = await push(userId)
-        await pull(userId, onRemindersTouched)
+        await pull(userId, keptRows, onRemindersTouched)
       } finally {
         await keepServerRows(keptRows, onRemindersTouched)
         if (touchedReminders) await deps.onRemindersOutdated?.()

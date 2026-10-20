@@ -120,7 +120,10 @@ sans lui, une ligne datée 2030 gagne pour toujours et ne peut plus jamais être
   reprend en local sans la garde, si sa ligne n'a pas changé depuis l'envoi
   (`replacePushedRowStatement`). La reprise se fait en fin de cycle, après le pull, quand les
   lignes parentes sont là ; une reprise impossible ne fait pas échouer le cycle, la ligne reste en
-  file et repart au suivant.
+  file et repart au suivant. Si le pull tire, pour la même ligne, une version plus récente que celle
+  gardée à l'envoi (écrite par un autre téléphone entre-temps), c'est elle que la reprise pose : la
+  ligne locale, encore datée par l'horloge en avance, l'aurait sinon refusée et gardé pour toujours
+  une version que le serveur n'a plus.
 
 `server_updated_at := now()` dans tous les cas.
 

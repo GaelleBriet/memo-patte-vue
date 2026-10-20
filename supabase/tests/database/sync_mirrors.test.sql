@@ -1258,6 +1258,59 @@ select is(
   pg_temp.grid(pg_temp.now_ms()),
   'la date de la grille d''avant est bornée à now() + 24 h comme les autres');
 
+-- Une date de grille d'avant valide mais hors de la plage que Postgres sait décaler passe telle quelle.
+select pg_temp.as_user('b');
+select pg_temp.in_push('00000000-0000-4000-8000-0000000000f6');
+select lives_ok($$
+  select pg_temp.period('00000000-0000-4000-8000-000000000301', '00000000-0000-4000-8000-0000000000c1',
+    pg_temp.now_ms() + interval '3 days', pg_temp.now_ms() + interval '3 days',
+    '{"writtenAt":"9999-12-31T23:59:59.999Z","runs":[]}');
+  select pg_temp.period('00000000-0000-4000-8000-000000000302', '00000000-0000-4000-8000-0000000000c1',
+    pg_temp.now_ms() + interval '3 days', pg_temp.now_ms() + interval '3 days',
+    '{"writtenAt":"0001-01-01T00:00Z","runs":[]}')
+$$, 'une date de grille d''avant en l''an 9999 ou en l''an 1 ne fait pas échouer l''écriture');
+select results_eq(
+  $$ select grid_before from public.treatment_period
+     where id in ('00000000-0000-4000-8000-000000000301', '00000000-0000-4000-8000-000000000302')
+     order by id $$,
+  $$ values ('{"writtenAt":"9999-12-31T23:59:59.999Z","runs":[]}'),
+            ('{"writtenAt":"0001-01-01T00:00Z","runs":[]}') $$,
+  'elle est gardée telle quelle');
+
+-- Une date tenue ne vaut que dans la borne de 24 h ; la grille d'avant d'une autre période compte.
+select pg_temp.as_owner();
+select set_config('request.headers', '', true);
+alter table public.treatment_period disable trigger treatment_period_clamp_sync_timestamps;
+insert into public.treatment_period (user_id, id, treatment_id, animal_id, starts_on, first_due_on,
+  frequency_value, frequency_unit, times, created_at, updated_at, settings_written_at,
+  grid_written_at, grid_before, created_by_device, updated_by_device) values
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '00000000-0000-4000-8000-000000000303',
+    '00000000-0000-4000-8000-0000000000c1', '00000000-0000-4000-8000-0000000000b1',
+    '2026-03-01', '2026-03-01', 3, 'day', '20:00', pg_temp.now_ms() - interval '40 days',
+    pg_temp.now_ms() - interval '40 days', pg_temp.now_ms() - interval '40 days',
+    pg_temp.now_ms() - interval '40 days', '{"writtenAt":"2030-01-01T00:00:00.000Z","runs":[]}',
+    'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'),
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '00000000-0000-4000-8000-000000000304',
+    '00000000-0000-4000-8000-0000000000c1', '00000000-0000-4000-8000-0000000000b1',
+    '2026-03-01', '2026-03-01', 3, 'day', '20:00', pg_temp.now_ms() - interval '50 days',
+    pg_temp.now_ms() - interval '50 days', pg_temp.now_ms() - interval '50 days',
+    pg_temp.now_ms() - interval '50 days', pg_temp.grid(pg_temp.now_ms() - interval '45 days'),
+    'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+alter table public.treatment_period enable trigger treatment_period_clamp_sync_timestamps;
+select pg_temp.as_user('b');
+select pg_temp.period('00000000-0000-4000-8000-000000000305', '00000000-0000-4000-8000-0000000000c1',
+  pg_temp.now_ms(), '2030-01-01T00:00:00.000Z', null);
+select pg_temp.in_push('00000000-0000-4000-8000-0000000000f6');
+select pg_temp.period('00000000-0000-4000-8000-000000000306', '00000000-0000-4000-8000-0000000000c1',
+  pg_temp.now_ms() + interval '3 days', pg_temp.now_ms() - interval '45 days', null);
+select results_eq(
+  $$ select grid_written_at from public.treatment_period
+     where id in ('00000000-0000-4000-8000-000000000305', '00000000-0000-4000-8000-000000000306')
+     order by id $$,
+  $$ values (pg_temp.now_ms()), (pg_temp.now_ms() - interval '45 days') $$,
+  'une date tenue au-delà de 24 h est bornée ; la grille d''avant d''une autre période compte comme tenue');
+select set_config('request.headers', '', true);
+
 -- Une connexion qui a déjà écrêté garde la forme de la table : une colonne ajoutée ensuite ne se perd pas.
 select pg_temp.as_owner();
 alter table public.animal add column added_after text;

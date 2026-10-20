@@ -1,6 +1,26 @@
 import type { SyncRowValue } from '@/core/supabase/guarded-upsert'
 
-const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?Z$/
+const ISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(\.\d+)?)?Z$/
+const HUNDRED_YEARS_MS = 100 * 365.25 * 24 * 60 * 60 * 1000
+
+/** Comme `pg_input_is_valid(…, 'timestamptz')` sur ce format, puis la plage que le serveur sait décaler. */
+function strictInstant(raw: string, nowMs: number): number | null {
+  const parts = ISO.exec(raw)
+  if (!parts) return null
+  const [year, month, day, hour, minute, second = 0] = parts.slice(1, 7).map(Number)
+  const ms = Date.UTC(year!, month! - 1, day!, hour!, minute!, second)
+  const back = new Date(ms)
+  const exact =
+    back.getUTCFullYear() === year &&
+    back.getUTCMonth() === month! - 1 &&
+    back.getUTCDate() === day &&
+    hour! < 24 &&
+    minute! < 60 &&
+    second < 60
+  if (!exact) return null
+  const at = Date.parse(raw)
+  return year! >= 1900 && at <= nowMs + HUNDRED_YEARS_MS ? at : null
+}
 
 export interface GridWritten {
   text: string
@@ -18,11 +38,11 @@ function parsed(value: SyncRowValue | undefined): unknown {
 }
 
 /** La date de `writtenAt` en microsecondes, seulement au format ISO strict de l'app, comme le serveur. */
-export function gridWrittenOf(value: SyncRowValue | undefined): GridWritten | null {
+export function gridWrittenOf(value: SyncRowValue | undefined, nowMs: number): GridWritten | null {
   const grid = parsed(value)
   const raw = (grid as { writtenAt?: unknown } | null | undefined)?.writtenAt
-  if (typeof raw !== 'string' || !ISO.test(raw) || Number.isNaN(Date.parse(raw))) return null
-  return { text: value as string, raw, us: Date.parse(raw) * 1000 }
+  const at = typeof raw === 'string' ? strictInstant(raw, nowMs) : null
+  return at === null ? null : { text: value as string, raw: raw as string, us: at * 1000 }
 }
 
 /** Un JSON tel que Postgres le rend en `jsonb::text` : clés courtes d'abord, espaces après `:` et `,`. */

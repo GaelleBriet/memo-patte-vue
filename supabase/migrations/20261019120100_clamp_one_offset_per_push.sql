@@ -43,6 +43,10 @@ begin
     if grid_written_text ~ iso and pg_input_is_valid(grid_written_text, 'timestamptz') then
       grid_written := grid_written_text::timestamptz;
     end if;
+    -- Hors de cette plage, décaler sortirait des dates que Postgres sait écrire.
+    if grid_written < '1900-01-01T00:00:00Z'::timestamptz or grid_written > now() + interval '100 years' then
+      grid_written := null;
+    end if;
     if pg_input_is_valid(stored ->> 'grid_before', 'jsonb') then
       stored_grid_written := case
         when (stored ->> 'grid_before')::jsonb ->> 'writtenAt' ~ iso
@@ -60,7 +64,8 @@ begin
   -- création de la ligne, est juste : recopiée par un geste, elle ne recule pas.
   if tg_table_name = 'treatment_period'
       and ('grid_written_at' = any(written) or grid_written is not null) then
-    select coalesce(array_agg(date_trunc('milliseconds', d)) filter (where d is not null), '{}')
+    select coalesce(array_agg(date_trunc('milliseconds', d))
+        filter (where d is not null and d <= now_ms + interval '24 hours'), '{}')
     into held
     from (
       select p.grid_written_at as d
