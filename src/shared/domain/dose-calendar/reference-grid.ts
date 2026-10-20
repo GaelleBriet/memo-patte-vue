@@ -41,8 +41,13 @@ export function gridDays(origin: string, frequency: ReferenceFrequency, from: st
   return days
 }
 
+const inDays = ({ value, unit }: ReferenceFrequency) => (unit === 'week' ? value * 7 : value)
+
+// Deux fréquences en semaines ou en jours sont la même si elles font le même nombre de jours.
 export const sameFrequency = (a: ReferenceSetting, b: ReferenceSetting) =>
-  a.frequency.value === b.frequency.value && a.frequency.unit === b.frequency.unit
+  a.frequency.unit === 'month' || b.frequency.unit === 'month'
+    ? a.frequency.value === b.frequency.value && a.frequency.unit === b.frequency.unit
+    : inDays(a.frequency) === inDays(b.frequency)
 
 export const isOnGrid = (origin: string, frequency: ReferenceFrequency, day: string) =>
   gridDays(origin, frequency, day, day).length === 1

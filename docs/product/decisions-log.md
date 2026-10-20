@@ -2974,6 +2974,12 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
+## 2026-10-19 — 2 semaines et 14 jours sont la même fréquence (#979)
+
+- Décision de la session d'analyse du moteur du 19 octobre 2026, à qui Gaelle a délégué les lectures de règles ; correction de cohérence, pas un choix produit : « 2 semaines » et « 14 jours » (« 1 semaine » et « 7 jours ») donnent la même suite de jours, le moteur les lit comme une seule fréquence ; un mois n'est jamais égal à un nombre de jours. Milo, toutes les 2 semaines depuis le 2 mars, dose du 16 reportée au 18 ; le 20, « Modifier » à 14 jours : prochaine dose le 30 mars, comme à 2 semaines (avant : un autre calendrier que celui de 2 semaines).
+- Le passage de 2 semaines à 14 jours garde aussi la date de la grille, comme une fréquence gardée (graines 9698000361 et 9698000812).
+- Alternative écartée : deux calendriers pour un même rythme, selon l'unité saisie.
+
 ## 2026-10-18 — Rappels : le moteur dit s'il a tout lu, le plan s'en déduit (#933)
 
 - Décision de Gaelle du 18 octobre 2026, par la session d'analyse du moteur à qui elle a délégué les lectures de règles : le moteur rend toujours la dernière journée entière et dit s'il a tout lu ; « complet » dans le plan des rappels s'en déduit ; la reprogrammation à chaque ouverture (RA-13) est un filet, pas une règle de calcul. Milo, rappel « 1 h avant », app ouverte le 10 octobre à 23 h 59 : 59 rappels jusqu'au 9 décembre et le dernier porte le relais (avant : plan « complet » sans relais, plus aucun rappel dès le 10 décembre).

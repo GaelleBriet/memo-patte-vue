@@ -49,8 +49,13 @@ export function runDays(runs: readonly GridRun[], frequency: Frequency, from: Da
 export const isOnGrid = (origin: Day, frequency: Frequency, day: Day): boolean =>
   gridDays(origin, frequency, day, day).length === 1
 
-export const sameFrequency = (a: Frequency, b: Frequency): boolean =>
-  a.value === b.value && a.unit === b.unit
+const DAYS_PER_UNIT = { day: 1, week: 7 } as const
+
+/** La même suite de jours : semaines et jours se convertissent, un mois jamais. */
+export function sameFrequency(a: Frequency, b: Frequency): boolean {
+  if (a.unit === 'month' || b.unit === 'month') return a.value === b.value && a.unit === b.unit
+  return a.value * DAYS_PER_UNIT[a.unit] === b.value * DAYS_PER_UNIT[b.unit]
+}
 
 /** R3, R9 : à fréquence gardée, un réglage sans origine, ou dont l'origine tombe sur la grille en vigueur, la continue. */
 export const continuesGrid = (

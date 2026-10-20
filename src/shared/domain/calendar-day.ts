@@ -25,12 +25,17 @@ export function toDay(date: Date): string {
   return formatISO(date, { representation: 'date' })
 }
 
+function shifted(date: string, days: number): string {
+  if (!isCalendarDay(date)) throw new RangeError(`Date civile invalide : ${date}`)
+  return toDay(addDays(toDate(date), days))
+}
+
 export function nextDay(date: string): string {
-  return toDay(addDays(toDate(date), 1))
+  return shifted(date, 1)
 }
 
 export function previousDay(date: string): string {
-  return toDay(addDays(toDate(date), -1))
+  return shifted(date, -1)
 }
 
 export function compareOrdinal(a: string, b: string): number {
