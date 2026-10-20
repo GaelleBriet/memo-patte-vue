@@ -1,5 +1,11 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-10-20 (matin) : **Gaelle : accélérer le moteur v2.** Chantier « deux téléphones » clos après #958
+  (résidus dans un ticket, repris avec #83) ; une relecture + une re-relecture puis merge ; campagnes
+  bloquantes à un téléphone seulement, volumes fixés (`outils-de-test.md`, `couts-agents.md`). Reste
+  avant un moteur utilisable : #958, PDF « pas à donner », #946, #910. Décisions de règles des 19 et 20
+  octobre dans le coffre, `product/questions-analyse-moteur.md` (Q9 à Q17).
+
 - 2026-10-13 (nuit) : **moteur des doses v2 en place, ancien moteur supprimé** (pas 10, #757) : tous
   les écrans, les rappels et les exports lisent `src/shared/domain/dose-calendar/` ; l'oracle compare
   v2 au modèle naïf. Ouverts : #810 et #817 (#825). Téléphone : réinstaller le build de `main` dans
