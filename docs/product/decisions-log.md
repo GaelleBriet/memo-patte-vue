@@ -2974,6 +2974,20 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
+## 2026-10-20 — Plus : un appareil à la fois, plus de fusion fine entre deux appareils
+
+Décision de Gaelle, après dix jours de chantier sur l'arbitrage report contre réglage à deux
+téléphones : Plus promet le même carnet sur tablette et téléphone **utilisés l'un après l'autre** ;
+quand deux appareils modifient la même ligne sans connexion, la modification la plus récente
+remplace l'autre, sans arbitrage fin. L'aide le dit sur l'écran Plus et le site. — Pourquoi : chaque
+cas à deux appareils ouvrait de nouvelles règles et de nouveaux cas, pour une situation que
+personne ne rencontre avant le lancement de Plus ; un appareil à la fois couvre l'usage réel
+(noter une dose depuis la tablette un soir). — Ce qui reste : la synchro existante (push et pull
+par ligne, #83), les colonnes de #972, #977 et #980, qui servent aussi à un seul appareil. — Ce qui
+s'arrête : #986 (résidus à deux appareils) fermé hors périmètre, la campagne à deux téléphones
+retirée du bloquant. — Écarté : un seul appareil actif avec la tablette en lecture seule (un écran
+de prise de main de plus, et le cas réel devient impossible).
+
 ## 2026-10-19 — 2 semaines et 14 jours sont la même fréquence (#979)
 
 - Décision de la session d'analyse du moteur du 19 octobre 2026, à qui Gaelle a délégué les lectures de règles ; correction de cohérence, pas un choix produit : « 2 semaines » et « 14 jours » (« 1 semaine » et « 7 jours ») donnent la même suite de jours, le moteur les lit comme une seule fréquence ; un mois n'est jamais égal à un nombre de jours. Milo, toutes les 2 semaines depuis le 2 mars, dose du 16 reportée au 18 ; le 20, « Modifier » à 14 jours : prochaine dose le 30 mars, comme à 2 semaines (avant : un autre calendrier que celui de 2 semaines).

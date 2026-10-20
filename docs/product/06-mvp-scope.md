@@ -27,7 +27,7 @@ dernier document avant toute discussion technique.
 - Compte **optionnel**, créé uniquement au moment de souscrire MémoPatte Plus.
 - Sans compte, l'app est complète et fonctionne entièrement en local (SQLite). Aucune fonctionnalité locale n'est conditionnée au compte.
 - Filets de sécurité gratuits, sans serveur : **Auto Backup Android** (sauvegarde automatique des données de l'app sur le Drive de l'utilisateur, ≤ 25 Mo, photos exclues, restaurée à la réinstallation) et **export JSON/CSV** libre.
-- Avec Plus : compte (email + mot de passe ou Google), sauvegarde cloud garantie sur Supabase, restauration à la demande sur un nouvel appareil, **même carnet sur plusieurs appareils** (confirmé le 2026-09-07 : push + pull, la modification la plus récente gagne, pas de temps réel), photos sauvegardées.
+- Avec Plus : compte (email + mot de passe ou Google), sauvegarde cloud garantie sur Supabase, restauration à la demande sur un nouvel appareil, **même carnet sur tablette et téléphone, un appareil à la fois** (confirmé le 2026-09-07 : push + pull, la modification la plus récente gagne, pas de temps réel ; précisé le 2026-10-20 : aucune fusion fine entre deux appareils qui modifient la même ligne sans connexion, la plus récente remplace l'autre), photos sauvegardées.
 - À la souscription, les données locales existantes sont envoyées intégralement vers le compte (envoi complet, pas de réconciliation).
 - Message clair sur l'écran Plus : ce que fait Android tout seul, ce que Plus garantit en plus.
 
