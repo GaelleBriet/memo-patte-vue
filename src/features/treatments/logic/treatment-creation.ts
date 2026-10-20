@@ -1,6 +1,6 @@
 import { doseFieldsOf } from './treatment-dose-writes'
-import { treatmentReadingOf } from './treatment-reading-adapter'
-import { draftPeriod, DRAFT_ID, startsTooFarBack, tooOld, withRhythm } from './treatment-settings'
+import { carnetReadingOf, treatmentReadingOf } from './treatment-reading-adapter'
+import { openedCarnet, startsTooFarBack, tooOld, withRhythm } from './treatment-settings'
 import type { NewTreatmentPlan } from '../schema/treatment-plan.schema'
 import {
   treatmentCalendarSchema,
@@ -42,13 +42,9 @@ export function treatmentCreationSchemaFor(today: string) {
   })
 }
 
-function creationReading(
-  settings: TreatmentPeriodSettings,
-  periodId: string,
-  today: string,
-): TreatmentReading {
-  const period = { ...draftPeriod(settings, `${today}T23:59:59.999Z`), id: periodId }
-  return treatmentReadingOf({ periods: [period], doses: [] }, today)
+function creationReading(settings: TreatmentPeriodSettings, today: string): TreatmentReading {
+  const empty = treatmentReadingOf({ periods: [], doses: [] }, today)
+  return carnetReadingOf(openedCarnet(empty.input, settings))
 }
 
 // Q42 : les doses non renseignées, et la dose du moment quand elle est déjà passée (jamais celle du jour).
@@ -66,7 +62,7 @@ export function creationPastDues(calendar: TreatmentCalendarInput, today: string
   const settings = creationSettings({ ...parsed.data, doseQuantity: null, doseUnit: null })
   if (!treatmentPeriodSettingsSchema.safeParse(settings).success) return []
   try {
-    return pastDuesOfView(creationReading(settings, DRAFT_ID, today).view, today)
+    return pastDuesOfView(creationReading(settings, today).view, today)
   } catch (cause) {
     if (cause instanceof RangeError) return []
     throw cause
@@ -81,7 +77,7 @@ function pastDoseWrites(
   newId: () => string,
 ): NonNullable<NewTreatmentPlan['doses']> {
   if (pastDoses.length === 0) return []
-  const reading = creationReading(settings, periodId, today)
+  const reading = creationReading(settings, today)
   const pending = new Map(
     pastDuesOfView(reading.view, today).map((due) => [`${due.dueOn} ${due.dueTime ?? ''}`, due]),
   )
@@ -101,7 +97,7 @@ function pastDoseWrites(
     if (change === undefined || change.action !== 'create') {
       throw new RangeError(`Dose passée refusée par le calendrier : ${key}`)
     }
-    return { id: newId(), dose: doseFieldsOf(change.line) }
+    return { id: newId(), dose: { ...doseFieldsOf(change.line), periodId } }
   })
 }
 

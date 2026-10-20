@@ -125,6 +125,8 @@ function periode(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPerio
   return {
     ...legacyFactsOf(record.gridOriginOn),
     settingsWrittenAt: record.createdAt,
+    gridWrittenAt: record.createdAt,
+    gridBefore: null,
     ...record,
   }
 }

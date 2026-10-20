@@ -1,4 +1,6 @@
 import type { SqlStatement } from '@/core/db/db-client'
+import type { GridBefore } from '@/shared/domain/dose-calendar'
+import { gridBeforeColumn } from '../schema/grid-before.schema'
 import {
   treatmentPeriodSettingsSchema,
   type PeriodOrigin,
@@ -22,7 +24,11 @@ export function createPeriodCreation(deviceId: () => string) {
     insertStatement(
       period: TreatmentPeriod &
         Partial<TreatmentPeriodSettings> &
-        PeriodOrigin & { deletedAt: string | null },
+        PeriodOrigin & {
+          deletedAt: string | null
+          gridWrittenAt?: string
+          gridBefore?: GridBefore | null
+        },
     ): SqlStatement {
       const settings = treatmentPeriodSettingsSchema.parse({
         startsOn: period.startsOn,
@@ -59,6 +65,8 @@ export function createPeriodCreation(deviceId: () => string) {
           period.createdAt,
           period.updatedAt,
           period.createdAt,
+          period.gridWrittenAt ?? period.createdAt,
+          gridBeforeColumn(period.gridBefore ?? null),
           period.deletedAt,
           deviceId(),
           deviceId(),

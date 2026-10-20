@@ -1,6 +1,7 @@
 import {
   newSettings,
-  rewritesCalendar,
+  judgedGrid,
+  rewrittenSetting,
   treatmentView,
   type Frequency,
   type Line,
@@ -23,25 +24,31 @@ export type SettingsWalk = {
 
 const MAX_SETTINGS = 5
 
-/** Le carnet une fois le réglage écrit, comme le repository : identifiant, horodatage et date
- * d'écriture quand le calendrier change (#867). */
+/** Le carnet une fois le réglage écrit, comme le repository : identifiant, horodatage, date
+ * d'écriture quand le calendrier change (#867) et date de grille, héritée ou écrite. */
 export function settingsWritten(walk: SettingsWalk, plan: SettingsPlan): TreatmentViewInput {
   const { settings } = walk.input
   const at = walk.stamp()
   const lines = linesWritten(walk, plan.lines ?? [], at)
   if (plan.action === 'rewrite') {
-    const rewritten = settings.map((setting) => {
-      if (setting.id !== plan.id) return setting
-      const next = { ...setting, ...plan.setting }
-      return rewritesCalendar(setting, next) ? { ...next, updatedAt: at } : next
-    })
+    const rewritten = settings.map((setting) =>
+      setting.id === plan.id
+        ? rewrittenSetting(setting, plan.setting, () => at, {
+            input: walk.input,
+            lines: plan.lines ?? [],
+          })
+        : setting,
+    )
     return { ...walk.input, settings: rewritten, lines }
   }
+  const grid = judgedGrid(walk.input, plan)
   const created: Setting = {
     ...plan.setting,
     id: `s${settings.length + 1}`,
     stoppedOn: null,
     createdAt: at,
+    gridWrittenAt: grid.writtenAt ?? at,
+    gridBefore: grid.before,
   }
   return { ...walk.input, settings: [...settings, created], lines }
 }

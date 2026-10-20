@@ -12,6 +12,7 @@ const T_OLD = '2026-01-01T00:00:00.000Z'
 const T_LOCAL = '2026-01-01T00:05:00.000Z'
 const T_NEW = '2026-01-01T00:10:00.000Z'
 const PG_LOCAL = '2026-01-01T00:05:00.000+00:00'
+const PG_OLD = '2026-01-01T00:00:00.000+00:00'
 const USER_ID = '99999999-9999-4999-8999-999999999999'
 const ANIMAL_ID = '11111111-1111-4111-8111-111111111111'
 const TREATMENT_ID = '22222222-2222-4222-8222-222222222222'
@@ -38,6 +39,8 @@ const LOCAL_ROW = {
   created_at: T_LOCAL,
   updated_at: T_LOCAL,
   settings_written_at: T_LOCAL,
+  grid_written_at: T_OLD,
+  grid_before: null,
   deleted_at: null,
   created_by_device: 'appareil-test',
   updated_by_device: 'appareil-test',
@@ -76,10 +79,11 @@ describe('treatmentPeriodsRepository — port de synchronisation', () => {
       `INSERT INTO treatment_period
          (id, treatment_id, animal_id, starts_on, first_due_on, ends_on, frequency_value,
           frequency_unit, times, dose_quantity, dose_unit, reminder_offset_minutes, created_at,
-          updated_at, settings_written_at, grid_origin_on, created_by_device, updated_by_device)
+          updated_at, settings_written_at, grid_written_at, grid_origin_on, created_by_device,
+          updated_by_device)
        VALUES (?, ?, ?, '2026-01-01', '2026-01-02', '2026-01-31', 1, 'day', '08:00,20:00', 0.5,
-               'tablet', 15, ?, ?, ?, '2026-01-02', 'appareil-test', 'appareil-test')`,
-      [TREATMENT_ID, TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL, T_LOCAL],
+               'tablet', 15, ?, ?, ?, ?, '2026-01-02', 'appareil-test', 'appareil-test')`,
+      [TREATMENT_ID, TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL, T_LOCAL, T_OLD],
     )
   })
 
@@ -131,13 +135,43 @@ describe('treatmentPeriodsRepository — port de synchronisation', () => {
     await expect(localRow(TREATMENT_ID)).resolves.toEqual([LOCAL_ROW])
   })
 
-  it('remplace une période locale par une version distante plus récente, arrêt, suppression, faits et date d’écriture du réglage compris', async () => {
+  it.each<[string, string | null]>([
+    [
+      'une grille lisible se garde',
+      JSON.stringify({
+        frequency: { value: 1, unit: 'day' },
+        endsOn: '2026-01-31',
+        writtenAt: '2026-01-01T08:00:00.000Z',
+        runs: [['2026-01-02', '2026-01-31']],
+      }),
+    ],
+    ['une grille illisible se lit vide', '{"runs": "pas une liste"}'],
+    [
+      'une grille aux suites incohérentes se lit vide',
+      JSON.stringify({
+        frequency: { value: 1, unit: 'day' },
+        endsOn: null,
+        writtenAt: '2026-01-01T08:00:00.000Z',
+        runs: [['2026-01-31', '2026-01-02']],
+      }),
+    ],
+  ])('reçoit la grille d’avant l’ouverture : %s', async (label, gridBefore) => {
+    const remote = remotePeriod({ id: TREATMENT_ID, created_at: T_LOCAL, grid_before: gridBefore })
+
+    await db.runMany([repository.applyRemoteRowStatement(remote)])
+
+    const [stored] = (await localRow(TREATMENT_ID)) as { grid_before: string | null }[]
+    expect(stored!.grid_before).toBe(label.includes('garde') ? gridBefore : null)
+  })
+
+  it('remplace une période locale par une version distante plus récente, arrêt, suppression, faits, dates d’écriture du réglage et de sa grille compris', async () => {
     const remote = remotePeriod({
       id: TREATMENT_ID,
       created_at: T_LOCAL,
       first_due_chosen: 1,
       fallen_doses_answer: 'not-due',
       settings_written_at: T_NEW,
+      grid_written_at: T_NEW,
       stopped_on: '2026-01-10',
       frequency_value: 2,
       frequency_unit: 'week',
@@ -172,6 +206,7 @@ describe('treatmentPeriodsRepository — port de synchronisation', () => {
           created_at: PG_LOCAL,
           updated_at: PG_LOCAL,
           settings_written_at: PG_LOCAL,
+          grid_written_at: PG_OLD,
         },
       ],
       cursor: pushed?.server_updated_at,

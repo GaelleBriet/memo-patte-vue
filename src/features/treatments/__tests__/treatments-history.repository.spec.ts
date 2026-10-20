@@ -45,6 +45,8 @@ function period(
   return {
     ...legacyFactsOf(record.gridOriginOn),
     settingsWrittenAt: record.createdAt,
+    gridWrittenAt: record.createdAt,
+    gridBefore: null,
     ...record,
   }
 }

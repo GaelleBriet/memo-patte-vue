@@ -61,6 +61,8 @@ function period(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPeriod
   return {
     ...legacyFactsOf(record.gridOriginOn),
     settingsWrittenAt: record.createdAt,
+    gridWrittenAt: record.createdAt,
+    gridBefore: null,
     ...record,
   }
 }
@@ -246,13 +248,13 @@ describe('creationPlan — doses passées renseignées dans l’encart (TR-3)', 
 
   it('annonce les échéances passées que la fiche dirait non renseignées', () => {
     expect(creationPastDues(PANACUR, '2026-09-28')).toEqual([
-      { settingId: 'draft', dueOn: '2026-09-25', dueTime: null },
-      { settingId: 'draft', dueOn: '2026-09-26', dueTime: null },
-      { settingId: 'draft', dueOn: '2026-09-27', dueTime: null },
+      { settingId: 'réglage-écrit', dueOn: '2026-09-25', dueTime: null },
+      { settingId: 'réglage-écrit', dueOn: '2026-09-26', dueTime: null },
+      { settingId: 'réglage-écrit', dueOn: '2026-09-27', dueTime: null },
     ])
     expect(creationPastDues({ ...PANACUR, times: ['20:00', '08:00'] }, '2026-09-26')).toEqual([
-      { settingId: 'draft', dueOn: '2026-09-25', dueTime: '08:00' },
-      { settingId: 'draft', dueOn: '2026-09-25', dueTime: '20:00' },
+      { settingId: 'réglage-écrit', dueOn: '2026-09-25', dueTime: '08:00' },
+      { settingId: 'réglage-écrit', dueOn: '2026-09-25', dueTime: '20:00' },
     ])
     expect(creationPastDues({ ...PANACUR, endsOn: '2026-09-26' }, '2026-09-28')).toHaveLength(2)
   })
@@ -320,6 +322,23 @@ describe('creationPlan — doses passées renseignées dans l’encart (TR-3)', 
         '2026-12-07',
       ])
     }
+  })
+
+  it('range les doses passées écrites dans la période créée, de même identifiant que le traitement', () => {
+    const plan = creationPlan(
+      {
+        ...PANACUR,
+        pastDoses: [
+          { dueOn: '2026-09-25', dueTime: null, status: 'given' },
+          { dueOn: '2026-09-26', dueTime: null, status: 'missed' },
+        ],
+      },
+      TREATMENT,
+      '2026-09-28',
+      ids(),
+    )
+
+    expect(plan.doses?.map(({ dose }) => dose.periodId)).toEqual([TREATMENT, TREATMENT])
   })
 
   describe('le nombre annoncé est ce que la fiche aurait à noter du passé (matrice)', () => {
@@ -767,6 +786,7 @@ describe('editionPlan — fréquence, heures, posologie (TR-28)', () => {
     expect(editionPlan(withPeriods, input, '2026-09-29', IDS).period).toEqual({
       action: 'open',
       id: NEW_PERIOD,
+      gridBefore: expect.objectContaining({ frequency: { value: 1, unit: 'week' }, endsOn: null }),
       gridOriginOn: '2026-09-29',
       firstDueChosen: false,
       fallenDosesAnswer: 'unasked',

@@ -206,7 +206,27 @@ describe('treatmentPeriodsRepository', () => {
       ...REGLAGES,
       ...ORIGINE,
       settingsWrittenAt: EARLIER,
+      gridWrittenAt: EARLIER,
+      gridBefore: null,
     }
+
+    it('garde la grille d’avant l’ouverture que la création lui donne, et une grille vide sinon', async () => {
+      const gridBefore = {
+        frequency: { value: 1, unit: 'day' as const },
+        endsOn: '2026-03-10',
+        writtenAt: '2026-02-01T08:00:00.000Z',
+        runs: [['2026-02-11', '2026-03-10'] as const],
+      }
+      await db.runMany([periods.insertStatement({ ...COMPLETE, gridBefore })])
+
+      const [, current] = await periods.listByTreatment(MILBEMAX)
+      expect(current!.gridBefore).toEqual(gridBefore)
+      await db.runMany([
+        periods.correctSettingsStatement(REPRISE, { ...REGLAGES, times: ['06:00'] }, NOW, ORIGINE),
+      ])
+      const [, corrected] = await periods.listByTreatment(MILBEMAX)
+      expect(corrected!.gridBefore).toEqual(gridBefore)
+    })
 
     it('insère une période avec tous ses réglages et la relit à l’identique', async () => {
       await db.runMany([periods.insertStatement(COMPLETE)])
@@ -232,6 +252,8 @@ describe('treatmentPeriodsRepository', () => {
         ...REGLAGES,
         ...ORIGINE,
         settingsWrittenAt: NOW,
+        gridWrittenAt: NOW,
+        gridBefore: null,
       })
       expect(first).toMatchObject({
         id: MILBEMAX,
@@ -255,7 +277,13 @@ describe('treatmentPeriodsRepository', () => {
       await db.runMany([periods.correctSettingsStatement(REPRISE, sans, NOW, ORIGINE)])
 
       const [, current] = await periods.listByTreatment(MILBEMAX)
-      expect(current).toEqual({ ...COMPLETE, ...sans, updatedAt: NOW, settingsWrittenAt: NOW })
+      expect(current).toEqual({
+        ...COMPLETE,
+        ...sans,
+        updatedAt: NOW,
+        settingsWrittenAt: NOW,
+        gridWrittenAt: NOW,
+      })
     })
 
     it('refuse d’insérer ou de corriger des réglages incohérents, sans rien écrire', async () => {
@@ -288,7 +316,12 @@ describe('treatmentPeriodsRepository', () => {
         ])
 
         const [, current] = await periods.listByTreatment(MILBEMAX)
-        expect(current).toEqual({ ...COMPLETE, ...fact, updatedAt: NOW, settingsWrittenAt: NOW })
+        expect(current).toEqual({
+          ...COMPLETE,
+          ...fact,
+          updatedAt: NOW,
+          settingsWrittenAt: NOW,
+        })
       },
     )
 
@@ -392,6 +425,70 @@ describe('treatmentPeriodsRepository', () => {
           updated_at: NOW,
           settings_written_at: EARLIER,
         })
+      })
+    })
+
+    describe('date d’écriture de la grille : ce qui fait les échéances, heures exclues', () => {
+      async function gridWrittenAt(): Promise<string> {
+        const [found] = await db.query<{ grid_written_at: string }>(
+          'SELECT grid_written_at FROM treatment_period WHERE id = ?',
+          [REPRISE],
+        )
+        return found!.grid_written_at
+      }
+
+      beforeEach(async () => {
+        await db.runMany([periods.insertStatement(COMPLETE)])
+      })
+
+      it('vaut la création à l’écriture d’une période', async () => {
+        await expect(gridWrittenAt()).resolves.toBe(EARLIER)
+      })
+
+      it.each<[string, Partial<TreatmentPeriodSettings>, Partial<PeriodOrigin>]>([
+        ['la première échéance', { firstDueOn: '2026-02-13' }, {}],
+        ['la fréquence', { frequency: { value: 2, unit: 'day' } }, {}],
+        ['l’origine de la grille', {}, { gridOriginOn: null }],
+        ['la date de fin', { endsOn: '2026-03-20' }, {}],
+      ])('avance quand %s change', async (_, settings, origin) => {
+        await db.runMany([
+          periods.correctSettingsStatement(REPRISE, { ...REGLAGES, ...settings }, NOW, {
+            ...ORIGINE,
+            ...origin,
+          }),
+        ])
+
+        await expect(gridWrittenAt()).resolves.toBe(NOW)
+      })
+
+      it.each<[string, Partial<TreatmentPeriodSettings>, Partial<PeriodOrigin>]>([
+        ['les heures', { times: ['06:00'] }, {}],
+        ['la posologie', { doseQuantity: 1, doseUnit: 'capsule' }, {}],
+        ['le moment du rappel', { reminderOffsetMinutes: 60 }, {}],
+        ['l’heure du rappel', { reminderTime: '07:00' }, {}],
+        ['le seul fait que la date soit choisie', {}, { firstDueChosen: true }],
+        ['la réponse à la question des doses tombées', {}, { fallenDosesAnswer: 'not-due' }],
+      ])('reste quand seule %s change', async (_, settings, origin) => {
+        await db.runMany([
+          periods.correctSettingsStatement(REPRISE, { ...REGLAGES, ...settings }, NOW, {
+            ...ORIGINE,
+            ...origin,
+          }),
+        ])
+
+        await expect(row(REPRISE)).resolves.toMatchObject({ updated_at: NOW })
+        await expect(gridWrittenAt()).resolves.toBe(EARLIER)
+      })
+
+      it('reste à l’arrêt, à la suppression et à leur « Annuler »', async () => {
+        await db.runMany([
+          periods.stopPeriodStatement(REPRISE, '2026-03-01', NOW),
+          periods.undoStopPeriodStatement(REPRISE, '2026-03-01', NOW),
+          periods.markDeletedByTreatmentStatement(MILBEMAX, NOW),
+          periods.reviveByTreatmentStatement(MILBEMAX, NOW, NOW),
+        ])
+
+        await expect(gridWrittenAt()).resolves.toBe(EARLIER)
       })
     })
   })
@@ -499,6 +596,13 @@ describe('treatmentPeriodsRepository', () => {
       createdAt: EARLIER,
       updatedAt: NOW,
       settingsWrittenAt: '2026-02-15T09:00:00.000Z',
+      gridWrittenAt: '2026-02-12T09:00:00.000Z',
+      gridBefore: {
+        frequency: { value: 1, unit: 'day' },
+        endsOn: '2026-03-10',
+        writtenAt: '2026-02-01T08:00:00.000Z',
+        runs: [['2026-02-11', '2026-03-10']],
+      },
       createdByDevice: 'appareil-du-fichier',
       updatedByDevice: 'appareil-du-fichier',
     }
@@ -529,6 +633,8 @@ describe('treatmentPeriodsRepository', () => {
         reminderOffsetMinutes: null,
         reminderTime: null,
         settingsWrittenAt: T0,
+        gridWrittenAt: T0,
+        gridBefore: null,
       })
     })
 

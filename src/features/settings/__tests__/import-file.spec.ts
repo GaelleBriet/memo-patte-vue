@@ -160,7 +160,7 @@ describe('parseExportFile', () => {
     )
 
     it('signale un export d’une version plus récente, quel que soit son contenu', () => {
-      const text = JSON.stringify({ schemaVersion: 10, pets: [] })
+      const text = JSON.stringify({ schemaVersion: 11, pets: [] })
 
       expect(parseExportFile(text)).toEqual({ ok: false, reason: 'newer' })
     })
@@ -695,6 +695,166 @@ describe('parseExportFile', () => {
   describe('anciens exports, convertis au format courant (plan §3.3)', () => {
     const IMPORTEUR = '12121212-1212-4212-8212-121212121212'
 
+    it('relit un export v9 : la grille est datée de la dernière écriture des réglages', () => {
+      const v9 = withDocument((document) => {
+        document.schemaVersion = 9
+        for (const period of rows(document, 'treatmentPeriods')) delete period.gridWrittenAt
+      })
+
+      const result = parseExportFile(v9, IMPORTEUR)
+
+      expect(result.ok).toBe(true)
+      if (!result.ok) return
+      expect(result.file.schemaVersion).toBe(10)
+      expect(
+        result.file.data.treatmentPeriods.map(({ settingsWrittenAt, gridWrittenAt }) => [
+          settingsWrittenAt,
+          gridWrittenAt,
+        ]),
+      ).toEqual(
+        IMPORT_FIXTURE.treatmentPeriods.map(({ settingsWrittenAt }) => [
+          settingsWrittenAt,
+          settingsWrittenAt,
+        ]),
+      )
+    })
+
+    it('garde la grille d’avant l’ouverture d’un export v10, et lit vide une grille illisible sans refuser le fichier', () => {
+      const grid = {
+        frequency: { value: 1, unit: 'day' },
+        endsOn: '2026-09-20',
+        writtenAt: IMPORT_FIXTURE.treatmentPeriods[1]!.createdAt,
+        runs: [['2026-09-02', '2026-09-20']],
+      }
+      const kept = withDocument((document) => {
+        rows(document, 'treatmentPeriods')[1]!.gridBefore = grid
+      })
+      const forgedGrid = withDocument((document) => {
+        rows(document, 'treatmentPeriods')[1]!.gridBefore = { runs: 'pas une liste' }
+      })
+      const missing = withDocument((document) => {
+        delete rows(document, 'treatmentPeriods')[1]!.gridBefore
+      })
+
+      const result = parseExportFile(kept, IMPORTEUR)
+      const forgedResult = parseExportFile(forgedGrid, IMPORTEUR)
+      const missingResult = parseExportFile(missing, IMPORTEUR)
+
+      expect(result.ok && result.file.data.treatmentPeriods[1]!.gridBefore).toEqual(grid)
+      expect(forgedResult.ok && forgedResult.file.data.treatmentPeriods[1]!.gridBefore).toBeNull()
+      expect(missingResult.ok && missingResult.file.data.treatmentPeriods[1]!.gridBefore).toBeNull()
+    })
+
+    it.each([
+      ['avant la création du traitement', '2000-01-01T00:00:00.000Z', 'createdAt'],
+      ['plus de 24 h après l’export', '2099-01-01T00:00:00.000Z', 'exportedAt'],
+    ] as const)(
+      'écrête la date gardée dans la grille d’avant l’ouverture %s, comme une date de grille',
+      (_, writtenAt, bound) => {
+        const document = JSON.parse(importFixtureJson()) as Document
+        const period = rows(document, 'treatmentPeriods')[1]!
+        period.gridBefore = {
+          frequency: { value: 1, unit: 'day' },
+          endsOn: null,
+          writtenAt,
+          runs: [['2026-09-02', null]],
+        }
+        const treatment = rows(document, 'treatments').find(({ id }) => id === period.treatmentId)
+        const expected = bound === 'createdAt' ? treatment!.createdAt : document.exportedAt
+
+        const result = parseExportFile(JSON.stringify(document), IMPORTEUR)
+
+        expect(result.ok && result.file.data.treatmentPeriods[1]!.gridBefore?.writtenAt).toBe(
+          expected,
+        )
+      },
+    )
+
+    it('relit un export v9 sans grille d’avant l’ouverture', () => {
+      const v9 = withDocument((document) => {
+        document.schemaVersion = 9
+        for (const period of rows(document, 'treatmentPeriods')) {
+          delete period.gridWrittenAt
+          delete period.gridBefore
+        }
+      })
+
+      const result = parseExportFile(v9, IMPORTEUR)
+
+      expect(result.ok).toBe(true)
+      if (!result.ok) return
+      expect(result.file.data.treatmentPeriods.map(({ gridBefore }) => gridBefore)).toEqual([
+        null,
+        null,
+      ])
+    })
+
+    it('refuse un export v10 dont un réglage n’a pas de date d’écriture de la grille', () => {
+      expect(
+        parseExportFile(
+          withDocument((document) => delete premier(document, 'treatmentPeriods').gridWrittenAt),
+        ),
+      ).toEqual(INVALID)
+      expect(parseExportFile(forged('treatmentPeriods', 'gridWrittenAt', '2026-09-02'))).toEqual(
+        INVALID,
+      )
+    })
+
+    it.each([
+      ['avant la création du traitement', '2000-01-01T00:00:00.000Z', 'createdAt'],
+      ['plus de 24 h après l’export', '2099-01-01T00:00:00.000Z', 'exportedAt'],
+    ] as const)(
+      'écrête une date d’écriture de la grille %s, sans refuser le fichier',
+      (_, gridWrittenAt, bound) => {
+        const document = JSON.parse(importFixtureJson()) as Document
+        premier(document, 'treatmentPeriods').gridWrittenAt = gridWrittenAt
+        const expected =
+          bound === 'createdAt' ? premier(document, 'treatments').createdAt : document.exportedAt
+
+        const result = parseExportFile(JSON.stringify(document), IMPORTEUR)
+
+        expect(result.ok).toBe(true)
+        if (!result.ok) return
+        expect(result.file.data.treatmentPeriods[0]!.gridWrittenAt).toBe(expected)
+      },
+    )
+
+    it('garde une date d’écriture de la grille à 24 h de l’export, et la création elle-même', () => {
+      const document = JSON.parse(importFixtureJson()) as Document
+      const [first, second] = rows(document, 'treatmentPeriods')
+      first!.gridWrittenAt = '2026-09-16T08:30:00.000Z'
+      second!.gridWrittenAt = second!.createdAt
+
+      const result = parseExportFile(JSON.stringify(document), IMPORTEUR)
+
+      expect(result.ok).toBe(true)
+      if (!result.ok) return
+      expect(result.file.data.treatmentPeriods.map(({ gridWrittenAt }) => gridWrittenAt)).toEqual([
+        '2026-09-16T08:30:00.000Z',
+        second!.createdAt,
+      ])
+    })
+
+    it('garde une date de grille héritée, plus ancienne que sa période mais pas que son traitement', () => {
+      const document = JSON.parse(importFixtureJson()) as Document
+      const [, panacur] = rows(document, 'treatments')
+      const [, period] = rows(document, 'treatmentPeriods')
+      panacur!.createdAt = '2026-08-01T07:00:00.000Z'
+      period!.gridWrittenAt = '2026-08-15T07:00:00.000Z'
+
+      const result = parseExportFile(JSON.stringify(document), IMPORTEUR)
+
+      expect(result.ok).toBe(true)
+      if (!result.ok) return
+      expect(result.file.data.treatmentPeriods[1]!.gridWrittenAt).toBe('2026-08-15T07:00:00.000Z')
+    })
+
+    it('refuse un fichier dont la création d’un traitement est illisible', () => {
+      expect(parseExportFile(forged('treatments', 'createdAt', '2026-08-01'), IMPORTEUR)).toEqual(
+        INVALID,
+      )
+    })
+
     it('relit un export v8 : arrivée d’avant et rang des reports vides', () => {
       const v8 = withDocument((document) => {
         document.schemaVersion = 8
@@ -709,7 +869,7 @@ describe('parseExportFile', () => {
 
       expect(result.ok).toBe(true)
       if (!result.ok) return
-      expect(result.file.schemaVersion).toBe(9)
+      expect(result.file.schemaVersion).toBe(10)
       expect(
         result.file.data.treatmentDoses.every(
           (dose) =>
@@ -784,7 +944,7 @@ describe('parseExportFile', () => {
 
       expect(result.ok).toBe(true)
       if (!result.ok) return
-      expect(result.file.schemaVersion).toBe(9)
+      expect(result.file.schemaVersion).toBe(10)
       const answers = result.file.data.treatmentPeriods.map(
         ({ fallenDosesAnswer }) => fallenDosesAnswer,
       )
@@ -815,7 +975,7 @@ describe('parseExportFile', () => {
 
       expect(result.ok).toBe(true)
       if (!result.ok) return
-      expect(result.file.schemaVersion).toBe(9)
+      expect(result.file.schemaVersion).toBe(10)
       expect(
         result.file.data.treatmentPeriods.map(({ createdAt, settingsWrittenAt }) => [
           createdAt,
@@ -870,7 +1030,7 @@ describe('parseExportFile', () => {
       expect(result.ok).toBe(true)
       if (!result.ok) return
       const { data } = result.file
-      expect(result.file.schemaVersion).toBe(9)
+      expect(result.file.schemaVersion).toBe(10)
       expect(data.treatmentPeriods.map(({ gridOriginOn }) => gridOriginOn)).toEqual([
         '2026-06-15',
         '2026-09-01',

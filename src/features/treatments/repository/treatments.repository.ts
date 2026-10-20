@@ -312,8 +312,10 @@ export function createTreatmentsRepository(
         })
       }
       if (plan.period?.action === 'correct') {
-        const { id: periodId, settings, ...origin } = plan.period
-        statements.push(periods.correctSettingsStatement(periodId, settings, at, origin))
+        const { id: periodId, settings, judgedGrid, ...origin } = plan.period
+        statements.push(
+          periods.correctSettingsStatement(periodId, settings, at, origin, judgedGrid),
+        )
       }
       if (plan.period?.action === 'open') {
         statements.push(
@@ -328,6 +330,8 @@ export function createTreatmentsRepository(
             stoppedOn: null,
             createdAt: at,
             updatedAt: at,
+            gridWrittenAt: plan.period.judgedGrid ?? at,
+            gridBefore: plan.period.gridBefore ?? null,
             deletedAt: null,
           }),
         )

@@ -1,4 +1,4 @@
-import type { FallenDosesAnswer } from './dose-calendar'
+import type { FallenDosesAnswer, GridBefore } from './dose-calendar'
 import type { DoseUnit } from './dosage'
 
 /** L'appareil qui a créé la ligne, et celui qui a écrit sa valeur actuelle (suppression comprise). */
@@ -92,6 +92,10 @@ export type ExportTreatmentPeriod = {
   updatedAt: string
   /** R10, #867 : dernière écriture de ce qui fait le calendrier ; la création tant que rien n'a changé. */
   settingsWrittenAt: string
+  /** Dernière écriture de ce qui fait les échéances (première échéance, fréquence, origine, fin), heures exclues. */
+  gridWrittenAt: string
+  /** La grille que le moteur lisait juste avant l'ouverture de la période (v10) ; `null` : aucune. */
+  gridBefore: GridBefore | null
   createdByDevice: string
   updatedByDevice: string
 }
