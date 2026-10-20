@@ -5,6 +5,40 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.86](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.85...memo-patte-v0.1.86) (2026-10-20)
+
+
+### ✨ Fonctionnalités
+
+* **db:** v17, date d'écriture de la grille du réglage (décision 1 du 19 octobre) ([9f5b18a](https://github.com/GaelleBriet/memo-patte-vue/commit/9f5b18aa03f44d6589a7356dc5257d0bbacbe350))
+* **db:** v17, la période garde la grille d'avant son ouverture (grid_before), miroir Supabase ([09894a4](https://github.com/GaelleBriet/memo-patte-vue/commit/09894a4c9fd2e5bbb8b8b2eed1d024491ff3849f))
+* **supabase:** table des envois de la synchro, heure du téléphone et de réception ([2adb2db](https://github.com/GaelleBriet/memo-patte-vue/commit/2adb2dbf08076baf26e8e4229471fc2570b0a2d1)), closes [#904](https://github.com/GaelleBriet/memo-patte-vue/issues/904)
+* **sync:** le téléphone qui pousse reprend la ligne gardée par le serveur ([d99aeb7](https://github.com/GaelleBriet/memo-patte-vue/commit/d99aeb7eba3d5930d27d8d1c67849480618f0598)), closes [#904](https://github.com/GaelleBriet/memo-patte-vue/issues/904)
+* **traitements:** réglage du jour réécrit jugé comme une ouverture, suite de jours, début de grille ([95560ad](https://github.com/GaelleBriet/memo-patte-vue/commit/95560ada0529d7f8a015fcbf7aebacda18e0c07b))
+* **traitements:** une période qui reprend la grille de la précédente garde sa date de grille ([a663a57](https://github.com/GaelleBriet/memo-patte-vue/commit/a663a57d0b179d0e0b22696a0c6aa58944129dd6))
+
+
+### 🐛 Corrections
+
+* **dose-calendar:** grille datée puis touchée par un report jamais ré-héritée, fenêtre utile ([82b2622](https://github.com/GaelleBriet/memo-patte-vue/commit/82b26221aeb0c0d1091adbe5ca4b5423b5178239))
+* **dose-calendar:** l'ancienne grille d'une période est celle que le moteur continue ([ca469db](https://github.com/GaelleBriet/memo-patte-vue/commit/ca469db6480702edae1c4b0d10d539b566248a9b))
+* **dose-calendar:** la grille héritée se juge sur les jours que lit le moteur, décalages compris ([cde71f7](https://github.com/GaelleBriet/memo-patte-vue/commit/cde71f72a4de4b33cb7cdbfcb85bff8d6baef525))
+* **dose-calendar:** la grille héritée se lit reports compris, sur tout ce qu'écrit « Modifier » ([45570a9](https://github.com/GaelleBriet/memo-patte-vue/commit/45570a9b89c13655a23b1a351d11cf017adba573))
+* **dose-calendar:** la réécriture du jour reprend la date de grille gardée à l'ouverture ([6b2ef51](https://github.com/GaelleBriet/memo-patte-vue/commit/6b2ef51947ad9e7a4fdd71edac69c0acafd98b02))
+* **dose-calendar:** une période hérite si sa grille est celle d'avant son ouverture ([79a9821](https://github.com/GaelleBriet/memo-patte-vue/commit/79a982101d0c90ebf131a4e92b6b1c5de08f2f11))
+* **import:** la borne basse de la date de grille est la création du traitement ([c2ee5ec](https://github.com/GaelleBriet/memo-patte-vue/commit/c2ee5eccd28fbedc28d09f3f4cecc7d954eb03e8))
+* **import:** une date de grille absurde s'écrête, le fichier n'est jamais refusé pour elle ([a66a24d](https://github.com/GaelleBriet/memo-patte-vue/commit/a66a24dc53f21406b7bd0fd087462e94cf1e8eba))
+* **import:** une seule définition de l'instant, pour la date gardée dans la grille d'avant ([afaf94b](https://github.com/GaelleBriet/memo-patte-vue/commit/afaf94b79ffb7900d5a00191b9ba7a802a73a3c7))
+* **supabase:** écart et dates changées jugés à la milliseconde, borne à 24 h même sous un envoi ([c608126](https://github.com/GaelleBriet/memo-patte-vue/commit/c608126348728539738d903c5e9c5684e1e94aa8)), closes [#904](https://github.com/GaelleBriet/memo-patte-vue/issues/904)
+* **supabase:** la date de la grille d'avant recule avec les autres, colonne par colonne ([72ad3c8](https://github.com/GaelleBriet/memo-patte-vue/commit/72ad3c84dce0a6c73db8b81824ec7f2f4335a391)), closes [#904](https://github.com/GaelleBriet/memo-patte-vue/issues/904)
+* **supabase:** un seul écart d'horloge par envoi, sur les seules dates que l'écriture change ([e500a9c](https://github.com/GaelleBriet/memo-patte-vue/commit/e500a9c2c21fb5e014db56506ba797db581eb810)), closes [#904](https://github.com/GaelleBriet/memo-patte-vue/issues/904)
+* **supabase:** une date de grille héritée que le serveur tient déjà ne recule pas ([3581d60](https://github.com/GaelleBriet/memo-patte-vue/commit/3581d6032ab5ffff1439f1f4135d4d84b8b02629)), closes [#904](https://github.com/GaelleBriet/memo-patte-vue/issues/904)
+* **sync:** la date d'installation reprise du serveur reste au format de l'export ([65c0b6d](https://github.com/GaelleBriet/memo-patte-vue/commit/65c0b6d141feea71ee0fdb9a7ddb31b0a9380166)), closes [#904](https://github.com/GaelleBriet/memo-patte-vue/issues/904)
+* **sync:** la ligne tirée plus récente remplace la ligne gardée, dates de grille bornées ([869f701](https://github.com/GaelleBriet/memo-patte-vue/commit/869f701a6a55a69f077dfdf613d672e296d1bf19)), closes [#904](https://github.com/GaelleBriet/memo-patte-vue/issues/904)
+* **sync:** ligne gardée reprise après le pull, dates tenues jamais reculées ([7c70730](https://github.com/GaelleBriet/memo-patte-vue/commit/7c707302326989531c2835023fcc73e7fde473c8)), closes [#904](https://github.com/GaelleBriet/memo-patte-vue/issues/904)
+* **sync:** un seul écart d'horloge par envoi, repris par le téléphone qui pousse ([6c1a0b5](https://github.com/GaelleBriet/memo-patte-vue/commit/6c1a0b533f7000836081d30e5891fa86af3b79a6))
+* **traitements:** la grille se date sur ses quatre champs, campagne alignée sur le repository ([ea0f410](https://github.com/GaelleBriet/memo-patte-vue/commit/ea0f4100613945b176d3c54fc4cdf461ee627fb9))
+
 ## [0.1.85](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.84...memo-patte-v0.1.85) (2026-10-19)
 
 
