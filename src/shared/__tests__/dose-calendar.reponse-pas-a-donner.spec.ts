@@ -44,6 +44,7 @@ const S = (id: string, n: number, fields: Partial<Setting>): Setting => ({
   frequency: MONTH,
   times: [],
   createdAt: stampOf(n),
+  gridWrittenAt: stampOf(n),
   ...fields,
 })
 

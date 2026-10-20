@@ -8,7 +8,15 @@ import {
   type TreatmentViewInput,
 } from '../domain/dose-calendar'
 import type { Line, Setting } from '../domain/dose-calendar/types'
-import { both, edited, given, moved, on, readings } from './dose-calendar.reglage-corrige.aides'
+import {
+  both,
+  edited,
+  given,
+  moved,
+  on,
+  readings,
+  rewrittenOn,
+} from './dose-calendar.reglage-corrige.aides'
 import { MONTH, proposedSetting, setting, TWO_DAYS, WEEK as WEEKLY } from './dose-calendar.v2.aides'
 
 const THREE_DAYS = { value: 3, unit: 'day' } as const
@@ -131,7 +139,11 @@ function synchronises(
   { linesAt, correctedAt }: { linesAt: string; correctedAt: string },
 ): TreatmentViewInput {
   const added = parA.lines.filter(({ id }) => !base.lines.some((line) => line.id === id))
-  const corrected = { ...parB.settings.find(({ id }) => id === 's2')!, updatedAt: correctedAt }
+  const corrected = rewrittenOn(
+    base.settings.find(({ id }) => id === 's2')!,
+    parB.settings.find(({ id }) => id === 's2')!,
+    correctedAt,
+  )
   return {
     ...base,
     settings: base.settings.map((each) => (each.id === 's2' ? corrected : each)),

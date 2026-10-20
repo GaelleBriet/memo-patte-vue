@@ -14,6 +14,7 @@ import {
   type TreatmentViewInput,
 } from '../domain/dose-calendar'
 import { referenceReading } from '../domain/dose-calendar/reference-model'
+import { rewrittenOn } from './dose-calendar.reglage-corrige.aides'
 import { keys } from './dose-calendar.v2.aides'
 
 // #882 : après la première échéance, la réécriture plus récente n'emporte que la journée qu'elle a
@@ -75,7 +76,10 @@ function modified(
   if ('refusal' in plan) throw new Error(JSON.stringify(plan))
   if (plan.action === 'rewrite') {
     const { settings } = settingsApplied({ ...input, lines: [] }, { ...plan, lines: [] })
-    return { ...input, settings: settings.map((s) => (s.updatedAt ? { ...s, updatedAt: at } : s)) }
+    const dated = settings.map((s, index) =>
+      s.id === plan.id ? rewrittenOn(input.settings[index]!, s, at) : s,
+    )
+    return { ...input, settings: dated }
   }
   const created = { ...plan.setting, id, stoppedOn: null, createdAt: at }
   return written({ ...input, settings: [...input.settings, created] }, plan.lines ?? [], at)

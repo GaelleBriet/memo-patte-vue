@@ -7,8 +7,16 @@ import {
   type Setting,
   type TreatmentViewInput,
 } from '../domain/dose-calendar'
-import { both, edited, given, moved, on, readings } from './dose-calendar.reglage-corrige.aides'
-import { setting, WEEK } from './dose-calendar.v2.aides'
+import {
+  both,
+  edited,
+  given,
+  moved,
+  on,
+  readings,
+  rewrittenOn,
+} from './dose-calendar.reglage-corrige.aides'
+import { keys, setting, WEEK } from './dose-calendar.v2.aides'
 
 // #882, #883 : la règle de #867 (« le plus récent l'emporte ») vaut à chaque contradiction entre un
 // report et la réécriture de son réglage faite sur un autre téléphone (décision du 17 octobre 2026).
@@ -28,7 +36,7 @@ function synchronises(
   const added = parA.lines.filter(({ id }) => !base.lines.some((line) => line.id === id))
   const rewritten = (each: Setting) => {
     const next = parB.settings.find(({ id }) => id === each.id)!
-    return next.updatedAt === undefined ? next : { ...next, updatedAt: rewrittenAt }
+    return next.updatedAt === undefined ? next : rewrittenOn(each, next, rewrittenAt)
   }
   const merged: TreatmentViewInput = {
     ...base,
@@ -97,7 +105,8 @@ describe('#882 : Luna, chaque semaine à 8 h, première dose le 10 avril, sans p
   })
 
   // 6c (18 octobre 2026) : le décalage d'un report gagnant parti après la première échéance garde le
-  // rythme de A, depuis le jour d'arrivée.
+  // rythme de A, depuis le jour d'arrivée ; Q2 (19 octobre) : la journée de départ a quitté la grille,
+  // le décalage suit son report.
   it('avec « Décaler aussi les doses suivantes », A plus récent : le report et son décalage tiennent : le 9, le 12, le 19, puis le 26', () => {
     const { merged, report } = luna(
       '2026-04-10',
@@ -264,14 +273,15 @@ describe('#883 (graine 8710000013) : un report plus récent dont seule l’heure
     expect(effectOf(merged, report.id)).toMatchObject({ kind: 'moves', arrival: '2026-05-06' })
   })
 
-  // 6b (18 octobre 2026) : le décalage part avec son report, le 6 mai reste une journée de la grille.
-  it('B plus récent : le report est sans effet, la dose de 14 h n’arrive pas le 6 mai', () => {
+  // Décision 1 du 19 octobre 2026 : B ne change que les heures, sa grille n'est pas plus récente que
+  // le report : le résultat ne dépend pas de l'horloge.
+  it('B plus récent par l’horloge, heures seules : le report tient, le 6 mai à 14 h', () => {
     const { merged, report } = troisJours({ reportAt: MATIN, rewrittenAt: SOIR })
-    expect(effectOf(merged, report.id)).toEqual({ kind: 'idle', reason: 'nothing-to-move' })
-    expect(
-      treatmentView(merged)
-        .slots('2026-05-06', '2026-05-06')
-        .map(({ due }) => due.dueTime),
-    ).toEqual(['08:00', '20:00'])
+    expect(effectOf(merged, report.id)).toMatchObject({ kind: 'moves', arrival: '2026-05-06' })
+    expect(keys(treatmentView(merged).upcoming({ limit: 3 }))).toEqual([
+      '2026-05-06 14:00',
+      '2026-05-09 08:00',
+      '2026-05-09 20:00',
+    ])
   })
 })

@@ -2,7 +2,15 @@
 import { describe, expect, it } from 'vitest'
 
 import { treatmentView, type Frequency, type TreatmentViewInput } from '../domain/dose-calendar'
-import { both, edited, given, moved, on, readings } from './dose-calendar.reglage-corrige.aides'
+import {
+  both,
+  edited,
+  given,
+  moved,
+  on,
+  readings,
+  rewrittenOn,
+} from './dose-calendar.reglage-corrige.aides'
 import { H, MONTH, TWO_DAYS, WEEK, keys, line, setting } from './dose-calendar.v2.aides'
 
 const THREE = ['08:00', '14:00', '20:00']
@@ -419,8 +427,10 @@ describe('Deux téléphones, un réglage du jour réécrit (R10)', () => {
     const report = phoneA.lines.at(-1)!
     return {
       ...phoneB,
-      settings: phoneB.settings.map((each) =>
-        each.updatedAt === undefined ? each : { ...each, updatedAt: rewrittenAt },
+      settings: phoneB.settings.map((each, index) =>
+        each.updatedAt === undefined
+          ? each
+          : rewrittenOn(base().settings[index] ?? each, each, rewrittenAt),
       ),
       lines: [...phoneA.lines.slice(0, -1), { ...report, updatedAt: reportAt }],
     }

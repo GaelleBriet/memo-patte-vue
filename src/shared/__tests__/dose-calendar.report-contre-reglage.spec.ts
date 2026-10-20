@@ -9,7 +9,7 @@ import {
   type Setting,
   type TreatmentViewInput,
 } from '../domain/dose-calendar'
-import { both, edited, moved, readings } from './dose-calendar.reglage-corrige.aides'
+import { both, edited, moved, readings, rewrittenOn } from './dose-calendar.reglage-corrige.aides'
 import { DAY, keys, setting, WEEK } from './dose-calendar.v2.aides'
 
 // Report de A contre la réécriture d'un réglage par B (#938, #939, #882) : la plus récente des deux
@@ -38,7 +38,7 @@ function synchronised(
   const settings = parB.settings.map((each: Setting) => {
     const old = base.settings.find(({ id }) => id === each.id)
     return old !== undefined && JSON.stringify(old) !== JSON.stringify(each)
-      ? { ...each, updatedAt: bAt }
+      ? rewrittenOn(old, each, bAt)
       : each
   })
   const report = changed.find(({ status }) => status === 'postponed')!
@@ -103,8 +103,8 @@ describe('#938 : Milo, tous les jours à 6, 12, 18 et 23 h ; la dose de 6 h du 4
     })
   })
 
-  // Réécrit après le report, son réglage ne donne pas ses heures au 4, qui garde celles de sa prise :
-  // 12 h y reste, le report emmène les trois doses qu'il emmenait sur A.
+  // #938 (18 octobre 2026) : réécrit après le report, son réglage ne donne pas ses heures au 4, qui
+  // garde celles de sa prise : 12 h y reste, le report emmène les trois doses qu'il emmenait sur A.
   it('B plus récent : le 4 garde la prise de 6 h, le 5 reçoit 12 h, 18 h et 23 h, puis le 6 aux heures de B', () => {
     const { merged, report } = milo({ aAt: MATIN, bAt: SOIR })
     expect(effectOf(merged, report.id)).toMatchObject({ kind: 'moves', arrival: '2026-03-05' })
@@ -120,17 +120,16 @@ describe('#938 : Milo, tous les jours à 6, 12, 18 et 23 h ; la dose de 6 h du 4
     expect(readings(merged).reference).toEqual(readings(merged).moteur)
   })
 
-  // Q5 (19 octobre 2026) : le report emporte son rang 2 à 12 h et, avec la case, le rang 3 (20 h) ; le
-  // 4 garde le rang 1 du réglage de B (8 h). Couverte ou à donner : question posée, non jugée ici.
-  it('A plus récent : le 4 garde son rang 1 (8 h), le 5 reçoit 12 h et 20 h', () => {
+  // Q5 (19 octobre 2026) : R4 dans la journée, la prise de 6 h couvre 8 h ; le report emporte le rang 2
+  // à 12 h et, avec la case, le rang 3 (20 h).
+  it('A plus récent : 8 h couverte par la prise de 6 h le 4, le 5 reçoit 12 h et 20 h', () => {
     const { merged, report } = milo({ aAt: SOIR, bAt: MATIN })
     expect(effectOf(merged, report.id)).toMatchObject({ kind: 'moves', arrival: '2026-03-05' })
-    expect(
-      treatmentView(merged)
-        .slots('2026-03-04', '2026-03-05')
-        .filter(({ due }) => due.dueTime !== '06:00')
-        .map(({ due }) => `${due.dueOn} ${due.dueTime}`),
-    ).toEqual(['2026-03-04 08:00', '2026-03-05 12:00', '2026-03-05 20:00'])
+    expect(states(merged, '2026-03-04', '2026-03-05')).toEqual([
+      '2026-03-04 08:00 covered',
+      '2026-03-05 12:00 pending',
+      '2026-03-05 20:00 pending',
+    ])
     expect(readings(merged).reference).toEqual(readings(merged).moteur)
   })
 
@@ -211,6 +210,30 @@ describe('#939 : Milo, chaque semaine à 20 h depuis le 4 mars, un nouveau régl
     ])
     expect(readings(merged).reference).toEqual(readings(merged).moteur)
   })
+
+  // Décision 1 du 19 octobre 2026 : un changement des heures seules ne rend pas le réglage de B plus
+  // récent que le report de A ; la date choisie par B reste, le report aussi.
+  it.each([
+    [9050000090, 6],
+    [9050001220, 9],
+    [9050001496, 28],
+    [9050001518, 18],
+    [9050002324, 18],
+    [9050002340, 13],
+    [9050002922, 9],
+  ])(
+    'graine %i, pas %i : le report de A, plus récent que la grille de B, n’est pas perdu',
+    (seed, step) => {
+      const fork = forkAt(seed, step)
+      const report = fork.phoneA.lines.find(
+        (line) =>
+          line.status === 'postponed' &&
+          !fork.base.lines.some((old) => old.id === line.id && old.updatedAt === line.updatedAt),
+      )!
+      expect(effectOf(fork.merged, report.id)).toMatchObject({ kind: 'moves' })
+      expect(constatsOf(fork)).toEqual([])
+    },
+  )
 
   it('graine 9050002922, pas 9 : le 15, le 19 puis le 26', () => {
     const fork = forkAt(9050002922, 9)
@@ -371,18 +394,20 @@ describe('6a : une heure ôtée quand la journée de départ garde une dose libr
     },
   )
 
-  it('B plus récent : le report est sans effet, le 5 réclame 8 h 01, 14 h 01 et 20 h 01', () => {
+  // Décision 1 du 19 octobre 2026 : les heures seules ne rendent pas B plus récent que le report.
+  it('B plus récent par l’horloge, heures seules : le report emporte aussi son heure, le 6 à 8 h', () => {
     const { merged, report } = trimestre({ aAt: MATIN, bAt: SOIR })
-    expect(effectOf(merged, report.id)).toEqual({ kind: 'idle', reason: 'nothing-to-move' })
+    expect(effectOf(merged, report.id)).toMatchObject({ kind: 'moves', arrival: '2026-03-06' })
     expect(states(merged, '2026-03-05', '2026-03-06')).toEqual([
-      '2026-03-05 08:01 pending',
       '2026-03-05 14:01 pending',
       '2026-03-05 20:01 pending',
+      '2026-03-06 08:00 pending',
     ])
+    expect(readings(merged).reference).toEqual(readings(merged).moteur)
   })
 })
 
-describe('6b : B plus récent, le report de A est sans effet ; le décalage qu’il portait aussi', () => {
+describe('Carnet de #883 : B ne change que les heures ; le report de A et son décalage tiennent, dans les deux ordres', () => {
   // Carnet de #883 (graine 8710000013) : tous les 3 jours à 8 h, 14 h et 20 h depuis le 3 avril, fin le
   // 28 mai ; le 3, 8 h oubliée et 20 h donnée d'avance ; A reporte 14 h au 6 mai avec la case, B passe à
   // 8 h et 20 h.
@@ -427,17 +452,22 @@ describe('6b : B plus récent, le report de A est sans effet ; le décalage qu�
     })
   }
 
-  it('le report et son décalage sont sans effet : la suite reprend le 6 avril à 8 h et 20 h', () => {
-    const { merged, report } = troisJours({ aAt: MATIN, bAt: SOIR })
+  // Décision 1 du 19 octobre 2026 : un report n'entre jamais en conflit avec les heures ; 6b ne vaut
+  // que quand la journée de départ sort de la grille.
+  it.each([
+    ['B plus récent', { aAt: MATIN, bAt: SOIR }],
+    ['A plus récent', { aAt: SOIR, bAt: MATIN }],
+  ])('%s : le 6 mai à 14 h, puis le 9 mai à 8 h et 20 h', (_, stamps) => {
+    const { merged, report } = troisJours(stamps)
     const shift = merged.lines.find(({ status }) => status === 'shift')!
-    expect(effectOf(merged, report.id)).toEqual({ kind: 'idle', reason: 'nothing-to-move' })
-    expect(effectOf(merged, shift.id)).toMatchObject({ kind: 'idle' })
+    expect(effectOf(merged, report.id)).toMatchObject({ kind: 'moves', arrival: '2026-05-06' })
+    expect(effectOf(merged, shift.id)).toEqual({ kind: 'shifts', from: '2026-04-03' })
     expect(readings(merged)).toEqual(
       both({
         phase: 'upcoming',
-        moment: ['2026-04-06 08:00'],
+        moment: ['2026-05-06 14:00'],
         aRenseigner: [],
-        ensuite: ['2026-04-06 08:00', '2026-04-06 20:00', '2026-04-09 08:00'],
+        ensuite: ['2026-05-06 14:00', '2026-05-09 08:00', '2026-05-09 20:00'],
       }),
     )
   })

@@ -2,7 +2,15 @@
 import { describe, expect, it } from 'vitest'
 
 import { treatmentView, type Frequency, type TreatmentViewInput } from '../domain/dose-calendar'
-import { both, edited, given, moved, on, readings } from './dose-calendar.reglage-corrige.aides'
+import {
+  both,
+  edited,
+  given,
+  moved,
+  on,
+  readings,
+  rewrittenOn,
+} from './dose-calendar.reglage-corrige.aides'
 import { proposedSetting, setting, TWO_DAYS } from './dose-calendar.v2.aides'
 
 // #867 : deux téléphones ; A reporte une dose en retard, B, qui ne voit pas ce report, répond
@@ -53,8 +61,9 @@ function synchronises(
 ): TreatmentViewInput {
   const report = parA.lines.find(({ id }) => !base.lines.some((line) => line.id === id))!
   const corrected = parB.settings.find(({ id }) => id === 's2')!
-  const { updatedAt: _, ...withoutDate } = corrected
-  const s2 = correctedAt === undefined ? withoutDate : { ...corrected, updatedAt: correctedAt }
+  const old = base.settings.find(({ id }) => id === 's2')!
+  const { updatedAt: _, gridWrittenAt: __, ...withoutDate } = corrected
+  const s2 = correctedAt === undefined ? withoutDate : rewrittenOn(old, corrected, correctedAt)
   return {
     ...base,
     settings: base.settings.map((each) => (each.id === 's2' ? s2 : each)),
@@ -200,7 +209,7 @@ describe('#867 : toute réécriture qui ôte la journée de départ du report, �
       firstDueOn: '2026-04-15',
     })
     const report = parA.lines.at(-1)!
-    const rewritten = { ...parB.settings[0]!, updatedAt: rewrittenAt }
+    const rewritten = rewrittenOn(base.settings[0]!, parB.settings[0]!, rewrittenAt)
     return {
       merged: { ...base, settings: [rewritten], lines: [{ ...report, updatedAt: reportAt }] },
       reportId: report.id,

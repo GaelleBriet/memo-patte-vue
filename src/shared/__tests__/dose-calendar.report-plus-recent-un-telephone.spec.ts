@@ -17,6 +17,7 @@ import {
   type TreatmentViewInput,
 } from '../domain/dose-calendar'
 import { referenceReading } from '../domain/dose-calendar/reference-model'
+import { rewrittenOn } from './dose-calendar.reglage-corrige.aides'
 import { keys } from './dose-calendar.v2.aides'
 
 // #882, #883 sur un seul téléphone : une dose ôtée par un décalage ou par sa suppression, pas par la
@@ -58,8 +59,8 @@ function phone(start: TreatmentViewInput) {
     if (plan.action === 'rewrite') {
       const at = stamp()
       const applied = settingsApplied({ ...input, lines: [] }, { ...plan, lines: [] })
-      const settings = applied.settings.map((s) =>
-        s.updatedAt?.startsWith('9999') ? { ...s, updatedAt: at } : s,
+      const settings = applied.settings.map((s, index) =>
+        s.id === plan.id ? rewrittenOn(input.settings[index]!, s, at) : s,
       )
       input = { ...input, settings }
     } else {
@@ -139,6 +140,21 @@ describe('Un seul téléphone : une dose ôtée par un décalage, pas par la ré
     const walk = startV2Walk(9000000824)
     for (let count = 0; count <= 38; count += 1) v2Step(walk, () => {})
     expect(upcoming(walk.input).moteur[0]).toBe('2026-03-25 08:00')
+    expect(upcoming(walk.input).reference).toEqual(upcoming(walk.input).moteur)
+  })
+
+  // Décision du 19 octobre 2026 (G13 appliqué au décalage) : tous les jours à 20 h, la dose reportée du
+  // 19 sur la date choisie du 27, puis avancée au 26 avec la case : le décalage se juge depuis son
+  // ancienne arrivée, le 27, et les jours suivants avancent d'autant.
+  it('graine 9100000170, pas 12 : la dose du 27 avancée au 26 avec la case : le 26, le 27, le 28', () => {
+    const walk = startV2Walk(9100000170)
+    for (let count = 0; count <= 12; count += 1) v2Step(walk, () => {})
+    expect(upcoming(walk.input).moteur.slice(0, 4)).toEqual([
+      '2026-03-26 20:00',
+      '2026-03-27 20:00',
+      '2026-03-28 20:00',
+      '2026-03-29 20:00',
+    ])
     expect(upcoming(walk.input).reference).toEqual(upcoming(walk.input).moteur)
   })
 
