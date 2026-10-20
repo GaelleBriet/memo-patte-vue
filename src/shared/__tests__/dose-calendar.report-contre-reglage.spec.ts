@@ -555,12 +555,14 @@ describe('Report par rang, compté en doses (20 octobre 2026)', () => {
     expect(constatsOf(fork)).toEqual([])
   })
 
-  it('graine 9150002829, pas 5 : le 11 mars ne garde que 6 h, couverte par la prise de 8 h ; le 14 mars reçoit 20 h et 23 h', () => {
+  it('graine 9150002829, pas 5 : le 11 mars ne garde que 6 h, couverte par la prise de 8 h ; le 14 mars reçoit 18 h, 20 h et 23 h', () => {
     const fork = forkAt(9150002829, 5)
     expect(shown(fork, '2026-03-11', '2026-03-11')).toEqual(['2026-03-11 06:00 covered'])
-    expect(shown(fork, '2026-03-14', '2026-03-14')).toEqual(
-      expect.arrayContaining(['2026-03-14 20:00 pending', '2026-03-14 23:00 pending']),
-    )
+    expect(shown(fork, '2026-03-14', '2026-03-14')).toEqual([
+      '2026-03-14 18:00 pending',
+      '2026-03-14 20:00 pending',
+      '2026-03-14 23:00 pending',
+    ])
     expect(extraDosesOf(fork)).toEqual([])
     expect(constatsOf(fork)).toEqual([])
   })
@@ -570,11 +572,21 @@ describe('Report par rang, compté en doses (20 octobre 2026)', () => {
     expect(extraDosesOf(forkAt(9050000373, 8))).toEqual([])
   })
 
-  // R9 : le report vers une journée d'avant la date choisie n'arrive qu'avec sa dose, aucune heure du
-  // réglage de B ; le 1er avril à 20 h est la dose du 30 mars.
-  it('graine 9140001597, pas 17 : le 1er avril ne reçoit que 20 h', () => {
+  // R9 : avancée avec la case, la dose de la date choisie fait de son arrivée le premier jour de la
+  // série ; le 1er avril reçoit la dose du 30 mars à 20 h, aucune heure du réglage de B.
+  it('graine 9140001597, pas 17 : le 1er avril à 20 h, puis le 2, le 3…', () => {
     const fork = forkAt(9140001597, 17)
-    expect(shown(fork, '2026-04-01', '2026-04-01')).toEqual(['2026-04-01 20:00 pending'])
+    expect(keys(treatmentView(fork.phoneA).upcoming({ limit: 3 }))).toEqual([
+      '2026-04-01 20:00',
+      '2026-04-02',
+      '2026-04-03',
+    ])
+    expect(shown(fork, '2026-04-01', '2026-04-02')).toEqual([
+      '2026-04-01 20:00 pending',
+      '2026-04-02 08:00 pending',
+      '2026-04-02 14:00 pending',
+      '2026-04-02 20:00 pending',
+    ])
     expect(extraDosesOf(fork)).toEqual([])
     expect(constatsOf(fork)).toEqual([])
   })

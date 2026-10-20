@@ -158,14 +158,32 @@ describe('Un seul téléphone : une dose ôtée par un décalage, pas par la ré
     expect(upcoming(walk.input).reference).toEqual(upcoming(walk.input).moteur)
   })
 
-  // G13 appliqué au décalage, quand l'ancienne arrivée sort de la grille décalée : la dose de la date
-  // choisie arrive quand même, avec les rangs qu'elle emmène.
+  // G13 et R9 : avancée avec la case, la dose de la date choisie emmène sa journée entière et fait de
+  // son arrivée le premier jour de la série ; une heure écrite déjà prise par un rang qui l'accompagne
+  // laisse la dose à l'heure de son propre rang.
   it.each([
     [9100000406, 19, ['2026-04-07', '2026-07-07', '2026-10-07']],
     [
       9100001223,
       8,
       ['2026-03-17 08:00', '2026-03-17 20:00', '2026-04-17 08:00', '2026-04-17 20:00'],
+    ],
+    [
+      9100001351,
+      6,
+      [
+        '2026-03-17 08:00',
+        '2026-03-17 20:00',
+        '2026-03-31 08:00',
+        '2026-03-31 20:00',
+        '2026-04-14 08:00',
+      ],
+    ],
+    [9100001390, 20, ['2026-03-24 20:00', '2026-03-25 20:00', '2026-03-26 20:00']],
+    [
+      9160000115,
+      5,
+      ['2026-04-14 08:00', '2026-04-14 14:00', '2026-04-14 20:00', '2026-04-16 08:00'],
     ],
   ])(
     'graine %i, pas %i : la dose de la date choisie part avec la case, une fois',
