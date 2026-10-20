@@ -525,3 +525,63 @@ describe('Carnet de #883 : B ne change que les heures ; le report de A et son d�
     )
   })
 })
+
+// Décisions du 20 octobre 2026 : la dose du report apparaît une fois ; départ et arrivée comptent
+// autant de doses que le réglage en vigueur a d'heures ; une prise posée ailleurs par R4 ne garde pas
+// le rang du report, elle se repose sur les doses qu'il laisse.
+describe('Report par rang, compté en doses (20 octobre 2026)', () => {
+  const shown = (fork: Fork, from: string, to: string) => states(fork.merged, from, to)
+
+  it('graine 9150002037, pas 4 : le 20 mars 8 h couverte, le 30 mars 12 h et 20 h', () => {
+    const fork = forkAt(9150002037, 4)
+    expect(shown(fork, '2026-03-20', '2026-03-30')).toEqual([
+      '2026-03-20 08:00 covered',
+      '2026-03-30 12:00 pending',
+      '2026-03-30 20:00 pending',
+    ])
+    expect(constatsOf(fork)).toEqual([])
+  })
+
+  it('graine 9140000270, pas 25 : le 13 avril 6 h couverte, le 15 avril 18 h, 20 h et 23 h', () => {
+    const fork = forkAt(9140000270, 25)
+    expect(shown(fork, '2026-04-13', '2026-04-15')).toEqual([
+      '2026-04-13 06:00 covered',
+      '2026-04-15 18:00 pending',
+      '2026-04-15 20:00 pending',
+      '2026-04-15 23:00 pending',
+    ])
+    expect(constatsOf(fork)).toEqual([])
+  })
+
+  it('graine 9150002829, pas 5 : le 11 mars ne garde que 6 h, couverte par la prise de 8 h ; le 14 mars reçoit 20 h et 23 h', () => {
+    const fork = forkAt(9150002829, 5)
+    expect(shown(fork, '2026-03-11', '2026-03-11')).toEqual(['2026-03-11 06:00 covered'])
+    expect(shown(fork, '2026-03-14', '2026-03-14')).toEqual(
+      expect.arrayContaining(['2026-03-14 20:00 pending', '2026-03-14 23:00 pending']),
+    )
+    expect(constatsOf(fork)).toEqual([])
+  })
+
+  // R9 : le report vers une journée d'avant la date choisie n'arrive qu'avec sa dose, aucune heure du
+  // réglage de B ; le 1er avril à 20 h est la dose du 30 mars.
+  it('graine 9140001597, pas 17 : le 1er avril ne reçoit que 20 h', () => {
+    const fork = forkAt(9140001597, 17)
+    expect(shown(fork, '2026-04-01', '2026-04-01')).toEqual(['2026-04-01 20:00 pending'])
+    expect(constatsOf(fork)).toEqual([])
+  })
+
+  // R8 : la fin posée par B arrête le traitement avant l'arrivée ; le report est sans effet.
+  it.each([
+    [9050002774, 11],
+    [9140002364, 21],
+  ])('graine %i, pas %i : fin avant l’arrivée, le report est sans effet', (seed, step) => {
+    const fork = forkAt(seed, step)
+    const report = fork.phoneA.lines.find(
+      (line) =>
+        line.status === 'postponed' &&
+        !fork.base.lines.some((old) => old.id === line.id && old.updatedAt === line.updatedAt),
+    )!
+    expect(effectOf(fork.merged, report.id)).toEqual({ kind: 'idle', reason: 'nothing-to-move' })
+    expect(constatsOf(fork)).toEqual([])
+  })
+})

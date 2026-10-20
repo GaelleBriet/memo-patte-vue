@@ -492,3 +492,20 @@ describe('Deux téléphones, un réglage du jour réécrit (R10)', () => {
     expect(readings(synced).moteur).toEqual(readings(synced).reference)
   })
 })
+
+// R4 (20 octobre 2026) : sans dose libre après son heure, une prise couvre la dose libre la plus proche
+// avant elle ; une prise couvre une dose de sa journée tant qu'il en reste une.
+describe('R4 : une prise après la dernière heure du jour', () => {
+  it('tous les 2 jours à 6 h et 12 h, une dose donnée à 14 h le 9 : 12 h couverte, 6 h à donner', () => {
+    const input: TreatmentViewInput = {
+      settings: [setting('s1', '2026-04-07', TWO_DAYS, ['06:00', '12:00'])],
+      lines: [line('s1', 'given', '2026-04-09', '14:00')],
+      today: '2026-04-09',
+    }
+    expect(states(input, '2026-04-09', '2026-04-09')).toEqual([
+      '2026-04-09 06:00 pending',
+      '2026-04-09 12:00 covered',
+    ])
+    expect(readings(input).moteur).toEqual(readings(input).reference)
+  })
+})
