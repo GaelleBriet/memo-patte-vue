@@ -37,6 +37,7 @@ export function arriveReports(context: ArrivalContext) {
   const fallen = new Set<string>()
   const arrivedBy = new Map<string, ReferenceLine>()
   const arrivedHours = new Map<string, Hour[]>()
+  const arrivalsOnly = new Set<string>()
   const waiting = [...context.reports]
   while (waiting.length > 0) {
     const ready = waiting.findIndex(
@@ -117,8 +118,9 @@ export function arriveReports(context: ArrivalContext) {
       rankCarried = byRank.carried
     }
     const origin = rewritten ? undefined : (days.get(dueOn) ?? left.get(dueOn))
+    const read = origin && withCededDoses(dueOn, origin)
     const from = origin?.setting ?? settingOf(report!.settingId)
-    const hours = origin?.hours ?? rewritten?.hours ?? hoursOf(from)
+    const hours = read?.hours ?? rewritten?.hours ?? hoursOf(from)
     if (origin === undefined) {
       notes
         .filter((note) => note.dueOn === dueOn && hours.includes(note.dueTime))
@@ -127,7 +129,7 @@ export function arriveReports(context: ArrivalContext) {
     const covered =
       origin === undefined
         ? new Set(hours.filter((hour) => noted.has(keyOf(dueOn, hour))))
-        : coveredOn(dueOn, origin)
+        : coveredOn(dueOn, read!)
     // R6, TR-9 : hors de sa grille, un report est sans effet, sauf s'il porte la date choisie,
     // arrive sur la première échéance d'une origine écrite (TR-28) ou ouvre un rythme (R9.2).
     const at = settingAt(dueOn)?.id ?? ''
@@ -146,7 +148,7 @@ export function arriveReports(context: ArrivalContext) {
     const outcome = reportOutcome({
       report: report!,
       written,
-      day: origin ?? { setting: from, hours },
+      day: read ?? { setting: from, hours },
       covered,
       hoursChangeThatDay: translated.has(dueOn),
       inForce: settingAt(dueOn),
@@ -161,6 +163,16 @@ export function arriveReports(context: ArrivalContext) {
     land(report!, { carried, hoursOf: outcome.hoursOf })
   }
   return { fallen, arrivedBy }
+
+  // R4, R7 : faite des seules doses arrivées, la journée où un réglage cède la place garde aussi les siennes.
+  function withCededDoses(day: string, origin: Journey): Journey {
+    const ceded = arrivalsOnly.has(day) ? left.get(day) : undefined
+    if (ceded === undefined) return origin
+    return {
+      setting: origin.setting,
+      hours: [...new Set([...origin.hours, ...ceded.hours])].sort(),
+    }
+  }
 
   // Q4 : seule une prise posée à l'heure même d'une dose en garde le rang.
   function exactAt(day: string, journey: Journey): Set<Hour> {
@@ -178,6 +190,7 @@ export function arriveReports(context: ArrivalContext) {
     if (arrival === undefined || outcome.carried.length === 0) return
     const opensRhythm = openings.delete(targetOn)
     const chosen = chosenDateOf(report, live, settingOf)
+    if (into === days && !days.has(targetOn)) arrivalsOnly.add(targetOn)
     const day = arrivedOn(into.get(targetOn), outcome, arrival, { opensRhythm, chosen })
     into.set(targetOn, day)
     const received = chosen ? hoursOf(chosen) : outcome.carried
