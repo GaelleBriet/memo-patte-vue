@@ -575,7 +575,7 @@ describe('TR-28, Q38, Q39 : un réglage sans prise', () => {
     expect(keys(preview(input, corrected(result.question)).unloggedDoses)).toEqual([])
   })
 
-  it('posologie seule : pas de question, le réglage est corrigé, ses dates gardées', () => {
+  it('posologie seule : pas de question, le réglage est corrigé, ses dates gardées ; la date montrée est la dose du moment, le 7', () => {
     const input = { settings: [twoDays], lines: [], today: '2026-10-08' }
     expect(newSettings(input, request(TWO_DAYS))).toEqual({
       plan: {
@@ -583,6 +583,7 @@ describe('TR-28, Q38, Q39 : un réglage sans prise', () => {
         id: 'p1',
         setting: expect.objectContaining({ firstDueOn: '2026-10-03' }),
       },
+      shownOn: '2026-10-07',
     })
   })
 
