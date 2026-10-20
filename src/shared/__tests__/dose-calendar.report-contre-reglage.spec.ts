@@ -11,6 +11,7 @@ import {
 } from '../domain/dose-calendar'
 import { both, edited, moved, readings, rewrittenOn } from './dose-calendar.reglage-corrige.aides'
 import { DAY, keys, setting, WEEK } from './dose-calendar.v2.aides'
+import fork0270 from './fixtures/dose-calendar-deux-appareils-9140000270.json'
 
 // Report de A contre la réécriture d'un réglage par B (#938, #939, #882) : la plus récente des deux
 // écritures l'emporte, la ligne gagnante garde son jour et son heure (décisions des 17 et 18 octobre 2026).
@@ -533,8 +534,10 @@ describe('Report par rang, compté en doses (20 octobre 2026)', () => {
     expect(constatsOf(fork)).toEqual([])
   })
 
-  it('graine 9140000270, pas 25 : le 13 avril 6 h couverte, le 15 avril 18 h, 20 h et 23 h', () => {
-    const fork = forkAt(9140000270, 25)
+  // Carnet figé tel que la marche de `main` le menait : depuis #1005, la date montrée passée en clair
+  // n'est plus une date choisie et la fourche n'y arrive plus.
+  it('graine 9140000270, pas 25 (carnet figé) : le 13 avril 6 h couverte, le 15 avril 18 h, 20 h et 23 h', () => {
+    const fork = fork0270 as unknown as Fork
     expect(shown(fork, '2026-04-13', '2026-04-15')).toEqual([
       '2026-04-13 06:00 covered',
       '2026-04-15 18:00 pending',

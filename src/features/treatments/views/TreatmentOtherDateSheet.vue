@@ -77,6 +77,7 @@ const recap = computed(() =>
     due.value,
     givenOn.value,
     due.value !== null && hasSeveralTimes(props.treatment, due.value.settingId),
+    props.reading.view,
   ),
 )
 const box = computed(() =>
