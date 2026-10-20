@@ -1,5 +1,11 @@
 # Contexte en cours (à mettre à jour à chaque lot)
 
+- 2026-10-20 (soir) : **Gaelle : Plus = un appareil à la fois**, plus de fusion fine entre deux appareils
+  (decisions-log du jour, PL-15) ; #986 fermé hors périmètre ; campagne à deux téléphones hors du bloquant.
+  Les 30 scénarios de fin (coffre, `technical/etudes/moteur-v2-scenarios-de-fin.md`) joués sur
+  l'émulateur : moteur terminé à un téléphone après #1004, #1005, #1006, #1003. Dette connue : #992,
+  #998, #1000, #997, deux mineurs d'affichage.
+
 - 2026-10-20 (matin) : **Gaelle : accélérer le moteur v2.** Chantier « deux téléphones » clos après #958
   (résidus dans un ticket, repris avec #83) ; une relecture + une re-relecture puis merge ; campagnes
   bloquantes à un téléphone seulement, volumes fixés (`outils-de-test.md`, `couts-agents.md`). Reste

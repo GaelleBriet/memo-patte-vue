@@ -1,7 +1,7 @@
 import { dayCoverage } from './calendar-coverage'
 import { notDueArrivals } from './calendar-not-due'
 import { moveReports } from './calendar-reports'
-import { keepGivenNotes, keepSkippedDays, noteEffects } from './calendar-notes'
+import { keepAnsweredNotes, keepGivenNotes, keepSkippedDays, noteEffects } from './calendar-notes'
 import { keyOf, plusDays } from './grid'
 import { journeys, type Gap } from './journeys'
 import type { EpisodeLines } from './lines'
@@ -110,6 +110,7 @@ export function episodeCalendar(input: EpisodeInput): EpisodeCalendar {
   const unread = [...journey.skipped].filter((day) => !days.has(day) && !left.has(day))
   keepSkippedDays(lines.notes, new Set(unread), slots, held)
   keepGivenNotes(lines.notes, slots, held, { yielded, closedFrom: span.closedFrom })
+  keepAnsweredNotes(lines.notes, slots, held, settingOf)
   noteEffects(lines, borrowed, slots, held, effects)
   notDue.settle()
   const lateDays = new Set(

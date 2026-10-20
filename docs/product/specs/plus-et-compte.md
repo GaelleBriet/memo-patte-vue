@@ -95,6 +95,12 @@ publicité.
   (#83 ; [`proposition-sync.md`](../../technical/proposition-sync.md))
 - **PL-15** La modification la plus récente gagne, ligne par ligne ; deux lignes pour une même
   échéance de traitement (jour et heure) s'affichent comme une seule (la plus récente). (Proposition sync ; relecture, point 5)
+  **Un appareil à la fois** (décision de Gaelle du 2026-10-20) : le même carnet sur tablette et téléphone
+  marche quand on les utilise l'un après l'autre ; si deux appareils modifient la même ligne sans
+  connexion, la plus récente remplace l'autre, sans arbitrage entre un report et la réécriture d'un
+  réglage faits chacun sur un appareil. L'aide le dit (écran Plus et site) : « Utilise un appareil à la
+  fois ; si deux appareils modifient le même soin sans connexion, la dernière modification gagne. »
+  Les cas de conflit fin à deux appareils sont hors périmètre (#986 fermé).
 - **PL-16** Restauration sur un nouvel appareil : par l'accueil de bienvenue (« J'ai déjà MémoPatte
   Plus ») ou Paramètres ; le carnet d'abord, les photos ensuite sans bloquer l'écran ; les rappels
   reprogrammés, avec l'écran « Ne rate plus aucun rappel » si l'autorisation n'a jamais été demandée
