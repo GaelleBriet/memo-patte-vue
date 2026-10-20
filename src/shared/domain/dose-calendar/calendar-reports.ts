@@ -254,7 +254,9 @@ export function moveReports(input: ReportsInput) {
     // R7 : une journée d'échéance garde ses doses et y ajoute celles qui arrivent, une heure une fois.
     day.hours = [...new Set([...day.hours, ...arriving])].sort()
     into.set(targetOn!, day)
-    arrived.set(targetOn!, [...(arrived.get(targetOn!) ?? []), ...arriving])
+    // R7 : relue aux nouvelles heures, la date choisie n'apporte rien de plus au report qui en part.
+    const seen = relaid ? [] : arriving
+    arrived.set(targetOn!, [...(arrived.get(targetOn!) ?? []), ...seen])
   }
 
   // R7, Q4 : son heure et les suivantes ; son heure absente, la dose de son rang.

@@ -184,7 +184,8 @@ export function arriveReports(context: ArrivalContext) {
     const day = arrivedOn(into.get(targetOn), outcome, arrival, { opensRhythm, chosen })
     into.set(targetOn, day)
     const received = chosen ? hoursOf(chosen) : outcome.carried
-    arrivedHours.set(targetOn, [...(arrivedHours.get(targetOn) ?? []), ...received])
+    const seen = relaid ? [] : received
+    arrivedHours.set(targetOn, [...(arrivedHours.get(targetOn) ?? []), ...seen])
     received.forEach((hour) => arrivedBy.set(keyOf(targetOn, hour), report))
   }
 }
