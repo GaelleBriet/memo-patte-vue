@@ -158,6 +158,26 @@ describe('Un seul téléphone : une dose ôtée par un décalage, pas par la ré
     expect(upcoming(walk.input).reference).toEqual(upcoming(walk.input).moteur)
   })
 
+  // G13 appliqué au décalage, quand l'ancienne arrivée sort de la grille décalée : la dose de la date
+  // choisie arrive quand même, avec les rangs qu'elle emmène.
+  it.each([
+    [9100000406, 19, ['2026-04-07', '2026-07-07', '2026-10-07']],
+    [
+      9100001223,
+      8,
+      ['2026-03-17 08:00', '2026-03-17 20:00', '2026-04-17 08:00', '2026-04-17 20:00'],
+    ],
+  ])(
+    'graine %i, pas %i : la dose de la date choisie part avec la case, une fois',
+    (seed, step, expected) => {
+      const walk = startV2Walk(seed)
+      for (let count = 0; count <= step; count += 1) v2Step(walk, () => {})
+      const { moteur, reference } = upcoming(walk.input)
+      expect(moteur.slice(0, expected.length)).toEqual(expected)
+      expect(reference).toEqual(moteur.filter((key) => key <= '2026-06-30 23:59'))
+    },
+  )
+
   // #939 : l'aperçu date la grille d'une réécriture comme l'écriture, puisque le report se juge contre
   // elle : préversion et résultat restent les mêmes ; une posologie seule ne change rien.
   // Q1 : la date choisie se lit sur le réglage qui a tracé la grille du jour, que continuent les
