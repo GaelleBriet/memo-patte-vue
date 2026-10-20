@@ -1,5 +1,6 @@
 import type { DayCoverage } from './calendar-coverage'
 import type { notDueArrivals } from './calendar-not-due'
+import { withCededDoses } from './ceded-day'
 import { hoursOf, keyOf, sameFrequency, sameHours } from './grid'
 import type { Journey, journeys } from './journeys'
 import type { EpisodeLines } from './lines'
@@ -32,6 +33,7 @@ export function moveReports(input: ReportsInput) {
   const fallen = new Set<Day>()
   const moved = new Map<string, Line>()
   const arrived = new Map<Day, Hour[]>()
+  const arrivalsOnly = new Set<Day>()
   const waiting = [...lines.reports]
   while (waiting.length > 0) {
     const ready = waiting.findIndex(
@@ -102,6 +104,8 @@ export function moveReports(input: ReportsInput) {
     })
     const rewrite = verdict === 'kept' ? null : verdict
     const origin = rewrite === null ? (days.get(dueOn) ?? left.get(dueOn)) : undefined
+    const ceded = arrivalsOnly.has(dueOn) ? left.get(dueOn) : undefined
+    const read = origin && withCededDoses(origin, ceded)
     const from = origin?.setting ?? settingOf(report.settingId)
     if (rewrite === 'rewrite') {
       effects.set(report.id, { kind: 'idle', reason: 'nothing-to-move' })
@@ -109,7 +113,7 @@ export function moveReports(input: ReportsInput) {
     }
     // #867 : plus récent que la réécriture de son réglage, le report n'emporte que l'heure qu'il porte ;
     // Q4 : sa journée de départ perd la dose de son rang, et les suivantes avec la case.
-    const hours = rewrite === 'line' ? [dueTime] : (origin?.hours ?? hoursOf(from.times))
+    const hours = rewrite === 'line' ? [dueTime] : (read?.hours ?? hoursOf(from.times))
     let ranked: Hour[] | undefined
     if (rewrite === 'line' && departure !== undefined) {
       const atHour = exactlyNoted(dueOn, departure)
@@ -144,7 +148,7 @@ export function moveReports(input: ReportsInput) {
     const covered =
       origin === undefined
         ? new Set(hours.filter((hour) => noted.has(keyOf(dueOn, hour))))
-        : new Set(coveredOn(dueOn, origin).keys())
+        : new Set(coveredOn(dueOn, read!).keys())
     const written = settingOf(report.settingId)
     // R4, R7 : le jour où les heures changent, écrit sous d'autres heures ou avant un changement d'heures
     // de sa journée, un report se juge sur ses prises et le jour de départ perd autant qu'il emporte.
@@ -244,6 +248,7 @@ export function moveReports(input: ReportsInput) {
     const own = sameHours(arrival, under) ? arrival : under
     const arriving = chosen ? hoursOf(chosen.times) : bringing
     notDue.arrive(report, targetOn!, arriving)
+    if (into === days && !days.has(targetOn!)) arrivalsOnly.add(targetOn!)
     const day = into.get(targetOn!) ?? { setting: own, hours: [] }
     // R7, R9.2 : un nouveau rythme qui part du jour d'arrivée d'un report lui laisse ses seules heures.
     if (openings.delete(targetOn!)) {

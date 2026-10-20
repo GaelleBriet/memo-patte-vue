@@ -97,6 +97,11 @@ describe('campagne d’invariants du moteur v2', () => {
     expect(playCampaign({ from: 9_800_001_094, seeds: 1, steps: 40 }).failures).toEqual([])
   })
 
+  // #928 : le report parti du jour où « tous les 2 jours » cède la place emporte sa dose sans heure.
+  it('graine 8800001778 : une heure ajoutée ne change pas la journée d’arrivée du report', () => {
+    expect(playCampaign({ from: 8_800_001_778, seeds: 1, steps: 40 }).failures).toEqual([])
+  })
+
   it.each([
     ['INVARIANTS_SEEDS', 'mille'],
     ['INVARIANTS_FROM', '-3'],
