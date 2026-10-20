@@ -1,7 +1,7 @@
 import type { Slot } from './calendar'
 import { keyOf } from './grid'
 import type { EpisodeLines } from './lines'
-import type { Day, Line, LineEffect } from './types'
+import type { Day, Line, LineEffect, Setting } from './types'
 
 // R4 : une prise donnée qui ne couvre aucune échéance de sa journée garde sa propre échéance ;
 // au-delà de l'arrêt, la reprise seule porte ces jours (R8).
@@ -34,6 +34,24 @@ export function keepSkippedDays(
   )
   for (const note of notes) {
     if (days.has(note.dueOn) && free(note)) held.set(note, keyOf(note.dueOn, note.dueTime))
+  }
+}
+
+// #1006 : une ligne « pas à donner » dont la réponse a fait partir la première échéance plus loin
+// a retiré sa dose ; elle garde son échéance.
+export function keepAnsweredNotes(
+  notes: readonly Line[],
+  slots: readonly Slot[],
+  held: Map<Line, string>,
+  settingOf: (id: string) => Setting,
+): void {
+  const placed = new Set(slots.map(({ coveredBy }) => coveredBy))
+  for (const note of notes) {
+    if (note.status !== 'not-due' || placed.has(note) || held.has(note)) continue
+    const { fallenDosesAnswer, firstDueOn } = settingOf(note.settingId)
+    if (fallenDosesAnswer === 'not-due' && note.dueOn < firstDueOn) {
+      held.set(note, keyOf(note.dueOn, note.dueTime))
+    }
   }
 }
 
