@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
 import type { SyncableTable } from '@/core/sync/service/syncable-table'
+import { SYNC_PUSH_HEADER } from './sync-push.repository'
 
 export interface RemoteSyncTableOptions {
   table: string
@@ -17,9 +18,15 @@ export function createRemoteSyncTable({
   loadClient,
 }: RemoteSyncTableOptions): RemoteSyncTable {
   return {
-    async pushRow(userId, row) {
+    async pushRow(userId, row, push) {
       const supabase = await loadClient()
-      await guardedUpsert(supabase, table, ['user_id', 'id'], { ...row, user_id: userId })
+      return guardedUpsert(
+        supabase,
+        table,
+        ['user_id', 'id'],
+        { ...row, user_id: userId },
+        { columns, headers: push ? { [SYNC_PUSH_HEADER]: push.id } : {} },
+      )
     },
 
     async pullPage(userId, since, limit) {

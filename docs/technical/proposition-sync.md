@@ -92,8 +92,47 @@ retard de dix minutes pousse une ligne datée dans le passé, que les autres app
 **jamais**, leur curseur ayant déjà dépassé cette date. Le curseur vient donc d'une horloge unique.
 
 Garde-fou contre une horloge partie en avant, dans le même trigger `before insert or update` :
-tout `updated_at` à plus de 24 h dans le futur est ramené à `now()`, et `server_updated_at := now()`.
-Sans ça, une ligne datée 2030 gagne pour toujours et ne peut plus jamais être modifiée.
+sans lui, une ligne datée 2030 gagne pour toujours et ne peut plus jamais être modifiée. Depuis #904
+(décisions du 19 octobre 2026) :
+
+- chaque cycle qui envoie ouvre d'abord un **envoi** (`sync_push` : heure du téléphone `sent_at`,
+  heure du serveur `received_at`), et chaque écriture s'en réclame par l'en-tête
+  `x-memopatte-sync-push` ;
+- si le téléphone avance de plus de 24 h (`sent_at > received_at + 24 h`), le serveur décale d'**un
+  seul écart par envoi** (`received_at - sent_at`, à la milliseconde) les dates que l'écriture
+  **change** par rapport à la ligne qu'il tient, comparées à la milliseconde comme le téléphone les
+  relit (`created_at`, `updated_at`, `deleted_at`, `settings_written_at`, `grid_written_at` ; toutes
+  à la création) : l'ordre des gestes d'un même téléphone est gardé, une date déjà écrêtée ou écrite
+  par un autre téléphone ne bouge pas, `installed_at` jamais. La date gardée dans `grid_before`
+  (`writtenAt`, au seul format ISO de l'app, entre 1900 et `now()` + 100 ans) en est une : elle
+  recule quand l'écriture la change ; seule la clé de premier niveau change, le texte est gardé tel
+  quel s'il ne dit rien d'autre, sinon réécrit comme Postgres le rend ; une valeur vide, illisible,
+  hors format, hors de cette plage ou sans date passe telle quelle. Une date de grille
+  (`grid_written_at` ou `writtenAt`) égale à une date que le serveur tient déjà, à la création comme
+  à la modification, ne recule pas : date de grille ou de grille d'avant d'une autre période du même
+  traitement et du même compte (supprimée comprise), ou création de la ligne elle-même. Une date
+  tenue n'est retenue que si elle ne dépasse pas `now()` + 24 h. Limite acceptée : seules des
+  données écrites avant cette migration (données de test) peuvent tenir une date plus lointaine ;
+  recopiée, elle n'est pas tenue et fait reculer toute la ligne. Exemple : une période écrite avant
+  la migration porte une date de grille au 1er janvier 2030 ; B, à l'heure, ouvre une nouvelle
+  période du même traitement qui la reprend : la date de grille revient à maintenant, mais la
+  création, la modification et les autres dates de la ligne reculent d'autant (1 168 jours, en
+  août 2023) ; une modification qui la recopie est refusée ;
+- **borne dans tous les cas** : si la date changée la plus récente, une fois décalée (ou sans
+  décalage : envoi absent, illisible, d'un autre compte, ou en avance de moins de 24 h), dépasse
+  encore `now() + 24 h`, l'écart devient celui qui la ramène à `now()` ;
+- une ligne décalée qui n'est pas plus récente que celle du serveur est **refusée** (la plus récente
+  gagne) ;
+- le téléphone qui a poussé relit la ligne gardée par le serveur (`guardedUpsert` la rend) et la
+  reprend en local sans la garde, si sa ligne n'a pas changé depuis l'envoi
+  (`replacePushedRowStatement`). La reprise se fait en fin de cycle, après le pull, quand les
+  lignes parentes sont là ; une reprise impossible ne fait pas échouer le cycle, la ligne reste en
+  file et repart au suivant. Si le pull tire, pour la même ligne, une version plus récente que celle
+  gardée à l'envoi (écrite par un autre téléphone entre-temps), c'est elle que la reprise pose : la
+  ligne locale, encore datée par l'horloge en avance, l'aurait sinon refusée et gardé pour toujours
+  une version que le serveur n'a plus.
+
+`server_updated_at := now()` dans tous les cas.
 
 ### 1.4 RLS
 
@@ -379,7 +418,8 @@ confidentialité doit nommer une région précise.
 
 2. **Écrêter une date future côté serveur.** _Tranché le 2026-09-19 avec Gaelle, la reco est retenue._
    _Reco_ : un trigger ramène à `now()` tout `updated_at` à
-   plus de 24 h dans le futur. _Raison_ : sinon une ligne datée 2030 gagne pour toujours et
+   plus de 24 h dans le futur (depuis #904, du même écart pour toutes les dates changées de
+   l'envoi : voir §1.3). _Raison_ : sinon une ligne datée 2030 gagne pour toujours et
    l'utilisateur ne peut plus jamais la modifier. _Alternative écartée_ : refuser l'écriture — il
    serait bloqué sans comprendre pourquoi, et sans recours depuis l'app.
 

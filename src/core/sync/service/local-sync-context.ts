@@ -1,5 +1,7 @@
 import { getDb } from '@/core/db/sqlite'
+import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { createSyncOutboxRepository } from '../repository/sync-outbox.repository'
+import { createSyncPushRepository } from '../repository/sync-push.repository'
 import { createSyncCycle, type SyncCycle, type SyncCycleDependencies } from './sync-cycle'
 
 export interface LocalSyncContext {
@@ -7,7 +9,7 @@ export interface LocalSyncContext {
   cycle: SyncCycle
 }
 
-export type LocalSyncContextDependencies = Omit<SyncCycleDependencies, 'db' | 'outbox'>
+export type LocalSyncContextDependencies = Omit<SyncCycleDependencies, 'db' | 'outbox' | 'pushes'>
 
 /**
  * Ouvre la base locale et compose la file d'attente et le cycle : le seul point, hors de
@@ -18,6 +20,7 @@ export async function createLocalSyncContext(
 ): Promise<LocalSyncContext> {
   const db = await getDb()
   const outbox = createSyncOutboxRepository(db)
-  const cycle = createSyncCycle({ ...deps, db, outbox })
+  const pushes = createSyncPushRepository(loadSupabaseClient)
+  const cycle = createSyncCycle({ ...deps, db, outbox, pushes })
   return { outbox, cycle }
 }

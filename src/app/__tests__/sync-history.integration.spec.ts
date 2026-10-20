@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { createFakeSyncServer, type FakeSyncServer } from '@/core/sync/__tests__/fake-sync-server'
 import { createSyncOutboxRepository } from '@/core/sync/repository/sync-outbox.repository'
+import { createSyncPushRepository } from '@/core/sync/repository/sync-push.repository'
 import { createSyncCycle } from '@/core/sync/service/sync-cycle'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { createTreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
@@ -35,6 +36,7 @@ async function createDevice(client: SupabaseClient) {
   const cycle = createSyncCycle({
     db,
     outbox: createSyncOutboxRepository(db),
+    pushes: createSyncPushRepository(deps.loadSupabaseClient),
     tables: [animals, vaccinations, injections, treatments, periods, doses, weight],
     userId: () => USER_ID,
     isEligible: () => true,

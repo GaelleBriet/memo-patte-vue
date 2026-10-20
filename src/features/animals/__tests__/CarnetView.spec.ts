@@ -591,6 +591,7 @@ describe('CarnetView — chargement et erreur', () => {
       pushRow: vi.fn<AnimalsRepository['pushRow']>(),
       pullPage: vi.fn<AnimalsRepository['pullPage']>(),
       applyRemoteRowStatement: vi.fn<AnimalsRepository['applyRemoteRowStatement']>(),
+      replacePushedRowStatement: vi.fn<AnimalsRepository['replacePushedRowStatement']>(),
     }))
   })
 

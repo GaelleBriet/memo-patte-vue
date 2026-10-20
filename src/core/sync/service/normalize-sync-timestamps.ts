@@ -6,6 +6,7 @@ const TIMESTAMP_COLUMNS = [
   'settings_written_at',
   'grid_written_at',
   'deleted_at',
+  'installed_at',
 ]
 
 /**

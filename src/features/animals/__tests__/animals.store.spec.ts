@@ -497,6 +497,7 @@ interface FakeAnimalsRepository {
   pushRow: Mock<AnimalsRepository['pushRow']>
   pullPage: Mock<AnimalsRepository['pullPage']>
   applyRemoteRowStatement: Mock<AnimalsRepository['applyRemoteRowStatement']>
+  replacePushedRowStatement: Mock<AnimalsRepository['replacePushedRowStatement']>
   restore: Mock<AnimalsRepository['restore']>
   getDeparture: Mock<AnimalsRepository['getDeparture']>
   setDeparture: Mock<AnimalsRepository['setDeparture']>
@@ -589,5 +590,6 @@ function createFakeRepository(): FakeAnimalsRepository {
     pushRow: vi.fn<AnimalsRepository['pushRow']>(),
     pullPage: vi.fn<AnimalsRepository['pullPage']>(),
     applyRemoteRowStatement: vi.fn<AnimalsRepository['applyRemoteRowStatement']>(),
+    replacePushedRowStatement: vi.fn<AnimalsRepository['replacePushedRowStatement']>(),
   }
 }
