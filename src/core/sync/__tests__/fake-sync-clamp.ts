@@ -1,4 +1,5 @@
 import type { SyncRowValue } from '@/core/supabase/guarded-upsert'
+import { gridWrittenOf, withWrittenAt, type GridWritten } from './fake-grid-before'
 
 type ServerRow = Record<string, SyncRowValue>
 
@@ -40,6 +41,13 @@ export function serverInstant(nowMs: number): string {
   return iso(nowMs * 1000 + SERVER_MICROSECONDS)
 }
 
+/** Les dates de grille d'une période, en microsecondes : la colonne et celle de sa grille d'avant. */
+export function gridDatesOf(period: ServerRow): number[] {
+  const column = typeof period.grid_written_at === 'string' ? [micros(period.grid_written_at)] : []
+  const before = gridWrittenOf(period.grid_before)
+  return before ? [...column, before.us] : column
+}
+
 /**
  * La règle de `clamp_sync_timestamps` (`supabase/migrations/`) : rend la ligne à écrire, dates que
  * l'écriture change décalées d'un même écart, ou `null` quand la ligne décalée n'est pas plus récente.
@@ -49,11 +57,12 @@ export function clampedWrite(
   stored: ServerRow | null,
   push: ClampPush | null,
   nowMs: number,
-  /** À la création d'une période, les dates de grille des autres périodes de son traitement. */
-  heldGridDates: readonly SyncRowValue[] = [],
+  /** Pour une période : les dates de grille des autres périodes de son traitement, du même compte. */
+  heldGridDates: readonly number[] | null = null,
 ): ServerRow | null {
-  const held = new Set(heldGridDates.map((value) => truncMs(micros(value))))
-  const isHeld = (us: number) => stored === null && held.has(truncMs(us))
+  const createdAt = typeof stored?.created_at === 'string' ? [micros(stored.created_at)] : []
+  const held = heldGridDates && new Set([...heldGridDates, ...createdAt].map(truncMs))
+  const isHeld = (us: number) => held?.has(truncMs(us)) ?? false
   const written = DATED.filter(
     (column) =>
       typeof incoming[column] === 'string' &&
@@ -84,23 +93,6 @@ export function clampedWrite(
   return row
 }
 
-interface GridWritten {
-  text: string
-  raw: string
-  us: number
-}
-
-function gridWrittenOf(value: SyncRowValue | undefined): Omit<GridWritten, 'text'> | null {
-  if (typeof value !== 'string') return null
-  try {
-    const raw: unknown = (JSON.parse(value) as { writtenAt?: unknown } | null)?.writtenAt
-    if (typeof raw !== 'string' || Number.isNaN(micros(raw))) return null
-    return { raw, us: micros(raw) }
-  } catch {
-    return null
-  }
-}
-
 /** La date de grille de `grid_before`, quand l'écriture change la colonne et cette date. */
 function changedGridWritten(incoming: ServerRow, stored: ServerRow | null): GridWritten | null {
   const text = incoming.grid_before
@@ -110,16 +102,5 @@ function changedGridWritten(incoming: ServerRow, stored: ServerRow | null): Grid
   if (written === null || (before !== null && truncMs(before.us) === truncMs(written.us))) {
     return null
   }
-  return { text, ...written }
-}
-
-function withWrittenAt({ text, raw }: GridWritten, us: number): string {
-  const shiftedAt = new Date(Math.floor(us / 1000)).toISOString()
-  const replaced = text.replace(
-    `"writtenAt":${JSON.stringify(raw)}`,
-    `"writtenAt":${JSON.stringify(shiftedAt)}`,
-  )
-  return replaced !== text
-    ? replaced
-    : JSON.stringify({ ...JSON.parse(text), writtenAt: shiftedAt })
+  return written
 }

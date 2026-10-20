@@ -53,7 +53,7 @@ describe('la ligne que le serveur a gardée, reprise par le téléphone qui a po
     b.db.close()
   })
 
-  it('le serveur a gardé la ligne plus récente de B : A la reprend dès son envoi, pull coupé', async () => {
+  it('le serveur a gardé la ligne plus récente de B : A la reprend en fin de cycle, même pull coupé', async () => {
     at('2026-10-19T08:00:00.000Z')
     await a.animals.update(lunaId, { name: 'Luna A', species: 'cat' })
     at('2026-10-19T08:30:00.000Z')

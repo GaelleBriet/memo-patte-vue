@@ -782,8 +782,9 @@ select ok(
 -- Envois de la synchro.
 select pg_temp.as_owner();
 select ok(
-  (select relrowsecurity from pg_class where oid = 'public.sync_push'::regclass),
-  'sync_push : RLS activée');
+  (select relrowsecurity and relforcerowsecurity from pg_class
+   where oid = 'public.sync_push'::regclass),
+  'sync_push : RLS activée et forcée');
 select ok(
   not has_table_privilege('anon', 'public.sync_push', 'SELECT, INSERT, UPDATE, DELETE, TRUNCATE')
   and not has_table_privilege('authenticated', 'public.sync_push', 'UPDATE, TRUNCATE')
@@ -1162,6 +1163,85 @@ select results_eq(
      (pg_temp.now_ms() - interval '23 days', pg_temp.grid(pg_temp.now_ms() - interval '23 days')),
      (pg_temp.now_ms() - interval '33 days', pg_temp.grid(pg_temp.now_ms() - interval '33 days')) $$,
   'une date tenue pour un autre traitement ou un autre compte ne compte pas : elle recule');
+
+-- Une date tenue ne recule pas non plus à la modification, ni recopiée de la création de la ligne,
+-- ni d'une période supprimée.
+update public.treatment_period
+set grid_written_at = pg_temp.now_ms() - interval '8 days',
+  updated_at = pg_temp.now_ms() + interval '3 days 1 hour'
+where id = '00000000-0000-4000-8000-0000000000d2';
+select is(
+  (select array[grid_written_at::text, updated_at::text] from public.treatment_period
+   where id = '00000000-0000-4000-8000-0000000000d2'),
+  array[(pg_temp.now_ms() - interval '8 days')::text, (pg_temp.now_ms() + interval '1 hour')::text],
+  'à la modification, une date de grille tenue pour une autre période du traitement ne recule pas');
+update public.treatment_period
+set grid_written_at = pg_temp.now_ms() - interval '10 minutes',
+  updated_at = pg_temp.now_ms() + interval '3 days 2 hours'
+where id = '00000000-0000-4000-8000-0000000000d5';
+select is(
+  (select grid_written_at from public.treatment_period
+   where id = '00000000-0000-4000-8000-0000000000d5'),
+  pg_temp.now_ms() - interval '10 minutes',
+  'une date de grille égale à la création que le serveur tient pour la ligne ne recule pas');
+select set_config('request.headers', '', true);
+insert into public.treatment_period (user_id, id, treatment_id, animal_id, starts_on, first_due_on,
+  frequency_value, frequency_unit, times, created_at, updated_at, settings_written_at,
+  grid_written_at, deleted_at, created_by_device, updated_by_device) values
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '00000000-0000-4000-8000-000000000d10',
+    '00000000-0000-4000-8000-0000000000c1', '00000000-0000-4000-8000-0000000000b1',
+    '2026-03-01', '2026-03-01', 3, 'day', '20:00', pg_temp.now_ms() - interval '15 days',
+    pg_temp.now_ms() - interval '14 days', pg_temp.now_ms() - interval '15 days',
+    pg_temp.now_ms() - interval '15 days', pg_temp.now_ms() - interval '14 days',
+    'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+select pg_temp.in_push('00000000-0000-4000-8000-0000000000f6');
+select pg_temp.period('00000000-0000-4000-8000-000000000d11', '00000000-0000-4000-8000-0000000000c1',
+  pg_temp.now_ms() + interval '3 days', pg_temp.now_ms() - interval '15 days',
+  pg_temp.grid(pg_temp.now_ms() - interval '15 days'));
+select is(
+  (select array[grid_written_at::text, grid_before] from public.treatment_period
+   where id = '00000000-0000-4000-8000-000000000d11'),
+  array[(pg_temp.now_ms() - interval '15 days')::text, pg_temp.grid(pg_temp.now_ms() - interval '15 days')],
+  'la date de grille d''une période supprimée compte comme tenue');
+
+-- Une date de grille d'avant que l'app ne lirait pas reste telle quelle, sans faire échouer l'écriture.
+create temp table odd_written_at (n int, value text);
+insert into odd_written_at values
+  (1, 'infinity'), (2, '-infinity'), (3, '294276-12-31T23:59:59Z'), (4, '200000-01-01T00:00:00Z'),
+  (5, 'now'), (6, 'tomorrow'), (7, 'Oct 25 2026'), (8, '2026-13-45T25:99Z');
+grant select on odd_written_at to authenticated;
+select lives_ok($$
+  select pg_temp.period(('00000000-0000-4000-8000-0000000001' || lpad(n::text, 2, '0'))::uuid,
+    '00000000-0000-4000-8000-0000000000c1', pg_temp.now_ms() + interval '3 days',
+    pg_temp.now_ms() + interval '3 days', '{"writtenAt":"' || value || '","runs":[]}')
+  from odd_written_at
+$$, 'une date de grille d''avant hors du format ISO de l''app ne fait pas échouer l''écriture');
+select is(
+  (select count(*) from public.treatment_period p join odd_written_at o
+     on p.id = ('00000000-0000-4000-8000-0000000001' || lpad(o.n::text, 2, '0'))::uuid
+   where p.grid_before = '{"writtenAt":"' || o.value || '","runs":[]}'),
+  8::bigint, 'elle est gardée telle quelle');
+
+-- Seule la clé de premier niveau recule ; un texte qu'un simple remplacement ne garde pas se réécrit.
+select pg_temp.period('00000000-0000-4000-8000-000000000201', '00000000-0000-4000-8000-0000000000c1',
+  pg_temp.now_ms() + interval '3 days', pg_temp.now_ms() + interval '3 days',
+  '{"frequency":{"writtenAt":"' || to_char((pg_temp.now_ms() + interval '3 days') at time zone 'UTC',
+    'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') || '"},"writtenAt":"' || to_char((pg_temp.now_ms()
+    + interval '3 days') at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') || '","runs":[]}');
+select pg_temp.period('00000000-0000-4000-8000-000000000202', '00000000-0000-4000-8000-0000000000c1',
+  pg_temp.now_ms() + interval '3 days', pg_temp.now_ms() + interval '3 days',
+  '{ "writtenAt" : "' || to_char((pg_temp.now_ms() + interval '3 days') at time zone 'UTC',
+    'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') || '", "runs": [] }');
+select results_eq(
+  $$ select grid_before::jsonb #>> '{writtenAt}', grid_before::jsonb #>> '{frequency,writtenAt}'
+     from public.treatment_period
+     where id in ('00000000-0000-4000-8000-000000000201', '00000000-0000-4000-8000-000000000202')
+     order by id $$,
+  $$ values
+     (to_char(pg_temp.now_ms() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+      to_char((pg_temp.now_ms() + interval '3 days') at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')),
+     (to_char(pg_temp.now_ms() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), null) $$,
+  'seule la date de premier niveau recule, même si le texte n''est pas compact');
 
 select set_config('request.headers', '', true);
 insert into public.treatment_period (user_id, id, treatment_id, animal_id, starts_on, first_due_on,

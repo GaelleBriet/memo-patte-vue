@@ -68,12 +68,7 @@ describe('#904 : dates de grille, deux téléphones, une horloge en avance de 3 
     ))
     await b.sync()
     await a.sync()
-
     a.calendar.day = '2026-03-12'
-    at('2026-03-09T08:00:00.000Z')
-    await a.onClock(() => a.plans.update(id, edition({})))
-    at('2026-03-09T08:05:00.000Z')
-    await a.onClock(() => a.plans.update(id, edition({ times: ['21:00'] })))
   })
 
   afterEach(() => {
@@ -81,6 +76,17 @@ describe('#904 : dates de grille, deux téléphones, une horloge en avance de 3 
     a.db.close()
     b.db.close()
   })
+
+  async function editOnA(instant: string, changes: Partial<TreatmentEditionInput>) {
+    at(instant)
+    await a.onClock(() => a.plans.update(id, edition(changes)))
+  }
+
+  /** A passe à « tous les 2 jours » à 8 h, puis à 21 h à 8 h 05 : P2, créée le jour même, se réécrit. */
+  async function twoDaysThenNinePm() {
+    await editOnA('2026-03-09T08:00:00.000Z', {})
+    await editOnA('2026-03-09T08:05:00.000Z', { times: ['21:00'] })
+  }
 
   async function latest(phone: Phone) {
     const treatment = await phone.treatments.getWithPeriods(id)
@@ -93,6 +99,7 @@ describe('#904 : dates de grille, deux téléphones, une horloge en avance de 3 
   }
 
   it('A pousse : sa période recule de 3 jours, la date de grille de P1, déjà juste, ne bouge pas', async () => {
+    await twoDaysThenNinePm()
     const gridBeforeOnA = (await a.db.query<{ grid_before: string }>(
       'SELECT grid_before FROM treatment_period WHERE grid_before IS NOT NULL',
     )) as [{ grid_before: string }]
@@ -114,7 +121,42 @@ describe('#904 : dates de grille, deux téléphones, une horloge en avance de 3 
     ).toEqual([gridBeforeOnA[0].grid_before])
   })
 
+  async function gridDates(phone: Phone) {
+    const treatment = await phone.treatments.getWithPeriods(id)
+    return treatment!.periods
+      .flatMap(({ gridWrittenAt, gridBefore }) => [gridWrittenAt, gridBefore?.writtenAt ?? null])
+      .filter((date): date is string => date !== null)
+      .sort()
+  }
+
+  it.each<[string, Partial<TreatmentEditionInput>, Partial<TreatmentEditionInput>]>([
+    [
+      'passe à « tous les 2 jours », synchronise, puis remet « tous les 3 jours »',
+      {},
+      { frequency: { value: 3, unit: 'day' } },
+    ],
+    [
+      'ouvre une période qui hérite (21 h), synchronise, puis passe à « tous les 2 jours »',
+      { frequency: { value: 3, unit: 'day' }, times: ['21:00'] },
+      { times: ['21:00'] },
+    ],
+  ])(
+    'A %s le 9 mars : aucune date de grille ne recule avant le 1er mars',
+    async (_label, first, second) => {
+      await editOnA('2026-03-09T08:00:00.000Z', first)
+      await a.sync()
+      await editOnA('2026-03-09T08:05:00.000Z', second)
+      await a.sync()
+      await b.sync()
+
+      const dates = await gridDates(a)
+      expect(dates[0]! >= '2026-03-01T07:00:00.000Z').toBe(true)
+      await expect(gridDates(b)).resolves.toEqual(dates)
+    },
+  )
+
   it('jeudi 12 mars 7 h, B passe à 22 h : la date de grille qu’il garde est le 9 mars 8 h', async () => {
+    await twoDaysThenNinePm()
     await a.sync()
     await b.sync()
 

@@ -104,10 +104,13 @@ sans lui, une ligne datée 2030 gagne pour toujours et ne peut plus jamais être
   relit (`created_at`, `updated_at`, `deleted_at`, `settings_written_at`, `grid_written_at` ; toutes
   à la création) : l'ordre des gestes d'un même téléphone est gardé, une date déjà écrêtée ou écrite
   par un autre téléphone ne bouge pas, `installed_at` jamais. La date gardée dans `grid_before`
-  (`writtenAt`) en est une : elle recule quand l'écriture la change, le reste du texte intact ; une
-  valeur vide, illisible ou sans date passe telle quelle. À la création d'une période, une date de
-  grille héritée (`grid_written_at` ou `writtenAt`) égale à une date de grille que le serveur tient
-  déjà pour une autre période du même traitement ne recule pas : elle est déjà juste ;
+  (`writtenAt`, au seul format ISO de l'app) en est une : elle recule quand l'écriture la change ;
+  seule la clé de premier niveau change, le texte est gardé tel quel s'il ne dit rien d'autre, sinon
+  réécrit comme Postgres le rend ; une valeur vide, illisible, hors format ou sans date passe telle
+  quelle. Une date de grille (`grid_written_at` ou `writtenAt`) égale à une date que le serveur tient
+  déjà, à la création comme à la modification, ne recule pas : date de grille ou de grille d'avant
+  d'une autre période du même traitement et du même compte (supprimée comprise), ou création de la
+  ligne elle-même ;
 - **borne dans tous les cas** : si la date changée la plus récente, une fois décalée (ou sans
   décalage : envoi absent, illisible, d'un autre compte, ou en avance de moins de 24 h), dépasse
   encore `now() + 24 h`, l'écart devient celui qui la ramène à `now()` ;
@@ -115,7 +118,9 @@ sans lui, une ligne datée 2030 gagne pour toujours et ne peut plus jamais être
   gagne) ;
 - le téléphone qui a poussé relit la ligne gardée par le serveur (`guardedUpsert` la rend) et la
   reprend en local sans la garde, si sa ligne n'a pas changé depuis l'envoi
-  (`replacePushedRowStatement`).
+  (`replacePushedRowStatement`). La reprise se fait en fin de cycle, après le pull, quand les
+  lignes parentes sont là ; une reprise impossible ne fait pas échouer le cycle, la ligne reste en
+  file et repart au suivant.
 
 `server_updated_at := now()` dans tous les cas.
 

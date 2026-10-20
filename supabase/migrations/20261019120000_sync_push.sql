@@ -9,6 +9,7 @@ create table public.sync_push (
 );
 
 alter table public.sync_push enable row level security;
+alter table public.sync_push force row level security;
 
 create policy sync_push_select on public.sync_push for select
   using (user_id = (select auth.uid()));

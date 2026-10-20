@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { SyncRowValue } from '@/core/supabase/guarded-upsert'
-import { clampedWrite, postgrestInstant, serverInstant } from './fake-sync-clamp'
+import { clampedWrite, gridDatesOf, postgrestInstant, serverInstant } from './fake-sync-clamp'
 import { MIRROR_FOREIGN_KEYS, TIMESTAMP_COLUMNS } from './fake-sync-schema'
 
 type ServerRow = Record<string, SyncRowValue>
@@ -79,7 +79,7 @@ export function createFakeSyncServer({
     return null
   }
 
-  function heldGridDates(period: ServerRow): SyncRowValue[] {
+  function heldGridDates(period: ServerRow): number[] {
     return tableRows('treatment_period')
       .filter(
         (other) =>
@@ -87,8 +87,7 @@ export function createFakeSyncServer({
           other.treatment_id === period.treatment_id &&
           other.id !== period.id,
       )
-      .map(({ grid_written_at }) => grid_written_at ?? null)
-      .filter((value) => value !== null)
+      .flatMap(gridDatesOf)
   }
 
   function picked(row: ServerRow, columns: string): ServerRow {
@@ -115,7 +114,7 @@ export function createFakeSyncServer({
           stored,
           push && push.user_id === incoming.user_id ? push : null,
           now(),
-          table === 'treatment_period' ? heldGridDates(incoming) : [],
+          table === 'treatment_period' ? heldGridDates(incoming) : null,
         ),
       )
       if (!Array.isArray(written)) return { data: null, error: written }

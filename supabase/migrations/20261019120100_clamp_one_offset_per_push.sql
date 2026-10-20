@@ -9,6 +9,7 @@ declare
   dated constant text[] := array[
     'created_at', 'updated_at', 'deleted_at', 'settings_written_at', 'grid_written_at'
   ];
+  iso constant text := '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?Z$';
   incoming constant jsonb := to_jsonb(new);
   stored constant jsonb := case when tg_op = 'UPDATE' then to_jsonb(old) else '{}'::jsonb end;
   push_id constant text :=
@@ -20,10 +21,13 @@ declare
   grid_written_text text;
   grid_written timestamptz;
   stored_grid_written timestamptz;
+  held timestamptz[];
   latest timestamptz;
   shift interval;
-  shifted_written_text text;
-  shifted_grid_text text;
+  shifted_text text;
+  expected jsonb;
+  old_piece text;
+  candidate text;
 begin
   select coalesce(array_agg(c), '{}') into written
   from unnest(dated) c
@@ -31,46 +35,58 @@ begin
     and date_trunc('milliseconds', (incoming ->> c)::timestamptz)
       is distinct from date_trunc('milliseconds', (stored ->> c)::timestamptz);
 
-  -- La grille d'avant porte la date de grille de la période remplacée : une date comme les autres.
+  -- La grille d'avant porte la date de grille de la période remplacée : une date comme les autres,
+  -- lue seulement si elle est au format ISO strict de l'app ; sinon laissée telle quelle.
   grid_text := incoming ->> 'grid_before';
-  if grid_text is distinct from stored ->> 'grid_before' then
-    begin
-      grid_written_text := grid_text::jsonb ->> 'writtenAt';
+  if grid_text is distinct from stored ->> 'grid_before' and pg_input_is_valid(grid_text, 'jsonb') then
+    grid_written_text := grid_text::jsonb ->> 'writtenAt';
+    if grid_written_text ~ iso and pg_input_is_valid(grid_written_text, 'timestamptz') then
       grid_written := grid_written_text::timestamptz;
-    exception when others then
-      grid_written := null;
-    end;
-    begin
-      stored_grid_written := ((stored ->> 'grid_before')::jsonb ->> 'writtenAt')::timestamptz;
-    exception when others then
-      stored_grid_written := null;
-    end;
+    end if;
+    if pg_input_is_valid(stored ->> 'grid_before', 'jsonb') then
+      stored_grid_written := case
+        when (stored ->> 'grid_before')::jsonb ->> 'writtenAt' ~ iso
+          and pg_input_is_valid((stored ->> 'grid_before')::jsonb ->> 'writtenAt', 'timestamptz')
+        then ((stored ->> 'grid_before')::jsonb ->> 'writtenAt')::timestamptz
+      end;
+    end if;
     if date_trunc('milliseconds', grid_written)
         is not distinct from date_trunc('milliseconds', stored_grid_written) then
       grid_written := null;
     end if;
   end if;
 
-  -- Une date de grille héritée que le serveur tient déjà pour une autre période du traitement est juste.
-  if tg_op = 'INSERT' and tg_table_name = 'treatment_period' then
-    if 'grid_written_at' = any(written) and exists (
-      select 1 from public.treatment_period p
+  -- Une date de grille que le serveur tient déjà, pour une autre période du traitement ou comme
+  -- création de la ligne, est juste : recopiée par un geste, elle ne recule pas.
+  if tg_table_name = 'treatment_period'
+      and ('grid_written_at' = any(written) or grid_written is not null) then
+    select coalesce(array_agg(date_trunc('milliseconds', d)) filter (where d is not null), '{}')
+    into held
+    from (
+      select p.grid_written_at as d
+      from public.treatment_period p
       where p.user_id = new.user_id and p.treatment_id = new.treatment_id and p.id <> new.id
-        and date_trunc('milliseconds', p.grid_written_at)
-          = date_trunc('milliseconds', new.grid_written_at)
-    ) then
+      union all
+      select case when pg_input_is_valid(p.grid_before, 'jsonb') then
+          case when p.grid_before::jsonb ->> 'writtenAt' ~ iso
+              and pg_input_is_valid(p.grid_before::jsonb ->> 'writtenAt', 'timestamptz')
+            then (p.grid_before::jsonb ->> 'writtenAt')::timestamptz end
+        end
+      from public.treatment_period p
+      where p.user_id = new.user_id and p.treatment_id = new.treatment_id and p.id <> new.id
+      union all
+      select (stored ->> 'created_at')::timestamptz
+    ) known;
+    if 'grid_written_at' = any(written)
+        and date_trunc('milliseconds', new.grid_written_at) = any(held) then
       written := array_remove(written, 'grid_written_at');
     end if;
-    if grid_written is not null and exists (
-      select 1 from public.treatment_period p
-      where p.user_id = new.user_id and p.treatment_id = new.treatment_id and p.id <> new.id
-        and date_trunc('milliseconds', p.grid_written_at) = date_trunc('milliseconds', grid_written)
-    ) then
+    if date_trunc('milliseconds', grid_written) = any(held) then
       grid_written := null;
     end if;
   end if;
 
-  if push_id ~*'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
+  if push_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
     select date_trunc('milliseconds', p.received_at) - date_trunc('milliseconds', p.sent_at)
     into shift
     from public.sync_push p
@@ -98,16 +114,23 @@ begin
       new.grid_written_at := new.grid_written_at + shift;
     end if;
     if grid_written is not null then
-      shifted_written_text := to_char((grid_written + shift) at time zone 'UTC',
-        'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"');
-      shifted_grid_text := replace(grid_text,
-        '"writtenAt":' || to_json(grid_written_text)::text,
-        '"writtenAt":' || to_json(shifted_written_text)::text);
-      if shifted_grid_text = grid_text then
-        shifted_grid_text :=
-          (grid_text::jsonb || jsonb_build_object('writtenAt', shifted_written_text))::text;
-      end if;
-      new.grid_before := shifted_grid_text;
+      -- Seule la clé de premier niveau change : le texte gardé tel quel s'il ne dit rien d'autre.
+      begin
+        shifted_text := to_char((grid_written + shift) at time zone 'UTC',
+          'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"');
+        expected := grid_text::jsonb || jsonb_build_object('writtenAt', shifted_text);
+        old_piece := '"writtenAt":' || to_json(grid_written_text)::text;
+        candidate := case when position(old_piece in grid_text) > 0 then
+          overlay(grid_text placing '"writtenAt":' || to_json(shifted_text)::text
+            from position(old_piece in grid_text) for length(old_piece))
+        end;
+        new.grid_before := case
+          when pg_input_is_valid(candidate, 'jsonb') and candidate::jsonb = expected then candidate
+          else expected::text
+        end;
+      exception when others then
+        new.grid_before := grid_text;
+      end;
     end if;
     if tg_op = 'UPDATE' and new.updated_at <= old.updated_at then
       return null;

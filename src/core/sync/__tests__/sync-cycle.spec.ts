@@ -324,6 +324,32 @@ describe('createSyncCycle', () => {
         expect(onRemindersOutdated).not.toHaveBeenCalled()
       })
 
+      it('une reprise impossible ne fait pas échouer le cycle : l’entrée reste en file', async () => {
+        const animal = fakeTable('animal')
+        animal.serverKeeps.set(SENT.id, KEPT)
+        animal.localRows.set(SENT.id, SENT)
+        animal.replacePushedRowStatement = () => ({ sql: 'UPDATE table_absente SET x = 1' })
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+        const outbox = createFakeOutbox([
+          { entity: 'animal', entityId: SENT.id, queuedAt: T_ROW, attempts: 0 },
+        ])
+
+        await expect(
+          createSyncCycle({
+            db,
+            outbox,
+            pushes,
+            tables: [animal],
+            userId: () => 'user-1',
+            isEligible: () => true,
+          }).runCycle(),
+        ).resolves.toBeUndefined()
+
+        expect(outbox.entries()).toHaveLength(1)
+        expect(warn).toHaveBeenCalledOnce()
+        warn.mockRestore()
+      })
+
       it('garde une écriture locale faite entre l’envoi et la relecture', async () => {
         const animal = fakeTable('animal')
         const pushRow = animal.pushRow.bind(animal)

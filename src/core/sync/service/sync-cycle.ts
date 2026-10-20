@@ -45,6 +45,16 @@ export interface SyncCycle {
   runCycle(): Promise<void>
 }
 
+interface KeptRow {
+  table: SyncableTable
+  entry: SyncOutboxEntry
+  sent: SyncRow
+  kept: SyncRow
+}
+
+const sameRow = (sent: SyncRow, kept: SyncRow) =>
+  Object.keys(kept).every((column) => (sent[column] ?? null) === (kept[column] ?? null))
+
 export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
   const tablesByEntity = new Map(deps.tables.map((table) => [table.entity, table]))
 
@@ -58,41 +68,51 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
     ])
   }
 
-  async function keepServerRow(
-    table: SyncableTable,
-    sent: SyncRow,
-    kept: SyncRow,
-    onReplaced: () => void,
-  ): Promise<void> {
-    const normalized = normalizeSyncTimestamps(kept)
-    const unchanged = Object.keys(normalized).every(
-      (column) => (sent[column] ?? null) === (normalized[column] ?? null),
-    )
-    if (unchanged) return
-    await runUnqueued([table.replacePushedRowStatement(normalized, sent.updated_at)])
-    onReplaced()
-  }
-
-  async function push(userId: string, onRemindersTouched: (entity: string) => void): Promise<void> {
+  /** Rend les lignes que le serveur a gardées autrement qu'envoyées : elles restent en file d'ici leur reprise. */
+  async function push(userId: string): Promise<KeptRow[]> {
+    const keptRows: KeptRow[] = []
+    const handled = new Set<string>()
     let envoi: SyncPush | null = null
     for (;;) {
-      const claimed = (await deps.outbox.listPending()).slice(0, PUSH_CLAIM_SIZE)
-      if (claimed.length === 0) return
+      const claimed = (await deps.outbox.listPending())
+        .filter(({ entity, entityId }) => !handled.has(`${entity}/${entityId}`))
+        .slice(0, PUSH_CLAIM_SIZE)
+      if (claimed.length === 0) return keptRows
       envoi ??= await deps.pushes.open(userId, new Date().toISOString())
 
       for (const entry of claimed) {
+        handled.add(`${entry.entity}/${entry.entityId}`)
         const table = tablesByEntity.get(entry.entity)
-        if (table) {
-          const row = await table.getRowForPush(entry.entityId)
-          const kept = row && (await table.pushRow(userId, row, envoi))
-          if (row && kept) {
-            await keepServerRow(table, row, kept, () => onRemindersTouched(table.entity))
-          }
+        const sent = table ? await table.getRowForPush(entry.entityId) : null
+        const kept = table && sent ? await table.pushRow(userId, sent, envoi) : null
+        const normalized = kept && normalizeSyncTimestamps(kept)
+        if (table && sent && normalized && !sameRow(sent, normalized)) {
+          keptRows.push({ table, entry, sent, kept: normalized })
+        } else {
+          await deps.outbox.removeIfUnchanged(entry)
         }
-        await deps.outbox.removeIfUnchanged(entry)
       }
 
-      if (claimed.length < PUSH_CLAIM_SIZE) return
+      if (claimed.length < PUSH_CLAIM_SIZE) return keptRows
+    }
+  }
+
+  /**
+   * Après le pull, les parents d'une ligne gardée sont là. Une reprise impossible ne fait jamais
+   * échouer le cycle : la ligne reste en file et repart au suivant.
+   */
+  async function keepServerRows(
+    keptRows: readonly KeptRow[],
+    onRemindersTouched: (entity: string) => void,
+  ): Promise<void> {
+    for (const { table, entry, sent, kept } of keptRows) {
+      try {
+        await runUnqueued([table.replacePushedRowStatement(kept, sent.updated_at)])
+        await deps.outbox.removeIfUnchanged(entry)
+        onRemindersTouched(table.entity)
+      } catch (cause) {
+        console.warn(`Ligne gardée par le serveur non reprise (${table.entity}) :`, cause)
+      }
     }
   }
 
@@ -135,10 +155,7 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
   }
 
   return {
-    /**
-     * Une ligne passée derrière son curseur ne revient plus : ses rappels se reconstruisent même si
-     * la suite du cycle échoue.
-     */
+    /** Une ligne passée derrière son curseur ne revient plus : ses rappels se reconstruisent même si la suite échoue. */
     async runCycle(): Promise<void> {
       if (!deps.isEligible()) return
       const userId = deps.userId()
@@ -148,10 +165,12 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
       const onRemindersTouched = (entity: string) => {
         if (REMINDER_ENTITIES.has(entity)) touchedReminders = true
       }
+      let keptRows: KeptRow[] = []
       try {
-        await push(userId, onRemindersTouched)
+        keptRows = await push(userId)
         await pull(userId, onRemindersTouched)
       } finally {
+        await keepServerRows(keptRows, onRemindersTouched)
         if (touchedReminders) await deps.onRemindersOutdated?.()
       }
       await deps.outbox.setLastSyncedAt(new Date().toISOString())
