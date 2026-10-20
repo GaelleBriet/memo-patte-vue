@@ -135,8 +135,7 @@ describe('La date choisie, déplacée par les vrais services', () => {
     ])
   })
 
-  // I2, R6 : attendu décidé, pas encore lu : la grille d'un réglage d'avant sa réécriture sur place
-  // n'est gardée nulle part.
+  // I2, R6 : attendu décidé, pas encore lu (#988).
   it.fails(
     'Luna, chaque semaine sans heure ; le décalage du 13 avril supprimé : 20 avril, 27 avril, 4 mai',
     async () => {
@@ -155,10 +154,11 @@ describe('La date choisie, déplacée par les vrais services', () => {
     },
   )
 
-  // Q-a, Q-c : sans la case, le report déplace une seule dose, celle qu'on a touchée.
+  // Q-a, R7 : la dose touchée part avec les heures suivantes de sa journée ; la case ne gouverne que
+  // les journées suivantes.
   it.each([
     ['20:00', ['2026-03-20 20:00', '2026-03-25 08:00', '2026-03-26 08:00']],
-    ['08:00', ['2026-03-20 08:00', '2026-03-25 20:00', '2026-03-26 08:00']],
+    ['08:00', ['2026-03-20 08:00', '2026-03-20 20:00', '2026-03-26 08:00']],
   ])(
     'Luna, chaque jour à 20 h, date choisie du 25 à 8 h et 20 h ; la dose de %s du 25 avancée au 20 sans la case',
     async (touched, expected) => {
@@ -169,6 +169,22 @@ describe('La date choisie, déplacée par les vrais services', () => {
       expect(await luna.upcoming(3)).toEqual(expected)
     },
   )
+
+  it('Luna, tous les 3 jours à 8 h et 20 h ; la dose de 20 h du 10 mars reportée au 12 sans la case : le 10 garde 8 h, le 12 reçoit 20 h', async () => {
+    const luna = await carnet(
+      '2026-03-10',
+      { value: 3, unit: 'day' },
+      ['08:00', '20:00'],
+      '2026-03-10',
+    )
+    await luna.move('2026-03-10', '20:00', '2026-03-12', false)
+    expect(await luna.slots('2026-03-10', '2026-03-13')).toEqual([
+      '2026-03-10 08:00 pending',
+      '2026-03-12 20:00 pending',
+      '2026-03-13 08:00 pending',
+      '2026-03-13 20:00 pending',
+    ])
+  })
 
   // Q-b : une heure écrite vide, dans un réglage qui a des heures, laisse la dose à l'heure de son rang.
   it('Milo, chaque jour sans heure ; date choisie du 20 à 8 h et 20 h, reculée au 28 avec la case : 28 et 29 mars à 8 h et 20 h', async () => {

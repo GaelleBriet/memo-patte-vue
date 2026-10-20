@@ -365,24 +365,6 @@ it('graine 9120001577, pas 12 : aucune dose de trop le 5 avril', () => {
   expect(constatsOf(forkAt(9120001577, 12))).toEqual([])
 })
 
-// Q-c : sans la case, le report repris sur la date choisie par B n'en emporte que sa dose ; la fusion
-// lit comme B, et le redéplacement de A, fait sur des doses que B n'a plus, est un résidu (#986).
-it('graine 9050001926, pas 16 : la fusion lit comme B, trois doses ; le redéplacement de A est un résidu', () => {
-  const fork = forkAt(9050001926, 16)
-  expect(fork.aFirst).toBe(false)
-  expect(states(fork.merged, '2026-03-16', '2026-03-26')).toEqual(
-    states(fork.phoneB, '2026-03-16', '2026-03-26'),
-  )
-  expect(states(fork.merged, '2026-03-16', '2026-03-26')).toEqual([
-    '2026-03-23 08:00 given',
-    '2026-03-25 14:00 pending',
-    '2026-03-25 20:00 pending',
-  ])
-  expect(constatsOf(fork)).toEqual([
-    'graine 9050001926, pas 16, A plus récent : report 2026-03-23 14:00 → 2026-03-24 perdu',
-  ])
-})
-
 // Q2 (décision du 19 octobre 2026) : la journée de départ existe encore (la note la porte), la ligne de
 // décalage, autonome, tient seule : le 30 et le 31 mars sont décalés, pas supprimés.
 it('graine 9050002175, pas 4 : le décalage tient seul, la suite reprend le 1er avril', () => {
