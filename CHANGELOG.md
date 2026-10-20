@@ -5,6 +5,17 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.88](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.87...memo-patte-v0.1.88) (2026-10-20)
+
+
+### 🐛 Corrections
+
+* **dose-calendar:** la date choisie prend les heures changées le jour même ([#891](https://github.com/GaelleBriet/memo-patte-vue/issues/891)) ([c89104e](https://github.com/GaelleBriet/memo-patte-vue/commit/c89104e9a73463e812e634695bf188e00aa291a0))
+* **dose-calendar:** le report parti du jour où un réglage cède la place emporte ses doses ([9406f3e](https://github.com/GaelleBriet/memo-patte-vue/commit/9406f3ebd095880c9f067815f645674a5d897831))
+* **dose-calendar:** le report parti du jour où un réglage cède la place emporte ses doses ([#928](https://github.com/GaelleBriet/memo-patte-vue/issues/928)) ([16ef0e8](https://github.com/GaelleBriet/memo-patte-vue/commit/16ef0e8b884b5e0187422613e878f150c5488423))
+* **dose-calendar:** les lignes se lisent dans un ordre fixe, quel que soit celui de la base ([ac98c6f](https://github.com/GaelleBriet/memo-patte-vue/commit/ac98c6f51a400c139ee351cceb2ace471db03553))
+* **dose-calendar:** une même base se lit pareil, quel que soit l'ordre de ses lignes ([#880](https://github.com/GaelleBriet/memo-patte-vue/issues/880)) ([afc8d16](https://github.com/GaelleBriet/memo-patte-vue/commit/afc8d16e65869aae4c55d71804532b97be57648e))
+
 ## [0.1.87](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.86...memo-patte-v0.1.87) (2026-10-20)
 
 
