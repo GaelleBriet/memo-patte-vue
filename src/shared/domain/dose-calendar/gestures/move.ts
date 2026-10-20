@@ -15,6 +15,7 @@ import type {
 import { buildView, type TreatmentView } from '../view'
 import { applied, shiftOfDay, shiftWritten, without, written } from './changes'
 import { linesAfter, livesOn, lostToEnd, outcome } from './outcome'
+import { opensRhythm, reportsOf, reportToRewrite } from './moved-report'
 import { strandsNote } from './reports'
 
 export type MoveGesture = Omit<Extract<Gesture, { kind: 'move' }>, 'kind'>
@@ -31,19 +32,6 @@ type MovePlan = {
   dayShift: Line | undefined
   bounds: MoveBounds
 }
-
-const reportsOf = (view: TreatmentView, episode: ReadonlySet<string>): Line[] =>
-  view.history
-    .filter(
-      ({ line, effect }) =>
-        line.status === 'postponed' && effect.kind === 'moves' && episode.has(line.settingId),
-    )
-    .map(({ line }) => line)
-
-const opensRhythm = (view: TreatmentView, report: Line): boolean =>
-  view.history.some(
-    ({ line, effect }) => line.id === report.id && effect.kind === 'moves' && effect.opensRhythm,
-  )
 
 // G6 : le dernier jour d'où la fréquence retombe encore sur l'échéance d'origine.
 function oneStepBefore(due: Due, view: TreatmentView): Day {
@@ -110,7 +98,12 @@ function rewriteStrands(
   )
 }
 
-function planOf(input: TreatmentViewInput, due: Due, shiftsFollowing: boolean): MovePlan | Refusal {
+function planOf(
+  input: TreatmentViewInput,
+  due: Due,
+  shiftsFollowing: boolean,
+  carried = false,
+): MovePlan | Refusal {
   const view = buildView(input)
   const setting = view.currentSetting
   if (setting === null || view.phase === 'stopped' || view.phase === 'ended') {
@@ -120,12 +113,7 @@ function planOf(input: TreatmentViewInput, due: Due, shiftsFollowing: boolean): 
   const ids = new Set(episode.map(({ id }) => id))
   const notedOn = (day: Day) =>
     input.lines.some((line) => isTaken(line) && ids.has(line.settingId) && line.dueOn === day)
-  const existing = reportsOf(view, ids)
-    .filter(
-      (report) =>
-        (report.targetOn === due.dueOn && !notedOn(due.dueOn)) || report.dueOn === due.dueOn,
-    )
-    .at(-1)
+  const existing = reportToRewrite(input, view, ids, due, notedOn, carried)
   if (existing !== undefined && notedOn(existing.targetOn!)) return { reason: 'arrival-logged' }
   // R7, R9.2 : partie de son arrivée, la dose rendrait au jour les heures du nouveau rythme.
   if (existing !== undefined && opensRhythm(view, existing)) return { reason: 'not-movable' }
@@ -272,7 +260,7 @@ export function moveDose(input: TreatmentViewInput, gesture: MoveGesture): Gestu
  * le décalage de sa journée, sans en écrire un ; rien sans report ou hors des bornes (G7, G8).
  */
 export function arrivalFollowing(input: TreatmentViewInput, due: Due, to: Day): LineChange[] {
-  const plan = planOf(input, due, true)
+  const plan = planOf(input, due, true, true)
   if ('reason' in plan || plan.existing === undefined) return []
   if (boundsRefusal(plan.bounds, to) !== null) return []
   return reportLines(input, plan, to, plan.dayShift !== undefined, due)
