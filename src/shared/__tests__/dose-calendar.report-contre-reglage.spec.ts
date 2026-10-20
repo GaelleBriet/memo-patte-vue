@@ -347,6 +347,20 @@ it('graine 9110001016, pas 23 : les quatre doses arrivent le 23 avril, comme sur
   expect(shown(fork.merged)).toEqual(expected)
 })
 
+// #939, Q1 (b) : l'ancienne arrivée du 17 n'est plus une échéance du réglage de B, dont la grille est
+// plus ancienne que le geste de A : les deux restent, le report arrive le 16.
+it('graine 9130000050, pas 13 : le report de A, plus récent, arrive le 16', () => {
+  const fork = forkAt(9130000050, 13)
+  expect(fork.aFirst).toBe(false)
+  expect(constatsOf(fork)).toEqual([])
+  expect(
+    treatmentView(fork.merged)
+      .upcoming({ limit: 2 })
+      .map(({ dueOn }) => dueOn),
+  ).toEqual(['2026-04-09', '2026-04-09'])
+  expect(treatmentView(fork.merged).slots('2026-04-16', '2026-04-16')).toHaveLength(1)
+})
+
 it('graine 9120001577, pas 12 : aucune dose de trop le 5 avril', () => {
   expect(constatsOf(forkAt(9120001577, 12))).toEqual([])
 })
