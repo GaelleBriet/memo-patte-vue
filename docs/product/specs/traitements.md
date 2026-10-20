@@ -415,6 +415,11 @@ Après un arrêt, la reprise ouvre un nouveau réglage dont la première échéa
 
 #### R9 — Où commence un réglage changé
 
+Aucune journée n'est lue avant la première échéance d'une date choisie, même après un décalage, sauf
+quand cette dose est avancée ou reculée avec « Décaler aussi les doses suivantes » : la série repart
+alors de son arrivée, qui devient le nouveau premier jour (correction du 20 octobre 2026 ; tous les
+jours sans heure, date choisie le 7 avril, dose du 7 avancée au 1er avril : 1er, 2, 3 avril…).
+
 Quand la fréquence ou les heures changent, la première échéance proposée est :
 
 1. **aujourd'hui**, si aujourd'hui est une journée d'échéance (grille ou arrivée d'un report) qui a encore des heures à donner, ou si rien n'y est noté et qu'une dose y était due ; les prises d'aujourd'hui couvrent leur heure si elle existe encore, sinon les premières heures du nouveau réglage, dans l'ordre (R4) ;
@@ -477,6 +482,16 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
     avec l'échéance qu'elle remplace désormais (« prévue le » peut changer) ; une ligne ne ramène
     jamais une dose à son propre jour d'origine.
     (Validée par Gaelle, points validés en bloc du 2026-10-01.)
+    Sur une date choisie (décisions du 20 octobre 2026) : la dose qui part est celle qu'on a touchée,
+    elle arrive à son heure. Sans la case, elle part seule : le nombre de doses ne change pas (Luna,
+    chaque jour à 20 h, date choisie du 25 mars à 8 h et 20 h : la dose de 20 h avancée au 20 donne le
+    20 à 20 h et le 25 à 8 h ; celle de 8 h, le 20 à 8 h et le 25 à 20 h). Avancée ou reculée avec la
+    case, elle emmène la journée entière, aux heures du réglage qui a choisi la date (#796), et
+    l'arrivée devient le premier jour de la série, même quand le report part d'un jour antérieur à ce
+    réglage (Milo, chaque jeudi à 8 h et 20 h, puis 8 h, 14 h et 20 h avec « Prochaine dose » le lundi
+    6 avril : la dose du 6 avril avancée au jeudi 12 mars donne 12, 19, 26 mars, 2 avril…). Une heure
+    écrite déjà prise par un rang qui l'accompagne, ou vide dans un réglage à heures, laisse la dose à
+    l'heure de son propre rang : jamais « sans heure » sur une fiche qui a des heures.
   - **G17** Une journée n'a qu'une ligne de déplacement : la redéplacer réécrit sa ligne, même quand
     une heure y est revenue (prise supprimée) ; deux lignes pour la même journée (synchronisation) :
     la plus récente vaut, l'autre est sans effet.
