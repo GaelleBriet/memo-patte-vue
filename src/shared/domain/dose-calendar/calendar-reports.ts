@@ -1,6 +1,6 @@
 import type { DayCoverage } from './calendar-coverage'
 import type { notDueArrivals } from './calendar-not-due'
-import { hoursOf, keyOf, sameHours } from './grid'
+import { hoursOf, keyOf, sameFrequency, sameHours } from './grid'
 import type { Journey, journeys } from './journeys'
 import type { EpisodeLines } from './lines'
 import { oldArrivalChooser, rankedMove, wholeDay } from './report-rank'
@@ -233,7 +233,13 @@ export function moveReports(input: ReportsInput) {
       arrival: arrival === undefined ? null : targetOn,
     })
     if (arrival === undefined) return
-    const chosen = lines.chosenArrivals.get(report)
+    // R4 : à fréquence gardée, le jour où les heures changent, la date choisie prend les nouvelles heures.
+    const picker = lines.chosenArrivals.get(report)
+    const relaid =
+      picker !== undefined &&
+      translated.has(targetOn!) &&
+      sameFrequency(arrival.frequency, picker.frequency)
+    const chosen = relaid ? arrival : picker
     const under = chosen ?? source
     const own = sameHours(arrival, under) ? arrival : under
     const arriving = chosen ? hoursOf(chosen.times) : bringing
