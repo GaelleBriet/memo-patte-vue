@@ -80,4 +80,44 @@ describe('clampedWrite, la règle du serveur rejouée par le faux serveur', () =
 
     expect(clampedWrite(row, null, ahead(23 * HOUR), NOW)).toBe(row)
   })
+
+  describe('la date gardée dans la grille d’avant', () => {
+    const grid = (writtenAt: string) =>
+      `{"frequency":{"value":2,"unit":"day"},"endsOn":null,"writtenAt":"${writtenAt}","runs":[["2026-03-01",null]]}`
+
+    it('recule du même écart quand l’écriture la change, le reste du texte intact', () => {
+      const row = { id: 'p3', updated_at: at(3 * DAY), grid_before: grid(at(3 * DAY - HOUR)) }
+
+      expect(clampedWrite(row, null, ahead(3 * DAY), NOW)?.grid_before).toBe(
+        grid('2026-10-19T07:00:00.000Z'),
+      )
+    })
+
+    it('déjà tenue par le serveur, elle ne recule pas', () => {
+      const stored = { id: 'p3', updated_at: at(-HOUR), grid_before: grid(at(-HOUR)) }
+      const incoming = {
+        ...stored,
+        updated_at: at(3 * DAY),
+        grid_before: grid(at(-HOUR)).replace('null]]', '"2026-03-20"]]'),
+      }
+
+      expect(clampedWrite(incoming, stored, ahead(3 * DAY), NOW)?.grid_before).toBe(
+        incoming.grid_before,
+      )
+    })
+
+    it('vide, illisible ou sans date, elle passe telle quelle', () => {
+      for (const value of [null, 'pas du json', '{"frequency":{"value":2,"unit":"day"}}']) {
+        const row = { id: 'p3', updated_at: at(3 * DAY), grid_before: value }
+
+        expect(clampedWrite(row, null, ahead(3 * DAY), NOW)?.grid_before).toBe(value)
+      }
+    })
+
+    it('bornée à now() + 24 h comme les autres dates', () => {
+      const row = { id: 'p4', updated_at: at(0), grid_before: grid(at(30 * HOUR)) }
+
+      expect(clampedWrite(row, null, null, NOW)?.grid_before).toBe(grid('2026-10-19T08:00:00.000Z'))
+    })
+  })
 })

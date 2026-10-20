@@ -1016,5 +1016,105 @@ select is(
   now() + interval '1 hour', 'l''envoi de b ne décale pas la ligne d''un autre compte');
 select set_config('request.headers', '', true);
 
+-- La grille d'avant garde la date de grille de la période remplacée : elle recule du même écart.
+-- Lundi 9 mars 8 h 05 réelles (now), A croit être jeudi 12 : P3 hérite de la grille de P2, datée
+-- « 12 mars 8 h ».
+select pg_temp.as_user('b');
+create function pg_temp.grid(written_at timestamptz) returns text language sql as $$
+  select '{"frequency":{"value":2,"unit":"day"},"endsOn":null,"writtenAt":"'
+    || to_char(written_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+    || '","runs":[["2026-03-01","2026-03-09"],["2026-03-11",null]]}'
+$$;
+insert into public.sync_push (user_id, id, sent_at) values
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '00000000-0000-4000-8000-0000000000f6',
+    pg_temp.now_ms() + interval '3 days');
+select pg_temp.in_push('00000000-0000-4000-8000-0000000000f6');
+insert into public.treatment (user_id, id, animal_id, name, type, created_at, updated_at,
+  created_by_device, updated_by_device) values
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '00000000-0000-4000-8000-0000000000c1',
+    '00000000-0000-4000-8000-0000000000b1', 'Milbemax', 'deworming',
+    pg_temp.now_ms() + interval '3 days', pg_temp.now_ms() + interval '3 days',
+    'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+insert into public.treatment_period (user_id, id, treatment_id, animal_id, starts_on, first_due_on,
+  frequency_value, frequency_unit, times, created_at, updated_at, settings_written_at,
+  grid_written_at, grid_before, created_by_device, updated_by_device) values
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '00000000-0000-4000-8000-0000000000d3',
+    '00000000-0000-4000-8000-0000000000c1', '00000000-0000-4000-8000-0000000000b1',
+    '2026-03-12', '2026-03-13', 2, 'day', '21:00',
+    pg_temp.now_ms() + interval '3 days', pg_temp.now_ms() + interval '3 days',
+    pg_temp.now_ms() + interval '3 days', pg_temp.now_ms() + interval '3 days' - interval '5 minutes',
+    pg_temp.grid(pg_temp.now_ms() + interval '3 days' - interval '5 minutes'),
+    'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+select is(
+  (select array[grid_written_at::text, grid_before] from public.treatment_period
+   where id = '00000000-0000-4000-8000-0000000000d3'),
+  array[(pg_temp.now_ms() - interval '5 minutes')::text,
+    pg_temp.grid(pg_temp.now_ms() - interval '5 minutes')],
+  'la date de la grille d''avant recule comme la date de grille, le reste du texte intact');
+
+update public.treatment_period
+set grid_before = replace(pg_temp.grid(pg_temp.now_ms() - interval '5 minutes'), '"2026-03-11"', '"2026-03-13"'),
+  updated_at = pg_temp.now_ms() + interval '3 days 10 minutes'
+where id = '00000000-0000-4000-8000-0000000000d3';
+select is(
+  (select grid_before from public.treatment_period where id = '00000000-0000-4000-8000-0000000000d3'),
+  replace(pg_temp.grid(pg_temp.now_ms() - interval '5 minutes'), '"2026-03-11"', '"2026-03-13"'),
+  'une date de grille d''avant déjà tenue par le serveur ne recule pas');
+
+update public.treatment_period
+set grid_before = null, updated_at = pg_temp.now_ms() + interval '3 days 20 minutes'
+where id = '00000000-0000-4000-8000-0000000000d3';
+select is(
+  (select array[grid_before, updated_at::text] from public.treatment_period
+   where id = '00000000-0000-4000-8000-0000000000d3'),
+  array[null, (pg_temp.now_ms() + interval '20 minutes')::text],
+  'une grille d''avant vide passe');
+select lives_ok($$
+  update public.treatment_period
+  set grid_before = 'pas du json', updated_at = pg_temp.now_ms() + interval '3 days 30 minutes'
+  where id = '00000000-0000-4000-8000-0000000000d3'
+$$, 'une grille d''avant illisible ne fait pas échouer l''écriture');
+select is(
+  (select array[grid_before, updated_at::text] from public.treatment_period
+   where id = '00000000-0000-4000-8000-0000000000d3'),
+  array['pas du json', (pg_temp.now_ms() + interval '30 minutes')::text],
+  'elle est gardée telle quelle');
+update public.treatment_period
+set grid_before = '{"frequency":{"value":2,"unit":"day"}}',
+  updated_at = pg_temp.now_ms() + interval '3 days 40 minutes'
+where id = '00000000-0000-4000-8000-0000000000d3';
+select is(
+  (select grid_before from public.treatment_period where id = '00000000-0000-4000-8000-0000000000d3'),
+  '{"frequency":{"value":2,"unit":"day"}}', 'une grille d''avant sans date passe telle quelle');
+
+select set_config('request.headers', '', true);
+insert into public.treatment_period (user_id, id, treatment_id, animal_id, starts_on, first_due_on,
+  frequency_value, frequency_unit, times, created_at, updated_at, settings_written_at,
+  grid_written_at, grid_before, created_by_device, updated_by_device) values
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '00000000-0000-4000-8000-0000000000d4',
+    '00000000-0000-4000-8000-0000000000c1', '00000000-0000-4000-8000-0000000000b1',
+    '2026-03-20', '2026-03-20', 2, 'day', '21:00',
+    pg_temp.now_ms(), pg_temp.now_ms(), pg_temp.now_ms(), pg_temp.now_ms(),
+    pg_temp.grid(pg_temp.now_ms() + interval '30 hours'),
+    'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+select is(
+  (select grid_before from public.treatment_period where id = '00000000-0000-4000-8000-0000000000d4'),
+  pg_temp.grid(pg_temp.now_ms()),
+  'la date de la grille d''avant est bornée à now() + 24 h comme les autres');
+
+-- Une connexion qui a déjà écrêté garde la forme de la table : une colonne ajoutée ensuite ne se perd pas.
+select pg_temp.as_owner();
+alter table public.animal add column added_after text;
+insert into public.animal (user_id, id, name, species, created_at, updated_at, created_by_device,
+  updated_by_device, added_after) values
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '00000000-0000-4000-8000-0000000000b9', 'Pistache', 'cat',
+    pg_temp.now_ms(), pg_temp.now_ms() + interval '3 days', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+    'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'gardée');
+select is(
+  (select array[added_after, updated_at::text] from public.animal
+   where id = '00000000-0000-4000-8000-0000000000b9'),
+  array['gardée', pg_temp.now_ms()::text],
+  'une colonne ajoutée après une première écriture écrêtée garde sa valeur');
+
 select * from finish();
 rollback;

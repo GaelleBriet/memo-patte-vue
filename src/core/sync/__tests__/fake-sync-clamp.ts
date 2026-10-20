@@ -57,17 +57,63 @@ export function clampedWrite(
         truncMs(micros(stored[column])) !== truncMs(micros(incoming[column]!))),
   )
 
+  const grid = changedGridWritten(incoming, stored)
+
   const now = truncMs(nowMs * 1000 + SERVER_MICROSECONDS)
   let shift: number | null = null
   if (push && micros(push.sent_at) > micros(push.received_at) + DAY_US) {
     shift = truncMs(micros(push.received_at)) - truncMs(micros(push.sent_at))
   }
-  const latest = Math.max(...written.map((column) => micros(incoming[column]!)))
+  const latest = Math.max(
+    ...written.map((column) => micros(incoming[column]!)),
+    ...(grid ? [grid.us] : []),
+  )
   if (latest + (shift ?? 0) > now + DAY_US) shift = now - latest
-  if (shift === null || written.length === 0) return incoming
+  if (shift === null || (written.length === 0 && grid === null)) return incoming
 
   const row = { ...incoming }
   for (const column of written) row[column] = iso(micros(incoming[column]!) + shift)
+  if (grid) row.grid_before = withWrittenAt(grid, grid.us + shift)
   if (stored && micros(row.updated_at!) <= micros(stored.updated_at!)) return null
   return row
+}
+
+interface GridWritten {
+  text: string
+  raw: string
+  us: number
+}
+
+function gridWrittenOf(value: SyncRowValue | undefined): Omit<GridWritten, 'text'> | null {
+  if (typeof value !== 'string') return null
+  try {
+    const raw: unknown = (JSON.parse(value) as { writtenAt?: unknown } | null)?.writtenAt
+    if (typeof raw !== 'string' || Number.isNaN(micros(raw))) return null
+    return { raw, us: micros(raw) }
+  } catch {
+    return null
+  }
+}
+
+/** La date de grille de `grid_before`, quand l'écriture change la colonne et cette date. */
+function changedGridWritten(incoming: ServerRow, stored: ServerRow | null): GridWritten | null {
+  const text = incoming.grid_before
+  if (typeof text !== 'string' || text === (stored?.grid_before ?? null)) return null
+  const written = gridWrittenOf(text)
+  const before = gridWrittenOf(stored?.grid_before)
+  if (written === null || (before !== null && truncMs(before.us) === truncMs(written.us))) {
+    return null
+  }
+  return { text, ...written }
+}
+
+function withWrittenAt({ text, raw }: GridWritten, us: number): string {
+  const shiftedAt = new Date(Math.floor(us / 1000)).toISOString()
+  const replaced = text.replace(
+    `"writtenAt":${JSON.stringify(raw)}`,
+    `"writtenAt":${JSON.stringify(shiftedAt)}`,
+  )
+  return replaced !== text
+    ? replaced
+    : JSON.stringify({ ...JSON.parse(text), writtenAt: shiftedAt })
 }

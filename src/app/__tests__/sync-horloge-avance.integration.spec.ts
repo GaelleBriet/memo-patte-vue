@@ -1,78 +1,21 @@
 // @vitest-environment node
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createInMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { createFakeSyncServer, type FakeSyncServer } from '@/core/sync/__tests__/fake-sync-server'
-import { createSyncOutboxRepository } from '@/core/sync/repository/sync-outbox.repository'
-import { createSyncPushRepository } from '@/core/sync/repository/sync-push.repository'
-import { createSyncCycle } from '@/core/sync/service/sync-cycle'
-import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
-import { createTreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
-import { createTreatmentPeriodsRepository } from '@/features/treatments/repository/treatment-periods.repository'
-import { createTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
 import type { TreatmentEditionInput } from '@/features/treatments/schema/treatment-form.schema'
-import { createTreatmentDosesService } from '@/features/treatments/service/treatment-doses.service'
-import { createTreatmentPlanService } from '@/features/treatments/service/treatment-plan.service'
 import { readTreatment } from '@/shared/domain/treatment-reading'
+import { createClockedPhone, type ClockedPhone as Phone } from './clocked-phone'
 
 // #904 : lundi 19 octobre 2026, le téléphone A avance de 3 jours (il croit être jeudi 22), B est à
 // l'heure. Le vermifuge de Luna, tous les 3 jours à 20 h dès le 25 octobre.
 
-const USER_ID = '99999999-9999-4999-8999-999999999999'
 const THREE_DAYS = 3 * 24 * 60 * 60 * 1000
 const EVERY_3_DAYS = { value: 3, unit: 'day' } as const
 
-let real = 0
-
-async function createPhone(client: SupabaseClient, ahead: number, day: string) {
-  const db = await createInMemoryDb()
-  await db.execute('PRAGMA foreign_keys = ON')
-  await db.run('UPDATE sync_state SET enabled = 1 WHERE id = 1')
-  const deps = { loadSupabaseClient: async () => client }
-  const animals = createAnimalsRepository(db, deps)
-  const treatments = createTreatmentsRepository(db, deps)
-  const periods = createTreatmentPeriodsRepository(db, deps)
-  const doseRows = createTreatmentDosesRepository(db, deps)
-  const reminders = { reschedule: async () => {} }
-  const today = () => day
-  const cycle = createSyncCycle({
-    db,
-    outbox: createSyncOutboxRepository(db),
-    pushes: createSyncPushRepository(deps.loadSupabaseClient),
-    tables: [animals, treatments, periods, doseRows],
-    userId: () => USER_ID,
-    isEligible: () => true,
-  })
-  const onClock = <T>(gesture: () => Promise<T>): Promise<T> => {
-    vi.setSystemTime(real + ahead)
-    return gesture()
-  }
-  return {
-    db,
-    animals,
-    treatments,
-    plans: createTreatmentPlanService({
-      treatments: () => treatments,
-      reminders,
-      today,
-      newId: () => crypto.randomUUID(),
-    }),
-    doses: createTreatmentDosesService({
-      treatments: () => treatments,
-      doses: () => doseRows,
-      reminders,
-      now: () => new Date(),
-      today,
-    }),
-    onClock,
-    sync: () => onClock(() => cycle.runCycle()),
-  }
-}
-
-type Phone = Awaited<ReturnType<typeof createPhone>>
+const clock = { now: 0 }
 
 const at = (instant: string) => {
-  real = Date.parse(instant)
+  clock.now = Date.parse(instant)
 }
 
 const edition = (changes: Partial<TreatmentEditionInput>): TreatmentEditionInput => ({
@@ -97,9 +40,16 @@ describe('#904 : une horloge en avance de 3 jours, deux téléphones, de la base
 
   beforeEach(async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
-    server = createFakeSyncServer({ now: () => real })
-    a = await createPhone(server.client, THREE_DAYS, '2026-10-22')
-    b = await createPhone(server.client, 0, '2026-10-19')
+    server = createFakeSyncServer({ now: () => clock.now })
+    const loadClient = async () => server.client
+    a = await createClockedPhone(
+      await createInMemoryDb(),
+      loadClient,
+      clock,
+      THREE_DAYS,
+      '2026-10-22',
+    )
+    b = await createClockedPhone(await createInMemoryDb(), loadClient, clock, 0, '2026-10-19')
 
     at('2026-10-19T07:00:00.000Z')
     const luna = await a.onClock(() => a.animals.create({ name: 'Luna', species: 'cat' }))

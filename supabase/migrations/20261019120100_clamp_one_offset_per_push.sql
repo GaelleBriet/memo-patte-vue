@@ -16,16 +16,40 @@ declare
   -- Le téléphone relit les dates à la milliseconde : une microseconde de plus les ferait « changées ».
   now_ms constant timestamptz := date_trunc('milliseconds', now());
   written text[];
+  grid_text text;
+  grid_written_text text;
+  grid_written timestamptz;
+  stored_grid_written timestamptz;
   latest timestamptz;
   shift interval;
-  shifted jsonb := '{}'::jsonb;
-  dated_column text;
+  shifted_written_text text;
+  shifted_grid_text text;
 begin
   select coalesce(array_agg(c), '{}') into written
   from unnest(dated) c
   where incoming ->> c is not null
     and date_trunc('milliseconds', (incoming ->> c)::timestamptz)
       is distinct from date_trunc('milliseconds', (stored ->> c)::timestamptz);
+
+  -- La grille d'avant porte la date de grille de la période remplacée : une date comme les autres.
+  grid_text := incoming ->> 'grid_before';
+  if grid_text is distinct from stored ->> 'grid_before' then
+    begin
+      grid_written_text := grid_text::jsonb ->> 'writtenAt';
+      grid_written := grid_written_text::timestamptz;
+    exception when others then
+      grid_written := null;
+    end;
+    begin
+      stored_grid_written := ((stored ->> 'grid_before')::jsonb ->> 'writtenAt')::timestamptz;
+    exception when others then
+      stored_grid_written := null;
+    end;
+    if date_trunc('milliseconds', grid_written)
+        is not distinct from date_trunc('milliseconds', stored_grid_written) then
+      grid_written := null;
+    end if;
+  end if;
 
   if push_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
     select date_trunc('milliseconds', p.received_at) - date_trunc('milliseconds', p.sent_at)
@@ -36,17 +60,36 @@ begin
       and p.sent_at > p.received_at + interval '24 hours';
   end if;
 
-  select max((incoming ->> c)::timestamptz) into latest from unnest(written) c;
+  select greatest(max((incoming ->> c)::timestamptz), grid_written) into latest
+  from unnest(written) c;
   if latest + coalesce(shift, interval '0') > now_ms + interval '24 hours' then
     shift := now_ms - latest;
   end if;
 
-  if shift is not null and cardinality(written) > 0 then
-    foreach dated_column in array written loop
-      shifted := shifted || jsonb_build_object(
-        dated_column, (incoming ->> dated_column)::timestamptz + shift);
-    end loop;
-    new := jsonb_populate_record(new, shifted);
+  -- Colonne par colonne : un enregistrement recomposé garderait la forme de la table d'avant un
+  -- ajout de colonne, sur une connexion ouverte avant la migration.
+  if shift is not null and (cardinality(written) > 0 or grid_written is not null) then
+    if 'created_at' = any(written) then new.created_at := new.created_at + shift; end if;
+    if 'updated_at' = any(written) then new.updated_at := new.updated_at + shift; end if;
+    if 'deleted_at' = any(written) then new.deleted_at := new.deleted_at + shift; end if;
+    if 'settings_written_at' = any(written) then
+      new.settings_written_at := new.settings_written_at + shift;
+    end if;
+    if 'grid_written_at' = any(written) then
+      new.grid_written_at := new.grid_written_at + shift;
+    end if;
+    if grid_written is not null then
+      shifted_written_text := to_char((grid_written + shift) at time zone 'UTC',
+        'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"');
+      shifted_grid_text := replace(grid_text,
+        '"writtenAt":' || to_json(grid_written_text)::text,
+        '"writtenAt":' || to_json(shifted_written_text)::text);
+      if shifted_grid_text = grid_text then
+        shifted_grid_text :=
+          (grid_text::jsonb || jsonb_build_object('writtenAt', shifted_written_text))::text;
+      end if;
+      new.grid_before := shifted_grid_text;
+    end if;
     if tg_op = 'UPDATE' and new.updated_at <= old.updated_at then
       return null;
     end if;
