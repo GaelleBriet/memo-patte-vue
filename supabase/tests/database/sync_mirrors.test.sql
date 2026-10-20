@@ -65,10 +65,11 @@ create function pg_temp.carnet_of(account uuid) returns text language sql as $fn
     '00000000-0000-4000-8000-0000000000a1', 'Amoxicilline', 'medication', now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', '2001-01-01T00:00:00Z');
   insert into public.treatment_period (user_id, id, treatment_id, animal_id, starts_on, first_due_on,
     grid_origin_on, ends_on, frequency_value, frequency_unit, times, dose_quantity, dose_unit, reminder_offset_minutes,
-    created_at, updated_at, settings_written_at, created_by_device, updated_by_device, server_updated_at)
+    created_at, updated_at, settings_written_at, grid_written_at, created_by_device, updated_by_device,
+    server_updated_at)
   values ('%1$s', '00000000-0000-4000-8000-0000000000a6',
     '00000000-0000-4000-8000-0000000000a5', '00000000-0000-4000-8000-0000000000a1', '2026-01-01',
-    '2026-01-01', '2026-01-01', '2026-01-10', 1, 'day', '08:00,20:00', 0.5, 'tablet', 15, now(), now(), now() + interval '3 days', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', '2001-01-01T00:00:00Z');
+    '2026-01-01', '2026-01-01', '2026-01-10', 1, 'day', '08:00,20:00', 0.5, 'tablet', 15, now(), now(), now() + interval '3 days', now() + interval '3 days', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', '2001-01-01T00:00:00Z');
   insert into public.treatment_dose (user_id, id, period_id, treatment_id, animal_id, due_on, due_time,
     given_on, status, target_on, created_at, updated_at, created_by_device, updated_by_device, server_updated_at)
   values ('%1$s', '00000000-0000-4000-8000-0000000000a7',
@@ -99,6 +100,22 @@ select ok(
           where conrelid = 'public.treatment_dose'::regclass and contype = 'c'
             and pg_get_constraintdef(oid) like '%due_rank >= 1%'),
   'v16 (fichier) : un rang nul est refusé');
+
+-- Migration v17 telle qu'appliquée par son fichier : date d'écriture de la grille et ses droits.
+select col_type_is('public', 'treatment_period', 'grid_written_at', 'timestamp with time zone',
+  'v17 (fichier) : la date d''écriture de la grille est un instant');
+select col_not_null('public', 'treatment_period', 'grid_written_at',
+  'v17 (fichier) : un réglage porte toujours la date d''écriture de sa grille');
+select ok(
+  has_column_privilege('authenticated', 'public.treatment_period', 'grid_written_at', 'UPDATE'),
+  'v17 (fichier) : la date d''écriture de la grille se synchronise');
+select col_type_is('public', 'treatment_period', 'grid_before', 'text',
+  'v17 (fichier) : la grille d''avant l''ouverture est un texte');
+select col_is_null('public', 'treatment_period', 'grid_before',
+  'v17 (fichier) : une période peut n''avoir aucune grille d''avant');
+select ok(
+  has_column_privilege('authenticated', 'public.treatment_period', 'grid_before', 'UPDATE'),
+  'v17 (fichier) : la grille d''avant l''ouverture se synchronise');
 
 -- Structure : RLS forcée, politiques par opération, droits minimaux.
 select is(
@@ -246,6 +263,25 @@ select is(
   array[pg_temp.now_ms() - interval '3 days', pg_temp.now_ms(), pg_temp.now_ms()],
   'sans envoi, les dates changées reculent de l''écart de la plus récente ; la création ne bouge pas');
 
+select ok((select grid_written_at <= now() from public.treatment_period),
+  'le serveur écrête une date d''écriture de la grille trop loin dans le futur');
+select lives_ok($$
+  update public.treatment_period
+  set grid_written_at = now() + interval '1 hour', updated_at = now() - interval '1 hour'
+  where id = '00000000-0000-4000-8000-0000000000a6'
+$$, 'il réécrit la date d''écriture de la grille');
+select is((select grid_written_at from public.treatment_period), now() + interval '1 hour',
+  'une date d''écriture de la grille à moins de 24 h dans le futur est gardée');
+select lives_ok($$
+  update public.treatment_period
+  set grid_written_at = now() + interval '25 hours', updated_at = now() + interval '25 hours'
+  where id = '00000000-0000-4000-8000-0000000000a6'
+$$, 'il réécrit la date d''écriture de la grille loin dans le futur');
+select is(
+  (select array[updated_at, grid_written_at] from public.treatment_period),
+  array[pg_temp.now_ms(), pg_temp.now_ms()],
+  'une date d''écriture de la grille réécrite trop loin recule du même écart que la modification');
+
 select lives_ok($$
   update public.treatment_period set stopped_on = '2026-01-05', updated_at = now()
   where id = '00000000-0000-4000-8000-0000000000a6'
@@ -363,10 +399,10 @@ $$, '23503', null, 'il ne rattache pas une pesée à l''animal d''un autre');
 select throws_ok($$
   insert into public.treatment_period (user_id, id, treatment_id, animal_id, starts_on, first_due_on,
     grid_origin_on, frequency_value, frequency_unit, created_at, updated_at, settings_written_at,
-    created_by_device, updated_by_device)
+    grid_written_at, created_by_device, updated_by_device)
   values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', gen_random_uuid(),
     '00000000-0000-4000-8000-0000000000a5', '00000000-0000-4000-8000-0000000000a1', '2026-01-01',
-    '2026-01-01', '2026-01-01', 1, 'day', now(), now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee')
+    '2026-01-01', '2026-01-01', 1, 'day', now(), now(), now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee')
 $$, '23503', null, 'il ne rattache pas une période au traitement d''un autre');
 
 select lives_ok($$
@@ -455,11 +491,11 @@ values ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '00000000-0000-4000-8000-0000000
        ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '00000000-0000-4000-8000-0000000000d2', '00000000-0000-4000-8000-0000000000c1', 'Quotidien', 'medication', now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
 insert into public.treatment_period (user_id, id, treatment_id, animal_id, starts_on, first_due_on,
   reference_on, frequency_value, frequency_unit, created_at, updated_at, settings_written_at,
-  created_by_device, updated_by_device)
+  grid_written_at, created_by_device, updated_by_device)
 values
-  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-0000000000c1', '2026-01-31', '2026-02-28', '2026-01-31', 1, 'month', now(), now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'),
-  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '00000000-0000-4000-8000-0000000000e2', '00000000-0000-4000-8000-0000000000d2', '00000000-0000-4000-8000-0000000000c1', '2026-01-01', '2026-01-01', '2026-01-01', 1, 'day', now() - interval '2 hours', now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'),
-  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '00000000-0000-4000-8000-0000000000e3', '00000000-0000-4000-8000-0000000000d2', '00000000-0000-4000-8000-0000000000c1', '2026-02-01', '2026-02-01', '2026-01-01', 1, 'day', now() - interval '1 hour', now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-0000000000c1', '2026-01-31', '2026-02-28', '2026-01-31', 1, 'month', now(), now(), now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'),
+  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '00000000-0000-4000-8000-0000000000e2', '00000000-0000-4000-8000-0000000000d2', '00000000-0000-4000-8000-0000000000c1', '2026-01-01', '2026-01-01', '2026-01-01', 1, 'day', now() - interval '2 hours', now(), now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'),
+  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '00000000-0000-4000-8000-0000000000e3', '00000000-0000-4000-8000-0000000000d2', '00000000-0000-4000-8000-0000000000c1', '2026-02-01', '2026-02-01', '2026-01-01', 1, 'day', now() - interval '1 hour', now(), now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
 alter table public.treatment_period rename column reference_on to grid_origin_on;
 alter table public.treatment_period alter column grid_origin_on drop not null;
 
@@ -694,6 +730,54 @@ select ok(
       'UPDATE')
     and has_column_privilege('authenticated', 'public.treatment_dose', 'due_rank', 'UPDATE'),
   'v16 : l''arrivée d''avant et le rang se synchronisent');
+
+-- Date d'écriture de la grille de la migration v17 rejouée : colonne retirée, puis le corps de la
+-- migration, sur des réglages dont un a été réécrit après sa création.
+alter table public.treatment_period drop column grid_written_at;
+alter table public.treatment_period drop column grid_before;
+
+update public.treatment_period
+set settings_written_at = now() - interval '30 minutes'
+where id = '00000000-0000-4000-8000-0000000000e2';
+
+create temp table before_v17 as
+  select user_id, id, updated_at, settings_written_at from public.treatment_period;
+
+alter table public.treatment_period add column grid_written_at timestamptz;
+alter table public.treatment_period add column grid_before text;
+
+update public.treatment_period
+set grid_written_at = settings_written_at;
+
+alter table public.treatment_period alter column grid_written_at set not null;
+
+grant update (grid_written_at, grid_before) on table public.treatment_period to authenticated;
+
+select is(
+  (select count(*) from public.treatment_period where grid_written_at is distinct from settings_written_at),
+  0::bigint, 'v17 : la date d''écriture de la grille vaut celle des réglages');
+select is(
+  (select grid_written_at from public.treatment_period
+   where id = '00000000-0000-4000-8000-0000000000e2'),
+  now() - interval '30 minutes',
+  'v17 : un réglage réécrit garde sa date d''écriture comme date de grille');
+select is(
+  (select count(*) from public.treatment_period p join before_v17 b using (user_id, id)
+   where p.updated_at is distinct from b.updated_at
+      or p.settings_written_at is distinct from b.settings_written_at),
+  0::bigint, 'v17 : ni la date de modification ni la date d''écriture des réglages ne bougent');
+select throws_ok(
+  $$ update public.treatment_period set grid_written_at = null $$, '23502', null,
+  'v17 : un réglage sans date d''écriture de la grille est refusé');
+select ok(
+  has_column_privilege('authenticated', 'public.treatment_period', 'grid_written_at', 'UPDATE'),
+  'v17 : la date d''écriture de la grille se synchronise');
+select is(
+  (select count(*) from public.treatment_period where grid_before is not null),
+  0::bigint, 'v17 : aucune grille d''avant n''est connue des périodes existantes');
+select ok(
+  has_column_privilege('authenticated', 'public.treatment_period', 'grid_before', 'UPDATE'),
+  'v17 : la grille d''avant l''ouverture se synchronise');
 
 -- Envois de la synchro.
 select pg_temp.as_owner();

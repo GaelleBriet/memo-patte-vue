@@ -1,8 +1,11 @@
 import {
   moveBounds,
   newSettings,
+  judgedGrid,
   play,
   rewritesCalendar,
+  rewritesGrid,
+  rewrittenSetting,
   treatmentView,
   type Line,
   type LineChange,
@@ -63,18 +66,25 @@ function writeLines(
 function writePlan(input: TreatmentViewInput, plan: SettingsPlan, clock: Clock, tag: string) {
   const { lines } = writeLines(input, plan.lines ?? [], clock, tag)
   if (plan.action === 'rewrite') {
-    const settings = input.settings.map((setting) => {
-      if (setting.id !== plan.id) return setting
-      const next = { ...setting, ...plan.setting }
-      return rewritesCalendar(setting, next) ? { ...next, updatedAt: stamp(clock) } : next
-    })
+    const settings = input.settings.map((setting) =>
+      setting.id === plan.id
+        ? rewrittenSetting(setting, plan.setting, () => stamp(clock), {
+            input,
+            lines: plan.lines ?? [],
+          })
+        : setting,
+    )
     return { ...input, lines, settings }
   }
+  const createdAt = stamp(clock)
+  const grid = judgedGrid(input, plan)
   const created: Setting = {
     ...plan.setting,
     id: `${tag}s${clock.n}`,
     stoppedOn: null,
-    createdAt: stamp(clock),
+    createdAt,
+    gridWrittenAt: grid.writtenAt ?? createdAt,
+    gridBefore: grid.before,
   }
   return { ...input, lines, settings: [...input.settings, created] }
 }
@@ -104,25 +114,41 @@ function synced(base: TreatmentViewInput, a: TreatmentViewInput, b: TreatmentVie
   }
 }
 
-// La date d'écriture du réglage n'avance que si son calendrier change (migration v14).
+type Written = { settings: Map<string, string>; grids: Map<string, string> }
+
+// Comme le repository : un seul instant par réécriture, posé sur les réglages si leur calendrier
+// change (v14) et sur la grille si ses échéances changent (v17).
 function writtenDates(
   before: readonly Setting[],
   after: readonly Setting[],
-  written: Map<string, string>,
+  written: Written,
   next: () => string,
 ) {
   for (const setting of after) {
     const old = before.find(({ id }) => id === setting.id)
     if (old === undefined) {
-      if (!written.has(setting.id)) written.set(setting.id, setting.createdAt)
-    } else if (rewritesCalendar(old, setting)) written.set(setting.id, next())
+      if (!written.settings.has(setting.id)) written.settings.set(setting.id, setting.createdAt)
+      continue
+    }
+    const calendar = rewritesCalendar(old, setting)
+    // Une date de grille héritée, plus ancienne que le réglage, se garde telle quelle.
+    const inherited =
+      setting.gridWrittenAt !== undefined &&
+      setting.gridWrittenAt !== old.gridWrittenAt &&
+      setting.gridWrittenAt < setting.createdAt
+    const grid = !inherited && rewritesGrid(old, setting)
+    if (inherited) written.grids.set(setting.id, setting.gridWrittenAt!)
+    if (!calendar && !grid) continue
+    const at = next()
+    if (calendar) written.settings.set(setting.id, at)
+    if (grid) written.grids.set(setting.id, at)
   }
 }
 
 /** Les fourches d'un carnet mené par les gestes de v2, une chance sur deux et demie par pas. */
 export function forksOf(seed: number, steps: number, onFork: (fork: Fork) => void): void {
   const walk = startV2Walk(seed)
-  const written = new Map<string, string>()
+  const written: Written = { settings: new Map(), grids: new Map() }
   const random = mulberry32(seed ^ 0x7f4a7c15)
   for (let step = 0; step < steps; step += 1) {
     const before = walk.input.settings
@@ -132,8 +158,13 @@ export function forksOf(seed: number, steps: number, onFork: (fork: Fork) => voi
     const base: TreatmentViewInput = {
       ...walk.input,
       settings: walk.input.settings.map((setting) => {
-        const at = written.get(setting.id)
-        return at !== undefined && at > setting.createdAt ? { ...setting, updatedAt: at } : setting
+        const at = written.settings.get(setting.id)
+        const grid = written.grids.get(setting.id)
+        return {
+          ...setting,
+          ...(at !== undefined && at > setting.createdAt ? { updatedAt: at } : {}),
+          ...(grid === undefined ? {} : { gridWrittenAt: grid }),
+        }
       }),
     }
     const view = treatmentView(base)

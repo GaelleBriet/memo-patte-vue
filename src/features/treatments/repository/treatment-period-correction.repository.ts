@@ -36,18 +36,27 @@ const CALENDAR_COLUMNS = [
   'first_due_chosen',
 ]
 
+const GRID_COLUMNS = [
+  'first_due_on',
+  'frequency_value',
+  'frequency_unit',
+  'grid_origin_on',
+  'ends_on',
+]
+
 export function createPeriodCorrection(deviceId: () => string) {
   return {
     /**
      * Tous les réglages de cette période et son origine, sauf son arrêt. Rien n'est daté si rien ne
-     * change ; la date d'écriture des réglages ne suit que le calendrier. Lève pour des réglages
-     * incohérents.
+     * change ; la date d'écriture des réglages ne suit que le calendrier, celle de la grille ses
+     * échéances, sauf `judgedGrid`, posée telle quelle. Lève pour des réglages incohérents.
      */
     correctSettingsStatement(
       periodId: string,
       input: TreatmentPeriodSettings,
       updatedAt: string,
       origin: PeriodOrigin,
+      judgedGrid?: string,
     ): SqlStatement {
       const settings = treatmentPeriodSettingsSchema.parse(input)
       const values = [
@@ -65,21 +74,31 @@ export function createPeriodCorrection(deviceId: () => string) {
         flag(origin.firstDueChosen),
         origin.fallenDosesAnswer,
       ]
-      const isCalendar = (_: unknown, index: number) =>
-        CALENDAR_COLUMNS.includes(CORRECTED_COLUMNS[index]!)
+      const among = (columns: string[]) => (_: unknown, index: number) =>
+        columns.includes(CORRECTED_COLUMNS[index]!)
       const changed = (columns: string[]) =>
         columns.map((column) => `${column} IS NOT ?`).join(' OR ')
+      const grid =
+        judgedGrid === undefined
+          ? {
+              sql: `CASE WHEN ${changed(CORRECTED_COLUMNS.filter(among(GRID_COLUMNS)))}
+                    THEN ? ELSE grid_written_at END`,
+              params: [...values.filter(among(GRID_COLUMNS)), updatedAt],
+            }
+          : { sql: '?', params: [judgedGrid] }
       return {
         sql: `UPDATE treatment_period
               SET ${CORRECTED_COLUMNS.map((column) => `${column} = ?`).join(', ')},
-                  settings_written_at = CASE WHEN ${changed(CORRECTED_COLUMNS.filter(isCalendar))}
+                  settings_written_at = CASE WHEN ${changed(CORRECTED_COLUMNS.filter(among(CALENDAR_COLUMNS)))}
                     THEN ? ELSE settings_written_at END,
+                  grid_written_at = ${grid.sql},
                   updated_at = ?, updated_by_device = ?
               WHERE id = ? AND (${changed(CORRECTED_COLUMNS)})`,
         params: [
           ...values,
-          ...values.filter(isCalendar),
+          ...values.filter(among(CALENDAR_COLUMNS)),
           updatedAt,
+          ...grid.params,
           updatedAt,
           deviceId(),
           periodId,

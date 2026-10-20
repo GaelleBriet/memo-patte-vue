@@ -19,11 +19,17 @@ export type Version8Dose = Omit<
   'previousTargetOn' | 'previousTargetTime' | 'dueRank'
 >
 
-export type Version8Data = Omit<ExportData, 'treatmentDoses'> & {
+export type Version9Period = Omit<ExportTreatmentPeriod, 'gridWrittenAt' | 'gridBefore'>
+
+export type Version9Data = Omit<ExportData, 'treatmentPeriods'> & {
+  treatmentPeriods: Version9Period[]
+}
+
+export type Version8Data = Omit<Version9Data, 'treatmentDoses'> & {
   treatmentDoses: Version8Dose[]
 }
 
-export type Version7Period = Omit<ExportTreatmentPeriod, 'fallenDosesAnswer'> & {
+export type Version7Period = Omit<Version9Period, 'fallenDosesAnswer'> & {
   pastDosesStayUnlogged: boolean
 }
 
@@ -136,7 +142,7 @@ export function fromVersion7(data: Version7Data): Version8Data {
 }
 
 /** La conversion que la migration v16 applique à une ligne écrite sans elle : arrivée d'avant et rang inconnus. */
-export function fromVersion8(data: Version8Data): ExportData {
+export function fromVersion8(data: Version8Data): Version9Data {
   return {
     ...data,
     treatmentDoses: data.treatmentDoses.map((dose) => ({
@@ -145,6 +151,47 @@ export function fromVersion8(data: Version8Data): ExportData {
       previousTargetTime: null,
       dueRank: null,
     })),
+  }
+}
+
+/** La conversion que la migration v17 applique à la base : la grille datée de la dernière écriture des réglages, aucune grille d'avant. */
+export function fromVersion9(data: Version9Data): ExportData {
+  return {
+    ...data,
+    treatmentPeriods: data.treatmentPeriods.map((period) => ({
+      ...period,
+      gridWrittenAt: period.settingsWrittenAt,
+      gridBefore: null,
+    })),
+  }
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/**
+ * Dates de grille, celle de la période et celle gardée dans sa grille d'avant l'ouverture, écrêtées
+ * entre la création du traitement et l'export plus 24 h, jamais refusées.
+ */
+export function withGridDatesClamped(data: ExportData, exportedAt: string): ExportData {
+  const latest = Date.parse(exportedAt) + DAY_MS
+  const createdAt = new Map(data.treatments.map((treatment) => [treatment.id, treatment.createdAt]))
+  return {
+    ...data,
+    treatmentPeriods: data.treatmentPeriods.map((period) => {
+      const earliest = createdAt.get(period.treatmentId) ?? period.createdAt
+      const clamped = (written: string) => {
+        const at = Date.parse(written)
+        if (at > latest) return exportedAt
+        return at < Date.parse(earliest) ? earliest : written
+      }
+      const { gridBefore } = period
+      return {
+        ...period,
+        gridWrittenAt: clamped(period.gridWrittenAt),
+        gridBefore:
+          gridBefore === null ? null : { ...gridBefore, writtenAt: clamped(gridBefore.writtenAt) },
+      }
+    }),
   }
 }
 

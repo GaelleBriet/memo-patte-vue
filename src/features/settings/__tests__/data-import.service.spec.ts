@@ -166,9 +166,9 @@ async function carnet(client: InMemoryDb = db): Promise<ExportData> {
   return sorted(data)
 }
 
-/** Export JSON de l'appareil tel que l'import le relit. */
+/** Export JSON de l'appareil tel que l'import le relit, daté de l'instant où il est fait. */
 async function exported(client: InMemoryDb): Promise<ImportFile> {
-  const text = toJsonExport(await carnet(client), { exportedAt: NOW, appVersion: 'test' })
+  const text = toJsonExport(await carnet(client), { exportedAt: new Date(), appVersion: 'test' })
   const parsed = parseExportFile(text)
   if (!parsed.ok) throw new Error(`export refusé : ${parsed.reason}`)
   return parsed.file
@@ -232,7 +232,7 @@ describe('data-import.service', () => {
       ),
     }
 
-    await service.importData({ schemaVersion: 9, data }, 'replace')
+    await service.importData({ schemaVersion: 10, data }, 'replace')
 
     await expect(repositories.treatments.getById(milbemax!.id)).resolves.toMatchObject({
       type: 'medication',

@@ -1,6 +1,7 @@
 import type { DoseFields } from './treatment-dose.schema'
 import type { PeriodOrigin, TreatmentPeriodSettings } from './treatment-period.schema'
 import type { Treatment } from './treatment.schema'
+import type { GridBefore } from '@/shared/domain/dose-calendar'
 
 /** Un traitement à créer avec sa première période, et les prises renseignées à la création (TR-3). */
 export type NewTreatmentPlan = Pick<Treatment, 'id' | 'animalId' | 'name' | 'type'> & {
@@ -15,12 +16,20 @@ export type PlannedDoseWrite =
 
 /**
  * Ce que « Modifier » ou « Reprendre » écrit en une fois ; `null` : rien à écrire dans cette table.
- * `gridOriginOn` `null` : l'origine de la grille du réglage précédent (R3).
+ * `gridOriginOn` `null` : l'origine de la grille du réglage précédent (R3). `judgedGrid` : la
+ * date de grille jugée par le moteur (`judgedGrid`), à poser telle quelle.
  */
 export type TreatmentPlanWrite = {
   treatment: Pick<Treatment, 'name' | 'type'> | null
   period:
-    | ({ action: 'correct' | 'open'; id: string; settings: TreatmentPeriodSettings } & PeriodOrigin)
+    | ({
+        action: 'correct' | 'open'
+        id: string
+        settings: TreatmentPeriodSettings
+        judgedGrid?: string
+        /** À l'ouverture : la grille d'avant, que garde la période. */
+        gridBefore?: GridBefore | null
+      } & PeriodOrigin)
     | null
   doses: PlannedDoseWrite[]
 }

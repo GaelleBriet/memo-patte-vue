@@ -8,6 +8,7 @@ import {
   animalSpeciesSchema,
   departureReasonSchema,
 } from '@/features/animals/schema/animal.schema'
+import { gridBeforeFromValue } from '@/features/treatments/schema/grid-before.schema'
 import { DOSE_STATUSES } from '@/features/treatments/schema/treatment-dose.schema'
 import {
   doseQuantitySchema,
@@ -30,34 +31,26 @@ import {
   fromVersion6,
   fromVersion7,
   fromVersion8,
+  fromVersion9,
   type Version5Data,
   type Version7Data,
+  type Version8Data,
 } from '../logic/export-file-versions'
 import { hasUniqueIds, isConsistentCarnet } from '../logic/export-carnet-links'
 import { carnetSettingsSchema } from './carnet-settings.schema'
-import { isCalendarDay, MAX_CALENDAR_YEAR, MIN_CALENDAR_YEAR } from '@/shared/domain/calendar-day'
+import { isCalendarDay } from '@/shared/domain/calendar-day'
 import { CLOCK_TIME_PATTERN } from '@/shared/domain/clock-time'
 import type { ExportData } from '@/shared/domain/carnet-data'
 import { FALLEN_DOSES_ANSWERS } from '@/shared/domain/dose-calendar'
+import { instantSchema } from '@/shared/domain/instant'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
 const MAX_TEXT_LENGTH = 200
 
-function isYearInRange(value: string): boolean {
-  const year = Number(value.slice(0, 4))
-  return year >= MIN_CALENDAR_YEAR && year <= MAX_CALENDAR_YEAR
-}
-
 const day = z.string().refine(isCalendarDay)
 const pastDay = day.refine((value) => !isFuture(parseISO(value)))
 const clockTime = z.string().regex(CLOCK_TIME_PATTERN)
-// La synchronisation compare les instants comme des chaînes : un seul format entre en base.
-const instant = z.iso
-  .datetime()
-  .or(z.iso.datetime({ precision: -1 }))
-  .refine(isYearInRange)
-  .transform((value) => new Date(value).toISOString())
-const timestamps = { createdAt: instant, updatedAt: instant }
+const timestamps = { createdAt: instantSchema, updatedAt: instantSchema }
 const stamps = { ...timestamps, createdByDevice: z.uuid(), updatedByDevice: z.uuid() }
 const optionalName = z
   .string()
@@ -154,14 +147,14 @@ const hasReportFactsOnlyOnReport = (dose: {
 const deviceFileSchema = z.object({
   id: z.uuid(),
   model: z.string().max(MAX_MODEL_LENGTH).nullable(),
-  installedAt: instant,
+  installedAt: instantSchema,
   ...timestamps,
 })
 
 const signed = <S extends z.ZodRawShape>(shape: S) => z.object({ ...shape, ...stamps })
 const dated = <S extends z.ZodRawShape>(shape: S) => z.object({ ...shape, ...timestamps })
 export const exportHeaderSchema = z.object({
-  exportedAt: instant,
+  exportedAt: instantSchema,
   appVersion: z.string().max(MAX_TEXT_LENGTH),
 })
 
@@ -212,8 +205,22 @@ const version8PeriodShape = {
   gridOriginOn: day.nullable(),
   firstDueChosen: z.boolean(),
   fallenDosesAnswer: z.enum(FALLEN_DOSES_ANSWERS),
-  settingsWrittenAt: instant,
+  settingsWrittenAt: instantSchema,
 }
+
+const version10FileSchema = z
+  .object({
+    ...signedCarnet,
+    treatmentPeriods: z.array(
+      signed({
+        ...version8PeriodShape,
+        gridWrittenAt: instantSchema,
+        gridBefore: z.unknown().optional().transform(gridBeforeFromValue),
+      }).refine(isConsistentPeriod),
+    ),
+    treatmentDoses: reportedDoses,
+  })
+  .refine(isConsistentCarnet)
 
 const version9FileSchema = z
   .object({
@@ -235,7 +242,9 @@ const version7FileSchema = z
   .object({
     ...signedCarnet,
     treatmentPeriods: z.array(
-      signed({ ...version6PeriodShape, settingsWrittenAt: instant }).refine(isConsistentPeriod),
+      signed({ ...version6PeriodShape, settingsWrittenAt: instantSchema }).refine(
+        isConsistentPeriod,
+      ),
     ),
     treatmentDoses: legacyMovedDoses,
   })
@@ -289,18 +298,21 @@ const version3FileSchema = z
 export const exportVersionSchema = z.object({ schemaVersion: z.number().int().positive() })
 
 export function exportFileSchemaOf(version: number, deviceId: string): z.ZodType<ExportData> {
-  const fromVersion7To9 = (data: Version7Data) => fromVersion8(fromVersion7(data))
-  const fromVersion5To9 = (data: Version5Data) => fromVersion7To9(fromVersion6(fromVersion5(data)))
+  const fromVersion8To10 = (data: Version8Data) => fromVersion9(fromVersion8(data))
+  const fromVersion7To10 = (data: Version7Data) => fromVersion8To10(fromVersion7(data))
+  const fromVersion5To10 = (data: Version5Data) =>
+    fromVersion7To10(fromVersion6(fromVersion5(data)))
   if (version === 3) {
     return version3FileSchema.transform((data) =>
-      fromVersion5To9(fromVersion4(fromVersion3(data, deviceId))),
+      fromVersion5To10(fromVersion4(fromVersion3(data, deviceId))),
     )
   }
   if (version === 4)
-    return version4FileSchema.transform((data) => fromVersion5To9(fromVersion4(data)))
-  if (version === 5) return version5FileSchema.transform(fromVersion5To9)
+    return version4FileSchema.transform((data) => fromVersion5To10(fromVersion4(data)))
+  if (version === 5) return version5FileSchema.transform(fromVersion5To10)
   if (version === 6)
-    return version6FileSchema.transform((data) => fromVersion7To9(fromVersion6(data)))
-  if (version === 7) return version7FileSchema.transform(fromVersion7To9)
-  return version === 8 ? version8FileSchema.transform(fromVersion8) : version9FileSchema
+    return version6FileSchema.transform((data) => fromVersion7To10(fromVersion6(data)))
+  if (version === 7) return version7FileSchema.transform(fromVersion7To10)
+  if (version === 8) return version8FileSchema.transform(fromVersion8To10)
+  return version === 9 ? version9FileSchema.transform(fromVersion9) : version10FileSchema
 }
