@@ -42,9 +42,9 @@ export function serverInstant(nowMs: number): string {
 }
 
 /** Les dates de grille d'une période, en microsecondes : la colonne et celle de sa grille d'avant. */
-export function gridDatesOf(period: ServerRow, nowMs: number): number[] {
+export function gridDatesOf(period: ServerRow): number[] {
   const column = typeof period.grid_written_at === 'string' ? [micros(period.grid_written_at)] : []
-  const before = gridWrittenOf(period.grid_before, nowMs)
+  const before = gridWrittenOf(period.grid_before, null)
   return before ? [...column, before.us] : column
 }
 
@@ -105,7 +105,7 @@ function changedGridWritten(
   const text = incoming.grid_before
   if (typeof text !== 'string' || text === (stored?.grid_before ?? null)) return null
   const written = gridWrittenOf(text, nowMs)
-  const before = gridWrittenOf(stored?.grid_before, nowMs)
+  const before = gridWrittenOf(stored?.grid_before, null)
   if (written === null || (before !== null && truncMs(before.us) === truncMs(written.us))) {
     return null
   }

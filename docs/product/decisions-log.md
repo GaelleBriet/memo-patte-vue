@@ -3211,11 +3211,16 @@ réelles puis corrige ses heures à 10 h 05 ; B, à l'heure, avait reporté une 
   d'une autre période du même traitement et du même compte (une période supprimée compte), ou la
   création que le serveur tient pour la ligne elle-même. — Raison : une date que le serveur connaît
   est juste par construction, quel que soit le geste qui la recopie ; limitée à la création, la règle
-  laissait Milo au 26 février après deux « Modifier » le même jour.
-- Reprise et course avec un autre téléphone (20 octobre 2026, relecture de la PR #980, bonne
-  pratique tranchée par la session) : la ligne gardée par le serveur se reprend après le pull ; si
-  le pull tire une version plus récente de la même ligne, c'est elle qui est posée. Exemple : lundi
-  19 octobre, A a 3 jours d'avance ; à 8 h réelles il renomme Luna « Luna A » et son cycle commence ;
-  avant que A tire les animaux, B renomme Luna « Luna B » à 8 h 00 min 05 s et synchronise ; A finit
-  avec « Luna B », comme le serveur. — Écarté : poser la version gardée à l'envoi, qui écrasait
-  « Luna B » sur A pour toujours.
+  laissait Milo au 26 février après deux « Modifier » le même jour. Une date tenue n'est retenue
+  que si elle ne dépasse pas `now()` + 24 h, et la date de la grille d'avant n'est lue qu'entre
+  1900 et `now()` + 100 ans. Limite acceptée : seules des données écrites avant la migration
+  (données de test) peuvent tenir une date plus lointaine ; recopiée, elle fait reculer toute la
+  ligne. Exemple : une période écrite avant la migration porte une date de grille au 1er janvier
+  2030 ; B, à l'heure, ouvre une nouvelle période qui la reprend : la date de grille revient à
+  maintenant, mais la création, la modification et les autres dates reculent de 1 168 jours, en
+  août 2023 ; une modification qui la recopie est refusée.
+- Reprise et course avec un autre téléphone (PR #980) : la ligne gardée par le serveur se reprend
+  après le pull ; si le pull tire une version plus récente de la même ligne, c'est elle qui est
+  posée. Exemple : lundi 19 octobre, A a 3 jours d'avance ; à 8 h réelles il renomme Luna « Luna A »
+  et son cycle commence ; avant que A tire les animaux, B renomme Luna « Luna B » à 8 h 00 min 05 s
+  et synchronise ; A finit avec « Luna B », comme le serveur.

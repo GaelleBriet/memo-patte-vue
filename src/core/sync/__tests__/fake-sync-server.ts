@@ -87,7 +87,7 @@ export function createFakeSyncServer({
           other.treatment_id === period.treatment_id &&
           other.id !== period.id,
       )
-      .flatMap((other) => gridDatesOf(other, now()))
+      .flatMap(gridDatesOf)
   }
 
   function picked(row: ServerRow, columns: string): ServerRow {

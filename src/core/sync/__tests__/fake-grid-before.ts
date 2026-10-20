@@ -1,10 +1,19 @@
 import type { SyncRowValue } from '@/core/supabase/guarded-upsert'
 
 const ISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(\.\d+)?)?Z$/
-const HUNDRED_YEARS_MS = 100 * 365.25 * 24 * 60 * 60 * 1000
 
-/** Comme `pg_input_is_valid(…, 'timestamptz')` sur ce format, puis la plage que le serveur sait décaler. */
-function strictInstant(raw: string, nowMs: number): number | null {
+/** Comme `now() + interval '100 years'` : des années civiles. */
+function hundredYearsAfter(nowMs: number): number {
+  const date = new Date(nowMs)
+  date.setUTCFullYear(date.getUTCFullYear() + 100)
+  return date.getTime()
+}
+
+/**
+ * Comme `pg_input_is_valid(…, 'timestamptz')` sur ce format ; avec `nowMs`, la plage que le serveur
+ * sait décaler (la date que l'écriture apporte, pas celles qu'il tient déjà).
+ */
+function strictInstant(raw: string, nowMs: number | null): number | null {
   const parts = ISO.exec(raw)
   if (!parts) return null
   const [year, month, day, hour, minute, second = 0] = parts.slice(1, 7).map(Number)
@@ -19,7 +28,8 @@ function strictInstant(raw: string, nowMs: number): number | null {
     second < 60
   if (!exact) return null
   const at = Date.parse(raw)
-  return year! >= 1900 && at <= nowMs + HUNDRED_YEARS_MS ? at : null
+  if (nowMs === null) return at
+  return year! >= 1900 && at <= hundredYearsAfter(nowMs) ? at : null
 }
 
 export interface GridWritten {
@@ -38,7 +48,10 @@ function parsed(value: SyncRowValue | undefined): unknown {
 }
 
 /** La date de `writtenAt` en microsecondes, seulement au format ISO strict de l'app, comme le serveur. */
-export function gridWrittenOf(value: SyncRowValue | undefined, nowMs: number): GridWritten | null {
+export function gridWrittenOf(
+  value: SyncRowValue | undefined,
+  nowMs: number | null,
+): GridWritten | null {
   const grid = parsed(value)
   const raw = (grid as { writtenAt?: unknown } | null | undefined)?.writtenAt
   const at = typeof raw === 'string' ? strictInstant(raw, nowMs) : null
