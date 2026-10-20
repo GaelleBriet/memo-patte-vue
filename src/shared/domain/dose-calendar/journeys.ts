@@ -11,7 +11,7 @@ import {
 } from './grid'
 import { isDueDay, skippedDays, turned, type Grid } from './grid-in-force'
 import { translatedDays, type EpisodeLines } from './lines'
-import { chosenOldArrival } from './report-rank'
+import { oldArrivalChooser } from './report-rank'
 import { shiftKeptByReport } from './rewrite'
 import type { Span } from './settings'
 import type { Day, Frequency, Hour, Line, LineEffect, Setting } from './types'
@@ -94,7 +94,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       (report) =>
         report.dueOn === turn.dueOn &&
         report.targetOn === turn.targetOn &&
-        chosenOldArrival(report, span) !== undefined,
+        oldArrivalChooser(report, span) !== undefined,
     )
   const claims: Claim[] = []
   const openings = new Set<Day>()

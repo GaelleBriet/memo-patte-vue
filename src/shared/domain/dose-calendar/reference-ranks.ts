@@ -39,12 +39,12 @@ export function takenByRank(
   return { lost, alsoCarried }
 }
 
-/** Q1 : l'ancienne arrivée d'un report, quand elle est la date choisie d'un réglage. */
-export function chosenDayOf(
+/** Q1 : le réglage dont la date choisie était l'ancienne arrivée d'un report. */
+export function chooserOf(
   report: ReferenceLine,
   settingAt: (day: string) => ReferenceSetting | undefined,
   live: readonly ReferenceSetting[],
-): string | undefined {
+): ReferenceSetting | undefined {
   const day = report.previousTargetOn ?? null
   if (day === null || day === report.targetOn) return undefined
   const inForce = settingAt(day)
@@ -57,5 +57,5 @@ export function chosenDayOf(
   const drawer = before.find((each) => each.gridOriginOn !== null || !sameRhythm(each))
   if (drawer === undefined || !sameRhythm(drawer)) return undefined
   const continued = before.slice(0, before.indexOf(drawer)).every(sameRhythm)
-  return continued && drawer.firstDueChosen && drawer.firstDueOn === day ? day : undefined
+  return continued && drawer.firstDueChosen && drawer.firstDueOn === day ? drawer : undefined
 }

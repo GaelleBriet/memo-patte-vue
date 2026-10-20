@@ -3,7 +3,7 @@ import type { notDueArrivals } from './calendar-not-due'
 import { hoursOf, keyOf, sameHours } from './grid'
 import type { Journey, journeys } from './journeys'
 import type { EpisodeLines } from './lines'
-import { chosenOldArrival, rankedMove } from './report-rank'
+import { oldArrivalChooser, rankedMove } from './report-rank'
 import { departureVerdict, type Reading } from './rewrite'
 import type { Span } from './settings'
 import type { Day, Hour, Line, LineEffect, Setting } from './types'
@@ -46,25 +46,32 @@ export function moveReports(input: ReportsInput) {
     const withFollowing = lines.shifts.some((shift) => shift.dueOn === dueOn)
     // Q1 : sur la date choisie qui portait sa dose, le report reprend sa dose par son rang ; ce qu'il
     // emporte de sa journée de départ, quand elle se lit encore, arrive avec elle.
-    const oldOn = chosenOldArrival(report, span)
+    const chooser = oldArrivalChooser(report, span)
+    const oldOn = chooser?.firstDueOn
     const oldDay = oldOn === undefined ? undefined : days.get(oldOn)
-    if (oldDay !== undefined) {
-      const { gone, bringing: departing } =
-        departure === undefined
-          ? { gone: [], bringing: [] }
-          : fromDeparture(report, departure, after, withFollowing)
-      const ranks = rankedMove(report, oldDay.hours, exactlyNoted(oldOn!, oldDay), withFollowing)
-      // G13 : son décalage a déjà fait avancer les journées suivantes jusqu'à l'ancienne arrivée ; le
-      // report n'y emporte rien et n'arrive qu'avec sa dose.
-      const turned = lines.shifts.some(
+    // G13 : son décalage a déjà fait avancer les journées suivantes depuis l'ancienne arrivée ; le
+    // report n'y emporte rien, et n'arrive avec les rangs qu'il y prenait que si elle a quitté la grille.
+    const turned =
+      oldOn !== undefined &&
+      lines.shifts.some(
         (shift) =>
           shift.dueOn === dueOn &&
           shift.targetOn === targetOn &&
           effects.get(shift.id)?.kind === 'shifts',
       )
+    if (oldDay !== undefined || turned) {
+      const { gone, bringing: departing } =
+        departure === undefined
+          ? { gone: [], bringing: [] }
+          : fromDeparture(report, departure, after, withFollowing)
+      const ranks =
+        oldDay === undefined
+          ? rankedMove(report, hoursOf(chooser!.times), new Set(), withFollowing)
+          : rankedMove(report, oldDay.hours, exactlyNoted(oldOn!, oldDay), withFollowing)
       const leaving = turned ? [] : ranks.leaving
-      const carried = turned ? [dueTime] : ranks.carried
-      oldDay.hours = oldDay.hours.filter((hour) => !leaving.includes(hour))
+      const carried = turned && oldDay !== undefined ? [dueTime] : ranks.carried
+      if (oldDay !== undefined)
+        oldDay.hours = oldDay.hours.filter((hour) => !leaving.includes(hour))
       const keys = [
         ...gone.map((hour) => keyOf(dueOn, hour)),
         ...leaving.map((hour) => keyOf(oldOn!, hour)),

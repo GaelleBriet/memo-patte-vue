@@ -1,7 +1,7 @@
 import { writtenBefore, type coverages, type Journey } from './reference-days'
 import { hoursOf, keyOf } from './reference-grid'
 import { arrivedOn, chosenDateOf, hoursChangedSince, reportOutcome } from './reference-reports'
-import { chosenDayOf, takenByRank } from './reference-ranks'
+import { chooserOf, takenByRank } from './reference-ranks'
 import { rewrittenDeparture, type RewriteContext } from './reference-rewrite'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
@@ -47,9 +47,12 @@ export function arriveReports(context: ArrivalContext) {
     const departure = days.get(dueOn)
     const withFollowing = context.shiftedDays.has(dueOn)
     // Q1 : la dose du report est sur la date choisie qui était son arrivée ; elle en part par son rang.
-    const chosenDay = chosenDayOf(report!, settingAt, live)
+    const chooser = chooserOf(report!, settingAt, live)
+    const chosenDay = chooser?.firstDueOn
     const oldArrival = chosenDay === undefined ? undefined : days.get(chosenDay)
-    if (oldArrival !== undefined) {
+    // G13 : son décalage a déjà fait avancer depuis la date choisie les doses qui la suivaient.
+    const turned = chosenDay !== undefined && context.turnedFromChosen.has(`${dueOn}>${targetOn}`)
+    if (oldArrival !== undefined || turned) {
       // Ce que le report emporte de sa journée de départ, si elle se lit encore, arrive aussi : son heure
       // et les suivantes (R7), ou, son heure absente, la dose de son rang (Q4).
       let leftDeparture: Hour[] = []
@@ -71,22 +74,19 @@ export function arriveReports(context: ArrivalContext) {
           leftDeparture = [...new Set([report!.dueTime, ...atRank.alsoCarried])].sort()
         }
       }
-      const byRank = takenByRank(
-        report!,
-        oldArrival.hours,
-        exactAt(chosenDay!, oldArrival),
-        withFollowing,
-      )
-      // G13 : son décalage a déjà fait avancer jusqu'à la date choisie les doses qui la suivaient.
-      const turned = context.turnedFromChosen.has(`${dueOn}>${targetOn}`)
-      if (!turned) oldArrival.hours = oldArrival.hours.filter((hour) => !byRank.lost.includes(hour))
+      const byRank =
+        oldArrival === undefined
+          ? takenByRank(report!, hoursOf(chooser!), new Set(), withFollowing)
+          : takenByRank(report!, oldArrival.hours, exactAt(chosenDay!, oldArrival), withFollowing)
+      if (!turned && oldArrival !== undefined) {
+        oldArrival.hours = oldArrival.hours.filter((hour) => !byRank.lost.includes(hour))
+      }
       if (targetOn! > dueOn) fallen.add(dueOn)
       // Lue au départ comme sur l'ancienne arrivée, c'est la même dose : elle arrive une fois.
-      // Son décalage parti de la date choisie a fait avancer la suite : il n'arrive qu'avec sa dose.
       const carried =
         leftDeparture.length > 0
           ? leftDeparture
-          : turned
+          : turned && oldArrival !== undefined
             ? [report!.dueTime]
             : [...new Set([report!.dueTime, ...byRank.alsoCarried])].sort()
       land(report!, { carried, hoursOf: settingOf(report!.settingId) })

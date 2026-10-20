@@ -36,11 +36,14 @@ export function rankedMove(
 }
 
 /**
- * La date choisie qui portait la dose d'un report déplacé de nouveau : son ancienne arrivée, première
- * échéance choisie du réglage en vigueur, ou d'un réglage d'avant que celui-ci continue (R3, même
- * fréquence, sans origine propre).
+ * Le réglage dont la date choisie portait la dose d'un report déplacé de nouveau : première échéance
+ * choisie du réglage en vigueur sur l'ancienne arrivée, ou d'un réglage d'avant que celui-ci continue
+ * (R3, même fréquence, sans origine propre).
  */
-export function chosenOldArrival(report: Line, span: Pick<Span, 'settingAt' | 'live'>) {
+export function oldArrivalChooser(
+  report: Line,
+  span: Pick<Span, 'settingAt' | 'live'>,
+): Setting | undefined {
   const day = report.previousTargetOn
   if (day === undefined || day === null || day === report.targetOn) return undefined
   let setting = span.settingAt(day)
@@ -52,5 +55,5 @@ export function chosenOldArrival(report: Line, span: Pick<Span, 'settingAt' | 'l
     setting = previous
     index -= 1
   }
-  return setting?.firstDueChosen && setting.firstDueOn === day ? day : undefined
+  return setting?.firstDueChosen && setting.firstDueOn === day ? setting : undefined
 }

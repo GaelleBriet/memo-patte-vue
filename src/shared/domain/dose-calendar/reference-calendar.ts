@@ -32,7 +32,7 @@ import {
 } from './reference-lines'
 import { departureBeaten, duesOf } from './reference-not-due'
 import { arriveReports } from './reference-arrivals'
-import { chosenDayOf } from './reference-ranks'
+import { chooserOf } from './reference-ranks'
 import { chosenDateOf } from './reference-reports'
 import { shiftKeptByReport, type RewriteContext } from './reference-rewrite'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
@@ -83,7 +83,7 @@ export function calendarOf(
   const movedFromChosenDay = (turn: ReferenceLine) =>
     reports.some(
       (report) =>
-        moveKeyOf(report) === moveKeyOf(turn) && chosenDayOf(report, settingAt, live) !== undefined,
+        moveKeyOf(report) === moveKeyOf(turn) && chooserOf(report, settingAt, live) !== undefined,
     )
   const turnedFromChosen = new Set<string>()
   // R7, R9.2 : les premières échéances des réglages qui ouvrent un nouveau rythme.
