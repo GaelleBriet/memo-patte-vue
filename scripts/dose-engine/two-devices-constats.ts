@@ -31,17 +31,31 @@ function lostWith(fork: Fork, read: Reader, report: Line): boolean {
     .some(({ due }) => due.dueTime === report.dueTime)
 }
 
-// Dose de trop : le jour d'arrivée du report porte une heure que ni A ni B n'y montraient.
+// Dose de trop : le jour d'arrivée du report porte une heure que ni A ni B n'y montraient, ni sur sa
+// journée de départ ou son ancienne arrivée, d'où il emporte ses doses à leur heure (R7, Q1, Q4 : les
+// rangs suivants avec la case).
 function extraWith(fork: Fork, read: Reader, report: Line): string[] {
   const effect = effectOf(read, fork.merged, report.id)
   if (effect?.kind !== 'moves' || !effect.arrival) return []
   const day = effect.arrival
-  const hours = (input: TreatmentViewInput) =>
+  const hoursOn = (input: TreatmentViewInput, on: string) =>
     read(input)
-      .slots(day, day)
+      .slots(on, on)
       .map(({ due }) => due.dueTime)
-  const shown = new Set([...hours(fork.phoneA), ...hours(fork.phoneB)])
-  return hours(fork.merged)
+  const carried = (input: TreatmentViewInput) => {
+    const seen = effectOf(read, input, report.id)
+    return seen?.kind === 'moves' ? seen.keys.map((key) => key.slice(11) || null) : []
+  }
+  const without = { ...fork.merged, lines: fork.merged.lines.filter(({ id }) => id !== report.id) }
+  const shown = new Set([
+    ...hoursOn(without, day),
+    ...hoursOn(fork.phoneA, day),
+    ...hoursOn(fork.phoneB, day),
+    ...hoursOn(fork.phoneB, report.dueOn),
+    ...(report.previousTargetOn ? hoursOn(fork.phoneB, report.previousTargetOn) : []),
+    ...[fork.base, fork.phoneA, fork.phoneB].flatMap(carried),
+  ])
+  return hoursOn(fork.merged, day)
     .filter((hour) => !shown.has(hour))
     .map((hour) => `${day} ${hour}`)
 }
