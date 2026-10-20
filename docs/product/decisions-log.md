@@ -3199,7 +3199,8 @@ délégué les lectures de règles ; #939, #938, #882).
   reporte 8 h du 5 mars au 6, B passe à 8 h 01, 14 h 01 et 20 h 01 : dans les deux ordres, le 6 à
   8 h, le 5 garde 14 h 01 et 20 h 01 (avant, B plus récent : report sans effet). Carnet de #883 (B
   passe à 8 h et 20 h) : dans les deux ordres, le 6 mai à 14 h puis le 9 mai à 8 h et 20 h.
-- #939 : quand la journée de départ est lue par un réglage créé après celui du report, réécrit sur
+- #939 : quand la journée de départ, ou l'ancienne arrivée d'un report redéplacé, est lue par un
+  réglage créé après celui du report, réécrit sur
   place depuis, et que la ligne a connu, le report plus récent que sa grille se lit comme avant, sans
   être écarté hors de la grille : il emmène toutes ses doses, comme sur le téléphone qui l'a écrit ;
   plus ancien, la lecture de son propre réglage reste. Les six graines (9050000090, 9050001220,
