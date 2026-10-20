@@ -156,6 +156,16 @@ export function calendarOf(
       : origin !== null
         ? { ...grid, floor: ownFloor }
         : { ...grid, floor: later(grid.floor, later(chosenFloor, plusDays(setting.startsOn, -1))) }
+    // R9 : un décalage parti d'avant ce réglage, depuis sa date choisie, fait repartir sa série de l'arrivée.
+    const early = [...turnedFromChosen].find((key) => {
+      const report = reports.find((each) => moveKeyOf(each) === key)!
+      return report.dueOn < setting.startsOn && chooserOf(report, settingAt, live) === setting
+    })
+    if (early !== undefined) {
+      const report = reports.find((each) => moveKeyOf(each) === early)!
+      chosenFloor = ''
+      grid = turned(report, '')
+    }
     const livesBefore = live.filter((other) => episode.indexOf(other) < episode.indexOf(setting))
     const lastLive = livesBefore[livesBefore.length - 1]
     const ended = lastLive !== undefined && (lastLive.endsOn ?? setting.startsOn) < setting.startsOn

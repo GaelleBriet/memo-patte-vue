@@ -53,13 +53,15 @@ export function wholeDayOf(report: ReferenceLine, hours: readonly Hour[]): Hour[
   )
 }
 
-// Q3 : à son heure écrite, ou à celle de son rang quand une dose qui l'accompagne y arrive déjà.
+// Q3, Q-b : à son heure écrite, ou à celle de son rang quand une dose qui l'accompagne y arrive déjà
+// ou que l'heure écrite est vide dans une journée à heures.
 function landing(
   report: ReferenceLine,
   ownHour: Hour | undefined,
   joining: readonly Hour[],
 ): Hour[] {
-  const at = joining.includes(report.dueTime) && ownHour !== undefined ? ownHour : report.dueTime
+  const blocked = joining.includes(report.dueTime) || (report.dueTime === null && ownHour !== null)
+  const at = blocked && ownHour !== undefined ? ownHour : report.dueTime
   return [...new Set([at, ...joining])].sort()
 }
 

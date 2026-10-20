@@ -60,22 +60,41 @@ export function moveReports(input: ReportsInput) {
           effects.get(shift.id)?.kind === 'shifts',
       )
     if (oldDay !== undefined || turned) {
+      // Q-a : la dose qu'on a touchée sur la date choisie part, par le rang de son heure, et arrive à
+      // cette heure.
+      const chosenHours = hoursOf(chooser!.times)
+      const touched = report.previousTargetTime
+      const asTouched =
+        touched !== undefined && touched !== null && chosenHours[0] !== null
+          ? { ...report, dueTime: touched, dueRank: null }
+          : undefined
       const from = departure ?? left.get(dueOn)
+      // Q-c : sans la case, le report n'emporte que sa dose.
       const { gone, bringing: departing } =
         from === undefined
           ? { gone: [], bringing: [] }
-          : fromDeparture(report, from, after, withFollowing)
+          : fromDeparture(
+              report,
+              from,
+              withFollowing ? after : (hour) => hour === dueTime,
+              withFollowing,
+            )
       const keys = gone.map((hour) => keyOf(dueOn, hour))
       let bringing: Hour[]
       if (turned) {
-        bringing = [...new Set([...departing, ...wholeDay(report, hoursOf(chooser!.times))])].sort()
+        bringing = wholeDay(asTouched ?? report, chosenHours)
       } else {
-        const noted = exactlyNoted(oldOn!, oldDay!)
-        const { leaving, carried } = rankedMove(report, oldDay!.hours, noted, withFollowing)
-        oldDay!.hours = oldDay!.hours.filter((hour) => !leaving.includes(hour))
-        keys.push(...leaving.map((hour) => keyOf(oldOn!, hour)))
-        // La même dose, lue au départ et sur l'ancienne arrivée : elle arrive une fois, prise au départ.
-        bringing = departing.length > 0 ? departing : carried
+        const atHour = exactlyNoted(oldOn!, oldDay!)
+        const ranks = rankedMove(asTouched ?? report, oldDay!.hours, atHour, withFollowing)
+        // #796 : ce qui part arrive aux heures du réglage qui a choisi la date.
+        const carried =
+          asTouched === undefined
+            ? ranks.carried
+            : rankedMove(asTouched, chosenHours, new Set(), withFollowing).carried
+        oldDay!.hours = oldDay!.hours.filter((hour) => !ranks.leaving.includes(hour))
+        keys.push(...ranks.leaving.map((hour) => keyOf(oldOn!, hour)))
+        // La même dose, lue au départ et sur l'ancienne arrivée : elle arrive une fois.
+        bringing = asTouched !== undefined || departing.length === 0 ? carried : departing
       }
       keys.forEach((key) => moved.set(key, report))
       if (targetOn! > dueOn) fallen.add(dueOn)
@@ -101,8 +120,8 @@ export function moveReports(input: ReportsInput) {
     const hours = rewrite === 'line' ? [dueTime] : (origin?.hours ?? hoursOf(from.times))
     let ranked: Hour[] | undefined
     if (rewrite === 'line' && departure !== undefined) {
-      const noted = exactlyNoted(dueOn, departure)
-      const { leaving, carried } = rankedMove(report, departure.hours, noted, withFollowing)
+      const atHour = exactlyNoted(dueOn, departure)
+      const { leaving, carried } = rankedMove(report, departure.hours, atHour, withFollowing)
       departure.hours = departure.hours.filter((hour) => !leaving.includes(hour))
       leaving.forEach((hour) => moved.set(keyOf(dueOn, hour), report))
       ranked = carried
@@ -253,8 +272,8 @@ export function moveReports(input: ReportsInput) {
       const gone = leaveFrom(report.dueOn, departure, after)
       return { gone, bringing: gone }
     }
-    const noted = exactlyNoted(report.dueOn, departure)
-    const { leaving, carried } = rankedMove(report, departure.hours, noted, withFollowing)
+    const atHour = exactlyNoted(report.dueOn, departure)
+    const { leaving, carried } = rankedMove(report, departure.hours, atHour, withFollowing)
     departure.hours = departure.hours.filter((hour) => !leaving.includes(hour))
     return { gone: leaving, bringing: leaving.length > 0 ? carried : [] }
   }
@@ -268,8 +287,8 @@ export function moveReports(input: ReportsInput) {
 
   // R7 : un report quitte sa journée avec son heure et les suivantes encore sans prise.
   function leaveFrom(day: Day, journey: Journey, after: (hour: Hour) => boolean): Hour[] {
-    const noted = coveredOn(day, journey, new Set())
-    const gone = journey.hours.filter((hour) => !noted.has(hour) && after(hour))
+    const covered = coveredOn(day, journey, new Set())
+    const gone = journey.hours.filter((hour) => !covered.has(hour) && after(hour))
     journey.hours = journey.hours.filter((hour) => !gone.includes(hour))
     return gone
   }

@@ -11,7 +11,7 @@ import {
 } from './grid'
 import { isDueDay, skippedDays, turned, type Grid } from './grid-in-force'
 import { translatedDays, type EpisodeLines } from './lines'
-import { oldArrivalChooser } from './report-rank'
+import { chooserOfTurn, earlyTurnOf } from './report-rank'
 import { shiftKeptByReport } from './rewrite'
 import type { Span } from './settings'
 import type { Day, Frequency, Hour, Line, LineEffect, Setting } from './types'
@@ -89,13 +89,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     })
   // G13 : le décalage d'une dose redéplacée depuis la date choisie qui la portait se juge depuis cette
   // ancienne arrivée ; les journées suivantes avancent ou reculent d'autant.
-  const fromOldArrival = (turn: Line) =>
-    lines.reports.some(
-      (report) =>
-        report.dueOn === turn.dueOn &&
-        report.targetOn === turn.targetOn &&
-        oldArrivalChooser(report, span) !== undefined,
-    )
+  const fromOldArrival = (turn: Line) => chooserOfTurn(turn, lines.reports, span) !== undefined
   const claims: Claim[] = []
   const openings = new Set<Day>()
   let grid: Grid = { origin: chain[0]!.firstDueOn, floor: '', since: '' }
@@ -169,6 +163,12 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     if (!continued || origin !== null) drawer = setting.id
     drawnBy.set(setting.id, drawer)
     if (!continued) rhythmStartFloor = grid.floor
+    const early = earlyTurnOf(setting, lines, span, effects)
+    if (early !== undefined) {
+      chosenFloor = ''
+      grid = turned(early, '')
+      rhythmStartFloor = grid.floor
+    }
     const at = span.episode.indexOf(setting)
     const prior = span.live.filter((each) => span.episode.indexOf(each) < at).at(-1)
     const ended = prior !== undefined && (prior.endsOn ?? setting.startsOn) < setting.startsOn

@@ -105,9 +105,15 @@ export function hoursOnly(input: TreatmentViewInput): Broken | null {
     const recomputed = firstDueOn !== current.firstDueOn || gridOriginOn !== current.gridOriginOn
     const sameDay = plan.action === 'rewrite' && current.startsOn === input.today
     if (sameDay && recomputed) continue
-    // R7, #796 : la date choisie garde les heures de son réglage, que ce « Modifier » remplace.
+    // R7, #796 : la date choisie garde les heures de son réglage, que ce « Modifier » remplace, et
+    // sa dose redéplacée les emmène (Q-a, G13).
     const chosenDay = sameDay && current.firstDueChosen ? current.firstDueOn : null
-    const kept = new Map([...touched].filter(([day]) => day !== chosenDay))
+    const fromChosen = new Set(
+      input.lines
+        .filter((line) => chosenDay !== null && line.previousTargetOn === chosenDay)
+        .map((line) => line.targetOn),
+    )
+    const kept = new Map([...touched].filter(([day]) => day !== chosenDay && !fromChosen.has(day)))
     const after = daysOf(settingsApplied(input, plan), kept)
     const broken = compare(
       `heures seules (${label})`,

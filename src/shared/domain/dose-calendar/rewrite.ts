@@ -10,8 +10,7 @@ function beforeFirstDue(line: Line, gridAt: string): 'line' | 'rewrite' {
   return line.updatedAt > gridAt ? 'line' : 'rewrite'
 }
 
-// #882, 8a : après la première échéance, la journée ôtée par la réécriture elle-même (grille propre
-// du réglage réécrit), pas par une autre ligne, se juge dans les deux sens.
+// #882, 8a : après la première échéance, la journée ôtée par la réécriture elle-même, dans les deux sens.
 function afterFirstDue(line: Line, written: Setting, gridAt: string, { drawnBy }: Reach) {
   const origin = written.gridOriginOn ?? written.firstDueOn
   if (drawnBy !== written.id || isOnGrid(origin, written.frequency, line.dueOn)) return null
@@ -19,14 +18,12 @@ function afterFirstDue(line: Line, written: Setting, gridAt: string, { drawnBy }
   return gridAt > line.updatedAt ? 'rewrite' : 'line'
 }
 
-// #939 : un report n'entre jamais en conflit avec les heures ; l'heure ôtée par la réécriture, il
-// l'emporte et part par son rang (Q4).
+// #939, Q4 : une heure ôtée n'est jamais un conflit, le report part par son rang.
 function hourTaken(line: Line, written: Setting): 'line' | null {
   return hoursOf(written.times).includes(line.dueTime) ? null : 'line'
 }
 
-// #939 : la journée de départ ôtée par la réécriture sur place se juge contre la dernière écriture de
-// la grille du réglage, jamais contre ses heures.
+// #939 : la journée ôtée se juge contre la date de grille du réglage, jamais contre ses heures.
 function rewriteVerdict(
   line: Line,
   written: Setting,
@@ -50,8 +47,7 @@ type ShiftContext = {
   isDay: (day: Day) => boolean
 }
 
-/** #885, 6c, Q2 : la journée de départ sortie de la grille, le décalage suit le report qui l'emporte
- * sur la réécriture de son propre réglage, avant comme après sa première échéance. */
+/** #885, 6c, Q2 : journée sortie de la grille, le décalage suit le report qui gagne contre la réécriture. */
 export function shiftKeptByReport(turn: Line, context: ShiftContext): boolean {
   const { reports, isDay, settingOf, reachOf } = context
   if (isDay(turn.dueOn)) return false
@@ -72,9 +68,8 @@ function newerRewritten(report: Line, own: Setting, reading: Setting | undefined
 /** Un réglage qui lit une journée du report (départ ou ancienne arrivée), ou dont vient sa date choisie. */
 export type Reading = Reach & { day: Day; setting: Setting | undefined }
 
-// #939 : la journée de départ, ou l'ancienne arrivée d'un report redéplacé, ôtée ; plus récent que la
-// grille d'un réglage qui la lit, ou dont vient sa date choisie, réécrit sur place après la création de
-// celui du report, le report se lit comme avant sans être écarté (`kept`).
+// #939 : journée ôtée ; plus récent que la grille d'un réglage plus récent qui la lit, réécrit sur
+// place, le report se lit comme avant sans être écarté (`kept`).
 function dayVerdict(report: Line, own: Setting, reach: Reach, readings: readonly Reading[]) {
   const verdict = rewriteVerdict(report, own, 'day', reach)
   if (verdict !== null) return verdict
@@ -86,9 +81,7 @@ function dayVerdict(report: Line, own: Setting, reach: Reach, readings: readonly
   return kept ? 'kept' : null
 }
 
-/** #882, #883, #939 : le verdict d'un report dont la dose de départ manque à sa journée, telle qu'elle
- * se lit avec les heures que d'autres reports y ont amenées (`arrived`) ; `readings` : les réglages qui
- * peuvent garder le report (`kept` : la lecture d'avant, sans être écarté hors de la grille). */
+/** #882, #883, #939 : le verdict d'un report dont la dose de départ manque à sa journée. */
 export function departureVerdict(
   report: Line,
   context: Reach & {
