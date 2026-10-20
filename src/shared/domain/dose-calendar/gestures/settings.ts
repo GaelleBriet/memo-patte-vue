@@ -213,9 +213,12 @@ function rhythmKept(
   const { today } = input
   const { firstDueOn, gridOriginOn, firstDueChosen } = current
   const chosen = request.firstDueOn
-  if (chosen === undefined || chosen === firstDueOn) {
+  const next = view.currentDoses[0]?.dueOn
+  const shownOn = next !== undefined && next > firstDueOn ? next : firstDueOn
+  if (chosen === undefined || chosen === firstDueOn || chosen === shownOn) {
     const dates = { firstDueOn, gridOriginOn, firstDueChosen }
-    return { plan: rewrite(current, fieldsOf(current.startsOn, dates, request)) }
+    const plan = rewrite(current, fieldsOf(current.startsOn, dates, request))
+    return shownOn === firstDueOn ? { plan } : { plan, shownOn }
   }
   if (chosen < today) return { refusal: { reason: 'too-early', earliest: today } }
   const dates = { firstDueOn: chosen, gridOriginOn: chosen, firstDueChosen: true }
