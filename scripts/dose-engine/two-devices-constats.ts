@@ -16,14 +16,25 @@ function newReport(fork: Fork): Line | undefined {
 const effectOf = (read: Reader, input: TreatmentViewInput, id: string) =>
   read(input).history.find(({ line }) => line.id === id)?.effect
 
+// R8 : la journée d'arrivée après la fin du réglage qui la porterait ; le report n'y a rien à poser.
+function endsBefore(input: TreatmentViewInput, day: string): boolean {
+  const reading = input.settings
+    .filter(({ startsOn }) => startsOn <= day)
+    .sort((a, b) => a.startsOn.localeCompare(b.startsOn) || a.createdAt.localeCompare(b.createdAt))
+    .at(-1)
+  return reading?.endsOn !== null && reading?.endsOn !== undefined && reading.endsOn < day
+}
+
 // #867, #882, #883, #939 : report de A perdu après la synchro alors que A est le plus récent, ou que
-// la réécriture de B n'a pas ôté sa dose de départ (la journée lue sans ce report l'a encore).
+// la réécriture de B n'a pas ôté sa dose de départ (la journée lue sans ce report l'a encore) ; une
+// arrivée après la fin du traitement n'est pas une perte (R8).
 function lostWith(fork: Fork, read: Reader, report: Line): boolean {
   const { plan, phoneA, merged, aFirst } = fork
   if (plan.action !== 'rewrite') return false
   if (effectOf(read, phoneA, report.id)?.kind !== 'moves') return false
   const effect = effectOf(read, merged, report.id)
   if (effect?.kind !== 'idle' || effect.reason !== 'nothing-to-move') return false
+  if (endsBefore(merged, report.targetOn!)) return false
   if (!aFirst) return true
   const without = { ...merged, lines: merged.lines.filter(({ id }) => id !== report.id) }
   return read(without)
@@ -31,33 +42,28 @@ function lostWith(fork: Fork, read: Reader, report: Line): boolean {
     .some(({ due }) => due.dueTime === report.dueTime)
 }
 
-// Dose de trop : le jour d'arrivée du report porte une heure que ni A ni B n'y montraient, ni sur sa
-// journée de départ ou son ancienne arrivée, d'où il emporte ses doses à leur heure (R7, Q1, Q4 : les
-// rangs suivants avec la case).
+// Les heures du réglage qui porte une journée, dans le carnet fusionné.
+function hoursCountOn(input: TreatmentViewInput, day: string): number {
+  const reading = input.settings
+    .filter(({ startsOn }) => startsOn <= day)
+    .sort((a, b) => a.startsOn.localeCompare(b.startsOn) || a.createdAt.localeCompare(b.createdAt))
+    .at(-1)
+  return Math.max(1, reading?.times.length ?? 1)
+}
+
+// Dose de trop (Q4, 20 octobre 2026) : la journée de départ et ce que le report pose sur son arrivée
+// comptent plus de doses que le réglage en vigueur n'a d'heures ; la dose du report n'apparaît qu'une fois.
 function extraWith(fork: Fork, read: Reader, report: Line): string[] {
   const effect = effectOf(read, fork.merged, report.id)
   if (effect?.kind !== 'moves' || !effect.arrival) return []
-  const day = effect.arrival
-  const hoursOn = (input: TreatmentViewInput, on: string) =>
-    read(input)
-      .slots(on, on)
-      .map(({ due }) => due.dueTime)
-  const carried = (input: TreatmentViewInput) => {
-    const seen = effectOf(read, input, report.id)
-    return seen?.kind === 'moves' ? seen.keys.map((key) => key.slice(11) || null) : []
-  }
+  const count = (input: TreatmentViewInput, day: string) => read(input).slots(day, day).length
   const without = { ...fork.merged, lines: fork.merged.lines.filter(({ id }) => id !== report.id) }
-  const shown = new Set([
-    ...hoursOn(without, day),
-    ...hoursOn(fork.phoneA, day),
-    ...hoursOn(fork.phoneB, day),
-    ...hoursOn(fork.phoneB, report.dueOn),
-    ...(report.previousTargetOn ? hoursOn(fork.phoneB, report.previousTargetOn) : []),
-    ...[fork.base, fork.phoneA, fork.phoneB].flatMap(carried),
-  ])
-  return hoursOn(fork.merged, day)
-    .filter((hour) => !shown.has(hour))
-    .map((hour) => `${day} ${hour}`)
+  const arrived = count(fork.merged, effect.arrival) - count(without, effect.arrival)
+  const doses = count(fork.merged, report.dueOn) + arrived
+  const hours = hoursCountOn(fork.merged, report.dueOn)
+  return doses > hours
+    ? [`${report.dueOn} et ${effect.arrival} : ${doses} doses pour ${hours} heures`]
+    : []
 }
 
 // Le carnet tel que `main` le lit : avant la v15, la réponse Q38 était le booléen « restent à

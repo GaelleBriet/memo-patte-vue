@@ -53,16 +53,17 @@ export function moveReports(input: ReportsInput) {
         departure === undefined
           ? { gone: [], bringing: [] }
           : fromDeparture(report, departure, after, withFollowing)
-      const noted = new Set(coveredOn(oldOn!, oldDay, new Set()).keys())
-      const { leaving: ranked, carried } = rankedMove(report, oldDay.hours, noted, withFollowing)
-      // G13 : son décalage a déjà fait avancer les journées suivantes jusqu'à l'ancienne arrivée.
+      const ranks = rankedMove(report, oldDay.hours, exactlyNoted(oldOn!, oldDay), withFollowing)
+      // G13 : son décalage a déjà fait avancer les journées suivantes jusqu'à l'ancienne arrivée ; le
+      // report n'y emporte rien et n'arrive qu'avec sa dose.
       const turned = lines.shifts.some(
         (shift) =>
           shift.dueOn === dueOn &&
           shift.targetOn === targetOn &&
           effects.get(shift.id)?.kind === 'shifts',
       )
-      const leaving = turned ? [] : ranked
+      const leaving = turned ? [] : ranks.leaving
+      const carried = turned ? [dueTime] : ranks.carried
       oldDay.hours = oldDay.hours.filter((hour) => !leaving.includes(hour))
       const keys = [
         ...gone.map((hour) => keyOf(dueOn, hour)),
@@ -94,7 +95,7 @@ export function moveReports(input: ReportsInput) {
     const hours = rewrite === 'line' ? [dueTime] : (origin?.hours ?? hoursOf(from.times))
     let ranked: Hour[] | undefined
     if (rewrite === 'line' && departure !== undefined) {
-      const noted = new Set(coveredOn(dueOn, departure, new Set()).keys())
+      const noted = exactlyNoted(dueOn, departure)
       const { leaving, carried } = rankedMove(report, departure.hours, noted, withFollowing)
       departure.hours = departure.hours.filter((hour) => !leaving.includes(hour))
       leaving.forEach((hour) => moved.set(keyOf(dueOn, hour), report))
@@ -246,10 +247,17 @@ export function moveReports(input: ReportsInput) {
       const gone = leaveFrom(report.dueOn, departure, after)
       return { gone, bringing: gone }
     }
-    const noted = new Set(coveredOn(report.dueOn, departure, new Set()).keys())
+    const noted = exactlyNoted(report.dueOn, departure)
     const { leaving, carried } = rankedMove(report, departure.hours, noted, withFollowing)
     departure.hours = departure.hours.filter((hour) => !leaving.includes(hour))
     return { gone: leaving, bringing: leaving.length > 0 ? carried : [] }
+  }
+
+  // Q4 : le rang du report ne cède qu'à une prise posée à son heure ; une prise posée ailleurs par R4
+  // se repose sur les doses qu'il laisse.
+  function exactlyNoted(day: Day, journey: Journey): Set<Hour> {
+    const covered = [...coveredOn(day, journey, new Set())]
+    return new Set(covered.filter(([hour, note]) => note.dueTime === hour).map(([hour]) => hour))
   }
 
   // R7 : un report quitte sa journée avec son heure et les suivantes encore sans prise.
