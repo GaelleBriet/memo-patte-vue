@@ -162,12 +162,11 @@ describe('Un seul téléphone : une dose ôtée par un décalage, pas par la ré
   // elle : préversion et résultat restent les mêmes ; une posologie seule ne change rien.
   // Q1 : la date choisie se lit sur le réglage qui a tracé la grille du jour, que continuent les
   // réglages suivants sans origine à eux ; lue au départ et sur l'ancienne arrivée, la dose arrive une fois.
-  it.each([9110000172, 9110000229, 9110000309, 9120000384, 9120001368])(
-    'graine %i : les invariants tiennent à chaque geste',
-    (seed) => {
-      expect(seedHolds(seed, 40)).toEqual([])
-    },
-  )
+  it.each([
+    9110000172, 9110000229, 9110000309, 9120000384, 9120001368, 9140000610, 9140000713, 9140000967,
+  ])('graine %i : les invariants tiennent à chaque geste', (seed) => {
+    expect(seedHolds(seed, 40)).toEqual([])
+  })
 
   it('graine 9500001489 : les invariants tiennent à chaque geste, posologie seule comprise', () => {
     expect(seedHolds(9500001489, 40)).toEqual([])

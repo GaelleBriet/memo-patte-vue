@@ -47,7 +47,7 @@ function touchedDays(
       touched.set(dueOn, null)
     }
   }
-  for (const { effect } of treatmentView(input).history) {
+  for (const { line, effect } of treatmentView(input).history) {
     if (
       effect.kind !== 'moves' ||
       effect.arrival === null ||
@@ -56,7 +56,9 @@ function touchedDays(
       continue
     }
     const hours = touched.get(effect.arrival) ?? new Set<string>()
-    for (const key of effect.keys) hours.add(key.slice(11))
+    // Q1 : la dose retirée de l'ancienne arrivée n'est pas une heure qui arrive.
+    const departing = effect.keys.filter((key) => key.startsWith(line.dueOn))
+    for (const key of departing.length > 0 ? departing : effect.keys) hours.add(key.slice(11))
     touched.set(effect.arrival, hours)
   }
   return touched
