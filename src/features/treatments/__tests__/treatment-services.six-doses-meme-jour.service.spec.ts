@@ -54,15 +54,22 @@ async function carnet(first: string, times: string[]) {
     day(on: string) {
       replay.clock.day = on
     },
-    async move(dueOn: string, dueTime: Hour, to: string) {
+    async move(dueOn: string, dueTime: Hour, to: string, shiftsFollowing = true) {
       replay.tick()
       const settingId = await settingOn(dueOn, dueTime)
       await replay.doses.apply(id, {
         kind: 'move',
         due: { settingId, dueOn, dueTime },
         to,
-        shiftsFollowing: true,
+        shiftsFollowing,
       })
+    },
+    async removeShiftOf(dueOn: string) {
+      const shift = (await stored()).doses.find(
+        (dose) => dose.status === 'shift' && dose.dueOn === dueOn,
+      )!
+      replay.tick()
+      await replay.doses.apply(id, { kind: 'remove', lineId: shift.id })
     },
     async give(dueOn: string, dueTime: Hour) {
       replay.tick()
@@ -132,6 +139,28 @@ describe('Le jour du changement d’heures, après un report ramené par « Proc
       '2026-03-20 12:00 pending',
       '2026-03-20 18:00 pending',
       '2026-03-20 23:00 pending',
+    ])
+  })
+
+  it('la suite de la graine : le décalage du 15 supprimé, 12 h du 20 reportée au 2 avril et donnée, puis une minute plus tard : le 2 avril garde 12 h, 18 h et 23 h', async () => {
+    const milo = await carnet('2026-03-15', ['20:00'])
+    milo.day('2026-03-16')
+    await milo.move('2026-03-15', '20:00', '2026-04-19')
+    await milo.modify(['08:00', '14:00', '20:00'], null)
+    milo.day('2026-03-20')
+    await milo.modify(['08:00', '14:00', '20:00'], '2026-03-20')
+    await milo.give('2026-03-20', '08:00')
+    await milo.modify(['06:00', '12:00', '18:00', '23:00'], null)
+    await milo.removeShiftOf('2026-03-15')
+    await milo.move('2026-03-20', '12:00', '2026-04-02', false)
+    await milo.give('2026-04-02', '12:00')
+
+    await milo.modify(['06:01', '12:01', '18:01', '23:01'], null)
+
+    expect(await milo.slots('2026-04-02', '2026-04-02')).toEqual([
+      '2026-04-02 12:00 given',
+      '2026-04-02 18:00 pending',
+      '2026-04-02 23:00 pending',
     ])
   })
 })
