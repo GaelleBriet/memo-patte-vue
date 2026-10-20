@@ -3243,21 +3243,29 @@ délégué les lectures de règles ; #939, #938, #882).
   lundi 6 avril ; la dose du 6 avril avancée au jeudi 12 mars avec la case : 12, 19, 26 mars, 2 et
   9 avril (avant : le 12 mars, puis encore le 6 avril, la dose deux fois ; graines 9991000402 et
   9991000831).
-- Q-a (20 octobre 2026) : sur une date choisie, la dose qui part est celle qu'on a touchée ; le report
-  garde son heure (heure de l'ancienne arrivée) et part par son rang. Luna, chaque jour à 20 h, la dose
-  du 15 mars reportée au 18 avec la case, « Modifier » : 8 h et 20 h, « Prochaine dose » le 25 ; la
-  dose de 20 h du 25 avancée au 20 sans la case : le 20 à 20 h, le 25 à 8 h ; celle de 8 h : le 20 à
-  8 h, le 25 à 20 h. Une date choisie sans heure garde l'heure écrite du report (graine 9140001597 :
-  le 1er avril à 20 h).
+- Q-a (20 octobre 2026, corrigée le même jour) : la dose qui part est celle qu'on a touchée, pas la
+  première de la journée ; le report garde son heure (heure de l'ancienne arrivée, sur une date
+  choisie) et part par son rang. R7 vaut pour tout report : la dose touchée part avec les heures
+  suivantes encore sans prise de sa journée, avec ou sans la case ; la case ne gouverne que les
+  journées suivantes. Luna, chaque jour à 20 h, la dose du 15 mars reportée au 18 avec la case,
+  « Modifier » : 8 h et 20 h, « Prochaine dose » le 25 ; la dose de 20 h du 25 avancée au 20 sans la
+  case : le 20 à 20 h, le 25 à 8 h ; celle de 8 h : le 20 à 8 h et 20 h, le 25 ne garde rien (la
+  première lecture, « le 20 à 8 h, le 25 à 20 h », est corrigée). Tous les 3 jours à 8 h et 20 h, la
+  dose de 20 h du 10 mars reportée au 12 sans la case : le 10 garde 8 h, le 12 reçoit 20 h (avant, la
+  dose de 8 h partait aussi). Une date choisie sans heure garde l'heure écrite du report (graine
+  9140001597 : le 1er avril à 20 h).
 - Q-b (20 octobre 2026) : une heure écrite vide dans un réglage qui a des heures vaut « déjà prise » :
   la dose arrive à l'heure de son propre rang. Milo, chaque jour sans heure depuis le 16 mars, la dose
   du 16 reportée au 28 avec la case, « Modifier » : 8 h et 20 h jusqu'au 29, « Prochaine dose » le 20 ;
   la dose du 20 à 8 h reculée au 28 avec la case : 28 et 29 mars à 8 h et 20 h.
-- Q-c (20 octobre 2026) : sans la case, le report repris sur une date choisie n'emporte que sa dose
-  (graine 9991000606 : le 21 mai à 8 h, le 26 juin à 14 h et 20 h, trois doses comme avant le geste).
-  Raison commune de Q-a à Q-c : un report sans la case déplace une seule dose, celle qu'on a touchée,
-  et un déplacement ne change jamais le nombre de doses. Conséquence à deux téléphones (graine
-  9050001926 : la fusion lit comme B, le redéplacement de A est perdu) : résidu de #986.
+- Q-c (20 octobre 2026, corrigée le même jour) : repris sur une date choisie, sans la case, le
+  report emporte la dose touchée et les heures suivantes de cette journée (R7), et la dose arrive une
+  seule fois (graine 9991000606 : le 26 juin à 8 h, 14 h et 20 h ; la dose de 8 h avancée au 21 mai :
+  le 21 mai à 8 h, 14 h et 20 h, le 26 juin ne garde rien ; avant, quatre doses). La première lecture
+  (« le report emporte son rang seul ») est corrigée. Principe : un déplacement ne change jamais le
+  nombre de doses ; ce qui part d'une journée, c'est la dose touchée et celles d'après.
+- I2 (20 octobre 2026) : non codé ici, ticket #988 (report réactivé par la suppression d'une ligne
+  après une réécriture sur place ; graine 9991000760 ; chemin rare, `main` est faux aussi).
 - Q4, précision du 20 octobre 2026 : sur la journée de départ lue aux heures du réglage en vigueur, le
   report emporte la dose de son rang, qui arrive à son heure écrite (Q3) ; avec la case, les rangs
   suivants partent avec elle et arrivent à leurs heures. La dose du report n'apparaît qu'une fois :
