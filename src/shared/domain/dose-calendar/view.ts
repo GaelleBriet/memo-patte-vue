@@ -65,7 +65,8 @@ const lineOrder = (a: Line, b: Line) =>
   a.updatedAt.localeCompare(b.updatedAt) ||
   a.id.localeCompare(b.id)
 
-export function buildView({ settings, lines, today }: TreatmentViewInput): TreatmentView {
+export function buildView({ settings, lines: given, today }: TreatmentViewInput): TreatmentView {
+  const lines = [...given].sort(lineOrder)
   const byId = new Map(settings.map((setting) => [setting.id, setting]))
   const settingOf = (id: string) => byId.get(id)!
   const episodes = episodesOf(settings)
@@ -186,7 +187,7 @@ export function buildView({ settings, lines, today }: TreatmentViewInput): Treat
     nextDue: closed ? null : (moment.open.find(({ due }) => due.dueOn > today)?.due ?? null),
     upcoming,
     lastDueDay,
-    history: [...lines].sort(lineOrder).map((line) => ({
+    history: lines.map((line) => ({
       line,
       effect: effects.get(line.id) ?? {
         kind: 'idle',
