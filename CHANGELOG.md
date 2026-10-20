@@ -5,6 +5,18 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.87](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.86...memo-patte-v0.1.87) (2026-10-20)
+
+
+### 🐛 Corrections
+
+* **calendar-day:** le lendemain et la veille d'une date qui n'existe pas lèvent ([6cf9dd3](https://github.com/GaelleBriet/memo-patte-vue/commit/6cf9dd3c2ca0ba4ca878adf4f6958632c365664e)), closes [#910](https://github.com/GaelleBriet/memo-patte-vue/issues/910)
+* **dose-calendar:** 2 semaines et 14 jours se lisent comme la même fréquence ([df7733f](https://github.com/GaelleBriet/memo-patte-vue/commit/df7733f97110511178e9ff76f21033200e842ff3)), closes [#979](https://github.com/GaelleBriet/memo-patte-vue/issues/979)
+* **dose-calendar:** la journée apportée appartient au réglage qui a choisi la date ([0321d6e](https://github.com/GaelleBriet/memo-patte-vue/commit/0321d6ecca114c34737043e13f7cf42cced5fb0d))
+* **dose-calendar:** le plus récent l'emporte entre un report et la réécriture d'un réglage ([3bc5bbf](https://github.com/GaelleBriet/memo-patte-vue/commit/3bc5bbfe61b99279af84d809bf5bb5d84ece9ecb))
+* **dose-calendar:** semaines et jours équivalents, dates invalides refusées ([a7daad5](https://github.com/GaelleBriet/memo-patte-vue/commit/a7daad571c523b5c3c2b1982215857275bbf5866))
+* **dose-calendar:** un report part de la dose touchée, avec les heures suivantes de sa journée ([f82ad26](https://github.com/GaelleBriet/memo-patte-vue/commit/f82ad266853a3070c520421b3a324536794e2d8e))
+
 ## [0.1.86](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.85...memo-patte-v0.1.86) (2026-10-20)
 
 
