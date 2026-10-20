@@ -3264,6 +3264,20 @@ délégué les lectures de règles ; #939, #938, #882).
   le 21 mai à 8 h, 14 h et 20 h, le 26 juin ne garde rien ; avant, quatre doses). La première lecture
   (« le report emporte son rang seul ») est corrigée. Principe : un déplacement ne change jamais le
   nombre de doses ; ce qui part d'une journée, c'est la dose touchée et celles d'après.
+- Re-relecture de #958 (20 octobre 2026) :
+  - R4, R7 : la journée qu'une date choisie avancée ou reculée apporte appartient au réglage qui a
+    choisi la date ; ses prises la gardent quand ce réglage change d'heures, et un report qui en part
+    emporte ses heures telles qu'elles étaient. Milo, chaque mois à 20 h ; le 2 avril reçoit 6, 12, 18
+    et 23 h ; 6, 12 et 18 h données d'avance ; 23 h reportée au 26 sans la case ; « Modifier » le même
+    jour : 12, 18 et 23 h : le 2 avril garde ses trois prises, le 26 garde 23 h (graine 9996000444 ;
+    avant, le 26 disparaissait et 12 h n'était plus donnée).
+  - R6, R7 : un décalage peut partir de l'arrivée qui ouvre la série. Cas I1, puis 8 h du 12 mars
+    donnée d'avance, la dose de 14 h du 12 reportée au 14 avec la case : 14 mars à 14 h et 20 h, puis
+    21, 28 mars, 4 avril (avant : le décalage était dépassé, 19, 26 mars ; graine 9991000412 : le 6 avril
+    à 18 h, puis le 18 mai au lieu du 11 mai). Sans prise le 12, même geste : comme `main`, ticket à
+    part, non codé ici.
+  - Q4 sur une journée de départ relue aux heures d'un autre réglage : inchangé ; les onze constats à
+    deux téléphones de la série 9996500000 vont dans #986.
 - I2 (20 octobre 2026) : non codé ici, ticket #988 (report réactivé par la suppression d'une ligne
   après une réécriture sur place ; graine 9991000760 ; chemin rare, `main` est faux aussi).
 - Q4, précision du 20 octobre 2026 : sur la journée de départ lue aux heures du réglage en vigueur, le
