@@ -5,6 +5,15 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.90](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.89...memo-patte-v0.1.90) (2026-10-20)
+
+
+### 🐛 Corrections
+
+* **dose-calendar:** « prochaine dose » sans prise propose la première dose encore à donner ([c24012b](https://github.com/GaelleBriet/memo-patte-vue/commit/c24012b54f393397855e3ef322c5f0c6af605eb5))
+* **dose-calendar:** « prochaine dose » sans prise propose la première dose encore à donner ([bb33891](https://github.com/GaelleBriet/memo-patte-vue/commit/bb3389192dd1703faa21f1d695f2ee65ad8b96a9))
+* **dose-calendar:** la dose du moment n'est montrée que si la première échéance est passée ([7720075](https://github.com/GaelleBriet/memo-patte-vue/commit/7720075c05e733d02bb8e0582655961e872d6030))
+
 ## [0.1.89](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.88...memo-patte-v0.1.89) (2026-10-20)
 
 
