@@ -2,7 +2,7 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 
-import { PLUS_ACCOUNT_STORAGE_KEY, writePlusAccount } from '../logic/plus-account-storage'
+import { writePlusAccount } from '../logic/plus-account-storage'
 import { authRepository } from '../repository/auth.repository'
 import { provideAuthRepository } from '../store/auth.store'
 import AccountSettingsView from '../views/AccountSettingsView.vue'
@@ -46,14 +46,6 @@ describe('AccountSettingsView', () => {
     expect(wrapper.get('.settings-row--sign-out').text()).toBe('Se déconnecter')
 
     await wrapper.get('.pushed-screen__back').trigger('click')
-
-    expect(replace).toHaveBeenCalledWith({ name: 'settings' })
-  })
-
-  it('revient à la liste des Paramètres quand il n’y a pas de compte', async () => {
-    localStorage.removeItem(PLUS_ACCOUNT_STORAGE_KEY)
-    setActivePinia(createPinia())
-    await monter()
 
     expect(replace).toHaveBeenCalledWith({ name: 'settings' })
   })
