@@ -35,6 +35,11 @@ select is(
   array['INSERT', 'SELECT'],
   'service_role ajoute et lit, sans jamais modifier ni effacer une ligne');
 
+create temp table logged_before as
+  select origin, count(*)::int as n from public.account_deletion_log
+  where deleted_on = current_date group by origin;
+grant select on logged_before to service_role;
+
 set local role service_role;
 
 select lives_ok($$ insert into public.account_deletion_log (origin) values ('app') $$,
@@ -42,9 +47,11 @@ select lives_ok($$ insert into public.account_deletion_log (origin) values ('app
 select lives_ok($$ insert into public.account_deletion_log (origin) values ('email') $$,
   'la fonction note une suppression demandée par e-mail');
 select results_eq(
-  $$ select deleted_on, origin from public.account_deletion_log order by origin $$,
-  $$ values (current_date, 'app'), (current_date, 'email') $$,
-  'la date du jour est posée par la base');
+  $$ select origin, count(*)::int from public.account_deletion_log
+     where deleted_on = current_date group by origin order by origin $$,
+  $$ select o, coalesce(b.n, 0) + 1 from (values ('app'), ('email')) v (o)
+     left join logged_before b on b.origin = v.o order by o $$,
+  'une ligne de plus par origine, datée du jour par la base');
 select throws_ok($$ insert into public.account_deletion_log (origin) values ('script') $$,
   '23514', null, 'une autre origine est refusée');
 select throws_ok($$ insert into public.account_deletion_log (origin) values (null) $$,
