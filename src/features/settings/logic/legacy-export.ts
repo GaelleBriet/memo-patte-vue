@@ -1,6 +1,7 @@
 import { format, parseISO } from 'date-fns'
 
-import type { ExportFileV1, ExportFileV2 } from '../schema/export-file.schema'
+import type { ExportFileV1 } from '../schema/export-file-v1.schema'
+import type { ExportFileV2 } from '../schema/export-file-v2.schema'
 import type { Version3Data } from './export-file-versions'
 
 /** Comme l'import de la 0.1.48 : une ligne v1 donne l'injection ou la prise de son parent, à son identifiant. */
