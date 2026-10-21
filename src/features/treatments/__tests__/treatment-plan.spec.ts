@@ -251,7 +251,7 @@ describe('resumptionPlan — « Reprendre » ouvre un réglage (R8)', () => {
   const STOPPED = treatment([period({ stoppedOn: '2026-09-15' })], [dose('2026-09-07')])
   const RESUME: TreatmentResumptionInput = { firstDoseOn: '2026-09-21', ...RHYTHM }
 
-  it('commence à la première prise choisie, origine posée sur elle (#925)', () => {
+  it('commence aujourd’hui, première échéance choisie, origine posée sur elle', () => {
     expect(resumptionDraft(STOPPED, TODAY).canResume).toBe(true)
 
     const plan = resumptionPlan(STOPPED, RESUME, TODAY, IDS)
@@ -261,7 +261,7 @@ describe('resumptionPlan — « Reprendre » ouvre un réglage (R8)', () => {
       period: {
         action: 'open',
         id: IDS.periodId,
-        settings: { startsOn: '2026-09-21', firstDueOn: '2026-09-21' },
+        settings: { startsOn: TODAY, firstDueOn: '2026-09-21' },
         gridOriginOn: '2026-09-21',
       },
       doses: [],

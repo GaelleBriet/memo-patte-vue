@@ -238,7 +238,7 @@ export function reprend(
 ) {
   const period = {
     id: `p${c.periods.length + 1}`,
-    startsOn: firstDueOn,
+    startsOn: today,
     firstDueOn,
     referenceOn: firstDueOn,
     endsOn: null,

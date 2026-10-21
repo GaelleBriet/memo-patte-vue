@@ -2515,7 +2515,7 @@ describe('resumptionPlan (TR-32)', () => {
         firstDueChosen: true,
         fallenDosesAnswer: 'unasked',
         settings: {
-          startsOn: '2026-11-03',
+          startsOn: '2026-11-02',
           firstDueOn: '2026-11-03',
           endsOn: '2026-11-07',
           frequency: { value: 1, unit: 'day' },

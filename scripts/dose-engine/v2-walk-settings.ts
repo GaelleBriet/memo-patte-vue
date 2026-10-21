@@ -146,7 +146,7 @@ export function resumed(walk: SettingsWalk): TreatmentViewInput | null {
   const firstDueOn = plusDays(today, int(random, 0, 3))
   const resumedSetting: Setting = {
     id: `s${settings.length + 1}`,
-    startsOn: firstDueOn,
+    startsOn: today,
     firstDueOn,
     gridOriginOn: firstDueOn,
     firstDueChosen: true,

@@ -81,11 +81,9 @@ export function resumptionDraft(treatment: TreatmentWithPeriods, today: string):
 function resumedSettings(
   period: TreatmentPeriodRecord,
   { firstDoseOn, ...rhythm }: TreatmentRhythm & { firstDoseOn: string },
+  today: string,
 ): TreatmentPeriodSettings {
-  return withRhythm(
-    { ...settingsOf(period), startsOn: firstDoseOn, firstDueOn: firstDoseOn },
-    rhythm,
-  )
+  return withRhythm({ ...settingsOf(period), startsOn: today, firstDueOn: firstDoseOn }, rhythm)
 }
 
 /** Le schéma de « Reprendre », la première prise après la dernière période. */
@@ -97,7 +95,7 @@ export function treatmentResumptionSchemaFor(treatment: TreatmentWithPeriods, to
       message: 'tooEarly',
     })
     .superRefine((data, context) => {
-      const settings = resumedSettings(period, data)
+      const settings = resumedSettings(period, data, today)
       if (data.firstDoseOn >= earliestOn && startsTooFarBack(treatment, settings, today)) {
         context.addIssue(tooOld())
       }
@@ -114,6 +112,6 @@ export function resumptionPlan(
   const { period, canResume } = resumptionDraft(treatment, today)
   if (!canResume) throw new Error(`Traitement en cours, rien à reprendre : ${treatment.id}`)
   const data = treatmentResumptionSchemaFor(treatment, today).parse(input)
-  const settings = resumedSettings(period, data)
+  const settings = resumedSettings(period, data, today)
   return { treatment: null, period: openingOf(settings, ids.periodId), doses: [] }
 }

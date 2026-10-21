@@ -476,7 +476,7 @@ describe('treatmentPlanService', () => {
     expect(resumed.periodId).toBe(periods[1]?.id)
     expect(periods[0]).toEqual(before)
     expect(periods[1]).toMatchObject({
-      startsOn: '2026-11-03',
+      startsOn: '2026-11-02',
       firstDueOn: '2026-11-03',
       endsOn: '2026-11-07',
       stoppedOn: null,
@@ -512,7 +512,7 @@ describe('treatmentPlanService', () => {
     expect(schedule.history).toHaveLength(1)
   })
 
-  it('commence la période reprise à sa première prise, le jour de la reprise restant à la période arrêtée (R8, #925)', async () => {
+  it('date la période reprise de sa première échéance sur la fiche, la période arrêtée jusqu’au jour de l’arrêt (#925)', async () => {
     today = '2026-10-17'
     const drontal = { ...MILBEMAX, name: 'Drontal', firstDoseOn: '2026-10-03', endsOn: null }
     const { id } = await service.create(drontal)
@@ -523,7 +523,7 @@ describe('treatmentPlanService', () => {
     await service.resume(id, { ...drontal, firstDoseOn: '2026-10-18' })
 
     const after = await storedTreatment(id)
-    expect(after.periods[1]).toMatchObject({ startsOn: '2026-10-18', firstDueOn: '2026-10-18' })
+    expect(after.periods[1]).toMatchObject({ startsOn: '2026-10-17', firstDueOn: '2026-10-18' })
     const reading = treatmentReadingOf(after, today)
     expect(reading.view.currentDoses).toMatchObject([{ dueOn: '2026-10-18' }])
     const heads = plain(treatmentHistory(i18n.global.t, after, reading, today)).periods.map(
