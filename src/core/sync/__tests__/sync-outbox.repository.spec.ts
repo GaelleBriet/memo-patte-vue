@@ -227,6 +227,16 @@ describe('syncOutboxRepository', () => {
       })
     })
 
+    it('fait repartir le pull du début pour chaque table, même après un autre compte', async () => {
+      await repository.setLastPulledAt('animal', T2)
+      await repository.setLastPulledAt('treatment_dose', T2)
+
+      await repository.enableAndQueueWholeCarnet()
+
+      await expect(repository.getLastPulledAt('animal')).resolves.toBeNull()
+      await expect(repository.getLastPulledAt('treatment_dose')).resolves.toBeNull()
+    })
+
     it('relancée, ne crée aucune entrée de plus', async () => {
       await insertWholeCarnet()
       await repository.enableAndQueueWholeCarnet()
