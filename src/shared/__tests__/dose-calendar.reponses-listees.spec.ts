@@ -67,6 +67,10 @@ describe('#873 : « Elles n’étaient pas à donner » ne retire que les doses 
     },
   )
 
+  it('graine 9150001025 : une ligne « pas à donner » sur la journée de départ ne change pas l’heure d’arrivée du report (#983)', () => {
+    expect(listedReport(9_150_001_025, 40).unlisted).toEqual([])
+  })
+
   it.each([
     ['LISTED_SEEDS', 'mille'],
     ['LISTED_FROM', '-3'],
