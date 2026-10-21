@@ -46,7 +46,7 @@ function isRetryable(error: AuthError | null): boolean {
   return error?.name === 'AuthRetryableFetchError'
 }
 
-function accountErrorFrom(cause: unknown): AccountError {
+export function accountErrorFrom(cause: unknown): AccountError {
   if (cause instanceof AccountError) return cause
   const { name, status, code } = (cause ?? {}) as Partial<AuthError>
   if (name === 'AuthRetryableFetchError' && status === 0) {

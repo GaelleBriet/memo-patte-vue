@@ -476,4 +476,34 @@ describe('useAuthStore', () => {
       expect(store.sessionState).toBe('none')
     })
   })
+
+  describe('forgetDeletedAccount', () => {
+    it('efface la session et le compte de l’appareil, comme la déconnexion', async () => {
+      writePlusAccount({ userId: USER_ID })
+      const store = useAuthStore()
+
+      await store.forgetDeletedAccount()
+
+      expect(repository.signOut).toHaveBeenCalledOnce()
+      expect(forgetGoogleAccount).toHaveBeenCalledOnce()
+      expect(resetAnalytics).toHaveBeenCalledOnce()
+      expect(store.hasPlusAccount).toBe(false)
+      expect(store.userId).toBeNull()
+      expect(store.sessionState).toBe('none')
+      expect(readPlusAccount()).toBeNull()
+    })
+
+    it('rend l’app gratuite : l’achat et ses rappels sont oubliés', async () => {
+      writePlusAccount({ userId: USER_ID })
+      writeStoredPlusStatus({ plan: 'annual', expiresAt: '2027-03-03T10:00:00Z' })
+      writeDeviceState()
+      const purchase = usePurchaseStore()
+
+      await useAuthStore().forgetDeletedAccount()
+
+      expect(purchase.status.plan).toBe('none')
+      expect(readStoredPlusStatus().plan).toBe('none')
+      expect(remainingDeviceState()).toEqual(UNRELATED_KEYS)
+    })
+  })
 })

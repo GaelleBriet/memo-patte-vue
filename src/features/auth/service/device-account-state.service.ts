@@ -12,6 +12,12 @@ export function clearSignedOutAccountState(): void {
   clearAccountUsageSignals()
 }
 
+/** Compte supprimé : l'appareil oublie aussi l'achat, ce que le carnet a vécu reste. */
+export function clearDeletedAccountState(): void {
+  clearPurchaseDeviceState()
+  clearAccountUsageSignals()
+}
+
 /** Changement de compte : le compte suivant n'hérite de rien. */
 export function clearDeviceAccountState(): void {
   clearPurchaseDeviceState()

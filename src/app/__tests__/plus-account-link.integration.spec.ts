@@ -147,6 +147,19 @@ describe('l’achat suit le compte connecté', () => {
     expect(purchase.status).toEqual(ANNUAL)
   })
 
+  it('détache l’achat du compte supprimé, même abonné : l’app redevient gratuite', async () => {
+    billing.logIn.mockResolvedValueOnce(ANNUAL)
+    const purchase = usePurchaseStore()
+    install()
+    await signedIn(USER_ID)
+
+    await useAuthStore().forgetDeletedAccount()
+    await nextTick()
+
+    expect(billing.logOut).toHaveBeenCalledOnce()
+    expect(purchase.status).toEqual(NO_PLUS)
+  })
+
   it('ne fait échouer ni la connexion ni la déconnexion quand le store ne répond pas', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {})
     billing.logIn.mockRejectedValue(new Error('réseau'))
