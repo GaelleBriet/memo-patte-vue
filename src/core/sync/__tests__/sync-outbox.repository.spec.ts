@@ -99,17 +99,58 @@ describe('syncOutboxRepository', () => {
     })
   })
 
-  describe('restoring', () => {
-    it('vaut faux par défaut', async () => {
-      await expect(repository.isRestoring()).resolves.toBe(false)
+  describe('restauration choisie', () => {
+    it('aucune par défaut', async () => {
+      await expect(repository.restoreMode()).resolves.toBeNull()
     })
 
-    it('bascule pendant une restauration puis revient à faux', async () => {
-      await repository.setRestoring(true)
-      await expect(repository.isRestoring()).resolves.toBe(true)
+    it('garde « Fusionner » ou « Remplacer » sans activer la synchro', async () => {
+      await repository.startRestore('replace')
+      await expect(repository.restoreMode()).resolves.toBe('replace')
 
-      await repository.setRestoring(false)
-      await expect(repository.isRestoring()).resolves.toBe(false)
+      await repository.startRestore('merge')
+      await expect(repository.restoreMode()).resolves.toBe('merge')
+      await expect(repository.isEnabled()).resolves.toBe(false)
+    })
+
+    it('« Fusionner » : tout le carnet du téléphone en file, la synchro activée au bout', async () => {
+      await insertAnimal(db, ANIMAL_ID, T1)
+      await repository.setLastPulledAt('animal', T1)
+      await repository.startRestore('merge')
+      const { before, after } = repository.restoreStatements({
+        mode: 'merge',
+        cursors: [{ entity: 'animal', lastPulledAt: T2 }],
+      })
+
+      await db.runMany([...before, ...after])
+
+      await expect(repository.listPending()).resolves.toEqual([
+        { entity: 'animal', entityId: ANIMAL_ID, queuedAt: T1, attempts: 0 },
+      ])
+      await expect(repository.getLastPulledAt('animal')).resolves.toBe(T2)
+      await expect(repository.isEnabled()).resolves.toBe(true)
+      await expect(repository.restoreMode()).resolves.toBeNull()
+    })
+
+    it('« Remplacer » : seule la fiche des appareils part en file', async () => {
+      await enableSync(db)
+      await insertAnimal(db, ANIMAL_ID, T1)
+      await db.run('UPDATE sync_state SET enabled = 0 WHERE id = 1')
+      await db.run(
+        `INSERT INTO device (id, model, installed_at, created_at, updated_at, deleted_at)
+         VALUES ('appareil-1', 'Pixel 8', ?, ?, ?, NULL)`,
+        [T1, T1, T1],
+      )
+      await repository.startRestore('replace')
+      const { before, after } = repository.restoreStatements({ mode: 'replace', cursors: [] })
+
+      await db.runMany([...before, ...after])
+
+      await expect(repository.listPending()).resolves.toEqual([
+        { entity: 'device', entityId: 'appareil-1', queuedAt: T1, attempts: 0 },
+      ])
+      await expect(repository.isEnabled()).resolves.toBe(true)
+      await expect(repository.restoreMode()).resolves.toBeNull()
     })
   })
 
@@ -286,6 +327,14 @@ describe('syncOutboxRepository', () => {
       await expect(repository.getLastPulledAt('animal')).resolves.toBeNull()
       await expect(repository.getLastSyncedAt()).resolves.toBe(T2)
       await expect(db.query('SELECT id FROM animal')).resolves.toEqual([{ id: ANIMAL_ID }])
+    })
+
+    it('oublie aussi une restauration choisie pour ce compte', async () => {
+      await repository.startRestore('replace')
+
+      await repository.forgetAccount()
+
+      await expect(repository.restoreMode()).resolves.toBeNull()
     })
 
     it('ne remet plus en file les modifications suivantes', async () => {

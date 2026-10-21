@@ -34,6 +34,19 @@ export const SYNC_ENTITY_ORDER = [
   'carnet_settings',
 ]
 
+export type RestoreMode = 'merge' | 'replace'
+
+const RESTORE_CODES: Record<RestoreMode, number> = { merge: 1, replace: 2 }
+const RESTORE_MODES: Record<number, RestoreMode> = { 1: 'merge', 2: 'replace' }
+
+function queueWholeTable(entity: string): SqlStatement {
+  return {
+    sql: `INSERT OR IGNORE INTO sync_outbox (entity, entity_id, queued_at)
+          SELECT ?, id, updated_at FROM ${entity}`,
+    params: [entity],
+  }
+}
+
 const ENTITY_RANK = `CASE entity ${SYNC_ENTITY_ORDER.map((_, rank) => `WHEN ? THEN ${rank}`).join(' ')}
   ELSE ${SYNC_ENTITY_ORDER.length} END`
 
@@ -68,11 +81,7 @@ export function createSyncOutboxRepository(db: DbClient) {
     async enableAndQueueWholeCarnet(): Promise<void> {
       await db.runMany([
         { sql: 'UPDATE sync_state SET enabled = 1 WHERE id = 1' },
-        ...SYNC_ENTITY_ORDER.map((entity) => ({
-          sql: `INSERT OR IGNORE INTO sync_outbox (entity, entity_id, queued_at)
-                SELECT ?, id, updated_at FROM ${entity}`,
-          params: [entity],
-        })),
+        ...SYNC_ENTITY_ORDER.map(queueWholeTable),
       ])
     },
 
@@ -105,12 +114,43 @@ export function createSyncOutboxRepository(db: DbClient) {
       await db.run('UPDATE sync_state SET last_synced_at = ? WHERE id = 1', [lastSyncedAt])
     },
 
-    async isRestoring(): Promise<boolean> {
-      return (await state()).restoring === 1
+    /** Le choix fait à la restauration, gardé jusqu'à ce que le carnet du compte soit écrit. */
+    async restoreMode(): Promise<RestoreMode | null> {
+      return RESTORE_MODES[(await state()).restoring] ?? null
     },
 
-    async setRestoring(restoring: boolean): Promise<void> {
-      await db.run('UPDATE sync_state SET restoring = ? WHERE id = 1', [restoring ? 1 : 0])
+    async startRestore(mode: RestoreMode): Promise<void> {
+      await db.run('UPDATE sync_state SET restoring = ? WHERE id = 1', [RESTORE_CODES[mode]])
+    },
+
+    /**
+     * Autour du carnet tiré : synchro coupée pendant l'écriture, curseurs posés au bout de ce qui
+     * a été tiré, synchro activée à la fin. Avant l'écriture, « Fusionner » met en file tout le
+     * carnet du téléphone, « Remplacer » seulement ses appareils.
+     */
+    restoreStatements({
+      mode,
+      cursors,
+    }: {
+      mode: RestoreMode
+      cursors: ReadonlyArray<{ entity: string; lastPulledAt: string }>
+    }): { before: SqlStatement[]; after: SqlStatement[] } {
+      return {
+        before: [
+          { sql: 'UPDATE sync_state SET enabled = 0 WHERE id = 1' },
+          { sql: 'DELETE FROM sync_pull_cursor' },
+          ...(mode === 'merge'
+            ? SYNC_ENTITY_ORDER.map(queueWholeTable)
+            : [{ sql: 'DELETE FROM sync_outbox' }, queueWholeTable('device')]),
+        ],
+        after: [
+          ...cursors.map(({ entity, lastPulledAt }) => ({
+            sql: 'INSERT INTO sync_pull_cursor (entity, last_pulled_at) VALUES (?, ?)',
+            params: [entity, lastPulledAt],
+          })),
+          { sql: 'UPDATE sync_state SET enabled = 1, restoring = 0 WHERE id = 1' },
+        ],
+      }
     },
 
     /** Dans l'ordre de `SYNC_ENTITY_ORDER`, puis de mise en file. */
@@ -137,7 +177,7 @@ export function createSyncOutboxRepository(db: DbClient) {
     /** Déconnexion (§5 de la proposition) : le compte suivant ne reçoit ni la file ni les curseurs du précédent. */
     async forgetAccount(): Promise<void> {
       await db.runMany([
-        { sql: 'UPDATE sync_state SET enabled = 0 WHERE id = 1' },
+        { sql: 'UPDATE sync_state SET enabled = 0, restoring = 0 WHERE id = 1' },
         { sql: 'DELETE FROM sync_outbox' },
         { sql: 'DELETE FROM sync_pull_cursor' },
       ])
