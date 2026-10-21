@@ -64,4 +64,8 @@ describe('afterSignInRoute', () => {
     expect(afterSignInRoute(query, { step: 'waiting-network' })).toEqual(restore)
     expect(afterSignInRoute(query, { step: 'done' })).toEqual(restore)
   })
+
+  it('reste sur la connexion quand le serveur n’a pas répondu à temps', () => {
+    expect(afterSignInRoute({ from: 'home', restore: '1' }, { step: 'no-answer' })).toBeNull()
+  })
 })

@@ -42,8 +42,10 @@ function fakeOutbox(pending: number): SyncDependencies['outbox'] {
 
 function fakeRestoreFlow(resume: () => Promise<boolean> = async () => false) {
   const restored = new Set<() => void>()
+  const retries = new Set<() => void>()
   return {
     checking: vi.fn<() => void>(),
+    noAnswer: vi.fn<() => void>(),
     offer: vi.fn<SyncDependencies['restoreFlow']['offer']>(),
     unreachable: vi.fn<() => void>(),
     reset: vi.fn<() => void>(),
@@ -55,6 +57,13 @@ function fakeRestoreFlow(resume: () => Promise<boolean> = async () => false) {
     onRestored(listener: () => void) {
       restored.add(listener)
       return () => restored.delete(listener)
+    },
+    onRetryCheck(listener: () => void) {
+      retries.add(listener)
+      return () => retries.delete(listener)
+    },
+    retry() {
+      for (const listener of retries) listener()
     },
   }
 }
@@ -377,6 +386,46 @@ describe('installSync', () => {
       await runDebounce()
 
       expect(runCycle).toHaveBeenCalledOnce()
+      stop()
+    })
+
+    it('serveur muet 30 secondes : le contrôle est abandonné, il revient à la prochaine ouverture', async () => {
+      let emit!: NetworkListener
+      addNetworkListener.mockImplementation(async (_event, listener) => {
+        emit = listener
+        return { remove: vi.fn<() => Promise<void>>(async () => {}) }
+      })
+      const { deps, userId, active, restoreFlow, checkAccountBackup } = accountSetup()
+      checkAccountBackup.mockReturnValue(new Promise(() => {}))
+      userId.value = 'user-1'
+      active.value = true
+      const stop = await installSync(deps)
+
+      await vi.advanceTimersByTimeAsync(29_999)
+      expect(restoreFlow.noAnswer).not.toHaveBeenCalled()
+      await vi.advanceTimersByTimeAsync(1)
+      expect(restoreFlow.noAnswer).toHaveBeenCalledOnce()
+
+      emit({ connected: true, connectionType: 'wifi' })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(checkAccountBackup).toHaveBeenCalledOnce()
+      expect(restoreFlow.resume).toHaveBeenCalledOnce()
+      stop()
+    })
+
+    it('« Réessayer » après un serveur muet redemande le contrôle tout de suite', async () => {
+      const { deps, userId, active, restoreFlow, checkAccountBackup } = accountSetup()
+      checkAccountBackup.mockReturnValueOnce(new Promise(() => {}))
+      userId.value = 'user-1'
+      active.value = true
+      const stop = await installSync(deps)
+      await vi.advanceTimersByTimeAsync(30_000)
+
+      restoreFlow.retry()
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(checkAccountBackup).toHaveBeenCalledTimes(2)
+      expect(restoreFlow.offer).toHaveBeenCalledOnce()
       stop()
     })
 

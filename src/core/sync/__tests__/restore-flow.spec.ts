@@ -150,4 +150,19 @@ describe('parcours de restauration', () => {
 
     expect(flow.state.value).toEqual({ step: 'waiting-network' })
   })
+
+  it('sans réponse du serveur à temps : la connexion l’apprend, puis peut redemander le contrôle', async () => {
+    const flow = createRestoreFlow(fakeRunner())
+    const retried = vi.fn<() => void>()
+    flow.onRetryCheck(retried)
+    flow.checking()
+    const checked = flow.whenChecked()
+
+    flow.noAnswer()
+    await expect(checked).resolves.toEqual({ step: 'no-answer' })
+
+    flow.retryCheck()
+    expect(flow.state.value).toEqual({ step: 'checking' })
+    expect(retried).toHaveBeenCalledOnce()
+  })
 })
