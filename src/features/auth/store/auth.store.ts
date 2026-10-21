@@ -14,6 +14,7 @@ import {
   clearDeviceAccountState,
   clearSignedOutAccountState,
 } from '../service/device-account-state.service'
+import { signInWithGoogle, type GoogleSignInOutcome } from '../service/google-sign-in.service'
 import {
   clearPlusAccount,
   readPlusAccount,
@@ -103,6 +104,12 @@ export const useAuthStore = defineStore('auth', () => {
 
     async signIn(email: string, password: string): Promise<void> {
       record(await repository.signIn(email, password))
+    },
+
+    async signInWithGoogle(): Promise<GoogleSignInOutcome['kind']> {
+      const outcome = await signInWithGoogle(repository)
+      if (outcome.kind === 'signed-in') record(outcome.session)
+      return outcome.kind
     },
 
     /** Efface la session et les compteurs du compte ; le carnet local et l'achat restent. */
