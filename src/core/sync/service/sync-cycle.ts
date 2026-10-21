@@ -100,7 +100,7 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
     await deps.outbox.recordFailedPush(entry)
     if (!refusals.isGivenUp(entry, cause)) return true
     await deps.outbox.removeIfUnchanged(entry)
-    console.debug(`Ligne refusée par le serveur, sortie de la file (${entry.entity}) :`, cause)
+    console.warn(`Ligne refusée par le serveur, sortie de la file (${entry.entity}) :`, cause)
     return false
   }
 

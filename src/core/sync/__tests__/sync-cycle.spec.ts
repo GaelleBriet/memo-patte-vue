@@ -608,7 +608,7 @@ describe('createSyncCycle', () => {
     })
 
     it('sort de la file une ligne refusée trois fois par le même CHECK, sans faire échouer le cycle', async () => {
-      const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
       const animal = refusingAnimal(() => CHECK_REFUSAL)
       const outbox = createFakeOutbox([entry('animal', 'a1')])
       const cycle = cycleWith(outbox, [animal])
@@ -621,12 +621,12 @@ describe('createSyncCycle', () => {
 
       expect(outbox.entries()).toEqual([])
       expect(outbox.lastSyncedAt()).not.toBeNull()
-      expect(debug).toHaveBeenCalledOnce()
-      debug.mockRestore()
+      expect(warn).toHaveBeenCalledOnce()
+      warn.mockRestore()
     })
 
     it('sort aussi une ligne refusée trois fois pour une donnée invalide (classe 22)', async () => {
-      vi.spyOn(console, 'debug').mockImplementation(() => {})
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
       const refusal = { code: '22008', message: 'date/time field value out of range: "2026-02-30"' }
       const outbox = createFakeOutbox([entry('animal', 'a1')])
       const cycle = cycleWith(outbox, [refusingAnimal(() => refusal)])
@@ -636,7 +636,7 @@ describe('createSyncCycle', () => {
       await cycle.runCycle()
 
       expect(outbox.entries()).toEqual([])
-      vi.mocked(console.debug).mockRestore()
+      warn.mockRestore()
     })
 
     it('réessaie sans fin une panne passagère ou un refus de droit', async () => {
