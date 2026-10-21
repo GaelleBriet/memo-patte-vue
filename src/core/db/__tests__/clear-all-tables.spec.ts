@@ -115,9 +115,22 @@ describe('clearAllTables', () => {
 
     await clearAllTables(db)
 
-    for (const table of migrationTableNames()) {
+    for (const table of migrationTableNames().filter((name) => name !== 'sync_state')) {
       await expect(db.query(`SELECT * FROM ${table}`)).resolves.toEqual([])
     }
+  })
+
+  it('garde la ligne unique de sync_state, remise à son état de premier lancement', async () => {
+    await db.run(
+      `UPDATE sync_state SET enabled = 1, restoring = 1, last_synced_at = ? WHERE id = 1`,
+      [NOW],
+    )
+
+    await clearAllTables(db)
+
+    await expect(db.query('SELECT * FROM sync_state')).resolves.toEqual([
+      { id: 1, enabled: 0, restoring: 0, last_synced_at: null },
+    ])
   })
 
   it('laisse les tables en place : une écriture reste possible ensuite', async () => {
