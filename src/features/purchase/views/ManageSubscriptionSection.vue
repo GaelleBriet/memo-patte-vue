@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { MANAGE_SUBSCRIPTIONS_URL } from '../logic/google-play'
+import { MANAGE_SUBSCRIPTIONS_URL } from '@/shared/utils/google-play'
 import { usePurchaseStore } from '../store/purchase.store'
 
 const { t } = useI18n()

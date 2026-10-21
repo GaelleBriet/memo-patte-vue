@@ -173,6 +173,8 @@ $color-reminders-settings-neutral-text: $color-reminders-off-text; // Leur premi
 $color-exact-reminders-suggest-surface: $color-notice-surface; // Suggestion du formulaire (V2)
 $color-exact-reminders-suggest-border: $color-priming-icon-surface; // Sa bordure
 $color-less-precise-surface: $color-reminders-off-surface; // « Peut arriver en retard » (V2 ter, V2 quater)
+$color-account-deletion-notice-surface: $color-reminders-off-surface; // « Ne résilie pas ton abonnement Google Play » (V24 D1)
+$color-account-deletion-failed-surface: $color-reminders-off-surface; // Pastille de l’échec de la suppression (V24 D6)
 $color-less-precise-border: $color-reminders-off-border; // Sa bordure
 $color-less-precise-text: $color-reminders-off-text; // Son texte
 

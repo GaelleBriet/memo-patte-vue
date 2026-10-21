@@ -26,7 +26,7 @@ export type AccountDeletionDependencies = {
 }
 
 const DELETE_ACCOUNT_FUNCTION = 'delete-account'
-const REFUSED_IDENTITY_STATUSES = new Set([401, 403])
+const IDENTITY_TOO_OLD_STATUS = 401
 
 function methodOf(user: User): IdentityConfirmationMethod {
   const providers = user.app_metadata.providers ?? [user.app_metadata.provider]
@@ -41,10 +41,10 @@ function methodOf(user: User): IdentityConfirmationMethod {
 }
 
 function deletionErrorFrom(cause: unknown): AccountDeletionError {
-  const refused =
+  const tooOld =
     cause instanceof FunctionsHttpError &&
-    REFUSED_IDENTITY_STATUSES.has((cause.context as Response).status)
-  return new AccountDeletionError(refused ? 'identity-expired' : 'failed', { cause })
+    (cause.context as Response).status === IDENTITY_TOO_OLD_STATUS
+  return new AccountDeletionError(tooOld ? 'identity-expired' : 'failed', { cause })
 }
 
 export function createAccountDeletionRepository({
