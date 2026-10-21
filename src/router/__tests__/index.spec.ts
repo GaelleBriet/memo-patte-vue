@@ -70,7 +70,7 @@ describe('routeur', () => {
 })
 
 describe('garde des écrans Plus', () => {
-  const PLUS_SCREENS = ['account-restore', 'settings-account']
+  const PLUS_SCREENS = ['account-restore', 'settings-account', 'settings-account-delete']
   const SESSION_STATES: SessionState[] = [
     'none',
     'restoring',

@@ -139,6 +139,12 @@ export const routes: RouteRecordRaw[] = [
     beforeEnter: requirePlusAccount,
   },
   {
+    path: '/settings/account/delete',
+    name: 'settings-account-delete',
+    component: () => import('@/features/auth/views/AccountDeletionView.vue'),
+    beforeEnter: requirePlusAccount,
+  },
+  {
     path: '/settings/privacy',
     name: 'settings-privacy',
     component: () => import('@/features/settings/views/PrivacySettingsView.vue'),

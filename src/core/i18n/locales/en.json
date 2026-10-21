@@ -1229,6 +1229,58 @@
           "cancel": "Cancel",
           "submit": "Sign out"
         }
+      },
+      "delete": {
+        "action": "Delete my account",
+        "title": "Delete my account",
+        "removed": {
+          "title": "What gets deleted",
+          "account": "Your account and email address",
+          "backup": "Your cloud backup (your pets and their health record)",
+          "photos": "Your backed-up photos",
+          "usage": "Usage data linked to the account"
+        },
+        "kept": {
+          "title": "What stays",
+          "carnet": "The health record on this phone",
+          "purchases": "Purchase history with Google Play"
+        },
+        "subscription": "Deleting your account doesn’t cancel your Google Play subscription.",
+        "continue": "Continue",
+        "cancel": "Cancel",
+        "identity": {
+          "title": "Confirm it’s you",
+          "intro": "For your security, confirm your identity before continuing.",
+          "confirm": "Confirm",
+          "google": "Sign in again with Google",
+          "wrongPassword": "Incorrect password. Try again.",
+          "otherGoogleAccount": "This isn’t the Google account for this record. Choose {email}.",
+          "confirmLabel": "Confirm my password"
+        },
+        "failed": {
+          "title": "Deletion failed",
+          "body": "Deletion did not complete. Your data is still on this phone; try again.",
+          "retry": "Try again"
+        },
+        "finalConfirm": {
+          "title": "Permanently delete your account?",
+          "text": "Your account, your cloud backup and your backed-up photos will be deleted. This can’t be undone.",
+          "subscription": "Your Google Play subscription continues until you cancel it in Google Play.",
+          "delete": "Delete",
+          "deleteLabel": "Permanently delete my account"
+        },
+        "deleting": {
+          "title": "Deleting…",
+          "body": "Keep the app open for a few seconds."
+        },
+        "deleted": {
+          "title": "Account deleted",
+          "body": "Your health record is still on this phone.",
+          "erase": "Also erase this phone’s data? Pets, treatments, vaccines, weights and photos. Separate confirmation.",
+          "eraseAction": "Also erase this phone’s data",
+          "done": "Done",
+          "close": "Close"
+        }
       }
     },
     "backup": {
