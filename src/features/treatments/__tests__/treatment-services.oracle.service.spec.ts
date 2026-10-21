@@ -23,9 +23,23 @@ import {
 
 // Séries longues : TREATMENT_ORACLE_FROM, TREATMENT_ORACLE_SEEDS, TREATMENT_ORACLE_STEPS
 // (scripts/dose-engine/README.md).
-const FROM = Number(process.env.TREATMENT_ORACLE_FROM ?? 540_000_000)
-const SEEDS = Number(process.env.TREATMENT_ORACLE_SEEDS ?? 20)
-const STEPS = Number(process.env.TREATMENT_ORACLE_STEPS ?? 30)
+type Campaign = { from: number; seeds: number; steps: number }
+
+function positiveInteger(name: string, raw: string | undefined, fallback: number): number {
+  const value = raw === undefined ? fallback : Number(raw)
+  if (!Number.isInteger(value) || value <= 0) throw new Error(`Campagne illisible : ${name}=${raw}`)
+  return value
+}
+
+function campaignOf(env: Record<string, string | undefined>): Campaign {
+  return {
+    from: positiveInteger('TREATMENT_ORACLE_FROM', env.TREATMENT_ORACLE_FROM, 540_000_000),
+    seeds: positiveInteger('TREATMENT_ORACLE_SEEDS', env.TREATMENT_ORACLE_SEEDS, 20),
+    steps: positiveInteger('TREATMENT_ORACLE_STEPS', env.TREATMENT_ORACLE_STEPS, 30),
+  }
+}
+
+const { from: FROM, seeds: SEEDS, steps: STEPS } = campaignOf(process.env)
 const ASKED_SETTINGS = {
   name: 'Test',
   type: 'medication',
@@ -240,10 +254,18 @@ describe('les services des traitements rejouent les gestes du moteur v2', () => 
         }
       }
       console.warn(
-        `Services : ${SEEDS} suites, ${played} gestes joués, ${refused} suites arrêtées par une date de fin refusée (TR-6), graines ${FROM} à ${FROM + SEEDS - 1}`,
+        `Campagne services : ${SEEDS} carnets × ${STEPS} gestes, graines ${FROM} à ${FROM + SEEDS - 1} : ${played} gestes joués, ${refused} carnets arrêtés par une date de fin refusée (TR-6)`,
       )
       expect(failures).toEqual([])
     },
     600_000 + SEEDS * STEPS * 200,
   )
+
+  it.each([
+    ['TREATMENT_ORACLE_SEEDS', 'mille'],
+    ['TREATMENT_ORACLE_FROM', '-3'],
+    ['TREATMENT_ORACLE_STEPS', '2.5'],
+  ])('un réglage illisible arrête la campagne avant tout carnet : %s=%s', (name, value) => {
+    expect(() => campaignOf({ [name]: value })).toThrow(/^Campagne illisible/)
+  })
 })
