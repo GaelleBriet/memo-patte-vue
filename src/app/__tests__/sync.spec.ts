@@ -35,6 +35,7 @@ function fakeOutbox(pending: number): SyncDependencies['outbox'] {
     isEnabled: vi.fn<SyncCycleOutbox['isEnabled']>(async () => true),
     setLastSyncedAt: vi.fn<SyncCycleOutbox['setLastSyncedAt']>(async () => {}),
     forgetAccount: vi.fn<SyncDependencies['outbox']['forgetAccount']>(async () => {}),
+    recordFailedPush: vi.fn<SyncCycleOutbox['recordFailedPush']>(async () => {}),
   }
 }
 

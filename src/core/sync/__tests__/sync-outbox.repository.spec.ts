@@ -169,6 +169,75 @@ describe('syncOutboxRepository', () => {
     })
   })
 
+  describe('enableAndQueueWholeCarnet', () => {
+    async function insertWholeCarnet(): Promise<void> {
+      await db.run(
+        `INSERT INTO device (id, model, installed_at, created_at, updated_at)
+         VALUES ('appareil', NULL, ?, ?, ?)`,
+        [T1, T1, T1],
+      )
+      await insertAnimal(db, ANIMAL_ID, T1)
+      await insertAnimal(db, 'parti', T2, 'Pirate')
+      await db.run("UPDATE animal SET deleted_at = ? WHERE id = 'parti'", [T2])
+      await insertVaccination(db, 'v-1', ANIMAL_ID, T1)
+      await insertVaccinationInjection(db, 'i-1', 'v-1', ANIMAL_ID, T1)
+      await insertTreatment(db, 't-1', ANIMAL_ID, T1)
+      await insertTreatmentPeriod(db, 'p-1', 't-1', ANIMAL_ID, T1)
+      await insertTreatmentDose(db, 'd-1', 'p-1', 't-1', ANIMAL_ID, T1)
+      await insertWeightEntry(db, 'w-1', ANIMAL_ID, T1)
+      await insertCarnetSettings(db, SETTINGS_ID, T1)
+    }
+
+    it('active la synchronisation et met en file chaque ligne du carnet, supprimées comprises', async () => {
+      await insertWholeCarnet()
+      await expect(repository.listPending()).resolves.toEqual([])
+
+      await repository.enableAndQueueWholeCarnet()
+
+      await expect(repository.isEnabled()).resolves.toBe(true)
+      await expect(repository.listPending()).resolves.toEqual([
+        { entity: 'device', entityId: 'appareil', queuedAt: T1, attempts: 0 },
+        { entity: 'animal', entityId: ANIMAL_ID, queuedAt: T1, attempts: 0 },
+        { entity: 'animal', entityId: 'parti', queuedAt: T2, attempts: 0 },
+        { entity: 'vaccination', entityId: 'v-1', queuedAt: T1, attempts: 0 },
+        { entity: 'vaccination_injection', entityId: 'i-1', queuedAt: T1, attempts: 0 },
+        { entity: 'treatment', entityId: 't-1', queuedAt: T1, attempts: 0 },
+        { entity: 'treatment_period', entityId: 'p-1', queuedAt: T1, attempts: 0 },
+        { entity: 'treatment_dose', entityId: 'd-1', queuedAt: T1, attempts: 0 },
+        { entity: 'weight_entry', entityId: 'w-1', queuedAt: T1, attempts: 0 },
+        { entity: 'carnet_settings', entityId: SETTINGS_ID, queuedAt: T1, attempts: 0 },
+      ])
+    })
+
+    it('garde telle quelle une entrée déjà en file', async () => {
+      await insertWholeCarnet()
+      await db.run(
+        `INSERT INTO sync_outbox (entity, entity_id, queued_at, attempts) VALUES ('animal', ?, ?, 3)`,
+        [ANIMAL_ID, T2],
+      )
+
+      await repository.enableAndQueueWholeCarnet()
+
+      const pending = await repository.listPending()
+      expect(pending.find(({ entityId }) => entityId === ANIMAL_ID)).toEqual({
+        entity: 'animal',
+        entityId: ANIMAL_ID,
+        queuedAt: T2,
+        attempts: 3,
+      })
+    })
+
+    it('relancée, ne crée aucune entrée de plus', async () => {
+      await insertWholeCarnet()
+      await repository.enableAndQueueWholeCarnet()
+      const first = await repository.listPending()
+
+      await repository.enableAndQueueWholeCarnet()
+
+      await expect(repository.listPending()).resolves.toEqual(first)
+    })
+  })
+
   describe('removeIfUnchanged', () => {
     it('supprime une entrée dont le queued_at relu est identique', async () => {
       await enableSync(db)
@@ -227,6 +296,36 @@ describe('syncOutboxRepository', () => {
       await touchAnimal(db, ANIMAL_ID, T2)
 
       await expect(repository.listPending()).resolves.toEqual([])
+    })
+  })
+
+  describe('recordFailedPush', () => {
+    it("compte un essai raté sur l'entrée, qui reste en file", async () => {
+      await enableSync(db)
+      await insertAnimal(db, ANIMAL_ID, T1)
+      const [entry] = await repository.listPending()
+
+      await repository.recordFailedPush(entry!)
+      await repository.recordFailedPush(entry!)
+
+      await expect(repository.listPending()).resolves.toEqual([
+        { entity: 'animal', entityId: ANIMAL_ID, queuedAt: T1, attempts: 2 },
+      ])
+    })
+
+    it('ne touche pas aux autres entrées', async () => {
+      await enableSync(db)
+      await insertAnimal(db, ANIMAL_ID, T1)
+      await insertVaccination(db, 'v-1', ANIMAL_ID, T1)
+      const [animal] = await repository.listPending()
+
+      await repository.recordFailedPush(animal!)
+
+      const pending = await repository.listPending()
+      expect(pending.map(({ entity, attempts }) => ({ entity, attempts }))).toEqual([
+        { entity: 'animal', attempts: 1 },
+        { entity: 'vaccination', attempts: 0 },
+      ])
     })
   })
 
