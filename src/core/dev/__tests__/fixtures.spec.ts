@@ -101,6 +101,7 @@ function deletedTables(db: DbClient): string[] {
   return vi
     .mocked(db.runMany)
     .mock.calls.flatMap(([statements]) => statements.map(({ sql }) => sql))
+    .filter((sql) => sql.startsWith('DELETE FROM '))
     .map((sql) => sql.replace('DELETE FROM ', ''))
 }
 

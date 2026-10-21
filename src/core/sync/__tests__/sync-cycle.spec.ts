@@ -21,6 +21,7 @@ interface FakeOutboxEntry {
 function createFakeOutbox(
   initial: FakeOutboxEntry[] = [],
   cursors: Record<string, string> = {},
+  enabled = true,
 ): SyncCycleOutbox & {
   entries: () => FakeOutboxEntry[]
   cursor: (entity: string) => string | null
@@ -50,10 +51,17 @@ function createFakeOutbox(
       lastPulledAt.set(entity, value)
     },
     async isEnabled() {
-      return true
+      return enabled
     },
     async setLastSyncedAt(value) {
       lastSyncedAt = value
+    },
+    async recordFailedPush(target) {
+      entries = entries.map((entry) =>
+        entry.entity === target.entity && entry.entityId === target.entityId
+          ? { ...entry, attempts: entry.attempts + 1 }
+          : entry,
+      )
     },
     entries: () => entries,
     cursor: (entity) => lastPulledAt.get(entity) ?? null,
@@ -191,6 +199,31 @@ describe('createSyncCycle', () => {
       await cycle.runCycle()
 
       expect(animal.pullCalls).toEqual([])
+    })
+
+    it("ne pousse ni ne tire tant que la synchronisation n'est pas activée", async () => {
+      const animal = fakeTable('animal')
+      animal.localRows.set(ANIMAL_ID, row(ANIMAL_ID, T_ROW, 'Milo'))
+      const outbox = createFakeOutbox(
+        [{ entity: 'animal', entityId: ANIMAL_ID, queuedAt: T_ROW, attempts: 0 }],
+        {},
+        false,
+      )
+      const cycle = createSyncCycle({
+        db,
+        outbox,
+        pushes,
+        tables: [animal],
+        userId: () => 'user-1',
+        isEligible: () => true,
+      })
+
+      await cycle.runCycle()
+
+      expect(animal.pushed).toEqual([])
+      expect(animal.pullCalls).toEqual([])
+      expect(pushes.opened).toEqual([])
+      expect(outbox.lastSyncedAt()).toBeNull()
     })
   })
 
@@ -535,6 +568,150 @@ describe('createSyncCycle', () => {
       await cycle.runCycle()
 
       expect(order).toEqual(['vaccination', 'animal'])
+    })
+  })
+
+  describe('push qui échoue', () => {
+    const CHECK_REFUSAL = {
+      code: '23514',
+      message: 'new row violates check constraint "animal_name_check"',
+    }
+
+    function entry(entity: string, entityId: string, queuedAt = T_ROW): FakeOutboxEntry {
+      return { entity, entityId, queuedAt, attempts: 0 }
+    }
+
+    function refusingAnimal(refusal: () => unknown) {
+      const animal = fakeTable('animal', [page([row('a9', T_ROW, 'Oscar')], T_ROW)])
+      animal.localRows.set('a1', row('a1', T_ROW, 'Milo'))
+      animal.localRows.set('a2', row('a2', T_ROW, 'Luna'))
+      const pushRow = animal.pushRow.bind(animal)
+      animal.pushRow = async (userId, sent, push) => {
+        if (sent.id === 'a1') throw refusal()
+        return pushRow(userId, sent, push)
+      }
+      return animal
+    }
+
+    function cycleWith(outbox: ReturnType<typeof createFakeOutbox>, tables: SyncableTable[]) {
+      return createSyncCycle({
+        db,
+        outbox,
+        pushes,
+        tables,
+        userId: () => 'user-1',
+        isEligible: () => true,
+      })
+    }
+
+    it("compte l'essai raté, garde la ligne en file et pousse les suivantes", async () => {
+      const animal = refusingAnimal(() => new Error('réseau'))
+      const outbox = createFakeOutbox([entry('animal', 'a1'), entry('animal', 'a2')])
+
+      await expect(cycleWith(outbox, [animal]).runCycle()).rejects.toThrow('réseau')
+
+      expect(outbox.entries()).toEqual([{ ...entry('animal', 'a1'), attempts: 1 }])
+      expect(animal.pushed.map(({ row: sent }) => sent.id)).toEqual(['a2'])
+    })
+
+    it('tire quand même, puis lève pour le backoff sans dater la synchronisation', async () => {
+      const animal = refusingAnimal(() => new Error('réseau'))
+      const outbox = createFakeOutbox([entry('animal', 'a1')])
+
+      await expect(cycleWith(outbox, [animal]).runCycle()).rejects.toThrow('réseau')
+
+      expect(animal.pullCalls).toHaveLength(1)
+      expect(outbox.cursor('animal')).toBe(T_ROW)
+      expect(outbox.lastSyncedAt()).toBeNull()
+    })
+
+    it("tire quand même quand l'envoi ne s'ouvre pas, sans compter d'essai", async () => {
+      const animal = fakeTable('animal', [page([row('a9', T_ROW, 'Oscar')], T_ROW)])
+      animal.localRows.set('a1', row('a1', T_ROW, 'Milo'))
+      const outbox = createFakeOutbox([entry('animal', 'a1')])
+      pushes.open = vi.fn<typeof pushes.open>().mockRejectedValue(new Error('réseau'))
+
+      await expect(cycleWith(outbox, [animal]).runCycle()).rejects.toThrow('réseau')
+
+      expect(outbox.entries()).toEqual([entry('animal', 'a1')])
+      expect(outbox.cursor('animal')).toBe(T_ROW)
+    })
+
+    it('sort de la file une ligne refusée trois fois par le même CHECK, sans faire échouer le cycle', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const animal = refusingAnimal(() => CHECK_REFUSAL)
+      const outbox = createFakeOutbox([entry('animal', 'a1')])
+      const cycle = cycleWith(outbox, [animal])
+
+      await expect(cycle.runCycle()).rejects.toBe(CHECK_REFUSAL)
+      await expect(cycle.runCycle()).rejects.toBe(CHECK_REFUSAL)
+      expect(outbox.entries()).toEqual([{ ...entry('animal', 'a1'), attempts: 2 }])
+
+      await expect(cycle.runCycle()).resolves.toBeUndefined()
+
+      expect(outbox.entries()).toEqual([])
+      expect(outbox.lastSyncedAt()).not.toBeNull()
+      expect(warn).toHaveBeenCalledOnce()
+      warn.mockRestore()
+    })
+
+    it('sort aussi une ligne refusée trois fois pour une donnée invalide (classe 22)', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const refusal = { code: '22008', message: 'date/time field value out of range: "2026-02-30"' }
+      const outbox = createFakeOutbox([entry('animal', 'a1')])
+      const cycle = cycleWith(outbox, [refusingAnimal(() => refusal)])
+
+      await expect(cycle.runCycle()).rejects.toBe(refusal)
+      await expect(cycle.runCycle()).rejects.toBe(refusal)
+      await cycle.runCycle()
+
+      expect(outbox.entries()).toEqual([])
+      warn.mockRestore()
+    })
+
+    it('réessaie sans fin une panne passagère ou un refus de droit', async () => {
+      const failures = [new Error('réseau'), { code: '42501', message: 'permission denied' }]
+      for (const failure of failures) {
+        const outbox = createFakeOutbox([entry('animal', 'a1')])
+        const cycle = cycleWith(outbox, [refusingAnimal(() => failure)])
+
+        for (let attempt = 0; attempt < 4; attempt += 1) {
+          await expect(cycle.runCycle()).rejects.toBe(failure)
+        }
+
+        expect(outbox.entries()).toEqual([{ ...entry('animal', 'a1'), attempts: 4 }])
+      }
+    })
+
+    it('garde une ligne dont les trois refus ne sont pas identiques', async () => {
+      const refusals = [
+        CHECK_REFUSAL,
+        { code: '22008', message: 'date/time field value out of range' },
+        CHECK_REFUSAL,
+      ]
+      let next = 0
+      const outbox = createFakeOutbox([entry('animal', 'a1')])
+      const cycle = cycleWith(outbox, [refusingAnimal(() => refusals[next++])])
+
+      for (const refusal of refusals) await expect(cycle.runCycle()).rejects.toBe(refusal)
+
+      expect(outbox.entries()).toHaveLength(1)
+    })
+
+    it('recompte depuis zéro quand la ligne refusée est modifiée entre deux refus', async () => {
+      const animal = refusingAnimal(() => CHECK_REFUSAL)
+      const outbox = createFakeOutbox([entry('animal', 'a1')])
+      const cycle = cycleWith(outbox, [animal])
+
+      await expect(cycle.runCycle()).rejects.toBe(CHECK_REFUSAL)
+      await expect(cycle.runCycle()).rejects.toBe(CHECK_REFUSAL)
+      const [pending] = outbox.entries()
+      await outbox.removeIfUnchanged(pending!)
+      const T_LATER = '2026-01-02T00:00:00.000Z'
+      outbox.entries().push({ ...entry('animal', 'a1', T_LATER), attempts: 2 })
+      await expect(cycle.runCycle()).rejects.toBe(CHECK_REFUSAL)
+
+      expect(outbox.entries()).toEqual([{ ...entry('animal', 'a1', T_LATER), attempts: 3 }])
     })
   })
 

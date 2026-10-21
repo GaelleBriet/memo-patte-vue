@@ -1,6 +1,7 @@
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import type { SyncOutboxEntry } from '../repository/sync-outbox.repository'
 import { normalizeSyncTimestamps } from './normalize-sync-timestamps'
+import { createPushRefusals } from './push-refusals'
 import type { SyncPullPage, SyncPush, SyncRow, SyncableTable } from './syncable-table'
 
 const PUSH_CLAIM_SIZE = 200
@@ -24,6 +25,7 @@ export interface SyncCycleOutbox {
   setLastPulledAt(entity: string, lastPulledAt: string): Promise<void>
   isEnabled(): Promise<boolean>
   setLastSyncedAt(lastSyncedAt: string): Promise<void>
+  recordFailedPush(entry: Pick<SyncOutboxEntry, 'entity' | 'entityId'>): Promise<void>
 }
 
 export interface SyncCyclePushes {
@@ -53,6 +55,11 @@ interface KeptRow {
   kept: SyncRow
 }
 
+interface PushOutcome {
+  keptRows: KeptRow[]
+  failure: { cause: unknown } | null
+}
+
 const keyOf = (entity: string, id: string) => `${entity}/${id}`
 
 /** `server_updated_at` date le début de la transaction : une ligne validée après un pull peut le précéder. */
@@ -66,6 +73,7 @@ const sameRow = (sent: SyncRow, kept: SyncRow) =>
 
 export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
   const tablesByEntity = new Map(deps.tables.map((table) => [table.entity, table]))
+  const refusals = createPushRefusals()
 
   /** Les écritures de la synchro ne repartent pas dans la file d'envoi. */
   async function runUnqueued(statements: SqlStatement[]): Promise<void> {
@@ -77,32 +85,64 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
     ])
   }
 
-  /** Rend les lignes que le serveur a gardées autrement qu'envoyées : elles restent en file d'ici leur reprise. */
-  async function push(userId: string): Promise<KeptRow[]> {
+  async function pushEntry(
+    userId: string,
+    entry: SyncOutboxEntry,
+    envoi: SyncPush,
+    keptRows: KeptRow[],
+  ): Promise<void> {
+    const table = tablesByEntity.get(entry.entity)
+    const sent = table ? await table.getRowForPush(entry.entityId) : null
+    const kept = table && sent ? await table.pushRow(userId, sent, envoi) : null
+    const normalized = kept && normalizeSyncTimestamps(kept)
+    if (table && sent && normalized && !sameRow(sent, normalized)) {
+      keptRows.push({ table, entry, sent, kept: normalized })
+    } else {
+      await deps.outbox.removeIfUnchanged(entry)
+    }
+  }
+
+  /** Rend vrai si l'entrée reste en file pour un prochain essai. */
+  async function recordFailure(entry: SyncOutboxEntry, cause: unknown): Promise<boolean> {
+    await deps.outbox.recordFailedPush(entry)
+    if (!refusals.isGivenUp(entry, cause)) return true
+    await deps.outbox.removeIfUnchanged(entry)
+    console.warn(`Ligne refusée par le serveur, sortie de la file (${entry.entity}) :`, cause)
+    return false
+  }
+
+  /**
+   * Une ligne qui échoue reste en file sans retenir les suivantes ; le premier échec est rendu pour
+   * être levé après le pull. Les lignes gardées par le serveur autrement qu'envoyées restent en file
+   * d'ici leur reprise.
+   */
+  async function push(userId: string): Promise<PushOutcome> {
     const keptRows: KeptRow[] = []
+    let failure: PushOutcome['failure'] = null
     const handled = new Set<string>()
     let envoi: SyncPush | null = null
     for (;;) {
       const claimed = (await deps.outbox.listPending())
         .filter(({ entity, entityId }) => !handled.has(keyOf(entity, entityId)))
         .slice(0, PUSH_CLAIM_SIZE)
-      if (claimed.length === 0) return keptRows
-      envoi ??= await deps.pushes.open(userId, new Date().toISOString())
+      if (claimed.length === 0) return { keptRows, failure }
+      try {
+        envoi ??= await deps.pushes.open(userId, new Date().toISOString())
+      } catch (cause) {
+        return { keptRows, failure: failure ?? { cause } }
+      }
 
       for (const entry of claimed) {
         handled.add(keyOf(entry.entity, entry.entityId))
-        const table = tablesByEntity.get(entry.entity)
-        const sent = table ? await table.getRowForPush(entry.entityId) : null
-        const kept = table && sent ? await table.pushRow(userId, sent, envoi) : null
-        const normalized = kept && normalizeSyncTimestamps(kept)
-        if (table && sent && normalized && !sameRow(sent, normalized)) {
-          keptRows.push({ table, entry, sent, kept: normalized })
-        } else {
-          await deps.outbox.removeIfUnchanged(entry)
+        try {
+          await pushEntry(userId, entry, envoi, keptRows)
+          refusals.forget(entry)
+        } catch (cause) {
+          if (await recordFailure(entry, cause)) failure ??= { cause }
         }
       }
 
-      if (claimed.length < PUSH_CLAIM_SIZE) return keptRows
+      if (claimed.length < PUSH_CLAIM_SIZE) return { keptRows, failure }
     }
   }
 
@@ -213,19 +253,24 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
       if (!deps.isEligible()) return
       const userId = deps.userId()
       if (!userId) return
+      if (!(await deps.outbox.isEnabled())) return
 
       let touchedReminders = false
       const onRemindersTouched = (entity: string) => {
         if (REMINDER_ENTITIES.has(entity)) touchedReminders = true
       }
       let keptRows: KeptRow[] = []
+      let pushFailure: PushOutcome['failure'] = null
       try {
-        keptRows = await push(userId)
+        const pushed = await push(userId)
+        keptRows = pushed.keptRows
+        pushFailure = pushed.failure
         await pull(userId, keptRows, onRemindersTouched)
       } finally {
         await keepServerRows(keptRows, onRemindersTouched)
         if (touchedReminders) await deps.onRemindersOutdated?.()
       }
+      if (pushFailure) throw pushFailure.cause
       await deps.outbox.setLastSyncedAt(new Date().toISOString())
     },
   }

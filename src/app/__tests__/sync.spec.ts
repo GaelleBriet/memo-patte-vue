@@ -34,6 +34,7 @@ function fakeOutbox(pending: number): SyncCycleOutbox {
     setLastPulledAt: vi.fn<SyncCycleOutbox['setLastPulledAt']>(async () => {}),
     isEnabled: vi.fn<SyncCycleOutbox['isEnabled']>(async () => true),
     setLastSyncedAt: vi.fn<SyncCycleOutbox['setLastSyncedAt']>(async () => {}),
+    recordFailedPush: vi.fn<SyncCycleOutbox['recordFailedPush']>(async () => {}),
   }
 }
 
