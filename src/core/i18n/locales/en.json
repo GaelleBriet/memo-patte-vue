@@ -1403,6 +1403,26 @@
         "submit": "Replace"
       }
     },
+    "restore": {
+      "title": "Restore my health record",
+      "found": "Backup found",
+      "summary": "{n} pet · last backup {when} | {n} pets · last backup {when}",
+      "when": {
+        "today": "today at {time}",
+        "yesterday": "yesterday at {time}",
+        "thisYear": "on {date} at {time}",
+        "earlier": "on {date}"
+      },
+      "existing": "Data already exists on this phone.",
+      "modes": "Merge or replace",
+      "confirmBody": "The current data on this phone will be replaced with your backup.",
+      "progress": {
+        "title": "Restoring your health record",
+        "count": "{done} of {total} items"
+      },
+      "offline": "Restoring will resume when you’re back online. Nothing is lost.",
+      "later": "Not now"
+    },
     "pdf": {
       "sheet": {
         "title": "Export to PDF",

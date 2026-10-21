@@ -9,8 +9,10 @@ withDefaults(
     backLabel: string
     subtitle?: string | null
     subtitleTone?: 'hint' | 'secondary'
+    /** L'écran ne se quitte pas tant qu'il travaille : pas de flèche de retour. */
+    backHidden?: boolean
   }>(),
-  { subtitle: null, subtitleTone: 'hint' },
+  { subtitle: null, subtitleTone: 'hint', backHidden: false },
 )
 
 const emit = defineEmits<{
@@ -67,6 +69,7 @@ onBeforeUnmount(() => {
       >
         <div class="pushed-screen__line">
           <v-btn
+            v-if="!backHidden"
             class="pushed-screen__back"
             icon="ms:arrow_back"
             variant="text"

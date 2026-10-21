@@ -157,6 +157,11 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/features/purchase/views/PlusView.vue'),
   },
   {
+    path: '/restore',
+    name: 'account-restore',
+    component: () => import('@/features/settings/views/AccountRestoreView.vue'),
+  },
+  {
     path: '/sign-in',
     name: 'sign-in',
     component: () => import('@/features/auth/views/SignInView.vue'),
