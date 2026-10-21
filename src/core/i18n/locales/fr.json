@@ -1372,7 +1372,7 @@
     },
     "import": {
       "title": "Importer un export",
-      "subtitle": "Des données existent déjà sur cet appareil.",
+      "subtitle": "Des données existent déjà sur ce téléphone.",
       "close": "Fermer",
       "modes": "Mode d’import",
       "merge": {
@@ -1398,9 +1398,95 @@
       },
       "confirm": {
         "title": "Remplacer toutes tes données ?",
-        "body": "Cette action supprimera définitivement les données actuelles de l’appareil. Elle est irréversible.",
+        "body": "Cette action supprimera définitivement les données actuelles de ce téléphone. Elle est irréversible.",
         "cancel": "Annuler",
         "submit": "Remplacer"
+      }
+    },
+    "csv": {
+      "columns": {
+        "id": "Identifiant",
+        "animalId": "Identifiant de l’animal",
+        "animalName": "Animal",
+        "vaccinationId": "Identifiant du vaccin",
+        "vaccinationName": "Vaccin",
+        "treatmentId": "Identifiant du traitement",
+        "treatmentName": "Traitement",
+        "periodId": "Identifiant de la période",
+        "sourceId": "Identifiant du vaccin ou du traitement",
+        "name": "Nom",
+        "species": "Espèce",
+        "breed": "Race",
+        "birthDate": "Date de naissance",
+        "birthDateApproximate": "Date de naissance approximative",
+        "unfollowedOn": "Plus suivi depuis le",
+        "departureReason": "Motif du départ",
+        "departureDate": "Date du départ",
+        "createdAt": "Date de création",
+        "updatedAt": "Dernière modification",
+        "plannedDueDate": "Rappel prévu",
+        "lastInjectionDate": "Dernière injection",
+        "nextReminder": "Prochain rappel",
+        "injectedOn": "Date d’injection",
+        "type": "Type",
+        "lastDoseDate": "Dernière prise",
+        "nextDose": "Prochaine dose",
+        "startsOn": "Début de la période",
+        "firstDueOn": "Première prise le",
+        "endsOn": "Date de fin",
+        "stoppedOn": "Arrêté le",
+        "frequencyValue": "Fréquence",
+        "frequencyUnit": "Unité de fréquence",
+        "times": "Heures du traitement",
+        "doseQuantity": "Posologie (quantité)",
+        "doseUnit": "Posologie (unité)",
+        "reminderOffsetMinutes": "Rappel avant la dose (min)",
+        "reminderTime": "Heure du rappel",
+        "dueOn": "Prévue le",
+        "dueTime": "Heure prévue",
+        "givenOn": "Donnée le",
+        "status": "État",
+        "measuredOn": "Date de la pesée",
+        "weight": "Poids ({unit})",
+        "kind": "Type",
+        "targetOn": "Nouvelle date",
+        "dueDate": "Échéance"
+      },
+      "values": {
+        "species": {
+          "dog": "Chien",
+          "cat": "Chat"
+        },
+        "departureReason": {
+          "death": "Décès",
+          "rehomed": "Chez quelqu’un d’autre",
+          "other": "Autre"
+        },
+        "treatmentType": {
+          "deworming": "Vermifuge",
+          "antiparasitic": "Antiparasitaire",
+          "medication": "Médicament"
+        },
+        "frequencyUnit": {
+          "day": "jour | jours",
+          "week": "semaine | semaines",
+          "month": "mois"
+        },
+        "doseStatus": {
+          "given": "Donnée",
+          "missed": "Oubliée",
+          "postponed": "Reportée",
+          "extra": "Prise en plus",
+          "shift": "Doses suivantes décalées"
+        },
+        "reminderKind": {
+          "vaccination": "Vaccin",
+          "treatment": "Traitement"
+        },
+        "boolean": {
+          "true": "Oui",
+          "false": "Non"
+        }
       }
     },
     "pdf": {
@@ -1534,7 +1620,7 @@
     "subtitle": "Animaux, rappels, poids, exports et PDF restent gratuits, sans compte ni abonnement.",
     "benefits": {
       "backup": "Sauvegarde garantie dans le cloud",
-      "devices": "Le même carnet sur tous tes appareils",
+      "devices": "Le même carnet sur ta tablette et ton téléphone",
       "photos": "Tes photos sauvegardées aussi"
     },
     "android": "Android sauvegarde déjà ton carnet, mais sans les photos ni garantie de restauration. Plus le garantit.",

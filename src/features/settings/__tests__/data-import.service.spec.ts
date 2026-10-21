@@ -162,6 +162,7 @@ async function carnet(client: InMemoryDb = db): Promise<ExportData> {
     now: () => NOW,
     appVersion: 'test',
     weightUnit: () => 'kg',
+    locale: () => 'fr',
   }).collect()
   return sorted(data)
 }
