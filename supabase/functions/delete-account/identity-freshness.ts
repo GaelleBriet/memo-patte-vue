@@ -1,4 +1,5 @@
 export const IDENTITY_MAX_AGE_SECONDS = 10 * 60
+const CLOCK_SKEW_SECONDS = 60
 
 function claimsOf(token: string): unknown {
   const payload = token.split('.')[1]
@@ -27,5 +28,7 @@ function lastConfirmedAt(token: string): number | null {
 /** Le jeton doit avoir été vérifié par Supabase avant : ses claims ne sont pas contrôlés ici. */
 export function isIdentityFresh(token: string, nowMs: number): boolean {
   const confirmedAt = lastConfirmedAt(token)
-  return confirmedAt !== null && nowMs / 1000 - confirmedAt <= IDENTITY_MAX_AGE_SECONDS
+  if (confirmedAt === null) return false
+  const age = nowMs / 1000 - confirmedAt
+  return age >= -CLOCK_SKEW_SECONDS && age <= IDENTITY_MAX_AGE_SECONDS
 }

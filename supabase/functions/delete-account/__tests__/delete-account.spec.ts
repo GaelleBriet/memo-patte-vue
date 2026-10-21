@@ -103,6 +103,26 @@ describe('handleDeleteAccount', () => {
     expect(fake.deletedUser()).toBe(USER)
   })
 
+  it('accepte une confirmation datée jusqu’à une minute dans le futur', async () => {
+    const token = confirmedSecondsAgo(-60)
+    const fake = fakePorts({ users: { [token]: USER } })
+
+    const response = await handleDeleteAccount(request({ token }), fake.ports)
+
+    expect(response.status).toBe(200)
+  })
+
+  it('refuse une confirmation datée de plus d’une minute dans le futur', async () => {
+    const token = confirmedSecondsAgo(-61)
+    const fake = fakePorts({ photos: ['milo.jpg'], users: { [token]: USER } })
+
+    const response = await handleDeleteAccount(request({ token }), fake.ports)
+
+    expect(response.status).toBe(401)
+    expect(await response.json()).toEqual({ error: 'identity-expired' })
+    expect(fake.calls).toEqual([])
+  })
+
   it('ne prend pas un jeton rafraîchi pour une identité confirmée', async () => {
     const refreshed = jwt({
       iat: NOW_SECONDS,
