@@ -93,7 +93,7 @@ Voir le tableau complet en **§3.2**. Résumé de la logique :
 
 1. `auth.admin.deleteUser(id)` « Requires a `service_role` key » et « should only be called on a server. Never expose your `service_role` key in the browser » → la suppression se fait dans une **Edge Function** (ou un endpoint serveur), jamais depuis l'app.
 2. Le guide recommande une table `public.profiles` qui « Reference the `auth.users` table […] Specify `on delete cascade` in the reference » : toutes les tables Plus (animaux, vaccins, poids…) doivent porter `user_id references auth.users(id) on delete cascade` pour que la suppression Auth entraîne celle des lignes.
-3. Contrainte Storage citée par le guide : **« You cannot delete a user if they are the owner of any objects in Supabase Storage. »** → l'Edge Function doit **d'abord** lister et supprimer les objets du bucket photos (dossier `<user_id>/…`), **puis** appeler `deleteUser`.
+3. Le guide affirme : « You cannot delete a user if they are the owner of any objects in Supabase Storage. » **Vérifié faux le 21/10/2026** sur une pile Supabase locale (CLI 2.119.0) : `deleteUser` supprime le compte et **laisse ses photos orphelines** dans le bucket. → l'Edge Function doit quand même **d'abord** lister et supprimer les objets du bucket photos (dossier `<user_id>/…`, sous-dossiers compris), **puis** appeler `deleteUser`, sinon les photos restent (test témoin dans `supabase/functions/delete-account/__tests__/delete-account.local.spec.ts`).
 4. Storage est protégé par RLS sur `storage.objects` ; le modèle recommandé restreint chaque utilisateur à son dossier : `(storage.foldername(name))[1] = (select auth.jwt()->>'sub')`. Une policy `delete` est nécessaire pour que l'utilisateur (ou la fonction) puisse effacer ses fichiers.
 5. Paramètre `shouldSoftDelete` : la suppression douce « allows user identification from the hashed user ID but is not reversible » — pour le droit à l'effacement, utiliser la suppression **dure** (`false`).
 
@@ -391,11 +391,10 @@ Publiée depuis le 2026-09-26 sur <https://memopatte.app/confidentialite/> (angl
 **A. Dans l'app (Plus)** — Paramètres > Compte > *Supprimer mon compte*
 1. Écran d'explication : « Cette action supprime définitivement votre compte MémoPatte Plus, votre sauvegarde cloud et vos photos sauvegardées. Vos données locales sur cet appareil sont conservées. Votre abonnement Google Play n'est pas annulé automatiquement : [lien Gérer mes abonnements] ». Deux boutons : *Annuler* / *Supprimer définitivement* (avec ressaisie du mot de passe ou reconnexion Google — réauthentification recommandée).
 2. L'app appelle une **Edge Function `delete-account`** (JWT utilisateur requis) qui, avec la clé `service_role` :
-   - liste et supprime les objets Storage du dossier `<user_id>/` (obligatoire avant `deleteUser`, cf. « You cannot delete a user if they are the owner of any objects in Supabase Storage ») ;
-   - supprime les lignes applicatives (ou s'appuie sur `on delete cascade`) ;
-   - appelle `auth.admin.deleteUser(user_id, false)` (suppression dure) ;
-   - déclenche la suppression de la personne PostHog si un `distinct_id` a été associé (API DELETE Persons `delete_events=true`) ;
-   - journalise la date de suppression (sans donnée personnelle) pour preuve.
+   - liste et supprime les objets Storage du dossier `<user_id>/`, sous-dossiers compris (sinon `deleteUser` les laisse orphelins, §1.3 point 3) ;
+   - supprime la personne PostHog si un `distinct_id` a été associé (API DELETE Persons `delete_events=true`) et le client RevenueCat ;
+   - appelle `auth.admin.deleteUser(user_id, false)` (suppression dure) **en dernier**, les lignes partant par `on delete cascade` : un échec avant laisse le compte, et « Réessayer » reprend (décision du 2026-10-21) ;
+   - journalise la date et l'origine de la suppression (app ou e-mail), sans donnée personnelle.
 3. L'app efface la session locale, désactive les fonctions Plus, affiche la confirmation. Option proposée à l'utilisateur : « Effacer aussi les données locales de cet appareil ».
 
 **B. Page web publique** (obligatoire, URL déclarée dans Data safety) — publiée sur <https://memopatte.app/suppression-compte/> (anglais : `/en/delete-account/`), source dans `site/suppression-compte/index.html` et `site/en/delete-account/index.html`, seule version du texte. Elle décrit la méthode dans l'app (A) et la demande par e-mail (C), ce qui est supprimé et ce qui reste, la suppression de la seule sauvegarde cloud et la résiliation de l'abonnement dans Google Play.

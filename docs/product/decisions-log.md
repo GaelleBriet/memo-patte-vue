@@ -2974,6 +2974,36 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
+## 2026-10-21 — Suppression du compte Plus (#87)
+
+Décisions de Gaelle du 21 octobre 2026, sur les questions de la suppression du compte (écrans D1 à
+D6 du lot C).
+
+- **Le compte part en dernier**, après PostHog et RevenueCat : tant que tout n'est pas effacé, le
+  compte existe et « Réessayer » reprend toujours là où ça s'est arrêté. — Écarté : l'ordre du
+  ticket (compte d'abord), qui rendait « Réessayer » impossible si un prestataire échouait.
+- **Texte d'échec de D6** : « La suppression n'a pas abouti. Tes données restent sur ce téléphone ;
+  réessaie. » (EN « Deletion did not complete. Your data is still on this phone; try again. »). Il
+  reste vrai quand une partie des photos de la sauvegarde cloud est déjà effacée. Même texte sans
+  réseau. — Écarté : « Rien n'a été supprimé », inexact dans ce cas.
+- **L'achat Google Play n'est jamais touché** : D3 prévient « Ton abonnement Google Play continue
+  tant que tu ne le résilies pas dans Google Play. » (EN « Your Google Play subscription continues
+  until you cancel it in Google Play. ») ; après la suppression, l'app redevient gratuite, sans état
+  « abonnée sans compte ». — Écarté : un état « abonnée sans compte » qui propose de recréer un compte.
+- **Confirmation d'identité récente exigée aussi côté serveur** : la fonction refuse si la dernière
+  saisie du mot de passe ou reconnexion Google date de plus de 10 minutes. — Écarté : se fier à
+  l'app seule, pour la seule action irréversible.
+- **Demandes reçues par e-mail** : un mode admin de la même fonction, protégé par un secret à part,
+  rangé dans les secrets Supabase et le coffre ; jamais la clé `service_role` sur l'ordinateur de
+  Gaelle, jamais dans le dépôt. — Écarté : un script local qui détiendrait `service_role`.
+- **Journal des suppressions** : une table qui ne garde que la date et l'origine (app ou e-mail),
+  aucune donnée personnelle ; migration Supabase rejouée sur base jetable et relue. — Écarté : les
+  journaux de Supabase, qui s'effacent vite et contiennent l'identifiant.
+- **D2 sans « Mot de passe oublié ? » en v1** ; mot de passe faux : « Mot de passe incorrect.
+  Réessaie. » (EN « Incorrect password. Try again. »). — Écarté : le message de la connexion, qui
+  parle d'un e-mail que D2 ne demande pas.
+- **« Terminé » de D5** revient à la liste des Paramètres.
+
 ## 2026-10-20 — Plus : un appareil à la fois, plus de fusion fine entre deux appareils
 
 Décision de Gaelle, après dix jours de chantier sur l'arbitrage report contre réglage à deux
