@@ -54,6 +54,7 @@ function exportOf(db: InMemoryDb) {
     now: () => NOW,
     appVersion: 'test',
     weightUnit: () => 'kg',
+    locale: () => 'fr',
   }).collect()
 }
 

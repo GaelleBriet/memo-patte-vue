@@ -15,7 +15,10 @@ import { USER_ID } from './auth-fixture'
 const NONCE = { raw: 'nonce-en-clair', hashed: 'empreinte-du-nonce' }
 
 function setup(credential: () => Promise<GoogleCredential>) {
-  const credentials = { request: vi.fn<GoogleCredentials['request']>(credential) }
+  const credentials = {
+    request: vi.fn<GoogleCredentials['request']>(credential),
+    signOut: vi.fn<GoogleCredentials['signOut']>(async () => {}),
+  }
   const repository = {
     signInWithGoogleIdToken: vi.fn<AuthRepository['signInWithGoogleIdToken']>(async () => ({
       userId: USER_ID,
