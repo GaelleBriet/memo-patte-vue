@@ -51,7 +51,7 @@ export function useAccountRestore(flow: () => RestoreFlow | null = currentRestor
     () => state.value.step,
     (step) => {
       holdBackWhile(step === 'restoring')
-      if (step === 'idle') leave()
+      if (step === 'idle' || step === 'no-answer') leave()
       else if (step === 'done') void openReadyCarnet()
     },
     { immediate: true },
