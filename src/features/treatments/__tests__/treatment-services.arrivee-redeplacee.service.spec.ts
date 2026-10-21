@@ -111,16 +111,13 @@ describe('Redéplacer une dose depuis l’arrivée d’un décalage, par les vra
     ])
   })
 
-  // R7 : attendu décidé, pas encore lu (#1000).
-  it.fails(
-    `${story} ; la dose de 8 h du 12 reportée au 14 avec la case : le 14 à 8, 14 et 20 h, puis chaque samedi`,
-    async () => {
-      const milo = await miloTurnedOn12th()
-      await milo.move('2026-03-12', '08:00', '2026-03-14')
-      expect(await milo.days('2026-03-09', '2026-04-12')).toEqual([
-        '2026-03-14 08:00 14:00 20:00',
-        ...AFTER,
-      ])
-    },
-  )
+  // #1000, R7 : redéplacée elle-même, la dose du report emmène l'arrivée, et son décalage repart du nouveau jour.
+  it(`${story} ; la dose de 8 h du 12 reportée au 14 avec la case : le 14 à 8, 14 et 20 h, puis chaque samedi`, async () => {
+    const milo = await miloTurnedOn12th()
+    await milo.move('2026-03-12', '08:00', '2026-03-14')
+    expect(await milo.days('2026-03-09', '2026-04-12')).toEqual([
+      '2026-03-14 08:00 14:00 20:00',
+      ...AFTER,
+    ])
+  })
 })

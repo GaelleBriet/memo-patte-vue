@@ -1,4 +1,3 @@
-import { isFuture, parseISO } from 'date-fns'
 import { z } from 'zod'
 
 import { MAX_MODEL_LENGTH } from '@/core/device/device-model'
@@ -37,27 +36,28 @@ import {
   type Version8Data,
 } from '../logic/export-file-versions'
 import { hasUniqueIds, isConsistentCarnet } from '../logic/export-carnet-links'
+import {
+  hasPreviousTargetDay,
+  hasReportFactsOnlyOnReport,
+  hasTargetOnlyOnMove,
+  isConsistentDose,
+} from '../logic/export-treatment-line-checks'
 import { carnetSettingsSchema } from './carnet-settings.schema'
-import { isCalendarDay } from '@/shared/domain/calendar-day'
-import { CLOCK_TIME_PATTERN } from '@/shared/domain/clock-time'
+import {
+  clockTime,
+  dated,
+  day,
+  optionalName,
+  pastDay,
+  signed,
+  stamps,
+  timestamps,
+} from './export-file-fields.schema'
 import type { ExportData } from '@/shared/domain/carnet-data'
 import { FALLEN_DOSES_ANSWERS } from '@/shared/domain/dose-calendar'
 import { instantSchema } from '@/shared/domain/instant'
-import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 
 const MAX_TEXT_LENGTH = 200
-
-const day = z.string().refine(isCalendarDay)
-const pastDay = day.refine((value) => !isFuture(parseISO(value)))
-const clockTime = z.string().regex(CLOCK_TIME_PATTERN)
-const timestamps = { createdAt: instantSchema, updatedAt: instantSchema }
-const stamps = { ...timestamps, createdByDevice: z.uuid(), updatedByDevice: z.uuid() }
-const optionalName = z
-  .string()
-  .trim()
-  .max(MAX_NAME_LENGTH)
-  .nullable()
-  .transform((value) => value || null)
 
 const animalShape = {
   id: z.uuid(),
@@ -127,22 +127,9 @@ type PeriodRow = Parameters<typeof hasWholeDosage>[0] & {
   firstDueOn: string
   endsOn: string | null
 }
-type DoseRow = { status: string; givenOn: string | null; dueOn: string }
 
 const isConsistentPeriod = (period: PeriodRow) =>
   hasWholeDosage(period) && (period.endsOn === null || period.endsOn >= period.firstDueOn)
-const isConsistentDose = (dose: DoseRow) =>
-  ['given', 'extra'].includes(dose.status) === (dose.givenOn !== null) &&
-  (dose.status !== 'extra' || dose.dueOn === dose.givenOn)
-const isMove = (status: string) => status === 'postponed' || status === 'shift'
-const hasReportFactsOnlyOnReport = (dose: {
-  status: string
-  previousTargetOn: string | null
-  previousTargetTime: string | null
-  dueRank: number | null
-}) =>
-  dose.status === 'postponed' ||
-  (dose.previousTargetOn === null && dose.previousTargetTime === null && dose.dueRank === null)
 
 const deviceFileSchema = z.object({
   id: z.uuid(),
@@ -151,8 +138,6 @@ const deviceFileSchema = z.object({
   ...timestamps,
 })
 
-const signed = <S extends z.ZodRawShape>(shape: S) => z.object({ ...shape, ...stamps })
-const dated = <S extends z.ZodRawShape>(shape: S) => z.object({ ...shape, ...timestamps })
 export const exportHeaderSchema = z.object({
   exportedAt: instantSchema,
   appVersion: z.string().max(MAX_TEXT_LENGTH),
@@ -172,7 +157,7 @@ const movedDosesOf = (shape: typeof doseShape | typeof legacyDoseShape) =>
   z.array(
     signed({ ...shape, targetOn: day.nullable() })
       .refine(isConsistentDose)
-      .refine(({ status, targetOn }) => isMove(status) === (targetOn !== null)),
+      .refine(hasTargetOnlyOnMove),
   )
 const movedDoses = movedDosesOf(doseShape)
 const legacyMovedDoses = movedDosesOf(legacyDoseShape)
@@ -185,12 +170,9 @@ const reportedDoses = z.array(
     dueRank: z.number().int().min(1).nullable(),
   })
     .refine(isConsistentDose)
-    .refine(({ status, targetOn }) => isMove(status) === (targetOn !== null))
+    .refine(hasTargetOnlyOnMove)
     .refine(hasReportFactsOnlyOnReport)
-    .refine(
-      ({ previousTargetOn, previousTargetTime }) =>
-        previousTargetTime === null || previousTargetOn !== null,
-    ),
+    .refine(hasPreviousTargetDay),
 )
 
 const version6PeriodShape = {

@@ -19,7 +19,8 @@ import i18n, { applyLocale, detectLocale } from '@/core/i18n'
 import { getAnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { cleanOrphanPhotosOnLaunch } from '@/features/animals/service/orphan-photos-cleanup.service'
 import { provideAnimalsRepository } from '@/features/animals/store/animals.store'
-import { useAuthStore } from '@/features/auth/store/auth.store'
+import { authRepository } from '@/features/auth/repository/auth.repository'
+import { provideAuthRepository, useAuthStore } from '@/features/auth/store/auth.store'
 import { backfillCareSignalOnLaunch } from '@/features/home/service/care-signal-backfill.service'
 import { installPlusAccountLink } from '@/features/purchase/service/plus-account-link.service'
 import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
@@ -35,6 +36,7 @@ import { provideWeightRepository } from '@/features/weight/store/weight.store'
 import '@/styles/main.scss'
 
 provideAnimalsRepository(getAnimalsRepository)
+provideAuthRepository(() => authRepository)
 provideVaccinationsRepository(getVaccinationsRepository)
 provideWeightRepository(getWeightRepository)
 provideTreatmentsRepository(getTreatmentsRepository)

@@ -3,6 +3,8 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 
 import { PLUS_ACCOUNT_STORAGE_KEY, writePlusAccount } from '../logic/plus-account-storage'
+import { authRepository } from '../repository/auth.repository'
+import { provideAuthRepository } from '../store/auth.store'
 import AccountSettingsView from '../views/AccountSettingsView.vue'
 import { memoryStorage, USER_ID } from './auth-fixture'
 import i18n from '@/core/i18n'
@@ -11,6 +13,8 @@ import router from '@/router'
 
 let replace: MockInstance
 let wrapper: VueWrapper | null = null
+
+provideAuthRepository(() => authRepository)
 
 beforeEach(async () => {
   vi.stubGlobal('localStorage', memoryStorage())
