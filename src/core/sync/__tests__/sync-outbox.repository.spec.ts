@@ -203,6 +203,33 @@ describe('syncOutboxRepository', () => {
     })
   })
 
+  describe('forgetAccount', () => {
+    it('désactive la synchro, vide la file et les curseurs, sans toucher aux données', async () => {
+      await enableSync(db)
+      await insertAnimal(db, ANIMAL_ID, T1)
+      await repository.setLastPulledAt('animal', T2)
+      await repository.setLastSyncedAt(T2)
+
+      await repository.forgetAccount()
+
+      await expect(repository.isEnabled()).resolves.toBe(false)
+      await expect(repository.listPending()).resolves.toEqual([])
+      await expect(repository.getLastPulledAt('animal')).resolves.toBeNull()
+      await expect(repository.getLastSyncedAt()).resolves.toBe(T2)
+      await expect(db.query('SELECT id FROM animal')).resolves.toEqual([{ id: ANIMAL_ID }])
+    })
+
+    it('ne remet plus en file les modifications suivantes', async () => {
+      await enableSync(db)
+      await insertAnimal(db, ANIMAL_ID, T1)
+
+      await repository.forgetAccount()
+      await touchAnimal(db, ANIMAL_ID, T2)
+
+      await expect(repository.listPending()).resolves.toEqual([])
+    })
+  })
+
   describe('clear', () => {
     it('vide la file sans toucher aux données', async () => {
       await enableSync(db)
