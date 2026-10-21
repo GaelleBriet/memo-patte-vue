@@ -60,6 +60,8 @@ export type EpisodeLines = {
   doseKey: (line: Line) => string
   /** R4 : jour noté ou déplacé → réglage de sa ligne la plus récente (TR-25), dont il garde les heures. */
   touched: ReadonlyMap<Day, string>
+  /** R7, #983 : jours dont la ligne la plus récente est « pas à donner », qui ne change pas l'heure qu'emporte leur report. */
+  answered: ReadonlySet<Day>
   /** R7, #796 : report que la date choisie emmène → le réglage dont elle est la première échéance. */
   chosenArrivals: ReadonlyMap<Line, Setting>
 }
@@ -111,7 +113,12 @@ function touchedDays(
     const chosen = chosenArrivals.get(report)
     if (chosen !== undefined) touch(report.targetOn!, report, chosen.id)
   }
-  return new Map([...latest].map(([day, { settingId }]) => [day, settingId]))
+  return {
+    touched: new Map([...latest].map(([day, { settingId }]) => [day, settingId])),
+    answered: new Set(
+      [...latest].filter(([, { line }]) => line.status === 'not-due').map(([day]) => day),
+    ),
+  }
 }
 
 /** R4 : le premier jour d'un réglage aux heures changées est traduit, sauf une journée touchée sous
@@ -175,6 +182,6 @@ export function episodeLines(lines: readonly Line[], span: Span): EpisodeLines {
   const notes = kept.filter((line) => isNote(line) && !beaten(line))
   const chosenArrivals = chosenArrivalsOf(reports, span)
   const settingOf = (id: string) => span.episode.find((setting) => setting.id === id)
-  const touched = touchedDays(notes, reports, chosenArrivals, settingOf)
-  return { kept, notes, reports, shifts, idle, doseKey, touched, chosenArrivals }
+  const { touched, answered } = touchedDays(notes, reports, chosenArrivals, settingOf)
+  return { kept, notes, reports, shifts, idle, doseKey, touched, answered, chosenArrivals }
 }

@@ -10,6 +10,8 @@ export type ReportDeparture = {
   covered: ReadonlySet<Hour>
   /** Le jour de départ est celui où les heures changent (R4). */
   hoursChangeThatDay: boolean
+  /** #983 : la ligne la plus récente du jour de départ est « pas à donner » ; elle ne change pas ses heures pour le report. */
+  answeredThatDay: boolean
   /** Le réglage en vigueur ce jour-là, celui dont les heures viennent de changer. */
   inForce: ReferenceSetting | undefined
   /** Un réglage écrit après celui du report change les heures de sa journée. */
@@ -39,6 +41,7 @@ export function reportOutcome(departure: ReportDeparture): ReportOutcome {
     day,
     covered,
     hoursChangeThatDay,
+    answeredThatDay,
     inForce,
     hoursChangedSince,
     coveredAtItsHours,
@@ -49,7 +52,7 @@ export function reportOutcome(departure: ReportDeparture): ReportOutcome {
   const readAtNewHours =
     day.setting === inForce && written.id !== day.setting.id && hoursChangedSince
 
-  if (!hoursChangeThatDay || !(otherHours || readAtNewHours)) {
+  if (!(hoursChangeThatDay || answeredThatDay) || !(otherHours || readAtNewHours)) {
     if (covered.has(report.dueTime)) return { beaten: true }
     const carried = day.hours.filter((hour) => fromItsDose(hour) && !covered.has(hour))
     return { beaten: false, carried, lost: carried, hoursOf: day.setting }

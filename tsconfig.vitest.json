@@ -7,10 +7,11 @@
     "src/**/__tests__/*",
     "scripts/dose-engine/*.ts",
     "scripts/test-device/*.ts",
+    "supabase/functions/**/*.ts",
     "env.d.ts",
     "vitest.setup.ts"
   ],
-  "exclude": [],
+  "exclude": ["supabase/functions/*/index.ts"],
 
   "compilerOptions": {
     // Vitest runs in a different environment than the application code.
