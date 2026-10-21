@@ -10,6 +10,7 @@ import {
   periodClosedBeforeFirstDue,
   periodLastDay,
 } from '@/shared/domain/treatment-periods'
+import { nextDueAfterShift } from '@/shared/domain/treatment-shift-next'
 import { answeredOn } from '@/shared/domain/treatment-not-due-text'
 import { countedLines, historyEntries } from '@/shared/domain/treatment-reading'
 
@@ -29,6 +30,7 @@ type PdfLoggedLine =
   | { kind: 'missed'; series: PdfDoseSeries }
   | { kind: 'moved'; dueOn: string; to: string; advanced: boolean }
   | { kind: 'not-due'; dueOn: string; time: string | null; answeredOn: string }
+  | { kind: 'shift'; next: string | null }
 
 /** `idle` : une ligne sans effet, écrite seule et suivie de « · sans effet » comme sur la fiche (R11). */
 export type PdfHistoryLine =
@@ -79,20 +81,27 @@ type Event =
   | { kind: DoseKind; dose: PdfDose }
   | { kind: 'moved'; time: string | null; line: MovedLine }
   | { kind: 'not-due'; time: string | null; line: NotDueLine }
+  | { kind: 'shift'; dueOn: string; time: string | null; line: ShiftLine }
   | { kind: 'idle'; key: string; line: Extract<PdfHistoryLine, { kind: 'idle' }> }
 
 type MovedLine = Extract<PdfHistoryLine, { kind: 'moved' }>
 
 type NotDueLine = Extract<PdfHistoryLine, { kind: 'not-due' }>
 
-type AloneEvent = Extract<Event, { kind: 'moved' | 'not-due' | 'idle' }>
+type ShiftLine = Extract<PdfHistoryLine, { kind: 'shift' }>
+
+type AloneEvent = Extract<Event, { kind: 'moved' | 'not-due' | 'shift' | 'idle' }>
 
 type ShownDose = Pick<
   ExportTreatmentDose,
   'id' | 'periodId' | 'dueOn' | 'dueTime' | 'givenOn' | 'status' | 'targetOn' | 'createdAt'
 >
 
-function eventOf(dose: ShownDose, severalTimes: boolean): Event[] {
+function eventOf(
+  dose: ShownDose,
+  severalTimes: boolean,
+  shiftNext: (dose: ShownDose) => string | null,
+): Event[] {
   const time = severalTimes ? dose.dueTime : null
   switch (dose.status) {
     case 'given':
@@ -123,12 +132,20 @@ function eventOf(dose: ShownDose, severalTimes: boolean): Event[] {
         },
       ]
     case 'shift':
-      return []
+      return [
+        {
+          kind: 'shift',
+          dueOn: dose.dueOn,
+          time,
+          line: { kind: 'shift', next: shiftNext(dose) },
+        },
+      ]
   }
 }
 
 function keyOf(event: Event): string {
   if (event.kind === 'idle') return event.key
+  if (event.kind === 'shift') return `${event.dueOn} ${event.time ?? ''}`
   return event.kind === 'moved' || event.kind === 'not-due'
     ? `${event.line.dueOn} ${event.time ?? ''}`
     : `${event.dose.on} ${event.dose.time ?? ''}`
@@ -159,8 +176,9 @@ const LINE_RANK: Record<Event['kind'], number> = {
   'not-due': 0,
   given: 1,
   missed: 2,
-  unlogged: 3,
-  idle: 4,
+  shift: 3,
+  unlogged: 4,
+  idle: 5,
 }
 
 type DoseRun = { kind: DoseKind; doses: PdfDose[] }
@@ -168,7 +186,9 @@ type DoseRun = { kind: DoseKind; doses: PdfDose[] }
 type Run = DoseRun | AloneEvent
 
 function isAlone(run: Run | Event): run is AloneEvent {
-  return run.kind === 'moved' || run.kind === 'not-due' || run.kind === 'idle'
+  return (
+    run.kind === 'moved' || run.kind === 'not-due' || run.kind === 'shift' || run.kind === 'idle'
+  )
 }
 
 function lineOf(run: Run): PdfHistoryLine {
@@ -243,9 +263,12 @@ export function treatmentPeriods(state: TreatmentState): PdfTreatmentPeriod[] {
     const events: Event[] = [
       ...lines
         .filter((dose) => dose.periodId === period.id)
-        .flatMap((dose) =>
-          dose.idle ? idleEvents(eventOf(dose, severalTimes)) : eventOf(dose, severalTimes),
-        ),
+        .flatMap((dose) => {
+          const shiftNext = ({ dueOn, targetOn }: ShownDose) =>
+            nextDueAfterShift(view, period, { dueOn, targetOn })
+          const events = eventOf(dose, severalTimes, shiftNext)
+          return dose.idle ? idleEvents(events) : events
+        }),
       ...view.unloggedDoses
         .filter((due) => due.settingId === period.id)
         .map((due): Event => ({

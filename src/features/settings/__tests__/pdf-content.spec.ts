@@ -661,6 +661,24 @@ describe('buildCarnetPdfContent — historique', () => {
     ])
   })
 
+  it('écrit la ligne « Doses suivantes décalées » sous le report, avec la prochaine dose', () => {
+    const row = treatmentRow(
+      [{ id: 'p', startsOn: '2026-10-09', frequency: { value: 1, unit: 'week' } }],
+      [
+        ...given('p', '2026-10-09'),
+        { periodId: 'p', dueOn: '2026-10-16', status: 'shift', targetOn: '2026-10-19' },
+        { periodId: 'p', dueOn: '2026-10-16', status: 'postponed', targetOn: '2026-10-19' },
+      ],
+      '2026-10-15',
+    )
+
+    expect(row.periods[0]!.lines).toEqual([
+      { kind: 'moved', dueOn: '2026-10-16', to: '2026-10-19', advanced: false },
+      { kind: 'shift', next: '2026-10-26' },
+      { kind: 'given', series: { kind: 'dates', doses: [at('2026-10-09')] } },
+    ])
+  })
+
   it('distingue une dose avancée d’une dose reportée', () => {
     const row = treatmentRow(
       [{ id: 'p', startsOn: '2026-04-01' }],
@@ -713,7 +731,7 @@ describe('buildCarnetPdfContent — historique', () => {
     ])
   })
 
-  it('ignore les lignes de décalage des doses suivantes', () => {
+  it('écrit la ligne de décalage sous la prise qui l’a posée', () => {
     const row = treatmentRow(
       [{ id: 'p', startsOn: '2026-05-01' }],
       [
@@ -723,7 +741,7 @@ describe('buildCarnetPdfContent — historique', () => {
       ],
     )
 
-    expect(row.periods[0]!.lines.map(({ kind }) => kind)).toEqual(['given'])
+    expect(row.periods[0]!.lines.map(({ kind }) => kind)).toEqual(['given', 'shift'])
   })
 
   describe('période à plusieurs heures', () => {

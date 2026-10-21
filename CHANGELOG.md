@@ -5,6 +5,18 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.91](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.90...memo-patte-v0.1.91) (2026-10-20)
+
+
+### 🐛 Corrections
+
+* **dose-calendar:** une prise ne se redate jamais un intervalle avant son échéance, à toute heure ([3092fc2](https://github.com/GaelleBriet/memo-patte-vue/commit/3092fc22ddfafad90194c06e913d98a16aa1df05))
+* **dose-calendar:** une réponse « pas à donner » qui a retiré sa dose reste en vigueur ([43b96e1](https://github.com/GaelleBriet/memo-patte-vue/commit/43b96e1f1abf255501e9edd95a75e4850517e73b))
+* **treatments:** griser « Changer la date » quand la date minimale dépasse aujourd'hui ([935de9a](https://github.com/GaelleBriet/memo-patte-vue/commit/935de9aa0b605d8c5cb523a2beb915a6488ae442))
+* **treatments:** griser « Changer la date » sans jour à proposer ([6f2c69b](https://github.com/GaelleBriet/memo-patte-vue/commit/6f2c69b03b57370d03d295424b46f1a0720e41c3))
+* **treatments:** la feuille annonce la prise en plus ([e1101d2](https://github.com/GaelleBriet/memo-patte-vue/commit/e1101d23b30e932342f95ba95d6b9a41261569d3))
+* **treatments:** la feuille annonce la prise en plus au lieu d'une dose couverte ([fbf4cd7](https://github.com/GaelleBriet/memo-patte-vue/commit/fbf4cd73800bbc91e9dcc3e13c66daebbf361f43))
+
 ## [0.1.90](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.89...memo-patte-v0.1.90) (2026-10-20)
 
 

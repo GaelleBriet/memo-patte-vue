@@ -185,6 +185,24 @@ describe('renderCarnetPdf — historique d’un traitement', () => {
     ])
   })
 
+  it('écrit la ligne « Doses suivantes décalées » comme la fiche, avec ou sans prochaine dose', () => {
+    const lignes: PdfHistoryLine[] = [
+      { kind: 'moved', dueOn: '2026-10-16', to: '2026-10-19', advanced: false },
+      { kind: 'shift', next: '2026-10-26' },
+      { kind: 'shift', next: null },
+    ]
+    const ecrits = textes(
+      carnet({ treatments: [traitement({ periods: [periode({ lines: lignes })] })] }),
+    )
+    const debut = ecrits.indexOf('Reportée au 19/10/2026 (prévue le 16/10/2026)')
+
+    expect(ecrits.slice(debut, debut + 3)).toEqual([
+      'Reportée au 19/10/2026 (prévue le 16/10/2026)',
+      'Doses suivantes décalées · prochaine le 26/10/2026',
+      'Doses suivantes décalées',
+    ])
+  })
+
   it.each([
     [
       'fr',
