@@ -4,10 +4,11 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import { useAccountDeletion } from '../composables/use-account-deletion'
+import AccountDeletionSummary from './AccountDeletionSummary.vue'
 import GoogleSignInButton from './GoogleSignInButton.vue'
+import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import FormField from '@/shared/form/FormField.vue'
-import { MANAGE_SUBSCRIPTIONS_URL } from '@/shared/utils/google-play'
 import { returnTo } from '@/shared/utils/return-to'
 
 const { t } = useI18n()
@@ -20,6 +21,8 @@ const {
   proceed,
   confirmWithPassword,
   confirmWithGoogle,
+  cancelFinalConfirmation,
+  deleteAccount,
   retry,
   back,
 } = useAccountDeletion()
@@ -28,15 +31,29 @@ const password = ref('')
 
 const isExplaining = computed(() => step.value === 'explain' || step.value === 'final-confirm')
 const isConfirmingIdentity = computed(() => step.value === 'confirm-identity')
+const isDeleted = computed(() => step.value === 'deleted')
 const asksPassword = computed(() => method.value?.kind === 'password')
-const title = computed(() =>
-  isConfirmingIdentity.value
-    ? t('settings.account.delete.identity.title')
-    : t('settings.account.delete.title'),
+const hasActions = computed(
+  () =>
+    isExplaining.value ||
+    (isConfirmingIdentity.value && asksPassword.value) ||
+    step.value === 'failed' ||
+    isDeleted.value,
 )
+const title = computed(() => {
+  if (isConfirmingIdentity.value) return t('settings.account.delete.identity.title')
+  if (isDeleted.value) return t('settings.account.delete.deleted.title')
+  return t('settings.account.delete.title')
+})
 const identityErrorText = computed(() =>
   identityError.value ? t(identityError.value.key, identityError.value.params ?? {}) : null,
 )
+const isFinalConfirmOpen = computed({
+  get: () => step.value === 'final-confirm',
+  set: (open) => {
+    if (!open && step.value === 'final-confirm') cancelFinalConfirmation()
+  },
+})
 
 watch(step, (next) => {
   if (next !== 'confirm-identity') password.value = ''
@@ -46,8 +63,17 @@ function leave(): void {
   returnTo(router, { name: 'settings-account' })
 }
 
+function finish(): void {
+  void router.replace({ name: 'settings' })
+}
+
+function eraseThisPhone(): void {
+  void router.push({ name: 'settings-erase' })
+}
+
 function goBack(): void {
-  if (!back()) leave()
+  if (isDeleted.value) finish()
+  else if (!back()) leave()
 }
 
 async function submitPassword(): Promise<void> {
@@ -59,66 +85,14 @@ async function submitPassword(): Promise<void> {
   <PushedScreen
     class="account-deletion"
     :title="title"
-    :back-label="t('form.back')"
-    :aria-busy="isConfirming"
+    :back-label="isDeleted ? t('settings.account.delete.deleted.close') : t('form.back')"
+    :back-icon="isDeleted ? 'ms:close' : undefined"
+    :back-hidden="step === 'deleting'"
+    :aria-busy="isConfirming || step === 'deleting'"
     @back="goBack"
   >
     <div v-if="isExplaining" class="account-deletion__content">
-      <section class="account-deletion__panel account-deletion__panel--removed">
-        <h2 class="account-deletion__panel-title">
-          {{ t('settings.account.delete.removed.title') }}
-        </h2>
-        <ul class="account-deletion__list">
-          <li class="account-deletion__item">
-            <v-icon icon="ms:do_not_disturb_on" size="20" aria-hidden="true" />
-            <span>{{ t('settings.account.delete.removed.account') }}</span>
-          </li>
-          <li class="account-deletion__item">
-            <v-icon icon="ms:do_not_disturb_on" size="20" aria-hidden="true" />
-            <span>{{ t('settings.account.delete.removed.backup') }}</span>
-          </li>
-          <li class="account-deletion__item">
-            <v-icon icon="ms:do_not_disturb_on" size="20" aria-hidden="true" />
-            <span>{{ t('settings.account.delete.removed.photos') }}</span>
-          </li>
-          <li class="account-deletion__item">
-            <v-icon icon="ms:do_not_disturb_on" size="20" aria-hidden="true" />
-            <span>{{ t('settings.account.delete.removed.usage') }}</span>
-          </li>
-        </ul>
-      </section>
-
-      <section class="account-deletion__panel account-deletion__panel--kept">
-        <h2 class="account-deletion__panel-title">
-          {{ t('settings.account.delete.kept.title') }}
-        </h2>
-        <ul class="account-deletion__list">
-          <li class="account-deletion__item">
-            <v-icon icon="ms:check_circle" size="20" aria-hidden="true" />
-            <span>{{ t('settings.account.delete.kept.carnet') }}</span>
-          </li>
-          <li class="account-deletion__item">
-            <v-icon icon="ms:check_circle" size="20" aria-hidden="true" />
-            <span>{{ t('settings.account.delete.kept.purchases') }}</span>
-          </li>
-        </ul>
-      </section>
-
-      <div class="account-deletion__subscription">
-        <v-icon icon="ms:storefront" size="20" aria-hidden="true" />
-        <div class="account-deletion__subscription-text">
-          <p>{{ t('settings.account.delete.subscription') }}</p>
-          <a
-            class="account-deletion__manage"
-            :href="MANAGE_SUBSCRIPTIONS_URL"
-            target="_blank"
-            rel="noopener"
-          >
-            <span>{{ t('plus.terms.manage') }}</span>
-            <v-icon icon="ms:open_in_new" size="16" aria-hidden="true" />
-          </a>
-        </div>
-      </div>
+      <AccountDeletionSummary />
     </div>
 
     <div v-else-if="isConfirmingIdentity" class="account-deletion__content">
@@ -171,6 +145,39 @@ async function submitPassword(): Promise<void> {
       </template>
     </div>
 
+    <div v-else-if="step === 'deleting'" class="account-deletion__status" role="status">
+      <span class="account-deletion__status-icon account-deletion__status-icon--progress">
+        <v-progress-circular indeterminate color="primary" :size="34" :width="3" />
+      </span>
+      <h2 class="account-deletion__status-title">
+        {{ t('settings.account.delete.deleting.title') }}
+      </h2>
+      <p class="account-deletion__status-body">{{ t('settings.account.delete.deleting.body') }}</p>
+    </div>
+
+    <div v-else-if="isDeleted" class="account-deletion__status" role="status">
+      <span class="account-deletion__status-icon account-deletion__status-icon--done">
+        <v-icon icon="ms:check_circle" size="40" aria-hidden="true" />
+      </span>
+      <h2 class="account-deletion__status-title">
+        {{ t('settings.account.delete.deleted.title') }}
+      </h2>
+      <p class="account-deletion__status-body">{{ t('settings.account.delete.deleted.body') }}</p>
+      <p class="account-deletion__erase-note">
+        <v-icon icon="ms:delete_forever" size="20" aria-hidden="true" />
+        <span>{{ t('settings.account.delete.deleted.erase') }}</span>
+      </p>
+      <v-btn
+        class="account-deletion__erase"
+        variant="outlined"
+        color="error"
+        block
+        @click="eraseThisPhone"
+      >
+        {{ t('settings.account.delete.deleted.eraseAction') }}
+      </v-btn>
+    </div>
+
     <div v-else-if="step === 'failed'" class="account-deletion__status" role="alert">
       <span class="account-deletion__status-icon account-deletion__status-icon--failed">
         <v-icon icon="ms:error" size="36" aria-hidden="true" />
@@ -181,11 +188,13 @@ async function submitPassword(): Promise<void> {
       <p class="account-deletion__status-body">{{ t('settings.account.delete.failed.body') }}</p>
     </div>
 
-    <template
-      v-if="isExplaining || (isConfirmingIdentity && asksPassword) || step === 'failed'"
-      #actions
-    >
-      <div class="account-deletion__actions">
+    <template v-if="hasActions" #actions>
+      <div v-if="isDeleted" class="account-deletion__actions">
+        <v-btn class="account-deletion__done" variant="text" color="primary" block @click="finish">
+          {{ t('settings.account.delete.deleted.done') }}
+        </v-btn>
+      </div>
+      <div v-else class="account-deletion__actions">
         <v-btn
           v-if="isExplaining"
           class="account-deletion__continue account-deletion__primary"
@@ -202,6 +211,7 @@ async function submitPassword(): Promise<void> {
           variant="flat"
           color="primary"
           block
+          :aria-label="t('settings.account.delete.identity.confirmLabel')"
           :disabled="password === ''"
           :loading="isConfirming"
           @click="submitPassword"
@@ -224,6 +234,17 @@ async function submitPassword(): Promise<void> {
       </div>
     </template>
   </PushedScreen>
+
+  <ConfirmDialog
+    v-model="isFinalConfirmOpen"
+    :title="t('settings.account.delete.finalConfirm.title')"
+    :text="t('settings.account.delete.finalConfirm.text')"
+    :note="t('settings.account.delete.finalConfirm.subscription')"
+    :cancel-label="t('settings.account.delete.cancel')"
+    :confirm-label="t('settings.account.delete.finalConfirm.delete')"
+    :confirm-aria-label="t('settings.account.delete.finalConfirm.deleteLabel')"
+    @confirm="deleteAccount"
+  />
 </template>
 
 <style scoped lang="scss">
@@ -235,86 +256,6 @@ async function submitPassword(): Promise<void> {
   flex-direction: column;
   gap: 14px;
   padding: 20px tokens.$padding-section-inline 32px;
-}
-
-.account-deletion__panel {
-  padding: 16px;
-  border: 1px solid tokens.$color-card-border;
-  border-radius: tokens.$radius-notice;
-  background: rgb(var(--v-theme-surface));
-}
-
-.account-deletion__panel-title {
-  margin: 0 0 10px;
-  font-size: 13.5px;
-  font-weight: 700;
-}
-
-.account-deletion__panel--removed {
-  .account-deletion__panel-title,
-  .v-icon {
-    color: rgb(var(--v-theme-error));
-  }
-}
-
-.account-deletion__panel--kept {
-  .account-deletion__panel-title,
-  .v-icon {
-    color: rgb(var(--v-theme-primary));
-  }
-}
-
-.account-deletion__list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.account-deletion__item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  font-size: 14.5px;
-  font-weight: 600;
-  line-height: 1.4;
-
-  .v-icon {
-    flex: 0 0 auto;
-    margin-top: 1px;
-  }
-}
-
-.account-deletion__subscription {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 14px 16px;
-  border-radius: tokens.$radius-notice;
-  background: tokens.$color-account-deletion-notice-surface;
-  font-size: 13.5px;
-  line-height: 1.45;
-
-  > .v-icon {
-    flex: 0 0 auto;
-    color: tokens.$color-text-secondary;
-  }
-
-  p {
-    margin: 0;
-  }
-}
-
-.account-deletion__manage {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-height: tokens.$size-tap-target;
-  color: rgb(var(--v-theme-primary));
-  font-weight: 700;
-  text-decoration: none;
 }
 
 .account-deletion__intro {
@@ -365,6 +306,51 @@ async function submitPassword(): Promise<void> {
   height: 88px;
   margin-bottom: 24px;
   border-radius: 50%;
+}
+
+.account-deletion__status-icon--progress,
+.account-deletion__status-icon--done {
+  background: tokens.$color-notice-surface;
+  color: rgb(var(--v-theme-primary));
+}
+
+.account-deletion__erase-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  margin: 28px 0 0;
+  padding: 12px 16px;
+  border: 1px solid tokens.$color-card-border;
+  border-radius: tokens.$radius-notice;
+  background: rgb(var(--v-theme-surface));
+  font-size: 13.5px;
+  line-height: 1.45;
+  text-align: start;
+
+  > .v-icon {
+    flex: 0 0 auto;
+    color: rgb(var(--v-theme-primary));
+  }
+}
+
+.account-deletion__erase {
+  height: 52px;
+  margin-top: 16px;
+  border-width: 1.5px;
+  border-radius: tokens.$radius-pill;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.account-deletion__done {
+  height: 52px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 .account-deletion__status-icon--failed {

@@ -1254,12 +1254,32 @@
           "confirm": "Confirmer",
           "google": "Se reconnecter avec Google",
           "wrongPassword": "Mot de passe incorrect. Réessaie.",
-          "otherGoogleAccount": "Ce n’est pas le compte Google de ce carnet. Choisis {email}."
+          "otherGoogleAccount": "Ce n’est pas le compte Google de ce carnet. Choisis {email}.",
+          "confirmLabel": "Confirmer mon mot de passe"
         },
         "failed": {
           "title": "La suppression a échoué",
           "body": "La suppression n’a pas abouti. Tes données restent sur ce téléphone ; réessaie.",
           "retry": "Réessayer"
+        },
+        "finalConfirm": {
+          "title": "Supprimer définitivement ton compte ?",
+          "text": "Ton compte, ta sauvegarde cloud et tes photos sauvegardées seront supprimés. Impossible de revenir en arrière.",
+          "subscription": "Ton abonnement Google Play continue tant que tu ne le résilies pas dans Google Play.",
+          "delete": "Supprimer",
+          "deleteLabel": "Supprimer définitivement mon compte"
+        },
+        "deleting": {
+          "title": "Suppression en cours…",
+          "body": "Garde l’app ouverte quelques secondes."
+        },
+        "deleted": {
+          "title": "Compte supprimé",
+          "body": "Ton carnet est toujours sur ce téléphone.",
+          "erase": "Effacer aussi les données de ce téléphone ? Animaux, traitements, vaccins, poids et photos. Confirmation séparée.",
+          "eraseAction": "Effacer aussi les données de ce téléphone",
+          "done": "Terminé",
+          "close": "Fermer"
         }
       }
     },

@@ -11,8 +11,10 @@ withDefaults(
     subtitleTone?: 'hint' | 'secondary'
     /** L'écran ne se quitte pas tant qu'il travaille : pas de flèche de retour. */
     backHidden?: boolean
+    /** Une croix ferme un écran de fin de parcours. */
+    backIcon?: string
   }>(),
-  { subtitle: null, subtitleTone: 'hint', backHidden: false },
+  { subtitle: null, subtitleTone: 'hint', backHidden: false, backIcon: 'ms:arrow_back' },
 )
 
 const emit = defineEmits<{
@@ -72,7 +74,7 @@ onBeforeUnmount(() => {
             class="pushed-screen__back"
             :class="{ 'pushed-screen__back--hidden': backHidden }"
             :disabled="backHidden"
-            icon="ms:arrow_back"
+            :icon="backIcon"
             variant="text"
             color="primary"
             :aria-label="backLabel"

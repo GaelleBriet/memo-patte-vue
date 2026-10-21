@@ -1254,12 +1254,32 @@
           "confirm": "Confirm",
           "google": "Sign in again with Google",
           "wrongPassword": "Incorrect password. Try again.",
-          "otherGoogleAccount": "This isn’t the Google account for this record. Choose {email}."
+          "otherGoogleAccount": "This isn’t the Google account for this record. Choose {email}.",
+          "confirmLabel": "Confirm my password"
         },
         "failed": {
           "title": "Deletion failed",
           "body": "Deletion did not complete. Your data is still on this phone; try again.",
           "retry": "Try again"
+        },
+        "finalConfirm": {
+          "title": "Permanently delete your account?",
+          "text": "Your account, your cloud backup and your backed-up photos will be deleted. This can’t be undone.",
+          "subscription": "Your Google Play subscription continues until you cancel it in Google Play.",
+          "delete": "Delete",
+          "deleteLabel": "Permanently delete my account"
+        },
+        "deleting": {
+          "title": "Deleting…",
+          "body": "Keep the app open for a few seconds."
+        },
+        "deleted": {
+          "title": "Account deleted",
+          "body": "Your health record is still on this phone.",
+          "erase": "Also erase this phone’s data? Pets, treatments, vaccines, weights and photos. Separate confirmation.",
+          "eraseAction": "Also erase this phone’s data",
+          "done": "Done",
+          "close": "Close"
         }
       }
     },

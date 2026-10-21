@@ -90,22 +90,24 @@ describe('AccountDeletionView — ce qui change (D1)', () => {
     const wrapper = await monter()
 
     expect(wrapper.get('.pushed-screen__title').text()).toBe('Supprimer mon compte')
-    expect(wrapper.get('.account-deletion__panel--removed').text()).toContain('Ce qui est supprimé')
+    expect(wrapper.get('.account-deletion-summary__panel--removed').text()).toContain(
+      'Ce qui est supprimé',
+    )
     expect(
-      wrapper.findAll('.account-deletion__panel--removed li').map((item) => item.text()),
+      wrapper.findAll('.account-deletion-summary__panel--removed li').map((item) => item.text()),
     ).toEqual([
       'Ton compte et ton adresse e-mail',
       'Ta sauvegarde cloud (tes animaux et leur carnet)',
       'Tes photos sauvegardées',
       'Tes données d’usage associées au compte',
     ])
-    expect(wrapper.findAll('.account-deletion__panel--kept li').map((item) => item.text())).toEqual(
-      ['Le carnet sur ce téléphone', 'L’historique d’achat chez Google Play'],
-    )
-    expect(wrapper.get('.account-deletion__subscription').text()).toContain(
+    expect(
+      wrapper.findAll('.account-deletion-summary__panel--kept li').map((item) => item.text()),
+    ).toEqual(['Le carnet sur ce téléphone', 'L’historique d’achat chez Google Play'])
+    expect(wrapper.get('.account-deletion-summary__subscription').text()).toContain(
       'Supprimer ton compte ne résilie pas ton abonnement Google Play.',
     )
-    const link = wrapper.get('.account-deletion__manage')
+    const link = wrapper.get('.account-deletion-summary__manage')
     expect(link.text()).toBe('Gérer mon abonnement · Google Play')
     expect(link.attributes('href')).toBe(MANAGE_SUBSCRIPTIONS_URL)
   })
@@ -161,7 +163,7 @@ describe('AccountDeletionView — confirmer son identité (D2)', () => {
     const wrapper = await jusquaLIdentite()
 
     await toucher('.pushed-screen__back')
-    expect(wrapper.find('.account-deletion__panel--removed').exists()).toBe(true)
+    expect(wrapper.find('.account-deletion-summary__panel--removed').exists()).toBe(true)
     expect(replace).not.toHaveBeenCalled()
 
     await toucher('.account-deletion__continue')
@@ -232,5 +234,110 @@ it('construit le service avec l’oubli du compte par le store', async () => {
 
   expect(vi.mocked(createAccountDeletionService)).toHaveBeenCalledWith({
     forgetAccountOnDevice: expect.any(Function),
+  })
+})
+
+async function jusquaLaConfirmationFinale() {
+  const wrapper = await jusquaLIdentite()
+  await wrapper.get('#account-deletion-password').setValue('secret-123')
+  await toucher('.account-deletion__confirm')
+  return wrapper
+}
+
+function dialogue(): HTMLElement | null {
+  return document.body.querySelector<HTMLElement>('.confirm-dialog.v-overlay--active')
+}
+
+async function toucherDansLeDialogue(selecteur: string) {
+  dialogue()!.querySelector<HTMLElement>(selecteur)!.click()
+  await flushPromises()
+}
+
+describe('AccountDeletionView — confirmation finale (D3)', () => {
+  it('nomme le bouton de D2 « Confirmer mon mot de passe »', async () => {
+    const wrapper = await jusquaLIdentite()
+
+    expect(wrapper.get('.account-deletion__confirm').attributes('aria-label')).toBe(
+      'Confirmer mon mot de passe',
+    )
+  })
+
+  it('demande une dernière fois, et prévient que l’abonnement Google Play continue', async () => {
+    const wrapper = await jusquaLaConfirmationFinale()
+
+    expect(wrapper.find('.account-deletion-summary__panel--removed').exists()).toBe(true)
+    expect(dialogue()!.querySelector('.confirm-dialog__title')!.textContent).toBe(
+      'Supprimer définitivement ton compte ?',
+    )
+    expect(dialogue()!.querySelector('.confirm-dialog__text')!.textContent).toBe(
+      'Ton compte, ta sauvegarde cloud et tes photos sauvegardées seront supprimés. Impossible de revenir en arrière.',
+    )
+    expect(dialogue()!.querySelector('.confirm-dialog__note')!.textContent).toBe(
+      'Ton abonnement Google Play continue tant que tu ne le résilies pas dans Google Play.',
+    )
+    const supprimer = dialogue()!.querySelector<HTMLElement>('.confirm-dialog__confirm')!
+    expect(supprimer.textContent!.trim()).toBe('Supprimer')
+    expect(supprimer.getAttribute('aria-label')).toBe('Supprimer définitivement mon compte')
+  })
+
+  it('Annuler revient à ce qui change (D1) sans rien supprimer', async () => {
+    const wrapper = await jusquaLaConfirmationFinale()
+
+    await toucherDansLeDialogue('.confirm-dialog__cancel')
+
+    expect(fake.deleteAccount).not.toHaveBeenCalled()
+    expect(dialogue()).toBeNull()
+    expect(wrapper.find('.account-deletion__continue').exists()).toBe(true)
+  })
+})
+
+describe('AccountDeletionView — suppression (D4, D5)', () => {
+  it('montre « Suppression en cours… » sans flèche de retour, puis « Compte supprimé »', async () => {
+    let terminer: () => void = () => {}
+    fake.deleteAccount.mockImplementationOnce(() => new Promise<void>((done) => (terminer = done)))
+    const wrapper = await jusquaLaConfirmationFinale()
+
+    await toucherDansLeDialogue('.confirm-dialog__confirm')
+
+    expect(wrapper.get('.account-deletion__status-title').text()).toBe('Suppression en cours…')
+    expect(wrapper.get('.account-deletion__status-body').text()).toBe(
+      'Garde l’app ouverte quelques secondes.',
+    )
+    expect(wrapper.get('.pushed-screen__back').attributes('disabled')).toBeDefined()
+
+    terminer()
+    await flushPromises()
+
+    expect(wrapper.get('.pushed-screen__title').text()).toBe('Compte supprimé')
+    expect(wrapper.get('.account-deletion__status-title').text()).toBe('Compte supprimé')
+    expect(wrapper.get('.account-deletion__status-body').text()).toBe(
+      'Ton carnet est toujours sur ce téléphone.',
+    )
+    expect(wrapper.get('.account-deletion__erase-note').text()).toBe(
+      'Effacer aussi les données de ce téléphone ? Animaux, traitements, vaccins, poids et photos. Confirmation séparée.',
+    )
+    expect(wrapper.get('.pushed-screen__back').attributes('aria-label')).toBe('Fermer')
+  })
+
+  it('Terminé et la croix reviennent à la liste des Paramètres, en remplaçant l’écran', async () => {
+    await jusquaLaConfirmationFinale()
+    await toucherDansLeDialogue('.confirm-dialog__confirm')
+
+    await toucher('.account-deletion__done')
+    expect(replace).toHaveBeenLastCalledWith({ name: 'settings' })
+
+    replace.mockClear()
+    await toucher('.pushed-screen__back')
+    expect(replace).toHaveBeenLastCalledWith({ name: 'settings' })
+  })
+
+  it('« Effacer aussi les données de ce téléphone » ouvre l’écran d’effacement', async () => {
+    const push = vi.spyOn(router, 'push').mockResolvedValue()
+    await jusquaLaConfirmationFinale()
+    await toucherDansLeDialogue('.confirm-dialog__confirm')
+
+    await toucher('.account-deletion__erase')
+
+    expect(push).toHaveBeenCalledWith({ name: 'settings-erase' })
   })
 })
