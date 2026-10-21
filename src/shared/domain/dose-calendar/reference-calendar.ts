@@ -64,7 +64,7 @@ export function calendarOf(
 
   const days = new Map<string, Journey>()
   const chosenOf = (report: ReferenceLine) => chosenDateOf(report, live, settingOf)
-  const { translated, journeyOn } = touchedJourneys(
+  const { translated, answered, journeyOn } = touchedJourneys(
     [...notes, ...reports],
     live,
     settingOf,
@@ -263,6 +263,7 @@ export function calendarOf(
     chosenRestarts,
     openings,
     translated,
+    answered,
     live,
     settingOf,
     settingAt,
