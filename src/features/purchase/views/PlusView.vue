@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import type { PaidPlan, PlusOffer } from '../service/billing.service'
-import { MANAGE_SUBSCRIPTIONS_URL } from '../logic/google-play'
+import { MANAGE_SUBSCRIPTIONS_URL } from '@/shared/utils/google-play'
 import {
   checkoutBar,
   orderedOffers,
