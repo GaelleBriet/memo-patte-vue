@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
+import { googleCredentials } from '@/core/google-sign-in/google-credentials'
 import { identify, reset as resetAnalytics } from '@/core/analytics'
 import { errorSummary } from '@/shared/utils/error-summary'
 
@@ -121,6 +122,7 @@ export const useAuthStore = defineStore('auth', () => {
       clearSignedOutAccountState()
       sessionState.value = 'none'
       resetAnalytics()
+      await googleCredentials.signOut()
     },
   }
 })

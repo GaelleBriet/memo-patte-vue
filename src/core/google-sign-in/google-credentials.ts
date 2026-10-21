@@ -19,6 +19,8 @@ export class GoogleCredentialError extends Error {
 export type GoogleCredentials = {
   /** `hashedNonce` : l'empreinte SHA-256 du nonce que Supabase recevra en clair. */
   request(hashedNonce: string): Promise<GoogleCredential>
+  /** Ne lève jamais : un échec ne doit pas retenir la déconnexion de MémoPatte. */
+  signOut(): Promise<void>
 }
 
 export type GoogleCredentialsDependencies = {
@@ -76,6 +78,15 @@ export function createGoogleCredentials({
         const code = codeOf(cause)
         if (code === CANCELLED_CODE) return { kind: 'cancelled' }
         throw new GoogleCredentialError((code && FAILURES_BY_CODE[code]) || 'failed', { cause })
+      }
+    },
+
+    async signOut() {
+      if (!clientId || !isNativePlatform()) return
+      try {
+        await (await ready(clientId)).signOut()
+      } catch {
+        return
       }
     },
   }

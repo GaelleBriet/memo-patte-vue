@@ -143,4 +143,33 @@ describe('createGoogleCredentials', () => {
     await expect(failure(google.request(HASHED_NONCE))).resolves.toBe('unavailable')
     expect(loadPlugin).not.toHaveBeenCalled()
   })
+
+  describe('signOut', () => {
+    it('demande à Android d’oublier le compte Google', async () => {
+      const { google, plugin } = credentials()
+
+      await google.signOut()
+
+      expect(plugin.initialize).toHaveBeenCalledWith({ clientId: CLIENT_ID })
+      expect(plugin.signOut).toHaveBeenCalledOnce()
+    })
+
+    it.each([
+      ['hors du téléphone', { native: false }],
+      ['sans identifiant client Web', { clientId: undefined }],
+    ])('ne charge pas le plugin %s', async (_case, options) => {
+      const { google, loadPlugin } = credentials(fakePlugin(), options)
+
+      await google.signOut()
+
+      expect(loadPlugin).not.toHaveBeenCalled()
+    })
+
+    it('ne bloque pas la déconnexion quand le plugin échoue', async () => {
+      const { google, plugin } = credentials()
+      plugin.signOut.mockRejectedValue(pluginError(undefined))
+
+      await expect(google.signOut()).resolves.toBeUndefined()
+    })
+  })
 })
