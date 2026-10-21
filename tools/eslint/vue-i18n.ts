@@ -61,6 +61,7 @@ const DYNAMIC_I18N_KEYS = [
   '/^plus\\.nudge\\.(firstPhoto|carnetValue|firstExport)\\.(title|body)$/',
   '/^plus\\.(success|cancelled|failed)\\.(title|body)$/',
   '/^auth\\.form\\.errors\\.(emailRequired|emailInvalid|passwordRequired|passwordTooShort)$/',
+  '/^settings\\.account\\.delete\\.identity\\.(wrongPassword|otherGoogleAccount)$/',
   '/^auth\\.errors\\.(emailTaken|invalidCredentials|weakPassword|emailNotConfirmed|offline|noGoogleAccount|googleUnavailable|unknown)$/',
 ]
 

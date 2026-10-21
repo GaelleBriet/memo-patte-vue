@@ -49,4 +49,15 @@ describe('AccountSettingsView', () => {
 
     expect(replace).toHaveBeenCalledWith({ name: 'settings' })
   })
+
+  it('propose « Supprimer mon compte », qui ouvre le parcours de suppression', async () => {
+    const push = vi.spyOn(router, 'push').mockResolvedValue()
+    const wrapper = await monter()
+
+    const entry = wrapper.get('.settings-row--delete-account')
+    expect(entry.text()).toBe('Supprimer mon compte')
+    await entry.trigger('click')
+
+    expect(push).toHaveBeenCalledWith({ name: 'settings-account-delete' })
+  })
 })
