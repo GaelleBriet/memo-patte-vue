@@ -257,15 +257,19 @@ describe('createAccountDeletionRepository', () => {
       ])
     })
 
-    it.each([401, 403])(
-      'demande de confirmer de nouveau son identité quand le serveur refuse (%i)',
-      async (status) => {
-        storeSession(sessionBody())
-        server.on(FUNCTION_ROUTE, () => json(status, { error: 'unauthorized' }))
+    it('demande de confirmer de nouveau son identité quand le serveur la juge trop ancienne (401)', async () => {
+      storeSession(sessionBody())
+      server.on(FUNCTION_ROUTE, () => json(401, { error: 'unauthorized' }))
 
-        expect(await deletionReasonOf(repository.deleteAccount())).toBe('identity-expired')
-      },
-    )
+      expect(await deletionReasonOf(repository.deleteAccount())).toBe('identity-expired')
+    })
+
+    it('signale un échec quand le serveur refuse le compte (403)', async () => {
+      storeSession(sessionBody())
+      server.on(FUNCTION_ROUTE, () => json(403, { error: 'forbidden' }))
+
+      expect(await deletionReasonOf(repository.deleteAccount())).toBe('failed')
+    })
 
     it('signale un échec quand la suppression n’aboutit pas côté serveur', async () => {
       storeSession(sessionBody())
