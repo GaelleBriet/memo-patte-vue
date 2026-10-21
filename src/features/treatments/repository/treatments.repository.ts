@@ -21,50 +21,30 @@ import {
 import {
   treatmentNameSchema,
   treatmentTypeSchema,
-  type FrequencyUnit,
   type Treatment,
-  type TreatmentType,
 } from '../schema/treatment.schema'
-import type { TreatmentRecord, TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
+import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type {
   NewTreatmentPlan,
   PlannedDoseWrite,
   TreatmentPlanWrite,
 } from '../schema/treatment-plan.schema'
+import {
+  COLUMNS,
+  NOT_DELETED,
+  toRecord,
+  toStampedRecord,
+  toTreatment,
+  type StampedTreatmentRecord,
+  type TreatmentRow,
+  type TreatmentWithPeriodRow,
+} from './treatment-row.repository'
 import type { Stamped } from '@/shared/domain/carnet-data'
 import { groupBy } from '@/shared/utils/group-by'
 
-interface TreatmentRow {
-  id: string
-  animal_id: string
-  name: string
-  type: TreatmentType
-  created_at: string
-  updated_at: string
-  deleted_at: string | null
-  created_by_device: string
-  updated_by_device: string
-}
-
-interface TreatmentWithPeriodRow extends Omit<
-  TreatmentRow,
-  'created_by_device' | 'updated_by_device'
-> {
-  period_id: string
-  frequency_value: number
-  frequency_unit: FrequencyUnit
-  stopped_on: string | null
-}
-
+export type { StampedTreatmentRecord } from './treatment-row.repository'
 export type TreatmentVersion = Pick<Treatment, 'id' | 'animalId' | 'updatedAt' | 'deletedAt'>
-export type StampedTreatmentRecord = Stamped<TreatmentRecord>
 export type RestoredTreatment = StampedTreatmentRecord
-
-const COLUMNS =
-  'id, animal_id, name, type, created_at, updated_at, deleted_at, created_by_device, updated_by_device'
-
-/** Les traitements supprimés restent en base pour la synchronisation, jamais pour l'UI. */
-const NOT_DELETED = 'deleted_at IS NULL'
 
 /** Le traitement est daté de la modification la plus récente entre lui et sa période en cours. */
 const VISIBLE_WITH_PERIOD = `
@@ -75,25 +55,6 @@ const VISIBLE_WITH_PERIOD = `
   FROM treatment
   JOIN treatment_period period ON period.id = ${currentPeriodIdSql('treatment.id')}
   WHERE treatment.deleted_at IS NULL`
-
-function toRecord(row: TreatmentRow): TreatmentRecord {
-  return {
-    id: row.id,
-    animalId: row.animal_id,
-    name: row.name,
-    type: row.type,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  }
-}
-
-function toStampedRecord(row: TreatmentRow): StampedTreatmentRecord {
-  return {
-    ...toRecord(row),
-    createdByDevice: row.created_by_device,
-    updatedByDevice: row.updated_by_device,
-  }
-}
 
 /** Sans période visible, un traitement ne se lit pas ; les prises d'une période supprimée non plus. */
 function withPeriods(
@@ -116,21 +77,6 @@ function withPeriods(
       },
     ]
   })
-}
-
-function toTreatment(row: TreatmentWithPeriodRow): Treatment {
-  return {
-    id: row.id,
-    animalId: row.animal_id,
-    name: row.name,
-    type: row.type,
-    periodId: row.period_id,
-    frequency: { value: row.frequency_value, unit: row.frequency_unit },
-    stoppedOn: row.stopped_on,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    deletedAt: row.deleted_at,
-  }
 }
 
 export interface TreatmentsRepositoryDependencies {
