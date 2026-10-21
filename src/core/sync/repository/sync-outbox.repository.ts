@@ -77,10 +77,14 @@ export function createSyncOutboxRepository(db: DbClient) {
       await db.run('UPDATE sync_state SET enabled = ? WHERE id = 1', [enabled ? 1 : 0])
     },
 
-    /** Lignes supprimées comprises ; une entrée déjà en file garde son `queued_at` et ses essais. */
+    /**
+     * Lignes supprimées comprises ; une entrée déjà en file garde son `queued_at` et ses essais.
+     * Le pull suivant repart du début : il ramène tout le carnet du compte.
+     */
     async enableAndQueueWholeCarnet(): Promise<void> {
       await db.runMany([
         { sql: 'UPDATE sync_state SET enabled = 1 WHERE id = 1' },
+        { sql: 'DELETE FROM sync_pull_cursor' },
         ...SYNC_ENTITY_ORDER.map(queueWholeTable),
       ])
     },

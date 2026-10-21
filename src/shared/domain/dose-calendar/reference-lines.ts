@@ -87,12 +87,15 @@ export function touchedJourneys(
     if (chosen !== undefined) touch(line.targetOn!, line, chosen)
   }
   const translated = translatedDaysOf(live, (day) => latest.get(day)?.hoursOf)
+  const answered = new Set(
+    [...latest].filter(([, { line }]) => line.status === 'not-due').map(([day]) => day),
+  )
   const journeyOn = (day: string, setting: ReferenceSetting) => {
     const touched = latest.get(day)?.hoursOf ?? setting
     const own = translated.has(day) || sameHours(touched, setting) ? setting : touched
     return { setting: own, hours: hoursOf(own) }
   }
-  return { translated, journeyOn }
+  return { translated, answered, journeyOn }
 }
 
 // TR-25, R11 : par échéance et famille, la ligne la plus récente d'un épisode, quel que soit son

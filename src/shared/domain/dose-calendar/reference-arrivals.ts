@@ -18,6 +18,8 @@ export type ArrivalContext = {
   chosenRestarts: ReadonlyMap<string, string>
   openings: Set<string>
   translated: ReadonlySet<string>
+  /** #983 : jours dont la ligne la plus récente est « pas à donner ». */
+  answered: ReadonlySet<string>
   live: readonly ReferenceSetting[]
   settingOf: (id: string) => ReferenceSetting
   settingAt: (day: string) => ReferenceSetting | undefined
@@ -156,6 +158,7 @@ export function arriveReports(context: ArrivalContext) {
       day: read ?? { setting: from, hours },
       covered,
       hoursChangeThatDay: translated.has(dueOn),
+      answeredThatDay: context.answered.has(dueOn),
       inForce: settingAt(dueOn),
       hoursChangedSince: hoursChangedSince(live, written, dueOn),
       itsHours: itsDay.hours,
