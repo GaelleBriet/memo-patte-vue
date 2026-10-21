@@ -1,4 +1,4 @@
-import { readonly, shallowRef, type Ref } from 'vue'
+import { readonly, shallowRef, watch, type Ref } from 'vue'
 
 import type { RestoreMode } from '../repository/sync-outbox.repository'
 import type { AccountRestore, RestoreProgress } from './account-restore'
@@ -6,6 +6,7 @@ import type { BackupSummary } from './backup-summary'
 
 export type RestoreFlowState =
   | { step: 'idle' }
+  | { step: 'checking' }
   | { step: 'choice'; summary: BackupSummary }
   | { step: 'restoring'; progress: RestoreProgress }
   | { step: 'waiting-network' }
@@ -45,6 +46,27 @@ export function createRestoreFlow(runner: RestoreRunner) {
 
   return {
     state: readonly(state) as Readonly<Ref<RestoreFlowState>>,
+
+    /** Sans effet sur un écran déjà affiché : il garde son message jusqu'à la réponse. */
+    checking(): void {
+      if (state.value.step === 'idle') state.value = { step: 'checking' }
+    },
+
+    /** Ce que le contrôle de la sauvegarde a trouvé, dès qu'il a répondu. */
+    whenChecked(): Promise<RestoreFlowState> {
+      if (state.value.step !== 'checking') return Promise.resolve(state.value)
+      return new Promise((resolve) => {
+        const stop = watch(
+          state,
+          (current) => {
+            if (current.step === 'checking') return
+            stop()
+            resolve(current)
+          },
+          { flush: 'sync' },
+        )
+      })
+    },
 
     offer(summary: BackupSummary): void {
       state.value = { step: 'choice', summary }

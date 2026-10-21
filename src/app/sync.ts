@@ -35,7 +35,10 @@ export interface SyncDependencies {
   userId: () => string | null
   sessionActive: () => boolean
   checkAccountBackup: () => Promise<AccountBackupCheck>
-  restoreFlow: Pick<RestoreFlow, 'offer' | 'unreachable' | 'reset' | 'resume' | 'onRestored'>
+  restoreFlow: Pick<
+    RestoreFlow,
+    'checking' | 'offer' | 'unreachable' | 'reset' | 'resume' | 'onRestored'
+  >
 }
 
 /**
@@ -83,6 +86,7 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
     const userId = deps.userId()
     if (!deps.sessionActive() || userId === null || checkedFor === userId) return
     checkedFor = userId
+    deps.restoreFlow.checking()
     enqueue(checkBackup)
   }
 

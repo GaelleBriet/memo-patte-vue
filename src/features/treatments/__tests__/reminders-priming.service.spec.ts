@@ -194,7 +194,7 @@ describe('promptNotificationsIfReminders', () => {
   let listAll: ReturnType<typeof vi.fn<() => Promise<Vaccination[]>>>
   let isNativePlatform: boolean
 
-  function prompt(from: string) {
+  function prompt(from: string, options?: { ready?: boolean }) {
     return createRemindersPriming({
       isNativePlatform: () => isNativePlatform,
       shouldShowPriming,
@@ -202,7 +202,7 @@ describe('promptNotificationsIfReminders', () => {
       vaccinations: () => ({ listAll }),
       treatments: () => ({ listAllWithPeriods: async () => treatments }),
       today: () => TODAY,
-    })(router, from)
+    })(router, from, options)
   }
 
   beforeEach(async () => {
@@ -224,6 +224,12 @@ describe('promptNotificationsIfReminders', () => {
 
     expect(router.currentRoute.value.name).toBe('notifications-priming')
     expect(router.currentRoute.value.query).toEqual({ from: 'home' })
+  })
+
+  it('après un import ou une restauration, ouvre la variante « Ton carnet est prêt »', async () => {
+    expect(await prompt('home', { ready: true })).toBe(true)
+
+    expect(router.currentRoute.value.query).toEqual({ from: 'home', ready: '1' })
   })
 
   it('ne propose rien dans le navigateur, sans rien demander ni lire', async () => {

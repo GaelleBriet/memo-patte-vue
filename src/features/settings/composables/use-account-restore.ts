@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { backupSummaryText, restoreProgressText } from '../logic/backup-summary-text'
 import { onBackButton } from '@/core/app-lifecycle/back-button'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
+import { promptNotificationsIfReminders } from '@/core/notifications/reminders-priming'
 import type { RestoreMode } from '@/core/sync/repository/sync-outbox.repository'
 import {
   currentRestoreFlow,
@@ -18,7 +19,8 @@ const IDLE: RestoreFlowState = { step: 'idle' }
 
 /**
  * « Restaurer mon carnet » : « Fusionner » part tout de suite, « Remplacer » après confirmation ;
- * l'écran reste affiché pendant la restauration, puis ouvre l'accueil.
+ * l'écran reste affiché pendant la restauration, puis ouvre l'accueil, ou « Ton carnet est prêt »
+ * si l'autorisation des notifications n'a jamais été demandée.
  */
 export function useAccountRestore(flow: () => RestoreFlow | null = currentRestoreFlow) {
   const { t } = useI18n()
@@ -50,7 +52,7 @@ export function useAccountRestore(flow: () => RestoreFlow | null = currentRestor
     (step) => {
       holdBackWhile(step === 'restoring')
       if (step === 'idle') leave()
-      else if (step === 'done') void router.replace({ name: 'home' })
+      else if (step === 'done') void openReadyCarnet()
     },
     { immediate: true },
   )
@@ -65,6 +67,11 @@ export function useAccountRestore(flow: () => RestoreFlow | null = currentRestor
 
   function leave(): void {
     returnTo(router, origin)
+  }
+
+  async function openReadyCarnet(): Promise<void> {
+    await router.replace({ name: 'home' })
+    await promptNotificationsIfReminders(router, 'home', { ready: true })
   }
 
   function later(): void {

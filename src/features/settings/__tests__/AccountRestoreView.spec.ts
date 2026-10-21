@@ -16,6 +16,13 @@ import vuetify from '@/core/theme/vuetify'
 import router from '@/router'
 import { plain } from '@/shared/__tests__/plain'
 
+const promptNotificationsIfReminders = vi.hoisted(() =>
+  vi.fn<(router: unknown, from: string, options?: { ready?: boolean }) => Promise<boolean>>(
+    async () => false,
+  ),
+)
+
+vi.mock('@/core/notifications/reminders-priming', () => ({ promptNotificationsIfReminders }))
 vi.mock('@/core/app-lifecycle/app-resume', () => ({
   useAppResume: () => {},
   onAppResume: () => () => {},
@@ -172,6 +179,7 @@ describe('Restaurer mon carnet', () => {
     runner.finish()
     await flushPromises()
     expect(replace).toHaveBeenCalledWith({ name: 'home' })
+    expect(promptNotificationsIfReminders).toHaveBeenCalledWith(router, 'home', { ready: true })
   })
 
   it('« Remplacer » demande confirmation, et ne lance rien si on annule', async () => {

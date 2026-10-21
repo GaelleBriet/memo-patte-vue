@@ -43,6 +43,7 @@ function fakeOutbox(pending: number): SyncDependencies['outbox'] {
 function fakeRestoreFlow(resume: () => Promise<boolean> = async () => false) {
   const restored = new Set<() => void>()
   return {
+    checking: vi.fn<() => void>(),
     offer: vi.fn<SyncDependencies['restoreFlow']['offer']>(),
     unreachable: vi.fn<() => void>(),
     reset: vi.fn<() => void>(),
@@ -376,6 +377,18 @@ describe('installSync', () => {
       await runDebounce()
 
       expect(runCycle).toHaveBeenCalledOnce()
+      stop()
+    })
+
+    it('annonce le contrôle dès que la session est active, avant sa réponse', async () => {
+      const { deps, userId, active, restoreFlow, checkAccountBackup } = accountSetup()
+      userId.value = 'user-1'
+      const stop = await installSync(deps)
+
+      active.value = true
+
+      expect(restoreFlow.checking).toHaveBeenCalledOnce()
+      expect(checkAccountBackup).not.toHaveBeenCalled()
       stop()
     })
 

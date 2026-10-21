@@ -125,4 +125,29 @@ describe('parcours de restauration', () => {
 
     expect(flow.state.value).toEqual({ step: 'idle' })
   })
+
+  it('pendant le contrôle de la sauvegarde, fait attendre la connexion jusqu’à sa réponse', async () => {
+    const flow = createRestoreFlow(fakeRunner())
+    flow.checking()
+
+    const checked = flow.whenChecked()
+    flow.offer(SUMMARY)
+
+    await expect(checked).resolves.toEqual({ step: 'choice', summary: SUMMARY })
+  })
+
+  it('répond tout de suite quand aucun contrôle n’est en cours', async () => {
+    const flow = createRestoreFlow(fakeRunner())
+
+    await expect(flow.whenChecked()).resolves.toEqual({ step: 'idle' })
+  })
+
+  it('garde le message de l’attente du réseau pendant un nouveau contrôle', () => {
+    const flow = createRestoreFlow(fakeRunner())
+    flow.unreachable()
+
+    flow.checking()
+
+    expect(flow.state.value).toEqual({ step: 'waiting-network' })
+  })
 })

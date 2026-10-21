@@ -31,7 +31,7 @@ function openPlus(): void {
 }
 
 function openSignIn(): void {
-  void router.push(signInRoute('settings-plus'))
+  void router.push(signInRoute('settings-plus', { restore: true }))
 }
 
 async function restore(): Promise<void> {
