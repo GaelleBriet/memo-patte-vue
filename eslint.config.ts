@@ -26,6 +26,8 @@ export default defineConfigWithVueTs(
     '**/ios/**',
     // Les worktrees vivent dans le dépôt : sans ça, chaque outil relit une copie de src/.
     '**/.claude/worktrees/**',
+    // Points d'entrée Deno des Edge Functions : vérifiés par le runtime local de Supabase.
+    'supabase/functions/*/index.ts',
   ]),
 
   // Vue : recommended (plus strict que essential)
