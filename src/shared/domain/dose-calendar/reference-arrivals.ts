@@ -1,5 +1,5 @@
 import { writtenBefore, type coverages, type Journey } from './reference-days'
-import { hoursOf, keyOf, sameFrequency } from './reference-grid'
+import { hoursOf, keyOf, sameFrequency, sameHours } from './reference-grid'
 import { arrivedOn, chosenDateOf, hoursChangedSince, reportOutcome } from './reference-reports'
 import { chooserOf, takenByRank, wholeDayOf } from './reference-ranks'
 import { rewrittenDeparture, type RewriteContext } from './reference-rewrite'
@@ -91,10 +91,15 @@ export function arriveReports(context: ArrivalContext) {
           exactAt(chosenDay!, oldArrival!),
           touched !== undefined || withFollowing,
         )
-        // #796 : les doses parties arrivent aux heures du réglage qui a choisi la date.
+        // #796 : les doses parties arrivent aux heures du réglage qui a choisi la date ; #992 : à celles
+        // que le report y a vues, quand un réglage écrit après lui la lit aujourd'hui.
+        const seenHours = hoursSeenBy(report!, chosenDay!, oldArrival!)
         const relaid = touched
           ? takenByRank(touched, chosenHours, new Set(), true).carried
-          : byRank.carried
+          : seenHours
+            ? takenByRank(report!, seenHours, exactAt(chosenDay!, oldArrival!), withFollowing)
+                .carried
+            : byRank.carried
         oldArrival!.hours = oldArrival!.hours.filter((hour) => !byRank.lost.includes(hour))
         // Lue au départ comme sur l'ancienne arrivée, c'est la même dose : elle arrive une fois.
         carried = touched || leftDeparture.length === 0 ? relaid : leftDeparture
@@ -172,6 +177,16 @@ export function arriveReports(context: ArrivalContext) {
       setting: origin.setting,
       hours: [...new Set([...origin.hours, ...ceded.hours])].sort(),
     }
+  }
+
+  function hoursSeenBy(report: ReferenceLine, day: string, journey: Journey): Hour[] | undefined {
+    if (journey.setting.createdAt <= report.updatedAt) return undefined
+    let seen: ReferenceSetting | undefined
+    for (const setting of live) {
+      if (setting.startsOn <= day && setting.createdAt <= report.updatedAt) seen = setting
+    }
+    if (seen === undefined || sameHours(seen, journey.setting)) return undefined
+    return hoursOf(seen)
   }
 
   // Q4 : seule une prise posée à l'heure même d'une dose en garde le rang.
