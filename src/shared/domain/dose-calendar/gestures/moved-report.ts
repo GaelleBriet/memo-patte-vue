@@ -1,4 +1,4 @@
-import type { Day, Due, Line, TreatmentViewInput } from '../types'
+import type { Day, Due, Line, LineFields, Setting, TreatmentViewInput } from '../types'
 import type { TreatmentView } from '../view'
 import { shiftOfDay } from './changes'
 
@@ -55,4 +55,25 @@ export function reportToRewrite(
     .at(-1)
   if (found === undefined || carried) return found
   return leavesTurnedArrival(input, view, found, due) ? undefined : found
+}
+
+/**
+ * #1000, G13 : le report tourné depuis une date choisie, redéplacé avec la case, garde cette date
+ * comme arrivée d'avant ; sans quoi son décalage ne suivrait plus le réglage qui l'a choisie.
+ */
+export function chosenArrivalKept(
+  settings: readonly Setting[],
+  report: Line,
+  dayShift: Line | undefined,
+  to: Day,
+): Pick<LineFields, 'previousTargetOn' | 'previousTargetTime'> | undefined {
+  const day = report.previousTargetOn
+  if (day === undefined || day === null || day === to) return undefined
+  if (dayShift?.targetOn !== report.targetOn) return undefined
+  const chosen = settings.some(
+    ({ firstDueChosen, firstDueOn }) => firstDueChosen && firstDueOn === day,
+  )
+  return chosen
+    ? { previousTargetOn: day, previousTargetTime: report.previousTargetTime ?? null }
+    : undefined
 }
