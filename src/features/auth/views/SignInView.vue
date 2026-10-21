@@ -3,8 +3,8 @@ import { computed, nextTick, onUnmounted, ref, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
-import { AccountError } from '../logic/account-error'
-import { accountErrorKey } from '../logic/account-error-message'
+import { useGoogleSignIn } from '../composables/use-google-sign-in'
+import { signInErrorKey } from '../logic/account-error-message'
 import { useAuthStore } from '../store/auth.store'
 import { emptySignInFormValues, validateSignInForm, type SignInMode } from '../logic/sign-in-form'
 import { focusFirstInvalid } from '@/shared/form/focus-first-invalid'
@@ -13,10 +13,13 @@ import { useFormValidation } from '@/shared/form/use-form-validation'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { signInReturnRoute } from '@/shared/utils/sign-in-route'
 
+import GoogleSignInButton from './GoogleSignInButton.vue'
+
 const { t } = useI18n()
 const router = useRouter()
 const auth = useAuthStore()
 const route = useRoute()
+const { continueWithGoogle } = useGoogleSignIn()
 
 const mode = ref<SignInMode>('sign-in')
 const values = ref(emptySignInFormValues())
@@ -26,6 +29,7 @@ const { errors, validate, reset } = useFormValidation(values, (current) =>
 )
 
 const isSubmitting = ref(false)
+const isGoogleSignIn = ref(false)
 const failureKey = ref<string | null>(null)
 const awaitingConfirmationFor = ref<string | null>(null)
 const fields = useTemplateRef<HTMLElement>('fields')
@@ -41,7 +45,7 @@ const submitLabel = computed(() =>
   isSignUp.value ? t('auth.signUp.submit') : t('auth.signIn.submit'),
 )
 const loadingLabel = computed(() =>
-  isSignUp.value ? t('auth.signUp.loading') : t('auth.signIn.loading'),
+  isSignUp.value && !isGoogleSignIn.value ? t('auth.signUp.loading') : t('auth.signIn.loading'),
 )
 const toggleLabel = computed(() =>
   isSignUp.value ? t('auth.signUp.toggle') : t('auth.signIn.toggle'),
@@ -69,8 +73,8 @@ function backToSignIn(): void {
   reset()
 }
 
-async function reportFailure(cause: unknown): Promise<void> {
-  failureKey.value = accountErrorKey(cause instanceof AccountError ? cause.reason : 'unknown')
+async function showFailure(messageKey: string): Promise<void> {
+  failureKey.value = messageKey
   await nextTick()
   errorBanner.value?.focus()
 }
@@ -103,8 +107,23 @@ async function submit(): Promise<void> {
   } catch (cause) {
     if (!isMounted) return
     isSubmitting.value = false
-    await reportFailure(cause)
+    await showFailure(signInErrorKey(cause))
   }
+}
+
+async function signInWithGoogle(): Promise<void> {
+  if (isSubmitting.value) return
+
+  isGoogleSignIn.value = true
+  isSubmitting.value = true
+  failureKey.value = null
+
+  const result = await continueWithGoogle()
+  if (!isMounted) return
+  isSubmitting.value = false
+  isGoogleSignIn.value = false
+  if (result.kind === 'signed-in') leave()
+  else if (result.kind === 'failed') await showFailure(result.messageKey)
 }
 
 onUnmounted(() => {
@@ -145,6 +164,14 @@ onUnmounted(() => {
 
     <div v-else class="sign-in__panel">
       <p class="sign-in__intro">{{ t('auth.intro') }}</p>
+
+      <GoogleSignInButton
+        class="sign-in__google"
+        :label="t('auth.google.continue')"
+        @click="signInWithGoogle"
+      />
+
+      <hr class="sign-in__separator" />
 
       <form class="sign-in__form" novalidate @submit.prevent="submit">
         <p v-if="failureKey" ref="errorBanner" class="sign-in__error" role="alert" tabindex="-1">
@@ -230,6 +257,16 @@ onUnmounted(() => {
   color: tokens.$color-text-secondary;
   font-size: 14.5px;
   line-height: 1.55;
+}
+
+.sign-in__google {
+  margin-top: 24px;
+}
+
+.sign-in__separator {
+  margin: 24px 0 0;
+  border: 0;
+  border-top: 1px solid tokens.$color-divider;
 }
 
 .sign-in__form {
