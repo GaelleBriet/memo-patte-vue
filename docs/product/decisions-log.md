@@ -3489,3 +3489,19 @@ en anglais ; dates reconnues par un tableur ; JSON inchangé et seule porte d'im
 pour être ouvert dans un tableur, pas relu par un programme. — Alternative écartée : liste de titres
 à valider avant de coder (le glossaire fait foi, Gaelle relit après le merge). Les noms de fichiers de
 l'archive (`animaux.csv`…) restent en français quelle que soit la langue : à trancher si Gaelle le veut.
+
+2026-10-21 — **Anciens exports (#469), 21 octobre 2026** (analyse-moteur, pour Gaelle). Un export v1
+ou v2 est converti au format courant avant l'import, au mieux : validation stricte, tout ou rien,
+prises rejouées par le moteur des doses (« C'est fait » avec « Décaler aussi les doses suivantes »,
+puis un décalage qui retrouve la prochaine dose annoncée par l'ancienne app), identifiants stables
+(réimporter le même fichier n'ajoute rien). L'écran de résultat n'est pas construit pour v1 et v2 : un
+vrai export se reprend en entier ; la planche V33 reste pour un format qui perdrait vraiment quelque
+chose. C1 : une seconde prise du même jour devient une prise en plus. C2 : la fréquence propre à
+chaque prise v2 n'est pas gardée (la période prend la fréquence actuelle du traitement). C3 : une
+prochaine dose choisie à la main un 29, 30 ou 31 qu'aucun rythme mensuel n'atteint est annoncée un
+jour plus tôt (2 carnets simulés sur 3 000, graines 835 et 1887), sans correction. C4 : la pesée
+d'arrivée est datée à l'heure du téléphone qui importe. C5 : le message « Cet export vient d'une
+version plus ancienne de MémoPatte » est supprimé. — Raison : données jamais otages ; un fichier
+exporté par MémoPatte doit pouvoir y revenir. — Alternatives écartées : refuser les anciens formats
+(décision du 2026-09-29, remplacée) ; un report pour les mois courts (une ligne « Reportée au … » que
+la personne n'a jamais écrite) ; un écran de résultat qui ne s'afficherait jamais.

@@ -6,7 +6,10 @@ import {
   type ImportMode,
 } from '../service/data-import.service'
 import { useDataImport } from '../composables/use-data-import'
+import exportV1 from './fixtures/export-v1-0.1.37.json?raw'
+import exportV2 from './fixtures/export-v2-0.1.48.json?raw'
 import { IMPORT_FILE, importFixtureJson } from './import-fixture'
+import { EXPORT_SCHEMA_VERSION } from '../logic/export-format'
 
 const hasLocalData = vi.fn<() => Promise<boolean>>()
 const importData = vi.fn<DataImportService['importData']>()
@@ -36,6 +39,22 @@ describe('useDataImport', () => {
 
     expect(importData).toHaveBeenCalledWith(IMPORT_FILE, 'replace')
     expect(onImported).toHaveBeenCalledOnce()
+    expect(flow.step.value).toBe('idle')
+  })
+
+  it.each([
+    ['v1', exportV1],
+    ['v2', exportV2],
+  ])('importe un ancien export %s converti au format courant', async (_, content) => {
+    hasLocalData.mockResolvedValue(false)
+    const flow = setup()
+
+    await flow.selectFile(fichier(content))
+
+    expect(importData).toHaveBeenCalledWith(
+      expect.objectContaining({ schemaVersion: EXPORT_SCHEMA_VERSION }),
+      'replace',
+    )
     expect(flow.step.value).toBe('idle')
   })
 
@@ -79,8 +98,7 @@ describe('useDataImport', () => {
   it.each([
     ['invalid', 'pas du JSON'],
     ['newer', JSON.stringify({ schemaVersion: 99 })],
-    ['older', JSON.stringify({ schemaVersion: 2, animals: [] })],
-    ['older', JSON.stringify({ schemaVersion: 1, animals: [] })],
+    ['invalid', JSON.stringify({ schemaVersion: 2, animals: [] })],
   ] as const)('signale un fichier refusé (%s) sans rien écrire', async (error, content) => {
     const flow = setup()
 

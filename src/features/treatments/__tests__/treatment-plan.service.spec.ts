@@ -3,7 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vite
 import { ZodError } from 'zod'
 
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
+import { plain } from './treatment-fixtures'
 import { editionDraft } from '../logic/treatment-edition-draft'
+import { treatmentHistory } from '../logic/treatment-history'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
 import { createTreatmentDosesRepository } from '../repository/treatment-doses.repository'
 import { createTreatmentPeriodsRepository } from '../repository/treatment-periods.repository'
@@ -20,6 +22,7 @@ import {
   type TreatmentPlanService,
 } from '../service/treatment-plan.service'
 import type { TreatmentRemindersService } from '../service/treatment-reminders.service'
+import i18n from '@/core/i18n'
 
 const MILO = '11111111-1111-4111-8111-111111111111'
 const T0 = '2026-09-01T08:00:00.000Z'
@@ -507,6 +510,26 @@ describe('treatmentPlanService', () => {
       { settingId: after.periods[1]?.id, dueOn: '2026-10-09' },
     ])
     expect(schedule.history).toHaveLength(1)
+  })
+
+  it('date la période reprise de sa première échéance sur la fiche, la période arrêtée jusqu’au jour de l’arrêt (#925)', async () => {
+    today = '2026-10-17'
+    const drontal = { ...MILBEMAX, name: 'Drontal', firstDoseOn: '2026-10-03', endsOn: null }
+    const { id } = await service.create(drontal)
+    await give(id, '2026-10-03')
+    await give(id, '2026-10-10')
+    await createTreatmentPeriodsRepository(db).stop(id, '2026-10-17')
+
+    await service.resume(id, { ...drontal, firstDoseOn: '2026-10-18' })
+
+    const after = await storedTreatment(id)
+    expect(after.periods[1]).toMatchObject({ startsOn: '2026-10-17', firstDueOn: '2026-10-18' })
+    const reading = treatmentReadingOf(after, today)
+    expect(reading.view.currentDoses).toMatchObject([{ dueOn: '2026-10-18' }])
+    const heads = plain(treatmentHistory(i18n.global.t, after, reading, today)).periods.map(
+      ({ head }) => head?.title,
+    )
+    expect(heads).toEqual(['Depuis le 18 oct. 2026', 'Du 3 oct. au 17 oct. 2026'])
   })
 
   describe('plusieurs heures par jour', () => {

@@ -31,10 +31,13 @@ import {
   fromVersion7,
   fromVersion8,
   fromVersion9,
+  type Version3Data,
   type Version5Data,
   type Version7Data,
   type Version8Data,
 } from '../logic/export-file-versions'
+import { fromVersion1, fromVersion2 } from '../logic/legacy-export'
+import { withReplayedDoses } from '../logic/legacy-export-doses'
 import { hasUniqueIds, isConsistentCarnet } from '../logic/export-carnet-links'
 import {
   hasPreviousTargetDay,
@@ -277,18 +280,149 @@ const version3FileSchema = z
   })
   .refine(isConsistentCarnet)
 
+const legacyAnimal = dated({
+  id: animalShape.id,
+  name: animalShape.name,
+  species: animalShape.species,
+  breed: animalShape.breed,
+  birthDate: pastDay.nullable().default(null),
+  initialWeightKg: weightEntryShape.weightKg.nullable().default(null),
+  photoFileName: animalShape.photoFileName,
+})
+const legacyVaccinationShape = {
+  id: vaccinationShape.id,
+  animalId: vaccinationShape.animalId,
+  name: vaccinationShape.name,
+}
+const legacyTreatmentShape = {
+  ...treatmentShape,
+  type: z.enum(['deworming', 'antiparasitic']),
+  frequency: treatmentFrequencySchema,
+}
+
+const isLinkedLegacyCarnet = (
+  animals: { id: string }[],
+  tables: { id: string; animalId: string }[][],
+) => {
+  const animalIds = new Set(animals.map(({ id }) => id))
+  return (
+    hasUniqueIds(animals) &&
+    tables.every(
+      (rows) => hasUniqueIds(rows) && rows.every(({ animalId }) => animalIds.has(animalId)),
+    )
+  )
+}
+
+/** Export v1, jusqu'à la 0.1.40 : une ligne par vaccin et par traitement, sa dernière injection ou prise. */
+const version1FileSchema = z
+  .object({
+    animals: z.array(legacyAnimal),
+    vaccinations: z.array(
+      dated({
+        ...legacyVaccinationShape,
+        lastInjectionDate: pastDay,
+        dueDate: day.nullable(),
+      }),
+    ),
+    treatments: z.array(
+      dated({
+        ...legacyTreatmentShape,
+        lastDoseDate: pastDay,
+        nextDueDate: day,
+        stoppedOn: day.nullable().default(null),
+      }),
+    ),
+    weightEntries: z.array(dated(weightEntryShape)),
+  })
+  .refine((file) =>
+    isLinkedLegacyCarnet(file.animals, [file.vaccinations, file.treatments, file.weightEntries]),
+  )
+
+type LegacyLinks = {
+  vaccinations: { id: string }[]
+  vaccinationInjections: { vaccinationId: string }[]
+  treatments: { id: string }[]
+  treatmentDoses: { treatmentId: string }[]
+}
+
+/** Comme l'import de la 0.1.48 : chaque vaccin a une injection, chaque traitement une prise, et inversement. */
+function hasEveryParentAndChild(file: LegacyLinks): boolean {
+  const vaccinations = new Set(file.vaccinations.map(({ id }) => id))
+  const treatments = new Set(file.treatments.map(({ id }) => id))
+  const injected = new Set(file.vaccinationInjections.map(({ vaccinationId }) => vaccinationId))
+  const dosed = new Set(file.treatmentDoses.map(({ treatmentId }) => treatmentId))
+  return (
+    [...injected].every((id) => vaccinations.has(id)) &&
+    [...dosed].every((id) => treatments.has(id)) &&
+    [...vaccinations].every((id) => injected.has(id)) &&
+    [...treatments].every((id) => dosed.has(id))
+  )
+}
+
+/** Export v2, de la 0.1.41 à la 0.1.48 : l'historique des injections et des prises. */
+const version2FileSchema = z
+  .object({
+    animals: z.array(legacyAnimal),
+    vaccinations: z.array(dated(legacyVaccinationShape)),
+    vaccinationInjections: z.array(dated(injectionShape)),
+    treatments: z.array(dated({ ...legacyTreatmentShape, stoppedOn: day.nullable() })),
+    treatmentDoses: z.array(
+      dated({
+        id: z.uuid(),
+        treatmentId: z.uuid(),
+        animalId: z.uuid(),
+        givenOn: pastDay,
+        nextDueDate: day,
+        frequency: treatmentFrequencySchema,
+      }),
+    ),
+    weightEntries: z.array(dated(weightEntryShape)),
+  })
+  .refine(
+    (file) =>
+      isLinkedLegacyCarnet(file.animals, [
+        file.vaccinations,
+        file.vaccinationInjections,
+        file.treatments,
+        file.treatmentDoses,
+        file.weightEntries,
+      ]) && hasEveryParentAndChild(file),
+  )
+
+export type ExportFileV1 = z.output<typeof version1FileSchema>
+export type ExportFileV2 = z.output<typeof version2FileSchema>
+
 export const exportVersionSchema = z.object({ schemaVersion: z.number().int().positive() })
 
-export function exportFileSchemaOf(version: number, deviceId: string): z.ZodType<ExportData> {
+export function exportFileSchemaOf(
+  version: number,
+  deviceId: string,
+  today: string,
+): z.ZodType<ExportData> {
   const fromVersion8To10 = (data: Version8Data) => fromVersion9(fromVersion8(data))
   const fromVersion7To10 = (data: Version7Data) => fromVersion8To10(fromVersion7(data))
   const fromVersion5To10 = (data: Version5Data) =>
     fromVersion7To10(fromVersion6(fromVersion5(data)))
-  if (version === 3) {
-    return version3FileSchema.transform((data) =>
-      fromVersion5To10(fromVersion4(fromVersion3(data, deviceId))),
-    )
+  const fromVersion3To10 = (data: Version3Data) =>
+    fromVersion5To10(fromVersion4(fromVersion3(data, deviceId)))
+  const fromVersion2To10 = (
+    carnet: ExportFileV2,
+    ctx: z.RefinementCtx,
+  ): z.input<typeof version10FileSchema> => {
+    const data = fromVersion3To10(fromVersion2(carnet))
+    const replayed = withReplayedDoses(data, carnet.treatmentDoses, deviceId, today)
+    if (replayed !== null) return replayed
+    ctx.addIssue({ code: 'custom', message: 'prise que le moteur ne sait pas placer' })
+    return z.NEVER
   }
+  if (version === 1) {
+    return version1FileSchema
+      .transform(fromVersion1)
+      .transform(fromVersion2To10)
+      .pipe(version10FileSchema)
+  }
+  if (version === 2) return version2FileSchema.transform(fromVersion2To10).pipe(version10FileSchema)
+  if (version === 3) return version3FileSchema.transform(fromVersion3To10)
   if (version === 4)
     return version4FileSchema.transform((data) => fromVersion5To10(fromVersion4(data)))
   if (version === 5) return version5FileSchema.transform(fromVersion5To10)
