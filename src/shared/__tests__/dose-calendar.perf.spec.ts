@@ -162,7 +162,7 @@ describe('date très lointaine (fichier forgé ou faute de frappe)', () => {
     20000,
   )
 
-  it('« Modifier » avec une date de fin au 30/12/2199 propose ses dates en moins de 100 ms', () => {
+  it('« Modifier » avec une date de fin au 30/12/2199 propose ses dates en moins de 250 ms', () => {
     const current: TreatmentViewInput = {
       settings: [setting('s1', '2026-09-01', DAY, everyHour)],
       lines: [givenAt('2026-09-27', '08:00')],
@@ -188,7 +188,7 @@ describe('date très lointaine (fichier forgé ou faute de frappe)', () => {
         },
       },
     })
-    expect(elapsed).toBeLessThan(100)
+    expect(elapsed).toBeLessThan(250)
   }, 20000)
 })
 

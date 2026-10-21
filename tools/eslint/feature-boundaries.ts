@@ -41,6 +41,13 @@ const REPOSITORY_OUT_OF_LOGIC = {
     "logic/ n'importe jamais un repository : les types d'écriture partagés vivent dans schema/ (cf. CLAUDE.md, « Règles strictes de structure »).",
 }
 
+const REPOSITORY_VALUE_OUT_OF_STORE = {
+  group: ['**/repository', '**/repository/*', '**/*.repository'],
+  allowTypeImports: true,
+  message:
+    "Un store n'importe un repository qu'en type (`import type`) : il le reçoit par injection (cf. CLAUDE.md, « Règles strictes de structure »).",
+}
+
 function featureImportsRule(
   feature: string,
   allowedElsewhere: string[] = [],
@@ -103,6 +110,12 @@ export const featureBoundaryBlocks: Linter.Config[] = [
     files: [`src/features/${feature}/logic/**/*.ts`],
     ignores: ['**/__tests__/**'],
     rules: featureImportsRule(feature, [], [REPOSITORY_OUT_OF_LOGIC]),
+  })),
+  ...FEATURES.map((feature) => ({
+    name: `app/feature-imports/${feature}-store`,
+    files: [`src/features/${feature}/store/**/*.ts`],
+    ignores: ['**/__tests__/**'],
+    rules: featureImportsRule(feature, [], [REPOSITORY_VALUE_OUT_OF_STORE]),
   })),
   {
     name: 'app/feature-imports/export-file-schema',
