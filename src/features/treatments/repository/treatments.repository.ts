@@ -29,8 +29,7 @@ export function createTreatmentsRepository(
 ) {
   const periods = createTreatmentPeriodsRepository(db, { deviceId })
   const doses = createTreatmentDosesRepository(db, { deviceId })
-
-  const reads = createTreatmentReads(db, periods, doses)
+  const reads = createTreatmentReads(db, { periods, doses })
 
   return {
     entity: 'treatment',

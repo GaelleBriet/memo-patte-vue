@@ -51,14 +51,15 @@ function withPeriods(
   })
 }
 
-export function createTreatmentReads(
-  db: DbClient,
-  periods: Pick<TreatmentPeriodsRepository, 'listByTreatment' | 'listByAnimal' | 'listAll'>,
+interface ReadsCollaborators {
+  periods: Pick<TreatmentPeriodsRepository, 'listByTreatment' | 'listByAnimal' | 'listAll'>
   doses: Pick<
     TreatmentDosesRepository,
     'listRecordsByTreatment' | 'listRecordsByAnimal' | 'listRecords' | 'listByTreatment'
-  >,
-) {
+  >
+}
+
+export function createTreatmentReads(db: DbClient, { periods, doses }: ReadsCollaborators) {
   return {
     async getById(id: string): Promise<Treatment | null> {
       const rows = await db.query<TreatmentWithPeriodRow>(
