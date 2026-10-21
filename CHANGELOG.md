@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.95](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.94...memo-patte-v0.1.95) (2026-10-21)
+
+
+### 🐛 Corrections
+
+* **dev:** clearAllTables garde la ligne unique de sync_state ([78ac222](https://github.com/GaelleBriet/memo-patte-vue/commit/78ac22208da3c3b583052fe049d3940f4feb4b6b))
+
 ## [0.1.94](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.93...memo-patte-v0.1.94) (2026-10-21)
 
 
