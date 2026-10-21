@@ -26,7 +26,6 @@ import {
 } from '../logic/export-file-versions'
 import { fromVersion1, fromVersion2 } from '../logic/legacy-export'
 import { withReplayedDoses } from '../logic/legacy-export-doses'
-import { hasEveryParentAndChild, isLinkedLegacyCarnet } from '../logic/legacy-export-links'
 import { hasUniqueIds, isConsistentCarnet } from '../logic/export-carnet-links'
 import {
   hasPreviousTargetDay,
@@ -35,11 +34,8 @@ import {
   isConsistentDose,
 } from '../logic/export-treatment-line-checks'
 import { carnetSettingsSchema } from './carnet-settings.schema'
-import {
-  legacyAnimal,
-  legacyTreatmentShape,
-  legacyVaccinationShape,
-} from './export-file-legacy-rows.schema'
+import { version1FileSchema } from './export-file-v1.schema'
+import { version2FileSchema, type ExportFileV2 } from './export-file-v2.schema'
 import {
   animalShape,
   injectionShape,
@@ -240,64 +236,6 @@ const version3FileSchema = z
     weightEntries: z.array(dated(weightEntryShape)),
   })
   .refine(isConsistentCarnet)
-
-/** Export v1, jusqu'à la 0.1.40 : une ligne par vaccin et par traitement, sa dernière injection ou prise. */
-const version1FileSchema = z
-  .object({
-    animals: z.array(legacyAnimal),
-    vaccinations: z.array(
-      dated({
-        ...legacyVaccinationShape,
-        lastInjectionDate: pastDay,
-        dueDate: day.nullable(),
-      }),
-    ),
-    treatments: z.array(
-      dated({
-        ...legacyTreatmentShape,
-        lastDoseDate: pastDay,
-        nextDueDate: day,
-        stoppedOn: day.nullable().default(null),
-      }),
-    ),
-    weightEntries: z.array(dated(weightEntryShape)),
-  })
-  .refine((file) =>
-    isLinkedLegacyCarnet(file.animals, [file.vaccinations, file.treatments, file.weightEntries]),
-  )
-
-/** Export v2, de la 0.1.41 à la 0.1.48 : l'historique des injections et des prises. */
-const version2FileSchema = z
-  .object({
-    animals: z.array(legacyAnimal),
-    vaccinations: z.array(dated(legacyVaccinationShape)),
-    vaccinationInjections: z.array(dated(injectionShape)),
-    treatments: z.array(dated({ ...legacyTreatmentShape, stoppedOn: day.nullable() })),
-    treatmentDoses: z.array(
-      dated({
-        id: z.uuid(),
-        treatmentId: z.uuid(),
-        animalId: z.uuid(),
-        givenOn: pastDay,
-        nextDueDate: day,
-        frequency: treatmentFrequencySchema,
-      }),
-    ),
-    weightEntries: z.array(dated(weightEntryShape)),
-  })
-  .refine(
-    (file) =>
-      isLinkedLegacyCarnet(file.animals, [
-        file.vaccinations,
-        file.vaccinationInjections,
-        file.treatments,
-        file.treatmentDoses,
-        file.weightEntries,
-      ]) && hasEveryParentAndChild(file),
-  )
-
-export type ExportFileV1 = z.output<typeof version1FileSchema>
-export type ExportFileV2 = z.output<typeof version2FileSchema>
 
 export const exportVersionSchema = z.object({ schemaVersion: z.number().int().positive() })
 

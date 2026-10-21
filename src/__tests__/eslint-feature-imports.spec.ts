@@ -188,23 +188,28 @@ describe('imports entre features', { timeout: 30_000 }, () => {
       'src/features/settings/schema/export-file-v1.schema.ts',
       'src/features/settings/schema/export-file-v2.schema.ts',
     ]
-    for (const file of files) {
-      const schemas = await restrictedImports(file, [
-        '@/features/treatments/schema/treatment.schema',
-        '@/features/weight/schema/weight.schema',
-      ])
-      const others = await restrictedImports(file, [
-        '@/features/treatments/repository/treatments.repository',
-        '@/features/weight/store/weight.store',
-      ])
-
-      expect(schemas.feature, file).toBe(0)
-      expect(others.feature, file).toBe(2)
-    }
+    const counts = await Promise.all(
+      files.map(async (file) => ({
+        file,
+        schemas: (
+          await restrictedImports(file, [
+            '@/features/treatments/schema/treatment.schema',
+            '@/features/weight/schema/weight.schema',
+          ])
+        ).feature,
+        others: (
+          await restrictedImports(file, [
+            '@/features/treatments/repository/treatments.repository',
+            '@/features/weight/store/weight.store',
+          ])
+        ).feature,
+      })),
+    )
     const elsewhere = await restrictedImports('src/features/settings/schema/other.schema.ts', [
       '@/features/treatments/schema/treatment.schema',
     ])
 
+    expect(counts).toEqual(files.map((file) => ({ file, schemas: 0, others: 2 })))
     expect(elsewhere.feature).toBe(1)
   })
 
