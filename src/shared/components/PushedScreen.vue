@@ -69,8 +69,9 @@ onBeforeUnmount(() => {
       >
         <div class="pushed-screen__line">
           <v-btn
-            v-if="!backHidden"
             class="pushed-screen__back"
+            :class="{ 'pushed-screen__back--hidden': backHidden }"
+            :disabled="backHidden"
             icon="ms:arrow_back"
             variant="text"
             color="primary"
@@ -207,6 +208,10 @@ $size-back: 48px;
 .pushed-screen__subtitle--secondary {
   color: tokens.$color-text-secondary;
   font-weight: 500;
+}
+
+.pushed-screen__back--hidden {
+  visibility: hidden;
 }
 
 .pushed-screen__actions {

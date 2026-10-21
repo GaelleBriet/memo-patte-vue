@@ -48,10 +48,12 @@ describe('PushedScreen — top bar', () => {
     expect(wrapper.emitted('back')).toHaveLength(1)
   })
 
-  it('cache la flèche de retour quand l’écran ne se quitte pas', () => {
+  it('cache la flèche de retour quand l’écran ne se quitte pas, sans décaler le titre', () => {
     const wrapper = monter({ backHidden: true })
 
-    expect(wrapper.find('.pushed-screen__back').exists()).toBe(false)
+    const back = wrapper.get('.pushed-screen__back')
+    expect(back.classes()).toContain('pushed-screen__back--hidden')
+    expect(back.attributes('disabled')).toBeDefined()
     expect(wrapper.get('.pushed-screen__title').text()).toBe('Suivi de poids')
   })
 
