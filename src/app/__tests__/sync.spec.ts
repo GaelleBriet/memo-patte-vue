@@ -5,6 +5,7 @@ import { nextTick, ref } from 'vue'
 import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 import { SYNC_DEBOUNCE_MS } from '@/core/sync/service/sync-scheduler'
 import type { SyncCycleOutbox } from '@/core/sync/service/sync-cycle'
+import type { AccountBackupCheck } from '@/features/settings/service/account-backup.service'
 import { installSync, type SyncDependencies } from '../sync'
 
 type NetworkListener = (status: { connected: boolean; connectionType: string }) => void
@@ -39,6 +40,12 @@ function fakeOutbox(pending: number): SyncDependencies['outbox'] {
   }
 }
 
+const withoutSession = {
+  sessionActive: () => false,
+  checkAccountBackup: vi.fn<() => Promise<AccountBackupCheck>>(async () => ({ kind: 'active' })),
+  restore: { run: async () => {} },
+}
+
 async function runDebounce(): Promise<void> {
   await vi.advanceTimersByTimeAsync(SYNC_DEBOUNCE_MS)
 }
@@ -58,7 +65,12 @@ afterEach(() => {
 describe('installSync', () => {
   it('déclenche un cycle au lancement même sans entrée en attente', async () => {
     const runCycle = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
-    const deps: SyncDependencies = { outbox: fakeOutbox(0), runCycle, userId: () => 'user-1' }
+    const deps: SyncDependencies = {
+      outbox: fakeOutbox(0),
+      runCycle,
+      userId: () => 'user-1',
+      ...withoutSession,
+    }
 
     await installSync(deps)
     await runDebounce()
@@ -68,7 +80,12 @@ describe('installSync', () => {
 
   it('déclenche aussi un cycle au lancement quand la file contient des entrées (resumePendingSync)', async () => {
     const runCycle = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
-    const deps: SyncDependencies = { outbox: fakeOutbox(3), runCycle, userId: () => 'user-1' }
+    const deps: SyncDependencies = {
+      outbox: fakeOutbox(3),
+      runCycle,
+      userId: () => 'user-1',
+      ...withoutSession,
+    }
 
     await installSync(deps)
     await runDebounce()
@@ -78,7 +95,12 @@ describe('installSync', () => {
 
   it('déclenche un cycle au retour au premier plan', async () => {
     const runCycle = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
-    const stop = await installSync({ outbox: fakeOutbox(0), runCycle, userId: () => 'user-1' })
+    const stop = await installSync({
+      outbox: fakeOutbox(0),
+      runCycle,
+      userId: () => 'user-1',
+      ...withoutSession,
+    })
     await runDebounce()
     runCycle.mockClear()
 
@@ -96,7 +118,12 @@ describe('installSync', () => {
       return { remove: vi.fn<() => Promise<void>>(async () => {}) }
     })
     const runCycle = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
-    const stop = await installSync({ outbox: fakeOutbox(0), runCycle, userId: () => 'user-1' })
+    const stop = await installSync({
+      outbox: fakeOutbox(0),
+      runCycle,
+      userId: () => 'user-1',
+      ...withoutSession,
+    })
     await runDebounce()
     runCycle.mockClear()
 
@@ -114,6 +141,7 @@ describe('installSync', () => {
       outbox: fakeOutbox(0),
       runCycle,
       userId: () => userId.value,
+      ...withoutSession,
     })
     await runDebounce()
     runCycle.mockClear()
@@ -133,6 +161,7 @@ describe('installSync', () => {
       outbox: fakeOutbox(0),
       runCycle,
       userId: () => userId.value,
+      ...withoutSession,
     })
     await runDebounce()
     runCycle.mockClear()
@@ -153,6 +182,7 @@ describe('installSync', () => {
         outbox,
         runCycle: vi.fn<() => Promise<void>>(),
         userId: () => userId.value,
+        ...withoutSession,
       })
 
       userId.value = null
@@ -167,24 +197,9 @@ describe('installSync', () => {
         outbox,
         runCycle: vi.fn<() => Promise<void>>(),
         userId: () => null,
+        ...withoutSession,
       })
       await runDebounce()
-
-      expect(outbox.forgetAccount).not.toHaveBeenCalled()
-      stop()
-    })
-
-    it('n’oublie rien quand un autre compte remplace le premier', async () => {
-      const outbox = fakeOutbox(0)
-      const userId = ref<string | null>('user-1')
-      const stop = await installSync({
-        outbox,
-        runCycle: vi.fn<() => Promise<void>>(),
-        userId: () => userId.value,
-      })
-
-      userId.value = 'user-2'
-      await nextTick()
 
       expect(outbox.forgetAccount).not.toHaveBeenCalled()
       stop()
@@ -197,6 +212,7 @@ describe('installSync', () => {
         outbox,
         runCycle: vi.fn<() => Promise<void>>(),
         userId: () => userId.value,
+        ...withoutSession,
       })
 
       stop()
@@ -206,9 +222,157 @@ describe('installSync', () => {
     })
   })
 
+  describe('contrôle de la sauvegarde du compte', () => {
+    function accountSetup(
+      outcome: AccountBackupCheck = {
+        kind: 'backup-found',
+        summary: { animalCount: 1, lastBackupAt: '2026-10-20T19:04:00.000Z' },
+      },
+    ) {
+      const outbox = fakeOutbox(0)
+      const userId = ref<string | null>(null)
+      const active = ref(false)
+      const steps: string[] = []
+      vi.mocked(outbox.forgetAccount).mockImplementation(async () => {
+        steps.push('forget')
+      })
+      const checkAccountBackup = vi.fn<() => Promise<AccountBackupCheck>>(async () => {
+        steps.push(`check:${userId.value}`)
+        return outcome
+      })
+      const runCycle = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
+      const run = vi.fn<() => Promise<void>>(async () => {
+        steps.push('restore')
+      })
+      const deps: SyncDependencies = {
+        outbox,
+        runCycle,
+        userId: () => userId.value,
+        sessionActive: () => active.value,
+        checkAccountBackup,
+        restore: { run },
+      }
+      return { deps, outbox, userId, active, steps, checkAccountBackup, runCycle, run }
+    }
+
+    it('contrôle la sauvegarde dès que la session du compte est active, une fois par lancement', async () => {
+      const { deps, userId, active, checkAccountBackup } = accountSetup()
+      userId.value = 'user-1'
+      const stop = await installSync(deps)
+      expect(checkAccountBackup).not.toHaveBeenCalled()
+
+      active.value = true
+      await vi.advanceTimersByTimeAsync(0)
+      active.value = false
+      active.value = true
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(checkAccountBackup).toHaveBeenCalledOnce()
+      stop()
+    })
+
+    it('contrôle au lancement quand la session est déjà active', async () => {
+      const { deps, userId, active, checkAccountBackup } = accountSetup()
+      userId.value = 'user-1'
+      active.value = true
+
+      const stop = await installSync(deps)
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(checkAccountBackup).toHaveBeenCalledOnce()
+      stop()
+    })
+
+    it('après l’amorçage d’un compte sans sauvegarde, programme un cycle', async () => {
+      const { deps, userId, active, runCycle } = accountSetup({ kind: 'seeded' })
+      const stop = await installSync(deps)
+      await runDebounce()
+      runCycle.mockClear()
+
+      userId.value = 'user-1'
+      active.value = true
+      await vi.advanceTimersByTimeAsync(0)
+      await runDebounce()
+
+      expect(runCycle).toHaveBeenCalled()
+      stop()
+    })
+
+    it('serveur injoignable : recontrôle au prochain retour de la session active', async () => {
+      const { deps, userId, active, checkAccountBackup } = accountSetup({ kind: 'unreachable' })
+      userId.value = 'user-1'
+      active.value = true
+      const stop = await installSync(deps)
+      await vi.advanceTimersByTimeAsync(0)
+
+      active.value = false
+      active.value = true
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(checkAccountBackup).toHaveBeenCalledTimes(2)
+      stop()
+    })
+
+    it('une restauration à reprendre part dès le contrôle, puis un cycle est programmé', async () => {
+      const { deps, userId, active, steps, runCycle } = accountSetup({
+        kind: 'restore-pending',
+        mode: 'replace',
+      })
+      userId.value = 'user-1'
+      active.value = true
+      const stop = await installSync(deps)
+      await runDebounce()
+      runCycle.mockClear()
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(steps).toEqual(['check:user-1', 'restore'])
+      stop()
+    })
+
+    it('au retour du réseau, reprend une restauration interrompue', async () => {
+      let emit!: NetworkListener
+      addNetworkListener.mockImplementation(async (_event, listener) => {
+        emit = listener
+        return { remove: vi.fn<() => Promise<void>>(async () => {}) }
+      })
+      const { deps, run } = accountSetup()
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+      run.mockRejectedValueOnce(new Error('réseau coupé'))
+      const stop = await installSync(deps)
+
+      emit({ connected: true, connectionType: 'wifi' })
+      await vi.advanceTimersByTimeAsync(0)
+      emit({ connected: true, connectionType: 'wifi' })
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(run).toHaveBeenCalledTimes(2)
+      expect(warn).toHaveBeenCalledOnce()
+      stop()
+    })
+
+    it('un autre compte qui remplace le premier : la file du premier est oubliée, puis sa sauvegarde contrôlée', async () => {
+      const { deps, userId, active, steps } = accountSetup()
+      userId.value = 'user-1'
+      active.value = true
+      const stop = await installSync(deps)
+      await vi.advanceTimersByTimeAsync(0)
+
+      userId.value = 'user-2'
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(steps).toEqual(['check:user-1', 'forget', 'check:user-2'])
+      stop()
+    })
+  })
+
   it('arrête les déclencheurs une fois désinstallé', async () => {
     const runCycle = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
-    const stop = await installSync({ outbox: fakeOutbox(0), runCycle, userId: () => 'user-1' })
+    const stop = await installSync({
+      outbox: fakeOutbox(0),
+      runCycle,
+      userId: () => 'user-1',
+      ...withoutSession,
+    })
     await runDebounce()
     runCycle.mockClear()
 

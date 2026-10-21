@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 import { guardedUpsert, type SyncRow } from '@/core/supabase/guarded-upsert'
-import type { SyncableTable } from '@/core/sync/service/syncable-table'
+import type { RemoteBackupReads, SyncableTable } from '@/core/sync/service/syncable-table'
 import { SYNC_PUSH_HEADER } from './sync-push.repository'
 
 export interface RemoteSyncTableOptions {
@@ -10,7 +10,7 @@ export interface RemoteSyncTableOptions {
   loadClient: () => Promise<SupabaseClient>
 }
 
-export type RemoteSyncTable = Pick<SyncableTable, 'pushRow' | 'pullPage'>
+export type RemoteSyncTable = Pick<SyncableTable, 'pushRow' | 'pullPage'> & RemoteBackupReads
 
 type StampedRow = SyncRow & { server_updated_at: string }
 
@@ -65,6 +65,30 @@ export function createRemoteSyncTable({
         stamps: rows.map(({ server_updated_at }) => server_updated_at),
         cursor: rows.at(-1)?.server_updated_at ?? null,
       }
+    },
+
+    async countRemoteRows(userId, { aliveOnly = false } = {}) {
+      const supabase = await loadClient()
+      const query = supabase
+        .from(table)
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+      const { count, error } = await (aliveOnly ? query.is('deleted_at', null) : query)
+      if (error) throw error
+      return count ?? 0
+    },
+
+    async latestRemoteStamp(userId) {
+      const supabase = await loadClient()
+      const { data, error } = await supabase
+        .from(table)
+        .select('server_updated_at')
+        .eq('user_id', userId)
+        .order('server_updated_at', { ascending: false })
+        .limit(1)
+      if (error) throw error
+      const [latest] = (data ?? []) as Array<{ server_updated_at: string }>
+      return latest?.server_updated_at ?? null
     },
   }
 }

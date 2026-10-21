@@ -22,6 +22,13 @@ export interface SyncPullPage {
   cursor: string | null
 }
 
+/** Ce que le serveur garde pour un compte, lu sans rien télécharger du carnet. */
+export interface RemoteBackupReads {
+  countRemoteRows(userId: string, options?: { aliveOnly?: boolean }): Promise<number>
+  /** `server_updated_at` le plus récent du compte dans la table, ou `null` sans ligne. */
+  latestRemoteStamp(userId: string): Promise<string | null>
+}
+
 /**
  * Port implémenté par le repository propriétaire de chaque table synchronisable : lui seul écrit le
  * SQL, local ou Supabase, `core/sync` ne fait qu'orchestrer ces méthodes (cf. CLAUDE.md).
