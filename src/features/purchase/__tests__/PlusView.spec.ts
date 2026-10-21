@@ -153,6 +153,25 @@ describe('PlusView — contenu', () => {
     }
   })
 
+  it('conseille un appareil à la fois, en français puis en anglais', async () => {
+    const wrapper = await monter()
+
+    expect(wrapper.get('.plus__devices-hint').text()).toBe(
+      'Utilise un appareil à la fois. Si deux appareils modifient le même soin sans connexion, la dernière modification gagne.',
+    )
+
+    i18n.global.locale.value = 'en'
+    try {
+      const english = await monter()
+
+      expect(english.get('.plus__devices-hint').text()).toBe(
+        'Use one device at a time. If two devices change the same care item while offline, the latest change wins.',
+      )
+    } finally {
+      i18n.global.locale.value = 'fr'
+    }
+  })
+
   it('dit en une ligne ce qu’Android sauvegarde déjà et ce que Plus garantit', async () => {
     const wrapper = await monter()
 
