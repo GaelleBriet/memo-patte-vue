@@ -182,6 +182,7 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
       if (!deps.isEligible()) return
       const userId = deps.userId()
       if (!userId) return
+      if (!(await deps.outbox.isEnabled())) return
 
       let touchedReminders = false
       const onRemindersTouched = (entity: string) => {
