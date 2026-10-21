@@ -40,10 +40,28 @@ function fakeOutbox(pending: number): SyncDependencies['outbox'] {
   }
 }
 
+function fakeRestoreFlow(resume: () => Promise<boolean> = async () => false) {
+  const restored = new Set<() => void>()
+  return {
+    offer: vi.fn<SyncDependencies['restoreFlow']['offer']>(),
+    unreachable: vi.fn<() => void>(),
+    reset: vi.fn<() => void>(),
+    resume: vi.fn<() => Promise<boolean>>(async () => {
+      const done = await resume()
+      if (done) for (const listener of restored) listener()
+      return done
+    }),
+    onRestored(listener: () => void) {
+      restored.add(listener)
+      return () => restored.delete(listener)
+    },
+  }
+}
+
 const withoutSession = {
   sessionActive: () => false,
   checkAccountBackup: vi.fn<() => Promise<AccountBackupCheck>>(async () => ({ kind: 'active' })),
-  restore: { run: async () => {} },
+  restoreFlow: fakeRestoreFlow(),
 }
 
 async function runDebounce(): Promise<void> {
@@ -241,8 +259,9 @@ describe('installSync', () => {
         return outcome
       })
       const runCycle = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
-      const run = vi.fn<() => Promise<void>>(async () => {
+      const restoreFlow = fakeRestoreFlow(async () => {
         steps.push('restore')
+        return true
       })
       const deps: SyncDependencies = {
         outbox,
@@ -250,9 +269,9 @@ describe('installSync', () => {
         userId: () => userId.value,
         sessionActive: () => active.value,
         checkAccountBackup,
-        restore: { run },
+        restoreFlow,
       }
-      return { deps, outbox, userId, active, steps, checkAccountBackup, runCycle, run }
+      return { deps, outbox, userId, active, steps, checkAccountBackup, runCycle, restoreFlow }
     }
 
     it('contrôle la sauvegarde dès que la session du compte est active, une fois par lancement', async () => {
@@ -335,9 +354,7 @@ describe('installSync', () => {
         emit = listener
         return { remove: vi.fn<() => Promise<void>>(async () => {}) }
       })
-      const { deps, run } = accountSetup()
-      const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
-      run.mockRejectedValueOnce(new Error('réseau coupé'))
+      const { deps, restoreFlow } = accountSetup()
       const stop = await installSync(deps)
 
       emit({ connected: true, connectionType: 'wifi' })
@@ -345,8 +362,72 @@ describe('installSync', () => {
       emit({ connected: true, connectionType: 'wifi' })
       await vi.advanceTimersByTimeAsync(0)
 
-      expect(run).toHaveBeenCalledTimes(2)
-      expect(warn).toHaveBeenCalledOnce()
+      expect(restoreFlow.resume).toHaveBeenCalledTimes(2)
+      stop()
+    })
+
+    it('après chaque restauration réussie, programme un cycle', async () => {
+      const { deps, runCycle, restoreFlow } = accountSetup()
+      const stop = await installSync(deps)
+      await runDebounce()
+      runCycle.mockClear()
+
+      await restoreFlow.resume()
+      await runDebounce()
+
+      expect(runCycle).toHaveBeenCalledOnce()
+      stop()
+    })
+
+    it('propose le choix avec le résumé quand le compte a une sauvegarde et le téléphone un carnet', async () => {
+      const { deps, userId, active, restoreFlow } = accountSetup()
+      userId.value = 'user-1'
+      active.value = true
+
+      const stop = await installSync(deps)
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(restoreFlow.offer).toHaveBeenCalledWith({
+        animalCount: 1,
+        lastBackupAt: '2026-10-20T19:04:00.000Z',
+      })
+      stop()
+    })
+
+    it('serveur injoignable : attend le réseau, puis recontrôle à son retour', async () => {
+      let emit!: NetworkListener
+      addNetworkListener.mockImplementation(async (_event, listener) => {
+        emit = listener
+        return { remove: vi.fn<() => Promise<void>>(async () => {}) }
+      })
+      const { deps, userId, active, checkAccountBackup, restoreFlow } = accountSetup({
+        kind: 'unreachable',
+      })
+      userId.value = 'user-1'
+      active.value = true
+      const stop = await installSync(deps)
+      await vi.advanceTimersByTimeAsync(0)
+      expect(restoreFlow.unreachable).toHaveBeenCalledOnce()
+
+      emit({ connected: true, connectionType: 'wifi' })
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(checkAccountBackup).toHaveBeenCalledTimes(2)
+      stop()
+    })
+
+    it('rien à restaurer ou compte changé : le parcours de restauration repart de rien', async () => {
+      const { deps, userId, active, restoreFlow } = accountSetup({ kind: 'seeded' })
+      userId.value = 'user-1'
+      active.value = true
+      const stop = await installSync(deps)
+      await vi.advanceTimersByTimeAsync(0)
+      expect(restoreFlow.reset).toHaveBeenCalledOnce()
+
+      userId.value = 'user-2'
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(restoreFlow.reset).toHaveBeenCalledTimes(3)
       stop()
     })
 
