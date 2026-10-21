@@ -3,6 +3,7 @@ import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.sche
 import { currentDoseText } from '@/shared/domain/current-dose'
 import { overdueDays } from '@/shared/domain/due-delay'
 import { reminderIcon, type ReminderCounts } from '@/shared/domain/reminders'
+import { periodShownDays } from '@/shared/domain/treatment-periods'
 import type { TreatmentView } from '@/shared/domain/dose-calendar'
 import { formatClockTimes, formatDayMonthOrYear, formatPeriodRange } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
@@ -71,7 +72,10 @@ function rhythmText(
   const complement =
     period.endsOn === null
       ? t('treatments.section.nextDose', { date: formatDayMonthOrYear(due.dueOn, today) })
-      : t('treatments.section.range', formatPeriodRange(period.startsOn, period.endsOn))
+      : t(
+          'treatments.section.range',
+          formatPeriodRange(periodShownDays(read.treatment.periods, period).start, period.endsOn),
+        )
   return `${rhythm} · ${complement}`
 }
 

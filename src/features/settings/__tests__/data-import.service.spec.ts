@@ -5,6 +5,8 @@ import { toJsonExport } from '../logic/export-format'
 import { createCarnetSettingsRepository } from '../repository/carnet-settings.repository'
 import { createDataExportService } from '../service/data-export.service'
 import { parseExportFile } from '../logic/parse-export-file'
+import exportV1 from './fixtures/export-v1-0.1.37.json?raw'
+import exportV2 from './fixtures/export-v2-0.1.48.json?raw'
 import {
   createDataImportService,
   type DataImportDependencies,
@@ -1091,6 +1093,36 @@ describe('data-import.service', () => {
       const photos = (await repositories.animals.list()).map(({ photoPath }) => photoPath)
       expect(photos).toEqual([null, null])
     })
+  })
+
+  describe('ancien export, converti avant l’import', () => {
+    it.each([
+      ['v1', exportV1],
+      ['v2', exportV2],
+    ])(
+      'écrit le carnet converti d’un export %s, et le réimporter n’ajoute rien',
+      async (_, text) => {
+        const parsed = parseExportFile(text, IMPORTEUR)
+        if (!parsed.ok) throw new Error(parsed.reason)
+        const { service } = setup()
+
+        await service.importData(parsed.file, 'replace')
+        const written = await rowCounts()
+        await service.importData(parsed.file, 'merge')
+
+        expect(written).toMatchObject({
+          animal: parsed.file.data.animals.length,
+          vaccination_injection: parsed.file.data.vaccinationInjections.length,
+          treatment_period: parsed.file.data.treatmentPeriods.length,
+          treatment_dose: parsed.file.data.treatmentDoses.length,
+          weight_entry: parsed.file.data.weightEntries.length,
+        })
+        expect(await rowCounts()).toEqual(written)
+        expect(sorted(await carnet()).treatmentDoses).toEqual(
+          sorted(parsed.file.data).treatmentDoses,
+        )
+      },
+    )
   })
 
   describe('aller-retour', () => {
