@@ -4,6 +4,7 @@ import {
   hasSeveralDoseTimes,
   isSeveralTimesADay,
   periodClosedBeforeFirstDue,
+  periodShownDays,
 } from '../domain/treatment-periods'
 
 describe('isSeveralTimesADay', () => {
@@ -38,5 +39,42 @@ describe('periodClosedBeforeFirstDue', () => {
 
     expect(periodClosedBeforeFirstDue(open, { startsOn: '2026-10-07' })).toBe(true)
     expect(periodClosedBeforeFirstDue(open, { startsOn: '2026-10-08' })).toBe(false)
+  })
+})
+
+describe('periodShownDays (R12, #925)', () => {
+  const first = {
+    id: 'p1',
+    createdAt: '2026-10-03T08:00:00.000Z',
+    startsOn: '2026-10-03',
+    firstDueOn: '2026-10-03',
+    endsOn: null,
+    stoppedOn: '2026-10-17',
+  }
+  const resumed = {
+    id: 'p2',
+    createdAt: '2026-10-17T08:00:00.000Z',
+    startsOn: '2026-10-17',
+    firstDueOn: '2026-10-18',
+    endsOn: null,
+    stoppedOn: null,
+  }
+
+  it('une reprise après un arrêt commence à sa première échéance, la période arrêtée finit à son arrêt', () => {
+    const periods = [first, resumed]
+    expect(periodShownDays(periods, resumed)).toEqual({ start: '2026-10-18', lastDay: null })
+    expect(periodShownDays(periods, first)).toEqual({ start: '2026-10-03', lastDay: '2026-10-17' })
+  })
+
+  it('une reprise après une fin commence aussi à sa première échéance', () => {
+    const ended = { ...first, endsOn: '2026-10-10', stoppedOn: null }
+    expect(periodShownDays([ended, resumed], resumed).start).toBe('2026-10-18')
+  })
+
+  it('une période ouverte par « Modifier » garde le jour du geste', () => {
+    const running = { ...first, stoppedOn: null }
+    const modified = { ...resumed, firstDueOn: '2026-10-24' }
+    expect(periodShownDays([running, modified], modified).start).toBe('2026-10-17')
+    expect(periodShownDays([running, modified], running).lastDay).toBe('2026-10-16')
   })
 })
