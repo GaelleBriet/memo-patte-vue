@@ -12,6 +12,7 @@ import calendarMonth from '@material-symbols/svg-400/outlined/calendar_month.svg
 import check from '@material-symbols/svg-400/outlined/check.svg?raw'
 import checkCircleFill from '@material-symbols/svg-400/outlined/check_circle-fill.svg?raw'
 import cloudDone from '@material-symbols/svg-400/outlined/cloud_done.svg?raw'
+import cloudDownload from '@material-symbols/svg-400/outlined/cloud_download.svg?raw'
 import cloudOff from '@material-symbols/svg-400/outlined/cloud_off.svg?raw'
 import cloudUpload from '@material-symbols/svg-400/outlined/cloud_upload.svg?raw'
 import contentCopy from '@material-symbols/svg-400/outlined/content_copy.svg?raw'
@@ -179,6 +180,7 @@ export const msIcons = {
   circle,
   close,
   cloud_done: cloudDone,
+  cloud_download: cloudDownload,
   cloud_off: cloudOff,
   cloud_upload: cloudUpload,
   colorize,

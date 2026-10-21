@@ -1403,6 +1403,26 @@
         "submit": "Remplacer"
       }
     },
+    "restore": {
+      "title": "Restaurer mon carnet",
+      "found": "Sauvegarde trouvée",
+      "summary": "{n} animal · dernière sauvegarde {when} | {n} animaux · dernière sauvegarde {when}",
+      "when": {
+        "today": "aujourd’hui à {time}",
+        "yesterday": "hier à {time}",
+        "thisYear": "le {date} à {time}",
+        "earlier": "le {date}"
+      },
+      "existing": "Des données existent déjà sur ce téléphone.",
+      "modes": "Fusionner ou remplacer",
+      "confirmBody": "Les données actuelles de ce téléphone seront remplacées par celles de la sauvegarde.",
+      "progress": {
+        "title": "Restauration de ton carnet",
+        "count": "{done} élément sur {total} | {done} élément sur {total} | {done} éléments sur {total}"
+      },
+      "offline": "La restauration reprendra dès le retour du réseau. Rien n’est perdu.",
+      "later": "Plus tard"
+    },
     "csv": {
       "columns": {
         "id": "Identifiant",

@@ -39,6 +39,10 @@ function declaration(css: string, selecteur: string, propriete: string): string 
 describe('PushedScreen — contrat de style', () => {
   const css = cssDeLEcran()
 
+  it('garde la place de la flèche cachée : le titre ne bouge pas', () => {
+    expect(declaration(css, '.pushed-screen__back--hidden', 'visibility')).toBe('hidden')
+  })
+
   it('borne sa hauteur à la zone utile de v-main, avec repli vh pour les WebView sans dvh', () => {
     expect(declarations(css, '.pushed-screen', 'height')).toEqual([
       'calc(100vh - var(--v-layout-top, 0px) - var(--v-layout-bottom, 0px))',
