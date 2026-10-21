@@ -5,6 +5,25 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.92](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.91...memo-patte-v0.1.92) (2026-10-21)
+
+
+### ✨ Fonctionnalités
+
+* **purchase:** aide « un appareil à la fois » sur l'écran Plus ([1b4c890](https://github.com/GaelleBriet/memo-patte-vue/commit/1b4c89085aad62391a3e87c87d10c5f887b93254))
+* **purchase:** aide « un appareil à la fois » sur l'écran Plus ([7e225c4](https://github.com/GaelleBriet/memo-patte-vue/commit/7e225c4aef55a950d1b1fb2e88082301d1cd5575))
+
+
+### 🐛 Corrections
+
+* **dose-calendar:** le report tourné depuis une date choisie garde ce lien quand on le redéplace ([5529972](https://github.com/GaelleBriet/memo-patte-vue/commit/552997215f838f2901639546670687b0f8e9d263))
+* **dose-calendar:** redéplacer la première dose d'une arrivée tournée garde la date choisie ([4f876ee](https://github.com/GaelleBriet/memo-patte-vue/commit/4f876ee6a105d622c8eda10f46b98b9d007aa197))
+* **dose-calendar:** un report redéplacé depuis la date choisie garde ses heures vues ([073394a](https://github.com/GaelleBriet/memo-patte-vue/commit/073394aaf0398b66d641c7c5a578c01ab92efadc))
+* **dose-calendar:** un report redéplacé depuis la date choisie garde ses heures vues ([042574e](https://github.com/GaelleBriet/memo-patte-vue/commit/042574ed5203aa4e6e604d0c2b3ab3228365034b))
+* **settings:** le PDF montre la ligne « Doses suivantes décalées » comme la fiche ([87acfcd](https://github.com/GaelleBriet/memo-patte-vue/commit/87acfcd6606fd870b5ac0d2f642ca496ccec4cef))
+* **settings:** le PDF montre la ligne « Doses suivantes décalées » comme la fiche ([ae1fa75](https://github.com/GaelleBriet/memo-patte-vue/commit/ae1fa751fc33ff1e6b11c887480de3243fc63aa8))
+* **treatments:** l'étiquette d'une période va jusqu'au jour de sa dernière prise ([630e020](https://github.com/GaelleBriet/memo-patte-vue/commit/630e020c79678a36d8d45c05d3f27f88ee9d38d5))
+
 ## [0.1.91](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.90...memo-patte-v0.1.91) (2026-10-20)
 
 
