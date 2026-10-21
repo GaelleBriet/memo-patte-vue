@@ -26,6 +26,8 @@ import {
 } from '@/shared/domain/reminder-route'
 import { useAnimalChips } from '@/shared/composables/use-animal-chips'
 import { useOpenUnfollowed } from '@/shared/composables/use-open-unfollowed'
+import { authAvailable } from '@/shared/utils/auth-available'
+import { signInRoute } from '@/shared/utils/sign-in-route'
 import AnimalPickerSheet from './AnimalPickerSheet.vue'
 import HomeMessages from './HomeMessages.vue'
 import HomeTodoCard from './HomeTodoCard.vue'
@@ -79,6 +81,7 @@ const hasError = computed(() => animals.error !== null || home.error !== null)
 const isReady = computed(() => animals.hasLoaded && home.hasLoaded && !hasError.value)
 const isLoading = computed(() => !isReady.value && !hasError.value)
 const isWelcome = computed(() => isReady.value && animals.animals.length === 0)
+const canRestore = computed(authAvailable)
 
 const currentId = computed<string | null>({
   get: () =>
@@ -199,7 +202,11 @@ function onAnimalPicked(animalId: string): void {
 
 async function onImported(): Promise<void> {
   await load()
-  await promptNotificationsIfReminders(router, 'home')
+  await promptNotificationsIfReminders(router, 'home', { ready: true })
+}
+
+function openRestore(): void {
+  void router.push(signInRoute('home', { restore: true }))
 }
 
 function createAnimal(): void {
@@ -259,6 +266,14 @@ onMounted(() => {
         @click="importSheet?.pickFile()"
       >
         {{ t('home.welcome.import') }}
+      </button>
+      <button
+        v-if="canRestore"
+        type="button"
+        class="home-welcome__import home-welcome__restore"
+        @click="openRestore"
+      >
+        {{ t('home.welcome.restore') }}
       </button>
     </div>
 
@@ -664,5 +679,10 @@ onMounted(() => {
     outline: none;
     color: rgb(var(--v-theme-primary-darken-1));
   }
+}
+
+.home-welcome__restore {
+  margin-top: -6px;
+  font-size: 13.5px;
 }
 </style>

@@ -48,6 +48,15 @@ describe('PushedScreen — top bar', () => {
     expect(wrapper.emitted('back')).toHaveLength(1)
   })
 
+  it('cache la flèche de retour quand l’écran ne se quitte pas, sans décaler le titre', () => {
+    const wrapper = monter({ backHidden: true })
+
+    const back = wrapper.get('.pushed-screen__back')
+    expect(back.classes()).toContain('pushed-screen__back--hidden')
+    expect(back.attributes('disabled')).toBeDefined()
+    expect(wrapper.get('.pushed-screen__title').text()).toBe('Suivi de poids')
+  })
+
   it('affiche le sous-titre et resserre alors l’interligne du titre', () => {
     const sans = monter()
     const avec = monter({ subtitle: 'Milo' })

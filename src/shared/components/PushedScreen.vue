@@ -9,8 +9,10 @@ withDefaults(
     backLabel: string
     subtitle?: string | null
     subtitleTone?: 'hint' | 'secondary'
+    /** L'écran ne se quitte pas tant qu'il travaille : pas de flèche de retour. */
+    backHidden?: boolean
   }>(),
-  { subtitle: null, subtitleTone: 'hint' },
+  { subtitle: null, subtitleTone: 'hint', backHidden: false },
 )
 
 const emit = defineEmits<{
@@ -68,6 +70,8 @@ onBeforeUnmount(() => {
         <div class="pushed-screen__line">
           <v-btn
             class="pushed-screen__back"
+            :class="{ 'pushed-screen__back--hidden': backHidden }"
+            :disabled="backHidden"
             icon="ms:arrow_back"
             variant="text"
             color="primary"
@@ -204,6 +208,10 @@ $size-back: 48px;
 .pushed-screen__subtitle--secondary {
   color: tokens.$color-text-secondary;
   font-weight: 500;
+}
+
+.pushed-screen__back--hidden {
+  visibility: hidden;
 }
 
 .pushed-screen__actions {

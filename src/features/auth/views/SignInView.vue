@@ -11,7 +11,8 @@ import { focusFirstInvalid } from '@/shared/form/focus-first-invalid'
 import FormField from '@/shared/form/FormField.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
-import { signInReturnRoute } from '@/shared/utils/sign-in-route'
+import { currentRestoreFlow } from '@/core/sync/service/restore-flow'
+import { afterSignInRoute, asksRestore, signInReturnRoute } from '@/shared/utils/sign-in-route'
 
 import GoogleSignInButton from './GoogleSignInButton.vue'
 
@@ -59,6 +60,16 @@ function leave(): void {
   void router.replace(returnRoute.value)
 }
 
+async function leaveSignedIn(): Promise<void> {
+  const flow = currentRestoreFlow()
+  if (!asksRestore(route.query) || flow === null) {
+    leave()
+    return
+  }
+  const restore = await flow.whenChecked()
+  if (isMounted) void router.replace(afterSignInRoute(route.query, restore))
+}
+
 function toggleMode(): void {
   mode.value = isSignUp.value ? 'sign-in' : 'sign-up'
   failureKey.value = null
@@ -101,9 +112,10 @@ async function submit(): Promise<void> {
       await auth.signIn(email, password)
     }
     if (!isMounted) return
-    isSubmitting.value = false
-    if (toConfirm) awaitingConfirmationFor.value = email
-    else leave()
+    if (toConfirm) {
+      isSubmitting.value = false
+      awaitingConfirmationFor.value = email
+    } else await leaveSignedIn()
   } catch (cause) {
     if (!isMounted) return
     isSubmitting.value = false
@@ -120,10 +132,13 @@ async function signInWithGoogle(): Promise<void> {
 
   const result = await continueWithGoogle()
   if (!isMounted) return
+  if (result.kind === 'signed-in') {
+    await leaveSignedIn()
+    return
+  }
   isSubmitting.value = false
   isGoogleSignIn.value = false
-  if (result.kind === 'signed-in') leave()
-  else if (result.kind === 'failed') await showFailure(result.messageKey)
+  if (result.kind === 'failed') await showFailure(result.messageKey)
 }
 
 onUnmounted(() => {

@@ -8,6 +8,7 @@ import { installCarnetSettingsReminders } from '@/app/carnet-settings-reminders'
 import { installPageviewTracking } from '@/app/analytics-pageview'
 import { installReminderActions, reminderActions } from '@/app/reminder-actions'
 import { installLaunchPriming, installRemindersPriming } from '@/app/reminders-priming'
+import { installRestorePrompt } from '@/app/restore-prompt'
 import { installRemindersSync } from '@/app/reminders-sync'
 import { createDefaultSyncDependencies, installSync } from '@/app/sync'
 import { initAnalytics } from '@/core/analytics'
@@ -76,6 +77,7 @@ installReminderActions(router, reminderActions(router))
 installRemindersSync()
 installCarnetSettingsReminders()
 installLaunchPriming(router)
+installRestorePrompt(router)
 void usePurchaseStore().verifyKnownStatus()
 installPlusAccountLink(() => useAuthStore().userId)
 void useAuthStore().restore()

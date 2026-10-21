@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import ChoiceCards from './ChoiceCards.vue'
 import type { ImportMode } from '../service/data-import.service'
 import { useDataImport } from '../composables/use-data-import'
+import { useMergeReplaceChoices } from '../composables/use-merge-replace-choices'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
 import { MAX_NAME_LENGTH } from '@/shared/domain/name-length'
 import { showToast } from '@/shared/utils/toast'
@@ -23,27 +24,12 @@ const { step, error, isImporting, selectFile, choose, confirmReplace, cancelRepl
     showToast(t('settings.import.success'))
     emit('imported')
   })
+const modes = useMergeReplaceChoices()
 
 const fileInput = useTemplateRef<HTMLInputElement>('fileInput')
 
 const selected = ref<ImportMode | null>(null)
 const groupLabelId = useId()
-
-const modes = computed(() => [
-  {
-    value: 'merge' as const,
-    icon: 'ms:merge',
-    label: t('settings.import.merge.label'),
-    description: t('settings.import.merge.description'),
-  },
-  {
-    value: 'replace' as const,
-    icon: 'ms:delete_sweep',
-    label: t('settings.import.replace.label'),
-    description: t('settings.import.replace.description'),
-    danger: true,
-  },
-])
 
 const errorMessage = computed(() => {
   switch (error.value) {

@@ -432,7 +432,9 @@ describe('MyDataSettingsView', () => {
     await importer(wrapper)
 
     expect(loadAnimals).toHaveBeenCalledOnce()
-    expect(promptNotificationsIfReminders).toHaveBeenCalledWith(router, 'settings-data')
+    expect(promptNotificationsIfReminders).toHaveBeenCalledWith(router, 'settings-data', {
+      ready: true,
+    })
   })
 
   it('ne propose pas l’explication des rappels après un import raté', async () => {

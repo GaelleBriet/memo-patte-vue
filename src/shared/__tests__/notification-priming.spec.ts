@@ -1,7 +1,23 @@
 import { describe, expect, it } from 'vitest'
 
-import { primingReturnRoute } from '../domain/notification-priming'
+import { primingReturnRoute, primingRouteFrom } from '../domain/notification-priming'
 import router from '@/router'
+
+describe('primingRouteFrom', () => {
+  it('retient l’écran d’origine', () => {
+    expect(primingRouteFrom('home')).toEqual({
+      name: 'notifications-priming',
+      query: { from: 'home' },
+    })
+  })
+
+  it('demande la variante « Ton carnet est prêt » après un import ou une restauration', () => {
+    expect(primingRouteFrom('settings-data', { ready: true })).toEqual({
+      name: 'notifications-priming',
+      query: { from: 'settings-data', ready: '1' },
+    })
+  })
+})
 
 describe('primingReturnRoute', () => {
   it('revient à l’écran d’origine quand il est nommé', () => {
@@ -48,13 +64,20 @@ describe('route de l’écran d’explication', () => {
     const props = route.matched[0]!.props.default as (r: typeof route) => unknown
 
     expect(route.path).toBe('/notifications/priming')
-    expect(props(route)).toEqual({ animalName: 'Luna', kind: 'treatment' })
+    expect(props(route)).toEqual({ animalName: 'Luna', kind: 'treatment', ready: false })
   })
 
   it('retombe sur un vaccin quand le type est inconnu', () => {
     const route = router.resolve({ name: 'notifications-priming', query: { animalName: 'Luna' } })
     const props = route.matched[0]!.props.default as (r: typeof route) => unknown
 
-    expect(props(route)).toEqual({ animalName: 'Luna', kind: 'vaccination' })
+    expect(props(route)).toEqual({ animalName: 'Luna', kind: 'vaccination', ready: false })
+  })
+
+  it('lit dans l’adresse la variante d’après un import ou une restauration', () => {
+    const route = router.resolve(primingRouteFrom('home', { ready: true }))
+    const props = route.matched[0]!.props.default as (r: typeof route) => unknown
+
+    expect(props(route)).toMatchObject({ ready: true })
   })
 })
