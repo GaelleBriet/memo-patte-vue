@@ -5,6 +5,7 @@ import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
 import { AccountError } from '../logic/account-error'
 import { authRepository, type AuthRepository } from '../repository/auth.repository'
+import { provideAuthRepository } from '../store/auth.store'
 import SignInView from '../views/SignInView.vue'
 import { memoryStorage, USER_ID, type MemoryStorage } from './auth-fixture'
 import i18n from '@/core/i18n'
@@ -22,6 +23,7 @@ vi.mock('../repository/auth.repository', () => ({
 }))
 
 const repository = vi.mocked(authRepository)
+provideAuthRepository(() => authRepository)
 const Vide = { render: () => null }
 
 let routeur: Router
