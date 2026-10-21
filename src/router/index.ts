@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
+import { plusScreenAccess } from '@/features/auth/logic/plus-screen-access'
+import { useAuthStore } from '@/features/auth/store/auth.store'
 import { isReadyPriming } from '@/shared/domain/notification-priming'
 import { authAvailable } from '@/shared/utils/auth-available'
 
@@ -9,6 +11,8 @@ declare module 'vue-router' {
     rootScreen?: boolean
   }
 }
+
+const requirePlusAccount = () => plusScreenAccess(useAuthStore().hasPlusAccount)
 
 export const routes: RouteRecordRaw[] = [
   {
@@ -132,6 +136,7 @@ export const routes: RouteRecordRaw[] = [
     path: '/settings/account',
     name: 'settings-account',
     component: () => import('@/features/auth/views/AccountSettingsView.vue'),
+    beforeEnter: requirePlusAccount,
   },
   {
     path: '/settings/privacy',
@@ -162,6 +167,7 @@ export const routes: RouteRecordRaw[] = [
     path: '/restore',
     name: 'account-restore',
     component: () => import('@/features/settings/views/AccountRestoreView.vue'),
+    beforeEnter: requirePlusAccount,
   },
   {
     path: '/sign-in',
