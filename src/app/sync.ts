@@ -5,9 +5,9 @@ import { getDeviceRepository } from '@/core/device/device.repository'
 import { createLocalSyncContext } from '@/core/sync/service/local-sync-context'
 import { onNetworkOnline } from '@/core/sync/service/network-status'
 import type { SyncOutboxRepository } from '@/core/sync/repository/sync-outbox.repository'
+import type { AccountRestore, RestorableTable } from '@/core/sync/service/account-restore'
 import type { SyncCycleOutbox } from '@/core/sync/service/sync-cycle'
 import { createSyncScheduler, resumePendingSync } from '@/core/sync/service/sync-scheduler'
-import type { RemoteBackupReads, SyncableTable } from '@/core/sync/service/syncable-table'
 import { getAnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { useAuthStore } from '@/features/auth/store/auth.store'
 import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
@@ -30,6 +30,7 @@ export interface SyncDependencies {
   userId: () => string | null
   sessionActive: () => boolean
   checkAccountBackup: () => Promise<AccountBackupCheck>
+  restore: Pick<AccountRestore, 'run'>
 }
 
 /**
@@ -37,7 +38,8 @@ export interface SyncDependencies {
  * connexion réussie) ; le debounce après écriture est déjà câblé côté triggers SQLite. Le compte
  * ne disparaît qu'à la déconnexion explicite : la synchro oublie alors sa file et ses curseurs.
  * Un compte qui en remplace un autre repart, comme une première connexion, du contrôle de sa
- * sauvegarde, fait une fois par lancement et par compte dès que sa session est active.
+ * sauvegarde, fait une fois par lancement et par compte dès que sa session est active. Une
+ * restauration choisie reprend seule au lancement, au retour au premier plan et du réseau.
  */
 export async function installSync(deps: SyncDependencies): Promise<() => void> {
   const scheduler = createSyncScheduler({ runCycle: deps.runCycle })
@@ -48,10 +50,20 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
     accountWork = accountWork.then(task)
   }
 
+  async function runRestore(): Promise<void> {
+    try {
+      await deps.restore.run()
+      scheduler.notifyChange()
+    } catch (cause) {
+      console.warn('Restauration interrompue, elle reprendra :', cause)
+    }
+  }
+
   async function checkBackup(): Promise<void> {
     try {
       const outcome = await deps.checkAccountBackup()
       if (outcome.kind === 'seeded') scheduler.notifyChange()
+      if (outcome.kind === 'restore-pending') await runRestore()
       if (outcome.kind === 'unreachable') checkedFor = null
     } catch (cause) {
       checkedFor = null
@@ -59,8 +71,13 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
     }
   }
 
-  const stopResume = onAppResume(() => scheduler.notifyChange())
-  const stopNetwork = onNetworkOnline(() => scheduler.notifyChange())
+  function onComeback(): void {
+    enqueue(runRestore)
+    scheduler.notifyChange()
+  }
+
+  const stopResume = onAppResume(onComeback)
+  const stopNetwork = onNetworkOnline(onComeback)
   const stopAccountWatch = watch(
     () => ({ userId: deps.userId(), active: deps.sessionActive() }),
     ({ userId, active }, before) => {
@@ -100,7 +117,7 @@ async function forgetPreviousAccount(outbox: SyncDependencies['outbox']): Promis
 
 /** Composition réelle : les repositories sur la base de l'appareil, le statut Plus des stores. */
 export async function createDefaultSyncDependencies(): Promise<SyncDependencies> {
-  const tables: Array<SyncableTable & RemoteBackupReads> = [
+  const tables: RestorableTable[] = [
     await getDeviceRepository(),
     await getAnimalsRepository(),
     await getVaccinationsRepository(),
@@ -112,7 +129,7 @@ export async function createDefaultSyncDependencies(): Promise<SyncDependencies>
     await getCarnetSettingsRepository(),
   ]
   const userId = () => useAuthStore().userId
-  const { outbox, cycle } = await createLocalSyncContext({
+  const { outbox, cycle, restore } = await createLocalSyncContext({
     tables,
     userId,
     isEligible: () => useAuthStore().hasPlusAccount && usePurchaseStore().status.plan !== 'none',
@@ -122,6 +139,7 @@ export async function createDefaultSyncDependencies(): Promise<SyncDependencies>
     outbox: () => outbox,
     tables: () => tables,
     animals: getAnimalsRepository,
+    restore,
     userId,
   })
 
@@ -131,5 +149,6 @@ export async function createDefaultSyncDependencies(): Promise<SyncDependencies>
     userId,
     sessionActive: () => useAuthStore().sessionState === 'active',
     checkAccountBackup: () => accountBackup.check(),
+    restore,
   }
 }
