@@ -4,7 +4,7 @@ import { nextTick } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { authRepository, type AuthRepository } from '@/features/auth/repository/auth.repository'
-import { useAuthStore } from '@/features/auth/store/auth.store'
+import { provideAuthRepository, useAuthStore } from '@/features/auth/store/auth.store'
 import { memoryStorage, OTHER_USER_ID, USER_ID } from '@/features/auth/__tests__/auth-fixture'
 import { billingService, type BillingService } from '@/features/purchase/service/billing.service'
 import { installPlusAccountLink } from '@/features/purchase/service/plus-account-link.service'
@@ -41,6 +41,7 @@ vi.mock('@/features/purchase/service/billing.service', async (importOriginal) =>
 }))
 
 const repository = vi.mocked(authRepository)
+provideAuthRepository(() => authRepository)
 const billing = vi.mocked(billingService)
 
 const ANNUAL: PlusStatus = { plan: 'annual', expiresAt: '2027-09-01T10:00:00Z' }

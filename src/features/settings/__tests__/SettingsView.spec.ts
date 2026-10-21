@@ -8,6 +8,8 @@ import vuetify from '@/core/theme/vuetify'
 import router from '@/router'
 import { USER_ID } from '@/features/auth/__tests__/auth-fixture'
 import { writePlusAccount } from '@/features/auth/logic/plus-account-storage'
+import { authRepository } from '@/features/auth/repository/auth.repository'
+import { provideAuthRepository } from '@/features/auth/store/auth.store'
 import { memoryStorage } from '@/features/purchase/__tests__/billing-fixture'
 import { writeStoredPlusStatus } from '@/features/purchase/logic/plus-status-storage'
 
@@ -26,6 +28,8 @@ vi.mock('@/core/notifications/exact-reminders', () => ({
   getExactRemindersStatus: async () => notifications.exact,
   openExactRemindersSettings: async () => notifications.exact,
 }))
+
+provideAuthRepository(() => authRepository)
 
 let push: MockInstance
 let wrapper: VueWrapper | null = null
