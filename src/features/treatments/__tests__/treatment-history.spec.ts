@@ -550,6 +550,30 @@ describe('treatmentHistory — plusieurs périodes (planche A · V3)', () => {
     ])
   })
 
+  it('étend l’étiquette d’une période jusqu’au jour de sa dernière prise', () => {
+    const book = treatment(
+      [
+        period({ startsOn: '2026-10-01', firstDueOn: '2026-10-01' }),
+        period({
+          id: 'p-2',
+          startsOn: '2026-10-20',
+          firstDueOn: '2026-10-21',
+          createdAt: '2026-10-20T08:00:00.000Z',
+        }),
+      ],
+      [
+        dose('2026-10-01', '2026-10-02', { dueTime: '08:00' }),
+        dose('2026-10-20', '2026-10-21', { dueTime: '08:00' }),
+        dose('2026-10-21', '2026-10-22', { dueTime: '08:00', periodId: 'p-2' }),
+      ],
+    )
+
+    expect(history(book, '2026-10-27').periods.map(({ head }) => head?.title)).toEqual([
+      'Depuis le 20 oct. 2026',
+      'Du 1er oct. au 20 oct. 2026',
+    ])
+  })
+
   it('écrit « Le … » pour une période fermée le jour de son ouverture', () => {
     const sameDay = { startsOn: '2026-10-02', firstDueOn: '2026-10-02' }
     const reopened = period({ ...sameDay, id: 'p-3', createdAt: '2026-10-02T10:00:00.000Z' })
