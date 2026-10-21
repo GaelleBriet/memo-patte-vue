@@ -63,12 +63,15 @@ describe('PlusSettingsView', () => {
     expect(wrapper.text()).not.toContain('abonné')
   })
 
-  it('ouvre la connexion depuis « J’ai déjà MémoPatte Plus », et revient sur cette page après', async () => {
+  it('ouvre la connexion depuis « J’ai déjà MémoPatte Plus », puis la restauration du carnet', async () => {
     const wrapper = await monter()
 
     await wrapper.get('.settings-row--plus-sign-in').trigger('click')
 
-    expect(push).toHaveBeenCalledWith({ name: 'sign-in', query: { from: 'settings-plus' } })
+    expect(push).toHaveBeenCalledWith({
+      name: 'sign-in',
+      query: { from: 'settings-plus', restore: '1' },
+    })
   })
 
   it('ne propose pas la connexion sans configuration Supabase', async () => {

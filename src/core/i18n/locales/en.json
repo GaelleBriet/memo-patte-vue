@@ -1074,7 +1074,8 @@
       "text": "Your pets’ health record, always up to date.",
       "local": "Your health record stays on your phone. Free, no account.",
       "create": "Add my first pet",
-      "import": "Import a MémoPatte export"
+      "import": "Import a MémoPatte export",
+      "restore": "I already have MémoPatte Plus · Restore my health record"
     },
     "unfollowed": {
       "title": "No upcoming reminders",
@@ -1118,7 +1119,11 @@
       },
       "enable": "Turn on reminders",
       "later": "Not now",
-      "enabled": "Reminders on"
+      "enabled": "Reminders on",
+      "ready": {
+        "subtitle": "Your health record is ready. Allow notifications to get your reminders.",
+        "enable": "Allow notifications"
+      }
     },
     "channel": {
       "name": "Reminders",

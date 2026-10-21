@@ -9,10 +9,15 @@ import { primingReturnRoute } from '../domain/notification-priming'
 import { returnTo } from '../utils/return-to'
 import { showToast } from '../utils/toast'
 
-const props = defineProps<{
-  animalName: string
-  kind: 'vaccination' | 'treatment'
-}>()
+const props = withDefaults(
+  defineProps<{
+    animalName: string
+    kind: 'vaccination' | 'treatment'
+    /** Après un import ou une restauration (V26 quater). */
+    ready?: boolean
+  }>(),
+  { ready: false },
+)
 
 const { t } = useI18n()
 const router = useRouter()
@@ -28,11 +33,21 @@ const personalBenefit = computed(() => {
     : t('notifications.priming.benefits.vaccination', { name: props.animalName })
 })
 
-const benefits = computed(() => [
-  ...(personalBenefit.value ? [personalBenefit.value] : []),
-  t('notifications.priming.benefits.offline'),
-  t('notifications.priming.benefits.onlyYours'),
-])
+const benefits = computed(() =>
+  props.ready
+    ? []
+    : [
+        ...(personalBenefit.value ? [personalBenefit.value] : []),
+        t('notifications.priming.benefits.offline'),
+        t('notifications.priming.benefits.onlyYours'),
+      ],
+)
+const subtitle = computed(() =>
+  props.ready ? t('notifications.priming.ready.subtitle') : t('notifications.priming.subtitle'),
+)
+const enableLabel = computed(() =>
+  props.ready ? t('notifications.priming.ready.enable') : t('notifications.priming.enable'),
+)
 
 function goBack(): void {
   returnTo(router, returnRoute)
@@ -62,9 +77,9 @@ onScopeDispose(onBackButton(later))
         <v-icon icon="ms:notifications_active" size="44" />
       </span>
       <h1 class="notification-priming__title">{{ t('notifications.priming.title') }}</h1>
-      <p class="notification-priming__subtitle">{{ t('notifications.priming.subtitle') }}</p>
+      <p class="notification-priming__subtitle">{{ subtitle }}</p>
 
-      <ul class="notification-priming__benefits">
+      <ul v-if="benefits.length > 0" class="notification-priming__benefits">
         <li v-for="benefit in benefits" :key="benefit" class="notification-priming__benefit">
           <v-icon icon="ms:check_circle" size="19" />
           <span>{{ benefit }}</span>
@@ -80,7 +95,7 @@ onScopeDispose(onBackButton(later))
         :loading="isRequesting"
         @click="enable"
       >
-        {{ t('notifications.priming.enable') }}
+        {{ enableLabel }}
       </v-btn>
       <v-btn
         class="notification-priming__later"

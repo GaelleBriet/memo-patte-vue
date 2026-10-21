@@ -9,6 +9,11 @@ import { provideAuthRepository } from '../store/auth.store'
 import SignInView from '../views/SignInView.vue'
 import { memoryStorage, USER_ID, type MemoryStorage } from './auth-fixture'
 import i18n from '@/core/i18n'
+import {
+  createRestoreFlow,
+  provideRestoreFlow,
+  type RestoreFlow,
+} from '@/core/sync/service/restore-flow'
 import vuetify from '@/core/theme/vuetify'
 
 vi.mock('../repository/auth.repository', () => ({
@@ -37,6 +42,9 @@ function routeurMemoire(): Router {
       { path: '/plus', name: 'plus', component: Vide },
       { path: '/settings', name: 'settings', component: Vide },
       { path: '/sign-in', name: 'sign-in', component: Vide },
+      { path: '/', name: 'home', component: Vide },
+      { path: '/settings/plus', name: 'settings-plus', component: Vide },
+      { path: '/restore', name: 'account-restore', component: Vide },
     ],
   })
 }
@@ -152,6 +160,61 @@ describe('SignInView', () => {
 
     expect(repository.signIn).toHaveBeenCalledWith('sophie.martin@example.com', 'motdepasse')
     expect(replace).toHaveBeenCalledWith({ name: 'settings' })
+  })
+
+  describe('vers la restauration du carnet', () => {
+    let flow: RestoreFlow
+
+    beforeEach(() => {
+      flow = createRestoreFlow({
+        pendingMode: async () => null,
+        start: async () => {},
+        run: async () => {},
+        progress: { done: 0, total: 0 },
+        onProgress: () => () => {},
+      })
+      provideRestoreFlow(flow)
+    })
+
+    afterEach(() => {
+      provideRestoreFlow(null)
+    })
+
+    it('attend le contrôle de la sauvegarde, bouton occupé, puis ouvre « Restaurer mon carnet »', async () => {
+      repository.signIn.mockImplementation(async () => {
+        flow.checking()
+        return { userId: USER_ID }
+      })
+      const wrapper = await monter('/sign-in?from=settings-plus&restore=1')
+
+      await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse')
+      await envoyer(wrapper)
+      expect(replace).not.toHaveBeenCalled()
+      expect(wrapper.find('.sign-in__loading').exists()).toBe(true)
+
+      flow.offer({ animalCount: 3, lastBackupAt: '2026-10-20T19:04:00.000Z' })
+      await flushPromises()
+
+      expect(replace).toHaveBeenCalledWith({
+        name: 'account-restore',
+        query: { from: 'settings-plus' },
+      })
+    })
+
+    it('sans sauvegarde, ramène à l’écran d’origine', async () => {
+      repository.signIn.mockImplementation(async () => {
+        flow.checking()
+        return { userId: USER_ID }
+      })
+      const wrapper = await monter('/sign-in?from=home&restore=1')
+
+      await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse')
+      await envoyer(wrapper)
+      flow.reset()
+      await flushPromises()
+
+      expect(replace).toHaveBeenCalledWith({ name: 'home' })
+    })
   })
 
   it('ramène à l’écran Plus quand aucun parcours d’origine n’est donné', async () => {

@@ -18,9 +18,23 @@ export function reminderQuery(reminder: unknown): Record<string, string> {
   return typeof reminder === 'string' ? { [REMINDER_QUERY_PARAM]: reminder } : {}
 }
 
+export type PrimingOptions = {
+  /** Après un import ou une restauration : la variante « Ton carnet est prêt ». */
+  ready?: boolean
+}
+
+const READY_FLAG = '1'
+
 /** `from` : `home`, `settings`, `settings-reminders` ou `animals`, où l'écran d'explication ramènera. */
-export function primingRouteFrom(from: string): RouteLocationRaw {
-  return { name: PRIMING_ROUTE, query: { from } }
+export function primingRouteFrom(
+  from: string,
+  { ready = false }: PrimingOptions = {},
+): RouteLocationRaw {
+  return { name: PRIMING_ROUTE, query: ready ? { from, ready: READY_FLAG } : { from } }
+}
+
+export function isReadyPriming(ready: unknown): boolean {
+  return ready === READY_FLAG
 }
 
 export function primingReturnRoute(from: unknown, reminder?: unknown): RouteLocationRaw {

@@ -83,7 +83,7 @@ export function createRemindersPriming({
   treatments,
   today,
 }: RemindersPrimingDependencies): PromptNotificationsIfReminders {
-  return async (router, from) => {
+  return async (router, from, options) => {
     try {
       if (!isNativePlatform() || !(await shouldShowPriming())) return false
 
@@ -105,7 +105,7 @@ export function createRemindersPriming({
       if (!hasUpcomingDueDates(carnet, today())) return false
 
       if (router.currentRoute.value.name !== from) return false
-      await router.replace(primingRouteFrom(from))
+      await router.replace(primingRouteFrom(from, options))
       return true
     } catch (cause) {
       console.warn('Écran d’explication des rappels non proposé :', cause)

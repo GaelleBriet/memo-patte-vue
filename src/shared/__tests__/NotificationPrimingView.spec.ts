@@ -45,7 +45,9 @@ afterEach(() => {
   dismissToast()
 })
 
-function monter(props: { animalName?: string; kind?: 'vaccination' | 'treatment' } = {}) {
+function monter(
+  props: { animalName?: string; kind?: 'vaccination' | 'treatment'; ready?: boolean } = {},
+) {
   return mount(NotificationPrimingView, {
     props: { animalName: 'Milo', kind: 'vaccination', ...props },
     global: { plugins: [vuetify, i18n, routeur] },
@@ -91,6 +93,45 @@ describe('NotificationPrimingView — contenu', () => {
 
     expect(request).not.toHaveBeenCalled()
     expect(postpone).not.toHaveBeenCalled()
+  })
+})
+
+describe('NotificationPrimingView — après un import ou une restauration (V26 quater)', () => {
+  it('dit que le carnet est prêt, sans liste d’avantages, avec les boutons de la planche', () => {
+    const wrapper = monter({ ready: true })
+
+    expect(wrapper.get('h1').text()).toBe('Ne rate plus aucun rappel')
+    expect(wrapper.get('.notification-priming__subtitle').text()).toBe(
+      'Ton carnet est prêt. Autorise les notifications pour recevoir tes rappels.',
+    )
+    expect(wrapper.find('li').exists()).toBe(false)
+    expect(wrapper.get('.notification-priming__enable').text()).toBe('Autoriser les notifications')
+    expect(wrapper.get('.notification-priming__later').text()).toBe('Plus tard')
+  })
+
+  it('en anglais', () => {
+    i18n.global.locale.value = 'en'
+    try {
+      const wrapper = monter({ ready: true })
+
+      expect(wrapper.get('h1').text()).toBe('Never miss a reminder')
+      expect(wrapper.get('.notification-priming__subtitle').text()).toBe(
+        'Your health record is ready. Allow notifications to get your reminders.',
+      )
+      expect(wrapper.get('.notification-priming__enable').text()).toBe('Allow notifications')
+      expect(wrapper.get('.notification-priming__later').text()).toBe('Not now')
+    } finally {
+      i18n.global.locale.value = 'fr'
+    }
+  })
+
+  it('demande l’autorisation comme l’écran habituel', async () => {
+    const wrapper = monter({ ready: true })
+
+    await wrapper.get('.notification-priming__enable').trigger('click')
+    await flushPromises()
+
+    expect(request).toHaveBeenCalledOnce()
   })
 })
 

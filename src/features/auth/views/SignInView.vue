@@ -11,7 +11,8 @@ import { focusFirstInvalid } from '@/shared/form/focus-first-invalid'
 import FormField from '@/shared/form/FormField.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
-import { signInReturnRoute } from '@/shared/utils/sign-in-route'
+import { currentRestoreFlow } from '@/core/sync/service/restore-flow'
+import { afterSignInRoute, asksRestore, signInReturnRoute } from '@/shared/utils/sign-in-route'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -53,6 +54,16 @@ const passwordAutocomplete = computed(() => (isSignUp.value ? 'new-password' : '
 
 function leave(): void {
   void router.replace(returnRoute.value)
+}
+
+async function leaveSignedIn(): Promise<void> {
+  const flow = currentRestoreFlow()
+  if (!asksRestore(route.query) || flow === null) {
+    leave()
+    return
+  }
+  const restore = await flow.whenChecked()
+  if (isMounted) void router.replace(afterSignInRoute(route.query, restore))
 }
 
 function toggleMode(): void {
@@ -97,9 +108,10 @@ async function submit(): Promise<void> {
       await auth.signIn(email, password)
     }
     if (!isMounted) return
-    isSubmitting.value = false
-    if (toConfirm) awaitingConfirmationFor.value = email
-    else leave()
+    if (toConfirm) {
+      isSubmitting.value = false
+      awaitingConfirmationFor.value = email
+    } else await leaveSignedIn()
   } catch (cause) {
     if (!isMounted) return
     isSubmitting.value = false

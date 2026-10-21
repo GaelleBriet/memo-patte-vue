@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
+import { isReadyPriming } from '@/shared/domain/notification-priming'
 import { authAvailable } from '@/shared/utils/auth-available'
 
 declare module 'vue-router' {
@@ -99,6 +100,7 @@ export const routes: RouteRecordRaw[] = [
     props: (route) => ({
       animalName: typeof route.query.animalName === 'string' ? route.query.animalName : '',
       kind: route.query.kind === 'treatment' ? 'treatment' : 'vaccination',
+      ready: isReadyPriming(route.query.ready),
     }),
   },
   {
