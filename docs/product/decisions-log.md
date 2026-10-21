@@ -3416,3 +3416,11 @@ réelles puis corrige ses heures à 10 h 05 ; B, à l'heure, avait reporté une 
   posée. Exemple : lundi 19 octobre, A a 3 jours d'avance ; à 8 h réelles il renomme Luna « Luna A »
   et son cycle commence ; avant que A tire les animaux, B renomme Luna « Luna B » à 8 h 00 min 05 s
   et synchronise ; A finit avec « Luna B », comme le serveur.
+
+2026-10-21 — **Export CSV lisible et traduit** (#416). Décision de Gaelle : titres de colonnes
+lisibles dans la langue de l'app, l'unité entre parenthèses (« Poids (kg) », « Weight (lb) »), selon
+le glossaire ; valeurs codées traduites ; séparateur `;` et virgule décimale en français, `,` et point
+en anglais ; dates reconnues par un tableur ; JSON inchangé et seule porte d'import. — Le CSV est fait
+pour être ouvert dans un tableur, pas relu par un programme. — Alternative écartée : liste de titres
+à valider avant de coder (le glossaire fait foi, Gaelle relit après le merge). Les noms de fichiers de
+l'archive (`animaux.csv`…) restent en français quelle que soit la langue : à trancher si Gaelle le veut.
