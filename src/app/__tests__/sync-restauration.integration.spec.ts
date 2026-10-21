@@ -111,13 +111,15 @@ describe('restauration du carnet d’un compte', () => {
       .sort(byId)
   }
 
-  async function expectSameCarnetAsServer(device: Phone): Promise<void> {
-    for (const entity of CARNET_ENTITIES) {
-      expect({ entity, rows: await device.rows(entity) }).toEqual({
-        entity,
-        rows: serverRows(entity),
-      })
-    }
+  async function carnetOf(device: Phone): Promise<Record<string, SyncRow[]>> {
+    const entries = await Promise.all(
+      CARNET_ENTITIES.map(async (entity) => [entity, await device.rows(entity)] as const),
+    )
+    return Object.fromEntries(entries)
+  }
+
+  function serverCarnet(): Record<string, SyncRow[]> {
+    return Object.fromEntries(CARNET_ENTITIES.map((entity) => [entity, serverRows(entity)]))
   }
 
   beforeEach(async () => {
@@ -151,7 +153,7 @@ describe('restauration du carnet d’un compte', () => {
     await tablet.outbox.enableAndQueueWholeCarnet()
     await tablet.sync()
 
-    await expectSameCarnetAsServer(tablet)
+    expect(await carnetOf(tablet)).toEqual(serverCarnet())
     expect((await tablet.rows('device')).map(({ id }) => id)).toEqual([
       'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
@@ -168,7 +170,7 @@ describe('restauration du carnet d’un compte', () => {
     await tablet.outbox.enableAndQueueWholeCarnet()
     await tablet.sync()
 
-    await expectSameCarnetAsServer(tablet)
+    expect(await carnetOf(tablet)).toEqual(serverCarnet())
   })
 
   it('coupée par le réseau, la restauration reprend où elle s’était arrêtée, même après un redémarrage', async () => {
@@ -182,7 +184,7 @@ describe('restauration du carnet d’un compte', () => {
     const resumed = tablet.launch()
     await resumed.runCycle()
 
-    await expectSameCarnetAsServer(tablet)
+    expect(await carnetOf(tablet)).toEqual(serverCarnet())
   })
 
   it('« Fusionner » garde le carnet de l’appareil et lui ajoute celui du compte, dans les deux sens', async () => {
@@ -192,8 +194,8 @@ describe('restauration du carnet d’un compte', () => {
     await tablet.sync()
     await phone.sync()
 
-    await expectSameCarnetAsServer(tablet)
-    await expectSameCarnetAsServer(phone)
+    expect(await carnetOf(tablet)).toEqual(serverCarnet())
+    expect(await carnetOf(phone)).toEqual(serverCarnet())
     expect(serverRows('animal').map(({ id }) => id)).toContain(luna.id)
   })
 
