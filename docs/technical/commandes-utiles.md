@@ -48,7 +48,8 @@ Points propres à un changement de machine :
 - `ANDROID_HOME` / `ANDROID_SDK_ROOT` sont déjà exportés vers `~/Android/Sdk` ; `android/local.properties`
   n'est pas nécessaire tant que la variable pointe sur un SDK réel.
 - `gh auth login -h github.com` (fait), et le fichier `.env` local à recréer depuis `.env.example`
-  avec les clés Supabase (jamais versionné).
+  avec les clés Supabase (jamais versionné), et `VITE_GOOGLE_WEB_CLIENT_ID`, l'identifiant du client
+  OAuth **Web** de Google Cloud (jamais un client Android) : sans lui, la connexion Google est indisponible.
 - Chrome DevTools : `chrome://inspect/#devices` fonctionne directement, la manipulation `adb tcpip` de la
   section 3 ne concernait que WSL.
 

@@ -9,6 +9,8 @@ interface ImportMetaEnv {
   readonly VITE_POSTHOG_HOST?: string
   /** Clé publique Google Play de RevenueCat ; absente, les achats sont indisponibles. */
   readonly VITE_REVENUECAT_GOOGLE_KEY?: string
+  /** Identifiant du client OAuth Web de Google Cloud ; absent, la connexion Google est indisponible. */
+  readonly VITE_GOOGLE_WEB_CLIENT_ID?: string
   /** Version de `package.json`, injectée par `vite.config.ts`. */
   readonly VITE_APP_VERSION: string
   /** Posée par `pnpm dev:data` (`maquettes-<horodatage>`), absente sinon. Voir `src/core/dev/fixtures.ts`. */
