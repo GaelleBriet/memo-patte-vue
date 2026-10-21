@@ -1,6 +1,7 @@
 // @vitest-environment node
 // Contre une pile Supabase locale jetable (`supabase start`), jamais le vrai projet :
 // SUPABASE_LOCAL_URL=http://127.0.0.1:54321 SUPABASE_LOCAL_ANON_KEY=… SUPABASE_LOCAL_SERVICE_ROLE_KEY=… pnpm exec vitest run supabase/functions/delete-account
+// Le mode admin demande en plus SUPABASE_LOCAL_ADMIN_SECRET, égal à l'ADMIN_DELETE_SECRET du runtime local.
 import { randomUUID } from 'node:crypto'
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
@@ -9,6 +10,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 const url = process.env.SUPABASE_LOCAL_URL
 const anonKey = process.env.SUPABASE_LOCAL_ANON_KEY ?? ''
 const serviceKey = process.env.SUPABASE_LOCAL_SERVICE_ROLE_KEY ?? ''
+const adminSecret = process.env.SUPABASE_LOCAL_ADMIN_SECRET
 
 const ACCOUNT_TABLES = [
   'animal',
@@ -28,7 +30,7 @@ const JPEG = new Uint8Array([
   0xff, 0xd8, 0xff, 0xe0, 0, 0x10, 0x4a, 0x46, 0x49, 0x46, 0, 0xff, 0xd9,
 ])
 
-type Account = { userId: string; token: string; photo: string }
+type Account = { userId: string; email: string; token: string; photo: string }
 
 const options = { auth: { persistSession: false, autoRefreshToken: false } }
 
@@ -81,13 +83,26 @@ describe.skipIf(url === undefined)('delete-account sur une pile Supabase locale'
       .from('animal-photos')
       .upload(photo, JPEG, { contentType: 'image/jpeg' })
     if (upload.error) throw upload.error
-    return { userId, token: session.data.session.access_token, photo }
+    return { userId, email, token: session.data.session.access_token, photo }
   }
 
   function callFunction(token: string): Promise<Response> {
     return fetch(`${url}/functions/v1/delete-account`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, apikey: anonKey },
+    })
+  }
+
+  function callAdmin(body: unknown, secret = adminSecret!): Promise<Response> {
+    return fetch(`${url}/functions/v1/delete-account`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${anonKey}`,
+        apikey: anonKey,
+        'Content-Type': 'application/json',
+        'x-memopatte-admin-secret': secret,
+      },
+      body: JSON.stringify(body),
     })
   }
 
@@ -203,4 +218,49 @@ describe.skipIf(url === undefined)('delete-account sur une pile Supabase locale'
 
     expect(response.status).toBe(401)
   })
+
+  it.skipIf(adminSecret === undefined)('mode admin : refuse un secret faux', async () => {
+    const account = await createAccount()
+
+    const response = await callAdmin({ email: account.email, scope: 'account' }, 'pas-le-bon')
+
+    expect(response.status).toBe(401)
+    expect((await leftovers(account)).user).toBe(account.userId)
+    await callAdmin({ email: account.email, scope: 'account' })
+  })
+
+  it.skipIf(adminSecret === undefined)(
+    'mode admin : efface la seule sauvegarde cloud, le compte et son droit Plus restent',
+    async () => {
+      const account = await createAccount()
+
+      const response = await callAdmin({
+        email: account.email.toUpperCase(),
+        scope: 'cloud-backup',
+      })
+
+      expect(response.status).toBe(200)
+      expect(await leftovers(account)).toEqual({
+        user: account.userId,
+        photos: [],
+        rows: { plus_entitlements: 1 },
+      })
+      await callAdmin({ email: account.email, scope: 'account' })
+    },
+  )
+
+  it.skipIf(adminSecret === undefined)(
+    'mode admin : supprime le compte d’une adresse et note « email » au journal',
+    async () => {
+      const account = await createAccount()
+      const logged = await loggedDeletions('email')
+
+      const response = await callAdmin({ email: account.email, scope: 'account' })
+
+      expect(response.status).toBe(200)
+      expect(await leftovers(account)).toEqual({ user: null, photos: [], rows: {} })
+      expect(await loggedDeletions('email')).toBe(logged + 1)
+      expect((await leftovers(other)).user).toBe(other.userId)
+    },
+  )
 })

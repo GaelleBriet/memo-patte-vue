@@ -1,10 +1,10 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { MAX_FOLDER_DEPTH, PHOTO_PAGE_SIZE, type StorageEntry } from '../account-erasure'
-import { handleDeleteAccount, type AccountDeletionPorts } from '../delete-account'
+import { MAX_FOLDER_DEPTH, PHOTO_PAGE_SIZE } from '../account-erasure'
+import { handleDeleteAccount } from '../delete-account'
+import { fakeDeletionPorts, USER } from './fake-deletion-ports'
 
-const USER = '11111111-1111-4111-8111-111111111111'
 const NOW = Date.UTC(2026, 9, 21, 16, 5)
 const NOW_SECONDS = NOW / 1000
 
@@ -19,63 +19,8 @@ function confirmedSecondsAgo(seconds: number): string {
 
 const TOKEN = confirmedSecondsAgo(60)
 
-type Call = { kind: 'list' | 'remove' | 'deleteUser' | 'record'; arg: unknown }
-
-/** Comme `storage.list()` : les sous-dossiers reviennent comme une entrée sans `id`. */
-function childrenOf(photos: string[], folder: string, limit: number): StorageEntry[] {
-  if (folder !== USER && !folder.startsWith(`${USER}/`)) return []
-  const prefix = folder === USER ? '' : `${folder.slice(USER.length + 1)}/`
-  const entries = new Map<string, StorageEntry>()
-  for (const photo of photos.filter((path) => path.startsWith(prefix))) {
-    const [name = '', ...rest] = photo.slice(prefix.length).split('/')
-    entries.set(name, { name, id: rest.length > 0 ? null : `id-${photo}` })
-  }
-  return [...entries.values()].sort((a, b) => a.name.localeCompare(b.name)).slice(0, limit)
-}
-
-function fakePorts(
-  options: {
-    photos?: string[]
-    users?: Record<string, string>
-    failOn?: Call['kind']
-    removeKeepsPhotos?: boolean
-  } = {},
-) {
-  const photos = [...(options.photos ?? [])]
-  const users = options.users ?? { [TOKEN]: USER }
-  const calls: Call[] = []
-  let deletedUser: string | null = null
-
-  const ports: AccountDeletionPorts = {
-    async userIdFromToken(token) {
-      return users[token] ?? null
-    },
-    async listPhotos(folder, limit) {
-      calls.push({ kind: 'list', arg: { folder, limit } })
-      if (options.failOn === 'list') throw new Error('stockage injoignable')
-      return childrenOf(photos, folder, limit)
-    },
-    async removePhotos(paths) {
-      calls.push({ kind: 'remove', arg: paths })
-      if (options.failOn === 'remove') throw new Error('stockage injoignable')
-      if (options.removeKeepsPhotos) return
-      for (const path of paths) {
-        const index = photos.indexOf(path.slice(USER.length + 1))
-        if (index >= 0) photos.splice(index, 1)
-      }
-    },
-    async deleteUser(userId) {
-      calls.push({ kind: 'deleteUser', arg: userId })
-      if (options.failOn === 'deleteUser') throw new Error('auth injoignable')
-      deletedUser = userId
-    },
-    async recordDeletion(origin) {
-      calls.push({ kind: 'record', arg: origin })
-      if (options.failOn === 'record') throw new Error('journal injoignable')
-    },
-  }
-
-  return { ports, calls, photos, deletedUser: () => deletedUser }
+function fakePorts(options: Parameters<typeof fakeDeletionPorts>[0] = {}) {
+  return fakeDeletionPorts({ users: { [TOKEN]: USER }, ...options })
 }
 
 function request(init: { method?: string; token?: string | null } = {}): Request {
