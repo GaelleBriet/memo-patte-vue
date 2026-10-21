@@ -55,8 +55,22 @@ function rangeDates(from: string, to: string): { from: string; to: string } {
   return { from: formatDayMonthOrYear(from, to), to: formatLongDate(to) }
 }
 
-function headTitle(t: Translate, period: Period, next: Period | undefined): string {
-  const end = periodLastDay(period, next)
+function lastDoseDay(entries: Entry[]): string | null {
+  const days = entries
+    .filter(({ dose }) => dose.status !== 'shift' && dose.status !== 'not-due')
+    .map(({ dose }) => dose.dueOn)
+  return days.length === 0 ? null : days.reduce((a, b) => (a > b ? a : b))
+}
+
+function headTitle(
+  t: Translate,
+  period: Period,
+  next: Period | undefined,
+  entries: Entry[],
+): string {
+  const lastDay = periodLastDay(period, next)
+  const lastDose = lastDoseDay(entries)
+  const end = lastDay !== null && lastDose !== null && lastDose > lastDay ? lastDose : lastDay
   if (end === null) {
     return t('treatments.history.period.since', { date: formatLongDate(period.startsOn) })
   }
@@ -222,7 +236,7 @@ export function treatmentHistory(
         head: isAlone
           ? null
           : {
-              title: headTitle(t, period, periods[index - 1]),
+              title: headTitle(t, period, periods[index - 1], own),
               settings: periodSettingsText(t, period),
             },
         lines,

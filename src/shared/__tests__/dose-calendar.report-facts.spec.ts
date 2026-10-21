@@ -55,6 +55,15 @@ describe('reportFactsOf', () => {
     })
   })
 
+  it('déplacé vers une autre arrivée avec une arrivée d’avant donnée par le geste : il garde celle-là (#1000)', () => {
+    const line = { ...REPORT, targetOn: '2026-03-08', previousTargetOn: '2026-04-06' }
+    expect(reportFactsOf({ ...line, previousTargetTime: '08:00' }, REPORT, ['12:00'])).toEqual({
+      previousTargetOn: '2026-04-06',
+      previousTargetTime: '08:00',
+      dueRank: 1,
+    })
+  })
+
   it('réécrit vers la même arrivée : il garde l’arrivée d’avant qu’il portait', () => {
     const before = {
       ...REPORT,

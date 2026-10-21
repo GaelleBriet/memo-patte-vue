@@ -3,9 +3,9 @@ import { moveText } from './treatment-move-text'
 import { notDueText } from '@/shared/domain/treatment-not-due-text'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
-import { nextDay } from '@/shared/domain/calendar-day'
 import { moveBounds, reportRemovalLock, type MoveBounds } from '@/shared/domain/dose-calendar'
 import { isSeveralTimesADay } from '@/shared/domain/treatment-periods'
+import { nextDueAfterShift } from '@/shared/domain/treatment-shift-next'
 import type { TreatmentReading } from '@/shared/domain/treatment-reading'
 import {
   formatClockTime,
@@ -120,14 +120,10 @@ function shiftTitle(
   dose: TreatmentDose,
   period: TreatmentPeriodRecord,
 ): string {
-  const { view } = reading
-  const current = period.id === view.currentSetting?.id && period.stoppedOn === null
-  const next = current
-    ? view.upcoming({ from: nextDay(dose.targetOn ?? dose.dueOn), limit: 1 })[0]
-    : undefined
-  return next === undefined
+  const next = nextDueAfterShift(reading.view, period, dose)
+  return next === null
     ? t('treatments.history.shiftWithoutNext')
-    : t('treatments.history.shift', { date: formatDayMonthOrYear(next.dueOn, dose.dueOn) })
+    : t('treatments.history.shift', { date: formatDayMonthOrYear(next, dose.dueOn) })
 }
 
 function shiftLine(

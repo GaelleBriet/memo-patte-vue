@@ -186,6 +186,7 @@ async function restore(): Promise<void> {
           <span>{{ t(`plus.benefits.${benefit}`) }}</span>
         </li>
       </ul>
+      <p class="plus__devices-hint">{{ t('plus.devicesHint') }}</p>
 
       <div
         v-if="offers.length > 0"
@@ -339,6 +340,14 @@ async function restore(): Promise<void> {
 .plus__subtitle {
   max-width: 290px;
   margin: 6px 0 0;
+  color: tokens.$color-text-secondary;
+  font-size: 12.5px;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.plus__devices-hint {
+  margin: 8px 0 0;
   color: tokens.$color-text-secondary;
   font-size: 12.5px;
   line-height: 1.45;

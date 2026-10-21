@@ -1533,6 +1533,7 @@
       "photos": "Your photos backed up too"
     },
     "android": "Android already backs up your health record, but without photos or a guaranteed restore. Plus guarantees it.",
+    "devicesHint": "Use one device at a time. If two devices change the same care item while offline, the latest change wins.",
     "offers": {
       "title": "Three ways to pay, same features",
       "best": "Best value",

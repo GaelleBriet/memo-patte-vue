@@ -15,7 +15,7 @@ import type {
 import { buildView, type TreatmentView } from '../view'
 import { applied, shiftOfDay, shiftWritten, without, written } from './changes'
 import { linesAfter, livesOn, lostToEnd, outcome } from './outcome'
-import { opensRhythm, reportsOf, reportToRewrite } from './moved-report'
+import { chosenArrivalKept, opensRhythm, reportsOf, reportToRewrite } from './moved-report'
 import { strandsNote } from './reports'
 
 export type MoveGesture = Omit<Extract<Gesture, { kind: 'move' }>, 'kind'>
@@ -212,13 +212,22 @@ function reportLines(
   // Q-a : repris sur son arrivée, le report garde l'heure de la dose qu'on y a touchée.
   const touched =
     existing !== undefined && due.dueOn === existing.targetOn ? due.dueTime : undefined
+  const kept =
+    existing === undefined || !shiftsFollowing
+      ? undefined
+      : chosenArrivalKept(input.settings, existing, dayShift, to)
   const report: LineChange =
     existing === undefined
       ? written(input.lines, line)
       : {
           action: 'rewrite',
           id: existing.id,
-          line: touched === undefined ? line : { ...line, previousTargetTime: touched },
+          line:
+            kept !== undefined
+              ? { ...line, ...kept }
+              : touched === undefined
+                ? line
+                : { ...line, previousTargetTime: touched },
         }
   if (!shiftsFollowing) return [report, ...dropShift]
   // R6, R7 : le décalage appartient au rythme en vigueur ce jour-là, sinon il serait dépassé.

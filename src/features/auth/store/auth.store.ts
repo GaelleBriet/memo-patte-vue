@@ -5,7 +5,7 @@ import { identify, reset as resetAnalytics } from '@/core/analytics'
 import { errorSummary } from '@/shared/utils/error-summary'
 
 import {
-  authRepository,
+  type AuthRepository,
   type AuthSession,
   type SessionCheck,
   type SignUpOutcome,
@@ -23,7 +23,20 @@ import {
 
 export type SessionState = 'none' | 'restoring' | 'active' | 'needs-refresh' | 'needs-sign-in'
 
+export type AuthRepositoryProvider = () => AuthRepository
+
+let provider: AuthRepositoryProvider | null = null
+
+export function provideAuthRepository(next: AuthRepositoryProvider | null): void {
+  provider = next
+}
+
 export const useAuthStore = defineStore('auth', () => {
+  if (!provider) {
+    throw new Error('Repository du compte absent : appelle provideAuthRepository().')
+  }
+  const repository = provider()
+
   const account = ref<PlusAccount | null>(readPlusAccount())
   const sessionState = ref<SessionState>(account.value ? 'restoring' : 'none')
   const hasPlusAccount = computed(() => account.value !== null)
@@ -61,7 +74,7 @@ export const useAuthStore = defineStore('auth', () => {
     return false
   }
 
-  authRepository.onSessionChange((session) => {
+  repository.onSessionChange((session) => {
     if (!account.value) return
     if (session) record(session)
     else sessionState.value = 'needs-sign-in'
@@ -74,27 +87,27 @@ export const useAuthStore = defineStore('auth', () => {
 
     /** Sans compte Plus sur l'appareil, ne contacte pas Supabase. Ne lève pas. */
     async restore(): Promise<void> {
-      await check(() => authRepository.restoreSession())
+      await check(() => repository.restoreSession())
     },
 
     /** Ne lève pas : renvoie `true` quand la session est de nouveau active. */
     refresh(): Promise<boolean> {
-      return check(() => authRepository.refreshSession())
+      return check(() => repository.refreshSession())
     },
 
     async signUp(email: string, password: string): Promise<SignUpOutcome['kind']> {
-      const outcome = await authRepository.signUp(email, password)
+      const outcome = await repository.signUp(email, password)
       if (outcome.kind === 'signed-in') record(outcome.session)
       return outcome.kind
     },
 
     async signIn(email: string, password: string): Promise<void> {
-      record(await authRepository.signIn(email, password))
+      record(await repository.signIn(email, password))
     },
 
     /** Efface la session et les compteurs du compte ; le carnet local et l'achat restent. */
     async signOut(): Promise<void> {
-      await authRepository.signOut()
+      await repository.signOut()
       generation += 1
       account.value = null
       clearPlusAccount()

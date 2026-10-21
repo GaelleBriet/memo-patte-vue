@@ -102,6 +102,14 @@ describe('campagne d’invariants du moteur v2', () => {
     expect(playCampaign({ from: 8_800_001_778, seeds: 1, steps: 40 }).failures).toEqual([])
   })
 
+  // #992 : redéplacé depuis la date choisie avant qu'une heure soit ajoutée, le report garde ses heures.
+  it.each([120_000_798, 120_001_047])(
+    'graine %i : une heure ajoutée ne change pas la dose d’un report redéplacé depuis la date choisie',
+    (seed) => {
+      expect(playCampaign({ from: seed, seeds: 1, steps: 40 }).failures).toEqual([])
+    },
+  )
+
   it.each([
     ['INVARIANTS_SEEDS', 'mille'],
     ['INVARIANTS_FROM', '-3'],

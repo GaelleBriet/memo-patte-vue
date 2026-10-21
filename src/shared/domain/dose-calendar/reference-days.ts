@@ -14,12 +14,18 @@ export function leftDays(
   claims: readonly Claim[],
   reports: readonly ReferenceLine[],
   closedFrom: string | null,
+  landed: readonly ReferenceLine[],
 ): Map<string, Journey> {
   const left = new Map<string, Journey>()
   for (const { setting, end, segments } of claims) {
     if (end === null) continue
+    // R6 : un décalage du réglage ne laisse aucune de ses échéances jusqu'à son ancrage.
+    const turnedAway = (day: string) =>
+      landed.some(
+        (turn) => turn.settingId === setting.id && turn.dueOn < day && day <= turn.targetOn!,
+      )
     const reported = reports
-      .filter(({ settingId }) => settingId === setting.id)
+      .filter(({ settingId, dueOn }) => settingId === setting.id && !turnedAway(dueOn))
       .map(({ dueOn }) => dueOn)
     for (const day of end === setting.startsOn ? [...reported, end] : [end]) {
       const open =

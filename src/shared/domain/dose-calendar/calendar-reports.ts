@@ -4,7 +4,7 @@ import { withCededDoses } from './ceded-day'
 import { hoursOf, keyOf, sameFrequency, sameHours } from './grid'
 import type { Journey, journeys } from './journeys'
 import type { EpisodeLines } from './lines'
-import { oldArrivalChooser, rankedMove, wholeDay } from './report-rank'
+import { hoursSeenOn, oldArrivalChooser, rankedMove, wholeDay } from './report-rank'
 import { departureVerdict, type Reading } from './rewrite'
 import type { Span } from './settings'
 import type { Day, Hour, Line, LineEffect, Setting } from './types'
@@ -79,10 +79,10 @@ export function moveReports(input: ReportsInput) {
         const following = asTouched !== undefined || withFollowing
         const atHour = exactlyNoted(oldOn!, oldDay!)
         const ranks = rankedMove(asTouched ?? report, oldDay!.hours, atHour, following)
-        const carried =
-          asTouched === undefined
-            ? ranks.carried
-            : rankedMove(asTouched, chosenHours, new Set(), true).carried
+        const seen = hoursSeenOn(report, oldOn!, oldDay!, span.live)
+        const carried = asTouched
+          ? rankedMove(asTouched, chosenHours, new Set(), true).carried
+          : rankedMove(report, seen, atHour, following).carried
         oldDay!.hours = oldDay!.hours.filter((hour) => !ranks.leaving.includes(hour))
         keys.push(...ranks.leaving.map((hour) => keyOf(oldOn!, hour)))
         // La même dose, lue au départ et sur l'ancienne arrivée : elle arrive une fois.
