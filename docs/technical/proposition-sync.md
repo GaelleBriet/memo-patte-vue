@@ -319,7 +319,8 @@ Appareil **avec un carnet local** : choix explicite, jamais d'écrasement silenc
 
 - **Fusionner** = amorcer la file comme en #83, puis pull complet. « La plus récente gagne » fait la
   réconciliation, exactement comme le mode « fusionner » de l'import JSON.
-- **Remplacer** = effacer le carnet local, puis pull complet (§7-6). Irréversible, donc confirmation.
+- **Remplacer** = tout télécharger d'abord, puis effacer le carnet local et écrire la sauvegarde en une
+  seule fois (§7-6). Irréversible, donc confirmation ; un téléchargement qui échoue n'efface rien.
 
 Point d'entrée : Paramètres → « Je suis déjà abonné ».
 
@@ -448,7 +449,9 @@ confidentialité doit nommer une région précise.
 
 6. **« Remplacer » à la restauration : effacement physique ou pierre tombale ?** _Tranché le
    2026-09-19 avec Gaelle, la reco est retenue._ _Reco_ : effacement
-   physique des lignes locales, puis pull complet. _Raison_ : ces lignes n'ont jamais quitté
+   physique des lignes locales. _Corrigé le 2026-10-21 (Gaelle)_ : la sauvegarde est téléchargée en
+   entier d'abord, puis l'effacement et l'écriture se font en une fois, pour qu'un échec réseau ne
+   laisse pas un carnet vide (decisions-log, « Restauration depuis le cloud »). _Raison_ : ces lignes n'ont jamais quitté
    l'appareil, leur pierre tombale n'a aucun destinataire et ne ferait qu'encombrer le compte.
    _Alternative écartée_ : la pierre tombale comme à l'import — cohérent avec #84, mais remplit le
    cloud de lignes mortes sans objet. Action irréversible dans les deux cas : confirmation explicite.
