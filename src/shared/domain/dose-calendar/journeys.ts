@@ -37,12 +37,18 @@ function leftDays(
   closedFrom: Day | null,
   handed: ReadonlySet<string>,
   journeyOn: (day: Day, setting: Setting) => Journey,
+  landed: readonly Line[],
 ) {
   const left = new Map<Day, Journey>()
   for (const { setting, end, segments } of claims) {
     if (end === null || handed.has(setting.id)) continue
+    // R6 : un décalage du réglage ne laisse aucune de ses échéances jusqu'à son ancrage.
+    const turnedAway = (day: Day) =>
+      landed.some(
+        (turn) => turn.settingId === setting.id && turn.dueOn < day && day <= turn.targetOn!,
+      )
     const reported = reports
-      .filter(({ settingId }) => settingId === setting.id)
+      .filter(({ settingId, dueOn }) => settingId === setting.id && !turnedAway(dueOn))
       .map(({ dueOn }) => dueOn)
     for (const day of end === setting.startsOn ? [...reported, end] : [end]) {
       const open =
@@ -90,6 +96,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   // G13 : le décalage d'une dose redéplacée depuis sa date choisie part de cette ancienne arrivée.
   const fromOldArrival = (turn: Line) => chooserOfTurn(turn, lines.reports, span) !== undefined
   const claims: Claim[] = []
+  const landed: Line[] = []
   const openings = new Set<Day>()
   let grid: Grid = { origin: chain[0]!.firstDueOn, floor: '', since: '' }
   let rhythm = new Set<string>()
@@ -254,6 +261,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
         break
       }
       effects.set(turn.id, { kind: 'shifts', from: turn.dueOn })
+      landed.push(turn)
       // R9 : la date choisie avancée avec la case fait de son arrivée le premier jour de la série.
       if (fromOldArrival(turn)) chosenFloor = ''
       grid = turned(turn, chosenFloor)
@@ -266,7 +274,7 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   for (const shift of lines.shifts) {
     if (!effects.has(shift.id)) effects.set(shift.id, { kind: 'idle', reason: 'overtaken' })
   }
-  const left = leftDays(claims, lines.reports, span.closedFrom, handed, journeyOn)
+  const left = leftDays(claims, lines.reports, span.closedFrom, handed, journeyOn, landed)
   const ends = bounds.filter((day) => day !== null)
   const lastPossibleDay = ends.length < bounds.length ? null : (ends.sort().at(-1) ?? null)
   return {
