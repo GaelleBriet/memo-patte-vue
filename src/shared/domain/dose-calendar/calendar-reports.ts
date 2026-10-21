@@ -79,10 +79,13 @@ export function moveReports(input: ReportsInput) {
         const following = asTouched !== undefined || withFollowing
         const atHour = exactlyNoted(oldOn!, oldDay!)
         const ranks = rankedMove(asTouched ?? report, oldDay!.hours, atHour, following)
+        const seen = hoursSeenOn(report, oldOn!, oldDay!)
         const carried =
-          asTouched === undefined
-            ? ranks.carried
-            : rankedMove(asTouched, chosenHours, new Set(), true).carried
+          asTouched !== undefined
+            ? rankedMove(asTouched, chosenHours, new Set(), true).carried
+            : seen === undefined
+              ? ranks.carried
+              : rankedMove(report, seen, atHour, following).carried
         oldDay!.hours = oldDay!.hours.filter((hour) => !ranks.leaving.includes(hour))
         keys.push(...ranks.leaving.map((hour) => keyOf(oldOn!, hour)))
         // La même dose, lue au départ et sur l'ancienne arrivée : elle arrive une fois.
@@ -262,6 +265,16 @@ export function moveReports(input: ReportsInput) {
     // R7 : relue aux nouvelles heures, la date choisie n'apporte rien de plus au report qui en part.
     const seen = relaid ? [] : arriving
     arrived.set(targetOn!, [...(arrived.get(targetOn!) ?? []), ...seen])
+  }
+
+  // R7 : redéplacé avant le réglage qui lit aujourd'hui son ancienne arrivée, il en emporte les heures
+  // qu'il y a vues (#992).
+  function hoursSeenOn(report: Line, day: Day, journey: Journey): Hour[] | undefined {
+    if (journey.setting.createdAt <= report.updatedAt) return undefined
+    const seen = span.live
+      .filter(({ startsOn, createdAt }) => startsOn <= day && createdAt <= report.updatedAt)
+      .at(-1)
+    return seen === undefined || sameHours(seen, journey.setting) ? undefined : hoursOf(seen.times)
   }
 
   // R7, Q4 : son heure et les suivantes ; son heure absente, la dose de son rang.
