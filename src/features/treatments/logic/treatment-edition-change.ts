@@ -30,6 +30,7 @@ import {
   type SettingsPlan,
   type SettingsRequest,
   type SettingsResult,
+  type TreatmentViewInput,
 } from '@/shared/domain/dose-calendar'
 import type { TreatmentReading } from '@/shared/domain/treatment-reading'
 
@@ -163,8 +164,20 @@ export function resolve(
   choice: NextDoseChoice,
   today: Day,
   pastDuesChoice?: PastDuesChoice,
-): Answered {
+): Answered & { carnet: TreatmentViewInput } {
   const reading = treatmentReadingOf(treatment, today)
+  const answered = resolveOn(reading, treatment, rhythm, choice, today, pastDuesChoice)
+  return { ...answered, carnet: reading.input }
+}
+
+function resolveOn(
+  reading: TreatmentReading,
+  treatment: TreatmentWithPeriods,
+  rhythm: TreatmentRhythm | null,
+  choice: NextDoseChoice,
+  today: Day,
+  pastDuesChoice?: PastDuesChoice,
+): Answered {
   const period = currentPeriod(treatment, reading.view)
   if (lockedBy(period, reading)) return unchanged(period, 'locked')
   const next = rhythm ?? rhythmOf(period)
