@@ -1719,7 +1719,7 @@
       "summary": "Cloud backup, multiple devices",
       "discoverHint": "Cloud backup, multiple devices",
       "alreadySubscribed": "I already have MémoPatte Plus",
-      "alreadySubscribedHint": "Restore the health record you backed up on another device",
+      "alreadySubscribedHint": "Restore my health record",
       "status": {
         "monthly": "Monthly Plus until {date}",
         "annual": "Annual Plus until {date}",
