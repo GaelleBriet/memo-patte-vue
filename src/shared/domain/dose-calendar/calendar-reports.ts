@@ -161,8 +161,8 @@ export function moveReports(input: ReportsInput) {
           each.createdAt > written.createdAt &&
           !sameHours(each, written),
       )
-    const reread = translated.has(dueOn) && (!sameHours(written, from) || relit)
-    const source = reread ? written : from
+    const hoursUnseen = translated.has(dueOn) || lines.answered.has(dueOn)
+    const source = hoursUnseen && (!sameHours(written, from) || relit) ? written : from
     // R7 : la journée d'un report, telle qu'il l'a vue, porte aussi les doses qui y sont arrivées (#864).
     const writtenHours = [
       ...new Set([...hoursOf(written.times), ...(arrived.get(dueOn) ?? [])]),
