@@ -17,6 +17,9 @@ import type {
   TreatmentPeriodSettings,
 } from '../schema/treatment-period.schema'
 
+import { rewritesCalendar, rewritesGrid, type Setting } from '@/shared/domain/dose-calendar'
+import { readTreatment } from '@/shared/domain/treatment-reading'
+
 vi.mock('@/core/db/sqlite', () => ({ getDb: vi.fn<() => Promise<DbClient>>() }))
 
 const MIETTE = '11111111-1111-4111-8111-111111111111'
@@ -489,6 +492,47 @@ describe('treatmentPeriodsRepository', () => {
         ])
 
         await expect(gridWrittenAt()).resolves.toBe(EARLIER)
+      })
+    })
+
+    describe('le repository date les mêmes réécritures que le moteur (#930)', () => {
+      async function setting(): Promise<Setting> {
+        const reading = readTreatment(
+          { periods: await periods.listByTreatment(MILBEMAX), doses: [] },
+          '2026-03-01',
+        )
+        return reading!.input.settings.find(({ id }) => id === REPRISE)!
+      }
+
+      beforeEach(async () => {
+        await db.runMany([periods.insertStatement(COMPLETE)])
+      })
+
+      it.each<[string, Partial<TreatmentPeriodSettings>, Partial<PeriodOrigin>]>([
+        ['le début', { startsOn: '2026-02-12', firstDueOn: '2026-02-12' }, {}],
+        ['la première échéance', { firstDueOn: '2026-02-13' }, {}],
+        ['la fréquence', { frequency: { value: 2, unit: 'day' } }, {}],
+        ['les heures', { times: ['06:00'] }, {}],
+        ['la date de fin', { endsOn: '2026-03-20' }, {}],
+        ['la posologie', { doseQuantity: 1, doseUnit: 'capsule' }, {}],
+        ['le moment du rappel', { reminderOffsetMinutes: 60 }, {}],
+        ['l’heure du rappel', { reminderTime: '07:00' }, {}],
+        ['l’origine de la grille', {}, { gridOriginOn: null }],
+        ['la date choisie', {}, { firstDueChosen: true }],
+        ['la réponse à la question des doses tombées', {}, { fallenDosesAnswer: 'not-due' }],
+      ])('quand %s change', async (_, settings, origin) => {
+        const before = await setting()
+
+        await db.runMany([
+          periods.correctSettingsStatement(REPRISE, { ...REGLAGES, ...settings }, NOW, {
+            ...ORIGINE,
+            ...origin,
+          }),
+        ])
+
+        const after = await setting()
+        expect(after.updatedAt !== before.updatedAt).toBe(rewritesCalendar(before, after))
+        expect(after.gridWrittenAt !== before.gridWrittenAt).toBe(rewritesGrid(before, after))
       })
     })
   })
