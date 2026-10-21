@@ -1495,6 +1495,9 @@
       "toggle": "Already have an account?",
       "toggleAction": "Sign in"
     },
+    "google": {
+      "continue": "Continue with Google"
+    },
     "email": {
       "label": "Email address"
     },
@@ -1515,6 +1518,8 @@
       "weakPassword": "This password is too weak. Choose a longer or less common one.",
       "emailNotConfirmed": "Your email address isn’t confirmed yet. Open the link we sent you, then try again.",
       "offline": "No internet connection. Check your network and try again.",
+      "noGoogleAccount": "No Google account on this phone. Add one in Android settings, or continue with an email address.",
+      "googleUnavailable": "Signing in with Google isn’t available on this phone. Continue with an email address.",
       "unknown": "Something went wrong. Try again in a moment."
     },
     "confirmation": {

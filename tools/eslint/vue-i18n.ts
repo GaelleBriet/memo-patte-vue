@@ -53,7 +53,7 @@ const DYNAMIC_I18N_KEYS = [
   '/^plus\\.nudge\\.(firstPhoto|carnetValue|firstExport)\\.(title|body)$/',
   '/^plus\\.(success|cancelled|failed)\\.(title|body)$/',
   '/^auth\\.form\\.errors\\.(emailRequired|emailInvalid|passwordRequired|passwordTooShort)$/',
-  '/^auth\\.errors\\.(emailTaken|invalidCredentials|weakPassword|emailNotConfirmed|offline|unknown)$/',
+  '/^auth\\.errors\\.(emailTaken|invalidCredentials|weakPassword|emailNotConfirmed|offline|noGoogleAccount|googleUnavailable|unknown)$/',
 ]
 
 export const vueI18nRulesBlock = {
