@@ -197,10 +197,25 @@ jobs:
       - name: Permissions du manifest fusionné
         run: pnpm test:manifest
 
+  edge-functions:
+    needs: changes
+    if: github.event_name != 'schedule' && needs.changes.outputs.app == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      # Les `index.ts` tournent sous Deno : ni tsconfig.vitest.json ni ESLint ne les lisent.
+      - name: Type-check des Edge Functions
+        run: deno check supabase/functions/*/index.ts
+
   # Seul passage à attendre : vert si chaque job a réussi, ou n'a été sauté que lorsque c'était voulu.
   verdict:
     name: Verdict
-    needs: [changes, ci, tests, fuseaux, android]
+    needs: [changes, ci, tests, fuseaux, android, edge-functions]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -212,7 +227,7 @@ jobs:
           if [ "$EVENT" = schedule ]; then
             expected='changes fuseaux'
           elif [ "$APP" = true ]; then
-            expected='changes ci tests fuseaux android'
+            expected='changes ci tests fuseaux android edge-functions'
           else
             expected='changes ci'
           fi
