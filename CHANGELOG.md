@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.93](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.92...memo-patte-v0.1.93) (2026-10-21)
+
+
+### 🐛 Corrections
+
+* **dose-calendar:** un report ne part pas d'une journée que son décalage a laissée vide ([fab6848](https://github.com/GaelleBriet/memo-patte-vue/commit/fab6848f673e674c27aa64b60512059786ccc0a5))
+
 ## [0.1.92](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.91...memo-patte-v0.1.92) (2026-10-21)
 
 
