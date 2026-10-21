@@ -1372,7 +1372,7 @@
     },
     "import": {
       "title": "Import a MémoPatte export",
-      "subtitle": "Data already exists on this device.",
+      "subtitle": "Data already exists on this phone.",
       "close": "Close",
       "modes": "Import mode",
       "merge": {
@@ -1397,7 +1397,7 @@
       },
       "confirm": {
         "title": "Replace all your data?",
-        "body": "This will permanently delete the current data on this device. It can’t be undone.",
+        "body": "This will permanently delete the current data on this phone. It can’t be undone.",
         "cancel": "Cancel",
         "submit": "Replace"
       }

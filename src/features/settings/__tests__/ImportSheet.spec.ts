@@ -144,7 +144,7 @@ describe('ImportSheet', () => {
 
     expect(feuille()?.querySelector('.bottom-sheet__title')?.textContent).toBe('Importer un export')
     expect(feuille()?.querySelector('.bottom-sheet__subtitle')?.textContent).toBe(
-      'Des données existent déjà sur cet appareil.',
+      'Des données existent déjà sur ce téléphone.',
     )
     const options = [...feuille()!.querySelectorAll<HTMLElement>('[role="radio"]')]
     expect(
@@ -158,6 +158,26 @@ describe('ImportSheet', () => {
     ])
     expect(options.some((option) => option.getAttribute('aria-checked') === 'true')).toBe(false)
     expect(boutonDeLaFeuille('Continuer')?.disabled).toBe(true)
+  })
+
+  it('parle de ce téléphone en anglais aussi, dans la feuille et la confirmation', async () => {
+    i18n.global.locale.value = 'en'
+    try {
+      await monter()
+      await choisirFichier(importFixtureJson())
+      expect(feuille()?.querySelector('.bottom-sheet__subtitle')?.textContent).toBe(
+        'Data already exists on this phone.',
+      )
+
+      await cliquer(choix('Replace'))
+      await cliquer(boutonDeLaFeuille('Continue'))
+
+      expect(dialogue()?.textContent).toContain(
+        'This will permanently delete the current data on this phone. It can’t be undone.',
+      )
+    } finally {
+      i18n.global.locale.value = 'fr'
+    }
   })
 
   it('fusionne sans confirmation, ferme la feuille et confirme par un toast', async () => {
@@ -182,7 +202,7 @@ describe('ImportSheet', () => {
 
     expect(dialogue()?.textContent).toContain('Remplacer toutes tes données\u00a0?')
     expect(dialogue()?.textContent).toContain(
-      'Cette action supprimera définitivement les données actuelles de l’appareil. Elle est irréversible.',
+      'Cette action supprimera définitivement les données actuelles de ce téléphone. Elle est irréversible.',
     )
     const boutons = [...dialogue()!.querySelectorAll<HTMLButtonElement>('button')]
     await cliquer(boutons.find((bouton) => bouton.textContent?.trim() === 'Annuler'))
