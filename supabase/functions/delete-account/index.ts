@@ -20,7 +20,7 @@ Deno.serve((request) =>
     async listPhotos(folder, limit) {
       const { data, error } = await photos.list(folder, { limit })
       if (error) throw error
-      return data.map((object) => object.name)
+      return data.map(({ name, id }) => ({ name, id }))
     },
     async removePhotos(paths) {
       const { error } = await photos.remove(paths)

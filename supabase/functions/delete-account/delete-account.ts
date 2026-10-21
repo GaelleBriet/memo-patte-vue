@@ -1,14 +1,18 @@
+/** Une entrée de `storage.list()` : un sous-dossier n'a pas d'`id`. */
+export type StorageEntry = { name: string; id: string | null }
+
 export type AccountDeletionPorts = {
   /** `null` quand le jeton ne désigne aucun compte. */
   userIdFromToken(token: string): Promise<string | null>
-  /** Noms des objets du dossier, sans le dossier. */
-  listPhotos(folder: string, limit: number): Promise<string[]>
+  /** Entrées directes du dossier, noms sans le dossier. */
+  listPhotos(folder: string, limit: number): Promise<StorageEntry[]>
   removePhotos(paths: string[]): Promise<void>
   /** Suppression dure : les lignes du compte partent par `on delete cascade`. */
   deleteUser(userId: string): Promise<void>
 }
 
 export const PHOTO_PAGE_SIZE = 100
+export const MAX_FOLDER_DEPTH = 5
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -28,17 +32,30 @@ function bearerToken(request: Request): string | null {
   return match?.[1] ?? null
 }
 
-/** Supprimer le compte laisse ses photos dans le stockage : elles partent d'abord. */
-async function removeAllPhotos(userId: string, ports: AccountDeletionPorts): Promise<void> {
+async function removeFolder(
+  folder: string,
+  depth: number,
+  ports: AccountDeletionPorts,
+): Promise<void> {
+  if (depth > MAX_FOLDER_DEPTH) throw new Error('Dossiers de photos trop profonds')
   let previous: string | null = null
   for (;;) {
-    const names = await ports.listPhotos(userId, PHOTO_PAGE_SIZE)
-    if (names.length === 0) return
-    const page = names.join('/')
+    const entries = await ports.listPhotos(folder, PHOTO_PAGE_SIZE)
+    if (entries.length === 0) return
+    const page = entries.map((entry) => entry.name).join('/')
     if (page === previous) throw new Error('Photos toujours présentes après leur effacement')
     previous = page
-    await ports.removePhotos(names.map((name) => `${userId}/${name}`))
+    for (const entry of entries.filter((entry) => entry.id === null)) {
+      await removeFolder(`${folder}/${entry.name}`, depth + 1, ports)
+    }
+    const files = entries.filter((entry) => entry.id !== null)
+    if (files.length > 0) await ports.removePhotos(files.map((file) => `${folder}/${file.name}`))
   }
+}
+
+/** Supprimer le compte laisse ses photos dans le stockage : elles partent d'abord. */
+function removeAllPhotos(userId: string, ports: AccountDeletionPorts): Promise<void> {
+  return removeFolder(userId, 0, ports)
 }
 
 export async function handleDeleteAccount(

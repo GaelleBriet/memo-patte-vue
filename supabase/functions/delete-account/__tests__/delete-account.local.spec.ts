@@ -135,7 +135,13 @@ describe.skipIf(url === undefined)('delete-account sur une pile Supabase locale'
   })
 
   it('ne laisse rien du compte : ni utilisateur, ni photo, ni ligne', async () => {
-    expect((await leftovers(sophie)).photos).toHaveLength(1)
+    const nested = await admin.storage
+      .from('animal-photos')
+      .upload(`${sophie.userId}/vieux/${randomUUID()}.jpg`, JPEG, { contentType: 'image/jpeg' })
+    if (nested.error) throw nested.error
+    expect((await leftovers(sophie)).photos).toEqual(
+      expect.arrayContaining([sophie.photo.slice(sophie.userId.length + 1), 'vieux']),
+    )
 
     const response = await callFunction(sophie.token)
 

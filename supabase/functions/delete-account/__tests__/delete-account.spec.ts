@@ -1,12 +1,30 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { handleDeleteAccount, PHOTO_PAGE_SIZE, type AccountDeletionPorts } from '../delete-account'
+import {
+  handleDeleteAccount,
+  MAX_FOLDER_DEPTH,
+  PHOTO_PAGE_SIZE,
+  type AccountDeletionPorts,
+  type StorageEntry,
+} from '../delete-account'
 
 const USER = '11111111-1111-4111-8111-111111111111'
 const TOKEN = 'jeton-de-sophie'
 
 type Call = { kind: 'list' | 'remove' | 'deleteUser'; arg: unknown }
+
+/** Comme `storage.list()` : les sous-dossiers reviennent comme une entrée sans `id`. */
+function childrenOf(photos: string[], folder: string, limit: number): StorageEntry[] {
+  if (folder !== USER && !folder.startsWith(`${USER}/`)) return []
+  const prefix = folder === USER ? '' : `${folder.slice(USER.length + 1)}/`
+  const entries = new Map<string, StorageEntry>()
+  for (const photo of photos.filter((path) => path.startsWith(prefix))) {
+    const [name = '', ...rest] = photo.slice(prefix.length).split('/')
+    entries.set(name, { name, id: rest.length > 0 ? null : `id-${photo}` })
+  }
+  return [...entries.values()].sort((a, b) => a.name.localeCompare(b.name)).slice(0, limit)
+}
 
 function fakePorts(
   options: {
@@ -28,13 +46,16 @@ function fakePorts(
     async listPhotos(folder, limit) {
       calls.push({ kind: 'list', arg: { folder, limit } })
       if (options.failOn === 'list') throw new Error('stockage injoignable')
-      return folder === USER ? photos.slice(0, limit) : []
+      return childrenOf(photos, folder, limit)
     },
     async removePhotos(paths) {
       calls.push({ kind: 'remove', arg: paths })
       if (options.failOn === 'remove') throw new Error('stockage injoignable')
       if (options.removeKeepsPhotos) return
-      for (const path of paths) photos.splice(photos.indexOf(path.slice(USER.length + 1)), 1)
+      for (const path of paths) {
+        const index = photos.indexOf(path.slice(USER.length + 1))
+        if (index >= 0) photos.splice(index, 1)
+      }
     },
     async deleteUser(userId) {
       calls.push({ kind: 'deleteUser', arg: userId })
@@ -118,7 +139,7 @@ describe('handleDeleteAccount', () => {
     expect(await response.json()).toEqual({ status: 'deleted' })
     expect(fake.calls).toEqual([
       { kind: 'list', arg: { folder: USER, limit: PHOTO_PAGE_SIZE } },
-      { kind: 'remove', arg: [`${USER}/milo.jpg`, `${USER}/luna.jpg`] },
+      { kind: 'remove', arg: [`${USER}/luna.jpg`, `${USER}/milo.jpg`] },
       { kind: 'list', arg: { folder: USER, limit: PHOTO_PAGE_SIZE } },
       { kind: 'deleteUser', arg: USER },
     ])
@@ -136,6 +157,36 @@ describe('handleDeleteAccount', () => {
     expect(removed.map((paths) => (paths as string[]).length)).toEqual([PHOTO_PAGE_SIZE, 3])
     expect(fake.photos).toEqual([])
     expect(fake.deletedUser()).toBe(USER)
+  })
+
+  it('efface aussi les photos rangées dans des sous-dossiers', async () => {
+    const fake = fakePorts({ photos: ['milo.jpg', 'vieux/rex.jpg', 'vieux/encore/kiki.jpg'] })
+
+    const response = await handleDeleteAccount(request(), fake.ports)
+
+    expect(response.status).toBe(200)
+    expect(fake.photos).toEqual([])
+    expect(fake.deletedUser()).toBe(USER)
+  })
+
+  it('accepte des sous-dossiers jusqu’à la profondeur maximale', async () => {
+    const nested = Array.from({ length: MAX_FOLDER_DEPTH }, (_, index) => `d${index}`)
+    const fake = fakePorts({ photos: [[...nested, 'rex.jpg'].join('/')] })
+
+    const response = await handleDeleteAccount(request(), fake.ports)
+
+    expect(response.status).toBe(200)
+    expect(fake.photos).toEqual([])
+  })
+
+  it('garde le compte quand les sous-dossiers dépassent la profondeur maximale', async () => {
+    const nested = Array.from({ length: MAX_FOLDER_DEPTH + 1 }, (_, index) => `d${index}`)
+    const fake = fakePorts({ photos: [[...nested, 'rex.jpg'].join('/')] })
+
+    const response = await handleDeleteAccount(request(), fake.ports)
+
+    expect(response.status).toBe(500)
+    expect(fake.deletedUser()).toBeNull()
   })
 
   it('supprime un compte sans photo', async () => {
