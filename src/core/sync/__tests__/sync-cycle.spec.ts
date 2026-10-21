@@ -21,6 +21,7 @@ interface FakeOutboxEntry {
 function createFakeOutbox(
   initial: FakeOutboxEntry[] = [],
   cursors: Record<string, string> = {},
+  enabled = true,
 ): SyncCycleOutbox & {
   entries: () => FakeOutboxEntry[]
   cursor: (entity: string) => string | null
@@ -50,7 +51,7 @@ function createFakeOutbox(
       lastPulledAt.set(entity, value)
     },
     async isEnabled() {
-      return true
+      return enabled
     },
     async setLastSyncedAt(value) {
       lastSyncedAt = value
@@ -187,6 +188,31 @@ describe('createSyncCycle', () => {
       await cycle.runCycle()
 
       expect(animal.pullCalls).toEqual([])
+    })
+
+    it("ne pousse ni ne tire tant que la synchronisation n'est pas activée", async () => {
+      const animal = fakeTable('animal')
+      animal.localRows.set(ANIMAL_ID, row(ANIMAL_ID, T_ROW, 'Milo'))
+      const outbox = createFakeOutbox(
+        [{ entity: 'animal', entityId: ANIMAL_ID, queuedAt: T_ROW, attempts: 0 }],
+        {},
+        false,
+      )
+      const cycle = createSyncCycle({
+        db,
+        outbox,
+        pushes,
+        tables: [animal],
+        userId: () => 'user-1',
+        isEligible: () => true,
+      })
+
+      await cycle.runCycle()
+
+      expect(animal.pushed).toEqual([])
+      expect(animal.pullCalls).toEqual([])
+      expect(pushes.opened).toEqual([])
+      expect(outbox.lastSyncedAt()).toBeNull()
     })
   })
 
