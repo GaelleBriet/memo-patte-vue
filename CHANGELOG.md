@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.94](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.93...memo-patte-v0.1.94) (2026-10-21)
+
+
+### ✨ Fonctionnalités
+
+* **sync:** cycle bloqué tant que la synchro n'est pas activée, amorçage de la file ([a90e5de](https://github.com/GaelleBriet/memo-patte-vue/commit/a90e5dee31f7af35426e94ecacfc331f1b61ce7c))
+* **sync:** cycle bloqué tant que la synchro n'est pas activée, amorçage de la file ([924c77b](https://github.com/GaelleBriet/memo-patte-vue/commit/924c77ba55968de8bec91c91374fc8a750298395))
+
 ## [0.1.93](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.92...memo-patte-v0.1.93) (2026-10-21)
 
 
