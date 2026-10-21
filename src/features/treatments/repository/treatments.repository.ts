@@ -10,20 +10,14 @@ import { createRemoteSyncTable } from '@/core/sync/repository/remote-sync-table.
 import { syncField } from '@/core/sync/service/syncable-table'
 import { createTreatmentDosesRepository } from './treatment-doses.repository'
 import { createTreatmentDeletion } from './treatment-deletion.repository'
+import { createTreatmentImport } from './treatment-import.repository'
 import { createTreatmentPeriodsRepository } from './treatment-periods.repository'
 import { createTreatmentPlanWrites } from './treatment-plan-writes.repository'
 import { createTreatmentReads } from './treatment-reads.repository'
-import type { Treatment } from '../schema/treatment.schema'
-import {
-  COLUMNS,
-  NOT_DELETED,
-  type StampedTreatmentRecord,
-  type TreatmentRow,
-} from './treatment-row.repository'
+import { COLUMNS, type TreatmentRow } from './treatment-row.repository'
 
 export type { StampedTreatmentRecord } from './treatment-row.repository'
-export type TreatmentVersion = Pick<Treatment, 'id' | 'animalId' | 'updatedAt' | 'deletedAt'>
-export type RestoredTreatment = StampedTreatmentRecord
+export type { RestoredTreatment, TreatmentVersion } from './treatment-import.repository'
 
 export interface TreatmentsRepositoryDependencies {
   loadSupabaseClient?: () => Promise<SupabaseClient>
@@ -48,55 +42,7 @@ export function createTreatmentsRepository(
     ...reads,
     ...createTreatmentPlanWrites(db, deviceId, { periods, doses, getById: reads.getById }),
     ...createTreatmentDeletion(db, deviceId, { periods, doses }),
-
-    /** Lignes supprimées comprises : l'import compare les versions avant d'écrire. */
-    async listVersions(): Promise<TreatmentVersion[]> {
-      const rows = await db.query<TreatmentRow>(`SELECT ${COLUMNS} FROM treatment`)
-      return rows.map(({ id, animal_id, updated_at, deleted_at }) => ({
-        id,
-        animalId: animal_id,
-        updatedAt: updated_at,
-        deletedAt: deleted_at,
-      }))
-    },
-
-    eraseAllStatement(): SqlStatement {
-      return { sql: 'DELETE FROM treatment' }
-    },
-
-    markAllDeletedStatement(deletedAt: string): SqlStatement {
-      return {
-        sql: `UPDATE treatment SET deleted_at = ?, updated_at = ?, updated_by_device = ?
-              WHERE ${NOT_DELETED}`,
-        params: [deletedAt, deletedAt, deviceId()],
-      }
-    },
-
-    /** Rend la ligne visible sans la changer d'animal. */
-    restoreStatement(treatment: RestoredTreatment, exists: boolean): SqlStatement {
-      const values = [
-        treatment.name,
-        treatment.type,
-        treatment.createdAt,
-        treatment.updatedAt,
-        treatment.createdByDevice,
-        treatment.updatedByDevice,
-      ]
-      return exists
-        ? {
-            sql: `UPDATE treatment
-                  SET name = ?, type = ?, created_at = ?, updated_at = ?, created_by_device = ?,
-                      updated_by_device = ?, deleted_at = NULL
-                  WHERE id = ?`,
-            params: [...values, treatment.id],
-          }
-        : {
-            sql: `INSERT INTO treatment (id, animal_id, name, type, created_at, updated_at,
-                    created_by_device, updated_by_device)
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            params: [treatment.id, treatment.animalId, ...values],
-          }
-    },
+    ...createTreatmentImport(db, deviceId),
 
     /** Tombstones compris : le push doit pouvoir renvoyer une suppression comme une ligne normale. */
     async getRowForPush(id: string): Promise<SyncRow | null> {
