@@ -11,13 +11,12 @@ import {
 import { everyTreatmentReadable, withGridDatesClamped } from './export-file-versions'
 import { EXPORT_SCHEMA_VERSION } from './export-format'
 
-export type ImportFileError = 'invalid' | 'newer' | 'older' | 'outOfRange' | 'nameTooLong'
+export type ImportFileError = 'invalid' | 'newer' | 'outOfRange' | 'nameTooLong'
 
 export type ParsedExportFile =
   { ok: true; file: ImportFile } | { ok: false; reason: ImportFileError }
 
 export const MAX_IMPORT_FILE_BYTES = 10 * 1024 * 1024
-const OLDEST_READ_VERSION = 3
 
 function parseJson(text: string): unknown {
   try {
@@ -27,7 +26,7 @@ function parseJson(text: string): unknown {
   }
 }
 
-const BOUNDED_FIELDS = [['weightKg'], ['frequency', 'value']]
+const BOUNDED_FIELDS = [['weightKg'], ['initialWeightKg'], ['frequency', 'value']]
 const NAME_FIELDS = [['name'], ['breed']]
 
 function endsWith(path: PropertyKey[], suffix: string[]): boolean {
@@ -46,8 +45,8 @@ function refusalReason(error: z.ZodError): ImportFileError {
 }
 
 /**
- * La version tranche avant toute validation ; un export v3 ou v4 est converti au format courant
- * (plan §3.3), signé par `deviceId` quand il n'a pas d'appareil, puis relu par le moteur (Q40).
+ * La version tranche avant toute validation ; un ancien export est converti au format courant (plan
+ * §3.3, #469), signé par `deviceId` quand il n'a pas d'appareil, puis relu par le moteur (Q40).
  */
 export function parseExportFile(
   text: string,
@@ -60,11 +59,10 @@ export function parseExportFile(
   if (!version.success) return { ok: false, reason: 'invalid' }
   const { schemaVersion } = version.data
   if (schemaVersion > EXPORT_SCHEMA_VERSION) return { ok: false, reason: 'newer' }
-  if (schemaVersion < OLDEST_READ_VERSION) return { ok: false, reason: 'older' }
 
   const header = exportHeaderSchema.safeParse(document)
   if (!header.success) return { ok: false, reason: refusalReason(header.error) }
-  const parsed = exportFileSchemaOf(schemaVersion, deviceId).safeParse(document)
+  const parsed = exportFileSchemaOf(schemaVersion, deviceId, today).safeParse(document)
   if (!parsed.success) return { ok: false, reason: refusalReason(parsed.error) }
   const data = withGridDatesClamped(parsed.data, header.data.exportedAt)
   if (!everyTreatmentReadable(data, today)) return { ok: false, reason: 'invalid' }

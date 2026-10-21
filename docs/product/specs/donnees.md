@@ -65,10 +65,11 @@ par le partage d'Android ; export d'un seul animal en JSON (piste « à prévoir
 - **DO-7** JSON seulement, depuis Paramètres ou l'accueil de bienvenue ; si des données existent :
   « Fusionner » (ajoute ce qui manque, la modification la plus récente gagne) ou « Remplacer »
   (confirmé, irréversible). (Existant, #413)
-- **DO-8** N'accepte que le format courant, v4 ; un fichier plus ancien (v1 à v3) est refusé avec un
-  message clair. Pas de conversion des anciens formats : l'app n'est pas publiée et toutes les données
-  actuelles sont des données de test. (Revue du modèle, 2026-09-29 ; v4 depuis #501)
-- **DO-9** Refus du fichier entier, avec un message clair : version plus ancienne ou plus récente, valeur hors limites,
+- **DO-8** Relit le format courant et tous les formats publiés avant lui : un fichier plus ancien est
+  converti au format courant avant l'import, au mieux (ce qui se convertit est repris), avec la même
+  validation stricte et le même tout ou rien ; toute évolution du format garde la lecture des formats
+  déjà publiés. (#469, 2026-10-21 ; remplace « pas de conversion » de la revue du modèle du 2026-09-29)
+- **DO-9** Refus du fichier entier, avec un message clair : version plus récente, valeur hors limites,
   nom trop long, entrée rattachée à un autre animal. (Existant)
 - **DO-10** Après un import, les rappels sont reconstruits, puis l'écran « Ne rate plus aucun rappel »
   vient si l'autorisation n'a jamais été demandée sur ce téléphone (spec Rappels, RA-21). (Existant ;
@@ -117,8 +118,9 @@ par le partage d'Android ; export d'un seul animal en JSON (piste « à prévoir
 1. **Étant donné** un carnet avec des prises oubliées et des périodes, **quand** Sophie exporte en JSON
    puis importe ce fichier sur un téléphone vide, **alors** le carnet est identique et les rappels
    reprogrammés.
-2. **Étant donné** un export au format v2, **quand** Sophie l'importe, **alors** l'app le refuse avec un
-   message clair, sans rien modifier.
+2. **Étant donné** un export au format v2, **quand** Sophie l'importe, **alors** ses animaux, vaccins,
+   injections, traitements, prises et pesées sont repris, et chaque traitement annonce la prochaine
+   dose que l'ancienne app annonçait.
 3. **Étant donné** trois animaux suivis, **quand** Sophie exporte « Tous les animaux » en PDF depuis les
    Paramètres, **alors** un seul fichier contient les trois carnets, chacun sur une nouvelle page.
 4. **Étant donné** un gratuit, **quand** il ouvre Paramètres › Sauvegarde, **alors** il lit que la

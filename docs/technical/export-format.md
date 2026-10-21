@@ -1,4 +1,4 @@
-# Format d'export des données (#80, v3 : #454, v4 : #501, v5 : #754, v6 : #825 et #836, v7 : #867, v8 : #873, v9 : #939, v10 : décision 1 du 19 octobre 2026)
+# Format d'export des données (#80, v3 : #454, v4 : #501, v5 : #754, v6 : #825 et #836, v7 : #867, v8 : #873, v9 : #939, v10 : décision 1 du 19 octobre 2026, v1 et v2 relus : #469)
 
 Contrat entre l'export (Paramètres → « Exporter mes données ») et l'import (#84, section
 [Import](#import--importer-un-export-mémopatte)).
@@ -180,10 +180,50 @@ coup). Un fichier v3 à v8 reçoit enfin, sur chaque ligne, `previousTargetOn`, 
 `dueRank` vides (`null`) : arrivée d'avant et rang inconnus. Un fichier v3 à v9 reçoit enfin
 `gridWrittenAt` par la règle de la migration v17 : la valeur de `settingsWrittenAt`, et `gridBefore`
 vide (`null`).
-Un `schemaVersion` supérieur est refusé (« Cet export vient d'une version plus récente de l'app. »), un
-`schemaVersion` inférieur à 3 aussi (« Cet export vient d'une version plus ancienne de MémoPatte. Il ne
-peut plus être importé. ») : les formats v1 (jusqu'à la 0.1.40) et v2 (jusqu'à la 0.1.48) ne se relisent
-plus (décision du 2026-09-29).
+Un `schemaVersion` supérieur est refusé (« Cet export vient d'une version plus récente de l'app. »).
+Les formats v1 (jusqu'à la 0.1.40) et v2 (jusqu'à la 0.1.48) se relisent aussi (#469, décision du
+2026-10-21) : voir [Anciens formats v1 et v2](#anciens-formats-v1-et-v2--conversion-469). La lecture de
+chaque format publié reste : un fichier de chaque version vit dans
+`src/features/settings/__tests__/fixtures/` (v1 de la 0.1.37, v2 de la 0.1.48, v3, v4).
+
+### Anciens formats v1 et v2 : conversion (#469)
+
+Un fichier v1 ou v2 est d'abord validé par son propre schéma (`legacy-export-file.schema.ts`), aussi
+strict que l'import de la 0.1.48 qui le relisait et borné comme aujourd'hui (noms à 80 caractères,
+poids à 200 kg, fréquence à 365, dates entre 1900 et 2199 et jamais dans le futur, identifiants
+uniques, chaque ligne rattachée à un animal du fichier, chaque injection à un vaccin du fichier et
+chaque prise à un traitement du fichier, chaque vaccin avec une injection et chaque traitement avec
+une prise). Il est ensuite converti, puis validé une seconde fois par le schéma du format courant :
+tout ou rien, avec les mêmes messages.
+
+- **v1 → v2**, comme l'import de la 0.1.48 : la ligne d'un vaccin donne son injection (dernière
+  injection, rappel), la ligne d'un traitement sa prise (dernière prise, prochaine dose), chacune à
+  l'identifiant de son parent.
+- **Animaux** : suivis, sans date approximative ni départ ; le poids à l'arrivée (`initialWeightKg`)
+  devient une pesée datée du jour de création de l'animal (heure du téléphone qui importe), à
+  l'identifiant de l'animal (modèle v2, M7).
+- **Vaccins** : sans rappel prévu (`plannedDueDate` vide) ; les injections telles quelles.
+- **Traitements** : une seule période, à l'identifiant du traitement, à sa fréquence actuelle, sans
+  heure, sans posologie, sans date de fin ; elle commence à la première prise (ou à l'arrêt, s'il est
+  plus tôt) et garde la date d'arrêt. Elle passe ensuite par les conversions v3 à v10 ci-dessus.
+- **Prises**, rejouées par le moteur des doses dans l'ordre des dates réelles : l'app de l'époque
+  notait la dose du moment et refixait la suite (prochaine dose = date réelle + fréquence, ou une date
+  choisie à la main). Chaque prise rejoue « C'est fait » sur la première échéance encore à donner, à sa
+  date réelle, avec « Décaler aussi les doses suivantes » quand le moteur le propose ; quand la
+  prochaine dose qu'il en tire n'est pas celle que l'app annonçait, une ligne de décalage de la même
+  journée ancre la suite pour la retrouver. Une seconde prise du même jour devient, par la règle du
+  moteur, une prise en plus. Chaque prise garde son identifiant ; une ligne de décalage prend un UUID
+  tiré de celui de sa prise (`derivedId`), toujours le même : réimporter le même fichier ne duplique
+  rien.
+- **Ce que la conversion ne garde pas** : la fréquence propre à chaque prise v2 (celle en vigueur ce
+  jour-là) : la période prend la fréquence actuelle du traitement, et la prochaine dose annoncée reste
+  juste par la ligne de décalage.
+- **Limite connue**, mesurée sur 3 000 carnets simulés de la 0.1.48 : une prochaine dose choisie à la
+  main un 29, 30 ou 31 qu'aucun rythme mensuel ne peut atteindre depuis le jour de la prise (un mois
+  plus court en chemin) est annoncée au plus près, un jour plus tôt (2 carnets sur 3 000). Les autres
+  annoncent la même prochaine dose qu'à l'époque, sans dose à renseigner avant elle.
+- Une prise que le moteur ne saurait pas placer refuse le fichier entier (« Ce fichier n'est pas un
+  export MémoPatte. ») ; aucun export de la 0.1.37 ou de la 0.1.48 n'en produit.
 
 Dates : une date civile s'écrit `AAAA-MM-JJ`, existe au calendrier et tombe entre 1900 et 2199 ; un
 instant s'écrit en ISO 8601 UTC (`Z`), entre les mêmes années ; une heure s'écrit `HH:mm` sur 24 h.
@@ -383,9 +423,9 @@ d'écriture ne journalise que le type de l'erreur).
   - fichier de plus de 10 Mo (refusé sans être lu : c'est ce qui borne le nombre de lignes), pas du
     JSON, pas d'entier `schemaVersion` strictement positif, champ obligatoire absent ou mal formé →
     « Ce fichier n'est pas un export MémoPatte. » ;
-  - **la version tranche avant toute validation** : `schemaVersion` supérieur à 5 → « Cet export
-    vient d'une version plus récente de l'app. » ; inférieur à 3 → « Cet export vient d'une version
-    plus ancienne de MémoPatte. Il ne peut plus être importé. » ; dans les deux cas, quel que soit le reste du contenu ;
+  - **la version tranche avant toute validation** : `schemaVersion` supérieur au format courant →
+    « Cet export vient d'une version plus récente de l'app. », quel que soit le reste du contenu ; de 1
+    à 9, le fichier est validé dans son format puis converti ;
   - **relu par le moteur** (Q40) : après conversion, chaque traitement du fichier est relu par le
     moteur des doses ; un traitement qu'il ne sait pas lire refuse tout le fichier, avec le message
     d'un fichier invalide, et rien n'est écrit ;

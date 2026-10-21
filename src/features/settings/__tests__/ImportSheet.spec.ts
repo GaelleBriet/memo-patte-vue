@@ -205,10 +205,6 @@ describe('ImportSheet', () => {
       'Cet export vient d’une version plus récente de l’app.',
     ],
     [
-      JSON.stringify({ schemaVersion: 2 }),
-      'Cet export vient d’une version plus ancienne de MémoPatte. Il ne peut plus être importé.',
-    ],
-    [
       exportAvecPoidsHorsBornes(),
       'Ce fichier contient une valeur hors limites : 200 kg maximum pour un poids, 365 pour une fréquence.',
     ],
