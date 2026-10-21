@@ -7,6 +7,7 @@ import type { BackupSummary } from './backup-summary'
 export type RestoreFlowState =
   | { step: 'idle' }
   | { step: 'checking' }
+  | { step: 'no-answer' }
   | { step: 'choice'; summary: BackupSummary }
   | { step: 'restoring'; progress: RestoreProgress }
   | { step: 'waiting-network' }
@@ -24,6 +25,7 @@ export type RestoreRunner = Pick<
 export function createRestoreFlow(runner: RestoreRunner) {
   const state = shallowRef<RestoreFlowState>({ step: 'idle' })
   const restoredListeners = new Set<() => void>()
+  const retryListeners = new Set<() => void>()
 
   async function runPending(): Promise<boolean> {
     state.value = { step: 'restoring', progress: runner.progress }
@@ -66,6 +68,22 @@ export function createRestoreFlow(runner: RestoreRunner) {
           { flush: 'sync' },
         )
       })
+    },
+
+    /** Le serveur n'a pas répondu à temps au contrôle de la sauvegarde. */
+    noAnswer(): void {
+      state.value = { step: 'no-answer' }
+    },
+
+    /** « Réessayer » : le contrôle de la sauvegarde est redemandé tout de suite. */
+    retryCheck(): void {
+      state.value = { step: 'checking' }
+      for (const listener of retryListeners) listener()
+    },
+
+    onRetryCheck(listener: () => void): () => void {
+      retryListeners.add(listener)
+      return () => retryListeners.delete(listener)
     },
 
     offer(summary: BackupSummary): void {

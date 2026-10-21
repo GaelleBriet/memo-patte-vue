@@ -29,6 +29,8 @@ import { getVaccinationsRepository } from '@/features/vaccinations/repository/va
 import { getWeightRepository } from '@/features/weight/repository/weight.repository'
 import { syncAllReminders } from '@/features/treatments/service/reminders-sync.service'
 
+const CHECK_TIMEOUT_MS = 30_000
+
 export interface SyncDependencies {
   outbox: SyncCycleOutbox & Pick<SyncOutboxRepository, 'forgetAccount'>
   runCycle: () => Promise<void>
@@ -37,7 +39,14 @@ export interface SyncDependencies {
   checkAccountBackup: () => Promise<AccountBackupCheck>
   restoreFlow: Pick<
     RestoreFlow,
-    'checking' | 'offer' | 'unreachable' | 'reset' | 'resume' | 'onRestored'
+    | 'checking'
+    | 'noAnswer'
+    | 'onRetryCheck'
+    | 'offer'
+    | 'unreachable'
+    | 'reset'
+    | 'resume'
+    | 'onRestored'
   >
 }
 
@@ -65,8 +74,9 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
 
   async function checkBackup(): Promise<void> {
     try {
-      const outcome = await deps.checkAccountBackup()
-      if (outcome.kind === 'backup-found') deps.restoreFlow.offer(outcome.summary)
+      const outcome = await answeredInTime(deps.checkAccountBackup())
+      if (outcome === null) deps.restoreFlow.noAnswer()
+      else if (outcome.kind === 'backup-found') deps.restoreFlow.offer(outcome.summary)
       else if (outcome.kind === 'restore-pending') await runRestore()
       else if (outcome.kind === 'unreachable') {
         checkedFor = null
@@ -97,6 +107,10 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
   }
 
   const stopRestored = deps.restoreFlow.onRestored(() => scheduler.notifyChange())
+  const stopRetry = deps.restoreFlow.onRetryCheck(() => {
+    checkedFor = null
+    checkOnce()
+  })
   const stopResume = onAppResume(onComeback)
   const stopNetwork = onNetworkOnline(onComeback)
   const stopAccountWatch = watch(
@@ -121,9 +135,23 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
 
   return () => {
     stopRestored()
+    stopRetry()
     stopResume()
     stopNetwork()
     stopAccountWatch()
+  }
+}
+
+/** `null` si le serveur n'a pas répondu à temps ; le contrôle revient alors au lancement suivant. */
+async function answeredInTime<T>(answer: Promise<T>): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const silence = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), CHECK_TIMEOUT_MS)
+  })
+  try {
+    return await Promise.race([answer, silence])
+  } finally {
+    clearTimeout(timer)
   }
 }
 

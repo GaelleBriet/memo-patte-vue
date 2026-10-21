@@ -33,6 +33,7 @@ const isSubmitting = ref(false)
 const isGoogleSignIn = ref(false)
 const failureKey = ref<string | null>(null)
 const awaitingConfirmationFor = ref<string | null>(null)
+const hasNoAnswer = ref(false)
 const fields = useTemplateRef<HTMLElement>('fields')
 const errorBanner = useTemplateRef<HTMLElement>('errorBanner')
 
@@ -66,8 +67,19 @@ async function leaveSignedIn(): Promise<void> {
     leave()
     return
   }
-  const restore = await flow.whenChecked()
-  if (isMounted) void router.replace(afterSignInRoute(route.query, restore))
+  const next = afterSignInRoute(route.query, await flow.whenChecked())
+  if (!isMounted) return
+  if (next === null) {
+    isSubmitting.value = false
+    hasNoAnswer.value = true
+  } else void router.replace(next)
+}
+
+async function retryCheck(): Promise<void> {
+  hasNoAnswer.value = false
+  isSubmitting.value = true
+  currentRestoreFlow()?.retryCheck()
+  await leaveSignedIn()
 }
 
 function toggleMode(): void {
@@ -177,6 +189,16 @@ onUnmounted(() => {
       <p class="sign-in__loading-label">{{ loadingLabel }}</p>
     </div>
 
+    <div v-else-if="hasNoAnswer" class="sign-in__no-answer">
+      <p class="sign-in__error" role="alert">
+        <v-icon icon="ms:error" size="18" aria-hidden="true" />
+        <span>{{ t('auth.errors.unknown') }}</span>
+      </p>
+      <v-btn class="sign-in__no-answer-retry" variant="flat" color="primary" @click="retryCheck">
+        {{ t('plus.retry') }}
+      </v-btn>
+    </div>
+
     <div v-else class="sign-in__panel">
       <p class="sign-in__intro">{{ t('auth.intro') }}</p>
 
@@ -268,6 +290,10 @@ onUnmounted(() => {
   padding: 4px 20px 32px;
 }
 
+.sign-in__no-answer {
+  padding: 16px 20px 32px;
+}
+
 .sign-in__intro {
   color: tokens.$color-text-secondary;
   font-size: 14.5px;
@@ -319,7 +345,8 @@ onUnmounted(() => {
   gap: 18px;
 }
 
-.sign-in__submit {
+.sign-in__submit,
+.sign-in__no-answer-retry {
   width: 100%;
   height: 52px;
   margin-top: 26px;

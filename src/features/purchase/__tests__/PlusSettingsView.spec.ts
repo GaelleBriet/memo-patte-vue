@@ -60,6 +60,9 @@ describe('PlusSettingsView', () => {
     expect(wrapper.get('.settings-row--plus-sign-in .settings-row__label').text()).toBe(
       'J’ai déjà MémoPatte Plus',
     )
+    expect(wrapper.get('.settings-row--plus-sign-in .settings-row__hint').text()).toBe(
+      'Retrouver mon carnet',
+    )
     expect(wrapper.text()).not.toContain('abonné')
   })
 
@@ -72,6 +75,15 @@ describe('PlusSettingsView', () => {
       name: 'sign-in',
       query: { from: 'settings-plus', restore: '1' },
     })
+  })
+
+  it('dit « Restore my health record » en anglais, comme le lien de l’accueil', async () => {
+    i18n.global.locale.value = 'en'
+    const wrapper = await monter()
+
+    expect(wrapper.get('.settings-row--plus-sign-in .settings-row__hint').text()).toBe(
+      'Restore my health record',
+    )
   })
 
   it('ne propose pas la connexion sans configuration Supabase', async () => {
