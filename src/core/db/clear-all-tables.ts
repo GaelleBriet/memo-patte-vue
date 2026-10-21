@@ -22,8 +22,12 @@ export function migrationTableNames(throughVersion = Infinity): string[] {
  * Outil de développement, pas une suppression logique : efface physiquement
  * toutes les lignes, `deleted_at` renseigné ou non, en un seul lot.
  * Les tables enfants passent avant leurs parents pour respecter les clés étrangères.
+ * `sync_state` retrouve sa ligne unique, aux valeurs par défaut du schéma.
  */
 export async function clearAllTables(db: DbClient): Promise<void> {
   const tables = migrationTableNames().reverse()
-  await db.runMany(tables.map((table) => ({ sql: `DELETE FROM ${table}` })))
+  await db.runMany([
+    ...tables.map((table) => ({ sql: `DELETE FROM ${table}` })),
+    { sql: 'INSERT INTO sync_state (id) VALUES (1)' },
+  ])
 }
