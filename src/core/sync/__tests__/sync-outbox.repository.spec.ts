@@ -203,6 +203,36 @@ describe('syncOutboxRepository', () => {
     })
   })
 
+  describe('recordFailedPush', () => {
+    it("compte un essai raté sur l'entrée, qui reste en file", async () => {
+      await enableSync(db)
+      await insertAnimal(db, ANIMAL_ID, T1)
+      const [entry] = await repository.listPending()
+
+      await repository.recordFailedPush(entry!)
+      await repository.recordFailedPush(entry!)
+
+      await expect(repository.listPending()).resolves.toEqual([
+        { entity: 'animal', entityId: ANIMAL_ID, queuedAt: T1, attempts: 2 },
+      ])
+    })
+
+    it('ne touche pas aux autres entrées', async () => {
+      await enableSync(db)
+      await insertAnimal(db, ANIMAL_ID, T1)
+      await insertVaccination(db, 'v-1', ANIMAL_ID, T1)
+      const [animal] = await repository.listPending()
+
+      await repository.recordFailedPush(animal!)
+
+      const pending = await repository.listPending()
+      expect(pending.map(({ entity, attempts }) => ({ entity, attempts }))).toEqual([
+        { entity: 'animal', attempts: 1 },
+        { entity: 'vaccination', attempts: 0 },
+      ])
+    })
+  })
+
   describe('clear', () => {
     it('vide la file sans toucher aux données', async () => {
       await enableSync(db)

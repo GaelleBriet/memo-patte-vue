@@ -122,6 +122,13 @@ export function createSyncOutboxRepository(db: DbClient) {
       ])
     },
 
+    async recordFailedPush(entry: Pick<SyncOutboxEntry, 'entity' | 'entityId'>): Promise<void> {
+      await db.run(
+        'UPDATE sync_outbox SET attempts = attempts + 1 WHERE entity = ? AND entity_id = ?',
+        [entry.entity, entry.entityId],
+      )
+    },
+
     async clear(): Promise<void> {
       await db.run('DELETE FROM sync_outbox')
     },
