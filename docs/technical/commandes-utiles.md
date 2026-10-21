@@ -339,3 +339,44 @@ pnpm assets:android                       # pnpm --allow-build=sharp dlx @capaci
 
 La suite du geste (restauration des fichiers réécrits sans raison, couche monochrome) est dans
 `docs/design/logos/logos.md`, section « Régénérer ».
+
+## 10. Fonction de suppression du compte (`delete-account`, #87)
+
+La fonction vit dans `supabase/functions/delete-account/`. Elle n'est **pas** déployée par la CI : la mise en ligne
+se fait à la main, avec Gaelle. Les migrations qu'elle utilise (journal des suppressions, mode admin) partent, elles,
+avec le workflow `supabase-migrations.yml`.
+
+Tout se vérifie sur une pile locale jetable, jamais sur le vrai projet :
+
+```bash
+pnpm dlx supabase@2.119.0 start -x studio,logflare,vector,realtime,imgproxy,mailpit,postgres-meta,supavisor
+pnpm dlx supabase@2.119.0 db reset          # rejoue toutes les migrations sur une base vide
+pnpm dlx supabase@2.119.0 test db           # tests pgTAP de supabase/tests/database/
+SUPABASE_LOCAL_URL=http://127.0.0.1:54321 SUPABASE_LOCAL_ANON_KEY=… SUPABASE_LOCAL_SERVICE_ROLE_KEY=… \
+  pnpm exec vitest run supabase/functions/delete-account
+pnpm dlx supabase@2.119.0 stop --no-backup  # aucun conteneur ne doit rester
+```
+
+- Les clés locales sont les clés de démonstration affichées par `supabase start`.
+- Le runtime local garde la fonction en cache : après une modification, `docker restart
+  supabase_edge_runtime_supabase-migrations` avant de relancer le test de bout en bout.
+- Le test de bout en bout laisse un compte de test : relancer `db reset` avant `test db`.
+- Mode admin en local : `ADMIN_DELETE_SECRET=<valeur de test>` dans `supabase/functions/.env` (ignoré par git), puis
+  le même secret dans `SUPABASE_LOCAL_ADMIN_SECRET` pour le test.
+
+**Demande reçue par e-mail** (une fois la fonction déployée et `ADMIN_DELETE_SECRET` posé dans les secrets de la
+fonction ; sa valeur vit dans le coffre de notes, jamais dans le dépôt). Après avoir vérifié par e-mail que la demande
+vient bien de la personne :
+
+```bash
+curl -X POST "https://<projet>.supabase.co/functions/v1/delete-account" \
+  -H "Authorization: Bearer <clé anon>" -H "apikey: <clé anon>" -H "Content-Type: application/json" \
+  -H "x-memopatte-admin-secret: $ADMIN_DELETE_SECRET" \
+  -d '{"email": "adresse@du-compte", "scope": "account"}'
+```
+
+- `"scope": "account"` : supprime le compte, comme depuis l'app ; le journal note l'origine « email ».
+- `"scope": "cloud-backup"` : efface seulement la sauvegarde cloud (photos et carnet sauvegardé) ; le compte et son
+  droit Plus restent, rien n'est noté au journal.
+- Réponses : `200` fait, `404` aucun compte à cette adresse, `401` secret faux ou absent de la fonction, `400`
+  demande mal formée, `500` échec (relancer la même commande : elle reprend).

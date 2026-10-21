@@ -399,7 +399,7 @@ Publiée depuis le 2026-09-26 sur <https://memopatte.app/confidentialite/> (angl
 
 **B. Page web publique** (obligatoire, URL déclarée dans Data safety) — publiée sur <https://memopatte.app/suppression-compte/> (anglais : `/en/delete-account/`), source dans `site/suppression-compte/index.html` et `site/en/delete-account/index.html`, seule version du texte. Elle décrit la méthode dans l'app (A) et la demande par e-mail (C), ce qui est supprimé et ce qui reste, la suppression de la seule sauvegarde cloud et la résiliation de l'abonnement dans Google Play.
 
-**C. Traitement d'une demande reçue par email** : vérifier l'adresse (répondre à l'expéditeur, demander confirmation), exécuter la même Edge Function via un script admin, confirmer par email, noter la date dans le registre des demandes. Délai RGPD : un mois maximum (art. 12-3).
+**C. Traitement d'une demande reçue par email** : vérifier l'adresse (répondre à l'expéditeur, demander confirmation), exécuter le mode admin de la même Edge Function (secret `ADMIN_DELETE_SECRET` à part, jamais la clé `service_role` hors du serveur ; commande dans `commandes-utiles.md` §10), qui sait aussi n'effacer que la sauvegarde cloud, confirmer par email, noter la date dans le registre des demandes. Délai RGPD : un mois maximum (art. 12-3).
 
 ### 3.4 Check-list « avant publication » (ordonnée)
 
