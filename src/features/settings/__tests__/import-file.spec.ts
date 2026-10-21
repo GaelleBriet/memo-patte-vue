@@ -147,17 +147,17 @@ describe('parseExportFile', () => {
 
   describe('version', () => {
     it.each([1, 2])(
-      'signale un export d’une version plus ancienne (v%i), quel que soit son contenu',
+      'refuse comme invalide un export v%i qui n’en a pas la forme, sans parler de version',
       (schemaVersion) => {
-        expect(parseExportFile(JSON.stringify({ schemaVersion, animals: [] }))).toEqual({
-          ok: false,
-          reason: 'older',
-        })
-        expect(
-          parseExportFile(withDocument((document) => (document.schemaVersion = schemaVersion))),
-        ).toEqual({ ok: false, reason: 'older' })
+        expect(parseExportFile(JSON.stringify({ schemaVersion, animals: [] }))).toEqual(INVALID)
       },
     )
+
+    it('refuse une version nulle comme un fichier qui n’est pas un export', () => {
+      expect(parseExportFile(withDocument((document) => (document.schemaVersion = 0)))).toEqual(
+        INVALID,
+      )
+    })
 
     it('signale un export d’une version plus récente, quel que soit son contenu', () => {
       const text = JSON.stringify({ schemaVersion: 11, pets: [] })

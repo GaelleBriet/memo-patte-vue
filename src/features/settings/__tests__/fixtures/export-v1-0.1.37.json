@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "exportedAt": "2026-09-23T18:05:47.219Z",
+  "appVersion": "0.1.37",
+  "animals": [
+    {
+      "id": "f53143ec-dca0-430d-a77d-755f592ae425",
+      "name": "Milo",
+      "species": "dog",
+      "breed": "Berger australien",
+      "birthDate": "2021-04-12",
+      "initialWeightKg": 18.4,
+      "photoFileName": null,
+      "createdAt": "2026-09-20T07:12:31.402Z",
+      "updatedAt": "2026-09-20T07:12:31.402Z"
+    },
+    {
+      "id": "d50968dd-31a7-4782-b365-9c5285fe6c43",
+      "name": "Luna",
+      "species": "cat",
+      "breed": null,
+      "birthDate": "2019-03-02",
+      "initialWeightKg": null,
+      "photoFileName": "5b0e2c47-9d3a-4f61-8c2e-7a1d9e4b6f03.jpg",
+      "createdAt": "2026-09-20T07:15:02.118Z",
+      "updatedAt": "2026-09-20T07:15:02.118Z"
+    }
+  ],
+  "vaccinations": [
+    {
+      "id": "d4e20c4c-63a0-449f-a82f-b3a568d9cf73",
+      "animalId": "d50968dd-31a7-4782-b365-9c5285fe6c43",
+      "name": "Typhus coryza",
+      "lastInjectionDate": "2025-02-10",
+      "dueDate": null,
+      "createdAt": "2026-09-20T07:24:39.290Z",
+      "updatedAt": "2026-09-20T07:24:39.290Z"
+    },
+    {
+      "id": "c926e5b4-b1c3-4773-bb3f-34e0acdb67da",
+      "animalId": "f53143ec-dca0-430d-a77d-755f592ae425",
+      "name": "Rage",
+      "lastInjectionDate": "2026-09-21",
+      "dueDate": "2029-09-21",
+      "createdAt": "2026-09-20T07:20:10.533Z",
+      "updatedAt": "2026-09-21T18:02:57.061Z"
+    },
+    {
+      "id": "de1798b3-7e93-4c40-8204-92122775edb7",
+      "animalId": "f53143ec-dca0-430d-a77d-755f592ae425",
+      "name": "CHPPiL",
+      "lastInjectionDate": "2025-10-06",
+      "dueDate": "2026-10-06",
+      "createdAt": "2026-09-20T07:18:44.907Z",
+      "updatedAt": "2026-09-20T07:18:44.907Z"
+    }
+  ],
+  "treatments": [
+    {
+      "id": "626a7787-96ce-479e-8b2e-09edb1319378",
+      "animalId": "d50968dd-31a7-4782-b365-9c5285fe6c43",
+      "name": "Stronghold",
+      "type": "antiparasitic",
+      "frequency": {
+        "value": 4,
+        "unit": "week"
+      },
+      "lastDoseDate": "2026-09-01",
+      "nextDueDate": "2026-09-29",
+      "createdAt": "2026-09-20T07:31:48.015Z",
+      "updatedAt": "2026-09-20T07:31:48.015Z"
+    },
+    {
+      "id": "bb349eac-fe4c-4548-8cb1-b0c666516311",
+      "animalId": "f53143ec-dca0-430d-a77d-755f592ae425",
+      "name": "Bravecto",
+      "type": "antiparasitic",
+      "frequency": {
+        "value": 3,
+        "unit": "month"
+      },
+      "lastDoseDate": "2026-07-31",
+      "nextDueDate": "2026-10-31",
+      "createdAt": "2026-09-20T07:27:15.884Z",
+      "updatedAt": "2026-09-20T07:27:15.884Z"
+    },
+    {
+      "id": "e4d428da-419e-4c67-a6f3-fcad10a2c6ff",
+      "animalId": "f53143ec-dca0-430d-a77d-755f592ae425",
+      "name": "Milbémax",
+      "type": "deworming",
+      "frequency": {
+        "value": 3,
+        "unit": "month"
+      },
+      "lastDoseDate": "2026-09-15",
+      "nextDueDate": "2026-12-15",
+      "createdAt": "2026-09-20T07:29:03.672Z",
+      "updatedAt": "2026-09-22T08:41:19.230Z"
+    }
+  ],
+  "weightEntries": [
+    {
+      "id": "be5668d7-7fc1-4573-aaad-16eb645cde88",
+      "animalId": "f53143ec-dca0-430d-a77d-755f592ae425",
+      "weightKg": 18.9,
+      "measuredOn": "2026-03-02",
+      "createdAt": "2026-09-20T07:33:12.448Z",
+      "updatedAt": "2026-09-20T07:33:12.448Z"
+    },
+    {
+      "id": "a98f8fe6-0a47-4915-b0c5-7ee516aefbfe",
+      "animalId": "f53143ec-dca0-430d-a77d-755f592ae425",
+      "weightKg": 19.65,
+      "measuredOn": "2026-09-18",
+      "createdAt": "2026-09-20T07:33:40.901Z",
+      "updatedAt": "2026-09-20T07:33:40.901Z"
+    },
+    {
+      "id": "7f177a38-3cb9-4b63-8e5d-c05ce6f5c89c",
+      "animalId": "d50968dd-31a7-4782-b365-9c5285fe6c43",
+      "weightKg": 4.2,
+      "measuredOn": "2026-08-30",
+      "createdAt": "2026-09-20T07:34:25.337Z",
+      "updatedAt": "2026-09-20T07:34:25.337Z"
+    }
+  ],
+  "reminders": [
+    {
+      "kind": "treatment",
+      "sourceId": "626a7787-96ce-479e-8b2e-09edb1319378",
+      "animalId": "d50968dd-31a7-4782-b365-9c5285fe6c43",
+      "name": "Stronghold",
+      "dueDate": "2026-09-29"
+    },
+    {
+      "kind": "vaccination",
+      "sourceId": "de1798b3-7e93-4c40-8204-92122775edb7",
+      "animalId": "f53143ec-dca0-430d-a77d-755f592ae425",
+      "name": "CHPPiL",
+      "dueDate": "2026-10-06"
+    },
+    {
+      "kind": "treatment",
+      "sourceId": "bb349eac-fe4c-4548-8cb1-b0c666516311",
+      "animalId": "f53143ec-dca0-430d-a77d-755f592ae425",
+      "name": "Bravecto",
+      "dueDate": "2026-10-31"
+    },
+    {
+      "kind": "treatment",
+      "sourceId": "e4d428da-419e-4c67-a6f3-fcad10a2c6ff",
+      "animalId": "f53143ec-dca0-430d-a77d-755f592ae425",
+      "name": "Milbémax",
+      "dueDate": "2026-12-15"
+    },
+    {
+      "kind": "vaccination",
+      "sourceId": "c926e5b4-b1c3-4773-bb3f-34e0acdb67da",
+      "animalId": "f53143ec-dca0-430d-a77d-755f592ae425",
+      "name": "Rage",
+      "dueDate": "2029-09-21"
+    }
+  ]
+}
