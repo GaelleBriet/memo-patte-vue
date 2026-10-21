@@ -43,6 +43,7 @@ function fakeOutbox(pending: number): SyncDependencies['outbox'] {
 const withoutSession = {
   sessionActive: () => false,
   checkAccountBackup: vi.fn<() => Promise<AccountBackupCheck>>(async () => ({ kind: 'active' })),
+  restore: { run: async () => {} },
 }
 
 async function runDebounce(): Promise<void> {
@@ -226,7 +227,6 @@ describe('installSync', () => {
       outcome: AccountBackupCheck = {
         kind: 'backup-found',
         summary: { animalCount: 1, lastBackupAt: '2026-10-20T19:04:00.000Z' },
-        hasLocalCarnet: true,
       },
     ) {
       const outbox = fakeOutbox(0)
@@ -241,14 +241,18 @@ describe('installSync', () => {
         return outcome
       })
       const runCycle = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
+      const run = vi.fn<() => Promise<void>>(async () => {
+        steps.push('restore')
+      })
       const deps: SyncDependencies = {
         outbox,
         runCycle,
         userId: () => userId.value,
         sessionActive: () => active.value,
         checkAccountBackup,
+        restore: { run },
       }
-      return { deps, outbox, userId, active, steps, checkAccountBackup, runCycle }
+      return { deps, outbox, userId, active, steps, checkAccountBackup, runCycle, run }
     }
 
     it('contrôle la sauvegarde dès que la session du compte est active, une fois par lancement', async () => {
@@ -306,6 +310,43 @@ describe('installSync', () => {
       await vi.advanceTimersByTimeAsync(0)
 
       expect(checkAccountBackup).toHaveBeenCalledTimes(2)
+      stop()
+    })
+
+    it('une restauration à reprendre part dès le contrôle, puis un cycle est programmé', async () => {
+      const { deps, userId, active, steps, runCycle } = accountSetup({
+        kind: 'restore-pending',
+        mode: 'replace',
+      })
+      userId.value = 'user-1'
+      active.value = true
+      const stop = await installSync(deps)
+      await runDebounce()
+      runCycle.mockClear()
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(steps).toEqual(['check:user-1', 'restore'])
+      stop()
+    })
+
+    it('au retour du réseau, reprend une restauration interrompue', async () => {
+      let emit!: NetworkListener
+      addNetworkListener.mockImplementation(async (_event, listener) => {
+        emit = listener
+        return { remove: vi.fn<() => Promise<void>>(async () => {}) }
+      })
+      const { deps, run } = accountSetup()
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+      run.mockRejectedValueOnce(new Error('réseau coupé'))
+      const stop = await installSync(deps)
+
+      emit({ connected: true, connectionType: 'wifi' })
+      await vi.advanceTimersByTimeAsync(0)
+      emit({ connected: true, connectionType: 'wifi' })
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(run).toHaveBeenCalledTimes(2)
+      expect(warn).toHaveBeenCalledOnce()
       stop()
     })
 
