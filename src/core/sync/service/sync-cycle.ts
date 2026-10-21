@@ -2,11 +2,12 @@ import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import type { SyncOutboxEntry } from '../repository/sync-outbox.repository'
 import { normalizeSyncTimestamps } from './normalize-sync-timestamps'
 import { createPushRefusals } from './push-refusals'
-import type { SyncPush, SyncRow, SyncableTable } from './syncable-table'
+import type { SyncPullPage, SyncPush, SyncRow, SyncableTable } from './syncable-table'
 
 const PUSH_CLAIM_SIZE = 200
 const PULL_PAGE_SIZE = 500
 const EPOCH = '1970-01-01T00:00:00.000Z'
+const PULL_MARGIN_MS = 5_000
 const REMINDER_ENTITIES = new Set([
   'animal',
   'vaccination',
@@ -60,6 +61,12 @@ interface PushOutcome {
 }
 
 const keyOf = (entity: string, id: string) => `${entity}/${id}`
+
+/** `server_updated_at` date le début de la transaction : une ligne validée après un pull peut le précéder. */
+function withMargin(lastPulledAt: string | null): string {
+  if (lastPulledAt === null) return EPOCH
+  return new Date(Date.parse(lastPulledAt) - PULL_MARGIN_MS).toISOString()
+}
 
 const sameRow = (sent: SyncRow, kept: SyncRow) =>
   Object.keys(kept).every((column) => (sent[column] ?? null) === (kept[column] ?? null))
@@ -175,31 +182,55 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
     }
   }
 
+  /** Une ligne relue dans la marge ne touche le carnet que si elle y manque ou y est plus ancienne. */
+  async function touchesCarnet(
+    table: SyncableTable,
+    page: SyncPullPage,
+    lastPulledAt: string | null,
+  ): Promise<boolean> {
+    for (const [index, row] of page.rows.entries()) {
+      if (lastPulledAt === null || (page.stamps[index] ?? '') > lastPulledAt) return true
+      const local = await table.getRowForPush(row.id)
+      if (!local || normalizeSyncTimestamps(row).updated_at > local.updated_at) return true
+    }
+    return false
+  }
+
   async function pullTable(
     userId: string,
     table: SyncableTable,
     keptByKey: ReadonlyMap<string, KeptRow>,
-    onCursorAdvanced: () => void,
+    onCarnetTouched: () => void,
   ): Promise<void> {
-    let pageCursor = (await deps.outbox.getLastPulledAt(table.entity)) ?? EPOCH
+    let lastPulledAt = await deps.outbox.getLastPulledAt(table.entity)
+    let since = withMargin(lastPulledAt)
+    let afterId: string | undefined
 
     for (;;) {
-      const page = await table.pullPage(userId, pageCursor, PULL_PAGE_SIZE)
-      if (page.rows.length === 0) break
+      const page = await table.pullPage(userId, since, PULL_PAGE_SIZE, afterId)
+      const lastRow = page.rows.at(-1)
+      if (!lastRow) break
 
+      const touched = await touchesCarnet(table, page, lastPulledAt)
       await applyPage(table, page.rows, keptByKey)
 
       const cursor = page.cursor
-      if (cursor === null || cursor <= pageCursor) {
-        if (page.rows.length >= PULL_PAGE_SIZE) {
-          console.warn(`Pagination du pull arrêtée sans progrès pour ${table.entity}.`)
-        }
+      if (cursor === null) break
+      if (
+        afterId !== undefined &&
+        !(cursor > since || (cursor === since && lastRow.id > afterId))
+      ) {
+        console.warn(`Pagination du pull arrêtée sans progrès pour ${table.entity}.`)
         break
       }
-      await deps.outbox.setLastPulledAt(table.entity, cursor)
-      onCursorAdvanced()
-      pageCursor = cursor
+      if (lastPulledAt === null || cursor > lastPulledAt) {
+        await deps.outbox.setLastPulledAt(table.entity, cursor)
+        lastPulledAt = cursor
+      }
+      if (touched) onCarnetTouched()
       if (page.rows.length < PULL_PAGE_SIZE) break
+      since = cursor
+      afterId = lastRow.id
     }
   }
 

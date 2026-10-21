@@ -286,7 +286,7 @@ describe('animalsRepository — port de synchronisation', () => {
 
     const page = await withClient.pullPage('user-1', T_OLD, 500)
 
-    expect(page).toEqual({ rows: [], cursor: null })
+    expect(page).toEqual({ rows: [], stamps: [], cursor: null })
   })
 
   it('pullPage lève l’erreur Supabase', async () => {

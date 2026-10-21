@@ -21,28 +21,22 @@ interface FakePullBuilder {
 }
 
 function fakePullClient(result: FakeResult) {
-  const calls: Record<string, unknown> = {}
+  const calls: unknown[][] = []
+  const chained =
+    (method: string) =>
+    (...args: unknown[]) => {
+      calls.push([method, ...args])
+      return builder
+    }
   const builder: FakePullBuilder = {
-    select: vi.fn<FakePullBuilder['select']>((columns) => {
-      calls.select = columns
-      return builder
-    }),
-    eq: vi.fn<FakePullBuilder['eq']>((column, value) => {
-      calls.eq = [column, value]
-      return builder
-    }),
-    gte: vi.fn<FakePullBuilder['gte']>((column, value) => {
-      calls.gte = [column, value]
-      return builder
-    }),
-    order: vi.fn<FakePullBuilder['order']>((column, options) => {
-      calls.order = [column, options]
-      return builder
-    }),
-    limit: vi.fn<FakePullBuilder['limit']>((count) => {
-      calls.limit = count
+    select: chained('select'),
+    eq: chained('eq'),
+    gte: chained('gte'),
+    order: chained('order'),
+    limit: (count) => {
+      calls.push(['limit', count])
       return Promise.resolve(result)
-    }),
+    },
   }
   const from = vi.fn<(table: string) => FakePullBuilder>(() => builder)
   return { client: { from } as unknown as SupabaseClient, from, calls }
@@ -129,13 +123,14 @@ describe('createRemoteSyncTable', () => {
     await remote.pullPage(USER_ID, '2026-01-01T00:00:00.000Z', 50)
 
     expect(from).toHaveBeenCalledWith('weight_entry')
-    expect(calls).toEqual({
-      select: 'id, weight_kg, server_updated_at',
-      eq: ['user_id', USER_ID],
-      gte: ['server_updated_at', '2026-01-01T00:00:00.000Z'],
-      order: ['server_updated_at', { ascending: true }],
-      limit: 50,
-    })
+    expect(calls).toEqual([
+      ['select', 'id, weight_kg, server_updated_at'],
+      ['eq', 'user_id', USER_ID],
+      ['gte', 'server_updated_at', '2026-01-01T00:00:00.000Z'],
+      ['order', 'server_updated_at', { ascending: true }],
+      ['order', 'id', { ascending: true }],
+      ['limit', 50],
+    ])
   })
 
   it('pullPage retire server_updated_at des lignes et le rend comme curseur de la dernière', async () => {
@@ -156,7 +151,63 @@ describe('createRemoteSyncTable', () => {
 
     expect(page).toEqual({
       rows: [ROW, { ...ROW, id: 'ligne-2' }],
+      stamps: ['2026-01-02T00:00:00+00:00', '2026-01-03T00:00:00+00:00'],
       cursor: '2026-01-03T00:00:00+00:00',
+    })
+  })
+
+  describe('pullPage après un identifiant (départage d’un même instant)', () => {
+    async function serverWithTies() {
+      const server = createFakeSyncServer()
+      const remote = remoteAnimalTable(server.client, 'id, name, updated_at')
+      const release = server.holdClock()
+      for (const id of ['a', 'b', 'c']) await remote.pushRow(USER_ID, { ...ROW, id })
+      release()
+      await remote.pushRow(USER_ID, { ...ROW, id: 'd' })
+      const shared = server.rows('animal')[0]!.server_updated_at as string
+      return { remote, shared }
+    }
+
+    it('reprend les lignes du même instant après cet identifiant, puis les suivantes', async () => {
+      const { remote, shared } = await serverWithTies()
+
+      const page = await remote.pullPage(USER_ID, shared, 50, 'a')
+
+      expect(page.rows.map(({ id }) => id)).toEqual(['b', 'c', 'd'])
+    })
+
+    it('ne lit les suivantes que si la page n’est pas pleine', async () => {
+      const { remote, shared } = await serverWithTies()
+
+      const page = await remote.pullPage(USER_ID, shared, 2, 'a')
+
+      expect(page.rows.map(({ id }) => id)).toEqual(['b', 'c'])
+      expect(page.cursor).toBe(shared)
+    })
+
+    it('parcourt plus d’une page de lignes au même instant sans en sauter ni en répéter', async () => {
+      const server = createFakeSyncServer()
+      const remote = remoteAnimalTable(server.client, 'id, name, updated_at')
+      const ids = Array.from(
+        { length: 12 },
+        (_, index) => `ligne-${String(index).padStart(2, '0')}`,
+      )
+      const release = server.holdClock()
+      for (const id of ids) await remote.pushRow(USER_ID, { ...ROW, id })
+      release()
+
+      const read: string[] = []
+      let since = '1970-01-01T00:00:00.000Z'
+      let afterId: string | undefined
+      for (let guard = 0; guard < ids.length; guard += 1) {
+        const page = await remote.pullPage(USER_ID, since, 5, afterId)
+        read.push(...page.rows.map(({ id }) => id))
+        if (page.rows.length < 5) break
+        since = page.cursor!
+        afterId = page.rows.at(-1)!.id
+      }
+
+      expect(read).toEqual(ids)
     })
   })
 
@@ -170,6 +221,7 @@ describe('createRemoteSyncTable', () => {
 
     await expect(remote.pullPage(USER_ID, '2026-01-01T00:00:00.000Z', 50)).resolves.toEqual({
       rows: [],
+      stamps: [],
       cursor: null,
     })
   })
