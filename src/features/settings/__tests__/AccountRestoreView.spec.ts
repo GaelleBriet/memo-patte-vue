@@ -160,7 +160,7 @@ describe('Restaurer mon carnet', () => {
     expect(runner.start).toHaveBeenCalledWith('merge')
     expect(document.querySelector('[role="dialog"]')).toBeNull()
     expect(texte('.account-restore__progress')).toBe('Restauration de ton carnet')
-    expect(document.querySelector('.pushed-screen__back')).toBeNull()
+    expect(document.querySelector('.pushed-screen__back--hidden')).not.toBeNull()
 
     runner.emit({ done: 120, total: 348 })
     await flushPromises()

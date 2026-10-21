@@ -91,25 +91,27 @@ const groupLabelId = useId()
     </div>
 
     <template v-if="state.step === 'choice' || state.step === 'waiting-network'" #actions>
-      <v-btn
-        v-if="state.step === 'choice'"
-        class="account-restore__action account-restore__continue"
-        variant="flat"
-        color="primary"
-        :disabled="selected === null"
-        @click="submit"
-      >
-        {{ t('settings.import.submit') }}
-      </v-btn>
-      <v-btn
-        v-else
-        class="account-restore__action account-restore__later"
-        variant="outlined"
-        color="primary"
-        @click="later"
-      >
-        {{ t('settings.restore.later') }}
-      </v-btn>
+      <div class="account-restore__actions">
+        <v-btn
+          v-if="state.step === 'choice'"
+          class="account-restore__action account-restore__continue"
+          variant="flat"
+          color="primary"
+          :disabled="selected === null"
+          @click="submit"
+        >
+          {{ t('settings.import.submit') }}
+        </v-btn>
+        <v-btn
+          v-else
+          class="account-restore__action account-restore__later"
+          variant="outlined"
+          color="primary"
+          @click="later"
+        >
+          {{ t('settings.restore.later') }}
+        </v-btn>
+      </div>
     </template>
   </PushedScreen>
 
@@ -180,6 +182,10 @@ const groupLabelId = useId()
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+.account-restore__actions {
+  padding: 12px 20px 30px;
 }
 
 .account-restore__action {
