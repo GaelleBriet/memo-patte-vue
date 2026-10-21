@@ -9,6 +9,7 @@ import { createPushedRowReplacement } from '@/core/sync/repository/pushed-row-re
 import { createRemoteSyncTable } from '@/core/sync/repository/remote-sync-table.repository'
 import { syncField } from '@/core/sync/service/syncable-table'
 import { createTreatmentDosesRepository } from './treatment-doses.repository'
+import { createTreatmentDeletion } from './treatment-deletion.repository'
 import { createTreatmentPeriodsRepository } from './treatment-periods.repository'
 import { createTreatmentPlanWrites } from './treatment-plan-writes.repository'
 import { createTreatmentReads } from './treatment-reads.repository'
@@ -46,56 +47,7 @@ export function createTreatmentsRepository(
 
     ...reads,
     ...createTreatmentPlanWrites(db, deviceId, { periods, doses, getById: reads.getById }),
-
-    /**
-     * Rend l'instant de la suppression, à passer à `restore`. Sans effet sur un traitement inconnu
-     * ou déjà supprimé : la date initiale est gardée.
-     */
-    async remove(id: string): Promise<string> {
-      const deletedAt = new Date().toISOString()
-      await db.runMany([
-        {
-          sql: `UPDATE treatment SET deleted_at = ?, updated_at = ?, updated_by_device = ?
-                WHERE id = ? AND ${NOT_DELETED}`,
-          params: [deletedAt, deletedAt, deviceId(), id],
-        },
-        periods.markDeletedByTreatmentStatement(id, deletedAt),
-        doses.markDeletedByTreatmentStatement(id, deletedAt),
-      ])
-      return deletedAt
-    },
-
-    /** Rétablit le traitement, ses périodes et ses prises supprimés à cet instant, et eux seuls. */
-    async restore(id: string, deletedAt: string): Promise<void> {
-      const at = new Date().toISOString()
-      await db.runMany([
-        {
-          sql: `UPDATE treatment SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
-                WHERE id = ? AND deleted_at = ?`,
-          params: [at, deviceId(), id, deletedAt],
-        },
-        periods.reviveByTreatmentStatement(id, deletedAt, at),
-        doses.reviveByTreatmentStatement(id, deletedAt, at),
-      ])
-    },
-
-    /** Instruction fournie sans être exécutée : la suppression d'un animal la joue dans sa transaction. */
-    markDeletedByAnimalStatement(animalId: string, deletedAt: string): SqlStatement {
-      return {
-        sql: `UPDATE treatment SET deleted_at = ?, updated_at = ?, updated_by_device = ?
-              WHERE animal_id = ? AND ${NOT_DELETED}`,
-        params: [deletedAt, deletedAt, deviceId(), animalId],
-      }
-    },
-
-    /** Les lignes supprimées à cet instant, avec leur animal. */
-    reviveByAnimalStatement(animalId: string, deletedAt: string, updatedAt: string): SqlStatement {
-      return {
-        sql: `UPDATE treatment SET deleted_at = NULL, updated_at = ?, updated_by_device = ?
-              WHERE animal_id = ? AND deleted_at = ?`,
-        params: [updatedAt, deviceId(), animalId, deletedAt],
-      }
-    },
+    ...createTreatmentDeletion(db, deviceId, { periods, doses }),
 
     /** Lignes supprimées comprises : l'import compare les versions avant d'écrire. */
     async listVersions(): Promise<TreatmentVersion[]> {
