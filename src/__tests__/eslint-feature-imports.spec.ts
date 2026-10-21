@@ -215,7 +215,7 @@ describe('imports entre features', { timeout: 30_000 }, () => {
       ['@/features/treatments/repository/treatments.repository'],
     )
 
-    expect(store.feature).toBe(1)
+    expect(store.feature).toBe(2)
     expect(repository.feature).toBe(1)
   })
 
@@ -371,6 +371,48 @@ describe('logic/, sans repository', { timeout: 30_000 }, () => {
 
     expect(logic).toEqual({ feature: 0, legacy: 0 })
     expect(service).toEqual({ feature: 0, legacy: 0 })
+  })
+})
+
+describe('store/, repository en type seulement', { timeout: 30_000 }, () => {
+  const STORE = 'src/features/treatments/store/treatments.store.ts'
+
+  it("interdit à un store d'importer un repository en valeur", async () => {
+    const results = await Promise.all([
+      lintImports(STORE, ["import { provideX } from '../repository/treatments.repository'"]),
+      lintImports(STORE, [
+        "import * as m from '@/features/treatments/repository/treatments.repository'",
+      ]),
+      lintImports(STORE, [
+        "import { type Repo, provideX } from '../repository/treatments.repository'",
+      ]),
+      restrictedDynamicImports('src/features/home/store/home.store.ts', [
+        '../repository/home.repository',
+      ]),
+    ])
+
+    expect(results.map(({ feature }) => feature)).toEqual([1, 1, 1, 1])
+  })
+
+  it('laisse un store importer un repository avec import type', async () => {
+    const results = await Promise.all([
+      lintImports(STORE, ["import type { Repo } from '../repository/treatments.repository'"]),
+      lintImports(STORE, ["import type * as m from '../repository/treatments.repository'"]),
+    ])
+
+    expect(results).toEqual([
+      { feature: 0, legacy: 0 },
+      { feature: 0, legacy: 0 },
+    ])
+  })
+
+  it('laisse un service importer son repository en valeur', async () => {
+    const result = await restrictedImports(
+      'src/features/treatments/service/treatment-doses.service.ts',
+      ['../repository/treatments.repository'],
+    )
+
+    expect(result).toEqual({ feature: 0, legacy: 0 })
   })
 })
 

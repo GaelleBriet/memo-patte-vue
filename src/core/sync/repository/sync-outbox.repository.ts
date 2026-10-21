@@ -64,6 +64,18 @@ export function createSyncOutboxRepository(db: DbClient) {
       await db.run('UPDATE sync_state SET enabled = ? WHERE id = 1', [enabled ? 1 : 0])
     },
 
+    /** Lignes supprimées comprises ; une entrée déjà en file garde son `queued_at` et ses essais. */
+    async enableAndQueueWholeCarnet(): Promise<void> {
+      await db.runMany([
+        { sql: 'UPDATE sync_state SET enabled = 1 WHERE id = 1' },
+        ...SYNC_ENTITY_ORDER.map((entity) => ({
+          sql: `INSERT OR IGNORE INTO sync_outbox (entity, entity_id, queued_at)
+                SELECT ?, id, updated_at FROM ${entity}`,
+          params: [entity],
+        })),
+      ])
+    },
+
     async getLastPulledAt(entity: string): Promise<string | null> {
       const [row] = await db.query<{ last_pulled_at: string }>(
         'SELECT last_pulled_at FROM sync_pull_cursor WHERE entity = ?',
