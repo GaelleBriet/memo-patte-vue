@@ -1074,7 +1074,8 @@
       "text": "Le carnet de santé de tes animaux, toujours à jour.",
       "local": "Ton carnet reste sur ton téléphone. Gratuit, sans compte.",
       "create": "Créer mon premier animal",
-      "import": "Importer un export MémoPatte"
+      "import": "Importer un export MémoPatte",
+      "restore": "J’ai déjà MémoPatte Plus · Retrouver mon carnet"
     },
     "unfollowed": {
       "title": "Aucun soin à venir",
@@ -1118,7 +1119,11 @@
       },
       "enable": "Activer les rappels",
       "later": "Plus tard",
-      "enabled": "Rappels activés"
+      "enabled": "Rappels activés",
+      "ready": {
+        "subtitle": "Ton carnet est prêt. Autorise les notifications pour recevoir tes rappels.",
+        "enable": "Autoriser les notifications"
+      }
     },
     "channel": {
       "name": "Rappels",
@@ -1401,6 +1406,26 @@
         "cancel": "Annuler",
         "submit": "Remplacer"
       }
+    },
+    "restore": {
+      "title": "Restaurer mon carnet",
+      "found": "Sauvegarde trouvée",
+      "summary": "{n} animal · dernière sauvegarde {when} | {n} animaux · dernière sauvegarde {when}",
+      "when": {
+        "today": "aujourd’hui à {time}",
+        "yesterday": "hier à {time}",
+        "thisYear": "le {date} à {time}",
+        "earlier": "le {date}"
+      },
+      "existing": "Des données existent déjà sur ce téléphone.",
+      "modes": "Fusionner ou remplacer",
+      "confirmBody": "Les données actuelles de ce téléphone seront remplacées par celles de la sauvegarde.",
+      "progress": {
+        "title": "Restauration de ton carnet",
+        "count": "{done} élément sur {total} | {done} élément sur {total} | {done} éléments sur {total}"
+      },
+      "offline": "La restauration reprendra dès le retour du réseau. Rien n’est perdu.",
+      "later": "Plus tard"
     },
     "csv": {
       "columns": {

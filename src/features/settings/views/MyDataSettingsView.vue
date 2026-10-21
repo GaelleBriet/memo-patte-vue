@@ -64,7 +64,7 @@ function onExportPdfRow(): void {
 
 function onImported(): void {
   void animals.load()
-  void promptNotificationsIfReminders(router, 'settings-data')
+  void promptNotificationsIfReminders(router, 'settings-data', { ready: true })
 }
 
 function onWeightUnitChange(unit: WeightUnit | null): void {

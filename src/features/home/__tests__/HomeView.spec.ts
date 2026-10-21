@@ -64,8 +64,13 @@ vi.mock('@/core/notifications/permission', () => ({
 const hasLocalData = vi.hoisted(() => vi.fn<() => Promise<boolean>>(async () => false))
 const importData = vi.hoisted(() => vi.fn<() => Promise<void>>(async () => {}))
 const promptNotificationsIfReminders = vi.hoisted(() =>
-  vi.fn<(router: unknown, from: string) => Promise<boolean>>(async () => false),
+  vi.fn<(router: unknown, from: string, options?: { ready?: boolean }) => Promise<boolean>>(
+    async () => false,
+  ),
 )
+const authAvailable = vi.hoisted(() => vi.fn<() => boolean>(() => false))
+
+vi.mock('@/shared/utils/auth-available', () => ({ authAvailable }))
 
 vi.mock('@/features/settings/service/data-import.service', async (importOriginal) => ({
   ...(await importOriginal<typeof DataImport>()),
@@ -1380,10 +1385,23 @@ describe('HomeView — A5 premier lancement, aucun animal', () => {
     expect(push).toHaveBeenCalledWith({ name: 'settings' })
   })
 
-  it('ne propose pas encore de retrouver un carnet MémoPatte Plus', async () => {
+  it('propose de retrouver un carnet MémoPatte Plus, par la connexion puis la restauration', async () => {
+    authAvailable.mockReturnValue(true)
     const wrapper = await monter()
 
-    expect(wrapper.text()).not.toContain('Retrouver mon carnet')
+    const lien = wrapper.get('.home-welcome__restore')
+    expect(lien.text()).toBe('J’ai déjà MémoPatte Plus · Retrouver mon carnet')
+    expect(lien.element.tagName).toBe('BUTTON')
+    await lien.trigger('click')
+
+    expect(push).toHaveBeenCalledWith({ name: 'sign-in', query: { from: 'home', restore: '1' } })
+    authAvailable.mockReturnValue(false)
+  })
+
+  it('ne propose pas de retrouver un carnet sans compte possible', async () => {
+    const wrapper = await monter()
+
+    expect(wrapper.find('.home-welcome__restore').exists()).toBe(false)
   })
 
   it('mène au formulaire de création', async () => {
@@ -1462,7 +1480,7 @@ describe('HomeView — A5 premier lancement, aucun animal', () => {
       expect(loadAnimals).toHaveBeenCalledOnce()
       expect(listSources).toHaveBeenCalledOnce()
       expect(wrapper.find('.home-header').exists()).toBe(true)
-      expect(prompt).toHaveBeenCalledWith(router, 'home')
+      expect(prompt).toHaveBeenCalledWith(router, 'home', { ready: true })
     })
 
     it('explique un fichier refusé dans la feuille, sans quitter la bienvenue', async () => {

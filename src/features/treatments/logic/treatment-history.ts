@@ -12,7 +12,7 @@ import {
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
-import { byStartDescending, periodLastDay } from '@/shared/domain/treatment-periods'
+import { byStartDescending, periodShownDays } from '@/shared/domain/treatment-periods'
 import { historyEntries, type TreatmentReading } from '@/shared/domain/treatment-reading'
 import { formatLongDate, formatDayMonthOrYear } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
@@ -62,21 +62,16 @@ function lastDoseDay(entries: Entry[]): string | null {
   return days.length === 0 ? null : days.reduce((a, b) => (a > b ? a : b))
 }
 
-function headTitle(
-  t: Translate,
-  period: Period,
-  next: Period | undefined,
-  entries: Entry[],
-): string {
-  const lastDay = periodLastDay(period, next)
+function headTitle(t: Translate, periods: Period[], period: Period, entries: Entry[]): string {
+  const { start, lastDay } = periodShownDays(periods, period)
   const lastDose = lastDoseDay(entries)
   const end = lastDay !== null && lastDose !== null && lastDose > lastDay ? lastDose : lastDay
   if (end === null) {
-    return t('treatments.history.period.since', { date: formatLongDate(period.startsOn) })
+    return t('treatments.history.period.since', { date: formatLongDate(start) })
   }
-  return end <= period.startsOn
-    ? t('treatments.history.period.single', { date: formatLongDate(period.startsOn) })
-    : t('treatments.history.period.range', rangeDates(period.startsOn, end))
+  return end <= start
+    ? t('treatments.history.period.single', { date: formatLongDate(start) })
+    : t('treatments.history.period.range', rangeDates(start, end))
 }
 
 // Du plus récent au plus ancien ; sur une même échéance, le report, la prise, puis le décalage.
@@ -236,7 +231,7 @@ export function treatmentHistory(
         head: isAlone
           ? null
           : {
-              title: headTitle(t, period, periods[index - 1], own),
+              title: headTitle(t, periods, period, own),
               settings: periodSettingsText(t, period),
             },
         lines,

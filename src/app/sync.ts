@@ -5,7 +5,12 @@ import { getDeviceRepository } from '@/core/device/device.repository'
 import { createLocalSyncContext } from '@/core/sync/service/local-sync-context'
 import { onNetworkOnline } from '@/core/sync/service/network-status'
 import type { SyncOutboxRepository } from '@/core/sync/repository/sync-outbox.repository'
-import type { AccountRestore, RestorableTable } from '@/core/sync/service/account-restore'
+import type { RestorableTable } from '@/core/sync/service/account-restore'
+import {
+  createRestoreFlow,
+  provideRestoreFlow,
+  type RestoreFlow,
+} from '@/core/sync/service/restore-flow'
 import type { SyncCycleOutbox } from '@/core/sync/service/sync-cycle'
 import { createSyncScheduler, resumePendingSync } from '@/core/sync/service/sync-scheduler'
 import { getAnimalsRepository } from '@/features/animals/repository/animals.repository'
@@ -30,7 +35,10 @@ export interface SyncDependencies {
   userId: () => string | null
   sessionActive: () => boolean
   checkAccountBackup: () => Promise<AccountBackupCheck>
-  restore: Pick<AccountRestore, 'run'>
+  restoreFlow: Pick<
+    RestoreFlow,
+    'checking' | 'offer' | 'unreachable' | 'reset' | 'resume' | 'onRestored'
+  >
 }
 
 /**
@@ -39,7 +47,8 @@ export interface SyncDependencies {
  * ne disparaît qu'à la déconnexion explicite : la synchro oublie alors sa file et ses curseurs.
  * Un compte qui en remplace un autre repart, comme une première connexion, du contrôle de sa
  * sauvegarde, fait une fois par lancement et par compte dès que sa session est active. Une
- * restauration choisie reprend seule au lancement, au retour au premier plan et du réseau.
+ * restauration choisie reprend seule au lancement, au retour au premier plan et du réseau, comme un
+ * contrôle que le serveur n'a pas pu faire.
  */
 export async function installSync(deps: SyncDependencies): Promise<() => void> {
   const scheduler = createSyncScheduler({ runCycle: deps.runCycle })
@@ -51,31 +60,43 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
   }
 
   async function runRestore(): Promise<void> {
-    try {
-      await deps.restore.run()
-      scheduler.notifyChange()
-    } catch (cause) {
-      console.warn('Restauration interrompue, elle reprendra :', cause)
-    }
+    await deps.restoreFlow.resume()
   }
 
   async function checkBackup(): Promise<void> {
     try {
       const outcome = await deps.checkAccountBackup()
-      if (outcome.kind === 'seeded') scheduler.notifyChange()
-      if (outcome.kind === 'restore-pending') await runRestore()
-      if (outcome.kind === 'unreachable') checkedFor = null
+      if (outcome.kind === 'backup-found') deps.restoreFlow.offer(outcome.summary)
+      else if (outcome.kind === 'restore-pending') await runRestore()
+      else if (outcome.kind === 'unreachable') {
+        checkedFor = null
+        deps.restoreFlow.unreachable()
+      } else {
+        deps.restoreFlow.reset()
+        if (outcome.kind === 'seeded') scheduler.notifyChange()
+      }
     } catch (cause) {
       checkedFor = null
+      deps.restoreFlow.unreachable()
       console.warn('Sauvegarde du compte non contrôlée :', cause)
     }
   }
 
+  function checkOnce(): void {
+    const userId = deps.userId()
+    if (!deps.sessionActive() || userId === null || checkedFor === userId) return
+    checkedFor = userId
+    deps.restoreFlow.checking()
+    enqueue(checkBackup)
+  }
+
   function onComeback(): void {
     enqueue(runRestore)
+    checkOnce()
     scheduler.notifyChange()
   }
 
+  const stopRestored = deps.restoreFlow.onRestored(() => scheduler.notifyChange())
   const stopResume = onAppResume(onComeback)
   const stopNetwork = onNetworkOnline(onComeback)
   const stopAccountWatch = watch(
@@ -84,15 +105,13 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
       const previous = before ? before.userId : userId
       if (userId !== previous) {
         checkedFor = null
+        deps.restoreFlow.reset()
         if (previous !== null) {
           const forgotten = forgetPreviousAccount(deps.outbox)
           enqueue(() => forgotten)
         } else scheduler.notifyChange()
       }
-      if (active && userId !== null && checkedFor !== userId) {
-        checkedFor = userId
-        enqueue(checkBackup)
-      }
+      if (active) checkOnce()
     },
     { flush: 'sync', immediate: true },
   )
@@ -101,6 +120,7 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
   scheduler.notifyChange()
 
   return () => {
+    stopRestored()
     stopResume()
     stopNetwork()
     stopAccountWatch()
@@ -135,6 +155,8 @@ export async function createDefaultSyncDependencies(): Promise<SyncDependencies>
     isEligible: () => useAuthStore().hasPlusAccount && usePurchaseStore().status.plan !== 'none',
     onRemindersOutdated: syncAllReminders,
   })
+  const restoreFlow = createRestoreFlow(restore)
+  provideRestoreFlow(restoreFlow)
   const accountBackup = createAccountBackupService({
     outbox: () => outbox,
     tables: () => tables,
@@ -149,6 +171,6 @@ export async function createDefaultSyncDependencies(): Promise<SyncDependencies>
     userId,
     sessionActive: () => useAuthStore().sessionState === 'active',
     checkAccountBackup: () => accountBackup.check(),
-    restore,
+    restoreFlow,
   }
 }
