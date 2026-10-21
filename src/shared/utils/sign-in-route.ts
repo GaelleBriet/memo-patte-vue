@@ -26,12 +26,16 @@ export function asksRestore(query: LocationQuery): boolean {
   return query.restore === RESTORE_FLAG
 }
 
-/** Où va une connexion réussie, une fois la sauvegarde du compte contrôlée. */
+/**
+ * Où va une connexion réussie, une fois la sauvegarde du compte contrôlée ; `null` : la connexion
+ * reste à l'écran, le serveur n'a pas répondu à temps.
+ */
 export function afterSignInRoute(
   query: LocationQuery,
   restore: RestoreFlowState,
-): RouteLocationRaw {
+): RouteLocationRaw | null {
   const back = signInReturnRoute(query.from)
+  if (asksRestore(query) && restore.step === 'no-answer') return null
   if (!asksRestore(query) || restore.step === 'idle' || restore.step === 'checking') return back
   return restoreRoute(typeof query.from === 'string' ? query.from : 'home')
 }

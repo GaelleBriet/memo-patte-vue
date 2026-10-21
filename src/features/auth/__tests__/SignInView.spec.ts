@@ -208,6 +208,40 @@ describe('SignInView', () => {
       })
     })
 
+    it('sans réponse du serveur à temps : le message habituel et « Réessayer », la connexion reste faite', async () => {
+      repository.signIn.mockImplementation(async () => {
+        flow.checking()
+        return { userId: USER_ID }
+      })
+      const retried = vi.fn<() => void>()
+      flow.onRetryCheck(retried)
+      const wrapper = await monter('/sign-in?from=settings-plus&restore=1')
+      await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse')
+      await envoyer(wrapper)
+
+      flow.noAnswer()
+      await flushPromises()
+
+      expect(replace).not.toHaveBeenCalled()
+      expect(wrapper.get('.sign-in__no-answer [role="alert"]').text()).toBe(
+        'Quelque chose s’est mal passé. Réessaie dans un instant.',
+      )
+      expect(wrapper.find('.sign-in__form').exists()).toBe(false)
+      expect(wrapper.get('.sign-in__no-answer-retry').text()).toBe('Réessayer')
+      await wrapper.get('.sign-in__no-answer-retry').trigger('click')
+      await flushPromises()
+      expect(retried).toHaveBeenCalledOnce()
+      expect(wrapper.find('.sign-in__loading').exists()).toBe(true)
+
+      flow.offer({ animalCount: 3, lastBackupAt: '2026-10-20T19:04:00.000Z' })
+      await flushPromises()
+      expect(replace).toHaveBeenCalledWith({
+        name: 'account-restore',
+        query: { from: 'settings-plus' },
+      })
+      expect(repository.signOut).not.toHaveBeenCalled()
+    })
+
     it('par Google aussi : attend le contrôle, puis ouvre « Restaurer mon carnet »', async () => {
       googleSignIn.mockImplementation(async () => {
         flow.checking()
