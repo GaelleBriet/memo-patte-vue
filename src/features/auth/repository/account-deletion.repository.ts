@@ -1,0 +1,103 @@
+import { FunctionsHttpError, type SupabaseClient, type User } from '@supabase/supabase-js'
+
+import { loadSupabaseClient } from '@/core/supabase/load-client'
+import { errorSummary } from '@/shared/utils/error-summary'
+
+import { AccountDeletionError } from '../logic/account-deletion-error'
+import { AccountError } from '../logic/account-error'
+import { accountErrorFrom } from './auth.repository'
+
+export type IdentityConfirmationMethod =
+  { kind: 'password' } | { kind: 'google'; email: string; subject: string }
+
+export type AccountDeletionRepository = {
+  /** Lit la session de l'appareil. Lève `AccountError`. */
+  confirmationMethod(): Promise<IdentityConfirmationMethod>
+  /** Lève `AccountError`, `invalid-credentials` pour un mot de passe faux. */
+  confirmPassword(password: string): Promise<void>
+  /** Lève `AccountError`. */
+  confirmWithGoogleIdToken(idToken: string, nonce: string): Promise<void>
+  /** Vise le compte de la session. Lève `AccountDeletionError`. */
+  deleteAccount(): Promise<void>
+}
+
+export type AccountDeletionDependencies = {
+  loadClient?: () => Promise<SupabaseClient>
+}
+
+const DELETE_ACCOUNT_FUNCTION = 'delete-account'
+const REFUSED_IDENTITY_STATUSES = new Set([401, 403])
+
+function methodOf(user: User): IdentityConfirmationMethod {
+  const providers = user.app_metadata.providers ?? [user.app_metadata.provider]
+  const google = user.identities?.find((identity) => identity.provider === 'google')
+  if (providers.includes('email') || !google) return { kind: 'password' }
+  const data = google.identity_data ?? {}
+  return {
+    kind: 'google',
+    email: typeof data.email === 'string' ? data.email : (user.email ?? ''),
+    subject: typeof data.sub === 'string' ? data.sub : google.id,
+  }
+}
+
+function deletionErrorFrom(cause: unknown): AccountDeletionError {
+  const refused =
+    cause instanceof FunctionsHttpError &&
+    REFUSED_IDENTITY_STATUSES.has((cause.context as Response).status)
+  return new AccountDeletionError(refused ? 'identity-expired' : 'failed', { cause })
+}
+
+export function createAccountDeletionRepository({
+  loadClient = loadSupabaseClient,
+}: AccountDeletionDependencies = {}): AccountDeletionRepository {
+  async function withClient<T>(operation: (supabase: SupabaseClient) => Promise<T>): Promise<T> {
+    try {
+      return await operation(await loadClient())
+    } catch (cause) {
+      throw accountErrorFrom(cause)
+    }
+  }
+
+  async function sessionUser(supabase: SupabaseClient): Promise<User> {
+    const { data } = await supabase.auth.getSession()
+    if (!data.session) throw new AccountError('unknown')
+    return data.session.user
+  }
+
+  return {
+    confirmationMethod: () => withClient(async (supabase) => methodOf(await sessionUser(supabase))),
+
+    confirmPassword: (password) =>
+      withClient(async (supabase) => {
+        const { email } = await sessionUser(supabase)
+        if (!email) throw new AccountError('unknown')
+        const { error } = await supabase.auth.signInWithPassword({ email, password })
+        if (error) throw error
+      }),
+
+    confirmWithGoogleIdToken: (idToken, nonce) =>
+      withClient(async (supabase) => {
+        const { error } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: idToken,
+          nonce,
+        })
+        if (error) throw error
+      }),
+
+    async deleteAccount() {
+      try {
+        const supabase = await loadClient()
+        const { error } = await supabase.functions.invoke(DELETE_ACCOUNT_FUNCTION, {
+          method: 'POST',
+        })
+        if (error) throw error
+      } catch (cause) {
+        console.warn('Compte non supprimé :', errorSummary(cause))
+        throw deletionErrorFrom(cause)
+      }
+    },
+  }
+}
+
+export const accountDeletionRepository = createAccountDeletionRepository()

@@ -18,6 +18,7 @@ import {
 import { PLUS_ACCOUNT_STORAGE_KEY } from '../logic/plus-account-storage'
 import { authRepository, type AuthRepository } from '../repository/auth.repository'
 import {
+  clearDeletedAccountState,
   clearDeviceAccountState,
   clearSignedOutAccountState,
   isSignedInOnDevice,
@@ -107,6 +108,27 @@ describe('clearDeviceAccountState', () => {
 
     expect(() => clearDeviceAccountState()).not.toThrow()
     expect(readUsageSignals().photo.count).toBe(0)
+  })
+})
+
+describe('clearDeletedAccountState', () => {
+  it('oublie l’achat, les rappels de Plus et les compteurs du compte : l’app redevient gratuite', () => {
+    writeDeviceState()
+
+    clearDeletedAccountState()
+
+    expect(storage.keys().sort()).toEqual([...UNRELATED_KEYS].sort())
+  })
+
+  it('garde ce que le carnet a vécu', () => {
+    recordUsageSignal('photo')
+    recordUsageSignal('care')
+
+    clearDeletedAccountState()
+
+    const signals = readUsageSignals()
+    expect(signals.photo.count).toBe(0)
+    expect(signals.care.count).toBe(1)
   })
 })
 

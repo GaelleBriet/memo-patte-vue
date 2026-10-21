@@ -12,6 +12,7 @@ import {
   type SignUpOutcome,
 } from '../repository/auth.repository'
 import {
+  clearDeletedAccountState,
   clearDeviceAccountState,
   clearSignedOutAccountState,
 } from '../service/device-account-state.service'
@@ -76,6 +77,17 @@ export const useAuthStore = defineStore('auth', () => {
     return false
   }
 
+  async function leaveAccount(clearAccountState: () => void): Promise<void> {
+    await repository.signOut()
+    generation += 1
+    account.value = null
+    clearPlusAccount()
+    clearAccountState()
+    sessionState.value = 'none'
+    resetAnalytics()
+    await googleCredentials.signOut()
+  }
+
   repository.onSessionChange((session) => {
     if (!account.value) return
     if (session) record(session)
@@ -114,15 +126,9 @@ export const useAuthStore = defineStore('auth', () => {
     },
 
     /** Efface la session et les compteurs du compte ; le carnet local et l'achat restent. */
-    async signOut(): Promise<void> {
-      await repository.signOut()
-      generation += 1
-      account.value = null
-      clearPlusAccount()
-      clearSignedOutAccountState()
-      sessionState.value = 'none'
-      resetAnalytics()
-      await googleCredentials.signOut()
-    },
+    signOut: (): Promise<void> => leaveAccount(clearSignedOutAccountState),
+
+    /** Après la suppression du compte : comme la déconnexion, et l'app redevient gratuite. */
+    forgetDeletedAccount: (): Promise<void> => leaveAccount(clearDeletedAccountState),
   }
 })
