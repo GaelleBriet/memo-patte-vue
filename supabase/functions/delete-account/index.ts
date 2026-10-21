@@ -30,5 +30,9 @@ Deno.serve((request) =>
       const { error } = await admin.auth.admin.deleteUser(userId, false)
       if (error) throw error
     },
+    async recordDeletion(origin) {
+      const { error } = await admin.from('account_deletion_log').insert({ origin })
+      if (error) throw error
+    },
   }),
 )

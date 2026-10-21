@@ -24,7 +24,7 @@ function confirmedSecondsAgo(seconds: number): string {
 
 const TOKEN = confirmedSecondsAgo(60)
 
-type Call = { kind: 'list' | 'remove' | 'deleteUser'; arg: unknown }
+type Call = { kind: 'list' | 'remove' | 'deleteUser' | 'record'; arg: unknown }
 
 /** Comme `storage.list()` : les sous-dossiers reviennent comme une entrée sans `id`. */
 function childrenOf(photos: string[], folder: string, limit: number): StorageEntry[] {
@@ -73,6 +73,10 @@ function fakePorts(
       calls.push({ kind: 'deleteUser', arg: userId })
       if (options.failOn === 'deleteUser') throw new Error('auth injoignable')
       deletedUser = userId
+    },
+    async recordDeletion(origin) {
+      calls.push({ kind: 'record', arg: origin })
+      if (options.failOn === 'record') throw new Error('journal injoignable')
     },
   }
 
@@ -226,6 +230,7 @@ describe('handleDeleteAccount', () => {
       { kind: 'remove', arg: [`${USER}/luna.jpg`, `${USER}/milo.jpg`] },
       { kind: 'list', arg: { folder: USER, limit: PHOTO_PAGE_SIZE } },
       { kind: 'deleteUser', arg: USER },
+      { kind: 'record', arg: 'app' },
     ])
     expect(fake.photos).toEqual([])
   })
@@ -279,7 +284,17 @@ describe('handleDeleteAccount', () => {
     const response = await handleDeleteAccount(request(), fake.ports)
 
     expect(response.status).toBe(200)
-    expect(fake.calls.map((call) => call.kind)).toEqual(['list', 'deleteUser'])
+    expect(fake.calls.map((call) => call.kind)).toEqual(['list', 'deleteUser', 'record'])
+  })
+
+  it('confirme la suppression même quand le journal ne répond pas', async () => {
+    const fake = fakePorts({ failOn: 'record' })
+
+    const response = await handleDeleteAccount(request(), fake.ports)
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ status: 'deleted' })
+    expect(fake.deletedUser()).toBe(USER)
   })
 
   it.each(['list', 'remove'] as const)(
@@ -312,6 +327,7 @@ describe('handleDeleteAccount', () => {
 
     expect(response.status).toBe(500)
     expect(await response.json()).toEqual({ error: 'deletion-failed' })
+    expect(fake.calls.map((call) => call.kind)).not.toContain('record')
   })
 
   it('ne touche qu’au dossier du compte du jeton', async () => {

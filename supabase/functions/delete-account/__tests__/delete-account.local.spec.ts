@@ -111,6 +111,17 @@ describe.skipIf(url === undefined)('delete-account sur une pile Supabase locale'
     }
   }
 
+  async function loggedDeletions(origin: 'app' | 'email'): Promise<number> {
+    const today = new Date().toISOString().slice(0, 10)
+    const { count, error } = await admin
+      .from('account_deletion_log')
+      .select('*', { count: 'exact', head: true })
+      .eq('origin', origin)
+      .eq('deleted_on', today)
+    if (error) throw error
+    return count ?? 0
+  }
+
   beforeAll(async () => {
     const host = new URL(url!).hostname
     if (host !== '127.0.0.1' && host !== 'localhost') {
@@ -170,10 +181,13 @@ describe.skipIf(url === undefined)('delete-account sur une pile Supabase locale'
       expect.arrayContaining([sophie.photo.slice(sophie.userId.length + 1), 'vieux']),
     )
 
+    const logged = await loggedDeletions('app')
+
     const response = await callFunction(sophie.token)
 
     expect(response.status).toBe(200)
     expect(await leftovers(sophie)).toEqual({ user: null, photos: [], rows: {} })
+    expect(await loggedDeletions('app')).toBe(logged + 1)
   })
 
   it('ne touche pas aux autres comptes', async () => {

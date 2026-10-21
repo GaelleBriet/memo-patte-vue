@@ -3,6 +3,8 @@ import { isIdentityFresh } from './identity-freshness.ts'
 /** Une entrée de `storage.list()` : un sous-dossier n'a pas d'`id`. */
 export type StorageEntry = { name: string; id: string | null }
 
+export type DeletionOrigin = 'app' | 'email'
+
 export type AccountDeletionPorts = {
   /** `null` quand le jeton ne désigne aucun compte. */
   userIdFromToken(token: string): Promise<string | null>
@@ -11,6 +13,8 @@ export type AccountDeletionPorts = {
   removePhotos(paths: string[]): Promise<void>
   /** Suppression dure : les lignes du compte partent par `on delete cascade`. */
   deleteUser(userId: string): Promise<void>
+  /** Date et origine seulement : rien qui désigne le compte. */
+  recordDeletion(origin: DeletionOrigin): Promise<void>
 }
 
 export const PHOTO_PAGE_SIZE = 100
@@ -60,6 +64,19 @@ function removeAllPhotos(userId: string, ports: AccountDeletionPorts): Promise<v
   return removeFolder(userId, 0, ports)
 }
 
+function errorMessage(cause: unknown): unknown {
+  return cause instanceof Error ? cause.message : cause
+}
+
+/** Le compte est déjà supprimé : un journal en panne ne doit pas faire croire à un échec. */
+async function recordDeletion(origin: DeletionOrigin, ports: AccountDeletionPorts): Promise<void> {
+  try {
+    await ports.recordDeletion(origin)
+  } catch (cause) {
+    console.error('Suppression de compte non journalisée :', errorMessage(cause))
+  }
+}
+
 export async function handleDeleteAccount(
   request: Request,
   ports: AccountDeletionPorts,
@@ -78,11 +95,9 @@ export async function handleDeleteAccount(
     await removeAllPhotos(userId, ports)
     await ports.deleteUser(userId)
   } catch (cause) {
-    console.error(
-      'Suppression de compte en échec :',
-      cause instanceof Error ? cause.message : cause,
-    )
+    console.error('Suppression de compte en échec :', errorMessage(cause))
     return json(500, { error: 'deletion-failed' })
   }
+  await recordDeletion('app', ports)
   return json(200, { status: 'deleted' })
 }
