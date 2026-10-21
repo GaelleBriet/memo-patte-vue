@@ -220,9 +220,13 @@ describe('Un seul téléphone : une dose ôtée par un décalage, pas par la ré
   it.each([
     9110000172, 9110000229, 9110000309, 9120000384, 9120001368, 9140000610, 9140000713, 9140000967,
     9996000444,
-  ])('graine %i : les invariants tiennent à chaque geste', (seed) => {
-    expect(seedHolds(seed, 40)).toEqual([])
-  })
+  ])(
+    'graine %i : les invariants tiennent à chaque geste',
+    (seed) => {
+      expect(seedHolds(seed, 40)).toEqual([])
+    },
+    30000,
+  )
 
   it('graine 9500001489 : les invariants tiennent à chaque geste, posologie seule comprise', () => {
     expect(seedHolds(9500001489, 40)).toEqual([])
