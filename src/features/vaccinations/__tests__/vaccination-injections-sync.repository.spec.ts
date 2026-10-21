@@ -160,14 +160,17 @@ describe('vaccinationInjectionsRepository — port de synchronisation', () => {
           updated_by_device: 'appareil-test',
         },
       ],
+      stamps: [pushed?.server_updated_at],
       cursor: pushed?.server_updated_at,
     })
     await expect(repository.pullPage('autre-compte', T_OLD, 500)).resolves.toEqual({
       rows: [],
+      stamps: [],
       cursor: null,
     })
     await expect(repository.pullPage(USER_ID, '2030-01-01T00:00:00.000Z', 500)).resolves.toEqual({
       rows: [],
+      stamps: [],
       cursor: null,
     })
   })
