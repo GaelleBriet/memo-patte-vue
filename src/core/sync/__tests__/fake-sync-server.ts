@@ -41,7 +41,7 @@ function compared(column: string, a: SyncRowValue, b: SyncRowValue): number {
 }
 
 /**
- * PostgREST réduit aux appels de la synchro : `select … eq gt gte order limit`, l'`update … match lt
+ * PostgREST réduit aux appels de la synchro : `select … eq gt gte is order limit`, le compte `head`, l'`update … match lt
  * select` et l'`upsert … select` de `guardedUpsert`, sa relecture `select … match maybeSingle`, et
  * l'ouverture d'un envoi. Les déclencheurs `server_updated_at` et d'écrêtage, sur l'horloge `now` du
  * serveur, et les clés étrangères y sont reproduits, et les horodatages rendus en `+00:00`, comme Postgres.
@@ -148,9 +148,31 @@ export function createFakeSyncServer({
     return request
   }
 
+  /** Comptée au tour suivant, comme `write` : les filtres chaînés avant l'attente sont posés. */
+  function headCount(table: string) {
+    const filters: Array<(row: ServerRow) => boolean> = []
+    const result = Promise.resolve().then(() => ({
+      count: tableRows(table).filter((row) => filters.every((filter) => filter(row))).length,
+      data: null,
+      error: null,
+    }))
+    const request = Object.assign(result, {
+      eq(column: string, value: SyncRowValue) {
+        filters.push((row) => compared(column, row[column] ?? null, value) === 0)
+        return request
+      },
+      is(column: string, value: null) {
+        filters.push((row) => (row[column] ?? null) === value)
+        return request
+      },
+    })
+    return request
+  }
+
   function select(table: string, columns: string) {
     const filters: Array<(row: ServerRow) => boolean> = []
-    const orderColumns: string[] = []
+    const orderColumns: Array<{ column: string; ascending: boolean }> = []
+    const matching = () => tableRows(table).filter((row) => filters.every((filter) => filter(row)))
     const builder = {
       eq(column: string, value: SyncRowValue) {
         filters.push((row) => compared(column, row[column] ?? null, value) === 0)
@@ -172,8 +194,8 @@ export function createFakeSyncServer({
         filters.push((row) => Date.parse(String(row[column])) >= Date.parse(value))
         return builder
       },
-      order(column: string) {
-        orderColumns.push(column)
+      order(column: string, { ascending = true }: { ascending?: boolean } = {}) {
+        orderColumns.push({ column, ascending })
         return builder
       },
       async limit(count: number): Promise<Result> {
@@ -188,12 +210,11 @@ export function createFakeSyncServer({
         }
         if (pagesBeforeCut !== undefined) pullCuts.set(table, pagesBeforeCut - 1)
 
-        const rows = tableRows(table)
-          .filter((row) => filters.every((filter) => filter(row)))
+        const rows = matching()
           .sort((a, b) => {
-            for (const column of orderColumns) {
+            for (const { column, ascending } of orderColumns) {
               const order = compared(column, a[column] ?? null, b[column] ?? null)
-              if (order !== 0) return order
+              if (order !== 0) return ascending ? order : -order
             }
             return 0
           })
@@ -265,7 +286,8 @@ export function createFakeSyncServer({
   const client = {
     from(table: string) {
       return {
-        select: (columns: string) => select(table, columns),
+        select: (columns: string, options?: { head?: boolean }) =>
+          options?.head ? headCount(table) : select(table, columns),
         update: (patch: ServerRow) => update(table, patch),
         upsert: (row: ServerRow) => upsert(table, row),
         insert: (row: ServerRow) => openPush(row),

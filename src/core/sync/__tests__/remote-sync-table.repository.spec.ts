@@ -226,6 +226,76 @@ describe('createRemoteSyncTable', () => {
     })
   })
 
+  describe('lectures de la sauvegarde du compte', () => {
+    async function serverWithAnimals() {
+      const server = createFakeSyncServer()
+      const remote = remoteAnimalTable(server.client, 'id, name, updated_at, deleted_at')
+      await remote.pushRow(USER_ID, { ...ROW, deleted_at: null })
+      await remote.pushRow(USER_ID, {
+        ...ROW,
+        id: 'ligne-2',
+        deleted_at: '2026-01-01T00:11:00.000Z',
+      })
+      await remote.pushRow('autre-compte', { ...ROW, id: 'ligne-3', deleted_at: null })
+      return { server, remote }
+    }
+
+    it('countRemoteRows compte les lignes du compte, supprimées comprises', async () => {
+      const { remote } = await serverWithAnimals()
+
+      await expect(remote.countRemoteRows(USER_ID)).resolves.toBe(2)
+    })
+
+    it('countRemoteRows ne compte, avec aliveOnly, que les lignes non supprimées', async () => {
+      const { remote } = await serverWithAnimals()
+
+      await expect(remote.countRemoteRows(USER_ID, { aliveOnly: true })).resolves.toBe(1)
+    })
+
+    it('latestRemoteStamp rend la réception serveur la plus récente du compte', async () => {
+      const { server, remote } = await serverWithAnimals()
+      const ownStamps = server
+        .rows('animal')
+        .filter(({ user_id }) => user_id === USER_ID)
+        .map(({ server_updated_at }) => String(server_updated_at))
+
+      await expect(remote.latestRemoteStamp(USER_ID)).resolves.toBe(ownStamps.sort().at(-1))
+    })
+
+    it('latestRemoteStamp rend null pour un compte sans ligne', async () => {
+      const { remote } = await serverWithAnimals()
+
+      await expect(remote.latestRemoteStamp('compte-vide')).resolves.toBeNull()
+    })
+
+    it('les deux lectures lèvent l’erreur de Supabase', async () => {
+      const failure = new Error('réseau')
+      const failing = {
+        from: () => ({
+          select: (_columns: string, options?: { head?: boolean }) => {
+            if (options?.head) {
+              const counted = Object.assign(
+                Promise.resolve({ count: null, data: null, error: failure }),
+                { eq: () => counted, is: () => counted },
+              )
+              return counted
+            }
+            const query = {
+              eq: () => query,
+              order: () => query,
+              limit: () => Promise.resolve({ data: null, error: failure }),
+            }
+            return query
+          },
+        }),
+      } as unknown as SupabaseClient
+      const remote = remoteAnimalTable(failing)
+
+      await expect(remote.countRemoteRows(USER_ID)).rejects.toBe(failure)
+      await expect(remote.latestRemoteStamp(USER_ID)).rejects.toBe(failure)
+    })
+  })
+
   it("pullPage lève l'erreur de Supabase", async () => {
     const failure = new Error('réseau')
     const { client } = fakePullClient({ data: null, error: failure })
