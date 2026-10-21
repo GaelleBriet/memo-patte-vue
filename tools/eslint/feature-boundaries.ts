@@ -15,7 +15,13 @@ const COMPOSITE_SCREENS = [
   { feature: 'settings', file: 'src/features/settings/views/SettingsView.vue' },
 ]
 
-const EXPORT_FILE_SCHEMA = 'src/features/settings/schema/export-file.schema.ts'
+const EXPORT_FILE_SCHEMAS = [
+  'src/features/settings/schema/export-file.schema.ts',
+  'src/features/settings/schema/export-file-rows.schema.ts',
+  'src/features/settings/schema/export-file-legacy-rows.schema.ts',
+  'src/features/settings/schema/export-file-v1.schema.ts',
+  'src/features/settings/schema/export-file-v2.schema.ts',
+]
 
 // Exception actée le 2026-09-16 (decisions-log) : toute feature lit le store des
 // animaux et son schéma, rien de plus — d'où `useAnimalsStore` seul autorisé.
@@ -119,7 +125,7 @@ export const featureBoundaryBlocks: Linter.Config[] = [
   })),
   {
     name: 'app/feature-imports/export-file-schema',
-    files: [EXPORT_FILE_SCHEMA],
+    files: EXPORT_FILE_SCHEMAS,
     rules: featureImportsRule('settings', ['@/features/*/schema', '@/features/*/schema/*.schema']),
   },
   ...COMPOSITE_SCREENS.map(({ feature, file }) => ({

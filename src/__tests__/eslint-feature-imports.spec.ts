@@ -180,21 +180,36 @@ describe('imports entre features', { timeout: 30_000 }, () => {
     expect(result.feature).toBe(0)
   })
 
-  it("autorise au schéma du fichier d'export les schémas des autres features, rien d'autre", async () => {
-    const schemas = await restrictedImports('src/features/settings/schema/export-file.schema.ts', [
-      '@/features/treatments/schema/treatment.schema',
-      '@/features/weight/schema/weight.schema',
-    ])
-    const others = await restrictedImports('src/features/settings/schema/export-file.schema.ts', [
-      '@/features/treatments/repository/treatments.repository',
-      '@/features/weight/store/weight.store',
-    ])
+  it("autorise aux schémas du fichier d'export les schémas des autres features, rien d'autre", async () => {
+    const files = [
+      'src/features/settings/schema/export-file.schema.ts',
+      'src/features/settings/schema/export-file-rows.schema.ts',
+      'src/features/settings/schema/export-file-legacy-rows.schema.ts',
+      'src/features/settings/schema/export-file-v1.schema.ts',
+      'src/features/settings/schema/export-file-v2.schema.ts',
+    ]
+    const counts = await Promise.all(
+      files.map(async (file) => ({
+        file,
+        schemas: (
+          await restrictedImports(file, [
+            '@/features/treatments/schema/treatment.schema',
+            '@/features/weight/schema/weight.schema',
+          ])
+        ).feature,
+        others: (
+          await restrictedImports(file, [
+            '@/features/treatments/repository/treatments.repository',
+            '@/features/weight/store/weight.store',
+          ])
+        ).feature,
+      })),
+    )
     const elsewhere = await restrictedImports('src/features/settings/schema/other.schema.ts', [
       '@/features/treatments/schema/treatment.schema',
     ])
 
-    expect(schemas.feature).toBe(0)
-    expect(others.feature).toBe(2)
+    expect(counts).toEqual(files.map((file) => ({ file, schemas: 0, others: 2 })))
     expect(elsewhere.feature).toBe(1)
   })
 
