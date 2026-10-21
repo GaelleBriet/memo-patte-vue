@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import AccountSection from '../views/AccountSection.vue'
 import { authRepository, type AuthRepository } from '../repository/auth.repository'
+import { provideAuthRepository } from '../store/auth.store'
 import { writePlusAccount } from '../logic/plus-account-storage'
 import { memoryStorage, USER_ID } from './auth-fixture'
 import i18n from '@/core/i18n'
@@ -22,6 +23,7 @@ vi.mock('../repository/auth.repository', () => ({
 }))
 
 const repository = vi.mocked(authRepository)
+provideAuthRepository(() => authRepository)
 
 vi.mock('@/shared/utils/auth-available', () => ({ authAvailable: () => true }))
 

@@ -19,7 +19,7 @@ import {
   type AuthRepository,
   type AuthSession,
 } from '../repository/auth.repository'
-import { useAuthStore } from '../store/auth.store'
+import { provideAuthRepository, useAuthStore } from '../store/auth.store'
 import { readPlusAccount, writePlusAccount } from '../logic/plus-account-storage'
 import { memoryStorage, OTHER_USER_ID, USER_ID } from './auth-fixture'
 
@@ -51,6 +51,7 @@ vi.mock('../repository/auth.repository', () => ({
 }))
 
 const repository = vi.mocked(authRepository)
+provideAuthRepository(() => authRepository)
 
 function supabaseEndsOrRefreshesSession(session: AuthSession | null): void {
   const listener = repository.onSessionChange.mock.lastCall?.[0]
