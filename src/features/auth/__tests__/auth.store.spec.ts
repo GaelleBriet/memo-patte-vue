@@ -19,6 +19,7 @@ import {
   type AuthRepository,
   type AuthSession,
 } from '../repository/auth.repository'
+import { signInWithGoogle } from '../service/google-sign-in.service'
 import { provideAuthRepository, useAuthStore } from '../store/auth.store'
 import { readPlusAccount, writePlusAccount } from '../logic/plus-account-storage'
 import { memoryStorage, OTHER_USER_ID, USER_ID } from './auth-fixture'
@@ -43,6 +44,7 @@ vi.mock('../repository/auth.repository', () => ({
   authRepository: {
     signUp: vi.fn<AuthRepository['signUp']>(),
     signIn: vi.fn<AuthRepository['signIn']>(),
+    signInWithGoogleIdToken: vi.fn<AuthRepository['signInWithGoogleIdToken']>(),
     signOut: vi.fn<AuthRepository['signOut']>(async () => {}),
     restoreSession: vi.fn<AuthRepository['restoreSession']>(),
     refreshSession: vi.fn<AuthRepository['refreshSession']>(),
@@ -50,7 +52,12 @@ vi.mock('../repository/auth.repository', () => ({
   },
 }))
 
+vi.mock('../service/google-sign-in.service', () => ({
+  signInWithGoogle: vi.fn<typeof signInWithGoogle>(),
+}))
+
 const repository = vi.mocked(authRepository)
+const googleSignIn = vi.mocked(signInWithGoogle)
 provideAuthRepository(() => authRepository)
 
 function supabaseEndsOrRefreshesSession(session: AuthSession | null): void {
@@ -313,6 +320,52 @@ describe('useAuthStore', () => {
       })
 
       expect(store.hasPlusAccount).toBe(false)
+      expect(readPlusAccount()).toBeNull()
+    })
+  })
+
+  describe('signInWithGoogle', () => {
+    it('écrit le drapeau et identifie le compte quand Google ouvre la session', async () => {
+      googleSignIn.mockResolvedValueOnce({ kind: 'signed-in', session: { userId: USER_ID } })
+      const store = useAuthStore()
+
+      await expect(store.signInWithGoogle()).resolves.toBe('signed-in')
+
+      expect(googleSignIn).toHaveBeenCalledWith(authRepository)
+      expect(store.sessionState).toBe('active')
+      expect(readPlusAccount()).toEqual({ userId: USER_ID })
+      expect(identify).toHaveBeenCalledWith(USER_ID)
+    })
+
+    it('efface l’état d’appareil quand un autre compte prend la main', async () => {
+      writePlusAccount({ userId: USER_ID })
+      writeDeviceState()
+      googleSignIn.mockResolvedValueOnce({ kind: 'signed-in', session: { userId: OTHER_USER_ID } })
+
+      await useAuthStore().signInWithGoogle()
+
+      expect(readPlusAccount()).toEqual({ userId: OTHER_USER_ID })
+      expect(remainingDeviceState()).toEqual(UNRELATED_KEYS)
+    })
+
+    it('ne change rien quand la personne ferme le choix du compte', async () => {
+      googleSignIn.mockResolvedValueOnce({ kind: 'cancelled' })
+      const store = useAuthStore()
+
+      await expect(store.signInWithGoogle()).resolves.toBe('cancelled')
+
+      expect(store.hasPlusAccount).toBe(false)
+      expect(store.sessionState).toBe('none')
+      expect(readPlusAccount()).toBeNull()
+      expect(identify).not.toHaveBeenCalled()
+    })
+
+    it('lève l’échec sans écrire de drapeau', async () => {
+      googleSignIn.mockRejectedValueOnce(new AccountError('offline'))
+      const store = useAuthStore()
+
+      await expect(store.signInWithGoogle()).rejects.toMatchObject({ reason: 'offline' })
+
       expect(readPlusAccount()).toBeNull()
     })
   })

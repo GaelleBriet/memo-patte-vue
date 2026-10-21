@@ -68,16 +68,18 @@ function sessionBody(userId = USER_ID, expiresInSeconds = 3600) {
   }
 }
 
-/** Routes : `signup`, `logout`, `token:password`, `token:refresh_token`. */
+/** Routes : `signup`, `logout`, `token:password`, `token:refresh_token`, `token:id_token`. */
 function fakeAuthServer() {
   const routes = new Map<string, Route>()
   const calls: string[] = []
   const urls: URL[] = []
+  const bodies: unknown[] = []
   let offline = false
 
-  const fakeFetch = async (input: RequestInfo | URL) => {
+  const fakeFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(input instanceof Request ? input.url : String(input))
     urls.push(url)
+    if (typeof init?.body === 'string') bodies.push(JSON.parse(init.body))
     const endpoint = url.pathname.replace('/auth/v1/', '')
     const grantType = url.searchParams.get('grant_type')
     const route = grantType ? `${endpoint}:${grantType}` : endpoint
@@ -90,6 +92,7 @@ function fakeAuthServer() {
     fetch: fakeFetch as typeof fetch,
     calls,
     urls,
+    bodies,
     on: (route: string, reply: Route) => void routes.set(route, reply),
     goOffline: () => {
       offline = true
@@ -223,6 +226,38 @@ describe('createAuthRepository', () => {
       await expect(withFailingLoad.signIn('gaelle@example.com', 'secret-123')).resolves.toEqual({
         userId: USER_ID,
       })
+    })
+  })
+
+  describe('signInWithGoogleIdToken', () => {
+    it('ouvre une session avec le jeton Google et le nonce en clair', async () => {
+      server.on('token:id_token', () => json(200, sessionBody()))
+
+      await expect(
+        repository.signInWithGoogleIdToken('jeton-google', 'nonce-en-clair'),
+      ).resolves.toEqual({ userId: USER_ID })
+      expect(server.bodies.at(-1)).toMatchObject({
+        provider: 'google',
+        id_token: 'jeton-google',
+        nonce: 'nonce-en-clair',
+      })
+      expect(storedSessionKeys()).toContain(AUTH_STORAGE_KEY)
+    })
+
+    it('signale l’absence de réseau', async () => {
+      server.goOffline()
+
+      expect(await reasonOf(repository.signInWithGoogleIdToken('jeton-google', 'nonce'))).toBe(
+        'offline',
+      )
+    })
+
+    it('lève « autre » quand Supabase refuse le jeton', async () => {
+      server.on('token:id_token', apiError(400, 'bad_jwt'))
+
+      expect(await reasonOf(repository.signInWithGoogleIdToken('jeton-google', 'nonce'))).toBe(
+        'unknown',
+      )
     })
   })
 

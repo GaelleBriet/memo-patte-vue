@@ -17,6 +17,8 @@ export type SessionCheck =
 export type AuthRepository = {
   signUp(email: string, password: string): Promise<SignUpOutcome>
   signIn(email: string, password: string): Promise<AuthSession>
+  /** `nonce` en clair : Google a reçu son empreinte SHA-256. */
+  signInWithGoogleIdToken(idToken: string, nonce: string): Promise<AuthSession>
   /** Ne lève pas : la session quitte toujours l'appareil, même sans réseau. */
   signOut(): Promise<void>
   restoreSession(): Promise<SessionCheck>
@@ -143,6 +145,17 @@ export function createAuthRepository({
     signIn: (email, password) =>
       withClient(async (supabase) => {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+        if (error) throw error
+        return sessionOf(data.session)
+      }),
+
+    signInWithGoogleIdToken: (idToken, nonce) =>
+      withClient(async (supabase) => {
+        const { data, error } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: idToken,
+          nonce,
+        })
         if (error) throw error
         return sessionOf(data.session)
       }),

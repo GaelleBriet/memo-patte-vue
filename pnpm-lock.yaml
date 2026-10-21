@@ -47,6 +47,9 @@ importers:
       '@capawesome-team/capacitor-file-opener':
         specifier: ^8.0.5
         version: 8.0.5(@capacitor/core@8.5.3)
+      '@capawesome/capacitor-google-sign-in':
+        specifier: ^0.1.4
+        version: 0.1.4(@capacitor/core@8.5.3)
       '@date-io/date-fns':
         specifier: ^3.2.1
         version: 3.2.1(date-fns@4.4.0)
@@ -468,6 +471,11 @@ packages:
 
   '@capawesome-team/capacitor-file-opener@8.0.5':
     resolution: {integrity: sha512-Q5p9yv8nrpJbCAKCnjTQsCOJKEVZaxdq4K3JpbUtpTbRUMRZoEg+U4ZyVfF3wAo1WoHrQSR4ZI1x47pSSjj6fg==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
+
+  '@capawesome/capacitor-google-sign-in@0.1.4':
+    resolution: {integrity: sha512-+8+3mfWN1B0+qB5r1xUZpy0hrYkpEDD5XHxa5LQ5wwDIVKoFLj/orYGRf/RrsB1AbkSpRfZZ1N2U7C3gPcjAdA==}
     peerDependencies:
       '@capacitor/core': '>=8.0.0'
 
@@ -3875,6 +3883,10 @@ snapshots:
   '@capacitor/synapse@1.0.4': {}
 
   '@capawesome-team/capacitor-file-opener@8.0.5(@capacitor/core@8.5.3)':
+    dependencies:
+      '@capacitor/core': 8.5.3
+
+  '@capawesome/capacitor-google-sign-in@0.1.4(@capacitor/core@8.5.3)':
     dependencies:
       '@capacitor/core': 8.5.3
 
