@@ -134,6 +134,15 @@ export function createSyncOutboxRepository(db: DbClient) {
       ])
     },
 
+    /** Déconnexion (§5 de la proposition) : le compte suivant ne reçoit ni la file ni les curseurs du précédent. */
+    async forgetAccount(): Promise<void> {
+      await db.runMany([
+        { sql: 'UPDATE sync_state SET enabled = 0 WHERE id = 1' },
+        { sql: 'DELETE FROM sync_outbox' },
+        { sql: 'DELETE FROM sync_pull_cursor' },
+      ])
+    },
+
     async recordFailedPush(entry: Pick<SyncOutboxEntry, 'entity' | 'entityId'>): Promise<void> {
       await db.run(
         'UPDATE sync_outbox SET attempts = attempts + 1 WHERE entity = ? AND entity_id = ?',
