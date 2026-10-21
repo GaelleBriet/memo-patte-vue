@@ -16,6 +16,8 @@ export interface SyncPush {
 
 export interface SyncPullPage {
   rows: SyncRow[]
+  /** `server_updated_at` de chaque ligne, dans l'ordre de `rows`. */
+  stamps: string[]
   /** `server_updated_at` de la dernière ligne de la page, ou `null` si elle est vide. */
   cursor: string | null
 }
@@ -30,7 +32,11 @@ export interface SyncableTable {
   getRowForPush(id: string): Promise<SyncRow | null>
   /** Rend la ligne telle que le serveur l'a gardée ; sans envoi, le serveur écrête ligne par ligne. */
   pushRow(userId: string, row: SyncRow, push?: SyncPush): Promise<SyncRow | null>
-  pullPage(userId: string, since: string, limit: number): Promise<SyncPullPage>
+  /**
+   * Lignes dans l'ordre `(server_updated_at, id)`, à partir de `since` ; avec `afterId`, celles de
+   * l'instant `since` ne reprennent qu'après cet identifiant.
+   */
+  pullPage(userId: string, since: string, limit: number, afterId?: string): Promise<SyncPullPage>
   /** Fournie sans être exécutée : le cycle la joue avec les autres dans un même `runMany`. */
   applyRemoteRowStatement(row: SyncRow): SqlStatement
   /** Sans la garde « la plus récente gagne », tant que la ligne locale est celle qui a été envoyée. */

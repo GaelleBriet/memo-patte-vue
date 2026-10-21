@@ -78,13 +78,13 @@ function fakeTable(
   pages: SyncPullPage[] = [],
 ): SyncableTable & {
   pushed: Array<{ userId: string; row: SyncRow; push?: SyncPush }>
-  pullCalls: Array<{ since: string; limit: number }>
+  pullCalls: Array<{ since: string; limit: number; afterId?: string }>
   localRows: Map<string, SyncRow>
   /** Ligne que le serveur rend pour un identifiant, au lieu de celle envoyée. */
   serverKeeps: Map<string, SyncRow>
 } {
   const pushed: Array<{ userId: string; row: SyncRow; push?: SyncPush }> = []
-  const pullCalls: Array<{ since: string; limit: number }> = []
+  const pullCalls: Array<{ since: string; limit: number; afterId?: string }> = []
   const localRows = new Map<string, SyncRow>()
   const serverKeeps = new Map<string, SyncRow>()
   let pageIndex = 0
@@ -108,9 +108,9 @@ function fakeTable(
         params: [(row.value as string | null) ?? null, row.updated_at, row.id, sentUpdatedAt],
       }
     },
-    async pullPage(_userId, since, limit) {
-      pullCalls.push({ since, limit })
-      const page = pages[pageIndex] ?? { rows: [], cursor: null }
+    async pullPage(_userId, since, limit, afterId) {
+      pullCalls.push({ since, limit, afterId })
+      const page = pages[pageIndex] ?? { rows: [], stamps: [], cursor: null }
       pageIndex += 1
       return page
     },
@@ -127,8 +127,12 @@ function fakeTable(
   }
 }
 
-function page(rows: SyncRow[], cursor: string | null): SyncPullPage {
-  return { rows, cursor }
+function page(
+  rows: SyncRow[],
+  cursor: string | null,
+  stamps = rows.map(() => cursor ?? ''),
+): SyncPullPage {
+  return { rows, stamps, cursor }
 }
 
 const T_ROW = '2026-01-01T00:00:00.000Z'
@@ -578,7 +582,7 @@ describe('createSyncCycle', () => {
 
       await cycle.runCycle()
 
-      expect(animal.pullCalls[0]?.since).toBe('2026-01-04T00:00:00.000Z')
+      expect(animal.pullCalls[0]?.since).toBe('2026-01-03T23:59:55.000Z')
       expect(vaccination.pullCalls[0]?.since).toBe('1970-01-01T00:00:00.000Z')
       expect(outbox.cursor('animal')).toBe('2026-01-05T00:00:00.000Z')
       expect(outbox.cursor('vaccination')).toBe('2026-01-02T00:00:00.000Z')
@@ -614,7 +618,7 @@ describe('createSyncCycle', () => {
       await cycle.runCycle()
       await cycle.runCycle()
 
-      expect(animal.pullCalls[1]?.since).toBe('2026-01-01T00:00:00.000Z')
+      expect(animal.pullCalls[1]?.since).toBe('2025-12-31T23:59:55.000Z')
       const names = await db.query<{ value: string }>(
         "SELECT value FROM sync_scratch WHERE entity = 'animal' ORDER BY id",
       )
@@ -642,9 +646,71 @@ describe('createSyncCycle', () => {
       await cycle.runCycle()
 
       expect(animal.pullCalls).toHaveLength(2)
-      expect(animal.pullCalls[0]?.since).toBe('1970-01-01T00:00:00.000Z')
-      expect(animal.pullCalls[1]?.since).toBe('2026-01-01T00:00:00.000Z')
+      expect(animal.pullCalls[0]).toMatchObject({ since: '1970-01-01T00:00:00.000Z' })
+      expect(animal.pullCalls[0]?.afterId).toBeUndefined()
+      expect(animal.pullCalls[1]).toMatchObject({
+        since: '2026-01-01T00:00:00.000Z',
+        afterId: 'a499',
+      })
       expect(outbox.cursor('animal')).toBe('2026-01-02T00:00:00.000Z')
+    })
+
+    it('poursuit au-delà d’une page pleine de lignes au même instant, sans en sauter', async () => {
+      const shared = '2026-01-01T00:00:00.000Z'
+      const rows = Array.from({ length: 600 }, (_, index) =>
+        row(`a${String(index).padStart(3, '0')}`, shared, 'x'),
+      )
+      const animal = fakeTable('animal', [
+        page(rows.slice(0, 500), shared),
+        page(rows.slice(500), shared),
+      ])
+      const outbox = createFakeOutbox()
+      const cycle = createSyncCycle({
+        db,
+        outbox,
+        pushes,
+        tables: [animal],
+        userId: () => 'user-1',
+        isEligible: () => true,
+      })
+
+      await cycle.runCycle()
+
+      expect(animal.pullCalls[1]).toMatchObject({ since: shared, afterId: 'a499' })
+      await expect(db.query('SELECT id FROM sync_scratch')).resolves.toHaveLength(600)
+      expect(outbox.cursor('animal')).toBe(shared)
+    })
+
+    it('tire une ligne validée en retard, datée juste avant le curseur, sans reculer le curseur', async () => {
+      const seen = '2026-01-04T00:00:00.000Z'
+      const late = '2026-01-03T23:59:58.000Z'
+      const vaccination = fakeTable('vaccination', [
+        page([row('v-late', T_ROW, 'Rage'), row('v-seen', T_ROW, 'Leptospirose')], seen, [
+          late,
+          seen,
+        ]),
+      ])
+      vaccination.localRows.set('v-seen', row('v-seen', T_ROW, 'Leptospirose'))
+      const onRemindersOutdated = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
+      const outbox = createFakeOutbox([], { vaccination: seen })
+      const cycle = createSyncCycle({
+        db,
+        outbox,
+        pushes,
+        tables: [vaccination],
+        userId: () => 'user-1',
+        isEligible: () => true,
+        onRemindersOutdated,
+      })
+
+      await cycle.runCycle()
+
+      expect(vaccination.pullCalls[0]?.since).toBe('2026-01-03T23:59:55.000Z')
+      await expect(db.query("SELECT value FROM sync_scratch WHERE id = 'v-late'")).resolves.toEqual(
+        [{ value: 'Rage' }],
+      )
+      expect(outbox.cursor('vaccination')).toBe(seen)
+      expect(onRemindersOutdated).toHaveBeenCalledOnce()
     })
 
     it('arrête la pagination sans boucler si une page pleine ne progresse pas', async () => {
@@ -668,7 +734,7 @@ describe('createSyncCycle', () => {
 
       await cycle.runCycle()
 
-      expect(animal.pullCalls).toHaveLength(1)
+      expect(animal.pullCalls).toHaveLength(2)
       expect(warn).toHaveBeenCalled()
       warn.mockRestore()
     })
@@ -843,6 +909,7 @@ describe('createSyncCycle', () => {
     it('ne reconstruit pas les rappels quand le pull ne ramène que la ligne déjà vue au curseur', async () => {
       const seen = '2026-01-01T00:00:00.000Z'
       const vaccination = fakeTable('vaccination', [page([row('v1', seen, 'x')], seen)])
+      vaccination.localRows.set('v1', row('v1', seen, 'x'))
       const onRemindersOutdated = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
       const cycle = createSyncCycle({
         db,
@@ -964,7 +1031,7 @@ describe('createSyncCycle', () => {
         pullPage: (() => {
           let called = false
           return async () => {
-            if (called) return { rows: [], cursor: null }
+            if (called) return { rows: [], stamps: [], cursor: null }
             called = true
             return page(
               [

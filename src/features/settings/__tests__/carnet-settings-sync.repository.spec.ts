@@ -117,10 +117,12 @@ describe('carnetSettingsRepository — port de synchronisation', () => {
     expect(pushed).toMatchObject({ user_id: USER_ID, id: CARNET_SETTINGS_ID })
     expect(page).toEqual({
       rows: [{ ...LOCAL_ROW, created_at: PG_LOCAL, updated_at: PG_LOCAL }],
+      stamps: [pushed?.server_updated_at],
       cursor: pushed?.server_updated_at,
     })
     await expect(repository.pullPage('autre-compte', T_OLD, 500)).resolves.toEqual({
       rows: [],
+      stamps: [],
       cursor: null,
     })
   })

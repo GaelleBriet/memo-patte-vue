@@ -12,6 +12,22 @@ export interface RemoteSyncTableOptions {
 
 export type RemoteSyncTable = Pick<SyncableTable, 'pushRow' | 'pullPage'>
 
+type StampedRow = SyncRow & { server_updated_at: string }
+
+interface PullQuery {
+  order(column: string, options: { ascending: boolean }): PullQuery
+  limit(count: number): PromiseLike<{ data: unknown; error: unknown }>
+}
+
+async function page(query: PullQuery, limit: number): Promise<StampedRow[]> {
+  const { data, error } = await query
+    .order('server_updated_at', { ascending: true })
+    .order('id', { ascending: true })
+    .limit(limit)
+  if (error) throw error
+  return (data ?? []) as StampedRow[]
+}
+
 export function createRemoteSyncTable({
   table,
   columns,
@@ -29,20 +45,24 @@ export function createRemoteSyncTable({
       )
     },
 
-    async pullPage(userId, since, limit) {
+    async pullPage(userId, since, limit, afterId) {
       const supabase = await loadClient()
-      const { data, error } = await supabase
-        .from(table)
-        .select(`${columns}, server_updated_at`)
-        .eq('user_id', userId)
-        .gte('server_updated_at', since)
-        .order('server_updated_at', { ascending: true })
-        .limit(limit)
-      if (error) throw error
+      const read = () =>
+        supabase.from(table).select(`${columns}, server_updated_at`).eq('user_id', userId)
 
-      const rows = (data ?? []) as unknown as Array<SyncRow & { server_updated_at: string }>
+      const rows: StampedRow[] = []
+      if (afterId === undefined) {
+        rows.push(...(await page(read().gte('server_updated_at', since), limit)))
+      } else {
+        rows.push(...(await page(read().eq('server_updated_at', since).gt('id', afterId), limit)))
+        if (rows.length < limit) {
+          rows.push(...(await page(read().gt('server_updated_at', since), limit - rows.length)))
+        }
+      }
+
       return {
         rows: rows.map(({ server_updated_at: _serverUpdatedAt, ...rest }) => rest as SyncRow),
+        stamps: rows.map(({ server_updated_at }) => server_updated_at),
         cursor: rows.at(-1)?.server_updated_at ?? null,
       }
     },

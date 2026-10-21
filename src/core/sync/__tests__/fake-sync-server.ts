@@ -28,10 +28,20 @@ export interface FakeSyncServer {
   afterNextWrite(table: string, hook: Hook): void
   /** La connexion coupe au pull de `table` qui suit `pagesServed` pages servies. */
   cutPull(table: string, pagesServed?: number): void
+  /** Les écritures suivantes partagent un même `server_updated_at`, comme dans une seule transaction. */
+  holdClock(): () => void
+}
+
+/** Un `timestamptz` se compare par instant, quel que soit son format ; le reste par octets. */
+function compared(column: string, a: SyncRowValue, b: SyncRowValue): number {
+  if (a === b) return 0
+  if (a === null || b === null) return a === null ? -1 : 1
+  if (TIMESTAMP_COLUMNS.includes(column)) return Date.parse(String(a)) - Date.parse(String(b))
+  return String(a) < String(b) ? -1 : 1
 }
 
 /**
- * PostgREST réduit aux appels de la synchro : `select … eq gte order limit`, l'`update … match lt
+ * PostgREST réduit aux appels de la synchro : `select … eq gt gte order limit`, l'`update … match lt
  * select` et l'`upsert … select` de `guardedUpsert`, sa relecture `select … match maybeSingle`, et
  * l'ouverture d'un envoi. Les déclencheurs `server_updated_at` et d'écrêtage, sur l'horloge `now` du
  * serveur, et les clés étrangères y sont reproduits, et les horodatages rendus en `+00:00`, comme Postgres.
@@ -45,6 +55,7 @@ export function createFakeSyncServer({
   const writeHooks = new Map<string, Hook>()
   const pullCuts = new Map<string, number>()
   let clock = 0
+  let clockHeld = false
 
   function tableRows(table: string): ServerRow[] {
     let rows = tables.get(table)
@@ -56,7 +67,7 @@ export function createFakeSyncServer({
   }
 
   function stamp(row: ServerRow): void {
-    clock += 1
+    if (!clockHeld) clock += 1
     row.server_updated_at = new Date(SERVER_EPOCH + clock).toISOString()
   }
 
@@ -139,10 +150,14 @@ export function createFakeSyncServer({
 
   function select(table: string, columns: string) {
     const filters: Array<(row: ServerRow) => boolean> = []
-    let orderColumn: string | null = null
+    const orderColumns: string[] = []
     const builder = {
       eq(column: string, value: SyncRowValue) {
-        filters.push((row) => row[column] === value)
+        filters.push((row) => compared(column, row[column] ?? null, value) === 0)
+        return builder
+      },
+      gt(column: string, value: string) {
+        filters.push((row) => compared(column, row[column] ?? null, value) > 0)
         return builder
       },
       match(values: ServerRow) {
@@ -158,7 +173,7 @@ export function createFakeSyncServer({
         return builder
       },
       order(column: string) {
-        orderColumn = column
+        orderColumns.push(column)
         return builder
       },
       async limit(count: number): Promise<Result> {
@@ -175,9 +190,13 @@ export function createFakeSyncServer({
 
         const rows = tableRows(table)
           .filter((row) => filters.every((filter) => filter(row)))
-          .sort((a, b) =>
-            orderColumn ? String(a[orderColumn]).localeCompare(String(b[orderColumn])) : 0,
-          )
+          .sort((a, b) => {
+            for (const column of orderColumns) {
+              const order = compared(column, a[column] ?? null, b[column] ?? null)
+              if (order !== 0) return order
+            }
+            return 0
+          })
           .slice(0, count)
           .map((row) => picked(row, columns))
         return { data: rows, error: null }
@@ -266,6 +285,13 @@ export function createFakeSyncServer({
     },
     cutPull(table, pagesServed = 0) {
       pullCuts.set(table, pagesServed)
+    },
+    holdClock() {
+      clock += 1
+      clockHeld = true
+      return () => {
+        clockHeld = false
+      }
     },
   }
 }

@@ -102,7 +102,7 @@ describe.each(Object.keys(TABLE_OF))('%s : la ligne gardée par le serveur', (en
             await beforeReply()
             return kept
           },
-          pullPage: async () => ({ rows: [], cursor: null }),
+          pullPage: async () => ({ rows: [], stamps: [], cursor: null }),
         },
       ],
       userId: () => 'utilisateur',
