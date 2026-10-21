@@ -1,7 +1,16 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createPinia, setActivePinia } from 'pinia'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { routeurMemoire } from './routeur-memoire'
 import { routes } from '@/router'
+import { memoryStorage, USER_ID } from '@/features/auth/__tests__/auth-fixture'
+import { writePlusAccount } from '@/features/auth/logic/plus-account-storage'
+import { authRepository } from '@/features/auth/repository/auth.repository'
+import {
+  provideAuthRepository,
+  useAuthStore,
+  type SessionState,
+} from '@/features/auth/store/auth.store'
 
 const authAvailable = vi.hoisted(() => vi.fn<() => boolean>(() => true))
 
@@ -57,5 +66,84 @@ describe('routeur', () => {
     const racines = routes.filter((route) => route.meta?.rootScreen).map((route) => route.name)
 
     expect(racines).toEqual(['home', 'carnet'])
+  })
+})
+
+describe('garde des écrans Plus', () => {
+  const PLUS_SCREENS = ['account-restore', 'settings-account']
+  const SESSION_STATES: SessionState[] = [
+    'none',
+    'restoring',
+    'active',
+    'needs-refresh',
+    'needs-sign-in',
+  ]
+
+  function withDevice(hasAccount: boolean, sessionState: SessionState = 'none') {
+    vi.stubGlobal('localStorage', memoryStorage())
+    if (hasAccount) writePlusAccount({ userId: USER_ID })
+    setActivePinia(createPinia())
+    useAuthStore().sessionState = sessionState
+  }
+
+  beforeEach(() => {
+    provideAuthRepository(() => authRepository)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it.each(PLUS_SCREENS)(
+    '%s renvoie vers MémoPatte Plus quand l’appareil n’a aucun compte',
+    async (name) => {
+      withDevice(false)
+      const routeur = routeurMemoire()
+
+      await routeur.push({ name })
+
+      expect(routeur.currentRoute.value.name).toBe('plus')
+    },
+  )
+
+  it.each(PLUS_SCREENS.flatMap((name) => SESSION_STATES.map((state) => [name, state] as const)))(
+    '%s reste ouvert avec un compte sur l’appareil, session %s',
+    async (name, state) => {
+      withDevice(true, state)
+      const routeur = routeurMemoire()
+
+      await routeur.push({ name })
+
+      expect(routeur.currentRoute.value.name).toBe(name)
+    },
+  )
+
+  it('garde la requête de « Restaurer mon carnet » avec un compte', async () => {
+    withDevice(true)
+    const routeur = routeurMemoire()
+
+    await routeur.push({ name: 'account-restore', query: { from: 'home' } })
+
+    expect(routeur.currentRoute.value.query).toEqual({ from: 'home' })
+  })
+
+  it('ne protège aucun écran du parcours gratuit', async () => {
+    withDevice(false)
+    const gratuits = routes.filter(
+      (route) =>
+        typeof route.name === 'string' &&
+        !PLUS_SCREENS.includes(route.name) &&
+        !['plus', 'sign-in'].includes(route.name) &&
+        !route.path.includes(':'),
+    )
+
+    for (const route of gratuits) {
+      const routeur = routeurMemoire()
+      await routeur.push({ name: route.name })
+      expect(`${String(route.name)} → ${String(routeur.currentRoute.value.name)}`).toBe(
+        `${String(route.name)} → ${String(route.name)}`,
+      )
+    }
+    expect(gratuits.length).toBeGreaterThan(10)
   })
 })

@@ -3,6 +3,10 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 
 import AccountRestoreView from '../views/AccountRestoreView.vue'
+import { memoryStorage, USER_ID } from '@/features/auth/__tests__/auth-fixture'
+import { writePlusAccount } from '@/features/auth/logic/plus-account-storage'
+import { authRepository } from '@/features/auth/repository/auth.repository'
+import { provideAuthRepository } from '@/features/auth/store/auth.store'
 import i18n from '@/core/i18n'
 import type { RestoreMode } from '@/core/sync/repository/sync-outbox.repository'
 import type { RestoreProgress } from '@/core/sync/service/account-restore'
@@ -68,6 +72,8 @@ function fakeRunner(): FakeRunner {
 
 const SUMMARY = { animalCount: 3, lastBackupAt: new Date(2026, 9, 20, 21, 4).toISOString() }
 
+provideAuthRepository(() => authRepository)
+
 let runner: FakeRunner
 let flow: RestoreFlow
 let replace: MockInstance
@@ -83,6 +89,8 @@ beforeEach(async () => {
     height: 815,
     offsetTop: 0,
   })
+  vi.stubGlobal('localStorage', memoryStorage())
+  writePlusAccount({ userId: USER_ID })
   setActivePinia(createPinia())
   runner = fakeRunner()
   flow = createRestoreFlow(runner)
