@@ -125,7 +125,7 @@ describe('PlusView — argumentaire', () => {
     )
     expect(wrapper.findAll('.plus__benefit').map((item) => item.text())).toEqual([
       'Sauvegarde garantie dans le cloud',
-      'Le même carnet sur tous tes appareils',
+      'Le même carnet sur ta tablette et ton téléphone',
       'Tes photos sauvegardées aussi',
     ])
   })
