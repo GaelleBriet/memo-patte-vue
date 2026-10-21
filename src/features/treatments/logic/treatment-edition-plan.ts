@@ -1,7 +1,7 @@
 import { plannedDoseWritesOf } from './treatment-dose-writes'
 import { resolve } from './treatment-edition-change'
 import { treatmentEditionSchemaFor } from './treatment-edition-checks'
-import { carnetReadingOf, treatmentReadingOf } from './treatment-reading-adapter'
+import { carnetReadingOf } from './treatment-reading-adapter'
 import { correctionOf, periodWriteOf, settingsPlanOf } from './treatment-settings-writes'
 import { sameSettings, settingsOf, withRhythm, type PlanIds } from './treatment-settings'
 import type { TreatmentPlanWrite } from '../schema/treatment-plan.schema'
@@ -17,7 +17,7 @@ export function editionPlan(
   ids: PlanIds,
 ): TreatmentPlanWrite {
   const data = treatmentEditionSchemaFor(treatment, today).parse(input)
-  const { period, change, plan, move } = resolve(
+  const { period, change, plan, move, carnet } = resolve(
     treatment,
     data,
     { chosenOn: data.nextDoseOn, shiftsFollowing: data.shiftsFollowing ?? true },
@@ -34,7 +34,6 @@ export function editionPlan(
       : sameSettings(settings, settingsOf(period))
         ? null
         : correctionOf(period, settings)
-  const carnet = treatmentReadingOf(treatment, today).input
   const changes = [...(move?.changes ?? []), ...(plan?.lines ?? [])]
   const grid =
     write === null ? null : judgedGrid(carnet, { ...settingsPlanOf(write), lines: changes })

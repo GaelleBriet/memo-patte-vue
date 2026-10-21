@@ -19,7 +19,7 @@ vi.mock('@capacitor/network', () => ({
 
 const addNetworkListener = Network.addListener as unknown as Mock<AddNetworkListener>
 
-function fakeOutbox(pending: number): SyncCycleOutbox {
+function fakeOutbox(pending: number): SyncDependencies['outbox'] {
   return {
     listPending: vi.fn<SyncCycleOutbox['listPending']>(async () =>
       Array.from({ length: pending }, (_, index) => ({
@@ -34,6 +34,7 @@ function fakeOutbox(pending: number): SyncCycleOutbox {
     setLastPulledAt: vi.fn<SyncCycleOutbox['setLastPulledAt']>(async () => {}),
     isEnabled: vi.fn<SyncCycleOutbox['isEnabled']>(async () => true),
     setLastSyncedAt: vi.fn<SyncCycleOutbox['setLastSyncedAt']>(async () => {}),
+    forgetAccount: vi.fn<SyncDependencies['outbox']['forgetAccount']>(async () => {}),
     recordFailedPush: vi.fn<SyncCycleOutbox['recordFailedPush']>(async () => {}),
   }
 }
@@ -142,6 +143,67 @@ describe('installSync', () => {
 
     expect(runCycle).not.toHaveBeenCalled()
     stop()
+  })
+
+  describe('déconnexion explicite', () => {
+    it('désactive la synchro et oublie la file et les curseurs dès que le compte disparaît', async () => {
+      const outbox = fakeOutbox(2)
+      const userId = ref<string | null>('user-1')
+      const stop = await installSync({
+        outbox,
+        runCycle: vi.fn<() => Promise<void>>(),
+        userId: () => userId.value,
+      })
+
+      userId.value = null
+
+      expect(outbox.forgetAccount).toHaveBeenCalledOnce()
+      stop()
+    })
+
+    it('n’oublie rien au lancement sans compte', async () => {
+      const outbox = fakeOutbox(0)
+      const stop = await installSync({
+        outbox,
+        runCycle: vi.fn<() => Promise<void>>(),
+        userId: () => null,
+      })
+      await runDebounce()
+
+      expect(outbox.forgetAccount).not.toHaveBeenCalled()
+      stop()
+    })
+
+    it('n’oublie rien quand un autre compte remplace le premier', async () => {
+      const outbox = fakeOutbox(0)
+      const userId = ref<string | null>('user-1')
+      const stop = await installSync({
+        outbox,
+        runCycle: vi.fn<() => Promise<void>>(),
+        userId: () => userId.value,
+      })
+
+      userId.value = 'user-2'
+      await nextTick()
+
+      expect(outbox.forgetAccount).not.toHaveBeenCalled()
+      stop()
+    })
+
+    it('n’oublie plus rien une fois désinstallé', async () => {
+      const outbox = fakeOutbox(0)
+      const userId = ref<string | null>('user-1')
+      const stop = await installSync({
+        outbox,
+        runCycle: vi.fn<() => Promise<void>>(),
+        userId: () => userId.value,
+      })
+
+      stop()
+      userId.value = null
+
+      expect(outbox.forgetAccount).not.toHaveBeenCalled()
+    })
   })
 
   it('arrête les déclencheurs une fois désinstallé', async () => {
