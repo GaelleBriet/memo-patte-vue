@@ -1,3 +1,5 @@
+import { isIdentityFresh } from './identity-freshness.ts'
+
 /** Une entrée de `storage.list()` : un sous-dossier n'a pas d'`id`. */
 export type StorageEntry = { name: string; id: string | null }
 
@@ -72,6 +74,7 @@ export async function handleDeleteAccount(
   try {
     const userId = await ports.userIdFromToken(token)
     if (!userId) return json(401, { error: 'unauthorized' })
+    if (!isIdentityFresh(token, Date.now())) return json(401, { error: 'identity-expired' })
     await removeAllPhotos(userId, ports)
     await ports.deleteUser(userId)
   } catch (cause) {

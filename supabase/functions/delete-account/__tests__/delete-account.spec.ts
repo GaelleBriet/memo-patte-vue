@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   handleDeleteAccount,
@@ -10,7 +10,19 @@ import {
 } from '../delete-account'
 
 const USER = '11111111-1111-4111-8111-111111111111'
-const TOKEN = 'jeton-de-sophie'
+const NOW = Date.UTC(2026, 9, 21, 16, 5)
+const NOW_SECONDS = NOW / 1000
+
+function jwt(claims: Record<string, unknown>): string {
+  const part = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url')
+  return `${part({ alg: 'HS256', typ: 'JWT' })}.${part({ sub: USER, ...claims })}.signature`
+}
+
+function confirmedSecondsAgo(seconds: number): string {
+  return jwt({ iat: NOW_SECONDS, amr: [{ method: 'password', timestamp: NOW_SECONDS - seconds }] })
+}
+
+const TOKEN = confirmedSecondsAgo(60)
 
 type Call = { kind: 'list' | 'remove' | 'deleteUser'; arg: unknown }
 
@@ -76,6 +88,14 @@ function request(init: { method?: string; token?: string | null } = {}): Request
   })
 }
 
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'], now: NOW })
+})
+
+afterEach(() => {
+  vi.useRealTimers()
+})
+
 describe('handleDeleteAccount', () => {
   it('répond au contrôle CORS du WebView sans rien supprimer', async () => {
     const fake = fakePorts({ photos: ['milo.jpg'] })
@@ -113,6 +133,70 @@ describe('handleDeleteAccount', () => {
     const fake = fakePorts({ photos: ['milo.jpg'] })
 
     const response = await handleDeleteAccount(request({ token: 'jeton-inconnu' }), fake.ports)
+
+    expect(response.status).toBe(401)
+    expect(fake.calls).toEqual([])
+  })
+
+  it('refuse une identité confirmée il y a plus de 10 minutes, sans rien supprimer', async () => {
+    const stale = confirmedSecondsAgo(10 * 60 + 1)
+    const fake = fakePorts({ photos: ['milo.jpg'], users: { [stale]: USER } })
+
+    const response = await handleDeleteAccount(request({ token: stale }), fake.ports)
+
+    expect(response.status).toBe(401)
+    expect(await response.json()).toEqual({ error: 'identity-expired' })
+    expect(fake.calls).toEqual([])
+  })
+
+  it('accepte une identité confirmée il y a tout juste 10 minutes', async () => {
+    const limit = confirmedSecondsAgo(10 * 60)
+    const fake = fakePorts({ users: { [limit]: USER } })
+
+    const response = await handleDeleteAccount(request({ token: limit }), fake.ports)
+
+    expect(response.status).toBe(200)
+    expect(fake.deletedUser()).toBe(USER)
+  })
+
+  it('ne prend pas un jeton rafraîchi pour une identité confirmée', async () => {
+    const refreshed = jwt({
+      iat: NOW_SECONDS,
+      amr: [{ method: 'password', timestamp: NOW_SECONDS - 3600 }],
+    })
+    const fake = fakePorts({ users: { [refreshed]: USER } })
+
+    const response = await handleDeleteAccount(request({ token: refreshed }), fake.ports)
+
+    expect(response.status).toBe(401)
+    expect(fake.deletedUser()).toBeNull()
+  })
+
+  it('retient la confirmation la plus récente du jeton', async () => {
+    const token = jwt({
+      amr: [
+        { method: 'password', timestamp: NOW_SECONDS - 3600 },
+        { method: 'oauth', timestamp: NOW_SECONDS - 30 },
+      ],
+    })
+    const fake = fakePorts({ users: { [token]: USER } })
+
+    const response = await handleDeleteAccount(request({ token }), fake.ports)
+
+    expect(response.status).toBe(200)
+  })
+
+  it.each([
+    ['sans heure de confirmation', jwt({ iat: NOW_SECONDS })],
+    [
+      'à l’heure de confirmation illisible',
+      jwt({ amr: [{ method: 'password', timestamp: 'hier' }] }),
+    ],
+    ['illisible', 'pas-un-jeton'],
+  ])('refuse un jeton %s', async (_, token) => {
+    const fake = fakePorts({ users: { [token]: USER } })
+
+    const response = await handleDeleteAccount(request({ token }), fake.ports)
 
     expect(response.status).toBe(401)
     expect(fake.calls).toEqual([])

@@ -121,6 +121,33 @@ describe.skipIf(url === undefined)('delete-account sur une pile Supabase locale'
     other = await createAccount()
   })
 
+  it('garde dans le jeton l’heure de la saisie du mot de passe quand la session se rafraîchit', async () => {
+    const email = `${randomUUID()}@exemple.test`
+    const password = 'mot-de-passe-de-test'
+    const created = await admin.auth.admin.createUser({ email, password, email_confirm: true })
+    if (created.error) throw created.error
+    const client = createClient(url!, anonKey, options)
+    const claims = (token: string) =>
+      JSON.parse(Buffer.from(token.split('.')[1]!, 'base64url').toString()) as {
+        iat: number
+        auth_time?: number
+        amr: { method: string; timestamp: number }[]
+      }
+
+    const signedIn = await client.auth.signInWithPassword({ email, password })
+    if (signedIn.error) throw signedIn.error
+    await new Promise((resolve) => setTimeout(resolve, 1100))
+    const refreshed = await client.auth.refreshSession()
+    if (refreshed.error) throw refreshed.error
+
+    const before = claims(signedIn.data.session.access_token)
+    const after = claims(refreshed.data.session!.access_token)
+    expect(before.auth_time).toBeUndefined()
+    expect(after.iat).toBeGreaterThan(before.iat)
+    expect(after.amr).toEqual([{ method: 'password', timestamp: before.iat }])
+    await admin.auth.admin.deleteUser(created.data.user.id, false)
+  })
+
   it('supprimer le compte seul laisserait ses photos dans le stockage', async () => {
     const owner = await createAccount()
 
