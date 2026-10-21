@@ -78,6 +78,7 @@ export function calendarOf(
   }
   const left = new Map<string, Journey>()
   const claims: Claim[] = []
+  const landed: ReferenceLine[] = []
   // G13 : redéplacée depuis la date choisie qui la portait, une dose fait partir son décalage de là.
   const moveKeyOf = (line: ReferenceLine) => `${line.dueOn}>${line.targetOn}`
   const movedFromChosenDay = (turn: ReferenceLine) =>
@@ -233,6 +234,7 @@ export function calendarOf(
       // R9 : la date choisie avancée avec la case : la série part de son arrivée.
       if (movedFromChosenDay(turn)) chosenFloor = ''
       grid = turned(turn, chosenFloor)
+      landed.push(turn)
       from = plusDays(turn.dueOn, 1)
     }
     claims.push({ setting, end, segments })
@@ -243,6 +245,7 @@ export function calendarOf(
     claims.filter(({ setting }) => !handed.has(setting.id)),
     reports,
     closedFrom,
+    landed,
   ).forEach((journey, day) => left.set(day, journeyOn(day, journey.setting)))
 
   const coverage = coverages({ notes, borrowed, reports, translated, settingOf })
