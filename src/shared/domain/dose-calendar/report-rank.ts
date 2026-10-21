@@ -1,6 +1,6 @@
-import { sameFrequency } from './grid'
+import { hoursOf, sameFrequency, sameHours } from './grid'
 import type { Span } from './settings'
-import type { Hour, Line, LineEffect, Setting } from './types'
+import type { Day, Hour, Line, LineEffect, Setting } from './types'
 
 /** Ce qu'un report prend à une journée : les heures qui la quittent, et celles qui arrivent. */
 export type RankedMove = { leaving: Hour[]; carried: Hour[] }
@@ -59,6 +59,25 @@ export function oldArrivalChooser(
     index -= 1
   }
   return setting?.firstDueChosen && setting.firstDueOn === day ? setting : undefined
+}
+
+/**
+ * R7 : les heures de son ancienne arrivée (`day`) telles que le report les a vues quand il en est reparti :
+ * celles du réglage qui la lisait alors, si celui qui la lit aujourd'hui a été écrit après lui (#992).
+ */
+export function hoursSeenOn(
+  report: Line,
+  day: Day,
+  journey: { setting: Setting; hours: readonly Hour[] },
+  live: readonly Setting[],
+): readonly Hour[] {
+  if (journey.setting.createdAt <= report.updatedAt) return journey.hours
+  const seen = live
+    .filter(({ startsOn, createdAt }) => startsOn <= day && createdAt <= report.updatedAt)
+    .at(-1)
+  return seen === undefined || sameHours(seen, journey.setting)
+    ? journey.hours
+    : hoursOf(seen.times)
 }
 
 /** G13 : le réglage dont la date choisie portait la dose que ce décalage fait repartir. */
