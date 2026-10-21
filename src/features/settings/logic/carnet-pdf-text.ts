@@ -182,6 +182,10 @@ function historyLineText(line: PdfHistoryLine, t: Translate): string {
     }
     case 'not-due':
       return `${doseText({ on: line.dueOn, time: line.time, extra: false }, t)} · ${notDueTextOn(t, line.answeredOn)}`
+    case 'shift':
+      return line.next === null
+        ? t('treatments.history.shiftWithoutNext')
+        : t('treatments.history.shift', { date: formatNumericDate(line.next) })
     case 'idle':
       return t('treatments.history.noEffect', { text: historyLineText(line.line, t) })
   }
