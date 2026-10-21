@@ -66,7 +66,14 @@ publicité.
 ### 3.2 Compte
 
 - **PL-7** Connexion avec Google (Credential Manager, `signInWithIdToken`, sans lien profond) ou avec une
-  adresse e-mail et un mot de passe. (Décision du 2026-09-22 ; #65)
+  adresse e-mail et un mot de passe. Le bouton « Continuer avec Google » est en haut de l'écran de
+  connexion (le même que « Créer un compte »), le formulaire e-mail dessous, séparé d'un trait ; toutes
+  les entrées de connexion y mènent ; V25 quater et la charte de Google font référence. Sélecteur fermé
+  sans choisir : rien. Pas de compte Google sur le téléphone : « Aucun compte Google sur ce téléphone.
+  Ajoute-le dans les réglages d'Android, ou continue avec une adresse e-mail. » ; services Google
+  absents : « La connexion avec Google n'est pas disponible sur ce téléphone. Continue avec une adresse
+  e-mail. » (le bouton reste affiché). À la déconnexion, la mémoire du choix Google d'Android est aussi
+  effacée. (Décisions du 2026-09-22 et du 2026-10-21 ; #65)
 - **PL-8** Inscription par e-mail : un code à 6 chiffres envoyé à l'adresse, saisi dans l'app, confirme
   qu'elle est la bonne (« Renvoyer le code », code faux ou expiré signalé) ; avec Google, rien à
   confirmer. L'écran de création porte « Au moins 8 caractères. », « MémoPatte s'adresse aux 18 ans et
@@ -80,7 +87,9 @@ publicité.
   adresse se confirme par un code à 6 chiffres, envoyé à elle seule ; une adresse déjà utilisée par un
   autre compte est refusée avec un message clair ; réglage Supabase à vérifier au ticket, spec Q3). Avec
   Google, ces gestes n'apparaissent pas : c'est Google qui gère, et la rubrique dit « Compte Google »
-  avec l'adresse (jamais « Connecté avec Google »). (Spec Q2, 2026-09-29 ; relecture du lot C, QC-11)
+  avec l'adresse (jamais « Connecté avec Google »). Un compte qui a un mot de passe montre toujours cette
+  version par e-mail (V24), même ouvert par Google ce jour-là ; la version Google (V24 bis) est pour un
+  compte créé avec Google. (Spec Q2, 2026-09-29 ; relecture du lot C, QC-11)
 - **PL-11** Se déconnecter : « Ton carnet reste sur cet appareil. Seule la synchronisation s'arrête. »
   (Existant)
 - **PL-12** Session expirée : icône de nuage en alerte, « Reconnecte-toi pour reprendre la sauvegarde »
@@ -106,7 +115,17 @@ publicité.
   reprogrammés, avec l'écran « Ne rate plus aucun rappel » si l'autorisation n'a jamais été demandée
   sur ce téléphone (spec Rappels RA-21, Q4). Sur un appareil qui a déjà un carnet : « Fusionner » ou
   « Remplacer » (confirmé), le même choix et les mêmes textes que l'import (spec Données DO-7), jamais
-  d'écrasement silencieux. (#40 ; P1 Q2 ; [`proposition-sync.md`](../../technical/proposition-sync.md) §4.3 ; relecture du lot C, QC-7)
+  d'écrasement silencieux. Les deux entrées (accueil de bienvenue, Paramètres › Plus) mènent au même
+  parcours : connexion, contrôle de la sauvegarde, puis V26 bis ou la restauration directe. Il y a une
+  sauvegarde dès que le compte contient au moins un animal non supprimé, suivi ou non ; sinon le carnet
+  du téléphone part vers le cloud. Le résumé dit « N animaux · dernière sauvegarde … » (date de
+  réception de la modification la plus récente). « Remplacer » télécharge tout d'abord, puis efface et
+  écrit en une fois. L'écran « Restaurer mon carnet » reste affiché avec « Restauration de ton carnet ·
+  120 éléments sur 348 » ; réseau coupé : « La restauration reprendra dès le retour du réseau. Rien n'est
+  perdu. » et « Plus tard ». La restauration se fait même sans Plus actif, la sauvegarde restant en pause
+  jusqu'à « Réactiver Plus » (PL-19). Un changement de compte laisse le carnet local en place. V26 bis
+  quitté sans choisir : rien n'est activé, l'écran revient une fois par lancement. Le texte dit « sur ce
+  téléphone », comme l'import. (#40 ; décisions du 2026-10-21 ; P1 Q2 ; [`proposition-sync.md`](../../technical/proposition-sync.md) §4.3 ; relecture du lot C, QC-7)
 - **PL-17** État visible : Paramètres › Sauvegarde (« Dernière sauvegarde : il y a 5 min », « En attente
   de réseau », « En pause », « Reconnecte-toi… ») et icône de nuage dans l'en-tête de l'accueil pour les
   abonnés (alerte après 7 jours sans synchronisation réussie). « En pause » est réservé à Plus arrêté ;
@@ -120,7 +139,8 @@ publicité.
 - **PL-19** Abonnement arrêté ou expiré : « Ta sauvegarde cloud est en pause. Tes carnets restent sur
   ton téléphone. » ; rien de local n'est bloqué ; Paramètres › Sauvegarde dit que les changements
   depuis la pause ne sont plus sauvegardés, jusqu'à quand la dernière sauvegarde est conservée, et
-  propose « Réactiver Plus » (spec Données DO-12, Q7). (Existant ; principe 7)
+  propose « Réactiver Plus » (spec Données DO-12, Q7). Restaurer son carnet sur un autre téléphone reste
+  possible dans cet état (PL-16). (Existant ; principe 7)
 - **PL-20** Sans accès Plus pendant 12 mois : compte, sauvegarde et photos supprimés, avec un e-mail
   d'avertissement un mois avant ; pour un compte créé sans achat, les 12 mois partent de sa création
   (politique publiée : « après 12 mois sans accès Plus »). (Décision du 2026-09-26, #426 ; relecture de cohérence du 2026-09-30, validé en bloc)
@@ -130,8 +150,19 @@ publicité.
   confirmation d'identité (mot de passe puis « Confirmer », ou « Se reconnecter avec Google ») ;
   « Supprimer », suppression immédiate ; puis, au choix, « Effacer aussi les données de ce téléphone »,
   qui suit le parcours de DO-14 dans sa version sans Plus (« Avant d'effacer, exporte une copie de ton
-  carnet. », puis les confirmations ; planches C · D5, V22 ; spec Q7). Sans l'app : par e-mail, sous 30 jours. (Page publique ; #87 ; P15 ; relecture
-  du lot C et du lot C révisé)
+  carnet. », puis les confirmations ; planches C · D5, V22 ; spec Q7). Sans l'app : par e-mail, sous 30
+  jours. Ordre : PostHog et RevenueCat d'abord, le compte en dernier, pour que « Réessayer » reprenne
+  toujours là où ça s'est arrêté. D3 prévient « Ton abonnement Google Play continue tant que tu ne le
+  résilies pas dans Google Play. » ; l'achat n'est jamais touché et l'app redevient gratuite après la
+  suppression. D6 dit « La suppression n'a pas abouti. Tes données restent sur ce téléphone ; réessaie. »,
+  aussi sans réseau. D2 n'a pas « Mot de passe oublié ? » en v1 ; mot de passe faux : « Mot de passe
+  incorrect. Réessaie. ». « Terminé » de D5 revient à la liste des Paramètres. Le serveur refuse si la
+  dernière confirmation d'identité (mot de passe ou reconnexion Google) date de plus de 10 minutes. Avec
+  Google (D2 bis), un autre compte Google que celui du carnet est refusé sans rien supprimer : « Ce
+  n'est pas le compte Google de ce carnet. Choisis sophie@gmail.com. ». Les demandes par e-mail passent
+  par un mode admin de la même fonction, protégé par un secret à part. Un journal ne garde que la date et
+  l'origine (app ou e-mail), sans donnée personnelle. (Page publique ; #87 ; P15 ; relecture
+  du lot C et du lot C révisé ; décisions du 2026-10-21)
 - **PL-22** Les pages publiques ne se déclarent pas dans la Play Console avant #427, #87, #65 et #426.
   (Contexte du 2026-09-26)
 

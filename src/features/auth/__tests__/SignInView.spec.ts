@@ -5,9 +5,11 @@ import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
 import { AccountError } from '../logic/account-error'
 import { authRepository, type AuthRepository } from '../repository/auth.repository'
+import { signInWithGoogle } from '../service/google-sign-in.service'
 import { provideAuthRepository } from '../store/auth.store'
 import SignInView from '../views/SignInView.vue'
 import { memoryStorage, USER_ID, type MemoryStorage } from './auth-fixture'
+import { GoogleCredentialError } from '@/core/google-sign-in/google-credentials'
 import i18n from '@/core/i18n'
 import {
   createRestoreFlow,
@@ -27,7 +29,12 @@ vi.mock('../repository/auth.repository', () => ({
   },
 }))
 
+vi.mock('../service/google-sign-in.service', () => ({
+  signInWithGoogle: vi.fn<typeof signInWithGoogle>(),
+}))
+
 const repository = vi.mocked(authRepository)
+const googleSignIn = vi.mocked(signInWithGoogle)
 provideAuthRepository(() => authRepository)
 const Vide = { render: () => null }
 
@@ -199,6 +206,24 @@ describe('SignInView', () => {
         name: 'account-restore',
         query: { from: 'settings-plus' },
       })
+    })
+
+    it('par Google aussi : attend le contrôle, puis ouvre « Restaurer mon carnet »', async () => {
+      googleSignIn.mockImplementation(async () => {
+        flow.checking()
+        return { kind: 'signed-in', session: { userId: USER_ID } }
+      })
+      const wrapper = await monter('/sign-in?from=home&restore=1')
+
+      await wrapper.get('.sign-in__google').trigger('click')
+      await flushPromises()
+      expect(replace).not.toHaveBeenCalled()
+      expect(wrapper.find('.sign-in__loading').exists()).toBe(true)
+
+      flow.offer({ animalCount: 3, lastBackupAt: '2026-10-20T19:04:00.000Z' })
+      await flushPromises()
+
+      expect(replace).toHaveBeenCalledWith({ name: 'account-restore', query: { from: 'home' } })
     })
 
     it('sans sauvegarde, ramène à l’écran d’origine', async () => {
@@ -432,6 +457,100 @@ describe('SignInView', () => {
       expect(replace).not.toHaveBeenCalled()
       expect(stockage.keys()).toEqual([])
       expect(document.body.textContent).not.toContain('Vérifie ta boîte mail')
+    })
+  })
+
+  describe('Continuer avec Google', () => {
+    it('met le bouton Google avant le formulaire e-mail, séparé par un trait', async () => {
+      const wrapper = await monter()
+
+      const google = wrapper.get('.sign-in__google')
+      expect(google.text()).toBe('Continuer avec Google')
+      expect(google.attributes('type')).toBe('button')
+      expect(google.find('svg').exists()).toBe(true)
+      const position = (name: string): number =>
+        Array.from(wrapper.get('.sign-in__panel').element.children).findIndex((element) =>
+          element.classList.contains(name),
+        )
+      expect(position('sign-in__google')).toBeGreaterThan(position('sign-in__intro'))
+      expect(position('sign-in__google')).toBeLessThan(position('sign-in__separator'))
+      expect(position('sign-in__separator')).toBeLessThan(position('sign-in__form'))
+    })
+
+    it('reste au même endroit et au même libellé à l’inscription', async () => {
+      const wrapper = await monter()
+
+      await basculer(wrapper)
+
+      expect(wrapper.get('.sign-in__google').text()).toBe('Continuer avec Google')
+    })
+
+    it('connecte puis ramène au parcours d’origine', async () => {
+      googleSignIn.mockResolvedValue({ kind: 'signed-in', session: { userId: USER_ID } })
+      const wrapper = await monter('/sign-in?from=settings')
+
+      await wrapper.get('.sign-in__google').trigger('click')
+      await flushPromises()
+
+      expect(replace).toHaveBeenCalledWith({ name: 'settings' })
+    })
+
+    it('ne change rien quand le sélecteur est fermé sans choisir', async () => {
+      googleSignIn.mockResolvedValue({ kind: 'cancelled' })
+      const wrapper = await monter()
+
+      await wrapper.get('.sign-in__google').trigger('click')
+      await flushPromises()
+
+      expect(replace).not.toHaveBeenCalled()
+      expect(wrapper.find('.sign-in__error').exists()).toBe(false)
+      expect(wrapper.get('.sign-in__google').text()).toBe('Continuer avec Google')
+    })
+
+    it.each([
+      [
+        new GoogleCredentialError('no-google-account'),
+        'Aucun compte Google sur ce téléphone. Ajoute-le dans les réglages d’Android, ou continue avec une adresse e-mail.',
+      ],
+      [
+        new GoogleCredentialError('unavailable'),
+        'La connexion avec Google n’est pas disponible sur ce téléphone. Continue avec une adresse e-mail.',
+      ],
+      [
+        new GoogleCredentialError('failed'),
+        'Quelque chose s’est mal passé. Réessaie dans un instant.',
+      ],
+      [new AccountError('offline'), 'Pas de connexion internet. Vérifie ton réseau et réessaie.'],
+    ])('annonce l’échec %#', async (cause, message) => {
+      googleSignIn.mockRejectedValue(cause)
+      const wrapper = await monter()
+
+      await wrapper.get('.sign-in__google').trigger('click')
+      await flushPromises()
+
+      expect(wrapper.get('.sign-in__error').text()).toBe(message)
+    })
+
+    it('annonce la connexion en cours et n’ouvre le sélecteur qu’une fois', async () => {
+      let terminer = (): void => {}
+      googleSignIn.mockReturnValue(
+        new Promise((resolve) => {
+          terminer = () => resolve({ kind: 'cancelled' })
+        }),
+      )
+      const wrapper = await monter()
+      await basculer(wrapper)
+
+      await wrapper.get('.sign-in__google').trigger('click')
+      await flushPromises()
+
+      expect(wrapper.get('.sign-in__loading').text()).toContain('Connexion en cours…')
+
+      terminer()
+      await flushPromises()
+
+      expect(googleSignIn).toHaveBeenCalledTimes(1)
+      expect(wrapper.find('.sign-in__loading').exists()).toBe(false)
     })
   })
 })
