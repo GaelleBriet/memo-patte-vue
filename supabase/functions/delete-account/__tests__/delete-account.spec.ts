@@ -1,13 +1,8 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import {
-  handleDeleteAccount,
-  MAX_FOLDER_DEPTH,
-  PHOTO_PAGE_SIZE,
-  type AccountDeletionPorts,
-  type StorageEntry,
-} from '../delete-account'
+import { MAX_FOLDER_DEPTH, PHOTO_PAGE_SIZE, type StorageEntry } from '../account-erasure'
+import { handleDeleteAccount, type AccountDeletionPorts } from '../delete-account'
 
 const USER = '11111111-1111-4111-8111-111111111111'
 const NOW = Date.UTC(2026, 9, 21, 16, 5)
