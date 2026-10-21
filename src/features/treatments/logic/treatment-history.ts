@@ -12,7 +12,7 @@ import {
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
-import { byStartDescending, periodLastDay } from '@/shared/domain/treatment-periods'
+import { byStartDescending, periodShownDays } from '@/shared/domain/treatment-periods'
 import { historyEntries, type TreatmentReading } from '@/shared/domain/treatment-reading'
 import { formatLongDate, formatDayMonthOrYear } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
@@ -62,23 +62,8 @@ function lastDoseDay(entries: Entry[]): string | null {
   return days.length === 0 ? null : days.reduce((a, b) => (a > b ? a : b))
 }
 
-// Une reprise après un arrêt se date de sa première échéance : le jour du geste reste à la période arrêtée.
-function shownStartOf(period: Period, older: Period | undefined): string {
-  return older !== undefined && older.stoppedOn !== null ? period.firstDueOn : period.startsOn
-}
-
-function headTitle(
-  t: Translate,
-  period: Period,
-  around: { next: Period | undefined; older: Period | undefined },
-  entries: Entry[],
-): string {
-  const { next, older } = around
-  const start = shownStartOf(period, older)
-  const lastDay = periodLastDay(
-    period,
-    next === undefined ? undefined : { startsOn: shownStartOf(next, period) },
-  )
+function headTitle(t: Translate, periods: Period[], period: Period, entries: Entry[]): string {
+  const { start, lastDay } = periodShownDays(periods, period)
   const lastDose = lastDoseDay(entries)
   const end = lastDay !== null && lastDose !== null && lastDose > lastDay ? lastDose : lastDay
   if (end === null) {
@@ -246,12 +231,7 @@ export function treatmentHistory(
         head: isAlone
           ? null
           : {
-              title: headTitle(
-                t,
-                period,
-                { next: periods[index - 1], older: periods[index + 1] },
-                own,
-              ),
+              title: headTitle(t, periods, period, own),
               settings: periodSettingsText(t, period),
             },
         lines,
