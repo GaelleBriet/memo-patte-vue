@@ -311,17 +311,31 @@ juste après l'achat.
 
 ### 4.3 Restauration à l'installation (#40)
 
-Appareil **sans carnet visible** : pull complet, curseurs nuls, paginé. Chaque lot avance le
-curseur de sa table, donc une coupure réseau reprend où elle s'est arrêtée. `sync_state.restoring`
-tient l'écran de progression et survit à un redémarrage en cours de route.
+_Révisé le 2026-10-21 (réponses aux questions de #40)._ À la connexion, l'app demande au serveur
+si le compte a une sauvegarde : au moins un animal non supprimé, suivi ou non. Sans sauvegarde, le
+carnet du téléphone part vers le cloud (amorçage, §4.2) et ce que le serveur avait (réglages,
+appareils) se fusionne par « la plus récente gagne ». Avec une sauvegarde, un téléphone sans animal
+la reçoit sans question ; un téléphone qui a un carnet attend un choix explicite, rien n'est activé
+d'ici là, jamais d'écrasement silencieux.
 
-Appareil **avec un carnet local** : choix explicite, jamais d'écrasement silencieux.
+La restauration tire **toute la sauvegarde d'abord**, puis écrit le carnet en une seule transaction
+(`core/sync/service/account-restore.ts`) : une coupure du réseau ne laisse ni carnet à moitié écrit
+ni carnet effacé. Le choix est gardé dans `sync_state.restoring` (1 : fusionner, 2 : remplacer) et
+survit à un redémarrage ; l'essai suivant, au retour du réseau, au premier plan ou au lancement,
+reprend le téléchargement du début. La restauration ne passe pas par le cycle : elle se fait même
+sans Plus actif sur le téléphone, puis la sauvegarde reste en pause jusqu'à « Réactiver Plus ».
 
-- **Fusionner** = amorcer la file comme en #83, puis pull complet. « La plus récente gagne » fait la
-  réconciliation, exactement comme le mode « fusionner » de l'import JSON.
-- **Remplacer** = effacer le carnet local, puis pull complet (§7-6). Irréversible, donc confirmation.
+- **Fusionner** = amorcer la file comme en #83, puis écrire le carnet du compte avec « la plus
+  récente gagne », exactement comme le mode « fusionner » de l'import JSON.
+- **Remplacer** = effacer pour de bon le carnet du téléphone (animaux, vaccins et injections,
+  traitements et prises, poids, réglages des rappels ; ni la liste des appareils, ni les préférences
+  du téléphone), puis écrire celui du compte, dans la même transaction (§7-6). Irréversible, donc
+  confirmation.
 
-Point d'entrée : Paramètres → « Je suis déjà abonné ».
+Un changement de compte sur le téléphone oublie la file du compte précédent : le carnet local reste
+et repasse par le même contrôle.
+
+Points d'entrée : l'accueil de bienvenue et Paramètres › Plus, « J'ai déjà MémoPatte Plus ».
 
 ### 4.4 Reconstruction des notifications (#41)
 
@@ -448,7 +462,9 @@ confidentialité doit nommer une région précise.
 
 6. **« Remplacer » à la restauration : effacement physique ou pierre tombale ?** _Tranché le
    2026-09-19 avec Gaelle, la reco est retenue._ _Reco_ : effacement
-   physique des lignes locales, puis pull complet. _Raison_ : ces lignes n'ont jamais quitté
+   physique des lignes locales, une fois toute la sauvegarde téléchargée (corrigé le 2026-10-21 :
+   télécharger d'abord, effacer et écrire ensuite en une transaction, pour qu'une coupure ne laisse
+   jamais un carnet vide). _Raison_ : ces lignes n'ont jamais quitté
    l'appareil, leur pierre tombale n'a aucun destinataire et ne ferait qu'encombrer le compte.
    _Alternative écartée_ : la pierre tombale comme à l'import — cohérent avec #84, mais remplit le
    cloud de lignes mortes sans objet. Action irréversible dans les deux cas : confirmation explicite.

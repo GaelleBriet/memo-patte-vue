@@ -2974,6 +2974,71 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
+## 2026-10-21 — Restauration depuis le cloud (#40)
+
+Décisions de Gaelle du 21 octobre 2026, sur les questions de la restauration du carnet (écrans V18,
+V26 bis, V26 ter, V26 quater).
+
+- **« Sauvegarde trouvée » = au moins un animal non supprimé**, suivi ou non. Sinon, amorçage direct :
+  le carnet du téléphone part vers le cloud, et les réglages et appareils déjà sur le serveur se
+  fusionnent en silence (la plus récente gagne), sans rien effacer. — Écarté : « au moins une ligne »,
+  qui proposait « Remplacer » pour une sauvegarde vide.
+- **Résumé de V26 bis** : « N animaux · dernière sauvegarde … » compte tous les animaux non supprimés ;
+  la date est celle où le serveur a reçu la modification la plus récente ; au singulier « 1 animal · … »
+  (EN « 1 pet · last backup … »). — Écarté : ne compter que les animaux suivis.
+- **« Remplacer » télécharge d'abord toute la sauvegarde, puis efface et écrit en une seule fois** : si
+  le téléchargement échoue, le carnet du téléphone est intact. Corrige l'ordre « effacer puis tirer » du
+  §7-6 de `docs/technical/proposition-sync.md`. — Écarté : effacer avant, qui laissait un carnet vide
+  tant que le réseau manquait. « Remplacer » efface les mêmes données que « Remplacer » de l'import,
+  jamais la liste des appareils ni les préférences du téléphone.
+- **Progression** : l'écran « Restaurer mon carnet » reste affiché, FR « Restauration de ton carnet ·
+  120 éléments sur 348 », EN « Restoring your health record · 120 of 348 items » ; le carnet d'abord,
+  les photos ensuite sans bloquer (#85). — Écarté : restaurer en arrière-plan, qui montrerait un carnet
+  incomplet et de faux « À faire ».
+- **Réseau coupé** (ou serveur muet avant le choix) : FR « La restauration reprendra dès le retour du
+  réseau. Rien n'est perdu. », EN « Restoring will resume when you're back online. Nothing is lost. »,
+  bouton « Plus tard » vers l'accueil ; la reprise se fait seule. — Écarté : un échec avec seulement
+  « Réessayer ».
+- **Restaurer même sans Plus actif** : la sauvegarde appartient à la personne (données jamais otages) ;
+  elle reste ensuite en pause (« Ta sauvegarde cloud est en pause… ») jusqu'à « Réactiver Plus ». —
+  Écarté : exiger Plus actif pour récupérer son carnet.
+- **Changement de compte** : le carnet local reste en place.
+- **Écran de choix quitté sans choisir** : rien n'est activé, V26 bis revient une fois par lancement.
+  — Écarté : déconnecter la personne.
+- **Deux entrées, un parcours** : le lien « J'ai déjà MémoPatte Plus · Retrouver mon carnet » de
+  l'accueil de bienvenue (V18) et Paramètres › Plus mènent à la connexion, puis au contrôle de la
+  sauvegarde, puis à V26 bis ou à la restauration directe. — Écarté : Paramètres seulement.
+- **« Fusionner » sans confirmation, « Remplacer » confirmé** (V26 ter), comme à l'import ; les photos
+  des animaux effacés partent au nettoyage des photos orphelines.
+- **« Sur ce téléphone » partout** : V26 bis et l'import disent la même chose ; l'import s'aligne.
+
+## 2026-10-21 — Connexion avec Google (#65)
+
+Décisions de Gaelle du 21 octobre 2026, sur les questions de la connexion Google native.
+
+- **Le bouton « Continuer avec Google » est en haut de l'écran de connexion** (le même que « Créer un
+  compte »), le formulaire e-mail dessous, séparé d'un trait ; toutes les entrées de connexion y mènent.
+  V25 quater et la charte de Google font référence, sans maquette pour l'instant. — Écarté : un écran de
+  choix avant le formulaire, un geste de plus pour qui se connecte par e-mail.
+- **Sélecteur fermé sans choisir** : rien, ni message.
+- **Aucun compte Google sur le téléphone** : FR « Aucun compte Google sur ce téléphone. Ajoute-le dans
+  les réglages d'Android, ou continue avec une adresse e-mail. », EN « No Google account on this phone.
+  Add one in Android settings, or continue with an email address. »
+- **Services Google absents ou trop anciens** : FR « La connexion avec Google n'est pas disponible sur
+  ce téléphone. Continue avec une adresse e-mail. », EN « Signing in with Google isn't available on this
+  phone. Continue with an email address. » ; le bouton reste affiché. — Écarté pour ces deux cas : le
+  message générique, qui pousse à réessayer en vain.
+- **Même compte ouvert par e-mail puis par Google** : V24 et D2 dès que le compte a un mot de passe,
+  V24 bis et D2 bis sinon, quelle que soit la façon de se connecter ce jour-là. — Écarté : suivre le
+  mode de connexion du téléphone, qui montrerait deux écrans pour un même compte.
+- **Suppression du compte avec un autre compte Google** : refus sans rien supprimer, FR « Ce n'est pas
+  le compte Google de ce carnet. Choisis sophie@gmail.com. », EN « This isn't the Google account for
+  this record. Choose sophie@gmail.com. », la personne reste sur D2 bis ; livré avec #87. — Écarté :
+  accepter le compte choisi, qui viserait le compte d'une autre personne.
+- **`signOut` Google à la déconnexion**, sans texte : le sélecteur s'ouvre ensuite comme la première
+  fois.
+- Le mode « Test » de la console Google se vérifie par Gaelle avant tout essai par une autre personne.
+
 ## 2026-10-21 — Suppression du compte Plus (#87)
 
 Décisions de Gaelle du 21 octobre 2026, sur les questions de la suppression du compte (écrans D1 à
@@ -3416,3 +3481,11 @@ réelles puis corrige ses heures à 10 h 05 ; B, à l'heure, avait reporté une 
   posée. Exemple : lundi 19 octobre, A a 3 jours d'avance ; à 8 h réelles il renomme Luna « Luna A »
   et son cycle commence ; avant que A tire les animaux, B renomme Luna « Luna B » à 8 h 00 min 05 s
   et synchronise ; A finit avec « Luna B », comme le serveur.
+
+2026-10-21 — **Export CSV lisible et traduit** (#416). Décision de Gaelle : titres de colonnes
+lisibles dans la langue de l'app, l'unité entre parenthèses (« Poids (kg) », « Weight (lb) »), selon
+le glossaire ; valeurs codées traduites ; séparateur `;` et virgule décimale en français, `,` et point
+en anglais ; dates reconnues par un tableur ; JSON inchangé et seule porte d'import. — Le CSV est fait
+pour être ouvert dans un tableur, pas relu par un programme. — Alternative écartée : liste de titres
+à valider avant de coder (le glossaire fait foi, Gaelle relit après le merge). Les noms de fichiers de
+l'archive (`animaux.csv`…) restent en français quelle que soit la langue : à trancher si Gaelle le veut.

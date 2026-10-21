@@ -19,6 +19,7 @@ import {
   type AuthRepository,
   type AuthSession,
 } from '../repository/auth.repository'
+import { googleCredentials } from '@/core/google-sign-in/google-credentials'
 import { signInWithGoogle } from '../service/google-sign-in.service'
 import { provideAuthRepository, useAuthStore } from '../store/auth.store'
 import { readPlusAccount, writePlusAccount } from '../logic/plus-account-storage'
@@ -52,12 +53,17 @@ vi.mock('../repository/auth.repository', () => ({
   },
 }))
 
+vi.mock('@/core/google-sign-in/google-credentials', () => ({
+  googleCredentials: { signOut: vi.fn<() => Promise<void>>(async () => {}) },
+}))
+
 vi.mock('../service/google-sign-in.service', () => ({
   signInWithGoogle: vi.fn<typeof signInWithGoogle>(),
 }))
 
 const repository = vi.mocked(authRepository)
 const googleSignIn = vi.mocked(signInWithGoogle)
+const forgetGoogleAccount = vi.mocked(googleCredentials.signOut)
 provideAuthRepository(() => authRepository)
 
 function supabaseEndsOrRefreshesSession(session: AuthSession | null): void {
@@ -418,6 +424,7 @@ describe('useAuthStore', () => {
       await store.signOut()
 
       expect(repository.signOut).toHaveBeenCalledOnce()
+      expect(forgetGoogleAccount).toHaveBeenCalledOnce()
       expect(store.hasPlusAccount).toBe(false)
       expect(store.userId).toBeNull()
       expect(store.sessionState).toBe('none')

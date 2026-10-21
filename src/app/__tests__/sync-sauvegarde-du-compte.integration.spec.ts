@@ -5,6 +5,7 @@ import { createDeviceRepository } from '@/core/device/device.repository'
 import { createFakeSyncServer, type FakeSyncServer } from '@/core/sync/__tests__/fake-sync-server'
 import { createSyncOutboxRepository } from '@/core/sync/repository/sync-outbox.repository'
 import { createSyncPushRepository } from '@/core/sync/repository/sync-push.repository'
+import { createAccountRestore } from '@/core/sync/service/account-restore'
 import { createSyncCycle } from '@/core/sync/service/sync-cycle'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { createCarnetSettingsRepository } from '@/features/settings/repository/carnet-settings.repository'
@@ -44,14 +45,22 @@ async function createPhone(server: FakeSyncServer, deviceId: string) {
     userId: () => USER_ID,
     isEligible: () => true,
   })
+  const restore = createAccountRestore({
+    db,
+    outbox,
+    tables,
+    userId: () => USER_ID,
+    onRemindersOutdated: async () => {},
+  })
   const backup = createAccountBackupService({
     outbox: () => outbox,
     tables: () => tables,
     animals: () => animals,
+    restore,
     userId: () => USER_ID,
   })
   await device.register({ id: deviceId, installedAt: '2026-10-01T07:00:00.000Z' }, 'Pixel 8')
-  return { db, animals, outbox, backup, sync: () => cycle.runCycle() }
+  return { db, animals, outbox, backup, restore, sync: () => cycle.runCycle() }
 }
 
 describe('le compte a-t-il une sauvegarde ?', () => {
@@ -118,9 +127,20 @@ describe('le compte a-t-il une sauvegarde ?', () => {
     await expect(tablet.backup.check()).resolves.toEqual({
       kind: 'backup-found',
       summary: { animalCount: 2, lastBackupAt: new Date(latest).toISOString() },
-      hasLocalCarnet: true,
     })
     await expect(tablet.outbox.isEnabled()).resolves.toBe(false)
     await expect(tablet.outbox.listPending()).resolves.toEqual([])
+  })
+
+  it('un téléphone sans animal reçoit la sauvegarde sans question', async () => {
+    await phone.animals.create({ name: 'Milo', species: 'dog' })
+    await phone.outbox.enableAndQueueWholeCarnet()
+    await phone.sync()
+
+    await expect(tablet.backup.check()).resolves.toEqual({ kind: 'restore-pending', mode: 'merge' })
+    await tablet.restore.run()
+
+    expect((await tablet.animals.list()).map(({ name }) => name)).toEqual(['Milo'])
+    await expect(tablet.outbox.isEnabled()).resolves.toBe(true)
   })
 })

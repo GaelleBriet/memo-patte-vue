@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { exportReminders, toCsvTables, toJsonExport } from '../logic/export-format'
+import { toCsvTables } from '../logic/export-csv'
+import { toJsonExport } from '../logic/export-format'
+import { exportReminders } from '../logic/export-reminders'
 import { buildCarnetPdfContent } from '../logic/pdf-content'
 import { renderCarnetPdf } from '../logic/render-carnet-pdf'
 import { animalOf, BY_FIXTURE_DEVICE, periodOf } from './export-fixture'
@@ -108,7 +110,7 @@ function treatmentRow(data: ExportData, today: string) {
 }
 
 function csvNextDueDate(data: ExportData, today: string): string {
-  const csv = toCsvTables(data, 'kg', today)['traitements.csv']
+  const csv = toCsvTables(data, 'kg', today, 'fr')['traitements.csv']
   return csv.split('\r\n')[1]!.split(';').at(-1)!
 }
 

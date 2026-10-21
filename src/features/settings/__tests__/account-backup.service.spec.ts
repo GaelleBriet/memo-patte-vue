@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { BackupSummaryTable } from '@/core/sync/service/backup-summary'
 import type { Animal } from '@/features/animals/schema/animal.schema'
-import { createAccountBackupService } from '../service/account-backup.service'
+import { createAccountBackupService, type RestoreMode } from '../service/account-backup.service'
 
 const USER_ID = 'utilisateur-1'
 
@@ -12,7 +12,9 @@ function setup({
   localAnimals = 0,
   unreachable = false,
   userId = USER_ID,
+  pending = null,
 }: {
+  pending?: RestoreMode | null
   enabled?: boolean
   remoteAnimals?: number
   localAnimals?: number
@@ -20,6 +22,7 @@ function setup({
   userId?: string | null
 } = {}) {
   const enableAndQueueWholeCarnet = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
+  const start = vi.fn<(mode: RestoreMode) => Promise<void>>().mockResolvedValue(undefined)
   const animalTable: BackupSummaryTable = {
     entity: 'animal',
     countRemoteRows: async () => {
@@ -35,9 +38,10 @@ function setup({
       list: async () =>
         Array.from({ length: localAnimals }, (_, index) => ({ id: `a${index}` }) as Animal),
     }),
+    restore: { pendingMode: async () => pending, start },
     userId: () => userId,
   })
-  return { service, enableAndQueueWholeCarnet }
+  return { service, enableAndQueueWholeCarnet, start }
 }
 
 describe('createAccountBackupService', () => {
@@ -54,19 +58,26 @@ describe('createAccountBackupService', () => {
     await expect(service.check()).resolves.toEqual({
       kind: 'backup-found',
       summary: { animalCount: 3, lastBackupAt: '2026-10-20T19:04:00.000Z' },
-      hasLocalCarnet: true,
     })
     expect(enableAndQueueWholeCarnet).not.toHaveBeenCalled()
   })
 
-  it('avec une sauvegarde et aucun animal sur le téléphone, le dit sans rien activer', async () => {
-    const { service, enableAndQueueWholeCarnet } = setup({ remoteAnimals: 1, localAnimals: 0 })
-
-    await expect(service.check()).resolves.toMatchObject({
-      kind: 'backup-found',
-      hasLocalCarnet: false,
+  it('avec une sauvegarde et aucun animal sur le téléphone, la restauration part sans question', async () => {
+    const { service, enableAndQueueWholeCarnet, start } = setup({
+      remoteAnimals: 1,
+      localAnimals: 0,
     })
+
+    await expect(service.check()).resolves.toEqual({ kind: 'restore-pending', mode: 'merge' })
+    expect(start).toHaveBeenCalledWith('merge')
     expect(enableAndQueueWholeCarnet).not.toHaveBeenCalled()
+  })
+
+  it('une restauration déjà choisie reprend sans redemander au serveur', async () => {
+    const { service, start } = setup({ pending: 'replace', unreachable: true, localAnimals: 1 })
+
+    await expect(service.check()).resolves.toEqual({ kind: 'restore-pending', mode: 'replace' })
+    expect(start).not.toHaveBeenCalled()
   })
 
   it('ne redemande rien au serveur quand la synchro est déjà active sur ce téléphone', async () => {
@@ -101,6 +112,7 @@ describe('createAccountBackupService', () => {
         },
       ],
       animals: () => ({ list: async () => [] }),
+      restore: { pendingMode: async () => null, start: async () => {} },
       userId: () => account,
     })
 
