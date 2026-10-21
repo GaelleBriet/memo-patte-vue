@@ -1372,7 +1372,7 @@
     },
     "import": {
       "title": "Importer un export",
-      "subtitle": "Des données existent déjà sur cet appareil.",
+      "subtitle": "Des données existent déjà sur ce téléphone.",
       "close": "Fermer",
       "modes": "Mode d’import",
       "merge": {
@@ -1398,7 +1398,7 @@
       },
       "confirm": {
         "title": "Remplacer toutes tes données ?",
-        "body": "Cette action supprimera définitivement les données actuelles de l’appareil. Elle est irréversible.",
+        "body": "Cette action supprimera définitivement les données actuelles de ce téléphone. Elle est irréversible.",
         "cancel": "Annuler",
         "submit": "Remplacer"
       }
