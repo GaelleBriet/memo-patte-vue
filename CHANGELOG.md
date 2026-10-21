@@ -5,6 +5,39 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.98](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.97...memo-patte-v0.1.98) (2026-10-21)
+
+
+### ✨ Fonctionnalités
+
+* **auth:** bouton Continuer avec Google sur l'écran de connexion ([1b03fce](https://github.com/GaelleBriet/memo-patte-vue/commit/1b03fce061642cd586051d351082b840e460c7e5))
+* **auth:** bouton Continuer avec Google sur l'écran de connexion ([c18dd1e](https://github.com/GaelleBriet/memo-patte-vue/commit/c18dd1e7cc0b720d59709c8b3eef30b7a78d3d35)), closes [#65](https://github.com/GaelleBriet/memo-patte-vue/issues/65)
+* **auth:** connexion google par jeton d'identité et nonce, sans écran ([2897735](https://github.com/GaelleBriet/memo-patte-vue/commit/289773522943074574610592bca9172058f3d32a)), closes [#65](https://github.com/GaelleBriet/memo-patte-vue/issues/65)
+* **auth:** connexion google sans écran, par jeton d'identité et nonce ([416451f](https://github.com/GaelleBriet/memo-patte-vue/commit/416451f496d5317965d4917ee735bc46b8871d74))
+* **auth:** edge function delete-account qui efface les photos puis le compte ([363322e](https://github.com/GaelleBriet/memo-patte-vue/commit/363322e777fe7046b8363ae3e020f20bdb0d3530))
+* **auth:** edge function delete-account qui efface les photos puis le compte ([0b8d85e](https://github.com/GaelleBriet/memo-patte-vue/commit/0b8d85ed30379121a8f18fe2db6cfb69cb2a4d99))
+* **auth:** la déconnexion oublie aussi le compte Google du téléphone ([5235178](https://github.com/GaelleBriet/memo-patte-vue/commit/5235178abd64ed22f319dfbb9f468b8bc6677e7d))
+* **auth:** la déconnexion oublie aussi le compte Google du téléphone ([2820f1f](https://github.com/GaelleBriet/memo-patte-vue/commit/2820f1fddefaa66627e8772bc8f37448e5b02602)), closes [#65](https://github.com/GaelleBriet/memo-patte-vue/issues/65)
+* **auth:** plugin de connexion google et jeton du compte choisi sur le téléphone ([290b6ad](https://github.com/GaelleBriet/memo-patte-vue/commit/290b6ad677ec17adff655102d3ba969d0b302c28)), closes [#65](https://github.com/GaelleBriet/memo-patte-vue/issues/65)
+* **settings:** export csv lisible dans la langue de l'app ([24a1e53](https://github.com/GaelleBriet/memo-patte-vue/commit/24a1e537be7789403b821e238981f764c568f0cc))
+* **settings:** export csv lisible dans la langue de l'app ([3cf2522](https://github.com/GaelleBriet/memo-patte-vue/commit/3cf252205c960e26457cab07b71356fe49fc2e67))
+* **sync:** « fusionner » et « remplacer » : la sauvegarde tirée d'abord, écrite en une transaction ([bdf8ea0](https://github.com/GaelleBriet/memo-patte-vue/commit/bdf8ea0e7f0270301e349b159bd355b77ac19b14))
+* **sync:** « fusionner » et « remplacer » : la sauvegarde tirée d'abord, écrite en une transaction ([fcc3a08](https://github.com/GaelleBriet/memo-patte-vue/commit/fcc3a0828108a6c1f462c484020adf903615263b)), closes [#40](https://github.com/GaelleBriet/memo-patte-vue/issues/40)
+* **sync:** l'amorçage fait repartir le pull du début, restauration prouvée ([3d546b4](https://github.com/GaelleBriet/memo-patte-vue/commit/3d546b4cf34919d72c661bff3e6cc4fd0ee2f1ff))
+* **sync:** le compte a-t-il une sauvegarde ? contrôle à la connexion et amorçage sans sauvegarde ([e8611be](https://github.com/GaelleBriet/memo-patte-vue/commit/e8611bec4e0efc9cd7241a014d05327099effb89))
+* **sync:** le compte a-t-il une sauvegarde ? contrôle à la connexion et amorçage sans sauvegarde ([3f2859a](https://github.com/GaelleBriet/memo-patte-vue/commit/3f2859ab627682bcc6133dd5f0617329862f896e)), closes [#40](https://github.com/GaelleBriet/memo-patte-vue/issues/40)
+
+
+### 🐛 Corrections
+
+* **auth:** delete-account efface aussi les photos rangées dans des sous-dossiers ([c3d6e2a](https://github.com/GaelleBriet/memo-patte-vue/commit/c3d6e2a5fb376f0c232dbb0a4586baa45da6b709))
+* **dose-calendar:** une ligne « pas à donner » ne change pas l'heure qu'emporte le report ([1bb406c](https://github.com/GaelleBriet/memo-patte-vue/commit/1bb406c42fc5ac7b329a13c6ede8bb6368980328))
+* **import:** « ce téléphone » dans la feuille d'import et sa confirmation ([9219ae3](https://github.com/GaelleBriet/memo-patte-vue/commit/9219ae36f03a3d742a12141ccc7333f08d798ce4))
+* **import:** « ce téléphone » dans la feuille d'import et sa confirmation ([518f5aa](https://github.com/GaelleBriet/memo-patte-vue/commit/518f5aa80cea3276f57ad8e5de4581a490690e8a))
+* **purchase:** l'avantage du carnet nomme la tablette et le téléphone ([ae121d9](https://github.com/GaelleBriet/memo-patte-vue/commit/ae121d9924fdb72a239dc21719c18831cbb72181))
+* **purchase:** l'avantage du carnet nomme la tablette et le téléphone ([d019456](https://github.com/GaelleBriet/memo-patte-vue/commit/d0194568dd212bd647a6e399ac884137f0b1a28d))
+* **sync:** la déconnexion désactive la synchro et oublie file et curseurs ([2d4ae70](https://github.com/GaelleBriet/memo-patte-vue/commit/2d4ae707b9ff1ec73d3081109cb6cf7996aa607a))
+
 ## [0.1.97](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.96...memo-patte-v0.1.97) (2026-10-21)
 
 
