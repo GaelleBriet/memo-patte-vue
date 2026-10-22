@@ -388,6 +388,10 @@ deno_version = 2
 [functions.delete-account]
 verify_jwt = false
 
+# RevenueCat n'a pas de session MémoPatte : la fonction vérifie elle-même l'en-tête `Authorization`.
+[functions.revenuecat-webhook]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
