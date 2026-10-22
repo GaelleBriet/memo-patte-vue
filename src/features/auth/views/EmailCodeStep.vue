@@ -48,7 +48,7 @@ async function onInput(event: Event): Promise<void> {
 <template>
   <div class="email-code">
     <p :id="messageId" class="email-code__message">
-      {{ message ?? t('auth.code.message', { email }) }}
+      {{ message ?? t('auth.code.message', { email, length: CODE_LENGTH }) }}
     </p>
 
     <p v-if="label" class="email-code__label" aria-hidden="true">{{ label }}</p>

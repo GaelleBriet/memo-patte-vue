@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
 import { usePasswordReset } from '../composables/use-password-reset'
+import { CODE_LENGTH } from '../logic/email-code'
 import { useSignedInExit } from '../composables/use-signed-in-exit'
 import FormField from '@/shared/form/FormField.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
@@ -90,9 +91,11 @@ async function submit(): Promise<void> {
       :is-expired="emailCode.isExpired.value"
       :is-resending="emailCode.isResending.value"
       :can-resend="!reset.isResetting.value"
-      :message="t('auth.passwordReset.codeMessage', { email: emailCode.email.value })"
+      :message="
+        t('auth.passwordReset.codeMessage', { email: emailCode.email.value, length: CODE_LENGTH })
+      "
       :label="t('auth.passwordReset.codeLabel')"
-      :input-label="t('auth.passwordReset.codeInputLabel')"
+      :input-label="t('auth.passwordReset.codeInputLabel', { length: CODE_LENGTH })"
       :can-change-address="false"
       @update:code="emailCode.setCode"
       @resend="resendCode"
@@ -123,7 +126,9 @@ async function submit(): Promise<void> {
     </EmailCodeStep>
 
     <form v-else class="password-reset__address" novalidate @submit.prevent="sendCode">
-      <p class="password-reset__intro">{{ t('auth.passwordReset.intro') }}</p>
+      <p class="password-reset__intro">
+        {{ t('auth.passwordReset.intro', { length: CODE_LENGTH }) }}
+      </p>
       <FormField
         :label="t('auth.email.label')"
         control-id="password-reset-email"

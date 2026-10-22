@@ -297,7 +297,7 @@ describe('PasswordResetView', () => {
       const wrapper = await monter()
       expect(wrapper.get('h1').text()).toBe('Forgot password')
       expect(wrapper.get('.password-reset__intro').text()).toBe(
-        'Enter your account’s address. A 8-digit code will be sent to it.',
+        'Enter your account’s address. An 8-digit code will be sent to it.',
       )
       expect(wrapper.get('.password-reset__send').text()).toBe('Get the code')
 
