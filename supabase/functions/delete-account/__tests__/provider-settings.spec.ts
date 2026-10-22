@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { providerErasuresFrom } from '../provider-settings'
-import { fakeFetch, jsonResponse } from './fake-fetch'
+import { fakeFetch, jsonResponse } from '../../_shared/__tests__/fake-fetch'
 import { USER } from './fake-deletion-ports'
 
 const CONFIGURED: Record<string, string> = {

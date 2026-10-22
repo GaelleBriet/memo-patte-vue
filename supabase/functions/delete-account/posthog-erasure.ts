@@ -1,4 +1,5 @@
-import { sendTo, type ProviderErasure } from './account-erasure.ts'
+import { sendTo } from '../_shared/provider-request.ts'
+import type { ProviderErasure } from './account-erasure.ts'
 
 export type PostHogSettings = { host: string; projectId: string; personalApiKey: string }
 
