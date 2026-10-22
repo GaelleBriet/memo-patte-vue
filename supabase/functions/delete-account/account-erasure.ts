@@ -6,22 +6,6 @@ export type DeletionOrigin = 'app' | 'email'
 /** Efface chez un prestataire ce qui y désigne le compte ; réussit si rien n'y est. */
 export type ProviderErasure = (userId: string) => Promise<void>
 
-const PROVIDER_TIMEOUT_MS = 15_000
-
-/** Le message d'origine d'un échec réseau peut contenir la clé ou l'identifiant : il n'est pas repris. */
-export async function sendTo(
-  provider: string,
-  send: typeof fetch,
-  url: string,
-  init: RequestInit,
-): Promise<Response> {
-  try {
-    return await send(url, { ...init, signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS) })
-  } catch {
-    throw new Error(`${provider} injoignable`)
-  }
-}
-
 export class ErasureNotConfiguredError extends Error {
   constructor(readonly settings: string[]) {
     super(`Réglages absents ou invalides : ${settings.join(', ')}`)
