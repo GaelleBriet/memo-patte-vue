@@ -367,8 +367,9 @@ supprime un objet que lorsque son nom n'est plus référencé par aucune ligne l
 qu'un animal est passé en tombstone : il peut revenir.
 
 RLS `storage.objects`, pour les quatre opérations :
-`(storage.foldername(name))[1] = (select auth.uid())::text`, plus `has_active_plus()` pour envoyer,
-remplacer et supprimer : la lecture reste ouverte sans Plus, pour restaurer (PL-16). Un envoi ou un
+`(storage.foldername(name))[1] = (select auth.uid())::text`, plus `has_active_plus()` pour envoyer
+et remplacer : la lecture reste ouverte sans Plus, pour restaurer (PL-16), et la suppression aussi,
+pour effacer ses photos après l'expiration de Plus. Un envoi ou un
 remplacement n'accepte que la forme que l'app écrit : `<uid>/<nom>.jpg`, un seul niveau, `<nom>` en
 lettres ASCII, chiffres, `_` ou `-` (comme `isPhotoFileName`).
 
