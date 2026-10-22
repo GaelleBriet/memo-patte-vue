@@ -9,10 +9,19 @@ export function createAnimalPhotoDelete(
   return {
     async delete(userId, fileName) {
       const supabase = await loadClient()
-      const { error } = await supabase.storage
+      const { data, error } = await supabase.storage
         .from(ANIMAL_PHOTOS_BUCKET)
         .remove([`${userId}/${fileName}`])
-      if (error && !isMissingPhotoObject(error)) throw error
+      if (error) {
+        if (isMissingPhotoObject(error)) return
+        throw error
+      }
+      if (data !== null && data.length > 0) return
+      // Storage rend la même réponse vide pour un objet absent et pour un refus de la RLS.
+      const { data: session } = await supabase.auth.getSession()
+      if (session.session?.user.id !== userId) {
+        throw new Error('Session absente ou d’un autre compte : effacement de photo à réessayer.')
+      }
     },
   }
 }

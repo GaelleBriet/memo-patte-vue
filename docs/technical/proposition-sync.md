@@ -402,8 +402,11 @@ compte (`core/sync/service/photo-removal.ts`, port `PhotoDeletePort` implément�
 ne la porte de nouveau, son fichier est effacé du téléphone (fin du délai « Annuler » ou ménage du
 lancement suivant), et aucune ligne d'animal ne reste à envoyer, car la ligne du cloud la
 désignerait encore. Une photo que seul un animal supprimé porte sort de la file sans effacement.
-Une photo déjà absente du cloud compte comme effacée ; un réseau coupé, une panne ou un refus de
-droit se réessaient sans fin, sans retenir les autres photos. L'effacement vit dans le cycle, donc
+Une réponse vide compte comme effacée : un refus de droit par la RLS ou une session absente ne se
+distinguent pas d'un objet déjà absent (relevé sur une pile locale), aussi l'adaptateur vérifie
+d'abord, sans réseau, que la session locale est celle du compte, sinon l'effacement se réessaie.
+Seul un jeton invalide ou expiré rend une erreur (`statusCode` 403) ; lui, un réseau coupé et une
+panne se réessaient sans fin, sans retenir les autres photos. L'effacement vit dans le cycle, donc
 derrière la même garde que la synchro (Plus actif, décision du 2026-10-22) : pendant une pause,
 la ligne figée du cloud désigne encore l'ancienne photo, qui n'est effacée qu'à la réactivation,
 après l'envoi de la ligne et de la nouvelle photo.
