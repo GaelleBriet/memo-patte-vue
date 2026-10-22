@@ -33,11 +33,7 @@ export function createPhotoPush(
   })
 
   async function pushEntry(userId: string, entry: SyncOutboxEntry): Promise<void> {
-    if (!(await isPhotoInCarnet(entry.entityId))) {
-      // Tant que le fichier existe, « Annuler » peut rendre l'animal ou la photo sans la remettre en file.
-      if (!(await files.exists(entry.entityId))) await outbox.removeIfUnchanged(entry)
-      return
-    }
+    if (!(await isPhotoInCarnet(entry.entityId))) return
     const photo = await files.read(entry.entityId, MAX_CLOUD_PHOTO_BYTES)
     if (photo.kind === 'too-large' || (photo.kind === 'found' && !isJpeg(photo.bytes))) {
       console.warn('Photo trop lourde ou hors JPEG, sortie de la file sans envoi.')

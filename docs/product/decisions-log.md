@@ -2976,6 +2976,21 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
+## 2026-10-22 — Photos cloud : ménage par la file, délai de grâce de 7 jours
+
+Décision de la session d'analyse du moteur (analyse-moteur-9f) du 23 octobre 2026, sur la relecture
+de la PR #1135 (#85). Une photo remplacée ou retirée repart en file `animal_photo` (migration v19) ;
+son objet n'est effacé du cloud que lorsqu'elle est en file depuis au moins 7 jours, qu'aucun animal
+non supprimé ne la porte au moment de l'effacement, que son fichier local est effacé, qu'aucune ligne
+d'animal ne reste à envoyer, et avec Plus actif. Q3 du 22 octobre est confirmé par la file. — Raison :
+à deux appareils, le 23 octobre à 19 h le téléphone remplace la photo de Milo (P1 par P2) et à
+19 h 00 min 30 la tablette modifie Milo et gagne : Milo désigne de nouveau P1. Effacée tout de suite,
+P1 disparaîtrait du téléphone et de toute restauration, l'original n'étant plus que dans la galerie ;
+le délai coûte une condition et des objets privés gardés au plus une semaine. — Alternatives
+écartées : lister le dossier cloud et effacer ce qu'aucune ligne ne porte (course avec une photo
+qu'un autre appareil vient d'envoyer) ; effacer tout de suite (perte de P1 dans l'exemple). — À
+garder en tête : une ligne de la tablette tirée après les 7 jours ne protège plus P1.
+
 ## 2026-10-22 — Photos cloud : lecture et effacement sans droit Plus actif, envoi et remplacement réservés à Plus
 
 Décision de Gaelle relayée le 22 octobre 2026, sur le point M-5 de la revue de sécurité du même

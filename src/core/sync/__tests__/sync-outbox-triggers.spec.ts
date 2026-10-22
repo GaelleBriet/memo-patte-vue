@@ -241,9 +241,56 @@ describe('file des photos', () => {
     await setAnimalPhoto(db, ANIMAL_ID, PHOTO_B, T3)
 
     await expect(photoRows()).resolves.toEqual([
-      { entity: ANIMAL_PHOTO_ENTITY, entity_id: PHOTO_A, queued_at: T2, attempts: 0 },
+      { entity: ANIMAL_PHOTO_ENTITY, entity_id: PHOTO_A, queued_at: T3, attempts: 0 },
       { entity: ANIMAL_PHOTO_ENTITY, entity_id: PHOTO_B, queued_at: T3, attempts: 0 },
     ])
+  })
+
+  it('remet en file la photo remplacée, datée par le remplacement, pour l’effacer du cloud', async () => {
+    await enableSync(db)
+    await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_A)
+    await db.execute('DELETE FROM sync_outbox')
+
+    await setAnimalPhoto(db, ANIMAL_ID, PHOTO_B, T2)
+
+    await expect(photoRows()).resolves.toEqual([
+      { entity: ANIMAL_PHOTO_ENTITY, entity_id: PHOTO_A, queued_at: T2, attempts: 0 },
+      { entity: ANIMAL_PHOTO_ENTITY, entity_id: PHOTO_B, queued_at: T2, attempts: 0 },
+    ])
+  })
+
+  it('remet en file la photo retirée, datée par le retrait, pour l’effacer du cloud', async () => {
+    await enableSync(db)
+    await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_A)
+    await db.execute('DELETE FROM sync_outbox')
+
+    await setAnimalPhoto(db, ANIMAL_ID, null, T2)
+
+    await expect(photoRows()).resolves.toEqual([
+      { entity: ANIMAL_PHOTO_ENTITY, entity_id: PHOTO_A, queued_at: T2, attempts: 0 },
+    ])
+  })
+
+  it('ne remet rien en file quand l’animal est supprimé : sa photo reste dans le cloud', async () => {
+    await enableSync(db)
+    await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_A)
+    await db.execute('DELETE FROM sync_outbox')
+
+    await db.run('UPDATE animal SET deleted_at = ?, updated_at = ? WHERE id = ?', [
+      T2,
+      T2,
+      ANIMAL_ID,
+    ])
+
+    await expect(photoRows()).resolves.toEqual([])
+  })
+
+  it('ne remet pas en file une photo retirée pendant que la synchronisation est désactivée', async () => {
+    await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_A)
+
+    await setAnimalPhoto(db, ANIMAL_ID, null, T2)
+
+    await expect(outboxRows(db)).resolves.toEqual([])
   })
 
   it('ne remet pas en file une photo réécrite à l’identique avec le reste de la fiche', async () => {

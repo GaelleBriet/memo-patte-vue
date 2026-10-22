@@ -203,6 +203,11 @@ export function createSyncOutboxRepository(db: DbClient) {
       return rows.length > 0
     },
 
+    async isPhotoKeptByAnimal(fileName: string): Promise<boolean> {
+      const rows = await db.query('SELECT 1 FROM animal WHERE photo_path = ? LIMIT 1', [fileName])
+      return rows.length > 0
+    },
+
     async listCarnetPhotos(): Promise<string[]> {
       const rows = await db.query<{ photo_path: string }>(
         `SELECT DISTINCT photo_path ${LIVE_ANIMAL_PHOTOS_FROM}`,

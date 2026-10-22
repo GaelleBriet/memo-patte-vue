@@ -395,6 +395,30 @@ retiennent ni les autres photos ni la fin de la restauration. Écrire le fichier
 supprime un objet que lorsque son nom n'est plus référencé par aucune ligne locale, jamais parce
 qu'un animal est passé en tombstone : il peut revenir.
 
+Effacement (v19, `modele-de-donnees-v2.md` §4.9) : une photo remplacée ou retirée d'un animal non
+supprimé repart en file sous son ancien nom. Le cycle, après le pull, efface son objet du dossier du
+compte (`core/sync/service/photo-removal.ts`, port `PhotoDeletePort` implémenté par
+`core/supabase/animal-photo-delete.ts`) quand quatre conditions tiennent : aucun animal non supprimé
+ne la porte de nouveau au moment de l'effacement, son fichier est effacé du téléphone (fin du délai
+« Annuler » ou ménage du lancement suivant), aucune ligne d'animal ne reste à envoyer, car la ligne
+du cloud la désignerait encore, et l'entrée est en file depuis au moins 7 jours
+(`PHOTO_CLOUD_GRACE_MS`, comparé à `queued_at`, la date de la modification, par l'horloge du
+téléphone). Ce délai de grâce couvre deux appareils : le 23 octobre à 19 h, le téléphone remplace la
+photo de Milo, P1 par P2 ; à 19 h 00 min 30 la tablette modifie Milo et gagne, sa ligne désigne
+encore P1. Effacée tout de suite, P1 ne vivrait plus que sur la tablette ; avec le délai, la ligne
+de la tablette, tirée avant le 30 octobre à 19 h, remet P1 dans le carnet et rien n'est effacé. En
+contrepartie, un objet privé en trop reste au plus une semaine dans le dossier. Un effacement en
+attente du délai ne compte pas d'échec et ne redate pas l'entrée. Une photo que seul un animal
+supprimé porte sort de la file sans effacement.
+Une réponse vide compte comme effacée : un refus de droit par la RLS ou une session absente ne se
+distinguent pas d'un objet déjà absent (relevé sur une pile locale), aussi l'adaptateur vérifie
+d'abord, sans réseau, que la session locale est celle du compte, sinon l'effacement se réessaie.
+Seul un jeton invalide ou expiré rend une erreur (`statusCode` 403) ; lui, un réseau coupé et une
+panne se réessaient sans fin, sans retenir les autres photos. L'effacement vit dans le cycle, donc
+derrière la même garde que la synchro (Plus actif, décision du 2026-10-22) : pendant une pause,
+la ligne figée du cloud désigne encore l'ancienne photo, qui n'est effacée qu'à la réactivation,
+après l'envoi de la ligne et de la nouvelle photo.
+
 RLS `storage.objects`, pour les quatre opérations :
 `(storage.foldername(name))[1] = (select auth.uid())::text`, plus `has_active_plus()` pour envoyer
 et remplacer : la lecture reste ouverte sans Plus, pour restaurer (PL-16), et la suppression aussi,
