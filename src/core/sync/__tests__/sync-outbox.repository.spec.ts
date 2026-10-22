@@ -19,6 +19,7 @@ import {
   insertVaccination,
   insertVaccinationInjection,
   insertWeightEntry,
+  setAnimalPhoto,
   touchAnimal,
 } from './sync-test-db'
 
@@ -39,6 +40,37 @@ describe('syncOutboxRepository', () => {
 
   afterEach(() => {
     db.close()
+  })
+
+  describe('isPhotoInCarnet', () => {
+    it('vrai pour la photo d’un animal non supprimé', async () => {
+      await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_MILO)
+
+      await expect(repository.isPhotoInCarnet(PHOTO_MILO)).resolves.toBe(true)
+    })
+
+    it('faux pour une photo retirée, remplacée ou inconnue', async () => {
+      await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_MILO)
+      await setAnimalPhoto(db, ANIMAL_ID, PHOTO_PIRATE, T2)
+
+      await expect(repository.isPhotoInCarnet(PHOTO_MILO)).resolves.toBe(false)
+      await setAnimalPhoto(db, ANIMAL_ID, null, T2)
+      await expect(repository.isPhotoInCarnet(PHOTO_PIRATE)).resolves.toBe(false)
+    })
+
+    it('compare le nom à l’identique : `_` n’y vaut pas n’importe quel caractère', async () => {
+      await insertAnimal(db, ANIMAL_ID, T1, 'Milo', 'aXb.jpg')
+
+      await expect(repository.isPhotoInCarnet('a_b.jpg')).resolves.toBe(false)
+      await expect(repository.isPhotoInCarnet('aXb.jpg')).resolves.toBe(true)
+    })
+
+    it('faux pour la photo d’un animal supprimé', async () => {
+      await insertAnimal(db, 'parti', T1, 'Pirate', PHOTO_PIRATE)
+      await db.run("UPDATE animal SET deleted_at = ? WHERE id = 'parti'", [T2])
+
+      await expect(repository.isPhotoInCarnet(PHOTO_PIRATE)).resolves.toBe(false)
+    })
   })
 
   describe('sync_state.enabled', () => {

@@ -327,7 +327,8 @@ Aucune colonne ni table nouvelle. Les photos passent par `sync_outbox`, `entity 
 création avec une photo, et quand `photo_path` change pour une photo ; jamais pour un animal
 supprimé (sa photo est effacée du téléphone au lancement suivant), ni pour une photo retirée. La mise
 en file de tout le carnet (souscription, « Fusionner ») ajoute la photo de chaque animal non
-supprimé. L'envoi des lignes ne les traite pas : elles restent en file pour l'envoi des photos.
+supprimé. L'envoi des lignes ne les traite pas : le cycle les envoie ensuite, après les lignes
+(`proposition-sync.md` §4.5).
 
 La migration (`src/core/db/migration-v18.ts`) crée les deux déclencheurs et, si la synchro est déjà
 activée, met en file les photos des animaux non supprimés, sans `DELETE` ni `UPDATE` de premier

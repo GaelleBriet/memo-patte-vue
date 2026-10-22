@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import { ANIMAL_PHOTO_ENTITY } from '@/core/db/schema-statements'
-import { createSyncCycle, type SyncCycleOutbox } from '../service/sync-cycle'
+import { createSyncCycle } from '../service/sync-cycle'
 import {
   syncField,
   type SyncPullPage,
@@ -10,65 +10,8 @@ import {
   type SyncRow,
   type SyncableTable,
 } from '../service/syncable-table'
+import { createFakeOutbox, type FakeOutboxEntry } from './fake-sync-outbox'
 import { ANIMAL_ID, createSyncTestDb, enableSync, insertAnimal, outboxRows } from './sync-test-db'
-
-interface FakeOutboxEntry {
-  entity: string
-  entityId: string
-  queuedAt: string
-  attempts: number
-}
-
-function createFakeOutbox(
-  initial: FakeOutboxEntry[] = [],
-  cursors: Record<string, string> = {},
-  enabled = true,
-): SyncCycleOutbox & {
-  entries: () => FakeOutboxEntry[]
-  cursor: (entity: string) => string | null
-  lastSyncedAt: () => string | null
-} {
-  let entries = [...initial]
-  const lastPulledAt = new Map(Object.entries(cursors))
-  let lastSyncedAt: string | null = null
-  return {
-    async listPending() {
-      return entries.map((entry) => ({ ...entry }))
-    },
-    async removeIfUnchanged(target) {
-      entries = entries.filter(
-        (entry) =>
-          !(
-            entry.entity === target.entity &&
-            entry.entityId === target.entityId &&
-            entry.queuedAt === target.queuedAt
-          ),
-      )
-    },
-    async getLastPulledAt(entity) {
-      return lastPulledAt.get(entity) ?? null
-    },
-    async setLastPulledAt(entity, value) {
-      lastPulledAt.set(entity, value)
-    },
-    async isEnabled() {
-      return enabled
-    },
-    async setLastSyncedAt(value) {
-      lastSyncedAt = value
-    },
-    async recordFailedPush(target) {
-      entries = entries.map((entry) =>
-        entry.entity === target.entity && entry.entityId === target.entityId
-          ? { ...entry, attempts: entry.attempts + 1 }
-          : entry,
-      )
-    },
-    entries: () => entries,
-    cursor: (entity) => lastPulledAt.get(entity) ?? null,
-    lastSyncedAt: () => lastSyncedAt,
-  }
-}
 
 function createFakePushes() {
   const opened: SyncPush[] = []

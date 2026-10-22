@@ -48,9 +48,13 @@ export const ANIMAL_PHOTO_ENTITY = 'animal_photo'
 const LIVE_ANIMAL_PHOTO = `(SELECT enabled FROM sync_state WHERE id = 1) = 1
      AND NEW.photo_path IS NOT NULL AND NEW.deleted_at IS NULL`
 
+/** Les photos que le carnet désigne : celles des animaux non supprimés. */
+export const LIVE_ANIMAL_PHOTOS_FROM =
+  'FROM animal WHERE photo_path IS NOT NULL AND deleted_at IS NULL'
+
 /** Photos des animaux non supprimés, à mettre en file quand la synchronisation s'active. */
-export const LIVE_ANIMAL_PHOTOS_SELECT = `SELECT '${ANIMAL_PHOTO_ENTITY}', photo_path, updated_at FROM animal
-     WHERE photo_path IS NOT NULL AND deleted_at IS NULL`
+export const LIVE_ANIMAL_PHOTOS_SELECT = `SELECT '${ANIMAL_PHOTO_ENTITY}', photo_path, updated_at
+     ${LIVE_ANIMAL_PHOTOS_FROM}`
 
 export function photoOutboxTriggerStatements(): string[] {
   const upsert = `
