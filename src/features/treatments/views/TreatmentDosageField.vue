@@ -7,6 +7,7 @@ import {
   parseDoseQuantity,
   tabletShortcuts,
 } from '../logic/treatment-dosage-input'
+import { currentLocale } from '@/core/i18n'
 import { DOSE_UNITS, doseUnitText, type DoseUnit } from '@/shared/domain/dosage'
 
 const props = defineProps<{
@@ -28,13 +29,19 @@ const count = computed(() =>
   parsed.value === null || Number.isNaN(parsed.value) ? 1 : parsed.value,
 )
 const units = computed(() =>
-  DOSE_UNITS.map((unit) => ({ value: unit, title: doseUnitText(t, unit, count.value) })),
+  DOSE_UNITS.map((unit) => ({
+    value: unit,
+    title: doseUnitText(t, currentLocale(), unit, count.value),
+  })),
 )
 const shortcuts = computed(() =>
   tabletShortcuts().map(({ value, label }) => ({
     value,
     label,
-    spoken: t('dosage.value', { quantity: label, unit: doseUnitText(t, 'tablet', value) }),
+    spoken: t('dosage.value', {
+      quantity: label,
+      unit: doseUnitText(t, currentLocale(), 'tablet', value),
+    }),
   })),
 )
 

@@ -6,6 +6,7 @@ export type WeightSectionSummary = WeightSummary | null
 </script>
 
 <script setup lang="ts">
+import { currentWeightUnit } from '@/core/preferences/weight-unit-preference'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
@@ -35,7 +36,9 @@ const isSheetOpen = ref(false)
 
 const summary = computed<WeightSectionSummary>(() => weightSummary(entries.value))
 
-const current = computed(() => (summary.value ? weightNumber(summary.value.latest.weightKg) : null))
+const current = computed(() =>
+  summary.value ? weightNumber(currentWeightUnit(), summary.value.latest.weightKg) : null,
+)
 
 const delta = computed(() => (summary.value ? describeDelta(summary.value.delta) : null))
 
@@ -49,7 +52,7 @@ function describeDelta(value: WeightDelta): { text: string; trend: 'up' | 'down'
     }
   }
   return {
-    text: weightDeltaSinceText(t, value, props.today),
+    text: weightDeltaSinceText(t, currentWeightUnit(), value, props.today),
     trend: value.trend,
   }
 }
@@ -60,7 +63,7 @@ function describeDelta(value: WeightDelta): { text: string; trend: 'up' | 'down'
     <div v-if="summary && delta" class="section-card__body weight-section__body">
       <div class="weight-section__headline">
         <span class="weight-section__current">{{ current }}</span>
-        <span class="weight-section__unit">{{ weightUnitText(t) }}</span>
+        <span class="weight-section__unit">{{ weightUnitText(t, currentWeightUnit()) }}</span>
         <router-link
           class="weight-section__history"
           :to="{ name: 'weight-history', params: { animalId } }"
