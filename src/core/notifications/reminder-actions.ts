@@ -2,8 +2,9 @@ import { LocalNotifications } from '@capacitor/local-notifications'
 import type { ActionPerformed } from '@capacitor/local-notifications'
 
 import i18n from '@/core/i18n'
+import { REMINDER_DONE_ACTION_TYPE } from '@/shared/domain/reminder-action-type'
 
-export const REMINDER_DONE_ACTION_TYPE = 'reminder-done'
+export { REMINDER_DONE_ACTION_TYPE }
 
 const DONE_ACTION_ID = 'done'
 /** Identifiant que le plugin donne au toucher de la notification elle-même. */

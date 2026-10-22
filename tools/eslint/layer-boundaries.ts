@@ -4,7 +4,7 @@ import {
   DATA_ACCESS_RESTRICTIONS,
   NOTIFICATIONS_PLUGIN_RESTRICTION,
 } from './import-restriction-patterns.ts'
-import { restrictImports } from './import-restriction-rules.ts'
+import { restrictFeatureImports, restrictImports } from './import-restriction-rules.ts'
 
 const FEATURES_RESTRICTION = {
   group: ['@/features/**', '**/features/**'],
@@ -36,6 +36,20 @@ const PHONE_AND_STATE_OUT_OF_SHARED_DOMAIN = {
     },
   ],
 }
+
+const CORE_VALUE_OUT_OF_SHARED_DOMAIN = {
+  group: ['@/core/**'],
+  allowTypeImports: true,
+  message:
+    "shared/domain/ n'importe de core/ que des types : ce qui garde un état ou appelle le téléphone vit dans core/, et la logique métier le reçoit (cf. CLAUDE.md, « Règles strictes de structure »).",
+}
+
+// Deux fichiers lisent encore un état de core/ (unité de poids, langue) : à retirer d'ici
+// quand ils les reçoivent en paramètre (ticket de suite).
+const SHARED_DOMAIN_READING_CORE_STATE = [
+  'src/shared/domain/weight-display.ts',
+  'src/shared/domain/dosage.ts',
+]
 
 export const layerBoundaryBlocks: Linter.Config[] = [
   // Accès direct à SQLite/Supabase interdit hors de core/ et des repositories.
@@ -90,6 +104,13 @@ export const layerBoundaryBlocks: Linter.Config[] = [
         ...PHONE_AND_STATE_OUT_OF_SHARED_DOMAIN.patterns,
       ],
     }),
+  },
+
+  {
+    name: 'app/shared-domain-no-core-values',
+    files: ['src/shared/domain/**/*.ts'],
+    ignores: ['**/__tests__/**', ...SHARED_DOMAIN_READING_CORE_STATE],
+    rules: restrictFeatureImports({ patterns: [CORE_VALUE_OUT_OF_SHARED_DOMAIN] }),
   },
 
   // Là où les blocs précédents ne s'appliquent pas (tout core/ et les repositories), trois

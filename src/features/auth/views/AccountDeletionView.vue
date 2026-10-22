@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import { useAccountDeletion } from '../composables/use-account-deletion'
+import { leaveDeletedAccount } from '../logic/leave-deleted-account'
 import AccountDeletionSummary from './AccountDeletionSummary.vue'
 import GoogleSignInButton from './GoogleSignInButton.vue'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
@@ -64,7 +65,7 @@ function leave(): void {
 }
 
 function finish(): void {
-  void router.replace({ name: 'settings' })
+  leaveDeletedAccount(router)
 }
 
 function eraseThisPhone(): void {
