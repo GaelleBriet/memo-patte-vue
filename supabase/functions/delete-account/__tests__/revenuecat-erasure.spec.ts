@@ -38,13 +38,17 @@ describe('revenuecatCustomerErasure', () => {
   it('échoue quand RevenueCat n’accepte pas la suppression', async () => {
     const fake = fakeFetch(() => jsonResponse(200, { app_user_id: USER, deleted: false }))
 
-    await expect(revenuecatCustomerErasure(SECRET_KEY, fake.fetch)(USER)).rejects.toThrow()
+    await expect(revenuecatCustomerErasure(SECRET_KEY, fake.fetch)(USER)).rejects.toThrow(
+      'pas accepté',
+    )
   })
 
   it('échoue sur une réponse qui n’est pas du JSON', async () => {
     const fake = fakeFetch(() => new Response('pas du json', { status: 200 }))
 
-    await expect(revenuecatCustomerErasure(SECRET_KEY, fake.fetch)(USER)).rejects.toThrow()
+    await expect(revenuecatCustomerErasure(SECRET_KEY, fake.fetch)(USER)).rejects.toThrow(
+      'pas accepté',
+    )
   })
 
   it.each([400, 401, 403, 429, 500])('échoue quand RevenueCat répond %i', async (status) => {
@@ -61,6 +65,8 @@ describe('revenuecatCustomerErasure', () => {
       throw new TypeError('réseau coupé')
     })
 
-    await expect(revenuecatCustomerErasure(SECRET_KEY, fake.fetch)(USER)).rejects.toThrow()
+    await expect(revenuecatCustomerErasure(SECRET_KEY, fake.fetch)(USER)).rejects.toThrow(
+      'réseau coupé',
+    )
   })
 })

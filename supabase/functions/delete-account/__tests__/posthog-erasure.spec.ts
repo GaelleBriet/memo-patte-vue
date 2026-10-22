@@ -71,7 +71,7 @@ describe('posthogPersonErasure', () => {
       }),
     )
 
-    await expect(posthogPersonErasure(SETTINGS, fake.fetch)(USER)).rejects.toThrow()
+    await expect(posthogPersonErasure(SETTINGS, fake.fetch)(USER)).rejects.toThrow('non effacée')
   })
 
   it.each([
@@ -80,7 +80,7 @@ describe('posthogPersonErasure', () => {
   ])('échoue sur une réponse %s', async (_, respond) => {
     const fake = fakeFetch(respond)
 
-    await expect(posthogPersonErasure(SETTINGS, fake.fetch)(USER)).rejects.toThrow()
+    await expect(posthogPersonErasure(SETTINGS, fake.fetch)(USER)).rejects.toThrow('illisible')
   })
 
   it('échoue quand PostHog est injoignable', async () => {
@@ -88,6 +88,6 @@ describe('posthogPersonErasure', () => {
       throw new TypeError('réseau coupé')
     })
 
-    await expect(posthogPersonErasure(SETTINGS, fake.fetch)(USER)).rejects.toThrow()
+    await expect(posthogPersonErasure(SETTINGS, fake.fetch)(USER)).rejects.toThrow('réseau coupé')
   })
 })
