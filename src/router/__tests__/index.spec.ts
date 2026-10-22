@@ -62,6 +62,17 @@ describe('routeur', () => {
     expect(routeur.currentRoute.value.name).toBe('plus')
   })
 
+  it('n’ouvre « Étape 1 sur 2 » que si Supabase est configuré', async () => {
+    const routeur = routeurMemoire()
+    await routeur.push('/plus/account')
+    expect(routeur.currentRoute.value.name).toBe('plus-account')
+
+    authAvailable.mockReturnValue(false)
+    const sansCompte = routeurMemoire()
+    await sansCompte.push('/plus/account')
+    expect(sansCompte.currentRoute.value.name).toBe('plus')
+  })
+
   it('ne déclare écrans racine que l’accueil et le carnet', () => {
     const racines = routes.filter((route) => route.meta?.rootScreen).map((route) => route.name)
 
@@ -133,7 +144,7 @@ describe('garde des écrans Plus', () => {
       (route) =>
         typeof route.name === 'string' &&
         !PLUS_SCREENS.includes(route.name) &&
-        !['plus', 'sign-in'].includes(route.name) &&
+        !['plus', 'sign-in', 'plus-account'].includes(route.name) &&
         !route.path.includes(':'),
     )
 

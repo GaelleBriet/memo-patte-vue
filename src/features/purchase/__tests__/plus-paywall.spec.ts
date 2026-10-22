@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   checkoutBar,
+  nextAfterCheckout,
   orderedOffers,
   PLUS_BENEFITS,
   PRESELECTED_PLAN,
@@ -97,5 +98,19 @@ describe('checkoutBar', () => {
     expect(
       checkoutBar({ offers: [MENSUEL, A_VIE], selected: 'annual', loading: false, answered: true }),
     ).toEqual({ kind: 'offer', offer: MENSUEL })
+  })
+})
+
+describe('nextAfterCheckout', () => {
+  it('passe par le compte quand il manque, sinon dit l’issue du paiement', () => {
+    expect(nextAfterCheckout({ kind: 'needs-account' })).toBe('account')
+    expect(
+      nextAfterCheckout({ kind: 'purchased', status: { plan: 'annual', expiresAt: null } }),
+    ).toBe('success')
+    expect(nextAfterCheckout({ kind: 'cancelled' })).toBe('cancelled')
+  })
+
+  it('revient à l’écran Plus, qui montre l’abonnement, quand le compte l’a déjà', () => {
+    expect(nextAfterCheckout({ kind: 'already-plus' })).toBe('offers')
   })
 })

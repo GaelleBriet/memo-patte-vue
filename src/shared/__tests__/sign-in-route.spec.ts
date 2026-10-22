@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { afterSignInRoute, signInReturnRoute, signInRoute } from '../utils/sign-in-route'
+import {
+  accountFirstRoute,
+  afterSignInRoute,
+  asksSignUp,
+  signInReturnRoute,
+  signInRoute,
+} from '../utils/sign-in-route'
 import { routes } from '@/router'
 
 const SUMMARY = { animalCount: 2, lastBackupAt: '2026-10-20T19:04:00.000Z' }
@@ -17,6 +23,13 @@ describe('signInRoute', () => {
     })
   })
 
+  it('ouvre l’écran en mode inscription quand on vient créer un compte', () => {
+    expect(signInRoute('plus-account', { signUp: true })).toEqual({
+      name: 'sign-in',
+      query: { from: 'plus-account', mode: 'sign-up' },
+    })
+  })
+
   it('désigne une route déclarée', () => {
     expect(routes.some((route) => route.name === 'sign-in')).toBe(true)
   })
@@ -26,8 +39,27 @@ describe('signInRoute', () => {
   })
 })
 
+describe('asksSignUp', () => {
+  it('ne lit le mode inscription que dans l’adresse prévue', () => {
+    expect(asksSignUp({ from: 'plus-account', mode: 'sign-up' })).toBe(true)
+    expect(asksSignUp({ from: 'plus-account' })).toBe(false)
+    expect(asksSignUp({ mode: ['sign-up'] })).toBe(false)
+  })
+})
+
+describe('accountFirstRoute', () => {
+  it('désigne « Étape 1 sur 2 », écran poussé déclaré', () => {
+    const route = routes.find((candidate) => candidate.name === 'plus-account')
+
+    expect(accountFirstRoute()).toEqual({ name: 'plus-account' })
+    expect(route).toBeDefined()
+    expect(route?.meta?.rootScreen).toBeUndefined()
+  })
+})
+
 describe('signInReturnRoute', () => {
   it('ramène au parcours d’origine', () => {
+    expect(signInReturnRoute('plus-account')).toEqual({ name: 'plus-account' })
     expect(signInReturnRoute('settings')).toEqual({ name: 'settings' })
     expect(signInReturnRoute('settings-plus')).toEqual({ name: 'settings-plus' })
     expect(signInReturnRoute('home')).toEqual({ name: 'home' })

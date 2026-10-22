@@ -49,6 +49,8 @@ export const usePurchaseStore = defineStore('purchase', () => {
   const offers = ref<PlusOffer[]>([])
   /** Échec du dernier chargement des offres : les autres actions lèvent. */
   const error = ref<Error | null>(null)
+  /** Offre choisie avant d'avoir un compte : le paiement reprend une fois le compte ouvert. */
+  const pendingCheckout = ref<PaidPlan | null>(null)
 
   let generation = 0
 
@@ -65,6 +67,7 @@ export const usePurchaseStore = defineStore('purchase', () => {
     available,
     offers,
     error,
+    pendingCheckout,
 
     /** Sans droit payant connu, même échu, ne contacte pas RevenueCat. Ne lève pas. */
     async verifyKnownStatus(): Promise<boolean> {
@@ -99,6 +102,16 @@ export const usePurchaseStore = defineStore('purchase', () => {
         track('purchase_completed', { plan })
       }
       return outcome
+    },
+
+    rememberCheckout(plan: PaidPlan): void {
+      pendingCheckout.value = plan
+    },
+
+    takePendingCheckout(): PaidPlan | null {
+      const plan = pendingCheckout.value
+      pendingCheckout.value = null
+      return plan
     },
 
     async restore(): Promise<PlusStatus> {

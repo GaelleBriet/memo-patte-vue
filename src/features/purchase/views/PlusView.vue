@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import type { PaidPlan, PlusOffer } from '../service/billing.service'
+import { plusCheckout } from '../service/checkout.service'
 import { MANAGE_SUBSCRIPTIONS_URL } from '@/shared/utils/google-play'
+import { accountFirstRoute } from '@/shared/utils/sign-in-route'
 import {
   checkoutBar,
+  nextAfterCheckout,
   orderedOffers,
   PLUS_BENEFITS,
   PRESELECTED_PLAN,
@@ -24,13 +27,14 @@ const BENEFIT_ICONS: Record<PlusBenefit, string> = {
   devices: 'ms:devices',
   photos: 'ms:photo_camera',
 }
+const resumed = plusCheckout.resume()
 
 const { t } = useI18n()
 const router = useRouter()
 const purchase = usePurchaseStore()
 
 const phase = ref<Phase>('offers')
-const selected = ref<PaidPlan>(PRESELECTED_PLAN)
+const selected = ref<PaidPlan>(resumed?.plan ?? PRESELECTED_PLAN)
 const isLoadingOffers = ref(false)
 const hasAnswered = ref(false)
 
@@ -89,8 +93,9 @@ async function buy(plan: PaidPlan): Promise<void> {
   if (isBusy.value) return
   phase.value = 'purchasing'
   try {
-    const outcome = await purchase.purchase(plan)
-    phase.value = outcome.kind === 'purchased' ? 'success' : 'cancelled'
+    const next = nextAfterCheckout(await plusCheckout.checkout(plan))
+    phase.value = next === 'account' ? 'offers' : next
+    if (next === 'account') void router.push(accountFirstRoute())
   } catch {
     phase.value = 'failed'
   }
@@ -117,6 +122,10 @@ async function restore(): Promise<void> {
     showToast(t('plus.restore.failed'), { tone: 'error' })
   }
 }
+
+onMounted(() => {
+  if (resumed?.pay) void buy(resumed.plan)
+})
 </script>
 
 <template>

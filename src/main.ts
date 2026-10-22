@@ -23,6 +23,7 @@ import { provideAnimalsRepository } from '@/features/animals/store/animals.store
 import { authRepository } from '@/features/auth/repository/auth.repository'
 import { provideAuthRepository, useAuthStore } from '@/features/auth/store/auth.store'
 import { backfillCareSignalOnLaunch } from '@/features/home/service/care-signal-backfill.service'
+import { provideCheckoutAccount } from '@/features/purchase/service/checkout.service'
 import { installPlusAccountLink } from '@/features/purchase/service/plus-account-link.service'
 import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
 import { clearExports } from '@/features/settings/service/export-delivery.service'
@@ -80,5 +81,6 @@ installLaunchPriming(router)
 installRestorePrompt(router)
 void usePurchaseStore().verifyKnownStatus()
 installPlusAccountLink(() => useAuthStore().userId)
+provideCheckoutAccount(() => useAuthStore().userId)
 void useAuthStore().restore()
 void createDefaultSyncDependencies().then(installSync)

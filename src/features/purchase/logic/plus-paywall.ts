@@ -1,6 +1,9 @@
 import type { PaidPlan, PlusOffer } from '../service/billing.service'
+import type { CheckoutOutcome } from '../service/checkout.service'
 
 export type PlusBenefit = 'backup' | 'devices' | 'photos'
+
+export type CheckoutNext = 'account' | 'success' | 'cancelled' | 'offers'
 
 export type CheckoutBar =
   | { kind: 'offer'; offer: PlusOffer }
@@ -33,4 +36,15 @@ export function checkoutBar(state: {
   if (offer) return { kind: 'offer', offer }
   if (state.loading && !state.answered) return { kind: 'connecting' }
   return { kind: 'unavailable', retrying: state.loading }
+}
+
+const CHECKOUT_NEXT: Record<CheckoutOutcome['kind'], CheckoutNext> = {
+  'needs-account': 'account',
+  purchased: 'success',
+  cancelled: 'cancelled',
+  'already-plus': 'offers',
+}
+
+export function nextAfterCheckout(outcome: CheckoutOutcome): CheckoutNext {
+  return CHECKOUT_NEXT[outcome.kind]
 }

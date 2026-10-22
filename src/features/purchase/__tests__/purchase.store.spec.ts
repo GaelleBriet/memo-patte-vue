@@ -426,3 +426,20 @@ describe('usePurchaseStore', () => {
     })
   })
 })
+
+describe('usePurchaseStore — offre en attente d’un compte', () => {
+  it('n’attend aucune offre au départ', () => {
+    expect(usePurchaseStore().pendingCheckout).toBeNull()
+  })
+
+  it('garde l’offre choisie jusqu’à ce qu’on la reprenne, une seule fois', () => {
+    const store = usePurchaseStore()
+
+    store.rememberCheckout('lifetime')
+
+    expect(store.pendingCheckout).toBe('lifetime')
+    expect(store.takePendingCheckout()).toBe('lifetime')
+    expect(store.pendingCheckout).toBeNull()
+    expect(store.takePendingCheckout()).toBeNull()
+  })
+})

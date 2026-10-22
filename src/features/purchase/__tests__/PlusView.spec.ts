@@ -11,6 +11,7 @@ import {
 } from '../service/billing.service'
 import { NO_PLUS, type PlusStatus } from '../logic/plus-status'
 import { writeStoredPlusStatus } from '../logic/plus-status-storage'
+import { provideCheckoutAccount } from '../service/checkout.service'
 import { usePurchaseStore } from '../store/purchase.store'
 import PlusView from '../views/PlusView.vue'
 import i18n from '@/core/i18n'
@@ -41,6 +42,7 @@ const OFFRES: PlusOffer[] = [
 ]
 
 const ANNUEL: PlusStatus = { plan: 'annual', expiresAt: '2027-09-01T10:00:00Z' }
+const USER_ID = '4d1c6a52-8f0e-4b8e-9a51-2f6a3c9d7e10'
 
 const Vide = { render: () => null }
 
@@ -60,9 +62,12 @@ beforeEach(() => {
     routes: [
       { path: '/settings', name: 'settings', component: Vide },
       { path: '/plus', name: 'plus', component: Vide },
+      { path: '/plus/account', name: 'plus-account', component: Vide },
     ],
   })
   back = vi.spyOn(routeur, 'back').mockImplementation(() => {})
+  provideCheckoutAccount(() => null)
+  service.logIn.mockResolvedValue(NO_PLUS)
 })
 
 afterEach(() => {
@@ -452,6 +457,10 @@ describe('PlusView — déjà abonné', () => {
 })
 
 describe('PlusView — achat', () => {
+  beforeEach(() => {
+    provideCheckoutAccount(() => USER_ID)
+  })
+
   it('achète l’offre sélectionnée', async () => {
     service.purchase.mockResolvedValue({ kind: 'purchased', status: ANNUEL })
     const wrapper = await monter()
@@ -470,7 +479,9 @@ describe('PlusView — achat', () => {
 
     void bouton.trigger('click')
     await bouton.trigger('click')
+    await flushPromises()
 
+    expect(service.logIn).toHaveBeenCalledTimes(1)
     expect(service.purchase).toHaveBeenCalledTimes(1)
   })
 
@@ -547,6 +558,98 @@ describe('PlusView — achat', () => {
     await wrapper.get('.plus-outcome__secondary').trigger('click')
 
     expect(back).toHaveBeenCalled()
+  })
+})
+
+describe('PlusView — compte d’abord, puis achat', () => {
+  it('sans compte, ouvre « Étape 1 sur 2 » en retenant l’offre, sans rien acheter', async () => {
+    const wrapper = await monter()
+    const push = vi.spyOn(routeur, 'push').mockResolvedValue()
+
+    await offres(wrapper)[2]!.trigger('click')
+    await wrapper.get('.plus__submit').trigger('click')
+    await flushPromises()
+
+    expect(push).toHaveBeenCalledWith({ name: 'plus-account' })
+    expect(usePurchaseStore().pendingCheckout).toBe('lifetime')
+    expect(service.logIn).not.toHaveBeenCalled()
+    expect(service.purchase).not.toHaveBeenCalled()
+    expect(wrapper.get('.plus__submit').classes()).not.toContain('v-btn--loading')
+  })
+
+  it('connecté, rattache l’achat au compte avant d’ouvrir le paiement', async () => {
+    provideCheckoutAccount(() => USER_ID)
+    service.purchase.mockResolvedValue({ kind: 'purchased', status: ANNUEL })
+    const wrapper = await monter()
+
+    await wrapper.get('.plus__submit').trigger('click')
+    await flushPromises()
+
+    expect(service.logIn).toHaveBeenCalledWith(USER_ID)
+    expect(service.purchase).toHaveBeenCalledWith('annual')
+    expect(service.logIn.mock.invocationCallOrder[0]!).toBeLessThan(
+      service.purchase.mock.invocationCallOrder[0]!,
+    )
+    expect(wrapper.get('.plus-outcome__title').text()).toBe('Bienvenue dans Plus')
+  })
+
+  it('n’ouvre pas le paiement quand le compte n’a pas pu être rattaché', async () => {
+    provideCheckoutAccount(() => USER_ID)
+    service.logIn.mockRejectedValue(new BillingError('failed'))
+    const wrapper = await monter()
+
+    await wrapper.get('.plus__submit').trigger('click')
+    await flushPromises()
+
+    expect(service.purchase).not.toHaveBeenCalled()
+    expect(wrapper.get('.plus-outcome__title').text()).toBe('L’achat n’a pas abouti')
+  })
+
+  it('ne fait pas payer un compte qui a déjà Plus, et le lui dit', async () => {
+    provideCheckoutAccount(() => USER_ID)
+    service.logIn.mockResolvedValue(ANNUEL)
+    const wrapper = await monter()
+
+    await wrapper.get('.plus__submit').trigger('click')
+    await flushPromises()
+
+    expect(service.purchase).not.toHaveBeenCalled()
+    expect(wrapper.get('.plus-member__title').text()).toBe('Tu es déjà dans Plus')
+  })
+
+  it('de retour sans compte, garde l’offre choisie cochée et n’achète rien', async () => {
+    usePurchaseStore().rememberCheckout('lifetime')
+    const wrapper = await monter()
+
+    expect(offres(wrapper)[2]!.attributes('aria-checked')).toBe('true')
+    expect(wrapper.get('.plus__submit').text()).toBe('Continuer avec Plus à vie — $34.99')
+    expect(service.purchase).not.toHaveBeenCalled()
+    expect(usePurchaseStore().pendingCheckout).toBeNull()
+  })
+
+  it('de retour avec un compte, ouvre tout seul le paiement de l’offre choisie', async () => {
+    usePurchaseStore().rememberCheckout('monthly')
+    provideCheckoutAccount(() => USER_ID)
+    service.purchase.mockResolvedValue({ kind: 'purchased', status: ANNUEL })
+    const wrapper = await monter()
+
+    expect(service.logIn).toHaveBeenCalledWith(USER_ID)
+    expect(service.purchase).toHaveBeenCalledTimes(1)
+    expect(service.purchase).toHaveBeenCalledWith('monthly')
+    expect(wrapper.get('.plus-outcome__title').text()).toBe('Bienvenue dans Plus')
+  })
+
+  it('de retour avec un compte, accueille l’annulation de Google Play et garde l’offre', async () => {
+    usePurchaseStore().rememberCheckout('monthly')
+    provideCheckoutAccount(() => USER_ID)
+    service.purchase.mockResolvedValue({ kind: 'cancelled' })
+    const wrapper = await monter()
+
+    expect(wrapper.get('.plus-outcome__title').text()).toBe('Achat non abouti')
+
+    await wrapper.get('.plus-outcome__primary').trigger('click')
+
+    expect(offres(wrapper)[1]!.attributes('aria-checked')).toBe('true')
   })
 })
 
