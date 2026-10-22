@@ -22,6 +22,7 @@ import { useTreatmentsStore } from '../store/treatments.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
+import { currentLocale } from '@/core/i18n'
 import { dosageText } from '@/shared/domain/dosage'
 import type { NotifiedDue } from '@/shared/domain/reminder-route'
 import { reminderIcon } from '@/shared/domain/reminders'
@@ -88,7 +89,7 @@ const texts = computed(() =>
     {
       ...named.value,
       today: today.value,
-      dosage: period.value ? dosageText(t, period.value) : null,
+      dosage: period.value ? dosageText(t, currentLocale(), period.value) : null,
     },
     plan.value?.due ?? { dueOn: props.due?.dueOn ?? today.value, dueTime: null },
   ),

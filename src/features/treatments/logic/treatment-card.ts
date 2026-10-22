@@ -4,6 +4,7 @@ import { periodRhythmText } from './treatment-rhythm'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import type { ExactRemindersStatus } from '@/core/notifications'
 import { currentDoseText } from '@/shared/domain/current-dose'
+import { currentLocale } from '@/core/i18n'
 import { dosageText } from '@/shared/domain/dosage'
 import type { Due, TreatmentView } from '@/shared/domain/dose-calendar'
 import { formatClockTime, formatDayMonthOrYear } from '@/shared/utils/format'
@@ -58,7 +59,7 @@ export function doseCard(
   })
   return {
     rhythm: period === null ? null : periodRhythmText(t, period, today),
-    dosage: period === null ? null : dosageText(t, period),
+    dosage: period === null ? null : dosageText(t, currentLocale(), period),
     entries,
     end:
       entries.length > 0

@@ -3,6 +3,7 @@ import { format, parseISO } from 'date-fns'
 import i18n, { type AppLocale } from '@/core/i18n'
 import type { ExportData } from '@/shared/domain/carnet-data'
 import { givenDosesByTreatment, vaccinationHeads } from '@/shared/domain/carnet-heads'
+import { currentLocale } from '@/core/i18n'
 import { doseUnitText } from '@/shared/domain/dosage'
 import { outlookDueDate, treatmentOutlooks } from '@/shared/domain/treatment-outlook'
 import { recordedWeightIn, type WeightUnit } from '@/shared/domain/weight-unit'
@@ -195,7 +196,8 @@ export function toCsvTables(
         value(`frequencyUnit.${period.frequency.unit}`, period.frequency.value),
         period.times.length > 0 ? period.times.join(', ') : null,
         period.doseQuantity,
-        period.doseUnit && doseUnitText(i18n.global.t, period.doseUnit, period.doseQuantity ?? 1),
+        period.doseUnit &&
+          doseUnitText(i18n.global.t, currentLocale(), period.doseUnit, period.doseQuantity ?? 1),
         period.reminderOffsetMinutes,
         period.reminderTime,
       ]),
