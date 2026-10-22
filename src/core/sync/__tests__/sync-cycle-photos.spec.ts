@@ -431,6 +431,23 @@ describe('createSyncCycle — photos', () => {
       expect(outbox.entries().map(({ entity }) => entity)).toEqual(['animal', ANIMAL_PHOTO_ENTITY])
     })
 
+    it('garde en file, sans effacer, une photo qu’une ligne tirée remet dans le carnet sans son fichier', async () => {
+      const order: string[] = []
+      const outbox = createFakeOutbox([photoEntry(MILO_PHOTO)])
+      const deletes = fakeDeletes(order)
+      const carriedAfterPull = async () => order.includes('pull')
+
+      await cycleWith(outbox, fakeFiles(), fakeUploads(order), {
+        order,
+        deletes,
+        isPhotoInCarnet: carriedAfterPull,
+        isPhotoKeptByAnimal: carriedAfterPull,
+      }).runCycle()
+
+      expect(deletes.deleted).toEqual([])
+      expect(outbox.entries()).toEqual([photoEntry(MILO_PHOTO)])
+    })
+
     it('n’efface rien sans compte Plus actif', async () => {
       const outbox = createFakeOutbox([photoEntry(MILO_PHOTO)])
       const deletes = fakeDeletes()
