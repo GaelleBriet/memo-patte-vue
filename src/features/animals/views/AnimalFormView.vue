@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { currentWeightUnit } from '@/core/preferences/weight-unit-preference'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -271,7 +272,9 @@ onMounted(async () => {
       :label="t('animals.form.weight.label')"
       :help="t('animals.form.weight.help', { date: formatLongDate(today) })"
       control-id="animal-weight"
-      :error="errors.weightKg ? t(errors.weightKg, weightLimitParams(t)) : null"
+      :error="
+        errors.weightKg ? t(errors.weightKg, weightLimitParams(t, currentWeightUnit())) : null
+      "
     >
       <template #default="{ describedby, invalid }">
         <v-text-field
@@ -287,7 +290,7 @@ onMounted(async () => {
           hide-details
           :error="invalid"
           :placeholder="t('animals.form.weight.placeholder')"
-          :suffix="weightUnitText(t)"
+          :suffix="weightUnitText(t, currentWeightUnit())"
         />
       </template>
     </FormField>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { currentWeightUnit } from '@/core/preferences/weight-unit-preference'
 import { computed, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 
@@ -21,7 +22,7 @@ const { t } = useI18n()
 const labels: CarnetChartLabels = {
   max: (weight) => t('weight.chart.max', { weight }),
   min: (weight) => t('weight.chart.min', { weight }),
-  latest: (weight) => withWeightUnit(t, weight),
+  latest: (weight) => withWeightUnit(t, currentWeightUnit(), weight),
 }
 
 const figure = useTemplateRef<HTMLElement>('figure')
@@ -29,7 +30,7 @@ const figure = useTemplateRef<HTMLElement>('figure')
 const { width, textScale } = useChartMeasure(figure, DEFAULT_CHART_WIDTH)
 
 const chart = computed(() =>
-  buildCarnetWeightChart(props.entries, labels, {
+  buildCarnetWeightChart(currentWeightUnit(), props.entries, labels, {
     width: width.value,
     textScale: textScale.value,
   }),
