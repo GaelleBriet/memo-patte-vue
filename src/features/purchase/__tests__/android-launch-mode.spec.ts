@@ -15,4 +15,8 @@ describe('AndroidManifest.xml', () => {
   it('lance MainActivity en singleTop : un achat survit au passage de l’app en arrière-plan', () => {
     expect(mainActivityLaunchMode()).toBe('singleTop')
   })
+
+  it('ne réclame pas l’accès hérité au stockage : l’export passe par MediaStore', () => {
+    expect(manifest).not.toContain('requestLegacyExternalStorage')
+  })
 })
