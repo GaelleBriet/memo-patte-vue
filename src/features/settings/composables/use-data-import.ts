@@ -13,6 +13,7 @@ import {
   type ImportMode,
   type ImportRefusal,
 } from '../service/data-import.service'
+import { errorSummary } from '@/shared/utils/error-summary'
 
 export type ImportStep = 'idle' | 'choice' | 'confirm' | 'error'
 export type ImportError = ImportFileError | ImportRefusal | 'failed'
@@ -41,7 +42,7 @@ export function useDataImport(
     } catch (cause) {
       if (cause instanceof ImportRefusedError) return fail(cause.reason)
       // Le message d'une erreur d'écriture peut citer le fichier : seul son type est journalisé.
-      console.warn('Import impossible :', cause instanceof Error ? cause.name : typeof cause)
+      console.warn('Import impossible :', errorSummary(cause))
       fail('failed')
     }
   }
@@ -73,7 +74,7 @@ export function useDataImport(
     try {
       hasData = await service.hasLocalData()
     } catch (cause) {
-      console.warn('Import impossible :', cause)
+      console.warn('Import impossible :', errorSummary(cause))
       return fail('failed')
     }
 

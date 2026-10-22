@@ -22,6 +22,7 @@ import {
 } from '@/features/vaccinations/repository/vaccinations.repository'
 import { DAYS_OVERDUE } from '@/shared/domain/due-reminders'
 import { primingRouteFrom } from '@/shared/domain/notification-priming'
+import { errorSummary } from '@/shared/utils/error-summary'
 
 type Provider<T> = () => T | Promise<T>
 
@@ -108,7 +109,7 @@ export function createRemindersPriming({
       await router.replace(primingRouteFrom(from, options))
       return true
     } catch (cause) {
-      console.warn('Écran d’explication des rappels non proposé :', cause)
+      console.warn('Écran d’explication des rappels non proposé :', errorSummary(cause))
       return false
     }
   }

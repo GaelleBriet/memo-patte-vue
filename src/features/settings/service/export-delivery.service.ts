@@ -3,6 +3,7 @@ import { Directory, Encoding, Filesystem } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
 
 import type { ExportFile } from '../logic/export-format'
+import { errorSummary } from '@/shared/utils/error-summary'
 
 export type DeliveryMode = 'save' | 'share'
 
@@ -64,7 +65,7 @@ export async function clearExports(): Promise<void> {
     if (!files.some(({ name }) => name === EXPORTS_DIR)) return
     await Filesystem.rmdir({ path: EXPORTS_DIR, directory: Directory.Cache, recursive: true })
   } catch (cause) {
-    console.warn('Exports précédents non effacés :', cause)
+    console.warn('Exports précédents non effacés :', errorSummary(cause))
   }
 }
 
