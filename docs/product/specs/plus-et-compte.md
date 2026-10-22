@@ -74,17 +74,17 @@ publicité.
   absents : « La connexion avec Google n'est pas disponible sur ce téléphone. Continue avec une adresse
   e-mail. » (le bouton reste affiché). À la déconnexion, la mémoire du choix Google d'Android est aussi
   effacée. (Décisions du 2026-09-22 et du 2026-10-21 ; #65)
-- **PL-8** Inscription par e-mail : un code à 6 chiffres envoyé à l'adresse, saisi dans l'app, confirme
-  qu'elle est la bonne (« Renvoyer le code », code faux ou expiré signalé) ; avec Google, rien à
+- **PL-8** Inscription par e-mail : un code à 8 chiffres (décision du 2026-10-22)
+  envoyé à l'adresse, saisi dans l'app, confirme qu'elle est la bonne (« Renvoyer le code », code faux ou expiré signalé) ; avec Google, rien à
   confirmer. L'écran de création porte « Au moins 8 caractères. », « MémoPatte s'adresse aux 18 ans et
   plus. » et le lien vers la politique de confidentialité. (Spec Q1, 2026-09-29 ; conformité §2.3 ;
   relecture du lot C, validé en bloc)
-- **PL-9** Mot de passe oublié : un code à 6 chiffres envoyé par e-mail, saisi dans l'app, puis un
+- **PL-9** Mot de passe oublié : un code à 8 chiffres envoyé par e-mail, saisi dans l'app, puis un
   nouveau mot de passe (détail à vérifier dans la doc de Supabase) ; « Mot de passe oublié ? » depuis la
   connexion et depuis « Changer mon mot de passe ». (G4 ; relecture du lot C, QC-9)
 - **PL-10** Comptes par e-mail, dans Paramètres › Compte : « Changer mon mot de passe » (l'ancien, puis
   le nouveau) et « Changer mon adresse e-mail » (le mot de passe actuel d'abord, puis la nouvelle
-  adresse se confirme par un code à 6 chiffres, envoyé à elle seule ; une adresse déjà utilisée par un
+  adresse se confirme par un code à 8 chiffres, envoyé à elle seule ; une adresse déjà utilisée par un
   autre compte est refusée avec un message clair ; réglage Supabase à vérifier au ticket, spec Q3 ;
   **corrigé le 22 octobre : deux codes, l'un à l'adresse actuelle puis l'autre à la nouvelle, voir Q3**). Avec
   Google, ces gestes n'apparaissent pas : c'est Google qui gère, et la rubrique dit « Compte Google »

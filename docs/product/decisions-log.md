@@ -2974,6 +2974,14 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
+## 2026-10-22 — Code e-mail à 8 chiffres (Email OTP length) et durée 15 minutes (Email OTP Expiration)
+
+Le code reçu par e-mail (inscription, mot de passe oublié, changement d'adresse) compte 8
+chiffres et vaut 15 minutes. — Raison : réglages de Gaelle dans le tableau de bord Supabase
+(« Email OTP length » = 8, la valeur par défaut ; « Email OTP Expiration » = 900 s) ; c'est le
+serveur qui les garantit, l'app les suit (`CODE_LENGTH`, `CODE_LIFETIME_MS`). Remplace le
+« 6 chiffres » du 2026-09-29 et la durée d'une heure qu'utilisait l'app.
+
 ## 2026-10-21 — Restauration depuis le cloud (#40)
 
 Décisions de Gaelle du 21 octobre 2026, sur les questions de la restauration du carnet (écrans V18,
