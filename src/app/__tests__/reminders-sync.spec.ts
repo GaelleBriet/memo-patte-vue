@@ -468,11 +468,8 @@ describe('syncAllReminders', () => {
     await sync()()
 
     expect(scheduledNow()).toHaveLength(3)
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining('traitement'),
-      MILBEMAX_ID,
-      expect.anything(),
-    )
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('traitement'), expect.any(String))
+    expect(JSON.stringify(warn.mock.calls)).not.toContain(MILBEMAX_ID)
   })
 
   it('programme la première échéance de chaque entrée, même lointaine, avant de remplir au plus proche', async () => {

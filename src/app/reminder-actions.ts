@@ -15,6 +15,7 @@ import { treatmentDosesService } from '@/features/treatments/service/treatment-d
 import { getVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import { confirmUndoable } from '@/shared/composables/use-guarded-gestures'
 import { showToast } from '@/shared/utils/toast'
+import { errorSummary } from '@/shared/utils/error-summary'
 
 export function showReminderFeedback(feedback: ReminderFeedback | null): void {
   if (feedback === null) return
@@ -57,6 +58,8 @@ export function installReminderActions(
     queue = queue
       .then(() => router.isReady())
       .then(() => handle(action))
-      .catch((cause: unknown) => console.warn('Action de notification non traitée :', cause))
+      .catch((cause: unknown) =>
+        console.warn('Action de notification non traitée :', errorSummary(cause)),
+      )
   })
 }
