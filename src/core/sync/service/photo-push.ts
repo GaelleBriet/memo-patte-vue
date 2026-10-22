@@ -38,7 +38,8 @@ export function createPhotoPush(
 
   async function pushEntry(userId: string, entry: SyncOutboxEntry): Promise<void> {
     if (!(await isPhotoInCarnet(entry.entityId))) {
-      await outbox.removeIfUnchanged(entry)
+      // Tant que le fichier existe, « Annuler » peut rendre l'animal ou la photo sans la remettre en file.
+      if (!(await files.exists(entry.entityId))) await outbox.removeIfUnchanged(entry)
       return
     }
     const photo = await files.read(entry.entityId, MAX_PHOTO_BYTES)

@@ -20,4 +20,6 @@ export interface PhotoUploadPort {
 export interface LocalPhotoFiles {
   /** Un fichier plus lourd que `maxBytes` n'est pas lu. */
   read(fileName: string, maxBytes: number): Promise<LocalPhoto>
+  /** Sonde sans lire le fichier. */
+  exists(fileName: string): Promise<boolean>
 }

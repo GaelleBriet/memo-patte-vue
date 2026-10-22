@@ -43,6 +43,7 @@ function fakeFiles(initial: Record<string, Uint8Array> = {}) {
       if (!bytes) return { kind: 'absent' }
       return bytes.length > maxBytes ? { kind: 'too-large' } : { kind: 'found', bytes }
     }),
+    exists: vi.fn<LocalPhotoFiles['exists']>(async (name) => files.has(name)),
   }
 }
 
@@ -98,6 +99,7 @@ describe('createSyncCycle — photos', () => {
   afterEach(() => {
     db.close()
     vi.restoreAllMocks()
+    vi.useRealTimers()
   })
 
   function cycleWith(
@@ -122,49 +124,102 @@ describe('createSyncCycle — photos', () => {
   }
 
   describe('photo qui n’est plus portée par un animal', () => {
-    it('sort de la file sans lire ni envoyer le fichier, sans bloquer les autres photos', async () => {
-      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    function realCycle(files: ReturnType<typeof fakeFiles>, uploads: PhotoUploadPort) {
+      const outbox = createSyncOutboxRepository(db)
+      const cycle = createSyncCycle({
+        db,
+        outbox,
+        pushes,
+        tables: [],
+        userId: () => 'user-1',
+        isEligible: () => true,
+        photos: { files, uploads, isPhotoInCarnet: (name) => outbox.isPhotoInCarnet(name) },
+      })
+      return { outbox, cycle }
+    }
+
+    async function queuedPhotos(outbox: ReturnType<typeof createSyncOutboxRepository>) {
+      return (await outbox.listPending()).filter(({ entity }) => entity === ANIMAL_PHOTO_ENTITY)
+    }
+
+    it('reste en file, sans être lue, envoyée ni comptée, tant que son fichier existe', async () => {
       const outbox = createFakeOutbox([photoEntry(MILO_PHOTO), photoEntry(LUNA_PHOTO)])
       const files = fakeFiles({ [MILO_PHOTO]: jpeg(), [LUNA_PHOTO]: jpeg() })
       const uploads = fakeUploads()
 
-      await cycleWith(outbox, files, uploads, {
-        isPhotoInCarnet: async (name) => name === LUNA_PHOTO,
-      }).runCycle()
+      await expect(
+        cycleWith(outbox, files, uploads, {
+          isPhotoInCarnet: async (name) => name === LUNA_PHOTO,
+        }).runCycle(),
+      ).resolves.toBeUndefined()
 
       expect(files.read).not.toHaveBeenCalledWith(MILO_PHOTO, expect.anything())
       expect(uploads.sent.map(({ fileName }) => fileName)).toEqual([LUNA_PHOTO])
+      expect(outbox.entries()).toEqual([photoEntry(MILO_PHOTO)])
+      expect(outbox.lastSyncedAt()).not.toBeNull()
+    })
+
+    it('sort de la file sans envoi une fois son fichier effacé', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const outbox = createFakeOutbox([photoEntry(MILO_PHOTO)])
+      const uploads = fakeUploads()
+
+      await cycleWith(outbox, fakeFiles(), uploads, {
+        isPhotoInCarnet: async () => false,
+      }).runCycle()
+
+      expect(uploads.sent).toEqual([])
       expect(outbox.entries()).toEqual([])
       expect(warn).not.toHaveBeenCalled()
     })
 
-    it('Milo : photo choisie hors ligne à 21 h, retirée à 21 h 01, réseau revenu à 21 h 01 min 30 — rien ne part', async () => {
-      const outbox = createSyncOutboxRepository(db)
+    it('Milo : photo choisie hors ligne à 21 h, retirée à 21 h 01, réseau revenu à 21 h 01 min 30, fichier effacé à la fin du toast — rien ne part', async () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-22T19:00:00.000Z') })
       await enableSync(db)
       await insertAnimal(db, ANIMAL_ID, '2026-10-22T19:00:00.000Z', 'Milo', MILO_PHOTO)
       await setAnimalPhoto(db, ANIMAL_ID, null, '2026-10-22T19:01:00.000Z')
       const files = fakeFiles({ [MILO_PHOTO]: jpeg() })
       const uploads = fakeUploads()
-      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-22T19:01:30.000Z') })
+      const { outbox, cycle } = realCycle(files, uploads)
 
-      try {
-        await createSyncCycle({
-          db,
-          outbox,
-          pushes,
-          tables: [],
-          userId: () => 'user-1',
-          isEligible: () => true,
-          photos: { files, uploads, isPhotoInCarnet: (name) => outbox.isPhotoInCarnet(name) },
-        }).runCycle()
-      } finally {
-        vi.useRealTimers()
-      }
+      vi.setSystemTime(new Date('2026-10-22T19:01:30.000Z'))
+      await cycle.runCycle()
+      expect(uploads.sent).toEqual([])
+      expect(await queuedPhotos(outbox)).toHaveLength(1)
+
+      files.files.delete(MILO_PHOTO)
+      vi.setSystemTime(new Date('2026-10-22T19:01:35.000Z'))
+      await cycle.runCycle()
 
       expect(uploads.sent).toEqual([])
-      expect(await outbox.listPending()).not.toContainEqual(
-        expect.objectContaining({ entity: ANIMAL_PHOTO_ENTITY }),
-      )
+      expect(await queuedPhotos(outbox)).toEqual([])
+    })
+
+    it('Milo : supprimé à 21 h 01, cycle à 21 h 01 min 02, rendu par « Annuler » à 21 h 01 min 04 — sa photo part au cycle suivant', async () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-22T19:00:00.000Z') })
+      await enableSync(db)
+      await insertAnimal(db, ANIMAL_ID, '2026-10-22T19:00:00.000Z', 'Milo', MILO_PHOTO)
+      const files = fakeFiles({ [MILO_PHOTO]: jpeg() })
+      const uploads = fakeUploads()
+      const { outbox, cycle } = realCycle(files, uploads)
+      const deletedAt = '2026-10-22T19:01:00.000Z'
+
+      await db.run('UPDATE animal SET deleted_at = ?, updated_at = ? WHERE id = ?', [
+        deletedAt,
+        deletedAt,
+        ANIMAL_ID,
+      ])
+      vi.setSystemTime(new Date('2026-10-22T19:01:02.000Z'))
+      await cycle.runCycle()
+      await db.run('UPDATE animal SET deleted_at = NULL, updated_at = ? WHERE id = ?', [
+        '2026-10-22T19:01:04.000Z',
+        ANIMAL_ID,
+      ])
+      vi.setSystemTime(new Date('2026-10-22T19:01:06.000Z'))
+      await cycle.runCycle()
+
+      expect(uploads.sent.map(({ fileName }) => fileName)).toEqual([MILO_PHOTO])
+      expect(await queuedPhotos(outbox)).toEqual([])
     })
   })
 

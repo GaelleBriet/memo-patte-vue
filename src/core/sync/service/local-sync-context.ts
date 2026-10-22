@@ -1,5 +1,5 @@
 import { getDb } from '@/core/db/sqlite'
-import { readPhoto } from '@/core/photos/photo-storage'
+import { photoExists, readPhoto } from '@/core/photos/photo-storage'
 import { createAnimalPhotoUpload } from '@/core/supabase/animal-photo-upload'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { createSyncOutboxRepository } from '../repository/sync-outbox.repository'
@@ -32,7 +32,7 @@ export async function createLocalSyncContext(
   const outbox = createSyncOutboxRepository(db)
   const pushes = createSyncPushRepository(loadSupabaseClient)
   const photos = {
-    files: { read: readPhoto },
+    files: { read: readPhoto, exists: photoExists },
     uploads: createAnimalPhotoUpload(loadSupabaseClient),
     isPhotoInCarnet: (fileName: string) => outbox.isPhotoInCarnet(fileName),
   }

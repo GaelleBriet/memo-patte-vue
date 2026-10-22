@@ -365,8 +365,10 @@ Envoi : dans le cycle, après les lignes et avant le pull, chaque photo en file 
 `files/photos/` puis envoyée en remplaçant l'objet s'il existe (un renvoi après une coupure ne casse
 rien), et son entrée sort de la file (`core/sync/service/photo-push.ts`, port `PhotoUploadPort`
 implémenté par `core/supabase/animal-photo-upload.ts`). Une photo qu'aucun animal non supprimé ne
-porte plus (retirée, remplacée, animal supprimé) sort de la file sans envoi, même si son fichier est
-encore là le temps d'« Annuler ». Un fichier absent du téléphone sort de la file sans envoi ; un
+porte plus (retirée, remplacée, animal supprimé) n'est ni lue ni envoyée ; elle reste en file, sans
+compter d'échec, tant que son fichier existe, car « Annuler » peut rendre l'animal ou la photo sans
+la remettre en file, et elle en sort au cycle qui suit l'effacement du fichier (fin du toast ou
+ménage du lancement suivant). Un fichier absent du téléphone sort de la file sans envoi ; un
 fichier de plus de 2 Mio (taille lue par `stat`, sans lire le fichier) ou qui n'est pas un JPEG
 aussi, sans appel au serveur.
 Storage répond en HTTP 400 à presque tout refus, le motif est dans `statusCode` (relevé sur une pile
