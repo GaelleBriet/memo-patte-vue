@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 import { PhotoUploadRefusal, type PhotoUploadPort } from '@/core/sync/service/photo-upload-port'
 import { ANIMAL_PHOTOS_BUCKET } from './animal-photos-bucket'
+import { PHOTO_TRANSFER_TIMEOUT_MS, withStorageTimeout } from './storage-timeout'
 
 /** Storage répond en HTTP 400 à presque tout refus : le vrai motif est dans `statusCode` ou `code`. */
 const DEFINITIVE_STATUS_CODES = new Set(['400', '413', '415'])
@@ -27,9 +28,12 @@ export function createAnimalPhotoUpload(
   return {
     async upload(userId, fileName, jpeg) {
       const supabase = await loadClient()
-      const { error } = await supabase.storage
-        .from(ANIMAL_PHOTOS_BUCKET)
-        .upload(`${userId}/${fileName}`, jpeg, { upsert: true, contentType: 'image/jpeg' })
+      const { error } = await withStorageTimeout(
+        supabase.storage
+          .from(ANIMAL_PHOTOS_BUCKET)
+          .upload(`${userId}/${fileName}`, jpeg, { upsert: true, contentType: 'image/jpeg' }),
+        PHOTO_TRANSFER_TIMEOUT_MS,
+      )
       if (error) throw definitiveRefusal(error) ?? error
     },
   }

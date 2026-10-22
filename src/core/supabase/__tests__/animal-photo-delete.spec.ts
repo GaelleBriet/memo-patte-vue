@@ -1,8 +1,10 @@
 // @vitest-environment node
 import { StorageApiError, type SupabaseClient } from '@supabase/supabase-js'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { errorSummary } from '@/shared/utils/error-summary'
 import { createAnimalPhotoDelete } from '../animal-photo-delete'
+import { PHOTO_DELETE_TIMEOUT_MS, StorageTimeoutError } from '../storage-timeout'
 
 const PHOTO = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg'
 
@@ -75,5 +77,61 @@ describe('createAnimalPhotoDelete', () => {
     await expect(createAnimalPhotoDelete(async () => client).delete('user-1', PHOTO)).rejects.toBe(
       error,
     )
+  })
+})
+
+describe('createAnimalPhotoDelete — délai maximal', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  function clientAnsweringAfter(ms: number | null) {
+    const remove = vi.fn<Remove>(
+      () =>
+        new Promise((resolve) => {
+          if (ms !== null) setTimeout(() => resolve({ data: [{ name: PHOTO }], error: null }), ms)
+        }),
+    )
+    return { storage: { from: () => ({ remove }) } } as unknown as SupabaseClient
+  }
+
+  function track(promise: Promise<unknown>) {
+    const outcome: { settled: boolean; error?: unknown } = { settled: false }
+    promise.then(
+      () => (outcome.settled = true),
+      (error: unknown) => Object.assign(outcome, { settled: true, error }),
+    )
+    return outcome
+  }
+
+  it('fixe le délai d’un effacement à 30 s', () => {
+    expect(PHOTO_DELETE_TIMEOUT_MS).toBe(30_000)
+  })
+
+  it('un effacement sans réponse rejette, à 30 s pile, une erreur à réessayer qui ne nomme pas la photo', async () => {
+    vi.useFakeTimers()
+    const outcome = track(
+      createAnimalPhotoDelete(async () => clientAnsweringAfter(null)).delete('user-1', PHOTO),
+    )
+
+    await vi.advanceTimersByTimeAsync(29_900)
+    expect(outcome.settled).toBe(false)
+
+    await vi.advanceTimersByTimeAsync(100)
+    expect(outcome.error).toBeInstanceOf(StorageTimeoutError)
+    expect(errorSummary(outcome.error)).not.toContain(PHOTO.slice(0, 8))
+    expect(String(outcome.error)).not.toContain(PHOTO.slice(0, 8))
+  })
+
+  it('un effacement qui répond à 29 s réussit, sans minuteur laissé en suspens', async () => {
+    vi.useFakeTimers()
+    const outcome = track(
+      createAnimalPhotoDelete(async () => clientAnsweringAfter(29_000)).delete('user-1', PHOTO),
+    )
+
+    await vi.advanceTimersByTimeAsync(29_000)
+
+    expect(outcome).toEqual({ settled: true })
+    expect(vi.getTimerCount()).toBe(0)
   })
 })
