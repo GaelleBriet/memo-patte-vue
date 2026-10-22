@@ -21,6 +21,8 @@ import {
 } from './sync-test-db'
 
 const T_QUEUED = '2026-10-22T08:00:00.000Z'
+const DAY_MS = 24 * 60 * 60 * 1000
+const GRACE_OVER = new Date(Date.parse(T_QUEUED) + 7 * DAY_MS)
 const MILO_PHOTO = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg'
 const LUNA_PHOTO = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb.jpg'
 const MAX_PHOTO_BYTES = 2 * 1024 * 1024
@@ -130,6 +132,7 @@ describe('createSyncCycle — photos', () => {
       isPhotoKeptByAnimal?: (fileName: string) => Promise<boolean>
       deletes?: PhotoDeletePort
       tables?: SyncableTable[]
+      now?: () => Date
     } = {},
   ) {
     const isPhotoInCarnet = options.isPhotoInCarnet ?? (async () => true)
@@ -140,6 +143,7 @@ describe('createSyncCycle — photos', () => {
       tables: options.tables ?? [animalTable(options.order ?? [])],
       userId: () => 'user-1',
       isEligible: () => options.isEligible ?? true,
+      now: options.now ?? (() => GRACE_OVER),
       photos: {
         files,
         uploads,
@@ -213,7 +217,7 @@ describe('createSyncCycle — photos', () => {
       expect(warn).not.toHaveBeenCalled()
     })
 
-    it('Milo : photo choisie hors ligne à 21 h, retirée à 21 h 01, réseau revenu à 21 h 01 min 30, fichier effacé à la fin du toast — rien n’est envoyé', async () => {
+    it('Milo : photo choisie hors ligne à 21 h, retirée à 21 h 01, réseau revenu à 21 h 01 min 30, fichier effacé à la fin du toast — rien n’est envoyé ni effacé avant sept jours', async () => {
       vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-22T19:00:00.000Z') })
       await enableSync(db)
       await insertAnimal(db, ANIMAL_ID, '2026-10-22T19:00:00.000Z', 'Milo', MILO_PHOTO)
@@ -232,7 +236,14 @@ describe('createSyncCycle — photos', () => {
       await cycle.runCycle()
 
       expect(uploads.sent).toEqual([])
-      expect(await queuedPhotos(outbox)).toEqual([])
+      expect(await queuedPhotos(outbox)).toEqual([
+        {
+          entity: ANIMAL_PHOTO_ENTITY,
+          entityId: MILO_PHOTO,
+          queuedAt: '2026-10-22T19:01:00.000Z',
+          attempts: 0,
+        },
+      ])
     })
 
     it('Milo : supprimé à 21 h 01, cycle à 21 h 01 min 02, rendu par « Annuler » à 21 h 01 min 04 — sa photo part au cycle suivant', async () => {
@@ -502,11 +513,13 @@ describe('createSyncCycle — photos', () => {
     })
   })
 
-  describe('Plus en pause, puis réactivé', () => {
+  describe('sur une vraie base, horloge du téléphone', () => {
     const NEW_PHOTO = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc.jpg'
 
-    function pausableCycle(files: ReturnType<typeof fakeFiles>, order: string[]) {
+    function realBaseCycle(files: ReturnType<typeof fakeFiles>, order: string[]) {
       let plusActive = true
+      let now = new Date('2026-10-20T08:00:00.000Z')
+      const remoteRows: SyncRow[] = []
       const outbox = createSyncOutboxRepository(db)
       const uploads = fakeUploads(order)
       const deletes = fakeDeletes(order)
@@ -519,6 +532,16 @@ describe('createSyncCycle — photos', () => {
           )
           return row ?? null
         },
+        async pullPage() {
+          order.push('pull')
+          const rows = remoteRows.splice(0)
+          const stamp = now.toISOString()
+          return { rows, stamps: rows.map(() => stamp), cursor: rows.length > 0 ? stamp : null }
+        },
+        applyRemoteRowStatement: (row) => ({
+          sql: 'UPDATE animal SET photo_path = ?, updated_at = ? WHERE id = ?',
+          params: [row.photo_path ?? null, row.updated_at, row.id],
+        }),
       }
       const cycle = createSyncCycle({
         db,
@@ -527,6 +550,7 @@ describe('createSyncCycle — photos', () => {
         tables: [animals],
         userId: () => 'user-1',
         isEligible: () => plusActive,
+        now: () => now,
         photos: {
           files,
           uploads,
@@ -539,31 +563,97 @@ describe('createSyncCycle — photos', () => {
         cycle,
         uploads,
         deletes,
+        remoteRows,
         setPlusActive: (active: boolean) => {
           plusActive = active
+        },
+        setNow: (instant: string) => {
+          now = new Date(instant)
         },
       }
     }
 
-    it('Milo : Plus expiré le 1er novembre, photo changée le 5, Plus réactivé le 10 décembre — la nouvelle part, l’ancienne sort du cloud ensuite', async () => {
+    async function milo(files: ReturnType<typeof fakeFiles>, order: string[]) {
       await enableSync(db)
       await insertAnimal(db, ANIMAL_ID, '2026-10-20T08:00:00.000Z', 'Milo', MILO_PHOTO)
+      const context = realBaseCycle(files, order)
+      await context.cycle.runCycle()
+      order.length = 0
+      return context
+    }
+
+    const queuedPhoto = () =>
+      db.query('SELECT entity_id, queued_at, attempts FROM sync_outbox WHERE entity = ?', [
+        ANIMAL_PHOTO_ENTITY,
+      ])
+
+    it('Milo : photo changée le 23 octobre à 19 h — rien d’effacé à 6 j 23 h, ni compté ni redaté ; l’ancienne sort du cloud à 7 j pile', async () => {
       const order: string[] = []
       const files = fakeFiles({ [MILO_PHOTO]: jpeg() })
-      const { cycle, uploads, deletes, setPlusActive } = pausableCycle(files, order)
+      const { cycle, deletes, setNow } = await milo(files, order)
+      await setAnimalPhoto(db, ANIMAL_ID, NEW_PHOTO, '2026-10-23T19:00:00.000Z')
+      files.files.set(NEW_PHOTO, jpeg())
+      files.files.delete(MILO_PHOTO)
+
+      setNow('2026-10-23T19:01:00.000Z')
       await cycle.runCycle()
+      setNow('2026-10-30T18:00:00.000Z')
+      await cycle.runCycle()
+
+      expect(deletes.deleted).toEqual([])
+      await expect(queuedPhoto()).resolves.toEqual([
+        { entity_id: MILO_PHOTO, queued_at: '2026-10-23T19:00:00.000Z', attempts: 0 },
+      ])
+
+      setNow('2026-10-30T19:00:00.000Z')
+      await cycle.runCycle()
+
+      expect(deletes.deleted).toEqual([{ userId: 'user-1', fileName: MILO_PHOTO }])
+      await expect(queuedPhoto()).resolves.toEqual([])
+    })
+
+    it('Milo, deux appareils : le téléphone change la photo le 23 octobre à 19 h, la tablette, plus récente, garde l’ancienne et arrive le 25 — jamais effacée', async () => {
+      const order: string[] = []
+      const files = fakeFiles({ [MILO_PHOTO]: jpeg() })
+      const { cycle, deletes, remoteRows, setNow } = await milo(files, order)
+      await setAnimalPhoto(db, ANIMAL_ID, NEW_PHOTO, '2026-10-23T19:00:00.000Z')
+      files.files.set(NEW_PHOTO, jpeg())
+      files.files.delete(MILO_PHOTO)
+      setNow('2026-10-23T19:01:00.000Z')
+      await cycle.runCycle()
+
+      setNow('2026-10-25T10:00:00.000Z')
+      remoteRows.push({
+        id: ANIMAL_ID,
+        updated_at: '2026-10-23T19:00:30.000Z',
+        photo_path: MILO_PHOTO,
+      })
+      await cycle.runCycle()
+      setNow('2026-11-02T10:00:00.000Z')
+      await cycle.runCycle()
+
+      expect(deletes.deleted).toEqual([])
+      await expect(queuedPhoto()).resolves.toEqual([])
+    })
+
+    it('Milo : Plus expiré le 1er novembre, photo changée le 5, Plus réactivé le 10 décembre — la nouvelle part, l’ancienne sort du cloud ensuite', async () => {
+      const order: string[] = []
+      const files = fakeFiles({ [MILO_PHOTO]: jpeg() })
+      const { cycle, uploads, deletes, setPlusActive, setNow } = await milo(files, order)
       expect(uploads.sent.map(({ fileName }) => fileName)).toEqual([MILO_PHOTO])
-      order.length = 0
 
       setPlusActive(false)
+      setNow('2026-11-05T08:00:00.000Z')
       await setAnimalPhoto(db, ANIMAL_ID, NEW_PHOTO, '2026-11-05T08:00:00.000Z')
       files.files.set(NEW_PHOTO, jpeg())
       await cycle.runCycle()
       files.files.delete(MILO_PHOTO)
+      setNow('2026-11-20T08:00:00.000Z')
       await cycle.runCycle()
       expect(order).toEqual([])
 
       setPlusActive(true)
+      setNow('2026-12-10T08:00:00.000Z')
       await cycle.runCycle()
 
       expect(order).toEqual([
@@ -576,21 +666,20 @@ describe('createSyncCycle — photos', () => {
       await expect(db.query('SELECT entity FROM sync_outbox')).resolves.toEqual([])
     })
 
-    it('Milo : photo retirée le 5 novembre, Plus en pause — effacée du cloud à la réactivation, pas avant', async () => {
-      await enableSync(db)
-      await insertAnimal(db, ANIMAL_ID, '2026-10-20T08:00:00.000Z', 'Milo', MILO_PHOTO)
+    it('Milo : photo retirée le 5 novembre, Plus en pause — effacée du cloud à la réactivation du 10 décembre, pas avant', async () => {
       const order: string[] = []
       const files = fakeFiles({ [MILO_PHOTO]: jpeg() })
-      const { cycle, deletes, setPlusActive } = pausableCycle(files, order)
-      await cycle.runCycle()
+      const { cycle, deletes, setPlusActive, setNow } = await milo(files, order)
 
       setPlusActive(false)
+      setNow('2026-11-20T08:00:00.000Z')
       await setAnimalPhoto(db, ANIMAL_ID, null, '2026-11-05T08:00:00.000Z')
       files.files.delete(MILO_PHOTO)
       await cycle.runCycle()
       expect(deletes.deleted).toEqual([])
 
       setPlusActive(true)
+      setNow('2026-12-10T08:00:00.000Z')
       await cycle.runCycle()
 
       expect(deletes.deleted).toEqual([{ userId: 'user-1', fileName: MILO_PHOTO }])

@@ -46,6 +46,8 @@ export interface SyncCycleDependencies {
   isEligible: () => boolean
   /** Reconstruit les rappels : injecté plutôt qu'importé, `core/sync` reste indépendant des features. */
   onRemindersOutdated?: () => Promise<void>
+  /** L'horloge du téléphone ; `new Date()` par défaut. */
+  now?: () => Date
   /** Sans elles, les photos restent en file. */
   photos?: PhotoPushDependencies & PhotoRemovalDependencies
 }
@@ -88,7 +90,8 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
       ),
   })
   const photoPush = deps.photos && createPhotoPush(deps.outbox, deps.photos)
-  const photoRemoval = deps.photos && createPhotoRemoval(deps.outbox, deps.photos)
+  const now = deps.now ?? (() => new Date())
+  const photoRemoval = deps.photos && createPhotoRemoval(deps.outbox, deps.photos, now)
 
   /** Les écritures de la synchro ne repartent pas dans la file d'envoi. */
   async function runUnqueued(statements: SqlStatement[]): Promise<void> {
@@ -134,7 +137,7 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
         .slice(0, PUSH_CLAIM_SIZE)
       if (claimed.length === 0) return { keptRows, failure }
       try {
-        envoi ??= await deps.pushes.open(userId, new Date().toISOString())
+        envoi ??= await deps.pushes.open(userId, now().toISOString())
       } catch (cause) {
         return { keptRows, failure: failure ?? { cause } }
       }
@@ -285,7 +288,7 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
       const removalFailure = photoRemoval ? await photoRemoval.remove(userId) : null
       pushFailure ??= removalFailure
       if (pushFailure) throw pushFailure.cause
-      await deps.outbox.setLastSyncedAt(new Date().toISOString())
+      await deps.outbox.setLastSyncedAt(now().toISOString())
     },
   }
 }

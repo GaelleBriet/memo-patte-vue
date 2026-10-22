@@ -340,7 +340,9 @@ Aucune colonne ni table nouvelle. Un déclencheur sur `animal`, synchro activée
 `photo_path` d'un animal non supprimé change (photo remplacée ou retirée), l'ancien nom repart en
 file, `entity = 'animal_photo'`, daté par la modification. La même entrée sert donc à envoyer une
 photo que le carnet porte et à effacer du cloud une photo qu'il ne porte plus
-(`proposition-sync.md` §4.5). Rien pour un animal supprimé : sa photo reste dans le cloud, il peut
+(`proposition-sync.md` §4.5), au plus tôt 7 jours après `queued_at` (délai de grâce, décision du
+23 octobre 2026) : `queued_at` ne change qu'à une nouvelle modification de cette photo, jamais par
+un cycle, un renvoi ou un échec. Rien pour un animal supprimé : sa photo reste dans le cloud, il peut
 revenir.
 
 La migration (`src/core/db/migration-v19.ts`) crée le déclencheur seul, sans `DELETE` ni `UPDATE` de

@@ -1,5 +1,6 @@
 import { ANIMAL_PHOTO_ENTITY } from '@/core/db/schema-statements'
 import type { SyncOutboxEntry } from '../repository/sync-outbox.repository'
+import { PHOTO_CLOUD_GRACE_MS } from './cloud-photo'
 import type { PhotoDeletePort } from './photo-delete-port'
 import type { LocalPhotoFiles } from './photo-upload-port'
 import type { SyncCycleOutbox } from './sync-cycle'
@@ -20,12 +21,21 @@ export interface PhotoRemoval {
 export function createPhotoRemoval(
   outbox: Pick<SyncCycleOutbox, 'listPending' | 'removeIfUnchanged' | 'recordFailedPush'>,
   { files, deletes, isPhotoInCarnet, isPhotoKeptByAnimal }: PhotoRemovalDependencies,
+  now: () => Date,
 ): PhotoRemoval {
+  const isPastGrace = (entry: SyncOutboxEntry) =>
+    now().getTime() - Date.parse(entry.queuedAt) >= PHOTO_CLOUD_GRACE_MS
+
   async function removeEntry(userId: string, entry: SyncOutboxEntry): Promise<void> {
     if (await isPhotoInCarnet(entry.entityId)) return
     // Tant que le fichier existe, « Annuler » peut rendre la photo sans la remettre en file.
     if (await files.exists(entry.entityId)) return
-    if (!(await isPhotoKeptByAnimal(entry.entityId))) await deletes.delete(userId, entry.entityId)
+    if (await isPhotoKeptByAnimal(entry.entityId)) {
+      await outbox.removeIfUnchanged(entry)
+      return
+    }
+    if (!isPastGrace(entry)) return
+    await deletes.delete(userId, entry.entityId)
     await outbox.removeIfUnchanged(entry)
   }
 
