@@ -52,12 +52,14 @@ describe('useEmailCode', () => {
   })
 
   describe('confirm', () => {
-    it('confirme l’adresse avec le code saisi', async () => {
+    it('confirme l’adresse avec le code saisi, puis ferme l’étape du code', async () => {
       const etape = codeOuvert()
       etape.setCode('123456')
 
       expect(await etape.confirm()).toBe(true)
       expect(verifySignUpCode).toHaveBeenCalledWith(ADRESSE, '123456')
+      expect(etape.email.value).toBeNull()
+      expect(etape.code.value).toBe('')
     })
 
     it('n’envoie rien tant que le code est incomplet', async () => {
@@ -167,6 +169,16 @@ describe('useEmailCode', () => {
       etape.setCode('123456')
       await etape.confirm()
       expect(etape.errorKey.value).toBe('auth.code.errors.incorrect')
+    })
+
+    it('dit d’attendre une minute quand Supabase refuse un envoi trop rapproché', async () => {
+      resendSignUpCode.mockRejectedValue(new AccountError('email-rate-limited'))
+      const etape = codeOuvert()
+      maintenant = ENVOI + 2 * MINUTE
+
+      expect(await etape.resend()).toBe('wait')
+      expect(etape.noticeKey.value).toBe('auth.code.wait')
+      expect(etape.errorKey.value).toBeNull()
     })
 
     it('dit pourquoi quand l’envoi échoue', async () => {

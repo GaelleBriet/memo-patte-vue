@@ -390,6 +390,30 @@ describe('SignInView', () => {
       expect(repository.signOut).not.toHaveBeenCalled()
     })
 
+    it('par un code après une adresse jamais confirmée : sans réponse, plus d’écran du code ni de « Confirmer »', async () => {
+      repository.signIn.mockRejectedValue(new AccountError('email-not-confirmed'))
+      repository.resendSignUpCode.mockResolvedValue()
+      repository.verifySignUpCode.mockImplementation(async () => {
+        flow.checking()
+        return { userId: USER_ID }
+      })
+      const wrapper = await monter('/sign-in?from=settings-plus&restore=1')
+      await saisir(wrapper, 'sophie@exemple.fr', 'motdepasse')
+      await envoyer(wrapper)
+      await wrapper.get('#email-code-input').setValue('123456')
+      await wrapper.get('.sign-in__confirm-code').trigger('click')
+      await flushPromises()
+
+      flow.noAnswer()
+      await flushPromises()
+
+      expect(wrapper.get('.sign-in__no-answer-retry').text()).toBe('Réessayer')
+      expect(wrapper.get('h1').text()).not.toBe('Confirme ton e-mail')
+      expect(wrapper.find('.email-code').exists()).toBe(false)
+      expect(wrapper.find('.sign-in__confirm-code').exists()).toBe(false)
+      expect(repository.verifySignUpCode).toHaveBeenCalledOnce()
+    })
+
     it('par Google aussi : attend le contrôle, puis ouvre « Restaurer mon carnet »', async () => {
       googleSignIn.mockImplementation(async () => {
         flow.checking()
@@ -700,6 +724,37 @@ describe('SignInView', () => {
       expect(repository.resendSignUpCode).toHaveBeenCalledWith('sophie@exemple.fr')
       expect(toastMessage.value).toBe('Nouveau code envoyé à sophie@exemple.fr.')
       expect((wrapper.get('#email-code-input').element as HTMLInputElement).value).toBe('')
+    })
+
+    it('grise « Confirmer » pendant le renvoi du code', async () => {
+      let terminer: () => void = () => {}
+      repository.resendSignUpCode.mockReturnValue(
+        new Promise<void>((resolve) => (terminer = resolve)),
+      )
+      const wrapper = await inscrire()
+      await taper(wrapper, '123456')
+      vi.setSystemTime(new Date(ENVOI.getTime() + 61_000))
+
+      await wrapper.get('.email-code__resend').trigger('click')
+      await flushPromises()
+
+      expect(wrapper.get('.sign-in__confirm-code').attributes('disabled')).toBeDefined()
+      terminer()
+      await flushPromises()
+    })
+
+    it('dit d’attendre une minute quand Supabase refuse un envoi trop rapproché', async () => {
+      repository.resendSignUpCode.mockRejectedValue(new AccountError('email-rate-limited'))
+      const wrapper = await inscrire()
+      vi.setSystemTime(new Date(ENVOI.getTime() + 61_000))
+
+      await wrapper.get('.email-code__resend').trigger('click')
+      await flushPromises()
+
+      expect(wrapper.get('.email-code__notice').text()).toBe(
+        'Attends une minute avant de demander un nouveau code.',
+      )
+      expect(wrapper.find('.email-code__error').exists()).toBe(false)
     })
 
     it.each([

@@ -13,6 +13,7 @@ describe('accountErrorKey', () => {
     expect(accountErrorKey('weak-password')).toBe('auth.errors.weakPassword')
     expect(accountErrorKey('email-not-confirmed')).toBe('auth.errors.unknown')
     expect(accountErrorKey('invalid-code')).toBe('auth.code.errors.incorrect')
+    expect(accountErrorKey('email-rate-limited')).toBe('auth.code.wait')
     expect(accountErrorKey('offline')).toBe('auth.errors.offline')
     expect(accountErrorKey('unknown')).toBe('auth.errors.unknown')
   })

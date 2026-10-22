@@ -343,7 +343,7 @@ onUnmounted(() => {
           variant="flat"
           color="primary"
           block
-          :disabled="!emailCode.isComplete.value"
+          :disabled="!emailCode.isComplete.value || emailCode.isResending.value"
           @click="confirmCode"
         >
           {{ t('auth.code.confirm') }}

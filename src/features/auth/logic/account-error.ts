@@ -4,6 +4,7 @@ export type AccountErrorReason =
   | 'weak-password'
   | 'email-not-confirmed'
   | 'invalid-code'
+  | 'email-rate-limited'
   | 'offline'
   | 'unknown'
 

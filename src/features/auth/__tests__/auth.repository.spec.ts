@@ -353,10 +353,12 @@ describe('createAuthRepository', () => {
       expect(server.bodies.at(-1)).toMatchObject({ email: 'gaelle@example.com', type: 'signup' })
     })
 
-    it('lève « autre » quand Supabase refuse d’envoyer un e-mail de plus', async () => {
+    it('lève « envois trop rapprochés » quand Supabase refuse un e-mail de plus', async () => {
       server.on('resend', apiError(429, 'over_email_send_rate_limit'))
 
-      expect(await reasonOf(repository.resendSignUpCode('gaelle@example.com'))).toBe('unknown')
+      expect(await reasonOf(repository.resendSignUpCode('gaelle@example.com'))).toBe(
+        'email-rate-limited',
+      )
     })
 
     it('signale l’absence de réseau', async () => {

@@ -46,6 +46,7 @@ const REASONS_BY_CODE: Record<string, AccountErrorReason> = {
   weak_password: 'weak-password',
   email_not_confirmed: 'email-not-confirmed',
   otp_expired: 'invalid-code',
+  over_email_send_rate_limit: 'email-rate-limited',
 }
 
 function isRetryable(error: AuthError | null): boolean {

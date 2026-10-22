@@ -32,6 +32,14 @@ export function useEmailCode({ now = Date.now }: { now?: () => number } = {}) {
   const isComplete = computed(() => isCompleteCode(code.value))
   const isExpired = computed(() => errorKey.value === EXPIRED_KEY)
 
+  function forget(): void {
+    email.value = null
+    code.value = ''
+    errorKey.value = null
+    noticeKey.value = null
+    sentAt = null
+  }
+
   function open(address: string, from: SignInMode, sent: number | null): void {
     email.value = address
     origin.value = from
@@ -81,6 +89,7 @@ export function useEmailCode({ now = Date.now }: { now?: () => number } = {}) {
       noticeKey.value = null
       try {
         await auth.verifySignUpCode(email.value, code.value)
+        forget()
         return true
       } catch (cause) {
         errorKey.value =
@@ -108,6 +117,10 @@ export function useEmailCode({ now = Date.now }: { now?: () => number } = {}) {
         errorKey.value = null
         return 'sent'
       } catch (cause) {
+        if (cause instanceof AccountError && cause.reason === 'email-rate-limited') {
+          noticeKey.value = 'auth.code.wait'
+          return 'wait'
+        }
         errorKey.value = signInErrorKey(cause)
         return 'failed'
       } finally {
@@ -117,11 +130,7 @@ export function useEmailCode({ now = Date.now }: { now?: () => number } = {}) {
 
     close(): { email: string; origin: SignInMode } {
       const closed = { email: email.value ?? '', origin: origin.value }
-      email.value = null
-      code.value = ''
-      errorKey.value = null
-      noticeKey.value = null
-      sentAt = null
+      forget()
       return closed
     },
   }
