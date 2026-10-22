@@ -35,12 +35,13 @@ describe('handleDeleteAccount, demande reçue par e-mail', () => {
     expect(await response.json()).toEqual({ status: 'deleted' })
     expect(fake.calls).toEqual([
       { kind: 'lookup', arg: SOPHIE },
+      { kind: 'posthog', arg: USER },
+      { kind: 'revenuecat', arg: USER },
       { kind: 'list', arg: { folder: USER, limit: PHOTO_PAGE_SIZE } },
       { kind: 'remove', arg: [`${USER}/milo.jpg`] },
       { kind: 'list', arg: { folder: USER, limit: PHOTO_PAGE_SIZE } },
-      { kind: 'posthog', arg: USER },
-      { kind: 'revenuecat', arg: USER },
       { kind: 'deleteUser', arg: USER },
+      { kind: 'list', arg: { folder: USER, limit: PHOTO_PAGE_SIZE } },
       { kind: 'record', arg: 'email' },
     ])
   })

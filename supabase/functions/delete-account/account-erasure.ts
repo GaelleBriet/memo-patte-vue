@@ -84,6 +84,18 @@ async function recordDeletion(origin: DeletionOrigin, ports: AccountErasurePorts
   }
 }
 
+/** Un autre téléphone a pu envoyer une photo avant que le compte parte ; après, plus aucun envoi n'est accepté. */
+async function removePhotosSentDuringDeletion(
+  userId: string,
+  ports: AccountErasurePorts,
+): Promise<void> {
+  try {
+    await removeAllPhotos(userId, ports)
+  } catch {
+    console.error('Compte supprimé, second passage sur ses photos en échec')
+  }
+}
+
 /** Le compte part en dernier : tant qu'il existe, un nouvel essai reprend. */
 export async function eraseAccount(
   userId: string,
@@ -93,8 +105,9 @@ export async function eraseAccount(
   if (ports.invalidProviderSettings.length > 0) {
     throw new ErasureNotConfiguredError(ports.invalidProviderSettings)
   }
-  await removeAllPhotos(userId, ports)
   for (const erase of ports.providerErasures) await erase(userId)
+  await removeAllPhotos(userId, ports)
   await ports.deleteUser(userId)
+  await removePhotosSentDuringDeletion(userId, ports)
   await recordDeletion(origin, ports)
 }

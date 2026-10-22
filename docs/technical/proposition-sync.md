@@ -369,8 +369,10 @@ qu'un animal est passé en tombstone : il peut revenir.
 RLS `storage.objects`, pour les quatre opérations :
 `(storage.foldername(name))[1] = (select auth.uid())::text`, plus `has_active_plus()` en écriture.
 
-_Vigilance_ #87 : Supabase refuse de supprimer un utilisateur propriétaire d'objets Storage. Ordre
-imposé — objets du dossier, puis lignes, puis `deleteUser`.
+_Vigilance_ #87 : `deleteUser` supprime le compte et laisse ses objets Storage orphelins (vérifié le
+2026-10-21). Ordre imposé : PostHog et RevenueCat, objets du dossier, `deleteUser` (les lignes partent
+en cascade), puis un second passage sur le dossier pour une photo envoyée entre-temps par un autre
+téléphone (#1053).
 
 ## 5. Interaction avec l'existant
 
