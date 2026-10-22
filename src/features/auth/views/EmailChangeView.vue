@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import { useAccountIdentity } from '../composables/use-account-identity'
+import { CODE_LENGTH } from '../logic/email-code'
 import { useEmailChange } from '../composables/use-email-change'
 import FormField from '@/shared/form/FormField.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
@@ -79,7 +80,9 @@ async function confirm(): Promise<void> {
         })
       "
       :label="t('settings.account.email.codeLabel')"
-      :input-label="isCurrentStep ? null : t('settings.account.email.codeInputLabel')"
+      :input-label="
+        isCurrentStep ? null : t('settings.account.email.codeInputLabel', { length: CODE_LENGTH })
+      "
       :can-change-address="false"
       @update:code="emailCode.setCode"
       @resend="resendCode"

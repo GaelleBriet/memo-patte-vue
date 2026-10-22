@@ -2,6 +2,7 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 
+import { CODE_LENGTH } from '../logic/email-code'
 import { AccountError } from '../logic/account-error'
 import { writePlusAccount } from '../logic/plus-account-storage'
 import { authRepository } from '../repository/auth.repository'
@@ -13,6 +14,7 @@ import vuetify from '@/core/theme/vuetify'
 import router from '@/router'
 import { toastMessage } from '@/shared/utils/toast'
 
+const code = (digit: string) => digit.repeat(CODE_LENGTH)
 const NOUVELLE = 'sophie2@exemple.fr'
 const ACTUELLE = 'sophie@exemple.fr'
 
@@ -73,7 +75,7 @@ async function codeEnvoye() {
 
 async function secondEtape() {
   const w = await codeEnvoye()
-  await w.get('#email-code-input').setValue('111111')
+  await w.get('#email-code-input').setValue(code('1'))
   await toucher(w, '.email-change__confirm')
   return w
 }
@@ -166,13 +168,13 @@ describe('EmailChangeView', () => {
     it('passe au code de la nouvelle adresse sans changer le compte', async () => {
       const w = await secondEtape()
 
-      expect(verifyEmailChangeCode).toHaveBeenCalledWith(ACTUELLE, '111111')
+      expect(verifyEmailChangeCode).toHaveBeenCalledWith(ACTUELLE, code('1'))
       expect(w.get('.email-code__message').text()).toBe(
         'Code reçu à la nouvelle adresse, sophie2@exemple.fr',
       )
       expect(w.get('.email-code__label').text()).toBe('Code de confirmation')
       expect(w.get('#email-code-input').attributes('aria-label')).toBe(
-        'Code à 6 chiffres envoyé à la nouvelle adresse',
+        `Code à ${CODE_LENGTH} chiffres envoyé à la nouvelle adresse`,
       )
       expect(w.find('.email-change__lost').exists()).toBe(false)
       expect(toastMessage.value).not.toBe('Adresse e-mail modifiée.')
@@ -181,11 +183,11 @@ describe('EmailChangeView', () => {
 
     it('confirme, dit « Adresse e-mail modifiée. » et revient à Compte', async () => {
       const w = await secondEtape()
-      await w.get('#email-code-input').setValue('222222')
+      await w.get('#email-code-input').setValue(code('2'))
 
       await toucher(w, '.email-change__confirm')
 
-      expect(verifyEmailChangeCode).toHaveBeenLastCalledWith(NOUVELLE, '222222')
+      expect(verifyEmailChangeCode).toHaveBeenLastCalledWith(NOUVELLE, code('2'))
       expect(toastMessage.value).toBe('Adresse e-mail modifiée.')
       expect(replace).toHaveBeenCalledWith({ name: 'settings-account' })
     })
@@ -193,7 +195,7 @@ describe('EmailChangeView', () => {
     it('dit « pas le bon » pour un code refusé', async () => {
       verifyEmailChangeCode.mockReset().mockRejectedValue(new AccountError('invalid-code'))
       const w = await codeEnvoye()
-      await w.get('#email-code-input').setValue('000000')
+      await w.get('#email-code-input').setValue(code('0'))
 
       await toucher(w, '.email-change__confirm')
 

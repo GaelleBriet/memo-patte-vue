@@ -2,11 +2,13 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useEmailChange } from '../composables/use-email-change'
+import { CODE_LENGTH } from '../logic/email-code'
 import { AccountError } from '../logic/account-error'
 import { useAuthStore } from '../store/auth.store'
 
 vi.mock('../store/auth.store', () => ({ useAuthStore: vi.fn<typeof useAuthStore>() }))
 
+const code = (digit: string) => digit.repeat(CODE_LENGTH)
 const NOUVELLE = 'sophie2@exemple.fr'
 const ACTUELLE = 'sophie@exemple.fr'
 const ENVOI = new Date(2026, 9, 22, 18, 0).getTime()
@@ -115,17 +117,17 @@ describe('useEmailChange', () => {
   it('demande le code de l’adresse actuelle puis celui de la nouvelle, et ne change le compte qu’au second', async () => {
     const change = remplir('ancien-secret', NOUVELLE)
     await change.sendCode()
-    change.emailCode.setCode('111111')
+    change.emailCode.setCode(code('1'))
 
     expect(await change.confirm()).toBe(false)
-    expect(verifyEmailChangeCode).toHaveBeenLastCalledWith(ACTUELLE, '111111', false)
+    expect(verifyEmailChangeCode).toHaveBeenLastCalledWith(ACTUELLE, code('1'), false)
     expect(change.step.value).toBe('new')
     expect(change.emailCode.email.value).toBe(NOUVELLE)
     expect(change.emailCode.code.value).toBe('')
 
-    change.emailCode.setCode('222222')
+    change.emailCode.setCode(code('2'))
     expect(await change.confirm()).toBe(true)
-    expect(verifyEmailChangeCode).toHaveBeenLastCalledWith(NOUVELLE, '222222', true)
+    expect(verifyEmailChangeCode).toHaveBeenLastCalledWith(NOUVELLE, code('2'), true)
     expect(change.step.value).toBe('address')
     expect(change.emailCode.email.value).toBeNull()
   })
@@ -134,7 +136,7 @@ describe('useEmailChange', () => {
     const change = remplir('ancien-secret', NOUVELLE)
     await change.sendCode()
     verifyEmailChangeCode.mockReset().mockRejectedValueOnce(new AccountError('invalid-code'))
-    change.emailCode.setCode('000000')
+    change.emailCode.setCode(code('0'))
 
     expect(await change.confirm()).toBe(false)
     expect(change.step.value).toBe('current')
@@ -143,9 +145,9 @@ describe('useEmailChange', () => {
     verifyEmailChangeCode
       .mockResolvedValueOnce(false)
       .mockRejectedValueOnce(new AccountError('invalid-code'))
-    change.emailCode.setCode('111111')
+    change.emailCode.setCode(code('1'))
     await change.confirm()
-    change.emailCode.setCode('000000')
+    change.emailCode.setCode(code('0'))
     maintenant = ENVOI + 61 * 60_000
 
     expect(await change.confirm()).toBe(false)
@@ -156,10 +158,10 @@ describe('useEmailChange', () => {
   it('affiche une erreur quand le second code est refusé par une erreur du compte', async () => {
     const change = remplir('ancien-secret', NOUVELLE)
     await change.sendCode()
-    change.emailCode.setCode('111111')
+    change.emailCode.setCode(code('1'))
     await change.confirm()
     verifyEmailChangeCode.mockReset().mockRejectedValue(new AccountError('unknown'))
-    change.emailCode.setCode('222222')
+    change.emailCode.setCode(code('2'))
 
     expect(await change.confirm()).toBe(false)
     expect(change.step.value).toBe('new')
@@ -169,12 +171,12 @@ describe('useEmailChange', () => {
   it('compte l’heure de validité depuis l’envoi des deux codes', async () => {
     const change = remplir('ancien-secret', NOUVELLE)
     await change.sendCode()
-    maintenant = ENVOI + 50 * 60_000
-    change.emailCode.setCode('111111')
+    maintenant = ENVOI + 10 * 60_000
+    change.emailCode.setCode(code('1'))
     await change.confirm()
-    maintenant = ENVOI + 65 * 60_000
+    maintenant = ENVOI + 20 * 60_000
     verifyEmailChangeCode.mockReset().mockRejectedValue(new AccountError('invalid-code'))
-    change.emailCode.setCode('222222')
+    change.emailCode.setCode(code('2'))
 
     await change.confirm()
 
@@ -184,7 +186,7 @@ describe('useEmailChange', () => {
   it('un double toucher sur « Confirmer » ne vérifie qu’une fois', async () => {
     const change = remplir('ancien-secret', NOUVELLE)
     await change.sendCode()
-    change.emailCode.setCode('111111')
+    change.emailCode.setCode(code('1'))
 
     await Promise.all([change.confirm(), change.confirm()])
 
@@ -211,7 +213,7 @@ describe('useEmailChange', () => {
   it('renvoyer depuis l’étape de la nouvelle adresse ramène à l’adresse actuelle, avec les deux codes repartis', async () => {
     const change = remplir('ancien-secret', NOUVELLE)
     await change.sendCode()
-    change.emailCode.setCode('111111')
+    change.emailCode.setCode(code('1'))
     await change.confirm()
     maintenant = ENVOI + 60_000
 
@@ -231,12 +233,12 @@ describe('useEmailChange', () => {
     expect(await change.resend()).toBe('sent')
     expect(change.step.value).toBe('current')
 
-    maintenant = ENVOI + 30 * 60_000
-    change.emailCode.setCode('111111')
+    maintenant = ENVOI + 5 * 60_000
+    change.emailCode.setCode(code('1'))
     await change.confirm()
-    maintenant = ENVOI + 60 * 60_000
+    maintenant = ENVOI + 15 * 60_000
     verifyEmailChangeCode.mockReset().mockRejectedValue(new AccountError('invalid-code'))
-    change.emailCode.setCode('222222')
+    change.emailCode.setCode(code('2'))
     await change.confirm()
 
     expect(change.emailCode.errorKey.value).toBe('auth.code.errors.incorrect')
@@ -245,7 +247,7 @@ describe('useEmailChange', () => {
   it('abandonner entre les deux étapes revient à l’adresse, le compte gardant l’ancienne', async () => {
     const change = remplir('ancien-secret', NOUVELLE)
     await change.sendCode()
-    change.emailCode.setCode('111111')
+    change.emailCode.setCode(code('1'))
     await change.confirm()
 
     change.backToAddress()

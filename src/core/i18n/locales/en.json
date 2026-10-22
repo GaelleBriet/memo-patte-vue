@@ -1229,7 +1229,7 @@
         "send": "Get the code",
         "sendLabel": "Get the codes",
         "codeLabel": "Confirmation code",
-        "codeInputLabel": "6-digit code sent to the new address",
+        "codeInputLabel": "{length}-digit code sent to the new address",
         "codeCurrent": "Code received at your current address, {email}",
         "codeNew": "Code received at the new address, {email}",
         "lostAccess": "No longer have access to this address?",
