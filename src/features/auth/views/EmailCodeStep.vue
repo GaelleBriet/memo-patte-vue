@@ -4,14 +4,22 @@ import { useI18n } from 'vue-i18n'
 
 import { CODE_LENGTH } from '../logic/email-code'
 
-const props = defineProps<{
-  email: string
-  code: string
-  errorKey: string | null
-  noticeKey: string | null
-  isExpired: boolean
-  isResending: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    email: string
+    code: string
+    errorKey: string | null
+    noticeKey: string | null
+    isExpired: boolean
+    isResending: boolean
+    message?: string | null
+    label?: string | null
+    inputLabel?: string | null
+    canChangeAddress?: boolean
+    canResend?: boolean
+  }>(),
+  { message: null, label: null, inputLabel: null, canChangeAddress: true, canResend: true },
+)
 
 const emit = defineEmits<{
   'update:code': [input: string]
@@ -39,8 +47,11 @@ async function onInput(event: Event): Promise<void> {
 
 <template>
   <div class="email-code">
-    <p :id="messageId" class="email-code__message">{{ t('auth.code.message', { email }) }}</p>
+    <p :id="messageId" class="email-code__message">
+      {{ message ?? t('auth.code.message', { email }) }}
+    </p>
 
+    <p v-if="label" class="email-code__label" aria-hidden="true">{{ label }}</p>
     <div class="email-code__field">
       <input
         id="email-code-input"
@@ -50,7 +61,8 @@ async function onInput(event: Event): Promise<void> {
         type="text"
         inputmode="numeric"
         autocomplete="one-time-code"
-        :aria-labelledby="messageId"
+        :aria-label="inputLabel ?? undefined"
+        :aria-labelledby="inputLabel ? undefined : messageId"
         :aria-describedby="errorKey ? errorId : undefined"
         :aria-invalid="errorKey ? 'true' : 'false'"
         @input="onInput"
@@ -76,18 +88,22 @@ async function onInput(event: Event): Promise<void> {
       <span>{{ t(errorKey) }}</span>
     </p>
 
+    <slot />
+
     <div class="email-code__links">
       <v-btn
         class="email-code__resend"
         :variant="isExpired ? 'outlined' : 'text'"
         color="primary"
         :loading="isResending"
+        :disabled="!canResend"
         @click="emit('resend')"
       >
         {{ t('auth.code.resend') }}
       </v-btn>
       <p v-if="noticeKey" class="email-code__notice" role="status">{{ t(noticeKey) }}</p>
       <v-btn
+        v-if="canChangeAddress"
         class="email-code__change"
         variant="text"
         color="primary"
@@ -116,6 +132,13 @@ async function onInput(event: Event): Promise<void> {
   font-size: 14.5px;
   line-height: 1.55;
   overflow-wrap: anywhere;
+}
+
+.email-code__label {
+  margin: 0 0 -8px;
+  color: tokens.$color-field-label;
+  font-size: 12.5px;
+  font-weight: 600;
 }
 
 .email-code__field {

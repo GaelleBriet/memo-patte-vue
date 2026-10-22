@@ -2,6 +2,7 @@ export type AccountErrorReason =
   | 'email-taken'
   | 'invalid-credentials'
   | 'weak-password'
+  | 'same-password'
   | 'email-not-confirmed'
   | 'invalid-code'
   | 'email-rate-limited'

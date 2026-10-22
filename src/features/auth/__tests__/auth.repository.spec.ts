@@ -344,6 +344,107 @@ describe('createAuthRepository', () => {
     })
   })
 
+  describe('sendPasswordResetCode', () => {
+    it('demande le code du mot de passe oublié pour l’adresse', async () => {
+      server.on('recover', () => json(200, {}))
+
+      await expect(repository.sendPasswordResetCode('gaelle@example.com')).resolves.toBeUndefined()
+      expect(server.calls.at(-1)).toBe('recover')
+      expect(server.bodies.at(-1)).toMatchObject({ email: 'gaelle@example.com' })
+    })
+
+    it('lève « envois trop rapprochés » quand Supabase refuse un e-mail de plus', async () => {
+      server.on('recover', apiError(429, 'over_email_send_rate_limit'))
+
+      expect(await reasonOf(repository.sendPasswordResetCode('gaelle@example.com'))).toBe(
+        'email-rate-limited',
+      )
+    })
+
+    it('signale l’absence de réseau', async () => {
+      server.goOffline()
+
+      expect(await reasonOf(repository.sendPasswordResetCode('gaelle@example.com'))).toBe('offline')
+    })
+  })
+
+  describe('verifyPasswordResetCode', () => {
+    it('vérifie le code de type « recovery », qui ouvre une session', async () => {
+      server.on('verify', () => json(200, sessionBody()))
+
+      await expect(
+        repository.verifyPasswordResetCode('gaelle@example.com', '123456'),
+      ).resolves.toEqual({ userId: USER_ID })
+      expect(server.bodies.at(-1)).toMatchObject({
+        email: 'gaelle@example.com',
+        token: '123456',
+        type: 'recovery',
+      })
+      expect(storedSessionKeys()).toContain(AUTH_STORAGE_KEY)
+    })
+
+    it('lève « code refusé » pour un code faux ou expiré', async () => {
+      server.on('verify', apiError(403, 'otp_expired'))
+
+      expect(
+        await reasonOf(repository.verifyPasswordResetCode('gaelle@example.com', '000000')),
+      ).toBe('invalid-code')
+    })
+  })
+
+  describe('discardSession', () => {
+    it('ferme la session de cet appareil seulement', async () => {
+      storeSession(sessionBody())
+
+      await repository.discardSession()
+
+      expect(server.urls.at(-1)?.searchParams.get('scope')).toBe('local')
+      expect(storedSessionKeys()).toEqual([])
+    })
+
+    it('l’efface de l’appareil même sans réseau', async () => {
+      storeSession(sessionBody())
+      server.goOffline()
+
+      await repository.discardSession()
+
+      expect(storedSessionKeys()).toEqual([])
+    })
+  })
+
+  describe('updatePassword', () => {
+    it('change le mot de passe du compte de la session et renvoie ce compte', async () => {
+      storeSession(sessionBody())
+      server.on('user', () => json(200, userBody(USER_ID)))
+
+      await expect(repository.updatePassword('nouveau-secret')).resolves.toEqual({
+        userId: USER_ID,
+      })
+      expect(server.calls.at(-1)).toBe('user')
+      expect(server.bodies.at(-1)).toMatchObject({ password: 'nouveau-secret' })
+      expect(server.bodies.at(-1)).not.toHaveProperty('nonce')
+      expect(server.bodies.at(-1)).not.toHaveProperty('current_password')
+    })
+
+    it('lève « même mot de passe » quand Supabase refuse l’actuel', async () => {
+      storeSession(sessionBody())
+      server.on('user', apiError(422, 'same_password'))
+
+      expect(await reasonOf(repository.updatePassword('ancien-secret'))).toBe('same-password')
+    })
+
+    it('lève « mot de passe trop faible » quand Supabase le refuse', async () => {
+      storeSession(sessionBody())
+      server.on('user', apiError(422, 'weak_password'))
+
+      expect(await reasonOf(repository.updatePassword('12345678'))).toBe('weak-password')
+    })
+
+    it('lève « autre » sans session sur l’appareil', async () => {
+      expect(await reasonOf(repository.updatePassword('nouveau-secret'))).toBe('unknown')
+    })
+  })
+
   describe('resendSignUpCode', () => {
     it('redemande le code d’inscription pour l’adresse', async () => {
       server.on('resend', () => json(200, {}))

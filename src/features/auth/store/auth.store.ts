@@ -48,6 +48,11 @@ export const useAuthStore = defineStore('auth', () => {
   const userId = computed(() => account.value?.userId ?? null)
 
   let generation = 0
+  let recovered: AuthSession | null = null
+
+  function isOtherAccount(session: AuthSession): boolean {
+    return account.value !== null && account.value.userId !== session.userId
+  }
 
   function record(session: AuthSession): void {
     generation += 1
@@ -71,6 +76,11 @@ export const useAuthStore = defineStore('auth', () => {
       result = { kind: 'needs-refresh' }
     }
     if (generation !== startedAt || !account.value) return false
+    if (result.kind === 'active' && isOtherAccount(result.session)) {
+      await repository.discardSession()
+      sessionState.value = 'needs-sign-in'
+      return false
+    }
     if (result.kind === 'active') {
       record(result.session)
       return true
@@ -92,6 +102,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   repository.onSessionChange((session) => {
     if (!account.value) return
+    if (session && isOtherAccount(session)) return
     if (session) record(session)
     else sessionState.value = 'needs-sign-in'
   })
@@ -132,6 +143,26 @@ export const useAuthStore = defineStore('auth', () => {
     },
 
     resendSignUpCode: (email: string): Promise<void> => repository.resendSignUpCode(email),
+
+    sendPasswordResetCode: (email: string): Promise<void> =>
+      repository.sendPasswordResetCode(email),
+
+    /** N'ouvre pas le compte sur l'appareil : `changePassword` le fait une fois le mot de passe changé. */
+    async verifyPasswordResetCode(email: string, code: string): Promise<void> {
+      recovered = await repository.verifyPasswordResetCode(email, code)
+    },
+
+    async changePassword(password: string): Promise<void> {
+      record(await repository.updatePassword(password))
+      recovered = null
+    },
+
+    /** Ferme la session d'un code accepté sans mot de passe changé, sauf si c'est le compte de l'appareil. */
+    async abandonPasswordReset(): Promise<void> {
+      const session = recovered
+      recovered = null
+      if (session && account.value?.userId !== session.userId) await repository.discardSession()
+    },
 
     async signIn(email: string, password: string): Promise<void> {
       record(await repository.signIn(email, password))
