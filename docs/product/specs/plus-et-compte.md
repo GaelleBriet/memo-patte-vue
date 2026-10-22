@@ -85,7 +85,8 @@ publicité.
 - **PL-10** Comptes par e-mail, dans Paramètres › Compte : « Changer mon mot de passe » (l'ancien, puis
   le nouveau) et « Changer mon adresse e-mail » (le mot de passe actuel d'abord, puis la nouvelle
   adresse se confirme par un code à 6 chiffres, envoyé à elle seule ; une adresse déjà utilisée par un
-  autre compte est refusée avec un message clair ; réglage Supabase à vérifier au ticket, spec Q3). Avec
+  autre compte est refusée avec un message clair ; réglage Supabase à vérifier au ticket, spec Q3 ;
+  **corrigé le 22 octobre : deux codes, l'un à l'adresse actuelle puis l'autre à la nouvelle, voir Q3**). Avec
   Google, ces gestes n'apparaissent pas : c'est Google qui gère, et la rubrique dit « Compte Google »
   avec l'adresse (jamais « Connecté avec Google »). Un compte qui a un mot de passe montre toujours cette
   version par e-mail (V24), même ouvert par Google ce jour-là ; la version Google (V24 bis) est pour un
@@ -208,6 +209,14 @@ publicité.
   le compte ; on change souvent d'adresse parce que l'ancienne ne marche plus. Écartées : aucune
   vérification (maquette V24 ter) ; un code aux deux adresses (réglage par défaut de Supabase, bloque qui
   a perdu l'ancienne). (Relecture du lot C, QC-15.)
+
+- 2026-10-22 — **Q3, correction : changer d'adresse e-mail demande deux codes** (PL-10) : un reçu à
+  l'adresse actuelle, puis un à la nouvelle ; « Secure email change » reste activé côté Supabase. Raison :
+  avec un seul code, quelqu'un qui tient un téléphone déverrouillé et connaît le mot de passe actuel
+  prendrait le compte en remplaçant l'adresse ; avec deux codes, il lui faut aussi la boîte mail. Qui a
+  perdu l'ancienne adresse passe par le contact (suppression par e-mail ou mode admin). Remplace le « code
+  à la nouvelle adresse seulement » ci-dessus. (Revue de sécurité du 22 octobre ; journal des décisions,
+  entrée du 2026-10-22.)
 
 - 2026-09-30 — **Q4 : « Prévu ensuite dans Plus », jamais « Bientôt »** (PL-2). Raison : le carnet
   partagé est un gros chantier de v2, dont la place sera revue après la phase de test ; « bientôt »
