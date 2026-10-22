@@ -36,21 +36,46 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary)
 }
 
+const PARTIAL_SUFFIX = '.part'
+
 /** Écrit sous un nom provisoire puis renomme : une coupure ne laisse jamais une photo tronquée. */
 export async function writeDownloadedPhoto(name: string, jpeg: Uint8Array): Promise<void> {
   const path = photoPath(name)
-  const partial = `${path}.part`
-  await Filesystem.writeFile({
-    path: partial,
-    data: bytesToBase64(jpeg),
+  const partial = `${path}${PARTIAL_SUFFIX}`
+  try {
+    await Filesystem.writeFile({
+      path: partial,
+      data: bytesToBase64(jpeg),
+      directory: Directory.Data,
+      recursive: true,
+    })
+    await Filesystem.rename({
+      from: partial,
+      to: path,
+      directory: Directory.Data,
+      toDirectory: Directory.Data,
+    })
+  } catch (cause) {
+    await Filesystem.deleteFile({ path: partial, directory: Directory.Data }).catch(() => {})
+    throw cause
+  }
+}
+
+/** Les téléchargements interrompus, sous le nom de leur photo. */
+export async function listPartialPhotos(): Promise<StoredPhoto[]> {
+  if (!(await photosDirExists())) return []
+
+  const { files } = await Filesystem.readdir({ path: PHOTOS_DIR, directory: Directory.Data })
+  return files
+    .filter(({ name, type }) => type === 'file' && name.endsWith(PARTIAL_SUFFIX))
+    .map(({ name, mtime }) => ({ name: name.slice(0, -PARTIAL_SUFFIX.length), modifiedAt: mtime }))
+    .filter(({ name }) => isPhotoFileName(name))
+}
+
+export async function deletePartialPhoto(name: string): Promise<void> {
+  await Filesystem.deleteFile({
+    path: `${photoPath(name)}${PARTIAL_SUFFIX}`,
     directory: Directory.Data,
-    recursive: true,
-  })
-  await Filesystem.rename({
-    from: partial,
-    to: path,
-    directory: Directory.Data,
-    toDirectory: Directory.Data,
   })
 }
 

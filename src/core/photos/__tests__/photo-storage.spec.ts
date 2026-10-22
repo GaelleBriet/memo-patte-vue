@@ -6,8 +6,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   deleteAllPhotos,
+  deletePartialPhoto,
   deletePhoto,
   isPhotoFileName,
+  listPartialPhotos,
   listPhotos,
   photoDisplayUrl,
   photoExists,
@@ -126,11 +128,32 @@ describe('writeDownloadedPhoto', () => {
     expect(written.equals(Buffer.from(big))).toBe(true)
   })
 
-  it('ne renomme rien quand l’écriture échoue, et propage l’échec', async () => {
+  it('ne renomme rien quand l’écriture échoue, efface le fichier provisoire et propage l’échec', async () => {
     writeFile.mockRejectedValue(new Error('disque plein'))
 
     await expect(writeDownloadedPhoto(PHOTO, JPEG)).rejects.toThrow('disque plein')
     expect(rename).not.toHaveBeenCalled()
+    expect(deleteFile).toHaveBeenCalledExactlyOnceWith({
+      path: `photos/${PHOTO}.part`,
+      directory: Directory.Data,
+    })
+  })
+
+  it('efface le fichier provisoire quand le renommage échoue, et propage l’échec', async () => {
+    rename.mockRejectedValue(new Error('renommage impossible'))
+
+    await expect(writeDownloadedPhoto(PHOTO, JPEG)).rejects.toThrow('renommage impossible')
+    expect(deleteFile).toHaveBeenCalledExactlyOnceWith({
+      path: `photos/${PHOTO}.part`,
+      directory: Directory.Data,
+    })
+  })
+
+  it('propage l’échec de l’écriture même quand le fichier provisoire ne s’efface pas', async () => {
+    writeFile.mockRejectedValue(new Error('disque plein'))
+    deleteFile.mockRejectedValue(new Error('absent'))
+
+    await expect(writeDownloadedPhoto(PHOTO, JPEG)).rejects.toThrow('disque plein')
   })
 
   it('refuse un nom qui sortirait de photos/, sans rien écrire', async () => {
@@ -319,6 +342,45 @@ describe('readPhoto', () => {
     readFile.mockRejectedValue(new Error('lecture impossible'))
 
     await expect(readPhoto('abc.jpg', MAX)).rejects.toThrow('lecture impossible')
+  })
+})
+
+describe('fichiers provisoires des photos téléchargées', () => {
+  it('rend sous le nom de leur photo les seuls fichiers provisoires de photos/', async () => {
+    readdir.mockResolvedValueOnce({ files: [entry('photos', 'directory')] }).mockResolvedValueOnce({
+      files: [
+        entry('3f2b-a1.jpg.part'),
+        entry('3f2b-a1.jpg'),
+        entry('../x.jpg.part'),
+        entry('notes.part'),
+        entry('dossier.jpg.part', 'directory'),
+      ],
+    })
+
+    expect(await listPartialPhotos()).toEqual([
+      { name: '3f2b-a1.jpg', modifiedAt: 1_700_000_000_000 },
+    ])
+  })
+
+  it('ne lit pas photos/ tant qu’aucune photo n’a été enregistrée', async () => {
+    readdir.mockResolvedValueOnce({ files: [] })
+
+    expect(await listPartialPhotos()).toEqual([])
+    expect(readdir).toHaveBeenCalledOnce()
+  })
+
+  it('efface le fichier provisoire d’une photo, jamais la photo elle-même', async () => {
+    await deletePartialPhoto('3f2b-a1.jpg')
+
+    expect(deleteFile).toHaveBeenCalledExactlyOnceWith({
+      path: 'photos/3f2b-a1.jpg.part',
+      directory: Directory.Data,
+    })
+  })
+
+  it('refuse un nom qui sortirait de photos/', async () => {
+    await expect(deletePartialPhoto('../base.db')).rejects.toThrow('Nom de photo invalide')
+    expect(deleteFile).not.toHaveBeenCalled()
   })
 })
 
