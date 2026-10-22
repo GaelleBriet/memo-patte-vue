@@ -1,3 +1,4 @@
+import { currentWeightUnit } from '@/core/preferences/weight-unit-preference'
 import { weightTrend, type WeightChange, type WeightTrend } from '@/shared/domain/weight-delta'
 
 export type WeightPoint = { weightKg: number; measuredOn: string }
@@ -27,6 +28,6 @@ export function weightSummary(entries: readonly WeightPoint[]): WeightSummary | 
   }
   return {
     latest: { weightKg: latest.weightKg, measuredOn: latest.measuredOn },
-    delta: { kind: 'delta', ...change, trend: weightTrend(change) },
+    delta: { kind: 'delta', ...change, trend: weightTrend(currentWeightUnit(), change) },
   }
 }

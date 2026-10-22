@@ -2,6 +2,7 @@ import { format } from 'date-fns'
 
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import type { EntryReminders } from '@/core/notifications/due-reminders-schedule'
+import { currentLocale } from '@/core/i18n'
 import { treatmentReminderPlan, type CarnetReminderSettings } from '@/shared/domain/reminder-plan'
 import { currentPeriodOf, readableReadingOf } from './treatment-reading-adapter'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
@@ -30,6 +31,13 @@ export function treatmentReminders(
     return { care: null, isNoted }
   }
 
-  const source = { id: treatment.id, name: treatment.name, animalName: animal.name, period, view }
+  const source = {
+    id: treatment.id,
+    name: treatment.name,
+    animalName: animal.name,
+    locale: currentLocale(),
+    period,
+    view,
+  }
   return { care: treatmentReminderPlan(t, source, settings, now), isNoted }
 }
