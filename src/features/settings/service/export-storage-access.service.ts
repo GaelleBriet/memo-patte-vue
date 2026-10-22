@@ -27,7 +27,7 @@ export async function checkSaveAccess(): Promise<SaveAccess> {
   }
 }
 
-/** Accordé d'office sur Android 11 et plus ; sur Android 7 à 10, affiche la demande si besoin. */
+/** Accordé d'office sur Android 11 et plus ; sur Android 10, affiche la demande si besoin. */
 export async function requestSaveAccess(): Promise<SaveAccess> {
   if (!Capacitor.isNativePlatform()) return 'granted'
   const { publicStorage } = await Filesystem.checkPermissions()

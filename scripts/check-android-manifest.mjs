@@ -19,11 +19,11 @@ const ALLOWED_PERMISSIONS = new Map([
   ],
   [
     'android.permission.READ_EXTERNAL_STORAGE',
-    'notre manifest — export enregistré dans Documents, Android 7 à 10, au premier enregistrement',
+    'notre manifest — export enregistré dans Documents, Android 10, au premier enregistrement',
   ],
   [
     'android.permission.WRITE_EXTERNAL_STORAGE',
-    'notre manifest — export enregistré dans Documents, Android 7 à 10, au premier enregistrement',
+    'notre manifest — export enregistré dans Documents, Android 10, au premier enregistrement',
   ],
   [
     'android.permission.RECEIVE_BOOT_COMPLETED',

@@ -65,4 +65,4 @@ Après réinstallation, l'app doit retrouver animaux et rappels, sans photos
 - La taille de la base après un jeu de données réaliste (3 animaux, 2 ans
   d'historique) : doit rester très en dessous de 25 Mo.
 - Que `app_webview/` est bien le nom du répertoire WebView sur les versions
-  d'Android ciblées (minSdk 24).
+  d'Android ciblées (minSdk 29).
