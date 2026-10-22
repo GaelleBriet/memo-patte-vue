@@ -126,7 +126,7 @@ describe('SignInView', () => {
 
     await basculer(wrapper)
 
-    expect(wrapper.get('h1').text()).toBe('Inscription')
+    expect(wrapper.get('h1').text()).toBe('Créer un compte')
     expect(wrapper.get('.sign-in__submit').text()).toBe('Créer mon compte')
     expect(wrapper.get('.sign-in__toggle').text()).toBe('Déjà un compte ? Se connecter')
     expect(wrapper.get('#sign-in-password').attributes('autocomplete')).toBe('new-password')
@@ -159,6 +159,71 @@ describe('SignInView', () => {
     expect(document.activeElement?.id).toBe('sign-in-password')
   })
 
+  describe('création du compte (V25)', () => {
+    it('donne la longueur minimale du mot de passe, à l’inscription seulement', async () => {
+      const wrapper = await monter()
+
+      expect(wrapper.find('.form-field__help').exists()).toBe(false)
+
+      await basculer(wrapper)
+
+      const aide = wrapper.get('.form-field__help')
+      expect(aide.text()).toBe('Au moins 8 caractères.')
+      expect(wrapper.get('#sign-in-password').attributes('aria-describedby')).toContain(
+        aide.attributes('id'),
+      )
+    })
+
+    it('remplace l’aide par l’erreur quand le mot de passe est trop court', async () => {
+      const wrapper = await monter()
+
+      await basculer(wrapper)
+      await saisir(wrapper, 'sophie.martin@example.com', 'court')
+      await envoyer(wrapper)
+
+      expect(wrapper.text()).toContain('Choisis un mot de passe d’au moins 8 caractères.')
+      expect(wrapper.find('.form-field__help').exists()).toBe(false)
+    })
+
+    it('dit l’âge requis et mène à la politique de confidentialité, avant le bouton', async () => {
+      const wrapper = await monter()
+
+      expect(wrapper.find('.account-legal').exists()).toBe(false)
+
+      await basculer(wrapper)
+
+      expect(wrapper.get('.account-legal__adults').text()).toBe(
+        'MémoPatte s’adresse aux 18 ans et plus.',
+      )
+      const politique = wrapper.get('.account-legal__privacy')
+      expect(politique.text()).toBe('Politique de confidentialité')
+      expect(politique.attributes('href')).toBe('https://memopatte.app/confidentialite/')
+      expect(politique.attributes('target')).toBe('_blank')
+      const ordre = wrapper.findAll(
+        '.sign-in__form .account-legal, .sign-in__form .sign-in__submit',
+      )
+      expect(ordre.map((element) => element.classes('sign-in__submit'))).toEqual([false, true])
+    })
+
+    it('se lit en anglais aussi', async () => {
+      i18n.global.locale.value = 'en'
+      try {
+        const wrapper = await monter('/sign-in?mode=sign-up')
+
+        expect(wrapper.get('h1').text()).toBe('Create an account')
+        expect(wrapper.get('.form-field__help').text()).toBe('At least 8 characters.')
+        expect(wrapper.get('.account-legal__adults').text()).toBe(
+          'MémoPatte is for people aged 18 and over.',
+        )
+        expect(wrapper.get('.account-legal__privacy').attributes('href')).toBe(
+          'https://memopatte.app/en/privacy/',
+        )
+      } finally {
+        i18n.global.locale.value = 'fr'
+      }
+    })
+  })
+
   it('connecte puis ramène au parcours d’origine', async () => {
     repository.signIn.mockResolvedValue({ userId: USER_ID })
     const wrapper = await monter('/sign-in?from=settings')
@@ -187,7 +252,7 @@ describe('SignInView', () => {
     it('s’ouvre directement sur la création du compte', async () => {
       const wrapper = await monter('/sign-in?from=plus-account&mode=sign-up')
 
-      expect(wrapper.get('h1').text()).toBe('Inscription')
+      expect(wrapper.get('h1').text()).toBe('Créer un compte')
       expect(wrapper.get('.sign-in__submit').text()).toBe('Créer mon compte')
     })
 

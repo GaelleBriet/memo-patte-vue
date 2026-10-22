@@ -1651,7 +1651,7 @@
       "toggleAction": "Create an account"
     },
     "signUp": {
-      "title": "Sign up",
+      "title": "Create an account",
       "submit": "Create my account",
       "loading": "Creating your account…",
       "toggle": "Already have an account?",
@@ -1682,7 +1682,8 @@
       "label": "Email address"
     },
     "password": {
-      "label": "Password"
+      "label": "Password",
+      "help": "At least 8 characters."
     },
     "form": {
       "errors": {
