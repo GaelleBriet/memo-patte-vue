@@ -28,6 +28,7 @@ import { getVaccinationInjectionsRepository } from '@/features/vaccinations/repo
 import { getVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import { getWeightRepository } from '@/features/weight/repository/weight.repository'
 import { syncAllReminders } from '@/features/treatments/service/reminders-sync.service'
+import { errorSummary } from '@/shared/utils/error-summary'
 
 const CHECK_TIMEOUT_MS = 30_000
 
@@ -88,7 +89,7 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
     } catch (cause) {
       checkedFor = null
       deps.restoreFlow.unreachable()
-      console.warn('Sauvegarde du compte non contrôlée :', cause)
+      console.warn('Sauvegarde du compte non contrôlée :', errorSummary(cause))
     }
   }
 
@@ -159,7 +160,7 @@ async function forgetPreviousAccount(outbox: SyncDependencies['outbox']): Promis
   try {
     await outbox.forgetAccount()
   } catch (cause) {
-    console.warn('File de synchro non oubliée au départ du compte :', cause)
+    console.warn('File de synchro non oubliée au départ du compte :', errorSummary(cause))
   }
 }
 

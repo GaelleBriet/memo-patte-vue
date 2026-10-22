@@ -655,6 +655,27 @@ describe('createSyncCycle', () => {
       warn.mockRestore()
     })
 
+    it('ne journalise de la ligne refusée ni le nom de l’animal ni ses dates', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const refusal = {
+        ...CHECK_REFUSAL,
+        details: 'Failing row contains (a1, Milo, 2024-03-12, Croquettes le soir).',
+      }
+      const cycle = cycleWith(createFakeOutbox([entry('animal', 'a1')]), [
+        refusingAnimal(() => refusal),
+      ])
+
+      await expect(cycle.runCycle()).rejects.toBe(refusal)
+      await expect(cycle.runCycle()).rejects.toBe(refusal)
+      await cycle.runCycle()
+
+      const logged = JSON.stringify(warn.mock.calls)
+      expect(warn).toHaveBeenCalledOnce()
+      expect(logged).toContain('23514')
+      expect(logged).not.toMatch(/Milo|2024-03-12|Croquettes/)
+      warn.mockRestore()
+    })
+
     it('sort aussi une ligne refusée trois fois pour une donnée invalide (classe 22)', async () => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
       const refusal = { code: '22008', message: 'date/time field value out of range: "2026-02-30"' }

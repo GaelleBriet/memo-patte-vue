@@ -1,5 +1,6 @@
 import { readonly, shallowRef, watch, type Ref } from 'vue'
 
+import { errorSummary } from '@/shared/utils/error-summary'
 import type { RestoreMode } from '../repository/sync-outbox.repository'
 import type { AccountRestore, RestoreProgress } from './account-restore'
 import type { BackupSummary } from './backup-summary'
@@ -35,7 +36,7 @@ export function createRestoreFlow(runner: RestoreRunner) {
     try {
       await runner.run()
     } catch (cause) {
-      console.warn('Restauration interrompue, elle reprendra :', cause)
+      console.warn('Restauration interrompue, elle reprendra :', errorSummary(cause))
       state.value = { step: 'waiting-network' }
       return false
     } finally {
@@ -103,7 +104,7 @@ export function createRestoreFlow(runner: RestoreRunner) {
       try {
         await runner.start(mode)
       } catch (cause) {
-        console.warn('Choix de restauration non gardé :', cause)
+        console.warn('Choix de restauration non gardé :', errorSummary(cause))
         state.value = { step: 'waiting-network' }
         return false
       }
@@ -116,7 +117,7 @@ export function createRestoreFlow(runner: RestoreRunner) {
       try {
         pending = await runner.pendingMode()
       } catch (cause) {
-        console.warn('Restauration en attente non lue :', cause)
+        console.warn('Restauration en attente non lue :', errorSummary(cause))
         return false
       }
       return pending === null ? false : runPending()
