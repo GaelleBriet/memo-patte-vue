@@ -448,6 +448,15 @@ describe('createAuthRepository', () => {
       })
     })
 
+    it('lève une erreur quand le code est accepté sans session (double confirmation)', async () => {
+      storeSession(sessionBody())
+      server.on('verify', () => json(200, { msg: 'Confirmation link accepted' }))
+
+      expect(await reasonOf(repository.verifyEmailChangeCode('sophie2@exemple.fr', '123456'))).toBe(
+        'unknown',
+      )
+    })
+
     it('renvoie le code de changement d’adresse', async () => {
       storeSession(sessionBody())
       server.on('resend', () => json(200, {}))

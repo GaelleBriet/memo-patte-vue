@@ -31,7 +31,7 @@ export type AuthRepository = {
   verifyPasswordResetCode(email: string, code: string): Promise<AuthSession>
   /** Vise le compte de la session de l'appareil. */
   updatePassword(password: string): Promise<AuthSession>
-  /** Envoie un code à la nouvelle adresse seulement (double confirmation désactivée dans Supabase). */
+  /** Envoie un code à la nouvelle adresse ; avec la double confirmation de Supabase, le code ne suffit pas. */
   requestEmailChange(email: string): Promise<void>
   verifyEmailChangeCode(email: string, code: string): Promise<AuthSession>
   /** Supabase cherche le compte par son adresse actuelle et n'envoie rien pour la nouvelle. */
@@ -273,9 +273,8 @@ export function createAuthRepository({
           type: 'email_change',
         })
         if (error) throw error
-        const session = data.session ?? (await supabase.auth.getSession()).data.session
-        if (!session) throw new AccountError('unknown')
-        return sessionOf(session)
+        if (!data.session) throw new AccountError('unknown')
+        return sessionOf(data.session)
       }),
 
     resendEmailChangeCode: () =>
