@@ -113,6 +113,37 @@ select throws_ok(
   $$ update storage.objects set name = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/vieux/milo.jpg'
      where name = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/milo.jpg' $$,
   '42501', null, 'a ne range pas sa photo dans un sous-dossier');
+select throws_ok(
+  $$ insert into storage.objects (bucket_id, name)
+     values ('animal-photos', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/a.jpg' || E'\n') $$,
+  '42501', null, 'a n''envoie rien sous un nom suivi d''un retour à la ligne');
+select throws_ok(
+  $$ insert into storage.objects (bucket_id, name)
+     values ('animal-photos', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/a.JPG') $$,
+  '42501', null, 'a n''envoie rien en .JPG');
+select throws_ok(
+  $$ insert into storage.objects (bucket_id, name)
+     values ('animal-photos', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/a.jpg/') $$,
+  '42501', null, 'a n''envoie rien sous un nom à barre finale');
+select throws_ok(
+  $$ insert into storage.objects (bucket_id, name)
+     values ('animal-photos', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/a' || chr(1) || '.jpg') $$,
+  '42501', null, 'a n''envoie rien sous un nom à caractère de contrôle');
+
+select pg_temp.as_owner();
+insert into storage.objects (bucket_id, name)
+  values ('animal-photos', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/vieux/rex.webp');
+select pg_temp.as_user('a');
+select results_eq(
+  $$ select name from storage.objects
+     where name = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/vieux/rex.webp' $$,
+  $$ values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/vieux/rex.webp') $$,
+  'un ancien objet d''une autre forme reste lisible par a');
+select results_eq(
+  $$ delete from storage.objects
+     where name = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/vieux/rex.webp' returning name $$,
+  $$ values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/vieux/rex.webp') $$,
+  'un ancien objet d''une autre forme reste effaçable par a');
 
 select is_empty(
   $$ update storage.objects set name = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/volee.jpg'
