@@ -1,6 +1,14 @@
 import type { PaidPlan, PlusOffer } from '../service/billing.service'
+import type { CheckoutOutcome } from '../service/checkout.service'
+import type { RouteLocationRaw } from 'vue-router'
+import { accountFirstRoute, signInRoute } from '@/shared/utils/sign-in-route'
 
 export type PlusBenefit = 'backup' | 'devices' | 'photos'
+
+export type CheckoutNext =
+  | { kind: 'phase'; phase: 'success' | 'cancelled' | 'offers' }
+  | { kind: 'detour'; route: RouteLocationRaw }
+  | { kind: 'offline' }
 
 export type CheckoutBar =
   | { kind: 'offer'; offer: PlusOffer }
@@ -33,4 +41,21 @@ export function checkoutBar(state: {
   if (offer) return { kind: 'offer', offer }
   if (state.loading && !state.answered) return { kind: 'connecting' }
   return { kind: 'unavailable', retrying: state.loading }
+}
+
+export function nextAfterCheckout(outcome: CheckoutOutcome): CheckoutNext {
+  switch (outcome.kind) {
+    case 'needs-account':
+      return { kind: 'detour', route: accountFirstRoute() }
+    case 'needs-sign-in':
+      return { kind: 'detour', route: signInRoute('plus') }
+    case 'offline':
+      return { kind: 'offline' }
+    case 'purchased':
+      return { kind: 'phase', phase: 'success' }
+    case 'cancelled':
+      return { kind: 'phase', phase: 'cancelled' }
+    case 'already-plus':
+      return { kind: 'phase', phase: 'offers' }
+  }
 }

@@ -1660,6 +1660,24 @@
     "google": {
       "continue": "Continue with Google"
     },
+    "accountFirst": {
+      "title": "Step 1 of 2",
+      "close": "Close",
+      "headline": "Create your MémoPatte account",
+      "body": "Your Plus access is linked to your account: you get it on all your devices, with your health record.",
+      "offer": {
+        "monthly": "Monthly Plus · {price}",
+        "annual": "Annual Plus · {price}",
+        "lifetime": "Lifetime Plus · {price}"
+      },
+      "payment": "Payment at the next step, in Google Play.",
+      "email": "Continue with an email address",
+      "signIn": "I already have an account · Sign in"
+    },
+    "legal": {
+      "adults": "MémoPatte is for people aged 18 and over.",
+      "privacy": "Privacy policy"
+    },
     "email": {
       "label": "Email address"
     },

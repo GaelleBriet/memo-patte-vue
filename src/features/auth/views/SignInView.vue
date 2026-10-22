@@ -12,7 +12,13 @@ import FormField from '@/shared/form/FormField.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { currentRestoreFlow } from '@/core/sync/service/restore-flow'
-import { afterSignInRoute, asksRestore, signInReturnRoute } from '@/shared/utils/sign-in-route'
+import { returnTo } from '@/shared/utils/return-to'
+import {
+  afterSignInRoute,
+  asksRestore,
+  asksSignUp,
+  signInReturnRoute,
+} from '@/shared/utils/sign-in-route'
 
 import GoogleSignInButton from './GoogleSignInButton.vue'
 
@@ -22,7 +28,7 @@ const auth = useAuthStore()
 const route = useRoute()
 const { continueWithGoogle } = useGoogleSignIn()
 
-const mode = ref<SignInMode>('sign-in')
+const mode = ref<SignInMode>(asksSignUp(route.query) ? 'sign-up' : 'sign-in')
 const values = ref(emptySignInFormValues())
 
 const { errors, validate, reset } = useFormValidation(values, (current) =>
@@ -58,7 +64,7 @@ const toggleAction = computed(() =>
 const passwordAutocomplete = computed(() => (isSignUp.value ? 'new-password' : 'current-password'))
 
 function leave(): void {
-  void router.replace(returnRoute.value)
+  returnTo(router, returnRoute.value)
 }
 
 async function leaveSignedIn(): Promise<void> {

@@ -60,6 +60,7 @@ const DYNAMIC_I18N_KEYS = [
   '/^plus\\.settings\\.status\\.(monthly|annual|lifetime|expiredMonthly|expiredAnnual)$/',
   '/^plus\\.nudge\\.(firstPhoto|carnetValue|firstExport)\\.(title|body)$/',
   '/^plus\\.(success|cancelled|failed)\\.(title|body)$/',
+  '/^auth\\.accountFirst\\.offer\\.(monthly|annual|lifetime)$/',
   '/^auth\\.form\\.errors\\.(emailRequired|emailInvalid|passwordRequired|passwordTooShort)$/',
   '/^settings\\.account\\.delete\\.identity\\.(wrongPassword|otherGoogleAccount)$/',
   '/^auth\\.errors\\.(emailTaken|invalidCredentials|weakPassword|emailNotConfirmed|offline|noGoogleAccount|googleUnavailable|unknown)$/',

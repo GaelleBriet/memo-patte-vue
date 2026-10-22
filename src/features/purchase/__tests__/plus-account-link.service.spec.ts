@@ -17,6 +17,7 @@ function fakePurchase(available = true) {
     available,
     logIn: vi.fn<PlusAccountPort['logIn']>().mockResolvedValue(undefined),
     logOut: vi.fn<PlusAccountPort['logOut']>().mockResolvedValue(undefined),
+    forgetCheckout: vi.fn<PlusAccountPort['forgetCheckout']>(),
   }
 }
 
@@ -39,6 +40,14 @@ describe('createPlusAccountLink', () => {
     await createPlusAccountLink(() => purchase).unlinkFromAccount()
 
     expect(purchase.logOut).toHaveBeenCalledOnce()
+  })
+
+  it('oublie l’offre en attente, même quand les achats sont indisponibles', () => {
+    const purchase = fakePurchase(false)
+
+    createPlusAccountLink(() => purchase).forgetPendingCheckout()
+
+    expect(purchase.forgetCheckout).toHaveBeenCalledOnce()
   })
 
   it('reste sans effet quand les achats sont indisponibles', async () => {
@@ -72,6 +81,7 @@ describe('installPlusAccountLink', () => {
     const link = {
       linkToAccount: vi.fn<(userId: string) => Promise<void>>().mockResolvedValue(),
       unlinkFromAccount: vi.fn<() => Promise<void>>().mockResolvedValue(),
+      forgetPendingCheckout: vi.fn<() => void>(),
     }
     const stop = installPlusAccountLink(() => accountId.value, link)
     return { accountId, link, stop }
@@ -108,6 +118,18 @@ describe('installPlusAccountLink', () => {
 
     expect(link.linkToAccount.mock.calls).toEqual([[ALICE], [BOB]])
     expect(link.unlinkFromAccount).not.toHaveBeenCalled()
+  })
+
+  it('n’offre pas au compte suivant le paiement d’une offre choisie avant lui', async () => {
+    const { accountId, link } = installed()
+    accountId.value = ALICE
+    await nextTick()
+    expect(link.forgetPendingCheckout).not.toHaveBeenCalled()
+
+    accountId.value = BOB
+    await nextTick()
+
+    expect(link.forgetPendingCheckout).toHaveBeenCalledOnce()
   })
 
   it('ne rattache rien tant que le compte connu ne change pas', async () => {

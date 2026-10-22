@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   checkoutBar,
+  nextAfterCheckout,
   orderedOffers,
   PLUS_BENEFITS,
   PRESELECTED_PLAN,
@@ -97,5 +98,38 @@ describe('checkoutBar', () => {
     expect(
       checkoutBar({ offers: [MENSUEL, A_VIE], selected: 'annual', loading: false, answered: true }),
     ).toEqual({ kind: 'offer', offer: MENSUEL })
+  })
+})
+
+describe('nextAfterCheckout', () => {
+  it('sans compte, passe par « Étape 1 sur 2 »', () => {
+    expect(nextAfterCheckout({ kind: 'needs-account' })).toEqual({
+      kind: 'detour',
+      route: { name: 'plus-account' },
+    })
+  })
+
+  it('sans session active, passe par la connexion, qui ramène à l’écran Plus', () => {
+    expect(nextAfterCheckout({ kind: 'needs-sign-in' })).toEqual({
+      kind: 'detour',
+      route: { name: 'sign-in', query: { from: 'plus' } },
+    })
+  })
+
+  it('hors ligne, reste sur l’écran Plus pour le dire', () => {
+    expect(nextAfterCheckout({ kind: 'offline' })).toEqual({ kind: 'offline' })
+  })
+
+  it('dit l’issue du paiement', () => {
+    const status = { plan: 'annual', expiresAt: null } as const
+    expect(nextAfterCheckout({ kind: 'purchased', status })).toEqual({
+      kind: 'phase',
+      phase: 'success',
+    })
+    expect(nextAfterCheckout({ kind: 'cancelled' })).toEqual({ kind: 'phase', phase: 'cancelled' })
+  })
+
+  it('revient à l’écran Plus, qui montre l’abonnement, quand le compte l’a déjà', () => {
+    expect(nextAfterCheckout({ kind: 'already-plus' })).toEqual({ kind: 'phase', phase: 'offers' })
   })
 })

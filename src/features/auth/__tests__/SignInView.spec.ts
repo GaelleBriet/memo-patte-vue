@@ -1,7 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
-import { createMemoryHistory, createRouter, type Router } from 'vue-router'
+import { createMemoryHistory, createRouter, createWebHistory, type Router } from 'vue-router'
 
 import { AccountError } from '../logic/account-error'
 import { authRepository, type AuthRepository } from '../repository/auth.repository'
@@ -52,6 +52,7 @@ function routeurMemoire(): Router {
       { path: '/', name: 'home', component: Vide },
       { path: '/settings/plus', name: 'settings-plus', component: Vide },
       { path: '/restore', name: 'account-restore', component: Vide },
+      { path: '/plus/account', name: 'plus-account', component: Vide },
     ],
   })
 }
@@ -167,6 +168,51 @@ describe('SignInView', () => {
 
     expect(repository.signIn).toHaveBeenCalledWith('sophie.martin@example.com', 'motdepasse')
     expect(replace).toHaveBeenCalledWith({ name: 'settings' })
+  })
+
+  describe('depuis « Étape 1 sur 2 »', () => {
+    let historique: Router
+
+    beforeEach(async () => {
+      historique = createRouter({ history: createWebHistory(), routes: routeur.options.routes })
+      await historique.push('/plus/account')
+      await historique.push('/sign-in?from=plus-account&mode=sign-up')
+      routeur = historique
+    })
+
+    afterEach(() => {
+      historique.options.history.destroy()
+    })
+
+    it('s’ouvre directement sur la création du compte', async () => {
+      const wrapper = await monter('/sign-in?from=plus-account&mode=sign-up')
+
+      expect(wrapper.get('h1').text()).toBe('Inscription')
+      expect(wrapper.get('.sign-in__submit').text()).toBe('Créer mon compte')
+    })
+
+    it('y revient par l’historique, sans doubler l’écran', async () => {
+      const back = vi.spyOn(routeur, 'back').mockImplementation(() => {})
+      const wrapper = await monter('/sign-in?from=plus-account&mode=sign-up')
+
+      await wrapper.get('.pushed-screen__back').trigger('click')
+
+      expect(back).toHaveBeenCalledOnce()
+      expect(replace).not.toHaveBeenCalled()
+    })
+
+    it('y revient aussi une fois le compte créé, pour reprendre le paiement', async () => {
+      repository.signUp.mockResolvedValue({ kind: 'signed-in', session: { userId: USER_ID } })
+      const back = vi.spyOn(routeur, 'back').mockImplementation(() => {})
+      const wrapper = await monter('/sign-in?from=plus-account&mode=sign-up')
+
+      await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse')
+      await envoyer(wrapper)
+
+      expect(repository.signUp).toHaveBeenCalledWith('sophie.martin@example.com', 'motdepasse')
+      expect(back).toHaveBeenCalledOnce()
+      expect(replace).not.toHaveBeenCalled()
+    })
   })
 
   describe('vers la restauration du carnet', () => {

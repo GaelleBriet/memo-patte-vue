@@ -1660,6 +1660,24 @@
     "google": {
       "continue": "Continuer avec Google"
     },
+    "accountFirst": {
+      "title": "Étape 1 sur 2",
+      "close": "Fermer",
+      "headline": "Crée ton compte MémoPatte",
+      "body": "Ton accès Plus est lié à ton compte : tu le retrouves sur tous tes appareils, avec ton carnet.",
+      "offer": {
+        "monthly": "Plus mensuel · {price}",
+        "annual": "Plus annuel · {price}",
+        "lifetime": "Plus à vie · {price}"
+      },
+      "payment": "Paiement à l’étape suivante, dans Google Play.",
+      "email": "Continuer avec une adresse e-mail",
+      "signIn": "J’ai déjà un compte · Se connecter"
+    },
+    "legal": {
+      "adults": "MémoPatte s’adresse aux 18 ans et plus.",
+      "privacy": "Politique de confidentialité"
+    },
     "email": {
       "label": "Adresse e-mail"
     },

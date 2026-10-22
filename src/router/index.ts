@@ -170,6 +170,12 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/features/purchase/views/PlusView.vue'),
   },
   {
+    path: '/plus/account',
+    name: 'plus-account',
+    component: () => import('@/features/auth/views/AccountFirstView.vue'),
+    beforeEnter: () => authAvailable() || { name: 'plus' },
+  },
+  {
     path: '/restore',
     name: 'account-restore',
     component: () => import('@/features/settings/views/AccountRestoreView.vue'),
