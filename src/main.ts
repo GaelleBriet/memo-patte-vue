@@ -6,6 +6,7 @@ import router from './router'
 import { installConsentGate } from '@/app/analytics-consent'
 import { installCarnetSettingsReminders } from '@/app/carnet-settings-reminders'
 import { installPageviewTracking } from '@/app/analytics-pageview'
+import { installPendingCheckoutGuard } from '@/app/pending-checkout-guard'
 import { installReminderActions, reminderActions } from '@/app/reminder-actions'
 import { installLaunchPriming, installRemindersPriming } from '@/app/reminders-priming'
 import { installRestorePrompt } from '@/app/restore-prompt'
@@ -81,6 +82,11 @@ installLaunchPriming(router)
 installRestorePrompt(router)
 void usePurchaseStore().verifyKnownStatus()
 installPlusAccountLink(() => useAuthStore().userId)
-provideCheckoutAccount(() => useAuthStore().userId)
+provideCheckoutAccount({
+  accountId: () => useAuthStore().userId,
+  hasSession: () => useAuthStore().sessionState === 'active',
+  refreshSession: () => useAuthStore().refresh(),
+})
+installPendingCheckoutGuard(router)
 void useAuthStore().restore()
 void createDefaultSyncDependencies().then(installSync)

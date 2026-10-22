@@ -1,9 +1,13 @@
 import type { PaidPlan, PlusOffer } from '../service/billing.service'
 import type { CheckoutOutcome } from '../service/checkout.service'
+import type { RouteLocationRaw } from 'vue-router'
+import { accountFirstRoute, signInRoute } from '@/shared/utils/sign-in-route'
 
 export type PlusBenefit = 'backup' | 'devices' | 'photos'
 
-export type CheckoutNext = 'account' | 'success' | 'cancelled' | 'offers'
+export type CheckoutNext =
+  | { kind: 'phase'; phase: 'success' | 'cancelled' | 'offers' }
+  | { kind: 'detour'; route: RouteLocationRaw }
 
 export type CheckoutBar =
   | { kind: 'offer'; offer: PlusOffer }
@@ -38,13 +42,17 @@ export function checkoutBar(state: {
   return { kind: 'unavailable', retrying: state.loading }
 }
 
-const CHECKOUT_NEXT: Record<CheckoutOutcome['kind'], CheckoutNext> = {
-  'needs-account': 'account',
-  purchased: 'success',
-  cancelled: 'cancelled',
-  'already-plus': 'offers',
-}
-
 export function nextAfterCheckout(outcome: CheckoutOutcome): CheckoutNext {
-  return CHECKOUT_NEXT[outcome.kind]
+  switch (outcome.kind) {
+    case 'needs-account':
+      return { kind: 'detour', route: accountFirstRoute() }
+    case 'needs-sign-in':
+      return { kind: 'detour', route: signInRoute('plus') }
+    case 'purchased':
+      return { kind: 'phase', phase: 'success' }
+    case 'cancelled':
+      return { kind: 'phase', phase: 'cancelled' }
+    case 'already-plus':
+      return { kind: 'phase', phase: 'offers' }
+  }
 }

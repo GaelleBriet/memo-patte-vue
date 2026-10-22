@@ -108,6 +108,10 @@ export const usePurchaseStore = defineStore('purchase', () => {
       pendingCheckout.value = plan
     },
 
+    forgetCheckout(): void {
+      pendingCheckout.value = null
+    },
+
     takePendingCheckout(): PaidPlan | null {
       const plan = pendingCheckout.value
       pendingCheckout.value = null
@@ -125,6 +129,7 @@ export const usePurchaseStore = defineStore('purchase', () => {
 
     /** Le compte quitté n'emporte ni son droit ni le souvenir de son abonnement. */
     reset(): void {
+      pendingCheckout.value = null
       record(NO_PLUS, NO_STORED_PLUS)
     },
 
@@ -134,6 +139,7 @@ export const usePurchaseStore = defineStore('purchase', () => {
      * anonyme créé à sa place n'a aucun achat et la revérification effacerait ce droit.
      */
     async logOut(): Promise<void> {
+      pendingCheckout.value = null
       if (stored.value.plan !== 'none' || stored.value.lastSubscription !== null) return
       await billingService.logOut()
     },

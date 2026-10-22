@@ -442,4 +442,36 @@ describe('usePurchaseStore — offre en attente d’un compte', () => {
     expect(store.pendingCheckout).toBeNull()
     expect(store.takePendingCheckout()).toBeNull()
   })
+
+  it('oublie l’offre quand on quitte le compte, même avec un droit Plus connu', async () => {
+    const store = usePurchaseStore()
+    store.rememberCheckout('annual')
+    await store.logOut()
+    expect(store.pendingCheckout).toBeNull()
+
+    writeStoredPlusStatus(stored(LIFETIME))
+    setActivePinia(createPinia())
+    const avecDroit = usePurchaseStore()
+    avecDroit.rememberCheckout('monthly')
+    await avecDroit.logOut()
+    expect(avecDroit.pendingCheckout).toBeNull()
+  })
+
+  it('oublie l’offre quand le compte est soldé', () => {
+    const store = usePurchaseStore()
+    store.rememberCheckout('lifetime')
+
+    store.reset()
+
+    expect(store.pendingCheckout).toBeNull()
+  })
+
+  it('oublie l’offre sur demande', () => {
+    const store = usePurchaseStore()
+    store.rememberCheckout('lifetime')
+
+    store.forgetCheckout()
+
+    expect(store.pendingCheckout).toBeNull()
+  })
 })

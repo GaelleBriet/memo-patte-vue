@@ -7,6 +7,7 @@ export type PlusAccountPort = {
   available: boolean
   logIn(appUserID: string): Promise<unknown>
   logOut(): Promise<unknown>
+  forgetCheckout(): void
 }
 
 export function createPlusAccountLink(purchase: () => PlusAccountPort) {
@@ -29,6 +30,8 @@ export function createPlusAccountLink(purchase: () => PlusAccountPort) {
       attempt('Achat non rattaché au compte :', (port) => port.logIn(userId)),
 
     unlinkFromAccount: () => attempt('Achat non détaché du compte :', (port) => port.logOut()),
+
+    forgetPendingCheckout: () => purchase().forgetCheckout(),
   }
 }
 
@@ -45,6 +48,7 @@ export function installPlusAccountLink(
   link: PlusAccountLink = plusAccountLink,
 ): () => void {
   return watch(accountId, (userId, previous) => {
+    if (userId !== null && previous !== null) link.forgetPendingCheckout()
     if (userId !== null) void link.linkToAccount(userId)
     else if (previous !== null) void link.unlinkFromAccount()
   })

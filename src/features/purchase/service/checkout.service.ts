@@ -2,7 +2,15 @@ import type { PlusStatus } from '../logic/plus-status'
 import { usePurchaseStore } from '../store/purchase.store'
 import type { PaidPlan, PurchaseOutcome } from './billing.service'
 
-export type CheckoutOutcome = PurchaseOutcome | { kind: 'needs-account' } | { kind: 'already-plus' }
+export type CheckoutOutcome =
+  PurchaseOutcome | { kind: 'needs-account' } | { kind: 'needs-sign-in' } | { kind: 'already-plus' }
+
+export type CheckoutAccount = {
+  accountId(): string | null
+  hasSession(): boolean
+  /** `true` quand la session est de nouveau active ; ne lève pas. */
+  refreshSession(): Promise<boolean>
+}
 
 export type CheckoutPort = {
   status: PlusStatus
@@ -14,15 +22,19 @@ export type CheckoutPort = {
 
 export type ResumedCheckout = { plan: PaidPlan; pay: boolean }
 
-export function createCheckout(accountId: () => string | null, purchase: () => CheckoutPort) {
+export function createCheckout(account: CheckoutAccount, purchase: () => CheckoutPort) {
   return {
-    /** Jamais d'achat sans compte, ni avant que l'achat soit rattaché au compte. */
+    /** Jamais d'achat sans compte ni session active, ni avant que l'achat soit rattaché au compte. */
     async checkout(plan: PaidPlan): Promise<CheckoutOutcome> {
       const port = purchase()
-      const userId = accountId()
+      const userId = account.accountId()
       if (userId === null) {
         port.rememberCheckout(plan)
         return { kind: 'needs-account' }
+      }
+      if (!account.hasSession() && !(await account.refreshSession())) {
+        port.rememberCheckout(plan)
+        return { kind: 'needs-sign-in' }
       }
       const status = await port.logIn(userId)
       if (status.plan !== 'none') return { kind: 'already-plus' }
@@ -34,18 +46,29 @@ export function createCheckout(accountId: () => string | null, purchase: () => C
       const port = purchase()
       const plan = port.takePendingCheckout()
       if (plan === null) return null
-      return { plan, pay: accountId() !== null && port.status.plan === 'none' }
+      const signedIn = account.accountId() !== null && account.hasSession()
+      return { plan, pay: signedIn && port.status.plan === 'none' }
     },
   }
 }
 
-let accountSource: () => string | null = () => null
+const NO_ACCOUNT: CheckoutAccount = {
+  accountId: () => null,
+  hasSession: () => false,
+  refreshSession: async () => false,
+}
 
-export function provideCheckoutAccount(source: () => string | null): void {
+let accountSource = NO_ACCOUNT
+
+export function provideCheckoutAccount(source: CheckoutAccount): void {
   accountSource = source
 }
 
 export const plusCheckout = createCheckout(
-  () => accountSource(),
+  {
+    accountId: () => accountSource.accountId(),
+    hasSession: () => accountSource.hasSession(),
+    refreshSession: () => accountSource.refreshSession(),
+  },
   () => usePurchaseStore(),
 )

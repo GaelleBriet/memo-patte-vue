@@ -102,15 +102,30 @@ describe('checkoutBar', () => {
 })
 
 describe('nextAfterCheckout', () => {
-  it('passe par le compte quand il manque, sinon dit l’issue du paiement', () => {
-    expect(nextAfterCheckout({ kind: 'needs-account' })).toBe('account')
-    expect(
-      nextAfterCheckout({ kind: 'purchased', status: { plan: 'annual', expiresAt: null } }),
-    ).toBe('success')
-    expect(nextAfterCheckout({ kind: 'cancelled' })).toBe('cancelled')
+  it('sans compte, passe par « Étape 1 sur 2 »', () => {
+    expect(nextAfterCheckout({ kind: 'needs-account' })).toEqual({
+      kind: 'detour',
+      route: { name: 'plus-account' },
+    })
+  })
+
+  it('sans session active, passe par la connexion, qui ramène à l’écran Plus', () => {
+    expect(nextAfterCheckout({ kind: 'needs-sign-in' })).toEqual({
+      kind: 'detour',
+      route: { name: 'sign-in', query: { from: 'plus' } },
+    })
+  })
+
+  it('dit l’issue du paiement', () => {
+    const status = { plan: 'annual', expiresAt: null } as const
+    expect(nextAfterCheckout({ kind: 'purchased', status })).toEqual({
+      kind: 'phase',
+      phase: 'success',
+    })
+    expect(nextAfterCheckout({ kind: 'cancelled' })).toEqual({ kind: 'phase', phase: 'cancelled' })
   })
 
   it('revient à l’écran Plus, qui montre l’abonnement, quand le compte l’a déjà', () => {
-    expect(nextAfterCheckout({ kind: 'already-plus' })).toBe('offers')
+    expect(nextAfterCheckout({ kind: 'already-plus' })).toEqual({ kind: 'phase', phase: 'offers' })
   })
 })

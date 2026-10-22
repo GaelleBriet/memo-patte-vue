@@ -2,10 +2,25 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { NO_PLUS, type PlusStatus } from '../logic/plus-status'
 import type { PaidPlan } from '../service/billing.service'
-import { createCheckout, type CheckoutPort } from '../service/checkout.service'
+import {
+  createCheckout,
+  type CheckoutAccount,
+  type CheckoutPort,
+} from '../service/checkout.service'
 
 const USER_ID = '4d1c6a52-8f0e-4b8e-9a51-2f6a3c9d7e10'
 const ANNUEL: PlusStatus = { plan: 'annual', expiresAt: '2027-10-22T10:00:00Z' }
+
+function compte(
+  userId: string | null,
+  { session = true, refreshed = false }: { session?: boolean; refreshed?: boolean } = {},
+): CheckoutAccount {
+  return {
+    accountId: () => userId,
+    hasSession: () => session,
+    refreshSession: vi.fn<CheckoutAccount['refreshSession']>(async () => refreshed),
+  }
+}
 
 function port(overrides: Partial<CheckoutPort> = {}) {
   let pending: PaidPlan | null = null
@@ -36,10 +51,7 @@ function port(overrides: Partial<CheckoutPort> = {}) {
 describe('checkout', () => {
   it('sans compte, retient l’offre et ne contacte pas Google Play', async () => {
     const { value } = port()
-    const { checkout, resume } = createCheckout(
-      () => null,
-      () => value,
-    )
+    const { checkout, resume } = createCheckout(compte(null), () => value)
 
     await expect(checkout('annual')).resolves.toEqual({ kind: 'needs-account' })
 
@@ -50,10 +62,7 @@ describe('checkout', () => {
 
   it('avec un compte, rattache l’achat au compte avant de payer', async () => {
     const { value, calls } = port()
-    const { checkout } = createCheckout(
-      () => USER_ID,
-      () => value,
-    )
+    const { checkout } = createCheckout(compte(USER_ID), () => value)
 
     await expect(checkout('lifetime')).resolves.toEqual({ kind: 'purchased', status: ANNUEL })
 
@@ -64,10 +73,7 @@ describe('checkout', () => {
     const { value } = port({
       logIn: vi.fn<CheckoutPort['logIn']>(async () => Promise.reject(new Error('réseau'))),
     })
-    const { checkout } = createCheckout(
-      () => USER_ID,
-      () => value,
-    )
+    const { checkout } = createCheckout(compte(USER_ID), () => value)
 
     await expect(checkout('annual')).rejects.toThrow('réseau')
 
@@ -76,10 +82,7 @@ describe('checkout', () => {
 
   it('ne fait pas payer deux fois un compte qui a déjà Plus', async () => {
     const { value } = port({ logIn: vi.fn<CheckoutPort['logIn']>(async () => ANNUEL) })
-    const { checkout } = createCheckout(
-      () => USER_ID,
-      () => value,
-    )
+    const { checkout } = createCheckout(compte(USER_ID), () => value)
 
     await expect(checkout('monthly')).resolves.toEqual({ kind: 'already-plus' })
 
@@ -90,22 +93,69 @@ describe('checkout', () => {
     const { value } = port({
       purchase: vi.fn<CheckoutPort['purchase']>(async () => ({ kind: 'cancelled' })),
     })
-    const { checkout } = createCheckout(
-      () => USER_ID,
-      () => value,
-    )
+    const { checkout } = createCheckout(compte(USER_ID), () => value)
 
     await expect(checkout('annual')).resolves.toEqual({ kind: 'cancelled' })
   })
 })
 
-describe('resume', () => {
-  it('ne reprend rien quand aucune offre n’attend', () => {
+describe('checkout — session', () => {
+  it('sans session active ni rafraîchie, ne rattache rien, ne paie pas et demande la connexion', async () => {
     const { value } = port()
-    const { resume } = createCheckout(
-      () => USER_ID,
+    const account = compte(USER_ID, { session: false, refreshed: false })
+    const { checkout, resume } = createCheckout(account, () => value)
+
+    await expect(checkout('annual')).resolves.toEqual({ kind: 'needs-sign-in' })
+
+    expect(account.refreshSession).toHaveBeenCalledTimes(1)
+    expect(value.logIn).not.toHaveBeenCalled()
+    expect(value.purchase).not.toHaveBeenCalled()
+    expect(resume()).toEqual({ plan: 'annual', pay: false })
+  })
+
+  it('paie une fois la session rafraîchie avec succès', async () => {
+    const { value, calls } = port()
+    const { checkout } = createCheckout(
+      compte(USER_ID, { session: false, refreshed: true }),
       () => value,
     )
+
+    await expect(checkout('monthly')).resolves.toEqual({ kind: 'purchased', status: ANNUEL })
+
+    expect(calls).toEqual([`logIn:${USER_ID}`, 'purchase:monthly'])
+  })
+
+  it('ne rafraîchit pas une session déjà active', async () => {
+    const { value } = port()
+    const account = compte(USER_ID)
+    const { checkout } = createCheckout(account, () => value)
+
+    await checkout('annual')
+
+    expect(account.refreshSession).not.toHaveBeenCalled()
+  })
+})
+
+describe('resume', () => {
+  it('ne relance pas le paiement tant que la session n’est pas active', () => {
+    let session = false
+    const { value } = port()
+    const { resume } = createCheckout(
+      { ...compte(USER_ID), hasSession: () => session },
+      () => value,
+    )
+
+    value.rememberCheckout('annual')
+    expect(resume()).toEqual({ plan: 'annual', pay: false })
+
+    session = true
+    value.rememberCheckout('annual')
+    expect(resume()).toEqual({ plan: 'annual', pay: true })
+  })
+
+  it('ne reprend rien quand aucune offre n’attend', () => {
+    const { value } = port()
+    const { resume } = createCheckout(compte(USER_ID), () => value)
 
     expect(resume()).toBeNull()
   })
@@ -114,7 +164,7 @@ describe('resume', () => {
     let account: string | null = null
     const { value } = port()
     const { checkout, resume } = createCheckout(
-      () => account,
+      { ...compte(null), accountId: () => account },
       () => value,
     )
     await checkout('lifetime')
@@ -126,10 +176,7 @@ describe('resume', () => {
 
   it('ne reprend l’offre retenue qu’une fois', async () => {
     const { value } = port()
-    const { checkout, resume } = createCheckout(
-      () => null,
-      () => value,
-    )
+    const { checkout, resume } = createCheckout(compte(null), () => value)
     await checkout('monthly')
 
     resume()
@@ -141,7 +188,7 @@ describe('resume', () => {
     let account: string | null = null
     const { value } = port()
     const { checkout, resume } = createCheckout(
-      () => account,
+      { ...compte(null), accountId: () => account },
       () => value,
     )
     await checkout('annual')

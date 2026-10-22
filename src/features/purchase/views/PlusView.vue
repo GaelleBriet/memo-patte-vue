@@ -6,10 +6,10 @@ import { useRouter } from 'vue-router'
 import type { PaidPlan, PlusOffer } from '../service/billing.service'
 import { plusCheckout } from '../service/checkout.service'
 import { MANAGE_SUBSCRIPTIONS_URL } from '@/shared/utils/google-play'
-import { accountFirstRoute } from '@/shared/utils/sign-in-route'
 import {
   checkoutBar,
   nextAfterCheckout,
+  type CheckoutNext,
   orderedOffers,
   PLUS_BENEFITS,
   PRESELECTED_PLAN,
@@ -92,13 +92,17 @@ function close(): void {
 async function buy(plan: PaidPlan): Promise<void> {
   if (isBusy.value) return
   phase.value = 'purchasing'
+  let next: CheckoutNext
   try {
-    const next = nextAfterCheckout(await plusCheckout.checkout(plan))
-    phase.value = next === 'account' ? 'offers' : next
-    if (next === 'account') void router.push(accountFirstRoute())
+    next = nextAfterCheckout(await plusCheckout.checkout(plan))
   } catch {
     phase.value = 'failed'
+    return
   }
+  if (next.kind === 'detour') {
+    await router.push(next.route)
+    phase.value = 'offers'
+  } else phase.value = next.phase
 }
 
 function leaveOutcome(): void {
