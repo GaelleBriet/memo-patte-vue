@@ -1,12 +1,10 @@
 import { ANIMAL_PHOTO_ENTITY } from '@/core/db/schema-statements'
 import { errorSummary } from '@/shared/utils/error-summary'
 import type { SyncOutboxEntry } from '../repository/sync-outbox.repository'
+import { isJpeg, MAX_CLOUD_PHOTO_BYTES } from './cloud-photo'
 import { PhotoUploadRefusal, type LocalPhotoFiles, type PhotoUploadPort } from './photo-upload-port'
 import { createPushRefusals } from './push-refusals'
 import type { SyncCycleOutbox } from './sync-cycle'
-
-/** Limite du bucket `animal-photos` : au-delà, le serveur refuserait à chaque essai. */
-const MAX_PHOTO_BYTES = 2 * 1024 * 1024
 
 export interface PhotoPushDependencies {
   files: LocalPhotoFiles
@@ -19,8 +17,6 @@ export interface PhotoPush {
   /** Rend le premier échec à réessayer, `null` si aucune photo n'en attend un. */
   push(userId: string): Promise<{ cause: unknown } | null>
 }
-
-const isJpeg = (bytes: Uint8Array) => bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
 
 const photoRefusalSignature = (cause: unknown) =>
   cause instanceof PhotoUploadRefusal ? cause.reason : null
@@ -42,7 +38,7 @@ export function createPhotoPush(
       if (!(await files.exists(entry.entityId))) await outbox.removeIfUnchanged(entry)
       return
     }
-    const photo = await files.read(entry.entityId, MAX_PHOTO_BYTES)
+    const photo = await files.read(entry.entityId, MAX_CLOUD_PHOTO_BYTES)
     if (photo.kind === 'too-large' || (photo.kind === 'found' && !isJpeg(photo.bytes))) {
       console.warn('Photo trop lourde ou hors JPEG, sortie de la file sans envoi.')
     } else if (photo.kind === 'found') {
