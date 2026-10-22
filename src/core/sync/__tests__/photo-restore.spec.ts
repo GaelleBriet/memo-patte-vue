@@ -41,6 +41,36 @@ function fakeCloud(objects: Record<string, Uint8Array> = {}) {
   return { port, failures, requested }
 }
 
+function holdDownloads(remote: ReturnType<typeof fakeCloud>) {
+  const asked: Array<{ userId: string; fileName: string }> = []
+  const waiting: Array<() => void> = []
+  const flight = { now: 0, max: 0 }
+  let opened = false
+  const download = remote.port.download.bind(remote.port)
+  remote.port.download = async (userId, fileName) => {
+    asked.push({ userId, fileName })
+    flight.now += 1
+    flight.max = Math.max(flight.max, flight.now)
+    try {
+      if (!opened) await new Promise<void>((resolve) => waiting.push(resolve))
+      return await download(userId, fileName)
+    } finally {
+      flight.now -= 1
+    }
+  }
+  return {
+    asked,
+    flight,
+    answerNext: () => waiting.shift()?.(),
+    open: () => {
+      opened = true
+      waiting.splice(0).forEach((answer) => answer())
+    },
+  }
+}
+
+const settle = () => new Promise<void>((resolve) => setTimeout(resolve, 0))
+
 function setup({
   carnet,
   local = {},
@@ -248,6 +278,115 @@ describe('createPhotoRestore', () => {
       { userId: 'user-B', fileName: MILO_PHOTO },
       { userId: 'user-B', fileName: LUNA_PHOTO },
     ])
+  })
+
+  it('ne demande rien pour le compte B tant que la demande en cours du compte A n’a pas répondu', async () => {
+    const { remote, restore, account } = setup({
+      carnet: [MILO_PHOTO, LUNA_PHOTO],
+      cloud: { [MILO_PHOTO]: jpeg(), [LUNA_PHOTO]: jpeg() },
+    })
+    const hold = holdDownloads(remote)
+    account.current = 'user-A'
+
+    const first = restore.restoreMissing('user-A')
+    await vi.waitFor(() => expect(hold.asked).toHaveLength(1))
+    account.current = 'user-B'
+    const second = restore.restoreMissing('user-B')
+    await settle()
+
+    expect(hold.asked).toEqual([{ userId: 'user-A', fileName: MILO_PHOTO }])
+    hold.answerNext()
+    await vi.waitFor(() => expect(hold.asked).toHaveLength(2))
+    expect(hold.asked[1]).toEqual({ userId: 'user-B', fileName: MILO_PHOTO })
+    hold.open()
+    await Promise.all([first, second])
+  })
+
+  it('un seul téléchargement à la fois quand les comptes A, B puis A de nouveau se suivent de près', async () => {
+    const { remote, restore, account } = setup({
+      carnet: [MILO_PHOTO, LUNA_PHOTO],
+      cloud: { [MILO_PHOTO]: jpeg(), [LUNA_PHOTO]: jpeg() },
+    })
+    const hold = holdDownloads(remote)
+    account.current = 'user-A'
+
+    const first = restore.restoreMissing('user-A')
+    await vi.waitFor(() => expect(hold.asked).toHaveLength(1))
+    account.current = 'user-B'
+    const second = restore.restoreMissing('user-B')
+    account.current = 'user-A'
+    const third = restore.restoreMissing('user-A')
+    hold.open()
+    await Promise.all([first, second, third])
+
+    expect(hold.flight.max).toBe(1)
+    expect(hold.asked).toEqual([
+      { userId: 'user-A', fileName: MILO_PHOTO },
+      { userId: 'user-A', fileName: LUNA_PHOTO },
+    ])
+  })
+
+  it('le second rappel du compte B pendant sa passe rend la même promesse, une fois la passe de A finie', async () => {
+    const { remote, restore, account } = setup({
+      carnet: [MILO_PHOTO, LUNA_PHOTO],
+      cloud: { [MILO_PHOTO]: jpeg(), [LUNA_PHOTO]: jpeg() },
+    })
+    const hold = holdDownloads(remote)
+    account.current = 'user-A'
+
+    const first = restore.restoreMissing('user-A')
+    await vi.waitFor(() => expect(hold.asked).toHaveLength(1))
+    account.current = 'user-B'
+    const second = restore.restoreMissing('user-B')
+    hold.answerNext()
+    await first
+    await vi.waitFor(() => expect(hold.asked).toHaveLength(2))
+    const again = restore.restoreMissing('user-B')
+
+    expect(again).toBe(second)
+    hold.open()
+    await Promise.all([second, again])
+    expect(hold.flight.max).toBe(1)
+  })
+
+  it('ne lève pas quand le compte ne se vérifie pas, et la passe du compte suivant part quand même', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const remote = fakeCloud({ [MILO_PHOTO]: jpeg() })
+    const restore = createPhotoRestore({
+      carnetPhotos: async () => [MILO_PHOTO],
+      files: fakeFiles(),
+      downloads: remote.port,
+      isAccountCurrent: (userId) => {
+        if (userId === 'user-A') throw new Error('stockage du compte illisible')
+        return true
+      },
+    })
+
+    const first = restore.restoreMissing('user-A')
+    const second = restore.restoreMissing('user-B')
+
+    await expect(first).resolves.toBeUndefined()
+    await expect(second).resolves.toBeUndefined()
+    expect(remote.requested).toEqual([{ userId: 'user-B', fileName: MILO_PHOTO }])
+    expect(warn).toHaveBeenCalled()
+    for (const args of warn.mock.calls) {
+      expect(args.join(' ')).not.toContain(MILO_PHOTO.slice(0, 8))
+    }
+  })
+
+  it('ne demande pas la photo quand le compte part pendant la recherche du fichier sur le téléphone', async () => {
+    const { remote, restore, account, files } = setup({
+      carnet: [MILO_PHOTO],
+      cloud: { [MILO_PHOTO]: jpeg() },
+    })
+    files.exists.mockImplementation(async (name) => {
+      account.current = null
+      return files.stored.has(name)
+    })
+
+    await restore.restoreMissing(USER_ID)
+
+    expect(remote.requested).toEqual([])
   })
 
   it('ne demande plus rien quand le compte n’est plus celui de la passe, déconnexion comprise', async () => {

@@ -33,6 +33,7 @@ export function createPhotoRestore({
 
   async function restoreOne(userId: string, fileName: string): Promise<void> {
     if (await files.exists(fileName)) return
+    if (!isAccountCurrent(userId)) return
     const jpeg = await downloads.download(userId, fileName)
     if (jpeg === null || !isAccountCurrent(userId)) return
     if (jpeg.length > MAX_CLOUD_PHOTO_BYTES || !isJpeg(jpeg)) {
@@ -67,6 +68,12 @@ export function createPhotoRestore({
       const previous = running?.done ?? Promise.resolve()
       const done: Promise<void> = previous
         .then(() => restoreAll(userId))
+        .catch((cause: unknown) => {
+          console.warn(
+            'Photos du compte non restaurées, nouvel essai plus tard :',
+            errorSummary(cause),
+          )
+        })
         .finally(() => {
           if (running?.done === done) running = null
         })
