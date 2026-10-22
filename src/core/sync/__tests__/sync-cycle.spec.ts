@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
+import { ANIMAL_PHOTO_ENTITY } from '@/core/db/schema-statements'
 import { createSyncCycle, type SyncCycleOutbox } from '../service/sync-cycle'
 import {
   syncField,
@@ -498,6 +499,57 @@ describe('createSyncCycle', () => {
 
       await expect(cycle.runCycle()).resolves.toBeUndefined()
       expect(outbox.entries()).toEqual([])
+    })
+
+    it('ne pousse pas une photo comme une ligne : son entrée reste en file', async () => {
+      const photo = {
+        entity: ANIMAL_PHOTO_ENTITY,
+        entityId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg',
+        queuedAt: '2026-01-01T00:00:00.000Z',
+        attempts: 0,
+      }
+      const outbox = createFakeOutbox([photo])
+      const cycle = createSyncCycle({
+        db,
+        outbox,
+        pushes,
+        tables: [fakeTable('animal')],
+        userId: () => 'user-1',
+        isEligible: () => true,
+      })
+
+      await expect(cycle.runCycle()).resolves.toBeUndefined()
+      expect(outbox.entries()).toEqual([photo])
+      expect(pushes.opened).toEqual([])
+    })
+
+    it('pousse les autres lignes de la file quand une photo y attend', async () => {
+      const animal = fakeTable('animal')
+      animal.localRows.set('a1', row('a1', '2026-01-01T00:00:00.000Z', 'x'))
+      const photo = {
+        entity: ANIMAL_PHOTO_ENTITY,
+        entityId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg',
+        queuedAt: '2026-01-01T00:00:00.000Z',
+        attempts: 0,
+      }
+      const outbox = createFakeOutbox([
+        photo,
+        { entity: 'animal', entityId: 'a1', queuedAt: '2026-01-01T00:00:00.000Z', attempts: 0 },
+      ])
+      const cycle = createSyncCycle({
+        db,
+        outbox,
+        pushes,
+        tables: [animal],
+        userId: () => 'user-1',
+        isEligible: () => true,
+      })
+
+      await cycle.runCycle()
+
+      expect(pushes.opened).not.toEqual([])
+      expect(animal.pushed).toHaveLength(1)
+      expect(outbox.entries()).toEqual([photo])
     })
 
     it('draine la file par lots de 200 entrées', async () => {

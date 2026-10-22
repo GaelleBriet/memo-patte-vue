@@ -1,4 +1,5 @@
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
+import { LIVE_ANIMAL_PHOTOS_SELECT } from '@/core/db/schema-statements'
 import { getDb } from '@/core/db/sqlite'
 
 export interface SyncOutboxEntry {
@@ -47,6 +48,10 @@ function queueWholeTable(entity: string): SqlStatement {
   }
 }
 
+const QUEUE_LIVE_ANIMAL_PHOTOS: SqlStatement = {
+  sql: `INSERT OR IGNORE INTO sync_outbox (entity, entity_id, queued_at) ${LIVE_ANIMAL_PHOTOS_SELECT}`,
+}
+
 const ENTITY_RANK = `CASE entity ${SYNC_ENTITY_ORDER.map((_, rank) => `WHEN ? THEN ${rank}`).join(' ')}
   ELSE ${SYNC_ENTITY_ORDER.length} END`
 
@@ -78,7 +83,8 @@ export function createSyncOutboxRepository(db: DbClient) {
     },
 
     /**
-     * Lignes supprimées comprises ; une entrée déjà en file garde son `queued_at` et ses essais.
+     * Lignes supprimées comprises, photos des seuls animaux non supprimés ; une entrée déjà en file
+     * garde son `queued_at` et ses essais.
      * Le pull suivant repart du début : il ramène tout le carnet du compte.
      */
     async enableAndQueueWholeCarnet(): Promise<void> {
@@ -86,6 +92,7 @@ export function createSyncOutboxRepository(db: DbClient) {
         { sql: 'UPDATE sync_state SET enabled = 1 WHERE id = 1' },
         { sql: 'DELETE FROM sync_pull_cursor' },
         ...SYNC_ENTITY_ORDER.map(queueWholeTable),
+        QUEUE_LIVE_ANIMAL_PHOTOS,
       ])
     },
 
@@ -130,7 +137,7 @@ export function createSyncOutboxRepository(db: DbClient) {
     /**
      * Autour du carnet tiré : synchro coupée pendant l'écriture, curseurs posés au bout de ce qui
      * a été tiré, synchro activée à la fin. Avant l'écriture, « Fusionner » met en file tout le
-     * carnet du téléphone, « Remplacer » seulement ses appareils.
+     * carnet du téléphone et ses photos, « Remplacer » seulement ses appareils.
      */
     restoreStatements({
       mode,
@@ -144,7 +151,7 @@ export function createSyncOutboxRepository(db: DbClient) {
           { sql: 'UPDATE sync_state SET enabled = 0 WHERE id = 1' },
           { sql: 'DELETE FROM sync_pull_cursor' },
           ...(mode === 'merge'
-            ? SYNC_ENTITY_ORDER.map(queueWholeTable)
+            ? [...SYNC_ENTITY_ORDER.map(queueWholeTable), QUEUE_LIVE_ANIMAL_PHOTOS]
             : [{ sql: 'DELETE FROM sync_outbox' }, queueWholeTable('device')]),
         ],
         after: [
