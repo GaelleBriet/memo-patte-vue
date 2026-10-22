@@ -6,22 +6,6 @@ export type DeletionOrigin = 'app' | 'email'
 /** Efface chez un prestataire ce qui y désigne le compte ; réussit si rien n'y est. */
 export type ProviderErasure = (userId: string) => Promise<void>
 
-const PROVIDER_TIMEOUT_MS = 15_000
-
-/** Le message d'origine d'un échec réseau peut contenir la clé ou l'identifiant : il n'est pas repris. */
-export async function sendTo(
-  provider: string,
-  send: typeof fetch,
-  url: string,
-  init: RequestInit,
-): Promise<Response> {
-  try {
-    return await send(url, { ...init, signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS) })
-  } catch {
-    throw new Error(`${provider} injoignable`)
-  }
-}
-
 export class ErasureNotConfiguredError extends Error {
   constructor(readonly settings: string[]) {
     super(`Réglages absents ou invalides : ${settings.join(', ')}`)
@@ -70,7 +54,7 @@ async function removeFolder(
   }
 }
 
-/** Supprimer le compte laisse ses photos dans le stockage : elles partent d'abord. */
+/** Supprimer le compte laisse ses photos dans le stockage : elles partent avec lui. */
 export function removeAllPhotos(userId: string, ports: AccountErasurePorts): Promise<void> {
   return removeFolder(userId, 0, ports)
 }
@@ -84,6 +68,18 @@ async function recordDeletion(origin: DeletionOrigin, ports: AccountErasurePorts
   }
 }
 
+/** Un autre téléphone a pu envoyer une photo avant que le compte parte ; après, plus aucun envoi n'est accepté. */
+async function removePhotosSentDuringDeletion(
+  userId: string,
+  ports: AccountErasurePorts,
+): Promise<void> {
+  try {
+    await removeAllPhotos(userId, ports)
+  } catch {
+    console.error('Compte supprimé, second passage sur ses photos en échec')
+  }
+}
+
 /** Le compte part en dernier : tant qu'il existe, un nouvel essai reprend. */
 export async function eraseAccount(
   userId: string,
@@ -93,8 +89,9 @@ export async function eraseAccount(
   if (ports.invalidProviderSettings.length > 0) {
     throw new ErasureNotConfiguredError(ports.invalidProviderSettings)
   }
-  await removeAllPhotos(userId, ports)
   for (const erase of ports.providerErasures) await erase(userId)
+  await removeAllPhotos(userId, ports)
   await ports.deleteUser(userId)
+  await removePhotosSentDuringDeletion(userId, ports)
   await recordDeletion(origin, ports)
 }

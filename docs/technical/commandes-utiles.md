@@ -367,6 +367,10 @@ pnpm dlx supabase@2.119.0 stop --no-backup  # aucun conteneur ne doit rester
   `supabase/functions/.env`, pour qu'aucun appel ne parte chez eux. Sans ces deux lignes ni leurs secrets, la
   suppression du compte répond `503 erasure-not-configured` sans rien effacer.
 
+**Ordre de la suppression du compte** : PostHog et RevenueCat, puis les photos du dossier du compte, puis le
+compte, puis un second passage sur le dossier (une photo envoyée entre-temps par un autre téléphone). Un échec du
+second passage est seulement journalisé : le compte est déjà supprimé.
+
 **Effacement chez les prestataires**, avant le compte : PostHog (`POST <hôte>/api/projects/<id>/persons/bulk_delete/`,
 `distinct_ids` = l'identifiant du compte, `delete_events: true` ; une personne absente est un succès), puis RevenueCat
 (`DELETE https://api.revenuecat.com/v1/subscribers/<identifiant>` ; un client absent, `404`, est un succès). Secrets de

@@ -373,8 +373,9 @@ remplacement n'accepte que la forme que l'app écrit : `<uid>/<nom>.jpg`, un seu
 lettres ASCII, chiffres, `_` ou `-` (comme `isPhotoFileName`).
 
 _Vigilance_ #87 : Supabase supprime l'utilisateur sans toucher à ses objets Storage, qui resteraient
-orphelins (vérifié contre une pile locale, `delete-account.local.spec.ts`). Ordre imposé — objets du
-dossier, puis `deleteUser`, dont la cascade emporte les lignes.
+orphelins (vérifié contre une pile locale, `delete-account.local.spec.ts`). Ordre imposé : PostHog et
+RevenueCat, objets du dossier, `deleteUser` (sa cascade emporte les lignes), puis un second passage sur
+le dossier pour une photo envoyée entre-temps par un autre téléphone (#1053).
 
 ## 5. Interaction avec l'existant
 
