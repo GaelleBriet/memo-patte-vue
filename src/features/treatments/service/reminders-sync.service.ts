@@ -34,6 +34,7 @@ import { plannedReminders } from '@/shared/domain/reminder-plan'
 import type { ReminderKind } from '@/shared/domain/reminders'
 import { vaccinationReminders } from '@/shared/domain/vaccination-reminders'
 import type { Translate } from '@/core/i18n/translate'
+import { errorSummary } from '@/shared/utils/error-summary'
 
 type Provider<T> = () => T | Promise<T>
 
@@ -48,7 +49,7 @@ function remindersOf<T extends { id: string }>(
     try {
       return [[dueReminderEntryKey({ kind, id: row.id }), build(row)]]
     } catch (cause) {
-      console.warn(`Rappels du ${label} ignorés :`, row.id, cause)
+      console.warn(`Rappels du ${label} ignorés :`, errorSummary(cause))
       return []
     }
   })
@@ -148,7 +149,9 @@ export function createRemindersSync({
       if (noted.length > 0) {
         await notifications
           .removeDelivered(noted)
-          .catch((cause: unknown) => console.warn('Volet des notifications non vidé :', cause))
+          .catch((cause: unknown) =>
+            console.warn('Volet des notifications non vidé :', errorSummary(cause)),
+          )
       }
 
       const wanted = plannedReminders(cares, MAX_SCHEDULED_REMINDERS)
@@ -157,7 +160,7 @@ export function createRemindersSync({
       if (!isRebuildRequested() && isAlreadyScheduled(kept, wanted, exact)) return
       if (await withOneRetry(() => notifications.rescheduleAll(wanted))) markRebuilt()
     } catch (cause) {
-      console.warn('Rappels non reconstruits :', cause)
+      console.warn('Rappels non reconstruits :', errorSummary(cause))
     }
   }
 }

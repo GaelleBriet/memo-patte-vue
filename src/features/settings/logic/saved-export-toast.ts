@@ -3,6 +3,7 @@ import { FileOpener } from '@capawesome-team/capacitor-file-opener'
 import type { SavedFile } from '../service/export-delivery.service'
 import type { Translate } from '@/core/i18n/translate'
 import { showToast } from '@/shared/utils/toast'
+import { errorSummary } from '@/shared/utils/error-summary'
 
 const SAVED_TOAST_MS = 4000
 
@@ -10,7 +11,7 @@ async function openSavedFile(file: SavedFile, t: Translate): Promise<void> {
   try {
     await FileOpener.openFile({ path: file.uri, mimeType: file.mimeType })
   } catch (cause) {
-    console.warn('Export non ouvert :', cause)
+    console.warn('Export non ouvert :', errorSummary(cause))
     showToast(t('settings.export.openFailed'), { tone: 'error' })
   }
 }
