@@ -42,7 +42,10 @@ export function outboxTriggerStatements(table: string): string[] {
   ]
 }
 
-/** Une entrée par photo à envoyer, désignée par son nom de fichier, qui est aussi son nom dans le cloud. */
+/**
+ * Une entrée par photo à envoyer ou à effacer du cloud, désignée par son nom de fichier, qui est
+ * aussi son nom dans le cloud.
+ */
 export const ANIMAL_PHOTO_ENTITY = 'animal_photo'
 
 const LIVE_ANIMAL_PHOTO = `(SELECT enabled FROM sync_state WHERE id = 1) = 1
@@ -72,6 +75,19 @@ export function photoOutboxTriggerStatements(): string[] {
      BEGIN${upsert}
      END;`,
   ]
+}
+
+/** La photo remplacée ou retirée d'un animal non supprimé repart en file, pour sortir du cloud. */
+export function replacedPhotoOutboxTriggerStatement(): string {
+  return `CREATE TRIGGER ${ANIMAL_PHOTO_ENTITY}_outbox_replaced AFTER UPDATE OF photo_path ON animal
+     WHEN (SELECT enabled FROM sync_state WHERE id = 1) = 1
+       AND OLD.photo_path IS NOT NULL AND NEW.deleted_at IS NULL
+       AND NEW.photo_path IS NOT OLD.photo_path
+     BEGIN
+      INSERT INTO sync_outbox (entity, entity_id, queued_at)
+      VALUES ('${ANIMAL_PHOTO_ENTITY}', OLD.photo_path, NEW.updated_at)
+      ON CONFLICT (entity, entity_id) DO UPDATE SET queued_at = excluded.queued_at;
+     END;`
 }
 
 export function nameLengthTriggerStatements(table: string, columns: string[]): string[] {
