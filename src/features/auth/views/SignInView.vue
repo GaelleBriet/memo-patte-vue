@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { useEmailCode } from '../composables/use-email-code'
 import { useGoogleSignIn } from '../composables/use-google-sign-in'
+import { useSignedInExit } from '../composables/use-signed-in-exit'
 import { AccountError } from '../logic/account-error'
 import { signInErrorKey } from '../logic/account-error-message'
 import { useAuthStore } from '../store/auth.store'
@@ -13,15 +14,8 @@ import { focusFirstInvalid } from '@/shared/form/focus-first-invalid'
 import FormField from '@/shared/form/FormField.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
-import { currentRestoreFlow } from '@/core/sync/service/restore-flow'
-import { returnTo } from '@/shared/utils/return-to'
 import { showToast } from '@/shared/utils/toast'
-import {
-  afterSignInRoute,
-  asksRestore,
-  asksSignUp,
-  signInReturnRoute,
-} from '@/shared/utils/sign-in-route'
+import { asksSignUp, passwordResetRoute } from '@/shared/utils/sign-in-route'
 
 import AccountLegalNotice from './AccountLegalNotice.vue'
 import EmailCodeStep from './EmailCodeStep.vue'
@@ -44,13 +38,12 @@ const { errors, validate, reset } = useFormValidation(values, (current) =>
 const isSubmitting = ref(false)
 const isGoogleSignIn = ref(false)
 const failureKey = ref<string | null>(null)
-const hasNoAnswer = ref(false)
 const fields = useTemplateRef<HTMLElement>('fields')
 const errorBanner = useTemplateRef<HTMLElement>('errorBanner')
 
-let isMounted = true
+const { hasNoAnswer, leave, leaveSignedIn, retryCheck } = useSignedInExit(isSubmitting)
 
-const returnRoute = computed(() => signInReturnRoute(route.query.from))
+let isMounted = true
 
 const isSignUp = computed(() => mode.value === 'sign-up')
 const isCodeStep = computed(() => emailCode.email.value !== null)
@@ -75,35 +68,14 @@ const passwordHelp = computed(() =>
   isSignUp.value && !errors.value.password ? t('auth.password.help') : null,
 )
 
-function leave(): void {
-  returnTo(router, returnRoute.value)
-}
-
-async function leaveSignedIn(): Promise<void> {
-  const flow = currentRestoreFlow()
-  if (!asksRestore(route.query) || flow === null) {
-    leave()
-    return
-  }
-  const next = afterSignInRoute(route.query, await flow.whenChecked())
-  if (!isMounted) return
-  if (next === null) {
-    isSubmitting.value = false
-    hasNoAnswer.value = true
-  } else void router.replace(next)
-}
-
-async function retryCheck(): Promise<void> {
-  hasNoAnswer.value = false
-  isSubmitting.value = true
-  currentRestoreFlow()?.retryCheck()
-  await leaveSignedIn()
-}
-
 function toggleMode(): void {
   mode.value = isSignUp.value ? 'sign-in' : 'sign-up'
   failureKey.value = null
   reset()
+}
+
+function openPasswordReset(): void {
+  void router.push(passwordResetRoute(route.query, values.value.email.trim()))
 }
 
 function back(): void {
@@ -319,6 +291,15 @@ onUnmounted(() => {
               />
             </template>
           </FormField>
+          <v-btn
+            v-if="!isSignUp"
+            class="sign-in__forgot"
+            variant="text"
+            color="primary"
+            @click="openPasswordReset"
+          >
+            {{ t('auth.passwordReset.link') }}
+          </v-btn>
         </div>
 
         <AccountLegalNotice v-if="isSignUp" class="sign-in__legal" />
@@ -452,6 +433,19 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 18px;
+}
+
+.sign-in__forgot {
+  align-self: flex-end;
+  height: 44px;
+  margin: -12px -6px 0 0;
+  padding-inline: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-transform: none;
+
+  @include tap.tap-target;
 }
 
 .sign-in__legal {

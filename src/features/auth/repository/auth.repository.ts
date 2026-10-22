@@ -25,11 +25,21 @@ export type AuthRepository = {
   /** Un code faux et un code expiré lèvent la même raison : Supabase ne les distingue pas. */
   verifySignUpCode(email: string, code: string): Promise<AuthSession>
   resendSignUpCode(email: string): Promise<void>
+  /** Supabase répond pareil qu'un compte existe ou non, et n'envoie rien sans compte. */
+  sendPasswordResetCode(email: string): Promise<void>
+  /** Ouvre une session dans Supabase : `updatePassword` termine le parcours, `discardSession` l'abandonne. */
+  verifyPasswordResetCode(email: string, code: string): Promise<AuthSession>
+  /** Vise le compte de la session de l'appareil. */
+  updatePassword(password: string): Promise<AuthSession>
+  /** Reconnecte le compte de la session : la connexion récente que Supabase exige pour changer de mot de passe. */
+  reauthenticate(password: string): Promise<AuthSession>
   signIn(email: string, password: string): Promise<AuthSession>
   /** `nonce` en clair : Google a reçu son empreinte SHA-256. */
   signInWithGoogleIdToken(idToken: string, nonce: string): Promise<AuthSession>
   /** Ne lève pas : la session quitte toujours l'appareil, même sans réseau. */
   signOut(): Promise<void>
+  /** Comme `signOut`, sans fermer les autres appareils du compte. Ne lève pas. */
+  discardSession(): Promise<void>
   restoreSession(): Promise<SessionCheck>
   refreshSession(): Promise<SessionCheck>
   /** Lit la session de l'appareil ; `null` sans session. */
@@ -50,6 +60,7 @@ const REASONS_BY_CODE: Record<string, AccountErrorReason> = {
   user_already_exists: 'email-taken',
   invalid_credentials: 'invalid-credentials',
   weak_password: 'weak-password',
+  same_password: 'same-password',
   email_not_confirmed: 'email-not-confirmed',
   otp_expired: 'invalid-code',
   over_email_send_rate_limit: 'email-rate-limited',
@@ -86,6 +97,28 @@ export function accountIdentityOf(user: User): AccountIdentity {
     email: typeof data.email === 'string' ? data.email : (user.email ?? ''),
     subject: typeof data.sub === 'string' ? data.sub : google.id,
   }
+}
+
+/** Lève `AccountError`, `invalid-credentials` pour un mot de passe faux, sans rien envoyer sans session. */
+export async function signInAgainWithPassword(
+  supabase: SupabaseClient,
+  password: string,
+): Promise<Session> {
+  const { data: current } = await supabase.auth.getSession()
+  const email = current.session?.user.email
+  if (!email) throw new AccountError('unknown')
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  if (error) throw error
+  return data.session
+}
+
+/** Un seul délai pour les deux tentatives de `signOut` : la seconde n'ajoute jamais d'attente. */
+function revocationTimeout(): { reached: Promise<Revocation>; clear: () => void } {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const reached = new Promise<Revocation>((resolve) => {
+    timer = setTimeout(() => resolve({ ok: false, trace: 'délai dépassé' }), SIGN_OUT_TIMEOUT_MS)
+  })
+  return { reached, clear: () => clearTimeout(timer) }
 }
 
 function sessionOf(session: Session): AuthSession {
@@ -149,6 +182,15 @@ export function createAuthRepository({
     return loaded
   }
 
+  function revoke(scope: 'global' | 'local'): Promise<Revocation> {
+    return client()
+      .then((supabase) => supabase.auth.signOut({ scope }))
+      .then(
+        ({ error }) => (error ? failedRevocation(error) : REVOKED),
+        (cause: unknown) => failedRevocation(cause),
+      )
+  }
+
   async function withClient<T>(operation: (supabase: SupabaseClient) => Promise<T>): Promise<T> {
     try {
       return await operation(await client())
@@ -185,6 +227,36 @@ export function createAuthRepository({
         if (error) throw error
       }),
 
+    sendPasswordResetCode: (email) =>
+      withClient(async (supabase) => {
+        const { error } = await supabase.auth.resetPasswordForEmail(email)
+        if (error) throw error
+      }),
+
+    verifyPasswordResetCode: (email, code) =>
+      withClient(async (supabase) => {
+        const { data, error } = await supabase.auth.verifyOtp({
+          email,
+          token: code,
+          type: 'recovery',
+        })
+        if (error) throw error
+        if (!data.session) throw new AccountError('unknown')
+        return sessionOf(data.session)
+      }),
+
+    updatePassword: (password) =>
+      withClient(async (supabase) => {
+        const { error } = await supabase.auth.updateUser({ password })
+        if (error) throw error
+        const { data } = await supabase.auth.getSession()
+        if (!data.session) throw new AccountError('unknown')
+        return sessionOf(data.session)
+      }),
+
+    reauthenticate: (password) =>
+      withClient(async (supabase) => sessionOf(await signInAgainWithPassword(supabase, password))),
+
     signIn: (email, password) =>
       withClient(async (supabase) => {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password })
@@ -204,28 +276,21 @@ export function createAuthRepository({
       }),
 
     async signOut() {
-      const revoke = (scope: 'global' | 'local'): Promise<Revocation> =>
-        client()
-          .then((supabase) => supabase.auth.signOut({ scope }))
-          .then(
-            ({ error }) => (error ? failedRevocation(error) : REVOKED),
-            (cause: unknown) => failedRevocation(cause),
-          )
-      let timer: ReturnType<typeof setTimeout> | undefined
-      // Un seul délai pour les deux tentatives : la seconde n'ajoute jamais d'attente à la première.
-      const timeout = new Promise<Revocation>((resolve) => {
-        timer = setTimeout(
-          () => resolve({ ok: false, trace: 'délai dépassé' }),
-          SIGN_OUT_TIMEOUT_MS,
-        )
-      })
-      const outcome = await Promise.race([revoke('global'), timeout])
+      const timeout = revocationTimeout()
+      const outcome = await Promise.race([revoke('global'), timeout.reached])
       if (!outcome.ok) {
         console.warn('Session non invalidée auprès de Supabase :', outcome.trace)
-        await Promise.race([revoke('local'), timeout])
+        await Promise.race([revoke('local'), timeout.reached])
         forgetStoredSession()
       }
-      clearTimeout(timer)
+      timeout.clear()
+    },
+
+    async discardSession() {
+      const timeout = revocationTimeout()
+      const outcome = await Promise.race([revoke('local'), timeout.reached])
+      if (!outcome.ok) forgetStoredSession()
+      timeout.clear()
     },
 
     async restoreSession() {

@@ -16,26 +16,31 @@ export type SignInFormErrors = Partial<Record<'email' | 'password', string>>
 export type SignInFormResult =
   { success: true; data: SignInFormValues } | { success: false; errors: SignInFormErrors }
 
+export const emailSchema = z.string().trim().min(1).pipe(z.email())
+
+export const newPasswordSchema = z.string().min(MIN_PASSWORD_LENGTH)
+
+export const EMAIL_ERROR_KEYS: FieldErrorKeys = {
+  key: 'auth.form.errors.emailInvalid',
+  byCode: { too_small: 'auth.form.errors.emailRequired' },
+}
+
+export function passwordErrorKeys(password: string): FieldErrorKeys {
+  return {
+    key:
+      password === '' ? 'auth.form.errors.passwordRequired' : 'auth.form.errors.passwordTooShort',
+  }
+}
+
 function schemaFor(mode: SignInMode) {
   return z.object({
-    email: z.string().trim().min(1).pipe(z.email()),
-    password: z.string().min(mode === 'sign-up' ? MIN_PASSWORD_LENGTH : 1),
+    email: emailSchema,
+    password: mode === 'sign-up' ? newPasswordSchema : z.string().min(1),
   })
 }
 
 function errorKeysFor(values: SignInFormValues): Record<keyof SignInFormValues, FieldErrorKeys> {
-  return {
-    email: {
-      key: 'auth.form.errors.emailInvalid',
-      byCode: { too_small: 'auth.form.errors.emailRequired' },
-    },
-    password: {
-      key:
-        values.password === ''
-          ? 'auth.form.errors.passwordRequired'
-          : 'auth.form.errors.passwordTooShort',
-    },
-  }
+  return { email: EMAIL_ERROR_KEYS, password: passwordErrorKeys(values.password) }
 }
 
 export function emptySignInFormValues(): SignInFormValues {

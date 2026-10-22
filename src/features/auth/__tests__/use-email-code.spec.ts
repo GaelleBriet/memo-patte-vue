@@ -232,4 +232,60 @@ describe('useEmailCode', () => {
     expect(etape.close()).toEqual({ email: ADRESSE, origin: 'sign-in' })
     expect(etape.email.value).toBeNull()
   })
+
+  describe('autre code que celui de l’inscription', () => {
+    const resend = vi.fn<(email: string) => Promise<void>>()
+    const verify = vi.fn<(email: string, code: string) => Promise<void>>()
+
+    function codeDuMotDePasse() {
+      resend.mockReset().mockResolvedValue()
+      verify.mockReset().mockResolvedValue()
+      const etape = useEmailCode({ now: () => maintenant, operations: { resend, verify } })
+      etape.afterCodeSent(ADRESSE)
+      return etape
+    }
+
+    it('renvoie et vérifie par les opérations données, jamais par celles de l’inscription', async () => {
+      const etape = codeDuMotDePasse()
+      maintenant = ENVOI + MINUTE
+      expect(await etape.resend()).toBe('sent')
+      etape.setCode('123456')
+
+      expect(await etape.verify()).toBe(true)
+      expect(resend).toHaveBeenCalledWith(ADRESSE)
+      expect(verify).toHaveBeenCalledWith(ADRESSE, '123456')
+      expect(resendSignUpCode).not.toHaveBeenCalled()
+      expect(verifySignUpCode).not.toHaveBeenCalled()
+    })
+
+    it('fait attendre une minute après l’envoi, comme l’inscription', async () => {
+      const etape = codeDuMotDePasse()
+      maintenant = ENVOI + 20_000
+
+      expect(await etape.resend()).toBe('wait')
+      expect(resend).not.toHaveBeenCalled()
+    })
+
+    it('vérifie sans fermer l’étape : la suite peut encore échouer', async () => {
+      const etape = codeDuMotDePasse()
+      etape.setCode('123456')
+
+      expect(await etape.verify()).toBe(true)
+      expect(etape.email.value).toBe(ADRESSE)
+      expect(etape.code.value).toBe('123456')
+    })
+
+    it('dit « a expiré » une heure après l’envoi, « pas le bon » avant', async () => {
+      const etape = codeDuMotDePasse()
+      verify.mockRejectedValue(new AccountError('invalid-code'))
+      etape.setCode('123456')
+
+      expect(await etape.verify()).toBe(false)
+      expect(etape.errorKey.value).toBe('auth.code.errors.incorrect')
+
+      maintenant = ENVOI + 60 * MINUTE
+      expect(await etape.verify()).toBe(false)
+      expect(etape.errorKey.value).toBe('auth.code.errors.expired')
+    })
+  })
 })

@@ -5,7 +5,7 @@ import { errorSummary } from '@/shared/utils/error-summary'
 
 import { AccountDeletionError } from '../logic/account-deletion-error'
 import { AccountError } from '../logic/account-error'
-import { accountErrorFrom, accountIdentityOf } from './auth.repository'
+import { accountErrorFrom, accountIdentityOf, signInAgainWithPassword } from './auth.repository'
 
 export type IdentityConfirmationMethod =
   { kind: 'password' } | { kind: 'google'; email: string; subject: string }
@@ -62,10 +62,7 @@ export function createAccountDeletionRepository({
 
     confirmPassword: (password) =>
       withClient(async (supabase) => {
-        const { email } = await sessionUser(supabase)
-        if (!email) throw new AccountError('unknown')
-        const { error } = await supabase.auth.signInWithPassword({ email, password })
-        if (error) throw error
+        await signInAgainWithPassword(supabase, password)
       }),
 
     confirmWithGoogleIdToken: (idToken, nonce) =>

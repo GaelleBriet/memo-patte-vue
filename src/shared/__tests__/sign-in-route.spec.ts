@@ -4,8 +4,10 @@ import {
   accountFirstRoute,
   afterSignInRoute,
   asksSignUp,
+  passwordResetRoute,
   signInReturnRoute,
   signInRoute,
+  signInRouteFrom,
 } from '../utils/sign-in-route'
 import { routes } from '@/router'
 
@@ -39,6 +41,47 @@ describe('signInRoute', () => {
   })
 })
 
+describe('passwordResetRoute', () => {
+  it('garde le parcours d’origine et passe l’adresse par l’historique, jamais par l’adresse de l’écran', () => {
+    expect(
+      passwordResetRoute(
+        { from: 'plus-account', restore: '1', mode: 'sign-up' },
+        'sophie@exemple.fr',
+      ),
+    ).toEqual({
+      name: 'password-reset',
+      query: { from: 'plus-account', restore: '1' },
+      state: { email: 'sophie@exemple.fr' },
+    })
+  })
+
+  it('verrouille l’adresse à la demande', () => {
+    expect(
+      passwordResetRoute({ from: 'settings' }, 'sophie@exemple.fr', { emailLocked: true }),
+    ).toEqual({
+      name: 'password-reset',
+      query: { from: 'settings' },
+      state: { email: 'sophie@exemple.fr', emailLocked: true },
+    })
+  })
+
+  it('désigne une route déclarée, poussée', () => {
+    const route = routes.find(({ name }) => name === 'password-reset')
+    expect(route).toBeDefined()
+    expect(route?.meta?.rootScreen).toBeUndefined()
+  })
+})
+
+describe('signInRouteFrom', () => {
+  it('revient à la connexion avec le même parcours d’origine', () => {
+    expect(signInRouteFrom({ from: 'settings', restore: '1' })).toEqual({
+      name: 'sign-in',
+      query: { from: 'settings', restore: '1' },
+    })
+    expect(signInRouteFrom({})).toEqual({ name: 'sign-in', query: {} })
+  })
+})
+
 describe('asksSignUp', () => {
   it('ne lit le mode inscription que dans l’adresse prévue', () => {
     expect(asksSignUp({ from: 'plus-account', mode: 'sign-up' })).toBe(true)
@@ -63,6 +106,7 @@ describe('signInReturnRoute', () => {
     expect(signInReturnRoute('settings')).toEqual({ name: 'settings' })
     expect(signInReturnRoute('settings-plus')).toEqual({ name: 'settings-plus' })
     expect(signInReturnRoute('home')).toEqual({ name: 'home' })
+    expect(signInReturnRoute('settings-account')).toEqual({ name: 'settings-account' })
   })
 
   it('se replie sur l’écran Plus quand l’origine est absente ou inconnue', () => {

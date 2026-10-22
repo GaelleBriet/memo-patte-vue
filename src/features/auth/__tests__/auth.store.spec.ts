@@ -46,6 +46,11 @@ vi.mock('../repository/auth.repository', () => ({
     signUp: vi.fn<AuthRepository['signUp']>(),
     verifySignUpCode: vi.fn<AuthRepository['verifySignUpCode']>(),
     resendSignUpCode: vi.fn<AuthRepository['resendSignUpCode']>(async () => {}),
+    sendPasswordResetCode: vi.fn<AuthRepository['sendPasswordResetCode']>(async () => {}),
+    verifyPasswordResetCode: vi.fn<AuthRepository['verifyPasswordResetCode']>(),
+    discardSession: vi.fn<AuthRepository['discardSession']>(async () => {}),
+    updatePassword: vi.fn<AuthRepository['updatePassword']>(),
+    reauthenticate: vi.fn<AuthRepository['reauthenticate']>(),
     signIn: vi.fn<AuthRepository['signIn']>(),
     signInWithGoogleIdToken: vi.fn<AuthRepository['signInWithGoogleIdToken']>(),
     signOut: vi.fn<AuthRepository['signOut']>(async () => {}),
@@ -463,6 +468,80 @@ describe('useAuthStore', () => {
     })
   })
 
+  describe('mot de passe oublié', () => {
+    it('demande le code sans rien écrire', async () => {
+      const store = useAuthStore()
+
+      await store.sendPasswordResetCode('gaelle@example.com')
+
+      expect(repository.sendPasswordResetCode).toHaveBeenCalledWith('gaelle@example.com')
+      expect(store.hasPlusAccount).toBe(false)
+    })
+
+    it('vérifie le code sans ouvrir le compte : le mot de passe n’est pas encore changé', async () => {
+      repository.verifyPasswordResetCode.mockResolvedValue({ userId: USER_ID })
+      const store = useAuthStore()
+
+      await store.verifyPasswordResetCode('gaelle@example.com', '123456')
+
+      expect(repository.verifyPasswordResetCode).toHaveBeenCalledWith(
+        'gaelle@example.com',
+        '123456',
+      )
+      expect(store.hasPlusAccount).toBe(false)
+      expect(readPlusAccount()).toBeNull()
+    })
+
+    it('ouvre le compte une fois le nouveau mot de passe enregistré', async () => {
+      repository.updatePassword.mockResolvedValue({ userId: USER_ID })
+      const store = useAuthStore()
+
+      await store.changePassword('nouveau-secret')
+
+      expect(repository.updatePassword).toHaveBeenCalledWith('nouveau-secret')
+      expect(store.hasPlusAccount).toBe(true)
+      expect(store.sessionState).toBe('active')
+      expect(readPlusAccount()).toEqual({ userId: USER_ID })
+      expect(identify).toHaveBeenCalledWith(USER_ID)
+    })
+
+    it('n’ouvre rien quand le mot de passe est refusé', async () => {
+      repository.updatePassword.mockRejectedValue(new AccountError('same-password'))
+      const store = useAuthStore()
+
+      await expect(store.changePassword('ancien-secret')).rejects.toThrow(AccountError)
+      expect(store.hasPlusAccount).toBe(false)
+    })
+  })
+
+  describe('changer de mot de passe (V24 ter)', () => {
+    it('reconnecte avec l’actuel puis enregistre le nouveau, sans code', async () => {
+      writePlusAccount({ userId: USER_ID })
+      repository.reauthenticate.mockResolvedValue({ userId: USER_ID })
+      repository.updatePassword.mockResolvedValue({ userId: USER_ID })
+      const store = useAuthStore()
+
+      await store.changePasswordWithCurrent('ancien-secret', 'nouveau-secret')
+
+      expect(repository.reauthenticate).toHaveBeenCalledWith('ancien-secret')
+      expect(repository.updatePassword).toHaveBeenCalledWith('nouveau-secret')
+      expect(repository.reauthenticate.mock.invocationCallOrder[0]).toBeLessThan(
+        repository.updatePassword.mock.invocationCallOrder[0]!,
+      )
+    })
+
+    it('ne change rien quand l’actuel est faux', async () => {
+      writePlusAccount({ userId: USER_ID })
+      repository.reauthenticate.mockRejectedValue(new AccountError('invalid-credentials'))
+      const store = useAuthStore()
+
+      await expect(store.changePasswordWithCurrent('faux', 'nouveau-secret')).rejects.toMatchObject(
+        { reason: 'invalid-credentials' },
+      )
+      expect(repository.updatePassword).not.toHaveBeenCalled()
+    })
+  })
+
   describe('accountIdentity', () => {
     it('donne l’adresse du compte lue sur l’appareil', async () => {
       repository.accountIdentity.mockResolvedValue({ kind: 'password', email: 'sophie@exemple.fr' })
@@ -479,6 +558,51 @@ describe('useAuthStore', () => {
 
       await expect(useAuthStore().accountIdentity()).resolves.toBeNull()
       expect(warn).toHaveBeenCalledOnce()
+    })
+  })
+
+  describe('code de récupération abandonné', () => {
+    it('ferme la session récupérée quand l’appareil n’a pas de compte', async () => {
+      repository.verifyPasswordResetCode.mockResolvedValue({ userId: OTHER_USER_ID })
+      const store = useAuthStore()
+
+      await store.verifyPasswordResetCode('milo@exemple.fr', '123456')
+      await store.abandonPasswordReset()
+
+      expect(repository.discardSession).toHaveBeenCalledOnce()
+    })
+
+    it('garde la session quand c’est le compte de l’appareil', async () => {
+      writePlusAccount({ userId: USER_ID })
+      repository.verifyPasswordResetCode.mockResolvedValue({ userId: USER_ID })
+      const store = useAuthStore()
+
+      await store.verifyPasswordResetCode('gaelle@example.com', '123456')
+      await store.abandonPasswordReset()
+
+      expect(repository.discardSession).not.toHaveBeenCalled()
+    })
+
+    it('ne ferme rien une fois le mot de passe changé', async () => {
+      repository.verifyPasswordResetCode.mockResolvedValue({ userId: OTHER_USER_ID })
+      repository.updatePassword.mockResolvedValue({ userId: OTHER_USER_ID })
+      const store = useAuthStore()
+
+      await store.verifyPasswordResetCode('milo@exemple.fr', '123456')
+      await store.changePassword('nouveau-secret')
+      await store.abandonPasswordReset()
+
+      expect(repository.discardSession).not.toHaveBeenCalled()
+    })
+
+    it('ne laisse pas une session d’un autre compte prendre la main sans connexion', () => {
+      writePlusAccount({ userId: USER_ID })
+      const store = useAuthStore()
+
+      supabaseEndsOrRefreshesSession({ userId: OTHER_USER_ID })
+
+      expect(store.userId).toBe(USER_ID)
+      expect(readPlusAccount()).toEqual({ userId: USER_ID })
     })
   })
 

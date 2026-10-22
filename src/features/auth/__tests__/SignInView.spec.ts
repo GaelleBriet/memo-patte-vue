@@ -52,6 +52,7 @@ function routeurMemoire(): Router {
       { path: '/plus', name: 'plus', component: Vide },
       { path: '/settings', name: 'settings', component: Vide },
       { path: '/sign-in', name: 'sign-in', component: Vide },
+      { path: '/sign-in/password-reset', name: 'password-reset', component: Vide },
       { path: '/', name: 'home', component: Vide },
       { path: '/settings/plus', name: 'settings-plus', component: Vide },
       { path: '/restore', name: 'account-restore', component: Vide },
@@ -554,14 +555,52 @@ describe('SignInView', () => {
     expect(stockage.keys()).toEqual([])
   })
 
-  it('ne porte que ses deux boutons : ni Google ni « Oublié ? » avant la configuration native', async () => {
+  it('ne porte que ses boutons : « Mot de passe oublié ? », se connecter, créer un compte', async () => {
     const wrapper = await monter()
 
     expect(wrapper.findAll('.sign-in__panel .v-btn').map((bouton) => bouton.text())).toEqual([
+      'Mot de passe oublié\u00a0?',
       'Se connecter',
       'Créer un compte',
     ])
     expect(wrapper.findAll('.sign-in__panel a')).toEqual([])
+  })
+
+  describe('« Mot de passe oublié ? » (PL-9)', () => {
+    it('se place juste sous le mot de passe, à la connexion seulement', async () => {
+      const wrapper = await monter()
+
+      const lien = wrapper.get('.sign-in__fields .sign-in__forgot')
+      expect(lien.text()).toBe('Mot de passe oublié\u00a0?')
+      expect(lien.element.previousElementSibling?.querySelector('#sign-in-password')).not.toBeNull()
+
+      await basculer(wrapper)
+      expect(wrapper.find('.sign-in__forgot').exists()).toBe(false)
+    })
+
+    it('ouvre « Mot de passe oublié » avec l’adresse tapée, sans la mettre dans l’adresse de l’écran', async () => {
+      const wrapper = await monter('/sign-in?from=plus-account&restore=1')
+      const push = vi.spyOn(routeur, 'push').mockResolvedValue()
+      await wrapper.get('#sign-in-email').setValue('  sophie@exemple.fr ')
+
+      await wrapper.get('.sign-in__forgot').trigger('click')
+
+      expect(push).toHaveBeenCalledWith({
+        name: 'password-reset',
+        query: { from: 'plus-account', restore: '1' },
+        state: { email: 'sophie@exemple.fr' },
+      })
+    })
+
+    it('se lit en anglais aussi', async () => {
+      i18n.global.locale.value = 'en'
+      try {
+        const wrapper = await monter()
+        expect(wrapper.get('.sign-in__forgot').text()).toBe('Forgot password?')
+      } finally {
+        i18n.global.locale.value = 'fr'
+      }
+    })
   })
 
   it('oublie l’erreur du serveur en basculant de formulaire', async () => {

@@ -1,25 +1,16 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import type { AccountIdentity } from '../repository/auth.repository'
-import { useAuthStore } from '../store/auth.store'
 import SectionCard from '@/shared/components/SectionCard.vue'
 
+defineProps<{ identity: AccountIdentity }>()
+
 const { t } = useI18n()
-const auth = useAuthStore()
-
-const identity = ref<AccountIdentity | null>(null)
-
-async function load(): Promise<void> {
-  if (auth.hasPlusAccount) identity.value = await auth.accountIdentity()
-}
-
-onMounted(load)
 </script>
 
 <template>
-  <SectionCard v-if="auth.hasPlusAccount && identity" class="account-identity">
+  <SectionCard class="account-identity">
     <div class="settings-row settings-row--account-identity">
       <v-icon
         class="settings-row__icon"

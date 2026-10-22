@@ -139,6 +139,12 @@ export const routes: RouteRecordRaw[] = [
     beforeEnter: requirePlusAccount,
   },
   {
+    path: '/settings/account/password',
+    name: 'settings-account-password',
+    component: () => import('@/features/auth/views/PasswordChangeView.vue'),
+    beforeEnter: requirePlusAccount,
+  },
+  {
     path: '/settings/account/delete',
     name: 'settings-account-delete',
     component: () => import('@/features/auth/views/AccountDeletionView.vue'),
@@ -185,6 +191,12 @@ export const routes: RouteRecordRaw[] = [
     path: '/sign-in',
     name: 'sign-in',
     component: () => import('@/features/auth/views/SignInView.vue'),
+    beforeEnter: () => authAvailable() || { name: 'plus' },
+  },
+  {
+    path: '/sign-in/password-reset',
+    name: 'password-reset',
+    component: () => import('@/features/auth/views/PasswordResetView.vue'),
     beforeEnter: () => authAvailable() || { name: 'plus' },
   },
   {
