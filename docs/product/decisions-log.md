@@ -3572,5 +3572,6 @@ sinon `unknown`. Au-delà de cinq valeurs, seules les cinq dernières sont recop
 de valeurs laissées (« (+3 plus anciennes) »), sans leur texte. Exemple : « Mode admin : secret refusé,
 ip 203.0.113.7, unknown, 10.0.0.1, à 2026-10-22T21:30:00.000Z ». — Raison : un proxy ajoute en
 général l'adresse qu'il voit à la fin de la chaîne (à vérifier chez Supabase au premier vrai refus) ;
-une première valeur choisie par l'appelant ne doit pas masquer la vraie. — Alternatives écartées : la première valeur seule (entrée précédente : l'appelant
-la choisit) ; la dernière valeur seule (elle pourrait n'être qu'une adresse interne de la plateforme).
+une première valeur choisie par l'appelant ne doit pas masquer la vraie. — Alternatives écartées : la
+première valeur seule (entrée précédente : l'appelant la choisit) ; la dernière valeur seule (elle
+pourrait n'être qu'une adresse interne de la plateforme).

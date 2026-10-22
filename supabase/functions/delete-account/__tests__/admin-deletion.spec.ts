@@ -301,6 +301,11 @@ describe('handleDeleteAccount, adresses de la chaîne x-forwarded-for au journal
       '192.0.2.1, 192.0.2.2, 192.0.2.3, 192.0.2.4, 192.0.2.5',
     ],
     [
+      'six adresses, dont seules les cinq dernières sont gardées',
+      '192.0.2.1, 192.0.2.2, 192.0.2.3, 192.0.2.4, 192.0.2.5, 192.0.2.6',
+      '(+1 plus anciennes) 192.0.2.2, 192.0.2.3, 192.0.2.4, 192.0.2.5, 192.0.2.6',
+    ],
+    [
       'sept adresses, dont seules les cinq dernières sont gardées',
       '192.0.2.1, 192.0.2.2, 192.0.2.3, 192.0.2.4, 192.0.2.5, 192.0.2.6, 192.0.2.7',
       '(+2 plus anciennes) 192.0.2.3, 192.0.2.4, 192.0.2.5, 192.0.2.6, 192.0.2.7',
