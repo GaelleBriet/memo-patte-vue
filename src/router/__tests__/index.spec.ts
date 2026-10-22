@@ -85,6 +85,7 @@ describe('garde des écrans Plus', () => {
     'account-restore',
     'settings-account',
     'settings-account-password',
+    'settings-account-email',
     'settings-account-delete',
   ]
   const SESSION_STATES: SessionState[] = [

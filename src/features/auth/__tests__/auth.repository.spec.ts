@@ -417,6 +417,68 @@ describe('createAuthRepository', () => {
     })
   })
 
+  describe('changement d’adresse (V24 quater à sexies)', () => {
+    it('demande le code à la nouvelle adresse', async () => {
+      storeSession(sessionBody())
+      server.on('user', () => json(200, userBody(USER_ID)))
+
+      await expect(repository.requestEmailChange('sophie2@exemple.fr')).resolves.toBeUndefined()
+      expect(server.calls.at(-1)).toBe('user')
+      expect(server.bodies.at(-1)).toMatchObject({ email: 'sophie2@exemple.fr' })
+    })
+
+    it('lève « adresse déjà prise » quand un autre compte l’a', async () => {
+      storeSession(sessionBody())
+      server.on('user', apiError(422, 'email_exists'))
+
+      expect(await reasonOf(repository.requestEmailChange('milo@exemple.fr'))).toBe('email-taken')
+    })
+
+    it('vérifie le code de type « email_change » et renvoie le compte', async () => {
+      storeSession(sessionBody())
+      server.on('verify', () => json(200, sessionBody()))
+
+      await expect(
+        repository.verifyEmailChangeCode('sophie2@exemple.fr', '123456'),
+      ).resolves.toEqual({ userId: USER_ID })
+      expect(server.bodies.at(-1)).toMatchObject({
+        email: 'sophie2@exemple.fr',
+        token: '123456',
+        type: 'email_change',
+      })
+    })
+
+    it('rend « null » quand le code est accepté sans session (premier des deux codes)', async () => {
+      storeSession(sessionBody())
+      server.on('verify', () => json(200, { msg: 'Confirmation link accepted' }))
+
+      await expect(
+        repository.verifyEmailChangeCode('gaelle@example.com', '123456'),
+      ).resolves.toBeNull()
+      expect(server.bodies.at(-1)).toMatchObject({
+        email: 'gaelle@example.com',
+        type: 'email_change',
+      })
+    })
+
+    it('renvoie le code de changement d’adresse', async () => {
+      storeSession(sessionBody())
+      server.on('resend', () => json(200, {}))
+
+      await repository.resendEmailChangeCode()
+
+      expect(server.bodies.at(-1)).toMatchObject({
+        email: 'gaelle@example.com',
+        type: 'email_change',
+      })
+    })
+
+    it('ne renvoie rien sans session', async () => {
+      expect(await reasonOf(repository.resendEmailChangeCode())).toBe('unknown')
+      expect(server.calls).toEqual([])
+    })
+  })
+
   describe('discardSession', () => {
     it('ferme la session de cet appareil seulement', async () => {
       storeSession(sessionBody())
