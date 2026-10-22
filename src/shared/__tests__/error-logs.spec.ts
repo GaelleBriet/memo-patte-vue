@@ -4,17 +4,12 @@ import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-const SKIPPED = [
-  'src/core/sync/',
-  'src/app/sync.ts',
-  'src/core/dev/',
-  'src/features/auth/',
-  'src/features/purchase/',
-]
+const SKIPPED = ['src/core/dev/', 'src/features/auth/', 'src/features/purchase/']
 
 const CONSOLE_CALL = /console\.(?:warn|error|log|info|debug)\(/g
 const SAFE_INTERPOLATIONS: Record<string, string[]> = {
   'src/core/notifications/notifications.service.ts': ['scheduled', 'reminders.length'],
+  'src/core/sync/service/sync-cycle.ts': ['entry.entity', 'table.entity'],
   'src/features/settings/service/device-erase.service.ts': ['step'],
   'src/features/treatments/service/reminders-sync.service.ts': ['label'],
 }
