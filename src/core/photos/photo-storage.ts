@@ -28,6 +28,32 @@ export async function savePhoto(base64Jpeg: string): Promise<string> {
   return name
 }
 
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = ''
+  for (let start = 0; start < bytes.length; start += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(start, start + 0x8000))
+  }
+  return btoa(binary)
+}
+
+/** Écrit sous un nom provisoire puis renomme : une coupure ne laisse jamais une photo tronquée. */
+export async function writeDownloadedPhoto(name: string, jpeg: Uint8Array): Promise<void> {
+  const path = photoPath(name)
+  const partial = `${path}.part`
+  await Filesystem.writeFile({
+    path: partial,
+    data: bytesToBase64(jpeg),
+    directory: Directory.Data,
+    recursive: true,
+  })
+  await Filesystem.rename({
+    from: partial,
+    to: path,
+    directory: Directory.Data,
+    toDirectory: Directory.Data,
+  })
+}
+
 export async function deletePhoto(name: string): Promise<void> {
   await Filesystem.deleteFile({ path: photoPath(name), directory: Directory.Data })
 }

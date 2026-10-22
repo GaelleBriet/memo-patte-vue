@@ -7,11 +7,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   deleteAllPhotos,
   deletePhoto,
+  isPhotoFileName,
   listPhotos,
   photoDisplayUrl,
   photoExists,
   readPhoto,
   savePhoto,
+  writeDownloadedPhoto,
 } from '../photo-storage'
 
 vi.mock('@capacitor/filesystem', async (importOriginal) => ({
@@ -23,6 +25,7 @@ vi.mock('@capacitor/filesystem', async (importOriginal) => ({
     stat: vi.fn<FilesystemPlugin['stat']>(),
     readFile: vi.fn<FilesystemPlugin['readFile']>(),
     readdir: vi.fn<FilesystemPlugin['readdir']>(),
+    rename: vi.fn<FilesystemPlugin['rename']>(),
   },
 }))
 
@@ -32,6 +35,7 @@ const rmdir = vi.mocked(Filesystem.rmdir)
 const stat = vi.mocked(Filesystem.stat)
 const readFile = vi.mocked(Filesystem.readFile)
 const readdir = vi.mocked(Filesystem.readdir)
+const rename = vi.mocked(Filesystem.rename)
 
 function entry(name: string, type: 'file' | 'directory' = 'file') {
   return { name, type, size: 1, ctime: 0, mtime: 1_700_000_000_000, uri: `file:///data/${name}` }
@@ -71,6 +75,68 @@ describe('savePhoto', () => {
     writeFile.mockRejectedValue(new Error('disque plein'))
 
     await expect(savePhoto('QUJD')).rejects.toThrow('disque plein')
+  })
+})
+
+describe('writeDownloadedPhoto', () => {
+  const PHOTO = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg'
+  const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0])
+
+  it('écrit sous un nom provisoire de photos/, puis le renomme : jamais un fichier tronqué sous le nom de la photo', async () => {
+    const calls: string[] = []
+    writeFile.mockImplementation(async ({ path }) => {
+      calls.push(`écrit ${path}`)
+      return { uri: `file:///data/${path}` }
+    })
+    rename.mockImplementation(async ({ from, to }) => {
+      calls.push(`renomme ${from} en ${to}`)
+    })
+
+    await writeDownloadedPhoto(PHOTO, JPEG)
+
+    expect(calls).toEqual([
+      `écrit photos/${PHOTO}.part`,
+      `renomme photos/${PHOTO}.part en photos/${PHOTO}`,
+    ])
+    expect(writeFile).toHaveBeenCalledExactlyOnceWith({
+      path: `photos/${PHOTO}.part`,
+      data: btoa('\xff\xd8\xff\xe0'),
+      directory: Directory.Data,
+      recursive: true,
+    })
+    expect(rename).toHaveBeenCalledExactlyOnceWith({
+      from: `photos/${PHOTO}.part`,
+      to: `photos/${PHOTO}`,
+      directory: Directory.Data,
+      toDirectory: Directory.Data,
+    })
+  })
+
+  it('le nom provisoire n’est pas un nom de photo : la liste des photos l’ignore', () => {
+    expect(isPhotoFileName(`${PHOTO}.part`)).toBe(false)
+  })
+
+  it('encode à l’identique une photo de 2 Mio', async () => {
+    const big = new Uint8Array(2 * 1024 * 1024)
+    for (let index = 0; index < big.length; index++) big[index] = index % 251
+
+    await writeDownloadedPhoto(PHOTO, big)
+
+    const written = Buffer.from(String(writeFile.mock.calls[0]?.[0].data), 'base64')
+    expect(written.equals(Buffer.from(big))).toBe(true)
+  })
+
+  it('ne renomme rien quand l’écriture échoue, et propage l’échec', async () => {
+    writeFile.mockRejectedValue(new Error('disque plein'))
+
+    await expect(writeDownloadedPhoto(PHOTO, JPEG)).rejects.toThrow('disque plein')
+    expect(rename).not.toHaveBeenCalled()
+  })
+
+  it('refuse un nom qui sortirait de photos/, sans rien écrire', async () => {
+    await expect(writeDownloadedPhoto('../base.db', JPEG)).rejects.toThrow('Nom de photo invalide')
+    expect(writeFile).not.toHaveBeenCalled()
+    expect(rename).not.toHaveBeenCalled()
   })
 })
 
