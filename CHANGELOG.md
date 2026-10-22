@@ -5,6 +5,55 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.101](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.100...memo-patte-v0.1.101) (2026-10-22)
+
+
+### ✨ Fonctionnalités
+
+* **auth:** changer mon adresse e-mail ([ecfe5c6](https://github.com/GaelleBriet/memo-patte-vue/commit/ecfe5c61d74a5030042923fb9f1a509d53d65a25))
+* **db:** la photo remplacée ou retirée d'un animal repart en file (v19) ([d30737c](https://github.com/GaelleBriet/memo-patte-vue/commit/d30737c3a3ad500546419788fcaf2a12400409a8))
+* **photos:** écrire une photo téléchargée sous un nom provisoire puis la renommer ([4e6d4f3](https://github.com/GaelleBriet/memo-patte-vue/commit/4e6d4f362f9253b5f04c62b076558f8f68105b30))
+* **photos:** lecture des octets d'une photo locale, null si absente ([ccf4f01](https://github.com/GaelleBriet/memo-patte-vue/commit/ccf4f01084e23271bf053edbc99d888792919885))
+* **photos:** une photo écrite après coup apparaît sur l'écran déjà affiché ([9265b00](https://github.com/GaelleBriet/memo-patte-vue/commit/9265b00ef370bcc6e76c41b55594aaf25ed3f5fc))
+* **supabase:** envoi des photos dans animal-photos, refus définitifs distingués ([ba51fb4](https://github.com/GaelleBriet/memo-patte-vue/commit/ba51fb4df476a2fa14da9d124b10f046186d975a))
+* **supabase:** télécharger une photo du dossier cloud du compte, null si elle n'y est pas ([7dda115](https://github.com/GaelleBriet/memo-patte-vue/commit/7dda115c26f7d3d459cc12aae5d206eb5c0b8f2b))
+* **sync:** délai de grâce de 7 jours avant d'effacer une photo du cloud ([5de15fd](https://github.com/GaelleBriet/memo-patte-vue/commit/5de15fd266f349a84963fd0fa496c83d556ef957))
+* **sync:** effacer du cloud une photo qu'aucun animal ne porte plus ([58b53a6](https://github.com/GaelleBriet/memo-patte-vue/commit/58b53a6c8a365e5c51e8092a65561a360acf5001))
+* **sync:** effacer du cloud une photo qu'aucun animal ne porte plus (v19) ([f1520f7](https://github.com/GaelleBriet/memo-patte-vue/commit/f1520f739993d7b383b5ae14dbfea2331d3e17e2))
+* **sync:** envoi des photos d'animaux dans le cycle de synchro ([9879e30](https://github.com/GaelleBriet/memo-patte-vue/commit/9879e3031591f07ee3acf8f72f805bc029b59cfb))
+* **sync:** envoi des photos en file après les lignes du cycle ([7f1e334](https://github.com/GaelleBriet/memo-patte-vue/commit/7f1e334b18cc416f4c0e85ddab858f17d572a934))
+* **sync:** file des photos d'animaux et déclencheurs sqlite (v18) ([cf50669](https://github.com/GaelleBriet/memo-patte-vue/commit/cf50669bee8a545399d099201ea7fcdb7a4e9f23))
+* **sync:** photos du carnet téléchargées après la restauration ([a3142da](https://github.com/GaelleBriet/memo-patte-vue/commit/a3142da130f61f2282b040aacf5ab47c799109bc))
+* **sync:** photos du carnet téléchargées après la restauration, retentées au lancement ([7a52765](https://github.com/GaelleBriet/memo-patte-vue/commit/7a527656e09bf5bf2fc753e2d5e18ad4785fdf0d))
+* **sync:** télécharger les photos du carnet absentes du téléphone, une par une ([301a9e9](https://github.com/GaelleBriet/memo-patte-vue/commit/301a9e9c5d01ed5af60abf4ddb49a094b400e3f0))
+
+
+### 🐛 Corrections
+
+* **auth:** la longueur du code passe en paramètre des textes, article anglais corrigé ([4f4d1fe](https://github.com/GaelleBriet/memo-patte-vue/commit/4f4d1fe798605a7e57a53c73e99722b5580ee4a7))
+* **auth:** le code reçu par e-mail compte 8 chiffres et vaut 15 minutes ([2855a3a](https://github.com/GaelleBriet/memo-patte-vue/commit/2855a3aa42f5a23302986594b1cf867e4bf6ee68))
+* **auth:** le code reçu par e-mail expire après 15 minutes ([15e9045](https://github.com/GaelleBriet/memo-patte-vue/commit/15e90450f15cce538242887421a0a356b840f44e))
+* **auth:** longueur du code en paramètre et durée de 15 minutes dans le changement d'adresse ([e13af7d](https://github.com/GaelleBriet/memo-patte-vue/commit/e13af7d170d3f81aa50628f885c32aa07bdd5d74))
+* **delete-account:** journaliser les refus du mode admin et exiger un secret de 32 caractères ([332027f](https://github.com/GaelleBriet/memo-patte-vue/commit/332027f289dadc451b30e59c18461f8ea62d75b6))
+* **delete-account:** journaliser les refus du mode admin et exiger un secret de 32 caractères ([2fb867a](https://github.com/GaelleBriet/memo-patte-vue/commit/2fb867a35b82f8f0c58cb44a0284d71aa70c33e2))
+* **export:** l'unité de posologie du CSV suit la langue du CSV ([6afc90a](https://github.com/GaelleBriet/memo-patte-vue/commit/6afc90ad732e8b7c3335ff12829f4a16337ab15d))
+* **export:** l'unité de posologie du CSV suit la langue du CSV ([bee6781](https://github.com/GaelleBriet/memo-patte-vue/commit/bee67811eabe90e485fd6a5cbcc613e704b4632b))
+* **journaux:** les erreurs hors synchro ne sont journalisées que par leur résumé ([36f059b](https://github.com/GaelleBriet/memo-patte-vue/commit/36f059bb4a8062993379231589185fe86fb787c0))
+* **journaux:** les erreurs hors synchro ne sont journalisées que par leur résumé ([b370495](https://github.com/GaelleBriet/memo-patte-vue/commit/b3704951726758c8c2a7b3d5c240c37c6acf839f))
+* **photos:** taille prise par stat, photo trop lourde jamais lue, décodage en boucle ([3481d15](https://github.com/GaelleBriet/memo-patte-vue/commit/3481d150af7fdcbba4dcbd70e0464a800269505d))
+* **photos:** un téléchargement interrompu ne laisse pas de fichier provisoire ([7506b39](https://github.com/GaelleBriet/memo-patte-vue/commit/7506b39f598635899eec36011e69540c9ff3c91a))
+* **supabase:** cas des six adresses, commentaires prudents et ligne du journal recoupée ([f4e34cb](https://github.com/GaelleBriet/memo-patte-vue/commit/f4e34cbcb58671eaf12c08e6af80b21a389db7e4))
+* **supabase:** effacement des photos cloud permis après l'expiration de plus ([c33f5b0](https://github.com/GaelleBriet/memo-patte-vue/commit/c33f5b02d88f46fea50232f2be8dca642bb4284a))
+* **supabase:** effacement des photos cloud permis après l'expiration de plus ([e202116](https://github.com/GaelleBriet/memo-patte-vue/commit/e202116e6010b2eddb31e4250de0b6bd8b1718b8))
+* **supabase:** le refus du mode admin journalise toutes les adresses de x-forwarded-for, au plus 5 ([f4c8ce3](https://github.com/GaelleBriet/memo-patte-vue/commit/f4c8ce3e67d29cd17bfd56fb8d37b91c4414bd97))
+* **supabase:** le refus du mode admin journalise toutes les adresses de x-forwarded-for, au plus 5 ([1784598](https://github.com/GaelleBriet/memo-patte-vue/commit/17845980fcd7acefef7867c387cc891bb415ddd8))
+* **supabase:** refus définitif d'une photo reconnu aussi par son code Storage ([7b603fa](https://github.com/GaelleBriet/memo-patte-vue/commit/7b603fa4c9ebfa54c71c9fd11b34d73e82c9bd0f))
+* **sync:** journalise les erreurs de synchro par leur résumé, sans la ligne refusée ([070b7e8](https://github.com/GaelleBriet/memo-patte-vue/commit/070b7e8400bf7d4e438b5feb269ac25122a8a571))
+* **sync:** une passe de photos pour un autre compte suit celle en cours, qui s'arrête ([04f21b9](https://github.com/GaelleBriet/memo-patte-vue/commit/04f21b96bfac02478849fb733d2e8cb4fa88a2a9))
+* **sync:** une photo hors carnet reste en file tant que son fichier existe ([8db83ff](https://github.com/GaelleBriet/memo-patte-vue/commit/8db83ff8b1277d4f4f77c07e132239237a72f21f))
+* **sync:** une photo qu'aucun animal ne porte plus sort de la file sans envoi ([92295c0](https://github.com/GaelleBriet/memo-patte-vue/commit/92295c09268fef7e574ffdc0c7aecf93eb46a1e0))
+* **sync:** une réponse vide d'effacement ne vaut que pour la session du compte ([ba8725a](https://github.com/GaelleBriet/memo-patte-vue/commit/ba8725af3d50769e2c9c0966c253a7fd60d802b1))
+
 ## [0.1.100](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.99...memo-patte-v0.1.100) (2026-10-22)
 
 
