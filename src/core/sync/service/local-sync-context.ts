@@ -1,4 +1,6 @@
 import { getDb } from '@/core/db/sqlite'
+import { readPhoto } from '@/core/photos/photo-storage'
+import { createAnimalPhotoUpload } from '@/core/supabase/animal-photo-upload'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { createSyncOutboxRepository } from '../repository/sync-outbox.repository'
 import { createSyncPushRepository } from '../repository/sync-push.repository'
@@ -13,7 +15,7 @@ export interface LocalSyncContext {
 
 export type LocalSyncContextDependencies = Omit<
   SyncCycleDependencies,
-  'db' | 'outbox' | 'pushes' | 'tables' | 'onRemindersOutdated'
+  'db' | 'outbox' | 'pushes' | 'tables' | 'onRemindersOutdated' | 'photos'
 > & {
   tables: RestorableTable[]
   onRemindersOutdated: () => Promise<void>
@@ -29,7 +31,11 @@ export async function createLocalSyncContext(
   const db = await getDb()
   const outbox = createSyncOutboxRepository(db)
   const pushes = createSyncPushRepository(loadSupabaseClient)
-  const cycle = createSyncCycle({ ...deps, db, outbox, pushes })
+  const photos = {
+    files: { read: readPhoto },
+    uploads: createAnimalPhotoUpload(loadSupabaseClient),
+  }
+  const cycle = createSyncCycle({ ...deps, db, outbox, pushes, photos })
   const restore = createAccountRestore({
     db,
     outbox,
