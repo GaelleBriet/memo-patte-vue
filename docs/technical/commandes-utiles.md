@@ -363,14 +363,30 @@ pnpm dlx supabase@2.119.0 stop --no-backup  # aucun conteneur ne doit rester
 - Le test de bout en bout laisse un compte de test : relancer `db reset` avant `test db`.
 - Mode admin en local : `ADMIN_DELETE_SECRET=<valeur de test>` dans `supabase/functions/.env` (ignoré par git), puis
   le même secret dans `SUPABASE_LOCAL_ADMIN_SECRET` pour le test.
+- PostHog et RevenueCat en local : `POSTHOG_ERASURE=disabled` et `REVENUECAT_ERASURE=disabled` dans le même
+  `supabase/functions/.env`, pour qu'aucun appel ne parte chez eux. Sans ces deux lignes ni leurs secrets, la
+  suppression du compte répond `503 erasure-not-configured` sans rien effacer.
+
+**Effacement chez les prestataires**, avant le compte : PostHog (`POST <hôte>/api/projects/<id>/persons/bulk_delete/`,
+`distinct_ids` = l'identifiant du compte, `delete_events: true` ; une personne absente est un succès), puis RevenueCat
+(`DELETE https://api.revenuecat.com/v1/subscribers/<identifiant>` ; un client absent, `404`, est un succès). Secrets de
+la fonction : `POSTHOG_PERSONAL_API_KEY` (`phx_…`, droit `person:write`), `POSTHOG_PROJECT_ID`, `POSTHOG_HOST`
+(`https://eu.posthog.com`), `REVENUECAT_SECRET_KEY` (`sk_…`). Un secret absent ou invalide refuse la suppression ;
+seul `POSTHOG_ERASURE=disabled` ou `REVENUECAT_ERASURE=disabled` saute un prestataire. Le mode « sauvegarde seule »
+ne touche à aucun des deux.
 
 **Demande reçue par e-mail** (une fois la fonction déployée et `ADMIN_DELETE_SECRET` posé dans les secrets de la
-fonction ; sa valeur vit dans le coffre de notes, jamais dans le dépôt). Après avoir vérifié par e-mail que la demande
-vient bien de la personne :
+fonction ; sa valeur vit dans le coffre de notes, jamais dans le dépôt). Le secret se génère une fois :
+
+```bash
+openssl rand -hex 32
+```
+
+Après avoir vérifié par e-mail que la demande vient bien de la personne :
 
 ```bash
 curl -X POST "https://<projet>.supabase.co/functions/v1/delete-account" \
-  -H "Authorization: Bearer <clé anon>" -H "apikey: <clé anon>" -H "Content-Type: application/json" \
+  -H "Content-Type: application/json" \
   -H "x-memopatte-admin-secret: $ADMIN_DELETE_SECRET" \
   -d '{"email": "adresse@du-compte", "scope": "account"}'
 ```
@@ -382,4 +398,7 @@ curl -X POST "https://<projet>.supabase.co/functions/v1/delete-account" \
   connecté voit ensuite ses modifications refusées par la sauvegarde (un soin dont l'animal n'y est plus) et les
   garde en file d'envoi, sans rien perdre sur le téléphone.
 - Réponses : `200` fait, `404` aucun compte à cette adresse, `401` secret faux ou absent de la fonction, `400`
-  demande mal formée, `500` échec (relancer la même commande : elle reprend).
+  demande mal formée, `503` secret d'un prestataire absent ou invalide (rien n'est effacé ; le journal de la fonction
+  nomme le réglage), `500` échec (relancer la même commande : elle reprend).
+- La passerelle ne vérifie pas de jeton pour cette fonction (`verify_jwt = false` dans `supabase/config.toml`) : la
+  fonction contrôle elle-même le jeton de l'app et le secret admin, aucune clé anon n'est à passer.

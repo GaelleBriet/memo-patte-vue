@@ -5,7 +5,7 @@ export const USER = '11111111-1111-4111-8111-111111111111'
 export const ADMIN_SECRET = 'secret-admin-de-test-assez-long-pour-etre-realiste'
 
 export type Call = {
-  kind: 'list' | 'remove' | 'deleteUser' | 'record' | 'lookup' | 'backup'
+  kind: 'list' | 'remove' | 'posthog' | 'revenuecat' | 'deleteUser' | 'record' | 'lookup' | 'backup'
   arg: unknown
 }
 
@@ -29,6 +29,7 @@ export function fakeDeletionPorts(
     adminSecret?: string | undefined
     failOn?: Call['kind']
     removeKeepsPhotos?: boolean
+    invalidProviderSettings?: string[]
   } = {},
 ) {
   const photos = [...(options.photos ?? [])]
@@ -63,6 +64,11 @@ export function fakeDeletionPorts(
         if (index >= 0) photos.splice(index, 1)
       }
     },
+    providerErasures: [
+      async (userId) => call('posthog', userId),
+      async (userId) => call('revenuecat', userId),
+    ],
+    invalidProviderSettings: options.invalidProviderSettings ?? [],
     async deleteCloudBackup(userId) {
       call('backup', userId)
     },

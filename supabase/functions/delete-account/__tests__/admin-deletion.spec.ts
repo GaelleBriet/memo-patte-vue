@@ -38,9 +38,27 @@ describe('handleDeleteAccount, demande reçue par e-mail', () => {
       { kind: 'list', arg: { folder: USER, limit: PHOTO_PAGE_SIZE } },
       { kind: 'remove', arg: [`${USER}/milo.jpg`] },
       { kind: 'list', arg: { folder: USER, limit: PHOTO_PAGE_SIZE } },
+      { kind: 'posthog', arg: USER },
+      { kind: 'revenuecat', arg: USER },
       { kind: 'deleteUser', arg: USER },
       { kind: 'record', arg: 'email' },
     ])
+  })
+
+  it('refuse de supprimer le compte quand un prestataire n’est pas configuré', async () => {
+    const fake = fakeDeletionPorts({
+      photos: ['milo.jpg'],
+      invalidProviderSettings: ['POSTHOG_PROJECT_ID'],
+    })
+
+    const response = await handleDeleteAccount(
+      adminRequest({ email: SOPHIE, scope: 'account' }),
+      fake.ports,
+    )
+
+    expect(response.status).toBe(503)
+    expect(await response.json()).toEqual({ error: 'erasure-not-configured' })
+    expect(fake.calls).toEqual([{ kind: 'lookup', arg: SOPHIE }])
   })
 
   it('efface seulement la sauvegarde cloud : photos puis carnet, le compte reste', async () => {
@@ -57,6 +75,28 @@ describe('handleDeleteAccount, demande reçue par e-mail', () => {
     expect(fake.calls.at(-1)).toEqual({ kind: 'backup', arg: USER })
     expect(fake.calls.map((call) => call.kind)).not.toContain('deleteUser')
     expect(fake.calls.map((call) => call.kind)).not.toContain('record')
+  })
+
+  it('garde la personne PostHog et le client RevenueCat quand seule la sauvegarde part', async () => {
+    const fake = fakeDeletionPorts({ photos: ['milo.jpg'] })
+
+    await handleDeleteAccount(adminRequest({ email: SOPHIE, scope: 'cloud-backup' }), fake.ports)
+
+    const kinds = fake.calls.map((call) => call.kind)
+    expect(kinds).not.toContain('posthog')
+    expect(kinds).not.toContain('revenuecat')
+  })
+
+  it('efface la sauvegarde seule même sans prestataire configuré', async () => {
+    const fake = fakeDeletionPorts({ invalidProviderSettings: ['REVENUECAT_SECRET_KEY'] })
+
+    const response = await handleDeleteAccount(
+      adminRequest({ email: SOPHIE, scope: 'cloud-backup' }),
+      fake.ports,
+    )
+
+    expect(response.status).toBe(200)
+    expect(fake.calls.at(-1)).toEqual({ kind: 'backup', arg: USER })
   })
 
   it('garde le carnet de la sauvegarde quand ses photos ne s’effacent pas', async () => {
@@ -137,6 +177,8 @@ describe('handleDeleteAccount, demande reçue par e-mail', () => {
   it.each([
     ['la recherche du compte', 'lookup', 'account'],
     ['l’effacement du carnet', 'backup', 'cloud-backup'],
+    ['l’effacement chez PostHog', 'posthog', 'account'],
+    ['l’effacement chez RevenueCat', 'revenuecat', 'account'],
     ['la suppression du compte', 'deleteUser', 'account'],
   ] as const)('signale l’échec de %s', async (_, failOn, scope) => {
     const fake = fakeDeletionPorts({ failOn })
