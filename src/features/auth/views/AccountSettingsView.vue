@@ -3,6 +3,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import AccountDeletionEntry from './AccountDeletionEntry.vue'
+import AccountIdentityRow from './AccountIdentityRow.vue'
 import AccountSection from './AccountSection.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { returnTo } from '@/shared/utils/return-to'
@@ -23,6 +24,7 @@ function goBack(): void {
     @back="goBack"
   >
     <div class="account-settings__content">
+      <AccountIdentityRow />
       <AccountSection />
       <AccountDeletionEntry />
     </div>

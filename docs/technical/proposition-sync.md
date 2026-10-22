@@ -356,10 +356,10 @@ et à chaque retour au premier plan (`installRemindersSync`), pas par la synchro
 
 ### 4.5 Photos (#85)
 
-Bucket `animal-photos` privé, 2 Mo par objet, `image/jpeg` (l'app ne produit que du JPEG). Les photos
-passent par la même file, `entity = 'animal_photo'`, `entity_id` = nom du fichier local. Le chemin de
-l'objet est à trancher (§7-9) : `animal.photo_path` contient aujourd'hui un UUID **propre à la
-photo**, pas l'`animal_id` que suppose le ticket.
+Bucket `animal-photos` privé, 2 Mo par objet, `image/jpeg` et `image/webp` (l'app ne produit que du JPEG). Les photos
+passent par la même file, `entity = 'animal_photo'`, `entity_id` = nom du fichier local. Chemin de
+l'objet : `<user_id>/<nom du fichier local>`, tranché au §7-9 : `animal.photo_path` contient un UUID
+**propre à la photo**, pas l'`animal_id` que suppose le ticket.
 
 À la restauration : les lignes d'abord, les photos ensuite et une par une, sans bloquer l'écran —
 l'app tolère déjà une photo absente (c'est le cas après un Auto Backup, qui les exclut). On ne
@@ -367,12 +367,13 @@ supprime un objet que lorsque son nom n'est plus référencé par aucune ligne l
 qu'un animal est passé en tombstone : il peut revenir.
 
 RLS `storage.objects`, pour les quatre opérations :
-`(storage.foldername(name))[1] = (select auth.uid())::text`, plus `has_active_plus()` en écriture.
+`(storage.foldername(name))[1] = (select auth.uid())::text`, plus `has_active_plus()` pour envoyer,
+remplacer et supprimer : la lecture reste ouverte sans Plus, pour restaurer (PL-16).
 
-_Vigilance_ #87 : `deleteUser` supprime le compte et laisse ses objets Storage orphelins (vérifié le
-2026-10-21). Ordre imposé : PostHog et RevenueCat, objets du dossier, `deleteUser` (les lignes partent
-en cascade), puis un second passage sur le dossier pour une photo envoyée entre-temps par un autre
-téléphone (#1053).
+_Vigilance_ #87 : Supabase supprime l'utilisateur sans toucher à ses objets Storage, qui resteraient
+orphelins (vérifié contre une pile locale, `delete-account.local.spec.ts`). Ordre imposé : PostHog et
+RevenueCat, objets du dossier, `deleteUser` (sa cascade emporte les lignes), puis un second passage sur
+le dossier pour une photo envoyée entre-temps par un autre téléphone (#1053).
 
 ## 5. Interaction avec l'existant
 
