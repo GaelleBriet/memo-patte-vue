@@ -3,7 +3,7 @@ import { z } from 'zod'
 export const CODE_LENGTH = 8
 
 /** Durée de vie du code réglée dans Supabase (« Email OTP Expiration »). */
-export const CODE_LIFETIME_MS = 60 * 60 * 1000
+export const CODE_LIFETIME_MS = 15 * 60 * 1000
 
 /** Délai entre deux envois réglé dans Supabase. */
 export const RESEND_DELAY_MS = 60 * 1000

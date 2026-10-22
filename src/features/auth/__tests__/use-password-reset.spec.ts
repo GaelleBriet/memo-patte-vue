@@ -145,10 +145,10 @@ describe('usePasswordReset', () => {
       expect(changePassword).not.toHaveBeenCalled()
     })
 
-    it('dit « a expiré » une heure après l’envoi', async () => {
+    it('dit « a expiré » 15 minutes après l’envoi', async () => {
       verifyPasswordResetCode.mockRejectedValue(new AccountError('invalid-code'))
       const reset = await codeEnvoye()
-      maintenant = ENVOI + 60 * MINUTE
+      maintenant = ENVOI + 15 * MINUTE
       reset.emailCode.setCode('12345678')
       reset.newPassword.value.password = 'nouveau-secret'
 

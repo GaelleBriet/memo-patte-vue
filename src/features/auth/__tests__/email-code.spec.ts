@@ -31,13 +31,15 @@ describe('isCompleteCode', () => {
 })
 
 describe('refusedCodeKey', () => {
-  it('dit « pas le bon » dans l’heure qui suit l’envoi', () => {
+  it('dit « pas le bon » dans les 15 minutes qui suivent l’envoi', () => {
     expect(refusedCodeKey(ENVOI, ENVOI + 2 * MINUTE)).toBe('auth.code.errors.incorrect')
     expect(refusedCodeKey(ENVOI, ENVOI + CODE_LIFETIME_MS - 1)).toBe('auth.code.errors.incorrect')
   })
 
-  it('dit « a expiré » une heure après l’envoi', () => {
+  it('dit « a expiré » 15 minutes après l’envoi', () => {
+    expect(refusedCodeKey(ENVOI, ENVOI + 14 * MINUTE + 59_000)).toBe('auth.code.errors.incorrect')
     expect(refusedCodeKey(ENVOI, ENVOI + CODE_LIFETIME_MS)).toBe('auth.code.errors.expired')
+    expect(refusedCodeKey(ENVOI, ENVOI + 15 * MINUTE + 1_000)).toBe('auth.code.errors.expired')
     expect(refusedCodeKey(ENVOI, ENVOI + 15 * 60 * MINUTE)).toBe('auth.code.errors.expired')
   })
 
@@ -45,8 +47,8 @@ describe('refusedCodeKey', () => {
     expect(refusedCodeKey(null, ENVOI)).toBe('auth.code.errors.incorrect')
   })
 
-  it('vaut une heure, la durée réglée dans Supabase', () => {
-    expect(CODE_LIFETIME_MS).toBe(60 * MINUTE)
+  it('vaut 15 minutes, la durée réglée dans Supabase', () => {
+    expect(CODE_LIFETIME_MS).toBe(15 * MINUTE)
   })
 })
 

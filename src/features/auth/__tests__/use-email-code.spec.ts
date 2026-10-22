@@ -159,16 +159,16 @@ describe('useEmailCode', () => {
       expect(etape.noticeKey.value).toBeNull()
     })
 
-    it('compte la minute et l’heure à partir du nouvel envoi', async () => {
+    it('compte la minute et les 15 minutes à partir du nouvel envoi', async () => {
       verifySignUpCode.mockRejectedValue(new AccountError('invalid-code'))
       const etape = codeOuvert()
-      maintenant = ENVOI + 59 * MINUTE
+      maintenant = ENVOI + 14 * MINUTE
       await etape.resend()
-      maintenant = ENVOI + 59 * MINUTE + 30_000
+      maintenant = ENVOI + 14 * MINUTE + 30_000
 
       expect(await etape.resend()).toBe('wait')
 
-      maintenant = ENVOI + 70 * MINUTE
+      maintenant = ENVOI + 24 * MINUTE
       etape.setCode('12345678')
       await etape.confirm()
       expect(etape.errorKey.value).toBe('auth.code.errors.incorrect')
@@ -278,7 +278,7 @@ describe('useEmailCode', () => {
       expect(etape.code.value).toBe('12345678')
     })
 
-    it('dit « a expiré » une heure après l’envoi, « pas le bon » avant', async () => {
+    it('dit « a expiré » 15 minutes après l’envoi, « pas le bon » avant', async () => {
       const etape = codeDuMotDePasse()
       verify.mockRejectedValue(new AccountError('invalid-code'))
       etape.setCode('12345678')
@@ -286,7 +286,7 @@ describe('useEmailCode', () => {
       expect(await etape.verify()).toBe(false)
       expect(etape.errorKey.value).toBe('auth.code.errors.incorrect')
 
-      maintenant = ENVOI + 60 * MINUTE
+      maintenant = ENVOI + 15 * MINUTE
       expect(await etape.verify()).toBe(false)
       expect(etape.errorKey.value).toBe('auth.code.errors.expired')
     })
