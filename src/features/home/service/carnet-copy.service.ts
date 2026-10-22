@@ -3,6 +3,7 @@ import {
   type DataExportService,
 } from '@/features/settings/service/data-export.service'
 import { recordUsageSignal } from '@/core/usage/usage-signals'
+import { errorSummary } from '@/shared/utils/error-summary'
 
 export type CarnetCopyOutcome = 'shared' | 'cancelled' | 'failed'
 
@@ -13,7 +14,7 @@ export function createCarnetCopyService(exporter: Pick<DataExportService, 'expor
       try {
         if ((await exporter.exportData('json', 'share')) !== 'shared') return 'cancelled'
       } catch (cause) {
-        console.warn('Copie du carnet impossible :', cause)
+        console.warn('Copie du carnet impossible :', errorSummary(cause))
         return 'failed'
       }
       recordUsageSignal('export')

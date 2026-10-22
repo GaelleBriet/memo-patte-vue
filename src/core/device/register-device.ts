@@ -2,6 +2,7 @@ import { Device } from '@capacitor/device'
 
 import { currentDevice } from './device-identity'
 import { getDeviceRepository, type DeviceRepository } from './device.repository'
+import { errorSummary } from '@/shared/utils/error-summary'
 
 function squeezed(text: string | undefined): string {
   return (text ?? '').trim().replace(/\s+/g, ' ')
@@ -32,6 +33,6 @@ export async function registerCurrentDevice(
   try {
     await (await repository()).register(currentDevice(), await deviceModel())
   } catch (cause) {
-    console.warn('Appareil non enregistré :', cause)
+    console.warn('Appareil non enregistré :', errorSummary(cause))
   }
 }

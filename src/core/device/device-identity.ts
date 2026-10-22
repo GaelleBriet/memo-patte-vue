@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { errorSummary } from '@/shared/utils/error-summary'
 
 // Hors de la base : la sauvegarde d'Android copierait l'identifiant vers un autre téléphone.
 export const DEVICE_STORAGE_KEY = 'memopatte.device'
@@ -24,7 +25,7 @@ function drawIdentity(): DeviceIdentity {
   try {
     globalThis.localStorage?.setItem(DEVICE_STORAGE_KEY, JSON.stringify(drawn))
   } catch (cause) {
-    console.warn('Identifiant de l’appareil non retenu :', cause)
+    console.warn('Identifiant de l’appareil non retenu :', errorSummary(cause))
   }
   return drawn
 }

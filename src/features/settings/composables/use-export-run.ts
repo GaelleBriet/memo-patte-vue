@@ -7,6 +7,7 @@ import {
   type SaveAccess,
 } from '../service/export-storage-access.service'
 import { useAppResume } from '@/core/app-lifecycle/app-resume'
+import { errorSummary } from '@/shared/utils/error-summary'
 
 export type SaveAccessPort = {
   check: () => Promise<SaveAccess>
@@ -49,7 +50,7 @@ export function useExportRun(access: SaveAccessPort = storageAccess) {
       }
       return await deliver()
     } catch (cause) {
-      console.warn('Export impossible :', cause)
+      console.warn('Export impossible :', errorSummary(cause))
       hasFailed.value = true
       return 'failed'
     } finally {
