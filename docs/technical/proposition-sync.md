@@ -378,7 +378,20 @@ panne ou un réseau coupé se réessaient sans fin, comme un refus de droit sur 
 échec ne retient ni les autres photos ni le pull. Une photo remplacée n'envoie donc que la nouvelle.
 
 À la restauration : les lignes d'abord, les photos ensuite et une par une, sans bloquer l'écran —
-l'app tolère déjà une photo absente (c'est le cas après un Auto Backup, qui les exclut). On ne
+l'app tolère déjà une photo absente (c'est le cas après un Auto Backup, qui les exclut) : l'animal
+garde son dégradé, et la photo apparaît dès que son fichier arrive. Une fois la transaction du
+carnet validée, chaque photo d'un animal non supprimé dont le fichier manque dans `files/photos/`
+est demandée au dossier du compte (`core/sync/service/photo-restore.ts`, port `PhotoDownloadPort`
+implémenté par `core/supabase/animal-photo-download.ts`) ; le même passage se refait à chaque
+lancement d'un carnet déjà lié au compte (synchro activée, session active), Plus actif ou non, pour
+les photos encore manquantes. Une photo présente sur le téléphone n'est jamais redemandée ni
+écrasée : un nom de photo n'est jamais réutilisé. Avant l'écriture : nom de photo de l'app, 2 Mio
+au plus, premiers octets JPEG ; le fichier s'écrit sous un nom provisoire puis se renomme, jamais
+une photo tronquée sous son nom. Une photo absente du cloud (Storage répond 400 avec `statusCode`
+404 et `code` NoSuchKey, relevé sur une pile locale ; une photo d'un autre compte répond de même)
+laisse l'animal sans photo, sans erreur. Un réseau coupé, une panne ou un refus de droit ne
+retiennent ni les autres photos ni la fin de la restauration. Écrire le fichier ne touche pas
+`animal` : aucune photo téléchargée ne repart en file. On ne
 supprime un objet que lorsque son nom n'est plus référencé par aucune ligne locale, jamais parce
 qu'un animal est passé en tombstone : il peut revenir.
 

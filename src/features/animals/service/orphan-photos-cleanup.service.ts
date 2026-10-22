@@ -1,4 +1,10 @@
-import { deletePhoto, listPhotos, type StoredPhoto } from '@/core/photos/photo-storage'
+import {
+  deletePartialPhoto,
+  deletePhoto,
+  listPartialPhotos,
+  listPhotos,
+  type StoredPhoto,
+} from '@/core/photos/photo-storage'
 import { getAnimalsRepository, type AnimalVersion } from '../repository/animals.repository'
 import { errorSummary } from '@/shared/utils/error-summary'
 
@@ -10,11 +16,22 @@ const RECENT_PHOTO_MS = 60_000
 export function createOrphanPhotosCleanup(deps: {
   listPhotos: () => Promise<StoredPhoto[]>
   deletePhoto: (name: string) => Promise<void>
+  listPartialPhotos: () => Promise<StoredPhoto[]>
+  deletePartialPhoto: (name: string) => Promise<void>
   animals: Provider<{ listVersions: () => Promise<AnimalVersion[]> }>
 }): () => Promise<void> {
   return async () => {
     const recentSince = Date.now() - RECENT_PHOTO_MS
     try {
+      const interrupted = (await deps.listPartialPhotos()).filter(
+        ({ modifiedAt }) => modifiedAt < recentSince,
+      )
+      for (const { name } of interrupted) {
+        await deps.deletePartialPhoto(name).catch((cause: unknown) => {
+          console.warn('Téléchargement interrompu non effacé :', errorSummary(cause))
+        })
+      }
+
       const photos = (await deps.listPhotos()).filter(({ modifiedAt }) => modifiedAt < recentSince)
       if (photos.length === 0) return
 
@@ -33,9 +50,14 @@ export function createOrphanPhotosCleanup(deps: {
   }
 }
 
-/** Au démarrage : efface les photos qu'aucun animal non supprimé ne porte. Ne lève pas. */
+/**
+ * Au démarrage : efface les photos qu'aucun animal non supprimé ne porte, et les téléchargements
+ * interrompus. Ne lève pas.
+ */
 export const cleanOrphanPhotosOnLaunch = createOrphanPhotosCleanup({
   listPhotos,
   deletePhoto,
+  listPartialPhotos,
+  deletePartialPhoto,
   animals: getAnimalsRepository,
 })

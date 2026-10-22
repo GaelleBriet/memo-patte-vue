@@ -73,6 +73,18 @@ describe('syncOutboxRepository', () => {
     })
   })
 
+  describe('listCarnetPhotos', () => {
+    it('rend une fois chaque photo des animaux non supprimés, ni celle d’un animal supprimé ni une photo retirée', async () => {
+      await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_MILO)
+      await insertAnimal(db, 'jumeau', T1, 'Milo bis', PHOTO_MILO)
+      await insertAnimal(db, 'parti', T1, 'Pirate', PHOTO_PIRATE)
+      await db.run("UPDATE animal SET deleted_at = ? WHERE id = 'parti'", [T2])
+      await insertAnimal(db, 'sans-photo', T1, 'Luna')
+
+      await expect(repository.listCarnetPhotos()).resolves.toEqual([PHOTO_MILO])
+    })
+  })
+
   describe('sync_state.enabled', () => {
     it('est désactivé par défaut', async () => {
       await expect(repository.isEnabled()).resolves.toBe(false)
