@@ -498,4 +498,21 @@ describe('usePurchaseStore — offre en attente d’un compte', () => {
     store.forgetRestore()
     expect(store.takePendingRestore()).toBe(false)
   })
+
+  it('n’écrase pas un Plus restauré par la réponse plus ancienne d’un rattachement parti avant', async () => {
+    let repondreLent: (status: PlusStatus) => void = () => {}
+    service.logIn
+      .mockReturnValueOnce(new Promise((resolve) => (repondreLent = resolve)))
+      .mockResolvedValueOnce(NO_PLUS)
+    service.restore.mockResolvedValue(LIFETIME)
+    const store = usePurchaseStore()
+
+    const lent = store.logIn('compte-b')
+    await store.logIn('compte-b')
+    await store.restore()
+    repondreLent(NO_PLUS)
+
+    await expect(lent).resolves.toEqual(LIFETIME)
+    expect(store.status).toEqual(LIFETIME)
+  })
 })

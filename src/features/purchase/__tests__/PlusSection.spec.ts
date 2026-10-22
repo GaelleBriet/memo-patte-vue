@@ -15,6 +15,10 @@ import vuetify from '@/core/theme/vuetify'
 import appRouter from '@/router'
 import { dismissToast, toastMessage, toastTone } from '@/shared/utils/toast'
 
+const authAvailable = vi.hoisted(() => vi.fn<() => boolean>(() => true))
+
+vi.mock('@/shared/utils/auth-available', () => ({ authAvailable }))
+
 vi.mock('../service/billing.service', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   billingService: {
@@ -70,6 +74,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   service.isAvailable.mockReturnValue(true)
   service.logIn.mockResolvedValue(NO_PLUS)
+  authAvailable.mockReturnValue(true)
   provideCheckoutAccount(compte(USER_ID))
   vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-16T10:00:00Z') })
   vi.stubGlobal('localStorage', memoryStorage())
@@ -267,6 +272,13 @@ describe('PlusSection — restaurer mon achat', () => {
   function ligneRestaurer(wrapper: VueWrapper) {
     return wrapper.get('.settings-row--plus-restore')
   }
+
+  it('reste caché quand le compte n’est pas disponible sur cette version', async () => {
+    authAvailable.mockReturnValue(false)
+    const wrapper = await monter()
+
+    expect(wrapper.find('.settings-row--plus-restore').exists()).toBe(false)
+  })
 
   it('reste caché quand les achats ne sont pas disponibles sur cet appareil', async () => {
     service.isAvailable.mockReturnValue(false)

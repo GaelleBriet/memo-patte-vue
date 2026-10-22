@@ -23,7 +23,7 @@ const { isRestoring, restore, resumeRestore } = usePurchaseRestore('settings-plu
 const isPaused = computed(() => purchase.expiredPlan !== null)
 const canDiscover = computed(() => statusHint.value === null)
 const canRestore = computed(
-  () => purchase.available && purchase.status.plan === 'none' && !isPaused.value,
+  () => purchase.available && authAvailable() && purchase.status.plan === 'none' && !isPaused.value,
 )
 const canSignIn = computed(() => canDiscover.value && authAvailable())
 

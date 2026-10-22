@@ -360,3 +360,25 @@ describe('resumeRestore', () => {
     expect(resumeRestore()).toBe(false)
   })
 })
+
+describe('resume et restauration en attente', () => {
+  it('quand le paiement repart, la restauration demandée avant ne se relancera plus', () => {
+    const { value } = port()
+    const { resume, resumeRestore } = createCheckout(compte(USER_ID), () => value)
+    value.rememberRestore()
+    value.rememberCheckout('annual')
+
+    expect(resume()).toEqual({ plan: 'annual', pay: true })
+    expect(resumeRestore()).toBe(false)
+  })
+
+  it('sans paiement qui repart, la restauration demandée reste en attente', () => {
+    const { value } = port()
+    const { resume } = createCheckout(compte(null), () => value)
+    value.rememberRestore()
+    value.rememberCheckout('annual')
+
+    expect(resume()).toEqual({ plan: 'annual', pay: false })
+    expect(value.takePendingRestore()).toBe(true)
+  })
+})

@@ -934,12 +934,13 @@ describe('PlusView — « J’ai déjà MémoPatte Plus » (V26)', () => {
     expect(push).toHaveBeenCalledWith({ name: 'sign-in', query: { from: 'plus', restore: '1' } })
   })
 
-  it('n’apparaît pas quand le compte n’est pas disponible sur cette version', async () => {
+  it('n’apparaît pas, ni « Restaurer mes achats », quand le compte n’est pas disponible sur cette version', async () => {
     authAvailable.mockReturnValue(false)
     try {
       const wrapper = await monter()
 
       expect(wrapper.find('.plus__already').exists()).toBe(false)
+      expect(wrapper.find('.plus__restore').exists()).toBe(false)
     } finally {
       authAvailable.mockReturnValue(true)
     }

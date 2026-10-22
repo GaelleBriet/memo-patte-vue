@@ -255,7 +255,7 @@ onMounted(() => {
           {{ t('plus.settings.alreadySubscribed') }}
         </v-btn>
         <v-btn
-          v-if="purchase.available"
+          v-if="purchase.available && canSignIn"
           class="plus__restore"
           variant="text"
           color="primary"

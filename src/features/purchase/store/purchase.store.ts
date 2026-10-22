@@ -140,7 +140,9 @@ export const usePurchaseStore = defineStore('purchase', () => {
 
     /** L'appareil garde son droit : seul `reset()` solde le souvenir du compte quitté. */
     async logIn(appUserID: string): Promise<PlusStatus> {
-      return record(await billingService.logIn(appUserID))
+      const startedAt = generation
+      const next = await billingService.logIn(appUserID)
+      return generation === startedAt ? record(next) : status.value
     },
 
     /** Le compte quitté n'emporte ni son droit ni le souvenir de son abonnement. */

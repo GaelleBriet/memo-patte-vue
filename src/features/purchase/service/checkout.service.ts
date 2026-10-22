@@ -72,7 +72,9 @@ export function createCheckout(account: CheckoutAccount, purchase: () => Checkou
       const port = purchase()
       const plan = port.takePendingCheckout()
       if (plan === null) return null
-      return { plan, pay: isSignedIn() && port.status.plan === 'none' }
+      const pay = isSignedIn() && port.status.plan === 'none'
+      if (pay) port.takePendingRestore()
+      return { plan, pay }
     },
 
     /** Restaure sur le compte, que RevenueCat reçoit d'abord : jamais sur un identifiant anonyme. */
