@@ -1,3 +1,5 @@
+import type { LocalPhoto } from '@/core/photos/photo-storage'
+
 /** Un refus que le serveur rendra à l'identique tant que le fichier ne change pas. */
 export class PhotoUploadRefusal extends Error {
   constructor(readonly reason: string) {
@@ -16,6 +18,6 @@ export interface PhotoUploadPort {
 }
 
 export interface LocalPhotoFiles {
-  /** `null` quand le fichier n'est plus sur le téléphone. */
-  read(fileName: string): Promise<Uint8Array | null>
+  /** Un fichier plus lourd que `maxBytes` n'est pas lu. */
+  read(fileName: string, maxBytes: number): Promise<LocalPhoto>
 }

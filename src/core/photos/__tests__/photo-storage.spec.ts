@@ -192,15 +192,18 @@ describe('photoExists', () => {
 })
 
 describe('readPhoto', () => {
-  const STAT = { uri: 'file:///data/photos/abc.jpg' } as Awaited<
-    ReturnType<FilesystemPlugin['stat']>
-  >
+  const MAX = 2 * 1024 * 1024
+  const statOf = (size: number) =>
+    ({ uri: 'file:///data/photos/abc.jpg', size }) as Awaited<ReturnType<FilesystemPlugin['stat']>>
 
   it('rend les octets du fichier lu sous photos/, dans Directory.Data', async () => {
-    stat.mockResolvedValue(STAT)
+    stat.mockResolvedValue(statOf(4))
     readFile.mockResolvedValue({ data: btoa('\xff\xd8\xff\xe0') })
 
-    await expect(readPhoto('abc.jpg')).resolves.toEqual(new Uint8Array([0xff, 0xd8, 0xff, 0xe0]))
+    await expect(readPhoto('abc.jpg', MAX)).resolves.toEqual({
+      kind: 'found',
+      bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xe0]),
+    })
     expect(readFile).toHaveBeenCalledExactlyOnceWith({
       path: 'photos/abc.jpg',
       directory: Directory.Data,
@@ -208,31 +211,48 @@ describe('readPhoto', () => {
   })
 
   it('rend aussi les octets d’un fichier que le navigateur relit en Blob', async () => {
-    stat.mockResolvedValue(STAT)
+    stat.mockResolvedValue(statOf(3))
     readFile.mockResolvedValue({ data: new Blob([new Uint8Array([0xff, 0xd8, 0xff])]) })
 
-    await expect(readPhoto('abc.jpg')).resolves.toEqual(new Uint8Array([0xff, 0xd8, 0xff]))
+    await expect(readPhoto('abc.jpg', MAX)).resolves.toEqual({
+      kind: 'found',
+      bytes: new Uint8Array([0xff, 0xd8, 0xff]),
+    })
   })
 
-  it('rend null, sans rien lire, pour un fichier absent', async () => {
-    stat.mockRejectedValue(new Error('File does not exist'))
+  it('lit un fichier de la taille maximale pile', async () => {
+    stat.mockResolvedValue(statOf(MAX))
+    readFile.mockResolvedValue({ data: btoa('\xff\xd8\xff') })
 
-    await expect(readPhoto('absente.jpg')).resolves.toBeNull()
+    await expect(readPhoto('abc.jpg', MAX)).resolves.toMatchObject({ kind: 'found' })
+  })
+
+  it('ne lit pas un fichier plus lourd que la taille maximale', async () => {
+    stat.mockResolvedValue(statOf(MAX + 1))
+
+    await expect(readPhoto('abc.jpg', MAX)).resolves.toEqual({ kind: 'too-large' })
     expect(readFile).not.toHaveBeenCalled()
   })
 
-  it('rend null, sans rien lire, pour un nom qui sortirait de photos/', async () => {
-    stat.mockResolvedValue(STAT)
+  it('rend absent, sans rien lire, un fichier qui n’existe pas', async () => {
+    stat.mockRejectedValue(new Error('File does not exist'))
 
-    await expect(readPhoto('../secrets.txt')).resolves.toBeNull()
+    await expect(readPhoto('absente.jpg', MAX)).resolves.toEqual({ kind: 'absent' })
+    expect(readFile).not.toHaveBeenCalled()
+  })
+
+  it('rend absent, sans rien lire, un nom qui sortirait de photos/', async () => {
+    stat.mockResolvedValue(statOf(4))
+
+    await expect(readPhoto('../secrets.txt', MAX)).resolves.toEqual({ kind: 'absent' })
     expect(readFile).not.toHaveBeenCalled()
   })
 
   it('propage un échec de lecture d’un fichier présent', async () => {
-    stat.mockResolvedValue(STAT)
+    stat.mockResolvedValue(statOf(4))
     readFile.mockRejectedValue(new Error('lecture impossible'))
 
-    await expect(readPhoto('abc.jpg')).rejects.toThrow('lecture impossible')
+    await expect(readPhoto('abc.jpg', MAX)).rejects.toThrow('lecture impossible')
   })
 })
 

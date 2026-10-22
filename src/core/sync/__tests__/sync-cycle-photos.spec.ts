@@ -31,7 +31,11 @@ function fakeFiles(initial: Record<string, Uint8Array> = {}) {
   const files = new Map(Object.entries(initial))
   return {
     files,
-    read: vi.fn<LocalPhotoFiles['read']>(async (name) => files.get(name) ?? null),
+    read: vi.fn<LocalPhotoFiles['read']>(async (name, maxBytes) => {
+      const bytes = files.get(name)
+      if (!bytes) return { kind: 'absent' }
+      return bytes.length > maxBytes ? { kind: 'too-large' } : { kind: 'found', bytes }
+    }),
   }
 }
 
@@ -190,6 +194,7 @@ describe('createSyncCycle — photos', () => {
 
       await expect(cycleWith(outbox, files, uploads).runCycle()).resolves.toBeUndefined()
 
+      expect(files.read).toHaveBeenCalledWith(MILO_PHOTO, MAX_PHOTO_BYTES)
       expect(uploads.sent.map(({ fileName }) => fileName)).toEqual([LUNA_PHOTO])
       expect(outbox.entries()).toEqual([])
       expect(warn).toHaveBeenCalledOnce()

@@ -20,8 +20,6 @@ export interface PhotoPush {
 
 const isJpeg = (bytes: Uint8Array) => bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
 
-const sendable = (bytes: Uint8Array) => bytes.length <= MAX_PHOTO_BYTES && isJpeg(bytes)
-
 const photoRefusalSignature = (cause: unknown) =>
   cause instanceof PhotoUploadRefusal ? cause.reason : null
 
@@ -41,11 +39,11 @@ export function createPhotoPush(
   }
 
   async function pushEntry(userId: string, entry: SyncOutboxEntry): Promise<void> {
-    const bytes = await files.read(entry.entityId)
-    if (bytes && !sendable(bytes)) {
+    const photo = await files.read(entry.entityId, MAX_PHOTO_BYTES)
+    if (photo.kind === 'too-large' || (photo.kind === 'found' && !isJpeg(photo.bytes))) {
       console.warn('Photo trop lourde ou hors JPEG, sortie de la file sans envoi.')
-    } else if (bytes) {
-      await uploads.upload(userId, entry.entityId, bytes)
+    } else if (photo.kind === 'found') {
+      await uploads.upload(userId, entry.entityId, photo.bytes)
     }
     await outbox.removeIfUnchanged(entry)
   }

@@ -70,13 +70,33 @@ export async function photoExists(name: string): Promise<boolean> {
   }
 }
 
-/** `null` pour un fichier absent, comme `photoExists` ; rejette si un fichier présent ne se lit pas. */
-export async function readPhoto(name: string): Promise<Uint8Array | null> {
-  if (!(await photoExists(name))) return null
+export type LocalPhoto =
+  { kind: 'absent' } | { kind: 'too-large' } | { kind: 'found'; bytes: Uint8Array }
 
-  const { data } = await Filesystem.readFile({ path: photoPath(name), directory: Directory.Data })
-  if (typeof data !== 'string') return new Uint8Array(await data.arrayBuffer())
-  return Uint8Array.from(atob(data), (char) => char.charCodeAt(0))
+function base64ToBytes(base64: string): Uint8Array {
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index)
+  return bytes
+}
+
+/** Taille prise par `stat` : un fichier trop lourd n'est jamais lu. Rejette si un fichier présent ne se lit pas. */
+export async function readPhoto(name: string, maxBytes: number): Promise<LocalPhoto> {
+  if (!isPhotoFileName(name)) return { kind: 'absent' }
+  const options = { path: photoPath(name), directory: Directory.Data }
+
+  let size: number
+  try {
+    ;({ size } = await Filesystem.stat(options))
+  } catch {
+    return { kind: 'absent' }
+  }
+  if (size > maxBytes) return { kind: 'too-large' }
+
+  const { data } = await Filesystem.readFile(options)
+  const bytes =
+    typeof data === 'string' ? base64ToBytes(data) : new Uint8Array(await data.arrayBuffer())
+  return { kind: 'found', bytes }
 }
 
 /** Rejette si le fichier manque, par exemple après une restauration Auto Backup qui exclut les photos. */
