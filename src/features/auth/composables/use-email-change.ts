@@ -20,7 +20,7 @@ export function useEmailChange({ now = Date.now }: { now?: () => number } = {}) 
   const emailCode = useEmailCode({
     now,
     operations: {
-      resend: (address) => auth.resendEmailChangeCode(address),
+      resend: () => auth.resendEmailChangeCode(),
       verify: (address, code) => auth.verifyEmailChangeCode(address, code),
     },
   })

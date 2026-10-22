@@ -452,12 +452,17 @@ describe('createAuthRepository', () => {
       storeSession(sessionBody())
       server.on('resend', () => json(200, {}))
 
-      await repository.resendEmailChangeCode('sophie2@exemple.fr')
+      await repository.resendEmailChangeCode()
 
       expect(server.bodies.at(-1)).toMatchObject({
-        email: 'sophie2@exemple.fr',
+        email: 'gaelle@example.com',
         type: 'email_change',
       })
+    })
+
+    it('ne renvoie rien sans session', async () => {
+      expect(await reasonOf(repository.resendEmailChangeCode())).toBe('unknown')
+      expect(server.calls).toEqual([])
     })
   })
 

@@ -12,7 +12,7 @@ const ENVOI = new Date(2026, 9, 22, 18, 0).getTime()
 
 const requestEmailChange = vi.fn<(password: string, email: string) => Promise<void>>()
 const verifyEmailChangeCode = vi.fn<(email: string, code: string) => Promise<void>>()
-const resendEmailChangeCode = vi.fn<(email: string) => Promise<void>>()
+const resendEmailChangeCode = vi.fn<() => Promise<void>>()
 let maintenant = ENVOI
 
 function remplir(current: string, email: string) {
@@ -107,7 +107,7 @@ describe('useEmailChange', () => {
     maintenant = ENVOI + 60_000
 
     expect(await change.emailCode.resend()).toBe('sent')
-    expect(resendEmailChangeCode).toHaveBeenCalledWith(NOUVELLE)
+    expect(resendEmailChangeCode).toHaveBeenCalledWith()
   })
 
   it('revient à l’adresse, remplie, mot de passe vidé', async () => {
