@@ -20,7 +20,8 @@ insert into public.plus_entitlements (user_id, active, product_type, expires_at)
 insert into storage.objects (bucket_id, name) values
   ('animal-photos', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/milo.jpg'),
   ('animal-photos', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/luna.jpg'),
-  ('animal-photos', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc/rex.jpg');
+  ('animal-photos', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc/rex.jpg'),
+  ('animal-photos', 'dddddddd-dddd-4ddd-8ddd-dddddddddddd/max.jpg');
 
 create function pg_temp.as_user(account text) returns void language plpgsql as $$
 begin
@@ -177,16 +178,30 @@ select throws_ok(
   $$ update storage.objects set name = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc/renommee.jpg'
      where name = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc/rex.jpg' $$,
   '42501', null, 'sans Plus, c ne remplace pas sa photo');
-select is_empty(
+select results_eq(
   $$ delete from storage.objects
      where name = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc/rex.jpg' returning name $$,
-  'sans Plus, c ne supprime pas sa photo');
+  $$ values ('cccccccc-cccc-4ccc-8ccc-cccccccccccc/rex.jpg') $$,
+  'sans Plus, c efface encore sa photo');
 
 select pg_temp.as_user('d');
 select throws_ok(
   $$ insert into storage.objects (bucket_id, name)
      values ('animal-photos', 'dddddddd-dddd-4ddd-8ddd-dddddddddddd/photo.jpg') $$,
   '42501', null, 'Plus expiré : pas d''envoi');
+select throws_ok(
+  $$ update storage.objects set name = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd/renommee.jpg'
+     where name = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd/max.jpg' $$,
+  '42501', null, 'Plus expiré : pas de remplacement');
+select is_empty(
+  $$ delete from storage.objects
+     where name = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/luna.jpg' returning name $$,
+  'Plus expiré : d n''efface pas une photo de b');
+select results_eq(
+  $$ delete from storage.objects
+     where name = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd/max.jpg' returning name $$,
+  $$ values ('dddddddd-dddd-4ddd-8ddd-dddddddddddd/max.jpg') $$,
+  'Plus expiré : d efface sa photo');
 
 select pg_temp.as_user('e');
 select throws_ok(
@@ -233,7 +248,6 @@ select results_eq(
   $$ values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/0f1e2d3c-4b5a-4968-8776-a5b4c3d2e1f0.jpg'),
             ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/milo.jpg'),
             ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/luna.jpg'),
-            ('cccccccc-cccc-4ccc-8ccc-cccccccccccc/rex.jpg'),
             ('ffffffff-ffff-4fff-8fff-ffffffffffff/avant.jpg') $$,
   'seuls les gestes permis ont touché aux photos');
 
