@@ -50,6 +50,7 @@ import lock from '@material-symbols/svg-400/outlined/lock.svg?raw'
 import lightbulb from '@material-symbols/svg-400/outlined/lightbulb.svg?raw'
 import logout from '@material-symbols/svg-400/outlined/logout.svg?raw'
 import mail from '@material-symbols/svg-400/outlined/mail.svg?raw'
+import password from '@material-symbols/svg-400/outlined/password.svg?raw'
 import markEmailUnread from '@material-symbols/svg-400/outlined/mark_email_unread.svg?raw'
 import merge from '@material-symbols/svg-400/outlined/merge.svg?raw'
 import medication from '@material-symbols/svg-400/outlined/medication.svg?raw'
@@ -246,6 +247,7 @@ export const msIcons = {
   notifications_off: notificationsOff,
   open_in_new: openInNew,
   palette,
+  password,
   pause,
   person_off: personOff,
   pest_control: pestControl,

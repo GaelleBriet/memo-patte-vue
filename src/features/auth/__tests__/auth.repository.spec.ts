@@ -392,6 +392,31 @@ describe('createAuthRepository', () => {
     })
   })
 
+  describe('reauthenticate', () => {
+    it('reconnecte le compte de la session avec le mot de passe saisi', async () => {
+      storeSession(sessionBody())
+      server.on('token:password', () => json(200, sessionBody()))
+
+      await expect(repository.reauthenticate('ancien-secret')).resolves.toEqual({ userId: USER_ID })
+      expect(server.bodies.at(-1)).toMatchObject({
+        email: 'gaelle@example.com',
+        password: 'ancien-secret',
+      })
+    })
+
+    it('signale un mot de passe faux', async () => {
+      storeSession(sessionBody())
+      server.on('token:password', apiError(400, 'invalid_credentials'))
+
+      expect(await reasonOf(repository.reauthenticate('faux'))).toBe('invalid-credentials')
+    })
+
+    it('lève « autre » sans session, sans rien envoyer', async () => {
+      expect(await reasonOf(repository.reauthenticate('ancien-secret'))).toBe('unknown')
+      expect(server.calls).toEqual([])
+    })
+  })
+
   describe('updatePassword', () => {
     it('change le mot de passe du compte de la session et renvoie ce compte', async () => {
       storeSession(sessionBody())

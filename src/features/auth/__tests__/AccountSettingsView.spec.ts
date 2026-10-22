@@ -105,4 +105,31 @@ describe('AccountSettingsView', () => {
       expect(wrapper.get('.settings-row--sign-out').text()).toBe('Se déconnecter')
     })
   })
+
+  describe('« Connexion » (V24)', () => {
+    it('propose « Changer mon mot de passe » sous « Connexion » pour un compte à mot de passe', async () => {
+      accountIdentity.mockResolvedValue({ kind: 'password', email: 'sophie@exemple.fr' })
+      const push = vi.spyOn(router, 'push').mockResolvedValue()
+      const wrapper = await monter()
+
+      expect(wrapper.get('.account-settings__section-title').text()).toBe('Connexion')
+      const entry = wrapper.get('.settings-row--change-password')
+      expect(entry.text()).toBe('Changer mon mot de passe')
+      await entry.trigger('click')
+
+      expect(push).toHaveBeenCalledWith({ name: 'settings-account-password' })
+    })
+
+    it('ne propose rien de tel pour un compte créé avec Google (V24 bis)', async () => {
+      accountIdentity.mockResolvedValue({
+        kind: 'google',
+        email: 'sophie@gmail.com',
+        subject: '108234567890',
+      })
+      const wrapper = await monter()
+
+      expect(wrapper.find('.account-settings__section-title').exists()).toBe(false)
+      expect(wrapper.find('.settings-row--change-password').exists()).toBe(false)
+    })
+  })
 })

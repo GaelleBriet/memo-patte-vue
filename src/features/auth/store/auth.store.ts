@@ -144,6 +144,12 @@ export const useAuthStore = defineStore('auth', () => {
       record(await repository.updatePassword(password))
     },
 
+    /** « Changer mon mot de passe » : l'actuel reconnecte le compte, puis le nouveau s'enregistre. */
+    async changePasswordWithCurrent(current: string, next: string): Promise<void> {
+      record(await repository.reauthenticate(current))
+      record(await repository.updatePassword(next))
+    },
+
     async signIn(email: string, password: string): Promise<void> {
       record(await repository.signIn(email, password))
     },

@@ -1221,6 +1221,13 @@
     },
     "account": {
       "title": "Compte",
+      "signInSection": "Connexion",
+      "password": {
+        "action": "Changer mon mot de passe",
+        "current": "Mot de passe actuel",
+        "save": "Enregistrer",
+        "saveLabel": "Enregistrer le nouveau mot de passe"
+      },
       "identity": {
         "email": "Adresse e-mail",
         "google": "Compte Google"

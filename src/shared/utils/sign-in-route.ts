@@ -12,6 +12,7 @@ const RETURN_ROUTES: readonly string[] = [
   ACCOUNT_FIRST_ROUTE,
   'settings',
   'settings-plus',
+  'settings-account',
   'home',
 ]
 const RESTORE_FLAG = '1'
