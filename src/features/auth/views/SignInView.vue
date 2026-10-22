@@ -20,6 +20,7 @@ import {
   signInReturnRoute,
 } from '@/shared/utils/sign-in-route'
 
+import AccountLegalNotice from './AccountLegalNotice.vue'
 import GoogleSignInButton from './GoogleSignInButton.vue'
 
 const { t } = useI18n()
@@ -62,6 +63,9 @@ const toggleAction = computed(() =>
   isSignUp.value ? t('auth.signUp.toggleAction') : t('auth.signIn.toggleAction'),
 )
 const passwordAutocomplete = computed(() => (isSignUp.value ? 'new-password' : 'current-password'))
+const passwordHelp = computed(() =>
+  isSignUp.value && !errors.value.password ? t('auth.password.help') : null,
+)
 
 function leave(): void {
   returnTo(router, returnRoute.value)
@@ -254,6 +258,7 @@ onUnmounted(() => {
             control-id="sign-in-password"
             required
             :error="errors.password ? t(errors.password) : null"
+            :help="passwordHelp"
           >
             <template #default="{ describedby, invalid }">
               <v-text-field
@@ -272,6 +277,8 @@ onUnmounted(() => {
             </template>
           </FormField>
         </div>
+
+        <AccountLegalNotice v-if="isSignUp" class="sign-in__legal" />
 
         <v-btn class="sign-in__submit" type="submit" variant="flat" color="primary">
           {{ submitLabel }}
@@ -349,6 +356,10 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 18px;
+}
+
+.sign-in__legal {
+  margin-top: 18px;
 }
 
 .sign-in__submit,

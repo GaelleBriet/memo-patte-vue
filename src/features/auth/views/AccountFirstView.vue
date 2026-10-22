@@ -6,13 +6,12 @@ import { useRouter } from 'vue-router'
 import { useGoogleSignIn } from '../composables/use-google-sign-in'
 import { accountFirstOffer, leavesAccountFirst } from '../logic/account-first'
 import { useAuthStore } from '../store/auth.store'
-import { currentLocale } from '@/core/i18n'
 import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
-import { privacyPolicyUrl } from '@/shared/domain/site-links'
 import { returnTo } from '@/shared/utils/return-to'
 import { signInRoute } from '@/shared/utils/sign-in-route'
 
+import AccountLegalNotice from './AccountLegalNotice.vue'
 import GoogleSignInButton from './GoogleSignInButton.vue'
 
 const PLUS_ROUTE = { name: 'plus' }
@@ -39,7 +38,6 @@ const offerLabel = computed(() => {
     price: t(`plus.offers.${plan}.price`, { price: priceString }),
   })
 })
-const policyUrl = computed(() => privacyPolicyUrl(currentLocale()))
 
 function backToPlus(): void {
   returnTo(router, PLUS_ROUTE)
@@ -140,12 +138,7 @@ onUnmounted(() => {
           {{ t('auth.accountFirst.signIn') }}
         </v-btn>
 
-        <p class="account-first__adults">{{ t('auth.legal.adults') }}</p>
-
-        <a class="account-first__privacy" :href="policyUrl" target="_blank" rel="noopener">
-          {{ t('auth.legal.privacy') }}
-          <v-icon icon="ms:open_in_new" size="16" />
-        </a>
+        <AccountLegalNotice centered />
       </div>
     </template>
   </PushedScreen>
@@ -276,28 +269,6 @@ onUnmounted(() => {
   white-space: normal;
 
   @include tap.tap-target;
-}
-
-.account-first__adults {
-  margin: 0;
-  color: tokens.$color-text-secondary;
-  font-size: 12.5px;
-  line-height: 1.55;
-  text-align: center;
-  text-wrap: pretty;
-}
-
-.account-first__privacy {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 44px;
-  color: rgb(var(--v-theme-primary));
-  font-size: 13.5px;
-  font-weight: 700;
-  text-decoration: none;
 }
 
 .account-first__loading {
