@@ -11,7 +11,7 @@ type Setting = { name: string; isValid: (value: string) => boolean }
 const POSTHOG_SETTINGS = {
   personalApiKey: {
     name: 'POSTHOG_PERSONAL_API_KEY',
-    isValid: (value) => value.startsWith('phx_'),
+    isValid: (value) => /^phx_[A-Za-z0-9_-]+$/.test(value),
   },
   projectId: { name: 'POSTHOG_PROJECT_ID', isValid: (value) => /^\d+$/.test(value) },
   host: { name: 'POSTHOG_HOST', isValid: isHttpsUrl },
@@ -19,7 +19,7 @@ const POSTHOG_SETTINGS = {
 
 const REVENUECAT_SECRET_KEY: Setting = {
   name: 'REVENUECAT_SECRET_KEY',
-  isValid: (value) => value.startsWith('sk_'),
+  isValid: (value) => /^sk_[A-Za-z0-9_-]+$/.test(value),
 }
 
 function isHttpsUrl(value: string): boolean {

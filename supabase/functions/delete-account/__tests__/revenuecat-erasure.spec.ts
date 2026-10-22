@@ -60,13 +60,15 @@ describe('revenuecatCustomerErasure', () => {
     await expect(erasure).rejects.not.toThrow(SECRET_KEY)
   })
 
-  it('échoue quand RevenueCat est injoignable', async () => {
-    const fake = fakeFetch(() => {
-      throw new TypeError('réseau coupé')
+  it('échoue sans répéter la clé ni l’identifiant quand RevenueCat est injoignable', async () => {
+    const fake = fakeFetch((request) => {
+      throw new TypeError(`Invalid header value: "Bearer ${SECRET_KEY}" ${request.url}`)
     })
 
-    await expect(revenuecatCustomerErasure(SECRET_KEY, fake.fetch)(USER)).rejects.toThrow(
-      'réseau coupé',
-    )
+    const erasure = revenuecatCustomerErasure(SECRET_KEY, fake.fetch)(USER)
+
+    await expect(erasure).rejects.toThrow('RevenueCat injoignable')
+    await expect(erasure).rejects.not.toThrow(SECRET_KEY)
+    await expect(erasure).rejects.not.toThrow(USER)
   })
 })

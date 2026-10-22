@@ -1,4 +1,4 @@
-import { PROVIDER_TIMEOUT_MS, type ProviderErasure } from './account-erasure.ts'
+import { sendTo, type ProviderErasure } from './account-erasure.ts'
 
 export type PostHogSettings = { host: string; projectId: string; personalApiKey: string }
 
@@ -16,14 +16,13 @@ export function posthogPersonErasure(
 ): ProviderErasure {
   const url = `${settings.host.replace(/\/+$/, '')}/api/projects/${settings.projectId}/persons/bulk_delete/`
   return async (userId) => {
-    const response = await send(url, {
+    const response = await sendTo('PostHog', send, url, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${settings.personalApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ distinct_ids: [userId], delete_events: true }),
-      signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
     })
     if (!response.ok) {
       await response.body?.cancel()

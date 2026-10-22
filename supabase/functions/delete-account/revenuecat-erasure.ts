@@ -1,14 +1,14 @@
-import { PROVIDER_TIMEOUT_MS, type ProviderErasure } from './account-erasure.ts'
+import { sendTo, type ProviderErasure } from './account-erasure.ts'
 
 export const REVENUECAT_API = 'https://api.revenuecat.com/v1'
 
 /** Un client inconnu (404) est déjà effacé ou n'a jamais existé : c'est un succès. */
 export function revenuecatCustomerErasure(secretKey: string, send: typeof fetch): ProviderErasure {
   return async (userId) => {
-    const response = await send(`${REVENUECAT_API}/subscribers/${encodeURIComponent(userId)}`, {
+    const url = `${REVENUECAT_API}/subscribers/${encodeURIComponent(userId)}`
+    const response = await sendTo('RevenueCat', send, url, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${secretKey}` },
-      signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
     })
     if (response.status === 404) {
       await response.body?.cancel()

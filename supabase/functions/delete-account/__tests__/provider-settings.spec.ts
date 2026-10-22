@@ -69,6 +69,11 @@ describe('providerErasuresFrom', () => {
     ['un hôte sans https', 'POSTHOG_HOST', 'http://eu.posthog.com'],
     ['un hôte illisible', 'POSTHOG_HOST', 'eu.posthog.com'],
     ['une clé publique RevenueCat', 'REVENUECAT_SECRET_KEY', 'goog_cle-publique'],
+    ['une clé PostHog coupée par un retour à la ligne', 'POSTHOG_PERSONAL_API_KEY', 'phx_abc\ndef'],
+    ['une clé PostHog réduite à son préfixe', 'POSTHOG_PERSONAL_API_KEY', 'phx_'],
+    ['une clé RevenueCat coupée par un retour à la ligne', 'REVENUECAT_SECRET_KEY', 'sk_abc\ndef'],
+    ['une clé RevenueCat avec une espace', 'REVENUECAT_SECRET_KEY', 'sk_abc def'],
+    ['une clé RevenueCat réduite à son préfixe', 'REVENUECAT_SECRET_KEY', 'sk_'],
   ])('refuse %s', (_, name, value) => {
     const settings = settingsOf({ ...CONFIGURED, [name]: value })
 

@@ -3,7 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MAX_FOLDER_DEPTH, PHOTO_PAGE_SIZE } from '../account-erasure'
 import { handleDeleteAccount } from '../delete-account'
+import { providerErasuresFrom } from '../provider-settings'
 import { fakeDeletionPorts, USER } from './fake-deletion-ports'
+import { fakeFetch } from './fake-fetch'
 
 const NOW = Date.UTC(2026, 9, 21, 16, 5)
 const NOW_SECONDS = NOW / 1000
@@ -291,6 +293,44 @@ describe('handleDeleteAccount', () => {
     expect(fake.calls).toEqual([])
     expect(fake.photos).toEqual(['milo.jpg'])
   })
+
+  it.each([
+    ['PostHog', {}],
+    ['RevenueCat', { POSTHOG_ERASURE: 'disabled' }],
+  ])(
+    'ne journalise ni la clé ni l’identifiant quand %s est injoignable',
+    async (_, disabled: Record<string, string>) => {
+      const env: Record<string, string> = {
+        POSTHOG_PERSONAL_API_KEY: 'phx_clePersonnelleDeTest',
+        POSTHOG_PROJECT_ID: '12345',
+        POSTHOG_HOST: 'https://eu.posthog.com',
+        REVENUECAT_SECRET_KEY: 'sk_cleSecreteDeTest',
+        ...disabled,
+      }
+      const network = fakeFetch((request) => {
+        throw new TypeError(
+          `Invalid header value: "${request.headers.get('Authorization')}" ${request.url}`,
+        )
+      })
+      const fake = fakePorts()
+      Object.assign(
+        fake.ports,
+        providerErasuresFrom((name) => env[name], network.fetch),
+      )
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      const response = await handleDeleteAccount(request(), fake.ports)
+
+      expect(response.status).toBe(500)
+      expect(network.requests).toHaveLength(1)
+      const written = JSON.stringify(logged.mock.calls)
+      logged.mockRestore()
+      expect(written).not.toContain('phx_clePersonnelleDeTest')
+      expect(written).not.toContain('sk_cleSecreteDeTest')
+      expect(written).not.toContain(USER)
+      expect(fake.deletedUser()).toBeNull()
+    },
+  )
 
   it('ne nomme pas le réglage manquant dans la réponse', async () => {
     const fake = fakePorts({ invalidProviderSettings: ['POSTHOG_PERSONAL_API_KEY'] })

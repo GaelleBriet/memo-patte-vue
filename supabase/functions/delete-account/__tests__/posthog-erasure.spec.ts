@@ -83,11 +83,17 @@ describe('posthogPersonErasure', () => {
     await expect(posthogPersonErasure(SETTINGS, fake.fetch)(USER)).rejects.toThrow('illisible')
   })
 
-  it('échoue quand PostHog est injoignable', async () => {
-    const fake = fakeFetch(() => {
-      throw new TypeError('réseau coupé')
+  it('échoue sans répéter la clé ni l’identifiant quand PostHog est injoignable', async () => {
+    const fake = fakeFetch((request) => {
+      throw new TypeError(
+        `Invalid header value: "Bearer ${SETTINGS.personalApiKey}" ${request.url}`,
+      )
     })
 
-    await expect(posthogPersonErasure(SETTINGS, fake.fetch)(USER)).rejects.toThrow('réseau coupé')
+    const erasure = posthogPersonErasure(SETTINGS, fake.fetch)(USER)
+
+    await expect(erasure).rejects.toThrow('PostHog injoignable')
+    await expect(erasure).rejects.not.toThrow(SETTINGS.personalApiKey)
+    await expect(erasure).rejects.not.toThrow(USER)
   })
 })
