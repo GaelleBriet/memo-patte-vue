@@ -1,6 +1,6 @@
-import { sendTo, type ProviderErasure } from './account-erasure.ts'
-
-export const REVENUECAT_API = 'https://api.revenuecat.com/v1'
+import { sendTo } from '../_shared/provider-request.ts'
+import { REVENUECAT_API } from '../_shared/revenuecat-api.ts'
+import type { ProviderErasure } from './account-erasure.ts'
 
 /** Un client inconnu (404) est déjà effacé ou n'a jamais existé : c'est un succès. */
 export function revenuecatCustomerErasure(secretKey: string, send: typeof fetch): ProviderErasure {

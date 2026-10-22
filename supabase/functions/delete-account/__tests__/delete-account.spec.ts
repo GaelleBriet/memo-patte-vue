@@ -5,7 +5,7 @@ import { MAX_FOLDER_DEPTH, PHOTO_PAGE_SIZE } from '../account-erasure'
 import { handleDeleteAccount } from '../delete-account'
 import { providerErasuresFrom } from '../provider-settings'
 import { fakeDeletionPorts, USER } from './fake-deletion-ports'
-import { fakeFetch } from './fake-fetch'
+import { fakeFetch } from '../../_shared/__tests__/fake-fetch'
 
 const NOW = Date.UTC(2026, 9, 21, 16, 5)
 const NOW_SECONDS = NOW / 1000
