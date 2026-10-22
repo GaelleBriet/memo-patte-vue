@@ -171,10 +171,14 @@ export const useAuthStore = defineStore('auth', () => {
       await repository.requestEmailChange(email)
     },
 
-    /** `true` quand le compte a changé d'adresse, `false` après le premier des deux codes. */
+    /** `true` quand le compte a changé d'adresse, `false` après le premier des deux codes ; la session d'un autre compte est écartée. */
     async verifyEmailChangeCode(email: string, code: string, last: boolean): Promise<boolean> {
       const session = await repository.verifyEmailChangeCode(email, code)
       if (session) {
+        if (account.value?.userId !== session.userId) {
+          await repository.discardSession()
+          throw new AccountError('unknown')
+        }
         record(session)
         return true
       }

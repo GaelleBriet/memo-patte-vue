@@ -592,6 +592,19 @@ describe('useAuthStore', () => {
       expect(readPlusAccount()).toEqual({ userId: USER_ID })
     })
 
+    it('écarte la session d’un autre compte reçue au second code, sans toucher au compte de l’appareil', async () => {
+      writePlusAccount({ userId: USER_ID })
+      repository.verifyEmailChangeCode.mockResolvedValue({ userId: OTHER_USER_ID })
+      const store = useAuthStore()
+
+      await expect(
+        store.verifyEmailChangeCode('sophie2@exemple.fr', '123456', true),
+      ).rejects.toMatchObject({ reason: 'unknown' })
+
+      expect(repository.discardSession).toHaveBeenCalledOnce()
+      expect(readPlusAccount()).toEqual({ userId: USER_ID })
+    })
+
     it('lève une erreur quand le second code répond sans session', async () => {
       writePlusAccount({ userId: USER_ID })
       repository.verifyEmailChangeCode.mockResolvedValue(null)
