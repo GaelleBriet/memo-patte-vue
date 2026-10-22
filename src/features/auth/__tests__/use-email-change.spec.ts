@@ -153,14 +153,32 @@ describe('useEmailChange', () => {
     expect(change.emailCode.errorKey.value).toBe('auth.code.errors.expired')
   })
 
-  it('lève une erreur quand le second code répond sans compte changé', async () => {
+  it('affiche une erreur quand le second code est refusé par une erreur du compte', async () => {
     const change = remplir('ancien-secret', NOUVELLE)
     await change.sendCode()
-    verifyEmailChangeCode.mockReset().mockRejectedValue(new AccountError('unknown'))
     change.emailCode.setCode('111111')
+    await change.confirm()
+    verifyEmailChangeCode.mockReset().mockRejectedValue(new AccountError('unknown'))
+    change.emailCode.setCode('222222')
 
     expect(await change.confirm()).toBe(false)
+    expect(change.step.value).toBe('new')
     expect(change.emailCode.errorKey.value).not.toBeNull()
+  })
+
+  it('compte l’heure de validité depuis l’envoi des deux codes', async () => {
+    const change = remplir('ancien-secret', NOUVELLE)
+    await change.sendCode()
+    maintenant = ENVOI + 50 * 60_000
+    change.emailCode.setCode('111111')
+    await change.confirm()
+    maintenant = ENVOI + 65 * 60_000
+    verifyEmailChangeCode.mockReset().mockRejectedValue(new AccountError('invalid-code'))
+    change.emailCode.setCode('222222')
+
+    await change.confirm()
+
+    expect(change.emailCode.errorKey.value).toBe('auth.code.errors.expired')
   })
 
   it('un double toucher sur « Confirmer » ne vérifie qu’une fois', async () => {
@@ -190,15 +208,38 @@ describe('useEmailChange', () => {
     expect(resendEmailChangeCode).toHaveBeenCalledWith()
   })
 
-  it('renvoie les codes à la même demande depuis les deux étapes', async () => {
+  it('renvoyer depuis l’étape de la nouvelle adresse ramène à l’adresse actuelle, avec les deux codes repartis', async () => {
     const change = remplir('ancien-secret', NOUVELLE)
     await change.sendCode()
     change.emailCode.setCode('111111')
     await change.confirm()
     maintenant = ENVOI + 60_000
 
-    expect(await change.emailCode.resend()).toBe('sent')
+    expect(await change.resend()).toBe('sent')
+
     expect(resendEmailChangeCode).toHaveBeenCalledTimes(1)
+    expect(change.step.value).toBe('current')
+    expect(change.emailCode.email.value).toBe(ACTUELLE)
+    expect(change.emailCode.code.value).toBe('')
+  })
+
+  it('renvoyer depuis l’étape de l’adresse actuelle y reste, et l’heure de validité repart du renvoi', async () => {
+    const change = remplir('ancien-secret', NOUVELLE)
+    await change.sendCode()
+    maintenant = ENVOI + 60_000
+
+    expect(await change.resend()).toBe('sent')
+    expect(change.step.value).toBe('current')
+
+    maintenant = ENVOI + 30 * 60_000
+    change.emailCode.setCode('111111')
+    await change.confirm()
+    maintenant = ENVOI + 60 * 60_000
+    verifyEmailChangeCode.mockReset().mockRejectedValue(new AccountError('invalid-code'))
+    change.emailCode.setCode('222222')
+    await change.confirm()
+
+    expect(change.emailCode.errorKey.value).toBe('auth.code.errors.incorrect')
   })
 
   it('abandonner entre les deux étapes revient à l’adresse, le compte gardant l’ancienne', async () => {

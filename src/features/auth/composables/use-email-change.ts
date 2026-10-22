@@ -6,7 +6,7 @@ import { validateEmailChange, type EmailChangeValues } from '../logic/email-chan
 import { useAuthStore } from '../store/auth.store'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 
-import { useEmailCode } from './use-email-code'
+import { useEmailCode, type ResendResult } from './use-email-code'
 
 export type EmailChangeStep = 'address' | 'current' | 'new'
 
@@ -24,6 +24,8 @@ export function useEmailChange({
   const auth = useAuthStore()
   let accountChanged = false
   let newAddress = ''
+  let currentAddress = ''
+  let sentAt = 0
   const step = ref<EmailChangeStep>('address')
 
   const emailCode = useEmailCode({
@@ -74,8 +76,10 @@ export function useEmailChange({
       if (!current) throw new AccountError('unknown')
       await auth.requestEmailChange(result.data.current, result.data.email)
       newAddress = result.data.email
+      currentAddress = current
+      sentAt = now()
       step.value = 'current'
-      emailCode.afterCodeSent(current)
+      emailCode.afterCodeSent(current, sentAt)
       return true
     } catch (cause) {
       refuse(cause, result.data)
@@ -89,12 +93,21 @@ export function useEmailChange({
     if (!(await emailCode.verify())) return false
     if (!accountChanged) {
       step.value = 'new'
-      emailCode.afterCodeSent(newAddress)
+      emailCode.afterCodeSent(newAddress, sentAt)
       return false
     }
     emailCode.close()
     step.value = 'address'
     return true
+  }
+
+  async function resend(): Promise<ResendResult> {
+    const result = await emailCode.resend()
+    if (result !== 'sent') return result
+    sentAt = now()
+    step.value = 'current'
+    emailCode.afterCodeSent(currentAddress, sentAt)
+    return result
   }
 
   function backToAddress(): void {
@@ -115,6 +128,7 @@ export function useEmailChange({
     isSending,
     sendCode,
     confirm,
+    resend,
     backToAddress,
   }
 }

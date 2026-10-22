@@ -1225,14 +1225,15 @@
       "email": {
         "action": "Change my email address",
         "newEmail": "New email address",
-        "help": "A code will be sent to this address.",
+        "help": "A code will be sent to your current address, then another to the new one.",
         "send": "Get the code",
-        "sendLabel": "Get the code at the new address",
+        "sendLabel": "Get the codes",
         "codeLabel": "Confirmation code",
         "codeInputLabel": "6-digit code sent to the new address",
         "codeCurrent": "Code received at your current address, {email}",
         "codeNew": "Code received at the new address, {email}",
         "lostAccess": "No longer have access to this address?",
+        "resent": "Two new codes have been sent.",
         "sameAddress": "This is already your account’s email address.",
         "done": "Email address changed."
       },

@@ -42,8 +42,7 @@ function openPasswordReset(): void {
 }
 
 async function resendCode(): Promise<void> {
-  const email = emailCode.email.value
-  if ((await emailCode.resend()) === 'sent') showToast(t('auth.code.sent', { email }))
+  if ((await change.resend()) === 'sent') showToast(t('settings.account.email.resent'))
 }
 
 function openHelp(): void {

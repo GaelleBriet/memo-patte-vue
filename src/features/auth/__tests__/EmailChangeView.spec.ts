@@ -88,10 +88,12 @@ describe('EmailChangeView', () => {
       expect(w.get('.email-change__forgot').text()).toBe('Mot de passe oublié ?')
       expect(w.get('label[for="email-change-email"]').text()).toContain('Nouvelle adresse e-mail')
       expect(w.get('#email-change-email').attributes('type')).toBe('email')
-      expect(w.text()).toContain('Un code sera envoyé à cette adresse.')
+      expect(w.text()).toContain(
+        'Un code sera envoyé à ton adresse actuelle, puis un autre à la nouvelle.',
+      )
       const send = w.get('.email-change__send')
       expect(send.text()).toBe('Recevoir le code')
-      expect(send.attributes('aria-label')).toBe('Recevoir le code à la nouvelle adresse')
+      expect(send.attributes('aria-label')).toBe('Recevoir les codes')
     })
 
     it('dit « Mot de passe incorrect. Réessaie. » quand le mot de passe est faux', async () => {
@@ -107,7 +109,9 @@ describe('EmailChangeView', () => {
       const w = await codeEnvoye()
 
       expect(w.text()).toContain('Un compte existe déjà avec cette adresse e-mail.')
-      expect(w.text()).not.toContain('Un code sera envoyé à cette adresse.')
+      expect(w.text()).not.toContain(
+        'Un code sera envoyé à ton adresse actuelle, puis un autre à la nouvelle.',
+      )
     })
 
     it('« Mot de passe oublié ? » remplace l’écran par V24 septies, adresse du compte verrouillée', async () => {
@@ -199,6 +203,19 @@ describe('EmailChangeView', () => {
       expect(replace).not.toHaveBeenCalled()
     })
 
+    it('renvoyer ramène à l’adresse actuelle et dit que deux nouveaux codes sont repartis', async () => {
+      vi.setSystemTime(new Date(2026, 9, 22, 18, 5))
+      const w = await secondEtape()
+      vi.setSystemTime(new Date(2026, 9, 22, 18, 10))
+
+      await toucher(w, '.email-code__resend')
+
+      expect(toastMessage.value).toBe('Deux nouveaux codes ont été envoyés.')
+      expect(w.get('.email-code__message').text()).toBe(
+        'Code reçu à ton adresse actuelle, sophie@exemple.fr',
+      )
+    })
+
     it('revient à l’étape 1 par la flèche, adresse remplie', async () => {
       const w = await secondEtape()
 
@@ -223,7 +240,9 @@ describe('EmailChangeView', () => {
       const w = await monter()
       expect(w.get('h1').text()).toBe('Change my email address')
       expect(w.get('label[for="email-change-email"]').text()).toContain('New email address')
-      expect(w.text()).toContain('A code will be sent to this address.')
+      expect(w.text()).toContain(
+        'A code will be sent to your current address, then another to the new one.',
+      )
       expect(w.get('.email-change__send').text()).toBe('Get the code')
     } finally {
       i18n.global.locale.value = 'fr'
