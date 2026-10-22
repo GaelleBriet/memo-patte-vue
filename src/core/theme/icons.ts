@@ -1,12 +1,12 @@
 import type { IconAliases } from 'vuetify'
 
 // Icônes des écrans (maquettes v2)
-import alternateEmail from '@material-symbols/svg-400/outlined/alternate_email.svg?raw'
 import accountCircle from '@material-symbols/svg-400/outlined/account_circle.svg?raw'
 import add from '@material-symbols/svg-400/outlined/add.svg?raw'
 import addAPhoto from '@material-symbols/svg-400/outlined/add_a_photo.svg?raw'
 import alarm from '@material-symbols/svg-400/outlined/alarm.svg?raw'
 import alarmOff from '@material-symbols/svg-400/outlined/alarm_off.svg?raw'
+import alternateEmail from '@material-symbols/svg-400/outlined/alternate_email.svg?raw'
 import arrowBack from '@material-symbols/svg-400/outlined/arrow_back.svg?raw'
 import backup from '@material-symbols/svg-400/outlined/backup.svg?raw'
 import calendarMonth from '@material-symbols/svg-400/outlined/calendar_month.svg?raw'
@@ -156,11 +156,11 @@ import warning from '@material-symbols/svg-400/outlined/warning.svg?raw'
  */
 export const msIcons = {
   account_circle: accountCircle,
-  alternate_email: alternateEmail,
   add,
   add_a_photo: addAPhoto,
   alarm,
   alarm_off: alarmOff,
+  alternate_email: alternateEmail,
   arrow_back: arrowBack,
   arrow_downward: arrowDownward,
   arrow_drop_down: arrowDropDown,
