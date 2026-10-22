@@ -99,10 +99,13 @@ async function buy(plan: PaidPlan): Promise<void> {
     phase.value = 'failed'
     return
   }
-  if (next.kind === 'detour') {
-    await router.push(next.route)
-    phase.value = 'offers'
-  } else phase.value = next.phase
+  if (next.kind === 'phase') {
+    phase.value = next.phase
+    return
+  }
+  if (next.kind === 'detour') await router.push(next.route).catch(() => undefined)
+  else showToast(t('auth.errors.offline'), { tone: 'error' })
+  phase.value = 'offers'
 }
 
 function leaveOutcome(): void {

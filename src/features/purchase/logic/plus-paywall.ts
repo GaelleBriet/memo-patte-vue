@@ -8,6 +8,7 @@ export type PlusBenefit = 'backup' | 'devices' | 'photos'
 export type CheckoutNext =
   | { kind: 'phase'; phase: 'success' | 'cancelled' | 'offers' }
   | { kind: 'detour'; route: RouteLocationRaw }
+  | { kind: 'offline' }
 
 export type CheckoutBar =
   | { kind: 'offer'; offer: PlusOffer }
@@ -48,6 +49,8 @@ export function nextAfterCheckout(outcome: CheckoutOutcome): CheckoutNext {
       return { kind: 'detour', route: accountFirstRoute() }
     case 'needs-sign-in':
       return { kind: 'detour', route: signInRoute('plus') }
+    case 'offline':
+      return { kind: 'offline' }
     case 'purchased':
       return { kind: 'phase', phase: 'success' }
     case 'cancelled':

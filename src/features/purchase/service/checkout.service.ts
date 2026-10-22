@@ -3,13 +3,19 @@ import { usePurchaseStore } from '../store/purchase.store'
 import type { PaidPlan, PurchaseOutcome } from './billing.service'
 
 export type CheckoutOutcome =
-  PurchaseOutcome | { kind: 'needs-account' } | { kind: 'needs-sign-in' } | { kind: 'already-plus' }
+  | PurchaseOutcome
+  | { kind: 'needs-account' }
+  | { kind: 'needs-sign-in' }
+  | { kind: 'offline' }
+  | { kind: 'already-plus' }
 
 export type CheckoutAccount = {
   accountId(): string | null
   hasSession(): boolean
   /** `true` quand la session est de nouveau active ; ne lève pas. */
   refreshSession(): Promise<boolean>
+  /** Le serveur a refusé la session (compte supprimé, session révoquée), pas le réseau. */
+  sessionRefused(): boolean
 }
 
 export type CheckoutPort = {
@@ -23,6 +29,12 @@ export type CheckoutPort = {
 export type ResumedCheckout = { plan: PaidPlan; pay: boolean }
 
 export function createCheckout(account: CheckoutAccount, purchase: () => CheckoutPort) {
+  async function hasActiveSession(): Promise<boolean> {
+    if (account.hasSession()) return true
+    // La restauration du lancement peut aboutir pendant le rafraîchissement, qui se dit alors perdant.
+    return (await account.refreshSession()) || account.hasSession()
+  }
+
   return {
     /** Jamais d'achat sans compte ni session active, ni avant que l'achat soit rattaché au compte. */
     async checkout(plan: PaidPlan): Promise<CheckoutOutcome> {
@@ -32,7 +44,8 @@ export function createCheckout(account: CheckoutAccount, purchase: () => Checkou
         port.rememberCheckout(plan)
         return { kind: 'needs-account' }
       }
-      if (!account.hasSession() && !(await account.refreshSession())) {
+      if (!(await hasActiveSession())) {
+        if (!account.sessionRefused()) return { kind: 'offline' }
         port.rememberCheckout(plan)
         return { kind: 'needs-sign-in' }
       }
@@ -56,6 +69,7 @@ const NO_ACCOUNT: CheckoutAccount = {
   accountId: () => null,
   hasSession: () => false,
   refreshSession: async () => false,
+  sessionRefused: () => false,
 }
 
 let accountSource = NO_ACCOUNT
@@ -69,6 +83,7 @@ export const plusCheckout = createCheckout(
     accountId: () => accountSource.accountId(),
     hasSession: () => accountSource.hasSession(),
     refreshSession: () => accountSource.refreshSession(),
+    sessionRefused: () => accountSource.sessionRefused(),
   },
   () => usePurchaseStore(),
 )

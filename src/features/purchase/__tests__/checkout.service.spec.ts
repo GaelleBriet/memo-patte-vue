@@ -13,12 +13,17 @@ const ANNUEL: PlusStatus = { plan: 'annual', expiresAt: '2027-10-22T10:00:00Z' }
 
 function compte(
   userId: string | null,
-  { session = true, refreshed = false }: { session?: boolean; refreshed?: boolean } = {},
+  {
+    session = true,
+    refreshed = false,
+    refused = true,
+  }: { session?: boolean; refreshed?: boolean; refused?: boolean } = {},
 ): CheckoutAccount {
   return {
     accountId: () => userId,
     hasSession: () => session,
     refreshSession: vi.fn<CheckoutAccount['refreshSession']>(async () => refreshed),
+    sessionRefused: () => refused,
   }
 }
 
@@ -113,6 +118,20 @@ describe('checkout — session', () => {
     expect(resume()).toEqual({ plan: 'annual', pay: false })
   })
 
+  it('hors ligne, ne rattache rien, ne paie pas et reste sur l’écran Plus', async () => {
+    const { value } = port()
+    const { checkout, resume } = createCheckout(
+      compte(USER_ID, { session: false, refreshed: false, refused: false }),
+      () => value,
+    )
+
+    await expect(checkout('annual')).resolves.toEqual({ kind: 'offline' })
+
+    expect(value.logIn).not.toHaveBeenCalled()
+    expect(value.purchase).not.toHaveBeenCalled()
+    expect(resume()).toBeNull()
+  })
+
   it('paie une fois la session rafraîchie avec succès', async () => {
     const { value, calls } = port()
     const { checkout } = createCheckout(
@@ -123,6 +142,27 @@ describe('checkout — session', () => {
     await expect(checkout('monthly')).resolves.toEqual({ kind: 'purchased', status: ANNUEL })
 
     expect(calls).toEqual([`logIn:${USER_ID}`, 'purchase:monthly'])
+  })
+
+  it('paie quand la session s’est rétablie pendant un rafraîchissement donné perdant', async () => {
+    let session = false
+    const { value, calls } = port()
+    const { checkout } = createCheckout(
+      {
+        accountId: () => USER_ID,
+        hasSession: () => session,
+        refreshSession: vi.fn<CheckoutAccount['refreshSession']>(async () => {
+          session = true
+          return false
+        }),
+        sessionRefused: () => false,
+      },
+      () => value,
+    )
+
+    await expect(checkout('annual')).resolves.toEqual({ kind: 'purchased', status: ANNUEL })
+
+    expect(calls).toEqual([`logIn:${USER_ID}`, 'purchase:annual'])
   })
 
   it('ne rafraîchit pas une session déjà active', async () => {

@@ -48,12 +48,13 @@ const Vide = { render: () => null }
 
 function compte(
   userId: string | null,
-  { session = true, refreshed = false } = {},
+  { session = true, refreshed = false, refused = true } = {},
 ): CheckoutAccount & { refreshSession: MockInstance } {
   return {
     accountId: () => userId,
     hasSession: () => session,
     refreshSession: vi.fn<CheckoutAccount['refreshSession']>(async () => refreshed),
+    sessionRefused: () => refused,
   }
 }
 
@@ -608,6 +609,17 @@ describe('PlusView — compte d’abord, puis achat', () => {
     expect(push).toHaveBeenCalledOnce()
   })
 
+  it('rend la main quand la navigation vers « Étape 1 sur 2 » échoue', async () => {
+    const wrapper = await monter()
+    vi.spyOn(routeur, 'push').mockRejectedValue(new Error('garde en échec'))
+
+    await wrapper.get('.plus__submit').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('.plus__submit').classes()).not.toContain('v-btn--loading')
+    expect(wrapper.get('.plus__submit').attributes('disabled')).toBeUndefined()
+  })
+
   it('connecté, rattache l’achat au compte avant d’ouvrir le paiement', async () => {
     provideCheckoutAccount(compte(USER_ID))
     service.purchase.mockResolvedValue({ kind: 'purchased', status: ANNUEL })
@@ -711,6 +723,24 @@ describe('PlusView — session à reconnecter', () => {
     expect(service.purchase).toHaveBeenCalledExactlyOnceWith('monthly')
     await retour.get('.plus-outcome__primary').trigger('click')
     expect(offres(retour)[1]!.attributes('aria-checked')).toBe('true')
+  })
+
+  it('hors ligne, reste sur l’écran Plus, le dit, garde l’offre et n’achète rien', async () => {
+    provideCheckoutAccount(compte(USER_ID, { session: false, refreshed: false, refused: false }))
+    const wrapper = await monter()
+    const push = vi.spyOn(routeur, 'push').mockResolvedValue()
+
+    await offres(wrapper)[2]!.trigger('click')
+    await wrapper.get('.plus__submit').trigger('click')
+    await flushPromises()
+
+    expect(push).not.toHaveBeenCalled()
+    expect(service.logIn).not.toHaveBeenCalled()
+    expect(service.purchase).not.toHaveBeenCalled()
+    expect(toastMessage.value).toBe('Pas de connexion internet. Vérifie ton réseau et réessaie.')
+    expect(toastTone.value).toBe('error')
+    expect(offres(wrapper)[2]!.attributes('aria-checked')).toBe('true')
+    expect(wrapper.get('.plus__submit').classes()).not.toContain('v-btn--loading')
   })
 
   it('revenue de la connexion sans s’être connectée, garde l’offre cochée sans relancer', async () => {

@@ -86,6 +86,7 @@ provideCheckoutAccount({
   accountId: () => useAuthStore().userId,
   hasSession: () => useAuthStore().sessionState === 'active',
   refreshSession: () => useAuthStore().refresh(),
+  sessionRefused: () => useAuthStore().sessionState === 'needs-sign-in',
 })
 installPendingCheckoutGuard(router)
 void useAuthStore().restore()

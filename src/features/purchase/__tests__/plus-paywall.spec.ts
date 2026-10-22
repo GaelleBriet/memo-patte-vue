@@ -116,6 +116,10 @@ describe('nextAfterCheckout', () => {
     })
   })
 
+  it('hors ligne, reste sur l’écran Plus pour le dire', () => {
+    expect(nextAfterCheckout({ kind: 'offline' })).toEqual({ kind: 'offline' })
+  })
+
   it('dit l’issue du paiement', () => {
     const status = { plan: 'annual', expiresAt: null } as const
     expect(nextAfterCheckout({ kind: 'purchased', status })).toEqual({
