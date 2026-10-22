@@ -368,7 +368,9 @@ qu'un animal est passé en tombstone : il peut revenir.
 
 RLS `storage.objects`, pour les quatre opérations :
 `(storage.foldername(name))[1] = (select auth.uid())::text`, plus `has_active_plus()` pour envoyer,
-remplacer et supprimer : la lecture reste ouverte sans Plus, pour restaurer (PL-16).
+remplacer et supprimer : la lecture reste ouverte sans Plus, pour restaurer (PL-16). Un envoi ou un
+remplacement n'accepte que la forme que l'app écrit : `<uid>/<nom>.jpg`, un seul niveau, `<nom>` en
+lettres ASCII, chiffres, `_` ou `-` (comme `isPhotoFileName`).
 
 _Vigilance_ #87 : Supabase supprime l'utilisateur sans toucher à ses objets Storage, qui resteraient
 orphelins (vérifié contre une pile locale, `delete-account.local.spec.ts`). Ordre imposé : PostHog et
