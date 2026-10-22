@@ -7,7 +7,9 @@ const IDENTICAL_REFUSALS_BEFORE_DROP = 3
 type RefusedEntry = Pick<SyncOutboxEntry, 'entity' | 'entityId' | 'queuedAt'>
 
 /** Un refus que le serveur rendra à l'identique tant que la ligne ne change pas ; `null` sinon. */
-function permanentRefusalSignature(cause: unknown): string | null {
+export type RefusalSignature = (cause: unknown) => string | null
+
+function permanentRowRefusalSignature(cause: unknown): string | null {
   if (typeof cause !== 'object' || cause === null) return null
   const { code, message } = cause as { code?: unknown; message?: unknown }
   if (typeof code !== 'string') return null
@@ -15,8 +17,10 @@ function permanentRefusalSignature(cause: unknown): string | null {
   return `${code} ${typeof message === 'string' ? message : ''}`
 }
 
-/** Compte, pour chaque version d'une ligne en file, les refus permanents identiques qui se suivent. */
-export function createPushRefusals() {
+/** Compte, pour chaque version d'une entrée en file, les refus permanents identiques qui se suivent. */
+export function createPushRefusals(
+  permanentRefusalSignature: RefusalSignature = permanentRowRefusalSignature,
+) {
   const refusals = new Map<string, { queuedAt: string; signature: string; count: number }>()
   const keyOf = ({ entity, entityId }: RefusedEntry) => `${entity}/${entityId}`
 
