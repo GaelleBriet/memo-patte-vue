@@ -1,6 +1,7 @@
 import { addDays, compareAsc, format } from 'date-fns'
 
-import { REMINDER_DONE_ACTION_TYPE, type Reminder } from '@/core/notifications'
+import { REMINDER_DONE_ACTION_TYPE } from './reminder-action-type'
+import type { Reminder } from '@/core/notifications'
 import {
   formatClockTime,
   formatClockTimes,
