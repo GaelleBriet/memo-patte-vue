@@ -115,18 +115,18 @@ describe('usePasswordReset', () => {
   describe('code et nouveau mot de passe (V24 octies, nonies)', () => {
     it('vérifie le code puis enregistre le nouveau mot de passe', async () => {
       const reset = await codeEnvoye()
-      reset.emailCode.setCode('123456')
+      reset.emailCode.setCode('12345678')
       reset.newPassword.value.password = 'nouveau-secret'
 
       expect(await reset.reset()).toBe(true)
-      expect(verifyPasswordResetCode).toHaveBeenCalledWith(ADRESSE, '123456')
+      expect(verifyPasswordResetCode).toHaveBeenCalledWith(ADRESSE, '12345678')
       expect(changePassword).toHaveBeenCalledWith('nouveau-secret')
       expect(verifySignUpCode).not.toHaveBeenCalled()
     })
 
     it('ne vérifie rien tant que le nouveau mot de passe est trop court', async () => {
       const reset = await codeEnvoye()
-      reset.emailCode.setCode('123456')
+      reset.emailCode.setCode('12345678')
       reset.newPassword.value.password = 'court'
 
       expect(await reset.reset()).toBe(false)
@@ -137,7 +137,7 @@ describe('usePasswordReset', () => {
     it('dit « pas le bon » pour un code refusé, sans toucher au mot de passe', async () => {
       verifyPasswordResetCode.mockRejectedValue(new AccountError('invalid-code'))
       const reset = await codeEnvoye()
-      reset.emailCode.setCode('000000')
+      reset.emailCode.setCode('00000000')
       reset.newPassword.value.password = 'nouveau-secret'
 
       expect(await reset.reset()).toBe(false)
@@ -149,7 +149,7 @@ describe('usePasswordReset', () => {
       verifyPasswordResetCode.mockRejectedValue(new AccountError('invalid-code'))
       const reset = await codeEnvoye()
       maintenant = ENVOI + 60 * MINUTE
-      reset.emailCode.setCode('123456')
+      reset.emailCode.setCode('12345678')
       reset.newPassword.value.password = 'nouveau-secret'
 
       await reset.reset()
@@ -160,7 +160,7 @@ describe('usePasswordReset', () => {
     it('refuse le même mot de passe sous son champ, puis ne redemande que le mot de passe', async () => {
       changePassword.mockRejectedValueOnce(new AccountError('same-password'))
       const reset = await codeEnvoye()
-      reset.emailCode.setCode('123456')
+      reset.emailCode.setCode('12345678')
       reset.newPassword.value.password = 'ancien-secret'
 
       expect(await reset.reset()).toBe(false)
@@ -176,7 +176,7 @@ describe('usePasswordReset', () => {
     it('refuse un mot de passe trop faible pour le serveur sous son champ', async () => {
       changePassword.mockRejectedValue(new AccountError('weak-password'))
       const reset = await codeEnvoye()
-      reset.emailCode.setCode('123456')
+      reset.emailCode.setCode('12345678')
       reset.newPassword.value.password = 'password'
 
       await reset.reset()
@@ -211,7 +211,7 @@ describe('usePasswordReset', () => {
       const scope = effectScope()
       const reset = scope.run(() => parcours(ADRESSE))!
       await reset.sendCode()
-      reset.emailCode.setCode('123456')
+      reset.emailCode.setCode('12345678')
       reset.newPassword.value.password = 'ancien-secret'
       await reset.reset()
       return { reset, scope }

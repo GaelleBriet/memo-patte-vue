@@ -1954,7 +1954,7 @@ renseignées (DO-4, Q2) ; « Tous les animaux » ne contient que les animaux sui
 données de ce téléphone » pour tous, export proposé d'abord, deux confirmations, abonné déconnecté
 avant (DO-14).
 
-9) **Plus et compte** : adresse e-mail confirmée par un code à 6 chiffres, mot de passe oublié par code
+9) **Plus et compte** : adresse e-mail confirmée par un code à 8 chiffres, mot de passe oublié par code
 (Plus et compte PL-8, PL-9, Q1) ; changer de mot de passe et d'adresse dans la v1 (PL-10, Q2) ; état
 de la sauvegarde dans Paramètres › Sauvegarde et icône de nuage pour les abonnés (PL-17 ; Accueil
 AC-16).

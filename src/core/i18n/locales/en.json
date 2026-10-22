@@ -1719,18 +1719,18 @@
     "passwordReset": {
       "link": "Forgot password?",
       "title": "Forgot password",
-      "intro": "Enter your account’s address. A 6-digit code will be sent to it.",
+      "intro": "Enter your account’s address. A 8-digit code will be sent to it.",
       "send": "Get the code",
-      "codeMessage": "Enter the 6-digit code sent to {email}, then choose a new password.",
+      "codeMessage": "Enter the 8-digit code sent to {email}, then choose a new password.",
       "codeLabel": "Code received",
-      "codeInputLabel": "6-digit code received by email",
+      "codeInputLabel": "8-digit code received by email",
       "newPassword": "New password",
       "submit": "Reset",
       "done": "Password changed."
     },
     "code": {
       "title": "Confirm your email",
-      "message": "Enter the 6-digit code sent to {email}.",
+      "message": "Enter the 8-digit code sent to {email}.",
       "resend": "Resend code",
       "changeAddress": "Change address",
       "confirm": "Confirm",

@@ -111,7 +111,7 @@ describe('PasswordResetView', () => {
 
       expect(wrapper.get('h1').text()).toBe('Mot de passe oublié')
       expect(wrapper.get('.password-reset__intro').text()).toBe(
-        'Indique l’adresse de ton compte. Un code à 6 chiffres y sera envoyé.',
+        'Indique l’adresse de ton compte. Un code à 8 chiffres y sera envoyé.',
       )
       expect(wrapper.get('label[for="password-reset-email"]').text()).toContain('Adresse e-mail')
       expect((wrapper.get('#password-reset-email').element as HTMLInputElement).value).toBe(ADRESSE)
@@ -123,7 +123,7 @@ describe('PasswordResetView', () => {
 
       expect(repository.sendPasswordResetCode).toHaveBeenCalledWith(ADRESSE)
       expect(wrapper.get('.email-code__message').text()).toBe(
-        'Entre le code à 6 chiffres envoyé à sophie@exemple.fr, puis choisis un nouveau mot de passe.',
+        'Entre le code à 8 chiffres envoyé à sophie@exemple.fr, puis choisis un nouveau mot de passe.',
       )
     })
 
@@ -160,7 +160,7 @@ describe('PasswordResetView', () => {
 
       expect(wrapper.get('.email-code__label').text()).toBe('Code reçu')
       expect(wrapper.get('#email-code-input').attributes('aria-label')).toBe(
-        'Code à 6 chiffres reçu par e-mail',
+        'Code à 8 chiffres reçu par e-mail',
       )
       expect(wrapper.get('label[for="password-reset-new-password"]').text()).toContain(
         'Nouveau mot de passe',
@@ -180,17 +180,17 @@ describe('PasswordResetView', () => {
       await wrapper.get('#email-code-input').setValue('12345')
       expect(wrapper.get('.password-reset__submit').attributes('disabled')).toBeDefined()
 
-      await wrapper.get('#email-code-input').setValue('123456')
+      await wrapper.get('#email-code-input').setValue('12345678')
       expect(wrapper.get('.password-reset__submit').attributes('disabled')).toBeUndefined()
     })
 
     it('change le mot de passe, dit « Mot de passe modifié. » et reprend le parcours d’origine', async () => {
       const wrapper = await codeEnvoye()
-      await saisirCodeEtMotDePasse(wrapper, '123456', 'nouveau-secret')
+      await saisirCodeEtMotDePasse(wrapper, '12345678', 'nouveau-secret')
 
       await toucher(wrapper, '.password-reset__submit')
 
-      expect(repository.verifyPasswordResetCode).toHaveBeenCalledWith(ADRESSE, '123456')
+      expect(repository.verifyPasswordResetCode).toHaveBeenCalledWith(ADRESSE, '12345678')
       expect(repository.updatePassword).toHaveBeenCalledWith('nouveau-secret')
       expect(toastMessage.value).toBe('Mot de passe modifié.')
       expect(replace).toHaveBeenCalledWith({ name: 'plus-account' })
@@ -199,7 +199,7 @@ describe('PasswordResetView', () => {
     it('dit « pas le bon » pour un code refusé (V24 nonies)', async () => {
       repository.verifyPasswordResetCode.mockRejectedValue(new AccountError('invalid-code'))
       const wrapper = await codeEnvoye()
-      await saisirCodeEtMotDePasse(wrapper, '000000', 'nouveau-secret')
+      await saisirCodeEtMotDePasse(wrapper, '00000000', 'nouveau-secret')
 
       await toucher(wrapper, '.password-reset__submit')
 
@@ -212,7 +212,7 @@ describe('PasswordResetView', () => {
     it('refuse le mot de passe actuel sous le champ du nouveau', async () => {
       repository.updatePassword.mockRejectedValue(new AccountError('same-password'))
       const wrapper = await codeEnvoye()
-      await saisirCodeEtMotDePasse(wrapper, '123456', 'ancien-secret')
+      await saisirCodeEtMotDePasse(wrapper, '12345678', 'ancien-secret')
 
       await toucher(wrapper, '.password-reset__submit')
 
@@ -222,7 +222,7 @@ describe('PasswordResetView', () => {
 
     it('exige 8 caractères avant de rien envoyer', async () => {
       const wrapper = await codeEnvoye()
-      await saisirCodeEtMotDePasse(wrapper, '123456', 'court')
+      await saisirCodeEtMotDePasse(wrapper, '12345678', 'court')
 
       await toucher(wrapper, '.password-reset__submit')
 
@@ -281,7 +281,7 @@ describe('PasswordResetView', () => {
     let finir: (value: { userId: string }) => void = () => {}
     repository.verifyPasswordResetCode.mockReturnValue(new Promise((resolve) => (finir = resolve)))
     const wrapper = await codeEnvoye()
-    await saisirCodeEtMotDePasse(wrapper, '123456', 'nouveau-secret')
+    await saisirCodeEtMotDePasse(wrapper, '12345678', 'nouveau-secret')
 
     await wrapper.get('.password-reset__submit').trigger('click')
     await flushPromises()
@@ -297,18 +297,18 @@ describe('PasswordResetView', () => {
       const wrapper = await monter()
       expect(wrapper.get('h1').text()).toBe('Forgot password')
       expect(wrapper.get('.password-reset__intro').text()).toBe(
-        'Enter your account’s address. A 6-digit code will be sent to it.',
+        'Enter your account’s address. A 8-digit code will be sent to it.',
       )
       expect(wrapper.get('.password-reset__send').text()).toBe('Get the code')
 
       await toucher(wrapper, '.password-reset__send')
 
       expect(wrapper.get('.email-code__message').text()).toBe(
-        'Enter the 6-digit code sent to sophie@exemple.fr, then choose a new password.',
+        'Enter the 8-digit code sent to sophie@exemple.fr, then choose a new password.',
       )
       expect(wrapper.get('.email-code__label').text()).toBe('Code received')
       expect(wrapper.get('#email-code-input').attributes('aria-label')).toBe(
-        '6-digit code received by email',
+        '8-digit code received by email',
       )
       expect(wrapper.get('label[for="password-reset-new-password"]').text()).toContain(
         'New password',

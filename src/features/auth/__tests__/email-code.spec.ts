@@ -13,18 +13,19 @@ const ENVOI = new Date(2026, 9, 22, 18, 0).getTime()
 const MINUTE = 60_000
 
 describe('codeDigits', () => {
-  it('ne garde que six chiffres, collés ou tapés', () => {
-    expect(codeDigits('12 34-56')).toBe('123456')
-    expect(codeDigits('1234567')).toBe('123456')
+  it('ne garde que huit chiffres, collés ou tapés', () => {
+    expect(codeDigits('1234 56-78')).toBe('12345678')
+    expect(codeDigits('123456789')).toBe('12345678')
     expect(codeDigits('a1b2')).toBe('12')
   })
 })
 
 describe('isCompleteCode', () => {
-  it('attend exactement six chiffres', () => {
-    expect(isCompleteCode('123456')).toBe(true)
-    expect(isCompleteCode('12345')).toBe(false)
-    expect(isCompleteCode('12345a')).toBe(false)
+  it('attend exactement huit chiffres', () => {
+    expect(isCompleteCode('12345678')).toBe(true)
+    expect(isCompleteCode('123456')).toBe(false)
+    expect(isCompleteCode('1234567')).toBe(false)
+    expect(isCompleteCode('1234567a')).toBe(false)
     expect(isCompleteCode('')).toBe(false)
   })
 })
