@@ -51,6 +51,7 @@ vi.mock('../repository/auth.repository', () => ({
     signOut: vi.fn<AuthRepository['signOut']>(async () => {}),
     restoreSession: vi.fn<AuthRepository['restoreSession']>(),
     refreshSession: vi.fn<AuthRepository['refreshSession']>(),
+    accountIdentity: vi.fn<AuthRepository['accountIdentity']>(),
     onSessionChange: vi.fn<AuthRepository['onSessionChange']>(),
   },
 }))
@@ -459,6 +460,25 @@ describe('useAuthStore', () => {
 
       expect(repository.resendSignUpCode).toHaveBeenCalledWith('gaelle@example.com')
       expect(store.hasPlusAccount).toBe(false)
+    })
+  })
+
+  describe('accountIdentity', () => {
+    it('donne l’adresse du compte lue sur l’appareil', async () => {
+      repository.accountIdentity.mockResolvedValue({ kind: 'password', email: 'sophie@exemple.fr' })
+
+      await expect(useAuthStore().accountIdentity()).resolves.toEqual({
+        kind: 'password',
+        email: 'sophie@exemple.fr',
+      })
+    })
+
+    it('ne lève pas : rien à montrer quand la session est illisible', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      repository.accountIdentity.mockRejectedValue(new AccountError('unknown'))
+
+      await expect(useAuthStore().accountIdentity()).resolves.toBeNull()
+      expect(warn).toHaveBeenCalledOnce()
     })
   })
 

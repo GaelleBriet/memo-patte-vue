@@ -7,6 +7,7 @@ import { identify, reset as resetAnalytics } from '@/core/analytics'
 import { errorSummary } from '@/shared/utils/error-summary'
 
 import {
+  type AccountIdentity,
   type AuthRepository,
   type AuthSession,
   type SessionCheck,
@@ -108,6 +109,16 @@ export const useAuthStore = defineStore('auth', () => {
     /** Ne lève pas : renvoie `true` quand la session est de nouveau active. */
     refresh(): Promise<boolean> {
       return check(() => repository.refreshSession())
+    },
+
+    /** Ne lève pas : `null` quand l'adresse du compte n'est pas lisible sur l'appareil. */
+    async accountIdentity(): Promise<AccountIdentity | null> {
+      try {
+        return await repository.accountIdentity()
+      } catch (cause) {
+        console.warn('Adresse du compte illisible :', errorSummary(cause))
+        return null
+      }
     },
 
     async signUp(email: string, password: string): Promise<SignUpOutcome['kind']> {
