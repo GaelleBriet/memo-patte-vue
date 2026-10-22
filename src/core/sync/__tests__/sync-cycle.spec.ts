@@ -523,6 +523,35 @@ describe('createSyncCycle', () => {
       expect(pushes.opened).toEqual([])
     })
 
+    it('pousse les autres lignes de la file quand une photo y attend', async () => {
+      const animal = fakeTable('animal')
+      animal.localRows.set('a1', row('a1', '2026-01-01T00:00:00.000Z', 'x'))
+      const photo = {
+        entity: ANIMAL_PHOTO_ENTITY,
+        entityId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg',
+        queuedAt: '2026-01-01T00:00:00.000Z',
+        attempts: 0,
+      }
+      const outbox = createFakeOutbox([
+        photo,
+        { entity: 'animal', entityId: 'a1', queuedAt: '2026-01-01T00:00:00.000Z', attempts: 0 },
+      ])
+      const cycle = createSyncCycle({
+        db,
+        outbox,
+        pushes,
+        tables: [animal],
+        userId: () => 'user-1',
+        isEligible: () => true,
+      })
+
+      await cycle.runCycle()
+
+      expect(pushes.opened).not.toEqual([])
+      expect(animal.pushed).toHaveLength(1)
+      expect(outbox.entries()).toEqual([photo])
+    })
+
     it('draine la file par lots de 200 entrées', async () => {
       const animal = fakeTable('animal')
       const entries: FakeOutboxEntry[] = []
