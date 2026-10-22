@@ -1,70 +1,26 @@
 // @vitest-environment node
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import {
-  handleDeleteAccount,
-  MAX_FOLDER_DEPTH,
-  PHOTO_PAGE_SIZE,
-  type AccountDeletionPorts,
-  type StorageEntry,
-} from '../delete-account'
+import { MAX_FOLDER_DEPTH, PHOTO_PAGE_SIZE } from '../account-erasure'
+import { handleDeleteAccount } from '../delete-account'
+import { fakeDeletionPorts, USER } from './fake-deletion-ports'
 
-const USER = '11111111-1111-4111-8111-111111111111'
-const TOKEN = 'jeton-de-sophie'
+const NOW = Date.UTC(2026, 9, 21, 16, 5)
+const NOW_SECONDS = NOW / 1000
 
-type Call = { kind: 'list' | 'remove' | 'deleteUser'; arg: unknown }
-
-/** Comme `storage.list()` : les sous-dossiers reviennent comme une entrée sans `id`. */
-function childrenOf(photos: string[], folder: string, limit: number): StorageEntry[] {
-  if (folder !== USER && !folder.startsWith(`${USER}/`)) return []
-  const prefix = folder === USER ? '' : `${folder.slice(USER.length + 1)}/`
-  const entries = new Map<string, StorageEntry>()
-  for (const photo of photos.filter((path) => path.startsWith(prefix))) {
-    const [name = '', ...rest] = photo.slice(prefix.length).split('/')
-    entries.set(name, { name, id: rest.length > 0 ? null : `id-${photo}` })
-  }
-  return [...entries.values()].sort((a, b) => a.name.localeCompare(b.name)).slice(0, limit)
+function jwt(claims: Record<string, unknown>): string {
+  const part = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url')
+  return `${part({ alg: 'HS256', typ: 'JWT' })}.${part({ sub: USER, ...claims })}.signature`
 }
 
-function fakePorts(
-  options: {
-    photos?: string[]
-    users?: Record<string, string>
-    failOn?: Call['kind']
-    removeKeepsPhotos?: boolean
-  } = {},
-) {
-  const photos = [...(options.photos ?? [])]
-  const users = options.users ?? { [TOKEN]: USER }
-  const calls: Call[] = []
-  let deletedUser: string | null = null
+function confirmedSecondsAgo(seconds: number): string {
+  return jwt({ iat: NOW_SECONDS, amr: [{ method: 'password', timestamp: NOW_SECONDS - seconds }] })
+}
 
-  const ports: AccountDeletionPorts = {
-    async userIdFromToken(token) {
-      return users[token] ?? null
-    },
-    async listPhotos(folder, limit) {
-      calls.push({ kind: 'list', arg: { folder, limit } })
-      if (options.failOn === 'list') throw new Error('stockage injoignable')
-      return childrenOf(photos, folder, limit)
-    },
-    async removePhotos(paths) {
-      calls.push({ kind: 'remove', arg: paths })
-      if (options.failOn === 'remove') throw new Error('stockage injoignable')
-      if (options.removeKeepsPhotos) return
-      for (const path of paths) {
-        const index = photos.indexOf(path.slice(USER.length + 1))
-        if (index >= 0) photos.splice(index, 1)
-      }
-    },
-    async deleteUser(userId) {
-      calls.push({ kind: 'deleteUser', arg: userId })
-      if (options.failOn === 'deleteUser') throw new Error('auth injoignable')
-      deletedUser = userId
-    },
-  }
+const TOKEN = confirmedSecondsAgo(60)
 
-  return { ports, calls, photos, deletedUser: () => deletedUser }
+function fakePorts(options: Parameters<typeof fakeDeletionPorts>[0] = {}) {
+  return fakeDeletionPorts({ users: { [TOKEN]: USER }, ...options })
 }
 
 function request(init: { method?: string; token?: string | null } = {}): Request {
@@ -75,6 +31,14 @@ function request(init: { method?: string; token?: string | null } = {}): Request
     headers,
   })
 }
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'], now: NOW })
+})
+
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 describe('handleDeleteAccount', () => {
   it('répond au contrôle CORS du WebView sans rien supprimer', async () => {
@@ -118,6 +82,90 @@ describe('handleDeleteAccount', () => {
     expect(fake.calls).toEqual([])
   })
 
+  it('refuse une identité confirmée il y a plus de 10 minutes, sans rien supprimer', async () => {
+    const stale = confirmedSecondsAgo(10 * 60 + 1)
+    const fake = fakePorts({ photos: ['milo.jpg'], users: { [stale]: USER } })
+
+    const response = await handleDeleteAccount(request({ token: stale }), fake.ports)
+
+    expect(response.status).toBe(401)
+    expect(await response.json()).toEqual({ error: 'identity-expired' })
+    expect(fake.calls).toEqual([])
+  })
+
+  it('accepte une identité confirmée il y a tout juste 10 minutes', async () => {
+    const limit = confirmedSecondsAgo(10 * 60)
+    const fake = fakePorts({ users: { [limit]: USER } })
+
+    const response = await handleDeleteAccount(request({ token: limit }), fake.ports)
+
+    expect(response.status).toBe(200)
+    expect(fake.deletedUser()).toBe(USER)
+  })
+
+  it('accepte une confirmation datée jusqu’à une minute dans le futur', async () => {
+    const token = confirmedSecondsAgo(-60)
+    const fake = fakePorts({ users: { [token]: USER } })
+
+    const response = await handleDeleteAccount(request({ token }), fake.ports)
+
+    expect(response.status).toBe(200)
+  })
+
+  it('refuse une confirmation datée de plus d’une minute dans le futur', async () => {
+    const token = confirmedSecondsAgo(-61)
+    const fake = fakePorts({ photos: ['milo.jpg'], users: { [token]: USER } })
+
+    const response = await handleDeleteAccount(request({ token }), fake.ports)
+
+    expect(response.status).toBe(401)
+    expect(await response.json()).toEqual({ error: 'identity-expired' })
+    expect(fake.calls).toEqual([])
+  })
+
+  it('ne prend pas un jeton rafraîchi pour une identité confirmée', async () => {
+    const refreshed = jwt({
+      iat: NOW_SECONDS,
+      amr: [{ method: 'password', timestamp: NOW_SECONDS - 3600 }],
+    })
+    const fake = fakePorts({ users: { [refreshed]: USER } })
+
+    const response = await handleDeleteAccount(request({ token: refreshed }), fake.ports)
+
+    expect(response.status).toBe(401)
+    expect(fake.deletedUser()).toBeNull()
+  })
+
+  it('retient la confirmation la plus récente du jeton', async () => {
+    const token = jwt({
+      amr: [
+        { method: 'password', timestamp: NOW_SECONDS - 3600 },
+        { method: 'oauth', timestamp: NOW_SECONDS - 30 },
+      ],
+    })
+    const fake = fakePorts({ users: { [token]: USER } })
+
+    const response = await handleDeleteAccount(request({ token }), fake.ports)
+
+    expect(response.status).toBe(200)
+  })
+
+  it.each([
+    ['sans heure de confirmation', jwt({ iat: NOW_SECONDS })],
+    [
+      'à l’heure de confirmation illisible',
+      jwt({ amr: [{ method: 'password', timestamp: 'hier' }] }),
+    ],
+    ['illisible', 'pas-un-jeton'],
+  ])('refuse un jeton %s', async (_, token) => {
+    const fake = fakePorts({ users: { [token]: USER } })
+
+    const response = await handleDeleteAccount(request({ token }), fake.ports)
+
+    expect(response.status).toBe(401)
+    expect(fake.calls).toEqual([])
+  })
+
   it('ne supprime rien quand le compte du jeton ne peut pas être vérifié', async () => {
     const fake = fakePorts({ photos: ['milo.jpg'] })
     fake.ports.userIdFromToken = () => Promise.reject(new Error('auth injoignable'))
@@ -142,6 +190,7 @@ describe('handleDeleteAccount', () => {
       { kind: 'remove', arg: [`${USER}/luna.jpg`, `${USER}/milo.jpg`] },
       { kind: 'list', arg: { folder: USER, limit: PHOTO_PAGE_SIZE } },
       { kind: 'deleteUser', arg: USER },
+      { kind: 'record', arg: 'app' },
     ])
     expect(fake.photos).toEqual([])
   })
@@ -195,7 +244,17 @@ describe('handleDeleteAccount', () => {
     const response = await handleDeleteAccount(request(), fake.ports)
 
     expect(response.status).toBe(200)
-    expect(fake.calls.map((call) => call.kind)).toEqual(['list', 'deleteUser'])
+    expect(fake.calls.map((call) => call.kind)).toEqual(['list', 'deleteUser', 'record'])
+  })
+
+  it('confirme la suppression même quand le journal ne répond pas', async () => {
+    const fake = fakePorts({ failOn: 'record' })
+
+    const response = await handleDeleteAccount(request(), fake.ports)
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ status: 'deleted' })
+    expect(fake.deletedUser()).toBe(USER)
   })
 
   it.each(['list', 'remove'] as const)(
@@ -228,6 +287,7 @@ describe('handleDeleteAccount', () => {
 
     expect(response.status).toBe(500)
     expect(await response.json()).toEqual({ error: 'deletion-failed' })
+    expect(fake.calls.map((call) => call.kind)).not.toContain('record')
   })
 
   it('ne touche qu’au dossier du compte du jeton', async () => {
