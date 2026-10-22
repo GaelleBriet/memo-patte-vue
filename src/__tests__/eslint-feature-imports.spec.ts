@@ -478,7 +478,7 @@ describe('shared/domain/, sans valeur de core/', { timeout: 30_000 }, () => {
     expect(result.feature).toBe(0)
   })
 
-  it('tolère, nommément, les deux fichiers qui lisent encore un état de core/', async () => {
+  it('refuse aussi l’unité de poids et la langue à weight-display.ts et dosage.ts, sans exception', async () => {
     const results = await Promise.all([
       restrictedImports('src/shared/domain/weight-display.ts', [
         '@/core/preferences/weight-unit-preference',
@@ -486,7 +486,7 @@ describe('shared/domain/, sans valeur de core/', { timeout: 30_000 }, () => {
       restrictedImports('src/shared/domain/dosage.ts', ['@/core/i18n']),
     ])
 
-    expect(results.map(({ feature }) => feature)).toEqual([0, 0])
+    expect(results.map(({ feature }) => feature)).toEqual([1, 1])
   })
 })
 
