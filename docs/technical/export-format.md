@@ -57,7 +57,7 @@ l'ouverture de la feuille.
   d'erreur de la feuille ; le fichier entamé est effacé. Sauf si l'accès au stockage manque : sur
   Android 10 et moins, y toucher rouvrirait la demande d'Android.
 - **Android 11 et plus** : aucune permission, l'app n'accède qu'aux fichiers qu'elle crée.
-- **Android 7 à 10** : `READ_EXTERNAL_STORAGE` et `WRITE_EXTERNAL_STORAGE`, déclarées avec
+- **Android 10** : `READ_EXTERNAL_STORAGE` et `WRITE_EXTERNAL_STORAGE`, déclarées avec
   `android:maxSdkVersion="29"` (alias `publicStorage` du plugin), demandées au premier
   enregistrement, jamais au lancement. Sur Android 10, `android:requestLegacyExternalStorage="true"`
   est ce qui ouvre le dossier Documents à l'app. `pnpm test:manifest` vérifie le `maxSdkVersion` dans
