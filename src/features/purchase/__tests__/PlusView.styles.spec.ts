@@ -24,13 +24,19 @@ function styleCompile(): string {
 }
 
 describe('PlusView — contrat de style', () => {
-  it('ancre la zone de tap des deux liens sur le lien, pas sur l’écran', () => {
+  it('ancre la zone de tap des trois liens sur le lien, pas sur l’écran', () => {
     const css = styleCompile()
 
-    expect(declaration(css, '.plus__restore::before, .plus__manage::before', 'position')).toBe(
-      'absolute',
+    expect(
+      declaration(
+        css,
+        '.plus__already::before, .plus__restore::before, .plus__manage::before',
+        'position',
+      ),
+    ).toBe('absolute')
+    expect(declaration(css, '.plus__already, .plus__restore, .plus__manage', 'position')).toBe(
+      'relative',
     )
-    expect(declaration(css, '.plus__restore, .plus__manage', 'position')).toBe('relative')
   })
 
   it('laisse le bouton de la barre grandir plutôt que déborder, quel que soit le prix', () => {

@@ -5,6 +5,10 @@ import { useRouter } from 'vue-router'
 
 import type { PaidPlan, PlusOffer } from '../service/billing.service'
 import { plusCheckout } from '../service/checkout.service'
+import { usePurchaseRestore } from '../composables/use-purchase-restore'
+import type { PlusStatus } from '../logic/plus-status'
+import { authAvailable } from '@/shared/utils/auth-available'
+import { signInRoute } from '@/shared/utils/sign-in-route'
 import { MANAGE_SUBSCRIPTIONS_URL } from '@/shared/utils/google-play'
 import {
   checkoutBar,
@@ -20,7 +24,7 @@ import { usePurchaseStore } from '../store/purchase.store'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { showToast } from '@/shared/utils/toast'
 
-type Phase = 'offers' | 'purchasing' | 'restoring' | 'success' | 'cancelled' | 'failed'
+type Phase = 'offers' | 'purchasing' | 'success' | 'cancelled' | 'failed'
 
 const BENEFIT_ICONS: Record<PlusBenefit, string> = {
   backup: 'ms:cloud_done',
@@ -32,6 +36,7 @@ const resumed = plusCheckout.resume()
 const { t } = useI18n()
 const router = useRouter()
 const purchase = usePurchaseStore()
+const { isRestoring, restore, resumeRestore } = usePurchaseRestore('plus', afterRestore)
 
 const phase = ref<Phase>('offers')
 const selected = ref<PaidPlan>(resumed?.plan ?? PRESELECTED_PLAN)
@@ -52,8 +57,8 @@ const isConnecting = computed(
 )
 const isMember = computed(() => purchase.status.plan !== 'none')
 const isPurchasing = computed(() => phase.value === 'purchasing')
-const isRestoring = computed(() => phase.value === 'restoring')
 const isBusy = computed(() => isPurchasing.value || isRestoring.value)
+const canSignIn = computed(() => authAvailable())
 const isDone = computed(() => ['success', 'cancelled', 'failed'].includes(phase.value))
 
 watch(
@@ -113,25 +118,18 @@ function leaveOutcome(): void {
   else phase.value = 'offers'
 }
 
-async function restore(): Promise<void> {
-  if (isBusy.value) return
-  phase.value = 'restoring'
-  try {
-    const status = await purchase.restore()
-    if (status.plan === 'none') {
-      phase.value = 'offers'
-      showToast(t('plus.restore.none'), { tone: 'info' })
-    } else {
-      phase.value = 'success'
-    }
-  } catch {
-    phase.value = 'offers'
-    showToast(t('plus.restore.failed'), { tone: 'error' })
-  }
+function afterRestore(status: PlusStatus): void {
+  if (status.plan === 'none') showToast(t('plus.restore.none'), { tone: 'info' })
+  else phase.value = 'success'
+}
+
+function openAlreadyPlus(): void {
+  void router.push(signInRoute('plus', { restore: true }))
 }
 
 onMounted(() => {
   if (resumed?.pay) void buy(resumed.plan)
+  else resumeRestore()
 })
 </script>
 
@@ -246,6 +244,16 @@ onMounted(() => {
       </p>
 
       <div class="plus__links">
+        <v-btn
+          v-if="canSignIn"
+          class="plus__already"
+          variant="text"
+          color="primary"
+          :disabled="isBusy"
+          @click="openAlreadyPlus"
+        >
+          {{ t('plus.settings.alreadySubscribed') }}
+        </v-btn>
         <v-btn
           v-if="purchase.available"
           class="plus__restore"
@@ -537,6 +545,7 @@ onMounted(() => {
   margin-top: 14px;
 }
 
+.plus__already,
 .plus__restore,
 .plus__manage {
   position: relative;

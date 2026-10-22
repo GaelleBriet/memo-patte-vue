@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import ManageSubscriptionSection from './ManageSubscriptionSection.vue'
 import { usePlusStatusText } from '../composables/use-plus-status-text'
+import { usePurchaseRestore } from '../composables/use-purchase-restore'
+import type { PlusStatus } from '../logic/plus-status'
 import { usePurchaseStore } from '../store/purchase.store'
 import { authAvailable } from '@/shared/utils/auth-available'
 import SectionCard from '@/shared/components/SectionCard.vue'
@@ -16,8 +18,7 @@ const router = useRouter()
 const purchase = usePurchaseStore()
 
 const statusHint = usePlusStatusText()
-
-const isRestoring = ref(false)
+const { isRestoring, restore, resumeRestore } = usePurchaseRestore('settings-plus', announce)
 
 const isPaused = computed(() => purchase.expiredPlan !== null)
 const canDiscover = computed(() => statusHint.value === null)
@@ -34,18 +35,12 @@ function openSignIn(): void {
   void router.push(signInRoute('settings-plus', { restore: true }))
 }
 
-async function restore(): Promise<void> {
-  isRestoring.value = true
-  try {
-    const status = await purchase.restore()
-    if (status.plan === 'none') showToast(t('plus.restore.none'), { tone: 'info' })
-    else showToast(t('plus.restore.restored'))
-  } catch {
-    showToast(t('plus.restore.failed'), { tone: 'error' })
-  } finally {
-    isRestoring.value = false
-  }
+function announce(status: PlusStatus): void {
+  if (status.plan === 'none') showToast(t('plus.restore.none'), { tone: 'info' })
+  else showToast(t('plus.restore.restored'))
 }
+
+onMounted(resumeRestore)
 </script>
 
 <template>

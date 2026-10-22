@@ -14,12 +14,14 @@ async function routeur() {
       { path: '/plus/account', name: 'plus-account', component: Vide },
       { path: '/sign-in', name: 'sign-in', component: Vide },
       { path: '/settings/plus', name: 'settings-plus', component: Vide },
+      { path: '/settings', name: 'settings', component: Vide },
     ],
   })
   await router.push('/plus')
   const forget = vi.fn<() => void>()
-  installPendingCheckoutGuard(router, forget)
-  return { router, forget }
+  const forgetRestore = vi.fn<() => void>()
+  installPendingCheckoutGuard(router, { checkout: forget, restore: forgetRestore })
+  return { router, forget, forgetRestore }
 }
 
 describe('installPendingCheckoutGuard', () => {
@@ -59,5 +61,25 @@ describe('installPendingCheckoutGuard', () => {
     await router.push('/')
 
     expect(forget).not.toHaveBeenCalled()
+  })
+
+  it('garde la demande de restauration entre l’écran Plus, Paramètres › Plus et la connexion', async () => {
+    const { router, forgetRestore } = await routeur()
+
+    await router.push('/sign-in')
+    await router.push('/settings/plus')
+    await router.push('/sign-in')
+    await router.push('/plus')
+
+    expect(forgetRestore).not.toHaveBeenCalled()
+  })
+
+  it('oublie la demande de restauration hors de ces écrans', async () => {
+    const { router, forgetRestore } = await routeur()
+    await router.push('/sign-in')
+
+    await router.push('/settings')
+
+    expect(forgetRestore).toHaveBeenCalledOnce()
   })
 })

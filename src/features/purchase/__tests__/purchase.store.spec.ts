@@ -474,4 +474,28 @@ describe('usePurchaseStore — offre en attente d’un compte', () => {
 
     expect(store.pendingCheckout).toBeNull()
   })
+
+  it('garde une demande de restauration jusqu’à ce qu’on la reprenne, une seule fois', () => {
+    const store = usePurchaseStore()
+
+    store.rememberRestore()
+
+    expect(store.takePendingRestore()).toBe(true)
+    expect(store.takePendingRestore()).toBe(false)
+  })
+
+  it('oublie la demande de restauration avec le compte quitté, soldé ou sur demande', async () => {
+    const store = usePurchaseStore()
+    store.rememberRestore()
+    await store.logOut()
+    expect(store.takePendingRestore()).toBe(false)
+
+    store.rememberRestore()
+    store.reset()
+    expect(store.takePendingRestore()).toBe(false)
+
+    store.rememberRestore()
+    store.forgetRestore()
+    expect(store.takePendingRestore()).toBe(false)
+  })
 })

@@ -51,6 +51,8 @@ export const usePurchaseStore = defineStore('purchase', () => {
   const error = ref<Error | null>(null)
   /** Offre choisie avant d'avoir un compte : le paiement reprend une fois le compte ouvert. */
   const pendingCheckout = ref<PaidPlan | null>(null)
+  /** « Restaurer mes achats » touché avant d'avoir un compte : la restauration reprend après. */
+  let pendingRestore = false
 
   let generation = 0
 
@@ -112,6 +114,20 @@ export const usePurchaseStore = defineStore('purchase', () => {
       pendingCheckout.value = null
     },
 
+    rememberRestore(): void {
+      pendingRestore = true
+    },
+
+    forgetRestore(): void {
+      pendingRestore = false
+    },
+
+    takePendingRestore(): boolean {
+      const asked = pendingRestore
+      pendingRestore = false
+      return asked
+    },
+
     takePendingCheckout(): PaidPlan | null {
       const plan = pendingCheckout.value
       pendingCheckout.value = null
@@ -130,6 +146,7 @@ export const usePurchaseStore = defineStore('purchase', () => {
     /** Le compte quitté n'emporte ni son droit ni le souvenir de son abonnement. */
     reset(): void {
       pendingCheckout.value = null
+      pendingRestore = false
       record(NO_PLUS, NO_STORED_PLUS)
     },
 
@@ -140,6 +157,7 @@ export const usePurchaseStore = defineStore('purchase', () => {
      */
     async logOut(): Promise<void> {
       pendingCheckout.value = null
+      pendingRestore = false
       if (stored.value.plan !== 'none' || stored.value.lastSubscription !== null) return
       await billingService.logOut()
     },
