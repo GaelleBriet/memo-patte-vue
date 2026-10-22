@@ -1,4 +1,4 @@
-import type { AuthError, Session, SupabaseClient } from '@supabase/supabase-js'
+import type { AuthError, Session, SupabaseClient, User } from '@supabase/supabase-js'
 
 import type { AppLocale } from '@/core/i18n'
 import { AUTH_STORAGE_KEY } from '@/core/supabase/auth-storage'
@@ -14,6 +14,10 @@ export type SignUpOutcome =
 
 export type SessionCheck =
   { kind: 'active'; session: AuthSession } | { kind: 'needs-refresh' } | { kind: 'needs-sign-in' }
+
+/** `password` dès que le compte a un mot de passe, même ouvert avec Google ce jour-là. */
+export type AccountIdentity =
+  { kind: 'password'; email: string } | { kind: 'google'; email: string; subject: string }
 
 export type AuthRepository = {
   /** `locale` choisit la langue de l'e-mail qui porte le code. */
@@ -34,6 +38,8 @@ export type AuthRepository = {
   signOut(): Promise<void>
   restoreSession(): Promise<SessionCheck>
   refreshSession(): Promise<SessionCheck>
+  /** Lit la session de l'appareil ; `null` sans session. */
+  accountIdentity(): Promise<AccountIdentity | null>
   /** `null` quand Supabase met fin à la session, par exemple un jeton de rafraîchissement refusé. */
   onSessionChange(listener: (session: AuthSession | null) => void): void
 }
@@ -75,6 +81,18 @@ const REVOKED: Revocation = { ok: true }
 
 function failedRevocation(cause: unknown): Revocation {
   return { ok: false, trace: errorSummary(cause) }
+}
+
+export function accountIdentityOf(user: User): AccountIdentity {
+  const providers = user.app_metadata.providers ?? [user.app_metadata.provider]
+  const google = user.identities?.find((identity) => identity.provider === 'google')
+  if (providers.includes('email') || !google) return { kind: 'password', email: user.email ?? '' }
+  const data = google.identity_data ?? {}
+  return {
+    kind: 'google',
+    email: typeof data.email === 'string' ? data.email : (user.email ?? ''),
+    subject: typeof data.sub === 'string' ? data.sub : google.id,
+  }
 }
 
 function sessionOf(session: Session): AuthSession {
@@ -250,6 +268,12 @@ export function createAuthRepository({
       const current = await supabase.auth.getSession()
       return checkOf(current.data.session, current.error)
     },
+
+    accountIdentity: () =>
+      withClient(async (supabase) => {
+        const { data } = await supabase.auth.getSession()
+        return data.session ? accountIdentityOf(data.session.user) : null
+      }),
 
     onSessionChange(listener) {
       listeners.push(listener)

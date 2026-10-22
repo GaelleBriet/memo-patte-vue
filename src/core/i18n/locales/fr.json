@@ -1221,6 +1221,10 @@
     },
     "account": {
       "title": "Compte",
+      "identity": {
+        "email": "Adresse e-mail",
+        "google": "Compte Google"
+      },
       "signOut": {
         "action": "Se déconnecter",
         "confirm": {
