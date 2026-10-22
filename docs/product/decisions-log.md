@@ -3553,3 +3553,14 @@ serveur l'impose, même à un appel direct de l'API. — Alternative écartée :
 seulement (décision du 2026-09-30, « bloque qui a perdu l'ancienne ») : qui a perdu son ancienne
 adresse passe par le contact (suppression par e-mail ou mode admin), pas par une faille. À faire au
 ticket du changement d'adresse : l'écran attend deux codes (parcours livré par le ticket #1093).
+
+2026-10-22 — **Mode admin de la suppression de compte : refus journalisés (IP et heure, jamais le
+secret) et secret d'au moins 32 caractères** (#1110). Décision de Gaelle du 22 octobre (« 1110 oui »).
+Chaque refus du secret admin (`401`) laisse dans les journaux de la fonction l'adresse IP de l'appel
+et l'heure, jamais le secret essayé ni l'adresse e-mail ou le compte visés. Un `ADMIN_DELETE_SECRET`
+de moins de 32 caractères désactive le mode admin dès le démarrage de la fonction, avec un message
+dans les journaux ; la suppression depuis l'app ne change pas. L'adresse IP est la première valeur de
+`x-forwarded-for`, recopiée seulement si elle a la forme d'une adresse, sinon `unknown`, pour qu'un
+appelant ne puisse pas faire écrire de texte dans les journaux. — Raison : le mode admin était une
+porte sans trace ni longueur minimale ; un inconnu pouvait essayer des secrets sans que personne le
+voie. — Alternative écartée : ne rien changer.

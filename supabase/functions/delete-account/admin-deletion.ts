@@ -29,6 +29,21 @@ async function orderOf(request: Request): Promise<AdminOrder | null> {
   return { email, scope }
 }
 
+const IP_ADDRESS = /^[0-9A-Fa-f:.]{2,45}$/
+
+/** Seule une adresse IP est recopiée : l'en-tête vient du client et pourrait porter une adresse e-mail. */
+function clientIpOf(request: Request): string {
+  const first = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? ''
+  return IP_ADDRESS.test(first) ? first : 'unknown'
+}
+
+function refused(request: Request): Response {
+  console.warn(
+    `Mode admin : secret refusé, ip ${clientIpOf(request)}, à ${new Date().toISOString()}`,
+  )
+  return json(401, { error: 'unauthorized' })
+}
+
 async function eraseCloudBackup(userId: string, ports: AdminDeletionPorts): Promise<void> {
   await removeAllPhotos(userId, ports)
   await ports.deleteCloudBackup(userId)
@@ -39,9 +54,7 @@ export async function handleAdminDeletion(
   ports: AdminDeletionPorts,
 ): Promise<Response> {
   const secret = request.headers.get(ADMIN_SECRET_HEADER) ?? ''
-  if (!(await isSharedSecret(secret, ports.adminSecret))) {
-    return json(401, { error: 'unauthorized' })
-  }
+  if (!(await isSharedSecret(secret, ports.adminSecret))) return refused(request)
   const order = await orderOf(request)
   if (!order) return json(400, { error: 'invalid-request' })
 

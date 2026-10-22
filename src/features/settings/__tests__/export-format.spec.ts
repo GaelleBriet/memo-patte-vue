@@ -520,6 +520,26 @@ describe('toCsvTables', () => {
   })
 })
 
+describe('toCsvTables, langue du CSV différente de celle de l’app', () => {
+  afterEach(() => applyLocale('fr'))
+
+  it('écrit l’unité de posologie dans la langue du CSV demandé : français depuis une app en anglais', () => {
+    applyLocale('en')
+
+    expect(lines(toCsvTables(EXPORT_FIXTURE, 'kg', TODAY, 'fr')['periodes.csv'])[2]).toContain(
+      ';0,5;comprimé;',
+    )
+  })
+
+  it('écrit l’unité de posologie dans la langue du CSV demandé : anglais depuis une app en français', () => {
+    applyLocale('fr')
+
+    expect(lines(toCsvTables(EXPORT_FIXTURE, 'kg', TODAY, 'en')['periodes.csv'])[2]).toContain(
+      ',0.5,tablet,',
+    )
+  })
+})
+
 describe('toCsvTables en anglais', () => {
   beforeEach(() => applyLocale('en'))
   afterEach(() => applyLocale('fr'))
