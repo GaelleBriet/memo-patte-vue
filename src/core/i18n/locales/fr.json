@@ -1655,7 +1655,9 @@
       "submit": "Recevoir le code",
       "loading": "Création du compte en cours…",
       "toggle": "Déjà un compte ?",
-      "toggleAction": "Se connecter"
+      "toggleAction": "Se connecter",
+      "emailTitle": "Ton e-mail",
+      "emailBody": "Il sert à retrouver ton carnet et à sécuriser ton compte."
     },
     "google": {
       "continue": "Continuer avec Google"

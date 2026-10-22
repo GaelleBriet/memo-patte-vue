@@ -188,6 +188,32 @@ describe('SignInView', () => {
       expect(wrapper.find('.form-field__help').exists()).toBe(false)
     })
 
+    it('ouvre le formulaire par « Ton e-mail », sous le trait et le bouton Google', async () => {
+      const wrapper = await monter()
+
+      expect(wrapper.find('.sign-in__email-hero').exists()).toBe(false)
+
+      await basculer(wrapper)
+
+      const entete = wrapper.get('.sign-in__email-hero')
+      expect(entete.get('h2').text()).toBe('Ton e-mail')
+      expect(entete.get('p').text()).toBe(
+        'Il sert à retrouver ton carnet et à sécuriser ton compte.',
+      )
+      expect(entete.find('.v-icon').exists()).toBe(true)
+      const ordre = wrapper.findAll(
+        '.google-button, .sign-in__separator, .sign-in__email-hero, #sign-in-email',
+      )
+      expect(
+        ordre.map(
+          (element) =>
+            ['google-button', 'sign-in__separator', 'sign-in__email-hero'].find((classe) =>
+              element.classes().includes(classe),
+            ) ?? element.attributes('id'),
+        ),
+      ).toEqual(['google-button', 'sign-in__separator', 'sign-in__email-hero', 'sign-in-email'])
+    })
+
     it('dit l’âge requis et mène à la politique de confidentialité, avant le bouton', async () => {
       const wrapper = await monter()
 
@@ -215,6 +241,10 @@ describe('SignInView', () => {
 
         expect(wrapper.get('h1').text()).toBe('Create an account')
         expect(wrapper.get('.form-field__help').text()).toBe('At least 8 characters.')
+        expect(wrapper.get('.sign-in__email-hero h2').text()).toBe('Your email')
+        expect(wrapper.get('.sign-in__email-hero p').text()).toBe(
+          'It’s used to recover your health record and secure your account.',
+        )
         expect(wrapper.get('.account-legal__adults').text()).toBe(
           'MémoPatte is for people aged 18 and over.',
         )

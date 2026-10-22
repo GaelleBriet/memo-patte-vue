@@ -255,6 +255,14 @@ onUnmounted(() => {
 
       <hr class="sign-in__separator" />
 
+      <div v-if="isSignUp" class="sign-in__email-hero">
+        <span class="sign-in__email-hero-icon" aria-hidden="true">
+          <v-icon icon="ms:mark_email_read" size="26" />
+        </span>
+        <h2 class="sign-in__email-hero-title">{{ t('auth.signUp.emailTitle') }}</h2>
+        <p class="sign-in__email-hero-body">{{ t('auth.signUp.emailBody') }}</p>
+      </div>
+
       <form class="sign-in__form" novalidate @submit.prevent="submit">
         <p v-if="failureKey" ref="errorBanner" class="sign-in__error" role="alert" tabindex="-1">
           <v-icon icon="ms:error" size="18" aria-hidden="true" />
@@ -375,6 +383,44 @@ onUnmounted(() => {
 
 .sign-in__form {
   margin-top: 24px;
+}
+
+.sign-in__email-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.sign-in__email-hero + .sign-in__form {
+  margin-top: 20px;
+}
+
+.sign-in__email-hero-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: tokens.$color-priming-icon-surface;
+  color: rgb(var(--v-theme-primary));
+}
+
+.sign-in__email-hero-title {
+  margin: 4px 0 0;
+  font-family: tokens.$font-family-heading;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.sign-in__email-hero-body {
+  margin: 0;
+  color: tokens.$color-text-secondary;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .sign-in__error {

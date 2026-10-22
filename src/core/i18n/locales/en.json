@@ -1655,7 +1655,9 @@
       "submit": "Get the code",
       "loading": "Creating your account…",
       "toggle": "Already have an account?",
-      "toggleAction": "Sign in"
+      "toggleAction": "Sign in",
+      "emailTitle": "Your email",
+      "emailBody": "It’s used to recover your health record and secure your account."
     },
     "google": {
       "continue": "Continue with Google"
