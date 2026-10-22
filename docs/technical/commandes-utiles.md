@@ -378,5 +378,8 @@ curl -X POST "https://<projet>.supabase.co/functions/v1/delete-account" \
 - `"scope": "account"` : supprime le compte, comme depuis l'app ; le journal note l'origine « email ».
 - `"scope": "cloud-backup"` : efface seulement la sauvegarde cloud (photos et carnet sauvegardé) ; le compte et son
   droit Plus restent, rien n'est noté au journal.
+  Avant d'effacer, demander à la personne de se déconnecter de Plus sur tous ses appareils : un téléphone resté
+  connecté voit ensuite ses modifications refusées par la sauvegarde (un soin dont l'animal n'y est plus) et les
+  garde en file d'envoi, sans rien perdre sur le téléphone.
 - Réponses : `200` fait, `404` aucun compte à cette adresse, `401` secret faux ou absent de la fonction, `400`
   demande mal formée, `500` échec (relancer la même commande : elle reprend).

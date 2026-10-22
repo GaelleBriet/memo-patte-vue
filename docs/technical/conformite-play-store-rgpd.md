@@ -392,7 +392,7 @@ Publiée depuis le 2026-09-26 sur <https://memopatte.app/confidentialite/> (angl
 1. Écran d'explication : « Cette action supprime définitivement votre compte MémoPatte Plus, votre sauvegarde cloud et vos photos sauvegardées. Vos données locales sur cet appareil sont conservées. Votre abonnement Google Play n'est pas annulé automatiquement : [lien Gérer mes abonnements] ». Deux boutons : *Annuler* / *Supprimer définitivement* (avec ressaisie du mot de passe ou reconnexion Google — réauthentification recommandée).
 2. L'app appelle une **Edge Function `delete-account`** (JWT utilisateur requis) qui, avec la clé `service_role` :
    - liste et supprime les objets Storage du dossier `<user_id>/`, sous-dossiers compris (sinon `deleteUser` les laisse orphelins, §1.3 point 3) ;
-   - supprime la personne PostHog si un `distinct_id` a été associé (API DELETE Persons `delete_events=true`) et le client RevenueCat ;
+   - (à venir) supprime la personne PostHog si un `distinct_id` a été associé (API DELETE Persons `delete_events=true`) et le client RevenueCat ;
    - appelle `auth.admin.deleteUser(user_id, false)` (suppression dure) **en dernier**, les lignes partant par `on delete cascade` : un échec avant laisse le compte, et « Réessayer » reprend (décision du 2026-10-21) ;
    - journalise la date et l'origine de la suppression (app ou e-mail), sans donnée personnelle.
 3. L'app efface la session locale, désactive les fonctions Plus, affiche la confirmation. Option proposée à l'utilisateur : « Effacer aussi les données locales de cet appareil ».
