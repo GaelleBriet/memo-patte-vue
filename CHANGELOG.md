@@ -5,6 +5,51 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.99](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.98...memo-patte-v0.1.99) (2026-10-22)
+
+
+### ✨ Fonctionnalités
+
+* **auth:** écran « créer un compte » de v25 : longueur du mot de passe, 18 ans et politique ([45b053c](https://github.com/GaelleBriet/memo-patte-vue/commit/45b053ca3363514e47f1c1bbb041fc5f31f0eda2))
+* **auth:** écran « créer un compte » de v25, longueur du mot de passe, 18 ans et politique ([68c8c75](https://github.com/GaelleBriet/memo-patte-vue/commit/68c8c75e34a747b787eacf0432d54f5ca8364cb4))
+* **auth:** écrans d1, d2, d2 bis et d6 de la suppression du compte ([a5c9064](https://github.com/GaelleBriet/memo-patte-vue/commit/a5c9064b088564714525e0dadb85fb44ae2bfde8))
+* **auth:** écrans d3, d4 et d5 de la suppression du compte ([7332dbb](https://github.com/GaelleBriet/memo-patte-vue/commit/7332dbba5d8c3e3e5423eaef8486641f536121d0)), closes [#87](https://github.com/GaelleBriet/memo-patte-vue/issues/87)
+* **auth:** écrans de suppression du compte (D1 à D6) ([ba711ac](https://github.com/GaelleBriet/memo-patte-vue/commit/ba711ac8ca43dfbfae8b9a8de9fcd7db12b8760f))
+* **auth:** effacer la personne posthog et le client revenuecat avant le compte ([f26ef7b](https://github.com/GaelleBriet/memo-patte-vue/commit/f26ef7b287293d053fbd0b9d3729934dbdb4aa34))
+* **auth:** effacer la personne posthog et le client revenuecat avant le compte ([a63fc46](https://github.com/GaelleBriet/memo-patte-vue/commit/a63fc46ceec344a878076d72f392426eeac189d0))
+* **auth:** en-tête « ton e-mail » de v25 sous le bouton google, à l'inscription ([a0ba51b](https://github.com/GaelleBriet/memo-patte-vue/commit/a0ba51baf17442bb1f28cca80a19fbaf2170b80d))
+* **auth:** garde de navigation des écrans Plus ([55cae0f](https://github.com/GaelleBriet/memo-patte-vue/commit/55cae0fd2ebe6ccbc401bb1d1b21c3a395f7e8a8))
+* **auth:** garde de navigation des écrans Plus ([e46ac35](https://github.com/GaelleBriet/memo-patte-vue/commit/e46ac356cf1361a6661436639240922a1c013778))
+* **auth:** inscription confirmée par un code à 6 chiffres saisi dans l'app (v25 bis) ([201c6bc](https://github.com/GaelleBriet/memo-patte-vue/commit/201c6bca38f2d2a51a47cd97088a12a4e5589830))
+* **auth:** inscription confirmée par un code à 6 chiffres saisi dans l'app (v25 bis) ([fcd0d09](https://github.com/GaelleBriet/memo-patte-vue/commit/fcd0d09a0bf055597b94bef175bc58381ea07d33))
+* **auth:** journal des suppressions de compte, date et origine seulement ([6065506](https://github.com/GaelleBriet/memo-patte-vue/commit/60655062d35d1c36695e9de46de02f9ff305f73a)), closes [#87](https://github.com/GaelleBriet/memo-patte-vue/issues/87)
+* **auth:** la suppression du compte exige une identité confirmée il y a 10 minutes au plus ([19edcc8](https://github.com/GaelleBriet/memo-patte-vue/commit/19edcc829c03c7446e4474c5e64a892527178807)), closes [#87](https://github.com/GaelleBriet/memo-patte-vue/issues/87)
+* **auth:** mode admin de delete-account pour les demandes reçues par e-mail ([85daa3b](https://github.com/GaelleBriet/memo-patte-vue/commit/85daa3b0b34e1a3ef3ec50f65ba3758f0e192691)), closes [#87](https://github.com/GaelleBriet/memo-patte-vue/issues/87)
+* **auth:** pas serveur de la suppression du compte (fraîcheur, journal, mode admin) ([750e29b](https://github.com/GaelleBriet/memo-patte-vue/commit/750e29baa20039b999edbe8d38c49a711f6faf38))
+* **auth:** service de suppression du compte côté app ([8c53051](https://github.com/GaelleBriet/memo-patte-vue/commit/8c530510a39fe283c772b9c5967d41b929458a81))
+* **auth:** service de suppression du compte côté app ([a77e5d7](https://github.com/GaelleBriet/memo-patte-vue/commit/a77e5d7c11c1a07879517e105ef8197948eed168)), closes [#87](https://github.com/GaelleBriet/memo-patte-vue/issues/87)
+* **purchase:** compte d'abord, puis achat de plus (étape 1 sur 2) ([81400da](https://github.com/GaelleBriet/memo-patte-vue/commit/81400dac92081ce3a81bd7cb011e081978d8b02a))
+* **purchase:** compte d'abord, puis achat de plus (étape 1 sur 2) ([8b79341](https://github.com/GaelleBriet/memo-patte-vue/commit/8b793414063ead524e5b94c33b2484509b792a23)), closes [#427](https://github.com/GaelleBriet/memo-patte-vue/issues/427)
+* **purchase:** restaurer mes achats par le compte, « j'ai déjà mémopatte plus » sur l'écran plus ([6259c6f](https://github.com/GaelleBriet/memo-patte-vue/commit/6259c6f1f49dae1697befab9d51723027c4ae62c))
+* **purchase:** restaurer mes achats par le compte, « j'ai déjà mémopatte plus » sur l'écran plus ([4206d28](https://github.com/GaelleBriet/memo-patte-vue/commit/4206d280a3a322ace41183f43c3ab9e48bcafe8e)), closes [#427](https://github.com/GaelleBriet/memo-patte-vue/issues/427)
+* **restauration:** accueil et paramètres mènent à la restauration, fin par « ton carnet est prêt » ([e574686](https://github.com/GaelleBriet/memo-patte-vue/commit/e574686ce3476e3ce928b0263fe9c69d9fc93b60))
+* **restauration:** écran « restaurer mon carnet » : choix, progression, réseau coupé ([24bd77a](https://github.com/GaelleBriet/memo-patte-vue/commit/24bd77a4033b8f6c3fb9526421921c30cb8df54b))
+* **settings:** relire les exports v1 et v2, convertis au format courant avant l'import ([c12bd8d](https://github.com/GaelleBriet/memo-patte-vue/commit/c12bd8d7e1a2c111656bd0a18429509ab0a083a6))
+
+
+### 🐛 Corrections
+
+* **auth:** clés validées en entier, aucun secret ni identifiant dans le journal ([254a1b6](https://github.com/GaelleBriet/memo-patte-vue/commit/254a1b66046fb3ad33ed80ce1a66d6258f7e7ff8))
+* **auth:** étape du code fermée dès le bon code, envoi trop rapproché, confirmer grisé au renvoi ([8f78e6e](https://github.com/GaelleBriet/memo-patte-vue/commit/8f78e6e4eecfc54a322539cba6bf4de1b4cb621a))
+* **auth:** seul un 401 de la fonction redemande l'identité ([bea0e96](https://github.com/GaelleBriet/memo-patte-vue/commit/bea0e96d8013b78c0f29c9eb8224ec5803c87aa9))
+* **auth:** une confirmation d'identité datée de plus d'une minute dans le futur est refusée ([39bf8b0](https://github.com/GaelleBriet/memo-patte-vue/commit/39bf8b0e62b070feedd8c6d76ba1563b3bb842ea)), closes [#87](https://github.com/GaelleBriet/memo-patte-vue/issues/87)
+* **plus:** sous-titre « retrouver mon carnet » sous « j'ai déjà mémopatte plus » (V19) ([253a355](https://github.com/GaelleBriet/memo-patte-vue/commit/253a355089943b474ba0408441eb67d0b0d3317a))
+* **purchase:** aucun paiement sans session active, offre oubliée hors du parcours ([f440638](https://github.com/GaelleBriet/memo-patte-vue/commit/f440638254d0f8901053a13564a6efb0f92873a8)), closes [#427](https://github.com/GaelleBriet/memo-patte-vue/issues/427)
+* **purchase:** hors ligne l'écran plus le dit, session relue après un rafraîchissement perdant ([6a75a9e](https://github.com/GaelleBriet/memo-patte-vue/commit/6a75a9eb31951e5776899fbcf1964d360bf79e1b)), closes [#427](https://github.com/GaelleBriet/memo-patte-vue/issues/427)
+* **purchase:** restauration masquée sans compte disponible, rattachement ancien sans effet ([8162ac3](https://github.com/GaelleBriet/memo-patte-vue/commit/8162ac3481be679c1fdf176557c964ea223b952c)), closes [#427](https://github.com/GaelleBriet/memo-patte-vue/issues/427)
+* **restauration:** 30 secondes au plus pour le contrôle de la sauvegarde, puis « réessayer » ([29764d9](https://github.com/GaelleBriet/memo-patte-vue/commit/29764d9df2b81b14ec697497e7f1dc19555f4557))
+* **traitements:** fiche, pdf et carnet datent une reprise de sa première échéance ([12e98b2](https://github.com/GaelleBriet/memo-patte-vue/commit/12e98b227af02366c60e6ed4d525cff4636a8356))
+
 ## [0.1.98](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.97...memo-patte-v0.1.98) (2026-10-21)
 
 
