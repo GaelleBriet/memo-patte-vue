@@ -424,6 +424,36 @@ describe('createSyncCycle — photos', () => {
       expect(outbox.entries()).toEqual([])
     })
 
+    it('sort aussi l’entrée de la photo d’un animal supprimé une minute après sa mise en file, sans attendre sept jours', async () => {
+      const outbox = createFakeOutbox([photoEntry(MILO_PHOTO)])
+      const deletes = fakeDeletes()
+
+      await cycleWith(outbox, fakeFiles(), fakeUploads(), {
+        ...unused,
+        isPhotoKeptByAnimal: async () => true,
+        deletes,
+        now: () => new Date(Date.parse(T_QUEUED) + 60_000),
+      }).runCycle()
+
+      expect(deletes.deleted).toEqual([])
+      expect(outbox.entries()).toEqual([])
+    })
+
+    it('n’efface jamais une photo dont la date de mise en file est illisible, et la garde en file', async () => {
+      const unreadable = photoEntry(MILO_PHOTO, 'pas une date')
+      const outbox = createFakeOutbox([unreadable])
+      const deletes = fakeDeletes()
+
+      await cycleWith(outbox, fakeFiles(), fakeUploads(), {
+        ...unused,
+        deletes,
+        now: () => new Date(GRACE_OVER.getTime() + 365 * DAY_MS),
+      }).runCycle()
+
+      expect(deletes.deleted).toEqual([])
+      expect(outbox.entries()).toEqual([unreadable])
+    })
+
     it('n’efface rien tant qu’une ligne d’animal reste à envoyer : le cloud la désigne encore', async () => {
       const outbox = createFakeOutbox([
         { entity: 'animal', entityId: 'a1', queuedAt: T_QUEUED, attempts: 0 },
