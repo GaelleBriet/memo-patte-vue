@@ -5,9 +5,10 @@ export type PlusEntitlementPorts = {
   now(): number
   accountExists(userId: string): Promise<boolean>
   fetchSubscriber(userId: string): Promise<RevenuecatSubscriber>
-  savePlusAccess(userId: string, access: PlusAccess): Promise<void>
-  /** Ne touche qu'une ligne encore ouverte à `at` : une fin déjà passée est gardée pour la purge. */
-  endPlusAccess(userId: string, at: string): Promise<void>
+  /** N'écrit pas une ligne déjà écrite d'après une lecture plus récente que `readAt`. */
+  savePlusAccess(userId: string, access: PlusAccess, readAt: string): Promise<void>
+  /** Même garde ; termine à `readAt` une ligne encore ouverte, une fin déjà passée reste pour la purge. */
+  endPlusAccess(userId: string, readAt: string): Promise<void>
 }
 
 const ACCOUNT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
@@ -37,10 +38,11 @@ async function syncAccount(
     console.warn('Événement RevenueCat ignoré : compte absent', event.id, event.type)
     return
   }
-  const now = ports.now()
-  const access = plusAccessFrom(await ports.fetchSubscriber(userId), now)
-  if (access) await ports.savePlusAccess(userId, access)
-  else await ports.endPlusAccess(userId, new Date(now).toISOString())
+  const readAt = ports.now()
+  const readAtIso = new Date(readAt).toISOString()
+  const access = plusAccessFrom(await ports.fetchSubscriber(userId), readAt)
+  if (access) await ports.savePlusAccess(userId, access, readAtIso)
+  else await ports.endPlusAccess(userId, readAtIso)
 }
 
 export async function syncPlusEntitlements(

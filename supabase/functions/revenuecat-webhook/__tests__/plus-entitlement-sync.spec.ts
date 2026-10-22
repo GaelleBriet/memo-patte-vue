@@ -54,8 +54,81 @@ function fakePorts(
   }
 }
 
+type StoredAccess = { active: boolean; expiresAt: string | null; updatedAt: string }
+
+/** La table et sa garde : une écriture lue avant la dernière écriture de la ligne est refusée. */
+function guardedTable() {
+  const rows = new Map<string, StoredAccess>()
+  return {
+    rows,
+    async savePlusAccess(userId: string, access: PlusAccess, readAt: string) {
+      const row = rows.get(userId)
+      if (row && row.updatedAt >= readAt) return
+      rows.set(userId, { active: access.active, expiresAt: access.expiresAt, updatedAt: readAt })
+    },
+    async endPlusAccess(userId: string, readAt: string) {
+      const row = rows.get(userId)
+      if (!row || row.updatedAt >= readAt) return
+      if (row.expiresAt !== null && row.expiresAt <= readAt) return
+      rows.set(userId, { active: false, expiresAt: readAt, updatedAt: readAt })
+    },
+  }
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((done) => (resolve = done))
+  return { promise, resolve }
+}
+
 afterEach(() => {
   vi.restoreAllMocks()
+})
+
+describe('deux événements du même compte traités en même temps', () => {
+  it('la lecture la plus récente gagne, même écrite en premier', async () => {
+    const purchaseRead = deferred<RevenuecatSubscriber>()
+    const refunded: RevenuecatSubscriber = {
+      entitlements: {
+        plus: {
+          expires_date: '2027-11-01T09:00:00Z',
+          product_identifier: 'memopatte_plus:annual',
+          purchase_date: '2026-11-01T09:00:00Z',
+        },
+      },
+      subscriptions: {
+        'memopatte_plus:annual': { refunded_at: '2026-11-01T10:00:00Z' },
+      },
+    }
+    const purchaseState: RevenuecatSubscriber = {
+      entitlements: { plus: { ...refunded.entitlements!.plus! } },
+    }
+    const table = guardedTable()
+    const ports = (now: number, read: () => Promise<RevenuecatSubscriber>) => ({
+      now: () => now,
+      accountExists: async () => true,
+      fetchSubscriber: read,
+      savePlusAccess: table.savePlusAccess,
+      endPlusAccess: table.endPlusAccess,
+    })
+
+    const purchase = syncPlusEntitlements(
+      event({ id: 'achat', type: 'INITIAL_PURCHASE', app_user_id: SOPHIE }),
+      ports(Date.parse('2026-11-01T10:00:01Z'), () => purchaseRead.promise),
+    )
+    await syncPlusEntitlements(
+      event({ id: 'remboursement', type: 'CANCELLATION', app_user_id: SOPHIE }),
+      ports(Date.parse('2026-11-01T10:00:02Z'), async () => refunded),
+    )
+    purchaseRead.resolve(purchaseState)
+    await purchase
+
+    expect(table.rows.get(SOPHIE)).toEqual({
+      active: false,
+      expiresAt: '2026-11-01T10:00:00.000Z',
+      updatedAt: '2026-11-01T10:00:02.000Z',
+    })
+  })
 })
 
 describe('accountIdsOf', () => {

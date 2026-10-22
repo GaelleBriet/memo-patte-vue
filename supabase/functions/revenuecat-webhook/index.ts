@@ -27,22 +27,33 @@ Deno.serve((request) =>
           throw error
         },
         fetchSubscriber,
-        async savePlusAccess(userId, access) {
-          const { error } = await admin.from('plus_entitlements').upsert({
-            user_id: userId,
+        async savePlusAccess(userId, access, readAt) {
+          const row = {
             active: access.active,
             product_type: access.productType,
             expires_at: access.expiresAt,
-            updated_at: new Date().toISOString(),
-          })
+            updated_at: readAt,
+          }
+          const { data: updated, error } = await admin
+            .from('plus_entitlements')
+            .update(row)
+            .eq('user_id', userId)
+            .lt('updated_at', readAt)
+            .select('user_id')
           if (error) throw error
+          if (updated.length > 0) return
+          const { error: insertError } = await admin
+            .from('plus_entitlements')
+            .upsert({ user_id: userId, ...row }, { onConflict: 'user_id', ignoreDuplicates: true })
+          if (insertError) throw insertError
         },
-        async endPlusAccess(userId, at) {
+        async endPlusAccess(userId, readAt) {
           const { error } = await admin
             .from('plus_entitlements')
-            .update({ active: false, expires_at: at, updated_at: at })
+            .update({ active: false, expires_at: readAt, updated_at: readAt })
             .eq('user_id', userId)
-            .or(`expires_at.is.null,expires_at.gt.${at}`)
+            .lt('updated_at', readAt)
+            .or(`expires_at.is.null,expires_at.gt.${readAt}`)
           if (error) throw error
         },
       }),
