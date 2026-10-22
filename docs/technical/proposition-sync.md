@@ -368,6 +368,8 @@ qu'un animal est passé en tombstone : il peut revenir.
 
 RLS `storage.objects`, pour les quatre opérations :
 `(storage.foldername(name))[1] = (select auth.uid())::text`, plus `has_active_plus()` en écriture.
+Un envoi ou un remplacement n'accepte que la forme que l'app écrit : `<uid>/<nom>.jpg`, un seul
+niveau, `<nom>` en lettres ASCII, chiffres, `_` ou `-` (comme `isPhotoFileName`).
 
 _Vigilance_ #87 : Supabase refuse de supprimer un utilisateur propriétaire d'objets Storage. Ordre
 imposé — objets du dossier, puis lignes, puis `deleteUser`.

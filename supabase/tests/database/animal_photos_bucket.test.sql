@@ -46,8 +46,8 @@ select set_config('storage.allow_delete_query', 'true', true);
 
 select results_eq(
   $$ select public, file_size_limit, allowed_mime_types from storage.buckets where id = 'animal-photos' $$,
-  $$ values (false, 2097152::bigint, array['image/jpeg', 'image/webp']) $$,
-  'bucket privé, 2 Mo par objet, JPEG et WebP seulement');
+  $$ values (false, 2097152::bigint, array['image/jpeg']) $$,
+  'bucket privé, 2 Mo par objet, JPEG seulement');
 
 select is(
   (select array_agg(format('%s %s %s', policyname, cmd, roles) order by policyname)
@@ -85,6 +85,34 @@ select throws_ok(
   $$ insert into storage.objects (bucket_id, name)
      values ('autre-bucket', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/milo.jpg') $$,
   '42501', null, 'a n''envoie rien dans un autre bucket');
+select lives_ok(
+  $$ insert into storage.objects (bucket_id, name)
+     values ('animal-photos', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/0f1e2d3c-4b5a-4968-8776-a5b4c3d2e1f0.jpg') $$,
+  'a envoie une photo nommée comme l''app la nomme');
+select throws_ok(
+  $$ insert into storage.objects (bucket_id, name)
+     values ('animal-photos', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/vieux/rex.jpg') $$,
+  '42501', null, 'a n''envoie rien dans un sous-dossier de son dossier');
+select throws_ok(
+  $$ insert into storage.objects (bucket_id, name)
+     values ('animal-photos', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa//rex.jpg') $$,
+  '42501', null, 'a n''envoie rien sous un segment vide');
+select throws_ok(
+  $$ insert into storage.objects (bucket_id, name)
+     values ('animal-photos', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/rex.webp') $$,
+  '42501', null, 'a n''envoie rien d''autre qu''un .jpg');
+select throws_ok(
+  $$ insert into storage.objects (bucket_id, name)
+     values ('animal-photos', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/.jpg') $$,
+  '42501', null, 'a n''envoie rien sans nom avant .jpg');
+select throws_ok(
+  $$ insert into storage.objects (bucket_id, name)
+     values ('animal-photos', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/réx.jpg') $$,
+  '42501', null, 'a n''envoie rien sous un nom que l''app ne produit pas');
+select throws_ok(
+  $$ update storage.objects set name = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/vieux/milo.jpg'
+     where name = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/milo.jpg' $$,
+  '42501', null, 'a ne range pas sa photo dans un sous-dossier');
 
 select is_empty(
   $$ update storage.objects set name = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/volee.jpg'
@@ -171,7 +199,8 @@ select throws_ok(
 select pg_temp.as_owner();
 select results_eq(
   $$ select name from storage.objects where bucket_id = 'animal-photos' order by name $$,
-  $$ values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/milo.jpg'),
+  $$ values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/0f1e2d3c-4b5a-4968-8776-a5b4c3d2e1f0.jpg'),
+            ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/milo.jpg'),
             ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/luna.jpg'),
             ('cccccccc-cccc-4ccc-8ccc-cccccccccccc/rex.jpg'),
             ('ffffffff-ffff-4fff-8fff-ffffffffffff/avant.jpg') $$,
