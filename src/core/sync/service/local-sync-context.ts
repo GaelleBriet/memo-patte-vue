@@ -26,8 +26,9 @@ export type LocalSyncContextDependencies = Omit<
 }
 
 /**
- * Ouvre la base locale et compose la file d'attente, le cycle, la restauration et ses photos : le seul point,
- * hors de `core/db`, autorisé à appeler `getDb()` (règle ESLint `app/repository-only-data-access`).
+ * Ouvre la base locale et compose la file d'attente, le cycle, la restauration et ses photos : le
+ * seul point, hors de `core/db`, autorisé à appeler `getDb()` (règle ESLint
+ * `app/repository-only-data-access`).
  */
 export async function createLocalSyncContext(
   deps: LocalSyncContextDependencies,

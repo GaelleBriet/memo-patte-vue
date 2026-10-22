@@ -60,8 +60,8 @@ export interface SyncDependencies {
  * Un compte qui en remplace un autre repart, comme une première connexion, du contrôle de sa
  * sauvegarde, fait une fois par lancement et par compte dès que sa session est active. Une
  * restauration choisie reprend seule au lancement, au retour au premier plan et du réseau, comme un
- * contrôle que le serveur n'a pas pu faire. Les photos du carnet viennent après lui, sans le retenir :
- * à la fin d'une restauration, puis à chaque lancement d'un carnet déjà lié au compte.
+ * contrôle que le serveur n'a pas pu faire. Les photos du carnet viennent ensuite, sans rien
+ * retenir : à la fin d'une restauration, puis à chaque lancement d'un carnet déjà lié au compte.
  */
 export async function installSync(deps: SyncDependencies): Promise<() => void> {
   const scheduler = createSyncScheduler({ runCycle: deps.runCycle })
