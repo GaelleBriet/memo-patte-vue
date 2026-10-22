@@ -3564,3 +3564,13 @@ dans les journaux ; la suppression depuis l'app ne change pas. L'adresse IP est 
 appelant ne puisse pas faire écrire de texte dans les journaux. — Raison : le mode admin était une
 porte sans trace ni longueur minimale ; un inconnu pouvait essayer des secrets sans que personne le
 voie. — Alternative écartée : ne rien changer.
+
+2026-10-22 — **Mode admin : le journal garde toutes les adresses de la chaîne, au plus 5** (suite de
+#1110). Décision de Gaelle du 22 octobre (« toutes les adresses »). Un refus du secret admin recopie
+chaque valeur de `x-forwarded-for`, dans son ordre, chacune seulement si elle a la forme d'une adresse,
+sinon `unknown`. Au-delà de cinq valeurs, seules les cinq dernières sont recopiées, précédées du nombre
+de valeurs laissées (« (+3 plus anciennes) »), sans leur texte. Exemple : « Mode admin : secret refusé,
+ip 203.0.113.7, unknown, 10.0.0.1, à 2026-10-22T21:30:00.000Z ». — Raison : un proxy ajoute en
+général l'adresse qu'il voit à la fin de la chaîne (à vérifier chez Supabase au premier vrai refus) ;
+une première valeur choisie par l'appelant ne doit pas masquer la vraie. — Alternatives écartées : la première valeur seule (entrée précédente : l'appelant
+la choisit) ; la dernière valeur seule (elle pourrait n'être qu'une adresse interne de la plateforme).
