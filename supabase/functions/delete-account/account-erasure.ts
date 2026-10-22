@@ -3,10 +3,25 @@ export type StorageEntry = { name: string; id: string | null }
 
 export type DeletionOrigin = 'app' | 'email'
 
+/** Efface chez un prestataire ce qui y désigne le compte ; réussit si rien n'y est. */
+export type ProviderErasure = (userId: string) => Promise<void>
+
+export const PROVIDER_TIMEOUT_MS = 15_000
+
+export class ErasureNotConfiguredError extends Error {
+  constructor(readonly settings: string[]) {
+    super(`Réglages absents ou invalides : ${settings.join(', ')}`)
+  }
+}
+
 export type AccountErasurePorts = {
   /** Entrées directes du dossier, noms sans le dossier. */
   listPhotos(folder: string, limit: number): Promise<StorageEntry[]>
   removePhotos(paths: string[]): Promise<void>
+  /** PostHog puis RevenueCat ; un prestataire désactivé n'y figure pas. */
+  providerErasures: ProviderErasure[]
+  /** Non vide : la suppression du compte est refusée avant tout effacement. */
+  invalidProviderSettings: string[]
   /** Suppression dure : les lignes du compte partent par `on delete cascade`. */
   deleteUser(userId: string): Promise<void>
   /** Date et origine seulement : rien qui désigne le compte. */
@@ -61,7 +76,11 @@ export async function eraseAccount(
   origin: DeletionOrigin,
   ports: AccountErasurePorts,
 ): Promise<void> {
+  if (ports.invalidProviderSettings.length > 0) {
+    throw new ErasureNotConfiguredError(ports.invalidProviderSettings)
+  }
   await removeAllPhotos(userId, ports)
+  for (const erase of ports.providerErasures) await erase(userId)
   await ports.deleteUser(userId)
   await recordDeletion(origin, ports)
 }

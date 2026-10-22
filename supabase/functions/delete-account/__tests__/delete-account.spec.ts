@@ -189,6 +189,8 @@ describe('handleDeleteAccount', () => {
       { kind: 'list', arg: { folder: USER, limit: PHOTO_PAGE_SIZE } },
       { kind: 'remove', arg: [`${USER}/luna.jpg`, `${USER}/milo.jpg`] },
       { kind: 'list', arg: { folder: USER, limit: PHOTO_PAGE_SIZE } },
+      { kind: 'posthog', arg: USER },
+      { kind: 'revenuecat', arg: USER },
       { kind: 'deleteUser', arg: USER },
       { kind: 'record', arg: 'app' },
     ])
@@ -244,7 +246,58 @@ describe('handleDeleteAccount', () => {
     const response = await handleDeleteAccount(request(), fake.ports)
 
     expect(response.status).toBe(200)
-    expect(fake.calls.map((call) => call.kind)).toEqual(['list', 'deleteUser', 'record'])
+    expect(fake.calls.map((call) => call.kind)).toEqual([
+      'list',
+      'posthog',
+      'revenuecat',
+      'deleteUser',
+      'record',
+    ])
+  })
+
+  it.each(['posthog', 'revenuecat'] as const)(
+    'garde le compte quand l’effacement chez un prestataire échoue (%s)',
+    async (failOn) => {
+      const fake = fakePorts({ photos: ['milo.jpg'], failOn })
+
+      const response = await handleDeleteAccount(request(), fake.ports)
+
+      expect(response.status).toBe(500)
+      expect(await response.json()).toEqual({ error: 'deletion-failed' })
+      expect(fake.deletedUser()).toBeNull()
+      expect(fake.calls.map((call) => call.kind)).not.toContain('record')
+    },
+  )
+
+  it('n’efface plus rien après l’échec de PostHog', async () => {
+    const fake = fakePorts({ failOn: 'posthog' })
+
+    await handleDeleteAccount(request(), fake.ports)
+
+    expect(fake.calls.map((call) => call.kind)).toEqual(['list', 'posthog'])
+  })
+
+  it('refuse sans rien effacer quand un prestataire n’est pas configuré', async () => {
+    const fake = fakePorts({
+      photos: ['milo.jpg'],
+      invalidProviderSettings: ['REVENUECAT_SECRET_KEY'],
+    })
+
+    const response = await handleDeleteAccount(request(), fake.ports)
+
+    expect(response.status).toBe(503)
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*')
+    expect(await response.json()).toEqual({ error: 'erasure-not-configured' })
+    expect(fake.calls).toEqual([])
+    expect(fake.photos).toEqual(['milo.jpg'])
+  })
+
+  it('ne nomme pas le réglage manquant dans la réponse', async () => {
+    const fake = fakePorts({ invalidProviderSettings: ['POSTHOG_PERSONAL_API_KEY'] })
+
+    const response = await handleDeleteAccount(request(), fake.ports)
+
+    expect(await response.text()).not.toContain('POSTHOG')
   })
 
   it('confirme la suppression même quand le journal ne répond pas', async () => {
