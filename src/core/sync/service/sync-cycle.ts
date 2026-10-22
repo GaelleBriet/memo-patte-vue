@@ -1,4 +1,5 @@
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
+import { ANIMAL_PHOTO_ENTITY } from '@/core/db/schema-statements'
 import type { SyncOutboxEntry } from '../repository/sync-outbox.repository'
 import { normalizeSyncTimestamps } from './normalize-sync-timestamps'
 import { createPushRefusals } from './push-refusals'
@@ -123,6 +124,7 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
     let envoi: SyncPush | null = null
     for (;;) {
       const claimed = (await deps.outbox.listPending())
+        .filter(({ entity }) => entity !== ANIMAL_PHOTO_ENTITY)
         .filter(({ entity, entityId }) => !handled.has(keyOf(entity, entityId)))
         .slice(0, PUSH_CLAIM_SIZE)
       if (claimed.length === 0) return { keptRows, failure }

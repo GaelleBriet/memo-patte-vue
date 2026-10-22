@@ -66,11 +66,11 @@ function insertAnimal(db: InMemoryDb, values: Record<string, string | number | n
 }
 
 describe('migrations', () => {
-  it('contient la v9 et la v11, qui créent le schéma entier, la v10, la v12, la v13, la v14, la v15, la v16 et la v17 des traitements', () => {
+  it('contient la v9 et la v11, qui créent le schéma entier, la v10, la v12 à la v17 des traitements et la v18 des photos', () => {
     expect(migrations.map(({ toVersion }) => toVersion)).toEqual([
-      9, 10, 11, 12, 13, 14, 15, 16, 17,
+      9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
     ])
-    expect(DATABASE_VERSION).toBe(17)
+    expect(DATABASE_VERSION).toBe(18)
   })
 })
 
@@ -701,7 +701,7 @@ describe('schéma sur une installation neuve', () => {
     })
   })
 
-  it('met en file d’envoi chaque table synchronisée, réglages et périodes compris', async () => {
+  it('met en file d’envoi chaque table synchronisée, réglages, périodes et photos compris', async () => {
     const outboxTriggers = (await schemaObjects(db, 'trigger')).filter((name) =>
       name.includes('_outbox_'),
     )
@@ -709,6 +709,7 @@ describe('schéma sur une installation neuve', () => {
     expect(outboxTriggers).toEqual(
       [
         'animal',
+        'animal_photo',
         'carnet_settings',
         'device',
         'treatment',
