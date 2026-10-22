@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { currentWeightUnit } from '@/core/preferences/weight-unit-preference'
 import { computed, defineAsyncComponent, onMounted, ref, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -104,11 +105,11 @@ const weightStat = computed(() => {
   if (!summary) {
     return { value: t('animals.carnet.stats.noValue'), sub: t('animals.carnet.stats.noWeight') }
   }
-  const value = weightText(t, summary.latest.weightKg)
+  const value = weightText(t, currentWeightUnit(), summary.latest.weightKg)
   if (summary.delta.kind === 'first') {
     return { value, sub: t('animals.carnet.stats.firstWeight') }
   }
-  return { value, sub: weightDeltaText(t, summary.delta) }
+  return { value, sub: weightDeltaText(t, currentWeightUnit(), summary.delta) }
 })
 
 const remindersStat = computed(() =>

@@ -19,6 +19,7 @@ import {
   type DueReminderMoment,
 } from './due-reminders'
 import { toDate } from './calendar-day'
+import type { AppLocale } from '@/core/i18n'
 import type { Translate } from '@/core/i18n/translate'
 
 export type CarnetReminderSettings = { vaccineReminderTime: string; remindBeforeDue: boolean }
@@ -32,6 +33,7 @@ export type TreatmentReminderSource = {
   id: string
   name: string
   animalName: string
+  locale: AppLocale
   period: TreatmentReminderPeriod
   view: Pick<TreatmentView, 'reminders'>
 }
@@ -121,7 +123,7 @@ function treatmentTexts(
 
 export function treatmentReminderPlan(
   t: Translate,
-  { id, name, animalName, period, view }: TreatmentReminderSource,
+  { id, name, animalName, locale, period, view }: TreatmentReminderSource,
   settings: CarnetReminderSettings,
   now: Date,
 ): CareReminders {
@@ -132,7 +134,7 @@ export function treatmentReminderPlan(
     time === null
       ? instant(day, period.reminderTime ?? DEFAULT_REMINDER_TIME)
       : instant(day, time, offset)
-  const dosage = dosageText(t, period) ?? ''
+  const dosage = dosageText(t, locale, period) ?? ''
   const window = {
     count: MAX_REMINDERS_PER_CARE,
     daysBefore: DAYS_BEFORE_DUE,

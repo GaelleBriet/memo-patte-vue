@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 
-import i18n from '@/core/i18n'
+import i18n, { currentLocale } from '@/core/i18n'
 import { REMINDER_DONE_ACTION_TYPE } from '@/core/notifications/reminder-actions'
 import type { Reminder } from '@/core/notifications'
 import { parseReminderKey } from '../domain/due-reminders'
@@ -101,6 +101,7 @@ function plan({
       id,
       name: 'Panacur',
       animalName: 'Pixel',
+      locale: currentLocale(),
       period: {
         reminderOffsetMinutes: null,
         reminderTime: null,
@@ -588,7 +589,14 @@ describe('plannedReminders, plafond et relais', () => {
     }
     const scheduledOn = (lines: ReturnType<typeof line>[], today: string, now: Date) => {
       const view = treatmentView({ settings: [p1, p2], lines, today })
-      const source = { id: ID, name: 'Panacur', animalName: 'Pixel', period: NO_DOSAGE, view }
+      const source = {
+        id: ID,
+        name: 'Panacur',
+        animalName: 'Pixel',
+        locale: currentLocale(),
+        period: NO_DOSAGE,
+        view,
+      }
       const care = treatmentReminderPlan(t, source, SETTINGS, now)
       return { care, scheduled: plannedReminders([care], MAX_SCHEDULED_REMINDERS) }
     }
@@ -644,7 +652,14 @@ describe('plannedReminders, plafond et relais', () => {
         doseQuantity: null,
         doseUnit: null,
       }
-      const source = { id: ID, name: 'Médicament', animalName: 'Milo', period, view }
+      const source = {
+        id: ID,
+        name: 'Médicament',
+        animalName: 'Milo',
+        locale: currentLocale(),
+        period,
+        view,
+      }
       const care = treatmentReminderPlan(t, source, SETTINGS, new Date(2026, 9, 10, 23, 59))
       return { care, scheduled: plannedReminders([care], MAX_SCHEDULED_REMINDERS) }
     }

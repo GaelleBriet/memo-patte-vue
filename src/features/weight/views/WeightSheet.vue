@@ -204,17 +204,19 @@ async function remove(): Promise<void> {
             hide-details
             inputmode="decimal"
             aria-required="true"
-            :aria-label="t('weight.form.weightKg.spoken', { unit: weightUnitName(t) })"
+            :aria-label="
+              t('weight.form.weightKg.spoken', { unit: weightUnitName(t, currentWeightUnit()) })
+            "
             :aria-describedby="weightDescribedBy"
             :aria-invalid="Boolean(errors.weightKg)"
             :disabled="isLocked"
             :error="Boolean(errors.weightKg)"
             :placeholder="t('weight.form.weightKg.placeholder')"
-            :suffix="weightUnitText(t)"
+            :suffix="weightUnitText(t, currentWeightUnit())"
           />
           <p v-if="errors.weightKg" :id="weightErrorId" class="weight-sheet__error">
             <v-icon icon="ms:error_fill" size="16" />
-            <span>{{ t(errors.weightKg, weightLimitParams(t)) }}</span>
+            <span>{{ t(errors.weightKg, weightLimitParams(t, currentWeightUnit())) }}</span>
           </p>
           <p v-else-if="isPounds" :id="poundsHintId" class="weight-sheet__hint">
             {{ t('weight.form.poundsHint') }}

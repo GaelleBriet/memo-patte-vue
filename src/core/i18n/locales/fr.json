@@ -1719,18 +1719,18 @@
     "passwordReset": {
       "link": "Mot de passe oublié ?",
       "title": "Mot de passe oublié",
-      "intro": "Indique l’adresse de ton compte. Un code à 6 chiffres y sera envoyé.",
+      "intro": "Indique l’adresse de ton compte. Un code à {length} chiffres y sera envoyé.",
       "send": "Recevoir le code",
-      "codeMessage": "Entre le code à 6 chiffres envoyé à {email}, puis choisis un nouveau mot de passe.",
+      "codeMessage": "Entre le code à {length} chiffres envoyé à {email}, puis choisis un nouveau mot de passe.",
       "codeLabel": "Code reçu",
-      "codeInputLabel": "Code à 6 chiffres reçu par e-mail",
+      "codeInputLabel": "Code à {length} chiffres reçu par e-mail",
       "newPassword": "Nouveau mot de passe",
       "submit": "Réinitialiser",
       "done": "Mot de passe modifié."
     },
     "code": {
       "title": "Confirme ton e-mail",
-      "message": "Entre le code à 6 chiffres envoyé à {email}.",
+      "message": "Entre le code à {length} chiffres envoyé à {email}.",
       "resend": "Renvoyer le code",
       "changeAddress": "Changer d’adresse",
       "confirm": "Confirmer",
