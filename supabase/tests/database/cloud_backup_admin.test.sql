@@ -76,9 +76,12 @@ $$;
 grant execute on function pg_temp.rows_of(uuid) to service_role;
 
 select set_eq(
-  $$ select table_name::text from information_schema.columns
-     where table_schema = 'public' and column_name = 'user_id' $$,
-  $$ select name from backup union select 'plus_entitlements' $$,
+  $$ select n.nspname || '.' || cl.relname
+     from pg_constraint c
+     join pg_class cl on cl.oid = c.conrelid
+     join pg_namespace n on n.oid = cl.relnamespace
+     where c.contype = 'f' and c.confrelid = 'auth.users'::regclass and n.nspname <> 'auth' $$,
+  $$ select 'public.' || name from backup union select 'public.plus_entitlements' $$,
   'toute table d''un compte est soit de la sauvegarde, soit le droit Plus : une nouvelle table se range ici et dans delete_cloud_backup');
 
 select ok(
