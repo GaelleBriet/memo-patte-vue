@@ -46,6 +46,7 @@ function routeurMemoire(): Router {
       { path: '/plus/account', name: 'plus-account', component: Vide },
       { path: '/sign-in', name: 'sign-in', component: Vide },
       { path: '/sign-in/password-reset', name: 'password-reset', component: Vide },
+      { path: '/settings/account/password', name: 'settings-account-password', component: Vide },
     ],
   })
 }
@@ -248,6 +249,24 @@ describe('PasswordResetView', () => {
       expect((wrapper.get('#password-reset-email').element as HTMLInputElement).value).toBe(ADRESSE)
       expect(replace).not.toHaveBeenCalled()
     })
+  })
+
+  it('depuis « Changer mon mot de passe », la flèche y revient, pas à la connexion', async () => {
+    await routeur.replace({
+      name: 'password-reset',
+      query: { from: 'settings-account' },
+      state: { email: ADRESSE, emailLocked: true },
+    })
+    replace = vi.spyOn(routeur, 'replace').mockResolvedValue()
+    const wrapper = mount(PasswordResetView, {
+      attachTo: document.body,
+      global: { plugins: [vuetify, i18n, routeur] },
+    })
+    await flushPromises()
+
+    await toucher(wrapper, '.pushed-screen__back')
+
+    expect(replace).toHaveBeenCalledWith({ name: 'settings-account-password' })
   })
 
   it('verrouille l’adresse quand elle vient du compte', async () => {

@@ -5,6 +5,8 @@ import { restoreRoute } from './restore-route'
 
 const SIGN_IN_ROUTE = 'sign-in'
 const PASSWORD_RESET_ROUTE = 'password-reset'
+const PASSWORD_CHANGE_ORIGIN = 'settings-account'
+const PASSWORD_CHANGE_ROUTE = 'settings-account-password'
 const ACCOUNT_FIRST_ROUTE = 'plus-account'
 const DEFAULT_RETURN_ROUTE = 'plus'
 const RETURN_ROUTES: readonly string[] = [
@@ -55,6 +57,12 @@ export function passwordResetRoute(
     query: journeyQuery(query),
     state: { email, ...(emailLocked ? { emailLocked } : {}) },
   }
+}
+
+/** La flèche de « Mot de passe oublié » : l'écran qui l'a ouvert. */
+export function passwordResetBackRoute(query: LocationQuery): RouteLocationRaw {
+  if (query.from === PASSWORD_CHANGE_ORIGIN) return { name: PASSWORD_CHANGE_ROUTE }
+  return signInRouteFrom(query)
 }
 
 /** La connexion, avec le parcours d'origine et la restauration de l'écran qui la quitte. */

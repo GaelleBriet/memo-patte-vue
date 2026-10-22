@@ -121,16 +121,17 @@ describe('PasswordChangeView (V24 ter)', () => {
     )
   })
 
-  it('« Mot de passe oublié ? » ouvre V24 septies avec l’adresse du compte, retour à Compte ensuite', async () => {
+  it('« Mot de passe oublié ? » remplace l’écran par V24 septies, adresse du compte verrouillée', async () => {
     const w = await monter()
 
     await w.get('.password-change__forgot').trigger('click')
 
-    expect(push).toHaveBeenCalledWith({
+    expect(replace).toHaveBeenCalledWith({
       name: 'password-reset',
       query: { from: 'settings-account' },
-      state: { email: 'sophie@exemple.fr' },
+      state: { email: 'sophie@exemple.fr', emailLocked: true },
     })
+    expect(push).not.toHaveBeenCalled()
   })
 
   it('revient à Compte par la flèche', async () => {

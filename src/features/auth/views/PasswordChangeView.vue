@@ -26,7 +26,8 @@ function goBack(): void {
 }
 
 function openPasswordReset(): void {
-  void router.push(passwordResetRoute({ from: ACCOUNT_ROUTE }, identity.value?.email ?? ''))
+  const email = identity.value?.email ?? ''
+  void router.replace(passwordResetRoute({ from: ACCOUNT_ROUTE }, email, { emailLocked: true }))
 }
 
 async function submit(): Promise<void> {
