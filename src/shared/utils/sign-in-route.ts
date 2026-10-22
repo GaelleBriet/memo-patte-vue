@@ -45,8 +45,16 @@ function journeyQuery(query: LocationQuery): Record<string, string> {
 }
 
 /** L'adresse passe par l'état de l'historique : l'adresse de l'écran part dans les statistiques. */
-export function passwordResetRoute(query: LocationQuery, email: string): RouteLocationRaw {
-  return { name: PASSWORD_RESET_ROUTE, query: journeyQuery(query), state: { email } }
+export function passwordResetRoute(
+  query: LocationQuery,
+  email: string,
+  { emailLocked = false } = {},
+): RouteLocationRaw {
+  return {
+    name: PASSWORD_RESET_ROUTE,
+    query: journeyQuery(query),
+    state: { email, ...(emailLocked ? { emailLocked } : {}) },
+  }
 }
 
 /** La connexion, avec le parcours d'origine et la restauration de l'écran qui la quitte. */

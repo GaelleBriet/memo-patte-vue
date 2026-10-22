@@ -18,8 +18,12 @@ const router = useRouter()
 const route = useRoute()
 
 const startEmail = router.options.history.state.email
+const isEmailLocked = router.options.history.state.emailLocked === true
 
-const reset = usePasswordReset({ email: typeof startEmail === 'string' ? startEmail : '' })
+const reset = usePasswordReset({
+  email: typeof startEmail === 'string' ? startEmail : '',
+  isEmailLocked,
+})
 
 const { emailCode, address, addressErrors, addressFailureKey, newPassword, passwordError } = reset
 const isLeaving = ref(false)
@@ -85,6 +89,7 @@ async function submit(): Promise<void> {
       :notice-key="emailCode.noticeKey.value"
       :is-expired="emailCode.isExpired.value"
       :is-resending="emailCode.isResending.value"
+      :can-resend="!reset.isResetting.value"
       :message="t('auth.passwordReset.codeMessage', { email: emailCode.email.value })"
       :label="t('auth.passwordReset.codeLabel')"
       :input-label="t('auth.passwordReset.codeInputLabel')"
@@ -129,6 +134,7 @@ async function submit(): Promise<void> {
           <v-text-field
             id="password-reset-email"
             v-model="address.email"
+            :readonly="isEmailLocked"
             class="form-field__input"
             type="email"
             autocomplete="email"

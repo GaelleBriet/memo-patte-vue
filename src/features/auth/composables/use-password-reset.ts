@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed, onScopeDispose, ref } from 'vue'
 
 import { AccountError } from '../logic/account-error'
 import { accountErrorKey, signInErrorKey } from '../logic/account-error-message'
@@ -16,8 +16,9 @@ type RefusedPassword = { password: string; key: string }
 /** Mot de passe oublié (PL-9) : l'adresse, puis le code et le nouveau mot de passe. */
 export function usePasswordReset({
   email = '',
+  isEmailLocked = false,
   now = Date.now,
-}: { email?: string; now?: () => number } = {}) {
+}: { email?: string; isEmailLocked?: boolean; now?: () => number } = {}) {
   const auth = useAuthStore()
   const emailCode = useEmailCode({
     now,
@@ -35,6 +36,7 @@ export function usePasswordReset({
   const isResetting = ref(false)
   let lastSent: { email: string; at: number } | null = null
   let isCodeAccepted = false
+  let isDone = false
 
   const addressValidation = useFormValidation(address, validateResetEmail)
   const passwordValidation = useFormValidation(newPassword, validateNewPassword)
@@ -46,9 +48,16 @@ export function usePasswordReset({
     return passwordValidation.errors.value.password ?? null
   })
 
+  function abandonAcceptedCode(): void {
+    if (!isCodeAccepted || isDone) return
+    isCodeAccepted = false
+    void auth.abandonPasswordReset()
+  }
+
   async function sendCode(): Promise<boolean> {
     if (isSending.value) return false
     addressFailureKey.value = null
+    if (isEmailLocked) address.value = { email }
     const result = addressValidation.validate()
     if (!result.success) return false
     const target = result.data.email
@@ -60,7 +69,7 @@ export function usePasswordReset({
     try {
       await auth.sendPasswordResetCode(target)
       lastSent = { email: target, at: now() }
-      isCodeAccepted = false
+      abandonAcceptedCode()
       emailCode.afterCodeSent(target)
       return true
     } catch (cause) {
@@ -82,6 +91,7 @@ export function usePasswordReset({
         isCodeAccepted = true
       }
       await auth.changePassword(result.data.password)
+      isDone = true
       emailCode.close()
       return true
     } catch (cause) {
@@ -100,23 +110,26 @@ export function usePasswordReset({
   async function resend(): ReturnType<typeof emailCode.resend> {
     const outcome = await emailCode.resend()
     if (outcome === 'sent') {
-      isCodeAccepted = false
+      abandonAcceptedCode()
       if (emailCode.email.value) lastSent = { email: emailCode.email.value, at: now() }
     }
     return outcome
   }
 
   function backToAddress(): void {
+    abandonAcceptedCode()
     address.value = { email: emailCode.close().email }
     newPassword.value = { password: '' }
     refusedPassword.value = null
     addressFailureKey.value = null
-    isCodeAccepted = false
     passwordValidation.reset()
   }
 
+  onScopeDispose(abandonAcceptedCode)
+
   return {
     emailCode: { ...emailCode, resend },
+    isEmailLocked,
     step,
     address,
     addressErrors: addressValidation.errors,

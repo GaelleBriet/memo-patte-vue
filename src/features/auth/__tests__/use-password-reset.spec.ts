@@ -1,5 +1,6 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { effectScope } from 'vue'
 
 import { usePasswordReset } from '../composables/use-password-reset'
 import { AccountError } from '../logic/account-error'
@@ -14,6 +15,7 @@ const MINUTE = 60_000
 const sendPasswordResetCode = vi.fn<(email: string) => Promise<void>>()
 const verifyPasswordResetCode = vi.fn<(email: string, code: string) => Promise<void>>()
 const changePassword = vi.fn<(password: string) => Promise<void>>()
+const abandonPasswordReset = vi.fn<() => Promise<void>>()
 const resendSignUpCode = vi.fn<(email: string) => Promise<void>>()
 const verifySignUpCode = vi.fn<(email: string, code: string) => Promise<void>>()
 let maintenant = ENVOI
@@ -31,6 +33,7 @@ async function codeEnvoye() {
 beforeEach(() => {
   setActivePinia(createPinia())
   for (const mock of [
+    abandonPasswordReset,
     sendPasswordResetCode,
     verifyPasswordResetCode,
     changePassword,
@@ -44,6 +47,7 @@ beforeEach(() => {
     sendPasswordResetCode,
     verifyPasswordResetCode,
     changePassword,
+    abandonPasswordReset,
     resendSignUpCode,
     verifySignUpCode,
   } as never)
@@ -198,6 +202,57 @@ describe('usePasswordReset', () => {
       expect(reset.step.value).toBe('address')
       expect(reset.address.value.email).toBe(ADRESSE)
       expect(reset.newPassword.value.password).toBe('')
+    })
+  })
+
+  describe('abandon après un code accepté', () => {
+    async function codeAccepte() {
+      changePassword.mockRejectedValueOnce(new AccountError('same-password'))
+      const scope = effectScope()
+      const reset = scope.run(() => parcours(ADRESSE))!
+      await reset.sendCode()
+      reset.emailCode.setCode('123456')
+      reset.newPassword.value.password = 'ancien-secret'
+      await reset.reset()
+      return { reset, scope }
+    }
+
+    it('ferme la session du code en revenant à l’adresse', async () => {
+      const { reset } = await codeAccepte()
+
+      reset.backToAddress()
+
+      expect(abandonPasswordReset).toHaveBeenCalledOnce()
+    })
+
+    it('la ferme aussi en quittant l’écran', async () => {
+      const { scope } = await codeAccepte()
+
+      scope.stop()
+
+      expect(abandonPasswordReset).toHaveBeenCalledOnce()
+    })
+
+    it('ne ferme rien en quittant l’écran une fois le mot de passe changé', async () => {
+      const { reset, scope } = await codeAccepte()
+      reset.newPassword.value.password = 'nouveau-secret'
+      expect(await reset.reset()).toBe(true)
+
+      scope.stop()
+
+      expect(abandonPasswordReset).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('adresse verrouillée (depuis « Changer mon mot de passe »)', () => {
+    it('envoie toujours à l’adresse du compte', async () => {
+      const reset = usePasswordReset({ email: ADRESSE, isEmailLocked: true })
+      reset.address.value.email = 'autre@exemple.fr'
+
+      await reset.sendCode()
+
+      expect(sendPasswordResetCode).toHaveBeenCalledWith(ADRESSE)
+      expect(reset.isEmailLocked).toBe(true)
     })
   })
 })

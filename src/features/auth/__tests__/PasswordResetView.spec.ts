@@ -18,6 +18,7 @@ vi.mock('../repository/auth.repository', () => ({
     verifySignUpCode: vi.fn<AuthRepository['verifySignUpCode']>(),
     resendSignUpCode: vi.fn<AuthRepository['resendSignUpCode']>(),
     sendPasswordResetCode: vi.fn<AuthRepository['sendPasswordResetCode']>(),
+    discardSession: vi.fn<AuthRepository['discardSession']>(async () => {}),
     verifyPasswordResetCode: vi.fn<AuthRepository['verifyPasswordResetCode']>(),
     updatePassword: vi.fn<AuthRepository['updatePassword']>(),
     signIn: vi.fn<AuthRepository['signIn']>(),
@@ -49,11 +50,11 @@ function routeurMemoire(): Router {
   })
 }
 
-async function monter(email = ADRESSE): Promise<VueWrapper> {
+async function monter(email = ADRESSE, { locked = false } = {}): Promise<VueWrapper> {
   await routeur.replace({
     name: 'password-reset',
     query: { from: 'plus-account' },
-    state: { email },
+    state: { email, ...(locked ? { emailLocked: true } : {}) },
   })
   replace = vi.spyOn(routeur, 'replace').mockResolvedValue()
   const wrapper = mount(PasswordResetView, {
@@ -91,7 +92,7 @@ beforeEach(() => {
   setActivePinia(createPinia())
   routeur = routeurMemoire()
   repository.sendPasswordResetCode.mockResolvedValue()
-  repository.verifyPasswordResetCode.mockResolvedValue()
+  repository.verifyPasswordResetCode.mockResolvedValue({ userId: USER_ID })
   repository.updatePassword.mockResolvedValue({ userId: USER_ID })
 })
 
@@ -247,6 +248,28 @@ describe('PasswordResetView', () => {
       expect((wrapper.get('#password-reset-email').element as HTMLInputElement).value).toBe(ADRESSE)
       expect(replace).not.toHaveBeenCalled()
     })
+  })
+
+  it('verrouille l’adresse quand elle vient du compte', async () => {
+    const wrapper = await monter(ADRESSE, { locked: true })
+
+    expect(wrapper.get('#password-reset-email').attributes('readonly')).toBeDefined()
+    await toucher(wrapper, '.password-reset__send')
+    expect(repository.sendPasswordResetCode).toHaveBeenCalledWith(ADRESSE)
+  })
+
+  it('grise « Renvoyer le code » pendant la vérification', async () => {
+    let finir: (value: { userId: string }) => void = () => {}
+    repository.verifyPasswordResetCode.mockReturnValue(new Promise((resolve) => (finir = resolve)))
+    const wrapper = await codeEnvoye()
+    await saisirCodeEtMotDePasse(wrapper, '123456', 'nouveau-secret')
+
+    await wrapper.get('.password-reset__submit').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('.email-code__resend').attributes('disabled')).toBeDefined()
+
+    finir({ userId: USER_ID })
+    await flushPromises()
   })
 
   it('se lit en anglais', async () => {
