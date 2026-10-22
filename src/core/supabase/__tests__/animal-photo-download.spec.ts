@@ -31,8 +31,11 @@ describe('createAnimalPhotoDownload', () => {
   })
 
   it.each([
-    ['400 avec le code 404 dans le corps', storageError(400, '404', 'NoSuchKey')],
-    ['404', storageError(404, '404')],
+    [
+      '400, 404, NoSuchKey : réponse relevée sur une pile locale',
+      storageError(400, '404', 'NoSuchKey'),
+    ],
+    ['le seul statusCode 404', storageError(404, '404')],
     ['le seul code NoSuchKey', storageError(400, 'NoSuchKey', 'NoSuchKey')],
   ])('rend null pour une photo absente du dossier (%s)', async (_label, error) => {
     const { client } = fakeClient({ data: null, error })
