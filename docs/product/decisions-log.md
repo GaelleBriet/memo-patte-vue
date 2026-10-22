@@ -1297,7 +1297,9 @@ sync » (version du 2026-09-07) — plus généreux dans l'esprit, mais un utili
 qui réinstalle sans se reconnecter verrait son délai courir en réalité, sans rien
 pour l'en informer. — Pour revenir dessus : recalculer la purge sur la dernière
 date de synchronisation plutôt que sur la date d'expiration du droit Plus, et
-mettre à jour la politique de confidentialité en conséquence.
+mettre à jour la politique de confidentialité en conséquence. — _Précisé le
+2026-10-22_ : pour les photos cloud, l'effacement reste permis comme la lecture ;
+seuls l'envoi et le remplacement sont coupés (voir l'entrée du 2026-10-22).
 
 2026-09-19 — **Épic sync, décision §7-8 tranchée avec Gaelle (`@capacitor/network`)
 : la reco est retenue.** Ajouter la dépendance pour détecter le retour du réseau.
@@ -2973,6 +2975,19 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   une dose libre après elle (lue comme avant en attendant) ; le décalage d'un report battu dont la
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
+
+## 2026-10-22 — Photos cloud : lecture et effacement sans droit Plus actif, envoi et remplacement réservés à Plus
+
+Décision de Gaelle relayée le 22 octobre 2026, sur le point M-5 de la revue de sécurité du même
+jour. Une personne sans droit Plus actif (expiré, désactivé ou jamais eu) lit et efface les photos
+de son dossier du bucket `animal-photos` ; envoyer ou remplacer une photo exige toujours Plus. —
+Raison : une personne dont Plus a expiré doit pouvoir effacer ses données, et c'est le serveur qui
+le garantit (politique `animal_photos_delete`). L'effacement vaut aussi pour un compte qui n'a
+jamais eu Plus, sans risque : un compte n'efface que son propre dossier, et seule la clé service
+écrit hors RLS. — Alternative écartée : effacement réservé à Plus, qui retenait les photos d'une
+personne après l'expiration. — À garder en tête : un futur nettoyage des photos du cloud par l'app
+reste derrière la même garde que la synchro (Plus actif), pour ne pas effacer une photo que la
+ligne figée du cloud référence encore.
 
 ## 2026-10-22 — Code e-mail à 8 chiffres (Email OTP length) et durée 15 minutes (Email OTP Expiration)
 
