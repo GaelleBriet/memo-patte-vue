@@ -8,7 +8,7 @@ import { useSignedInExit } from '../composables/use-signed-in-exit'
 import FormField from '@/shared/form/FormField.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { returnTo } from '@/shared/utils/return-to'
-import { signInRouteFrom } from '@/shared/utils/sign-in-route'
+import { passwordResetBackRoute } from '@/shared/utils/sign-in-route'
 import { showToast } from '@/shared/utils/toast'
 
 import EmailCodeStep from './EmailCodeStep.vue'
@@ -38,7 +38,7 @@ const addressError = computed(() => {
 
 function back(): void {
   if (isCodeStep.value) reset.backToAddress()
-  else returnTo(router, signInRouteFrom(route.query))
+  else returnTo(router, passwordResetBackRoute(route.query))
 }
 
 async function sendCode(): Promise<void> {

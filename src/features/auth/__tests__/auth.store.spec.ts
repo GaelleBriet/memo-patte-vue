@@ -50,6 +50,7 @@ vi.mock('../repository/auth.repository', () => ({
     verifyPasswordResetCode: vi.fn<AuthRepository['verifyPasswordResetCode']>(),
     discardSession: vi.fn<AuthRepository['discardSession']>(async () => {}),
     updatePassword: vi.fn<AuthRepository['updatePassword']>(),
+    reauthenticate: vi.fn<AuthRepository['reauthenticate']>(),
     signIn: vi.fn<AuthRepository['signIn']>(),
     signInWithGoogleIdToken: vi.fn<AuthRepository['signInWithGoogleIdToken']>(),
     signOut: vi.fn<AuthRepository['signOut']>(async () => {}),
@@ -510,6 +511,34 @@ describe('useAuthStore', () => {
 
       await expect(store.changePassword('ancien-secret')).rejects.toThrow(AccountError)
       expect(store.hasPlusAccount).toBe(false)
+    })
+  })
+
+  describe('changer de mot de passe (V24 ter)', () => {
+    it('reconnecte avec l’actuel puis enregistre le nouveau, sans code', async () => {
+      writePlusAccount({ userId: USER_ID })
+      repository.reauthenticate.mockResolvedValue({ userId: USER_ID })
+      repository.updatePassword.mockResolvedValue({ userId: USER_ID })
+      const store = useAuthStore()
+
+      await store.changePasswordWithCurrent('ancien-secret', 'nouveau-secret')
+
+      expect(repository.reauthenticate).toHaveBeenCalledWith('ancien-secret')
+      expect(repository.updatePassword).toHaveBeenCalledWith('nouveau-secret')
+      expect(repository.reauthenticate.mock.invocationCallOrder[0]).toBeLessThan(
+        repository.updatePassword.mock.invocationCallOrder[0]!,
+      )
+    })
+
+    it('ne change rien quand l’actuel est faux', async () => {
+      writePlusAccount({ userId: USER_ID })
+      repository.reauthenticate.mockRejectedValue(new AccountError('invalid-credentials'))
+      const store = useAuthStore()
+
+      await expect(store.changePasswordWithCurrent('faux', 'nouveau-secret')).rejects.toMatchObject(
+        { reason: 'invalid-credentials' },
+      )
+      expect(repository.updatePassword).not.toHaveBeenCalled()
     })
   })
 

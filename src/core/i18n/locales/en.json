@@ -1221,6 +1221,13 @@
     },
     "account": {
       "title": "Account",
+      "signInSection": "Sign-in",
+      "password": {
+        "action": "Change my password",
+        "current": "Current password",
+        "save": "Save",
+        "saveLabel": "Save the new password"
+      },
       "identity": {
         "email": "Email address",
         "google": "Google account"

@@ -31,6 +31,8 @@ export type AuthRepository = {
   verifyPasswordResetCode(email: string, code: string): Promise<AuthSession>
   /** Vise le compte de la session de l'appareil. */
   updatePassword(password: string): Promise<AuthSession>
+  /** Reconnecte le compte de la session : la connexion récente que Supabase exige pour changer de mot de passe. */
+  reauthenticate(password: string): Promise<AuthSession>
   signIn(email: string, password: string): Promise<AuthSession>
   /** `nonce` en clair : Google a reçu son empreinte SHA-256. */
   signInWithGoogleIdToken(idToken: string, nonce: string): Promise<AuthSession>
@@ -95,6 +97,19 @@ export function accountIdentityOf(user: User): AccountIdentity {
     email: typeof data.email === 'string' ? data.email : (user.email ?? ''),
     subject: typeof data.sub === 'string' ? data.sub : google.id,
   }
+}
+
+/** Lève `AccountError`, `invalid-credentials` pour un mot de passe faux, sans rien envoyer sans session. */
+export async function signInAgainWithPassword(
+  supabase: SupabaseClient,
+  password: string,
+): Promise<Session> {
+  const { data: current } = await supabase.auth.getSession()
+  const email = current.session?.user.email
+  if (!email) throw new AccountError('unknown')
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  if (error) throw error
+  return data.session
 }
 
 /** Un seul délai pour les deux tentatives de `signOut` : la seconde n'ajoute jamais d'attente. */
@@ -238,6 +253,9 @@ export function createAuthRepository({
         if (!data.session) throw new AccountError('unknown')
         return sessionOf(data.session)
       }),
+
+    reauthenticate: (password) =>
+      withClient(async (supabase) => sessionOf(await signInAgainWithPassword(supabase, password))),
 
     signIn: (email, password) =>
       withClient(async (supabase) => {
