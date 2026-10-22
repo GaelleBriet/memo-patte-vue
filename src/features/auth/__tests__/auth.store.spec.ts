@@ -573,10 +573,33 @@ describe('useAuthStore', () => {
       repository.verifyEmailChangeCode.mockResolvedValue({ userId: USER_ID })
       const store = useAuthStore()
 
-      await store.verifyEmailChangeCode('sophie2@exemple.fr', '123456')
+      await expect(store.verifyEmailChangeCode('sophie2@exemple.fr', '123456', true)).resolves.toBe(
+        true,
+      )
 
       expect(store.sessionState).toBe('active')
       expect(readPlusAccount()).toEqual({ userId: USER_ID })
+    })
+
+    it('rend « false » pour le premier code, sans toucher au compte', async () => {
+      writePlusAccount({ userId: USER_ID })
+      repository.verifyEmailChangeCode.mockResolvedValue(null)
+      const store = useAuthStore()
+
+      await expect(store.verifyEmailChangeCode('sophie@exemple.fr', '123456', false)).resolves.toBe(
+        false,
+      )
+      expect(readPlusAccount()).toEqual({ userId: USER_ID })
+    })
+
+    it('lève une erreur quand le second code répond sans session', async () => {
+      writePlusAccount({ userId: USER_ID })
+      repository.verifyEmailChangeCode.mockResolvedValue(null)
+      const store = useAuthStore()
+
+      await expect(
+        store.verifyEmailChangeCode('sophie2@exemple.fr', '123456', true),
+      ).rejects.toMatchObject({ reason: 'unknown' })
     })
   })
 

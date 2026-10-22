@@ -8,14 +8,16 @@ import { useAuthStore } from '../store/auth.store'
 vi.mock('../store/auth.store', () => ({ useAuthStore: vi.fn<typeof useAuthStore>() }))
 
 const NOUVELLE = 'sophie2@exemple.fr'
+const ACTUELLE = 'sophie@exemple.fr'
 const ENVOI = new Date(2026, 9, 22, 18, 0).getTime()
 
 const requestEmailChange = vi.fn<(password: string, email: string) => Promise<void>>()
-const verifyEmailChangeCode = vi.fn<(email: string, code: string) => Promise<void>>()
+const verifyEmailChangeCode =
+  vi.fn<(email: string, code: string, last: boolean) => Promise<boolean>>()
 const resendEmailChangeCode = vi.fn<() => Promise<void>>()
 let maintenant = ENVOI
 
-function remplir(current: string, email: string, accountEmail: string | null = null) {
+function remplir(current: string, email: string, accountEmail: string | null = ACTUELLE) {
   const change = useEmailChange({ now: () => maintenant, accountEmail: () => accountEmail })
   change.values.value = { current, email }
   return change
@@ -23,9 +25,10 @@ function remplir(current: string, email: string, accountEmail: string | null = n
 
 beforeEach(() => {
   setActivePinia(createPinia())
-  for (const mock of [requestEmailChange, verifyEmailChangeCode, resendEmailChangeCode]) {
+  for (const mock of [requestEmailChange, resendEmailChangeCode]) {
     mock.mockReset().mockResolvedValue()
   }
+  verifyEmailChangeCode.mockReset().mockResolvedValueOnce(false).mockResolvedValue(true)
   maintenant = ENVOI
   vi.mocked(useAuthStore).mockReturnValue({
     requestEmailChange,
@@ -40,8 +43,8 @@ describe('useEmailChange', () => {
 
     expect(await change.sendCode()).toBe(true)
     expect(requestEmailChange).toHaveBeenCalledWith('ancien-secret', NOUVELLE)
-    expect(change.step.value).toBe('code')
-    expect(change.emailCode.email.value).toBe(NOUVELLE)
+    expect(change.step.value).toBe('current')
+    expect(change.emailCode.email.value).toBe(ACTUELLE)
   })
 
   it('refuse l’adresse du compte retapée, sans rien envoyer', async () => {
@@ -101,13 +104,81 @@ describe('useEmailChange', () => {
     expect(change.failureKey.value).toBe('auth.errors.offline')
   })
 
-  it('confirme le code de la nouvelle adresse, puis ferme l’étape', async () => {
+  it('ne peut pas envoyer sans connaître l’adresse du compte', async () => {
+    const change = remplir('secret', NOUVELLE, null)
+
+    expect(await change.sendCode()).toBe(false)
+    expect(change.failureKey.value).not.toBeNull()
+    expect(requestEmailChange).not.toHaveBeenCalled()
+  })
+
+  it('demande le code de l’adresse actuelle puis celui de la nouvelle, et ne change le compte qu’au second', async () => {
     const change = remplir('ancien-secret', NOUVELLE)
     await change.sendCode()
-    change.emailCode.setCode('123456')
+    change.emailCode.setCode('111111')
 
-    expect(await change.emailCode.confirm()).toBe(true)
-    expect(verifyEmailChangeCode).toHaveBeenCalledWith(NOUVELLE, '123456')
+    expect(await change.confirm()).toBe(false)
+    expect(verifyEmailChangeCode).toHaveBeenLastCalledWith(ACTUELLE, '111111', false)
+    expect(change.step.value).toBe('new')
+    expect(change.emailCode.email.value).toBe(NOUVELLE)
+    expect(change.emailCode.code.value).toBe('')
+
+    change.emailCode.setCode('222222')
+    expect(await change.confirm()).toBe(true)
+    expect(verifyEmailChangeCode).toHaveBeenLastCalledWith(NOUVELLE, '222222', true)
+    expect(change.step.value).toBe('address')
+    expect(change.emailCode.email.value).toBeNull()
+  })
+
+  it('reste sur l’étape quand un code est faux, à chacune des deux', async () => {
+    const change = remplir('ancien-secret', NOUVELLE)
+    await change.sendCode()
+    verifyEmailChangeCode.mockReset().mockRejectedValueOnce(new AccountError('invalid-code'))
+    change.emailCode.setCode('000000')
+
+    expect(await change.confirm()).toBe(false)
+    expect(change.step.value).toBe('current')
+    expect(change.emailCode.errorKey.value).toBe('auth.code.errors.incorrect')
+
+    verifyEmailChangeCode
+      .mockResolvedValueOnce(false)
+      .mockRejectedValueOnce(new AccountError('invalid-code'))
+    change.emailCode.setCode('111111')
+    await change.confirm()
+    change.emailCode.setCode('000000')
+    maintenant = ENVOI + 61 * 60_000
+
+    expect(await change.confirm()).toBe(false)
+    expect(change.step.value).toBe('new')
+    expect(change.emailCode.errorKey.value).toBe('auth.code.errors.expired')
+  })
+
+  it('lève une erreur quand le second code répond sans compte changé', async () => {
+    const change = remplir('ancien-secret', NOUVELLE)
+    await change.sendCode()
+    verifyEmailChangeCode.mockReset().mockRejectedValue(new AccountError('unknown'))
+    change.emailCode.setCode('111111')
+
+    expect(await change.confirm()).toBe(false)
+    expect(change.emailCode.errorKey.value).not.toBeNull()
+  })
+
+  it('un double toucher sur « Confirmer » ne vérifie qu’une fois', async () => {
+    const change = remplir('ancien-secret', NOUVELLE)
+    await change.sendCode()
+    change.emailCode.setCode('111111')
+
+    await Promise.all([change.confirm(), change.confirm()])
+
+    expect(verifyEmailChangeCode).toHaveBeenCalledTimes(1)
+  })
+
+  it('un double toucher sur « Recevoir le code » n’envoie qu’une fois', async () => {
+    const change = remplir('ancien-secret', NOUVELLE)
+
+    await Promise.all([change.sendCode(), change.sendCode()])
+
+    expect(requestEmailChange).toHaveBeenCalledTimes(1)
   })
 
   it('renvoie le code de changement d’adresse une minute après', async () => {
@@ -117,6 +188,30 @@ describe('useEmailChange', () => {
 
     expect(await change.emailCode.resend()).toBe('sent')
     expect(resendEmailChangeCode).toHaveBeenCalledWith()
+  })
+
+  it('renvoie les codes à la même demande depuis les deux étapes', async () => {
+    const change = remplir('ancien-secret', NOUVELLE)
+    await change.sendCode()
+    change.emailCode.setCode('111111')
+    await change.confirm()
+    maintenant = ENVOI + 60_000
+
+    expect(await change.emailCode.resend()).toBe('sent')
+    expect(resendEmailChangeCode).toHaveBeenCalledTimes(1)
+  })
+
+  it('abandonner entre les deux étapes revient à l’adresse, le compte gardant l’ancienne', async () => {
+    const change = remplir('ancien-secret', NOUVELLE)
+    await change.sendCode()
+    change.emailCode.setCode('111111')
+    await change.confirm()
+
+    change.backToAddress()
+
+    expect(change.step.value).toBe('address')
+    expect(change.values.value).toEqual({ current: '', email: NOUVELLE })
+    expect(verifyEmailChangeCode).toHaveBeenCalledTimes(1)
   })
 
   it('revient à l’adresse, remplie, mot de passe vidé', async () => {

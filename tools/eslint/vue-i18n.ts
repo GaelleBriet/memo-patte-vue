@@ -14,6 +14,7 @@ const VUE_I18N_JSON_PARSER = pluginVueI18n.configs['flat/base'].find(
 // Clés construites à l'exécution (gabarit ou table de correspondance) : invisibles pour no-unused-keys.
 const DYNAMIC_I18N_KEYS = [
   '/^nav\\.(home|animals)$/',
+  '/^settings\\.account\\.email\\.sameAddress$/',
   '/^animals\\.form\\.species\\.(dog|cat)$/',
   '/^animals\\.age\\.(year|month|week)$/',
   '/^animals\\.departure\\.reasons\\.(death|rehomed|other)$/',

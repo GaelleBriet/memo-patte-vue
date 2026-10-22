@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 
 import { AccountError } from '../logic/account-error'
 import { accountErrorKey, signInErrorKey } from '../logic/account-error-message'
@@ -8,23 +8,31 @@ import { useFormValidation } from '@/shared/form/use-form-validation'
 
 import { useEmailCode } from './use-email-code'
 
+export type EmailChangeStep = 'address' | 'current' | 'new'
+
 type Field = keyof EmailChangeValues
 
 type Refusal = { field: Field; value: string; key: string }
 
 const WRONG_PASSWORD_KEY = 'settings.account.delete.identity.wrongPassword'
 
-/** « Changer mon adresse e-mail » (PL-10, V24 quater à sexies) : le mot de passe, la nouvelle adresse, son code. */
+/** « Changer mon adresse e-mail » (PL-10, V24 quater à sexies) : le mot de passe, la nouvelle adresse, puis le code de chaque adresse. */
 export function useEmailChange({
   now = Date.now,
   accountEmail = () => null,
 }: { now?: () => number; accountEmail?: () => string | null } = {}) {
   const auth = useAuthStore()
+  let accountChanged = false
+  let newAddress = ''
+  const step = ref<EmailChangeStep>('address')
+
   const emailCode = useEmailCode({
     now,
     operations: {
       resend: () => auth.resendEmailChangeCode(),
-      verify: (address, code) => auth.verifyEmailChangeCode(address, code),
+      verify: async (address, code) => {
+        accountChanged = await auth.verifyEmailChangeCode(address, code, step.value === 'new')
+      },
     },
   })
 
@@ -36,8 +44,6 @@ export function useEmailChange({
   const { errors, validate, reset } = useFormValidation(values, (current) =>
     validateEmailChange(current, accountEmail()),
   )
-
-  const step = computed(() => (emailCode.email.value === null ? 'address' : 'code'))
 
   function fieldError(field: Field): string | null {
     const refused = refusal.value
@@ -64,8 +70,12 @@ export function useEmailChange({
     if (!result.success) return false
     isSending.value = true
     try {
+      const current = accountEmail()
+      if (!current) throw new AccountError('unknown')
       await auth.requestEmailChange(result.data.current, result.data.email)
-      emailCode.afterCodeSent(result.data.email)
+      newAddress = result.data.email
+      step.value = 'current'
+      emailCode.afterCodeSent(current)
       return true
     } catch (cause) {
       refuse(cause, result.data)
@@ -75,12 +85,36 @@ export function useEmailChange({
     }
   }
 
+  async function confirm(): Promise<boolean> {
+    if (!(await emailCode.verify())) return false
+    if (!accountChanged) {
+      step.value = 'new'
+      emailCode.afterCodeSent(newAddress)
+      return false
+    }
+    emailCode.close()
+    step.value = 'address'
+    return true
+  }
+
   function backToAddress(): void {
-    values.value = { current: '', email: emailCode.close().email }
+    emailCode.close()
+    step.value = 'address'
+    values.value = { current: '', email: newAddress }
     refusal.value = null
     failureKey.value = null
     reset()
   }
 
-  return { emailCode, step, values, fieldError, failureKey, isSending, sendCode, backToAddress }
+  return {
+    emailCode,
+    step,
+    values,
+    fieldError,
+    failureKey,
+    isSending,
+    sendCode,
+    confirm,
+    backToAddress,
+  }
 }

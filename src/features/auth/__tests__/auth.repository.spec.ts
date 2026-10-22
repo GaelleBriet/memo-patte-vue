@@ -448,13 +448,17 @@ describe('createAuthRepository', () => {
       })
     })
 
-    it('lève une erreur quand le code est accepté sans session (double confirmation)', async () => {
+    it('rend « null » quand le code est accepté sans session (premier des deux codes)', async () => {
       storeSession(sessionBody())
       server.on('verify', () => json(200, { msg: 'Confirmation link accepted' }))
 
-      expect(await reasonOf(repository.verifyEmailChangeCode('sophie2@exemple.fr', '123456'))).toBe(
-        'unknown',
-      )
+      await expect(
+        repository.verifyEmailChangeCode('gaelle@example.com', '123456'),
+      ).resolves.toBeNull()
+      expect(server.bodies.at(-1)).toMatchObject({
+        email: 'gaelle@example.com',
+        type: 'email_change',
+      })
     })
 
     it('renvoie le code de changement d’adresse', async () => {

@@ -14,6 +14,7 @@ import router from '@/router'
 import { toastMessage } from '@/shared/utils/toast'
 
 const NOUVELLE = 'sophie2@exemple.fr'
+const ACTUELLE = 'sophie@exemple.fr'
 
 let replace: MockInstance
 let reauthenticate: MockInstance<typeof authRepository.reauthenticate>
@@ -38,6 +39,7 @@ beforeEach(async () => {
   requestEmailChange = vi.spyOn(authRepository, 'requestEmailChange').mockResolvedValue()
   verifyEmailChangeCode = vi
     .spyOn(authRepository, 'verifyEmailChangeCode')
+    .mockResolvedValueOnce(null)
     .mockResolvedValue({ userId: USER_ID })
   vi.spyOn(authRepository, 'resendEmailChangeCode').mockResolvedValue()
 })
@@ -66,6 +68,13 @@ async function codeEnvoye() {
   await w.get('#email-change-current').setValue('ancien-secret')
   await w.get('#email-change-email').setValue(NOUVELLE)
   await toucher(w, '.email-change__send')
+  return w
+}
+
+async function secondEtape() {
+  const w = await codeEnvoye()
+  await w.get('#email-code-input').setValue('111111')
+  await toucher(w, '.email-change__confirm')
   return w
 }
 
@@ -114,36 +123,71 @@ describe('EmailChangeView', () => {
     })
   })
 
-  describe('étape 2 (V24 sexies)', () => {
-    it('montre le code envoyé à la nouvelle adresse, « Renvoyer le code », sans « Changer d’adresse »', async () => {
+  describe('code de l’adresse actuelle (V24 quinquies, première fois)', () => {
+    it('montre le code reçu à l’adresse actuelle, avec le lien vers Aide et contact', async () => {
       const w = await codeEnvoye()
 
       expect(requestEmailChange).toHaveBeenCalledWith(NOUVELLE)
       expect(w.get('.email-code__message').text()).toBe(
-        'Entre le code à 6 chiffres envoyé à sophie2@exemple.fr.',
+        'Code reçu à ton adresse actuelle, sophie@exemple.fr',
+      )
+      expect(w.find('.email-code__change').exists()).toBe(false)
+      expect(w.get('.email-change__lost').text()).toBe('Tu n’as plus accès à cette adresse ?')
+      expect(w.get('.email-change__confirm').attributes('disabled')).toBeDefined()
+    })
+
+    it('ouvre Aide et contact par le lien', async () => {
+      const push = vi.spyOn(router, 'push').mockResolvedValue()
+      const w = await codeEnvoye()
+
+      await toucher(w, '.email-change__lost')
+
+      expect(push).toHaveBeenCalledWith({ name: 'settings-help' })
+    })
+
+    it('refuse l’adresse du compte retapée, sous le champ, sans rien envoyer', async () => {
+      const w = await monter()
+      await w.get('#email-change-current').setValue('ancien-secret')
+      await w.get('#email-change-email').setValue('Sophie@Exemple.fr')
+
+      await toucher(w, '.email-change__send')
+
+      expect(w.text()).toContain('C’est déjà l’adresse de ton compte.')
+      expect(reauthenticate).not.toHaveBeenCalled()
+      expect(requestEmailChange).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('code de la nouvelle adresse (V24 quinquies, seconde fois)', () => {
+    it('passe au code de la nouvelle adresse sans changer le compte', async () => {
+      const w = await secondEtape()
+
+      expect(verifyEmailChangeCode).toHaveBeenCalledWith(ACTUELLE, '111111')
+      expect(w.get('.email-code__message').text()).toBe(
+        'Code reçu à la nouvelle adresse, sophie2@exemple.fr',
       )
       expect(w.get('.email-code__label').text()).toBe('Code de confirmation')
       expect(w.get('#email-code-input').attributes('aria-label')).toBe(
         'Code à 6 chiffres envoyé à la nouvelle adresse',
       )
-      expect(w.find('.email-code__change').exists()).toBe(false)
-      expect(w.get('.email-change__confirm').text()).toBe('Confirmer')
-      expect(w.get('.email-change__confirm').attributes('disabled')).toBeDefined()
+      expect(w.find('.email-change__lost').exists()).toBe(false)
+      expect(toastMessage.value).not.toBe('Adresse e-mail modifiée.')
+      expect(replace).not.toHaveBeenCalled()
     })
 
     it('confirme, dit « Adresse e-mail modifiée. » et revient à Compte', async () => {
-      const w = await codeEnvoye()
-      await w.get('#email-code-input').setValue('123456')
+      const w = await secondEtape()
+      await w.get('#email-code-input').setValue('222222')
 
       await toucher(w, '.email-change__confirm')
 
-      expect(verifyEmailChangeCode).toHaveBeenCalledWith(NOUVELLE, '123456')
+      expect(verifyEmailChangeCode).toHaveBeenLastCalledWith(NOUVELLE, '222222')
       expect(toastMessage.value).toBe('Adresse e-mail modifiée.')
       expect(replace).toHaveBeenCalledWith({ name: 'settings-account' })
     })
 
     it('dit « pas le bon » pour un code refusé', async () => {
-      verifyEmailChangeCode.mockRejectedValue(new AccountError('invalid-code'))
+      verifyEmailChangeCode.mockReset().mockRejectedValue(new AccountError('invalid-code'))
       const w = await codeEnvoye()
       await w.get('#email-code-input').setValue('000000')
 
@@ -156,7 +200,7 @@ describe('EmailChangeView', () => {
     })
 
     it('revient à l’étape 1 par la flèche, adresse remplie', async () => {
-      const w = await codeEnvoye()
+      const w = await secondEtape()
 
       await toucher(w, '.pushed-screen__back')
 

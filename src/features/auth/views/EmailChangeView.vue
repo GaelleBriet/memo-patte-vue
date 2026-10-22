@@ -22,7 +22,8 @@ const change = useEmailChange({ accountEmail: () => identity.value?.email ?? nul
 
 const { emailCode, values, fieldError, failureKey } = change
 
-const isCodeStep = computed(() => change.step.value === 'code')
+const isCodeStep = computed(() => change.step.value !== 'address')
+const isCurrentStep = computed(() => change.step.value === 'current')
 const currentError = computed(() => fieldError('current'))
 const emailError = computed(() => fieldError('email'))
 
@@ -45,8 +46,12 @@ async function resendCode(): Promise<void> {
   if ((await emailCode.resend()) === 'sent') showToast(t('auth.code.sent', { email }))
 }
 
+function openHelp(): void {
+  void router.push({ name: 'settings-help' })
+}
+
 async function confirm(): Promise<void> {
-  if (!(await emailCode.confirm())) return
+  if (!(await change.confirm())) return
   showToast(t('settings.account.email.done'))
   leave()
 }
@@ -69,12 +74,27 @@ async function confirm(): Promise<void> {
       :is-expired="emailCode.isExpired.value"
       :is-resending="emailCode.isResending.value"
       :can-resend="!emailCode.isConfirming.value"
+      :message="
+        t(isCurrentStep ? 'settings.account.email.codeCurrent' : 'settings.account.email.codeNew', {
+          email: emailCode.email.value,
+        })
+      "
       :label="t('settings.account.email.codeLabel')"
-      :input-label="t('settings.account.email.codeInputLabel')"
+      :input-label="isCurrentStep ? null : t('settings.account.email.codeInputLabel')"
       :can-change-address="false"
       @update:code="emailCode.setCode"
       @resend="resendCode"
-    />
+    >
+      <v-btn
+        v-if="isCurrentStep"
+        class="email-change__lost"
+        variant="text"
+        color="primary"
+        @click="openHelp"
+      >
+        {{ t('settings.account.email.lostAccess') }}
+      </v-btn>
+    </EmailCodeStep>
 
     <form v-else class="email-change__form" novalidate @submit.prevent="change.sendCode">
       <p v-if="failureKey" class="email-change__error" role="alert">
@@ -188,6 +208,16 @@ async function confirm(): Promise<void> {
 .email-change__current {
   display: flex;
   flex-direction: column;
+}
+
+.email-change__lost {
+  height: 44px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-transform: none;
+
+  @include tap.tap-target;
 }
 
 .email-change__forgot {
