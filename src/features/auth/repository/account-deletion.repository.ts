@@ -5,7 +5,7 @@ import { errorSummary } from '@/shared/utils/error-summary'
 
 import { AccountDeletionError } from '../logic/account-deletion-error'
 import { AccountError } from '../logic/account-error'
-import { accountErrorFrom } from './auth.repository'
+import { accountErrorFrom, accountIdentityOf } from './auth.repository'
 
 export type IdentityConfirmationMethod =
   { kind: 'password' } | { kind: 'google'; email: string; subject: string }
@@ -29,15 +29,8 @@ const DELETE_ACCOUNT_FUNCTION = 'delete-account'
 const IDENTITY_TOO_OLD_STATUS = 401
 
 function methodOf(user: User): IdentityConfirmationMethod {
-  const providers = user.app_metadata.providers ?? [user.app_metadata.provider]
-  const google = user.identities?.find((identity) => identity.provider === 'google')
-  if (providers.includes('email') || !google) return { kind: 'password' }
-  const data = google.identity_data ?? {}
-  return {
-    kind: 'google',
-    email: typeof data.email === 'string' ? data.email : (user.email ?? ''),
-    subject: typeof data.sub === 'string' ? data.sub : google.id,
-  }
+  const identity = accountIdentityOf(user)
+  return identity.kind === 'password' ? { kind: 'password' } : identity
 }
 
 function deletionErrorFrom(cause: unknown): AccountDeletionError {
