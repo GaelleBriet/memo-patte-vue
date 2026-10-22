@@ -7,6 +7,10 @@ import { createAnimalPhotoDelete } from '../animal-photo-delete'
 const PHOTO = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg'
 
 type Remove = (paths: string[]) => Promise<{ data: unknown[] | null; error: unknown }>
+type GetSession = () => Promise<{
+  data: { session: { user: { id: string } } | null }
+  error: null
+}>
 
 function fakeClient(
   answer: { data: unknown[] | null; error: unknown },
@@ -14,7 +18,7 @@ function fakeClient(
 ) {
   const remove = vi.fn<Remove>(async () => answer)
   const from = vi.fn<(bucket: string) => { remove: Remove }>(() => ({ remove }))
-  const getSession = vi.fn(async () => ({
+  const getSession = vi.fn<GetSession>(async () => ({
     data: { session: sessionUserId === null ? null : { user: { id: sessionUserId } } },
     error: null,
   }))
@@ -57,7 +61,7 @@ describe('createAnimalPhotoDelete', () => {
 
       await expect(
         createAnimalPhotoDelete(async () => client).delete('user-1', PHOTO),
-      ).rejects.toThrow()
+      ).rejects.toThrow(/à réessayer/)
     },
   )
 
