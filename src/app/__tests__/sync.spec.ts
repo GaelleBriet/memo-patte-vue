@@ -434,6 +434,23 @@ describe('installSync', () => {
       stop()
     })
 
+    it('au lancement, des photos qui ne répondent jamais ne retiennent pas le contrôle suivant', async () => {
+      const { deps, userId, active, restoreFlow, checkAccountBackup, restoreMissingPhotos } =
+        accountSetup({ kind: 'active' })
+      restoreMissingPhotos.mockImplementation(() => new Promise<never>(() => {}))
+      userId.value = 'user-1'
+      active.value = true
+      const stop = await installSync(deps)
+      await vi.advanceTimersByTimeAsync(0)
+      expect(restoreMissingPhotos).toHaveBeenCalledOnce()
+
+      restoreFlow.retry()
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(checkAccountBackup).toHaveBeenCalledTimes(2)
+      stop()
+    })
+
     it.each<AccountBackupCheck>([
       {
         kind: 'backup-found',
