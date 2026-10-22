@@ -16,8 +16,9 @@ const props = withDefaults(
     label?: string | null
     inputLabel?: string | null
     canChangeAddress?: boolean
+    canResend?: boolean
   }>(),
-  { message: null, label: null, inputLabel: null, canChangeAddress: true },
+  { message: null, label: null, inputLabel: null, canChangeAddress: true, canResend: true },
 )
 
 const emit = defineEmits<{
@@ -95,6 +96,7 @@ async function onInput(event: Event): Promise<void> {
         :variant="isExpired ? 'outlined' : 'text'"
         color="primary"
         :loading="isResending"
+        :disabled="!canResend"
         @click="emit('resend')"
       >
         {{ t('auth.code.resend') }}

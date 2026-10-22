@@ -55,6 +55,16 @@ describe('passwordResetRoute', () => {
     })
   })
 
+  it('verrouille l’adresse à la demande', () => {
+    expect(
+      passwordResetRoute({ from: 'settings' }, 'sophie@exemple.fr', { emailLocked: true }),
+    ).toEqual({
+      name: 'password-reset',
+      query: { from: 'settings' },
+      state: { email: 'sophie@exemple.fr', emailLocked: true },
+    })
+  })
+
   it('désigne une route déclarée, poussée', () => {
     const route = routes.find(({ name }) => name === 'password-reset')
     expect(route).toBeDefined()

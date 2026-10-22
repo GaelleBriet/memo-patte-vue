@@ -374,7 +374,7 @@ describe('createAuthRepository', () => {
 
       await expect(
         repository.verifyPasswordResetCode('gaelle@example.com', '123456'),
-      ).resolves.toBeUndefined()
+      ).resolves.toEqual({ userId: USER_ID })
       expect(server.bodies.at(-1)).toMatchObject({
         email: 'gaelle@example.com',
         token: '123456',
@@ -389,6 +389,26 @@ describe('createAuthRepository', () => {
       expect(
         await reasonOf(repository.verifyPasswordResetCode('gaelle@example.com', '000000')),
       ).toBe('invalid-code')
+    })
+  })
+
+  describe('discardSession', () => {
+    it('ferme la session de cet appareil seulement', async () => {
+      storeSession(sessionBody())
+
+      await repository.discardSession()
+
+      expect(server.urls.at(-1)?.searchParams.get('scope')).toBe('local')
+      expect(storedSessionKeys()).toEqual([])
+    })
+
+    it('l’efface de l’appareil même sans réseau', async () => {
+      storeSession(sessionBody())
+      server.goOffline()
+
+      await repository.discardSession()
+
+      expect(storedSessionKeys()).toEqual([])
     })
   })
 
