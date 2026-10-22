@@ -58,6 +58,13 @@ describe('syncOutboxRepository', () => {
       await expect(repository.isPhotoInCarnet(PHOTO_PIRATE)).resolves.toBe(false)
     })
 
+    it('compare le nom à l’identique : `_` n’y vaut pas n’importe quel caractère', async () => {
+      await insertAnimal(db, ANIMAL_ID, T1, 'Milo', 'aXb.jpg')
+
+      await expect(repository.isPhotoInCarnet('a_b.jpg')).resolves.toBe(false)
+      await expect(repository.isPhotoInCarnet('aXb.jpg')).resolves.toBe(true)
+    })
+
     it('faux pour la photo d’un animal supprimé', async () => {
       await insertAnimal(db, 'parti', T1, 'Pirate', PHOTO_PIRATE)
       await db.run("UPDATE animal SET deleted_at = ? WHERE id = 'parti'", [T2])
