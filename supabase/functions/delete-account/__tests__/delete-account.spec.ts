@@ -5,7 +5,7 @@ import { MAX_FOLDER_DEPTH, PHOTO_PAGE_SIZE } from '../account-erasure'
 import { handleDeleteAccount } from '../delete-account'
 import { providerErasuresFrom } from '../provider-settings'
 import { fakeDeletionPorts, USER } from './fake-deletion-ports'
-import { fakeFetch } from './fake-fetch'
+import { fakeFetch } from '../../_shared/__tests__/fake-fetch'
 
 const NOW = Date.UTC(2026, 9, 21, 16, 5)
 const NOW_SECONDS = NOW / 1000
@@ -179,7 +179,7 @@ describe('handleDeleteAccount', () => {
     expect(fake.calls).toEqual([])
   })
 
-  it('efface les photos du dossier du compte, puis le compte', async () => {
+  it('efface les prestataires, les photos juste avant le compte, puis repasse sur le dossier', async () => {
     const fake = fakePorts({ photos: ['milo.jpg', 'luna.jpg'] })
 
     const response = await handleDeleteAccount(request(), fake.ports)
@@ -188,16 +188,71 @@ describe('handleDeleteAccount', () => {
     expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*')
     expect(await response.json()).toEqual({ status: 'deleted' })
     expect(fake.calls).toEqual([
+      { kind: 'posthog', arg: USER },
+      { kind: 'revenuecat', arg: USER },
       { kind: 'list', arg: { folder: USER, limit: PHOTO_PAGE_SIZE } },
       { kind: 'remove', arg: [`${USER}/luna.jpg`, `${USER}/milo.jpg`] },
       { kind: 'list', arg: { folder: USER, limit: PHOTO_PAGE_SIZE } },
-      { kind: 'posthog', arg: USER },
-      { kind: 'revenuecat', arg: USER },
       { kind: 'deleteUser', arg: USER },
+      { kind: 'list', arg: { folder: USER, limit: PHOTO_PAGE_SIZE } },
       { kind: 'record', arg: 'app' },
     ])
     expect(fake.photos).toEqual([])
   })
+
+  it('efface une photo envoyée par un autre téléphone pendant la suppression', async () => {
+    const fake = fakePorts({ photos: ['milo.jpg'] })
+    const deleteUser = fake.ports.deleteUser
+    fake.ports.deleteUser = async (userId) => {
+      fake.photos.push('luna.jpg')
+      await deleteUser(userId)
+    }
+
+    const response = await handleDeleteAccount(request(), fake.ports)
+
+    expect(response.status).toBe(200)
+    expect(fake.photos).toEqual([])
+    const afterDeletion = fake.calls.slice(fake.calls.findIndex((c) => c.kind === 'deleteUser'))
+    expect(afterDeletion).toEqual([
+      { kind: 'deleteUser', arg: USER },
+      { kind: 'list', arg: { folder: USER, limit: PHOTO_PAGE_SIZE } },
+      { kind: 'remove', arg: [`${USER}/luna.jpg`] },
+      { kind: 'list', arg: { folder: USER, limit: PHOTO_PAGE_SIZE } },
+      { kind: 'record', arg: 'app' },
+    ])
+  })
+
+  it.each(['list', 'remove'] as const)(
+    'confirme la suppression quand le second passage sur les photos échoue (%s), sans journaliser l’identifiant',
+    async (failing) => {
+      const fake = fakePorts({ photos: ['milo.jpg'] })
+      const { deleteUser, listPhotos, removePhotos } = fake.ports
+      fake.ports.deleteUser = async (userId) => {
+        fake.photos.push('luna.jpg')
+        await deleteUser(userId)
+      }
+      const refused = (folder: string) => new Error(`${folder} refusé`)
+      fake.ports.listPhotos = async (folder, limit) => {
+        if (failing === 'list' && fake.deletedUser()) throw refused(folder)
+        return listPhotos(folder, limit)
+      }
+      fake.ports.removePhotos = async (paths) => {
+        if (failing === 'remove' && fake.deletedUser()) throw refused(paths.join(','))
+        return removePhotos(paths)
+      }
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      const response = await handleDeleteAccount(request(), fake.ports)
+
+      const written = JSON.stringify(logged.mock.calls)
+      logged.mockRestore()
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual({ status: 'deleted' })
+      expect(fake.calls.at(-1)).toEqual({ kind: 'record', arg: 'app' })
+      expect(written).toContain('photos')
+      expect(written).not.toContain(USER)
+    },
+  )
 
   it('efface page par page un dossier plus grand qu’une page', async () => {
     const names = Array.from({ length: PHOTO_PAGE_SIZE + 3 }, (_, index) => `photo-${index}.jpg`)
@@ -249,10 +304,11 @@ describe('handleDeleteAccount', () => {
 
     expect(response.status).toBe(200)
     expect(fake.calls.map((call) => call.kind)).toEqual([
-      'list',
       'posthog',
       'revenuecat',
+      'list',
       'deleteUser',
+      'list',
       'record',
     ])
   })
@@ -271,12 +327,13 @@ describe('handleDeleteAccount', () => {
     },
   )
 
-  it('n’efface plus rien après l’échec de PostHog', async () => {
-    const fake = fakePorts({ failOn: 'posthog' })
+  it('n’efface plus rien après l’échec de PostHog, photos comprises', async () => {
+    const fake = fakePorts({ photos: ['milo.jpg'], failOn: 'posthog' })
 
     await handleDeleteAccount(request(), fake.ports)
 
-    expect(fake.calls.map((call) => call.kind)).toEqual(['list', 'posthog'])
+    expect(fake.calls.map((call) => call.kind)).toEqual(['posthog'])
+    expect(fake.photos).toEqual(['milo.jpg'])
   })
 
   it('refuse sans rien effacer quand un prestataire n’est pas configuré', async () => {
