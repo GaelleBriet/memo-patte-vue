@@ -1,4 +1,5 @@
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
+import { currentLocale } from '@/core/i18n'
 import { dosageText } from '@/shared/domain/dosage'
 import { formatClockTimes, formatDayMonthOrYear } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
@@ -31,6 +32,6 @@ export function periodSettingsText(
   t: Translate,
   period: Pick<TreatmentPeriodRecord, 'frequency' | 'times' | 'doseQuantity' | 'doseUnit'>,
 ): string {
-  const dosage = dosageText(t, period)
+  const dosage = dosageText(t, currentLocale(), period)
   return [...frequencyAndTimes(t, period), ...(dosage === null ? [] : [dosage])].join(SEPARATOR)
 }

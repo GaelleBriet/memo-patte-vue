@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { currentWeightUnit } from '@/core/preferences/weight-unit-preference'
 import { computed, ref, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 
@@ -50,10 +51,14 @@ const hasPrevious = computed(() => pageIndex.value > 0)
 const hasNext = computed(() => pageIndex.value < pages.value.length - 1)
 
 const chart = computed(() =>
-  buildHistoryWeightChart(props.entries.slice(page.value.start, page.value.end), {
-    width: width.value,
-    textScale: textScale.value,
-  }),
+  buildHistoryWeightChart(
+    currentWeightUnit(),
+    props.entries.slice(page.value.start, page.value.end),
+    {
+      width: width.value,
+      textScale: textScale.value,
+    },
+  ),
 )
 
 const period = computed(() => {
@@ -84,7 +89,7 @@ const valueText = computed(() => {
   return point
     ? t('weight.chart.point', {
         date: formatFullDate(point.measuredOn),
-        weight: weightText(t, point.weightKg),
+        weight: weightText(t, currentWeightUnit(), point.weightKg),
       })
     : undefined
 })
@@ -173,7 +178,9 @@ defineExpose({
         <v-icon icon="ms:chevron_right" size="24" />
       </button>
     </div>
-    <span class="weight-history-chart__unit" aria-hidden="true">{{ weightUnitText(t) }}</span>
+    <span class="weight-history-chart__unit" aria-hidden="true">{{
+      weightUnitText(t, currentWeightUnit())
+    }}</span>
     <svg
       ref="svg"
       class="weight-history-chart__svg"

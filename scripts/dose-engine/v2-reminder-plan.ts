@@ -54,7 +54,7 @@ function brokenIn(
 ): Broken | null {
   const care = treatmentReminderPlan(
     (key) => key,
-    { id: 'campagne', name: 'Panacur', animalName: 'Pixel', period, view: reminders },
+    { id: 'campagne', name: 'Panacur', animalName: 'Pixel', locale: 'fr', period, view: reminders },
     SETTINGS,
     now,
   )

@@ -13,6 +13,7 @@ import {
   type CareReminders,
   type CarnetReminderSettings,
 } from '@/shared/domain/reminder-plan'
+import { errorSummary } from '@/shared/utils/error-summary'
 
 export type ReminderNotifications = Pick<
   typeof notifications,
@@ -91,7 +92,7 @@ export async function withOneRetry(schedule: () => Promise<void>): Promise<boole
 }
 
 function warn(cause: unknown): void {
-  console.warn('Rappels non mis à jour :', cause)
+  console.warn('Rappels non mis à jour :', errorSummary(cause))
 }
 
 type CancelPort = Pick<ReminderNotifications, 'cancelReminders' | 'listScheduled'>

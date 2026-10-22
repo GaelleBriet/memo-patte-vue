@@ -1297,7 +1297,9 @@ sync » (version du 2026-09-07) — plus généreux dans l'esprit, mais un utili
 qui réinstalle sans se reconnecter verrait son délai courir en réalité, sans rien
 pour l'en informer. — Pour revenir dessus : recalculer la purge sur la dernière
 date de synchronisation plutôt que sur la date d'expiration du droit Plus, et
-mettre à jour la politique de confidentialité en conséquence.
+mettre à jour la politique de confidentialité en conséquence. — _Précisé le
+2026-10-22_ : pour les photos cloud, l'effacement reste permis comme la lecture ;
+seuls l'envoi et le remplacement sont coupés (voir l'entrée du 2026-10-22).
 
 2026-09-19 — **Épic sync, décision §7-8 tranchée avec Gaelle (`@capacitor/network`)
 : la reco est retenue.** Ajouter la dépendance pour détecter le retour du réseau.
@@ -2974,6 +2976,27 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
+## 2026-10-22 — Photos cloud : lecture et effacement sans droit Plus actif, envoi et remplacement réservés à Plus
+
+Décision de Gaelle relayée le 22 octobre 2026, sur le point M-5 de la revue de sécurité du même
+jour. Une personne sans droit Plus actif (expiré, désactivé ou jamais eu) lit et efface les photos
+de son dossier du bucket `animal-photos` ; envoyer ou remplacer une photo exige toujours Plus. —
+Raison : une personne dont Plus a expiré doit pouvoir effacer ses données, et c'est le serveur qui
+le garantit (politique `animal_photos_delete`). L'effacement vaut aussi pour un compte qui n'a
+jamais eu Plus, sans risque : un compte n'efface que son propre dossier, et seule la clé service
+écrit hors RLS. — Alternative écartée : effacement réservé à Plus, qui retenait les photos d'une
+personne après l'expiration. — À garder en tête : un futur nettoyage des photos du cloud par l'app
+reste derrière la même garde que la synchro (Plus actif), pour ne pas effacer une photo que la
+ligne figée du cloud référence encore.
+
+## 2026-10-22 — Code e-mail à 8 chiffres (Email OTP length) et durée 15 minutes (Email OTP Expiration)
+
+Le code reçu par e-mail (inscription, mot de passe oublié, changement d'adresse) compte 8
+chiffres et vaut 15 minutes. — Raison : réglages de Gaelle dans le tableau de bord Supabase
+(« Email OTP length » = 8, la valeur par défaut ; « Email OTP Expiration » = 900 s) ; c'est le
+serveur qui les garantit, l'app les suit (`CODE_LENGTH`, `CODE_LIFETIME_MS`). Remplace le
+« 6 chiffres » du 2026-09-29 et la durée d'une heure qu'utilisait l'app.
+
 ## 2026-10-21 — Restauration depuis le cloud (#40)
 
 Décisions de Gaelle du 21 octobre 2026, sur les questions de la restauration du carnet (écrans V18,
@@ -3505,3 +3528,50 @@ version plus ancienne de MémoPatte » est supprimé. — Raison : données jama
 exporté par MémoPatte doit pouvoir y revenir. — Alternatives écartées : refuser les anciens formats
 (décision du 2026-09-29, remplacée) ; un report pour les mois courts (une ligne « Reportée au … » que
 la personne n'a jamais écrite) ; un écran de résultat qui ne s'afficherait jamais.
+
+2026-10-22 — **Changer le mot de passe et l'adresse : on reconnecte avec l'ancien mot de passe**
+(`signInWithPassword`), pas `reauthenticate()`. Revue de sécurité. « Secure password change » activé par
+Gaelle le 22 octobre (il était désactivé avant) : Supabase n'accepte alors un nouveau mot de passe que
+d'une connexion de moins de 24 heures ; la reconnexion de l'app en crée une neuve, et elle vérifie aussi
+le mot de passe actuel sans envoyer d'e-mail (`AuthRepository.reauthenticate`). — Raison : l'écran
+demande déjà le mot de passe actuel (PL-10) ; `reauthenticate()` ajouterait un code par e-mail à chaque
+changement. — Alternative écartée : `reauthenticate()` puis `updateUser` avec le code reçu (mécanisme
+décrit par la doc, un e-mail et un écran de plus). Limite connue : ce n'est pas la garantie serveur
+documentée. « Require current password when updating » (même panneau, désactivé par Gaelle pour
+l'instant) exige `current_password` pour `updateUser({ password })`, sauf pour une session de
+récupération (`session.IsRecovery()`, code de supabase/auth `internal/api/user.go`, lu le 22 octobre) :
+« Mot de passe oublié » resterait donc possible. Activé, l'app devrait envoyer `current_password` dans
+« Changer mon mot de passe » (`auth.repository.ts`, aujourd'hui `updateUser({ password })` sans lui) :
+décision de Gaelle, ouverte.
+
+2026-10-22 — **« Secure email change » reste activé : deux codes pour changer d'adresse** (spec PL-10,
+Q3 corrigée). Un code à l'adresse actuelle, puis un à la nouvelle. — Raison : le 22 octobre, un
+téléphone laissé déverrouillé : avec un code à la nouvelle adresse seule, Marc remplace l'adresse de
+Sophie par la sienne et prend le compte (sauvegarde cloud, photos) ; avec deux codes, il lui faut aussi
+la boîte mail de Sophie. L'étape demandée à l'écran n'est pas une garantie : seul le réglage côté
+serveur l'impose, même à un appel direct de l'API. — Alternative écartée : un code à la nouvelle adresse
+seulement (décision du 2026-09-30, « bloque qui a perdu l'ancienne ») : qui a perdu son ancienne
+adresse passe par le contact (suppression par e-mail ou mode admin), pas par une faille. À faire au
+ticket du changement d'adresse : l'écran attend deux codes (parcours livré par le ticket #1093).
+
+2026-10-22 — **Mode admin de la suppression de compte : refus journalisés (IP et heure, jamais le
+secret) et secret d'au moins 32 caractères** (#1110). Décision de Gaelle du 22 octobre (« 1110 oui »).
+Chaque refus du secret admin (`401`) laisse dans les journaux de la fonction l'adresse IP de l'appel
+et l'heure, jamais le secret essayé ni l'adresse e-mail ou le compte visés. Un `ADMIN_DELETE_SECRET`
+de moins de 32 caractères désactive le mode admin dès le démarrage de la fonction, avec un message
+dans les journaux ; la suppression depuis l'app ne change pas. L'adresse IP est la première valeur de
+`x-forwarded-for`, recopiée seulement si elle a la forme d'une adresse, sinon `unknown`, pour qu'un
+appelant ne puisse pas faire écrire de texte dans les journaux. — Raison : le mode admin était une
+porte sans trace ni longueur minimale ; un inconnu pouvait essayer des secrets sans que personne le
+voie. — Alternative écartée : ne rien changer.
+
+2026-10-22 — **Mode admin : le journal garde toutes les adresses de la chaîne, au plus 5** (suite de
+#1110). Décision de Gaelle du 22 octobre (« toutes les adresses »). Un refus du secret admin recopie
+chaque valeur de `x-forwarded-for`, dans son ordre, chacune seulement si elle a la forme d'une adresse,
+sinon `unknown`. Au-delà de cinq valeurs, seules les cinq dernières sont recopiées, précédées du nombre
+de valeurs laissées (« (+3 plus anciennes) »), sans leur texte. Exemple : « Mode admin : secret refusé,
+ip 203.0.113.7, unknown, 10.0.0.1, à 2026-10-22T21:30:00.000Z ». — Raison : un proxy ajoute en
+général l'adresse qu'il voit à la fin de la chaîne (à vérifier chez Supabase au premier vrai refus) ;
+une première valeur choisie par l'appelant ne doit pas masquer la vraie. — Alternatives écartées : la
+première valeur seule (entrée précédente : l'appelant la choisit) ; la dernière valeur seule (elle
+pourrait n'être qu'une adresse interne de la plateforme).

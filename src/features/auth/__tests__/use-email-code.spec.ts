@@ -39,25 +39,28 @@ describe('useEmailCode', () => {
     expect(etape.isComplete.value).toBe(false)
   })
 
-  it('ne garde que six chiffres et n’est complet qu’avec les six', () => {
+  it('ne garde que huit chiffres et n’est complet qu’avec les huit', () => {
     const etape = codeOuvert()
 
     etape.setCode('12 3')
     expect(etape.code.value).toBe('123')
     expect(etape.isComplete.value).toBe(false)
 
-    etape.setCode('1234567')
-    expect(etape.code.value).toBe('123456')
+    etape.setCode('123456')
+    expect(etape.isComplete.value).toBe(false)
+
+    etape.setCode('123456789')
+    expect(etape.code.value).toBe('12345678')
     expect(etape.isComplete.value).toBe(true)
   })
 
   describe('confirm', () => {
     it('confirme l’adresse avec le code saisi, puis ferme l’étape du code', async () => {
       const etape = codeOuvert()
-      etape.setCode('123456')
+      etape.setCode('12345678')
 
       expect(await etape.confirm()).toBe(true)
-      expect(verifySignUpCode).toHaveBeenCalledWith(ADRESSE, '123456')
+      expect(verifySignUpCode).toHaveBeenCalledWith(ADRESSE, '12345678')
       expect(etape.email.value).toBeNull()
       expect(etape.code.value).toBe('')
     })
@@ -73,7 +76,7 @@ describe('useEmailCode', () => {
     it('dit « pas le bon » quand le code est refusé dans l’heure', async () => {
       verifySignUpCode.mockRejectedValue(new AccountError('invalid-code'))
       const etape = codeOuvert()
-      etape.setCode('123450')
+      etape.setCode('12345670')
       maintenant = ENVOI + 2 * MINUTE
 
       expect(await etape.confirm()).toBe(false)
@@ -84,7 +87,7 @@ describe('useEmailCode', () => {
     it('dit « a expiré » quand le code est refusé le lendemain', async () => {
       verifySignUpCode.mockRejectedValue(new AccountError('invalid-code'))
       const etape = codeOuvert()
-      etape.setCode('123456')
+      etape.setCode('12345678')
       maintenant = new Date(2026, 9, 23, 9, 0).getTime()
 
       await etape.confirm()
@@ -96,7 +99,7 @@ describe('useEmailCode', () => {
     it('dit pourquoi quand le réseau manque', async () => {
       verifySignUpCode.mockRejectedValue(new AccountError('offline'))
       const etape = codeOuvert()
-      etape.setCode('123456')
+      etape.setCode('12345678')
 
       await etape.confirm()
 
@@ -106,7 +109,7 @@ describe('useEmailCode', () => {
     it('efface l’erreur dès qu’un chiffre change', async () => {
       verifySignUpCode.mockRejectedValue(new AccountError('invalid-code'))
       const etape = codeOuvert()
-      etape.setCode('123450')
+      etape.setCode('12345670')
       await etape.confirm()
 
       etape.setCode('12345')
@@ -118,7 +121,7 @@ describe('useEmailCode', () => {
       let repondre: () => void = () => {}
       verifySignUpCode.mockReturnValue(new Promise((resolve) => (repondre = resolve)))
       const etape = codeOuvert()
-      etape.setCode('123456')
+      etape.setCode('12345678')
 
       const premier = etape.confirm()
       expect(etape.isConfirming.value).toBe(true)
@@ -143,7 +146,7 @@ describe('useEmailCode', () => {
     it('renvoie un code après une minute, efface la saisie et les messages', async () => {
       verifySignUpCode.mockRejectedValue(new AccountError('invalid-code'))
       const etape = codeOuvert()
-      etape.setCode('123450')
+      etape.setCode('12345670')
       await etape.confirm()
       maintenant = ENVOI + 20_000
       await etape.resend()
@@ -156,17 +159,17 @@ describe('useEmailCode', () => {
       expect(etape.noticeKey.value).toBeNull()
     })
 
-    it('compte la minute et l’heure à partir du nouvel envoi', async () => {
+    it('compte la minute et les 15 minutes à partir du nouvel envoi', async () => {
       verifySignUpCode.mockRejectedValue(new AccountError('invalid-code'))
       const etape = codeOuvert()
-      maintenant = ENVOI + 59 * MINUTE
+      maintenant = ENVOI + 14 * MINUTE
       await etape.resend()
-      maintenant = ENVOI + 59 * MINUTE + 30_000
+      maintenant = ENVOI + 14 * MINUTE + 30_000
 
       expect(await etape.resend()).toBe('wait')
 
-      maintenant = ENVOI + 70 * MINUTE
-      etape.setCode('123456')
+      maintenant = ENVOI + 24 * MINUTE
+      etape.setCode('12345678')
       await etape.confirm()
       expect(etape.errorKey.value).toBe('auth.code.errors.incorrect')
     })
@@ -249,11 +252,11 @@ describe('useEmailCode', () => {
       const etape = codeDuMotDePasse()
       maintenant = ENVOI + MINUTE
       expect(await etape.resend()).toBe('sent')
-      etape.setCode('123456')
+      etape.setCode('12345678')
 
       expect(await etape.verify()).toBe(true)
       expect(resend).toHaveBeenCalledWith(ADRESSE)
-      expect(verify).toHaveBeenCalledWith(ADRESSE, '123456')
+      expect(verify).toHaveBeenCalledWith(ADRESSE, '12345678')
       expect(resendSignUpCode).not.toHaveBeenCalled()
       expect(verifySignUpCode).not.toHaveBeenCalled()
     })
@@ -268,22 +271,22 @@ describe('useEmailCode', () => {
 
     it('vérifie sans fermer l’étape : la suite peut encore échouer', async () => {
       const etape = codeDuMotDePasse()
-      etape.setCode('123456')
+      etape.setCode('12345678')
 
       expect(await etape.verify()).toBe(true)
       expect(etape.email.value).toBe(ADRESSE)
-      expect(etape.code.value).toBe('123456')
+      expect(etape.code.value).toBe('12345678')
     })
 
-    it('dit « a expiré » une heure après l’envoi, « pas le bon » avant', async () => {
+    it('dit « a expiré » 15 minutes après l’envoi, « pas le bon » avant', async () => {
       const etape = codeDuMotDePasse()
       verify.mockRejectedValue(new AccountError('invalid-code'))
-      etape.setCode('123456')
+      etape.setCode('12345678')
 
       expect(await etape.verify()).toBe(false)
       expect(etape.errorKey.value).toBe('auth.code.errors.incorrect')
 
-      maintenant = ENVOI + 60 * MINUTE
+      maintenant = ENVOI + 15 * MINUTE
       expect(await etape.verify()).toBe(false)
       expect(etape.errorKey.value).toBe('auth.code.errors.expired')
     })

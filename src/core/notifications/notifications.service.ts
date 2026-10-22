@@ -13,6 +13,7 @@ import {
 import { canScheduleExact } from './exact-reminders'
 import { registerReminderActions } from './reminder-actions'
 import { ensureRemindersChannel, remindersGranted, REMINDERS_CHANNEL_ID } from './reminders-channel'
+import { errorSummary } from '@/shared/utils/error-summary'
 
 function extraText(
   notification: PendingLocalNotificationSchema,
@@ -142,7 +143,7 @@ export async function rescheduleAll(reminders: Reminder[]): Promise<void> {
       scheduled += batch.length
     }
   } catch (cause) {
-    console.warn(`Rappels : ${scheduled} programmés sur ${reminders.length}`, cause)
+    console.warn(`Rappels : ${scheduled} programmés sur ${reminders.length}`, errorSummary(cause))
     throw cause
   }
   if (scheduleFirst) await cancelIds(obsolete)

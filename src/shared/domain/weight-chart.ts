@@ -1,4 +1,5 @@
 import { displayedWeight } from './weight-display'
+import type { WeightUnit } from './weight-unit'
 import { formatMonthShort, formatWeight, formatWeightAxis } from '../utils/format'
 
 /** Les courbes reçoivent les pesées dans l'ordre du temps. */
@@ -237,7 +238,7 @@ function timeChart(
   layout: Layout,
   low: number,
   high: number,
-  { width, font }: { width: number; font: ChartFont },
+  { width, font, unit }: { width: number; font: ChartFont; unit: WeightUnit },
 ): { chart: TimeChart; yOf: (weight: number) => number } {
   const plot = {
     left: layout.left,
@@ -261,7 +262,7 @@ function timeChart(
 
   const points = entries.map((entry) => ({
     x: xOf(entry.measuredOn),
-    y: yOf(displayedWeight(entry.weightKg)),
+    y: yOf(displayedWeight(unit, entry.weightKg)),
     weightKg: entry.weightKg,
     measuredOn: entry.measuredOn,
   }))
@@ -360,6 +361,7 @@ function carnetLowMargin(min: number, high: number, font: ChartFont): number {
 
 /** Carnet : échelle min / max ± 0,3 de l'unité, seuls le plus haut, le plus bas et la dernière pesée écrits. */
 export function buildCarnetWeightChart(
+  unit: WeightUnit,
   entries: readonly WeightChartEntry[],
   labels: CarnetChartLabels,
   { width = DEFAULT_CHART_WIDTH, ...measure }: ChartMeasure = {},
@@ -370,16 +372,16 @@ export function buildCarnetWeightChart(
   const weights = entries.map((entry) => entry.weightKg)
   const maxKg = Math.max(...weights)
   const minKg = Math.min(...weights)
-  const highest = displayedWeight(maxKg)
-  const lowest = displayedWeight(minKg)
+  const highest = displayedWeight(unit, maxKg)
+  const lowest = displayedWeight(unit, minKg)
   const high = highest + CARNET_MARGIN
   const minWritten = entries[entries.length - 1]!.weightKg !== minKg
   const low = lowest - (minWritten ? carnetLowMargin(lowest, high, font) : CARNET_MARGIN)
-  const { chart } = timeChart(entries, CARNET_LAYOUT, low, high, { width, font })
+  const { chart } = timeChart(entries, CARNET_LAYOUT, low, high, { width, font, unit })
   const last = chart.points[chart.points.length - 1]!
   const latest = latestPill(
     chart,
-    labels.latest(formatWeight(displayedWeight(last.weightKg))),
+    labels.latest(formatWeight(displayedWeight(unit, last.weightKg))),
     font,
   )
   const obstacles = [latest.box, ...chart.months.map((month) => month.box)]
@@ -430,16 +432,18 @@ export function weightAxisTicks(min: number, max: number): number[] {
 
 /** Historique : repères ronds dans l'unité affichée, aucun chiffre sur les points ; une pesée seule se centre. */
 export function buildHistoryWeightChart(
+  unit: WeightUnit,
   entries: readonly WeightChartEntry[],
   { width = DEFAULT_CHART_WIDTH, ...measure }: ChartMeasure = {},
 ): HistoryWeightChart | null {
   if (entries.length === 0) return null
 
-  const weights = entries.map((entry) => displayedWeight(entry.weightKg))
+  const weights = entries.map((entry) => displayedWeight(unit, entry.weightKg))
   const ticks = weightAxisTicks(Math.min(...weights), Math.max(...weights))
   const { chart, yOf } = timeChart(entries, HISTORY_LAYOUT, ticks[0]!, ticks[ticks.length - 1]!, {
     width,
     font: chartFont(measure),
+    unit,
   })
 
   return {
