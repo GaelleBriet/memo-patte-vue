@@ -139,7 +139,7 @@ Chaque `features/<nom>/` range son contenu par rôle technique, en sous-dossiers
 
 - Une photo par animal, recadrée et compressée côté app avant écriture (max 1024 px de côté, JPEG qualité ~80, ordre de grandeur 100-200 Ko).
 - Stockage local : `files/photos/<uuid de la photo>.jpg` via Capacitor Filesystem (`Directory.Data`). Ce chemin est **exclu** de l'Auto Backup Android (`docs/technical/auto-backup-android.md`) ; la base SQLite ne stocke que le nom du fichier.
-- Plus : bucket Supabase Storage **privé** `animal-photos`, objet `<user_id>/<nom du fichier local>` (décision du 2026-09-19). Politiques RLS sur `storage.objects` : lecture, écriture et suppression uniquement si le premier segment du chemin est `auth.uid()`, et écriture avec un droit Plus actif (`has_active_plus()`) ; lecture et suppression restent permises après l'expiration de Plus (revue de sécurité du 2026-10-22). Le tier gratuit Supabase offre 1 Go, soit plusieurs milliers de photos.
+- Plus : bucket Supabase Storage **privé** `animal-photos`, objet `<user_id>/<nom du fichier local>` (décision du 2026-09-19). Politiques RLS sur `storage.objects` : lecture, écriture et suppression uniquement si le premier segment du chemin est `auth.uid()`, et écriture avec un droit Plus actif (`has_active_plus()`) ; lecture et suppression restent permises sans droit Plus actif (jamais eu, expiré ou désactivé ; revue de sécurité du 2026-10-22). Le tier gratuit Supabase offre 1 Go, soit plusieurs milliers de photos.
 - La photo suit la file de synchronisation comme les autres entités (8.1, 8.2) : envoi à la souscription (8.6), rapatriement à la restauration (8.3), pull si modifiée sur un autre appareil.
 - Suppression de compte : effacer les objets du dossier `<user_id>/` avant l'utilisateur Auth.
 

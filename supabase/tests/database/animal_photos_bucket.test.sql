@@ -17,7 +17,9 @@ insert into public.plus_entitlements (user_id, active, product_type, expires_at)
   ('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', false, 'annual', now() + interval '1 month'),
   ('ffffffff-ffff-4fff-8fff-ffffffffffff', true, 'lifetime', null);
 
+insert into storage.buckets (id, name) values ('autre-bucket', 'autre-bucket');
 insert into storage.objects (bucket_id, name) values
+  ('autre-bucket', 'dddddddd-dddd-4ddd-8ddd-dddddddddddd/ailleurs.jpg'),
   ('animal-photos', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/milo.jpg'),
   ('animal-photos', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/luna.jpg'),
   ('animal-photos', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc/rex.jpg'),
@@ -202,6 +204,17 @@ select results_eq(
      where name = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd/max.jpg' returning name $$,
   $$ values ('dddddddd-dddd-4ddd-8ddd-dddddddddddd/max.jpg') $$,
   'Plus expiré : d efface sa photo');
+select lives_ok($$ delete from storage.objects $$, 'Plus expiré : d lance un effacement sans filtre');
+select pg_temp.as_owner();
+select results_eq(
+  $$ select bucket_id, name from storage.objects where name not like 'dddddddd-%' order by bucket_id, name $$,
+  $$ values ('animal-photos', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/0f1e2d3c-4b5a-4968-8776-a5b4c3d2e1f0.jpg'),
+            ('animal-photos', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/milo.jpg'),
+            ('animal-photos', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/luna.jpg') $$,
+  'un effacement sans filtre de d ne touche qu''à son dossier');
+select results_eq(
+  $$ select count(*)::int from storage.objects where bucket_id = 'autre-bucket' $$, $$ values (1) $$,
+  'un effacement sans filtre de d ne touche pas un autre bucket');
 
 select pg_temp.as_user('e');
 select throws_ok(
