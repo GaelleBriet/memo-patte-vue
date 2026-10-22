@@ -4,14 +4,22 @@ import { PhotoUploadRefusal, type PhotoUploadPort } from '@/core/sync/service/ph
 
 const BUCKET = 'animal-photos'
 
-/** Storage répond en HTTP 400 à presque tout refus : le vrai motif est dans `statusCode`. */
+/** Storage répond en HTTP 400 à presque tout refus : le vrai motif est dans `statusCode` ou `code`. */
 const DEFINITIVE_STATUS_CODES = new Set(['400', '413', '415'])
+const DEFINITIVE_CODES = new Set(['EntityTooLarge', 'InvalidMimeType', 'InvalidKey'])
+
+const text = (value: unknown) => (typeof value === 'string' && value !== '' ? value : null)
 
 function definitiveRefusal(error: unknown): PhotoUploadRefusal | null {
   if (typeof error !== 'object' || error === null) return null
-  const { statusCode, code } = error as { statusCode?: unknown; code?: unknown }
-  if (typeof statusCode !== 'string' || !DEFINITIVE_STATUS_CODES.has(statusCode)) return null
-  return new PhotoUploadRefusal(typeof code === 'string' ? `${statusCode} ${code}` : statusCode)
+  const fields = error as { statusCode?: unknown; code?: unknown }
+  const statusCode = text(fields.statusCode)
+  const code = text(fields.code)
+  const definitive =
+    (statusCode !== null && DEFINITIVE_STATUS_CODES.has(statusCode)) ||
+    (code !== null && DEFINITIVE_CODES.has(code))
+  if (!definitive) return null
+  return new PhotoUploadRefusal([statusCode, code].filter((part) => part !== null).join(' '))
 }
 
 export function createAnimalPhotoUpload(

@@ -51,6 +51,17 @@ describe('createAnimalPhotoUpload', () => {
     await expect(sent).rejects.toBeInstanceOf(PhotoUploadRefusal)
   })
 
+  it.each(['EntityTooLarge', 'InvalidMimeType', 'InvalidKey'])(
+    'rend un refus définitif pour %s même sans statusCode',
+    async (code) => {
+      const { client } = fakeClient({ name: 'StorageApiError', status: 400, code })
+
+      await expect(
+        createAnimalPhotoUpload(async () => client).upload('user-1', PHOTO, JPEG),
+      ).rejects.toEqual(new PhotoUploadRefusal(code))
+    },
+  )
+
   it.each([
     ['un refus de droit (compte sans Plus actif)', storageError('403', 'AccessDenied')],
     ['une panne du serveur', storageError('503', 'ServiceUnavailable')],
