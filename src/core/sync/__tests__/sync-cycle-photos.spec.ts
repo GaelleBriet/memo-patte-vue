@@ -1,7 +1,8 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { DbClient } from '@/core/db/db-client'
+import type { InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { ANIMAL_PHOTO_ENTITY } from '@/core/db/schema-statements'
+import { createSyncOutboxRepository } from '../repository/sync-outbox.repository'
 import {
   PhotoUploadRefusal,
   type LocalPhotoFiles,
@@ -10,7 +11,13 @@ import {
 import { createSyncCycle } from '../service/sync-cycle'
 import type { SyncPush, SyncRow, SyncableTable } from '../service/syncable-table'
 import { createFakeOutbox, type FakeOutboxEntry } from './fake-sync-outbox'
-import { createSyncTestDb } from './sync-test-db'
+import {
+  ANIMAL_ID,
+  createSyncTestDb,
+  enableSync,
+  insertAnimal,
+  setAnimalPhoto,
+} from './sync-test-db'
 
 const T_QUEUED = '2026-10-22T08:00:00.000Z'
 const MILO_PHOTO = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg'
@@ -82,7 +89,7 @@ const pushes = {
 }
 
 describe('createSyncCycle — photos', () => {
-  let db: DbClient & { close(): void }
+  let db: InMemoryDb
 
   beforeEach(async () => {
     db = await createSyncTestDb()
@@ -97,7 +104,11 @@ describe('createSyncCycle — photos', () => {
     outbox: ReturnType<typeof createFakeOutbox>,
     files: ReturnType<typeof fakeFiles>,
     uploads: PhotoUploadPort,
-    options: { order?: string[]; isEligible?: boolean } = {},
+    options: {
+      order?: string[]
+      isEligible?: boolean
+      isPhotoInCarnet?: (fileName: string) => Promise<boolean>
+    } = {},
   ) {
     return createSyncCycle({
       db,
@@ -106,9 +117,56 @@ describe('createSyncCycle — photos', () => {
       tables: [animalTable(options.order ?? [])],
       userId: () => 'user-1',
       isEligible: () => options.isEligible ?? true,
-      photos: { files, uploads },
+      photos: { files, uploads, isPhotoInCarnet: options.isPhotoInCarnet ?? (async () => true) },
     })
   }
+
+  describe('photo qui n’est plus portée par un animal', () => {
+    it('sort de la file sans lire ni envoyer le fichier, sans bloquer les autres photos', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const outbox = createFakeOutbox([photoEntry(MILO_PHOTO), photoEntry(LUNA_PHOTO)])
+      const files = fakeFiles({ [MILO_PHOTO]: jpeg(), [LUNA_PHOTO]: jpeg() })
+      const uploads = fakeUploads()
+
+      await cycleWith(outbox, files, uploads, {
+        isPhotoInCarnet: async (name) => name === LUNA_PHOTO,
+      }).runCycle()
+
+      expect(files.read).not.toHaveBeenCalledWith(MILO_PHOTO, expect.anything())
+      expect(uploads.sent.map(({ fileName }) => fileName)).toEqual([LUNA_PHOTO])
+      expect(outbox.entries()).toEqual([])
+      expect(warn).not.toHaveBeenCalled()
+    })
+
+    it('Milo : photo choisie hors ligne à 21 h, retirée à 21 h 01, réseau revenu à 21 h 01 min 30 — rien ne part', async () => {
+      const outbox = createSyncOutboxRepository(db)
+      await enableSync(db)
+      await insertAnimal(db, ANIMAL_ID, '2026-10-22T19:00:00.000Z', 'Milo', MILO_PHOTO)
+      await setAnimalPhoto(db, ANIMAL_ID, null, '2026-10-22T19:01:00.000Z')
+      const files = fakeFiles({ [MILO_PHOTO]: jpeg() })
+      const uploads = fakeUploads()
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-22T19:01:30.000Z') })
+
+      try {
+        await createSyncCycle({
+          db,
+          outbox,
+          pushes,
+          tables: [],
+          userId: () => 'user-1',
+          isEligible: () => true,
+          photos: { files, uploads, isPhotoInCarnet: (name) => outbox.isPhotoInCarnet(name) },
+        }).runCycle()
+      } finally {
+        vi.useRealTimers()
+      }
+
+      expect(uploads.sent).toEqual([])
+      expect(await outbox.listPending()).not.toContainEqual(
+        expect.objectContaining({ entity: ANIMAL_PHOTO_ENTITY }),
+      )
+    })
+  })
 
   it('envoie la photo en file sous le nom du fichier local, puis retire son entrée', async () => {
     const outbox = createFakeOutbox([photoEntry(MILO_PHOTO)])

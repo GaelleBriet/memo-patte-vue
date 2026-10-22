@@ -11,6 +11,8 @@ const MAX_PHOTO_BYTES = 2 * 1024 * 1024
 export interface PhotoPushDependencies {
   files: LocalPhotoFiles
   uploads: PhotoUploadPort
+  /** Vrai si un animal non supprimé porte encore cette photo. */
+  isPhotoInCarnet: (fileName: string) => Promise<boolean>
 }
 
 export interface PhotoPush {
@@ -25,7 +27,7 @@ const photoRefusalSignature = (cause: unknown) =>
 
 export function createPhotoPush(
   outbox: Pick<SyncCycleOutbox, 'listPending' | 'removeIfUnchanged' | 'recordFailedPush'>,
-  { files, uploads }: PhotoPushDependencies,
+  { files, uploads, isPhotoInCarnet }: PhotoPushDependencies,
 ): PhotoPush {
   const refusals = createPushRefusals({
     outbox,
@@ -35,6 +37,10 @@ export function createPhotoPush(
   })
 
   async function pushEntry(userId: string, entry: SyncOutboxEntry): Promise<void> {
+    if (!(await isPhotoInCarnet(entry.entityId))) {
+      await outbox.removeIfUnchanged(entry)
+      return
+    }
     const photo = await files.read(entry.entityId, MAX_PHOTO_BYTES)
     if (photo.kind === 'too-large' || (photo.kind === 'found' && !isJpeg(photo.bytes))) {
       console.warn('Photo trop lourde ou hors JPEG, sortie de la file sans envoi.')

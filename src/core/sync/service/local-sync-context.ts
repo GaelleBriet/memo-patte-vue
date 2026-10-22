@@ -34,6 +34,7 @@ export async function createLocalSyncContext(
   const photos = {
     files: { read: readPhoto },
     uploads: createAnimalPhotoUpload(loadSupabaseClient),
+    isPhotoInCarnet: (fileName: string) => outbox.isPhotoInCarnet(fileName),
   }
   const cycle = createSyncCycle({ ...deps, db, outbox, pushes, photos })
   const restore = createAccountRestore({

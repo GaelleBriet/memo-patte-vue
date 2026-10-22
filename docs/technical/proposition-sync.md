@@ -364,14 +364,16 @@ l'objet : `<user_id>/<nom du fichier local>`, tranché au §7-9 : `animal.photo_
 Envoi : dans le cycle, après les lignes et avant le pull, chaque photo en file est lue dans
 `files/photos/` puis envoyée en remplaçant l'objet s'il existe (un renvoi après une coupure ne casse
 rien), et son entrée sort de la file (`core/sync/service/photo-push.ts`, port `PhotoUploadPort`
-implémenté par `core/supabase/animal-photo-upload.ts`). Un fichier absent du téléphone sort de la
-file sans envoi ; un fichier de plus de 2 Mio ou qui n'est pas un JPEG aussi, sans appel au serveur.
+implémenté par `core/supabase/animal-photo-upload.ts`). Une photo qu'aucun animal non supprimé ne
+porte plus (retirée, remplacée, animal supprimé) sort de la file sans envoi, même si son fichier est
+encore là le temps d'« Annuler ». Un fichier absent du téléphone sort de la file sans envoi ; un
+fichier de plus de 2 Mio (taille lue par `stat`, sans lire le fichier) ou qui n'est pas un JPEG
+aussi, sans appel au serveur.
 Storage répond en HTTP 400 à presque tout refus, le motif est dans `statusCode` (relevé sur une pile
 locale) : 413, 415 et 400 sont définitifs et suivent la règle des lignes (trois refus identiques de
 la même version, puis sortie de la file) ; 403 (droit Plus pas encore ou plus actif, §4.2), une
 panne ou un réseau coupé se réessaient sans fin, comme un refus de droit sur une ligne. Une photo en
-échec ne retient ni les autres photos ni le pull. Une photo remplacée n'envoie que la nouvelle :
-l'ancienne est effacée du téléphone au remplacement, son entrée sort donc de la file sans envoi.
+échec ne retient ni les autres photos ni le pull. Une photo remplacée n'envoie donc que la nouvelle.
 
 À la restauration : les lignes d'abord, les photos ensuite et une par une, sans bloquer l'écran —
 l'app tolère déjà une photo absente (c'est le cas après un Auto Backup, qui les exclut). On ne

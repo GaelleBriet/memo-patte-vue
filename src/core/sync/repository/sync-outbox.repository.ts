@@ -1,5 +1,5 @@
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
-import { LIVE_ANIMAL_PHOTOS_SELECT } from '@/core/db/schema-statements'
+import { LIVE_ANIMAL_PHOTOS_FROM, LIVE_ANIMAL_PHOTOS_SELECT } from '@/core/db/schema-statements'
 import { getDb } from '@/core/db/sqlite'
 
 export interface SyncOutboxEntry {
@@ -192,6 +192,15 @@ export function createSyncOutboxRepository(db: DbClient) {
         { sql: 'DELETE FROM sync_outbox' },
         { sql: 'DELETE FROM sync_pull_cursor' },
       ])
+    },
+
+    /** Une photo retirée garde son fichier le temps d'« Annuler » : sa présence seule ne suffit pas. */
+    async isPhotoInCarnet(fileName: string): Promise<boolean> {
+      const rows = await db.query(
+        `SELECT 1 ${LIVE_ANIMAL_PHOTOS_FROM} AND photo_path = ? LIMIT 1`,
+        [fileName],
+      )
+      return rows.length > 0
     },
 
     async recordFailedPush(entry: Pick<SyncOutboxEntry, 'entity' | 'entityId'>): Promise<void> {
