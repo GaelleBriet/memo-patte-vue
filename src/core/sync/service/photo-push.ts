@@ -27,16 +27,12 @@ export function createPhotoPush(
   outbox: Pick<SyncCycleOutbox, 'listPending' | 'removeIfUnchanged' | 'recordFailedPush'>,
   { files, uploads }: PhotoPushDependencies,
 ): PhotoPush {
-  const refusals = createPushRefusals(photoRefusalSignature)
-
-  /** Rend vrai si l'entrée reste en file pour un prochain essai. */
-  async function recordFailure(entry: SyncOutboxEntry, cause: unknown): Promise<boolean> {
-    await outbox.recordFailedPush(entry)
-    if (!refusals.isGivenUp(entry, cause)) return true
-    await outbox.removeIfUnchanged(entry)
-    console.warn('Photo refusée par le serveur, sortie de la file :', errorSummary(cause))
-    return false
-  }
+  const refusals = createPushRefusals({
+    outbox,
+    signature: photoRefusalSignature,
+    onGivenUp: (_entry, cause) =>
+      console.warn('Photo refusée par le serveur, sortie de la file :', errorSummary(cause)),
+  })
 
   async function pushEntry(userId: string, entry: SyncOutboxEntry): Promise<void> {
     const photo = await files.read(entry.entityId, MAX_PHOTO_BYTES)
@@ -59,7 +55,7 @@ export function createPhotoPush(
           await pushEntry(userId, entry)
           refusals.forget(entry)
         } catch (cause) {
-          if (await recordFailure(entry, cause)) failure ??= { cause }
+          if (await refusals.recordFailure(entry, cause)) failure ??= { cause }
         }
       }
       return failure

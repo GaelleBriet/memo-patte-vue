@@ -78,7 +78,14 @@ const sameRow = (sent: SyncRow, kept: SyncRow) =>
 
 export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
   const tablesByEntity = new Map(deps.tables.map((table) => [table.entity, table]))
-  const refusals = createPushRefusals()
+  const refusals = createPushRefusals({
+    outbox: deps.outbox,
+    onGivenUp: (entry, cause) =>
+      console.warn(
+        `Ligne refusée par le serveur, sortie de la file (${entry.entity}) :`,
+        errorSummary(cause),
+      ),
+  })
   const photoPush = deps.photos && createPhotoPush(deps.outbox, deps.photos)
 
   /** Les écritures de la synchro ne repartent pas dans la file d'envoi. */
@@ -106,18 +113,6 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
     } else {
       await deps.outbox.removeIfUnchanged(entry)
     }
-  }
-
-  /** Rend vrai si l'entrée reste en file pour un prochain essai. */
-  async function recordFailure(entry: SyncOutboxEntry, cause: unknown): Promise<boolean> {
-    await deps.outbox.recordFailedPush(entry)
-    if (!refusals.isGivenUp(entry, cause)) return true
-    await deps.outbox.removeIfUnchanged(entry)
-    console.warn(
-      `Ligne refusée par le serveur, sortie de la file (${entry.entity}) :`,
-      errorSummary(cause),
-    )
-    return false
   }
 
   /**
@@ -148,7 +143,7 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
           await pushEntry(userId, entry, envoi, keptRows)
           refusals.forget(entry)
         } catch (cause) {
-          if (await recordFailure(entry, cause)) failure ??= { cause }
+          if (await refusals.recordFailure(entry, cause)) failure ??= { cause }
         }
       }
 
