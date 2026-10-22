@@ -69,6 +69,7 @@ function fakeRestoreFlow(resume: () => Promise<boolean> = async () => false) {
 }
 
 const withoutSession = {
+  restoreMissingPhotos: vi.fn<(userId: string) => Promise<void>>(async () => {}),
   sessionActive: () => false,
   checkAccountBackup: vi.fn<() => Promise<AccountBackupCheck>>(async () => ({ kind: 'active' })),
   restoreFlow: fakeRestoreFlow(),
@@ -273,6 +274,7 @@ describe('installSync', () => {
         steps.push('restore')
         return true
       })
+      const restoreMissingPhotos = vi.fn<(userId: string) => Promise<void>>(async () => {})
       const deps: SyncDependencies = {
         outbox,
         runCycle,
@@ -280,8 +282,19 @@ describe('installSync', () => {
         sessionActive: () => active.value,
         checkAccountBackup,
         restoreFlow,
+        restoreMissingPhotos,
       }
-      return { deps, outbox, userId, active, steps, checkAccountBackup, runCycle, restoreFlow }
+      return {
+        deps,
+        outbox,
+        userId,
+        active,
+        steps,
+        checkAccountBackup,
+        runCycle,
+        restoreFlow,
+        restoreMissingPhotos,
+      }
     }
 
     it('contrôle la sauvegarde dès que la session du compte est active, une fois par lancement', async () => {
@@ -386,6 +399,70 @@ describe('installSync', () => {
       await runDebounce()
 
       expect(runCycle).toHaveBeenCalledOnce()
+      stop()
+    })
+
+    it('après une restauration réussie, télécharge les photos du carnet sans retenir le contrôle suivant', async () => {
+      const { deps, userId, active, steps, restoreFlow, checkAccountBackup, restoreMissingPhotos } =
+        accountSetup({ kind: 'restore-pending', mode: 'merge' })
+      restoreMissingPhotos.mockImplementation(async (id) => {
+        steps.push(`photos:${id}`)
+        await new Promise<never>(() => {})
+      })
+      userId.value = 'user-1'
+      active.value = true
+      const stop = await installSync(deps)
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(steps).toEqual(['check:user-1', 'restore', 'photos:user-1'])
+      restoreFlow.retry()
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(checkAccountBackup).toHaveBeenCalledTimes(2)
+      stop()
+    })
+
+    it('au lancement d’un carnet déjà lié au compte, retente les photos qui manquent encore', async () => {
+      const { deps, userId, active, restoreMissingPhotos } = accountSetup({ kind: 'active' })
+      userId.value = 'user-1'
+      active.value = true
+
+      const stop = await installSync(deps)
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(restoreMissingPhotos).toHaveBeenCalledExactlyOnceWith('user-1')
+      stop()
+    })
+
+    it.each<AccountBackupCheck>([
+      {
+        kind: 'backup-found',
+        summary: { animalCount: 1, lastBackupAt: '2026-10-20T19:04:00.000Z' },
+      },
+      { kind: 'seeded' },
+      { kind: 'unreachable' },
+      { kind: 'signed-out' },
+    ])('ne télécharge aucune photo tant que rien n’est restauré ($kind)', async (outcome) => {
+      const { deps, userId, active, restoreMissingPhotos } = accountSetup(outcome)
+      userId.value = 'user-1'
+      active.value = true
+
+      const stop = await installSync(deps)
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(restoreMissingPhotos).not.toHaveBeenCalled()
+      stop()
+    })
+
+    it('ne télécharge aucune photo sans session active', async () => {
+      const { deps, active, userId, restoreFlow, restoreMissingPhotos } = accountSetup()
+      userId.value = 'user-1'
+      active.value = false
+      const stop = await installSync(deps)
+
+      await restoreFlow.resume()
+
+      expect(restoreMissingPhotos).not.toHaveBeenCalled()
       stop()
     })
 

@@ -49,6 +49,8 @@ export interface SyncDependencies {
     | 'resume'
     | 'onRestored'
   >
+  /** Ne lève pas : une photo qui manque encore se retente au lancement suivant. */
+  restoreMissingPhotos: (userId: string) => Promise<void>
 }
 
 /**
@@ -58,7 +60,8 @@ export interface SyncDependencies {
  * Un compte qui en remplace un autre repart, comme une première connexion, du contrôle de sa
  * sauvegarde, fait une fois par lancement et par compte dès que sa session est active. Une
  * restauration choisie reprend seule au lancement, au retour au premier plan et du réseau, comme un
- * contrôle que le serveur n'a pas pu faire.
+ * contrôle que le serveur n'a pas pu faire. Les photos du carnet viennent après lui, sans le retenir :
+ * à la fin d'une restauration, puis à chaque lancement d'un carnet déjà lié au compte.
  */
 export async function installSync(deps: SyncDependencies): Promise<() => void> {
   const scheduler = createSyncScheduler({ runCycle: deps.runCycle })
@@ -67,6 +70,11 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
 
   const enqueue = (task: () => Promise<void>) => {
     accountWork = accountWork.then(task)
+  }
+
+  function restorePhotos(): void {
+    const userId = deps.userId()
+    if (deps.sessionActive() && userId !== null) void deps.restoreMissingPhotos(userId)
   }
 
   async function runRestore(): Promise<void> {
@@ -79,6 +87,7 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
       if (outcome === null) deps.restoreFlow.noAnswer()
       else if (outcome.kind === 'backup-found') deps.restoreFlow.offer(outcome.summary)
       else if (outcome.kind === 'restore-pending') await runRestore()
+      else if (outcome.kind === 'active') restorePhotos()
       else if (outcome.kind === 'unreachable') {
         checkedFor = null
         deps.restoreFlow.unreachable()
@@ -107,7 +116,10 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
     scheduler.notifyChange()
   }
 
-  const stopRestored = deps.restoreFlow.onRestored(() => scheduler.notifyChange())
+  const stopRestored = deps.restoreFlow.onRestored(() => {
+    scheduler.notifyChange()
+    restorePhotos()
+  })
   const stopRetry = deps.restoreFlow.onRetryCheck(() => {
     checkedFor = null
     checkOnce()
@@ -178,7 +190,7 @@ export async function createDefaultSyncDependencies(): Promise<SyncDependencies>
     await getCarnetSettingsRepository(),
   ]
   const userId = () => useAuthStore().userId
-  const { outbox, cycle, restore } = await createLocalSyncContext({
+  const { outbox, cycle, restore, photoRestore } = await createLocalSyncContext({
     tables,
     userId,
     isEligible: () => useAuthStore().hasPlusAccount && usePurchaseStore().status.plan !== 'none',
@@ -201,5 +213,6 @@ export async function createDefaultSyncDependencies(): Promise<SyncDependencies>
     sessionActive: () => useAuthStore().sessionState === 'active',
     checkAccountBackup: () => accountBackup.check(),
     restoreFlow,
+    restoreMissingPhotos: (account) => photoRestore.restoreMissing(account),
   }
 }
