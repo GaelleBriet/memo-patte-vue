@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { photoExists, readPhoto, writeDownloadedPhoto } from '@/core/photos/photo-storage'
 import { photoFileArrived } from '@/core/photos/use-photo-urls'
@@ -34,6 +34,10 @@ const MILO_PHOTO = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg'
 const LUNA_PHOTO = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb.jpg'
 
 describe('createLocalSyncContext', () => {
+  beforeEach(() => {
+    session.active = true
+  })
+
   it('donne au cycle les fichiers du téléphone et la file pour savoir si une photo est au carnet', async () => {
     testDb.current = await createSyncTestDb()
     await insertAnimal(testDb.current, ANIMAL_ID, '2026-10-22T19:00:00.000Z', 'Milo', MILO_PHOTO)
