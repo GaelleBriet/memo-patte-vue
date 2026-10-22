@@ -474,4 +474,45 @@ describe('usePurchaseStore — offre en attente d’un compte', () => {
 
     expect(store.pendingCheckout).toBeNull()
   })
+
+  it('garde une demande de restauration jusqu’à ce qu’on la reprenne, une seule fois', () => {
+    const store = usePurchaseStore()
+
+    store.rememberRestore()
+
+    expect(store.takePendingRestore()).toBe(true)
+    expect(store.takePendingRestore()).toBe(false)
+  })
+
+  it('oublie la demande de restauration avec le compte quitté, soldé ou sur demande', async () => {
+    const store = usePurchaseStore()
+    store.rememberRestore()
+    await store.logOut()
+    expect(store.takePendingRestore()).toBe(false)
+
+    store.rememberRestore()
+    store.reset()
+    expect(store.takePendingRestore()).toBe(false)
+
+    store.rememberRestore()
+    store.forgetRestore()
+    expect(store.takePendingRestore()).toBe(false)
+  })
+
+  it('n’écrase pas un Plus restauré par la réponse plus ancienne d’un rattachement parti avant', async () => {
+    let repondreLent: (status: PlusStatus) => void = () => {}
+    service.logIn
+      .mockReturnValueOnce(new Promise((resolve) => (repondreLent = resolve)))
+      .mockResolvedValueOnce(NO_PLUS)
+    service.restore.mockResolvedValue(LIFETIME)
+    const store = usePurchaseStore()
+
+    const lent = store.logIn('compte-b')
+    await store.logIn('compte-b')
+    await store.restore()
+    repondreLent(NO_PLUS)
+
+    await expect(lent).resolves.toEqual(LIFETIME)
+    expect(store.status).toEqual(LIFETIME)
+  })
 })

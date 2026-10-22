@@ -20,6 +20,10 @@ import vuetify from '@/core/theme/vuetify'
 import { dismissToast, toastMessage, toastTone } from '@/shared/utils/toast'
 import { memoryStorage } from './billing-fixture'
 
+const authAvailable = vi.hoisted(() => vi.fn<() => boolean>(() => true))
+
+vi.mock('@/shared/utils/auth-available', () => ({ authAvailable }))
+
 vi.mock('../service/billing.service', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   billingService: {
@@ -766,6 +770,10 @@ describe('PlusView — session à reconnecter', () => {
 })
 
 describe('PlusView — restauration', () => {
+  beforeEach(() => {
+    provideCheckoutAccount(compte(USER_ID))
+  })
+
   it('rend son achat à qui en a un', async () => {
     service.restore.mockResolvedValue(ANNUEL)
     const wrapper = await monter()
@@ -798,6 +806,7 @@ describe('PlusView — restauration', () => {
 
     void bouton.trigger('click')
     await bouton.trigger('click')
+    await flushPromises()
 
     expect(service.restore).toHaveBeenCalledTimes(1)
   })
@@ -812,6 +821,7 @@ describe('PlusView — restauration', () => {
     const wrapper = await monter()
 
     await wrapper.get('.plus__restore').trigger('click')
+    await flushPromises()
 
     expect(wrapper.get('.plus__restore').classes()).toContain('v-btn--loading')
     expect(wrapper.get('.plus__submit').attributes('disabled')).toBeDefined()
@@ -833,5 +843,106 @@ describe('PlusView — restauration', () => {
 
     expect(toastMessage.value).toBe('La restauration n’a pas abouti. Réessaie.')
     expect(toastTone.value).toBe('error')
+  })
+})
+
+describe('PlusView — restaurer mes achats : le compte d’abord', () => {
+  it('sans compte, ouvre la connexion qui ramène ici, sans rien demander à Google Play', async () => {
+    const wrapper = await monter()
+    const push = vi.spyOn(routeur, 'push').mockResolvedValue()
+
+    await wrapper.get('.plus__restore').trigger('click')
+    await flushPromises()
+
+    expect(push).toHaveBeenCalledWith({ name: 'sign-in', query: { from: 'plus' } })
+    expect(service.logIn).not.toHaveBeenCalled()
+    expect(service.restore).not.toHaveBeenCalled()
+    expect(wrapper.get('.plus__restore').classes()).not.toContain('v-btn--loading')
+  })
+
+  it('avec un compte, le donne à RevenueCat avant de restaurer', async () => {
+    provideCheckoutAccount(compte(USER_ID))
+    service.restore.mockResolvedValue(ANNUEL)
+    const wrapper = await monter()
+
+    await wrapper.get('.plus__restore').trigger('click')
+    await flushPromises()
+
+    expect(service.logIn).toHaveBeenCalledWith(USER_ID)
+    expect(service.logIn.mock.invocationCallOrder[0]!).toBeLessThan(
+      service.restore.mock.invocationCallOrder[0]!,
+    )
+  })
+
+  it('de retour connecté, restaure tout seul sur le compte', async () => {
+    usePurchaseStore().rememberRestore()
+    provideCheckoutAccount(compte(USER_ID))
+    service.restore.mockResolvedValue(ANNUEL)
+    const wrapper = await monter()
+
+    expect(service.restore).toHaveBeenCalledOnce()
+    expect(wrapper.get('.plus-outcome__title').text()).toBe('Bienvenue dans Plus')
+  })
+
+  it('de retour sans s’être connecté, ne restaure rien', async () => {
+    usePurchaseStore().rememberRestore()
+    await monter()
+
+    expect(service.restore).not.toHaveBeenCalled()
+  })
+
+  it('hors ligne, reste ici et le dit, sans rien restaurer', async () => {
+    provideCheckoutAccount(compte(USER_ID, { session: false, refused: false }))
+    const wrapper = await monter()
+    const push = vi.spyOn(routeur, 'push').mockResolvedValue()
+
+    await wrapper.get('.plus__restore').trigger('click')
+    await flushPromises()
+
+    expect(push).not.toHaveBeenCalled()
+    expect(service.restore).not.toHaveBeenCalled()
+    expect(toastMessage.value).toBe('Pas de connexion internet. Vérifie ton réseau et réessaie.')
+  })
+
+  it('session refusée par le serveur : la connexion, sans rien restaurer', async () => {
+    provideCheckoutAccount(compte(USER_ID, { session: false, refused: true }))
+    const wrapper = await monter()
+    const push = vi.spyOn(routeur, 'push').mockResolvedValue()
+
+    await wrapper.get('.plus__restore').trigger('click')
+    await flushPromises()
+
+    expect(push).toHaveBeenCalledWith({ name: 'sign-in', query: { from: 'plus' } })
+    expect(service.logIn).not.toHaveBeenCalled()
+  })
+})
+
+describe('PlusView — « J’ai déjà MémoPatte Plus » (V26)', () => {
+  it('se place juste avant « Restaurer mes achats »', async () => {
+    const wrapper = await monter()
+    const liens = wrapper.findAll('.plus__links > *').map((lien) => lien.text())
+
+    expect(liens.slice(0, 2)).toEqual(['J’ai déjà MémoPatte Plus', 'Restaurer mes achats'])
+  })
+
+  it('mène au même parcours que Paramètres › Plus : connexion puis restauration du carnet', async () => {
+    const wrapper = await monter()
+    const push = vi.spyOn(routeur, 'push').mockResolvedValue()
+
+    await wrapper.get('.plus__already').trigger('click')
+
+    expect(push).toHaveBeenCalledWith({ name: 'sign-in', query: { from: 'plus', restore: '1' } })
+  })
+
+  it('n’apparaît pas, ni « Restaurer mes achats », quand le compte n’est pas disponible sur cette version', async () => {
+    authAvailable.mockReturnValue(false)
+    try {
+      const wrapper = await monter()
+
+      expect(wrapper.find('.plus__already').exists()).toBe(false)
+      expect(wrapper.find('.plus__restore').exists()).toBe(false)
+    } finally {
+      authAvailable.mockReturnValue(true)
+    }
   })
 })

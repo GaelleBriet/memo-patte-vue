@@ -29,6 +29,7 @@ function compte(
 
 function port(overrides: Partial<CheckoutPort> = {}) {
   let pending: PaidPlan | null = null
+  let pendingRestore = false
   const calls: string[] = []
   const value: CheckoutPort = {
     status: NO_PLUS,
@@ -47,6 +48,18 @@ function port(overrides: Partial<CheckoutPort> = {}) {
       const plan = pending
       pending = null
       return plan
+    }),
+    restore: vi.fn<CheckoutPort['restore']>(async () => {
+      calls.push('restore')
+      return ANNUEL
+    }),
+    rememberRestore: vi.fn<CheckoutPort['rememberRestore']>(() => {
+      pendingRestore = true
+    }),
+    takePendingRestore: vi.fn<CheckoutPort['takePendingRestore']>(() => {
+      const asked = pendingRestore
+      pendingRestore = false
+      return asked
     }),
     ...overrides,
   }
@@ -237,5 +250,135 @@ describe('resume', () => {
     value.status = ANNUEL
 
     expect(resume()).toEqual({ plan: 'annual', pay: false })
+  })
+})
+
+describe('restorePurchases', () => {
+  it('sans compte, retient la demande et ne contacte pas Google Play', async () => {
+    const { value } = port()
+    const { restorePurchases } = createCheckout(compte(null), () => value)
+
+    await expect(restorePurchases()).resolves.toEqual({ kind: 'needs-account' })
+
+    expect(value.logIn).not.toHaveBeenCalled()
+    expect(value.restore).not.toHaveBeenCalled()
+    expect(value.takePendingRestore()).toBe(true)
+  })
+
+  it('avec un compte, le donne à RevenueCat avant de restaurer, jamais sur un identifiant anonyme', async () => {
+    const { value, calls } = port()
+    const { restorePurchases } = createCheckout(compte(USER_ID), () => value)
+
+    await expect(restorePurchases()).resolves.toEqual({ kind: 'restored', status: ANNUEL })
+
+    expect(calls).toEqual([`logIn:${USER_ID}`, 'restore'])
+  })
+
+  it('ne restaure pas quand le compte n’a pas pu être donné à RevenueCat', async () => {
+    const { value } = port({
+      logIn: vi.fn<CheckoutPort['logIn']>(async () => Promise.reject(new Error('réseau'))),
+    })
+    const { restorePurchases } = createCheckout(compte(USER_ID), () => value)
+
+    await expect(restorePurchases()).rejects.toThrow('réseau')
+
+    expect(value.restore).not.toHaveBeenCalled()
+  })
+
+  it('rend le droit du compte sans redemander à Google Play quand il en a déjà un', async () => {
+    const { value } = port({ logIn: vi.fn<CheckoutPort['logIn']>(async () => ANNUEL) })
+    const { restorePurchases } = createCheckout(compte(USER_ID), () => value)
+
+    await expect(restorePurchases()).resolves.toEqual({ kind: 'restored', status: ANNUEL })
+
+    expect(value.restore).not.toHaveBeenCalled()
+  })
+
+  it('session refusée par le serveur : retient la demande et passe par la connexion', async () => {
+    const { value } = port()
+    const { restorePurchases } = createCheckout(
+      compte(USER_ID, { session: false, refused: true }),
+      () => value,
+    )
+
+    await expect(restorePurchases()).resolves.toEqual({ kind: 'needs-sign-in' })
+
+    expect(value.logIn).not.toHaveBeenCalled()
+    expect(value.restore).not.toHaveBeenCalled()
+    expect(value.takePendingRestore()).toBe(true)
+  })
+
+  it('hors ligne : rien n’est retenu, rien n’est restauré', async () => {
+    const { value } = port()
+    const { restorePurchases } = createCheckout(
+      compte(USER_ID, { session: false, refused: false }),
+      () => value,
+    )
+
+    await expect(restorePurchases()).resolves.toEqual({ kind: 'offline' })
+
+    expect(value.logIn).not.toHaveBeenCalled()
+    expect(value.restore).not.toHaveBeenCalled()
+    expect(value.takePendingRestore()).toBe(false)
+  })
+
+  it('restaure une fois la session rafraîchie avec succès', async () => {
+    const { value, calls } = port()
+    const { restorePurchases } = createCheckout(
+      compte(USER_ID, { session: false, refreshed: true }),
+      () => value,
+    )
+
+    await restorePurchases()
+
+    expect(calls).toEqual([`logIn:${USER_ID}`, 'restore'])
+  })
+})
+
+describe('resumeRestore', () => {
+  it('ne reprend rien quand aucune demande n’attend', () => {
+    const { value } = port()
+
+    expect(createCheckout(compte(USER_ID), () => value).resumeRestore()).toBe(false)
+  })
+
+  it('reprend la demande une seule fois, et seulement connecté avec une session active', () => {
+    let session = false
+    const { value } = port()
+    const { resumeRestore } = createCheckout(
+      { ...compte(USER_ID), hasSession: () => session },
+      () => value,
+    )
+
+    value.rememberRestore()
+    expect(resumeRestore()).toBe(false)
+    expect(resumeRestore()).toBe(false)
+
+    session = true
+    value.rememberRestore()
+    expect(resumeRestore()).toBe(true)
+    expect(resumeRestore()).toBe(false)
+  })
+})
+
+describe('resume et restauration en attente', () => {
+  it('quand le paiement repart, la restauration demandée avant ne se relancera plus', () => {
+    const { value } = port()
+    const { resume, resumeRestore } = createCheckout(compte(USER_ID), () => value)
+    value.rememberRestore()
+    value.rememberCheckout('annual')
+
+    expect(resume()).toEqual({ plan: 'annual', pay: true })
+    expect(resumeRestore()).toBe(false)
+  })
+
+  it('sans paiement qui repart, la restauration demandée reste en attente', () => {
+    const { value } = port()
+    const { resume } = createCheckout(compte(null), () => value)
+    value.rememberRestore()
+    value.rememberCheckout('annual')
+
+    expect(resume()).toEqual({ plan: 'annual', pay: false })
+    expect(value.takePendingRestore()).toBe(true)
   })
 })

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 
 import { BillingError, billingService, type BillingService } from '../service/billing.service'
+import { provideCheckoutAccount, type CheckoutAccount } from '../service/checkout.service'
 import PlusSection from '../views/PlusSection.vue'
 import { NO_PLUS, type PlusStatus } from '../logic/plus-status'
 import { writeStoredPlusStatus } from '../logic/plus-status-storage'
@@ -13,6 +14,10 @@ import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 import appRouter from '@/router'
 import { dismissToast, toastMessage, toastTone } from '@/shared/utils/toast'
+
+const authAvailable = vi.hoisted(() => vi.fn<() => boolean>(() => true))
+
+vi.mock('@/shared/utils/auth-available', () => ({ authAvailable }))
 
 vi.mock('../service/billing.service', async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -40,6 +45,19 @@ const CONFIRMED_EXPIRED = {
 } as const
 
 const Vide = { render: () => null }
+const USER_ID = '4d1c6a52-8f0e-4b8e-9a51-2f6a3c9d7e10'
+
+function compte(
+  userId: string | null,
+  { session = true, refreshed = false, refused = true } = {},
+): CheckoutAccount {
+  return {
+    accountId: () => userId,
+    hasSession: () => session,
+    refreshSession: async () => refreshed,
+    sessionRefused: () => refused,
+  }
+}
 
 let router: Router
 let wrapper: VueWrapper | null = null
@@ -55,6 +73,9 @@ beforeEach(() => {
   })
   vi.clearAllMocks()
   service.isAvailable.mockReturnValue(true)
+  service.logIn.mockResolvedValue(NO_PLUS)
+  authAvailable.mockReturnValue(true)
+  provideCheckoutAccount(compte(USER_ID))
   vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-16T10:00:00Z') })
   vi.stubGlobal('localStorage', memoryStorage())
   setActivePinia(createPinia())
@@ -252,6 +273,13 @@ describe('PlusSection — restaurer mon achat', () => {
     return wrapper.get('.settings-row--plus-restore')
   }
 
+  it('reste caché quand le compte n’est pas disponible sur cette version', async () => {
+    authAvailable.mockReturnValue(false)
+    const wrapper = await monter()
+
+    expect(wrapper.find('.settings-row--plus-restore').exists()).toBe(false)
+  })
+
   it('reste caché quand les achats ne sont pas disponibles sur cet appareil', async () => {
     service.isAvailable.mockReturnValue(false)
     const wrapper = await monter()
@@ -280,6 +308,7 @@ describe('PlusSection — restaurer mon achat', () => {
 
     await ligneRestaurer(wrapper).trigger('click')
     await ligneRestaurer(wrapper).trigger('click')
+    await flushPromises()
 
     expect(service.restore).toHaveBeenCalledOnce()
     expect(ligneRestaurer(wrapper).attributes('disabled')).toBeDefined()
@@ -314,5 +343,83 @@ describe('PlusSection — restaurer mon achat', () => {
     expect(toastMessage.value).toBe('La restauration n’a pas abouti. Réessaie.')
     expect(toastTone.value).toBe('error')
     expect(ligneRestaurer(wrapper).attributes('disabled')).toBeUndefined()
+  })
+})
+
+describe('PlusSection — restaurer mes achats : le compte d’abord', () => {
+  function ligneRestaurer(wrapper: VueWrapper) {
+    return wrapper.get('.settings-row--plus-restore')
+  }
+
+  it('sans compte, ouvre la connexion qui ramène ici, sans rien demander à Google Play', async () => {
+    provideCheckoutAccount(compte(null))
+    const wrapper = await monter()
+    const push = vi.spyOn(router, 'push').mockResolvedValue()
+
+    await ligneRestaurer(wrapper).trigger('click')
+    await flushPromises()
+
+    expect(push).toHaveBeenCalledWith({ name: 'sign-in', query: { from: 'settings-plus' } })
+    expect(service.logIn).not.toHaveBeenCalled()
+    expect(service.restore).not.toHaveBeenCalled()
+  })
+
+  it('avec un compte, le donne à RevenueCat avant de restaurer', async () => {
+    service.restore.mockResolvedValue(ANNUAL)
+    const wrapper = await monter()
+
+    await ligneRestaurer(wrapper).trigger('click')
+    await flushPromises()
+
+    expect(service.logIn).toHaveBeenCalledWith(USER_ID)
+    expect(service.logIn.mock.invocationCallOrder[0]!).toBeLessThan(
+      service.restore.mock.invocationCallOrder[0]!,
+    )
+  })
+
+  it('de retour connecté, restaure tout seul sur le compte', async () => {
+    usePurchaseStore().rememberRestore()
+    service.restore.mockResolvedValue(ANNUAL)
+    await monter()
+
+    expect(service.logIn).toHaveBeenCalledWith(USER_ID)
+    expect(service.restore).toHaveBeenCalledOnce()
+    expect(toastMessage.value).toBe('Te voilà de retour dans Plus.')
+  })
+
+  it('de retour sans s’être connecté, ne restaure rien', async () => {
+    provideCheckoutAccount(compte(null))
+    usePurchaseStore().rememberRestore()
+    await monter()
+
+    expect(service.logIn).not.toHaveBeenCalled()
+    expect(service.restore).not.toHaveBeenCalled()
+  })
+
+  it('hors ligne, reste ici et le dit, sans rien restaurer', async () => {
+    provideCheckoutAccount(compte(USER_ID, { session: false, refused: false }))
+    const wrapper = await monter()
+    const push = vi.spyOn(router, 'push').mockResolvedValue()
+
+    await ligneRestaurer(wrapper).trigger('click')
+    await flushPromises()
+
+    expect(push).not.toHaveBeenCalled()
+    expect(service.restore).not.toHaveBeenCalled()
+    expect(toastMessage.value).toBe('Pas de connexion internet. Vérifie ton réseau et réessaie.')
+    expect(toastTone.value).toBe('error')
+  })
+
+  it('session refusée par le serveur : la connexion, sans rien restaurer', async () => {
+    provideCheckoutAccount(compte(USER_ID, { session: false, refused: true }))
+    const wrapper = await monter()
+    const push = vi.spyOn(router, 'push').mockResolvedValue()
+
+    await ligneRestaurer(wrapper).trigger('click')
+    await flushPromises()
+
+    expect(push).toHaveBeenCalledWith({ name: 'sign-in', query: { from: 'settings-plus' } })
+    expect(service.logIn).not.toHaveBeenCalled()
+    expect(service.restore).not.toHaveBeenCalled()
   })
 })

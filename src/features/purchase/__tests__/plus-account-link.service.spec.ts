@@ -18,6 +18,7 @@ function fakePurchase(available = true) {
     logIn: vi.fn<PlusAccountPort['logIn']>().mockResolvedValue(undefined),
     logOut: vi.fn<PlusAccountPort['logOut']>().mockResolvedValue(undefined),
     forgetCheckout: vi.fn<PlusAccountPort['forgetCheckout']>(),
+    forgetRestore: vi.fn<PlusAccountPort['forgetRestore']>(),
   }
 }
 
@@ -48,6 +49,7 @@ describe('createPlusAccountLink', () => {
     createPlusAccountLink(() => purchase).forgetPendingCheckout()
 
     expect(purchase.forgetCheckout).toHaveBeenCalledOnce()
+    expect(purchase.forgetRestore).toHaveBeenCalledOnce()
   })
 
   it('reste sans effet quand les achats sont indisponibles', async () => {
