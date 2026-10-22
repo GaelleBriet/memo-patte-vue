@@ -3,7 +3,10 @@ async function digest(value: string): Promise<Uint8Array> {
 }
 
 /** Deux empreintes de même taille, comparées octet par octet sans s'arrêter au premier écart. */
-export async function isAdminSecret(given: string, expected: string | undefined): Promise<boolean> {
+export async function isSharedSecret(
+  given: string,
+  expected: string | undefined,
+): Promise<boolean> {
   if (!expected) return false
   const [actual, wanted] = await Promise.all([digest(given), digest(expected)])
   let difference = 0

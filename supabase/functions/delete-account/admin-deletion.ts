@@ -1,5 +1,5 @@
 import { eraseAccount, removeAllPhotos, type AccountErasurePorts } from './account-erasure.ts'
-import { isAdminSecret } from './admin-secret.ts'
+import { isSharedSecret } from '../_shared/shared-secret.ts'
 import { deletionFailed, json } from './http-response.ts'
 
 export const ADMIN_SECRET_HEADER = 'x-memopatte-admin-secret'
@@ -39,7 +39,7 @@ export async function handleAdminDeletion(
   ports: AdminDeletionPorts,
 ): Promise<Response> {
   const secret = request.headers.get(ADMIN_SECRET_HEADER) ?? ''
-  if (!(await isAdminSecret(secret, ports.adminSecret))) {
+  if (!(await isSharedSecret(secret, ports.adminSecret))) {
     return json(401, { error: 'unauthorized' })
   }
   const order = await orderOf(request)
