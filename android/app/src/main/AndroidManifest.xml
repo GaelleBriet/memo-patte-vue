@@ -57,7 +57,7 @@
         tools:node="remove" />
 
     <!--
-        Export enregistré dans Documents/MémoPatte, demandée au premier enregistrement : Android 7 à 10
+        Export enregistré dans Documents/MémoPatte, demandée au premier enregistrement : Android 10
         seulement, dès Android 11 l'app écrit ses propres fichiers sans permission.
     -->
     <uses-permission
