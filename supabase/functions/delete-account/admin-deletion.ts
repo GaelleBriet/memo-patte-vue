@@ -30,16 +30,25 @@ async function orderOf(request: Request): Promise<AdminOrder | null> {
 }
 
 const IP_ADDRESS = /^[0-9A-Fa-f:.]{2,45}$/
+const MAX_LOGGED_ADDRESSES = 5
 
 /** Seule une adresse IP est recopiée : l'en-tête vient du client et pourrait porter une adresse e-mail. */
-function clientIpOf(request: Request): string {
-  const first = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? ''
-  return IP_ADDRESS.test(first) ? first : 'unknown'
+function addressOrUnknown(value: string): string {
+  const trimmed = value.trim()
+  return IP_ADDRESS.test(trimmed) ? trimmed : 'unknown'
+}
+
+/** La plateforme ajoute à la fin de la chaîne : ce sont les dernières valeurs qu'on garde. */
+function forwardedAddressesOf(request: Request): string {
+  const values = (request.headers.get('x-forwarded-for') ?? '').split(',')
+  const kept = values.slice(-MAX_LOGGED_ADDRESSES).map(addressOrUnknown).join(', ')
+  const dropped = values.length - MAX_LOGGED_ADDRESSES
+  return dropped > 0 ? `(+${dropped} plus anciennes) ${kept}` : kept
 }
 
 function refused(request: Request): Response {
   console.warn(
-    `Mode admin : secret refusé, ip ${clientIpOf(request)}, à ${new Date().toISOString()}`,
+    `Mode admin : secret refusé, ip ${forwardedAddressesOf(request)}, à ${new Date().toISOString()}`,
   )
   return json(401, { error: 'unauthorized' })
 }
