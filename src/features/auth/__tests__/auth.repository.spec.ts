@@ -68,7 +68,7 @@ function sessionBody(userId = USER_ID, expiresInSeconds = 3600) {
   }
 }
 
-/** Routes : `signup`, `logout`, `token:password`, `token:refresh_token`, `token:id_token`. */
+/** Routes : `signup`, `verify`, `resend`, `logout`, `token:password`, `token:refresh_token`, `token:id_token`. */
 function fakeAuthServer() {
   const routes = new Map<string, Route>()
   const calls: string[] = []
@@ -265,7 +265,7 @@ describe('createAuthRepository', () => {
     it('ouvre la session quand la confirmation par e-mail est désactivée', async () => {
       server.on('signup', () => json(200, sessionBody()))
 
-      await expect(repository.signUp('gaelle@example.com', 'secret-123')).resolves.toEqual({
+      await expect(repository.signUp('gaelle@example.com', 'secret-123', 'fr')).resolves.toEqual({
         kind: 'signed-in',
         session: { userId: USER_ID },
       })
@@ -274,7 +274,7 @@ describe('createAuthRepository', () => {
     it('attend la confirmation quand Supabase ne renvoie pas de session', async () => {
       server.on('signup', () => json(200, userBody(USER_ID)))
 
-      await expect(repository.signUp('gaelle@example.com', 'secret-123')).resolves.toEqual({
+      await expect(repository.signUp('gaelle@example.com', 'secret-123', 'fr')).resolves.toEqual({
         kind: 'confirmation-pending',
       })
       expect(storedSessionKeys()).not.toContain(AUTH_STORAGE_KEY)
@@ -283,7 +283,7 @@ describe('createAuthRepository', () => {
     it('reconnaît l’e-mail déjà utilisé masqué par la confirmation', async () => {
       server.on('signup', () => json(200, userBody(USER_ID, [])))
 
-      expect(await reasonOf(repository.signUp('gaelle@example.com', 'secret-123'))).toBe(
+      expect(await reasonOf(repository.signUp('gaelle@example.com', 'secret-123', 'fr'))).toBe(
         'email-taken',
       )
     })
@@ -295,7 +295,74 @@ describe('createAuthRepository', () => {
     ])('traduit le code %s', async (code, reason) => {
       server.on('signup', apiError(422, code, { weak_password: { reasons: ['length'] } }))
 
-      expect(await reasonOf(repository.signUp('gaelle@example.com', 'secret-123'))).toBe(reason)
+      expect(await reasonOf(repository.signUp('gaelle@example.com', 'secret-123', 'fr'))).toBe(
+        reason,
+      )
+    })
+
+    it('transmet la langue de l’app, pour l’e-mail du code', async () => {
+      server.on('signup', () => json(200, userBody(USER_ID)))
+
+      await repository.signUp('gaelle@example.com', 'secret-123', 'en')
+
+      expect(server.bodies.at(-1)).toMatchObject({
+        email: 'gaelle@example.com',
+        data: { locale: 'en' },
+      })
+    })
+  })
+
+  describe('verifySignUpCode', () => {
+    it('confirme l’adresse par le code et ouvre une session persistée', async () => {
+      server.on('verify', () => json(200, sessionBody()))
+
+      await expect(repository.verifySignUpCode('gaelle@example.com', '123456')).resolves.toEqual({
+        userId: USER_ID,
+      })
+      expect(server.bodies.at(-1)).toMatchObject({
+        email: 'gaelle@example.com',
+        token: '123456',
+        type: 'email',
+      })
+      expect(storedSessionKeys()).toContain(AUTH_STORAGE_KEY)
+    })
+
+    it('lève « code refusé » pour un code faux ou expiré, que Supabase ne distingue pas', async () => {
+      server.on('verify', apiError(403, 'otp_expired'))
+
+      expect(await reasonOf(repository.verifySignUpCode('gaelle@example.com', '000000'))).toBe(
+        'invalid-code',
+      )
+    })
+
+    it('signale l’absence de réseau', async () => {
+      server.goOffline()
+
+      expect(await reasonOf(repository.verifySignUpCode('gaelle@example.com', '123456'))).toBe(
+        'offline',
+      )
+    })
+  })
+
+  describe('resendSignUpCode', () => {
+    it('redemande le code d’inscription pour l’adresse', async () => {
+      server.on('resend', () => json(200, {}))
+
+      await expect(repository.resendSignUpCode('gaelle@example.com')).resolves.toBeUndefined()
+      expect(server.calls.at(-1)).toBe('resend')
+      expect(server.bodies.at(-1)).toMatchObject({ email: 'gaelle@example.com', type: 'signup' })
+    })
+
+    it('lève « autre » quand Supabase refuse d’envoyer un e-mail de plus', async () => {
+      server.on('resend', apiError(429, 'over_email_send_rate_limit'))
+
+      expect(await reasonOf(repository.resendSignUpCode('gaelle@example.com'))).toBe('unknown')
+    })
+
+    it('signale l’absence de réseau', async () => {
+      server.goOffline()
+
+      expect(await reasonOf(repository.resendSignUpCode('gaelle@example.com'))).toBe('offline')
     })
   })
 

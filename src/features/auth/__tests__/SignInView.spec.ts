@@ -17,10 +17,13 @@ import {
   type RestoreFlow,
 } from '@/core/sync/service/restore-flow'
 import vuetify from '@/core/theme/vuetify'
+import { toastMessage } from '@/shared/utils/toast'
 
 vi.mock('../repository/auth.repository', () => ({
   authRepository: {
     signUp: vi.fn<AuthRepository['signUp']>(),
+    verifySignUpCode: vi.fn<AuthRepository['verifySignUpCode']>(),
+    resendSignUpCode: vi.fn<AuthRepository['resendSignUpCode']>(),
     signIn: vi.fn<AuthRepository['signIn']>(),
     signOut: vi.fn<AuthRepository['signOut']>(async () => {}),
     restoreSession: vi.fn<AuthRepository['restoreSession']>(),
@@ -127,7 +130,7 @@ describe('SignInView', () => {
     await basculer(wrapper)
 
     expect(wrapper.get('h1').text()).toBe('Créer un compte')
-    expect(wrapper.get('.sign-in__submit').text()).toBe('Créer mon compte')
+    expect(wrapper.get('.sign-in__submit').text()).toBe('Recevoir le code')
     expect(wrapper.get('.sign-in__toggle').text()).toBe('Déjà un compte ? Se connecter')
     expect(wrapper.get('#sign-in-password').attributes('autocomplete')).toBe('new-password')
 
@@ -253,7 +256,7 @@ describe('SignInView', () => {
       const wrapper = await monter('/sign-in?from=plus-account&mode=sign-up')
 
       expect(wrapper.get('h1').text()).toBe('Créer un compte')
-      expect(wrapper.get('.sign-in__submit').text()).toBe('Créer mon compte')
+      expect(wrapper.get('.sign-in__submit').text()).toBe('Recevoir le code')
     })
 
     it('y revient par l’historique, sans doubler l’écran', async () => {
@@ -274,7 +277,11 @@ describe('SignInView', () => {
       await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse')
       await envoyer(wrapper)
 
-      expect(repository.signUp).toHaveBeenCalledWith('sophie.martin@example.com', 'motdepasse')
+      expect(repository.signUp).toHaveBeenCalledWith(
+        'sophie.martin@example.com',
+        'motdepasse',
+        'fr',
+      )
       expect(back).toHaveBeenCalledOnce()
       expect(replace).not.toHaveBeenCalled()
     })
@@ -422,10 +429,6 @@ describe('SignInView', () => {
   it.each([
     ['invalid-credentials', 'E-mail ou mot de passe incorrect. Réessaie.'],
     ['offline', 'Pas de connexion internet. Vérifie ton réseau et réessaie.'],
-    [
-      'email-not-confirmed',
-      'Ton adresse e-mail n’est pas encore confirmée. Ouvre le lien reçu par e-mail, puis réessaie.',
-    ],
     ['unknown', 'Quelque chose s’est mal passé. Réessaie dans un instant.'],
   ] as const)('affiche un message clair pour la raison %s', async (raison, message) => {
     repository.signIn.mockRejectedValue(new AccountError(raison))
@@ -466,25 +469,6 @@ describe('SignInView', () => {
     expect(wrapper.get('.sign-in__error').text()).toBe(
       'Un compte existe déjà avec cette adresse e-mail.',
     )
-  })
-
-  it('renvoie vers la boîte mail tant que l’inscription n’est pas confirmée', async () => {
-    repository.signUp.mockResolvedValue({ kind: 'confirmation-pending' })
-    const wrapper = await monter()
-
-    await basculer(wrapper)
-    await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse')
-    await envoyer(wrapper)
-
-    const confirmation = wrapper.get('.sign-in__confirmation')
-    expect(confirmation.text()).toContain('Vérifie ta boîte mail')
-    expect(confirmation.text()).toContain('sophie.martin@example.com')
-    expect(replace).not.toHaveBeenCalled()
-
-    await wrapper.get('.sign-in__confirmation-back').trigger('click')
-
-    expect(wrapper.get('h1').text()).toBe('Connexion')
-    expect(wrapper.find('#sign-in-email').exists()).toBe(true)
   })
 
   it('ramène au parcours d’origine quand l’inscription ouvre déjà une session', async () => {
@@ -549,19 +533,259 @@ describe('SignInView', () => {
     expect(document.activeElement).toBe(wrapper.get('.sign-in__error').element)
   })
 
-  it('garde l’adresse et efface le mot de passe au retour depuis la boîte mail', async () => {
-    repository.signUp.mockResolvedValue({ kind: 'confirmation-pending' })
-    const wrapper = await monter()
+  describe('code à 6 chiffres (V25 bis)', () => {
+    const ENVOI = new Date(2026, 9, 22, 18, 0)
 
-    await basculer(wrapper)
-    await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse')
-    await envoyer(wrapper)
-    await wrapper.get('.sign-in__confirmation-back').trigger('click')
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'], now: ENVOI })
+      repository.signUp.mockResolvedValue({ kind: 'confirmation-pending' })
+      repository.resendSignUpCode.mockResolvedValue()
+    })
 
-    expect((wrapper.get('#sign-in-email').element as HTMLInputElement).value).toBe(
-      'sophie.martin@example.com',
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    async function inscrire(adresse = '/sign-in?from=settings'): Promise<VueWrapper> {
+      const wrapper = await monter(adresse)
+      await basculer(wrapper)
+      await saisir(wrapper, 'sophie@exemple.fr', 'motdepasse')
+      await envoyer(wrapper)
+      return wrapper
+    }
+
+    async function taper(wrapper: VueWrapper, code: string): Promise<void> {
+      await wrapper.get('#email-code-input').setValue(code)
+    }
+
+    async function confirmer(wrapper: VueWrapper): Promise<void> {
+      await wrapper.get('.sign-in__confirm-code').trigger('click')
+      await flushPromises()
+    }
+
+    it('« Recevoir le code » ouvre « Confirme ton e-mail » pour l’adresse saisie', async () => {
+      const wrapper = await inscrire()
+
+      expect(wrapper.get('h1').text()).toBe('Confirme ton e-mail')
+      expect(wrapper.get('.email-code__message').text()).toBe(
+        'Entre le code à 6 chiffres envoyé à sophie@exemple.fr.',
+      )
+      expect(wrapper.findAll('.email-code__box')).toHaveLength(6)
+      expect(wrapper.get('.email-code__resend').text()).toBe('Renvoyer le code')
+      expect(wrapper.get('.email-code__change').text()).toBe('Changer d’adresse')
+      expect(wrapper.get('.sign-in__confirm-code').text()).toBe('Confirmer')
+      expect(replace).not.toHaveBeenCalled()
+      expect(stockage.keys()).toEqual([])
+    })
+
+    it('étiquette le champ du code par la phrase et adapte le clavier', async () => {
+      const wrapper = await inscrire()
+      const champ = wrapper.get('#email-code-input')
+
+      expect(champ.attributes('aria-labelledby')).toBe(
+        wrapper.get('.email-code__message').attributes('id'),
+      )
+      expect(champ.attributes('inputmode')).toBe('numeric')
+      expect(champ.attributes('autocomplete')).toBe('one-time-code')
+    })
+
+    it('grise « Confirmer » tant qu’il manque un chiffre, et montre les chiffres tapés', async () => {
+      const wrapper = await inscrire()
+
+      await taper(wrapper, '1234')
+      expect(wrapper.get('.sign-in__confirm-code').attributes('disabled')).toBeDefined()
+      expect(wrapper.findAll('.email-code__box').map((chiffre) => chiffre.text())).toEqual([
+        '1',
+        '2',
+        '3',
+        '4',
+        '',
+        '',
+      ])
+
+      await taper(wrapper, '123456')
+      expect(wrapper.get('.sign-in__confirm-code').attributes('disabled')).toBeUndefined()
+    })
+
+    it('ouvre le compte avec le bon code puis ramène au parcours d’origine', async () => {
+      repository.verifySignUpCode.mockResolvedValue({ userId: USER_ID })
+      const wrapper = await inscrire()
+
+      await taper(wrapper, '123456')
+      await confirmer(wrapper)
+
+      expect(repository.verifySignUpCode).toHaveBeenCalledWith('sophie@exemple.fr', '123456')
+      expect(replace).toHaveBeenCalledWith({ name: 'settings' })
+    })
+
+    it('dit « pas le bon » sous le code, dans l’heure', async () => {
+      repository.verifySignUpCode.mockRejectedValue(new AccountError('invalid-code'))
+      const wrapper = await inscrire()
+
+      await taper(wrapper, '123450')
+      await confirmer(wrapper)
+
+      expect(wrapper.get('.email-code__error').text()).toBe(
+        'Ce code n’est pas le bon. Vérifie-le ou demande un nouveau code.',
+      )
+      expect(wrapper.get('#email-code-input').attributes('aria-invalid')).toBe('true')
+      expect(replace).not.toHaveBeenCalled()
+    })
+
+    it('dit « a expiré » le lendemain, et met « Renvoyer le code » en avant', async () => {
+      repository.verifySignUpCode.mockRejectedValue(new AccountError('invalid-code'))
+      const wrapper = await inscrire()
+      vi.setSystemTime(new Date(2026, 9, 23, 9, 0))
+
+      await taper(wrapper, '123456')
+      await confirmer(wrapper)
+
+      expect(wrapper.get('.email-code__error').text()).toBe(
+        'Ce code a expiré. Demande un nouveau code.',
+      )
+      expect(wrapper.get('.email-code__resend').classes()).toContain('v-btn--variant-outlined')
+    })
+
+    it('fait attendre une minute avant de renvoyer le code', async () => {
+      const wrapper = await inscrire()
+      vi.setSystemTime(new Date(ENVOI.getTime() + 20_000))
+
+      await wrapper.get('.email-code__resend').trigger('click')
+      await flushPromises()
+
+      expect(repository.resendSignUpCode).not.toHaveBeenCalled()
+      expect(wrapper.get('.email-code__notice').text()).toBe(
+        'Attends une minute avant de demander un nouveau code.',
+      )
+    })
+
+    it('renvoie le code après une minute et le dit par un toast', async () => {
+      const wrapper = await inscrire()
+      await taper(wrapper, '12')
+      vi.setSystemTime(new Date(ENVOI.getTime() + 61_000))
+
+      await wrapper.get('.email-code__resend').trigger('click')
+      await flushPromises()
+
+      expect(repository.resendSignUpCode).toHaveBeenCalledWith('sophie@exemple.fr')
+      expect(toastMessage.value).toBe('Nouveau code envoyé à sophie@exemple.fr.')
+      expect((wrapper.get('#email-code-input').element as HTMLInputElement).value).toBe('')
+    })
+
+    it.each([
+      ['« Changer d’adresse »', '.email-code__change'],
+      ['la flèche de retour', '.pushed-screen__back'],
+    ])(
+      '%s ramène à « Créer un compte », adresse remplie et mot de passe vidé',
+      async (_, cible) => {
+        const back = vi.spyOn(routeur, 'back')
+        const wrapper = await inscrire()
+
+        await wrapper.get(cible).trigger('click')
+        await flushPromises()
+
+        expect(wrapper.get('h1').text()).toBe('Créer un compte')
+        expect((wrapper.get('#sign-in-email').element as HTMLInputElement).value).toBe(
+          'sophie@exemple.fr',
+        )
+        expect((wrapper.get('#sign-in-password').element as HTMLInputElement).value).toBe('')
+        expect(back).not.toHaveBeenCalled()
+        expect(replace).not.toHaveBeenCalled()
+      },
     )
-    expect((wrapper.get('#sign-in-password').element as HTMLInputElement).value).toBe('')
+
+    describe('connexion avec une adresse jamais confirmée', () => {
+      beforeEach(() => {
+        repository.signIn.mockRejectedValue(new AccountError('email-not-confirmed'))
+      })
+
+      async function connecter(): Promise<VueWrapper> {
+        const wrapper = await monter('/sign-in?from=settings')
+        await saisir(wrapper, 'sophie@exemple.fr', 'motdepasse')
+        await envoyer(wrapper)
+        return wrapper
+      }
+
+      it('renvoie un code et ouvre « Confirme ton e-mail »', async () => {
+        repository.verifySignUpCode.mockResolvedValue({ userId: USER_ID })
+        const wrapper = await connecter()
+
+        expect(repository.resendSignUpCode).toHaveBeenCalledWith('sophie@exemple.fr')
+        expect(wrapper.get('h1').text()).toBe('Confirme ton e-mail')
+        expect(wrapper.find('.sign-in__error').exists()).toBe(false)
+
+        await taper(wrapper, '123456')
+        await confirmer(wrapper)
+
+        expect(replace).toHaveBeenCalledWith({ name: 'settings' })
+      })
+
+      it('revient à la connexion par la flèche, adresse remplie', async () => {
+        const wrapper = await connecter()
+
+        await wrapper.get('.pushed-screen__back').trigger('click')
+        await flushPromises()
+
+        expect(wrapper.get('h1').text()).toBe('Connexion')
+        expect((wrapper.get('#sign-in-email').element as HTMLInputElement).value).toBe(
+          'sophie@exemple.fr',
+        )
+      })
+
+      it('reste sur la connexion et le dit quand le réseau manque', async () => {
+        repository.resendSignUpCode.mockRejectedValue(new AccountError('offline'))
+        const wrapper = await connecter()
+
+        expect(wrapper.get('h1').text()).toBe('Connexion')
+        expect(wrapper.get('.sign-in__error').text()).toBe(
+          'Pas de connexion internet. Vérifie ton réseau et réessaie.',
+        )
+      })
+    })
+
+    it('se lit en anglais aussi', async () => {
+      i18n.global.locale.value = 'en'
+      try {
+        repository.verifySignUpCode.mockRejectedValue(new AccountError('invalid-code'))
+        const wrapper = await monter('/sign-in?mode=sign-up')
+        expect(wrapper.get('.sign-in__submit').text()).toBe('Get the code')
+        await saisir(wrapper, 'sophie@exemple.fr', 'motdepasse')
+        await envoyer(wrapper)
+
+        expect(wrapper.get('h1').text()).toBe('Confirm your email')
+        expect(wrapper.get('.email-code__message').text()).toBe(
+          'Enter the 6-digit code sent to sophie@exemple.fr.',
+        )
+        expect(wrapper.get('.email-code__resend').text()).toBe('Resend code')
+        expect(wrapper.get('.email-code__change').text()).toBe('Change address')
+        expect(wrapper.get('.sign-in__confirm-code').text()).toBe('Confirm')
+
+        await taper(wrapper, '123450')
+        await confirmer(wrapper)
+        expect(wrapper.get('.email-code__error').text()).toBe(
+          'This code isn’t right. Check it or ask for a new code.',
+        )
+
+        vi.setSystemTime(new Date(2026, 9, 23, 9, 0))
+        await taper(wrapper, '123456')
+        await confirmer(wrapper)
+        expect(wrapper.get('.email-code__error').text()).toBe(
+          'This code has expired. Ask for a new code.',
+        )
+
+        await wrapper.get('.email-code__resend').trigger('click')
+        await flushPromises()
+        expect(toastMessage.value).toBe('New code sent to sophie@exemple.fr.')
+        vi.setSystemTime(new Date(2026, 9, 23, 9, 0, 10))
+        await wrapper.get('.email-code__resend').trigger('click')
+        await flushPromises()
+        expect(wrapper.get('.email-code__notice').text()).toBe(
+          'Wait a minute before asking for a new code.',
+        )
+      } finally {
+        i18n.global.locale.value = 'fr'
+      }
+    })
   })
 
   describe('écran quitté pendant l’appel réseau', () => {
@@ -590,6 +814,7 @@ describe('SignInView', () => {
     it('n’écrit rien quand l’inscription aboutit après coup', async () => {
       const { promesse, terminer } = suspendre({ kind: 'confirmation-pending' } as const)
       repository.signUp.mockReturnValue(promesse)
+      document.body.innerHTML = ''
       const wrapper = await monter()
       await basculer(wrapper)
       await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse')
@@ -601,7 +826,7 @@ describe('SignInView', () => {
 
       expect(replace).not.toHaveBeenCalled()
       expect(stockage.keys()).toEqual([])
-      expect(document.body.textContent).not.toContain('Vérifie ta boîte mail')
+      expect(document.body.textContent).not.toContain('Confirme ton e-mail')
     })
   })
 

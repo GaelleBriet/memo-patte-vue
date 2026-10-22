@@ -3,6 +3,7 @@ export type AccountErrorReason =
   | 'invalid-credentials'
   | 'weak-password'
   | 'email-not-confirmed'
+  | 'invalid-code'
   | 'offline'
   | 'unknown'
 

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
 import { googleCredentials } from '@/core/google-sign-in/google-credentials'
+import { currentLocale } from '@/core/i18n'
 import { identify, reset as resetAnalytics } from '@/core/analytics'
 import { errorSummary } from '@/shared/utils/error-summary'
 
@@ -110,10 +111,16 @@ export const useAuthStore = defineStore('auth', () => {
     },
 
     async signUp(email: string, password: string): Promise<SignUpOutcome['kind']> {
-      const outcome = await repository.signUp(email, password)
+      const outcome = await repository.signUp(email, password, currentLocale())
       if (outcome.kind === 'signed-in') record(outcome.session)
       return outcome.kind
     },
+
+    async verifySignUpCode(email: string, code: string): Promise<void> {
+      record(await repository.verifySignUpCode(email, code))
+    },
+
+    resendSignUpCode: (email: string): Promise<void> => repository.resendSignUpCode(email),
 
     async signIn(email: string, password: string): Promise<void> {
       record(await repository.signIn(email, password))

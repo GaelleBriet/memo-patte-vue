@@ -6,7 +6,8 @@ const MESSAGE_KEYS: Record<AccountErrorReason, string> = {
   'email-taken': 'auth.errors.emailTaken',
   'invalid-credentials': 'auth.errors.invalidCredentials',
   'weak-password': 'auth.errors.weakPassword',
-  'email-not-confirmed': 'auth.errors.emailNotConfirmed',
+  'email-not-confirmed': 'auth.errors.unknown',
+  'invalid-code': 'auth.code.errors.incorrect',
   offline: 'auth.errors.offline',
   unknown: 'auth.errors.unknown',
 }
