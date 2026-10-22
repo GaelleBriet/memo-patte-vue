@@ -456,6 +456,40 @@ describe('app/ hors de shared/ et de core/', { timeout: 30_000 }, () => {
   })
 })
 
+describe('shared/domain/, sans valeur de core/', { timeout: 30_000 }, () => {
+  it("interdit à shared/domain/ d'importer une valeur de core/", async () => {
+    const results = await Promise.all([
+      restrictedImports('src/shared/domain/reminder-plan.ts', ['@/core/notifications']),
+      restrictedImports('src/shared/domain/animal-age.ts', [
+        '@/core/preferences/weight-unit-preference',
+      ]),
+      restrictedDynamicImports('src/shared/domain/animal-age.ts', ['@/core/i18n']),
+    ])
+
+    expect(results.map(({ feature }) => feature)).toEqual([1, 1, 1])
+  })
+
+  it('laisse shared/domain/ importer un type de core/', async () => {
+    const result = await lintImports('src/shared/domain/animal-age.ts', [
+      "import type { Translate } from '@/core/i18n/translate'",
+      "import { type AppLocale } from '@/core/i18n'",
+    ])
+
+    expect(result.feature).toBe(0)
+  })
+
+  it('tolère, nommément, les deux fichiers qui lisent encore un état de core/', async () => {
+    const results = await Promise.all([
+      restrictedImports('src/shared/domain/weight-display.ts', [
+        '@/core/preferences/weight-unit-preference',
+      ]),
+      restrictedImports('src/shared/domain/dosage.ts', ['@/core/i18n']),
+    ])
+
+    expect(results.map(({ feature }) => feature)).toEqual([0, 0])
+  })
+})
+
 describe('façade du moteur des doses', { timeout: 30_000 }, () => {
   async function engineImports(filePath: string, statements: string[]) {
     const [result] = await eslint.lintText(`${statements.join('\n')}\n`, {

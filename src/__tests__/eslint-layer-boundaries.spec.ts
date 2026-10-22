@@ -56,7 +56,7 @@ describe('shared/, sans feature', { timeout: 30_000 }, () => {
   it('laisse shared/ importer core/ et shared/', async () => {
     const result = await restricted(
       'src/shared/utils/format.ts',
-      "import * as a from '@/core/i18n'\nimport * as b from '@/shared/domain/weight-delta'",
+      "import type { AppLocale } from '@/core/i18n'\nimport * as b from '@/shared/domain/weight-delta'",
     )
 
     expect(result).toBe(0)
@@ -84,7 +84,7 @@ describe('shared/domain/, sans téléphone ni état', { timeout: 30_000 }, () =>
   it('laisse shared/domain/ importer vue-router en type, core/ et date-fns', async () => {
     const result = await restricted(
       DOMAIN,
-      "import type { RouteLocationRaw } from 'vue-router'\nimport * as a from '@/core/i18n'\nimport { addDays } from 'date-fns'",
+      "import type { RouteLocationRaw } from 'vue-router'\nimport type { AppLocale } from '@/core/i18n'\nimport { addDays } from 'date-fns'",
     )
 
     expect(result).toBe(0)
