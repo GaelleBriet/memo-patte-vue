@@ -53,13 +53,15 @@ function setup({
   const files = fakeFiles(local)
   const remote = fakeCloud(cloud)
   const onPhotoRestored = vi.fn<(fileName: string) => void>()
+  const account = { current: USER_ID as string | null }
   const restore = createPhotoRestore({
     carnetPhotos: async () => carnet,
     files,
     downloads: remote.port,
+    isAccountCurrent: (userId) => account.current === userId,
     onPhotoRestored,
   })
-  return { files, remote, onPhotoRestored, restore }
+  return { files, remote, onPhotoRestored, restore, account }
 }
 
 afterEach(() => {
@@ -208,8 +210,75 @@ describe('createPhotoRestore', () => {
       },
       files: fakeFiles(),
       downloads: fakeCloud().port,
+      isAccountCurrent: () => true,
     })
 
     await expect(restore.restoreMissing(USER_ID)).resolves.toBeUndefined()
+  })
+
+  it('un autre compte pendant la passe du premier : la passe s’arrête, celle du nouveau compte suit', async () => {
+    const { remote, restore, account } = setup({
+      carnet: [MILO_PHOTO, LUNA_PHOTO],
+      cloud: { [MILO_PHOTO]: jpeg(), [LUNA_PHOTO]: jpeg() },
+    })
+    account.current = 'user-A'
+    let release!: () => void
+    const slow = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const download = remote.port.download.bind(remote.port)
+    remote.port.download = async (userId, fileName) => {
+      if (userId === 'user-A') {
+        remote.requested.push({ userId, fileName })
+        await slow
+        return jpeg()
+      }
+      return download(userId, fileName)
+    }
+
+    const first = restore.restoreMissing('user-A')
+    await vi.waitFor(() => expect(remote.requested).toHaveLength(1))
+    account.current = 'user-B'
+    const second = restore.restoreMissing('user-B')
+    release()
+    await Promise.all([first, second])
+
+    expect(remote.requested).toEqual([
+      { userId: 'user-A', fileName: MILO_PHOTO },
+      { userId: 'user-B', fileName: MILO_PHOTO },
+      { userId: 'user-B', fileName: LUNA_PHOTO },
+    ])
+  })
+
+  it('ne demande plus rien quand le compte n’est plus celui de la passe, déconnexion comprise', async () => {
+    const { remote, restore, account, files } = setup({
+      carnet: [MILO_PHOTO, LUNA_PHOTO],
+      cloud: { [MILO_PHOTO]: jpeg(), [LUNA_PHOTO]: jpeg() },
+    })
+    files.write.mockImplementation(async (name, bytes) => {
+      files.stored.set(name, bytes)
+      account.current = null
+    })
+
+    await restore.restoreMissing(USER_ID)
+
+    expect(remote.requested).toEqual([{ userId: USER_ID, fileName: MILO_PHOTO }])
+  })
+
+  it('n’écrit pas une photo arrivée après le départ du compte', async () => {
+    const { remote, restore, account, files } = setup({
+      carnet: [MILO_PHOTO],
+      cloud: { [MILO_PHOTO]: jpeg() },
+    })
+    const download = remote.port.download.bind(remote.port)
+    remote.port.download = async (userId, fileName) => {
+      const bytes = await download(userId, fileName)
+      account.current = null
+      return bytes
+    }
+
+    await restore.restoreMissing(USER_ID)
+
+    expect(files.write).not.toHaveBeenCalled()
   })
 })

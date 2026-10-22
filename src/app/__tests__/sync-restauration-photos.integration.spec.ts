@@ -83,6 +83,7 @@ async function createPhone(server: FakeSyncServer, deviceId: string) {
         },
       },
       downloads,
+      isAccountCurrent: (userId) => userId === USER_ID,
     })
   }
 

@@ -8,13 +8,16 @@ export interface PhotoRestoreDependencies {
   carnetPhotos: () => Promise<string[]>
   files: DownloadedPhotoFiles
   downloads: PhotoDownloadPort
+  /** Faux dès que le compte de la passe n'est plus celui du téléphone, ou que sa session est finie. */
+  isAccountCurrent: (userId: string) => boolean
   onPhotoRestored?: (fileName: string) => void
 }
 
 export interface PhotoRestore {
   /**
    * Télécharge les photos du carnet absentes du téléphone, une par une ; une photo en échec ne
-   * retient pas les autres et se retente à l'appel suivant. Ne lève pas.
+   * retient pas les autres et se retente à l'appel suivant. Une passe pour un autre compte suit
+   * celle en cours, qui s'arrête à la photo suivante. Ne lève pas.
    */
   restoreMissing(userId: string): Promise<void>
 }
@@ -23,14 +26,15 @@ export function createPhotoRestore({
   carnetPhotos,
   files,
   downloads,
+  isAccountCurrent,
   onPhotoRestored,
 }: PhotoRestoreDependencies): PhotoRestore {
-  let running: Promise<void> | null = null
+  let running: { userId: string; done: Promise<void> } | null = null
 
   async function restoreOne(userId: string, fileName: string): Promise<void> {
     if (await files.exists(fileName)) return
     const jpeg = await downloads.download(userId, fileName)
-    if (jpeg === null) return
+    if (jpeg === null || !isAccountCurrent(userId)) return
     if (jpeg.length > MAX_CLOUD_PHOTO_BYTES || !isJpeg(jpeg)) {
       console.warn('Photo du cloud trop lourde ou hors JPEG, laissée de côté.')
       return
@@ -48,6 +52,7 @@ export function createPhotoRestore({
       return
     }
     for (const fileName of names) {
+      if (!isAccountCurrent(userId)) return
       try {
         await restoreOne(userId, fileName)
       } catch (cause) {
@@ -58,10 +63,15 @@ export function createPhotoRestore({
 
   return {
     restoreMissing(userId) {
-      running ??= restoreAll(userId).finally(() => {
-        running = null
-      })
-      return running
+      if (running?.userId === userId) return running.done
+      const previous = running?.done ?? Promise.resolve()
+      const done: Promise<void> = previous
+        .then(() => restoreAll(userId))
+        .finally(() => {
+          if (running?.done === done) running = null
+        })
+      running = { userId, done }
+      return done
     },
   }
 }

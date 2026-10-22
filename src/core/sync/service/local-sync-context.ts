@@ -23,6 +23,7 @@ export type LocalSyncContextDependencies = Omit<
 > & {
   tables: RestorableTable[]
   onRemindersOutdated: () => Promise<void>
+  sessionActive: () => boolean
 }
 
 /**
@@ -53,6 +54,7 @@ export async function createLocalSyncContext(
     carnetPhotos: () => outbox.listCarnetPhotos(),
     files: { exists: photoExists, write: writeDownloadedPhoto },
     downloads: createAnimalPhotoDownload(loadSupabaseClient),
+    isAccountCurrent: (userId) => deps.sessionActive() && deps.userId() === userId,
     onPhotoRestored: photoFileArrived,
   })
   return { outbox, cycle, restore, photoRestore }

@@ -190,9 +190,11 @@ export async function createDefaultSyncDependencies(): Promise<SyncDependencies>
     await getCarnetSettingsRepository(),
   ]
   const userId = () => useAuthStore().userId
+  const sessionActive = () => useAuthStore().sessionState === 'active'
   const { outbox, cycle, restore, photoRestore } = await createLocalSyncContext({
     tables,
     userId,
+    sessionActive,
     isEligible: () => useAuthStore().hasPlusAccount && usePurchaseStore().status.plan !== 'none',
     onRemindersOutdated: syncAllReminders,
   })
@@ -210,7 +212,7 @@ export async function createDefaultSyncDependencies(): Promise<SyncDependencies>
     outbox,
     runCycle: () => cycle.runCycle(),
     userId,
-    sessionActive: () => useAuthStore().sessionState === 'active',
+    sessionActive,
     checkAccountBackup: () => accountBackup.check(),
     restoreFlow,
     restoreMissingPhotos: (account) => photoRestore.restoreMissing(account),

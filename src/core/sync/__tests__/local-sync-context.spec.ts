@@ -29,6 +29,7 @@ vi.mock('../service/sync-cycle', async (importOriginal) => {
   return { ...original, createSyncCycle: vi.fn<typeof createSyncCycle>(original.createSyncCycle) }
 })
 
+const session = { active: true }
 const MILO_PHOTO = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg'
 const LUNA_PHOTO = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb.jpg'
 
@@ -40,6 +41,7 @@ describe('createLocalSyncContext', () => {
     await createLocalSyncContext({
       tables: [],
       userId: () => 'user-1',
+      sessionActive: () => session.active,
       isEligible: () => true,
       onRemindersOutdated: async () => {},
     })
@@ -58,6 +60,7 @@ describe('createLocalSyncContext', () => {
     const context = await createLocalSyncContext({
       tables: [],
       userId: () => 'user-1',
+      sessionActive: () => session.active,
       isEligible: () => true,
       onRemindersOutdated: async () => {},
     })
@@ -67,6 +70,10 @@ describe('createLocalSyncContext', () => {
     expect(deps?.onPhotoRestored).toBe(photoFileArrived)
     expect(deps?.downloads).toBe(vi.mocked(createAnimalPhotoDownload).mock.results[0]?.value)
     await expect(deps?.carnetPhotos()).resolves.toEqual([MILO_PHOTO])
+    expect(deps?.isAccountCurrent('user-1')).toBe(true)
+    expect(deps?.isAccountCurrent('user-2')).toBe(false)
+    session.active = false
+    expect(deps?.isAccountCurrent('user-1')).toBe(false)
     expect(context.photoRestore).toBe(vi.mocked(createPhotoRestore).mock.results[0]?.value)
     testDb.current.close()
   })
