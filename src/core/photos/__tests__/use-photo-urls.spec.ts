@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope, ref } from 'vue'
 
 import { photoDisplayUrl } from '../photo-storage'
-import { forgetPhotoUrls, usePhotoUrls } from '../use-photo-urls'
+import { forgetPhotoUrls, photoFileArrived, usePhotoUrls } from '../use-photo-urls'
 
 vi.mock('../photo-storage', () => ({
   photoDisplayUrl: vi.fn<(name: string) => Promise<string>>(async (name) => `url:${name}`),
@@ -68,5 +68,26 @@ describe('usePhotoUrls', () => {
     await flushPromises()
 
     expect(photoUrl('perdue.jpg')).toBeNull()
+  })
+
+  it('montre la photo arrivée après coup sur un écran déjà affiché', async () => {
+    resolve.mockRejectedValueOnce(new Error('fichier absent'))
+    const { photoUrl } = monter(() => ['milo.jpg'])
+    await flushPromises()
+
+    photoFileArrived('milo.jpg')
+    await flushPromises()
+
+    expect(photoUrl('milo.jpg')).toBe('url:milo.jpg')
+  })
+
+  it('ne relit pas une photo déjà résolue quand son fichier est annoncé', async () => {
+    monter(() => ['milo.jpg'])
+    await flushPromises()
+
+    photoFileArrived('milo.jpg')
+    await flushPromises()
+
+    expect(resolve).toHaveBeenCalledOnce()
   })
 })
