@@ -2976,7 +2976,11 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
 
 ## 2026-10-22 — Code e-mail à 8 chiffres (Email OTP length) et durée 15 minutes (Email OTP Expiration)
 
-Le code reçu par e-mail (inscription, mot de passe oublié, changement d'adresse) compte 8 chiffres et vaut 15 minutes. — Raison : réglages de Gaelle dans le tableau de bord Supabase (« Email OTP length » = 8, la valeur par défaut ; « Email OTP Expiration » = 900 s) ; c'est le serveur qui les garantit, l'app les suit (`CODE_LENGTH`, `CODE_LIFETIME_MS`). Remplace le « 6 chiffres » et l'« heure » du 2026-09-29.
+Le code reçu par e-mail (inscription, mot de passe oublié, changement d'adresse) compte 8
+chiffres et vaut 15 minutes. — Raison : réglages de Gaelle dans le tableau de bord Supabase
+(« Email OTP length » = 8, la valeur par défaut ; « Email OTP Expiration » = 900 s) ; c'est le
+serveur qui les garantit, l'app les suit (`CODE_LENGTH`, `CODE_LIFETIME_MS`). Remplace le
+« 6 chiffres » du 2026-09-29 et la durée d'une heure qu'utilisait l'app.
 
 ## 2026-10-21 — Restauration depuis le cloud (#40)
 
