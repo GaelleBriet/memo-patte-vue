@@ -1,5 +1,6 @@
 import { deletePhoto, listPhotos, type StoredPhoto } from '@/core/photos/photo-storage'
 import { getAnimalsRepository, type AnimalVersion } from '../repository/animals.repository'
+import { errorSummary } from '@/shared/utils/error-summary'
 
 type Provider<T> = () => T | Promise<T>
 
@@ -23,11 +24,11 @@ export function createOrphanPhotosCleanup(deps: {
       )
       for (const { name } of photos.filter(({ name }) => !kept.has(name))) {
         await deps.deletePhoto(name).catch((cause: unknown) => {
-          console.warn('Photo orpheline non effacée :', cause)
+          console.warn('Photo orpheline non effacée :', errorSummary(cause))
         })
       }
     } catch (cause) {
-      console.warn('Nettoyage des photos orphelines impossible :', cause)
+      console.warn('Nettoyage des photos orphelines impossible :', errorSummary(cause))
     }
   }
 }
