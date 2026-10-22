@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { currentWeightUnit } from '@/core/preferences/weight-unit-preference'
 import {
   computed,
   nextTick,
@@ -96,7 +97,10 @@ function describeRow(row: WeightHistoryRow) {
     label: t('weight.history.selected', { date: formatLongDate(row.measuredOn) }),
     weightKg: row.weightKg,
     delta: row.delta
-      ? { text: weightDeltaSinceText(t, row.delta, today.value), trend: row.delta.trend }
+      ? {
+          text: weightDeltaSinceText(t, currentWeightUnit(), row.delta, today.value),
+          trend: row.delta.trend,
+        }
       : null,
   }
 }
@@ -109,7 +113,7 @@ function describeHeadline(value: WeightDelta): { text: string; trend: WeightTren
     }
   }
   return {
-    text: weightDeltaSinceText(t, value, today.value),
+    text: weightDeltaSinceText(t, currentWeightUnit(), value, today.value),
     trend: value.trend,
   }
 }
@@ -160,8 +164,10 @@ onMounted(() => {
           <div class="weight-history__reading" aria-live="polite">
             <p class="weight-history__current-label">{{ summary.label }}</p>
             <p class="weight-history__headline">
-              <span class="weight-history__current">{{ weightNumber(summary.weightKg) }}</span>
-              <span class="weight-history__unit">{{ weightUnitText(t) }}</span>
+              <span class="weight-history__current">{{
+                weightNumber(currentWeightUnit(), summary.weightKg)
+              }}</span>
+              <span class="weight-history__unit">{{ weightUnitText(t, currentWeightUnit()) }}</span>
             </p>
             <p
               class="weight-history__delta"
@@ -210,10 +216,10 @@ onMounted(() => {
                 <span
                   class="weight-history__row-delta"
                   :class="row.delta ? `weight-history__delta--${row.delta.trend}` : null"
-                  >{{ row.delta ? weightDeltaText(t, row.delta) : '' }}</span
+                  >{{ row.delta ? weightDeltaText(t, currentWeightUnit(), row.delta) : '' }}</span
                 >
                 <span class="weight-history__row-value">
-                  {{ weightText(t, row.weightKg) }}
+                  {{ weightText(t, currentWeightUnit(), row.weightKg) }}
                 </span>
               </button>
             </li>

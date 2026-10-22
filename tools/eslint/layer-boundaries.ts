@@ -44,13 +44,6 @@ const CORE_VALUE_OUT_OF_SHARED_DOMAIN = {
     "shared/domain/ n'importe de core/ que des types : ce qui garde un état ou appelle le téléphone vit dans core/, et la logique métier le reçoit (cf. CLAUDE.md, « Règles strictes de structure »).",
 }
 
-// Deux fichiers lisent encore un état de core/ (unité de poids, langue) : à retirer d'ici
-// quand ils les reçoivent en paramètre (ticket de suite).
-const SHARED_DOMAIN_READING_CORE_STATE = [
-  'src/shared/domain/weight-display.ts',
-  'src/shared/domain/dosage.ts',
-]
-
 export const layerBoundaryBlocks: Linter.Config[] = [
   // Accès direct à SQLite/Supabase interdit hors de core/ et des repositories.
   // Les tests qui montent de vrais repositories sur une base en mémoire sont exemptés,
@@ -109,7 +102,7 @@ export const layerBoundaryBlocks: Linter.Config[] = [
   {
     name: 'app/shared-domain-no-core-values',
     files: ['src/shared/domain/**/*.ts'],
-    ignores: ['**/__tests__/**', ...SHARED_DOMAIN_READING_CORE_STATE],
+    ignores: ['**/__tests__/**'],
     rules: restrictFeatureImports({ patterns: [CORE_VALUE_OUT_OF_SHARED_DOMAIN] }),
   },
 

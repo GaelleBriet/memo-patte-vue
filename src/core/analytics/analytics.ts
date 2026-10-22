@@ -1,6 +1,7 @@
 import type { PostHog, PostHogConfig } from 'posthog-js'
 
 import { ANIMAL_NAME_QUERY_PARAM } from '@/shared/utils/animal-name-query-param'
+import { errorSummary } from '@/shared/utils/error-summary'
 
 export type ConsentStatus = 'granted' | 'denied' | 'unanswered'
 
@@ -124,7 +125,7 @@ export function createAnalytics<E extends EventCatalog>({
         return posthog
       })
       .catch((cause: unknown) => {
-        console.warn('Statistiques d’usage indisponibles :', cause)
+        console.warn('Statistiques d’usage indisponibles :', errorSummary(cause))
         loading = null
         return null
       })

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { errorSummary } from '@/shared/utils/error-summary'
 
 export const HOME_MESSAGES_STORAGE_KEY = 'memopatte.home.messages'
 
@@ -40,7 +41,7 @@ export function rememberHomeMessages(changes: Partial<HomeMessagesMemory>): Home
     localStorage.setItem(HOME_MESSAGES_STORAGE_KEY, JSON.stringify(next))
   } catch (cause) {
     sessionMemory = next
-    console.warn('Message de l’accueil : fermeture non enregistrée :', cause)
+    console.warn('Message de l’accueil : fermeture non enregistrée :', errorSummary(cause))
   }
   return next
 }

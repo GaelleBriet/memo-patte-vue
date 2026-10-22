@@ -1,6 +1,7 @@
 import { getTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
 import { getVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import { backfillCareSignal, isCareBackfillDone } from '@/core/usage/usage-signals'
+import { errorSummary } from '@/shared/utils/error-summary'
 
 type Provider<T> = () => T | Promise<T>
 type CareRows = { listAll: () => Promise<{ createdAt: string }[]> }
@@ -17,7 +18,7 @@ export function createCareSignalBackfill(deps: {
       const oldest = rows.map((row) => row.createdAt).sort()[0] ?? null
       backfillCareSignal(oldest)
     } catch (cause) {
-      console.warn('Rattrapage du premier soin impossible :', cause)
+      console.warn('Rattrapage du premier soin impossible :', errorSummary(cause))
     }
   }
 }

@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 
 import { defaultWeightUnit, isWeightUnit, type WeightUnit } from '@/shared/domain/weight-unit'
+import { errorSummary } from '@/shared/utils/error-summary'
 
 export const WEIGHT_UNIT_STORAGE_KEY = 'memopatte.weight.unit'
 
@@ -34,6 +35,6 @@ export function chooseWeightUnit(next: WeightUnit): void {
   try {
     localStorage.setItem(WEIGHT_UNIT_STORAGE_KEY, next)
   } catch (cause) {
-    console.warn('Unité de poids non retenue :', cause)
+    console.warn('Unité de poids non retenue :', errorSummary(cause))
   }
 }

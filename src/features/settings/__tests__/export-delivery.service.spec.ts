@@ -425,7 +425,10 @@ describe('clearExports', () => {
     vi.mocked(Filesystem.rmdir).mockRejectedValueOnce(cause)
 
     await expect(clearExports()).resolves.toBeUndefined()
-    expect(warn).toHaveBeenCalledExactlyOnceWith('Exports précédents non effacés :', cause)
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      'Exports précédents non effacés :',
+      'Error OS-PLUG-FILE-0013',
+    )
   })
 
   it('journalise un échec de la lecture du cache, sans rien effacer', async () => {
@@ -434,6 +437,9 @@ describe('clearExports', () => {
 
     await expect(clearExports()).resolves.toBeUndefined()
     expect(Filesystem.rmdir).not.toHaveBeenCalled()
-    expect(warn).toHaveBeenCalledExactlyOnceWith('Exports précédents non effacés :', cause)
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      'Exports précédents non effacés :',
+      'Error OS-PLUG-FILE-0013',
+    )
   })
 })
