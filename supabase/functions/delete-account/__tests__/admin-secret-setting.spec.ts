@@ -1,4 +1,6 @@
 // @vitest-environment node
+import { readFileSync } from 'node:fs'
+
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { ADMIN_SECRET_HEADER } from '../admin-deletion'
@@ -54,6 +56,15 @@ describe('adminSecretFrom', () => {
       expect(error).not.toHaveBeenCalled()
     },
   )
+})
+
+describe('index.ts de la fonction', () => {
+  it('ne lit ADMIN_DELETE_SECRET qu’à travers adminSecretFrom', () => {
+    const source = readFileSync(new URL('../index.ts', import.meta.url), 'utf8')
+
+    expect(source).toContain("adminSecretFrom(Deno.env.get('ADMIN_DELETE_SECRET'))")
+    expect(source.match(/ADMIN_DELETE_SECRET/g)).toHaveLength(1)
+  })
 })
 
 describe('handleDeleteAccount avec le secret lu au démarrage', () => {

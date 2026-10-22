@@ -128,19 +128,23 @@ describe('handleDeleteAccount, demande reçue par e-mail', () => {
     ['vide', { secret: '' }, ADMIN_SECRET],
     ['absent de la fonction', {}, undefined],
     ['vide dans la fonction comme dans la demande', { secret: '' }, ''],
-  ])('refuse un secret %s sans chercher le compte', async (_, init, configured) => {
-    vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const fake = fakeDeletionPorts({ adminSecret: configured, photos: ['milo.jpg'] })
+  ])(
+    'refuse un secret %s sans chercher le compte, et le journalise',
+    async (_, init, configured) => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const fake = fakeDeletionPorts({ adminSecret: configured, photos: ['milo.jpg'] })
 
-    const response = await handleDeleteAccount(
-      adminRequest({ email: SOPHIE, scope: 'account' }, init),
-      fake.ports,
-    )
+      const response = await handleDeleteAccount(
+        adminRequest({ email: SOPHIE, scope: 'account' }, init),
+        fake.ports,
+      )
 
-    expect(response.status).toBe(401)
-    expect(await response.json()).toEqual({ error: 'unauthorized' })
-    expect(fake.calls).toEqual([])
-  })
+      expect(response.status).toBe(401)
+      expect(await response.json()).toEqual({ error: 'unauthorized' })
+      expect(fake.calls).toEqual([])
+      expect(warn).toHaveBeenCalledTimes(1)
+    },
+  )
 
   it('journalise chaque refus avec l’adresse IP et l’heure, sans le secret ni le compte', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
@@ -196,15 +200,18 @@ describe('handleDeleteAccount, demande reçue par e-mail', () => {
     expect(warn).toHaveBeenCalledTimes(1)
   })
 
-  it('ne journalise rien quand le secret est le bon', async () => {
+  it.each([
+    ['la demande est bien formée', { email: SOPHIE, scope: 'account' }, 200],
+    ['la demande est mal formée', { email: SOPHIE, scope: 'photos' }, 400],
+  ])('ne journalise rien avec le bon secret quand %s', async (_, body, status) => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    await handleDeleteAccount(
-      adminRequest({ email: SOPHIE, scope: 'account' }),
-      fakeDeletionPorts().ports,
-    )
+    const response = await handleDeleteAccount(adminRequest(body), fakeDeletionPorts().ports)
 
+    expect(response.status).toBe(status)
     expect(warn).not.toHaveBeenCalled()
+    expect(error).not.toHaveBeenCalled()
   })
 
   it('ne se rabat jamais sur la demande depuis l’app quand le secret est faux', async () => {
