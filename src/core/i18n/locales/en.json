@@ -1222,6 +1222,16 @@
     "account": {
       "title": "Account",
       "signInSection": "Sign-in",
+      "email": {
+        "action": "Change my email address",
+        "newEmail": "New email address",
+        "help": "A code will be sent to this address.",
+        "send": "Get the code",
+        "sendLabel": "Get the code at the new address",
+        "codeLabel": "Confirmation code",
+        "codeInputLabel": "6-digit code sent to the new address",
+        "done": "Email address changed."
+      },
       "password": {
         "action": "Change my password",
         "current": "Current password",

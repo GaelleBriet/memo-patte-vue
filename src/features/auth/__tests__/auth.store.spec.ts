@@ -51,6 +51,9 @@ vi.mock('../repository/auth.repository', () => ({
     discardSession: vi.fn<AuthRepository['discardSession']>(async () => {}),
     updatePassword: vi.fn<AuthRepository['updatePassword']>(),
     reauthenticate: vi.fn<AuthRepository['reauthenticate']>(),
+    requestEmailChange: vi.fn<AuthRepository['requestEmailChange']>(async () => {}),
+    verifyEmailChangeCode: vi.fn<AuthRepository['verifyEmailChangeCode']>(),
+    resendEmailChangeCode: vi.fn<AuthRepository['resendEmailChangeCode']>(async () => {}),
     signIn: vi.fn<AuthRepository['signIn']>(),
     signInWithGoogleIdToken: vi.fn<AuthRepository['signInWithGoogleIdToken']>(),
     signOut: vi.fn<AuthRepository['signOut']>(async () => {}),
@@ -539,6 +542,41 @@ describe('useAuthStore', () => {
         { reason: 'invalid-credentials' },
       )
       expect(repository.updatePassword).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('changer d’adresse (V24 quater à sexies)', () => {
+    it('reconnecte avec le mot de passe puis demande le code à la nouvelle adresse', async () => {
+      writePlusAccount({ userId: USER_ID })
+      repository.reauthenticate.mockResolvedValue({ userId: USER_ID })
+      const store = useAuthStore()
+
+      await store.requestEmailChange('ancien-secret', 'sophie2@exemple.fr')
+
+      expect(repository.reauthenticate).toHaveBeenCalledWith('ancien-secret')
+      expect(repository.requestEmailChange).toHaveBeenCalledWith('sophie2@exemple.fr')
+    })
+
+    it('ne demande rien quand le mot de passe est faux', async () => {
+      writePlusAccount({ userId: USER_ID })
+      repository.reauthenticate.mockRejectedValue(new AccountError('invalid-credentials'))
+      const store = useAuthStore()
+
+      await expect(store.requestEmailChange('faux', 'sophie2@exemple.fr')).rejects.toMatchObject({
+        reason: 'invalid-credentials',
+      })
+      expect(repository.requestEmailChange).not.toHaveBeenCalled()
+    })
+
+    it('garde le compte de l’appareil une fois le code vérifié', async () => {
+      writePlusAccount({ userId: USER_ID })
+      repository.verifyEmailChangeCode.mockResolvedValue({ userId: USER_ID })
+      const store = useAuthStore()
+
+      await store.verifyEmailChangeCode('sophie2@exemple.fr', '123456')
+
+      expect(store.sessionState).toBe('active')
+      expect(readPlusAccount()).toEqual({ userId: USER_ID })
     })
   })
 

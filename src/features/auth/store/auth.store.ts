@@ -164,6 +164,19 @@ export const useAuthStore = defineStore('auth', () => {
       if (session && account.value?.userId !== session.userId) await repository.discardSession()
     },
 
+    /** « Changer mon adresse e-mail » : le mot de passe reconnecte le compte, puis le code part. */
+    async requestEmailChange(password: string, email: string): Promise<void> {
+      record(await repository.reauthenticate(password))
+      await repository.requestEmailChange(email)
+    },
+
+    async verifyEmailChangeCode(email: string, code: string): Promise<void> {
+      record(await repository.verifyEmailChangeCode(email, code))
+    },
+
+    resendEmailChangeCode: (email: string): Promise<void> =>
+      repository.resendEmailChangeCode(email),
+
     /** « Changer mon mot de passe » : l'actuel reconnecte le compte, puis le nouveau s'enregistre. */
     async changePasswordWithCurrent(current: string, next: string): Promise<void> {
       record(await repository.reauthenticate(current))

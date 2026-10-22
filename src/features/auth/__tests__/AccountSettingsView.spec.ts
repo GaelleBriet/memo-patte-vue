@@ -120,6 +120,21 @@ describe('AccountSettingsView', () => {
       expect(push).toHaveBeenCalledWith({ name: 'settings-account-password' })
     })
 
+    it('propose aussi « Changer mon adresse e-mail », sous « Changer mon mot de passe »', async () => {
+      accountIdentity.mockResolvedValue({ kind: 'password', email: 'sophie@exemple.fr' })
+      const push = vi.spyOn(router, 'push').mockResolvedValue()
+      const wrapper = await monter()
+
+      const rows = wrapper.findAll('.account-settings__sign-in .settings-row')
+      expect(rows.map((row) => row.text())).toEqual([
+        'Changer mon mot de passe',
+        'Changer mon adresse e-mail',
+      ])
+      await rows[1]!.trigger('click')
+
+      expect(push).toHaveBeenCalledWith({ name: 'settings-account-email' })
+    })
+
     it('ne propose rien de tel pour un compte créé avec Google (V24 bis)', async () => {
       accountIdentity.mockResolvedValue({
         kind: 'google',
@@ -130,6 +145,7 @@ describe('AccountSettingsView', () => {
 
       expect(wrapper.find('.account-settings__section-title').exists()).toBe(false)
       expect(wrapper.find('.settings-row--change-password').exists()).toBe(false)
+      expect(wrapper.find('.settings-row--change-email').exists()).toBe(false)
     })
   })
 })

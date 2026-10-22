@@ -1,6 +1,7 @@
 import type { IconAliases } from 'vuetify'
 
 // Icônes des écrans (maquettes v2)
+import alternateEmail from '@material-symbols/svg-400/outlined/alternate_email.svg?raw'
 import accountCircle from '@material-symbols/svg-400/outlined/account_circle.svg?raw'
 import add from '@material-symbols/svg-400/outlined/add.svg?raw'
 import addAPhoto from '@material-symbols/svg-400/outlined/add_a_photo.svg?raw'
@@ -155,6 +156,7 @@ import warning from '@material-symbols/svg-400/outlined/warning.svg?raw'
  */
 export const msIcons = {
   account_circle: accountCircle,
+  alternate_email: alternateEmail,
   add,
   add_a_photo: addAPhoto,
   alarm,
