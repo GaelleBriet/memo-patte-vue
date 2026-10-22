@@ -401,7 +401,7 @@ describe('SignInView', () => {
       const wrapper = await monter('/sign-in?from=settings-plus&restore=1')
       await saisir(wrapper, 'sophie@exemple.fr', 'motdepasse')
       await envoyer(wrapper)
-      await wrapper.get('#email-code-input').setValue('123456')
+      await wrapper.get('#email-code-input').setValue('12345678')
       await wrapper.get('.sign-in__confirm-code').trigger('click')
       await flushPromises()
 
@@ -626,7 +626,7 @@ describe('SignInView', () => {
     expect(document.activeElement).toBe(wrapper.get('.sign-in__error').element)
   })
 
-  describe('code à 6 chiffres (V25 bis)', () => {
+  describe('code à 8 chiffres (V25 bis)', () => {
     const ENVOI = new Date(2026, 9, 22, 18, 0)
 
     beforeEach(() => {
@@ -661,9 +661,9 @@ describe('SignInView', () => {
 
       expect(wrapper.get('h1').text()).toBe('Confirme ton e-mail')
       expect(wrapper.get('.email-code__message').text()).toBe(
-        'Entre le code à 6 chiffres envoyé à sophie@exemple.fr.',
+        'Entre le code à 8 chiffres envoyé à sophie@exemple.fr.',
       )
-      expect(wrapper.findAll('.email-code__box')).toHaveLength(6)
+      expect(wrapper.findAll('.email-code__box')).toHaveLength(8)
       expect(wrapper.get('.email-code__resend').text()).toBe('Renvoyer le code')
       expect(wrapper.get('.email-code__change').text()).toBe('Changer d’adresse')
       expect(wrapper.get('.sign-in__confirm-code').text()).toBe('Confirmer')
@@ -694,9 +694,11 @@ describe('SignInView', () => {
         '4',
         '',
         '',
+        '',
+        '',
       ])
 
-      await taper(wrapper, '123456')
+      await taper(wrapper, '12345678')
       expect(wrapper.get('.sign-in__confirm-code').attributes('disabled')).toBeUndefined()
     })
 
@@ -704,10 +706,10 @@ describe('SignInView', () => {
       repository.verifySignUpCode.mockResolvedValue({ userId: USER_ID })
       const wrapper = await inscrire()
 
-      await taper(wrapper, '123456')
+      await taper(wrapper, '12345678')
       await confirmer(wrapper)
 
-      expect(repository.verifySignUpCode).toHaveBeenCalledWith('sophie@exemple.fr', '123456')
+      expect(repository.verifySignUpCode).toHaveBeenCalledWith('sophie@exemple.fr', '12345678')
       expect(replace).toHaveBeenCalledWith({ name: 'settings' })
     })
 
@@ -715,7 +717,7 @@ describe('SignInView', () => {
       repository.verifySignUpCode.mockRejectedValue(new AccountError('invalid-code'))
       const wrapper = await inscrire()
 
-      await taper(wrapper, '123450')
+      await taper(wrapper, '12345670')
       await confirmer(wrapper)
 
       expect(wrapper.get('.email-code__error').text()).toBe(
@@ -730,7 +732,7 @@ describe('SignInView', () => {
       const wrapper = await inscrire()
       vi.setSystemTime(new Date(2026, 9, 23, 9, 0))
 
-      await taper(wrapper, '123456')
+      await taper(wrapper, '12345678')
       await confirmer(wrapper)
 
       expect(wrapper.get('.email-code__error').text()).toBe(
@@ -771,7 +773,7 @@ describe('SignInView', () => {
         new Promise<void>((resolve) => (terminer = resolve)),
       )
       const wrapper = await inscrire()
-      await taper(wrapper, '123456')
+      await taper(wrapper, '12345678')
       vi.setSystemTime(new Date(ENVOI.getTime() + 61_000))
 
       await wrapper.get('.email-code__resend').trigger('click')
@@ -838,7 +840,7 @@ describe('SignInView', () => {
         expect(wrapper.get('h1').text()).toBe('Confirme ton e-mail')
         expect(wrapper.find('.sign-in__error').exists()).toBe(false)
 
-        await taper(wrapper, '123456')
+        await taper(wrapper, '12345678')
         await confirmer(wrapper)
 
         expect(replace).toHaveBeenCalledWith({ name: 'settings' })
@@ -878,20 +880,20 @@ describe('SignInView', () => {
 
         expect(wrapper.get('h1').text()).toBe('Confirm your email')
         expect(wrapper.get('.email-code__message').text()).toBe(
-          'Enter the 6-digit code sent to sophie@exemple.fr.',
+          'Enter the 8-digit code sent to sophie@exemple.fr.',
         )
         expect(wrapper.get('.email-code__resend').text()).toBe('Resend code')
         expect(wrapper.get('.email-code__change').text()).toBe('Change address')
         expect(wrapper.get('.sign-in__confirm-code').text()).toBe('Confirm')
 
-        await taper(wrapper, '123450')
+        await taper(wrapper, '12345670')
         await confirmer(wrapper)
         expect(wrapper.get('.email-code__error').text()).toBe(
           'This code isn’t right. Check it or ask for a new code.',
         )
 
         vi.setSystemTime(new Date(2026, 9, 23, 9, 0))
-        await taper(wrapper, '123456')
+        await taper(wrapper, '12345678')
         await confirmer(wrapper)
         expect(wrapper.get('.email-code__error').text()).toBe(
           'This code has expired. Ask for a new code.',

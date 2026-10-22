@@ -12,7 +12,7 @@ import {
 } from '../domain/weight-chart'
 import { withWeightUnit } from '../domain/weight-display'
 import { fromKg, toKg } from '../domain/weight-unit'
-import { applyWeightUnit } from '@/core/preferences/weight-unit-preference'
+import { applyWeightUnit, currentWeightUnit } from '@/core/preferences/weight-unit-preference'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const LIBELLES: CarnetChartLabels = {
@@ -27,11 +27,11 @@ function carnet(
   textScale = 1,
   labels = LIBELLES,
 ) {
-  return buildCarnetWeightChart(entries, labels, { width, textScale })
+  return buildCarnetWeightChart(currentWeightUnit(), entries, labels, { width, textScale })
 }
 
 function historique(entries: readonly WeightChartEntry[], width = 320, textScale = 1) {
-  return buildHistoryWeightChart(entries, { width, textScale })
+  return buildHistoryWeightChart(currentWeightUnit(), entries, { width, textScale })
 }
 
 afterEach(() => applyLocale('fr'))
@@ -402,7 +402,7 @@ describe('buildCarnetWeightChart — libellés reçus du composant', () => {
     const anglais: CarnetChartLabels = {
       max: (weight) => t('weight.chart.max', { weight }),
       min: (weight) => t('weight.chart.min', { weight }),
-      latest: (weight) => withWeightUnit(t, weight),
+      latest: (weight) => withWeightUnit(t, currentWeightUnit(), weight),
     }
 
     const chart = carnet(LUNA_1_AN, 320, 1, anglais)!
@@ -497,7 +497,9 @@ describe('buildCarnetWeightChart — chasse d’une autre police', () => {
   const largeur = (box: ChartBox) => box.right - box.left
 
   it('mesure les mois, les extrêmes et la pastille avec la chasse reçue', () => {
-    const chart = buildCarnetWeightChart(LUNA_1_AN, LIBELLES, { textWidth: chasseFixe })!
+    const chart = buildCarnetWeightChart(currentWeightUnit(), LUNA_1_AN, LIBELLES, {
+      textWidth: chasseFixe,
+    })!
 
     expect(largeur(chart.max!.box)).toBeCloseTo('max 4,6'.length * 10, 5)
     expect(largeur(chart.min!.box)).toBeCloseTo('min 4,1'.length * 10, 5)
@@ -509,7 +511,7 @@ describe('buildCarnetWeightChart — chasse d’une autre police', () => {
   })
 
   it('lui applique encore la taille de police rendue', () => {
-    const chart = buildCarnetWeightChart(LUNA_1_AN, LIBELLES, {
+    const chart = buildCarnetWeightChart(currentWeightUnit(), LUNA_1_AN, LIBELLES, {
       textWidth: chasseFixe,
       textScale: 1.5,
     })!
@@ -526,7 +528,10 @@ describe('buildCarnetWeightChart — chasse d’une autre police', () => {
     ]
     for (const entries of cas) {
       for (const chasse of [chasseFixe, (text: string) => text.length * 13]) {
-        const chart = buildCarnetWeightChart(entries, LIBELLES, { width: 320, textWidth: chasse })!
+        const chart = buildCarnetWeightChart(currentWeightUnit(), entries, LIBELLES, {
+          width: 320,
+          textWidth: chasse,
+        })!
         const boites = boitesDuCarnet(chart)
 
         expect(horsDuSvg(chart, boites)).toEqual([])

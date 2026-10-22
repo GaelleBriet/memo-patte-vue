@@ -5,6 +5,37 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.100](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.99...memo-patte-v0.1.100) (2026-10-22)
+
+
+### ✨ Fonctionnalités
+
+* **auth:** changer mon mot de passe dans paramètres › compte (pl-10, v24 ter) ([2fe42ba](https://github.com/GaelleBriet/memo-patte-vue/commit/2fe42ba7495def5aa9937b3ce7719d3a2b972a19))
+* **auth:** changer mon mot de passe dans paramètres › compte (pl-10, v24 ter) ([f239c3d](https://github.com/GaelleBriet/memo-patte-vue/commit/f239c3d1f45cd57e37db19003d0232c72edbe844))
+* **auth:** l'adresse du compte en tête de paramètres › compte (v24, v24 bis) ([575193f](https://github.com/GaelleBriet/memo-patte-vue/commit/575193f88861311d56cc2935288877af9700646a))
+* **auth:** l'adresse du compte en tête de paramètres › compte (v24, v24 bis) ([52347b4](https://github.com/GaelleBriet/memo-patte-vue/commit/52347b4d007f22879627a98966debb09e49f56ca))
+* **auth:** mot de passe oublié par un code à 6 chiffres (pl-9, v24 septies à nonies) ([2a8b687](https://github.com/GaelleBriet/memo-patte-vue/commit/2a8b6874e3e758acb6d6162237e8a0a1b199ae16))
+* **auth:** mot de passe oublié par un code à 6 chiffres (pl-9, v24 septies à nonies) ([ed971f5](https://github.com/GaelleBriet/memo-patte-vue/commit/ed971f5675ba056ef04933cd2904953fa545476c))
+* **supabase:** le webhook revenuecat recopie le droit plus relu chez revenuecat ([f29e9b2](https://github.com/GaelleBriet/memo-patte-vue/commit/f29e9b24175242a29b38780a1a05a919c57f72d3))
+* **supabase:** le webhook revenuecat recopie le droit plus relu chez revenuecat ([b23c93d](https://github.com/GaelleBriet/memo-patte-vue/commit/b23c93da18de4c447dccb49ee46be79ff52816f3))
+* **supabase:** porte du webhook revenuecat, secret partagé et événement de test ([ad142ca](https://github.com/GaelleBriet/memo-patte-vue/commit/ad142caf82d5fa441abec00501cfdae442fb99f6))
+* **supabase:** porte du webhook revenuecat, secret partagé et événement de test ([3e9e7d2](https://github.com/GaelleBriet/memo-patte-vue/commit/3e9e7d207ca87814b7ce07e3342b872ad8c31efe))
+
+
+### 🐛 Corrections
+
+* **auth:** « mot de passe oublié » ouvert depuis le compte y revient, adresse verrouillée ([01363b6](https://github.com/GaelleBriet/memo-patte-vue/commit/01363b6d698d40cceffde5b8e1457a060214c271))
+* **auth:** le retour arrière après la suppression du compte ne rouvre plus Compte ([a37ab05](https://github.com/GaelleBriet/memo-patte-vue/commit/a37ab05611814faf58938158c64a67d543b006af))
+* **auth:** retour arrière après la suppression du compte ([7365a4d](https://github.com/GaelleBriet/memo-patte-vue/commit/7365a4d1604980f330350c961d93c5e9f7c4cec1))
+* **auth:** un code de récupération abandonné ne laisse jamais un autre compte ouvert ([4919211](https://github.com/GaelleBriet/memo-patte-vue/commit/4919211ef2c059290a606a1ec6d4e1741c84b82c))
+* **delete-account:** commentaire de removeAllPhotos aligné sur le nouvel ordre ([b7f6454](https://github.com/GaelleBriet/memo-patte-vue/commit/b7f64540c1d541ad44f78d4be3bdb2b8be9e231d))
+* **delete-account:** photos effacées juste avant le compte, puis un second passage après ([6843d61](https://github.com/GaelleBriet/memo-patte-vue/commit/6843d61a613cabaa58984f47532883a0bc5cc765))
+* **delete-account:** photos effacées juste avant le compte, puis un second passage après ([a7c922d](https://github.com/GaelleBriet/memo-patte-vue/commit/a7c922deade909c0f2729e68d12bb70e24ec83b5))
+* **outils:** la vérification de main de merge-pr.sh n'utilise plus le cache de modules de Vitest ([1ca36d4](https://github.com/GaelleBriet/memo-patte-vue/commit/1ca36d45a76cc7b6c8d4ac3655524a705c19473f))
+* **outils:** la vérification de main de merge-pr.sh n'utilise plus le cache de modules de Vitest ([45da851](https://github.com/GaelleBriet/memo-patte-vue/commit/45da85172d2bfc158dce34b9a7d3b8485d6e28b3))
+* **supabase:** le webhook n'écrase pas un droit plus relu plus récemment ([8517c16](https://github.com/GaelleBriet/memo-patte-vue/commit/8517c167b19971bc9bbebee3382374185f98eec4))
+* **supabase:** un achat relu chez revenuecat garde ses champs inconnus ([6e86631](https://github.com/GaelleBriet/memo-patte-vue/commit/6e866318d72fb7c5930db59ad0f2922cd25e2366))
+
 ## [0.1.99](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.98...memo-patte-v0.1.99) (2026-10-22)
 
 

@@ -22,7 +22,7 @@ import type { Animal } from '@/features/animals/schema/animal.schema'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
 import { buildHistoryWeightChart } from '@/shared/domain/weight-chart'
-import { applyWeightUnit } from '@/core/preferences/weight-unit-preference'
+import { applyWeightUnit, currentWeightUnit } from '@/core/preferences/weight-unit-preference'
 import i18n, { applyLocale } from '@/core/i18n'
 import router from '@/router'
 import vuetify from '@/core/theme/vuetify'
@@ -369,7 +369,7 @@ describe('WeightHistoryView — lire une pesée sur la courbe', () => {
       width: 320,
     } as DOMRect)
     await monter()
-    const juillet = buildHistoryWeightChart(HISTORIQUE_MILO)!.points[1]!
+    const juillet = buildHistoryWeightChart(currentWeightUnit(), HISTORIQUE_MILO)!.points[1]!
 
     for (const type of ['pointerdown', 'pointerup']) {
       courbe().element.dispatchEvent(

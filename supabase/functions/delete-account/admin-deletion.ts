@@ -29,6 +29,30 @@ async function orderOf(request: Request): Promise<AdminOrder | null> {
   return { email, scope }
 }
 
+const IP_ADDRESS = /^[0-9A-Fa-f:.]{2,45}$/
+const MAX_LOGGED_ADDRESSES = 5
+
+// L'en-tête vient du client et pourrait porter une adresse e-mail : seule une adresse IP est recopiée.
+function addressOrUnknown(value: string): string {
+  const trimmed = value.trim()
+  return IP_ADDRESS.test(trimmed) ? trimmed : 'unknown'
+}
+
+// Un proxy ajoute en fin de chaîne : on garde les dernières valeurs.
+function forwardedAddressesOf(request: Request): string {
+  const values = (request.headers.get('x-forwarded-for') ?? '').split(',')
+  const kept = values.slice(-MAX_LOGGED_ADDRESSES).map(addressOrUnknown).join(', ')
+  const dropped = values.length - MAX_LOGGED_ADDRESSES
+  return dropped > 0 ? `(+${dropped} plus anciennes) ${kept}` : kept
+}
+
+function refused(request: Request): Response {
+  console.warn(
+    `Mode admin : secret refusé, ip ${forwardedAddressesOf(request)}, à ${new Date().toISOString()}`,
+  )
+  return json(401, { error: 'unauthorized' })
+}
+
 async function eraseCloudBackup(userId: string, ports: AdminDeletionPorts): Promise<void> {
   await removeAllPhotos(userId, ports)
   await ports.deleteCloudBackup(userId)
@@ -39,9 +63,7 @@ export async function handleAdminDeletion(
   ports: AdminDeletionPorts,
 ): Promise<Response> {
   const secret = request.headers.get(ADMIN_SECRET_HEADER) ?? ''
-  if (!(await isSharedSecret(secret, ports.adminSecret))) {
-    return json(401, { error: 'unauthorized' })
-  }
+  if (!(await isSharedSecret(secret, ports.adminSecret))) return refused(request)
   const order = await orderOf(request)
   if (!order) return json(400, { error: 'invalid-request' })
 

@@ -3,6 +3,7 @@ import { format, parseISO } from 'date-fns'
 import i18n, { type AppLocale } from '@/core/i18n'
 import type { ExportData } from '@/shared/domain/carnet-data'
 import { givenDosesByTreatment, vaccinationHeads } from '@/shared/domain/carnet-heads'
+import type { Translate } from '@/core/i18n/translate'
 import { doseUnitText } from '@/shared/domain/dosage'
 import { outlookDueDate, treatmentOutlooks } from '@/shared/domain/treatment-outlook'
 import { recordedWeightIn, type WeightUnit } from '@/shared/domain/weight-unit'
@@ -58,7 +59,7 @@ export function toCsvTables(
   locale: AppLocale,
 ): CsvTables {
   const dialect = CSV_DIALECTS[locale]
-  const t = (key: string, named: Record<string, unknown>, plural: number): string =>
+  const t: Translate = (key, named = {}, plural = 1) =>
     i18n.global.t(key, named, { locale, plural })
   const value = (key: string, count = 1): string => t(`settings.csv.values.${key}`, {}, count)
   const csv = (columns: string[], rows: CsvValue[][]): string => {
@@ -195,7 +196,7 @@ export function toCsvTables(
         value(`frequencyUnit.${period.frequency.unit}`, period.frequency.value),
         period.times.length > 0 ? period.times.join(', ') : null,
         period.doseQuantity,
-        period.doseUnit && doseUnitText(i18n.global.t, period.doseUnit, period.doseQuantity ?? 1),
+        period.doseUnit && doseUnitText(t, locale, period.doseUnit, period.doseQuantity ?? 1),
         period.reminderOffsetMinutes,
         period.reminderTime,
       ]),

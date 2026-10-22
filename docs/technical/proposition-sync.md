@@ -367,10 +367,11 @@ supprime un objet que lorsque son nom n'est plus référencé par aucune ligne l
 qu'un animal est passé en tombstone : il peut revenir.
 
 RLS `storage.objects`, pour les quatre opérations :
-`(storage.foldername(name))[1] = (select auth.uid())::text`, plus `has_active_plus()` pour envoyer,
-remplacer et supprimer : la lecture reste ouverte sans Plus, pour restaurer (PL-16). Un envoi ou un
-remplacement n'accepte que la forme que l'app écrit : `<uid>/<nom>.jpg`, un seul niveau, `<nom>` en
-lettres ASCII, chiffres, `_` ou `-` (comme `isPhotoFileName`).
+`(storage.foldername(name))[1] = (select auth.uid())::text`, plus `has_active_plus()` pour envoyer
+et remplacer : la lecture reste ouverte sans Plus, pour restaurer (PL-16), et la suppression aussi,
+pour effacer ses photos après l'expiration de Plus. Un envoi ou un remplacement n'accepte que la
+forme que l'app écrit : `<uid>/<nom>.jpg`, un seul niveau, `<nom>` en lettres ASCII, chiffres, `_`
+ou `-` (comme `isPhotoFileName`).
 
 _Vigilance_ #87 : Supabase supprime l'utilisateur sans toucher à ses objets Storage, qui resteraient
 orphelins (vérifié contre une pile locale, `delete-account.local.spec.ts`). Ordre imposé : PostHog et
@@ -480,6 +481,8 @@ confidentialité doit nommer une région précise.
    **sans sync** » (decisions-log, 2026-09-07) et « 12 mois après expiration du dernier droit Plus »
    (politique de confidentialité). _Reco_ : « 12 mois après l'expiration du dernier droit Plus, avec
    un email un mois avant » ; lecture maintenue pendant ce délai, écriture coupée dès l'expiration.
+   _Précisé le 2026-10-22 (revue de sécurité, M-5)_ : pour les photos, l'effacement reste permis
+   comme la lecture ; seuls l'envoi et le remplacement sont coupés.
    _Raison_ : le déclencheur est vérifiable côté serveur sans dépendre d'un appareil qui se connecte,
    et il s'écrit en une phrase dans la politique. _Alternative écartée_ : « sans sync » — plus
    généreux, mais un utilisateur qui réinstalle sans se reconnecter verrait son délai courir sans le

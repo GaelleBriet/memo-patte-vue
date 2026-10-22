@@ -1,5 +1,6 @@
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import { ANIMAL_PHOTO_ENTITY } from '@/core/db/schema-statements'
+import { errorSummary } from '@/shared/utils/error-summary'
 import type { SyncOutboxEntry } from '../repository/sync-outbox.repository'
 import { normalizeSyncTimestamps } from './normalize-sync-timestamps'
 import { createPushRefusals } from './push-refusals'
@@ -108,7 +109,10 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
     await deps.outbox.recordFailedPush(entry)
     if (!refusals.isGivenUp(entry, cause)) return true
     await deps.outbox.removeIfUnchanged(entry)
-    console.warn(`Ligne refusée par le serveur, sortie de la file (${entry.entity}) :`, cause)
+    console.warn(
+      `Ligne refusée par le serveur, sortie de la file (${entry.entity}) :`,
+      errorSummary(cause),
+    )
     return false
   }
 
@@ -162,7 +166,10 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
         await deps.outbox.removeIfUnchanged(entry)
         onRemindersTouched(table.entity)
       } catch (cause) {
-        console.warn(`Ligne gardée par le serveur non reprise (${table.entity}) :`, cause)
+        console.warn(
+          `Ligne gardée par le serveur non reprise (${table.entity}) :`,
+          errorSummary(cause),
+        )
       }
     }
   }

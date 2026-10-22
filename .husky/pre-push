@@ -1,2 +1,2 @@
-pnpm lint
+pnpm exec run-s lint:oxlint lint:eslint
 pnpm type-check

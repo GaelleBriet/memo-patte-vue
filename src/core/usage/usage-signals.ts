@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { errorSummary } from '@/shared/utils/error-summary'
 
 export const USAGE_SIGNALS_STORAGE_KEY = 'memopatte.usage.signals'
 
@@ -54,7 +55,7 @@ export function clearUsageSignals(): void {
   try {
     localStorage.removeItem(USAGE_SIGNALS_STORAGE_KEY)
   } catch (cause) {
-    console.warn('Signaux d’usage non effacés :', cause)
+    console.warn('Signaux d’usage non effacés :', errorSummary(cause))
   }
 }
 
@@ -74,7 +75,7 @@ function write(signals: UsageSignals): void {
   try {
     localStorage.setItem(USAGE_SIGNALS_STORAGE_KEY, JSON.stringify(signals))
   } catch (cause) {
-    console.warn('Signal d’usage non enregistré :', cause)
+    console.warn('Signal d’usage non enregistré :', errorSummary(cause))
   }
 }
 
@@ -113,6 +114,6 @@ export function backfillCareSignal(oldestCareAt: string | null): void {
   try {
     localStorage.setItem(CARE_BACKFILL_KEY, 'true')
   } catch (cause) {
-    console.warn('Rattrapage des soins non retenu :', cause)
+    console.warn('Rattrapage des soins non retenu :', errorSummary(cause))
   }
 }

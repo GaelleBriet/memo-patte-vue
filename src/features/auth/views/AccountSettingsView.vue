@@ -21,6 +21,10 @@ function goBack(): void {
 function openPasswordChange(): void {
   void router.push({ name: 'settings-account-password' })
 }
+
+function openEmailChange(): void {
+  void router.push({ name: 'settings-account-email' })
+}
 </script>
 
 <template>
@@ -45,6 +49,17 @@ function openPasswordChange(): void {
             <v-icon class="settings-row__icon" icon="ms:password" size="22" />
             <span class="settings-row__text">
               <span class="settings-row__label">{{ t('settings.account.password.action') }}</span>
+            </span>
+            <v-icon class="settings-row__chevron" icon="ms:chevron_right" size="20" />
+          </button>
+          <button
+            type="button"
+            class="settings-row settings-row--change-email"
+            @click="openEmailChange"
+          >
+            <v-icon class="settings-row__icon" icon="ms:alternate_email" size="22" />
+            <span class="settings-row__text">
+              <span class="settings-row__label">{{ t('settings.account.email.action') }}</span>
             </span>
             <v-icon class="settings-row__chevron" icon="ms:chevron_right" size="20" />
           </button>

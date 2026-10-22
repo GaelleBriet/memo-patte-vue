@@ -1,3 +1,4 @@
+import { currentWeightUnit } from '@/core/preferences/weight-unit-preference'
 import type { jsPDF } from 'jspdf'
 
 import type { Translate } from '@/core/i18n/translate'
@@ -63,10 +64,10 @@ function layoutChart(
   const labels: CarnetChartLabels = {
     max: (weight) => t('weight.chart.max', { weight }),
     min: (weight) => t('weight.chart.min', { weight }),
-    latest: (weight) => withWeightUnit(t, weight),
+    latest: (weight) => withWeightUnit(t, currentWeightUnit(), weight),
   }
   // Mesurés en gras, jamais plus étroit que le romain des mois : la place réservée suffit aux deux.
-  return buildCarnetWeightChart(entries, labels, {
+  return buildCarnetWeightChart(currentWeightUnit(), entries, labels, {
     width: Math.floor(width / UNIT_MM),
     textWidth: (text) => emWidth(doc, text, 'bold') * CHART_FONT_PX,
   })
