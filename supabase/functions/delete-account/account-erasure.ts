@@ -70,7 +70,7 @@ async function removeFolder(
   }
 }
 
-/** Supprimer le compte laisse ses photos dans le stockage : elles partent d'abord. */
+/** Supprimer le compte laisse ses photos dans le stockage : elles partent avec lui. */
 export function removeAllPhotos(userId: string, ports: AccountErasurePorts): Promise<void> {
   return removeFolder(userId, 0, ports)
 }
