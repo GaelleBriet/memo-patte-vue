@@ -143,10 +143,10 @@ describe('AccountFirstView — écran « Étape 1 sur 2 » (V25 quater)', () => 
     expect(wrapper.get('.account-first__email').text()).toBe('Continuer avec une adresse e-mail')
     expect(traceIcone(wrapper.get('.account-first__email'))).toBe(getMsIconPath('mail')!.path)
     expect(wrapper.get('.account-first__sign-in').text()).toBe('J’ai déjà un compte · Se connecter')
-    expect(wrapper.get('.account-first__adults').text()).toBe(
+    expect(wrapper.get('.account-legal__adults').text()).toBe(
       'MémoPatte s’adresse aux 18 ans et plus.',
     )
-    const politique = wrapper.get('.account-first__privacy')
+    const politique = wrapper.get('.account-legal__privacy')
     expect(politique.text()).toBe('Politique de confidentialité')
     expect(politique.attributes('href')).toBe('https://memopatte.app/confidentialite/')
     expect(politique.attributes('target')).toBe('_blank')
@@ -172,11 +172,11 @@ describe('AccountFirstView — écran « Étape 1 sur 2 » (V25 quater)', () => 
       expect(wrapper.get('.account-first__sign-in').text()).toBe(
         'I already have an account · Sign in',
       )
-      expect(wrapper.get('.account-first__adults').text()).toBe(
+      expect(wrapper.get('.account-legal__adults').text()).toBe(
         'MémoPatte is for people aged 18 and over.',
       )
-      expect(wrapper.get('.account-first__privacy').text()).toBe('Privacy policy')
-      expect(wrapper.get('.account-first__privacy').attributes('href')).toBe(
+      expect(wrapper.get('.account-legal__privacy').text()).toBe('Privacy policy')
+      expect(wrapper.get('.account-legal__privacy').attributes('href')).toBe(
         'https://memopatte.app/en/privacy/',
       )
     } finally {
