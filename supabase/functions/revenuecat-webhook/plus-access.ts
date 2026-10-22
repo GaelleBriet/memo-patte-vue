@@ -12,7 +12,7 @@ type RevenuecatPurchase = {
   grace_period_expires_date?: Instant
   refunded_at?: Instant
   auto_resume_date?: Instant
-}
+} & Record<string, unknown>
 
 type RevenuecatEntitlement = {
   expires_date: Instant
@@ -24,7 +24,7 @@ type RevenuecatEntitlement = {
 /** Le sous-ensemble lu de `subscriber` dans la réponse de `GET /v1/subscribers/{id}`. */
 export type RevenuecatSubscriber = {
   entitlements?: Record<string, RevenuecatEntitlement | undefined>
-  subscriptions?: Record<string, (RevenuecatPurchase & Record<string, unknown>) | undefined>
+  subscriptions?: Record<string, RevenuecatPurchase | undefined>
   non_subscriptions?: Record<string, RevenuecatPurchase[] | undefined>
 }
 
