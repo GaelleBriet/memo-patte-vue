@@ -4,6 +4,7 @@ import { errorSummary } from '@/shared/utils/error-summary'
 import type { SyncOutboxEntry } from '../repository/sync-outbox.repository'
 import { normalizeSyncTimestamps } from './normalize-sync-timestamps'
 import { createPhotoPush, type PhotoPushDependencies } from './photo-push'
+import { createPhotoRemoval, type PhotoRemovalDependencies } from './photo-removal'
 import { createPushRefusals } from './push-refusals'
 import type { SyncPullPage, SyncPush, SyncRow, SyncableTable } from './syncable-table'
 
@@ -46,7 +47,7 @@ export interface SyncCycleDependencies {
   /** Reconstruit les rappels : injecté plutôt qu'importé, `core/sync` reste indépendant des features. */
   onRemindersOutdated?: () => Promise<void>
   /** Sans elles, les photos restent en file. */
-  photos?: PhotoPushDependencies
+  photos?: PhotoPushDependencies & PhotoRemovalDependencies
 }
 
 export interface SyncCycle {
@@ -87,6 +88,7 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
       ),
   })
   const photoPush = deps.photos && createPhotoPush(deps.outbox, deps.photos)
+  const photoRemoval = deps.photos && createPhotoRemoval(deps.outbox, deps.photos)
 
   /** Les écritures de la synchro ne repartent pas dans la file d'envoi. */
   async function runUnqueued(statements: SqlStatement[]): Promise<void> {
@@ -280,6 +282,8 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
         await keepServerRows(keptRows, onRemindersTouched)
         if (touchedReminders) await deps.onRemindersOutdated?.()
       }
+      const removalFailure = photoRemoval ? await photoRemoval.remove(userId) : null
+      pushFailure ??= removalFailure
       if (pushFailure) throw pushFailure.cause
       await deps.outbox.setLastSyncedAt(new Date().toISOString())
     },

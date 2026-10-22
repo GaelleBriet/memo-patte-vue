@@ -1,14 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 import type { PhotoDownloadPort } from '@/core/sync/service/photo-download-port'
-import { ANIMAL_PHOTOS_BUCKET } from './animal-photos-bucket'
-
-/** Storage répond en HTTP 400 à une photo absente : le vrai motif est dans `statusCode` ou `code`. */
-function isMissingObject(error: unknown): boolean {
-  if (typeof error !== 'object' || error === null) return false
-  const { statusCode, code } = error as Record<string, unknown>
-  return statusCode === '404' || code === 'NoSuchKey'
-}
+import { ANIMAL_PHOTOS_BUCKET, isMissingPhotoObject } from './animal-photos-bucket'
 
 export function createAnimalPhotoDownload(
   loadClient: () => Promise<SupabaseClient>,
@@ -20,7 +13,7 @@ export function createAnimalPhotoDownload(
         .from(ANIMAL_PHOTOS_BUCKET)
         .download(`${userId}/${fileName}`)
       if (error) {
-        if (isMissingObject(error)) return null
+        if (isMissingPhotoObject(error)) return null
         throw error
       }
       return new Uint8Array(await data.arrayBuffer())

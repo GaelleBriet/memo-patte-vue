@@ -1,6 +1,7 @@
 import { getDb } from '@/core/db/sqlite'
 import { photoExists, readPhoto, writeDownloadedPhoto } from '@/core/photos/photo-storage'
 import { photoFileArrived } from '@/core/photos/use-photo-urls'
+import { createAnimalPhotoDelete } from '@/core/supabase/animal-photo-delete'
 import { createAnimalPhotoDownload } from '@/core/supabase/animal-photo-download'
 import { createAnimalPhotoUpload } from '@/core/supabase/animal-photo-upload'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
@@ -40,7 +41,9 @@ export async function createLocalSyncContext(
   const photos = {
     files: { read: readPhoto, exists: photoExists },
     uploads: createAnimalPhotoUpload(loadSupabaseClient),
+    deletes: createAnimalPhotoDelete(loadSupabaseClient),
     isPhotoInCarnet: (fileName: string) => outbox.isPhotoInCarnet(fileName),
+    isPhotoKeptByAnimal: (fileName: string) => outbox.isPhotoKeptByAnimal(fileName),
   }
   const cycle = createSyncCycle({ ...deps, db, outbox, pushes, photos })
   const restore = createAccountRestore({
