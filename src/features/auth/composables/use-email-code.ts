@@ -96,8 +96,8 @@ export function useEmailCode({
       open(address, 'sign-up', now())
     },
 
-    afterCodeSent(address: string): void {
-      open(address, 'sign-in', now())
+    afterCodeSent(address: string, sent: number = now()): void {
+      open(address, 'sign-in', sent)
     },
 
     async afterUnconfirmedSignIn(address: string): Promise<UnconfirmedSignInResult> {
