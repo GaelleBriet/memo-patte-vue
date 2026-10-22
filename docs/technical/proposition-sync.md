@@ -371,8 +371,9 @@ RLS `storage.objects`, pour les quatre opérations :
 remplacer et supprimer : la lecture reste ouverte sans Plus, pour restaurer (PL-16).
 
 _Vigilance_ #87 : Supabase supprime l'utilisateur sans toucher à ses objets Storage, qui resteraient
-orphelins (vérifié contre une pile locale, `delete-account.local.spec.ts`). Ordre imposé — objets du
-dossier, puis `deleteUser`, dont la cascade emporte les lignes.
+orphelins (vérifié contre une pile locale, `delete-account.local.spec.ts`). Ordre imposé : PostHog et
+RevenueCat, objets du dossier, `deleteUser` (sa cascade emporte les lignes), puis un second passage sur
+le dossier pour une photo envoyée entre-temps par un autre téléphone (#1053).
 
 ## 5. Interaction avec l'existant
 
