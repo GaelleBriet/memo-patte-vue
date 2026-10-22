@@ -18,7 +18,7 @@ const ACCOUNT_ROUTE = 'settings-account'
 const { t } = useI18n()
 const router = useRouter()
 const { identity } = useAccountIdentity()
-const change = useEmailChange()
+const change = useEmailChange({ accountEmail: () => identity.value?.email ?? null })
 
 const { emailCode, values, fieldError, failureKey } = change
 

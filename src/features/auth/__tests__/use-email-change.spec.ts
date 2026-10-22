@@ -15,8 +15,8 @@ const verifyEmailChangeCode = vi.fn<(email: string, code: string) => Promise<voi
 const resendEmailChangeCode = vi.fn<() => Promise<void>>()
 let maintenant = ENVOI
 
-function remplir(current: string, email: string) {
-  const change = useEmailChange({ now: () => maintenant })
+function remplir(current: string, email: string, accountEmail: string | null = null) {
+  const change = useEmailChange({ now: () => maintenant, accountEmail: () => accountEmail })
   change.values.value = { current, email }
   return change
 }
@@ -42,6 +42,15 @@ describe('useEmailChange', () => {
     expect(requestEmailChange).toHaveBeenCalledWith('ancien-secret', NOUVELLE)
     expect(change.step.value).toBe('code')
     expect(change.emailCode.email.value).toBe(NOUVELLE)
+  })
+
+  it('refuse l’adresse du compte retapée, sans rien envoyer', async () => {
+    const change = remplir('secret', 'Sophie@Exemple.fr', 'sophie@exemple.fr')
+
+    expect(await change.sendCode()).toBe(false)
+    expect(change.fieldError('email')).toBe('settings.account.email.sameAddress')
+    expect(change.step.value).toBe('address')
+    expect(requestEmailChange).not.toHaveBeenCalled()
   })
 
   it('n’envoie rien tant qu’un champ est invalide', async () => {

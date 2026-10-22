@@ -1230,6 +1230,7 @@
         "sendLabel": "Recevoir le code à la nouvelle adresse",
         "codeLabel": "Code de confirmation",
         "codeInputLabel": "Code à 6 chiffres envoyé à la nouvelle adresse",
+        "sameAddress": "C’est déjà l’adresse de ton compte.",
         "done": "Adresse e-mail modifiée."
       },
       "password": {

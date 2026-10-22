@@ -15,7 +15,10 @@ type Refusal = { field: Field; value: string; key: string }
 const WRONG_PASSWORD_KEY = 'settings.account.delete.identity.wrongPassword'
 
 /** « Changer mon adresse e-mail » (PL-10, V24 quater à sexies) : le mot de passe, la nouvelle adresse, son code. */
-export function useEmailChange({ now = Date.now }: { now?: () => number } = {}) {
+export function useEmailChange({
+  now = Date.now,
+  accountEmail = () => null,
+}: { now?: () => number; accountEmail?: () => string | null } = {}) {
   const auth = useAuthStore()
   const emailCode = useEmailCode({
     now,
@@ -30,7 +33,9 @@ export function useEmailChange({ now = Date.now }: { now?: () => number } = {}) 
   const failureKey = ref<string | null>(null)
   const isSending = ref(false)
 
-  const { errors, validate, reset } = useFormValidation(values, validateEmailChange)
+  const { errors, validate, reset } = useFormValidation(values, (current) =>
+    validateEmailChange(current, accountEmail()),
+  )
 
   const step = computed(() => (emailCode.email.value === null ? 'address' : 'code'))
 

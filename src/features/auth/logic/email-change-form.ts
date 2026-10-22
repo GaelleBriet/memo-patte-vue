@@ -10,11 +10,25 @@ export type EmailChangeResult =
   | { success: true; data: EmailChangeValues }
   | { success: false; errors: Partial<Record<keyof EmailChangeValues, string>> }
 
+const SAME_ADDRESS_KEY = 'settings.account.email.sameAddress'
+
+function sameAddress(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase()
+}
+
 const schema = z.object({ current: z.string().min(1), email: emailSchema })
 
-export function validateEmailChange(values: EmailChangeValues): EmailChangeResult {
+export function validateEmailChange(
+  values: EmailChangeValues,
+  accountEmail: string | null = null,
+): EmailChangeResult {
   const result = schema.safeParse(values)
-  if (result.success) return { success: true, data: result.data }
+  if (result.success) {
+    if (accountEmail !== null && sameAddress(result.data.email, accountEmail)) {
+      return { success: false, errors: { email: SAME_ADDRESS_KEY } }
+    }
+    return { success: true, data: result.data }
+  }
   return {
     success: false,
     errors: fieldErrorsOf(result.error.issues, {

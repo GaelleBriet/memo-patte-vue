@@ -1230,6 +1230,7 @@
         "sendLabel": "Get the code at the new address",
         "codeLabel": "Confirmation code",
         "codeInputLabel": "6-digit code sent to the new address",
+        "sameAddress": "This is already your account’s email address.",
         "done": "Email address changed."
       },
       "password": {

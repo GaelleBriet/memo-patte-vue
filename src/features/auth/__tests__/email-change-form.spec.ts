@@ -24,4 +24,20 @@ describe('validateEmailChange', () => {
       errors: { email: 'auth.form.errors.emailRequired' },
     })
   })
+
+  it('refuse l’adresse du compte, sans tenir compte des majuscules', () => {
+    expect(
+      validateEmailChange({ current: 'secret', email: ' Sophie@Exemple.fr ' }, 'sophie@exemple.fr'),
+    ).toEqual({
+      success: false,
+      errors: { email: 'settings.account.email.sameAddress' },
+    })
+  })
+
+  it('accepte une autre adresse que celle du compte', () => {
+    expect(
+      validateEmailChange({ current: 'secret', email: 'sophie2@exemple.fr' }, 'sophie@exemple.fr')
+        .success,
+    ).toBe(true)
+  })
 })
