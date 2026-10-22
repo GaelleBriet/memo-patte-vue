@@ -3505,3 +3505,25 @@ version plus ancienne de MémoPatte » est supprimé. — Raison : données jama
 exporté par MémoPatte doit pouvoir y revenir. — Alternatives écartées : refuser les anciens formats
 (décision du 2026-09-29, remplacée) ; un report pour les mois courts (une ligne « Reportée au … » que
 la personne n'a jamais écrite) ; un écran de résultat qui ne s'afficherait jamais.
+
+2026-10-22 — **Changer le mot de passe et l'adresse : on reconnecte avec l'ancien mot de passe**
+(`signInWithPassword`), pas `reauthenticate()`. Revue de sécurité. Le réglage « Require reauthentication
+when changing password » reste activé : Supabase n'exige alors pas de code par e-mail tant que la session
+a moins de 24 h, et la reconnexion en crée une neuve ; elle vérifie aussi le mot de passe actuel sans
+envoyer d'e-mail (`AuthRepository.reauthenticate`). — Raison : l'écran demande déjà le mot de passe
+actuel (PL-10) ; `reauthenticate()` ajouterait un code par e-mail à chaque changement. — Alternative
+écartée : `reauthenticate()` puis `updateUser` avec le code reçu (mécanisme décrit par la doc, un
+e-mail et un écran de plus). Limite connue : ce n'est pas la garantie serveur documentée ; la vraie
+garantie serait « Require current password when changing password » avec `current_password`, décision
+encore ouverte pour Gaelle (à tester d'abord sur « Mot de passe oublié », qui change le mot de passe sans
+connaître l'ancien).
+
+2026-10-22 — **« Secure email change » reste activé : deux codes pour changer d'adresse** (spec PL-10,
+Q3 corrigée). Un code à l'adresse actuelle, puis un à la nouvelle. — Raison : le 22 octobre, un
+téléphone laissé déverrouillé : avec un code à la nouvelle adresse seule, Marc remplace l'adresse de
+Sophie par la sienne et prend le compte (sauvegarde cloud, photos) ; avec deux codes, il lui faut aussi
+la boîte mail de Sophie. L'étape demandée à l'écran n'est pas une garantie : seul le réglage côté
+serveur l'impose, même à un appel direct de l'API. — Alternative écartée : un code à la nouvelle adresse
+seulement (décision du 2026-09-30, « bloque qui a perdu l'ancienne ») : qui a perdu son ancienne
+adresse passe par le contact (suppression par e-mail ou mode admin), pas par une faille. À faire au
+ticket du changement d'adresse : l'écran attend deux codes (le dépôt n'a pas encore ce parcours).

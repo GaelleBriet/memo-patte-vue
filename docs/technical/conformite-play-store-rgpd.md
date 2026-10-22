@@ -234,7 +234,7 @@ Principe CNIL : « Les données personnelles ne peuvent pas être conservées in
 | Jeton d'achat Play et état d'abonnement | Durée du droit + 60 jours | Puis suppression | Le jeton Play n'est plus utilisable « 60 days after expiration ». |
 | Événements PostHog | **12 mois** (tranché le 2026-09-26 ; sous les critères CNIL de mesure d'audience : traceur ≤ 13 mois, données ≤ 25 mois) | Suppression automatique (réglage de rétention côté projet : §4) | Voir §2.4. |
 | Emails de support | Durée de traitement de la demande + **1 an** (tranché le 2026-09-26) | Suppression | Preuve en cas de litige. |
-| Logs techniques Supabase (IP, sessions) | Rétention fixée par Supabase | — | Cités dans la politique sans chiffre ; documenter la valeur constatée. |
+| Logs techniques Supabase (IP, sessions) | Rétention fixée par Supabase selon l'offre : journaux de la plateforme **1 jour (Free) / 7 jours (Pro)** ; journaux Auth **1 heure (Free) / 7 jours (Pro)** | — | Valeurs de la grille tarifaire Supabase relevées le 2026-10-22 (relevé des réglages Supabase, §7) ; à citer dans la politique, la valeur de l'offre en vigueur au lancement de Plus (Pro). |
 | Pièces comptables (factures Play reçues par Gaelle) | 10 ans (Code de commerce, cité par la CNIL : « The Code of Commerce requires retention of billing data for 10 years ») | — | Ce sont les relevés Google, pas des données utilisateur individuelles détenues par MémoPatte. |
 
 #### Droits des personnes et exercice
@@ -275,7 +275,7 @@ Mesures MémoPatte à documenter dans le registre :
 - **RLS** sur toutes les tables Plus (`user_id = auth.uid()`) et sur `storage.objects` (dossier par utilisateur) ; « By default Storage does not allow any uploads to buckets without RLS policies » (Supabase).
 - Clé `service_role` uniquement côté Edge Functions ; clé `anon`/publishable dans l'app avec RLS.
 - TLS en transit (Supabase, PostHog) ; AES-256 au repos chez Supabase.
-- Mots de passe : politique de longueur minimale Supabase Auth ; option Google Sign-In.
+- Mots de passe : politique de longueur minimale Supabase Auth ; option Google Sign-In. La protection contre les mots de passe fuités (HaveIBeenPwned, « Prevent the use of leaked passwords ») n'existe qu'à partir de l'offre Pro de Supabase : indisponible tant que le projet est en Free, à activer au passage en Pro (relevé du 2026-10-22, §1.5).
 - Sauvegardes : celles de la plateforme Supabase (documenter le plan) ; Auto Backup Android chiffré de bout en bout sur Android 9+ (« end-to-end encrypted on devices running Android 9 or higher using the device's PIN, pattern, or password »).
 - Journalisation : logs Supabase (Auth/API) ; pas de logs applicatifs contenant des données personnelles.
 - Minimisation : ne synchroniser que les tables nécessaires ; pas de collecte de contacts, localisation, etc.
