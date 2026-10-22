@@ -2,7 +2,6 @@ import { Capacitor } from '@capacitor/core'
 import { Directory, Encoding, Filesystem, type FileInfo } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
-import { errorSummary } from '@/shared/utils/error-summary'
 
 import { clearExports, deliverExportFile } from '../service/export-delivery.service'
 
@@ -428,7 +427,7 @@ describe('clearExports', () => {
     await expect(clearExports()).resolves.toBeUndefined()
     expect(warn).toHaveBeenCalledExactlyOnceWith(
       'Exports précédents non effacés :',
-      errorSummary(cause),
+      'Error OS-PLUG-FILE-0013',
     )
   })
 
@@ -440,7 +439,7 @@ describe('clearExports', () => {
     expect(Filesystem.rmdir).not.toHaveBeenCalled()
     expect(warn).toHaveBeenCalledExactlyOnceWith(
       'Exports précédents non effacés :',
-      errorSummary(cause),
+      'Error OS-PLUG-FILE-0013',
     )
   })
 })

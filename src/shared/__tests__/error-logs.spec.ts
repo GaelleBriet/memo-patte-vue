@@ -8,13 +8,16 @@ const SKIPPED = [
   'src/core/sync/',
   'src/app/sync.ts',
   'src/core/dev/',
-  'src/core/supabase/',
   'src/features/auth/',
   'src/features/purchase/',
 ]
 
 const CONSOLE_CALL = /console\.(?:warn|error|log|info|debug)\(/g
-const SAFE_INTERPOLATIONS = ['scheduled', 'reminders.length', 'label', 'step']
+const SAFE_INTERPOLATIONS: Record<string, string[]> = {
+  'src/core/notifications/notifications.service.ts': ['scheduled', 'reminders.length'],
+  'src/features/settings/service/device-erase.service.ts': ['step'],
+  'src/features/treatments/service/reminders-sync.service.ts': ['label'],
+}
 
 function closingQuote(source: string, start: number): number {
   const quote = source[start]
@@ -26,7 +29,6 @@ function closingQuote(source: string, start: number): number {
   return index
 }
 
-/** Les arguments de l'appel ouvert à `start`, découpés aux virgules de premier niveau. */
 function callArguments(source: string, start: number): string[] {
   const args: string[] = []
   let depth = 0
@@ -57,12 +59,12 @@ function callArguments(source: string, start: number): string[] {
   throw new Error(`Appel de console non refermé à la position ${start}`)
 }
 
-function isSafeArgument(arg: string): boolean {
-  if (/^errorSummary\(\w+\)$/.test(arg)) return true
+function isSafeArgument(arg: string, path: string): boolean {
+  if (/^errorSummary\((?:cause|error|err)\)$/.test(arg)) return true
   if (/^'[^']*'$/.test(arg) || /^"[^"]*"$/.test(arg)) return true
   if (!/^`[^`]*`$/.test(arg)) return false
   return [...arg.matchAll(/\$\{([^}]*)\}/g)].every((match) =>
-    SAFE_INTERPOLATIONS.includes(match[1]?.trim() ?? ''),
+    (SAFE_INTERPOLATIONS[path] ?? []).includes(match[1]?.trim() ?? ''),
   )
 }
 
@@ -78,7 +80,7 @@ function rawLogArguments(path: string): string[] {
   const source = readFileSync(path, 'utf8')
   return [...source.matchAll(CONSOLE_CALL)].flatMap((match) =>
     callArguments(source, (match.index ?? 0) + match[0].length)
-      .filter((arg) => !isSafeArgument(arg))
+      .filter((arg) => !isSafeArgument(arg, path))
       .map((arg) => `${path} : ${arg}`),
   )
 }
@@ -97,10 +99,26 @@ describe('journaux de la console', () => {
     const source = 'console.warn(`Rappels :`, row.id, cause)'
     const args = callArguments(source, source.indexOf('(') + 1)
 
-    expect(args.filter((arg) => !isSafeArgument(arg))).toEqual(['row.id', 'cause'])
+    expect(args.filter((arg) => !isSafeArgument(arg, 'src/x.ts'))).toEqual(['row.id', 'cause'])
+  })
+
+  it('repère un résumé d’autre chose qu’une erreur', () => {
+    expect(isSafeArgument('errorSummary(photos)', 'src/x.ts')).toBe(false)
+  })
+
+  it('n’autorise une interpolation que dans son fichier', () => {
+    const path = 'src/features/treatments/service/reminders-sync.service.ts'
+
+    expect(isSafeArgument('`Rappels ${label}`', path)).toBe(true)
+    expect(
+      isSafeArgument(
+        '`Photo ${label}`',
+        'src/features/animals/service/orphan-photos-cleanup.service.ts',
+      ),
+    ).toBe(false)
   })
 
   it('repère une erreur glissée dans le gabarit du message', () => {
-    expect(isSafeArgument('`Ligne refusée : ${cause}`')).toBe(false)
+    expect(isSafeArgument('`Ligne refusée : ${cause}`', 'src/x.ts')).toBe(false)
   })
 })

@@ -41,7 +41,6 @@ export function useDataImport(
       onImported()
     } catch (cause) {
       if (cause instanceof ImportRefusedError) return fail(cause.reason)
-      // Le message d'une erreur d'écriture peut citer le fichier : seul son type est journalisé.
       console.warn('Import impossible :', errorSummary(cause))
       fail('failed')
     }
