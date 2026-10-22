@@ -214,10 +214,16 @@ describe('readPhoto', () => {
     await expect(readPhoto('abc.jpg')).resolves.toEqual(new Uint8Array([0xff, 0xd8, 0xff]))
   })
 
-  it('rend null, sans rien lire, pour un fichier absent comme pour un nom invalide', async () => {
+  it('rend null, sans rien lire, pour un fichier absent', async () => {
     stat.mockRejectedValue(new Error('File does not exist'))
 
     await expect(readPhoto('absente.jpg')).resolves.toBeNull()
+    expect(readFile).not.toHaveBeenCalled()
+  })
+
+  it('rend null, sans rien lire, pour un nom qui sortirait de photos/', async () => {
+    stat.mockResolvedValue(STAT)
+
     await expect(readPhoto('../secrets.txt')).resolves.toBeNull()
     expect(readFile).not.toHaveBeenCalled()
   })
