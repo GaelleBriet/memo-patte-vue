@@ -74,7 +74,7 @@ publicité.
   absents : « La connexion avec Google n'est pas disponible sur ce téléphone. Continue avec une adresse
   e-mail. » (le bouton reste affiché). À la déconnexion, la mémoire du choix Google d'Android est aussi
   effacée. (Décisions du 2026-09-22 et du 2026-10-21 ; #65)
-- **PL-8** Inscription par e-mail : un code à 8 chiffres envoyé à l'adresse, saisi dans l'app, confirme
+- **PL-8** Inscription par e-mail : un code à 8 chiffres (décision du 2026-10-22) envoyé à l'adresse, saisi dans l'app, confirme
   qu'elle est la bonne (« Renvoyer le code », code faux ou expiré signalé) ; avec Google, rien à
   confirmer. L'écran de création porte « Au moins 8 caractères. », « MémoPatte s'adresse aux 18 ans et
   plus. » et le lien vers la politique de confidentialité. (Spec Q1, 2026-09-29 ; conformité §2.3 ;
@@ -185,7 +185,7 @@ publicité.
 
 ## 5. Décisions de la spec
 
-- 2026-09-29 — **Q1 : l'adresse e-mail se confirme à l'inscription par un code à 8 chiffres** (PL-8),
+- 2026-09-29 — **Q1 : l'adresse e-mail se confirme à l'inscription par un code à 6 chiffres** (PL-8),
   comme le mot de passe oublié ; rien pour Google. Raison : l'avertissement avant la purge, la
   suppression par e-mail et la récupération du mot de passe reposent sur cette adresse. Écartée : pas de
   confirmation (une faute de frappe casse tout en silence).

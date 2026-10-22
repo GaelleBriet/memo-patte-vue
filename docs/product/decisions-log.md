@@ -1954,7 +1954,7 @@ renseignées (DO-4, Q2) ; « Tous les animaux » ne contient que les animaux sui
 données de ce téléphone » pour tous, export proposé d'abord, deux confirmations, abonné déconnecté
 avant (DO-14).
 
-9) **Plus et compte** : adresse e-mail confirmée par un code à 8 chiffres, mot de passe oublié par code
+9) **Plus et compte** : adresse e-mail confirmée par un code à 6 chiffres, mot de passe oublié par code
 (Plus et compte PL-8, PL-9, Q1) ; changer de mot de passe et d'adresse dans la v1 (PL-10, Q2) ; état
 de la sauvegarde dans Paramètres › Sauvegarde et icône de nuage pour les abonnés (PL-17 ; Accueil
 AC-16).
@@ -2974,9 +2974,9 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
-## 2026-10-22 — Code reçu par e-mail : 8 chiffres, valable 15 minutes
+## 2026-10-22 — Code e-mail à 8 chiffres (Email OTP length) et durée 15 minutes (Email OTP Expiration)
 
-Réglages du tableau de bord Supabase gardés par Gaelle : « Email OTP length » = 8, « Email OTP Expiration » = 900 s ; l'app les suit (`CODE_LENGTH`, `CODE_LIFETIME_MS`).
+Le code reçu par e-mail (inscription, mot de passe oublié, changement d'adresse) compte 8 chiffres et vaut 15 minutes. — Raison : réglages de Gaelle dans le tableau de bord Supabase (« Email OTP length » = 8, la valeur par défaut ; « Email OTP Expiration » = 900 s) ; c'est le serveur qui les garantit, l'app les suit (`CODE_LENGTH`, `CODE_LIFETIME_MS`). Remplace le « 6 chiffres » et l'« heure » du 2026-09-29.
 
 ## 2026-10-21 — Restauration depuis le cloud (#40)
 
