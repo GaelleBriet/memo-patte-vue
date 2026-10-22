@@ -2976,7 +2976,7 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
-## 2026-10-22 — Photos cloud : ménage par la file, délai de grâce de 7 jours
+## 2026-10-23 — Photos cloud : ménage par la file, délai de grâce de 7 jours
 
 Décision de la session d'analyse du moteur (analyse-moteur-9f) du 23 octobre 2026, sur la relecture
 de la PR #1135 (#85). Une photo remplacée ou retirée repart en file `animal_photo` (migration v19) ;
