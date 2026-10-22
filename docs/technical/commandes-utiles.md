@@ -376,8 +376,13 @@ seul `POSTHOG_ERASURE=disabled` ou `REVENUECAT_ERASURE=disabled` saute un presta
 ne touche à aucun des deux.
 
 **Demande reçue par e-mail** (une fois la fonction déployée et `ADMIN_DELETE_SECRET` posé dans les secrets de la
-fonction ; sa valeur vit dans le coffre de notes, jamais dans le dépôt). Après avoir vérifié par e-mail que la demande
-vient bien de la personne :
+fonction ; sa valeur vit dans le coffre de notes, jamais dans le dépôt). Le secret se génère une fois :
+
+```bash
+openssl rand -hex 32
+```
+
+Après avoir vérifié par e-mail que la demande vient bien de la personne :
 
 ```bash
 curl -X POST "https://<projet>.supabase.co/functions/v1/delete-account" \
