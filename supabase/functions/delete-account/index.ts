@@ -1,8 +1,10 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.116.0'
 
+import { adminSecretFrom } from './admin-secret-setting.ts'
 import { handleDeleteAccount } from './delete-account.ts'
 import { providerErasuresFrom } from './provider-settings.ts'
 
+const adminSecret = adminSecretFrom(Deno.env.get('ADMIN_DELETE_SECRET'))
 const admin = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -12,7 +14,7 @@ const photos = admin.storage.from('animal-photos')
 
 Deno.serve((request) =>
   handleDeleteAccount(request, {
-    adminSecret: Deno.env.get('ADMIN_DELETE_SECRET'),
+    adminSecret,
     ...providerErasuresFrom((name) => Deno.env.get(name), fetch),
     async userIdFromToken(token) {
       const { data, error } = await admin.auth.getUser(token)

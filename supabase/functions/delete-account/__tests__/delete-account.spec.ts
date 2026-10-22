@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MAX_FOLDER_DEPTH, PHOTO_PAGE_SIZE } from '../account-erasure'
+import { adminSecretFrom } from '../admin-secret-setting'
 import { handleDeleteAccount } from '../delete-account'
 import { providerErasuresFrom } from '../provider-settings'
 import { fakeDeletionPorts, USER } from './fake-deletion-ports'
@@ -40,6 +41,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers()
+  vi.restoreAllMocks()
 })
 
 describe('handleDeleteAccount', () => {
@@ -64,6 +66,27 @@ describe('handleDeleteAccount', () => {
 
     expect(response.status).toBe(405)
     expect(fake.deletedUser()).toBeNull()
+  })
+
+  it('supprime le compte depuis l’app quand le mode admin est désactivé par un secret trop court', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const fake = fakePorts({ adminSecret: adminSecretFrom('trop-court') })
+
+    const response = await handleDeleteAccount(request(), fake.ports)
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ status: 'deleted' })
+    expect(fake.calls.at(-1)).toEqual({ kind: 'record', arg: 'app' })
+  })
+
+  it('ne journalise pas le refus d’un jeton depuis l’app', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const fake = fakePorts()
+
+    const response = await handleDeleteAccount(request({ token: 'jeton-inconnu' }), fake.ports)
+
+    expect(response.status).toBe(401)
+    expect(warn).not.toHaveBeenCalled()
   })
 
   it('refuse une demande sans jeton', async () => {

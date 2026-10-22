@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { PHOTO_PAGE_SIZE } from '../account-erasure'
 import { ADMIN_SECRET_HEADER } from '../admin-deletion'
@@ -7,20 +7,31 @@ import { handleDeleteAccount } from '../delete-account'
 import { ADMIN_SECRET, fakeDeletionPorts, USER } from './fake-deletion-ports'
 
 const SOPHIE = 'sophie@exemple.test'
+const NOW = Date.UTC(2026, 9, 22, 21, 30)
 
 function adminRequest(
   body: unknown,
-  init: { secret?: string; authorization?: string } = {},
+  init: { secret?: string; authorization?: string; forwardedFor?: string } = {},
 ): Request {
   const headers = new Headers({ 'Content-Type': 'application/json' })
   headers.set(ADMIN_SECRET_HEADER, init.secret ?? ADMIN_SECRET)
   if (init.authorization) headers.set('Authorization', init.authorization)
+  if (init.forwardedFor !== undefined) headers.set('x-forwarded-for', init.forwardedFor)
   return new Request('http://localhost/functions/v1/delete-account', {
     method: 'POST',
     headers,
     body: typeof body === 'string' ? body : JSON.stringify(body),
   })
 }
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'], now: NOW })
+})
+
+afterEach(() => {
+  vi.useRealTimers()
+  vi.restoreAllMocks()
+})
 
 describe('handleDeleteAccount, demande reçue par e-mail', () => {
   it('supprime le compte de l’adresse reçue, puis note « email » au journal', async () => {
@@ -117,20 +128,94 @@ describe('handleDeleteAccount, demande reçue par e-mail', () => {
     ['vide', { secret: '' }, ADMIN_SECRET],
     ['absent de la fonction', {}, undefined],
     ['vide dans la fonction comme dans la demande', { secret: '' }, ''],
-  ])('refuse un secret %s sans chercher le compte', async (_, init, configured) => {
-    const fake = fakeDeletionPorts({ adminSecret: configured, photos: ['milo.jpg'] })
+  ])(
+    'refuse un secret %s sans chercher le compte, et le journalise',
+    async (_, init, configured) => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const fake = fakeDeletionPorts({ adminSecret: configured, photos: ['milo.jpg'] })
+
+      const response = await handleDeleteAccount(
+        adminRequest({ email: SOPHIE, scope: 'account' }, init),
+        fake.ports,
+      )
+
+      expect(response.status).toBe(401)
+      expect(await response.json()).toEqual({ error: 'unauthorized' })
+      expect(fake.calls).toEqual([])
+      expect(warn).toHaveBeenCalledTimes(1)
+    },
+  )
+
+  it('journalise chaque refus avec l’adresse IP et l’heure, sans le secret ni le compte', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const fake = fakeDeletionPorts()
+    const tried = 'secret-essaye-par-un-inconnu-0123456789'
 
     const response = await handleDeleteAccount(
-      adminRequest({ email: SOPHIE, scope: 'account' }, init),
+      adminRequest(
+        { email: SOPHIE, scope: 'account' },
+        { secret: tried, forwardedFor: '203.0.113.7, 10.0.0.1' },
+      ),
       fake.ports,
     )
 
     expect(response.status).toBe(401)
-    expect(await response.json()).toEqual({ error: 'unauthorized' })
-    expect(fake.calls).toEqual([])
+    expect(warn).toHaveBeenCalledTimes(1)
+    const written = JSON.stringify(warn.mock.calls)
+    expect(written).toContain('203.0.113.7')
+    expect(written).not.toContain('10.0.0.1')
+    expect(written).toContain(new Date(NOW).toISOString())
+    for (const secret of [tried, ADMIN_SECRET, SOPHIE, USER]) {
+      expect(written).not.toContain(secret)
+    }
+  })
+
+  it.each([
+    ['absente', undefined, 'unknown'],
+    ['vide', '', 'unknown'],
+    ['en IPv6', '2001:db8::1', '2001:db8::1'],
+    ['qui n’est pas une adresse', 'sophie@exemple.test', 'unknown'],
+  ])('journalise une adresse IP %s', async (_, forwardedFor, logged) => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    await handleDeleteAccount(
+      adminRequest({ email: SOPHIE, scope: 'account' }, { secret: 'faux', forwardedFor }),
+      fakeDeletionPorts().ports,
+    )
+
+    const written = JSON.stringify(warn.mock.calls)
+    expect(written).toContain(logged)
+    expect(written).not.toContain(SOPHIE)
+  })
+
+  it('journalise aussi le refus quand le mode admin est désactivé', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const response = await handleDeleteAccount(
+      adminRequest({ email: SOPHIE, scope: 'account' }),
+      fakeDeletionPorts({ adminSecret: undefined }).ports,
+    )
+
+    expect(response.status).toBe(401)
+    expect(warn).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    ['la demande est bien formée', { email: SOPHIE, scope: 'account' }, 200],
+    ['la demande est mal formée', { email: SOPHIE, scope: 'photos' }, 400],
+  ])('ne journalise rien avec le bon secret quand %s', async (_, body, status) => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const response = await handleDeleteAccount(adminRequest(body), fakeDeletionPorts().ports)
+
+    expect(response.status).toBe(status)
+    expect(warn).not.toHaveBeenCalled()
+    expect(error).not.toHaveBeenCalled()
   })
 
   it('ne se rabat jamais sur la demande depuis l’app quand le secret est faux', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
     const fake = fakeDeletionPorts({ users: { 'jeton-valide': USER } })
 
     const response = await handleDeleteAccount(
