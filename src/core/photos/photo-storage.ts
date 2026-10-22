@@ -70,6 +70,15 @@ export async function photoExists(name: string): Promise<boolean> {
   }
 }
 
+/** `null` pour un fichier absent, comme `photoExists` ; rejette si un fichier présent ne se lit pas. */
+export async function readPhoto(name: string): Promise<Uint8Array | null> {
+  if (!(await photoExists(name))) return null
+
+  const { data } = await Filesystem.readFile({ path: photoPath(name), directory: Directory.Data })
+  if (typeof data !== 'string') return new Uint8Array(await data.arrayBuffer())
+  return Uint8Array.from(atob(data), (char) => char.charCodeAt(0))
+}
+
 /** Rejette si le fichier manque, par exemple après une restauration Auto Backup qui exclut les photos. */
 export async function photoDisplayUrl(name: string): Promise<string> {
   const options = { path: photoPath(name), directory: Directory.Data }

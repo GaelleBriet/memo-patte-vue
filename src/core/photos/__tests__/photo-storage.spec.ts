@@ -10,6 +10,7 @@ import {
   listPhotos,
   photoDisplayUrl,
   photoExists,
+  readPhoto,
   savePhoto,
 } from '../photo-storage'
 
@@ -187,6 +188,45 @@ describe('photoExists', () => {
 
     await expect(photoExists('absente.jpg')).resolves.toBe(false)
     await expect(photoExists('../secrets.txt')).resolves.toBe(false)
+  })
+})
+
+describe('readPhoto', () => {
+  const STAT = { uri: 'file:///data/photos/abc.jpg' } as Awaited<
+    ReturnType<FilesystemPlugin['stat']>
+  >
+
+  it('rend les octets du fichier lu sous photos/, dans Directory.Data', async () => {
+    stat.mockResolvedValue(STAT)
+    readFile.mockResolvedValue({ data: btoa('\xff\xd8\xff\xe0') })
+
+    await expect(readPhoto('abc.jpg')).resolves.toEqual(new Uint8Array([0xff, 0xd8, 0xff, 0xe0]))
+    expect(readFile).toHaveBeenCalledExactlyOnceWith({
+      path: 'photos/abc.jpg',
+      directory: Directory.Data,
+    })
+  })
+
+  it('rend aussi les octets d’un fichier que le navigateur relit en Blob', async () => {
+    stat.mockResolvedValue(STAT)
+    readFile.mockResolvedValue({ data: new Blob([new Uint8Array([0xff, 0xd8, 0xff])]) })
+
+    await expect(readPhoto('abc.jpg')).resolves.toEqual(new Uint8Array([0xff, 0xd8, 0xff]))
+  })
+
+  it('rend null, sans rien lire, pour un fichier absent comme pour un nom invalide', async () => {
+    stat.mockRejectedValue(new Error('File does not exist'))
+
+    await expect(readPhoto('absente.jpg')).resolves.toBeNull()
+    await expect(readPhoto('../secrets.txt')).resolves.toBeNull()
+    expect(readFile).not.toHaveBeenCalled()
+  })
+
+  it('propage un échec de lecture d’un fichier présent', async () => {
+    stat.mockResolvedValue(STAT)
+    readFile.mockRejectedValue(new Error('lecture impossible'))
+
+    await expect(readPhoto('abc.jpg')).rejects.toThrow('lecture impossible')
   })
 })
 
