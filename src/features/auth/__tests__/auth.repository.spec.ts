@@ -425,6 +425,58 @@ describe('createAuthRepository', () => {
     })
   })
 
+  describe('accountIdentity', () => {
+    const GOOGLE_SUBJECT = '108234567890'
+    const googleIdentity = {
+      id: GOOGLE_SUBJECT,
+      provider: 'google',
+      identity_data: { sub: GOOGLE_SUBJECT, email: 'sophie@gmail.com' },
+    }
+
+    function storeAccount(providers: string[], email: string, identities: object[]): void {
+      const body = sessionBody()
+      const app_metadata = { provider: providers[0], providers }
+      const user = { ...body.user, email, app_metadata, identities }
+      storage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ ...body, user }))
+    }
+
+    it('donne l’adresse d’un compte qui a un mot de passe, sans appel réseau', async () => {
+      storeAccount(['email'], 'sophie@exemple.fr', [{ id: USER_ID, provider: 'email' }])
+
+      await expect(repository.accountIdentity()).resolves.toEqual({
+        kind: 'password',
+        email: 'sophie@exemple.fr',
+      })
+      expect(server.calls).toEqual([])
+    })
+
+    it('reste un compte à mot de passe quand il a aussi Google', async () => {
+      storeAccount(['email', 'google'], 'sophie@exemple.fr', [
+        { id: USER_ID, provider: 'email' },
+        googleIdentity,
+      ])
+
+      await expect(repository.accountIdentity()).resolves.toEqual({
+        kind: 'password',
+        email: 'sophie@exemple.fr',
+      })
+    })
+
+    it('donne l’adresse Google d’un compte créé avec Google', async () => {
+      storeAccount(['google'], 'sophie@gmail.com', [googleIdentity])
+
+      await expect(repository.accountIdentity()).resolves.toEqual({
+        kind: 'google',
+        email: 'sophie@gmail.com',
+        subject: GOOGLE_SUBJECT,
+      })
+    })
+
+    it('ne donne rien sans session sur l’appareil', async () => {
+      await expect(repository.accountIdentity()).resolves.toBeNull()
+    })
+  })
+
   describe('refreshSession', () => {
     it('rafraîchit une session expirée au retour du réseau', async () => {
       storeSession(sessionBody(USER_ID, -60))
