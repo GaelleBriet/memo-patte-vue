@@ -17,8 +17,21 @@ export type UnconfirmedSignInResult = { kind: 'opened' } | { kind: 'failed'; mes
 
 export type ResendResult = 'sent' | 'wait' | 'failed'
 
-export function useEmailCode({ now = Date.now }: { now?: () => number } = {}) {
+/** Ce que l'étape du code demande au serveur ; par défaut, le code de l'inscription. */
+export type EmailCodeOperations = {
+  resend(email: string): Promise<void>
+  verify(email: string, code: string): Promise<void>
+}
+
+export function useEmailCode({
+  now = Date.now,
+  operations,
+}: { now?: () => number; operations?: EmailCodeOperations } = {}) {
   const auth = useAuthStore()
+  const { resend: resendCode, verify: verifyCode } = operations ?? {
+    resend: (email: string) => auth.resendSignUpCode(email),
+    verify: (email: string, code: string) => auth.verifySignUpCode(email, code),
+  }
 
   const email = ref<string | null>(null)
   const origin = ref<SignInMode>('sign-up')
@@ -49,6 +62,25 @@ export function useEmailCode({ now = Date.now }: { now?: () => number } = {}) {
     sentAt = sent
   }
 
+  async function verify(): Promise<boolean> {
+    if (!email.value || !isComplete.value || isConfirming.value) return false
+    isConfirming.value = true
+    errorKey.value = null
+    noticeKey.value = null
+    try {
+      await verifyCode(email.value, code.value)
+      return true
+    } catch (cause) {
+      errorKey.value =
+        cause instanceof AccountError && cause.reason === 'invalid-code'
+          ? refusedCodeKey(sentAt, now())
+          : signInErrorKey(cause)
+      return false
+    } finally {
+      isConfirming.value = false
+    }
+  }
+
   return {
     email,
     origin,
@@ -64,9 +96,13 @@ export function useEmailCode({ now = Date.now }: { now?: () => number } = {}) {
       open(address, 'sign-up', now())
     },
 
+    afterCodeSent(address: string): void {
+      open(address, 'sign-in', now())
+    },
+
     async afterUnconfirmedSignIn(address: string): Promise<UnconfirmedSignInResult> {
       try {
-        await auth.resendSignUpCode(address)
+        await resendCode(address)
         open(address, 'sign-in', now())
       } catch (cause) {
         if (cause instanceof AccountError && cause.reason === 'offline') {
@@ -82,24 +118,14 @@ export function useEmailCode({ now = Date.now }: { now?: () => number } = {}) {
       errorKey.value = null
     },
 
+    /** Vérifie le code sans fermer l'étape. */
+    verify,
+
+    /** Vérifie le code puis ferme l'étape. */
     async confirm(): Promise<boolean> {
-      if (!email.value || !isComplete.value || isConfirming.value) return false
-      isConfirming.value = true
-      errorKey.value = null
-      noticeKey.value = null
-      try {
-        await auth.verifySignUpCode(email.value, code.value)
-        forget()
-        return true
-      } catch (cause) {
-        errorKey.value =
-          cause instanceof AccountError && cause.reason === 'invalid-code'
-            ? refusedCodeKey(sentAt, now())
-            : signInErrorKey(cause)
-        return false
-      } finally {
-        isConfirming.value = false
-      }
+      if (!(await verify())) return false
+      forget()
+      return true
     },
 
     async resend(): Promise<ResendResult> {
@@ -111,7 +137,7 @@ export function useEmailCode({ now = Date.now }: { now?: () => number } = {}) {
       isResending.value = true
       noticeKey.value = null
       try {
-        await auth.resendSignUpCode(email.value)
+        await resendCode(email.value)
         sentAt = now()
         code.value = ''
         errorKey.value = null

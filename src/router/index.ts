@@ -188,6 +188,12 @@ export const routes: RouteRecordRaw[] = [
     beforeEnter: () => authAvailable() || { name: 'plus' },
   },
   {
+    path: '/sign-in/password-reset',
+    name: 'password-reset',
+    component: () => import('@/features/auth/views/PasswordResetView.vue'),
+    beforeEnter: () => authAvailable() || { name: 'plus' },
+  },
+  {
     path: '/analytics/consent',
     name: 'analytics-consent',
     component: () => import('@/features/settings/views/AnalyticsConsentView.vue'),

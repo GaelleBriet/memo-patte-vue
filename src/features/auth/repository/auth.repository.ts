@@ -21,6 +21,12 @@ export type AuthRepository = {
   /** Un code faux et un code expiré lèvent la même raison : Supabase ne les distingue pas. */
   verifySignUpCode(email: string, code: string): Promise<AuthSession>
   resendSignUpCode(email: string): Promise<void>
+  /** Supabase répond pareil qu'un compte existe ou non, et n'envoie rien sans compte. */
+  sendPasswordResetCode(email: string): Promise<void>
+  /** Ouvre une session dans Supabase, sans la signaler : seul `updatePassword` termine le parcours. */
+  verifyPasswordResetCode(email: string, code: string): Promise<void>
+  /** Vise le compte de la session de l'appareil. */
+  updatePassword(password: string): Promise<AuthSession>
   signIn(email: string, password: string): Promise<AuthSession>
   /** `nonce` en clair : Google a reçu son empreinte SHA-256. */
   signInWithGoogleIdToken(idToken: string, nonce: string): Promise<AuthSession>
@@ -44,6 +50,7 @@ const REASONS_BY_CODE: Record<string, AccountErrorReason> = {
   user_already_exists: 'email-taken',
   invalid_credentials: 'invalid-credentials',
   weak_password: 'weak-password',
+  same_password: 'same-password',
   email_not_confirmed: 'email-not-confirmed',
   otp_expired: 'invalid-code',
   over_email_send_rate_limit: 'email-rate-limited',
@@ -165,6 +172,27 @@ export function createAuthRepository({
       withClient(async (supabase) => {
         const { error } = await supabase.auth.resend({ type: 'signup', email })
         if (error) throw error
+      }),
+
+    sendPasswordResetCode: (email) =>
+      withClient(async (supabase) => {
+        const { error } = await supabase.auth.resetPasswordForEmail(email)
+        if (error) throw error
+      }),
+
+    verifyPasswordResetCode: (email, code) =>
+      withClient(async (supabase) => {
+        const { error } = await supabase.auth.verifyOtp({ email, token: code, type: 'recovery' })
+        if (error) throw error
+      }),
+
+    updatePassword: (password) =>
+      withClient(async (supabase) => {
+        const { error } = await supabase.auth.updateUser({ password })
+        if (error) throw error
+        const { data } = await supabase.auth.getSession()
+        if (!data.session) throw new AccountError('unknown')
+        return sessionOf(data.session)
       }),
 
     signIn: (email, password) =>

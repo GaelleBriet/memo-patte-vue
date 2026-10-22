@@ -122,6 +122,17 @@ export const useAuthStore = defineStore('auth', () => {
 
     resendSignUpCode: (email: string): Promise<void> => repository.resendSignUpCode(email),
 
+    sendPasswordResetCode: (email: string): Promise<void> =>
+      repository.sendPasswordResetCode(email),
+
+    /** N'ouvre pas le compte sur l'appareil : `changePassword` le fait une fois le mot de passe changé. */
+    verifyPasswordResetCode: (email: string, code: string): Promise<void> =>
+      repository.verifyPasswordResetCode(email, code),
+
+    async changePassword(password: string): Promise<void> {
+      record(await repository.updatePassword(password))
+    },
+
     async signIn(email: string, password: string): Promise<void> {
       record(await repository.signIn(email, password))
     },

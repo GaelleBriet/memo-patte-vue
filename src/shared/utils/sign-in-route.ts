@@ -4,6 +4,7 @@ import type { RestoreFlowState } from '@/core/sync/service/restore-flow'
 import { restoreRoute } from './restore-route'
 
 const SIGN_IN_ROUTE = 'sign-in'
+const PASSWORD_RESET_ROUTE = 'password-reset'
 const ACCOUNT_FIRST_ROUTE = 'plus-account'
 const DEFAULT_RETURN_ROUTE = 'plus'
 const RETURN_ROUTES: readonly string[] = [
@@ -33,6 +34,23 @@ export function signInRoute(
       ...(signUp ? { mode: SIGN_UP_MODE } : {}),
     },
   }
+}
+
+function journeyQuery(query: LocationQuery): Record<string, string> {
+  return {
+    ...(typeof query.from === 'string' ? { from: query.from } : {}),
+    ...(query.restore === RESTORE_FLAG ? { restore: RESTORE_FLAG } : {}),
+  }
+}
+
+/** L'adresse passe par l'état de l'historique : l'adresse de l'écran part dans les statistiques. */
+export function passwordResetRoute(query: LocationQuery, email: string): RouteLocationRaw {
+  return { name: PASSWORD_RESET_ROUTE, query: journeyQuery(query), state: { email } }
+}
+
+/** La connexion, avec le parcours d'origine et la restauration de l'écran qui la quitte. */
+export function signInRouteFrom(query: LocationQuery): RouteLocationRaw {
+  return { name: SIGN_IN_ROUTE, query: journeyQuery(query) }
 }
 
 /** « Étape 1 sur 2 » : le compte avant le paiement de l'offre choisie. */

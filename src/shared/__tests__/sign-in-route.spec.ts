@@ -4,8 +4,10 @@ import {
   accountFirstRoute,
   afterSignInRoute,
   asksSignUp,
+  passwordResetRoute,
   signInReturnRoute,
   signInRoute,
+  signInRouteFrom,
 } from '../utils/sign-in-route'
 import { routes } from '@/router'
 
@@ -36,6 +38,37 @@ describe('signInRoute', () => {
 
   it('ne déclare pas l’écran comme racine de la barre du bas', () => {
     expect(routes.find((route) => route.name === 'sign-in')?.meta?.rootScreen).toBeUndefined()
+  })
+})
+
+describe('passwordResetRoute', () => {
+  it('garde le parcours d’origine et passe l’adresse par l’historique, jamais par l’adresse de l’écran', () => {
+    expect(
+      passwordResetRoute(
+        { from: 'plus-account', restore: '1', mode: 'sign-up' },
+        'sophie@exemple.fr',
+      ),
+    ).toEqual({
+      name: 'password-reset',
+      query: { from: 'plus-account', restore: '1' },
+      state: { email: 'sophie@exemple.fr' },
+    })
+  })
+
+  it('désigne une route déclarée, poussée', () => {
+    const route = routes.find(({ name }) => name === 'password-reset')
+    expect(route).toBeDefined()
+    expect(route?.meta?.rootScreen).toBeUndefined()
+  })
+})
+
+describe('signInRouteFrom', () => {
+  it('revient à la connexion avec le même parcours d’origine', () => {
+    expect(signInRouteFrom({ from: 'settings', restore: '1' })).toEqual({
+      name: 'sign-in',
+      query: { from: 'settings', restore: '1' },
+    })
+    expect(signInRouteFrom({})).toEqual({ name: 'sign-in', query: {} })
   })
 })
 

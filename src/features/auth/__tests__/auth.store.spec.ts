@@ -46,6 +46,9 @@ vi.mock('../repository/auth.repository', () => ({
     signUp: vi.fn<AuthRepository['signUp']>(),
     verifySignUpCode: vi.fn<AuthRepository['verifySignUpCode']>(),
     resendSignUpCode: vi.fn<AuthRepository['resendSignUpCode']>(async () => {}),
+    sendPasswordResetCode: vi.fn<AuthRepository['sendPasswordResetCode']>(async () => {}),
+    verifyPasswordResetCode: vi.fn<AuthRepository['verifyPasswordResetCode']>(async () => {}),
+    updatePassword: vi.fn<AuthRepository['updatePassword']>(),
     signIn: vi.fn<AuthRepository['signIn']>(),
     signInWithGoogleIdToken: vi.fn<AuthRepository['signInWithGoogleIdToken']>(),
     signOut: vi.fn<AuthRepository['signOut']>(async () => {}),
@@ -458,6 +461,51 @@ describe('useAuthStore', () => {
       await store.resendSignUpCode('gaelle@example.com')
 
       expect(repository.resendSignUpCode).toHaveBeenCalledWith('gaelle@example.com')
+      expect(store.hasPlusAccount).toBe(false)
+    })
+  })
+
+  describe('mot de passe oublié', () => {
+    it('demande le code sans rien écrire', async () => {
+      const store = useAuthStore()
+
+      await store.sendPasswordResetCode('gaelle@example.com')
+
+      expect(repository.sendPasswordResetCode).toHaveBeenCalledWith('gaelle@example.com')
+      expect(store.hasPlusAccount).toBe(false)
+    })
+
+    it('vérifie le code sans ouvrir le compte : le mot de passe n’est pas encore changé', async () => {
+      const store = useAuthStore()
+
+      await store.verifyPasswordResetCode('gaelle@example.com', '123456')
+
+      expect(repository.verifyPasswordResetCode).toHaveBeenCalledWith(
+        'gaelle@example.com',
+        '123456',
+      )
+      expect(store.hasPlusAccount).toBe(false)
+      expect(readPlusAccount()).toBeNull()
+    })
+
+    it('ouvre le compte une fois le nouveau mot de passe enregistré', async () => {
+      repository.updatePassword.mockResolvedValue({ userId: USER_ID })
+      const store = useAuthStore()
+
+      await store.changePassword('nouveau-secret')
+
+      expect(repository.updatePassword).toHaveBeenCalledWith('nouveau-secret')
+      expect(store.hasPlusAccount).toBe(true)
+      expect(store.sessionState).toBe('active')
+      expect(readPlusAccount()).toEqual({ userId: USER_ID })
+      expect(identify).toHaveBeenCalledWith(USER_ID)
+    })
+
+    it('n’ouvre rien quand le mot de passe est refusé', async () => {
+      repository.updatePassword.mockRejectedValue(new AccountError('same-password'))
+      const store = useAuthStore()
+
+      await expect(store.changePassword('ancien-secret')).rejects.toThrow(AccountError)
       expect(store.hasPlusAccount).toBe(false)
     })
   })

@@ -1,0 +1,132 @@
+import { computed, ref } from 'vue'
+
+import { AccountError } from '../logic/account-error'
+import { accountErrorKey, signInErrorKey } from '../logic/account-error-message'
+import { mustWaitBeforeResend } from '../logic/email-code'
+import { validateNewPassword, validateResetEmail } from '../logic/password-reset-form'
+import { useAuthStore } from '../store/auth.store'
+import { useFormValidation } from '@/shared/form/use-form-validation'
+
+import { useEmailCode } from './use-email-code'
+
+const WAIT_KEY = 'auth.code.wait'
+
+type RefusedPassword = { password: string; key: string }
+
+/** Mot de passe oublié (PL-9) : l'adresse, puis le code et le nouveau mot de passe. */
+export function usePasswordReset({
+  email = '',
+  now = Date.now,
+}: { email?: string; now?: () => number } = {}) {
+  const auth = useAuthStore()
+  const emailCode = useEmailCode({
+    now,
+    operations: {
+      resend: (address) => auth.sendPasswordResetCode(address),
+      verify: (address, code) => auth.verifyPasswordResetCode(address, code),
+    },
+  })
+
+  const address = ref({ email })
+  const newPassword = ref({ password: '' })
+  const addressFailureKey = ref<string | null>(null)
+  const refusedPassword = ref<RefusedPassword | null>(null)
+  const isSending = ref(false)
+  const isResetting = ref(false)
+  let lastSent: { email: string; at: number } | null = null
+  let isCodeAccepted = false
+
+  const addressValidation = useFormValidation(address, validateResetEmail)
+  const passwordValidation = useFormValidation(newPassword, validateNewPassword)
+
+  const step = computed(() => (emailCode.email.value === null ? 'address' : 'code'))
+  const passwordError = computed(() => {
+    const refused = refusedPassword.value
+    if (refused && refused.password === newPassword.value.password) return refused.key
+    return passwordValidation.errors.value.password ?? null
+  })
+
+  async function sendCode(): Promise<boolean> {
+    if (isSending.value) return false
+    addressFailureKey.value = null
+    const result = addressValidation.validate()
+    if (!result.success) return false
+    const target = result.data.email
+    if (lastSent?.email === target && mustWaitBeforeResend(lastSent.at, now())) {
+      addressFailureKey.value = WAIT_KEY
+      return false
+    }
+    isSending.value = true
+    try {
+      await auth.sendPasswordResetCode(target)
+      lastSent = { email: target, at: now() }
+      isCodeAccepted = false
+      emailCode.afterCodeSent(target)
+      return true
+    } catch (cause) {
+      addressFailureKey.value = signInErrorKey(cause)
+      return false
+    } finally {
+      isSending.value = false
+    }
+  }
+
+  async function reset(): Promise<boolean> {
+    if (isResetting.value) return false
+    const result = passwordValidation.validate()
+    if (!result.success) return false
+    isResetting.value = true
+    try {
+      if (!isCodeAccepted) {
+        if (!(await emailCode.verify())) return false
+        isCodeAccepted = true
+      }
+      await auth.changePassword(result.data.password)
+      emailCode.close()
+      return true
+    } catch (cause) {
+      const reason = cause instanceof AccountError ? cause.reason : 'unknown'
+      if (reason === 'same-password' || reason === 'weak-password') {
+        refusedPassword.value = { password: result.data.password, key: accountErrorKey(reason) }
+      } else {
+        emailCode.errorKey.value = signInErrorKey(cause)
+      }
+      return false
+    } finally {
+      isResetting.value = false
+    }
+  }
+
+  async function resend(): ReturnType<typeof emailCode.resend> {
+    const outcome = await emailCode.resend()
+    if (outcome === 'sent') {
+      isCodeAccepted = false
+      if (emailCode.email.value) lastSent = { email: emailCode.email.value, at: now() }
+    }
+    return outcome
+  }
+
+  function backToAddress(): void {
+    address.value = { email: emailCode.close().email }
+    newPassword.value = { password: '' }
+    refusedPassword.value = null
+    addressFailureKey.value = null
+    isCodeAccepted = false
+    passwordValidation.reset()
+  }
+
+  return {
+    emailCode: { ...emailCode, resend },
+    step,
+    address,
+    addressErrors: addressValidation.errors,
+    addressFailureKey,
+    newPassword,
+    passwordError,
+    isSending,
+    isResetting,
+    sendCode,
+    reset,
+    backToAddress,
+  }
+}

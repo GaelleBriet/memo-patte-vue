@@ -1699,10 +1699,23 @@
       "emailTaken": "Un compte existe déjà avec cette adresse e-mail.",
       "invalidCredentials": "E-mail ou mot de passe incorrect. Réessaie.",
       "weakPassword": "Ce mot de passe est trop faible. Choisis-en un plus long ou moins courant.",
+      "samePassword": "Choisis un mot de passe différent de l’actuel.",
       "offline": "Pas de connexion internet. Vérifie ton réseau et réessaie.",
       "noGoogleAccount": "Aucun compte Google sur ce téléphone. Ajoute-le dans les réglages d’Android, ou continue avec une adresse e-mail.",
       "googleUnavailable": "La connexion avec Google n’est pas disponible sur ce téléphone. Continue avec une adresse e-mail.",
       "unknown": "Quelque chose s’est mal passé. Réessaie dans un instant."
+    },
+    "passwordReset": {
+      "link": "Mot de passe oublié ?",
+      "title": "Mot de passe oublié",
+      "intro": "Indique l’adresse de ton compte. Un code à 6 chiffres y sera envoyé.",
+      "send": "Recevoir le code",
+      "codeMessage": "Entre le code à 6 chiffres envoyé à {email}, puis choisis un nouveau mot de passe.",
+      "codeLabel": "Code reçu",
+      "codeInputLabel": "Code à 6 chiffres reçu par e-mail",
+      "newPassword": "Nouveau mot de passe",
+      "submit": "Réinitialiser",
+      "done": "Mot de passe modifié."
     },
     "code": {
       "title": "Confirme ton e-mail",
