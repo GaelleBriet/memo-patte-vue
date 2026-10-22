@@ -63,7 +63,8 @@ const DYNAMIC_I18N_KEYS = [
   '/^auth\\.accountFirst\\.offer\\.(monthly|annual|lifetime)$/',
   '/^auth\\.form\\.errors\\.(emailRequired|emailInvalid|passwordRequired|passwordTooShort)$/',
   '/^settings\\.account\\.delete\\.identity\\.(wrongPassword|otherGoogleAccount)$/',
-  '/^auth\\.errors\\.(emailTaken|invalidCredentials|weakPassword|emailNotConfirmed|offline|noGoogleAccount|googleUnavailable|unknown)$/',
+  '/^auth\\.errors\\.(emailTaken|invalidCredentials|weakPassword|offline|noGoogleAccount|googleUnavailable|unknown)$/',
+  '/^auth\\.code\\.(wait|errors\\.(incorrect|expired))$/',
 ]
 
 export const vueI18nRulesBlock = {

@@ -1652,10 +1652,12 @@
     },
     "signUp": {
       "title": "Créer un compte",
-      "submit": "Créer mon compte",
+      "submit": "Recevoir le code",
       "loading": "Création du compte en cours…",
       "toggle": "Déjà un compte ?",
-      "toggleAction": "Se connecter"
+      "toggleAction": "Se connecter",
+      "emailTitle": "Ton e-mail",
+      "emailBody": "Il sert à retrouver ton carnet et à sécuriser ton compte."
     },
     "google": {
       "continue": "Continuer avec Google"
@@ -1697,16 +1699,23 @@
       "emailTaken": "Un compte existe déjà avec cette adresse e-mail.",
       "invalidCredentials": "E-mail ou mot de passe incorrect. Réessaie.",
       "weakPassword": "Ce mot de passe est trop faible. Choisis-en un plus long ou moins courant.",
-      "emailNotConfirmed": "Ton adresse e-mail n’est pas encore confirmée. Ouvre le lien reçu par e-mail, puis réessaie.",
       "offline": "Pas de connexion internet. Vérifie ton réseau et réessaie.",
       "noGoogleAccount": "Aucun compte Google sur ce téléphone. Ajoute-le dans les réglages d’Android, ou continue avec une adresse e-mail.",
       "googleUnavailable": "La connexion avec Google n’est pas disponible sur ce téléphone. Continue avec une adresse e-mail.",
       "unknown": "Quelque chose s’est mal passé. Réessaie dans un instant."
     },
-    "confirmation": {
-      "title": "Vérifie ta boîte mail",
-      "message": "On vient d’envoyer un lien de confirmation à {email}. Ouvre-le pour activer ton compte, puis reviens te connecter ici.",
-      "back": "Retour à la connexion"
+    "code": {
+      "title": "Confirme ton e-mail",
+      "message": "Entre le code à 6 chiffres envoyé à {email}.",
+      "resend": "Renvoyer le code",
+      "changeAddress": "Changer d’adresse",
+      "confirm": "Confirmer",
+      "sent": "Nouveau code envoyé à {email}.",
+      "wait": "Attends une minute avant de demander un nouveau code.",
+      "errors": {
+        "incorrect": "Ce code n’est pas le bon. Vérifie-le ou demande un nouveau code.",
+        "expired": "Ce code a expiré. Demande un nouveau code."
+      }
     }
   },
   "plus": {

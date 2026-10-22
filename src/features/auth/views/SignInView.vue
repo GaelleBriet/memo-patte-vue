@@ -3,7 +3,9 @@ import { computed, nextTick, onUnmounted, ref, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
+import { useEmailCode } from '../composables/use-email-code'
 import { useGoogleSignIn } from '../composables/use-google-sign-in'
+import { AccountError } from '../logic/account-error'
 import { signInErrorKey } from '../logic/account-error-message'
 import { useAuthStore } from '../store/auth.store'
 import { emptySignInFormValues, validateSignInForm, type SignInMode } from '../logic/sign-in-form'
@@ -13,6 +15,7 @@ import { useFormValidation } from '@/shared/form/use-form-validation'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { currentRestoreFlow } from '@/core/sync/service/restore-flow'
 import { returnTo } from '@/shared/utils/return-to'
+import { showToast } from '@/shared/utils/toast'
 import {
   afterSignInRoute,
   asksRestore,
@@ -21,6 +24,7 @@ import {
 } from '@/shared/utils/sign-in-route'
 
 import AccountLegalNotice from './AccountLegalNotice.vue'
+import EmailCodeStep from './EmailCodeStep.vue'
 import GoogleSignInButton from './GoogleSignInButton.vue'
 
 const { t } = useI18n()
@@ -28,6 +32,7 @@ const router = useRouter()
 const auth = useAuthStore()
 const route = useRoute()
 const { continueWithGoogle } = useGoogleSignIn()
+const emailCode = useEmailCode()
 
 const mode = ref<SignInMode>(asksSignUp(route.query) ? 'sign-up' : 'sign-in')
 const values = ref(emptySignInFormValues())
@@ -39,7 +44,6 @@ const { errors, validate, reset } = useFormValidation(values, (current) =>
 const isSubmitting = ref(false)
 const isGoogleSignIn = ref(false)
 const failureKey = ref<string | null>(null)
-const awaitingConfirmationFor = ref<string | null>(null)
 const hasNoAnswer = ref(false)
 const fields = useTemplateRef<HTMLElement>('fields')
 const errorBanner = useTemplateRef<HTMLElement>('errorBanner')
@@ -49,7 +53,11 @@ let isMounted = true
 const returnRoute = computed(() => signInReturnRoute(route.query.from))
 
 const isSignUp = computed(() => mode.value === 'sign-up')
-const title = computed(() => (isSignUp.value ? t('auth.signUp.title') : t('auth.signIn.title')))
+const isCodeStep = computed(() => emailCode.email.value !== null)
+const title = computed(() => {
+  if (isCodeStep.value) return t('auth.code.title')
+  return isSignUp.value ? t('auth.signUp.title') : t('auth.signIn.title')
+})
 const submitLabel = computed(() =>
   isSignUp.value ? t('auth.signUp.submit') : t('auth.signIn.submit'),
 )
@@ -98,12 +106,40 @@ function toggleMode(): void {
   reset()
 }
 
-function backToSignIn(): void {
-  values.value = { ...emptySignInFormValues(), email: awaitingConfirmationFor.value ?? '' }
-  awaitingConfirmationFor.value = null
-  mode.value = 'sign-in'
+function back(): void {
+  if (isCodeStep.value) backToForm()
+  else leave()
+}
+
+function backToForm(): void {
+  const { email, origin } = emailCode.close()
+  values.value = { ...emptySignInFormValues(), email }
+  mode.value = origin
   failureKey.value = null
   reset()
+}
+
+async function openCodeAfterSignIn(email: string): Promise<void> {
+  const opened = await emailCode.afterUnconfirmedSignIn(email)
+  if (!isMounted) return
+  isSubmitting.value = false
+  if (opened.kind === 'failed') await showFailure(opened.messageKey)
+}
+
+async function confirmCode(): Promise<void> {
+  if (isSubmitting.value || !emailCode.isComplete.value) return
+  isSubmitting.value = true
+  const confirmed = await emailCode.confirm()
+  if (!isMounted) return
+  if (confirmed) await leaveSignedIn()
+  else isSubmitting.value = false
+}
+
+async function resendCode(): Promise<void> {
+  const email = emailCode.email.value
+  if ((await emailCode.resend()) === 'sent' && isMounted) {
+    showToast(t('auth.code.sent', { email }))
+  }
 }
 
 async function showFailure(messageKey: string): Promise<void> {
@@ -136,10 +172,14 @@ async function submit(): Promise<void> {
     if (!isMounted) return
     if (toConfirm) {
       isSubmitting.value = false
-      awaitingConfirmationFor.value = email
+      emailCode.afterSignUp(email)
     } else await leaveSignedIn()
   } catch (cause) {
     if (!isMounted) return
+    if (cause instanceof AccountError && cause.reason === 'email-not-confirmed') {
+      await openCodeAfterSignIn(email)
+      return
+    }
     isSubmitting.value = false
     await showFailure(signInErrorKey(cause))
   }
@@ -174,27 +214,9 @@ onUnmounted(() => {
     :title="title"
     :back-label="t('form.back')"
     :aria-busy="isSubmitting"
-    @back="leave"
+    @back="back"
   >
-    <div v-if="awaitingConfirmationFor" class="sign-in__confirmation">
-      <span class="sign-in__confirmation-icon" aria-hidden="true">
-        <v-icon icon="ms:mark_email_unread" size="44" />
-      </span>
-      <h2 class="sign-in__confirmation-title">{{ t('auth.confirmation.title') }}</h2>
-      <p class="sign-in__confirmation-message">
-        {{ t('auth.confirmation.message', { email: awaitingConfirmationFor }) }}
-      </p>
-      <v-btn
-        class="sign-in__confirmation-back"
-        variant="outlined"
-        color="primary"
-        @click="backToSignIn"
-      >
-        {{ t('auth.confirmation.back') }}
-      </v-btn>
-    </div>
-
-    <div v-else-if="isSubmitting" class="sign-in__loading" role="status">
+    <div v-if="isSubmitting" class="sign-in__loading" role="status">
       <v-progress-circular indeterminate color="primary" :size="34" :width="3" />
       <p class="sign-in__loading-label">{{ loadingLabel }}</p>
     </div>
@@ -209,6 +231,19 @@ onUnmounted(() => {
       </v-btn>
     </div>
 
+    <EmailCodeStep
+      v-else-if="emailCode.email.value"
+      :email="emailCode.email.value"
+      :code="emailCode.code.value"
+      :error-key="emailCode.errorKey.value"
+      :notice-key="emailCode.noticeKey.value"
+      :is-expired="emailCode.isExpired.value"
+      :is-resending="emailCode.isResending.value"
+      @update:code="emailCode.setCode"
+      @resend="resendCode"
+      @change-address="backToForm"
+    />
+
     <div v-else class="sign-in__panel">
       <p class="sign-in__intro">{{ t('auth.intro') }}</p>
 
@@ -219,6 +254,14 @@ onUnmounted(() => {
       />
 
       <hr class="sign-in__separator" />
+
+      <div v-if="isSignUp" class="sign-in__email-hero">
+        <span class="sign-in__email-hero-icon" aria-hidden="true">
+          <v-icon icon="ms:mark_email_read" size="26" />
+        </span>
+        <h2 class="sign-in__email-hero-title">{{ t('auth.signUp.emailTitle') }}</h2>
+        <p class="sign-in__email-hero-body">{{ t('auth.signUp.emailBody') }}</p>
+      </div>
 
       <form class="sign-in__form" novalidate @submit.prevent="submit">
         <p v-if="failureKey" ref="errorBanner" class="sign-in__error" role="alert" tabindex="-1">
@@ -292,6 +335,21 @@ onUnmounted(() => {
         </v-btn>
       </p>
     </div>
+
+    <template v-if="isCodeStep && !isSubmitting" #actions>
+      <div class="sign-in__actions">
+        <v-btn
+          class="sign-in__confirm-code"
+          variant="flat"
+          color="primary"
+          block
+          :disabled="!emailCode.isComplete.value || emailCode.isResending.value"
+          @click="confirmCode"
+        >
+          {{ t('auth.code.confirm') }}
+        </v-btn>
+      </div>
+    </template>
   </PushedScreen>
 </template>
 
@@ -325,6 +383,44 @@ onUnmounted(() => {
 
 .sign-in__form {
   margin-top: 24px;
+}
+
+.sign-in__email-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.sign-in__email-hero + .sign-in__form {
+  margin-top: 20px;
+}
+
+.sign-in__email-hero-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: tokens.$color-priming-icon-surface;
+  color: rgb(var(--v-theme-primary));
+}
+
+.sign-in__email-hero-title {
+  margin: 4px 0 0;
+  font-family: tokens.$font-family-heading;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.sign-in__email-hero-body {
+  margin: 0;
+  color: tokens.$color-text-secondary;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .sign-in__error {
@@ -410,51 +506,16 @@ onUnmounted(() => {
   font-size: 14.5px;
 }
 
-.sign-in__confirmation {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 60vh;
-  min-height: 60dvh;
-  padding: 32px 24px;
-  text-align: center;
+.sign-in__actions {
+  padding: 12px 20px 24px;
 }
 
-.sign-in__confirmation-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 96px;
-  height: 96px;
-  margin-bottom: 26px;
-  border-radius: 50%;
-  background: tokens.$color-priming-icon-surface;
-  color: rgb(var(--v-theme-primary));
-}
-
-.sign-in__confirmation-title {
-  font-family: tokens.$font-family-heading;
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1.25;
-}
-
-.sign-in__confirmation-message {
-  max-width: 320px;
-  margin-top: 10px;
-  color: tokens.$color-text-secondary;
-  font-size: 14.5px;
-  line-height: 1.55;
-}
-
-.sign-in__confirmation-back {
+.sign-in__confirm-code {
   height: 52px;
-  margin-top: 30px;
-  padding-inline: 26px;
-  border-radius: 999px;
+  border-radius: tokens.$radius-pill;
   font-size: 16px;
   font-weight: 700;
   letter-spacing: normal;
+  text-transform: none;
 }
 </style>

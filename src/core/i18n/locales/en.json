@@ -1652,10 +1652,12 @@
     },
     "signUp": {
       "title": "Create an account",
-      "submit": "Create my account",
+      "submit": "Get the code",
       "loading": "Creating your account…",
       "toggle": "Already have an account?",
-      "toggleAction": "Sign in"
+      "toggleAction": "Sign in",
+      "emailTitle": "Your email",
+      "emailBody": "It’s used to recover your health record and secure your account."
     },
     "google": {
       "continue": "Continue with Google"
@@ -1697,16 +1699,23 @@
       "emailTaken": "An account already exists with this email address.",
       "invalidCredentials": "Incorrect email or password. Try again.",
       "weakPassword": "This password is too weak. Choose a longer or less common one.",
-      "emailNotConfirmed": "Your email address isn’t confirmed yet. Open the link we sent you, then try again.",
       "offline": "No internet connection. Check your network and try again.",
       "noGoogleAccount": "No Google account on this phone. Add one in Android settings, or continue with an email address.",
       "googleUnavailable": "Signing in with Google isn’t available on this phone. Continue with an email address.",
       "unknown": "Something went wrong. Try again in a moment."
     },
-    "confirmation": {
-      "title": "Check your inbox",
-      "message": "We’ve just sent a confirmation link to {email}. Open it to activate your account, then come back here to sign in.",
-      "back": "Back to sign in"
+    "code": {
+      "title": "Confirm your email",
+      "message": "Enter the 6-digit code sent to {email}.",
+      "resend": "Resend code",
+      "changeAddress": "Change address",
+      "confirm": "Confirm",
+      "sent": "New code sent to {email}.",
+      "wait": "Wait a minute before asking for a new code.",
+      "errors": {
+        "incorrect": "This code isn’t right. Check it or ask for a new code.",
+        "expired": "This code has expired. Ask for a new code."
+      }
     }
   },
   "plus": {

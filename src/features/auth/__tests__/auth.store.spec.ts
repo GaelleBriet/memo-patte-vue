@@ -44,6 +44,8 @@ vi.mock('@/core/analytics', () => ({
 vi.mock('../repository/auth.repository', () => ({
   authRepository: {
     signUp: vi.fn<AuthRepository['signUp']>(),
+    verifySignUpCode: vi.fn<AuthRepository['verifySignUpCode']>(),
+    resendSignUpCode: vi.fn<AuthRepository['resendSignUpCode']>(async () => {}),
     signIn: vi.fn<AuthRepository['signIn']>(),
     signInWithGoogleIdToken: vi.fn<AuthRepository['signInWithGoogleIdToken']>(),
     signOut: vi.fn<AuthRepository['signOut']>(async () => {}),
@@ -413,6 +415,50 @@ describe('useAuthStore', () => {
       await expect(useAuthStore().signUp('gaelle@example.com', 'x')).rejects.toMatchObject({
         reason: 'email-taken',
       })
+    })
+
+    it('demande l’e-mail du code dans la langue de l’app', async () => {
+      repository.signUp.mockResolvedValueOnce({ kind: 'confirmation-pending' })
+
+      await useAuthStore().signUp('gaelle@example.com', 'secret-123')
+
+      expect(repository.signUp).toHaveBeenCalledWith('gaelle@example.com', 'secret-123', 'fr')
+    })
+  })
+
+  describe('verifySignUpCode', () => {
+    it('écrit le compte et ouvre la session quand le code est bon', async () => {
+      repository.verifySignUpCode.mockResolvedValueOnce({ userId: USER_ID })
+      const store = useAuthStore()
+
+      await store.verifySignUpCode('gaelle@example.com', '123456')
+
+      expect(repository.verifySignUpCode).toHaveBeenCalledWith('gaelle@example.com', '123456')
+      expect(store.sessionState).toBe('active')
+      expect(readPlusAccount()).toEqual({ userId: USER_ID })
+      expect(identify).toHaveBeenCalledWith(USER_ID)
+    })
+
+    it('n’écrit rien quand le code est refusé', async () => {
+      repository.verifySignUpCode.mockRejectedValueOnce(new AccountError('invalid-code'))
+      const store = useAuthStore()
+
+      await expect(store.verifySignUpCode('gaelle@example.com', '000000')).rejects.toMatchObject({
+        reason: 'invalid-code',
+      })
+      expect(store.hasPlusAccount).toBe(false)
+      expect(readPlusAccount()).toBeNull()
+    })
+  })
+
+  describe('resendSignUpCode', () => {
+    it('redemande le code sans rien écrire', async () => {
+      const store = useAuthStore()
+
+      await store.resendSignUpCode('gaelle@example.com')
+
+      expect(repository.resendSignUpCode).toHaveBeenCalledWith('gaelle@example.com')
+      expect(store.hasPlusAccount).toBe(false)
     })
   })
 

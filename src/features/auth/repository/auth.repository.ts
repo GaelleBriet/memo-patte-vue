@@ -1,5 +1,6 @@
 import type { AuthError, Session, SupabaseClient } from '@supabase/supabase-js'
 
+import type { AppLocale } from '@/core/i18n'
 import { AUTH_STORAGE_KEY } from '@/core/supabase/auth-storage'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { errorSummary } from '@/shared/utils/error-summary'
@@ -15,7 +16,11 @@ export type SessionCheck =
   { kind: 'active'; session: AuthSession } | { kind: 'needs-refresh' } | { kind: 'needs-sign-in' }
 
 export type AuthRepository = {
-  signUp(email: string, password: string): Promise<SignUpOutcome>
+  /** `locale` choisit la langue de l'e-mail qui porte le code. */
+  signUp(email: string, password: string, locale: AppLocale): Promise<SignUpOutcome>
+  /** Un code faux et un code expiré lèvent la même raison : Supabase ne les distingue pas. */
+  verifySignUpCode(email: string, code: string): Promise<AuthSession>
+  resendSignUpCode(email: string): Promise<void>
   signIn(email: string, password: string): Promise<AuthSession>
   /** `nonce` en clair : Google a reçu son empreinte SHA-256. */
   signInWithGoogleIdToken(idToken: string, nonce: string): Promise<AuthSession>
@@ -40,6 +45,8 @@ const REASONS_BY_CODE: Record<string, AccountErrorReason> = {
   invalid_credentials: 'invalid-credentials',
   weak_password: 'weak-password',
   email_not_confirmed: 'email-not-confirmed',
+  otp_expired: 'invalid-code',
+  over_email_send_rate_limit: 'email-rate-limited',
 }
 
 function isRetryable(error: AuthError | null): boolean {
@@ -133,13 +140,31 @@ export function createAuthRepository({
   }
 
   return {
-    signUp: (email, password) =>
+    signUp: (email, password, locale) =>
       withClient(async (supabase) => {
-        const { data, error } = await supabase.auth.signUp({ email, password })
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { locale } },
+        })
         if (error) throw error
         if (data.session) return { kind: 'signed-in', session: sessionOf(data.session) }
         if (data.user?.identities?.length === 0) throw new AccountError('email-taken')
         return { kind: 'confirmation-pending' }
+      }),
+
+    verifySignUpCode: (email, code) =>
+      withClient(async (supabase) => {
+        const { data, error } = await supabase.auth.verifyOtp({ email, token: code, type: 'email' })
+        if (error) throw error
+        if (!data.session) throw new AccountError('unknown')
+        return sessionOf(data.session)
+      }),
+
+    resendSignUpCode: (email) =>
+      withClient(async (supabase) => {
+        const { error } = await supabase.auth.resend({ type: 'signup', email })
+        if (error) throw error
       }),
 
     signIn: (email, password) =>
