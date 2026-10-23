@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core'
-import { format, parseISO, subDays } from 'date-fns'
+import { parseISO, subDays } from 'date-fns'
+import { toDay } from '@/shared/domain/calendar-day'
 
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import { shouldShowPriming } from '@/core/notifications'
@@ -52,7 +53,7 @@ export function hasUpcomingDueDates(
       .filter((animal) => animal.deletedAt === null && animal.unfollowedOn === null)
       .map((animal) => animal.id),
   )
-  const lastRemindedDueDate = format(subDays(parseISO(today), DAYS_OVERDUE), 'yyyy-MM-dd')
+  const lastRemindedDueDate = toDay(subDays(parseISO(today), DAYS_OVERDUE))
   return (
     vaccinations.some(
       (vaccination) =>

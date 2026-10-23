@@ -1,4 +1,4 @@
-import { addDays, compareAsc, format } from 'date-fns'
+import { addDays, compareAsc } from 'date-fns'
 
 import { REMINDER_DONE_ACTION_TYPE } from './reminder-action-type'
 import type { Reminder } from '@/core/notifications'
@@ -18,7 +18,7 @@ import {
   type DueReminderEntry,
   type DueReminderMoment,
 } from './due-reminders'
-import { toDate } from './calendar-day'
+import { toDate, toDay } from './calendar-day'
 import type { AppLocale } from '@/core/i18n'
 import type { Translate } from '@/core/i18n/translate'
 
@@ -66,7 +66,7 @@ export const DAYS_BEFORE_VACCINATION = 14
 const WITH_DONE_ACTION: ReadonlySet<DueReminderMoment> = new Set(['due', 'overdue'])
 
 function shiftDay(day: string, days: number): string {
-  return format(addDays(toDate(day), days), 'yyyy-MM-dd')
+  return toDay(addDays(toDate(day), days))
 }
 
 /** Heure murale du jour, moins le décalage : l'instant suit le fuseau du téléphone. */
@@ -177,7 +177,7 @@ export function vaccinationReminderPlan(
   const named = { name, animal: animalName }
   const due = { day: dueDate, time: null }
   const atOf = (days: number) => instant(shiftDay(dueDate, days), settings.vaccineReminderTime)
-  const date = withoutFinalDot(formatDayMonthOrYear(dueDate, format(now, 'yyyy-MM-dd')))
+  const date = withoutFinalDot(formatDayMonthOrYear(dueDate, toDay(now)))
   const before = settings.remindBeforeDue
     ? [
         reminder(entry, due, 'before', atOf(-DAYS_BEFORE_VACCINATION), {

@@ -1,4 +1,5 @@
-import { addDays, addMonths, format, subDays, subMonths, subYears } from 'date-fns'
+import { addDays, addMonths, subDays, subMonths, subYears } from 'date-fns'
+import { toDay } from '@/shared/domain/calendar-day'
 import type { AnimalInput } from '@/features/animals/schema/animal.schema'
 import type { TreatmentDose } from '@/features/treatments/schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '@/features/treatments/schema/treatment-period.schema'
@@ -62,12 +63,11 @@ export interface DemoAnimal {
  */
 export const DEMO_CARNET_MARKER = 'memo-patte:demo-carnet'
 
-const DATE_FORMAT = 'yyyy-MM-dd'
 const MORNING = '08:00'
 const EVENING = '20:00'
 
 function day(date: Date): string {
-  return format(date, DATE_FORMAT)
+  return toDay(date)
 }
 
 /** Une pesée par mois, de la plus ancienne à celle de ce mois-ci. */

@@ -1,4 +1,5 @@
-import { format, parseISO } from 'date-fns'
+import { parseISO } from 'date-fns'
+import { toDay } from '@/shared/domain/calendar-day'
 
 import type { ExportFileV1 } from '../schema/export-file-v1.schema'
 import type { ExportFileV2 } from '../schema/export-file-v2.schema'
@@ -58,7 +59,7 @@ function arrivalWeighIns(animals: ExportFileV2['animals']): Version3Data['weight
             id,
             animalId: id,
             weightKg: initialWeightKg,
-            measuredOn: format(parseISO(createdAt), 'yyyy-MM-dd'),
+            measuredOn: toDay(parseISO(createdAt)),
             createdAt,
             updatedAt: createdAt,
           },

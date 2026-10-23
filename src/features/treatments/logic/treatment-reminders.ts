@@ -1,4 +1,4 @@
-import { format } from 'date-fns'
+import { toDay } from '@/shared/domain/calendar-day'
 
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import type { EntryReminders } from '@/core/notifications/due-reminders-schedule'
@@ -16,7 +16,7 @@ export function treatmentReminders(
   settings: CarnetReminderSettings,
   now: Date,
 ): EntryReminders {
-  const reading = readableReadingOf(treatment, format(now, 'yyyy-MM-dd'))
+  const reading = readableReadingOf(treatment, toDay(now))
   if (reading === null) return { care: null, isNoted: () => false }
 
   const { view } = reading

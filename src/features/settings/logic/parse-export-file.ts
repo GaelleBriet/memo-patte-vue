@@ -1,4 +1,4 @@
-import { format } from 'date-fns'
+import { toDay } from '@/shared/domain/calendar-day'
 import type { z } from 'zod'
 
 import { currentDeviceId } from '@/core/device/device-identity'
@@ -51,7 +51,7 @@ function refusalReason(error: z.ZodError): ImportFileError {
 export function parseExportFile(
   text: string,
   deviceId: string = currentDeviceId(),
-  today: string = format(new Date(), 'yyyy-MM-dd'),
+  today: string = toDay(new Date()),
 ): ParsedExportFile {
   const document = parseJson(text)
 

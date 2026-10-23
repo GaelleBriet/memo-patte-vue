@@ -1,4 +1,4 @@
-import { format } from 'date-fns'
+import { toDay } from '@/shared/domain/calendar-day'
 
 import i18n from '@/core/i18n'
 import { photoBase64DataUrl } from '@/core/photos/photo-storage'
@@ -45,7 +45,7 @@ export function createPdfExportService({
       mode: DeliveryMode,
     ): Promise<PdfExportOutcome> {
       const data = await collect()
-      const today = format(exportedAt, 'yyyy-MM-dd')
+      const today = toDay(exportedAt)
       const [first, ...others] = animalIds.flatMap(
         (id) => buildCarnetPdfContent(data, id, today) ?? [],
       )
