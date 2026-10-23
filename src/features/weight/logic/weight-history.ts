@@ -4,7 +4,7 @@ import type { WeightChange, WeightTrend } from '@/shared/domain/weight-delta'
 export type WeightHistoryEntry = WeightPoint & { id: string }
 
 /** H1 : au moins deux pesées ; H2 : une seule ; H3 : aucune. */
-export type WeightHistoryState = 'full' | 'single' | 'empty'
+type WeightHistoryState = 'full' | 'single' | 'empty'
 
 export type WeightHistoryRow = WeightHistoryEntry & {
   /** `null` pour la toute première pesée : la cellule reste vide. */
