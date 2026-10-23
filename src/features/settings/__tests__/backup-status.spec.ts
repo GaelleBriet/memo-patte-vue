@@ -47,9 +47,13 @@ describe('backupStatusOf', () => {
   })
 
   it('en attente de réseau hors ligne, pendant la première sauvegarde aussi', () => {
-    expect(backupStatusOf({ ...SAVED, online: false })).toEqual({ kind: 'waiting-network' })
+    expect(backupStatusOf({ ...SAVED, online: false })).toEqual({
+      kind: 'waiting-network',
+      firstBackup: false,
+    })
     expect(backupStatusOf({ ...FIRST_BACKUP, online: false })).toEqual({
       kind: 'waiting-network',
+      firstBackup: true,
     })
   })
 
@@ -68,7 +72,11 @@ describe('backupStatusOf', () => {
 describe('showsPhotosBackedUp', () => {
   it('« Photos sauvegardées » une fois la première sauvegarde faite, réseau ou pas', () => {
     expect(showsPhotosBackedUp({ kind: 'saved', at: YESTERDAY_6_20_PM })).toBe(true)
-    expect(showsPhotosBackedUp({ kind: 'waiting-network' })).toBe(true)
+    expect(showsPhotosBackedUp({ kind: 'waiting-network', firstBackup: false })).toBe(true)
+  })
+
+  it('pas hors ligne avant que la première sauvegarde ait abouti', () => {
+    expect(showsPhotosBackedUp({ kind: 'waiting-network', firstBackup: true })).toBe(false)
   })
 
   it('pas pendant la première sauvegarde, ni quand elle est interrompue', () => {

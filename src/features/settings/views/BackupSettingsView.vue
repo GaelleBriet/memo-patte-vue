@@ -22,8 +22,10 @@ const { t } = useI18n()
 const router = useRouter()
 const { status, now } = useBackupStatus()
 
-const cloud = computed(() =>
-  status.value === null || status.value.kind === 'local' ? null : status.value,
+const cloud = computed<CloudBackupStatus | null>(() =>
+  status.value === null || status.value.kind === 'local' || status.value.kind === 'unread'
+    ? null
+    : status.value,
 )
 const cloudText = computed(() => cloud.value && cloudBackupText(t, cloud.value, now.value))
 const cloudLook = computed(() => cloud.value && STATUS_LOOK[cloud.value.kind])
@@ -95,7 +97,7 @@ function goBack(): void {
         />
       </template>
 
-      <template v-else>
+      <template v-else-if="status.kind === 'local'">
         <div class="settings-row backup-settings__card backup-settings__local">
           <v-icon class="settings-row__icon" icon="ms:mobile" size="24" />
           <span class="settings-row__text">
@@ -120,6 +122,8 @@ function goBack(): void {
           {{ t('settings.backup.discoverPlus') }}
         </button>
       </template>
+
+      <BackupCopyRow v-else class="backup-settings__card" />
 
       <button
         type="button"

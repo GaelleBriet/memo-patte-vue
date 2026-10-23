@@ -62,7 +62,7 @@ describe('texte de la sauvegarde cloud', () => {
   })
 
   it('en attente de réseau, la sauvegarde reprend dès que le téléphone est connecté', () => {
-    expect(text({ kind: 'waiting-network' })).toEqual({
+    expect(text({ kind: 'waiting-network', firstBackup: false })).toEqual({
       title: 'En attente de réseau',
       hint: 'La sauvegarde reprend dès que ce téléphone est connecté à Internet.',
     })
@@ -90,7 +90,7 @@ describe('texte de la sauvegarde cloud', () => {
       title: 'First backup in progress',
       hint: '120 of 348 items',
     })
-    expect(text({ kind: 'waiting-network' })).toEqual({
+    expect(text({ kind: 'waiting-network', firstBackup: false })).toEqual({
       title: 'Waiting for network',
       hint: 'Backup resumes as soon as this phone is online.',
     })

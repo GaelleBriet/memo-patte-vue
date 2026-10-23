@@ -17,7 +17,11 @@ import { provideBackupFacts, type BackupFacts } from '@/core/sync/service/backup
 const exportData = vi.hoisted(() => vi.fn<DataExportService['exportData']>())
 
 vi.mock('../service/data-export.service', () => ({ dataExportService: { exportData } }))
-vi.mock('@/core/app-lifecycle/app-resume', () => ({ useAppResume: () => {} }))
+vi.mock('@/core/app-lifecycle/app-resume', () => ({
+  useAppResume: () => {},
+  onAppResume: () => () => {},
+}))
+vi.mock('@/core/sync/service/network-status', () => ({ onNetworkOnline: () => () => {} }))
 vi.mock('@/shared/utils/toast', () => ({ showToast: vi.fn<typeof showToast>() }))
 
 const MILO: Animal = {
@@ -321,7 +325,7 @@ describe('BackupSettingsView', () => {
 
     it('première sauvegarde en cours, 120 éléments sur 348, puis l’état normal', async () => {
       let facts: BackupFacts = { ...SAVED, lastSyncedAt: null, remaining: 228 }
-      vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'], now: NOW })
+      vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'], now: NOW })
       provideBackupFacts(async () => facts)
       const wrapper = await monter()
       await vi.advanceTimersByTimeAsync(0)
@@ -366,6 +370,27 @@ describe('BackupSettingsView', () => {
       await wrapper.get('.backup-settings__sign-in').trigger('click')
 
       expect(push).toHaveBeenCalledWith({ name: 'sign-in', query: { from: 'settings-backup' } })
+    })
+
+    it('hors ligne pendant la première sauvegarde : pas encore « Photos sauvegardées »', async () => {
+      const wrapper = await monterAbonné({ ...SAVED, online: false, lastSyncedAt: null })
+
+      expect(carteÉtat(wrapper)).toContain('En attente de réseau')
+      expect(wrapper.find('.backup-settings__photos').exists()).toBe(false)
+    })
+
+    it('état illisible : seulement la copie et l’effacement', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {})
+      provideBackupFacts(async () => Promise.reject(new Error('base fermée')))
+      const wrapper = await monter()
+      await vi.waitFor(() => expect(wrapper.find('.backup-settings__export').exists()).toBe(true))
+
+      expect(libellésDesLignes(wrapper)).toEqual([
+        'Exporter une copie',
+        'Effacer les données de ce téléphone',
+      ])
+      expect(wrapper.text()).not.toContain('Ton carnet est sur ce téléphone')
+      expect(wrapper.text()).not.toContain('Ta sauvegarde cloud n’est pas touchée')
     })
 
     it('reste l’écran d’un gratuit tant que la synchro du compte n’est pas activée', async () => {
