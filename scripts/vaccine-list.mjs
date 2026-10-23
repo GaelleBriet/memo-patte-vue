@@ -2,7 +2,7 @@
 // publique des médicaments vétérinaires de l'ANMV. Source et méthode :
 // docs/technical/liste-vaccins.md.
 
-export const MIN_PRODUCTS = 2
+const MIN_PRODUCTS = 2
 
 const SPECIES = { Chien: 'dog', Chat: 'cat' }
 const VACCINE_ATC = [/^QI07A/, /^QI06A/]
@@ -14,7 +14,7 @@ const AUTHORISED = new Set([
 ])
 
 /** Ordre d'usage des maladies dans un libellé (« Carré, hépatite, parvovirose… »). */
-export const DISEASE_ORDER = {
+const DISEASE_ORDER = {
   dog: [
     'distemper',
     'hepatitis',
@@ -62,7 +62,7 @@ const UNDEFINED_COMPOSITION = /A DEFINIR/i
  * Produits dont l'export ne donne pas la composition, ou pas entière : maladies lues dans le RCP
  * ou dans `docs/product/etude-vaccination.md` §2.3. `[]` : ce n'est pas un vaccin (solvant).
  */
-export const COMPOSITION_BY_NAME = {
+const COMPOSITION_BY_NAME = {
   'PUREVAX RC': ['catFlu'],
   'PUREVAX RCP': ['catFlu', 'panleukopenia'],
   'PUREVAX RCPCh': ['catFlu', 'panleukopenia', 'chlamydiosis'],

@@ -21,8 +21,8 @@ import { REMINDER_WINDOW } from './v2-reminders'
 export const OPENING_TIMES = ['00:00', '23:59'] as const
 
 /** Écarts « À l'heure » et « 1 h avant » (RA-7) ; heures d'un traitement sans heure (RA-8). */
-export const REMINDER_OFFSETS = [0, 60] as const
-export const REMINDER_TIMES = ['07:00', DEFAULT_REMINDER_TIME, '21:00'] as const
+const REMINDER_OFFSETS = [0, 60] as const
+const REMINDER_TIMES = ['07:00', DEFAULT_REMINDER_TIME, '21:00'] as const
 
 const SETTINGS = { vaccineReminderTime: DEFAULT_REMINDER_TIME, remindBeforeDue: true }
 

@@ -16,7 +16,7 @@ export function dueKey({ dueOn, dueTime }: { dueOn: string; dueTime: string | nu
 
 const FIELDS = ['phase', 'finished', 'current', 'unlogged', 'upcoming'] as const
 
-export type Field = (typeof FIELDS)[number]
+type Field = (typeof FIELDS)[number]
 
 /** Ce qui sépare deux lectures : par champ, ce que l'une montre et pas l'autre. */
 export type Gap = { field: Field; onlyA: string[]; onlyB: string[] }
