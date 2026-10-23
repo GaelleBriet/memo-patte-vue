@@ -1,6 +1,8 @@
 /** Taille des textes de la courbe dans son style ; la chasse ci-dessous est mesurée à cette taille. */
 export const CHART_FONT_PX = 12
 
+export const LABEL_GAP = 1
+
 /**
  * `textScale` : taille de police réellement rendue sur `CHART_FONT_PX`, au-delà de 1 si le système l'agrandit.
  * `textWidth` : largeur d'un texte à `CHART_FONT_PX` quand la police n'est pas Inter.
