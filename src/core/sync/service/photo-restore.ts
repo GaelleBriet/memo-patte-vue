@@ -1,3 +1,5 @@
+import { readonly, shallowRef, type Ref } from 'vue'
+
 import { isPhotoFileName } from '@/core/photos/photo-storage'
 import { errorSummary } from '@/shared/utils/error-summary'
 import { isJpeg, MAX_CLOUD_PHOTO_BYTES } from './cloud-photo'
@@ -19,7 +21,9 @@ export interface PhotoRestore {
    * retient pas les autres et se retente à l'appel suivant. Une passe pour un autre compte suit
    * celle en cours, qui s'arrête à la photo suivante. Ne lève pas.
    */
-  restoreMissing(userId: string): Promise<void>
+  restoreMissing(userId: string, options?: { visible?: boolean }): Promise<void>
+  /** Vrai tant qu'une passe `visible` (celle d'après une restauration) n'est pas finie, réussie ou non. */
+  isRunning: Readonly<Ref<boolean>>
 }
 
 export function createPhotoRestore({
@@ -29,7 +33,13 @@ export function createPhotoRestore({
   isAccountCurrent,
   onPhotoRestored,
 }: PhotoRestoreDependencies): PhotoRestore {
-  let running: { userId: string; done: Promise<void> } | null = null
+  let running: { userId: string; done: Promise<void>; pass: { visible: boolean } } | null = null
+  const passes = new Set<{ visible: boolean }>()
+  const isRunning = shallowRef(false)
+
+  function refreshRunning(): void {
+    isRunning.value = [...passes].some((pass) => pass.visible)
+  }
 
   async function restoreOne(userId: string, fileName: string): Promise<void> {
     if (await files.exists(fileName)) return
@@ -63,8 +73,16 @@ export function createPhotoRestore({
   }
 
   return {
-    restoreMissing(userId) {
-      if (running?.userId === userId) return running.done
+    restoreMissing(userId, options) {
+      const visible = options?.visible === true
+      if (running?.userId === userId) {
+        if (visible && !running.pass.visible) {
+          running.pass.visible = true
+          refreshRunning()
+        }
+        return running.done
+      }
+      const pass = { visible }
       const previous = running?.done ?? Promise.resolve()
       const done: Promise<void> = previous
         .then(() => restoreAll(userId))
@@ -75,10 +93,15 @@ export function createPhotoRestore({
           )
         })
         .finally(() => {
+          passes.delete(pass)
+          refreshRunning()
           if (running?.done === done) running = null
         })
-      running = { userId, done }
+      running = { userId, done, pass }
+      passes.add(pass)
+      refreshRunning()
       return done
     },
+    isRunning: readonly(isRunning),
   }
 }

@@ -69,7 +69,9 @@ function fakeRestoreFlow(resume: () => Promise<boolean> = async () => false) {
 }
 
 const withoutSession = {
-  restoreMissingPhotos: vi.fn<(userId: string) => Promise<void>>(async () => {}),
+  restoreMissingPhotos: vi.fn<(userId: string, options?: { visible?: boolean }) => Promise<void>>(
+    async () => {},
+  ),
   sessionActive: () => false,
   checkAccountBackup: vi.fn<() => Promise<AccountBackupCheck>>(async () => ({ kind: 'active' })),
   restoreFlow: fakeRestoreFlow(),
@@ -274,7 +276,9 @@ describe('installSync', () => {
         steps.push('restore')
         return true
       })
-      const restoreMissingPhotos = vi.fn<(userId: string) => Promise<void>>(async () => {})
+      const restoreMissingPhotos = vi.fn<
+        (userId: string, options?: { visible?: boolean }) => Promise<void>
+      >(async () => {})
       const deps: SyncDependencies = {
         outbox,
         runCycle,
@@ -415,6 +419,7 @@ describe('installSync', () => {
       await vi.advanceTimersByTimeAsync(0)
 
       expect(steps).toEqual(['check:user-1', 'restore', 'photos:user-1'])
+      expect(restoreMissingPhotos).toHaveBeenCalledExactlyOnceWith('user-1', { visible: true })
       restoreFlow.retry()
       await vi.advanceTimersByTimeAsync(0)
 

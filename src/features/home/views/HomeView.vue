@@ -30,6 +30,7 @@ import { authAvailable } from '@/shared/utils/auth-available'
 import { signInRoute } from '@/shared/utils/sign-in-route'
 import AnimalPickerSheet from './AnimalPickerSheet.vue'
 import HomeMessages from './HomeMessages.vue'
+import HomePhotosStatus from './HomePhotosStatus.vue'
 import HomeTodoCard from './HomeTodoCard.vue'
 import { useHomeStore } from '../store/home.store'
 import {
@@ -319,6 +320,8 @@ onMounted(() => {
           mode="filter"
           @add="createAnimal"
         />
+
+        <HomePhotosStatus />
 
         <HomeMessages place="aboveTodo" />
 
