@@ -668,6 +668,39 @@ describe('createSyncCycle — photos', () => {
       await expect(queuedPhoto()).resolves.toEqual([])
     })
 
+    it('Milo, trois appareils : photo du 1er septembre remise en file à l’activation du 23 octobre à 8 h, envoi raté, la tablette a mis une autre photo — l’ancienne reste dans le cloud jusqu’au 30 octobre à 8 h', async () => {
+      const order: string[] = []
+      const files = fakeFiles({ [MILO_PHOTO]: jpeg() })
+      await insertAnimal(db, ANIMAL_ID, '2026-09-01T08:00:00.000Z', 'Milo', MILO_PHOTO)
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-23T08:00:00.000Z') })
+      await createSyncOutboxRepository(db).enableAndQueueWholeCarnet()
+      const { cycle, uploads, deletes, remoteRows, setNow } = realBaseCycle(files, order)
+      uploads.failures.set(MILO_PHOTO, () => new Error('fetch failed'))
+      remoteRows.push({
+        id: ANIMAL_ID,
+        updated_at: '2026-10-20T10:00:00.000Z',
+        photo_path: NEW_PHOTO,
+      })
+
+      setNow('2026-10-23T08:01:00.000Z')
+      await expect(cycle.runCycle()).rejects.toThrow('fetch failed')
+      files.files.delete(MILO_PHOTO)
+      setNow('2026-10-23T08:02:00.000Z')
+      await cycle.runCycle()
+      setNow('2026-10-30T07:59:00.000Z')
+      await cycle.runCycle()
+
+      expect(deletes.deleted).toEqual([])
+      await expect(queuedPhoto()).resolves.toEqual([
+        { entity_id: MILO_PHOTO, queued_at: '2026-10-23T08:00:00.000Z', attempts: 1 },
+      ])
+
+      setNow('2026-10-30T08:00:00.000Z')
+      await cycle.runCycle()
+
+      expect(deletes.deleted).toEqual([{ userId: 'user-1', fileName: MILO_PHOTO }])
+    })
+
     it('Milo : Plus expiré le 1er novembre, photo changée le 5, Plus réactivé le 10 décembre — la nouvelle part, l’ancienne sort du cloud ensuite', async () => {
       const order: string[] = []
       const files = fakeFiles({ [MILO_PHOTO]: jpeg() })

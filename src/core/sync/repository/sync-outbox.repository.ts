@@ -1,5 +1,5 @@
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
-import { LIVE_ANIMAL_PHOTOS_FROM, LIVE_ANIMAL_PHOTOS_SELECT } from '@/core/db/schema-statements'
+import { ANIMAL_PHOTO_ENTITY, LIVE_ANIMAL_PHOTOS_FROM } from '@/core/db/schema-statements'
 import { getDb } from '@/core/db/sqlite'
 
 export interface SyncOutboxEntry {
@@ -48,8 +48,13 @@ function queueWholeTable(entity: string): SqlStatement {
   }
 }
 
-const QUEUE_LIVE_ANIMAL_PHOTOS: SqlStatement = {
-  sql: `INSERT OR IGNORE INTO sync_outbox (entity, entity_id, queued_at) ${LIVE_ANIMAL_PHOTOS_SELECT}`,
+/** Heure de mise en file, pas date de l'animal : le délai avant d'effacer une photo du cloud en part. */
+function queueLiveAnimalPhotos(): SqlStatement {
+  return {
+    sql: `INSERT OR IGNORE INTO sync_outbox (entity, entity_id, queued_at)
+          SELECT ?, photo_path, ? ${LIVE_ANIMAL_PHOTOS_FROM}`,
+    params: [ANIMAL_PHOTO_ENTITY, new Date().toISOString()],
+  }
 }
 
 const ENTITY_RANK = `CASE entity ${SYNC_ENTITY_ORDER.map((_, rank) => `WHEN ? THEN ${rank}`).join(' ')}
@@ -92,7 +97,7 @@ export function createSyncOutboxRepository(db: DbClient) {
         { sql: 'UPDATE sync_state SET enabled = 1 WHERE id = 1' },
         { sql: 'DELETE FROM sync_pull_cursor' },
         ...SYNC_ENTITY_ORDER.map(queueWholeTable),
-        QUEUE_LIVE_ANIMAL_PHOTOS,
+        queueLiveAnimalPhotos(),
       ])
     },
 
@@ -151,7 +156,7 @@ export function createSyncOutboxRepository(db: DbClient) {
           { sql: 'UPDATE sync_state SET enabled = 0 WHERE id = 1' },
           { sql: 'DELETE FROM sync_pull_cursor' },
           ...(mode === 'merge'
-            ? [...SYNC_ENTITY_ORDER.map(queueWholeTable), QUEUE_LIVE_ANIMAL_PHOTOS]
+            ? [...SYNC_ENTITY_ORDER.map(queueWholeTable), queueLiveAnimalPhotos()]
             : [{ sql: 'DELETE FROM sync_outbox' }, queueWholeTable('device')]),
         ],
         after: [
