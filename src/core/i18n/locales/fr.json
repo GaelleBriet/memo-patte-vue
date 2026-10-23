@@ -994,6 +994,7 @@
       "household": "Ton foyer"
     },
     "loading": "Ouverture de l’accueil…",
+    "photosDownloading": "Photos en cours de téléchargement…",
     "error": {
       "title": "Impossible d’ouvrir l’accueil.",
       "text": "La base locale n’a pas répondu. Tes données sont intactes.",

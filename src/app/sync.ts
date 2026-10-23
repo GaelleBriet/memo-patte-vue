@@ -6,6 +6,7 @@ import { createLocalSyncContext } from '@/core/sync/service/local-sync-context'
 import { onNetworkOnline } from '@/core/sync/service/network-status'
 import type { SyncOutboxRepository } from '@/core/sync/repository/sync-outbox.repository'
 import type { RestorableTable } from '@/core/sync/service/account-restore'
+import { providePhotoRestoreStatus } from '@/core/sync/service/photo-restore-status'
 import {
   createRestoreFlow,
   provideRestoreFlow,
@@ -198,6 +199,7 @@ export async function createDefaultSyncDependencies(): Promise<SyncDependencies>
     isEligible: () => useAuthStore().hasPlusAccount && usePurchaseStore().status.plan !== 'none',
     onRemindersOutdated: syncAllReminders,
   })
+  providePhotoRestoreStatus(photoRestore.isRunning)
   const restoreFlow = createRestoreFlow(restore)
   provideRestoreFlow(restoreFlow)
   const accountBackup = createAccountBackupService({
