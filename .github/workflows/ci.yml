@@ -318,4 +318,11 @@ jobs:
             echo "$job : $result (attendu : $want)"
             [ "$result" = "$want" ] || ok=false
           done < <(jq -r 'to_entries[] | "\(.key) \(.value.result)"' <<<"$NEEDS")
+          # Cette liste double needs exprès : un job retiré de needs ne doit pas sortir du contrôle en silence.
+          for job in changes ci tests fuseaux android edge-functions supabase-local; do
+            if ! jq -e --arg j "$job" 'has($j)' <<<"$NEEDS" >/dev/null; then
+              echo "::error::$job absent de needs : Verdict ne le contrôle plus."
+              ok=false
+            fi
+          done
           $ok
