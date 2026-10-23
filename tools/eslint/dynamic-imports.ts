@@ -81,7 +81,7 @@ function excludesTests(negatives: string[]) {
   )
 }
 
-function hasBaseOption(options: unknown) {
+function hasBaseOption(options: unknown = {}) {
   const { type, properties } = options as {
     type?: string
     properties?: { type: string; key?: { name?: string; value?: unknown } }[]
