@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AUTH_STORAGE_KEY } from '@/core/supabase/auth-storage'
 
 import { AccountError } from '../logic/account-error'
+import { CODE_LENGTH } from '../logic/email-code'
 import {
   authRepository,
   createAuthRepository,
@@ -439,11 +440,11 @@ describe('createAuthRepository', () => {
       server.on('verify', () => json(200, sessionBody()))
 
       await expect(
-        repository.verifyEmailChangeCode('sophie2@exemple.fr', '123456'),
+        repository.verifyEmailChangeCode('sophie2@exemple.fr', '1'.repeat(CODE_LENGTH)),
       ).resolves.toEqual({ userId: USER_ID })
       expect(server.bodies.at(-1)).toMatchObject({
         email: 'sophie2@exemple.fr',
-        token: '123456',
+        token: '1'.repeat(CODE_LENGTH),
         type: 'email_change',
       })
     })
@@ -453,7 +454,7 @@ describe('createAuthRepository', () => {
       server.on('verify', () => json(200, { msg: 'Confirmation link accepted' }))
 
       await expect(
-        repository.verifyEmailChangeCode('gaelle@example.com', '123456'),
+        repository.verifyEmailChangeCode('gaelle@example.com', '1'.repeat(CODE_LENGTH)),
       ).resolves.toBeNull()
       expect(server.bodies.at(-1)).toMatchObject({
         email: 'gaelle@example.com',

@@ -14,7 +14,7 @@ import {
   type TreatmentView,
   type TreatmentViewInput,
 } from '@/shared/domain/dose-calendar'
-import { readCarnet, readTreatment } from '@/shared/domain/treatment-reading'
+import { carnetInputOf, isReadableCarnet } from '@/shared/domain/treatment-reading'
 
 export type PlanIds = { periodId: string; newId: () => string }
 
@@ -120,8 +120,8 @@ export function startsTooFarBack(
   today: string,
 ): boolean {
   if (!treatmentPeriodSettingsSchema.safeParse(settings).success) return false
-  const reading = readTreatment(treatment, today)
-  return reading === null || readCarnet(openedCarnet(reading.input, settings)) === null
+  const input = carnetInputOf(treatment, today, undefined)
+  return !isReadableCarnet(input) || !isReadableCarnet(openedCarnet(input, settings))
 }
 
 export function tooOld() {
