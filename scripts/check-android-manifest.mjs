@@ -54,6 +54,9 @@ const MAX_SDK_VERSIONS = new Map([
 /** Aucune fonctionnalité matérielle requise : la photo passe par le Photo Picker système. */
 const ALLOWED_FEATURES = new Map()
 
+/** Jamais présents sur `<application>`, même apportés par une bibliothèque : l'export passe par MediaStore. */
+const FORBIDDEN_APPLICATION_ATTRIBUTES = ['requestLegacyExternalStorage']
+
 function findMergedManifest() {
   const roots = readdirSync(INTERMEDIATES, { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && entry.name.startsWith('merged_manifest'))
@@ -134,6 +137,12 @@ for (const [permission, maxSdk] of MAX_SDK_VERSIONS) {
   )
   if (unbounded.length > 0) {
     failures.push(`${permission} déclarée sans android:maxSdkVersion="${maxSdk}"`)
+  }
+}
+const applicationTag = manifest.match(/<application\s[^>]*>/)?.[0] ?? ''
+for (const attribute of FORBIDDEN_APPLICATION_ATTRIBUTES) {
+  if (applicationTag.includes(`android:${attribute}=`)) {
+    failures.push(`attribut interdit sur <application> : ${attribute}`)
   }
 }
 for (const feature of features) {
