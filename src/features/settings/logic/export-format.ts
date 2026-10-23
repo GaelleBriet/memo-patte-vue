@@ -2,6 +2,7 @@ import { format } from 'date-fns'
 import { strToU8, zipSync, type Zippable } from 'fflate'
 
 import type { AppLocale } from '@/core/i18n'
+import { toDay } from '@/shared/domain/calendar-day'
 import type { ExportData } from '@/shared/domain/carnet-data'
 import type { WeightUnit } from '@/shared/domain/weight-unit'
 
@@ -45,7 +46,7 @@ export function toJsonExport(data: ExportData, meta: ExportMeta): string {
     treatmentDoses: data.treatmentDoses,
     weightEntries: data.weightEntries,
     devices: data.devices,
-    reminders: exportReminders(data, format(meta.exportedAt, 'yyyy-MM-dd')),
+    reminders: exportReminders(data, toDay(meta.exportedAt)),
   }
   return JSON.stringify(document, null, 2)
 }
@@ -64,7 +65,7 @@ export function buildExportFile(
   }
 
   const entries: Zippable = {}
-  const today = format(meta.exportedAt, 'yyyy-MM-dd')
+  const today = toDay(meta.exportedAt)
   for (const [fileName, content] of Object.entries(toCsvTables(data, weightUnit, today, locale))) {
     entries[fileName] = [strToU8(content), { mtime: meta.exportedAt }]
   }

@@ -1,7 +1,8 @@
-import { addDays, format, parseISO } from 'date-fns'
+import { addDays, parseISO } from 'date-fns'
 
 import { nextReminderDate, type NextReminderChoice } from './vaccination-done'
 import type { Vaccination } from '../schema/vaccination.schema'
+import { toDay } from '@/shared/domain/calendar-day'
 import { formatDayMonthOrYear, formatLongDate } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
@@ -43,5 +44,5 @@ export function nextReminderSummary(
 
 /** « Autre date » ne propose que des dates futures. */
 export function earliestOtherDate(today: string): string {
-  return format(addDays(parseISO(today), 1), 'yyyy-MM-dd')
+  return toDay(addDays(parseISO(today), 1))
 }

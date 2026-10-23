@@ -1,3 +1,4 @@
+import { DAY_MS } from './calendar-day'
 import { displayedWeight } from './weight-display'
 import type { WeightUnit } from './weight-unit'
 import { formatMonthShort, formatWeight, formatWeightAxis } from '../utils/format'
@@ -99,7 +100,6 @@ const LATEST_HEIGHT = 22
 const LATEST_PADDING_X = 9
 const GRID_LABEL_GAP = 8
 const GRID_LABEL_BASELINE = 4
-const DAY_MS = 86_400_000
 
 // Chasse d'Inter à 12 px, mesurée et arrondie au dixième supérieur ; un glyphe absent compte 8 px.
 const GLYPH_WIDTHS = new Map(
