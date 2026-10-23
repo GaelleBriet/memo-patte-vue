@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { ANIMAL_PHOTO_ENTITY } from '@/core/db/schema-statements'
+import { StorageTimeoutError } from '@/core/supabase/storage-timeout'
 import { createSyncOutboxRepository } from '../repository/sync-outbox.repository'
 import type { PhotoDeletePort } from '../service/photo-delete-port'
 import {
@@ -503,11 +504,12 @@ describe('createSyncCycle — photos', () => {
       expect(outbox.entries()).toEqual([photoEntry(MILO_PHOTO)])
     })
 
-    it('réessaie sans fin une panne, un réseau coupé ou un refus de droit, sans retenir les autres photos', async () => {
+    it('réessaie sans fin une panne, un réseau coupé, un refus de droit ou un serveur muet, sans retenir les autres photos', async () => {
       const failures = [
         new Error('fetch failed'),
         { name: 'StorageApiError', status: 400, statusCode: '403', code: 'AccessDenied' },
         { name: 'StorageApiError', status: 503, statusCode: '503' },
+        new StorageTimeoutError(30_000),
       ]
       for (const failure of failures) {
         const outbox = createFakeOutbox([photoEntry(MILO_PHOTO), photoEntry(LUNA_PHOTO)])
@@ -756,11 +758,12 @@ describe('createSyncCycle — photos', () => {
       expect(outbox.entries()).toEqual([{ ...photoEntry(MILO_PHOTO, T_LATER), attempts: 3 }])
     })
 
-    it('réessaie sans fin une panne passagère ou un refus de droit, sans les compter comme refus', async () => {
+    it('réessaie sans fin une panne passagère, un refus de droit ou un serveur muet, sans les compter comme refus', async () => {
       const failures = [
         new Error('fetch failed'),
         { name: 'StorageApiError', status: 400, statusCode: '403', code: 'AccessDenied' },
         { name: 'StorageApiError', status: 503, statusCode: '503' },
+        new StorageTimeoutError(60_000),
       ]
       for (const failure of failures) {
         const outbox = createFakeOutbox([photoEntry(MILO_PHOTO)])
