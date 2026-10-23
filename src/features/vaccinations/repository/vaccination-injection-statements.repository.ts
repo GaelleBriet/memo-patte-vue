@@ -93,3 +93,5 @@ export function createVaccinationInjectionStatements(deviceId: () => string) {
     },
   }
 }
+
+export type VaccinationInjectionStatements = ReturnType<typeof createVaccinationInjectionStatements>
