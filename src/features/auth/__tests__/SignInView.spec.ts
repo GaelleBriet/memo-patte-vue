@@ -33,6 +33,25 @@ vi.mock('../repository/auth.repository', () => ({
   },
 }))
 
+const retours = vi.hoisted(() => [] as Array<() => void>)
+
+vi.mock('@/core/app-lifecycle/back-button', () => ({
+  onBackButton: (handler: () => void) => {
+    retours.push(handler)
+    return () => {
+      const index = retours.indexOf(handler)
+      if (index !== -1) retours.splice(index, 1)
+    }
+  },
+}))
+
+async function retourAndroid(): Promise<boolean> {
+  const handler = retours.at(-1)
+  handler?.()
+  await flushPromises()
+  return handler !== undefined
+}
+
 vi.mock('../service/google-sign-in.service', () => ({
   signInWithGoogle: vi.fn<typeof signInWithGoogle>(),
 }))
@@ -107,6 +126,7 @@ async function basculer(wrapper: VueWrapper): Promise<void> {
 }
 
 beforeEach(() => {
+  retours.length = 0
   vi.clearAllMocks()
   stockage = memoryStorage()
   vi.stubGlobal('localStorage', stockage)
@@ -910,6 +930,45 @@ describe('SignInView', () => {
 
       await taper(wrapper, '12345678')
       expect(wrapper.get('.sign-in__confirm-code').attributes('disabled')).toBeUndefined()
+    })
+
+    it('revient au formulaire par le retour d’Android, adresse gardée, mots de passe vidés, rien envoyé', async () => {
+      const wrapper = await inscrire()
+      await taper(wrapper, '1234')
+      repository.signUp.mockClear()
+      repository.resendSignUpCode.mockClear()
+
+      expect(await retourAndroid()).toBe(true)
+
+      expect(wrapper.find('.email-code').exists()).toBe(false)
+      expect((wrapper.get('#sign-in-email').element as HTMLInputElement).value).toBe(
+        'sophie@exemple.fr',
+      )
+      expect((wrapper.get('#sign-in-password').element as HTMLInputElement).value).toBe('')
+      expect(repository.signUp).not.toHaveBeenCalled()
+      expect(repository.resendSignUpCode).not.toHaveBeenCalled()
+      expect(replace).not.toHaveBeenCalled()
+    })
+
+    it('laisse le retour d’Android quitter l’écran depuis le formulaire', async () => {
+      await monter()
+
+      expect(await retourAndroid()).toBe(false)
+    })
+
+    it('quitte l’écran, connecté, si le serveur accepte le code après un retour en arrière', async () => {
+      let accepter: (value: { userId: string }) => void = () => {}
+      repository.verifySignUpCode.mockReturnValue(new Promise((resolve) => (accepter = resolve)))
+      const wrapper = await inscrire()
+      await taper(wrapper, '12345678')
+      await wrapper.get('.sign-in__confirm-code').trigger('click')
+
+      await retourAndroid()
+      accepter({ userId: USER_ID })
+      await flushPromises()
+
+      expect(replace).toHaveBeenCalledWith({ name: 'plus-account' })
+      expect(replace).toHaveBeenCalledTimes(1)
     })
 
     it('ouvre le compte avec le bon code puis ramène au parcours d’origine', async () => {

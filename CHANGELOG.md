@@ -5,6 +5,19 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.107](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.106...memo-patte-v0.1.107) (2026-10-23)
+
+
+### 🐛 Corrections
+
+* **auth:** retour d'Android à l'étape du code de la connexion ([3647cc7](https://github.com/GaelleBriet/memo-patte-vue/commit/3647cc7f722cb5bc52a1e62ff2c83c161ca25bd9))
+* **auth:** retour d'Android à l'étape du code de la connexion, réponse tardive ignorée ([8f67175](https://github.com/GaelleBriet/memo-patte-vue/commit/8f67175dcc98199a5ca6b7746e2bc19e2d320ea7))
+* **auth:** session de récupération fermée après un retour pendant la vérification ([317da2c](https://github.com/GaelleBriet/memo-patte-vue/commit/317da2cafd9e8e3f7bd110918506a6df80c7980b))
+* **db:** migration v21, les photos mises en file par la v18 partent de l'heure de mise à niveau ([6788aae](https://github.com/GaelleBriet/memo-patte-vue/commit/6788aae6f89786bc8312334dbdeb8abb8e541757))
+* **eslint:** option base absente de import.meta.glob ([d573ce9](https://github.com/GaelleBriet/memo-patte-vue/commit/d573ce938e058fa731cb79511bccdf7496a20861))
+* **sync:** « remplacer » garde les photos en file, celles à effacer ne restent plus dans le cloud ([f452dde](https://github.com/GaelleBriet/memo-patte-vue/commit/f452dde8abc2550d946b02c9dbac395598406ed0))
+* **sync:** restes de [#1154](https://github.com/GaelleBriet/memo-patte-vue/issues/1154), « Remplacer » garde les photos en file et migration v21 ([1dd830e](https://github.com/GaelleBriet/memo-patte-vue/commit/1dd830e250108446d8c378eef4106f4f959c5101))
+
 ## [0.1.106](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.105...memo-patte-v0.1.106) (2026-10-23)
 
 
