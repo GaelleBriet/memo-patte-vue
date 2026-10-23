@@ -1,4 +1,4 @@
-export const IDENTITY_MAX_AGE_SECONDS = 10 * 60
+const IDENTITY_MAX_AGE_SECONDS = 10 * 60
 const CLOCK_SKEW_SECONDS = 60
 
 function claimsOf(token: string): unknown {
