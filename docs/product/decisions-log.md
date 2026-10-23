@@ -2986,7 +2986,18 @@ direct, sans le connaître. — Alternative écartée : le laisser désactivé. 
 « Changer mon mot de passe » (Compte) envoie le mot de passe actuel saisi à l'écran ; « Mot de
 passe oublié » ne l'envoie jamais (session ouverte par le code reçu par e-mail, que le serveur
 exempte). Un mot de passe actuel refusé par le serveur donne le refus existant « Mot de passe
-incorrect » sous le champ ; aucun texte nouveau.
+incorrect » sous le champ ; aucun texte nouveau. — Ce que couvrent les deux réglages ensemble
+(« Require current password when updating » et « Secure password change », activé le 22 octobre),
+prouvé le 23 octobre contre GoTrue v2.197.0 sur une pile locale (`password-update.local.spec.ts`) :
+le mot de passe actuel n'est exigé que d'une session ouverte par mot de passe ; une session ouverte
+par un code (inscription, « Mot de passe oublié ») ou un lien magique en est exemptée ; toute
+session de plus de 24 h est refusée (`reauthentication_needed`), même avec le mot de passe actuel,
+sauf nonce de ré-authentification (envoyé à l'adresse du compte). « Changer mon mot de passe »
+passe toujours, car l'app se reconnecte d'abord, ce qui ouvre une session neuve. — Reste exposé :
+une session ouverte par un code depuis moins de 24 h. Exemple : Sophie crée son compte avec le
+code le 2026-11-02 à 10 h ; jusqu'au 2026-11-03 à 10 h, quelqu'un qui tient son téléphone
+déverrouillé peut extraire le jeton et changer le mot de passe sans le connaître. Une session
+Google n'a pas été vérifiée (aucun fournisseur Google sur la pile locale).
 
 ## 2026-10-23 — Photos cloud : ménage par la file, délai de grâce de 7 jours
 
