@@ -8,7 +8,7 @@ const IDENTICAL_REFUSALS_BEFORE_DROP = 3
 type RefusedEntry = Pick<SyncOutboxEntry, 'entity' | 'entityId' | 'queuedAt'>
 
 /** Un refus que le serveur rendra à l'identique tant que la ligne ne change pas ; `null` sinon. */
-export type RefusalSignature = (cause: unknown) => string | null
+type RefusalSignature = (cause: unknown) => string | null
 
 function permanentRowRefusalSignature(cause: unknown): string | null {
   if (typeof cause !== 'object' || cause === null) return null

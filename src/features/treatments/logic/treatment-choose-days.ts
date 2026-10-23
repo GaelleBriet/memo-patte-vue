@@ -17,7 +17,7 @@ export type Unchecked = ReadonlySet<string>
 
 export type DayChoice = { given: Due[]; missed: Due[] }
 
-export type ChooseDaysCell =
+type ChooseDaysCell =
   { day: number; due: null } | { day: number; due: Due; key: string; date: string }
 
 export type ChooseDaysMonth = {

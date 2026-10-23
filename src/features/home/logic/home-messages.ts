@@ -5,14 +5,12 @@ import type { UsageSignalTally } from '@/core/usage/usage-signals'
 import type { HomeMessagesMemory } from './home-messages-memory'
 import type { Translate } from '@/core/i18n/translate'
 
-export const QUARTER_IN_MONTHS = 3
+const QUARTER_IN_MONTHS = 3
 
 export type HomeMessage =
   | { kind: 'remindersOff'; enable: 'androidSettings' | 'priming' }
   | { kind: 'protect' }
   | { kind: 'quarterly' }
-
-export type HomeMessageKind = HomeMessage['kind']
 
 export type HomeMessagesFacts = {
   notifications: NotificationPermissionStatus | null
@@ -69,7 +67,7 @@ export type HomeMessageAction =
 
 type Labelled = { action: HomeMessageAction; label: string }
 
-export type HomeMessageButton = Labelled & {
+type HomeMessageButton = Labelled & {
   ariaLabel: string
   variant: 'flat' | 'outlined' | 'text'
 }

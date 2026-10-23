@@ -14,7 +14,7 @@ export type {
   PdfTreatmentPeriod,
 } from './pdf-treatment-history'
 
-export type PdfDueState = 'overdue' | 'upToDate' | 'planned' | 'none'
+type PdfDueState = 'overdue' | 'upToDate' | 'planned' | 'none'
 
 export type PdfVaccinationRow = {
   name: string

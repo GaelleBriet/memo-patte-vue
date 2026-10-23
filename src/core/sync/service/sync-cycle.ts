@@ -32,7 +32,7 @@ export interface SyncCycleOutbox {
   recordFailedPush(entry: Pick<SyncOutboxEntry, 'entity' | 'entityId'>): Promise<void>
 }
 
-export interface SyncCyclePushes {
+interface SyncCyclePushes {
   open(userId: string, sentAt: string): Promise<SyncPush>
 }
 

@@ -12,7 +12,7 @@ export function byStartDescending(a: Ordered, b: Ordered): number {
 }
 
 /** Dernier jour d'une période : sa fin, son arrêt ou la veille de la suivante ; `null` si ouverte. */
-export function periodLastDay(
+function periodLastDay(
   period: Pick<Setting, 'endsOn' | 'stoppedOn'>,
   next: Pick<Setting, 'startsOn'> | undefined,
 ): string | null {

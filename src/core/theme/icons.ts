@@ -300,7 +300,7 @@ export const msIcons = {
   workspace_premium_fill: workspacePremiumFill,
 } as const
 
-export type MsIconName = keyof typeof msIcons
+type MsIconName = keyof typeof msIcons
 
 /** Tracé d'une icône, prêt à être rendu dans un `<svg>`. */
 export interface MsIconPath {

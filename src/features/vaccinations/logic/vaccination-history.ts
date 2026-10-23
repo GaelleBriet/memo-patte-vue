@@ -72,7 +72,7 @@ export function injectionRows(t: Translate, injections: VaccinationInjection[]):
   }))
 }
 
-export type NextReminderTone = 'today' | 'overdue' | null
+type NextReminderTone = 'today' | 'overdue' | null
 
 export type VaccinationDetailTexts = {
   subtitle: string

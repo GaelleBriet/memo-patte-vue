@@ -42,7 +42,7 @@ export function createPlusAccountLink(purchase: () => PlusAccountPort) {
 
 export type PlusAccountLink = ReturnType<typeof createPlusAccountLink>
 
-export const plusAccountLink = createPlusAccountLink(() => usePurchaseStore())
+const plusAccountLink = createPlusAccountLink(() => usePurchaseStore())
 
 /**
  * L'achat suit le compte : rattaché à la connexion, détaché à la déconnexion, repris par le compte
