@@ -19,6 +19,7 @@ import {
   insertVaccination,
   insertVaccinationInjection,
   insertWeightEntry,
+  outboxRows,
   setAnimalPhoto,
   touchAnimal,
 } from './sync-test-db'
@@ -232,8 +233,9 @@ describe('syncOutboxRepository', () => {
 
     it('« Remplacer » : seule la fiche des appareils part en file, aucune photo', async () => {
       await enableSync(db)
-      await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_MILO)
+      await insertAnimal(db, ANIMAL_ID, T1, 'Milo')
       await db.run('UPDATE sync_state SET enabled = 0 WHERE id = 1')
+      await setAnimalPhoto(db, ANIMAL_ID, PHOTO_MILO, T2)
       await db.run(
         `INSERT INTO device (id, model, installed_at, created_at, updated_at, deleted_at)
          VALUES ('appareil-1', 'Pixel 8', ?, ?, ?, NULL)`,
@@ -249,6 +251,32 @@ describe('syncOutboxRepository', () => {
       ])
       await expect(repository.isEnabled()).resolves.toBe(true)
       await expect(repository.restoreMode()).resolves.toBeNull()
+    })
+
+    it('« Remplacer » le 24 octobre : la photo de Milo remplacée le 23 garde son entrée, sa date et ses essais ; les lignes du carnet sortent de la file', async () => {
+      await enableSync(db)
+      await insertAnimal(db, ANIMAL_ID, SEPTEMBER_1, 'Milo', PHOTO_MILO)
+      await setAnimalPhoto(db, ANIMAL_ID, PHOTO_PIRATE, OCTOBER_23_8AM)
+      await repository.recordFailedPush({ entity: ANIMAL_PHOTO_ENTITY, entityId: PHOTO_MILO })
+      await repository.startRestore('replace')
+      const { before, after } = repository.restoreStatements({ mode: 'replace', cursors: [] })
+
+      await db.runMany([...before, ...after])
+
+      await expect(outboxRows(db)).resolves.toEqual([
+        {
+          entity: ANIMAL_PHOTO_ENTITY,
+          entity_id: PHOTO_MILO,
+          queued_at: OCTOBER_23_8AM,
+          attempts: 1,
+        },
+        {
+          entity: ANIMAL_PHOTO_ENTITY,
+          entity_id: PHOTO_PIRATE,
+          queued_at: OCTOBER_23_8AM,
+          attempts: 0,
+        },
+      ])
     })
   })
 
