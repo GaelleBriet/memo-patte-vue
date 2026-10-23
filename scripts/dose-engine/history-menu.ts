@@ -58,7 +58,7 @@ function verdict(input: TreatmentViewInput, gesture: Gesture): string | null {
  * Chaque choix du menu ⋮ de l'historique, joué par le moteur : une note ou un « Supprimer » actif
  * qu'il refuse ou qui lève, un « Supprimer » grisé qu'il accepte.
  */
-export function refusedOffers(input: TreatmentViewInput): { offered: number; refused: string[] } {
+function refusedOffers(input: TreatmentViewInput): { offered: number; refused: string[] } {
   const book = { periods: input.settings.map(periodOf), doses: input.lines.map(doseOf) }
   const history = treatmentHistory(i18n.global.t, book, carnetReadingOf(input), input.today)
   const rows = history.periods

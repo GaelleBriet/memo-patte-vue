@@ -1,6 +1,6 @@
 import { PLUS_ACCESS_RULES, type PlusAccessRules } from './plus-access-rules.ts'
 
-export const PLUS_ENTITLEMENT = 'plus'
+const PLUS_ENTITLEMENT = 'plus'
 
 const LONGEST_MONTHLY_PERIOD_MS = 45 * 24 * 60 * 60 * 1000
 
@@ -28,7 +28,7 @@ export type RevenuecatSubscriber = {
   non_subscriptions?: Record<string, RevenuecatPurchase[] | undefined>
 }
 
-export type PlusProductType = 'monthly' | 'annual' | 'lifetime'
+type PlusProductType = 'monthly' | 'annual' | 'lifetime'
 
 /** Une ligne de `plus_entitlements` ; `expiresAt` est la fin réelle de l'accès, `null` à vie. */
 export type PlusAccess = { active: boolean; productType: PlusProductType; expiresAt: string | null }

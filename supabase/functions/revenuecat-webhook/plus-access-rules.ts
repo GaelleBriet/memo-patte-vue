@@ -1,6 +1,6 @@
 /** Choix produit en attente de Gaelle (#89, questions 2 et 7) : la recommandation est codée. */
-export const REFUND_ENDS_ACCESS = true
-export const PAUSE_SUSPENDS_BACKUP = true
+const REFUND_ENDS_ACCESS = true
+const PAUSE_SUSPENDS_BACKUP = true
 
 export type PlusAccessRules = {
   /** Un remboursement coupe l'accès à sa date ; sinon l'abonnement court jusqu'à la fin payée. */

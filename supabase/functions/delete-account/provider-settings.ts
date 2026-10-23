@@ -2,7 +2,7 @@ import type { ProviderErasure } from './account-erasure.ts'
 import { posthogPersonErasure } from './posthog-erasure.ts'
 import { revenuecatCustomerErasure } from './revenuecat-erasure.ts'
 
-export const ERASURE_DISABLED = 'disabled'
+const ERASURE_DISABLED = 'disabled'
 
 type Env = (name: string) => string | undefined
 

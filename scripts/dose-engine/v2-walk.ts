@@ -91,7 +91,7 @@ export function startV2Walk(seed: number): V2Walk {
 }
 
 /** Comme le repository : chaque écriture reçoit un identifiant et un horodatage plus récent. */
-export function written(walk: V2Walk, changes: readonly LineChange[]): TreatmentViewInput {
+function written(walk: V2Walk, changes: readonly LineChange[]): TreatmentViewInput {
   let lines: Line[] = [...walk.input.lines]
   for (const change of changes) {
     if (change.action === 'delete') {
