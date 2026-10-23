@@ -3,6 +3,7 @@ import { computed, nextTick, onUnmounted, ref, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
+import { useCodeStepBack } from '../composables/use-code-step-back'
 import { useEmailCode } from '../composables/use-email-code'
 import { useGoogleSignIn } from '../composables/use-google-sign-in'
 import { usePasswordConfirmation } from '../composables/use-password-confirmation'
@@ -82,6 +83,8 @@ const canSubmit = computed(() => !isSignUp.value || isConfirmed.value)
 const passwordHelp = computed(() =>
   isSignUp.value && !errors.value.password ? t('auth.password.help') : null,
 )
+
+useCodeStepBack(isCodeStep, backToForm)
 
 function toggleMode(): void {
   mode.value = isSignUp.value ? 'sign-in' : 'sign-up'

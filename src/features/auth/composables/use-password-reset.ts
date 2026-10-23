@@ -23,6 +23,8 @@ export function usePasswordReset({
   const auth = useAuthStore()
   const emailCode = useEmailCode({
     now,
+    lateSuccess: 'abandon',
+    onAbandoned: () => void auth.abandonPasswordReset(),
     operations: {
       resend: (address) => auth.sendPasswordResetCode(address),
       verify: (address, code) => auth.verifyPasswordResetCode(address, code),

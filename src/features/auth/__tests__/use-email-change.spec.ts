@@ -132,6 +132,24 @@ describe('useEmailChange', () => {
     expect(change.emailCode.email.value).toBeNull()
   })
 
+  it('ne rouvre pas le code de la nouvelle adresse si la personne est revenue en arrière pendant la vérification', async () => {
+    let accepter: (accountChanged: boolean) => void = () => {}
+    verifyEmailChangeCode
+      .mockReset()
+      .mockReturnValue(new Promise((resolve) => (accepter = resolve)))
+    const change = remplir('ancien-secret', NOUVELLE)
+    await change.sendCode()
+    change.emailCode.setCode(code('1'))
+
+    const attente = change.confirm()
+    change.backToAddress()
+    accepter(false)
+
+    expect(await attente).toBe(false)
+    expect(change.step.value).toBe('address')
+    expect(change.emailCode.email.value).toBeNull()
+  })
+
   it('reste sur l’étape quand un code est faux, à chacune des deux', async () => {
     const change = remplir('ancien-secret', NOUVELLE)
     await change.sendCode()
