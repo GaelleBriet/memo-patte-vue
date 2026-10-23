@@ -1,3 +1,4 @@
+import { DAY_MS } from '@/shared/domain/calendar-day'
 import type {
   ExportAnimal,
   ExportCarnetSettings,
@@ -165,8 +166,6 @@ export function fromVersion9(data: Version9Data): ExportData {
     })),
   }
 }
-
-const DAY_MS = 24 * 60 * 60 * 1000
 
 /**
  * Dates de grille, celle de la période et celle gardée dans sa grille d'avant l'ouverture, écrêtées

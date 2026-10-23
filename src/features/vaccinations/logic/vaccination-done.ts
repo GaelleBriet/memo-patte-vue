@@ -1,4 +1,6 @@
-import { addMonths, addYears, format, parseISO } from 'date-fns'
+import { addMonths, addYears, parseISO } from 'date-fns'
+
+import { toDay } from '@/shared/domain/calendar-day'
 
 import type { VaccinationInjection } from '../schema/vaccination-injection.schema'
 import type { Vaccination } from '../schema/vaccination.schema'
@@ -20,18 +22,14 @@ export const NEXT_REMINDER_KINDS: readonly NextReminderKind[] = [
   'none',
 ]
 
-function isoDate(date: Date): string {
-  return format(date, 'yyyy-MM-dd')
-}
-
 export function nextReminderDate(injectedOn: string, choice: NextReminderChoice): string | null {
   switch (choice.kind) {
     case 'oneMonth':
-      return isoDate(addMonths(parseISO(injectedOn), 1))
+      return toDay(addMonths(parseISO(injectedOn), 1))
     case 'oneYear':
-      return isoDate(addYears(parseISO(injectedOn), 1))
+      return toDay(addYears(parseISO(injectedOn), 1))
     case 'threeYears':
-      return isoDate(addYears(parseISO(injectedOn), 3))
+      return toDay(addYears(parseISO(injectedOn), 3))
     case 'otherDate':
       return choice.date
     case 'none':
