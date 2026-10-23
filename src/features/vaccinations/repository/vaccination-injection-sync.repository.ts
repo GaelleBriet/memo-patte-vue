@@ -1,0 +1,53 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
+
+import type { DbClient, SqlStatement } from '@/core/db/db-client'
+import type { SyncRow } from '@/core/supabase/guarded-upsert'
+import { createPushedRowReplacement } from '@/core/sync/repository/pushed-row-replacement'
+import { createRemoteSyncTable } from '@/core/sync/repository/remote-sync-table.repository'
+import { syncField } from '@/core/sync/service/syncable-table'
+import { COLUMNS, type InjectionRow } from './vaccination-injection-row.repository'
+
+export function createVaccinationInjectionSync(
+  db: DbClient,
+  loadClient: () => Promise<SupabaseClient>,
+) {
+  return {
+    /** Tombstones compris : le push doit pouvoir renvoyer une suppression comme une ligne normale. */
+    async getRowForPush(id: string): Promise<SyncRow | null> {
+      const rows = await db.query<InjectionRow>(
+        `SELECT ${COLUMNS} FROM vaccination_injection WHERE id = ?`,
+        [id],
+      )
+      return (rows[0] as SyncRow | undefined) ?? null
+    },
+
+    ...createRemoteSyncTable({ table: 'vaccination_injection', columns: COLUMNS, loadClient }),
+    ...createPushedRowReplacement({ table: 'vaccination_injection', columns: COLUMNS }),
+
+    applyRemoteRowStatement(row: SyncRow): SqlStatement {
+      return {
+        sql: `INSERT INTO vaccination_injection (${COLUMNS})
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON CONFLICT (id) DO UPDATE SET
+                vaccination_id = excluded.vaccination_id, animal_id = excluded.animal_id,
+                injected_on = excluded.injected_on, next_due_date = excluded.next_due_date,
+                created_at = excluded.created_at, updated_at = excluded.updated_at,
+                deleted_at = excluded.deleted_at, created_by_device = excluded.created_by_device,
+                updated_by_device = excluded.updated_by_device
+              WHERE excluded.updated_at > vaccination_injection.updated_at`,
+        params: [
+          row.id,
+          syncField(row, 'vaccination_id'),
+          syncField(row, 'animal_id'),
+          syncField(row, 'injected_on'),
+          syncField(row, 'next_due_date'),
+          syncField(row, 'created_at'),
+          row.updated_at,
+          syncField(row, 'deleted_at'),
+          syncField(row, 'created_by_device'),
+          syncField(row, 'updated_by_device'),
+        ],
+      }
+    },
+  }
+}
