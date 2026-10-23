@@ -176,7 +176,7 @@ describe.each(languages)('page vitrine en %s', (lang) => {
 
   it('a une image de partage de 1200 × 630 et ses balises', () => {
     const image = metaContent(html, 'og:image') ?? ''
-    expect(image).toMatch(new RegExp(`^${SITE_URL}/img/og-(preinscription-)?${lang}\\.png$`))
+    expect(image).toMatch(new RegExp(`^${SITE_URL}/img/og-${lang}\\.png$`))
     expect(pngSize(image.replace(`${SITE_URL}/`, ''))).toEqual({ width: 1200, height: 630 })
     expect(metaContent(html, 'og:image:width')).toBe('1200')
     expect(metaContent(html, 'og:image:height')).toBe('630')
