@@ -3,14 +3,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { parseExportFile } from '../logic/parse-export-file'
 import { importFixtureJson } from './import-fixture'
 
-type Document = Record<string, unknown>
+type ExportDocument = Record<string, unknown>
 
 const HEURES = Array.from({ length: 24 }, (_, hour) => `${String(hour).padStart(2, '0')}:00`)
 
-// Dernier jour où ce traitement à 24 heures reste lisible par le moteur : le 2026-10-23.
+// Limite de 50 000 échéances (`treatment-reading`) : ce traitement à 24 heures reste lisible jusqu'au 2026-10-23.
 function dailyAllHours(): string {
-  const document = JSON.parse(importFixtureJson()) as Document
-  const [, period] = document.treatmentPeriods as Document[]
+  const document = JSON.parse(importFixtureJson()) as ExportDocument
+  const [, period] = document.treatmentPeriods as ExportDocument[]
   Object.assign(period!, {
     startsOn: '2021-02-10',
     firstDueOn: '2021-02-10',
@@ -18,7 +18,7 @@ function dailyAllHours(): string {
     endsOn: null,
     times: HEURES,
   })
-  document.treatmentDoses = (document.treatmentDoses as Document[]).slice(0, 1)
+  document.treatmentDoses = (document.treatmentDoses as ExportDocument[]).slice(0, 1)
   return JSON.stringify(document)
 }
 

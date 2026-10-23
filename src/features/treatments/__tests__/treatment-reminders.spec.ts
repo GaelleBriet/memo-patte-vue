@@ -16,8 +16,6 @@ const SETTINGS: CarnetReminderSettings = { vaccineReminderTime: '09:00', remindB
 const MONTHLY: TreatmentFrequency = { value: 1, unit: 'month' }
 const WEEKLY: TreatmentFrequency = { value: 1, unit: 'week' }
 const NOW = new Date(2026, 8, 15, 12)
-// Tous les jours à 24 heures : lisible le 2026-09-15, trop long à relire le 2026-09-16.
-const START = '2021-01-03'
 
 afterEach(() => {
   i18n.global.locale.value = 'fr'
@@ -144,6 +142,9 @@ describe('treatmentReminders', () => {
   })
 
   it('relit le traitement au jour de l’appareil, pas à celui de l’UTC : trop long à relire dès le lendemain', () => {
+    // Limite de 50 000 échéances (`treatment-reading`) : tous les jours à 24 heures depuis START,
+    // lisible le 2026-09-15, trop long à relire le 2026-09-16.
+    const START = '2021-01-03'
     const HEURES = Array.from({ length: 24 }, (_, hour) => `${String(hour).padStart(2, '0')}:00`)
     const careAt = (now: Date) =>
       remindersOf({ startsOn: START, firstDueOn: START, times: HEURES }, [], { now }).care

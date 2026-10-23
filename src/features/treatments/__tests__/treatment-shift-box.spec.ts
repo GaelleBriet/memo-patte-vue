@@ -272,7 +272,7 @@ describe('G19 : les jours qui ne laisseraient aucune date au report seul sont re
     )
   })
 
-  it('ne regarde que les 62 jours qui précèdent le jour civil : le 62e jour avant est exclu', () => {
+  it('ne regarde que 62 jours jusqu’au jour civil inclus : le 62e jour avant en est exclu', () => {
     expect(dateChangeBox(t, prise, carnet(withPeriods, '2026-12-17'))!.refusedDays(true)).toContain(
       '2026-10-17',
     )
