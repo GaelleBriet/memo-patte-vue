@@ -39,3 +39,15 @@ describe('un jour de « Choisir les jours » garde 48 px de zone tactile (TR-16)
     expect(declaration(feuille, '.choose-days-month__disc', 'aspect-ratio')).toBe('1')
   })
 })
+
+describe('le bouton « Valider » de « Choisir les jours » suit la police agrandie', () => {
+  const feuille = css('src/features/treatments/views/TreatmentChooseDays.vue')
+
+  it('prend la hauteur de son libellé, qui passe à la ligne', () => {
+    expect(declaration(feuille, '.treatment-choose-days__submit', 'height')).toBe('auto')
+    expect(declaration(feuille, '.treatment-choose-days__submit', 'min-height')).toBe('52px')
+    expect(
+      declaration(feuille, '.treatment-choose-days__submit :deep(.v-btn__content)', 'white-space'),
+    ).toBe('normal')
+  })
+})

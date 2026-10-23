@@ -173,17 +173,28 @@ describe('FormSegmented — contrat de style', () => {
   const css = cssDe('FormSegmented.vue')
 
   it('donne au sélecteur compact le rayon d’un champ et des options qui se partagent la largeur', () => {
-    expect(declaration(css, '.form-segmented--compact', 'height')).toBe('54px')
+    expect(declaration(css, '.form-segmented--compact', 'min-height')).toBe('54px')
     expect(declaration(css, '.form-segmented--compact', 'border-radius')).toBe('14px')
     expect(declaration(css, '.form-segmented--compact', 'padding')).toBe('3px')
     expect(declaration(css, '.form-segmented--compact .form-segmented__option', 'min-width')).toBe(
-      '0',
+      'min-content',
     )
     expect(declaration(css, '.form-segmented--compact .form-segmented__option', 'flex')).toBe(
       '1 1 auto',
     )
     expect(declaration(css, '.form-segmented--compact .form-segmented__option', 'font-size')).toBe(
       '13px',
+    )
+  })
+
+  it('passe les options compactes à la ligne quand la police agrandie ne les laisse plus tenir sur une', () => {
+    expect(declaration(css, '.form-segmented--compact', 'flex-wrap')).toBe('wrap')
+    expect(declaration(css, '.form-segmented--compact', 'height')).toBe('auto')
+    expect(declaration(css, '.form-segmented--compact .form-segmented__option', 'height')).toBe(
+      'auto',
+    )
+    expect(declaration(css, '.form-segmented--compact .form-segmented__option', 'min-height')).toBe(
+      'calc(54px - 8px)',
     )
   })
 

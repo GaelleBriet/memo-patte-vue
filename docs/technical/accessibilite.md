@@ -1,8 +1,10 @@
 # Accessibilité et responsive (ticket #51)
 
-Passe faite avant publication, le 2026-09-15, sur le carnet de démo (`pnpm dev:data`), plus un
-animal sans rappel pour les états « Tout est à jour » et sections vides.
-Mesures dans Chromium headless (émulation mobile), pas encore sur appareil : voir « Reste à vérifier ».
+Première passe le 2026-09-15, sur le carnet de démo (`pnpm dev:data`), plus un animal sans rappel pour
+les états « Tout est à jour » et sections vides, avec des mesures dans Chromium headless (émulation
+mobile). Repasses des 2026-09-21 et 2026-10-24 ci-dessous ; la dernière, sur émulateur Android
+(360 × 640 dp, police à 130 %), remplace les mesures de la première pour les écrans qu'elle couvre.
+Ce qui reste à vérifier sur appareil : voir « Reste à vérifier ».
 
 Référentiel : WCAG 2.2 niveau AA pour les contrastes (4,5:1 texte courant, 3:1 texte ≥ 24 px ou
 ≥ 18,66 px gras, 3:1 composants d'interface et icônes porteuses de sens) ; zone de tap de 48 dp
@@ -57,6 +59,56 @@ n'a pas pu être vérifié : aucune offre Google Play configurée, l'écran affi
 Animal de test créé pour atteindre l'écran Paramètres, supprimé ensuite par désinstallation complète
 et réinstallation d'un build `main` propre. Le critère « deux tailles Android » reste donc ouvert
 pour une taille réellement différente (petit écran), à couvrir sur un poste avec KVM.
+
+## Repasse du 2026-10-24 : petit écran Android, écrans ajoutés depuis le 21 septembre
+
+**Appareil** : émulateur `memopatte-test` (Pixel 6, image `android-36`), écran réglé en 720 × 1280 px à
+320 dpi, soit **360 × 640 dp**, une taille de téléphone plus petite que le Pixel 6 (412 dp) de la passe du
+21 septembre ; puis police système à 130 % (`font_scale 1.3`). Build de `main` du 2026-10-23, carnet de
+démo Milo / Luna importé, heure figée au 2026-10-23, gestes et mesures par la WebView (`getBoundingClientRect`,
+`elementFromPoint` sur une grille de 2 px pour la zone réellement tapable). Réglages de l'émulateur rétablis
+ensuite (`wm size reset`, `wm density reset`, `font_scale 1.0`).
+
+**Écrans repassés, en français, à 100 % puis à 130 %** : Accueil (dont la ligne « Photos en cours de
+téléchargement… », voir plus bas), Carnet, Suivi de poids, fiche d'un traitement (en retard, terminé avec
+36 doses non renseignées), « C'est fait », « Fait à une autre date », « Choisir les jours », dialogue
+d'arrêt, menu d'une prise, « Reprendre », formulaire de traitement (création, modification), fiche d'un
+vaccin, « Ajouter une injection passée », formulaires vaccin et animal, Paramètres et ses six rubriques
+(Rappels, Sauvegarde, Mes données, MémoPatte Plus, Confidentialité, Aide et contact, À propos), feuilles
+d'export JSON / CSV, d'export PDF et d'import, Effacer les données, écran Plus, Connexion, Mot de passe
+oublié, Compte, changement de mot de passe, changement d'adresse, suppression du compte. Les écrans de
+compte ont été joués avec un build qui déclare une configuration Supabase factice et un compte Plus local
+posé à la main : aucun appel réseau n'aboutit, seule la mise en page est vue. Clavier : champ « Race » du
+formulaire animal à 130 %, le champ reste visible au-dessus du clavier et la barre d'actions ne le recouvre pas.
+
+**Défauts de mise en page trouvés et corrigés** (aucun texte, aucune règle, aucun comportement changé) :
+
+| Écran | Constat | Correction |
+| --- | --- | --- |
+| Tous les écrans à boutons « texte » (« Annuler » des formulaires, du dialogue de suppression de compte, bouton « + » des chips) | La zone de tap n'était que de 36 px de haut (« + » : 42 px), pas 48 : Vuetify 4.2 met `overflow: hidden` sur `.v-btn`, ce qui rogne le `::before` qui agrandit la zone. Les tests ne le voyaient pas (`css: false`) | `overflow: visible` dans le mixin `tap-target` ; zone mesurée à 48 px |
+| Formulaire de traitement, « Reprendre » (130 %) | « Vermifuge / Antiparasitaire / Médicament » et « jours / semaines / mois » collés, libellés rognés par le bouton | Les options du sélecteur compact passent à la ligne au lieu de se serrer ; le choix de l'unité passe sous « Tous les » quand la ligne ne suffit plus (identique au pixel à 100 %) |
+| « Choisir les jours » (130 %) | « Valider : 36 données, 0 oubliée » touche les bords du bouton | Le libellé passe à la ligne, le bouton grandit |
+| Changer le mot de passe, changer l'adresse, supprimer le compte (130 %) | Titre coupé par une ellipse (« Changer mon mot … ») : on ne sait plus quel écran c'est | Titre sur deux lignes au plus |
+| Formulaire de traitement | Le champ d'heure invisible de « Ajouter une heure » ne couvrait pas la bordure : 45 px tapables | Le champ déborde de la bordure : 48 px |
+
+**Non corrigé, à décider (change une règle ou une maquette, ou hors de portée d'un correctif de mise en page)** :
+
+- Carnet, ligne d'un vaccin « Leucose » sans injection à 360 dp : le détail « Premier vaccin · aucune
+  injection notée » se tasse sur cinq lignes à côté du badge « Prévu le 2 nov. », qui ne descend pas sous
+  le titre. C'est le comportement voulu de la ligne (planche V15) ; passer le badge dessous plus tôt
+  change l'allure de toutes les lignes ;
+- « Fait à une autre date » : les jours du calendrier Vuetify font 40 × 40 px (composant du thème, non retouché) ;
+- écran Plus : le bouton « J'ai déjà MémoPatte Plus » fait 44 px (42 à 44 px tapables), au-dessus du
+  minimum de 44 px de ce document mais sous les 48 px visés ailleurs ;
+- **zones de tap qui empiètent sur le bouton voisin** : la zone agrandie à 48 px déborde du bouton de
+  part et d'autre, et sur deux boutons proches le dernier dans le DOM l'emporte. « Annuler » (36 px) déborde
+  de 6 px sur « Enregistrer » ; « J'ai déjà MémoPatte Plus » (44 px) perd 2 à 4 px sous « Restaurer ».
+  Piste : un écart d'au moins 12 px entre deux boutons voisins, ou une zone qui ne déborde pas vers le voisin.
+
+**Pas joué** : « Photos en cours de téléchargement… » dépend d'un état de synchro inaccessible hors compte
+Plus réel : la ligne a été reconstituée à la main avec ses styles (une ligne, ellipse, 130 %), pas déclenchée ;
+saisie des codes à 8 chiffres, création de compte et restauration depuis le cloud (aucun serveur) ; anglais ;
+TalkBack ; police au maximum et taille d'affichage agrandie (réglages Android distincts de `font_scale`).
 
 ## 1. Contrastes
 
@@ -239,6 +291,6 @@ Corrigé :
 - Paramètres Android « Taille de police » au maximum et « Taille d'affichage » agrandie : la simulation ne
   reproduit pas exactement le zoom texte de la WebView (hauteurs de ligne en px, icônes) ;
 - zones de tap au doigt sur les chips du header, dont la zone agrandie déborde de 3 px sur le header ;
-- **émulateur ou appareil Android réel** (voir « Repasse du 2026-09-21 ») : non fait faute de
-  virtualisation matérielle dans l'environnement d'exécution de l'agent qui a tenté cette repasse ;
-  à faire sur un poste avec KVM.
+- ~~émulateur ou appareil Android réel~~ fait le 2026-10-24 sur l'émulateur 360 × 640 dp (voir « Repasse
+  du 2026-10-24 ») ; reste un appareil physique de petit écran, et les écrans de compte avec un vrai
+  serveur (codes, restauration).

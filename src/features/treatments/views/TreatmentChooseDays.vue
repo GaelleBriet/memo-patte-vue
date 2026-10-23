@@ -367,11 +367,18 @@ onScopeDispose(releaseBack)
 }
 
 .treatment-choose-days__submit {
-  height: 52px;
+  height: auto;
+  min-height: 52px;
+  padding-block: 8px;
+  line-height: 1.25;
   border-radius: tokens.$radius-pill;
   font-size: 16px;
   font-weight: 700;
   letter-spacing: normal;
   text-transform: none;
+}
+
+.treatment-choose-days__submit :deep(.v-btn__content) {
+  white-space: normal;
 }
 </style>
