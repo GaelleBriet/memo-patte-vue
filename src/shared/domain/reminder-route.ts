@@ -5,6 +5,7 @@ import type {
   RouteLocationRaw,
 } from 'vue-router'
 
+import { CALENDAR_DAY_SHAPE } from './calendar-day'
 import { isClockTime } from './clock-time'
 import type { ReminderKind } from './reminders'
 
@@ -22,8 +23,10 @@ export function reminderQueryValue({ kind, id }: ReminderRef): string {
   return `${kind}:${id}`
 }
 
-const TODO_REMINDER =
-  /^(vaccination|treatment):([^:]+)(?::(unlogged|\d{4}-\d{2}-\d{2})(?:T(.+))?)?$/
+const DAY_SHAPE_SOURCE = CALENDAR_DAY_SHAPE.source.slice(1, -1)
+const TODO_REMINDER = new RegExp(
+  `^(vaccination|treatment):([^:]+)(?::(unlogged|${DAY_SHAPE_SOURCE})(?:T(.+))?)?$`,
+)
 
 function parseTodoReminder(value: unknown): TodoRequest | null {
   if (typeof value !== 'string') return null
@@ -53,7 +56,6 @@ export const REMINDER_STEP_QUERY_PARAM = 'step'
 
 const DUE_QUERY_PARAM = 'due'
 const TIME_QUERY_PARAM = 'time'
-const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/
 
 export type ReminderStep = 'actions' | 'done'
 
@@ -84,7 +86,7 @@ export function reminderSheetQuery(request: ReminderRequest): LocationQueryRaw {
 function notifiedDueOf(query: LocationQuery | LocationQueryRaw): NotifiedDue | null {
   const dueOn = query[DUE_QUERY_PARAM]
   const dueTime = query[TIME_QUERY_PARAM] ?? null
-  if (typeof dueOn !== 'string' || !ISO_DAY.test(dueOn)) return null
+  if (typeof dueOn !== 'string' || !CALENDAR_DAY_SHAPE.test(dueOn)) return null
   if (dueTime !== null && !isClockTime(dueTime)) return null
   return { dueOn, dueTime }
 }

@@ -3,9 +3,11 @@ import { addDays, formatISO } from 'date-fns'
 export const MIN_CALENDAR_YEAR = 1900
 export const MAX_CALENDAR_YEAR = 2199
 
+export const CALENDAR_DAY_SHAPE = /^\d{4}-\d{2}-\d{2}$/
+
 /** Date civile `yyyy-MM-dd` qui existe, entre 1900 et 2199 : au-delà, la saisie ou le fichier est faux. */
 export function isCalendarDay(day: unknown): day is string {
-  if (typeof day !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return false
+  if (typeof day !== 'string' || !CALENDAR_DAY_SHAPE.test(day)) return false
   const year = Number(day.slice(0, 4))
   const month = Number(day.slice(5, 7))
   const date = Number(day.slice(8, 10))
