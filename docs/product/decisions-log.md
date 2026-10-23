@@ -3685,4 +3685,5 @@ pendant que le code se vérifie et que le serveur l'accepte, la session qu'il a 
 téléphone seul (jamais sur les autres appareils du compte ; elle est gardée si c'est le compte déjà
 présent sur le téléphone). Une réussite tardive à la connexion ou à la création de compte vaut réussite :
 l'écran part, la personne est connectée. Dans « Changer mon adresse e-mail », la réponse tardive est
-ignorée et l'écran revient à la saisie. — Alternative écartée : ignorer le retour pendant la vérification.
+ignorée et l'écran revient à la saisie. Le renvoi du code ignore une réponse tardive : plus de « Code
+envoyé à … » sur un formulaire revenu en arrière. — Alternative écartée : ignorer le retour pendant la vérification.

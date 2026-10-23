@@ -968,6 +968,7 @@ describe('SignInView', () => {
       await flushPromises()
 
       expect(replace).toHaveBeenCalledWith({ name: 'plus-account' })
+      expect(replace).toHaveBeenCalledTimes(1)
     })
 
     it('ouvre le compte avec le bon code puis ramène au parcours d’origine', async () => {
