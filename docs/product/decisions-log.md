@@ -3614,3 +3614,13 @@ général l'adresse qu'il voit à la fin de la chaîne (à vérifier chez Supaba
 une première valeur choisie par l'appelant ne doit pas masquer la vraie. — Alternatives écartées : la
 première valeur seule (entrée précédente : l'appelant la choisit) ; la dernière valeur seule (elle
 pourrait n'être qu'une adresse interne de la plateforme).
+
+2026-10-23 — **Le retour d'Android revient à l'étape précédente du code, comme la flèche** (#1106).
+Décision de Gaelle du 23 octobre (« oui »). Sur « Changer mon adresse e-mail » et « Mot de passe
+oublié », à l'étape où l'app attend un code, le bouton ou le geste retour d'Android ramène à la saisie
+de l'adresse, en gardant ce qui a été saisi, sans rien envoyer, et efface la confirmation du nouveau
+mot de passe, exactement comme la flèche de l'écran. Sur la saisie de l'adresse et partout ailleurs, le
+retour garde son comportement : il quitte l'écran. Exemple : Sophie a demandé le code, elle fait
+« retour » pour corriger l'adresse ; elle retombe sur la saisie, adresse remplie, au lieu de sortir de
+l'écran. — Raison : le retour matériel doit faire ce que la flèche affiche ; sortir d'un coup perdait
+ce qu'elle venait de saisir. — Alternative écartée : laisser le retour quitter l'écran.

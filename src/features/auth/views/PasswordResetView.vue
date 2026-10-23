@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
+import { useCodeStepBack } from '../composables/use-code-step-back'
 import { usePasswordReset } from '../composables/use-password-reset'
 import { CODE_LENGTH } from '../logic/email-code'
 import { useSignedInExit } from '../composables/use-signed-in-exit'
@@ -45,6 +46,8 @@ const addressError = computed(() => {
   const key = addressErrors.value.email ?? addressFailureKey.value
   return key ? t(key) : null
 })
+
+useCodeStepBack(isCodeStep, reset.backToAddress)
 
 function back(): void {
   if (isCodeStep.value) reset.backToAddress()

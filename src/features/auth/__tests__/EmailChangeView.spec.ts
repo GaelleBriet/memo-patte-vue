@@ -15,6 +15,22 @@ import vuetify from '@/core/theme/vuetify'
 import router from '@/router'
 import { toastMessage } from '@/shared/utils/toast'
 
+const retours = vi.hoisted(() => [] as Array<() => void>)
+
+vi.mock('@/core/app-lifecycle/back-button', () => ({
+  onBackButton: (handler: () => void) => {
+    retours.push(handler)
+    return () => retours.splice(retours.indexOf(handler), 1)
+  },
+}))
+
+async function retourAndroid(): Promise<boolean> {
+  const handler = retours.at(-1)
+  handler?.()
+  await flushPromises()
+  return handler !== undefined
+}
+
 const code = (digit: string) => digit.repeat(CODE_LENGTH)
 const NOUVELLE = 'sophie2@exemple.fr'
 const ACTUELLE = 'sophie@exemple.fr'
@@ -28,6 +44,7 @@ let wrapper: VueWrapper | null = null
 provideAuthRepository(() => authRepository)
 
 beforeEach(async () => {
+  retours.length = 0
   vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 22, 18, 0) })
   vi.stubGlobal('localStorage', memoryStorage())
   setActivePinia(createPinia())
@@ -73,6 +90,8 @@ async function codeEnvoye() {
   await toucher(w, '.email-change__send')
   return w
 }
+
+const secondEtapeAvant = codeEnvoye
 
 async function secondEtape() {
   const w = await codeEnvoye()
@@ -237,6 +256,32 @@ describe('EmailChangeView', () => {
       expect((w.get('#email-change-email').element as HTMLInputElement).value).toBe(NOUVELLE)
       expect(replace).not.toHaveBeenCalled()
     })
+
+    it.each([
+      ['premier', secondEtapeAvant],
+      ['second', secondEtape],
+    ])(
+      'revient à l’étape 1 par le retour d’Android au code %s, adresse gardée, sans requête',
+      async (_nom, ouvrir) => {
+        const w = await ouvrir()
+        requestEmailChange.mockClear()
+        verifyEmailChangeCode.mockClear()
+
+        expect(await retourAndroid()).toBe(true)
+
+        expect((w.get('#email-change-email').element as HTMLInputElement).value).toBe(NOUVELLE)
+        expect((w.get('#email-change-current').element as HTMLInputElement).value).toBe('')
+        expect(requestEmailChange).not.toHaveBeenCalled()
+        expect(verifyEmailChangeCode).not.toHaveBeenCalled()
+        expect(replace).not.toHaveBeenCalled()
+      },
+    )
+  })
+
+  it('laisse le retour d’Android quitter l’écran depuis l’étape 1', async () => {
+    await monter()
+
+    expect(await retourAndroid()).toBe(false)
   })
 
   it('revient à Compte par la flèche depuis l’étape 1', async () => {
