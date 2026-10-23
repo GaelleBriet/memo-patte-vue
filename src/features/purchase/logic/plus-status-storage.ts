@@ -6,7 +6,7 @@ import { NO_PLUS, subscriptionOf, type PlusStatus, type SubscriptionPlan } from 
 export const PLUS_STATUS_STORAGE_KEY = 'memopatte.plus.status'
 
 /** Au-delà, l'app oublie l'abonnement échu : ni bandeau « en pause », ni appel au store. */
-export const SUBSCRIPTION_MEMORY_DAYS = 30
+const SUBSCRIPTION_MEMORY_DAYS = 30
 
 export type StoredPlusStatus = PlusStatus & {
   /** Dernier abonnement payant connu : Google Play dira « aucun droit » une fois échu. */
