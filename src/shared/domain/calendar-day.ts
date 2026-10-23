@@ -5,7 +5,8 @@ export const MAX_CALENDAR_YEAR = 2199
 
 export const DAY_MS = 86_400_000
 
-export const CALENDAR_DAY_SHAPE = /^\d{4}-\d{2}-\d{2}$/
+export const CALENDAR_DAY_PATTERN = String.raw`\d{4}-\d{2}-\d{2}`
+export const CALENDAR_DAY_SHAPE = new RegExp(`^${CALENDAR_DAY_PATTERN}$`)
 
 /** Date civile `yyyy-MM-dd` qui existe, entre 1900 et 2199 : au-delà, la saisie ou le fichier est faux. */
 export function isCalendarDay(day: unknown): day is string {

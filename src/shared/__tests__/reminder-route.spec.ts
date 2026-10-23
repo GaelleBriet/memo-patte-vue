@@ -7,6 +7,7 @@ import {
   parseReminderRequest,
   reminderQueryValue,
   reminderSheetQuery,
+  TODO_REMINDER,
   todoReminderValue,
   withoutReminderRequest,
 } from '../domain/reminder-route'
@@ -198,5 +199,13 @@ describe('returnTo', () => {
 
     expect(router.currentRoute.value.name).toBe('carnet')
     expect(router.options.history.state.back).toBe('/?reminder=treatment:t1')
+  })
+})
+
+describe('expression du rappel de « À faire »', () => {
+  it('garde sa forme ancrée et son motif de jour', () => {
+    expect(TODO_REMINDER.source).toBe(
+      String.raw`^(vaccination|treatment):([^:]+)(?::(unlogged|\d{4}-\d{2}-\d{2})(?:T(.+))?)?$`,
+    )
   })
 })

@@ -5,7 +5,7 @@ import type {
   RouteLocationRaw,
 } from 'vue-router'
 
-import { CALENDAR_DAY_SHAPE } from './calendar-day'
+import { CALENDAR_DAY_PATTERN, CALENDAR_DAY_SHAPE } from './calendar-day'
 import { isClockTime } from './clock-time'
 import type { ReminderKind } from './reminders'
 
@@ -23,9 +23,8 @@ export function reminderQueryValue({ kind, id }: ReminderRef): string {
   return `${kind}:${id}`
 }
 
-const DAY_SHAPE_SOURCE = CALENDAR_DAY_SHAPE.source.slice(1, -1)
-const TODO_REMINDER = new RegExp(
-  `^(vaccination|treatment):([^:]+)(?::(unlogged|${DAY_SHAPE_SOURCE})(?:T(.+))?)?$`,
+export const TODO_REMINDER = new RegExp(
+  `^(vaccination|treatment):([^:]+)(?::(unlogged|${CALENDAR_DAY_PATTERN})(?:T(.+))?)?$`,
 )
 
 function parseTodoReminder(value: unknown): TodoRequest | null {
