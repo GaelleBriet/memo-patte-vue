@@ -20,7 +20,10 @@ const retours = vi.hoisted(() => [] as Array<() => void>)
 vi.mock('@/core/app-lifecycle/back-button', () => ({
   onBackButton: (handler: () => void) => {
     retours.push(handler)
-    return () => retours.splice(retours.indexOf(handler), 1)
+    return () => {
+      const index = retours.indexOf(handler)
+      if (index !== -1) retours.splice(index, 1)
+    }
   },
 }))
 
@@ -90,8 +93,6 @@ async function codeEnvoye() {
   await toucher(w, '.email-change__send')
   return w
 }
-
-const secondEtapeAvant = codeEnvoye
 
 async function secondEtape() {
   const w = await codeEnvoye()
@@ -192,6 +193,20 @@ describe('EmailChangeView', () => {
       expect(reauthenticate).not.toHaveBeenCalled()
       expect(requestEmailChange).not.toHaveBeenCalled()
     })
+
+    it('revient à l’étape 1 par le retour d’Android, adresse gardée, mot de passe vidé, sans requête', async () => {
+      const w = await codeEnvoye()
+      requestEmailChange.mockClear()
+      verifyEmailChangeCode.mockClear()
+
+      expect(await retourAndroid()).toBe(true)
+
+      expect((w.get('#email-change-email').element as HTMLInputElement).value).toBe(NOUVELLE)
+      expect((w.get('#email-change-current').element as HTMLInputElement).value).toBe('')
+      expect(requestEmailChange).not.toHaveBeenCalled()
+      expect(verifyEmailChangeCode).not.toHaveBeenCalled()
+      expect(replace).not.toHaveBeenCalled()
+    })
   })
 
   describe('code de la nouvelle adresse (V24 quinquies, seconde fois)', () => {
@@ -257,25 +272,19 @@ describe('EmailChangeView', () => {
       expect(replace).not.toHaveBeenCalled()
     })
 
-    it.each([
-      ['premier', secondEtapeAvant],
-      ['second', secondEtape],
-    ])(
-      'revient à l’étape 1 par le retour d’Android au code %s, adresse gardée, sans requête',
-      async (_nom, ouvrir) => {
-        const w = await ouvrir()
-        requestEmailChange.mockClear()
-        verifyEmailChangeCode.mockClear()
+    it('revient à l’étape 1 par le retour d’Android, adresse gardée, mot de passe vidé, sans requête', async () => {
+      const w = await secondEtape()
+      requestEmailChange.mockClear()
+      verifyEmailChangeCode.mockClear()
 
-        expect(await retourAndroid()).toBe(true)
+      expect(await retourAndroid()).toBe(true)
 
-        expect((w.get('#email-change-email').element as HTMLInputElement).value).toBe(NOUVELLE)
-        expect((w.get('#email-change-current').element as HTMLInputElement).value).toBe('')
-        expect(requestEmailChange).not.toHaveBeenCalled()
-        expect(verifyEmailChangeCode).not.toHaveBeenCalled()
-        expect(replace).not.toHaveBeenCalled()
-      },
-    )
+      expect((w.get('#email-change-email').element as HTMLInputElement).value).toBe(NOUVELLE)
+      expect((w.get('#email-change-current').element as HTMLInputElement).value).toBe('')
+      expect(requestEmailChange).not.toHaveBeenCalled()
+      expect(verifyEmailChangeCode).not.toHaveBeenCalled()
+      expect(replace).not.toHaveBeenCalled()
+    })
   })
 
   it('laisse le retour d’Android quitter l’écran depuis l’étape 1', async () => {

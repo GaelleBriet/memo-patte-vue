@@ -38,7 +38,10 @@ const retours = vi.hoisted(() => [] as Array<() => void>)
 vi.mock('@/core/app-lifecycle/back-button', () => ({
   onBackButton: (handler: () => void) => {
     retours.push(handler)
-    return () => retours.splice(retours.indexOf(handler), 1)
+    return () => {
+      const index = retours.indexOf(handler)
+      if (index !== -1) retours.splice(index, 1)
+    }
   },
 }))
 

@@ -3618,8 +3618,9 @@ pourrait n'être qu'une adresse interne de la plateforme).
 2026-10-23 — **Le retour d'Android revient à l'étape précédente du code, comme la flèche** (#1106).
 Décision de Gaelle du 23 octobre (« oui »). Sur « Changer mon adresse e-mail » et « Mot de passe
 oublié », à l'étape où l'app attend un code, le bouton ou le geste retour d'Android ramène à la saisie
-de l'adresse, en gardant ce qui a été saisi, sans rien envoyer, et efface la confirmation du nouveau
-mot de passe, exactement comme la flèche de l'écran. Sur la saisie de l'adresse et partout ailleurs, le
+de l'adresse, en gardant l'adresse, sans rien envoyer ; les mots de passe saisis sont effacés, comme avec
+la flèche (le mot de passe actuel de « Changer mon adresse e-mail », le nouveau mot de passe et sa
+confirmation de « Mot de passe oublié »). Sur la saisie de l'adresse et partout ailleurs, le
 retour garde son comportement : il quitte l'écran. Exemple : Sophie a demandé le code, elle fait
 « retour » pour corriger l'adresse ; elle retombe sur la saisie, adresse remplie, au lieu de sortir de
 l'écran. — Raison : le retour matériel doit faire ce que la flèche affiche ; sortir d'un coup perdait
