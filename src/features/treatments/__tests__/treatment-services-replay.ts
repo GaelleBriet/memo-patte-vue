@@ -110,7 +110,7 @@ const dayKey = (due: { dueOn: string; dueTime: string | null }) =>
   `${due.dueOn} ${due.dueTime ?? ''}`
 
 /** Ce que les écrans lisent : de quoi comparer deux lectures sans leurs identifiants. */
-export function signatureOf(view: TreatmentView): string[] {
+function signatureOf(view: TreatmentView): string[] {
   const lines = view.history.map(
     ({ line, effect }) =>
       `${line.status} ${dayKey(line)} ${line.givenOn ?? ''} ${line.targetOn ?? ''} ${effect.kind}`,

@@ -61,7 +61,7 @@ export async function seedTreatmentWithDose(
 }
 
 /** Nom, type et fréquence corrigés sur place, et la prochaine dose posée sur la prise du seed. */
-export async function seedHeadEdit(db: DbClient, id: string, edit: HeadEdit): Promise<void> {
+async function seedHeadEdit(db: DbClient, id: string, edit: HeadEdit): Promise<void> {
   const at = new Date().toISOString()
   const { value, unit } = edit.frequency
   await db.runMany([

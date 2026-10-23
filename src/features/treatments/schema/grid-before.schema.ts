@@ -19,7 +19,7 @@ const inOrder = (runs: readonly (readonly [string, string | null])[]) =>
     return previousEnd !== null && previousEnd < from
   })
 
-export const gridBeforeSchema = z
+const gridBeforeSchema = z
   .object({
     frequency: treatmentFrequencySchema,
     endsOn: day.nullable(),
