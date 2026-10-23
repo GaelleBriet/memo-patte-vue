@@ -52,6 +52,15 @@ describe('PasswordField — champ', () => {
     expect(w.emitted('update:modelValue')?.at(-1)).toEqual(['nouveau'])
   })
 
+  it('prévient quand la personne quitte le champ', async () => {
+    const w = monter()
+
+    await w.get('#mot-de-passe').trigger('focus')
+    await w.get('#mot-de-passe').trigger('blur')
+
+    expect(w.emitted('blur')).toHaveLength(1)
+  })
+
   it('marque le champ invalide et l’associe à son erreur', () => {
     const w = monter({ error: 'Indique ton mot de passe.', required: true })
 
@@ -107,6 +116,15 @@ describe('PasswordField — icône œil', () => {
     await w.get('.password-field__toggle').trigger('click')
 
     expect(w.get('.password-field__toggle').html()).not.toBe(masque)
+  })
+
+  it('laisse le focus dans le champ quand on touche l’œil', () => {
+    const w = monter()
+    const appui = new MouseEvent('mousedown', { bubbles: true, cancelable: true })
+
+    w.get('.password-field__toggle').element.dispatchEvent(appui)
+
+    expect(appui.defaultPrevented).toBe(true)
   })
 
   it('ne touche pas à la saisie', async () => {

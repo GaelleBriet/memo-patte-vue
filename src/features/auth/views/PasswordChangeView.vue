@@ -16,10 +16,12 @@ const ACCOUNT_ROUTE = 'settings-account'
 const { t } = useI18n()
 const router = useRouter()
 const { identity } = useAccountIdentity()
-const { values, fieldError, failureKey, isSaving, save } = usePasswordChange()
+const { values, fieldError, isConfirmed, leaveConfirmation, failureKey, isSaving, save } =
+  usePasswordChange()
 
 const currentError = computed(() => fieldError('current'))
 const nextError = computed(() => fieldError('next'))
+const confirmationError = computed(() => fieldError('confirmation'))
 
 function goBack(): void {
   returnTo(router, { name: ACCOUNT_ROUTE })
@@ -79,6 +81,16 @@ async function submit(): Promise<void> {
         :error="nextError ? t(nextError) : null"
         :help="nextError ? null : t('auth.password.help')"
       />
+
+      <PasswordField
+        v-model="values.confirmation"
+        :label="t('auth.password.confirmNew')"
+        control-id="password-change-confirmation"
+        autocomplete="new-password"
+        required
+        :error="confirmationError ? t(confirmationError) : null"
+        @blur="leaveConfirmation"
+      />
     </form>
 
     <template #actions>
@@ -89,6 +101,7 @@ async function submit(): Promise<void> {
           color="primary"
           block
           :loading="isSaving"
+          :disabled="!isConfirmed"
           :aria-label="t('settings.account.password.saveLabel')"
           @click="submit"
         >

@@ -79,9 +79,21 @@ async function monter(adresse = '/sign-in'): Promise<VueWrapper> {
   return wrapper
 }
 
-async function saisir(wrapper: VueWrapper, email: string, password: string): Promise<void> {
+async function saisir(
+  wrapper: VueWrapper,
+  email: string,
+  password: string,
+  confirmation = password,
+): Promise<void> {
   await wrapper.get('#sign-in-email').setValue(email)
   await wrapper.get('#sign-in-password').setValue(password)
+  const champ = wrapper.find('#sign-in-confirmation')
+  if (champ.exists()) await champ.setValue(confirmation)
+}
+
+function erreurDeConfirmation(wrapper: VueWrapper): string | undefined {
+  const champ = wrapper.get('#sign-in-confirmation').element.closest('.form-field')
+  return champ?.querySelector('.form-field__error')?.textContent?.trim()
 }
 
 async function envoyer(wrapper: VueWrapper): Promise<void> {
@@ -177,6 +189,13 @@ describe('SignInView', () => {
     expect(champsDeMotDePasse(wrapper)[0]).toBe('sign-in-password')
   })
 
+  it('porte aussi le champ partagé pour la confirmation, à la création du compte', async () => {
+    expect(champsDeMotDePasse(await monter(`${ACHAT}&mode=sign-up`))).toEqual([
+      'sign-in-password',
+      'sign-in-confirmation',
+    ])
+  })
+
   it('étiquette les champs et adapte le clavier', async () => {
     const wrapper = await monter()
     const email = wrapper.get('#sign-in-email')
@@ -229,6 +248,79 @@ describe('SignInView', () => {
   })
 
   describe('création du compte (V25)', () => {
+    describe('confirmation du mot de passe', () => {
+      it('demande le mot de passe une seconde fois, juste après', async () => {
+        const wrapper = await monter(`${ACHAT}&mode=sign-up`)
+
+        expect(wrapper.get('label[for="sign-in-confirmation"]').text()).toContain(
+          'Confirme le mot de passe',
+        )
+        expect(wrapper.get('#sign-in-confirmation').attributes('autocomplete')).toBe('new-password')
+      })
+
+      it('laisse « Recevoir le code » inactif tant que les deux saisies diffèrent', async () => {
+        const wrapper = await monter(`${ACHAT}&mode=sign-up`)
+        await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse', 'motdepasse ')
+
+        expect(wrapper.get('.sign-in__submit').attributes('disabled')).toBeDefined()
+
+        await wrapper.get('#sign-in-confirmation').setValue('motdepasse')
+        expect(wrapper.get('.sign-in__submit').attributes('disabled')).toBeUndefined()
+      })
+
+      it('montre l’écart sous la confirmation une fois le champ quitté', async () => {
+        const wrapper = await monter(`${ACHAT}&mode=sign-up`)
+        await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse', 'Motdepasse')
+
+        expect(erreurDeConfirmation(wrapper)).toBeUndefined()
+        await wrapper.get('#sign-in-confirmation').trigger('blur')
+
+        expect(erreurDeConfirmation(wrapper)).toBe('Les deux mots de passe ne sont pas identiques.')
+      })
+
+      it('refuse l’envoi par le clavier et focalise la confirmation', async () => {
+        const wrapper = await monter(`${ACHAT}&mode=sign-up`)
+        await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse', 'motdepass')
+
+        await envoyer(wrapper)
+
+        expect(repository.signUp).not.toHaveBeenCalled()
+        expect(erreurDeConfirmation(wrapper)).toBe('Les deux mots de passe ne sont pas identiques.')
+        expect(document.activeElement?.id).toBe('sign-in-confirmation')
+      })
+
+      it('n’envoie que l’adresse et le mot de passe', async () => {
+        repository.signUp.mockResolvedValue({ kind: 'confirmation-pending' })
+        const wrapper = await monter(`${ACHAT}&mode=sign-up`)
+        await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse')
+
+        await envoyer(wrapper)
+
+        expect(repository.signUp.mock.calls).toEqual([
+          ['sophie.martin@example.com', 'motdepasse', 'fr'],
+        ])
+      })
+
+      it('ne demande rien de plus à la connexion', async () => {
+        const wrapper = await monter(ACHAT)
+
+        expect(wrapper.find('#sign-in-confirmation').exists()).toBe(false)
+        expect(wrapper.text()).not.toContain('Confirme le mot de passe')
+      })
+
+      it('se lit en anglais aussi', async () => {
+        i18n.global.locale.value = 'en'
+        try {
+          const wrapper = await monter(`${ACHAT}&mode=sign-up`)
+          expect(wrapper.get('label[for="sign-in-confirmation"]').text()).toContain(
+            'Confirm the password',
+          )
+        } finally {
+          i18n.global.locale.value = 'fr'
+        }
+      })
+    })
+
     it('donne la longueur minimale du mot de passe, à l’inscription seulement', async () => {
       const wrapper = await monter(ACHAT)
 

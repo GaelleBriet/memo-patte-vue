@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { useEmailCode } from '../composables/use-email-code'
 import { useGoogleSignIn } from '../composables/use-google-sign-in'
+import { usePasswordConfirmation } from '../composables/use-password-confirmation'
 import { useSignedInExit } from '../composables/use-signed-in-exit'
 import { AccountError } from '../logic/account-error'
 import { signInErrorKey } from '../logic/account-error-message'
@@ -35,6 +36,16 @@ const values = ref(emptySignInFormValues())
 
 const { errors, validate, reset } = useFormValidation(values, (current) =>
   validateSignInForm(current, mode.value),
+)
+const {
+  isConfirmed,
+  error: confirmationError,
+  leave: leaveConfirmation,
+  reset: resetConfirmation,
+} = usePasswordConfirmation(
+  () => values.value.password,
+  () => values.value.confirmation,
+  () => errors.value.confirmation,
 )
 
 const isSubmitting = ref(false)
@@ -67,14 +78,17 @@ const toggleAction = computed(() =>
   isSignUp.value ? t('auth.signUp.toggleAction') : t('auth.signIn.toggleAction'),
 )
 const passwordAutocomplete = computed(() => (isSignUp.value ? 'new-password' : 'current-password'))
+const canSubmit = computed(() => !isSignUp.value || isConfirmed.value)
 const passwordHelp = computed(() =>
   isSignUp.value && !errors.value.password ? t('auth.password.help') : null,
 )
 
 function toggleMode(): void {
   mode.value = isSignUp.value ? 'sign-in' : 'sign-up'
+  values.value.confirmation = ''
   failureKey.value = null
   reset()
+  resetConfirmation()
 }
 
 function openPasswordReset(): void {
@@ -92,6 +106,7 @@ function backToForm(): void {
   mode.value = origin
   failureKey.value = null
   reset()
+  resetConfirmation()
 }
 
 async function openCodeAfterSignIn(email: string): Promise<void> {
@@ -280,6 +295,16 @@ onUnmounted(() => {
             :error="errors.password ? t(errors.password) : null"
             :help="passwordHelp"
           />
+          <PasswordField
+            v-if="isSignUp"
+            v-model="values.confirmation"
+            :label="t('auth.password.confirm')"
+            control-id="sign-in-confirmation"
+            autocomplete="new-password"
+            required
+            :error="confirmationError ? t(confirmationError) : null"
+            @blur="leaveConfirmation"
+          />
           <v-btn
             v-if="!isSignUp"
             class="sign-in__forgot"
@@ -293,7 +318,13 @@ onUnmounted(() => {
 
         <AccountLegalNotice v-if="isSignUp" class="sign-in__legal" />
 
-        <v-btn class="sign-in__submit" type="submit" variant="flat" color="primary">
+        <v-btn
+          class="sign-in__submit"
+          type="submit"
+          variant="flat"
+          color="primary"
+          :disabled="!canSubmit"
+        >
           {{ submitLabel }}
         </v-btn>
       </form>

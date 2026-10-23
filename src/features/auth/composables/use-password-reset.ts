@@ -8,6 +8,7 @@ import { useAuthStore } from '../store/auth.store'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 
 import { useEmailCode } from './use-email-code'
+import { usePasswordConfirmation } from './use-password-confirmation'
 
 const WAIT_KEY = 'auth.code.wait'
 
@@ -29,7 +30,7 @@ export function usePasswordReset({
   })
 
   const address = ref({ email })
-  const newPassword = ref({ password: '' })
+  const newPassword = ref({ password: '', confirmation: '' })
   const addressFailureKey = ref<string | null>(null)
   const refusedPassword = ref<RefusedPassword | null>(null)
   const isSending = ref(false)
@@ -40,6 +41,11 @@ export function usePasswordReset({
 
   const addressValidation = useFormValidation(address, validateResetEmail)
   const passwordValidation = useFormValidation(newPassword, validateNewPassword)
+  const confirmation = usePasswordConfirmation(
+    () => newPassword.value.password,
+    () => newPassword.value.confirmation,
+    () => passwordValidation.errors.value.confirmation,
+  )
 
   const step = computed(() => (emailCode.email.value === null ? 'address' : 'code'))
   const passwordError = computed(() => {
@@ -119,10 +125,11 @@ export function usePasswordReset({
   function backToAddress(): void {
     abandonAcceptedCode()
     address.value = { email: emailCode.close().email }
-    newPassword.value = { password: '' }
+    newPassword.value = { password: '', confirmation: '' }
     refusedPassword.value = null
     addressFailureKey.value = null
     passwordValidation.reset()
+    confirmation.reset()
   }
 
   onScopeDispose(abandonAcceptedCode)
@@ -136,6 +143,9 @@ export function usePasswordReset({
     addressFailureKey,
     newPassword,
     passwordError,
+    isPasswordConfirmed: confirmation.isConfirmed,
+    confirmationError: confirmation.error,
+    leaveConfirmation: confirmation.leave,
     isSending,
     isResetting,
     sendCode,

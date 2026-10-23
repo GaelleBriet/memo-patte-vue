@@ -13,6 +13,7 @@ defineProps<{
   help?: string | null
   autofocus?: boolean
 }>()
+const emit = defineEmits<{ blur: [] }>()
 const model = defineModel<string>({ required: true })
 
 const { t } = useI18n()
@@ -50,12 +51,14 @@ function toggle(): void {
         :aria-describedby="describedby"
         :aria-invalid="invalid"
         :error="invalid"
+        @blur="emit('blur')"
       >
         <template #append-inner>
           <button
             type="button"
             class="password-field__toggle"
             :aria-label="toggleLabel"
+            @mousedown.prevent
             @click="toggle"
           >
             <v-icon :icon="isVisible ? 'ms:visibility_off' : 'ms:visibility'" />

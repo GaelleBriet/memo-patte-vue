@@ -27,7 +27,15 @@ const reset = usePasswordReset({
   isEmailLocked,
 })
 
-const { emailCode, address, addressErrors, addressFailureKey, newPassword, passwordError } = reset
+const {
+  emailCode,
+  address,
+  addressErrors,
+  addressFailureKey,
+  newPassword,
+  passwordError,
+  confirmationError,
+} = reset
 const isLeaving = ref(false)
 
 const { hasNoAnswer, leaveSignedIn, retryCheck } = useSignedInExit(isLeaving)
@@ -110,6 +118,15 @@ async function submit(): Promise<void> {
         :error="passwordError ? t(passwordError) : null"
         :help="passwordError ? null : t('auth.password.help')"
       />
+      <PasswordField
+        v-model="newPassword.confirmation"
+        :label="t('auth.password.confirmNew')"
+        control-id="password-reset-confirmation"
+        autocomplete="new-password"
+        required
+        :error="confirmationError ? t(confirmationError) : null"
+        @blur="reset.leaveConfirmation"
+      />
     </EmailCodeStep>
 
     <form v-else class="password-reset__address" novalidate @submit.prevent="sendCode">
@@ -153,7 +170,11 @@ async function submit(): Promise<void> {
           color="primary"
           block
           :loading="reset.isResetting.value"
-          :disabled="!emailCode.isComplete.value || emailCode.isResending.value"
+          :disabled="
+            !emailCode.isComplete.value ||
+            emailCode.isResending.value ||
+            !reset.isPasswordConfirmed.value
+          "
           @click="submit"
         >
           {{ t('auth.passwordReset.submit') }}

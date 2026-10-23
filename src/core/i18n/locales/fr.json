@@ -1715,7 +1715,10 @@
     },
     "password": {
       "label": "Mot de passe",
-      "help": "Au moins 8 caractères."
+      "help": "Au moins 8 caractères.",
+      "confirm": "Confirme le mot de passe",
+      "confirmNew": "Confirme le nouveau mot de passe",
+      "mismatch": "Les deux mots de passe ne sont pas identiques."
     },
     "form": {
       "errors": {
