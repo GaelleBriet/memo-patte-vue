@@ -12,7 +12,7 @@ export interface CareFormAnimal {
   unfollowedOn: string | null
 }
 
-export interface CareFormAnimals<A extends CareFormAnimal> {
+interface CareFormAnimals<A extends CareFormAnimal> {
   readonly animals: readonly A[]
   readonly hasLoaded: boolean
   load(): Promise<unknown>

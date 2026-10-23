@@ -13,7 +13,7 @@ export type ReminderSource = {
 
 export type ReminderStatus = 'overdue' | 'today' | 'tomorrow' | 'later'
 
-export type Reminder<T extends ReminderSource = ReminderSource> = Omit<T, 'dueDate'> & {
+type Reminder<T extends ReminderSource = ReminderSource> = Omit<T, 'dueDate'> & {
   dueDate: string
   status: ReminderStatus
   /** Négatif en retard, 0 aujourd'hui. */
