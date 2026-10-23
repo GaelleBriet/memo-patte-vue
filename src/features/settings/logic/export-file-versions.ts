@@ -9,6 +9,7 @@ import type {
   ExportVaccinationInjection,
   ExportWeightEntry,
 } from '@/shared/domain/carnet-data'
+import { DAY_MS } from '@/shared/domain/calendar-day'
 import { gridOriginsOf, legacyFactsOf, targetOnOf } from '@/shared/domain/dose-calendar'
 import { readTreatment } from '@/shared/domain/treatment-reading'
 
@@ -165,8 +166,6 @@ export function fromVersion9(data: Version9Data): ExportData {
     })),
   }
 }
-
-const DAY_MS = 24 * 60 * 60 * 1000
 
 /**
  * Dates de grille, celle de la période et celle gardée dans sa grille d'avant l'ouverture, écrêtées
