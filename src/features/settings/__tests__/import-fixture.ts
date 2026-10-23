@@ -179,7 +179,7 @@ export const IMPORT_FIXTURE: ExportData = {
       targetOn: null,
       createdAt: '2026-01-10T08:10:00.000Z',
       updatedAt: '2026-06-15T08:10:00.000Z',
-      decidedAt: '2026-06-15T08:10:00.000Z',
+      decidedAt: '2026-03-15T08:10:00.000Z',
       ...BY_FIXTURE_DEVICE,
     },
     {

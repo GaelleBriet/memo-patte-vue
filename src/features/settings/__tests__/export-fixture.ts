@@ -346,7 +346,7 @@ export const EXPORT_FIXTURE: ExportData = {
       previousTargetTime: null,
       dueRank: null,
       createdAt: '2026-01-10T08:10:00.000Z',
-      updatedAt: '2026-01-10T08:10:00.000Z',
+      updatedAt: '2026-02-01T09:00:00.000Z',
       decidedAt: '2026-01-10T08:10:00.000Z',
       ...BY_FIXTURE_DEVICE,
     },

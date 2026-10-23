@@ -261,10 +261,22 @@ describe('les services des traitements rejouent les gestes du moteur v2', () => 
     600_000 + SEEDS * STEPS * 200,
   )
 
-  // #1188 : les neuf carnets dont le calendrier changeait après « Supprimer » puis « Annuler ».
-  it.each([69, 370, 468, 745, 1619, 1785, 1877, 2495, 2646])(
-    'graine %i : « Supprimer ce traitement » puis « Annuler » après chaque geste rend la même lecture',
-    async (seed) => {
+  // #1188 : les graines du ticket viennent d'une autre marche ; ici, sur main, seules 1619 et 1785
+  // changent de lecture et 69 voit un geste refusé. Le garde-fou du ticket est le carnet daté de Milo
+  // (treatment-services.supprimer-annuler-decided-at.service.spec.ts).
+  it.each([
+    [69, 21],
+    [370, 1],
+    [468, 11],
+    [745, 5],
+    [1619, 22],
+    [1785, 11],
+    [1877, 1],
+    [2495, 10],
+    [2646, 0],
+  ])(
+    'graine %i : « Supprimer ce traitement » puis « Annuler » après chaque geste rend la même lecture, sur au moins %i gestes',
+    async (seed, minimum) => {
       const walk = startV2Walk(seed)
       const id = crypto.randomUUID()
       const periods: Periods = new Map([['s1', id]])
@@ -272,13 +284,16 @@ describe('les services des traitements rejouent les gestes du moteur v2', () => 
       const steps: V2Step[] = []
       for (let count = 0; count < 30; count += 1) v2Step(walk, (step) => steps.push(step))
       const changed: string[] = []
+      let played = 0
       for (const step of steps) {
         if (refusedByScreen(step)) break
         try {
           await replayStep(replay, id, periods, step)
-        } catch {
-          break
+        } catch (cause) {
+          if (cause instanceof ZodError && refusedForEndDate(cause, step)) break
+          throw cause
         }
+        played += 1
         const before = await readingAfter(replay, id)
         replay.tick()
         const deletedAt = await replay.treatments.remove(id)
@@ -292,6 +307,7 @@ describe('les services des traitements rejouent les gestes du moteur v2', () => 
         }
       }
       expect(changed).toEqual([])
+      expect(played).toBeGreaterThanOrEqual(minimum)
     },
   )
 
