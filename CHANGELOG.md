@@ -5,6 +5,22 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.106](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.105...memo-patte-v0.1.106) (2026-10-23)
+
+
+### ✨ Fonctionnalités
+
+* **db:** migration v20, decided_at sur chaque ligne de dose ([#1188](https://github.com/GaelleBriet/memo-patte-vue/issues/1188)) ([6f33ea1](https://github.com/GaelleBriet/memo-patte-vue/commit/6f33ea114c81c31ade1cd4b1909209d5fb26266b))
+* **export:** format v11, décision de chaque ligne de dose ([#1188](https://github.com/GaelleBriet/memo-patte-vue/issues/1188)) ([1495975](https://github.com/GaelleBriet/memo-patte-vue/commit/14959752db8b422dd2f49fa31279659b3d651e95))
+* **synchro:** miroir decided_at, écrêté du même écart que updated_at ([#1188](https://github.com/GaelleBriet/memo-patte-vue/issues/1188)) ([5fce5a6](https://github.com/GaelleBriet/memo-patte-vue/commit/5fce5a6a758ad441335a88a1f395702505cd6341))
+
+
+### 🐛 Corrections
+
+* **moteur:** arbitre les lignes par leur décision, jamais leur dernière écriture ([#1188](https://github.com/GaelleBriet/memo-patte-vue/issues/1188)) ([0e1a303](https://github.com/GaelleBriet/memo-patte-vue/commit/0e1a30350c5b31559cce985801297b606097b076))
+* **moteur:** deux horloges sur les lignes de dose, décision et dernière écriture ([#1188](https://github.com/GaelleBriet/memo-patte-vue/issues/1188)) ([08c180a](https://github.com/GaelleBriet/memo-patte-vue/commit/08c180ab4ccb5b54edce08f862ef57b5e9e30f16))
+* **traitements:** pose ou garde la décision de chaque ligne de dose ([#1188](https://github.com/GaelleBriet/memo-patte-vue/issues/1188)) ([d88007b](https://github.com/GaelleBriet/memo-patte-vue/commit/d88007b206224320ad6cf22814d2db6e60b97725))
+
 ## [0.1.105](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.104...memo-patte-v0.1.105) (2026-10-23)
 
 
