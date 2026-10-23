@@ -527,6 +527,7 @@ describe('createAuthRepository', () => {
     })
 
     it.each([
+      ['current_password_invalid', 'invalid-credentials'],
       ['current_password_mismatch', 'invalid-credentials'],
       ['current_password_required', 'unknown'],
     ])('traduit le code %s', async (code, reason) => {

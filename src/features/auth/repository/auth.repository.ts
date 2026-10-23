@@ -68,6 +68,7 @@ const REASONS_BY_CODE: Record<string, AccountErrorReason> = {
   email_exists: 'email-taken',
   user_already_exists: 'email-taken',
   invalid_credentials: 'invalid-credentials',
+  current_password_invalid: 'invalid-credentials',
   current_password_mismatch: 'invalid-credentials',
   weak_password: 'weak-password',
   same_password: 'same-password',

@@ -43,7 +43,7 @@ jobs:
             files=$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[] | .filename, (.previous_filename // empty)') &&
             [ -n "$files" ]; then
             grep -qvE '^(site|docs)/' <<<"$files" || app=false
-            grep -qE '^(supabase/|src/core/supabase/|\.github/workflows/ci\.yml$)' <<<"$files" || supabase=false
+            grep -qE '^(supabase/|src/core/supabase/|src/features/auth/repository/|scripts/supabase-local/|\.github/workflows/ci\.yml$)|\.local\.spec\.ts$' <<<"$files" || supabase=false
           fi
           echo "app=$app" | tee -a "$GITHUB_OUTPUT"
           echo "supabase=$supabase" | tee -a "$GITHUB_OUTPUT"
@@ -268,6 +268,9 @@ jobs:
 
       - name: Rejouer les migrations sur une base vide
         run: supabase db reset
+
+      - name: Exiger le mot de passe actuel pour en changer (réglage de l'hébergé)
+        run: scripts/supabase-local/require-current-password.sh
 
       - name: Tests pgTAP
         run: supabase test db

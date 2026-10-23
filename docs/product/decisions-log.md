@@ -2976,6 +2976,18 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
+## 2026-10-23 — « Require current password when updating » activé
+
+Décision de Gaelle du 23 octobre 2026 : le réglage Supabase « Require current password when
+updating » (Authentication › Sign In / Providers › Email) est activé, après le merge de la PR qui
+fait envoyer le mot de passe actuel par l'app. — Raison : une étape d'écran n'est pas une garantie
+serveur ; un voleur avec un téléphone déjà ouvert pouvait changer le mot de passe par un appel
+direct, sans le connaître. — Alternative écartée : le laisser désactivé. — Dans l'app :
+« Changer mon mot de passe » (Compte) envoie le mot de passe actuel saisi à l'écran ; « Mot de
+passe oublié » ne l'envoie jamais (session ouverte par le code reçu par e-mail, que le serveur
+exempte). Un mot de passe actuel refusé par le serveur donne le refus existant « Mot de passe
+incorrect » sous le champ ; aucun texte nouveau.
+
 ## 2026-10-23 — Photos cloud : ménage par la file, délai de grâce de 7 jours
 
 Décision de la session d'analyse du moteur (analyse-moteur-9f) du 23 octobre 2026, sur la relecture
