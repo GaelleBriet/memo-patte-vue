@@ -4,6 +4,7 @@ import type { DbClient } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
 import { currentDeviceId } from '@/core/device/device-identity'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
+import { createVaccinationInjectionCascade } from './vaccination-injection-cascade.repository'
 import { createVaccinationInjectionImport } from './vaccination-injection-import.repository'
 import { createVaccinationInjectionReads } from './vaccination-injection-reads.repository'
 import { createVaccinationInjectionStatements } from './vaccination-injection-statements.repository'
@@ -41,6 +42,7 @@ export function createVaccinationInjectionsRepository(
 
     ...reads,
     ...statements,
+    ...createVaccinationInjectionCascade(deviceId),
     ...createVaccinationInjectionWrites(db, deviceId, reads, statements),
     ...createVaccinationInjectionImport(),
     ...createVaccinationInjectionSync(db, loadClient),

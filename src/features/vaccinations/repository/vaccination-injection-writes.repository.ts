@@ -2,15 +2,13 @@ import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import type { InjectionDates, VaccinationInjection } from '../schema/vaccination-injection.schema'
 import { NOT_DELETED } from './vaccination-injection-row.repository'
 import type { VaccinationInjectionReads } from './vaccination-injection-reads.repository'
-import type { createVaccinationInjectionStatements } from './vaccination-injection-statements.repository'
-
-type Statements = ReturnType<typeof createVaccinationInjectionStatements>
+import type { VaccinationInjectionStatements } from './vaccination-injection-statements.repository'
 
 export function createVaccinationInjectionWrites(
   db: DbClient,
   deviceId: () => string,
   reads: Pick<VaccinationInjectionReads, 'getById'>,
-  statements: Pick<Statements, 'insertStatement' | 'reviveStatement'>,
+  statements: Pick<VaccinationInjectionStatements, 'insertStatement' | 'reviveStatement'>,
 ) {
   return {
     async record(injection: VaccinationInjection): Promise<void> {
