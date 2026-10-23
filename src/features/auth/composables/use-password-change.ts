@@ -6,35 +6,25 @@ import { validatePasswordChange, type PasswordChangeValues } from '../logic/pass
 import { useAuthStore } from '../store/auth.store'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 
-type Field = keyof PasswordChangeValues
-
-type Refusal = { field: Field; value: string; key: string }
-
-const WRONG_PASSWORD_KEY = 'settings.account.delete.identity.wrongPassword'
+import { useFieldRefusal } from './use-field-refusal'
 
 /** « Changer mon mot de passe » (PL-10, V24 ter) : l'actuel, puis le nouveau. */
 export function usePasswordChange() {
   const auth = useAuthStore()
 
   const values = ref<PasswordChangeValues>({ current: '', next: '' })
-  const refusal = ref<Refusal | null>(null)
   const failureKey = ref<string | null>(null)
   const isSaving = ref(false)
 
   const { errors, validate } = useFormValidation(values, validatePasswordChange)
 
-  function fieldError(field: Field): string | null {
-    const refused = refusal.value
-    if (refused?.field === field && refused.value === values.value[field]) return refused.key
-    return errors.value[field] ?? null
-  }
+  const refusal = useFieldRefusal(values, errors)
 
   function refuse(cause: unknown, data: PasswordChangeValues): void {
     const reason = cause instanceof AccountError ? cause.reason : 'unknown'
-    if (reason === 'invalid-credentials') {
-      refusal.value = { field: 'current', value: data.current, key: WRONG_PASSWORD_KEY }
-    } else if (reason === 'same-password' || reason === 'weak-password') {
-      refusal.value = { field: 'next', value: data.next, key: accountErrorKey(reason) }
+    if (refusal.refuseWrongPassword(cause, data.current)) return
+    if (reason === 'same-password' || reason === 'weak-password') {
+      refusal.refuse('next', data.next, accountErrorKey(reason))
     } else {
       failureKey.value = signInErrorKey(cause)
     }
@@ -43,7 +33,7 @@ export function usePasswordChange() {
   async function save(): Promise<boolean> {
     if (isSaving.value) return false
     failureKey.value = null
-    refusal.value = null
+    refusal.clear()
     const result = validate()
     if (!result.success) return false
     isSaving.value = true
@@ -58,5 +48,5 @@ export function usePasswordChange() {
     }
   }
 
-  return { values, fieldError, failureKey, isSaving, save }
+  return { values, fieldError: refusal.fieldError, failureKey, isSaving, save }
 }

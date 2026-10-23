@@ -14,6 +14,7 @@ import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
 import { USAGE_SIGNALS_STORAGE_KEY } from '@/core/usage/usage-signals'
 
 import { AccountError } from '../logic/account-error'
+import { CODE_LENGTH } from '../logic/email-code'
 import {
   authRepository,
   type AuthRepository,
@@ -573,9 +574,9 @@ describe('useAuthStore', () => {
       repository.verifyEmailChangeCode.mockResolvedValue({ userId: USER_ID })
       const store = useAuthStore()
 
-      await expect(store.verifyEmailChangeCode('sophie2@exemple.fr', '123456', true)).resolves.toBe(
-        true,
-      )
+      await expect(
+        store.verifyEmailChangeCode('sophie2@exemple.fr', '1'.repeat(CODE_LENGTH), true),
+      ).resolves.toBe(true)
 
       expect(store.sessionState).toBe('active')
       expect(readPlusAccount()).toEqual({ userId: USER_ID })
@@ -586,9 +587,9 @@ describe('useAuthStore', () => {
       repository.verifyEmailChangeCode.mockResolvedValue(null)
       const store = useAuthStore()
 
-      await expect(store.verifyEmailChangeCode('sophie@exemple.fr', '123456', false)).resolves.toBe(
-        false,
-      )
+      await expect(
+        store.verifyEmailChangeCode('sophie@exemple.fr', '1'.repeat(CODE_LENGTH), false),
+      ).resolves.toBe(false)
       expect(readPlusAccount()).toEqual({ userId: USER_ID })
     })
 
@@ -598,7 +599,7 @@ describe('useAuthStore', () => {
       const store = useAuthStore()
 
       await expect(
-        store.verifyEmailChangeCode('sophie2@exemple.fr', '123456', true),
+        store.verifyEmailChangeCode('sophie2@exemple.fr', '1'.repeat(CODE_LENGTH), true),
       ).rejects.toMatchObject({ reason: 'unknown' })
 
       expect(repository.discardSession).toHaveBeenCalledOnce()
@@ -611,7 +612,7 @@ describe('useAuthStore', () => {
       const store = useAuthStore()
 
       await expect(
-        store.verifyEmailChangeCode('sophie2@exemple.fr', '123456', true),
+        store.verifyEmailChangeCode('sophie2@exemple.fr', '1'.repeat(CODE_LENGTH), true),
       ).rejects.toMatchObject({ reason: 'unknown' })
     })
   })
