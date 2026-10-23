@@ -577,6 +577,7 @@ async function submit(): Promise<void> {
 
 .treatment-form__frequency {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
 }
@@ -598,8 +599,8 @@ async function submit(): Promise<void> {
 }
 
 .treatment-form__unit {
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 1 1 auto;
+  min-width: min-content;
 }
 
 .treatment-form__clear {

@@ -145,9 +145,9 @@ function remove(time: string): void {
 // Le champ natif, invisible, couvre le libellé : le toucher ouvre le sélecteur d'heure du système.
 .treatment-times__input {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  inset: -1.5px;
+  width: calc(100% + 3px);
+  height: calc(100% + 3px);
   opacity: 0;
   cursor: pointer;
 }
