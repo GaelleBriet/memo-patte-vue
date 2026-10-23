@@ -7,6 +7,7 @@ import { writePlusAccount } from '../logic/plus-account-storage'
 import { authRepository } from '../repository/auth.repository'
 import { provideAuthRepository } from '../store/auth.store'
 import PasswordChangeView from '../views/PasswordChangeView.vue'
+import PasswordField from '@/shared/form/PasswordField.vue'
 import { memoryStorage, USER_ID } from './auth-fixture'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
@@ -49,14 +50,24 @@ async function monter() {
   return wrapper
 }
 
-async function remplir(w: VueWrapper, actuel: string, nouveau: string) {
+async function remplir(w: VueWrapper, actuel: string, nouveau: string, confirmation = nouveau) {
   await w.get('#password-change-current').setValue(actuel)
   await w.get('#password-change-next').setValue(nouveau)
+  await w.get('#password-change-confirmation').setValue(confirmation)
+}
+
+function erreurDeConfirmation(w: VueWrapper): string | undefined {
+  const champ = w.get('#password-change-confirmation').element.closest('.form-field')
+  return champ?.querySelector('.form-field__error')?.textContent?.trim()
 }
 
 async function enregistrer(w: VueWrapper) {
   await w.get('.password-change__save').trigger('click')
   await flushPromises()
+}
+
+function champsDeMotDePasse(w: VueWrapper): (string | undefined)[] {
+  return w.findAllComponents(PasswordField).map((champ) => champ.get('input').attributes('id'))
 }
 
 describe('PasswordChangeView (V24 ter)', () => {
@@ -73,6 +84,16 @@ describe('PasswordChangeView (V24 ter)', () => {
     const save = w.get('.password-change__save')
     expect(save.text()).toBe('Enregistrer')
     expect(save.attributes('aria-label')).toBe('Enregistrer le nouveau mot de passe')
+  })
+
+  it('porte le champ partagé avec l’icône œil, pour l’actuel, le nouveau et sa confirmation', async () => {
+    const w = await monter()
+
+    expect(champsDeMotDePasse(w)).toEqual([
+      'password-change-current',
+      'password-change-next',
+      'password-change-confirmation',
+    ])
   })
 
   it('reconnecte avec l’actuel, enregistre le nouveau, puis revient à Compte avec le toast', async () => {
@@ -153,6 +174,63 @@ describe('PasswordChangeView (V24 ter)', () => {
     expect(replace).toHaveBeenCalledWith({ name: 'settings-account' })
   })
 
+  describe('confirmation du nouveau mot de passe', () => {
+    it('demande le nouveau mot de passe une seconde fois, juste après', async () => {
+      const w = await monter()
+
+      const confirmation = w.get('label[for="password-change-confirmation"]')
+      expect(confirmation.text()).toContain('Confirme le nouveau mot de passe')
+      expect(w.get('#password-change-confirmation').attributes('autocomplete')).toBe('new-password')
+      expect(w.get('#password-change-confirmation').attributes('type')).toBe('password')
+    })
+
+    it('laisse « Enregistrer » inactif tant que les deux saisies diffèrent', async () => {
+      const w = await monter()
+      await remplir(w, 'ancien-secret', 'nouveau-secret', 'nouveau-secre')
+
+      expect(w.get('.password-change__save').attributes('disabled')).toBeDefined()
+      await enregistrer(w)
+      expect(reauthenticate).not.toHaveBeenCalled()
+      expect(updatePassword).not.toHaveBeenCalled()
+
+      await w.get('#password-change-confirmation').setValue('nouveau-secret')
+      expect(w.get('.password-change__save').attributes('disabled')).toBeUndefined()
+    })
+
+    it.each([
+      ['un espace de plus', 'nouveau-secret '],
+      ['une casse différente', 'Nouveau-secret'],
+    ])('compte %s comme un écart', async (_, confirmation) => {
+      const w = await monter()
+      await remplir(w, 'ancien-secret', 'nouveau-secret', confirmation)
+
+      expect(w.get('.password-change__save').attributes('disabled')).toBeDefined()
+    })
+
+    it('ne montre l’écart sous la confirmation qu’une fois le champ quitté', async () => {
+      const w = await monter()
+      await remplir(w, 'ancien-secret', 'nouveau-secret', 'autre-secret')
+
+      expect(erreurDeConfirmation(w)).toBeUndefined()
+
+      await w.get('#password-change-confirmation').trigger('blur')
+
+      expect(erreurDeConfirmation(w)).toBe('Les deux mots de passe ne sont pas identiques.')
+      expect(w.get('#password-change-confirmation').attributes('aria-invalid')).toBe('true')
+      expect(w.get('#password-change-next').attributes('aria-invalid')).toBe('false')
+    })
+
+    it('n’envoie au serveur que l’actuel et le nouveau', async () => {
+      const w = await monter()
+      await remplir(w, 'ancien-secret', 'nouveau-secret')
+
+      await enregistrer(w)
+
+      expect(reauthenticate.mock.calls).toEqual([['ancien-secret']])
+      expect(updatePassword.mock.calls).toEqual([['nouveau-secret', 'ancien-secret']])
+    })
+  })
+
   it('se lit en anglais', async () => {
     i18n.global.locale.value = 'en'
     try {
@@ -161,6 +239,12 @@ describe('PasswordChangeView (V24 ter)', () => {
       expect(w.get('label[for="password-change-current"]').text()).toContain('Current password')
       expect(w.get('.password-change__forgot').text()).toBe('Forgot password?')
       expect(w.get('label[for="password-change-next"]').text()).toContain('New password')
+      expect(w.get('label[for="password-change-confirmation"]').text()).toContain(
+        'Confirm the new password',
+      )
+      await remplir(w, 'ancien-secret', 'nouveau-secret', 'autre')
+      await w.get('#password-change-confirmation').trigger('blur')
+      expect(erreurDeConfirmation(w)).toBe('The two passwords don’t match.')
       expect(w.get('.password-change__save').text()).toBe('Save')
       expect(w.get('.password-change__save').attributes('aria-label')).toBe('Save the new password')
     } finally {

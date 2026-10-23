@@ -42,5 +42,6 @@ export default {
     'no-restricted-dynamic-feature-imports': rule,
     'no-restricted-engine-imports': staticAndDynamicRule,
     'no-restricted-interface-imports': staticAndDynamicRule,
+    'no-restricted-test-imports': staticAndDynamicRule,
   },
 } satisfies ESLint.Plugin

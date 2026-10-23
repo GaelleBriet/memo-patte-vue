@@ -8,6 +8,7 @@ import { authRepository, type AuthRepository } from '../repository/auth.reposito
 import { signInWithGoogle } from '../service/google-sign-in.service'
 import { provideAuthRepository } from '../store/auth.store'
 import SignInView from '../views/SignInView.vue'
+import PasswordField from '@/shared/form/PasswordField.vue'
 import { memoryStorage, USER_ID, type MemoryStorage } from './auth-fixture'
 import { GoogleCredentialError } from '@/core/google-sign-in/google-credentials'
 import i18n from '@/core/i18n'
@@ -78,9 +79,21 @@ async function monter(adresse = '/sign-in'): Promise<VueWrapper> {
   return wrapper
 }
 
-async function saisir(wrapper: VueWrapper, email: string, password: string): Promise<void> {
+async function saisir(
+  wrapper: VueWrapper,
+  email: string,
+  password: string,
+  confirmation = password,
+): Promise<void> {
   await wrapper.get('#sign-in-email').setValue(email)
   await wrapper.get('#sign-in-password').setValue(password)
+  const champ = wrapper.find('#sign-in-confirmation')
+  if (champ.exists()) await champ.setValue(confirmation)
+}
+
+function erreurDeConfirmation(wrapper: VueWrapper): string | undefined {
+  const champ = wrapper.get('#sign-in-confirmation').element.closest('.form-field')
+  return champ?.querySelector('.form-field__error')?.textContent?.trim()
 }
 
 async function envoyer(wrapper: VueWrapper): Promise<void> {
@@ -105,6 +118,10 @@ afterEach(() => {
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
+
+function champsDeMotDePasse(w: VueWrapper): (string | undefined)[] {
+  return w.findAllComponents(PasswordField).map((champ) => champ.get('input').attributes('id'))
+}
 
 describe('SignInView', () => {
   it('explique à quoi sert un compte et propose la connexion', async () => {
@@ -163,6 +180,22 @@ describe('SignInView', () => {
     expect(wrapper.get('.sign-in__toggle').text()).toBe('Pas encore de compte ? Créer un compte')
   })
 
+  it.each([
+    ['à la connexion', '/sign-in'],
+    ['à la création du compte', `${ACHAT}&mode=sign-up`],
+  ])('porte le champ partagé avec l’icône œil %s', async (_, adresse) => {
+    const wrapper = await monter(adresse)
+
+    expect(champsDeMotDePasse(wrapper)[0]).toBe('sign-in-password')
+  })
+
+  it('porte aussi le champ partagé pour la confirmation, à la création du compte', async () => {
+    expect(champsDeMotDePasse(await monter(`${ACHAT}&mode=sign-up`))).toEqual([
+      'sign-in-password',
+      'sign-in-confirmation',
+    ])
+  })
+
   it('étiquette les champs et adapte le clavier', async () => {
     const wrapper = await monter()
     const email = wrapper.get('#sign-in-email')
@@ -215,6 +248,132 @@ describe('SignInView', () => {
   })
 
   describe('création du compte (V25)', () => {
+    describe('confirmation du mot de passe', () => {
+      it('demande le mot de passe une seconde fois, juste après', async () => {
+        const wrapper = await monter(`${ACHAT}&mode=sign-up`)
+
+        expect(wrapper.get('label[for="sign-in-confirmation"]').text()).toContain(
+          'Confirme le mot de passe',
+        )
+        expect(wrapper.get('#sign-in-confirmation').attributes('autocomplete')).toBe('new-password')
+      })
+
+      it('laisse « Recevoir le code » inactif tant que les deux saisies diffèrent', async () => {
+        const wrapper = await monter(`${ACHAT}&mode=sign-up`)
+        await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse', 'motdepasse ')
+
+        expect(wrapper.get('.sign-in__submit').attributes('disabled')).toBeDefined()
+
+        await wrapper.get('#sign-in-confirmation').setValue('motdepasse')
+        expect(wrapper.get('.sign-in__submit').attributes('disabled')).toBeUndefined()
+      })
+
+      it('montre l’écart sous la confirmation une fois le champ quitté', async () => {
+        const wrapper = await monter(`${ACHAT}&mode=sign-up`)
+        await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse', 'Motdepasse')
+
+        expect(erreurDeConfirmation(wrapper)).toBeUndefined()
+        await wrapper.get('#sign-in-confirmation').trigger('blur')
+
+        expect(erreurDeConfirmation(wrapper)).toBe('Les deux mots de passe ne sont pas identiques.')
+      })
+
+      it('refuse l’envoi par le clavier et focalise la confirmation', async () => {
+        const wrapper = await monter(`${ACHAT}&mode=sign-up`)
+        await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse', 'motdepass')
+
+        await envoyer(wrapper)
+
+        expect(repository.signUp).not.toHaveBeenCalled()
+        expect(erreurDeConfirmation(wrapper)).toBe('Les deux mots de passe ne sont pas identiques.')
+        expect(document.activeElement?.id).toBe('sign-in-confirmation')
+      })
+
+      it('n’envoie que l’adresse et le mot de passe', async () => {
+        repository.signUp.mockResolvedValue({ kind: 'confirmation-pending' })
+        const wrapper = await monter(`${ACHAT}&mode=sign-up`)
+        await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse')
+
+        await envoyer(wrapper)
+
+        expect(repository.signUp.mock.calls).toEqual([
+          ['sophie.martin@example.com', 'motdepasse', 'fr'],
+        ])
+      })
+
+      it('remet l’œil du mot de passe en position masquée à chaque bascule', async () => {
+        const wrapper = await monter(ACHAT)
+        await wrapper.get('#sign-in-password').setValue('motdepasse')
+        await wrapper.get('.password-field__toggle').trigger('click')
+        expect(wrapper.get('#sign-in-password').attributes('type')).toBe('text')
+
+        await basculer(wrapper)
+
+        expect(wrapper.get('#sign-in-password').attributes('type')).toBe('password')
+        expect((wrapper.get('#sign-in-password').element as HTMLInputElement).value).toBe(
+          'motdepasse',
+        )
+      })
+
+      it('efface la confirmation quand on bascule de formulaire', async () => {
+        const wrapper = await monter(`${ACHAT}&mode=sign-up`)
+        await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse')
+
+        await basculer(wrapper)
+        await basculer(wrapper)
+
+        expect((wrapper.get('#sign-in-confirmation').element as HTMLInputElement).value).toBe('')
+      })
+
+      it('ne remontre pas l’écart dès la première frappe après une bascule', async () => {
+        const wrapper = await monter(`${ACHAT}&mode=sign-up`)
+        await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse', 'autre')
+        await wrapper.get('#sign-in-confirmation').trigger('blur')
+        expect(erreurDeConfirmation(wrapper)).toBe('Les deux mots de passe ne sont pas identiques.')
+
+        await basculer(wrapper)
+        await basculer(wrapper)
+        await wrapper.get('#sign-in-confirmation').setValue('m')
+
+        expect(erreurDeConfirmation(wrapper)).toBeUndefined()
+      })
+
+      it('ne remontre pas l’écart dès la première frappe après « Changer d’adresse »', async () => {
+        repository.signUp.mockResolvedValue({ kind: 'confirmation-pending' })
+        const wrapper = await monter(`${ACHAT}&mode=sign-up`)
+        await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse')
+        await wrapper.get('#sign-in-confirmation').trigger('blur')
+        await envoyer(wrapper)
+        await wrapper.get('.email-code__change').trigger('click')
+        await flushPromises()
+
+        await wrapper.get('#sign-in-password').setValue('motdepasse')
+        await wrapper.get('#sign-in-confirmation').setValue('m')
+
+        expect(wrapper.get('h1').text()).toBe('Créer un compte')
+        expect(erreurDeConfirmation(wrapper)).toBeUndefined()
+      })
+
+      it('ne demande rien de plus à la connexion', async () => {
+        const wrapper = await monter(ACHAT)
+
+        expect(wrapper.find('#sign-in-confirmation').exists()).toBe(false)
+        expect(wrapper.text()).not.toContain('Confirme le mot de passe')
+      })
+
+      it('se lit en anglais aussi', async () => {
+        i18n.global.locale.value = 'en'
+        try {
+          const wrapper = await monter(`${ACHAT}&mode=sign-up`)
+          expect(wrapper.get('label[for="sign-in-confirmation"]').text()).toContain(
+            'Confirm the password',
+          )
+        } finally {
+          i18n.global.locale.value = 'fr'
+        }
+      })
+    })
+
     it('donne la longueur minimale du mot de passe, à l’inscription seulement', async () => {
       const wrapper = await monter(ACHAT)
 

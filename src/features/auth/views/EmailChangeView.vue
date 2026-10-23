@@ -7,6 +7,7 @@ import { useAccountIdentity } from '../composables/use-account-identity'
 import { CODE_LENGTH } from '../logic/email-code'
 import { useEmailChange } from '../composables/use-email-change'
 import FormField from '@/shared/form/FormField.vue'
+import PasswordField from '@/shared/form/PasswordField.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { returnTo } from '@/shared/utils/return-to'
 import { passwordResetRoute } from '@/shared/utils/sign-in-route'
@@ -105,28 +106,14 @@ async function confirm(): Promise<void> {
       </p>
 
       <div class="email-change__current">
-        <FormField
+        <PasswordField
+          v-model="values.current"
           :label="t('settings.account.password.current')"
           control-id="email-change-current"
+          autocomplete="current-password"
           required
           :error="currentError ? t(currentError) : null"
-        >
-          <template #default="{ describedby, invalid }">
-            <v-text-field
-              id="email-change-current"
-              v-model="values.current"
-              class="form-field__input"
-              type="password"
-              autocomplete="current-password"
-              variant="outlined"
-              hide-details
-              aria-required="true"
-              :aria-describedby="describedby"
-              :aria-invalid="invalid"
-              :error="invalid"
-            />
-          </template>
-        </FormField>
+        />
         <v-btn
           class="email-change__forgot"
           variant="text"
