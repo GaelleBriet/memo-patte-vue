@@ -292,4 +292,10 @@ describe('isReadableCarnet', () => {
   it.each(UNREADABLE)('refuse un carnet avec %s', (_, treatment) => {
     expect(isReadableCarnet(inputOf(treatment, TODAY))).toBe(false)
   })
+
+  it('refuse un carnet démesuré', () => {
+    const times = Array.from({ length: 24 }, (_, hour) => `${String(hour).padStart(2, '0')}:00`)
+    const old = period({ startsOn: '1900-01-01', firstDueOn: '1900-01-01', times })
+    expect(isReadableCarnet(inputOf({ periods: [old], doses: [] }, TODAY))).toBe(false)
+  })
 })
