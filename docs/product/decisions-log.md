@@ -3566,8 +3566,8 @@ Sophie par la sienne et prend le compte (sauvegarde cloud, photos) ; avec deux c
 la boîte mail de Sophie. L'étape demandée à l'écran n'est pas une garantie : seul le réglage côté
 serveur l'impose, même à un appel direct de l'API. — Alternative écartée : un code à la nouvelle adresse
 seulement (décision du 2026-09-30, « bloque qui a perdu l'ancienne ») : qui a perdu son ancienne
-adresse passe par le contact (suppression par e-mail ou mode admin), pas par une faille. À faire au
-ticket du changement d'adresse : l'écran attend deux codes (parcours livré par le ticket #1093).
+adresse passe par le contact (suppression par e-mail ou mode admin), pas par une faille. L'écran
+attend les deux codes (ticket #1093).
 
 2026-10-22 — **Mode admin de la suppression de compte : refus journalisés (IP et heure, jamais le
 secret) et secret d'au moins 32 caractères** (#1110). Décision de Gaelle du 22 octobre (« 1110 oui »).

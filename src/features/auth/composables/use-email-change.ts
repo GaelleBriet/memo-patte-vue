@@ -6,15 +6,10 @@ import { validateEmailChange, type EmailChangeValues } from '../logic/email-chan
 import { useAuthStore } from '../store/auth.store'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 
+import { useFieldRefusal } from './use-field-refusal'
 import { useEmailCode, type ResendResult } from './use-email-code'
 
 export type EmailChangeStep = 'address' | 'current' | 'new'
-
-type Field = keyof EmailChangeValues
-
-type Refusal = { field: Field; value: string; key: string }
-
-const WRONG_PASSWORD_KEY = 'settings.account.delete.identity.wrongPassword'
 
 /** « Changer mon adresse e-mail » (PL-10, V24 quater à sexies) : le mot de passe, la nouvelle adresse, puis le code de chaque adresse. */
 export function useEmailChange({
@@ -39,7 +34,6 @@ export function useEmailChange({
   })
 
   const values = ref<EmailChangeValues>({ current: '', email: '' })
-  const refusal = ref<Refusal | null>(null)
   const failureKey = ref<string | null>(null)
   const isSending = ref(false)
 
@@ -47,18 +41,13 @@ export function useEmailChange({
     validateEmailChange(current, accountEmail()),
   )
 
-  function fieldError(field: Field): string | null {
-    const refused = refusal.value
-    if (refused?.field === field && refused.value === values.value[field]) return refused.key
-    return errors.value[field] ?? null
-  }
+  const refusal = useFieldRefusal(values, errors)
 
   function refuse(cause: unknown, data: EmailChangeValues): void {
     const reason = cause instanceof AccountError ? cause.reason : 'unknown'
-    if (reason === 'invalid-credentials') {
-      refusal.value = { field: 'current', value: data.current, key: WRONG_PASSWORD_KEY }
-    } else if (reason === 'email-taken' || reason === 'email-rate-limited') {
-      refusal.value = { field: 'email', value: values.value.email, key: accountErrorKey(reason) }
+    if (refusal.refuseWrongPassword(cause, data.current)) return
+    if (reason === 'email-taken' || reason === 'email-rate-limited') {
+      refusal.refuse('email', values.value.email, accountErrorKey(reason))
     } else {
       failureKey.value = signInErrorKey(cause)
     }
@@ -67,7 +56,7 @@ export function useEmailChange({
   async function sendCode(): Promise<boolean> {
     if (isSending.value) return false
     failureKey.value = null
-    refusal.value = null
+    refusal.clear()
     const result = validate()
     if (!result.success) return false
     isSending.value = true
@@ -114,7 +103,7 @@ export function useEmailChange({
     emailCode.close()
     step.value = 'address'
     values.value = { current: '', email: newAddress }
-    refusal.value = null
+    refusal.clear()
     failureKey.value = null
     reset()
   }
@@ -123,7 +112,7 @@ export function useEmailChange({
     emailCode,
     step,
     values,
-    fieldError,
+    fieldError: refusal.fieldError,
     failureKey,
     isSending,
     sendCode,
