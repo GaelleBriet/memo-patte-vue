@@ -1,3 +1,5 @@
+import { readonly, shallowRef, type Ref } from 'vue'
+
 import { isPhotoFileName } from '@/core/photos/photo-storage'
 import { errorSummary } from '@/shared/utils/error-summary'
 import { isJpeg, MAX_CLOUD_PHOTO_BYTES } from './cloud-photo'
@@ -20,6 +22,8 @@ export interface PhotoRestore {
    * celle en cours, qui s'arrête à la photo suivante. Ne lève pas.
    */
   restoreMissing(userId: string): Promise<void>
+  /** Vrai de la demande d'une passe jusqu'à la fin de la dernière, réussie ou non. */
+  isRunning: Readonly<Ref<boolean>>
 }
 
 export function createPhotoRestore({
@@ -30,6 +34,7 @@ export function createPhotoRestore({
   onPhotoRestored,
 }: PhotoRestoreDependencies): PhotoRestore {
   let running: { userId: string; done: Promise<void> } | null = null
+  const isRunning = shallowRef(false)
 
   async function restoreOne(userId: string, fileName: string): Promise<void> {
     if (await files.exists(fileName)) return
@@ -75,10 +80,15 @@ export function createPhotoRestore({
           )
         })
         .finally(() => {
-          if (running?.done === done) running = null
+          if (running?.done === done) {
+            running = null
+            isRunning.value = false
+          }
         })
       running = { userId, done }
+      isRunning.value = true
       return done
     },
+    isRunning: readonly(isRunning),
   }
 }
