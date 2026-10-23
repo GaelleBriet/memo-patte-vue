@@ -5,7 +5,7 @@ import { fieldErrorsOf, type FieldErrorKeys } from '@/shared/form/field-errors'
 
 export const DUPLICATE_TIME_ERROR_KEY = 'treatments.form.errors.timesDuplicate'
 
-export type TreatmentFormErrorField = keyof typeof ERROR_KEYS
+type TreatmentFormErrorField = keyof typeof ERROR_KEYS
 export type TreatmentFormErrors = Partial<Record<TreatmentFormErrorField, string>>
 
 const FIELD_OF_PATH: Record<string, TreatmentFormErrorField> = {

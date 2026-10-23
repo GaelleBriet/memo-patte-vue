@@ -81,12 +81,14 @@ publicité.
   relecture du lot C, validé en bloc)
 - **PL-9** Mot de passe oublié : un code à 8 chiffres envoyé par e-mail, saisi dans l'app, puis un
   nouveau mot de passe (détail à vérifier dans la doc de Supabase) ; « Mot de passe oublié ? » depuis la
-  connexion et depuis « Changer mon mot de passe ». (G4 ; relecture du lot C, QC-9)
+  connexion et depuis « Changer mon mot de passe ». À l'étape du code, le retour d'Android revient à la
+  saisie de l'adresse, comme la flèche, adresse gardée et mots de passe saisis effacés (décision du 23 octobre, #1106). (G4 ; relecture du lot C, QC-9)
 - **PL-10** Comptes par e-mail, dans Paramètres › Compte : « Changer mon mot de passe » (l'ancien, puis
   le nouveau) et « Changer mon adresse e-mail » (le mot de passe actuel d'abord, puis la nouvelle
   adresse se confirme par un code à 8 chiffres, envoyé à elle seule ; une adresse déjà utilisée par un
   autre compte est refusée avec un message clair ; réglage Supabase à vérifier au ticket, spec Q3 ;
-  **corrigé le 22 octobre : deux codes, l'un à l'adresse actuelle puis l'autre à la nouvelle, voir Q3**). Avec
+  **corrigé le 22 octobre : deux codes, l'un à l'adresse actuelle puis l'autre à la nouvelle, voir Q3** ;
+  à l'étape d'un code, le retour d'Android revient à la saisie, comme la flèche (adresse gardée, mots de passe saisis effacés ; décision du 23 octobre, #1106). Avec
   Google, ces gestes n'apparaissent pas : c'est Google qui gère, et la rubrique dit « Compte Google »
   avec l'adresse (jamais « Connecté avec Google »). Un compte qui a un mot de passe montre toujours cette
   version par e-mail (V24), même ouvert par Google ce jour-là ; la version Google (V24 bis) est pour un

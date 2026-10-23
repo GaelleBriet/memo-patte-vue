@@ -11,7 +11,7 @@ export type EventCatalog = { [event: string]: Record<string, string | number | b
 /** Une valeur `string` ouverte devient `never` : seules les unions de littéraux passent, jamais un nom saisi. */
 type ClosedProperties<P> = { [K in keyof P]: string extends P[K] ? never : P[K] }
 
-export type TrackArguments<E extends EventCatalog, K extends keyof E> = E[K] extends null
+type TrackArguments<E extends EventCatalog, K extends keyof E> = E[K] extends null
   ? []
   : [properties: ClosedProperties<E[K]>]
 

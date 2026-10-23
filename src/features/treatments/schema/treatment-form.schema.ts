@@ -60,7 +60,7 @@ export const treatmentCalendarSchema = z.object({
 export type TreatmentCalendarInput = z.input<typeof treatmentCalendarSchema>
 
 /** Une échéance passée renseignée dans l'encart de création (TR-3). */
-export const pastDoseSchema = z.object({
+const pastDoseSchema = z.object({
   dueOn: calendarDaySchema,
   dueTime: clockTimeSchema.nullable(),
   status: z.enum(['given', 'missed']),
@@ -80,7 +80,7 @@ export const treatmentCreationSchema = z
   .refine(endsAfterFirstDose, END_AFTER_FIRST_DOSE)
 
 /** Échéances tombées d'une période sans prise dont le rythme change : à renseigner, ou jamais dues. */
-export const pastDuesChoiceSchema = z.enum(['keep', 'drop'])
+const pastDuesChoiceSchema = z.enum(['keep', 'drop'])
 export type PastDuesChoice = z.output<typeof pastDuesChoiceSchema>
 
 /** « Modifier » : `nextDoseOn` vaut `null` quand « Prochaine dose » garde la date proposée. */

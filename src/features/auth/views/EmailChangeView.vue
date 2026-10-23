@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
+import { useCodeStepBack } from '../composables/use-code-step-back'
 import { useAccountIdentity } from '../composables/use-account-identity'
 import { CODE_LENGTH } from '../logic/email-code'
 import { useEmailChange } from '../composables/use-email-change'
@@ -28,6 +29,8 @@ const isCodeStep = computed(() => change.step.value !== 'address')
 const isCurrentStep = computed(() => change.step.value === 'current')
 const currentError = computed(() => fieldError('current'))
 const emailError = computed(() => fieldError('email'))
+
+useCodeStepBack(isCodeStep, change.backToAddress)
 
 function leave(): void {
   returnTo(router, { name: ACCOUNT_ROUTE })

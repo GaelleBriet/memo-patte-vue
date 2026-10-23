@@ -17,5 +17,3 @@ export function createSyncPushRepository(loadClient: () => Promise<SupabaseClien
     },
   }
 }
-
-export type SyncPushRepository = ReturnType<typeof createSyncPushRepository>

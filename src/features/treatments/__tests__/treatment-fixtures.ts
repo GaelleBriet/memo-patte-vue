@@ -4,7 +4,7 @@ import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '../schema/treatment-period.schema'
 import { legacyFactsOf } from '@/shared/domain/dose-calendar'
 
-export const AT = '2026-09-01T08:00:00.000Z'
+const AT = '2026-09-01T08:00:00.000Z'
 
 export function period(overrides: Partial<TreatmentPeriodRecord> = {}): TreatmentPeriodRecord {
   const record = {

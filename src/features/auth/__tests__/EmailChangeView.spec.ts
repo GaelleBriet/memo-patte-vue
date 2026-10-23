@@ -15,6 +15,25 @@ import vuetify from '@/core/theme/vuetify'
 import router from '@/router'
 import { toastMessage } from '@/shared/utils/toast'
 
+const retours = vi.hoisted(() => [] as Array<() => void>)
+
+vi.mock('@/core/app-lifecycle/back-button', () => ({
+  onBackButton: (handler: () => void) => {
+    retours.push(handler)
+    return () => {
+      const index = retours.indexOf(handler)
+      if (index !== -1) retours.splice(index, 1)
+    }
+  },
+}))
+
+async function retourAndroid(): Promise<boolean> {
+  const handler = retours.at(-1)
+  handler?.()
+  await flushPromises()
+  return handler !== undefined
+}
+
 const code = (digit: string) => digit.repeat(CODE_LENGTH)
 const NOUVELLE = 'sophie2@exemple.fr'
 const ACTUELLE = 'sophie@exemple.fr'
@@ -28,6 +47,7 @@ let wrapper: VueWrapper | null = null
 provideAuthRepository(() => authRepository)
 
 beforeEach(async () => {
+  retours.length = 0
   vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 22, 18, 0) })
   vi.stubGlobal('localStorage', memoryStorage())
   setActivePinia(createPinia())
@@ -173,6 +193,20 @@ describe('EmailChangeView', () => {
       expect(reauthenticate).not.toHaveBeenCalled()
       expect(requestEmailChange).not.toHaveBeenCalled()
     })
+
+    it('revient à l’étape 1 par le retour d’Android, adresse gardée, mot de passe vidé, sans requête', async () => {
+      const w = await codeEnvoye()
+      requestEmailChange.mockClear()
+      verifyEmailChangeCode.mockClear()
+
+      expect(await retourAndroid()).toBe(true)
+
+      expect((w.get('#email-change-email').element as HTMLInputElement).value).toBe(NOUVELLE)
+      expect((w.get('#email-change-current').element as HTMLInputElement).value).toBe('')
+      expect(requestEmailChange).not.toHaveBeenCalled()
+      expect(verifyEmailChangeCode).not.toHaveBeenCalled()
+      expect(replace).not.toHaveBeenCalled()
+    })
   })
 
   describe('code de la nouvelle adresse (V24 quinquies, seconde fois)', () => {
@@ -237,6 +271,26 @@ describe('EmailChangeView', () => {
       expect((w.get('#email-change-email').element as HTMLInputElement).value).toBe(NOUVELLE)
       expect(replace).not.toHaveBeenCalled()
     })
+
+    it('revient à l’étape 1 par le retour d’Android, adresse gardée, mot de passe vidé, sans requête', async () => {
+      const w = await secondEtape()
+      requestEmailChange.mockClear()
+      verifyEmailChangeCode.mockClear()
+
+      expect(await retourAndroid()).toBe(true)
+
+      expect((w.get('#email-change-email').element as HTMLInputElement).value).toBe(NOUVELLE)
+      expect((w.get('#email-change-current').element as HTMLInputElement).value).toBe('')
+      expect(requestEmailChange).not.toHaveBeenCalled()
+      expect(verifyEmailChangeCode).not.toHaveBeenCalled()
+      expect(replace).not.toHaveBeenCalled()
+    })
+  })
+
+  it('laisse le retour d’Android quitter l’écran depuis l’étape 1', async () => {
+    await monter()
+
+    expect(await retourAndroid()).toBe(false)
   })
 
   it('revient à Compte par la flèche depuis l’étape 1', async () => {

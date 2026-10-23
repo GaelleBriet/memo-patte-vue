@@ -61,7 +61,7 @@ export const DEFAULT_CARNET_REMINDER_SETTINGS: CarnetReminderSettings = {
   vaccineReminderTime: DEFAULT_REMINDER_TIME,
   remindBeforeDue: true,
 }
-export const DAYS_BEFORE_VACCINATION = 14
+const DAYS_BEFORE_VACCINATION = 14
 
 const WITH_DONE_ACTION: ReadonlySet<DueReminderMoment> = new Set(['due', 'overdue'])
 

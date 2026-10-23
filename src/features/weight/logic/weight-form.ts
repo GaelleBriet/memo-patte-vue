@@ -29,8 +29,8 @@ const ERROR_KEYS = {
   },
 } as const satisfies Record<string, FieldErrorKeys>
 
-export type WeightFormErrorField = keyof typeof ERROR_KEYS
-export type WeightFormErrors = Partial<Record<WeightFormErrorField, string>>
+type WeightFormErrorField = keyof typeof ERROR_KEYS
+type WeightFormErrors = Partial<Record<WeightFormErrorField, string>>
 
 export type WeightFormResult =
   | { success: true; data: z.output<typeof weightEntryInputSchema> }

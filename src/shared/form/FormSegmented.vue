@@ -1,5 +1,5 @@
 <script lang="ts">
-export interface SegmentedOption<T extends string = string> {
+interface SegmentedOption<T extends string = string> {
   value: T
   label: string
   /** Seconde ligne sous le libellé ; l'option cochée ne porte alors plus de coche. */

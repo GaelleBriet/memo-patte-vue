@@ -3,7 +3,7 @@ import { createAnalytics, type AnalyticsStorage } from './analytics'
 export type { ConsentStatus } from './analytics'
 
 /** Événements de l'app, noms et valeurs fermés. */
-export type AppAnalyticsEvents = {
+type AppAnalyticsEvents = {
   $pageview: null
   animal_created: { species: 'dog' | 'cat' }
   vaccination_created: { species: 'dog' | 'cat' }

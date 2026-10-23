@@ -10,7 +10,7 @@ export { FREQUENCY_UNITS }
 export const treatmentTypeSchema = z.enum(TREATMENT_TYPES)
 export type TreatmentType = z.output<typeof treatmentTypeSchema>
 
-export const frequencyUnitSchema = z.enum(FREQUENCY_UNITS)
+const frequencyUnitSchema = z.enum(FREQUENCY_UNITS)
 export type FrequencyUnit = z.output<typeof frequencyUnitSchema>
 
 export const treatmentFrequencySchema = z.object({

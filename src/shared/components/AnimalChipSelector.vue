@@ -11,7 +11,7 @@ export interface AnimalChipItem {
  * `switch` : la désélection est impossible, mais l'écran reste seul à choisir
  * l'animal actif — le composant n'en sélectionne jamais un à sa place.
  */
-export type AnimalChipSelectorMode = 'filter' | 'switch'
+type AnimalChipSelectorMode = 'filter' | 'switch'
 </script>
 
 <script setup lang="ts">
