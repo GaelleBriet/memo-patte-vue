@@ -29,10 +29,7 @@ export type AuthRepository = {
   sendPasswordResetCode(email: string): Promise<void>
   /** Ouvre une session dans Supabase : `updatePassword` termine le parcours, `discardSession` l'abandonne. */
   verifyPasswordResetCode(email: string, code: string): Promise<AuthSession>
-  /**
-   * Vise le compte de la session de l'appareil. `currentPassword`, exigé par Supabase hors session
-   * de récupération, n'est jamais envoyé après « Mot de passe oublié ».
-   */
+  /** Vise le compte de la session de l'appareil. `currentPassword` : joint au corps seulement s'il est fourni. */
   updatePassword(password: string, currentPassword?: string): Promise<AuthSession>
   /** Envoie un code à l'adresse actuelle et un à la nouvelle (double confirmation de Supabase). */
   requestEmailChange(email: string): Promise<void>
