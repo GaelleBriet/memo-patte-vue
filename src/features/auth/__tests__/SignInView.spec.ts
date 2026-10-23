@@ -956,7 +956,7 @@ describe('SignInView', () => {
       expect(await retourAndroid()).toBe(false)
     })
 
-    it('ne quitte pas l’écran si la réponse du serveur arrive après un retour en arrière', async () => {
+    it('quitte l’écran, connecté, si le serveur accepte le code après un retour en arrière', async () => {
       let accepter: (value: { userId: string }) => void = () => {}
       repository.verifySignUpCode.mockReturnValue(new Promise((resolve) => (accepter = resolve)))
       const wrapper = await inscrire()
@@ -967,8 +967,7 @@ describe('SignInView', () => {
       accepter({ userId: USER_ID })
       await flushPromises()
 
-      expect(replace).not.toHaveBeenCalled()
-      expect(wrapper.find('.email-code').exists()).toBe(false)
+      expect(replace).toHaveBeenCalledWith({ name: 'plus-account' })
     })
 
     it('ouvre le compte avec le bon code puis ramène au parcours d’origine', async () => {

@@ -3678,3 +3678,11 @@ envoyée au serveur.
 2026-10-23 — **Icône œil sur chaque champ de mot de passe** (spec PL-23). Décision de Gaelle du 23
 octobre, avec les noms accessibles « Afficher le mot de passe » / « Masquer le mot de passe ». Mise en
 œuvre (#1164) : masqué par défaut, état jamais mémorisé, zone tactile de 48 px.
+
+2026-10-23 — **Retour d'Android pendant la vérification d'un code** (#1183). Décision de Gaelle du 23
+octobre (« Fermer cette session ») : dans « Mot de passe oublié », si la personne revient en arrière
+pendant que le code se vérifie et que le serveur l'accepte, la session qu'il a ouverte est fermée sur ce
+téléphone seul (jamais sur les autres appareils du compte ; elle est gardée si c'est le compte déjà
+présent sur le téléphone). Une réussite tardive à la connexion ou à la création de compte vaut réussite :
+l'écran part, la personne est connectée. Dans « Changer mon adresse e-mail », la réponse tardive est
+ignorée et l'écran revient à la saisie. — Alternative écartée : ignorer le retour pendant la vérification.

@@ -126,6 +126,7 @@ describe('usePasswordReset', () => {
 
       expect(await attente).toBe(false)
       expect(changePassword).not.toHaveBeenCalled()
+      expect(abandonPasswordReset).toHaveBeenCalledOnce()
       expect(reset.step.value).toBe('address')
     })
 

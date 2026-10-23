@@ -23,10 +23,20 @@ export type EmailCodeOperations = {
   verify(email: string, code: string): Promise<void>
 }
 
+/** `accept` : une réussite tardive vaut réussite ; `abandon` : elle est ignorée, après `onAbandoned`. */
+export type LateSuccess = 'accept' | 'abandon'
+
 export function useEmailCode({
   now = Date.now,
   operations,
-}: { now?: () => number; operations?: EmailCodeOperations } = {}) {
+  lateSuccess = 'accept',
+  onAbandoned,
+}: {
+  now?: () => number
+  operations?: EmailCodeOperations
+  lateSuccess?: LateSuccess
+  onAbandoned?: () => void
+} = {}) {
   const auth = useAuthStore()
   const { resend: resendCode, verify: verifyCode } = operations ?? {
     resend: (email: string) => auth.resendSignUpCode(email),
@@ -73,7 +83,9 @@ export function useEmailCode({
     const verified = step
     try {
       await verifyCode(email.value, code.value)
-      return verified === step
+      if (verified === step || lateSuccess === 'accept') return true
+      onAbandoned?.()
+      return false
     } catch (cause) {
       if (verified !== step) return false
       errorKey.value =
@@ -141,13 +153,16 @@ export function useEmailCode({
       }
       isResending.value = true
       noticeKey.value = null
+      const resent = step
       try {
         await resendCode(email.value)
+        if (resent !== step) return 'failed'
         sentAt = now()
         code.value = ''
         errorKey.value = null
         return 'sent'
       } catch (cause) {
+        if (resent !== step) return 'failed'
         if (cause instanceof AccountError && cause.reason === 'email-rate-limited') {
           noticeKey.value = 'auth.code.wait'
           return 'wait'
