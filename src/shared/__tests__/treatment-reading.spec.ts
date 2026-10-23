@@ -4,6 +4,7 @@ import { legacyFactsOf, treatmentView } from '../domain/dose-calendar'
 import {
   countedLines,
   historyEntries,
+  isReadableCarnet,
   readCarnet,
   readTreatment,
   treatmentReading,
@@ -280,5 +281,15 @@ describe('readCarnet', () => {
     const times = Array.from({ length: 24 }, (_, hour) => `${String(hour).padStart(2, '0')}:00`)
     const old = period({ startsOn: '1900-01-01', firstDueOn: '1900-01-01', times })
     expect(readCarnet(inputOf({ periods: [old], doses: [] }, TODAY))).toBeNull()
+  })
+})
+
+describe('isReadableCarnet', () => {
+  it('dit si le carnet se lit, sans en calculer la vue', () => {
+    expect(isReadableCarnet(inputOf({ periods: [period()], doses: [dose()] }, TODAY))).toBe(true)
+  })
+
+  it.each(UNREADABLE)('refuse un carnet avec %s', (_, treatment) => {
+    expect(isReadableCarnet(inputOf(treatment, TODAY))).toBe(false)
   })
 })
