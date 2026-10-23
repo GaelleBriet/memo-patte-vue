@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { fakeFetch, jsonResponse } from '../../_shared/__tests__/fake-fetch'
+import { fakeFetch, jsonResponse } from './fake-fetch'
 import { revenuecatSubscriberReader } from '../revenuecat-subscriber'
 
 const SOPHIE = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b'
