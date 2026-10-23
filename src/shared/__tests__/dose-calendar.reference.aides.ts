@@ -64,7 +64,7 @@ export function line(
     dueTime,
     status,
     targetOn,
-    updatedAt: `2026-01-01T01:${String(Math.floor(stamp / 60)).padStart(2, '0')}:${String(stamp % 60).padStart(2, '0')}.000Z`,
+    decidedAt: `2026-01-01T01:${String(Math.floor(stamp / 60)).padStart(2, '0')}:${String(stamp % 60).padStart(2, '0')}.000Z`,
   }
 }
 

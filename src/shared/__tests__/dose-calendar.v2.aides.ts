@@ -65,9 +65,9 @@ export function line(
   dueTime: string | null = null,
   targetOn: string | null = null,
 ): Line {
-  const updatedAt = at()
+  const decidedAt = at()
   const givenOn = status === 'given' || status === 'extra' ? dueOn : null
-  return { id: `l${stamp}`, settingId, dueOn, dueTime, status, givenOn, targetOn, updatedAt }
+  return { id: `l${stamp}`, settingId, dueOn, dueTime, status, givenOn, targetOn, decidedAt }
 }
 
 export function view(settings: Setting[], lines: Line[], today: string) {

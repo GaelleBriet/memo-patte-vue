@@ -6,7 +6,7 @@ export const isTaken = (line: ReferenceLine) => line.status === 'given' || line.
 /** Une ligne posée sur une échéance : une prise, ou « pas à donner ». */
 export const isNote = (line: ReferenceLine) => isTaken(line) || line.status === 'not-due'
 export const isMoreRecent = (a: ReferenceLine, b: ReferenceLine) =>
-  a.updatedAt > b.updatedAt || (a.updatedAt === b.updatedAt && a.id > b.id)
+  a.decidedAt > b.decidedAt || (a.decidedAt === b.decidedAt && a.id > b.id)
 
 // R1, R8 : un arrêt clôt un épisode ; la reprise en ouvre un autre.
 export function episodesOf(settings: readonly ReferenceSetting[]): ReferenceSetting[][] {
@@ -81,7 +81,7 @@ export function touchedJourneys(
       line.status === 'postponed' &&
       rewrittenAt !== undefined &&
       rewrittenAt > written.createdAt &&
-      rewrittenAt > line.updatedAt
+      rewrittenAt > line.decidedAt
     if (!unseen) touch(line.dueOn, line, written)
     const chosen = line.status === 'postponed' ? chosenOf(line) : undefined
     if (chosen !== undefined) touch(line.targetOn!, line, chosen)

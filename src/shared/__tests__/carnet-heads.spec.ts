@@ -48,6 +48,7 @@ function dose(
     dueRank: null,
     createdAt: AT,
     updatedAt: AT,
+    decidedAt: overrides.updatedAt ?? AT,
     createdByDevice: 'appareil-test',
     updatedByDevice: 'appareil-test',
     ...overrides,

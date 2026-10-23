@@ -67,7 +67,8 @@ export type Line = {
   previousTargetTime?: Hour
   /** Report : rang, à partir de 1, de son heure dans sa journée d'origine ; absent ou `null` : inconnu. */
   dueRank?: number | null
-  updatedAt: string
+  /** Instant du geste qui a décidé la ligne : seule horloge que le moteur arbitre entre lignes et réglages. */
+  decidedAt: string
   /** Téléphone qui a créé la ligne ; absent hors de l'app. */
   createdByDevice?: string
 }
@@ -111,7 +112,7 @@ export type LineEffect =
 export type Phase = 'upcoming' | 'today' | 'overdue' | 'ended' | 'stopped'
 
 /** Les champs d'une ligne à écrire ; l'identifiant et l'horodatage viennent du repository. */
-export type LineFields = Omit<Line, 'id' | 'updatedAt' | 'createdByDevice'>
+export type LineFields = Omit<Line, 'id' | 'decidedAt' | 'createdByDevice'>
 
 /** Les champs d'un réglage à écrire ; l'arrêt passe par « Arrêter », l'identifiant par le repository. */
 export type SettingFields = Omit<Setting, 'id' | 'createdAt' | 'stoppedOn'>

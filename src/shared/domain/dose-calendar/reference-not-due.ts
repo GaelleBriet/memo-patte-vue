@@ -6,7 +6,7 @@ type Hour = string | null
 
 const keyOf = (day: string, hour: Hour) => (hour === null ? day : `${day} ${hour}`)
 const newer = (a: ReferenceLine, b: ReferenceLine) =>
-  a.updatedAt > b.updatedAt || (a.updatedAt === b.updatedAt && a.id > b.id)
+  a.decidedAt > b.decidedAt || (a.decidedAt === b.decidedAt && a.id > b.id)
 
 /** Les heures d'une journée qui restent des échéances : couvertes par une prise, ou pas couvertes du tout. */
 export const existingHours = (

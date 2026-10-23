@@ -64,7 +64,7 @@ export type TreatmentView = {
 
 const lineOrder = (a: Line, b: Line) =>
   keyOf(a.dueOn, a.dueTime).localeCompare(keyOf(b.dueOn, b.dueTime)) ||
-  a.updatedAt.localeCompare(b.updatedAt) ||
+  a.decidedAt.localeCompare(b.decidedAt) ||
   a.id.localeCompare(b.id)
 
 export function buildView({ settings, lines: given, today }: TreatmentViewInput): TreatmentView {

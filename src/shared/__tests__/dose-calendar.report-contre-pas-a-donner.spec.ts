@@ -67,7 +67,7 @@ function synchronises(
   return {
     ...base,
     settings: base.settings.map((each) => (each.id === 's2' ? s2 : each)),
-    lines: [...base.lines, { ...report, updatedAt: reportAt }],
+    lines: [...base.lines, { ...report, decidedAt: reportAt }],
   }
 }
 
@@ -211,7 +211,7 @@ describe('#867 : toute réécriture qui ôte la journée de départ du report, �
     const report = parA.lines.at(-1)!
     const rewritten = rewrittenOn(base.settings[0]!, parB.settings[0]!, rewrittenAt)
     return {
-      merged: { ...base, settings: [rewritten], lines: [{ ...report, updatedAt: reportAt }] },
+      merged: { ...base, settings: [rewritten], lines: [{ ...report, decidedAt: reportAt }] },
       reportId: report.id,
     }
   }

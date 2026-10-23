@@ -27,7 +27,7 @@ const SETTINGS: CarnetReminderSettings = { vaccineReminderTime: '09:00', remindB
 const RELAY_PIXEL = 'Pour continuer à recevoir les rappels de Pixel, ouvre MémoPatte.'
 
 type Period = Carnet['periods'][number]
-type DoseFields = Omit<Carnet['doses'][number], 'id' | 'createdAt' | 'updatedAt'>
+type DoseFields = Omit<Carnet['doses'][number], 'id' | 'createdAt' | 'decidedAt'>
 
 function period(overrides: Partial<Period> = {}): Period {
   const firstDueOn = overrides.firstDueOn ?? '2026-09-01'
@@ -50,7 +50,7 @@ let stamp = 0
 function stored(fields: DoseFields): Carnet['doses'][number] {
   stamp += 1
   const at = new Date(Date.UTC(2026, 0, 1, 0, 0, stamp)).toISOString()
-  return { id: `dose-${stamp}`, ...fields, createdAt: at, updatedAt: at }
+  return { id: `dose-${stamp}`, ...fields, createdAt: at, decidedAt: at }
 }
 
 const due = (dueOn: string) => ({ periodId: 'p1', dueOn, dueTime: null })

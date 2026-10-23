@@ -183,10 +183,10 @@ export function arriveReports(context: ArrivalContext) {
   }
 
   function hoursSeenBy(report: ReferenceLine, day: string, journey: Journey): Hour[] | undefined {
-    if (journey.setting.createdAt <= report.updatedAt) return undefined
+    if (journey.setting.createdAt <= report.decidedAt) return undefined
     let seen: ReferenceSetting | undefined
     for (const setting of live) {
-      if (setting.startsOn <= day && setting.createdAt <= report.updatedAt) seen = setting
+      if (setting.startsOn <= day && setting.createdAt <= report.decidedAt) seen = setting
     }
     if (seen === undefined || sameHours(seen, journey.setting)) return undefined
     return hoursOf(seen)

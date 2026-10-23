@@ -98,7 +98,7 @@ describe('Milo, chaque semaine à 20 h depuis le 4 mars ; la dose du 11 reporté
     givenOn: null,
     targetOn: '2026-03-12',
     dueRank: 1,
-    updatedAt: '2026-03-03T08:00:00.000Z',
+    decidedAt: '2026-03-03T08:00:00.000Z',
   }
   const base: TreatmentViewInput = { settings: [s1], lines: [report], today: '2026-03-10' }
 

@@ -30,11 +30,11 @@ function synchronised(
   { aAt, bAt }: Stamps,
 ) {
   const changed = parA.lines.filter(
-    (line) => !base.lines.some((old) => old.id === line.id && old.updatedAt === line.updatedAt),
+    (line) => !base.lines.some((old) => old.id === line.id && old.decidedAt === line.decidedAt),
   )
   const lines = [
     ...base.lines.filter(({ id }) => !changed.some((line) => line.id === id)),
-    ...changed.map((line) => ({ ...line, updatedAt: aAt })),
+    ...changed.map((line) => ({ ...line, decidedAt: aAt })),
   ]
   const settings = parB.settings.map((each: Setting) => {
     const old = base.settings.find(({ id }) => id === each.id)
@@ -77,7 +77,7 @@ describe('#938 : Milo, tous les jours à 6, 12, 18 et 23 h ; la dose de 6 h du 4
       status: 'given',
       givenOn: '2026-03-02',
       targetOn: null,
-      updatedAt: '2026-03-02T07:00:00.000Z',
+      decidedAt: '2026-03-02T07:00:00.000Z',
     }
     const s2 = setting('s2', '2026-03-04', DAY, FOUR, {
       ...facts,
@@ -163,7 +163,7 @@ describe('#939 : Milo, chaque semaine à 20 h depuis le 4 mars, un nouveau régl
       status: 'postponed',
       givenOn: null,
       targetOn: '2026-03-12',
-      updatedAt: '2026-03-03T08:00:00.000Z',
+      decidedAt: '2026-03-03T08:00:00.000Z',
     }
     const s2 = setting('s2', '2026-03-04', WEEK, ['20:00'], {
       ...facts,
@@ -229,7 +229,7 @@ describe('#939 : Milo, chaque semaine à 20 h depuis le 4 mars, un nouveau régl
       const report = fork.phoneA.lines.find(
         (line) =>
           line.status === 'postponed' &&
-          !fork.base.lines.some((old) => old.id === line.id && old.updatedAt === line.updatedAt),
+          !fork.base.lines.some((old) => old.id === line.id && old.decidedAt === line.decidedAt),
       )!
       expect(effectOf(fork.merged, report.id)).toMatchObject({ kind: 'moves' })
       expect(constatsOf(fork)).toEqual([])
@@ -265,7 +265,7 @@ describe('Q1 : Milo, chaque lundi à 8 h et 20 h ; la dose de 20 h du 9 mars rep
       givenOn: status === 'given' ? '2026-03-09' : null,
       targetOn: status === 'postponed' ? '2026-03-11' : null,
       ...(status === 'postponed' ? { dueRank: 2 } : {}),
-      updatedAt: status === 'given' ? '2026-03-09T08:05:00.000Z' : '2026-03-09T09:00:00.000Z',
+      decidedAt: status === 'given' ? '2026-03-09T08:05:00.000Z' : '2026-03-09T09:00:00.000Z',
     })
     const base: TreatmentViewInput = {
       settings: [s1],
@@ -277,7 +277,7 @@ describe('Q1 : Milo, chaque lundi à 8 h et 20 h ; la dose de 20 h du 9 mars rep
       startsOn: '2026-03-10',
       createdAt: bAt,
     })
-    const report = { ...parA.lines.find(({ id }) => id === 'l2')!, updatedAt: aAt }
+    const report = { ...parA.lines.find(({ id }) => id === 'l2')!, decidedAt: aAt }
     const merged: TreatmentViewInput = {
       ...base,
       settings: [s1, s2],
@@ -328,7 +328,7 @@ describe('Q2 : un report de A plus récent battu par une note que la réécritur
       const report = fork.phoneA.lines.find(
         (line) =>
           line.status === 'postponed' &&
-          !fork.base.lines.some((old) => old.id === line.id && old.updatedAt === line.updatedAt),
+          !fork.base.lines.some((old) => old.id === line.id && old.decidedAt === line.decidedAt),
       )!
       expect(effectOf(fork.merged, report.id)).toEqual({ kind: 'idle', reason: 'beaten' })
       expect(states(fork.merged, day, day)).toContainEqual(
@@ -460,7 +460,7 @@ describe('Carnet de #883 : B ne change que les heures ; le report de A et son d�
     const HOURS = ['08:00', '14:00', '20:00']
     const facts = { endsOn: '2026-05-28', createdAt: '2026-04-01T08:00:00.000Z' }
     const s1 = setting('s1', '2026-04-03', THREE_DAYS, HOURS, facts)
-    const note = (id: string, dueTime: string, status: 'given' | 'missed', updatedAt: string) => ({
+    const note = (id: string, dueTime: string, status: 'given' | 'missed', decidedAt: string) => ({
       id,
       settingId: 's1',
       dueOn: '2026-04-03',
@@ -468,7 +468,7 @@ describe('Carnet de #883 : B ne change que les heures ; le report de A et son d�
       status,
       givenOn: status === 'given' ? '2026-04-01' : null,
       targetOn: null,
-      updatedAt,
+      decidedAt,
     })
     const s2 = setting('s2', '2026-04-03', THREE_DAYS, HOURS, {
       ...facts,
@@ -593,7 +593,7 @@ describe('Report par rang, compté en doses (20 octobre 2026)', () => {
     const report = fork.phoneA.lines.find(
       (line) =>
         line.status === 'postponed' &&
-        !fork.base.lines.some((old) => old.id === line.id && old.updatedAt === line.updatedAt),
+        !fork.base.lines.some((old) => old.id === line.id && old.decidedAt === line.decidedAt),
     )!
     expect(effectOf(fork.merged, report.id)).toEqual({ kind: 'idle', reason: 'nothing-to-move' })
     expect(constatsOf(fork)).toEqual([])

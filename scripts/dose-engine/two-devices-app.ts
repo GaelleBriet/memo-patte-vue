@@ -14,8 +14,11 @@ import type { TreatmentWithPeriods } from '@/features/treatments/schema/treatmen
 import type { Line, LineFields, TreatmentViewInput } from '@/shared/domain/dose-calendar'
 import { readCarnet } from '@/shared/domain/treatment-reading'
 
+/** Une ligne du téléphone : la décision que le moteur lit, et la dernière écriture que la synchro compare. */
+export type PhoneLine = Line & { updatedAt: string }
+
 /** Le carnet d'un téléphone : ses lignes visibles, et celles qu'il a supprimées (pour « Annuler »). */
-export type Phone = { device: string; lines: Line[]; deleted: Map<string, Line> }
+export type Phone = { device: string; lines: PhoneLine[]; deleted: Map<string, PhoneLine> }
 
 export type Clock = { n: number }
 
@@ -44,10 +47,14 @@ const lineFieldsOf = (dose: DoseFields): LineFields => ({
 
 // Ce que `doseWritesOf` lit du traitement : ses prises et les heures de ses réglages.
 function treatmentOf(
-  lines: readonly Line[],
+  lines: readonly PhoneLine[],
   settings: TreatmentViewInput['settings'],
 ): Pick<TreatmentWithPeriods, 'id' | 'animalId' | 'doses' | 'periods'> {
-  const doses = lines.map((line) => ({ id: line.id, ...doseFieldsOf(line) }))
+  const doses = lines.map((line) => ({
+    id: line.id,
+    ...doseFieldsOf(line),
+    updatedAt: line.updatedAt,
+  }))
   const periods = settings.map(({ id, times }) => ({ id, times: [...times] }))
   return {
     id: 't',
@@ -57,7 +64,10 @@ function treatmentOf(
   }
 }
 
-/** Comme `applyBatch` : chaque écriture datée de l'instant du lot (plus son rang), et le lot inverse. */
+/**
+ * Comme `applyBatch` : chaque écriture datée de l'instant du lot (plus son rang), décidée à cet instant
+ * sauf une réécriture du lot inverse, qui remet la décision d'avant ; et le lot inverse.
+ */
 export function applyBatch(phone: Phone, writes: readonly DoseWrite[], clock: Clock): DoseWrite[] {
   if (writes.length === 0) return []
   const at = stamp(clock)
@@ -69,7 +79,7 @@ export function applyBatch(phone: Phone, writes: readonly DoseWrite[], clock: Cl
   const inverse: DoseWrite[] = []
   for (const write of writes) {
     if (write.action === 'create') {
-      const line = { ...lineFieldsOf(write.dose), id: write.id, updatedAt: at }
+      const line = { ...lineFieldsOf(write.dose), id: write.id, updatedAt: at, decidedAt: at }
       phone.lines.push({ ...line, createdByDevice: phone.device })
       inverse.push({ action: 'delete', id: write.id, expectedUpdatedAt: at })
       continue
@@ -99,13 +109,15 @@ export function applyBatch(phone: Phone, writes: readonly DoseWrite[], clock: Cl
       continue
     }
     const updatedAt = rankedStamp(at, write.rank)
-    phone.lines.push({ ...old, ...lineFieldsOf(write.dose), updatedAt })
+    const decidedAt = write.decidedAt ?? at
+    phone.lines.push({ ...old, ...lineFieldsOf(write.dose), updatedAt, decidedAt })
     inverse.push({
       action: 'rewrite',
       id: write.id,
       dose: doseFieldsOf(old),
       expectedUpdatedAt: updatedAt,
       rank: rankOf(write.id),
+      decidedAt: old.decidedAt,
     })
   }
   return inverse.reverse()

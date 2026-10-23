@@ -90,7 +90,7 @@
         "givenOn": null,
         "targetOn": "2026-04-14",
         "id": "l3",
-        "updatedAt": "2026-01-01T00:00:03.000Z"
+        "decidedAt": "2026-01-01T00:00:03.000Z"
       },
       {
         "settingId": "s1",
@@ -100,7 +100,7 @@
         "givenOn": "2026-04-11",
         "targetOn": null,
         "id": "l4",
-        "updatedAt": "2026-01-01T00:00:04.000Z"
+        "decidedAt": "2026-01-01T00:00:04.000Z"
       },
       {
         "settingId": "s1",
@@ -110,7 +110,7 @@
         "givenOn": "2026-04-12",
         "targetOn": null,
         "id": "l5",
-        "updatedAt": "2026-01-01T00:00:06.000Z"
+        "decidedAt": "2026-01-01T00:00:06.000Z"
       },
       {
         "settingId": "s1",
@@ -120,7 +120,7 @@
         "givenOn": "2026-04-12",
         "targetOn": null,
         "id": "l7",
-        "updatedAt": "2026-01-01T00:00:07.000Z"
+        "decidedAt": "2026-01-01T00:00:07.000Z"
       },
       {
         "settingId": "s2",
@@ -130,7 +130,7 @@
         "givenOn": "2026-04-11",
         "targetOn": null,
         "id": "l9",
-        "updatedAt": "2026-01-01T00:00:09.000Z"
+        "decidedAt": "2026-01-01T00:00:09.000Z"
       }
     ],
     "today": "2026-04-15"
@@ -196,7 +196,7 @@
         "givenOn": null,
         "targetOn": "2026-04-14",
         "id": "l3",
-        "updatedAt": "2026-01-01T00:00:03.000Z"
+        "decidedAt": "2026-01-01T00:00:03.000Z"
       },
       {
         "settingId": "s1",
@@ -206,7 +206,7 @@
         "givenOn": "2026-04-11",
         "targetOn": null,
         "id": "l4",
-        "updatedAt": "2026-01-01T00:00:04.000Z"
+        "decidedAt": "2026-01-01T00:00:04.000Z"
       },
       {
         "settingId": "s1",
@@ -216,7 +216,7 @@
         "givenOn": "2026-04-12",
         "targetOn": null,
         "id": "l5",
-        "updatedAt": "2026-01-01T00:00:06.000Z"
+        "decidedAt": "2026-01-01T00:00:06.000Z"
       },
       {
         "settingId": "s1",
@@ -226,7 +226,7 @@
         "givenOn": "2026-04-12",
         "targetOn": null,
         "id": "l7",
-        "updatedAt": "2026-01-01T00:00:07.000Z"
+        "decidedAt": "2026-01-01T00:00:07.000Z"
       },
       {
         "settingId": "s2",
@@ -236,7 +236,7 @@
         "givenOn": "2026-04-11",
         "targetOn": null,
         "id": "l9",
-        "updatedAt": "2026-01-01T00:00:09.000Z"
+        "decidedAt": "2026-01-01T00:00:09.000Z"
       },
       {
         "settingId": "s3",
@@ -246,7 +246,7 @@
         "givenOn": null,
         "targetOn": "2026-05-01",
         "id": "A1",
-        "updatedAt": "2026-06-01T00:00:01.000Z"
+        "decidedAt": "2026-06-01T00:00:01.000Z"
       },
       {
         "settingId": "s3",
@@ -256,7 +256,7 @@
         "givenOn": null,
         "targetOn": "2026-05-01",
         "id": "A2",
-        "updatedAt": "2026-06-01T00:00:02.000Z"
+        "decidedAt": "2026-06-01T00:00:02.000Z"
       }
     ],
     "today": "2026-04-15"
@@ -323,7 +323,7 @@
         "givenOn": null,
         "targetOn": "2026-04-14",
         "id": "l3",
-        "updatedAt": "2026-01-01T00:00:03.000Z"
+        "decidedAt": "2026-01-01T00:00:03.000Z"
       },
       {
         "settingId": "s1",
@@ -333,7 +333,7 @@
         "givenOn": "2026-04-11",
         "targetOn": null,
         "id": "l4",
-        "updatedAt": "2026-01-01T00:00:04.000Z"
+        "decidedAt": "2026-01-01T00:00:04.000Z"
       },
       {
         "settingId": "s1",
@@ -343,7 +343,7 @@
         "givenOn": "2026-04-12",
         "targetOn": null,
         "id": "l5",
-        "updatedAt": "2026-01-01T00:00:06.000Z"
+        "decidedAt": "2026-01-01T00:00:06.000Z"
       },
       {
         "settingId": "s1",
@@ -353,7 +353,7 @@
         "givenOn": "2026-04-12",
         "targetOn": null,
         "id": "l7",
-        "updatedAt": "2026-01-01T00:00:07.000Z"
+        "decidedAt": "2026-01-01T00:00:07.000Z"
       },
       {
         "settingId": "s2",
@@ -363,7 +363,7 @@
         "givenOn": "2026-04-11",
         "targetOn": null,
         "id": "l9",
-        "updatedAt": "2026-01-01T00:00:09.000Z"
+        "decidedAt": "2026-01-01T00:00:09.000Z"
       }
     ],
     "today": "2026-04-15"
@@ -430,7 +430,7 @@
         "givenOn": null,
         "targetOn": "2026-04-14",
         "id": "l3",
-        "updatedAt": "2026-01-01T00:00:03.000Z"
+        "decidedAt": "2026-01-01T00:00:03.000Z"
       },
       {
         "settingId": "s1",
@@ -440,7 +440,7 @@
         "givenOn": "2026-04-11",
         "targetOn": null,
         "id": "l4",
-        "updatedAt": "2026-01-01T00:00:04.000Z"
+        "decidedAt": "2026-01-01T00:00:04.000Z"
       },
       {
         "settingId": "s1",
@@ -450,7 +450,7 @@
         "givenOn": "2026-04-12",
         "targetOn": null,
         "id": "l5",
-        "updatedAt": "2026-01-01T00:00:06.000Z"
+        "decidedAt": "2026-01-01T00:00:06.000Z"
       },
       {
         "settingId": "s1",
@@ -460,7 +460,7 @@
         "givenOn": "2026-04-12",
         "targetOn": null,
         "id": "l7",
-        "updatedAt": "2026-01-01T00:00:07.000Z"
+        "decidedAt": "2026-01-01T00:00:07.000Z"
       },
       {
         "settingId": "s2",
@@ -470,7 +470,7 @@
         "givenOn": "2026-04-11",
         "targetOn": null,
         "id": "l9",
-        "updatedAt": "2026-01-01T00:00:09.000Z"
+        "decidedAt": "2026-01-01T00:00:09.000Z"
       },
       {
         "settingId": "s3",
@@ -480,7 +480,7 @@
         "givenOn": null,
         "targetOn": "2026-05-01",
         "id": "A1",
-        "updatedAt": "2026-06-01T00:00:01.000Z"
+        "decidedAt": "2026-06-01T00:00:01.000Z"
       },
       {
         "settingId": "s3",
@@ -490,7 +490,7 @@
         "givenOn": null,
         "targetOn": "2026-05-01",
         "id": "A2",
-        "updatedAt": "2026-06-01T00:00:02.000Z"
+        "decidedAt": "2026-06-01T00:00:02.000Z"
       }
     ],
     "today": "2026-04-15"

@@ -19,7 +19,7 @@ const setting = (id: string, fields: Partial<Setting>): Setting => ({
   ...fields,
 })
 
-const given = (id: string, dueTime: string, updatedAt: string): Line => ({
+const given = (id: string, dueTime: string, decidedAt: string): Line => ({
   id,
   settingId: 's1',
   dueOn: '2026-04-11',
@@ -27,7 +27,7 @@ const given = (id: string, dueTime: string, updatedAt: string): Line => ({
   status: 'given',
   givenOn: '2026-04-09',
   targetOn: null,
-  updatedAt,
+  decidedAt,
 })
 
 const settings = [

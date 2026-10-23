@@ -26,7 +26,7 @@ function milo(): TreatmentViewInput {
   const carnet = moved(on(start, '2026-03-08'), '2026-03-09', '08:00', '2026-03-11', true)
   const notDue = (dueOn: string): Line => ({
     ...line('s1', 'not-due', dueOn, '08:00'),
-    updatedAt: '2026-03-26T10:00:00.000Z',
+    decidedAt: '2026-03-26T10:00:00.000Z',
   })
   return {
     ...on(carnet, '2026-03-26'),
@@ -79,7 +79,7 @@ describe('« Supprimer » un report ou un décalage ne compte pas les lignes « 
     const input = milo()
     const older = {
       ...line('s1', 'not-due', '2026-03-11', '08:00'),
-      updatedAt: '2026-01-01T00:00:00.000Z',
+      decidedAt: '2026-01-01T00:00:00.000Z',
     }
     return { ...input, lines: [...input.lines, older] }
   }

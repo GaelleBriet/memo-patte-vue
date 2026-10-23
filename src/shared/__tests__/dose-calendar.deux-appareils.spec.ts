@@ -212,8 +212,8 @@ describe('R4, R7, #802 : le jour d’arrivée d’un report, chaque réglage que
     tic += 1
     const dueTime = status === 'postponed' ? '08:00' : '20:00'
     const givenOn = status === 'given' ? dueOn : null
-    const updatedAt = `2026-01-01T00:01:${String(tic).padStart(2, '0')}.000Z`
-    return { id: `l${tic}`, settingId, status, dueOn, dueTime, givenOn, targetOn, updatedAt }
+    const decidedAt = `2026-01-01T00:01:${String(tic).padStart(2, '0')}.000Z`
+    return { id: `l${tic}`, settingId, status, dueOn, dueTime, givenOn, targetOn, decidedAt }
   }
 
   it('réglage qui cède sa place le jour d’origine : toutes les semaines à 8 h et 20 h dès le 10 mars, première dose le 12 ; le 12, A passe à 8 h, 14 h et 20 h, puis B à 8 h et 20 h, prochaine dose le 20 ; dose du 12 reportée au 27 ; le 27, 20 h notée sur A et sur B : une seule dose de 20 h, 8 h reste à donner (décision du 15 octobre 2026)', () => {

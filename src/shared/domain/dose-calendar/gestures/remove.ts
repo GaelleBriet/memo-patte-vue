@@ -122,7 +122,7 @@ const shareDay = (a: Line, b: Line): boolean => daysOf(a).some((day) => daysOf(b
 // #867 : réécrit, ce report passerait devant la réécriture de son réglage.
 const olderThanItsSetting = (input: TreatmentViewInput, line: Line): boolean => {
   const rewrittenAt = input.settings.find(({ id }) => id === line.settingId)?.updatedAt
-  return line.status === 'postponed' && rewrittenAt !== undefined && rewrittenAt >= line.updatedAt
+  return line.status === 'postponed' && rewrittenAt !== undefined && rewrittenAt >= line.decidedAt
 }
 
 /**

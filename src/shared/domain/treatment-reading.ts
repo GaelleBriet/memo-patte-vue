@@ -132,7 +132,7 @@ export function carnetInputOf(
       status: dose.status,
       givenOn: dose.givenOn,
       targetOn: dose.targetOn,
-      updatedAt: dose.updatedAt,
+      decidedAt: dose.decidedAt,
       ...(dose.status === 'postponed' && dose.dueRank !== undefined
         ? {
             previousTargetOn: dose.previousTargetOn ?? null,

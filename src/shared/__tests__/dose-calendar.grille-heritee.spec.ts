@@ -74,7 +74,7 @@ const shift = (settingId: string, dueOn: string, targetOn: string): Line => ({
   status: 'shift',
   givenOn: null,
   targetOn,
-  updatedAt: '2026-03-13T08:00:00.000Z',
+  decidedAt: '2026-03-13T08:00:00.000Z',
 })
 
 describe('une période ouverte garde la grille de celle qu’elle remplace', () => {
@@ -385,7 +385,7 @@ describe('à l’écriture : la simulation date la grille comme une écriture ne
       status: 'given',
       givenOn: day,
       targetOn: null,
-      updatedAt: `${day}T20:00:00.000Z`,
+      decidedAt: `${day}T20:00:00.000Z`,
     }))
     const base: TreatmentViewInput = { settings: [p1], lines: given, today: '2026-03-10' }
     const opened = (request: SettingsRequest, id: string, at: string): Setting => {

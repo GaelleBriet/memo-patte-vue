@@ -41,7 +41,7 @@ function synchronises(
   const merged: TreatmentViewInput = {
     ...base,
     settings: base.settings.map(rewritten),
-    lines: [...base.lines, ...added.map((line) => ({ ...line, updatedAt: reportAt }))],
+    lines: [...base.lines, ...added.map((line) => ({ ...line, decidedAt: reportAt }))],
   }
   return { merged, report: added.find(({ status }) => status === 'postponed')! }
 }
@@ -225,7 +225,7 @@ describe('#883 (graine 8710000013) : un report plus récent dont seule l’heure
         status: 'missed',
         givenOn: null,
         targetOn: null,
-        updatedAt: '2026-04-01T09:00:00.000Z',
+        decidedAt: '2026-04-01T09:00:00.000Z',
       },
       {
         id: 'l2',
@@ -235,7 +235,7 @@ describe('#883 (graine 8710000013) : un report plus récent dont seule l’heure
         status: 'given',
         givenOn: '2026-04-01',
         targetOn: null,
-        updatedAt: '2026-04-01T10:00:00.000Z',
+        decidedAt: '2026-04-01T10:00:00.000Z',
       },
     ]
     const s2 = setting('s2', '2026-04-03', THREE_DAYS, HOURS, {

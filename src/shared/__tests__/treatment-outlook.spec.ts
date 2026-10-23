@@ -59,6 +59,7 @@ function given(dueOn: string, changes: Partial<ExportTreatmentDose> = {}): Expor
     previousTargetTime: null,
     dueRank: null,
     ...STAMPS,
+    decidedAt: changes.updatedAt ?? STAMPS.updatedAt,
     ...changes,
   }
 }

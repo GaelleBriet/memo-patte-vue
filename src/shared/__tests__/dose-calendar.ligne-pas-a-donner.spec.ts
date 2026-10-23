@@ -66,8 +66,8 @@ describe('#873 : une ligne « pas à donner » retire sa dose de partout (décis
         .history.filter(({ line: each }) => each.dueOn === '2026-03-16')
         .map(({ line: each, effect }) => `${each.status} ${effect.kind}`)
         .sort()
-    for (const updatedAt of ['2027-01-01T00:00:00.000Z', '2025-01-01T00:00:00.000Z']) {
-      const given = { ...line('m1', 'given', '2026-03-16', '08:00'), updatedAt }
+    for (const decidedAt of ['2027-01-01T00:00:00.000Z', '2025-01-01T00:00:00.000Z']) {
+      const given = { ...line('m1', 'given', '2026-03-16', '08:00'), decidedAt }
       const input = milo([given])
       expect(shown(input)).toContain('2026-03-16 08:00 given')
       expect(effects(input)).toEqual(['given covers', 'not-due idle'])
@@ -101,12 +101,12 @@ describe('#873 : une ligne « pas à donner » retire sa dose de partout (décis
     expect(keys(asked.question.fallen)).toContain('2026-03-16 08:00')
     const answer: Line[] = (asked.question.correct.lines ?? []).flatMap((change, index) =>
       change.action === 'create'
-        ? [{ ...change.line, id: `a${index}`, updatedAt: '2026-03-18T10:00:00.000Z' }]
+        ? [{ ...change.line, id: `a${index}`, decidedAt: '2026-03-18T10:00:00.000Z' }]
         : [],
     )
     const notDueOn16 = answer.find(({ dueOn }) => dueOn === '2026-03-16')!
-    for (const updatedAt of ['2026-03-18T09:00:00.000Z', '2026-03-18T11:00:00.000Z']) {
-      const fromB = { ...line('m1', 'given', '2026-03-16', '08:00'), updatedAt }
+    for (const decidedAt of ['2026-03-18T09:00:00.000Z', '2026-03-18T11:00:00.000Z']) {
+      const fromB = { ...line('m1', 'given', '2026-03-16', '08:00'), decidedAt }
       for (const lines of [
         [...answer, fromB],
         [fromB, ...answer],
@@ -144,11 +144,11 @@ describe('#873 : une ligne « pas à donner » retire sa dose de partout (décis
     const weekly = setting('m1', '2026-03-02', WEEK, ['08:00'])
     const notDue = {
       ...line('m1', 'not-due', '2026-03-16', '08:00'),
-      updatedAt: '2026-03-17T09:00:00.000Z',
+      decidedAt: '2026-03-17T09:00:00.000Z',
     }
     const report = {
       ...line('m1', 'postponed', '2026-03-16', '08:00', '2026-03-19'),
-      updatedAt: '2026-03-17T10:00:00.000Z',
+      decidedAt: '2026-03-17T10:00:00.000Z',
     }
     const newer = { settings: [weekly], lines: [notDue, report], today: '2026-03-18' }
     const effects = (input: TreatmentViewInput) =>
@@ -160,7 +160,7 @@ describe('#873 : une ligne « pas à donner » retire sa dose de partout (décis
     expect(readings(newer).moteur).toEqual(readings(newer).reference)
     const older = {
       ...newer,
-      lines: [notDue, { ...report, updatedAt: '2026-03-17T08:00:00.000Z' }],
+      lines: [notDue, { ...report, decidedAt: '2026-03-17T08:00:00.000Z' }],
     }
     expect(effects(older)).toEqual(['not-due covers', 'postponed idle'])
     expect(shown(older).some((key) => key.startsWith('2026-03-19'))).toBe(false)
@@ -215,7 +215,7 @@ describe('#873 : une ligne « pas à donner » retire sa dose de partout (décis
     const onThe16 = (status: 'given' | 'not-due') => ({
       settings: [stopped, resumed],
       lines: [
-        { ...line('m1', status, '2026-03-16', '08:00'), updatedAt: '2026-03-16T10:00:00.000Z' },
+        { ...line('m1', status, '2026-03-16', '08:00'), decidedAt: '2026-03-16T10:00:00.000Z' },
       ],
       today: '2026-03-17',
     })

@@ -91,7 +91,7 @@ describe('R7, R9.2 : « Elles n’étaient pas à donner » ne saute pas l’arr
     if ('refusal' in result) throw new Error(JSON.stringify(result))
     const created = result.changes.flatMap((change: LineChange) =>
       change.action === 'create'
-        ? [{ ...change.line, id: 'l-noted', updatedAt: '2026-02-01T00:00:00.000Z' }]
+        ? [{ ...change.line, id: 'l-noted', decidedAt: '2026-02-01T00:00:00.000Z' }]
         : [],
     )
     return { ...input, lines: [...input.lines, ...created] }

@@ -11,7 +11,7 @@ function newReport(fork: Fork): Line | undefined {
   return fork.phoneA.lines.find(
     (line) =>
       line.status === 'postponed' &&
-      !fork.base.lines.some((old) => old.id === line.id && old.updatedAt === line.updatedAt),
+      !fork.base.lines.some((old) => old.id === line.id && old.decidedAt === line.decidedAt),
   )
 }
 

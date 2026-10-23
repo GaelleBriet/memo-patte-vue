@@ -18,7 +18,7 @@ const WRITTEN_AT = '9999-12-31T23:59:59.999Z'
 
 const latest = (lines: readonly Line[]): Line | undefined =>
   [...lines]
-    .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt) || a.id.localeCompare(b.id))
+    .sort((a, b) => a.decidedAt.localeCompare(b.decidedAt) || a.id.localeCompare(b.id))
     .at(-1)
 
 /** Comme le repository : une ligne par réglage, échéance et famille ; la plus récente est réécrite. */
@@ -81,7 +81,7 @@ export function applied(
     }
     const id = change.action === 'rewrite' ? change.id : `écrite-${index}`
     const facts = withReportFacts(lines, input.settings, change)
-    const line: Line = { ...facts.line, id, updatedAt: WRITTEN_AT }
+    const line: Line = { ...facts.line, id, decidedAt: WRITTEN_AT }
     lines =
       change.action === 'rewrite'
         ? lines.map((each) => (each.id === id ? withDevice(line, each.createdByDevice) : each))

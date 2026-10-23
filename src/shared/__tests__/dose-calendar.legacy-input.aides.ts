@@ -32,7 +32,7 @@ export function viewInputOf({ periods, doses, today }: LegacyInput): TreatmentVi
       status: dose.status,
       givenOn: dose.givenOn,
       targetOn: targetOnOf({ status: dose.status, nextDueDate }),
-      updatedAt: dose.updatedAt,
+      decidedAt: dose.decidedAt,
     })),
     today,
   }

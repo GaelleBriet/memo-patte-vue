@@ -31,7 +31,7 @@ const periodOf = (setting: Setting): TreatmentWithPeriods['periods'][number] => 
   deletedAt: null,
 })
 
-const doseOf = ({ settingId, updatedAt, createdByDevice, ...line }: Line) => ({
+const doseOf = ({ settingId, createdByDevice, ...line }: Line) => ({
   ...line,
   previousTargetOn: line.previousTargetOn ?? null,
   previousTargetTime: line.previousTargetTime ?? null,
@@ -40,7 +40,7 @@ const doseOf = ({ settingId, updatedAt, createdByDevice, ...line }: Line) => ({
   treatmentId: 't',
   animalId: 'a',
   createdAt: AT,
-  updatedAt,
+  updatedAt: line.decidedAt,
   deletedAt: null,
   ...(createdByDevice === undefined ? {} : { createdByDevice }),
 })
