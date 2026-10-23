@@ -3631,16 +3631,14 @@ ce qu'elle venait de saisir. — Alternative écartée : laisser le retour quitt
 MémoPatte Plus », par « Restaurer mes achats » ou un paiement sans compte ou à session expirée, et par la
 déconnexion ne propose plus « Pas encore de compte ? Créer un compte » ; la création ne se fait qu'à
 l'étape 1 de l'achat (#427). — Raison : le compte vient avant l'achat, donc un achat à restaurer a déjà
-un compte. — Alternative écartée : aucune consignée dans la PR #1161.
+un compte.
 
 2026-10-23 — **Confirmation du mot de passe à saisir deux fois** (#1164, spec PL-23). Décision de
 Gaelle du 23 octobre. « Confirme le nouveau mot de passe » dans « Changer mon mot de passe » et « Mot de
 passe oublié », « Confirme le mot de passe » à la création de compte ; erreur « Les deux mots de passe ne
 sont pas identiques. » ; bouton inactif tant que les deux saisies diffèrent ; comparaison exacte, sans
-`trim` ni casse ; la confirmation n'est jamais envoyée au serveur. — Raison : non consignée dans la PR #1164 (à
-compléter par Gaelle). — Alternative écartée : aucune consignée dans la PR #1164.
+`trim` ni casse ; la confirmation n'est jamais envoyée au serveur.
 
 2026-10-23 — **Icône œil sur chaque champ de mot de passe** (#1164, spec PL-23). Décision de Gaelle du
 23 octobre. Mot de passe masqué par défaut, état jamais mémorisé, noms accessibles « Afficher le mot de
-passe » / « Masquer le mot de passe », zone tactile de 48 px. — Raison : non consignée dans la PR #1164 (à
-compléter par Gaelle). — Alternative écartée : aucune consignée dans la PR #1164.
+passe » / « Masquer le mot de passe », zone tactile de 48 px.
