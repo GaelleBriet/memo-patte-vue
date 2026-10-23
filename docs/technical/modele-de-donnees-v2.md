@@ -372,6 +372,18 @@ ni `UPDATE` de premier niveau ; déclencheurs recréés après la recopie, rien 
 `updated_at` quand l'écriture la change. Export JSON v11 (`export-format.md`) ; ni le CSV ni le PDF
 ne la montrent.
 
+### 4.11 Évolution v21 (date des photos en file, #1155)
+
+Aucune colonne ni table nouvelle. La v18 datait les photos qu'elle mettait en file par la date de
+l'animal : sur un téléphone en v17 synchro active, Milo modifié le 1er septembre et mis à niveau le
+23 octobre, le délai de 7 jours avant d'effacer sa photo du cloud (§4.9) était déjà écoulé. La
+migration (`src/core/db/migration-v21.ts`) date chaque entrée `animal_photo` à l'heure de la mise à
+niveau, essais gardés, sans jamais l'avancer (une date plus tardive ou illisible reste telle quelle).
+Les lignes des tables gardent leur date. Les entrées des déclencheurs, qu'on ne distingue pas de
+celles de la v18, sont redatées aussi : un effacement attend au plus 7 jours de plus. Un
+`INSERT OR REPLACE` de premier niveau, sans `DELETE` ni `UPDATE`. Rien côté Supabase ni dans
+l'export.
+
 ## 5. Décisions
 
 - 2026-09-29 — **M1 : une table `treatment_period` sous le traitement.** Le traitement garde l'animal,
