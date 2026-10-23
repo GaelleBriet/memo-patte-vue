@@ -141,6 +141,18 @@ describe('treatmentReminders', () => {
     expect(slots({ firstDueOn: '2026-09-16', stoppedOn: '2026-09-15' })).toEqual([])
   })
 
+  it('relit le traitement au jour de l’appareil, pas à celui de l’UTC : trop long à relire dès le lendemain', () => {
+    // Limite de 50 000 échéances (`treatment-reading`) : tous les jours à 24 heures depuis START,
+    // lisible le 2026-09-15, trop long à relire le 2026-09-16.
+    const START = '2021-01-03'
+    const HEURES = Array.from({ length: 24 }, (_, hour) => `${String(hour).padStart(2, '0')}:00`)
+    const careAt = (now: Date) =>
+      remindersOf({ startsOn: START, firstDueOn: START, times: HEURES }, [], { now }).care
+
+    expect(careAt(new Date(2026, 8, 15, 23, 30))).not.toBeNull()
+    expect(careAt(new Date(2026, 8, 16, 0, 30))).toBeNull()
+  })
+
   it('Q40 : un traitement illisible n’a pas de rappel et ne lève pas', () => {
     const illegible = remindersOf({ firstDueOn: '2026-02-30' })
 
