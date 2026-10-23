@@ -37,3 +37,5 @@ export function createAnimalReads(db: DbClient) {
     },
   }
 }
+
+export type AnimalReads = ReturnType<typeof createAnimalReads>
