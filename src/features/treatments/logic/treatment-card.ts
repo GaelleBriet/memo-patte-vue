@@ -10,7 +10,7 @@ import type { Due, TreatmentView } from '@/shared/domain/dose-calendar'
 import { formatClockTime, formatDayMonthOrYear } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
-export type DoseCardEntry = {
+type DoseCardEntry = {
   due: Due
   /** `null` pour une dose en retard. */
   label: string | null

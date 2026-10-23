@@ -26,12 +26,12 @@ export type SummaryAnimal = Pick<
 > &
   Partial<ExportAnimal>
 
-export type SummaryVaccination = Omit<ExportVaccination, 'plannedDueDate'> & {
+type SummaryVaccination = Omit<ExportVaccination, 'plannedDueDate'> & {
   lastInjectionDate: string
   dueDate: string | null
 }
 
-export type SummaryTreatment = ExportTreatment & {
+type SummaryTreatment = ExportTreatment & {
   frequency: ExportFrequency
   lastDoseDate: string
   stoppedOn?: string | null

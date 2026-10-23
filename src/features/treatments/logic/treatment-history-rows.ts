@@ -182,7 +182,7 @@ function notDueLine(t: Translate, dose: TreatmentDose, period: TreatmentPeriodRe
   }
 }
 
-export function givenLine(
+function givenLine(
   t: Translate,
   context: RowContext,
   dose: TreatmentDose,
@@ -206,7 +206,7 @@ export function givenLine(
   }
 }
 
-export function extraLine(t: Translate, dose: TreatmentDose): HistoryLine {
+function extraLine(t: Translate, dose: TreatmentDose): HistoryLine {
   const date = formatLongDate(dose.givenOn ?? dose.dueOn)
   return {
     kind: 'extra',

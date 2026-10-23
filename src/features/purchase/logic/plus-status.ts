@@ -1,7 +1,7 @@
 import type { CustomerInfo, PurchasesEntitlementInfo } from '@revenuecat/purchases-capacitor'
 import { differenceInDays, parseISO } from 'date-fns'
 
-export const PLUS_ENTITLEMENT = 'plus'
+const PLUS_ENTITLEMENT = 'plus'
 
 export type PlusPlan = 'none' | 'monthly' | 'annual' | 'lifetime'
 

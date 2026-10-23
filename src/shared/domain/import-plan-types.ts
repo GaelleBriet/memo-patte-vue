@@ -23,7 +23,7 @@ export type LocalEntry = Deletable & { animalId: string }
 export type LocalInjection = Deletable & { vaccinationId: string }
 export type LocalPeriod = LocalEntry & { treatmentId: string }
 export type LocalDose = Deletable & { periodId: string; treatmentId: string }
-export type LocalSettings = { updatedAt: string; deletedAt: string | null }
+type LocalSettings = { updatedAt: string; deletedAt: string | null }
 export type LocalDevice = Deletable
 
 export type LocalCarnet = {

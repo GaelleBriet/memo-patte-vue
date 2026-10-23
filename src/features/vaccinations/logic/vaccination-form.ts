@@ -20,7 +20,7 @@ export interface VaccinationFormValues {
   reminder: NextReminderChoice | null
 }
 
-export interface VaccinationFormData {
+interface VaccinationFormData {
   name: string
   lastInjectionDate: string | null
   dueDate: string | null
@@ -47,8 +47,8 @@ const ERROR_KEYS = {
   },
 } as const satisfies Record<string, FieldErrorKeys>
 
-export type VaccinationFormErrorField = keyof typeof ERROR_KEYS
-export type VaccinationFormErrors = Partial<Record<VaccinationFormErrorField, string>>
+type VaccinationFormErrorField = keyof typeof ERROR_KEYS
+type VaccinationFormErrors = Partial<Record<VaccinationFormErrorField, string>>
 
 export type VaccinationFormResult =
   { success: true; data: VaccinationFormData } | { success: false; errors: VaccinationFormErrors }

@@ -8,7 +8,7 @@ import type { TreatmentView } from '@/shared/domain/dose-calendar'
 import { formatClockTimes, formatDayMonthOrYear, formatPeriodRange } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
-export type CarnetTreatmentRow = {
+type CarnetTreatmentRow = {
   id: string
   name: string
   icon: string
@@ -19,7 +19,7 @@ export type CarnetTreatmentRow = {
   unlogged: string | null
 }
 
-export type FinishedTreatmentRow = { id: string; name: string; icon: string; detail: string }
+type FinishedTreatmentRow = { id: string; name: string; icon: string; detail: string }
 
 export type TreatmentsSummary = ReminderCounts & {
   /** Lignes de « Traitements en cours », traitements à renseigner et illisibles compris. */

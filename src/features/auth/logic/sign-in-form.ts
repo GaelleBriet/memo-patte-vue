@@ -6,7 +6,7 @@ import { PASSWORDS_DIFFER_KEY, withPasswordConfirmation } from './new-password-c
 
 export type SignInMode = 'sign-in' | 'sign-up'
 
-export interface SignInCredentials {
+interface SignInCredentials {
   email: string
   password: string
 }
@@ -17,7 +17,7 @@ export interface SignInFormValues extends SignInCredentials {
 
 export const MIN_PASSWORD_LENGTH = 8
 
-export type SignInFormErrors = Partial<Record<keyof SignInFormValues, string>>
+type SignInFormErrors = Partial<Record<keyof SignInFormValues, string>>
 
 export type SignInFormResult =
   { success: true; data: SignInCredentials } | { success: false; errors: SignInFormErrors }

@@ -11,7 +11,7 @@ export const PLUS_NUDGE_ENTRIES = 10
 
 export const PLUS_NUDGE_ANIMALS = 2
 
-export const PLUS_NUDGE_TRIGGERS = ['firstPhoto', 'carnetValue', 'firstExport'] as const
+const PLUS_NUDGE_TRIGGERS = ['firstPhoto', 'carnetValue', 'firstExport'] as const
 
 export type PlusNudgeTrigger = (typeof PLUS_NUDGE_TRIGGERS)[number]
 

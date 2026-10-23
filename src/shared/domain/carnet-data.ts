@@ -65,7 +65,7 @@ export type ExportTreatment = {
   updatedByDevice: string
 }
 
-export type ExportDoseUnit = DoseUnit
+type ExportDoseUnit = DoseUnit
 
 export type ExportTreatmentPeriod = {
   id: string

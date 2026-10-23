@@ -15,12 +15,9 @@ import { readTreatment } from '@/shared/domain/treatment-reading'
 
 type Unstamped<T> = Omit<T, 'createdByDevice' | 'updatedByDevice'>
 
-export type Version8Dose = Omit<
-  ExportTreatmentDose,
-  'previousTargetOn' | 'previousTargetTime' | 'dueRank'
->
+type Version8Dose = Omit<ExportTreatmentDose, 'previousTargetOn' | 'previousTargetTime' | 'dueRank'>
 
-export type Version9Period = Omit<ExportTreatmentPeriod, 'gridWrittenAt' | 'gridBefore'>
+type Version9Period = Omit<ExportTreatmentPeriod, 'gridWrittenAt' | 'gridBefore'>
 
 export type Version9Data = Omit<ExportData, 'treatmentPeriods'> & {
   treatmentPeriods: Version9Period[]
@@ -30,7 +27,7 @@ export type Version8Data = Omit<Version9Data, 'treatmentDoses'> & {
   treatmentDoses: Version8Dose[]
 }
 
-export type Version7Period = Omit<Version9Period, 'fallenDosesAnswer'> & {
+type Version7Period = Omit<Version9Period, 'fallenDosesAnswer'> & {
   pastDosesStayUnlogged: boolean
 }
 
@@ -38,20 +35,20 @@ export type Version7Data = Omit<Version8Data, 'treatmentPeriods'> & {
   treatmentPeriods: Version7Period[]
 }
 
-export type Version6Period = Omit<Version7Period, 'settingsWrittenAt'>
+type Version6Period = Omit<Version7Period, 'settingsWrittenAt'>
 
 export type Version6Data = Omit<Version8Data, 'treatmentPeriods'> & {
   treatmentPeriods: Version6Period[]
 }
 
-export type Version5Period = Omit<Version6Period, 'firstDueChosen' | 'pastDosesStayUnlogged'>
+type Version5Period = Omit<Version6Period, 'firstDueChosen' | 'pastDosesStayUnlogged'>
 
 export type Version5Data = Omit<Version8Data, 'treatmentPeriods'> & {
   treatmentPeriods: Version5Period[]
 }
 
-export type Version4Period = Omit<Version5Period, 'gridOriginOn'> & { referenceOn: string }
-export type Version4Dose = Omit<Version8Dose, 'targetOn'> & { nextDueDate: string }
+type Version4Period = Omit<Version5Period, 'gridOriginOn'> & { referenceOn: string }
+type Version4Dose = Omit<Version8Dose, 'targetOn'> & { nextDueDate: string }
 
 export type Version4Data = Omit<Version5Data, 'treatmentPeriods' | 'treatmentDoses'> & {
   treatmentPeriods: Version4Period[]
