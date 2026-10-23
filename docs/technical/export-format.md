@@ -1,4 +1,4 @@
-# Format d'export des données (#80, v3 : #454, v4 : #501, v5 : #754, v6 : #825 et #836, v7 : #867, v8 : #873, v9 : #939, v10 : décision 1 du 19 octobre 2026, v1 et v2 relus : #469)
+# Format d'export des données (#80, v3 : #454, v4 : #501, v5 : #754, v6 : #825 et #836, v7 : #867, v8 : #873, v9 : #939, v10 : décision 1 du 19 octobre 2026, v11 : #1188, v1 et v2 relus : #469)
 
 Contrat entre l'export (Paramètres → « Exporter mes données ») et l'import (#84, section
 [Import](#import--importer-un-export-mémopatte)).
@@ -89,7 +89,7 @@ Date du nom de fichier : minute locale de l'export. Encodage UTF-8, sans BOM, in
 
 ```json
 {
-  "schemaVersion": 10,
+  "schemaVersion": 11,
   "exportedAt": "2026-10-01T08:30:00.000Z",
   "appVersion": "0.1.48",
   "carnetSettings": null,
@@ -162,8 +162,8 @@ absente, illisible, incohérente ou trop longue se lit `null`, sans refuser le f
 | `exportedAt`    | ISO 8601 UTC           | Instant de l'export                                                  |
 | `appVersion`    | texte                  | Version de l'app (`package.json`) qui a produit le fichier           |
 
-L'import relit les versions **3, 4, 5, 6, 7, 8, 9 et 10** (plan du moteur v2 §3.3) : un fichier v3 à v9
-est converti au format v10 avant toute autre étape. `referenceOn` devient `gridOriginOn` par la règle de la migration
+L'import relit les versions **3, 4, 5, 6, 7, 8, 9, 10 et 11** (plan du moteur v2 §3.3) : un fichier v3 à
+v10 est converti au format v11 avant toute autre étape. `referenceOn` devient `gridOriginOn` par la règle de la migration
 v12 (`gridOriginsOf`, `src/shared/domain/dose-calendar/legacy-input.ts`) : `null` quand la période suit
 sans arrêt une période de même fréquence et de même `referenceOn`, sinon `referenceOn` s'il est sur la
 grille qui passe par `firstDueOn`, sinon `firstDueOn` ; `nextDueDate` devient `targetOn` pour un report
@@ -179,7 +179,8 @@ migration v15 : `"stay-unlogged"` quand `pastDosesStayUnlogged` vaut `true`, sin
 coup). Un fichier v3 à v8 reçoit enfin, sur chaque ligne, `previousTargetOn`, `previousTargetTime` et
 `dueRank` vides (`null`) : arrivée d'avant et rang inconnus. Un fichier v3 à v9 reçoit enfin
 `gridWrittenAt` par la règle de la migration v17 : la valeur de `settingsWrittenAt`, et `gridBefore`
-vide (`null`).
+vide (`null`). Un fichier v3 à v10 reçoit enfin, sur chaque ligne, `decidedAt` par la règle de la
+migration v20 : la valeur de son `updatedAt`.
 Un `schemaVersion` supérieur est refusé (« Cet export vient d'une version plus récente de l'app. »).
 Les formats v1 (jusqu'à la 0.1.40) et v2 (jusqu'à la 0.1.48) se relisent aussi (#469, décision du
 2026-10-21) : voir [Anciens formats v1 et v2](#anciens-formats-v1-et-v2--conversion-469). La lecture de
@@ -205,7 +206,7 @@ tout ou rien, avec les mêmes messages.
 - **Vaccins** : sans rappel prévu (`plannedDueDate` vide) ; les injections telles quelles.
 - **Traitements** : une seule période, à l'identifiant du traitement, à sa fréquence actuelle, sans
   heure, sans posologie, sans date de fin ; elle commence à la première prise (ou à l'arrêt, s'il est
-  plus tôt) et garde la date d'arrêt. Elle passe ensuite par les conversions v3 à v10 ci-dessus.
+  plus tôt) et garde la date d'arrêt. Elle passe ensuite par les conversions v3 à v11 ci-dessus.
 - **Prises**, rejouées par le moteur des doses dans l'ordre des dates réelles : l'app de l'époque
   notait la dose du moment et refixait la suite (prochaine dose = date réelle + fréquence, ou une date
   choisie à la main). Chaque prise rejoue « C'est fait » sur la première échéance encore à donner, à sa
@@ -355,7 +356,8 @@ la décrit dans le fichier.
 | `previousTargetTime` | `HH:mm` \| `null`                  | Report déplacé de nouveau : heure de son arrivée d'avant (v9) ; `null` sinon |
 | `dueRank`     | entier ≥ 1 \| `null`                     | Report : rang de son heure dans sa journée d'origine (v9) ; `null` : inconnu |
 | `createdAt`   | ISO 8601 UTC                             |                                                                          |
-| `updatedAt`   | ISO 8601 UTC                             |                                                                          |
+| `updatedAt`   | ISO 8601 UTC                             | Dernière écriture de la ligne, « Annuler » compris : sert à la synchronisation |
+| `decidedAt`   | ISO 8601 UTC                             | Instant du geste qui a décidé la ligne (v11, #1188) : celui que le moteur arbitre entre deux lignes et contre un réglage ; « Annuler » le remet tel qu'avant le geste |
 
 `givenOn` est renseigné si et seulement si `status` vaut `"given"` ou `"extra"`. Une prise en plus
 (`"extra"`, #503) est rangée sous sa date réelle : son `dueOn` vaut son `givenOn`. La dernière ligne d'un traitement

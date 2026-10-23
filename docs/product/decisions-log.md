@@ -2976,6 +2976,41 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
+## 2026-10-23 — Deux horloges sur chaque ligne de dose : la décision et la dernière écriture (#1188)
+
+Décision de Gaelle du 23 octobre 2026, relayée par la session d'analyse du moteur. Chaque ligne de
+dose (donnée, oubliée, reportée, décalage, prise en plus, pas à donner) porte deux instants :
+`updated_at`, sa dernière écriture, qui avance à chaque écriture, « Annuler » compris, et ne sert
+plus qu'à la synchronisation ; `decided_at`, l'instant du geste qui l'a décidée, seul instant que le
+moteur arbitre, entre deux lignes comme entre une ligne et un réglage. Aucune règle du moteur ne
+change : il lit `decided_at` partout où il lisait `updated_at` d'une ligne.
+
+- Raison : une seule horloge mêlait deux sens. « Supprimer ce traitement » puis « Annuler » datait
+  toutes les prises de l'annulation alors que la réécriture du réglage gardait son heure : le moteur
+  jugeait un report plus récent que la réécriture qui l'avait rendu sans effet. Milo, vermifuge
+  toutes les 2 semaines depuis le 4 avril 2026 ; le 6 avril, la dose du 18 passe au 28, le rythme
+  passe à 3 semaines puis revient à 2 semaines au 10 avril : après « Supprimer » puis « Annuler »,
+  une dose apparaissait en plus le 28 avril (#1188, même fond que #926).
+- Posée à l'instant du geste : Donnée, Oubliée, « Prochaine dose », report, décalage, prise en plus,
+  redatage, « Supprimer » une ligne, note réécrite alors que grisée (TR-25), lignes « pas à donner »
+  de « Modifier », notes du dialogue d'arrêt, « C'est fait » d'une notification. Gardée : « Annuler »
+  (chaque réécriture inverse remet la décision lue avant le geste ; une ligne rétablie garde la
+  sienne), « Supprimer ce traitement » ou « cet animal » puis « Annuler », « Reprendre » et
+  « Modifier » pour les lignes qu'ils ne réécrivent pas, suppression logique, « Effacer les
+  données ». Recopiée de la source : synchronisation et restauration (la décision distante, sous la
+  garde de `updated_at`), import v11 (la valeur du fichier), import v1 à v10 et migration v20
+  (`updated_at`), carnet de démo (son `updatedAt`).
+- Serveur : colonne `decided_at` non nulle, remplie par `updated_at` ; l'écrêtage d'une horloge en
+  avance de plus de 24 h la recule du même écart que `updated_at` quand l'écriture la change, jamais
+  quand elle est gardée. Résidu connu : téléphone en avance de plus de 24 h, geste déjà envoyé puis
+  « Annuler » : la décision remise diffère de la valeur écrêtée du geste, le serveur la juge changée
+  et la recule à son tour de l'écart, alors que le téléphone la gardait telle quelle ; elle peut alors
+  passer derrière une ligne décidée dans cet intervalle. Un geste annulé avant son envoi n'est pas
+  touché.
+- Alternative écartée : ne plus réécrire `updated_at` à la suppression et à l'annulation (la
+  synchronisation ne verrait plus « Annuler ») ; garder un rang d'écriture dans `updated_at` (le rang
+  existant, `rankedStamp`, reste en place et sera retiré par #1189).
+
 ## 2026-10-23 — « Require current password when updating » activé
 
 Décision de Gaelle du 23 octobre 2026 : le réglage Supabase « Require current password when

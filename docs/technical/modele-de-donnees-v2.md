@@ -351,6 +351,27 @@ revenir.
 La migration (`src/core/db/migration-v19.ts`) crée le déclencheur seul, sans `DELETE` ni `UPDATE` de
 premier niveau, et ne remet rien en file : les photos remplacées avant elle ne sont pas connues.
 
+### 4.10 Évolution v20 (décision des lignes de dose, #1188)
+
+`treatment_dose` reçoit `decided_at` (`TEXT`, non nul) : l'instant du geste qui a décidé la ligne,
+seul instant que le moteur arbitre (`Line.decidedAt`), entre deux lignes comme entre une ligne et un
+réglage. `updated_at` reste la dernière écriture de la ligne, qui avance à chaque écriture,
+« Annuler » compris, et ne sert plus qu'à la synchronisation (garde du pull, file d'envoi, lot
+inverse). Le lot d'écriture (`treatment-dose-batch.repository.ts`) pose `decided_at` à l'instant du
+geste, sauf pour une réécriture qui porte la sienne (`DoseWrite.decidedAt`, lot inverse et lignes
+gardées devant de `undoKeepingAhead`) ; une suppression logique et un rétablissement n'y touchent
+pas. La synchro et la restauration recopient la valeur distante sous la garde de `updated_at` ; une
+ligne distante sans `decided_at` est refusée, jamais datée de son `updated_at`. Règle par geste et
+raison : journal des décisions du 23 octobre 2026.
+
+La migration (`src/core/db/migration-v20.ts`) recrée `treatment_dose` comme la v17, sans `DELETE`
+ni `UPDATE` de premier niveau ; déclencheurs recréés après la recopie, rien n'entre dans
+`sync_outbox`. Lignes existantes : `decided_at` vaut `updated_at`. Miroir Supabase :
+`supabase/migrations/20261023110000_sync_mirror_treatment_dose_decided_at.sql`, même colonne
+(`timestamptz` non nul), mêmes valeurs ; `clamp_sync_timestamps` la recule du même écart que
+`updated_at` quand l'écriture la change. Export JSON v11 (`export-format.md`) ; ni le CSV ni le PDF
+ne la montrent.
+
 ## 5. Décisions
 
 - 2026-09-29 — **M1 : une table `treatment_period` sous le traitement.** Le traitement garde l'animal,
