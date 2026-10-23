@@ -15,13 +15,8 @@ import {
   type AnimalRecord,
   type Departure,
 } from '../schema/animal.schema'
-import {
-  COLUMNS,
-  NOT_DELETED,
-  toAnimal,
-  toAnimalRecord,
-  type AnimalRow,
-} from './animal-row.repository'
+import { createAnimalReads } from './animal-reads.repository'
+import { COLUMNS, NOT_DELETED, toAnimalRecord, type AnimalRow } from './animal-row.repository'
 
 export type AnimalVersion = Pick<Animal, 'id' | 'photoPath' | 'updatedAt' | 'deletedAt'>
 export type RestoredAnimal = Omit<AnimalRecord, 'deletedAt'>
@@ -45,36 +40,12 @@ export function createAnimalsRepository(
     deviceId = currentDeviceId,
   }: AnimalsRepositoryDependencies = {},
 ) {
-  async function getById(id: string): Promise<Animal | null> {
-    const rows = await db.query<AnimalRow>(
-      `SELECT ${COLUMNS} FROM animal WHERE id = ? AND ${NOT_DELETED}`,
-      [id],
-    )
-    const row = rows[0]
-    return row ? toAnimal(row) : null
-  }
+  const reads = createAnimalReads(db)
 
   return {
     entity: 'animal',
 
-    getById,
-
-    async list(): Promise<Animal[]> {
-      const rows = await db.query<AnimalRow>(
-        `SELECT ${COLUMNS} FROM animal WHERE ${NOT_DELETED}
-         ORDER BY created_at, name COLLATE NOCASE`,
-      )
-      return rows.map(toAnimal)
-    },
-
-    /** Animaux visibles, toutes colonnes comprises, dans l'ordre de `list`. */
-    async listRecords(): Promise<AnimalRecord[]> {
-      const rows = await db.query<AnimalRow>(
-        `SELECT ${COLUMNS} FROM animal WHERE ${NOT_DELETED}
-         ORDER BY created_at, name COLLATE NOCASE`,
-      )
-      return rows.map(toAnimalRecord)
-    },
+    ...reads,
 
     /** `related` : écritures d'autres tables liées à la création, jouées dans la même transaction. */
     async create(
@@ -143,7 +114,7 @@ export function createAnimalsRepository(
         throw new Error(`Animal introuvable : ${id}`)
       }
 
-      const animal = await getById(id)
+      const animal = await reads.getById(id)
       if (!animal) {
         throw new Error(`Animal introuvable : ${id}`)
       }
