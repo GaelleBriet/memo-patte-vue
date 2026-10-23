@@ -24,7 +24,7 @@ Le dépôt est donc déjà sous les seuils : la dette est dans quatre modules de
 | 4   | `weight-chart.ts` : mesure du texte, axe du temps, placement des étiquettes, deux courbes  | 473      | moyen | faible | #1147 |
 | 5   | `import-plan.ts` : types du carnet local, détection des refus, plan des appareils          | 414      | moyen | faible | #1148 |
 | 6   | `export` superflus (25 valeurs, 59 types) dans `src/`                                       | 84 lignes | faible | très faible | #1149 |
-| 7   | Scripts de préinscription Play (`scripts/*site-preregistration.mjs`) : aucun appel, à confirmer | 78 + 90 de test | faible | très faible | #1150 |
+| 7   | Scripts de préinscription Play (`scripts/*site-preregistration.mjs`) : aucun appel, fait le 2026-10-23, décision de Gaelle, PR #1187 | 78 + 90 de test | faible | très faible | #1150 |
 
 Laissés de côté après examen :
 
@@ -60,7 +60,7 @@ Preuves (commandes lancées dans le worktree, `knip 6.42.1` via `pnpm dlx`) :
 | `src/styles/settings.scss`                                                               | faux positif : chargé par `vite.config.ts:34` (`configFile` de Vuetify)                           |
 | `site/vitrine.js`, `supabase/functions/revenuecat-webhook/index.ts`, `site/_worker.js`, `site/aide/*.js` | faux positifs : points d'entrée chargés par le navigateur, Cloudflare ou Supabase                 |
 | `scripts/test-device/cdp.mjs`                                                            | à confirmer : documenté dans `.claude/rules/outils-de-test.md`, lancé à la main                   |
-| `scripts/open-site-preregistration.mjs`, `scripts/site-preregistration.mjs`              | à confirmer : aucune référence hors de leur test, ni dans `package.json` ni dans la CI            |
+| `scripts/open-site-preregistration.mjs`, `scripts/site-preregistration.mjs`              | fait le 2026-10-23, décision de Gaelle, PR #1187 : aucune référence hors de leur test, ni dans `package.json` ni dans la CI            |
 | Types `Version4Period` à `Version9Period`, `Version8Dose`, `Version4Dose`                | exports superflus, pas du code mort : utilisés dans `export-file-versions.ts`                     |
 | Clés i18n                                                                                | non auditées ici : la règle `@intlify/vue-i18n/no-unused-keys` les couvre déjà, sauf clés construites |
 
