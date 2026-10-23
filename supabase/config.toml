@@ -225,6 +225,8 @@ double_confirm_changes = true
 enable_confirmations = false
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = true
+# « Require current password when updating » (activé sur l'hébergé) n'a pas de clé dans la CLI 2.119 :
+# scripts/supabase-local/require-current-password.sh l'active sur la pile locale.
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
 max_frequency = "1s"
 # Number of characters used in the email OTP.
