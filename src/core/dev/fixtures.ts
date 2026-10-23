@@ -173,6 +173,7 @@ async function seedDemoCarnet(repositories: FixturesRepositories, today: Date): 
                   ...reportFactsOf({ ...dose, settingId: periodId }, undefined, period.times ?? []),
                   ...dose,
                   ...stamps,
+                  decidedAt: stamps.updatedAt,
                   id: crypto.randomUUID(),
                   periodId,
                   treatmentId,

@@ -78,9 +78,10 @@ describe('TR-25 : une dose notée sur deux appareils, « Supprimer » (2026-10-1
     })
     await db.run(
       `INSERT INTO treatment_dose (id, period_id, treatment_id, animal_id, due_on, due_time,
-         given_on, status, target_on, created_at, updated_at, created_by_device, updated_by_device)
-       VALUES (?, ?, ?, ?, '2026-10-10', NULL, ?, ?, NULL, ?, ?, 'autre', 'autre')`,
-      [other.id, ID, ID, ANIMAL, other.givenOn, other.status, otherAt, otherAt],
+         given_on, status, target_on, created_at, updated_at, decided_at, created_by_device,
+         updated_by_device)
+       VALUES (?, ?, ?, ?, '2026-10-10', NULL, ?, ?, NULL, ?, ?, ?, 'autre', 'autre')`,
+      [other.id, ID, ID, ANIMAL, other.givenOn, other.status, otherAt, otherAt, otherAt],
     )
     const doses = (await storedTreatment(replay.treatments, ID)).doses
     return doses.find(({ id }) => id !== other.id)!.id

@@ -32,6 +32,7 @@ function remoteDose(overrides: Record<string, string | number | null> = {}) {
     target_on: '2026-03-01',
     created_at: T_NEW,
     updated_at: T_NEW,
+    decided_at: T_NEW,
     deleted_at: null,
     created_by_device: 'appareil-test',
     updated_by_device: 'appareil-test',
@@ -73,9 +74,9 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
     await db.run(
       `INSERT INTO treatment_dose
          (id, period_id, treatment_id, animal_id, due_on, given_on, status, target_on,
-          created_at, updated_at, created_by_device, updated_by_device)
-       VALUES (?, ?, ?, ?, '2026-01-01', '2026-01-01', 'given', '2026-02-01', ?, ?, 'appareil-test', 'appareil-test')`,
-      [TREATMENT_ID, TREATMENT_ID, TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],
+          created_at, updated_at, decided_at, created_by_device, updated_by_device)
+       VALUES (?, ?, ?, ?, '2026-01-01', '2026-01-01', 'given', '2026-02-01', ?, ?, ?, 'appareil-test', 'appareil-test')`,
+      [TREATMENT_ID, TREATMENT_ID, TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL, T_LOCAL],
     )
   })
 
@@ -105,6 +106,7 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
       due_rank: null,
       created_at: T_LOCAL,
       updated_at: T_LOCAL,
+      decided_at: T_LOCAL,
       deleted_at: T_NEW,
       created_by_device: 'appareil-test',
       updated_by_device: 'appareil-test',
@@ -163,6 +165,37 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
     })
   })
 
+  it('#1188 : recopie la décision distante, sous la seule garde de la dernière écriture', async () => {
+    await db.runMany([
+      repository.applyRemoteRowStatement(
+        remoteDose({ id: TREATMENT_ID, target_on: '2026-04-01', decided_at: T_OLD }),
+      ),
+    ])
+
+    await expect(repository.getById(TREATMENT_ID)).resolves.toMatchObject({
+      targetOn: '2026-04-01',
+      updatedAt: T_NEW,
+      decidedAt: T_OLD,
+    })
+
+    await db.runMany([
+      repository.applyRemoteRowStatement(
+        remoteDose({ id: TREATMENT_ID, updated_at: T_LOCAL, decided_at: T_NEW }),
+      ),
+    ])
+
+    await expect(repository.getById(TREATMENT_ID)).resolves.toMatchObject({
+      updatedAt: T_NEW,
+      decidedAt: T_OLD,
+    })
+  })
+
+  it('refuse une ligne distante sans décision, sans la dater de sa dernière écriture', async () => {
+    await expect(
+      db.runMany([repository.applyRemoteRowStatement(remoteDose({ decided_at: null }))]),
+    ).rejects.toThrow(/NOT NULL constraint failed: treatment_dose.decided_at/)
+  })
+
   it('reçoit l’arrivée d’avant et le rang d’un report ; une ligne distante qui ne les porte pas les laisse vides', async () => {
     await db.runMany([
       repository.applyRemoteRowStatement(
@@ -211,6 +244,7 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
         target_on: null,
         period_id: periodId,
         updated_at: updatedAt,
+        decided_at: updatedAt,
       })
 
     it('garde les deux lignes : la plus récente est lue, l’autre reste, sans effet', async () => {
@@ -266,6 +300,7 @@ describe('treatmentDosesRepository — port de synchronisation', () => {
           due_rank: null,
           created_at: PG_LOCAL,
           updated_at: PG_LOCAL,
+          decided_at: PG_LOCAL,
           deleted_at: null,
           created_by_device: 'appareil-test',
           updated_by_device: 'appareil-test',

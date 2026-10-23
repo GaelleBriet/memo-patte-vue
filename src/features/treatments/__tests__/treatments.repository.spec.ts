@@ -279,6 +279,7 @@ describe('treatmentsRepository — périodes et prises', () => {
     target_on: string | null
     created_at: string
     updated_at: string
+    decided_at: string
     deleted_at: string | null
   }
 
@@ -321,6 +322,7 @@ describe('treatmentsRepository — périodes et prises', () => {
         dueRank: null,
         createdAt,
         updatedAt: createdAt,
+        decidedAt: surcharges.updatedAt ?? createdAt,
         deletedAt: null,
         ...surcharges,
       }),
@@ -581,6 +583,23 @@ describe('treatmentsRepository — périodes et prises', () => {
       await expect(periodsOf(created.id)).resolves.toMatchObject([back])
     })
 
+    it('#1188 : garde la décision de chaque prise ; seule la dernière écriture avance', async () => {
+      const created = await seedTreatmentWithDose(db, bravecto)
+      const decidedAt = '2026-09-20T08:00:00.000Z'
+      await addDose(created.id, '2025-12-01', { updatedAt: decidedAt })
+      const before = await dosesOf(created.id)
+      const deletedAt = await removeThenWait(created.id)
+
+      await repository.restore(created.id, deletedAt)
+
+      const after = await dosesOf(created.id)
+      expect(after.map(({ decided_at }) => decided_at)).toEqual(
+        before.map(({ decided_at }) => decided_at),
+      )
+      expect(after.map(({ updated_at }) => updated_at)).toEqual([UNDONE_AT, UNDONE_AT])
+      expect(before.map(({ decided_at }) => decided_at)).toContain(decidedAt)
+    })
+
     it('laisse supprimée une prise supprimée avant le traitement', async () => {
       const created = await seedTreatmentWithDose(db, bravecto)
       const ancienne = await addDose(created.id, '2025-12-01')
@@ -699,6 +718,7 @@ describe('treatmentsRepository — import', () => {
           dueRank: null,
           createdAt: treatment.createdAt,
           updatedAt: treatment.updatedAt,
+          decidedAt: treatment.updatedAt,
           ...PAR_FICHIER,
         },
         exists,

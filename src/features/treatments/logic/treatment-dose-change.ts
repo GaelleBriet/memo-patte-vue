@@ -1,6 +1,6 @@
 import { doseWritesOf } from './treatment-dose-writes'
 import { revealedDues, type RevealedDues } from './treatment-revealed-dues'
-import type { KeptAhead } from './treatment-undo-order'
+import type { KeptAhead, KeptLine } from './treatment-undo-order'
 import type { DoseWrite } from '../schema/treatment-dose.schema'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import {
@@ -14,6 +14,7 @@ import {
   type Gesture,
   type GestureOutcome,
   type LineChange,
+  type Line,
   type LineFields,
   type Refusal,
   type TreatmentView,
@@ -61,6 +62,12 @@ export class GestureRefusedError extends Error {
 }
 
 type TreatmentToWrite = Pick<TreatmentWithPeriods, 'id' | 'animalId' | 'doses' | 'periods'>
+
+// La dernière écriture de chaque ligne lue, que le moteur ne connaît pas : la garde du lot inverse.
+function keptLines(treatment: TreatmentToWrite, lines: readonly Line[]): KeptLine[] {
+  const updatedAt = new Map(treatment.doses.map(({ id, updatedAt }) => [id, updatedAt]))
+  return lines.map((line) => ({ ...line, updatedAt: updatedAt.get(line.id)! }))
+}
 
 const NONE = {
   alreadyGivenOn: null,
@@ -136,7 +143,11 @@ function noteChange(
     shiftKept: gesture.status === 'missed' && wasGiven && keepsShift(reading, gesture.due),
     revealed: gesture.status === 'given' ? revealedBy(reading, outcome) : null,
     ...(heldBy === undefined ? {} : { heldBy }),
-    ...(ahead.length === 0 ? {} : { keptAhead: { touched, ahead } }),
+    ...(ahead.length === 0
+      ? {}
+      : {
+          keptAhead: { touched: keptLines(treatment, touched), ahead: keptLines(treatment, ahead) },
+        }),
   }
 }
 
@@ -213,7 +224,14 @@ export function doseChange(
         ...NONE,
         writes: doseWritesOf(treatment, outcome.changes, newId),
         shiftKept: line.status !== 'extra' && line.status !== 'shift' && keepsShift(after, line),
-        ...(ahead.length === 0 ? {} : { keptAhead: { touched, ahead } }),
+        ...(ahead.length === 0
+          ? {}
+          : {
+              keptAhead: {
+                touched: keptLines(treatment, touched),
+                ahead: keptLines(treatment, ahead),
+              },
+            }),
       }
     }
     case 'redate': {

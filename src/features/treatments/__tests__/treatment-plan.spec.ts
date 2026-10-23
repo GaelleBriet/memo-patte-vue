@@ -66,6 +66,7 @@ function dose(dueOn: string, overrides: Partial<TreatmentDose> = {}): TreatmentD
     targetOn: null,
     createdAt: AT,
     updatedAt: AT,
+    decidedAt: overrides.updatedAt ?? AT,
     deletedAt: null,
     ...overrides,
   }

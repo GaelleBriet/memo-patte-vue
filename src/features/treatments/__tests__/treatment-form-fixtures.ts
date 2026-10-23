@@ -54,6 +54,7 @@ export const PRISE: TreatmentDose = {
   targetOn: null,
   createdAt: AT,
   updatedAt: AT,
+  decidedAt: AT,
   deletedAt: null,
 }
 

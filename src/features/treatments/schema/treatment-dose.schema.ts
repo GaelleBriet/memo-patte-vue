@@ -23,6 +23,8 @@ export const treatmentDoseSchema = z.object({
   dueRank: z.number().int().min(1).nullable(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
+  /** Instant du geste qui a décidé la ligne, que le moteur arbitre ; `updatedAt` ne sert qu'à la synchronisation. */
+  decidedAt: z.iso.datetime(),
   deletedAt: z.iso.datetime().nullable(),
 })
 
@@ -55,9 +57,12 @@ type Unchanged = { expectedUpdatedAt?: string }
  */
 type Ranked = { rank?: number }
 
+/** `decidedAt` (lot inverse) : la décision lue avant le geste, remise telle quelle ; absente : l'instant du geste. */
+type Decided = { decidedAt?: string }
+
 /** Une écriture du moteur d'échéances ; `restore` ne sert qu'à défaire un `delete`. */
 export type DoseWrite =
   | ({ action: 'create'; dose: DoseFields } & DoseOwner)
-  | ({ action: 'rewrite'; id: string; dose: DoseFields } & Unchanged & Ranked)
+  | ({ action: 'rewrite'; id: string; dose: DoseFields } & Unchanged & Ranked & Decided)
   | ({ action: 'delete'; id: string } & Unchanged)
   | ({ action: 'restore'; id: string } & Unchanged & Ranked)

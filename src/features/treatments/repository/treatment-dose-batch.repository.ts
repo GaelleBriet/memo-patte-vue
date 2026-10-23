@@ -126,13 +126,14 @@ export function createDoseBatch(
           case 'rewrite': {
             const stamp = rankedStamp(at, write.rank)
             return {
-              statement: rewriteStatement(write.id, write.dose, stamp),
+              statement: rewriteStatement(write.id, write.dose, stamp, write.decidedAt ?? at),
               inverse: {
                 action: 'rewrite',
                 id: write.id,
                 dose: fieldsOf(read(write)),
                 expectedUpdatedAt: stamp,
                 rank: rankOf(write.id),
+                decidedAt: read(write).decided_at,
               },
             }
           }

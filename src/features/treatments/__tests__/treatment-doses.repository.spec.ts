@@ -48,6 +48,7 @@ function prise(
     targetOn: null,
     createdAt: NOW,
     updatedAt: NOW,
+    decidedAt: surcharges.updatedAt ?? NOW,
     deletedAt: null,
     ...surcharges,
   }
@@ -103,6 +104,24 @@ describe('treatmentDosesRepository', () => {
     )
   })
 
+  it('#1188 : « Supprimer cet animal » puis « Annuler » garde la décision de chaque prise', async () => {
+    const decisions = () =>
+      db.query<{ id: string; decided_at: string; updated_at: string }>(
+        'SELECT id, decided_at, updated_at FROM treatment_dose WHERE animal_id = ? ORDER BY id',
+        [MIETTE],
+      )
+    const before = await decisions()
+
+    await db.runMany([doses.markDeletedByAnimalStatement(MIETTE, NOW)])
+    await db.runMany([doses.reviveByAnimalStatement(MIETTE, NOW, LATER)])
+
+    const after = await decisions()
+    expect(after.map(({ id, decided_at }) => [id, decided_at])).toEqual(
+      before.map(({ id, decided_at }) => [id, decided_at]),
+    )
+    expect(after.find(({ id }) => id === milbemax)?.updated_at).toBe(LATER)
+  })
+
   it('marque toutes les prises encore visibles, sans changer la date des autres', async () => {
     await db.runMany([doses.markAllDeletedStatement(NOW)])
 
@@ -153,6 +172,7 @@ describe('treatmentDosesRepository', () => {
           givenOn: null,
           status: 'postponed',
           targetOn: '2026-02-24',
+          decidedAt: T0,
           createdByDevice: 'appareil-du-fichier',
           updatedByDevice: 'appareil-du-fichier',
         },
@@ -173,6 +193,7 @@ describe('treatmentDosesRepository', () => {
           target_on: '2026-02-24',
           created_at: NOW,
           updated_at: NOW,
+          decided_at: T0,
           deleted_at: null,
         }),
       ],
@@ -218,6 +239,7 @@ describe('treatmentDosesRepository', () => {
         due_rank: null,
         created_at: T0,
         updated_at: NOW,
+        decided_at: NOW,
         deleted_at: null,
         created_by_device: 'appareil-du-fichier',
         updated_by_device: 'appareil-du-fichier',

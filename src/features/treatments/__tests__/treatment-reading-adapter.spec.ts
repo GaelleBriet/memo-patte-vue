@@ -88,6 +88,7 @@ describe('treatmentReadingOf', () => {
           dueRank: null,
           createdAt: AT,
           updatedAt: AT,
+          decidedAt: AT,
           deletedAt: null,
         },
       ],

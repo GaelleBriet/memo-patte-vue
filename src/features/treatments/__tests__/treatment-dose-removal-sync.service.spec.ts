@@ -104,8 +104,9 @@ describe('#842 : « Supprimer » une ligne grisée ne réécrit rien ; un geste 
     await phoneA.doses.apply(ID, noteOn10(onA))
     await dbA.run(
       `INSERT INTO treatment_dose (id, period_id, treatment_id, animal_id, due_on, due_time,
-         given_on, status, target_on, created_at, updated_at, created_by_device, updated_by_device)
-       VALUES (?, ?, ?, ?, '2026-10-10', NULL, ?, ?, NULL,
+         given_on, status, target_on, created_at, updated_at, decided_at, created_by_device,
+         updated_by_device)
+       VALUES (?, ?, ?, ?, '2026-10-10', NULL, ?, ?, NULL, '2026-12-31T00:00:00.000Z',
          '2026-12-31T00:00:00.000Z', '2026-12-31T00:00:00.000Z', 'autre', 'autre')`,
       [OTHER, ID, ID, ANIMAL, other === 'given' ? '2026-10-10' : null, other],
     )

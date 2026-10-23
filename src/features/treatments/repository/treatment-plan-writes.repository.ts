@@ -52,7 +52,7 @@ export function createTreatmentPlanWrites(
       case 'create':
         return doses.createStatement({ id: write.id, treatmentId, animalId, dose: write.dose, at })
       case 'rewrite':
-        return doses.rewriteStatement(write.id, write.dose, at)
+        return doses.rewriteStatement(write.id, write.dose, at, at)
       case 'delete':
         return doses.markDeletedStatement([write.id], at)
     }

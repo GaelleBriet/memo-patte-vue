@@ -261,6 +261,40 @@ describe('les services des traitements rejouent les gestes du moteur v2', () => 
     600_000 + SEEDS * STEPS * 200,
   )
 
+  // #1188 : les neuf carnets dont le calendrier changeait après « Supprimer » puis « Annuler ».
+  it.each([69, 370, 468, 745, 1619, 1785, 1877, 2495, 2646])(
+    'graine %i : « Supprimer ce traitement » puis « Annuler » après chaque geste rend la même lecture',
+    async (seed) => {
+      const walk = startV2Walk(seed)
+      const id = crypto.randomUUID()
+      const periods: Periods = new Map([['s1', id]])
+      await replay.start(walk, id)
+      const steps: V2Step[] = []
+      for (let count = 0; count < 30; count += 1) v2Step(walk, (step) => steps.push(step))
+      const changed: string[] = []
+      for (const step of steps) {
+        if (refusedByScreen(step)) break
+        try {
+          await replayStep(replay, id, periods, step)
+        } catch {
+          break
+        }
+        const before = await readingAfter(replay, id)
+        replay.tick()
+        const deletedAt = await replay.treatments.remove(id)
+        replay.tick()
+        await replay.treatments.restore(id, deletedAt)
+        const after = await readingAfter(replay, id)
+        if (JSON.stringify(after) !== JSON.stringify(before)) {
+          changed.push(
+            `${step.label}\n  avant : ${JSON.stringify(before)}\n  après : ${JSON.stringify(after)}`,
+          )
+        }
+      }
+      expect(changed).toEqual([])
+    },
+  )
+
   it.each([
     ['TREATMENT_ORACLE_SEEDS', 'mille'],
     ['TREATMENT_ORACLE_FROM', '-3'],
