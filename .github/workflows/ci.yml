@@ -23,7 +23,8 @@ permissions:
 
 jobs:
   # Une PR qui ne touche que site/ ou docs/ ne lance que ESLint et les tests du site ; les tests contre
-  # une pile Supabase locale ne tournent que si la PR touche supabase/, src/core/supabase/ ou ce workflow.
+  # une pile Supabase locale ne tournent que si la PR touche supabase/, src/core/supabase/, pnpm-lock.yaml
+  # ou ce workflow.
   changes:
     runs-on: ubuntu-latest
     outputs:
@@ -43,7 +44,7 @@ jobs:
             files=$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[] | .filename, (.previous_filename // empty)') &&
             [ -n "$files" ]; then
             grep -qvE '^(site|docs)/' <<<"$files" || app=false
-            grep -qE '^(supabase/|src/core/supabase/|\.github/workflows/ci\.yml$)' <<<"$files" || supabase=false
+            grep -qE '^(supabase/|src/core/supabase/|\.github/workflows/ci\.yml$|pnpm-lock\.yaml$)' <<<"$files" || supabase=false
           fi
           echo "app=$app" | tee -a "$GITHUB_OUTPUT"
           echo "supabase=$supabase" | tee -a "$GITHUB_OUTPUT"
