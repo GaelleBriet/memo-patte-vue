@@ -3,9 +3,11 @@
 # pour ce réglage de GoTrue, le conteneur d'authentification est recréé avec la variable en plus.
 set -euo pipefail
 
-container=$(docker ps --filter label=com.supabase.cli.project --filter name=supabase_auth_ --format '{{.Names}}')
-if [ "$(wc -l <<<"$container")" -ne 1 ] || [ -z "$container" ]; then
-  echo "Une seule pile Supabase locale attendue, trouvé : ${container:-aucune}" >&2
+config_toml="$(dirname "$0")/../../supabase/config.toml"
+project=$(sed -n 's/^project_id = "\(.*\)"$/\1/p' "$config_toml")
+container=$(docker ps --filter "label=com.supabase.cli.project=$project" --filter "name=^supabase_auth_$project\$" --format '{{.Names}}')
+if [ -z "$project" ] || [ "$container" != "supabase_auth_$project" ]; then
+  echo "Pile Supabase locale « ${project:-?} » introuvable : lancer supabase start d'abord" >&2
   exit 1
 fi
 
