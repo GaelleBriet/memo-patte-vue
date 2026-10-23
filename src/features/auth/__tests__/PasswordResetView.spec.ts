@@ -33,6 +33,25 @@ vi.mock('../repository/auth.repository', () => ({
 const repository = vi.mocked(authRepository)
 provideAuthRepository(() => authRepository)
 const Vide = { render: () => null }
+const retours = vi.hoisted(() => [] as Array<() => void>)
+
+vi.mock('@/core/app-lifecycle/back-button', () => ({
+  onBackButton: (handler: () => void) => {
+    retours.push(handler)
+    return () => {
+      const index = retours.indexOf(handler)
+      if (index !== -1) retours.splice(index, 1)
+    }
+  },
+}))
+
+async function retourAndroid(): Promise<boolean> {
+  const handler = retours.at(-1)
+  handler?.()
+  await flushPromises()
+  return handler !== undefined
+}
+
 const ADRESSE = 'sophie@exemple.fr'
 const ENVOI = new Date(2026, 9, 22, 18, 0)
 
@@ -95,6 +114,7 @@ function erreurDeConfirmation(wrapper: VueWrapper): string | undefined {
 }
 
 beforeEach(() => {
+  retours.length = 0
   vi.clearAllMocks()
   vi.useFakeTimers({ toFake: ['Date'], now: ENVOI })
   vi.stubGlobal('localStorage', memoryStorage())
@@ -164,6 +184,12 @@ describe('PasswordResetView', () => {
 
       expect(replace).toHaveBeenCalledWith({ name: 'sign-in', query: { from: 'plus-account' } })
     })
+  })
+
+  it('laisse le retour d’Android quitter l’écran depuis l’adresse', async () => {
+    await monter()
+
+    expect(await retourAndroid()).toBe(false)
   })
 
   describe('code et nouveau mot de passe (V24 octies, nonies)', () => {
@@ -269,6 +295,29 @@ describe('PasswordResetView', () => {
 
       expect((wrapper.get('#password-reset-email').element as HTMLInputElement).value).toBe(ADRESSE)
       expect(replace).not.toHaveBeenCalled()
+    })
+
+    it('revient à l’adresse par le retour d’Android, adresse gardée, mots de passe effacés, sans requête', async () => {
+      const wrapper = await codeEnvoye()
+      await saisirCodeEtMotDePasse(wrapper, '12345678', 'nouveau-secret')
+      vi.mocked(repository.sendPasswordResetCode).mockClear()
+      vi.mocked(repository.verifyPasswordResetCode).mockClear()
+
+      expect(await retourAndroid()).toBe(true)
+
+      expect((wrapper.get('#password-reset-email').element as HTMLInputElement).value).toBe(ADRESSE)
+      expect(repository.sendPasswordResetCode).not.toHaveBeenCalled()
+      expect(repository.verifyPasswordResetCode).not.toHaveBeenCalled()
+      expect(replace).not.toHaveBeenCalled()
+      expect(retours).toHaveLength(0)
+      vi.setSystemTime(new Date(2026, 9, 22, 18, 5))
+      await toucher(wrapper, '.password-reset__send')
+      expect((wrapper.get('#password-reset-new-password').element as HTMLInputElement).value).toBe(
+        '',
+      )
+      expect((wrapper.get('#password-reset-confirmation').element as HTMLInputElement).value).toBe(
+        '',
+      )
     })
   })
 
