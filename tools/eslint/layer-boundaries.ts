@@ -47,17 +47,24 @@ const CORE_VALUE_OUT_OF_SHARED_DOMAIN = {
 export const layerBoundaryBlocks: Linter.Config[] = [
   {
     name: 'app/production-not-tests',
-    files: ['src/**/*.{ts,vue}'],
-    ignores: ['**/__tests__/**', '**/*.spec.ts'],
+    files: ['src/**/*.{ts,mts,tsx,vue}'],
+    ignores: ['**/__tests__/**', '**/*.spec.*', '**/*.test.*'],
     rules: {
       'app/no-restricted-test-imports': [
         'error',
         {
           patterns: [
             {
-              group: ['**/__tests__', '**/__tests__/**'],
+              group: [
+                '**/__tests__',
+                '**/__tests__/**',
+                '**/*.spec',
+                '**/*.spec.*',
+                '**/*.test',
+                '**/*.test.*',
+              ],
               message:
-                "Un fichier de production n'importe rien de __tests__/ : l'aide partagée vit hors de ce dossier.",
+                "Un fichier de production n'importe ni __tests__/ ni un spec : l'aide partagée vit hors de ces fichiers.",
             },
           ],
         },
