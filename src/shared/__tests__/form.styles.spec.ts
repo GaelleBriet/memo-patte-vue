@@ -194,7 +194,7 @@ describe('FormSegmented — contrat de style', () => {
       'auto',
     )
     expect(declaration(css, '.form-segmented--compact .form-segmented__option', 'min-height')).toBe(
-      '46px',
+      'calc(54px - 8px)',
     )
   })
 
