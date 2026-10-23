@@ -52,6 +52,7 @@ export async function seedTreatmentWithDose(
       dueRank: null,
       createdAt: created.createdAt,
       updatedAt: created.createdAt,
+      decidedAt: created.createdAt,
       deletedAt: null,
     }),
   ])

@@ -23,16 +23,28 @@ export function createDoseLineStatements(deviceId: () => string) {
     at,
     ...owner
   }: DoseOwner & { dose: DoseFields; at: string }): SqlStatement {
-    return insertStatement({ ...owner, ...dose, createdAt: at, updatedAt: at, deletedAt: null })
+    return insertStatement({
+      ...owner,
+      ...dose,
+      createdAt: at,
+      updatedAt: at,
+      decidedAt: at,
+      deletedAt: null,
+    })
   }
 
   /** Sans effet sur une ligne supprimée. */
-  function rewriteStatement(id: string, dose: DoseFields, updatedAt: string): SqlStatement {
+  function rewriteStatement(
+    id: string,
+    dose: DoseFields,
+    updatedAt: string,
+    decidedAt: string,
+  ): SqlStatement {
     return {
       sql: `UPDATE treatment_dose
             SET period_id = ?, due_on = ?, due_time = ?, given_on = ?, status = ?,
                 target_on = ?, previous_target_on = ?, previous_target_time = ?, due_rank = ?,
-                updated_at = ?, updated_by_device = ?
+                updated_at = ?, decided_at = ?, updated_by_device = ?
             WHERE id = ? AND ${NOT_DELETED}`,
       params: [
         dose.periodId,
@@ -45,6 +57,7 @@ export function createDoseLineStatements(deviceId: () => string) {
         dose.previousTargetTime,
         dose.dueRank,
         updatedAt,
+        decidedAt,
         deviceId(),
         id,
       ],

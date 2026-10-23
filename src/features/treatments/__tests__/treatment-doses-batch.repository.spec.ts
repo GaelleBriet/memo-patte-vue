@@ -80,8 +80,11 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
     const [found] = await db.query<{
       created_at: string
       updated_at: string
+      decided_at: string
       deleted_at: string | null
-    }>('SELECT created_at, updated_at, deleted_at FROM treatment_dose WHERE id = ?', [id])
+    }>('SELECT created_at, updated_at, decided_at, deleted_at FROM treatment_dose WHERE id = ?', [
+      id,
+    ])
     return found
   }
 
@@ -137,6 +140,7 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
       await expect(row('matin')).resolves.toEqual({
         created_at: T1,
         updated_at: T1,
+        decided_at: T1,
         deleted_at: null,
       })
     })
@@ -177,7 +181,7 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
         previousTargetTime: '08:00',
       }
 
-      await db.runMany([doses.rewriteStatement('report', moved, T2)])
+      await db.runMany([doses.rewriteStatement('report', moved, T2, T2)])
 
       await expect(visible()).resolves.toEqual([{ id: 'report', ...moved }])
     })
@@ -186,7 +190,7 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
       await db.runMany([doses.createStatement({ id: 'matin', ...OWNER, dose: MATIN, at: T1 })])
       const redatee = fields({ givenOn: '2026-09-28' })
 
-      await db.runMany([doses.rewriteStatement('matin', redatee, T2)])
+      await db.runMany([doses.rewriteStatement('matin', redatee, T2, T2)])
 
       await expect(visible()).resolves.toEqual([{ id: 'matin', ...redatee }])
       await expect(row('matin')).resolves.toMatchObject({ created_at: T1, updated_at: T2 })
@@ -272,12 +276,33 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
       await expect(visible()).resolves.toEqual(before)
       expect(inverse).toEqual([
         { action: 'restore', id: 'report', expectedUpdatedAt: T2, rank: 0 },
-        { action: 'rewrite', id: 'matin', dose: MATIN, expectedUpdatedAt: T2, rank: 0 },
+        {
+          action: 'rewrite',
+          id: 'matin',
+          dose: MATIN,
+          expectedUpdatedAt: T2,
+          rank: 0,
+          decidedAt: T1,
+        },
         { action: 'delete', id: 'nouvelle', expectedUpdatedAt: T2 },
       ])
       await expect(row('report')).resolves.toMatchObject({ updated_at: T3, deleted_at: null })
       await expect(row('matin')).resolves.toMatchObject({ updated_at: T3 })
       await expect(row('nouvelle')).resolves.toMatchObject({ updated_at: T3, deleted_at: T3 })
+    })
+
+    it('#1188 : le geste décide ses lignes à son instant ; « Annuler » leur rend la décision d’avant, la dernière écriture avance', async () => {
+      const inverse = await doses.applyBatch(LOT, T2)
+
+      await expect(row('matin')).resolves.toMatchObject({ updated_at: T2, decided_at: T2 })
+      await expect(row('nouvelle')).resolves.toMatchObject({ updated_at: T2, decided_at: T2 })
+      await expect(row('report')).resolves.toMatchObject({ updated_at: T2, decided_at: T1 })
+
+      await doses.applyBatch(inverse, T3)
+
+      await expect(row('matin')).resolves.toMatchObject({ updated_at: T3, decided_at: T1 })
+      await expect(row('report')).resolves.toMatchObject({ updated_at: T3, decided_at: T1 })
+      await expect(row('nouvelle')).resolves.toMatchObject({ updated_at: T3, decided_at: T2 })
     })
 
     it('TR-25 : l’annulation date les lignes dans l’ordre de leurs modifications d’avant le geste', async () => {
@@ -510,7 +535,7 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
       it('D9 : un « Annuler » échoue en entier quand la ligne est modifiée après la lecture', async () => {
         const undo = await doses.applyBatch(LOT, T2)
         const concurrent = createTreatmentDosesRepository(
-          slippedIn(db, () => [doses.rewriteStatement('matin', MATIN, T3)]),
+          slippedIn(db, () => [doses.rewriteStatement('matin', MATIN, T3, T3)]),
         )
 
         await expect(concurrent.applyBatch(undo, T4)).rejects.toBeInstanceOf(ConcurrentWriteError)

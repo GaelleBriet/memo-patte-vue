@@ -8,7 +8,7 @@ import {
 } from '@/shared/domain/dose-calendar'
 
 import { int, mulberry32, pick, plusDays, type Random } from './carnet'
-import { applyBatch, noteByApp, type Clock, type Phone } from './two-devices-app'
+import { applyBatch, noteByApp, type Clock, type Phone, type PhoneLine } from './two-devices-app'
 import { startV2Walk, v2Step } from './v2-walk'
 
 /** Un moteur qui joue les gestes et lit le carnet : celui de la branche, ou celui de `main`. */
@@ -39,13 +39,17 @@ function stamp(clock: { n: number }): string {
   return new Date(LATER + clock.n * 1000).toISOString()
 }
 
+// Le carnet de la marche n'a que des décisions : sa dernière écriture est celle de la décision.
+const stamped = (lines: readonly Line[]): PhoneLine[] =>
+  lines.map((line) => ({ ...line, updatedAt: line.decidedAt }))
+
 // Comme le repository : une réécriture garde l'identifiant et le téléphone qui a créé la ligne.
 function write(
-  lines: readonly Line[],
+  lines: readonly PhoneLine[],
   changes: readonly LineChange[],
   device: Device,
   clock: { n: number },
-): Line[] {
+): PhoneLine[] {
   let next = [...lines]
   for (const change of changes) {
     if (change.action === 'delete') {
@@ -56,19 +60,31 @@ function write(
     next =
       change.action === 'rewrite'
         ? next.map((line) =>
-            line.id === change.id ? { ...line, ...change.line, updatedAt } : line,
+            line.id === change.id
+              ? { ...line, ...change.line, updatedAt, decidedAt: updatedAt }
+              : line,
           )
         : [
             ...next,
-            { ...change.line, id: `${device}${clock.n}`, updatedAt, createdByDevice: device },
+            {
+              ...change.line,
+              id: `${device}${clock.n}`,
+              updatedAt,
+              decidedAt: updatedAt,
+              createdByDevice: device,
+            },
           ]
   }
   return next
 }
 
 // La synchro : par ligne, la modification la plus récente gagne ; une ligne supprimée l'est partout.
-function synced(base: readonly Line[], a: readonly Line[], b: readonly Line[]): Line[] {
-  const byId = new Map<string, Line>()
+function synced(
+  base: readonly Line[],
+  a: readonly PhoneLine[],
+  b: readonly PhoneLine[],
+): PhoneLine[] {
+  const byId = new Map<string, PhoneLine>()
   for (const line of [...a, ...b]) {
     const kept = byId.get(line.id)
     if (kept === undefined || line.updatedAt > kept.updatedAt) byId.set(line.id, line)
@@ -112,12 +128,12 @@ function signature(engine: Engine, input: TreatmentViewInput): string {
 export function screensOf(engine: Engine, fork: NotesFork): [string, string] | null {
   const clock = { n: 0 }
   const other: Device = fork.device === 'A' ? 'B' : 'A'
-  const phones = {} as Record<Device, Line[]>
+  const phones = {} as Record<Device, PhoneLine[]>
   for (const device of [fork.first, fork.first === 'A' ? 'B' : 'A'] as const) {
     const input = { ...fork.base, device }
     const changes = noted(engine, input, fork, fork.notes[device])
     if (changes === null) return null
-    phones[device] = write(fork.base.lines, changes, device, clock)
+    phones[device] = write(stamped(fork.base.lines), changes, device, clock)
   }
   const at = clock.n
   const screens = [true, false].map((receivedBefore) => {
@@ -172,7 +188,7 @@ export function appConstatsOf(engine: Engine, fork: NotesFork): string[] | null 
   const clock: Clock = { n: 0 }
   const start = (device: Device): Phone => ({
     device,
-    lines: [...fork.base.lines],
+    lines: stamped(fork.base.lines),
     deleted: new Map(),
   })
   const phones = { A: start('A'), B: start('B') }

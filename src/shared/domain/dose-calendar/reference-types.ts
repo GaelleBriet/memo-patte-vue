@@ -35,7 +35,7 @@ export type ReferenceLine = {
   previousTargetTime?: string | null
   /** Report : rang de son heure dans sa journée d'origine. */
   dueRank?: number | null
-  updatedAt: string
+  decidedAt: string
 }
 
 export type ReferenceInput = {

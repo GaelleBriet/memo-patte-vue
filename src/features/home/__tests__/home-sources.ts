@@ -54,7 +54,7 @@ export function given(
     givenOn: dueOn,
     status: 'given',
     targetOn: null,
-    updatedAt: AT,
+    decidedAt: AT,
     ...overrides,
   }
 }

@@ -83,6 +83,7 @@ function dose(overrides: Partial<TreatmentDose> = {}): TreatmentDose {
     targetOn: null,
     createdAt: AT,
     updatedAt: AT,
+    decidedAt: overrides.updatedAt ?? AT,
     deletedAt: null,
     ...overrides,
   }

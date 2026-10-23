@@ -238,6 +238,7 @@ export function createDataExportService({
         dueRank: dose.dueRank,
         createdAt: dose.createdAt,
         updatedAt: dose.updatedAt,
+        decidedAt: dose.decidedAt,
         createdByDevice: dose.createdByDevice,
         updatedByDevice: dose.updatedByDevice,
       })),

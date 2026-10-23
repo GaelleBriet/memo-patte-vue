@@ -190,7 +190,7 @@ describe('toJsonExport', () => {
 
   it('versionne le document pour l’import', () => {
     expect(parsed.schemaVersion).toBe(EXPORT_SCHEMA_VERSION)
-    expect(parsed.schemaVersion).toBe(10)
+    expect(parsed.schemaVersion).toBe(11)
     expect(parsed.exportedAt).toBe(META.exportedAt.toISOString())
     expect(parsed.appVersion).toBe('0.1.24')
   })
@@ -276,6 +276,7 @@ describe('toJsonExport', () => {
       dueRank: null,
       createdAt: '2026-09-10T07:00:00.000Z',
       updatedAt: '2026-09-10T07:00:00.000Z',
+      decidedAt: '2026-09-10T07:00:00.000Z',
       createdByDevice: FIXTURE_DEVICE,
       updatedByDevice: FIXTURE_DEVICE,
     })

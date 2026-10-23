@@ -98,14 +98,14 @@ function written(walk: V2Walk, changes: readonly LineChange[]): TreatmentViewInp
       lines = lines.filter(({ id }) => id !== change.id)
       continue
     }
-    const updatedAt = stampOf(walk)
+    const decidedAt = stampOf(walk)
     const { line: fields } = withReportFacts(lines, walk.input.settings, change)
     if (change.action === 'rewrite') {
       lines = lines.map((line) =>
-        line.id === change.id ? { ...fields, id: line.id, updatedAt } : line,
+        line.id === change.id ? { ...fields, id: line.id, decidedAt } : line,
       )
     } else {
-      lines = [...lines, { ...fields, id: `l${walk.stamp}`, updatedAt }]
+      lines = [...lines, { ...fields, id: `l${walk.stamp}`, decidedAt }]
     }
   }
   return { ...walk.input, lines }

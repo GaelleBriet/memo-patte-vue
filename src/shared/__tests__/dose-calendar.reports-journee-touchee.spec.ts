@@ -43,7 +43,7 @@ function milo(): TreatmentViewInput {
   input = sameHoursAgain(input, THREE)
   const daily = treatmentView(input).currentSetting!.id
   const report = line(daily, 'postponed', '2026-04-01', '14:00', '2026-04-16')
-  return { ...input, lines: [...input.lines, { ...report, updatedAt: '2026-12-31T00:00:00.000Z' }] }
+  return { ...input, lines: [...input.lines, { ...report, decidedAt: '2026-12-31T00:00:00.000Z' }] }
 }
 
 const MILO_AFTER = both({
@@ -432,7 +432,7 @@ describe('Deux téléphones, un réglage du jour réécrit (R10)', () => {
           ? each
           : rewrittenOn(base().settings[index] ?? each, each, rewrittenAt),
       ),
-      lines: [...phoneA.lines.slice(0, -1), { ...report, updatedAt: reportAt }],
+      lines: [...phoneA.lines.slice(0, -1), { ...report, decidedAt: reportAt }],
     }
   }
 

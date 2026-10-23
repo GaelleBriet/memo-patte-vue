@@ -115,9 +115,10 @@ describe('#835 : « Supprimer ce report » emporte le décalage ancré à son ar
     async function received({ id, status, targetOn, at }: OtherLine) {
       await db.run(
         `INSERT INTO treatment_dose (id, period_id, treatment_id, animal_id, due_on, due_time,
-           given_on, status, target_on, created_at, updated_at, created_by_device, updated_by_device)
-         VALUES (?, ?, ?, ?, '2026-10-16', NULL, NULL, ?, ?, ?, ?, 'autre', 'autre')`,
-        [id, ID, ID, ANIMAL, status, targetOn, at, at],
+           given_on, status, target_on, created_at, updated_at, decided_at, created_by_device,
+           updated_by_device)
+         VALUES (?, ?, ?, ?, '2026-10-16', NULL, NULL, ?, ?, ?, ?, ?, 'autre', 'autre')`,
+        [id, ID, ID, ANIMAL, status, targetOn, at, at, at],
       )
     }
 

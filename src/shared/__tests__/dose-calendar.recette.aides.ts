@@ -94,7 +94,7 @@ function ecrit(c: Carnet, change: V2Change): Carnet {
     ...fields,
     periodId: settingId,
     nextDueDate: targetOn ?? fields.dueOn,
-    updatedAt: at,
+    decidedAt: at,
   }
   if (change.action === 'rewrite') {
     return {

@@ -261,6 +261,53 @@ describe('les services des traitements rejouent les gestes du moteur v2', () => 
     600_000 + SEEDS * STEPS * 200,
   )
 
+  // #1188 : garde-fou du ticket dans treatment-services.supprimer-annuler-decided-at.service.spec.ts.
+  it.each([
+    [69, 21],
+    [370, 1],
+    [468, 11],
+    [745, 5],
+    [1619, 22],
+    [1785, 11],
+    [1877, 1],
+    [2495, 10],
+  ])(
+    'graine %i : « Supprimer ce traitement » puis « Annuler » après chaque geste rend la même lecture, sur au moins %i gestes',
+    async (seed, minimum) => {
+      const walk = startV2Walk(seed)
+      const id = crypto.randomUUID()
+      const periods: Periods = new Map([['s1', id]])
+      await replay.start(walk, id)
+      const steps: V2Step[] = []
+      for (let count = 0; count < 30; count += 1) v2Step(walk, (step) => steps.push(step))
+      const changed: string[] = []
+      let played = 0
+      for (const step of steps) {
+        if (refusedByScreen(step)) break
+        try {
+          await replayStep(replay, id, periods, step)
+        } catch (cause) {
+          if (cause instanceof ZodError && refusedForEndDate(cause, step)) break
+          throw cause
+        }
+        played += 1
+        const before = await readingAfter(replay, id)
+        replay.tick()
+        const deletedAt = await replay.treatments.remove(id)
+        replay.tick()
+        await replay.treatments.restore(id, deletedAt)
+        const after = await readingAfter(replay, id)
+        if (JSON.stringify(after) !== JSON.stringify(before)) {
+          changed.push(
+            `${step.label}\n  avant : ${JSON.stringify(before)}\n  après : ${JSON.stringify(after)}`,
+          )
+        }
+      }
+      expect(changed).toEqual([])
+      expect(played).toBeGreaterThanOrEqual(minimum)
+    },
+  )
+
   it.each([
     ['TREATMENT_ORACLE_SEEDS', 'mille'],
     ['TREATMENT_ORACLE_FROM', '-3'],

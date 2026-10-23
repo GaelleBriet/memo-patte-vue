@@ -18,11 +18,14 @@ export function rankedStamp(at: string, rank = 0): string {
   return rank === 0 ? at : new Date(Date.parse(at) + rank).toISOString()
 }
 
+/** Une ligne lue avant le geste, avec sa dernière écriture : la garde du lot inverse. */
+export type KeptLine = Line & { updatedAt: string }
+
 /**
  * Les lignes supprimées par « Supprimer » ou réécrites par une note alors qu'elles étaient grisées
  * (TR-25), et celles plus récentes de leurs journées, telles que lues avant le geste.
  */
-export type KeptAhead = { touched: readonly Line[]; ahead: readonly Line[] }
+export type KeptAhead = { touched: readonly KeptLine[]; ahead: readonly KeptLine[] }
 
 /**
  * R12, #842 : « Annuler » réécrit aussi telles quelles les lignes gardées devant, toutes rangées dans
@@ -46,6 +49,7 @@ export function undoKeepingAhead(
       dose: doseFieldsOf(line),
       expectedUpdatedAt: line.updatedAt,
       rank: rankOf(line.id),
+      decidedAt: line.decidedAt,
     })),
   ]
 }

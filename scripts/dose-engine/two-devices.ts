@@ -51,14 +51,14 @@ function writeLines(
       lines = lines.filter(({ id }) => id !== change.id)
       continue
     }
-    const updatedAt = stamp(clock)
+    const decidedAt = stamp(clock)
     const { line: fields } = withReportFacts(lines, input.settings, change)
     lines =
       change.action === 'rewrite'
         ? lines.map((line) =>
-            line.id === change.id ? { ...fields, id: line.id, updatedAt } : line,
+            line.id === change.id ? { ...fields, id: line.id, decidedAt } : line,
           )
-        : [...lines, { ...fields, id: `${tag}${clock.n}`, updatedAt }]
+        : [...lines, { ...fields, id: `${tag}${clock.n}`, decidedAt }]
   }
   return { ...input, lines }
 }
@@ -89,12 +89,13 @@ function writePlan(input: TreatmentViewInput, plan: SettingsPlan, clock: Clock, 
   return { ...input, lines, settings: [...input.settings, created] }
 }
 
-// La synchro : par ligne et par réglage, la modification la plus récente gagne.
+// La synchro : par ligne et par réglage, la modification la plus récente gagne ; sans « Annuler »
+// dans cette fourche, la dernière écriture d'une ligne est sa décision.
 function synced(base: TreatmentViewInput, a: TreatmentViewInput, b: TreatmentViewInput) {
   const lines = new Map<string, Line>()
   for (const line of [...a.lines, ...b.lines]) {
     const kept = lines.get(line.id)
-    if (kept === undefined || line.updatedAt > kept.updatedAt) lines.set(line.id, line)
+    if (kept === undefined || line.decidedAt > kept.decidedAt) lines.set(line.id, line)
   }
   const removed = new Set(
     base.lines

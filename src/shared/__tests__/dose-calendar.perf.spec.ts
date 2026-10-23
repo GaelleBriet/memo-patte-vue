@@ -18,7 +18,7 @@ function givenAt(day: string, dueTime: string | null, settingId = 's1'): Line {
     status: 'given',
     givenOn: day,
     targetOn: null,
-    updatedAt: `${day}T12:00:00.000Z`,
+    decidedAt: `${day}T12:00:00.000Z`,
   }
 }
 

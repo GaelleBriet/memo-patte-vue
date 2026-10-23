@@ -55,7 +55,7 @@ function laterRewriters(report: ReferenceLine, own: ReferenceSetting, context: R
       reading.updatedAt !== undefined &&
       reading.updatedAt > reading.createdAt &&
       reading.createdAt > own.createdAt &&
-      report.updatedAt > reading.createdAt,
+      report.decidedAt > reading.createdAt,
   )
 }
 
@@ -98,10 +98,10 @@ function dayTakenBy(
   if (rewrittenAt === undefined || rewrittenAt <= written.createdAt) return undefined
   if (report.dueOn < written.startsOn) return undefined
   const gridAt = written.gridWrittenAt ?? rewrittenAt
-  if (report.dueOn < written.firstDueOn) return gridAt >= report.updatedAt ? 'lost' : 'kept'
+  if (report.dueOn < written.firstDueOn) return gridAt >= report.decidedAt ? 'lost' : 'kept'
   if (!dayTakenAfterFirstDue(report, written, context)) return undefined
-  if (gridAt === report.updatedAt) return undefined
-  return gridAt > report.updatedAt ? 'lost' : 'kept'
+  if (gridAt === report.decidedAt) return undefined
+  return gridAt > report.decidedAt ? 'lost' : 'kept'
 }
 
 // #885, 6c : la ligne plus récente que la grille de son propre réglage, qui a ôté sa journée.
@@ -110,7 +110,7 @@ function winsOverRewrite(line: ReferenceLine, context: RewriteContext): boolean 
   const rewrittenAt = written.updatedAt
   if (rewrittenAt === undefined || rewrittenAt <= written.createdAt) return false
   const gridAt = written.gridWrittenAt ?? rewrittenAt
-  if (line.dueOn < written.startsOn || line.updatedAt <= gridAt) return false
+  if (line.dueOn < written.startsOn || line.decidedAt <= gridAt) return false
   return line.dueOn < written.firstDueOn || dayTakenAfterFirstDue(line, written, context)
 }
 

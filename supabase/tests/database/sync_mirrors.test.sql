@@ -71,10 +71,10 @@ create function pg_temp.carnet_of(account uuid) returns text language sql as $fn
     '00000000-0000-4000-8000-0000000000a5', '00000000-0000-4000-8000-0000000000a1', '2026-01-01',
     '2026-01-01', '2026-01-01', '2026-01-10', 1, 'day', '08:00,20:00', 0.5, 'tablet', 15, now(), now(), now() + interval '3 days', now() + interval '3 days', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', '2001-01-01T00:00:00Z');
   insert into public.treatment_dose (user_id, id, period_id, treatment_id, animal_id, due_on, due_time,
-    given_on, status, target_on, created_at, updated_at, created_by_device, updated_by_device, server_updated_at)
+    given_on, status, target_on, created_at, updated_at, decided_at, created_by_device, updated_by_device, server_updated_at)
   values ('%1$s', '00000000-0000-4000-8000-0000000000a7',
     '00000000-0000-4000-8000-0000000000a6', '00000000-0000-4000-8000-0000000000a5',
-    '00000000-0000-4000-8000-0000000000a1', '2026-01-01', '08:00', null, 'missed', null, now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', '2001-01-01T00:00:00Z');
+    '00000000-0000-4000-8000-0000000000a1', '2026-01-01', '08:00', null, 'missed', null, now(), now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', '2001-01-01T00:00:00Z');
   insert into public.device (user_id, id, model, installed_at, created_at, updated_at, server_updated_at)
   values ('%1$s', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'Pixel 8', now(), now(), now(), '2001-01-01T00:00:00Z');
 $$, account);
@@ -113,6 +113,15 @@ select col_type_is('public', 'treatment_period', 'grid_before', 'text',
   'v17 (fichier) : la grille d''avant l''ouverture est un texte');
 select col_is_null('public', 'treatment_period', 'grid_before',
   'v17 (fichier) : une période peut n''avoir aucune grille d''avant');
+
+-- Migration v20 telle qu'appliquée par son fichier : instant de la décision de chaque ligne.
+select col_type_is('public', 'treatment_dose', 'decided_at', 'timestamp with time zone',
+  'v20 (fichier) : la décision d''une ligne est un instant');
+select col_not_null('public', 'treatment_dose', 'decided_at',
+  'v20 (fichier) : une ligne porte toujours l''instant de sa décision');
+select ok(
+  has_column_privilege('authenticated', 'public.treatment_dose', 'decided_at', 'UPDATE'),
+  'v20 (fichier) : la décision d''une ligne se synchronise');
 select ok(
   has_column_privilege('authenticated', 'public.treatment_period', 'grid_before', 'UPDATE'),
   'v17 (fichier) : la grille d''avant l''ouverture se synchronise');
@@ -281,6 +290,28 @@ select is(
   (select array[updated_at, grid_written_at] from public.treatment_period),
   array[pg_temp.now_ms(), pg_temp.now_ms()],
   'une date d''écriture de la grille réécrite trop loin recule du même écart que la modification');
+
+select lives_ok($$
+  update public.treatment_dose set updated_at = now() - interval '2 hours'
+  where id = '00000000-0000-4000-8000-0000000000a7';
+  update public.treatment_dose
+  set decided_at = now() + interval '24 hours', updated_at = now() + interval '25 hours'
+  where id = '00000000-0000-4000-8000-0000000000a7'
+$$, 'il réécrit une ligne décidée loin dans le futur');
+select is(
+  (select array[decided_at, updated_at] from public.treatment_dose),
+  array[pg_temp.now_ms() - interval '1 hour', pg_temp.now_ms()],
+  'la décision d''une ligne recule du même écart que sa modification');
+select lives_ok($$
+  update public.treatment_dose set updated_at = now() - interval '2 hours'
+  where id = '00000000-0000-4000-8000-0000000000a7';
+  update public.treatment_dose set updated_at = now() + interval '25 hours'
+  where id = '00000000-0000-4000-8000-0000000000a7'
+$$, 'il réécrit une ligne sans changer sa décision, comme « Annuler »');
+select is(
+  (select array[decided_at, updated_at] from public.treatment_dose),
+  array[pg_temp.now_ms() - interval '1 hour', pg_temp.now_ms()],
+  'une décision gardée ne recule jamais, même quand la modification recule');
 
 select lives_ok($$
   update public.treatment_period set stopped_on = '2026-01-05', updated_at = now()
@@ -778,6 +809,34 @@ select is(
 select ok(
   has_column_privilege('authenticated', 'public.treatment_period', 'grid_before', 'UPDATE'),
   'v17 : la grille d''avant l''ouverture se synchronise');
+
+-- Décision des lignes de la migration v20 rejouée : colonne retirée, puis le corps de la migration.
+alter table public.treatment_dose drop column decided_at;
+
+create temp table before_v20 as
+  select user_id, id, updated_at from public.treatment_dose;
+
+alter table public.treatment_dose add column decided_at timestamptz;
+
+update public.treatment_dose
+set decided_at = updated_at;
+
+alter table public.treatment_dose alter column decided_at set not null;
+
+grant update (decided_at) on table public.treatment_dose to authenticated;
+
+select is(
+  (select count(*) from public.treatment_dose d join before_v20 b using (user_id, id)
+   where d.decided_at is distinct from b.updated_at or d.updated_at is distinct from b.updated_at),
+  0::bigint, 'v20 : chaque ligne est décidée à sa dernière écriture, qui ne bouge pas');
+select is((select count(*) from public.treatment_dose), (select count(*) from before_v20),
+  'v20 : aucune ligne n''est perdue');
+select throws_ok(
+  $$ update public.treatment_dose set decided_at = null $$, '23502', null,
+  'v20 : une ligne sans décision est refusée');
+select ok(
+  has_column_privilege('authenticated', 'public.treatment_dose', 'decided_at', 'UPDATE'),
+  'v20 : la décision d''une ligne se synchronise');
 
 -- Envois de la synchro.
 select pg_temp.as_owner();

@@ -82,7 +82,7 @@ describe('oracle du moteur v2 contre le modèle de référence naïf', { timeout
       status,
       givenOn: status === 'given' ? dueOn : null,
       nextDueDate: status === 'given' ? '2026-10-03' : '2026-10-04',
-      updatedAt: `2026-01-01T00:00:0${at}.000Z`,
+      decidedAt: `2026-01-01T00:00:0${at}.000Z`,
     })
     const doses = [
       dose('2026-10-01', '08:00', 'given', 1),

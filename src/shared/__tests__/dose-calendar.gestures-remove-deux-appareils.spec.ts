@@ -129,7 +129,7 @@ describe('#842, R12 : les lignes que « Annuler » doit laisser devant les ligne
   it('#867 : un report plus ancien que la réécriture de son réglage n’est pas réécrit, rien ne l’est', () => {
     const shift = line('p1', 'shift', '2026-10-16', null, '2026-10-20')
     const report = line('p1', 'postponed', '2026-10-16', null, '2026-10-19')
-    const rewritten = { ...p1, updatedAt: line('p1', 'given', '2026-10-30').updatedAt }
+    const rewritten = { ...p1, updatedAt: line('p1', 'given', '2026-10-30').decidedAt }
     const input = { settings: [rewritten], lines: [...GIVEN, shift, report], today: '2026-10-21' }
 
     expect(keptAhead(input, [shift.id])).toEqual([])

@@ -28,7 +28,7 @@ const L = (
   dueTime,
   givenOn: status === 'given' ? dueOn : null,
   targetOn: null,
-  updatedAt: stampOf(n),
+  decidedAt: stampOf(n),
   ...extra,
 })
 
@@ -159,10 +159,10 @@ describe('#873 : « Elles n’étaient pas à donner » écrit une ligne par dos
   it('deux téléphones : un report plus récent que les lignes « pas à donner » de son arrivée tient ; elles deviennent sans effet, la dose arrivée revient', () => {
     const after = edited(graine726(), SANS_HEURE, 'correct')
     const answered = after.lines.map((line) =>
-      line.status === 'not-due' ? { ...line, updatedAt: '2026-03-23T09:00:00.000Z' } : line,
+      line.status === 'not-due' ? { ...line, decidedAt: '2026-03-23T09:00:00.000Z' } : line,
     )
     const fresh = answered.map((line) =>
-      line.id === 'l10' ? { ...line, updatedAt: '2026-03-23T18:00:00.000Z' } : line,
+      line.id === 'l10' ? { ...line, decidedAt: '2026-03-23T18:00:00.000Z' } : line,
     )
     const merged = { ...after, lines: fresh }
     expect(effectOf(merged, 'l10')).toMatchObject({ kind: 'moves', arrival: '2026-03-18' })

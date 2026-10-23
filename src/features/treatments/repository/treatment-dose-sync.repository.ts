@@ -33,7 +33,8 @@ export function createDoseSync(db: DbClient, loadClient: () => Promise<SupabaseC
                 previous_target_time = excluded.previous_target_time,
                 due_rank = excluded.due_rank,
                 created_at = excluded.created_at, updated_at = excluded.updated_at,
-                deleted_at = excluded.deleted_at, created_by_device = excluded.created_by_device,
+                decided_at = excluded.decided_at, deleted_at = excluded.deleted_at,
+                created_by_device = excluded.created_by_device,
                 updated_by_device = excluded.updated_by_device
               WHERE excluded.updated_at > treatment_dose.updated_at`,
         params: [
@@ -51,6 +52,7 @@ export function createDoseSync(db: DbClient, loadClient: () => Promise<SupabaseC
           syncField(row, 'due_rank'),
           syncField(row, 'created_at'),
           row.updated_at,
+          syncField(row, 'decided_at'),
           syncField(row, 'deleted_at'),
           syncField(row, 'created_by_device'),
           syncField(row, 'updated_by_device'),

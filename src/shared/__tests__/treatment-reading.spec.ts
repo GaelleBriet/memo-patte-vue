@@ -42,7 +42,7 @@ const dose = (extra: Partial<Dose> = {}): Dose => ({
   status: 'given',
   givenOn: '2026-10-01',
   targetOn: null,
-  updatedAt: '2026-10-01T09:00:00.000Z',
+  decidedAt: '2026-10-01T09:00:00.000Z',
   ...extra,
 })
 
@@ -121,8 +121,8 @@ describe('countedLines', () => {
     const treatment = {
       periods: [period()],
       doses: [
-        dose({ id: 'old', updatedAt: '2026-10-01T08:00:00.000Z' }),
-        dose({ id: 'new', updatedAt: '2026-10-01T10:00:00.000Z' }),
+        dose({ id: 'old', decidedAt: '2026-10-01T08:00:00.000Z' }),
+        dose({ id: 'new', decidedAt: '2026-10-01T10:00:00.000Z' }),
         dose({
           id: 'back',
           dueOn: '2026-10-02',
@@ -200,8 +200,8 @@ describe('historyEntries (R11, R12, décision du 2026-10-12)', () => {
     const treatment = {
       periods: [period()],
       doses: [
-        dose({ id: 'old', updatedAt: '2026-10-01T08:00:00.000Z' }),
-        dose({ id: 'new', updatedAt: '2026-10-01T10:00:00.000Z' }),
+        dose({ id: 'old', decidedAt: '2026-10-01T08:00:00.000Z' }),
+        dose({ id: 'new', decidedAt: '2026-10-01T10:00:00.000Z' }),
         dose({
           id: 'back',
           dueOn: '2026-10-02',

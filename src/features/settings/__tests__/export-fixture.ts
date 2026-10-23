@@ -152,6 +152,7 @@ export function carnetOf({
       dueRank: null,
       createdAt: treatment.createdAt,
       updatedAt: treatment.updatedAt,
+      decidedAt: treatment.updatedAt,
       ...BY_FIXTURE_DEVICE,
     })),
     weightEntries,
@@ -328,6 +329,7 @@ export const EXPORT_FIXTURE: ExportData = {
       dueRank: null,
       createdAt: '2026-06-15T08:10:00.000Z',
       updatedAt: '2026-06-15T08:10:00.000Z',
+      decidedAt: '2026-06-15T08:10:00.000Z',
       ...BY_FIXTURE_DEVICE,
     },
     {
@@ -344,7 +346,8 @@ export const EXPORT_FIXTURE: ExportData = {
       previousTargetTime: null,
       dueRank: null,
       createdAt: '2026-01-10T08:10:00.000Z',
-      updatedAt: '2026-01-10T08:10:00.000Z',
+      updatedAt: '2026-02-01T09:00:00.000Z',
+      decidedAt: '2026-01-10T08:10:00.000Z',
       ...BY_FIXTURE_DEVICE,
     },
     {
@@ -358,6 +361,7 @@ export const EXPORT_FIXTURE: ExportData = {
       previousTargetOn: null,
       previousTargetTime: null,
       dueRank: null,
+      decidedAt: PANACUR.updatedAt,
     },
     {
       ...PANACUR,
@@ -370,6 +374,7 @@ export const EXPORT_FIXTURE: ExportData = {
       previousTargetOn: null,
       previousTargetTime: null,
       dueRank: null,
+      decidedAt: PANACUR.updatedAt,
     },
   ],
   weightEntries: [

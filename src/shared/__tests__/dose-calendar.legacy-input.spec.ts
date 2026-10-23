@@ -27,7 +27,7 @@ function period(id: string, firstDueOn: string, referenceOn: string, extra: Part
 
 function dose(status: Dose['status'], nextDueDate: string): Dose {
   const fields = { periodId: 'p1', dueOn: '2026-01-31', dueTime: null, givenOn: null }
-  return { id: status, ...fields, status, nextDueDate, updatedAt: '2026-02-01T00:00:00.000Z' }
+  return { id: status, ...fields, status, nextDueDate, decidedAt: '2026-02-01T00:00:00.000Z' }
 }
 
 const origins = (periods: Period[]) => {

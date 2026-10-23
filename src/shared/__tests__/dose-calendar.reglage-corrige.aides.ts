@@ -31,7 +31,7 @@ const LATER = '9999-12-31T23:59:59.999Z'
 
 // Comme le repository : un identifiant neuf et un horodatage plus récent que tout le carnet.
 function nextStamp(input: TreatmentViewInput): string {
-  const stamps = [...input.settings.map((s) => s.createdAt), ...input.lines.map((l) => l.updatedAt)]
+  const stamps = [...input.settings.map((s) => s.createdAt), ...input.lines.map((l) => l.decidedAt)]
   const latest = stamps.reduce((a, b) => (a > b ? a : b), '2026-02-01T00:00:00.000Z')
   return new Date(Date.parse(latest) + 1000).toISOString()
 }
@@ -41,12 +41,12 @@ function recorded(input: TreatmentViewInput, changes: readonly LineChange[]): Tr
     if (change.action === 'delete') {
       return { ...carnet, lines: carnet.lines.filter(({ id }) => id !== change.id) }
     }
-    const updatedAt = nextStamp(carnet)
+    const decidedAt = nextStamp(carnet)
     const { line } = withReportFacts(carnet.lines, carnet.settings, change)
     const lines =
       change.action === 'rewrite'
-        ? carnet.lines.map((l) => (l.id === change.id ? { ...line, id: l.id, updatedAt } : l))
-        : [...carnet.lines, { ...line, id: `l-${updatedAt}`, updatedAt }]
+        ? carnet.lines.map((l) => (l.id === change.id ? { ...line, id: l.id, decidedAt } : l))
+        : [...carnet.lines, { ...line, id: `l-${decidedAt}`, decidedAt }]
     return { ...carnet, lines }
   }, input)
 }

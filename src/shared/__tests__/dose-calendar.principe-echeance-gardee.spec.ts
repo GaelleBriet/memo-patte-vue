@@ -42,7 +42,7 @@ const L = (
   dueTime,
   givenOn: status === 'given' || status === 'extra' ? dueOn : null,
   targetOn: null,
-  updatedAt: stampOf(n),
+  decidedAt: stampOf(n),
   ...extra,
 })
 
@@ -147,7 +147,7 @@ function synchronises(
   return {
     ...base,
     settings: base.settings.map((each) => (each.id === 's2' ? corrected : each)),
-    lines: [...base.lines, ...added.map((line) => ({ ...line, updatedAt: linesAt }))],
+    lines: [...base.lines, ...added.map((line) => ({ ...line, decidedAt: linesAt }))],
   }
 }
 
@@ -412,7 +412,7 @@ describe('#893 : une prise d’une journée retirée par une réécriture ne cou
   ]
   const avance: Line = {
     ...L('A2', 's2', 'postponed', '2026-04-28', '08:00', 0, { targetOn: '2026-04-23' }),
-    updatedAt: '2026-06-01T00:00:02.000Z',
+    decidedAt: '2026-06-01T00:00:02.000Z',
   }
   const carnet = (lines: Line[]): TreatmentViewInput => ({
     today: '2026-03-24',

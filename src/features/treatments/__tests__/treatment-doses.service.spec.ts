@@ -750,9 +750,10 @@ describe('treatmentDosesService', () => {
       const UNE_HEURE_APRES = new Date(NOW.getTime() + 3_600_000).toISOString()
       await db.run(
         `INSERT INTO treatment_dose (id, period_id, treatment_id, animal_id, due_on, due_time,
-           given_on, status, target_on, created_at, updated_at, created_by_device, updated_by_device)
-         VALUES ('report', ?, ?, ?, '2026-10-23', NULL, NULL, 'postponed', '2026-10-30', ?, ?, 'appareil-test', 'appareil-test')`,
-        [bravecto, bravecto, BOREE, UNE_HEURE_APRES, UNE_HEURE_APRES],
+           given_on, status, target_on, created_at, updated_at, decided_at, created_by_device,
+           updated_by_device)
+         VALUES ('report', ?, ?, ?, '2026-10-23', NULL, NULL, 'postponed', '2026-10-30', ?, ?, ?, 'appareil-test', 'appareil-test')`,
+        [bravecto, bravecto, BOREE, UNE_HEURE_APRES, UNE_HEURE_APRES, UNE_HEURE_APRES],
       )
 
       const applied = await service.apply(bravecto, {

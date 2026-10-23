@@ -115,7 +115,7 @@ function synchro(here: Carnet, other: Carnet, removed: readonly string[] = []): 
   const byId = new Map(here.doses.map((dose) => [dose.id, dose]))
   for (const dose of other.doses) {
     const kept = byId.get(dose.id)
-    if (kept === undefined || dose.updatedAt > kept.updatedAt) byId.set(dose.id, dose)
+    if (kept === undefined || dose.decidedAt > kept.decidedAt) byId.set(dose.id, dose)
   }
   const doses = [...byId.values()].filter(({ id }) => !removed.includes(id))
   return { periods: here.periods, doses }

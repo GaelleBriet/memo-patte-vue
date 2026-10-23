@@ -47,11 +47,11 @@ function phone(start: TreatmentViewInput) {
         lines = lines.filter(({ id }) => id !== change.id)
         continue
       }
-      const updatedAt = stamp()
+      const decidedAt = stamp()
       lines =
         change.action === 'rewrite'
-          ? lines.map((l) => (l.id === change.id ? { ...change.line, id: l.id, updatedAt } : l))
-          : [...lines, { ...change.line, id: `l${tick}`, updatedAt }]
+          ? lines.map((l) => (l.id === change.id ? { ...change.line, id: l.id, decidedAt } : l))
+          : [...lines, { ...change.line, id: `l${tick}`, decidedAt }]
     }
     input = { ...input, lines }
   }
@@ -319,7 +319,7 @@ describe('Un seul téléphone : une dose ôtée par un décalage, pas par la ré
           status: 'postponed',
           givenOn: null,
           targetOn: '2026-04-08',
-          updatedAt: '2026-03-24T08:00:00.000Z',
+          decidedAt: '2026-03-24T08:00:00.000Z',
         },
         {
           id: 'r2',
@@ -329,7 +329,7 @@ describe('Un seul téléphone : une dose ôtée par un décalage, pas par la ré
           status: 'postponed',
           givenOn: null,
           targetOn: '2026-04-09',
-          updatedAt: '2026-04-06T08:00:00.000Z',
+          decidedAt: '2026-04-06T08:00:00.000Z',
         },
       ],
       today: '2026-04-07',

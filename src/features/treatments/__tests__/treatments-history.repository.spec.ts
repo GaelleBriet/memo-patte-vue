@@ -95,6 +95,7 @@ function dose(
     previousTargetTime: null,
     dueRank: null,
     ...STAMPS,
+    decidedAt: overrides.updatedAt ?? STAMPS.updatedAt,
     deletedAt: null,
     ...overrides,
   }

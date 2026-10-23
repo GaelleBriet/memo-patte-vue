@@ -160,7 +160,7 @@ describe('parseExportFile', () => {
     })
 
     it('signale un export d’une version plus récente, quel que soit son contenu', () => {
-      const text = JSON.stringify({ schemaVersion: 11, pets: [] })
+      const text = JSON.stringify({ schemaVersion: 12, pets: [] })
 
       expect(parseExportFile(text)).toEqual({ ok: false, reason: 'newer' })
     })
@@ -695,6 +695,49 @@ describe('parseExportFile', () => {
   describe('anciens exports, convertis au format courant (plan §3.3)', () => {
     const IMPORTEUR = '12121212-1212-4212-8212-121212121212'
 
+    it('v11 : garde la décision de chaque ligne, distincte de sa dernière écriture (#1188)', () => {
+      const decidedAt = '2026-09-01T07:00:00.000Z'
+      const text = withDocument((document) => {
+        premier(document, 'treatmentDoses').decidedAt = decidedAt
+      })
+
+      const result = parseExportFile(text, IMPORTEUR)
+
+      expect(result.ok).toBe(true)
+      if (!result.ok) return
+      const [first] = result.file.data.treatmentDoses
+      expect([first!.decidedAt, first!.updatedAt]).toEqual([
+        decidedAt,
+        IMPORT_FIXTURE.treatmentDoses[0]!.updatedAt,
+      ])
+    })
+
+    it('refuse un export v11 dont une ligne n’a pas de date de décision', () => {
+      expect(
+        parseExportFile(
+          withDocument((document) => delete premier(document, 'treatmentDoses').decidedAt),
+        ),
+      ).toEqual(INVALID)
+    })
+
+    it('relit un export v10 : chaque ligne est décidée à sa dernière écriture', () => {
+      const v10 = withDocument((document) => {
+        document.schemaVersion = 10
+        for (const dose of rows(document, 'treatmentDoses')) delete dose.decidedAt
+        premier(document, 'treatmentDoses').updatedAt = '2026-09-14T08:00:00.000Z'
+      })
+
+      const result = parseExportFile(v10, IMPORTEUR)
+
+      expect(result.ok).toBe(true)
+      if (!result.ok) return
+      expect(result.file.schemaVersion).toBe(11)
+      expect(
+        result.file.data.treatmentDoses.map(({ updatedAt, decidedAt }) => decidedAt === updatedAt),
+      ).toEqual(IMPORT_FIXTURE.treatmentDoses.map(() => true))
+      expect(result.file.data.treatmentDoses[0]!.decidedAt).toBe('2026-09-14T08:00:00.000Z')
+    })
+
     it('relit un export v9 : la grille est datée de la dernière écriture des réglages', () => {
       const v9 = withDocument((document) => {
         document.schemaVersion = 9
@@ -705,7 +748,7 @@ describe('parseExportFile', () => {
 
       expect(result.ok).toBe(true)
       if (!result.ok) return
-      expect(result.file.schemaVersion).toBe(10)
+      expect(result.file.schemaVersion).toBe(11)
       expect(
         result.file.data.treatmentPeriods.map(({ settingsWrittenAt, gridWrittenAt }) => [
           settingsWrittenAt,
@@ -869,7 +912,7 @@ describe('parseExportFile', () => {
 
       expect(result.ok).toBe(true)
       if (!result.ok) return
-      expect(result.file.schemaVersion).toBe(10)
+      expect(result.file.schemaVersion).toBe(11)
       expect(
         result.file.data.treatmentDoses.every(
           (dose) =>
@@ -944,7 +987,7 @@ describe('parseExportFile', () => {
 
       expect(result.ok).toBe(true)
       if (!result.ok) return
-      expect(result.file.schemaVersion).toBe(10)
+      expect(result.file.schemaVersion).toBe(11)
       const answers = result.file.data.treatmentPeriods.map(
         ({ fallenDosesAnswer }) => fallenDosesAnswer,
       )
@@ -975,7 +1018,7 @@ describe('parseExportFile', () => {
 
       expect(result.ok).toBe(true)
       if (!result.ok) return
-      expect(result.file.schemaVersion).toBe(10)
+      expect(result.file.schemaVersion).toBe(11)
       expect(
         result.file.data.treatmentPeriods.map(({ createdAt, settingsWrittenAt }) => [
           createdAt,
@@ -1030,7 +1073,7 @@ describe('parseExportFile', () => {
       expect(result.ok).toBe(true)
       if (!result.ok) return
       const { data } = result.file
-      expect(result.file.schemaVersion).toBe(10)
+      expect(result.file.schemaVersion).toBe(11)
       expect(data.treatmentPeriods.map(({ gridOriginOn }) => gridOriginOn)).toEqual([
         '2026-06-15',
         '2026-09-01',

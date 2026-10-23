@@ -119,6 +119,8 @@ export type ExportTreatmentDose = {
   dueRank: number | null
   createdAt: string
   updatedAt: string
+  /** Instant du geste qui a décidé la ligne (v11) ; `updatedAt` ne sert qu'à la synchronisation. */
+  decidedAt: string
   createdByDevice: string
   updatedByDevice: string
 }

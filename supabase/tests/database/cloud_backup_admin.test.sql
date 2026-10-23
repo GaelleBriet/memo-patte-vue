@@ -39,10 +39,10 @@ create function pg_temp.carnet_of(account uuid) returns text language sql as $fn
     '00000000-0000-4000-8000-0000000000a5', '00000000-0000-4000-8000-0000000000a1', '2026-01-01',
     '2026-01-01', '2026-01-01', '2026-01-10', 1, 'day', '08:00,20:00', 0.5, 'tablet', 15, now(), now(), now() + interval '3 days', now() + interval '3 days', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', '2001-01-01T00:00:00Z');
   insert into public.treatment_dose (user_id, id, period_id, treatment_id, animal_id, due_on, due_time,
-    given_on, status, target_on, created_at, updated_at, created_by_device, updated_by_device, server_updated_at)
+    given_on, status, target_on, created_at, updated_at, decided_at, created_by_device, updated_by_device, server_updated_at)
   values ('%1$s', '00000000-0000-4000-8000-0000000000a7',
     '00000000-0000-4000-8000-0000000000a6', '00000000-0000-4000-8000-0000000000a5',
-    '00000000-0000-4000-8000-0000000000a1', '2026-01-01', '08:00', null, 'missed', null, now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', '2001-01-01T00:00:00Z');
+    '00000000-0000-4000-8000-0000000000a1', '2026-01-01', '08:00', null, 'missed', null, now(), now(), now(), 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', '2001-01-01T00:00:00Z');
   insert into public.device (user_id, id, model, installed_at, created_at, updated_at, server_updated_at)
   values ('%1$s', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'Pixel 8', now(), now(), now(), '2001-01-01T00:00:00Z');
   insert into public.sync_push (user_id, id, sent_at)

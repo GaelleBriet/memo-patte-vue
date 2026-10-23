@@ -47,7 +47,7 @@
           "givenOn": null,
           "targetOn": "2026-03-31",
           "id": "l2",
-          "updatedAt": "2026-01-01T00:00:02.000Z"
+          "decidedAt": "2026-01-01T00:00:02.000Z"
         },
         {
           "settingId": "s1",
@@ -57,7 +57,7 @@
           "givenOn": "2026-03-22",
           "targetOn": null,
           "id": "l4",
-          "updatedAt": "2026-01-01T00:00:09.000Z"
+          "decidedAt": "2026-01-01T00:00:09.000Z"
         },
         {
           "settingId": "s1",
@@ -67,7 +67,7 @@
           "givenOn": null,
           "targetOn": null,
           "id": "l5",
-          "updatedAt": "2026-01-01T00:00:05.000Z"
+          "decidedAt": "2026-01-01T00:00:05.000Z"
         },
         {
           "settingId": "s1",
@@ -77,7 +77,7 @@
           "givenOn": null,
           "targetOn": null,
           "id": "l7",
-          "updatedAt": "2026-01-01T00:00:07.000Z"
+          "decidedAt": "2026-01-01T00:00:07.000Z"
         },
         {
           "settingId": "s1",
@@ -87,7 +87,7 @@
           "givenOn": null,
           "targetOn": "2026-03-22",
           "id": "l10",
-          "updatedAt": "2026-01-01T00:00:10.000Z"
+          "decidedAt": "2026-01-01T00:00:10.000Z"
         },
         {
           "settingId": "s1",
@@ -97,7 +97,7 @@
           "givenOn": null,
           "targetOn": null,
           "id": "r2026-01-01T00:00:13.000Z-0",
-          "updatedAt": "2026-01-01T00:00:13.000Z"
+          "decidedAt": "2026-01-01T00:00:13.000Z"
         },
         {
           "settingId": "s1",
@@ -107,7 +107,7 @@
           "givenOn": null,
           "targetOn": null,
           "id": "r2026-01-01T00:00:13.000Z-1",
-          "updatedAt": "2026-01-01T00:00:13.000Z"
+          "decidedAt": "2026-01-01T00:00:13.000Z"
         }
       ],
       "today": "2026-04-08"
@@ -161,7 +161,7 @@
           "givenOn": null,
           "targetOn": "2026-03-26",
           "id": "l1",
-          "updatedAt": "2026-01-01T00:00:01.000Z"
+          "decidedAt": "2026-01-01T00:00:01.000Z"
         },
         {
           "settingId": "s1",
@@ -171,7 +171,7 @@
           "givenOn": null,
           "targetOn": "2026-03-26",
           "id": "l2",
-          "updatedAt": "2026-01-01T00:00:02.000Z"
+          "decidedAt": "2026-01-01T00:00:02.000Z"
         },
         {
           "settingId": "s2",
@@ -181,7 +181,7 @@
           "givenOn": null,
           "targetOn": null,
           "id": "r2026-01-01T00:00:06.000Z-0",
-          "updatedAt": "2026-01-01T00:00:06.000Z"
+          "decidedAt": "2026-01-01T00:00:06.000Z"
         },
         {
           "settingId": "s2",
@@ -191,7 +191,7 @@
           "givenOn": null,
           "targetOn": null,
           "id": "r2026-01-01T00:00:06.000Z-1",
-          "updatedAt": "2026-01-01T00:00:06.000Z"
+          "decidedAt": "2026-01-01T00:00:06.000Z"
         },
         {
           "settingId": "s2",
@@ -201,7 +201,7 @@
           "givenOn": null,
           "targetOn": null,
           "id": "r2026-01-01T00:00:06.000Z-2",
-          "updatedAt": "2026-01-01T00:00:06.000Z"
+          "decidedAt": "2026-01-01T00:00:06.000Z"
         }
       ],
       "today": "2026-03-28"

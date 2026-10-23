@@ -329,7 +329,7 @@ describe('Décision de Gaelle du 15 octobre 2026 : le calendrier ne bouge pas, g
           givenOn: null,
           targetOn: '2026-03-22',
           id: 'l1',
-          updatedAt: '2026-01-01T00:00:01.000Z',
+          decidedAt: '2026-01-01T00:00:01.000Z',
         },
         {
           settingId: 's1',
@@ -339,7 +339,7 @@ describe('Décision de Gaelle du 15 octobre 2026 : le calendrier ne bouge pas, g
           givenOn: null,
           targetOn: '2026-03-22',
           id: 'l2',
-          updatedAt: '2026-01-01T00:00:02.000Z',
+          decidedAt: '2026-01-01T00:00:02.000Z',
         },
         {
           settingId: 's1',
@@ -349,7 +349,7 @@ describe('Décision de Gaelle du 15 octobre 2026 : le calendrier ne bouge pas, g
           givenOn: '2026-03-21',
           targetOn: null,
           id: 'l3',
-          updatedAt: '2026-01-01T00:00:03.000Z',
+          decidedAt: '2026-01-01T00:00:03.000Z',
         },
         {
           settingId: 's1',
@@ -359,7 +359,7 @@ describe('Décision de Gaelle du 15 octobre 2026 : le calendrier ne bouge pas, g
           givenOn: null,
           targetOn: '2026-04-04',
           id: 'l4',
-          updatedAt: '2026-01-01T00:00:04.000Z',
+          decidedAt: '2026-01-01T00:00:04.000Z',
         },
         {
           settingId: 's1',
@@ -369,7 +369,7 @@ describe('Décision de Gaelle du 15 octobre 2026 : le calendrier ne bouge pas, g
           givenOn: null,
           targetOn: '2026-04-04',
           id: 'l5',
-          updatedAt: '2026-01-01T00:00:05.000Z',
+          decidedAt: '2026-01-01T00:00:05.000Z',
         },
         {
           settingId: 's1',
@@ -379,7 +379,7 @@ describe('Décision de Gaelle du 15 octobre 2026 : le calendrier ne bouge pas, g
           givenOn: '2026-03-16',
           targetOn: null,
           id: 'l6',
-          updatedAt: '2026-01-01T00:00:07.000Z',
+          decidedAt: '2026-01-01T00:00:07.000Z',
         },
         {
           settingId: 's1',
@@ -389,7 +389,7 @@ describe('Décision de Gaelle du 15 octobre 2026 : le calendrier ne bouge pas, g
           givenOn: '2026-03-20',
           targetOn: null,
           id: 'l8',
-          updatedAt: '2026-01-01T00:00:08.000Z',
+          decidedAt: '2026-01-01T00:00:08.000Z',
         },
         {
           settingId: 's1',
@@ -399,7 +399,7 @@ describe('Décision de Gaelle du 15 octobre 2026 : le calendrier ne bouge pas, g
           givenOn: null,
           targetOn: '2026-04-12',
           id: 'l9',
-          updatedAt: '2026-01-01T00:00:09.000Z',
+          decidedAt: '2026-01-01T00:00:09.000Z',
         },
         {
           settingId: 's1',
@@ -409,7 +409,7 @@ describe('Décision de Gaelle du 15 octobre 2026 : le calendrier ne bouge pas, g
           givenOn: null,
           targetOn: '2026-04-12',
           id: 'l10',
-          updatedAt: '2026-01-01T00:00:10.000Z',
+          decidedAt: '2026-01-01T00:00:10.000Z',
         },
       ],
       today: '2026-03-21',
@@ -459,7 +459,7 @@ describe('Décision de Gaelle du 15 octobre 2026 : le calendrier ne bouge pas, g
           givenOn: null,
           targetOn: '2026-03-21',
           id: 'l1',
-          updatedAt: '2026-01-01T00:00:01.000Z',
+          decidedAt: '2026-01-01T00:00:01.000Z',
         },
         {
           settingId: 's1',
@@ -469,7 +469,7 @@ describe('Décision de Gaelle du 15 octobre 2026 : le calendrier ne bouge pas, g
           givenOn: null,
           targetOn: '2026-03-21',
           id: 'l2',
-          updatedAt: '2026-01-01T00:00:02.000Z',
+          decidedAt: '2026-01-01T00:00:02.000Z',
         },
         {
           settingId: 's1',
@@ -479,7 +479,7 @@ describe('Décision de Gaelle du 15 octobre 2026 : le calendrier ne bouge pas, g
           givenOn: null,
           targetOn: '2026-03-23',
           id: 'l4',
-          updatedAt: '2026-01-01T00:00:04.000Z',
+          decidedAt: '2026-01-01T00:00:04.000Z',
         },
         {
           settingId: 's1',
@@ -489,7 +489,7 @@ describe('Décision de Gaelle du 15 octobre 2026 : le calendrier ne bouge pas, g
           givenOn: '2026-03-09',
           targetOn: null,
           id: 'l6',
-          updatedAt: '2026-01-01T00:00:06.000Z',
+          decidedAt: '2026-01-01T00:00:06.000Z',
         },
         {
           settingId: 's1',
@@ -499,7 +499,7 @@ describe('Décision de Gaelle du 15 octobre 2026 : le calendrier ne bouge pas, g
           givenOn: '2026-03-12',
           targetOn: null,
           id: 'l7',
-          updatedAt: '2026-01-01T00:00:10.000Z',
+          decidedAt: '2026-01-01T00:00:10.000Z',
         },
         {
           settingId: 's1',
@@ -509,7 +509,7 @@ describe('Décision de Gaelle du 15 octobre 2026 : le calendrier ne bouge pas, g
           givenOn: '2026-03-13',
           targetOn: null,
           id: 'l8',
-          updatedAt: '2026-01-01T00:00:08.000Z',
+          decidedAt: '2026-01-01T00:00:08.000Z',
         },
         {
           settingId: 's1',
@@ -519,7 +519,7 @@ describe('Décision de Gaelle du 15 octobre 2026 : le calendrier ne bouge pas, g
           givenOn: null,
           targetOn: '2026-03-13',
           id: 'l9',
-          updatedAt: '2026-01-01T00:00:09.000Z',
+          decidedAt: '2026-01-01T00:00:09.000Z',
         },
         {
           settingId: 's1',
@@ -529,7 +529,7 @@ describe('Décision de Gaelle du 15 octobre 2026 : le calendrier ne bouge pas, g
           givenOn: '2026-03-08',
           targetOn: null,
           id: 'l11',
-          updatedAt: '2026-01-01T00:00:11.000Z',
+          decidedAt: '2026-01-01T00:00:11.000Z',
         },
         {
           settingId: 's1',
@@ -539,7 +539,7 @@ describe('Décision de Gaelle du 15 octobre 2026 : le calendrier ne bouge pas, g
           givenOn: '2026-03-09',
           targetOn: null,
           id: 'l12',
-          updatedAt: '2026-01-01T00:00:12.000Z',
+          decidedAt: '2026-01-01T00:00:12.000Z',
         },
       ],
       today: '2026-03-13',
@@ -602,7 +602,7 @@ describe('Décision de Gaelle du 15 octobre 2026 : le calendrier ne bouge pas, g
           givenOn: null,
           targetOn: '2026-04-13',
           id: 'l1',
-          updatedAt: '2026-01-01T00:00:01.000Z',
+          decidedAt: '2026-01-01T00:00:01.000Z',
         },
         {
           settingId: 's1',
@@ -612,7 +612,7 @@ describe('Décision de Gaelle du 15 octobre 2026 : le calendrier ne bouge pas, g
           givenOn: '2026-04-11',
           targetOn: null,
           id: 'l2',
-          updatedAt: '2026-01-01T00:00:07.000Z',
+          decidedAt: '2026-01-01T00:00:07.000Z',
         },
         {
           settingId: 's1',
@@ -622,7 +622,7 @@ describe('Décision de Gaelle du 15 octobre 2026 : le calendrier ne bouge pas, g
           givenOn: null,
           targetOn: '2026-04-23',
           id: 'l3',
-          updatedAt: '2026-01-01T00:00:04.000Z',
+          decidedAt: '2026-01-01T00:00:04.000Z',
         },
         {
           settingId: 's2',
@@ -632,7 +632,7 @@ describe('Décision de Gaelle du 15 octobre 2026 : le calendrier ne bouge pas, g
           givenOn: '2026-04-13',
           targetOn: null,
           id: 'l8',
-          updatedAt: '2026-01-01T00:00:08.000Z',
+          decidedAt: '2026-01-01T00:00:08.000Z',
         },
         {
           settingId: 's2',
@@ -642,7 +642,7 @@ describe('Décision de Gaelle du 15 octobre 2026 : le calendrier ne bouge pas, g
           givenOn: null,
           targetOn: '2026-04-26',
           id: 'l9',
-          updatedAt: '2026-01-01T00:00:09.000Z',
+          decidedAt: '2026-01-01T00:00:09.000Z',
         },
         {
           settingId: 's2',
@@ -652,7 +652,7 @@ describe('Décision de Gaelle du 15 octobre 2026 : le calendrier ne bouge pas, g
           givenOn: '2026-04-15',
           targetOn: null,
           id: 'l10',
-          updatedAt: '2026-01-01T00:00:11.000Z',
+          decidedAt: '2026-01-01T00:00:11.000Z',
         },
       ],
       today: '2026-04-17',

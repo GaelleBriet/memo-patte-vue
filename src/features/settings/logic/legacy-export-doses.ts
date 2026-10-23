@@ -52,6 +52,7 @@ function rowOf(fields: LineFields, id: string, dose: LegacyDose, { deviceId }: R
     dueRank: fields.dueRank ?? null,
     createdAt: dose.createdAt,
     updatedAt: dose.updatedAt,
+    decidedAt: dose.updatedAt,
     createdByDevice: deviceId,
     updatedByDevice: deviceId,
   } satisfies ExportTreatmentDose

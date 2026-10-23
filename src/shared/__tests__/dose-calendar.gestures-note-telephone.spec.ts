@@ -20,7 +20,7 @@ function prise(
   device: string,
   status: 'given' | 'missed',
   givenOn: string | null,
-  updatedAt: string,
+  decidedAt: string,
 ): Line {
   return {
     id,
@@ -30,7 +30,7 @@ function prise(
     status,
     givenOn,
     targetOn: null,
-    updatedAt,
+    decidedAt,
     createdByDevice: device,
   }
 }
@@ -47,12 +47,12 @@ function written(lines: readonly Line[], result: GestureOutcome, device: string,
     if (change.action === 'delete') next = next.filter(({ id }) => id !== change.id)
     else if (change.action === 'rewrite')
       next = next.map((line) =>
-        line.id === change.id ? { ...line, ...change.line, updatedAt: at } : line,
+        line.id === change.id ? { ...line, ...change.line, decidedAt: at } : line,
       )
     else
       next = [
         ...next,
-        { ...change.line, id: `${device}${index}`, updatedAt: at, createdByDevice: device },
+        { ...change.line, id: `${device}${index}`, decidedAt: at, createdByDevice: device },
       ]
   })
   return next
@@ -63,7 +63,7 @@ function synced(...phones: (readonly Line[])[]): Line[] {
   const byId = new Map<string, Line>()
   for (const line of phones.flat()) {
     const kept = byId.get(line.id)
-    if (kept === undefined || line.updatedAt > kept.updatedAt) byId.set(line.id, line)
+    if (kept === undefined || line.decidedAt > kept.decidedAt) byId.set(line.id, line)
   }
   return [...byId.values()]
 }

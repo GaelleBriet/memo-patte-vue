@@ -20,7 +20,7 @@ function line(
   { givenOn = null, targetOn = null }: { givenOn?: string | null; targetOn?: string | null },
   second: number,
 ): Line {
-  return { id, settingId, status, dueOn, dueTime, givenOn, targetOn, updatedAt: at(second) }
+  return { id, settingId, status, dueOn, dueTime, givenOn, targetOn, decidedAt: at(second) }
 }
 
 const played = (input: TreatmentViewInput, id: string) => {

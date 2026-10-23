@@ -10,7 +10,7 @@ import { toCsvTables } from './export-csv'
 import { exportReminders } from './export-reminders'
 
 /** Contrat documenté dans `docs/technical/export-format.md` : toute rupture incrémente la version. */
-export const EXPORT_SCHEMA_VERSION = 10
+export const EXPORT_SCHEMA_VERSION = 11
 
 export type ExportFormat = 'json' | 'csv'
 

@@ -12,8 +12,8 @@ export function restoreStatement(dose: RestoredTreatmentDose, exists: boolean): 
         sql: `UPDATE treatment_dose
                   SET due_on = ?, due_time = ?, given_on = ?, status = ?, target_on = ?,
                       previous_target_on = ?, previous_target_time = ?, due_rank = ?,
-                      created_at = ?, updated_at = ?, deleted_at = NULL, created_by_device = ?,
-                      updated_by_device = ?
+                      created_at = ?, updated_at = ?, decided_at = ?, deleted_at = NULL,
+                      created_by_device = ?, updated_by_device = ?
                   WHERE id = ?`,
         params: [
           dose.dueOn,
@@ -26,6 +26,7 @@ export function restoreStatement(dose: RestoredTreatmentDose, exists: boolean): 
           dose.dueRank,
           dose.createdAt,
           dose.updatedAt,
+          dose.decidedAt,
           dose.createdByDevice,
           dose.updatedByDevice,
           dose.id,

@@ -58,17 +58,17 @@ export function settingsWritten(walk: SettingsWalk, plan: SettingsPlan): Treatme
 function linesWritten(
   walk: SettingsWalk,
   changes: NonNullable<SettingsPlan['lines']>,
-  updatedAt: string,
+  decidedAt: string,
 ): Line[] {
   return changes.reduce<Line[]>(
     (lines, change, index) => {
       if (change.action === 'delete') return lines.filter(({ id }) => id !== change.id)
       const { line: fields } = withReportFacts(lines, walk.input.settings, change)
       if (change.action === 'create') {
-        return [...lines, { ...fields, id: `r${updatedAt}-${index}`, updatedAt }]
+        return [...lines, { ...fields, id: `r${decidedAt}-${index}`, decidedAt }]
       }
       return lines.map((line) =>
-        line.id === change.id ? { ...fields, id: line.id, updatedAt } : line,
+        line.id === change.id ? { ...fields, id: line.id, decidedAt } : line,
       )
     },
     [...walk.input.lines],

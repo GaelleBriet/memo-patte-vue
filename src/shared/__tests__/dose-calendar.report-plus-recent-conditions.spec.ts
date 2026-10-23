@@ -48,7 +48,7 @@ const postponed = (id: string, settingId: string, dueOn: string, targetOn: strin
     status: 'postponed',
     givenOn: null,
     targetOn,
-    updatedAt: at,
+    decidedAt: at,
   }) as Line
 
 function written(
@@ -59,7 +59,7 @@ function written(
   let lines = [...input.lines]
   changes.forEach((change, index) => {
     if (change.action === 'delete') lines = lines.filter(({ id }) => id !== change.id)
-    else lines = [...lines, { ...change.line, id: `${at}-${index}`, updatedAt: at }]
+    else lines = [...lines, { ...change.line, id: `${at}-${index}`, decidedAt: at }]
   })
   return { ...input, lines }
 }

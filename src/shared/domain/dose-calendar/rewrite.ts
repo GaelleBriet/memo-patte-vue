@@ -7,15 +7,15 @@ type Reach = { drawnBy: string | undefined }
 
 // #867 : la journée de départ, ôtée avant la première échéance, se juge dans les deux sens.
 function beforeFirstDue(line: Line, gridAt: string): 'line' | 'rewrite' {
-  return line.updatedAt > gridAt ? 'line' : 'rewrite'
+  return line.decidedAt > gridAt ? 'line' : 'rewrite'
 }
 
 // #882, 8a : après la première échéance, la journée ôtée par la réécriture elle-même, dans les deux sens.
 function afterFirstDue(line: Line, written: Setting, gridAt: string, { drawnBy }: Reach) {
   const origin = written.gridOriginOn ?? written.firstDueOn
   if (drawnBy !== written.id || isOnGrid(origin, written.frequency, line.dueOn)) return null
-  if (line.updatedAt === gridAt) return null
-  return gridAt > line.updatedAt ? 'rewrite' : 'line'
+  if (line.decidedAt === gridAt) return null
+  return gridAt > line.decidedAt ? 'rewrite' : 'line'
 }
 
 // #939, Q4 : une heure ôtée n'est jamais un conflit, le report part par son rang.
@@ -62,7 +62,7 @@ function newerRewritten(report: Line, own: Setting, reading: Setting | undefined
   if (reading === undefined || reading.id === own.id || reading.createdAt <= own.createdAt)
     return null
   const rewritten = reading.updatedAt !== undefined && reading.updatedAt > reading.createdAt
-  return rewritten && report.updatedAt > reading.createdAt ? reading : null
+  return rewritten && report.decidedAt > reading.createdAt ? reading : null
 }
 
 /** Un réglage qui lit une journée du report (départ ou ancienne arrivée), ou dont vient sa date choisie. */

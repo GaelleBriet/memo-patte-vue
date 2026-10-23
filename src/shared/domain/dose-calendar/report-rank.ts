@@ -71,9 +71,9 @@ export function hoursSeenOn(
   journey: { setting: Setting; hours: readonly Hour[] },
   live: readonly Setting[],
 ): readonly Hour[] {
-  if (journey.setting.createdAt <= report.updatedAt) return journey.hours
+  if (journey.setting.createdAt <= report.decidedAt) return journey.hours
   const seen = live
-    .filter(({ startsOn, createdAt }) => startsOn <= day && createdAt <= report.updatedAt)
+    .filter(({ startsOn, createdAt }) => startsOn <= day && createdAt <= report.decidedAt)
     .at(-1)
   return seen === undefined || sameHours(seen, journey.setting)
     ? journey.hours

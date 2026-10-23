@@ -17,7 +17,7 @@ const T1 = '2026-10-02T08:00:00.000Z'
 const SUPPRIME = '2026-10-05T08:00:00.000Z'
 
 type V11Period = LegacyPeriod & { deletedAt?: string | null }
-type V11Dose = LegacyDose & { deletedAt?: string | null }
+type V11Dose = Omit<LegacyDose, 'decidedAt'> & { updatedAt: string; deletedAt?: string | null }
 type V11Treatment = { id: string; periods: V11Period[]; doses: V11Dose[] }
 
 function seedVersion11(db: InMemoryDb, treatments: V11Treatment[]): Promise<void> {

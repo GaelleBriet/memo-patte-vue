@@ -19,7 +19,7 @@ export const familyOf = (line: Pick<Line, 'status'>): string =>
   isTaken(line) ? 'note' : line.status
 
 export const isMoreRecent = (a: Line, b: Line): boolean =>
-  a.updatedAt > b.updatedAt || (a.updatedAt === b.updatedAt && a.id > b.id)
+  a.decidedAt > b.decidedAt || (a.decidedAt === b.decidedAt && a.id > b.id)
 
 /** #867, #873 : entre un report et la ligne « pas à donner » de sa dose, au départ comme à l'arrivée, le plus récent l'emporte. */
 export const reportBeats = (report: Line, note: Line): boolean => isMoreRecent(report, note)
@@ -90,7 +90,7 @@ function chosenArrivalsOf(reports: readonly Line[], span: Span): Map<Line, Setti
 // les heures se jugent sur la date des réglages, le conflit sur celle de la grille (#939).
 function rewrittenAfter(line: Line, setting: Setting | undefined): boolean {
   const at = setting?.updatedAt
-  return at !== undefined && at > setting!.createdAt && at > line.updatedAt
+  return at !== undefined && at > setting!.createdAt && at > line.decidedAt
 }
 
 function touchedDays(

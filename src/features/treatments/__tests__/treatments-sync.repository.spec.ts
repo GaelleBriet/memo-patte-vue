@@ -40,9 +40,9 @@ describe('treatmentsRepository — port de synchronisation', () => {
     await db.run(
       `INSERT INTO treatment_dose
          (id, period_id, treatment_id, animal_id, due_on, given_on, status, target_on,
-          created_at, updated_at, created_by_device, updated_by_device)
-       VALUES (?, ?, ?, ?, '2026-01-01', '2026-01-01', 'given', '2026-02-01', ?, ?, 'appareil-test', 'appareil-test')`,
-      [TREATMENT_ID, TREATMENT_ID, TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL],
+          created_at, updated_at, decided_at, created_by_device, updated_by_device)
+       VALUES (?, ?, ?, ?, '2026-01-01', '2026-01-01', 'given', '2026-02-01', ?, ?, ?, 'appareil-test', 'appareil-test')`,
+      [TREATMENT_ID, TREATMENT_ID, TREATMENT_ID, ANIMAL_ID, T_LOCAL, T_LOCAL, T_LOCAL],
     )
   })
 

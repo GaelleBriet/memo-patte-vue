@@ -62,6 +62,7 @@ export function dose(
     targetOn: status === 'postponed' || status === 'shift' ? next : null,
     createdAt: AT,
     updatedAt: AT,
+    decidedAt: overrides.updatedAt ?? AT,
     deletedAt: null,
     ...overrides,
   }
@@ -145,12 +146,15 @@ export function written(
             animalId: write.animalId,
             createdAt: at,
             updatedAt: at,
+            decidedAt: at,
             deletedAt: null,
           },
         ]
       case 'rewrite':
         return lines.map((line) =>
-          line.id === write.id ? { ...line, ...write.dose, updatedAt: at } : line,
+          line.id === write.id
+            ? { ...line, ...write.dose, updatedAt: at, decidedAt: write.decidedAt ?? at }
+            : line,
         )
       case 'delete':
         return lines.filter(({ id }) => id !== write.id)
