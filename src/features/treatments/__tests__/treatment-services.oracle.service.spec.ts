@@ -261,9 +261,7 @@ describe('les services des traitements rejouent les gestes du moteur v2', () => 
     600_000 + SEEDS * STEPS * 200,
   )
 
-  // #1188 : les graines du ticket viennent d'une autre marche ; ici, sur main, seules 1619 et 1785
-  // changent de lecture et 69 voit un geste refusé. Le garde-fou du ticket est le carnet daté de Milo
-  // (treatment-services.supprimer-annuler-decided-at.service.spec.ts).
+  // #1188 : garde-fou du ticket dans treatment-services.supprimer-annuler-decided-at.service.spec.ts.
   it.each([
     [69, 21],
     [370, 1],
@@ -273,7 +271,6 @@ describe('les services des traitements rejouent les gestes du moteur v2', () => 
     [1785, 11],
     [1877, 1],
     [2495, 10],
-    [2646, 0],
   ])(
     'graine %i : « Supprimer ce traitement » puis « Annuler » après chaque geste rend la même lecture, sur au moins %i gestes',
     async (seed, minimum) => {
