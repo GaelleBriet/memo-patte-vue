@@ -29,8 +29,8 @@ export type AuthRepository = {
   sendPasswordResetCode(email: string): Promise<void>
   /** Ouvre une session dans Supabase : `updatePassword` termine le parcours, `discardSession` l'abandonne. */
   verifyPasswordResetCode(email: string, code: string): Promise<AuthSession>
-  /** Vise le compte de la session de l'appareil. */
-  updatePassword(password: string): Promise<AuthSession>
+  /** Vise le compte de la session de l'appareil. `currentPassword` : joint au corps seulement s'il est fourni. */
+  updatePassword(password: string, currentPassword?: string): Promise<AuthSession>
   /** Envoie un code à l'adresse actuelle et un à la nouvelle (double confirmation de Supabase). */
   requestEmailChange(email: string): Promise<void>
   /** `null` : l'adresse est confirmée mais le compte ne change qu'avec le code de l'autre adresse. */
@@ -65,6 +65,8 @@ const REASONS_BY_CODE: Record<string, AccountErrorReason> = {
   email_exists: 'email-taken',
   user_already_exists: 'email-taken',
   invalid_credentials: 'invalid-credentials',
+  current_password_invalid: 'invalid-credentials',
+  current_password_mismatch: 'invalid-credentials',
   weak_password: 'weak-password',
   same_password: 'same-password',
   email_not_confirmed: 'email-not-confirmed',
@@ -251,9 +253,13 @@ export function createAuthRepository({
         return sessionOf(data.session)
       }),
 
-    updatePassword: (password) =>
+    updatePassword: (password, currentPassword) =>
       withClient(async (supabase) => {
-        const { error } = await supabase.auth.updateUser({ password })
+        const { error } = await supabase.auth.updateUser(
+          currentPassword === undefined
+            ? { password }
+            : { password, current_password: currentPassword },
+        )
         if (error) throw error
         const { data } = await supabase.auth.getSession()
         if (!data.session) throw new AccountError('unknown')

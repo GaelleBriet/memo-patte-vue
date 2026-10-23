@@ -82,7 +82,7 @@ describe('PasswordChangeView (V24 ter)', () => {
     await enregistrer(w)
 
     expect(reauthenticate).toHaveBeenCalledWith('ancien-secret')
-    expect(updatePassword).toHaveBeenCalledWith('nouveau-secret')
+    expect(updatePassword).toHaveBeenCalledWith('nouveau-secret', 'ancien-secret')
     expect(toastMessage.value).toBe('Mot de passe modifié.')
     expect(replace).toHaveBeenCalledWith({ name: 'settings-account' })
   })
@@ -96,6 +96,17 @@ describe('PasswordChangeView (V24 ter)', () => {
 
     expect(w.text()).toContain('Mot de passe incorrect. Réessaie.')
     expect(updatePassword).not.toHaveBeenCalled()
+    expect(replace).not.toHaveBeenCalled()
+  })
+
+  it('dit « Mot de passe incorrect. Réessaie. » quand Supabase refuse l’actuel joint au nouveau', async () => {
+    updatePassword.mockRejectedValue(new AccountError('invalid-credentials'))
+    const w = await monter()
+    await remplir(w, 'ancien-secret', 'nouveau-secret')
+
+    await enregistrer(w)
+
+    expect(w.text()).toContain('Mot de passe incorrect. Réessaie.')
     expect(replace).not.toHaveBeenCalled()
   })
 

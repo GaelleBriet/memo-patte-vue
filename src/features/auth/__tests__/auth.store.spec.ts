@@ -528,7 +528,7 @@ describe('useAuthStore', () => {
       await store.changePasswordWithCurrent('ancien-secret', 'nouveau-secret')
 
       expect(repository.reauthenticate).toHaveBeenCalledWith('ancien-secret')
-      expect(repository.updatePassword).toHaveBeenCalledWith('nouveau-secret')
+      expect(repository.updatePassword).toHaveBeenCalledWith('nouveau-secret', 'ancien-secret')
       expect(repository.reauthenticate.mock.invocationCallOrder[0]).toBeLessThan(
         repository.updatePassword.mock.invocationCallOrder[0]!,
       )

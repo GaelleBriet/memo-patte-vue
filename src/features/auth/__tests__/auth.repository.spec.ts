@@ -514,6 +514,29 @@ describe('createAuthRepository', () => {
       expect(server.bodies.at(-1)).not.toHaveProperty('current_password')
     })
 
+    it('joint le mot de passe actuel quand il est fourni', async () => {
+      storeSession(sessionBody())
+      server.on('user', () => json(200, userBody(USER_ID)))
+
+      await repository.updatePassword('nouveau-secret', 'ancien-secret')
+
+      expect(server.bodies.at(-1)).toMatchObject({
+        password: 'nouveau-secret',
+        current_password: 'ancien-secret',
+      })
+    })
+
+    it.each([
+      ['current_password_invalid', 'invalid-credentials'],
+      ['current_password_mismatch', 'invalid-credentials'],
+      ['current_password_required', 'unknown'],
+    ])('traduit le code %s', async (code, reason) => {
+      storeSession(sessionBody())
+      server.on('user', apiError(400, code))
+
+      expect(await reasonOf(repository.updatePassword('nouveau-secret', 'faux'))).toBe(reason)
+    })
+
     it('lève « même mot de passe » quand Supabase refuse l’actuel', async () => {
       storeSession(sessionBody())
       server.on('user', apiError(422, 'same_password'))
