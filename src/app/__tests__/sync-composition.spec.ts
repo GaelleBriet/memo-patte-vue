@@ -4,6 +4,10 @@ import {
   createLocalSyncContext,
   type LocalSyncContext,
 } from '@/core/sync/service/local-sync-context'
+import {
+  providePhotoRestoreStatus,
+  usePhotosDownloading,
+} from '@/core/sync/service/photo-restore-status'
 import type { useAuthStore } from '@/features/auth/store/auth.store'
 import { createDefaultSyncDependencies } from '../sync'
 
@@ -11,12 +15,20 @@ const auth = vi.hoisted(() => ({
   sessionState: 'none' as ReturnType<typeof useAuthStore>['sessionState'],
 }))
 
+const photos = vi.hoisted(() => ({ isRunning: { value: false } }))
+
 vi.mock('@/features/auth/store/auth.store', () => ({ useAuthStore: () => auth }))
 
 vi.mock('@/core/sync/service/local-sync-context', () => ({
-  createLocalSyncContext: vi.fn<typeof createLocalSyncContext>(
-    async () => ({ outbox: {}, cycle: { runCycle: async () => {} } }) as LocalSyncContext,
-  ),
+  createLocalSyncContext: vi.fn<typeof createLocalSyncContext>(async () => {
+    const { ref } = await import('vue')
+    photos.isRunning = ref(false)
+    return {
+      outbox: {},
+      cycle: { runCycle: async () => {} },
+      photoRestore: { isRunning: photos.isRunning },
+    } as unknown as LocalSyncContext
+  }),
 }))
 vi.mock('@/core/device/device.repository', async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -67,6 +79,17 @@ describe('createDefaultSyncDependencies', () => {
 
     const [deps] = vi.mocked(createLocalSyncContext).mock.calls[0] ?? []
     expect(deps?.tables.map((table) => table.entity)).toEqual(SYNC_ENTITY_ORDER)
+  })
+
+  it('branche l’état de la restauration des photos pour l’accueil', async () => {
+    const downloading = usePhotosDownloading()
+    await createDefaultSyncDependencies()
+
+    expect(downloading.value).toBe(false)
+    photos.isRunning.value = true
+    expect(downloading.value).toBe(true)
+    photos.isRunning.value = false
+    providePhotoRestoreStatus(null)
   })
 
   it('donne à la synchro et à ses photos la session du compte, active ou non', async () => {

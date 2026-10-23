@@ -994,6 +994,7 @@
       "household": "Your pets"
     },
     "loading": "Opening home…",
+    "photosDownloading": "Downloading photos…",
     "error": {
       "title": "Couldn’t open the home screen.",
       "text": "The local database didn’t respond. Your data is safe.",
