@@ -102,7 +102,7 @@ function estimatedDues({ settings, lines, today }: TreatmentViewInput): number {
   }, 0)
 }
 
-function viewInputOf(
+export function carnetInputOf(
   { periods, doses }: TreatmentRecords,
   today: string,
   device: string | undefined,
@@ -152,11 +152,15 @@ export type TreatmentReading = { view: TreatmentView; input: TreatmentViewInput 
 
 /** R12 : la lecture d'un carnet du moteur, enregistré ou simulé ; `null` quand il est illisible. */
 export function readCarnet(input: TreatmentViewInput): TreatmentReading | null {
-  const readable =
+  return isReadableCarnet(input) ? { view: treatmentView(input), input } : null
+}
+
+export function isReadableCarnet(input: TreatmentViewInput): boolean {
+  return (
     input.settings.every(isReadableSetting) &&
     input.lines.every(isReadableLine) &&
     estimatedDues(input) <= MAX_DUES
-  return readable ? { view: treatmentView(input), input } : null
+  )
 }
 
 /**
@@ -168,7 +172,7 @@ export function readTreatment(
   today: string,
   device?: string,
 ): TreatmentReading | null {
-  return readCarnet(viewInputOf(treatment, today, device))
+  return readCarnet(carnetInputOf(treatment, today, device))
 }
 
 export function treatmentReading(treatment: TreatmentRecords, today: string): TreatmentView | null {
