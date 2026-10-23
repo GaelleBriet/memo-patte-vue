@@ -41,11 +41,13 @@ export function useEmailCode({
   const isConfirming = ref(false)
   const isResending = ref(false)
   let sentAt: number | null = null
+  let step = 0
 
   const isComplete = computed(() => isCompleteCode(code.value))
   const isExpired = computed(() => errorKey.value === EXPIRED_KEY)
 
   function forget(): void {
+    step += 1
     email.value = null
     code.value = ''
     errorKey.value = null
@@ -54,6 +56,7 @@ export function useEmailCode({
   }
 
   function open(address: string, from: SignInMode, sent: number | null): void {
+    step += 1
     email.value = address
     origin.value = from
     code.value = ''
@@ -67,10 +70,12 @@ export function useEmailCode({
     isConfirming.value = true
     errorKey.value = null
     noticeKey.value = null
+    const verified = step
     try {
       await verifyCode(email.value, code.value)
-      return true
+      return verified === step
     } catch (cause) {
+      if (verified !== step) return false
       errorKey.value =
         cause instanceof AccountError && cause.reason === 'invalid-code'
           ? refusedCodeKey(sentAt, now())

@@ -55,6 +55,34 @@ describe('useEmailCode', () => {
   })
 
   describe('confirm', () => {
+    it('ignore la réponse du serveur quand la personne est revenue en arrière entre-temps', async () => {
+      let accepter: () => void = () => {}
+      verifySignUpCode.mockReturnValue(new Promise<void>((resolve) => (accepter = resolve)))
+      const etape = codeOuvert()
+      etape.setCode('12345678')
+
+      const attente = etape.confirm()
+      etape.close()
+      accepter()
+
+      expect(await attente).toBe(false)
+      expect(etape.email.value).toBeNull()
+    })
+
+    it('ne montre pas une erreur tardive sur l’étape refermée', async () => {
+      let refuser: (cause: unknown) => void = () => {}
+      verifySignUpCode.mockReturnValue(new Promise<void>((_, reject) => (refuser = reject)))
+      const etape = codeOuvert()
+      etape.setCode('12345678')
+
+      const attente = etape.confirm()
+      etape.close()
+      refuser(new AccountError('offline'))
+      await attente
+
+      expect(etape.errorKey.value).toBeNull()
+    })
+
     it('confirme l’adresse avec le code saisi, puis ferme l’étape du code', async () => {
       const etape = codeOuvert()
       etape.setCode('12345678')

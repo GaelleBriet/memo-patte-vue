@@ -113,6 +113,22 @@ describe('usePasswordReset', () => {
   })
 
   describe('code et nouveau mot de passe (V24 octies, nonies)', () => {
+    it('ne change pas le mot de passe si la personne est revenue en arrière pendant la vérification', async () => {
+      let accepter: () => void = () => {}
+      verifyPasswordResetCode.mockReturnValue(new Promise<void>((resolve) => (accepter = resolve)))
+      const reset = await codeEnvoye()
+      reset.emailCode.setCode('12345678')
+      reset.newPassword.value = { password: 'nouveau-secret', confirmation: 'nouveau-secret' }
+
+      const attente = reset.reset()
+      reset.backToAddress()
+      accepter()
+
+      expect(await attente).toBe(false)
+      expect(changePassword).not.toHaveBeenCalled()
+      expect(reset.step.value).toBe('address')
+    })
+
     it('vérifie le code puis enregistre le nouveau mot de passe', async () => {
       const reset = await codeEnvoye()
       reset.emailCode.setCode('12345678')
