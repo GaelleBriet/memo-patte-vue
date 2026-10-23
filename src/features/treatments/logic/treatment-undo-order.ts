@@ -14,10 +14,6 @@ export function undoRanks(
   return (id) => byId.get(id)!
 }
 
-export function rankedStamp(at: string, rank = 0): string {
-  return rank === 0 ? at : new Date(Date.parse(at) + rank).toISOString()
-}
-
 /** Une ligne lue avant le geste, avec sa dernière écriture : la garde du lot inverse. */
 export type KeptLine = Line & { updatedAt: string }
 

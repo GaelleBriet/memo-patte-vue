@@ -305,25 +305,6 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
       await expect(row('nouvelle')).resolves.toMatchObject({ updated_at: T3, decided_at: T2 })
     })
 
-    it('TR-25 : l’annulation date les lignes dans l’ordre de leurs modifications d’avant le geste', async () => {
-      await doses.applyBatch([{ action: 'rewrite', id: 'soir', dose: SOIR }], T2)
-      const inverse = await doses.applyBatch(
-        [
-          { action: 'delete', id: 'soir' },
-          { action: 'rewrite', id: 'matin', dose: REDATEE },
-        ],
-        T3,
-      )
-
-      await doses.applyBatch(inverse, T3)
-
-      await expect(row('matin')).resolves.toMatchObject({ updated_at: T3 })
-      await expect(row('soir')).resolves.toMatchObject({
-        updated_at: '2026-09-28T09:05:04.001Z',
-        deleted_at: null,
-      })
-    })
-
     it('n’écrit rien quand une instruction échoue', async () => {
       const before = await visible()
       const casse: DoseWrite[] = [
