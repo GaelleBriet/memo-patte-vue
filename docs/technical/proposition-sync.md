@@ -402,7 +402,8 @@ compte (`core/sync/service/photo-removal.ts`, port `PhotoDeletePort` implément�
 ne la porte de nouveau au moment de l'effacement, son fichier est effacé du téléphone (fin du délai
 « Annuler » ou ménage du lancement suivant), aucune ligne d'animal ne reste à envoyer, car la ligne
 du cloud la désignerait encore, et l'entrée est en file depuis au moins 7 jours
-(`PHOTO_CLOUD_GRACE_MS`, comparé à `queued_at`, la date de la modification, par l'horloge du
+(`PHOTO_CLOUD_GRACE_MS`, comparé à `queued_at`, la date de la modification, ou l'heure de mise en
+file quand l'activation de la synchro ou « Fusionner » met tout le carnet en file, par l'horloge du
 téléphone). Ce délai de grâce couvre deux appareils : le 23 octobre à 19 h, le téléphone remplace la
 photo de Milo, P1 par P2 ; à 19 h 00 min 30 la tablette modifie Milo et gagne, sa ligne désigne
 encore P1. Effacée tout de suite, P1 ne vivrait plus que sur la tablette ; avec le délai, la ligne

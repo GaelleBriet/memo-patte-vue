@@ -23,7 +23,8 @@ permissions:
 
 jobs:
   # Une PR qui ne touche que site/ ou docs/ ne lance que ESLint et les tests du site ; les tests contre
-  # une pile Supabase locale ne tournent que si la PR touche supabase/, src/core/supabase/ ou ce workflow.
+  # une pile Supabase locale ne tournent que si la PR touche supabase/, src/core/supabase/,
+  # src/features/auth/repository/, scripts/supabase-local/, un *.local.spec.ts, pnpm-lock.yaml ou ce workflow.
   changes:
     runs-on: ubuntu-latest
     outputs:
@@ -43,7 +44,7 @@ jobs:
             files=$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[] | .filename, (.previous_filename // empty)') &&
             [ -n "$files" ]; then
             grep -qvE '^(site|docs)/' <<<"$files" || app=false
-            grep -qE '^(supabase/|src/core/supabase/|\.github/workflows/ci\.yml$)' <<<"$files" || supabase=false
+            grep -qE '^(supabase/|src/core/supabase/|src/features/auth/repository/|scripts/supabase-local/|\.github/workflows/ci\.yml$|pnpm-lock\.yaml$)|\.local\.spec\.ts$' <<<"$files" || supabase=false
           fi
           echo "app=$app" | tee -a "$GITHUB_OUTPUT"
           echo "supabase=$supabase" | tee -a "$GITHUB_OUTPUT"
@@ -269,6 +270,9 @@ jobs:
       - name: Rejouer les migrations sur une base vide
         run: supabase db reset
 
+      - name: Exiger le mot de passe actuel pour en changer (réglage de l'hébergé)
+        run: scripts/supabase-local/require-current-password.sh
+
       - name: Tests pgTAP
         run: supabase test db
 
@@ -318,4 +322,11 @@ jobs:
             echo "$job : $result (attendu : $want)"
             [ "$result" = "$want" ] || ok=false
           done < <(jq -r 'to_entries[] | "\(.key) \(.value.result)"' <<<"$NEEDS")
+          # Cette liste double needs exprès : un job retiré de needs ne doit pas sortir du contrôle en silence.
+          for job in changes ci tests fuseaux android edge-functions supabase-local; do
+            if ! jq -e --arg j "$job" 'has($j)' <<<"$NEEDS" >/dev/null; then
+              echo "::error::$job absent de needs : Verdict ne le contrôle plus."
+              ok=false
+            fi
+          done
           $ok
