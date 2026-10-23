@@ -1,4 +1,4 @@
-import { format, parseISO, subDays } from 'date-fns'
+import { parseISO, subDays } from 'date-fns'
 
 import { isExtraOn } from './treatment-notification'
 import { keepsShift, type NoteGesture } from './treatment-dose-change'
@@ -12,6 +12,7 @@ import {
 } from './treatment-shift-help'
 import { revealedDues, revealedDuesText } from './treatment-revealed-dues'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
+import { toDay } from '@/shared/domain/calendar-day'
 import {
   applied,
   moveBounds,
@@ -62,9 +63,7 @@ export type DateChangeBox = {
 }
 
 function daysUpTo(today: string, count: number): string[] {
-  return Array.from({ length: count }, (_, index) =>
-    format(subDays(parseISO(today), index), 'yyyy-MM-dd'),
-  )
+  return Array.from({ length: count }, (_, index) => toDay(subDays(parseISO(today), index)))
 }
 
 const refused = (result: { refusal: Refusal } | GestureOutcome): result is { refusal: Refusal } =>

@@ -3,14 +3,15 @@ import { format, parseISO, subDays } from 'date-fns'
 import type { Translate } from '@/core/i18n/translate'
 import type { RestoreProgress } from '@/core/sync/service/account-restore'
 import type { BackupSummary } from '@/core/sync/service/backup-summary'
+import { toDay } from '@/shared/domain/calendar-day'
 import { formatClockTime, formatFullDate, formatFullDayMonth } from '@/shared/utils/format'
 
 function lastBackupWhen(t: Translate, instant: string, today: string): string {
   const at = parseISO(instant)
-  const day = format(at, 'yyyy-MM-dd')
+  const day = toDay(at)
   const time = formatClockTime(format(at, 'HH:mm'))
   if (day >= today) return t('settings.restore.when.today', { time })
-  if (day === format(subDays(parseISO(today), 1), 'yyyy-MM-dd')) {
+  if (day === toDay(subDays(parseISO(today), 1))) {
     return t('settings.restore.when.yesterday', { time })
   }
   if (day.slice(0, 4) === today.slice(0, 4)) {

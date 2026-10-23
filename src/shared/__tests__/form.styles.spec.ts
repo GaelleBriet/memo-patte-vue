@@ -215,3 +215,12 @@ describe('FormSegmented — contrat de style', () => {
     expect(reglesColorees).toEqual(['.form-segmented__option', '.form-segmented__option--selected'])
   })
 })
+
+describe('PasswordField — contrat de style', () => {
+  const css = cssDe('PasswordField.vue')
+
+  it('donne à l’icône œil une zone tactile d’au moins 44 px', () => {
+    expect(declaration(css, '.password-field__toggle', 'width')).toBe('48px')
+    expect(declaration(css, '.password-field__toggle', 'height')).toBe('48px')
+  })
+})

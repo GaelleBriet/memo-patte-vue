@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { endOfDay, format, parseISO } from 'date-fns'
+import { endOfDay, parseISO } from 'date-fns'
 import { computed, onScopeDispose, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { onBackButton } from '@/core/app-lifecycle/back-button'
+import { toDay } from '@/shared/domain/calendar-day'
 
 type ViewMode = 'month' | 'months' | 'year'
 
@@ -30,13 +31,13 @@ let releaseBackButton: (() => void) | null = null
 const allowedDates = computed(() => {
   if (props.excluded.length === 0) return undefined
   const excluded = new Set(props.excluded)
-  return (date: unknown) => !excluded.has(format(date as Date, 'yyyy-MM-dd'))
+  return (date: unknown) => !excluded.has(toDay(date as Date))
 })
 
 const selected = computed({
   get: () => toDate(model.value) ?? null,
   set: (date: Date | null) => {
-    model.value = date === null ? null : format(date, 'yyyy-MM-dd')
+    model.value = date === null ? null : toDay(date)
   },
 })
 

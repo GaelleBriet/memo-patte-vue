@@ -1,4 +1,4 @@
-import { addDays, differenceInCalendarDays, formatISO, parseISO } from 'date-fns'
+import { addDays, differenceInCalendarDays, parseISO } from 'date-fns'
 
 import { treatmentReadingOf } from './treatment-reading-adapter'
 import {
@@ -22,7 +22,7 @@ import type {
   TreatmentPeriodSettings,
 } from '../schema/treatment-period.schema'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
-import { isCalendarDay, latestOf, nextDay } from '@/shared/domain/calendar-day'
+import { isCalendarDay, latestOf, nextDay, toDay } from '@/shared/domain/calendar-day'
 import type { Phase } from '@/shared/domain/dose-calendar'
 
 export type ResumptionDraft = {
@@ -74,7 +74,7 @@ export function resumptionDraft(treatment: TreatmentWithPeriods, today: string):
     endsOnFor: (firstDoseOn) =>
       durationDays === null || durationDays < 1 || !isCalendarDay(firstDoseOn)
         ? null
-        : formatISO(addDays(parseISO(firstDoseOn), durationDays - 1), { representation: 'date' }),
+        : toDay(addDays(parseISO(firstDoseOn), durationDays - 1)),
   }
 }
 

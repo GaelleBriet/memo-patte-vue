@@ -5,6 +5,24 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.104](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.103...memo-patte-v0.1.104) (2026-10-23)
+
+
+### ✨ Fonctionnalités
+
+* **accueil:** ligne « photos en cours de téléchargement » ([e5a725c](https://github.com/GaelleBriet/memo-patte-vue/commit/e5a725c76bc6e06f0125f266ea4505dd24a0b7cd))
+* **auth:** envoyer le mot de passe actuel pour en changer, avant le réglage serveur ([475d279](https://github.com/GaelleBriet/memo-patte-vue/commit/475d2799f64dfd0541e57c45883f494794728f3c))
+* connexion seule depuis « j'ai déjà mémopatte plus » ([d078e9e](https://github.com/GaelleBriet/memo-patte-vue/commit/d078e9e468497458774214198480de894fc06d02))
+* connexion seule depuis « j'ai déjà mémopatte plus » ([a1a54e5](https://github.com/GaelleBriet/memo-patte-vue/commit/a1a54e5eab1fc3a48c3ec1efd0ad094c09673464))
+
+
+### 🐛 Corrections
+
+* **accueil:** la ligne des photos ne passe jamais à la ligne, coupée par « … » au pire ([dc953be](https://github.com/GaelleBriet/memo-patte-vue/commit/dc953be016ad63e444f7dbc458d40e7659082afc))
+* **accueil:** la ligne des photos ne rogne plus le bas des lettres en police agrandie ([afad21c](https://github.com/GaelleBriet/memo-patte-vue/commit/afad21c573eb57a7d2ff5399dafed31dd8a9a668))
+* **accueil:** la ligne des photos se loge dans l'écart existant, sans rien déplacer ([5bd4ff7](https://github.com/GaelleBriet/memo-patte-vue/commit/5bd4ff73f9012d2c0ac89ea1060c5ac29991bf1a))
+* **photos:** la ligne ne s'affiche que pour la passe qui suit une restauration ([dcdcd69](https://github.com/GaelleBriet/memo-patte-vue/commit/dcdcd69d281f6f17694f7141c36fe242522bd8ac))
+
 ## [0.1.103](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.102...memo-patte-v0.1.103) (2026-10-23)
 
 

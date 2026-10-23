@@ -7,6 +7,7 @@ import { AccountError } from '../logic/account-error'
 import { authRepository, type AuthRepository } from '../repository/auth.repository'
 import { provideAuthRepository } from '../store/auth.store'
 import PasswordResetView from '../views/PasswordResetView.vue'
+import PasswordField from '@/shared/form/PasswordField.vue'
 import { memoryStorage, USER_ID } from './auth-fixture'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
@@ -81,9 +82,16 @@ async function saisirCodeEtMotDePasse(
   wrapper: VueWrapper,
   code: string,
   motDePasse: string,
+  confirmation = motDePasse,
 ): Promise<void> {
   await wrapper.get('#email-code-input').setValue(code)
   await wrapper.get('#password-reset-new-password').setValue(motDePasse)
+  await wrapper.get('#password-reset-confirmation').setValue(confirmation)
+}
+
+function erreurDeConfirmation(wrapper: VueWrapper): string | undefined {
+  const champ = wrapper.get('#password-reset-confirmation').element.closest('.form-field')
+  return champ?.querySelector('.form-field__error')?.textContent?.trim()
 }
 
 beforeEach(() => {
@@ -103,6 +111,10 @@ afterEach(() => {
   vi.unstubAllGlobals()
   document.body.innerHTML = ''
 })
+
+function champsDeMotDePasse(w: VueWrapper): (string | undefined)[] {
+  return w.findAllComponents(PasswordField).map((champ) => champ.get('input').attributes('id'))
+}
 
 describe('PasswordResetView', () => {
   describe('adresse (V24 septies)', () => {
@@ -155,6 +167,15 @@ describe('PasswordResetView', () => {
   })
 
   describe('code et nouveau mot de passe (V24 octies, nonies)', () => {
+    it('porte le champ partagé avec l’icône œil pour le nouveau mot de passe et sa confirmation', async () => {
+      const wrapper = await codeEnvoye()
+
+      expect(champsDeMotDePasse(wrapper)).toEqual([
+        'password-reset-new-password',
+        'password-reset-confirmation',
+      ])
+    })
+
     it('montre « Code reçu », le nouveau mot de passe et « Renvoyer le code », sans « Changer d’adresse »', async () => {
       const wrapper = await codeEnvoye()
 
@@ -277,6 +298,53 @@ describe('PasswordResetView', () => {
     expect(repository.sendPasswordResetCode).toHaveBeenCalledWith(ADRESSE)
   })
 
+  describe('confirmation du nouveau mot de passe (V24 nonies)', () => {
+    it('demande le nouveau mot de passe une seconde fois, juste après', async () => {
+      const wrapper = await codeEnvoye()
+
+      expect(wrapper.get('label[for="password-reset-confirmation"]').text()).toContain(
+        'Confirme le nouveau mot de passe',
+      )
+      expect(wrapper.get('#password-reset-confirmation').attributes('autocomplete')).toBe(
+        'new-password',
+      )
+    })
+
+    it('laisse « Réinitialiser » inactif tant que les deux saisies diffèrent', async () => {
+      const wrapper = await codeEnvoye()
+      await saisirCodeEtMotDePasse(wrapper, '12345678', 'nouveau-secret', 'nouveau-secret ')
+
+      expect(wrapper.get('.password-reset__submit').attributes('disabled')).toBeDefined()
+      await toucher(wrapper, '.password-reset__submit')
+      expect(repository.verifyPasswordResetCode).not.toHaveBeenCalled()
+      expect(repository.updatePassword).not.toHaveBeenCalled()
+
+      await wrapper.get('#password-reset-confirmation').setValue('nouveau-secret')
+      expect(wrapper.get('.password-reset__submit').attributes('disabled')).toBeUndefined()
+    })
+
+    it('ne montre l’écart sous la confirmation qu’une fois le champ quitté', async () => {
+      const wrapper = await codeEnvoye()
+      await saisirCodeEtMotDePasse(wrapper, '12345678', 'nouveau-secret', 'NOUVEAU-SECRET')
+
+      expect(erreurDeConfirmation(wrapper)).toBeUndefined()
+
+      await wrapper.get('#password-reset-confirmation').trigger('blur')
+
+      expect(erreurDeConfirmation(wrapper)).toBe('Les deux mots de passe ne sont pas identiques.')
+      expect(wrapper.get('#password-reset-confirmation').attributes('aria-invalid')).toBe('true')
+    })
+
+    it('n’envoie au serveur que le nouveau mot de passe', async () => {
+      const wrapper = await codeEnvoye()
+      await saisirCodeEtMotDePasse(wrapper, '12345678', 'nouveau-secret')
+
+      await toucher(wrapper, '.password-reset__submit')
+
+      expect(repository.updatePassword.mock.calls).toEqual([['nouveau-secret']])
+    })
+  })
+
   it('grise « Renvoyer le code » pendant la vérification', async () => {
     let finir: (value: { userId: string }) => void = () => {}
     repository.verifyPasswordResetCode.mockReturnValue(new Promise((resolve) => (finir = resolve)))
@@ -312,6 +380,9 @@ describe('PasswordResetView', () => {
       )
       expect(wrapper.get('label[for="password-reset-new-password"]').text()).toContain(
         'New password',
+      )
+      expect(wrapper.get('label[for="password-reset-confirmation"]').text()).toContain(
+        'Confirm the new password',
       )
       expect(wrapper.get('.password-reset__submit').text()).toBe('Reset')
     } finally {

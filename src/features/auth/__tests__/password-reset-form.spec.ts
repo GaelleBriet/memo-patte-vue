@@ -31,20 +31,34 @@ describe('validateNewPassword', () => {
   it('accepte un mot de passe d’au moins 8 caractères, tel quel', () => {
     const password = 'a'.repeat(MIN_PASSWORD_LENGTH)
 
-    expect(validateNewPassword({ password })).toEqual({ success: true, data: { password } })
+    expect(validateNewPassword({ password, confirmation: password })).toEqual({
+      success: true,
+      data: { password },
+    })
   })
 
   it('réclame un mot de passe quand le champ est vide', () => {
-    expect(validateNewPassword({ password: '' })).toEqual({
+    expect(validateNewPassword({ password: '', confirmation: '' })).toEqual({
       success: false,
       errors: { password: 'auth.form.errors.passwordRequired' },
     })
   })
 
   it('refuse un mot de passe trop court, comme à l’inscription', () => {
-    expect(validateNewPassword({ password: 'a'.repeat(MIN_PASSWORD_LENGTH - 1) })).toEqual({
+    const password = 'a'.repeat(MIN_PASSWORD_LENGTH - 1)
+
+    expect(validateNewPassword({ password, confirmation: password })).toEqual({
       success: false,
       errors: { password: 'auth.form.errors.passwordTooShort' },
     })
+  })
+
+  it('refuse une confirmation qui diffère, même d’un espace ou d’une majuscule', () => {
+    for (const confirmation of ['autre-secret', 'nouveau-secret ', 'Nouveau-secret', '']) {
+      expect(validateNewPassword({ password: 'nouveau-secret', confirmation })).toEqual({
+        success: false,
+        errors: { confirmation: 'auth.password.mismatch' },
+      })
+    }
   })
 })
