@@ -30,15 +30,29 @@ export async function insertAnimal(
   id: string,
   updatedAt: string,
   name = 'Miette',
+  photoPath: string | null = null,
 ): Promise<void> {
   await db.run(
-    `INSERT INTO animal (id, name, species, created_at, updated_at, created_by_device, updated_by_device) VALUES (?, ?, 'cat', ?, ?, 'appareil-test', 'appareil-test')`,
-    [id, name, updatedAt, updatedAt],
+    `INSERT INTO animal (id, name, species, photo_path, created_at, updated_at, created_by_device, updated_by_device) VALUES (?, ?, 'cat', ?, ?, ?, 'appareil-test', 'appareil-test')`,
+    [id, name, photoPath, updatedAt, updatedAt],
   )
 }
 
 export async function touchAnimal(db: InMemoryDb, id: string, updatedAt: string): Promise<void> {
   await db.run('UPDATE animal SET updated_at = ? WHERE id = ?', [updatedAt, id])
+}
+
+export async function setAnimalPhoto(
+  db: InMemoryDb,
+  id: string,
+  photoPath: string | null,
+  updatedAt: string,
+): Promise<void> {
+  await db.run('UPDATE animal SET photo_path = ?, updated_at = ? WHERE id = ?', [
+    photoPath,
+    updatedAt,
+    id,
+  ])
 }
 
 export async function insertVaccination(

@@ -1,7 +1,8 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
-import { createSyncCycle, type SyncCycleOutbox } from '../service/sync-cycle'
+import { ANIMAL_PHOTO_ENTITY } from '@/core/db/schema-statements'
+import { createSyncCycle } from '../service/sync-cycle'
 import {
   syncField,
   type SyncPullPage,
@@ -9,65 +10,8 @@ import {
   type SyncRow,
   type SyncableTable,
 } from '../service/syncable-table'
+import { createFakeOutbox, type FakeOutboxEntry } from './fake-sync-outbox'
 import { ANIMAL_ID, createSyncTestDb, enableSync, insertAnimal, outboxRows } from './sync-test-db'
-
-interface FakeOutboxEntry {
-  entity: string
-  entityId: string
-  queuedAt: string
-  attempts: number
-}
-
-function createFakeOutbox(
-  initial: FakeOutboxEntry[] = [],
-  cursors: Record<string, string> = {},
-  enabled = true,
-): SyncCycleOutbox & {
-  entries: () => FakeOutboxEntry[]
-  cursor: (entity: string) => string | null
-  lastSyncedAt: () => string | null
-} {
-  let entries = [...initial]
-  const lastPulledAt = new Map(Object.entries(cursors))
-  let lastSyncedAt: string | null = null
-  return {
-    async listPending() {
-      return entries.map((entry) => ({ ...entry }))
-    },
-    async removeIfUnchanged(target) {
-      entries = entries.filter(
-        (entry) =>
-          !(
-            entry.entity === target.entity &&
-            entry.entityId === target.entityId &&
-            entry.queuedAt === target.queuedAt
-          ),
-      )
-    },
-    async getLastPulledAt(entity) {
-      return lastPulledAt.get(entity) ?? null
-    },
-    async setLastPulledAt(entity, value) {
-      lastPulledAt.set(entity, value)
-    },
-    async isEnabled() {
-      return enabled
-    },
-    async setLastSyncedAt(value) {
-      lastSyncedAt = value
-    },
-    async recordFailedPush(target) {
-      entries = entries.map((entry) =>
-        entry.entity === target.entity && entry.entityId === target.entityId
-          ? { ...entry, attempts: entry.attempts + 1 }
-          : entry,
-      )
-    },
-    entries: () => entries,
-    cursor: (entity) => lastPulledAt.get(entity) ?? null,
-    lastSyncedAt: () => lastSyncedAt,
-  }
-}
 
 function createFakePushes() {
   const opened: SyncPush[] = []
@@ -500,6 +444,57 @@ describe('createSyncCycle', () => {
       expect(outbox.entries()).toEqual([])
     })
 
+    it('ne pousse pas une photo comme une ligne : son entrée reste en file', async () => {
+      const photo = {
+        entity: ANIMAL_PHOTO_ENTITY,
+        entityId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg',
+        queuedAt: '2026-01-01T00:00:00.000Z',
+        attempts: 0,
+      }
+      const outbox = createFakeOutbox([photo])
+      const cycle = createSyncCycle({
+        db,
+        outbox,
+        pushes,
+        tables: [fakeTable('animal')],
+        userId: () => 'user-1',
+        isEligible: () => true,
+      })
+
+      await expect(cycle.runCycle()).resolves.toBeUndefined()
+      expect(outbox.entries()).toEqual([photo])
+      expect(pushes.opened).toEqual([])
+    })
+
+    it('pousse les autres lignes de la file quand une photo y attend', async () => {
+      const animal = fakeTable('animal')
+      animal.localRows.set('a1', row('a1', '2026-01-01T00:00:00.000Z', 'x'))
+      const photo = {
+        entity: ANIMAL_PHOTO_ENTITY,
+        entityId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg',
+        queuedAt: '2026-01-01T00:00:00.000Z',
+        attempts: 0,
+      }
+      const outbox = createFakeOutbox([
+        photo,
+        { entity: 'animal', entityId: 'a1', queuedAt: '2026-01-01T00:00:00.000Z', attempts: 0 },
+      ])
+      const cycle = createSyncCycle({
+        db,
+        outbox,
+        pushes,
+        tables: [animal],
+        userId: () => 'user-1',
+        isEligible: () => true,
+      })
+
+      await cycle.runCycle()
+
+      expect(pushes.opened).not.toEqual([])
+      expect(animal.pushed).toHaveLength(1)
+      expect(outbox.entries()).toEqual([photo])
+    })
+
     it('draine la file par lots de 200 entrées', async () => {
       const animal = fakeTable('animal')
       const entries: FakeOutboxEntry[] = []
@@ -652,6 +647,27 @@ describe('createSyncCycle', () => {
       expect(outbox.entries()).toEqual([])
       expect(outbox.lastSyncedAt()).not.toBeNull()
       expect(warn).toHaveBeenCalledOnce()
+      warn.mockRestore()
+    })
+
+    it('ne journalise de la ligne refusée ni le nom de l’animal ni ses dates', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const refusal = {
+        ...CHECK_REFUSAL,
+        details: 'Failing row contains (a1, Milo, 2024-03-12, Croquettes le soir).',
+      }
+      const cycle = cycleWith(createFakeOutbox([entry('animal', 'a1')]), [
+        refusingAnimal(() => refusal),
+      ])
+
+      await expect(cycle.runCycle()).rejects.toBe(refusal)
+      await expect(cycle.runCycle()).rejects.toBe(refusal)
+      await cycle.runCycle()
+
+      const logged = JSON.stringify(warn.mock.calls)
+      expect(warn).toHaveBeenCalledOnce()
+      expect(logged).toContain('23514')
+      expect(logged).not.toMatch(/Milo|2024-03-12|Croquettes/)
       warn.mockRestore()
     })
 

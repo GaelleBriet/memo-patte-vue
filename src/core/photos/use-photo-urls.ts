@@ -21,6 +21,11 @@ async function resolve(name: string): Promise<void> {
   }
 }
 
+/** Un fichier écrit après l'affichage de l'écran : sa photo y apparaît sans attendre une navigation. */
+export function photoFileArrived(name: string): void {
+  void resolve(name)
+}
+
 /** Résout les photos listées ; l'URL rendue est `null` tant qu'elle n'est pas prête. */
 export function usePhotoUrls(names: () => readonly (string | null)[]) {
   watch(

@@ -10,10 +10,14 @@ const AN_HOUR_AGO = NOW - 3_600_000
 const listPhotos = vi.fn<() => Promise<StoredPhoto[]>>()
 const deletePhoto = vi.fn<(name: string) => Promise<void>>()
 const listVersions = vi.fn<() => Promise<AnimalVersion[]>>()
+const listPartialPhotos = vi.fn<() => Promise<StoredPhoto[]>>()
+const deletePartialPhoto = vi.fn<(name: string) => Promise<void>>()
 
 const cleanup = createOrphanPhotosCleanup({
   listPhotos,
   deletePhoto,
+  listPartialPhotos,
+  deletePartialPhoto,
   animals: () => ({ listVersions }),
 })
 
@@ -34,6 +38,8 @@ beforeEach(() => {
   listPhotos.mockReset().mockResolvedValue([])
   deletePhoto.mockReset().mockResolvedValue()
   listVersions.mockReset().mockResolvedValue([])
+  listPartialPhotos.mockReset().mockResolvedValue([])
+  deletePartialPhoto.mockReset().mockResolvedValue()
   vi.spyOn(console, 'warn').mockImplementation(() => {})
 })
 
@@ -108,5 +114,28 @@ describe('photos orphelines au démarrage', () => {
 
     await expect(cleanup()).resolves.toBeUndefined()
     expect(listVersions).not.toHaveBeenCalled()
+  })
+
+  it('efface un téléchargement interrompu de plus d’une minute, garde celui qui peut être en cours', async () => {
+    listPartialPhotos.mockResolvedValue([
+      photo('milo.jpg', NOW - 5 * 60_000),
+      photo('luna.jpg', NOW - 10_000),
+    ])
+    listVersions.mockResolvedValue([animal('milo', 'milo.jpg'), animal('luna', 'luna.jpg')])
+
+    await cleanup()
+
+    expect(deletePartialPhoto.mock.calls).toEqual([['milo.jpg']])
+    expect(deletePhoto).not.toHaveBeenCalled()
+  })
+
+  it('poursuit après un fichier provisoire qui ne s’efface pas, sans lever', async () => {
+    listPartialPhotos.mockResolvedValue([photo('a.jpg'), photo('b.jpg')])
+    listPhotos.mockResolvedValue([photo('orpheline.jpg')])
+    deletePartialPhoto.mockRejectedValueOnce(new Error('occupé'))
+
+    await expect(cleanup()).resolves.toBeUndefined()
+    expect(deletePartialPhoto).toHaveBeenCalledTimes(2)
+    expect(deleted()).toEqual(['orpheline.jpg'])
   })
 })

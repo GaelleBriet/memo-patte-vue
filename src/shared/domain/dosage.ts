@@ -1,4 +1,4 @@
-import { currentLocale, type AppLocale } from '@/core/i18n'
+import type { AppLocale } from '@/core/i18n'
 import { formatQuantity } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
@@ -40,18 +40,27 @@ const takesPlural: Record<AppLocale, (quantity: number) => boolean> = {
 }
 
 /** `comprimé`, `comprimés` à partir de deux ; `tablets` au-delà d’un. */
-export function doseUnitText(t: Translate, unit: DoseUnit, quantity: number): string {
-  return t(`dosage.unit.${unit}`, {}, takesPlural[currentLocale()](quantity) ? 2 : 1)
+export function doseUnitText(
+  t: Translate,
+  locale: AppLocale,
+  unit: DoseUnit,
+  quantity: number,
+): string {
+  return t(`dosage.unit.${unit}`, {}, takesPlural[locale](quantity) ? 2 : 1)
 }
 
 /** `½ comprimé`, `0,3 ml` ; `null` sans posologie. */
-export function dosageText(t: Translate, { doseQuantity, doseUnit }: Dosage): string | null {
+export function dosageText(
+  t: Translate,
+  locale: AppLocale,
+  { doseQuantity, doseUnit }: Dosage,
+): string | null {
   if (doseQuantity === null || doseUnit === null) return null
   return t(
     'dosage.value',
     {
       quantity: formatDoseQuantity(doseQuantity, doseUnit),
-      unit: doseUnitText(t, doseUnit, doseQuantity),
+      unit: doseUnitText(t, locale, doseUnit, doseQuantity),
     },
     1,
   )

@@ -1,6 +1,10 @@
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
+import { ANIMAL_PHOTO_ENTITY } from '@/core/db/schema-statements'
+import { errorSummary } from '@/shared/utils/error-summary'
 import type { SyncOutboxEntry } from '../repository/sync-outbox.repository'
 import { normalizeSyncTimestamps } from './normalize-sync-timestamps'
+import { createPhotoPush, type PhotoPushDependencies } from './photo-push'
+import { createPhotoRemoval, type PhotoRemovalDependencies } from './photo-removal'
 import { createPushRefusals } from './push-refusals'
 import type { SyncPullPage, SyncPush, SyncRow, SyncableTable } from './syncable-table'
 
@@ -42,6 +46,10 @@ export interface SyncCycleDependencies {
   isEligible: () => boolean
   /** Reconstruit les rappels : injecté plutôt qu'importé, `core/sync` reste indépendant des features. */
   onRemindersOutdated?: () => Promise<void>
+  /** L'horloge du téléphone ; `new Date()` par défaut. */
+  now?: () => Date
+  /** Sans elles, les photos restent en file. */
+  photos?: PhotoPushDependencies & PhotoRemovalDependencies
 }
 
 export interface SyncCycle {
@@ -73,7 +81,17 @@ const sameRow = (sent: SyncRow, kept: SyncRow) =>
 
 export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
   const tablesByEntity = new Map(deps.tables.map((table) => [table.entity, table]))
-  const refusals = createPushRefusals()
+  const refusals = createPushRefusals({
+    outbox: deps.outbox,
+    onGivenUp: (entry, cause) =>
+      console.warn(
+        `Ligne refusée par le serveur, sortie de la file (${entry.entity}) :`,
+        errorSummary(cause),
+      ),
+  })
+  const photoPush = deps.photos && createPhotoPush(deps.outbox, deps.photos)
+  const now = deps.now ?? (() => new Date())
+  const photoRemoval = deps.photos && createPhotoRemoval(deps.outbox, deps.photos, now)
 
   /** Les écritures de la synchro ne repartent pas dans la file d'envoi. */
   async function runUnqueued(statements: SqlStatement[]): Promise<void> {
@@ -102,15 +120,6 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
     }
   }
 
-  /** Rend vrai si l'entrée reste en file pour un prochain essai. */
-  async function recordFailure(entry: SyncOutboxEntry, cause: unknown): Promise<boolean> {
-    await deps.outbox.recordFailedPush(entry)
-    if (!refusals.isGivenUp(entry, cause)) return true
-    await deps.outbox.removeIfUnchanged(entry)
-    console.warn(`Ligne refusée par le serveur, sortie de la file (${entry.entity}) :`, cause)
-    return false
-  }
-
   /**
    * Une ligne qui échoue reste en file sans retenir les suivantes ; le premier échec est rendu pour
    * être levé après le pull. Les lignes gardées par le serveur autrement qu'envoyées restent en file
@@ -123,11 +132,12 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
     let envoi: SyncPush | null = null
     for (;;) {
       const claimed = (await deps.outbox.listPending())
+        .filter(({ entity }) => entity !== ANIMAL_PHOTO_ENTITY)
         .filter(({ entity, entityId }) => !handled.has(keyOf(entity, entityId)))
         .slice(0, PUSH_CLAIM_SIZE)
       if (claimed.length === 0) return { keptRows, failure }
       try {
-        envoi ??= await deps.pushes.open(userId, new Date().toISOString())
+        envoi ??= await deps.pushes.open(userId, now().toISOString())
       } catch (cause) {
         return { keptRows, failure: failure ?? { cause } }
       }
@@ -138,7 +148,7 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
           await pushEntry(userId, entry, envoi, keptRows)
           refusals.forget(entry)
         } catch (cause) {
-          if (await recordFailure(entry, cause)) failure ??= { cause }
+          if (await refusals.recordFailure(entry, cause)) failure ??= { cause }
         }
       }
 
@@ -160,7 +170,10 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
         await deps.outbox.removeIfUnchanged(entry)
         onRemindersTouched(table.entity)
       } catch (cause) {
-        console.warn(`Ligne gardée par le serveur non reprise (${table.entity}) :`, cause)
+        console.warn(
+          `Ligne gardée par le serveur non reprise (${table.entity}) :`,
+          errorSummary(cause),
+        )
       }
     }
   }
@@ -265,13 +278,17 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
         const pushed = await push(userId)
         keptRows = pushed.keptRows
         pushFailure = pushed.failure
+        const photoFailure = photoPush ? await photoPush.push(userId) : null
+        pushFailure ??= photoFailure
         await pull(userId, keptRows, onRemindersTouched)
       } finally {
         await keepServerRows(keptRows, onRemindersTouched)
         if (touchedReminders) await deps.onRemindersOutdated?.()
       }
+      const removalFailure = photoRemoval ? await photoRemoval.remove(userId) : null
+      pushFailure ??= removalFailure
       if (pushFailure) throw pushFailure.cause
-      await deps.outbox.setLastSyncedAt(new Date().toISOString())
+      await deps.outbox.setLastSyncedAt(now().toISOString())
     },
   }
 }

@@ -6,6 +6,7 @@ import { currentLocale } from '@/core/i18n'
 import { identify, reset as resetAnalytics } from '@/core/analytics'
 import { errorSummary } from '@/shared/utils/error-summary'
 
+import { AccountError } from '../logic/account-error'
 import {
   type AccountIdentity,
   type AuthRepository,
@@ -163,6 +164,29 @@ export const useAuthStore = defineStore('auth', () => {
       recovered = null
       if (session && account.value?.userId !== session.userId) await repository.discardSession()
     },
+
+    /** « Changer mon adresse e-mail » : le mot de passe reconnecte le compte, puis le code part. */
+    async requestEmailChange(password: string, email: string): Promise<void> {
+      record(await repository.reauthenticate(password))
+      await repository.requestEmailChange(email)
+    },
+
+    /** `true` quand le compte a changé d'adresse, `false` après le premier des deux codes ; la session d'un autre compte est écartée. */
+    async verifyEmailChangeCode(email: string, code: string, last: boolean): Promise<boolean> {
+      const session = await repository.verifyEmailChangeCode(email, code)
+      if (session) {
+        if (account.value?.userId !== session.userId) {
+          await repository.discardSession()
+          throw new AccountError('unknown')
+        }
+        record(session)
+        return true
+      }
+      if (last) throw new AccountError('unknown')
+      return false
+    },
+
+    resendEmailChangeCode: (): Promise<void> => repository.resendEmailChangeCode(),
 
     /** « Changer mon mot de passe » : l'actuel reconnecte le compte, puis le nouveau s'enregistre. */
     async changePasswordWithCurrent(current: string, next: string): Promise<void> {

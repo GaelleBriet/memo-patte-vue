@@ -28,6 +28,57 @@ export async function savePhoto(base64Jpeg: string): Promise<string> {
   return name
 }
 
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = ''
+  for (let start = 0; start < bytes.length; start += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(start, start + 0x8000))
+  }
+  return btoa(binary)
+}
+
+const PARTIAL_SUFFIX = '.part'
+
+/** Écrit sous un nom provisoire puis renomme : une coupure ne laisse jamais une photo tronquée. */
+export async function writeDownloadedPhoto(name: string, jpeg: Uint8Array): Promise<void> {
+  const path = photoPath(name)
+  const partial = `${path}${PARTIAL_SUFFIX}`
+  try {
+    await Filesystem.writeFile({
+      path: partial,
+      data: bytesToBase64(jpeg),
+      directory: Directory.Data,
+      recursive: true,
+    })
+    await Filesystem.rename({
+      from: partial,
+      to: path,
+      directory: Directory.Data,
+      toDirectory: Directory.Data,
+    })
+  } catch (cause) {
+    await Filesystem.deleteFile({ path: partial, directory: Directory.Data }).catch(() => {})
+    throw cause
+  }
+}
+
+/** Les téléchargements interrompus, sous le nom de leur photo. */
+export async function listPartialPhotos(): Promise<StoredPhoto[]> {
+  if (!(await photosDirExists())) return []
+
+  const { files } = await Filesystem.readdir({ path: PHOTOS_DIR, directory: Directory.Data })
+  return files
+    .filter(({ name, type }) => type === 'file' && name.endsWith(PARTIAL_SUFFIX))
+    .map(({ name, mtime }) => ({ name: name.slice(0, -PARTIAL_SUFFIX.length), modifiedAt: mtime }))
+    .filter(({ name }) => isPhotoFileName(name))
+}
+
+export async function deletePartialPhoto(name: string): Promise<void> {
+  await Filesystem.deleteFile({
+    path: `${photoPath(name)}${PARTIAL_SUFFIX}`,
+    directory: Directory.Data,
+  })
+}
+
 export async function deletePhoto(name: string): Promise<void> {
   await Filesystem.deleteFile({ path: photoPath(name), directory: Directory.Data })
 }
@@ -68,6 +119,35 @@ export async function photoExists(name: string): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+export type LocalPhoto =
+  { kind: 'absent' } | { kind: 'too-large' } | { kind: 'found'; bytes: Uint8Array }
+
+function base64ToBytes(base64: string): Uint8Array {
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index)
+  return bytes
+}
+
+/** Taille prise par `stat` : un fichier trop lourd n'est jamais lu. Rejette si un fichier présent ne se lit pas. */
+export async function readPhoto(name: string, maxBytes: number): Promise<LocalPhoto> {
+  if (!isPhotoFileName(name)) return { kind: 'absent' }
+  const options = { path: photoPath(name), directory: Directory.Data }
+
+  let size: number
+  try {
+    ;({ size } = await Filesystem.stat(options))
+  } catch {
+    return { kind: 'absent' }
+  }
+  if (size > maxBytes) return { kind: 'too-large' }
+
+  const { data } = await Filesystem.readFile(options)
+  const bytes =
+    typeof data === 'string' ? base64ToBytes(data) : new Uint8Array(await data.arrayBuffer())
+  return { kind: 'found', bytes }
 }
 
 /** Rejette si le fichier manque, par exemple après une restauration Auto Backup qui exclut les photos. */

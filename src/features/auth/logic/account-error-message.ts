@@ -14,6 +14,12 @@ const MESSAGE_KEYS: Record<AccountErrorReason, string> = {
   unknown: 'auth.errors.unknown',
 }
 
+export const WRONG_PASSWORD_KEY = 'settings.account.delete.identity.wrongPassword'
+
+export function isWrongPassword(cause: unknown): boolean {
+  return cause instanceof AccountError && cause.reason === 'invalid-credentials'
+}
+
 export function accountErrorKey(reason: AccountErrorReason): string {
   return MESSAGE_KEYS[reason]
 }

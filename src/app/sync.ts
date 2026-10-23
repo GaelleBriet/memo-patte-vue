@@ -28,6 +28,7 @@ import { getVaccinationInjectionsRepository } from '@/features/vaccinations/repo
 import { getVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import { getWeightRepository } from '@/features/weight/repository/weight.repository'
 import { syncAllReminders } from '@/features/treatments/service/reminders-sync.service'
+import { errorSummary } from '@/shared/utils/error-summary'
 
 const CHECK_TIMEOUT_MS = 30_000
 
@@ -48,6 +49,8 @@ export interface SyncDependencies {
     | 'resume'
     | 'onRestored'
   >
+  /** Ne lève pas : une photo qui manque encore se retente au lancement suivant. */
+  restoreMissingPhotos: (userId: string) => Promise<void>
 }
 
 /**
@@ -57,7 +60,8 @@ export interface SyncDependencies {
  * Un compte qui en remplace un autre repart, comme une première connexion, du contrôle de sa
  * sauvegarde, fait une fois par lancement et par compte dès que sa session est active. Une
  * restauration choisie reprend seule au lancement, au retour au premier plan et du réseau, comme un
- * contrôle que le serveur n'a pas pu faire.
+ * contrôle que le serveur n'a pas pu faire. Les photos du carnet viennent ensuite, sans rien
+ * retenir : à la fin d'une restauration, puis à chaque lancement d'un carnet déjà lié au compte.
  */
 export async function installSync(deps: SyncDependencies): Promise<() => void> {
   const scheduler = createSyncScheduler({ runCycle: deps.runCycle })
@@ -66,6 +70,11 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
 
   const enqueue = (task: () => Promise<void>) => {
     accountWork = accountWork.then(task)
+  }
+
+  function restorePhotos(): void {
+    const userId = deps.userId()
+    if (deps.sessionActive() && userId !== null) void deps.restoreMissingPhotos(userId)
   }
 
   async function runRestore(): Promise<void> {
@@ -78,6 +87,7 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
       if (outcome === null) deps.restoreFlow.noAnswer()
       else if (outcome.kind === 'backup-found') deps.restoreFlow.offer(outcome.summary)
       else if (outcome.kind === 'restore-pending') await runRestore()
+      else if (outcome.kind === 'active') restorePhotos()
       else if (outcome.kind === 'unreachable') {
         checkedFor = null
         deps.restoreFlow.unreachable()
@@ -88,7 +98,7 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
     } catch (cause) {
       checkedFor = null
       deps.restoreFlow.unreachable()
-      console.warn('Sauvegarde du compte non contrôlée :', cause)
+      console.warn('Sauvegarde du compte non contrôlée :', errorSummary(cause))
     }
   }
 
@@ -106,7 +116,10 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
     scheduler.notifyChange()
   }
 
-  const stopRestored = deps.restoreFlow.onRestored(() => scheduler.notifyChange())
+  const stopRestored = deps.restoreFlow.onRestored(() => {
+    scheduler.notifyChange()
+    restorePhotos()
+  })
   const stopRetry = deps.restoreFlow.onRetryCheck(() => {
     checkedFor = null
     checkOnce()
@@ -159,7 +172,7 @@ async function forgetPreviousAccount(outbox: SyncDependencies['outbox']): Promis
   try {
     await outbox.forgetAccount()
   } catch (cause) {
-    console.warn('File de synchro non oubliée au départ du compte :', cause)
+    console.warn('File de synchro non oubliée au départ du compte :', errorSummary(cause))
   }
 }
 
@@ -177,9 +190,11 @@ export async function createDefaultSyncDependencies(): Promise<SyncDependencies>
     await getCarnetSettingsRepository(),
   ]
   const userId = () => useAuthStore().userId
-  const { outbox, cycle, restore } = await createLocalSyncContext({
+  const sessionActive = () => useAuthStore().sessionState === 'active'
+  const { outbox, cycle, restore, photoRestore } = await createLocalSyncContext({
     tables,
     userId,
+    sessionActive,
     isEligible: () => useAuthStore().hasPlusAccount && usePurchaseStore().status.plan !== 'none',
     onRemindersOutdated: syncAllReminders,
   })
@@ -197,8 +212,9 @@ export async function createDefaultSyncDependencies(): Promise<SyncDependencies>
     outbox,
     runCycle: () => cycle.runCycle(),
     userId,
-    sessionActive: () => useAuthStore().sessionState === 'active',
+    sessionActive,
     checkAccountBackup: () => accountBackup.check(),
     restoreFlow,
+    restoreMissingPhotos: (account) => photoRestore.restoreMissing(account),
   }
 }

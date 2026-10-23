@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { InMemoryDb } from '@/core/db/__tests__/in-memory-db'
+import { ANIMAL_PHOTO_ENTITY } from '@/core/db/schema-statements'
 import {
   ANIMAL_ID,
   createSyncTestDb,
@@ -13,6 +14,7 @@ import {
   insertVaccination,
   insertWeightEntry,
   outboxRows,
+  setAnimalPhoto,
   touchAnimal,
   touchCarnetSettings,
   touchTreatment,
@@ -187,5 +189,144 @@ describe('déclencheurs sync_outbox', () => {
     expect(rows.filter((row) => row.entity === entity)).toEqual([
       { entity, entity_id: id, queued_at: T2, attempts: 0 },
     ])
+  })
+})
+
+describe('file des photos', () => {
+  const PHOTO_A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg'
+  const PHOTO_B = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb.jpg'
+  let db: InMemoryDb
+
+  beforeEach(async () => {
+    db = await createSyncTestDb()
+  })
+
+  afterEach(() => {
+    db.close()
+  })
+
+  const photoRows = async () =>
+    (await outboxRows(db)).filter(({ entity }) => entity === ANIMAL_PHOTO_ENTITY)
+
+  it('ne met aucune photo en file tant que la synchronisation est désactivée', async () => {
+    await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_A)
+    await setAnimalPhoto(db, ANIMAL_ID, PHOTO_B, T2)
+
+    await expect(outboxRows(db)).resolves.toEqual([])
+  })
+
+  it('met en file la photo d’un animal créé avec elle, sous son nom de fichier', async () => {
+    await enableSync(db)
+
+    await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_A)
+
+    await expect(photoRows()).resolves.toEqual([
+      { entity: ANIMAL_PHOTO_ENTITY, entity_id: PHOTO_A, queued_at: T1, attempts: 0 },
+    ])
+  })
+
+  it('ne met rien en file pour un animal créé sans photo', async () => {
+    await enableSync(db)
+
+    await insertAnimal(db, ANIMAL_ID, T1)
+
+    await expect(photoRows()).resolves.toEqual([])
+  })
+
+  it('met en file la photo ajoutée ou changée, datée par la modification', async () => {
+    await enableSync(db)
+    await insertAnimal(db, ANIMAL_ID, T1)
+
+    await setAnimalPhoto(db, ANIMAL_ID, PHOTO_A, T2)
+    await setAnimalPhoto(db, ANIMAL_ID, PHOTO_B, T3)
+
+    await expect(photoRows()).resolves.toEqual([
+      { entity: ANIMAL_PHOTO_ENTITY, entity_id: PHOTO_A, queued_at: T3, attempts: 0 },
+      { entity: ANIMAL_PHOTO_ENTITY, entity_id: PHOTO_B, queued_at: T3, attempts: 0 },
+    ])
+  })
+
+  it('remet en file la photo remplacée, datée par le remplacement, pour l’effacer du cloud', async () => {
+    await enableSync(db)
+    await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_A)
+    await db.execute('DELETE FROM sync_outbox')
+
+    await setAnimalPhoto(db, ANIMAL_ID, PHOTO_B, T2)
+
+    await expect(photoRows()).resolves.toEqual([
+      { entity: ANIMAL_PHOTO_ENTITY, entity_id: PHOTO_A, queued_at: T2, attempts: 0 },
+      { entity: ANIMAL_PHOTO_ENTITY, entity_id: PHOTO_B, queued_at: T2, attempts: 0 },
+    ])
+  })
+
+  it('remet en file la photo retirée, datée par le retrait, pour l’effacer du cloud', async () => {
+    await enableSync(db)
+    await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_A)
+    await db.execute('DELETE FROM sync_outbox')
+
+    await setAnimalPhoto(db, ANIMAL_ID, null, T2)
+
+    await expect(photoRows()).resolves.toEqual([
+      { entity: ANIMAL_PHOTO_ENTITY, entity_id: PHOTO_A, queued_at: T2, attempts: 0 },
+    ])
+  })
+
+  it('ne remet rien en file quand l’animal est supprimé : sa photo reste dans le cloud', async () => {
+    await enableSync(db)
+    await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_A)
+    await db.execute('DELETE FROM sync_outbox')
+
+    await db.run('UPDATE animal SET deleted_at = ?, updated_at = ? WHERE id = ?', [
+      T2,
+      T2,
+      ANIMAL_ID,
+    ])
+
+    await expect(photoRows()).resolves.toEqual([])
+  })
+
+  it('ne remet pas en file une photo retirée pendant que la synchronisation est désactivée', async () => {
+    await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_A)
+
+    await setAnimalPhoto(db, ANIMAL_ID, null, T2)
+
+    await expect(outboxRows(db)).resolves.toEqual([])
+  })
+
+  it('ne remet pas en file une photo réécrite à l’identique avec le reste de la fiche', async () => {
+    await enableSync(db)
+    await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_A)
+
+    await setAnimalPhoto(db, ANIMAL_ID, PHOTO_A, T2)
+
+    await expect(photoRows()).resolves.toEqual([
+      { entity: ANIMAL_PHOTO_ENTITY, entity_id: PHOTO_A, queued_at: T1, attempts: 0 },
+    ])
+  })
+
+  it('ne met rien en file quand la photo est retirée', async () => {
+    await enableSync(db)
+    await insertAnimal(db, ANIMAL_ID, T1)
+
+    await setAnimalPhoto(db, ANIMAL_ID, null, T2)
+
+    await expect(photoRows()).resolves.toEqual([])
+  })
+
+  it('ne met pas en file la photo d’un animal supprimé : le téléphone l’efface au lancement suivant', async () => {
+    await enableSync(db)
+    await db.run(
+      `INSERT INTO animal (id, name, species, photo_path, created_at, updated_at, deleted_at,
+         created_by_device, updated_by_device)
+       VALUES (?, 'Pirate', 'cat', ?, ?, ?, ?, 'appareil-test', 'appareil-test')`,
+      [ANIMAL_ID, PHOTO_A, T1, T1, T1],
+    )
+    await db.run('UPDATE animal SET photo_path = ?, updated_at = ? WHERE id = ?', [
+      PHOTO_B,
+      T2,
+      ANIMAL_ID,
+    ])
+
+    await expect(photoRows()).resolves.toEqual([])
   })
 })

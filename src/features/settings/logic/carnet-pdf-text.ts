@@ -1,4 +1,6 @@
+import { currentWeightUnit } from '@/core/preferences/weight-unit-preference'
 import { animalAge, animalAgeText } from '@/shared/domain/animal-age'
+import { currentLocale } from '@/core/i18n'
 import { dosageText } from '@/shared/domain/dosage'
 import { notDueTextOn } from '@/shared/domain/treatment-not-due-text'
 import { weightText } from '@/shared/domain/weight-display'
@@ -206,7 +208,7 @@ function periodHeadText(period: PdfTreatmentPeriod, t: Translate): string {
     periodRangeText(period, t),
     t(`treatments.frequency.${unit}`, { n: value }, value),
     period.times.length > 0 && formatClockTimes(period.times),
-    dosageText((key, named, plural) => t(key, named, plural), period.dosage),
+    dosageText((key, named, plural) => t(key, named, plural), currentLocale(), period.dosage),
   ]
     .filter((part): part is string => Boolean(part))
     .join(' · ')
@@ -291,7 +293,7 @@ export function carnetPdfText(content: CarnetPdfContent, t: Translate): CarnetPd
       emptyLabel: t('settings.pdf.weight.empty'),
       rows: content.weightEntries.map((entry) => [
         formatNumericDate(entry.measuredOn),
-        weightText(t, entry.weightKg),
+        weightText(t, currentWeightUnit(), entry.weightKg),
       ]),
     },
   }

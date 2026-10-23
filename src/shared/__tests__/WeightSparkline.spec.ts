@@ -1,3 +1,4 @@
+import { currentWeightUnit } from '@/core/preferences/weight-unit-preference'
 import { mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -74,7 +75,7 @@ describe('WeightSparkline — tracé', () => {
   })
 
   it('pose le voile, la courbe et un point par pesée, placé selon sa date', () => {
-    const chart = buildCarnetWeightChart(LUNA, LIBELLES)!
+    const chart = buildCarnetWeightChart(currentWeightUnit(), LUNA, LIBELLES)!
     const svg = monter().get('svg')
 
     expect(svg.get('.weight-chart-trace__area').attributes('d')).toBe(chart.area)
@@ -143,7 +144,7 @@ describe('WeightSparkline — trois chiffres seulement', () => {
   })
 
   it('pose la pastille au-dessus de la dernière pesée, calée sur la fin du tracé', () => {
-    const chart = buildCarnetWeightChart(LUNA, LIBELLES)!
+    const chart = buildCarnetWeightChart(currentWeightUnit(), LUNA, LIBELLES)!
     const pastille = monter().get('.weight-sparkline__latest')
 
     expect(pastille.attributes('style')).toBe(

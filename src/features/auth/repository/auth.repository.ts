@@ -31,6 +31,12 @@ export type AuthRepository = {
   verifyPasswordResetCode(email: string, code: string): Promise<AuthSession>
   /** Vise le compte de la session de l'appareil. */
   updatePassword(password: string): Promise<AuthSession>
+  /** Envoie un code à l'adresse actuelle et un à la nouvelle (double confirmation de Supabase). */
+  requestEmailChange(email: string): Promise<void>
+  /** `null` : l'adresse est confirmée mais le compte ne change qu'avec le code de l'autre adresse. */
+  verifyEmailChangeCode(email: string, code: string): Promise<AuthSession | null>
+  /** Supabase cherche le compte par son adresse actuelle et n'envoie rien pour la nouvelle. */
+  resendEmailChangeCode(): Promise<void>
   /** Reconnecte le compte de la session : la connexion récente que Supabase exige pour changer de mot de passe. */
   reauthenticate(password: string): Promise<AuthSession>
   signIn(email: string, password: string): Promise<AuthSession>
@@ -252,6 +258,32 @@ export function createAuthRepository({
         const { data } = await supabase.auth.getSession()
         if (!data.session) throw new AccountError('unknown')
         return sessionOf(data.session)
+      }),
+
+    requestEmailChange: (email) =>
+      withClient(async (supabase) => {
+        const { error } = await supabase.auth.updateUser({ email })
+        if (error) throw error
+      }),
+
+    verifyEmailChangeCode: (email, code) =>
+      withClient(async (supabase) => {
+        const { data, error } = await supabase.auth.verifyOtp({
+          email,
+          token: code,
+          type: 'email_change',
+        })
+        if (error) throw error
+        return data.session ? sessionOf(data.session) : null
+      }),
+
+    resendEmailChangeCode: () =>
+      withClient(async (supabase) => {
+        const { data: current } = await supabase.auth.getSession()
+        const email = current.session?.user.email
+        if (!email) throw new AccountError('unknown')
+        const { error } = await supabase.auth.resend({ type: 'email_change', email })
+        if (error) throw error
       }),
 
     reauthenticate: (password) =>

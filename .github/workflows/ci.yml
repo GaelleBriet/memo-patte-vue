@@ -22,11 +22,13 @@ permissions:
   pull-requests: read
 
 jobs:
-  # Une PR qui ne touche que site/ ou docs/ ne lance que ESLint et les tests du site.
+  # Une PR qui ne touche que site/ ou docs/ ne lance que ESLint et les tests du site ; les tests contre
+  # une pile Supabase locale ne tournent que si la PR touche supabase/, src/core/supabase/ ou ce workflow.
   changes:
     runs-on: ubuntu-latest
     outputs:
       app: ${{ steps.diff.outputs.app }}
+      supabase: ${{ steps.diff.outputs.supabase }}
     steps:
       - id: diff
         env:
@@ -36,12 +38,15 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           app=true
+          supabase=true
           if [ "$EVENT" = pull_request ] &&
             files=$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[] | .filename, (.previous_filename // empty)') &&
-            [ -n "$files" ] && ! grep -qvE '^(site|docs)/' <<<"$files"; then
-            app=false
+            [ -n "$files" ]; then
+            grep -qvE '^(site|docs)/' <<<"$files" || app=false
+            grep -qE '^(supabase/|src/core/supabase/|\.github/workflows/ci\.yml$)' <<<"$files" || supabase=false
           fi
           echo "app=$app" | tee -a "$GITHUB_OUTPUT"
+          echo "supabase=$supabase" | tee -a "$GITHUB_OUTPUT"
 
   ci:
     needs: changes
@@ -222,10 +227,72 @@ jobs:
       - name: Type-check des Edge Functions
         run: deno check supabase/functions/*/index.ts
 
+  # Politiques d'accès (pgTAP) et tests *.local.spec.ts contre une pile Supabase locale jetable :
+  # aucun secret du dépôt, aucun appel au vrai projet.
+  supabase-local:
+    needs: changes
+    if: github.event_name != 'schedule' && needs.changes.outputs.supabase == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.119.0
+
+      # Secret admin tiré au hasard pour ce passage ; PostHog et RevenueCat désactivés : rien ne part chez eux.
+      - name: Réglages locaux de delete-account
+        run: |
+          admin_secret=$(openssl rand -hex 32)
+          echo "::add-mask::$admin_secret"
+          printf 'ADMIN_DELETE_SECRET=%s\nPOSTHOG_ERASURE=disabled\nREVENUECAT_ERASURE=disabled\n' "$admin_secret" > supabase/functions/.env
+          echo "SUPABASE_LOCAL_ADMIN_SECRET=$admin_secret" >> "$GITHUB_ENV"
+
+      - name: Démarrer la pile Supabase locale
+        run: supabase start -x studio,logflare,vector,realtime,imgproxy,mailpit,postgres-meta,supavisor
+
+      - name: Rejouer les migrations sur une base vide
+        run: supabase db reset
+
+      - name: Tests pgTAP
+        run: supabase test db
+
+      - name: Tests contre la pile locale (*.local.spec.ts)
+        run: |
+          eval "$(supabase status -o env \
+            --override-name api.url=SUPABASE_LOCAL_URL \
+            --override-name auth.anon_key=SUPABASE_LOCAL_ANON_KEY \
+            --override-name auth.service_role_key=SUPABASE_LOCAL_SERVICE_ROLE_KEY)"
+          export SUPABASE_LOCAL_URL SUPABASE_LOCAL_ANON_KEY SUPABASE_LOCAL_SERVICE_ROLE_KEY
+          if [ -z "$SUPABASE_LOCAL_URL" ] || [ -z "$SUPABASE_LOCAL_ANON_KEY" ] || [ -z "$SUPABASE_LOCAL_SERVICE_ROLE_KEY" ]; then
+            echo "::error::Clés de la pile locale introuvables : les tests seraient sautés."
+            exit 1
+          fi
+          pnpm exec vitest run --reporter=verbose .local.spec.ts
+
+      - name: Arrêter la pile
+        if: always()
+        run: supabase stop --no-backup
+
   # Seul passage à attendre : vert si chaque job a réussi, ou n'a été sauté que lorsque c'était voulu.
   verdict:
     name: Verdict
-    needs: [changes, ci, tests, fuseaux, android, edge-functions]
+    needs: [changes, ci, tests, fuseaux, android, edge-functions, supabase-local]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -233,6 +300,7 @@ jobs:
           NEEDS: ${{ toJSON(needs) }}
           EVENT: ${{ github.event_name }}
           APP: ${{ needs.changes.outputs.app }}
+          SUPABASE: ${{ needs.changes.outputs.supabase }}
         run: |
           if [ "$EVENT" = schedule ]; then
             expected='changes fuseaux'
@@ -240,6 +308,9 @@ jobs:
             expected='changes ci tests fuseaux android edge-functions'
           else
             expected='changes ci'
+          fi
+          if [ "$EVENT" != schedule ] && [ "$SUPABASE" = true ]; then
+            expected="$expected supabase-local"
           fi
           ok=true
           while read -r job result; do

@@ -48,7 +48,7 @@ async function onInput(event: Event): Promise<void> {
 <template>
   <div class="email-code">
     <p :id="messageId" class="email-code__message">
-      {{ message ?? t('auth.code.message', { email }) }}
+      {{ message ?? t('auth.code.message', { email, length: CODE_LENGTH }) }}
     </p>
 
     <p v-if="label" class="email-code__label" aria-hidden="true">{{ label }}</p>
@@ -69,7 +69,7 @@ async function onInput(event: Event): Promise<void> {
         @focus="isFocused = true"
         @blur="isFocused = false"
       />
-      <div class="email-code__boxes" aria-hidden="true">
+      <div class="email-code__boxes" :style="{ '--code-length': CODE_LENGTH }" aria-hidden="true">
         <span
           v-for="(digit, index) in digits"
           :key="index"
@@ -160,7 +160,7 @@ async function onInput(event: Event): Promise<void> {
 
 .email-code__boxes {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(var(--code-length), 1fr);
   gap: 8px;
 }
 

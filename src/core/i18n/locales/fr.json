@@ -1222,6 +1222,21 @@
     "account": {
       "title": "Compte",
       "signInSection": "Connexion",
+      "email": {
+        "action": "Changer mon adresse e-mail",
+        "newEmail": "Nouvelle adresse e-mail",
+        "help": "Un code sera envoyé à ton adresse actuelle, puis un autre à la nouvelle.",
+        "send": "Recevoir le code",
+        "sendLabel": "Recevoir les codes",
+        "codeLabel": "Code de confirmation",
+        "codeInputLabel": "Code à {length} chiffres envoyé à la nouvelle adresse",
+        "codeCurrent": "Code reçu à ton adresse actuelle, {email}",
+        "codeNew": "Code reçu à la nouvelle adresse, {email}",
+        "lostAccess": "Tu n’as plus accès à cette adresse ?",
+        "resent": "Deux nouveaux codes ont été envoyés.",
+        "sameAddress": "C’est déjà l’adresse de ton compte.",
+        "done": "Adresse e-mail modifiée."
+      },
       "password": {
         "action": "Changer mon mot de passe",
         "current": "Mot de passe actuel",
@@ -1719,18 +1734,18 @@
     "passwordReset": {
       "link": "Mot de passe oublié ?",
       "title": "Mot de passe oublié",
-      "intro": "Indique l’adresse de ton compte. Un code à 6 chiffres y sera envoyé.",
+      "intro": "Indique l’adresse de ton compte. Un code à {length} chiffres y sera envoyé.",
       "send": "Recevoir le code",
-      "codeMessage": "Entre le code à 6 chiffres envoyé à {email}, puis choisis un nouveau mot de passe.",
+      "codeMessage": "Entre le code à {length} chiffres envoyé à {email}, puis choisis un nouveau mot de passe.",
       "codeLabel": "Code reçu",
-      "codeInputLabel": "Code à 6 chiffres reçu par e-mail",
+      "codeInputLabel": "Code à {length} chiffres reçu par e-mail",
       "newPassword": "Nouveau mot de passe",
       "submit": "Réinitialiser",
       "done": "Mot de passe modifié."
     },
     "code": {
       "title": "Confirme ton e-mail",
-      "message": "Entre le code à 6 chiffres envoyé à {email}.",
+      "message": "Entre le code à {length} chiffres envoyé à {email}.",
       "resend": "Renvoyer le code",
       "changeAddress": "Changer d’adresse",
       "confirm": "Confirmer",

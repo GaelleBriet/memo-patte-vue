@@ -4,7 +4,14 @@ import {
   createLocalSyncContext,
   type LocalSyncContext,
 } from '@/core/sync/service/local-sync-context'
+import type { useAuthStore } from '@/features/auth/store/auth.store'
 import { createDefaultSyncDependencies } from '../sync'
+
+const auth = vi.hoisted(() => ({
+  sessionState: 'none' as ReturnType<typeof useAuthStore>['sessionState'],
+}))
+
+vi.mock('@/features/auth/store/auth.store', () => ({ useAuthStore: () => auth }))
 
 vi.mock('@/core/sync/service/local-sync-context', () => ({
   createLocalSyncContext: vi.fn<typeof createLocalSyncContext>(
@@ -60,5 +67,17 @@ describe('createDefaultSyncDependencies', () => {
 
     const [deps] = vi.mocked(createLocalSyncContext).mock.calls[0] ?? []
     expect(deps?.tables.map((table) => table.entity)).toEqual(SYNC_ENTITY_ORDER)
+  })
+
+  it('donne à la synchro et à ses photos la session du compte, active ou non', async () => {
+    const sync = await createDefaultSyncDependencies()
+
+    const [deps] = vi.mocked(createLocalSyncContext).mock.calls.at(-1) ?? []
+    auth.sessionState = 'needs-sign-in'
+    expect(deps?.sessionActive()).toBe(false)
+    expect(sync.sessionActive()).toBe(false)
+    auth.sessionState = 'active'
+    expect(deps?.sessionActive()).toBe(true)
+    expect(sync.sessionActive()).toBe(true)
   })
 })

@@ -1,3 +1,4 @@
+import { currentWeightUnit } from '@/core/preferences/weight-unit-preference'
 import { mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -30,7 +31,7 @@ const TRENTE = Array.from({ length: 30 }, (_, index) => ({
   weightKg: Math.round((4.2 + index * 0.7) * 10) / 10,
 }))
 
-const PAGE_RECENTE = buildHistoryWeightChart(TRENTE.slice(18))!
+const PAGE_RECENTE = buildHistoryWeightChart(currentWeightUnit(), TRENTE.slice(18))!
 const SVG_LEFT = 10
 
 let wrapper: VueWrapper | null = null

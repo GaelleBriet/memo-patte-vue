@@ -42,6 +42,54 @@ export function outboxTriggerStatements(table: string): string[] {
   ]
 }
 
+/**
+ * Une entrée par photo à envoyer ou à effacer du cloud, désignée par son nom de fichier, qui est
+ * aussi son nom dans le cloud.
+ */
+export const ANIMAL_PHOTO_ENTITY = 'animal_photo'
+
+const LIVE_ANIMAL_PHOTO = `(SELECT enabled FROM sync_state WHERE id = 1) = 1
+     AND NEW.photo_path IS NOT NULL AND NEW.deleted_at IS NULL`
+
+/** Les photos que le carnet désigne : celles des animaux non supprimés. */
+export const LIVE_ANIMAL_PHOTOS_FROM =
+  'FROM animal WHERE photo_path IS NOT NULL AND deleted_at IS NULL'
+
+/** Photos des animaux non supprimés, à mettre en file quand la synchronisation s'active. */
+export const LIVE_ANIMAL_PHOTOS_SELECT = `SELECT '${ANIMAL_PHOTO_ENTITY}', photo_path, updated_at
+     ${LIVE_ANIMAL_PHOTOS_FROM}`
+
+export function photoOutboxTriggerStatements(): string[] {
+  const upsert = `
+      INSERT INTO sync_outbox (entity, entity_id, queued_at)
+      VALUES ('${ANIMAL_PHOTO_ENTITY}', NEW.photo_path, NEW.updated_at)
+      ON CONFLICT (entity, entity_id) DO UPDATE SET queued_at = excluded.queued_at;`
+
+  return [
+    `CREATE TRIGGER ${ANIMAL_PHOTO_ENTITY}_outbox_insert AFTER INSERT ON animal
+     WHEN ${LIVE_ANIMAL_PHOTO}
+     BEGIN${upsert}
+     END;`,
+    `CREATE TRIGGER ${ANIMAL_PHOTO_ENTITY}_outbox_update AFTER UPDATE OF photo_path ON animal
+     WHEN ${LIVE_ANIMAL_PHOTO} AND NEW.photo_path IS NOT OLD.photo_path
+     BEGIN${upsert}
+     END;`,
+  ]
+}
+
+/** La photo remplacée ou retirée d'un animal non supprimé repart en file, pour sortir du cloud. */
+export function replacedPhotoOutboxTriggerStatement(): string {
+  return `CREATE TRIGGER ${ANIMAL_PHOTO_ENTITY}_outbox_replaced AFTER UPDATE OF photo_path ON animal
+     WHEN (SELECT enabled FROM sync_state WHERE id = 1) = 1
+       AND OLD.photo_path IS NOT NULL AND NEW.deleted_at IS NULL
+       AND NEW.photo_path IS NOT OLD.photo_path
+     BEGIN
+      INSERT INTO sync_outbox (entity, entity_id, queued_at)
+      VALUES ('${ANIMAL_PHOTO_ENTITY}', OLD.photo_path, NEW.updated_at)
+      ON CONFLICT (entity, entity_id) DO UPDATE SET queued_at = excluded.queued_at;
+     END;`
+}
+
 export function nameLengthTriggerStatements(table: string, columns: string[]): string[] {
   const tooLong = columns.map((column) => `length(NEW.${column}) > 80`).join(' OR ')
   const abort = `BEGIN SELECT RAISE(ABORT, '${table}: text longer than 80 characters'); END;`

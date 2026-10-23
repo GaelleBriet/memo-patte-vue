@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { InMemoryDb } from '@/core/db/__tests__/in-memory-db'
+import { ANIMAL_PHOTO_ENTITY } from '@/core/db/schema-statements'
 import {
   createSyncOutboxRepository,
   SYNC_ENTITY_ORDER,
@@ -18,12 +19,15 @@ import {
   insertVaccination,
   insertVaccinationInjection,
   insertWeightEntry,
+  setAnimalPhoto,
   touchAnimal,
 } from './sync-test-db'
 
 const T1 = '2026-01-01T00:00:00.000Z'
 const T2 = '2026-01-01T00:05:00.000Z'
 const SETTINGS_ID = '00000000-0000-0000-0000-000000000000'
+const PHOTO_MILO = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg'
+const PHOTO_PIRATE = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb.jpg'
 
 describe('syncOutboxRepository', () => {
   let db: InMemoryDb
@@ -36,6 +40,75 @@ describe('syncOutboxRepository', () => {
 
   afterEach(() => {
     db.close()
+  })
+
+  describe('isPhotoInCarnet', () => {
+    it('vrai pour la photo d’un animal non supprimé', async () => {
+      await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_MILO)
+
+      await expect(repository.isPhotoInCarnet(PHOTO_MILO)).resolves.toBe(true)
+    })
+
+    it('faux pour une photo retirée, remplacée ou inconnue', async () => {
+      await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_MILO)
+      await setAnimalPhoto(db, ANIMAL_ID, PHOTO_PIRATE, T2)
+
+      await expect(repository.isPhotoInCarnet(PHOTO_MILO)).resolves.toBe(false)
+      await setAnimalPhoto(db, ANIMAL_ID, null, T2)
+      await expect(repository.isPhotoInCarnet(PHOTO_PIRATE)).resolves.toBe(false)
+    })
+
+    it('compare le nom à l’identique : `_` n’y vaut pas n’importe quel caractère', async () => {
+      await insertAnimal(db, ANIMAL_ID, T1, 'Milo', 'aXb.jpg')
+
+      await expect(repository.isPhotoInCarnet('a_b.jpg')).resolves.toBe(false)
+      await expect(repository.isPhotoInCarnet('aXb.jpg')).resolves.toBe(true)
+    })
+
+    it('faux pour la photo d’un animal supprimé', async () => {
+      await insertAnimal(db, 'parti', T1, 'Pirate', PHOTO_PIRATE)
+      await db.run("UPDATE animal SET deleted_at = ? WHERE id = 'parti'", [T2])
+
+      await expect(repository.isPhotoInCarnet(PHOTO_PIRATE)).resolves.toBe(false)
+    })
+  })
+
+  describe('isPhotoKeptByAnimal', () => {
+    it('vrai pour la photo d’un animal non supprimé ou supprimé, qui peut revenir', async () => {
+      await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_MILO)
+      await insertAnimal(db, 'parti', T1, 'Pirate', PHOTO_PIRATE)
+      await db.run("UPDATE animal SET deleted_at = ? WHERE id = 'parti'", [T2])
+
+      await expect(repository.isPhotoKeptByAnimal(PHOTO_MILO)).resolves.toBe(true)
+      await expect(repository.isPhotoKeptByAnimal(PHOTO_PIRATE)).resolves.toBe(true)
+    })
+
+    it('faux pour une photo remplacée, retirée ou inconnue', async () => {
+      await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_MILO)
+      await setAnimalPhoto(db, ANIMAL_ID, PHOTO_PIRATE, T2)
+
+      await expect(repository.isPhotoKeptByAnimal(PHOTO_MILO)).resolves.toBe(false)
+      await setAnimalPhoto(db, ANIMAL_ID, null, T2)
+      await expect(repository.isPhotoKeptByAnimal(PHOTO_PIRATE)).resolves.toBe(false)
+    })
+
+    it('compare le nom à l’identique : `_` n’y vaut pas n’importe quel caractère', async () => {
+      await insertAnimal(db, ANIMAL_ID, T1, 'Milo', 'aXb.jpg')
+
+      await expect(repository.isPhotoKeptByAnimal('a_b.jpg')).resolves.toBe(false)
+    })
+  })
+
+  describe('listCarnetPhotos', () => {
+    it('rend une fois chaque photo des animaux non supprimés, ni celle d’un animal supprimé ni une photo retirée', async () => {
+      await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_MILO)
+      await insertAnimal(db, 'jumeau', T1, 'Milo bis', PHOTO_MILO)
+      await insertAnimal(db, 'parti', T1, 'Pirate', PHOTO_PIRATE)
+      await db.run("UPDATE animal SET deleted_at = ? WHERE id = 'parti'", [T2])
+      await insertAnimal(db, 'sans-photo', T1, 'Luna')
+
+      await expect(repository.listCarnetPhotos()).resolves.toEqual([PHOTO_MILO])
+    })
   })
 
   describe('sync_state.enabled', () => {
@@ -113,8 +186,8 @@ describe('syncOutboxRepository', () => {
       await expect(repository.isEnabled()).resolves.toBe(false)
     })
 
-    it('« Fusionner » : tout le carnet du téléphone en file, la synchro activée au bout', async () => {
-      await insertAnimal(db, ANIMAL_ID, T1)
+    it('« Fusionner » : tout le carnet du téléphone en file, photos comprises, la synchro activée au bout', async () => {
+      await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_MILO)
       await repository.setLastPulledAt('animal', T1)
       await repository.startRestore('merge')
       const { before, after } = repository.restoreStatements({
@@ -126,15 +199,16 @@ describe('syncOutboxRepository', () => {
 
       await expect(repository.listPending()).resolves.toEqual([
         { entity: 'animal', entityId: ANIMAL_ID, queuedAt: T1, attempts: 0 },
+        { entity: ANIMAL_PHOTO_ENTITY, entityId: PHOTO_MILO, queuedAt: T1, attempts: 0 },
       ])
       await expect(repository.getLastPulledAt('animal')).resolves.toBe(T2)
       await expect(repository.isEnabled()).resolves.toBe(true)
       await expect(repository.restoreMode()).resolves.toBeNull()
     })
 
-    it('« Remplacer » : seule la fiche des appareils part en file', async () => {
+    it('« Remplacer » : seule la fiche des appareils part en file, aucune photo', async () => {
       await enableSync(db)
-      await insertAnimal(db, ANIMAL_ID, T1)
+      await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_MILO)
       await db.run('UPDATE sync_state SET enabled = 0 WHERE id = 1')
       await db.run(
         `INSERT INTO device (id, model, installed_at, created_at, updated_at, deleted_at)
@@ -217,9 +291,10 @@ describe('syncOutboxRepository', () => {
          VALUES ('appareil', NULL, ?, ?, ?)`,
         [T1, T1, T1],
       )
-      await insertAnimal(db, ANIMAL_ID, T1)
-      await insertAnimal(db, 'parti', T2, 'Pirate')
+      await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_MILO)
+      await insertAnimal(db, 'parti', T2, 'Pirate', PHOTO_PIRATE)
       await db.run("UPDATE animal SET deleted_at = ? WHERE id = 'parti'", [T2])
+      await insertAnimal(db, 'sans-photo', T1, 'Luna')
       await insertVaccination(db, 'v-1', ANIMAL_ID, T1)
       await insertVaccinationInjection(db, 'i-1', 'v-1', ANIMAL_ID, T1)
       await insertTreatment(db, 't-1', ANIMAL_ID, T1)
@@ -229,7 +304,7 @@ describe('syncOutboxRepository', () => {
       await insertCarnetSettings(db, SETTINGS_ID, T1)
     }
 
-    it('active la synchronisation et met en file chaque ligne du carnet, supprimées comprises', async () => {
+    it('active la synchronisation et met en file chaque ligne du carnet, supprimées comprises, et la photo de chaque animal non supprimé', async () => {
       await insertWholeCarnet()
       await expect(repository.listPending()).resolves.toEqual([])
 
@@ -239,6 +314,7 @@ describe('syncOutboxRepository', () => {
       await expect(repository.listPending()).resolves.toEqual([
         { entity: 'device', entityId: 'appareil', queuedAt: T1, attempts: 0 },
         { entity: 'animal', entityId: ANIMAL_ID, queuedAt: T1, attempts: 0 },
+        { entity: 'animal', entityId: 'sans-photo', queuedAt: T1, attempts: 0 },
         { entity: 'animal', entityId: 'parti', queuedAt: T2, attempts: 0 },
         { entity: 'vaccination', entityId: 'v-1', queuedAt: T1, attempts: 0 },
         { entity: 'vaccination_injection', entityId: 'i-1', queuedAt: T1, attempts: 0 },
@@ -247,6 +323,7 @@ describe('syncOutboxRepository', () => {
         { entity: 'treatment_dose', entityId: 'd-1', queuedAt: T1, attempts: 0 },
         { entity: 'weight_entry', entityId: 'w-1', queuedAt: T1, attempts: 0 },
         { entity: 'carnet_settings', entityId: SETTINGS_ID, queuedAt: T1, attempts: 0 },
+        { entity: ANIMAL_PHOTO_ENTITY, entityId: PHOTO_MILO, queuedAt: T1, attempts: 0 },
       ])
     })
 

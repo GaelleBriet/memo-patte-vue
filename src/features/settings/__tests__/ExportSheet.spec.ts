@@ -262,7 +262,7 @@ describe('ExportSheet', () => {
     expect(partager().textContent?.trim()).toBe('Partager')
   })
 
-  it('accès refusé (Android 7 à 10) : l’explique, Enregistrer redemande, Partager reste possible', async () => {
+  it('accès refusé (Android 10) : l’explique, Enregistrer redemande, Partager reste possible', async () => {
     storage.requestSaveAccess.mockResolvedValue('refused')
     const wrapper = await monter()
 

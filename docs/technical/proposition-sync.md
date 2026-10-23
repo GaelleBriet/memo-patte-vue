@@ -361,16 +361,70 @@ passent par la même file, `entity = 'animal_photo'`, `entity_id` = nom du fichi
 l'objet : `<user_id>/<nom du fichier local>`, tranché au §7-9 : `animal.photo_path` contient un UUID
 **propre à la photo**, pas l'`animal_id` que suppose le ticket.
 
+Envoi : dans le cycle, après les lignes et avant le pull, chaque photo en file est lue dans
+`files/photos/` puis envoyée en remplaçant l'objet s'il existe (un renvoi après une coupure ne casse
+rien), et son entrée sort de la file (`core/sync/service/photo-push.ts`, port `PhotoUploadPort`
+implémenté par `core/supabase/animal-photo-upload.ts`). Une photo qu'aucun animal non supprimé ne
+porte plus (retirée, remplacée, animal supprimé) n'est ni lue ni envoyée ; elle reste en file, sans
+compter d'échec, tant que son fichier existe, car « Annuler » peut rendre l'animal ou la photo sans
+la remettre en file, et elle en sort au cycle qui suit l'effacement du fichier (fin du toast ou
+ménage du lancement suivant). Un fichier absent du téléphone sort de la file sans envoi ; un
+fichier de plus de 2 Mio (taille lue par `stat`, sans lire le fichier) ou qui n'est pas un JPEG
+aussi, sans appel au serveur.
+Storage répond en HTTP 400 à presque tout refus, le motif est dans `statusCode` (relevé sur une pile
+locale) : 413, 415 et 400 sont définitifs et suivent la règle des lignes (trois refus identiques de
+la même version, puis sortie de la file) ; 403 (droit Plus pas encore ou plus actif, §4.2), une
+panne ou un réseau coupé se réessaient sans fin, comme un refus de droit sur une ligne. Une photo en
+échec ne retient ni les autres photos ni le pull. Une photo remplacée n'envoie donc que la nouvelle.
+
 À la restauration : les lignes d'abord, les photos ensuite et une par une, sans bloquer l'écran —
-l'app tolère déjà une photo absente (c'est le cas après un Auto Backup, qui les exclut). On ne
+l'app tolère déjà une photo absente (c'est le cas après un Auto Backup, qui les exclut) : l'animal
+garde son dégradé, et la photo apparaît dès que son fichier arrive. Une fois la transaction du
+carnet validée, chaque photo d'un animal non supprimé dont le fichier manque dans `files/photos/`
+est demandée au dossier du compte (`core/sync/service/photo-restore.ts`, port `PhotoDownloadPort`
+implémenté par `core/supabase/animal-photo-download.ts`) ; le même passage se refait à chaque
+lancement d'un carnet déjà lié au compte (synchro activée, session active), Plus actif ou non, pour
+les photos encore manquantes. Une photo présente sur le téléphone n'est jamais redemandée ni
+écrasée : un nom de photo n'est jamais réutilisé. Avant l'écriture : nom de photo de l'app, 2 Mio
+au plus, premiers octets JPEG ; le fichier s'écrit sous un nom provisoire puis se renomme, jamais
+une photo tronquée sous son nom. Une photo absente du cloud (Storage répond 400 avec `statusCode`
+404 et `code` NoSuchKey, relevé sur une pile locale ; une photo d'un autre compte répond de même)
+laisse l'animal sans photo, sans erreur. Un réseau coupé, une panne ou un refus de droit ne
+retiennent ni les autres photos ni la fin de la restauration. Écrire le fichier ne touche pas
+`animal` : aucune photo téléchargée ne repart en file. On ne
 supprime un objet que lorsque son nom n'est plus référencé par aucune ligne locale, jamais parce
 qu'un animal est passé en tombstone : il peut revenir.
 
+Effacement (v19, `modele-de-donnees-v2.md` §4.9) : une photo remplacée ou retirée d'un animal non
+supprimé repart en file sous son ancien nom. Le cycle, après le pull, efface son objet du dossier du
+compte (`core/sync/service/photo-removal.ts`, port `PhotoDeletePort` implémenté par
+`core/supabase/animal-photo-delete.ts`) quand quatre conditions tiennent : aucun animal non supprimé
+ne la porte de nouveau au moment de l'effacement, son fichier est effacé du téléphone (fin du délai
+« Annuler » ou ménage du lancement suivant), aucune ligne d'animal ne reste à envoyer, car la ligne
+du cloud la désignerait encore, et l'entrée est en file depuis au moins 7 jours
+(`PHOTO_CLOUD_GRACE_MS`, comparé à `queued_at`, la date de la modification, par l'horloge du
+téléphone). Ce délai de grâce couvre deux appareils : le 23 octobre à 19 h, le téléphone remplace la
+photo de Milo, P1 par P2 ; à 19 h 00 min 30 la tablette modifie Milo et gagne, sa ligne désigne
+encore P1. Effacée tout de suite, P1 ne vivrait plus que sur la tablette ; avec le délai, la ligne
+de la tablette, tirée avant le 30 octobre à 19 h, remet P1 dans le carnet et rien n'est effacé. En
+contrepartie, un objet privé en trop reste au plus une semaine dans le dossier. Un effacement en
+attente du délai ne compte pas d'échec et ne redate pas l'entrée. Une photo que seul un animal
+supprimé porte sort de la file sans effacement.
+Une réponse vide compte comme effacée : un refus de droit par la RLS ou une session absente ne se
+distinguent pas d'un objet déjà absent (relevé sur une pile locale), aussi l'adaptateur vérifie
+d'abord, sans réseau, que la session locale est celle du compte, sinon l'effacement se réessaie.
+Seul un jeton invalide ou expiré rend une erreur (`statusCode` 403) ; lui, un réseau coupé et une
+panne se réessaient sans fin, sans retenir les autres photos. L'effacement vit dans le cycle, donc
+derrière la même garde que la synchro (Plus actif, décision du 2026-10-22) : pendant une pause,
+la ligne figée du cloud désigne encore l'ancienne photo, qui n'est effacée qu'à la réactivation,
+après l'envoi de la ligne et de la nouvelle photo.
+
 RLS `storage.objects`, pour les quatre opérations :
-`(storage.foldername(name))[1] = (select auth.uid())::text`, plus `has_active_plus()` pour envoyer,
-remplacer et supprimer : la lecture reste ouverte sans Plus, pour restaurer (PL-16). Un envoi ou un
-remplacement n'accepte que la forme que l'app écrit : `<uid>/<nom>.jpg`, un seul niveau, `<nom>` en
-lettres ASCII, chiffres, `_` ou `-` (comme `isPhotoFileName`).
+`(storage.foldername(name))[1] = (select auth.uid())::text`, plus `has_active_plus()` pour envoyer
+et remplacer : la lecture reste ouverte sans Plus, pour restaurer (PL-16), et la suppression aussi,
+pour effacer ses photos après l'expiration de Plus. Un envoi ou un remplacement n'accepte que la
+forme que l'app écrit : `<uid>/<nom>.jpg`, un seul niveau, `<nom>` en lettres ASCII, chiffres, `_`
+ou `-` (comme `isPhotoFileName`).
 
 _Vigilance_ #87 : Supabase supprime l'utilisateur sans toucher à ses objets Storage, qui resteraient
 orphelins (vérifié contre une pile locale, `delete-account.local.spec.ts`). Ordre imposé : PostHog et
@@ -480,6 +534,8 @@ confidentialité doit nommer une région précise.
    **sans sync** » (decisions-log, 2026-09-07) et « 12 mois après expiration du dernier droit Plus »
    (politique de confidentialité). _Reco_ : « 12 mois après l'expiration du dernier droit Plus, avec
    un email un mois avant » ; lecture maintenue pendant ce délai, écriture coupée dès l'expiration.
+   _Précisé le 2026-10-22 (revue de sécurité, M-5)_ : pour les photos, l'effacement reste permis
+   comme la lecture ; seuls l'envoi et le remplacement sont coupés.
    _Raison_ : le déclencheur est vérifiable côté serveur sans dépendre d'un appareil qui se connecte,
    et il s'écrit en une phrase dans la politique. _Alternative écartée_ : « sans sync » — plus
    généreux, mais un utilisateur qui réinstalle sans se reconnecter verrait son délai courir sans le

@@ -361,8 +361,9 @@ pnpm dlx supabase@2.119.0 stop --no-backup  # aucun conteneur ne doit rester
 - Le runtime local garde la fonction en cache : après une modification, `docker restart
   supabase_edge_runtime_supabase-migrations` avant de relancer le test de bout en bout.
 - Le test de bout en bout laisse un compte de test : relancer `db reset` avant `test db`.
-- Mode admin en local : `ADMIN_DELETE_SECRET=<valeur de test>` dans `supabase/functions/.env` (ignoré par git), puis
-  le même secret dans `SUPABASE_LOCAL_ADMIN_SECRET` pour le test.
+- Mode admin en local : `ADMIN_DELETE_SECRET=<valeur de test d'au moins 32 caractères>` dans `supabase/functions/.env`
+  (ignoré par git), puis le même secret dans `SUPABASE_LOCAL_ADMIN_SECRET` pour le test. Plus court, le mode admin
+  est désactivé au démarrage de la fonction et répond `401`.
 - PostHog et RevenueCat en local : `POSTHOG_ERASURE=disabled` et `REVENUECAT_ERASURE=disabled` dans le même
   `supabase/functions/.env`, pour qu'aucun appel ne parte chez eux. Sans ces deux lignes ni leurs secrets, la
   suppression du compte répond `503 erasure-not-configured` sans rien effacer.
@@ -380,7 +381,8 @@ seul `POSTHOG_ERASURE=disabled` ou `REVENUECAT_ERASURE=disabled` saute un presta
 ne touche à aucun des deux.
 
 **Demande reçue par e-mail** (une fois la fonction déployée et `ADMIN_DELETE_SECRET` posé dans les secrets de la
-fonction ; sa valeur vit dans le coffre de notes, jamais dans le dépôt). Le secret se génère une fois :
+fonction ; sa valeur vit dans le coffre de notes, jamais dans le dépôt). Le secret fait au moins 32 caractères, sinon
+le mode admin est désactivé ; il se génère une fois (64 caractères) :
 
 ```bash
 openssl rand -hex 32

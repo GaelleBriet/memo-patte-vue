@@ -319,6 +319,35 @@ colonnes, mêmes valeurs, `grid_written_at` écrêtée à 24 h dans le futur com
 `grid_before` sans contrôle (une valeur que l'app lit vide ne doit jamais bloquer la file d'envoi) ; réglages
 existants : `grid_before` vide ; export JSON v10 (`export-format.md`).
 
+### 4.8 Évolution v18 (file des photos, #85)
+
+Aucune colonne ni table nouvelle. Les photos passent par `sync_outbox`, `entity = 'animal_photo'`,
+`entity_id` = nom du fichier (`animal.photo_path`), qui est aussi son nom dans le cloud
+(`proposition-sync.md` §4.5). Deux déclencheurs sur `animal`, synchro activée seulement : à la
+création avec une photo, et quand `photo_path` change pour une photo ; jamais pour un animal
+supprimé (sa photo est effacée du téléphone au lancement suivant), ni pour une photo retirée. La mise
+en file de tout le carnet (souscription, « Fusionner ») ajoute la photo de chaque animal non
+supprimé. L'envoi des lignes ne les traite pas : le cycle les envoie ensuite, après les lignes
+(`proposition-sync.md` §4.5).
+
+La migration (`src/core/db/migration-v18.ts`) crée les deux déclencheurs et, si la synchro est déjà
+activée, met en file les photos des animaux non supprimés, sans `DELETE` ni `UPDATE` de premier
+niveau. Rien côté Supabase (le rangement des photos existe depuis le 21 septembre), rien dans l'export.
+
+### 4.9 Évolution v19 (photo à effacer du cloud, #85)
+
+Aucune colonne ni table nouvelle. Un déclencheur sur `animal`, synchro activée seulement : quand
+`photo_path` d'un animal non supprimé change (photo remplacée ou retirée), l'ancien nom repart en
+file, `entity = 'animal_photo'`, daté par la modification. La même entrée sert donc à envoyer une
+photo que le carnet porte et à effacer du cloud une photo qu'il ne porte plus
+(`proposition-sync.md` §4.5), au plus tôt 7 jours après `queued_at` (délai de grâce, décision du
+23 octobre 2026) : `queued_at` ne change qu'à une nouvelle modification de cette photo, jamais par
+un cycle, un renvoi ou un échec. Rien pour un animal supprimé : sa photo reste dans le cloud, il peut
+revenir.
+
+La migration (`src/core/db/migration-v19.ts`) crée le déclencheur seul, sans `DELETE` ni `UPDATE` de
+premier niveau, et ne remet rien en file : les photos remplacées avant elle ne sont pas connues.
+
 ## 5. Décisions
 
 - 2026-09-29 — **M1 : une table `treatment_period` sous le traitement.** Le traitement garde l'animal,

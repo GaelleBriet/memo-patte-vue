@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { GoogleCredentialError } from '@/core/google-sign-in/google-credentials'
 
 import { AccountError } from '../logic/account-error'
-import { accountErrorKey, signInErrorKey } from '../logic/account-error-message'
+import { accountErrorKey, isWrongPassword, signInErrorKey } from '../logic/account-error-message'
 
 describe('accountErrorKey', () => {
   it('donne un message à chaque raison typée du repository', () => {
@@ -39,5 +39,13 @@ describe('signInErrorKey', () => {
   it('retombe sur le message générique pour un autre échec Google ou une erreur inconnue', () => {
     expect(signInErrorKey(new GoogleCredentialError('failed'))).toBe('auth.errors.unknown')
     expect(signInErrorKey(new Error('boom'))).toBe('auth.errors.unknown')
+  })
+})
+
+describe('isWrongPassword', () => {
+  it('reconnaît le mot de passe faux, et rien d’autre', () => {
+    expect(isWrongPassword(new AccountError('invalid-credentials'))).toBe(true)
+    expect(isWrongPassword(new AccountError('offline'))).toBe(false)
+    expect(isWrongPassword(new Error('invalid-credentials'))).toBe(false)
   })
 })

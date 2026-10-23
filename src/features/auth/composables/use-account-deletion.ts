@@ -3,8 +3,7 @@ import { ref } from 'vue'
 import { errorSummary } from '@/shared/utils/error-summary'
 
 import { AccountDeletionError } from '../logic/account-deletion-error'
-import { AccountError } from '../logic/account-error'
-import { signInErrorKey } from '../logic/account-error-message'
+import { isWrongPassword, signInErrorKey, WRONG_PASSWORD_KEY } from '../logic/account-error-message'
 import type { IdentityConfirmationMethod } from '../repository/account-deletion.repository'
 import {
   createAccountDeletionService,
@@ -34,9 +33,7 @@ export function useAccountDeletion(service: AccountDeletionService = defaultServ
   let resumption: Resumption = 'method'
 
   function identityErrorOf(cause: unknown): IdentityError {
-    if (cause instanceof AccountError && cause.reason === 'invalid-credentials') {
-      return { key: 'settings.account.delete.identity.wrongPassword' }
-    }
+    if (isWrongPassword(cause)) return { key: WRONG_PASSWORD_KEY }
     return { key: signInErrorKey(cause) }
   }
 
