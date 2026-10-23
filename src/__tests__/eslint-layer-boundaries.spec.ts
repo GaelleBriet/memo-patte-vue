@@ -104,3 +104,28 @@ describe('shared/domain/, sans téléphone ni état', { timeout: 30_000 }, () =>
     expect(core).toBe(0)
   })
 })
+
+describe('accès aux données réservé aux repositories et à leurs tests', { timeout: 30_000 }, () => {
+  const SUPABASE = "import { createClient } from '@supabase/supabase-js'"
+  const KINDS = ['local', 'integration', 'repository', 'service']
+
+  it('laisse un test de __tests__/ ouvrir Supabase', async () => {
+    const results = await Promise.all(
+      KINDS.map((kind) =>
+        restricted(`src/features/auth/__tests__/password-update.${kind}.spec.ts`, SUPABASE),
+      ),
+    )
+
+    expect(results).toEqual([0, 0, 0, 0])
+  })
+
+  it('refuse le même test hors de __tests__/', async () => {
+    const results = await Promise.all(
+      KINDS.map((kind) =>
+        restricted(`src/features/auth/logic/password-update.${kind}.spec.ts`, SUPABASE),
+      ),
+    )
+
+    expect(results).toEqual([1, 1, 1, 1])
+  })
+})

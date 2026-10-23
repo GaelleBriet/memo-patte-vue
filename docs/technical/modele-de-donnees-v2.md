@@ -342,7 +342,10 @@ file, `entity = 'animal_photo'`, daté par la modification. La même entrée ser
 photo que le carnet porte et à effacer du cloud une photo qu'il ne porte plus
 (`proposition-sync.md` §4.5), au plus tôt 7 jours après `queued_at` (délai de grâce, décision du
 23 octobre 2026) : `queued_at` ne change qu'à une nouvelle modification de cette photo, jamais par
-un cycle, un renvoi ou un échec. Rien pour un animal supprimé : sa photo reste dans le cloud, il peut
+un cycle, un renvoi ou un échec. Quand l'activation de la synchro ou « Fusionner » met tout le
+carnet en file, l'entrée de chaque photo est datée par l'heure de cette mise en file, pas par la
+date de l'animal, qui ferait partir le délai d'une date déjà ancienne (#1136) ; les lignes des
+tables gardent leur `updated_at`. Rien pour un animal supprimé : sa photo reste dans le cloud, il peut
 revenir.
 
 La migration (`src/core/db/migration-v19.ts`) crée le déclencheur seul, sans `DELETE` ni `UPDATE` de

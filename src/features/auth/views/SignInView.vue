@@ -10,12 +10,13 @@ import { AccountError } from '../logic/account-error'
 import { signInErrorKey } from '../logic/account-error-message'
 import { useAuthStore } from '../store/auth.store'
 import { emptySignInFormValues, validateSignInForm, type SignInMode } from '../logic/sign-in-form'
+import { initialSignInMode, offersSignUp } from '../logic/sign-up-access'
 import { focusFirstInvalid } from '@/shared/form/focus-first-invalid'
 import FormField from '@/shared/form/FormField.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { showToast } from '@/shared/utils/toast'
-import { asksSignUp, passwordResetRoute } from '@/shared/utils/sign-in-route'
+import { passwordResetRoute } from '@/shared/utils/sign-in-route'
 
 import AccountLegalNotice from './AccountLegalNotice.vue'
 import EmailCodeStep from './EmailCodeStep.vue'
@@ -28,7 +29,7 @@ const route = useRoute()
 const { continueWithGoogle } = useGoogleSignIn()
 const emailCode = useEmailCode()
 
-const mode = ref<SignInMode>(asksSignUp(route.query) ? 'sign-up' : 'sign-in')
+const mode = ref<SignInMode>(initialSignInMode(route.query))
 const values = ref(emptySignInFormValues())
 
 const { errors, validate, reset } = useFormValidation(values, (current) =>
@@ -46,6 +47,7 @@ const { hasNoAnswer, leave, leaveSignedIn, retryCheck } = useSignedInExit(isSubm
 let isMounted = true
 
 const isSignUp = computed(() => mode.value === 'sign-up')
+const canSignUp = computed(() => offersSignUp(route.query))
 const isCodeStep = computed(() => emailCode.email.value !== null)
 const title = computed(() => {
   if (isCodeStep.value) return t('auth.code.title')
@@ -309,7 +311,7 @@ onUnmounted(() => {
         </v-btn>
       </form>
 
-      <p class="sign-in__toggle">
+      <p v-if="canSignUp" class="sign-in__toggle">
         {{ toggleLabel }}
         <v-btn class="sign-in__toggle-action" variant="text" color="primary" @click="toggleMode">
           {{ toggleAction }}
