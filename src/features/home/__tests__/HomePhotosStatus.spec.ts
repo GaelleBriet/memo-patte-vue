@@ -53,7 +53,7 @@ describe('ligne « photos en cours de téléchargement » de l’accueil', () =>
   it('Milo : le texte s’affiche pendant le téléchargement et disparaît quand la photo est arrivée', async () => {
     const { restore, waiting, wrapper } = setup()
 
-    const pass = restore.restoreMissing('user-A')
+    const pass = restore.restoreMissing('user-A', { visible: true })
     await flushPromises()
     expect(wrapper.text()).toBe('Photos en cours de téléchargement…')
 
@@ -67,7 +67,7 @@ describe('ligne « photos en cours de téléchargement » de l’accueil', () =>
     applyLocale('en')
     const { restore, wrapper } = setup()
 
-    void restore.restoreMissing('user-A')
+    void restore.restoreMissing('user-A', { visible: true })
     await flushPromises()
 
     expect(wrapper.text()).toBe('Downloading photos…')
@@ -78,7 +78,7 @@ describe('ligne « photos en cours de téléchargement » de l’accueil', () =>
     const { restore, failure, wrapper } = setup()
     failure.cause = new Error('réseau lent')
 
-    await restore.restoreMissing('user-A')
+    await restore.restoreMissing('user-A', { visible: true })
     await flushPromises()
 
     expect(wrapper.text()).toBe('')
@@ -87,7 +87,7 @@ describe('ligne « photos en cours de téléchargement » de l’accueil', () =>
   it('le texte disparaît quand le compte change pendant la passe', async () => {
     const { restore, waiting, account, wrapper } = setup()
 
-    const pass = restore.restoreMissing('user-A')
+    const pass = restore.restoreMissing('user-A', { visible: true })
     await flushPromises()
     account.current = 'user-B'
     waiting.shift()?.(JPEG)

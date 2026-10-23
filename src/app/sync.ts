@@ -51,7 +51,7 @@ export interface SyncDependencies {
     | 'onRestored'
   >
   /** Ne lève pas : une photo qui manque encore se retente au lancement suivant. */
-  restoreMissingPhotos: (userId: string) => Promise<void>
+  restoreMissingPhotos: (userId: string, options?: { visible?: boolean }) => Promise<void>
 }
 
 /**
@@ -73,9 +73,11 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
     accountWork = accountWork.then(task)
   }
 
-  function restorePhotos(): void {
+  function restorePhotos(options?: { visible: true }): void {
     const userId = deps.userId()
-    if (deps.sessionActive() && userId !== null) void deps.restoreMissingPhotos(userId)
+    if (!deps.sessionActive() || userId === null) return
+    if (options) void deps.restoreMissingPhotos(userId, options)
+    else void deps.restoreMissingPhotos(userId)
   }
 
   async function runRestore(): Promise<void> {
@@ -119,7 +121,7 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
 
   const stopRestored = deps.restoreFlow.onRestored(() => {
     scheduler.notifyChange()
-    restorePhotos()
+    restorePhotos({ visible: true })
   })
   const stopRetry = deps.restoreFlow.onRetryCheck(() => {
     checkedFor = null
@@ -217,6 +219,6 @@ export async function createDefaultSyncDependencies(): Promise<SyncDependencies>
     sessionActive,
     checkAccountBackup: () => accountBackup.check(),
     restoreFlow,
-    restoreMissingPhotos: (account) => photoRestore.restoreMissing(account),
+    restoreMissingPhotos: (account, options) => photoRestore.restoreMissing(account, options),
   }
 }
