@@ -95,9 +95,9 @@ describe('clearAllTables', () => {
       },
       {
         sql: `INSERT INTO treatment_dose (id, period_id, treatment_id, animal_id, due_on, given_on,
-                status, created_at, updated_at, created_by_device, updated_by_device)
-              VALUES ('t-1', 't-1', 't-1', 'a-2', '2026-08-01', '2026-08-01', 'given', ?, ?, 'appareil-test', 'appareil-test')`,
-        params: [NOW, NOW],
+                status, created_at, updated_at, decided_at, created_by_device, updated_by_device)
+              VALUES ('t-1', 't-1', 't-1', 'a-2', '2026-08-01', '2026-08-01', 'given', ?, ?, ?, 'appareil-test', 'appareil-test')`,
+        params: [NOW, NOW, NOW],
       },
     ])
   })
