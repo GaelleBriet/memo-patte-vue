@@ -599,7 +599,7 @@ async function submit(): Promise<void> {
 }
 
 .treatment-form__unit {
-  flex: 1 1 auto;
+  flex: 1 1 10.5rem;
   min-width: min-content;
 }
 

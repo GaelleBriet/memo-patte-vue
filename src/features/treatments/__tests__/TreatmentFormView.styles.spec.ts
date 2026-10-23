@@ -26,7 +26,7 @@ describe('la fréquence du formulaire de traitement suit la police agrandie', ()
 
   it('passe le choix de l’unité sous « Tous les » quand la ligne ne suffit plus', () => {
     expect(declaration(feuille, '.treatment-form__frequency', 'flex-wrap')).toBe('wrap')
-    expect(declaration(feuille, '.treatment-form__unit', 'flex')).toBe('1 1 auto')
+    expect(declaration(feuille, '.treatment-form__unit', 'flex')).toBe('1 1 10.5rem')
     expect(declaration(feuille, '.treatment-form__unit', 'min-width')).toBe('min-content')
   })
 })
