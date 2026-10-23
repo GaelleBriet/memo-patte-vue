@@ -67,16 +67,17 @@ publicité.
 
 - **PL-7** Connexion avec Google (Credential Manager, `signInWithIdToken`, sans lien profond) ou avec une
   adresse e-mail et un mot de passe. Le bouton « Continuer avec Google » est en haut de l'écran de
-  connexion (le même que « Créer un compte »), le formulaire e-mail dessous, séparé d'un trait ; V25 quater et la charte de Google font référence. Sélecteur fermé
+  connexion (le même que « Créer un compte »), le formulaire e-mail dessous, séparé d'un trait ; toutes
+  les entrées de connexion y mènent ; V25 quater et la charte de Google font référence. Sélecteur fermé
   sans choisir : rien. Pas de compte Google sur le téléphone : « Aucun compte Google sur ce téléphone.
   Ajoute-le dans les réglages d'Android, ou continue avec une adresse e-mail. » ; services Google
   absents : « La connexion avec Google n'est pas disponible sur ce téléphone. Continue avec une adresse
   e-mail. » (le bouton reste affiché). À la déconnexion, la mémoire du choix Google d'Android est aussi
   effacée. L'écran ouvert par « J'ai déjà MémoPatte Plus » (écran Plus, accueil de bienvenue, Paramètres ›
-  Plus), par « Restaurer mes achats » ou un paiement sans compte ou à session expirée, et par la
-  déconnexion est une **connexion seule** : pas de « Pas encore de compte ? Créer un compte ». La création
-  de compte ne s'offre que depuis l'étape 1 de l'achat (PL-4) ; un lien `mode=sign-up` venu d'ailleurs ouvre
-  la connexion. (Décisions du 2026-09-22, du 2026-10-21 et du 2026-10-23 ; #65, #1161)
+  Plus) est une **connexion seule** : pas de « Pas encore de compte ? Créer un compte » (décision de
+  Gaelle). Par cohérence, « Restaurer mes achats », le paiement sans compte ou à session expirée et la
+  déconnexion ouvrent aussi une connexion seule (#1161). La création de compte ne s'offre que depuis
+  l'étape 1 de l'achat (PL-4) ; un lien `mode=sign-up` venu d'ailleurs ouvre la connexion. (Décisions du 2026-09-22, du 2026-10-21 et du 2026-10-23 ; #65, #1161)
 - **PL-8** Inscription par e-mail (depuis l'étape 1 de l'achat seulement, PL-7) : un code à 8 chiffres (décision du 2026-10-22)
   envoyé à l'adresse, saisi dans l'app, confirme qu'elle est la bonne (« Renvoyer le code », code faux ou expiré signalé) ; avec Google, rien à
   confirmer. L'écran de création porte « Au moins 8 caractères. », « MémoPatte s'adresse aux 18 ans et
@@ -84,9 +85,10 @@ publicité.
   puis « Confirme le mot de passe » (PL-23). (Spec Q1, 2026-09-29 ; conformité §2.3 ;
   relecture du lot C, validé en bloc)
 - **PL-9** Mot de passe oublié : un code à 8 chiffres envoyé par e-mail, saisi dans l'app, puis un
-  nouveau mot de passe, à saisir deux fois : « Confirme le nouveau mot de passe » (PL-23) (détail à vérifier dans la doc de Supabase) ; « Mot de passe oublié ? » depuis la
-  connexion et depuis « Changer mon mot de passe ». À l'étape du code, le retour d'Android revient à la
-  saisie de l'adresse, comme la flèche, adresse gardée et mots de passe saisis effacés (décision du 23 octobre, #1106). (G4 ; relecture du lot C, QC-9)
+  nouveau mot de passe, à saisir deux fois (PL-23 ; détail à vérifier dans la doc de Supabase) ;
+  « Mot de passe oublié ? » depuis la connexion et depuis « Changer mon mot de passe ». À l'étape du code,
+  le retour d'Android revient à la saisie de l'adresse, comme la flèche, adresse gardée et mots de passe
+  saisis effacés (décision du 23 octobre, #1106). (G4 ; relecture du lot C, QC-9)
 - **PL-10** Comptes par e-mail, dans Paramètres › Compte : « Changer mon mot de passe » (l'ancien, puis
   le nouveau et « Confirme le nouveau mot de passe », PL-23) et « Changer mon adresse e-mail » (le mot de passe actuel d'abord, puis la nouvelle
   adresse se confirme par un code à 8 chiffres, envoyé à elle seule ; une adresse déjà utilisée par un
@@ -97,14 +99,16 @@ publicité.
   avec l'adresse (jamais « Connecté avec Google »). Un compte qui a un mot de passe montre toujours cette
   version par e-mail (V24), même ouvert par Google ce jour-là ; la version Google (V24 bis) est pour un
   compte créé avec Google. (Spec Q2, 2026-09-29 ; relecture du lot C, QC-11)
-- **PL-23** Champs de mot de passe (décisions du 2026-10-23 ; #1164) :
-  - **Confirmation** : un second champ « Confirme le nouveau mot de passe » dans « Changer mon mot de
-    passe » et « Mot de passe oublié », « Confirme le mot de passe » à la création de compte. Les deux
-    saisies se comparent à l'identique, sans retirer les espaces ni ignorer la casse. Tant qu'elles
-    diffèrent, le bouton d'enregistrement est inactif ; l'écart se dit « Les deux mots de passe ne sont
-    pas identiques. ». La confirmation n'est jamais envoyée au serveur.
-  - **Icône œil** sur chaque champ de mot de passe : masqué par défaut, l'état n'est jamais mémorisé,
-    noms accessibles « Afficher le mot de passe » / « Masquer le mot de passe », zone tactile de 48 px.
+- **PL-23** Champs de mot de passe (décisions de Gaelle du 2026-10-23 ; mise en œuvre #1164) :
+  - **Confirmation** (décision de Gaelle) : le nouveau mot de passe se saisit deux fois. Second champ
+    « Confirme le nouveau mot de passe » dans « Changer mon mot de passe » et « Mot de passe oublié »,
+    « Confirme le mot de passe » à la création de compte ; écart dit « Les deux mots de passe ne sont pas
+    identiques. ». Mise en œuvre (#1164) : bouton d'enregistrement inactif tant que les deux saisies
+    diffèrent, comparaison exacte sans retirer les espaces ni ignorer la casse, confirmation jamais envoyée
+    au serveur.
+  - **Icône œil** (décision de Gaelle) sur chaque champ de mot de passe, avec les noms accessibles
+    « Afficher le mot de passe » / « Masquer le mot de passe ». Mise en œuvre (#1164) : masqué par défaut,
+    état jamais mémorisé, zone tactile de 48 px.
 - **PL-11** Se déconnecter : « Ton carnet reste sur cet appareil. Seule la synchronisation s'arrête. »
   (Existant)
 - **PL-12** Session expirée : icône de nuage en alerte, « Reconnecte-toi pour reprendre la sauvegarde »
