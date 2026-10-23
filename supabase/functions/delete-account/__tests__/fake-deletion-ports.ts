@@ -1,7 +1,8 @@
-import type { StorageEntry } from '../account-erasure'
+import type { StorageEntry } from '../../_shared/account-erasure'
 import type { AccountDeletionPorts } from '../delete-account'
+import { USER } from '../../_shared/__tests__/test-account'
 
-export const USER = '11111111-1111-4111-8111-111111111111'
+export { USER }
 export const ADMIN_SECRET = 'secret-admin-de-test-assez-long-pour-etre-realiste'
 
 export type Call = {

@@ -1,10 +1,10 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { MAX_FOLDER_DEPTH, PHOTO_PAGE_SIZE } from '../account-erasure'
+import { MAX_FOLDER_DEPTH, PHOTO_PAGE_SIZE } from '../../_shared/account-erasure'
 import { adminSecretFrom } from '../admin-secret-setting'
 import { handleDeleteAccount } from '../delete-account'
-import { providerErasuresFrom } from '../provider-settings'
+import { providerErasuresFrom } from '../../_shared/provider-settings'
 import { fakeDeletionPorts, USER } from './fake-deletion-ports'
 import { fakeFetch } from '../../_shared/__tests__/fake-fetch'
 

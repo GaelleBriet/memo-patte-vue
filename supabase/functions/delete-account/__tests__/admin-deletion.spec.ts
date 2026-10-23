@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { PHOTO_PAGE_SIZE } from '../account-erasure'
+import { PHOTO_PAGE_SIZE } from '../../_shared/account-erasure'
 import { ADMIN_SECRET_HEADER } from '../admin-deletion'
 import { handleDeleteAccount } from '../delete-account'
 import { ADMIN_SECRET, fakeDeletionPorts, USER } from './fake-deletion-ports'

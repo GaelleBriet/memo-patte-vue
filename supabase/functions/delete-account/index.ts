@@ -2,7 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.116.0'
 
 import { adminSecretFrom } from './admin-secret-setting.ts'
 import { handleDeleteAccount } from './delete-account.ts'
-import { providerErasuresFrom } from './provider-settings.ts'
+import { providerErasuresFrom } from '../_shared/provider-settings.ts'
 
 const adminSecret = adminSecretFrom(Deno.env.get('ADMIN_DELETE_SECRET'))
 const admin = createClient(

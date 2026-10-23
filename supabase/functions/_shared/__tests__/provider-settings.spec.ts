@@ -2,8 +2,8 @@
 import { describe, expect, it } from 'vitest'
 
 import { providerErasuresFrom } from '../provider-settings'
-import { fakeFetch, jsonResponse } from '../../_shared/__tests__/fake-fetch'
-import { USER } from './fake-deletion-ports'
+import { fakeFetch, jsonResponse } from './fake-fetch'
+import { USER } from './test-account'
 
 const CONFIGURED: Record<string, string> = {
   POSTHOG_PERSONAL_API_KEY: 'phx_cle-personnelle-de-test',
