@@ -106,3 +106,40 @@ describe('la production n’importe pas de __tests__/', { timeout: 30_000 }, () 
     expect(result).toBe(0)
   })
 })
+
+describe(
+  'la production n’embarque pas de test par glob ou import calculé',
+  { timeout: 30_000 },
+  () => {
+    it.each([
+      "import.meta.glob('../__tests__/*.ts')",
+      "import.meta.glob(['./ok/*.ts', '../__tests__/**/*.ts'])",
+      "import.meta.glob('./*.spec.ts')",
+      "import.meta.glob('./**/*.test.*', { eager: true })",
+      'const m = (n: string) => import(`../__tests__/${n}`)',
+      'const m = (n: string) => import(`../__tests__${n}`)',
+    ])('refuse %s', async (code) => {
+      expect(await restricted(PROD, code)).toBe(1)
+    })
+
+    it.each([
+      "import.meta.glob('../__tests__/*.ts')",
+      'const m = (n: string) => import(`../__tests__/${n}`)',
+    ])('laisse un test ou un spec utiliser %s', async (code) => {
+      const results = await Promise.all([
+        restricted('src/features/animals/__tests__/a.ts', code),
+        restricted('src/features/animals/logic/a.spec.ts', code),
+      ])
+      expect(results).toEqual([0, 0])
+    })
+
+    it.each([
+      "import.meta.glob('./icons/*.svg')",
+      "import.meta.glob(['./icons/*.svg', '!./icons/x.svg'])",
+      'const m = (n: string) => import(`./icons/${n}.svg`)',
+      'const m = (n: string) => import(n)',
+    ])('laisse la production utiliser %s', async (code) => {
+      expect(await restricted(PROD, code)).toBe(0)
+    })
+  },
+)
