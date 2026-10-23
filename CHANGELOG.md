@@ -5,6 +5,22 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.105](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.104...memo-patte-v0.1.105) (2026-10-23)
+
+
+### ✨ Fonctionnalités
+
+* **auth:** le retour d'android revient à la saisie depuis l'étape du code ([e0425ee](https://github.com/GaelleBriet/memo-patte-vue/commit/e0425ee82b6d514aa72bd8f764fad27347c24ce0))
+* **auth:** le retour d'Android revient à la saisie depuis l'étape du code ([f8b5660](https://github.com/GaelleBriet/memo-patte-vue/commit/f8b56605ee519bd120abbf0054d028e02c01aee6))
+* icône œil et confirmation du nouveau mot de passe ([f642c3e](https://github.com/GaelleBriet/memo-patte-vue/commit/f642c3e2d5ba226056adb5b4e4e859bc955441c5))
+
+
+### 🐛 Corrections
+
+* **eslint:** juger les globs larges et les imports en gabarit sans expression ([9ad0fa3](https://github.com/GaelleBriet/memo-patte-vue/commit/9ad0fa38b51ac1b908f964945b38602afffbfa99))
+* **eslint:** la production n'importe ni spec ni test, fichiers mts et tsx inclus ([1544c1e](https://github.com/GaelleBriet/memo-patte-vue/commit/1544c1ee776fe83d40f7620c491bb70fef5f5f2f))
+* œil remis à zéro à la bascule, saisie sans correction ni majuscule ([03fbc4e](https://github.com/GaelleBriet/memo-patte-vue/commit/03fbc4e68d41cebcd1ada0db86374804b66b9457))
+
 ## [0.1.104](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.103...memo-patte-v0.1.104) (2026-10-23)
 
 
