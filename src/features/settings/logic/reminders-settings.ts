@@ -3,7 +3,7 @@ import type { ExactRemindersStatus, NotificationPermissionStatus } from '@/core/
 export type RemindersSummary = 'allowedExact' | 'allowed' | 'notYet' | 'off'
 
 /** Sous-titre de la ligne : l'autorisation Android, puis l'effet quand les notifications ne sont pas autorisées. */
-export type ExactRemindersHint =
+type ExactRemindersHint =
   | 'allowed'
   | 'pitch'
   | 'off'
