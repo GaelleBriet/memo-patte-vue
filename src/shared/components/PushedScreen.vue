@@ -188,8 +188,11 @@ $size-back: 48px;
   font-family: tokens.$font-family-heading;
   font-size: $font-size-title;
   font-weight: 700;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  overflow-wrap: break-word;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 .pushed-screen__topbar--with-subtitle .pushed-screen__title {

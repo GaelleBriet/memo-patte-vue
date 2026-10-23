@@ -95,6 +95,14 @@ describe('PushedScreen — contrat de style', () => {
     ).toBe('1.2')
   })
 
+  it('laisse un titre long passer sur deux lignes au lieu de le couper d’une ellipse', () => {
+    expect(declaration(css, '.pushed-screen__title', 'display')).toBe('-webkit-box')
+    expect(declaration(css, '.pushed-screen__title', '-webkit-line-clamp')).toBe('2')
+    expect(declaration(css, '.pushed-screen__title', 'overflow-wrap')).toBe('break-word')
+    expect(declaration(css, '.pushed-screen__title', 'white-space')).toBeUndefined()
+    expect(declaration(css, '.pushed-screen__title', 'text-overflow')).toBeUndefined()
+  })
+
   it('pose lui-même l’écart titre / sous-titre, que le flex ne fusionne plus', () => {
     expect(declaration(css, '.pushed-screen__title', 'margin-block')).toBe('0')
     expect(declaration(css, '.pushed-screen__subtitle', 'margin')).toBe('0 0 0 52px')
