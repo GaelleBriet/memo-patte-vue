@@ -4,11 +4,7 @@ import {
   type NoteGesture,
 } from '@/features/treatments/logic/treatment-dose-change'
 import { doseFieldsOf } from '@/features/treatments/logic/treatment-dose-writes'
-import {
-  rankedStamp,
-  undoKeepingAhead,
-  undoRanks,
-} from '@/features/treatments/logic/treatment-undo-order'
+import { undoKeepingAhead } from '@/features/treatments/logic/treatment-undo-order'
 import type { DoseFields, DoseWrite } from '@/features/treatments/schema/treatment-dose.schema'
 import type { TreatmentWithPeriods } from '@/features/treatments/schema/treatment-with-periods.schema'
 import type { Line, LineFields, TreatmentViewInput } from '@/shared/domain/dose-calendar'
@@ -65,17 +61,12 @@ function treatmentOf(
 }
 
 /**
- * Comme `applyBatch` : chaque écriture datée de l'instant du lot (plus son rang), décidée à cet instant
+ * Comme `applyBatch` : chaque écriture datée de l'instant du lot, décidée à cet instant
  * sauf une réécriture du lot inverse, qui remet la décision d'avant ; et le lot inverse.
  */
 export function applyBatch(phone: Phone, writes: readonly DoseWrite[], clock: Clock): DoseWrite[] {
   if (writes.length === 0) return []
   const at = stamp(clock)
-  const rankOf = undoRanks(
-    [...phone.lines, ...phone.deleted.values()].filter((line) =>
-      writes.some((write) => write.action !== 'create' && write.id === line.id),
-    ),
-  )
   const inverse: DoseWrite[] = []
   for (const write of writes) {
     if (write.action === 'create') {
@@ -86,10 +77,9 @@ export function applyBatch(phone: Phone, writes: readonly DoseWrite[], clock: Cl
     }
     if (write.action === 'restore') {
       const line = phone.deleted.get(write.id)!
-      const updatedAt = rankedStamp(at, write.rank)
       phone.deleted.delete(write.id)
-      phone.lines.push({ ...line, updatedAt })
-      inverse.push({ action: 'delete', id: write.id, expectedUpdatedAt: updatedAt })
+      phone.lines.push({ ...line, updatedAt: at })
+      inverse.push({ action: 'delete', id: write.id, expectedUpdatedAt: at })
       continue
     }
     const old = phone.lines.find(({ id }) => id === write.id)
@@ -104,19 +94,16 @@ export function applyBatch(phone: Phone, writes: readonly DoseWrite[], clock: Cl
         action: 'restore',
         id: write.id,
         expectedUpdatedAt: at,
-        rank: rankOf(write.id),
       })
       continue
     }
-    const updatedAt = rankedStamp(at, write.rank)
     const decidedAt = write.decidedAt ?? at
-    phone.lines.push({ ...old, ...lineFieldsOf(write.dose), updatedAt, decidedAt })
+    phone.lines.push({ ...old, ...lineFieldsOf(write.dose), updatedAt: at, decidedAt })
     inverse.push({
       action: 'rewrite',
       id: write.id,
       dose: doseFieldsOf(old),
-      expectedUpdatedAt: updatedAt,
-      rank: rankOf(write.id),
+      expectedUpdatedAt: at,
       decidedAt: old.decidedAt,
     })
   }
