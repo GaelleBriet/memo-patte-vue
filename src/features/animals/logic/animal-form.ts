@@ -28,8 +28,8 @@ const ERROR_KEYS = {
   weightKg: { key: 'animals.form.errors.initialWeightKg', byCode: { too_big: MAX_WEIGHT_KEY } },
 } as const satisfies Record<string, FieldErrorKeys>
 
-export type AnimalFormErrorField = keyof typeof ERROR_KEYS
-export type AnimalFormErrors = Partial<Record<AnimalFormErrorField, string>>
+type AnimalFormErrorField = keyof typeof ERROR_KEYS
+type AnimalFormErrors = Partial<Record<AnimalFormErrorField, string>>
 
 export type AnimalFormResult =
   | { success: true; data: z.output<typeof animalCreationInputSchema> }
