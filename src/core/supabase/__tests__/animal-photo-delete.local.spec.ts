@@ -77,8 +77,9 @@ describe.skipIf(url === undefined)('effacement des photos sur une pile Supabase 
     const name = await storedPhoto(owner.client, owner.userId)
     const intruder = await signedIn()
 
-    await createAnimalPhotoDelete(async () => intruder.client).delete(owner.userId, name)
-
+    await expect(
+      createAnimalPhotoDelete(async () => intruder.client).delete(owner.userId, name),
+    ).rejects.toThrow('Session absente ou d’un autre compte')
     await expect(
       createAnimalPhotoDownload(async () => owner.client).download(owner.userId, name),
     ).resolves.toEqual(JPEG)
