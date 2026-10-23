@@ -330,7 +330,9 @@ sans Plus actif sur le téléphone, puis la sauvegarde reste en pause jusqu'à �
 - **Remplacer** = effacer pour de bon le carnet du téléphone (animaux, vaccins et injections,
   traitements et prises, poids, réglages des rappels ; ni la liste des appareils, ni les préférences
   du téléphone), puis écrire celui du compte, dans la même transaction (§7-6). Irréversible, donc
-  confirmation.
+  confirmation. La file perd les lignes du carnet effacé mais garde les photos déjà en file, avec
+  leur date et leurs essais : une photo remplacée la veille sort quand même du cloud à la fin de
+  son délai (§4.5), au lieu d'y rester orpheline (#1155).
 
 Un changement de compte sur le téléphone oublie la file du compte précédent : le carnet local reste
 et repasse par le même contrôle.
@@ -403,8 +405,8 @@ ne la porte de nouveau au moment de l'effacement, son fichier est effacé du té
 « Annuler » ou ménage du lancement suivant), aucune ligne d'animal ne reste à envoyer, car la ligne
 du cloud la désignerait encore, et l'entrée est en file depuis au moins 7 jours
 (`PHOTO_CLOUD_GRACE_MS`, comparé à `queued_at`, la date de la modification, ou l'heure de mise en
-file quand l'activation de la synchro ou « Fusionner » met tout le carnet en file, par l'horloge du
-téléphone). Ce délai de grâce couvre deux appareils : le 23 octobre à 19 h, le téléphone remplace la
+file quand l'activation de la synchro ou « Fusionner » met tout le carnet en file, ou l'heure de la
+mise à niveau v21, par l'horloge du téléphone). Ce délai de grâce couvre deux appareils : le 23 octobre à 19 h, le téléphone remplace la
 photo de Milo, P1 par P2 ; à 19 h 00 min 30 la tablette modifie Milo et gagne, sa ligne désigne
 encore P1. Effacée tout de suite, P1 ne vivrait plus que sur la tablette ; avec le délai, la ligne
 de la tablette, tirée avant le 30 octobre à 19 h, remet P1 dans le carnet et rien n'est effacé. En

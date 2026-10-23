@@ -66,11 +66,11 @@ function insertAnimal(db: InMemoryDb, values: Record<string, string | number | n
 }
 
 describe('migrations', () => {
-  it('contient la v9 et la v11, qui créent le schéma entier, la v10, la v12 à la v17 des traitements, la v18 et la v19 des photos, la v20 des prises', () => {
+  it('contient la v9 et la v11, qui créent le schéma entier, la v10, la v12 à la v17 des traitements, la v18 et la v19 des photos, la v20 des prises, la v21 de la date des photos en file', () => {
     expect(migrations.map(({ toVersion }) => toVersion)).toEqual([
-      9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+      9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
     ])
-    expect(DATABASE_VERSION).toBe(20)
+    expect(DATABASE_VERSION).toBe(21)
   })
 })
 

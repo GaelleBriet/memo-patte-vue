@@ -341,8 +341,8 @@ Aucune colonne ni table nouvelle. Un déclencheur sur `animal`, synchro activée
 file, `entity = 'animal_photo'`, daté par la modification. La même entrée sert donc à envoyer une
 photo que le carnet porte et à effacer du cloud une photo qu'il ne porte plus
 (`proposition-sync.md` §4.5), au plus tôt 7 jours après `queued_at` (délai de grâce, décision du
-23 octobre 2026) : `queued_at` ne change qu'à une nouvelle modification de cette photo, jamais par
-un cycle, un renvoi ou un échec. Quand l'activation de la synchro ou « Fusionner » met tout le
+23 octobre 2026) : `queued_at` ne change qu'à une nouvelle modification de cette photo (et une fois,
+à la mise à niveau v21 : voir §4.11), jamais par un cycle, un renvoi ou un échec. Quand l'activation de la synchro ou « Fusionner » met tout le
 carnet en file, l'entrée de chaque photo est datée par l'heure de cette mise en file, pas par la
 date de l'animal, qui ferait partir le délai d'une date déjà ancienne (#1136) ; les lignes des
 tables gardent leur `updated_at`. Rien pour un animal supprimé : sa photo reste dans le cloud, il peut
@@ -371,6 +371,18 @@ ni `UPDATE` de premier niveau ; déclencheurs recréés après la recopie, rien 
 (`timestamptz` non nul), mêmes valeurs ; `clamp_sync_timestamps` la recule du même écart que
 `updated_at` quand l'écriture la change. Export JSON v11 (`export-format.md`) ; ni le CSV ni le PDF
 ne la montrent.
+
+### 4.11 Évolution v21 (date des photos en file, #1155)
+
+Aucune colonne ni table nouvelle. La v18 datait les photos qu'elle mettait en file par la date de
+l'animal : sur un téléphone en v17 synchro active, Milo modifié le 1er septembre et mis à niveau le
+23 octobre, le délai de 7 jours avant d'effacer sa photo du cloud (§4.9) était déjà écoulé. La
+migration (`src/core/db/migration-v21.ts`) date chaque entrée `animal_photo` à l'heure de la mise à
+niveau, essais gardés : une date plus tardive, en texte ISO, reste telle quelle ; l'app n'écrit que
+des `toISOString()`. Les lignes des tables gardent leur date. Les entrées des déclencheurs, qu'on ne distingue pas de
+celles de la v18, sont redatées aussi : un effacement attend au plus 7 jours de plus. Un
+`INSERT OR REPLACE` de premier niveau, sans `DELETE` ni `UPDATE`. Rien côté Supabase ni dans
+l'export.
 
 ## 5. Décisions
 

@@ -644,6 +644,32 @@ describe('createSyncCycle — photos', () => {
       await expect(queuedPhoto()).resolves.toEqual([])
     })
 
+    it('Milo : photo changée le 23 octobre à 19 h, « Remplacer » le 24 — l’ancienne sort quand même du cloud le 30 à 19 h, pas avant', async () => {
+      const order: string[] = []
+      const files = fakeFiles({ [MILO_PHOTO]: jpeg() })
+      const { cycle, deletes, setNow } = await milo(files, order)
+      await setAnimalPhoto(db, ANIMAL_ID, NEW_PHOTO, '2026-10-23T19:00:00.000Z')
+      files.files.set(NEW_PHOTO, jpeg())
+      files.files.delete(MILO_PHOTO)
+      setNow('2026-10-23T19:01:00.000Z')
+      await cycle.runCycle()
+
+      const outbox = createSyncOutboxRepository(db)
+      await outbox.startRestore('replace')
+      const { before, after } = outbox.restoreStatements({ mode: 'replace', cursors: [] })
+      await db.runMany([...before, ...after])
+      setNow('2026-10-30T18:59:00.000Z')
+      await cycle.runCycle()
+
+      expect(deletes.deleted).toEqual([])
+
+      setNow('2026-10-30T19:00:00.000Z')
+      await cycle.runCycle()
+
+      expect(deletes.deleted).toEqual([{ userId: 'user-1', fileName: MILO_PHOTO }])
+      await expect(queuedPhoto()).resolves.toEqual([])
+    })
+
     it('Milo, deux appareils : le téléphone change la photo le 23 octobre à 19 h, la tablette, plus récente, garde l’ancienne et arrive le 25 — jamais effacée', async () => {
       const order: string[] = []
       const files = fakeFiles({ [MILO_PHOTO]: jpeg() })
