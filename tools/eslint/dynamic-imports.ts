@@ -61,15 +61,39 @@ function isImportMetaGlob(callee: { type: string; object?: unknown; property?: u
 }
 
 const WILDCARD = /[*?[\]{}]/
+const CLASS_WILDCARD = /[?[\]{}]/
 
 function isBroadGlob(pattern: string) {
   const directories = pattern.split('/').slice(0, -1)
   return directories.some((segment) => segment === '**' || WILDCARD.test(segment))
 }
 
+function hasOpenLastSegment(pattern: string) {
+  const last = pattern.split('/').at(-1) ?? ''
+  return last === '*' || CLASS_WILDCARD.test(last)
+}
+
 function excludesTests(negatives: string[]) {
-  const text = negatives.join(' ')
-  return text.includes('__tests__') && text.includes('spec') && text.includes('test')
+  const has = (negative: string) => negatives.includes(negative)
+  return (
+    has('!**/__tests__/**') &&
+    (has('!**/*.{spec,test}.*') || (has('!**/*.spec.*') && has('!**/*.test.*')))
+  )
+}
+
+function hasBaseOption(options: unknown = {}) {
+  const { type, properties } = options as {
+    type?: string
+    properties?: { type: string; key?: { name?: string; value?: unknown } }[]
+  }
+  return (
+    type === 'ObjectExpression' &&
+    (properties ?? []).some(
+      (property) =>
+        property.type === 'Property' &&
+        (property.key?.name === 'base' || property.key?.value === 'base'),
+    )
+  )
 }
 
 const testFilesRule: Rule.RuleModule = {
@@ -103,22 +127,38 @@ const testFilesRule: Rule.RuleModule = {
         const { quasis, expressions } = node.source
         const first = quasis[0]?.value.cooked ?? ''
         if (expressions.length === 0) return check(node as Rule.Node, first)
+        reported = 0
         if (first) check(node as Rule.Node, first)
         const last = quasis[quasis.length - 1]?.value.cooked ?? ''
-        if (last) check(node as Rule.Node, `x${last}`)
+        if (reported === 0 && last) check(node as Rule.Node, `x${last}`)
+        for (const quasi of quasis.slice(1, -1)) {
+          if (reported === 0) check(node as Rule.Node, `x${quasi.value.cooked ?? ''}x`)
+        }
       },
       CallExpression(node) {
         if (!isImportMetaGlob(node.callee)) return
+        if (hasBaseOption(node.arguments[1])) {
+          return context.report({
+            node,
+            message:
+              "L'option « base » de import.meta.glob déplace les motifs : interdite en production.",
+          })
+        }
         const patterns = literalPatterns(node.arguments[0] as Expr | undefined)
         const positives = patterns.filter((pattern) => !pattern.startsWith('!'))
         const negatives = patterns.filter((pattern) => pattern.startsWith('!'))
         reported = 0
-        for (const pattern of positives) check(node as Rule.Node, pattern)
-        if (reported === 0 && !excludesTests(negatives) && positives.some(isBroadGlob)) {
+        for (const pattern of positives) {
+          if (reported === 0) check(node as Rule.Node, pattern)
+        }
+        const open = positives.some(
+          (pattern) => isBroadGlob(pattern) || hasOpenLastSegment(pattern),
+        )
+        if (reported === 0 && open && !excludesTests(negatives)) {
           context.report({
             node,
             message:
-              "Un glob large de production embarquerait des specs : ajoute les motifs négatifs '!**/__tests__/**' et '!**/*.{spec,test}.*'.",
+              "Un glob ouvert de production embarquerait des specs : ajoute les motifs négatifs '!**/__tests__/**' et '!**/*.{spec,test}.*'.",
           })
         }
       },

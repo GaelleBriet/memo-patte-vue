@@ -1,6 +1,6 @@
 import { doseWritesOf } from './treatment-dose-writes'
 import { revealedDues, type RevealedDues } from './treatment-revealed-dues'
-import type { KeptAhead, KeptLine } from './treatment-undo-order'
+import type { KeptLine } from './treatment-undo-order'
 import type { DoseWrite } from '../schema/treatment-dose.schema'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import {
@@ -50,7 +50,7 @@ export type DoseChange = {
   /** G21 : les doses passées que le geste fait apparaître, à renseigner ou en retard. */
   revealed: RevealedDues | null
   /** R12, #842 : les lignes que « Annuler » doit laisser devant les lignes supprimées. */
-  keptAhead?: KeptAhead
+  keptAhead?: readonly KeptLine[]
 }
 
 export class DoseAlreadyLoggedError extends Error {}
@@ -135,7 +135,6 @@ function noteChange(
   const wasGiven = reading.view.dueState(gesture.due) === 'given'
   const greyed = greyedRewrites(reading, outcome.changes)
   const ahead = keptAhead(reading.input, [...greyed])
-  const touched = reading.input.lines.filter(({ id }) => greyed.has(id))
   return {
     ...NONE,
     writes: doseWritesOf(treatment, outcome.changes, newId, greyed),
@@ -143,11 +142,7 @@ function noteChange(
     shiftKept: gesture.status === 'missed' && wasGiven && keepsShift(reading, gesture.due),
     revealed: gesture.status === 'given' ? revealedBy(reading, outcome) : null,
     ...(heldBy === undefined ? {} : { heldBy }),
-    ...(ahead.length === 0
-      ? {}
-      : {
-          keptAhead: { touched: keptLines(treatment, touched), ahead: keptLines(treatment, ahead) },
-        }),
+    ...(ahead.length === 0 ? {} : { keptAhead: keptLines(treatment, ahead) }),
   }
 }
 
@@ -219,19 +214,11 @@ export function doseChange(
         change.action === 'delete' ? [change.id] : [],
       )
       const ahead = keptAhead(reading.input, deletedIds)
-      const touched = reading.input.lines.filter(({ id }) => deletedIds.includes(id))
       return {
         ...NONE,
         writes: doseWritesOf(treatment, outcome.changes, newId),
         shiftKept: line.status !== 'extra' && line.status !== 'shift' && keepsShift(after, line),
-        ...(ahead.length === 0
-          ? {}
-          : {
-              keptAhead: {
-                touched: keptLines(treatment, touched),
-                ahead: keptLines(treatment, ahead),
-              },
-            }),
+        ...(ahead.length === 0 ? {} : { keptAhead: keptLines(treatment, ahead) }),
       }
     }
     case 'redate': {

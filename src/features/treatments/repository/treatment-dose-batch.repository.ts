@@ -1,5 +1,4 @@
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
-import { rankedStamp, undoRanks } from '../logic/treatment-undo-order'
 import type { DoseFields, DoseWrite } from '../schema/treatment-dose.schema'
 import {
   DuplicateDueError,
@@ -111,9 +110,6 @@ export function createDoseBatch(
         return row
       }
       const unchanged = { expectedUpdatedAt: at }
-      const rankOf = undoRanks(
-        [...existing.values()].map(({ id, updated_at }) => ({ id, updatedAt: updated_at })),
-      )
       const steps = writes.map((write): Step => {
         switch (write.action) {
           case 'create':
@@ -123,35 +119,30 @@ export function createDoseBatch(
               after: liveParentGuardStatement(write.id),
               inverse: { action: 'delete', id: write.id, ...unchanged },
             }
-          case 'rewrite': {
-            const stamp = rankedStamp(at, write.rank)
+          case 'rewrite':
             return {
-              statement: rewriteStatement(write.id, write.dose, stamp, write.decidedAt ?? at),
+              statement: rewriteStatement(write.id, write.dose, at, write.decidedAt ?? at),
               inverse: {
                 action: 'rewrite',
                 id: write.id,
                 dose: fieldsOf(read(write)),
-                expectedUpdatedAt: stamp,
-                rank: rankOf(write.id),
+                ...unchanged,
                 decidedAt: read(write).decided_at,
               },
             }
-          }
           case 'delete':
             read(write)
             return {
               statement: markDeletedStatement([write.id], at),
-              inverse: { action: 'restore', id: write.id, ...unchanged, rank: rankOf(write.id) },
+              inverse: { action: 'restore', id: write.id, ...unchanged },
             }
-          case 'restore': {
+          case 'restore':
             read(write)
-            const stamp = rankedStamp(at, write.rank)
             return {
-              statement: reviveStatement(write.id, stamp),
+              statement: reviveStatement(write.id, at),
               after: liveParentGuardStatement(write.id),
-              inverse: { action: 'delete', id: write.id, expectedUpdatedAt: stamp },
+              inverse: { action: 'delete', id: write.id, ...unchanged },
             }
-          }
         }
       })
       if (steps.length + also.length === 0) return []
