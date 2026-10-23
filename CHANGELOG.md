@@ -5,6 +5,15 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.103](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.102...memo-patte-v0.1.103) (2026-10-23)
+
+
+### 🐛 Corrections
+
+* **android:** retirer requestLegacyExternalStorage du manifeste ([dd7933e](https://github.com/GaelleBriet/memo-patte-vue/commit/dd7933ee66f9d1b64e653f103572ecfe984bcf35))
+* **sync:** dater la photo mise en file avec tout le carnet à l'heure de mise en file ([88dd15f](https://github.com/GaelleBriet/memo-patte-vue/commit/88dd15fb2a9df139a8ab9249d74fdb2f6f2d96e4))
+* **sync:** dater la photo mise en file avec tout le carnet à l'heure de mise en file ([f7964a9](https://github.com/GaelleBriet/memo-patte-vue/commit/f7964a9b141685e0d4217f308dba8a2fef242ca0))
+
 ## [0.1.102](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.101...memo-patte-v0.1.102) (2026-10-23)
 
 

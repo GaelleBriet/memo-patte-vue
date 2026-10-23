@@ -40,6 +40,12 @@ const repository = vi.mocked(authRepository)
 const googleSignIn = vi.mocked(signInWithGoogle)
 provideAuthRepository(() => authRepository)
 const Vide = { render: () => null }
+const ACHAT = '/sign-in?from=plus-account'
+const DEJA_PLUS = [
+  ['l’écran Plus', '/sign-in?from=plus&restore=1'],
+  ['l’accueil de bienvenue', '/sign-in?from=home&restore=1'],
+  ['Paramètres', '/sign-in?from=settings-plus&restore=1'],
+]
 
 let routeur: Router
 let replace: MockInstance
@@ -109,6 +115,51 @@ describe('SignInView', () => {
       'Un compte MémoPatte sert à garder tes carnets en sécurité dans le cloud et à les retrouver sur tous tes appareils.',
     )
     expect(wrapper.get('.sign-in__submit').text()).toBe('Se connecter')
+  })
+
+  describe('« J’ai déjà MémoPatte Plus » : connexion seule', () => {
+    it.each(DEJA_PLUS)('depuis %s, aucun moyen de créer un compte', async (_, adresse) => {
+      const wrapper = await monter(adresse)
+
+      expect(wrapper.get('h1').text()).toBe('Connexion')
+      expect(wrapper.find('.sign-in__toggle').exists()).toBe(false)
+      expect(wrapper.text()).not.toContain('Créer un compte')
+      expect(wrapper.findAll('.sign-in__panel .v-btn').map((bouton) => bouton.text())).toEqual([
+        'Mot de passe oublié\u00a0?',
+        'Se connecter',
+      ])
+    })
+
+    it.each([
+      ...DEJA_PLUS,
+      ['la déconnexion', '/sign-in?from=settings'],
+      ['aucun parcours', '/sign-in'],
+    ])('depuis %s, un lien vers la création ouvre la connexion', async (_, adresse) => {
+      const wrapper = await monter(`${adresse}${adresse.includes('?') ? '&' : '?'}mode=sign-up`)
+
+      expect(wrapper.get('h1').text()).toBe('Connexion')
+      expect(wrapper.get('.sign-in__submit').text()).toBe('Se connecter')
+      expect(wrapper.find('.sign-in__toggle').exists()).toBe(false)
+      expect(wrapper.find('.account-legal__adults').exists()).toBe(false)
+      expect(wrapper.get('#sign-in-password').attributes('autocomplete')).toBe('current-password')
+    })
+
+    it('se connecte, sans jamais créer de compte', async () => {
+      repository.signIn.mockResolvedValue({ userId: USER_ID })
+      const wrapper = await monter('/sign-in?from=plus&restore=1&mode=sign-up')
+
+      await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse')
+      await envoyer(wrapper)
+
+      expect(repository.signIn).toHaveBeenCalledWith('sophie.martin@example.com', 'motdepasse')
+      expect(repository.signUp).not.toHaveBeenCalled()
+    })
+  })
+
+  it('depuis l’étape 1 de l’achat, propose aussi la création du compte', async () => {
+    const wrapper = await monter(ACHAT)
+
+    expect(wrapper.get('h1').text()).toBe('Connexion')
     expect(wrapper.get('.sign-in__toggle').text()).toBe('Pas encore de compte ? Créer un compte')
   })
 
@@ -126,7 +177,7 @@ describe('SignInView', () => {
   })
 
   it('bascule vers l’inscription puis revient à la connexion', async () => {
-    const wrapper = await monter()
+    const wrapper = await monter(ACHAT)
 
     await basculer(wrapper)
 
@@ -152,7 +203,7 @@ describe('SignInView', () => {
   })
 
   it('exige un mot de passe d’au moins huit caractères à l’inscription', async () => {
-    const wrapper = await monter()
+    const wrapper = await monter(ACHAT)
 
     await basculer(wrapper)
     await saisir(wrapper, 'sophie.martin@example.com', 'court')
@@ -165,7 +216,7 @@ describe('SignInView', () => {
 
   describe('création du compte (V25)', () => {
     it('donne la longueur minimale du mot de passe, à l’inscription seulement', async () => {
-      const wrapper = await monter()
+      const wrapper = await monter(ACHAT)
 
       expect(wrapper.find('.form-field__help').exists()).toBe(false)
 
@@ -179,7 +230,7 @@ describe('SignInView', () => {
     })
 
     it('remplace l’aide par l’erreur quand le mot de passe est trop court', async () => {
-      const wrapper = await monter()
+      const wrapper = await monter(ACHAT)
 
       await basculer(wrapper)
       await saisir(wrapper, 'sophie.martin@example.com', 'court')
@@ -190,7 +241,7 @@ describe('SignInView', () => {
     })
 
     it('ouvre le formulaire par « Ton e-mail », sous le trait et le bouton Google', async () => {
-      const wrapper = await monter()
+      const wrapper = await monter(ACHAT)
 
       expect(wrapper.find('.sign-in__email-hero').exists()).toBe(false)
 
@@ -216,7 +267,7 @@ describe('SignInView', () => {
     })
 
     it('dit l’âge requis et mène à la politique de confidentialité, avant le bouton', async () => {
-      const wrapper = await monter()
+      const wrapper = await monter(ACHAT)
 
       expect(wrapper.find('.account-legal').exists()).toBe(false)
 
@@ -238,7 +289,7 @@ describe('SignInView', () => {
     it('se lit en anglais aussi', async () => {
       i18n.global.locale.value = 'en'
       try {
-        const wrapper = await monter('/sign-in?mode=sign-up')
+        const wrapper = await monter(`${ACHAT}&mode=sign-up`)
 
         expect(wrapper.get('h1').text()).toBe('Create an account')
         expect(wrapper.get('.form-field__help').text()).toBe('At least 8 characters.')
@@ -501,7 +552,7 @@ describe('SignInView', () => {
 
   it('dit pourquoi quand Supabase refuse un mot de passe que la validation locale a laissé passer', async () => {
     repository.signUp.mockRejectedValue(new AccountError('weak-password'))
-    const wrapper = await monter()
+    const wrapper = await monter(ACHAT)
 
     await basculer(wrapper)
     await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse')
@@ -515,7 +566,7 @@ describe('SignInView', () => {
 
   it('signale une adresse déjà utilisée à l’inscription', async () => {
     repository.signUp.mockRejectedValue(new AccountError('email-taken'))
-    const wrapper = await monter()
+    const wrapper = await monter(ACHAT)
 
     await basculer(wrapper)
     await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse')
@@ -528,13 +579,13 @@ describe('SignInView', () => {
 
   it('ramène au parcours d’origine quand l’inscription ouvre déjà une session', async () => {
     repository.signUp.mockResolvedValue({ kind: 'signed-in', session: { userId: USER_ID } })
-    const wrapper = await monter('/sign-in?from=plus')
+    const wrapper = await monter(ACHAT)
 
     await basculer(wrapper)
     await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse')
     await envoyer(wrapper)
 
-    expect(replace).toHaveBeenCalledWith({ name: 'plus' })
+    expect(replace).toHaveBeenCalledWith({ name: 'plus-account' })
   })
 
   it('ne laisse ni adresse ni mot de passe dans les traces', async () => {
@@ -556,7 +607,7 @@ describe('SignInView', () => {
   })
 
   it('ne porte que ses boutons : « Mot de passe oublié ? », se connecter, créer un compte', async () => {
-    const wrapper = await monter()
+    const wrapper = await monter(ACHAT)
 
     expect(wrapper.findAll('.sign-in__panel .v-btn').map((bouton) => bouton.text())).toEqual([
       'Mot de passe oublié\u00a0?',
@@ -568,7 +619,7 @@ describe('SignInView', () => {
 
   describe('« Mot de passe oublié ? » (PL-9)', () => {
     it('se place juste sous le mot de passe, à la connexion seulement', async () => {
-      const wrapper = await monter()
+      const wrapper = await monter(ACHAT)
 
       const lien = wrapper.get('.sign-in__fields .sign-in__forgot')
       expect(lien.text()).toBe('Mot de passe oublié\u00a0?')
@@ -605,7 +656,7 @@ describe('SignInView', () => {
 
   it('oublie l’erreur du serveur en basculant de formulaire', async () => {
     repository.signIn.mockRejectedValue(new AccountError('invalid-credentials'))
-    const wrapper = await monter()
+    const wrapper = await monter(ACHAT)
 
     await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse')
     await envoyer(wrapper)
@@ -639,7 +690,7 @@ describe('SignInView', () => {
       vi.useRealTimers()
     })
 
-    async function inscrire(adresse = '/sign-in?from=settings'): Promise<VueWrapper> {
+    async function inscrire(adresse = ACHAT): Promise<VueWrapper> {
       const wrapper = await monter(adresse)
       await basculer(wrapper)
       await saisir(wrapper, 'sophie@exemple.fr', 'motdepasse')
@@ -710,7 +761,7 @@ describe('SignInView', () => {
       await confirmer(wrapper)
 
       expect(repository.verifySignUpCode).toHaveBeenCalledWith('sophie@exemple.fr', '12345678')
-      expect(replace).toHaveBeenCalledWith({ name: 'settings' })
+      expect(replace).toHaveBeenCalledWith({ name: 'plus-account' })
     })
 
     it('dit « pas le bon » sous le code, dans l’heure', async () => {
@@ -873,7 +924,7 @@ describe('SignInView', () => {
       i18n.global.locale.value = 'en'
       try {
         repository.verifySignUpCode.mockRejectedValue(new AccountError('invalid-code'))
-        const wrapper = await monter('/sign-in?mode=sign-up')
+        const wrapper = await monter(`${ACHAT}&mode=sign-up`)
         expect(wrapper.get('.sign-in__submit').text()).toBe('Get the code')
         await saisir(wrapper, 'sophie@exemple.fr', 'motdepasse')
         await envoyer(wrapper)
@@ -941,7 +992,7 @@ describe('SignInView', () => {
       const { promesse, terminer } = suspendre({ kind: 'confirmation-pending' } as const)
       repository.signUp.mockReturnValue(promesse)
       document.body.innerHTML = ''
-      const wrapper = await monter()
+      const wrapper = await monter(ACHAT)
       await basculer(wrapper)
       await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse')
       await envoyer(wrapper)
@@ -974,7 +1025,7 @@ describe('SignInView', () => {
     })
 
     it('reste au même endroit et au même libellé à l’inscription', async () => {
-      const wrapper = await monter()
+      const wrapper = await monter(ACHAT)
 
       await basculer(wrapper)
 
@@ -1034,7 +1085,7 @@ describe('SignInView', () => {
           terminer = () => resolve({ kind: 'cancelled' })
         }),
       )
-      const wrapper = await monter()
+      const wrapper = await monter(ACHAT)
       await basculer(wrapper)
 
       await wrapper.get('.sign-in__google').trigger('click')
