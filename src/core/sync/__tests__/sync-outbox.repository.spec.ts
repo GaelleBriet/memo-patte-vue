@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { ANIMAL_PHOTO_ENTITY } from '@/core/db/schema-statements'
 import {
@@ -25,6 +25,8 @@ import {
 
 const T1 = '2026-01-01T00:00:00.000Z'
 const T2 = '2026-01-01T00:05:00.000Z'
+const SEPTEMBER_1 = '2026-09-01T08:00:00.000Z'
+const OCTOBER_23_8AM = '2026-10-23T08:00:00.000Z'
 const SETTINGS_ID = '00000000-0000-0000-0000-000000000000'
 const PHOTO_MILO = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg'
 const PHOTO_PIRATE = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb.jpg'
@@ -40,6 +42,7 @@ describe('syncOutboxRepository', () => {
 
   afterEach(() => {
     db.close()
+    vi.useRealTimers()
   })
 
   describe('isPhotoInCarnet', () => {
@@ -187,6 +190,7 @@ describe('syncOutboxRepository', () => {
     })
 
     it('« Fusionner » : tout le carnet du téléphone en file, photos comprises, la synchro activée au bout', async () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date(T2) })
       await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_MILO)
       await repository.setLastPulledAt('animal', T1)
       await repository.startRestore('merge')
@@ -199,11 +203,31 @@ describe('syncOutboxRepository', () => {
 
       await expect(repository.listPending()).resolves.toEqual([
         { entity: 'animal', entityId: ANIMAL_ID, queuedAt: T1, attempts: 0 },
-        { entity: ANIMAL_PHOTO_ENTITY, entityId: PHOTO_MILO, queuedAt: T1, attempts: 0 },
+        { entity: ANIMAL_PHOTO_ENTITY, entityId: PHOTO_MILO, queuedAt: T2, attempts: 0 },
       ])
       await expect(repository.getLastPulledAt('animal')).resolves.toBe(T2)
       await expect(repository.isEnabled()).resolves.toBe(true)
       await expect(repository.restoreMode()).resolves.toBeNull()
+    })
+
+    it('« Fusionner » le 23 octobre à 8 h, Milo modifié le 1er septembre : sa photo entre en file à 8 h, ses lignes gardent le 1er septembre', async () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date(OCTOBER_23_8AM) })
+      await insertAnimal(db, ANIMAL_ID, SEPTEMBER_1, 'Milo', PHOTO_MILO)
+      await insertVaccination(db, 'v-1', ANIMAL_ID, SEPTEMBER_1)
+      const { before, after } = repository.restoreStatements({ mode: 'merge', cursors: [] })
+
+      await db.runMany([...before, ...after])
+
+      await expect(repository.listPending()).resolves.toEqual([
+        { entity: 'animal', entityId: ANIMAL_ID, queuedAt: SEPTEMBER_1, attempts: 0 },
+        { entity: 'vaccination', entityId: 'v-1', queuedAt: SEPTEMBER_1, attempts: 0 },
+        {
+          entity: ANIMAL_PHOTO_ENTITY,
+          entityId: PHOTO_MILO,
+          queuedAt: OCTOBER_23_8AM,
+          attempts: 0,
+        },
+      ])
     })
 
     it('« Remplacer » : seule la fiche des appareils part en file, aucune photo', async () => {
@@ -305,6 +329,7 @@ describe('syncOutboxRepository', () => {
     }
 
     it('active la synchronisation et met en file chaque ligne du carnet, supprimées comprises, et la photo de chaque animal non supprimé', async () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date(OCTOBER_23_8AM) })
       await insertWholeCarnet()
       await expect(repository.listPending()).resolves.toEqual([])
 
@@ -323,8 +348,51 @@ describe('syncOutboxRepository', () => {
         { entity: 'treatment_dose', entityId: 'd-1', queuedAt: T1, attempts: 0 },
         { entity: 'weight_entry', entityId: 'w-1', queuedAt: T1, attempts: 0 },
         { entity: 'carnet_settings', entityId: SETTINGS_ID, queuedAt: T1, attempts: 0 },
-        { entity: ANIMAL_PHOTO_ENTITY, entityId: PHOTO_MILO, queuedAt: T1, attempts: 0 },
+        {
+          entity: ANIMAL_PHOTO_ENTITY,
+          entityId: PHOTO_MILO,
+          queuedAt: OCTOBER_23_8AM,
+          attempts: 0,
+        },
       ])
+    })
+
+    it('Milo, modifié le 1er septembre, synchro activée le 23 octobre à 8 h : sa photo entre en file à 8 h, ses lignes gardent le 1er septembre', async () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date(OCTOBER_23_8AM) })
+      await insertAnimal(db, ANIMAL_ID, SEPTEMBER_1, 'Milo', PHOTO_MILO)
+      await insertVaccination(db, 'v-1', ANIMAL_ID, SEPTEMBER_1)
+
+      await repository.enableAndQueueWholeCarnet()
+
+      await expect(repository.listPending()).resolves.toEqual([
+        { entity: 'animal', entityId: ANIMAL_ID, queuedAt: SEPTEMBER_1, attempts: 0 },
+        { entity: 'vaccination', entityId: 'v-1', queuedAt: SEPTEMBER_1, attempts: 0 },
+        {
+          entity: ANIMAL_PHOTO_ENTITY,
+          entityId: PHOTO_MILO,
+          queuedAt: OCTOBER_23_8AM,
+          attempts: 0,
+        },
+      ])
+    })
+
+    it('garde telle quelle la photo déjà en file, avec l’heure de sa modification et ses essais', async () => {
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date(OCTOBER_23_8AM) })
+      await insertAnimal(db, ANIMAL_ID, SEPTEMBER_1, 'Milo', PHOTO_MILO)
+      await db.run(
+        `INSERT INTO sync_outbox (entity, entity_id, queued_at, attempts) VALUES (?, ?, ?, 2)`,
+        [ANIMAL_PHOTO_ENTITY, PHOTO_MILO, T2],
+      )
+
+      await repository.enableAndQueueWholeCarnet()
+
+      const pending = await repository.listPending()
+      expect(pending.find(({ entityId }) => entityId === PHOTO_MILO)).toEqual({
+        entity: ANIMAL_PHOTO_ENTITY,
+        entityId: PHOTO_MILO,
+        queuedAt: T2,
+        attempts: 2,
+      })
     })
 
     it('garde telle quelle une entrée déjà en file', async () => {
