@@ -19,6 +19,7 @@ import {
   fromVersion7,
   fromVersion8,
   fromVersion9,
+  fromVersion10,
   type Version3Data,
   type Version5Data,
   type Version7Data,
@@ -121,19 +122,23 @@ const movedDosesOf = (shape: typeof doseShape | typeof legacyDoseShape) =>
   )
 const movedDoses = movedDosesOf(doseShape)
 const legacyMovedDoses = movedDosesOf(legacyDoseShape)
-const reportedDoses = z.array(
-  signed({
-    ...doseShape,
-    targetOn: day.nullable(),
-    previousTargetOn: day.nullable(),
-    previousTargetTime: clockTime.nullable(),
-    dueRank: z.number().int().min(1).nullable(),
-  })
-    .refine(isConsistentDose)
-    .refine(hasTargetOnlyOnMove)
-    .refine(hasReportFactsOnlyOnReport)
-    .refine(hasPreviousTargetDay),
-)
+const reportedDose = signed({
+  ...doseShape,
+  targetOn: day.nullable(),
+  previousTargetOn: day.nullable(),
+  previousTargetTime: clockTime.nullable(),
+  dueRank: z.number().int().min(1).nullable(),
+})
+const checkedDoses = <T extends z.output<typeof reportedDose>, I>(dose: z.ZodType<T, I>) =>
+  z.array(
+    dose
+      .refine(isConsistentDose)
+      .refine(hasTargetOnlyOnMove)
+      .refine(hasReportFactsOnlyOnReport)
+      .refine(hasPreviousTargetDay),
+  )
+const reportedDoses = checkedDoses(reportedDose)
+const decidedDoses = checkedDoses(reportedDose.extend({ decidedAt: instantSchema }))
 
 const version6PeriodShape = {
   ...periodShape,
@@ -150,16 +155,26 @@ const version8PeriodShape = {
   settingsWrittenAt: instantSchema,
 }
 
+const version10PeriodsSchema = z.array(
+  signed({
+    ...version8PeriodShape,
+    gridWrittenAt: instantSchema,
+    gridBefore: z.unknown().optional().transform(gridBeforeFromValue),
+  }).refine(isConsistentPeriod),
+)
+
+const version11FileSchema = z
+  .object({
+    ...signedCarnet,
+    treatmentPeriods: version10PeriodsSchema,
+    treatmentDoses: decidedDoses,
+  })
+  .refine(isConsistentCarnet)
+
 const version10FileSchema = z
   .object({
     ...signedCarnet,
-    treatmentPeriods: z.array(
-      signed({
-        ...version8PeriodShape,
-        gridWrittenAt: instantSchema,
-        gridBefore: z.unknown().optional().transform(gridBeforeFromValue),
-      }).refine(isConsistentPeriod),
-    ),
+    treatmentPeriods: version10PeriodsSchema,
     treatmentDoses: reportedDoses,
   })
   .refine(isConsistentCarnet)
@@ -244,17 +259,17 @@ export function exportFileSchemaOf(
   deviceId: string,
   today: string,
 ): z.ZodType<ExportData> {
-  const fromVersion8To10 = (data: Version8Data) => fromVersion9(fromVersion8(data))
-  const fromVersion7To10 = (data: Version7Data) => fromVersion8To10(fromVersion7(data))
-  const fromVersion5To10 = (data: Version5Data) =>
-    fromVersion7To10(fromVersion6(fromVersion5(data)))
-  const fromVersion3To10 = (data: Version3Data) =>
-    fromVersion5To10(fromVersion4(fromVersion3(data, deviceId)))
-  const fromVersion2To10 = (
+  const fromVersion8To11 = (data: Version8Data) => fromVersion10(fromVersion9(fromVersion8(data)))
+  const fromVersion7To11 = (data: Version7Data) => fromVersion8To11(fromVersion7(data))
+  const fromVersion5To11 = (data: Version5Data) =>
+    fromVersion7To11(fromVersion6(fromVersion5(data)))
+  const fromVersion3To11 = (data: Version3Data) =>
+    fromVersion5To11(fromVersion4(fromVersion3(data, deviceId)))
+  const fromVersion2To11 = (
     carnet: ExportFileV2,
     ctx: z.RefinementCtx,
-  ): z.input<typeof version10FileSchema> => {
-    const data = fromVersion3To10(fromVersion2(carnet))
+  ): z.input<typeof version11FileSchema> => {
+    const data = fromVersion3To11(fromVersion2(carnet))
     const replayed = withReplayedDoses(data, carnet.treatmentDoses, deviceId, today)
     if (replayed !== null) return replayed
     ctx.addIssue({ code: 'custom', message: 'prise que le moteur ne sait pas placer' })
@@ -263,17 +278,19 @@ export function exportFileSchemaOf(
   if (version === 1) {
     return version1FileSchema
       .transform(fromVersion1)
-      .transform(fromVersion2To10)
-      .pipe(version10FileSchema)
+      .transform(fromVersion2To11)
+      .pipe(version11FileSchema)
   }
-  if (version === 2) return version2FileSchema.transform(fromVersion2To10).pipe(version10FileSchema)
-  if (version === 3) return version3FileSchema.transform(fromVersion3To10)
+  if (version === 2) return version2FileSchema.transform(fromVersion2To11).pipe(version11FileSchema)
+  if (version === 3) return version3FileSchema.transform(fromVersion3To11)
   if (version === 4)
-    return version4FileSchema.transform((data) => fromVersion5To10(fromVersion4(data)))
-  if (version === 5) return version5FileSchema.transform(fromVersion5To10)
+    return version4FileSchema.transform((data) => fromVersion5To11(fromVersion4(data)))
+  if (version === 5) return version5FileSchema.transform(fromVersion5To11)
   if (version === 6)
-    return version6FileSchema.transform((data) => fromVersion7To10(fromVersion6(data)))
-  if (version === 7) return version7FileSchema.transform(fromVersion7To10)
-  if (version === 8) return version8FileSchema.transform(fromVersion8To10)
-  return version === 9 ? version9FileSchema.transform(fromVersion9) : version10FileSchema
+    return version6FileSchema.transform((data) => fromVersion7To11(fromVersion6(data)))
+  if (version === 7) return version7FileSchema.transform(fromVersion7To11)
+  if (version === 8) return version8FileSchema.transform(fromVersion8To11)
+  if (version === 9)
+    return version9FileSchema.transform((data) => fromVersion10(fromVersion9(data)))
+  return version === 10 ? version10FileSchema.transform(fromVersion10) : version11FileSchema
 }

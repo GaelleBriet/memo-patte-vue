@@ -53,6 +53,7 @@ function line({ nextDueDate, ...fields }: DoseFields): ExportTreatmentDose {
     animalId: MILO,
     createdAt: stamp,
     updatedAt: stamp,
+    decidedAt: stamp,
     ...BY_FIXTURE_DEVICE,
     ...fields,
     targetOn: targetOnOf({ status: fields.status, nextDueDate }),

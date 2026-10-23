@@ -15,11 +15,17 @@ import { readTreatment } from '@/shared/domain/treatment-reading'
 
 type Unstamped<T> = Omit<T, 'createdByDevice' | 'updatedByDevice'>
 
-type Version8Dose = Omit<ExportTreatmentDose, 'previousTargetOn' | 'previousTargetTime' | 'dueRank'>
+type Version10Dose = Omit<ExportTreatmentDose, 'decidedAt'>
+
+export type Version10Data = Omit<ExportData, 'treatmentDoses'> & {
+  treatmentDoses: Version10Dose[]
+}
+
+type Version8Dose = Omit<Version10Dose, 'previousTargetOn' | 'previousTargetTime' | 'dueRank'>
 
 type Version9Period = Omit<ExportTreatmentPeriod, 'gridWrittenAt' | 'gridBefore'>
 
-export type Version9Data = Omit<ExportData, 'treatmentPeriods'> & {
+export type Version9Data = Omit<Version10Data, 'treatmentPeriods'> & {
   treatmentPeriods: Version9Period[]
 }
 
@@ -153,7 +159,7 @@ export function fromVersion8(data: Version8Data): Version9Data {
 }
 
 /** La conversion que la migration v17 applique à la base : la grille datée de la dernière écriture des réglages, aucune grille d'avant. */
-export function fromVersion9(data: Version9Data): ExportData {
+export function fromVersion9(data: Version9Data): Version10Data {
   return {
     ...data,
     treatmentPeriods: data.treatmentPeriods.map((period) => ({
@@ -161,6 +167,14 @@ export function fromVersion9(data: Version9Data): ExportData {
       gridWrittenAt: period.settingsWrittenAt,
       gridBefore: null,
     })),
+  }
+}
+
+/** La conversion que la migration v20 applique à la base : chaque ligne décidée à sa dernière écriture. */
+export function fromVersion10(data: Version10Data): ExportData {
+  return {
+    ...data,
+    treatmentDoses: data.treatmentDoses.map((dose) => ({ ...dose, decidedAt: dose.updatedAt })),
   }
 }
 

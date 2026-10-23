@@ -368,6 +368,7 @@ describe('buildCarnetPdfContent — historique', () => {
       previousTargetTime: null,
       dueRank: null,
       ...STAMPS,
+      decidedAt: spec.updatedAt ?? STAMPS.updatedAt,
       ...spec,
     }
   }

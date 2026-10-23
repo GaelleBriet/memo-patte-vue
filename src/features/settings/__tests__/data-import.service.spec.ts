@@ -97,6 +97,7 @@ function prise(
     targetOn: null,
     createdAt: at,
     updatedAt: at,
+    decidedAt: at,
     deletedAt: null,
   }
 }
@@ -235,7 +236,7 @@ describe('data-import.service', () => {
       ),
     }
 
-    await service.importData({ schemaVersion: 10, data }, 'replace')
+    await service.importData({ schemaVersion: 11, data }, 'replace')
 
     await expect(repositories.treatments.getById(milbemax!.id)).resolves.toMatchObject({
       type: 'medication',

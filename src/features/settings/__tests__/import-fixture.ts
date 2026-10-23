@@ -179,6 +179,7 @@ export const IMPORT_FIXTURE: ExportData = {
       targetOn: null,
       createdAt: '2026-01-10T08:10:00.000Z',
       updatedAt: '2026-06-15T08:10:00.000Z',
+      decidedAt: '2026-06-15T08:10:00.000Z',
       ...BY_FIXTURE_DEVICE,
     },
     {
@@ -186,6 +187,7 @@ export const IMPORT_FIXTURE: ExportData = {
       previousTargetTime: null,
       dueRank: null,
       ...PANACUR,
+      decidedAt: PANACUR.updatedAt,
       id: PANACUR_REPORT_ID,
       dueOn: '2026-09-02',
       dueTime: '08:00',
@@ -198,6 +200,7 @@ export const IMPORT_FIXTURE: ExportData = {
       previousTargetTime: null,
       dueRank: null,
       ...PANACUR,
+      decidedAt: PANACUR.updatedAt,
       id: PANACUR_SOIR_ID,
       dueOn: '2026-09-01',
       dueTime: '20:00',
@@ -210,6 +213,7 @@ export const IMPORT_FIXTURE: ExportData = {
       previousTargetTime: null,
       dueRank: null,
       ...PANACUR,
+      decidedAt: PANACUR.updatedAt,
       id: PANACUR_MATIN_ID,
       dueOn: '2026-09-01',
       dueTime: '08:00',
@@ -249,10 +253,10 @@ export const IMPORT_FIXTURE: ExportData = {
   ],
 }
 
-export const IMPORT_FILE: ImportFile = { schemaVersion: 10, data: IMPORT_FIXTURE }
+export const IMPORT_FILE: ImportFile = { schemaVersion: 11, data: IMPORT_FIXTURE }
 
 export function importFile(data: ExportData = IMPORT_FIXTURE): ImportFile {
-  return { schemaVersion: 10, data }
+  return { schemaVersion: 11, data }
 }
 
 export function importFixtureJson(data: ExportData = IMPORT_FIXTURE): string {
