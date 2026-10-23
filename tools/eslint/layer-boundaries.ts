@@ -45,6 +45,33 @@ const CORE_VALUE_OUT_OF_SHARED_DOMAIN = {
 }
 
 export const layerBoundaryBlocks: Linter.Config[] = [
+  {
+    name: 'app/production-not-tests',
+    files: ['src/**/*.{ts,mts,tsx,vue}'],
+    ignores: ['**/__tests__/**', '**/*.spec.*', '**/*.test.*'],
+    rules: {
+      'app/no-restricted-test-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                '**/__tests__',
+                '**/__tests__/**',
+                '**/*.spec',
+                '**/*.spec.*',
+                '**/*.test',
+                '**/*.test.*',
+              ],
+              message:
+                "Un fichier de production n'importe ni __tests__/ ni un spec : l'aide partagée vit hors de ces fichiers.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // Accès direct à SQLite/Supabase interdit hors de core/ et des repositories.
   // Les tests qui montent de vrais repositories sur une base en mémoire sont exemptés,
   // repérés par le suffixe `.integration.spec.ts` en plus des tests de repository et de service,
