@@ -77,6 +77,17 @@ describe('hasUpcomingDueDates', () => {
     ).toBe(true)
   })
 
+  it('compte la relance du jour civil de l’appareil : trois jours avant « aujourd’hui », à cheval sur deux mois', () => {
+    const carnet = (dueDate: string) => ({
+      animals: [MILO],
+      vaccinations: [vaccination(dueDate)],
+      treatments: [],
+    })
+
+    expect(hasUpcomingDueDates(carnet('2026-09-29'), '2026-10-02')).toBe(true)
+    expect(hasUpcomingDueDates(carnet('2026-09-28'), '2026-10-02')).toBe(false)
+  })
+
   it('est faux pour une installation vide', () => {
     expect(hasUpcomingDueDates({ animals: [], vaccinations: [], treatments: [] }, TODAY)).toBe(
       false,
