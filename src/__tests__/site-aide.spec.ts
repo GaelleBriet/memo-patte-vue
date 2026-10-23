@@ -59,6 +59,7 @@ const questions = [
   { fr: 'exporter', en: 'export', zones: 3, textOrder: [1, 2, 3] },
   { fr: 'sauvegarde-android', en: 'android-backup', zones: 0, textOrder: [] },
   { fr: 'plus', en: 'plus', zones: 0, textOrder: [] },
+  { fr: 'telephone-d-un-autre', en: 'someone-elses-phone', zones: 0, textOrder: [] },
   { fr: 'nouveau-telephone', en: 'new-phone', zones: 0, textOrder: [] },
   { fr: 'effacer', en: 'erase', zones: 2, textOrder: [2, 1] },
   { fr: 'ne-plus-suivre', en: 'stop-following', zones: 3, textOrder: [1, 2, 3] },

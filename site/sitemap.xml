@@ -109,6 +109,18 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/aide/plus/" />
   </url>
   <url>
+    <loc>https://memopatte.app/aide/telephone-d-un-autre/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/aide/telephone-d-un-autre/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/help/someone-elses-phone/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/aide/telephone-d-un-autre/" />
+  </url>
+  <url>
+    <loc>https://memopatte.app/en/help/someone-elses-phone/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/aide/telephone-d-un-autre/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/help/someone-elses-phone/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://memopatte.app/aide/telephone-d-un-autre/" />
+  </url>
+  <url>
     <loc>https://memopatte.app/aide/nouveau-telephone/</loc>
     <xhtml:link rel="alternate" hreflang="fr" href="https://memopatte.app/aide/nouveau-telephone/" />
     <xhtml:link rel="alternate" hreflang="en" href="https://memopatte.app/en/help/new-phone/" />
