@@ -50,19 +50,12 @@ export type DoseFields = Pick<
 /** `expectedUpdatedAt` : la ligne doit être restée telle qu'un geste l'a écrite (lot inverse). */
 type Unchanged = { expectedUpdatedAt?: string }
 
-/**
- * `rank` (lot inverse) : rang de la ligne, de la moins à la plus récemment modifiée avant le geste,
- * parmi celles du lot, ou parmi les lignes supprimées et gardées devant (`undoKeepingAhead`) ;
- * elle est datée de l'instant de l'écriture plus `rank` millisecondes.
- */
-type Ranked = { rank?: number }
-
 /** `decidedAt` (lot inverse) : la décision lue avant le geste, remise telle quelle ; absente : l'instant du geste. */
 type Decided = { decidedAt?: string }
 
 /** Une écriture du moteur d'échéances ; `restore` ne sert qu'à défaire un `delete`. */
 export type DoseWrite =
   | ({ action: 'create'; dose: DoseFields } & DoseOwner)
-  | ({ action: 'rewrite'; id: string; dose: DoseFields } & Unchanged & Ranked & Decided)
+  | ({ action: 'rewrite'; id: string; dose: DoseFields } & Unchanged & Decided)
   | ({ action: 'delete'; id: string } & Unchanged)
-  | ({ action: 'restore'; id: string } & Unchanged & Ranked)
+  | ({ action: 'restore'; id: string } & Unchanged)
