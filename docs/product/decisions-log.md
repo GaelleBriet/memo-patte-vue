@@ -3625,3 +3625,21 @@ retour garde son comportement : il quitte l'écran. Exemple : Sophie a demandé 
 « retour » pour corriger l'adresse ; elle retombe sur la saisie, adresse remplie, au lieu de sortir de
 l'écran. — Raison : le retour matériel doit faire ce que la flèche affiche ; sortir d'un coup perdait
 ce qu'elle venait de saisir. — Alternative écartée : laisser le retour quitter l'écran.
+
+2026-10-23 — **« J'ai déjà MémoPatte Plus » ouvre une connexion seule, sans « Créer un compte »**
+(#1161, spec PL-7). Décision de Gaelle du 23 octobre : l'écran ouvert par « J'ai déjà MémoPatte Plus »
+est une connexion seule, sans « Créer un compte » (elle jugeait bizarre d'y créer un compte). Par
+cohérence, signalé dans #1161 : « Restaurer mes achats », le paiement sans compte ou à session expirée,
+et la déconnexion ouvrent aussi une connexion seule. La création ne se fait qu'à l'étape 1 de l'achat
+(#427).
+
+2026-10-23 — **Mot de passe saisi deux fois** (spec PL-23). Décision de Gaelle du 23 octobre : le
+nouveau mot de passe se saisit deux fois, avec « Confirme le nouveau mot de passe » dans « Changer mon
+mot de passe » et « Mot de passe oublié », « Confirme le mot de passe » à la création de compte, et
+l'erreur « Les deux mots de passe ne sont pas identiques. ». Mise en œuvre (#1164) : bouton inactif
+tant que les deux saisies diffèrent, comparaison exacte sans `trim` ni casse, confirmation jamais
+envoyée au serveur.
+
+2026-10-23 — **Icône œil sur chaque champ de mot de passe** (spec PL-23). Décision de Gaelle du 23
+octobre, avec les noms accessibles « Afficher le mot de passe » / « Masquer le mot de passe ». Mise en
+œuvre (#1164) : masqué par défaut, état jamais mémorisé, zone tactile de 48 px.
