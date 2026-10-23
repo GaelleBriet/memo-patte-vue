@@ -9,7 +9,7 @@ import AccountDeletionSummary from './AccountDeletionSummary.vue'
 import GoogleSignInButton from './GoogleSignInButton.vue'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
-import FormField from '@/shared/form/FormField.vue'
+import PasswordField from '@/shared/form/PasswordField.vue'
 import { returnTo } from '@/shared/utils/return-to'
 
 const { t } = useI18n()
@@ -105,29 +105,15 @@ async function submitPassword(): Promise<void> {
         novalidate
         @submit.prevent="submitPassword"
       >
-        <FormField
+        <PasswordField
+          v-model="password"
           :label="t('auth.password.label')"
           control-id="account-deletion-password"
+          autocomplete="current-password"
           required
+          autofocus
           :error="identityErrorText"
-        >
-          <template #default="{ describedby, invalid }">
-            <v-text-field
-              id="account-deletion-password"
-              v-model="password"
-              class="form-field__input"
-              type="password"
-              autocomplete="current-password"
-              variant="outlined"
-              hide-details
-              autofocus
-              aria-required="true"
-              :aria-describedby="describedby"
-              :aria-invalid="invalid"
-              :error="invalid"
-            />
-          </template>
-        </FormField>
+        />
       </form>
 
       <template v-else>

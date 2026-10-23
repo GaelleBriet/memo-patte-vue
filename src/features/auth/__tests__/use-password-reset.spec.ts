@@ -116,7 +116,7 @@ describe('usePasswordReset', () => {
     it('vérifie le code puis enregistre le nouveau mot de passe', async () => {
       const reset = await codeEnvoye()
       reset.emailCode.setCode('12345678')
-      reset.newPassword.value.password = 'nouveau-secret'
+      reset.newPassword.value = { password: 'nouveau-secret', confirmation: 'nouveau-secret' }
 
       expect(await reset.reset()).toBe(true)
       expect(verifyPasswordResetCode).toHaveBeenCalledWith(ADRESSE, '12345678')
@@ -124,10 +124,40 @@ describe('usePasswordReset', () => {
       expect(verifySignUpCode).not.toHaveBeenCalled()
     })
 
+    it.each([
+      ['différente', 'autre-secret'],
+      ['avec un espace de plus', ' nouveau-secret'],
+      ['à la casse près', 'NOUVEAU-SECRET'],
+      ['vide', ''],
+    ])('ne vérifie rien tant que la confirmation est %s', async (_, confirmation) => {
+      const reset = await codeEnvoye()
+      reset.emailCode.setCode('12345678')
+      reset.newPassword.value = { password: 'nouveau-secret', confirmation }
+
+      expect(reset.isPasswordConfirmed.value).toBe(false)
+      expect(await reset.reset()).toBe(false)
+      expect(reset.confirmationError.value).toBe('auth.password.mismatch')
+      expect(verifyPasswordResetCode).not.toHaveBeenCalled()
+      expect(changePassword).not.toHaveBeenCalled()
+    })
+
+    it('ne signale l’écart qu’une fois la confirmation quittée, et l’oublie au retour à l’adresse', async () => {
+      const reset = await codeEnvoye()
+      reset.newPassword.value = { password: 'nouveau-secret', confirmation: 'nouveau' }
+
+      expect(reset.confirmationError.value).toBeNull()
+      reset.leaveConfirmation()
+      expect(reset.confirmationError.value).toBe('auth.password.mismatch')
+
+      reset.backToAddress()
+      reset.newPassword.value = { password: 'nouveau-secret', confirmation: 'nouveau' }
+      expect(reset.confirmationError.value).toBeNull()
+    })
+
     it('ne vérifie rien tant que le nouveau mot de passe est trop court', async () => {
       const reset = await codeEnvoye()
       reset.emailCode.setCode('12345678')
-      reset.newPassword.value.password = 'court'
+      reset.newPassword.value = { password: 'court', confirmation: 'court' }
 
       expect(await reset.reset()).toBe(false)
       expect(reset.passwordError.value).toBe('auth.form.errors.passwordTooShort')
@@ -138,7 +168,7 @@ describe('usePasswordReset', () => {
       verifyPasswordResetCode.mockRejectedValue(new AccountError('invalid-code'))
       const reset = await codeEnvoye()
       reset.emailCode.setCode('00000000')
-      reset.newPassword.value.password = 'nouveau-secret'
+      reset.newPassword.value = { password: 'nouveau-secret', confirmation: 'nouveau-secret' }
 
       expect(await reset.reset()).toBe(false)
       expect(reset.emailCode.errorKey.value).toBe('auth.code.errors.incorrect')
@@ -150,7 +180,7 @@ describe('usePasswordReset', () => {
       const reset = await codeEnvoye()
       maintenant = ENVOI + 15 * MINUTE
       reset.emailCode.setCode('12345678')
-      reset.newPassword.value.password = 'nouveau-secret'
+      reset.newPassword.value = { password: 'nouveau-secret', confirmation: 'nouveau-secret' }
 
       await reset.reset()
 
@@ -161,13 +191,13 @@ describe('usePasswordReset', () => {
       changePassword.mockRejectedValueOnce(new AccountError('same-password'))
       const reset = await codeEnvoye()
       reset.emailCode.setCode('12345678')
-      reset.newPassword.value.password = 'ancien-secret'
+      reset.newPassword.value = { password: 'ancien-secret', confirmation: 'ancien-secret' }
 
       expect(await reset.reset()).toBe(false)
       expect(reset.passwordError.value).toBe('auth.errors.samePassword')
       expect(reset.emailCode.errorKey.value).toBeNull()
 
-      reset.newPassword.value.password = 'nouveau-secret'
+      reset.newPassword.value = { password: 'nouveau-secret', confirmation: 'nouveau-secret' }
       expect(reset.passwordError.value).toBeNull()
       expect(await reset.reset()).toBe(true)
       expect(verifyPasswordResetCode).toHaveBeenCalledOnce()
@@ -177,7 +207,7 @@ describe('usePasswordReset', () => {
       changePassword.mockRejectedValue(new AccountError('weak-password'))
       const reset = await codeEnvoye()
       reset.emailCode.setCode('12345678')
-      reset.newPassword.value.password = 'password'
+      reset.newPassword.value = { password: 'password', confirmation: 'password' }
 
       await reset.reset()
 
@@ -195,13 +225,13 @@ describe('usePasswordReset', () => {
 
     it('revient à l’adresse, remplie, et oublie le mot de passe saisi', async () => {
       const reset = await codeEnvoye()
-      reset.newPassword.value.password = 'nouveau-secret'
+      reset.newPassword.value = { password: 'nouveau-secret', confirmation: 'nouveau-secret' }
 
       reset.backToAddress()
 
       expect(reset.step.value).toBe('address')
       expect(reset.address.value.email).toBe(ADRESSE)
-      expect(reset.newPassword.value.password).toBe('')
+      expect(reset.newPassword.value).toEqual({ password: '', confirmation: '' })
     })
   })
 
@@ -212,7 +242,7 @@ describe('usePasswordReset', () => {
       const reset = scope.run(() => parcours(ADRESSE))!
       await reset.sendCode()
       reset.emailCode.setCode('12345678')
-      reset.newPassword.value.password = 'ancien-secret'
+      reset.newPassword.value = { password: 'ancien-secret', confirmation: 'ancien-secret' }
       await reset.reset()
       return { reset, scope }
     }
@@ -235,7 +265,7 @@ describe('usePasswordReset', () => {
 
     it('ne ferme rien en quittant l’écran une fois le mot de passe changé', async () => {
       const { reset, scope } = await codeAccepte()
-      reset.newPassword.value.password = 'nouveau-secret'
+      reset.newPassword.value = { password: 'nouveau-secret', confirmation: 'nouveau-secret' }
       expect(await reset.reset()).toBe(true)
 
       scope.stop()

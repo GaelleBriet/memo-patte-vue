@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router'
 
 import { useAccountIdentity } from '../composables/use-account-identity'
 import { usePasswordChange } from '../composables/use-password-change'
-import FormField from '@/shared/form/FormField.vue'
+import PasswordField from '@/shared/form/PasswordField.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { returnTo } from '@/shared/utils/return-to'
 import { passwordResetRoute } from '@/shared/utils/sign-in-route'
@@ -16,10 +16,12 @@ const ACCOUNT_ROUTE = 'settings-account'
 const { t } = useI18n()
 const router = useRouter()
 const { identity } = useAccountIdentity()
-const { values, fieldError, failureKey, isSaving, save } = usePasswordChange()
+const { values, fieldError, isConfirmed, leaveConfirmation, failureKey, isSaving, save } =
+  usePasswordChange()
 
 const currentError = computed(() => fieldError('current'))
 const nextError = computed(() => fieldError('next'))
+const confirmationError = computed(() => fieldError('confirmation'))
 
 function goBack(): void {
   returnTo(router, { name: ACCOUNT_ROUTE })
@@ -52,28 +54,14 @@ async function submit(): Promise<void> {
       </p>
 
       <div class="password-change__current">
-        <FormField
+        <PasswordField
+          v-model="values.current"
           :label="t('settings.account.password.current')"
           control-id="password-change-current"
+          autocomplete="current-password"
           required
           :error="currentError ? t(currentError) : null"
-        >
-          <template #default="{ describedby, invalid }">
-            <v-text-field
-              id="password-change-current"
-              v-model="values.current"
-              class="form-field__input"
-              type="password"
-              autocomplete="current-password"
-              variant="outlined"
-              hide-details
-              aria-required="true"
-              :aria-describedby="describedby"
-              :aria-invalid="invalid"
-              :error="invalid"
-            />
-          </template>
-        </FormField>
+        />
         <v-btn
           class="password-change__forgot"
           variant="text"
@@ -84,29 +72,25 @@ async function submit(): Promise<void> {
         </v-btn>
       </div>
 
-      <FormField
+      <PasswordField
+        v-model="values.next"
         :label="t('auth.passwordReset.newPassword')"
         control-id="password-change-next"
+        autocomplete="new-password"
         required
         :error="nextError ? t(nextError) : null"
         :help="nextError ? null : t('auth.password.help')"
-      >
-        <template #default="{ describedby, invalid }">
-          <v-text-field
-            id="password-change-next"
-            v-model="values.next"
-            class="form-field__input"
-            type="password"
-            autocomplete="new-password"
-            variant="outlined"
-            hide-details
-            aria-required="true"
-            :aria-describedby="describedby"
-            :aria-invalid="invalid"
-            :error="invalid"
-          />
-        </template>
-      </FormField>
+      />
+
+      <PasswordField
+        v-model="values.confirmation"
+        :label="t('auth.password.confirmNew')"
+        control-id="password-change-confirmation"
+        autocomplete="new-password"
+        required
+        :error="confirmationError ? t(confirmationError) : null"
+        @blur="leaveConfirmation"
+      />
     </form>
 
     <template #actions>
@@ -117,6 +101,7 @@ async function submit(): Promise<void> {
           color="primary"
           block
           :loading="isSaving"
+          :disabled="!isConfirmed"
           :aria-label="t('settings.account.password.saveLabel')"
           @click="submit"
         >
