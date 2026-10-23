@@ -118,6 +118,16 @@ describe(
       "import.meta.glob('./**/*.test.*', { eager: true })",
       'const m = (n: string) => import(`../__tests__/${n}`)',
       'const m = (n: string) => import(`../__tests__${n}`)',
+      'const m = () => import(`../__tests__/evil`)',
+      'const m = (n: string) => import(`./${n}.spec`)',
+      'const m = (n: string) => import(`./${n}.spec.ts`)',
+      'const m = (n: string) => import(`./${n}.test.ts`)',
+      "import.meta.glob('./**/*.ts')",
+      "import.meta.glob('../**/*')",
+      "import.meta.glob('./**/*.{spec,test}.ts')",
+      "import.meta.glob('./**/*.spec*')",
+      "import.meta.glob('../__test*/**')",
+      "import.meta.glob(['./**/*.ts', '!**/__tests__/**'])",
     ])('refuse %s', async (code) => {
       expect(await restricted(PROD, code)).toBe(1)
     })
@@ -125,6 +135,7 @@ describe(
     it.each([
       "import.meta.glob('../__tests__/*.ts')",
       'const m = (n: string) => import(`../__tests__/${n}`)',
+      "import.meta.glob('./**/*.ts')",
     ])('laisse un test ou un spec utiliser %s', async (code) => {
       const results = await Promise.all([
         restricted('src/features/animals/__tests__/a.ts', code),
@@ -138,6 +149,9 @@ describe(
       "import.meta.glob(['./icons/*.svg', '!./icons/x.svg'])",
       'const m = (n: string) => import(`./icons/${n}.svg`)',
       'const m = (n: string) => import(n)',
+      'const m = (n: string) => import(`./${n}.vue`)',
+      "import.meta.glob('./*.ts')",
+      "import.meta.glob(['./**/*.ts', '!**/__tests__/**', '!**/*.{spec,test}.*'])",
     ])('laisse la production utiliser %s', async (code) => {
       expect(await restricted(PROD, code)).toBe(0)
     })

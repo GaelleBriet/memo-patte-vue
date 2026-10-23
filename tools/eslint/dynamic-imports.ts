@@ -37,12 +37,12 @@ const staticAndDynamicRule: Rule.RuleModule = {
 type Checker = NonNullable<ReturnType<typeof noRestrictedImports.create>['ImportDeclaration']>
 type Expr = { type: string; value?: unknown; quasis?: { value: { cooked?: string | null } }[] }
 
-function staticPrefix(arg: Expr | undefined): string[] {
+function literalPatterns(arg: Expr | undefined): string[] {
   if (!arg) return []
   if (arg.type === 'Literal' && typeof arg.value === 'string') return [arg.value]
   if (arg.type === 'TemplateLiteral') return [arg.quasis?.[0]?.value.cooked ?? '']
   if (arg.type === 'ArrayExpression') {
-    return ((arg as unknown as { elements: Expr[] }).elements ?? []).flatMap(staticPrefix)
+    return ((arg as unknown as { elements: Expr[] }).elements ?? []).flatMap(literalPatterns)
   }
   return []
 }
@@ -60,10 +60,31 @@ function isImportMetaGlob(callee: { type: string; object?: unknown; property?: u
   )
 }
 
+const WILDCARD = /[*?[\]{}]/
+
+function isBroadGlob(pattern: string) {
+  const directories = pattern.split('/').slice(0, -1)
+  return directories.some((segment) => segment === '**' || WILDCARD.test(segment))
+}
+
+function excludesTests(negatives: string[]) {
+  const text = negatives.join(' ')
+  return text.includes('__tests__') && text.includes('spec') && text.includes('test')
+}
+
 const testFilesRule: Rule.RuleModule = {
   meta: noRestrictedImports.meta,
   create(context) {
-    const checkDeclaration = noRestrictedImports.create(context).ImportDeclaration as
+    let reported = 0
+    const counting = Object.create(context, {
+      report: {
+        value: (descriptor: Rule.ReportDescriptor) => {
+          reported++
+          context.report(descriptor)
+        },
+      },
+    }) as Rule.RuleContext
+    const checkDeclaration = noRestrictedImports.create(counting).ImportDeclaration as
       Checker | undefined
     if (!checkDeclaration) return {}
 
@@ -78,15 +99,27 @@ const testFilesRule: Rule.RuleModule = {
 
     return {
       ImportExpression(node) {
-        if (node.source.type === 'TemplateLiteral' && node.source.expressions.length > 0) {
-          const prefix = node.source.quasis[0]?.value.cooked ?? ''
-          if (prefix) check(node as Rule.Node, prefix)
-        }
+        if (node.source.type !== 'TemplateLiteral') return
+        const { quasis, expressions } = node.source
+        const first = quasis[0]?.value.cooked ?? ''
+        if (expressions.length === 0) return check(node as Rule.Node, first)
+        if (first) check(node as Rule.Node, first)
+        const last = quasis[quasis.length - 1]?.value.cooked ?? ''
+        if (last) check(node as Rule.Node, `x${last}`)
       },
       CallExpression(node) {
         if (!isImportMetaGlob(node.callee)) return
-        for (const pattern of staticPrefix(node.arguments[0] as Expr | undefined)) {
-          if (!pattern.startsWith('!')) check(node as Rule.Node, pattern)
+        const patterns = literalPatterns(node.arguments[0] as Expr | undefined)
+        const positives = patterns.filter((pattern) => !pattern.startsWith('!'))
+        const negatives = patterns.filter((pattern) => pattern.startsWith('!'))
+        reported = 0
+        for (const pattern of positives) check(node as Rule.Node, pattern)
+        if (reported === 0 && !excludesTests(negatives) && positives.some(isBroadGlob)) {
+          context.report({
+            node,
+            message:
+              "Un glob large de production embarquerait des specs : ajoute les motifs négatifs '!**/__tests__/**' et '!**/*.{spec,test}.*'.",
+          })
         }
       },
     }
