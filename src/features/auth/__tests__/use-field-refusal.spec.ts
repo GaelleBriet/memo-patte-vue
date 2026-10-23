@@ -51,9 +51,9 @@ describe('useFieldRefusal', () => {
 
   it('lève le refus quand la valeur saisie diffère de la valeur soumise', () => {
     const { values, refusal } = setup()
-    refusal.refuseWrongPassword(new AccountError('invalid-credentials'), 'faux')
-
     values.value = { ...values.value, current: 'faux2' }
+
+    refusal.refuseWrongPassword(new AccountError('invalid-credentials'), 'faux')
 
     expect(refusal.fieldError('current')).toBeNull()
   })
