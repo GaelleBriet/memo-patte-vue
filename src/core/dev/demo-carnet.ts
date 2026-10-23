@@ -18,15 +18,15 @@ import { toDay } from '@/shared/domain/calendar-day'
  * statuts (en retard, à jour, dose bientôt) qui doivent rester ceux de la
  * maquette, quelle que soit la date à laquelle on lance l'app.
  */
-export interface DemoVaccination extends Omit<VaccinationInput, 'animalId'> {
+interface DemoVaccination extends Omit<VaccinationInput, 'animalId'> {
   /** Injections antérieures à la dernière, la plus récente d'abord. */
   injections?: { injectedOn: string; nextDueDate: string | null }[]
 }
 
-export type DemoDose = Pick<TreatmentDose, 'dueOn' | 'dueTime' | 'givenOn' | 'status' | 'targetOn'>
+type DemoDose = Pick<TreatmentDose, 'dueOn' | 'dueTime' | 'givenOn' | 'status' | 'targetOn'>
 
 /** Une échéance sans ligne dans `doses` est une dose non renseignée. */
-export type DemoPeriod = Pick<TreatmentPeriodRecord, 'startsOn' | 'frequency'> &
+type DemoPeriod = Pick<TreatmentPeriodRecord, 'startsOn' | 'frequency'> &
   Partial<
     Pick<
       TreatmentPeriodRecord,
