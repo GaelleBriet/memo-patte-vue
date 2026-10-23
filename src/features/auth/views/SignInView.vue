@@ -287,6 +287,7 @@ onUnmounted(() => {
           </FormField>
 
           <PasswordField
+            :key="mode"
             v-model="values.password"
             :label="t('auth.password.label')"
             control-id="sign-in-password"

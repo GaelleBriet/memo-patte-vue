@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import PasswordField from '../form/PasswordField.vue'
+import { getMsIconPath } from '@/core/theme/icons'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
 
@@ -43,6 +44,14 @@ describe('PasswordField — champ', () => {
       expect(w.get('#mot-de-passe').attributes('autocomplete')).toBe(autocomplete)
     },
   )
+
+  it('ne corrige ni ne met de majuscule à la saisie', () => {
+    const input = monter().get('#mot-de-passe')
+
+    expect(input.attributes('autocapitalize')).toBe('none')
+    expect(input.attributes('autocorrect')).toBe('off')
+    expect(input.attributes('spellcheck')).toBe('false')
+  })
 
   it('rend la saisie par v-model', async () => {
     const w = monter({ modelValue: 'secret' })
@@ -109,16 +118,20 @@ describe('PasswordField — icône œil', () => {
     )
   })
 
-  it('change d’icône selon l’état', async () => {
+  it('montre l’œil ouvert tant que la saisie est masquée, l’œil barré une fois affichée', async () => {
     const w = monter()
-    const masque = w.get('.password-field__toggle').html()
+    const icone = () => w.get('.password-field__toggle').html()
+
+    expect(icone()).toContain(getMsIconPath('visibility')!.path)
+    expect(icone()).not.toContain(getMsIconPath('visibility_off')!.path)
 
     await w.get('.password-field__toggle').trigger('click')
 
-    expect(w.get('.password-field__toggle').html()).not.toBe(masque)
+    expect(icone()).toContain(getMsIconPath('visibility_off')!.path)
+    expect(icone()).not.toContain(getMsIconPath('visibility')!.path)
   })
 
-  it('laisse le focus dans le champ quand on touche l’œil', () => {
+  it('ne fait pas perdre le focus au champ quand on appuie sur l’œil, par le geste du champ Vuetify', () => {
     const w = monter()
     const appui = new MouseEvent('mousedown', { bubbles: true, cancelable: true })
 

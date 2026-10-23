@@ -44,6 +44,9 @@ function toggle(): void {
         class="form-field__input"
         :type="isVisible ? 'text' : 'password'"
         :autocomplete="autocomplete"
+        autocapitalize="none"
+        autocorrect="off"
+        spellcheck="false"
         variant="outlined"
         hide-details
         :autofocus="autofocus"
@@ -58,7 +61,6 @@ function toggle(): void {
             type="button"
             class="password-field__toggle"
             :aria-label="toggleLabel"
-            @mousedown.prevent
             @click="toggle"
           >
             <v-icon :icon="isVisible ? 'ms:visibility_off' : 'ms:visibility'" />

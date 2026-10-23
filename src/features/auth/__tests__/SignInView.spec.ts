@@ -301,6 +301,59 @@ describe('SignInView', () => {
         ])
       })
 
+      it('remet l’œil du mot de passe en position masquée à chaque bascule', async () => {
+        const wrapper = await monter(ACHAT)
+        await wrapper.get('#sign-in-password').setValue('motdepasse')
+        await wrapper.get('.password-field__toggle').trigger('click')
+        expect(wrapper.get('#sign-in-password').attributes('type')).toBe('text')
+
+        await basculer(wrapper)
+
+        expect(wrapper.get('#sign-in-password').attributes('type')).toBe('password')
+        expect((wrapper.get('#sign-in-password').element as HTMLInputElement).value).toBe(
+          'motdepasse',
+        )
+      })
+
+      it('efface la confirmation quand on bascule de formulaire', async () => {
+        const wrapper = await monter(`${ACHAT}&mode=sign-up`)
+        await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse')
+
+        await basculer(wrapper)
+        await basculer(wrapper)
+
+        expect((wrapper.get('#sign-in-confirmation').element as HTMLInputElement).value).toBe('')
+      })
+
+      it('ne remontre pas l’écart dès la première frappe après une bascule', async () => {
+        const wrapper = await monter(`${ACHAT}&mode=sign-up`)
+        await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse', 'autre')
+        await wrapper.get('#sign-in-confirmation').trigger('blur')
+        expect(erreurDeConfirmation(wrapper)).toBe('Les deux mots de passe ne sont pas identiques.')
+
+        await basculer(wrapper)
+        await basculer(wrapper)
+        await wrapper.get('#sign-in-confirmation').setValue('m')
+
+        expect(erreurDeConfirmation(wrapper)).toBeUndefined()
+      })
+
+      it('ne remontre pas l’écart dès la première frappe après « Changer d’adresse »', async () => {
+        repository.signUp.mockResolvedValue({ kind: 'confirmation-pending' })
+        const wrapper = await monter(`${ACHAT}&mode=sign-up`)
+        await saisir(wrapper, 'sophie.martin@example.com', 'motdepasse')
+        await wrapper.get('#sign-in-confirmation').trigger('blur')
+        await envoyer(wrapper)
+        await wrapper.get('.email-code__change').trigger('click')
+        await flushPromises()
+
+        await wrapper.get('#sign-in-password').setValue('motdepasse')
+        await wrapper.get('#sign-in-confirmation').setValue('m')
+
+        expect(wrapper.get('h1').text()).toBe('Créer un compte')
+        expect(erreurDeConfirmation(wrapper)).toBeUndefined()
+      })
+
       it('ne demande rien de plus à la connexion', async () => {
         const wrapper = await monter(ACHAT)
 
