@@ -12,6 +12,7 @@ import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import { memoryStorage } from '@/features/purchase/__tests__/billing-fixture'
 import { readUsageSignals } from '@/core/usage/usage-signals'
 import { showToast } from '@/shared/utils/toast'
+import { provideBackupFacts, type BackupFacts } from '@/core/sync/service/backup-facts'
 
 const exportData = vi.hoisted(() => vi.fn<DataExportService['exportData']>())
 
@@ -64,6 +65,8 @@ afterEach(async () => {
   wrapper = null
   document.body.innerHTML = ''
   i18n.global.locale.value = 'fr'
+  provideBackupFacts(null)
+  vi.useRealTimers()
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
@@ -257,5 +260,138 @@ describe('BackupSettingsView', () => {
     expect(texte).toContain('To Google Drive, an email or a computer')
     expect(texte).toContain('Explore MémoPatte Plus')
     expect(texte).not.toMatch(/online/i)
+  })
+
+  describe('abonné Plus', () => {
+    const NOW = new Date(2026, 9, 23, 8, 30)
+    const SAVED: BackupFacts = {
+      eligible: true,
+      signInNeeded: false,
+      online: true,
+      syncEnabled: true,
+      lastSyncedAt: new Date(2026, 9, 23, 8, 25).toISOString(),
+      remaining: 0,
+      carnetSize: 348,
+    }
+
+    async function monterAbonné(facts: BackupFacts) {
+      vi.useFakeTimers({ toFake: ['Date'], now: NOW })
+      provideBackupFacts(async () => facts)
+      const wrapper = await monter()
+      await vi.waitFor(() => expect(wrapper.find('.backup-settings__status').exists()).toBe(true))
+      return wrapper
+    }
+
+    function carteÉtat(wrapper: VueWrapper) {
+      return wrapper
+        .get('.backup-settings__status')
+        .findAll('.settings-row__label, .settings-row__hint')
+        .map((line) => line.text().replace(/\s+/g, ' '))
+        .join(' ')
+    }
+
+    function libellésDesLignes(wrapper: VueWrapper) {
+      return wrapper
+        .findAll('.backup-settings__card .settings-row__label')
+        .map((label) => label.text().replace(/\s+/g, ' '))
+    }
+
+    it('dernière sauvegarde il y a 5 min : photos sauvegardées, copie, effacer sans toucher au cloud', async () => {
+      const wrapper = await monterAbonné(SAVED)
+      const texte = wrapper.text().replace(/\s+/g, ' ')
+
+      expect(carteÉtat(wrapper)).toBe(
+        'Dernière sauvegarde : il y a 5 min Sauvegarde et restauration garanties.',
+      )
+      expect(libellésDesLignes(wrapper)).toEqual([
+        'Dernière sauvegarde : il y a 5 min',
+        'Photos sauvegardées',
+        'Exporter une copie',
+        'Effacer les données de ce téléphone',
+      ])
+      expect(wrapper.get('.backup-settings__photos').text()).toContain('Oui')
+      expect(ligneCopie(wrapper).text()).toContain('Vers Google Drive, un e-mail ou un ordinateur')
+      expect(wrapper.get('.backup-settings__erase').text()).toContain(
+        'Ta sauvegarde cloud n’est pas touchée',
+      )
+      expect(texte).not.toContain('Sauvegarde d’Android')
+      expect(texte).not.toContain('Ton carnet est sur ce téléphone')
+      expect(texte).not.toContain('Découvrir MémoPatte Plus')
+    })
+
+    it('première sauvegarde en cours, 120 éléments sur 348, puis l’état normal', async () => {
+      let facts: BackupFacts = { ...SAVED, lastSyncedAt: null, remaining: 228 }
+      vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'], now: NOW })
+      provideBackupFacts(async () => facts)
+      const wrapper = await monter()
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(carteÉtat(wrapper)).toBe('Première sauvegarde en cours 120 éléments sur 348')
+      expect(wrapper.find('.backup-settings__photos').exists()).toBe(false)
+
+      facts = { ...SAVED, lastSyncedAt: NOW.toISOString() }
+      await vi.advanceTimersByTimeAsync(2_000)
+
+      expect(carteÉtat(wrapper)).toBe(
+        'Dernière sauvegarde : il y a 1 min Sauvegarde et restauration garanties.',
+      )
+    })
+
+    it('en attente de réseau, sans action demandée', async () => {
+      const wrapper = await monterAbonné({ ...SAVED, online: false })
+
+      expect(carteÉtat(wrapper)).toBe(
+        'En attente de réseau La sauvegarde reprend dès que ce téléphone est connecté à Internet.',
+      )
+      expect(wrapper.find('.backup-settings__status--neutral').exists()).toBe(true)
+      expect(wrapper.find('.backup-settings__photos').exists()).toBe(true)
+      expect(wrapper.find('.backup-settings__sign-in').exists()).toBe(false)
+    })
+
+    it('reconnecte-toi : interrompue depuis hier à 18 h 20, « Se reconnecter » ouvre la connexion', async () => {
+      const wrapper = await monterAbonné({
+        ...SAVED,
+        signInNeeded: true,
+        lastSyncedAt: new Date(2026, 9, 22, 18, 20).toISOString(),
+      })
+
+      expect(carteÉtat(wrapper)).toBe(
+        'Reconnecte-toi pour reprendre la sauvegarde Interrompue depuis hier à 18 h 20. Rien n’est perdu.',
+      )
+      expect(wrapper.find('.backup-settings__status--warning').exists()).toBe(true)
+      expect(wrapper.find('.backup-settings__photos').exists()).toBe(false)
+      expect(ligneCopie(wrapper).text()).toContain(
+        'Conseillé tant que la sauvegarde est interrompue',
+      )
+      await wrapper.get('.backup-settings__sign-in').trigger('click')
+
+      expect(push).toHaveBeenCalledWith({ name: 'sign-in', query: { from: 'settings-backup' } })
+    })
+
+    it('reste l’écran d’un gratuit tant que la synchro du compte n’est pas activée', async () => {
+      provideBackupFacts(async () => ({ ...SAVED, syncEnabled: false }))
+      const wrapper = await monter()
+      await vi.waitFor(() => expect(wrapper.text()).toContain('Ton carnet est sur ce téléphone'))
+
+      expect(wrapper.find('.backup-settings__status').exists()).toBe(false)
+    })
+
+    it('se lit en anglais', async () => {
+      i18n.global.locale.value = 'en'
+      const wrapper = await monterAbonné({
+        ...SAVED,
+        signInNeeded: true,
+        lastSyncedAt: new Date(2026, 9, 22, 18, 20).toISOString(),
+      })
+
+      expect(carteÉtat(wrapper)).toBe(
+        'Sign back in to resume backup Interrupted since yesterday at 6:20 pm. Nothing is lost.',
+      )
+      expect(wrapper.get('.backup-settings__sign-in').text()).toBe('Sign in again')
+      expect(ligneCopie(wrapper).text()).toContain('Recommended while backup is interrupted')
+      expect(wrapper.get('.backup-settings__erase').text()).toContain(
+        'Your cloud backup is not affected',
+      )
+    })
   })
 })

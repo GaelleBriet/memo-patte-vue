@@ -10,10 +10,12 @@ import {
   type SyncOutboxRepository,
 } from '@/core/sync/repository/sync-outbox.repository'
 import { createSyncPushRepository } from '@/core/sync/repository/sync-push.repository'
+import { createBackupFactsReader } from '@/core/sync/service/backup-facts'
 import { createSyncCycle, type SyncCycle } from '@/core/sync/service/sync-cycle'
 import { normalizeSyncTimestamps } from '@/core/sync/service/normalize-sync-timestamps'
 import type { SyncRow, SyncableTable } from '@/core/sync/service/syncable-table'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
+import { backupStatusOf } from '@/features/settings/logic/backup-status'
 import { createCarnetSettingsRepository } from '@/features/settings/repository/carnet-settings.repository'
 import { createTreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
 import { createTreatmentPeriodsRepository } from '@/features/treatments/repository/treatment-periods.repository'
@@ -151,5 +153,30 @@ describe('amorçage : le carnet local part en entier vers un compte vide', () =>
 
     expect(SYNC_ENTITY_ORDER.map((entity) => server.rows(entity))).toEqual(before)
     await expect(outbox.listPending()).resolves.toEqual([])
+  })
+
+  it('Paramètres › Sauvegarde compte la première sauvegarde sur ce qui part, puis donne la dernière sauvegarde', async () => {
+    const readFacts = createBackupFactsReader({
+      outbox,
+      isEligible: () => true,
+      signInNeeded: () => false,
+      isOnline: async () => true,
+    })
+    await outbox.enableAndQueueWholeCarnet()
+    const queued = (await outbox.listPending()).length
+
+    expect(queued).toBeGreaterThan(20)
+    expect(backupStatusOf(await readFacts())).toEqual({
+      kind: 'first-backup',
+      done: 0,
+      total: queued,
+    })
+
+    await cycle.runCycle()
+
+    expect(backupStatusOf(await readFacts())).toEqual({
+      kind: 'saved',
+      at: new Date(2026, 9, 21, 8).toISOString(),
+    })
   })
 })
