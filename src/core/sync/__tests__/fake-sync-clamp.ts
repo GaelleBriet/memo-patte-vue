@@ -3,7 +3,14 @@ import { gridWrittenOf, withWrittenAt, type GridWritten } from './fake-grid-befo
 
 type ServerRow = Record<string, SyncRowValue>
 
-const DATED = ['created_at', 'updated_at', 'deleted_at', 'settings_written_at', 'grid_written_at']
+const DATED = [
+  'created_at',
+  'updated_at',
+  'decided_at',
+  'deleted_at',
+  'settings_written_at',
+  'grid_written_at',
+]
 const DAY_US = 24 * 60 * 60 * 1_000_000
 /** Postgres date `now()` à la microseconde : le téléphone, lui, ne relit que la milliseconde. */
 const SERVER_MICROSECONDS = 718

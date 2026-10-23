@@ -3,6 +3,7 @@ import type { SyncRow } from '@/core/supabase/guarded-upsert'
 const TIMESTAMP_COLUMNS = [
   'created_at',
   'updated_at',
+  'decided_at',
   'settings_written_at',
   'grid_written_at',
   'deleted_at',
