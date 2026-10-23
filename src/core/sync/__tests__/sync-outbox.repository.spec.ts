@@ -280,6 +280,20 @@ describe('syncOutboxRepository', () => {
     })
   })
 
+  describe('restauration et dernière sauvegarde', () => {
+    for (const mode of ['merge', 'replace'] as const) {
+      it(`« ${mode === 'merge' ? 'Fusionner' : 'Remplacer'} » repart sans la dernière sauvegarde d’un autre compte`, async () => {
+        await repository.setLastSyncedAt(T2)
+        await repository.startRestore(mode)
+        const { before, after } = repository.restoreStatements({ mode, cursors: [] })
+
+        await db.runMany([...before, ...after])
+
+        await expect(repository.getLastSyncedAt()).resolves.toBeNull()
+      })
+    }
+  })
+
   describe('listPending', () => {
     it('renvoie une liste vide sans entrée', async () => {
       await expect(repository.listPending()).resolves.toEqual([])
@@ -502,6 +516,18 @@ describe('syncOutboxRepository', () => {
       await expect(repository.countPending()).resolves.toBe(queued)
     })
 
+    it('Milo « 2 sur 2 », photo remplacée à 10 h 02 : l’effacement de l’ancienne photo ne compte pas, le restant ne dépasse pas le carnet', async () => {
+      await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_MILO)
+      await repository.enableAndQueueWholeCarnet()
+      for (const entry of await repository.listPending()) await repository.removeIfUnchanged(entry)
+
+      await setAnimalPhoto(db, ANIMAL_ID, PHOTO_PIRATE, '2026-10-23T10:02:00.000Z')
+
+      await expect(repository.listPending()).resolves.toHaveLength(3)
+      await expect(repository.countWholeCarnet()).resolves.toBe(2)
+      await expect(repository.countPending()).resolves.toBe(2)
+    })
+
     it('la file se vide au fil des envois, le carnet ne bouge pas', async () => {
       await insertAnimal(db, ANIMAL_ID, T1)
       await insertWeightEntry(db, 'w-1', ANIMAL_ID, T1)
@@ -549,7 +575,7 @@ describe('syncOutboxRepository', () => {
   })
 
   describe('forgetAccount', () => {
-    it('désactive la synchro, vide la file et les curseurs, sans toucher aux données', async () => {
+    it('désactive la synchro, vide la file, les curseurs et la dernière sauvegarde, sans toucher aux données', async () => {
       await enableSync(db)
       await insertAnimal(db, ANIMAL_ID, T1)
       await repository.setLastPulledAt('animal', T2)
@@ -560,7 +586,7 @@ describe('syncOutboxRepository', () => {
       await expect(repository.isEnabled()).resolves.toBe(false)
       await expect(repository.listPending()).resolves.toEqual([])
       await expect(repository.getLastPulledAt('animal')).resolves.toBeNull()
-      await expect(repository.getLastSyncedAt()).resolves.toBe(T2)
+      await expect(repository.getLastSyncedAt()).resolves.toBeNull()
       await expect(db.query('SELECT id FROM animal')).resolves.toEqual([{ id: ANIMAL_ID }])
     })
 

@@ -113,8 +113,13 @@ export function createSyncOutboxRepository(db: DbClient) {
       return row?.total ?? 0
     },
 
+    /** Hors effacement d'une photo sortie du carnet, qui ne sauvegarde rien. */
     async countPending(): Promise<number> {
-      const [row] = await db.query<{ total: number }>('SELECT COUNT(*) AS total FROM sync_outbox')
+      const [row] = await db.query<{ total: number }>(
+        `SELECT COUNT(*) AS total FROM sync_outbox
+         WHERE entity <> ? OR entity_id IN (SELECT photo_path ${LIVE_ANIMAL_PHOTOS_FROM})`,
+        [ANIMAL_PHOTO_ENTITY],
+      )
       return row?.total ?? 0
     },
 
@@ -171,7 +176,7 @@ export function createSyncOutboxRepository(db: DbClient) {
     }): { before: SqlStatement[]; after: SqlStatement[] } {
       return {
         before: [
-          { sql: 'UPDATE sync_state SET enabled = 0 WHERE id = 1' },
+          { sql: 'UPDATE sync_state SET enabled = 0, last_synced_at = NULL WHERE id = 1' },
           { sql: 'DELETE FROM sync_pull_cursor' },
           ...(mode === 'merge'
             ? [...SYNC_ENTITY_ORDER.map(queueWholeTable), queueLiveAnimalPhotos()]
@@ -214,7 +219,10 @@ export function createSyncOutboxRepository(db: DbClient) {
     /** Déconnexion (§5 de la proposition) : le compte suivant ne reçoit ni la file ni les curseurs du précédent. */
     async forgetAccount(): Promise<void> {
       await db.runMany([
-        { sql: 'UPDATE sync_state SET enabled = 0, restoring = 0 WHERE id = 1' },
+        {
+          sql: `UPDATE sync_state SET enabled = 0, restoring = 0, last_synced_at = NULL
+                WHERE id = 1`,
+        },
         { sql: 'DELETE FROM sync_outbox' },
         { sql: 'DELETE FROM sync_pull_cursor' },
       ])
