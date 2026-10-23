@@ -114,7 +114,8 @@ function select(value: unknown): void {
   flex: 1 1 auto;
   min-width: min-content;
   height: auto;
-  min-height: 46px;
+  // Hauteur du conteneur moins sa bordure (2 px) et son padding (6 px).
+  min-height: calc(#{tokens.$height-segmented-compact} - 8px);
   padding: 0 4px;
   border-radius: tokens.$radius-segment-compact;
   font-size: 13px;

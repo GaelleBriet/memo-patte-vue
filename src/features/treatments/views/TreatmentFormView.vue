@@ -546,6 +546,9 @@ async function submit(): Promise<void> {
 <style scoped lang="scss">
 @use '@/styles/tokens' as tokens;
 
+// Largeur du choix d'unité à 360 dp et police normale : en dessous, il passe sous « Tous les ».
+$unit-basis: 10.5rem;
+
 // La case suit l'aide de « Prochaine dose » qu'elle complète (V28).
 .treatment-form__shift {
   margin-top: -20px;
@@ -599,7 +602,7 @@ async function submit(): Promise<void> {
 }
 
 .treatment-form__unit {
-  flex: 1 1 10.5rem;
+  flex: 1 1 $unit-basis;
   min-width: min-content;
 }
 

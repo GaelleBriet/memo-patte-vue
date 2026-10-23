@@ -88,6 +88,9 @@ function remove(time: string): void {
 <style scoped lang="scss">
 @use '@/styles/tokens' as tokens;
 
+// Épaisseur de la bordure de la pastille : le champ invisible la recouvre aussi.
+$times-border: 1.5px;
+
 .treatment-times {
   display: flex;
   flex-wrap: wrap;
@@ -110,7 +113,7 @@ function remove(time: string): void {
 .treatment-times__chip {
   gap: 2px;
   padding: 0 0 0 16px;
-  border: 1.5px solid rgb(var(--v-theme-primary));
+  border: $times-border solid rgb(var(--v-theme-primary));
   background: tokens.$color-notice-surface;
   font-size: 15px;
 }
@@ -137,7 +140,7 @@ function remove(time: string): void {
 .treatment-times__add {
   gap: 6px;
   padding: 0 16px 0 12px;
-  border: 1.5px dashed tokens.$color-priming-icon-surface;
+  border: $times-border dashed tokens.$color-priming-icon-surface;
   background: tokens.$color-field-surface;
   font-size: 14px;
 }
@@ -145,9 +148,9 @@ function remove(time: string): void {
 // Le champ natif, invisible, couvre le libellé : le toucher ouvre le sélecteur d'heure du système.
 .treatment-times__input {
   position: absolute;
-  inset: -1.5px;
-  width: calc(100% + 3px);
-  height: calc(100% + 3px);
+  inset: -$times-border;
+  width: calc(100% + #{2 * $times-border});
+  height: calc(100% + #{2 * $times-border});
   opacity: 0;
   cursor: pointer;
 }

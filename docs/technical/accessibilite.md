@@ -1,8 +1,10 @@
 # Accessibilité et responsive (ticket #51)
 
-Dernière repasse : 2026-10-24 (émulateur 360 × 640 dp, police à 130 %). Passe faite avant publication, le 2026-09-15, sur le carnet de démo (`pnpm dev:data`), plus un
-animal sans rappel pour les états « Tout est à jour » et sections vides.
-Mesures dans Chromium headless (émulation mobile), pas encore sur appareil : voir « Reste à vérifier ».
+Première passe le 2026-09-15, sur le carnet de démo (`pnpm dev:data`), plus un animal sans rappel pour
+les états « Tout est à jour » et sections vides, avec des mesures dans Chromium headless (émulation
+mobile). Repasses des 2026-09-21 et 2026-10-24 ci-dessous ; la dernière, sur émulateur Android
+(360 × 640 dp, police à 130 %), remplace les mesures de la première pour les écrans qu'elle couvre.
+Ce qui reste à vérifier sur appareil : voir « Reste à vérifier ».
 
 Référentiel : WCAG 2.2 niveau AA pour les contrastes (4,5:1 texte courant, 3:1 texte ≥ 24 px ou
 ≥ 18,66 px gras, 3:1 composants d'interface et icônes porteuses de sens) ; zone de tap de 48 dp
@@ -97,7 +99,11 @@ formulaire animal à 130 %, le champ reste visible au-dessus du clavier et la ba
   change l'allure de toutes les lignes ;
 - « Fait à une autre date » : les jours du calendrier Vuetify font 40 × 40 px (composant du thème, non retouché) ;
 - écran Plus : le bouton « J'ai déjà MémoPatte Plus » fait 44 px (42 à 44 px tapables), au-dessus du
-  minimum de 44 px de ce document mais sous les 48 px visés ailleurs.
+  minimum de 44 px de ce document mais sous les 48 px visés ailleurs ;
+- **zones de tap qui empiètent sur le bouton voisin** : la zone agrandie à 48 px déborde du bouton de
+  part et d'autre, et sur deux boutons proches le dernier dans le DOM l'emporte. « Annuler » (36 px) déborde
+  de 6 px sur « Enregistrer » ; « J'ai déjà MémoPatte Plus » (44 px) perd 2 à 4 px sous « Restaurer ».
+  Piste : un écart d'au moins 12 px entre deux boutons voisins, ou une zone qui ne déborde pas vers le voisin.
 
 **Pas joué** : « Photos en cours de téléchargement… » dépend d'un état de synchro inaccessible hors compte
 Plus réel : la ligne a été reconstituée à la main avec ses styles (une ligne, ellipse, 130 %), pas déclenchée ;
