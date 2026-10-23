@@ -41,6 +41,15 @@ describe('zones de tap de 48 px, sans changement de rendu', () => {
     expect(declaration(feuille, selecteur, 'background')).toBeUndefined()
   })
 
+  it('laisse déborder la zone agrandie d’un v-btn, dont Vuetify 4.2 rogne le contenu', () => {
+    const feuille = compileString(
+      "@use '@/styles/tap-target' as tap; .cible { @include tap.tap-target; }",
+      { importers: [aliasSrc] },
+    ).css
+
+    expect(declaration(feuille, '.cible', 'overflow')).toBe('visible')
+  })
+
   it('laisse la zone agrandie des chips dépasser de la chip et de la rangée défilante', () => {
     const feuille = css('src/shared/components/AnimalChipSelector.vue')
 

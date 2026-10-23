@@ -3,6 +3,9 @@
 // Porte la zone de tap à 48 px au moins, centrée, sans rien dessiner : l'élément
 // doit être positionné et laisser déborder son `::before`.
 @mixin tap-target {
+  // Vuetify 4.2 pose `overflow: hidden` sur `.v-btn` : sans ceci, le ::before est rogné.
+  overflow: visible;
+
   &::before {
     position: absolute;
     top: 50%;
