@@ -1,5 +1,4 @@
 import { parseISO, subDays } from 'date-fns'
-import { toDay } from '@/shared/domain/calendar-day'
 
 import { isExtraOn } from './treatment-notification'
 import { keepsShift, type NoteGesture } from './treatment-dose-change'
@@ -13,6 +12,7 @@ import {
 } from './treatment-shift-help'
 import { revealedDues, revealedDuesText } from './treatment-revealed-dues'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
+import { toDay } from '@/shared/domain/calendar-day'
 import {
   applied,
   moveBounds,

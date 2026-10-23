@@ -1,8 +1,8 @@
 import { format } from 'date-fns'
-import { toDay } from '@/shared/domain/calendar-day'
 import { strToU8, zipSync, type Zippable } from 'fflate'
 
 import type { AppLocale } from '@/core/i18n'
+import { toDay } from '@/shared/domain/calendar-day'
 import type { ExportData } from '@/shared/domain/carnet-data'
 import type { WeightUnit } from '@/shared/domain/weight-unit'
 

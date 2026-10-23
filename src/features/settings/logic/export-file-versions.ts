@@ -1,3 +1,4 @@
+import { DAY_MS } from '@/shared/domain/calendar-day'
 import type {
   ExportAnimal,
   ExportCarnetSettings,
@@ -9,7 +10,6 @@ import type {
   ExportVaccinationInjection,
   ExportWeightEntry,
 } from '@/shared/domain/carnet-data'
-import { DAY_MS } from '@/shared/domain/calendar-day'
 import { gridOriginsOf, legacyFactsOf, targetOnOf } from '@/shared/domain/dose-calendar'
 import { readTreatment } from '@/shared/domain/treatment-reading'
 

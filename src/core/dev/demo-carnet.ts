@@ -1,11 +1,11 @@
 import { addDays, addMonths, subDays, subMonths, subYears } from 'date-fns'
-import { toDay } from '@/shared/domain/calendar-day'
 import type { AnimalInput } from '@/features/animals/schema/animal.schema'
 import type { TreatmentDose } from '@/features/treatments/schema/treatment-dose.schema'
 import type { TreatmentPeriodRecord } from '@/features/treatments/schema/treatment-period.schema'
 import type { TreatmentType } from '@/features/treatments/schema/treatment.schema'
 import type { VaccinationInput } from '@/features/vaccinations/schema/vaccination.schema'
 import type { WeightEntryInput } from '@/features/weight/schema/weight.schema'
+import { toDay } from '@/shared/domain/calendar-day'
 
 /**
  * Jeu de démo des maquettes (`docs/design/archives/avant-v1/carnet-v2/carnet.md`, « Contenu

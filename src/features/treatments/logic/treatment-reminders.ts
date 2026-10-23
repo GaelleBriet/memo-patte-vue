@@ -1,8 +1,7 @@
-import { toDay } from '@/shared/domain/calendar-day'
-
 import type { Animal } from '@/features/animals/schema/animal.schema'
 import type { EntryReminders } from '@/core/notifications/due-reminders-schedule'
 import { currentLocale } from '@/core/i18n'
+import { toDay } from '@/shared/domain/calendar-day'
 import { treatmentReminderPlan, type CarnetReminderSettings } from '@/shared/domain/reminder-plan'
 import { currentPeriodOf, readableReadingOf } from './treatment-reading-adapter'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'

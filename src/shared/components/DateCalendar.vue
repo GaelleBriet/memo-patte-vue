@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { endOfDay, parseISO } from 'date-fns'
-import { toDay } from '@/shared/domain/calendar-day'
 import { computed, onScopeDispose, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { onBackButton } from '@/core/app-lifecycle/back-button'
+import { toDay } from '@/shared/domain/calendar-day'
 
 type ViewMode = 'month' | 'months' | 'year'
 

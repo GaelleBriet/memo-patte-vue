@@ -1,8 +1,8 @@
 import { addDays, parseISO } from 'date-fns'
-import { toDay } from '@/shared/domain/calendar-day'
 
 import { nextReminderDate, type NextReminderChoice } from './vaccination-done'
 import type { Vaccination } from '../schema/vaccination.schema'
+import { toDay } from '@/shared/domain/calendar-day'
 import { formatDayMonthOrYear, formatLongDate } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 

@@ -1,6 +1,5 @@
 import { Capacitor } from '@capacitor/core'
 import { parseISO, subDays } from 'date-fns'
-import { toDay } from '@/shared/domain/calendar-day'
 
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import { shouldShowPriming } from '@/core/notifications'
@@ -21,6 +20,7 @@ import {
   getVaccinationsRepository,
   type AllVaccinationsReader,
 } from '@/features/vaccinations/repository/vaccinations.repository'
+import { toDay } from '@/shared/domain/calendar-day'
 import { DAYS_OVERDUE } from '@/shared/domain/due-reminders'
 import { primingRouteFrom } from '@/shared/domain/notification-priming'
 import { errorSummary } from '@/shared/utils/error-summary'

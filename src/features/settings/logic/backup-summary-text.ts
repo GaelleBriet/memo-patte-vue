@@ -1,9 +1,9 @@
 import { format, parseISO, subDays } from 'date-fns'
-import { toDay } from '@/shared/domain/calendar-day'
 
 import type { Translate } from '@/core/i18n/translate'
 import type { RestoreProgress } from '@/core/sync/service/account-restore'
 import type { BackupSummary } from '@/core/sync/service/backup-summary'
+import { toDay } from '@/shared/domain/calendar-day'
 import { formatClockTime, formatFullDate, formatFullDayMonth } from '@/shared/utils/format'
 
 function lastBackupWhen(t: Translate, instant: string, today: string): string {
