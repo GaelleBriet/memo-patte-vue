@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 
 import { useGoogleSignIn } from '../composables/use-google-sign-in'
 import { accountFirstOffer, leavesAccountFirst } from '../logic/account-first'
+import { ACCOUNT_FIRST_ORIGIN } from '../logic/sign-up-access'
 import { useAuthStore } from '../store/auth.store'
 import { usePurchaseStore } from '@/features/purchase/store/purchase.store'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
@@ -15,7 +16,6 @@ import AccountLegalNotice from './AccountLegalNotice.vue'
 import GoogleSignInButton from './GoogleSignInButton.vue'
 
 const PLUS_ROUTE = { name: 'plus' }
-const FROM = 'plus-account'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -44,11 +44,11 @@ function backToPlus(): void {
 }
 
 function continueWithEmail(): void {
-  void router.push(signInRoute(FROM, { signUp: true }))
+  void router.push(signInRoute(ACCOUNT_FIRST_ORIGIN, { signUp: true }))
 }
 
 function signIn(): void {
-  void router.push(signInRoute(FROM))
+  void router.push(signInRoute(ACCOUNT_FIRST_ORIGIN))
 }
 
 async function signInWithGoogle(): Promise<void> {
