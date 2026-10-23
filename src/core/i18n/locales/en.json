@@ -1105,7 +1105,11 @@
     "back": "Back",
     "cancel": "Cancel",
     "required": "*",
-    "optional": "Optional"
+    "optional": "Optional",
+    "password": {
+      "show": "Show password",
+      "hide": "Hide password"
+    }
   },
   "notifications": {
     "priming": {

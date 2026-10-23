@@ -8,6 +8,7 @@ import { writePlusAccount } from '../logic/plus-account-storage'
 import { authRepository } from '../repository/auth.repository'
 import { provideAuthRepository } from '../store/auth.store'
 import EmailChangeView from '../views/EmailChangeView.vue'
+import PasswordField from '@/shared/form/PasswordField.vue'
 import { memoryStorage, USER_ID } from './auth-fixture'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
@@ -80,8 +81,18 @@ async function secondEtape() {
   return w
 }
 
+function champsDeMotDePasse(w: VueWrapper): (string | undefined)[] {
+  return w.findAllComponents(PasswordField).map((champ) => champ.get('input').attributes('id'))
+}
+
 describe('EmailChangeView', () => {
   describe('étape 1 (V24 quater)', () => {
+    it('porte le champ partagé avec l’icône œil pour le mot de passe actuel', async () => {
+      const w = await monter()
+
+      expect(champsDeMotDePasse(w)).toEqual(['email-change-current'])
+    })
+
     it('demande le mot de passe actuel, propose « Mot de passe oublié ? », puis la nouvelle adresse', async () => {
       const w = await monter()
 

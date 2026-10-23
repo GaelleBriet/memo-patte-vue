@@ -12,6 +12,7 @@ import {
 } from '../service/account-deletion.service'
 import { provideAuthRepository } from '../store/auth.store'
 import AccountDeletionView from '../views/AccountDeletionView.vue'
+import PasswordField from '@/shared/form/PasswordField.vue'
 import { memoryStorage, USER_ID } from './auth-fixture'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
@@ -85,6 +86,10 @@ async function jusquaLIdentite() {
   return wrapper
 }
 
+function champsDeMotDePasse(w: VueWrapper): (string | undefined)[] {
+  return w.findAllComponents(PasswordField).map((champ) => champ.get('input').attributes('id'))
+}
+
 describe('AccountDeletionView — ce qui change (D1)', () => {
   it('dit ce qui est supprimé, ce qui reste, et que l’abonnement Google Play continue', async () => {
     const wrapper = await monter()
@@ -138,6 +143,13 @@ describe('AccountDeletionView — confirmer son identité (D2)', () => {
     expect(wrapper.get('label[for="account-deletion-password"]').text()).toContain('Mot de passe')
     expect(wrapper.text()).not.toContain('Mot de passe oublié')
     expect(wrapper.get('.account-deletion__confirm').attributes('disabled')).toBeDefined()
+  })
+
+  it('porte le champ partagé avec l’icône œil, focalisé à l’ouverture', async () => {
+    const wrapper = await jusquaLIdentite()
+
+    expect(champsDeMotDePasse(wrapper)).toEqual(['account-deletion-password'])
+    expect(wrapper.get('#account-deletion-password').attributes('autofocus')).toBeDefined()
   })
 
   it('envoie le mot de passe saisi', async () => {

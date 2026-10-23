@@ -7,6 +7,7 @@ import { AccountError } from '../logic/account-error'
 import { authRepository, type AuthRepository } from '../repository/auth.repository'
 import { provideAuthRepository } from '../store/auth.store'
 import PasswordResetView from '../views/PasswordResetView.vue'
+import PasswordField from '@/shared/form/PasswordField.vue'
 import { memoryStorage, USER_ID } from './auth-fixture'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
@@ -104,6 +105,10 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
+function champsDeMotDePasse(w: VueWrapper): (string | undefined)[] {
+  return w.findAllComponents(PasswordField).map((champ) => champ.get('input').attributes('id'))
+}
+
 describe('PasswordResetView', () => {
   describe('adresse (V24 septies)', () => {
     it('s’intitule « Mot de passe oublié » et reprend l’adresse tapée à la connexion', async () => {
@@ -155,6 +160,12 @@ describe('PasswordResetView', () => {
   })
 
   describe('code et nouveau mot de passe (V24 octies, nonies)', () => {
+    it('porte le champ partagé avec l’icône œil pour le nouveau mot de passe', async () => {
+      const wrapper = await codeEnvoye()
+
+      expect(champsDeMotDePasse(wrapper)).toEqual(['password-reset-new-password'])
+    })
+
     it('montre « Code reçu », le nouveau mot de passe et « Renvoyer le code », sans « Changer d’adresse »', async () => {
       const wrapper = await codeEnvoye()
 

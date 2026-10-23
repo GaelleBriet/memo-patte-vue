@@ -1105,7 +1105,11 @@
     "back": "Retour",
     "cancel": "Annuler",
     "required": "*",
-    "optional": "Optionnel"
+    "optional": "Optionnel",
+    "password": {
+      "show": "Afficher le mot de passe",
+      "hide": "Masquer le mot de passe"
+    }
   },
   "notifications": {
     "priming": {

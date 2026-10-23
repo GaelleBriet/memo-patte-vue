@@ -7,6 +7,7 @@ import { usePasswordReset } from '../composables/use-password-reset'
 import { CODE_LENGTH } from '../logic/email-code'
 import { useSignedInExit } from '../composables/use-signed-in-exit'
 import FormField from '@/shared/form/FormField.vue'
+import PasswordField from '@/shared/form/PasswordField.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { returnTo } from '@/shared/utils/return-to'
 import { passwordResetBackRoute } from '@/shared/utils/sign-in-route'
@@ -100,29 +101,15 @@ async function submit(): Promise<void> {
       @update:code="emailCode.setCode"
       @resend="resendCode"
     >
-      <FormField
+      <PasswordField
+        v-model="newPassword.password"
         :label="t('auth.passwordReset.newPassword')"
         control-id="password-reset-new-password"
+        autocomplete="new-password"
         required
         :error="passwordError ? t(passwordError) : null"
         :help="passwordError ? null : t('auth.password.help')"
-      >
-        <template #default="{ describedby, invalid }">
-          <v-text-field
-            id="password-reset-new-password"
-            v-model="newPassword.password"
-            class="form-field__input"
-            type="password"
-            autocomplete="new-password"
-            variant="outlined"
-            hide-details
-            aria-required="true"
-            :aria-describedby="describedby"
-            :aria-invalid="invalid"
-            :error="invalid"
-          />
-        </template>
-      </FormField>
+      />
     </EmailCodeStep>
 
     <form v-else class="password-reset__address" novalidate @submit.prevent="sendCode">

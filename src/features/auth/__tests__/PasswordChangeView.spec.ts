@@ -7,6 +7,7 @@ import { writePlusAccount } from '../logic/plus-account-storage'
 import { authRepository } from '../repository/auth.repository'
 import { provideAuthRepository } from '../store/auth.store'
 import PasswordChangeView from '../views/PasswordChangeView.vue'
+import PasswordField from '@/shared/form/PasswordField.vue'
 import { memoryStorage, USER_ID } from './auth-fixture'
 import i18n from '@/core/i18n'
 import vuetify from '@/core/theme/vuetify'
@@ -59,6 +60,10 @@ async function enregistrer(w: VueWrapper) {
   await flushPromises()
 }
 
+function champsDeMotDePasse(w: VueWrapper): (string | undefined)[] {
+  return w.findAllComponents(PasswordField).map((champ) => champ.get('input').attributes('id'))
+}
+
 describe('PasswordChangeView (V24 ter)', () => {
   it('demande l’actuel, propose « Mot de passe oublié ? », puis le nouveau et « Enregistrer »', async () => {
     const w = await monter()
@@ -73,6 +78,12 @@ describe('PasswordChangeView (V24 ter)', () => {
     const save = w.get('.password-change__save')
     expect(save.text()).toBe('Enregistrer')
     expect(save.attributes('aria-label')).toBe('Enregistrer le nouveau mot de passe')
+  })
+
+  it('porte le champ partagé avec l’icône œil, pour l’actuel comme pour le nouveau', async () => {
+    const w = await monter()
+
+    expect(champsDeMotDePasse(w)).toEqual(['password-change-current', 'password-change-next'])
   })
 
   it('reconnecte avec l’actuel, enregistre le nouveau, puis revient à Compte avec le toast', async () => {

@@ -13,6 +13,7 @@ import { emptySignInFormValues, validateSignInForm, type SignInMode } from '../l
 import { initialSignInMode, offersSignUp } from '../logic/sign-up-access'
 import { focusFirstInvalid } from '@/shared/form/focus-first-invalid'
 import FormField from '@/shared/form/FormField.vue'
+import PasswordField from '@/shared/form/PasswordField.vue'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { showToast } from '@/shared/utils/toast'
@@ -270,29 +271,15 @@ onUnmounted(() => {
             </template>
           </FormField>
 
-          <FormField
+          <PasswordField
+            v-model="values.password"
             :label="t('auth.password.label')"
             control-id="sign-in-password"
+            :autocomplete="passwordAutocomplete"
             required
             :error="errors.password ? t(errors.password) : null"
             :help="passwordHelp"
-          >
-            <template #default="{ describedby, invalid }">
-              <v-text-field
-                id="sign-in-password"
-                v-model="values.password"
-                class="form-field__input"
-                type="password"
-                :autocomplete="passwordAutocomplete"
-                variant="outlined"
-                hide-details
-                aria-required="true"
-                :aria-describedby="describedby"
-                :aria-invalid="invalid"
-                :error="invalid"
-              />
-            </template>
-          </FormField>
+          />
           <v-btn
             v-if="!isSignUp"
             class="sign-in__forgot"

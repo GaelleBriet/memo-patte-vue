@@ -8,6 +8,7 @@ import { authRepository, type AuthRepository } from '../repository/auth.reposito
 import { signInWithGoogle } from '../service/google-sign-in.service'
 import { provideAuthRepository } from '../store/auth.store'
 import SignInView from '../views/SignInView.vue'
+import PasswordField from '@/shared/form/PasswordField.vue'
 import { memoryStorage, USER_ID, type MemoryStorage } from './auth-fixture'
 import { GoogleCredentialError } from '@/core/google-sign-in/google-credentials'
 import i18n from '@/core/i18n'
@@ -106,6 +107,10 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
+function champsDeMotDePasse(w: VueWrapper): (string | undefined)[] {
+  return w.findAllComponents(PasswordField).map((champ) => champ.get('input').attributes('id'))
+}
+
 describe('SignInView', () => {
   it('explique à quoi sert un compte et propose la connexion', async () => {
     const wrapper = await monter()
@@ -161,6 +166,15 @@ describe('SignInView', () => {
 
     expect(wrapper.get('h1').text()).toBe('Connexion')
     expect(wrapper.get('.sign-in__toggle').text()).toBe('Pas encore de compte ? Créer un compte')
+  })
+
+  it.each([
+    ['à la connexion', '/sign-in'],
+    ['à la création du compte', `${ACHAT}&mode=sign-up`],
+  ])('porte le champ partagé avec l’icône œil %s', async (_, adresse) => {
+    const wrapper = await monter(adresse)
+
+    expect(champsDeMotDePasse(wrapper)[0]).toBe('sign-in-password')
   })
 
   it('étiquette les champs et adapte le clavier', async () => {
