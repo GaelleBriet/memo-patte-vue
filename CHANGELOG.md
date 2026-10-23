@@ -5,6 +5,16 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.102](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.101...memo-patte-v0.1.102) (2026-10-23)
+
+
+### 🐛 Corrections
+
+* **sync:** délai maximal sur les requêtes storage des photos ([8693d7c](https://github.com/GaelleBriet/memo-patte-vue/commit/8693d7caa1cf06f4a82094091b9bb504b5a12599))
+* **sync:** délai maximal sur les requêtes storage des photos (envoi, téléchargement, effacement) ([444abb9](https://github.com/GaelleBriet/memo-patte-vue/commit/444abb9e216f01d535b02ca6764c32fff6b51f9e))
+* **sync:** passe des photos qui ne lève jamais et revérifie le compte avant chaque demande ([952c70f](https://github.com/GaelleBriet/memo-patte-vue/commit/952c70fb107c0cbad294f898e3f98c1e08e9f5ed))
+* **sync:** restes des relectures de la synchro des photos ([bbe9647](https://github.com/GaelleBriet/memo-patte-vue/commit/bbe964777bd4c6977a4d56caf4459dbca71133ee))
+
 ## [0.1.101](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.100...memo-patte-v0.1.101) (2026-10-22)
 
 
