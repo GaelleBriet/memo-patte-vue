@@ -2990,7 +2990,8 @@ incorrect » sous le champ ; aucun texte nouveau. — Ce que couvrent les deux r
 (« Require current password when updating » et « Secure password change », activé le 22 octobre),
 prouvé le 23 octobre contre GoTrue v2.197.0 sur une pile locale (`password-update.local.spec.ts`) :
 le mot de passe actuel n'est exigé que d'une session ouverte par mot de passe ; une session ouverte
-par un code (inscription, « Mot de passe oublié ») ou un lien magique en est exemptée ; toute
+par un code (inscription, « Mot de passe oublié ») en est exemptée, comme une session par lien
+magique (sondée à la main sur la pile locale le 23 octobre, AMR `otp`) ; toute
 session de plus de 24 h est refusée (`reauthentication_needed`), même avec le mot de passe actuel,
 sauf nonce de ré-authentification (envoyé à l'adresse du compte). « Changer mon mot de passe »
 passe toujours, car l'app se reconnecte d'abord, ce qui ouvre une session neuve. — Reste exposé :

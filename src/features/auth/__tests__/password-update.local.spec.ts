@@ -71,14 +71,17 @@ describe.skipIf(url === undefined)('mot de passe actuel exigé par la pile Supab
       session_id: string
     }
     expect(session_id).toMatch(/^[0-9a-f-]{36}$/)
-    execFileSync('docker', [
+    const output = execFileSync('docker', [
       'exec',
       DB_CONTAINER,
       'psql',
       '--username=postgres',
       '--command',
       `update auth.sessions set created_at = now() - interval '25 hours' where id = '${session_id}'`,
-    ])
+    ]).toString()
+    if (!output.includes('UPDATE 1')) {
+      throw new Error('session non reculée : SUPABASE_LOCAL_URL vise-t-il la bonne pile ?')
+    }
   }
 
   async function opensWith(email: string, password: string): Promise<boolean> {
