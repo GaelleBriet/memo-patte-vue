@@ -13,3 +13,7 @@ export function onNetworkOnline(listener: Listener): () => void {
 
   return () => void handle.then((registered) => registered.remove())
 }
+
+export async function isNetworkConnected(): Promise<boolean> {
+  return (await Network.getStatus()).connected
+}

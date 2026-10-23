@@ -1,16 +1,18 @@
 import { Network } from '@capacitor/network'
 import type { PluginListenerHandle } from '@capacitor/core'
 import { afterEach, describe, expect, it, vi, type Mock } from 'vitest'
-import { onNetworkOnline } from '../service/network-status'
+import { isNetworkConnected, onNetworkOnline } from '../service/network-status'
 
 type StatusListener = (status: { connected: boolean; connectionType: string }) => void
 type AddListener = (event: string, listener: StatusListener) => Promise<PluginListenerHandle>
+type GetStatus = () => Promise<{ connected: boolean; connectionType: string }>
 
 vi.mock('@capacitor/network', () => ({
-  Network: { addListener: vi.fn<AddListener>() },
+  Network: { addListener: vi.fn<AddListener>(), getStatus: vi.fn<GetStatus>() },
 }))
 
 const addListener = Network.addListener as unknown as Mock<AddListener>
+const getStatus = Network.getStatus as unknown as Mock<GetStatus>
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -46,5 +48,15 @@ describe('onNetworkOnline', () => {
 
     expect(addListener).toHaveBeenCalledExactlyOnceWith('networkStatusChange', expect.any(Function))
     await vi.waitFor(() => expect(remove).toHaveBeenCalledOnce())
+  })
+})
+
+describe('isNetworkConnected', () => {
+  it('lit l’état du réseau donné par le plugin natif', async () => {
+    getStatus.mockResolvedValueOnce({ connected: false, connectionType: 'none' })
+    await expect(isNetworkConnected()).resolves.toBe(false)
+
+    getStatus.mockResolvedValueOnce({ connected: true, connectionType: 'wifi' })
+    await expect(isNetworkConnected()).resolves.toBe(true)
   })
 })

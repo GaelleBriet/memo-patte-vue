@@ -432,6 +432,58 @@ describe('syncOutboxRepository', () => {
 
       await expect(repository.listPending()).resolves.toEqual(first)
     })
+
+    it('oublie la dernière sauvegarde d’un autre compte : la première sauvegarde de celui-ci commence', async () => {
+      await repository.setLastSyncedAt(T2)
+
+      await repository.enableAndQueueWholeCarnet()
+
+      await expect(repository.getLastSyncedAt()).resolves.toBeNull()
+    })
+  })
+
+  describe('compteurs de la première sauvegarde', () => {
+    it('comptent zéro sur un carnet vide', async () => {
+      await expect(repository.countWholeCarnet()).resolves.toBe(0)
+      await expect(repository.countPending()).resolves.toBe(0)
+    })
+
+    it('le carnet compte exactement ce que l’activation met en file, supprimés et photos compris', async () => {
+      await db.run(
+        `INSERT INTO device (id, model, installed_at, created_at, updated_at)
+         VALUES ('appareil', NULL, ?, ?, ?)`,
+        [T1, T1, T1],
+      )
+      await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_MILO)
+      await insertAnimal(db, 'parti', T2, 'Pirate', PHOTO_PIRATE)
+      await db.run("UPDATE animal SET deleted_at = ? WHERE id = 'parti'", [T2])
+      await insertAnimal(db, 'jumeau', T1, 'Luna', PHOTO_MILO)
+      await insertVaccination(db, 'v-1', ANIMAL_ID, T1)
+      await insertVaccinationInjection(db, 'i-1', 'v-1', ANIMAL_ID, T1)
+      await insertTreatment(db, 't-1', ANIMAL_ID, T1)
+      await insertTreatmentPeriod(db, 'p-1', 't-1', ANIMAL_ID, T1)
+      await insertTreatmentDose(db, 'd-1', 'p-1', 't-1', ANIMAL_ID, T1)
+      await insertWeightEntry(db, 'w-1', ANIMAL_ID, T1)
+      await insertCarnetSettings(db, SETTINGS_ID, T1)
+
+      await repository.enableAndQueueWholeCarnet()
+
+      const queued = (await repository.listPending()).length
+      expect(queued).toBe(12)
+      await expect(repository.countWholeCarnet()).resolves.toBe(queued)
+      await expect(repository.countPending()).resolves.toBe(queued)
+    })
+
+    it('la file se vide au fil des envois, le carnet ne bouge pas', async () => {
+      await insertAnimal(db, ANIMAL_ID, T1)
+      await insertWeightEntry(db, 'w-1', ANIMAL_ID, T1)
+      await repository.enableAndQueueWholeCarnet()
+
+      await repository.removeIfUnchanged({ entity: 'animal', entityId: ANIMAL_ID, queuedAt: T1 })
+
+      await expect(repository.countPending()).resolves.toBe(1)
+      await expect(repository.countWholeCarnet()).resolves.toBe(2)
+    })
   })
 
   describe('removeIfUnchanged', () => {

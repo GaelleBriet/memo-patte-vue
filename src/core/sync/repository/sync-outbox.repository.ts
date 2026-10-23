@@ -94,11 +94,28 @@ export function createSyncOutboxRepository(db: DbClient) {
      */
     async enableAndQueueWholeCarnet(): Promise<void> {
       await db.runMany([
-        { sql: 'UPDATE sync_state SET enabled = 1 WHERE id = 1' },
+        { sql: 'UPDATE sync_state SET enabled = 1, last_synced_at = NULL WHERE id = 1' },
         { sql: 'DELETE FROM sync_pull_cursor' },
         ...SYNC_ENTITY_ORDER.map(queueWholeTable),
         queueLiveAnimalPhotos(),
       ])
+    },
+
+    /** Ce que `enableAndQueueWholeCarnet` met en file : chaque ligne du carnet et chaque photo. */
+    async countWholeCarnet(): Promise<number> {
+      const counts = [
+        ...SYNC_ENTITY_ORDER.map((entity) => `SELECT COUNT(*) FROM ${entity}`),
+        `SELECT COUNT(DISTINCT photo_path) ${LIVE_ANIMAL_PHOTOS_FROM}`,
+      ]
+      const [row] = await db.query<{ total: number }>(
+        `SELECT ${counts.map((count) => `(${count})`).join(' + ')} AS total`,
+      )
+      return row?.total ?? 0
+    },
+
+    async countPending(): Promise<number> {
+      const [row] = await db.query<{ total: number }>('SELECT COUNT(*) AS total FROM sync_outbox')
+      return row?.total ?? 0
     },
 
     async getLastPulledAt(entity: string): Promise<string | null> {

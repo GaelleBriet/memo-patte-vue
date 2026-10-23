@@ -2,8 +2,9 @@ import { watch } from 'vue'
 
 import { onAppResume } from '@/core/app-lifecycle/app-resume'
 import { getDeviceRepository } from '@/core/device/device.repository'
+import { createBackupFactsReader, provideBackupFacts } from '@/core/sync/service/backup-facts'
 import { createLocalSyncContext } from '@/core/sync/service/local-sync-context'
-import { onNetworkOnline } from '@/core/sync/service/network-status'
+import { isNetworkConnected, onNetworkOnline } from '@/core/sync/service/network-status'
 import type { SyncOutboxRepository } from '@/core/sync/repository/sync-outbox.repository'
 import type { RestorableTable } from '@/core/sync/service/account-restore'
 import { providePhotoRestoreStatus } from '@/core/sync/service/photo-restore-status'
@@ -194,14 +195,24 @@ export async function createDefaultSyncDependencies(): Promise<SyncDependencies>
   ]
   const userId = () => useAuthStore().userId
   const sessionActive = () => useAuthStore().sessionState === 'active'
+  const isEligible = () =>
+    useAuthStore().hasPlusAccount && usePurchaseStore().status.plan !== 'none'
   const { outbox, cycle, restore, photoRestore } = await createLocalSyncContext({
     tables,
     userId,
     sessionActive,
-    isEligible: () => useAuthStore().hasPlusAccount && usePurchaseStore().status.plan !== 'none',
+    isEligible,
     onRemindersOutdated: syncAllReminders,
   })
   providePhotoRestoreStatus(photoRestore.isRunning)
+  provideBackupFacts(
+    createBackupFactsReader({
+      outbox,
+      isEligible,
+      signInNeeded: () => useAuthStore().sessionState === 'needs-sign-in',
+      isOnline: isNetworkConnected,
+    }),
+  )
   const restoreFlow = createRestoreFlow(restore)
   provideRestoreFlow(restoreFlow)
   const accountBackup = createAccountBackupService({
