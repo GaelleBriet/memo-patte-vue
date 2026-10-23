@@ -40,11 +40,22 @@ describe('useFieldRefusal', () => {
     const { values, refusal } = setup({ current: 'auth.form.errors.passwordRequired' })
     refusal.refuseWrongPassword(new AccountError('invalid-credentials'), 'ancien')
 
+    expect(refusal.fieldError('current')).toBe(WRONG_PASSWORD_KEY)
+
     values.value = { ...values.value, current: '' }
     expect(refusal.fieldError('current')).toBe('auth.form.errors.passwordRequired')
 
     values.value = { ...values.value, current: 'autre' }
     expect(refusal.fieldError('current')).toBe('auth.form.errors.passwordRequired')
+  })
+
+  it('lève le refus quand la valeur saisie diffère de la valeur soumise', () => {
+    const { values, refusal } = setup()
+    refusal.refuseWrongPassword(new AccountError('invalid-credentials'), 'faux')
+
+    values.value = { ...values.value, current: 'faux2' }
+
+    expect(refusal.fieldError('current')).toBeNull()
   })
 
   it('oublie le refus après clear', () => {
