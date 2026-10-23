@@ -16,6 +16,8 @@ const SETTINGS: CarnetReminderSettings = { vaccineReminderTime: '09:00', remindB
 const MONTHLY: TreatmentFrequency = { value: 1, unit: 'month' }
 const WEEKLY: TreatmentFrequency = { value: 1, unit: 'week' }
 const NOW = new Date(2026, 8, 15, 12)
+// Tous les jours à 24 heures : lisible le 2026-09-15, trop long à relire le 2026-09-16.
+const START = '2021-01-03'
 
 afterEach(() => {
   i18n.global.locale.value = 'fr'
@@ -139,6 +141,15 @@ describe('treatmentReminders', () => {
 
   it('aucun rappel pour un traitement arrêté', () => {
     expect(slots({ firstDueOn: '2026-09-16', stoppedOn: '2026-09-15' })).toEqual([])
+  })
+
+  it('relit le traitement au jour de l’appareil, pas à celui de l’UTC : trop long à relire dès le lendemain', () => {
+    const HEURES = Array.from({ length: 24 }, (_, hour) => `${String(hour).padStart(2, '0')}:00`)
+    const careAt = (now: Date) =>
+      remindersOf({ startsOn: START, firstDueOn: START, times: HEURES }, [], { now }).care
+
+    expect(careAt(new Date(2026, 8, 15, 23, 30))).not.toBeNull()
+    expect(careAt(new Date(2026, 8, 16, 0, 30))).toBeNull()
   })
 
   it('Q40 : un traitement illisible n’a pas de rappel et ne lève pas', () => {

@@ -272,6 +272,15 @@ describe('G19 : les jours qui ne laisseraient aucune date au report seul sont re
     )
   })
 
+  it('ne regarde que les 62 jours qui précèdent le jour civil : le 62e jour avant est exclu', () => {
+    expect(dateChangeBox(t, prise, carnet(withPeriods, '2026-12-17'))!.refusedDays(true)).toContain(
+      '2026-10-17',
+    )
+    expect(
+      dateChangeBox(t, prise, carnet(withPeriods, '2026-12-18'))!.refusedDays(true),
+    ).not.toContain('2026-10-17')
+  })
+
   it('« Fait à une autre date » coché : un report seul après la prise suit, rien n’est refusé (#786)', () => {
     const held = treatment(
       [VENDREDI],
