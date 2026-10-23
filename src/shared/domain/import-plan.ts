@@ -1,98 +1,33 @@
+import type { ExportAnimal, ExportDevice } from './carnet-data'
+import { byId, eventTables, type EventTable } from './import-plan-events'
+import { findMisplacedDose, findMisplacedEvent, findReattached } from './import-plan-refusals'
 import type {
-  ExportAnimal,
-  ExportCarnetSettings,
-  ExportData,
-  ExportDevice,
-  ExportTreatment,
-  ExportTreatmentDose,
-  ExportTreatmentPeriod,
-  ExportVaccination,
-  ExportVaccinationInjection,
-  ExportWeightEntry,
-} from './carnet-data'
+  CascadeDeletions,
+  ImportPlanInput,
+  ImportPlanResult,
+  ImportedAnimal,
+  LocalAnimal,
+  LocalDevice,
+  LocalEntry,
+  LocalEvent,
+  PlannedWrite,
+  Versioned,
+} from './import-plan-types'
 
-export type ImportMode = 'merge' | 'replace'
-
-export type ImportFile = { schemaVersion: 10; data: ExportData }
-
-type Versioned = { id: string; updatedAt: string }
-type Deletable = Versioned & { deletedAt: string | null }
-
-export type LocalAnimal = Deletable & { photoPath: string | null }
-export type LocalEntry = Deletable & { animalId: string }
-export type LocalInjection = Deletable & { vaccinationId: string }
-export type LocalPeriod = LocalEntry & { treatmentId: string }
-export type LocalDose = Deletable & { periodId: string; treatmentId: string }
-export type LocalSettings = { updatedAt: string; deletedAt: string | null }
-export type LocalDevice = Deletable
-
-export type LocalCarnet = {
-  carnetSettings: LocalSettings | null
-  animals: LocalAnimal[]
-  vaccinations: LocalEntry[]
-  vaccinationInjections: LocalInjection[]
-  treatments: LocalEntry[]
-  treatmentPeriods: LocalPeriod[]
-  treatmentDoses: LocalDose[]
-  weightEntries: LocalEntry[]
-  devices: LocalDevice[]
-}
-
-export type LocalEvent = Deletable & { parentId: string }
-
-export type ImportedAnimal = Omit<ExportAnimal, 'photoFileName'> & { photoPath: string | null }
-
-export type PlannedWrite<T> = { row: T; exists: boolean }
-
-export type ImportPlan = {
-  replaceLocalData: boolean
-  /** `null` : le fichier n'écrit pas les réglages du carnet. */
-  carnetSettings: ExportCarnetSettings | null
-  animals: PlannedWrite<ImportedAnimal>[]
-  vaccinations: PlannedWrite<ExportVaccination>[]
-  vaccinationInjections: PlannedWrite<ExportVaccinationInjection>[]
-  revivedInjections: string[]
-  treatments: PlannedWrite<ExportTreatment>[]
-  treatmentPeriods: PlannedWrite<ExportTreatmentPeriod>[]
-  revivedPeriods: string[]
-  treatmentDoses: PlannedWrite<ExportTreatmentDose>[]
-  revivedDoses: string[]
-  weightEntries: PlannedWrite<ExportWeightEntry>[]
-  /** Jamais effacés, même en remplacement : ils nomment les appareils des lignes du carnet. */
-  devices: PlannedWrite<ExportDevice>[]
-}
-
-export type ImportEntity =
-  | 'vaccination'
-  | 'vaccinationInjection'
-  | 'treatment'
-  | 'treatmentPeriod'
-  | 'treatmentDose'
-  | 'weightEntry'
-
-/**
- * `reattached` : une entrée change d'animal, une injection, une période ou une prise change de
- * parent ou n'a pas l'animal de son parent, une prise vise la période d'un autre traitement.
- * `orphanEvent` : ni le fichier ni l'appareil n'ont le parent d'une de ces lignes.
- */
-export type ImportRefusalReason = 'reattached' | 'orphanEvent'
-
-export type RefusedEntry = { reason: ImportRefusalReason; entity: ImportEntity; id: string }
-
-export type ImportPlanResult = { ok: true; plan: ImportPlan } | { ok: false; refused: RefusedEntry }
-
-export type ImportPlanInput = {
-  file: ImportFile
-  mode: ImportMode
-  local: LocalCarnet
-  photosOnDevice: ReadonlySet<string>
-  importedAt: string
-  /** L'appareil qui importe : il devient l'auteur de toute ligne déjà présente qu'il réécrit. */
-  deviceId: string
-}
-
-/** Date de suppression d'un animal ou d'un parent que le fichier rend visible, par identifiant. */
-export type CascadeDeletions = ReadonlyMap<string, string>
+export type {
+  ImportFile,
+  ImportMode,
+  ImportPlan,
+  ImportPlanInput,
+  ImportRefusalReason,
+  LocalAnimal,
+  LocalCarnet,
+  LocalDose,
+  LocalEntry,
+  LocalInjection,
+  LocalPeriod,
+  PlannedWrite,
+} from './import-plan-types'
 
 /**
  * Un animal et son carnet supprimés ensemble portent exactement le même `deletedAt`
@@ -106,117 +41,6 @@ export function deletedWithItsAnimal(entry: LocalEntry, cascades: CascadeDeletio
 /** Même règle un étage plus bas : un vaccin ou un traitement et ses lignes supprimés ensemble. */
 export function deletedWithItsParent(event: LocalEvent, parentCascades: CascadeDeletions): boolean {
   return event.deletedAt !== null && event.deletedAt === parentCascades.get(event.parentId)
-}
-
-const ENTRY_TABLES = [
-  ['vaccination', 'vaccinations'],
-  ['treatment', 'treatments'],
-  ['weightEntry', 'weightEntries'],
-] as const
-
-type Parent = { id: string; animalId: string }
-
-type EventTable<E> = {
-  entity: ImportEntity
-  events: E[]
-  parentOf: (event: E) => string
-  fileParents: Parent[]
-  localParents: LocalEntry[]
-  localEvents: LocalEvent[]
-}
-
-function byId<T extends { id: string }>(rows: readonly T[]): Map<string, T> {
-  return new Map(rows.map((row) => [row.id, row]))
-}
-
-function eventTables(data: ExportData, local: LocalCarnet) {
-  const injections: EventTable<ExportVaccinationInjection> = {
-    entity: 'vaccinationInjection',
-    events: data.vaccinationInjections,
-    parentOf: ({ vaccinationId }) => vaccinationId,
-    fileParents: data.vaccinations,
-    localParents: local.vaccinations,
-    localEvents: local.vaccinationInjections.map(({ vaccinationId, ...event }): LocalEvent => ({
-      ...event,
-      parentId: vaccinationId,
-    })),
-  }
-  const periods: EventTable<ExportTreatmentPeriod> = {
-    entity: 'treatmentPeriod',
-    events: data.treatmentPeriods,
-    parentOf: ({ treatmentId }) => treatmentId,
-    fileParents: data.treatments,
-    localParents: local.treatments,
-    localEvents: local.treatmentPeriods.map(({ treatmentId, ...period }): LocalEvent => ({
-      ...period,
-      parentId: treatmentId,
-    })),
-  }
-  const doses: EventTable<ExportTreatmentDose> = {
-    entity: 'treatmentDose',
-    events: data.treatmentDoses,
-    parentOf: ({ treatmentId }) => treatmentId,
-    fileParents: data.treatments,
-    localParents: local.treatments,
-    localEvents: local.treatmentDoses.map(({ treatmentId, ...dose }): LocalEvent => ({
-      ...dose,
-      parentId: treatmentId,
-    })),
-  }
-  return { injections, periods, doses }
-}
-
-function findReattached(data: ExportData, local: LocalCarnet): RefusedEntry | undefined {
-  for (const [entity, table] of ENTRY_TABLES) {
-    const known = byId(local[table])
-    for (const row of data[table]) {
-      const existing = known.get(row.id)
-      if (existing !== undefined && existing.animalId !== row.animalId) {
-        return { reason: 'reattached', entity, id: row.id }
-      }
-    }
-  }
-  return undefined
-}
-
-function findMisplacedEvent<E extends Parent>(table: EventTable<E>): RefusedEntry | undefined {
-  const parents = new Map<string, Parent>([...byId(table.localParents), ...byId(table.fileParents)])
-  const known = byId(table.localEvents)
-  for (const event of table.events) {
-    const parent = parents.get(table.parentOf(event))
-    const refused = (reason: ImportRefusalReason) => ({
-      reason,
-      entity: table.entity,
-      id: event.id,
-    })
-    if (parent === undefined) return refused('orphanEvent')
-    if (parent.animalId !== event.animalId) return refused('reattached')
-    const existing = known.get(event.id)
-    if (existing !== undefined && existing.parentId !== parent.id) return refused('reattached')
-  }
-  return undefined
-}
-
-/** Une prise vise une période du même traitement, et ne change jamais de période. */
-function findMisplacedDose(data: ExportData, local: LocalCarnet): RefusedEntry | undefined {
-  const periods = new Map<string, { treatmentId: string }>([
-    ...byId(local.treatmentPeriods),
-    ...byId(data.treatmentPeriods),
-  ])
-  const known = byId(local.treatmentDoses)
-  for (const dose of data.treatmentDoses) {
-    const period = periods.get(dose.periodId)
-    const refused = (reason: ImportRefusalReason): RefusedEntry => ({
-      reason,
-      entity: 'treatmentDose',
-      id: dose.id,
-    })
-    if (period === undefined) return refused('orphanEvent')
-    if (period.treatmentId !== dose.treatmentId) return refused('reattached')
-    const existing = known.get(dose.id)
-    if (existing !== undefined && existing.periodId !== dose.periodId) return refused('reattached')
-  }
-  return undefined
 }
 
 function planDevices(devices: ExportDevice[], local: LocalDevice[]): PlannedWrite<ExportDevice>[] {
