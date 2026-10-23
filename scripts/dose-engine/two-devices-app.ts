@@ -4,7 +4,7 @@ import {
   type NoteGesture,
 } from '@/features/treatments/logic/treatment-dose-change'
 import { doseFieldsOf } from '@/features/treatments/logic/treatment-dose-writes'
-import { undoKeepingAhead, undoRanks } from '@/features/treatments/logic/treatment-undo-order'
+import { undoKeepingAhead } from '@/features/treatments/logic/treatment-undo-order'
 import type { DoseFields, DoseWrite } from '@/features/treatments/schema/treatment-dose.schema'
 import type { TreatmentWithPeriods } from '@/features/treatments/schema/treatment-with-periods.schema'
 import type { Line, LineFields, TreatmentViewInput } from '@/shared/domain/dose-calendar'
@@ -67,11 +67,6 @@ function treatmentOf(
 export function applyBatch(phone: Phone, writes: readonly DoseWrite[], clock: Clock): DoseWrite[] {
   if (writes.length === 0) return []
   const at = stamp(clock)
-  const rankOf = undoRanks(
-    [...phone.lines, ...phone.deleted.values()].filter((line) =>
-      writes.some((write) => write.action !== 'create' && write.id === line.id),
-    ),
-  )
   const inverse: DoseWrite[] = []
   for (const write of writes) {
     if (write.action === 'create') {
@@ -99,7 +94,6 @@ export function applyBatch(phone: Phone, writes: readonly DoseWrite[], clock: Cl
         action: 'restore',
         id: write.id,
         expectedUpdatedAt: at,
-        rank: rankOf(write.id),
       })
       continue
     }
@@ -110,7 +104,6 @@ export function applyBatch(phone: Phone, writes: readonly DoseWrite[], clock: Cl
       id: write.id,
       dose: doseFieldsOf(old),
       expectedUpdatedAt: at,
-      rank: rankOf(write.id),
       decidedAt: old.decidedAt,
     })
   }

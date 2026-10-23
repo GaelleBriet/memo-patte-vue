@@ -1,5 +1,4 @@
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
-import { undoRanks } from '../logic/treatment-undo-order'
 import type { DoseFields, DoseWrite } from '../schema/treatment-dose.schema'
 import {
   DuplicateDueError,
@@ -111,9 +110,6 @@ export function createDoseBatch(
         return row
       }
       const unchanged = { expectedUpdatedAt: at }
-      const rankOf = undoRanks(
-        [...existing.values()].map(({ id, updated_at }) => ({ id, updatedAt: updated_at })),
-      )
       const steps = writes.map((write): Step => {
         switch (write.action) {
           case 'create':
@@ -131,7 +127,6 @@ export function createDoseBatch(
                 id: write.id,
                 dose: fieldsOf(read(write)),
                 ...unchanged,
-                rank: rankOf(write.id),
                 decidedAt: read(write).decided_at,
               },
             }
@@ -139,7 +134,7 @@ export function createDoseBatch(
             read(write)
             return {
               statement: markDeletedStatement([write.id], at),
-              inverse: { action: 'restore', id: write.id, ...unchanged, rank: rankOf(write.id) },
+              inverse: { action: 'restore', id: write.id, ...unchanged },
             }
           case 'restore':
             read(write)

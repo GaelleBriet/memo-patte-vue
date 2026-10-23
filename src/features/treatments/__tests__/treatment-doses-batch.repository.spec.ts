@@ -275,13 +275,12 @@ describe('treatmentDosesRepository — écrire ce que rend le moteur', () => {
 
       await expect(visible()).resolves.toEqual(before)
       expect(inverse).toEqual([
-        { action: 'restore', id: 'report', expectedUpdatedAt: T2, rank: 0 },
+        { action: 'restore', id: 'report', expectedUpdatedAt: T2 },
         {
           action: 'rewrite',
           id: 'matin',
           dose: MATIN,
           expectedUpdatedAt: T2,
-          rank: 0,
           decidedAt: T1,
         },
         { action: 'delete', id: 'nouvelle', expectedUpdatedAt: T2 },
