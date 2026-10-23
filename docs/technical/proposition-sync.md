@@ -330,7 +330,9 @@ sans Plus actif sur le téléphone, puis la sauvegarde reste en pause jusqu'à �
 - **Remplacer** = effacer pour de bon le carnet du téléphone (animaux, vaccins et injections,
   traitements et prises, poids, réglages des rappels ; ni la liste des appareils, ni les préférences
   du téléphone), puis écrire celui du compte, dans la même transaction (§7-6). Irréversible, donc
-  confirmation.
+  confirmation. La file perd les lignes du carnet effacé mais garde les photos déjà en file, avec
+  leur date et leurs essais : une photo remplacée la veille sort quand même du cloud à la fin de
+  son délai (§4.5), au lieu d'y rester orpheline (#1155).
 
 Un changement de compte sur le téléphone oublie la file du compte précédent : le carnet local reste
 et repasse par le même contrôle.

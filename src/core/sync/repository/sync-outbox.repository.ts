@@ -142,7 +142,8 @@ export function createSyncOutboxRepository(db: DbClient) {
     /**
      * Autour du carnet tiré : synchro coupée pendant l'écriture, curseurs posés au bout de ce qui
      * a été tiré, synchro activée à la fin. Avant l'écriture, « Fusionner » met en file tout le
-     * carnet du téléphone et ses photos, « Remplacer » seulement ses appareils.
+     * carnet du téléphone et ses photos, « Remplacer » seulement ses appareils, et garde les photos
+     * déjà en file : celles à effacer du cloud ne doivent pas y rester orphelines.
      */
     restoreStatements({
       mode,
@@ -157,7 +158,10 @@ export function createSyncOutboxRepository(db: DbClient) {
           { sql: 'DELETE FROM sync_pull_cursor' },
           ...(mode === 'merge'
             ? [...SYNC_ENTITY_ORDER.map(queueWholeTable), queueLiveAnimalPhotos()]
-            : [{ sql: 'DELETE FROM sync_outbox' }, queueWholeTable('device')]),
+            : [
+                { sql: 'DELETE FROM sync_outbox WHERE entity <> ?', params: [ANIMAL_PHOTO_ENTITY] },
+                queueWholeTable('device'),
+              ]),
         ],
         after: [
           ...cursors.map(({ entity, lastPulledAt }) => ({
