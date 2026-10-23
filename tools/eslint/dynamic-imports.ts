@@ -61,6 +61,7 @@ function isImportMetaGlob(callee: { type: string; object?: unknown; property?: u
 }
 
 const WILDCARD = /[*?[\]{}]/
+const CLASS_WILDCARD = /[?[\]{}]/
 
 function isBroadGlob(pattern: string) {
   const directories = pattern.split('/').slice(0, -1)
@@ -69,7 +70,7 @@ function isBroadGlob(pattern: string) {
 
 function hasOpenLastSegment(pattern: string) {
   const last = pattern.split('/').at(-1) ?? ''
-  return last === '*' || /[?[\]{}]/.test(last)
+  return last === '*' || CLASS_WILDCARD.test(last)
 }
 
 function excludesTests(negatives: string[]) {
@@ -77,6 +78,21 @@ function excludesTests(negatives: string[]) {
   return (
     has('!**/__tests__/**') &&
     (has('!**/*.{spec,test}.*') || (has('!**/*.spec.*') && has('!**/*.test.*')))
+  )
+}
+
+function hasBaseOption(options: unknown) {
+  const { type, properties } = options as {
+    type?: string
+    properties?: { type: string; key?: { name?: string; value?: unknown } }[]
+  }
+  return (
+    type === 'ObjectExpression' &&
+    (properties ?? []).some(
+      (property) =>
+        property.type === 'Property' &&
+        (property.key?.name === 'base' || property.key?.value === 'base'),
+    )
   )
 }
 
@@ -121,6 +137,13 @@ const testFilesRule: Rule.RuleModule = {
       },
       CallExpression(node) {
         if (!isImportMetaGlob(node.callee)) return
+        if (hasBaseOption(node.arguments[1])) {
+          return context.report({
+            node,
+            message:
+              "L'option « base » de import.meta.glob déplace les motifs : interdite en production.",
+          })
+        }
         const patterns = literalPatterns(node.arguments[0] as Expr | undefined)
         const positives = patterns.filter((pattern) => !pattern.startsWith('!'))
         const negatives = patterns.filter((pattern) => pattern.startsWith('!'))
@@ -135,7 +158,7 @@ const testFilesRule: Rule.RuleModule = {
           context.report({
             node,
             message:
-              "Un glob large de production embarquerait des specs : ajoute les motifs négatifs '!**/__tests__/**' et '!**/*.{spec,test}.*'.",
+              "Un glob ouvert de production embarquerait des specs : ajoute les motifs négatifs '!**/__tests__/**' et '!**/*.{spec,test}.*'.",
           })
         }
       },

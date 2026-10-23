@@ -135,6 +135,7 @@ describe(
       "import.meta.glob('./*.{spec,x}.ts')",
       "import.meta.glob('./*.?pec.ts')",
       "import.meta.glob('./*')",
+      "import.meta.glob('./*.ts', { base: '../__tests__' })",
       'const m = (n: string) => import(`./${n}/__tests__/${n}`)',
     ])('refuse %s', async (code) => {
       expect(await restricted(PROD, code)).toBe(1)
@@ -151,6 +152,7 @@ describe(
       "import.meta.glob('../__tests__/*.ts')",
       'const m = (n: string) => import(`../__tests__/${n}`)',
       "import.meta.glob('./**/*.ts')",
+      "import.meta.glob('./*.ts', { base: '../__tests__' })",
     ])('laisse un test ou un spec utiliser %s', async (code) => {
       const results = await Promise.all([
         restricted('src/features/animals/__tests__/a.ts', code),
