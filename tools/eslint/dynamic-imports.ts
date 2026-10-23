@@ -67,9 +67,17 @@ function isBroadGlob(pattern: string) {
   return directories.some((segment) => segment === '**' || WILDCARD.test(segment))
 }
 
+function hasOpenLastSegment(pattern: string) {
+  const last = pattern.split('/').at(-1) ?? ''
+  return last === '*' || /[?[\]{}]/.test(last)
+}
+
 function excludesTests(negatives: string[]) {
-  const text = negatives.join(' ')
-  return text.includes('__tests__') && text.includes('spec') && text.includes('test')
+  const has = (negative: string) => negatives.includes(negative)
+  return (
+    has('!**/__tests__/**') &&
+    (has('!**/*.{spec,test}.*') || (has('!**/*.spec.*') && has('!**/*.test.*')))
+  )
 }
 
 const testFilesRule: Rule.RuleModule = {
@@ -103,9 +111,13 @@ const testFilesRule: Rule.RuleModule = {
         const { quasis, expressions } = node.source
         const first = quasis[0]?.value.cooked ?? ''
         if (expressions.length === 0) return check(node as Rule.Node, first)
+        reported = 0
         if (first) check(node as Rule.Node, first)
         const last = quasis[quasis.length - 1]?.value.cooked ?? ''
-        if (last) check(node as Rule.Node, `x${last}`)
+        if (reported === 0 && last) check(node as Rule.Node, `x${last}`)
+        for (const quasi of quasis.slice(1, -1)) {
+          if (reported === 0) check(node as Rule.Node, `x${quasi.value.cooked ?? ''}x`)
+        }
       },
       CallExpression(node) {
         if (!isImportMetaGlob(node.callee)) return
@@ -113,8 +125,13 @@ const testFilesRule: Rule.RuleModule = {
         const positives = patterns.filter((pattern) => !pattern.startsWith('!'))
         const negatives = patterns.filter((pattern) => pattern.startsWith('!'))
         reported = 0
-        for (const pattern of positives) check(node as Rule.Node, pattern)
-        if (reported === 0 && !excludesTests(negatives) && positives.some(isBroadGlob)) {
+        for (const pattern of positives) {
+          if (reported === 0) check(node as Rule.Node, pattern)
+        }
+        const open = positives.some(
+          (pattern) => isBroadGlob(pattern) || hasOpenLastSegment(pattern),
+        )
+        if (reported === 0 && open && !excludesTests(negatives)) {
           context.report({
             node,
             message:

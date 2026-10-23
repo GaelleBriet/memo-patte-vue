@@ -128,7 +128,22 @@ describe(
       "import.meta.glob('./**/*.spec*')",
       "import.meta.glob('../__test*/**')",
       "import.meta.glob(['./**/*.ts', '!**/__tests__/**'])",
+      "import.meta.glob(['./**/*.ts', '!**/__tests__/**/*.spec.ts'])",
+      "import.meta.glob(['./**/*.ts', '!__tests__spectest'])",
+      "import.meta.glob(['./**/*.ts', '!**/__tests__/**', '!**/*.spec.*'])",
+      "import.meta.glob('./*.s[p]ec.ts')",
+      "import.meta.glob('./*.{spec,x}.ts')",
+      "import.meta.glob('./*.?pec.ts')",
+      "import.meta.glob('./*')",
+      'const m = (n: string) => import(`./${n}/__tests__/${n}`)',
     ])('refuse %s', async (code) => {
+      expect(await restricted(PROD, code)).toBe(1)
+    })
+
+    it.each([
+      'const m = (n: string) => import(`../__tests__/${n}.spec`)',
+      "import.meta.glob(['../__tests__/*.ts', './*.spec.ts'])",
+    ])('ne rapporte qu’une erreur pour %s', async (code) => {
       expect(await restricted(PROD, code)).toBe(1)
     })
 
@@ -152,6 +167,8 @@ describe(
       'const m = (n: string) => import(`./${n}.vue`)',
       "import.meta.glob('./*.ts')",
       "import.meta.glob(['./**/*.ts', '!**/__tests__/**', '!**/*.{spec,test}.*'])",
+      "import.meta.glob(['./**/*.ts', '!**/__tests__/**', '!**/*.spec.*', '!**/*.test.*'])",
+      "import.meta.glob(['./*.{spec,x}.ts', '!**/__tests__/**', '!**/*.{spec,test}.*'])",
     ])('laisse la production utiliser %s', async (code) => {
       expect(await restricted(PROD, code)).toBe(0)
     })
