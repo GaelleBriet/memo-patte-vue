@@ -36,14 +36,14 @@ describe('ligne des photos en cours de téléchargement : aucune place prise dan
 
   it('la ligne se pose sur l’écart existant, sans le pousser', () => {
     expect(declaration('.home-photos-status__line', 'position')).toBe('absolute')
-    expect(
-      Number.parseInt(declaration('.home-photos-status__line', 'top')!, 10),
-    ).toBeLessThanOrEqual(2)
-    expect(declaration('.home-photos-status__line', 'height')).toBe('14px')
+    expect(declaration('.home-photos-status__line', 'top')).toBe('0')
+    expect(declaration('.home-photos-status__line', 'height')).toBeUndefined()
+    expect(declaration('.home-photos-status__line', 'line-height')).toBe('1.15')
+    expect(declaration('.home-photos-status__text', 'padding-bottom')).toBe('0.2em')
+    expect(declaration('.home-photos-status__text', 'margin-bottom')).toBe('-0.2em')
   })
 
   it('le texte ne passe jamais à la ligne : il est coupé par « … » au pire', () => {
-    expect(declaration('.home-photos-status__line', 'overflow')).toBe('hidden')
     expect(declaration('.home-photos-status__text', 'white-space')).toBe('nowrap')
     expect(declaration('.home-photos-status__text', 'overflow')).toBe('hidden')
     expect(declaration('.home-photos-status__text', 'text-overflow')).toBe('ellipsis')
