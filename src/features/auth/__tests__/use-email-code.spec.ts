@@ -55,6 +55,64 @@ describe('useEmailCode', () => {
   })
 
   describe('confirm', () => {
+    it('compte une réussite tardive comme une réussite', async () => {
+      let accepter: () => void = () => {}
+      verifySignUpCode.mockReturnValue(new Promise<void>((resolve) => (accepter = resolve)))
+      const etape = codeOuvert()
+      etape.setCode('12345678')
+
+      const attente = etape.confirm()
+      etape.close()
+      accepter()
+
+      expect(await attente).toBe(true)
+    })
+
+    it('abandonne une réussite tardive quand le parcours le demande, après l’avoir signalée', async () => {
+      let accepter: () => void = () => {}
+      verifySignUpCode.mockReturnValue(new Promise<void>((resolve) => (accepter = resolve)))
+      const abandon = vi.fn<() => void>()
+      const etape = useEmailCode({ lateSuccess: 'abandon', onAbandoned: abandon })
+      etape.afterSignUp(ADRESSE)
+      etape.setCode('12345678')
+
+      const attente = etape.confirm()
+      etape.close()
+      accepter()
+
+      expect(await attente).toBe(false)
+      expect(abandon).toHaveBeenCalledOnce()
+      expect(etape.email.value).toBeNull()
+    })
+
+    it('ne montre pas un renvoi tardif sur l’étape refermée', async () => {
+      let accepter: () => void = () => {}
+      resendSignUpCode.mockReturnValue(new Promise<void>((resolve) => (accepter = resolve)))
+      const etape = codeOuvert()
+      maintenant = ENVOI + 2 * MINUTE
+
+      const attente = etape.resend()
+      etape.close()
+      accepter()
+
+      expect(await attente).toBe('failed')
+      expect(etape.errorKey.value).toBeNull()
+    })
+
+    it('ne montre pas une erreur tardive sur l’étape refermée', async () => {
+      let refuser: (cause: unknown) => void = () => {}
+      verifySignUpCode.mockReturnValue(new Promise<void>((_, reject) => (refuser = reject)))
+      const etape = codeOuvert()
+      etape.setCode('12345678')
+
+      const attente = etape.confirm()
+      etape.close()
+      refuser(new AccountError('offline'))
+      await attente
+
+      expect(etape.errorKey.value).toBeNull()
+    })
+
     it('confirme l’adresse avec le code saisi, puis ferme l’étape du code', async () => {
       const etape = codeOuvert()
       etape.setCode('12345678')

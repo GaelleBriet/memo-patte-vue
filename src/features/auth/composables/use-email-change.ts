@@ -25,6 +25,7 @@ export function useEmailChange({
 
   const emailCode = useEmailCode({
     now,
+    lateSuccess: 'abandon',
     operations: {
       resend: () => auth.resendEmailChangeCode(),
       verify: async (address, code) => {
