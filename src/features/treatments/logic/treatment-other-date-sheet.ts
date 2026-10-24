@@ -30,6 +30,8 @@ export type OtherDateSheetPlan = {
   question: ExtraQuestion | null
   /** Seulement sans question, qui le dit déjà. */
   recap: string | null
+  /** La réponse que l'enregistrement emporte : `null` attend la réponse, `undefined` sans question. */
+  asked: ExtraAnswer | null | undefined
 }
 
 /** Ce que montre « Fait à une autre date » : les jours, la question « Cette prise », le récapitulatif. */
@@ -49,5 +51,6 @@ export function otherDateSheetPlan(
     excluded: target === null ? givenDays(reading.view) : [],
     question,
     recap: question === null ? otherDateRecap(t, due, givenOn, severalTimes) : null,
+    asked: question === null ? undefined : answer,
   }
 }

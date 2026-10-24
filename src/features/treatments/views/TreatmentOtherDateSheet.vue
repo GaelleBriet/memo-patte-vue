@@ -91,7 +91,6 @@ const sheet = computed(() =>
     shifts: shifts.value,
   }),
 )
-const asked = computed(() => (sheet.value.question === null ? undefined : answer.value))
 const box = computed(() =>
   otherDateBox(
     t,
@@ -99,12 +98,12 @@ const box = computed(() =>
     givenOn.value,
     { treatment: props.treatment, reading: props.reading, today: props.today },
     shifts.value,
-    asked.value,
+    sheet.value.asked,
   ),
 )
 
 const gesture = computed(() =>
-  otherDateNote(due.value, givenOn.value, box.value, shifts.value, asked.value),
+  otherDateNote(due.value, givenOn.value, box.value, shifts.value, sheet.value.asked),
 )
 
 watch(open, (isOpen) => {

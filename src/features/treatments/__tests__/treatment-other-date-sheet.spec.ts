@@ -36,6 +36,7 @@ describe('otherDateSheetPlan — ce que la feuille « Fait à une autre date » 
     expect(plan.earlierHelp).toBe(false)
     expect(plan.question?.title).toBe('Cette prise')
     expect(plan.recap).toBeNull()
+    expect(plan.asked).toBeNull()
   })
 
   it('hors de la carte (« À faire », notification) : jours déjà donnés exclus, récapitulatif, pas de question', () => {
@@ -60,6 +61,7 @@ describe('otherDateSheetPlan — ce que la feuille « Fait à une autre date » 
     expect(plan.excluded).toEqual(['2026-10-09'])
     expect(plan.earlierHelp).toBe(false)
     expect(plan.question).toBeNull()
+    expect(plan.asked).toBeUndefined()
     expect(plain(plan.recap!)).toBe('Dose du vendredi 16 oct., donnée le lundi 19 oct.')
   })
 })
