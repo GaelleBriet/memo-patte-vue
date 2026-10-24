@@ -250,3 +250,28 @@ describe('« Décaler aussi » : « Changer la date » et « Fait à une autre d
     })
   }
 })
+
+describe('« Décaler aussi » : une dose encore à venir au jour de la nouvelle date garde la case (Q38)', () => {
+  // Tous les 3 jours à 20 h depuis le 26 mars ; la dose du 26 sans prise.
+  it('le 29, « C’est fait » sur le 29 puis la prise changée au 27, quand la dose du 26 était encore la dose du moment : case proposée, comme « Fait à une autre date » le 27', () => {
+    const s1 = setting('p1', '2026-03-26', { value: 3, unit: 'day' }, ['20:00'])
+    const prise = line('p1', 'given', '2026-03-29', '20:00')
+    const input = { settings: [s1], lines: [prise], today: '2026-03-29' }
+    const redated = accepted(
+      redateDose(input, { lineId: prise.id, givenOn: '2026-03-27', shiftsFollowing: true }),
+    )
+    const noted = accepted(
+      noteDose(
+        { ...input, lines: [] },
+        {
+          due: { settingId: 'p1', dueOn: '2026-03-29', dueTime: '20:00' },
+          status: 'given',
+          givenOn: '2026-03-27',
+          shiftsFollowing: true,
+        },
+      ),
+    )
+
+    expect([redated.offersShift, noted.offersShift]).toEqual([true, true])
+  })
+})
