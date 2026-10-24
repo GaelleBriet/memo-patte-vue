@@ -5,6 +5,15 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.113](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.112...memo-patte-v0.1.113) (2026-10-24)
+
+
+### 🐛 Corrections
+
+* **moteur:** un report redéplacé puis un « Modifier » ne vident plus la date choisie ([f3f3752](https://github.com/GaelleBriet/memo-patte-vue/commit/f3f3752e4ed5063b5292fb77a9cfb574d3bb7d01))
+* **sync:** journaliser en développement le message d'une lecture ratée de la restauration ([d846d9a](https://github.com/GaelleBriet/memo-patte-vue/commit/d846d9a85cf379ecbdc158222cc39a7ab51a85ac))
+* **sync:** journaliser en développement le message d'une lecture ratée de la restauration ([947cf6a](https://github.com/GaelleBriet/memo-patte-vue/commit/947cf6afc2ec620e83ee36a9c9277d7fe96163be))
+
 ## [0.1.112](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.111...memo-patte-v0.1.112) (2026-10-24)
 
 
