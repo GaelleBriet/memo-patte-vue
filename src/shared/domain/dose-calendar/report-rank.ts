@@ -58,7 +58,7 @@ export function oldArrivalChooser(
 /**
  * Q26, Q39 (#1231) : plus ancien que le « Modifier » de la date choisie qui était son ancienne arrivée,
  * parti d'une journée que sa grille n'a pas, le report est sans effet, sauf si une dose qu'il apporte
- * est déjà donnée.
+ * a été donnée avant ce « Modifier » (Q41).
  */
 export function outdatedByChosenDate(
   report: Line,
@@ -71,12 +71,27 @@ export function outdatedByChosenDate(
   return !notes.some(
     (note) =>
       note.status === 'given' &&
+      note.decidedAt <= writtenAt(setting) &&
       note.dueOn === report.targetOn &&
       (report.dueTime === null || note.dueTime === null || note.dueTime >= report.dueTime),
   )
 }
 
 const writtenAt = (setting: Setting) => setting.updatedAt ?? setting.createdAt
+
+/** R6, 6b (Q41) : le décalage suit son report ; sans effet avec lui. */
+export function turnOfOutdatedReport(
+  turn: Line,
+  lines: { reports: readonly Line[]; notes: readonly Line[] },
+  span: Pick<Span, 'settingAt' | 'live'>,
+): boolean {
+  return lines.reports.some(
+    (report) =>
+      report.dueOn === turn.dueOn &&
+      report.targetOn === turn.targetOn &&
+      outdatedByChosenDate(report, span, lines.notes),
+  )
+}
 
 function chosenOldArrival(
   report: Line,

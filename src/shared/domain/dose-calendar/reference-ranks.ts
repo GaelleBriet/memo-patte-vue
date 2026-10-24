@@ -80,7 +80,7 @@ export function chooserOf(
 
 /**
  * Q26, Q39 : un report plus ancien que le « Modifier » de la date choisie qui était son ancienne
- * arrivée, parti d'un jour que sa grille n'a pas, est sans effet, sauf si une dose arrivée est donnée.
+ * arrivée, parti d'un jour que sa grille n'a pas, est sans effet, sauf dose arrivée donnée avant lui (Q41).
  */
 export function staleBeforeChosenDate(
   report: ReferenceLine,
@@ -94,11 +94,29 @@ export function staleBeforeChosenDate(
   const arrived = (hour: string | null) =>
     report.dueTime === null || hour === null || hour >= report.dueTime
   return !notes.some(
-    (note) => note.status === 'given' && note.dueOn === report.targetOn && arrived(note.dueTime),
+    (note) =>
+      note.status === 'given' &&
+      note.decidedAt <= modifiedAt(drawer) &&
+      note.dueOn === report.targetOn &&
+      arrived(note.dueTime),
   )
 }
 
 const modifiedAt = (setting: ReferenceSetting) => setting.updatedAt ?? setting.createdAt
+
+/** R6, 6b (Q41) : un décalage ne vaut pas quand le report de sa journée, vers le même jour, est sans effet. */
+export function staleTurn(
+  turn: ReferenceLine,
+  reports: readonly ReferenceLine[],
+  settingAt: (day: string) => ReferenceSetting | undefined,
+  live: readonly ReferenceSetting[],
+  notes: readonly ReferenceLine[],
+): boolean {
+  const own = reports.find(
+    (report) => report.dueOn === turn.dueOn && report.targetOn === turn.targetOn,
+  )
+  return own !== undefined && staleBeforeChosenDate(own, settingAt, live, notes)
+}
 
 function oldArrivalDrawer(
   report: ReferenceLine,

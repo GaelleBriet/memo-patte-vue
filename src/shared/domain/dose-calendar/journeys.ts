@@ -12,7 +12,7 @@ import {
 import { isDueDay, skippedDays, turned, type Grid } from './grid-in-force'
 import { leftDays, type Claim, type Segment } from './left-days'
 import { translatedDays, type EpisodeLines } from './lines'
-import { chooserOfTurn, earlyTurnOf } from './report-rank'
+import { chooserOfTurn, earlyTurnOf, turnOfOutdatedReport } from './report-rank'
 import { shiftKeptByReport } from './rewrite'
 import type { Span } from './settings'
 import type { Day, Frequency, Hour, Line, LineEffect, Setting } from './types'
@@ -192,14 +192,15 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
     // R6 : un décalage part d'une échéance de la grille d'avant lui ou d'une arrivée de report du rythme
     // en vigueur ; avant une date choisie, seul celui qui la porte (R3, TR-9).
     const lands = (turn: Line) =>
-      (isDueDay(grid, setting.frequency, turn.dueOn) &&
+      !turnOfOutdatedReport(turn, lines, span) &&
+      ((isDueDay(grid, setting.frequency, turn.dueOn) &&
         (turn.dueOn > chosenFloor || anchors.has(turn))) ||
-      lines.reports.some(
-        (report) => report.targetOn === turn.dueOn && report.dueOn > rhythmFloor,
-      ) ||
-      turn.dueOn === seriesStart ||
-      keptByReport(turn) ||
-      fromOldArrival(turn)
+        lines.reports.some(
+          (report) => report.targetOn === turn.dueOn && report.dueOn > rhythmFloor,
+        ) ||
+        turn.dueOn === seriesStart ||
+        keptByReport(turn) ||
+        fromOldArrival(turn))
     for (const turn of [...turns, null]) {
       if (turn !== null && !lands(turn)) continue
       const to = turn === null || turn.dueOn >= last ? last : turn.dueOn
