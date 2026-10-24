@@ -90,7 +90,23 @@ export function extraQuestion(
   shifts: boolean,
 ): ExtraQuestion | null {
   if (!reading.view.asksExtraOrReplaces(due, givenOn)) return null
-  const { today } = reading.input
+  return extraQuestionOf(t, reading.input.today, { due, givenOn, severalTimes, answer }, () =>
+    nextDoseAfter(reading, due, givenOn, shifts),
+  )
+}
+
+/** Les textes de « Cette prise » ; `nextAfterReplaces` : la prochaine dose si la prise remplace. */
+export function extraQuestionOf(
+  t: Translate,
+  today: string,
+  {
+    due,
+    givenOn,
+    severalTimes,
+    answer,
+  }: { due: Due; givenOn: string; severalTimes: boolean; answer: ExtraAnswer | null },
+  nextAfterReplaces: () => Due | null,
+): ExtraQuestion {
   const day = (date: string) => formatDayMonthOrYear(date, today)
   const named = ({ dueOn, dueTime }: Due) =>
     severalTimes && dueTime !== null
@@ -113,7 +129,7 @@ export function extraQuestion(
     })
     return { title, options, help }
   }
-  const next = nextDoseAfter(reading, due, givenOn, shifts)
+  const next = nextAfterReplaces()
   const help =
     next === null
       ? t('treatments.detail.otherDate.question.replacesHelpLast', {

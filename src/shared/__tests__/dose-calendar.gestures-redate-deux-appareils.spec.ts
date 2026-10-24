@@ -62,7 +62,7 @@ describe('TR-25 : « Modifier » une prise corrige toutes les lignes de sa dose 
     expect(historyAfter(input, result)).toEqual([[given.id, '2026-10-17', 'covers']])
   })
 
-  it('Q-C1 : dose du 16 notée sur chaque appareil, corrigée le 25 « donnée le 24 » : elle devient la dose du 23, le 16 est à renseigner', () => {
+  it('Q30 : dose du 16 notée sur chaque appareil, corrigée le 25 « donnée le 24 » : elle reste la dose du 16, la dose du 23 reste en retard', () => {
     const base = [line('p1', 'given', '2026-10-02'), line('p1', 'given', '2026-10-09')]
     const older = line('p1', 'given', '2026-10-16')
     const newer = line('p1', 'given', '2026-10-16')
@@ -71,8 +71,11 @@ describe('TR-25 : « Modifier » une prise corrige toutes les lignes de sa dose 
       redateDose(input, { lineId: newer.id, givenOn: '2026-10-24', shiftsFollowing: false }),
     )
     expect(result.changes).toContainEqual({ action: 'delete', id: older.id })
-    const read = treatmentView(applied(input, result.changes))
-    expect(keys(read.unloggedDoses)).toEqual(['2026-10-16'])
+    const after = applied(input, result.changes)
+    const rewritten = after.lines.find(({ id }) => id === newer.id)
+    expect([rewritten?.dueOn, rewritten?.givenOn]).toEqual(['2026-10-16', '2026-10-24'])
+    const read = treatmentView(after)
+    expect([keys(read.currentDoses), keys(read.unloggedDoses)]).toEqual([['2026-10-23'], []])
   })
 
   it('la date inchangée : rien n’est écrit, la ligne de l’autre appareil reste', () => {
@@ -85,7 +88,7 @@ describe('TR-25 : « Modifier » une prise corrige toutes les lignes de sa dose 
     expect(result.changes).toEqual([])
   })
 
-  it('#822, entre deux périodes : tous les jours à 20 h, dose du 2 avr. donnée, arrêt le 2, reprise le 2 dès le 2, la même dose notée de nouveau ; la prise de la reprise corrigée au 3 garde celle d’avant l’arrêt', () => {
+  it('#822, entre deux périodes : tous les jours à 20 h, dose du 2 avr. donnée, arrêt le 2, reprise le 2 dès le 2, la même dose notée de nouveau ; la prise de la reprise corrigée au 3 garde celle d’avant l’arrêt et sa dose du 2', () => {
     const stopped = setting('a1', '2026-03-30', DAY, ['20:00'], { stoppedOn: '2026-04-02' })
     const resumed = setting('a2', '2026-04-02', DAY, ['20:00'])
     const before = line('a1', 'given', '2026-04-02', '20:00')
@@ -95,6 +98,9 @@ describe('TR-25 : « Modifier » une prise corrige toutes les lignes de sa dose 
       redateDose(input, { lineId: again.id, givenOn: '2026-04-03', shiftsFollowing: false }),
     )
     expect(result.changes.map(({ action }) => action)).not.toContain('delete')
-    expect(historyAfter(input, result)).toContainEqual([before.id, '2026-04-02', 'covers'])
+    expect(historyAfter(input, result)).toEqual([
+      [before.id, '2026-04-02', 'idle'],
+      [again.id, '2026-04-03', 'covers'],
+    ])
   })
 })

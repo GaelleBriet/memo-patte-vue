@@ -56,7 +56,8 @@ export type DateChangeBox = {
   initial: boolean
   /** Dernier jour d'un report seul (Q2 a) ; `null` : pas d'autre borne que la date de fin. */
   aloneMax: string | null
-  view(date: string | null, shifts: boolean): ShiftBoxView
+  /** `answer` : la réponse à « Cette prise » d'une prise en plus ; la case ne vient qu'avec « Remplace ». */
+  view(date: string | null, shifts: boolean, answer?: ExtraAnswer | null): ShiftBoxView
   /** Jours grisés : le moteur refuse la correction à ces jours. */
   refusedDays(shifts: boolean): string[]
 }
@@ -120,11 +121,12 @@ function redateBox(t: Translate, line: Line, carnet: Carnet): DateChangeBox | nu
   const { reading, today } = carnet
   const givenOn = line.givenOn
   if ((line.status !== 'given' && line.status !== 'extra') || givenOn === null) return null
-  const redate = (date: string, shifts: boolean): Gesture => ({
+  const redate = (date: string, shifts: boolean, answer?: ExtraAnswer | null): Gesture => ({
     kind: 'redate',
     lineId: line.id,
     givenOn: date,
     shiftsFollowing: shifts,
+    ...(answer === undefined || answer === null ? {} : { answer }),
   })
   return {
     initial: keepsShift(reading, line),
@@ -133,16 +135,16 @@ function redateBox(t: Translate, line: Line, carnet: Carnet): DateChangeBox | nu
       daysUpTo(today, REFUSAL_WINDOW_DAYS).filter(
         (day) => day !== givenOn && refused(play(reading.input, redate(day, shifts))),
       ),
-    view: (date, shifts) => {
-      if (date === null || date === givenOn || line.status === 'extra') {
+    view: (date, shifts, answer) => {
+      if (date === null || date === givenOn || (line.status === 'extra' && answer !== 'replaces')) {
         return { shown: false, help: null }
       }
-      const plain = play(reading.input, redate(date, false))
+      const plain = play(reading.input, redate(date, false, answer))
       if (refused(plain)) {
         return { shown: false, help: refusalHelp(t, plain.refusal, today), blocked: true }
       }
       const shown = plain.offersShift
-      const result = shown && shifts ? play(reading.input, redate(date, true)) : plain
+      const result = shown && shifts ? play(reading.input, redate(date, true, answer)) : plain
       if (refused(result)) {
         return { shown, help: refusalHelp(t, result.refusal, today), blocked: true }
       }

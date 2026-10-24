@@ -1,8 +1,8 @@
 import type { DoseAction } from './treatment-dose-change'
 import { moveText, type DoseLineAction } from './treatment-history'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
-import type { Due, MoveBounds, TreatmentView } from '@/shared/domain/dose-calendar'
-import { formatLongDate } from '@/shared/utils/format'
+import type { Due, ExtraAnswer, MoveBounds, TreatmentView } from '@/shared/domain/dose-calendar'
+import { formatDayMonthOrYear, formatLongDate, withoutFinalDot } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
 type Line = Pick<
@@ -57,8 +57,13 @@ export type DateChange = {
   max: string | null
   /** Jours grisés : ceux où le moteur refuse déjà le déplacement. */
   excluded: string[]
-  /** `shiftsFollowing` : la case « Décaler aussi les doses suivantes », cochée par défaut. */
-  action(date: string, shiftsFollowing?: boolean): DoseAction
+  /** L'aide sous le calendrier : le premier jour possible d'une prise donnée. */
+  hint: string | null
+  /**
+   * `shiftsFollowing` : la case « Décaler aussi les doses suivantes », cochée par défaut ; `answer` :
+   * la réponse à « Cette prise » d'une prise en plus.
+   */
+  action(date: string, shiftsFollowing?: boolean, answer?: ExtraAnswer): DoseAction
 }
 
 /** `null` : la ligne ne change pas de date (prise oubliée, report que le moteur ne déplace pas). */
@@ -80,6 +85,7 @@ export function dateChangeOf(
       min: bounds.earliest,
       max: bounds.latest,
       excluded: bounds.excluded,
+      hint: null,
       action: (to, shiftsFollowing = true) => ({
         kind: 'move',
         due: movedDueOf(line),
@@ -95,24 +101,32 @@ export function dateChangeOf(
     line.status === 'given'
       ? view.earliestGivenOn({ settingId: line.periodId, dueOn: line.dueOn, dueTime: line.dueTime })
       : null
+  const min =
+    [earliest, boundary]
+      .filter((day) => day !== null)
+      .sort()
+      .at(-1) ?? null
   return {
     subtitle:
       line.status === 'extra'
         ? t('treatments.detail.changeDateSubtitleExtra', { date })
         : t('treatments.detail.changeDateSubtitle', { date }),
     date: line.givenOn,
-    min:
-      [earliest, boundary]
-        .filter((day) => day !== null)
-        .sort()
-        .at(-1) ?? null,
+    min,
     max: today,
     excluded: [],
-    action: (givenOn, shiftsFollowing = true) => ({
+    hint:
+      boundary === null || min === null
+        ? null
+        : t('treatments.form.errors.nextDoseOnTooEarly', {
+            date: withoutFinalDot(formatDayMonthOrYear(min, today)),
+          }),
+    action: (givenOn, shiftsFollowing = true, answer) => ({
       kind: 'redate',
       lineId: line.id,
       givenOn,
       shiftsFollowing,
+      ...(answer === undefined ? {} : { answer }),
     }),
   }
 }

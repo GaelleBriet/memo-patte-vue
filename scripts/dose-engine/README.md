@@ -63,7 +63,7 @@ Par défaut (suite normale) : 25 carnets × 24 gestes.
 téléphone (invariants, oracle, rappels, services) tirent la réponse « En plus » ou « Remplace » à part
 (`startV2Walk(seed, { answers: true })`), sans changer les autres tirages de la graine. Les carnets
 rejoués par graine dans les specs, et les campagnes à deux téléphones, gardent la règle par distance,
-celle d'avant Q27, que le moteur applique encore sans réponse (« Changer la date », anciens exports).
+celle d'avant Q27, que le moteur applique encore sans réponse (anciens exports).
 
 ## Les services des traitements contre le moteur v2
 

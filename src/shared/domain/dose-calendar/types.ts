@@ -133,7 +133,7 @@ export type LineChange =
   | { action: 'rewrite'; id: string; line: LineFields }
   | { action: 'delete'; id: string }
 
-/** R5 : la réponse à « Cette prise » ; sans réponse, la règle par distance (« Changer la date », anciens exports). */
+/** R5 : la réponse à « Cette prise » ; sans réponse, la règle par distance (anciens exports, campagnes). */
 export type ExtraAnswer = 'extra' | 'replaces'
 
 /**
@@ -150,7 +150,13 @@ export type Gesture =
       answer?: ExtraAnswer
     }
   | { kind: 'move'; due: Due; to: Day; shiftsFollowing: boolean }
-  | { kind: 'redate'; lineId: string; givenOn: Day; shiftsFollowing: boolean }
+  | {
+      kind: 'redate'
+      lineId: string
+      givenOn: Day
+      shiftsFollowing: boolean
+      answer?: ExtraAnswer
+    }
   | { kind: 'remove'; lineId: string }
 
 /** Pourquoi un geste n'est pas permis ; chaque raison a son texte existant à l'écran. */
