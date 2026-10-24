@@ -4,10 +4,7 @@ import { restartApp } from '@/core/app-lifecycle/restart-app'
 import { getDeviceRepository } from '@/core/device/device.repository'
 import { cancelAllNotifications } from '@/core/notifications'
 import { deleteAllPhotos } from '@/core/photos/photo-storage'
-import {
-  getSyncOutboxRepository,
-  type SyncOutboxRepository,
-} from '@/core/sync/repository/sync-outbox.repository'
+import { getLocalSyncOutbox, type LocalSyncOutbox } from '@/core/sync/service/local-sync-outbox'
 import {
   getAnimalsRepository,
   type AnimalsRepository,
@@ -37,9 +34,7 @@ export type DeviceEraseDependencies = {
   animals: Provider<Pick<AnimalsRepository, 'eraseAll'>>
   /** Toute table qui référence un animal, et les autres tables de l'appareil. */
   tables: Provider<{ eraseAllStatement(): SqlStatement }>[]
-  syncOutbox: Provider<
-    Pick<SyncOutboxRepository, 'listPending' | 'countRefused' | 'eraseAllStatements'>
-  >
+  syncOutbox: Provider<Pick<LocalSyncOutbox, 'listPending' | 'countRefused' | 'eraseAllStatements'>>
   account: { isSignedIn(): boolean; signOut(): Promise<void> }
   notifications: { cancelAll(): Promise<void>; rebuild(): Promise<void> }
   photos: { deleteAll(): Promise<void> }
@@ -128,7 +123,7 @@ export const deviceEraseService = createDeviceEraseService({
     getCarnetSettingsRepository,
     getDeviceRepository,
   ],
-  syncOutbox: getSyncOutboxRepository,
+  syncOutbox: getLocalSyncOutbox,
   account: { isSignedIn: isSignedInOnDevice, signOut: signOutDevice },
   notifications: {
     cancelAll: () => cancelAllDueReminders({ cancelAllNotifications }),

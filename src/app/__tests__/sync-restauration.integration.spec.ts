@@ -4,10 +4,8 @@ import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory
 import { applyFixtures } from '@/core/dev/fixtures'
 import { createDeviceRepository } from '@/core/device/device.repository'
 import { createFakeSyncServer, type FakeSyncServer } from '@/core/sync/__tests__/fake-sync-server'
-import {
-  createSyncOutboxRepository,
-  SYNC_ENTITY_ORDER,
-} from '@/core/sync/repository/sync-outbox.repository'
+import { createLocalSyncOutbox } from '@/core/sync/service/local-sync-outbox'
+import { SYNC_ENTITY_ORDER } from '@/core/sync/repository/sync-entity-order'
 import { createSyncPushRepository } from '@/core/sync/repository/sync-push.repository'
 import { createSyncCycle } from '@/core/sync/service/sync-cycle'
 import { normalizeSyncTimestamps } from '@/core/sync/service/normalize-sync-timestamps'
@@ -50,7 +48,7 @@ async function createPhone(server: FakeSyncServer, deviceId: string) {
     repositories.weight,
     settings,
   ]
-  const outbox = createSyncOutboxRepository(db)
+  const outbox = createLocalSyncOutbox(db)
   const onRemindersOutdated = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
 
   /** Un cycle neuf sur la même base, comme après un redémarrage de l'app. */

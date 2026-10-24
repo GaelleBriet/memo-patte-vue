@@ -12,11 +12,8 @@ import {
   insertVaccination,
   insertVaccinationInjection,
 } from '@/core/sync/__tests__/sync-test-db'
-import {
-  createSyncOutboxRepository,
-  SYNC_ENTITY_ORDER,
-  type SyncOutboxRepository,
-} from '@/core/sync/repository/sync-outbox.repository'
+import { createLocalSyncOutbox, type LocalSyncOutbox } from '@/core/sync/service/local-sync-outbox'
+import { SYNC_ENTITY_ORDER } from '@/core/sync/repository/sync-entity-order'
 import { createSyncPushRepository } from '@/core/sync/repository/sync-push.repository'
 import { createBackupFactsReader } from '@/core/sync/service/backup-facts'
 import { createSyncCycle, type SyncCycle } from '@/core/sync/service/sync-cycle'
@@ -38,7 +35,7 @@ describe('amorçage : le carnet local part en entier vers un compte vide', () =>
   let server: FakeSyncServer
   let db: InMemoryDb
   let tables: SyncableTable[]
-  let outbox: SyncOutboxRepository
+  let outbox: LocalSyncOutbox
   let cycle: SyncCycle
 
   beforeEach(async () => {
@@ -93,7 +90,7 @@ describe('amorçage : le carnet local part en entier vers un compte vide', () =>
       weight,
       settings,
     ]
-    outbox = createSyncOutboxRepository(db)
+    outbox = createLocalSyncOutbox(db)
     cycle = createSyncCycle({
       db,
       outbox,

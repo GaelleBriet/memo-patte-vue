@@ -5,14 +5,15 @@ import { createAnimalPhotoDelete } from '@/core/supabase/animal-photo-delete'
 import { createAnimalPhotoDownload } from '@/core/supabase/animal-photo-download'
 import { createAnimalPhotoUpload } from '@/core/supabase/animal-photo-upload'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
-import { createSyncOutboxRepository } from '../repository/sync-outbox.repository'
+import { createCarnetPhotosRepository } from '../repository/carnet-photos.repository'
 import { createSyncPushRepository } from '../repository/sync-push.repository'
+import { createLocalSyncOutbox, type LocalSyncOutbox } from './local-sync-outbox'
 import { createAccountRestore, type AccountRestore, type RestorableTable } from './account-restore'
 import { createPhotoRestore, type PhotoRestore } from './photo-restore'
 import { createSyncCycle, type SyncCycle, type SyncCycleDependencies } from './sync-cycle'
 
 export interface LocalSyncContext {
-  outbox: ReturnType<typeof createSyncOutboxRepository>
+  outbox: LocalSyncOutbox
   cycle: SyncCycle
   restore: AccountRestore
   photoRestore: PhotoRestore
@@ -27,23 +28,20 @@ export type LocalSyncContextDependencies = Omit<
   sessionActive: () => boolean
 }
 
-/**
- * Ouvre la base locale et compose la file d'attente, le cycle, la restauration et ses photos : le
- * seul point, hors de `core/db`, autorisé à appeler `getDb()` (règle ESLint
- * `app/repository-only-data-access`).
- */
+/** Ouvre la base locale et compose la file d'attente, le cycle, la restauration et ses photos. */
 export async function createLocalSyncContext(
   deps: LocalSyncContextDependencies,
 ): Promise<LocalSyncContext> {
   const db = await getDb()
-  const outbox = createSyncOutboxRepository(db)
+  const outbox = createLocalSyncOutbox(db)
+  const carnetPhotos = createCarnetPhotosRepository(db)
   const pushes = createSyncPushRepository(loadSupabaseClient)
   const photos = {
     files: { read: readPhoto, exists: photoExists },
     uploads: createAnimalPhotoUpload(loadSupabaseClient),
     deletes: createAnimalPhotoDelete(loadSupabaseClient),
-    isPhotoInCarnet: (fileName: string) => outbox.isPhotoInCarnet(fileName),
-    isPhotoKeptByAnimal: (fileName: string) => outbox.isPhotoKeptByAnimal(fileName),
+    isPhotoInCarnet: (fileName: string) => carnetPhotos.isPhotoInCarnet(fileName),
+    isPhotoKeptByAnimal: (fileName: string) => carnetPhotos.isPhotoKeptByAnimal(fileName),
   }
   const cycle = createSyncCycle({ ...deps, db, outbox, pushes, photos })
   const restore = createAccountRestore({
@@ -54,7 +52,7 @@ export async function createLocalSyncContext(
     onRemindersOutdated: deps.onRemindersOutdated,
   })
   const photoRestore = createPhotoRestore({
-    carnetPhotos: () => outbox.listCarnetPhotos(),
+    carnetPhotos: () => carnetPhotos.listCarnetPhotos(),
     files: { exists: photoExists, write: writeDownloadedPhoto },
     downloads: createAnimalPhotoDownload(loadSupabaseClient),
     isAccountCurrent: (userId) => deps.sessionActive() && deps.userId() === userId,
