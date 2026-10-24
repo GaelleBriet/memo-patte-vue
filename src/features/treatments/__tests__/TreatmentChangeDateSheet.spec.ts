@@ -110,3 +110,54 @@ describe('TreatmentChangeDateSheet — aide sous le calendrier (Q30)', () => {
     wrapper.unmount()
   })
 })
+
+describe('TreatmentChangeDateSheet — « Cette prise » d’une prise en plus (Q37)', () => {
+  const question = (date: string | null, answer: string | null) =>
+    date === '2026-10-17'
+      ? {
+          title: 'Cette prise',
+          options: [
+            { value: 'extra' as const, label: 'En plus' },
+            { value: 'replaces' as const, label: 'Remplace celle du 23 oct.' },
+          ] as [{ value: 'extra'; label: string }, { value: 'replaces'; label: string }],
+          help: answer === null ? null : `Réponse : ${answer}`,
+        }
+      : null
+
+  it('pose la question, « Enregistrer » grisé sans réponse, puis enregistre la réponse', async () => {
+    const wrapper = mount(TreatmentChangeDateSheet, {
+      props: {
+        modelValue: false,
+        subtitle: 'Prise en plus du 16 oct. 2026',
+        date: '2026-10-16',
+        max: '2026-10-17',
+        question,
+      },
+      global: { plugins: [vuetify, i18n], stubs: { transition: false } },
+      attachTo: document.body,
+    })
+    await wrapper.setProps({ modelValue: true })
+    await flushPromises()
+    expect(dansLaFeuille('.treatment-extra-question')).toHaveLength(0)
+
+    wrapper.getComponent(DateCalendar).vm.$emit('update:modelValue', '2026-10-17')
+    await flushPromises()
+    const options = dansLaFeuille<HTMLButtonElement>('.form-segmented__option')
+    const [enregistrer] = dansLaFeuille<HTMLButtonElement>('.treatment-change-date__save')
+
+    expect(options.map((option) => option.textContent?.trim())).toEqual([
+      'En plus',
+      'Remplace celle du 23 oct.',
+    ])
+    expect(enregistrer!.disabled).toBe(true)
+
+    options[0]!.click()
+    await flushPromises()
+    expect(enregistrer!.disabled).toBe(false)
+    enregistrer!.click()
+    await flushPromises()
+
+    expect(wrapper.emitted('save')).toEqual([['2026-10-17', true, 'extra']])
+    wrapper.unmount()
+  })
+})
