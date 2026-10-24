@@ -276,17 +276,22 @@ Déconnexion et expiration se traitent alors en deux instructions, sans toucher 
   « modifications non sauvegardées » avant « Effacer les données de ce téléphone » compte aussi les
   éléments refusés. Un enfant n'est refusé avec son parent que si **son propre envoi** bute sur la
   clé étrangère (Postgres `23503`) alors qu'un de ses ancêtres est marqué refusé
-  (`hasRefusedAncestor`, d'après `SYNC_PARENT_COLUMNS` dans `core/db/schema-statements.ts`, aligné
-  sur les clés étrangères par un test) : il est marqué `refused_at` dès ce premier échec, sans
-  attendre trois refus. Tout autre échec de l'enfant (réseau, 5xx, son propre `23514`) suit les
+  (`markRefusedWithRefusedAncestor`, d'après `SYNC_PARENT_COLUMNS` dans
+  `core/db/schema-statements.ts`, aligné sur les clés étrangères par un test) : il est marqué
+  `refused_at` dès ce premier échec, sans attendre trois refus, par une seule requête
+  (`UPDATE … WHERE queued_at = ? AND EXISTS (ancêtre refusé)`) : un ancêtre remis en file entre une
+  lecture et la pose de la marque ne peut plus laisser l'enfant marqué. Tout autre échec de l'enfant (réseau, 5xx, son propre `23514`) suit les
   règles ordinaires. Un enfant dont le parent est déjà sur le serveur ne bute jamais sur la clé
   étrangère : il part, même si la dernière modification du parent est refusée. Quand le parent
   repart (`queued_at` avance), `sync_outbox_requeued` efface aussi la marque de ses descendants
   en file, qui repartent après lui dans l'ordre de `SYNC_ENTITY_ORDER` ; un descendant refusé pour
-  lui-même est alors retenté, et marqué de nouveau après trois refus. Une photo ne suit pas son
-  animal : son envoi ne dépend pas de la ligne. Résidus connus (#1209) : un enfant marqué avant que
-  son parent direct ne soit arrivé reste caché tant que le parent refusé n'est pas modifié ; course
-  de quelques millisecondes à la pose de la marque. Limite : une écriture qui laisse `queued_at` à la même valeur ne retente pas
+  lui-même est alors retenté, et marqué de nouveau après trois refus. Quand un parent quitte la
+  file (`sync_outbox_removed`, `AFTER DELETE`, même sous-requête), il est sur le serveur : ses
+  descendants marqués repartent, refusés ou non avec lui (#1209). Une entrée refusée ne quitte
+  jamais la file d'elle-même : seuls un envoi réussi (`removeIfUnchanged`), la déconnexion
+  (`forgetAccount`), « Effacer les données » et « Remplacer » à la restauration la retirent ; dans
+  les trois derniers cas, la file entière part, ou les marques sont déjà effacées. Une photo ne suit
+  pas son animal : son envoi ne dépend pas de la ligne. Limite : une écriture qui laisse `queued_at` à la même valeur ne retente pas
   l'entrée (même version, même refus).
 
 ### 3.4 Le piège du ping-pong

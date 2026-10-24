@@ -392,7 +392,7 @@ envoyer une entrée que le serveur refuse pour toujours (trois refus identiques 
 `countPending` ne la lisent pas, `countRefused` la compte (photos des seuls animaux non supprimés)
 pour Paramètres › Sauvegarde. Un enfant qui bute sur la clé étrangère sous un parent refusé porte la
 marque lui aussi (`proposition-sync.md` §3.3) ; `sync_outbox_requeued` l'efface quand le parent
-repart. La marque disparaît quand l'élément est modifié ou supprimé puis
+repart, `sync_outbox_removed` (v23, §4.13) quand le parent arrive au serveur. La marque disparaît quand l'élément est modifié ou supprimé puis
 sauvegardé : le déclencheur `sync_outbox_requeued` (`AFTER UPDATE OF queued_at`) la remet à nul dès
 qu'une nouvelle écriture avance `queued_at`, sans toucher aux déclencheurs de mise en file des
 tables. `enableAndQueueWholeCarnet` et la restauration la remettent à nul (nouvel essai) ;
@@ -402,6 +402,18 @@ La migration (`src/core/db/migration-v22.ts`) reconstruit `sync_outbox` par copi
 `CREATE TABLE … AS SELECT`, `DROP`, `CREATE`, `INSERT … SELECT`, sans `DELETE` ni `UPDATE` de
 premier niveau ; le déclencheur est créé après la recopie. Chaque entrée garde sa date et ses essais,
 `refused_at` nul. Aucune migration Supabase : la file est locale ; rien dans l'export.
+
+### 4.13 Évolution v23 (enfant refusé dont le parent arrive, #1209)
+
+`sync_outbox` reçoit un second déclencheur, `sync_outbox_removed` (`AFTER DELETE`) : quand une
+entrée d'un parent (animal, vaccin, traitement, période) quitte la file, il efface `refused_at` de
+ses descendants en file, par la même sous-requête que `sync_outbox_requeued`
+(`SYNC_PARENT_COLUMNS`). Un enfant marqué parce que son parent manquait au serveur repart dès que le
+parent y arrive. La migration (`src/core/db/migration-v23.ts`) ne fait que créer le déclencheur
+(`CREATE TRIGGER`, puis `PRAGMA user_version`) : la v22 est publiée (0.1.109) et ne change pas.
+Coût mesuré sur 5 000 prises : la mise en file du carnet et la remise en file des prises ne bougent
+pas ; chaque retrait de la file prend environ 0,15 ms de plus, le déclencheur étant compilé dans
+chaque `DELETE`.
 
 ## 5. Décisions
 

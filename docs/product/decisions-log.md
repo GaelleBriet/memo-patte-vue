@@ -3007,7 +3007,13 @@ du 12 mars est refusée ; la sauvegarde aboutit et Paramètres › Sauvegarde af
    quand le parent est modifié puis sauvegardé. Tout autre échec reste un réessai ordinaire. Un
    enfant dont le parent est déjà sur le serveur part normalement : le 21 octobre, Milo sauvegardé à
    8 h, sa modification de 8 h 10 refusée, la pesée corrigée à 9,9 kg à 8 h 20 arrive au serveur
-   (règle (c) du 24 octobre, après la re-relecture de #1206).
+   (règle (c) du 24 octobre, après la re-relecture de #1206). L'enfant repart aussi quand un
+   parent qui manquait au serveur y arrive enfin (#1209) : le même jour, une période créée à 8 h 30
+   prend un échec passager, sa prise de 8 h 31 bute sur la clé étrangère et, Milo étant refusé, est
+   marquée dès ce premier essai ; au cycle suivant la période arrive, la prise repart et arrive au
+   cycle d'après. De même, l'injection d'un vaccin neuf refusé une fois puis corrigé repart quand
+   le vaccin arrive. La marque de l'enfant se pose en une seule écriture, qui relit l'ancêtre
+   refusé au même instant : Milo modifié pendant ce temps ne laisse plus la pesée cachée.
 
 - Raison : la ligne restait dans le carnet du téléphone sans être dans le cloud, et « Dernière
   sauvegarde » le taisait (#1035). Un élément refusé ne bloque jamais la file et ne compte pas dans
