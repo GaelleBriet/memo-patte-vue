@@ -5,6 +5,7 @@ import { createAnimalPhotoDelete } from '@/core/supabase/animal-photo-delete'
 import { createAnimalPhotoDownload } from '@/core/supabase/animal-photo-download'
 import { createAnimalPhotoUpload } from '@/core/supabase/animal-photo-upload'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
+import { createCarnetPhotosRepository } from '../repository/carnet-photos.repository'
 import { createSyncOutboxRepository } from '../repository/sync-outbox.repository'
 import { createSyncPushRepository } from '../repository/sync-push.repository'
 import { createAccountRestore, type AccountRestore, type RestorableTable } from './account-restore'
@@ -37,13 +38,14 @@ export async function createLocalSyncContext(
 ): Promise<LocalSyncContext> {
   const db = await getDb()
   const outbox = createSyncOutboxRepository(db)
+  const carnetPhotos = createCarnetPhotosRepository(db)
   const pushes = createSyncPushRepository(loadSupabaseClient)
   const photos = {
     files: { read: readPhoto, exists: photoExists },
     uploads: createAnimalPhotoUpload(loadSupabaseClient),
     deletes: createAnimalPhotoDelete(loadSupabaseClient),
-    isPhotoInCarnet: (fileName: string) => outbox.isPhotoInCarnet(fileName),
-    isPhotoKeptByAnimal: (fileName: string) => outbox.isPhotoKeptByAnimal(fileName),
+    isPhotoInCarnet: (fileName: string) => carnetPhotos.isPhotoInCarnet(fileName),
+    isPhotoKeptByAnimal: (fileName: string) => carnetPhotos.isPhotoKeptByAnimal(fileName),
   }
   const cycle = createSyncCycle({ ...deps, db, outbox, pushes, photos })
   const restore = createAccountRestore({
@@ -54,7 +56,7 @@ export async function createLocalSyncContext(
     onRemindersOutdated: deps.onRemindersOutdated,
   })
   const photoRestore = createPhotoRestore({
-    carnetPhotos: () => outbox.listCarnetPhotos(),
+    carnetPhotos: () => carnetPhotos.listCarnetPhotos(),
     files: { exists: photoExists, write: writeDownloadedPhoto },
     downloads: createAnimalPhotoDownload(loadSupabaseClient),
     isAccountCurrent: (userId) => deps.sessionActive() && deps.userId() === userId,

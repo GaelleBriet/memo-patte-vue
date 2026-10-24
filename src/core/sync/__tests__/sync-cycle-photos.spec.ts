@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { ANIMAL_PHOTO_ENTITY } from '@/core/db/schema-statements'
 import { StorageTimeoutError } from '@/core/supabase/storage-timeout'
+import { createCarnetPhotosRepository } from '../repository/carnet-photos.repository'
 import { createSyncOutboxRepository } from '../repository/sync-outbox.repository'
 import type { PhotoDeletePort } from '../service/photo-delete-port'
 import {
@@ -162,6 +163,7 @@ describe('createSyncCycle — photos', () => {
       deletes: PhotoDeletePort = fakeDeletes(),
     ) {
       const outbox = createSyncOutboxRepository(db)
+      const carnetPhotos = createCarnetPhotosRepository(db)
       const cycle = createSyncCycle({
         db,
         outbox,
@@ -173,8 +175,8 @@ describe('createSyncCycle — photos', () => {
           files,
           uploads,
           deletes,
-          isPhotoInCarnet: (name) => outbox.isPhotoInCarnet(name),
-          isPhotoKeptByAnimal: (name) => outbox.isPhotoKeptByAnimal(name),
+          isPhotoInCarnet: (name) => carnetPhotos.isPhotoInCarnet(name),
+          isPhotoKeptByAnimal: (name) => carnetPhotos.isPhotoKeptByAnimal(name),
         },
       })
       return { outbox, cycle }
@@ -555,6 +557,7 @@ describe('createSyncCycle — photos', () => {
       let now = new Date('2026-10-20T08:00:00.000Z')
       const remoteRows: SyncRow[] = []
       const outbox = createSyncOutboxRepository(db)
+      const carnetPhotos = createCarnetPhotosRepository(db)
       const uploads = fakeUploads(order)
       const deletes = fakeDeletes(order)
       const animals: SyncableTable = {
@@ -589,8 +592,8 @@ describe('createSyncCycle — photos', () => {
           files,
           uploads,
           deletes,
-          isPhotoInCarnet: (name) => outbox.isPhotoInCarnet(name),
-          isPhotoKeptByAnimal: (name) => outbox.isPhotoKeptByAnimal(name),
+          isPhotoInCarnet: (name) => carnetPhotos.isPhotoInCarnet(name),
+          isPhotoKeptByAnimal: (name) => carnetPhotos.isPhotoKeptByAnimal(name),
         },
       })
       return {
