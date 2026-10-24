@@ -2,21 +2,21 @@
 import { describe, expect, it } from 'vitest'
 
 import type { Random } from '../../../scripts/dose-engine/carnet'
-import { symmetryAhead } from '../../../scripts/dose-engine/v2-invariants-readings'
+import { symmetry, symmetryAhead } from '../../../scripts/dose-engine/v2-invariants-readings'
 import {
   noteDose,
   redateDose,
   type GestureOutcome,
   type TreatmentViewInput,
 } from '../domain/dose-calendar'
-import { line, setting, WEEK } from './dose-calendar.v2.aides'
+import { DAY, H, line, setting, WEEK } from './dose-calendar.v2.aides'
 
 const accepted = (result: ReturnType<typeof redateDose | typeof noteDose>) => {
   if ('refusal' in result) throw new Error(`refusé : ${result.refusal.reason}`)
   return result as GestureOutcome
 }
 
-/** Les tirages de `symmetryAhead` : la date réelle (aujourd'hui moins 0 à 6 jours), puis la case. */
+/** Les tirages de la symétrie : la date réelle (aujourd'hui moins 0 à 6 jours), puis la case. */
 const drawing = (daysBack: number, checked: boolean): Random => {
   const values = [(daysBack + 0.5) / 7, checked ? 0.1 : 0.9]
   return () => values.shift() ?? 0.5
@@ -61,5 +61,47 @@ describe('symétrie de « Changer la date » et « Fait à une autre date » pou
     const lines = [...avant, line('p1', 'given', '2026-10-16')]
     expect(symmetryAhead({ ...le20, lines }, drawing(2, true))).toBeNull()
     expect(symmetryAhead({ ...le20, lines }, drawing(2, false))).toBeNull()
+  })
+})
+
+describe('symétrie de « Changer la date » et « Fait à une autre date » quand la journée porte déjà un décalage (R6, Q38)', () => {
+  // Métacam tous les jours à 8 h et 20 h du lundi 9 mars ; le 9, la dose de 20 h reportée au 5 avr.
+  // avec « Décaler aussi » ; le vendredi 13, la dose de 8 h du 9 est la dose du moment, en retard.
+  const metacam = setting('s1', '2026-03-09', DAY, H)
+  const report = line('s1', 'postponed', '2026-03-09', '20:00', '2026-04-05')
+  const decalage = line('s1', 'shift', '2026-03-09', '20:00', '2026-04-05')
+  const le13: TreatmentViewInput = {
+    settings: [metacam],
+    lines: [report, decalage],
+    today: '2026-03-13',
+  }
+  const dose8h = { settingId: 's1', dueOn: '2026-03-09', dueTime: '08:00' }
+
+  it.fails(
+    'résidu #1255 : « Fait à une autre date » au 10 propose la case ; « C’est fait » puis « Changer la date » au 10, non',
+    () => {
+      const prise = { ...line('s1', 'given', '2026-03-09', '08:00'), givenOn: '2026-03-13' }
+      const redated = accepted(
+        redateDose(
+          { ...le13, lines: [...le13.lines, prise] },
+          { lineId: prise.id, givenOn: '2026-03-10', shiftsFollowing: true },
+        ),
+      )
+      const noted = accepted(
+        noteDose(le13, {
+          due: dose8h,
+          status: 'given',
+          givenOn: '2026-03-10',
+          shiftsFollowing: true,
+        }),
+      )
+
+      expect(redated.offersShift).toBe(noted.offersShift)
+    },
+  )
+
+  it('la campagne exclut le résidu #1255 : case cochée, la symétrie se juge case décochée', () => {
+    expect(symmetry(le13, drawing(3, true))).toBeNull()
+    expect(symmetry(le13, drawing(3, false))).toBeNull()
   })
 })

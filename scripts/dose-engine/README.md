@@ -49,9 +49,10 @@ comme un seul « Modifier » (R10), n'est pas jugé. « En plus » (`v2-invarian
 Q37) : une réponse « En plus » écrit une seule prise en plus, à sa date, et laisse le calendrier tel
 quel ; une prise en plus le reste aux pas suivants, sauf « Changer la date » répondu « Remplace » (ou
 sans réponse, règle d'avant Q27). La symétrie se joue aussi pour la première dose à venir, dose du
-moment ou non (`symmetryAhead`) ; le résidu connu #1242 (« Changer la date » propose la case pour une
-dose qui n'est pas la dose du moment, « Fait à une autre date » non) y est jugé case décochée, et
-`dose-calendar.symetrie-dose-a-venir.spec.ts` le garde en `it.fails`. La campagne ne
+moment ou non (`symmetryAhead`). Deux résidus connus de la case y sont jugés case décochée, et
+`dose-calendar.symetrie-changer-la-date.spec.ts` les garde en `it.fails` : #1242 (« Changer la date »
+propose la case pour une dose qui n'est pas la dose du moment, « Fait à une autre date » non) et
+#1255 (l'inverse, quand la journée de la dose porte déjà un décalage). La campagne ne
 choisit jamais une « Prochaine dose » après la date de fin, que le formulaire refuse (Q20). Variables
 posées directement devant la commande, sous le même verrou :
 

@@ -119,16 +119,28 @@ function bothWays(
   return { direct, afterTap, redated }
 }
 
-// Résidu #1242 : « Changer la date » propose la case pour une dose qui n'est pas la dose du moment, « Fait à une autre date » non.
-function isResidual1242(view: TreatmentView, due: Due, { direct, redated }: Played): boolean {
+/**
+ * Résidus connus de la case, jugés case décochée : #1242, « Changer la date » la propose pour une dose
+ * qui n'est pas la dose du moment, « Fait à une autre date » non ; #1255, l'inverse quand la journée de
+ * la dose porte déjà un décalage.
+ */
+function isKnownResidual(
+  input: TreatmentViewInput,
+  view: TreatmentView,
+  due: Due,
+  shiftDay: Day,
+  { direct, redated }: Played,
+): boolean {
   if ('refusal' in direct || 'refusal' in redated) return false
   const current = view.currentDoses.some((other) => dueKey(other) === dueKey(due))
-  return !current && redated.offersShift && !direct.offersShift
+  if (!current && redated.offersShift && !direct.offersShift) return true
+  const shifted = input.lines.some(({ status, dueOn }) => status === 'shift' && dueOn === shiftDay)
+  return shifted && direct.offersShift && !redated.offersShift
 }
 
 function symmetryOf(input: TreatmentViewInput, due: Due, random: Random): Broken | null {
   const view = treatmentView(input)
-  // Exemption unique (ecarts-acceptes.md) : un décalage ancré au jour du tap part avec la prise corrigée.
+  // Exemption (ecarts-acceptes.md) : un décalage ancré au jour du tap part avec la prise corrigée.
   const shiftDay = shiftDayOf(view, due)
   const anchoredToday = ({ status, dueOn, targetOn }: Line) =>
     status === 'shift' && dueOn === shiftDay && targetOn === input.today
@@ -138,7 +150,7 @@ function symmetryOf(input: TreatmentViewInput, due: Due, random: Random): Broken
   if (boundary !== null && givenOn < boundary) return null
   let checked = random() < 0.65
   let played = bothWays(input, due, givenOn, checked)
-  if (played !== null && checked && isResidual1242(view, due, played)) {
+  if (played !== null && checked && isKnownResidual(input, view, due, shiftDay, played)) {
     checked = false
     played = bothWays(input, due, givenOn, checked)
   }
