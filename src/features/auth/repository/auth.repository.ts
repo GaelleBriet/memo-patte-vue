@@ -1,13 +1,14 @@
 import type { AuthError, Session, SupabaseClient } from '@supabase/supabase-js'
 
 import type { AppLocale } from '@/core/i18n'
-import { forgetStoredSession } from '@/core/supabase/auth-storage'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
-import { errorSummary } from '@/shared/utils/error-summary'
 
 import { AccountError } from '../logic/account-error'
 import { accountErrorFrom } from '../logic/account-error-from'
 import { accountIdentityOf, type AccountIdentity } from '../logic/account-identity-of'
+import { createSessionRevocation } from './session-revocation.repository'
+
+export { SIGN_OUT_TIMEOUT_MS } from './session-revocation.repository'
 
 export type AuthSession = { userId: string }
 
@@ -56,19 +57,8 @@ export type AuthDependencies = {
   loadClient?: () => Promise<SupabaseClient>
 }
 
-/** Hors ligne, Supabase retente le rafraîchissement pendant 30 s avant d'abandonner. */
-export const SIGN_OUT_TIMEOUT_MS = 3_000
-
 function isRetryable(error: AuthError | null): boolean {
   return error?.name === 'AuthRetryableFetchError'
-}
-
-type Revocation = { ok: true } | { ok: false; trace: string }
-
-const REVOKED: Revocation = { ok: true }
-
-function failedRevocation(cause: unknown): Revocation {
-  return { ok: false, trace: errorSummary(cause) }
 }
 
 /** Lève `AccountError`, `invalid-credentials` pour un mot de passe faux, sans rien envoyer sans session. */
@@ -82,15 +72,6 @@ export async function signInAgainWithPassword(
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
   if (error) throw error
   return data.session
-}
-
-/** Un seul délai pour les deux tentatives de `signOut` : la seconde n'ajoute jamais d'attente. */
-function revocationTimeout(): { reached: Promise<Revocation>; clear: () => void } {
-  let timer: ReturnType<typeof setTimeout> | undefined
-  const reached = new Promise<Revocation>((resolve) => {
-    timer = setTimeout(() => resolve({ ok: false, trace: 'délai dépassé' }), SIGN_OUT_TIMEOUT_MS)
-  })
-  return { reached, clear: () => clearTimeout(timer) }
 }
 
 function sessionOf(session: Session): AuthSession {
@@ -126,14 +107,7 @@ export function createAuthRepository({
     return loaded
   }
 
-  function revoke(scope: 'global' | 'local'): Promise<Revocation> {
-    return client()
-      .then((supabase) => supabase.auth.signOut({ scope }))
-      .then(
-        ({ error }) => (error ? failedRevocation(error) : REVOKED),
-        (cause: unknown) => failedRevocation(cause),
-      )
-  }
+  const revocation = createSessionRevocation(client)
 
   async function withClient<T>(operation: (supabase: SupabaseClient) => Promise<T>): Promise<T> {
     try {
@@ -249,23 +223,9 @@ export function createAuthRepository({
         return sessionOf(data.session)
       }),
 
-    async signOut() {
-      const timeout = revocationTimeout()
-      const outcome = await Promise.race([revoke('global'), timeout.reached])
-      if (!outcome.ok) {
-        console.warn('Session non invalidée auprès de Supabase :', outcome.trace)
-        await Promise.race([revoke('local'), timeout.reached])
-        forgetStoredSession()
-      }
-      timeout.clear()
-    },
+    signOut: revocation.signOut,
 
-    async discardSession() {
-      const timeout = revocationTimeout()
-      const outcome = await Promise.race([revoke('local'), timeout.reached])
-      if (!outcome.ok) forgetStoredSession()
-      timeout.clear()
-    },
+    discardSession: revocation.discardSession,
 
     async restoreSession() {
       const { data, error } = await (await client()).auth.getSession()
