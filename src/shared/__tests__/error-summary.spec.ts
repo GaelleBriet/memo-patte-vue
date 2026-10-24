@@ -1,7 +1,7 @@
 // @vitest-environment node
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { errorSummary } from '../utils/error-summary'
+import { errorSummary, localErrorMessage } from '../utils/error-summary'
 
 describe('errorSummary', () => {
   it('garde le nom, le code et le statut', () => {
@@ -59,5 +59,44 @@ describe('errorSummary', () => {
 
   it('reste lisible quand l’erreur n’a aucun de ces champs', () => {
     expect(errorSummary({})).toBe('erreur sans nom')
+  })
+})
+
+describe('localErrorMessage', () => {
+  afterEach(() => vi.unstubAllEnvs())
+
+  it('rend le message d’une erreur locale sans code, en développement', () => {
+    vi.stubEnv('DEV', true)
+
+    expect(localErrorMessage(new Error('sync_state introuvable'))).toBe('sync_state introuvable')
+  })
+
+  it('ne rend rien en production', () => {
+    vi.stubEnv('DEV', false)
+
+    expect(localErrorMessage(new Error('sync_state introuvable'))).toBe('')
+  })
+
+  it('ne rend jamais le message d’une erreur qui porte un code ou un statut', () => {
+    vi.stubEnv('DEV', true)
+    const error = Object.assign(new Error('Email sophie.martin@example.com not confirmed'), {
+      code: 'email_not_confirmed',
+      status: 400,
+    })
+
+    expect(localErrorMessage(error)).toBe('')
+  })
+
+  it('ne rend rien pour une erreur nommée ou qui n’est pas une erreur', () => {
+    vi.stubEnv('DEV', true)
+
+    expect(localErrorMessage(Object.assign(new Error('x'), { name: 'AuthApiError' }))).toBe('')
+    expect(localErrorMessage('sophie.martin@example.com')).toBe('')
+  })
+
+  it('coupe un message trop long', () => {
+    vi.stubEnv('DEV', true)
+
+    expect(localErrorMessage(new Error('a'.repeat(500)))).toHaveLength(200)
   })
 })

@@ -84,6 +84,27 @@ describe('parcours de restauration', () => {
     expect(flow.state.value).toEqual({ step: 'waiting-network' })
   })
 
+  it('journalise le message d’une lecture ratée de la restauration en attente, en développement', async () => {
+    vi.stubEnv('DEV', true)
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const flow = createRestoreFlow(
+      fakeRunner({
+        pendingMode: vi.fn<RestoreRunner['pendingMode']>(async () => {
+          throw new Error('sync_state introuvable')
+        }),
+      }),
+    )
+
+    await expect(flow.resume()).resolves.toBe(false)
+
+    expect(warn).toHaveBeenCalledWith(
+      'Restauration en attente non lue :',
+      'Error',
+      'sync_state introuvable',
+    )
+    vi.unstubAllEnvs()
+  })
+
   it('reprend une restauration choisie et prévient de chaque restauration réussie', async () => {
     const runner = fakeRunner()
     const flow = createRestoreFlow(runner)

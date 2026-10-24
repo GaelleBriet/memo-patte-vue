@@ -42,10 +42,13 @@ export type BillingService = {
   logOut(): Promise<void>
 }
 
+/** Le plugin Capacitor est un proxy : le rendre tel quel à une promesse la bloque (`then` y est une méthode native absente). */
+type LoadedPlugin = { plugin: PurchasesPlugin }
+
 export type BillingDependencies = {
   apiKey: string | undefined
   isNativePlatform: () => boolean
-  loadPlugin?: () => Promise<PurchasesPlugin>
+  loadPlugin?: () => Promise<LoadedPlugin>
 }
 
 const PACKAGE_PLANS: ReadonlyArray<readonly [string, PaidPlan]> = [
@@ -56,8 +59,8 @@ const PACKAGE_PLANS: ReadonlyArray<readonly [string, PaidPlan]> = [
 
 const PURCHASE_CANCELLED_CODE: `${PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR}` = '1'
 
-async function loadRevenueCat(): Promise<PurchasesPlugin> {
-  return (await import('@revenuecat/purchases-capacitor')).Purchases
+async function loadRevenueCat(): Promise<LoadedPlugin> {
+  return { plugin: (await import('@revenuecat/purchases-capacitor')).Purchases }
 }
 
 function isUserCancellation(error: unknown): boolean {
@@ -75,21 +78,21 @@ export function createBillingService({
   isNativePlatform,
   loadPlugin = loadRevenueCat,
 }: BillingDependencies): BillingService {
-  let configured: Promise<PurchasesPlugin> | null = null
+  let configured: Promise<LoadedPlugin> | null = null
 
   function isAvailable(): boolean {
     return Boolean(apiKey) && isNativePlatform()
   }
 
-  function ready(): Promise<PurchasesPlugin> {
+  function ready(): Promise<LoadedPlugin> {
     if (!isAvailable()) return Promise.reject(new BillingError('unavailable'))
     configured ??= loadPlugin()
-      .then(async (plugin) => {
-        await plugin.configure({
+      .then(async (loaded) => {
+        await loaded.plugin.configure({
           apiKey: apiKey!,
           automaticDeviceIdentifierCollectionEnabled: false,
         })
-        return plugin
+        return loaded
       })
       .catch((cause: unknown) => {
         configured = null
@@ -100,7 +103,7 @@ export function createBillingService({
 
   async function withPlugin<T>(operation: (plugin: PurchasesPlugin) => Promise<T>): Promise<T> {
     try {
-      return await operation(await ready())
+      return await operation((await ready()).plugin)
     } catch (cause) {
       if (cause instanceof BillingError) throw cause
       throw new BillingError('failed', { cause })

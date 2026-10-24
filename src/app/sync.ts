@@ -30,7 +30,7 @@ import { getVaccinationInjectionsRepository } from '@/features/vaccinations/repo
 import { getVaccinationsRepository } from '@/features/vaccinations/repository/vaccinations.repository'
 import { getWeightRepository } from '@/features/weight/repository/weight.repository'
 import { syncAllReminders } from '@/features/treatments/service/reminders-sync.service'
-import { errorSummary } from '@/shared/utils/error-summary'
+import { errorSummary, localErrorMessage } from '@/shared/utils/error-summary'
 
 const CHECK_TIMEOUT_MS = 30_000
 
@@ -103,7 +103,11 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
     } catch (cause) {
       checkedFor = null
       deps.restoreFlow.unreachable()
-      console.warn('Sauvegarde du compte non contrôlée :', errorSummary(cause))
+      console.warn(
+        'Sauvegarde du compte non contrôlée :',
+        errorSummary(cause),
+        localErrorMessage(cause),
+      )
     }
   }
 
