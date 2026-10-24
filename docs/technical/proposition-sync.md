@@ -284,7 +284,9 @@ Déconnexion et expiration se traitent alors en deux instructions, sans toucher 
   repart (`queued_at` avance), `sync_outbox_requeued` efface aussi la marque de ses descendants
   en file, qui repartent après lui dans l'ordre de `SYNC_ENTITY_ORDER` ; un descendant refusé pour
   lui-même est alors retenté, et marqué de nouveau après trois refus. Une photo ne suit pas son
-  animal : son envoi ne dépend pas de la ligne. Limite : une écriture qui laisse `queued_at` à la même valeur ne retente pas
+  animal : son envoi ne dépend pas de la ligne. Résidus connus (#1209) : un enfant marqué avant que
+  son parent direct ne soit arrivé reste caché tant que le parent refusé n'est pas modifié ; course
+  de quelques millisecondes à la pose de la marque. Limite : une écriture qui laisse `queued_at` à la même valeur ne retente pas
   l'entrée (même version, même refus).
 
 ### 3.4 Le piège du ping-pong
