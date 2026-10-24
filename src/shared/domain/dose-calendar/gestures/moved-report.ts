@@ -1,3 +1,4 @@
+import { gridDateOf } from '../grid'
 import type { Day, Due, Line, LineFields, Setting, TreatmentViewInput } from '../types'
 import type { TreatmentView } from '../view'
 import { shiftOfDay } from './changes'
@@ -58,8 +59,8 @@ export function reportToRewrite(
 }
 
 /**
- * #1000, G13 : le report tourné depuis une date choisie, redéplacé avec la case, garde cette date
- * comme arrivée d'avant ; sans quoi son décalage ne suivrait plus le réglage qui l'a choisie.
+ * #1000, G13 : le report tourné depuis une date choisie, plus récent que sa grille (Q26), redéplacé avec
+ * la case, garde cette date comme arrivée d'avant ; sans quoi son décalage ne suivrait plus le réglage.
  */
 export function chosenArrivalKept(
   settings: readonly Setting[],
@@ -71,7 +72,10 @@ export function chosenArrivalKept(
   if (day === undefined || day === null || day === to) return undefined
   if (dayShift?.targetOn !== report.targetOn) return undefined
   const chosen = settings.some(
-    ({ firstDueChosen, firstDueOn }) => firstDueChosen && firstDueOn === day,
+    (setting) =>
+      setting.firstDueChosen &&
+      setting.firstDueOn === day &&
+      report.decidedAt > gridDateOf(setting),
   )
   return chosen
     ? { previousTargetOn: day, previousTargetTime: report.previousTargetTime ?? null }
