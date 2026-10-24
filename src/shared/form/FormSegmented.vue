@@ -100,7 +100,9 @@ function select(value: unknown): void {
 }
 
 .form-segmented--compact {
-  height: tokens.$height-segmented-compact;
+  flex-wrap: wrap;
+  height: auto;
+  min-height: tokens.$height-segmented-compact;
   gap: 2px;
   padding: 3px;
   border-color: tokens.$color-field-border;
@@ -110,7 +112,10 @@ function select(value: unknown): void {
 
 .form-segmented--compact .form-segmented__option {
   flex: 1 1 auto;
-  min-width: 0;
+  min-width: min-content;
+  height: auto;
+  // Hauteur du conteneur moins sa bordure (2 px) et son padding (6 px).
+  min-height: calc(#{tokens.$height-segmented-compact} - 8px);
   padding: 0 4px;
   border-radius: tokens.$radius-segment-compact;
   font-size: 13px;

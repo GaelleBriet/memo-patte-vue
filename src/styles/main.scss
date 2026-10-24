@@ -13,3 +13,9 @@ body {
   background: rgb(var(--v-theme-background));
   color: rgb(var(--v-theme-on-background));
 }
+
+// Le voile d'un v-btn n'a pas de rayon : seul l'`overflow: hidden` de Vuetify 4.2 l'arrondissait.
+.v-btn__overlay,
+.v-btn__underlay {
+  border-radius: inherit;
+}
