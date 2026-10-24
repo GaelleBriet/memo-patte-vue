@@ -49,6 +49,19 @@ beforeEach(() => {
   plugin.getCustomerInfo.mockResolvedValue({ customerInfo: customerInfo(null) })
 })
 
+describe('chargement du plugin', () => {
+  it('ne résout jamais une promesse avec le plugin lui-même (proxy Capacitor)', async () => {
+    const then = vi.fn<() => void>()
+    Reflect.set(plugin, 'then', then)
+    try {
+      await expect(nativeService(API_KEY).listOffers()).resolves.toHaveLength(3)
+      expect(then).not.toHaveBeenCalled()
+    } finally {
+      Reflect.deleteProperty(plugin, 'then')
+    }
+  })
+})
+
 describe('billing indisponible', () => {
   it('sans clé ou hors natif : aucune offre, aucun appel au plugin', async () => {
     for (const service of [
