@@ -14,7 +14,7 @@ export type OtherDateSheetState = {
   today: string
   /** Le premier jour que donne l'écran : la naissance, ou la borne de « À faire » et de la notification. */
   min: string | null
-  /** La carte de la fiche ; `null` depuis « À faire » ou une notification. */
+  /** La carte de la fiche ou la ligne de la feuille du soin (Q36) ; `null` depuis « Donnée quand ? ». */
   target: NotifiedDue | null
   due: Due | null
   givenOn: string | null
@@ -34,19 +34,14 @@ export type OtherDateSheetPlan = {
   asked: ExtraAnswer | null | undefined
 }
 
-/**
- * Ce que montre « Fait à une autre date » : les jours, aujourd'hui toujours compris (Q33), la question
- * « Cette prise », le récapitulatif.
- */
+/** Ce que montre « Fait à une autre date » : les jours, la question « Cette prise », le récapitulatif. */
 export function otherDateSheetPlan(
   t: Translate,
   { treatment, reading, today, min, target, due, givenOn, answer, shifts }: OtherDateSheetState,
 ): OtherDateSheetPlan {
   const severalTimes = due !== null && hasSeveralTimes(treatment, due.settingId)
   const days =
-    target === null
-      ? { min: min !== null && min > today ? today : min, earlierHelp: false }
-      : cardOtherDateDays(reading, target, today, min)
+    target === null ? { min, earlierHelp: false } : cardOtherDateDays(reading, target, today, min)
   const question =
     due === null || givenOn === null
       ? null

@@ -53,16 +53,16 @@ describe('otherDateSheetPlan — ce que la feuille « Fait à une autre date » 
         treatment: book,
         reading: treatmentReadingOf(book, '2026-10-24'),
         today: '2026-10-24',
-        min: '2026-11-01',
-        target: null,
+        min: '2026-04-10',
+        target: { dueOn: '2026-11-01', dueTime: null },
         due,
         givenOn: '2026-10-24',
         answer,
         shifts: false,
       })
 
-    it('aujourd’hui reste choisissable, même avant la première échéance (Q33)', () => {
-      expect(planOf(null).min).toBe('2026-10-24')
+    it('le calendrier de la fiche : sans échéance précédente, tous les jours jusqu’à aujourd’hui', () => {
+      expect(planOf(null)).toMatchObject({ min: '2026-04-10', excluded: [], earlierHelp: false })
     })
 
     it('la même question que depuis la fiche, sans récapitulatif qui parlerait d’une dose couverte', () => {
@@ -89,7 +89,7 @@ describe('otherDateSheetPlan — ce que la feuille « Fait à une autre date » 
     })
   })
 
-  it('hors de la carte, sans question à poser : jours déjà donnés exclus, récapitulatif', () => {
+  it('« Donnée quand ? », sans question à poser : jours déjà donnés exclus, récapitulatif', () => {
     const book = treatment(
       [period({ startsOn: '2026-10-09', firstDueOn: '2026-10-09', frequency: WEEK })],
       [dose('2026-10-09', '2026-10-16')],

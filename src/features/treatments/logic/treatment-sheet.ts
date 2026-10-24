@@ -1,4 +1,3 @@
-import { givenWhenMin } from './treatment-notification'
 import { givesBeforeItsDay, notifiedDues } from './treatment-other-date'
 import { doneGesture } from './treatment-shift-box'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
@@ -80,17 +79,6 @@ export function sheetDoneTarget(
   return tapped.confirm
     ? { kind: 'confirm', due: pending.due }
     : { kind: 'note', gesture: tapped.gesture, heldBy: tapped.heldBy }
-}
-
-/** Premier jour proposé par « Fait à une autre date » pour l'échéance de la ligne. */
-export function sheetOtherDateMin(
-  view: Pick<TreatmentView, 'slots' | 'earliestGivenOn'>,
-  due: NotifiedDue,
-  birthDate: string | null,
-): string | null {
-  const target = notifiedDues(view, due).find(({ status }) => status !== 'given')?.due
-  if (target === undefined) return birthDate
-  return givenWhenMin(view, target, birthDate)
 }
 
 function dueText(t: Translate, { dueOn, dueTime }: NotifiedDue, today: string): string {

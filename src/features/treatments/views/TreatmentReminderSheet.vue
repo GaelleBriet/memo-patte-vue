@@ -12,7 +12,7 @@ import { useTreatmentGestures } from '../composables/use-treatment-gestures'
 import { useTreatmentSheetActions } from '../composables/use-treatment-sheet-actions'
 import { detailActions } from '../logic/treatment-card'
 import { readableReadingOf } from '../logic/treatment-reading-adapter'
-import { sheetOtherDateMin, sheetPeriod, treatmentSheetTexts } from '../logic/treatment-sheet'
+import { sheetPeriod, treatmentSheetTexts } from '../logic/treatment-sheet'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import { useTreatmentsStore } from '../store/treatments.store'
 import { useToday } from '@/core/app-lifecycle/use-today'
@@ -102,11 +102,6 @@ const texts = computed(() =>
     : null,
 )
 const canStop = computed(() => reading.value !== null && detailActions(reading.value.view).canStop)
-const otherDateMin = computed(() => {
-  const birth = animal.value?.birthDate ?? null
-  if (!treatment.value || !reading.value || !doseDue.value) return birth
-  return sheetOtherDateMin(reading.value.view, doseDue.value, birth)
-})
 
 const actions = useTreatmentSheetActions(
   { treatmentId: computed(() => treatment.value?.id ?? null), reading, doseDue, today, named },
@@ -223,8 +218,8 @@ function edit(): void {
     :treatment="treatment"
     :reading="reading"
     :today="today"
-    :min="otherDateMin"
-    :notified="doseDue"
+    :min="animal?.birthDate ?? null"
+    :target="doseDue"
     reopens-missed
     :busy="isBusy"
     :back-label="t('treatments.sheet.otherDay.back')"

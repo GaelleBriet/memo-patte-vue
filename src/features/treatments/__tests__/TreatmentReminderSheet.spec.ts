@@ -604,7 +604,7 @@ describe('TreatmentReminderSheet — fait à une autre date, avec la case (#527)
     return bouton(`.v-date-picker-month__day .v-btn[data-v-date^="${date}"]`)
   }
 
-  it('ouvre le calendrier de la fiche, sur l’échéance de la ligne, case cochée (V29)', async () => {
+  it('ouvre le calendrier de la fiche pour l’échéance de la ligne, case cochée (V29, Q36)', async () => {
     const sheet = await ouvrirAutreDate()
 
     expect(document.body.querySelector('.treatment-reminder-sheet.v-overlay--active')).toBeNull()
@@ -614,7 +614,10 @@ describe('TreatmentReminderSheet — fait à une autre date, avec la case (#527)
     )
     const calendrier = sheet.findComponent(DateCalendar)
     expect(calendrier.props('min')).toBe('2026-10-10')
-    expect(calendrier.props('excluded')).toEqual(['2026-10-09'])
+    expect(calendrier.props('excluded')).toEqual([])
+    expect(texte('.treatment-other-date__earlier')).toBe(
+      'Pour une dose plus ancienne, passe par le bandeau des doses non renseignées.',
+    )
     expect(texte('.treatment-other-date__recap')).toBe(
       'Dose du vendredi 16 oct., donnée le lundi 19 oct.',
     )
@@ -1081,7 +1084,7 @@ describe('TreatmentReminderSheet — « Fait à une autre date » nomme toujours
     })
   })
 
-  it('Bravecto, première dose le 1er nov., le 24 oct. : aujourd’hui, la question de la fiche (Q36)', async () => {
+  it('Bravecto, première dose le 1er nov., le 24 oct. : tous les jours jusqu’au 24, la question de la fiche (Q36)', async () => {
     const BRAVECTO: TreatmentWithPeriods = {
       ...treatment([
         {
@@ -1100,7 +1103,8 @@ describe('TreatmentReminderSheet — « Fait à une autre date » nomme toujours
     bouton('.reminder-actions__row--other-date').click()
     await flushPromises()
 
-    expect(sheet.getComponent(DateCalendar).props('min')).toBe('2026-10-24')
+    expect(sheet.getComponent(DateCalendar).props('min')).toBe(BOREE.birthDate)
+    expect(document.body.querySelector('.treatment-other-date__earlier')).toBeNull()
     expect(texte('.treatment-extra-question__title')).toBe('Cette prise')
     expect(document.body.querySelector('.treatment-other-date__recap')).toBeNull()
     expect(bouton('.treatment-other-date__submit').disabled).toBe(true)
