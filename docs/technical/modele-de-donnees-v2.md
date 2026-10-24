@@ -406,14 +406,16 @@ premier niveau ; le déclencheur est créé après la recopie. Chaque entrée ga
 ### 4.13 Évolution v23 (enfant refusé dont le parent arrive, #1209)
 
 `sync_outbox` reçoit un second déclencheur, `sync_outbox_removed` (`AFTER DELETE`) : quand une
-entrée d'un parent (animal, vaccin, traitement, période) quitte la file, il efface `refused_at` de
-ses descendants en file, par la même sous-requête que `sync_outbox_requeued`
-(`SYNC_PARENT_COLUMNS`). Un enfant marqué parce que son parent manquait au serveur repart dès que le
-parent y arrive. La migration (`src/core/db/migration-v23.ts`) ne fait que créer le déclencheur
+entrée d'un parent (animal, vaccin, traitement, période) qui avait échoué (`attempts > 0`) quitte la
+file, il efface `refused_at` de ses descendants en file, par la même sous-requête que
+`sync_outbox_requeued` (`SYNC_PARENT_COLUMNS`). Un enfant marqué parce que son parent manquait au
+serveur repart dès que le parent y arrive ; une entrée refusée pour elle-même garde sa marque quand
+son parent, jamais en échec, est sauvegardé. La migration (`src/core/db/migration-v23.ts`) ne fait que créer le déclencheur
 (`CREATE TRIGGER`, puis `PRAGMA user_version`) : la v22 est publiée (0.1.109) et ne change pas.
 Coût mesuré sur 5 000 prises : la mise en file du carnet et la remise en file des prises ne bougent
 pas ; chaque retrait de la file prend environ 0,15 ms de plus, le déclencheur étant compilé dans
-chaque `DELETE`.
+chaque `DELETE` (5 000 envois : 0,4–0,5 s puis 1,1–1,4 s en base mémoire, répartis sur 5 000
+allers-retours réseau) ; coût accepté par la session d'analyse du moteur.
 
 ## 5. Décisions
 
