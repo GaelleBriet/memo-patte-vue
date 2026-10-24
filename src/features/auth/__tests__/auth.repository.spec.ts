@@ -5,15 +5,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AUTH_STORAGE_KEY } from '@/core/supabase/auth-storage'
 
 import { AccountError } from '../logic/account-error'
+import { accountErrorFrom } from '../logic/account-error-from'
 import { CODE_LENGTH } from '../logic/email-code'
 import {
-  accountErrorFrom,
   authRepository,
   createAuthRepository,
-  SIGN_OUT_TIMEOUT_MS,
   type AuthRepository,
   type AuthSession,
 } from '../repository/auth.repository'
+import { SIGN_OUT_TIMEOUT_MS } from '../repository/session-revocation.repository'
 import { memoryStorage, OTHER_USER_ID, USER_ID, type MemoryStorage } from './auth-fixture'
 
 const clientModule = vi.hoisted(() => ({ evaluated: vi.fn<() => void>() }))
