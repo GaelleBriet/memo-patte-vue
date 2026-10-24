@@ -2,19 +2,17 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import TreatmentExtraQuestion from './TreatmentExtraQuestion.vue'
 import TreatmentHourChoices from './TreatmentHourChoices.vue'
 import TreatmentShiftCheckbox from './TreatmentShiftCheckbox.vue'
+import { cardOtherDateDays, extraQuestion } from '../logic/treatment-card-other-date'
 import { hasSeveralTimes } from '../logic/treatment-gestures'
-import {
-  givenDays,
-  notifiedPlan,
-  otherDatePlan,
-  otherDateTexts,
-} from '../logic/treatment-other-date'
+import { givenDays, notifiedPlan, otherDateTexts } from '../logic/treatment-other-date'
 import { otherDateBox, otherDateNote, otherDateRecap } from '../logic/treatment-shift-box'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
 import DateCalendar from '@/shared/components/DateCalendar.vue'
+import type { ExtraAnswer } from '@/shared/domain/dose-calendar'
 import type { NotifiedDue } from '@/shared/domain/reminder-route'
 import type { NoteGesture } from '../logic/treatment-dose-change'
 import type { TreatmentReading } from '@/shared/domain/treatment-reading'
@@ -31,10 +29,12 @@ const props = withDefaults(
     busy?: boolean
     /** « Donnée quand ? » : l'échéance de la notification, que le jour choisi ne change pas. */
     notified?: NotifiedDue | null
+    /** Fiche : l'échéance de la carte, ou sa journée à plusieurs heures, que le jour choisi ne change pas (Q28). */
+    target?: NotifiedDue | null
     /** Flèche de l'étape du jour, qui émet `back` : la feuille qui l'a ouverte reprend la main. */
     backLabel?: string | null
   }>(),
-  { min: null, busy: false, notified: null, backLabel: null },
+  { min: null, busy: false, notified: null, target: null, backLabel: null },
 )
 
 const emit = defineEmits<{
@@ -50,13 +50,18 @@ const step = ref<'day' | 'hour'>('day')
 const givenOn = ref<string | null>(props.today)
 const hour = ref<string | null>(null)
 const shifts = ref(true)
+const answer = ref<ExtraAnswer | null>(null)
 
+const named = computed(() => props.target ?? props.notified)
 const plan = computed(() => {
-  if (givenOn.value === null) return null
-  return props.notified === null
-    ? otherDatePlan(t, props.reading, givenOn.value)
-    : notifiedPlan(t, props.reading.view, props.notified)
+  if (givenOn.value === null || named.value === null) return null
+  return notifiedPlan(t, props.reading.view, named.value)
 })
+const days = computed(() =>
+  props.target === null
+    ? { min: props.min, earlierHelp: false }
+    : cardOtherDateDays(props.reading, props.target, props.today, props.min),
+)
 const severalTimes = computed(() => (plan.value?.hours.length ?? 0) > 0)
 const texts = computed(() =>
   otherDateTexts(
@@ -66,19 +71,30 @@ const texts = computed(() =>
     severalTimes.value,
   ),
 )
-const excluded = computed(() => givenDays(props.reading.view))
+const excluded = computed(() => (props.target === null ? givenDays(props.reading.view) : []))
 const due = computed(() => {
   if (step.value === 'day') return severalTimes.value ? null : (plan.value?.due ?? null)
   return plan.value?.hours.find(({ time }) => time === hour.value)?.due ?? null
 })
+const dueHasHours = computed(
+  () => due.value !== null && hasSeveralTimes(props.treatment, due.value.settingId),
+)
+const question = computed(() =>
+  props.target === null || due.value === null || givenOn.value === null
+    ? null
+    : extraQuestion(
+        t,
+        props.reading,
+        due.value,
+        givenOn.value,
+        dueHasHours.value,
+        answer.value,
+        shifts.value,
+      ),
+)
+const asked = computed(() => (question.value === null ? undefined : answer.value))
 const recap = computed(() =>
-  otherDateRecap(
-    t,
-    due.value,
-    givenOn.value,
-    due.value !== null && hasSeveralTimes(props.treatment, due.value.settingId),
-    props.reading.view,
-  ),
+  question.value === null ? otherDateRecap(t, due.value, givenOn.value, dueHasHours.value) : null,
 )
 const box = computed(() =>
   otherDateBox(
@@ -87,10 +103,13 @@ const box = computed(() =>
     givenOn.value,
     { treatment: props.treatment, reading: props.reading, today: props.today },
     shifts.value,
+    asked.value,
   ),
 )
 
-const gesture = computed(() => otherDateNote(due.value, givenOn.value, box.value, shifts.value))
+const gesture = computed(() =>
+  otherDateNote(due.value, givenOn.value, box.value, shifts.value, asked.value),
+)
 
 watch(open, (isOpen) => {
   if (!isOpen) return
@@ -100,7 +119,11 @@ watch(open, (isOpen) => {
 
 watch([givenOn, step], () => {
   hour.value = null
+})
+
+watch([givenOn, step, hour], () => {
   shifts.value = true
+  answer.value = null
 })
 
 function submit(): void {
@@ -129,10 +152,13 @@ function submit(): void {
       v-if="step === 'day'"
       v-model="givenOn"
       class="treatment-other-date__calendar"
-      :min="min"
+      :min="days.min"
       :max="today"
       :excluded="excluded"
     />
+    <p v-if="step === 'day' && days.earlierHelp" class="treatment-other-date__earlier">
+      {{ t('treatments.detail.otherDate.earlierHelp') }}
+    </p>
     <TreatmentHourChoices
       v-else
       v-model="hour"
@@ -141,6 +167,7 @@ function submit(): void {
       selectable
     />
 
+    <TreatmentExtraQuestion v-if="question" v-model="answer" :question="question" />
     <p v-if="recap" class="treatment-other-date__recap">
       <v-icon icon="ms:event_available" size="22" />
       <span>{{ recap }}</span>
@@ -170,6 +197,13 @@ function submit(): void {
 // Non scopé : la feuille est téléportée hors du composant.
 .treatment-other-date__calendar {
   margin-top: 12px;
+}
+
+.treatment-other-date__earlier {
+  margin: 8px 0 0;
+  color: tokens.$color-text-secondary;
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 .treatment-other-date__recap {

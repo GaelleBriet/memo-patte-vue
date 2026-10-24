@@ -588,6 +588,14 @@
         "back": "Retour au choix du jour",
         "hourTitle": "À quelle heure ?",
         "hourSubtitle": "{name} · {animal} · {date}",
+        "earlierHelp": "Pour une dose plus ancienne, passe par le bandeau des doses non renseignées.",
+        "question": {
+          "title": "Cette prise",
+          "extra": "En plus",
+          "replaces": "Remplace celle du {due}",
+          "replacesHelp": "Donnée le {given} pour la dose du {due} · prochaine dose le {next}",
+          "replacesHelpLast": "Donnée le {given} pour la dose du {due}"
+        },
         "hour": {
           "pending": "Dose de {time} · pas encore notée",
           "given": "Dose de {time} · déjà notée",

@@ -588,6 +588,14 @@
         "back": "Back to choosing the day",
         "hourTitle": "At what time?",
         "hourSubtitle": "{name} · {animal} · {date}",
+        "earlierHelp": "For an earlier dose, use the banner of doses not logged.",
+        "question": {
+          "title": "This dose",
+          "extra": "Extra dose",
+          "replaces": "Replaces the one due {due}",
+          "replacesHelp": "Given on {given} for the dose due {due} · next dose due {next}",
+          "replacesHelpLast": "Given on {given} for the dose due {due}"
+        },
         "hour": {
           "pending": "{time} dose · not logged yet",
           "given": "{time} dose · already logged",

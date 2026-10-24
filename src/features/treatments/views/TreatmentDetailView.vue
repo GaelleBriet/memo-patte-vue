@@ -15,6 +15,7 @@ import { useTreatmentDetail } from '../composables/use-treatment-detail'
 import { useTreatmentDoseFlow } from '../composables/use-treatment-dose-flow'
 import { useTreatmentGestures } from '../composables/use-treatment-gestures'
 import { detailActions, doseCard, lessPreciseReminder } from '../logic/treatment-card'
+import { cardDone, cardTarget } from '../logic/treatment-card-other-date'
 import type { NoteGesture } from '../logic/treatment-dose-change'
 import { dateChangeOf, lineAction, type DateChange } from '../logic/treatment-line-actions'
 import {
@@ -24,14 +25,14 @@ import {
   type DoseRow,
 } from '../logic/treatment-history'
 import { treatmentStopTexts } from '../logic/treatment-sheet'
-import { dateChangeBox, doneGesture, type DateChangeBox } from '../logic/treatment-shift-box'
+import { dateChangeBox, type DateChangeBox } from '../logic/treatment-shift-box'
 import { useExactReminders } from '@/core/notifications/use-exact-reminders'
 import { useAnimalsStore } from '@/features/animals/store/animals.store'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import ExactRemindersExplainer from '@/shared/components/ExactRemindersExplainer.vue'
 import OverflowMenu, { type OverflowMenuItem } from '@/shared/components/OverflowMenu.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
-import { originQuery } from '@/shared/domain/reminder-route'
+import { originQuery, type NotifiedDue } from '@/shared/domain/reminder-route'
 import { reminderIcon } from '@/shared/domain/reminders'
 import { takesNewCare } from '@/shared/domain/unfollowed-animals'
 import type { Due, MoveBounds } from '@/shared/domain/dose-calendar'
@@ -74,6 +75,7 @@ const exactReminders = useExactReminders()
 const isExplainerOpen = ref(false)
 
 const isOtherDateOpen = ref(false)
+const otherDateTarget = ref<NotifiedDue | null>(null)
 const isDoneConfirmOpen = ref(false)
 const confirming = ref<Due | null>(null)
 const isDatePickerOpen = ref(false)
@@ -136,11 +138,17 @@ watch(
   },
 )
 
+function openOtherDate(target: NotifiedDue | null): void {
+  otherDateTarget.value = target
+  isOtherDateOpen.value = true
+}
+
 function done(due: Due): void {
   refreshToday()
   if (!reading.value) return
-  const tapped = doneGesture(reading.value, due, today.value)
-  if (tapped.confirm) {
+  const tapped = cardDone(reading.value, due, today.value)
+  if ('ask' in tapped) openOtherDate({ dueOn: due.dueOn, dueTime: due.dueTime })
+  else if (tapped.confirm) {
     confirming.value = due
     isDoneConfirmOpen.value = true
   } else void note(tapped.gesture, tapped.heldBy)
@@ -247,7 +255,7 @@ onMounted(() => {
           :less-precise="lessPrecise"
           :busy="gestures.isBusy.value"
           @done="done"
-          @other-date="isOtherDateOpen = true"
+          @other-date="openOtherDate(cardTarget(card.entries.map(({ due }) => due)))"
           @reactivate="isExplainerOpen = true"
         />
 
@@ -297,6 +305,7 @@ onMounted(() => {
       :reading="reading"
       :today="today"
       :min="animal?.birthDate ?? null"
+      :target="otherDateTarget"
       :busy="gestures.isBusy.value"
       @note="noteOtherDate"
     />

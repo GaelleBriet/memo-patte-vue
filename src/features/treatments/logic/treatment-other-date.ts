@@ -55,26 +55,15 @@ function hourChoice(t: Translate, { due, status }: DayDue): HourChoice {
   }
 }
 
-/** Ce que « Fait à une autre date » demande et note pour le jour choisi. */
-export function otherDatePlan(
-  t: Translate,
-  { view, input }: TreatmentReading,
-  givenOn: string,
-): OtherDatePlan {
-  const dues = dayDues(view, givenOn)
-  const timed = dues.filter(({ due }) => due.dueTime !== null)
-  if (timed.length > 1) return { hours: timed.map((entry) => hourChoice(t, entry)), due: null }
-  const [only] = dues
-  if (only === undefined) return { hours: [], due: dueForDate(input, givenOn, null) }
-  return { hours: [], due: only.status === 'given' ? null : only.due }
-}
-
 /** Les échéances d'une notification : son heure, ou toute la journée sans heure (relance). */
 export function notifiedDues(view: DayView, { dueOn, dueTime }: NotifiedDue): DayDue[] {
   return dayDues(view, dueOn).filter(({ due }) => dueTime === null || due.dueTime === dueTime)
 }
 
-/** Ce que « Donnée quand ? » note : l'échéance de la notification, ou l'une de ses heures ; jamais un oubli (Q41). */
+/**
+ * Ce que « Donnée quand ? », « À faire » et la carte de la fiche notent : l'échéance nommée, ou l'une
+ * des heures de sa journée ; jamais un oubli (Q41). Le jour choisi ne change pas l'échéance (Q28).
+ */
 export function notifiedPlan(t: Translate, view: DayView, notified: NotifiedDue): OtherDatePlan {
   const dues = notifiedDues(view, notified)
   const open = (entry: DayDue): Due | null => (entry.status === 'pending' ? entry.due : null)

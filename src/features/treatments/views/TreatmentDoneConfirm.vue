@@ -42,7 +42,6 @@ const recap = computed(() =>
     props.due,
     props.today,
     props.due !== null && hasSeveralTimes(props.treatment, props.due.settingId),
-    props.reading.view,
   ),
 )
 const box = computed(() =>

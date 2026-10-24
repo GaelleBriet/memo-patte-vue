@@ -24,7 +24,6 @@ const VENDREDI = period({
   frequency: { value: 1, unit: 'week' },
 })
 const PIXEL = treatment([VENDREDI], [dose('2026-10-09', '2026-10-16')])
-const PIXEL_VIEW = treatmentReadingOf(PIXEL, '2026-10-19').view
 const DUE_16 = { settingId: 'p-1', dueOn: '2026-10-16', dueTime: null }
 
 function carnet(withPeriods: TreatmentWithPeriods, today: string) {
@@ -160,16 +159,16 @@ describe('otherDateBox — « Fait à une autre date » (V29)', () => {
   })
 
   it('récapitule la dose et le jour de la prise', () => {
-    expect(plain(otherDateRecap(t, DUE_16, '2026-10-19', false, PIXEL_VIEW)!)).toBe(
+    expect(plain(otherDateRecap(t, DUE_16, '2026-10-19', false)!)).toBe(
       'Dose du vendredi 16 oct., donnée le lundi 19 oct.',
     )
-    expect(
-      plain(otherDateRecap(t, { ...DUE_16, dueTime: '20:00' }, '2026-10-19', true, PIXEL_VIEW)!),
-    ).toBe('Dose de 20 h du vendredi 16 oct., donnée le lundi 19 oct.')
-    expect(otherDateRecap(t, DUE_16, '2026-10-16', false, PIXEL_VIEW)).toBeNull()
+    expect(plain(otherDateRecap(t, { ...DUE_16, dueTime: '20:00' }, '2026-10-19', true)!)).toBe(
+      'Dose de 20 h du vendredi 16 oct., donnée le lundi 19 oct.',
+    )
+    expect(otherDateRecap(t, DUE_16, '2026-10-16', false)).toBeNull()
   })
 
-  it('annonce une prise en plus, avec la prochaine dose, quand la prise précède la première dose', () => {
+  it('la case de « Remplace » se montre seulement une fois la réponse donnée (Q27)', () => {
     const bravecto = treatment(
       [
         period({
@@ -180,16 +179,13 @@ describe('otherDateBox — « Fait à une autre date » (V29)', () => {
       ],
       [],
     )
-    const { reading } = carnet(bravecto, '2026-10-20')
     const due = { settingId: 'p-1', dueOn: '2026-11-01', dueTime: null }
+    const box = (answer: 'extra' | 'replaces' | null) =>
+      otherDateBox(t, due, '2026-10-20', carnet(bravecto, '2026-10-20'), true, answer).shown
 
-    expect(plain(otherDateRecap(t, due, '2026-10-20', false, reading.view)!)).toBe(
-      'Prise en plus le mardi 20 oct. · la prochaine dose reste le dimanche 1er nov.',
-    )
-    applyLocale('en')
-    expect(plain(otherDateRecap(t, due, '2026-10-20', false, reading.view)!)).toBe(
-      'Extra dose on Tuesday, Oct 20 · next dose still due Sunday, Nov 1',
-    )
+    expect(box(null)).toBe(false)
+    expect(box('extra')).toBe(false)
+    expect(box('replaces')).toBe(true)
   })
 })
 

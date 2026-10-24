@@ -481,12 +481,7 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
     return view
   }
 
-  async function choisirLeJour(view: VueWrapper, date: string) {
-    view.getComponent(DateCalendar).vm.$emit('update:modelValue', date)
-    await flushPromises()
-  }
-
-  it('demande le jour, puis l’heure quand il y en a plusieurs (planches A · V3 ter bis et ter ter)', async () => {
+  it('demande le jour, puis l’heure parmi celles de la carte (planches A · V3 ter bis et ter ter, Q28)', async () => {
     const view = await ouvrir()
 
     expect(dansLaFeuille('.bottom-sheet__title')[0]!.textContent).toBe('Fait à une autre date')
@@ -495,9 +490,9 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
     )
     expect(view.getComponent(DateCalendar).props()).toMatchObject({
       modelValue: '2026-09-28',
-      min: '2023-04-10',
+      min: '2026-09-28',
       max: '2026-09-28',
-      excluded: ['2026-09-27'],
+      excluded: [],
     })
     expect(
       dansLaFeuille('.treatment-other-date__submit')[0]!.textContent?.replace(NBSP, ' ').trim(),
@@ -523,54 +518,25 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
     ])
   })
 
-  it('grise l’heure déjà donnée du jour choisi', async () => {
-    const view = await ouvrir(
-      treatment([MATIN_ET_SOIR], [dose('2026-09-27', '2026-09-27', { dueTime: '08:00' })]),
+  it('une heure déjà donnée aujourd’hui : la carte garde l’autre, la feuille ne demande que la date (Q28)', async () => {
+    await ouvrir(
+      treatment([MATIN_ET_SOIR], [...HIER, dose('2026-09-28', '2026-09-28', { dueTime: '08:00' })]),
     )
 
-    await choisirLeJour(view, '2026-09-27')
-    dansLaFeuille('.treatment-other-date__submit')[0]!.click()
-    await flushPromises()
-
-    expect(
-      dansLaFeuille('.treatment-hours__hour').map((hour) => [
-        hour.querySelector('.treatment-hours__detail')?.textContent?.replace(NBSP, ' '),
-        hour.disabled,
-      ]),
-    ).toEqual([
-      ['Dose de 8 h · déjà notée', true],
-      ['Dose de 20 h · pas encore notée', false],
-    ])
-  })
-
-  it('pour un jour d’une période à une seule heure, note sans demander l’heure, à l’échéance de ce jour', async () => {
-    const deuxPeriodes = treatment([
-      period({ startsOn: '2026-09-20', firstDueOn: '2026-09-20', times: ['09:00'] }),
-      {
-        ...MATIN_ET_SOIR,
-        id: 'p-2',
-        startsOn: '2026-09-27',
-        firstDueOn: '2026-09-27',
-        createdAt: '2026-09-27T08:00:00.000Z',
-      },
-    ])
-    const view = await ouvrir(deuxPeriodes)
-
-    await choisirLeJour(view, '2026-09-24')
     expect(
       dansLaFeuille('.treatment-other-date__submit')[0]!.textContent?.replace(NBSP, ' ').trim(),
-    ).toBe('Noter la prise du 24 sept.')
+    ).toBe('Noter la prise d’aujourd’hui')
     dansLaFeuille('.treatment-other-date__submit')[0]!.click()
     await flushPromises()
 
     expect(dansLaFeuille('.treatment-hours__hour')).toHaveLength(0)
-    expect(service.apply).toHaveBeenCalledWith(deuxPeriodes.id, {
+    expect(service.apply).toHaveBeenCalledWith(METACAM.id, {
       kind: 'note',
       gesture: {
         kind: 'note',
         status: 'given',
-        due: { settingId: 'p-1', dueOn: '2026-09-24', dueTime: '09:00' },
-        givenOn: '2026-09-24',
+        due: { settingId: 'p-1', dueOn: '2026-09-28', dueTime: '20:00' },
+        givenOn: '2026-09-28',
         shiftsFollowing: false,
       },
     })
@@ -618,19 +584,20 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
     expect(view.findComponent(DateCalendar).exists()).toBe(true)
   })
 
-  it('sans heures multiples, note le jour choisi sans demander l’heure, jamais un jour déjà donné', async () => {
+  it('sans heures multiples, note la dose de la carte sans demander l’heure (Q28)', async () => {
     const quotidien = treatment(
       [period({ startsOn: '2026-09-24', firstDueOn: '2026-09-24' })],
       [dose('2026-09-24', '2026-09-25'), missed('2026-09-25', '2026-09-26')],
     )
     const view = await ouvrir(quotidien)
 
-    expect(view.getComponent(DateCalendar).props('excluded')).toEqual(['2026-09-24'])
-
-    await choisirLeJour(view, '2026-09-25')
+    expect(view.getComponent(DateCalendar).props()).toMatchObject({
+      min: '2026-09-28',
+      excluded: [],
+    })
     expect(
       dansLaFeuille('.treatment-other-date__submit')[0]!.textContent?.replace(NBSP, ' ').trim(),
-    ).toBe('Noter la prise du 25 sept.')
+    ).toBe('Noter la prise d’aujourd’hui')
     dansLaFeuille('.treatment-other-date__submit')[0]!.click()
     await flushPromises()
 
@@ -639,12 +606,12 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
       gesture: {
         kind: 'note',
         status: 'given',
-        due: { settingId: 'p-1', dueOn: '2026-09-25', dueTime: null },
-        givenOn: '2026-09-25',
+        due: { settingId: 'p-1', dueOn: '2026-09-28', dueTime: null },
+        givenOn: '2026-09-28',
         shiftsFollowing: false,
       },
     })
-    expect(message()).toBe('Prise de Métacam du 25 sept. notée pour Luna')
+    expect(message()).toBe('Prise de Métacam notée pour Luna')
   })
 
   it('garde la feuille ouverte quand la prise n’a pas pu être notée', async () => {
@@ -661,6 +628,174 @@ describe('TreatmentDetailView — « Fait à une autre date »', () => {
     expect(dansLaFeuille('.treatment-hours__hour')).toHaveLength(2)
     expect(view.findComponent(DateCalendar).exists()).toBe(false)
     expect(message()).toBe('La modification n’a pas abouti. Réessaie.')
+  })
+})
+
+describe('TreatmentDetailView — la dose de la carte et « Cette prise » (TR-13, R5 ; Q27 à Q29)', () => {
+  const HEBDO = { value: 1, unit: 'week' } as const
+  /** Luna, Bravecto tous les 3 mois, première prise le 10 oct. */
+  const BRAVECTO = treatment([
+    period({
+      startsOn: '2026-10-10',
+      firstDueOn: '2026-10-10',
+      frequency: { value: 3, unit: 'month' },
+    }),
+  ])
+  /** Milbemax chaque semaine à 9 h, dose du jour déjà notée : prochaine dose le 5 oct. */
+  const MILBEMAX_NOTE = treatment(
+    [
+      period({
+        startsOn: '2026-09-21',
+        firstDueOn: '2026-09-21',
+        frequency: HEBDO,
+        times: ['09:00'],
+      }),
+    ],
+    [
+      dose('2026-09-21', '2026-09-28', { dueTime: '09:00' }),
+      dose('2026-09-28', '2026-10-05', { dueTime: '09:00' }),
+    ],
+  )
+
+  async function ouvrir(shown: TreatmentWithPeriods) {
+    const view = await monter(shown)
+    await view.get('.treatment-dose-card__other-date').trigger('click')
+    await flushPromises()
+    return view
+  }
+
+  const enregistrer = () => dansLaFeuille('.treatment-other-date__submit')[0]!
+  const choix = () =>
+    dansLaFeuille('.treatment-extra-question .form-segmented__option').map((option) =>
+      option.textContent?.replace(NBSP, ' ').trim(),
+    )
+  async function repondre(index: number) {
+    dansLaFeuille('.treatment-extra-question .form-segmented__option')[index]!.click()
+    await flushPromises()
+  }
+  const aide = () =>
+    dansLaFeuille('.treatment-extra-question__help')[0]?.textContent?.replace(NBSP, ' ').trim()
+
+  it('Luna, Bravecto avant sa première prise : la question, aucun choix préselectionné, « Enregistrer » grisé', async () => {
+    const view = await ouvrir(BRAVECTO)
+
+    expect(view.getComponent(DateCalendar).props()).toMatchObject({
+      modelValue: '2026-09-28',
+      min: '2023-04-10',
+      max: '2026-09-28',
+      excluded: [],
+    })
+    expect(dansLaFeuille('.treatment-other-date__earlier')).toHaveLength(0)
+    expect(dansLaFeuille('.treatment-extra-question__title')[0]!.textContent).toBe('Cette prise')
+    expect(choix()).toEqual(['En plus', 'Remplace celle du 10 oct.'])
+    expect(aide()).toBeUndefined()
+    expect(dansLaFeuille('.treatment-other-date__recap')).toHaveLength(0)
+    expect(enregistrer().disabled).toBe(true)
+  })
+
+  it('« Remplace » : l’aide suit la case, la prise vise la dose de la carte', async () => {
+    await ouvrir(BRAVECTO)
+    await repondre(1)
+
+    expect(aide()).toBe('Donnée le 28 sept. pour la dose du 10 oct. · prochaine dose le 28 déc.')
+    const caseDecaler = dansLaFeuille('.treatment-shift__input')[0]! as unknown as HTMLInputElement
+    caseDecaler.click()
+    await flushPromises()
+    expect(aide()).toBe(
+      'Donnée le 28 sept. pour la dose du 10 oct. · prochaine dose le 10 janv. 2027',
+    )
+    caseDecaler.click()
+    await flushPromises()
+    expect(enregistrer().disabled).toBe(false)
+    enregistrer().click()
+    await flushPromises()
+
+    expect(service.apply).toHaveBeenCalledWith(BRAVECTO.id, {
+      kind: 'note',
+      gesture: {
+        kind: 'note',
+        status: 'given',
+        due: { settingId: 'p-1', dueOn: '2026-10-10', dueTime: null },
+        givenOn: '2026-09-28',
+        shiftsFollowing: true,
+        answer: 'replaces',
+      },
+    })
+  })
+
+  it('« En plus » : la prochaine dose reste, pas de case', async () => {
+    await ouvrir(BRAVECTO)
+    await repondre(0)
+
+    expect(aide()).toBe('Prise en plus le lundi 28 sept. · la prochaine dose reste le 10 oct.')
+    expect(dansLaFeuille('.treatment-shift__input')).toHaveLength(0)
+    enregistrer().click()
+    await flushPromises()
+
+    expect(service.apply).toHaveBeenCalledWith(BRAVECTO.id, {
+      kind: 'note',
+      gesture: {
+        kind: 'note',
+        status: 'given',
+        due: { settingId: 'p-1', dueOn: '2026-10-10', dueTime: null },
+        givenOn: '2026-09-28',
+        shiftsFollowing: false,
+        answer: 'extra',
+      },
+    })
+  })
+
+  it('Q29 : dose du jour notée, « Noter la prise d’aujourd’hui » attend la réponse au lieu de rester grisé', async () => {
+    const view = await ouvrir(MILBEMAX_NOTE)
+
+    expect(view.getComponent(DateCalendar).props()).toMatchObject({ min: '2026-09-28' })
+    expect(dansLaFeuille('.treatment-other-date__earlier')[0]!.textContent?.trim()).toBe(
+      'Pour une dose plus ancienne, passe par le bandeau des doses non renseignées.',
+    )
+    expect(choix()).toEqual(['En plus', 'Remplace celle du 5 oct.'])
+    expect(enregistrer().textContent?.replace(NBSP, ' ').trim()).toBe(
+      'Noter la prise d’aujourd’hui',
+    )
+    expect(enregistrer().disabled).toBe(true)
+    await repondre(1)
+    expect(enregistrer().disabled).toBe(false)
+  })
+
+  it('Q29 : « C’est fait » sur la prochaine dose ouvre la feuille avec la question, sans rien écrire', async () => {
+    const view = await monter(MILBEMAX_NOTE)
+    await view.get('.treatment-dose-card__done').trigger('click')
+    await flushPromises()
+
+    expect(service.apply).not.toHaveBeenCalled()
+    expect(view.getComponent(DateCalendar).props('modelValue')).toBe('2026-09-28')
+    expect(choix()).toEqual(['En plus', 'Remplace celle du 5 oct.'])
+  })
+
+  it('Q28 : carte de la dose du jour, « Fait hier » : la dose du jour donnée en avance, jamais celle d’avant', async () => {
+    const hebdo = treatment(
+      [period({ startsOn: '2026-09-07', firstDueOn: '2026-09-07', frequency: HEBDO })],
+      [dose('2026-09-07', '2026-09-14')],
+    )
+    const view = await ouvrir(hebdo)
+
+    expect(view.getComponent(DateCalendar).props()).toMatchObject({ min: '2026-09-22' })
+    expect(dansLaFeuille('.treatment-other-date__earlier')).toHaveLength(1)
+    view.getComponent(DateCalendar).vm.$emit('update:modelValue', '2026-09-27')
+    await flushPromises()
+    expect(dansLaFeuille('.treatment-extra-question')).toHaveLength(0)
+    enregistrer().click()
+    await flushPromises()
+
+    expect(service.apply).toHaveBeenCalledWith(hebdo.id, {
+      kind: 'note',
+      gesture: {
+        kind: 'note',
+        status: 'given',
+        due: { settingId: 'p-1', dueOn: '2026-09-28', dueTime: null },
+        givenOn: '2026-09-27',
+        shiftsFollowing: true,
+      },
+    })
   })
 })
 
