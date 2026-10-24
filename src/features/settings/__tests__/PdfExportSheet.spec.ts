@@ -168,10 +168,14 @@ describe('PdfExportSheet', () => {
       'save',
     )
     expect(wrapper!.emitted('update:modelValue')).toEqual([[false]])
-    expect(toastMessage.value).toBe('PDF enregistré dans Documents › MémoPatte')
+    expect(toastMessage.value).toBe(
+      'PDF enregistré. Retrouve-le dans l’app Fichiers, dossier Documents › MémoPatte.',
+    )
     expect(toastAction.value).toMatchObject({ label: 'Ouvrir', ariaLabel: 'Ouvrir le PDF' })
     vi.advanceTimersByTime(3900)
-    expect(toastMessage.value).toBe('PDF enregistré dans Documents › MémoPatte')
+    expect(toastMessage.value).toBe(
+      'PDF enregistré. Retrouve-le dans l’app Fichiers, dossier Documents › MémoPatte.',
+    )
     vi.advanceTimersByTime(200)
     expect(toastMessage.value).toBeNull()
   })
@@ -197,7 +201,9 @@ describe('PdfExportSheet', () => {
     enregistrer().click()
     await flushPromises()
 
-    expect(toastMessage.value).toBe('PDF enregistré dans Documents › MémoPatte')
+    expect(toastMessage.value).toBe(
+      'PDF enregistré. Retrouve-le dans l’app Fichiers, dossier Documents › MémoPatte.',
+    )
     expect(toastAction.value).toBeNull()
   })
 

@@ -129,7 +129,7 @@ describe('EraseDataView, écran d’avant', () => {
     expect(wrapper.get('.erase-data__export').text()).toBe('Exporter une copie')
     expect(wrapper.findAll('.erase-data__fact').map((fact) => fact.text())).toEqual([
       'Plus aucun rappel ne sonnera sur ce téléphone.',
-      'Les exports enregistrés dans Documents › MémoPatte restent sur le téléphone.',
+      'Les exports restent sur le téléphone, dans l’app Fichiers, dossier Documents › MémoPatte.',
       'Après l’effacement, MémoPatte redémarre comme au premier lancement.',
     ])
     expect(wrapper.get('.erase-data__continue').text()).toBe('Continuer')
@@ -269,6 +269,8 @@ it('se lit en anglais', async () => {
   expect(wrapper.get('.erase-data__title').text()).toBe('Erase this phone’s data')
   expect(texte(wrapper)).toContain('Your latest changes aren’t in your cloud backup yet.')
   expect(texte(wrapper)).toContain('This device will be signed out of your account.')
-  expect(texte(wrapper)).toContain('Exports saved in Documents › MémoPatte stay on the phone.')
+  expect(texte(wrapper)).toContain(
+    'Exports stay on the phone, in the Files app, in Documents › MémoPatte.',
+  )
   expect(wrapper.get('.erase-data__continue').text()).toBe('Continue')
 })

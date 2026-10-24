@@ -1373,7 +1373,7 @@
       "signOut": "Cet appareil sera déconnecté de ton compte.",
       "copy": "Avant d’effacer, exporte une copie de ton carnet.",
       "reminders": "Plus aucun rappel ne sonnera sur ce téléphone.",
-      "exports": "Les exports enregistrés dans Documents › MémoPatte restent sur le téléphone.",
+      "exports": "Les exports restent sur le téléphone, dans l’app Fichiers, dossier Documents › MémoPatte.",
       "restart": "Après l’effacement, MémoPatte redémarre comme au premier lancement.",
       "continue": "Continuer",
       "cancel": "Annuler",
@@ -1471,12 +1471,12 @@
       "shareTitle": "Partager via",
       "success": "Données exportées",
       "saved": {
-        "json": "Export JSON enregistré dans Documents › MémoPatte",
-        "csv": "Export CSV enregistré dans Documents › MémoPatte"
+        "json": "Export JSON enregistré. Retrouve-le dans l’app Fichiers, dossier Documents › MémoPatte.",
+        "csv": "Export CSV (ZIP) enregistré. Retrouve-le dans l’app Fichiers, dossier Documents › MémoPatte."
       },
       "open": "Ouvrir",
       "openLabel": {
-        "csv": "Ouvrir l’export CSV"
+        "csv": "Ouvrir l’export CSV (ZIP)"
       },
       "openFailed": "Aucune app n’a pu ouvrir ce fichier. Il reste dans Documents › MémoPatte.",
       "storage": {
@@ -1639,7 +1639,7 @@
       "fileNamePrefix": "carnet",
       "shareTitle": "Partager via",
       "success": "PDF exporté",
-      "saved": "PDF enregistré dans Documents › MémoPatte",
+      "saved": "PDF enregistré. Retrouve-le dans l’app Fichiers, dossier Documents › MémoPatte.",
       "openLabel": "Ouvrir le PDF",
       "status": {
         "overdue": "En retard",
