@@ -109,6 +109,13 @@ function needsAction(steps: PurgeSteps): boolean {
   return steps.account === 'warn' || deletesAccount(steps) || steps.eraseRevenuecat
 }
 
+/** Une suppression annoncée par e-mail ne cède jamais sa place dans le lot à une adresse jamais confirmée. */
+function passOrder(steps: PurgeSteps): number {
+  if (steps.account === 'delete') return 0
+  if (steps.account === 'unconfirmed-pending') return 2
+  return 1
+}
+
 /** Google Play rend l'accès à la date de reprise : une pause en cours vaut un abonnement. */
 function pausedUntilLater(subscriber: RevenuecatSubscriber, now: number): boolean {
   return Object.values(subscriber.subscriptions ?? {}).some((purchase) => {
@@ -145,12 +152,15 @@ type PassState = { now: number; deletionAttempts: number }
 
 async function processAccount(
   userId: string,
+  listed: PurgeSteps,
   state: PassState,
   ports: PurgePassPorts,
   revenuecat: RevenuecatPorts,
   report: PurgeReport,
 ): Promise<AccountOutcome> {
   const { now } = state
+  const batchFull = () => state.deletionAttempts >= MAX_DELETIONS_PER_PASS
+  if (deletesAccount(listed) && batchFull()) return 'batch-full'
   const at = new Date(now).toISOString()
   const fresh = await attempt('database', () => ports.readCandidate(userId, at))
   if (!fresh) return 'none'
@@ -159,7 +169,7 @@ async function processAccount(
   if (!needsAction(steps) || since === null) return 'none'
 
   const deletes = deletesAccount(steps)
-  if (deletes && state.deletionAttempts >= MAX_DELETIONS_PER_PASS) return 'batch-full'
+  if (deletes && batchFull()) return 'batch-full'
 
   const subscriber = await attempt('revenuecat', () => revenuecat.read(userId))
   if (resumedAtRevenuecat(subscriber, fresh.dates, now)) return 'reactivated'
@@ -207,16 +217,18 @@ export async function runPurgePass(ports: PurgePassPorts, mode: PurgeMode): Prom
   const state: PassState = { now: Date.now(), deletionAttempts: 0 }
   const report = emptyReport(mode, ports)
   const candidates = await ports.listCandidates(new Date(state.now).toISOString())
-  const due = candidates.filter((candidate) => {
-    const steps = purgeStepsOf(candidate.dates, state.now)
-    countDue(report, steps)
-    return needsAction(steps)
-  })
+  const due = candidates
+    .map(({ userId, dates }) => ({ userId, steps: purgeStepsOf(dates, state.now) }))
+    .filter(({ steps }) => {
+      countDue(report, steps)
+      return needsAction(steps)
+    })
+    .sort((a, b) => passOrder(a.steps) - passOrder(b.steps))
   if (!applies) return report
 
-  for (const { userId } of due) {
+  for (const { userId, steps } of due) {
     try {
-      const outcome = await processAccount(userId, state, ports, revenuecat, report)
+      const outcome = await processAccount(userId, steps, state, ports, revenuecat, report)
       if (outcome === 'reactivated') report.skipped.reactivated++
       if (outcome === 'batch-full') report.skipped.batchFull++
     } catch (cause) {

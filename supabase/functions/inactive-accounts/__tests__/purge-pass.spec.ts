@@ -434,6 +434,37 @@ describe('runPurgePass : adresse jamais confirmée, supprimée au bout de 7 jour
     expect(report.skipped.batchFull).toBe(2)
   })
 
+  it('une suppression annoncée par e-mail passe avant les adresses jamais confirmées', async () => {
+    useClock(SEVEN_DAYS_LATER)
+    const camille = candidate('dddddddd-0000-4000-8000-000000000003', {
+      plus: { expiresAt: '2026-10-01T10:00:00.000Z' },
+      notice: {
+        purgeOn: '2027-11-01',
+        warnedAt: '2027-09-02T03:00:00.000Z',
+        revenuecatErasedAt: '2026-12-01T03:00:00.000Z',
+      },
+    })
+    const fake = fakePurgePorts({
+      candidates: [...unconfirmedAccounts(MAX_DELETIONS_PER_PASS, '88888888'), camille],
+    })
+
+    const report = await runPurgePass(fake.ports, 'apply')
+
+    expect(fake.calls.filter((c) => c.kind === 'deleteUser')[0]?.userId).toBe(camille.userId)
+    expect(report.done).toEqual({ ...ZERO_DONE, deletions: 1, unconfirmedDeletions: 9 })
+    expect(report.skipped.batchFull).toBe(1)
+  })
+
+  it('au-delà de la limite, une suppression due est sautée sans relecture', async () => {
+    useClock(SEVEN_DAYS_LATER)
+    const fake = fakePurgePorts({ candidates: unconfirmedAccounts(12, '77777777') })
+
+    const report = await runPurgePass(fake.ports, 'apply')
+
+    expect(fake.calls.filter((c) => c.kind === 'read')).toHaveLength(MAX_DELETIONS_PER_PASS)
+    expect(report.skipped.batchFull).toBe(2)
+  })
+
   it('une suppression en échec compte comme tentative et n’arrête pas le lot', async () => {
     useClock(SEVEN_DAYS_LATER)
     const accounts = unconfirmedAccounts(12, '99999999')
