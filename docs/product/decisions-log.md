@@ -3763,3 +3763,17 @@ conservés avec le compte et supprimés avec lui ; la politique de confidentiali
 suppression de compte (FR et EN) le disent. (2) Une adresse jamais confirmée (code d'inscription jamais
 saisi) est supprimée au bout de 7 jours, sans e-mail (livraison suivie par #1224). — Alternatives
 écartées : effacer le nom et la photo dès l'inscription ; garder 12 mois l'adresse jamais confirmée.
+
+2026-10-24 — **Un report redéplacé ne part de la date choisie que s'il est plus récent que le réglage**
+(#1195, spec `traitements.md` R9, R10 ; décision Q26 de la session d'analyse du moteur, à qui Gaelle a
+délégué les lectures de règles). La règle de #939 (la dose quitte l'ancienne arrivée d'un report
+quand c'est la date choisie par un réglage) ne vaut que quand le report est plus récent que la grille
+de ce réglage ; réglage plus récent : le report est sans effet, grisé (R11). À un téléphone,
+« Modifier » est toujours le plus récent : la date choisie montre sa dose (R9). Milo, chaque jour sans
+heure depuis le 6 mars ; le 9, la dose du 10 reportée au 21 avec « Décaler aussi les doses
+suivantes », le 12 ramenée au 17, puis « Modifier » : toutes les 2 semaines, « Prochaine dose » le
+21 : la fiche montre le 21 mars. Deux téléphones, cas #939 avec B plus récent : 12, 19, 26 au lieu
+de 15, 19, 26 ; cas Q1 avec B plus récent : une dose de trop le 11, versée en résidu (#986). —
+Raison : une personne seule voyait une date choisie vide. — Alternative écartée : garder #939 dans
+les deux ordres (la date choisie resterait vide à un téléphone). — Pour revenir dessus : retirer la
+condition de date dans `oldArrivalChooser` et `chooserOf`, et rétablir « dans les deux ordres » dans R10.
