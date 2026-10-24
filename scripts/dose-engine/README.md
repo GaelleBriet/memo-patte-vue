@@ -45,7 +45,13 @@ sans date (une minute plus tard, une heure ajoutée, retirée, aucune), ne chang
 l'état d'une journée passée, ni d'une journée à venir de la période qui porte une prise ou l'origine
 ou l'arrivée d'un report ; « Elles restent à renseigner » comprise, « Elles n'étaient pas à donner »
 corrige le réglage (Q38) ; un réglage ouvert aujourd'hui et remplacé, dont la date se recalcule
-comme un seul « Modifier » (R10), n'est pas jugé. La campagne ne
+comme un seul « Modifier » (R10), n'est pas jugé. « En plus » (`v2-invariants-extra.ts`, R5, Q27,
+Q37) : une réponse « En plus » écrit une seule prise en plus, à sa date, et laisse le calendrier tel
+quel ; une prise en plus le reste aux pas suivants, sauf « Changer la date » répondu « Remplace » (ou
+sans réponse, règle d'avant Q27). La symétrie se joue aussi pour la première dose à venir, dose du
+moment ou non (`symmetryAhead`) ; le résidu connu #1242 (« Changer la date » propose la case pour une
+dose qui n'est pas la dose du moment, « Fait à une autre date » non) y est jugé case décochée, et
+`dose-calendar.symetrie-dose-a-venir.spec.ts` le garde en `it.fails`. La campagne ne
 choisit jamais une « Prochaine dose » après la date de fin, que le formulaire refuse (Q20). Variables
 posées directement devant la commande, sous le même verrou :
 
@@ -61,9 +67,14 @@ Par défaut (suite normale) : 25 carnets × 24 gestes.
 
 « Cette prise » (R5, Q27) : quand une prise serait en plus ou remplacerait sa dose, les campagnes à un
 téléphone (invariants, oracle, rappels, services) tirent la réponse « En plus » ou « Remplace » à part
-(`startV2Walk(seed, { answers: true })`), sans changer les autres tirages de la graine. Les carnets
-rejoués par graine dans les specs, et les campagnes à deux téléphones, gardent la règle par distance,
-celle d'avant Q27, que le moteur applique encore sans réponse (anciens exports).
+(`startV2Walk(seed, { answers: true })`), sans changer les autres tirages de la graine. Les campagnes
+d'invariants, l'oracle et les rappels jouent en plus (`ONE_PHONE_GESTURES`, `v2-walk-notes.ts`) :
+une fois sur deux, « Fait à une autre date » depuis la carte de la fiche, tiré à part (sa dose, ou
+l'une des heures encore à donner de sa journée, un jour du lendemain de l'échéance précédente à
+aujourd'hui, TR-13, Q28), et la réponse à « Cette prise » de « Changer la date » d'une prise en plus
+(Q37). Les carnets rejoués par graine dans les specs, et les campagnes à deux téléphones, gardent la
+règle par distance, celle d'avant Q27, que le moteur applique encore sans réponse (anciens exports),
+et ne tirent ni la carte ni la réponse de « Changer la date ».
 
 ## Les services des traitements contre le moteur v2
 
