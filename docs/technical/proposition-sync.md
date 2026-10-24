@@ -258,7 +258,7 @@ Déconnexion et expiration se traitent alors en deux instructions, sans toucher 
 - **Fin d'entrée** : on ne la supprime qu'après acquittement **et** si son `queued_at` n'a pas bougé
   depuis la lecture (§3.2) — sinon une modification survenue pendant la requête resterait en attente,
   l'entrée est gardée pour repartir au prochain cycle.
-- **Refus définitif (sortie de la file, #1035)** : une ligne que le serveur refuse trois fois de
+- **Refus définitif (entrée marquée refusée, #1035)** : une ligne que le serveur refuse trois fois de
   suite à l'identique (même `code` et même message, Postgres `23514` ou classe `22`), pour la même
   version (même `queued_at`), n'est plus envoyée : son entrée reste dans `sync_outbox`, marquée
   `refused_at` (`core/sync/service/push-refusals.ts`), sous la même garde que la fin d'entrée — si
@@ -268,9 +268,14 @@ Déconnexion et expiration se traitent alors en deux instructions, sans toucher 
   `refused_at` dès que `queued_at` avance), quand tout le carnet est remis en file
   (`enableAndQueueWholeCarnet`) et à la restauration ; elle disparaît avec la file à la déconnexion
   et au changement de compte (`forgetAccount`). Paramètres › Sauvegarde en compte le nombre
-  (`countRefused`, photos du carnet comprises) sous « Dernière sauvegarde » ou « Première
-  sauvegarde » ; elle ne compte pas dans « N éléments sur M ». Une panne passagère ou un refus de
-  droit se réessaient sans fin, sans jamais être marqués.
+  (`countRefused`, photos du carnet comprises) sous l'état de la sauvegarde cloud, quel qu'il soit
+  (« Dernière sauvegarde », « Première sauvegarde », « En attente de réseau », « Reconnecte-toi »),
+  jamais seul ; elle ne compte pas dans « N éléments sur M ». Dès qu'une photo du carnet est
+  refusée (`countRefusedPhotos`), la ligne « Photos sauvegardées · Oui » disparaît. Une panne
+  passagère ou un refus de droit se réessaient sans fin, sans jamais être marqués. L'avertissement
+  « modifications non sauvegardées » avant « Effacer les données de ce téléphone » compte aussi les
+  éléments refusés. Limite : une écriture qui laisse `queued_at` à la même valeur ne retente pas
+  l'entrée (même version, même refus).
 
 ### 3.4 Le piège du ping-pong
 
@@ -383,9 +388,10 @@ implémenté par `core/supabase/animal-photo-upload.ts`). Une photo qu'aucun ani
 porte plus (retirée, remplacée, animal supprimé) n'est ni lue ni envoyée ; elle reste en file, sans
 compter d'échec, tant que son fichier existe, car « Annuler » peut rendre l'animal ou la photo sans
 la remettre en file, et elle en sort au cycle qui suit l'effacement du fichier (fin du toast ou
-ménage du lancement suivant). Un fichier absent du téléphone sort de la file sans envoi ; un
+ménage du lancement suivant). Un fichier absent du téléphone sort de la file sans envoi. Un
 fichier de plus de 2 Mio (taille lue par `stat`, sans lire le fichier) ou qui n'est pas un JPEG
-aussi, sans appel au serveur.
+n'est pas envoyé : son entrée est marquée `refused_at` dès le premier cycle, sans appel au serveur,
+et compte comme un élément refusé (§3.3).
 Storage répond en HTTP 400 à presque tout refus, le motif est dans `statusCode` (relevé sur une pile
 locale) : 413, 415 et 400 sont définitifs et suivent la règle des lignes (trois refus identiques de
 la même version, puis entrée marquée `refused_at`, §3.3) ; 403 (droit Plus pas encore ou plus actif, §4.2), une

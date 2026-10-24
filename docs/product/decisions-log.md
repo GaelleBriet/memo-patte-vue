@@ -2991,9 +2991,16 @@ du 12 mars est refusée ; la sauvegarde aboutit et Paramètres › Sauvegarde af
 3. Texte à pluriel, une seule clé : « Un élément n'a pas pu être sauvegardé · Contacter l'aide »,
    « {n} éléments n'ont pas pu être sauvegardés · Contacter l'aide » ; en anglais « One item
    couldn't be backed up · Contact support », « {n} items couldn't be backed up · Contact support ».
-   La ligne s'ajoute sous « Dernière sauvegarde » ou « Première sauvegarde », jamais seule ; elle
-   ouvre Aide et contact.
-4. Les photos refusées par Storage (413, 415, 400) comptent : « élément » les couvre.
+   La ligne s'ajoute sous l'état de la sauvegarde, jamais seule ; elle ouvre Aide et contact.
+4. Les photos refusées par Storage (413, 415, 400) comptent : « élément » les couvre ; une photo
+   trop lourde ou hors JPEG détectée sur le téléphone, sans appel au serveur, est marquée refusée
+   aussi (même règle, même texte).
+5. La ligne s'affiche aussi sous « En attente de réseau » et « Reconnecte-toi », sous l'état
+   principal, jamais seule.
+6. Dès qu'une photo est refusée, « Photos sauvegardées · Oui » disparaît : une ligne fausse est
+   pire qu'une ligne absente.
+7. L'avertissement « modifications non sauvegardées » avant « Effacer les données de ce téléphone »
+   compte aussi les éléments refusés : c'est la perte réelle qu'il annonce.
 
 - Raison : la ligne restait dans le carnet du téléphone sans être dans le cloud, et « Dernière
   sauvegarde » le taisait (#1035). Un élément refusé ne bloque jamais la file et ne compte pas dans
