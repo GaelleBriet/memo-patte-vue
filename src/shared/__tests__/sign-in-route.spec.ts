@@ -5,6 +5,7 @@ import {
   afterSignInRoute,
   asksSignUp,
   helpBackRoute,
+  isHelpRoute,
   helpRoute,
   passwordResetRoute,
   signInReturnRoute,
@@ -185,5 +186,13 @@ describe('helpRoute et helpBackRoute', () => {
     expect(helpBackRoute(undefined)).toEqual({ name: 'settings' })
     expect(helpBackRoute('https://exemple.fr')).toEqual({ name: 'settings' })
     expect(helpBackRoute(['settings-backup'])).toEqual({ name: 'settings' })
+  })
+})
+
+describe('isHelpRoute', () => {
+  it('reconnaît la route d’Aide et contact, et elle seule', () => {
+    expect(isHelpRoute('settings-help')).toBe(true)
+    expect(isHelpRoute('settings-account-email')).toBe(false)
+    expect(isHelpRoute(undefined)).toBe(false)
   })
 })

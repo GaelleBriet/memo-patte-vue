@@ -1,7 +1,8 @@
 import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useEmailChange } from '../composables/use-email-change'
+import { clearHeldEmailChange } from '../logic/held-email-change'
 import { CODE_LENGTH } from '../logic/email-code'
 import { AccountError } from '../logic/account-error'
 import { useAuthStore } from '../store/auth.store'
@@ -283,5 +284,110 @@ describe('useEmailChange', () => {
 
     expect(change.step.value).toBe('address')
     expect(change.values.value).toEqual({ current: '', email: NOUVELLE })
+  })
+})
+
+describe('useEmailChange, la visite de l’aide', () => {
+  async function jusquAuCode() {
+    const change = remplir('ancien-secret', NOUVELLE)
+    await change.sendCode()
+    return change
+  }
+
+  function revenir() {
+    return useEmailChange({ now: () => maintenant, accountEmail: () => ACTUELLE })
+  }
+
+  afterEach(() => {
+    clearHeldEmailChange()
+  })
+
+  it('garde l’adresse, l’étape et le code tapé, pas le mot de passe', async () => {
+    const change = await jusquAuCode()
+    change.emailCode.setCode('123')
+
+    change.holdForHelp()
+    const retour = revenir()
+
+    expect(retour.step.value).toBe('current')
+    expect(retour.emailCode.email.value).toBe(ACTUELLE)
+    expect(retour.emailCode.code.value).toBe('123')
+    expect(retour.values.value).toEqual({ current: '', email: NOUVELLE })
+  })
+
+  it('garde l’étape de la nouvelle adresse', async () => {
+    const change = await jusquAuCode()
+    change.emailCode.setCode(code('1'))
+    await change.confirm()
+    change.emailCode.setCode('45')
+
+    change.holdForHelp()
+    const retour = revenir()
+
+    expect(retour.step.value).toBe('new')
+    expect(retour.emailCode.email.value).toBe(NOUVELLE)
+    expect(retour.emailCode.code.value).toBe('45')
+  })
+
+  it('garde l’adresse saisie à la première étape, sans le mot de passe', () => {
+    const change = remplir('secret', NOUVELLE)
+
+    change.holdForHelp()
+    const retour = revenir()
+
+    expect(retour.step.value).toBe('address')
+    expect(retour.values.value).toEqual({ current: '', email: NOUVELLE })
+  })
+
+  it('ne se rend qu’une fois : un écran ouvert plus tard repart à zéro', async () => {
+    const change = await jusquAuCode()
+    change.holdForHelp()
+    revenir()
+
+    const suivant = revenir()
+
+    expect(suivant.step.value).toBe('address')
+    expect(suivant.values.value).toEqual({ current: '', email: '' })
+  })
+
+  it('sans visite de l’aide, rien n’est gardé : la flèche efface tout', async () => {
+    const change = await jusquAuCode()
+    change.emailCode.setCode('123')
+    change.backToAddress()
+
+    expect(revenir().step.value).toBe('address')
+  })
+
+  it('garde l’heure du dernier envoi : « Renvoyer » reste en attente au retour', async () => {
+    const change = await jusquAuCode()
+    change.holdForHelp()
+    maintenant = ENVOI + 20_000
+    const retour = revenir()
+
+    expect(await retour.resend()).toBe('wait')
+    expect(resendEmailChangeCode).not.toHaveBeenCalled()
+
+    maintenant = ENVOI + 61_000
+    expect(await retour.resend()).toBe('sent')
+  })
+
+  it('n’écrit rien dans un stockage', async () => {
+    const local = vi.spyOn(Storage.prototype, 'setItem')
+    const change = await jusquAuCode()
+    change.emailCode.setCode('123')
+
+    change.holdForHelp()
+    revenir()
+
+    expect(local).not.toHaveBeenCalled()
+  })
+
+  it('la déconnexion efface l’état gardé', async () => {
+    const change = await jusquAuCode()
+    change.holdForHelp()
+
+    clearHeldEmailChange()
+
+    expect(revenir().step.value).toBe('address')
   })
 })

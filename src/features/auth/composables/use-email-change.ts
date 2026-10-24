@@ -2,14 +2,17 @@ import { ref } from 'vue'
 
 import { AccountError } from '../logic/account-error'
 import { accountErrorKey, signInErrorKey } from '../logic/account-error-message'
-import { validateEmailChange, type EmailChangeValues } from '../logic/email-change-form'
+import {
+  validateEmailChange,
+  type EmailChangeStep,
+  type EmailChangeValues,
+} from '../logic/email-change-form'
+import { holdEmailChange, takeHeldEmailChange } from '../logic/held-email-change'
 import { useAuthStore } from '../store/auth.store'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 
 import { useFieldRefusal } from './use-field-refusal'
 import { useEmailCode, type ResendResult } from './use-email-code'
-
-export type EmailChangeStep = 'address' | 'current' | 'new'
 
 /** « Changer mon adresse e-mail » (PL-10, V24 quater à sexies) : le mot de passe, la nouvelle adresse, puis le code de chaque adresse. */
 export function useEmailChange({
@@ -53,6 +56,32 @@ export function useEmailChange({
       failureKey.value = signInErrorKey(cause)
     }
   }
+
+  function holdForHelp(): void {
+    holdEmailChange({
+      step: step.value,
+      email: values.value.email,
+      newAddress,
+      currentAddress,
+      sentAt,
+      code: emailCode.code.value,
+    })
+  }
+
+  function restoreHeld(): void {
+    const held = takeHeldEmailChange()
+    if (!held) return
+    values.value.email = held.email
+    if (held.step === 'address') return
+    newAddress = held.newAddress
+    currentAddress = held.currentAddress
+    sentAt = held.sentAt
+    step.value = held.step
+    emailCode.afterCodeSent(held.step === 'current' ? currentAddress : newAddress, sentAt)
+    emailCode.setCode(held.code)
+  }
+
+  restoreHeld()
 
   async function sendCode(): Promise<boolean> {
     if (isSending.value) return false
@@ -120,5 +149,6 @@ export function useEmailChange({
     confirm,
     resend,
     backToAddress,
+    holdForHelp,
   }
 }

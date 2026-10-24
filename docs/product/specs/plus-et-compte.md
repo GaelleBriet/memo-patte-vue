@@ -94,7 +94,7 @@ publicité.
   adresse se confirme par un code à 8 chiffres, envoyé à elle seule ; une adresse déjà utilisée par un
   autre compte est refusée avec un message clair ; réglage Supabase à vérifier au ticket, spec Q3 ;
   **corrigé le 22 octobre : deux codes, l'un à l'adresse actuelle puis l'autre à la nouvelle, voir Q3** ;
-  à l'étape d'un code, le retour d'Android revient à la saisie, comme la flèche (adresse gardée, mots de passe saisis effacés ; décision du 23 octobre, #1106). Avec
+  à l'étape d'un code, le retour d'Android revient à la saisie, comme la flèche (adresse gardée, mots de passe saisis effacés ; décision du 23 octobre, #1106). Pendant une visite de « Contacter l'aide » depuis cet écran, l'adresse saisie, l'étape, le code déjà tapé et l'heure du dernier envoi (le délai de renvoi reste vrai) sont gardés en mémoire seulement, jamais écrits sur l'appareil ; le mot de passe n'est pas gardé. Ils sont effacés à toute sortie réelle (flèche, « Annuler », retour d'Android), à la fin du changement, à la déconnexion et au changement de compte (décision du 24 octobre, #1213). Avec
   Google, ces gestes n'apparaissent pas : c'est Google qui gère, et la rubrique dit « Compte Google »
   avec l'adresse (jamais « Connecté avec Google »). Un compte qui a un mot de passe montre toujours cette
   version par e-mail (V24), même ouvert par Google ce jour-là ; la version Google (V24 bis) est pour un

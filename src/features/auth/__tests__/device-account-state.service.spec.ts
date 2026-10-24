@@ -15,6 +15,7 @@ import {
   USAGE_SIGNALS_STORAGE_KEY,
 } from '@/core/usage/usage-signals'
 
+import { holdEmailChange, takeHeldEmailChange } from '../logic/held-email-change'
 import { PLUS_ACCOUNT_STORAGE_KEY } from '../logic/plus-account-storage'
 import { authRepository, type AuthRepository } from '../repository/auth.repository'
 import {
@@ -76,6 +77,29 @@ describe('clearSignedOutAccountState, ce que le carnet a vécu', () => {
     expect(signals.photo.count).toBe(0)
     expect(signals.care.count).toBe(1)
     expect(signals.jsonShare.count).toBe(1)
+  })
+})
+
+describe('l’état gardé pendant la visite de l’aide', () => {
+  const GARDE = {
+    step: 'current',
+    email: 'sophie2@exemple.fr',
+    newAddress: 'sophie2@exemple.fr',
+    currentAddress: 'sophie@exemple.fr',
+    sentAt: 1,
+    code: '123',
+  } as const
+
+  it.each([
+    ['la déconnexion', clearSignedOutAccountState],
+    ['la suppression du compte', clearDeletedAccountState],
+    ['le changement de compte', clearDeviceAccountState],
+  ])('%s l’efface', (_nom, effacer) => {
+    holdEmailChange(GARDE)
+
+    effacer()
+
+    expect(takeHeldEmailChange()).toBeNull()
   })
 })
 

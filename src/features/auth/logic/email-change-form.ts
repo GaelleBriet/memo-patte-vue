@@ -37,3 +37,5 @@ export function validateEmailChange(
     }),
   }
 }
+
+export type EmailChangeStep = 'address' | 'current' | 'new'

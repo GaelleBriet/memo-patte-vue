@@ -2976,6 +2976,23 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
+## 2026-10-24 — « Changer mon adresse e-mail » : l'état est gardé pendant la visite de l'aide (#1213)
+
+Décision de la session d'analyse du moteur, pour Gaelle. Exemple : à l'étape du code, Sophie touche
+« Je n'ai plus accès à cette adresse », lit l'aide puis revient par la flèche : l'écran retrouve
+l'adresse saisie, l'étape et le code déjà tapé, sans nouvel e-mail ni minute d'attente de plus.
+
+1. L'adresse, l'étape et le code tapé sont gardés en mémoire pendant la visite de l'aide, jamais
+   écrits sur l'appareil (un code à usage unique ne se persiste pas).
+2. Le mot de passe n'est pas gardé : il est redemandé au retour, pour qu'il ne traîne pas en mémoire
+   hors de l'écran.
+3. L'heure du dernier envoi est gardée : « Renvoyer » reste en attente tant que la minute n'est pas
+   écoulée.
+4. L'état est effacé à toute sortie réelle (flèche, « Annuler », retour d'Android), à la fin du
+   changement, à la déconnexion, à la suppression du compte et au changement de compte ; un écran
+   « Changer l'adresse » ouvert plus tard repart à zéro.
+5. Connexion par code et « Mot de passe oublié » n'ont pas de lien vers l'aide : rien à garder.
+
 ## 2026-10-24 — Élément refusé pour toujours : gardé, compté dans Paramètres › Sauvegarde (#1035)
 
 Règles tranchées par la session d'analyse du moteur le 24 octobre 2026, pour Gaelle. Quand le

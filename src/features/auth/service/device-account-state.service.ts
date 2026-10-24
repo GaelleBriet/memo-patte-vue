@@ -1,6 +1,7 @@
 import { clearPurchaseDeviceState } from '@/features/purchase/service/purchase-device-state.service'
 import { clearAccountUsageSignals, clearUsageSignals } from '@/core/usage/usage-signals'
 
+import { clearHeldEmailChange } from '../logic/held-email-change'
 import { clearPlusAccount, readPlusAccount } from '../logic/plus-account-storage'
 import { authRepository } from '../repository/auth.repository'
 
@@ -9,17 +10,20 @@ import { authRepository } from '../repository/auth.repository'
  * à l'appareil, et « Ne plus me proposer Plus » est une préférence, pas de l'état de compte.
  */
 export function clearSignedOutAccountState(): void {
+  clearHeldEmailChange()
   clearAccountUsageSignals()
 }
 
 /** Compte supprimé : l'appareil oublie aussi l'achat, ce que le carnet a vécu reste. */
 export function clearDeletedAccountState(): void {
+  clearHeldEmailChange()
   clearPurchaseDeviceState()
   clearAccountUsageSignals()
 }
 
 /** Changement de compte : le compte suivant n'hérite de rien. */
 export function clearDeviceAccountState(): void {
+  clearHeldEmailChange()
   clearPurchaseDeviceState()
   clearUsageSignals()
 }
