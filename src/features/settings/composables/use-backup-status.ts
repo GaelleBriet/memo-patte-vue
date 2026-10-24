@@ -18,9 +18,10 @@ type Reading = 'pending' | 'read' | 'unread' | 'unplugged'
 
 /**
  * L'état de la sauvegarde : relu toutes les 2 s pendant la première sauvegarde ou tant que la synchro
- * n'est pas branchée, sinon au retour au premier plan et du réseau ; `null` avant la première lecture.
+ * n'est pas branchée, sinon au retour au premier plan et du réseau ; `polling: false` : jamais toutes
+ * les 2 s. `null` avant la première lecture.
  */
-export function useBackupStatus() {
+export function useBackupStatus({ polling = true } = {}) {
   const facts = shallowRef<BackupFacts | null>(null)
   const reading = shallowRef<Reading>('pending')
   const now = shallowRef(new Date())
@@ -44,7 +45,7 @@ export function useBackupStatus() {
 
   function scheduleNext(): void {
     cancelNext()
-    if (stopped || !foreground) return
+    if (stopped || !foreground || !polling) return
     if (reading.value === 'unplugged' || status.value?.kind === 'first-backup') {
       timer = setTimeout(() => void refresh(), BACKUP_STATUS_REFRESH_MS)
     }

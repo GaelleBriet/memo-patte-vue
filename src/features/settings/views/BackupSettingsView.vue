@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router'
 
 import { useBackupStatus } from '../composables/use-backup-status'
 import type { CloudBackupStatus } from '../logic/backup-status'
-import { cloudBackupText, refusedItemsText } from '../logic/backup-status-text'
+import { cloudBackupText, refusedItemsHelpText } from '../logic/backup-status-text'
 import BackupCopyRow from './BackupCopyRow.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { returnTo } from '@/shared/utils/return-to'
@@ -29,7 +29,9 @@ const cloud = computed<CloudBackupStatus | null>(() =>
 )
 const cloudText = computed(() => cloud.value && cloudBackupText(t, cloud.value, now.value))
 const cloudLook = computed(() => cloud.value && STATUS_LOOK[cloud.value.kind])
-const refusedText = computed(() => (refused.value > 0 ? refusedItemsText(t, refused.value) : null))
+const refusedText = computed(() =>
+  refused.value > 0 ? refusedItemsHelpText(t, refused.value) : null,
+)
 
 function discoverPlus(): void {
   void router.push({ name: 'plus' })

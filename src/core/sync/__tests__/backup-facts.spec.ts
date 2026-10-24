@@ -31,6 +31,29 @@ afterEach(() => {
 })
 
 describe('createBackupFactsReader', () => {
+  it('un compte gratuit ne lance aucune requête', async () => {
+    const query = vi.fn<() => Promise<number>>(async () => 0)
+    const isOnline = vi.fn<() => Promise<boolean>>(async () => true)
+    const read = createBackupFactsReader(
+      dependencies({
+        isEligible: () => false,
+        isOnline,
+        outbox: {
+          isEnabled: async () => Boolean(await query()),
+          getLastSyncedAt: async () => (await query(), null),
+          countPending: query,
+          countWholeCarnet: query,
+          countRefused: query,
+          countRefusedPhotos: query,
+        },
+      }),
+    )
+
+    expect((await read()).eligible).toBe(false)
+    expect(query).not.toHaveBeenCalled()
+    expect(isOnline).not.toHaveBeenCalled()
+  })
+
   it('rassemble le statut Plus, la session, le réseau et la file d’envoi', async () => {
     const read = createBackupFactsReader(dependencies())
 

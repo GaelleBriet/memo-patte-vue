@@ -34,6 +34,18 @@ export interface BackupFactsDependencies {
   isOnline: () => Promise<boolean>
 }
 
+const NOT_ELIGIBLE: BackupFacts = {
+  eligible: false,
+  signInNeeded: false,
+  online: true,
+  syncEnabled: false,
+  lastSyncedAt: null,
+  remaining: 0,
+  carnetSize: 0,
+  refused: 0,
+  refusedPhotos: 0,
+}
+
 export function createBackupFactsReader({
   outbox,
   isEligible,
@@ -41,6 +53,7 @@ export function createBackupFactsReader({
   isOnline,
 }: BackupFactsDependencies): BackupFactsReader {
   return async () => {
+    if (!isEligible()) return NOT_ELIGIBLE
     const [online, syncEnabled, lastSyncedAt, remaining, carnetSize, refused, refusedPhotos] =
       await Promise.all([
         isOnline(),

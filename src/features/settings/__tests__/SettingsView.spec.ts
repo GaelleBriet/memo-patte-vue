@@ -11,6 +11,7 @@ import { writePlusAccount } from '@/features/auth/logic/plus-account-storage'
 import { authRepository } from '@/features/auth/repository/auth.repository'
 import { provideAuthRepository } from '@/features/auth/store/auth.store'
 import { memoryStorage } from '@/features/purchase/__tests__/billing-fixture'
+import { provideBackupFacts, type BackupFacts } from '@/core/sync/service/backup-facts'
 import { writeStoredPlusStatus } from '@/features/purchase/logic/plus-status-storage'
 
 const notifications = vi.hoisted(() => ({
@@ -53,6 +54,7 @@ afterEach(() => {
   i18n.global.locale.value = 'fr'
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
+  provideBackupFacts(null)
 })
 
 async function monter() {
@@ -167,6 +169,74 @@ describe('SettingsView', () => {
       expect(sousTitre(wrapper, 'data')).toBe('Unité, export, PDF, import')
       expect(sousTitre(wrapper, 'plus')).toBe('Sauvegarde cloud, plusieurs appareils')
       expect(sousTitre(wrapper, 'about')).toBe(`MémoPatte ${import.meta.env.VITE_APP_VERSION}`)
+    })
+
+    describe('Sauvegarde d’un abonné', () => {
+      beforeEach(() => {
+        vi.setSystemTime(new Date(2026, 8, 15, 12, 0))
+      })
+
+      const SAVED: BackupFacts = {
+        eligible: true,
+        signInNeeded: false,
+        online: true,
+        syncEnabled: true,
+        lastSyncedAt: new Date(2026, 8, 15, 11, 55).toISOString(),
+        remaining: 0,
+        carnetSize: 40,
+        refused: 0,
+        refusedPhotos: 0,
+      }
+
+      it.each([
+        ['dernière sauvegarde', SAVED, 'Dernière sauvegarde : il y a 5 min'],
+        [
+          'première sauvegarde',
+          { ...SAVED, lastSyncedAt: null, remaining: 10 },
+          'Première sauvegarde en cours',
+        ],
+        ['attente de réseau', { ...SAVED, online: false }, 'En attente de réseau'],
+        [
+          'reconnexion',
+          { ...SAVED, signInNeeded: true },
+          'Reconnecte-toi pour reprendre la sauvegarde',
+        ],
+        ['un élément refusé', { ...SAVED, refused: 1 }, 'Un élément n’a pas pu être sauvegardé'],
+        [
+          'plusieurs éléments refusés',
+          { ...SAVED, refused: 3 },
+          '3 éléments n’ont pas pu être sauvegardés',
+        ],
+      ])('%s', async (_nom, facts, attendu) => {
+        provideBackupFacts(async () => facts)
+        const wrapper = await monter()
+
+        expect(sousTitre(wrapper, 'backup').replace(/[\u00a0\u202f]/g, ' ')).toBe(attendu)
+      })
+
+      it('ne relit pas l’état toutes les 2 s : une lecture à l’ouverture', async () => {
+        vi.useFakeTimers({ now: new Date(2026, 8, 15, 12, 0) })
+        const read = vi.fn<() => Promise<BackupFacts>>(async () => ({
+          ...SAVED,
+          lastSyncedAt: null,
+          remaining: 10,
+        }))
+        provideBackupFacts(read)
+        wrapper = mount(SettingsView, {
+          global: { plugins: [vuetify, i18n, router] },
+          attachTo: document.body,
+        })
+        await vi.advanceTimersByTimeAsync(10_000)
+
+        expect(read).toHaveBeenCalledTimes(1)
+      })
+
+      it('un abonné dont la synchro n’est pas activée garde « Sur ce téléphone »', async () => {
+        provideBackupFacts(async () => ({ ...SAVED, syncEnabled: false }))
+        const wrapper = await monter()
+
+        expect(sousTitre(wrapper, 'backup')).toBe('Sur ce téléphone')
+      })
     })
 
     it('MémoPatte Plus : le statut d’un abonné', async () => {

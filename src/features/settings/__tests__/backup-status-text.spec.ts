@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
-import type { CloudBackupStatus } from '../logic/backup-status'
-import { cloudBackupText, refusedItemsText } from '../logic/backup-status-text'
+import type { BackupStatus, CloudBackupStatus } from '../logic/backup-status'
+import { backupSubtitle, cloudBackupText, refusedItemsHelpText } from '../logic/backup-status-text'
 import i18n from '@/core/i18n'
 import type { Translate } from '@/core/i18n/translate'
 import { plain } from '@/shared/__tests__/plain'
@@ -103,10 +103,10 @@ describe('texte de la sauvegarde cloud', () => {
 
 describe('texte des éléments refusés', () => {
   it('un élément, puis plusieurs, avec le lien vers l’aide', () => {
-    expect(plain(refusedItemsText(t, 1))).toBe(
+    expect(plain(refusedItemsHelpText(t, 1))).toBe(
       'Un élément n’a pas pu être sauvegardé · Contacter l’aide',
     )
-    expect(plain(refusedItemsText(t, 3))).toBe(
+    expect(plain(refusedItemsHelpText(t, 3))).toBe(
       '3 éléments n’ont pas pu être sauvegardés · Contacter l’aide',
     )
   })
@@ -114,7 +114,61 @@ describe('texte des éléments refusés', () => {
   it('en anglais', () => {
     i18n.global.locale.value = 'en'
 
-    expect(plain(refusedItemsText(t, 1))).toBe('One item couldn’t be backed up · Contact support')
-    expect(plain(refusedItemsText(t, 3))).toBe('3 items couldn’t be backed up · Contact support')
+    expect(plain(refusedItemsHelpText(t, 1))).toBe(
+      'One item couldn’t be backed up · Contact support',
+    )
+    expect(plain(refusedItemsHelpText(t, 3))).toBe(
+      '3 items couldn’t be backed up · Contact support',
+    )
+  })
+})
+
+describe('sous-titre de la rubrique Sauvegarde', () => {
+  const sub = (status: BackupStatus | null, refused = 0) => {
+    const text = backupSubtitle(t, status, refused, NOW)
+    return text === null ? null : plain(text)
+  }
+
+  it('reprend la première ligne de la carte, sans le compte « sur M »', () => {
+    expect(sub({ kind: 'first-backup', done: 3, total: 9 })).toBe('Première sauvegarde en cours')
+    expect(sub({ kind: 'waiting-network', firstBackup: false })).toBe('En attente de réseau')
+    expect(sub({ kind: 'interrupted', since: local(22, 18, 20) })).toBe(
+      'Reconnecte-toi pour reprendre la sauvegarde',
+    )
+    expect(sub({ kind: 'saved', at: local(23, 8, 25) })).toBe('Dernière sauvegarde : il y a 5 min')
+  })
+
+  it('les éléments refusés priment sur la dernière sauvegarde, sans lien vers l’aide', () => {
+    expect(sub({ kind: 'saved', at: local(23, 8, 25) }, 1)).toBe(
+      'Un élément n’a pas pu être sauvegardé',
+    )
+    expect(sub({ kind: 'saved', at: local(23, 8, 25) }, 3)).toBe(
+      '3 éléments n’ont pas pu être sauvegardés',
+    )
+  })
+
+  it('les éléments refusés ne priment pas sur les trois autres états', () => {
+    expect(sub({ kind: 'first-backup', done: 3, total: 9 }, 2)).toBe('Première sauvegarde en cours')
+    expect(sub({ kind: 'waiting-network', firstBackup: false }, 2)).toBe('En attente de réseau')
+    expect(sub({ kind: 'interrupted', since: null }, 2)).toBe(
+      'Reconnecte-toi pour reprendre la sauvegarde',
+    )
+  })
+
+  it('rien pour un gratuit, une lecture ratée ou avant la lecture : le sous-titre actuel reste', () => {
+    expect(sub(null, 2)).toBeNull()
+    expect(sub({ kind: 'local' })).toBeNull()
+    expect(sub({ kind: 'unread' })).toBeNull()
+  })
+
+  it('en anglais', () => {
+    i18n.global.locale.value = 'en'
+
+    expect(sub({ kind: 'first-backup', done: 3, total: 9 })).toBe('First backup in progress')
+    expect(sub({ kind: 'waiting-network', firstBackup: false })).toBe('Waiting for network')
+    expect(sub({ kind: 'interrupted', since: null })).toBe('Sign back in to resume backup')
+    expect(sub({ kind: 'saved', at: local(23, 8, 25) })).toBe('Last backup: 5 min ago')
+    expect(sub({ kind: 'saved', at: local(23, 8, 25) }, 1)).toBe('One item couldn’t be backed up')
+    expect(sub({ kind: 'saved', at: local(23, 8, 25) }, 3)).toBe('3 items couldn’t be backed up')
   })
 })
