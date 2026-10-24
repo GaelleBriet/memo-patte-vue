@@ -127,10 +127,10 @@ const SYNC_PARENT_ENTITIES = [
   ...new Set(Object.values(SYNC_PARENT_COLUMNS).flatMap((parents) => Object.values(parents))),
 ]
 
-/** Un parent sorti de la file est sur le serveur : ses descendants refusés avec lui repartent. */
+/** Un parent arrivé au serveur après un échec : ses descendants marqués pendant son absence repartent. */
 export function removedOutboxTriggerStatement(): string {
   return `CREATE TRIGGER sync_outbox_removed AFTER DELETE ON sync_outbox
-     WHEN OLD.entity IN (${SYNC_PARENT_ENTITIES.map((entity) => `'${entity}'`).join(', ')})
+     WHEN OLD.attempts > 0 AND OLD.entity IN (${SYNC_PARENT_ENTITIES.map((entity) => `'${entity}'`).join(', ')})
      BEGIN
       UPDATE sync_outbox SET refused_at = NULL
       WHERE refused_at IS NOT NULL AND (${outboxDescendantsOf('OLD')});

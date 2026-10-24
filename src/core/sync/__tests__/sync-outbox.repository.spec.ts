@@ -787,6 +787,7 @@ describe('syncOutboxRepository', () => {
           await refuse('animal', 'luna', T1)
           await insertTreatmentPeriod(db, 'p-2', 't-1', ANIMAL_ID, OCTOBER_21_8_30)
           await insertTreatmentDose(db, 'd-2', 'p-2', 't-1', ANIMAL_ID, OCTOBER_21_8_31)
+          await repository.recordFailedPush({ entity: 'treatment_period', entityId: 'p-2' })
           await expect(markWithParent('treatment_dose', 'd-2', OCTOBER_21_8_31)).resolves.toBe(true)
         }
 
@@ -843,6 +844,20 @@ describe('syncOutboxRepository', () => {
           await expect(refusedAt('animal', 'luna')).resolves.toBe(REFUSED_AT)
           await expect(refusedAt('weight_entry', 'w-luna')).resolves.toBe(REFUSED_AT)
           await expect(repository.countRefused()).resolves.toBe(2)
+        })
+
+        it('Milo jamais en échec quitte la file : sa pesée refusée trois fois pour elle-même garde sa marque', async () => {
+          await refuseMiloWeighing()
+          await touchAnimal(db, ANIMAL_ID, LATER)
+
+          await repository.removeIfUnchanged({
+            entity: 'animal',
+            entityId: ANIMAL_ID,
+            queuedAt: LATER,
+          })
+
+          await expect(refusedAt('weight_entry', 'w-12-mars')).resolves.toBe(REFUSED_AT)
+          await expect(repository.countRefused()).resolves.toBe(1)
         })
 
         it('une pesée envoyée ne démarque rien : elle n’a pas d’enfant', async () => {

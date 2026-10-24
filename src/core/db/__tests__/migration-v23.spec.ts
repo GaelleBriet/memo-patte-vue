@@ -72,11 +72,22 @@ describe.each([
     )
   })
 
-  it('Milo sorti de la file après la mise à niveau : sa pesée refusée avec lui repart', async () => {
+  it('Milo sorti de la file après un échec, une fois la mise à niveau faite : sa pesée refusée avec lui repart', async () => {
     await applyMigrations(db, 23)
+    await db.run("UPDATE sync_outbox SET attempts = 1 WHERE entity = 'animal'")
 
     await db.run("DELETE FROM sync_outbox WHERE entity = 'animal' AND entity_id = 'milo'")
 
     await expect(outbox(db)).resolves.toEqual([{ entity: 'weight_entry', refused_at: null }])
+  })
+
+  it('Milo sorti de la file sans avoir échoué : sa pesée garde sa marque', async () => {
+    await applyMigrations(db, 23)
+
+    await db.run("DELETE FROM sync_outbox WHERE entity = 'animal' AND entity_id = 'milo'")
+
+    await expect(outbox(db)).resolves.toEqual([
+      { entity: 'weight_entry', refused_at: OCTOBRE_21_8_15 },
+    ])
   })
 })
