@@ -3756,3 +3756,10 @@ présent sur le téléphone). Une réussite tardive à la connexion ou à la cr�
 l'écran part, la personne est connectée. Dans « Changer mon adresse e-mail », la réponse tardive est
 ignorée et l'écran revient à la saisie. Le renvoi du code ignore une réponse tardive : plus de « Code
 envoyé à … » sur un formulaire revenu en arrière. — Alternative écartée : ignorer le retour pendant la vérification.
+
+2026-10-24 — **Données transmises par Google et adresse jamais confirmée.** Décision de Gaelle du 24
+octobre : (1) à la connexion avec Google, le nom et la photo de profil transmis par Google sont
+conservés avec le compte et supprimés avec lui ; la politique de confidentialité et la page de
+suppression de compte (FR et EN) le disent. (2) Une adresse jamais confirmée (code d'inscription jamais
+saisi) est supprimée au bout de 7 jours, sans e-mail (livraison suivie par #1224). — Alternatives
+écartées : effacer le nom et la photo dès l'inscription ; garder 12 mois l'adresse jamais confirmée.

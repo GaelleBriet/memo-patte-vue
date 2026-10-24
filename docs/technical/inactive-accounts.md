@@ -12,7 +12,7 @@ Gaelle n'a pas fait les étapes ci-dessous, elle ne fait que compter.
 | Plus fini depuis 60 jours | client RevenueCat effacé |
 | Plus fini depuis 11 mois, ou adresse confirmée créée depuis 11 mois sans jamais acheter | e-mail d'avertissement, avec la date J |
 | Averti, lendemain du jour J à 0 h UTC | suppression du compte, par la même `eraseAccount` que « Supprimer mon compte » |
-| Adresse jamais confirmée (aucun code saisi) depuis 7 jours | comptée à part (`due.unconfirmedPending`), ni avertie ni supprimée tant que Gaelle n'a pas tranché D2 (7 jours sans e-mail, recommandé, ou 12 mois) |
+| Adresse jamais confirmée (aucun code saisi) depuis 7 jours | comptée à part (`due.unconfirmedPending`), jamais avertie ; D2 tranché par Gaelle le 2026-10-24 : suppression au bout de 7 jours, sans e-mail (alternative écartée : 12 mois), livraison suivie par #1224 |
 | Abonnement en cours (période de grâce comprise), pause Google Play avec reprise à venir, ou achat à vie | jamais rien |
 
 - **Fin d'accès retenue** : la plus tardive de la fin de l'accès Plus et de la création du compte. Un
