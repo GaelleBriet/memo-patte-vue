@@ -83,7 +83,7 @@ export function createSyncOutboxRepository(db: DbClient) {
       return { sql: 'DELETE FROM sync_outbox' }
     },
 
-    /** Ce que `enableAndQueueWholeCarnet` met en file : chaque ligne du carnet et chaque photo. */
+    /** Ce que `queueWholeCarnetStatements` met en file : chaque ligne du carnet et chaque photo. */
     async countWholeCarnet(): Promise<number> {
       const counts = [
         ...SYNC_ENTITY_ORDER.map((entity) => `SELECT COUNT(*) FROM ${entity}`),

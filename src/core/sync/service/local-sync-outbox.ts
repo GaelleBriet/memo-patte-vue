@@ -3,14 +3,30 @@ import { getDb } from '@/core/db/sqlite'
 import { createSyncOutboxRepository } from '../repository/sync-outbox.repository'
 import { createSyncStateRepository, type RestoreMode } from '../repository/sync-state.repository'
 
-/** La file d'envoi et l'état de la synchro du téléphone, tels que les cas d'usage les lisent. */
 export function createLocalSyncOutbox(db: DbClient) {
   const outbox = createSyncOutboxRepository(db)
   const syncState = createSyncStateRepository(db)
 
   return {
-    ...outbox,
-    ...syncState,
+    isEnabled: syncState.isEnabled,
+    setEnabled: syncState.setEnabled,
+    getLastPulledAt: syncState.getLastPulledAt,
+    setLastPulledAt: syncState.setLastPulledAt,
+    clearPullCursors: syncState.clearPullCursors,
+    getLastSyncedAt: syncState.getLastSyncedAt,
+    setLastSyncedAt: syncState.setLastSyncedAt,
+    restoreMode: syncState.restoreMode,
+    startRestore: syncState.startRestore,
+    countWholeCarnet: outbox.countWholeCarnet,
+    countPending: outbox.countPending,
+    countRefused: outbox.countRefused,
+    countRefusedPhotos: outbox.countRefusedPhotos,
+    listPending: outbox.listPending,
+    removeIfUnchanged: outbox.removeIfUnchanged,
+    markRefusedWithRefusedAncestor: outbox.markRefusedWithRefusedAncestor,
+    markRefusedIfUnchanged: outbox.markRefusedIfUnchanged,
+    recordFailedPush: outbox.recordFailedPush,
+    clear: outbox.clear,
 
     async enableAndQueueWholeCarnet(): Promise<void> {
       await db.runMany([
