@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core'
-import { errorSummary } from '@/shared/utils/error-summary'
 import type { GoogleSignInPlugin } from '@capawesome/capacitor-google-sign-in'
+
+import { errorSummary } from '@/shared/utils/error-summary'
 
 export type GoogleCredential = { kind: 'granted'; idToken: string } | { kind: 'cancelled' }
 
@@ -99,12 +100,14 @@ export function createGoogleCredentials({
       if (!clientId || !isNativePlatform()) throw new GoogleCredentialError('unavailable')
       try {
         const { plugin } = await ready(clientId)
-        const { idToken } = await withTimeout(plugin.signIn({ nonce: hashedNonce }), timeoutMs)
+        const { idToken } = await plugin.signIn({ nonce: hashedNonce })
         return { kind: 'granted', idToken }
       } catch (cause) {
-        if (import.meta.env.DEV) console.warn('[google-sign-in]', errorSummary(cause))
-        if (cause instanceof GoogleCredentialError) throw cause
         const code = codeOf(cause)
+        if (import.meta.env.DEV && code !== CANCELLED_CODE) {
+          console.warn('[google-sign-in]', errorSummary(cause))
+        }
+        if (cause instanceof GoogleCredentialError) throw cause
         if (code === CANCELLED_CODE) return { kind: 'cancelled' }
         throw new GoogleCredentialError((code && FAILURES_BY_CODE[code]) || 'failed', { cause })
       }

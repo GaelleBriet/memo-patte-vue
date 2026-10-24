@@ -190,31 +190,18 @@ describe('createGoogleCredentials', () => {
       vi.useRealTimers()
     })
 
-    it('rend le jeton quand le choix du compte aboutit avant le délai', async () => {
+    it('rend le jeton d’un choix de compte lent mais légitime (25 s)', async () => {
       vi.useFakeTimers()
       const { google } = credentials(
         fakePlugin(
-          () => new Promise((resolve) => setTimeout(() => resolve(signInResult()), 19_000)),
+          () => new Promise((resolve) => setTimeout(() => resolve(signInResult()), 25_000)),
         ),
       )
 
       const request = google.request(HASHED_NONCE)
-      await vi.advanceTimersByTimeAsync(19_000)
+      await vi.advanceTimersByTimeAsync(25_000)
 
       await expect(request).resolves.toEqual({ kind: 'granted', idToken: 'jeton-google' })
-    })
-
-    it('lève « indisponible » avec une cause « délai dépassé » après 20 s sans sélecteur', async () => {
-      vi.useFakeTimers()
-      const { google } = credentials(fakePlugin(() => new Promise(() => {})))
-
-      const request = google.request(HASHED_NONCE).catch((thrown: unknown) => thrown)
-      await vi.advanceTimersByTimeAsync(20_000)
-      const error = (await request) as GoogleCredentialError
-
-      expect(error).toBeInstanceOf(GoogleCredentialError)
-      expect(error.reason).toBe('unavailable')
-      expect((error.cause as Error).message).toMatch(/délai dépassé/)
     })
 
     it('borne aussi l’initialisation, puis la réessaie', async () => {
@@ -230,24 +217,20 @@ describe('createGoogleCredentials', () => {
       await expect(google.request(HASHED_NONCE)).resolves.toMatchObject({ kind: 'granted' })
     })
 
-    it('ignore le résultat tardif, sans promesse non gérée', async () => {
+    it('ignore la fin tardive d’une initialisation, sans promesse non gérée', async () => {
       vi.useFakeTimers()
       const unhandled = vi.fn<(reason: unknown) => void>()
       process.on('unhandledRejection', unhandled)
-      let finish: (value: SignInResult) => void = () => {}
       let fail: (cause: unknown) => void = () => {}
-      const plugin = fakePlugin(() => new Promise((resolve) => (finish = resolve)))
+      const plugin = fakePlugin()
+      plugin.initialize.mockImplementationOnce(
+        () => new Promise((_resolve, reject) => (fail = reject)),
+      )
       const { google } = credentials(plugin, { timeoutMs: 1_000 })
 
       const first = google.request(HASHED_NONCE).catch((thrown: unknown) => thrown)
       await vi.advanceTimersByTimeAsync(1_000)
       expect(((await first) as GoogleCredentialError).reason).toBe('unavailable')
-      finish(signInResult('jeton-tardif'))
-
-      plugin.signIn.mockImplementationOnce(() => new Promise((_resolve, reject) => (fail = reject)))
-      const second = google.request(HASHED_NONCE).catch((thrown: unknown) => thrown)
-      await vi.advanceTimersByTimeAsync(1_000)
-      expect(((await second) as GoogleCredentialError).reason).toBe('unavailable')
       fail(pluginError(undefined))
       await vi.advanceTimersByTimeAsync(10)
 
