@@ -151,6 +151,10 @@ describe('createGoogleCredentials', () => {
     ['NO_CREDENTIAL_AVAILABLE', 'no-google-account'],
     ['PROVIDER_CONFIGURATION_ERROR', 'unavailable'],
     [undefined, 'failed'],
+    ['toString', 'failed'],
+    ['constructor', 'failed'],
+    ['hasOwnProperty', 'failed'],
+    ['__proto__', 'failed'],
   ] as const)('traduit l’erreur %s du plugin en %s', async (code, reason) => {
     const { google } = credentials(
       fakePlugin(async () => {
