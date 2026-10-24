@@ -11,19 +11,36 @@ Gaelle n'a pas fait les étapes ci-dessous, elle ne fait que compter.
 | --- | --- |
 | Plus fini depuis 60 jours | client RevenueCat effacé |
 | Plus fini depuis 11 mois, ou adresse confirmée créée depuis 11 mois sans jamais acheter | e-mail d'avertissement, avec la date J |
-| Averti, jour J atteint | suppression du compte, par la même `eraseAccount` que « Supprimer mon compte » |
-| Adresse jamais confirmée (aucun code saisi) depuis 7 jours | compté dans le journal (`unconfirmedPending`), ni averti ni supprimé tant que Gaelle n'a pas confirmé la règle des 7 jours sans e-mail (`UNCONFIRMED_ACCOUNT_DAYS`) |
-| Abonnement en cours (période de grâce comprise) ou achat à vie | jamais rien |
+| Averti, lendemain du jour J à 0 h UTC | suppression du compte, par la même `eraseAccount` que « Supprimer mon compte » |
+| Adresse jamais confirmée (aucun code saisi) depuis 7 jours | comptée à part (`due.unconfirmedPending`), ni avertie ni supprimée tant que Gaelle n'a pas tranché D2 (7 jours sans e-mail, recommandé, ou 12 mois) |
+| Abonnement en cours (période de grâce comprise), pause Google Play avec reprise à venir, ou achat à vie | jamais rien |
 
-- Date J : la plus tardive de « fin de l'accès + 12 mois » et « avertissement + 30 jours », arrondie au
-  jour UTC suivant. Un avertissement envoyé en retard ne raccourcit jamais le préavis.
-- Juste avant chaque action, la fonction relit les dates du compte et, pour un compte qui a eu Plus,
-  RevenueCat : une reprise de Plus (accès actif, ou fin plus tardive que celle de la base) annule tout.
-- Au plus 10 suppressions par passe ; le reste passe le lendemain.
+- **Fin d'accès retenue** : la plus tardive de la fin de l'accès Plus et de la création du compte. Un
+  achat restauré sur un nouveau compte (plus ancien que lui) ne fait jamais supprimer ce compte moins
+  de 12 mois après sa création. L'e-mail cite la vraie date de fin d'accès.
+- **Date J** : la plus tardive de « fin retenue + 12 mois » et « avertissement + 30 jours », arrondie
+  au jour UTC suivant. L'e-mail dit « le {J} » et « avant cette date » : la suppression ne devient
+  possible que le **lendemain de J à 0 h UTC**, pour que le jour J reste entier partout (à Los
+  Angeles, J à 0 h UTC tomberait la veille à 16 h). Avec le passage de 03:00 UTC, un compte averti
+  pour le 16 novembre est supprimé le 17 novembre vers 03:00 UTC.
+- **Relecture avant d'agir** : avant chaque avertissement, suppression ou effacement RevenueCat, la
+  fonction relit les dates du compte puis **RevenueCat pour tout compte** (qu'il ait ou non une ligne
+  `plus_entitlements` : un webhook perdu laisse un abonné sans ligne). Un accès actif, une fin plus
+  tardive que la base, un droit que la base ne connaît pas ou une pause avec reprise à venir annulent
+  tout. La lecture recrée le client chez RevenueCat : il est effacé aussitôt, sauf pour un compte
+  qu'on supprime (`eraseAccount` l'efface).
+- **Fenêtre résiduelle** : de la relecture en base à `deleteUser` passent la lecture RevenueCat,
+  l'effacement PostHog, l'effacement RevenueCat et les pages de photos. Chaque appel attend au plus
+  15 s : en pratique 1 à 3 s, au pire environ 45 s plus les photos. Un achat fait pendant cette
+  fenêtre laisse un abonnement payé sans compte (à rembourser à la main).
+- Au plus 10 suppressions **tentées** par passe, réussies ou non : une panne de `deleteUser`
+  n'efface pas chez les prestataires plus de 10 comptes dus. Le reste passe le lendemain.
 - Journal (`Edge Functions › inactive-accounts › Logs`) : une ligne « Purge des comptes inactifs : »
-  suivie des nombres (`due`, `done`, `skipped`, `failures`), jamais d'identifiant ni d'adresse.
+  suivie des nombres (`channel`, `revenuecat`, `due`, `done`, `skipped`, `failures`), jamais
+  d'identifiant ni d'adresse.
 - Durées et calendrier : `purge-calendar.ts` ; la liste SQL `public.inactive_account_steps` reprend
-  les mêmes durées (un test le vérifie).
+  les mêmes durées et donne la même étape aux mêmes instants (tests).
+- Aucune exemption (compte de démo de la revue Play, comptes de test) : question ouverte pour Gaelle.
 
 ## Réglages (secrets de la fonction)
 
@@ -31,7 +48,7 @@ Gaelle n'a pas fait les étapes ci-dessous, elle ne fait que compter.
 | --- | --- |
 | `INACTIVE_ACCOUNTS_CRON_SECRET` | au moins 32 caractères (`openssl rand -hex 32`) ; sans lui, tout est refusé (`503`) |
 | `INACTIVE_ACCOUNTS_MODE` | absent : à blanc. `apply`, en toutes lettres, est la seule valeur qui permet d'écrire, d'envoyer ou de supprimer |
-| `POSTHOG_*`, `REVENUECAT_*` | les mêmes que `delete-account` ; un réglage invalide fait refuser la passe en mode `apply` |
+| `POSTHOG_*`, `REVENUECAT_*` | les mêmes que `delete-account` ; un réglage invalide fait refuser la passe en mode `apply`. Sans RevenueCat (`REVENUECAT_ERASURE=disabled`), la passe reste à blanc même en `apply` (`"revenuecat": "absent"` dans le rapport) |
 
 La demande du cron ne peut jamais changer le mode : son corps n'est pas lu.
 

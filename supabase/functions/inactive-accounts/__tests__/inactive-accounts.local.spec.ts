@@ -35,8 +35,10 @@ describe.skipIf(url === undefined)('inactive-accounts sur une pile Supabase loca
     return { userId: created.data.user.id, createdAt: created.data.user.created_at }
   }
 
-  async function withPlus(expiresAt: string | null): Promise<Case['userId']> {
-    const { userId } = await createAccount()
+  async function withPlus(
+    expiresAt: string | null,
+  ): Promise<{ userId: string; createdAt: string }> {
+    const { userId, createdAt } = await createAccount()
     const { error } = await admin.from('plus_entitlements').insert({
       user_id: userId,
       active: expiresAt === null,
@@ -44,7 +46,7 @@ describe.skipIf(url === undefined)('inactive-accounts sur une pile Supabase loca
       expires_at: expiresAt,
     })
     if (error) throw error
-    return userId
+    return { userId, createdAt }
   }
 
   async function rowsAt(at: number, userId: string): Promise<CandidateRow[]> {
@@ -74,11 +76,28 @@ describe.skipIf(url === undefined)('inactive-accounts sur une pile Supabase loca
   })
 
   it('la liste SQL et le calendrier de la fonction donnent la même étape aux mêmes instants', async () => {
-    const ended = async (expiresAt: string, boundaries: string[]): Promise<Case> => ({
-      userId: await withPlus(expiresAt),
-      dates: { createdAt: '', emailConfirmed: true, plus: { expiresAt }, notice: NO_NOTICE },
-      instants: around(...boundaries.map(Date.parse)),
-    })
+    const sinceCreation = (createdAt: string, days: number[]) =>
+      days.flatMap((k) => {
+        const at = Date.parse(createdAt) + k * DAY_MS
+        return [at - 1, at + 1]
+      })
+    const ended = async (expiresAt: string, boundaries: string[]): Promise<Case> => {
+      const { userId, createdAt } = await withPlus(expiresAt)
+      return {
+        userId,
+        dates: { createdAt, emailConfirmed: true, plus: { expiresAt }, notice: NO_NOTICE },
+        instants: [
+          ...around(...boundaries.map(Date.parse)),
+          ...sinceCreation(createdAt, [
+            59,
+            60,
+            61,
+            ...Array.from({ length: 12 }, (_, k) => 328 + k),
+          ]),
+        ],
+      }
+    }
+    const lifetime = await withPlus(null)
     const never = await createAccount()
     const unconfirmed = await createAccount(false)
     const cases: Case[] = [
@@ -95,9 +114,9 @@ describe.skipIf(url === undefined)('inactive-accounts sur une pile Supabase loca
         '2027-12-31T10:00:00.000Z',
       ]),
       {
-        userId: await withPlus(null),
+        userId: lifetime.userId,
         dates: {
-          createdAt: '',
+          createdAt: lifetime.createdAt,
           emailConfirmed: true,
           plus: { expiresAt: null },
           notice: NO_NOTICE,
@@ -157,6 +176,21 @@ describe.skipIf(url === undefined)('inactive-accounts sur une pile Supabase loca
     if (error) throw error
 
     expect((await stepsAt(warnAt + DAY_MS, userId)).account).toBe(null)
+    const deletableFrom = Date.parse(`${notice.purgeOn}T00:00:00.000Z`) + DAY_MS
+    const dates: AccountDates = {
+      createdAt,
+      emailConfirmed: true,
+      plus: null,
+      notice: { purgeOn: notice.purgeOn, warnedAt: notice.warnedAt, revenuecatErasedAt: null },
+    }
+    for (const at of around(deletableFrom)) {
+      const sql = await stepsAt(at, userId)
+      expect({ account: sql.account, eraseRevenuecat: sql.eraseRevenuecat }).toEqual(
+        purgeStepsOf(dates, at),
+      )
+    }
+    expect((await stepsAt(deletableFrom - 1, userId)).account).toBe(null)
+    expect((await stepsAt(deletableFrom, userId)).account).toBe('delete')
     expect((await stepsAt(warnAt + 32 * DAY_MS, userId)).account).toBe('delete')
     expect(candidateFrom((await rowsAt(warnAt + 32 * DAY_MS, userId))[0]!).dates.notice).toEqual({
       purgeOn: notice.purgeOn,

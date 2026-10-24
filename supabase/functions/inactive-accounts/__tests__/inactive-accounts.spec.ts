@@ -17,7 +17,7 @@ const UNCONFIRMED = candidate('aaaaaaaa-0000-4000-8000-000000000003', {
 })
 const WARNED = candidate('aaaaaaaa-0000-4000-8000-000000000002', {
   plus: { expiresAt: '2026-10-01T10:00:00.000Z' },
-  notice: { purgeOn: '2027-11-20', warnedAt: '2027-09-02T03:00:00.000Z', revenuecatErasedAt: null },
+  notice: { purgeOn: '2027-11-19', warnedAt: '2027-09-02T03:00:00.000Z', revenuecatErasedAt: null },
 })
 
 function cronRequest(secret: string | null, init: RequestInit = {}): Request {
@@ -109,9 +109,9 @@ describe('handleInactiveAccounts', () => {
 
     expect(response.status).toBe(200)
     const report = await response.json()
-    expect(report).toMatchObject({ mode: 'dry-run', due: { unconfirmedDeletions: 1 } })
+    expect(report).toMatchObject({ mode: 'dry-run', due: { unconfirmedPending: 1 } })
     const logged = vi.mocked(console.warn).mock.calls.flat().join(' ')
-    expect(logged).toContain('"unconfirmedDeletions":1')
+    expect(logged).toContain('"unconfirmedPending":1')
     expect(logged).not.toContain(UNCONFIRMED.userId)
     expect(logged).not.toContain('@')
   })

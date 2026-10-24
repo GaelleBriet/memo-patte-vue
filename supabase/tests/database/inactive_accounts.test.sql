@@ -15,7 +15,9 @@ insert into auth.users (id, email, created_at, email_confirmed_at) values
   ('a0000000-0000-4000-8000-000000000008', 'averti@exemple.test', '2025-01-01T08:00:00Z', '2025-01-01T08:05:00Z'),
   ('a0000000-0000-4000-8000-000000000009', 'reprise@exemple.test', '2025-01-01T08:00:00Z', '2025-01-01T08:05:00Z'),
   ('a0000000-0000-4000-8000-00000000000a', 'refini@exemple.test', '2025-01-01T08:00:00Z', '2025-01-01T08:05:00Z'),
-  ('a0000000-0000-4000-8000-00000000000b', 'fin-31-janvier@exemple.test', '2025-01-01T08:00:00Z', '2025-01-01T08:05:00Z');
+  ('a0000000-0000-4000-8000-00000000000b', 'fin-31-janvier@exemple.test', '2025-01-01T08:00:00Z', '2025-01-01T08:05:00Z'),
+  ('a0000000-0000-4000-8000-00000000000c', 'restaure@exemple.test', '2027-06-01T10:00:00Z', '2027-06-01T10:05:00Z'),
+  ('a0000000-0000-4000-8000-00000000000d', 'non-confirme-plus-fini@exemple.test', '2025-01-01T08:00:00Z', null);
 
 insert into public.plus_entitlements (user_id, active, product_type, expires_at) values
   ('a0000000-0000-4000-8000-000000000002', false, 'annual', '2026-11-15T14:00:00Z'),
@@ -26,7 +28,9 @@ insert into public.plus_entitlements (user_id, active, product_type, expires_at)
   ('a0000000-0000-4000-8000-000000000008', false, 'annual', '2026-01-15T10:00:00Z'),
   ('a0000000-0000-4000-8000-000000000009', true, 'annual', '2028-01-15T10:00:00Z'),
   ('a0000000-0000-4000-8000-00000000000a', false, 'annual', '2027-03-01T10:00:00Z'),
-  ('a0000000-0000-4000-8000-00000000000b', false, 'monthly', '2027-01-31T10:00:00Z');
+  ('a0000000-0000-4000-8000-00000000000b', false, 'monthly', '2027-01-31T10:00:00Z'),
+  ('a0000000-0000-4000-8000-00000000000c', false, 'annual', '2026-01-01T00:00:00Z'),
+  ('a0000000-0000-4000-8000-00000000000d', false, 'annual', '2026-01-01T00:00:00Z');
 
 -- Averti le 1er décembre 2026 pour une fin d'accès au 15 janvier 2026 ; la reprise avait été avertie
 -- avant de reprendre Plus ; « refini » avait été averti pour une fin d'accès d'avant sa reprise.
@@ -84,19 +88,33 @@ select is(pg_temp.step_of('a0000000-0000-4000-8000-00000000000b', '2027-03-31T09
 select is(pg_temp.step_of('a0000000-0000-4000-8000-00000000000b', '2027-12-31T10:00:00Z'), 'warn+revenuecat',
   'fin le 31 janvier 2027 : avertissement le 31 décembre 2027');
 
--- Adresse jamais confirmée : 7 jours, sans e-mail.
+-- Achat restauré plus ancien que le compte : on compte depuis la création.
+select is(pg_temp.step_of('a0000000-0000-4000-8000-00000000000c', '2027-07-31T09:59:59Z'), 'absent',
+  'achat restauré : rien avant 60 jours après la création');
+select is(pg_temp.step_of('a0000000-0000-4000-8000-00000000000c', '2027-07-31T10:00:00Z'), '-+revenuecat',
+  'achat restauré : RevenueCat 60 jours après la création');
+select is(pg_temp.step_of('a0000000-0000-4000-8000-00000000000c', '2028-05-01T09:59:59Z'), '-+revenuecat',
+  'achat restauré : pas d''avertissement avant 11 mois après la création');
+select is(pg_temp.step_of('a0000000-0000-4000-8000-00000000000c', '2028-05-01T10:00:00Z'), 'warn+revenuecat',
+  'achat restauré : averti 11 mois après la création');
+
+-- Adresse jamais confirmée : comptée à part, en attente de la décision de Gaelle.
 select is(pg_temp.step_of('a0000000-0000-4000-8000-000000000007', '2026-11-09T09:59:59Z'), 'absent',
   'adresse jamais confirmée : rien avant 7 jours');
-select is(pg_temp.step_of('a0000000-0000-4000-8000-000000000007', '2026-11-09T10:00:00Z'), 'delete-unconfirmed',
-  'adresse jamais confirmée : supprimée à 7 jours');
-select is(pg_temp.step_of('a0000000-0000-4000-8000-000000000007', '2027-10-09T10:00:00Z'), 'delete-unconfirmed',
+select is(pg_temp.step_of('a0000000-0000-4000-8000-000000000007', '2026-11-09T10:00:00Z'), 'unconfirmed-pending',
+  'adresse jamais confirmée : comptée à part à 7 jours, sans étape de suppression');
+select is(pg_temp.step_of('a0000000-0000-4000-8000-000000000007', '2027-10-09T10:00:00Z'), 'unconfirmed-pending',
   'adresse jamais confirmée : jamais avertie');
+select is(pg_temp.step_of('a0000000-0000-4000-8000-00000000000d', '2027-06-01T00:00:00Z'), 'unconfirmed-pending',
+  'adresse jamais confirmée avec un Plus fini : ni effacement RevenueCat ni avertissement');
 
 -- Averti : supprimé le jour J retenu, pas avant.
-select is(pg_temp.step_of('a0000000-0000-4000-8000-000000000008', '2027-01-15T23:59:59Z'), 'absent',
-  'averti : rien avant le jour J');
-select is(pg_temp.step_of('a0000000-0000-4000-8000-000000000008', '2027-01-16T00:00:00Z'), 'delete',
-  'averti : supprimé le jour J');
+select is(pg_temp.step_of('a0000000-0000-4000-8000-000000000008', '2027-01-16T23:59:59Z'), 'absent',
+  'averti « avant le 16 janvier » : rien pendant le jour J');
+select is(pg_temp.step_of('a0000000-0000-4000-8000-000000000008', '2027-01-15T23:59:59-08:00'), 'absent',
+  'averti : à Los Angeles, rien jusqu''à la fin du 15 janvier, heure locale');
+select is(pg_temp.step_of('a0000000-0000-4000-8000-000000000008', '2027-01-17T00:00:00Z'), 'delete',
+  'averti : supprimé le lendemain du jour J, à 0 h UTC');
 
 select is(pg_temp.step_of('a0000000-0000-4000-8000-000000000009', '2027-06-01T00:00:00Z'), 'absent',
   'reprise de Plus après l''avertissement : plus candidat');
@@ -108,7 +126,7 @@ select is(
    where user_id in ('a0000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000004')),
   0, 'sans compte désigné, la liste écarte l''abonnement en cours et l''achat à vie');
 select is(
-  (select step from public.inactive_account_steps('2027-01-16T00:00:00Z')
+  (select step from public.inactive_account_steps('2027-01-17T00:00:00Z')
    where user_id = 'a0000000-0000-4000-8000-000000000008'),
   'delete', 'sans compte désigné, la liste rend chaque candidat avec son étape');
 select is(

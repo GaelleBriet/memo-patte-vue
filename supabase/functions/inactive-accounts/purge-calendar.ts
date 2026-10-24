@@ -21,7 +21,8 @@ export type AccountDates = {
   notice: PurgeNotice
 }
 
-export type AccountStep = 'warn' | 'delete' | 'delete-unconfirmed' | null
+/** `unconfirmed-pending` : adresse jamais confirmée, comptée à part et jamais traitée tant que D2 est ouverte. */
+export type AccountStep = 'warn' | 'delete' | 'unconfirmed-pending' | null
 
 export type PurgeSteps = { account: AccountStep; eraseRevenuecat: boolean }
 
@@ -42,16 +43,17 @@ function addMonths(instant: number, months: number): number {
   return target.getTime()
 }
 
-function startOfUtcDay(isoDate: string): number {
-  return Date.parse(`${isoDate}T00:00:00.000Z`)
+/** L'e-mail dit « avant le J » : le jour J entier reste à la personne, où qu'elle vive. */
+function deletableFrom(purgeOn: string): number {
+  return Date.parse(`${purgeOn}T00:00:00.000Z`) + DAY_MS
 }
 
-/** `null` : abonnement en cours ou achat à vie, le compte n'est jamais inactif. */
+/** `null` : abonnement en cours ou achat à vie. Un achat restauré plus ancien que le compte compte depuis la création. */
 export function inactiveSinceOf(dates: AccountDates, now: number): string | null {
   if (!dates.plus) return dates.createdAt
   const { expiresAt } = dates.plus
   if (expiresAt === null || Date.parse(expiresAt) > now) return null
-  return expiresAt
+  return Date.parse(dates.createdAt) > Date.parse(expiresAt) ? dates.createdAt : expiresAt
 }
 
 export function purgeStepsOf(dates: AccountDates, now: number): PurgeSteps {
@@ -63,20 +65,20 @@ export function purgeStepsOf(dates: AccountDates, now: number): PurgeSteps {
   let account: AccountStep = null
   if (!dates.emailConfirmed) {
     if (addDays(Date.parse(dates.createdAt), UNCONFIRMED_ACCOUNT_DAYS) <= now) {
-      account = 'delete-unconfirmed'
+      account = 'unconfirmed-pending'
     }
   } else if (notice.warnedAt !== null && notice.purgeOn !== null) {
-    if (startOfUtcDay(notice.purgeOn) <= now) account = 'delete'
+    if (deletableFrom(notice.purgeOn) <= now) account = 'delete'
   } else if (addMonths(reference, WARNING_MONTHS) <= now) {
     account = 'warn'
   }
 
   const eraseRevenuecat =
+    dates.emailConfirmed &&
     dates.plus !== null &&
     notice.revenuecatErasedAt === null &&
     addDays(reference, REVENUECAT_ERASURE_DAYS) <= now &&
-    account !== 'delete' &&
-    account !== 'delete-unconfirmed'
+    account !== 'delete'
 
   return { account, eraseRevenuecat }
 }

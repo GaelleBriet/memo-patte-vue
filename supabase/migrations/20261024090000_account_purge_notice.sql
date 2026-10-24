@@ -49,7 +49,7 @@ as $$
       u.created_at,
       p.user_id is not null as has_plus,
       p.expires_at,
-      coalesce(p.expires_at, u.created_at) as reference
+      case when p.user_id is null then u.created_at else greatest(p.expires_at, u.created_at) end as reference
     from auth.users u
     left join public.plus_entitlements p on p.user_id = u.id
     where (only_account is null or u.id = only_account)
@@ -65,12 +65,13 @@ as $$
       d.*,
       case
         when not d.email_confirmed then
-          case when ((d.created_at at time zone 'UTC') + interval '7 days') at time zone 'UTC' <= at then 'delete-unconfirmed' end
+          case when ((d.created_at at time zone 'UTC') + interval '7 days') at time zone 'UTC' <= at then 'unconfirmed-pending' end
         when d.warned_at is not null then
-          case when (d.purge_on::timestamp at time zone 'UTC') <= at then 'delete' end
+          case when ((d.purge_on + 1)::timestamp at time zone 'UTC') <= at then 'delete' end
         when ((d.reference at time zone 'UTC') + interval '11 months') at time zone 'UTC' <= at then 'warn'
       end as step,
-      d.has_plus
+      d.email_confirmed
+        and d.has_plus
         and d.revenuecat_erased_at is null
         and ((d.reference at time zone 'UTC') + interval '60 days') at time zone 'UTC' <= at as revenuecat_due
     from dated d
@@ -88,7 +89,7 @@ as $$
     s.warned_at,
     s.revenuecat_erased_at,
     s.step,
-    s.revenuecat_due and coalesce(s.step, '') not in ('delete', 'delete-unconfirmed')
+    s.revenuecat_due and coalesce(s.step, '') <> 'delete'
   from stepped s
   where s.step is not null or s.revenuecat_due
 $$;

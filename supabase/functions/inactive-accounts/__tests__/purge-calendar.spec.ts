@@ -77,23 +77,29 @@ describe('purgeStepsOf : Plus fini le 15 novembre 2026 à 14 h', () => {
     })
   })
 
-  it('averti : supprimé le jour J retenu, pas avant', () => {
-    const warned = {
-      ...ended,
-      notice: {
-        purgeOn: '2027-11-16',
-        warnedAt: '2027-10-16T03:00:00.000Z',
-        revenuecatErasedAt: null,
-      },
-    }
-    expect(purgeStepsOf(warned, at('2027-11-16T00:00:00.000Z') - MS)).toEqual({
+  const warned = {
+    ...ended,
+    notice: {
+      purgeOn: '2027-11-16',
+      warnedAt: '2027-10-16T03:00:00.000Z',
+      revenuecatErasedAt: null,
+    },
+  }
+
+  it('averti « avant le 16 novembre » : supprimable le 17 à 0 h UTC, pas avant', () => {
+    expect(purgeStepsOf(warned, at('2027-11-17T00:00:00.000Z') - MS)).toEqual({
       account: null,
       eraseRevenuecat: true,
     })
-    expect(purgeStepsOf(warned, at('2027-11-16T00:00:00.000Z'))).toEqual({
+    expect(purgeStepsOf(warned, at('2027-11-17T00:00:00.000Z'))).toEqual({
       account: 'delete',
       eraseRevenuecat: false,
     })
+  })
+
+  it('à Los Angeles, le compte tient jusqu’à la fin du 15 novembre, heure locale', () => {
+    expect(purgeStepsOf(warned, at('2027-11-15T23:59:59.999-08:00')).account).toBe(null)
+    expect(purgeStepsOf(warned, at('2027-11-16T15:59:59.999-08:00')).account).toBe(null)
   })
 })
 
@@ -127,18 +133,45 @@ describe('purgeStepsOf : jamais inactif', () => {
 describe('purgeStepsOf : adresse jamais confirmée', () => {
   const unconfirmed = account({ createdAt: '2026-11-02T10:00:00.000Z', emailConfirmed: false })
 
-  it('supprimée au bout de 7 jours, sans avertissement', () => {
+  it('comptée à part au bout de 7 jours, sans étape de suppression', () => {
     expect(UNCONFIRMED_ACCOUNT_DAYS).toBe(7)
     expect(purgeStepsOf(unconfirmed, at('2026-11-09T10:00:00.000Z') - MS).account).toBe(null)
-    expect(purgeStepsOf(unconfirmed, at('2026-11-09T10:00:00.000Z')).account).toBe(
-      'delete-unconfirmed',
-    )
+    expect(purgeStepsOf(unconfirmed, at('2026-11-09T10:00:00.000Z'))).toEqual({
+      account: 'unconfirmed-pending',
+      eraseRevenuecat: false,
+    })
   })
 
-  it('jamais avertie', () => {
-    expect(purgeStepsOf(unconfirmed, at('2027-10-09T10:00:00.000Z')).account).toBe(
-      'delete-unconfirmed',
+  it('jamais avertie ni supprimée, même des années plus tard ou avec un avis', () => {
+    const withNotice = {
+      ...unconfirmed,
+      notice: { purgeOn: '2027-01-01', warnedAt: '2026-12-01T00:00:00Z', revenuecatErasedAt: null },
+    }
+    expect(purgeStepsOf(unconfirmed, at('2030-10-09T10:00:00.000Z')).account).toBe(
+      'unconfirmed-pending',
     )
+    expect(purgeStepsOf(withNotice, at('2030-10-09T10:00:00.000Z')).account).toBe(
+      'unconfirmed-pending',
+    )
+  })
+})
+
+describe('purgeStepsOf : achat plus ancien que le compte (« Restaurer » sur un nouveau compte)', () => {
+  const restored = account({
+    createdAt: '2027-06-01T10:00:00.000Z',
+    plus: { expiresAt: '2026-01-01T00:00:00.000Z' },
+  })
+
+  it('compte depuis la création, jamais moins de 12 mois après elle', () => {
+    expect(inactiveSinceOf(restored, at('2027-06-02T00:00:00.000Z'))).toBe(
+      '2027-06-01T10:00:00.000Z',
+    )
+    expect(purgeStepsOf(restored, at('2027-07-31T10:00:00.000Z') - MS).eraseRevenuecat).toBe(false)
+    expect(purgeStepsOf(restored, at('2028-05-01T10:00:00.000Z') - MS).account).toBe(null)
+    expect(purgeStepsOf(restored, at('2028-05-01T10:00:00.000Z'))).toEqual({
+      account: 'warn',
+      eraseRevenuecat: true,
+    })
   })
 })
 
