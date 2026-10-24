@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { AccountError } from '../logic/account-error'
 import { accountErrorKey, signInErrorKey } from '../logic/account-error-message'
 import { validateEmailChange, type EmailChangeValues } from '../logic/email-change-form'
+import { holdEmailChange, takeHeldEmailChange } from '../logic/held-email-change'
 import { useAuthStore } from '../store/auth.store'
 import { useFormValidation } from '@/shared/form/use-form-validation'
 
@@ -53,6 +54,25 @@ export function useEmailChange({
       failureKey.value = signInErrorKey(cause)
     }
   }
+
+  function holdForHelp(): void {
+    if (step.value !== 'current') return
+    holdEmailChange({ newAddress, currentAddress, sentAt, code: emailCode.code.value })
+  }
+
+  function restoreHeld(): void {
+    const held = takeHeldEmailChange()
+    if (!held) return
+    newAddress = held.newAddress
+    currentAddress = held.currentAddress
+    sentAt = held.sentAt
+    values.value.email = newAddress
+    step.value = 'current'
+    emailCode.afterCodeSent(currentAddress, sentAt)
+    emailCode.setCode(held.code)
+  }
+
+  restoreHeld()
 
   async function sendCode(): Promise<boolean> {
     if (isSending.value) return false
@@ -120,5 +140,6 @@ export function useEmailChange({
     confirm,
     resend,
     backToAddress,
+    holdForHelp,
   }
 }
