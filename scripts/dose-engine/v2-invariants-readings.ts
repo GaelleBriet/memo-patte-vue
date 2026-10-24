@@ -5,8 +5,10 @@ import {
   preview,
   settingsApplied,
   treatmentView,
+  type Day,
   type Due,
   type Line,
+  type TreatmentView,
   type TreatmentViewInput,
 } from '@/shared/domain/dose-calendar'
 import { shiftDayOf } from '@/shared/domain/dose-calendar/gestures/outcome'
@@ -60,20 +62,30 @@ export function time(input: TreatmentViewInput, random: Random): Broken | null {
   return compare(`temps (${input.today} → ${later})`, union(input.today), union(later))
 }
 
-/** 5. R6 : « Fait à une autre date J » = « C'est fait » puis « Changer la date » vers J. */
+/** 5. R6 : « Fait à une autre date J » = « C'est fait » puis « Changer la date » vers J, pour la dose du moment déjà tombée. */
 export function symmetry(input: TreatmentViewInput, random: Random): Broken | null {
-  const view = treatmentView(input)
-  const due = view.currentDoses.find(({ dueOn }) => dueOn <= input.today)
-  if (due === undefined) return null
-  // Exemption unique (ecarts-acceptes.md) : un décalage ancré au jour du tap part avec la prise corrigée.
-  const shiftDay = shiftDayOf(view, due)
-  const anchoredToday = ({ status, dueOn, targetOn }: Line) =>
-    status === 'shift' && dueOn === shiftDay && targetOn === input.today
-  if (input.lines.some(anchoredToday)) return null
-  const givenOn = plusDays(input.today, -int(random, 0, 6))
-  const boundary = view.earliestGivenOn(due)
-  if (boundary !== null && givenOn < boundary) return null
-  const checked = random() < 0.65
+  const due = treatmentView(input).currentDoses.find(({ dueOn }) => dueOn <= input.today)
+  return due === undefined ? null : symmetryOf(input, due, random)
+}
+
+/** 5 bis. La même symétrie pour la première dose à venir, dose du moment ou non (#1242). */
+export function symmetryAhead(input: TreatmentViewInput, random: Random): Broken | null {
+  const [due] = treatmentView(input).upcoming({ from: plusDays(input.today, 1), limit: 1 })
+  return due === undefined ? null : symmetryOf(input, due, random)
+}
+
+type Played = {
+  direct: ReturnType<typeof play>
+  afterTap: TreatmentViewInput
+  redated: ReturnType<typeof play>
+}
+
+function bothWays(
+  input: TreatmentViewInput,
+  due: Due,
+  givenOn: Day,
+  checked: boolean,
+): Played | null {
   const direct = play(input, {
     kind: 'note',
     due,
@@ -104,6 +116,34 @@ export function symmetry(input: TreatmentViewInput, random: Random): Broken | nu
     givenOn,
     shiftsFollowing: checked,
   })
+  return { direct, afterTap, redated }
+}
+
+// Résidu #1242 : « Changer la date » propose la case pour une dose qui n'est pas la dose du moment, « Fait à une autre date » non.
+function isResidual1242(view: TreatmentView, due: Due, { direct, redated }: Played): boolean {
+  if ('refusal' in direct || 'refusal' in redated) return false
+  const current = view.currentDoses.some((other) => dueKey(other) === dueKey(due))
+  return !current && redated.offersShift && !direct.offersShift
+}
+
+function symmetryOf(input: TreatmentViewInput, due: Due, random: Random): Broken | null {
+  const view = treatmentView(input)
+  // Exemption unique (ecarts-acceptes.md) : un décalage ancré au jour du tap part avec la prise corrigée.
+  const shiftDay = shiftDayOf(view, due)
+  const anchoredToday = ({ status, dueOn, targetOn }: Line) =>
+    status === 'shift' && dueOn === shiftDay && targetOn === input.today
+  if (input.lines.some(anchoredToday)) return null
+  const givenOn = plusDays(input.today, -int(random, 0, 6))
+  const boundary = view.earliestGivenOn(due)
+  if (boundary !== null && givenOn < boundary) return null
+  let checked = random() < 0.65
+  let played = bothWays(input, due, givenOn, checked)
+  if (played !== null && checked && isResidual1242(view, due, played)) {
+    checked = false
+    played = bothWays(input, due, givenOn, checked)
+  }
+  if (played === null) return null
+  const { direct, afterTap, redated } = played
   const label = `symétrie (${dueKey(due)} le ${givenOn}, case ${checked ? 'cochée' : 'décochée'})`
   if ('refusal' in direct || 'refusal' in redated) {
     const reasons = [
