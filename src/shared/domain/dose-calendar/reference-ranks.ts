@@ -1,4 +1,4 @@
-import type { Hour } from './reference-grid'
+import { isOnGrid, type Hour } from './reference-grid'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 /**
@@ -74,6 +74,37 @@ export function chooserOf(
   settingAt: (day: string) => ReferenceSetting | undefined,
   live: readonly ReferenceSetting[],
 ): ReferenceSetting | undefined {
+  const drawer = oldArrivalDrawer(report, settingAt, live)
+  return drawer !== undefined && report.decidedAt > modifiedAt(drawer) ? drawer : undefined
+}
+
+/**
+ * Q26, Q39 : un report plus ancien que le « Modifier » de la date choisie qui était son ancienne
+ * arrivée, parti d'un jour que sa grille n'a pas, est sans effet, sauf si une dose arrivée est donnée.
+ */
+export function staleBeforeChosenDate(
+  report: ReferenceLine,
+  settingAt: (day: string) => ReferenceSetting | undefined,
+  live: readonly ReferenceSetting[],
+  notes: readonly ReferenceLine[],
+): boolean {
+  const drawer = oldArrivalDrawer(report, settingAt, live)
+  if (drawer === undefined || report.decidedAt > modifiedAt(drawer)) return false
+  if (isOnGrid(drawer.firstDueOn, drawer.frequency, report.dueOn)) return false
+  const arrived = (hour: string | null) =>
+    report.dueTime === null || hour === null || hour >= report.dueTime
+  return !notes.some(
+    (note) => note.status === 'given' && note.dueOn === report.targetOn && arrived(note.dueTime),
+  )
+}
+
+const modifiedAt = (setting: ReferenceSetting) => setting.updatedAt ?? setting.createdAt
+
+function oldArrivalDrawer(
+  report: ReferenceLine,
+  settingAt: (day: string) => ReferenceSetting | undefined,
+  live: readonly ReferenceSetting[],
+): ReferenceSetting | undefined {
   const day = report.previousTargetOn ?? null
   if (day === null || day === report.targetOn) return undefined
   const inForce = settingAt(day)
@@ -86,6 +117,5 @@ export function chooserOf(
   const drawer = before.find((each) => each.gridOriginOn !== null || !sameRhythm(each))
   if (drawer === undefined || !sameRhythm(drawer)) return undefined
   const continued = before.slice(0, before.indexOf(drawer)).every(sameRhythm)
-  if (!continued || !drawer.firstDueChosen || drawer.firstDueOn !== day) return undefined
-  return report.decidedAt > (drawer.updatedAt ?? drawer.createdAt) ? drawer : undefined
+  return continued && drawer.firstDueChosen && drawer.firstDueOn === day ? drawer : undefined
 }

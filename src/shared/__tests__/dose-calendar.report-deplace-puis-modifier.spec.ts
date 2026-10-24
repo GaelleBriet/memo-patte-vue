@@ -74,12 +74,13 @@ describe('Report déplacé deux fois avec la case, puis « Modifier » : la date
     })
     expect(keys(view.currentDoses)).not.toContain('2026-03-17')
     expect(echeances(input, 2)).toEqual(['2026-03-21', '2026-04-04'])
+    expect(moteur.aRenseigner).toContain('2026-03-10')
     expect(reference).toEqual(moteur)
   })
 
-  // Le même carnet ; le 13, la dose du 17 reportée au 19 avec la case : le 21, date choisie après le
-  // premier report, reste une échéance.
-  it('graine 12200000727, suite : la dose du 17 reportée au 19 avec la case, puis le 21 mars, le 4 et le 18 avril', () => {
+  // Le même carnet ; le 13, « Changer la date » sur le 17 : le report étant sans effet, le 17 n'est plus
+  // une dose (#1231).
+  it('graine 12200000727, suite : le 17 ne se déplace plus, la fiche montre le 21 mars, le 4 et le 18 avril', () => {
     let input: TreatmentViewInput = {
       settings: [setting('s1', '2026-03-06', DAY)],
       lines: [],
@@ -93,9 +94,15 @@ describe('Report déplacé deux fois avec la case, puis « Modifier » : la date
       endsOn: null,
       firstDueOn: '2026-03-21',
     })
-    input = moved(on(input, '2026-03-13'), '2026-03-17', null, '2026-03-19')
 
-    expect(echeances(input, 4)).toEqual(['2026-03-19', '2026-03-21', '2026-04-04', '2026-04-18'])
+    expect(() => moved(on(input, '2026-03-13'), '2026-03-17', null, '2026-03-19')).toThrow(
+      'not-movable',
+    )
+    expect(echeances(on(input, '2026-03-13'), 3)).toEqual([
+      '2026-03-21',
+      '2026-04-04',
+      '2026-04-18',
+    ])
   })
 
   // Milo, chaque jour sans heure depuis le 7 mars ; le 7, la dose du 8 reportée au 20 avec la case,
@@ -135,6 +142,8 @@ describe('Report déplacé deux fois avec la case, puis « Modifier » : la date
     const before = journee(input, '2026-04-04')
 
     expect(before).toEqual(['2026-04-04 sans heure given'])
+    expect(readings(input).moteur.aRenseigner).not.toContain('2026-03-27')
+    expect(readings(input).reference).toEqual(readings(input).moteur)
     expect(journee(edited(input, monthly(['06:00'])), '2026-04-04')).toEqual(before)
   })
 })

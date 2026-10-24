@@ -1,7 +1,7 @@
 import { writtenBefore, type coverages, type Journey } from './reference-days'
 import { hoursOf, keyOf, sameFrequency, sameHours } from './reference-grid'
 import { arrivedOn, chosenDateOf, hoursChangedSince, reportOutcome } from './reference-reports'
-import { chooserOf, takenByRank, wholeDayOf } from './reference-ranks'
+import { chooserOf, staleBeforeChosenDate, takenByRank, wholeDayOf } from './reference-ranks'
 import { rewrittenDeparture, type RewriteContext } from './reference-rewrite'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
@@ -111,6 +111,7 @@ export function arriveReports(context: ArrivalContext) {
       land(report!, { carried, hoursOf: owner })
       continue
     }
+    if (staleBeforeChosenDate(report!, settingAt, live, notes)) continue
     const verdict =
       rewrite === undefined
         ? undefined

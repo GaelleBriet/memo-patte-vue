@@ -4,7 +4,13 @@ import { withCededDoses } from './ceded-day'
 import { hoursOf, keyOf, sameFrequency, sameHours } from './grid'
 import type { Journey, journeys } from './journeys'
 import type { EpisodeLines } from './lines'
-import { hoursSeenOn, oldArrivalChooser, rankedMove, wholeDay } from './report-rank'
+import {
+  hoursSeenOn,
+  oldArrivalChooser,
+  outdatedByChosenDate,
+  rankedMove,
+  wholeDay,
+} from './report-rank'
 import { departureVerdict, readingsOn } from './rewrite'
 import type { Span } from './settings'
 import type { Day, Hour, Line, LineEffect, Setting } from './types'
@@ -107,7 +113,7 @@ export function moveReports(input: ReportsInput) {
     const ceded = arrivalsOnly.has(dueOn) ? left.get(dueOn) : undefined
     const read = origin && withCededDoses(origin, ceded)
     const from = origin?.setting ?? settingOf(report.settingId)
-    if (rewrite === 'rewrite') {
+    if (rewrite === 'rewrite' || outdatedByChosenDate(report, span, lines.notes)) {
       effects.set(report.id, { kind: 'idle', reason: 'nothing-to-move' })
       continue
     }

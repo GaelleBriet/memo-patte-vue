@@ -1,4 +1,4 @@
-import { hoursOf, sameFrequency, sameHours } from './grid'
+import { hoursOf, isOnGrid, sameFrequency, sameHours } from './grid'
 import type { Span } from './settings'
 import type { Day, Hour, Line, LineEffect, Setting } from './types'
 
@@ -51,6 +51,37 @@ export function oldArrivalChooser(
   report: Line,
   span: Pick<Span, 'settingAt' | 'live'>,
 ): Setting | undefined {
+  const setting = chosenOldArrival(report, span)
+  return setting !== undefined && report.decidedAt > writtenAt(setting) ? setting : undefined
+}
+
+/**
+ * Q26, Q39 (#1231) : plus ancien que le « Modifier » de la date choisie qui était son ancienne arrivée,
+ * parti d'une journée que sa grille n'a pas, le report est sans effet, sauf si une dose qu'il apporte
+ * est déjà donnée.
+ */
+export function outdatedByChosenDate(
+  report: Line,
+  span: Pick<Span, 'settingAt' | 'live'>,
+  notes: readonly Line[],
+): boolean {
+  const setting = chosenOldArrival(report, span)
+  if (setting === undefined || report.decidedAt > writtenAt(setting)) return false
+  if (isOnGrid(setting.firstDueOn, setting.frequency, report.dueOn)) return false
+  return !notes.some(
+    (note) =>
+      note.status === 'given' &&
+      note.dueOn === report.targetOn &&
+      (report.dueTime === null || note.dueTime === null || note.dueTime >= report.dueTime),
+  )
+}
+
+const writtenAt = (setting: Setting) => setting.updatedAt ?? setting.createdAt
+
+function chosenOldArrival(
+  report: Line,
+  span: Pick<Span, 'settingAt' | 'live'>,
+): Setting | undefined {
   const day = report.previousTargetOn
   if (day === undefined || day === null || day === report.targetOn) return undefined
   let setting = span.settingAt(day)
@@ -61,9 +92,7 @@ export function oldArrivalChooser(
     setting = previous
     index -= 1
   }
-  if (setting === undefined || !setting.firstDueChosen || setting.firstDueOn !== day)
-    return undefined
-  return report.decidedAt > (setting.updatedAt ?? setting.createdAt) ? setting : undefined
+  return setting?.firstDueChosen && setting.firstDueOn === day ? setting : undefined
 }
 
 /**
