@@ -5,6 +5,18 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.109](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.108...memo-patte-v0.1.109) (2026-10-24)
+
+
+### ✨ Fonctionnalités
+
+* **synchro:** garder l'élément refusé pour toujours et l'afficher dans Paramètres › Sauvegarde ([28d2c15](https://github.com/GaelleBriet/memo-patte-vue/commit/28d2c15a9738f93de75558230d3286f30b401844))
+
+
+### 🐛 Corrections
+
+* **synchro:** refuser l'enfant avec son parent seulement sur une clé étrangère manquante ([e6f79fb](https://github.com/GaelleBriet/memo-patte-vue/commit/e6f79fb188273f585469fed407d290d1af09b49a))
+
 ## [0.1.108](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.107...memo-patte-v0.1.108) (2026-10-24)
 
 
