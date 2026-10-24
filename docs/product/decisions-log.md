@@ -3001,6 +3001,9 @@ du 12 mars est refusée ; la sauvegarde aboutit et Paramètres › Sauvegarde af
    pire qu'une ligne absente.
 7. L'avertissement « modifications non sauvegardées » avant « Effacer les données de ce téléphone »
    compte aussi les éléments refusés : c'est la perte réelle qu'il annonce.
+8. Un enfant dont le parent est refusé est refusé lui aussi (même état, même texte, même compte),
+   au lieu d'être réessayé sans fin sur la clé étrangère : « Première sauvegarde en cours » ne reste
+   plus bloqué ; il repart quand le parent est modifié puis sauvegardé.
 
 - Raison : la ligne restait dans le carnet du téléphone sans être dans le cloud, et « Dernière
   sauvegarde » le taisait (#1035). Un élément refusé ne bloque jamais la file et ne compte pas dans

@@ -274,7 +274,12 @@ Déconnexion et expiration se traitent alors en deux instructions, sans toucher 
   refusée (`countRefusedPhotos`), la ligne « Photos sauvegardées · Oui » disparaît. Une panne
   passagère ou un refus de droit se réessaient sans fin, sans jamais être marqués. L'avertissement
   « modifications non sauvegardées » avant « Effacer les données de ce téléphone » compte aussi les
-  éléments refusés. Limite : une écriture qui laisse `queued_at` à la même valeur ne retente pas
+  éléments refusés. Un enfant dont un ancêtre est refusé (vaccin, injection, traitement, période,
+  prise, pesée sous un animal refusé ; injection sous un vaccin refusé ; prise sous une période ou
+  un traitement refusé) est refusé avec lui sans être marqué : `listPending` et `countPending`
+  l'ignorent, `countRefused` le compte (`SYNC_PARENT_COLUMNS`, aligné sur les clés étrangères par un
+  test). Il n'est donc plus réessayé sans fin sur la clé étrangère, et repart dès que son ancêtre
+  repart. Une photo ne suit pas son animal : son envoi ne dépend pas de la ligne. Limite : une écriture qui laisse `queued_at` à la même valeur ne retente pas
   l'entrée (même version, même refus).
 
 ### 3.4 Le piège du ping-pong
