@@ -12,7 +12,7 @@ export type OtherDateSheetState = {
   treatment: Pick<TreatmentWithPeriods, 'periods'>
   reading: TreatmentReading
   today: string
-  /** Le premier jour que donne l'écran : la naissance, ou la borne de « À faire » et de la notification. */
+  /** Le premier jour que donne l'écran : la naissance, ou la borne de « Donnée quand ? ». */
   min: string | null
   /** La carte de la fiche ou la ligne de la feuille du soin (Q36) ; `null` depuis « Donnée quand ? ». */
   target: NotifiedDue | null

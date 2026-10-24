@@ -3800,8 +3800,8 @@ comptabilisée ». — Alternatives écartées : la règle par distance ; couvri
 rythme avant la première échéance ; une question « quelle dose ? » qui referait le bandeau.
 
 2026-10-24 — **« Fait à une autre date » depuis « À faire » : le calendrier et la question de la
-fiche** (#1239, spec `traitements.md` R5, TR-13 ; décision Q36 de Gaelle, par la session d'analyse du
-moteur). Pour la même dose, « À faire » ouvre le calendrier de la fiche (du lendemain de l'échéance
+fiche** (#1239, spec `traitements.md` R5, TR-13 ; décision Q36 de la session d'analyse du
+moteur, à qui Gaelle a délégué les lectures de règles). Pour la même dose, « À faire » ouvre le calendrier de la fiche (du lendemain de l'échéance
 précédente à aujourd'hui, jours antérieurs grisés avec l'aide du bandeau) et pose la même question
 « Cette prise » ; tant qu'elle n'a pas de réponse, aucun récapitulatif ne parle de dose couverte ; à
 plusieurs heures, l'aide de « Remplace » donne le jour et l'heure de la prochaine dose. Luna,
