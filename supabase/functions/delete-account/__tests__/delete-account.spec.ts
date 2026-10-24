@@ -1,10 +1,10 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { MAX_FOLDER_DEPTH, PHOTO_PAGE_SIZE } from '../account-erasure'
+import { MAX_FOLDER_DEPTH, PHOTO_PAGE_SIZE } from '../../_shared/account-erasure'
 import { adminSecretFrom } from '../admin-secret-setting'
 import { handleDeleteAccount } from '../delete-account'
-import { providerErasuresFrom } from '../provider-settings'
+import { providerErasuresFrom } from '../../_shared/provider-settings'
 import { fakeDeletionPorts, USER } from './fake-deletion-ports'
 import { fakeFetch } from '../../_shared/__tests__/fake-fetch'
 
@@ -202,7 +202,7 @@ describe('handleDeleteAccount', () => {
     expect(fake.calls).toEqual([])
   })
 
-  it('efface les prestataires, les photos juste avant le compte, puis repasse sur le dossier', async () => {
+  it('efface les prestataires, les photos juste avant le compte, puis repasse sur le dossier et chez RevenueCat', async () => {
     const fake = fakePorts({ photos: ['milo.jpg', 'luna.jpg'] })
 
     const response = await handleDeleteAccount(request(), fake.ports)
@@ -218,6 +218,7 @@ describe('handleDeleteAccount', () => {
       { kind: 'list', arg: { folder: USER, limit: PHOTO_PAGE_SIZE } },
       { kind: 'deleteUser', arg: USER },
       { kind: 'list', arg: { folder: USER, limit: PHOTO_PAGE_SIZE } },
+      { kind: 'revenuecat', arg: USER },
       { kind: 'record', arg: 'app' },
     ])
     expect(fake.photos).toEqual([])
@@ -241,6 +242,7 @@ describe('handleDeleteAccount', () => {
       { kind: 'list', arg: { folder: USER, limit: PHOTO_PAGE_SIZE } },
       { kind: 'remove', arg: [`${USER}/luna.jpg`] },
       { kind: 'list', arg: { folder: USER, limit: PHOTO_PAGE_SIZE } },
+      { kind: 'revenuecat', arg: USER },
       { kind: 'record', arg: 'app' },
     ])
   })
@@ -332,8 +334,45 @@ describe('handleDeleteAccount', () => {
       'list',
       'deleteUser',
       'list',
+      'revenuecat',
       'record',
     ])
+  })
+
+  it('efface de nouveau chez RevenueCat le client recréé pendant la suppression', async () => {
+    const fake = fakePorts()
+    let customers = 1
+    fake.ports.providerErasures = [async () => void (customers = 0)]
+    const deleteUser = fake.ports.deleteUser
+    fake.ports.deleteUser = async (userId) => {
+      customers = 1
+      await deleteUser(userId)
+    }
+    fake.ports.erasuresAfterDeletion = [async () => void (customers = 0)]
+
+    const response = await handleDeleteAccount(request(), fake.ports)
+
+    expect(response.status).toBe(200)
+    expect(customers).toBe(0)
+  })
+
+  it('confirme la suppression quand le second effacement RevenueCat échoue, sans journaliser l’identifiant', async () => {
+    const fake = fakePorts()
+    fake.ports.erasuresAfterDeletion = [
+      async (userId) => {
+        throw new Error(`RevenueCat a refusé ${userId}`)
+      },
+    ]
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const response = await handleDeleteAccount(request(), fake.ports)
+
+    const written = JSON.stringify(logged.mock.calls)
+    logged.mockRestore()
+    expect(response.status).toBe(200)
+    expect(fake.calls.at(-1)).toEqual({ kind: 'record', arg: 'app' })
+    expect(written).toContain('prestataire')
+    expect(written).not.toContain(USER)
   })
 
   it.each(['posthog', 'revenuecat'] as const)(

@@ -1,7 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.116.0'
 
 import { syncPlusEntitlements } from './plus-entitlement-sync.ts'
-import { revenuecatSubscriberReader } from './revenuecat-subscriber.ts'
+import { revenuecatSubscriberReader } from '../_shared/revenuecat-subscriber.ts'
 import { handleRevenuecatWebhook } from './webhook-request.ts'
 
 const admin = createClient(

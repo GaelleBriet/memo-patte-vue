@@ -2,8 +2,8 @@
 import { describe, expect, it } from 'vitest'
 
 import { posthogPersonErasure } from '../posthog-erasure'
-import { fakeFetch, jsonResponse } from '../../_shared/__tests__/fake-fetch'
-import { USER } from './fake-deletion-ports'
+import { fakeFetch, jsonResponse } from './fake-fetch'
+import { USER } from './test-account'
 
 const SETTINGS = {
   host: 'https://eu.posthog.com',

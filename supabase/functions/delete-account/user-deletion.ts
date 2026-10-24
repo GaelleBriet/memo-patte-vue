@@ -1,4 +1,4 @@
-import { eraseAccount, type AccountErasurePorts } from './account-erasure.ts'
+import { eraseAccount, type AccountErasurePorts } from '../_shared/account-erasure.ts'
 import { deletionFailed, json } from './http-response.ts'
 import { isIdentityFresh } from './identity-freshness.ts'
 

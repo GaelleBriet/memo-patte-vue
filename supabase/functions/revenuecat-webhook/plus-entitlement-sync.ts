@@ -1,4 +1,8 @@
-import { plusAccessFrom, type PlusAccess, type RevenuecatSubscriber } from './plus-access.ts'
+import {
+  plusAccessFrom,
+  type PlusAccess,
+  type RevenuecatSubscriber,
+} from '../_shared/plus-access.ts'
 import type { RevenuecatEvent } from './webhook-request.ts'
 
 export type PlusEntitlementPorts = {

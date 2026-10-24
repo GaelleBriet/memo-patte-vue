@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { PlusAccess, RevenuecatSubscriber } from '../plus-access'
+import type { PlusAccess, RevenuecatSubscriber } from '../../_shared/plus-access'
 import { accountIdsOf, syncPlusEntitlements } from '../plus-entitlement-sync'
 import type { RevenuecatEvent } from '../webhook-request'
 

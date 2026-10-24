@@ -1,4 +1,4 @@
-import { ErasureNotConfiguredError, errorMessage } from './account-erasure.ts'
+import { ErasureNotConfiguredError, errorMessage } from '../_shared/account-erasure.ts'
 
 export const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',

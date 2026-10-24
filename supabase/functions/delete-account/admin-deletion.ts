@@ -1,4 +1,8 @@
-import { eraseAccount, removeAllPhotos, type AccountErasurePorts } from './account-erasure.ts'
+import {
+  eraseAccount,
+  removeAllPhotos,
+  type AccountErasurePorts,
+} from '../_shared/account-erasure.ts'
 import { isSharedSecret } from '../_shared/shared-secret.ts'
 import { deletionFailed, json } from './http-response.ts'
 
