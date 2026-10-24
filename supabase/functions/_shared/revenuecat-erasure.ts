@@ -1,5 +1,5 @@
-import { sendTo } from '../_shared/provider-request.ts'
-import { REVENUECAT_API } from '../_shared/revenuecat-api.ts'
+import { sendTo } from './provider-request.ts'
+import { REVENUECAT_API } from './revenuecat-api.ts'
 import type { ProviderErasure } from './account-erasure.ts'
 
 /** Un client inconnu (404) est déjà effacé ou n'a jamais existé : c'est un succès. */

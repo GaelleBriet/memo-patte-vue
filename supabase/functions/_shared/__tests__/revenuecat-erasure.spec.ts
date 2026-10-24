@@ -2,8 +2,8 @@
 import { describe, expect, it } from 'vitest'
 
 import { revenuecatCustomerErasure } from '../revenuecat-erasure'
-import { fakeFetch, jsonResponse } from '../../_shared/__tests__/fake-fetch'
-import { USER } from './fake-deletion-ports'
+import { fakeFetch, jsonResponse } from './fake-fetch'
+import { USER } from './test-account'
 
 const SECRET_KEY = 'sk_cle-secrete-de-test'
 

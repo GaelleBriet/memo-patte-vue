@@ -5,6 +5,28 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.108](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.107...memo-patte-v0.1.108) (2026-10-24)
+
+
+### ✨ Fonctionnalités
+
+* avertir un compte confirmé sans achat, attendre gaelle pour une adresse non confirmée ([68a53c5](https://github.com/GaelleBriet/memo-patte-vue/commit/68a53c525ec583c858e32bbd0821cb3e27e6a465))
+* fonction inactive-accounts de purge des comptes, à blanc par défaut ([aa7136e](https://github.com/GaelleBriet/memo-patte-vue/commit/aa7136e07859f072c6da98deaffed96b107c663c))
+* **parametres:** première sauvegarde et états de la sauvegarde cloud (avance [#83](https://github.com/GaelleBriet/memo-patte-vue/issues/83)) ([24990c2](https://github.com/GaelleBriet/memo-patte-vue/commit/24990c25373569a8f9e6fb8b14f87a53f9915716))
+* purge des comptes plus inactifs, à blanc par défaut ([#426](https://github.com/GaelleBriet/memo-patte-vue/issues/426)) ([ca29929](https://github.com/GaelleBriet/memo-patte-vue/commit/ca29929a6884471c70251462c691d70eccf509ee))
+* table des avis de purge et liste des comptes inactifs par étape ([6c91a8e](https://github.com/GaelleBriet/memo-patte-vue/commit/6c91a8e7a3f8315f1dcf48eaa24cd9208d2721a3))
+
+
+### 🐛 Corrections
+
+* **a11y:** mise en page petit écran et police agrandie (avance [#51](https://github.com/GaelleBriet/memo-patte-vue/issues/51)) ([4761898](https://github.com/GaelleBriet/memo-patte-vue/commit/4761898f85b6369c041c485256d45b3a6b2c0fa2))
+* effacer de nouveau le client revenuecat une fois le compte supprimé ([58caf4d](https://github.com/GaelleBriet/memo-patte-vue/commit/58caf4db4c5e9a828da8d43238f6109b24b424dd))
+* **parametres:** reprendre le suivi de la première sauvegarde au retour au premier plan ([bee6479](https://github.com/GaelleBriet/memo-patte-vue/commit/bee6479113a2f152f16201c0397203f7b6d052f9)), closes [#83](https://github.com/GaelleBriet/memo-patte-vue/issues/83)
+* **parametres:** sauvegarde illisible, photos hors ligne et relecture limitée ([aa3c90e](https://github.com/GaelleBriet/memo-patte-vue/commit/aa3c90eda965fd899728c638bc05b49da44de00f)), closes [#83](https://github.com/GaelleBriet/memo-patte-vue/issues/83)
+* purge plus prudente après relecture (jour j entier, revenuecat toujours relu, pause, lot) ([8ff5fdd](https://github.com/GaelleBriet/memo-patte-vue/commit/8ff5fdd236eb4211e9d426a2f1d73fba409b4793))
+* refuser une clé revenuecat invalide en mode appliquer, préciser le jour de suppression ([c4c50f5](https://github.com/GaelleBriet/memo-patte-vue/commit/c4c50f560b6d7f512005b48110bbc1562b065709))
+* **sync:** oublier la dernière sauvegarde au départ du compte et à la restauration ([5eac9e4](https://github.com/GaelleBriet/memo-patte-vue/commit/5eac9e4d1c7d1c8baa9cffbf2539f242736c010f)), closes [#83](https://github.com/GaelleBriet/memo-patte-vue/issues/83)
+
 ## [0.1.107](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.106...memo-patte-v0.1.107) (2026-10-23)
 
 

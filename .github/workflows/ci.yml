@@ -256,13 +256,16 @@ jobs:
         with:
           version: 2.119.0
 
-      # Secret admin tiré au hasard pour ce passage ; PostHog et RevenueCat désactivés : rien ne part chez eux.
-      - name: Réglages locaux de delete-account
+      # Secrets tirés au hasard pour ce passage ; PostHog et RevenueCat désactivés : rien ne part chez eux.
+      - name: Réglages locaux de delete-account et inactive-accounts
         run: |
           admin_secret=$(openssl rand -hex 32)
+          cron_secret=$(openssl rand -hex 32)
           echo "::add-mask::$admin_secret"
-          printf 'ADMIN_DELETE_SECRET=%s\nPOSTHOG_ERASURE=disabled\nREVENUECAT_ERASURE=disabled\n' "$admin_secret" > supabase/functions/.env
+          echo "::add-mask::$cron_secret"
+          printf 'ADMIN_DELETE_SECRET=%s\nINACTIVE_ACCOUNTS_CRON_SECRET=%s\nPOSTHOG_ERASURE=disabled\nREVENUECAT_ERASURE=disabled\n' "$admin_secret" "$cron_secret" > supabase/functions/.env
           echo "SUPABASE_LOCAL_ADMIN_SECRET=$admin_secret" >> "$GITHUB_ENV"
+          echo "SUPABASE_LOCAL_CRON_SECRET=$cron_secret" >> "$GITHUB_ENV"
 
       - name: Démarrer la pile Supabase locale
         run: supabase start -x studio,logflare,vector,realtime,imgproxy,mailpit,postgres-meta,supavisor

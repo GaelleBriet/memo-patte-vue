@@ -1,5 +1,5 @@
-import { sendTo } from '../_shared/provider-request.ts'
-import { REVENUECAT_API } from '../_shared/revenuecat-api.ts'
+import { sendTo } from './provider-request.ts'
+import { REVENUECAT_API } from './revenuecat-api.ts'
 import type { RevenuecatSubscriber } from './plus-access.ts'
 
 export type SubscriberReader = (userId: string) => Promise<RevenuecatSubscriber>

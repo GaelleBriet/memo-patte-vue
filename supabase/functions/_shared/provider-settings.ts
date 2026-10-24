@@ -32,12 +32,14 @@ function isHttpsUrl(value: string): boolean {
 
 export type ProviderErasures = {
   providerErasures: ProviderErasure[]
+  erasuresAfterDeletion: ProviderErasure[]
   invalidProviderSettings: string[]
 }
 
 /** Un prestataire ne se saute que désactivé en toutes lettres : un secret oublié bloque la suppression. */
 export function providerErasuresFrom(env: Env, send: typeof fetch): ProviderErasures {
   const providerErasures: ProviderErasure[] = []
+  const erasuresAfterDeletion: ProviderErasure[] = []
   const invalidProviderSettings: string[] = []
 
   function read(setting: Setting): string | null {
@@ -58,8 +60,19 @@ export function providerErasuresFrom(env: Env, send: typeof fetch): ProviderEras
 
   if (env('REVENUECAT_ERASURE') !== ERASURE_DISABLED) {
     const secretKey = read(REVENUECAT_SECRET_KEY)
-    if (secretKey) providerErasures.push(revenuecatCustomerErasure(secretKey, send))
+    if (secretKey) {
+      const erasure = revenuecatCustomerErasure(secretKey, send)
+      providerErasures.push(erasure)
+      erasuresAfterDeletion.push(erasure)
+    }
   }
 
-  return { providerErasures, invalidProviderSettings }
+  return { providerErasures, erasuresAfterDeletion, invalidProviderSettings }
+}
+
+/** `null` : RevenueCat désactivé, ou clé invalide que `providerErasuresFrom` signale déjà. */
+export function revenuecatKeyFrom(env: Env): string | null {
+  if (env('REVENUECAT_ERASURE') === ERASURE_DISABLED) return null
+  const value = env(REVENUECAT_SECRET_KEY.name)?.trim() ?? ''
+  return REVENUECAT_SECRET_KEY.isValid(value) ? value : null
 }

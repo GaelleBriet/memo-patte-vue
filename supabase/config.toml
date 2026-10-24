@@ -394,6 +394,10 @@ verify_jwt = false
 [functions.revenuecat-webhook]
 verify_jwt = false
 
+# Lancée par pg_cron sans session : la fonction vérifie elle-même son secret.
+[functions.inactive-accounts]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
