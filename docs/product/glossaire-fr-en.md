@@ -50,6 +50,7 @@ et une relecture s'y réfère plutôt que de rouvrir le débat.
 | À renseigner             | To log                           | To record                                | groupe et badge de « À faire »                                          |
 | Dose du jour             | today's dose                     | daily dose                               | « Dose du jour · 28 sept. à 20 h » = Today's dose · Sep 28 at 8 pm      |
 | Prise en plus            | extra dose                       | additional dose                          | « 9 oct. 2026 · Prise en plus » = Oct 9, 2026 · Extra dose               |
+| Remplace celle du …      | replaces the one due …           | instead of, covers                       | question « Cette prise » (R5) : « En plus » / « Remplace celle du 1er nov. » = This dose: Extra dose / Replaces the one due Nov 1 ; « bandeau des doses non renseignées » = banner of doses not logged |
 | Reportée au …            | postponed to …                   | —                                        | « Reportée au 14 oct. (prévue le 10 oct.) » = Postponed to Oct 14 (was due Oct 10) |
 | Décalage (des doses suivantes) | move (following doses moved) | shift                                    | « Doses suivantes décalées · prochaine le 26 oct. » = Following doses moved · next on Oct 26 ; « Décaler aussi les doses suivantes » = Also move the following doses |
 | Fréquence                | frequency                        | interval, how often                       |                                                                         |

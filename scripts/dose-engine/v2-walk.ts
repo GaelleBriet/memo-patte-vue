@@ -30,6 +30,11 @@ export type V2Walk = {
   stamp: number
   readonly seed: number
   readonly random: Random
+  /**
+   * R5 : la réponse à « Cette prise », tirée à part pour ne pas changer les autres tirages d'une
+   * graine ; `null` : la règle par distance, celle des carnets rejoués par graine avant Q27.
+   */
+  readonly answers: Random | null
   readonly log: string[]
 }
 
@@ -70,7 +75,7 @@ export function stampOf(walk: V2Walk): string {
   return new Date(Date.UTC(2026, 0, 1, 0, 0, walk.stamp)).toISOString()
 }
 
-export function startV2Walk(seed: number): V2Walk {
+export function startV2Walk(seed: number, { answers = false } = {}): V2Walk {
   const random = mulberry32(seed)
   const firstDueOn = plusDays('2026-03-01', int(random, 0, 40))
   const setting: Setting = {
@@ -87,7 +92,14 @@ export function startV2Walk(seed: number): V2Walk {
     createdAt: '2026-01-01T00:00:00.000Z',
   }
   const today = plusDays(firstDueOn, int(random, -2, 3))
-  return { input: { settings: [setting], lines: [], today }, stamp: 0, seed, random, log: [] }
+  return {
+    input: { settings: [setting], lines: [], today },
+    stamp: 0,
+    seed,
+    random,
+    answers: answers ? mulberry32(seed ^ 0x2f6b1a5d) : null,
+    log: [],
+  }
 }
 
 /** Comme le repository : chaque écriture reçoit un identifiant et un horodatage plus récent. */
@@ -112,7 +124,14 @@ function written(walk: V2Walk, changes: readonly LineChange[]): TreatmentViewInp
 }
 
 function noteGesture(walk: V2Walk, due: Due, status: 'given' | 'missed', givenOn: string): Gesture {
-  return { kind: 'note', due, status, givenOn, shiftsFollowing: walk.random() < 0.65 }
+  const shiftsFollowing = walk.random() < 0.65
+  const asked =
+    walk.answers !== null &&
+    status === 'given' &&
+    treatmentView(walk.input).asksExtraOrReplaces(due, givenOn)
+  if (!asked) return { kind: 'note', due, status, givenOn, shiftsFollowing }
+  const answer = walk.answers!() < 0.5 ? 'extra' : 'replaces'
+  return { kind: 'note', due, status, givenOn, shiftsFollowing, answer }
 }
 
 // Le geste tiré au sort, lu sur la vue du carnet ; `null` : rien à faire ce pas-ci.

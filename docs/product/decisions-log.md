@@ -3777,3 +3777,24 @@ de 15, 19, 26 ; cas Q1 avec B plus récent : une dose de trop le 11, versée en 
 Raison : une personne seule voyait une date choisie vide. — Alternative écartée : garder #939 dans
 les deux ordres (la date choisie resterait vide à un téléphone). — Pour revenir dessus : retirer la
 condition de date dans `oldArrivalChooser` et `chooserOf`, et rétablir « dans les deux ordres » dans R10.
+
+2026-10-24 — **« En plus » ou « Remplace celle du … » : on demande ; chaque point d'entrée nomme son
+échéance** (#1228, spec `traitements.md` R5, TR-13, TR-19, §10 du 24 octobre). Décisions de Gaelle du
+24 octobre, cadrées par la session d'analyse du moteur (Q27, Q28, Q29). (1) Une prise notée un rythme
+ou plus avant la dose visée, ou avant la première échéance, pose « Cette prise » : « En plus » ou
+« Remplace celle du 1er nov. », depuis « Fait à une autre date » de la fiche et depuis « C'est fait »
+de la carte, qui ouvre alors la feuille. « Remplace » écrit ce qu'écrit une prise donnée en avance de
+moins d'un rythme (dose couverte, date réelle, prochaine dose par la grille, case « Décaler aussi »
+aux conditions habituelles) ; « En plus » ne change pas. Luna, Bravecto tous les 3 mois, première
+prise le 1er novembre, donnée le 24 octobre : « En plus », la prochaine dose reste le 1er nov. ;
+« Remplace », prochaine dose le 1er févr. 2027. (2) La carte de la fiche vise sa dose quelle que soit
+la date choisie, les jours vont du lendemain de l'échéance précédente à aujourd'hui, une dose plus
+ancienne passe par le bandeau ; la lecture « dernière échéance tombée à cette date ou avant »
+disparaît. (3) La fiche ne grise plus la seconde prise du jour : elle pose la question ; « déjà
+notée aujourd'hui » reste pour « À faire » et les notifications. Aucun geste ne change l'échéance
+d'une prise existante (« Changer la date » : #1229). Le choix s'écrit avec les lignes existantes
+(prise en plus, ou prise de la dose visée) : ni colonne, ni migration, ni changement d'export ou de
+synchro. — Raison (Gaelle) : « l'utilisateur répond et fini les devinettes » ; « si je clique sur la
+dose du jour et que je mets "fait hier", je ne veux pas que ce soit la dose d'avant qui soit
+comptabilisée ». — Alternatives écartées : la règle par distance ; couvrir d'office à moins d'un
+rythme avant la première échéance ; une question « quelle dose ? » qui referait le bandeau.

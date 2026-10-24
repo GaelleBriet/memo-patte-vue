@@ -1,5 +1,5 @@
 import type { Slot } from './calendar'
-import { dayOfKey, hoursOf, keyOf, later, longestStep, plusDays, stepped } from './grid'
+import { dayOfKey, keyOf, later, longestStep, plusDays, stepped } from './grid'
 import { episodeLines, isTaken } from './lines'
 import { momentOf } from './moment'
 import { dueReminders, type ReminderReading, type ReminderWindow } from './reminders'
@@ -9,6 +9,7 @@ import type {
   Day,
   Due,
   DueState,
+  ExtraAnswer,
   Hour,
   Line,
   LineEffect,
@@ -45,12 +46,18 @@ export type TreatmentView = {
   dueState(due: Pick<Due, 'dueOn' | 'dueTime'>): DueState
   /** Toutes les échéances du calendrier de `from` à `to` inclus, notées ou non. */
   slots(from: Day, to: Day): DueSlot[]
-  /** TR-21, Q33 : le jour où cette échéance a déjà été notée, `null` si elle ne l'est pas. */
-  alreadyNotedOn(due: Pick<Due, 'dueOn' | 'dueTime'>, today: Day): Day | null
-  /** TR-24 bis : premier jour où une prise donnée couvre encore cette échéance, à une ou plusieurs heures. */
+  /**
+   * TR-21, Q33 : le jour où cette échéance a déjà été notée, `null` si elle ne l'est pas ; une prise
+   * en plus du jour compte, sauf pour « Remplace » (R5).
+   */
+  alreadyNotedOn(due: Pick<Due, 'dueOn' | 'dueTime'>, today: Day, answer?: ExtraAnswer): Day | null
+  /**
+   * TR-24 bis : premier jour où une prise donnée couvre encore cette échéance, à une ou plusieurs
+   * heures, jamais avant la première échéance du traitement.
+   */
   earliestGivenOn(due: Due): Day | null
-  /** R5 : avant ce jour, une prise est une prise en plus ; `null` : jamais, à plusieurs heures par jour. */
-  extraBoundary(due: Due): Day | null
+  /** R5 : donnée ce jour-là, la prise est en plus ou remplace cette échéance, à la personne de le dire. */
+  asksExtraOrReplaces(due: Due, givenOn: Day): boolean
   currentSetting: Setting | null
   settingAt(day: Day): Setting | undefined
   /** RA-1 à RA-6 : les rappels des échéances encore à donner, la lecture unique des rappels. */
@@ -114,6 +121,16 @@ export function buildView({ settings, lines: given, today }: TreatmentViewInput)
     if (effects.get(id)?.kind !== 'covers') effects.set(id, effect)
   }
   const live = parts.flatMap(({ span }) => span.live)
+  // Un réglage remplacé avant sa première échéance ne donne pas la première échéance du traitement.
+  const firstWrittenDue = parts
+    .flatMap(({ span }) =>
+      span.live.filter(
+        ({ firstDueOn }, index, all) =>
+          all[index + 1] === undefined || firstDueOn < all[index + 1]!.startsOn,
+      ),
+    )
+    .map(({ firstDueOn }) => firstDueOn)
+    .sort()[0]
   const slotOf = (key: string): Slot | undefined =>
     calendarsOver(dayOfKey(key), dayOfKey(key))
       .flatMap(({ slots }) => slots)
@@ -161,8 +178,7 @@ export function buildView({ settings, lines: given, today }: TreatmentViewInput)
     if (setting === undefined) return null
     let day = stepped(due.dueOn, setting.frequency, -1)
     while (stepped(day, setting.frequency, 1) <= due.dueOn) day = plusDays(day, 1)
-    const start = settings.map(({ startsOn }) => startsOn).sort()[0]!
-    return later(day, start)
+    return later(day, firstWrittenDue ?? setting.firstDueOn)
   }
   const slots: TreatmentView['slots'] = (from, to) => {
     const byKey = new Map<string, Slot>()
@@ -206,10 +222,11 @@ export function buildView({ settings, lines: given, today }: TreatmentViewInput)
     })),
     dueState,
     slots,
-    alreadyNotedOn: (due, day) => {
+    alreadyNotedOn: (due, day, answer) => {
       const slot = slotOf(keyOf(due.dueOn, due.dueTime))
       const by = slot?.coveredBy ?? null
       if (by !== null) return by.status === 'given' ? (by.givenOn ?? day) : null
+      if (answer === 'replaces') return null
       const extra = lines.some(
         (line) =>
           line.status === 'extra' &&
@@ -220,11 +237,9 @@ export function buildView({ settings, lines: given, today }: TreatmentViewInput)
       return extra ? day : null
     },
     earliestGivenOn,
-    extraBoundary: (due) => {
-      const setting = byId.get(due.settingId)
-      return setting === undefined || hoursOf(setting.times).length > 1
-        ? null
-        : earliestGivenOn(due)
+    asksExtraOrReplaces: (due, givenOn) => {
+      const earliest = earliestGivenOn(due)
+      return earliest !== null && givenOn < earliest
     },
     currentSetting,
     settingAt,

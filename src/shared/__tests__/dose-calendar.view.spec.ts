@@ -123,15 +123,15 @@ describe('R12 : la lecture d’un traitement', () => {
 
   it('R5 : une prise un intervalle ou plus avant son échéance est une prise en plus', () => {
     const weekly = view([setting('p1', '2026-10-02', WEEK)], [], '2026-10-02')
-    expect(weekly.extraBoundary({ settingId: 'p1', dueOn: '2026-10-16', dueTime: null })).toBe(
+    expect(weekly.earliestGivenOn({ settingId: 'p1', dueOn: '2026-10-16', dueTime: null })).toBe(
       '2026-10-10',
     )
-    expect(weekly.extraBoundary({ settingId: 'p1', dueOn: '2026-10-02', dueTime: null })).toBe(
+    expect(weekly.earliestGivenOn({ settingId: 'p1', dueOn: '2026-10-02', dueTime: null })).toBe(
       '2026-10-02',
     )
     const twice = view([setting('p1', '2026-10-02', DAY, H)], [], '2026-10-02')
-    expect(twice.extraBoundary({ settingId: 'p1', dueOn: '2026-10-03', dueTime: '08:00' })).toBe(
-      null,
+    expect(twice.earliestGivenOn({ settingId: 'p1', dueOn: '2026-10-03', dueTime: '08:00' })).toBe(
+      '2026-10-03',
     )
   })
 

@@ -13,7 +13,7 @@ import {
   type MockInstance,
 } from 'vitest'
 
-import { dose, period, plain, postponed, treatment } from './treatment-fixtures'
+import { dose, missed, period, plain, postponed, treatment } from './treatment-fixtures'
 import TreatmentChooseDays from '../views/TreatmentChooseDays.vue'
 import TreatmentReminderSheet from '../views/TreatmentReminderSheet.vue'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
@@ -1021,6 +1021,64 @@ describe('TreatmentReminderSheet — traitement fini par sa date de fin', () => 
     await monter()
 
     expect(document.body.querySelector('.treatment-reminder-sheet__stop')).toBeNull()
+  })
+})
+
+describe('TreatmentReminderSheet — « Fait à une autre date » nomme toujours son échéance (TR-13, Q34)', () => {
+  // Luna, Métacam chaque semaine du 6 au 20 oct. : 6 et 13 données, 20 oubliée.
+  const METACAM: TreatmentWithPeriods = {
+    ...treatment(
+      [
+        {
+          ...period({
+            startsOn: '2026-10-06',
+            firstDueOn: '2026-10-06',
+            frequency: { value: 1, unit: 'week' },
+            endsOn: '2026-10-20',
+          }),
+          animalId: BOREE.id,
+        },
+      ],
+      [
+        dose('2026-10-06', '2026-10-13', { animalId: BOREE.id }),
+        dose('2026-10-13', '2026-10-20', { animalId: BOREE.id }),
+        missed('2026-10-20', '2026-10-27', { animalId: BOREE.id }),
+      ],
+    ),
+    animalId: BOREE.id,
+  }
+
+  it('une feuille sans échéance ne propose pas « Fait à une autre date »', async () => {
+    lePlus(METACAM, '2026-10-22')
+    await monter()
+
+    expect(document.body.querySelector('.reminder-actions__row--other-date')).toBeNull()
+  })
+
+  it('ouverte depuis la notification du 20, oubliée : le 21, « 20 oct. — Donnée le 21 oct. » (TR-22)', async () => {
+    lePlus(METACAM, '2026-10-22')
+    const sheet = await monter({ dueOn: '2026-10-20', dueTime: null })
+    bouton('.reminder-actions__row--other-date').click()
+    await flushPromises()
+
+    sheet.getComponent(DateCalendar).vm.$emit('update:modelValue', '2026-10-21')
+    await flushPromises()
+    const noter = bouton('.treatment-other-date__submit')
+    expect(noter.textContent?.replace(/\s+/g, ' ').trim()).toBe('Noter la prise du 21 oct.')
+    expect(noter.disabled).toBe(false)
+    noter.click()
+    await flushPromises()
+
+    expect(geste()).toEqual({
+      kind: 'note',
+      gesture: {
+        kind: 'note',
+        status: 'given',
+        due: { settingId: 'p-1', dueOn: '2026-10-20', dueTime: null },
+        givenOn: '2026-10-21',
+        shiftsFollowing: false,
+      },
+    })
   })
 })
 

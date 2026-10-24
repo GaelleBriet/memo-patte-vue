@@ -128,7 +128,7 @@ function noteChange(
   newId: () => string,
 ): DoseChange {
   if (gesture.status === 'given') {
-    const alreadyGivenOn = reading.view.alreadyNotedOn(gesture.due, gesture.givenOn)
+    const alreadyGivenOn = reading.view.alreadyNotedOn(gesture.due, gesture.givenOn, gesture.answer)
     if (alreadyGivenOn !== null) return { ...NONE, writes: [], alreadyGivenOn }
   }
   const outcome = played(reading, gesture)

@@ -133,9 +133,22 @@ export type LineChange =
   | { action: 'rewrite'; id: string; line: LineFields }
   | { action: 'delete'; id: string }
 
-/** `shiftsFollowing` : la case « Décaler aussi les doses suivantes », sans effet quand elle n'est pas proposée. */
+/** R5 : la réponse à « Cette prise » ; sans réponse, la règle par distance (« Changer la date », anciens exports). */
+export type ExtraAnswer = 'extra' | 'replaces'
+
+/**
+ * `shiftsFollowing` : la case « Décaler aussi les doses suivantes », sans effet quand elle n'est pas
+ * proposée ; `answer` : sans effet quand la question ne se pose pas.
+ */
 export type Gesture =
-  | { kind: 'note'; due: Due; status: 'given' | 'missed'; givenOn: Day; shiftsFollowing: boolean }
+  | {
+      kind: 'note'
+      due: Due
+      status: 'given' | 'missed'
+      givenOn: Day
+      shiftsFollowing: boolean
+      answer?: ExtraAnswer
+    }
   | { kind: 'move'; due: Due; to: Day; shiftsFollowing: boolean }
   | { kind: 'redate'; lineId: string; givenOn: Day; shiftsFollowing: boolean }
   | { kind: 'remove'; lineId: string }

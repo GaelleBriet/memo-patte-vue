@@ -164,7 +164,8 @@ export function createReminderActions({
       .apply(id, { kind: 'note', gesture: noteOf(due, givenOn) })
       .catch(() => null)
     if (noted === null) {
-      await openHome({ kind: 'treatment', id, step: 'actions' })
+      const named = { dueOn: due.dueOn, dueTime: due.dueTime }
+      await openHome({ kind: 'treatment', id, step: 'actions', due: named })
       return doseFailed()
     }
     if (noted.alreadyGivenOn !== null) return doseAlreadyNoted(treatment, noted.alreadyGivenOn)
@@ -215,7 +216,7 @@ export function createReminderActions({
       case 'already':
         return doseAlreadyNoted(treatment, target.givenOn)
       case 'sheet':
-        return openHome({ kind: 'treatment', id, step: 'actions' })
+        return openHome({ kind: 'treatment', id, step: 'actions', due: notified })
       case 'given-when':
         return openHome({ kind: 'treatment', id, step: 'given-when', due: notified })
       case 'note':
@@ -247,10 +248,13 @@ export function createReminderActions({
     const parsed = parseReminderKey(key)
     const reminder = parsed === null ? null : parseReminderQuery(parsed.entry)
     if (parsed === null || reminder === null) return openHome()
-    if (action === 'open') return openHome({ ...reminder, step: 'actions' })
-    if (reminder.kind === 'vaccination') return vaccinationDone(reminder.id, parsed.dueDate)
     // La relance d'un jour à plusieurs heures vise toute la journée (RA-5).
     const dueTime = parsed.moment === 'overdue' ? null : parsed.dueTime
+    if (action === 'open') {
+      if (reminder.kind === 'vaccination') return openHome({ ...reminder, step: 'actions' })
+      return openHome({ ...reminder, step: 'actions', due: { dueOn: parsed.dueDate, dueTime } })
+    }
+    if (reminder.kind === 'vaccination') return vaccinationDone(reminder.id, parsed.dueDate)
     return treatmentDone(reminder.id, { dueOn: parsed.dueDate, dueTime }, isLegacyReminderKey(key))
   }
 }

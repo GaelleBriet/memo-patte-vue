@@ -181,6 +181,24 @@ describe('sheetDoneTarget — « Fait aujourd’hui » vise l’échéance de la
   })
 })
 
+describe('sheetDoneTarget à plusieurs heures : la même question que la fiche (R5, Q34)', () => {
+  it('Métacam chaque semaine à 8 h et 20 h, première dose le 1er nov. ; le 24 oct. : la fiche s’ouvre', () => {
+    const metacam = treatment([
+      period({
+        startsOn: '2026-11-01',
+        firstDueOn: '2026-11-01',
+        frequency: { value: 1, unit: 'week' },
+        times: ['08:00', '20:00'],
+      }),
+    ])
+    const reading = treatmentReadingOf(metacam, '2026-10-24')
+
+    expect(
+      sheetDoneTarget(reading, { dueOn: '2026-11-01', dueTime: '08:00' }, '2026-10-24'),
+    ).toEqual({ kind: 'detail', dueOn: '2026-11-01' })
+  })
+})
+
 describe('treatmentSheetTexts — sous-titre et échéance lus par le moteur', () => {
   const named = { name: 'Milbemax', type: 'deworming' as const }
 

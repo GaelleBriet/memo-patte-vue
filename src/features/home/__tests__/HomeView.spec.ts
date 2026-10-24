@@ -1834,6 +1834,26 @@ describe('HomeView — feuille d’un rappel', () => {
     await vi.waitFor(() => expect(router.currentRoute.value.query).toEqual({}))
   })
 
+  it('la feuille ouverte par une notification nomme l’échéance de la notification, même oubliée (TR-13, Q34)', async () => {
+    const wrapper = await monter()
+    const push = vi.spyOn(router, 'push').mockResolvedValue()
+
+    await router.replace({
+      name: 'home',
+      query: { reminder: 'treatment:absent-de-la-liste:2026-10-20', step: 'actions' },
+    })
+    await flushPromises()
+
+    const calls = push.mock.calls
+    push.mockRestore()
+    expect(calls).toEqual([])
+    expect(wrapper.getComponent(TreatmentReminderSheet).props()).toMatchObject({
+      modelValue: true,
+      treatmentId: 'absent-de-la-liste',
+      due: { dueOn: '2026-10-20', dueTime: null },
+    })
+  })
+
   it.each([
     ['treatment', 'treatment-detail'],
     ['vaccination', 'vaccination-detail'],

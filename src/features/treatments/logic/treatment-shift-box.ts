@@ -1,6 +1,5 @@
 import { parseISO, subDays } from 'date-fns'
 
-import { isExtraOn } from './treatment-notification'
 import { keepsShift, type NoteGesture } from './treatment-dose-change'
 import type { NextDoseShift } from './treatment-edition-resolution'
 import {
@@ -19,10 +18,10 @@ import {
   play,
   treatmentView,
   type Due,
+  type ExtraAnswer,
   type Gesture,
   type GestureOutcome,
   type Refusal,
-  type TreatmentView,
 } from '@/shared/domain/dose-calendar'
 import type { TreatmentReading } from '@/shared/domain/treatment-reading'
 import {
@@ -185,15 +184,19 @@ export function dateChangeBox(t: Translate, line: Line, carnet: Carnet): DateCha
   return line.status === 'postponed' ? moveBox(t, line, carnet) : redateBox(t, line, carnet)
 }
 
-/** La case de « Fait à une autre date » (Q3) : jamais pour une dose non renseignée (N1). */
+/**
+ * La case de « Fait à une autre date » (Q3) : jamais pour une dose non renseignée (N1) ; avec
+ * « Cette prise », seulement quand la réponse est « Remplace » (R5, Q27).
+ */
 export function otherDateBox(
   t: Translate,
   due: Due | null,
   givenOn: string | null,
   carnet: Carnet,
   shifts: boolean,
+  answer?: ExtraAnswer | null,
 ): ShiftBoxView {
-  if (due === null || givenOn === null) return { shown: false, help: null }
+  if (due === null || givenOn === null || answer === null) return { shown: false, help: null }
   const { reading, today } = carnet
   const note = (shiftsFollowing: boolean): Gesture => ({
     kind: 'note',
@@ -201,6 +204,7 @@ export function otherDateBox(
     status: 'given',
     givenOn,
     shiftsFollowing,
+    ...(answer === undefined ? {} : { answer }),
   })
   const plain = play(reading.input, note(false))
   if (refused(plain)) {
@@ -245,39 +249,36 @@ export function doneGesture(
 }
 
 /**
- * Ce que « Fait à une autre date » enregistre : `null` sans dose ou quand le geste est refusé ; la
- * case montrée, son état part au moteur, qui refuse un décalage impossible au lieu de l'omettre.
+ * Ce que « Fait à une autre date » enregistre : `null` sans dose, quand le geste est refusé ou quand
+ * « Cette prise » attend sa réponse (`answer` `null`) ; la case montrée, son état part au moteur, qui
+ * refuse un décalage impossible au lieu de l'omettre.
  */
 export function otherDateNote(
   due: Due | null,
   givenOn: string | null,
   view: ShiftBoxView,
   shifts: boolean,
+  answer?: ExtraAnswer | null,
 ): NoteGesture | null {
-  if (due === null || givenOn === null || view.blocked === true) return null
+  if (due === null || givenOn === null || view.blocked === true || answer === null) return null
   return {
     kind: 'note',
     due,
     status: 'given',
     givenOn,
     shiftsFollowing: view.shown ? shifts : false,
+    ...(answer === undefined ? {} : { answer }),
   }
 }
 
-/** « Dose du vendredi 16 oct., donnée le lundi 19 oct. » ou « Prise en plus le … » ; `null` quand la prise est à son jour. */
+/** « Dose du vendredi 16 oct., donnée le lundi 19 oct. » ; `null` quand la prise est à son jour. */
 export function otherDateRecap(
   t: Translate,
   due: Due | null,
   givenOn: string | null,
   severalTimes: boolean,
-  view: Pick<TreatmentView, 'extraBoundary'>,
 ): string | null {
   if (due === null || givenOn === null || givenOn === due.dueOn) return null
-  if (isExtraOn(view, due, givenOn))
-    return t('treatments.shift.recapExtra', {
-      given: formatWeekdayDayMonth(givenOn),
-      due: formatWeekdayDayMonth(due.dueOn),
-    })
   const dates = { due: formatWeekdayDayMonth(due.dueOn), given: formatWeekdayDayMonth(givenOn) }
   return severalTimes && due.dueTime !== null
     ? t('treatments.shift.recapAt', { ...dates, time: formatClockTime(due.dueTime) })
