@@ -37,15 +37,23 @@ Gaelle n'a pas fait les étapes ci-dessous, elle ne fait que compter.
 - **Fenêtre résiduelle** : de la relecture en base à `deleteUser` passent la lecture RevenueCat,
   l'effacement PostHog, l'effacement RevenueCat et les pages de photos. Chaque appel attend au plus
   15 s : en pratique 1 à 3 s, au pire environ 45 s plus les photos. Un achat fait pendant cette
-  fenêtre laisse un abonnement payé sans compte (à rembourser à la main).
-- Au plus 10 suppressions **tentées** par passe, réussies ou non, adresses jamais confirmées comprises : une panne de `deleteUser`
-  n'efface pas chez les prestataires plus de 10 comptes dus. Le reste passe le lendemain.
+  fenêtre laisse un abonnement payé sans compte (à rembourser à la main). Elle vaut aussi pour un code
+  d'inscription saisi à ce moment : compte créé le 25 octobre à 02:30 UTC, code saisi le 1er novembre
+  à 03:00:10 pendant la lecture RevenueCat ou l'effacement PostHog, le compte est supprimé ; aucune
+  donnée n'a pu y être écrite, la personne se réinscrit.
+- Au plus 10 suppressions **tentées** par passe, réussies ou non, adresses jamais confirmées comprises :
+  une panne de `deleteUser` n'efface pas chez les prestataires plus de 10 comptes dus. Les suppressions
+  annoncées par e-mail passent en premier, les adresses jamais confirmées en dernier ; une suppression
+  au-delà de la limite est sautée sans relecture et passe le lendemain.
 - Journal (`Edge Functions › inactive-accounts › Logs`) : une ligne « Purge des comptes inactifs : »
   suivie des nombres (`channel`, `revenuecat`, `due`, `done`, `skipped`, `failures`), jamais
   d'identifiant ni d'adresse.
 - Durées et calendrier : `purge-calendar.ts` ; la liste SQL `public.inactive_account_steps` reprend
   les mêmes durées et donne la même étape aux mêmes instants (tests).
 - Aucune exemption (compte de démo de la revue Play, comptes de test) : question ouverte pour Gaelle.
+- Points ouverts sur les adresses jamais confirmées : suppression sans canal d'e-mail branché (aujourd'hui
+  non), 7 × 24 h à l'heure près ou lendemain du 7e jour à 0 h UTC, nom de l'étape `unconfirmed-pending`
+  (code et liste SQL, renommage par migration).
 
 ## Réglages (secrets de la fonction)
 
