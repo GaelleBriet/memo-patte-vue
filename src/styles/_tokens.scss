@@ -170,6 +170,7 @@ $color-exact-reminders-hero-surface: $color-notice-surface; // Pastille de l’i
 // Paramètres › Rappels (V20 à V20 sexies)
 $color-reminders-settings-neutral-surface: $color-reminders-off-surface; // Fond de l'état « pas encore activés » ou « désactivées », et de « peuvent arriver en retard »
 $color-reminders-settings-neutral-text: $color-reminders-off-text; // Leur première ligne
+$color-backup-status-neutral-surface: $color-reminders-off-surface; // Fond de l'état « En attente de réseau » de Paramètres › Sauvegarde (V21 quater)
 $color-exact-reminders-suggest-surface: $color-notice-surface; // Suggestion du formulaire (V2)
 $color-exact-reminders-suggest-border: $color-priming-icon-surface; // Sa bordure
 $color-less-precise-surface: $color-reminders-off-surface; // « Peut arriver en retard » (V2 ter, V2 quater)

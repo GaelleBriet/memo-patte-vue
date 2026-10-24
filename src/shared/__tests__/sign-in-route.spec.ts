@@ -107,6 +107,7 @@ describe('signInReturnRoute', () => {
     expect(signInReturnRoute('settings-plus')).toEqual({ name: 'settings-plus' })
     expect(signInReturnRoute('home')).toEqual({ name: 'home' })
     expect(signInReturnRoute('settings-account')).toEqual({ name: 'settings-account' })
+    expect(signInReturnRoute('settings-backup')).toEqual({ name: 'settings-backup' })
   })
 
   it('se replie sur l’écran Plus quand l’origine est absente ou inconnue', () => {

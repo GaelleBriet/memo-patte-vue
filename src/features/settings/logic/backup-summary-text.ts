@@ -6,7 +6,7 @@ import type { BackupSummary } from '@/core/sync/service/backup-summary'
 import { toDay } from '@/shared/domain/calendar-day'
 import { formatClockTime, formatFullDate, formatFullDayMonth } from '@/shared/utils/format'
 
-function lastBackupWhen(t: Translate, instant: string, today: string): string {
+export function lastBackupWhen(t: Translate, instant: string, today: string): string {
   const at = parseISO(instant)
   const day = toDay(at)
   const time = formatClockTime(format(at, 'HH:mm'))

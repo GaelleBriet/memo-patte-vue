@@ -75,6 +75,10 @@ const iconesDesMaquettes = [
   'cloud_upload',
   'cloud_done',
   'notifications_off',
+  'cloud_sync',
+  'sync_problem',
+  'photo_library',
+  'login',
 ] as const
 
 describe('registre d’icônes Material Symbols', () => {

@@ -1332,7 +1332,33 @@
         "exportHint": "Vers Google Drive, un e-mail ou un ordinateur"
       },
       "plus": "MémoPatte Plus ajoutera une sauvegarde cloud garantie, photos comprises, et la restaurera sur un nouveau téléphone.",
-      "discoverPlus": "Découvrir MémoPatte Plus"
+      "discoverPlus": "Découvrir MémoPatte Plus",
+      "cloud": {
+        "saved": {
+          "title": "Dernière sauvegarde : {when}",
+          "hint": "Sauvegarde et restauration garanties."
+        },
+        "minutesAgo": "il y a {n} min",
+        "firstBackup": {
+          "title": "Première sauvegarde en cours",
+          "count": "{done} élément sur {total} | {done} élément sur {total} | {done} éléments sur {total}"
+        },
+        "waitingNetwork": {
+          "title": "En attente de réseau",
+          "hint": "La sauvegarde reprend dès que ce téléphone est connecté à Internet."
+        },
+        "interrupted": {
+          "title": "Reconnecte-toi pour reprendre la sauvegarde",
+          "hint": "Interrompue depuis {when}. Rien n’est perdu.",
+          "signIn": "Se reconnecter",
+          "exportHint": "Conseillé tant que la sauvegarde est interrompue"
+        },
+        "photos": {
+          "label": "Photos sauvegardées",
+          "value": "Oui"
+        },
+        "eraseHint": "Ta sauvegarde cloud n’est pas touchée"
+      }
     },
     "erase": {
       "screenTitle": "Effacer les données",

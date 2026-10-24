@@ -280,6 +280,20 @@ describe('syncOutboxRepository', () => {
     })
   })
 
+  describe('restauration et dernière sauvegarde', () => {
+    for (const mode of ['merge', 'replace'] as const) {
+      it(`« ${mode === 'merge' ? 'Fusionner' : 'Remplacer'} » repart sans la dernière sauvegarde d’un autre compte`, async () => {
+        await repository.setLastSyncedAt(T2)
+        await repository.startRestore(mode)
+        const { before, after } = repository.restoreStatements({ mode, cursors: [] })
+
+        await db.runMany([...before, ...after])
+
+        await expect(repository.getLastSyncedAt()).resolves.toBeNull()
+      })
+    }
+  })
+
   describe('listPending', () => {
     it('renvoie une liste vide sans entrée', async () => {
       await expect(repository.listPending()).resolves.toEqual([])
@@ -460,6 +474,70 @@ describe('syncOutboxRepository', () => {
 
       await expect(repository.listPending()).resolves.toEqual(first)
     })
+
+    it('oublie la dernière sauvegarde d’un autre compte : la première sauvegarde de celui-ci commence', async () => {
+      await repository.setLastSyncedAt(T2)
+
+      await repository.enableAndQueueWholeCarnet()
+
+      await expect(repository.getLastSyncedAt()).resolves.toBeNull()
+    })
+  })
+
+  describe('compteurs de la première sauvegarde', () => {
+    it('comptent zéro sur un carnet vide', async () => {
+      await expect(repository.countWholeCarnet()).resolves.toBe(0)
+      await expect(repository.countPending()).resolves.toBe(0)
+    })
+
+    it('le carnet compte exactement ce que l’activation met en file, supprimés et photos compris', async () => {
+      await db.run(
+        `INSERT INTO device (id, model, installed_at, created_at, updated_at)
+         VALUES ('appareil', NULL, ?, ?, ?)`,
+        [T1, T1, T1],
+      )
+      await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_MILO)
+      await insertAnimal(db, 'parti', T2, 'Pirate', PHOTO_PIRATE)
+      await db.run("UPDATE animal SET deleted_at = ? WHERE id = 'parti'", [T2])
+      await insertAnimal(db, 'jumeau', T1, 'Luna', PHOTO_MILO)
+      await insertVaccination(db, 'v-1', ANIMAL_ID, T1)
+      await insertVaccinationInjection(db, 'i-1', 'v-1', ANIMAL_ID, T1)
+      await insertTreatment(db, 't-1', ANIMAL_ID, T1)
+      await insertTreatmentPeriod(db, 'p-1', 't-1', ANIMAL_ID, T1)
+      await insertTreatmentDose(db, 'd-1', 'p-1', 't-1', ANIMAL_ID, T1)
+      await insertWeightEntry(db, 'w-1', ANIMAL_ID, T1)
+      await insertCarnetSettings(db, SETTINGS_ID, T1)
+
+      await repository.enableAndQueueWholeCarnet()
+
+      const queued = (await repository.listPending()).length
+      expect(queued).toBe(12)
+      await expect(repository.countWholeCarnet()).resolves.toBe(queued)
+      await expect(repository.countPending()).resolves.toBe(queued)
+    })
+
+    it('Milo « 2 sur 2 », photo remplacée à 10 h 02 : l’effacement de l’ancienne photo ne compte pas, le restant ne dépasse pas le carnet', async () => {
+      await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_MILO)
+      await repository.enableAndQueueWholeCarnet()
+      for (const entry of await repository.listPending()) await repository.removeIfUnchanged(entry)
+
+      await setAnimalPhoto(db, ANIMAL_ID, PHOTO_PIRATE, '2026-10-23T10:02:00.000Z')
+
+      await expect(repository.listPending()).resolves.toHaveLength(3)
+      await expect(repository.countWholeCarnet()).resolves.toBe(2)
+      await expect(repository.countPending()).resolves.toBe(2)
+    })
+
+    it('la file se vide au fil des envois, le carnet ne bouge pas', async () => {
+      await insertAnimal(db, ANIMAL_ID, T1)
+      await insertWeightEntry(db, 'w-1', ANIMAL_ID, T1)
+      await repository.enableAndQueueWholeCarnet()
+
+      await repository.removeIfUnchanged({ entity: 'animal', entityId: ANIMAL_ID, queuedAt: T1 })
+
+      await expect(repository.countPending()).resolves.toBe(1)
+      await expect(repository.countWholeCarnet()).resolves.toBe(2)
+    })
   })
 
   describe('removeIfUnchanged', () => {
@@ -497,7 +575,7 @@ describe('syncOutboxRepository', () => {
   })
 
   describe('forgetAccount', () => {
-    it('désactive la synchro, vide la file et les curseurs, sans toucher aux données', async () => {
+    it('désactive la synchro, vide la file, les curseurs et la dernière sauvegarde, sans toucher aux données', async () => {
       await enableSync(db)
       await insertAnimal(db, ANIMAL_ID, T1)
       await repository.setLastPulledAt('animal', T2)
@@ -508,7 +586,7 @@ describe('syncOutboxRepository', () => {
       await expect(repository.isEnabled()).resolves.toBe(false)
       await expect(repository.listPending()).resolves.toEqual([])
       await expect(repository.getLastPulledAt('animal')).resolves.toBeNull()
-      await expect(repository.getLastSyncedAt()).resolves.toBe(T2)
+      await expect(repository.getLastSyncedAt()).resolves.toBeNull()
       await expect(db.query('SELECT id FROM animal')).resolves.toEqual([{ id: ANIMAL_ID }])
     })
 

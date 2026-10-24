@@ -15,6 +15,7 @@ const RETURN_ROUTES: readonly string[] = [
   'settings',
   'settings-plus',
   'settings-account',
+  'settings-backup',
   'home',
 ]
 const RESTORE_FLAG = '1'

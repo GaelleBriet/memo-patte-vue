@@ -1332,7 +1332,33 @@
         "exportHint": "To Google Drive, an email or a computer"
       },
       "plus": "MémoPatte Plus will add a guaranteed cloud backup, photos included, and restore it on a new phone.",
-      "discoverPlus": "Explore MémoPatte Plus"
+      "discoverPlus": "Explore MémoPatte Plus",
+      "cloud": {
+        "saved": {
+          "title": "Last backup: {when}",
+          "hint": "Backup and restore guaranteed."
+        },
+        "minutesAgo": "{n} min ago",
+        "firstBackup": {
+          "title": "First backup in progress",
+          "count": "{done} of {total} items"
+        },
+        "waitingNetwork": {
+          "title": "Waiting for network",
+          "hint": "Backup resumes as soon as this phone is online."
+        },
+        "interrupted": {
+          "title": "Sign back in to resume backup",
+          "hint": "Interrupted since {when}. Nothing is lost.",
+          "signIn": "Sign in again",
+          "exportHint": "Recommended while backup is interrupted"
+        },
+        "photos": {
+          "label": "Photos backed up",
+          "value": "Yes"
+        },
+        "eraseHint": "Your cloud backup is not affected"
+      }
     },
     "erase": {
       "screenTitle": "Erase data",
