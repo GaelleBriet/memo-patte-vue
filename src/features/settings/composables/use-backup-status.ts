@@ -1,5 +1,6 @@
 import { computed, onScopeDispose, shallowRef } from 'vue'
 
+import { onAppPause } from '@/core/app-lifecycle/app-pause'
 import { onAppResume } from '@/core/app-lifecycle/app-resume'
 import { currentBackupFacts, type BackupFacts } from '@/core/sync/service/backup-facts'
 import { onNetworkOnline } from '@/core/sync/service/network-status'
@@ -21,6 +22,7 @@ export function useBackupStatus() {
   let timer: ReturnType<typeof setTimeout> | null = null
   let busy = false
   let stopped = false
+  let foreground = document.visibilityState !== 'hidden'
 
   const status = computed<BackupStatus | null>(() => {
     if (reading.value === 'pending') return null
@@ -35,7 +37,7 @@ export function useBackupStatus() {
 
   function scheduleNext(): void {
     cancelNext()
-    if (stopped || document.visibilityState === 'hidden') return
+    if (stopped || !foreground) return
     if (reading.value === 'unplugged' || status.value?.kind === 'first-backup') {
       timer = setTimeout(() => void refresh(), BACKUP_STATUS_REFRESH_MS)
     }
@@ -64,12 +66,20 @@ export function useBackupStatus() {
   }
 
   void refresh()
-  const stopResume = onAppResume(() => void refresh())
+  const stopResume = onAppResume(() => {
+    foreground = true
+    void refresh()
+  })
+  const stopPause = onAppPause(() => {
+    foreground = false
+    cancelNext()
+  })
   const stopNetwork = onNetworkOnline(() => void refresh())
   onScopeDispose(() => {
     stopped = true
     cancelNext()
     stopResume()
+    stopPause()
     stopNetwork()
   })
 

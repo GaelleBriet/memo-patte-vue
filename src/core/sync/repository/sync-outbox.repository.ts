@@ -216,7 +216,10 @@ export function createSyncOutboxRepository(db: DbClient) {
       ])
     },
 
-    /** Déconnexion (§5 de la proposition) : le compte suivant ne reçoit ni la file ni les curseurs du précédent. */
+    /**
+     * Déconnexion (§5 de la proposition) : le compte suivant ne reçoit ni la file, ni les curseurs,
+     * ni la dernière sauvegarde du précédent.
+     */
     async forgetAccount(): Promise<void> {
       await db.runMany([
         {

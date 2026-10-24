@@ -58,7 +58,8 @@ export interface SyncDependencies {
 /**
  * Branche le cycle sur ses déclencheurs (lancement, retour au premier plan, retour du réseau,
  * connexion réussie) ; le debounce après écriture est déjà câblé côté triggers SQLite. Le compte
- * ne disparaît qu'à la déconnexion explicite : la synchro oublie alors sa file et ses curseurs.
+ * ne disparaît qu'à la déconnexion explicite : la synchro oublie alors sa file, ses curseurs et sa
+ * dernière sauvegarde.
  * Un compte qui en remplace un autre repart, comme une première connexion, du contrôle de sa
  * sauvegarde, fait une fois par lancement et par compte dès que sa session est active. Une
  * restauration choisie reprend seule au lancement, au retour au premier plan et du réseau, comme un

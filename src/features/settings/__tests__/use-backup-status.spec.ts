@@ -6,6 +6,7 @@ import { provideBackupFacts, type BackupFacts } from '@/core/sync/service/backup
 
 const listeners = vi.hoisted(() => ({
   resume: new Set<() => void>(),
+  pause: new Set<() => void>(),
   online: new Set<() => void>(),
 }))
 
@@ -13,6 +14,12 @@ vi.mock('@/core/app-lifecycle/app-resume', () => ({
   onAppResume: (listener: () => void) => {
     listeners.resume.add(listener)
     return () => listeners.resume.delete(listener)
+  },
+}))
+vi.mock('@/core/app-lifecycle/app-pause', () => ({
+  onAppPause: (listener: () => void) => {
+    listeners.pause.add(listener)
+    return () => listeners.pause.delete(listener)
   },
 }))
 vi.mock('@/core/sync/service/network-status', () => ({
@@ -45,7 +52,7 @@ function start() {
   return scope.run(() => useBackupStatus())!
 }
 
-function emit(kind: 'resume' | 'online') {
+function emit(kind: 'resume' | 'pause' | 'online') {
   for (const listener of listeners[kind]) listener()
 }
 
@@ -123,18 +130,39 @@ describe('useBackupStatus', () => {
     expect(read).toHaveBeenCalledTimes(3)
   })
 
-  it('ne relit pas en arrière-plan, et reprend au retour au premier plan', async () => {
-    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden')
+  it('ouvert en arrière-plan, ne relit pas ; reprend au retour même si la page se dit encore cachée', async () => {
+    const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden')
     const read = vi.fn<() => Promise<BackupFacts>>(async () => FIRST_BACKUP)
     provideBackupFacts(read)
     start()
     await vi.advanceTimersByTimeAsync(BACKUP_STATUS_REFRESH_MS * 5)
     expect(read).toHaveBeenCalledOnce()
 
-    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible')
+    emit('resume')
+    await vi.advanceTimersByTimeAsync(0)
+    visibility.mockReturnValue('visible')
+    await vi.advanceTimersByTimeAsync(BACKUP_STATUS_REFRESH_MS * 2)
+
+    expect(read).toHaveBeenCalledTimes(4)
+  })
+
+  it('arrête la relecture à la mise en arrière-plan, même relue au retour du réseau, et la reprend au retour', async () => {
+    const read = vi.fn<() => Promise<BackupFacts>>(async () => FIRST_BACKUP)
+    provideBackupFacts(read)
+    start()
+    await vi.advanceTimersByTimeAsync(0)
+
+    emit('pause')
+    await vi.advanceTimersByTimeAsync(BACKUP_STATUS_REFRESH_MS * 5)
+    expect(read).toHaveBeenCalledOnce()
+
+    emit('online')
+    await vi.advanceTimersByTimeAsync(BACKUP_STATUS_REFRESH_MS * 5)
+    expect(read).toHaveBeenCalledTimes(2)
+
     emit('resume')
     await vi.advanceTimersByTimeAsync(BACKUP_STATUS_REFRESH_MS)
-    expect(read).toHaveBeenCalledTimes(3)
+    expect(read).toHaveBeenCalledTimes(4)
   })
 
   it('arrête de relire quand l’écran se ferme', async () => {
