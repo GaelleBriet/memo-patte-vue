@@ -59,6 +59,7 @@ const questions = [
   { fr: 'exporter', en: 'export', zones: 3, textOrder: [1, 2, 3] },
   { fr: 'sauvegarde-android', en: 'android-backup', zones: 0, textOrder: [] },
   { fr: 'plus', en: 'plus', zones: 0, textOrder: [] },
+  { fr: 'telephone-d-un-autre', en: 'someone-elses-phone', zones: 0, textOrder: [] },
   { fr: 'nouveau-telephone', en: 'new-phone', zones: 0, textOrder: [] },
   { fr: 'effacer', en: 'erase', zones: 2, textOrder: [2, 1] },
   { fr: 'ne-plus-suivre', en: 'stop-following', zones: 3, textOrder: [1, 2, 3] },
@@ -108,6 +109,12 @@ const keyContents = {
       'Les photos ne sont pas exportées.',
       'MémoPatte reprogramme ensuite tes rappels.',
     ],
+    'telephone-d-un-autre': [
+      'Quand on ouvre un compte sur un téléphone',
+      'ne te connecte jamais sur un téléphone qui n’est pas le tien.',
+      'déconnecte-toi dans Paramètres › Compte',
+      '« Effacer les données de ce téléphone » dans Paramètres si le carnet n’y était pas avant.',
+    ],
     rappels: [
       'Autoriser à définir des alarmes et des rappels',
       'Suspendre l’activité si inutilisée',
@@ -120,6 +127,12 @@ const keyContents = {
       '“Replace”',
       'Photos aren’t exported.',
       'MémoPatte then schedules your reminders again.',
+    ],
+    'someone-elses-phone': [
+      'When you sign in to an account on a phone',
+      'never sign in on a phone that isn’t yours.',
+      'sign out in Settings › Account',
+      'use “Erase this phone’s data” in Settings if the health record wasn’t there before.',
     ],
     reminders: ['Allow setting alarms and reminders', 'Pause app activity if unused'],
   },
