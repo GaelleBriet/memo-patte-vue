@@ -109,6 +109,12 @@ const keyContents = {
       'Les photos ne sont pas exportées.',
       'MémoPatte reprogramme ensuite tes rappels.',
     ],
+    'telephone-d-un-autre': [
+      'Quand on ouvre un compte sur un téléphone',
+      'ne te connecte jamais sur un téléphone qui n’est pas le tien.',
+      'déconnecte-toi dans Paramètres › Compte',
+      '« Effacer les données de ce téléphone » dans Paramètres si le carnet n’y était pas avant.',
+    ],
     rappels: [
       'Autoriser à définir des alarmes et des rappels',
       'Suspendre l’activité si inutilisée',
@@ -121,6 +127,12 @@ const keyContents = {
       '“Replace”',
       'Photos aren’t exported.',
       'MémoPatte then schedules your reminders again.',
+    ],
+    'someone-elses-phone': [
+      'When you sign in to an account on a phone',
+      'never sign in on a phone that isn’t yours.',
+      'sign out in Settings › Account',
+      'use “Erase this phone’s data” in Settings if the health record wasn’t there before.',
     ],
     reminders: ['Allow setting alarms and reminders', 'Pause app activity if unused'],
   },
