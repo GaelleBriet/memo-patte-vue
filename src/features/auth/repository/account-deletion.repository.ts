@@ -5,7 +5,9 @@ import { errorSummary } from '@/shared/utils/error-summary'
 
 import { AccountDeletionError } from '../logic/account-deletion-error'
 import { AccountError } from '../logic/account-error'
-import { accountErrorFrom, accountIdentityOf, signInAgainWithPassword } from './auth.repository'
+import { accountErrorFrom } from '../logic/account-error-from'
+import { accountIdentityOf } from '../logic/account-identity-of'
+import { signInAgainWithPassword } from './auth.repository'
 
 export type IdentityConfirmationMethod =
   { kind: 'password' } | { kind: 'google'; email: string; subject: string }
