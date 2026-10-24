@@ -43,7 +43,10 @@ function arriving(report: Line, own: Hour | undefined, others: readonly Hour[]):
   return [...new Set([taken ? own : report.dueTime, ...others])].sort()
 }
 
-/** Q1, R3 : le réglage dont la date choisie était l'ancienne arrivée d'un report redéplacé. */
+/**
+ * Q1, R3 : le réglage dont la date choisie était l'ancienne arrivée d'un report redéplacé, quand le
+ * report est plus récent que sa grille (Q26).
+ */
 export function oldArrivalChooser(
   report: Line,
   span: Pick<Span, 'settingAt' | 'live'>,

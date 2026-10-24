@@ -65,7 +65,10 @@ function landing(
   return [...new Set([at, ...joining])].sort()
 }
 
-/** Q1 : le réglage dont la date choisie était l'ancienne arrivée d'un report. */
+/**
+ * Q1 : le réglage dont la date choisie était l'ancienne arrivée d'un report, quand le report est plus
+ * récent que sa grille (Q26).
+ */
 export function chooserOf(
   report: ReferenceLine,
   settingAt: (day: string) => ReferenceSetting | undefined,
