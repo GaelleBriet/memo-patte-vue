@@ -62,7 +62,9 @@ function offersShift(input: TreatmentViewInput, view: TreatmentView, due: Due, g
   return later.notes.length === 0 && !later.others.some(({ status }) => status === 'shift')
 }
 
-function isExtra(view: TreatmentView, due: Due, givenOn: Day): boolean {
+function isExtra(view: TreatmentView, { due, givenOn, answer }: NoteGesture): boolean {
+  if (!view.asksExtraOrReplaces(due, givenOn)) return false
+  if (answer !== undefined) return answer === 'extra'
   const boundary = view.extraBoundary(due)
   return boundary !== null && givenOn < boundary
 }
@@ -103,7 +105,7 @@ export function noteDose(input: TreatmentViewInput, gesture: NoteGesture): Gestu
   const view = buildView(input)
   if (['moved', 'removed'].includes(view.dueState(due)))
     return { refusal: { reason: 'unknown-due' } }
-  if (status === 'given' && isExtra(view, due, givenOn)) {
+  if (status === 'given' && isExtra(view, gesture)) {
     const extra: LineFields = {
       settingId: due.settingId,
       dueOn: givenOn,

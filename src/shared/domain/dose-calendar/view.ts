@@ -51,6 +51,8 @@ export type TreatmentView = {
   earliestGivenOn(due: Due): Day | null
   /** R5 : avant ce jour, une prise est une prise en plus ; `null` : jamais, à plusieurs heures par jour. */
   extraBoundary(due: Due): Day | null
+  /** R5 : donnée ce jour-là, la prise est en plus ou remplace cette échéance, à la personne de le dire. */
+  asksExtraOrReplaces(due: Due, givenOn: Day): boolean
   currentSetting: Setting | null
   settingAt(day: Day): Setting | undefined
   /** RA-1 à RA-6 : les rappels des échéances encore à donner, la lecture unique des rappels. */
@@ -225,6 +227,10 @@ export function buildView({ settings, lines: given, today }: TreatmentViewInput)
       return setting === undefined || hoursOf(setting.times).length > 1
         ? null
         : earliestGivenOn(due)
+    },
+    asksExtraOrReplaces: (due, givenOn) => {
+      const earliest = earliestGivenOn(due)
+      return earliest !== null && givenOn < earliest
     },
     currentSetting,
     settingAt,
