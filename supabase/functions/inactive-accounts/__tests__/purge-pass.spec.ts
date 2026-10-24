@@ -32,11 +32,11 @@ const NEVER_BOUGHT = candidate('aaaaaaaa-0000-4000-8000-000000000005', {
 })
 const ALL = [WARN, DELETE, UNCONFIRMED, REVENUECAT, NEVER_BOUGHT]
 
-const ZERO_DONE = { warnings: 0, deletions: 0, revenuecatErasures: 0 }
-const ZERO_DUE = { warnings: 0, deletions: 0, revenuecatErasures: 0, unconfirmedPending: 0 }
+const ZERO_DONE = { warnings: 0, deletions: 0, revenuecatErasures: 0, unconfirmedDeletions: 0 }
+const ZERO_DUE = { warnings: 0, deletions: 0, revenuecatErasures: 0, unconfirmedDeletions: 0 }
 const ZERO_SKIPPED = { reactivated: 0, batchFull: 0 }
 const ZERO_FAILURES = { database: 0, revenuecat: 0, email: 0, deletion: 0 }
-const ALL_DUE = { warnings: 2, deletions: 1, revenuecatErasures: 1, unconfirmedPending: 1 }
+const ALL_DUE = { warnings: 2, deletions: 1, revenuecatErasures: 1, unconfirmedDeletions: 1 }
 const ACTIVE_UNTIL_2028 = {
   entitlements: {
     plus: { expires_date: '2028-11-01T00:00:00Z', product_identifier: 'plus:annual' },
@@ -125,14 +125,18 @@ describe('runPurgePass appliquée', () => {
       channel: 'connected',
       revenuecat: 'connected',
       due: ALL_DUE,
-      done: { warnings: 2, deletions: 1, revenuecatErasures: 1 },
+      done: { warnings: 2, deletions: 1, revenuecatErasures: 1, unconfirmedDeletions: 1 },
       skipped: ZERO_SKIPPED,
       failures: ZERO_FAILURES,
     })
     expect(fake.calls.filter((c) => c.kind === 'deleteUser').map((c) => c.userId)).toEqual([
       DELETE.userId,
+      UNCONFIRMED.userId,
     ])
-    expect(fake.calls.filter((c) => c.kind === 'record').map((c) => c.arg)).toEqual(['inactivity'])
+    expect(fake.calls.filter((c) => c.kind === 'record').map((c) => c.arg)).toEqual([
+      'inactivity',
+      'inactivity',
+    ])
   })
 
   it('avertit à 11 mois avec la date J et garde l’avis', async () => {
@@ -228,22 +232,6 @@ describe('runPurgePass appliquée', () => {
     })
   })
 
-  it('n’avertit ni ne supprime une adresse jamais confirmée, en attente de la décision de Gaelle', async () => {
-    const plusEnded = candidate('aaaaaaaa-0000-4000-8000-000000000012', {
-      createdAt: '2025-01-01T08:00:00.000Z',
-      emailConfirmed: false,
-      plus: { expiresAt: '2026-01-01T00:00:00.000Z' },
-    })
-    const fake = fakePurgePorts({ candidates: [UNCONFIRMED, plusEnded] })
-
-    const report = await runPurgePass(fake.ports, 'apply')
-
-    expect(report.due).toEqual({ ...ZERO_DUE, unconfirmedPending: 2 })
-    expect(report.done).toEqual(ZERO_DONE)
-    expect(fake.sent).toEqual([])
-    expect(fake.calls.map((c) => c.kind)).toEqual(['list'])
-  })
-
   it('avertit à 11 mois un compte confirmé qui n’a jamais acheté, avec la date de création', async () => {
     const fake = fakePurgePorts({ candidates: [NEVER_BOUGHT] })
 
@@ -313,7 +301,7 @@ describe('runPurgePass appliquée', () => {
 
     const report = await runPurgePass(fake.ports, 'apply')
 
-    expect(report.done).toEqual({ warnings: 1, deletions: 0, revenuecatErasures: 0 })
+    expect(report.done).toEqual({ ...ZERO_DONE, warnings: 1 })
     expect(fake.calls.map((c) => c.kind)).not.toContain('deleteUser')
   })
 
@@ -324,6 +312,160 @@ describe('runPurgePass appliquée', () => {
 
     expect(report.failures.email).toBe(1)
     expect(fake.notices).toEqual({})
+  })
+})
+
+describe('runPurgePass : adresse jamais confirmée, supprimée au bout de 7 jours sans e-mail', () => {
+  const CREATED = '2027-10-25T15:00:00.000Z'
+  const SIX_DAYS_LATER = '2027-11-01T03:00:00.000Z'
+  const SEVEN_DAYS_LATER = '2027-11-02T03:00:00.000Z'
+  const NOE = candidate(
+    'dddddddd-0000-4000-8000-000000000001',
+    { createdAt: CREATED, emailConfirmed: false },
+    { email: 'noe@exemple.test', locale: 'fr' },
+  )
+
+  function unconfirmedAccounts(count: number, prefix: string) {
+    return Array.from({ length: count }, (_, index) =>
+      candidate(`${prefix}-0000-4000-8000-${String(index).padStart(12, '0')}`, NOE.dates),
+    )
+  }
+
+  it('créée il y a 6 jours : ni comptée, ni supprimée', async () => {
+    useClock(SIX_DAYS_LATER)
+    const fake = fakePurgePorts({ candidates: [NOE] })
+
+    const report = await runPurgePass(fake.ports, 'apply')
+
+    expect(report.due).toEqual(ZERO_DUE)
+    expect(report.done).toEqual(ZERO_DONE)
+    expect(fake.calls.map((c) => c.kind)).toEqual(['list'])
+  })
+
+  it('créée il y a 7 jours, à blanc : comptée seulement', async () => {
+    useClock(SEVEN_DAYS_LATER)
+    const fake = fakePurgePorts({ candidates: [NOE] })
+
+    const report = await runPurgePass(fake.ports, 'dry-run')
+
+    expect(report.due).toEqual({ ...ZERO_DUE, unconfirmedDeletions: 1 })
+    expect(report.done).toEqual(ZERO_DONE)
+    expect(fake.calls.map((c) => c.kind)).toEqual(['list'])
+  })
+
+  it('créée il y a 7 jours, appliquée : relue, puis supprimée comme « Supprimer mon compte », sans e-mail', async () => {
+    useClock(SEVEN_DAYS_LATER)
+    const fake = fakePurgePorts({ candidates: [NOE] })
+
+    const report = await runPurgePass(fake.ports, 'apply')
+
+    expect(report.done).toEqual({ ...ZERO_DONE, unconfirmedDeletions: 1 })
+    expect(report.failures).toEqual(ZERO_FAILURES)
+    expect(fake.calls.map((c) => c.kind)).toEqual([
+      'list',
+      'read',
+      'revenuecat-read',
+      'posthog',
+      'photos',
+      'deleteUser',
+      'photos',
+      'record',
+    ])
+    expect(fake.calls.find((c) => c.kind === 'record')?.arg).toBe('inactivity')
+    expect(fake.sent).toEqual([])
+    expect(fake.notices).toEqual({})
+  })
+
+  it('jamais d’e-mail, même des années plus tard ou après la fin d’un accès Plus', async () => {
+    useClock('2031-01-01T03:00:00.000Z')
+    const plusEnded = candidate('dddddddd-0000-4000-8000-000000000002', {
+      createdAt: '2025-01-01T08:00:00.000Z',
+      emailConfirmed: false,
+      plus: { expiresAt: '2026-01-01T00:00:00.000Z' },
+    })
+    const fake = fakePurgePorts({ candidates: [NOE, plusEnded] })
+
+    const report = await runPurgePass(fake.ports, 'apply')
+
+    expect(report.due).toEqual({ ...ZERO_DUE, unconfirmedDeletions: 2 })
+    expect(report.done).toEqual({ ...ZERO_DONE, unconfirmedDeletions: 2 })
+    expect(fake.sent).toEqual([])
+    expect(fake.calls.map((c) => c.kind)).not.toContain('send')
+    expect(fake.calls.map((c) => c.kind)).not.toContain('save')
+  })
+
+  it('adresse confirmée entre la liste et la relecture : rien', async () => {
+    useClock(SEVEN_DAYS_LATER)
+    const confirmed = { ...NOE, dates: { ...NOE.dates, emailConfirmed: true } }
+    const fake = fakePurgePorts({ candidates: [NOE], fresh: { [NOE.userId]: confirmed } })
+
+    const report = await runPurgePass(fake.ports, 'apply')
+
+    expect(report.due).toEqual({ ...ZERO_DUE, unconfirmedDeletions: 1 })
+    expect(report.done).toEqual(ZERO_DONE)
+    expect(fake.calls.map((c) => c.kind)).toEqual(['list', 'read'])
+  })
+
+  it('RevenueCat montre un accès en cours : rien', async () => {
+    useClock(SEVEN_DAYS_LATER)
+    const fake = fakePurgePorts({
+      candidates: [NOE],
+      subscribers: { [NOE.userId]: ACTIVE_UNTIL_2028 },
+    })
+
+    const report = await runPurgePass(fake.ports, 'apply')
+
+    expect(report.skipped.reactivated).toBe(1)
+    expect(fake.calls.map((c) => c.kind)).not.toContain('deleteUser')
+  })
+
+  it(`partage le lot de ${MAX_DELETIONS_PER_PASS} tentatives avec les autres suppressions`, async () => {
+    const expired = Array.from({ length: 6 }, (_, index) =>
+      candidate(`eeeeeeee-0000-4000-8000-${String(index).padStart(12, '0')}`, DELETE.dates),
+    )
+    const fake = fakePurgePorts({
+      candidates: [...expired, ...unconfirmedAccounts(6, 'ffffffff')],
+    })
+
+    const report = await runPurgePass(fake.ports, 'apply')
+
+    expect(fake.calls.filter((c) => c.kind === 'deleteUser')).toHaveLength(10)
+    expect(report.done).toEqual({ ...ZERO_DONE, deletions: 6, unconfirmedDeletions: 4 })
+    expect(report.skipped.batchFull).toBe(2)
+  })
+
+  it('une suppression en échec compte comme tentative et n’arrête pas le lot', async () => {
+    useClock(SEVEN_DAYS_LATER)
+    const accounts = unconfirmedAccounts(12, '99999999')
+    const fake = fakePurgePorts({
+      candidates: accounts,
+      failOn: { kind: 'deleteUser', userId: accounts[0]!.userId },
+    })
+
+    const report = await runPurgePass(fake.ports, 'apply')
+
+    expect(report.failures).toEqual({ ...ZERO_FAILURES, deletion: 1 })
+    expect(report.done.unconfirmedDeletions).toBe(9)
+    expect(report.skipped.batchFull).toBe(2)
+  })
+
+  it('ne journalise ni identifiant ni adresse, même en échec', async () => {
+    useClock(SEVEN_DAYS_LATER)
+    const lines: unknown[] = []
+    for (const level of ['log', 'info', 'warn', 'error'] as const) {
+      vi.spyOn(console, level).mockImplementation((...args) => lines.push(...args))
+    }
+    const fake = fakePurgePorts({
+      candidates: [NOE],
+      failOn: { kind: 'deleteUser', userId: NOE.userId },
+    })
+
+    const report = await runPurgePass(fake.ports, 'apply')
+
+    const written = JSON.stringify([lines.map(String), report])
+    expect(report.failures.deletion).toBe(1)
+    expect(written).not.toContain(NOE.userId)
+    expect(written).not.toContain('@')
   })
 })
 
@@ -513,7 +655,12 @@ describe('runPurgePass : limites et échecs', () => {
     const report = await runPurgePass(fake.ports, 'apply')
 
     expect(report.failures).toEqual({ ...ZERO_FAILURES, deletion: 1 })
-    expect(report.done).toEqual({ warnings: 2, deletions: 0, revenuecatErasures: 1 })
+    expect(report.done).toEqual({
+      warnings: 2,
+      deletions: 0,
+      revenuecatErasures: 1,
+      unconfirmedDeletions: 1,
+    })
   })
 
   it.each([

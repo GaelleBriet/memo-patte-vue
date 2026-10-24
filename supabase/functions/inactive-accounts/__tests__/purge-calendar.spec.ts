@@ -133,7 +133,7 @@ describe('purgeStepsOf : jamais inactif', () => {
 describe('purgeStepsOf : adresse jamais confirmée', () => {
   const unconfirmed = account({ createdAt: '2026-11-02T10:00:00.000Z', emailConfirmed: false })
 
-  it('comptée à part au bout de 7 jours, sans étape de suppression', () => {
+  it('à supprimer au bout de 7 jours, pas avant', () => {
     expect(UNCONFIRMED_ACCOUNT_DAYS).toBe(7)
     expect(purgeStepsOf(unconfirmed, at('2026-11-09T10:00:00.000Z') - MS).account).toBe(null)
     expect(purgeStepsOf(unconfirmed, at('2026-11-09T10:00:00.000Z'))).toEqual({
@@ -142,7 +142,7 @@ describe('purgeStepsOf : adresse jamais confirmée', () => {
     })
   })
 
-  it('jamais avertie ni supprimée, même des années plus tard ou avec un avis', () => {
+  it('jamais avertie, même des années plus tard ou avec un avis', () => {
     const withNotice = {
       ...unconfirmed,
       notice: { purgeOn: '2027-01-01', warnedAt: '2026-12-01T00:00:00Z', revenuecatErasedAt: null },

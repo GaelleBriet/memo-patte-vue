@@ -54,9 +54,14 @@ export type PurgeReport = {
     warnings: number
     deletions: number
     revenuecatErasures: number
-    unconfirmedPending: number
+    unconfirmedDeletions: number
   }
-  done: { warnings: number; deletions: number; revenuecatErasures: number }
+  done: {
+    warnings: number
+    deletions: number
+    revenuecatErasures: number
+    unconfirmedDeletions: number
+  }
   skipped: { reactivated: number; batchFull: number }
   failures: { database: number; revenuecat: number; email: number; deletion: number }
 }
@@ -82,8 +87,8 @@ function emptyReport(mode: PurgeMode, ports: PurgePassPorts): PurgeReport {
     mode,
     channel: ports.channel.connected ? 'connected' : 'absent',
     revenuecat: ports.revenuecat ? 'connected' : 'absent',
-    due: { warnings: 0, deletions: 0, revenuecatErasures: 0, unconfirmedPending: 0 },
-    done: { warnings: 0, deletions: 0, revenuecatErasures: 0 },
+    due: { warnings: 0, deletions: 0, revenuecatErasures: 0, unconfirmedDeletions: 0 },
+    done: { warnings: 0, deletions: 0, revenuecatErasures: 0, unconfirmedDeletions: 0 },
     skipped: { reactivated: 0, batchFull: 0 },
     failures: { database: 0, revenuecat: 0, email: 0, deletion: 0 },
   }
@@ -92,12 +97,16 @@ function emptyReport(mode: PurgeMode, ports: PurgePassPorts): PurgeReport {
 function countDue(report: PurgeReport, steps: PurgeSteps): void {
   if (steps.account === 'warn') report.due.warnings++
   if (steps.account === 'delete') report.due.deletions++
-  if (steps.account === 'unconfirmed-pending') report.due.unconfirmedPending++
+  if (steps.account === 'unconfirmed-pending') report.due.unconfirmedDeletions++
   if (steps.eraseRevenuecat) report.due.revenuecatErasures++
 }
 
+function deletesAccount(steps: PurgeSteps): boolean {
+  return steps.account === 'delete' || steps.account === 'unconfirmed-pending'
+}
+
 function needsAction(steps: PurgeSteps): boolean {
-  return steps.account === 'warn' || steps.account === 'delete' || steps.eraseRevenuecat
+  return steps.account === 'warn' || deletesAccount(steps) || steps.eraseRevenuecat
 }
 
 /** Google Play rend l'accès à la date de reprise : une pause en cours vaut un abonnement. */
@@ -149,7 +158,7 @@ async function processAccount(
   const since = inactiveSinceOf(fresh.dates, now)
   if (!needsAction(steps) || since === null) return 'none'
 
-  const deletes = steps.account === 'delete'
+  const deletes = deletesAccount(steps)
   if (deletes && state.deletionAttempts >= MAX_DELETIONS_PER_PASS) return 'batch-full'
 
   const subscriber = await attempt('revenuecat', () => revenuecat.read(userId))
@@ -158,7 +167,8 @@ async function processAccount(
   if (deletes) {
     state.deletionAttempts++
     await attempt('deletion', () => eraseAccount(userId, 'inactivity', ports.erasure))
-    report.done.deletions++
+    if (steps.account === 'delete') report.done.deletions++
+    else report.done.unconfirmedDeletions++
     return 'none'
   }
 
