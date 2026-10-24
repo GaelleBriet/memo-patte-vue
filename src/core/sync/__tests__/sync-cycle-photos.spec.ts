@@ -350,7 +350,7 @@ describe('createSyncCycle — photos', () => {
     ['qui n’est pas un JPEG', new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a])],
     ['vide', new Uint8Array()],
   ])(
-    'sort de la file, sans tenter l’envoi ni bloquer les autres, une photo %s',
+    'marque refusée dès le premier cycle, sans tenter l’envoi ni bloquer les autres, une photo %s',
     async (_label, bytes) => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
       const outbox = createFakeOutbox([photoEntry(MILO_PHOTO), photoEntry(LUNA_PHOTO)])
@@ -361,7 +361,9 @@ describe('createSyncCycle — photos', () => {
 
       expect(files.read).toHaveBeenCalledWith(MILO_PHOTO, MAX_PHOTO_BYTES)
       expect(uploads.sent.map(({ fileName }) => fileName)).toEqual([LUNA_PHOTO])
-      expect(outbox.entries()).toEqual([])
+      expect(outbox.entries()).toEqual([
+        { ...photoEntry(MILO_PHOTO), refusedAt: GRACE_OVER.toISOString() },
+      ])
       expect(warn).toHaveBeenCalledOnce()
       expect(JSON.stringify(warn.mock.calls)).not.toContain(MILO_PHOTO)
     },

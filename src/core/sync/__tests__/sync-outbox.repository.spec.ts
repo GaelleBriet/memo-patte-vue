@@ -607,6 +607,7 @@ describe('syncOutboxRepository', () => {
       ])
       await expect(repository.countPending()).resolves.toBe(1)
       await expect(repository.countRefused()).resolves.toBe(1)
+      await expect(repository.countRefusedPhotos()).resolves.toBe(0)
     })
 
     it('ne marque rien si la pesée a été modifiée depuis la lecture', async () => {
@@ -660,6 +661,7 @@ describe('syncOutboxRepository', () => {
         REFUSED_AT,
       )
       await expect(repository.countRefused()).resolves.toBe(1)
+      await expect(repository.countRefusedPhotos()).resolves.toBe(1)
 
       await setAnimalPhoto(db, ANIMAL_ID, null, LATER)
 
@@ -682,6 +684,7 @@ describe('syncOutboxRepository', () => {
       ])
 
       await expect(repository.countRefused()).resolves.toBe(0)
+      await expect(repository.countRefusedPhotos()).resolves.toBe(0)
     })
 
     it('la remise en file de tout le carnet retente l’élément refusé', async () => {

@@ -41,8 +41,11 @@ export function createPhotoPush(
     if (!(await isPhotoInCarnet(entry.entityId))) return
     const photo = await files.read(entry.entityId, MAX_CLOUD_PHOTO_BYTES)
     if (photo.kind === 'too-large' || (photo.kind === 'found' && !isJpeg(photo.bytes))) {
-      console.warn('Photo trop lourde ou hors JPEG, sortie de la file sans envoi.')
-    } else if (photo.kind === 'found') {
+      console.warn('Photo trop lourde ou hors JPEG, plus envoyée.')
+      await outbox.markRefusedIfUnchanged(entry, now().toISOString())
+      return
+    }
+    if (photo.kind === 'found') {
       await uploads.upload(userId, entry.entityId, photo.bytes)
     }
     await outbox.removeIfUnchanged(entry)

@@ -139,6 +139,16 @@ export function createSyncOutboxRepository(db: DbClient) {
       return row?.total ?? 0
     },
 
+    async countRefusedPhotos(): Promise<number> {
+      const [row] = await db.query<{ total: number }>(
+        `SELECT COUNT(*) AS total FROM sync_outbox
+         WHERE refused_at IS NOT NULL AND entity = ?
+           AND entity_id IN (SELECT photo_path ${LIVE_ANIMAL_PHOTOS_FROM})`,
+        [ANIMAL_PHOTO_ENTITY],
+      )
+      return row?.total ?? 0
+    },
+
     async getLastPulledAt(entity: string): Promise<string | null> {
       const [row] = await db.query<{ last_pulled_at: string }>(
         'SELECT last_pulled_at FROM sync_pull_cursor WHERE entity = ?',
