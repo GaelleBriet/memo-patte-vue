@@ -8,14 +8,30 @@ import { linesAfter, lostToEnd, movedAlone, outcome, shiftDayOf, withFollowed } 
 
 export type RedateGesture = Omit<Extract<Gesture, { kind: 'redate' }>, 'kind'>
 
-// TR-24, R5 : une prise en plus redatée reste en plus tant que la question se poserait ; sinon elle
-// vise ce que viserait une prise notée ce jour-là.
+/**
+ * TR-24, R5, Q37 : l'échéance que la prise en plus déplacée à cette date couvrirait, et pour laquelle
+ * « Cette prise » se pose ; `null` quand elle reste en plus sans question.
+ */
+export function redateAsksExtraOrReplaces(
+  input: TreatmentViewInput,
+  lineId: string,
+  givenOn: Day,
+): Due | null {
+  const extra = input.lines.find(({ id }) => id === lineId)
+  if (extra?.status !== 'extra' || givenOn === extra.givenOn) return null
+  const rest = without(input, [extra.id])
+  const due = dueForDate(rest, givenOn, null)
+  if (due === null || buildView(rest).asksExtraOrReplaces(due, givenOn)) return null
+  return due
+}
+
+// Sans réponse (anciens carnets, campagnes), la prise couvre la dose comme une prise notée ce jour-là.
 function redateExtra(
   input: TreatmentViewInput,
   extra: Line,
   gesture: RedateGesture,
 ): GestureResult {
-  const { givenOn } = gesture
+  const { givenOn, answer } = gesture
   if (givenOn === extra.givenOn) return outcome(input, [])
   const taken = input.lines.some(
     (line) =>
@@ -25,8 +41,6 @@ function redateExtra(
       line.dueOn === givenOn,
   )
   if (taken) return { refusal: { reason: 'day-taken' } }
-  const rest = without(input, [extra.id])
-  const due = dueForDate(rest, givenOn, null)
   const moved: LineChange = {
     action: 'rewrite',
     id: extra.id,
@@ -39,20 +53,9 @@ function redateExtra(
       targetOn: null,
     },
   }
-  if (due === null) return outcome(input, [moved])
-  const plain = noteDose(rest, {
-    due,
-    status: 'given',
-    givenOn,
-    shiftsFollowing: false,
-    answer: 'extra',
-  })
-  if ('refusal' in plain) return plain
-  const stillExtra = plain.changes.some(
-    (change) => change.action !== 'delete' && change.line.status === 'extra',
-  )
-  if (stillExtra) return outcome(input, [moved])
-  return redateAsNote(input, rest, extra, due, gesture)
+  const due = redateAsksExtraOrReplaces(input, extra.id, givenOn)
+  if (due === null || answer === 'extra') return outcome(input, [moved])
+  return redateAsNote(input, without(input, [extra.id]), extra, due, gesture)
 }
 
 function redateAsNote(

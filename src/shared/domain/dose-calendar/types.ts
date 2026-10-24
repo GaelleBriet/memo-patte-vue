@@ -150,7 +150,13 @@ export type Gesture =
       answer?: ExtraAnswer
     }
   | { kind: 'move'; due: Due; to: Day; shiftsFollowing: boolean }
-  | { kind: 'redate'; lineId: string; givenOn: Day; shiftsFollowing: boolean }
+  | {
+      kind: 'redate'
+      lineId: string
+      givenOn: Day
+      shiftsFollowing: boolean
+      answer?: ExtraAnswer
+    }
   | { kind: 'remove'; lineId: string }
 
 /** Pourquoi un geste n'est pas permis ; chaque raison a son texte existant à l'écran. */
