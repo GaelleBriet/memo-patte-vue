@@ -1,14 +1,12 @@
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
-import { ANIMAL_PHOTO_ENTITY } from '@/core/db/schema-statements'
 import { errorSummary } from '@/shared/utils/error-summary'
 import type { SyncOutboxEntry } from '../repository/sync-outbox.repository'
 import { normalizeSyncTimestamps } from './normalize-sync-timestamps'
 import { createPhotoPush, type PhotoPushDependencies } from './photo-push'
 import { createPhotoRemoval, type PhotoRemovalDependencies } from './photo-removal'
-import { createPushRefusals } from './push-refusals'
+import { createPushCycle, keyOf, type KeptRow, type PushOutcome } from './push-cycle'
 import type { SyncPullPage, SyncPush, SyncRow, SyncableTable } from './syncable-table'
 
-const PUSH_CLAIM_SIZE = 200
 const PULL_PAGE_SIZE = 500
 const EPOCH = '1970-01-01T00:00:00.000Z'
 const PULL_MARGIN_MS = 5_000
@@ -64,41 +62,15 @@ export interface SyncCycle {
   runCycle(): Promise<void>
 }
 
-interface KeptRow {
-  table: SyncableTable
-  entry: SyncOutboxEntry
-  sent: SyncRow
-  kept: SyncRow
-}
-
-interface PushOutcome {
-  keptRows: KeptRow[]
-  failure: { cause: unknown } | null
-}
-
-const keyOf = (entity: string, id: string) => `${entity}/${id}`
-
 /** `server_updated_at` date le début de la transaction : une ligne validée après un pull peut le précéder. */
 function withMargin(lastPulledAt: string | null): string {
   if (lastPulledAt === null) return EPOCH
   return new Date(Date.parse(lastPulledAt) - PULL_MARGIN_MS).toISOString()
 }
 
-const sameRow = (sent: SyncRow, kept: SyncRow) =>
-  Object.keys(kept).every((column) => (sent[column] ?? null) === (kept[column] ?? null))
-
 export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
-  const tablesByEntity = new Map(deps.tables.map((table) => [table.entity, table]))
   const now = deps.now ?? (() => new Date())
-  const refusals = createPushRefusals({
-    outbox: deps.outbox,
-    onGivenUp: (entry, cause) =>
-      console.warn(
-        `Ligne refusée par le serveur, plus envoyée (${entry.entity}) :`,
-        errorSummary(cause),
-      ),
-    now,
-  })
+  const pushCycle = createPushCycle(deps, now)
   const photoPush = deps.photos && createPhotoPush(deps.outbox, deps.photos, now)
   const photoRemoval = deps.photos && createPhotoRemoval(deps.outbox, deps.photos, now)
 
@@ -110,59 +82,6 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
       ...statements,
       { sql: 'UPDATE sync_state SET enabled = ? WHERE id = 1', params: [wasEnabled ? 1 : 0] },
     ])
-  }
-
-  async function pushEntry(
-    userId: string,
-    entry: SyncOutboxEntry,
-    envoi: SyncPush,
-    keptRows: KeptRow[],
-  ): Promise<void> {
-    const table = tablesByEntity.get(entry.entity)
-    const sent = table ? await table.getRowForPush(entry.entityId) : null
-    const kept = table && sent ? await table.pushRow(userId, sent, envoi) : null
-    const normalized = kept && normalizeSyncTimestamps(kept)
-    if (table && sent && normalized && !sameRow(sent, normalized)) {
-      keptRows.push({ table, entry, sent, kept: normalized })
-    } else {
-      await deps.outbox.removeIfUnchanged(entry)
-    }
-  }
-
-  /**
-   * Une ligne qui échoue reste en file sans retenir les suivantes ; le premier échec est rendu pour
-   * être levé après le pull. Les lignes gardées par le serveur autrement qu'envoyées restent en file
-   * d'ici leur reprise.
-   */
-  async function push(userId: string): Promise<PushOutcome> {
-    const keptRows: KeptRow[] = []
-    let failure: PushOutcome['failure'] = null
-    const handled = new Set<string>()
-    let envoi: SyncPush | null = null
-    for (;;) {
-      const claimed = (await deps.outbox.listPending())
-        .filter(({ entity }) => entity !== ANIMAL_PHOTO_ENTITY)
-        .filter(({ entity, entityId }) => !handled.has(keyOf(entity, entityId)))
-        .slice(0, PUSH_CLAIM_SIZE)
-      if (claimed.length === 0) return { keptRows, failure }
-      try {
-        envoi ??= await deps.pushes.open(userId, now().toISOString())
-      } catch (cause) {
-        return { keptRows, failure: failure ?? { cause } }
-      }
-
-      for (const entry of claimed) {
-        handled.add(keyOf(entry.entity, entry.entityId))
-        try {
-          await pushEntry(userId, entry, envoi, keptRows)
-          refusals.forget(entry)
-        } catch (cause) {
-          if (await refusals.recordFailure(entry, cause)) failure ??= { cause }
-        }
-      }
-
-      if (claimed.length < PUSH_CLAIM_SIZE) return { keptRows, failure }
-    }
   }
 
   /**
@@ -284,7 +203,7 @@ export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
       let keptRows: KeptRow[] = []
       let pushFailure: PushOutcome['failure'] = null
       try {
-        const pushed = await push(userId)
+        const pushed = await pushCycle.push(userId)
         keptRows = pushed.keptRows
         pushFailure = pushed.failure
         const photoFailure = photoPush ? await photoPush.push(userId) : null
