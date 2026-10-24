@@ -1,4 +1,5 @@
 import type { Random } from './carnet'
+import { staysExtra } from './v2-invariants-extra'
 import { hoursOnly } from './v2-invariants-hours'
 import { conservation, noDouble, undo } from './v2-invariants-lines'
 import { naive, posology, previewIsResult, symmetry, time } from './v2-invariants-readings'
@@ -16,6 +17,7 @@ export function brokenBy(step: V2Step, random: Random): Broken | null {
     () => time(step.after, random),
     () => symmetry(step.after, random),
     () => undo(step),
+    () => staysExtra(step),
     () => previewIsResult(step),
     () => naive(step.after),
     () => settingsProposal(step),
