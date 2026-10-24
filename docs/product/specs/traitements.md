@@ -42,7 +42,7 @@ suivre une ordonnance comme document (v2, P2) ; partager un traitement entre per
 | **Réglage** (ou période) | Fréquence, heures, posologie, date de fin, moment du rappel, valables **à partir d'un jour** jusqu'au réglage suivant ; une première échéance et une origine de grille (R1). Un traitement a un ou plusieurs réglages successifs ; **le calendrier, lui, est celui du traitement** (R1). |
 | **Ligne** | Ce que la personne a écrit dans l'historique : une prise (donnée ou oubliée), une prise en plus, un report, un décalage. Une ligne appartient au traitement ; le moteur n'en supprime jamais (R11). |
 | **Décalage** | Ligne « Doses suivantes décalées » : à partir d'une journée d'origine, la grille a une nouvelle origine (R6). Écrite par la case « Décaler aussi les doses suivantes ». |
-| **Prise en plus** | Prise notée un intervalle ou plus avant la dose qu'elle viserait : rangée sous sa date réelle, elle ne couvre rien et ne change pas le calendrier (R5). |
+| **Prise en plus** | Prise que la personne dit « En plus » quand elle est notée un rythme ou plus avant la dose visée, ou avant la première échéance : rangée sous sa date réelle, elle ne couvre rien et ne change pas le calendrier (R5). |
 | **Sans effet** | Ligne que le moteur ne lit plus (report revenu à sa date, ligne plus ancienne de la même journée entre deux appareils, report battu par une prise) : elle reste visible, grisée, et seule la personne la supprime (R11). |
 | **Échéance** | Moment où une prise est prévue par la période : un jour, et une heure si le traitement en a plusieurs par jour. |
 | **Prise** | Ce qui s'est passé pour une échéance : **donnée** ou **oubliée** à une date, ou **reportée** à une autre date, plus tard ou plus tôt (ligne « Reportée au … » ou « Avancée au … », TR-9). |
@@ -127,19 +127,30 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
 
 ### 4.3 Doses non renseignées
 
-- **TR-13** **Chaque prise vise une échéance précise, jour et heure.** Depuis une notification, le
-  geste vise l'échéance de la notification (même touchée plus tard, y compris par « Donnée quand ? »,
-  spec Q8) ; depuis « À faire », la ligne touchée (une ligne par heure). Pour un traitement à plusieurs
-  heures, chaque heure d'un jour est une échéance distincte : depuis la fiche, l'heure touchée ;
-  « Fait à une autre date » demande la date, puis l'heure. Pour un traitement à une heure ou sans heure,
-  une prise notée à une date depuis la fiche vise la dernière échéance tombée à cette date ou avant ;
-  notée en avance (avant toute échéance restante), la prochaine. Une échéance d'un jour passé sans prise est non
+- **TR-13** **Chaque prise vise une échéance précise, jour et heure, et chaque point d'entrée nomme
+  la sienne** (décision de Gaelle du 24 octobre 2026, Q28) : la carte de la fiche (dose du jour, en
+  retard, prochaine dose) vise la dose de la carte, quelle que soit la date choisie ; une notification,
+  son échéance (même touchée plus tard, y compris par « Donnée quand ? », spec Q8) ; « À faire », la
+  ligne touchée (une ligne par heure) ; le bandeau, chaque jour coché. La date choisie ne dit jamais
+  quelle dose est visée : la lecture « dernière échéance tombée à cette date ou avant » a disparu.
+  **Aucun geste ne change l'échéance d'une prise existante** (« Changer la date » compris : mis en
+  œuvre par #1229, d'ici là TR-24). Depuis la carte, « Fait à une autre date » propose les jours du
+  lendemain de l'échéance précédente jusqu'à aujourd'hui, aujourd'hui toujours compris ; les jours
+  jusqu'à l'échéance précédente incluse sont grisés, avec l'aide « Pour une dose plus ancienne, passe
+  par le bandeau des doses non renseignées. » ; sans échéance précédente, aucun jour n'est grisé par
+  elle. Luna, Milbemax chaque semaine à 9 h depuis le 6 octobre, rien noté ; le 20, « Fait à une autre
+  date » depuis la carte du 20, le 19 : « 20 oct. 2026 — Donnée le 19 oct. », bandeau « 2 doses non
+  renseignées · 6 et 13 oct. » (avant le 24 octobre, la dose du 13 était couverte). Traitement à
+  plusieurs heures : la carte vise le jour et l'heure de sa dose, la feuille ne demande que la date ;
+  quand la carte montre plusieurs heures de sa journée, la feuille demande ensuite l'heure parmi
+  elles (lecture à confirmer par Gaelle). Une date un rythme ou plus avant la dose visée, ou avant la
+  première échéance, pose « Cette prise » (R5). Une échéance d'un jour passé sans prise est non
   renseignée dès qu'une échéance plus récente est tombée ; une échéance du jour reste « du jour »
   jusqu'à minuit (TR-11). Traitement à plusieurs heures : les heures sans prise d'une journée passée ne
   deviennent non renseignées, toutes ensemble, que lorsqu'une journée d'échéance plus récente est
   arrivée ; d'ici là elles restent la dose du moment, en retard (TR-10, spec Q23). Après la date
   de fin, toute échéance jusqu'à elle sans prise est non renseignée. (Spec 2026-09-28 §4.2, tableau
-  d'exemples ; spec Q6, Q23)
+  d'exemples ; spec Q6, Q23 ; Q28 du 24 octobre 2026)
 - **TR-14** Une dose non renseignée n'est pas un retard : ni badge « En retard », ni compteur de
   retards, ni notification. (Spec, décisions 2 et 7)
 - **TR-15** Bandeau sur la fiche : « N doses non renseignées · du … au … », « Toutes données », « Choisir
@@ -159,7 +170,9 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
 
 - **TR-19** Depuis « À faire » ou la feuille du soin : « Fait aujourd'hui », « Fait à une autre
   date ». Depuis la fiche : « C'est fait » (aujourd'hui, un tap, sauf quand la prise décalerait la suite :
-  confirmation, G20) et un lien « Fait à une autre date » toujours à côté. (Existant ; G2)
+  confirmation, G20 ; ou quand elle serait en plus ou remplacerait la dose : la feuille « Fait à une
+  autre date » s'ouvre sur aujourd'hui et pose « Cette prise », R5) et un lien « Fait à une autre
+  date » toujours à côté. (Existant ; G2 ; Q27 du 24 octobre 2026)
 - **TR-20** Depuis une notification : « C'est fait » note aujourd'hui l'échéance de la notification
   (TR-13) si la notification est du jour ;
   plus tard, l'app demande « Donnée quand ? » (le jour prévu, aujourd'hui, une autre date), sur
@@ -383,11 +396,41 @@ Exemples (décisions du 17 octobre 2026) :
 
 _Remplace Q24, G1, G2, G4, G22, G24 et les « journées entamées en avance », « journées réglées », « heures restées en arrière »._
 
-#### R5 — Prise en plus
+#### R5 — Prise en plus, ou la dose qu'elle remplace : la personne le dit
 
-Une prise notée **un intervalle ou plus avant** l'échéance qu'elle viserait (ou un second « C'est fait » le même jour d'un traitement sans heure, ou avant le début du traitement) est une **prise en plus** : rangée sous sa date réelle, elle ne couvre rien et ne change jamais le calendrier. À plusieurs heures par jour, une heure donnée en avance couvre son échéance (ce n'est pas une prise en plus).
+Une prise notée **un rythme ou plus avant** la dose qu'elle vise, ou **avant la première échéance du
+traitement**, quelle que soit l'avance, pose la question **« Cette prise »** : « En plus » ou
+« Remplace celle du 1er nov. » (« celle du 1er nov. à 8 h » à plusieurs heures), deux boutons à choix,
+aucun préselectionné, l'enregistrement grisé sans réponse (décision de Gaelle du 24 octobre 2026, Q27 :
+« on demande si c'est une prise en plus ou si elle remplace celle initialement prévue. L'utilisateur
+répond et fini les devinettes. »). La question se pose depuis « Fait à une autre date » de la fiche et
+depuis « C'est fait » de la carte, qui ouvre alors la feuille au lieu d'écrire ; plus aucune règle ne
+range une prise en plus d'elle-même par la distance. Le second « C'est fait » d'une journée déjà notée
+passe aussi par la question (Q29 : l'exception « second C'est fait le même jour d'un traitement sans
+heure = en plus » est retirée). Aide selon la réponse : « Prise en plus le samedi 24 oct. · la
+prochaine dose reste le 1er nov. » ; « Donnée le 24 oct. pour la dose du 1er nov. · prochaine dose le
+1er févr. 2027 », la prochaine dose suivant la case.
 
-_= G11, inchangée._
+- **« En plus »** : une **prise en plus**, rangée sous sa date réelle, qui ne couvre rien et ne change
+  jamais le calendrier (« 24 oct. 2026 · Prise en plus »).
+- **« Remplace »** : exactement ce qu'écrit une prise donnée en avance de moins d'un rythme : la dose
+  visée est couverte, à sa date réelle, la prochaine dose suit la grille ; la case « Décaler aussi les
+  doses suivantes » est proposée aux conditions habituelles (R6). Luna, Bravecto tous les 3 mois,
+  première prise le 1er novembre ; le 24 octobre : « 1er nov. 2026 · Donnée le 24 oct. », prochaine
+  dose le 1er févr. 2027, ou le 24 janv. 2027 case cochée.
+
+Pas de question : une prise à moins d'un rythme d'une échéance qui n'est pas la première (elle la
+couvre, en avance ou en retard) ; à plusieurs heures par jour, une heure donnée en avance dans sa
+journée (elle couvre son échéance) ; au-delà, la même borne d'un rythme qu'à une heure (lecture à
+confirmer par Gaelle : « au-delà de sa journée » pourrait aussi vouloir dire « dès la veille »).
+Notification et « À faire » : inchangés, leur calendrier s'arrête à la borne (Q33) ; sans réponse,
+le moteur garde la règle par distance pour les gestes qui ne posent pas la question (« Changer la
+date », jusqu'à #1229 ; anciens exports, C1 du 21 octobre 2026). Milbemax chaque semaine à 9 h, la
+dose du 24 octobre notée : « Fait à une autre date » ou « C'est fait » sur « Prochaine dose · 31 oct. »
+le 24 pose « Remplace celle du 31 oct. ».
+
+_Remplace G11 (la prise en plus par la distance) et la décision du 12 octobre 2026 « prise le 16 =
+prise en plus » (Q27, Q29 du 24 octobre 2026)._
 
 #### R6 — Le décalage, et seulement lui, déplace la suite
 
@@ -1114,7 +1157,9 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
 - 2026-10-12 — **Prise en plus et « Prochaine dose » : rien ne change** (R5). Hebdo, première dose le
   21 sept., prise en plus le 16 ; le 17, « Prochaine dose » au 24 : la première dose est corrigée,
   sans ligne « Reportée ». Une prise en plus ne touche pas le calendrier ; avant la première dose,
-  c'est « Première prise le » qui change. Écartée : écrire un report.
+  c'est « Première prise le » qui change. Écartée : écrire un report. _Remplacée le 24 octobre 2026
+  pour la prise du 16 : elle pose « Cette prise » (R5, Q27) ; une prise que la personne dit « En
+  plus » ne touche toujours pas le calendrier._
 - 2026-10-12 — **Avant une date choisie, seul le décalage qui la porte garde son effet** (R3, R6) :
   confirmé.
 - 2026-10-12 — **PDF, CSV et feuilles montrent les lignes sans effet comme l'historique** (R11, R12).
@@ -1619,6 +1664,24 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
   ôtée par la réécriture elle-même (réglage qui a tracé la grille du jour, journée absente de sa
   grille propre) se juge dans les deux sens ; écartées : noter sur le report la date du réglage
   qu'il a vu (migration), trancher à la synchro.
+
+- 2026-10-24 — **« En plus » ou « Remplace celle du … » : la personne le dit ; chaque point d'entrée
+  nomme son échéance** (R5, TR-13, TR-19 ; décisions de Gaelle du 24 octobre 2026, Q27, Q28, Q29,
+  cadrées par la session d'analyse du moteur, #1228). (1) Q27 : une prise un rythme ou plus avant la
+  dose visée, ou avant la première échéance, pose « Cette prise » ; « Remplace » écrit ce qu'écrit
+  une prise donnée en avance de moins d'un rythme, « En plus » une prise en plus ; écartées : la
+  règle par distance (« les devinettes »), et la couverture automatique à moins d'un rythme avant la
+  première échéance que recommandait le cadrage. (2) Q28 : la carte vise sa dose quelle que soit la
+  date choisie, les jours vont du lendemain de l'échéance précédente à aujourd'hui, le reste passe
+  par le bandeau ; écartée : une question « quelle dose ? » qui referait le bandeau. (3) Q29 : la
+  fiche ne grise plus « Noter la prise d'aujourd'hui » après une prise du jour, la question se pose ;
+  « déjà notée aujourd'hui » reste pour « À faire » et les notifications (Q33). Scénarios de la liste
+  de fin du coffre (`technical/etudes/moteur-v2-scenarios-de-fin.md`), non modifiés ici : le 9 attend
+  désormais « 20 oct. 2026 — Donnée le 19 oct. », bandeau « 2 doses non renseignées · 6 et 13 oct. » ;
+  le 10 a deux attendus, « En plus » (« 20 oct. 2026 · Prise en plus », prochaine dose le 1er nov.)
+  et « Remplace » (« 1er nov. 2026 · Donnée le 20 oct. », prochaine dose le 1er févr. 2027 case
+  décochée, le 20 janv. 2027 case cochée) ; le 14
+  (seconde prise le même jour) passe aussi par la question.
 
 ## 11. Questions ouvertes
 
