@@ -39,7 +39,57 @@ describe('otherDateSheetPlan — ce que la feuille « Fait à une autre date » 
     expect(plan.asked).toBeNull()
   })
 
-  it('hors de la carte (« À faire », notification) : jours déjà donnés exclus, récapitulatif, pas de question', () => {
+  describe('depuis « À faire », Luna, Bravecto tous les 3 mois, première dose le 1er nov., le 24 oct. (Q36)', () => {
+    const book = treatment([
+      period({
+        startsOn: '2026-11-01',
+        firstDueOn: '2026-11-01',
+        frequency: { value: 3, unit: 'month' },
+      }),
+    ])
+    const due: Due = { settingId: 'p-1', dueOn: '2026-11-01', dueTime: null }
+    const planOf = (answer: 'extra' | 'replaces' | null) =>
+      otherDateSheetPlan(t, {
+        treatment: book,
+        reading: treatmentReadingOf(book, '2026-10-24'),
+        today: '2026-10-24',
+        min: '2026-04-10',
+        target: { dueOn: '2026-11-01', dueTime: null },
+        due,
+        givenOn: '2026-10-24',
+        answer,
+        shifts: false,
+      })
+
+    it('le calendrier de la fiche : sans échéance précédente, tous les jours jusqu’à aujourd’hui', () => {
+      expect(planOf(null)).toMatchObject({ min: '2026-04-10', excluded: [], earlierHelp: false })
+    })
+
+    it('la même question que depuis la fiche, sans récapitulatif qui parlerait d’une dose couverte', () => {
+      const plan = planOf(null)
+      expect(plan.question?.title).toBe('Cette prise')
+      expect(plan.question?.options.map(({ label }) => plain(label))).toEqual([
+        'En plus',
+        'Remplace celle du 1er nov.',
+      ])
+      expect(plan.question?.help).toBeNull()
+      expect(plan.recap).toBeNull()
+      expect(plan.asked).toBeNull()
+    })
+
+    it('après la réponse, l’aide dit ce qui sera écrit', () => {
+      expect(plain(planOf('extra').question!.help!)).toBe(
+        'Prise en plus le samedi 24 oct. · la prochaine dose reste le 1er nov.',
+      )
+      expect(planOf('extra').asked).toBe('extra')
+      expect(plain(planOf('replaces').question!.help!)).toBe(
+        'Donnée le 24 oct. pour la dose du 1er nov. · prochaine dose le 1er févr. 2027',
+      )
+      expect(planOf('replaces').recap).toBeNull()
+    })
+  })
+
+  it('« Donnée quand ? », sans question à poser : jours déjà donnés exclus, récapitulatif', () => {
     const book = treatment(
       [period({ startsOn: '2026-10-09', firstDueOn: '2026-10-09', frequency: WEEK })],
       [dose('2026-10-09', '2026-10-16')],

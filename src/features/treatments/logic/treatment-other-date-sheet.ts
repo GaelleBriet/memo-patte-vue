@@ -12,9 +12,9 @@ export type OtherDateSheetState = {
   treatment: Pick<TreatmentWithPeriods, 'periods'>
   reading: TreatmentReading
   today: string
-  /** Le premier jour que donne l'écran : la naissance, ou la borne de « À faire » et de la notification. */
+  /** Le premier jour que donne l'écran : la naissance, ou la borne de « Donnée quand ? ». */
   min: string | null
-  /** La carte de la fiche ; `null` depuis « À faire » ou une notification. */
+  /** La carte de la fiche ou la ligne de la feuille du soin (Q36) ; `null` depuis « Donnée quand ? ». */
   target: NotifiedDue | null
   due: Due | null
   givenOn: string | null
@@ -26,7 +26,7 @@ export type OtherDateSheetPlan = {
   min: string | null
   excluded: string[]
   earlierHelp: boolean
-  /** R5 : seulement depuis la carte (Q27). */
+  /** R5 : la même question pour la même dose, d'où qu'on vienne (Q36). */
   question: ExtraQuestion | null
   /** Seulement sans question, qui le dit déjà. */
   recap: string | null
@@ -43,7 +43,7 @@ export function otherDateSheetPlan(
   const days =
     target === null ? { min, earlierHelp: false } : cardOtherDateDays(reading, target, today, min)
   const question =
-    target === null || due === null || givenOn === null
+    due === null || givenOn === null
       ? null
       : extraQuestion(t, reading, due, givenOn, severalTimes, answer, shifts)
   return {

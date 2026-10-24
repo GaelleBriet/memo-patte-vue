@@ -15,7 +15,12 @@ const titleId = useId()
 <template>
   <div class="treatment-extra-question">
     <p :id="titleId" class="treatment-extra-question__title">{{ question.title }}</p>
-    <FormSegmented v-model="answer" :options="question.options" :label-id="titleId" />
+    <FormSegmented
+      v-model="answer"
+      class="treatment-extra-question__choices"
+      :options="question.options"
+      :label-id="titleId"
+    />
     <p v-if="question.help" class="treatment-extra-question__help" aria-live="polite">
       {{ question.help }}
     </p>
@@ -28,6 +33,23 @@ const titleId = useId()
 // Non scopé : la question vit dans une feuille téléportée hors du composant.
 .treatment-extra-question {
   margin-top: 12px;
+
+  // Sélecteurs doublés : ils doivent l'emporter sur les styles scopés de FormSegmented.
+  .treatment-extra-question__choices.form-segmented {
+    height: auto;
+    min-height: tokens.$height-segmented;
+  }
+
+  .treatment-extra-question__choices .form-segmented__option {
+    height: auto;
+    padding-block: 8px;
+    line-height: 1.25;
+  }
+
+  .treatment-extra-question__choices .v-btn__content {
+    white-space: normal;
+    text-align: center;
+  }
 }
 
 .treatment-extra-question__title {

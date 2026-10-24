@@ -30,7 +30,7 @@ const props = withDefaults(
     notified?: NotifiedDue | null
     /** Feuille du soin : une échéance notée oubliée repasse en donnée (TR-22). */
     reopensMissed?: boolean
-    /** Fiche : l'échéance de la carte, ou sa journée à plusieurs heures, que le jour choisi ne change pas (Q28). */
+    /** L'échéance de la carte ou de la feuille du soin, ou sa journée, que le jour choisi ne change pas (Q28, Q36). */
     target?: NotifiedDue | null
     /** Flèche de l'étape du jour, qui émet `back` : la feuille qui l'a ouverte reprend la main. */
     backLabel?: string | null

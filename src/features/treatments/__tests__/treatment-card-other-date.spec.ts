@@ -172,6 +172,24 @@ describe('« Cette prise » : « En plus » ou « Remplace celle du … » (R5, 
     expect(plain(question.options[1].label)).toBe('Remplace celle du 1er nov. à 8 h')
   })
 
+  it('à plusieurs heures, l’aide de « Remplace » donne le jour et l’heure de la prochaine dose', () => {
+    const several = treatmentReadingOf(
+      treatment([milbemax('2026-11-01', ['08:00', '20:00'])]),
+      '2026-10-24',
+    )
+    const due: Due = { settingId: 'p-1', dueOn: '2026-11-01', dueTime: '08:00' }
+    const help = (answer: 'replaces') =>
+      plain(extraQuestion(t, several, due, '2026-10-24', true, answer, false)!.help!)
+
+    expect(help('replaces')).toBe(
+      'Donnée le 24 oct. pour la dose du 1er nov. à 8 h · prochaine dose le 1er nov. à 20 h',
+    )
+    applyLocale('en')
+    expect(help('replaces')).toBe(
+      'Given on Oct 24 for the dose due Nov 1 at 8 am · next dose due Nov 1 at 8 pm',
+    )
+  })
+
   it('« Enregistrer » attend la réponse ; « Remplace » enregistre la dose de la carte', () => {
     const shown = { shown: false, help: null }
     expect(otherDateNote(NOV_1, '2026-10-24', shown, true, null)).toBeNull()
