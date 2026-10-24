@@ -2,6 +2,7 @@ import type { SyncOutboxEntry } from '../repository/sync-outbox.repository'
 import type { SyncCycleOutbox } from './sync-cycle'
 
 const CHECK_VIOLATION = '23514'
+const FOREIGN_KEY_VIOLATION = '23503'
 const DATA_EXCEPTION_CLASS = '22'
 const IDENTICAL_REFUSALS_BEFORE_GIVING_UP = 3
 
@@ -18,8 +19,19 @@ function permanentRowRefusalSignature(cause: unknown): string | null {
   return `${code} ${typeof message === 'string' ? message : ''}`
 }
 
+function isForeignKeyViolation(cause: unknown): boolean {
+  return (
+    typeof cause === 'object' &&
+    cause !== null &&
+    (cause as { code?: unknown }).code === FOREIGN_KEY_VIOLATION
+  )
+}
+
 export interface PushRefusalsOptions {
-  outbox: Pick<SyncCycleOutbox, 'recordFailedPush' | 'markRefusedIfUnchanged'>
+  outbox: Pick<
+    SyncCycleOutbox,
+    'recordFailedPush' | 'markRefusedIfUnchanged' | 'hasRefusedAncestor'
+  >
   signature?: RefusalSignature
   /** Journalise l'entrée marquée refusée ; le texte reste chez l'appelant, que la garde des journaux relit. */
   onGivenUp: (entry: RefusedEntry, cause: unknown) => void
@@ -61,7 +73,9 @@ export function createPushRefusals({
     /** Compte l'essai raté ; rend vrai si l'entrée reste en file pour un prochain essai. */
     async recordFailure(entry: RefusedEntry, cause: unknown): Promise<boolean> {
       await outbox.recordFailedPush(entry)
-      if (!isGivenUp(entry, cause)) return true
+      const withParent = isForeignKeyViolation(cause) && (await outbox.hasRefusedAncestor(entry))
+      if (withParent) refusals.delete(keyOf(entry))
+      else if (!isGivenUp(entry, cause)) return true
       await outbox.markRefusedIfUnchanged(entry, now().toISOString())
       onGivenUp(entry, cause)
       return false

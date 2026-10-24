@@ -7,6 +7,7 @@ import { createFakeSyncServer, type FakeSyncServer } from '@/core/sync/__tests__
 import {
   createSyncOutboxRepository,
   SYNC_ENTITY_ORDER,
+  SYNC_PARENT_COLUMNS,
   type SyncOutboxRepository,
 } from '@/core/sync/repository/sync-outbox.repository'
 import { createSyncPushRepository } from '@/core/sync/repository/sync-push.repository'
@@ -246,55 +247,106 @@ describe('amorçage : le carnet local part en entier vers un compte vide', () =>
     expect(refusedItemsOf(await readFacts())).toBe(0)
     expect(server.rows('weight_entry').some((row) => row.id === weighing!.id)).toBe(true)
   })
-  it('Milo refusé par le serveur pendant la première sauvegarde : ses fiches refusées avec lui, la sauvegarde aboutit, puis repartent avec Milo modifié', async () => {
-    vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const readFacts = backupFacts()
-    const [milo] = await db.query<{ id: string }>("SELECT id FROM animal WHERE name = 'Milo'")
-    const children = SYNC_ENTITY_ORDER.filter((entity) =>
-      [
-        'vaccination',
-        'vaccination_injection',
-        'treatment',
-        'treatment_period',
-        'treatment_dose',
-        'weight_entry',
-      ].includes(entity),
-    )
-    let miloChildren = 0
-    for (const entity of children) {
-      const [row] = await db.query<{ total: number }>(
-        `SELECT COUNT(*) AS total FROM ${entity} WHERE animal_id = ?`,
-        [milo!.id],
-      )
-      miloChildren += row?.total ?? 0
-    }
+  function refuseAnimal(id: string) {
     const animals = tables.find((table) => table.entity === 'animal')!
     const pushRow = animals.pushRow.bind(animals)
-    let refusing = true
+    const state = { refusing: true }
     animals.pushRow = async (userId, sent, push) => {
-      if (refusing && sent.id === milo!.id) {
+      if (state.refusing && sent.id === id) {
         throw { code: '23514', message: 'new row violates check constraint "animal_name_check"' }
       }
       return pushRow(userId, sent, push)
     }
+    return state
+  }
+
+  function recordPushOrder(): string[] {
+    const order: string[] = []
+    for (const table of tables) {
+      const pushRow = table.pushRow.bind(table)
+      table.pushRow = async (userId, sent, push) => {
+        order.push(table.entity)
+        return pushRow(userId, sent, push)
+      }
+    }
+    return order
+  }
+
+  async function miloId(): Promise<string> {
+    const [milo] = await db.query<{ id: string }>("SELECT id FROM animal WHERE name = 'Milo'")
+    return milo!.id
+  }
+
+  async function childrenOf(animalId: string): Promise<number> {
+    let total = 0
+    for (const entity of Object.keys(SYNC_PARENT_COLUMNS)) {
+      const [row] = await db.query<{ total: number }>(
+        `SELECT COUNT(*) AS total FROM ${entity} WHERE animal_id = ?`,
+        [animalId],
+      )
+      total += row?.total ?? 0
+    }
+    return total
+  }
+
+  it('Milo absent du serveur et refusé : ses fiches butent une fois sur la clé étrangère, sont refusées avec lui, puis repartent après lui', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const readFacts = backupFacts()
+    const milo = await miloId()
+    const miloChildren = await childrenOf(milo)
+    const refusal = refuseAnimal(milo)
     await outbox.enableAndQueueWholeCarnet()
 
-    for (let cycleRun = 0; cycleRun < 3; cycleRun += 1) await cycle.runCycle().catch(() => {})
+    await expect(cycle.runCycle()).rejects.toMatchObject({ code: '23514' })
+    await expect(cycle.runCycle()).rejects.toMatchObject({ code: '23514' })
     await cycle.runCycle()
 
     const refused = await readFacts()
     expect(miloChildren).toBeGreaterThan(1)
     expect(backupStatusOf(refused).kind).toBe('saved')
     expect(refusedItemsOf(refused)).toBe(1 + miloChildren)
+    await expect(outbox.listPending()).resolves.toEqual([])
 
-    refusing = false
+    refusal.refusing = false
+    const order = recordPushOrder()
     await db.run("UPDATE animal SET name = 'Milou', updated_at = ? WHERE id = ?", [
       new Date(2026, 9, 21, 9).toISOString(),
-      milo!.id,
+      milo,
     ])
     await cycle.runCycle()
 
+    expect(order[0]).toBe('animal')
+    expect(order).toHaveLength(1 + miloChildren)
+    expect(order.map((entity) => SYNC_ENTITY_ORDER.indexOf(entity))).toEqual(
+      order.map((entity) => SYNC_ENTITY_ORDER.indexOf(entity)).sort((a, b) => a - b),
+    )
     expect(refusedItemsOf(await readFacts())).toBe(0)
-    expect(server.rows('weight_entry').some((row) => row.animal_id === milo!.id)).toBe(true)
+    expect(server.rows('weight_entry').some((row) => row.animal_id === milo)).toBe(true)
+  })
+
+  it('Milo déjà sur le serveur, sa modification refusée : la pesée corrigée à 9,9 kg arrive quand même', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const milo = await miloId()
+    await outbox.enableAndQueueWholeCarnet()
+    await cycle.runCycle()
+    const [weighing] = await db.query<{ id: string }>(
+      'SELECT id FROM weight_entry WHERE animal_id = ? AND deleted_at IS NULL ORDER BY id LIMIT 1',
+      [milo],
+    )
+    refuseAnimal(milo)
+    await db.run("UPDATE animal SET name = 'Milou', updated_at = ? WHERE id = ?", [
+      '2026-10-21T08:10:00.000Z',
+      milo,
+    ])
+    for (let attempt = 0; attempt < 3; attempt += 1) await cycle.runCycle().catch(() => {})
+
+    await db.run('UPDATE weight_entry SET weight_kg = 9.9, updated_at = ? WHERE id = ?', [
+      '2026-10-21T08:20:00.000Z',
+      weighing!.id,
+    ])
+    await cycle.runCycle()
+
+    expect(server.rows('weight_entry').find((row) => row.id === weighing!.id)?.weight_kg).toBe(9.9)
+    await expect(outbox.countRefused()).resolves.toBe(1)
   })
 })

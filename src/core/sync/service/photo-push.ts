@@ -24,7 +24,11 @@ const photoRefusalSignature = (cause: unknown) =>
 export function createPhotoPush(
   outbox: Pick<
     SyncCycleOutbox,
-    'listPending' | 'removeIfUnchanged' | 'markRefusedIfUnchanged' | 'recordFailedPush'
+    | 'listPending'
+    | 'removeIfUnchanged'
+    | 'markRefusedIfUnchanged'
+    | 'recordFailedPush'
+    | 'hasRefusedAncestor'
   >,
   { files, uploads, isPhotoInCarnet }: PhotoPushDependencies,
   now: () => Date,

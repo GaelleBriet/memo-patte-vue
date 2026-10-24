@@ -721,61 +721,80 @@ describe('syncOutboxRepository', () => {
         await repository.markRefusedIfUnchanged({ entity, entityId, queuedAt }, REFUSED_AT)
       }
 
-      it('Milo refusé : sa pesée est refusée avec lui, hors de la file, comptée', async () => {
+      it('une pesée de Milo reste dans la file tant qu’elle n’est pas refusée elle-même', async () => {
         await enableSync(db)
         await insertAnimal(db, ANIMAL_ID, T1, 'Milo')
         await insertWeightEntry(db, 'w-12-mars', ANIMAL_ID, MARCH_12)
-        await insertAnimal(db, 'luna', T1, 'Luna')
-        await insertWeightEntry(db, 'w-luna', 'luna', T1)
 
         await refuse('animal', ANIMAL_ID, T1)
 
         await expect(repository.listPending()).resolves.toEqual([
-          { entity: 'animal', entityId: 'luna', queuedAt: T1, attempts: 0 },
-          { entity: 'weight_entry', entityId: 'w-luna', queuedAt: T1, attempts: 0 },
+          { entity: 'weight_entry', entityId: 'w-12-mars', queuedAt: MARCH_12, attempts: 0 },
         ])
-        await expect(repository.countPending()).resolves.toBe(2)
-        await expect(repository.countRefused()).resolves.toBe(2)
+        await expect(repository.countRefused()).resolves.toBe(1)
       })
 
-      it('Milo modifié repart en file, et sa pesée avec lui', async () => {
+      it('dit si un ancêtre de l’entrée est refusé : animal, vaccin, traitement ou période', async () => {
         await enableSync(db)
         await insertAnimal(db, ANIMAL_ID, T1, 'Milo')
-        await insertWeightEntry(db, 'w-12-mars', ANIMAL_ID, MARCH_12)
-        await refuse('animal', ANIMAL_ID, T1)
-
-        await touchAnimal(db, ANIMAL_ID, LATER)
-
-        await expect(repository.listPending()).resolves.toHaveLength(2)
-        await expect(repository.countRefused()).resolves.toBe(0)
-      })
-
-      it('une pesée ajoutée à Milo pendant qu’il est refusé attend avec lui', async () => {
-        await enableSync(db)
-        await insertAnimal(db, ANIMAL_ID, T1, 'Milo')
-        await refuse('animal', ANIMAL_ID, T1)
-
-        await insertWeightEntry(db, 'w-nouvelle', ANIMAL_ID, LATER)
-
-        await expect(repository.listPending()).resolves.toEqual([])
-        await expect(repository.countRefused()).resolves.toBe(2)
-      })
-
-      it('suit chaque parent : vaccin refusé pour ses injections, période refusée pour ses prises', async () => {
-        await enableSync(db)
-        await insertAnimal(db, ANIMAL_ID, T1, 'Milo')
+        await insertAnimal(db, 'luna', T1, 'Luna')
+        await insertWeightEntry(db, 'w-luna', 'luna', T1)
         await insertVaccination(db, 'v-1', ANIMAL_ID, T1)
         await insertVaccinationInjection(db, 'i-1', 'v-1', ANIMAL_ID, T1)
         await insertTreatment(db, 't-1', ANIMAL_ID, T1)
         await insertTreatmentPeriod(db, 'p-1', 't-1', ANIMAL_ID, T1)
         await insertTreatmentDose(db, 'd-1', 'p-1', 't-1', ANIMAL_ID, T1)
+        await expect(
+          repository.hasRefusedAncestor({ entity: 'treatment_dose', entityId: 'd-1' }),
+        ).resolves.toBe(false)
 
         await refuse('vaccination', 'v-1', T1)
         await refuse('treatment_period', 'p-1', T1)
 
-        const pending = (await repository.listPending()).map(({ entity }) => entity)
-        expect(pending).toEqual(['animal', 'treatment'])
-        await expect(repository.countRefused()).resolves.toBe(4)
+        await expect(
+          repository.hasRefusedAncestor({ entity: 'vaccination_injection', entityId: 'i-1' }),
+        ).resolves.toBe(true)
+        await expect(
+          repository.hasRefusedAncestor({ entity: 'treatment_dose', entityId: 'd-1' }),
+        ).resolves.toBe(true)
+        await expect(
+          repository.hasRefusedAncestor({ entity: 'treatment_period', entityId: 'p-1' }),
+        ).resolves.toBe(false)
+        await expect(
+          repository.hasRefusedAncestor({ entity: 'weight_entry', entityId: 'w-luna' }),
+        ).resolves.toBe(false)
+        await expect(
+          repository.hasRefusedAncestor({ entity: ANIMAL_PHOTO_ENTITY, entityId: PHOTO_MILO }),
+        ).resolves.toBe(false)
+      })
+
+      it('Milo modifié repart en file, et ses fiches refusées avec lui repartent aussi', async () => {
+        await enableSync(db)
+        await insertAnimal(db, ANIMAL_ID, T1, 'Milo')
+        await insertWeightEntry(db, 'w-12-mars', ANIMAL_ID, MARCH_12)
+        await insertVaccination(db, 'v-1', ANIMAL_ID, T1)
+        await insertVaccinationInjection(db, 'i-1', 'v-1', ANIMAL_ID, T1)
+        await insertAnimal(db, 'luna', T1, 'Luna')
+        await insertWeightEntry(db, 'w-luna', 'luna', T1)
+        await refuse('animal', ANIMAL_ID, T1)
+        await refuse('weight_entry', 'w-12-mars', MARCH_12)
+        await refuse('vaccination_injection', 'i-1', T1)
+        await refuse('weight_entry', 'w-luna', T1)
+
+        await touchAnimal(db, ANIMAL_ID, LATER)
+
+        const pending = (await repository.listPending()).map(({ entity, entityId }) => [
+          entity,
+          entityId,
+        ])
+        expect(pending).toEqual([
+          ['animal', 'luna'],
+          ['animal', ANIMAL_ID],
+          ['vaccination', 'v-1'],
+          ['vaccination_injection', 'i-1'],
+          ['weight_entry', 'w-12-mars'],
+        ])
+        await expect(repository.countRefused()).resolves.toBe(1)
       })
 
       it('suit chaque clé étrangère des tables synchronisées, et elles seules', async () => {
@@ -790,17 +809,6 @@ describe('syncOutboxRepository', () => {
         }
 
         expect(foreignKeys).toEqual(SYNC_PARENT_COLUMNS)
-      })
-
-      it('ne retient pas la photo de Milo : son envoi ne dépend pas de la ligne', async () => {
-        await enableSync(db)
-        await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_MILO)
-
-        await refuse('animal', ANIMAL_ID, T1)
-
-        await expect(repository.listPending()).resolves.toEqual([
-          { entity: ANIMAL_PHOTO_ENTITY, entityId: PHOTO_MILO, queuedAt: T1, attempts: 0 },
-        ])
       })
     })
 

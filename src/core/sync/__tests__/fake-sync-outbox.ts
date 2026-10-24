@@ -16,10 +16,13 @@ export function createFakeOutbox(
   entries: () => FakeOutboxEntry[]
   cursor: (entity: string) => string | null
   lastSyncedAt: () => string | null
+  /** `entity/entityId` des entrées dont un ancêtre est refusé. */
+  underRefusedParent: Set<string>
 } {
   let entries = [...initial]
   const lastPulledAt = new Map(Object.entries(cursors))
   let lastSyncedAt: string | null = null
+  const underRefusedParent = new Set<string>()
   return {
     async listPending() {
       return entries
@@ -50,6 +53,9 @@ export function createFakeOutbox(
           : entry,
       )
     },
+    async hasRefusedAncestor({ entity, entityId }) {
+      return underRefusedParent.has(`${entity}/${entityId}`)
+    },
     async getLastPulledAt(entity) {
       return lastPulledAt.get(entity) ?? null
     },
@@ -72,5 +78,6 @@ export function createFakeOutbox(
     entries: () => entries,
     cursor: (entity) => lastPulledAt.get(entity) ?? null,
     lastSyncedAt: () => lastSyncedAt,
+    underRefusedParent,
   }
 }

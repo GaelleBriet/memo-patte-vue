@@ -1,5 +1,9 @@
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
-import { ANIMAL_PHOTO_ENTITY, LIVE_ANIMAL_PHOTOS_FROM } from '@/core/db/schema-statements'
+import {
+  ANIMAL_PHOTO_ENTITY,
+  LIVE_ANIMAL_PHOTOS_FROM,
+  SYNC_PARENT_COLUMNS,
+} from '@/core/db/schema-statements'
 import { getDb } from '@/core/db/sqlite'
 
 export interface SyncOutboxEntry {
@@ -35,6 +39,8 @@ export const SYNC_ENTITY_ORDER = [
   'carnet_settings',
 ]
 
+export { SYNC_PARENT_COLUMNS }
+
 export type RestoreMode = 'merge' | 'replace'
 
 const RESTORE_CODES: Record<RestoreMode, number> = { merge: 1, replace: 2 }
@@ -57,32 +63,7 @@ function queueLiveAnimalPhotos(): SqlStatement {
   }
 }
 
-/** Chaque ancêtre d'une ligne, désigné par sa colonne : un enfant suit son parent refusé. */
-export const SYNC_PARENT_COLUMNS: Record<string, Record<string, string>> = {
-  vaccination: { animal_id: 'animal' },
-  vaccination_injection: { vaccination_id: 'vaccination', animal_id: 'animal' },
-  treatment: { animal_id: 'animal' },
-  treatment_period: { treatment_id: 'treatment', animal_id: 'animal' },
-  treatment_dose: { period_id: 'treatment_period', treatment_id: 'treatment', animal_id: 'animal' },
-  weight_entry: { animal_id: 'animal' },
-}
-
-const refusedIds = (entity: string) =>
-  `SELECT parent.entity_id FROM sync_outbox parent
-   WHERE parent.entity = '${entity}' AND parent.refused_at IS NOT NULL`
-
-const PARENT_REFUSED = Object.entries(SYNC_PARENT_COLUMNS)
-  .map(([child, parents]) => {
-    const refusedParent = Object.entries(parents)
-      .map(([column, parent]) => `${column} IN (${refusedIds(parent)})`)
-      .join(' OR ')
-    return `(entity = '${child}' AND entity_id IN (SELECT id FROM ${child} WHERE ${refusedParent}))`
-  })
-  .join(' OR ')
-
-/** Refusée elle-même, ou enfant d'une ligne refusée que le serveur n'a pas. */
-const REFUSED = `(refused_at IS NOT NULL OR ${PARENT_REFUSED})`
-const NOT_REFUSED = `NOT ${REFUSED}`
+const NOT_REFUSED = 'refused_at IS NULL'
 
 /** Hors effacement d'une photo sortie du carnet, qui ne sauvegarde rien. */
 const SAVES_CARNET = `(entity <> ? OR entity_id IN (SELECT photo_path ${LIVE_ANIMAL_PHOTOS_FROM}))`
@@ -158,7 +139,7 @@ export function createSyncOutboxRepository(db: DbClient) {
     async countRefused(): Promise<number> {
       const [row] = await db.query<{ total: number }>(
         `SELECT COUNT(*) AS total FROM sync_outbox
-         WHERE ${REFUSED} AND ${SAVES_CARNET}`,
+         WHERE refused_at IS NOT NULL AND ${SAVES_CARNET}`,
         [ANIMAL_PHOTO_ENTITY],
       )
       return row?.total ?? 0
@@ -266,6 +247,26 @@ export function createSyncOutboxRepository(db: DbClient) {
         entry.entityId,
         entry.queuedAt,
       ])
+    },
+
+    async hasRefusedAncestor(
+      entry: Pick<SyncOutboxEntry, 'entity' | 'entityId'>,
+    ): Promise<boolean> {
+      const parents = Object.entries(SYNC_PARENT_COLUMNS[entry.entity] ?? {})
+      if (parents.length === 0) return false
+      const rows = await db.query(
+        `SELECT 1 FROM ${entry.entity} child JOIN sync_outbox parent
+           ON parent.refused_at IS NOT NULL
+          AND (${parents
+            .map(
+              ([column, parent]) =>
+                `(parent.entity = '${parent}' AND parent.entity_id = child.${column})`,
+            )
+            .join(' OR ')})
+         WHERE child.id = ? LIMIT 1`,
+        [entry.entityId],
+      )
+      return rows.length > 0
     },
 
     /** Même garde que `removeIfUnchanged` : une modification arrivée depuis la lecture repart en file. */

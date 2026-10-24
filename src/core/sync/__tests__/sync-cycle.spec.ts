@@ -713,6 +713,49 @@ describe('createSyncCycle', () => {
       warn.mockRestore()
     })
 
+    describe('enfant d’une ligne refusée', () => {
+      const MISSING_PARENT = {
+        code: '23503',
+        message: 'insert or update on table "weight_entry" violates foreign key constraint',
+      }
+
+      it('bute sur la clé étrangère sous un parent refusé : refusé avec lui dès ce cycle', async () => {
+        vi.spyOn(console, 'warn').mockImplementation(() => {})
+        const outbox = createFakeOutbox([entry('animal', 'a1')])
+        outbox.underRefusedParent.add('animal/a1')
+
+        await expect(
+          cycleWith(outbox, [refusingAnimal(() => MISSING_PARENT)]).runCycle(),
+        ).resolves.toBeUndefined()
+
+        expect(outbox.entries()).toEqual([
+          { ...entry('animal', 'a1'), attempts: 1, refusedAt: REFUSED_AT },
+        ])
+      })
+
+      it('bute sur la clé étrangère sans parent refusé : réessayée', async () => {
+        const outbox = createFakeOutbox([entry('animal', 'a1')])
+
+        await expect(
+          cycleWith(outbox, [refusingAnimal(() => MISSING_PARENT)]).runCycle(),
+        ).rejects.toBe(MISSING_PARENT)
+
+        expect(outbox.entries()).toEqual([{ ...entry('animal', 'a1'), attempts: 1 }])
+      })
+
+      it('une panne réseau sous un parent refusé reste réessayée', async () => {
+        const outbox = createFakeOutbox([entry('animal', 'a1')])
+        outbox.underRefusedParent.add('animal/a1')
+        const failure = new Error('réseau')
+
+        await expect(cycleWith(outbox, [refusingAnimal(() => failure)]).runCycle()).rejects.toBe(
+          failure,
+        )
+
+        expect(outbox.entries()).toEqual([{ ...entry('animal', 'a1'), attempts: 1 }])
+      })
+    })
+
     it('réessaie sans fin une panne passagère ou un refus de droit', async () => {
       const failures = [new Error('réseau'), { code: '42501', message: 'permission denied' }]
       for (const failure of failures) {
