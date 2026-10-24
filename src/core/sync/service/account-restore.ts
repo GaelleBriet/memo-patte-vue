@@ -1,5 +1,6 @@
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
-import type { RestoreMode, SyncOutboxRepository } from '../repository/sync-outbox.repository'
+import type { RestoreMode } from '../repository/sync-state.repository'
+import type { LocalSyncOutbox } from './local-sync-outbox'
 import { normalizeSyncTimestamps } from './normalize-sync-timestamps'
 import type { RemoteBackupReads, SyncRow, SyncableTable } from './syncable-table'
 
@@ -19,7 +20,7 @@ export type RestorableTable = SyncableTable &
 
 export interface AccountRestoreDependencies {
   db: DbClient
-  outbox: Pick<SyncOutboxRepository, 'restoreMode' | 'startRestore' | 'restoreStatements'>
+  outbox: Pick<LocalSyncOutbox, 'restoreMode' | 'startRestore' | 'restoreStatements'>
   /** Dans l'ordre de `SYNC_ENTITY_ORDER` : un parent est écrit avant ses enfants. */
   tables: RestorableTable[]
   userId: () => string | null

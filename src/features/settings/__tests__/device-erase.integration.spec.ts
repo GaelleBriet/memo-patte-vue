@@ -5,7 +5,7 @@ import { migrationTableNames } from '@/core/db/clear-all-tables'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { applyFixtures } from '@/core/dev/fixtures'
 import { createDeviceRepository } from '@/core/device/device.repository'
-import { createSyncOutboxRepository } from '@/core/sync/repository/sync-outbox.repository'
+import { createLocalSyncOutbox } from '@/core/sync/service/local-sync-outbox'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { createCarnetSettingsRepository } from '@/features/settings/repository/carnet-settings.repository'
 import { createTreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
@@ -37,7 +37,7 @@ describe('effacement des données dans une vraie base', () => {
         () => createCarnetSettingsRepository(db),
         () => createDeviceRepository(db),
       ],
-      syncOutbox: () => createSyncOutboxRepository(db),
+      syncOutbox: () => createLocalSyncOutbox(db),
       account: { isSignedIn: () => true, signOut: async () => {} },
       notifications: { cancelAll: async () => {}, rebuild: async () => {} },
       photos: { deleteAll: async () => {} },
@@ -74,7 +74,7 @@ describe('effacement des données dans une vraie base', () => {
       `INSERT OR REPLACE INTO sync_state (id, enabled, restoring, last_synced_at)
        VALUES (1, 1, 1, '2026-09-30T10:00:00.000Z')`,
     )
-    await createSyncOutboxRepository(db).setLastPulledAt('animal', '2026-09-30T10:00:00.000Z')
+    await createLocalSyncOutbox(db).setLastPulledAt('animal', '2026-09-30T10:00:00.000Z')
     await createDeviceRepository(db).register(DEVICE, 'Pixel 8')
     await createCarnetSettingsRepository(db).update({ vaccineReminderTime: '08:30' })
   })
@@ -100,13 +100,13 @@ describe('effacement des données dans une vraie base', () => {
   it('signale des changements pas encore envoyés à la sauvegarde cloud', async () => {
     expect(await service().situation()).toEqual({ signedIn: true, hasUnsyncedChanges: true })
 
-    await createSyncOutboxRepository(db).clear()
+    await createLocalSyncOutbox(db).clear()
 
     expect(await service().situation()).toEqual({ signedIn: true, hasUnsyncedChanges: false })
   })
 
   it('la pesée de Milo du 12 mars refusée par le serveur : l’avertissement apparaît avant d’effacer', async () => {
-    const outbox = createSyncOutboxRepository(db)
+    const outbox = createLocalSyncOutbox(db)
     const [weighing] = await db.query<{ id: string; updated_at: string }>(
       'SELECT id, updated_at FROM weight_entry ORDER BY id LIMIT 1',
     )

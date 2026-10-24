@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import type { RestoreMode } from '../repository/sync-outbox.repository'
+import type { RestoreMode } from '../repository/sync-state.repository'
 import type { RestoreProgress } from '../service/account-restore'
 import { createRestoreFlow, type RestoreRunner } from '../service/restore-flow'
 

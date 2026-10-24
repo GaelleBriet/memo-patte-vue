@@ -1,4 +1,4 @@
-import type { SyncOutboxRepository } from '../repository/sync-outbox.repository'
+import type { LocalSyncOutbox } from './local-sync-outbox'
 
 export interface BackupFacts {
   /** Compte Plus et abonnement en cours : la synchro peut tourner. */
@@ -21,7 +21,7 @@ export type BackupFactsReader = () => Promise<BackupFacts>
 
 export interface BackupFactsDependencies {
   outbox: Pick<
-    SyncOutboxRepository,
+    LocalSyncOutbox,
     | 'isEnabled'
     | 'getLastSyncedAt'
     | 'countPending'

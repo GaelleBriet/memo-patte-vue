@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { applyFixtures } from '@/core/dev/fixtures'
 import { createDeviceRepository } from '@/core/device/device.repository'
-import { createSyncOutboxRepository } from '@/core/sync/repository/sync-outbox.repository'
+import { createLocalSyncOutbox } from '@/core/sync/service/local-sync-outbox'
 import { createSyncCycle } from '@/core/sync/service/sync-cycle'
 import type { SyncRow, SyncableTable } from '@/core/sync/service/syncable-table'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
@@ -89,7 +89,7 @@ describe.each(Object.keys(TABLE_OF))('%s : la ligne gardée par le serveur', (en
   })
 
   async function pushKeeping(kept: SyncRow, beforeReply: () => Promise<void> = async () => {}) {
-    const outbox = createSyncOutboxRepository(db)
+    const outbox = createLocalSyncOutbox(db)
     await createSyncCycle({
       db,
       outbox,
