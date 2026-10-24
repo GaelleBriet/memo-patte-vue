@@ -1,13 +1,4 @@
-import { plusDays } from '../grid'
-import type {
-  Day,
-  Due,
-  Gesture,
-  GestureResult,
-  Line,
-  LineChange,
-  TreatmentViewInput,
-} from '../types'
+import type { Due, Gesture, GestureResult, Line, LineChange, TreatmentViewInput } from '../types'
 import { episodeIdsOf } from '../settings'
 import { buildView } from '../view'
 import { shiftOfDay, shiftWritten, without } from './changes'
@@ -61,28 +52,13 @@ function redateExtra(
     (change) => change.action !== 'delete' && change.line.status === 'extra',
   )
   if (stillExtra) return outcome(input, [moved])
-  return redateAsNote(input, rest, extra, [], due, gesture)
-}
-
-// Q-C1 : une prise en retard ne couvre qu'une dose ; corrigée après une échéance passée encore sans prise de sa période, elle vise la dose que « Fait à une autre date » noterait ce jour-là.
-function lateTarget(rest: TreatmentViewInput, line: Line, givenOn: Day): Due | null {
-  const episode = episodeIdsOf(rest.settings, line.settingId)
-  const spans = buildView(rest)
-    .slots(plusDays(line.dueOn, 1), givenOn)
-    .some(({ due, state }) => state === 'pending' && episode.has(due.settingId))
-  if (!spans) return null
-  return (
-    [dueForDate(rest, givenOn, line.dueTime), dueForDate(rest, givenOn, null)].find(
-      (due) => due !== null && due.dueOn <= givenOn && episode.has(due.settingId),
-    ) ?? null
-  )
+  return redateAsNote(input, rest, extra, due, gesture)
 }
 
 function redateAsNote(
   input: TreatmentViewInput,
   rest: TreatmentViewInput,
   line: Line,
-  dropped: LineChange[],
   target: Due,
   gesture: RedateGesture,
 ): GestureResult {
@@ -102,18 +78,17 @@ function redateAsNote(
           },
         ]
       : [{ action: 'delete', id: line.id }, missed]
-  const kept = [...dropped, ...prise]
   if (!plain.offersShift || !shiftsFollowing) {
-    return withFollowed(input, kept, target.dueOn, {
+    return withFollowed(input, prise, target.dueOn, {
       offersShift: plain.offersShift,
       lostToEnd: [],
     })
   }
   const shiftDay = shiftDayOf(buildView(rest), target)
-  const changes = [...kept, shiftWritten(rest.lines, { ...target, dueOn: shiftDay }, givenOn)]
+  const changes = [...prise, shiftWritten(rest.lines, { ...target, dueOn: shiftDay }, givenOn)]
   return withFollowed(input, changes, target.dueOn, {
     offersShift: true,
-    lostToEnd: lostToEnd(input, kept, changes, target.dueOn),
+    lostToEnd: lostToEnd(input, prise, changes, target.dueOn),
   })
 }
 
@@ -148,12 +123,6 @@ function redateGiven(input: TreatmentViewInput, line: Line, gesture: RedateGestu
   const reportAnchor = shiftDay === line.dueOn ? null : line.dueOn
   // N2 : seul le décalage ancré à la date de la prise la suit ; un autre décalage de la journée reste.
   const owned = own !== undefined && own.targetOn === line.givenOn ? own : undefined
-  const rest = without(input, owned === undefined ? [line.id] : [line.id, owned.id])
-  const target = lateTarget(rest, line, givenOn)
-  if (target !== null) {
-    const dropped: LineChange[] = owned === undefined ? [] : [{ action: 'delete', id: owned.id }]
-    return redateAsNote(input, rest, line, dropped, target, gesture)
-  }
   const changesFor = (checked: boolean): LineChange[] => {
     if (offered && checked)
       return [prise, shiftWritten(input.lines, { ...due, dueOn: shiftDay }, givenOn)]
@@ -171,9 +140,9 @@ function redateGiven(input: TreatmentViewInput, line: Line, gesture: RedateGestu
 }
 
 /**
- * TR-24 bis, Q-C1 : la correction se juge au jour de la nouvelle date, comme une prise notée ce
- * jour-là ; un report seul qui ne tient plus suit (G19), sinon la correction est refusée. TR-25 : les
- * autres lignes de la dose (deux appareils) partent avec la correction.
+ * TR-24 bis : la correction change la date réelle d'une prise donnée, jamais son échéance (Q30) ; la
+ * case se juge à la nouvelle date ; un report seul qui ne tient plus suit (G19), sinon la correction
+ * est refusée. TR-25 : les autres lignes de la dose (deux appareils) partent avec la correction.
  */
 export function redateDose(input: TreatmentViewInput, gesture: RedateGesture): GestureResult {
   const { lineId } = gesture

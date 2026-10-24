@@ -84,7 +84,7 @@ describe('R5, R6 : prise en plus, correction de date', () => {
     ])
   })
 
-  it('Q-C1 : dose du 16 notée le 16, corrigée le 25 « donnée le 24 », case cochée : la dose en retard du 23 donnée le 24, le 16 à renseigner, 31 oct., 7 nov.', () => {
+  it('Q30 : dose du 16 notée le 16, corrigée le 25 « donnée le 24 », case cochée : la dose du 16 donnée le 24, rien à renseigner, 31 oct., 7 nov.', () => {
     const c = donne(vendredis(), '2026-10-16', echeance(vendredis(), '2026-10-16'))
     const corrigee = corrige(
       c,
@@ -99,7 +99,7 @@ describe('R5, R6 : prise en plus, correction de date', () => {
       next: read.upcoming({ limit: 2 }).map(cle),
     }).toEqual({
       current: ['2026-10-31'],
-      unlogged: ['2026-10-16'],
+      unlogged: [],
       next: ['2026-10-31', '2026-11-07'],
     })
   })
