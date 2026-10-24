@@ -2,7 +2,8 @@
 
 Mode d'emploi de la fonction Supabase `supabase/functions/inactive-accounts/`. Elle tient ce
 qu'annonce la politique de confidentialité : un compte sans accès Plus pendant 12 mois est supprimé,
-après un e-mail d'avertissement. Elle est livrée **à blanc** et **sans canal d'e-mail** : tant que
+après un e-mail d'avertissement ; un compte dont l'adresse n'a jamais été confirmée est supprimé au
+bout de 7 jours, sans e-mail. Elle est livrée **à blanc** et **sans canal d'e-mail** : tant que
 Gaelle n'a pas fait les étapes ci-dessous, elle ne fait que compter.
 
 ## Ce qu'elle fait, une fois par jour
@@ -12,7 +13,7 @@ Gaelle n'a pas fait les étapes ci-dessous, elle ne fait que compter.
 | Plus fini depuis 60 jours | client RevenueCat effacé |
 | Plus fini depuis 11 mois, ou adresse confirmée créée depuis 11 mois sans jamais acheter | e-mail d'avertissement, avec la date J |
 | Averti, lendemain du jour J à 0 h UTC | suppression du compte, par la même `eraseAccount` que « Supprimer mon compte » |
-| Adresse jamais confirmée (aucun code saisi) depuis 7 jours | comptée à part (`due.unconfirmedPending`), jamais avertie ; D2 tranché par Gaelle le 2026-10-24 : suppression au bout de 7 jours, sans e-mail (alternative écartée : 12 mois), livraison suivie par #1224 |
+| Adresse jamais confirmée (aucun code saisi) depuis 7 jours | suppression du compte **sans aucun e-mail**, par la même `eraseAccount` (`due.unconfirmedDeletions`, `done.unconfirmedDeletions`) ; D2 tranché par Gaelle le 2026-10-24 (alternative écartée : 12 mois), #1224 |
 | Abonnement en cours (période de grâce comprise), pause Google Play avec reprise à venir, ou achat à vie | jamais rien |
 
 - **Fin d'accès retenue** : la plus tardive de la fin de l'accès Plus et de la création du compte. Un
@@ -23,6 +24,10 @@ Gaelle n'a pas fait les étapes ci-dessous, elle ne fait que compter.
   avant le jour J, heure locale, où que la personne vive. Pour J = 16 novembre, c'est le 17 à 0 h UTC,
   soit le 16 à 16 h à Los Angeles ; la passe de 03:00 UTC supprime le compte le 17 vers 03:00 UTC. Le
   compte est donc gardé jusqu'à un jour de plus que la date annoncée par l'e-mail.
+- **Adresse jamais confirmée** : due 7 × 24 h après la création, à l'instant près ; la passe de
+  03:00 UTC qui suit la supprime. Créé le 25 octobre à 15 h UTC : dû le 1er novembre à 15 h, supprimé
+  par la passe du 2 novembre vers 03:00 UTC. Juste avant, la fonction relit le compte : une adresse
+  confirmée entre-temps annule tout (le compte suit alors la règle des 12 mois).
 - **Relecture avant d'agir** : avant chaque avertissement, suppression ou effacement RevenueCat, la
   fonction relit les dates du compte puis **RevenueCat pour tout compte** (qu'il ait ou non une ligne
   `plus_entitlements` : un webhook perdu laisse un abonné sans ligne). Un accès actif, une fin plus
@@ -33,7 +38,7 @@ Gaelle n'a pas fait les étapes ci-dessous, elle ne fait que compter.
   l'effacement PostHog, l'effacement RevenueCat et les pages de photos. Chaque appel attend au plus
   15 s : en pratique 1 à 3 s, au pire environ 45 s plus les photos. Un achat fait pendant cette
   fenêtre laisse un abonnement payé sans compte (à rembourser à la main).
-- Au plus 10 suppressions **tentées** par passe, réussies ou non : une panne de `deleteUser`
+- Au plus 10 suppressions **tentées** par passe, réussies ou non, adresses jamais confirmées comprises : une panne de `deleteUser`
   n'efface pas chez les prestataires plus de 10 comptes dus. Le reste passe le lendemain.
 - Journal (`Edge Functions › inactive-accounts › Logs`) : une ligne « Purge des comptes inactifs : »
   suivie des nombres (`channel`, `revenuecat`, `due`, `done`, `skipped`, `failures`), jamais
@@ -53,13 +58,14 @@ Gaelle n'a pas fait les étapes ci-dessous, elle ne fait que compter.
 La demande du cron ne peut jamais changer le mode : son corps n'est pas lu.
 
 **Canal d'e-mail** : aucun n'est branché (`NO_EMAIL_CHANNEL`). Sans canal, même en `apply`, la passe
-ne fait que compter : pas d'avertissement, donc pas de suppression, ni d'effacement RevenueCat. Le
+ne fait que compter : pas d'avertissement, donc pas de suppression, ni d'effacement RevenueCat, ni
+suppression d'une adresse jamais confirmée (qui n'a pourtant besoin d'aucun e-mail). Le
 canal (clé d'API Brevo, décision D3) reste à décider.
 
 **Textes** : `messages.ts`, FR et EN selon la langue de l'inscription (`locale`, anglais sinon),
 expéditeur `noreply@memopatte.app`, contact cité `contact@memopatte.app`. Deux variantes : Plus fini
 (« votre accès MémoPatte Plus a pris fin le … ») et compte confirmé sans achat (« votre compte
-MémoPatte a été créé le … sans abonnement Plus »). Aucun texte pour une adresse jamais confirmée.
+MémoPatte a été créé le … sans abonnement Plus »). Aucun texte pour une adresse jamais confirmée : elle ne reçoit jamais d'e-mail.
 
 ## Ce que Gaelle pose à la main
 
