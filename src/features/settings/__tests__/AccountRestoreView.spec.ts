@@ -8,7 +8,7 @@ import { writePlusAccount } from '@/features/auth/logic/plus-account-storage'
 import { authRepository } from '@/features/auth/repository/auth.repository'
 import { provideAuthRepository } from '@/features/auth/store/auth.store'
 import i18n from '@/core/i18n'
-import type { RestoreMode } from '@/core/sync/repository/sync-outbox.repository'
+import type { RestoreMode } from '@/core/sync/repository/sync-state.repository'
 import type { RestoreProgress } from '@/core/sync/service/account-restore'
 import {
   createRestoreFlow,

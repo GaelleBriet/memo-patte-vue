@@ -1,5 +1,5 @@
-import type { SyncOutboxRepository } from '@/core/sync/repository/sync-outbox.repository'
 import type { AccountRestore, RestoreMode } from '@/core/sync/service/account-restore'
+import type { LocalSyncOutbox } from '@/core/sync/service/local-sync-outbox'
 import {
   readBackupSummary,
   type BackupSummary,
@@ -21,7 +21,7 @@ export type AccountBackupCheck =
   | { kind: 'backup-found'; summary: BackupSummary }
 
 export type AccountBackupDependencies = {
-  outbox: Provider<Pick<SyncOutboxRepository, 'isEnabled' | 'enableAndQueueWholeCarnet'>>
+  outbox: Provider<Pick<LocalSyncOutbox, 'isEnabled' | 'enableAndQueueWholeCarnet'>>
   tables: Provider<BackupSummaryTable[]>
   animals: Provider<Pick<AnimalsRepository, 'list'>>
   restore: Pick<AccountRestore, 'pendingMode' | 'start'>

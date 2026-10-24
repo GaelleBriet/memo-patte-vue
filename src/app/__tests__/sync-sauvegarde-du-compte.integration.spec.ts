@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { createDeviceRepository } from '@/core/device/device.repository'
 import { createFakeSyncServer, type FakeSyncServer } from '@/core/sync/__tests__/fake-sync-server'
-import { createSyncOutboxRepository } from '@/core/sync/repository/sync-outbox.repository'
+import { createLocalSyncOutbox } from '@/core/sync/service/local-sync-outbox'
 import { createSyncPushRepository } from '@/core/sync/repository/sync-push.repository'
 import { createAccountRestore } from '@/core/sync/service/account-restore'
 import { createSyncCycle } from '@/core/sync/service/sync-cycle'
@@ -36,7 +36,7 @@ async function createPhone(server: FakeSyncServer, deviceId: string) {
     createWeightRepository(db, deps),
     createCarnetSettingsRepository(db, deps),
   ]
-  const outbox = createSyncOutboxRepository(db)
+  const outbox = createLocalSyncOutbox(db)
   const cycle = createSyncCycle({
     db,
     outbox,

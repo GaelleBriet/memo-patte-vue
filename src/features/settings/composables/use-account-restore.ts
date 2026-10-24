@@ -6,7 +6,7 @@ import { backupSummaryText, restoreProgressText } from '../logic/backup-summary-
 import { onBackButton } from '@/core/app-lifecycle/back-button'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import { promptNotificationsIfReminders } from '@/core/notifications/reminders-priming'
-import type { RestoreMode } from '@/core/sync/repository/sync-outbox.repository'
+import type { RestoreMode } from '@/core/sync/repository/sync-state.repository'
 import {
   currentRestoreFlow,
   type RestoreFlow,

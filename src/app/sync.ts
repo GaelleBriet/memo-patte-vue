@@ -5,7 +5,7 @@ import { getDeviceRepository } from '@/core/device/device.repository'
 import { createBackupFactsReader, provideBackupFacts } from '@/core/sync/service/backup-facts'
 import { createLocalSyncContext } from '@/core/sync/service/local-sync-context'
 import { isNetworkConnected, onNetworkOnline } from '@/core/sync/service/network-status'
-import type { SyncOutboxRepository } from '@/core/sync/repository/sync-outbox.repository'
+import type { LocalSyncOutbox } from '@/core/sync/service/local-sync-outbox'
 import type { RestorableTable } from '@/core/sync/service/account-restore'
 import { providePhotoRestoreStatus } from '@/core/sync/service/photo-restore-status'
 import {
@@ -35,7 +35,7 @@ import { errorSummary, localErrorMessage } from '@/shared/utils/error-summary'
 const CHECK_TIMEOUT_MS = 30_000
 
 export interface SyncDependencies {
-  outbox: SyncCycleOutbox & Pick<SyncOutboxRepository, 'forgetAccount'>
+  outbox: SyncCycleOutbox & Pick<LocalSyncOutbox, 'forgetAccount'>
   runCycle: () => Promise<void>
   userId: () => string | null
   sessionActive: () => boolean

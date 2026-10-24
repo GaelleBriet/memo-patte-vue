@@ -4,7 +4,7 @@ import type { InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { ANIMAL_PHOTO_ENTITY } from '@/core/db/schema-statements'
 import { StorageTimeoutError } from '@/core/supabase/storage-timeout'
 import { createCarnetPhotosRepository } from '../repository/carnet-photos.repository'
-import { createSyncOutboxRepository } from '../repository/sync-outbox.repository'
+import { createLocalSyncOutbox } from '../service/local-sync-outbox'
 import type { PhotoDeletePort } from '../service/photo-delete-port'
 import {
   PhotoUploadRefusal,
@@ -162,7 +162,7 @@ describe('createSyncCycle — photos', () => {
       uploads: PhotoUploadPort,
       deletes: PhotoDeletePort = fakeDeletes(),
     ) {
-      const outbox = createSyncOutboxRepository(db)
+      const outbox = createLocalSyncOutbox(db)
       const carnetPhotos = createCarnetPhotosRepository(db)
       const cycle = createSyncCycle({
         db,
@@ -182,7 +182,7 @@ describe('createSyncCycle — photos', () => {
       return { outbox, cycle }
     }
 
-    async function queuedPhotos(outbox: ReturnType<typeof createSyncOutboxRepository>) {
+    async function queuedPhotos(outbox: ReturnType<typeof createLocalSyncOutbox>) {
       return (await outbox.listPending()).filter(({ entity }) => entity === ANIMAL_PHOTO_ENTITY)
     }
 
@@ -556,7 +556,7 @@ describe('createSyncCycle — photos', () => {
       let plusActive = true
       let now = new Date('2026-10-20T08:00:00.000Z')
       const remoteRows: SyncRow[] = []
-      const outbox = createSyncOutboxRepository(db)
+      const outbox = createLocalSyncOutbox(db)
       const carnetPhotos = createCarnetPhotosRepository(db)
       const uploads = fakeUploads(order)
       const deletes = fakeDeletes(order)
@@ -659,7 +659,7 @@ describe('createSyncCycle — photos', () => {
       setNow('2026-10-23T19:01:00.000Z')
       await cycle.runCycle()
 
-      const outbox = createSyncOutboxRepository(db)
+      const outbox = createLocalSyncOutbox(db)
       await outbox.startRestore('replace')
       const { before, after } = outbox.restoreStatements({ mode: 'replace', cursors: [] })
       await db.runMany([...before, ...after])
@@ -704,7 +704,7 @@ describe('createSyncCycle — photos', () => {
       const files = fakeFiles({ [MILO_PHOTO]: jpeg() })
       await insertAnimal(db, ANIMAL_ID, '2026-09-01T08:00:00.000Z', 'Milo', MILO_PHOTO)
       vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-23T08:00:00.000Z') })
-      await createSyncOutboxRepository(db).enableAndQueueWholeCarnet()
+      await createLocalSyncOutbox(db).enableAndQueueWholeCarnet()
       const { cycle, uploads, deletes, remoteRows, setNow } = realBaseCycle(files, order)
       uploads.failures.set(MILO_PHOTO, () => new Error('fetch failed'))
       remoteRows.push({
