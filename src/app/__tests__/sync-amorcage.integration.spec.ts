@@ -6,6 +6,13 @@ import { applyFixtures } from '@/core/dev/fixtures'
 import { createDeviceRepository } from '@/core/device/device.repository'
 import { createFakeSyncServer, type FakeSyncServer } from '@/core/sync/__tests__/fake-sync-server'
 import {
+  insertTreatment,
+  insertTreatmentDose,
+  insertTreatmentPeriod,
+  insertVaccination,
+  insertVaccinationInjection,
+} from '@/core/sync/__tests__/sync-test-db'
+import {
   createSyncOutboxRepository,
   SYNC_ENTITY_ORDER,
   type SyncOutboxRepository,
@@ -348,5 +355,110 @@ describe('amorçage : le carnet local part en entier vers un compte vide', () =>
 
     expect(server.rows('weight_entry').find((row) => row.id === weighing!.id)?.weight_kg).toBe(9.9)
     await expect(outbox.countRefused()).resolves.toBe(1)
+  })
+
+  describe('Milo sur le serveur, sa modification de 8 h 10 refusée trois fois', () => {
+    const TREATMENT = '7a000000-0000-4000-8000-000000000001'
+    const PERIOD = '7a000000-0000-4000-8000-000000000002'
+    const DOSE = '7a000000-0000-4000-8000-000000000003'
+    const VACCINE = '7a000000-0000-4000-8000-000000000004'
+    const INJECTION = '7a000000-0000-4000-8000-000000000005'
+    const at = (hours: number, minutes: number) =>
+      new Date(2026, 9, 21, hours, minutes).toISOString()
+
+    function failWhile(entity: string, id: string, cause: () => unknown) {
+      const table = tables.find((candidate) => candidate.entity === entity)!
+      const pushRow = table.pushRow.bind(table)
+      table.pushRow = async (userId, sent, push) => {
+        const failure = sent.id === id ? cause() : null
+        if (failure) throw failure
+        return pushRow(userId, sent, push)
+      }
+    }
+
+    async function refuseMiloModification(): Promise<string> {
+      vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const milo = await miloId()
+      await outbox.enableAndQueueWholeCarnet()
+      await cycle.runCycle()
+      refuseAnimal(milo)
+      await db.run("UPDATE animal SET name = 'Milou', updated_at = ? WHERE id = ?", [
+        at(8, 10),
+        milo,
+      ])
+      for (let attempt = 0; attempt < 3; attempt += 1) await cycle.runCycle().catch(() => {})
+      await expect(outbox.countRefused()).resolves.toBe(1)
+      return milo
+    }
+
+    async function refusedIds(): Promise<string[]> {
+      const rows = await db.query<{ entity_id: string }>(
+        'SELECT entity_id FROM sync_outbox WHERE refused_at IS NOT NULL ORDER BY entity_id',
+      )
+      return rows.map(({ entity_id }) => entity_id)
+    }
+
+    async function expectCountsCoherent(): Promise<void> {
+      const [row] = await db.query<{ total: number }>('SELECT COUNT(*) AS total FROM sync_outbox')
+      expect((await outbox.countPending()) + (await outbox.countRefused())).toBe(row!.total)
+    }
+
+    it('la prise de 8 h 31 marquée au premier essai repart quand sa période de 8 h 30 arrive, et arrive à son tour', async () => {
+      const milo = await refuseMiloModification()
+      let periodDown = true
+      failWhile('treatment_period', PERIOD, () =>
+        periodDown ? new Error('503 Service Unavailable') : null,
+      )
+      await insertTreatment(db, TREATMENT, milo, at(8, 29))
+      await insertTreatmentPeriod(db, PERIOD, TREATMENT, milo, at(8, 30))
+      await insertTreatmentDose(db, DOSE, PERIOD, TREATMENT, milo, at(8, 31))
+
+      await expect(cycle.runCycle()).rejects.toThrow('503')
+
+      expect(await refusedIds()).toEqual([milo, DOSE].sort())
+      await expectCountsCoherent()
+
+      periodDown = false
+      await cycle.runCycle()
+
+      expect(server.rows('treatment_period').some((row) => row.id === PERIOD)).toBe(true)
+      expect(await refusedIds()).toEqual([milo])
+      expect((await outbox.listPending()).map(({ entityId }) => entityId)).toContain(DOSE)
+      await expectCountsCoherent()
+
+      await cycle.runCycle()
+
+      expect(server.rows('treatment_dose').some((row) => row.id === DOSE)).toBe(true)
+      expect(await refusedIds()).toEqual([milo])
+      expect(refusedItemsOf(await backupFacts()())).toBe(1)
+      await expectCountsCoherent()
+    })
+
+    it('un vaccin neuf refusé une fois puis corrigé arrive, et son injection marquée entre-temps repart avec lui', async () => {
+      const milo = await refuseMiloModification()
+      let vaccineRefused = true
+      failWhile('vaccination', VACCINE, () =>
+        vaccineRefused
+          ? { code: '23514', message: 'new row violates check constraint "vaccination_check"' }
+          : null,
+      )
+      await insertVaccination(db, VACCINE, milo, at(8, 30))
+      await insertVaccinationInjection(db, INJECTION, VACCINE, milo, at(8, 31))
+
+      await expect(cycle.runCycle()).rejects.toMatchObject({ code: '23514' })
+
+      expect(await refusedIds()).toEqual([milo, INJECTION].sort())
+
+      vaccineRefused = false
+      await db.run('UPDATE vaccination SET updated_at = ? WHERE id = ?', [at(8, 40), VACCINE])
+      await cycle.runCycle()
+
+      expect(await refusedIds()).toEqual([milo])
+      await cycle.runCycle()
+
+      expect(server.rows('vaccination_injection').some((row) => row.id === INJECTION)).toBe(true)
+      expect(await refusedIds()).toEqual([milo])
+      await expectCountsCoherent()
+    })
   })
 })

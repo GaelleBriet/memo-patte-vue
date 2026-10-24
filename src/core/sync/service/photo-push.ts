@@ -28,7 +28,7 @@ export function createPhotoPush(
     | 'removeIfUnchanged'
     | 'markRefusedIfUnchanged'
     | 'recordFailedPush'
-    | 'hasRefusedAncestor'
+    | 'markRefusedWithRefusedAncestor'
   >,
   { files, uploads, isPhotoInCarnet }: PhotoPushDependencies,
   now: () => Date,

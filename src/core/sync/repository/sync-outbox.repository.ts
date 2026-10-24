@@ -247,24 +247,31 @@ export function createSyncOutboxRepository(db: DbClient) {
       ])
     },
 
-    async hasRefusedAncestor(
-      entry: Pick<SyncOutboxEntry, 'entity' | 'entityId'>,
+    /**
+     * En une requête : un ancêtre remis en file entre une lecture et l'écriture démarquerait ses
+     * descendants avant que l'entrée soit marquée. Rend vrai si l'entrée est marquée.
+     */
+    async markRefusedWithRefusedAncestor(
+      entry: Pick<SyncOutboxEntry, 'entity' | 'entityId' | 'queuedAt'>,
+      refusedAt: string,
     ): Promise<boolean> {
       const parents = Object.entries(SYNC_PARENT_COLUMNS[entry.entity] ?? {})
       if (parents.length === 0) return false
-      const rows = await db.query(
-        `SELECT 1 FROM ${entry.entity} child JOIN sync_outbox parent
-           ON parent.refused_at IS NOT NULL
-          AND (${parents
-            .map(
-              ([column, parent]) =>
-                `(parent.entity = '${parent}' AND parent.entity_id = child.${column})`,
-            )
-            .join(' OR ')})
-         WHERE child.id = ? LIMIT 1`,
-        [entry.entityId],
+      const marked = await db.run(
+        `UPDATE sync_outbox SET refused_at = ?
+         WHERE entity = ? AND entity_id = ? AND queued_at = ?
+           AND EXISTS (SELECT 1 FROM ${entry.entity} child JOIN sync_outbox parent
+             ON parent.refused_at IS NOT NULL
+            AND (${parents
+              .map(
+                ([column, parent]) =>
+                  `(parent.entity = '${parent}' AND parent.entity_id = child.${column})`,
+              )
+              .join(' OR ')})
+           WHERE child.id = ?)`,
+        [refusedAt, entry.entity, entry.entityId, entry.queuedAt, entry.entityId],
       )
-      return rows.length > 0
+      return marked > 0
     },
 
     /** Même garde que `removeIfUnchanged` : une modification arrivée depuis la lecture repart en file. */

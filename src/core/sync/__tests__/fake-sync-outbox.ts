@@ -53,8 +53,18 @@ export function createFakeOutbox(
           : entry,
       )
     },
-    async hasRefusedAncestor({ entity, entityId }) {
-      return underRefusedParent.has(`${entity}/${entityId}`)
+    async markRefusedWithRefusedAncestor(target, refusedAt) {
+      let marked = false
+      entries = entries.map((entry) => {
+        const matches =
+          entry.entity === target.entity &&
+          entry.entityId === target.entityId &&
+          entry.queuedAt === target.queuedAt &&
+          underRefusedParent.has(`${entry.entity}/${entry.entityId}`)
+        marked ||= matches
+        return matches ? { ...entry, refusedAt } : entry
+      })
+      return marked
     },
     async getLastPulledAt(entity) {
       return lastPulledAt.get(entity) ?? null
