@@ -2976,6 +2976,25 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
+## 2026-10-24 — La date choisie se juge contre l'instant du « Modifier » qui l'a choisie (#1232, Q40)
+
+Décision de la session d'analyse du moteur, à qui Gaelle a délégué les lectures de règles (Q40,
+spec `traitements.md` R9, R10). Un report qui part de la date choisie par un réglage se juge contre
+l'instant du « Modifier » qui a choisi cette date (date d'écriture des réglages), jamais contre la
+date de grille que ce réglage hérite : héritée, elle dit « la grille n'a pas changé », pas « la date
+n'a pas été choisie ». La date de grille ne tranche que les conflits de grille (#939, inchangé).
+
+- Exemple : Milo, chaque semaine à 20 h depuis le mercredi 4 mars ; le 9, la dose du 11 reportée au
+  18 avec la case ; le 10, ramenée du 18 au 15 sans la case ; le même jour, « Modifier » : chaque
+  semaine à 21 h, « Prochaine dose » le 18. Lecture : 18, 25 mars, 1er et 8 avril ; le report est
+  sans effet, grisé (R11), car R9 ne lit rien avant la date choisie, dite après le report (R10).
+- Un second « Modifier » le même jour qui ne change que les heures en gardant la date choisie ne
+  re-choisit pas la date : un report écrit entre les deux garde son effet. La date n'est re-choisie
+  que si la date choisie change.
+- Sans nouvelle colonne ni migration : la date d'écriture des réglages existe depuis la v14.
+- Alternative écartée : retirer « toujours » de R9 (une date choisie qui reste vide est le défaut
+  nommé par Gaelle).
+
 ## 2026-10-24 — « Changer mon adresse e-mail » : l'état est gardé pendant la visite de l'aide (#1213)
 
 Décision de la session d'analyse du moteur, **validée par Gaelle le 2026-10-24** (garder le code en mémoire pendant la visite de l'aide : oui ; alternative écartée : ne rien garder). Exemple : à l'étape du code

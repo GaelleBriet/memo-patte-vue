@@ -67,7 +67,7 @@ function landing(
 
 /**
  * Q1 : le réglage dont la date choisie était l'ancienne arrivée d'un report, quand le report est plus
- * récent que sa grille (Q26).
+ * récent que le « Modifier » qui l'a choisie (Q26, Q40).
  */
 export function chooserOf(
   report: ReferenceLine,
@@ -87,6 +87,5 @@ export function chooserOf(
   if (drawer === undefined || !sameRhythm(drawer)) return undefined
   const continued = before.slice(0, before.indexOf(drawer)).every(sameRhythm)
   if (!continued || !drawer.firstDueChosen || drawer.firstDueOn !== day) return undefined
-  const gridAt = drawer.gridWrittenAt ?? drawer.updatedAt ?? drawer.createdAt
-  return report.decidedAt > gridAt ? drawer : undefined
+  return report.decidedAt > (drawer.updatedAt ?? drawer.createdAt) ? drawer : undefined
 }
