@@ -5,10 +5,9 @@ import { useI18n } from 'vue-i18n'
 import TreatmentExtraQuestion from './TreatmentExtraQuestion.vue'
 import TreatmentHourChoices from './TreatmentHourChoices.vue'
 import TreatmentShiftCheckbox from './TreatmentShiftCheckbox.vue'
-import { cardOtherDateDays, extraQuestion } from '../logic/treatment-card-other-date'
-import { hasSeveralTimes } from '../logic/treatment-gestures'
-import { givenDays, notifiedPlan, otherDateTexts } from '../logic/treatment-other-date'
-import { otherDateBox, otherDateNote, otherDateRecap } from '../logic/treatment-shift-box'
+import { notifiedPlan, otherDateTexts } from '../logic/treatment-other-date'
+import { otherDateSheetPlan } from '../logic/treatment-other-date-sheet'
+import { otherDateBox, otherDateNote } from '../logic/treatment-shift-box'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
 import DateCalendar from '@/shared/components/DateCalendar.vue'
@@ -66,11 +65,6 @@ const plan = computed(() => {
   if (givenOn.value === null || named.value === null) return null
   return notifiedPlan(t, props.reading.view, named.value, props.reopensMissed)
 })
-const days = computed(() =>
-  props.target === null
-    ? { min: props.min, earlierHelp: false }
-    : cardOtherDateDays(props.reading, props.target, props.today, props.min),
-)
 const severalTimes = computed(() => (plan.value?.hours.length ?? 0) > 0)
 const texts = computed(() =>
   otherDateTexts(
@@ -80,31 +74,24 @@ const texts = computed(() =>
     severalTimes.value,
   ),
 )
-const excluded = computed(() => (props.target === null ? givenDays(props.reading.view) : []))
 const due = computed(() => {
   if (step.value === 'day') return severalTimes.value ? null : (plan.value?.due ?? null)
   return plan.value?.hours.find(({ time }) => time === hour.value)?.due ?? null
 })
-const dueHasHours = computed(
-  () => due.value !== null && hasSeveralTimes(props.treatment, due.value.settingId),
+const sheet = computed(() =>
+  otherDateSheetPlan(t, {
+    treatment: props.treatment,
+    reading: props.reading,
+    today: props.today,
+    min: props.min,
+    target: props.target,
+    due: due.value,
+    givenOn: givenOn.value,
+    answer: answer.value,
+    shifts: shifts.value,
+  }),
 )
-const question = computed(() =>
-  props.target === null || due.value === null || givenOn.value === null
-    ? null
-    : extraQuestion(
-        t,
-        props.reading,
-        due.value,
-        givenOn.value,
-        dueHasHours.value,
-        answer.value,
-        shifts.value,
-      ),
-)
-const asked = computed(() => (question.value === null ? undefined : answer.value))
-const recap = computed(() =>
-  question.value === null ? otherDateRecap(t, due.value, givenOn.value, dueHasHours.value) : null,
-)
+const asked = computed(() => (sheet.value.question === null ? undefined : answer.value))
 const box = computed(() =>
   otherDateBox(
     t,
@@ -161,9 +148,9 @@ function submit(): void {
       v-if="step === 'day'"
       v-model="givenOn"
       class="treatment-other-date__calendar"
-      :min="days.min"
+      :min="sheet.min"
       :max="today"
-      :excluded="excluded"
+      :excluded="sheet.excluded"
     />
     <TreatmentHourChoices
       v-else
@@ -172,14 +159,14 @@ function submit(): void {
       :busy="busy"
       selectable
     />
-    <p v-if="step === 'day' && days.earlierHelp" class="treatment-other-date__earlier">
+    <p v-if="step === 'day' && sheet.earlierHelp" class="treatment-other-date__earlier">
       {{ t('treatments.detail.otherDate.earlierHelp') }}
     </p>
 
-    <TreatmentExtraQuestion v-if="question" v-model="answer" :question="question" />
-    <p v-if="recap" class="treatment-other-date__recap">
+    <TreatmentExtraQuestion v-if="sheet.question" v-model="answer" :question="sheet.question" />
+    <p v-if="sheet.recap" class="treatment-other-date__recap">
       <v-icon icon="ms:event_available" size="22" />
-      <span>{{ recap }}</span>
+      <span>{{ sheet.recap }}</span>
     </p>
     <TreatmentShiftCheckbox
       v-if="box.shown"
