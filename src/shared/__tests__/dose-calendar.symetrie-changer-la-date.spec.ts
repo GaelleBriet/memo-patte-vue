@@ -30,29 +30,26 @@ describe('symétrie de « Changer la date » et « Fait à une autre date » pou
   const prise23 = { ...line('p1', 'given', '2026-10-23'), givenOn: '2026-10-20' }
   const le20: TreatmentViewInput = { settings: [milbemax], lines: avant, today: '2026-10-20' }
 
-  it.fails(
-    'résidu #1242 : la prise du 23 changée au 18 propose la case ; « Fait à une autre date » du 23 au 18, non (la dose du moment est le 16)',
-    () => {
-      const redated = accepted(
-        redateDose(
-          { ...le20, lines: [...avant, prise23] },
-          { lineId: prise23.id, givenOn: '2026-10-18', shiftsFollowing: true },
-        ),
-      )
-      const noted = accepted(
-        noteDose(le20, {
-          due: { settingId: 'p1', dueOn: '2026-10-23', dueTime: null },
-          status: 'given',
-          givenOn: '2026-10-18',
-          shiftsFollowing: true,
-        }),
-      )
+  it('#1242 : la prise du 23 changée au 18 et « Fait à une autre date » du 23 au 18 proposent la case de la même façon', () => {
+    const redated = accepted(
+      redateDose(
+        { ...le20, lines: [...avant, prise23] },
+        { lineId: prise23.id, givenOn: '2026-10-18', shiftsFollowing: true },
+      ),
+    )
+    const noted = accepted(
+      noteDose(le20, {
+        due: { settingId: 'p1', dueOn: '2026-10-23', dueTime: null },
+        status: 'given',
+        givenOn: '2026-10-18',
+        shiftsFollowing: true,
+      }),
+    )
 
-      expect(redated.offersShift).toBe(noted.offersShift)
-    },
-  )
+    expect([redated.offersShift, noted.offersShift]).toEqual([true, true])
+  })
 
-  it('la campagne exclut le résidu #1242 : case cochée, la symétrie se juge case décochée', () => {
+  it('la symétrie de la campagne tient, case cochée ou non (#1242)', () => {
     expect(symmetryAhead(le20, drawing(2, true))).toBeNull()
     expect(symmetryAhead(le20, drawing(2, false))).toBeNull()
   })
@@ -77,30 +74,27 @@ describe('symétrie de « Changer la date » et « Fait à une autre date » qua
   }
   const dose8h = { settingId: 's1', dueOn: '2026-03-09', dueTime: '08:00' }
 
-  it.fails(
-    'résidu #1255 : « Fait à une autre date » au 10 propose la case ; « C’est fait » puis « Changer la date » au 10, non',
-    () => {
-      const prise = { ...line('s1', 'given', '2026-03-09', '08:00'), givenOn: '2026-03-13' }
-      const redated = accepted(
-        redateDose(
-          { ...le13, lines: [...le13.lines, prise] },
-          { lineId: prise.id, givenOn: '2026-03-10', shiftsFollowing: true },
-        ),
-      )
-      const noted = accepted(
-        noteDose(le13, {
-          due: dose8h,
-          status: 'given',
-          givenOn: '2026-03-10',
-          shiftsFollowing: true,
-        }),
-      )
+  it('#1255 : « Fait à une autre date » au 10 et « C’est fait » puis « Changer la date » au 10 proposent la case de la même façon', () => {
+    const prise = { ...line('s1', 'given', '2026-03-09', '08:00'), givenOn: '2026-03-13' }
+    const redated = accepted(
+      redateDose(
+        { ...le13, lines: [...le13.lines, prise] },
+        { lineId: prise.id, givenOn: '2026-03-10', shiftsFollowing: true },
+      ),
+    )
+    const noted = accepted(
+      noteDose(le13, {
+        due: dose8h,
+        status: 'given',
+        givenOn: '2026-03-10',
+        shiftsFollowing: true,
+      }),
+    )
 
-      expect(redated.offersShift).toBe(noted.offersShift)
-    },
-  )
+    expect([redated.offersShift, noted.offersShift]).toEqual([true, true])
+  })
 
-  it('la campagne exclut le résidu #1255 : case cochée, la symétrie se juge case décochée', () => {
+  it('la symétrie de la campagne tient, case cochée ou non (#1255)', () => {
     expect(symmetry(le13, drawing(3, true))).toBeNull()
     expect(symmetry(le13, drawing(3, false))).toBeNull()
   })
