@@ -146,8 +146,8 @@ describe('#938 : Milo, tous les jours à 6, 12, 18 et 23 h ; la dose de 6 h du 4
   })
 })
 
-// Q1 (19 octobre 2026) : l'ancienne arrivée du report, le 12, est la date choisie par B : la dose du 12
-// part au 15, dans les deux ordres, sans retirer d'autre échéance.
+// Q1 (19 octobre 2026), Q26 (24 octobre 2026) : l'ancienne arrivée du report, le 12, est la date choisie
+// par B ; plus récent que B, le report fait partir la dose du 12 au 15, sinon il est sans effet (R11).
 describe('#939 : Milo, chaque semaine à 20 h depuis le 4 mars, un nouveau réglage le 6 ; la dose du 11 reportée au 12 ; A déplace la dose au 15, B choisit « Prochaine dose » le 12', () => {
   function milo(stamps: Stamps) {
     const facts = { endsOn: '2026-03-28' }
@@ -198,14 +198,22 @@ describe('#939 : Milo, chaque semaine à 20 h depuis le 4 mars, un nouveau régl
     expect(report).toMatchObject({ previousTargetOn: '2026-03-12', previousTargetTime: '20:00' })
   })
 
-  it.each([
-    ['A plus récent', { aAt: SOIR, bAt: MATIN }],
-    ['B plus récent', { aAt: MATIN, bAt: SOIR }],
-  ])('%s : le 15, le 19 puis le 26', (_, stamps) => {
-    const { merged, report } = milo(stamps)
+  it('A plus récent : le 15, le 19 puis le 26', () => {
+    const { merged, report } = milo({ aAt: SOIR, bAt: MATIN })
     expect(effectOf(merged, report.id)).toMatchObject({ kind: 'moves', arrival: '2026-03-15' })
     expect(keys(treatmentView(merged).upcoming({ limit: 3 }))).toEqual([
       '2026-03-15 20:00',
+      '2026-03-19 20:00',
+      '2026-03-26 20:00',
+    ])
+    expect(readings(merged).reference).toEqual(readings(merged).moteur)
+  })
+
+  it('B plus récent : le report est sans effet, le 12, le 19 puis le 26', () => {
+    const { merged, report } = milo({ aAt: MATIN, bAt: SOIR })
+    expect(effectOf(merged, report.id)).toMatchObject({ kind: 'idle' })
+    expect(keys(treatmentView(merged).upcoming({ limit: 3 }))).toEqual([
+      '2026-03-12 20:00',
       '2026-03-19 20:00',
       '2026-03-26 20:00',
     ])
@@ -286,16 +294,24 @@ describe('Q1 : Milo, chaque lundi à 8 h et 20 h ; la dose de 20 h du 9 mars rep
     return { merged, report }
   }
 
-  it.each([
-    ['A plus récent', { aAt: SOIR, bAt: MATIN }],
-    ['B plus récent', { aAt: MATIN, bAt: SOIR }],
-  ])('%s : le 11 garde 9 h, le 13 reçoit la dose à 20 h, puis le 18', (_, stamps) => {
-    const { merged } = milo(stamps)
+  it('A plus récent : le 11 garde 9 h, le 13 reçoit la dose à 20 h, puis le 18', () => {
+    const { merged } = milo({ aAt: SOIR, bAt: MATIN })
     expect(keys(treatmentView(merged).upcoming({ limit: 4 }))).toEqual([
       '2026-03-11 09:00',
       '2026-03-13 20:00',
       '2026-03-18 09:00',
       '2026-03-18 21:00',
+    ])
+    expect(readings(merged).reference).toEqual(readings(merged).moteur)
+  })
+
+  it('B plus récent, résidu à deux téléphones (synchro : résidus connus) : le 11 à 9 h et 21 h, et le 13 à 20 h', () => {
+    const { merged } = milo({ aAt: MATIN, bAt: SOIR })
+    expect(keys(treatmentView(merged).upcoming({ limit: 4 }))).toEqual([
+      '2026-03-11 09:00',
+      '2026-03-11 21:00',
+      '2026-03-13 20:00',
+      '2026-03-18 09:00',
     ])
     expect(readings(merged).reference).toEqual(readings(merged).moteur)
   })

@@ -1,4 +1,4 @@
-import { hoursOf, sameFrequency, sameHours } from './grid'
+import { gridDateOf, hoursOf, sameFrequency, sameHours } from './grid'
 import type { Span } from './settings'
 import type { Day, Hour, Line, LineEffect, Setting } from './types'
 
@@ -58,7 +58,9 @@ export function oldArrivalChooser(
     setting = previous
     index -= 1
   }
-  return setting?.firstDueChosen && setting.firstDueOn === day ? setting : undefined
+  if (setting === undefined || !setting.firstDueChosen || setting.firstDueOn !== day)
+    return undefined
+  return report.decidedAt > gridDateOf(setting) ? setting : undefined
 }
 
 /**

@@ -83,5 +83,7 @@ export function chooserOf(
   const drawer = before.find((each) => each.gridOriginOn !== null || !sameRhythm(each))
   if (drawer === undefined || !sameRhythm(drawer)) return undefined
   const continued = before.slice(0, before.indexOf(drawer)).every(sameRhythm)
-  return continued && drawer.firstDueChosen && drawer.firstDueOn === day ? drawer : undefined
+  if (!continued || !drawer.firstDueChosen || drawer.firstDueOn !== day) return undefined
+  const gridAt = drawer.gridWrittenAt ?? drawer.updatedAt ?? drawer.createdAt
+  return report.decidedAt > gridAt ? drawer : undefined
 }
