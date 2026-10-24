@@ -9,7 +9,7 @@ import { cloudBackupText, refusedItemsHelpText } from '../logic/backup-status-te
 import BackupCopyRow from './BackupCopyRow.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { returnTo } from '@/shared/utils/return-to'
-import { signInRoute } from '@/shared/utils/sign-in-route'
+import { helpRoute, signInRoute } from '@/shared/utils/sign-in-route'
 
 const STATUS_LOOK: Record<CloudBackupStatus['kind'], { icon: string; tone: string | null }> = {
   saved: { icon: 'ms:cloud_done', tone: null },
@@ -42,7 +42,7 @@ function signInAgain(): void {
 }
 
 function openHelp(): void {
-  void router.push({ name: 'settings-help' })
+  void router.push(helpRoute('settings-backup'))
 }
 
 function openErase(): void {

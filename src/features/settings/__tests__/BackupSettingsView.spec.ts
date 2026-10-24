@@ -416,7 +416,10 @@ describe('BackupSettingsView', () => {
         ])
         await wrapper.get('.backup-settings__refused').trigger('click')
 
-        expect(push).toHaveBeenCalledWith({ name: 'settings-help' })
+        expect(push).toHaveBeenCalledWith({
+          name: 'settings-help',
+          query: { from: 'settings-backup' },
+        })
       })
 
       it('s’ajoutent sous « Première sauvegarde », au singulier', async () => {

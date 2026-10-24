@@ -4,6 +4,8 @@ import {
   accountFirstRoute,
   afterSignInRoute,
   asksSignUp,
+  helpBackRoute,
+  helpRoute,
   passwordResetRoute,
   signInReturnRoute,
   signInRoute,
@@ -144,5 +146,24 @@ describe('afterSignInRoute', () => {
 
   it('reste sur la connexion quand le serveur n’a pas répondu à temps', () => {
     expect(afterSignInRoute({ from: 'home', restore: '1' }, { step: 'no-answer' })).toBeNull()
+  })
+})
+
+describe('helpRoute et helpBackRoute', () => {
+  it('l’aide emporte l’écran qui l’ouvre dans l’adresse', () => {
+    expect(helpRoute('settings-backup')).toEqual({
+      name: 'settings-help',
+      query: { from: 'settings-backup' },
+    })
+  })
+
+  it('la flèche de l’aide ramène à l’écran d’origine connu', () => {
+    expect(helpBackRoute('settings-backup')).toEqual({ name: 'settings-backup' })
+  })
+
+  it('se replie sur la liste des Paramètres quand l’origine est absente, inconnue ou libre', () => {
+    expect(helpBackRoute(undefined)).toEqual({ name: 'settings' })
+    expect(helpBackRoute('https://exemple.fr')).toEqual({ name: 'settings' })
+    expect(helpBackRoute(['settings-backup'])).toEqual({ name: 'settings' })
   })
 })
