@@ -57,6 +57,13 @@ function queueLiveAnimalPhotos(): SqlStatement {
   }
 }
 
+const NOT_REFUSED = 'refused_at IS NULL'
+
+/** Hors effacement d'une photo sortie du carnet, qui ne sauvegarde rien. */
+const SAVES_CARNET = `(entity <> ? OR entity_id IN (SELECT photo_path ${LIVE_ANIMAL_PHOTOS_FROM}))`
+
+const RETRY_REFUSED: SqlStatement = { sql: 'UPDATE sync_outbox SET refused_at = NULL' }
+
 const ENTITY_RANK = `CASE entity ${SYNC_ENTITY_ORDER.map((_, rank) => `WHEN ? THEN ${rank}`).join(' ')}
   ELSE ${SYNC_ENTITY_ORDER.length} END`
 
@@ -89,13 +96,14 @@ export function createSyncOutboxRepository(db: DbClient) {
 
     /**
      * Lignes supprimées comprises, photos des seuls animaux non supprimés ; une entrée déjà en file
-     * garde son `queued_at` et ses essais.
+     * garde son `queued_at` et ses essais, une entrée refusée est retentée.
      * Le pull suivant repart du début : il ramène tout le carnet du compte.
      */
     async enableAndQueueWholeCarnet(): Promise<void> {
       await db.runMany([
         { sql: 'UPDATE sync_state SET enabled = 1, last_synced_at = NULL WHERE id = 1' },
         { sql: 'DELETE FROM sync_pull_cursor' },
+        RETRY_REFUSED,
         ...SYNC_ENTITY_ORDER.map(queueWholeTable),
         queueLiveAnimalPhotos(),
       ])
@@ -113,11 +121,19 @@ export function createSyncOutboxRepository(db: DbClient) {
       return row?.total ?? 0
     },
 
-    /** Hors effacement d'une photo sortie du carnet, qui ne sauvegarde rien. */
     async countPending(): Promise<number> {
       const [row] = await db.query<{ total: number }>(
+        `SELECT COUNT(*) AS total FROM sync_outbox WHERE ${NOT_REFUSED} AND ${SAVES_CARNET}`,
+        [ANIMAL_PHOTO_ENTITY],
+      )
+      return row?.total ?? 0
+    },
+
+    /** Les éléments du carnet que le serveur refuse pour toujours, photos comprises. */
+    async countRefused(): Promise<number> {
+      const [row] = await db.query<{ total: number }>(
         `SELECT COUNT(*) AS total FROM sync_outbox
-         WHERE entity <> ? OR entity_id IN (SELECT photo_path ${LIVE_ANIMAL_PHOTOS_FROM})`,
+         WHERE refused_at IS NOT NULL AND ${SAVES_CARNET}`,
         [ANIMAL_PHOTO_ENTITY],
       )
       return row?.total ?? 0
@@ -178,6 +194,7 @@ export function createSyncOutboxRepository(db: DbClient) {
         before: [
           { sql: 'UPDATE sync_state SET enabled = 0, last_synced_at = NULL WHERE id = 1' },
           { sql: 'DELETE FROM sync_pull_cursor' },
+          RETRY_REFUSED,
           ...(mode === 'merge'
             ? [...SYNC_ENTITY_ORDER.map(queueWholeTable), queueLiveAnimalPhotos()]
             : [
@@ -195,10 +212,10 @@ export function createSyncOutboxRepository(db: DbClient) {
       }
     },
 
-    /** Dans l'ordre de `SYNC_ENTITY_ORDER`, puis de mise en file. */
+    /** Dans l'ordre de `SYNC_ENTITY_ORDER`, puis de mise en file ; sans les entrées refusées. */
     async listPending(): Promise<SyncOutboxEntry[]> {
       const rows = await db.query<SyncOutboxRow>(
-        `SELECT entity, entity_id, queued_at, attempts FROM sync_outbox
+        `SELECT entity, entity_id, queued_at, attempts FROM sync_outbox WHERE ${NOT_REFUSED}
          ORDER BY ${ENTITY_RANK}, queued_at`,
         SYNC_ENTITY_ORDER,
       )
@@ -214,6 +231,18 @@ export function createSyncOutboxRepository(db: DbClient) {
         entry.entityId,
         entry.queuedAt,
       ])
+    },
+
+    /** Même garde que `removeIfUnchanged` : une modification arrivée depuis la lecture repart en file. */
+    async markRefusedIfUnchanged(
+      entry: Pick<SyncOutboxEntry, 'entity' | 'entityId' | 'queuedAt'>,
+      refusedAt: string,
+    ): Promise<void> {
+      await db.run(
+        `UPDATE sync_outbox SET refused_at = ?
+         WHERE entity = ? AND entity_id = ? AND queued_at = ?`,
+        [refusedAt, entry.entity, entry.entityId, entry.queuedAt],
+      )
     },
 
     /**

@@ -90,6 +90,16 @@ export function replacedPhotoOutboxTriggerStatement(): string {
      END;`
 }
 
+/** Une entrée remise en file par une nouvelle modification n'est plus refusée : elle repart. */
+export function requeuedOutboxTriggerStatement(): string {
+  return `CREATE TRIGGER sync_outbox_requeued AFTER UPDATE OF queued_at ON sync_outbox
+     WHEN NEW.refused_at IS NOT NULL AND NEW.queued_at IS NOT OLD.queued_at
+     BEGIN
+      UPDATE sync_outbox SET refused_at = NULL
+      WHERE entity = NEW.entity AND entity_id = NEW.entity_id;
+     END;`
+}
+
 export function nameLengthTriggerStatements(table: string, columns: string[]): string[] {
   const tooLong = columns.map((column) => `length(NEW.${column}) > 80`).join(' OR ')
   const abort = `BEGIN SELECT RAISE(ABORT, '${table}: text longer than 80 characters'); END;`

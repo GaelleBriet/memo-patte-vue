@@ -22,6 +22,7 @@ import {
   outboxRows,
   setAnimalPhoto,
   touchAnimal,
+  touchWeightEntry,
 } from './sync-test-db'
 
 const T1 = '2026-01-01T00:00:00.000Z'
@@ -574,6 +575,153 @@ describe('syncOutboxRepository', () => {
     })
   })
 
+  describe('élément refusé pour toujours', () => {
+    const MARCH_12 = '2026-03-12T09:00:00.000Z'
+    const REFUSED_AT = '2026-10-24T10:00:00.000Z'
+    const LATER = '2026-10-24T11:00:00.000Z'
+
+    async function refuseMiloWeighing(): Promise<void> {
+      await enableSync(db)
+      await insertAnimal(db, ANIMAL_ID, T1)
+      await insertWeightEntry(db, 'w-12-mars', ANIMAL_ID, MARCH_12)
+      await repository.markRefusedIfUnchanged(
+        { entity: 'weight_entry', entityId: 'w-12-mars', queuedAt: MARCH_12 },
+        REFUSED_AT,
+      )
+    }
+
+    async function refusedAt(entity: string, entityId: string) {
+      const [row] = await db.query<{ refused_at: string | null }>(
+        'SELECT refused_at FROM sync_outbox WHERE entity = ? AND entity_id = ?',
+        [entity, entityId],
+      )
+      return row?.refused_at
+    }
+
+    it('la pesée de Milo du 12 mars refusée reste en table, marquée, hors de la file et du restant', async () => {
+      await refuseMiloWeighing()
+
+      await expect(refusedAt('weight_entry', 'w-12-mars')).resolves.toBe(REFUSED_AT)
+      await expect(repository.listPending()).resolves.toEqual([
+        { entity: 'animal', entityId: ANIMAL_ID, queuedAt: T1, attempts: 0 },
+      ])
+      await expect(repository.countPending()).resolves.toBe(1)
+      await expect(repository.countRefused()).resolves.toBe(1)
+    })
+
+    it('ne marque rien si la pesée a été modifiée depuis la lecture', async () => {
+      await enableSync(db)
+      await insertAnimal(db, ANIMAL_ID, T1)
+      await insertWeightEntry(db, 'w-12-mars', ANIMAL_ID, MARCH_12)
+      await touchWeightEntry(db, 'w-12-mars', LATER)
+
+      await repository.markRefusedIfUnchanged(
+        { entity: 'weight_entry', entityId: 'w-12-mars', queuedAt: MARCH_12 },
+        REFUSED_AT,
+      )
+
+      await expect(refusedAt('weight_entry', 'w-12-mars')).resolves.toBeNull()
+      await expect(repository.countRefused()).resolves.toBe(0)
+    })
+
+    it('la pesée modifiée repart en file, sans marque', async () => {
+      await refuseMiloWeighing()
+
+      await touchWeightEntry(db, 'w-12-mars', LATER)
+
+      await expect(refusedAt('weight_entry', 'w-12-mars')).resolves.toBeNull()
+      await expect(repository.listPending()).resolves.toContainEqual({
+        entity: 'weight_entry',
+        entityId: 'w-12-mars',
+        queuedAt: LATER,
+        attempts: 0,
+      })
+      await expect(repository.countRefused()).resolves.toBe(0)
+    })
+
+    it('la pesée supprimée repart en file pour envoyer sa suppression, sans marque', async () => {
+      await refuseMiloWeighing()
+
+      await db.run('UPDATE weight_entry SET deleted_at = ?, updated_at = ? WHERE id = ?', [
+        LATER,
+        LATER,
+        'w-12-mars',
+      ])
+
+      await expect(refusedAt('weight_entry', 'w-12-mars')).resolves.toBeNull()
+      await expect(repository.countRefused()).resolves.toBe(0)
+    })
+
+    it('compte une photo refusée de Milo ; plus une fois retirée du carnet, qui repart en file pour l’effacer', async () => {
+      await enableSync(db)
+      await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_MILO)
+      await repository.markRefusedIfUnchanged(
+        { entity: ANIMAL_PHOTO_ENTITY, entityId: PHOTO_MILO, queuedAt: T1 },
+        REFUSED_AT,
+      )
+      await expect(repository.countRefused()).resolves.toBe(1)
+
+      await setAnimalPhoto(db, ANIMAL_ID, null, LATER)
+
+      await expect(refusedAt(ANIMAL_PHOTO_ENTITY, PHOTO_MILO)).resolves.toBeNull()
+      await expect(repository.countRefused()).resolves.toBe(0)
+    })
+
+    it('ne compte pas la photo refusée d’un animal supprimé : elle n’est plus à sauvegarder', async () => {
+      await enableSync(db)
+      await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_MILO)
+      await repository.markRefusedIfUnchanged(
+        { entity: ANIMAL_PHOTO_ENTITY, entityId: PHOTO_MILO, queuedAt: T1 },
+        REFUSED_AT,
+      )
+
+      await db.run('UPDATE animal SET deleted_at = ?, updated_at = ? WHERE id = ?', [
+        LATER,
+        LATER,
+        ANIMAL_ID,
+      ])
+
+      await expect(repository.countRefused()).resolves.toBe(0)
+    })
+
+    it('la remise en file de tout le carnet retente l’élément refusé', async () => {
+      await refuseMiloWeighing()
+
+      await repository.enableAndQueueWholeCarnet()
+
+      await expect(refusedAt('weight_entry', 'w-12-mars')).resolves.toBeNull()
+      await expect(repository.countRefused()).resolves.toBe(0)
+      await expect(repository.countPending()).resolves.toBe(2)
+    })
+
+    for (const mode of ['merge', 'replace'] as const) {
+      it(`« ${mode === 'merge' ? 'Fusionner' : 'Remplacer'} » efface l’état refusé, photo comprise`, async () => {
+        await refuseMiloWeighing()
+        await setAnimalPhoto(db, ANIMAL_ID, PHOTO_MILO, T2)
+        await repository.markRefusedIfUnchanged(
+          { entity: ANIMAL_PHOTO_ENTITY, entityId: PHOTO_MILO, queuedAt: T2 },
+          REFUSED_AT,
+        )
+        const { before, after } = repository.restoreStatements({ mode, cursors: [] })
+
+        await db.runMany([...before, ...after])
+
+        await expect(
+          db.query('SELECT 1 FROM sync_outbox WHERE refused_at IS NOT NULL'),
+        ).resolves.toEqual([])
+      })
+    }
+
+    it('la déconnexion oublie l’état refusé avec la file', async () => {
+      await refuseMiloWeighing()
+
+      await repository.forgetAccount()
+
+      await expect(db.query('SELECT 1 FROM sync_outbox')).resolves.toEqual([])
+      await expect(repository.countRefused()).resolves.toBe(0)
+    })
+  })
+
   describe('forgetAccount', () => {
     it('désactive la synchro, vide la file, les curseurs et la dernière sauvegarde, sans toucher aux données', async () => {
       await enableSync(db)
@@ -661,6 +809,7 @@ describe('syncOutboxRepository', () => {
         'entity_id',
         'queued_at',
         'attempts',
+        'refused_at',
       ])
       expect(columns.find((column) => column.name === 'entity')?.pk).toBe(1)
       expect(columns.find((column) => column.name === 'entity_id')?.pk).toBe(2)
