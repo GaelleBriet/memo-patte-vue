@@ -429,6 +429,42 @@ describe('dateChangeOf', () => {
     ).toMatchObject({ min: '2026-09-10' })
   })
 
+  it('Q30 : Métacam tous les jours à 8 h et 20 h, prise d’hier 20 h : hier ou aujourd’hui', () => {
+    const daily = period({
+      startsOn: '2026-10-05',
+      firstDueOn: '2026-10-05',
+      times: ['08:00', '20:00'],
+    })
+    const hierSoir = dose('2026-10-23', '', { dueTime: '20:00' })
+    const book = treatment([daily], [hierSoir])
+
+    expect(
+      dateChangeOf(t, hierSoir, null, {
+        today: '2026-10-24',
+        earliest: '2022-04-10',
+        view: view('2026-10-24', book),
+      }),
+    ).toMatchObject({ min: '2026-10-23', max: '2026-10-24' })
+  })
+
+  it('Q30 : Bravecto tous les 3 mois, prise du 1er nov. : du 2 août à aujourd’hui', () => {
+    const quarterly = period({
+      startsOn: '2026-05-01',
+      firstDueOn: '2026-05-01',
+      frequency: { value: 3, unit: 'month' },
+    })
+    const nov = dose('2026-11-01', '')
+    const book = treatment([quarterly], [dose('2026-05-01', ''), dose('2026-08-01', ''), nov])
+
+    expect(
+      dateChangeOf(t, nov, null, {
+        today: '2026-11-10',
+        earliest: '2022-04-10',
+        view: view('2026-11-10', book),
+      }),
+    ).toMatchObject({ min: '2026-08-02', max: '2026-11-10' })
+  })
+
   it('d’un report : sa nouvelle date, entre les bornes du moteur, sans les jours d’un autre report', () => {
     const report = dose('2026-10-10', '2026-10-14', { givenOn: null, status: 'postponed' })
     const bounds = { earliest: '2026-09-28', latest: '2026-12-31', excluded: ['2026-11-02'] }
