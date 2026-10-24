@@ -3,11 +3,17 @@ import { describe, expect, it } from 'vitest'
 
 import { mulberry32 } from '../../../scripts/dose-engine/carnet'
 import { brokenBy } from '../../../scripts/dose-engine/v2-invariants'
-import { startV2Walk, v2Step, type V2Step } from '../../../scripts/dose-engine/v2-walk'
+import {
+  ONE_PHONE_GESTURES,
+  startV2Walk,
+  v2Step,
+  type V2Step,
+  type WalkGestures,
+} from '../../../scripts/dose-engine/v2-walk'
 
-// Campagne d'invariants du moteur v2 (plan §6.3) : des carnets menés par les gestes de v2, neuf
-// invariants vérifiés à chaque pas, horizon en jours, aucune exemption. Séries longues : variables
-// INVARIANTS_FROM, INVARIANTS_SEEDS, INVARIANTS_STEPS posées directement devant la commande
+// Campagne d'invariants du moteur v2 (plan §6.3) : des carnets menés par les gestes de v2, les
+// invariants vérifiés à chaque pas, horizon en jours, résidus connus dans le README. Séries longues :
+// variables INVARIANTS_FROM, INVARIANTS_SEEDS, INVARIANTS_STEPS posées directement devant la commande
 // (`.claude/rules/outils-de-test.md`).
 
 type Campaign = { from: number; seeds: number; steps: number }
@@ -34,7 +40,13 @@ type Played = {
   refusedCorrections: number
 }
 
-function playCampaign({ from, seeds, steps }: Campaign): Played {
+// Les graines rejouées gardent les gestes de leur découverte, sans la carte ni la réponse de « Changer la date ».
+const REPLAYED: WalkGestures = { answers: true }
+
+function playCampaign(
+  { from, seeds, steps }: Campaign,
+  gestures: WalkGestures = ONE_PHONE_GESTURES,
+): Played {
   const played: Played = {
     carnets: 0,
     steps: 0,
@@ -43,7 +55,7 @@ function playCampaign({ from, seeds, steps }: Campaign): Played {
     refusedCorrections: 0,
   }
   for (let seed = from; seed < from + seeds; seed += 1) {
-    const walk = startV2Walk(seed, { answers: true })
+    const walk = startV2Walk(seed, gestures)
     const checks = mulberry32(seed ^ 0x4f1bbcdc)
     let failure: string | null = null
     const onStep = (step: V2Step) => {
@@ -72,7 +84,7 @@ const campaign = campaignOf(process.env)
 
 describe('campagne d’invariants du moteur v2', () => {
   it(
-    'les neuf invariants tiennent à chaque geste',
+    'les invariants tiennent à chaque geste',
     () => {
       const played = playCampaign(campaign)
       const last = campaign.from + campaign.seeds - 1
@@ -94,19 +106,23 @@ describe('campagne d’invariants du moteur v2', () => {
   // #872 : mensuel du 9 mars fini le 13, le 19 « sans heure », fin le 5 avril, « Prochaine dose » le 19
   // montrée par le formulaire : la correction garde sa grille (9 avril), « pas à donner » refusée.
   it('graine 9800001094 : la date montrée passée telle quelle n’est pas une date choisie pour juger le refus', () => {
-    expect(playCampaign({ from: 9_800_001_094, seeds: 1, steps: 40 }).failures).toEqual([])
+    expect(playCampaign({ from: 9_800_001_094, seeds: 1, steps: 40 }, REPLAYED).failures).toEqual(
+      [],
+    )
   })
 
   // #928 : le report parti du jour où « tous les 2 jours » cède la place emporte sa dose sans heure.
   it('graine 8800001778 : une heure ajoutée ne change pas la journée d’arrivée du report', () => {
-    expect(playCampaign({ from: 8_800_001_778, seeds: 1, steps: 40 }).failures).toEqual([])
+    expect(playCampaign({ from: 8_800_001_778, seeds: 1, steps: 40 }, REPLAYED).failures).toEqual(
+      [],
+    )
   })
 
   // #992 : redéplacé depuis la date choisie avant qu'une heure soit ajoutée, le report garde ses heures.
   it.each([120_000_798, 120_001_047])(
     'graine %i : une heure ajoutée ne change pas la dose d’un report redéplacé depuis la date choisie',
     (seed) => {
-      expect(playCampaign({ from: seed, seeds: 1, steps: 40 }).failures).toEqual([])
+      expect(playCampaign({ from: seed, seeds: 1, steps: 40 }, REPLAYED).failures).toEqual([])
     },
   )
 
