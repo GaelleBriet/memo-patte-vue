@@ -277,6 +277,7 @@ describe('BackupSettingsView', () => {
       remaining: 0,
       carnetSize: 348,
       refused: 0,
+      refusedPhotos: 0,
     }
 
     async function monterAbonné(facts: BackupFacts) {
@@ -432,13 +433,28 @@ describe('BackupSettingsView', () => {
         )
       })
 
-      it('jamais seuls : rien en attente de réseau ni quand la sauvegarde est interrompue', async () => {
-        const horsLigne = await monterAbonné({ ...SAVED, online: false, refused: 2 })
-        expect(horsLigne.find('.backup-settings__refused').exists()).toBe(false)
-        horsLigne.unmount()
+      it('s’ajoutent aussi sous « En attente de réseau », juste sous l’état', async () => {
+        const wrapper = await monterAbonné({ ...SAVED, online: false, refused: 2 })
 
-        const interrompue = await monterAbonné({ ...SAVED, signInNeeded: true, refused: 2 })
-        expect(interrompue.find('.backup-settings__refused').exists()).toBe(false)
+        expect(libellésDesLignes(wrapper).slice(0, 2)).toEqual([
+          'En attente de réseau',
+          '2 éléments n’ont pas pu être sauvegardés · Contacter l’aide',
+        ])
+      })
+
+      it('s’ajoutent aussi sous « Reconnecte-toi », avant « Se reconnecter »', async () => {
+        const wrapper = await monterAbonné({ ...SAVED, signInNeeded: true, refused: 2 })
+        const état = wrapper.get('.backup-settings__status').element
+
+        expect(état.nextElementSibling?.classList.contains('backup-settings__refused')).toBe(true)
+        expect(wrapper.find('.backup-settings__sign-in').exists()).toBe(true)
+      })
+
+      it('une photo refusée cache « Photos sauvegardées · Oui »', async () => {
+        const wrapper = await monterAbonné({ ...SAVED, refused: 1, refusedPhotos: 1 })
+
+        expect(wrapper.find('.backup-settings__refused').exists()).toBe(true)
+        expect(wrapper.find('.backup-settings__photos').exists()).toBe(false)
       })
 
       it('rien quand aucun élément n’est refusé', async () => {

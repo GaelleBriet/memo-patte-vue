@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { backupStatusOf, refusedItemsOf, showsPhotosBackedUp } from '../logic/backup-status'
+import {
+  backupStatusOf,
+  photosBackedUpOf,
+  refusedItemsOf,
+  showsPhotosBackedUp,
+} from '../logic/backup-status'
 import type { BackupFacts } from '@/core/sync/service/backup-facts'
 
 const YESTERDAY_6_20_PM = '2026-10-22T16:20:00.000Z'
@@ -14,6 +19,7 @@ const SAVED: BackupFacts = {
   remaining: 0,
   carnetSize: 348,
   refused: 0,
+  refusedPhotos: 0,
 }
 
 const FIRST_BACKUP: BackupFacts = { ...SAVED, lastSyncedAt: null, remaining: 228 }
@@ -104,11 +110,33 @@ describe('refusedItemsOf', () => {
     expect(refusedItemsOf(SAVED)).toBe(0)
   })
 
-  it('jamais seul : ni sur ce téléphone, ni en attente de réseau, ni interrompue', () => {
+  it('aussi sous « En attente de réseau » et « Reconnecte-toi »', () => {
+    expect(refusedItemsOf({ ...SAVED, refused: 2, online: false })).toBe(2)
+    expect(refusedItemsOf({ ...SAVED, refused: 2, signInNeeded: true })).toBe(2)
+  })
+
+  it('jamais sur ce téléphone, sans état de la sauvegarde cloud', () => {
     expect(refusedItemsOf(null)).toBe(0)
     expect(refusedItemsOf({ ...SAVED, refused: 2, eligible: false })).toBe(0)
     expect(refusedItemsOf({ ...SAVED, refused: 2, syncEnabled: false })).toBe(0)
-    expect(refusedItemsOf({ ...SAVED, refused: 2, online: false })).toBe(0)
-    expect(refusedItemsOf({ ...SAVED, refused: 2, signInNeeded: true })).toBe(0)
+  })
+})
+
+describe('photosBackedUpOf', () => {
+  it('« Photos sauvegardées » une fois la première sauvegarde faite, réseau ou pas', () => {
+    expect(photosBackedUpOf(SAVED)).toBe(true)
+    expect(photosBackedUpOf({ ...SAVED, online: false })).toBe(true)
+  })
+
+  it('masqué dès qu’une photo est refusée, une ligne refusée seule ne le masque pas', () => {
+    expect(photosBackedUpOf({ ...SAVED, refused: 1, refusedPhotos: 1 })).toBe(false)
+    expect(photosBackedUpOf({ ...SAVED, refused: 1, refusedPhotos: 0 })).toBe(true)
+  })
+
+  it('jamais sur ce téléphone, ni pendant la première sauvegarde, ni interrompue', () => {
+    expect(photosBackedUpOf(null)).toBe(false)
+    expect(photosBackedUpOf({ ...SAVED, eligible: false })).toBe(false)
+    expect(photosBackedUpOf(FIRST_BACKUP)).toBe(false)
+    expect(photosBackedUpOf({ ...SAVED, signInNeeded: true })).toBe(false)
   })
 })

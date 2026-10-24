@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import { useBackupStatus } from '../composables/use-backup-status'
-import { showsPhotosBackedUp, type CloudBackupStatus } from '../logic/backup-status'
+import type { CloudBackupStatus } from '../logic/backup-status'
 import { cloudBackupText, refusedItemsText } from '../logic/backup-status-text'
 import BackupCopyRow from './BackupCopyRow.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
@@ -20,7 +20,7 @@ const STATUS_LOOK: Record<CloudBackupStatus['kind'], { icon: string; tone: strin
 
 const { t } = useI18n()
 const router = useRouter()
-const { status, refused, now } = useBackupStatus()
+const { status, refused, photosBackedUp, now } = useBackupStatus()
 
 const cloud = computed<CloudBackupStatus | null>(() =>
   status.value === null || status.value.kind === 'local' || status.value.kind === 'unread'
@@ -95,7 +95,7 @@ function goBack(): void {
           {{ t('settings.backup.cloud.interrupted.signIn') }}
         </v-btn>
         <div
-          v-if="showsPhotosBackedUp(cloud)"
+          v-if="photosBackedUp"
           class="settings-row backup-settings__card backup-settings__photos"
         >
           <v-icon class="settings-row__icon" icon="ms:photo_library" size="22" />

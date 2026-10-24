@@ -22,10 +22,21 @@ export function backupStatusOf(facts: BackupFacts | null): BackupStatus {
   return { kind: 'saved', at: facts.lastSyncedAt }
 }
 
-/** Ajouté sous « Dernière sauvegarde » ou « Première sauvegarde », jamais sous un autre état. */
+/** Ajouté sous l'état de la sauvegarde cloud, quel qu'il soit, jamais seul. */
 export function refusedItemsOf(facts: BackupFacts | null): number {
-  const { kind } = backupStatusOf(facts)
-  return facts !== null && (kind === 'saved' || kind === 'first-backup') ? facts.refused : 0
+  return facts !== null && backupStatusOf(facts).kind !== 'local' ? facts.refused : 0
+}
+
+/** Une photo refusée rendrait « Photos sauvegardées · Oui » faux : la ligne disparaît. */
+export function photosBackedUpOf(facts: BackupFacts | null): boolean {
+  const status = backupStatusOf(facts)
+  return (
+    facts !== null &&
+    status.kind !== 'local' &&
+    status.kind !== 'unread' &&
+    showsPhotosBackedUp(status) &&
+    facts.refusedPhotos === 0
+  )
 }
 
 export function showsPhotosBackedUp(status: CloudBackupStatus): boolean {
