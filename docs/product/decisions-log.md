@@ -3880,3 +3880,19 @@ Alternatives écartées : rendre sans effet tout report parti hors de la grille 
 #796 à fréquence changée) ; rendre sans effet un report dont la dose arrivée est donnée (le jour de
 départ redemanderait une dose déjà donnée). — Pour revenir dessus : retirer `outdatedByChosenDate`
 (`report-rank.ts`) et `staleBeforeChosenDate` (`reference-ranks.ts`).
+
+## 2026-10-24 — Report rendu sans effet par une date choisie : son décalage le suit, une prise d'après le « Modifier » ne le relance pas (#1231, Q41)
+
+Décision de la session d'analyse du moteur, à qui Gaelle a délégué les lectures de règles (Q41 du 24
+octobre 2026 ; spec `traitements.md` R6, R9, R10). Précise l'entrée Q39 ci-dessus. (1) Seule une prise
+écrite avant le « Modifier » de la date choisie garde le report en vigueur : la raison de Q39 est qu'il
+a servi avant d'être rendu sans effet. Milo, chaque jour sans heure depuis le 6 mars ; le 9, la dose du
+10 reportée au 21 avec la case ; le 12, redéplacée au 4 avril, puis « Modifier » : toutes les 2
+semaines, « Prochaine dose » le 21 ; le 4 avril donné ensuite est une dose de la grille : le report
+reste sans effet, le 10 mars reste à renseigner, et « Supprimer » la prise n'y change rien (de même à
+8 h et 20 h pour la dose de 20 h). La graine 210000343 ne change pas (prise du 28 mars, « Modifier » du
+5 avril). (2) Le décalage suit son report (R6, 6b du 18 octobre) : dans le cas du ticket, les 10 et 11
+mars reviennent à renseigner. (3) La ligne « Reportée au 17 » d'un report jamais redéplacé reste en
+vigueur (le 17 est montré) ; celle du carnet du ticket est grisée « sans effet ». (4) Le cas #939 à
+deux téléphones, réglage plus récent, n'est plus un résidu (#986). — Alternative écartée : toute prise
+du jour d'arrivée, quelle que soit sa date d'écriture (le report dépendrait d'un hasard de dates).
