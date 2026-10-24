@@ -590,6 +590,14 @@ describe('syncOutboxRepository', () => {
       )
     }
 
+    async function reasonOf(entity: string, entityId: string) {
+      const [row] = await db.query<{ refused_reason: string | null }>(
+        'SELECT refused_reason FROM sync_outbox WHERE entity = ? AND entity_id = ?',
+        [entity, entityId],
+      )
+      return row?.refused_reason
+    }
+
     async function refusedAt(entity: string, entityId: string) {
       const [row] = await db.query<{ refused_at: string | null }>(
         'SELECT refused_at FROM sync_outbox WHERE entity = ? AND entity_id = ?',
@@ -610,6 +618,26 @@ describe('syncOutboxRepository', () => {
       await expect(repository.countRefusedPhotos()).resolves.toBe(0)
     })
 
+    it('la pesée refusée trois fois pour elle-même est marquée « own »', async () => {
+      await refuseMiloWeighing()
+
+      await expect(reasonOf('weight_entry', 'w-12-mars')).resolves.toBe('own')
+    })
+
+    it('une marque porte toujours sa raison, et une raison toujours sa marque', async () => {
+      await refuseMiloWeighing()
+
+      await expect(
+        db.run("UPDATE sync_outbox SET refused_reason = NULL WHERE entity = 'weight_entry'"),
+      ).rejects.toThrow(/CHECK constraint failed/)
+      await expect(
+        db.run("UPDATE sync_outbox SET refused_reason = 'own' WHERE entity = 'animal'"),
+      ).rejects.toThrow(/CHECK constraint failed/)
+      await expect(
+        db.run("UPDATE sync_outbox SET refused_reason = 'autre' WHERE entity = 'weight_entry'"),
+      ).rejects.toThrow(/CHECK constraint failed/)
+    })
+
     it('ne marque rien si la pesée a été modifiée depuis la lecture', async () => {
       await enableSync(db)
       await insertAnimal(db, ANIMAL_ID, T1)
@@ -625,12 +653,13 @@ describe('syncOutboxRepository', () => {
       await expect(repository.countRefused()).resolves.toBe(0)
     })
 
-    it('la pesée modifiée repart en file, sans marque', async () => {
+    it('la pesée modifiée repart en file, sans marque ni raison', async () => {
       await refuseMiloWeighing()
 
       await touchWeightEntry(db, 'w-12-mars', LATER)
 
       await expect(refusedAt('weight_entry', 'w-12-mars')).resolves.toBeNull()
+      await expect(reasonOf('weight_entry', 'w-12-mars')).resolves.toBeNull()
       await expect(repository.listPending()).resolves.toContainEqual({
         entity: 'weight_entry',
         entityId: 'w-12-mars',
@@ -693,6 +722,7 @@ describe('syncOutboxRepository', () => {
       await repository.enableAndQueueWholeCarnet()
 
       await expect(refusedAt('weight_entry', 'w-12-mars')).resolves.toBeNull()
+      await expect(reasonOf('weight_entry', 'w-12-mars')).resolves.toBeNull()
       await expect(repository.countRefused()).resolves.toBe(0)
       await expect(repository.countPending()).resolves.toBe(2)
     })
@@ -710,7 +740,9 @@ describe('syncOutboxRepository', () => {
         await db.runMany([...before, ...after])
 
         await expect(
-          db.query('SELECT 1 FROM sync_outbox WHERE refused_at IS NOT NULL'),
+          db.query(
+            'SELECT 1 FROM sync_outbox WHERE refused_at IS NOT NULL OR refused_reason IS NOT NULL',
+          ),
         ).resolves.toEqual([])
       })
     }
@@ -733,7 +765,7 @@ describe('syncOutboxRepository', () => {
         await expect(repository.countRefused()).resolves.toBe(1)
       })
 
-      it('dit si un ancêtre de l’entrée est refusé : animal, vaccin, traitement ou période', async () => {
+      async function insertMiloCarnet(): Promise<void> {
         await enableSync(db)
         await insertAnimal(db, ANIMAL_ID, T1, 'Milo')
         await insertAnimal(db, 'luna', T1, 'Luna')
@@ -743,41 +775,168 @@ describe('syncOutboxRepository', () => {
         await insertTreatment(db, 't-1', ANIMAL_ID, T1)
         await insertTreatmentPeriod(db, 'p-1', 't-1', ANIMAL_ID, T1)
         await insertTreatmentDose(db, 'd-1', 'p-1', 't-1', ANIMAL_ID, T1)
-        await expect(
-          repository.hasRefusedAncestor({ entity: 'treatment_dose', entityId: 'd-1' }),
-        ).resolves.toBe(false)
+      }
+
+      const markWithParent = (entity: string, entityId: string, queuedAt = T1) =>
+        repository.markRefusedWithRefusedAncestor({ entity, entityId, queuedAt }, REFUSED_AT)
+
+      it('marque l’entrée dont un ancêtre est refusé : animal, vaccin, traitement ou période', async () => {
+        await insertMiloCarnet()
+        await expect(markWithParent('treatment_dose', 'd-1')).resolves.toBe(false)
+        await expect(refusedAt('treatment_dose', 'd-1')).resolves.toBeNull()
 
         await refuse('vaccination', 'v-1', T1)
         await refuse('treatment_period', 'p-1', T1)
 
-        await expect(
-          repository.hasRefusedAncestor({ entity: 'vaccination_injection', entityId: 'i-1' }),
-        ).resolves.toBe(true)
-        await expect(
-          repository.hasRefusedAncestor({ entity: 'treatment_dose', entityId: 'd-1' }),
-        ).resolves.toBe(true)
-        await expect(
-          repository.hasRefusedAncestor({ entity: 'treatment_period', entityId: 'p-1' }),
-        ).resolves.toBe(false)
-        await expect(
-          repository.hasRefusedAncestor({ entity: 'weight_entry', entityId: 'w-luna' }),
-        ).resolves.toBe(false)
-        await expect(
-          repository.hasRefusedAncestor({ entity: ANIMAL_PHOTO_ENTITY, entityId: PHOTO_MILO }),
-        ).resolves.toBe(false)
+        await expect(markWithParent('vaccination_injection', 'i-1')).resolves.toBe(true)
+        await expect(markWithParent('treatment_dose', 'd-1')).resolves.toBe(true)
+        await expect(markWithParent('treatment_period', 'p-1')).resolves.toBe(false)
+        await expect(markWithParent('weight_entry', 'w-luna')).resolves.toBe(false)
+        await expect(markWithParent(ANIMAL_PHOTO_ENTITY, PHOTO_MILO)).resolves.toBe(false)
+        await expect(refusedAt('vaccination_injection', 'i-1')).resolves.toBe(REFUSED_AT)
+        await expect(refusedAt('treatment_dose', 'd-1')).resolves.toBe(REFUSED_AT)
+        await expect(reasonOf('treatment_dose', 'd-1')).resolves.toBe('ancestor')
+        await expect(refusedAt('weight_entry', 'w-luna')).resolves.toBeNull()
+        await expect(repository.countRefused()).resolves.toBe(4)
       })
 
-      it('Milo modifié repart en file, et ses fiches refusées avec lui repartent aussi', async () => {
+      it('ne marque pas la prise modifiée depuis la lecture, même sous une période refusée', async () => {
+        await insertMiloCarnet()
+        await refuse('treatment_period', 'p-1', T1)
+        await db.run('UPDATE treatment_dose SET updated_at = ? WHERE id = ?', [LATER, 'd-1'])
+
+        await expect(markWithParent('treatment_dose', 'd-1', T1)).resolves.toBe(false)
+        await expect(refusedAt('treatment_dose', 'd-1')).resolves.toBeNull()
+      })
+
+      describe('un parent qui quitte la file après son envoi', () => {
+        const OCTOBER_21_8_30 = new Date(2026, 9, 21, 8, 30).toISOString()
+        const OCTOBER_21_8_31 = new Date(2026, 9, 21, 8, 31).toISOString()
+
+        async function refuseMiloWithNewDose(): Promise<void> {
+          await insertMiloCarnet()
+          await refuse('animal', ANIMAL_ID, T1)
+          await refuse('weight_entry', 'w-luna', T1)
+          await refuse('animal', 'luna', T1)
+          await insertTreatmentPeriod(db, 'p-2', 't-1', ANIMAL_ID, OCTOBER_21_8_30)
+          await insertTreatmentDose(db, 'd-2', 'p-2', 't-1', ANIMAL_ID, OCTOBER_21_8_31)
+          await repository.recordFailedPush({ entity: 'treatment_period', entityId: 'p-2' })
+          await expect(markWithParent('treatment_dose', 'd-2', OCTOBER_21_8_31)).resolves.toBe(true)
+        }
+
+        it('la période de 8 h 30 arrive : la prise de 8 h 31 marquée avec Milo repart, Milo et Luna restent refusés', async () => {
+          await refuseMiloWithNewDose()
+
+          await repository.removeIfUnchanged({
+            entity: 'treatment_period',
+            entityId: 'p-2',
+            queuedAt: OCTOBER_21_8_30,
+          })
+
+          await expect(refusedAt('treatment_dose', 'd-2')).resolves.toBeNull()
+          await expect(reasonOf('treatment_dose', 'd-2')).resolves.toBeNull()
+          await expect(refusedAt('animal', ANIMAL_ID)).resolves.toBe(REFUSED_AT)
+          await expect(refusedAt('animal', 'luna')).resolves.toBe(REFUSED_AT)
+          await expect(refusedAt('weight_entry', 'w-luna')).resolves.toBe(REFUSED_AT)
+          await expect(repository.listPending()).resolves.toContainEqual({
+            entity: 'treatment_dose',
+            entityId: 'd-2',
+            queuedAt: OCTOBER_21_8_31,
+            attempts: 0,
+          })
+          await expect(repository.countRefused()).resolves.toBe(3)
+        })
+
+        it('une période encore en file, ou retirée sans y être, ne démarque rien', async () => {
+          await refuseMiloWithNewDose()
+
+          await repository.removeIfUnchanged({
+            entity: 'treatment_period',
+            entityId: 'p-2',
+            queuedAt: LATER,
+          })
+          await repository.removeIfUnchanged({
+            entity: 'treatment_period',
+            entityId: 'inconnue',
+            queuedAt: OCTOBER_21_8_30,
+          })
+
+          await expect(refusedAt('treatment_dose', 'd-2')).resolves.toBe(REFUSED_AT)
+          await expect(repository.countRefused()).resolves.toBe(4)
+        })
+
+        it('Milo envoyé : Luna et sa pesée restent refusées', async () => {
+          await refuseMiloWithNewDose()
+          await touchAnimal(db, ANIMAL_ID, LATER)
+
+          await repository.removeIfUnchanged({
+            entity: 'animal',
+            entityId: ANIMAL_ID,
+            queuedAt: LATER,
+          })
+
+          await expect(refusedAt('animal', 'luna')).resolves.toBe(REFUSED_AT)
+          await expect(refusedAt('weight_entry', 'w-luna')).resolves.toBe(REFUSED_AT)
+          await expect(repository.countRefused()).resolves.toBe(2)
+        })
+
+        it('Milo arrivé au serveur après un 503 le 20 mars : sa pesée refusée trois fois pour elle-même garde sa marque', async () => {
+          await refuseMiloWeighing()
+          const MARCH_20 = new Date(2026, 2, 20, 10).toISOString()
+          await touchAnimal(db, ANIMAL_ID, MARCH_20)
+          await repository.recordFailedPush({ entity: 'animal', entityId: ANIMAL_ID })
+
+          await repository.removeIfUnchanged({
+            entity: 'animal',
+            entityId: ANIMAL_ID,
+            queuedAt: MARCH_20,
+          })
+
+          await expect(refusedAt('weight_entry', 'w-12-mars')).resolves.toBe(REFUSED_AT)
+          await expect(reasonOf('weight_entry', 'w-12-mars')).resolves.toBe('own')
+        })
+
+        it('Milo jamais en échec quitte la file : sa pesée refusée trois fois pour elle-même garde sa marque', async () => {
+          await refuseMiloWeighing()
+          await touchAnimal(db, ANIMAL_ID, LATER)
+
+          await repository.removeIfUnchanged({
+            entity: 'animal',
+            entityId: ANIMAL_ID,
+            queuedAt: LATER,
+          })
+
+          await expect(refusedAt('weight_entry', 'w-12-mars')).resolves.toBe(REFUSED_AT)
+          await expect(repository.countRefused()).resolves.toBe(1)
+        })
+
+        it('une pesée envoyée ne démarque rien : elle n’a pas d’enfant', async () => {
+          await refuseMiloWithNewDose()
+          await insertWeightEntry(db, 'w-milo', ANIMAL_ID, LATER)
+
+          await repository.removeIfUnchanged({
+            entity: 'weight_entry',
+            entityId: 'w-milo',
+            queuedAt: LATER,
+          })
+
+          await expect(repository.countRefused()).resolves.toBe(4)
+        })
+      })
+
+      it('Milo modifié repart en file, et ses fiches refusées avec lui repartent aussi, pas celles refusées pour elles-mêmes', async () => {
         await enableSync(db)
         await insertAnimal(db, ANIMAL_ID, T1, 'Milo')
         await insertWeightEntry(db, 'w-12-mars', ANIMAL_ID, MARCH_12)
+        await insertWeightEntry(db, 'w-propre', ANIMAL_ID, T1)
         await insertVaccination(db, 'v-1', ANIMAL_ID, T1)
         await insertVaccinationInjection(db, 'i-1', 'v-1', ANIMAL_ID, T1)
         await insertAnimal(db, 'luna', T1, 'Luna')
         await insertWeightEntry(db, 'w-luna', 'luna', T1)
         await refuse('animal', ANIMAL_ID, T1)
-        await refuse('weight_entry', 'w-12-mars', MARCH_12)
-        await refuse('vaccination_injection', 'i-1', T1)
+        await markWithParent('weight_entry', 'w-12-mars', MARCH_12)
+        await markWithParent('vaccination_injection', 'i-1')
+        await refuse('weight_entry', 'w-propre', T1)
         await refuse('weight_entry', 'w-luna', T1)
 
         await touchAnimal(db, ANIMAL_ID, LATER)
@@ -793,7 +952,9 @@ describe('syncOutboxRepository', () => {
           ['vaccination_injection', 'i-1'],
           ['weight_entry', 'w-12-mars'],
         ])
-        await expect(repository.countRefused()).resolves.toBe(1)
+        await expect(reasonOf('weight_entry', 'w-propre')).resolves.toBe('own')
+        await expect(reasonOf('animal', ANIMAL_ID)).resolves.toBeNull()
+        await expect(repository.countRefused()).resolves.toBe(2)
       })
 
       it('suit chaque clé étrangère des tables synchronisées, et elles seules', async () => {
@@ -909,6 +1070,7 @@ describe('syncOutboxRepository', () => {
         'queued_at',
         'attempts',
         'refused_at',
+        'refused_reason',
       ])
       expect(columns.find((column) => column.name === 'entity')?.pk).toBe(1)
       expect(columns.find((column) => column.name === 'entity_id')?.pk).toBe(2)

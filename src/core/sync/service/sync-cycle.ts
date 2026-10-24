@@ -29,7 +29,10 @@ export interface SyncCycleOutbox {
     entry: Pick<SyncOutboxEntry, 'entity' | 'entityId' | 'queuedAt'>,
     refusedAt: string,
   ): Promise<void>
-  hasRefusedAncestor(entry: Pick<SyncOutboxEntry, 'entity' | 'entityId'>): Promise<boolean>
+  markRefusedWithRefusedAncestor(
+    entry: Pick<SyncOutboxEntry, 'entity' | 'entityId' | 'queuedAt'>,
+    refusedAt: string,
+  ): Promise<boolean>
   getLastPulledAt(entity: string): Promise<string | null>
   setLastPulledAt(entity: string, lastPulledAt: string): Promise<void>
   isEnabled(): Promise<boolean>
