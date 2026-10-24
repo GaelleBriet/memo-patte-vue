@@ -341,6 +341,7 @@ onMounted(() => {
       :min="changing?.change.min ?? null"
       :max="changing?.change.max ?? null"
       :excluded="changing?.change.excluded ?? []"
+      :hint="changing?.change.hint ?? null"
       :box="changing?.box ?? null"
       :busy="gestures.isBusy.value"
       @save="changeDate"

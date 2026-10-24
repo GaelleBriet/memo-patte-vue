@@ -15,11 +15,12 @@ const props = withDefaults(
     min?: string | null
     max?: string | null
     excluded?: readonly string[]
+    hint?: string | null
     /** `null` : pas de case pour cette ligne. */
     box?: DateChangeBox | null
     busy?: boolean
   }>(),
-  { min: null, max: null, excluded: () => [], box: null, busy: false },
+  { min: null, max: null, excluded: () => [], hint: null, box: null, busy: false },
 )
 
 const emit = defineEmits<{
@@ -69,6 +70,7 @@ function save(): void {
       :max="max"
       :excluded="refused"
     />
+    <p v-if="hint" class="treatment-change-date__hint">{{ hint }}</p>
     <TreatmentShiftCheckbox
       v-if="view?.shown"
       v-model="shifts"
@@ -96,6 +98,13 @@ function save(): void {
 // Non scopé : la feuille est téléportée hors du composant.
 .treatment-change-date__calendar {
   margin-top: 12px;
+}
+
+.treatment-change-date__hint {
+  margin: 8px 0 0;
+  color: tokens.$color-text-secondary;
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 .treatment-change-date__shift {

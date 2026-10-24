@@ -440,11 +440,13 @@ describe('dateChangeOf', () => {
     const book = treatment([daily], [hierSoir])
 
     expect(
-      dateChangeOf(t, hierSoir, null, {
-        today: '2026-10-24',
-        earliest: '2022-04-10',
-        view: view('2026-10-24', book),
-      }),
+      plain(
+        dateChangeOf(t, hierSoir, null, {
+          today: '2026-10-24',
+          earliest: '2022-04-10',
+          view: view('2026-10-24', book),
+        }),
+      ),
     ).toMatchObject({
       min: '2026-10-23',
       max: '2026-10-24',
@@ -462,11 +464,13 @@ describe('dateChangeOf', () => {
     const book = treatment([quarterly], [dose('2026-05-01', ''), dose('2026-08-01', ''), nov])
 
     expect(
-      dateChangeOf(t, nov, null, {
-        today: '2026-11-10',
-        earliest: '2022-04-10',
-        view: view('2026-11-10', book),
-      }),
+      plain(
+        dateChangeOf(t, nov, null, {
+          today: '2026-11-10',
+          earliest: '2022-04-10',
+          view: view('2026-11-10', book),
+        }),
+      ),
     ).toMatchObject({
       min: '2026-08-02',
       max: '2026-11-10',
