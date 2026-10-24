@@ -284,12 +284,13 @@ Déconnexion et expiration se traitent alors en deux instructions, sans toucher 
   règles ordinaires. Un enfant dont le parent est déjà sur le serveur ne bute jamais sur la clé
   étrangère : il part, même si la dernière modification du parent est refusée. Quand le parent
   repart (`queued_at` avance), `sync_outbox_requeued` efface aussi la marque de ses descendants
-  en file, qui repartent après lui dans l'ordre de `SYNC_ENTITY_ORDER` ; un descendant refusé pour
-  lui-même est alors retenté, et marqué de nouveau après trois refus. Quand un parent qui avait
-  échoué (`attempts > 0`) quitte la file (`sync_outbox_removed`, `AFTER DELETE`, même
-  sous-requête), il est sur le serveur : ses descendants marqués pendant son absence repartent
-  (#1209). Un parent jamais en échec ne démarque rien : une entrée refusée pour elle-même garde sa
-  marque. Une entrée refusée ne quitte
+  marqués à cause d'un ancêtre, qui repartent après lui dans l'ordre de `SYNC_ENTITY_ORDER`. La
+  raison de chaque marque est gardée dans `refused_reason` : `own` (trois refus propres, ou photo
+  refusée sur le téléphone, par `markRefusedIfUnchanged`) ou `ancestor`
+  (`markRefusedWithRefusedAncestor`). Quand un parent quitte la file (`sync_outbox_removed`,
+  `AFTER DELETE`, même sous-requête), envoyé ou parce que sa ligne locale a disparu, il ne retient
+  plus ses descendants : ceux marqués `ancestor` repartent (#1209). Une entrée marquée `own` ne
+  repart qu'avec sa propre modification, jamais avec un parent. Une entrée refusée ne quitte
   jamais la file d'elle-même : seuls un envoi réussi (`removeIfUnchanged`), la déconnexion
   (`forgetAccount`), « Effacer les données » et « Remplacer » à la restauration la retirent ; dans
   les trois derniers cas, la file entière part, ou les marques sont déjà effacées. Une photo ne suit

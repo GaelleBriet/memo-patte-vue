@@ -392,7 +392,8 @@ envoyer une entrée que le serveur refuse pour toujours (trois refus identiques 
 `countPending` ne la lisent pas, `countRefused` la compte (photos des seuls animaux non supprimés)
 pour Paramètres › Sauvegarde. Un enfant qui bute sur la clé étrangère sous un parent refusé porte la
 marque lui aussi (`proposition-sync.md` §3.3) ; `sync_outbox_requeued` l'efface quand le parent
-repart, `sync_outbox_removed` (v23, §4.13) quand le parent arrive au serveur. La marque disparaît quand l'élément est modifié ou supprimé puis
+repart, `sync_outbox_removed` (v23, §4.13) quand le parent quitte la file, s'il a été marqué à cause
+de ce parent. La marque disparaît quand l'élément est modifié ou supprimé puis
 sauvegardé : le déclencheur `sync_outbox_requeued` (`AFTER UPDATE OF queued_at`) la remet à nul dès
 qu'une nouvelle écriture avance `queued_at`, sans toucher aux déclencheurs de mise en file des
 tables. `enableAndQueueWholeCarnet` et la restauration la remettent à nul (nouvel essai) ;
@@ -403,15 +404,26 @@ La migration (`src/core/db/migration-v22.ts`) reconstruit `sync_outbox` par copi
 premier niveau ; le déclencheur est créé après la recopie. Chaque entrée garde sa date et ses essais,
 `refused_at` nul. Aucune migration Supabase : la file est locale ; rien dans l'export.
 
-### 4.13 Évolution v23 (enfant refusé dont le parent arrive, #1209)
+### 4.13 Évolution v23 (raison de la marque, enfant dont le parent arrive, #1209)
 
-`sync_outbox` reçoit un second déclencheur, `sync_outbox_removed` (`AFTER DELETE`) : quand une
-entrée d'un parent (animal, vaccin, traitement, période) qui avait échoué (`attempts > 0`) quitte la
-file, il efface `refused_at` de ses descendants en file, par la même sous-requête que
-`sync_outbox_requeued` (`SYNC_PARENT_COLUMNS`). Un enfant marqué parce que son parent manquait au
-serveur repart dès que le parent y arrive ; une entrée refusée pour elle-même garde sa marque quand
-son parent, jamais en échec, est sauvegardé. La migration (`src/core/db/migration-v23.ts`) ne fait que créer le déclencheur
-(`CREATE TRIGGER`, puis `PRAGMA user_version`) : la v22 est publiée (0.1.109) et ne change pas.
+`sync_outbox` reçoit `refused_reason` (`TEXT`, nul par défaut), posée avec `refused_at` : `own`
+quand l'entrée est refusée pour elle-même (trois refus identiques, photo refusée sur le téléphone),
+`ancestor` quand elle bute sur la clé étrangère sous un ancêtre refusé. Deux `CHECK` : une marque a
+toujours sa raison, une raison toujours sa marque, et seules ces deux valeurs. La colonne est locale à
+la file : rien ne change côté serveur ni dans l'export ; l'écran et les compteurs lisent `refused_at`
+comme avant.
+
+Deux déclencheurs ne démarquent que les descendants `ancestor`, par la même sous-requête
+(`SYNC_PARENT_COLUMNS`) : `sync_outbox_requeued` (un parent refusé remis en file) et le nouveau
+`sync_outbox_removed` (`AFTER DELETE` : un parent qui quitte la file, envoyé ou parce que sa ligne
+locale a disparu). La remise en file de l'entrée elle-même efface `refused_at` et `refused_reason`.
+
+La migration (`src/core/db/migration-v23.ts`) reconstruit `sync_outbox` comme la v22 : copie,
+`DROP TRIGGER IF EXISTS sync_outbox_requeued`, `DROP`, `CREATE`, `INSERT … SELECT`, puis les deux
+déclencheurs, recréés après la recopie. Une marque posée par la v22 ne sait pas sa raison : elle
+devient `own`, qui ne la lève jamais à tort. Les déclencheurs de mise en file des tables ne changent
+pas. La v22, publiée en 0.1.109, ne change pas : son déclencheur est figé dans `migration-v22.ts`.
+
 Coût mesuré sur 5 000 prises : la mise en file du carnet et la remise en file des prises ne bougent
 pas ; chaque retrait de la file prend environ 0,15 ms de plus, le déclencheur étant compilé dans
 chaque `DELETE` (5 000 envois : 0,4–0,5 s puis 1,1–1,4 s en base mémoire, répartis sur 5 000

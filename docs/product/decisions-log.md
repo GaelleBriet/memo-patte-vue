@@ -3012,9 +3012,12 @@ du 12 mars est refusée ; la sauvegarde aboutit et Paramètres › Sauvegarde af
    prend un échec passager, sa prise de 8 h 31 bute sur la clé étrangère et, Milo étant refusé, est
    marquée dès ce premier essai ; au cycle suivant la période arrive, la prise repart et arrive au
    cycle d'après. De même, l'injection d'un vaccin neuf refusé une fois puis corrigé repart quand
-   le vaccin arrive. Seul un parent qui avait échoué avant d'arriver démarque ses descendants : la
-   pesée de Milo refusée trois fois pour elle-même garde sa marque quand Milo, jamais en échec, est
-   sauvegardé. Coût accepté : environ 0,15 ms par retrait de la file (5 000 envois : 0,4–0,5 s puis
+   le vaccin arrive. Chaque marque dit sa raison, sur le téléphone seulement : ses propres
+   refus, ou le refus d'un ancêtre. Seuls les enfants marqués à cause d'un ancêtre repartent quand
+   le parent est modifié ou arrive au serveur ; la pesée de Milo refusée trois fois pour elle-même
+   garde sa marque, même quand Milo arrive au serveur le 20 mars après un échec passager, jusqu'à
+   ce qu'elle soit elle-même modifiée. Une marque posée avant cette version compte comme refusée
+   pour elle-même : elle n'est jamais levée à tort. Coût accepté : environ 0,15 ms par retrait de la file (5 000 envois : 0,4–0,5 s puis
    1,1–1,4 s en base mémoire, répartis sur 5 000 allers-retours réseau). La marque de l'enfant se pose en une seule écriture, qui relit l'ancêtre
    refusé au même instant : Milo modifié pendant ce temps ne laisse plus la pesée cachée.
 
