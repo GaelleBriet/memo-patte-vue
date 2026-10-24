@@ -3871,9 +3871,22 @@ chaque vendredi, le 20, la dose du 16 en retard : la dose du 23 donnée le 18, p
 date » comme par « C'est fait » puis « Changer la date », a la case (avant : seulement « Changer la
 date »). Métacam à 8 h et 20 h, la dose de 20 h du 9 mars reportée au 5 avril avec la case ; le 13,
 la dose de 8 h du 9 donnée le 10 a la case par les deux gestes (avant : seulement « Fait à une autre
-date »). Reste ouvert : une dose déjà non renseignée aujourd'hui, mais dose du moment au jour
-choisi (le 24, la dose du 16 donnée le 17) : « Fait à une autre date » n'a pas la case (N1),
-« Changer la date » l'a. — Raison : deux calculs de la même condition donnaient deux écrans pour le
+date »). — Raison : deux calculs de la même condition donnaient deux écrans pour le
 même geste. —
 Alternative écartée : juger « Changer la date » sans le décalage de la journée. — Pour revenir
 dessus : `offersShiftFor` (`gestures/shift-offer.ts`).
+
+2026-10-25 — **La case « Décaler aussi » n'efface jamais une dose passée sans prise** (#1242,
+#1253, #1255, #1256, spec `traitements.md` R6 ; Q43 et Q44 de la session d'analyse du moteur, à qui
+Gaelle a délégué les lectures de règles). La raison de Q38 devient la règle, dans la même condition
+pour les deux gestes : la case est proposée si la dose visée est la dose du moment ou une dose à
+venir au jour de la nouvelle date, et si la cocher ne fait disparaître du calendrier aucune dose
+passée encore sans prise (calendrier avec le décalage comparé au calendrier sans). Milbemax chaque
+vendredi, rien depuis le 9 : le 24, la dose du 16 donnée le 17, par « Fait à une autre date » comme
+par « Changer la date », n'a pas la case (le 23 disparaîtrait). La dose du 16 donnée le 19 avec la
+case, corrigée le 27 au 12 : la case reste proposée, la suite repart du 12 et le 19 revient à
+renseigner, rien ne disparaît. Cas résiduel : une prise redatée sans case garde le décalage qu'elle
+avait écrit (Q30). — Raison : N1 vaut pour une dose non renseignée, pas pour la dose d'une prise
+qu'on corrige ; « jugée aujourd'hui sans la prise » retirait la case de corrections légitimes. —
+Alternative écartée : exiger la dose du moment ou à venir aujourd'hui et au jour choisi (Q43 à la
+lettre). — Pour revenir dessus : `offersShiftFor` (`gestures/shift-offer.ts`).
