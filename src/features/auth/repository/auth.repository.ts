@@ -8,8 +8,6 @@ import { accountErrorFrom } from '../logic/account-error-from'
 import { accountIdentityOf, type AccountIdentity } from '../logic/account-identity-of'
 import { createSessionRevocation } from './session-revocation.repository'
 
-export { SIGN_OUT_TIMEOUT_MS } from './session-revocation.repository'
-
 export type AuthSession = { userId: string }
 
 export type SignUpOutcome =
