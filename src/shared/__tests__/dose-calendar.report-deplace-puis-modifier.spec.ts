@@ -49,6 +49,27 @@ describe('Report déplacé deux fois avec la case, puis « Modifier » : la date
     expect(echeances(input, 3)).toContain('2026-03-21')
   })
 
+  // Le même carnet ; le 13, la dose du 17 reportée au 19 avec la case : le 21, date choisie après le
+  // premier report, reste une échéance.
+  it('graine 12200000727, suite : la dose du 17 reportée au 19 avec la case, puis le 21 mars, le 4 et le 18 avril', () => {
+    let input: TreatmentViewInput = {
+      settings: [setting('s1', '2026-03-06', DAY)],
+      lines: [],
+      today: '2026-03-09',
+    }
+    input = moved(input, '2026-03-10', null, '2026-03-21')
+    input = moved(on(input, '2026-03-12'), '2026-03-21', null, '2026-03-17')
+    input = edited(input, {
+      frequency: TWO_WEEKS,
+      times: [],
+      endsOn: null,
+      firstDueOn: '2026-03-21',
+    })
+    input = moved(on(input, '2026-03-13'), '2026-03-17', null, '2026-03-19')
+
+    expect(echeances(input, 4)).toEqual(['2026-03-19', '2026-03-21', '2026-04-04', '2026-04-18'])
+  })
+
   // Milo, chaque jour sans heure depuis le 7 mars ; le 7, la dose du 8 reportée au 20 avec la case,
   // puis ramenée au 13 avec la case ; le 15, « Modifier » : même rythme, fin le 16 avril, « Prochaine
   // dose » le 20 mars ; puis une heure ajoutée, 6 h.
