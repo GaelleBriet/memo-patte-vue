@@ -9,6 +9,7 @@ import type {
   Day,
   Due,
   DueState,
+  ExtraAnswer,
   Hour,
   Line,
   LineEffect,
@@ -45,8 +46,11 @@ export type TreatmentView = {
   dueState(due: Pick<Due, 'dueOn' | 'dueTime'>): DueState
   /** Toutes les échéances du calendrier de `from` à `to` inclus, notées ou non. */
   slots(from: Day, to: Day): DueSlot[]
-  /** TR-21, Q33 : le jour où cette échéance a déjà été notée, `null` si elle ne l'est pas. */
-  alreadyNotedOn(due: Pick<Due, 'dueOn' | 'dueTime'>, today: Day): Day | null
+  /**
+   * TR-21, Q33 : le jour où cette échéance a déjà été notée, `null` si elle ne l'est pas ; une prise
+   * en plus du jour compte, sauf pour « Remplace » (R5).
+   */
+  alreadyNotedOn(due: Pick<Due, 'dueOn' | 'dueTime'>, today: Day, answer?: ExtraAnswer): Day | null
   /** TR-24 bis : premier jour où une prise donnée couvre encore cette échéance, à une ou plusieurs heures. */
   earliestGivenOn(due: Due): Day | null
   /** R5 : avant ce jour, une prise est une prise en plus ; `null` : jamais, à plusieurs heures par jour. */
@@ -208,10 +212,11 @@ export function buildView({ settings, lines: given, today }: TreatmentViewInput)
     })),
     dueState,
     slots,
-    alreadyNotedOn: (due, day) => {
+    alreadyNotedOn: (due, day, answer) => {
       const slot = slotOf(keyOf(due.dueOn, due.dueTime))
       const by = slot?.coveredBy ?? null
       if (by !== null) return by.status === 'given' ? (by.givenOn ?? day) : null
+      if (answer === 'replaces') return null
       const extra = lines.some(
         (line) =>
           line.status === 'extra' &&

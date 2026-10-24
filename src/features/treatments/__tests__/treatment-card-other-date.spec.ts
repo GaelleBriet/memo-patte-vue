@@ -1,12 +1,13 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { dose, period, plain, treatment } from './treatment-fixtures'
+import { dose, extra, period, plain, treatment } from './treatment-fixtures'
 import {
   cardDone,
   cardOtherDateDays,
   cardTarget,
   extraQuestion,
 } from '../logic/treatment-card-other-date'
+import { doseChange } from '../logic/treatment-dose-change'
 import { notifiedPlan } from '../logic/treatment-other-date'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
 import { otherDateNote } from '../logic/treatment-shift-box'
@@ -203,5 +204,34 @@ describe('« C’est fait » de la carte quand la prise serait en plus (Q27, Q29
     const reading = treatmentReadingOf(treatment([milbemax('2026-10-17')]), '2026-10-24')
     const due = reading.view.currentDoses.find(({ dueOn }) => dueOn === '2026-10-24')!
     expect(cardDone(reading, due, '2026-10-24')).toMatchObject({ confirm: false })
+  })
+})
+
+describe('« Remplace » après une prise « En plus » le même jour (Q27)', () => {
+  it('Bravecto, prise en plus le 24 oct., puis « Remplace celle du 1er nov. » : écrit', () => {
+    const book = treatment([bravecto], [extra('2026-10-24', '2026-10-24')])
+    const reading = treatmentReadingOf(book, '2026-10-24')
+    const due: Due = { settingId: 'p-1', dueOn: '2026-11-01', dueTime: null }
+    const note = (answer: 'extra' | 'replaces') =>
+      doseChange(
+        book,
+        reading,
+        {
+          kind: 'note',
+          gesture: {
+            kind: 'note',
+            due,
+            status: 'given',
+            givenOn: '2026-10-24',
+            shiftsFollowing: false,
+            answer,
+          },
+        },
+        () => 'nouvelle',
+      )
+
+    expect(note('replaces').alreadyGivenOn).toBeNull()
+    expect(note('replaces').writes).toHaveLength(1)
+    expect(note('extra').alreadyGivenOn).toBe('2026-10-24')
   })
 })
