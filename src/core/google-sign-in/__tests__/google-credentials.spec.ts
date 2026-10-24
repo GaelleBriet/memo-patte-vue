@@ -1,12 +1,30 @@
 // @vitest-environment node
 import type { GoogleSignInPlugin, SignInResult } from '@capawesome/capacitor-google-sign-in'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   createGoogleCredentials,
   GoogleCredentialError,
   type GoogleCredentialFailure,
 } from '../google-credentials'
+
+const proxyThen = vi.hoisted(() => vi.fn<() => void>())
+
+function asProxy<T extends object>(plugin: T, then: () => void): T {
+  Reflect.set(plugin, 'then', then)
+  return plugin
+}
+
+vi.mock('@capawesome/capacitor-google-sign-in', () => ({
+  GoogleSignIn: asProxy(
+    {
+      initialize: vi.fn<() => Promise<void>>(async () => {}),
+      signIn: vi.fn<() => Promise<{ idToken: string }>>(async () => ({ idToken: 'jeton-google' })),
+      signOut: vi.fn<() => Promise<void>>(async () => {}),
+    },
+    proxyThen,
+  ),
+}))
 
 const CLIENT_ID = '123456789-web.apps.googleusercontent.com'
 const HASHED_NONCE = 'a1'.repeat(32)
@@ -40,15 +58,20 @@ function fakePlugin(signIn: GoogleSignInPlugin['signIn'] = async () => signInRes
 
 function credentials(
   plugin = fakePlugin(),
-  options: { clientId?: string | undefined; native?: boolean } = {},
+  options: { clientId?: string | undefined; native?: boolean; timeoutMs?: number } = {},
 ) {
-  const { native = true } = options
+  const { native = true, timeoutMs } = options
   const clientId = 'clientId' in options ? options.clientId : CLIENT_ID
-  const loadPlugin = vi.fn<() => Promise<GoogleSignInPlugin>>(async () => plugin)
+  const loadPlugin = vi.fn<() => Promise<{ plugin: GoogleSignInPlugin }>>(async () => ({ plugin }))
   return {
     plugin,
     loadPlugin,
-    google: createGoogleCredentials({ clientId, isNativePlatform: () => native, loadPlugin }),
+    google: createGoogleCredentials({
+      clientId,
+      isNativePlatform: () => native,
+      loadPlugin,
+      timeoutMs,
+    }),
   }
 }
 
@@ -71,6 +94,24 @@ describe('createGoogleCredentials', () => {
     })
     expect(plugin.initialize).toHaveBeenCalledWith({ clientId: CLIENT_ID })
     expect(plugin.signIn).toHaveBeenCalledWith({ nonce: HASHED_NONCE })
+  })
+
+  it('réussit avec un plugin dont `then` ne rappelle jamais, comme le proxy Capacitor', async () => {
+    const plugin = asProxy(fakePlugin(), proxyThen)
+    const { google } = credentials(plugin)
+
+    await expect(google.request(HASHED_NONCE)).resolves.toEqual({
+      kind: 'granted',
+      idToken: 'jeton-google',
+    })
+    expect(proxyThen).not.toHaveBeenCalled()
+  })
+
+  it('charge le vrai plugin sans le rendre à une promesse', async () => {
+    const google = createGoogleCredentials({ clientId: CLIENT_ID, isNativePlatform: () => true })
+
+    await expect(google.request(HASHED_NONCE)).resolves.toMatchObject({ kind: 'granted' })
+    expect(proxyThen).not.toHaveBeenCalled()
   })
 
   it('n’initialise le plugin qu’une fois', async () => {
@@ -142,6 +183,71 @@ describe('createGoogleCredentials', () => {
 
     await expect(failure(google.request(HASHED_NONCE))).resolves.toBe('unavailable')
     expect(loadPlugin).not.toHaveBeenCalled()
+  })
+
+  describe('délai d’attente', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('rend le jeton d’un choix de compte lent mais légitime (25 s)', async () => {
+      vi.useFakeTimers()
+      const { google } = credentials(
+        fakePlugin(
+          () => new Promise((resolve) => setTimeout(() => resolve(signInResult()), 25_000)),
+        ),
+      )
+
+      const request = google.request(HASHED_NONCE)
+      await vi.advanceTimersByTimeAsync(25_000)
+
+      await expect(request).resolves.toEqual({ kind: 'granted', idToken: 'jeton-google' })
+    })
+
+    it('borne aussi l’initialisation, puis la réessaie', async () => {
+      vi.useFakeTimers()
+      const plugin = fakePlugin()
+      plugin.initialize.mockImplementationOnce(() => new Promise(() => {}))
+      const { google } = credentials(plugin, { timeoutMs: 500 })
+
+      const first = google.request(HASHED_NONCE).catch((thrown: unknown) => thrown)
+      await vi.advanceTimersByTimeAsync(500)
+      expect(((await first) as GoogleCredentialError).reason).toBe('unavailable')
+
+      await expect(google.request(HASHED_NONCE)).resolves.toMatchObject({ kind: 'granted' })
+    })
+
+    it('ignore la fin tardive d’une initialisation, sans promesse non gérée', async () => {
+      vi.useFakeTimers()
+      const unhandled = vi.fn<(reason: unknown) => void>()
+      process.on('unhandledRejection', unhandled)
+      let fail: (cause: unknown) => void = () => {}
+      const plugin = fakePlugin()
+      plugin.initialize.mockImplementationOnce(
+        () => new Promise((_resolve, reject) => (fail = reject)),
+      )
+      const { google } = credentials(plugin, { timeoutMs: 1_000 })
+
+      const first = google.request(HASHED_NONCE).catch((thrown: unknown) => thrown)
+      await vi.advanceTimersByTimeAsync(1_000)
+      expect(((await first) as GoogleCredentialError).reason).toBe('unavailable')
+      fail(pluginError(undefined))
+      await vi.advanceTimersByTimeAsync(10)
+
+      expect(unhandled).not.toHaveBeenCalled()
+      process.off('unhandledRejection', unhandled)
+    })
+
+    it('garde l’annulation telle quelle', async () => {
+      vi.useFakeTimers()
+      const { google } = credentials(
+        fakePlugin(async () => {
+          throw pluginError('SIGN_IN_CANCELED')
+        }),
+      )
+
+      await expect(google.request(HASHED_NONCE)).resolves.toEqual({ kind: 'cancelled' })
+    })
   })
 
   describe('signOut', () => {

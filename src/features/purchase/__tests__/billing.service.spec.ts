@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { Purchases, type PurchasesPlugin } from '@revenuecat/purchases-capacitor'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BillingError, createBillingService, type BillingService } from '../service/billing.service'
 import { NO_PLUS } from '../logic/plus-status'
@@ -40,6 +40,10 @@ function capacitorRejection(message: string, code: string, data: Record<string, 
   return Object.assign(new Error(message), { code, data })
 }
 
+afterEach(() => {
+  Reflect.deleteProperty(plugin, 'then')
+})
+
 beforeEach(() => {
   vi.clearAllMocks()
   plugin.configure.mockResolvedValue()
@@ -47,6 +51,15 @@ beforeEach(() => {
     offerings([LIFETIME_PACKAGE, ANNUAL_PACKAGE, MONTHLY_PACKAGE]),
   )
   plugin.getCustomerInfo.mockResolvedValue({ customerInfo: customerInfo(null) })
+})
+
+describe('chargement du plugin', () => {
+  it('ne résout jamais une promesse avec le plugin lui-même (proxy Capacitor)', async () => {
+    const then = vi.fn<() => void>()
+    Reflect.set(plugin, 'then', then)
+    await expect(nativeService(API_KEY).listOffers()).resolves.toHaveLength(3)
+    expect(then).not.toHaveBeenCalled()
+  })
 })
 
 describe('billing indisponible', () => {
