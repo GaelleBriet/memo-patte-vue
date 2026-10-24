@@ -1,7 +1,7 @@
 import type { AuthError, Session, SupabaseClient, User } from '@supabase/supabase-js'
 
 import type { AppLocale } from '@/core/i18n'
-import { AUTH_STORAGE_KEY } from '@/core/supabase/auth-storage'
+import { forgetStoredSession } from '@/core/supabase/auth-storage'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { errorSummary } from '@/shared/utils/error-summary'
 
@@ -136,34 +136,6 @@ function sessionOf(session: Session): AuthSession {
 function checkOf(session: Session | null, error: AuthError | null): SessionCheck {
   if (session) return { kind: 'active', session: sessionOf(session) }
   return isRetryable(error) ? { kind: 'needs-refresh' } : { kind: 'needs-sign-in' }
-}
-
-function pendingPkceFlowIds(): string[] {
-  try {
-    const index: unknown = JSON.parse(
-      localStorage.getItem(`${AUTH_STORAGE_KEY}-flows-code-verifier`) ?? '[]',
-    )
-    return Array.isArray(index) ? index.filter((id) => typeof id === 'string') : []
-  } catch {
-    return []
-  }
-}
-
-function forgetStoredSession(): void {
-  const keys = [
-    ...pendingPkceFlowIds().map((id) => `${AUTH_STORAGE_KEY}-flow-${id}-code-verifier`),
-    `${AUTH_STORAGE_KEY}-flows-code-verifier`,
-    `${AUTH_STORAGE_KEY}-code-verifier`,
-    `${AUTH_STORAGE_KEY}-user`,
-    AUTH_STORAGE_KEY,
-  ]
-  for (const key of keys) {
-    try {
-      localStorage.removeItem(key)
-    } catch (cause) {
-      console.warn('Session non effacée de l’appareil :', errorSummary(cause))
-    }
-  }
 }
 
 export function createAuthRepository({
