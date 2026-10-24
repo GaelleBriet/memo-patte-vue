@@ -5,6 +5,25 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.110](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.109...memo-patte-v0.1.110) (2026-10-24)
+
+
+### ✨ Fonctionnalités
+
+* **parametres:** sous-titres de la rubrique Sauvegarde ([2c22974](https://github.com/GaelleBriet/memo-patte-vue/commit/2c229742e357d1efa68a1c0d36f70ebc9198b6a9))
+* **parametres:** sous-titres de la rubrique Sauvegarde selon l'état de la sauvegarde ([b528dc2](https://github.com/GaelleBriet/memo-patte-vue/commit/b528dc21290eb6849221dd92a433c06a758e9730))
+
+
+### 🐛 Corrections
+
+* **parametres:** horloge locale du test, gratuit sans requête, spec et JSDoc ([062b42d](https://github.com/GaelleBriet/memo-patte-vue/commit/062b42dfcfed237aa50d087a9f2eb70923b5d31c))
+* **settings:** la flèche d'Aide et contact ramène à Sauvegarde quand on en vient ([3dc7f5b](https://github.com/GaelleBriet/memo-patte-vue/commit/3dc7f5bcff8455938f8f6b253fac2cc5f3f5d683))
+* **settings:** la flèche d'Aide et contact ramène à Sauvegarde quand on en vient ([f82706b](https://github.com/GaelleBriet/memo-patte-vue/commit/f82706b8ec2acee33baefb37b2baaf216e97b4a4)), closes [#1207](https://github.com/GaelleBriet/memo-patte-vue/issues/1207)
+* **synchro:** ne démarquer les descendants que si le parent avait échoué avant d'arriver ([#1209](https://github.com/GaelleBriet/memo-patte-vue/issues/1209)) ([faabde4](https://github.com/GaelleBriet/memo-patte-vue/commit/faabde466df9e249bb837ac075a79f0c987d60e8))
+* **synchro:** raison de chaque marque, seuls les enfants refusés avec leur ancêtre repartent ([#1209](https://github.com/GaelleBriet/memo-patte-vue/issues/1209)) ([d077d5d](https://github.com/GaelleBriet/memo-patte-vue/commit/d077d5dae5388cbb641c465cab843ee8b0890f40))
+* **synchro:** un enfant refusé repart quand son parent arrive, marque posée en une requête ([#1209](https://github.com/GaelleBriet/memo-patte-vue/issues/1209)) ([5426d22](https://github.com/GaelleBriet/memo-patte-vue/commit/5426d222e4c654690a5679825c5b29a1af86f76e))
+* **synchro:** un enfant refusé repart quand son parent arrive, marque posée en une requête ([#1209](https://github.com/GaelleBriet/memo-patte-vue/issues/1209)) ([f27594f](https://github.com/GaelleBriet/memo-patte-vue/commit/f27594f37911591cb058a3e843b90af268e94132))
+
 ## [0.1.109](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.108...memo-patte-v0.1.109) (2026-10-24)
 
 
