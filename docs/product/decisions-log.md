@@ -2978,7 +2978,7 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
 
 ## 2026-10-24 — « Changer mon adresse e-mail » : l'état est gardé pendant la visite de l'aide (#1213)
 
-Décision de la session d'analyse du moteur, pour Gaelle, **à valider**. Exemple : à l'étape du code
+Décision de la session d'analyse du moteur, **validée par Gaelle le 2026-10-24** (garder le code en mémoire pendant la visite de l'aide : oui ; alternative écartée : ne rien garder). Exemple : à l'étape du code
 de l'adresse actuelle, Sophie touche « Tu n'as plus accès à cette adresse ? », lit Aide et contact puis
 revient par la flèche : l'écran retrouve la nouvelle adresse saisie et le code déjà tapé, sans nouvel
 e-mail ni minute d'attente de plus.
