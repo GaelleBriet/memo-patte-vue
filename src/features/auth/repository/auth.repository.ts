@@ -84,7 +84,9 @@ export function accountErrorFrom(cause: unknown): AccountError {
   if (name === 'AuthRetryableFetchError' && status === 0) {
     return new AccountError('offline', { cause })
   }
-  return new AccountError((code && REASONS_BY_CODE[code]) || 'unknown', { cause })
+  const reason =
+    code !== undefined && Object.hasOwn(REASONS_BY_CODE, code) ? REASONS_BY_CODE[code] : undefined
+  return new AccountError(reason ?? 'unknown', { cause })
 }
 
 type Revocation = { ok: true } | { ok: false; trace: string }
