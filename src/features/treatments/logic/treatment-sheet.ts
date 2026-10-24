@@ -1,4 +1,4 @@
-import { givenWhenMin, isExtraOn } from './treatment-notification'
+import { givenWhenMin } from './treatment-notification'
 import { givesBeforeItsDay, notifiedDues } from './treatment-other-date'
 import { doneGesture } from './treatment-shift-box'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
@@ -73,7 +73,7 @@ export function sheetDoneTarget(
   if (givesBeforeItsDay(view, pending.due, today)) {
     return { kind: 'already', givenOn: today }
   }
-  if (isExtraOn(view, pending.due, today)) {
+  if (view.asksExtraOrReplaces(pending.due, today)) {
     return { kind: 'detail', dueOn: pending.due.dueOn }
   }
   const tapped = doneGesture(reading, pending.due, today)
@@ -84,7 +84,7 @@ export function sheetDoneTarget(
 
 /** Premier jour proposé par « Fait à une autre date » pour l'échéance de la ligne. */
 export function sheetOtherDateMin(
-  view: Pick<TreatmentView, 'slots' | 'extraBoundary'>,
+  view: Pick<TreatmentView, 'slots' | 'earliestGivenOn'>,
   due: NotifiedDue,
   birthDate: string | null,
 ): string | null {

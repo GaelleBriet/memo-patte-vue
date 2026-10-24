@@ -1,5 +1,5 @@
 import type { Slot } from './calendar'
-import { dayOfKey, hoursOf, keyOf, later, longestStep, plusDays, stepped } from './grid'
+import { dayOfKey, keyOf, later, longestStep, plusDays, stepped } from './grid'
 import { episodeLines, isTaken } from './lines'
 import { momentOf } from './moment'
 import { dueReminders, type ReminderReading, type ReminderWindow } from './reminders'
@@ -56,8 +56,6 @@ export type TreatmentView = {
    * heures, jamais avant la première échéance du traitement.
    */
   earliestGivenOn(due: Due): Day | null
-  /** R5 : avant ce jour, une prise est une prise en plus ; `null` : jamais, à plusieurs heures par jour. */
-  extraBoundary(due: Due): Day | null
   /** R5 : donnée ce jour-là, la prise est en plus ou remplace cette échéance, à la personne de le dire. */
   asksExtraOrReplaces(due: Due, givenOn: Day): boolean
   currentSetting: Setting | null
@@ -239,12 +237,6 @@ export function buildView({ settings, lines: given, today }: TreatmentViewInput)
       return extra ? day : null
     },
     earliestGivenOn,
-    extraBoundary: (due) => {
-      const setting = byId.get(due.settingId)
-      return setting === undefined || hoursOf(setting.times).length > 1
-        ? null
-        : earliestGivenOn(due)
-    },
     asksExtraOrReplaces: (due, givenOn) => {
       const earliest = earliestGivenOn(due)
       return earliest !== null && givenOn < earliest

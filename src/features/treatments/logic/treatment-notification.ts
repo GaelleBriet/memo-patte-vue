@@ -54,19 +54,13 @@ export function isEveryDay({ frequency }: Pick<TreatmentPeriodRecord, 'frequency
   return frequency.value === 1 && frequency.unit === 'day'
 }
 
-/** R5, G11 : une prise avant ce jour serait une prise en plus ; `null` : pas de borne. */
-export function isExtraOn(view: Pick<TreatmentView, 'extraBoundary'>, due: Due, givenOn: string) {
-  const boundary = view.extraBoundary(due)
-  return boundary !== null && givenOn < boundary
-}
-
-/** Premier jour du calendrier de « Une autre date » : ni prise en plus, ni avant la naissance. */
+/** Premier jour du calendrier de « Une autre date » : jamais la question de R5, ni avant la naissance. */
 export function givenWhenMin(
-  view: Pick<TreatmentView, 'extraBoundary'>,
+  view: Pick<TreatmentView, 'earliestGivenOn'>,
   due: Due,
   birthDate: string | null,
 ): string | null {
-  const earliest = view.extraBoundary(due)
+  const earliest = view.earliestGivenOn(due)
   if (earliest === null || birthDate === null) return earliest ?? birthDate
   return earliest > birthDate ? earliest : birthDate
 }

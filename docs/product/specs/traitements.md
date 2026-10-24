@@ -423,9 +423,15 @@ Pas de question : une prise à moins d'un rythme d'une échéance qui n'est pas 
 couvre, en avance ou en retard) ; à plusieurs heures par jour, une heure donnée en avance dans sa
 journée (elle couvre son échéance) ; au-delà, la même borne d'un rythme qu'à une heure (lecture à
 confirmer par Gaelle : « au-delà de sa journée » pourrait aussi vouloir dire « dès la veille »).
-Notification et « À faire » : inchangés, leur calendrier s'arrête à la borne (Q33) ; sans réponse,
-le moteur garde la règle par distance pour les gestes qui ne posent pas la question (« Changer la
-date », jusqu'à #1229 ; anciens exports, C1 du 21 octobre 2026). Milbemax chaque semaine à 9 h, la
+Notification et « À faire » : inchangés quand aucune question ne se pose ; ils lisent la même borne
+que la fiche, à une heure comme à plusieurs : leur calendrier « Une autre date » s'arrête à elle, et
+« Fait aujourd'hui » de « À faire » ouvre la fiche au lieu d'écrire quand la question se poserait
+(Q34 du 24 octobre 2026 ; Métacam chaque semaine à 8 h et 20 h, première dose le 1er nov. : le 24 oct.,
+« Fait aujourd'hui » ne couvre plus en silence). La borne est la première échéance écrite du
+traitement, jamais la date de début d'un réglage (Milbemax chaque semaine, première dose repoussée le
+16 oct. du 20 oct. au 1er nov. : le 28 oct., « C'est fait » sur « 1er nov. » pose la question). Sans
+réponse, le moteur garde la règle d'avant Q27 pour les gestes qui ne posent pas la question (« Changer
+la date », jusqu'à #1229 ; anciens exports, C1 du 21 octobre 2026). Milbemax chaque semaine à 9 h, la
 dose du 24 octobre notée : « Fait à une autre date » ou « C'est fait » sur « Prochaine dose · 31 oct. »
 le 24 pose « Remplace celle du 31 oct. ».
 

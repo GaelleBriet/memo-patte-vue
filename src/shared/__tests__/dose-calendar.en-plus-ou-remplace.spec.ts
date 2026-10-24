@@ -163,6 +163,15 @@ describe('« En plus » ou « Remplace celle du … » (R5, Q27 du 24 octobre 20
       expect(written(extra)).toEqual([
         ['create', 'extra', '2026-10-24', '08:00', '2026-10-24', null],
       ])
+      const unanswered = noteDose(input, {
+        due: due('2026-11-01', '08:00'),
+        status: 'given',
+        givenOn: '2026-10-24',
+        shiftsFollowing: false,
+      })
+      expect(written(unanswered)).toEqual([
+        ['create', 'given', '2026-11-01', '08:00', '2026-10-24', null],
+      ])
     })
 
     it('moins d’un rythme avant : pas de question', () => {

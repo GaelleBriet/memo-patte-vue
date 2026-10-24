@@ -1,4 +1,4 @@
-import { keyOf, plusDays } from '../grid'
+import { hoursOf, keyOf, plusDays } from '../grid'
 import { isMoreRecent, isTaken } from '../lines'
 import { episodeIdsOf } from '../settings'
 import type {
@@ -62,11 +62,17 @@ function offersShift(input: TreatmentViewInput, view: TreatmentView, due: Due, g
   return later.notes.length === 0 && !later.others.some(({ status }) => status === 'shift')
 }
 
-function isExtra(view: TreatmentView, { due, givenOn, answer }: NoteGesture): boolean {
+// R5 : sans réponse (« Changer la date », anciens exports), la règle d'avant Q27 : en plus à une
+// heure, la dose couverte à plusieurs heures.
+function isExtra(
+  input: TreatmentViewInput,
+  view: TreatmentView,
+  { due, givenOn, answer }: NoteGesture,
+): boolean {
   if (!view.asksExtraOrReplaces(due, givenOn)) return false
   if (answer !== undefined) return answer === 'extra'
-  const boundary = view.extraBoundary(due)
-  return boundary !== null && givenOn < boundary
+  const setting = input.settings.find(({ id }) => id === due.settingId)
+  return setting !== undefined && hoursOf(setting.times).length <= 1
 }
 
 // TR-25 : la prise la plus récente de la dose dans sa période, de `device` s'il est donné.
@@ -105,7 +111,7 @@ export function noteDose(input: TreatmentViewInput, gesture: NoteGesture): Gestu
   const view = buildView(input)
   if (['moved', 'removed'].includes(view.dueState(due)))
     return { refusal: { reason: 'unknown-due' } }
-  if (status === 'given' && isExtra(view, gesture)) {
+  if (status === 'given' && isExtra(input, view, gesture)) {
     const extra: LineFields = {
       settingId: due.settingId,
       dueOn: givenOn,

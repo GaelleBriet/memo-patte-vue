@@ -5,7 +5,6 @@ import {
   givenWhenMin,
   givenWhenTexts,
   isEveryDay,
-  isExtraOn,
   notificationTarget,
 } from '../logic/treatment-notification'
 import { notifiedPlan } from '../logic/treatment-other-date'
@@ -203,13 +202,13 @@ describe('givenWhenMin — borne du calendrier de « Une autre date »', () => {
     expect(givenWhenMin(view(), DOSE_9, birthDate)).toBe(expected)
   })
 
-  it('sans borne du moteur, la naissance seule', () => {
+  it('à plusieurs heures, la même borne qu’à une heure (R5, Q34)', () => {
     const book = treatment([TOUS_LES_3_JOURS])
     const due = { settingId: 'p-1', dueOn: '2026-10-04', dueTime: '20:00' }
     const { view: plan } = treatmentReadingOf(book, '2026-10-07')
 
-    expect(givenWhenMin(plan, due, null)).toBeNull()
-    expect(givenWhenMin(plan, due, '2026-05-01')).toBe('2026-05-01')
+    expect(givenWhenMin(plan, due, null)).toBe('2026-10-02')
+    expect(givenWhenMin(plan, due, '2026-05-01')).toBe('2026-10-02')
   })
 })
 
@@ -250,22 +249,23 @@ describe('notifiedPlan — l’échéance de la notification, ou ses heures', ()
   })
 })
 
-describe('isExtraOn — « Une autre date » note toujours l’échéance de la notification', () => {
-  it('G11 : un intervalle ou plus avant l’échéance, ce serait une prise en plus', () => {
+describe('asksExtraOrReplaces — la borne de « Cette prise », à une heure comme à plusieurs (R5)', () => {
+  it('un rythme ou plus avant l’échéance, la question se pose', () => {
     const book = treatment([VENDREDIS], [dose('2026-10-02', '2026-10-09')])
     const { view } = treatmentReadingOf(book, '2026-10-12')
     const due = { settingId: 'p-1', dueOn: '2026-10-09', dueTime: null }
 
-    expect(isExtraOn(view, due, '2026-10-02')).toBe(true)
-    expect(isExtraOn(view, due, '2026-10-03')).toBe(false)
+    expect(view.asksExtraOrReplaces(due, '2026-10-02')).toBe(true)
+    expect(view.asksExtraOrReplaces(due, '2026-10-03')).toBe(false)
   })
 
-  it('à plusieurs heures par jour, aucune prise n’est en plus : pas de borne', () => {
+  it('à plusieurs heures par jour, la même borne (Q34)', () => {
     const book = treatment([TOUS_LES_3_JOURS])
     const { view } = treatmentReadingOf(book, '2026-10-07')
     const due = { settingId: 'p-1', dueOn: '2026-10-04', dueTime: '20:00' }
 
-    expect(isExtraOn(view, due, '2026-09-01')).toBe(false)
+    expect(view.asksExtraOrReplaces(due, '2026-09-01')).toBe(true)
+    expect(view.asksExtraOrReplaces(due, '2026-10-02')).toBe(false)
   })
 })
 
