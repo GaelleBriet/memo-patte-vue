@@ -2976,6 +2976,31 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
+## 2026-10-24 — Élément refusé pour toujours : gardé, compté dans Paramètres › Sauvegarde (#1035)
+
+Règles tranchées par la session d'analyse du moteur le 24 octobre 2026, pour Gaelle. Quand le
+serveur refuse un élément pour toujours (trois refus identiques de la même version : une contrainte
+de vérification, une date du 30 février, une photo trop lourde pour Storage), la synchro ne
+l'efface plus de sa file : elle le garde, marqué refusé, hors de la file. Exemple : la pesée de Milo
+du 12 mars est refusée ; la sauvegarde aboutit et Paramètres › Sauvegarde affiche, sous
+« Dernière sauvegarde : il y a 5 min », « Un élément n'a pas pu être sauvegardé · Contacter l'aide ».
+
+1. L'état disparaît quand l'élément est modifié puis sauvegardé, quand sa suppression est
+   sauvegardée, à la déconnexion, au changement de compte et à la restauration.
+2. La remise en file de tout le carnet retente l'élément refusé.
+3. Texte à pluriel, une seule clé : « Un élément n'a pas pu être sauvegardé · Contacter l'aide »,
+   « {n} éléments n'ont pas pu être sauvegardés · Contacter l'aide » ; en anglais « One item
+   couldn't be backed up · Contact support », « {n} items couldn't be backed up · Contact support ».
+   La ligne s'ajoute sous « Dernière sauvegarde » ou « Première sauvegarde », jamais seule ; elle
+   ouvre Aide et contact.
+4. Les photos refusées par Storage (413, 415, 400) comptent : « élément » les couvre.
+
+- Raison : la ligne restait dans le carnet du téléphone sans être dans le cloud, et « Dernière
+  sauvegarde » le taisait (#1035). Un élément refusé ne bloque jamais la file et ne compte pas dans
+  « N éléments sur M » de la première sauvegarde.
+- Alternative écartée : effacer l'entrée de la file et garder le refus dans le seul journal de debug
+  (comportement d'avant, invisible).
+
 ## 2026-10-23 — Deux horloges sur chaque ligne de dose : la décision et la dernière écriture (#1188)
 
 Décision de Gaelle du 23 octobre 2026, relayée par la session d'analyse du moteur. Chaque ligne de

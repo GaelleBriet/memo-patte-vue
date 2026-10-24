@@ -384,6 +384,23 @@ celles de la v18, sont redatées aussi : un effacement attend au plus 7 jours de
 `INSERT OR REPLACE` de premier niveau, sans `DELETE` ni `UPDATE`. Rien côté Supabase ni dans
 l'export.
 
+### 4.12 Évolution v22 (élément refusé pour toujours, #1035)
+
+`sync_outbox` reçoit `refused_at` (`TEXT`, nul par défaut) : l'instant où la synchro a renoncé à
+envoyer une entrée que le serveur refuse pour toujours (trois refus identiques de la même version,
+`proposition-sync.md` §3.3). L'entrée reste en table, hors de la file : `listPending` et
+`countPending` ne la lisent pas, `countRefused` la compte (photos des seuls animaux non supprimés)
+pour Paramètres › Sauvegarde. La marque disparaît quand l'élément est modifié ou supprimé puis
+sauvegardé : le déclencheur `sync_outbox_requeued` (`AFTER UPDATE OF queued_at`) la remet à nul dès
+qu'une nouvelle écriture avance `queued_at`, sans toucher aux déclencheurs de mise en file des
+tables. `enableAndQueueWholeCarnet` et la restauration la remettent à nul (nouvel essai) ;
+`forgetAccount` et « Effacer les données » vident la file avec elle.
+
+La migration (`src/core/db/migration-v22.ts`) reconstruit `sync_outbox` par copie, comme la v17 :
+`CREATE TABLE … AS SELECT`, `DROP`, `CREATE`, `INSERT … SELECT`, sans `DELETE` ni `UPDATE` de
+premier niveau ; le déclencheur est créé après la recopie. Chaque entrée garde sa date et ses essais,
+`refused_at` nul. Aucune migration Supabase : la file est locale ; rien dans l'export.
+
 ## 5. Décisions
 
 - 2026-09-29 — **M1 : une table `treatment_period` sous le traitement.** Le traitement garde l'animal,

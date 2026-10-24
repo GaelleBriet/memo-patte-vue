@@ -258,6 +258,19 @@ Déconnexion et expiration se traitent alors en deux instructions, sans toucher 
 - **Fin d'entrée** : on ne la supprime qu'après acquittement **et** si son `queued_at` n'a pas bougé
   depuis la lecture (§3.2) — sinon une modification survenue pendant la requête resterait en attente,
   l'entrée est gardée pour repartir au prochain cycle.
+- **Refus définitif (sortie de la file, #1035)** : une ligne que le serveur refuse trois fois de
+  suite à l'identique (même `code` et même message, Postgres `23514` ou classe `22`), pour la même
+  version (même `queued_at`), n'est plus envoyée : son entrée reste dans `sync_outbox`, marquée
+  `refused_at` (`core/sync/service/push-refusals.ts`), sous la même garde que la fin d'entrée — si
+  `queued_at` a bougé depuis la lecture, rien n'est marqué. Une entrée refusée ne bloque jamais la
+  file : `listPending` et `countPending` l'ignorent, le cycle aboutit et date la sauvegarde. Elle
+  repart quand la ligne est modifiée ou supprimée (le déclencheur `sync_outbox_requeued` efface
+  `refused_at` dès que `queued_at` avance), quand tout le carnet est remis en file
+  (`enableAndQueueWholeCarnet`) et à la restauration ; elle disparaît avec la file à la déconnexion
+  et au changement de compte (`forgetAccount`). Paramètres › Sauvegarde en compte le nombre
+  (`countRefused`, photos du carnet comprises) sous « Dernière sauvegarde » ou « Première
+  sauvegarde » ; elle ne compte pas dans « N éléments sur M ». Une panne passagère ou un refus de
+  droit se réessaient sans fin, sans jamais être marqués.
 
 ### 3.4 Le piège du ping-pong
 
@@ -375,7 +388,7 @@ fichier de plus de 2 Mio (taille lue par `stat`, sans lire le fichier) ou qui n'
 aussi, sans appel au serveur.
 Storage répond en HTTP 400 à presque tout refus, le motif est dans `statusCode` (relevé sur une pile
 locale) : 413, 415 et 400 sont définitifs et suivent la règle des lignes (trois refus identiques de
-la même version, puis sortie de la file) ; 403 (droit Plus pas encore ou plus actif, §4.2), une
+la même version, puis entrée marquée `refused_at`, §3.3) ; 403 (droit Plus pas encore ou plus actif, §4.2), une
 panne ou un réseau coupé se réessaient sans fin, comme un refus de droit sur une ligne. Une photo en
 échec ne retient ni les autres photos ni le pull. Une photo remplacée n'envoie donc que la nouvelle.
 
