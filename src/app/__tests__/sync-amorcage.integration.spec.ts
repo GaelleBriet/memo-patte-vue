@@ -246,4 +246,55 @@ describe('amorçage : le carnet local part en entier vers un compte vide', () =>
     expect(refusedItemsOf(await readFacts())).toBe(0)
     expect(server.rows('weight_entry').some((row) => row.id === weighing!.id)).toBe(true)
   })
+  it('Milo refusé par le serveur pendant la première sauvegarde : ses fiches refusées avec lui, la sauvegarde aboutit, puis repartent avec Milo modifié', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const readFacts = backupFacts()
+    const [milo] = await db.query<{ id: string }>("SELECT id FROM animal WHERE name = 'Milo'")
+    const children = SYNC_ENTITY_ORDER.filter((entity) =>
+      [
+        'vaccination',
+        'vaccination_injection',
+        'treatment',
+        'treatment_period',
+        'treatment_dose',
+        'weight_entry',
+      ].includes(entity),
+    )
+    let miloChildren = 0
+    for (const entity of children) {
+      const [row] = await db.query<{ total: number }>(
+        `SELECT COUNT(*) AS total FROM ${entity} WHERE animal_id = ?`,
+        [milo!.id],
+      )
+      miloChildren += row?.total ?? 0
+    }
+    const animals = tables.find((table) => table.entity === 'animal')!
+    const pushRow = animals.pushRow.bind(animals)
+    let refusing = true
+    animals.pushRow = async (userId, sent, push) => {
+      if (refusing && sent.id === milo!.id) {
+        throw { code: '23514', message: 'new row violates check constraint "animal_name_check"' }
+      }
+      return pushRow(userId, sent, push)
+    }
+    await outbox.enableAndQueueWholeCarnet()
+
+    for (let cycleRun = 0; cycleRun < 3; cycleRun += 1) await cycle.runCycle().catch(() => {})
+    await cycle.runCycle()
+
+    const refused = await readFacts()
+    expect(miloChildren).toBeGreaterThan(1)
+    expect(backupStatusOf(refused).kind).toBe('saved')
+    expect(refusedItemsOf(refused)).toBe(1 + miloChildren)
+
+    refusing = false
+    await db.run("UPDATE animal SET name = 'Milou', updated_at = ? WHERE id = ?", [
+      new Date(2026, 9, 21, 9).toISOString(),
+      milo!.id,
+    ])
+    await cycle.runCycle()
+
+    expect(refusedItemsOf(await readFacts())).toBe(0)
+    expect(server.rows('weight_entry').some((row) => row.animal_id === milo!.id)).toBe(true)
+  })
 })

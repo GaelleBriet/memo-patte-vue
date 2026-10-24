@@ -5,6 +5,7 @@ import { ANIMAL_PHOTO_ENTITY } from '@/core/db/schema-statements'
 import {
   createSyncOutboxRepository,
   SYNC_ENTITY_ORDER,
+  SYNC_PARENT_COLUMNS,
   type SyncOutboxRepository,
 } from '../repository/sync-outbox.repository'
 import {
@@ -714,6 +715,94 @@ describe('syncOutboxRepository', () => {
         ).resolves.toEqual([])
       })
     }
+
+    describe('enfants d’un parent refusé', () => {
+      async function refuse(entity: string, entityId: string, queuedAt: string) {
+        await repository.markRefusedIfUnchanged({ entity, entityId, queuedAt }, REFUSED_AT)
+      }
+
+      it('Milo refusé : sa pesée est refusée avec lui, hors de la file, comptée', async () => {
+        await enableSync(db)
+        await insertAnimal(db, ANIMAL_ID, T1, 'Milo')
+        await insertWeightEntry(db, 'w-12-mars', ANIMAL_ID, MARCH_12)
+        await insertAnimal(db, 'luna', T1, 'Luna')
+        await insertWeightEntry(db, 'w-luna', 'luna', T1)
+
+        await refuse('animal', ANIMAL_ID, T1)
+
+        await expect(repository.listPending()).resolves.toEqual([
+          { entity: 'animal', entityId: 'luna', queuedAt: T1, attempts: 0 },
+          { entity: 'weight_entry', entityId: 'w-luna', queuedAt: T1, attempts: 0 },
+        ])
+        await expect(repository.countPending()).resolves.toBe(2)
+        await expect(repository.countRefused()).resolves.toBe(2)
+      })
+
+      it('Milo modifié repart en file, et sa pesée avec lui', async () => {
+        await enableSync(db)
+        await insertAnimal(db, ANIMAL_ID, T1, 'Milo')
+        await insertWeightEntry(db, 'w-12-mars', ANIMAL_ID, MARCH_12)
+        await refuse('animal', ANIMAL_ID, T1)
+
+        await touchAnimal(db, ANIMAL_ID, LATER)
+
+        await expect(repository.listPending()).resolves.toHaveLength(2)
+        await expect(repository.countRefused()).resolves.toBe(0)
+      })
+
+      it('une pesée ajoutée à Milo pendant qu’il est refusé attend avec lui', async () => {
+        await enableSync(db)
+        await insertAnimal(db, ANIMAL_ID, T1, 'Milo')
+        await refuse('animal', ANIMAL_ID, T1)
+
+        await insertWeightEntry(db, 'w-nouvelle', ANIMAL_ID, LATER)
+
+        await expect(repository.listPending()).resolves.toEqual([])
+        await expect(repository.countRefused()).resolves.toBe(2)
+      })
+
+      it('suit chaque parent : vaccin refusé pour ses injections, période refusée pour ses prises', async () => {
+        await enableSync(db)
+        await insertAnimal(db, ANIMAL_ID, T1, 'Milo')
+        await insertVaccination(db, 'v-1', ANIMAL_ID, T1)
+        await insertVaccinationInjection(db, 'i-1', 'v-1', ANIMAL_ID, T1)
+        await insertTreatment(db, 't-1', ANIMAL_ID, T1)
+        await insertTreatmentPeriod(db, 'p-1', 't-1', ANIMAL_ID, T1)
+        await insertTreatmentDose(db, 'd-1', 'p-1', 't-1', ANIMAL_ID, T1)
+
+        await refuse('vaccination', 'v-1', T1)
+        await refuse('treatment_period', 'p-1', T1)
+
+        const pending = (await repository.listPending()).map(({ entity }) => entity)
+        expect(pending).toEqual(['animal', 'treatment'])
+        await expect(repository.countRefused()).resolves.toBe(4)
+      })
+
+      it('suit chaque clé étrangère des tables synchronisées, et elles seules', async () => {
+        const foreignKeys: Record<string, Record<string, string>> = {}
+        for (const entity of SYNC_ENTITY_ORDER) {
+          const keys = await db.query<{ from: string; table: string }>(
+            `PRAGMA foreign_key_list(${entity})`,
+          )
+          if (keys.length > 0) {
+            foreignKeys[entity] = Object.fromEntries(keys.map(({ from, table }) => [from, table]))
+          }
+        }
+
+        expect(foreignKeys).toEqual(SYNC_PARENT_COLUMNS)
+      })
+
+      it('ne retient pas la photo de Milo : son envoi ne dépend pas de la ligne', async () => {
+        await enableSync(db)
+        await insertAnimal(db, ANIMAL_ID, T1, 'Milo', PHOTO_MILO)
+
+        await refuse('animal', ANIMAL_ID, T1)
+
+        await expect(repository.listPending()).resolves.toEqual([
+          { entity: ANIMAL_PHOTO_ENTITY, entityId: PHOTO_MILO, queuedAt: T1, attempts: 0 },
+        ])
+      })
+    })
 
     it('la déconnexion oublie l’état refusé avec la file', async () => {
       await refuseMiloWeighing()
