@@ -5,6 +5,26 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.115](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.114...memo-patte-v0.1.115) (2026-10-24)
+
+
+### ✨ Fonctionnalités
+
+* **purge:** supprimer à 7 jours, sans e-mail, un compte dont l'adresse n'a jamais été confirmée ([bb4f838](https://github.com/GaelleBriet/memo-patte-vue/commit/bb4f838553f7ed73b486868a01f4dc5e05ba2ada))
+* **purge:** supprimer à J+7 sans e-mail un compte à l'adresse jamais confirmée ([2c725d6](https://github.com/GaelleBriet/memo-patte-vue/commit/2c725d6b9d6d2073c9d908d9ede494b43e9db7e2))
+
+
+### 🐛 Corrections
+
+* **auth:** les tables de codes d'erreur ne lisent plus les noms du prototype ([1273109](https://github.com/GaelleBriet/memo-patte-vue/commit/127310942c7dbc97dd7001151770ac86b28dfc31))
+* **auth:** ne lire que les codes propres à la table des échecs Google ([52e078b](https://github.com/GaelleBriet/memo-patte-vue/commit/52e078b9911e7ba240afc9d76d133f1e42b8efb9))
+* **auth:** ne lire que les codes propres à la table des raisons ([0f5674f](https://github.com/GaelleBriet/memo-patte-vue/commit/0f5674f400618e45e58e2b03da49eb828adf922a))
+* **moteur:** « Changer la date » garde la dose visée par la prise ([008c755](https://github.com/GaelleBriet/memo-patte-vue/commit/008c755660b3b69ada3e75e80543a591a8f7c44e))
+* **moteur:** juger la date choisie contre l'instant du « Modifier », pas la grille héritée ([4f83884](https://github.com/GaelleBriet/memo-patte-vue/commit/4f83884546eb56747d06e1dfc967b9a6ce838376))
+* **moteur:** la date choisie par « Modifier » se juge contre l'instant du « Modifier », pas contre la date de grille héritée ([757e41f](https://github.com/GaelleBriet/memo-patte-vue/commit/757e41ffa6308dff8b2bce228753afa7f35274c5))
+* **purge:** passer les suppressions annoncées avant les adresses non confirmées ([f39a60e](https://github.com/GaelleBriet/memo-patte-vue/commit/f39a60e12b5d8ef2f559e8042d555d2b3610ea06))
+* **purge:** supprimer les plus anciennes d'abord à rang égal et figer l'ordre des rangs ([b85674b](https://github.com/GaelleBriet/memo-patte-vue/commit/b85674b794a9e7c63a030e4eed553057767c8195))
+
 ## [0.1.114](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.113...memo-patte-v0.1.114) (2026-10-24)
 
 
