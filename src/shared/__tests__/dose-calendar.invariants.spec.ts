@@ -43,7 +43,7 @@ function playCampaign({ from, seeds, steps }: Campaign): Played {
     refusedCorrections: 0,
   }
   for (let seed = from; seed < from + seeds; seed += 1) {
-    const walk = startV2Walk(seed)
+    const walk = startV2Walk(seed, { answers: true })
     const checks = mulberry32(seed ^ 0x4f1bbcdc)
     let failure: string | null = null
     const onStep = (step: V2Step) => {

@@ -34,7 +34,7 @@ export function oracleConfig(env: Record<string, string | undefined>): OracleCon
 }
 
 function playCarnet(config: OracleConfig, seed: number, run: OracleRun): string | null {
-  const walk = startV2Walk(seed)
+  const walk = startV2Walk(seed, { answers: true })
   const first = naive(walk.input)
   if (first !== null) return `graine ${seed}, création : ${first.detail}`
   let divergence: string | null = null

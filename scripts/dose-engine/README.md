@@ -59,6 +59,12 @@ La ligne « Campagne : N carnets × M gestes, graines A à B » dit ce qui a ét
 illisible arrête la campagne ; un échec imprime le carnet avant le geste fautif et les gestes joués.
 Par défaut (suite normale) : 25 carnets × 24 gestes.
 
+« Cette prise » (R5, Q27) : quand une prise serait en plus ou remplacerait sa dose, les campagnes à un
+téléphone (invariants, oracle, rappels, services) tirent la réponse « En plus » ou « Remplace » à part
+(`startV2Walk(seed, { answers: true })`), sans changer les autres tirages de la graine. Les carnets
+rejoués par graine dans les specs, et les campagnes à deux téléphones, gardent la règle par distance,
+celle d'avant Q27, que le moteur applique encore sans réponse (« Changer la date », anciens exports).
+
 ## Les services des traitements contre le moteur v2
 
 `src/features/treatments/__tests__/treatment-services.oracle.service.spec.ts` rejoue les gestes du

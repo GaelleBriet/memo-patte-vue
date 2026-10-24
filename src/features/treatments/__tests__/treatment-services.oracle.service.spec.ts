@@ -190,7 +190,7 @@ describe('les services des traitements rejouent les gestes du moteur v2', () => 
       let played = 0
       let refused = 0
       for (let seed = FROM; seed < FROM + SEEDS; seed += 1) {
-        const walk = startV2Walk(seed)
+        const walk = startV2Walk(seed, { answers: true })
         const id = crypto.randomUUID()
         const periods: Periods = new Map([['s1', id]])
         await replay.start(walk, id)
