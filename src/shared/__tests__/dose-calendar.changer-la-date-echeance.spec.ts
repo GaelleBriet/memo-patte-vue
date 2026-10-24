@@ -3,12 +3,13 @@ import { describe, expect, it } from 'vitest'
 
 import {
   applied,
+  redateAsksExtraOrReplaces,
   redateDose,
   treatmentView,
   type GestureOutcome,
   type TreatmentViewInput,
 } from '../domain/dose-calendar'
-import { DAY, days, H, keys, line, setting } from './dose-calendar.v2.aides'
+import { DAY, days, H, keys, line, setting, WEEK } from './dose-calendar.v2.aides'
 
 const accepted = (result: ReturnType<typeof redateDose>) => {
   if ('refusal' in result) throw new Error(`refusé : ${result.refusal.reason}`)
@@ -113,5 +114,51 @@ describe('« Changer la date » ne change jamais l’échéance d’une prise (T
       redateDose(input, { lineId: nov.id, givenOn: '2026-08-02', shiftsFollowing: false }),
     )
     expect(rewritten(input, result, nov.id)).toEqual(['2026-11-01', null, 'given', '2026-08-02'])
+  })
+})
+
+describe('« Changer la date » d’une prise en plus pose « Cette prise » quand elle couvrirait une dose (Q37)', () => {
+  // Milbemax chaque vendredi : 2, 9, 16, 23, 30 ; le 16, la dose donnée puis une prise « En plus ».
+  const milbemax = setting('p1', '2026-10-02', WEEK)
+  const given = ['2026-10-02', '2026-10-09', '2026-10-16'].map((day) => line('p1', 'given', day))
+  const enPlus = line('p1', 'extra', '2026-10-16')
+  const input = { settings: [milbemax], lines: [...given, enPlus], today: '2026-10-17' }
+
+  it('le 17 couvrirait la dose du 23 : la question se pose ; le 15 et le 16, non', () => {
+    expect(redateAsksExtraOrReplaces(input, enPlus.id, '2026-10-17')).toEqual({
+      settingId: 'p1',
+      dueOn: '2026-10-23',
+      dueTime: null,
+    })
+    expect(redateAsksExtraOrReplaces(input, enPlus.id, '2026-10-15')).toBeNull()
+    expect(redateAsksExtraOrReplaces(input, enPlus.id, '2026-10-16')).toBeNull()
+  })
+
+  it('« En plus » : une prise en plus le 17, la prochaine dose reste le 23', () => {
+    const result = accepted(
+      redateDose(input, {
+        lineId: enPlus.id,
+        givenOn: '2026-10-17',
+        shiftsFollowing: false,
+        answer: 'extra',
+      }),
+    )
+
+    expect(rewritten(input, result, enPlus.id)).toEqual(['2026-10-17', null, 'extra', '2026-10-17'])
+    expect(treatmentView(applied(input, result.changes)).nextDue?.dueOn).toBe('2026-10-23')
+  })
+
+  it('« Remplace celle du 23 oct. » : la dose du 23 donnée le 17, prochaine dose le 30', () => {
+    const result = accepted(
+      redateDose(input, {
+        lineId: enPlus.id,
+        givenOn: '2026-10-17',
+        shiftsFollowing: false,
+        answer: 'replaces',
+      }),
+    )
+
+    expect(rewritten(input, result, enPlus.id)).toEqual(['2026-10-23', null, 'given', '2026-10-17'])
+    expect(treatmentView(applied(input, result.changes)).nextDue?.dueOn).toBe('2026-10-30')
   })
 })
