@@ -10,10 +10,12 @@ import {
   type SyncOutboxRepository,
 } from '@/core/sync/repository/sync-outbox.repository'
 import { createSyncPushRepository } from '@/core/sync/repository/sync-push.repository'
+import { createBackupFactsReader } from '@/core/sync/service/backup-facts'
 import { createSyncCycle, type SyncCycle } from '@/core/sync/service/sync-cycle'
 import { normalizeSyncTimestamps } from '@/core/sync/service/normalize-sync-timestamps'
 import type { SyncRow, SyncableTable } from '@/core/sync/service/syncable-table'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
+import { backupStatusOf } from '@/features/settings/logic/backup-status'
 import { createCarnetSettingsRepository } from '@/features/settings/repository/carnet-settings.repository'
 import { createTreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
 import { createTreatmentPeriodsRepository } from '@/features/treatments/repository/treatment-periods.repository'
@@ -152,4 +154,59 @@ describe('amorçage : le carnet local part en entier vers un compte vide', () =>
     expect(SYNC_ENTITY_ORDER.map((entity) => server.rows(entity))).toEqual(before)
     await expect(outbox.listPending()).resolves.toEqual([])
   })
+
+  function backupFacts() {
+    return createBackupFactsReader({
+      outbox,
+      isEligible: () => true,
+      signInNeeded: () => false,
+      isOnline: async () => true,
+    })
+  }
+
+  it('Paramètres › Sauvegarde compte la première sauvegarde sur ce qui part, photos et animal non suivi compris, puis donne la dernière sauvegarde', async () => {
+    const [first, second] = await db.query<{ id: string }>('SELECT id FROM animal ORDER BY id')
+    await db.run("UPDATE animal SET photo_path = 'milo.jpg' WHERE id = ?", [first!.id])
+    await db.run(
+      "UPDATE animal SET photo_path = 'luna.jpg', unfollowed_on = '2026-10-01' WHERE id = ?",
+      [second!.id],
+    )
+    const readFacts = backupFacts()
+    await outbox.enableAndQueueWholeCarnet()
+    const photos = (await outbox.listPending()).filter(({ entity }) => entity === 'animal_photo')
+    expect(photos.map(({ entityId }) => entityId).sort()).toEqual(['luna.jpg', 'milo.jpg'])
+    const queued = (await outbox.listPending()).length
+
+    expect(queued).toBeGreaterThan(20)
+    expect(backupStatusOf(await readFacts())).toEqual({
+      kind: 'first-backup',
+      done: 0,
+      total: queued,
+    })
+
+    await cycle.runCycle()
+
+    expect(backupStatusOf(await readFacts())).toEqual({
+      kind: 'saved',
+      at: new Date(2026, 9, 21, 8).toISOString(),
+    })
+  })
+
+  for (const mode of ['merge', 'replace'] as const) {
+    it(`un compte B restauré (« ${mode === 'merge' ? 'Fusionner' : 'Remplacer'} ») après A ne montre jamais la dernière sauvegarde de A`, async () => {
+      const readFacts = backupFacts()
+      await outbox.enableAndQueueWholeCarnet()
+      await cycle.runCycle()
+      expect(backupStatusOf(await readFacts()).kind).toBe('saved')
+
+      await outbox.forgetAccount()
+      expect((await readFacts()).lastSyncedAt).toBeNull()
+      await outbox.setLastSyncedAt('2026-10-20T18:00:00.000Z')
+      await outbox.startRestore(mode)
+      const { before, after } = outbox.restoreStatements({ mode, cursors: [] })
+      await db.runMany([...before, ...after])
+
+      expect(backupStatusOf(await readFacts()).kind).toBe('first-backup')
+    })
+  }
 })

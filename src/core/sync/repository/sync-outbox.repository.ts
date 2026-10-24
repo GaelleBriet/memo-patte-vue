@@ -94,11 +94,33 @@ export function createSyncOutboxRepository(db: DbClient) {
      */
     async enableAndQueueWholeCarnet(): Promise<void> {
       await db.runMany([
-        { sql: 'UPDATE sync_state SET enabled = 1 WHERE id = 1' },
+        { sql: 'UPDATE sync_state SET enabled = 1, last_synced_at = NULL WHERE id = 1' },
         { sql: 'DELETE FROM sync_pull_cursor' },
         ...SYNC_ENTITY_ORDER.map(queueWholeTable),
         queueLiveAnimalPhotos(),
       ])
+    },
+
+    /** Ce que `enableAndQueueWholeCarnet` met en file : chaque ligne du carnet et chaque photo. */
+    async countWholeCarnet(): Promise<number> {
+      const counts = [
+        ...SYNC_ENTITY_ORDER.map((entity) => `SELECT COUNT(*) FROM ${entity}`),
+        `SELECT COUNT(DISTINCT photo_path) ${LIVE_ANIMAL_PHOTOS_FROM}`,
+      ]
+      const [row] = await db.query<{ total: number }>(
+        `SELECT ${counts.map((count) => `(${count})`).join(' + ')} AS total`,
+      )
+      return row?.total ?? 0
+    },
+
+    /** Hors effacement d'une photo sortie du carnet, qui ne sauvegarde rien. */
+    async countPending(): Promise<number> {
+      const [row] = await db.query<{ total: number }>(
+        `SELECT COUNT(*) AS total FROM sync_outbox
+         WHERE entity <> ? OR entity_id IN (SELECT photo_path ${LIVE_ANIMAL_PHOTOS_FROM})`,
+        [ANIMAL_PHOTO_ENTITY],
+      )
+      return row?.total ?? 0
     },
 
     async getLastPulledAt(entity: string): Promise<string | null> {
@@ -154,7 +176,7 @@ export function createSyncOutboxRepository(db: DbClient) {
     }): { before: SqlStatement[]; after: SqlStatement[] } {
       return {
         before: [
-          { sql: 'UPDATE sync_state SET enabled = 0 WHERE id = 1' },
+          { sql: 'UPDATE sync_state SET enabled = 0, last_synced_at = NULL WHERE id = 1' },
           { sql: 'DELETE FROM sync_pull_cursor' },
           ...(mode === 'merge'
             ? [...SYNC_ENTITY_ORDER.map(queueWholeTable), queueLiveAnimalPhotos()]
@@ -194,10 +216,16 @@ export function createSyncOutboxRepository(db: DbClient) {
       ])
     },
 
-    /** Déconnexion (§5 de la proposition) : le compte suivant ne reçoit ni la file ni les curseurs du précédent. */
+    /**
+     * Déconnexion (§5 de la proposition) : le compte suivant ne reçoit ni la file, ni les curseurs,
+     * ni la dernière sauvegarde du précédent.
+     */
     async forgetAccount(): Promise<void> {
       await db.runMany([
-        { sql: 'UPDATE sync_state SET enabled = 0, restoring = 0 WHERE id = 1' },
+        {
+          sql: `UPDATE sync_state SET enabled = 0, restoring = 0, last_synced_at = NULL
+                WHERE id = 1`,
+        },
         { sql: 'DELETE FROM sync_outbox' },
         { sql: 'DELETE FROM sync_pull_cursor' },
       ])

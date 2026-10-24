@@ -15,6 +15,7 @@ import checkCircleFill from '@material-symbols/svg-400/outlined/check_circle-fil
 import cloudDone from '@material-symbols/svg-400/outlined/cloud_done.svg?raw'
 import cloudDownload from '@material-symbols/svg-400/outlined/cloud_download.svg?raw'
 import cloudOff from '@material-symbols/svg-400/outlined/cloud_off.svg?raw'
+import cloudSync from '@material-symbols/svg-400/outlined/cloud_sync.svg?raw'
 import cloudUpload from '@material-symbols/svg-400/outlined/cloud_upload.svg?raw'
 import contentCopy from '@material-symbols/svg-400/outlined/content_copy.svg?raw'
 import creditCard from '@material-symbols/svg-400/outlined/credit_card.svg?raw'
@@ -49,6 +50,7 @@ import iosShare from '@material-symbols/svg-400/outlined/ios_share.svg?raw'
 import language from '@material-symbols/svg-400/outlined/language.svg?raw'
 import lock from '@material-symbols/svg-400/outlined/lock.svg?raw'
 import lightbulb from '@material-symbols/svg-400/outlined/lightbulb.svg?raw'
+import login from '@material-symbols/svg-400/outlined/login.svg?raw'
 import logout from '@material-symbols/svg-400/outlined/logout.svg?raw'
 import mail from '@material-symbols/svg-400/outlined/mail.svg?raw'
 import password from '@material-symbols/svg-400/outlined/password.svg?raw'
@@ -68,6 +70,7 @@ import pestControl from '@material-symbols/svg-400/outlined/pest_control.svg?raw
 import pendingActions from '@material-symbols/svg-400/outlined/pending_actions.svg?raw'
 import pets from '@material-symbols/svg-400/outlined/pets.svg?raw'
 import photoCamera from '@material-symbols/svg-400/outlined/photo_camera.svg?raw'
+import photoLibrary from '@material-symbols/svg-400/outlined/photo_library.svg?raw'
 import pictureAsPdf from '@material-symbols/svg-400/outlined/picture_as_pdf.svg?raw'
 import pill from '@material-symbols/svg-400/outlined/pill.svg?raw'
 import queryStats from '@material-symbols/svg-400/outlined/query_stats.svg?raw'
@@ -83,6 +86,7 @@ import shield from '@material-symbols/svg-400/outlined/shield.svg?raw'
 import showChart from '@material-symbols/svg-400/outlined/show_chart.svg?raw'
 import starShine from '@material-symbols/svg-400/outlined/star_shine.svg?raw'
 import storefront from '@material-symbols/svg-400/outlined/storefront.svg?raw'
+import syncProblem from '@material-symbols/svg-400/outlined/sync_problem.svg?raw'
 import tableView from '@material-symbols/svg-400/outlined/table_view.svg?raw'
 import tune from '@material-symbols/svg-400/outlined/tune.svg?raw'
 import today from '@material-symbols/svg-400/outlined/today.svg?raw'
@@ -187,6 +191,7 @@ export const msIcons = {
   cloud_done: cloudDone,
   cloud_download: cloudDownload,
   cloud_off: cloudOff,
+  cloud_sync: cloudSync,
   cloud_upload: cloudUpload,
   colorize,
   content_copy: contentCopy,
@@ -235,6 +240,7 @@ export const msIcons = {
   last_page: lastPage,
   lightbulb,
   lock,
+  login,
   logout,
   mail,
   mark_email_unread: markEmailUnread,
@@ -257,6 +263,7 @@ export const msIcons = {
   pending_actions: pendingActions,
   pets,
   photo_camera: photoCamera,
+  photo_library: photoLibrary,
   picture_as_pdf: pictureAsPdf,
   pill,
   play_arrow: playArrow,
@@ -282,6 +289,7 @@ export const msIcons = {
   star_fill: starFill,
   star_half: starHalf,
   storefront,
+  sync_problem: syncProblem,
   table_view: tableView,
   today,
   tune,

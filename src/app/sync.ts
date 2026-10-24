@@ -2,8 +2,9 @@ import { watch } from 'vue'
 
 import { onAppResume } from '@/core/app-lifecycle/app-resume'
 import { getDeviceRepository } from '@/core/device/device.repository'
+import { createBackupFactsReader, provideBackupFacts } from '@/core/sync/service/backup-facts'
 import { createLocalSyncContext } from '@/core/sync/service/local-sync-context'
-import { onNetworkOnline } from '@/core/sync/service/network-status'
+import { isNetworkConnected, onNetworkOnline } from '@/core/sync/service/network-status'
 import type { SyncOutboxRepository } from '@/core/sync/repository/sync-outbox.repository'
 import type { RestorableTable } from '@/core/sync/service/account-restore'
 import { providePhotoRestoreStatus } from '@/core/sync/service/photo-restore-status'
@@ -57,7 +58,8 @@ export interface SyncDependencies {
 /**
  * Branche le cycle sur ses déclencheurs (lancement, retour au premier plan, retour du réseau,
  * connexion réussie) ; le debounce après écriture est déjà câblé côté triggers SQLite. Le compte
- * ne disparaît qu'à la déconnexion explicite : la synchro oublie alors sa file et ses curseurs.
+ * ne disparaît qu'à la déconnexion explicite : la synchro oublie alors sa file, ses curseurs et sa
+ * dernière sauvegarde.
  * Un compte qui en remplace un autre repart, comme une première connexion, du contrôle de sa
  * sauvegarde, fait une fois par lancement et par compte dès que sa session est active. Une
  * restauration choisie reprend seule au lancement, au retour au premier plan et du réseau, comme un
@@ -194,14 +196,24 @@ export async function createDefaultSyncDependencies(): Promise<SyncDependencies>
   ]
   const userId = () => useAuthStore().userId
   const sessionActive = () => useAuthStore().sessionState === 'active'
+  const isEligible = () =>
+    useAuthStore().hasPlusAccount && usePurchaseStore().status.plan !== 'none'
   const { outbox, cycle, restore, photoRestore } = await createLocalSyncContext({
     tables,
     userId,
     sessionActive,
-    isEligible: () => useAuthStore().hasPlusAccount && usePurchaseStore().status.plan !== 'none',
+    isEligible,
     onRemindersOutdated: syncAllReminders,
   })
   providePhotoRestoreStatus(photoRestore.isRunning)
+  provideBackupFacts(
+    createBackupFactsReader({
+      outbox,
+      isEligible,
+      signInNeeded: () => useAuthStore().sessionState === 'needs-sign-in',
+      isOnline: isNetworkConnected,
+    }),
+  )
   const restoreFlow = createRestoreFlow(restore)
   provideRestoreFlow(restoreFlow)
   const accountBackup = createAccountBackupService({
