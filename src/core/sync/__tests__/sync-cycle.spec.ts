@@ -588,6 +588,8 @@ describe('createSyncCycle', () => {
       return animal
     }
 
+    const REFUSED_AT = '2026-10-24T10:00:00.000Z'
+
     function cycleWith(outbox: ReturnType<typeof createFakeOutbox>, tables: SyncableTable[]) {
       return createSyncCycle({
         db,
@@ -596,6 +598,7 @@ describe('createSyncCycle', () => {
         tables,
         userId: () => 'user-1',
         isEligible: () => true,
+        now: () => new Date(REFUSED_AT),
       })
     }
 
@@ -632,7 +635,7 @@ describe('createSyncCycle', () => {
       expect(outbox.cursor('animal')).toBe(T_ROW)
     })
 
-    it('sort de la file une ligne refusée trois fois par le même CHECK, sans faire échouer le cycle', async () => {
+    it('marque refusée une ligne refusée trois fois par le même CHECK, sans faire échouer le cycle', async () => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
       const animal = refusingAnimal(() => CHECK_REFUSAL)
       const outbox = createFakeOutbox([entry('animal', 'a1')])
@@ -644,10 +647,33 @@ describe('createSyncCycle', () => {
 
       await expect(cycle.runCycle()).resolves.toBeUndefined()
 
-      expect(outbox.entries()).toEqual([])
+      expect(outbox.entries()).toEqual([
+        { ...entry('animal', 'a1'), attempts: 3, refusedAt: REFUSED_AT },
+      ])
       expect(outbox.lastSyncedAt()).not.toBeNull()
       expect(warn).toHaveBeenCalledOnce()
       warn.mockRestore()
+    })
+
+    it('ne renvoie plus la ligne refusée aux cycles suivants', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {})
+      let sends = 0
+      const animal = refusingAnimal(() => {
+        sends += 1
+        return CHECK_REFUSAL
+      })
+      const outbox = createFakeOutbox([entry('animal', 'a1')])
+      const cycle = cycleWith(outbox, [animal])
+      await cycle.runCycle().catch(() => {})
+      await cycle.runCycle().catch(() => {})
+      await cycle.runCycle()
+
+      await expect(cycle.runCycle()).resolves.toBeUndefined()
+
+      expect(sends).toBe(3)
+      expect(outbox.entries()).toEqual([
+        { ...entry('animal', 'a1'), attempts: 3, refusedAt: REFUSED_AT },
+      ])
     })
 
     it('ne journalise de la ligne refusée ni le nom de l’animal ni ses dates', async () => {
@@ -681,7 +707,9 @@ describe('createSyncCycle', () => {
       await expect(cycle.runCycle()).rejects.toBe(refusal)
       await cycle.runCycle()
 
-      expect(outbox.entries()).toEqual([])
+      expect(outbox.entries()).toEqual([
+        { ...entry('animal', 'a1'), attempts: 3, refusedAt: REFUSED_AT },
+      ])
       warn.mockRestore()
     })
 

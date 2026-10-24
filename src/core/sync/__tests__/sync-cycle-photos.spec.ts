@@ -780,7 +780,7 @@ describe('createSyncCycle — photos', () => {
   describe('envoi qui échoue', () => {
     const TOO_LARGE = () => new PhotoUploadRefusal('413 EntityTooLarge')
 
-    it('sort de la file une photo refusée trois fois de la même façon, sans faire échouer le cycle', async () => {
+    it('marque refusée une photo refusée trois fois de la même façon, sans faire échouer le cycle', async () => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
       const outbox = createFakeOutbox([photoEntry(MILO_PHOTO)])
       const uploads = fakeUploads()
@@ -793,11 +793,32 @@ describe('createSyncCycle — photos', () => {
 
       await expect(cycle.runCycle()).resolves.toBeUndefined()
 
-      expect(outbox.entries()).toEqual([])
+      expect(outbox.entries()).toEqual([
+        { ...photoEntry(MILO_PHOTO), attempts: 3, refusedAt: GRACE_OVER.toISOString() },
+      ])
       expect(warn).toHaveBeenCalledOnce()
       const logged = JSON.stringify(warn.mock.calls)
       expect(logged).toContain('413 EntityTooLarge')
       expect(logged).not.toContain(MILO_PHOTO)
+    })
+
+    it('ne renvoie plus la photo refusée aux cycles suivants', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const outbox = createFakeOutbox([photoEntry(MILO_PHOTO)])
+      const uploads = fakeUploads()
+      let sends = 0
+      uploads.failures.set(MILO_PHOTO, () => {
+        sends += 1
+        return TOO_LARGE()
+      })
+      const cycle = cycleWith(outbox, fakeFiles({ [MILO_PHOTO]: jpeg() }), uploads)
+      await cycle.runCycle().catch(() => {})
+      await cycle.runCycle().catch(() => {})
+      await cycle.runCycle()
+
+      await expect(cycle.runCycle()).resolves.toBeUndefined()
+
+      expect(sends).toBe(3)
     })
 
     it('recompte depuis zéro quand la photo est remise en file entre deux refus', async () => {

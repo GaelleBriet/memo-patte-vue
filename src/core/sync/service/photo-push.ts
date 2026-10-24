@@ -22,14 +22,19 @@ const photoRefusalSignature = (cause: unknown) =>
   cause instanceof PhotoUploadRefusal ? cause.reason : null
 
 export function createPhotoPush(
-  outbox: Pick<SyncCycleOutbox, 'listPending' | 'removeIfUnchanged' | 'recordFailedPush'>,
+  outbox: Pick<
+    SyncCycleOutbox,
+    'listPending' | 'removeIfUnchanged' | 'markRefusedIfUnchanged' | 'recordFailedPush'
+  >,
   { files, uploads, isPhotoInCarnet }: PhotoPushDependencies,
+  now: () => Date,
 ): PhotoPush {
   const refusals = createPushRefusals({
     outbox,
     signature: photoRefusalSignature,
     onGivenUp: (_entry, cause) =>
-      console.warn('Photo refusée par le serveur, sortie de la file :', errorSummary(cause)),
+      console.warn('Photo refusée par le serveur, plus envoyée :', errorSummary(cause)),
+    now,
   })
 
   async function pushEntry(userId: string, entry: SyncOutboxEntry): Promise<void> {

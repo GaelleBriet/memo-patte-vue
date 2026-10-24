@@ -31,6 +31,7 @@ function fakeOutbox(pending: number): SyncDependencies['outbox'] {
       })),
     ),
     removeIfUnchanged: vi.fn<SyncCycleOutbox['removeIfUnchanged']>(async () => {}),
+    markRefusedIfUnchanged: vi.fn<SyncCycleOutbox['markRefusedIfUnchanged']>(async () => {}),
     getLastPulledAt: vi.fn<SyncCycleOutbox['getLastPulledAt']>(async () => null),
     setLastPulledAt: vi.fn<SyncCycleOutbox['setLastPulledAt']>(async () => {}),
     isEnabled: vi.fn<SyncCycleOutbox['isEnabled']>(async () => true),

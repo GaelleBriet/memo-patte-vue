@@ -25,6 +25,10 @@ const REMINDER_ENTITIES = new Set([
 export interface SyncCycleOutbox {
   listPending(): Promise<SyncOutboxEntry[]>
   removeIfUnchanged(entry: Pick<SyncOutboxEntry, 'entity' | 'entityId' | 'queuedAt'>): Promise<void>
+  markRefusedIfUnchanged(
+    entry: Pick<SyncOutboxEntry, 'entity' | 'entityId' | 'queuedAt'>,
+    refusedAt: string,
+  ): Promise<void>
   getLastPulledAt(entity: string): Promise<string | null>
   setLastPulledAt(entity: string, lastPulledAt: string): Promise<void>
   isEnabled(): Promise<boolean>
@@ -81,16 +85,17 @@ const sameRow = (sent: SyncRow, kept: SyncRow) =>
 
 export function createSyncCycle(deps: SyncCycleDependencies): SyncCycle {
   const tablesByEntity = new Map(deps.tables.map((table) => [table.entity, table]))
+  const now = deps.now ?? (() => new Date())
   const refusals = createPushRefusals({
     outbox: deps.outbox,
     onGivenUp: (entry, cause) =>
       console.warn(
-        `Ligne refusée par le serveur, sortie de la file (${entry.entity}) :`,
+        `Ligne refusée par le serveur, plus envoyée (${entry.entity}) :`,
         errorSummary(cause),
       ),
+    now,
   })
-  const photoPush = deps.photos && createPhotoPush(deps.outbox, deps.photos)
-  const now = deps.now ?? (() => new Date())
+  const photoPush = deps.photos && createPhotoPush(deps.outbox, deps.photos, now)
   const photoRemoval = deps.photos && createPhotoRemoval(deps.outbox, deps.photos, now)
 
   /** Les écritures de la synchro ne repartent pas dans la file d'envoi. */

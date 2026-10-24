@@ -5,6 +5,7 @@ export interface FakeOutboxEntry {
   entityId: string
   queuedAt: string
   attempts: number
+  refusedAt?: string
 }
 
 export function createFakeOutbox(
@@ -21,7 +22,14 @@ export function createFakeOutbox(
   let lastSyncedAt: string | null = null
   return {
     async listPending() {
-      return entries.map((entry) => ({ ...entry }))
+      return entries
+        .filter(({ refusedAt }) => refusedAt === undefined)
+        .map(({ entity, entityId, queuedAt, attempts }) => ({
+          entity,
+          entityId,
+          queuedAt,
+          attempts,
+        }))
     },
     async removeIfUnchanged(target) {
       entries = entries.filter(
@@ -31,6 +39,15 @@ export function createFakeOutbox(
             entry.entityId === target.entityId &&
             entry.queuedAt === target.queuedAt
           ),
+      )
+    },
+    async markRefusedIfUnchanged(target, refusedAt) {
+      entries = entries.map((entry) =>
+        entry.entity === target.entity &&
+        entry.entityId === target.entityId &&
+        entry.queuedAt === target.queuedAt
+          ? { ...entry, refusedAt }
+          : entry,
       )
     },
     async getLastPulledAt(entity) {
