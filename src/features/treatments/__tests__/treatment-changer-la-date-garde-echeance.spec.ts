@@ -38,8 +38,12 @@ describe('« Changer la date » d’une prise donnée (Q30, #1229)', () => {
 
     expect(today).toBe('2026-10-24')
     expect(
-      change.writes.map((write) => [write.dose.dueOn, write.dose.dueTime, write.dose.givenOn]),
-    ).toEqual([['2026-10-23', '20:00', '2026-10-24']])
+      change.writes.map((write) =>
+        write.action === 'rewrite'
+          ? [write.id, write.dose.dueOn, write.dose.dueTime, write.dose.givenOn]
+          : [write.action],
+      ),
+    ).toEqual([['2026-10-23 20:00', '2026-10-23', '20:00', '2026-10-24']])
     expect(change.revealed).toBeNull()
   })
 })
