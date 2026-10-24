@@ -455,6 +455,37 @@ describe('runPurgePass : adresse jamais confirmée, supprimée au bout de 7 jour
     expect(report.skipped.batchFull).toBe(1)
   })
 
+  it('premier inscrit, premier supprimé : les 10 adresses non confirmées les plus anciennes partent', async () => {
+    useClock(SEVEN_DAYS_LATER)
+    const accounts = Array.from({ length: 15 }, (_, index) =>
+      candidate(`66666666-0000-4000-8000-${String(index).padStart(12, '0')}`, {
+        createdAt: new Date(
+          Date.parse('2027-10-01T08:00:00.000Z') + index * 3_600_000,
+        ).toISOString(),
+        emailConfirmed: false,
+      }),
+    )
+    const listed = [...accounts].reverse()
+    const fake = fakePurgePorts({ candidates: listed })
+
+    await runPurgePass(fake.ports, 'apply')
+
+    const deleted = fake.calls.filter((c) => c.kind === 'deleteUser').map((c) => c.userId)
+    expect(deleted).toEqual(accounts.slice(0, MAX_DELETIONS_PER_PASS).map((a) => a.userId))
+  })
+
+  it('un avertissement part avant toute suppression d’adresse non confirmée de la même passe', async () => {
+    useClock(NOW)
+    const fake = fakePurgePorts({ candidates: [UNCONFIRMED, WARN] })
+
+    await runPurgePass(fake.ports, 'apply')
+
+    const kinds = fake.calls.map((c) => c.kind)
+    expect(kinds).toContain('deleteUser')
+    expect(kinds.indexOf('send')).toBeGreaterThan(-1)
+    expect(kinds.indexOf('send')).toBeLessThan(kinds.indexOf('deleteUser'))
+  })
+
   it('au-delà de la limite, une suppression due est sautée sans relecture', async () => {
     useClock(SEVEN_DAYS_LATER)
     const fake = fakePurgePorts({ candidates: unconfirmedAccounts(12, '77777777') })

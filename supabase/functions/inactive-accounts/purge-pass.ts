@@ -218,12 +218,16 @@ export async function runPurgePass(ports: PurgePassPorts, mode: PurgeMode): Prom
   const report = emptyReport(mode, ports)
   const candidates = await ports.listCandidates(new Date(state.now).toISOString())
   const due = candidates
-    .map(({ userId, dates }) => ({ userId, steps: purgeStepsOf(dates, state.now) }))
+    .map(({ userId, dates }) => ({
+      userId,
+      createdAt: Date.parse(dates.createdAt),
+      steps: purgeStepsOf(dates, state.now),
+    }))
     .filter(({ steps }) => {
       countDue(report, steps)
       return needsAction(steps)
     })
-    .sort((a, b) => passOrder(a.steps) - passOrder(b.steps))
+    .sort((a, b) => passOrder(a.steps) - passOrder(b.steps) || a.createdAt - b.createdAt)
   if (!applies) return report
 
   for (const { userId, steps } of due) {

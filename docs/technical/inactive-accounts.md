@@ -43,8 +43,11 @@ Gaelle n'a pas fait les étapes ci-dessous, elle ne fait que compter.
   donnée n'a pu y être écrite, la personne se réinscrit.
 - Au plus 10 suppressions **tentées** par passe, réussies ou non, adresses jamais confirmées comprises :
   une panne de `deleteUser` n'efface pas chez les prestataires plus de 10 comptes dus. Les suppressions
-  annoncées par e-mail passent en premier, les adresses jamais confirmées en dernier ; une suppression
-  au-delà de la limite est sautée sans relecture et passe le lendemain.
+  annoncées par e-mail passent en premier, les adresses jamais confirmées en dernier, chaque groupe par date
+  de création croissante ; une suppression au-delà de la limite est sautée sans relecture et passe à
+  une passe suivante. La limite compte aussi les adresses jamais confirmées : au-delà de 10
+  inscriptions abandonnées par jour, leur arriéré grossit. Question laissée à Gaelle : la limite de 10
+  doit-elle compter ces comptes ?
 - Journal (`Edge Functions › inactive-accounts › Logs`) : une ligne « Purge des comptes inactifs : »
   suivie des nombres (`channel`, `revenuecat`, `due`, `done`, `skipped`, `failures`), jamais
   d'identifiant ni d'adresse.
