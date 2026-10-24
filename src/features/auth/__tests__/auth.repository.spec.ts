@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AUTH_STORAGE_KEY } from '@/core/supabase/auth-storage'
 
 import { AccountError } from '../logic/account-error'
+import { accountErrorFrom } from '../logic/account-error-from'
 import { CODE_LENGTH } from '../logic/email-code'
 import {
   authRepository,
@@ -162,6 +163,15 @@ async function reasonOf(operation: Promise<unknown>): Promise<string> {
   expect(error).toBeInstanceOf(AccountError)
   return (error as AccountError).reason
 }
+
+describe('accountErrorFrom', () => {
+  it.each(['toString', 'constructor', 'hasOwnProperty', '__proto__'])(
+    'ignore le code %s, qui n’est pas un code d’erreur',
+    (code) => {
+      expect(accountErrorFrom(Object.assign(new Error('refus'), { code })).reason).toBe('unknown')
+    },
+  )
+})
 
 describe('authRepository', () => {
   it('n’évalue le module du client Supabase qu’à la première opération', async () => {
