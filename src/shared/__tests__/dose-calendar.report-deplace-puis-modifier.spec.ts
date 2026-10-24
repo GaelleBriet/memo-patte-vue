@@ -2,8 +2,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { treatmentView, type Frequency, type TreatmentViewInput } from '../domain/dose-calendar'
-import { edited, given, moved, on } from './dose-calendar.reglage-corrige.aides'
-import { DAY, MONTH, setting } from './dose-calendar.v2.aides'
+import { edited, given, moved, on, readings } from './dose-calendar.reglage-corrige.aides'
+import { DAY, MONTH, keys, setting } from './dose-calendar.v2.aides'
 
 const TWO_WEEKS: Frequency = { value: 2, unit: 'week' }
 const SIX_WEEKS: Frequency = { value: 6, unit: 'week' }
@@ -47,6 +47,34 @@ describe('Report déplacé deux fois avec la case, puis « Modifier » : la date
 
     expect(journee(input, '2026-03-21')).toEqual(['2026-03-21 sans heure pending'])
     expect(echeances(input, 3)).toContain('2026-03-21')
+  })
+
+  // Même carnet : le report parti du 10 est sur une journée que la grille repartie du 21 (toutes les 2
+  // semaines) n'a pas (R9, R11, #1231).
+  it('graine 12200000727 : le report ramené au 17 est sans effet, la fiche montre le 21 mars puis le 4 avril', () => {
+    let input: TreatmentViewInput = {
+      settings: [setting('s1', '2026-03-06', DAY)],
+      lines: [],
+      today: '2026-03-09',
+    }
+    input = moved(input, '2026-03-10', null, '2026-03-21')
+    input = moved(on(input, '2026-03-12'), '2026-03-21', null, '2026-03-17')
+    input = edited(input, {
+      frequency: TWO_WEEKS,
+      times: [],
+      endsOn: null,
+      firstDueOn: '2026-03-21',
+    })
+    const view = treatmentView(input)
+    const report = input.lines.find(({ status }) => status === 'postponed')!
+    const { moteur, reference } = readings(input)
+
+    expect(view.history.find(({ line }) => line.id === report.id)?.effect).toMatchObject({
+      kind: 'idle',
+    })
+    expect(keys(view.currentDoses)).not.toContain('2026-03-17')
+    expect(echeances(input, 2)).toEqual(['2026-03-21', '2026-04-04'])
+    expect(reference).toEqual(moteur)
   })
 
   // Le même carnet ; le 13, la dose du 17 reportée au 19 avec la case : le 21, date choisie après le
