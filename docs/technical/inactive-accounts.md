@@ -19,10 +19,10 @@ Gaelle n'a pas fait les étapes ci-dessous, elle ne fait que compter.
   achat restauré sur un nouveau compte (plus ancien que lui) ne fait jamais supprimer ce compte moins
   de 12 mois après sa création. L'e-mail cite la vraie date de fin d'accès.
 - **Date J** : la plus tardive de « fin retenue + 12 mois » et « avertissement + 30 jours », arrondie
-  au jour UTC suivant. L'e-mail dit « le {J} » et « avant cette date » : la suppression ne devient
-  possible que le **lendemain de J à 0 h UTC**, pour que le jour J reste entier partout (à Los
-  Angeles, J à 0 h UTC tomberait la veille à 16 h). Avec le passage de 03:00 UTC, un compte averti
-  pour le 16 novembre est supprimé le 17 novembre vers 03:00 UTC.
+  au jour UTC suivant. La suppression ne devient possible que le **lendemain de J à 0 h UTC** : jamais
+  avant le jour J, heure locale, où que la personne vive. Pour J = 16 novembre, c'est le 17 à 0 h UTC,
+  soit le 16 à 16 h à Los Angeles ; la passe de 03:00 UTC supprime le compte le 17 vers 03:00 UTC. Le
+  compte est donc gardé jusqu'à un jour de plus que la date annoncée par l'e-mail.
 - **Relecture avant d'agir** : avant chaque avertissement, suppression ou effacement RevenueCat, la
   fonction relit les dates du compte puis **RevenueCat pour tout compte** (qu'il ait ou non une ligne
   `plus_entitlements` : un webhook perdu laisse un abonné sans ligne). Un accès actif, une fin plus

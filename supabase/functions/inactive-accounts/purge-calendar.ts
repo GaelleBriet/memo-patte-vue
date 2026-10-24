@@ -43,7 +43,7 @@ function addMonths(instant: number, months: number): number {
   return target.getTime()
 }
 
-/** L'e-mail dit « avant le J » : le jour J entier reste à la personne, où qu'elle vive. */
+/** Lendemain de J à 0 h UTC : jamais avant le jour J, heure locale, où que la personne vive. */
 function deletableFrom(purgeOn: string): number {
   return Date.parse(`${purgeOn}T00:00:00.000Z`) + DAY_MS
 }

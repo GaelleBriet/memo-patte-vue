@@ -398,6 +398,19 @@ describe('runPurgePass : relecture avant d’agir', () => {
     expect(fake.calls.map((c) => c.kind)).toEqual(['list'])
   })
 
+  it('clé RevenueCat mal saisie en mode appliquer : refus, jamais une passe à blanc', async () => {
+    const fake = fakePurgePorts({
+      candidates: ALL,
+      revenuecat: false,
+      invalidProviderSettings: ['REVENUECAT_SECRET_KEY'],
+    })
+
+    await expect(runPurgePass(fake.ports, 'apply')).rejects.toBeInstanceOf(
+      ErasureNotConfiguredError,
+    )
+    expect(fake.calls).toEqual([])
+  })
+
   it('Léa, abonnée chez RevenueCat sans ligne en base : jamais avertie ni supprimée', async () => {
     const lea = candidate('aaaaaaaa-0000-4000-8000-000000000020', {
       createdAt: '2026-12-01T10:00:00.000Z',

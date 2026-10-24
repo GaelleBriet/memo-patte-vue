@@ -188,10 +188,11 @@ async function processAccount(
 /** À blanc, sans canal d'e-mail ou sans RevenueCat, la passe ne fait que compter : aucune écriture, aucun prestataire. */
 export async function runPurgePass(ports: PurgePassPorts, mode: PurgeMode): Promise<PurgeReport> {
   const { revenuecat } = ports
-  const applies = mode === 'apply' && ports.channel.connected && revenuecat !== null
-  if (applies && ports.erasure.invalidProviderSettings.length > 0) {
+  const wantsToApply = mode === 'apply' && ports.channel.connected
+  if (wantsToApply && ports.erasure.invalidProviderSettings.length > 0) {
     throw new ErasureNotConfiguredError(ports.erasure.invalidProviderSettings)
   }
+  const applies = wantsToApply && revenuecat !== null
 
   const state: PassState = { now: Date.now(), deletionAttempts: 0 }
   const report = emptyReport(mode, ports)
