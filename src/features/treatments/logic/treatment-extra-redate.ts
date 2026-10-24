@@ -41,7 +41,7 @@ export function extraRedateQuestion(
         answer: 'replaces',
       })
       if ('refusal' in result) return null
-      return treatmentView(applied(input, result.changes)).nextDue?.dueOn ?? null
+      return treatmentView(applied(input, result.changes)).nextDue ?? null
     })
   }
 }

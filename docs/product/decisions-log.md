@@ -3829,3 +3829,15 @@ les doses du 24 restent à donner. — Raison : un « Remplace » silencieux, et
 doses du jour. — Alternatives écartées : griser les jours d'une prise en plus ; la case dès que la date
 change. — Pour revenir dessus : `redateAsksExtraOrReplaces` et la condition `unlogged` de `redateGiven`
 (`gestures/redate.ts`).
+
+2026-10-24 — **« Fait à une autre date » depuis « À faire » : le calendrier et la question de la
+fiche** (#1239, spec `traitements.md` R5, TR-13 ; décision Q36 de la session d'analyse du
+moteur, à qui Gaelle a délégué les lectures de règles). Pour la même dose, « À faire » ouvre le calendrier de la fiche (du lendemain de l'échéance
+précédente à aujourd'hui, jours antérieurs grisés avec l'aide du bandeau) et pose la même question
+« Cette prise » ; tant qu'elle n'a pas de réponse, aucun récapitulatif ne parle de dose couverte ; à
+plusieurs heures, l'aide de « Remplace » donne le jour et l'heure de la prochaine dose. Luna,
+Bravecto tous les 3 mois, première dose le 1er nov. : le 24 oct., depuis « À faire », tous les jours
+jusqu'au 24 se choisissent, et le 24 pose « En plus » / « Remplace celle du 1er nov. ». « Donnée
+quand ? » d'une notification garde sa borne. — Raison : Q34 I3 vaut pour toute entrée ; avant, le
+récapitulatif annonçait « Dose du 1er nov., donnée le 24 oct. » alors que la prise s'écrivait en
+plus. — Alternative écartée : depuis « À faire », aujourd'hui seulement.

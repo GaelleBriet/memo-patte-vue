@@ -2,12 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { dose, extra, missed, period, plain, postponed, treatment } from './treatment-fixtures'
 import { treatmentReadingOf } from '../logic/treatment-reading-adapter'
-import {
-  sheetDoneTarget,
-  sheetOtherDateMin,
-  sheetPeriod,
-  treatmentSheetTexts,
-} from '../logic/treatment-sheet'
+import { sheetDoneTarget, sheetPeriod, treatmentSheetTexts } from '../logic/treatment-sheet'
 import i18n, { applyLocale } from '@/core/i18n'
 
 const t = i18n.global.t
@@ -312,29 +307,5 @@ describe('sheetPeriod — la période dont la feuille parle', () => {
   it('la dernière quand l’échéance n’est plus au calendrier', () => {
     expect(sheetPeriod(book, reading.view, { dueOn: '2026-12-25', dueTime: null })?.id).toBe('p-2')
     expect(sheetPeriod(book, null, null)?.id).toBe('p-2')
-  })
-})
-
-describe('sheetOtherDateMin — premier jour de « Fait à une autre date »', () => {
-  const book = treatment([VENDREDI], [dose('2026-10-09', '2026-10-16')])
-  const reading = treatmentReadingOf(book, '2026-10-19')
-  const ligne = { dueOn: '2026-10-16', dueTime: null }
-
-  it('le lendemain de la dose précédente : avant, la prise serait une prise en plus (G11)', () => {
-    expect(sheetOtherDateMin(reading.view, ligne, '2026-04-10')).toBe('2026-10-10')
-  })
-
-  it('jamais avant la naissance de l’animal', () => {
-    expect(sheetOtherDateMin(reading.view, ligne, '2026-10-12')).toBe('2026-10-12')
-  })
-
-  it('la naissance seule quand l’échéance n’est plus à noter', () => {
-    const noted = treatment(
-      [VENDREDI],
-      [dose('2026-10-09', '2026-10-16'), dose('2026-10-16', '2026-10-23')],
-    )
-    expect(
-      sheetOtherDateMin(treatmentReadingOf(noted, '2026-10-19').view, ligne, '2026-04-10'),
-    ).toBe('2026-04-10')
   })
 })

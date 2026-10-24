@@ -131,7 +131,8 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   la sienne** (décision de Gaelle du 24 octobre 2026, Q28) : la carte de la fiche (dose du jour, en
   retard, prochaine dose) vise la dose de la carte, quelle que soit la date choisie ; une notification,
   son échéance (même touchée plus tard, y compris par « Donnée quand ? », spec Q8) ; « À faire », la
-  ligne touchée (une ligne par heure) ; le bandeau, chaque jour coché. La feuille du soin ouverte
+  ligne touchée (une ligne par heure), et son « Fait à une autre date » ouvre le calendrier de la
+  fiche pour cette dose (Q36 du 24 octobre 2026) ; le bandeau, chaque jour coché. La feuille du soin ouverte
   depuis une notification nomme toujours l'échéance de la notification, même notée oubliée, et « Fait
   à une autre date » y repasse cette dose en donnée (TR-22 ; Luna, Métacam chaque semaine du 6 au
   20 oct., la dose du 20 oubliée : le 22, depuis la notification du 20, « Fait à une autre date » le
@@ -139,7 +140,7 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   date » (Q34 du 24 octobre 2026). La date choisie ne dit jamais
   quelle dose est visée : la lecture « dernière échéance tombée à cette date ou avant » a disparu.
   **Aucun geste ne change l'échéance d'une prise existante** (« Changer la date » compris, TR-24 bis ;
-  Q30 du 24 octobre 2026). Depuis la carte, « Fait à une autre date » propose les jours du
+  Q30 du 24 octobre 2026). Depuis la carte ou « À faire », « Fait à une autre date » propose les jours du
   lendemain de l'échéance précédente jusqu'à aujourd'hui, aujourd'hui toujours compris ; les jours
   jusqu'à l'échéance précédente incluse sont grisés, avec l'aide « Pour une dose plus ancienne, passe
   par le bandeau des doses non renseignées. » ; sans échéance précédente, aucun jour n'est grisé par
@@ -423,12 +424,15 @@ traitement**, quelle que soit l'avance, pose la question **« Cette prise »** :
 aucun préselectionné, l'enregistrement grisé sans réponse (décision de Gaelle du 24 octobre 2026, Q27 :
 « on demande si c'est une prise en plus ou si elle remplace celle initialement prévue. L'utilisateur
 répond et fini les devinettes. »). La question se pose depuis « Fait à une autre date » de la fiche et
-depuis « C'est fait » de la carte, qui ouvre alors la feuille au lieu d'écrire ; plus aucune règle ne
+de « À faire », et depuis « C'est fait » de la carte, qui ouvre alors la feuille au lieu d'écrire ;
+pour la même dose, la même question d'où qu'on vienne (Q36 du 24 octobre 2026) ; tant qu'elle n'a
+pas de réponse, aucun récapitulatif ne parle de dose couverte ; plus aucune règle ne
 range une prise en plus d'elle-même par la distance. Le second « C'est fait » d'une journée déjà notée
 passe aussi par la question (Q29 : l'exception « second C'est fait le même jour d'un traitement sans
 heure = en plus » est retirée). Aide selon la réponse : « Prise en plus le samedi 24 oct. · la
 prochaine dose reste le 1er nov. » ; « Donnée le 24 oct. pour la dose du 1er nov. · prochaine dose le
-1er févr. 2027 », la prochaine dose suivant la case.
+1er févr. 2027 », la prochaine dose suivant la case ; à plusieurs heures, jour et heure (« … pour la
+dose du 1er nov. à 8 h · prochaine dose le 1er nov. à 20 h », Q36).
 
 - **« En plus »** : une **prise en plus**, rangée sous sa date réelle, qui ne couvre rien et ne change
   jamais le calendrier (« 24 oct. 2026 · Prise en plus »).
@@ -442,11 +446,14 @@ Pas de question : une prise à moins d'un rythme d'une échéance qui n'est pas 
 couvre, en avance ou en retard) ; à plusieurs heures par jour, une heure donnée en avance dans sa
 journée (elle couvre son échéance) ; au-delà, la même borne d'un rythme qu'à une heure (lecture à
 confirmer par Gaelle : « au-delà de sa journée » pourrait aussi vouloir dire « dès la veille »).
-Notification et « À faire » : inchangés quand aucune question ne se pose ; ils lisent la même borne
-que la fiche, à une heure comme à plusieurs : leur calendrier « Une autre date » s'arrête à elle, et
-« Fait aujourd'hui » de « À faire » ouvre la fiche au lieu d'écrire quand la question se poserait
-(Q34 du 24 octobre 2026 ; Métacam chaque semaine à 8 h et 20 h, première dose le 1er nov. : le 24 oct.,
-« Fait aujourd'hui » ne couvre plus en silence). La borne est la première échéance écrite du
+Notification : inchangée quand aucune question ne se pose ; elle lit la même borne que la fiche, à
+une heure comme à plusieurs : son calendrier « Une autre date » s'arrête à elle. « Fait aujourd'hui »
+de « À faire » ouvre la fiche au lieu d'écrire quand la question se poserait (Q34 du 24 octobre 2026 ;
+Métacam chaque semaine à 8 h et 20 h, première dose le 1er nov. : le 24 oct., « Fait aujourd'hui » ne
+couvre plus en silence) ; son « Fait à une autre date » ouvre le calendrier de la fiche pour la dose de
+sa ligne et pose la même question (Q36 du 24 octobre 2026 ; Luna, Bravecto tous les 3 mois, première
+dose le 1er nov. : le 24 oct., tous les jours jusqu'au 24 se choisissent, et le 24 pose « En plus » /
+« Remplace celle du 1er nov. »). La borne est la première échéance écrite du
 traitement, jamais la date de début d'un réglage (Milbemax chaque semaine, première dose repoussée le
 16 oct. du 20 oct. au 1er nov. : le 28 oct., « C'est fait » sur « 1er nov. » pose la question). Sans
 réponse, le moteur garde la règle d'avant Q27 pour les gestes qui ne posent pas la question (anciens
