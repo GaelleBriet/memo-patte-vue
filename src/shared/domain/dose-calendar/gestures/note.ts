@@ -1,4 +1,4 @@
-import { hoursOf, keyOf, plusDays } from '../grid'
+import { hoursOf, plusDays } from '../grid'
 import { isMoreRecent, isTaken } from '../lines'
 import { episodeIdsOf } from '../settings'
 import type {
@@ -114,10 +114,7 @@ export function noteDose(input: TreatmentViewInput, gesture: NoteGesture): Gestu
       targetOn: null,
     }),
   ]
-  const key = keyOf(due.dueOn, due.dueTime)
-  // R6 : une dose déjà non renseignée aujourd'hui n'a jamais la case (N1).
-  const unlogged = view.unloggedDoses.some((other) => keyOf(other.dueOn, other.dueTime) === key)
-  const offered = status === 'given' && !unlogged && offersShiftFor(input, due, givenOn)
+  const offered = status === 'given' && offersShiftFor(input, due, givenOn)
   if (!offered || !shiftsFollowing) return outcome(input, notes, { offersShift: offered })
   const shifted = [
     ...notes,
