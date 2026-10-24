@@ -290,7 +290,8 @@ Déconnexion et expiration se traitent alors en deux instructions, sans toucher 
   (`markRefusedWithRefusedAncestor`). Quand un parent quitte la file (`sync_outbox_removed`,
   `AFTER DELETE`, même sous-requête), envoyé ou parce que sa ligne locale a disparu, il ne retient
   plus ses descendants : ceux marqués `ancestor` repartent (#1209). Une entrée marquée `own` ne
-  repart qu'avec sa propre modification, jamais avec un parent. Une entrée refusée ne quitte
+  repart qu'avec sa propre modification ou un nouvel essai de tout le carnet (« Fusionner »,
+  « Remplacer », activation), jamais avec un parent. Une entrée refusée ne quitte
   jamais la file d'elle-même : seuls un envoi réussi (`removeIfUnchanged`), la déconnexion
   (`forgetAccount`), « Effacer les données » et « Remplacer » à la restauration la retirent ; dans
   les trois derniers cas, la file entière part, ou les marques sont déjà effacées. Une photo ne suit

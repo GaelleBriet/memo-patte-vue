@@ -392,8 +392,8 @@ envoyer une entrée que le serveur refuse pour toujours (trois refus identiques 
 `countPending` ne la lisent pas, `countRefused` la compte (photos des seuls animaux non supprimés)
 pour Paramètres › Sauvegarde. Un enfant qui bute sur la clé étrangère sous un parent refusé porte la
 marque lui aussi (`proposition-sync.md` §3.3) ; `sync_outbox_requeued` l'efface quand le parent
-repart, `sync_outbox_removed` (v23, §4.13) quand le parent quitte la file, s'il a été marqué à cause
-de ce parent. La marque disparaît quand l'élément est modifié ou supprimé puis
+repart, `sync_outbox_removed` (v23, §4.13) lève ses descendants marqués à cause d'un ancêtre quand
+le parent quitte la file. La marque disparaît quand l'élément est modifié ou supprimé puis
 sauvegardé : le déclencheur `sync_outbox_requeued` (`AFTER UPDATE OF queued_at`) la remet à nul dès
 qu'une nouvelle écriture avance `queued_at`, sans toucher aux déclencheurs de mise en file des
 tables. `enableAndQueueWholeCarnet` et la restauration la remettent à nul (nouvel essai) ;
@@ -426,7 +426,7 @@ pas. La v22, publiée en 0.1.109, ne change pas : son déclencheur est figé dan
 
 Coût mesuré sur 5 000 prises : la mise en file du carnet et la remise en file des prises ne bougent
 pas ; chaque retrait de la file prend environ 0,15 ms de plus, le déclencheur étant compilé dans
-chaque `DELETE` (5 000 envois : 0,4–0,5 s puis 1,1–1,4 s en base mémoire, répartis sur 5 000
+chaque `DELETE` (5 000 envois : 0,3–0,5 s puis 1,1–1,4 s en base mémoire, répartis sur 5 000
 allers-retours réseau) ; coût accepté par la session d'analyse du moteur.
 
 ## 5. Décisions
