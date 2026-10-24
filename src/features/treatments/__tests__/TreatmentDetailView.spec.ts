@@ -771,6 +771,38 @@ describe('TreatmentDetailView — la dose de la carte et « Cette prise » (TR-1
     expect(choix()).toEqual(['En plus', 'Remplace celle du 5 oct.'])
   })
 
+  it('Q28 : à heure fixe, la carte vise son jour et son heure, quelle que soit la date choisie', async () => {
+    const neufHeures = treatment(
+      [
+        period({
+          startsOn: '2026-09-14',
+          firstDueOn: '2026-09-14',
+          frequency: HEBDO,
+          times: ['09:00'],
+        }),
+      ],
+      [dose('2026-09-14', '2026-09-21', { dueTime: '09:00' })],
+    )
+    const view = await ouvrir(neufHeures)
+
+    view.getComponent(DateCalendar).vm.$emit('update:modelValue', '2026-09-27')
+    await flushPromises()
+    expect(dansLaFeuille('.treatment-hours__hour')).toHaveLength(0)
+    enregistrer().click()
+    await flushPromises()
+
+    expect(service.apply).toHaveBeenCalledWith(neufHeures.id, {
+      kind: 'note',
+      gesture: {
+        kind: 'note',
+        status: 'given',
+        due: { settingId: 'p-1', dueOn: '2026-09-28', dueTime: '09:00' },
+        givenOn: '2026-09-27',
+        shiftsFollowing: true,
+      },
+    })
+  })
+
   it('Q28 : carte de la dose du jour, « Fait hier » : la dose du jour donnée en avance, jamais celle d’avant', async () => {
     const hebdo = treatment(
       [period({ startsOn: '2026-09-07', firstDueOn: '2026-09-07', frequency: HEBDO })],
