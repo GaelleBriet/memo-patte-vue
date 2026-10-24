@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { OPENING_TIMES, planBrokenBy } from '../../../scripts/dose-engine/v2-reminder-plan'
 import { remindersBrokenBy } from '../../../scripts/dose-engine/v2-reminders'
-import { startV2Walk, v2Step } from '../../../scripts/dose-engine/v2-walk'
+import { ONE_PHONE_GESTURES, startV2Walk, v2Step } from '../../../scripts/dose-engine/v2-walk'
 import type { TreatmentViewInput } from '../domain/dose-calendar'
 import { keys, line, proposedSetting, setting, view } from './dose-calendar.v2.aides'
 import seed9200000052 from './fixtures/rappels-graine-9200000052.json'
@@ -44,7 +44,7 @@ function brokenBy(input: TreatmentViewInput) {
 function playV2(): { carnets: number; steps: number; failures: string[] } {
   const played = { carnets: 0, steps: 0, failures: [] as string[] }
   for (let seed = campaign.from; seed <= last; seed += 1) {
-    const walk = startV2Walk(seed, { answers: true })
+    const walk = startV2Walk(seed, ONE_PHONE_GESTURES)
     let failure: string | null = null
     for (let count = 0; count < campaign.steps && failure === null; count += 1) {
       v2Step(walk, (each) => {

@@ -1,5 +1,5 @@
 import { naive } from './v2-invariants-readings'
-import { startV2Walk, v2Step } from './v2-walk'
+import { ONE_PHONE_GESTURES, startV2Walk, v2Step } from './v2-walk'
 
 export type OracleConfig = { from: number; seeds: number; steps: number }
 
@@ -34,7 +34,7 @@ export function oracleConfig(env: Record<string, string | undefined>): OracleCon
 }
 
 function playCarnet(config: OracleConfig, seed: number, run: OracleRun): string | null {
-  const walk = startV2Walk(seed, { answers: true })
+  const walk = startV2Walk(seed, ONE_PHONE_GESTURES)
   const first = naive(walk.input)
   if (first !== null) return `graine ${seed}, création : ${first.detail}`
   let divergence: string | null = null
