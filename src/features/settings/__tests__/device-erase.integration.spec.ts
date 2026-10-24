@@ -104,4 +104,24 @@ describe('effacement des données dans une vraie base', () => {
 
     expect(await service().situation()).toEqual({ signedIn: true, hasUnsyncedChanges: false })
   })
+
+  it('la pesée de Milo du 12 mars refusée par le serveur : l’avertissement apparaît avant d’effacer', async () => {
+    const outbox = createSyncOutboxRepository(db)
+    const [weighing] = await db.query<{ id: string; updated_at: string }>(
+      'SELECT id, updated_at FROM weight_entry ORDER BY id LIMIT 1',
+    )
+    await outbox.clear()
+    await db.run('INSERT INTO sync_outbox (entity, entity_id, queued_at) VALUES (?, ?, ?)', [
+      'weight_entry',
+      weighing!.id,
+      weighing!.updated_at,
+    ])
+    await outbox.markRefusedIfUnchanged(
+      { entity: 'weight_entry', entityId: weighing!.id, queuedAt: weighing!.updated_at },
+      '2026-10-24T10:00:00.000Z',
+    )
+
+    expect(await outbox.listPending()).toEqual([])
+    expect(await service().situation()).toEqual({ signedIn: true, hasUnsyncedChanges: true })
+  })
 })
