@@ -1,4 +1,4 @@
-import type { DbClient } from '@/core/db/db-client'
+import type { DbClient, SqlStatement } from '@/core/db/db-client'
 
 interface SyncStateRow {
   enabled: number
@@ -10,6 +10,8 @@ export type RestoreMode = 'merge' | 'replace'
 
 const RESTORE_CODES: Record<RestoreMode, number> = { merge: 1, replace: 2 }
 const RESTORE_MODES: Record<number, RestoreMode> = { 1: 'merge', 2: 'replace' }
+
+const CLEAR_CURSORS: SqlStatement = { sql: 'DELETE FROM sync_pull_cursor' }
 
 export function createSyncStateRepository(db: DbClient) {
   async function state(): Promise<SyncStateRow> {
@@ -65,6 +67,46 @@ export function createSyncStateRepository(db: DbClient) {
 
     async startRestore(mode: RestoreMode): Promise<void> {
       await db.run('UPDATE sync_state SET restoring = ? WHERE id = 1', [RESTORE_CODES[mode]])
+    },
+
+    /** Le pull suivant repart du début : il ramène tout le carnet du compte. */
+    enableFromStartStatements(): SqlStatement[] {
+      return [
+        { sql: 'UPDATE sync_state SET enabled = 1, last_synced_at = NULL WHERE id = 1' },
+        CLEAR_CURSORS,
+      ]
+    },
+
+    pauseForRestoreStatements(): SqlStatement[] {
+      return [
+        { sql: 'UPDATE sync_state SET enabled = 0, last_synced_at = NULL WHERE id = 1' },
+        CLEAR_CURSORS,
+      ]
+    },
+
+    /** Curseurs posés au bout de ce qui a été tiré, synchro activée à la fin. */
+    finishRestoreStatements(
+      cursors: ReadonlyArray<{ entity: string; lastPulledAt: string }>,
+    ): SqlStatement[] {
+      return [
+        ...cursors.map(({ entity, lastPulledAt }) => ({
+          sql: 'INSERT INTO sync_pull_cursor (entity, last_pulled_at) VALUES (?, ?)',
+          params: [entity, lastPulledAt],
+        })),
+        { sql: 'UPDATE sync_state SET enabled = 1, restoring = 0 WHERE id = 1' },
+      ]
+    },
+
+    /** La ligne unique remise à son état de premier lancement. */
+    resetStatement(): SqlStatement {
+      return {
+        sql: `UPDATE sync_state SET enabled = 0, restoring = 0, last_synced_at = NULL
+                WHERE id = 1`,
+      }
+    },
+
+    clearCursorsStatement(): SqlStatement {
+      return CLEAR_CURSORS
     },
   }
 }

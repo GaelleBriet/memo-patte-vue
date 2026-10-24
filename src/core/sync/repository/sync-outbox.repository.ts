@@ -7,7 +7,6 @@ import {
   SYNC_PARENT_COLUMNS,
 } from '@/core/db/schema-statements'
 import { SYNC_ENTITY_ORDER } from './sync-entity-order'
-import type { RestoreMode } from './sync-state.repository'
 
 export interface SyncOutboxEntry {
   entity: string
@@ -66,16 +65,22 @@ export function createSyncOutboxRepository(db: DbClient) {
     /**
      * Lignes supprimées comprises, photos des seuls animaux non supprimés ; une entrée déjà en file
      * garde son `queued_at` et ses essais, une entrée refusée est retentée.
-     * Le pull suivant repart du début : il ramène tout le carnet du compte.
      */
-    async enableAndQueueWholeCarnet(): Promise<void> {
-      await db.runMany([
-        { sql: 'UPDATE sync_state SET enabled = 1, last_synced_at = NULL WHERE id = 1' },
-        { sql: 'DELETE FROM sync_pull_cursor' },
+    queueWholeCarnetStatements(): SqlStatement[] {
+      return [RETRY_REFUSED, ...SYNC_ENTITY_ORDER.map(queueWholeTable), queueLiveAnimalPhotos()]
+    },
+
+    /** Les photos déjà en file y restent : celles à effacer du cloud ne doivent pas y rester orphelines. */
+    keepPhotosAndQueueDevicesStatements(): SqlStatement[] {
+      return [
         RETRY_REFUSED,
-        ...SYNC_ENTITY_ORDER.map(queueWholeTable),
-        queueLiveAnimalPhotos(),
-      ])
+        { sql: 'DELETE FROM sync_outbox WHERE entity <> ?', params: [ANIMAL_PHOTO_ENTITY] },
+        queueWholeTable('device'),
+      ]
+    },
+
+    clearStatement(): SqlStatement {
+      return { sql: 'DELETE FROM sync_outbox' }
     },
 
     /** Ce que `enableAndQueueWholeCarnet` met en file : chaque ligne du carnet et chaque photo. */
@@ -116,41 +121,6 @@ export function createSyncOutboxRepository(db: DbClient) {
         [ANIMAL_PHOTO_ENTITY],
       )
       return row?.total ?? 0
-    },
-
-    /**
-     * Autour du carnet tiré : synchro coupée pendant l'écriture, curseurs posés au bout de ce qui
-     * a été tiré, synchro activée à la fin. Avant l'écriture, « Fusionner » met en file tout le
-     * carnet du téléphone et ses photos, « Remplacer » seulement ses appareils, et garde les photos
-     * déjà en file : celles à effacer du cloud ne doivent pas y rester orphelines.
-     */
-    restoreStatements({
-      mode,
-      cursors,
-    }: {
-      mode: RestoreMode
-      cursors: ReadonlyArray<{ entity: string; lastPulledAt: string }>
-    }): { before: SqlStatement[]; after: SqlStatement[] } {
-      return {
-        before: [
-          { sql: 'UPDATE sync_state SET enabled = 0, last_synced_at = NULL WHERE id = 1' },
-          { sql: 'DELETE FROM sync_pull_cursor' },
-          RETRY_REFUSED,
-          ...(mode === 'merge'
-            ? [...SYNC_ENTITY_ORDER.map(queueWholeTable), queueLiveAnimalPhotos()]
-            : [
-                { sql: 'DELETE FROM sync_outbox WHERE entity <> ?', params: [ANIMAL_PHOTO_ENTITY] },
-                queueWholeTable('device'),
-              ]),
-        ],
-        after: [
-          ...cursors.map(({ entity, lastPulledAt }) => ({
-            sql: 'INSERT INTO sync_pull_cursor (entity, last_pulled_at) VALUES (?, ?)',
-            params: [entity, lastPulledAt],
-          })),
-          { sql: 'UPDATE sync_state SET enabled = 1, restoring = 0 WHERE id = 1' },
-        ],
-      }
     },
 
     /** Dans l'ordre de `SYNC_ENTITY_ORDER`, puis de mise en file ; sans les entrées refusées. */
@@ -220,21 +190,6 @@ export function createSyncOutboxRepository(db: DbClient) {
       )
     },
 
-    /**
-     * Déconnexion (§5 de la proposition) : le compte suivant ne reçoit ni la file, ni les curseurs,
-     * ni la dernière sauvegarde du précédent.
-     */
-    async forgetAccount(): Promise<void> {
-      await db.runMany([
-        {
-          sql: `UPDATE sync_state SET enabled = 0, restoring = 0, last_synced_at = NULL
-                WHERE id = 1`,
-        },
-        { sql: 'DELETE FROM sync_outbox' },
-        { sql: 'DELETE FROM sync_pull_cursor' },
-      ])
-    },
-
     async recordFailedPush(entry: Pick<SyncOutboxEntry, 'entity' | 'entityId'>): Promise<void> {
       await db.run(
         'UPDATE sync_outbox SET attempts = attempts + 1 WHERE entity = ? AND entity_id = ?',
@@ -244,18 +199,6 @@ export function createSyncOutboxRepository(db: DbClient) {
 
     async clear(): Promise<void> {
       await db.run('DELETE FROM sync_outbox')
-    },
-
-    /** `sync_state` garde sa ligne unique, remise à son état de premier lancement. */
-    eraseAllStatements(): SqlStatement[] {
-      return [
-        { sql: 'DELETE FROM sync_outbox' },
-        { sql: 'DELETE FROM sync_pull_cursor' },
-        {
-          sql: `UPDATE sync_state SET enabled = 0, restoring = 0, last_synced_at = NULL
-                WHERE id = 1`,
-        },
-      ]
     },
   }
 }

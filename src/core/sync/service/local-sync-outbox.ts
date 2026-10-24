@@ -1,11 +1,66 @@
-import type { DbClient } from '@/core/db/db-client'
+import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
 import { createSyncOutboxRepository } from '../repository/sync-outbox.repository'
-import { createSyncStateRepository } from '../repository/sync-state.repository'
+import { createSyncStateRepository, type RestoreMode } from '../repository/sync-state.repository'
 
 /** La file d'envoi et l'état de la synchro du téléphone, tels que les cas d'usage les lisent. */
 export function createLocalSyncOutbox(db: DbClient) {
-  return { ...createSyncOutboxRepository(db), ...createSyncStateRepository(db) }
+  const outbox = createSyncOutboxRepository(db)
+  const syncState = createSyncStateRepository(db)
+
+  return {
+    ...outbox,
+    ...syncState,
+
+    async enableAndQueueWholeCarnet(): Promise<void> {
+      await db.runMany([
+        ...syncState.enableFromStartStatements(),
+        ...outbox.queueWholeCarnetStatements(),
+      ])
+    },
+
+    /**
+     * Autour du carnet tiré : synchro coupée pendant l'écriture. Avant l'écriture, « Fusionner »
+     * met en file tout le carnet du téléphone et ses photos, « Remplacer » seulement ses appareils.
+     */
+    restoreStatements({
+      mode,
+      cursors,
+    }: {
+      mode: RestoreMode
+      cursors: ReadonlyArray<{ entity: string; lastPulledAt: string }>
+    }): { before: SqlStatement[]; after: SqlStatement[] } {
+      return {
+        before: [
+          ...syncState.pauseForRestoreStatements(),
+          ...(mode === 'merge'
+            ? outbox.queueWholeCarnetStatements()
+            : outbox.keepPhotosAndQueueDevicesStatements()),
+        ],
+        after: syncState.finishRestoreStatements(cursors),
+      }
+    },
+
+    /**
+     * Déconnexion (§5 de la proposition) : le compte suivant ne reçoit ni la file, ni les curseurs,
+     * ni la dernière sauvegarde du précédent.
+     */
+    async forgetAccount(): Promise<void> {
+      await db.runMany([
+        syncState.resetStatement(),
+        outbox.clearStatement(),
+        syncState.clearCursorsStatement(),
+      ])
+    },
+
+    eraseAllStatements(): SqlStatement[] {
+      return [
+        outbox.clearStatement(),
+        syncState.clearCursorsStatement(),
+        syncState.resetStatement(),
+      ]
+    },
+  }
 }
 
 export type LocalSyncOutbox = ReturnType<typeof createLocalSyncOutbox>
