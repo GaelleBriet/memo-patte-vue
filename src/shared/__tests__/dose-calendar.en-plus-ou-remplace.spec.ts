@@ -246,4 +246,21 @@ describe('« En plus » ou « Remplace celle du … » (R5, Q27 du 24 octobre 20
     ])
     expect(nextAfter(input, redated)).toEqual(['2026-11-01 08:00'])
   })
+
+  it('un réglage remplacé avant sa première échéance ne donne pas la borne : Milbemax, p2 au 1er nov.', () => {
+    const view = treatmentView({
+      settings: [
+        setting('p1', '2026-10-20', WEEK, [], { startsOn: '2026-10-13' }),
+        setting('p2', '2026-11-01', WEEK, [], { startsOn: '2026-10-16' }),
+      ],
+      lines: [],
+      today: '2026-10-28',
+    })
+    expect(
+      view.asksExtraOrReplaces(
+        { settingId: 'p2', dueOn: '2026-11-01', dueTime: null },
+        '2026-10-28',
+      ),
+    ).toBe(true)
+  })
 })
