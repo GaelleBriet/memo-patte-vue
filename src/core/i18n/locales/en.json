@@ -1381,7 +1381,7 @@
       "signOut": "This device will be signed out of your account.",
       "copy": "Before erasing, export a copy of your health record.",
       "reminders": "No more reminders will ring on this phone.",
-      "exports": "Exports saved in Documents › MémoPatte stay on the phone.",
+      "exports": "Exports stay on the phone, in the Files app, in Documents › MémoPatte.",
       "restart": "After erasing, MémoPatte restarts as on first launch.",
       "continue": "Continue",
       "cancel": "Cancel",
@@ -1479,12 +1479,12 @@
       "shareTitle": "Share via",
       "success": "Data exported",
       "saved": {
-        "json": "JSON export saved to Documents › MémoPatte",
-        "csv": "CSV export saved to Documents › MémoPatte"
+        "json": "JSON export saved. Find it in the Files app, in Documents › MémoPatte.",
+        "csv": "CSV export (ZIP) saved. Find it in the Files app, in Documents › MémoPatte."
       },
       "open": "Open",
       "openLabel": {
-        "csv": "Open the CSV export"
+        "csv": "Open the CSV export (ZIP)"
       },
       "openFailed": "No app could open this file. It’s still in Documents › MémoPatte.",
       "storage": {
@@ -1647,7 +1647,7 @@
       "fileNamePrefix": "health-record",
       "shareTitle": "Share via",
       "success": "PDF exported",
-      "saved": "PDF saved to Documents › MémoPatte",
+      "saved": "PDF saved. Find it in the Files app, in Documents › MémoPatte.",
       "openLabel": "Open the PDF",
       "status": {
         "overdue": "Overdue",

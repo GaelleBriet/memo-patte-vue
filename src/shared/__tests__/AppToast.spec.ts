@@ -116,12 +116,17 @@ describe('AppToast', () => {
   it('reste affiché plus longtemps quand le message le demande, puis revient à la durée courante', async () => {
     vi.useFakeTimers()
     const wrapper = mountToast()
-    showToast('Export JSON enregistré dans Documents › MémoPatte', { durationMs: 4000 })
+    showToast(
+      'Export JSON enregistré. Retrouve-le dans l’app Fichiers, dossier Documents › MémoPatte.',
+      { durationMs: 4000 },
+    )
     await nextTick()
 
     vi.advanceTimersByTime(3500)
     await nextTick()
-    expect(toastMessage.value).toBe('Export JSON enregistré dans Documents › MémoPatte')
+    expect(toastMessage.value).toBe(
+      'Export JSON enregistré. Retrouve-le dans l’app Fichiers, dossier Documents › MémoPatte.',
+    )
 
     vi.advanceTimersByTime(600)
     await nextTick()
@@ -138,7 +143,8 @@ describe('AppToast', () => {
   it('redonne sa durée complète au toast quand le même message revient', async () => {
     vi.useFakeTimers()
     const wrapper = mountToast()
-    const message = 'Export JSON enregistré dans Documents › MémoPatte'
+    const message =
+      'Export JSON enregistré. Retrouve-le dans l’app Fichiers, dossier Documents › MémoPatte.'
     showToast(message, { durationMs: 4000 })
     await nextTick()
 
@@ -199,7 +205,8 @@ describe('AppToast', () => {
     vi.useFakeTimers()
     const wrapper = mountToast()
     const region = document.body.querySelector('[role="status"]')
-    const message = 'Export JSON enregistré dans Documents › MémoPatte'
+    const message =
+      'Export JSON enregistré. Retrouve-le dans l’app Fichiers, dossier Documents › MémoPatte.'
     showToast(message)
     await nextTick()
     vi.advanceTimersByTime(ANNONCE_MS)
