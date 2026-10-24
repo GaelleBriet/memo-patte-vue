@@ -18,7 +18,8 @@ type Reading = 'pending' | 'read' | 'unread' | 'unplugged'
 
 /**
  * L'état de la sauvegarde : relu toutes les 2 s pendant la première sauvegarde ou tant que la synchro
- * n'est pas branchée (sauf `polling: false` : une lecture à l'ouverture), sinon au retour au premier plan et du réseau ; `null` avant la première lecture.
+ * n'est pas branchée, sinon au retour au premier plan et du réseau ; `polling: false` : jamais toutes
+ * les 2 s. `null` avant la première lecture.
  */
 export function useBackupStatus({ polling = true } = {}) {
   const facts = shallowRef<BackupFacts | null>(null)

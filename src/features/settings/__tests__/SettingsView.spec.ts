@@ -172,6 +172,10 @@ describe('SettingsView', () => {
     })
 
     describe('Sauvegarde d’un abonné', () => {
+      beforeEach(() => {
+        vi.setSystemTime(new Date(2026, 8, 15, 12, 0))
+      })
+
       const SAVED: BackupFacts = {
         eligible: true,
         signInNeeded: false,
@@ -211,7 +215,7 @@ describe('SettingsView', () => {
       })
 
       it('ne relit pas l’état toutes les 2 s : une lecture à l’ouverture', async () => {
-        vi.useFakeTimers({ now: new Date('2026-09-15T10:00:00Z') })
+        vi.useFakeTimers({ now: new Date(2026, 8, 15, 12, 0) })
         const read = vi.fn<() => Promise<BackupFacts>>(async () => ({
           ...SAVED,
           lastSyncedAt: null,
