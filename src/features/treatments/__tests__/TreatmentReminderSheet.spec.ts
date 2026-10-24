@@ -1080,6 +1080,51 @@ describe('TreatmentReminderSheet — « Fait à une autre date » nomme toujours
       },
     })
   })
+
+  it('Bravecto, première dose le 1er nov., le 24 oct. : aujourd’hui, la question de la fiche (Q36)', async () => {
+    const BRAVECTO: TreatmentWithPeriods = {
+      ...treatment([
+        {
+          ...period({
+            startsOn: '2026-11-01',
+            firstDueOn: '2026-11-01',
+            frequency: { value: 3, unit: 'month' },
+          }),
+          animalId: BOREE.id,
+        },
+      ]),
+      animalId: BOREE.id,
+    }
+    lePlus(BRAVECTO, '2026-10-24')
+    const sheet = await monter({ dueOn: '2026-11-01', dueTime: null })
+    bouton('.reminder-actions__row--other-date').click()
+    await flushPromises()
+
+    expect(sheet.getComponent(DateCalendar).props('min')).toBe('2026-10-24')
+    expect(texte('.treatment-extra-question__title')).toBe('Cette prise')
+    expect(document.body.querySelector('.treatment-other-date__recap')).toBeNull()
+    expect(bouton('.treatment-other-date__submit').disabled).toBe(true)
+
+    const remplace = [
+      ...document.body.querySelectorAll<HTMLButtonElement>('.form-segmented__option'),
+    ].find((option) => option.textContent?.includes('Remplace'))!
+    remplace.click()
+    await flushPromises()
+    bouton('.treatment-other-date__submit').click()
+    await flushPromises()
+
+    expect(geste()).toEqual({
+      kind: 'note',
+      gesture: {
+        kind: 'note',
+        status: 'given',
+        due: { settingId: 'p-1', dueOn: '2026-11-01', dueTime: null },
+        givenOn: '2026-10-24',
+        shiftsFollowing: true,
+        answer: 'replaces',
+      },
+    })
+  })
 })
 
 describe('TreatmentReminderSheet — confirmation simple de l’arrêt', () => {

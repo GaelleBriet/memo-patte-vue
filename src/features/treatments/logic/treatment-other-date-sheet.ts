@@ -26,7 +26,7 @@ export type OtherDateSheetPlan = {
   min: string | null
   excluded: string[]
   earlierHelp: boolean
-  /** R5 : seulement depuis la carte (Q27). */
+  /** R5 : la même question pour la même dose, d'où qu'on vienne (Q36). */
   question: ExtraQuestion | null
   /** Seulement sans question, qui le dit déjà. */
   recap: string | null
@@ -34,16 +34,21 @@ export type OtherDateSheetPlan = {
   asked: ExtraAnswer | null | undefined
 }
 
-/** Ce que montre « Fait à une autre date » : les jours, la question « Cette prise », le récapitulatif. */
+/**
+ * Ce que montre « Fait à une autre date » : les jours, aujourd'hui toujours compris (Q33), la question
+ * « Cette prise », le récapitulatif.
+ */
 export function otherDateSheetPlan(
   t: Translate,
   { treatment, reading, today, min, target, due, givenOn, answer, shifts }: OtherDateSheetState,
 ): OtherDateSheetPlan {
   const severalTimes = due !== null && hasSeveralTimes(treatment, due.settingId)
   const days =
-    target === null ? { min, earlierHelp: false } : cardOtherDateDays(reading, target, today, min)
+    target === null
+      ? { min: min !== null && min > today ? today : min, earlierHelp: false }
+      : cardOtherDateDays(reading, target, today, min)
   const question =
-    target === null || due === null || givenOn === null
+    due === null || givenOn === null
       ? null
       : extraQuestion(t, reading, due, givenOn, severalTimes, answer, shifts)
   return {
