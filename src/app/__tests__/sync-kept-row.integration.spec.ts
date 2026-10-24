@@ -3,7 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createInMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { createFakeSyncServer, type FakeSyncServer } from '@/core/sync/__tests__/fake-sync-server'
-import { createSyncOutboxRepository } from '@/core/sync/repository/sync-outbox.repository'
+import { createLocalSyncOutbox } from '@/core/sync/service/local-sync-outbox'
 import { createSyncPushRepository } from '@/core/sync/repository/sync-push.repository'
 import { createSyncCycle } from '@/core/sync/service/sync-cycle'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
@@ -15,7 +15,7 @@ async function createPhone(client: SupabaseClient) {
   await db.run('UPDATE sync_state SET enabled = 1 WHERE id = 1')
   const loadSupabaseClient = async () => client
   const animals = createAnimalsRepository(db, { loadSupabaseClient })
-  const outbox = createSyncOutboxRepository(db)
+  const outbox = createLocalSyncOutbox(db)
   const cycle = createSyncCycle({
     db,
     outbox,

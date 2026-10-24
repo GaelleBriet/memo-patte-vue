@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { createDeviceRepository } from '@/core/device/device.repository'
 import { createFakeSyncServer, type FakeSyncServer } from '@/core/sync/__tests__/fake-sync-server'
-import { createSyncOutboxRepository } from '@/core/sync/repository/sync-outbox.repository'
+import { createLocalSyncOutbox } from '@/core/sync/service/local-sync-outbox'
 import { createSyncPushRepository } from '@/core/sync/repository/sync-push.repository'
 import { createSyncCycle } from '@/core/sync/service/sync-cycle'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
@@ -30,7 +30,7 @@ async function createPhone(client: SupabaseClient) {
   const devices = createDeviceRepository(db, { loadSupabaseClient })
   const cycle = createSyncCycle({
     db,
-    outbox: createSyncOutboxRepository(db),
+    outbox: createLocalSyncOutbox(db),
     pushes: createSyncPushRepository(loadSupabaseClient),
     tables: [devices],
     userId: () => USER_ID,
