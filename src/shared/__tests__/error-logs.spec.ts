@@ -55,7 +55,7 @@ function callArguments(source: string, start: number): string[] {
 }
 
 function isSafeArgument(arg: string, path: string): boolean {
-  if (/^errorSummary\((?:cause|error|err)\)$/.test(arg)) return true
+  if (/^(?:errorSummary|localErrorMessage)\((?:cause|error|err)\)$/.test(arg)) return true
   if (/^'[^']*'$/.test(arg) || /^"[^"]*"$/.test(arg)) return true
   if (!/^`[^`]*`$/.test(arg)) return false
   return [...arg.matchAll(/\$\{([^}]*)\}/g)].every((match) =>

@@ -348,6 +348,25 @@ describe('installSync', () => {
       stop()
     })
 
+    it('journalise le message d’un contrôle raté, en développement', async () => {
+      vi.stubEnv('DEV', true)
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const { deps, userId, active, checkAccountBackup } = accountSetup()
+      checkAccountBackup.mockRejectedValue(new Error('sync_state introuvable'))
+      userId.value = 'user-1'
+      active.value = true
+      const stop = await installSync(deps)
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(warn).toHaveBeenCalledWith(
+        'Sauvegarde du compte non contrôlée :',
+        'Error',
+        'sync_state introuvable',
+      )
+      stop()
+      vi.unstubAllEnvs()
+    })
+
     it('serveur injoignable : recontrôle au prochain retour de la session active', async () => {
       const { deps, userId, active, checkAccountBackup } = accountSetup({ kind: 'unreachable' })
       userId.value = 'user-1'
