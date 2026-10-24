@@ -193,4 +193,16 @@ describe('« En plus » ou « Remplace celle du … » (R5, Q27 du 24 octobre 20
     })
     expect(written(result)).toEqual([['create', 'given', '2026-10-24', null, '2026-10-24', null]])
   })
+
+  it('la borne est la première échéance, jamais la date de début : Milbemax repoussé au 1er nov. le 16 oct.', () => {
+    for (const startsOn of ['2026-10-16', '2026-10-20']) {
+      const view = treatmentView({
+        settings: [setting('p1', '2026-11-01', WEEK, [], { startsOn })],
+        lines: [],
+        today: '2026-10-28',
+      })
+      expect(view.asksExtraOrReplaces(due('2026-11-01'), '2026-10-28')).toBe(true)
+      expect(view.asksExtraOrReplaces(due('2026-11-01'), '2026-10-25')).toBe(true)
+    }
+  })
 })

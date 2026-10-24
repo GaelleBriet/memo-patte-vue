@@ -51,7 +51,10 @@ export type TreatmentView = {
    * en plus du jour compte, sauf pour « Remplace » (R5).
    */
   alreadyNotedOn(due: Pick<Due, 'dueOn' | 'dueTime'>, today: Day, answer?: ExtraAnswer): Day | null
-  /** TR-24 bis : premier jour où une prise donnée couvre encore cette échéance, à une ou plusieurs heures. */
+  /**
+   * TR-24 bis : premier jour où une prise donnée couvre encore cette échéance, à une ou plusieurs
+   * heures, jamais avant la première échéance du traitement.
+   */
   earliestGivenOn(due: Due): Day | null
   /** R5 : avant ce jour, une prise est une prise en plus ; `null` : jamais, à plusieurs heures par jour. */
   extraBoundary(due: Due): Day | null
@@ -120,6 +123,16 @@ export function buildView({ settings, lines: given, today }: TreatmentViewInput)
     if (effects.get(id)?.kind !== 'covers') effects.set(id, effect)
   }
   const live = parts.flatMap(({ span }) => span.live)
+  // Un réglage remplacé avant sa première échéance ne donne pas la première échéance du traitement.
+  const firstWrittenDue = parts
+    .flatMap(({ span }) =>
+      span.live.filter(
+        ({ firstDueOn }, index, all) =>
+          all[index + 1] === undefined || firstDueOn < all[index + 1]!.startsOn,
+      ),
+    )
+    .map(({ firstDueOn }) => firstDueOn)
+    .sort()[0]
   const slotOf = (key: string): Slot | undefined =>
     calendarsOver(dayOfKey(key), dayOfKey(key))
       .flatMap(({ slots }) => slots)
@@ -167,8 +180,7 @@ export function buildView({ settings, lines: given, today }: TreatmentViewInput)
     if (setting === undefined) return null
     let day = stepped(due.dueOn, setting.frequency, -1)
     while (stepped(day, setting.frequency, 1) <= due.dueOn) day = plusDays(day, 1)
-    const start = settings.map(({ startsOn }) => startsOn).sort()[0]!
-    return later(day, start)
+    return later(day, firstWrittenDue ?? setting.firstDueOn)
   }
   const slots: TreatmentView['slots'] = (from, to) => {
     const byKey = new Map<string, Slot>()
