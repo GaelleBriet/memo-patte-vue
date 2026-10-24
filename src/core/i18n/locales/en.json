@@ -1343,6 +1343,7 @@
           "title": "First backup in progress",
           "count": "{done} of {total} items"
         },
+        "refused": "One item couldn’t be backed up · Contact support | {n} items couldn’t be backed up · Contact support",
         "waitingNetwork": {
           "title": "Waiting for network",
           "hint": "Backup resumes as soon as this phone is online."

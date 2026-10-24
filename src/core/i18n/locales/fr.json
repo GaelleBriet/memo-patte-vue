@@ -1343,6 +1343,7 @@
           "title": "Première sauvegarde en cours",
           "count": "{done} élément sur {total} | {done} élément sur {total} | {done} éléments sur {total}"
         },
+        "refused": "Un élément n’a pas pu être sauvegardé · Contacter l’aide | {n} éléments n’ont pas pu être sauvegardés · Contacter l’aide",
         "waitingNetwork": {
           "title": "En attente de réseau",
           "hint": "La sauvegarde reprend dès que ce téléphone est connecté à Internet."

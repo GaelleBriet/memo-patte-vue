@@ -85,6 +85,15 @@ describe('useBackupStatus', () => {
     expect(status.value).toEqual({ kind: 'saved', at: SAVED.lastSyncedAt })
   })
 
+  it('donne le nombre d’éléments refusés sous la dernière sauvegarde, zéro avant la première lecture', async () => {
+    provideBackupFacts(async () => ({ ...SAVED, refused: 2 }))
+    const { refused } = start()
+
+    expect(refused.value).toBe(0)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(refused.value).toBe(2)
+  })
+
   it('rien tant que la première lecture n’a pas répondu, puis l’état lu', async () => {
     provideBackupFacts(async () => FIRST_BACKUP)
     const { status } = start()

@@ -5,7 +5,7 @@ import { onAppResume } from '@/core/app-lifecycle/app-resume'
 import { currentBackupFacts, type BackupFacts } from '@/core/sync/service/backup-facts'
 import { onNetworkOnline } from '@/core/sync/service/network-status'
 import { errorSummary } from '@/shared/utils/error-summary'
-import { backupStatusOf, type BackupStatus } from '../logic/backup-status'
+import { backupStatusOf, refusedItemsOf, type BackupStatus } from '../logic/backup-status'
 
 export const BACKUP_STATUS_REFRESH_MS = 2_000
 
@@ -29,6 +29,7 @@ export function useBackupStatus() {
     if (reading.value === 'unread') return { kind: 'unread' }
     return backupStatusOf(facts.value)
   })
+  const refused = computed(() => refusedItemsOf(facts.value))
 
   function cancelNext(): void {
     if (timer !== null) clearTimeout(timer)
@@ -83,5 +84,5 @@ export function useBackupStatus() {
     stopNetwork()
   })
 
-  return { status, now }
+  return { status, refused, now }
 }

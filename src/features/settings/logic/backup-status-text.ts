@@ -15,6 +15,10 @@ function savedWhen(t: Translate, at: string, now: Date): string {
   return lastBackupWhen(t, at, toDay(now))
 }
 
+export function refusedItemsText(t: Translate, count: number): string {
+  return t('settings.backup.cloud.refused', { n: count }, count)
+}
+
 /** Les deux lignes de la carte d'état de Paramètres › Sauvegarde, pour un abonné. */
 export function cloudBackupText(
   t: Translate,
