@@ -179,7 +179,10 @@ describe('EmailChangeView', () => {
 
       await toucher(w, '.email-change__lost')
 
-      expect(push).toHaveBeenCalledWith({ name: 'settings-help' })
+      expect(push).toHaveBeenCalledWith({
+        name: 'settings-help',
+        query: { from: 'settings-account-email' },
+      })
     })
 
     it('refuse l’adresse du compte retapée, sous le champ, sans rien envoyer', async () => {
