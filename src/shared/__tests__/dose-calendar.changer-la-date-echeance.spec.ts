@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   applied,
+  noteDose,
   redateAsksExtraOrReplaces,
   redateDose,
   treatmentView,
@@ -11,7 +12,7 @@ import {
 } from '../domain/dose-calendar'
 import { DAY, days, H, keys, line, setting, WEEK } from './dose-calendar.v2.aides'
 
-const accepted = (result: ReturnType<typeof redateDose>) => {
+const accepted = (result: ReturnType<typeof redateDose | typeof noteDose>) => {
   if ('refusal' in result) throw new Error(`refusé : ${result.refusal.reason}`)
   return result as GestureOutcome
 }
@@ -55,7 +56,7 @@ describe('« Changer la date » ne change jamais l’échéance d’une prise (T
   })
 
   for (const checked of [true, false]) {
-    it(`Milo, rien noté le 24 ; la prise d’hier 20 h changée à aujourd’hui, case ${checked ? 'cochée' : 'décochée'} : elle reste sur hier 20 h`, () => {
+    it(`Milo, rien noté le 24 ; la prise d’hier 20 h changée à aujourd’hui, case ${checked ? 'cochée' : 'décochée'} : elle reste sur hier 20 h, pas de case, les doses du 24 restent à donner (Q38)`, () => {
       const input = { settings: [metacam], lines: toutes, today: '2026-10-24' }
       const result = accepted(
         redateDose(input, { lineId: hierSoir.id, givenOn: '2026-10-24', shiftsFollowing: checked }),
@@ -67,7 +68,10 @@ describe('« Changer la date » ne change jamais l’échéance d’une prise (T
         'given',
         '2026-10-24',
       ])
-      expect(keys(treatmentView(applied(input, result.changes)).unloggedDoses)).toEqual([])
+      expect(result.offersShift).toBe(false)
+      const read = treatmentView(applied(input, result.changes))
+      expect(keys(read.unloggedDoses)).toEqual([])
+      expect(keys(read.currentDoses)).toEqual(['2026-10-24 08:00', '2026-10-24 20:00'])
     })
   }
 
@@ -161,4 +165,88 @@ describe('« Changer la date » d’une prise en plus pose « Cette prise » qua
     expect(rewritten(input, result, enPlus.id)).toEqual(['2026-10-23', null, 'given', '2026-10-17'])
     expect(treatmentView(applied(input, result.changes)).nextDue?.dueOn).toBe('2026-10-30')
   })
+})
+
+describe('« Décaler aussi » : « Changer la date » et « Fait à une autre date » proposent la case dans les mêmes cas (Q38)', () => {
+  const vendredis = setting('p1', '2026-10-02', WEEK)
+  const metacam = setting('p1', '2026-10-05', DAY, H)
+  const avant = days('2026-10-05', '2026-10-23').flatMap((day) =>
+    H.map((time) => line('p1', 'given', day, time)),
+  )
+  const avance = (dueOn: string, givenOn: string, time: string | null = null) => ({
+    ...line('p1', 'given', dueOn, time),
+    givenOn,
+  })
+  const cas = [
+    {
+      nom: 'dose du moment en retard : la prise du 16 changée au 19, le 20',
+      settings: [vendredis],
+      prise: line('p1', 'given', '2026-10-16'),
+      autres: [line('p1', 'given', '2026-10-09')],
+      today: '2026-10-20',
+      givenOn: '2026-10-19',
+      propose: true,
+    },
+    {
+      nom: 'avance : la dose du 23 donnée le 20, changée au 21',
+      settings: [vendredis],
+      prise: avance('2026-10-23', '2026-10-20'),
+      autres: [line('p1', 'given', '2026-10-16')],
+      today: '2026-10-21',
+      givenOn: '2026-10-21',
+      propose: true,
+    },
+    {
+      nom: 'dose plus ancienne : la prise du 2 changée au 17, le 20',
+      settings: [vendredis],
+      prise: line('p1', 'given', '2026-10-02'),
+      autres: [],
+      today: '2026-10-20',
+      givenOn: '2026-10-17',
+      propose: false,
+    },
+    {
+      nom: 'plusieurs heures, dose plus ancienne : la prise du 23 à 20 h changée au 24, rien noté le 24',
+      settings: [metacam],
+      prise: avant.find(({ dueOn, dueTime }) => dueOn === '2026-10-23' && dueTime === '20:00')!,
+      autres: avant.filter(({ dueOn, dueTime }) => dueOn !== '2026-10-23' || dueTime !== '20:00'),
+      today: '2026-10-24',
+      givenOn: '2026-10-24',
+      propose: false,
+    },
+    {
+      nom: 'plusieurs heures, avance : chaque vendredi à 8 h et 20 h, les deux doses du 23 données le 20, 20 h changée au 19',
+      settings: [setting('p1', '2026-10-02', WEEK, H)],
+      prise: avance('2026-10-23', '2026-10-20', '20:00'),
+      autres: [
+        ...['2026-10-09', '2026-10-16'].flatMap((day) =>
+          H.map((time) => line('p1', 'given', day, time)),
+        ),
+        avance('2026-10-23', '2026-10-20', '08:00'),
+      ],
+      today: '2026-10-20',
+      givenOn: '2026-10-19',
+      propose: true,
+    },
+  ]
+
+  for (const { nom, settings, prise, autres, today, givenOn, propose } of cas) {
+    it(`${nom} : case ${propose ? 'proposée' : 'non proposée'}`, () => {
+      const input = { settings, lines: [...autres, prise], today }
+      const redated = accepted(
+        redateDose(input, { lineId: prise.id, givenOn, shiftsFollowing: true }),
+      )
+      const noted = noteDose(
+        { settings, lines: autres, today },
+        {
+          due: { settingId: prise.settingId, dueOn: prise.dueOn, dueTime: prise.dueTime },
+          status: 'given',
+          givenOn,
+          shiftsFollowing: true,
+        },
+      )
+
+      expect([redated.offersShift, accepted(noted).offersShift]).toEqual([propose, propose])
+    })
+  }
 })
