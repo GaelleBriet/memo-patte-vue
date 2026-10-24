@@ -88,7 +88,7 @@ export function sheetOtherDateMin(
   due: NotifiedDue,
   birthDate: string | null,
 ): string | null {
-  const target = notifiedDues(view, due).find(({ status }) => status === 'pending')?.due
+  const target = notifiedDues(view, due).find(({ status }) => status !== 'given')?.due
   if (target === undefined) return birthDate
   return givenWhenMin(view, target, birthDate)
 }

@@ -184,6 +184,7 @@ function edit(): void {
         :done-today-aria-label="texts.doneTodayLabel"
         :edit-hint="t('treatments.sheet.editHint')"
         :busy="isBusy"
+        :other-date="doseDue !== null"
         @done-today="doneToday"
         @other-date="isOtherDateOpen = true"
         @edit="edit"
@@ -224,6 +225,7 @@ function edit(): void {
     :today="today"
     :min="otherDateMin"
     :notified="doseDue"
+    reopens-missed
     :busy="isBusy"
     :back-label="t('treatments.sheet.otherDay.back')"
     @update:model-value="onChildModel"

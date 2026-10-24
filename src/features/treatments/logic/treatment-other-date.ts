@@ -62,11 +62,18 @@ export function notifiedDues(view: DayView, { dueOn, dueTime }: NotifiedDue): Da
 
 /**
  * Ce que « Donnée quand ? », « À faire » et la carte de la fiche notent : l'échéance nommée, ou l'une
- * des heures de sa journée ; jamais un oubli (Q41). Le jour choisi ne change pas l'échéance (Q28).
+ * des heures de sa journée ; un oubli seulement avec `reopensMissed` (feuille du soin, TR-22), jamais
+ * depuis « Donnée quand ? » (Q41). Le jour choisi ne change pas l'échéance (Q28).
  */
-export function notifiedPlan(t: Translate, view: DayView, notified: NotifiedDue): OtherDatePlan {
+export function notifiedPlan(
+  t: Translate,
+  view: DayView,
+  notified: NotifiedDue,
+  reopensMissed = false,
+): OtherDatePlan {
   const dues = notifiedDues(view, notified)
-  const open = (entry: DayDue): Due | null => (entry.status === 'pending' ? entry.due : null)
+  const open = ({ status, due }: DayDue): Due | null =>
+    status === 'pending' || (reopensMissed && status === 'missed') ? due : null
   if (dues.length > 1) {
     return {
       hours: dues.map((entry) => ({ ...hourChoice(t, entry), due: open(entry) })),

@@ -8,8 +8,10 @@ withDefaults(
     doneTodayAriaLabel: string
     editHint: string
     busy?: boolean
+    /** Faux : la feuille n'a pas d'échéance à nommer, « Fait à une autre date » n'est pas proposé. */
+    otherDate?: boolean
   }>(),
-  { dueText: null, busy: false },
+  { dueText: null, busy: false, otherDate: true },
 )
 
 const emit = defineEmits<{
@@ -53,6 +55,7 @@ const { t } = useI18n()
 
     <div class="reminder-actions__card">
       <button
+        v-if="otherDate"
         type="button"
         class="reminder-actions__row reminder-actions__row--other-date"
         :disabled="busy"

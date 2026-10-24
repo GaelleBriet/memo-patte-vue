@@ -82,6 +82,19 @@ describe('feuille d’un rappel demandée à l’accueil', () => {
     expect(parseReminderRequest(query)).toEqual({ kind: 'vaccination', id: 'v1', step: 'done' })
   })
 
+  it('la feuille d’une notification garde son échéance dans l’adresse (TR-13, Q34)', () => {
+    const request = {
+      kind: 'treatment' as const,
+      id: 't1',
+      step: 'actions' as const,
+      due: { dueOn: '2026-10-20', dueTime: '20:00' },
+    }
+    const query = reminderSheetQuery(request)
+
+    expect(query).toEqual({ reminder: 'treatment:t1:2026-10-20T20:00', step: 'actions' })
+    expect(parseReminderRequest(query)).toEqual(request)
+  })
+
   it('ouvre les actions quand l’étape est absente ou inconnue', () => {
     expect(parseReminderRequest({ reminder: 'treatment:t1' })).toEqual({
       kind: 'treatment',

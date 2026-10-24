@@ -29,12 +29,21 @@ const props = withDefaults(
     busy?: boolean
     /** « Donnée quand ? » : l'échéance de la notification, que le jour choisi ne change pas. */
     notified?: NotifiedDue | null
+    /** Feuille du soin : une échéance notée oubliée repasse en donnée (TR-22). */
+    reopensMissed?: boolean
     /** Fiche : l'échéance de la carte, ou sa journée à plusieurs heures, que le jour choisi ne change pas (Q28). */
     target?: NotifiedDue | null
     /** Flèche de l'étape du jour, qui émet `back` : la feuille qui l'a ouverte reprend la main. */
     backLabel?: string | null
   }>(),
-  { min: null, busy: false, notified: null, target: null, backLabel: null },
+  {
+    min: null,
+    busy: false,
+    notified: null,
+    reopensMissed: false,
+    target: null,
+    backLabel: null,
+  },
 )
 
 const emit = defineEmits<{
@@ -55,7 +64,7 @@ const answer = ref<ExtraAnswer | null>(null)
 const named = computed(() => props.target ?? props.notified)
 const plan = computed(() => {
   if (givenOn.value === null || named.value === null) return null
-  return notifiedPlan(t, props.reading.view, named.value)
+  return notifiedPlan(t, props.reading.view, named.value, props.reopensMissed)
 })
 const days = computed(() =>
   props.target === null

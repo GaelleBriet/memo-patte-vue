@@ -167,8 +167,9 @@ function givenLines() {
     .map(({ dueOn, dueTime, givenOn }) => ({ dueOn, dueTime, givenOn }))
 }
 
-function sheetOf(id: string) {
-  return { name: 'home', query: { reminder: `treatment:${id}`, step: 'actions' } }
+function sheetOf(id: string, due?: string) {
+  const reminder = due === undefined ? `treatment:${id}` : `treatment:${id}:${due}`
+  return { name: 'home', query: { reminder, step: 'actions' } }
 }
 
 describe('« C’est fait » d’une notification du jour (RA-18, TR-20, T5)', () => {
@@ -282,7 +283,7 @@ describe('« C’est fait » d’une notification du jour (RA-18, TR-20, T5)', (
 
     expect(applyBatch).not.toHaveBeenCalled()
     expect(toastMessage.value).toBeNull()
-    expect(currentPlace()).toEqual(sheetOf(METACAM))
+    expect(currentPlace()).toEqual(sheetOf(METACAM, `${TODAY}T20:00`))
   })
 
   it('ouvre la feuille et dit l’échec quand la prise n’a pas pu être notée', async () => {
@@ -292,7 +293,7 @@ describe('« C’est fait » d’une notification du jour (RA-18, TR-20, T5)', (
 
     expect(toastMessage.value).toBe('La prise n’a pas pu être notée. Réessaie.')
     expect(toastTone.value).toBe('error')
-    expect(currentPlace()).toEqual(sheetOf(METACAM))
+    expect(currentPlace()).toEqual(sheetOf(METACAM, `${TODAY}T20:00`))
   })
 
   it('dit qu’un traitement arrêté n’a plus de dose à noter, sans rien écrire', async () => {
@@ -523,7 +524,11 @@ describe('texte « déjà notée » d’une prise', () => {
 
 describe('notification touchée hors du bouton (RA-17)', () => {
   it.each([
-    ['du traitement', `treatment:${METACAM}:2026-10-09::before`, `treatment:${METACAM}`],
+    [
+      'du traitement, sur l’échéance de la notification',
+      `treatment:${METACAM}:2026-10-09::before`,
+      `treatment:${METACAM}:2026-10-09`,
+    ],
     ['du vaccin', `vaccination:${CARRE.id}:${TODAY}:due`, `vaccination:${CARRE.id}`],
   ])('ouvre la feuille %s sur l’accueil', async (_label, key, reminder) => {
     await handler()({ key, action: 'open' })

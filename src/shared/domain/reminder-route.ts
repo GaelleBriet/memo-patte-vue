@@ -69,8 +69,13 @@ export type ReminderRequest = ReminderRef &
   ({ step: ReminderStep; due?: TodoDue } | { step: 'given-when'; due: NotifiedDue })
 
 export function reminderSheetQuery(request: ReminderRequest): LocationQueryRaw {
+  const { kind, id } = request
+  const value =
+    request.step !== 'given-when' && request.due !== undefined
+      ? todoReminderValue({ kind, id, due: request.due })
+      : reminderQueryValue(request)
   const query: LocationQueryRaw = {
-    [REMINDER_QUERY_PARAM]: reminderQueryValue(request),
+    [REMINDER_QUERY_PARAM]: value,
     [REMINDER_STEP_QUERY_PARAM]: request.step,
   }
   if (request.step !== 'given-when') return query

@@ -131,7 +131,12 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   la sienne** (décision de Gaelle du 24 octobre 2026, Q28) : la carte de la fiche (dose du jour, en
   retard, prochaine dose) vise la dose de la carte, quelle que soit la date choisie ; une notification,
   son échéance (même touchée plus tard, y compris par « Donnée quand ? », spec Q8) ; « À faire », la
-  ligne touchée (une ligne par heure) ; le bandeau, chaque jour coché. La date choisie ne dit jamais
+  ligne touchée (une ligne par heure) ; le bandeau, chaque jour coché. La feuille du soin ouverte
+  depuis une notification nomme toujours l'échéance de la notification, même notée oubliée, et « Fait
+  à une autre date » y repasse cette dose en donnée (TR-22 ; Luna, Métacam chaque semaine du 6 au
+  20 oct., la dose du 20 oubliée : le 22, depuis la notification du 20, « Fait à une autre date » le
+  21 : « 20 oct. — Donnée le 21 oct. ») ; une feuille sans échéance ne propose pas « Fait à une autre
+  date » (Q34 du 24 octobre 2026). La date choisie ne dit jamais
   quelle dose est visée : la lecture « dernière échéance tombée à cette date ou avant » a disparu.
   **Aucun geste ne change l'échéance d'une prise existante** (« Changer la date » compris : mis en
   œuvre par #1229, d'ici là TR-24). Depuis la carte, « Fait à une autre date » propose les jours du

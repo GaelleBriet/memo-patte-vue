@@ -170,7 +170,10 @@ function reopenReminder(
   }
   const reminder = { kind, id }
   const row = rowToReopen(rows.value, request)
-  if (row) {
+  const { due } = request
+  if (fromNotification && kind === 'treatment' && due !== undefined && due !== 'unlogged') {
+    openReminder({ kind, id, due }, request.step)
+  } else if (row) {
     openReminder(row.request, request.step)
   } else if (fromNotification) {
     void router.push(detailRoute(reminder))
