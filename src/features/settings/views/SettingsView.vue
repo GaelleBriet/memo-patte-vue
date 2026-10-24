@@ -3,8 +3,10 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
+import { backupSubtitle } from '../logic/backup-status-text'
 import { remindersSummary } from '../logic/reminders-settings'
 import { useExactReminders } from '@/core/notifications/use-exact-reminders'
+import { useBackupStatus } from '../composables/use-backup-status'
 import { useRemindersPermission } from '../composables/use-reminders-permission'
 import AccountEntrySection from '@/features/auth/views/AccountEntrySection.vue'
 import PlusEntrySection from '@/features/purchase/views/PlusEntrySection.vue'
@@ -17,11 +19,17 @@ const { t } = useI18n()
 const router = useRouter()
 const notifications = useRemindersPermission()
 const { status: exactReminders } = useExactReminders()
+const { status: backupStatus, refused, now } = useBackupStatus({ polling: false })
 
 const remindersHint = computed(() => {
   const summary = remindersSummary(notifications.value, exactReminders.value)
   return summary && t(`settings.reminders.summary.${summary}`)
 })
+
+const backupHint = computed(
+  () =>
+    backupSubtitle(t, backupStatus.value, refused.value, now.value) ?? t('settings.backup.summary'),
+)
 
 function goHome(): void {
   void router.push({ name: 'home' })
@@ -48,7 +56,7 @@ function goHome(): void {
           class="settings-row--backup"
           icon="ms:backup"
           :label="t('settings.backup.title')"
-          :hint="t('settings.backup.summary')"
+          :hint="backupHint"
           :to="{ name: 'settings-backup' }"
         />
         <SettingsRubricRow

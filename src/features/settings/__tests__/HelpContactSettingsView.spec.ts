@@ -79,6 +79,24 @@ describe('HelpContactSettingsView', () => {
     expect(replace).toHaveBeenCalledWith({ name: 'settings' })
   })
 
+  it('revient à Paramètres › Sauvegarde quand elle vient de là', async () => {
+    await router.push({ name: 'settings-help', query: { from: 'settings-backup' } })
+    const wrapper = await monter()
+
+    await wrapper.get('.pushed-screen__back').trigger('click')
+
+    expect(replace).toHaveBeenCalledWith({ name: 'settings-backup' })
+  })
+
+  it('ignore une origine inconnue et revient à la liste des Paramètres', async () => {
+    await router.push({ name: 'settings-help', query: { from: 'https://exemple.fr' } })
+    const wrapper = await monter()
+
+    await wrapper.get('.pushed-screen__back').trigger('click')
+
+    expect(replace).toHaveBeenCalledWith({ name: 'settings' })
+  })
+
   it.each([
     ['fr', 'https://memopatte.app/aide/', 'Page d’aide', 'Questions fréquentes, sur le site'],
     ['en', 'https://memopatte.app/en/help/', 'Help page', 'FAQ, on the website'],
