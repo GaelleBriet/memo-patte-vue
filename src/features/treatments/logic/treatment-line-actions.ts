@@ -1,7 +1,7 @@
 import type { DoseAction } from './treatment-dose-change'
 import { moveText, type DoseLineAction } from './treatment-history'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
-import type { Due, MoveBounds, TreatmentView } from '@/shared/domain/dose-calendar'
+import type { Due, ExtraAnswer, MoveBounds, TreatmentView } from '@/shared/domain/dose-calendar'
 import { formatDayMonthOrYear, formatLongDate, withoutFinalDot } from '@/shared/utils/format'
 import type { Translate } from '@/core/i18n/translate'
 
@@ -59,8 +59,11 @@ export type DateChange = {
   excluded: string[]
   /** L'aide sous le calendrier : le premier jour possible d'une prise donnée. */
   hint: string | null
-  /** `shiftsFollowing` : la case « Décaler aussi les doses suivantes », cochée par défaut. */
-  action(date: string, shiftsFollowing?: boolean): DoseAction
+  /**
+   * `shiftsFollowing` : la case « Décaler aussi les doses suivantes », cochée par défaut ; `answer` :
+   * la réponse à « Cette prise » d'une prise en plus.
+   */
+  action(date: string, shiftsFollowing?: boolean, answer?: ExtraAnswer): DoseAction
 }
 
 /** `null` : la ligne ne change pas de date (prise oubliée, report que le moteur ne déplace pas). */
@@ -118,11 +121,12 @@ export function dateChangeOf(
         : t('treatments.form.errors.nextDoseOnTooEarly', {
             date: withoutFinalDot(formatDayMonthOrYear(min, today)),
           }),
-    action: (givenOn, shiftsFollowing = true) => ({
+    action: (givenOn, shiftsFollowing = true, answer) => ({
       kind: 'redate',
       lineId: line.id,
       givenOn,
       shiftsFollowing,
+      ...(answer === undefined ? {} : { answer }),
     }),
   }
 }

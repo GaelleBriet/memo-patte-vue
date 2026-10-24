@@ -9,6 +9,7 @@ import {
   play,
   treatmentView,
   type Due,
+  type ExtraAnswer,
   type DueState,
   type FollowedReport,
   type Gesture,
@@ -30,7 +31,13 @@ export type DoseAction =
   | { kind: 'log'; gestures: readonly NoteGesture[] }
   /** Une prise, une prise en plus, un report ou un décalage : le moteur dit ce qui reste. */
   | { kind: 'remove'; lineId: string }
-  | { kind: 'redate'; lineId: string; givenOn: string; shiftsFollowing: boolean }
+  | {
+      kind: 'redate'
+      lineId: string
+      givenOn: string
+      shiftsFollowing: boolean
+      answer?: ExtraAnswer
+    }
   | { kind: 'move'; due: Due; to: string; shiftsFollowing: boolean }
 
 export type DoseChange = {
@@ -222,8 +229,14 @@ export function doseChange(
       }
     }
     case 'redate': {
-      const { lineId, givenOn, shiftsFollowing } = action
-      const outcome = played(reading, { kind: 'redate', lineId, givenOn, shiftsFollowing })
+      const { lineId, givenOn, shiftsFollowing, answer } = action
+      const outcome = played(reading, {
+        kind: 'redate',
+        lineId,
+        givenOn,
+        shiftsFollowing,
+        ...(answer === undefined ? {} : { answer }),
+      })
       return {
         ...NONE,
         writes: doseWritesOf(treatment, outcome.changes, newId),
