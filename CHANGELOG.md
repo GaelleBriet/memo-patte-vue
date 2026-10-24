@@ -5,6 +5,24 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.112](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.111...memo-patte-v0.1.112) (2026-10-24)
+
+
+### ✨ Fonctionnalités
+
+* **auth:** garder l'adresse, l'étape et le code pendant la visite de l'aide ([5ae5de3](https://github.com/GaelleBriet/memo-patte-vue/commit/5ae5de3328d6a544c88d11d90ebabc76ee2192b1))
+* **auth:** garder l'adresse, l'étape et le code pendant la visite de l'aide ([3113c2d](https://github.com/GaelleBriet/memo-patte-vue/commit/3113c2df9d0441ccaa004bc141969b7d71dc7fab))
+
+
+### 🐛 Corrections
+
+* **auth:** borner à 20 s l'attente du sélecteur de compte Google ([b29dd15](https://github.com/GaelleBriet/memo-patte-vue/commit/b29dd1523f857b219b6bd3e915b6d17d21b37794))
+* **auth:** garde de la visite de l'aide réduite à l'étape du code, double toucher sans perte ([ab24437](https://github.com/GaelleBriet/memo-patte-vue/commit/ab24437a1722b5ca753c57df69b9bc2b39eb45be))
+* **auth:** journaliser seulement le résumé de l'erreur Google en dev ([c701761](https://github.com/GaelleBriet/memo-patte-vue/commit/c701761a9b74ec7edc2793b40aeb2be97dcdee01))
+* **auth:** la connexion Google ne reste plus bloquée sur « Connexion en cours » ([3212602](https://github.com/GaelleBriet/memo-patte-vue/commit/321260233a9d1eba664af1a9feadb003d023fcc2))
+* **auth:** ne plus borner le choix du compte Google, seulement l'initialisation ([a7a127e](https://github.com/GaelleBriet/memo-patte-vue/commit/a7a127efa71fb1a161713dae0a66c8eb3f08e447))
+* **auth:** ne plus rendre le plugin Capacitor à une promesse ([e27ff02](https://github.com/GaelleBriet/memo-patte-vue/commit/e27ff0252ee742aabf99c0b291bc8ec7349a108f))
+
 ## [0.1.111](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.110...memo-patte-v0.1.111) (2026-10-24)
 
 
