@@ -17,7 +17,8 @@ import { linesAfter, lostToEnd, movedAlone, outcome, shiftDayOf, withFollowed } 
 
 export type RedateGesture = Omit<Extract<Gesture, { kind: 'redate' }>, 'kind'>
 
-// TR-24 : changer la date d'une prise en plus la fait viser ce que viserait une prise notée ce jour-là.
+// TR-24, R5 : une prise en plus redatée reste en plus tant que la question se poserait ; sinon elle
+// vise ce que viserait une prise notée ce jour-là.
 function redateExtra(
   input: TreatmentViewInput,
   extra: Line,
@@ -48,7 +49,13 @@ function redateExtra(
     },
   }
   if (due === null) return outcome(input, [moved])
-  const plain = noteDose(rest, { due, status: 'given', givenOn, shiftsFollowing: false })
+  const plain = noteDose(rest, {
+    due,
+    status: 'given',
+    givenOn,
+    shiftsFollowing: false,
+    answer: 'extra',
+  })
   if ('refusal' in plain) return plain
   const stillExtra = plain.changes.some(
     (change) => change.action !== 'delete' && change.line.status === 'extra',

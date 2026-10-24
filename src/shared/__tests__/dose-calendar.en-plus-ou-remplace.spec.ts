@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import {
   applied,
   noteDose,
+  redateDose,
   treatmentView,
   type Frequency,
   type GestureOutcome,
@@ -213,5 +214,36 @@ describe('« En plus » ou « Remplace celle du … » (R5, Q27 du 24 octobre 20
       expect(view.asksExtraOrReplaces(due('2026-11-01'), '2026-10-28')).toBe(true)
       expect(view.asksExtraOrReplaces(due('2026-11-01'), '2026-10-25')).toBe(true)
     }
+  })
+
+  it('« Changer la date » d’une prise « En plus » à plusieurs heures : elle reste en plus', () => {
+    const before: TreatmentViewInput = {
+      settings: [setting('p1', '2026-11-01', WEEK, H)],
+      lines: [],
+      today: '2026-10-24',
+    }
+    const noted = noteDose(before, {
+      due: due('2026-11-01', '08:00'),
+      status: 'given',
+      givenOn: '2026-10-24',
+      shiftsFollowing: false,
+      answer: 'extra',
+    })
+    const withExtra = applied(before, accepted(noted).changes)
+    const extraLine = withExtra.lines.map((each, index) => ({
+      ...each,
+      id: each.id ?? `l${index}`,
+    }))
+    const input = { ...withExtra, lines: extraLine }
+    const redated = redateDose(input, {
+      lineId: extraLine[0]!.id,
+      givenOn: '2026-10-23',
+      shiftsFollowing: false,
+    })
+
+    expect(written(redated)).toEqual([
+      ['rewrite', 'extra', '2026-10-23', '08:00', '2026-10-23', null],
+    ])
+    expect(nextAfter(input, redated)).toEqual(['2026-11-01 08:00'])
   })
 })
