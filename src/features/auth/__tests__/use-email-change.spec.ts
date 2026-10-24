@@ -2,7 +2,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useEmailChange } from '../composables/use-email-change'
-import { clearHeldEmailChange } from '../logic/held-email-change'
+import { clearHeldEmailChange, takeHeldEmailChange } from '../logic/held-email-change'
 import { CODE_LENGTH } from '../logic/email-code'
 import { AccountError } from '../logic/account-error'
 import { useAuthStore } from '../store/auth.store'
@@ -315,28 +315,18 @@ describe('useEmailChange, la visite de l’aide', () => {
     expect(retour.values.value).toEqual({ current: '', email: NOUVELLE })
   })
 
-  it('garde l’étape de la nouvelle adresse', async () => {
+  it('ne garde que l’adresse, l’envoi et le code : jamais le mot de passe', async () => {
     const change = await jusquAuCode()
-    change.emailCode.setCode(code('1'))
-    await change.confirm()
-    change.emailCode.setCode('45')
+    change.emailCode.setCode('123')
 
     change.holdForHelp()
-    const retour = revenir()
 
-    expect(retour.step.value).toBe('new')
-    expect(retour.emailCode.email.value).toBe(NOUVELLE)
-    expect(retour.emailCode.code.value).toBe('45')
-  })
-
-  it('garde l’adresse saisie à la première étape, sans le mot de passe', () => {
-    const change = remplir('secret', NOUVELLE)
-
-    change.holdForHelp()
-    const retour = revenir()
-
-    expect(retour.step.value).toBe('address')
-    expect(retour.values.value).toEqual({ current: '', email: NOUVELLE })
+    expect(Object.keys(takeHeldEmailChange() ?? {}).sort()).toEqual([
+      'code',
+      'currentAddress',
+      'newAddress',
+      'sentAt',
+    ])
   })
 
   it('ne se rend qu’une fois : un écran ouvert plus tard repart à zéro', async () => {
@@ -380,14 +370,5 @@ describe('useEmailChange, la visite de l’aide', () => {
     revenir()
 
     expect(local).not.toHaveBeenCalled()
-  })
-
-  it('la déconnexion efface l’état gardé', async () => {
-    const change = await jusquAuCode()
-    change.holdForHelp()
-
-    clearHeldEmailChange()
-
-    expect(revenir().step.value).toBe('address')
   })
 })

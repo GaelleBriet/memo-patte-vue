@@ -354,7 +354,55 @@ describe('EmailChangeView', () => {
       expect((neuf.get('#email-change-email').element as HTMLInputElement).value).toBe('')
     })
 
-    it('la flèche de l’écran, sans visite de l’aide, ne garde rien', async () => {
+    it('un double toucher sur le lien d’aide garde l’état', async () => {
+      const w = await codeEnvoye()
+      await w.get('#email-code-input').setValue('123')
+      await w.get('.email-change__lost').trigger('click')
+      await w.get('.email-change__lost').trigger('click')
+      await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('settings-help'))
+      w.unmount()
+      wrapper = null
+
+      await router.push({ name: 'settings-account-email' })
+      const retour = await monter()
+
+      expect((retour.get('#email-code-input').element as HTMLInputElement).value).toBe('123')
+    })
+
+    it('un retour vers l’écran annulé par une sortie vers Paramètres ne rend rien', async () => {
+      const w = await codeEnvoye()
+      await visiterAide(w)
+
+      void router.push({ name: 'settings-account-email' })
+      await router.push({ name: 'settings' })
+      await router.push({ name: 'settings-account-email' })
+      const neuf = await monter()
+
+      expect(neuf.find('#email-code-input').exists()).toBe(false)
+    })
+
+    it('ne laisse aucun écouteur de routeur après un double toucher sur l’aide', async () => {
+      const retraits: Array<ReturnType<typeof vi.fn<() => void>>> = []
+      const original = router.afterEach.bind(router)
+      vi.spyOn(router, 'afterEach').mockImplementation((garde) => {
+        const retirer = original(garde)
+        const suivi = vi.fn<() => void>(retirer)
+        retraits.push(suivi)
+        return suivi
+      })
+      const w = await codeEnvoye()
+      await w.get('.email-change__lost').trigger('click')
+      await w.get('.email-change__lost').trigger('click')
+      await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('settings-help'))
+      w.unmount()
+      wrapper = null
+      await router.push({ name: 'settings-account-email' })
+
+      expect(retraits.length).toBeGreaterThan(0)
+      expect(retraits.every((retrait) => retrait.mock.calls.length > 0)).toBe(true)
+    })
+
+    it('le retour d’Android, sans visite de l’aide, ne garde rien', async () => {
       const w = await codeEnvoye()
       await retourAndroid()
       w.unmount()

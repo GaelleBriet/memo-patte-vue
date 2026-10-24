@@ -1,8 +1,4 @@
-import type { EmailChangeStep } from './email-change-form'
-
 export type HeldEmailChange = {
-  step: EmailChangeStep
-  email: string
   newAddress: string
   currentAddress: string
   sentAt: number
