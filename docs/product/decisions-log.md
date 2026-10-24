@@ -3860,3 +3860,23 @@ jusqu'au 24 se choisissent, et le 24 pose « En plus » / « Remplace celle du 1
 quand ? » d'une notification garde sa borne. — Raison : Q34 I3 vaut pour toute entrée ; avant, le
 récapitulatif annonçait « Dose du 1er nov., donnée le 24 oct. » alors que la prise s'écrivait en
 plus. — Alternative écartée : depuis « À faire », aujourd'hui seulement.
+
+## 2026-10-24 — Un report redéplacé depuis une date choisie, hors de sa grille, est sans effet (#1231, Q39)
+
+Décision de la session d'analyse du moteur, à qui Gaelle a délégué les lectures de règles (Q26, Q39
+du 24 octobre 2026 ; spec `traitements.md` R9, R10, R11). Un report dont l'ancienne arrivée est la
+date choisie d'un réglage, plus ancien que le « Modifier » qui l'a choisie, et parti d'une journée que
+la grille de cette date n'a pas, est grisé « sans effet », à fréquence gardée comme changée ; sa
+journée de départ, sans ligne, revient à renseigner. Exception : quand une dose qu'il apporte est déjà
+donnée, il a servi, il reste en vigueur et la prise garde sa journée (R4). Milo, chaque jour sans heure
+depuis le 6 mars ; le 9, la dose du 10 reportée au 21 avec « Décaler aussi les doses suivantes », le 12
+ramenée au 17 avec la case, puis « Modifier » : toutes les 2 semaines, « Prochaine dose » le 21 : rien
+le 17, le 10 mars à renseigner, puis le 21 mars et le 4 avril (avant : le 17, puis le 21 mars). Toutes
+les 6 semaines, la dose du 27 mars reportée puis ramenée au 4 avril, donnée le 28 mars, puis tous les
+mois à partir du 5 avril : le 4 avril reste donné, le 27 mars ne revient pas à renseigner. Deux
+téléphones, cas Q1 avec le réglage plus récent : le 11 à 9 h et 21 h puis le 18, le « 13 à 20 h » en
+trop (#986) disparaît. — Raison : une personne seule voyait le 17 avant la date choisie du 21. —
+Alternatives écartées : rendre sans effet tout report parti hors de la grille de la date choisie (casse
+#796 à fréquence changée) ; rendre sans effet un report dont la dose arrivée est donnée (le jour de
+départ redemanderait une dose déjà donnée). — Pour revenir dessus : retirer `outdatedByChosenDate`
+(`report-rank.ts`) et `staleBeforeChosenDate` (`reference-ranks.ts`).
