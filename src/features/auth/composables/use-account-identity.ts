@@ -1,6 +1,6 @@
 import { onMounted, ref } from 'vue'
 
-import type { AccountIdentity } from '../repository/auth.repository'
+import type { AccountIdentity } from '../logic/account-identity-of'
 import { useAuthStore } from '../store/auth.store'
 
 /** L'adresse du compte de l'appareil, lue à l'ouverture de l'écran ; `null` sans compte Plus. */

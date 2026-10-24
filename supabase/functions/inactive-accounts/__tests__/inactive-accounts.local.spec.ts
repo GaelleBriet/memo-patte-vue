@@ -226,7 +226,12 @@ describe.skipIf(url === undefined)('inactive-accounts sur une pile Supabase loca
       expect(response.status).toBe(200)
       const report = await response.json()
       expect(report).toMatchObject({ mode: 'dry-run', channel: 'absent' })
-      expect(report.done).toEqual({ warnings: 0, deletions: 0, revenuecatErasures: 0 })
+      expect(report.done).toEqual({
+        warnings: 0,
+        deletions: 0,
+        revenuecatErasures: 0,
+        unconfirmedDeletions: 0,
+      })
     },
   )
 })

@@ -412,6 +412,7 @@ describe('dateChangeOf', () => {
       subtitle: 'Prise en plus du 9 sept. 2026',
       date: '2026-09-09',
       max: TODAY,
+      hint: null,
     })
   })
 
@@ -427,6 +428,54 @@ describe('dateChangeOf', () => {
         view: view(TODAY, book),
       }),
     ).toMatchObject({ min: '2026-09-10' })
+  })
+
+  it('Q30 : Métacam tous les jours à 8 h et 20 h, prise d’hier 20 h : hier ou aujourd’hui', () => {
+    const daily = period({
+      startsOn: '2026-10-05',
+      firstDueOn: '2026-10-05',
+      times: ['08:00', '20:00'],
+    })
+    const hierSoir = dose('2026-10-23', '', { dueTime: '20:00' })
+    const book = treatment([daily], [hierSoir])
+
+    expect(
+      plain(
+        dateChangeOf(t, hierSoir, null, {
+          today: '2026-10-24',
+          earliest: '2022-04-10',
+          view: view('2026-10-24', book),
+        }),
+      ),
+    ).toMatchObject({
+      min: '2026-10-23',
+      max: '2026-10-24',
+      hint: 'Choisis une date à partir du 23 oct.',
+    })
+  })
+
+  it('Q30 : Bravecto tous les 3 mois, prise du 1er nov. : du 2 août à aujourd’hui', () => {
+    const quarterly = period({
+      startsOn: '2026-05-01',
+      firstDueOn: '2026-05-01',
+      frequency: { value: 3, unit: 'month' },
+    })
+    const nov = dose('2026-11-01', '')
+    const book = treatment([quarterly], [dose('2026-05-01', ''), dose('2026-08-01', ''), nov])
+
+    expect(
+      plain(
+        dateChangeOf(t, nov, null, {
+          today: '2026-11-10',
+          earliest: '2022-04-10',
+          view: view('2026-11-10', book),
+        }),
+      ),
+    ).toMatchObject({
+      min: '2026-08-02',
+      max: '2026-11-10',
+      hint: 'Choisis une date à partir du 2 août.',
+    })
   })
 
   it('d’un report : sa nouvelle date, entre les bornes du moteur, sans les jours d’un autre report', () => {

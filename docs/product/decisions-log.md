@@ -2976,6 +2976,25 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
+## 2026-10-24 — La date choisie se juge contre l'instant du « Modifier » qui l'a choisie (#1232, Q40)
+
+Décision de la session d'analyse du moteur, à qui Gaelle a délégué les lectures de règles (Q40,
+spec `traitements.md` R9, R10). Un report qui part de la date choisie par un réglage se juge contre
+l'instant du « Modifier » qui a choisi cette date (date d'écriture des réglages), jamais contre la
+date de grille que ce réglage hérite : héritée, elle dit « la grille n'a pas changé », pas « la date
+n'a pas été choisie ». La date de grille ne tranche que les conflits de grille (#939, inchangé).
+
+- Exemple : Milo, chaque semaine à 20 h depuis le mercredi 4 mars ; le 9, la dose du 11 reportée au
+  18 avec la case ; le 10, ramenée du 18 au 15 sans la case ; le même jour, « Modifier » : chaque
+  semaine à 21 h, « Prochaine dose » le 18. Lecture : 18, 25 mars, 1er et 8 avril ; le report est
+  sans effet, grisé (R11), car R9 ne lit rien avant la date choisie, dite après le report (R10).
+- Un second « Modifier » le même jour qui ne change que les heures en gardant la date choisie ne
+  re-choisit pas la date : un report écrit entre les deux garde son effet. La date n'est re-choisie
+  que si la date choisie change.
+- Sans nouvelle colonne ni migration : la date d'écriture des réglages existe depuis la v14.
+- Alternative écartée : retirer « toujours » de R9 (une date choisie qui reste vide est le défaut
+  nommé par Gaelle).
+
 ## 2026-10-24 — « Changer mon adresse e-mail » : l'état est gardé pendant la visite de l'aide (#1213)
 
 Décision de la session d'analyse du moteur, **validée par Gaelle le 2026-10-24** (garder le code en mémoire pendant la visite de l'aide : oui ; alternative écartée : ne rien garder). Exemple : à l'étape du code
@@ -3798,6 +3817,37 @@ synchro. — Raison (Gaelle) : « l'utilisateur répond et fini les devinettes �
 dose du jour et que je mets "fait hier", je ne veux pas que ce soit la dose d'avant qui soit
 comptabilisée ». — Alternatives écartées : la règle par distance ; couvrir d'office à moins d'un
 rythme avant la première échéance ; une question « quelle dose ? » qui referait le bandeau.
+
+2026-10-24 — **« Changer la date » d'une prise donnée change sa date réelle, jamais son échéance**
+(#1229, spec `traitements.md` TR-13, TR-24 bis, R6, §10 du 24 octobre). Décision de Gaelle du 24
+octobre (Q30, section B « Changer la date, comportement complet » validée telle quelle), cadrée par la
+session d'analyse du moteur. Aucun geste ne change l'échéance d'une prise existante. Milo, Métacam tous
+les jours à 8 h et 20 h, 8 h du 24 notée ; menu ⋮ de la prise du 23 à 20 h › « Changer la date » › le
+24 : « 23 oct. · 20 h — Donnée le 24 oct. », aucun bandeau, 20 h reste la dose du jour. Jours
+possibles du lendemain du jour un rythme avant l'échéance jusqu'à aujourd'hui (Bravecto tous les 3
+mois, prise du 1er nov. : du 2 août à aujourd'hui) ; grisés : un rythme ou plus avant, tout jour futur ;
+aide sous le calendrier « Choisis une date à partir du 23 oct. » (texte existant) ; case « Décaler
+aussi » aux conditions habituelles, jugées à la nouvelle date. — Raison : une personne seule voyait sa
+prise sauter sur une autre dose et un bandeau apparaître ; la date choisie ne dit jamais quelle dose
+est visée (Q28). — Alternative écartée : la lecture Q-C1 étendue du 11 octobre (la prise corrigée
+après une échéance encore sans prise vise la dose que « Fait à une autre date » noterait ce jour-là).
+— Pour revenir dessus : rétablir `lateTarget` dans `gestures/redate.ts` (commit c61a447b).
+
+2026-10-24 — **« Changer la date » : « Cette prise » pour une prise en plus, la case comme « Fait à une
+autre date »** (#1229, spec `traitements.md` TR-24, TR-24 bis, R5, R6, §10 du 24 octobre). Décisions
+de la session d'analyse du moteur du 24 octobre (Q37, Q38). (1) Q37 : pour les jours où une prise en
+plus déplacée couvrirait une dose, la feuille pose « En plus » / « Remplace celle du … » (mêmes textes
+que Q27), « Enregistrer » grisé sans réponse ; le message reste « Prise déplacée au … » ; la case de
+Q30 garde les conditions actuelles (décision de Gaelle du 3 octobre). Milbemax chaque vendredi, prise
+« En plus » le 16, changée au 17 : « En plus », prochaine dose le 23 ; « Remplace », la dose du 23
+donnée le 17, prochaine dose le 30. (2) Q38 : la case « Décaler aussi » de « Changer la date » n'est
+proposée que si, au jour de la nouvelle date, la dose de la prise est encore la dose du moment (retard,
+G20) ou une dose à venir ; sinon c'est une dose non renseignée, sans case, comme depuis le bandeau (R6). Milo,
+Métacam 8 h et 20 h, rien de noté le 24 à 9 h 40 : la prise du 23 à 20 h changée au 24, pas de case,
+les doses du 24 restent à donner. — Raison : un « Remplace » silencieux, et une case qui effaçait les
+doses du jour. — Alternatives écartées : griser les jours d'une prise en plus ; la case dès que la date
+change. — Pour revenir dessus : `redateAsksExtraOrReplaces` et la condition `unlogged` de `redateGiven`
+(`gestures/redate.ts`).
 
 2026-10-24 — **« Fait à une autre date » depuis « À faire » : le calendrier et la question de la
 fiche** (#1239, spec `traitements.md` R5, TR-13 ; décision Q36 de la session d'analyse du

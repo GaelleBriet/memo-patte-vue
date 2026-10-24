@@ -20,7 +20,7 @@ export {
 } from './gestures/changes'
 export { moveBounds, moveDose, type MoveBounds } from './gestures/move'
 export { dueForDate, noteDose } from './gestures/note'
-export { redateDose } from './gestures/redate'
+export { redateAsksExtraOrReplaces, redateDose } from './gestures/redate'
 export { keptAhead, removalRefusal, removeLine, reportRemovalLock } from './gestures/remove'
 export {
   newSettings,

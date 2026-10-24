@@ -109,7 +109,11 @@ export function createGoogleCredentials({
         }
         if (cause instanceof GoogleCredentialError) throw cause
         if (code === CANCELLED_CODE) return { kind: 'cancelled' }
-        throw new GoogleCredentialError((code && FAILURES_BY_CODE[code]) || 'failed', { cause })
+        const reason =
+          code !== undefined && Object.hasOwn(FAILURES_BY_CODE, code)
+            ? FAILURES_BY_CODE[code]
+            : undefined
+        throw new GoogleCredentialError(reason ?? 'failed', { cause })
       }
     },
 

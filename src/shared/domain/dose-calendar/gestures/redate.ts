@@ -1,4 +1,3 @@
-import { plusDays } from '../grid'
 import type {
   Day,
   Due,
@@ -8,6 +7,7 @@ import type {
   LineChange,
   TreatmentViewInput,
 } from '../types'
+import { keyOf } from '../grid'
 import { episodeIdsOf } from '../settings'
 import { buildView } from '../view'
 import { shiftOfDay, shiftWritten, without } from './changes'
@@ -17,14 +17,30 @@ import { linesAfter, lostToEnd, movedAlone, outcome, shiftDayOf, withFollowed } 
 
 export type RedateGesture = Omit<Extract<Gesture, { kind: 'redate' }>, 'kind'>
 
-// TR-24, R5 : une prise en plus redatée reste en plus tant que la question se poserait ; sinon elle
-// vise ce que viserait une prise notée ce jour-là.
+/**
+ * TR-24, R5, Q37 : l'échéance que la prise en plus déplacée à cette date couvrirait, et pour laquelle
+ * « Cette prise » se pose ; `null` quand elle reste en plus sans question.
+ */
+export function redateAsksExtraOrReplaces(
+  input: TreatmentViewInput,
+  lineId: string,
+  givenOn: Day,
+): Due | null {
+  const extra = input.lines.find(({ id }) => id === lineId)
+  if (extra?.status !== 'extra' || givenOn === extra.givenOn) return null
+  const rest = without(input, [extra.id])
+  const due = dueForDate(rest, givenOn, null)
+  if (due === null || buildView(rest).asksExtraOrReplaces(due, givenOn)) return null
+  return due
+}
+
+// Sans réponse (anciens carnets, campagnes), la prise couvre la dose comme une prise notée ce jour-là.
 function redateExtra(
   input: TreatmentViewInput,
   extra: Line,
   gesture: RedateGesture,
 ): GestureResult {
-  const { givenOn } = gesture
+  const { givenOn, answer } = gesture
   if (givenOn === extra.givenOn) return outcome(input, [])
   const taken = input.lines.some(
     (line) =>
@@ -34,8 +50,6 @@ function redateExtra(
       line.dueOn === givenOn,
   )
   if (taken) return { refusal: { reason: 'day-taken' } }
-  const rest = without(input, [extra.id])
-  const due = dueForDate(rest, givenOn, null)
   const moved: LineChange = {
     action: 'rewrite',
     id: extra.id,
@@ -48,41 +62,15 @@ function redateExtra(
       targetOn: null,
     },
   }
-  if (due === null) return outcome(input, [moved])
-  const plain = noteDose(rest, {
-    due,
-    status: 'given',
-    givenOn,
-    shiftsFollowing: false,
-    answer: 'extra',
-  })
-  if ('refusal' in plain) return plain
-  const stillExtra = plain.changes.some(
-    (change) => change.action !== 'delete' && change.line.status === 'extra',
-  )
-  if (stillExtra) return outcome(input, [moved])
-  return redateAsNote(input, rest, extra, [], due, gesture)
-}
-
-// Q-C1 : une prise en retard ne couvre qu'une dose ; corrigée après une échéance passée encore sans prise de sa période, elle vise la dose que « Fait à une autre date » noterait ce jour-là.
-function lateTarget(rest: TreatmentViewInput, line: Line, givenOn: Day): Due | null {
-  const episode = episodeIdsOf(rest.settings, line.settingId)
-  const spans = buildView(rest)
-    .slots(plusDays(line.dueOn, 1), givenOn)
-    .some(({ due, state }) => state === 'pending' && episode.has(due.settingId))
-  if (!spans) return null
-  return (
-    [dueForDate(rest, givenOn, line.dueTime), dueForDate(rest, givenOn, null)].find(
-      (due) => due !== null && due.dueOn <= givenOn && episode.has(due.settingId),
-    ) ?? null
-  )
+  const due = redateAsksExtraOrReplaces(input, extra.id, givenOn)
+  if (due === null || answer === 'extra') return outcome(input, [moved])
+  return redateAsNote(input, without(input, [extra.id]), extra, due, gesture)
 }
 
 function redateAsNote(
   input: TreatmentViewInput,
   rest: TreatmentViewInput,
   line: Line,
-  dropped: LineChange[],
   target: Due,
   gesture: RedateGesture,
 ): GestureResult {
@@ -102,18 +90,17 @@ function redateAsNote(
           },
         ]
       : [{ action: 'delete', id: line.id }, missed]
-  const kept = [...dropped, ...prise]
   if (!plain.offersShift || !shiftsFollowing) {
-    return withFollowed(input, kept, target.dueOn, {
+    return withFollowed(input, prise, target.dueOn, {
       offersShift: plain.offersShift,
       lostToEnd: [],
     })
   }
   const shiftDay = shiftDayOf(buildView(rest), target)
-  const changes = [...kept, shiftWritten(rest.lines, { ...target, dueOn: shiftDay }, givenOn)]
+  const changes = [...prise, shiftWritten(rest.lines, { ...target, dueOn: shiftDay }, givenOn)]
   return withFollowed(input, changes, target.dueOn, {
     offersShift: true,
-    lostToEnd: lostToEnd(input, kept, changes, target.dueOn),
+    lostToEnd: lostToEnd(input, prise, changes, target.dueOn),
   })
 }
 
@@ -138,7 +125,14 @@ function redateGiven(input: TreatmentViewInput, line: Line, gesture: RedateGestu
     view.phase === 'stopped' ||
     !episodeIdsOf(input.settings, line.settingId).has(view.currentSetting?.id ?? '')
   const alone = movedAlone(view, input.lines, line.dueOn)
-  const offered = givenOn !== line.dueOn && !blocked && dayDone && !closed && !alone
+  // R6, Q38 : jamais quand, au jour de la nouvelle date, la dose est déjà une dose non renseignée.
+  const unlogged = buildView({
+    ...without(input, [...ignored]),
+    today: givenOn,
+  }).unloggedDoses.some(
+    (other) => keyOf(other.dueOn, other.dueTime) === keyOf(due.dueOn, due.dueTime),
+  )
+  const offered = givenOn !== line.dueOn && !unlogged && !blocked && dayDone && !closed && !alone
   const prise: LineChange = {
     action: 'rewrite',
     id: line.id,
@@ -148,12 +142,6 @@ function redateGiven(input: TreatmentViewInput, line: Line, gesture: RedateGestu
   const reportAnchor = shiftDay === line.dueOn ? null : line.dueOn
   // N2 : seul le décalage ancré à la date de la prise la suit ; un autre décalage de la journée reste.
   const owned = own !== undefined && own.targetOn === line.givenOn ? own : undefined
-  const rest = without(input, owned === undefined ? [line.id] : [line.id, owned.id])
-  const target = lateTarget(rest, line, givenOn)
-  if (target !== null) {
-    const dropped: LineChange[] = owned === undefined ? [] : [{ action: 'delete', id: owned.id }]
-    return redateAsNote(input, rest, line, dropped, target, gesture)
-  }
   const changesFor = (checked: boolean): LineChange[] => {
     if (offered && checked)
       return [prise, shiftWritten(input.lines, { ...due, dueOn: shiftDay }, givenOn)]
@@ -171,9 +159,9 @@ function redateGiven(input: TreatmentViewInput, line: Line, gesture: RedateGestu
 }
 
 /**
- * TR-24 bis, Q-C1 : la correction se juge au jour de la nouvelle date, comme une prise notée ce
- * jour-là ; un report seul qui ne tient plus suit (G19), sinon la correction est refusée. TR-25 : les
- * autres lignes de la dose (deux appareils) partent avec la correction.
+ * TR-24 bis : la correction change la date réelle d'une prise donnée, jamais son échéance (Q30) ; la
+ * case se juge à la nouvelle date ; un report seul qui ne tient plus suit (G19), sinon la correction
+ * est refusée. TR-25 : les autres lignes de la dose (deux appareils) partent avec la correction.
  */
 export function redateDose(input: TreatmentViewInput, gesture: RedateGesture): GestureResult {
   const { lineId } = gesture

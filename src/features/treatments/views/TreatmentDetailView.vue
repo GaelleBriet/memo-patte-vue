@@ -17,6 +17,7 @@ import { useTreatmentGestures } from '../composables/use-treatment-gestures'
 import { detailActions, doseCard, lessPreciseReminder } from '../logic/treatment-card'
 import { cardDone, cardTarget } from '../logic/treatment-card-other-date'
 import type { NoteGesture } from '../logic/treatment-dose-change'
+import { extraRedateQuestion, type ExtraRedateQuestion } from '../logic/treatment-extra-redate'
 import { dateChangeOf, lineAction, type DateChange } from '../logic/treatment-line-actions'
 import {
   treatmentDeleteTexts,
@@ -35,7 +36,7 @@ import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { originQuery, type NotifiedDue } from '@/shared/domain/reminder-route'
 import { reminderIcon } from '@/shared/domain/reminders'
 import { takesNewCare } from '@/shared/domain/unfollowed-animals'
-import type { Due, MoveBounds } from '@/shared/domain/dose-calendar'
+import type { Due, ExtraAnswer, MoveBounds } from '@/shared/domain/dose-calendar'
 import { returnTo } from '@/shared/utils/return-to'
 
 const props = defineProps<{
@@ -81,7 +82,12 @@ const confirming = ref<Due | null>(null)
 const isDatePickerOpen = ref(false)
 const isStopDialogOpen = ref(false)
 const isDeleteDialogOpen = ref(false)
-const changing = ref<{ row: DoseRow; change: DateChange; box: DateChangeBox | null } | null>(null)
+const changing = ref<{
+  row: DoseRow
+  change: DateChange
+  box: DateChangeBox | null
+  question: ExtraRedateQuestion | null
+} | null>(null)
 
 const doseCardRef = useTemplateRef<InstanceType<typeof TreatmentDoseCard>>('doseCardRef')
 
@@ -181,14 +187,15 @@ function onLineAction(row: DoseRow, choice: DoseLineAction, bounds: MoveBounds |
     reading: reading.value,
     today: today.value,
   })
-  changing.value = { row, change, box }
+  const question = extraRedateQuestion(t, treatment.value, reading.value, row.dose)
+  changing.value = { row, change, box, question }
   isDatePickerOpen.value = true
 }
 
-function changeDate(date: string, shiftsFollowing: boolean): void {
+function changeDate(date: string, shiftsFollowing: boolean, answer?: ExtraAnswer): void {
   if (!changing.value) return
   const { row, change } = changing.value
-  void apply(change.action(date, shiftsFollowing), row.dose, row.dose.periodId)
+  void apply(change.action(date, shiftsFollowing, answer), row.dose, row.dose.periodId)
 }
 
 function backToCarnet(): void {
@@ -341,7 +348,9 @@ onMounted(() => {
       :min="changing?.change.min ?? null"
       :max="changing?.change.max ?? null"
       :excluded="changing?.change.excluded ?? []"
+      :hint="changing?.change.hint ?? null"
       :box="changing?.box ?? null"
+      :question="changing?.question ?? null"
       :busy="gestures.isBusy.value"
       @save="changeDate"
     />

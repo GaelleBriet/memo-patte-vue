@@ -20,53 +20,52 @@ const accepted = (result: ReturnType<typeof redateDose | typeof noteDose>) => {
 const p1 = setting('p1', '2026-10-02', WEEK)
 const base = [line('p1', 'given', '2026-10-02'), line('p1', 'given', '2026-10-09')]
 
-describe('« Changer la date » d’une prise (TR-24 bis, Q-C1, G12, G19, G21)', () => {
-  it('Q-C1 : dose du 16 notée le 16, corrigée le 25 « donnée le 24 », case cochée : la dose du 23 donnée le 24, le 16 à renseigner, 31 oct.', () => {
+describe('« Changer la date » d’une prise (TR-24 bis, Q30, G12, G19, G21)', () => {
+  it('Q30, Q38 : dose du 16 notée le 16, corrigée le 25 « donnée le 24 » : elle reste la dose du 16, pas de case (la dose du 23 est tombée le 24), la dose du 23 reste en retard', () => {
     const prise = line('p1', 'given', '2026-10-16')
     const input = { settings: [p1], lines: [...base, prise], today: '2026-10-25' }
     const result = accepted(
       redateDose(input, { lineId: prise.id, givenOn: '2026-10-24', shiftsFollowing: true }),
     )
-    expect(result.offersShift).toBe(true)
-    const read = treatmentView(applied(input, result.changes))
-    expect([keys(read.currentDoses), keys(read.unloggedDoses)]).toEqual([
-      ['2026-10-31'],
-      ['2026-10-16'],
-    ])
+    expect(result.offersShift).toBe(false)
+    const after = applied(input, result.changes)
+    const rewritten = after.lines.find(({ id }) => id === prise.id)
+    expect([rewritten?.dueOn, rewritten?.givenOn]).toEqual(['2026-10-16', '2026-10-24'])
+    const read = treatmentView(after)
+    expect([keys(read.currentDoses), keys(read.unloggedDoses)]).toEqual([['2026-10-23'], []])
   })
 
-  for (const [checked, suite] of [
-    [true, ['2026-10-24', '2026-10-31']],
-    [false, ['2026-10-23', '2026-10-30']],
-  ] as const) {
-    it(`Q-C1 : prise du 2 donnée ; le 20, la prise du 2 corrigée au 17, case ${checked ? 'cochée' : 'décochée'} : la dose en retard du 16 donnée le 17, les doses du 2 et du 9 à renseigner, puis ${suite[0].slice(8)}`, () => {
+  for (const checked of [true, false]) {
+    it(`Q30, Q38 : prise du 2 donnée ; le 20, la prise du 2 corrigée au 17, case ${checked ? 'cochée' : 'décochée'} : elle reste la dose du 2, pas de case, même calendrier que « Fait à une autre date » le 17 pour la dose du 2`, () => {
       const prise = line('p1', 'given', '2026-10-02')
       const input = { settings: [p1], lines: [prise], today: '2026-10-20' }
       const gesture = { lineId: prise.id, givenOn: '2026-10-17', shiftsFollowing: checked }
       const result = accepted(redateDose(input, gesture))
-      expect(result.offersShift).toBe(true)
+      expect(result.offersShift).toBe(false)
       const after = applied(input, result.changes)
       const rewritten = after.lines.find(({ id }) => id === prise.id)
-      expect([rewritten?.dueOn, rewritten?.givenOn]).toEqual(['2026-10-16', '2026-10-17'])
+      expect([rewritten?.dueOn, rewritten?.givenOn]).toEqual(['2026-10-02', '2026-10-17'])
       const read = treatmentView(after)
-      expect(keys(read.unloggedDoses)).toEqual(['2026-10-02', '2026-10-09'])
-      expect(keys(read.upcoming({ limit: 2 }))).toEqual(suite)
+      expect([keys(read.currentDoses), keys(read.unloggedDoses)]).toEqual([
+        ['2026-10-16'],
+        ['2026-10-09'],
+      ])
+      expect(keys(read.upcoming({ limit: 2 }))).toEqual(['2026-10-23', '2026-10-30'])
       const direct = noteDose(
         { ...input, lines: [] },
         {
-          due: { settingId: 'p1', dueOn: '2026-10-16', dueTime: null },
+          due: { settingId: 'p1', dueOn: '2026-10-02', dueTime: null },
           status: 'given',
           givenOn: '2026-10-17',
           shiftsFollowing: checked,
         },
       )
-      expect(keys(read.upcoming({ limit: 4 }))).toEqual(
-        keys(
-          treatmentView(applied({ ...input, lines: [] }, accepted(direct).changes)).upcoming({
-            limit: 4,
-          }),
-        ),
-      )
+      const noted = treatmentView(applied({ ...input, lines: [] }, accepted(direct).changes))
+      expect(accepted(direct).offersShift).toBe(false)
+      expect([keys(read.unloggedDoses), keys(read.upcoming({ limit: 4 }))]).toEqual([
+        keys(noted.unloggedDoses),
+        keys(noted.upcoming({ limit: 4 })),
+      ])
     })
   }
 
@@ -250,20 +249,19 @@ describe('TR-16, TR-24 bis : une prise de « Choisir les jours » se corrige com
 })
 
 describe('R6, R11 : une correction de date n’efface jamais un oubli (décision du 2026-10-12)', () => {
-  it('prise du 2 donnée, dose du 9 à renseigner, dose du 16 oubliée ; le 20, la prise du 2 corrigée au 17 : refusée « Une dose plus lointaine est déjà notée. » ; l’oubli supprimé, elle est acceptée', () => {
+  it('prise du 2 donnée, dose du 9 à renseigner, dose du 16 oubliée ; le 20, la prise du 2 corrigée au 17 : elle reste la dose du 2, l’oubli du 16 reste, pas de case (Q30)', () => {
     const prise = line('p1', 'given', '2026-10-02')
     const missed = line('p1', 'missed', '2026-10-16')
     const input = { settings: [p1], lines: [prise, missed], today: '2026-10-20' }
     for (const shiftsFollowing of [true, false]) {
       const gesture = { lineId: prise.id, givenOn: '2026-10-17', shiftsFollowing }
-      expect(redateDose(input, gesture)).toEqual({ refusal: { reason: 'later-dose' } })
-      const without = { ...input, lines: [prise] }
-      const read = treatmentView(applied(without, accepted(redateDose(without, gesture)).changes))
-      expect(read.dueState({ dueOn: '2026-10-16', dueTime: null })).toBe('given')
-      expect(keys(read.unloggedDoses)).toEqual(['2026-10-02', '2026-10-09'])
-      expect(keys(read.upcoming({ limit: 1 }))).toEqual([
-        shiftsFollowing ? '2026-10-24' : '2026-10-23',
-      ])
+      const result = accepted(redateDose(input, gesture))
+      expect(result.offersShift).toBe(false)
+      const read = treatmentView(applied(input, result.changes))
+      expect(read.dueState({ dueOn: '2026-10-02', dueTime: null })).toBe('given')
+      expect(read.dueState({ dueOn: '2026-10-16', dueTime: null })).toBe('missed')
+      expect(keys(read.unloggedDoses)).toEqual(['2026-10-09'])
+      expect(keys(read.upcoming({ limit: 1 }))).toEqual(['2026-10-23'])
     }
   })
 })

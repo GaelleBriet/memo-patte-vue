@@ -2,10 +2,13 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import TreatmentExtraQuestion from './TreatmentExtraQuestion.vue'
 import TreatmentShiftCheckbox from './TreatmentShiftCheckbox.vue'
+import type { ExtraRedateQuestion } from '../logic/treatment-extra-redate'
 import type { DateChangeBox } from '../logic/treatment-shift-box'
 import BottomSheet from '@/shared/components/BottomSheet.vue'
 import DateCalendar from '@/shared/components/DateCalendar.vue'
+import type { ExtraAnswer } from '@/shared/domain/dose-calendar'
 
 const props = withDefaults(
   defineProps<{
@@ -15,15 +18,18 @@ const props = withDefaults(
     min?: string | null
     max?: string | null
     excluded?: readonly string[]
+    hint?: string | null
     /** `null` : pas de case pour cette ligne. */
     box?: DateChangeBox | null
+    /** « Cette prise » d'une prise en plus ; `null` : jamais posée. */
+    question?: ExtraRedateQuestion | null
     busy?: boolean
   }>(),
-  { min: null, max: null, excluded: () => [], box: null, busy: false },
+  { min: null, max: null, excluded: () => [], hint: null, box: null, question: null, busy: false },
 )
 
 const emit = defineEmits<{
-  save: [date: string, shiftsFollowing: boolean]
+  save: [date: string, shiftsFollowing: boolean, answer?: ExtraAnswer]
 }>()
 
 const open = defineModel<boolean>({ default: false })
@@ -32,22 +38,37 @@ const { t } = useI18n()
 
 const chosen = ref<string | null>(props.date)
 const shifts = ref(true)
+const answer = ref<ExtraAnswer | null>(null)
 
-const view = computed(() => props.box?.view(chosen.value, shifts.value) ?? null)
+const asked = computed(() => props.question?.(chosen.value, answer.value, shifts.value) ?? null)
+const view = computed(
+  () =>
+    props.box?.view(chosen.value, shifts.value, asked.value === null ? null : answer.value) ?? null,
+)
 const refused = computed(() => [...props.excluded, ...(props.box?.refusedDays(shifts.value) ?? [])])
 const canSave = computed(
-  () => chosen.value !== null && chosen.value !== props.date && view.value?.blocked !== true,
+  () =>
+    chosen.value !== null &&
+    chosen.value !== props.date &&
+    view.value?.blocked !== true &&
+    (asked.value === null || answer.value !== null),
 )
 
 watch(open, (isOpen) => {
   if (!isOpen) return
   chosen.value = props.date
   shifts.value = props.box?.initial ?? true
+  answer.value = null
+})
+watch(chosen, () => {
+  answer.value = null
 })
 
 function save(): void {
   if (chosen.value === null) return
-  emit('save', chosen.value, view.value?.shown === true ? shifts.value : true)
+  const shiftsFollowing = view.value?.shown === true ? shifts.value : true
+  if (asked.value === null || answer.value === null) emit('save', chosen.value, shiftsFollowing)
+  else emit('save', chosen.value, shiftsFollowing, answer.value)
   open.value = false
 }
 </script>
@@ -69,6 +90,8 @@ function save(): void {
       :max="max"
       :excluded="refused"
     />
+    <p v-if="hint" class="treatment-change-date__hint">{{ hint }}</p>
+    <TreatmentExtraQuestion v-if="asked" v-model="answer" :question="asked" />
     <TreatmentShiftCheckbox
       v-if="view?.shown"
       v-model="shifts"
@@ -96,6 +119,13 @@ function save(): void {
 // Non scopé : la feuille est téléportée hors du composant.
 .treatment-change-date__calendar {
   margin-top: 12px;
+}
+
+.treatment-change-date__hint {
+  margin: 8px 0 0;
+  color: tokens.$color-text-secondary;
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 .treatment-change-date__shift {

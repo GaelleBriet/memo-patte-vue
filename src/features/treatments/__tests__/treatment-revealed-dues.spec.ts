@@ -220,14 +220,14 @@ describe('revealedDues — les doses passées qu’un geste fait apparaître', (
       expect(days(after.upcoming({ limit: 1 }))).toEqual([today])
     })
 
-    it('prise du 8 corrigée au 9 (Q-C1) : elle note la dose du 9, celle du 8 est à renseigner', async () => {
+    it('prise du 8 corrigée au 9 (Q30) : elle garde la dose du 8, aucune dose passée annoncée', async () => {
       const { change } = await saved(
         withPeriods,
         { kind: 'redate', lineId: '2026-10-08', givenOn: '2026-10-09', shiftsFollowing: true },
         today,
       )
 
-      expect(change.revealed).toEqual({ unlogged: [due('2026-10-08')], overdue: [] })
+      expect(change.revealed).toBeNull()
     })
   })
 })
