@@ -335,13 +335,13 @@ describe('amorçage : le carnet local part en entier vers un compte vide', () =>
     )
     refuseAnimal(milo)
     await db.run("UPDATE animal SET name = 'Milou', updated_at = ? WHERE id = ?", [
-      '2026-10-21T08:10:00.000Z',
+      new Date(2026, 9, 21, 8, 10).toISOString(),
       milo,
     ])
     for (let attempt = 0; attempt < 3; attempt += 1) await cycle.runCycle().catch(() => {})
 
     await db.run('UPDATE weight_entry SET weight_kg = 9.9, updated_at = ? WHERE id = ?', [
-      '2026-10-21T08:20:00.000Z',
+      new Date(2026, 9, 21, 8, 20).toISOString(),
       weighing!.id,
     ])
     await cycle.runCycle()
