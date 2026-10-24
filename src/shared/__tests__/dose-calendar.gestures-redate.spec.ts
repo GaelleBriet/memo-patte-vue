@@ -21,36 +21,51 @@ const p1 = setting('p1', '2026-10-02', WEEK)
 const base = [line('p1', 'given', '2026-10-02'), line('p1', 'given', '2026-10-09')]
 
 describe('« Changer la date » d’une prise (TR-24 bis, Q30, G12, G19, G21)', () => {
-  it('Q30 : dose du 16 notée le 16, corrigée le 25 « donnée le 24 », case cochée : elle reste la dose du 16, rien à renseigner, 31 oct.', () => {
+  it('Q30, Q38 : dose du 16 notée le 16, corrigée le 25 « donnée le 24 » : elle reste la dose du 16, pas de case (la dose du 23 est tombée le 24), la dose du 23 reste en retard', () => {
     const prise = line('p1', 'given', '2026-10-16')
     const input = { settings: [p1], lines: [...base, prise], today: '2026-10-25' }
     const result = accepted(
       redateDose(input, { lineId: prise.id, givenOn: '2026-10-24', shiftsFollowing: true }),
     )
-    expect(result.offersShift).toBe(true)
+    expect(result.offersShift).toBe(false)
     const after = applied(input, result.changes)
     const rewritten = after.lines.find(({ id }) => id === prise.id)
     expect([rewritten?.dueOn, rewritten?.givenOn]).toEqual(['2026-10-16', '2026-10-24'])
     const read = treatmentView(after)
-    expect([keys(read.currentDoses), keys(read.unloggedDoses)]).toEqual([['2026-10-31'], []])
+    expect([keys(read.currentDoses), keys(read.unloggedDoses)]).toEqual([['2026-10-23'], []])
   })
 
-  for (const [checked, current, unlogged, suite] of [
-    [true, ['2026-10-24'], [], ['2026-10-24', '2026-10-31']],
-    [false, ['2026-10-16'], ['2026-10-09'], ['2026-10-23', '2026-10-30']],
-  ] as const) {
-    it(`Q30 : prise du 2 donnée ; le 20, la prise du 2 corrigée au 17, case ${checked ? 'cochée' : 'décochée'} : elle reste la dose du 2, puis ${suite[0].slice(8)}`, () => {
+  for (const checked of [true, false]) {
+    it(`Q30, Q38 : prise du 2 donnée ; le 20, la prise du 2 corrigée au 17, case ${checked ? 'cochée' : 'décochée'} : elle reste la dose du 2, pas de case, même calendrier que « Fait à une autre date » le 17 pour la dose du 2`, () => {
       const prise = line('p1', 'given', '2026-10-02')
       const input = { settings: [p1], lines: [prise], today: '2026-10-20' }
       const gesture = { lineId: prise.id, givenOn: '2026-10-17', shiftsFollowing: checked }
       const result = accepted(redateDose(input, gesture))
-      expect(result.offersShift).toBe(true)
+      expect(result.offersShift).toBe(false)
       const after = applied(input, result.changes)
       const rewritten = after.lines.find(({ id }) => id === prise.id)
       expect([rewritten?.dueOn, rewritten?.givenOn]).toEqual(['2026-10-02', '2026-10-17'])
       const read = treatmentView(after)
-      expect([keys(read.currentDoses), keys(read.unloggedDoses)]).toEqual([current, unlogged])
-      expect(keys(read.upcoming({ limit: 2 }))).toEqual(suite)
+      expect([keys(read.currentDoses), keys(read.unloggedDoses)]).toEqual([
+        ['2026-10-16'],
+        ['2026-10-09'],
+      ])
+      expect(keys(read.upcoming({ limit: 2 }))).toEqual(['2026-10-23', '2026-10-30'])
+      const direct = noteDose(
+        { ...input, lines: [] },
+        {
+          due: { settingId: 'p1', dueOn: '2026-10-02', dueTime: null },
+          status: 'given',
+          givenOn: '2026-10-17',
+          shiftsFollowing: checked,
+        },
+      )
+      const noted = treatmentView(applied({ ...input, lines: [] }, accepted(direct).changes))
+      expect(accepted(direct).offersShift).toBe(false)
+      expect([keys(read.unloggedDoses), keys(read.upcoming({ limit: 4 }))]).toEqual([
+        keys(noted.unloggedDoses),
+        keys(noted.upcoming({ limit: 4 })),
+      ])
     })
   }
 

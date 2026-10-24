@@ -7,6 +7,7 @@ import type {
   LineChange,
   TreatmentViewInput,
 } from '../types'
+import { keyOf } from '../grid'
 import { episodeIdsOf } from '../settings'
 import { buildView } from '../view'
 import { shiftOfDay, shiftWritten, without } from './changes'
@@ -124,7 +125,11 @@ function redateGiven(input: TreatmentViewInput, line: Line, gesture: RedateGestu
     view.phase === 'stopped' ||
     !episodeIdsOf(input.settings, line.settingId).has(view.currentSetting?.id ?? '')
   const alone = movedAlone(view, input.lines, line.dueOn)
-  const offered = givenOn !== line.dueOn && !blocked && dayDone && !closed && !alone
+  // R6, Q38 : seulement quand, au jour de la nouvelle date, la dose est encore la dose du moment.
+  const current = buildView({ ...without(input, [...ignored]), today: givenOn }).currentDoses.some(
+    (other) => keyOf(other.dueOn, other.dueTime) === keyOf(due.dueOn, due.dueTime),
+  )
+  const offered = givenOn !== line.dueOn && current && !blocked && dayDone && !closed && !alone
   const prise: LineChange = {
     action: 'rewrite',
     id: line.id,

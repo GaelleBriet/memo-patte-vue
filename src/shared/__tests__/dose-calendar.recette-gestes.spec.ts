@@ -84,7 +84,7 @@ describe('R5, R6 : prise en plus, correction de date', () => {
     ])
   })
 
-  it('Q30 : dose du 16 notée le 16, corrigée le 25 « donnée le 24 », case cochée : la dose du 16 donnée le 24, rien à renseigner, 31 oct., 7 nov.', () => {
+  it('Q30, Q38 : dose du 16 notée le 16, corrigée le 25 « donnée le 24 » : la dose du 16 donnée le 24, pas de case, la dose du 23 reste en retard', () => {
     const c = donne(vendredis(), '2026-10-16', echeance(vendredis(), '2026-10-16'))
     const corrigee = corrige(
       c,
@@ -98,13 +98,13 @@ describe('R5, R6 : prise en plus, correction de date', () => {
       unlogged: read.unloggedDoses.map(cle),
       next: read.upcoming({ limit: 2 }).map(cle),
     }).toEqual({
-      current: ['2026-10-31'],
+      current: ['2026-10-23'],
       unlogged: [],
-      next: ['2026-10-31', '2026-11-07'],
+      next: ['2026-10-30', '2026-11-06'],
     })
   })
 
-  it('Q-C1 : la correction et « Fait à une autre date » le 24 donnent le même calendrier', () => {
+  it('Q38 : la correction et la même dose notée le 24 depuis le bandeau donnent le même calendrier', () => {
     const c = donne(vendredis(), '2026-10-16', echeance(vendredis(), '2026-10-16'))
     const corrigee = corrige(
       c,
@@ -112,12 +112,14 @@ describe('R5, R6 : prise en plus, correction de date', () => {
       ligne(c, '2026-10-16', null, 'given').id,
       '2026-10-24',
     )
-    expect(vue(corrigee, '2026-10-25').phase).toBe('upcoming')
-    expect(journees(corrigee, '2026-10-25', 2)).toEqual(['2026-10-31', '2026-11-07'])
-    const autre = dateDonnee(vendredis(), '2026-10-25', '2026-10-24')
-    expect(
-      journees(donne(vendredis(), '2026-10-25', autre, '2026-10-24', true), '2026-10-25', 2),
-    ).toEqual(['2026-10-31', '2026-11-07'])
+    const bandeau = donne(
+      vendredis(),
+      '2026-10-25',
+      echeance(vendredis(), '2026-10-16'),
+      '2026-10-24',
+    )
+    expect(journees(corrigee, '2026-10-25', 3)).toEqual(['2026-10-23', '2026-10-30', '2026-11-06'])
+    expect(journees(bandeau, '2026-10-25', 3)).toEqual(journees(corrigee, '2026-10-25', 3))
   })
 
   it('N6 : dose du 16 donnée le 19 avec décalage, prise supprimée : le 16 revient, la suite reste décalée', () => {
