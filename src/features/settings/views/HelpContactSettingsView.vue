@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import { useContactMail } from '../composables/use-contact-mail'
 import { currentLocale } from '@/core/i18n'
@@ -9,9 +9,11 @@ import BottomSheet from '@/shared/components/BottomSheet.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { helpPageUrl } from '@/shared/domain/help-page'
 import { returnTo } from '@/shared/utils/return-to'
+import { helpBackRoute } from '@/shared/utils/sign-in-route'
 
 const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
 const { address, unsentTopic, write, copyAddress } = useContactMail()
 
 const helpUrl = computed(() => helpPageUrl(currentLocale()))
@@ -28,7 +30,7 @@ const noMailAppTitle = computed(() =>
 )
 
 function goBack(): void {
-  returnTo(router, { name: 'settings' })
+  returnTo(router, helpBackRoute(route.query.from))
 }
 </script>
 
