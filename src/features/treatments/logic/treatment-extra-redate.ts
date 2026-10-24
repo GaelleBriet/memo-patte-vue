@@ -1,6 +1,6 @@
 import { extraQuestionOf, type ExtraQuestion } from './treatment-card-other-date'
 import { hasSeveralTimes } from './treatment-gestures'
-import type { TreatmentReading } from './treatment-reading-adapter'
+import type { TreatmentReading } from '@/shared/domain/treatment-reading'
 import type { TreatmentDose } from '../schema/treatment-dose.schema'
 import type { TreatmentWithPeriods } from '../schema/treatment-with-periods.schema'
 import {

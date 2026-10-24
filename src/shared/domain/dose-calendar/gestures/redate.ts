@@ -1,4 +1,12 @@
-import type { Due, Gesture, GestureResult, Line, LineChange, TreatmentViewInput } from '../types'
+import type {
+  Day,
+  Due,
+  Gesture,
+  GestureResult,
+  Line,
+  LineChange,
+  TreatmentViewInput,
+} from '../types'
 import { episodeIdsOf } from '../settings'
 import { buildView } from '../view'
 import { shiftOfDay, shiftWritten, without } from './changes'
