@@ -37,7 +37,9 @@ export type DeviceEraseDependencies = {
   animals: Provider<Pick<AnimalsRepository, 'eraseAll'>>
   /** Toute table qui référence un animal, et les autres tables de l'appareil. */
   tables: Provider<{ eraseAllStatement(): SqlStatement }>[]
-  syncOutbox: Provider<Pick<SyncOutboxRepository, 'listPending' | 'eraseAllStatements'>>
+  syncOutbox: Provider<
+    Pick<SyncOutboxRepository, 'listPending' | 'countRefused' | 'eraseAllStatements'>
+  >
   account: { isSignedIn(): boolean; signOut(): Promise<void> }
   notifications: { cancelAll(): Promise<void>; rebuild(): Promise<void> }
   photos: { deleteAll(): Promise<void> }
@@ -82,8 +84,9 @@ export function createDeviceEraseService({
       const signedIn = account.isSignedIn()
       if (!signedIn) return { signedIn, hasUnsyncedChanges: false }
       try {
-        const pending = await (await syncOutbox()).listPending()
-        return { signedIn, hasUnsyncedChanges: pending.length > 0 }
+        const outbox = await syncOutbox()
+        const [pending, refused] = await Promise.all([outbox.listPending(), outbox.countRefused()])
+        return { signedIn, hasUnsyncedChanges: pending.length > 0 || refused > 0 }
       } catch (cause) {
         console.warn('File de synchro illisible :', errorSummary(cause))
         return { signedIn, hasUnsyncedChanges: true }

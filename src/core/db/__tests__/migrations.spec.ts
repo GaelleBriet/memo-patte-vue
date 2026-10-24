@@ -66,11 +66,11 @@ function insertAnimal(db: InMemoryDb, values: Record<string, string | number | n
 }
 
 describe('migrations', () => {
-  it('contient la v9 et la v11, qui créent le schéma entier, la v10, la v12 à la v17 des traitements, la v18 et la v19 des photos, la v20 des prises, la v21 de la date des photos en file', () => {
+  it('contient la v9 et la v11, qui créent le schéma entier, la v10, la v12 à la v17 des traitements, la v18 et la v19 des photos, la v20 des prises, la v21 de la date des photos en file, la v22 des éléments refusés', () => {
     expect(migrations.map(({ toVersion }) => toVersion)).toEqual([
-      9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+      9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
     ])
-    expect(DATABASE_VERSION).toBe(21)
+    expect(DATABASE_VERSION).toBe(22)
   })
 })
 
@@ -722,7 +722,7 @@ describe('schéma sur une installation neuve', () => {
         'weight_entry',
       ]
         .flatMap((table) => [`${table}_outbox_insert`, `${table}_outbox_update`])
-        .concat('animal_photo_outbox_replaced')
+        .concat('animal_photo_outbox_replaced', 'sync_outbox_requeued')
         .sort(),
     )
   })

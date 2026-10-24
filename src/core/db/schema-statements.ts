@@ -90,6 +90,35 @@ export function replacedPhotoOutboxTriggerStatement(): string {
      END;`
 }
 
+/** Chaque ancêtre d'une ligne synchronisée, par sa colonne : les clés étrangères du schéma. */
+export const SYNC_PARENT_COLUMNS: Record<string, Record<string, string>> = {
+  vaccination: { animal_id: 'animal' },
+  vaccination_injection: { vaccination_id: 'vaccination', animal_id: 'animal' },
+  treatment: { animal_id: 'animal' },
+  treatment_period: { treatment_id: 'treatment', animal_id: 'animal' },
+  treatment_dose: { period_id: 'treatment_period', treatment_id: 'treatment', animal_id: 'animal' },
+  weight_entry: { animal_id: 'animal' },
+}
+
+/** Une entrée remise en file n'est plus refusée, ni ses descendants : ils repartent avec elle. */
+export function requeuedOutboxTriggerStatement(): string {
+  const descendants = Object.entries(SYNC_PARENT_COLUMNS)
+    .flatMap(([child, parents]) =>
+      Object.entries(parents).map(
+        ([column, parent]) => `(NEW.entity = '${parent}' AND entity = '${child}'
+          AND entity_id IN (SELECT id FROM ${child} WHERE ${column} = NEW.entity_id))`,
+      ),
+    )
+    .join(' OR ')
+  return `CREATE TRIGGER sync_outbox_requeued AFTER UPDATE OF queued_at ON sync_outbox
+     WHEN NEW.refused_at IS NOT NULL AND NEW.queued_at IS NOT OLD.queued_at
+     BEGIN
+      UPDATE sync_outbox SET refused_at = NULL
+      WHERE (entity = NEW.entity AND entity_id = NEW.entity_id)
+        OR (refused_at IS NOT NULL AND (${descendants}));
+     END;`
+}
+
 export function nameLengthTriggerStatements(table: string, columns: string[]): string[] {
   const tooLong = columns.map((column) => `length(NEW.${column}) > 80`).join(' OR ')
   const abort = `BEGIN SELECT RAISE(ABORT, '${table}: text longer than 80 characters'); END;`

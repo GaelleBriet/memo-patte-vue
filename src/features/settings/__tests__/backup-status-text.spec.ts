@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import type { CloudBackupStatus } from '../logic/backup-status'
-import { cloudBackupText } from '../logic/backup-status-text'
+import { cloudBackupText, refusedItemsText } from '../logic/backup-status-text'
 import i18n from '@/core/i18n'
 import type { Translate } from '@/core/i18n/translate'
 import { plain } from '@/shared/__tests__/plain'
@@ -98,5 +98,23 @@ describe('texte de la sauvegarde cloud', () => {
       title: 'Sign back in to resume backup',
       hint: 'Interrupted since yesterday at 6:20 pm. Nothing is lost.',
     })
+  })
+})
+
+describe('texte des éléments refusés', () => {
+  it('un élément, puis plusieurs, avec le lien vers l’aide', () => {
+    expect(plain(refusedItemsText(t, 1))).toBe(
+      'Un élément n’a pas pu être sauvegardé · Contacter l’aide',
+    )
+    expect(plain(refusedItemsText(t, 3))).toBe(
+      '3 éléments n’ont pas pu être sauvegardés · Contacter l’aide',
+    )
+  })
+
+  it('en anglais', () => {
+    i18n.global.locale.value = 'en'
+
+    expect(plain(refusedItemsText(t, 1))).toBe('One item couldn’t be backed up · Contact support')
+    expect(plain(refusedItemsText(t, 3))).toBe('3 items couldn’t be backed up · Contact support')
   })
 })

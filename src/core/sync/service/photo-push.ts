@@ -22,22 +22,34 @@ const photoRefusalSignature = (cause: unknown) =>
   cause instanceof PhotoUploadRefusal ? cause.reason : null
 
 export function createPhotoPush(
-  outbox: Pick<SyncCycleOutbox, 'listPending' | 'removeIfUnchanged' | 'recordFailedPush'>,
+  outbox: Pick<
+    SyncCycleOutbox,
+    | 'listPending'
+    | 'removeIfUnchanged'
+    | 'markRefusedIfUnchanged'
+    | 'recordFailedPush'
+    | 'hasRefusedAncestor'
+  >,
   { files, uploads, isPhotoInCarnet }: PhotoPushDependencies,
+  now: () => Date,
 ): PhotoPush {
   const refusals = createPushRefusals({
     outbox,
     signature: photoRefusalSignature,
     onGivenUp: (_entry, cause) =>
-      console.warn('Photo refusée par le serveur, sortie de la file :', errorSummary(cause)),
+      console.warn('Photo refusée par le serveur, plus envoyée :', errorSummary(cause)),
+    now,
   })
 
   async function pushEntry(userId: string, entry: SyncOutboxEntry): Promise<void> {
     if (!(await isPhotoInCarnet(entry.entityId))) return
     const photo = await files.read(entry.entityId, MAX_CLOUD_PHOTO_BYTES)
     if (photo.kind === 'too-large' || (photo.kind === 'found' && !isJpeg(photo.bytes))) {
-      console.warn('Photo trop lourde ou hors JPEG, sortie de la file sans envoi.')
-    } else if (photo.kind === 'found') {
+      console.warn('Photo trop lourde ou hors JPEG, plus envoyée.')
+      await outbox.markRefusedIfUnchanged(entry, now().toISOString())
+      return
+    }
+    if (photo.kind === 'found') {
       await uploads.upload(userId, entry.entityId, photo.bytes)
     }
     await outbox.removeIfUnchanged(entry)

@@ -11,6 +11,10 @@ export interface BackupFacts {
   remaining: number
   /** Lignes et photos du carnet : ce que la première sauvegarde envoie. */
   carnetSize: number
+  /** Éléments du carnet que le serveur refuse pour toujours, hors de `remaining`. */
+  refused: number
+  /** Parmi `refused`, les photos du carnet. */
+  refusedPhotos: number
 }
 
 export type BackupFactsReader = () => Promise<BackupFacts>
@@ -18,7 +22,12 @@ export type BackupFactsReader = () => Promise<BackupFacts>
 export interface BackupFactsDependencies {
   outbox: Pick<
     SyncOutboxRepository,
-    'isEnabled' | 'getLastSyncedAt' | 'countPending' | 'countWholeCarnet'
+    | 'isEnabled'
+    | 'getLastSyncedAt'
+    | 'countPending'
+    | 'countWholeCarnet'
+    | 'countRefused'
+    | 'countRefusedPhotos'
   >
   isEligible: () => boolean
   signInNeeded: () => boolean
@@ -32,13 +41,16 @@ export function createBackupFactsReader({
   isOnline,
 }: BackupFactsDependencies): BackupFactsReader {
   return async () => {
-    const [online, syncEnabled, lastSyncedAt, remaining, carnetSize] = await Promise.all([
-      isOnline(),
-      outbox.isEnabled(),
-      outbox.getLastSyncedAt(),
-      outbox.countPending(),
-      outbox.countWholeCarnet(),
-    ])
+    const [online, syncEnabled, lastSyncedAt, remaining, carnetSize, refused, refusedPhotos] =
+      await Promise.all([
+        isOnline(),
+        outbox.isEnabled(),
+        outbox.getLastSyncedAt(),
+        outbox.countPending(),
+        outbox.countWholeCarnet(),
+        outbox.countRefused(),
+        outbox.countRefusedPhotos(),
+      ])
     return {
       eligible: isEligible(),
       signInNeeded: signInNeeded(),
@@ -47,6 +59,8 @@ export function createBackupFactsReader({
       lastSyncedAt,
       remaining,
       carnetSize,
+      refused,
+      refusedPhotos,
     }
   }
 }

@@ -2976,6 +2976,45 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
+## 2026-10-24 — Élément refusé pour toujours : gardé, compté dans Paramètres › Sauvegarde (#1035)
+
+Règles tranchées par la session d'analyse du moteur le 24 octobre 2026, pour Gaelle. Quand le
+serveur refuse un élément pour toujours (trois refus identiques de la même version : une contrainte
+de vérification, une date du 30 février, une photo trop lourde pour Storage), la synchro ne
+l'efface plus de sa file : elle le garde, marqué refusé, hors de la file. Exemple : la pesée de Milo
+du 12 mars est refusée ; la sauvegarde aboutit et Paramètres › Sauvegarde affiche, sous
+« Dernière sauvegarde : il y a 5 min », « Un élément n'a pas pu être sauvegardé · Contacter l'aide ».
+
+1. L'état disparaît quand l'élément est modifié puis sauvegardé, quand sa suppression est
+   sauvegardée, à la déconnexion, au changement de compte et à la restauration.
+2. La remise en file de tout le carnet retente l'élément refusé.
+3. Texte à pluriel, une seule clé : « Un élément n'a pas pu être sauvegardé · Contacter l'aide »,
+   « {n} éléments n'ont pas pu être sauvegardés · Contacter l'aide » ; en anglais « One item
+   couldn't be backed up · Contact support », « {n} items couldn't be backed up · Contact support ».
+   La ligne s'ajoute sous l'état de la sauvegarde, jamais seule ; elle ouvre Aide et contact.
+4. Les photos refusées par Storage (413, 415, 400) comptent : « élément » les couvre ; une photo
+   trop lourde ou hors JPEG détectée sur le téléphone, sans appel au serveur, est marquée refusée
+   aussi (même règle, même texte).
+5. La ligne s'affiche aussi sous « En attente de réseau » et « Reconnecte-toi », sous l'état
+   principal, jamais seule.
+6. Dès qu'une photo est refusée, « Photos sauvegardées · Oui » disparaît : une ligne fausse est
+   pire qu'une ligne absente.
+7. L'avertissement « modifications non sauvegardées » avant « Effacer les données de ce téléphone »
+   compte aussi les éléments refusés : c'est la perte réelle qu'il annonce.
+8. Un enfant est refusé avec son parent (même état, même texte, même compte) seulement quand son
+   propre envoi bute sur la clé étrangère (23503) et qu'un de ses ancêtres est marqué refusé : il
+   n'est plus réessayé sans fin, « Première sauvegarde en cours » ne reste plus bloqué, et il repart
+   quand le parent est modifié puis sauvegardé. Tout autre échec reste un réessai ordinaire. Un
+   enfant dont le parent est déjà sur le serveur part normalement : le 21 octobre, Milo sauvegardé à
+   8 h, sa modification de 8 h 10 refusée, la pesée corrigée à 9,9 kg à 8 h 20 arrive au serveur
+   (règle (c) du 24 octobre, après la re-relecture de #1206).
+
+- Raison : la ligne restait dans le carnet du téléphone sans être dans le cloud, et « Dernière
+  sauvegarde » le taisait (#1035). Un élément refusé ne bloque jamais la file et ne compte pas dans
+  « N éléments sur M » de la première sauvegarde.
+- Alternative écartée : effacer l'entrée de la file et garder le refus dans le seul journal de debug
+  (comportement d'avant, invisible).
+
 ## 2026-10-23 — Deux horloges sur chaque ligne de dose : la décision et la dernière écriture (#1188)
 
 Décision de Gaelle du 23 octobre 2026, relayée par la session d'analyse du moteur. Chaque ligne de

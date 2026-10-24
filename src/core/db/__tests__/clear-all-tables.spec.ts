@@ -15,11 +15,11 @@ describe('migrationTableNames', () => {
       'vaccination',
       'vaccination_injection',
       'treatment',
-      'sync_outbox',
       'sync_state',
       'sync_pull_cursor',
       'treatment_period',
       'treatment_dose',
+      'sync_outbox',
     ])
   })
 

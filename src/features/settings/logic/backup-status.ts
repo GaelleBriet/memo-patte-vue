@@ -16,13 +16,27 @@ export function backupStatusOf(facts: BackupFacts | null): BackupStatus {
   if (facts.signInNeeded) return { kind: 'interrupted', since: facts.lastSyncedAt }
   if (!facts.online) return { kind: 'waiting-network', firstBackup: facts.lastSyncedAt === null }
   if (facts.lastSyncedAt === null) {
-    return {
-      kind: 'first-backup',
-      done: Math.max(0, facts.carnetSize - facts.remaining),
-      total: facts.carnetSize,
-    }
+    const total = facts.carnetSize - facts.refused
+    return { kind: 'first-backup', done: Math.max(0, total - facts.remaining), total }
   }
   return { kind: 'saved', at: facts.lastSyncedAt }
+}
+
+/** Ajouté sous l'état de la sauvegarde cloud, quel qu'il soit, jamais seul. */
+export function refusedItemsOf(facts: BackupFacts | null): number {
+  return facts !== null && backupStatusOf(facts).kind !== 'local' ? facts.refused : 0
+}
+
+/** Une photo refusée rendrait « Photos sauvegardées · Oui » faux : la ligne disparaît. */
+export function photosBackedUpOf(facts: BackupFacts | null): boolean {
+  const status = backupStatusOf(facts)
+  return (
+    facts !== null &&
+    status.kind !== 'local' &&
+    status.kind !== 'unread' &&
+    showsPhotosBackedUp(status) &&
+    facts.refusedPhotos === 0
+  )
 }
 
 export function showsPhotosBackedUp(status: CloudBackupStatus): boolean {

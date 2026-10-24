@@ -8,10 +8,12 @@ const SYNC = [{ sql: 'DELETE FROM sync_outbox' }]
 function setup({
   signedIn = false,
   pending = 0,
+  refused = 0,
   failing,
 }: {
   signedIn?: boolean
   pending?: number
+  refused?: number
   failing?: 'notifications' | 'database' | 'photos' | 'analytics' | 'outbox'
 } = {}) {
   const steps: string[] = []
@@ -41,6 +43,7 @@ function setup({
           attempts: 0,
         }))
       },
+      countRefused: async () => refused,
       eraseAllStatements: () => SYNC,
     }),
     account: { isSignedIn: () => signedIn, signOut: step('signOut') },
@@ -79,6 +82,13 @@ describe('situation avant d’effacer', () => {
     expect(await setup({ signedIn: true }).service.situation()).toEqual({
       signedIn: true,
       hasUnsyncedChanges: false,
+    })
+  })
+
+  it('compte aussi les éléments refusés par le serveur : ils ne sont pas dans la sauvegarde', async () => {
+    expect(await setup({ signedIn: true, refused: 1 }).service.situation()).toEqual({
+      signedIn: true,
+      hasUnsyncedChanges: true,
     })
   })
 

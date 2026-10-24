@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { backupStatusOf, showsPhotosBackedUp } from '../logic/backup-status'
+import {
+  backupStatusOf,
+  photosBackedUpOf,
+  refusedItemsOf,
+  showsPhotosBackedUp,
+} from '../logic/backup-status'
 import type { BackupFacts } from '@/core/sync/service/backup-facts'
 
 const YESTERDAY_6_20_PM = '2026-10-22T16:20:00.000Z'
@@ -13,6 +18,8 @@ const SAVED: BackupFacts = {
   lastSyncedAt: YESTERDAY_6_20_PM,
   remaining: 0,
   carnetSize: 348,
+  refused: 0,
+  refusedPhotos: 0,
 }
 
 const FIRST_BACKUP: BackupFacts = { ...SAVED, lastSyncedAt: null, remaining: 228 }
@@ -43,6 +50,14 @@ describe('backupStatusOf', () => {
       kind: 'first-backup',
       done: 0,
       total: 348,
+    })
+  })
+
+  it('première sauvegarde : un élément refusé ne compte ni dans les envoyés ni dans le total', () => {
+    expect(backupStatusOf({ ...FIRST_BACKUP, remaining: 227, refused: 1 })).toEqual({
+      kind: 'first-backup',
+      done: 120,
+      total: 347,
     })
   })
 
@@ -82,5 +97,46 @@ describe('showsPhotosBackedUp', () => {
   it('pas pendant la première sauvegarde, ni quand elle est interrompue', () => {
     expect(showsPhotosBackedUp({ kind: 'first-backup', done: 120, total: 348 })).toBe(false)
     expect(showsPhotosBackedUp({ kind: 'interrupted', since: YESTERDAY_6_20_PM })).toBe(false)
+  })
+})
+
+describe('refusedItemsOf', () => {
+  it('sous « Dernière sauvegarde » et « Première sauvegarde » : le nombre d’éléments refusés', () => {
+    expect(refusedItemsOf({ ...SAVED, refused: 2 })).toBe(2)
+    expect(refusedItemsOf({ ...FIRST_BACKUP, refused: 1 })).toBe(1)
+  })
+
+  it('rien quand aucun élément n’est refusé', () => {
+    expect(refusedItemsOf(SAVED)).toBe(0)
+  })
+
+  it('aussi sous « En attente de réseau » et « Reconnecte-toi »', () => {
+    expect(refusedItemsOf({ ...SAVED, refused: 2, online: false })).toBe(2)
+    expect(refusedItemsOf({ ...SAVED, refused: 2, signInNeeded: true })).toBe(2)
+  })
+
+  it('jamais sur ce téléphone, sans état de la sauvegarde cloud', () => {
+    expect(refusedItemsOf(null)).toBe(0)
+    expect(refusedItemsOf({ ...SAVED, refused: 2, eligible: false })).toBe(0)
+    expect(refusedItemsOf({ ...SAVED, refused: 2, syncEnabled: false })).toBe(0)
+  })
+})
+
+describe('photosBackedUpOf', () => {
+  it('« Photos sauvegardées » une fois la première sauvegarde faite, réseau ou pas', () => {
+    expect(photosBackedUpOf(SAVED)).toBe(true)
+    expect(photosBackedUpOf({ ...SAVED, online: false })).toBe(true)
+  })
+
+  it('masqué dès qu’une photo est refusée, une ligne refusée seule ne le masque pas', () => {
+    expect(photosBackedUpOf({ ...SAVED, refused: 1, refusedPhotos: 1 })).toBe(false)
+    expect(photosBackedUpOf({ ...SAVED, refused: 1, refusedPhotos: 0 })).toBe(true)
+  })
+
+  it('jamais sur ce téléphone, ni pendant la première sauvegarde, ni interrompue', () => {
+    expect(photosBackedUpOf(null)).toBe(false)
+    expect(photosBackedUpOf({ ...SAVED, eligible: false })).toBe(false)
+    expect(photosBackedUpOf(FIRST_BACKUP)).toBe(false)
+    expect(photosBackedUpOf({ ...SAVED, signInNeeded: true })).toBe(false)
   })
 })

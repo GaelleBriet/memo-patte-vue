@@ -5,6 +5,7 @@ export interface FakeOutboxEntry {
   entityId: string
   queuedAt: string
   attempts: number
+  refusedAt?: string
 }
 
 export function createFakeOutbox(
@@ -15,13 +16,23 @@ export function createFakeOutbox(
   entries: () => FakeOutboxEntry[]
   cursor: (entity: string) => string | null
   lastSyncedAt: () => string | null
+  /** `entity/entityId` des entrées dont un ancêtre est refusé. */
+  underRefusedParent: Set<string>
 } {
   let entries = [...initial]
   const lastPulledAt = new Map(Object.entries(cursors))
   let lastSyncedAt: string | null = null
+  const underRefusedParent = new Set<string>()
   return {
     async listPending() {
-      return entries.map((entry) => ({ ...entry }))
+      return entries
+        .filter(({ refusedAt }) => refusedAt === undefined)
+        .map(({ entity, entityId, queuedAt, attempts }) => ({
+          entity,
+          entityId,
+          queuedAt,
+          attempts,
+        }))
     },
     async removeIfUnchanged(target) {
       entries = entries.filter(
@@ -32,6 +43,18 @@ export function createFakeOutbox(
             entry.queuedAt === target.queuedAt
           ),
       )
+    },
+    async markRefusedIfUnchanged(target, refusedAt) {
+      entries = entries.map((entry) =>
+        entry.entity === target.entity &&
+        entry.entityId === target.entityId &&
+        entry.queuedAt === target.queuedAt
+          ? { ...entry, refusedAt }
+          : entry,
+      )
+    },
+    async hasRefusedAncestor({ entity, entityId }) {
+      return underRefusedParent.has(`${entity}/${entityId}`)
     },
     async getLastPulledAt(entity) {
       return lastPulledAt.get(entity) ?? null
@@ -55,5 +78,6 @@ export function createFakeOutbox(
     entries: () => entries,
     cursor: (entity) => lastPulledAt.get(entity) ?? null,
     lastSyncedAt: () => lastSyncedAt,
+    underRefusedParent,
   }
 }

@@ -276,6 +276,8 @@ describe('BackupSettingsView', () => {
       lastSyncedAt: new Date(2026, 9, 23, 8, 25).toISOString(),
       remaining: 0,
       carnetSize: 348,
+      refused: 0,
+      refusedPhotos: 0,
     }
 
     async function monterAbonné(facts: BackupFacts) {
@@ -399,6 +401,76 @@ describe('BackupSettingsView', () => {
       await vi.waitFor(() => expect(wrapper.text()).toContain('Ton carnet est sur ce téléphone'))
 
       expect(wrapper.find('.backup-settings__status').exists()).toBe(false)
+    })
+
+    describe('éléments refusés par le serveur', () => {
+      it('s’ajoutent sous « Dernière sauvegarde », et « Contacter l’aide » ouvre Aide et contact', async () => {
+        const wrapper = await monterAbonné({ ...SAVED, refused: 2 })
+
+        expect(libellésDesLignes(wrapper)).toEqual([
+          'Dernière sauvegarde : il y a 5 min',
+          '2 éléments n’ont pas pu être sauvegardés · Contacter l’aide',
+          'Photos sauvegardées',
+          'Exporter une copie',
+          'Effacer les données de ce téléphone',
+        ])
+        await wrapper.get('.backup-settings__refused').trigger('click')
+
+        expect(push).toHaveBeenCalledWith({ name: 'settings-help' })
+      })
+
+      it('s’ajoutent sous « Première sauvegarde », au singulier', async () => {
+        const wrapper = await monterAbonné({
+          ...SAVED,
+          lastSyncedAt: null,
+          remaining: 227,
+          refused: 1,
+        })
+
+        expect(carteÉtat(wrapper)).toBe('Première sauvegarde en cours 120 éléments sur 347')
+        expect(wrapper.get('.backup-settings__refused').text().replace(/\s+/g, ' ')).toBe(
+          'Un élément n’a pas pu être sauvegardé · Contacter l’aide',
+        )
+      })
+
+      it('s’ajoutent aussi sous « En attente de réseau », juste sous l’état', async () => {
+        const wrapper = await monterAbonné({ ...SAVED, online: false, refused: 2 })
+
+        expect(libellésDesLignes(wrapper).slice(0, 2)).toEqual([
+          'En attente de réseau',
+          '2 éléments n’ont pas pu être sauvegardés · Contacter l’aide',
+        ])
+      })
+
+      it('s’ajoutent aussi sous « Reconnecte-toi », avant « Se reconnecter »', async () => {
+        const wrapper = await monterAbonné({ ...SAVED, signInNeeded: true, refused: 2 })
+        const état = wrapper.get('.backup-settings__status').element
+
+        expect(état.nextElementSibling?.classList.contains('backup-settings__refused')).toBe(true)
+        expect(wrapper.find('.backup-settings__sign-in').exists()).toBe(true)
+      })
+
+      it('une photo refusée cache « Photos sauvegardées · Oui »', async () => {
+        const wrapper = await monterAbonné({ ...SAVED, refused: 1, refusedPhotos: 1 })
+
+        expect(wrapper.find('.backup-settings__refused').exists()).toBe(true)
+        expect(wrapper.find('.backup-settings__photos').exists()).toBe(false)
+      })
+
+      it('rien quand aucun élément n’est refusé', async () => {
+        const wrapper = await monterAbonné(SAVED)
+
+        expect(wrapper.find('.backup-settings__refused').exists()).toBe(false)
+      })
+
+      it('se lisent en anglais', async () => {
+        i18n.global.locale.value = 'en'
+        const wrapper = await monterAbonné({ ...SAVED, refused: 1 })
+
+        expect(wrapper.get('.backup-settings__refused').text().replace(/\s+/g, ' ')).toBe(
+          'One item couldn’t be backed up · Contact support',
+        )
+      })
     })
 
     it('se lit en anglais', async () => {

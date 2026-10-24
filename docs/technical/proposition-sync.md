@@ -258,6 +258,36 @@ Déconnexion et expiration se traitent alors en deux instructions, sans toucher 
 - **Fin d'entrée** : on ne la supprime qu'après acquittement **et** si son `queued_at` n'a pas bougé
   depuis la lecture (§3.2) — sinon une modification survenue pendant la requête resterait en attente,
   l'entrée est gardée pour repartir au prochain cycle.
+- **Refus définitif (entrée marquée refusée, #1035)** : une ligne que le serveur refuse trois fois de
+  suite à l'identique (même `code` et même message, Postgres `23514` ou classe `22`), pour la même
+  version (même `queued_at`), n'est plus envoyée : son entrée reste dans `sync_outbox`, marquée
+  `refused_at` (`core/sync/service/push-refusals.ts`), sous la même garde que la fin d'entrée — si
+  `queued_at` a bougé depuis la lecture, rien n'est marqué. Une entrée refusée ne bloque jamais la
+  file : `listPending` et `countPending` l'ignorent, le cycle aboutit et date la sauvegarde. Elle
+  repart quand la ligne est modifiée ou supprimée (le déclencheur `sync_outbox_requeued` efface
+  `refused_at` dès que `queued_at` avance), quand tout le carnet est remis en file
+  (`enableAndQueueWholeCarnet`) et à la restauration ; elle disparaît avec la file à la déconnexion
+  et au changement de compte (`forgetAccount`). Paramètres › Sauvegarde en compte le nombre
+  (`countRefused`, photos du carnet comprises) sous l'état de la sauvegarde cloud, quel qu'il soit
+  (« Dernière sauvegarde », « Première sauvegarde », « En attente de réseau », « Reconnecte-toi »),
+  jamais seul ; elle ne compte pas dans « N éléments sur M ». Dès qu'une photo du carnet est
+  refusée (`countRefusedPhotos`), la ligne « Photos sauvegardées · Oui » disparaît. Une panne
+  passagère ou un refus de droit se réessaient sans fin, sans jamais être marqués. L'avertissement
+  « modifications non sauvegardées » avant « Effacer les données de ce téléphone » compte aussi les
+  éléments refusés. Un enfant n'est refusé avec son parent que si **son propre envoi** bute sur la
+  clé étrangère (Postgres `23503`) alors qu'un de ses ancêtres est marqué refusé
+  (`hasRefusedAncestor`, d'après `SYNC_PARENT_COLUMNS` dans `core/db/schema-statements.ts`, aligné
+  sur les clés étrangères par un test) : il est marqué `refused_at` dès ce premier échec, sans
+  attendre trois refus. Tout autre échec de l'enfant (réseau, 5xx, son propre `23514`) suit les
+  règles ordinaires. Un enfant dont le parent est déjà sur le serveur ne bute jamais sur la clé
+  étrangère : il part, même si la dernière modification du parent est refusée. Quand le parent
+  repart (`queued_at` avance), `sync_outbox_requeued` efface aussi la marque de ses descendants
+  en file, qui repartent après lui dans l'ordre de `SYNC_ENTITY_ORDER` ; un descendant refusé pour
+  lui-même est alors retenté, et marqué de nouveau après trois refus. Une photo ne suit pas son
+  animal : son envoi ne dépend pas de la ligne. Résidus connus (#1209) : un enfant marqué avant que
+  son parent direct ne soit arrivé reste caché tant que le parent refusé n'est pas modifié ; course
+  de quelques millisecondes à la pose de la marque. Limite : une écriture qui laisse `queued_at` à la même valeur ne retente pas
+  l'entrée (même version, même refus).
 
 ### 3.4 Le piège du ping-pong
 
@@ -370,12 +400,13 @@ implémenté par `core/supabase/animal-photo-upload.ts`). Une photo qu'aucun ani
 porte plus (retirée, remplacée, animal supprimé) n'est ni lue ni envoyée ; elle reste en file, sans
 compter d'échec, tant que son fichier existe, car « Annuler » peut rendre l'animal ou la photo sans
 la remettre en file, et elle en sort au cycle qui suit l'effacement du fichier (fin du toast ou
-ménage du lancement suivant). Un fichier absent du téléphone sort de la file sans envoi ; un
+ménage du lancement suivant). Un fichier absent du téléphone sort de la file sans envoi. Un
 fichier de plus de 2 Mio (taille lue par `stat`, sans lire le fichier) ou qui n'est pas un JPEG
-aussi, sans appel au serveur.
+n'est pas envoyé : son entrée est marquée `refused_at` dès le premier cycle, sans appel au serveur,
+et compte comme un élément refusé (§3.3).
 Storage répond en HTTP 400 à presque tout refus, le motif est dans `statusCode` (relevé sur une pile
 locale) : 413, 415 et 400 sont définitifs et suivent la règle des lignes (trois refus identiques de
-la même version, puis sortie de la file) ; 403 (droit Plus pas encore ou plus actif, §4.2), une
+la même version, puis entrée marquée `refused_at`, §3.3) ; 403 (droit Plus pas encore ou plus actif, §4.2), une
 panne ou un réseau coupé se réessaient sans fin, comme un refus de droit sur une ligne. Une photo en
 échec ne retient ni les autres photos ni le pull. Une photo remplacée n'envoie donc que la nouvelle.
 

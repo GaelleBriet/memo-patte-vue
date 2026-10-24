@@ -37,6 +37,8 @@ const FIRST_BACKUP: BackupFacts = {
   lastSyncedAt: null,
   remaining: 348,
   carnetSize: 348,
+  refused: 0,
+  refusedPhotos: 0,
 }
 
 const SAVED: BackupFacts = {
@@ -82,6 +84,23 @@ describe('useBackupStatus', () => {
     await vi.advanceTimersByTimeAsync(BACKUP_STATUS_REFRESH_MS)
 
     expect(status.value).toEqual({ kind: 'saved', at: SAVED.lastSyncedAt })
+  })
+
+  it('donne le nombre d’éléments refusés sous la dernière sauvegarde, zéro avant la première lecture', async () => {
+    provideBackupFacts(async () => ({ ...SAVED, refused: 2 }))
+    const { refused } = start()
+
+    expect(refused.value).toBe(0)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(refused.value).toBe(2)
+  })
+
+  it('cache « Photos sauvegardées » dès qu’une photo est refusée', async () => {
+    provideBackupFacts(async () => ({ ...SAVED, refused: 1, refusedPhotos: 1 }))
+    const { photosBackedUp } = start()
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(photosBackedUp.value).toBe(false)
   })
 
   it('rien tant que la première lecture n’a pas répondu, puis l’état lu', async () => {
