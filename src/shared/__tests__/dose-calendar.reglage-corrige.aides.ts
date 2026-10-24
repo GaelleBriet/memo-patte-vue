@@ -71,7 +71,7 @@ const current = (input: TreatmentViewInput) => treatmentView(input).currentSetti
 export function given(
   input: TreatmentViewInput,
   dueOn: string,
-  dueTime: string,
+  dueTime: string | null,
   status: 'given' | 'missed' = 'given',
 ) {
   const due = { settingId: current(input), dueOn, dueTime }
