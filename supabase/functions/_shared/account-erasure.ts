@@ -18,6 +18,8 @@ export type AccountErasurePorts = {
   removePhotos(paths: string[]): Promise<void>
   /** PostHog puis RevenueCat ; un prestataire désactivé n'y figure pas. */
   providerErasures: ProviderErasure[]
+  /** Rejoués une fois le compte parti : un événement arrivé pendant la suppression a pu recréer le client. */
+  erasuresAfterDeletion: ProviderErasure[]
   /** Non vide : la suppression du compte est refusée avant tout effacement. */
   invalidProviderSettings: string[]
   /** Suppression dure : les lignes du compte partent par `on delete cascade`. */
@@ -80,6 +82,16 @@ async function removePhotosSentDuringDeletion(
   }
 }
 
+async function eraseProvidersAgain(userId: string, ports: AccountErasurePorts): Promise<void> {
+  for (const erase of ports.erasuresAfterDeletion) {
+    try {
+      await erase(userId)
+    } catch {
+      console.error('Compte supprimé, second effacement chez un prestataire en échec')
+    }
+  }
+}
+
 /** Le compte part en dernier : tant qu'il existe, un nouvel essai reprend. */
 export async function eraseAccount(
   userId: string,
@@ -93,5 +105,6 @@ export async function eraseAccount(
   await removeAllPhotos(userId, ports)
   await ports.deleteUser(userId)
   await removePhotosSentDuringDeletion(userId, ports)
+  await eraseProvidersAgain(userId, ports)
   await recordDeletion(origin, ports)
 }

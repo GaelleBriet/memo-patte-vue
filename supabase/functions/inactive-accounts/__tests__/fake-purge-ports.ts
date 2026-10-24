@@ -116,6 +116,7 @@ export function fakePurgePorts(
       },
       async removePhotos() {},
       providerErasures: [async (userId) => call('posthog', userId)],
+      erasuresAfterDeletion: [],
       invalidProviderSettings: options.invalidProviderSettings ?? [],
       async deleteUser(userId) {
         call('deleteUser', userId)

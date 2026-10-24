@@ -69,6 +69,7 @@ export function fakeDeletionPorts(
       async (userId) => call('posthog', userId),
       async (userId) => call('revenuecat', userId),
     ],
+    erasuresAfterDeletion: [async (userId) => call('revenuecat', userId)],
     invalidProviderSettings: options.invalidProviderSettings ?? [],
     async deleteCloudBackup(userId) {
       call('backup', userId)

@@ -38,6 +38,21 @@ describe('providerErasuresFrom', () => {
     ])
   })
 
+  it('ne rejoue que RevenueCat après la suppression du compte', async () => {
+    const settings = settingsOf(CONFIGURED)
+    for (const erase of settings.erasuresAfterDeletion) await erase(USER)
+
+    expect(settings.requests.map((request) => new URL(request.url).host)).toEqual([
+      'api.revenuecat.com',
+    ])
+  })
+
+  it('ne rejoue rien après la suppression quand RevenueCat est désactivé', () => {
+    expect(
+      settingsOf({ ...CONFIGURED, REVENUECAT_ERASURE: 'disabled' }).erasuresAfterDeletion,
+    ).toEqual([])
+  })
+
   it('nomme chaque réglage absent, sans rien effacer', () => {
     const settings = settingsOf({})
 

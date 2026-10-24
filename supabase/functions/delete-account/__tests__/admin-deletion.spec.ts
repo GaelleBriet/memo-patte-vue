@@ -53,6 +53,7 @@ describe('handleDeleteAccount, demande reçue par e-mail', () => {
       { kind: 'list', arg: { folder: USER, limit: PHOTO_PAGE_SIZE } },
       { kind: 'deleteUser', arg: USER },
       { kind: 'list', arg: { folder: USER, limit: PHOTO_PAGE_SIZE } },
+      { kind: 'revenuecat', arg: USER },
       { kind: 'record', arg: 'email' },
     ])
   })
