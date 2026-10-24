@@ -18,6 +18,7 @@ const RETURN_ROUTES: readonly string[] = [
   'settings-backup',
   'home',
 ]
+const HELP_RETURN_ROUTES: readonly string[] = ['settings-backup', 'settings-account-email']
 const HELP_ROUTE = 'settings-help'
 const HELP_DEFAULT_RETURN_ROUTE = 'settings'
 const RESTORE_FLAG = '1'
@@ -82,12 +83,16 @@ export function asksSignUp(query: LocationQuery): boolean {
   return query.mode === SIGN_UP_MODE
 }
 
-function knownReturnRoute(from: unknown, fallback: string): RouteLocationRaw {
-  return { name: typeof from === 'string' && RETURN_ROUTES.includes(from) ? from : fallback }
+function knownReturnRoute(
+  from: unknown,
+  allowed: readonly string[],
+  fallback: string,
+): RouteLocationRaw {
+  return { name: typeof from === 'string' && allowed.includes(from) ? from : fallback }
 }
 
 export function signInReturnRoute(from: unknown): RouteLocationRaw {
-  return knownReturnRoute(from, DEFAULT_RETURN_ROUTE)
+  return knownReturnRoute(from, RETURN_ROUTES, DEFAULT_RETURN_ROUTE)
 }
 
 export function helpRoute(from: string): RouteLocationRaw {
@@ -96,7 +101,7 @@ export function helpRoute(from: string): RouteLocationRaw {
 
 /** La flèche d'Aide et contact : l'écran qui l'a ouverte s'il est connu, sinon les Paramètres. */
 export function helpBackRoute(from: unknown): RouteLocationRaw {
-  return knownReturnRoute(from, HELP_DEFAULT_RETURN_ROUTE)
+  return knownReturnRoute(from, HELP_RETURN_ROUTES, HELP_DEFAULT_RETURN_ROUTE)
 }
 
 export function asksRestore(query: LocationQuery): boolean {

@@ -159,6 +159,26 @@ describe('helpRoute et helpBackRoute', () => {
 
   it('la flèche de l’aide ramène à l’écran d’origine connu', () => {
     expect(helpBackRoute('settings-backup')).toEqual({ name: 'settings-backup' })
+    expect(helpBackRoute('settings-account-email')).toEqual({ name: 'settings-account-email' })
+  })
+
+  it('l’aide n’emprunte pas la liste des retours de la connexion', () => {
+    expect(helpBackRoute('plus-account')).toEqual({ name: 'settings' })
+    expect(helpBackRoute('home')).toEqual({ name: 'settings' })
+    expect(signInReturnRoute('settings-account-email')).toEqual({ name: 'plus' })
+  })
+
+  it.each([
+    '//evil.com',
+    'http://evil.com',
+    '__proto__',
+    'constructor',
+    'Settings-Backup',
+    'settings-backup ',
+    'settings-help',
+    'x'.repeat(100_000),
+  ])('une origine fabriquée retombe sur les Paramètres : %s', (from) => {
+    expect(helpBackRoute(from)).toEqual({ name: 'settings' })
   })
 
   it('se replie sur la liste des Paramètres quand l’origine est absente, inconnue ou libre', () => {

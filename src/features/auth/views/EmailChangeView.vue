@@ -11,12 +11,13 @@ import FormField from '@/shared/form/FormField.vue'
 import PasswordField from '@/shared/form/PasswordField.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { returnTo } from '@/shared/utils/return-to'
-import { passwordResetRoute } from '@/shared/utils/sign-in-route'
+import { helpRoute, passwordResetRoute } from '@/shared/utils/sign-in-route'
 import { showToast } from '@/shared/utils/toast'
 
 import EmailCodeStep from './EmailCodeStep.vue'
 
 const ACCOUNT_ROUTE = 'settings-account'
+const EMAIL_CHANGE_ROUTE = 'settings-account-email'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -51,7 +52,7 @@ async function resendCode(): Promise<void> {
 }
 
 function openHelp(): void {
-  void router.push({ name: 'settings-help' })
+  void router.push(helpRoute(EMAIL_CHANGE_ROUTE))
 }
 
 async function confirm(): Promise<void> {
