@@ -81,8 +81,9 @@ select set_eq(
      join pg_class cl on cl.oid = c.conrelid
      join pg_namespace n on n.oid = cl.relnamespace
      where c.contype = 'f' and c.confrelid = 'auth.users'::regclass and n.nspname <> 'auth' $$,
-  $$ select 'public.' || name from backup union select 'public.plus_entitlements' $$,
-  'toute table d''un compte est soit de la sauvegarde, soit le droit Plus : une nouvelle table se range ici et dans delete_cloud_backup');
+  $$ select 'public.' || name from backup
+     union select 'public.plus_entitlements' union select 'public.account_purge_notice' $$,
+  'toute table d''un compte est soit de la sauvegarde, soit le droit Plus ou l''avis de purge : une nouvelle table se range ici et dans delete_cloud_backup');
 
 select ok(
   (select prosecdef from pg_proc where oid = 'public.account_id_by_email(text)'::regprocedure),
