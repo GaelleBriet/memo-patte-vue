@@ -4,10 +4,8 @@ import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory
 import { applyFixtures } from '@/core/dev/fixtures'
 import { createDeviceRepository } from '@/core/device/device.repository'
 import { createFakeSyncServer, type FakeSyncServer } from '@/core/sync/__tests__/fake-sync-server'
-import {
-  createSyncOutboxRepository,
-  SYNC_ENTITY_ORDER,
-} from '@/core/sync/repository/sync-outbox.repository'
+import { createSyncOutboxRepository } from '@/core/sync/repository/sync-outbox.repository'
+import { SYNC_ENTITY_ORDER } from '@/core/sync/repository/sync-entity-order'
 import { createSyncPushRepository } from '@/core/sync/repository/sync-push.repository'
 import { createAccountRestore, type RestoreProgress } from '@/core/sync/service/account-restore'
 import { normalizeSyncTimestamps } from '@/core/sync/service/normalize-sync-timestamps'

@@ -14,9 +14,9 @@ import {
 } from '@/core/sync/__tests__/sync-test-db'
 import {
   createSyncOutboxRepository,
-  SYNC_ENTITY_ORDER,
   type SyncOutboxRepository,
 } from '@/core/sync/repository/sync-outbox.repository'
+import { SYNC_ENTITY_ORDER } from '@/core/sync/repository/sync-entity-order'
 import { createSyncPushRepository } from '@/core/sync/repository/sync-push.repository'
 import { createBackupFactsReader } from '@/core/sync/service/backup-facts'
 import { createSyncCycle, type SyncCycle } from '@/core/sync/service/sync-cycle'

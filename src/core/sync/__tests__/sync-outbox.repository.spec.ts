@@ -4,9 +4,9 @@ import type { InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { ANIMAL_PHOTO_ENTITY, SYNC_PARENT_COLUMNS } from '@/core/db/schema-statements'
 import {
   createSyncOutboxRepository,
-  SYNC_ENTITY_ORDER,
   type SyncOutboxRepository,
 } from '../repository/sync-outbox.repository'
+import { SYNC_ENTITY_ORDER } from '../repository/sync-entity-order'
 import {
   ANIMAL_ID,
   createSyncTestDb,

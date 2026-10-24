@@ -7,6 +7,7 @@ import {
   SYNC_PARENT_COLUMNS,
 } from '@/core/db/schema-statements'
 import { getDb } from '@/core/db/sqlite'
+import { SYNC_ENTITY_ORDER } from './sync-entity-order'
 
 export interface SyncOutboxEntry {
   entity: string
@@ -27,19 +28,6 @@ interface SyncStateRow {
   restoring: number
   last_synced_at: string | null
 }
-
-/** Chaque parent avant ses enfants : l'ordre des clés étrangères Postgres, au push comme au pull. */
-export const SYNC_ENTITY_ORDER = [
-  'device',
-  'animal',
-  'vaccination',
-  'vaccination_injection',
-  'treatment',
-  'treatment_period',
-  'treatment_dose',
-  'weight_entry',
-  'carnet_settings',
-]
 
 export type RestoreMode = 'merge' | 'replace'
 
