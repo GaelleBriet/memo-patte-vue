@@ -21,7 +21,7 @@ export type AccountDates = {
   notice: PurgeNotice
 }
 
-/** `unconfirmed-pending` : adresse jamais confirmée, comptée à part et jamais traitée tant que D2 est ouverte. */
+/** `unconfirmed-pending` : adresse jamais confirmée depuis 7 jours, compte à supprimer sans aucun e-mail. */
 export type AccountStep = 'warn' | 'delete' | 'unconfirmed-pending' | null
 
 export type PurgeSteps = { account: AccountStep; eraseRevenuecat: boolean }

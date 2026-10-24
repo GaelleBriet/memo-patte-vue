@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { SYNC_ENTITY_ORDER } from '@/core/sync/repository/sync-outbox.repository'
+import { SYNC_ENTITY_ORDER } from '@/core/sync/repository/sync-entity-order'
 import {
   createLocalSyncContext,
   type LocalSyncContext,

@@ -1,7 +1,7 @@
 import { readonly, shallowRef, watch, type Ref } from 'vue'
 
 import { errorSummary, localErrorMessage } from '@/shared/utils/error-summary'
-import type { RestoreMode } from '../repository/sync-outbox.repository'
+import type { RestoreMode } from '../repository/sync-state.repository'
 import type { AccountRestore, RestoreProgress } from './account-restore'
 import type { BackupSummary } from './backup-summary'
 

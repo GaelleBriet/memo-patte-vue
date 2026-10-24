@@ -3,7 +3,6 @@ import {
   moveBounds,
   play,
   treatmentView,
-  type Due,
   type Gesture,
   type GestureOutcome,
   type Line,
@@ -16,6 +15,7 @@ import {
 } from '@/shared/domain/dose-calendar'
 
 import { FREQUENCIES, int, mulberry32, pick, plusDays, TIMES, type Random } from './carnet'
+import { cardOtherDate, noteGesture, redateWithAnswer } from './v2-walk-notes'
 import {
   changedSettings,
   resumed,
@@ -35,8 +35,15 @@ export type V2Walk = {
    * graine ; `null` : la règle par distance, celle des carnets rejoués par graine avant Q27.
    */
   readonly answers: Random | null
+  /** « Fait à une autre date » depuis la carte, tiré à part ; `null` : seulement par la date (`dueForDate`). */
+  readonly card: Random | null
+  /** Q37 : la réponse à « Cette prise » de « Changer la date » d'une prise en plus ; sinon la règle d'avant Q27. */
+  readonly redateAnswers: boolean
   readonly log: string[]
 }
+
+/** Les gestes des campagnes à un téléphone (invariants, oracle, rappels) ; les graines rejouées gardent les leurs. */
+export const ONE_PHONE_GESTURES = { answers: true, card: true, redateAnswers: true } as const
 
 /** Un pas joué : le carnet avant et après, et le geste ou le réglage accepté qui l'a changé. */
 export type V2Step = {
@@ -75,7 +82,12 @@ export function stampOf(walk: V2Walk): string {
   return new Date(Date.UTC(2026, 0, 1, 0, 0, walk.stamp)).toISOString()
 }
 
-export function startV2Walk(seed: number, { answers = false } = {}): V2Walk {
+export type WalkGestures = { answers?: boolean; card?: boolean; redateAnswers?: boolean }
+
+export function startV2Walk(
+  seed: number,
+  { answers = false, card = false, redateAnswers = false }: WalkGestures = {},
+): V2Walk {
   const random = mulberry32(seed)
   const firstDueOn = plusDays('2026-03-01', int(random, 0, 40))
   const setting: Setting = {
@@ -98,6 +110,8 @@ export function startV2Walk(seed: number, { answers = false } = {}): V2Walk {
     seed,
     random,
     answers: answers ? mulberry32(seed ^ 0x2f6b1a5d) : null,
+    card: card ? mulberry32(seed ^ 0x51c3a7e9) : null,
+    redateAnswers,
     log: [],
   }
 }
@@ -121,17 +135,6 @@ function written(walk: V2Walk, changes: readonly LineChange[]): TreatmentViewInp
     }
   }
   return { ...walk.input, lines }
-}
-
-function noteGesture(walk: V2Walk, due: Due, status: 'given' | 'missed', givenOn: string): Gesture {
-  const shiftsFollowing = walk.random() < 0.65
-  const asked =
-    walk.answers !== null &&
-    status === 'given' &&
-    treatmentView(walk.input).asksExtraOrReplaces(due, givenOn)
-  if (!asked) return { kind: 'note', due, status, givenOn, shiftsFollowing }
-  const answer = walk.answers!() < 0.5 ? 'extra' : 'replaces'
-  return { kind: 'note', due, status, givenOn, shiftsFollowing, answer }
 }
 
 // Le geste tiré au sort, lu sur la vue du carnet ; `null` : rien à faire ce pas-ci.
@@ -164,6 +167,7 @@ function drawGesture(walk: V2Walk, kind: (typeof GESTURES)[number]): Gesture | n
       return noteGesture(walk, due, random() < 0.7 ? 'given' : 'missed', due.dueOn)
     }
     case 'otherDate': {
+      if (walk.card !== null && walk.card() < 0.5) return cardOtherDate(walk)
       const givenOn = plusDays(today, -int(random, 0, 8))
       const due = dueForDate(input, givenOn, pick(random, view.currentSetting?.times ?? []) ?? null)
       if (due === null || view.dueState(due) === 'given') return null
@@ -201,8 +205,7 @@ function drawGesture(walk: V2Walk, kind: (typeof GESTURES)[number]): Gesture | n
         lines.filter(({ status }) => status === 'given' || status === 'extra'),
       )
       if (line === undefined) return null
-      const givenOn = plusDays(today, -int(random, 0, 6))
-      return { kind: 'redate', lineId: line.id, givenOn, shiftsFollowing: random() < 0.65 }
+      return redateWithAnswer(walk, line, plusDays(today, -int(random, 0, 6)))
     }
     case 'remove': {
       const line = pick(random, lines)

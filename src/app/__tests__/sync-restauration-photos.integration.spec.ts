@@ -4,7 +4,8 @@ import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory
 import { ANIMAL_PHOTO_ENTITY } from '@/core/db/schema-statements'
 import { createDeviceRepository } from '@/core/device/device.repository'
 import { createFakeSyncServer, type FakeSyncServer } from '@/core/sync/__tests__/fake-sync-server'
-import { createSyncOutboxRepository } from '@/core/sync/repository/sync-outbox.repository'
+import { createCarnetPhotosRepository } from '@/core/sync/repository/carnet-photos.repository'
+import { createLocalSyncOutbox } from '@/core/sync/service/local-sync-outbox'
 import { createSyncPushRepository } from '@/core/sync/repository/sync-push.repository'
 import { createAccountRestore } from '@/core/sync/service/account-restore'
 import type { PhotoDownloadPort } from '@/core/sync/service/photo-download-port'
@@ -48,7 +49,8 @@ async function createPhone(server: FakeSyncServer, deviceId: string) {
     createWeightRepository(db, deps),
     createCarnetSettingsRepository(db, deps),
   ]
-  const outbox = createSyncOutboxRepository(db)
+  const outbox = createLocalSyncOutbox(db)
+  const carnetPhotos = createCarnetPhotosRepository(db)
   const files = new Map<string, Uint8Array>()
   const requested: string[] = []
   const restore = createAccountRestore({
@@ -75,7 +77,7 @@ async function createPhone(server: FakeSyncServer, deviceId: string) {
       },
     }
     return createPhotoRestore({
-      carnetPhotos: () => outbox.listCarnetPhotos(),
+      carnetPhotos: () => carnetPhotos.listCarnetPhotos(),
       files: {
         exists: async (name) => files.has(name),
         write: async (name, bytes) => {

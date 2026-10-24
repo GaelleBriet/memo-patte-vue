@@ -65,4 +65,21 @@ describe('l’arrivée d’avant que garde un report tourné depuis une date cho
     const plain = { ...turned, previousTargetOn: '2026-03-19' }
     expect(chosenArrivalKept([p1, p2], plain, turn, '2026-03-14')).toBeUndefined()
   })
+
+  // #1232, Q40 : la date choisie se juge contre l'instant du « Modifier », pas contre sa date de grille héritée.
+  it('un report écrit avant le « Modifier » qui a choisi la date, après sa date de grille héritée : rien de gardé', () => {
+    const chooser = {
+      ...p2,
+      createdAt: '2026-03-08T10:00:00.000Z',
+      updatedAt: '2026-03-08T10:00:00.000Z',
+      gridWrittenAt: '2026-01-01T00:00:00.000Z',
+    }
+    const before = { ...turned, decidedAt: '2026-03-08T09:00:00.000Z' }
+    const after = { ...turned, decidedAt: '2026-03-08T11:00:00.000Z' }
+    expect(chosenArrivalKept([p1, chooser], before, turn, '2026-03-14')).toBeUndefined()
+    expect(chosenArrivalKept([p1, chooser], after, turn, '2026-03-14')).toEqual({
+      previousTargetOn: '2026-04-06',
+      previousTargetTime: '08:00',
+    })
+  })
 })
