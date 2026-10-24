@@ -125,11 +125,14 @@ function redateGiven(input: TreatmentViewInput, line: Line, gesture: RedateGestu
     view.phase === 'stopped' ||
     !episodeIdsOf(input.settings, line.settingId).has(view.currentSetting?.id ?? '')
   const alone = movedAlone(view, input.lines, line.dueOn)
-  // R6, Q38 : seulement quand, au jour de la nouvelle date, la dose est encore la dose du moment.
-  const current = buildView({ ...without(input, [...ignored]), today: givenOn }).currentDoses.some(
+  // R6, Q38 : jamais quand, au jour de la nouvelle date, la dose est déjà une dose non renseignée.
+  const unlogged = buildView({
+    ...without(input, [...ignored]),
+    today: givenOn,
+  }).unloggedDoses.some(
     (other) => keyOf(other.dueOn, other.dueTime) === keyOf(due.dueOn, due.dueTime),
   )
-  const offered = givenOn !== line.dueOn && current && !blocked && dayDone && !closed && !alone
+  const offered = givenOn !== line.dueOn && !unlogged && !blocked && dayDone && !closed && !alone
   const prise: LineChange = {
     action: 'rewrite',
     id: line.id,

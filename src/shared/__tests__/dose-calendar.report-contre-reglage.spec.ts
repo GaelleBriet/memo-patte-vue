@@ -11,7 +11,6 @@ import {
 } from '../domain/dose-calendar'
 import { both, edited, moved, readings, rewrittenOn } from './dose-calendar.reglage-corrige.aides'
 import { DAY, keys, setting, WEEK } from './dose-calendar.v2.aides'
-import fork2324 from './fixtures/dose-calendar-deux-appareils-9050002324.json'
 import fork0270 from './fixtures/dose-calendar-deux-appareils-9140000270.json'
 
 // Report de A contre la réécriture d'un réglage par B (#938, #939, #882) : la plus récente des deux
@@ -228,6 +227,7 @@ describe('#939 : Milo, chaque semaine à 20 h depuis le 4 mars, un nouveau régl
     [9050001220, 9],
     [9050001496, 28],
     [9050001518, 18],
+    [9050002324, 18],
     [9050002340, 13],
     [9050002922, 9],
   ])(
@@ -243,19 +243,6 @@ describe('#939 : Milo, chaque semaine à 20 h depuis le 4 mars, un nouveau régl
       expect(constatsOf(fork)).toEqual([])
     },
   )
-
-  // Carnet figé tel que la marche le menait avant Q38 : la case de « Changer la date » n'y est plus
-  // proposée et la fourche n'y arrive plus.
-  it('graine 9050002324, pas 18 (carnet figé) : le report de A, plus récent que la grille de B, n’est pas perdu', () => {
-    const fork = fork2324 as unknown as Fork
-    const report = fork.phoneA.lines.find(
-      (line) =>
-        line.status === 'postponed' &&
-        !fork.base.lines.some((old) => old.id === line.id && old.decidedAt === line.decidedAt),
-    )!
-    expect(effectOf(fork.merged, report.id)).toMatchObject({ kind: 'moves' })
-    expect(constatsOf(fork)).toEqual([])
-  })
 
   it('graine 9050002922, pas 9 : le 15, le 19 puis le 26', () => {
     const fork = forkAt(9050002922, 9)
