@@ -101,7 +101,7 @@ export const SYNC_PARENT_COLUMNS: Record<string, Record<string, string>> = {
 }
 
 /** Les entrées en file qui descendent de la ligne `row` (`NEW` ou `OLD`) du déclencheur. */
-function outboxDescendantsOf(row: 'NEW' | 'OLD'): string {
+export function outboxDescendantsOf(row: 'NEW' | 'OLD'): string {
   return Object.entries(SYNC_PARENT_COLUMNS)
     .flatMap(([child, parents]) =>
       Object.entries(parents).map(
@@ -112,14 +112,21 @@ function outboxDescendantsOf(row: 'NEW' | 'OLD'): string {
     .join(' OR ')
 }
 
-/** Une entrée remise en file n'est plus refusée, ni ses descendants : ils repartent avec elle. */
+/** Pourquoi une entrée est marquée refusée : ses propres refus, ou le refus d'un ancêtre. */
+export const REFUSED_FOR_ITSELF = 'own'
+export const REFUSED_WITH_ANCESTOR = 'ancestor'
+
+/**
+ * Une entrée remise en file n'est plus refusée, ni ses descendants marqués à cause d'elle ; un
+ * descendant refusé pour lui-même garde sa marque.
+ */
 export function requeuedOutboxTriggerStatement(): string {
   return `CREATE TRIGGER sync_outbox_requeued AFTER UPDATE OF queued_at ON sync_outbox
      WHEN NEW.refused_at IS NOT NULL AND NEW.queued_at IS NOT OLD.queued_at
      BEGIN
-      UPDATE sync_outbox SET refused_at = NULL
+      UPDATE sync_outbox SET refused_at = NULL, refused_reason = NULL
       WHERE (entity = NEW.entity AND entity_id = NEW.entity_id)
-        OR (refused_at IS NOT NULL AND (${outboxDescendantsOf('NEW')}));
+        OR (refused_reason = '${REFUSED_WITH_ANCESTOR}' AND (${outboxDescendantsOf('NEW')}));
      END;`
 }
 
@@ -127,13 +134,16 @@ const SYNC_PARENT_ENTITIES = [
   ...new Set(Object.values(SYNC_PARENT_COLUMNS).flatMap((parents) => Object.values(parents))),
 ]
 
-/** Un parent arrivé au serveur après un échec : ses descendants marqués pendant son absence repartent. */
+/**
+ * Un parent sorti de la file, envoyé ou dont la ligne locale a disparu, ne retient plus ses
+ * descendants : ceux marqués à cause d'un ancêtre repartent.
+ */
 export function removedOutboxTriggerStatement(): string {
   return `CREATE TRIGGER sync_outbox_removed AFTER DELETE ON sync_outbox
-     WHEN OLD.attempts > 0 AND OLD.entity IN (${SYNC_PARENT_ENTITIES.map((entity) => `'${entity}'`).join(', ')})
+     WHEN OLD.entity IN (${SYNC_PARENT_ENTITIES.map((entity) => `'${entity}'`).join(', ')})
      BEGIN
-      UPDATE sync_outbox SET refused_at = NULL
-      WHERE refused_at IS NOT NULL AND (${outboxDescendantsOf('OLD')});
+      UPDATE sync_outbox SET refused_at = NULL, refused_reason = NULL
+      WHERE refused_reason = '${REFUSED_WITH_ANCESTOR}' AND (${outboxDescendantsOf('OLD')});
      END;`
 }
 
