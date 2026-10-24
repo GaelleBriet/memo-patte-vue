@@ -7,22 +7,23 @@ import { useCodeStepBack } from '../composables/use-code-step-back'
 import { useAccountIdentity } from '../composables/use-account-identity'
 import { CODE_LENGTH } from '../logic/email-code'
 import { useEmailChange } from '../composables/use-email-change'
+import { useEmailChangeHelpVisit } from '../composables/use-email-change-help-visit'
 import FormField from '@/shared/form/FormField.vue'
 import PasswordField from '@/shared/form/PasswordField.vue'
 import PushedScreen from '@/shared/components/PushedScreen.vue'
 import { returnTo } from '@/shared/utils/return-to'
-import { helpRoute, passwordResetRoute } from '@/shared/utils/sign-in-route'
+import { passwordResetRoute } from '@/shared/utils/sign-in-route'
 import { showToast } from '@/shared/utils/toast'
 
 import EmailCodeStep from './EmailCodeStep.vue'
 
 const ACCOUNT_ROUTE = 'settings-account'
-const EMAIL_CHANGE_ROUTE = 'settings-account-email'
 
 const { t } = useI18n()
 const router = useRouter()
 const { identity } = useAccountIdentity()
 const change = useEmailChange({ accountEmail: () => identity.value?.email ?? null })
+const { openHelp } = useEmailChangeHelpVisit(change.holdForHelp)
 
 const { emailCode, values, fieldError, failureKey } = change
 
@@ -49,10 +50,6 @@ function openPasswordReset(): void {
 
 async function resendCode(): Promise<void> {
   if ((await change.resend()) === 'sent') showToast(t('settings.account.email.resent'))
-}
-
-function openHelp(): void {
-  void router.push(helpRoute(EMAIL_CHANGE_ROUTE))
 }
 
 async function confirm(): Promise<void> {

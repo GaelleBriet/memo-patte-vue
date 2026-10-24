@@ -99,6 +99,10 @@ export function helpRoute(from: string): RouteLocationRaw {
   return { name: HELP_ROUTE, query: { from } }
 }
 
+export function isHelpRoute(name: unknown): boolean {
+  return name === HELP_ROUTE
+}
+
 /** La flèche d'Aide et contact : l'écran qui l'a ouverte s'il est connu, sinon les Paramètres. */
 export function helpBackRoute(from: unknown): RouteLocationRaw {
   return knownReturnRoute(from, HELP_RETURN_ROUTES, HELP_DEFAULT_RETURN_ROUTE)
