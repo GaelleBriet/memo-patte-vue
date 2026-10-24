@@ -390,8 +390,9 @@ l'export.
 envoyer une entrée que le serveur refuse pour toujours (trois refus identiques de la même version,
 `proposition-sync.md` §3.3). L'entrée reste en table, hors de la file : `listPending` et
 `countPending` ne la lisent pas, `countRefused` la compte (photos des seuls animaux non supprimés)
-pour Paramètres › Sauvegarde. Les entrées des enfants d'une ligne refusée sont traitées de même sans
-porter la marque : leur état se déduit de celui de l'ancêtre (`proposition-sync.md` §3.3). La marque disparaît quand l'élément est modifié ou supprimé puis
+pour Paramètres › Sauvegarde. Un enfant qui bute sur la clé étrangère sous un parent refusé porte la
+marque lui aussi (`proposition-sync.md` §3.3) ; `sync_outbox_requeued` l'efface quand le parent
+repart. La marque disparaît quand l'élément est modifié ou supprimé puis
 sauvegardé : le déclencheur `sync_outbox_requeued` (`AFTER UPDATE OF queued_at`) la remet à nul dès
 qu'une nouvelle écriture avance `queued_at`, sans toucher aux déclencheurs de mise en file des
 tables. `enableAndQueueWholeCarnet` et la restauration la remettent à nul (nouvel essai) ;

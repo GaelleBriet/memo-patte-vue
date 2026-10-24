@@ -3001,9 +3001,13 @@ du 12 mars est refusée ; la sauvegarde aboutit et Paramètres › Sauvegarde af
    pire qu'une ligne absente.
 7. L'avertissement « modifications non sauvegardées » avant « Effacer les données de ce téléphone »
    compte aussi les éléments refusés : c'est la perte réelle qu'il annonce.
-8. Un enfant dont le parent est refusé est refusé lui aussi (même état, même texte, même compte),
-   au lieu d'être réessayé sans fin sur la clé étrangère : « Première sauvegarde en cours » ne reste
-   plus bloqué ; il repart quand le parent est modifié puis sauvegardé.
+8. Un enfant est refusé avec son parent (même état, même texte, même compte) seulement quand son
+   propre envoi bute sur la clé étrangère (23503) et qu'un de ses ancêtres est marqué refusé : il
+   n'est plus réessayé sans fin, « Première sauvegarde en cours » ne reste plus bloqué, et il repart
+   quand le parent est modifié puis sauvegardé. Tout autre échec reste un réessai ordinaire. Un
+   enfant dont le parent est déjà sur le serveur part normalement : le 21 octobre, Milo sauvegardé à
+   8 h, sa modification de 8 h 10 refusée, la pesée corrigée à 9,9 kg à 8 h 20 arrive au serveur
+   (règle (c) du 24 octobre, après la re-relecture de #1206).
 
 - Raison : la ligne restait dans le carnet du téléphone sans être dans le cloud, et « Dernière
   sauvegarde » le taisait (#1035). Un élément refusé ne bloque jamais la file et ne compte pas dans
