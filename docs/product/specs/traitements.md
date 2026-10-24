@@ -196,7 +196,10 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
 
 - **TR-24** Menu ⋮ d'une prise : changer la date, supprimer, « Marquer comme donnée / oubliée » (le second jamais sur une échéance future, TR-26) ;
   d'une prise en plus : « Changer la date » et « Supprimer cette prise » seulement (décision du
-  2026-10-05 ; changer sa date la fait viser ce que viserait une prise notée ce jour-là, TR-13) ; d'une
+  2026-10-05) ; « Changer la date » d'une prise en plus pose « Cette prise » (« En plus » / « Remplace
+  celle du … », R5, mêmes textes) pour les jours où elle couvrirait une dose, « Enregistrer » grisé
+  sans réponse, la case « Décaler aussi » seulement avec « Remplace » ; les autres jours, elle reste en
+  plus (Q37 du 24 octobre 2026) ; d'une
   ligne « Reportée au … » ou « Avancée au … » : « Changer la date », « Supprimer ce report »
   (l'échéance d'origine redevient la dose du moment ou une dose non renseignée ; le décalage de la
   journée part avec lui, comme avec « Prochaine dose » ramenée au jour d'origine, R6 ; refusé, avec
@@ -224,7 +227,11 @@ Mots bannis de l'app : « cure » (décision du 2026-09-28).
   avant l'échéance (elle ne devient jamais une prise en plus en silence, R5) et tout jour futur ; aide
   sous le calendrier : « Choisis une date à partir du 23 oct. ». La case « Décaler aussi les doses
   suivantes » est proposée aux mêmes conditions que pour « Fait à une autre date », jugées **au jour
-  de la nouvelle date** (R6), et le résultat est le même. Un déplacement
+  de la nouvelle date** (R6), et le résultat est le même : seulement quand, ce jour-là, la dose de la
+  prise est encore la dose du moment, en retard (G20) ou en avance ; plus ancienne, c'est une dose non
+  renseignée, sans case, comme depuis le bandeau (Q38 du 24 octobre 2026 ; Milo, rien de noté le 24 à
+  9 h 40, la prise du 23 à 20 h changée au 24 : pas de case, les doses du 24 restent à donner) ;
+  proposée, elle est cochée par défaut (G20). Un déplacement
   placé après elle (ligne « Reportée au … » ou « Avancée au … ») est gardé et réécrit pour viser la
   dose que fixe la prise corrigée (G12), et le toast le dit (« Prise déplacée au 28 août. Prochaine
   dose gardée au 10 oct., que tu avais reportée. » · Annuler) ; s'il ne tombe plus après la prise
@@ -442,8 +449,11 @@ que la fiche, à une heure comme à plusieurs : leur calendrier « Une autre dat
 « Fait aujourd'hui » ne couvre plus en silence). La borne est la première échéance écrite du
 traitement, jamais la date de début d'un réglage (Milbemax chaque semaine, première dose repoussée le
 16 oct. du 20 oct. au 1er nov. : le 28 oct., « C'est fait » sur « 1er nov. » pose la question). Sans
-réponse, le moteur garde la règle d'avant Q27 pour les gestes qui ne posent pas la question (« Changer
-la date », jusqu'à #1229 ; anciens exports, C1 du 21 octobre 2026). Milbemax chaque semaine à 9 h, la
+réponse, le moteur garde la règle d'avant Q27 pour les gestes qui ne posent pas la question (anciens
+exports, C1 du 21 octobre 2026). « Changer la date » d'une prise en plus pose la question pour les
+jours où elle couvrirait une dose (Q37 du 24 octobre 2026) : Milbemax chaque vendredi, le 16 une
+prise « En plus » après la dose ; le 17, changée au 17 : « En plus », la prochaine dose reste le 23 ;
+« Remplace celle du 23 oct. », la dose du 23 donnée le 17, prochaine dose le 30. Milbemax chaque semaine à 9 h, la
 dose du 24 octobre notée : « Fait à une autre date » ou « C'est fait » sur « Prochaine dose · 31 oct. »
 le 24 pose « Remplace celle du 31 oct. ».
 
@@ -454,9 +464,9 @@ prise en plus » (Q27, Q29 du 24 octobre 2026)._
 
 La suite des échéances ne repart jamais d'elle-même d'une date réelle. Elle repart d'une **ligne de décalage**, écrite quand la personne coche « Décaler aussi les doses suivantes » (prise en retard ou en avance, report, correction de date). Une ligne de décalage dit : « à partir de cette journée d'origine, la grille a pour nouvelle origine ce jour d'ancrage ». Elle est visible dans l'historique, supprimable seule, et survit à la suppression de la prise qui l'a créée ; « Supprimer ce report » emporte les décalages de sa journée, comme « Prochaine dose » ramenée au jour d'origine, et il est refusé quand ils ne peuvent pas partir avec lui (TR-24, TR-25, #835, décisions du 2026-10-14).
 
-La case est proposée quand la prise ou le report **change la date** de la dose du moment ou de la prochaine dose (pas pour une dose non renseignée, pas pour la dose du jour donnée le jour même, pas pour une prise en plus). **Corriger la date d'une prise** (décision du 2026-10-10, Q-C1 ; Q30 du 24 octobre 2026) ne change jamais son échéance (TR-24 bis) ; la case se juge **au jour de la nouvelle date** : elle est proposée aux mêmes conditions que par « Fait à une autre date », et le résultat est le même.
+La case est proposée quand la prise ou le report **change la date** de la dose du moment ou de la prochaine dose (pas pour une dose non renseignée, pas pour la dose du jour donnée le jour même, pas pour une prise en plus). **Corriger la date d'une prise** (décision du 2026-10-10, Q-C1 ; Q30 du 24 octobre 2026) ne change jamais son échéance (TR-24 bis) ; la case se juge **au jour de la nouvelle date** : elle est proposée aux mêmes conditions que par « Fait à une autre date », seulement quand la dose de la prise y est encore la dose du moment ou la prochaine dose (Q38 du 24 octobre 2026), et le résultat est le même.
 
-**La case n'est pas proposée quand une ligne existe plus loin dans la période** (une prise, donnée ou oubliée, ou un décalage dont la journée d'origine est après la dose notée ou corrigée) : la date se note ou se corrige, le calendrier ne bouge pas, et l'aide le dit (« Une dose plus lointaine est déjà notée. », texte existant). Pour décaler quand même, la personne corrige ou supprime d'abord la ligne la plus récente. Même refus pour « Supprimer ce décalage » quand une prise existe plus loin (G19). La case n'est pas proposée non plus pour une dose déplacée seule (Q2 c), et une correction qui ferait d'un oubli plus lointain une prise donnée est refusée avec le même texte (décisions du 2026-10-12). Seul le décalage ancré à la date de la prise suit une prise corrigée. Un décalage ne vaut que si sa journée d'origine est encore une échéance du calendrier en vigueur : elle se juge sur la grille telle qu'elle est avant lui (la grille héritée ou celle du réglage courant), jamais sur la grille après son application, ou c'est l'arrivée d'une dose reportée du rythme en vigueur ; sinon il est sans effet (R11) (décision du 2026-10-12). Hebdo du lundi, tous les 3 jours le 14 (première dose le 16), dose du 16 donnée le 14 avec décalage puis la prise supprimée, retour à l'hebdo le 14 : le 16 n'est pas sur la grille 5, 12, 19, la fiche montre le 19 ; une posologie seule garde le décalage d'un vendredi 16 (grille 9, 16, 23). Un report qui suit est, lui, gardé et réécrit (G12, TR-24 bis) ; s'il ne peut pas l'être (R7), la correction est refusée. Raison : une ligne de décalage ne doit jamais déplacer la grille sous une prise déjà notée, sinon cette prise ne vise plus rien et l'app redemanderait une dose déjà donnée (#762, décision du 2026-10-10). Une prise qui garde déjà sa journée hors du calendrier (R4, règle unique du 17 octobre 2026) n'a pas d'échéance à perdre : un geste ne la laisse pas sans échéance. Milo de R4 : le 14 mars, avancer la dose du 23 au 17 est permis ; la prise du 16 garde le 16, le 17 est à donner.
+**La case n'est pas proposée quand une ligne existe plus loin dans la période** (une prise, donnée ou oubliée, ou un décalage dont la journée d'origine est après la dose notée ou corrigée) : la date se note ou se corrige, le calendrier ne bouge pas, et l'aide le dit (« Une dose plus lointaine est déjà notée. », texte existant). Pour décaler quand même, la personne corrige ou supprime d'abord la ligne la plus récente. Même refus pour « Supprimer ce décalage » quand une prise existe plus loin (G19). La case n'est pas proposée non plus pour une dose déplacée seule (Q2 c), et une correction de la date d'une prise en plus qui ferait d'un oubli plus lointain une prise donnée est refusée avec le même texte (décisions du 2026-10-12 ; une prise donnée garde son échéance, Q30). Seul le décalage ancré à la date de la prise suit une prise corrigée. Un décalage ne vaut que si sa journée d'origine est encore une échéance du calendrier en vigueur : elle se juge sur la grille telle qu'elle est avant lui (la grille héritée ou celle du réglage courant), jamais sur la grille après son application, ou c'est l'arrivée d'une dose reportée du rythme en vigueur ; sinon il est sans effet (R11) (décision du 2026-10-12). Hebdo du lundi, tous les 3 jours le 14 (première dose le 16), dose du 16 donnée le 14 avec décalage puis la prise supprimée, retour à l'hebdo le 14 : le 16 n'est pas sur la grille 5, 12, 19, la fiche montre le 19 ; une posologie seule garde le décalage d'un vendredi 16 (grille 9, 16, 23). Un report qui suit est, lui, gardé et réécrit (G12, TR-24 bis) ; s'il ne peut pas l'être (R7), la correction est refusée. Raison : une ligne de décalage ne doit jamais déplacer la grille sous une prise déjà notée, sinon cette prise ne vise plus rien et l'app redemanderait une dose déjà donnée (#762, décision du 2026-10-10). Une prise qui garde déjà sa journée hors du calendrier (R4, règle unique du 17 octobre 2026) n'a pas d'échéance à perdre : un geste ne la laisse pas sans échéance. Milo de R4 : le 14 mars, avancer la dose du 23 au 17 est permis ; la prise du 16 garde le 16, le 17 est à donner.
 
 Un report plus récent que la réécriture de son réglage faite sur un autre appareil (R10, #867) garde aussi son décalage : la ligne de décalage part de la journée de départ que ce report garde et translate les échéances suivantes de la grille du réglage réécrit, date choisie comprise, à ses heures ; le jour d'arrivée garde l'heure écrite dans le report. Parti après la première échéance du réglage réécrit, le décalage garde le rythme de A depuis le jour d'arrivée : Luna, chaque semaine à 8 h, A reporte la dose du 10 avril au 12 avec la case, B choisit « Prochaine dose » le 9, A plus récent : le 9, le 12, le 19, le 26 (6c). Le décalage suit son report : quand la réécriture plus récente ôte l'heure de départ et que le report est sans effet, son décalage l'est aussi (6b ; carnet de #883, B plus récent : la suite reprend le 6 avril à 8 h et 20 h, au lieu de plus rien jusqu'au 9 mai). Décisions du 18 octobre 2026 de la session d'analyse du moteur. Milo de R10 : le téléphone A reporte la dose du 3 avril au 10 avec la case, le téléphone B passe à 6 h et répond « Elles n'étaient pas à donner » (première dose le 17, proposée ou choisie) ; A plus récent : le 10 à 20 h, puis le 24 et le 8 mai à 6 h (17 → 24, 1er mai → 8 mai) ; B plus récent : le report et son décalage sont sans effet, rien le 10, puis le 17 à 6 h (#885, décision de Gaelle du 17 octobre 2026, par la session d'analyse du moteur à qui elle a délégué les lectures de règles).
 
@@ -1710,9 +1720,27 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
   partir du … » ; la case se juge à la nouvelle date. Remplace la lecture Q-C1 étendue du 11 octobre
   et les lectures du 12 octobre qui en découlaient (« Q-C1 l'emporte sur TR-24 bis », refus quand la
   dose visée par la nouvelle date est oubliée) : hebdo du vendredi, prise du 2 corrigée au 17 le 20,
-  elle reste la dose du 2, « Donnée le 17 » ; case cochée, la suite repart du 17 (24, 31) ; décochée,
-  la dose du 9 reste à renseigner et celle du 16 en retard. Écartée : viser la dose qu'une prise notée
+  elle reste la dose du 2, « Donnée le 17 », sans case (Q38) : la dose du 9 reste à renseigner et
+  celle du 16 en retard. Écartée : viser la dose qu'une prise notée
   ce jour-là viserait (la date ne dit jamais quelle dose est visée, Q28).
+
+- 2026-10-24 — **« Changer la date » d'une prise en plus pose « Cette prise »** (TR-24, R5 ; Q37 du 24
+  octobre 2026, session d'analyse du moteur). Pour les jours où la prise en plus déplacée couvrirait
+  une dose, la feuille pose « En plus » / « Remplace celle du … » (mêmes textes que Q27), « Enregistrer »
+  grisé sans réponse ; le message reste « Prise déplacée au … ». Milbemax chaque vendredi, le 16 une
+  prise « En plus » ; le 17, changée au 17 : « En plus », prochaine dose le 23 ; « Remplace », la dose
+  du 23 donnée le 17, prochaine dose le 30 ; changée au 15, pas de question. Écartée : griser ces
+  jours (avec un rythme de 3 mois, presque tous les jours le seraient).
+
+- 2026-10-24 — **La case de « Changer la date » se juge comme celle de « Fait à une autre date »**
+  (TR-24 bis, R6, G20 ; Q38 du 24 octobre 2026, session d'analyse du moteur, après la relecture de
+  #1229). Elle n'est proposée que si, au jour de la nouvelle date, la dose de la prise est encore la
+  dose du moment (en retard ou en avance) ; plus ancienne, c'est une dose non renseignée, sans case.
+  Milo, Métacam 8 h et 20 h, rien de noté le 24 à 9 h 40 : la prise du 23 à 20 h changée au 24, pas
+  de case, les doses du 24 restent à donner (avant : case cochée, les doses du 24 disparaissaient, la
+  prochaine devenait le 25 à 8 h) ; hebdo, la prise du 2 changée au 17 le 20, pas de case, comme
+  depuis le bandeau ; la prise du 16 corrigée le 25 au 24 (la dose du 23 tombée le 24), pas de case.
+  Écartée : la case dès que la date change.
 
 ## 11. Questions ouvertes
 

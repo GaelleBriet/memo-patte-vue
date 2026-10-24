@@ -62,7 +62,7 @@ function offersShift(input: TreatmentViewInput, view: TreatmentView, due: Due, g
   return later.notes.length === 0 && !later.others.some(({ status }) => status === 'shift')
 }
 
-// R5 : sans réponse (« Changer la date », anciens exports), la règle d'avant Q27 : en plus à une
+// R5 : sans réponse (anciens exports, campagnes), la règle d'avant Q27 : en plus à une
 // heure, la dose couverte à plusieurs heures.
 function isExtra(
   input: TreatmentViewInput,

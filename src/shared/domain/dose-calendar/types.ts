@@ -133,7 +133,7 @@ export type LineChange =
   | { action: 'rewrite'; id: string; line: LineFields }
   | { action: 'delete'; id: string }
 
-/** R5 : la réponse à « Cette prise » ; sans réponse, la règle par distance (« Changer la date », anciens exports). */
+/** R5 : la réponse à « Cette prise » ; sans réponse, la règle par distance (anciens exports, campagnes). */
 export type ExtraAnswer = 'extra' | 'replaces'
 
 /**

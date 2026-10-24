@@ -3813,3 +3813,19 @@ prise sauter sur une autre dose et un bandeau apparaître ; la date choisie ne d
 est visée (Q28). — Alternative écartée : la lecture Q-C1 étendue du 11 octobre (la prise corrigée
 après une échéance encore sans prise vise la dose que « Fait à une autre date » noterait ce jour-là).
 — Pour revenir dessus : rétablir `lateTarget` dans `gestures/redate.ts` (commit c61a447b).
+
+2026-10-24 — **« Changer la date » : « Cette prise » pour une prise en plus, la case comme « Fait à une
+autre date »** (#1229, spec `traitements.md` TR-24, TR-24 bis, R5, R6, §10 du 24 octobre). Décisions
+de la session d'analyse du moteur du 24 octobre (Q37, Q38). (1) Q37 : pour les jours où une prise en
+plus déplacée couvrirait une dose, la feuille pose « En plus » / « Remplace celle du … » (mêmes textes
+que Q27), « Enregistrer » grisé sans réponse ; le message reste « Prise déplacée au … » ; la case de
+Q30 garde les conditions actuelles (décision de Gaelle du 3 octobre). Milbemax chaque vendredi, prise
+« En plus » le 16, changée au 17 : « En plus », prochaine dose le 23 ; « Remplace », la dose du 23
+donnée le 17, prochaine dose le 30. (2) Q38 : la case « Décaler aussi » de « Changer la date » n'est
+proposée que si, au jour de la nouvelle date, la dose de la prise est encore la dose du moment (retard,
+G20, ou avance) ; sinon c'est une dose non renseignée, sans case, comme depuis le bandeau (R6). Milo,
+Métacam 8 h et 20 h, rien de noté le 24 à 9 h 40 : la prise du 23 à 20 h changée au 24, pas de case,
+les doses du 24 restent à donner. — Raison : un « Remplace » silencieux, et une case qui effaçait les
+doses du jour. — Alternatives écartées : griser les jours d'une prise en plus ; la case dès que la date
+change. — Pour revenir dessus : `redateAsksExtraOrReplaces` et la condition `current` de `redateGiven`
+(`gestures/redate.ts`).
