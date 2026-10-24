@@ -240,6 +240,36 @@ describe('TreatmentGivenWhenSheet — « Donnée quand ? » (V5)', () => {
     })
   })
 
+  it('« Une autre date », à une heure : aucune liste d’heures à l’étape du jour', async () => {
+    await ouvrir(HEBDO(), '2026-10-19', { dueOn: '2026-10-16', dueTime: null })
+
+    toucher('.treatment-given-when__choice', 2)
+    await flushPromises()
+
+    expect(document.body.querySelector('.treatment-other-date__calendar')).not.toBeNull()
+    expect(document.body.querySelectorAll('.treatment-hours')).toHaveLength(0)
+  })
+
+  it('« Une autre date », à plusieurs heures : les heures attendent l’étape suivante', async () => {
+    const book = treatment(
+      [TOUS_LES_3_JOURS],
+      [
+        dose('2026-10-01', '2026-10-01', { dueTime: '08:00' }),
+        dose('2026-10-01', '2026-10-04', { dueTime: '20:00' }),
+      ],
+    )
+    await ouvrir(book, '2026-10-07', { dueOn: '2026-10-04', dueTime: null })
+
+    const autre = [
+      ...document.body.querySelectorAll<HTMLElement>('.treatment-given-when__choice'),
+    ].find((button) => plain(button.textContent ?? '').includes('Une autre date'))
+    autre!.click()
+    await flushPromises()
+
+    expect(document.body.querySelector('.treatment-other-date__calendar')).not.toBeNull()
+    expect(document.body.querySelectorAll('.treatment-hours')).toHaveLength(0)
+  })
+
   it('Q3 : tous les jours, seulement « Donnée le {jour prévu} » et « Annuler »', async () => {
     const book = treatment(
       [QUOTIDIEN_20H],

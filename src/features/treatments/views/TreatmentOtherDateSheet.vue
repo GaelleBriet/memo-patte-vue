@@ -156,9 +156,6 @@ function submit(): void {
       :max="today"
       :excluded="excluded"
     />
-    <p v-if="step === 'day' && days.earlierHelp" class="treatment-other-date__earlier">
-      {{ t('treatments.detail.otherDate.earlierHelp') }}
-    </p>
     <TreatmentHourChoices
       v-else
       v-model="hour"
@@ -166,6 +163,9 @@ function submit(): void {
       :busy="busy"
       selectable
     />
+    <p v-if="step === 'day' && days.earlierHelp" class="treatment-other-date__earlier">
+      {{ t('treatments.detail.otherDate.earlierHelp') }}
+    </p>
 
     <TreatmentExtraQuestion v-if="question" v-model="answer" :question="question" />
     <p v-if="recap" class="treatment-other-date__recap">
