@@ -86,3 +86,27 @@ describe('TreatmentChangeDateSheet — « Changer la date » avec la case (V30)'
     wrapper.unmount()
   })
 })
+
+describe('TreatmentChangeDateSheet — aide sous le calendrier (Q30)', () => {
+  it('dit à partir de quel jour la prise peut être datée', async () => {
+    const wrapper = mount(TreatmentChangeDateSheet, {
+      props: {
+        modelValue: false,
+        subtitle: 'Prise du 23 oct. 2026',
+        date: '2026-10-23',
+        min: '2026-10-23',
+        max: '2026-10-24',
+        hint: 'Choisis une date à partir du 23 oct.',
+      },
+      global: { plugins: [vuetify, i18n], stubs: { transition: false } },
+      attachTo: document.body,
+    })
+    await wrapper.setProps({ modelValue: true })
+    await flushPromises()
+
+    expect(dansLaFeuille('.treatment-change-date__hint')[0]!.textContent).toBe(
+      'Choisis une date à partir du 23 oct.',
+    )
+    wrapper.unmount()
+  })
+})

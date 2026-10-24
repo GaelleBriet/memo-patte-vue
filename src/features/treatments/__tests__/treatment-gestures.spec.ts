@@ -412,6 +412,7 @@ describe('dateChangeOf', () => {
       subtitle: 'Prise en plus du 9 sept. 2026',
       date: '2026-09-09',
       max: TODAY,
+      hint: null,
     })
   })
 
@@ -444,7 +445,11 @@ describe('dateChangeOf', () => {
         earliest: '2022-04-10',
         view: view('2026-10-24', book),
       }),
-    ).toMatchObject({ min: '2026-10-23', max: '2026-10-24' })
+    ).toMatchObject({
+      min: '2026-10-23',
+      max: '2026-10-24',
+      hint: 'Choisis une date à partir du 23 oct.',
+    })
   })
 
   it('Q30 : Bravecto tous les 3 mois, prise du 1er nov. : du 2 août à aujourd’hui', () => {
@@ -462,7 +467,11 @@ describe('dateChangeOf', () => {
         earliest: '2022-04-10',
         view: view('2026-11-10', book),
       }),
-    ).toMatchObject({ min: '2026-08-02', max: '2026-11-10' })
+    ).toMatchObject({
+      min: '2026-08-02',
+      max: '2026-11-10',
+      hint: 'Choisis une date à partir du 2 août.',
+    })
   })
 
   it('d’un report : sa nouvelle date, entre les bornes du moteur, sans les jours d’un autre report', () => {
