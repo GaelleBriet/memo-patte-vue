@@ -5,7 +5,8 @@ import { forgetStoredSession } from '@/core/supabase/auth-storage'
 import { loadSupabaseClient } from '@/core/supabase/load-client'
 import { errorSummary } from '@/shared/utils/error-summary'
 
-import { AccountError, type AccountErrorReason } from '../logic/account-error'
+import { accountErrorFrom } from '../logic/account-error-from'
+import { AccountError } from '../logic/account-error'
 
 export type AuthSession = { userId: string }
 
@@ -61,30 +62,8 @@ export type AuthDependencies = {
 /** Hors ligne, Supabase retente le rafraîchissement pendant 30 s avant d'abandonner. */
 export const SIGN_OUT_TIMEOUT_MS = 3_000
 
-const REASONS_BY_CODE: Record<string, AccountErrorReason> = {
-  email_exists: 'email-taken',
-  user_already_exists: 'email-taken',
-  invalid_credentials: 'invalid-credentials',
-  current_password_invalid: 'invalid-credentials',
-  current_password_mismatch: 'invalid-credentials',
-  weak_password: 'weak-password',
-  same_password: 'same-password',
-  email_not_confirmed: 'email-not-confirmed',
-  otp_expired: 'invalid-code',
-  over_email_send_rate_limit: 'email-rate-limited',
-}
-
 function isRetryable(error: AuthError | null): boolean {
   return error?.name === 'AuthRetryableFetchError'
-}
-
-export function accountErrorFrom(cause: unknown): AccountError {
-  if (cause instanceof AccountError) return cause
-  const { name, status, code } = (cause ?? {}) as Partial<AuthError>
-  if (name === 'AuthRetryableFetchError' && status === 0) {
-    return new AccountError('offline', { cause })
-  }
-  return new AccountError((code && REASONS_BY_CODE[code]) || 'unknown', { cause })
 }
 
 type Revocation = { ok: true } | { ok: false; trace: string }
