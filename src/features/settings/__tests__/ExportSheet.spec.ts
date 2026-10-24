@@ -141,8 +141,16 @@ describe('ExportSheet', () => {
   })
 
   it.each([
-    [0, 'json', 'Export JSON enregistré dans Documents › MémoPatte'],
-    [1, 'csv', 'Export CSV enregistré dans Documents › MémoPatte'],
+    [
+      0,
+      'json',
+      'Export JSON enregistré. Retrouve-le dans l’app Fichiers, dossier Documents › MémoPatte.',
+    ],
+    [
+      1,
+      'csv',
+      'Export CSV (ZIP) enregistré. Retrouve-le dans l’app Fichiers, dossier Documents › MémoPatte.',
+    ],
   ] as const)(
     'enregistre au format choisi, ferme la feuille et dit où trouver le fichier (%s)',
     async (index, format, message) => {
@@ -171,7 +179,9 @@ describe('ExportSheet', () => {
     enregistrer().click()
     await flushPromises()
 
-    expect(toastMessage.value).toBe('Export JSON enregistré dans Documents › MémoPatte')
+    expect(toastMessage.value).toBe(
+      'Export JSON enregistré. Retrouve-le dans l’app Fichiers, dossier Documents › MémoPatte.',
+    )
     expect(toastAction.value).toBeNull()
   })
 
@@ -183,7 +193,10 @@ describe('ExportSheet', () => {
     enregistrer().click()
     await flushPromises()
 
-    expect(toastAction.value).toMatchObject({ label: 'Ouvrir', ariaLabel: 'Ouvrir l’export CSV' })
+    expect(toastAction.value).toMatchObject({
+      label: 'Ouvrir',
+      ariaLabel: 'Ouvrir l’export CSV (ZIP)',
+    })
   })
 
   it('« Ouvrir » ouvre l’export CSV tout juste enregistré', async () => {
@@ -209,7 +222,9 @@ describe('ExportSheet', () => {
     enregistrer().click()
     await flushPromises()
 
-    expect(toastMessage.value).toBe('Export JSON enregistré dans Documents › MémoPatte')
+    expect(toastMessage.value).toBe(
+      'Export JSON enregistré. Retrouve-le dans l’app Fichiers, dossier Documents › MémoPatte.',
+    )
     expect(toastAction.value).toBeNull()
   })
 

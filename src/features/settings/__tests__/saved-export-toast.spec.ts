@@ -21,7 +21,7 @@ const PDF = {
   mimeType: 'application/pdf',
 }
 
-const SAVED = 'PDF enregistré dans Documents › MémoPatte'
+const SAVED = 'PDF enregistré. Retrouve-le dans l’app Fichiers, dossier Documents › MémoPatte.'
 
 beforeEach(() => {
   vi.mocked(FileOpener.openFile).mockReset().mockResolvedValue()
@@ -54,7 +54,7 @@ describe('showSavedExportToast', () => {
     showSavedExportToast(
       PDF,
       {
-        message: 'PDF saved to Documents › MémoPatte',
+        message: 'PDF saved. Find it in the Files app, in Documents › MémoPatte.',
         openAriaLabel: 'Open the PDF',
       },
       i18n.global.t,
