@@ -185,6 +185,16 @@ describe('la case « Décaler aussi » : une seule condition pour « Fait à une
     })
   })
 
+  it('dose non renseignée aujourd’hui, dose du moment au jour choisi : écart gardé en attendant la décision', () => {
+    // Le 24, la dose du 23 tombée, la dose du 16 est non renseignée ; au 17, elle était la dose du
+    // moment : « Fait à une autre date » n'a pas la case (N1), « Changer la date » l'a (Q38).
+    const carnet = weekly(
+      [line('p1', 'given', '2026-10-02'), line('p1', 'given', '2026-10-09')],
+      '2026-10-24',
+    )
+    expect(bothWays(carnet, friday('2026-10-16'), '2026-10-17').offers).toEqual([false, true])
+  })
+
   it('dose plus lointaine que la dose du moment (#1242) : proposée des deux côtés', () => {
     // Le 20, la dose du 16 en retard ; la dose du 23, à venir au 18, donnée au 18.
     const carnet = weekly(
