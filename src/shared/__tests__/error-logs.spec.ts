@@ -9,8 +9,8 @@ const SKIPPED = ['src/core/dev/', 'src/features/auth/', 'src/features/purchase/'
 const CONSOLE_CALL = /console\.(?:warn|error|log|info|debug)\(/g
 const SAFE_INTERPOLATIONS: Record<string, string[]> = {
   'src/core/notifications/notifications.service.ts': ['scheduled', 'reminders.length'],
+  'src/core/sync/service/pull-cycle.ts': ['table.entity'],
   'src/core/sync/service/push-cycle.ts': ['entry.entity'],
-  'src/core/sync/service/sync-cycle.ts': ['table.entity'],
   'src/features/settings/service/device-erase.service.ts': ['step'],
   'src/features/treatments/service/reminders-sync.service.ts': ['label'],
 }
