@@ -3798,3 +3798,18 @@ synchro. — Raison (Gaelle) : « l'utilisateur répond et fini les devinettes �
 dose du jour et que je mets "fait hier", je ne veux pas que ce soit la dose d'avant qui soit
 comptabilisée ». — Alternatives écartées : la règle par distance ; couvrir d'office à moins d'un
 rythme avant la première échéance ; une question « quelle dose ? » qui referait le bandeau.
+
+2026-10-24 — **« Changer la date » d'une prise donnée change sa date réelle, jamais son échéance**
+(#1229, spec `traitements.md` TR-13, TR-24 bis, R6, §10 du 24 octobre). Décision de Gaelle du 24
+octobre (Q30, section B « Changer la date, comportement complet » validée telle quelle), cadrée par la
+session d'analyse du moteur. Aucun geste ne change l'échéance d'une prise existante. Milo, Métacam tous
+les jours à 8 h et 20 h, 8 h du 24 notée ; menu ⋮ de la prise du 23 à 20 h › « Changer la date » › le
+24 : « 23 oct. · 20 h — Donnée le 24 oct. », aucun bandeau, 20 h reste la dose du jour. Jours
+possibles du lendemain du jour un rythme avant l'échéance jusqu'à aujourd'hui (Bravecto tous les 3
+mois, prise du 1er nov. : du 2 août à aujourd'hui) ; grisés : un rythme ou plus avant, tout jour futur ;
+aide sous le calendrier « Choisis une date à partir du 23 oct. » (texte existant) ; case « Décaler
+aussi » aux conditions habituelles, jugées à la nouvelle date. — Raison : une personne seule voyait sa
+prise sauter sur une autre dose et un bandeau apparaître ; la date choisie ne dit jamais quelle dose
+est visée (Q28). — Alternative écartée : la lecture Q-C1 étendue du 11 octobre (la prise corrigée
+après une échéance encore sans prise vise la dose que « Fait à une autre date » noterait ce jour-là).
+— Pour revenir dessus : rétablir `lateTarget` dans `gestures/redate.ts` (commit c61a447b).
