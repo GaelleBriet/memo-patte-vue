@@ -23,11 +23,15 @@ export type GoogleCredentials = {
   signOut(): Promise<void>
 }
 
+/** Le plugin Capacitor est un proxy : le rendre tel quel à une promesse la bloque (`then` y est une méthode native absente). */
+type LoadedPlugin = { plugin: GoogleSignInPlugin }
+
 export type GoogleCredentialsDependencies = {
   /** Toujours l'identifiant du client Web, même sur Android. */
   clientId: string | undefined
   isNativePlatform: () => boolean
-  loadPlugin?: () => Promise<GoogleSignInPlugin>
+  loadPlugin?: () => Promise<LoadedPlugin>
+  timeoutMs?: number
 }
 
 const FAILURES_BY_CODE: Record<string, GoogleCredentialFailure> = {
@@ -35,10 +39,12 @@ const FAILURES_BY_CODE: Record<string, GoogleCredentialFailure> = {
   PROVIDER_CONFIGURATION_ERROR: 'unavailable',
 }
 
+const DEFAULT_TIMEOUT_MS = 20_000
+
 const CANCELLED_CODE = 'SIGN_IN_CANCELED'
 
-async function loadGoogleSignIn(): Promise<GoogleSignInPlugin> {
-  return (await import('@capawesome/capacitor-google-sign-in')).GoogleSignIn
+async function loadGoogleSignIn(): Promise<LoadedPlugin> {
+  return { plugin: (await import('@capawesome/capacitor-google-sign-in')).GoogleSignIn }
 }
 
 function codeOf(cause: unknown): string | undefined {
@@ -47,18 +53,38 @@ function codeOf(cause: unknown): string | undefined {
   return typeof code === 'string' ? code : undefined
 }
 
+function withTimeout<T>(pending: Promise<T>, timeoutMs: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new GoogleCredentialError('unavailable', { cause: new Error('délai dépassé') })),
+      timeoutMs,
+    )
+    pending.then(
+      (value) => {
+        clearTimeout(timer)
+        resolve(value)
+      },
+      (cause: unknown) => {
+        clearTimeout(timer)
+        reject(cause)
+      },
+    )
+  })
+}
+
 export function createGoogleCredentials({
   clientId,
   isNativePlatform,
   loadPlugin = loadGoogleSignIn,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
 }: GoogleCredentialsDependencies): GoogleCredentials {
-  let initialized: Promise<GoogleSignInPlugin> | null = null
+  let initialized: Promise<LoadedPlugin> | null = null
 
-  function ready(webClientId: string): Promise<GoogleSignInPlugin> {
+  function ready(webClientId: string): Promise<LoadedPlugin> {
     initialized ??= loadPlugin()
-      .then(async (plugin) => {
-        await plugin.initialize({ clientId: webClientId })
-        return plugin
+      .then(async (loaded) => {
+        await withTimeout(loaded.plugin.initialize({ clientId: webClientId }), timeoutMs)
+        return loaded
       })
       .catch((cause: unknown) => {
         initialized = null
@@ -71,10 +97,12 @@ export function createGoogleCredentials({
     async request(hashedNonce) {
       if (!clientId || !isNativePlatform()) throw new GoogleCredentialError('unavailable')
       try {
-        const plugin = await ready(clientId)
-        const { idToken } = await plugin.signIn({ nonce: hashedNonce })
+        const { plugin } = await ready(clientId)
+        const { idToken } = await withTimeout(plugin.signIn({ nonce: hashedNonce }), timeoutMs)
         return { kind: 'granted', idToken }
       } catch (cause) {
+        if (import.meta.env.DEV) console.warn('[google-sign-in]', codeOf(cause), cause)
+        if (cause instanceof GoogleCredentialError) throw cause
         const code = codeOf(cause)
         if (code === CANCELLED_CODE) return { kind: 'cancelled' }
         throw new GoogleCredentialError((code && FAILURES_BY_CODE[code]) || 'failed', { cause })
@@ -84,7 +112,7 @@ export function createGoogleCredentials({
     async signOut() {
       if (!clientId || !isNativePlatform()) return
       try {
-        await (await ready(clientId)).signOut()
+        await (await ready(clientId)).plugin.signOut()
       } catch {
         return
       }
