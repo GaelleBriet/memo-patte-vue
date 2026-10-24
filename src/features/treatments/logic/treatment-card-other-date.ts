@@ -66,7 +66,7 @@ function nextDoseAfter(
   due: Due,
   givenOn: string,
   shiftsFollowing: boolean,
-): string | null {
+): Due | null {
   const result = play(input, {
     kind: 'note',
     due,
@@ -76,7 +76,7 @@ function nextDoseAfter(
     answer: 'replaces',
   })
   if ('refusal' in result) return null
-  return treatmentView(applied(input, result.changes)).nextDue?.dueOn ?? null
+  return treatmentView(applied(input, result.changes)).nextDue ?? null
 }
 
 /** R5, Q27 : `null` quand la prise couvre sans question ; `shifts` : la case de « Remplace ». */
@@ -92,10 +92,11 @@ export function extraQuestion(
   if (!reading.view.asksExtraOrReplaces(due, givenOn)) return null
   const { today } = reading.input
   const day = (date: string) => formatDayMonthOrYear(date, today)
-  const dueText =
-    severalTimes && due.dueTime !== null
-      ? t('currentDose.at', { date: day(due.dueOn), time: formatClockTime(due.dueTime) })
-      : day(due.dueOn)
+  const named = ({ dueOn, dueTime }: Due) =>
+    severalTimes && dueTime !== null
+      ? t('currentDose.at', { date: day(dueOn), time: formatClockTime(dueTime) })
+      : day(dueOn)
+  const dueText = named(due)
   const options: ExtraQuestion['options'] = [
     { value: 'extra', label: t('treatments.detail.otherDate.question.extra') },
     {
@@ -122,7 +123,7 @@ export function extraQuestion(
       : t('treatments.detail.otherDate.question.replacesHelp', {
           given: day(givenOn),
           due: dueText,
-          next: day(next),
+          next: named(next),
         })
   return { title, options, help }
 }
