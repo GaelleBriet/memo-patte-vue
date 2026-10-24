@@ -119,11 +119,7 @@ function bothWays(
   return { direct, afterTap, redated }
 }
 
-/**
- * Résidus connus de la case, jugés case décochée : #1242, « Changer la date » la propose pour une dose
- * qui n'est pas la dose du moment, « Fait à une autre date » non ; #1255, l'inverse quand la journée de
- * la dose porte déjà un décalage.
- */
+// Résidus #1242 et #1255, jugés case décochée.
 function isKnownResidual(
   input: TreatmentViewInput,
   view: TreatmentView,

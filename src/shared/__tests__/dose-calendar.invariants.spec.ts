@@ -11,9 +11,9 @@ import {
   type WalkGestures,
 } from '../../../scripts/dose-engine/v2-walk'
 
-// Campagne d'invariants du moteur v2 (plan §6.3) : des carnets menés par les gestes de v2, neuf
-// invariants vérifiés à chaque pas, horizon en jours, aucune exemption. Séries longues : variables
-// INVARIANTS_FROM, INVARIANTS_SEEDS, INVARIANTS_STEPS posées directement devant la commande
+// Campagne d'invariants du moteur v2 (plan §6.3) : des carnets menés par les gestes de v2, les
+// invariants vérifiés à chaque pas, horizon en jours, résidus connus dans le README. Séries longues :
+// variables INVARIANTS_FROM, INVARIANTS_SEEDS, INVARIANTS_STEPS posées directement devant la commande
 // (`.claude/rules/outils-de-test.md`).
 
 type Campaign = { from: number; seeds: number; steps: number }
@@ -84,7 +84,7 @@ const campaign = campaignOf(process.env)
 
 describe('campagne d’invariants du moteur v2', () => {
   it(
-    'les neuf invariants tiennent à chaque geste',
+    'les invariants tiennent à chaque geste',
     () => {
       const played = playCampaign(campaign)
       const last = campaign.from + campaign.seeds - 1
