@@ -39,8 +39,6 @@ export const SYNC_ENTITY_ORDER = [
   'carnet_settings',
 ]
 
-export { SYNC_PARENT_COLUMNS }
-
 export type RestoreMode = 'merge' | 'replace'
 
 const RESTORE_CODES: Record<RestoreMode, number> = { merge: 1, replace: 2 }

@@ -1,13 +1,13 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
+import { SYNC_PARENT_COLUMNS } from '@/core/db/schema-statements'
 import { applyFixtures } from '@/core/dev/fixtures'
 import { createDeviceRepository } from '@/core/device/device.repository'
 import { createFakeSyncServer, type FakeSyncServer } from '@/core/sync/__tests__/fake-sync-server'
 import {
   createSyncOutboxRepository,
   SYNC_ENTITY_ORDER,
-  SYNC_PARENT_COLUMNS,
   type SyncOutboxRepository,
 } from '@/core/sync/repository/sync-outbox.repository'
 import { createSyncPushRepository } from '@/core/sync/repository/sync-push.repository'

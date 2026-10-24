@@ -1,11 +1,10 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { InMemoryDb } from '@/core/db/__tests__/in-memory-db'
-import { ANIMAL_PHOTO_ENTITY } from '@/core/db/schema-statements'
+import { ANIMAL_PHOTO_ENTITY, SYNC_PARENT_COLUMNS } from '@/core/db/schema-statements'
 import {
   createSyncOutboxRepository,
   SYNC_ENTITY_ORDER,
-  SYNC_PARENT_COLUMNS,
   type SyncOutboxRepository,
 } from '../repository/sync-outbox.repository'
 import {
