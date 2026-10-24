@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.111](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.110...memo-patte-v0.1.111) (2026-10-24)
+
+
+### 🐛 Corrections
+
+* **parametres:** ramener la flèche de l'aide à Changer l'adresse e-mail ([86f206a](https://github.com/GaelleBriet/memo-patte-vue/commit/86f206a7a429513422dd85c8cc57e857582b0dac))
+* **parametres:** ramener la flèche de l'aide à Changer l'adresse e-mail ([78775b1](https://github.com/GaelleBriet/memo-patte-vue/commit/78775b1849dc3e35301cc17735b417639454d3ef))
+
 ## [0.1.110](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.109...memo-patte-v0.1.110) (2026-10-24)
 
 
