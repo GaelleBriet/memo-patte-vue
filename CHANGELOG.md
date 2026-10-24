@@ -5,6 +5,29 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.114](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.113...memo-patte-v0.1.114) (2026-10-24)
+
+
+### ✨ Fonctionnalités
+
+* **traitements:** « En plus » ou « Remplace celle du … » au lieu de deviner, la carte vise sa dose ([403c59f](https://github.com/GaelleBriet/memo-patte-vue/commit/403c59f48d776c1ff40760409cb10ca028ba5f5e))
+
+
+### 🐛 Corrections
+
+* **export:** le message dit où retrouver le fichier (app Fichiers) ([5ff069b](https://github.com/GaelleBriet/memo-patte-vue/commit/5ff069bc3cc173a8978a4905e095157bce871c11))
+* **moteur:** « Changer la date » garde une prise en plus en plus, à plusieurs heures aussi ([b4a834e](https://github.com/GaelleBriet/memo-patte-vue/commit/b4a834ed0c8f6b4433e69d35ff4d7d4bcf6bc4c4))
+* **moteur:** « Remplace » s'écrit même après une prise en plus du jour ([b124ecc](https://github.com/GaelleBriet/memo-patte-vue/commit/b124ecc20bc77ac847aca7f9774533e9442433ef))
+* **moteur:** la question se borne à la première échéance, jamais à la date de début ([ec9fc8f](https://github.com/GaelleBriet/memo-patte-vue/commit/ec9fc8f98549239fb50e2323a8ea2d2126959619))
+* **settings:** dire où retrouver l’export dans l’app Fichiers ([4e66b5f](https://github.com/GaelleBriet/memo-patte-vue/commit/4e66b5f0ccab775be5343a29f8f182e98f8241d4))
+* **traitements:** « à faire » ouvre le calendrier de la fiche pour la dose de sa ligne ([1ee5cc2](https://github.com/GaelleBriet/memo-patte-vue/commit/1ee5cc246bd77fb41ae4db80d9f56d32445f115b))
+* **traitements:** « À faire » ouvre le calendrier de la fiche, libellés à la ligne (suite de [#1240](https://github.com/GaelleBriet/memo-patte-vue/issues/1240)) ([f313d1a](https://github.com/GaelleBriet/memo-patte-vue/commit/f313d1a84b11bf5f911e29b15986f2c96f031347))
+* **traitements:** l'aide de « remplace » donne jour et heure de la prochaine dose ([d12d1f4](https://github.com/GaelleBriet/memo-patte-vue/commit/d12d1f46cf59b183c09ff4530dcc1391a931bd94))
+* **traitements:** le libellé long d'un choix de « cette prise » passe à la ligne ([552d11c](https://github.com/GaelleBriet/memo-patte-vue/commit/552d11c319767bfd474b03fab69a2811ce1e4c32))
+* **traitements:** poser « cette prise » depuis « à faire », aujourd'hui toujours choisissable ([ebf8d7b](https://github.com/GaelleBriet/memo-patte-vue/commit/ebf8d7b561c15a5744096952c5c83c076b8fd8f1))
+* **treatments:** à plusieurs heures, notification et « À faire » lisent la borne de la fiche ([d5e8836](https://github.com/GaelleBriet/memo-patte-vue/commit/d5e8836a40404aea3e15c11ac1b19cafa62dba3a))
+* **treatments:** la feuille du soin nomme l'échéance de sa notification, même oubliée ([8a194f9](https://github.com/GaelleBriet/memo-patte-vue/commit/8a194f9415ab002d480bebe284db1d233fde9ceb))
+
 ## [0.1.113](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.112...memo-patte-v0.1.113) (2026-10-24)
 
 
