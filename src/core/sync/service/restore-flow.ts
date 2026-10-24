@@ -1,6 +1,6 @@
 import { readonly, shallowRef, watch, type Ref } from 'vue'
 
-import { errorSummary } from '@/shared/utils/error-summary'
+import { errorSummary, localErrorMessage } from '@/shared/utils/error-summary'
 import type { RestoreMode } from '../repository/sync-outbox.repository'
 import type { AccountRestore, RestoreProgress } from './account-restore'
 import type { BackupSummary } from './backup-summary'
@@ -117,7 +117,11 @@ export function createRestoreFlow(runner: RestoreRunner) {
       try {
         pending = await runner.pendingMode()
       } catch (cause) {
-        console.warn('Restauration en attente non lue :', errorSummary(cause))
+        console.warn(
+          'Restauration en attente non lue :',
+          errorSummary(cause),
+          localErrorMessage(cause),
+        )
         return false
       }
       return pending === null ? false : runPending()
