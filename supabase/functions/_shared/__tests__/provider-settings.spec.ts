@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { providerErasuresFrom } from '../provider-settings'
+import { providerErasuresFrom, revenuecatKeyFrom } from '../provider-settings'
 import { fakeFetch, jsonResponse } from './fake-fetch'
 import { USER } from './test-account'
 
@@ -117,4 +117,22 @@ describe('providerErasuresFrom', () => {
       expect(settings.invalidProviderSettings).toHaveLength(4)
     },
   )
+})
+
+describe('revenuecatKeyFrom', () => {
+  const env = (values: Record<string, string>) => (name: string) => values[name]
+
+  it('rend la clé secrète RevenueCat, sans espaces autour', () => {
+    expect(revenuecatKeyFrom(env({ REVENUECAT_SECRET_KEY: ' sk_cle-secrete-de-test ' }))).toBe(
+      'sk_cle-secrete-de-test',
+    )
+  })
+
+  it.each([
+    ['désactivé', { REVENUECAT_ERASURE: 'disabled', REVENUECAT_SECRET_KEY: 'sk_cle' }],
+    ['absente', {}],
+    ['invalide', { REVENUECAT_SECRET_KEY: 'pk_cle-publique' }],
+  ])('ne rend rien quand RevenueCat est %s', (_, values: Record<string, string>) => {
+    expect(revenuecatKeyFrom(env(values))).toBeNull()
+  })
 })

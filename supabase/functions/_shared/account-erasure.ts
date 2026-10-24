@@ -1,7 +1,7 @@
 /** Une entrée de `storage.list()` : un sous-dossier n'a pas d'`id`. */
 export type StorageEntry = { name: string; id: string | null }
 
-export type DeletionOrigin = 'app' | 'email'
+export type DeletionOrigin = 'app' | 'email' | 'inactivity'
 
 /** Efface chez un prestataire ce qui y désigne le compte ; réussit si rien n'y est. */
 export type ProviderErasure = (userId: string) => Promise<void>

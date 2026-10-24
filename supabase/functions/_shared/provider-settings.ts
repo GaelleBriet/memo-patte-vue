@@ -63,3 +63,10 @@ export function providerErasuresFrom(env: Env, send: typeof fetch): ProviderEras
 
   return { providerErasures, invalidProviderSettings }
 }
+
+/** `null` : RevenueCat désactivé, ou clé invalide que `providerErasuresFrom` signale déjà. */
+export function revenuecatKeyFrom(env: Env): string | null {
+  if (env('REVENUECAT_ERASURE') === ERASURE_DISABLED) return null
+  const value = env(REVENUECAT_SECRET_KEY.name)?.trim() ?? ''
+  return REVENUECAT_SECRET_KEY.isValid(value) ? value : null
+}

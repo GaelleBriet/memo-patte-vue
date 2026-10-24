@@ -1,3 +1,5 @@
+export const MIN_SHARED_SECRET_LENGTH = 32
+
 async function digest(value: string): Promise<Uint8Array> {
   return new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)))
 }
