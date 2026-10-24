@@ -72,7 +72,7 @@ Voir le tableau complet en **§3.2**. Résumé de la logique :
 
 - **Utilisateur gratuit** : SQLite local uniquement → rien n'est « collecté » au sens Google (exemption sur l'appareil). Auto Backup Android envoie les données sur le Google Drive de l'utilisateur via l'OS, chiffrées de bout en bout et **illisibles par la développeuse** (« The backup data can't be read by the user or other apps on the device », Android Developers <https://developer.android.com/identity/data/autobackup>, consulté le 07/09/2026) — je considère que ce n'est pas une collecte *par l'app* (point à confirmer, §4). Export JSON/CSV = fichier créé localement à la demande de l'utilisateur.
 - **PostHog (si consenti)** : collecte *optionnelle* de données d'usage (App interactions), diagnostics/crash si activés, identifiant d'appareil/installation (Device or other IDs). L'adresse IP : à désactiver côté projet PostHog (§2.4) ; si elle est conservée, la déclarer (« including IP addresses when used to infer location or identifiers »).
-- **Plus** : collecte *optionnelle* (l'utilisateur choisit Plus) de : adresse email, identifiant utilisateur, photos, contenu généré (données de l'animal), à des fins « App functionality » et « Account management ». Chiffrement en transit : oui (TLS Supabase). Suppression : oui (in-app + lien web, §1.3).
+- **Plus** : collecte *optionnelle* (l'utilisateur choisit Plus) de : adresse email, nom et photo de profil transmis par Google si la personne se connecte avec Google, identifiant utilisateur, photos, contenu généré (données de l'animal), à des fins « App functionality » et « Account management ». Chiffrement en transit : oui (TLS Supabase). Suppression : oui (in-app + lien web, §1.3).
 - **Partage** : aucun partage à un tiers au sens Google (Supabase et PostHog sont des prestataires agissant pour la développeuse, cf. règle Google sur les « service providers » — à vérifier dans le formulaire, §4). Google Play Billing lui-même est géré par Google.
 
 ### 1.3 Suppression de compte (Account deletion)
@@ -185,9 +185,9 @@ Texte du règlement (UE) 2016/679 : EUR-Lex <https://eur-lex.europa.eu/legal-con
 ### 2.1 Qualification des acteurs et DPA
 
 - **Responsable du traitement** (art. 4-7) : « la personne physique ou morale […] qui, seul ou conjointement avec d'autres, détermine les finalités et les moyens du traitement ». **Sous-traitant** (art. 4-8) : « la personne physique ou morale […] qui traite des données à caractère personnel pour le compte du responsable du traitement ». La CNIL (« Responsable du traitement, sous-traitants : comment bien identifier son rôle ? », <https://www.cnil.fr/fr/rgpd-comment-bien-identifier-son-role>) précise que le responsable « détermine à la fois les objectifs et les moyens du traitement » et donne comme exemple de sous-traitant un développeur d'application mobile assurant la maintenance pour un client.
-- → **Gaelle (auto-entrepreneure) est responsable du traitement** pour les données Plus et PostHog : elle décide de collecter l'email, les photos, les données d'usage, et des durées. Une personne physique en nom propre peut être responsable de traitement (art. 4-7 : « personne physique ou morale »).
+- → **Gaelle (auto-entrepreneure) est responsable du traitement** pour les données Plus et PostHog : elle décide de collecter l'email, le nom et la photo de profil Google (connexion avec Google), les photos, les données d'usage, et des durées. Une personne physique en nom propre peut être responsable de traitement (art. 4-7 : « personne physique ou morale »).
 - **Sous-traitants** : Supabase (hébergement Auth/Postgres/Storage), PostHog (analytics) et Brevo (envoi des e-mails de compte : adresse e-mail et code à usage unique ; hébergement France et Belgique, support technique possible depuis l’Inde sous clauses contractuelles types (Brevo CRM Solutions Limited), d’après l’annexe sous-traitants de son DPA, <https://www.brevo.com/legal/termsofuse/>, vérifié le 2026-10-23 ; la durée de conservation des journaux d’envoi est un réglage du client, non fixé à ce jour). Obligations du responsable (CNIL « Travailler avec un sous-traitant », <https://www.cnil.fr/fr/sous-traitant>) : choisir un prestataire qui « présente des garanties suffisantes » et conclure un **contrat écrit** contenant les mentions de l'art. 28-3 (traitement « que sur instruction documentée du responsable du traitement », confidentialité, sécurité, sous-traitance ultérieure, assistance, suppression/restitution, audit). Guide CNIL sous-traitant : <https://www.cnil.fr/sites/cnil/files/atoms/files/rgpd-guide_sous-traitant-cnil.pdf>.
-- **Google** : pour Play Billing, Google est **vendeur/marchand officiel** (« Google est le marchand officiel des Produits », DDA §3.4 ; « Les Contenus de Google Play sont proposés par Google Commerce Limited », Conditions Google Play) → Google agit comme **responsable de traitement autonome** pour les paiements ; MémoPatte ne reçoit pas les données bancaires. Pour Sign in with Google, Google fournit un service d'identité à l'utilisateur sous ses propres conditions ; MémoPatte ne reçoit que l'email/identifiant via Supabase Auth. (Qualification « responsable autonome » = mon analyse, non issue d'une page Google explicite — §4.)
+- **Google** : pour Play Billing, Google est **vendeur/marchand officiel** (« Google est le marchand officiel des Produits », DDA §3.4 ; « Les Contenus de Google Play sont proposés par Google Commerce Limited », Conditions Google Play) → Google agit comme **responsable de traitement autonome** pour les paiements ; MémoPatte ne reçoit pas les données bancaires. Pour Sign in with Google, Google fournit un service d'identité à l'utilisateur sous ses propres conditions ; MémoPatte reçoit l'email, l'identifiant, le nom et la photo de profil via Supabase Auth. (Qualification « responsable autonome » = mon analyse, non issue d'une page Google explicite — §4.)
 
 | Prestataire | DPA | Hébergement UE | Sous-traitants ultérieurs |
 |---|---|---|---|
@@ -202,7 +202,7 @@ Texte du règlement (UE) 2016/679 : EUR-Lex <https://eur-lex.europa.eu/legal-con
 
 | Donnée | Personnelle ? | Commentaire |
 |---|---|---|
-| Email, identifiant Supabase, identifiant Google | Oui | Identifient directement. |
+| Email, identifiant Supabase, identifiant Google, nom et photo de profil Google | Oui | Identifient directement. |
 | Données de l'animal (nom, race, vaccins, traitements, poids) | **Oui dès qu'elles sont rattachées à un compte** (Plus) : elles « se rapportent » au propriétaire identifiable (information sur son animal, ses habitudes, ses dépenses). En local sans compte, elles ne sont traitées par personne d'autre que l'utilisateur → hors périmètre de la développeuse. | Interprétation fondée sur la largeur de « toute information se rapportant à ». |
 | Photos des animaux | Oui si rattachées au compte (contenu, métadonnées, éventuellement des personnes visibles). | Sauvegardées uniquement en Plus. |
 | Données d'usage PostHog (événements, écrans, identifiant d'installation, modèle d'appareil) | Oui (identifiant d'appareil = personne identifiable indirectement). | IP : « IP addresses can be considered personal data under GDPR » (PostHog gdpr-compliance). |
@@ -231,6 +231,7 @@ Principe CNIL : « Les données personnelles ne peuvent pas être conservées in
 |---|---|---|---|
 | Compte Plus + données synchronisées + photos | Tant que l'accès Plus existe | Suppression **immédiate** à la demande (in-app / web) ; sinon compte (email compris), sauvegarde et photos supprimés **12 mois après expiration** du dernier droit Plus sans réactivation, après avertissement par email à J-30 | Tranché le 2026-09-26 ; 12 mois laisse le temps de réabonner et de restaurer. |
 | Compte Plus jamais réactivé / inactif | — | Même règle | — |
+| Compte dont l'adresse n'a jamais été confirmée | — | Supprimé au bout de **7 jours**, sans e-mail (tranché le 2026-10-24) | Code d'inscription jamais saisi. |
 | Jeton d'achat Play et état d'abonnement | Durée du droit + 60 jours | Puis suppression | Le jeton Play n'est plus utilisable « 60 days after expiration ». |
 | Événements PostHog | **12 mois** (tranché le 2026-09-26 ; sous les critères CNIL de mesure d'audience : traceur ≤ 13 mois, données ≤ 25 mois) | Suppression automatique (réglage de rétention côté projet : §4) | Voir §2.4. |
 | Emails de support | Durée de traitement de la demande + **1 an** (tranché le 2026-09-26) | Suppression | Preuve en cas de litige. |
@@ -369,8 +370,9 @@ Publiée depuis le 2026-09-26 sur <https://memopatte.app/confidentialite/> (angl
 |---|---|---|---|---|---|
 | Personal info › **Email address** | ☐ | ☐ | C, Opt | **C, Opt** | Account management, App functionality |
 | Personal info › **User IDs** | ☐ | ☐ | C, Opt | **C, Opt** | Account management, App functionality |
-| Personal info › Name / Address / Phone | ☐ | ☐ | ☐ | ☐ | — |
-| **Photos and videos › Photos** | ☐ | ☐ | C, Opt | **C, Opt** | App functionality |
+| Personal info › **Name** (connexion avec Google) | ☐ | ☐ | C, Opt | **C, Opt** | Account management |
+| Personal info › Address / Phone | ☐ | ☐ | ☐ | ☐ | — |
+| **Photos and videos › Photos** (dont la photo de profil Google) | ☐ | ☐ | C, Opt | **C, Opt** | App functionality |
 | App activity › **App interactions** | ☐ | C, Opt | (idem si consenti) | **C, Opt** | Analytics |
 | App activity › **Other user-generated content** (carnets des animaux) | ☐ | ☐ | C, Opt | **C, Opt** | App functionality |
 | App activity › In-app search history / Installed apps / Other actions | ☐ | ☐ | ☐ | ☐ | — |
