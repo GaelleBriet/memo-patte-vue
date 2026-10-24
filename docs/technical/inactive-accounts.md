@@ -10,9 +10,9 @@ Gaelle n'a pas fait les étapes ci-dessous, elle ne fait que compter.
 | Compte | Étape |
 | --- | --- |
 | Plus fini depuis 60 jours | client RevenueCat effacé |
-| Plus fini depuis 11 mois, ou créé depuis 11 mois sans jamais acheter | e-mail d'avertissement, avec la date J |
+| Plus fini depuis 11 mois, ou adresse confirmée créée depuis 11 mois sans jamais acheter | e-mail d'avertissement, avec la date J |
 | Averti, jour J atteint | suppression du compte, par la même `eraseAccount` que « Supprimer mon compte » |
-| Adresse jamais confirmée (aucun code saisi) depuis 7 jours | suppression, sans e-mail (`UNCONFIRMED_ACCOUNT_DAYS`, en attente de la confirmation de Gaelle) |
+| Adresse jamais confirmée (aucun code saisi) depuis 7 jours | compté dans le journal (`unconfirmedPending`), ni averti ni supprimé tant que Gaelle n'a pas confirmé la règle des 7 jours sans e-mail (`UNCONFIRMED_ACCOUNT_DAYS`) |
 | Abonnement en cours (période de grâce comprise) ou achat à vie | jamais rien |
 
 - Date J : la plus tardive de « fin de l'accès + 12 mois » et « avertissement + 30 jours », arrondie au
@@ -40,8 +40,9 @@ ne fait que compter : pas d'avertissement, donc pas de suppression, ni d'effacem
 canal (clé d'API Brevo, décision D3) reste à décider.
 
 **Textes** : `messages.ts`, FR et EN selon la langue de l'inscription (`locale`, anglais sinon),
-expéditeur `noreply@memopatte.app`, contact cité `contact@memopatte.app`. Aucun texte pour un compte
-qui n'a jamais acheté Plus : ces comptes ne sont pas avertis, donc pas supprimés, tant qu'il manque.
+expéditeur `noreply@memopatte.app`, contact cité `contact@memopatte.app`. Deux variantes : Plus fini
+(« votre accès MémoPatte Plus a pris fin le … ») et compte confirmé sans achat (« votre compte
+MémoPatte a été créé le … sans abonnement Plus »). Aucun texte pour une adresse jamais confirmée.
 
 ## Ce que Gaelle pose à la main
 
@@ -80,4 +81,4 @@ Jamais par une migration : la CI l'appliquerait au merge.
    Une fois par jour à 03:00 UTC. Pour arrêter : `select cron.unschedule('inactive-accounts');`.
 4. **Laisser tourner à blanc** (décision D5 : un mois proposé) et lire les nombres du journal.
 5. **Passer en `apply`** : secret `INACTIVE_ACCOUNTS_MODE` = `apply`, seulement une fois le canal
-   d'e-mail branché et le texte du compte jamais acheté validé.
+   d'e-mail branché.

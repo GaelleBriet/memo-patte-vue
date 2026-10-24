@@ -15,6 +15,10 @@ const UNCONFIRMED = candidate('aaaaaaaa-0000-4000-8000-000000000003', {
   createdAt: '2027-11-10T10:00:00.000Z',
   emailConfirmed: false,
 })
+const WARNED = candidate('aaaaaaaa-0000-4000-8000-000000000002', {
+  plus: { expiresAt: '2026-10-01T10:00:00.000Z' },
+  notice: { purgeOn: '2027-11-20', warnedAt: '2027-09-02T03:00:00.000Z', revenuecatErasedAt: null },
+})
 
 function cronRequest(secret: string | null, init: RequestInit = {}): Request {
   const headers = new Headers(init.headers)
@@ -128,7 +132,7 @@ describe('handleInactiveAccounts', () => {
   })
 
   it('applique seulement quand le réglage du serveur le dit', async () => {
-    const fake = fakePurgePorts({ candidates: [UNCONFIRMED] })
+    const fake = fakePurgePorts({ candidates: [WARNED] })
     const settings = settingsOf({
       INACTIVE_ACCOUNTS_CRON_SECRET: SECRET,
       INACTIVE_ACCOUNTS_MODE: 'apply',

@@ -6,7 +6,7 @@ import {
 } from '../_shared/account-erasure.ts'
 import { plusAccessFrom, type RevenuecatSubscriber } from '../_shared/plus-access.ts'
 import type { EmailChannel } from './email-channel.ts'
-import { warningEmail } from './messages.ts'
+import { warningEmail, type InactivityCause } from './messages.ts'
 import {
   inactiveSinceOf,
   purgeDateOf,
@@ -51,7 +51,7 @@ export type PurgeReport = {
     revenuecatErasures: number
   }
   done: { warnings: number; deletions: number; revenuecatErasures: number }
-  skipped: { reactivated: number; noMessage: number; batchFull: number }
+  skipped: { reactivated: number; unconfirmedPending: number; batchFull: number }
   failures: { database: number; revenuecat: number; email: number; deletion: number }
 }
 
@@ -77,7 +77,7 @@ function emptyReport(mode: PurgeMode, channel: EmailChannel): PurgeReport {
     channel: channel.connected ? 'connected' : 'absent',
     due: { warnings: 0, deletions: 0, unconfirmedDeletions: 0, revenuecatErasures: 0 },
     done: { warnings: 0, deletions: 0, revenuecatErasures: 0 },
-    skipped: { reactivated: 0, noMessage: 0, batchFull: 0 },
+    skipped: { reactivated: 0, unconfirmedPending: 0, batchFull: 0 },
     failures: { database: 0, revenuecat: 0, email: 0, deletion: 0 },
   }
 }
@@ -102,7 +102,14 @@ function resumedAtRevenuecat(subscriber: RevenuecatSubscriber, dates: AccountDat
   return typeof known === 'string' && Date.parse(access.expiresAt) > Date.parse(known)
 }
 
-type AccountOutcome = 'none' | 'reactivated' | 'batch-full'
+function causeOf(dates: AccountDates, since: string): InactivityCause {
+  if (!dates.emailConfirmed) return { kind: 'unconfirmed' }
+  return dates.plus
+    ? { kind: 'plus-ended', accessEndedAt: since }
+    : { kind: 'never-bought', createdAt: since }
+}
+
+type AccountOutcome = 'none' | 'reactivated' | 'unconfirmed-pending' | 'batch-full'
 
 async function processAccount(
   userId: string,
@@ -116,8 +123,9 @@ async function processAccount(
   const steps = purgeStepsOf(fresh.dates, now)
   const since = inactiveSinceOf(fresh.dates, now)
   if (!hasStep(steps) || since === null) return 'none'
+  if (steps.account === 'delete-unconfirmed') return 'unconfirmed-pending'
 
-  const deletes = steps.account === 'delete' || steps.account === 'delete-unconfirmed'
+  const deletes = steps.account === 'delete'
   if (deletes && report.done.deletions >= MAX_DELETIONS_PER_PASS) return 'batch-full'
 
   const { revenuecat } = ports
@@ -145,14 +153,12 @@ async function processAccount(
 
   if (steps.account !== 'warn' || fresh.email === null) return 'none'
   const purgeOn = purgeDateOf(since, now)
-  const cause = fresh.dates.plus
-    ? ({ kind: 'plus-ended', accessEndedAt: since } as const)
-    : ({ kind: 'never-bought' } as const)
-  const email = warningEmail({ email: fresh.email, locale: fresh.locale }, cause, purgeOn)
-  if (!email) {
-    report.skipped.noMessage++
-    return 'none'
-  }
+  const email = warningEmail(
+    { email: fresh.email, locale: fresh.locale },
+    causeOf(fresh.dates, since),
+    purgeOn,
+  )
+  if (!email) return 'none'
   await attempt('email', () => ports.channel.send(email))
   await attempt('database', () => ports.saveNotice(userId, { ...notice, purgeOn, warnedAt: at }))
   report.done.warnings++
@@ -180,6 +186,7 @@ export async function runPurgePass(ports: PurgePassPorts, mode: PurgeMode): Prom
     try {
       const outcome = await processAccount(userId, now, ports, report)
       if (outcome === 'reactivated') report.skipped.reactivated++
+      if (outcome === 'unconfirmed-pending') report.skipped.unconfirmedPending++
       if (outcome === 'batch-full') report.skipped.batchFull++
     } catch (cause) {
       report.failures[cause instanceof StepFailure ? cause.failure : 'database']++
