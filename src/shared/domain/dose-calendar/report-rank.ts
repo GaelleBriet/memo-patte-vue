@@ -1,4 +1,4 @@
-import { gridDateOf, hoursOf, sameFrequency, sameHours } from './grid'
+import { hoursOf, sameFrequency, sameHours } from './grid'
 import type { Span } from './settings'
 import type { Day, Hour, Line, LineEffect, Setting } from './types'
 
@@ -45,7 +45,7 @@ function arriving(report: Line, own: Hour | undefined, others: readonly Hour[]):
 
 /**
  * Q1, R3 : le réglage dont la date choisie était l'ancienne arrivée d'un report redéplacé, quand le
- * report est plus récent que sa grille (Q26).
+ * report est plus récent que le « Modifier » qui l'a choisie (Q26, Q40).
  */
 export function oldArrivalChooser(
   report: Line,
@@ -63,7 +63,7 @@ export function oldArrivalChooser(
   }
   if (setting === undefined || !setting.firstDueChosen || setting.firstDueOn !== day)
     return undefined
-  return report.decidedAt > gridDateOf(setting) ? setting : undefined
+  return report.decidedAt > (setting.updatedAt ?? setting.createdAt) ? setting : undefined
 }
 
 /**
