@@ -54,9 +54,14 @@ export type PurgeReport = {
     warnings: number
     deletions: number
     revenuecatErasures: number
-    unconfirmedPending: number
+    unconfirmedDeletions: number
   }
-  done: { warnings: number; deletions: number; revenuecatErasures: number }
+  done: {
+    warnings: number
+    deletions: number
+    revenuecatErasures: number
+    unconfirmedDeletions: number
+  }
   skipped: { reactivated: number; batchFull: number }
   failures: { database: number; revenuecat: number; email: number; deletion: number }
 }
@@ -82,8 +87,8 @@ function emptyReport(mode: PurgeMode, ports: PurgePassPorts): PurgeReport {
     mode,
     channel: ports.channel.connected ? 'connected' : 'absent',
     revenuecat: ports.revenuecat ? 'connected' : 'absent',
-    due: { warnings: 0, deletions: 0, revenuecatErasures: 0, unconfirmedPending: 0 },
-    done: { warnings: 0, deletions: 0, revenuecatErasures: 0 },
+    due: { warnings: 0, deletions: 0, revenuecatErasures: 0, unconfirmedDeletions: 0 },
+    done: { warnings: 0, deletions: 0, revenuecatErasures: 0, unconfirmedDeletions: 0 },
     skipped: { reactivated: 0, batchFull: 0 },
     failures: { database: 0, revenuecat: 0, email: 0, deletion: 0 },
   }
@@ -92,12 +97,23 @@ function emptyReport(mode: PurgeMode, ports: PurgePassPorts): PurgeReport {
 function countDue(report: PurgeReport, steps: PurgeSteps): void {
   if (steps.account === 'warn') report.due.warnings++
   if (steps.account === 'delete') report.due.deletions++
-  if (steps.account === 'unconfirmed-pending') report.due.unconfirmedPending++
+  if (steps.account === 'unconfirmed-pending') report.due.unconfirmedDeletions++
   if (steps.eraseRevenuecat) report.due.revenuecatErasures++
 }
 
+function deletesAccount(steps: PurgeSteps): boolean {
+  return steps.account === 'delete' || steps.account === 'unconfirmed-pending'
+}
+
 function needsAction(steps: PurgeSteps): boolean {
-  return steps.account === 'warn' || steps.account === 'delete' || steps.eraseRevenuecat
+  return steps.account === 'warn' || deletesAccount(steps) || steps.eraseRevenuecat
+}
+
+/** Une suppression annoncée par e-mail ne cède jamais sa place dans le lot à une adresse jamais confirmée. */
+function passOrder(steps: PurgeSteps): number {
+  if (steps.account === 'delete') return 0
+  if (steps.account === 'unconfirmed-pending') return 2
+  return 1
 }
 
 /** Google Play rend l'accès à la date de reprise : une pause en cours vaut un abonnement. */
@@ -136,12 +152,15 @@ type PassState = { now: number; deletionAttempts: number }
 
 async function processAccount(
   userId: string,
+  listed: PurgeSteps,
   state: PassState,
   ports: PurgePassPorts,
   revenuecat: RevenuecatPorts,
   report: PurgeReport,
 ): Promise<AccountOutcome> {
   const { now } = state
+  const batchFull = () => state.deletionAttempts >= MAX_DELETIONS_PER_PASS
+  if (deletesAccount(listed) && batchFull()) return 'batch-full'
   const at = new Date(now).toISOString()
   const fresh = await attempt('database', () => ports.readCandidate(userId, at))
   if (!fresh) return 'none'
@@ -149,8 +168,8 @@ async function processAccount(
   const since = inactiveSinceOf(fresh.dates, now)
   if (!needsAction(steps) || since === null) return 'none'
 
-  const deletes = steps.account === 'delete'
-  if (deletes && state.deletionAttempts >= MAX_DELETIONS_PER_PASS) return 'batch-full'
+  const deletes = deletesAccount(steps)
+  if (deletes && batchFull()) return 'batch-full'
 
   const subscriber = await attempt('revenuecat', () => revenuecat.read(userId))
   if (resumedAtRevenuecat(subscriber, fresh.dates, now)) return 'reactivated'
@@ -158,7 +177,8 @@ async function processAccount(
   if (deletes) {
     state.deletionAttempts++
     await attempt('deletion', () => eraseAccount(userId, 'inactivity', ports.erasure))
-    report.done.deletions++
+    if (steps.account === 'delete') report.done.deletions++
+    else report.done.unconfirmedDeletions++
     return 'none'
   }
 
@@ -197,16 +217,22 @@ export async function runPurgePass(ports: PurgePassPorts, mode: PurgeMode): Prom
   const state: PassState = { now: Date.now(), deletionAttempts: 0 }
   const report = emptyReport(mode, ports)
   const candidates = await ports.listCandidates(new Date(state.now).toISOString())
-  const due = candidates.filter((candidate) => {
-    const steps = purgeStepsOf(candidate.dates, state.now)
-    countDue(report, steps)
-    return needsAction(steps)
-  })
+  const due = candidates
+    .map(({ userId, dates }) => ({
+      userId,
+      createdAt: Date.parse(dates.createdAt),
+      steps: purgeStepsOf(dates, state.now),
+    }))
+    .filter(({ steps }) => {
+      countDue(report, steps)
+      return needsAction(steps)
+    })
+    .sort((a, b) => passOrder(a.steps) - passOrder(b.steps) || a.createdAt - b.createdAt)
   if (!applies) return report
 
-  for (const { userId } of due) {
+  for (const { userId, steps } of due) {
     try {
-      const outcome = await processAccount(userId, state, ports, revenuecat, report)
+      const outcome = await processAccount(userId, steps, state, ports, revenuecat, report)
       if (outcome === 'reactivated') report.skipped.reactivated++
       if (outcome === 'batch-full') report.skipped.batchFull++
     } catch (cause) {

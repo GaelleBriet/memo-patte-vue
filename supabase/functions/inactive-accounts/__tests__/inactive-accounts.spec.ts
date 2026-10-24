@@ -109,9 +109,9 @@ describe('handleInactiveAccounts', () => {
 
     expect(response.status).toBe(200)
     const report = await response.json()
-    expect(report).toMatchObject({ mode: 'dry-run', due: { unconfirmedPending: 1 } })
+    expect(report).toMatchObject({ mode: 'dry-run', due: { unconfirmedDeletions: 1 } })
     const logged = vi.mocked(console.warn).mock.calls.flat().join(' ')
-    expect(logged).toContain('"unconfirmedPending":1')
+    expect(logged).toContain('"unconfirmedDeletions":1')
     expect(logged).not.toContain(UNCONFIRMED.userId)
     expect(logged).not.toContain('@')
   })
