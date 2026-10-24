@@ -231,4 +231,36 @@ describe('useBackupStatus', () => {
       new Date(2026, 9, 23, 8, 0).getTime() + BACKUP_STATUS_REFRESH_MS,
     )
   })
+
+  describe('lecture unique', () => {
+    function startOnce() {
+      scope = effectScope()
+      return scope.run(() => useBackupStatus({ polling: false }))!
+    }
+
+    it('ne relit pas toutes les 2 s, même pendant la première sauvegarde', async () => {
+      const read = vi.fn<() => Promise<BackupFacts>>(async () => FIRST_BACKUP)
+      provideBackupFacts(read)
+      const { status } = startOnce()
+
+      await vi.advanceTimersByTimeAsync(BACKUP_STATUS_REFRESH_MS * 5)
+
+      expect(status.value).toEqual({ kind: 'first-backup', done: 0, total: 348 })
+      expect(read).toHaveBeenCalledTimes(1)
+    })
+
+    it('relit au retour au premier plan', async () => {
+      const read = vi.fn<() => Promise<BackupFacts>>(async () => FIRST_BACKUP)
+      provideBackupFacts(read)
+      const { status } = startOnce()
+      await vi.advanceTimersByTimeAsync(0)
+
+      read.mockResolvedValue(SAVED)
+      emit('resume')
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(status.value).toEqual({ kind: 'saved', at: SAVED.lastSyncedAt })
+      expect(read).toHaveBeenCalledTimes(2)
+    })
+  })
 })

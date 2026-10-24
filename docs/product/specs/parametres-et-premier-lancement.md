@@ -79,9 +79,14 @@ personnalisation de l'accueil.
   seulement après un refus (RA-21). Sans app de messagerie, « Nous écrire » affiche l'adresse avec
   « Copier ». Sous-titre de « Rappels » selon l'état : « Autorisés · rappels précis », « Autorisés »
   (rappels précis coupés), « Désactivés » (notifications refusées), « Pas encore activés »
-  (autorisation jamais demandée). Sous-titre de « Sauvegarde » selon l'état : « Sur ce téléphone »
-  (gratuit), « Plus · il y a 5 min », « Plus · en attente de réseau », « Plus · interrompue », « En
-  pause » (Plus arrêté). (Spec Q3 ; relecture du lot C et du lot C révisé)
+  (autorisation jamais demandée). Sous-titre de « Sauvegarde » : « Sur ce téléphone » pour un gratuit et pour
+  un abonné dont la synchro n'est pas activée ; sinon la première ligne de la carte d'état de l'écran
+  Sauvegarde, sans le compte « sur M » : « Première sauvegarde en cours », « En attente de réseau »,
+  « Reconnecte-toi pour reprendre la sauvegarde », « Dernière sauvegarde : il y a 5 min ». Des éléments
+  refusés prennent la place de « Dernière sauvegarde » (« Un élément n'a pas pu être sauvegardé », « 3
+  éléments n'ont pas pu être sauvegardés », sans lien vers l'aide), jamais celle des trois autres états.
+  La liste lit l'état une fois à l'ouverture et au retour au premier plan. (Spec Q3 ; relecture du lot C
+  et du lot C révisé ; ticket #1202)
 - **PA-3** Ordre des rubriques, du plus utile au plus rare : Rappels, Sauvegarde, Mes données, MémoPatte
   Plus, Compte, Confidentialité, Aide et contact, À propos. (Spec Q1, 2026-09-29)
 - **PA-4** Réglages du carnet (heure des rappels de vaccins, « Me prévenir avant l'échéance ») : en
