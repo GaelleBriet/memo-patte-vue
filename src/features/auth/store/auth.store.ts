@@ -7,8 +7,8 @@ import { identify, reset as resetAnalytics } from '@/core/analytics'
 import { errorSummary } from '@/shared/utils/error-summary'
 
 import { AccountError } from '../logic/account-error'
+import type { AccountIdentity } from '../logic/account-identity-of'
 import {
-  type AccountIdentity,
   type AuthRepository,
   type AuthSession,
   type SessionCheck,

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 
-import type { AccountIdentity } from '../repository/auth.repository'
+import type { AccountIdentity } from '../logic/account-identity-of'
 import SectionCard from '@/shared/components/SectionCard.vue'
 
 defineProps<{ identity: AccountIdentity }>()
