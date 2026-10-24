@@ -3744,5 +3744,5 @@ envoyé à … » sur un formulaire revenu en arrière. — Alternative écarté
 octobre : (1) à la connexion avec Google, le nom et la photo de profil transmis par Google sont
 conservés avec le compte et supprimés avec lui ; la politique de confidentialité et la page de
 suppression de compte (FR et EN) le disent. (2) Une adresse jamais confirmée (code d'inscription jamais
-saisi) est supprimée au bout de 7 jours, sans e-mail. — Alternative écartée : effacer le nom et la photo
-dès l'inscription par un déclencheur serveur.
+saisi) est supprimée au bout de 7 jours, sans e-mail (livraison suivie par #1224). — Alternatives
+écartées : effacer le nom et la photo dès l'inscription ; garder 12 mois l'adresse jamais confirmée.
