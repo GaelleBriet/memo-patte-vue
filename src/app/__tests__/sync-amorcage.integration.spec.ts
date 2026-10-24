@@ -15,7 +15,7 @@ import { createSyncCycle, type SyncCycle } from '@/core/sync/service/sync-cycle'
 import { normalizeSyncTimestamps } from '@/core/sync/service/normalize-sync-timestamps'
 import type { SyncRow, SyncableTable } from '@/core/sync/service/syncable-table'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
-import { backupStatusOf } from '@/features/settings/logic/backup-status'
+import { backupStatusOf, refusedItemsOf } from '@/features/settings/logic/backup-status'
 import { createCarnetSettingsRepository } from '@/features/settings/repository/carnet-settings.repository'
 import { createTreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
 import { createTreatmentPeriodsRepository } from '@/features/treatments/repository/treatment-periods.repository'
@@ -209,4 +209,41 @@ describe('amorçage : le carnet local part en entier vers un compte vide', () =>
       expect(backupStatusOf(await readFacts()).kind).toBe('first-backup')
     })
   }
+
+  it('une pesée refusée trois fois par le serveur : la sauvegarde aboutit, « Un élément » refusé, jusqu’à ce que la pesée modifiée passe', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const readFacts = backupFacts()
+    const [weighing] = await db.query<{ id: string }>(
+      'SELECT id FROM weight_entry WHERE deleted_at IS NULL ORDER BY id LIMIT 1',
+    )
+    const weight = tables.find((table) => table.entity === 'weight_entry')!
+    const pushRow = weight.pushRow.bind(weight)
+    let refusing = true
+    weight.pushRow = async (userId, sent, push) => {
+      if (refusing && sent.id === weighing!.id) {
+        throw { code: '23514', message: 'new row violates check constraint "weight_entry_check"' }
+      }
+      return pushRow(userId, sent, push)
+    }
+    await outbox.enableAndQueueWholeCarnet()
+
+    await expect(cycle.runCycle()).rejects.toMatchObject({ code: '23514' })
+    await expect(cycle.runCycle()).rejects.toMatchObject({ code: '23514' })
+    await cycle.runCycle()
+
+    const refused = await readFacts()
+    expect(backupStatusOf(refused).kind).toBe('saved')
+    expect(refusedItemsOf(refused)).toBe(1)
+    await expect(outbox.listPending()).resolves.toEqual([])
+
+    refusing = false
+    await db.run('UPDATE weight_entry SET weight_kg = 4.3, updated_at = ? WHERE id = ?', [
+      new Date(2026, 9, 21, 9).toISOString(),
+      weighing!.id,
+    ])
+    await cycle.runCycle()
+
+    expect(refusedItemsOf(await readFacts())).toBe(0)
+    expect(server.rows('weight_entry').some((row) => row.id === weighing!.id)).toBe(true)
+  })
 })

@@ -276,6 +276,7 @@ describe('BackupSettingsView', () => {
       lastSyncedAt: new Date(2026, 9, 23, 8, 25).toISOString(),
       remaining: 0,
       carnetSize: 348,
+      refused: 0,
     }
 
     async function monterAbonné(facts: BackupFacts) {

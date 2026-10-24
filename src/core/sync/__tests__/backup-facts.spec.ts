@@ -16,6 +16,7 @@ function dependencies(overrides: Partial<BackupFactsDependencies> = {}): BackupF
       getLastSyncedAt: async () => OCTOBER_23,
       countPending: async () => 228,
       countWholeCarnet: async () => 348,
+      countRefused: async () => 2,
     },
     isEligible: () => true,
     signInNeeded: () => false,
@@ -40,6 +41,7 @@ describe('createBackupFactsReader', () => {
       lastSyncedAt: OCTOBER_23,
       remaining: 228,
       carnetSize: 348,
+      refused: 2,
     })
   })
 

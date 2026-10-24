@@ -37,6 +37,7 @@ const FIRST_BACKUP: BackupFacts = {
   lastSyncedAt: null,
   remaining: 348,
   carnetSize: 348,
+  refused: 0,
 }
 
 const SAVED: BackupFacts = {
