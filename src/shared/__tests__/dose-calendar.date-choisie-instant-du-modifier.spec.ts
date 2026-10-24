@@ -170,6 +170,58 @@ describe('#1232, Q40 : la date choisie se juge contre l’instant du « Modifier
     expect(days(after.input).reference).toEqual(days(after.input).moteur)
   })
 
+  const every3 = (times: string[], firstDueOn?: string): SettingsRequest => ({
+    frequency: { value: 3, unit: 'day' },
+    times,
+    endsOn: null,
+    ...(firstDueOn === undefined ? {} : { firstDueOn }),
+  })
+
+  // Graine 480000493, réduite : Luna, tous les 3 jours à 20 h depuis le 27 mars ; le 1er avril, la dose
+  // du 30 mars reportée au 22 avec la case ; le 9, « Prochaine dose » le 10 (le report y arrive) ; la
+  // dose du 10 redéplacée au 21 avec la case.
+  function luna() {
+    const luna = phone({
+      settings: [setting('s1', '2026-03-27', { value: 3, unit: 'day' }, ['20:00'])],
+      lines: [],
+      today: '2026-04-01',
+    })
+    luna.move('2026-03-30', '20:00', '2026-04-22', true)
+    luna.on('2026-04-09')
+    luna.modify(every3(['20:00'], '2026-04-10'))
+    luna.move('2026-04-10', '20:00', '2026-04-21', true)
+    return luna
+  }
+
+  it('graine 480000493 : changer seulement les heures après le report ne le rend pas sans effet (Q45)', () => {
+    const after = luna()
+    const before = after.input
+    after.modify(every3(['20:01']))
+    const unlogged = (input: TreatmentViewInput) =>
+      treatmentView(input).unloggedDoses.map(({ dueOn }) => dueOn)
+
+    expect(days(after.input)).toEqual(days(before))
+    expect(unlogged(after.input)).toEqual(unlogged(before))
+    expect(days(after.input).reference).toEqual(days(after.input).moteur)
+  })
+
+  it.each([
+    ['la date choisie', every3(['20:00'], '2026-04-13')],
+    ['la fréquence', { ...every3(['20:00'], '2026-04-10'), frequency: { value: 2, unit: 'day' } }],
+  ] as const)(
+    'Q45 : réécrit le même jour après le report, un « Modifier » qui change %s date sa grille à son instant',
+    (_, request) => {
+      const after = luna()
+      const chooser = after.input.settings.at(-1)!
+      const report = after.input.lines.find(({ status }) => status === 'postponed')!
+      after.modify(request)
+      const rewritten = after.input.settings.at(-1)!
+
+      expect(rewritten.id).toBe(chooser.id)
+      expect(rewritten.gridWrittenAt! > report.decidedAt).toBe(true)
+    },
+  )
+
   // Graine 290000921, réduite : tous les 2 jours, réglage du 11 avril (date de grille héritée) qui choisit
   // le 17 ; le report de la dose du 7, reparti du 17 vers le 8, a été écrit avant ce « Modifier ».
   it('graine 290000921 : la date choisie du 17 avril porte une dose', () => {
