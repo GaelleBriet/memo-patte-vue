@@ -52,8 +52,9 @@ export function moveReports(input: ReportsInput) {
     const departure = days.get(dueOn)
     const after = (hour: Hour) => hour === null || hour >= (dueTime ?? '')
     const withFollowing = lines.shifts.some((shift) => shift.dueOn === dueOn)
-    // Q1 : sur la date choisie qui portait sa dose, le report reprend sa dose par son rang.
-    const chooser = oldArrivalChooser(report, span)
+    // Q1 : sur la date choisie qui portait sa dose, le report reprend sa dose par son rang ; revenu à
+    // sa date, il ne lui reprend rien (Q56).
+    const chooser = targetOn === dueOn ? undefined : oldArrivalChooser(report, span)
     const oldOn = chooser?.firstDueOn
     const oldDay = oldOn === undefined ? undefined : days.get(oldOn)
     // G13, R9 : avec la case, la journée entière part et son arrivée ouvre la série.

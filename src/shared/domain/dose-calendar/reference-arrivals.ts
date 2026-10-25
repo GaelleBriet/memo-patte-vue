@@ -54,7 +54,8 @@ export function arriveReports(context: ArrivalContext) {
     const departure = days.get(dueOn)
     const withFollowing = context.shiftedDays.has(dueOn)
     // Q1 : la dose du report est sur la date choisie qui était son arrivée ; elle en part par son rang.
-    const chooser = chooserOf(report!, settingAt, live)
+    // Q56 : ramenée à son jour, la dose n'enlève rien à la date choisie où elle était arrivée.
+    const chooser = targetOn === dueOn ? undefined : chooserOf(report!, settingAt, live)
     const chosenDay = chooser?.firstDueOn
     const oldArrival = chosenDay === undefined ? undefined : days.get(chosenDay)
     // G13 : son décalage a déjà fait avancer depuis la date choisie les doses qui la suivaient.

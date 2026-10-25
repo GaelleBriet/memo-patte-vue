@@ -22,9 +22,8 @@ export const reportsOf = (view: TreatmentView, episode: ReadonlySet<string>): Li
     .map(({ line }) => line)
 
 /**
- * R7, Q55 : ramené à son jour, le report est supprimé ; il y reste, arrivé sur ce jour, quand sans lui
- * ni le décalage de sa journée ce jour n'aurait plus de dose à donner (sorti du calendrier), et que
- * son arrivée, hors rythme, n'avait que ses doses : ni journée de la grille, ni date choisie (#796).
+ * R7, Q55, Q56 : ramené à son jour, le report est supprimé ; il y reste, arrivé sur ce jour, quand sans
+ * lui ni le décalage de sa journée ce jour n'aurait plus de dose à donner (sorti du calendrier).
  */
 export function homeLine(
   input: TreatmentViewInput,
@@ -33,14 +32,10 @@ export function homeLine(
   line: LineFields,
 ): LineChange {
   const gone = [report.id, ...(dayShift === undefined ? [] : [dayShift.id])]
-  const rest = buildView(without(input, gone))
-  const empty = (day: Day) => !rest.slots(day, day).some(({ state }) => state === 'pending')
-  const chosen = input.settings.some(
-    ({ firstDueChosen, firstDueOn }) => firstDueChosen && firstDueOn === report.targetOn,
-  )
-  return empty(line.dueOn) && empty(report.targetOn!) && !chosen
-    ? { action: 'rewrite', id: report.id, line }
-    : { action: 'delete', id: report.id }
+  const left = !buildView(without(input, gone))
+    .slots(line.dueOn, line.dueOn)
+    .some(({ state }) => state === 'pending')
+  return left ? { action: 'rewrite', id: report.id, line } : { action: 'delete', id: report.id }
 }
 
 export const opensRhythm = (view: TreatmentView, report: Line): boolean =>
