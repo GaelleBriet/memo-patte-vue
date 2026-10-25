@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { serverSecretKeyFrom, withServerSecretKey } from '../server-secret-key'
 
+type HandlerFor = (key: string) => (request: Request) => Promise<Response>
+
 const SECRET_KEY = 'sb_secret_cle-de-test_0123'
 const LEGACY_KEY = 'eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.signature-de-test'
 
@@ -82,7 +84,7 @@ describe('withServerSecretKey', () => {
   const request = () => new Request('http://localhost/functions/v1/test', { method: 'POST' })
 
   it('construit le traitement une seule fois, avec la clé lue', async () => {
-    const handlerFor = vi.fn((key: string) => async () => new Response(key.length.toString()))
+    const handlerFor = vi.fn<HandlerFor>((key) => async () => new Response(key.length.toString()))
     const serve = withServerSecretKey('Essai', { key: SECRET_KEY }, handlerFor)
 
     await serve(request())
@@ -94,7 +96,7 @@ describe('withServerSecretKey', () => {
   })
 
   it('refuse chaque demande en 503 et dit pourquoi, sans rien construire', async () => {
-    const handlerFor = vi.fn()
+    const handlerFor = vi.fn<HandlerFor>()
     const reading = readingOf(keysOf({ default: LEGACY_KEY }))
     const serve = withServerSecretKey('Purge des comptes inactifs', reading, handlerFor)
 
@@ -110,7 +112,7 @@ describe('withServerSecretKey', () => {
   })
 
   it('ajoute les en-têtes demandés au refus', async () => {
-    const serve = withServerSecretKey('Essai', readingOf({}), vi.fn(), {
+    const serve = withServerSecretKey('Essai', readingOf({}), vi.fn<HandlerFor>(), {
       'Access-Control-Allow-Origin': '*',
     })
 
