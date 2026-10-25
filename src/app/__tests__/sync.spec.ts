@@ -17,7 +17,7 @@ type AddNetworkListener = (
 ) => Promise<PluginListenerHandle>
 
 vi.mock('@capacitor/network', () => ({
-  Network: { addListener: vi.fn<AddNetworkListener>() },
+  Network: { addListener: vi.fn<AddNetworkListener>(), getStatus: () => new Promise(() => {}) },
 }))
 
 const addNetworkListener = Network.addListener as unknown as Mock<AddNetworkListener>

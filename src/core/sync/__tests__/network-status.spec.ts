@@ -1,6 +1,6 @@
 import { Network } from '@capacitor/network'
 import type { PluginListenerHandle } from '@capacitor/core'
-import { afterEach, describe, expect, it, vi, type Mock } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { isNetworkConnected, onNetworkOnline } from '../service/network-status'
 
 type StatusListener = (status: { connected: boolean; connectionType: string }) => void
@@ -14,10 +14,27 @@ vi.mock('@capacitor/network', () => ({
 const addListener = Network.addListener as unknown as Mock<AddListener>
 const getStatus = Network.getStatus as unknown as Mock<GetStatus>
 
+beforeEach(() => {
+  getStatus.mockReturnValue(new Promise(() => {}))
+})
+
 afterEach(() => {
   vi.restoreAllMocks()
   addListener.mockReset()
+  getStatus.mockReset()
 })
+
+function captureEmit(): () => StatusListener {
+  let emit: StatusListener | undefined
+  addListener.mockImplementation(async (_event, listener) => {
+    emit = listener
+    return { remove: async () => {} }
+  })
+  return () => emit!
+}
+
+const ONLINE = { connected: true, connectionType: 'wifi' }
+const OFFLINE = { connected: false, connectionType: 'none' }
 
 describe('onNetworkOnline', () => {
   it('prévient au retour du réseau, pas à la perte', async () => {
@@ -56,6 +73,80 @@ describe('onNetworkOnline', () => {
     emit({ connected: false, connectionType: 'none' })
     emit({ connected: true, connectionType: 'wifi' })
     expect(listener).toHaveBeenCalledTimes(2)
+  })
+
+  it('prévient au premier « en ligne » quand l’état de départ n’est pas encore connu', async () => {
+    const emit = captureEmit()
+    const listener = vi.fn<() => void>()
+
+    onNetworkOnline(listener)
+    await Promise.resolve()
+    emit()(ONLINE)
+
+    expect(listener).toHaveBeenCalledOnce()
+  })
+
+  it('prévient au premier « en ligne » quand l’état de départ n’a pas pu être lu', async () => {
+    getStatus.mockRejectedValue(new Error('plugin indisponible'))
+    const emit = captureEmit()
+    const listener = vi.fn<() => void>()
+
+    onNetworkOnline(listener)
+    await vi.waitFor(() => expect(getStatus).toHaveBeenCalledOnce())
+    await Promise.resolve()
+    emit()(ONLINE)
+    emit()(ONLINE)
+
+    expect(listener).toHaveBeenCalledOnce()
+  })
+
+  it('ne prévient pas quand l’app démarre en ligne et que le plugin répète « en ligne »', async () => {
+    getStatus.mockResolvedValue(ONLINE)
+    const emit = captureEmit()
+    const listener = vi.fn<() => void>()
+
+    onNetworkOnline(listener)
+    await vi.waitFor(() => expect(getStatus).toHaveBeenCalledOnce())
+    await Promise.resolve()
+    emit()(ONLINE)
+    emit()({ connected: true, connectionType: 'cellular' })
+
+    expect(listener).not.toHaveBeenCalled()
+
+    emit()(OFFLINE)
+    emit()(ONLINE)
+    expect(listener).toHaveBeenCalledOnce()
+  })
+
+  it('prévient au retour du réseau quand l’app démarre hors ligne', async () => {
+    getStatus.mockResolvedValue(OFFLINE)
+    const emit = captureEmit()
+    const listener = vi.fn<() => void>()
+
+    onNetworkOnline(listener)
+    await vi.waitFor(() => expect(getStatus).toHaveBeenCalledOnce())
+    await Promise.resolve()
+    emit()(ONLINE)
+    emit()(ONLINE)
+
+    expect(listener).toHaveBeenCalledOnce()
+  })
+
+  it('garde l’état vu par un événement quand la lecture de départ répond après lui', async () => {
+    let answer!: (status: { connected: boolean; connectionType: string }) => void
+    getStatus.mockReturnValue(new Promise((resolve) => (answer = resolve)))
+    const emit = captureEmit()
+    const listener = vi.fn<() => void>()
+
+    onNetworkOnline(listener)
+    await Promise.resolve()
+    emit()(OFFLINE)
+    answer(ONLINE)
+    await Promise.resolve()
+    await Promise.resolve()
+    emit()(ONLINE)
+
+    expect(listener).toHaveBeenCalledOnce()
   })
 
   it('écoute networkStatusChange et retire l’écoute à l’arrêt', async () => {
