@@ -27,6 +27,7 @@ import {
   isNote,
   latestBy,
   reportsOf,
+  returnsOf,
   settingsIn,
   touchedJourneys,
 } from './reference-lines'
@@ -54,6 +55,7 @@ export function calendarOf(
   const { closedFrom, stoppedAt } = stopDayOf(live.at(-1)!)
   const lines = episodeLinesOf(episode, allLines)
   const reports = reportsOf(lines)
+  const returns = returnsOf(lines)
   const onDeparture = departureBeaten(lines.filter(isNote), reports)
   const notes = lines.filter((line) => isNote(line) && !onDeparture.has(line))
   const noted = new Set([...notes, ...borrowed].map((note) => keyOf(note.dueOn, note.dueTime)))
@@ -244,7 +246,7 @@ export function calendarOf(
   const handed = handedOf(claims, chosenRestarts)
   leftDays(
     claims.filter(({ setting }) => !handed.has(setting.id)),
-    reports,
+    [...reports, ...returns],
     closedFrom,
     landed,
   ).forEach((journey, day) => left.set(day, journeyOn(day, journey.setting)))
@@ -255,6 +257,7 @@ export function calendarOf(
   // R7 : un report emporte son heure et les suivantes sans prise.
   const { fallen, arrivedBy } = arriveReports({
     reports,
+    returns,
     days,
     left,
     notes,

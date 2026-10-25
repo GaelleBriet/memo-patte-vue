@@ -40,13 +40,15 @@ export function moveReports(input: ReportsInput) {
   const moved = new Map<string, Line>()
   const arrived = new Map<Day, Hour[]>()
   const arrivalsOnly = new Set<Day>()
-  const waiting = [...lines.reports]
+  const gridDays = new Set(days.keys())
+  const waiting = [...lines.reports, ...lines.homecomings]
   while (waiting.length > 0) {
     const ready = waiting.findIndex(
-      (report) => !waiting.some((other) => other.targetOn === report.dueOn),
+      (report) => !waiting.some((other) => other !== report && other.targetOn === report.dueOn),
     )
     const report = waiting.splice(Math.max(0, ready), 1)[0]!
     const { dueOn, dueTime, targetOn } = report
+    if (targetOn === dueOn && gridDays.has(dueOn)) continue
     const departure = days.get(dueOn)
     const after = (hour: Hour) => hour === null || hour >= (dueTime ?? '')
     const withFollowing = lines.shifts.some((shift) => shift.dueOn === dueOn)

@@ -80,5 +80,9 @@ export function noteEffects(
   for (const line of lines.kept) {
     if (line.status === 'extra') effects.set(line.id, { kind: 'extra' })
   }
-  lines.idle.forEach((reason, id) => effects.set(id, { kind: 'idle', reason }))
+  lines.idle.forEach((reason, id) => {
+    if (reason !== 'back-to-date' || effects.get(id)?.kind !== 'moves') {
+      effects.set(id, { kind: 'idle', reason })
+    }
+  })
 }

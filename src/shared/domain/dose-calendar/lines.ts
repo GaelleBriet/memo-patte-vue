@@ -54,6 +54,8 @@ export type EpisodeLines = {
   notes: Line[]
   /** Une ligne de report par journée, sans les reports revenus à leur date. */
   reports: Line[]
+  /** Q55 : reports revenus à leur date, d'une journée sans autre report, qui y gardent leurs doses si elle a quitté le calendrier. */
+  homecomings: Line[]
   /** Une ligne de décalage par journée. */
   shifts: Line[]
   idle: Map<string, IdleReason>
@@ -154,6 +156,15 @@ export function episodeLines(lines: readonly Line[], span: Span): EpisodeLines {
     return false
   })
   const reports = reportsOf(moving)
+  const homecomings = latestBy(
+    kept.filter(
+      (line) =>
+        line.status === 'postponed' &&
+        line.targetOn === line.dueOn &&
+        !reports.some((report) => report.dueOn === line.dueOn),
+    ),
+    (line) => line.dueOn,
+  )
   const shifts = latestBy(
     kept.filter((line) => line.status === 'shift' && line.targetOn !== null),
     (line) => line.dueOn,
@@ -183,5 +194,16 @@ export function episodeLines(lines: readonly Line[], span: Span): EpisodeLines {
   const chosenArrivals = chosenArrivalsOf(reports, span)
   const settingOf = (id: string) => span.episode.find((setting) => setting.id === id)
   const { touched, answered } = touchedDays(notes, reports, chosenArrivals, settingOf)
-  return { kept, notes, reports, shifts, idle, doseKey, touched, answered, chosenArrivals }
+  return {
+    kept,
+    notes,
+    reports,
+    homecomings,
+    shifts,
+    idle,
+    doseKey,
+    touched,
+    answered,
+    chosenArrivals,
+  }
 }

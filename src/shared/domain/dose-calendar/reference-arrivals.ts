@@ -9,6 +9,8 @@ type Hour = string | null
 
 export type ArrivalContext = {
   reports: readonly ReferenceLine[]
+  /** Q55 : doses ramenées à leur jour ; seules celles d'un jour hors du calendrier y arrivent. */
+  returns: readonly ReferenceLine[]
   days: Map<string, Journey>
   left: Map<string, Journey>
   notes: readonly ReferenceLine[]
@@ -40,10 +42,12 @@ export function arriveReports(context: ArrivalContext) {
   const arrivedBy = new Map<string, ReferenceLine>()
   const arrivedHours = new Map<string, Hour[]>()
   const arrivalsOnly = new Set<string>()
-  const waiting = [...context.reports]
+  const homeless = context.returns.filter(({ dueOn }) => !days.has(dueOn))
+  const waiting = [...context.reports, ...homeless]
   while (waiting.length > 0) {
     const ready = waiting.findIndex(
-      (report) => !waiting.some((other) => other.targetOn === report.dueOn),
+      (report) =>
+        !waiting.some((other) => other.targetOn === report.dueOn && other.dueOn !== report.dueOn),
     )
     const [report] = waiting.splice(Math.max(0, ready), 1)
     const { dueOn, targetOn } = report!
