@@ -5,6 +5,7 @@ import {
 } from '@capacitor-community/sqlite'
 import type { DbClient, SqlParam } from './db-client'
 import { DATABASE_VERSION, migrations } from './migrations'
+import { repairSyncStateRow } from './sync-state-row'
 import { prepareWebSqlite } from './web-sqlite'
 
 export const DATABASE_NAME = 'memopatte'
@@ -30,7 +31,9 @@ async function openDatabase(): Promise<DbClient> {
   // poignée native orpheline sur Android.
   if ((await connection.isDBOpen()).result !== true) await connection.open()
   await connection.execute('PRAGMA foreign_keys = ON;')
-  return toDbClient(connection)
+  const db = toDbClient(connection)
+  await repairSyncStateRow(db)
+  return db
 }
 
 /**
