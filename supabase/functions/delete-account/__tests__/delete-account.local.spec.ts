@@ -1,6 +1,6 @@
 // @vitest-environment node
 // Contre une pile Supabase locale jetable (`supabase start`), jamais le vrai projet :
-// SUPABASE_LOCAL_URL=http://127.0.0.1:54321 SUPABASE_LOCAL_ANON_KEY=… SUPABASE_LOCAL_SERVICE_ROLE_KEY=… pnpm exec vitest run supabase/functions/delete-account
+// SUPABASE_LOCAL_URL=http://127.0.0.1:54321 SUPABASE_LOCAL_ANON_KEY=… SUPABASE_LOCAL_SECRET_KEY=… pnpm exec vitest run supabase/functions/delete-account
 // Le mode admin demande en plus SUPABASE_LOCAL_ADMIN_SECRET, égal à l'ADMIN_DELETE_SECRET du runtime local.
 import { randomUUID } from 'node:crypto'
 
@@ -9,7 +9,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 
 const url = process.env.SUPABASE_LOCAL_URL
 const anonKey = process.env.SUPABASE_LOCAL_ANON_KEY ?? ''
-const serviceKey = process.env.SUPABASE_LOCAL_SERVICE_ROLE_KEY ?? ''
+const secretKey = process.env.SUPABASE_LOCAL_SECRET_KEY ?? ''
 const adminSecret = process.env.SUPABASE_LOCAL_ADMIN_SECRET
 
 const ACCOUNT_TABLES = [
@@ -142,7 +142,7 @@ describe.skipIf(url === undefined)('delete-account sur une pile Supabase locale'
     if (host !== '127.0.0.1' && host !== 'localhost') {
       throw new Error(`Pile locale seulement, refusé : ${host}`)
     }
-    admin = createClient(url!, serviceKey, options)
+    admin = createClient(url!, secretKey, options)
     sophie = await createAccount()
     other = await createAccount()
   })

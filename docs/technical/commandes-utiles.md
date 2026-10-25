@@ -352,7 +352,7 @@ Tout se vérifie sur une pile locale jetable, jamais sur le vrai projet :
 pnpm dlx supabase@2.119.0 start -x studio,logflare,vector,realtime,imgproxy,mailpit,postgres-meta,supavisor
 pnpm dlx supabase@2.119.0 db reset          # rejoue toutes les migrations sur une base vide
 pnpm dlx supabase@2.119.0 test db           # tests pgTAP de supabase/tests/database/
-SUPABASE_LOCAL_URL=http://127.0.0.1:54321 SUPABASE_LOCAL_ANON_KEY=… SUPABASE_LOCAL_SERVICE_ROLE_KEY=… \
+SUPABASE_LOCAL_URL=http://127.0.0.1:54321 SUPABASE_LOCAL_ANON_KEY=… SUPABASE_LOCAL_SECRET_KEY=… \
   pnpm exec vitest run supabase/functions/delete-account
 pnpm dlx supabase@2.119.0 stop --no-backup  # aucun conteneur ne doit rester
 ```

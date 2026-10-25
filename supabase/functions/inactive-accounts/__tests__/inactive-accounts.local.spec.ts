@@ -1,6 +1,6 @@
 // @vitest-environment node
 // Contre une pile Supabase locale jetable (`supabase start`), jamais le vrai projet :
-// SUPABASE_LOCAL_URL=http://127.0.0.1:54321 SUPABASE_LOCAL_ANON_KEY=… SUPABASE_LOCAL_SERVICE_ROLE_KEY=… pnpm exec vitest run supabase/functions/inactive-accounts
+// SUPABASE_LOCAL_URL=http://127.0.0.1:54321 SUPABASE_LOCAL_ANON_KEY=… SUPABASE_LOCAL_SECRET_KEY=… pnpm exec vitest run supabase/functions/inactive-accounts
 // L'appel de la fonction demande en plus SUPABASE_LOCAL_CRON_SECRET, égal à l'INACTIVE_ACCOUNTS_CRON_SECRET du runtime local.
 import { randomUUID } from 'node:crypto'
 
@@ -13,7 +13,7 @@ import { purgeStepsOf, type AccountDates, type PurgeNotice } from '../purge-cale
 
 const url = process.env.SUPABASE_LOCAL_URL
 const anonKey = process.env.SUPABASE_LOCAL_ANON_KEY ?? ''
-const serviceKey = process.env.SUPABASE_LOCAL_SERVICE_ROLE_KEY ?? ''
+const secretKey = process.env.SUPABASE_LOCAL_SECRET_KEY ?? ''
 const cronSecret = process.env.SUPABASE_LOCAL_CRON_SECRET
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -70,7 +70,7 @@ describe.skipIf(url === undefined)('inactive-accounts sur une pile Supabase loca
   }
 
   beforeAll(() => {
-    admin = createClient(url!, serviceKey, {
+    admin = createClient(url!, secretKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     })
   })
