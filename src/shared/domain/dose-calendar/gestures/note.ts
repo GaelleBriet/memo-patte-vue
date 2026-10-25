@@ -1,4 +1,4 @@
-import { hoursOf, keyOf, plusDays } from '../grid'
+import { hoursOf, plusDays } from '../grid'
 import { isMoreRecent, isTaken } from '../lines'
 import { episodeIdsOf } from '../settings'
 import type {
@@ -12,8 +12,9 @@ import type {
   TreatmentViewInput,
 } from '../types'
 import { buildView, type TreatmentView } from '../view'
-import { shiftOfDay, shiftWritten, written } from './changes'
-import { linesAfter, lostToEnd, movedAlone, outcome, shiftDayOf, withFollowed } from './outcome'
+import { shiftWritten, written } from './changes'
+import { lostToEnd, outcome, shiftDayOf, withFollowed } from './outcome'
+import { offersShiftFor } from './shift-offer'
 
 export type NoteGesture = Omit<Extract<Gesture, { kind: 'note' }>, 'kind'>
 
@@ -43,23 +44,6 @@ export function dueForDate(
   const ahead = fallen.find(({ due, state }) => due.dueOn > givenOn && state === 'pending')
   if (ahead !== undefined) return ahead.due
   return view.upcoming({ from: plusDays(input.today, 1) }).find(matches) ?? null
-}
-
-/**
- * R6 : la case est proposée quand la prise change la date de la dose du moment, à la dernière heure de
- * sa journée, et qu'aucune prise ni aucun décalage n'existe plus loin dans le traitement ; jamais pour
- * une dose déplacée seule (Q2 c).
- */
-function offersShift(input: TreatmentViewInput, view: TreatmentView, due: Due, givenOn: Day) {
-  if (givenOn === due.dueOn || movedAlone(view, input.lines, due.dueOn)) return false
-  const key = keyOf(due.dueOn, due.dueTime)
-  const sameKey = (other: Due) => keyOf(other.dueOn, other.dueTime) === key
-  if (!view.currentDoses.some(sameKey)) return false
-  const sameDay = view.slots(due.dueOn, due.dueOn).filter(({ state }) => state === 'pending')
-  if (sameDay.some(({ due: other }) => !sameKey(other))) return false
-  const own = shiftOfDay(input.lines, shiftDayOf(view, due))
-  const later = linesAfter(input, due, new Set(own === undefined ? [] : [own.id]))
-  return later.notes.length === 0 && !later.others.some(({ status }) => status === 'shift')
 }
 
 // R5 : sans réponse (anciens exports, campagnes), la règle d'avant Q27 : en plus à une
@@ -130,7 +114,7 @@ export function noteDose(input: TreatmentViewInput, gesture: NoteGesture): Gestu
       targetOn: null,
     }),
   ]
-  const offered = status === 'given' && offersShift(input, view, due, givenOn)
+  const offered = status === 'given' && offersShiftFor(input, due, givenOn)
   if (!offered || !shiftsFollowing) return outcome(input, notes, { offersShift: offered })
   const shifted = [
     ...notes,

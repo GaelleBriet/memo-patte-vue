@@ -7,13 +7,12 @@ import type {
   LineChange,
   TreatmentViewInput,
 } from '../types'
-import { keyOf } from '../grid'
-import { episodeIdsOf } from '../settings'
 import { buildView } from '../view'
 import { shiftOfDay, shiftWritten, without } from './changes'
 import { doseLines } from './dose-lines'
 import { checkPast, dueForDate, noteDose } from './note'
-import { linesAfter, lostToEnd, movedAlone, outcome, shiftDayOf, withFollowed } from './outcome'
+import { lostToEnd, outcome, shiftDayOf, withFollowed } from './outcome'
+import { offersShiftFor } from './shift-offer'
 
 export type RedateGesture = Omit<Extract<Gesture, { kind: 'redate' }>, 'kind'>
 
@@ -115,24 +114,14 @@ function redateGiven(input: TreatmentViewInput, line: Line, gesture: RedateGestu
   if (boundary !== null && givenOn < boundary) {
     return { refusal: { reason: 'too-early', earliest: boundary } }
   }
-  const ignored = new Set([line.id, ...(own === undefined ? [] : [own.id])])
-  const later = linesAfter(input, line, ignored)
-  const blocked = later.notes.length > 0 || later.others.some(({ status }) => status === 'shift')
-  const dayDone = view
-    .slots(line.dueOn, line.dueOn)
-    .every(({ due: other, state }) => state !== 'pending' || other.dueTime === line.dueTime)
-  const closed =
-    view.phase === 'stopped' ||
-    !episodeIdsOf(input.settings, line.settingId).has(view.currentSetting?.id ?? '')
-  const alone = movedAlone(view, input.lines, line.dueOn)
-  // R6, Q38 : jamais quand, au jour de la nouvelle date, la dose est déjà une dose non renseignée.
-  const unlogged = buildView({
-    ...without(input, [...ignored]),
-    today: givenOn,
-  }).unloggedDoses.some(
-    (other) => keyOf(other.dueOn, other.dueTime) === keyOf(due.dueOn, due.dueTime),
+  // N2 : seul le décalage ancré à la date de la prise la suit ; un autre décalage de la journée reste.
+  const owned = own !== undefined && own.targetOn === line.givenOn ? own : undefined
+  const offered = offersShiftFor(
+    without(input, [line.id, ...(owned === undefined ? [] : [owned.id])]),
+    due,
+    givenOn,
+    owned !== undefined,
   )
-  const offered = givenOn !== line.dueOn && !unlogged && !blocked && dayDone && !closed && !alone
   const prise: LineChange = {
     action: 'rewrite',
     id: line.id,
@@ -140,8 +129,6 @@ function redateGiven(input: TreatmentViewInput, line: Line, gesture: RedateGestu
   }
   // G18 : le décalage d'une dose avancée est celui de son report, ancré à son jour d'arrivée.
   const reportAnchor = shiftDay === line.dueOn ? null : line.dueOn
-  // N2 : seul le décalage ancré à la date de la prise la suit ; un autre décalage de la journée reste.
-  const owned = own !== undefined && own.targetOn === line.givenOn ? own : undefined
   const changesFor = (checked: boolean): LineChange[] => {
     if (offered && checked)
       return [prise, shiftWritten(input.lines, { ...due, dueOn: shiftDay }, givenOn)]

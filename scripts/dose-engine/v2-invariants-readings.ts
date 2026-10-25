@@ -8,7 +8,6 @@ import {
   type Day,
   type Due,
   type Line,
-  type TreatmentView,
   type TreatmentViewInput,
 } from '@/shared/domain/dose-calendar'
 import { shiftDayOf } from '@/shared/domain/dose-calendar/gestures/outcome'
@@ -119,21 +118,6 @@ function bothWays(
   return { direct, afterTap, redated }
 }
 
-// Résidus #1242 et #1255, jugés case décochée.
-function isKnownResidual(
-  input: TreatmentViewInput,
-  view: TreatmentView,
-  due: Due,
-  shiftDay: Day,
-  { direct, redated }: Played,
-): boolean {
-  if ('refusal' in direct || 'refusal' in redated) return false
-  const current = view.currentDoses.some((other) => dueKey(other) === dueKey(due))
-  if (!current && redated.offersShift && !direct.offersShift) return true
-  const shifted = input.lines.some(({ status, dueOn }) => status === 'shift' && dueOn === shiftDay)
-  return shifted && direct.offersShift && !redated.offersShift
-}
-
 function symmetryOf(input: TreatmentViewInput, due: Due, random: Random): Broken | null {
   const view = treatmentView(input)
   // Exemption (ecarts-acceptes.md) : un décalage ancré au jour du tap part avec la prise corrigée.
@@ -144,12 +128,8 @@ function symmetryOf(input: TreatmentViewInput, due: Due, random: Random): Broken
   const givenOn = plusDays(input.today, -int(random, 0, 6))
   const boundary = view.earliestGivenOn(due)
   if (boundary !== null && givenOn < boundary) return null
-  let checked = random() < 0.65
-  let played = bothWays(input, due, givenOn, checked)
-  if (played !== null && checked && isKnownResidual(input, view, due, shiftDay, played)) {
-    checked = false
-    played = bothWays(input, due, givenOn, checked)
-  }
+  const checked = random() < 0.65
+  const played = bothWays(input, due, givenOn, checked)
   if (played === null) return null
   const { direct, afterTap, redated } = played
   const label = `symétrie (${dueKey(due)} le ${givenOn}, case ${checked ? 'cochée' : 'décochée'})`
