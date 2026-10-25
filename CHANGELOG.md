@@ -5,6 +5,26 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.120](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.119...memo-patte-v0.1.120) (2026-10-25)
+
+
+### ✨ Fonctionnalités
+
+* **restauration:** « plus tard » ne vaut que pour la journée locale ([10ab312](https://github.com/GaelleBriet/memo-patte-vue/commit/10ab31263957399349193b0b1f78de7a666b02c1)), closes [#1298](https://github.com/GaelleBriet/memo-patte-vue/issues/1298)
+* **restauration:** « Plus tard » pour la journée et bloc « Restauration en attente » ([#1298](https://github.com/GaelleBriet/memo-patte-vue/issues/1298)) ([02debd5](https://github.com/GaelleBriet/memo-patte-vue/commit/02debd5851eb6deb7de69c4f32528a5cef6acfa3))
+* **sauvegarde:** bloc « restauration en attente » quand un choix attend ([6fcaddd](https://github.com/GaelleBriet/memo-patte-vue/commit/6fcaddd1c64123b667404f76a705b6ff7fb4a486)), closes [#1298](https://github.com/GaelleBriet/memo-patte-vue/issues/1298)
+* **sauvegarde:** choix en attente, l'écran ne garde que copie et effacement ([9595bc8](https://github.com/GaelleBriet/memo-patte-vue/commit/9595bc8eea8ed3137960a14107f3b6e76918a54b)), closes [#1298](https://github.com/GaelleBriet/memo-patte-vue/issues/1298)
+
+
+### 🐛 Corrections
+
+* **restauration:** une feuille à rouvrir sur l'accueil passe avant l'écran ([7748117](https://github.com/GaelleBriet/memo-patte-vue/commit/774811720591191d48b76a1bb49ed4bc86af7efb)), closes [#1298](https://github.com/GaelleBriet/memo-patte-vue/issues/1298)
+* **sync:** choix reproposé ouvert à la prochaine arrivée sur l'accueil seulement ([db589ff](https://github.com/GaelleBriet/memo-patte-vue/commit/db589ffd9d692672043d389f1fad85bd93db23d1)), closes [#1293](https://github.com/GaelleBriet/memo-patte-vue/issues/1293)
+* **sync:** garder l'empreinte du choix en mémoire si le stockage refuse d'écrire ([8be9a53](https://github.com/GaelleBriet/memo-patte-vue/commit/8be9a531d8a32eb79a5c22628f9c00bdd4f1b7e9)), closes [#1293](https://github.com/GaelleBriet/memo-patte-vue/issues/1293)
+* **sync:** l'empreinte du carnet compte aussi la somme des dates de modification ([c91407a](https://github.com/GaelleBriet/memo-patte-vue/commit/c91407a5e8a54e0eebe4e6db1a0e5e0a47904c77)), closes [#1293](https://github.com/GaelleBriet/memo-patte-vue/issues/1293)
+* **sync:** ne pas remplacer un carnet modifié depuis le choix « remplacer » ([#1293](https://github.com/GaelleBriet/memo-patte-vue/issues/1293)) ([6bdc0c2](https://github.com/GaelleBriet/memo-patte-vue/commit/6bdc0c2595a492b787c5052dac2d4c08b472f334))
+* **sync:** rouvrir « restaurer mon carnet » à l'accueil quand le choix est reproposé ([3469071](https://github.com/GaelleBriet/memo-patte-vue/commit/346907106e1ac0291a3bb77f05c629d2db307b26)), closes [#1293](https://github.com/GaelleBriet/memo-patte-vue/issues/1293)
+
 ## [0.1.119](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.118...memo-patte-v0.1.119) (2026-10-25)
 
 
