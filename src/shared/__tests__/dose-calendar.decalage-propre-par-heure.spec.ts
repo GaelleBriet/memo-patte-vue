@@ -103,14 +103,20 @@ describe('le décalage d’une journée appartient à la prise de son heure (R6,
     ])
   })
 
-  for (const to of ['2026-03-09', '2026-03-06']) {
-    it(`Luna, le 10 : la prise de 8 h du 8 changée au ${to.slice(8)}, case décochée : le décalage de la prise de 20 h reste au 8, la suite aux 11, 14, 17`, () => {
+  for (const [to, checked] of [
+    ['2026-03-09', true],
+    ['2026-03-09', false],
+    ['2026-03-06', true],
+    ['2026-03-06', false],
+  ] as const) {
+    it(`Luna, le 10 : la prise de 8 h du 8 changée au ${to.slice(8)}, case ${checked ? 'cochée' : 'décochée'} : pas de case, le décalage de la prise de 20 h reste au 8, la suite aux 11, 14, 17 (Q48)`, () => {
       const { carnet, at8, at20 } = luna()
       const le10 = { ...carnet, today: '2026-03-10' }
       const prise = priseOf(le10, at8)
       const result = accepted(
-        play(le10, { kind: 'redate', lineId: prise.id, givenOn: to, shiftsFollowing: false }),
+        play(le10, { kind: 'redate', lineId: prise.id, givenOn: to, shiftsFollowing: checked }),
       )
+      expect(result.offersShift).toBe(false)
       const after = applied(le10, result.changes)
       expect(shifts(after)).toEqual(['2026-03-07 20:00 → 2026-03-08'])
       expect(priseOf(after, at20).givenOn).toBe('2026-03-08')
@@ -119,23 +125,55 @@ describe('le décalage d’une journée appartient à la prise de son heure (R6,
     })
   }
 
-  it('hebdomadaire : les doses du 20 octobre données le 21 ; le 23, la prise de 8 h changée au 22, case décochée : le décalage de la prise de 20 h reste au 21, la suite au 28', () => {
-    const { carnet, at8, at20 } = weekly()
+  it('Luna, le 10 : « Fait à une autre date » au 9 pour 8 h du 7, prise de 20 h et son décalage gardés : pas de case, la suite aux 11, 14, 17 (Q48)', () => {
+    const { carnet, at8 } = luna()
+    const le10 = { ...carnet, today: '2026-03-10' }
+    const sans8 = { ...le10, lines: le10.lines.filter(({ id }) => id !== priseOf(le10, at8).id) }
+    const result = accepted(play(sans8, given(at8, '2026-03-09', true)))
+    expect(result.offersShift).toBe(false)
+    const after = applied(sans8, result.changes)
+    expect(shifts(after)).toEqual(['2026-03-07 20:00 → 2026-03-08'])
+    expect(nextDays(after)).toEqual(['2026-03-11', '2026-03-14', '2026-03-17'])
+  })
+
+  for (const checked of [true, false]) {
+    it(`hebdomadaire : les doses du 20 octobre données le 21 ; le 23, la prise de 8 h changée au 22, case ${checked ? 'cochée' : 'décochée'} : pas de case, le décalage de la prise de 20 h reste au 21, la suite au 28 (Q48)`, () => {
+      const { carnet, at8, at20 } = weekly()
+      const le23 = { ...carnet, today: '2026-10-23' }
+      expect(nextDays(le23)[0]).toBe('2026-10-28')
+      const prise = priseOf(le23, at8)
+      const result = accepted(
+        play(le23, {
+          kind: 'redate',
+          lineId: prise.id,
+          givenOn: '2026-10-22',
+          shiftsFollowing: checked,
+        }),
+      )
+      expect(result.offersShift).toBe(false)
+      const after = applied(le23, result.changes)
+      expect(shifts(after)).toEqual(['2026-10-20 20:00 → 2026-10-21'])
+      expect(priseOf(after, at20).givenOn).toBe('2026-10-21')
+      expect(nextDays(after).slice(0, 2)).toEqual(['2026-10-28', '2026-11-04'])
+    })
+  }
+
+  it('hebdomadaire, le 23 octobre : la prise de 20 h du 21 changée au 22, case cochée : le décalage la suit, suite au 29', () => {
+    const { carnet, at20 } = weekly()
     const le23 = { ...carnet, today: '2026-10-23' }
-    expect(nextDays(le23)[0]).toBe('2026-10-28')
-    const prise = priseOf(le23, at8)
+    const prise = priseOf(le23, at20)
     const result = accepted(
       play(le23, {
         kind: 'redate',
         lineId: prise.id,
         givenOn: '2026-10-22',
-        shiftsFollowing: false,
+        shiftsFollowing: true,
       }),
     )
+    expect(result.offersShift).toBe(true)
     const after = applied(le23, result.changes)
-    expect(shifts(after)).toEqual(['2026-10-20 20:00 → 2026-10-21'])
-    expect(priseOf(after, at20).givenOn).toBe('2026-10-21')
-    expect(nextDays(after).slice(0, 2)).toEqual(['2026-10-28', '2026-11-04'])
+    expect(shifts(after)).toEqual(['2026-10-20 20:00 → 2026-10-22'])
+    expect(nextDays(after)[0]).toBe('2026-10-29')
   })
 
   it('Luna, le 10 : la prise de 20 h du 8 changée au 9, case cochée : le décalage la suit, suite aux 12, 15', () => {

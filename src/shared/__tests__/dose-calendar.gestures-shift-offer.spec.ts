@@ -346,6 +346,38 @@ describe('la case à deux heures, quand les heures d’une journée partagent un
     })
   })
 
+  it.each([
+    ['au 9', '2026-03-09'],
+    ['au 6', '2026-03-06'],
+  ])(
+    'Luna, le 10 : 20 h du 7 donnée le 8 avec la case, 8 h %s : jamais proposée, même calendrier (Q48)',
+    (_, givenOn) => {
+      const lines = [
+        ...early,
+        taken('2026-03-07', '20:00', '2026-03-08'),
+        line('s1', 'shift', '2026-03-07', '20:00', '2026-03-08'),
+      ]
+      expect(bothWays(carnet(lines, '2026-03-10'), at('2026-03-07', '08:00'), givenOn)).toEqual({
+        offers: [false, false],
+        sameCalendar: true,
+      })
+    },
+  )
+
+  it('hebdomadaire, le 23 octobre : 20 h du 20 donnée le 21 avec la case, 8 h au 22 : jamais proposée, même calendrier (Q48)', () => {
+    const lines = [
+      taken('2026-10-06', '08:00'),
+      taken('2026-10-06', '20:00'),
+      taken('2026-10-13', '08:00'),
+      taken('2026-10-13', '20:00'),
+      taken('2026-10-20', '20:00', '2026-10-21'),
+      line('s1', 'shift', '2026-10-20', '20:00', '2026-10-21'),
+    ]
+    expect(
+      bothWays(carnet(lines, '2026-10-23', hebdo), at('2026-10-20', '08:00'), '2026-10-22'),
+    ).toEqual({ offers: [false, false], sameCalendar: true })
+  })
+
   it('hebdomadaire, le 23 octobre : 8 h du 20 donnée le 21, 20 h au 22 : proposée des deux côtés, même calendrier', () => {
     const lines = [
       taken('2026-10-06', '08:00'),
