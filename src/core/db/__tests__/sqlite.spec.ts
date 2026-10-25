@@ -40,6 +40,9 @@ function fakeConnection() {
     open: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
     isDBOpen: vi.fn<() => Promise<{ result?: boolean }>>().mockResolvedValue({ result: false }),
     execute: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    run: vi
+      .fn<(sql: string) => Promise<{ changes: { changes: number } }>>()
+      .mockResolvedValue({ changes: { changes: 0 } }),
   }
 }
 
@@ -105,6 +108,22 @@ describe('getDb', () => {
 
     expect(first).toBe(second)
     expect(plugin.createConnection).toHaveBeenCalledTimes(1)
+  })
+
+  it('repose la ligne unique de sync_state après l’ouverture', async () => {
+    const connection = fakeConnection()
+    plugin.createConnection.mockResolvedValue(connection)
+    const { getDb } = await importSqlite()
+
+    await getDb()
+
+    expect(connection.run).toHaveBeenCalledExactlyOnceWith(
+      'INSERT OR IGNORE INTO sync_state (id) VALUES (1)',
+      [],
+    )
+    expect(connection.open.mock.invocationCallOrder[0]).toBeLessThan(
+      connection.run.mock.invocationCallOrder[0]!,
+    )
   })
 
   it('ne met pas en cache une ouverture échouée et réessaie à l’appel suivant', async () => {

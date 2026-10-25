@@ -87,6 +87,9 @@ function fakeConnection() {
     open: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
     isDBOpen: vi.fn<() => Promise<{ result?: boolean }>>().mockResolvedValue({ result: false }),
     execute: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    run: vi.fn<() => Promise<{ changes: { changes: number } }>>().mockResolvedValue({
+      changes: { changes: 0 },
+    }),
   }
 }
 

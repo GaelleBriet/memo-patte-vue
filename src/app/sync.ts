@@ -8,6 +8,7 @@ import { isNetworkConnected, onNetworkOnline } from '@/core/sync/service/network
 import type { LocalSyncOutbox } from '@/core/sync/service/local-sync-outbox'
 import type { RestorableTable } from '@/core/sync/service/account-restore'
 import { providePhotoRestoreStatus } from '@/core/sync/service/photo-restore-status'
+import { installRestoreRetry } from '@/core/sync/service/restore-retry'
 import {
   createRestoreFlow,
   provideRestoreFlow,
@@ -42,6 +43,7 @@ export interface SyncDependencies {
   checkAccountBackup: () => Promise<AccountBackupCheck>
   restoreFlow: Pick<
     RestoreFlow,
+    | 'state'
     | 'checking'
     | 'noAnswer'
     | 'onRetryCheck'
@@ -62,8 +64,9 @@ export interface SyncDependencies {
  * dernière sauvegarde.
  * Un compte qui en remplace un autre repart, comme une première connexion, du contrôle de sa
  * sauvegarde, fait une fois par lancement et par compte dès que sa session est active. Une
- * restauration choisie reprend seule au lancement, au retour au premier plan et du réseau, comme un
- * contrôle que le serveur n'a pas pu faire. Les photos du carnet viennent ensuite, sans rien
+ * restauration choisie reprend seule au lancement, au retour au premier plan et du réseau, et à
+ * chaque palier de recul tant que l'écran attend le réseau, comme un contrôle que le serveur n'a pas
+ * pu faire. Les photos du carnet viennent ensuite, sans rien
  * retenir : à la fin d'une restauration, puis à chaque lancement d'un carnet déjà lié au compte.
  */
 export async function installSync(deps: SyncDependencies): Promise<() => void> {
@@ -133,6 +136,13 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
     checkedFor = null
     checkOnce()
   })
+  const stopRestoreRetry = installRestoreRetry({
+    state: deps.restoreFlow.state,
+    retry: () => {
+      enqueue(runRestore)
+      checkOnce()
+    },
+  })
   const stopResume = onAppResume(onComeback)
   const stopNetwork = onNetworkOnline(onComeback)
   const stopAccountWatch = watch(
@@ -158,6 +168,7 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
   return () => {
     stopRestored()
     stopRetry()
+    stopRestoreRetry()
     stopResume()
     stopNetwork()
     stopAccountWatch()
