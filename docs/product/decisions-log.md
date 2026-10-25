@@ -2976,6 +2976,34 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
+## 2026-10-25 — « Plus tard » vaut pour la journée, et « Restauration en attente » dans Paramètres › Sauvegarde (#1298, Q53)
+
+Décision Q53 de la session d'analyse, sous délégation de Gaelle. Cas : le 25 octobre, la sauvegarde
+cloud de Milo et Luna est trouvée après la connexion ; « Restaurer mon carnet » est quitté sans
+choisir. Android garde l'app vivante plusieurs jours : l'écran ne revenait qu'au prochain lancement
+à froid, que personne ne provoque, et le carnet restait sans sauvegarde cloud.
+
+- Décision : quitter l'écran sans choisir ne vaut que pour la journée, jour du téléphone (pas
+  l'heure UTC). Le 26 octobre, à la première arrivée sur l'accueil, l'écran se rouvre, une seule
+  fois dans la journée. Comme pour #1293, seule une vraie arrivée sur l'accueil le rouvre, jamais une
+  feuille ou une saisie en cours. Le jour compté est celui où l'écran est quitté : ouvert à 23 h 50
+  et quitté à 0 h 10, il ne revient que le lendemain.
+- Décision : Paramètres › Sauvegarde affiche en tête un bloc de la famille de « Reconnecte-toi pour
+  reprendre la sauvegarde » (planche V21 ter : ton d'alerte, titre, phrase, bouton), seulement quand
+  un choix de restauration est en attente (après « Plus tard », ou un « Remplacer » abandonné parce
+  que le carnet du téléphone a changé) : « Restauration en attente » · « Ta sauvegarde cloud attend
+  ton choix : fusionner avec le carnet de ce téléphone, ou le remplacer. » · « Choisir » (EN :
+  « Restore pending » · « Your cloud backup is waiting for your choice: merge with the health record
+  on this phone, or replace it. » · « Choose »). « Choisir » ouvre « Restaurer mon carnet », dont le
+  retour ramène à Paramètres › Sauvegarde. Le bloc disparaît dès que le choix est fait ; il ne
+  s'affiche ni pendant le contrôle de la sauvegarde, ni pendant la restauration, ni en attente de
+  réseau, ni hors compte.
+- Choix de cohérence de l'implémentation : l'icône du bloc est celle de la restauration en cours
+  sur « Restaurer mon carnet » (nuage avec flèche vers le bas), et le bouton reprend le style de
+  « Se reconnecter », sans icône.
+- Pour revenir dessus : la journée se juge dans `app/restore-prompt.ts` ; le bloc vit dans
+  `use-restore-pending.ts` et `BackupSettingsView.vue`.
+
 ## 2026-10-25 — « Remplacer » différé : rien n'est effacé si le carnet du téléphone a changé depuis le choix (#1293)
 
 Décision de Gaelle (« oui d'accord »). Cas : le 25 octobre, après la connexion, « Remplacer » est
