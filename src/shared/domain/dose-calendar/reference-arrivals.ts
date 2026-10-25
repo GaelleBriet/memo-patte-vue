@@ -1,5 +1,5 @@
 import { writtenBefore, type coverages, type Journey } from './reference-days'
-import { hoursOf, keyOf, sameFrequency, sameHours } from './reference-grid'
+import { hoursOf, isOnGrid, keyOf, sameFrequency, sameHours } from './reference-grid'
 import { arrivedOn, chosenDateOf, hoursChangedSince, reportOutcome } from './reference-reports'
 import { chooserOf, staleBeforeChosenDate, takenByRank, wholeDayOf } from './reference-ranks'
 import { rewrittenDeparture, type RewriteContext } from './reference-rewrite'
@@ -149,8 +149,15 @@ export function arriveReports(context: ArrivalContext) {
     if (chosenOn !== undefined && outside) continue
     const written = settingOf(report!.settingId)
     const arrived = arrivedHours.get(dueOn) ?? []
-    // R7 (#1258) : faite des seules doses arrivées, la journée du report n'a que celles-là.
-    const arrivedOnly = arrivalsOnly.has(dueOn) && !left.has(dueOn) && arrived.length > 0
+    // R7 (#1258) : faite des seules doses arrivées, ici ou sur la grille du réglage du report, la
+    // journée du report n'a que celles-là, sauf quand un réglage y cède ses doses.
+    const ceding = arrivalsOnly.has(dueOn) && left.has(dueOn)
+    const offItsGrid = !isOnGrid(
+      written.gridOriginOn ?? written.firstDueOn,
+      written.frequency,
+      dueOn,
+    )
+    const arrivedOnly = !ceding && arrived.length > 0 && (arrivalsOnly.has(dueOn) || offItsGrid)
     const itsDay = {
       setting: written,
       hours: [...new Set([...(arrivedOnly ? [] : hoursOf(written)), ...arrived])].sort(),

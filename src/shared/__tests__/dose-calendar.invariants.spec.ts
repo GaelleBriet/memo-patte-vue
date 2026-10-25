@@ -131,6 +131,15 @@ describe('campagne d’invariants du moteur v2', () => {
     expect(playCampaign({ from: 630_000_745, seeds: 1, steps: 30 }).failures).toEqual([])
   })
 
+  // Trou connu #1258 : le report du 6 est écrit sous un réglage dont la grille, tournée par un décalage,
+  // passe le 6 ; une heure ajoutée fait apparaître une dose sans heure le 7.
+  it.fails(
+    'graine 600000926 : une heure ajoutée ne change pas l’arrivée d’un report sans heure',
+    () => {
+      expect(playCampaign({ from: 600_000_926, seeds: 1, steps: 30 }).failures).toEqual([])
+    },
+  )
+
   it.each([
     ['INVARIANTS_SEEDS', 'mille'],
     ['INVARIANTS_FROM', '-3'],
