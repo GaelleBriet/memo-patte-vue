@@ -4150,6 +4150,22 @@ cas (graine 730002161 : dose sans heure du 13 mars, date choisie, avancée au 3 
 son geste sans effet (R11). — Alternative écartée : refuser le geste. — Pour revenir dessus :
 `homeBeforeChosen` (`gestures/moved-report.ts`).
 
+2026-10-25 — **La dose avancée avant la date choisie garde son jour d'origine ; un report revient
+toujours à son jour d'origine** (#1283, spec `traitements.md` G13, G6 ; Q59 de la session d'analyse du
+moteur, à qui Gaelle a délégué les lectures de règles ; remplace Q57, qui permettait le 12 alors qu'en
+quotidien un jour vaut un intervalle). Milo de #1283, 8 h du 13 avancée au 11 sans la case : « Prochaine
+dose » sur la dose du 11, sans la case, ne permet que le retour au 13, qui annule le geste ; le 12 reste
+refusé (G6) ; avec la case, le 13 et après ; « Supprimer » le report remet le 13. Le refus « aucune date
+possible seule » ne vaut plus pour un report dont le jour d'origine est la seule date : il peut y
+revenir (esprit de Q55), pour tout report. Le 12 portant 8 h et 20 h reportées, 20 h seule ramenée au 11
+est refusée (« Supprime d'abord le report du 11 avr. », Q51 : le report ne se coupe pas). Un report plus
+ancien que la date choisie, qui ne porte pas sa dose, ne la prend pas en revenant à son jour d'origine
+(graine 733002387 : le 3 avril ramené au 4, le 8 garde sa dose, comme sur `main`). Sur 4 000 carnets
+(graines 733000000 à 733003999, 11 055 déplacements), 55 carnets changent, tous par un retour au jour
+d'origine devenu permis là où il était refusé. — Raison : un refus sans date possible laissait la
+personne sans moyen d'annuler son geste. — Alternative écartée : permettre le 12 (exception à G6). —
+Pour revenir dessus : `no-date-alone` dans `planOf` (`gestures/move.ts`) et `homeBeforeChosen`.
+
 ## 2026-10-24 — Un report redéplacé depuis une date choisie, hors de sa grille, est sans effet (#1231, Q39)
 
 Décision de la session d'analyse du moteur, à qui Gaelle a délégué les lectures de règles (Q26, Q39
