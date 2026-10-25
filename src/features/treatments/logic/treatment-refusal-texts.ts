@@ -10,6 +10,7 @@ const KEYS = {
   'arrival-logged': 'treatments.form.nextDoseOn.refusal.arrivalLogged',
   'report-loop': 'treatments.history.refusal.shiftMovePastNext',
   'report-past-next': 'treatments.history.refusal.shiftMovePastNext',
+  'arrival-shared': 'treatments.history.refusal.shiftMovePastNext',
 } as const
 
 /** Le texte existant de chaque refus du moteur ; « Cette dose ne peut pas être déplacée. » à défaut. */
@@ -30,6 +31,7 @@ export function refusalText(t: Translate, refusal: Refusal, today: string): stri
     case 'arrival-logged':
     case 'report-loop':
     case 'report-past-next':
+    case 'arrival-shared':
       return t(KEYS[refusal.reason])
     default:
       return t('treatments.form.errors.nextDoseOnRefused')
@@ -37,7 +39,9 @@ export function refusalText(t: Translate, refusal: Refusal, today: string): stri
 }
 
 export function removeMoveRefusalText(t: Translate, refusal: Refusal, today: string): string {
-  return refusal.reason === 'later-line'
-    ? t('treatments.history.refusal.removeMoveLaterLine')
-    : refusalText(t, refusal, today)
+  if (refusal.reason === 'later-line') return t('treatments.history.refusal.removeMoveLaterLine')
+  if (refusal.reason !== 'arrival-shared') return refusalText(t, refusal, today)
+  return t('treatments.history.refusal.shiftMoveOffRhythm', {
+    date: withoutFinalDot(formatDayMonthOrYear(refusal.on, today)),
+  })
 }

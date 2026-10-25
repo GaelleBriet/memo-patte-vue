@@ -8,10 +8,11 @@ import type {
   Refusal,
   TreatmentViewInput,
 } from '../types'
-import { buildView } from '../view'
+import { buildView, type TreatmentView } from '../view'
 import { applied, without } from './changes'
 import { doseLines, shiftsOfDay } from './dose-lines'
 import { harm, linesAfter, livesOn, outcome } from './outcome'
+import { sharedArrival } from './moved-report'
 import { brokenReports } from './reports'
 
 // N8 : la prise de la dose déplacée par le report de la même journée n'est pas une dose plus lointaine.
@@ -64,11 +65,19 @@ function lock(input: TreatmentViewInput, line: Line, effect: LineEffect): Refusa
   return effect.kind === 'moves' && effect.opensRhythm ? { reason: 'not-movable' } : null
 }
 
-function ownRefusal(input: TreatmentViewInput, line: Line, effect: LineEffect): Refusal | null {
+function ownRefusal(
+  input: TreatmentViewInput,
+  view: TreatmentView,
+  line: Line,
+  effect: LineEffect,
+): Refusal | null {
   if (effect.kind === 'idle') return null
   if (line.status === 'postponed') {
     const locked = lock(input, line, effect)
     if (locked !== null || effect.kind !== 'moves') return locked
+    const companions = new Set(reportCompanions(input, line).map(({ id }) => id))
+    const shared = sharedArrival(view, line, companions)
+    if (shared !== undefined) return { reason: 'arrival-shared', on: shared.dueOn }
     return reportRemovalRefusal(input, line)
   }
   return line.status === 'shift' ? shiftRemovalRefusal(input, line) : null
@@ -98,7 +107,7 @@ function removal(input: TreatmentViewInput, lineId: string) {
       : doseLines(input, line)
   const changes = [line, ...companions].map(({ id }): LineChange => ({ action: 'delete', id }))
   const refusal =
-    ownRefusal(input, line, effect) ??
+    ownRefusal(input, before, line, effect) ??
     harm(before, buildView(applied(input, changes)), input.settings, changes)
   return { changes, refusal }
 }

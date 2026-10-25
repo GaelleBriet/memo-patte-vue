@@ -176,6 +176,7 @@ export type Refusal =
   | { reason: 'report-loop' }
   | { reason: 'report-past-next'; on: Day }
   | { reason: 'report-off-rhythm'; on: Day }
+  | { reason: 'arrival-shared'; on: Day }
 
 /** Un report seul que le geste réécrit pour suivre la correction (G19) : arrivée d'avant, d'après. */
 export type FollowedReport = { from: Day; to: Day | null }

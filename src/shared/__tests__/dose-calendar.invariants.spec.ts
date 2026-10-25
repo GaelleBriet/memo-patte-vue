@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { mulberry32 } from '../../../scripts/dose-engine/carnet'
 import { brokenBy } from '../../../scripts/dose-engine/v2-invariants'
+import { noDoseAdded } from '../../../scripts/dose-engine/v2-invariants-count'
 import { movedArrives } from '../../../scripts/dose-engine/v2-invariants-moved'
 import {
   ONE_PHONE_GESTURES,
@@ -39,6 +40,7 @@ type Played = {
   failures: string[]
   /** Informatif tant que #1281, #1282 et #1283 restent ouverts : une graine par carnet. */
   lostMoves: string[]
+  addedDoses: string[]
   byInvariant: Record<string, number>
   refusedCorrections: number
 }
@@ -55,6 +57,7 @@ function playCampaign(
     steps: 0,
     failures: [],
     lostMoves: [],
+    addedDoses: [],
     byInvariant: {},
     refusedCorrections: 0,
   }
@@ -63,12 +66,17 @@ function playCampaign(
     const checks = mulberry32(seed ^ 0x4f1bbcdc)
     let failure: string | null = null
     let lostMove = false
+    let addedDose = false
     const onStep = (step: V2Step) => {
       played.steps += 1
       if (failure !== null) return
       if (!lostMove && movedArrives(step) !== null) {
         lostMove = true
         played.lostMoves.push(`${seed}`)
+      }
+      if (!addedDose && noDoseAdded(step) !== null) {
+        addedDose = true
+        played.addedDoses.push(`${seed}`)
       }
       const broken = brokenBy(step, checks)
       if (broken === null) return
@@ -103,6 +111,8 @@ describe('campagne d’invariants du moteur v2', () => {
           `, « pas à donner » refusé ${played.refusedCorrections} fois` +
           `, dose déplacée absente (informatif) ${played.lostMoves.length}` +
           (played.lostMoves.length === 0 ? '' : ` : graines ${played.lostMoves.join(', ')}`) +
+          `, doses à donner en plus (informatif) ${played.addedDoses.length}` +
+          (played.addedDoses.length === 0 ? '' : ` : graines ${played.addedDoses.join(', ')}`) +
           Object.entries(played.byInvariant)
             .map(([name, count]) => ` ; ${name} ${count}`)
             .join(''),
@@ -166,6 +176,13 @@ describe('campagne d’invariants du moteur v2', () => {
     'graine 670000934 : la première dose d’une date choisie avancée sans la case arrive',
     () => {
       expect(playCampaign({ from: 670_000_934, seeds: 1, steps: 30 }).lostMoves).toEqual([])
+    },
+  )
+
+  it.fails(
+    'graine 690000860 : le report arrivé dans un mensuel à date choisie y garde sa dose (#1284)',
+    () => {
+      expect(playCampaign({ from: 690_000_860, seeds: 1, steps: 30 }).lostMoves).toEqual([])
     },
   )
 

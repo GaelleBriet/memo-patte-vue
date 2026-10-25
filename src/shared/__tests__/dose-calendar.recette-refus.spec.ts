@@ -35,6 +35,10 @@ const TEXTS: Record<Refusal['reason'], string[]> = {
   'report-loop': ['treatments.history.refusal.shiftMovePastNext'],
   'report-past-next': ['treatments.history.refusal.shiftMovePastNext'],
   'report-off-rhythm': ['treatments.history.refusal.shiftMoveOffRhythm'],
+  'arrival-shared': [
+    'treatments.history.refusal.shiftMovePastNext',
+    'treatments.history.refusal.shiftMoveOffRhythm',
+  ],
 }
 
 const locale = (name: string) =>

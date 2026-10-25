@@ -3960,6 +3960,22 @@ seule voyait une dose disparaître (R11). — Alternative écartée : refuser le
 sans elle (refus sans raison visible, la journée ne montrant que deux doses ordinaires). — Pour
 revenir dessus : `arrivalJoinsGridDay` et `followerLines` (`gestures/moved-report.ts`).
 
+2026-10-25 — **Deux reports arrivés le même jour ne se séparent pas ; un report ne se coupe pas**
+(#1274, spec `traitements.md` R7 ; Q51 de la session d'analyse du moteur, à qui Gaelle a délégué les
+lectures de règles ; précise Q50). (1) Un geste qui séparerait deux reports en vigueur arrivés le
+même jour est refusé : « Supprimer » l'un (« Supprime d'abord le report du 4. »), ou changer la date
+de l'un (« Change d'abord la date du report. »). Milo, tous les 3 jours à 8 h et 20 h dès le 1er
+mars ; le 4, 20 h reportée au 6 sans la case, 8 h donnée le 3 avec la case ; le 6, 8 h du 6 déplacée
+au 7 avec la case (le 7 à 8 h et 20 h) : « Supprimer » le report de 8 h est refusé (avant : le 6 à
+8 h et 20 h et le 7 à 20 h) ; 8 h du 6 déplacée au 8 sans la case, puis changée au 7, au 6 ou au 9 :
+refusé (avant : le 8 à 20 h en plus). (2) Le report qui arrive ne suit la journée que s'il n'apporte
+aucune heure plus tôt que l'heure touchée ; sinon le geste est refusé : à 8 h, 14 h et 20 h, 14 h du 4
+reportée au 6 (14 h et 20 h), 20 h du 6 déplacée au 7 est refusé, avec ou sans la case, de même quand
+20 h du 4 était donnée avant le report ; 14 h ou 8 h du 6 restent permis. — Raison : les deux gestes
+faisaient apparaître une dose. — Alternative écartée : relier les reports (les déplacer ou supprimer
+ensemble). — Pour revenir dessus : `sharedArrival` et `arrivalOnGridDay`
+(`gestures/moved-report.ts`), refus `arrival-shared`.
+
 ## 2026-10-24 — Un report redéplacé depuis une date choisie, hors de sa grille, est sans effet (#1231, Q39)
 
 Décision de la session d'analyse du moteur, à qui Gaelle a délégué les lectures de règles (Q26, Q39

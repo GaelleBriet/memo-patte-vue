@@ -16,12 +16,13 @@ import { buildView, type TreatmentView } from '../view'
 import { applied, shiftOfDay, shiftWritten, without, written } from './changes'
 import { linesAfter, livesOn, lostToEnd, outcome } from './outcome'
 import {
-  arrivalJoinsGridDay,
+  arrivalOnGridDay,
   chosenArrivalKept,
   followerLines,
   opensRhythm,
   reportsOf,
   reportToRewrite,
+  sharedArrival,
 } from './moved-report'
 import { strandsNote } from './reports'
 
@@ -123,14 +124,15 @@ function planOf(
   const notedOn = (day: Day) =>
     input.lines.some((line) => isTaken(line) && ids.has(line.settingId) && line.dueOn === day)
   const found = reportToRewrite(input, view, ids, due, notedOn, carried)
-  const follower =
-    found !== undefined && !carried && arrivalJoinsGridDay(input, view, found, due)
-      ? found
-      : undefined
+  const arrival = found === undefined || carried ? null : arrivalOnGridDay(input, view, found, due)
+  if (arrival !== null && 'refusal' in arrival) return arrival.refusal
+  const follower = arrival?.follower
   const existing = follower === undefined ? found : undefined
   if (existing !== undefined && notedOn(existing.targetOn!)) return { reason: 'arrival-logged' }
   // R7, R9.2 : partie de son arrivée, la dose rendrait au jour les heures du nouveau rythme.
   if (existing !== undefined && opensRhythm(view, existing)) return { reason: 'not-movable' }
+  const shared = existing === undefined || carried ? undefined : sharedArrival(view, existing)
+  if (shared !== undefined) return { reason: 'arrival-shared', on: shared.dueOn }
   const locked = reportsOf(view, ids).some((report) => report.targetOn === due.dueOn)
   if (existing === undefined && locked && view.dueState(due) !== 'pending') {
     return { reason: 'arrival-logged' }

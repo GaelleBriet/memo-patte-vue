@@ -1,5 +1,14 @@
 import { chosenAtOf } from '../grid'
-import type { Day, Due, Line, LineChange, LineFields, Setting, TreatmentViewInput } from '../types'
+import type {
+  Day,
+  Due,
+  Line,
+  LineChange,
+  LineFields,
+  Refusal,
+  Setting,
+  TreatmentViewInput,
+} from '../types'
 import { buildView, type TreatmentView } from '../view'
 import { shiftOfDay, without } from './changes'
 
@@ -58,28 +67,59 @@ export function reportToRewrite(
   return leavesTurnedArrival(input, view, found, due) ? undefined : found
 }
 
+/** Q51 : un autre report en vigueur arrivé le même jour, qu'un geste sur celui-ci séparerait. */
+export function sharedArrival(
+  view: TreatmentView,
+  report: Line,
+  ignored: ReadonlySet<string> = new Set(),
+): Line | undefined {
+  return view.history.find(
+    ({ line, effect }) =>
+      line.status === 'postponed' &&
+      effect.kind === 'moves' &&
+      line.id !== report.id &&
+      !ignored.has(line.id) &&
+      line.targetOn === report.targetOn,
+  )?.line
+}
+
+// R7 : un report est une ligne, il ne se coupe pas ; il n'apporte aucune heure avant l'heure touchée.
+function bringsNothingEarlier(view: TreatmentView, report: Line, time: string | null): boolean {
+  const effect = view.history.find(({ line }) => line.id === report.id)?.effect
+  if (time === null || effect?.kind !== 'moves') return true
+  return effect.keys.every((key) => key.length <= 10 || key.slice(11) >= time)
+}
+
 /**
- * R7, #1274 : le report sans décalage arrivé sur une journée de la grille qui a encore l'heure touchée,
- * hors date choisie et nouveau rythme (#780) ; la journée part avec sa propre ligne et ce report la suit.
+ * R7, Q50, Q51 : l'heure touchée sur l'arrivée d'un report sans décalage, que la grille met aussi ce
+ * jour-là (hors date choisie et nouveau rythme, #780) : la journée part et ce report la suit, sauf
+ * s'il partage son arrivée ou apporte une heure plus tôt ; `null` : le report est redéplacé.
  */
-export function arrivalJoinsGridDay(
+export function arrivalOnGridDay(
   input: TreatmentViewInput,
   view: TreatmentView,
   report: Line,
   due: Due,
-): boolean {
-  if (report.targetOn !== due.dueOn || report.dueOn === due.dueOn) return false
-  if (shiftOfDay(input.lines, report.dueOn)?.targetOn === report.targetOn) return false
-  if (opensRhythm(view, report)) return false
-  if (
-    input.settings.some(
-      ({ firstDueChosen, firstDueOn }) => firstDueChosen && firstDueOn === due.dueOn,
-    )
+): { follower: Line } | { refusal: Refusal } | null {
+  if (report.targetOn !== due.dueOn || report.dueOn === due.dueOn) return null
+  if (shiftOfDay(input.lines, report.dueOn)?.targetOn === report.targetOn) return null
+  if (opensRhythm(view, report)) return null
+  const chosen = input.settings.some(
+    ({ firstDueChosen, firstDueOn }) => firstDueChosen && firstDueOn === due.dueOn,
   )
-    return false
-  return buildView(without(input, [report.id]))
+  if (chosen) return null
+  const arriving = view.history
+    .filter(({ line, effect }) => effect.kind === 'moves' && line.targetOn === due.dueOn)
+    .map(({ line }) => line.id)
+  const gridDay = buildView(without(input, arriving))
     .slots(due.dueOn, due.dueOn)
     .some((slot) => slot.state === 'pending' && slot.due.dueTime === due.dueTime)
+  if (!gridDay) return null
+  const shared = sharedArrival(view, report)
+  if (shared === undefined && bringsNothingEarlier(view, report, due.dueTime)) {
+    return { follower: report }
+  }
+  return { refusal: { reason: 'arrival-shared', on: (shared ?? report).dueOn } }
 }
 
 /** R7, #1274 : le report qui suit la journée partie arrive au même jour, ou rentre chez lui. */
