@@ -71,7 +71,7 @@
     "posthog-js": "^1.438.2",
     "vue": "^3.5.43",
     "vue-i18n": "^11.4.14",
-    "vue-router": "^5.2.0",
+    "vue-router": "^5.4.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {
