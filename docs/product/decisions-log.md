@@ -2976,6 +2976,26 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
+## 2026-10-25 — Retour du réseau : « état inconnu → en ligne » compte comme un passage (#1295)
+
+Avis de la session d'analyse sur #1286 et #1293. Cas : le 25 octobre, l'app est lancée sans réseau
+alors que « Restaurer mon carnet » attend la restauration de Milo et Luna ; le premier événement du
+plugin Network est « en ligne », sans « hors ligne » reçu avant. Si l'état de départ avait été pris
+pour « en ligne », ce retour n'aurait pas été vu et la restauration aurait attendu la minuterie
+(jusqu'à 15 min) ou un retour au premier plan.
+
+- Décision : l'état de départ est lu une fois au démarrage (`Network.getStatus`). Tant qu'il n'est
+  pas connu (lecture pas encore revenue, ou en échec), le premier « en ligne » compte comme un retour
+  du réseau. Lu « hors ligne », le premier « en ligne » compte aussi. Lu « en ligne », les « en
+  ligne » répétés par Android ne relancent rien, jusqu'au prochain « hors ligne ». Un événement reçu
+  avant la réponse de la lecture l'emporte sur elle.
+- Inchangé : plusieurs « en ligne » d'affilée ne comptent qu'une fois (#1286). Un Wi-Fi sans accès
+  à internet (portail d'hôtel) n'émet rien quand le vrai accès arrive : la minuterie de « Restaurer
+  mon carnet » le couvre, limite acceptée.
+- Et donc : la ligne `sync_state` d'une base neuve est prouvée par les seules migrations (test de
+  l'installation neuve, sans la repose à l'ouverture de #1286), sans migration ni colonne.
+- Pour revenir dessus : la lecture de départ est dans `onNetworkOnline` (`network-status.ts`).
+
 ## 2026-10-25 — « Plus tard » vaut pour la journée, et « Restauration en attente » dans Paramètres › Sauvegarde (#1298, Q53, Q54)
 
 Décision Q53 de la session d'analyse, sous délégation de Gaelle. Cas : le 25 octobre, la sauvegarde
