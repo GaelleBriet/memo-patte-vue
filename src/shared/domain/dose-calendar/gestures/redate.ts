@@ -120,6 +120,7 @@ function redateGiven(input: TreatmentViewInput, line: Line, gesture: RedateGestu
     without(input, [line.id, ...(owned === undefined ? [] : [owned.id])]),
     due,
     givenOn,
+    owned !== undefined,
   )
   const prise: LineChange = {
     action: 'rewrite',
