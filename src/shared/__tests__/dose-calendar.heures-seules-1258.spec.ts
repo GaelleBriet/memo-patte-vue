@@ -121,6 +121,26 @@ describe('Heures seules après deux « Modifier » le jour d’un report parti d
     expect(naive(milo())).toBeNull()
     expect(naive(minuteLater(milo()))).toBeNull()
   })
+
+  // Même chaîne, 18 h du 24 reportée au 27 avec la case ; « Modifier » : chaque semaine à 8, 14 et
+  // 20 h (première échéance le 24) ; 8 h du 31 mars reportée au 2 avril avec la case ; « Modifier » :
+  // tous les 2 jours à 6, 12, 18 et 23 h. Trou connu #1258 (8 gestes) : le 27 reçoit aussi 23 h, le
+  // 24 étant une journée de la grille en vigueur.
+  it.fails('18 h reportée : le 27 mars garde la seule heure du report, 18 h (R7)', () => {
+    let input: TreatmentViewInput = {
+      settings: [setting('s1', '2026-03-22', THREE_DAYS, FOUR)],
+      lines: [],
+      today: '2026-03-22',
+    }
+    input = given(input, '2026-03-22', '23:00')
+    input = moved(on(input, '2026-03-24'), '2026-03-22', '06:00', '2026-03-24', false)
+    input = given(input, '2026-03-24', '06:00')
+    input = moved(input, '2026-03-24', '18:00', '2026-03-27')
+    input = edited(input, { frequency: WEEK, times: ['08:00', '14:00', '20:00'], endsOn: null })
+    input = moved(input, '2026-03-31', '08:00', '2026-04-02')
+    input = edited(input, { frequency: TWO_DAYS, times: FOUR, endsOn: null })
+    expect(journee(input, '2026-03-27')).toEqual(['18:00 pending'])
+  })
 })
 
 describe('Heures seules après « Changer la date » avec la case sur une dose d’avant un report (#1258)', () => {
@@ -194,24 +214,21 @@ describe('Heures seules après « Changer la date » avec la case sur une dose d
     })
   }
 
-  // Trou connu #1258 : après « sans heure », le 2 avril ne montre plus que 8 h.
-  it.fails(
-    'graine 500000298 : « sans heure » ne change pas le 2 avril, arrivée du report (heures seules)',
-    () => {
-      const input = luna()
-      expect(journee(input, '2026-04-02')).toEqual([
-        '12:00 pending',
-        '18:00 pending',
-        '23:00 pending',
-      ])
-      expect(
-        journee(
-          hoursOnly(input, () => []),
-          '2026-04-02',
-        ),
-      ).toEqual(journee(input, '2026-04-02'))
-    },
-  )
+  it('graine 500000298 : « sans heure » ne change pas le 2 avril, arrivée du report (heures seules)', () => {
+    const input = luna()
+    expect(journee(input, '2026-04-02')).toEqual([
+      '06:00 pending',
+      '12:00 pending',
+      '18:00 pending',
+      '23:00 pending',
+    ])
+    expect(
+      journee(
+        hoursOnly(input, () => []),
+        '2026-04-02',
+      ),
+    ).toEqual(journee(input, '2026-04-02'))
+  })
 })
 
 describe('Posologie seule après un report parti de l’arrivée d’un report avec la case (#1258)', () => {
@@ -267,6 +284,10 @@ describe('Posologie seule après un report parti de l’arrivée d’un report a
   })
 
   // Trou connu #1258 : la posologie seule fait apparaître 23 h le 21, que le 18 n'a jamais portée.
+  // Même cause, graine 630000745 : tous les jours à 6, 12, 18 et 23 h ; 6 h du 27 mars reportée au
+  // 7 avril avec la case, puis 12 h du 7 reportée au 8 avec la case ; le 29 : 12 h du 8 donnée
+  // (« Remplace »), 18 h du 8 donnée en plus, « Modifier » avec une fin le 29 avril ; 18 h du 8
+  // reportée au 19 avec la case : une posologie seule fait apparaître 23 h le 19 avril.
   it.fails('graine 590000162 : une posologie seule ne change pas le 21 avril (R6)', () => {
     const input = luna()
     expect(
@@ -278,7 +299,7 @@ describe('Posologie seule après un report parti de l’arrivée d’un report a
   })
 })
 
-describe('Heure ajoutée sur l’arrivée d’un report sans heure, après trois « Modifier » (#1258)', () => {
+describe('Heure ajoutée sur l’arrivée d’un report sans heure (#1258)', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 3, 6, 10, 0) })
   })
@@ -287,22 +308,23 @@ describe('Heure ajoutée sur l’arrivée d’un report sans heure, après trois
     vi.useRealTimers()
   })
 
-  // Milo, tous les 3 jours à 6, 12, 18 et 23 h dès le 27 mars. Le 28 : sans heure, « Prochaine dose »
-  // le 2 avril, « Elles restent à renseigner » ; le 30 : « Prochaine dose » le 8 ; 12 h du 27 mars
-  // reportée au 8 avec la case. Le 1er avril : la dose du 8 ramenée au 6 avec la case ; 12 h du 6 donnée
-  // le 1er (« Remplace ») ; « Modifier » sans rien changer (tous les 3 jours sans heure). Le 3 : la dose
-  // du 6 reportée au 7 sans la case ; « Modifier » : toutes les 6 semaines. Le 6 : 18 h du 7 donnée avec
-  // la case.
+  // Milo, tous les 3 jours à 6, 12, 18 et 23 h dès le 27 mars. Le 30 : sans heure, « Prochaine dose »
+  // le 8, « Elles restent à renseigner » ; 12 h du 27 reportée au 8 avec la case. Le 1er avril : la dose
+  // du 8 ramenée au 6 avec la case ; 12 h du 6 donnée (« Remplace »). Le 3 : la dose du 6 reportée au
+  // 7 sans la case ; « Modifier » : toutes les 6 semaines. Le 6 : 18 h du 7 donnée avec la case (sans
+  // cette prise, l'heure ajoutée ne change plus le 7).
   function milo(): TreatmentViewInput {
     let input: TreatmentViewInput = {
       settings: [setting('s1', '2026-03-27', THREE_DAYS, FOUR, { firstDueChosen: true })],
       lines: [],
-      today: '2026-03-28',
+      today: '2026-03-30',
     }
     const current = () => input.settings.at(-1)!.id
-    const every3 = { frequency: THREE_DAYS, times: [], endsOn: null }
-    input = modified(input, { ...every3, firstDueOn: '2026-04-02' }, 'keep')
-    input = modified(on(input, '2026-03-30'), { ...every3, firstDueOn: '2026-04-08' }, 'keep')
+    input = modified(
+      input,
+      { frequency: THREE_DAYS, times: [], endsOn: null, firstDueOn: '2026-04-08' },
+      'keep',
+    )
     input = played(input, {
       kind: 'move',
       due: { settingId: 's1', dueOn: '2026-03-27', dueTime: '12:00' },
@@ -323,7 +345,6 @@ describe('Heure ajoutée sur l’arrivée d’un report sans heure, après trois
       shiftsFollowing: false,
       answer: 'replaces',
     })
-    input = modified(input, every3, 'keep')
     input = played(on(input, '2026-04-03'), {
       kind: 'move',
       due: { settingId: current(), dueOn: '2026-04-06', dueTime: null },
@@ -348,7 +369,8 @@ describe('Heure ajoutée sur l’arrivée d’un report sans heure, après trois
     expect(journee(milo(), '2026-04-07')).toEqual(['18:00 given', '23:00 pending'])
   })
 
-  // Trou connu #1258 : une heure ajoutée (6 h) fait apparaître une dose sans heure le 7.
+  // Trou connu #1258 : une heure ajoutée (6 h) fait apparaître une dose sans heure le 7. Piste, non
+  // codée : juger aussi la journée de départ hors de la grille du réglage du report, côté moteur.
   it.fails('graine 600000926 : une heure ajoutée ne change pas le 7 avril (heures seules)', () => {
     const input = milo()
     expect(
