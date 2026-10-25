@@ -124,9 +124,9 @@ describe('Heures seules après deux « Modifier » le jour d’un report parti d
 
   // Même chaîne, 18 h du 24 reportée au 27 avec la case ; « Modifier » : chaque semaine à 8, 14 et
   // 20 h (première échéance le 24) ; 8 h du 31 mars reportée au 2 avril avec la case ; « Modifier » :
-  // tous les 2 jours à 6, 12, 18 et 23 h. Trou connu #1258 (8 gestes) : le 27 reçoit aussi 23 h, le
-  // 24 étant une journée de la grille en vigueur.
-  it.fails('18 h reportée : le 27 mars garde la seule heure du report, 18 h (R7)', () => {
+  // tous les 2 jours à 6, 12, 18 et 23 h. Le 24, absent de la grille du réglage du report, reste fait
+  // des seules doses arrivées, même devenu une journée de la grille en vigueur.
+  it('18 h reportée : le 27 mars garde la seule heure du report, 18 h (R7)', () => {
     let input: TreatmentViewInput = {
       settings: [setting('s1', '2026-03-22', THREE_DAYS, FOUR)],
       lines: [],
@@ -140,6 +140,7 @@ describe('Heures seules après deux « Modifier » le jour d’un report parti d
     input = moved(input, '2026-03-31', '08:00', '2026-04-02')
     input = edited(input, { frequency: TWO_DAYS, times: FOUR, endsOn: null })
     expect(journee(input, '2026-03-27')).toEqual(['18:00 pending'])
+    expect(naive(input)).toBeNull()
   })
 })
 
@@ -283,12 +284,9 @@ describe('Posologie seule après un report parti de l’arrivée d’un report a
     expect(journee(luna(), '2026-04-21')).toEqual(['12:00 pending', '18:00 pending'])
   })
 
-  // Trou connu #1258 : la posologie seule fait apparaître 23 h le 21, que le 18 n'a jamais portée.
-  // Même cause, graine 630000745 : tous les jours à 6, 12, 18 et 23 h ; 6 h du 27 mars reportée au
-  // 7 avril avec la case, puis 12 h du 7 reportée au 8 avec la case ; le 29 : 12 h du 8 donnée
-  // (« Remplace »), 18 h du 8 donnée en plus, « Modifier » avec une fin le 29 avril ; 18 h du 8
-  // reportée au 19 avec la case : une posologie seule fait apparaître 23 h le 19 avril.
-  it.fails('graine 590000162 : une posologie seule ne change pas le 21 avril (R6)', () => {
+  // Le décalage du 11 au 18, écrit sous le réglage que celui du 18 continue, écarte aussi le 18 de ce
+  // dernier : remplacé le jour même par une posologie seule, il ne cède pas le 18 avec ses quatre heures.
+  it('graine 590000162 : une posologie seule ne change pas le 21 avril (R6)', () => {
     const input = luna()
     expect(
       journee(
@@ -296,6 +294,11 @@ describe('Posologie seule après un report parti de l’arrivée d’un report a
         '2026-04-21',
       ),
     ).toEqual(journee(input, '2026-04-21'))
+  })
+
+  it('graine 590000162 : le modèle naïf lit la même chose après la posologie seule', () => {
+    expect(naive(luna())).toBeNull()
+    expect(naive(hoursOnly(luna(), (times) => [...times]))).toBeNull()
   })
 })
 
@@ -369,9 +372,8 @@ describe('Heure ajoutée sur l’arrivée d’un report sans heure (#1258)', () 
     expect(journee(milo(), '2026-04-07')).toEqual(['18:00 given', '23:00 pending'])
   })
 
-  // Trou connu #1258 : une heure ajoutée (6 h) fait apparaître une dose sans heure le 7. Piste, non
-  // codée : juger aussi la journée de départ hors de la grille du réglage du report, côté moteur.
-  it.fails('graine 600000926 : une heure ajoutée ne change pas le 7 avril (heures seules)', () => {
+  // Le 6, absent de la grille du réglage du report (le 5, le 8), se juge fait des seules doses arrivées.
+  it('graine 600000926 : une heure ajoutée ne change pas le 7 avril (heures seules)', () => {
     const input = milo()
     expect(
       journee(
@@ -379,5 +381,7 @@ describe('Heure ajoutée sur l’arrivée d’un report sans heure (#1258)', () 
         '2026-04-07',
       ),
     ).toEqual(journee(input, '2026-04-07'))
+    expect(naive(input)).toBeNull()
+    expect(naive(hoursOnly(input, () => ['06:00']))).toBeNull()
   })
 })
