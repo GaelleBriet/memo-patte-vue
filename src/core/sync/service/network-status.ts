@@ -7,8 +7,11 @@ type Listener = () => void
  * sait vraiment quand le réseau revient (§7-8 de la proposition).
  */
 export function onNetworkOnline(listener: Listener): () => void {
+  let connected = false
+  // Sur Android, le plugin émet à chaque changement de capacités du réseau, plusieurs fois par seconde.
   const handle = Network.addListener('networkStatusChange', (status) => {
-    if (status.connected) listener()
+    if (status.connected && !connected) listener()
+    connected = status.connected
   })
 
   return () => void handle.then((registered) => registered.remove())

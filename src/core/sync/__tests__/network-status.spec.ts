@@ -38,6 +38,26 @@ describe('onNetworkOnline', () => {
     expect(listener).toHaveBeenCalledOnce()
   })
 
+  it('ne prévient qu’une fois tant que le réseau reste là, puis à chaque vrai retour', async () => {
+    let emit!: StatusListener
+    addListener.mockImplementation(async (_event, listener) => {
+      emit = listener
+      return { remove: async () => {} }
+    })
+    const listener = vi.fn<() => void>()
+
+    onNetworkOnline(listener)
+    await Promise.resolve()
+    emit({ connected: true, connectionType: 'cellular' })
+    emit({ connected: true, connectionType: 'cellular' })
+    emit({ connected: true, connectionType: 'wifi' })
+    expect(listener).toHaveBeenCalledOnce()
+
+    emit({ connected: false, connectionType: 'none' })
+    emit({ connected: true, connectionType: 'wifi' })
+    expect(listener).toHaveBeenCalledTimes(2)
+  })
+
   it('écoute networkStatusChange et retire l’écoute à l’arrêt', async () => {
     const remove = vi.fn<() => Promise<void>>(async () => {})
     addListener.mockResolvedValue({ remove })

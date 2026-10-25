@@ -409,6 +409,7 @@ describe('installSync', () => {
 
       emit({ connected: true, connectionType: 'wifi' })
       await vi.advanceTimersByTimeAsync(0)
+      emit({ connected: false, connectionType: 'none' })
       emit({ connected: true, connectionType: 'wifi' })
       await vi.advanceTimersByTimeAsync(0)
 
