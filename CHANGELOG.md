@@ -5,6 +5,16 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.118](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.117...memo-patte-v0.1.118) (2026-10-25)
+
+
+### 🐛 Corrections
+
+* **moteur:** posologie seule et journée de départ d'un report (résidus de [#1258](https://github.com/GaelleBriet/memo-patte-vue/issues/1258)) ([3be7323](https://github.com/GaelleBriet/memo-patte-vue/commit/3be732346fc7f34c8886eb58818d1eb4c435b4d6))
+* **supabase:** les fonctions serveur lisent la nouvelle clé secrète, sans repli ([#1112](https://github.com/GaelleBriet/memo-patte-vue/issues/1112)) ([06bfb9b](https://github.com/GaelleBriet/memo-patte-vue/commit/06bfb9bdf4a97bbe4f16d311ee13fd15c0816d6d))
+* **supabase:** lire la clé secrète sb_secret_ seule dans les trois fonctions ([93aadc9](https://github.com/GaelleBriet/memo-patte-vue/commit/93aadc9263b3ed007885dd3869011a2658da6bd6)), closes [#1112](https://github.com/GaelleBriet/memo-patte-vue/issues/1112)
+* **supabase:** préflight cors de delete-account en 204 quand la clé manque ([1755023](https://github.com/GaelleBriet/memo-patte-vue/commit/1755023cb4046fddaf02e43e0b7bde4706d32565)), closes [#1112](https://github.com/GaelleBriet/memo-patte-vue/issues/1112)
+
 ## [0.1.117](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.116...memo-patte-v0.1.117) (2026-10-25)
 
 
