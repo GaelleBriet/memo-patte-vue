@@ -1,7 +1,7 @@
 // @vitest-environment node
 // Contre une pile Supabase locale jetable (`supabase start`, puis scripts/supabase-local/require-current-password.sh), jamais le vrai projet ;
 // `docker` recule l'âge d'une session dans sa base :
-// SUPABASE_LOCAL_URL=http://127.0.0.1:54321 SUPABASE_LOCAL_ANON_KEY=… SUPABASE_LOCAL_SERVICE_ROLE_KEY=… pnpm exec vitest run password-update.local
+// SUPABASE_LOCAL_URL=http://127.0.0.1:54321 SUPABASE_LOCAL_ANON_KEY=… SUPABASE_LOCAL_SECRET_KEY=… pnpm exec vitest run password-update.local
 import { execFileSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 
@@ -13,7 +13,7 @@ import { createAuthRepository, type AuthRepository } from '../repository/auth.re
 
 const url = process.env.SUPABASE_LOCAL_URL
 const anonKey = process.env.SUPABASE_LOCAL_ANON_KEY ?? ''
-const serviceKey = process.env.SUPABASE_LOCAL_SERVICE_ROLE_KEY ?? ''
+const secretKey = process.env.SUPABASE_LOCAL_SECRET_KEY ?? ''
 
 const options = { auth: { persistSession: false, autoRefreshToken: false } }
 
@@ -93,7 +93,7 @@ describe.skipIf(url === undefined)('mot de passe actuel exigé par la pile Supab
   }
 
   beforeAll(() => {
-    admin = createClient(url!, serviceKey, options)
+    admin = createClient(url!, secretKey, options)
   })
 
   it('« Changer mon mot de passe » : accepté avec le bon mot de passe actuel', async () => {

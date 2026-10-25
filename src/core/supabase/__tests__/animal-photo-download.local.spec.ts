@@ -1,6 +1,6 @@
 // @vitest-environment node
 // Contre une pile Supabase locale jetable (`supabase start`), jamais le vrai projet :
-// SUPABASE_LOCAL_URL=http://127.0.0.1:54321 SUPABASE_LOCAL_ANON_KEY=… SUPABASE_LOCAL_SERVICE_ROLE_KEY=… pnpm exec vitest run src/core/supabase
+// SUPABASE_LOCAL_URL=http://127.0.0.1:54321 SUPABASE_LOCAL_ANON_KEY=… SUPABASE_LOCAL_SECRET_KEY=… pnpm exec vitest run src/core/supabase
 import { randomUUID } from 'node:crypto'
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
@@ -11,7 +11,7 @@ import { createAnimalPhotoUpload } from '../animal-photo-upload'
 
 const url = process.env.SUPABASE_LOCAL_URL
 const anonKey = process.env.SUPABASE_LOCAL_ANON_KEY ?? ''
-const serviceKey = process.env.SUPABASE_LOCAL_SERVICE_ROLE_KEY ?? ''
+const secretKey = process.env.SUPABASE_LOCAL_SECRET_KEY ?? ''
 
 const options = { auth: { persistSession: false, autoRefreshToken: false } }
 
@@ -51,7 +51,7 @@ describe.skipIf(url === undefined)('téléchargement des photos sur une pile Sup
   }
 
   beforeAll(() => {
-    admin = createClient(url!, serviceKey, options)
+    admin = createClient(url!, secretKey, options)
   })
 
   it('rend les octets envoyés, même pour un compte dont Plus n’est plus actif', async () => {

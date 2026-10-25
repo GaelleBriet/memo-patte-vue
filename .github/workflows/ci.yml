@@ -284,9 +284,9 @@ jobs:
           eval "$(supabase status -o env \
             --override-name api.url=SUPABASE_LOCAL_URL \
             --override-name auth.anon_key=SUPABASE_LOCAL_ANON_KEY \
-            --override-name auth.service_role_key=SUPABASE_LOCAL_SERVICE_ROLE_KEY)"
-          export SUPABASE_LOCAL_URL SUPABASE_LOCAL_ANON_KEY SUPABASE_LOCAL_SERVICE_ROLE_KEY
-          if [ -z "$SUPABASE_LOCAL_URL" ] || [ -z "$SUPABASE_LOCAL_ANON_KEY" ] || [ -z "$SUPABASE_LOCAL_SERVICE_ROLE_KEY" ]; then
+            --override-name auth.secret_key=SUPABASE_LOCAL_SECRET_KEY)"
+          export SUPABASE_LOCAL_URL SUPABASE_LOCAL_ANON_KEY SUPABASE_LOCAL_SECRET_KEY
+          if [ -z "$SUPABASE_LOCAL_URL" ] || [ -z "$SUPABASE_LOCAL_ANON_KEY" ] || [ -z "$SUPABASE_LOCAL_SECRET_KEY" ]; then
             echo "::error::Clés de la pile locale introuvables : les tests seraient sautés."
             exit 1
           fi
