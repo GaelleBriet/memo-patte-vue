@@ -3943,6 +3943,64 @@ qui donne au report des heures qu'il n'a jamais vues). — Pour revenir dessus :
 (`left-days.ts`, `reference-days.ts`) et `onlyArrived` (`calendar-reports.ts`, `arrivedOnly` dans
 `reference-arrivals.ts`).
 
+2026-10-25 — **« Prochaine dose » sur une journée de la grille où arrive aussi un report : la journée
+part entière** (#1274, spec `traitements.md` R7 ; Q50 de la session d'analyse du moteur, à qui Gaelle a
+délégué les lectures de règles). La dose touchée emmène sa journée, avec ou sans la case, et le report
+qui y arrivait la suit au même jour ; le décalage de la journée d'origine du report reste à la prise
+qui l'a écrit (Q48). Milo, tous les 3 jours à 8 h et 20 h dès le 1er mars ; le 4, 20 h reportée au 6
+sans la case, puis 8 h donnée le 3 avec la case (le 6 à 8 h et 20 h, puis le 9 et le 12) ; le 6, 8 h
+déplacée au 7 avec la case : le 7 à 8 h et 20 h, puis le 10 et le 13 (avant : le 7 à 20 h seul, la
+dose de 8 h nulle part) ; sans la case : le 7, puis le 9 et le 12 (avant : refusé) ; 20 h déplacée au 7
+avec la case : le 6 garde 8 h. Sur 4 000 carnets aléatoires (graines 713000000 à 713003999), lecture
+du calendrier identique à `main` sauf 5 carnets, tous par ce geste : la graine 713003143 perdait la
+dose de 8 h du 2 avril sur `main`, les quatre autres changent de bornes ou d'acceptation du
+déplacement. Hors de ce cas (report avec son propre décalage, date choisie, arrivée devenue premier
+jour d'un nouveau rythme, #780), le report arrivé est redéplacé comme avant. — Raison : une personne
+seule voyait une dose disparaître (R11). — Alternative écartée : refuser le geste avec la case comme
+sans elle (refus sans raison visible, la journée ne montrant que deux doses ordinaires). — Pour
+revenir dessus : `arrivalJoinsGridDay` et `followerLines` (`gestures/moved-report.ts`).
+
+2026-10-25 — **Deux reports arrivés le même jour ne se séparent pas ; un report ne se coupe pas**
+(#1274, spec `traitements.md` R7 ; Q51 de la session d'analyse du moteur, à qui Gaelle a délégué les
+lectures de règles ; précise Q50). (1) Un geste qui séparerait deux reports en vigueur arrivés le
+même jour est refusé : « Supprimer » l'un (« Supprime d'abord le report du 4. »), ou changer la date
+de l'un (« Change d'abord la date du report. »). Milo, tous les 3 jours à 8 h et 20 h dès le 1er
+mars ; le 4, 20 h reportée au 6 sans la case, 8 h donnée le 3 avec la case ; le 6, 8 h du 6 déplacée
+au 7 avec la case (le 7 à 8 h et 20 h) : « Supprimer » le report de 8 h est refusé (avant : le 6 à
+8 h et 20 h et le 7 à 20 h) ; 8 h du 6 déplacée au 8 sans la case, puis changée au 7, au 6 ou au 9 :
+refusé (avant : le 8 à 20 h en plus). (2) Le report qui arrive ne suit la journée que s'il n'apporte
+aucune heure plus tôt que l'heure touchée ; sinon le geste est refusé : à 8 h, 14 h et 20 h, 14 h du 4
+reportée au 6 (14 h et 20 h), 20 h du 6 déplacée au 7 est refusé, avec ou sans la case, de même quand
+20 h du 4 était donnée avant le report ; 14 h ou 8 h du 6 restent permis. — Raison : les deux gestes
+faisaient apparaître une dose. — Alternative écartée : relier les reports (les déplacer ou supprimer
+ensemble). — Pour revenir dessus : `sharedArrival` et `arrivalOnGridDay`
+(`gestures/moved-report.ts`), refus `arrival-shared`.
+
+2026-10-25 — **Deux reports arrivés le même jour : le dernier écrit se supprime seul** (#1274, spec
+`traitements.md` R7 ; Q52 de la session d'analyse du moteur, à qui Gaelle a délégué les lectures de
+règles ; corrige l'impasse de Q51). Le report écrit en dernier, celui que l'autre a suivi (Q50) ou,
+sans ce lien, le plus récent, se supprime seul : la suppression défait le geste qui a formé la paire,
+le report qui l'avait suivi revient à son arrivée d'avant. L'autre report reste refusé tant que le
+dernier existe, et tout refus de la paire, « Changer la date » compris, nomme ce dernier report
+(« Supprime d'abord le report du 6 mars. », anglais « Delete the postponement of the Mar 6 dose
+first. », clé à part). Milo, tous les 3 jours à 8 h et 20 h dès le 1er mars ; le 4, 20 h reportée au
+6 sans la case, 8 h donnée le 3 avec la case ; le 6, 8 h du 6 déplacée au 7 avec la case : « Supprimer »
+le report du 6 rend le 6 à 8 h et 20 h, puis le 9 et le 12 (avant : refusé, comme celui du 4 et le
+changement de date de 8 h du 7, sans geste possible). Restent deux trous connus, en tickets : #1287
+(« Modifier » avec « Prochaine dose ») et #1288 (corriger la prise ou supprimer le décalage du 4). —
+Raison : un refus désigne toujours un geste possible. — Alternative écartée : relier les deux reports.
+— Pour revenir dessus : `lastOfPair` (`gestures/moved-report.ts`) et `followerBack`
+(`gestures/remove.ts`).
+
+2026-10-25 — **Le compte des doses à donner reste informatif** (#1274, M-1 de la re-relecture ; décision
+de bonne pratique). Les invariants « doses à donner » et « dose déplacée absente » de la campagne
+d'invariants comptent sans bloquer : leurs graines rouges (690000861, 690000094, 700000003,
+700000926) se reproduisent sur `main` et sont suivies par #1285, avec #1281 à #1284 épinglés en
+`it.fails`. — Raison : bloquer une campagne sur des défauts antérieurs arrêterait tout autre pas du
+moteur. — Alternative écartée : les rendre bloquants avec une liste de graines exclues, qui ne couvre
+pas les graines neuves. — Pour revenir dessus : passer les compteurs `lostMoves` et `addedDoses`
+(`dose-calendar.invariants.spec.ts`) dans les échecs une fois #1281 à #1285 fermés.
+
 ## 2026-10-24 — Un report redéplacé depuis une date choisie, hors de sa grille, est sans effet (#1231, Q39)
 
 Décision de la session d'analyse du moteur, à qui Gaelle a délégué les lectures de règles (Q26, Q39
