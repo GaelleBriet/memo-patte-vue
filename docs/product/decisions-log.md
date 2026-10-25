@@ -4020,4 +4020,4 @@ CORS de `delete-account` reçoit toujours son `204`.
   `supabase status`), par cohérence avec les fonctions (32 tests locaux verts avec la CLI 2.119.0). —
   Alternative écartée : garder les clés locales historiques (décision 3 de l'étude). — Pour revenir
   dessus : renommer `SUPABASE_LOCAL_SECRET_KEY` en `SUPABASE_LOCAL_SERVICE_ROLE_KEY` et relire
-  `auth.service_role_key` dans `ci.yml`.
+  `auth.service_role_key`, dans les six `*.local.spec.ts`, `commandes-utiles.md` et `ci.yml`.
