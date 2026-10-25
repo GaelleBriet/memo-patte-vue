@@ -73,6 +73,15 @@ export const gridDateOf = (
 ): string => setting.gridWrittenAt ?? setting.updatedAt ?? setting.createdAt
 
 /** Les heures d'une journée, triées ; une seule échéance sans heure. */
+/**
+ * Q40, Q45 : l'instant où la date du réglage a été choisie : son ouverture, ou sa grille datée plus tard
+ * par une réécriture ; des heures seules ne datent rien.
+ */
+export const chosenAtOf = (setting: Pick<Setting, 'gridWrittenAt' | 'createdAt'>): string =>
+  setting.gridWrittenAt !== undefined && setting.gridWrittenAt > setting.createdAt
+    ? setting.gridWrittenAt
+    : setting.createdAt
+
 export const hoursOf = (times: readonly string[]): Hour[] =>
   times.length === 0 ? [null] : [...times].sort()
 

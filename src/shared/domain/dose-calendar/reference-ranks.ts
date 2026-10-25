@@ -75,7 +75,7 @@ export function chooserOf(
   live: readonly ReferenceSetting[],
 ): ReferenceSetting | undefined {
   const drawer = oldArrivalDrawer(report, settingAt, live)
-  return drawer !== undefined && report.decidedAt > modifiedAt(drawer) ? drawer : undefined
+  return drawer !== undefined && report.decidedAt > chosenAt(drawer) ? drawer : undefined
 }
 
 /**
@@ -89,20 +89,22 @@ export function staleBeforeChosenDate(
   notes: readonly ReferenceLine[],
 ): boolean {
   const drawer = oldArrivalDrawer(report, settingAt, live)
-  if (drawer === undefined || report.decidedAt > modifiedAt(drawer)) return false
+  if (drawer === undefined || report.decidedAt > chosenAt(drawer)) return false
   if (isOnGrid(drawer.firstDueOn, drawer.frequency, report.dueOn)) return false
   const arrived = (hour: string | null) =>
     report.dueTime === null || hour === null || hour >= report.dueTime
   return !notes.some(
     (note) =>
       note.status === 'given' &&
-      note.decidedAt <= modifiedAt(drawer) &&
+      note.decidedAt <= chosenAt(drawer) &&
       note.dueOn === report.targetOn &&
       arrived(note.dueTime),
   )
 }
 
-const modifiedAt = (setting: ReferenceSetting) => setting.updatedAt ?? setting.createdAt
+// Q45 : la date se choisit à l'ouverture du réglage, ou quand une réécriture date sa grille.
+const chosenAt = (setting: ReferenceSetting) =>
+  [setting.createdAt, setting.gridWrittenAt ?? setting.createdAt].sort().at(-1)!
 
 /** R6, 6b (Q41) : un décalage ne vaut pas quand le report de sa journée, vers le même jour, est sans effet. */
 export function staleTurn(

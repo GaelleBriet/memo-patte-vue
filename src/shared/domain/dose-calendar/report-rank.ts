@@ -1,4 +1,4 @@
-import { hoursOf, isOnGrid, sameFrequency, sameHours } from './grid'
+import { chosenAtOf, hoursOf, isOnGrid, sameFrequency, sameHours } from './grid'
 import type { Span } from './settings'
 import type { Day, Hour, Line, LineEffect, Setting } from './types'
 
@@ -52,7 +52,7 @@ export function oldArrivalChooser(
   span: Pick<Span, 'settingAt' | 'live'>,
 ): Setting | undefined {
   const setting = chosenOldArrival(report, span)
-  return setting !== undefined && report.decidedAt > writtenAt(setting) ? setting : undefined
+  return setting !== undefined && report.decidedAt > chosenAtOf(setting) ? setting : undefined
 }
 
 /**
@@ -66,18 +66,16 @@ export function outdatedByChosenDate(
   notes: readonly Line[],
 ): boolean {
   const setting = chosenOldArrival(report, span)
-  if (setting === undefined || report.decidedAt > writtenAt(setting)) return false
+  if (setting === undefined || report.decidedAt > chosenAtOf(setting)) return false
   if (isOnGrid(setting.firstDueOn, setting.frequency, report.dueOn)) return false
   return !notes.some(
     (note) =>
       note.status === 'given' &&
-      note.decidedAt <= writtenAt(setting) &&
+      note.decidedAt <= chosenAtOf(setting) &&
       note.dueOn === report.targetOn &&
       (report.dueTime === null || note.dueTime === null || note.dueTime >= report.dueTime),
   )
 }
-
-const writtenAt = (setting: Setting) => setting.updatedAt ?? setting.createdAt
 
 /** R6, 6b (Q41) : le décalage suit son report ; sans effet avec lui. */
 export function turnOfOutdatedReport(
