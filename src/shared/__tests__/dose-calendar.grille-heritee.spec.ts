@@ -368,6 +368,24 @@ describe('à l’écriture : la simulation date la grille comme une écriture ne
     it('un autre jour, la réécriture date la grille', () => {
       expect(rewritten('2026-04-02').gridWrittenAt).toBe('2026-04-01T06:05:00.000Z')
     })
+
+    // Trou connu #1259 (Q47) : la grille n'est pas datée par ce second geste, l'héritage de #977 prime.
+    it.fails(
+      'réécrit le jour même avec « Prochaine dose » le 4 avril, sur l’ancienne grille : la grille datée du geste',
+      () => {
+        const chosen = {
+          ...hoursOnly,
+          firstDueOn: '2026-04-04',
+          gridOriginOn: '2026-04-04',
+          firstDueChosen: true,
+        }
+        const next = rewrittenSetting(s2, chosen, () => '2026-04-01T06:05:00.000Z', {
+          input: { settings: [milo, s2], lines: [], today: '2026-04-01' },
+          lines: [],
+        })
+        expect(next.gridWrittenAt).toBe('2026-04-01T06:05:00.000Z')
+      },
+    )
   })
 
   describe('deux téléphones le même jour : la réécriture reprend la date gardée à l’ouverture', () => {

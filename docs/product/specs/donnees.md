@@ -34,7 +34,7 @@ par le partage d'Android ; export d'un seul animal en JSON (piste « à prévoir
 ### 3.1 Exports
 
 - **DO-1** Depuis Paramètres › Mes données : JSON (réimportable, format documenté) ou CSV (tableur) ;
-  « Enregistrer sur le téléphone » (Documents › MémoPatte) ou « Partager ». Gratuits, sans compte.
+  « Enregistrer sur le téléphone » (app Fichiers, dossier Documents › MémoPatte) ou « Partager ». Gratuits, sans compte.
   (Existant, #343 ; principe 7)
 - **DO-2** JSON : tout le carnet, historique compris (injections, prises données, oubliées et
   reportées, périodes, posologie, heures, dates de fin, date approximative, animaux qu'on ne suit plus,
@@ -110,7 +110,7 @@ par le partage d'Android ; export d'un seul animal en JSON (piste « à prévoir
   bouton « Effacer définitivement » placé autrement que dans le premier (spec Q4). Abonné dont des
   changements ne sont pas encore sauvegardés : avant les confirmations, « Tes derniers changements ne
   sont pas encore dans ta sauvegarde cloud. Connecte-toi à Internet et attends la sauvegarde, ou
-  exporte une copie. », sans bloquer (spec Q5). Les exports enregistrés dans Documents › MémoPatte
+  exporte une copie. », sans bloquer (spec Q5). Les exports enregistrés dans l'app Fichiers, dossier Documents › MémoPatte
   restent sur le téléphone, et l'écran le dit. (P15 Q1 ; relecture du lot C, validé en bloc)
 
 ## 4. Critères d'acceptation (extraits prioritaires)

@@ -102,7 +102,8 @@ const oldAnchors = {
 const keyContents = {
   fr: {
     exporter: [
-      'Documents › MémoPatte',
+      'app Fichiers, dossier Documents › MémoPatte',
+      'fichier ZIP',
       '« Fusionner »',
       '« Remplacer »',
       'Les photos ne sont pas exportées.',
@@ -115,7 +116,8 @@ const keyContents = {
   },
   en: {
     export: [
-      'Documents › MémoPatte',
+      'Files app, in Documents › MémoPatte',
+      'ZIP file',
       '“Merge”',
       '“Replace”',
       'Photos aren’t exported.',

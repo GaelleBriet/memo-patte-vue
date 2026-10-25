@@ -32,7 +32,7 @@ import {
 } from './reference-lines'
 import { departureBeaten, duesOf } from './reference-not-due'
 import { arriveReports } from './reference-arrivals'
-import { chooserOf } from './reference-ranks'
+import { chooserOf, staleTurn } from './reference-ranks'
 import { chosenDateOf } from './reference-reports'
 import { shiftKeptByReport, type RewriteContext } from './reference-rewrite'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
@@ -222,7 +222,8 @@ export function calendarOf(
       (!plain && !days.has(turn.dueOn) && shiftKeptByReport(turn, reports, rewriteContext)) ||
       movedFromChosenDay(turn)
     for (const turn of [...turns, null]) {
-      if (turn !== null && !lands(turn)) continue
+      if (turn !== null && (!lands(turn) || staleTurn(turn, reports, settingAt, live, notes)))
+        continue
       if (turn !== null && movedFromChosenDay(turn)) turnedFromChosen.add(moveKeyOf(turn))
       const to = turn === null ? last : turn.dueOn < last ? turn.dueOn : last
       const start = later(from, plusDays(grid.floor, 1))

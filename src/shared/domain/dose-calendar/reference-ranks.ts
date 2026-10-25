@@ -1,4 +1,4 @@
-import type { Hour } from './reference-grid'
+import { isOnGrid, type Hour } from './reference-grid'
 import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 /**
@@ -74,6 +74,57 @@ export function chooserOf(
   settingAt: (day: string) => ReferenceSetting | undefined,
   live: readonly ReferenceSetting[],
 ): ReferenceSetting | undefined {
+  const drawer = oldArrivalDrawer(report, settingAt, live)
+  return drawer !== undefined && report.decidedAt > chosenAt(drawer) ? drawer : undefined
+}
+
+/**
+ * Q26, Q39 : un report plus ancien que le « Modifier » de la date choisie qui était son ancienne
+ * arrivée, parti d'un jour que sa grille n'a pas, est sans effet, sauf dose arrivée donnée avant lui (Q41).
+ */
+export function staleBeforeChosenDate(
+  report: ReferenceLine,
+  settingAt: (day: string) => ReferenceSetting | undefined,
+  live: readonly ReferenceSetting[],
+  notes: readonly ReferenceLine[],
+): boolean {
+  const drawer = oldArrivalDrawer(report, settingAt, live)
+  if (drawer === undefined || report.decidedAt > chosenAt(drawer)) return false
+  if (isOnGrid(drawer.firstDueOn, drawer.frequency, report.dueOn)) return false
+  const arrived = (hour: string | null) =>
+    report.dueTime === null || hour === null || hour >= report.dueTime
+  return !notes.some(
+    (note) =>
+      note.status === 'given' &&
+      note.decidedAt <= chosenAt(drawer) &&
+      note.dueOn === report.targetOn &&
+      arrived(note.dueTime),
+  )
+}
+
+// Q45 : la date se choisit à l'ouverture du réglage, ou quand une réécriture date sa grille.
+const chosenAt = (setting: ReferenceSetting) =>
+  [setting.createdAt, setting.gridWrittenAt ?? setting.createdAt].sort().at(-1)!
+
+/** R6, 6b (Q41) : un décalage ne vaut pas quand le report de sa journée, vers le même jour, est sans effet. */
+export function staleTurn(
+  turn: ReferenceLine,
+  reports: readonly ReferenceLine[],
+  settingAt: (day: string) => ReferenceSetting | undefined,
+  live: readonly ReferenceSetting[],
+  notes: readonly ReferenceLine[],
+): boolean {
+  const own = reports.find(
+    (report) => report.dueOn === turn.dueOn && report.targetOn === turn.targetOn,
+  )
+  return own !== undefined && staleBeforeChosenDate(own, settingAt, live, notes)
+}
+
+function oldArrivalDrawer(
+  report: ReferenceLine,
+  settingAt: (day: string) => ReferenceSetting | undefined,
+  live: readonly ReferenceSetting[],
+): ReferenceSetting | undefined {
   const day = report.previousTargetOn ?? null
   if (day === null || day === report.targetOn) return undefined
   const inForce = settingAt(day)
@@ -86,6 +137,5 @@ export function chooserOf(
   const drawer = before.find((each) => each.gridOriginOn !== null || !sameRhythm(each))
   if (drawer === undefined || !sameRhythm(drawer)) return undefined
   const continued = before.slice(0, before.indexOf(drawer)).every(sameRhythm)
-  if (!continued || !drawer.firstDueChosen || drawer.firstDueOn !== day) return undefined
-  return report.decidedAt > (drawer.updatedAt ?? drawer.createdAt) ? drawer : undefined
+  return continued && drawer.firstDueChosen && drawer.firstDueOn === day ? drawer : undefined
 }

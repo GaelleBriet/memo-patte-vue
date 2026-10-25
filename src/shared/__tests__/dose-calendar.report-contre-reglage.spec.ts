@@ -311,13 +311,13 @@ describe('Q1 : Milo, chaque lundi à 8 h et 20 h ; la dose de 20 h du 9 mars rep
     expect(readings(merged).reference).toEqual(readings(merged).moteur)
   })
 
-  it('B plus récent, résidu à deux téléphones (#986) : le 11 à 9 h et 21 h, et le 13 à 20 h', () => {
+  it('B plus récent : le report est sans effet (Q39), le 11 à 9 h et 21 h, puis le 18', () => {
     const { merged } = milo({ aAt: MATIN, bAt: SOIR })
     expect(keys(treatmentView(merged).upcoming({ limit: 4 }))).toEqual([
       '2026-03-11 09:00',
       '2026-03-11 21:00',
-      '2026-03-13 20:00',
       '2026-03-18 09:00',
+      '2026-03-18 21:00',
     ])
     expect(readings(merged).reference).toEqual(readings(merged).moteur)
   })
