@@ -674,6 +674,7 @@ describe('restauration qui attend le réseau', () => {
           throw new Error('délai dépassé')
         }
         pending = null
+        return 'restored'
       },
       progress: { done: 0, total: 0 },
       onProgress: () => () => {},

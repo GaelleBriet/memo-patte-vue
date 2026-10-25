@@ -69,6 +69,10 @@ export function createSyncStateRepository(db: DbClient) {
       await db.run('UPDATE sync_state SET restoring = ? WHERE id = 1', [RESTORE_CODES[mode]])
     },
 
+    async cancelRestore(): Promise<void> {
+      await db.run('UPDATE sync_state SET restoring = 0 WHERE id = 1')
+    },
+
     /** Le pull suivant repart du début : il ramène tout le carnet du compte. */
     enableFromStartStatements(): SqlStatement[] {
       return [

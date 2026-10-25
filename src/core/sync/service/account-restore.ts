@@ -2,6 +2,7 @@ import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import type { RestoreMode } from '../repository/sync-state.repository'
 import type { LocalSyncOutbox } from './local-sync-outbox'
 import { normalizeSyncTimestamps } from './normalize-sync-timestamps'
+import type { RestoreChoiceSnapshot } from './restore-choice-snapshot'
 import type { RemoteBackupReads, SyncRow, SyncableTable } from './syncable-table'
 
 const PAGE_SIZE = 500
@@ -9,6 +10,9 @@ const EPOCH = '1970-01-01T00:00:00.000Z'
 const KEPT_ON_REPLACE = 'device'
 
 export type { RestoreMode }
+
+/** `carnet-changed` : « Remplacer » abandonné, le carnet du téléphone a changé depuis le choix. */
+export type RestoreRunResult = 'restored' | 'carnet-changed'
 
 export interface RestoreProgress {
   done: number
@@ -20,11 +24,15 @@ export type RestorableTable = SyncableTable &
 
 export interface AccountRestoreDependencies {
   db: DbClient
-  outbox: Pick<LocalSyncOutbox, 'restoreMode' | 'startRestore' | 'restoreStatements'>
+  outbox: Pick<
+    LocalSyncOutbox,
+    'restoreMode' | 'startRestore' | 'cancelRestore' | 'carnetFingerprint' | 'restoreStatements'
+  >
   /** Dans l'ordre de `SYNC_ENTITY_ORDER` : un parent est écrit avant ses enfants. */
   tables: RestorableTable[]
   userId: () => string | null
   onRemindersOutdated: () => Promise<void>
+  choiceSnapshot: RestoreChoiceSnapshot
 }
 
 interface DownloadedTable {
@@ -38,11 +46,12 @@ type Listener = (progress: RestoreProgress) => void
 /**
  * Restauration d'un compte : toute la sauvegarde est tirée d'abord, puis écrite en une seule
  * transaction ; une coupure ne laisse donc ni carnet à moitié écrit ni carnet effacé. Le choix
- * survit à un redémarrage : la restauration reprend du début à l'essai suivant.
+ * survit à un redémarrage : la restauration reprend du début à l'essai suivant. « Remplacer »
+ * n'efface rien si le carnet du téléphone a changé depuis le choix : celui-ci est alors à refaire.
  */
 export function createAccountRestore(deps: AccountRestoreDependencies) {
   const listeners = new Set<Listener>()
-  let running: Promise<void> | null = null
+  let running: Promise<RestoreRunResult> | null = null
   let progress: RestoreProgress = { done: 0, total: 0 }
 
   function report(next: RestoreProgress): void {
@@ -99,24 +108,38 @@ export function createAccountRestore(deps: AccountRestoreDependencies) {
     return [...before, ...erased, ...applied, ...after]
   }
 
-  async function restore(): Promise<void> {
+  async function carnetChangedSinceChoice(): Promise<boolean> {
+    return deps.choiceSnapshot.read() !== (await deps.outbox.carnetFingerprint())
+  }
+
+  async function restore(): Promise<RestoreRunResult> {
     const mode = await deps.outbox.restoreMode()
     const userId = deps.userId()
-    if (mode === null || userId === null) return
+    if (mode === null || userId === null) return 'restored'
     const downloaded = await download(userId)
-    if (deps.userId() !== userId) return
+    if (deps.userId() !== userId) return 'restored'
+    if (mode === 'replace' && (await carnetChangedSinceChoice())) {
+      await deps.outbox.cancelRestore()
+      deps.choiceSnapshot.clear()
+      return 'carnet-changed'
+    }
     await deps.db.runMany(writeStatements(mode, downloaded))
+    deps.choiceSnapshot.clear()
     await deps.onRemindersOutdated()
+    return 'restored'
   }
 
   return {
     pendingMode: () => deps.outbox.restoreMode(),
 
-    /** Rien n'est écrit dans le carnet avant `run()` : seul le choix est gardé. */
-    start: (mode: RestoreMode) => deps.outbox.startRestore(mode),
+    /** Rien n'est écrit dans le carnet avant `run()` : seuls le choix et l'état du carnet sont gardés. */
+    async start(mode: RestoreMode): Promise<void> {
+      if (mode === 'replace') deps.choiceSnapshot.save(await deps.outbox.carnetFingerprint())
+      await deps.outbox.startRestore(mode)
+    },
 
     /** Une seule restauration à la fois ; lève si le réseau coupe, le choix reste en place. */
-    run(): Promise<void> {
+    run(): Promise<RestoreRunResult> {
       running ??= restore().finally(() => {
         running = null
       })

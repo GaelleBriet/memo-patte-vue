@@ -1,11 +1,13 @@
 import type { DbClient, SqlStatement } from '@/core/db/db-client'
 import { getDb } from '@/core/db/sqlite'
+import { createCarnetFingerprintRepository } from '../repository/carnet-fingerprint.repository'
 import { createSyncOutboxRepository } from '../repository/sync-outbox.repository'
 import { createSyncStateRepository, type RestoreMode } from '../repository/sync-state.repository'
 
 export function createLocalSyncOutbox(db: DbClient) {
   const outbox = createSyncOutboxRepository(db)
   const syncState = createSyncStateRepository(db)
+  const fingerprint = createCarnetFingerprintRepository(db)
 
   return {
     isEnabled: syncState.isEnabled,
@@ -17,6 +19,8 @@ export function createLocalSyncOutbox(db: DbClient) {
     setLastSyncedAt: syncState.setLastSyncedAt,
     restoreMode: syncState.restoreMode,
     startRestore: syncState.startRestore,
+    cancelRestore: syncState.cancelRestore,
+    carnetFingerprint: fingerprint.read,
     countWholeCarnet: outbox.countWholeCarnet,
     countPending: outbox.countPending,
     countRefused: outbox.countRefused,

@@ -2,7 +2,7 @@ import { readonly, shallowRef, watch, type Ref } from 'vue'
 
 import { errorSummary, localErrorMessage } from '@/shared/utils/error-summary'
 import type { RestoreMode } from '../repository/sync-state.repository'
-import type { AccountRestore, RestoreProgress } from './account-restore'
+import type { AccountRestore, RestoreProgress, RestoreRunResult } from './account-restore'
 import type { BackupSummary } from './backup-summary'
 
 export type RestoreFlowState =
@@ -28,19 +28,29 @@ export function createRestoreFlow(runner: RestoreRunner) {
   const restoredListeners = new Set<() => void>()
   const retryListeners = new Set<() => void>()
 
+  function retryCheck(): void {
+    state.value = { step: 'checking' }
+    for (const listener of retryListeners) listener()
+  }
+
   async function runPending(): Promise<boolean> {
     state.value = { step: 'restoring', progress: runner.progress }
     const stop = runner.onProgress((progress) => {
       state.value = { step: 'restoring', progress }
     })
+    let result: RestoreRunResult
     try {
-      await runner.run()
+      result = await runner.run()
     } catch (cause) {
       console.warn('Restauration interrompue, elle reprendra :', errorSummary(cause))
       state.value = { step: 'waiting-network' }
       return false
     } finally {
       stop()
+    }
+    if (result === 'carnet-changed') {
+      retryCheck()
+      return false
     }
     state.value = { step: 'done' }
     for (const listener of restoredListeners) listener()
@@ -77,10 +87,7 @@ export function createRestoreFlow(runner: RestoreRunner) {
     },
 
     /** « Réessayer » : le contrôle de la sauvegarde est redemandé tout de suite. */
-    retryCheck(): void {
-      state.value = { step: 'checking' }
-      for (const listener of retryListeners) listener()
-    },
+    retryCheck,
 
     onRetryCheck(listener: () => void): () => void {
       retryListeners.add(listener)
@@ -99,7 +106,7 @@ export function createRestoreFlow(runner: RestoreRunner) {
       state.value = { step: 'idle' }
     },
 
-    /** Garde le choix (il survit à un redémarrage), puis restaure ; `false` si le réseau a coupé. */
+    /** Garde le choix (il survit à un redémarrage), puis restaure ; `false` si le réseau a coupé ou si le choix est à refaire. */
     async choose(mode: RestoreMode): Promise<boolean> {
       try {
         await runner.start(mode)
@@ -111,7 +118,7 @@ export function createRestoreFlow(runner: RestoreRunner) {
       return runPending()
     },
 
-    /** Reprend une restauration déjà choisie ; `false` s'il n'y en a pas ou si le réseau a coupé. */
+    /** Reprend une restauration déjà choisie ; `false` s'il n'y en a pas, si le réseau a coupé ou si le choix est à refaire. */
     async resume(): Promise<boolean> {
       let pending: RestoreMode | null
       try {

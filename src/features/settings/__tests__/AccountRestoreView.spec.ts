@@ -49,8 +49,8 @@ function fakeRunner(): FakeRunner {
     }),
     run: vi.fn<RestoreRunner['run']>(
       () =>
-        new Promise<void>((resolve, reject) => {
-          settle = { resolve, reject }
+        new Promise((resolve, reject) => {
+          settle = { resolve: () => resolve('restored'), reject }
         }),
     ),
     progress: { done: 0, total: 0 },
