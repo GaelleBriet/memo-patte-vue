@@ -520,11 +520,18 @@ describe('BackupSettingsView', () => {
       return wrapper.find('.backup-settings__restore-pending')
     }
 
+    function texteDuBloc(wrapper: VueWrapper) {
+      return bloc(wrapper)
+        .findAll('.settings-row__label, .settings-row__hint')
+        .map((line) => line.text().replace(/\s+/g, ' '))
+        .join(' ')
+    }
+
     it('s’affiche quand la sauvegarde cloud attend « Fusionner » ou « Remplacer »', async () => {
       parcours().offer(SUMMARY)
       const wrapper = await monter()
 
-      expect(bloc(wrapper).text().replace(/\s+/g, ' ')).toBe(
+      expect(texteDuBloc(wrapper)).toBe(
         'Restauration en attente Ta sauvegarde cloud attend ton choix : fusionner avec le carnet de ce téléphone, ou le remplacer.',
       )
       expect(bloc(wrapper).classes()).toContain('backup-settings__status--warning')
@@ -585,7 +592,7 @@ describe('BackupSettingsView', () => {
       parcours().offer(SUMMARY)
       const wrapper = await monter()
 
-      expect(bloc(wrapper).text().replace(/\s+/g, ' ')).toBe(
+      expect(texteDuBloc(wrapper)).toBe(
         'Restore pending Your cloud backup is waiting for your choice: merge with the health record on this phone, or replace it.',
       )
       expect(wrapper.get('.backup-settings__restore-choose').text()).toBe('Choose')
