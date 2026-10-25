@@ -1,8 +1,8 @@
 import { keyOf } from '../grid'
 import { episodeIdsOf } from '../settings'
-import type { Day, Due, TreatmentViewInput } from '../types'
+import type { Day, Due, Line, TreatmentViewInput } from '../types'
 import { buildView } from '../view'
-import { shiftOfDay } from './changes'
+import { ownsDayShift, shiftOfDay } from './changes'
 import { linesAfter, movedAlone, shiftDayOf } from './outcome'
 
 /**
@@ -12,7 +12,8 @@ import { linesAfter, movedAlone, shiftDayOf } from './outcome'
  * journée gardés. Jamais pour une dose déjà non renseignée aujourd'hui (N1), sauf quand la prise
  * corrigée porte son propre décalage (`ownsShift`) : la case le déplace avec elle. Sinon : la dose du
  * moment ou une dose à venir au jour `givenOn`, la dernière heure sans prise de sa journée, rien de
- * noté ni de décalé plus loin, pas une dose déplacée seule (Q2 c).
+ * noté ni de décalé plus loin, pas une dose déplacée seule (Q2 c), pas une journée qui porte le
+ * décalage de la prise d'une autre heure (Q48).
  */
 export function offersShiftFor(
   carnet: TreatmentViewInput,
@@ -32,11 +33,24 @@ export function offersShiftFor(
   if (sameDay.some(({ due: other, state }) => state === 'pending' && !sameKey(other))) return false
   const shiftDay = shiftDayOf(view, due)
   const own = shiftOfDay(carnet.lines, shiftDay)
+  if (own !== undefined && writtenByAnotherHour(carnet, due, own)) return false
   const later = linesAfter(carnet, due, new Set(own === undefined ? [] : [own.id]))
   if (later.notes.length > 0 || later.others.some(({ status }) => status === 'shift')) return false
   const onThatDay = buildView({ ...carnet, today: givenOn })
   return (
     onThatDay.currentDoses.some(sameKey) ||
     onThatDay.upcoming({ from: givenOn, to: due.dueOn }).some(sameKey)
+  )
+}
+
+// Q48 : un geste sur une heure ne réécrit jamais le décalage d'une autre heure.
+function writtenByAnotherHour(carnet: TreatmentViewInput, due: Due, shift: Line): boolean {
+  return carnet.lines.some(
+    (prise) =>
+      prise.status === 'given' &&
+      prise.settingId === due.settingId &&
+      prise.dueOn === due.dueOn &&
+      prise.dueTime !== due.dueTime &&
+      ownsDayShift(carnet, prise, shift),
   )
 }

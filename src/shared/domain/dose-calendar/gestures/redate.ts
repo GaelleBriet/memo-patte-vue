@@ -8,7 +8,7 @@ import type {
   TreatmentViewInput,
 } from '../types'
 import { buildView } from '../view'
-import { shiftOfDay, shiftWritten, without } from './changes'
+import { ownsDayShift, shiftOfDay, shiftWritten, without } from './changes'
 import { doseLines } from './dose-lines'
 import { checkPast, dueForDate, noteDose } from './note'
 import { lostToEnd, outcome, shiftDayOf, withFollowed } from './outcome'
@@ -101,23 +101,6 @@ function redateAsNote(
     offersShift: true,
     lostToEnd: lostToEnd(input, prise, changes, target.dueOn),
   })
-}
-
-/**
- * N2, #1262 : seul le décalage ancré à la date de la prise la suit ; quand une autre heure de sa
- * journée a été donnée le même jour, il n'est à elle que s'il porte son heure.
- */
-function ownsDayShift(input: TreatmentViewInput, prise: Line, shift: Line): boolean {
-  if (shift.targetOn !== prise.givenOn) return false
-  const sharedDate = input.lines.some(
-    (other) =>
-      other.status === 'given' &&
-      other.settingId === prise.settingId &&
-      other.dueOn === prise.dueOn &&
-      other.dueTime !== prise.dueTime &&
-      other.givenOn === prise.givenOn,
-  )
-  return !sharedDate || shift.dueTime === prise.dueTime
 }
 
 function redateGiven(input: TreatmentViewInput, line: Line, gesture: RedateGesture): GestureResult {
