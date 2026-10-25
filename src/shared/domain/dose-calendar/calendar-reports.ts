@@ -1,7 +1,7 @@
 import type { DayCoverage } from './calendar-coverage'
 import type { notDueArrivals } from './calendar-not-due'
 import { withCededDoses } from './ceded-day'
-import { hoursOf, keyOf, sameFrequency, sameHours } from './grid'
+import { hoursOf, isOnGrid, keyOf, sameFrequency, sameHours } from './grid'
 import type { Journey, journeys } from './journeys'
 import type { EpisodeLines } from './lines'
 import {
@@ -170,9 +170,15 @@ export function moveReports(input: ReportsInput) {
     const hoursUnseen = translated.has(dueOn) || lines.answered.has(dueOn)
     const source = hoursUnseen && (!sameHours(written, from) || relit) ? written : from
     // R7 : la journée d'un report, telle qu'il l'a vue, porte aussi les doses qui y sont arrivées (#864) ;
-    // faite des seules doses arrivées, elle n'a que celles-là (#1258).
+    // faite des seules doses arrivées, ici ou sous la grille de son réglage, elle n'a que celles-là (#1258).
     const arrivedHere = arrived.get(dueOn) ?? []
-    const onlyArrived = arrivalsOnly.has(dueOn) && ceded === undefined && arrivedHere.length > 0
+    const offWritten = !isOnGrid(
+      written.gridOriginOn ?? written.firstDueOn,
+      written.frequency,
+      dueOn,
+    )
+    const onlyArrived =
+      (arrivalsOnly.has(dueOn) || offWritten) && ceded === undefined && arrivedHere.length > 0
     const writtenHours = [
       ...new Set([...(onlyArrived ? [] : hoursOf(written.times)), ...arrivedHere]),
     ].sort()

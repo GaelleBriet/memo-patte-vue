@@ -4,7 +4,7 @@ import type { Day, Line, Setting } from './types'
 
 export type Segment = { origin: Day; from: Day; to: Day | null }
 
-export type Claim = { setting: Setting; end: Day | null; segments: Segment[] }
+export type Claim = { setting: Setting; end: Day | null; segments: Segment[]; turns: Line[] }
 
 // R1, R4 : sortie du calendrier, la journée où un réglage cède la place, ou celle d'origine d'un de
 // ses reports s'il est remplacé le jour où il commence, se lit avec ce réglage.
@@ -17,13 +17,11 @@ export function leftDays(
   landed: readonly Line[],
 ) {
   const left = new Map<Day, Journey>()
-  for (const { setting, end, segments } of claims) {
+  for (const { setting, end, segments, turns } of claims) {
     if (end === null || handed.has(setting.id)) continue
-    // R6 : un décalage du réglage ne laisse aucune de ses échéances jusqu'à son ancrage.
+    // R6 : un décalage de son rythme ne laisse aucune de ses échéances jusqu'à son ancrage.
     const turnedAway = (day: Day) =>
-      landed.some(
-        (turn) => turn.settingId === setting.id && turn.dueOn < day && day <= turn.targetOn!,
-      )
+      landed.some((turn) => turns.includes(turn) && turn.dueOn < day && day <= turn.targetOn!)
     const reported = reports
       .filter(({ settingId, dueOn }) => settingId === setting.id && !turnedAway(dueOn))
       .map(({ dueOn }) => dueOn)
