@@ -2976,9 +2976,9 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
-## 2026-10-25 — Ligne unique de `sync_state` reposée à l'ouverture de la base, sans migration
+## 2026-10-25 — Ligne unique de `sync_state` reposée à l'ouverture de la base, sans migration (#1286)
 
-Constat sur MémoPatte Dev : après la connexion Google, « Restaurer mon carnet » s'ouvre et la
+Choix de bonne pratique de Claude, en autonomie, pas décision de Gaelle. Constat sur MémoPatte Dev : après la connexion Google, « Restaurer mon carnet » s'ouvre et la
 console répète « Restauration en attente non lue » et « Sauvegarde du compte non contrôlée » ; la
 table `sync_state` existe mais sa ligne `id = 1` manque. Seules les fixtures de développement
 l'effaçaient (`clearAllTables` avant le 2026-10-21, à chaque lancement de développement sur une base
@@ -2997,7 +2997,15 @@ transaction que le reste.
   seconde), et chaque émission relançait le contrôle de la sauvegarde et la reprise de la
   restauration, et effaçait l'attente entre deux cycles ratés. Un passage du Wi-Fi aux données
   mobiles sans coupure ne relance plus rien : le retour au premier plan le fait.
-- Pour revenir dessus : retirer l'appel de `repairSyncStateRow` dans `openDatabase`.
+- Et donc : tant que « Restaurer mon carnet » attend le réseau (restauration interrompue ou contrôle
+  du compte injoignable), un nouvel essai part par minuterie, aux paliers de recul de la synchro (5 s,
+  15 s, 1 min, 5 min, puis toutes les 15 min). Une seule minuterie ; elle s'arrête dès que le flux
+  quitte l'attente (restauration aboutie, déconnexion, changement de compte, choix proposé) et repart
+  du premier palier la fois suivante. Sans elle, une restauration coupée alors que le Wi-Fi reste
+  allumé ne reprenait plus seule. — Alternatives écartées : un bouton « Réessayer » sur cet écran
+  (texte sans maquette) ; accepter que la reprise attende le retour au premier plan.
+- Pour revenir dessus : retirer l'appel de `repairSyncStateRow` dans `openDatabase` ; retirer
+  `installRestoreRetry` de `installSync`.
 
 ## 2026-10-24 — La date choisie se juge contre l'instant du « Modifier » qui l'a choisie (#1232, Q40)
 

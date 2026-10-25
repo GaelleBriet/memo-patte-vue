@@ -110,7 +110,7 @@ describe('getDb', () => {
     expect(plugin.createConnection).toHaveBeenCalledTimes(1)
   })
 
-  it('repose la ligne unique de sync_state à l’ouverture, sans toucher à une ligne présente', async () => {
+  it('repose la ligne unique de sync_state après l’ouverture', async () => {
     const connection = fakeConnection()
     plugin.createConnection.mockResolvedValue(connection)
     const { getDb } = await importSqlite()

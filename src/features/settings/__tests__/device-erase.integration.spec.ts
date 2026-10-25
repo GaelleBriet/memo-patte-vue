@@ -69,7 +69,7 @@ describe('effacement des données dans une vraie base', () => {
         weight: createWeightRepository(db),
       },
     })
-    // Les fixtures vident aussi `sync_state` : la ligne d'un abonné en cours de synchro est reposée.
+    // La ligne d'un abonné en cours de synchro, que l'effacement doit remettre à zéro.
     await db.run(
       `INSERT OR REPLACE INTO sync_state (id, enabled, restoring, last_synced_at)
        VALUES (1, 1, 1, '2026-09-30T10:00:00.000Z')`,
