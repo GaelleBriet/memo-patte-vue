@@ -3892,6 +3892,37 @@ la dose du moment ou à venir aujourd'hui et au jour choisi (Q43, retirait la ca
 d'une prise qui porte son décalage) ; comparer le calendrier avec et sans le décalage (Q44, case le
 25 mais pas le 24 ni le 31). — Pour revenir dessus : `offersShiftFor` (`gestures/shift-offer.ts`).
 
+2026-10-25 — **Décalage reconnu par jour et heure : #1262** (spec `traitements.md` R6, N2 ;
+décision de bonne pratique dans le périmètre de Q46 de la session d'analyse du moteur). Le décalage
+d'une journée suit la prise corrigée quand il est ancré à sa date ; quand une autre heure de la
+même journée a été donnée le même jour, seulement s'il porte son heure. Luna, tous les 3 jours à
+8 h et 20 h depuis le 1er mars ; le 8, les doses du 7 données le 8, 8 h sans la case, 20 h avec (suite
+aux 11, 14, 17) ; le 10, la prise de 8 h changée au 9 (ou au 6), case décochée : le décalage de la
+prise de 20 h reste au 8, la suite aux 11, 14, 17 (avant : il était supprimé, la suite revenait aux
+10, 13, 16). La prise de 20 h changée au 9 garde le comportement d'avant. Une prise seule à sa date
+dans sa journée est inchangée. Le décalage d'une dose avancée (G18) garde l'heure de son report, qui
+ne dit pas quelle prise l'a réécrit : il reste reconnu par sa date seule, comme avant. Luna, la dose de
+8 h du 7 avancée au 6 avec la case, les doses du 6 données le 5, 20 h avec la case ; le 8, la prise
+de 20 h changée au 6 : le décalage revient au 6, doses les 9 et 12, comme à une heure. Résidu, le même
+qu'avant : la prise de 8 h, changée au 6, ramène aussi ce décalage au 6. — Raison : une prise ne
+défait pas le décalage qu'une autre a écrit. — Alternative écartée : comparer toujours l'heure du
+décalage, qui garde l'heure de la première ligne écrite sur la journée (un report d'une autre heure,
+#1255) et retirerait son décalage à la prise qui l'a réécrit. — Pour revenir dessus : `ownsDayShift`
+(`gestures/changes.ts`).
+
+2026-10-25 — **Un geste sur une heure ne réécrit jamais le décalage d'une autre heure** (#1262, spec
+`traitements.md` R6 ; Q48 de la session d'analyse du moteur, à qui Gaelle a délégué les lectures de
+règles). Pour les deux gestes, la case n'est pas proposée quand la journée porte déjà le décalage
+écrit par la prise d'une autre heure donnée (même définition que l'entrée précédente). Luna, tous les
+3 jours à 8 h et 20 h depuis le 1er mars ; les doses du 7 données le 8, 20 h avec la case ; le 10, la
+prise de 8 h changée au 9, ou « Fait à une autre date » au 9 pour 8 h : pas de case, le décalage reste
+ancré au 8, la suite aux 11, 14, 17 (avant : case proposée, cochée elle ancrait la journée au 9, suite
+aux 12, 15, la prise de 20 h restant au 8). La prise de 20 h changée au 9 garde sa case. Même chose en
+hebdomadaire (doses du 20 octobre données le 21, suite au 28). — Raison : « le décalage est de la
+journée » dit qui le lit, pas qui a le droit de le réécrire. — Alternative écartée : laisser la
+dernière heure sans prise réancrer la journée. — Pour revenir dessus : `offersShiftFor`
+(`gestures/shift-offer.ts`).
+
 ## 2026-10-24 — Un report redéplacé depuis une date choisie, hors de sa grille, est sans effet (#1231, Q39)
 
 Décision de la session d'analyse du moteur, à qui Gaelle a délégué les lectures de règles (Q26, Q39

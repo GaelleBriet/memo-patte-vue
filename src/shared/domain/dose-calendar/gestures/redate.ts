@@ -8,7 +8,7 @@ import type {
   TreatmentViewInput,
 } from '../types'
 import { buildView } from '../view'
-import { shiftOfDay, shiftWritten, without } from './changes'
+import { ownsDayShift, shiftOfDay, shiftWritten, without } from './changes'
 import { doseLines } from './dose-lines'
 import { checkPast, dueForDate, noteDose } from './note'
 import { lostToEnd, outcome, shiftDayOf, withFollowed } from './outcome'
@@ -114,8 +114,7 @@ function redateGiven(input: TreatmentViewInput, line: Line, gesture: RedateGestu
   if (boundary !== null && givenOn < boundary) {
     return { refusal: { reason: 'too-early', earliest: boundary } }
   }
-  // N2 : seul le décalage ancré à la date de la prise la suit ; un autre décalage de la journée reste.
-  const owned = own !== undefined && own.targetOn === line.givenOn ? own : undefined
+  const owned = own !== undefined && ownsDayShift(input, line, own) ? own : undefined
   const offered = offersShiftFor(
     without(input, [line.id, ...(owned === undefined ? [] : [owned.id])]),
     due,

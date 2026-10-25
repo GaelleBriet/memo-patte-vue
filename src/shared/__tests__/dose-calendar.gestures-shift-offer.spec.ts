@@ -297,3 +297,97 @@ describe('la case « Décaler aussi » : une seule condition pour « Fait à une
     })
   })
 })
+
+describe('la case à deux heures, quand les heures d’une journée partagent une date (#1262)', () => {
+  const luna = setting('s1', '2026-03-01', { value: 3, unit: 'day' }, H)
+  const hebdo = setting('s1', '2026-10-06', WEEK, H)
+  const taken = (dueOn: string, dueTime: string, givenOn = dueOn) => ({
+    ...line('s1', 'given', dueOn, dueTime),
+    givenOn,
+  })
+  const early = [
+    taken('2026-03-01', '08:00'),
+    taken('2026-03-01', '20:00'),
+    taken('2026-03-04', '08:00'),
+    taken('2026-03-04', '20:00'),
+  ]
+  const at = (dueOn: string, dueTime: string): Due => ({ settingId: 's1', dueOn, dueTime })
+  const carnet = (lines: TreatmentViewInput['lines'], today: string, s = luna) => ({
+    settings: [s],
+    lines,
+    today,
+  })
+
+  it.each([
+    ['8 h du 7 donnée le 8, 20 h au 8', [taken('2026-03-07', '08:00', '2026-03-08')], '2026-03-08'],
+    ['8 h du 7 donnée le 9, 20 h au 8', [taken('2026-03-07', '08:00', '2026-03-09')], '2026-03-08'],
+    ['8 h du 7 donnée le 7, 20 h au 8', [taken('2026-03-07', '08:00')], '2026-03-08'],
+    ['8 h du 7 donnée le 8, 20 h au 6', [taken('2026-03-07', '08:00', '2026-03-08')], '2026-03-06'],
+  ])('Luna, le 9 : %s : proposée des deux côtés, même calendrier', (_, day7, givenOn) => {
+    const input = carnet([...early, ...day7], '2026-03-09')
+    expect(bothWays(input, at('2026-03-07', '20:00'), givenOn)).toEqual({
+      offers: [true, true],
+      sameCalendar: true,
+    })
+  })
+
+  it('Luna, le 9 : 8 h du 7 sans prise, 20 h au 8 : jamais proposée, même calendrier', () => {
+    expect(bothWays(carnet(early, '2026-03-09'), at('2026-03-07', '20:00'), '2026-03-08')).toEqual({
+      offers: [false, false],
+      sameCalendar: true,
+    })
+  })
+
+  it('Luna, le 10 : les doses du 7 sont non renseignées, 20 h au 8 : jamais proposée, même calendrier (N1)', () => {
+    const input = carnet([...early, taken('2026-03-07', '08:00', '2026-03-08')], '2026-03-10')
+    expect(bothWays(input, at('2026-03-07', '20:00'), '2026-03-08')).toEqual({
+      offers: [false, false],
+      sameCalendar: true,
+    })
+  })
+
+  it.each([
+    ['au 9', '2026-03-09'],
+    ['au 6', '2026-03-06'],
+  ])(
+    'Luna, le 10 : 20 h du 7 donnée le 8 avec la case, 8 h %s : jamais proposée, même calendrier (Q48)',
+    (_, givenOn) => {
+      const lines = [
+        ...early,
+        taken('2026-03-07', '20:00', '2026-03-08'),
+        line('s1', 'shift', '2026-03-07', '20:00', '2026-03-08'),
+      ]
+      expect(bothWays(carnet(lines, '2026-03-10'), at('2026-03-07', '08:00'), givenOn)).toEqual({
+        offers: [false, false],
+        sameCalendar: true,
+      })
+    },
+  )
+
+  it('hebdomadaire, le 23 octobre : 20 h du 20 donnée le 21 avec la case, 8 h au 22 : jamais proposée, même calendrier (Q48)', () => {
+    const lines = [
+      taken('2026-10-06', '08:00'),
+      taken('2026-10-06', '20:00'),
+      taken('2026-10-13', '08:00'),
+      taken('2026-10-13', '20:00'),
+      taken('2026-10-20', '20:00', '2026-10-21'),
+      line('s1', 'shift', '2026-10-20', '20:00', '2026-10-21'),
+    ]
+    expect(
+      bothWays(carnet(lines, '2026-10-23', hebdo), at('2026-10-20', '08:00'), '2026-10-22'),
+    ).toEqual({ offers: [false, false], sameCalendar: true })
+  })
+
+  it('hebdomadaire, le 23 octobre : 8 h du 20 donnée le 21, 20 h au 22 : proposée des deux côtés, même calendrier', () => {
+    const lines = [
+      taken('2026-10-06', '08:00'),
+      taken('2026-10-06', '20:00'),
+      taken('2026-10-13', '08:00'),
+      taken('2026-10-13', '20:00'),
+      taken('2026-10-20', '08:00', '2026-10-21'),
+    ]
+    expect(
+      bothWays(carnet(lines, '2026-10-23', hebdo), at('2026-10-20', '20:00'), '2026-10-22'),
+    ).toEqual({ offers: [true, true], sameCalendar: true })
+  })
+})
