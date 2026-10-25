@@ -210,6 +210,6 @@ export function homeBeforeChosen(
   const setting = rest.settingAt(moved.dueOn)
   if (setting?.firstDueChosen !== true || setting.firstDueOn <= moved.dueOn) return undefined
   return rest
-    .slots(due.dueOn, due.dueOn)
+    .slots(setting.firstDueOn, setting.firstDueOn)
     .find(({ due: other, state }) => state === 'pending' && other.dueTime === due.dueTime)?.due
 }
