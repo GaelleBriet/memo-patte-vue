@@ -1,5 +1,6 @@
 import { gridDateOf, hoursOf, isOnGrid } from './grid'
-import type { Journey } from './journeys'
+import type { Journey, journeys } from './journeys'
+import type { Span } from './settings'
 import type { Day, Hour, Line, Setting } from './types'
 
 /** Ce que la réécriture a pu ôter : `drawnBy`, le réglage qui a tracé la grille du jour. */
@@ -95,4 +96,32 @@ export function departureVerdict(
   if (departure === undefined) return dayVerdict(report, written, context, readings)
   if ([...departure.hours, ...arrived].includes(report.dueTime)) return null
   return rewriteVerdict(report, written, 'hour', context)
+}
+
+/**
+ * #939 : les réglages qui peuvent garder un report : celui qui lit la journée, et celui dont vient la
+ * date choisie qu'il continue (TR-9), qu'un « Modifier » de posologie ne remplace pas.
+ */
+export function readingsOn(
+  day: Day | null | undefined,
+  span: Pick<Span, 'settingAt' | 'live'>,
+  journey: Pick<ReturnType<typeof journeys>, 'chosenRestarts' | 'drawnBy'>,
+): Reading[] {
+  if (day === null || day === undefined) return []
+  const setting = span.settingAt(day)
+  const chosenOn = journey.chosenRestarts.get(setting?.id ?? '')
+  const chooser = span.live
+    .filter(
+      (each) =>
+        setting !== undefined &&
+        each.firstDueChosen &&
+        each.firstDueOn === chosenOn &&
+        each.createdAt <= setting.createdAt,
+    )
+    .at(-1)
+  return [setting, chooser].map((each) => ({
+    day,
+    setting: each,
+    drawnBy: journey.drawnBy.get(each?.id ?? ''),
+  }))
 }

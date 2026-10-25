@@ -1,3 +1,4 @@
+import { chosenAtOf } from '../grid'
 import type { Day, Due, Line, LineFields, Setting, TreatmentViewInput } from '../types'
 import type { TreatmentView } from '../view'
 import { shiftOfDay } from './changes'
@@ -75,7 +76,7 @@ export function chosenArrivalKept(
     (setting) =>
       setting.firstDueChosen &&
       setting.firstDueOn === day &&
-      report.decidedAt > (setting.updatedAt ?? setting.createdAt),
+      report.decidedAt > chosenAtOf(setting),
   )
   return chosen
     ? { previousTargetOn: day, previousTargetTime: report.previousTargetTime ?? null }

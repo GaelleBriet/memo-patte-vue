@@ -111,7 +111,7 @@ export function moved(
 }
 
 /** « Supprimer » une prise notée. */
-export function removed(input: TreatmentViewInput, dueOn: string, dueTime: string) {
+export function removed(input: TreatmentViewInput, dueOn: string, dueTime: string | null) {
   const note = input.lines.find(
     (line) => line.status === 'given' && line.dueOn === dueOn && line.dueTime === dueTime,
   )!

@@ -3860,3 +3860,55 @@ jusqu'au 24 se choisissent, et le 24 pose « En plus » / « Remplace celle du 1
 quand ? » d'une notification garde sa borne. — Raison : Q34 I3 vaut pour toute entrée ; avant, le
 récapitulatif annonçait « Dose du 1er nov., donnée le 24 oct. » alors que la prise s'écrivait en
 plus. — Alternative écartée : depuis « À faire », aujourd'hui seulement.
+
+## 2026-10-24 — Un report redéplacé depuis une date choisie, hors de sa grille, est sans effet (#1231, Q39)
+
+Décision de la session d'analyse du moteur, à qui Gaelle a délégué les lectures de règles (Q26, Q39
+du 24 octobre 2026 ; spec `traitements.md` R9, R10, R11). Un report dont l'ancienne arrivée est la
+date choisie d'un réglage, plus ancien que le « Modifier » qui l'a choisie, et parti d'une journée que
+la grille de cette date n'a pas, est grisé « sans effet », à fréquence gardée comme changée ; sa
+journée de départ, sans ligne, revient à renseigner. Exception : quand une dose qu'il apporte est déjà
+donnée, il a servi, il reste en vigueur et la prise garde sa journée (R4). Milo, chaque jour sans heure
+depuis le 6 mars ; le 9, la dose du 10 reportée au 21 avec « Décaler aussi les doses suivantes », le 12
+ramenée au 17 avec la case, puis « Modifier » : toutes les 2 semaines, « Prochaine dose » le 21 : rien
+le 17, le 10 mars à renseigner, puis le 21 mars et le 4 avril (avant : le 17, puis le 21 mars). Toutes
+les 6 semaines, la dose du 27 mars reportée puis ramenée au 4 avril, donnée le 28 mars, puis tous les
+mois à partir du 5 avril : le 4 avril reste donné, le 27 mars ne revient pas à renseigner. Deux
+téléphones, cas Q1 avec le réglage plus récent : le 11 à 9 h et 21 h puis le 18, le « 13 à 20 h » en
+trop (#986) disparaît. — Raison : une personne seule voyait le 17 avant la date choisie du 21. —
+Alternatives écartées : rendre sans effet tout report parti hors de la grille de la date choisie (casse
+#796 à fréquence changée) ; rendre sans effet un report dont la dose arrivée est donnée (le jour de
+départ redemanderait une dose déjà donnée). — Pour revenir dessus : retirer `outdatedByChosenDate`
+(`report-rank.ts`) et `staleBeforeChosenDate` (`reference-ranks.ts`).
+
+## 2026-10-24 — Report rendu sans effet par une date choisie : son décalage le suit, une prise d'après le « Modifier » ne le relance pas (#1231, Q41)
+
+Décision de la session d'analyse du moteur, à qui Gaelle a délégué les lectures de règles (Q41 du 24
+octobre 2026 ; spec `traitements.md` R6, R9, R10). Précise l'entrée Q39 ci-dessus. (1) Seule une prise
+écrite avant le « Modifier » de la date choisie garde le report en vigueur : la raison de Q39 est qu'il
+a servi avant d'être rendu sans effet. Milo, chaque jour sans heure depuis le 6 mars ; le 9, la dose du
+10 reportée au 21 avec la case ; le 12, redéplacée au 4 avril, puis « Modifier » : toutes les 2
+semaines, « Prochaine dose » le 21 ; le 4 avril donné ensuite est une dose de la grille : le report
+reste sans effet, le 10 mars reste à renseigner, et « Supprimer » la prise n'y change rien (de même à
+8 h et 20 h pour la dose de 20 h). La graine 210000343 ne change pas (prise du 28 mars, « Modifier » du
+5 avril). (2) Le décalage suit son report (R6, 6b du 18 octobre) : dans le cas du ticket, les 10 et 11
+mars reviennent à renseigner. (3) La ligne « Reportée au 17 » d'un report jamais redéplacé reste en
+vigueur (le 17 est montré) ; celle du carnet du ticket est grisée « sans effet ». (4) Le cas #939 à
+deux téléphones, réglage plus récent, n'est plus un résidu (#986). — Alternative écartée : toute prise
+du jour d'arrivée, quelle que soit sa date d'écriture (le report dépendrait d'un hasard de dates).
+
+## 2026-10-24 — L'instant du choix de la date d'un réglage (#1231, Q45)
+
+Décision de la session d'analyse du moteur, à qui Gaelle a délégué les lectures de règles (Q45 du 24
+octobre 2026 ; spec `traitements.md` R10). L'instant où la date d'un réglage a été choisie, contre
+lequel se jugent un report redéplacé depuis cette date (Q26, Q39, Q40, Q41), est l'ouverture du réglage,
+ou la date de sa grille si une réécriture l'a datée plus tard ; une réécriture d'heures seules ne date
+rien (invariant « heures seules » du 15 octobre). Luna, tous les 3 jours à 20 h depuis le 27 mars ; le
+1er avril, la dose du 30 mars reportée au 22 avec la case ; le 9, « Prochaine dose » le 10 ; la dose
+du 10 redéplacée au 21 avec la case ; puis 20 h 01 le même jour : rien ne change (graine 480000493,
+avant : le report devenait sans effet et les 30 mars, 2 et 5 avril revenaient à renseigner). — Alternative
+écartée : la dernière réécriture du calendrier (`updatedAt`), qu'une réécriture d'heures avance. —
+Corrigé par Q47 : pas de datation de la grille par un second « Modifier » du jour qui re-choisit une date
+sur l'ancienne grille (l'héritage de #977 et « un ou deux Modifier : la même date de grille » priment) ;
+un report d'un réglage plus ancien écrit entre les deux gestes est jugé contre l'ouverture : trou connu
+#1259, qui pose à Gaelle une colonne pour l'instant du choix.

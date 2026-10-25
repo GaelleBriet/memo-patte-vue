@@ -4,8 +4,14 @@ import { withCededDoses } from './ceded-day'
 import { hoursOf, keyOf, sameFrequency, sameHours } from './grid'
 import type { Journey, journeys } from './journeys'
 import type { EpisodeLines } from './lines'
-import { hoursSeenOn, oldArrivalChooser, rankedMove, wholeDay } from './report-rank'
-import { departureVerdict, type Reading } from './rewrite'
+import {
+  hoursSeenOn,
+  oldArrivalChooser,
+  outdatedByChosenDate,
+  rankedMove,
+  wholeDay,
+} from './report-rank'
+import { departureVerdict, readingsOn } from './rewrite'
 import type { Span } from './settings'
 import type { Day, Hour, Line, LineEffect, Setting } from './types'
 
@@ -100,14 +106,14 @@ export function moveReports(input: ReportsInput) {
       arrived: arrived.get(dueOn) ?? [],
       written: settingOf(report.settingId),
       drawnBy: journey.drawnBy.get(span.settingAt(dueOn)?.id ?? ''),
-      readings: [dueOn, report.previousTargetOn].flatMap(readingsOn),
+      readings: [dueOn, report.previousTargetOn].flatMap((day) => readingsOn(day, span, journey)),
     })
     const rewrite = verdict === 'kept' ? null : verdict
     const origin = rewrite === null ? (days.get(dueOn) ?? left.get(dueOn)) : undefined
     const ceded = arrivalsOnly.has(dueOn) ? left.get(dueOn) : undefined
     const read = origin && withCededDoses(origin, ceded)
     const from = origin?.setting ?? settingOf(report.settingId)
-    if (rewrite === 'rewrite') {
+    if (rewrite === 'rewrite' || outdatedByChosenDate(report, span, lines.notes)) {
       effects.set(report.id, { kind: 'idle', reason: 'nothing-to-move' })
       continue
     }
@@ -196,28 +202,6 @@ export function moveReports(input: ReportsInput) {
     for (const key of [...leaving.map((hour) => keyOf(dueOn, hour)), ...keys])
       moved.set(key, report)
     arrive(report, keys, bringing, source)
-  }
-
-  // #939 : les réglages qui peuvent garder un report : celui qui lit la journée, et celui dont vient la
-  // date choisie qu'il continue (TR-9), qu'un « Modifier » de posologie ne remplace pas.
-  function readingsOn(day: Day | null | undefined): Reading[] {
-    if (day === null || day === undefined) return []
-    const setting = span.settingAt(day)
-    const chosenOn = chosenRestarts.get(setting?.id ?? '')
-    const chooser = span.live
-      .filter(
-        (each) =>
-          setting !== undefined &&
-          each.firstDueChosen &&
-          each.firstDueOn === chosenOn &&
-          each.createdAt <= setting.createdAt,
-      )
-      .at(-1)
-    return [setting, chooser].map((each) => ({
-      day,
-      setting: each,
-      drawnBy: journey.drawnBy.get(each?.id ?? ''),
-    }))
   }
 
   // R7 : le jour d'arrivée ne reçoit que les heures reportées, telles qu'elles étaient au départ ;
