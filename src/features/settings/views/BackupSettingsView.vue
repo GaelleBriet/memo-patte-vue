@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import { useBackupStatus } from '../composables/use-backup-status'
+import { useRestorePending } from '../composables/use-restore-pending'
 import type { CloudBackupStatus } from '../logic/backup-status'
 import { cloudBackupText, refusedItemsHelpText } from '../logic/backup-status-text'
 import BackupCopyRow from './BackupCopyRow.vue'
@@ -21,6 +22,7 @@ const STATUS_LOOK: Record<CloudBackupStatus['kind'], { icon: string; tone: strin
 const { t } = useI18n()
 const router = useRouter()
 const { status, refused, photosBackedUp, now } = useBackupStatus()
+const { isPending: isRestorePending, choose: chooseRestore } = useRestorePending()
 
 const cloud = computed<CloudBackupStatus | null>(() =>
   status.value === null || status.value.kind === 'local' || status.value.kind === 'unread'
@@ -62,6 +64,31 @@ function goBack(): void {
     @back="goBack"
   >
     <div v-if="status !== null" class="backup-settings__content">
+      <template v-if="isRestorePending">
+        <div
+          class="settings-row backup-settings__card backup-settings__restore-pending backup-settings__status--warning"
+        >
+          <v-icon class="settings-row__icon" icon="ms:cloud_download" size="24" />
+          <span class="settings-row__text">
+            <span class="settings-row__label">
+              {{ t('settings.backup.cloud.restorePending.title') }}
+            </span>
+            <span class="settings-row__hint">
+              {{ t('settings.backup.cloud.restorePending.hint') }}
+            </span>
+          </span>
+        </div>
+        <v-btn
+          class="backup-settings__action backup-settings__restore-choose"
+          variant="flat"
+          color="primary"
+          block
+          @click="chooseRestore"
+        >
+          {{ t('settings.backup.cloud.restorePending.choose') }}
+        </v-btn>
+      </template>
+
       <template v-if="cloud && cloudText && cloudLook">
         <div
           class="settings-row backup-settings__card backup-settings__status"
@@ -87,7 +114,7 @@ function goBack(): void {
         </button>
         <v-btn
           v-if="cloud.kind === 'interrupted'"
-          class="backup-settings__sign-in"
+          class="backup-settings__action backup-settings__sign-in"
           variant="flat"
           color="primary"
           block
@@ -179,7 +206,8 @@ function goBack(): void {
 }
 
 .backup-settings__local .settings-row__label,
-.backup-settings__status .settings-row__label {
+.backup-settings__status .settings-row__label,
+.backup-settings__restore-pending .settings-row__label {
   font-weight: 700;
 }
 
@@ -206,7 +234,7 @@ function goBack(): void {
   color: rgb(var(--v-theme-warning));
 }
 
-.backup-settings__sign-in {
+.backup-settings__action {
   min-height: 52px;
   border-radius: tokens.$radius-pill;
   font-size: 16px;

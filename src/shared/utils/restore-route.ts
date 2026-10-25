@@ -2,7 +2,7 @@ import type { RouteLocationRaw } from 'vue-router'
 
 export const RESTORE_ROUTE = 'account-restore'
 const DEFAULT_RETURN_ROUTE = 'home'
-const RETURN_ROUTES: readonly string[] = ['home', 'settings-plus']
+const RETURN_ROUTES: readonly string[] = ['home', 'settings-plus', 'settings-backup']
 
 /** `from` : l'écran d'où part la restauration, où le retour ramène. */
 export function restoreRoute(from: string): RouteLocationRaw {

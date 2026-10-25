@@ -1364,6 +1364,11 @@
           "signIn": "Se reconnecter",
           "exportHint": "Conseillé tant que la sauvegarde est interrompue"
         },
+        "restorePending": {
+          "title": "Restauration en attente",
+          "hint": "Ta sauvegarde cloud attend ton choix : fusionner avec le carnet de ce téléphone, ou le remplacer.",
+          "choose": "Choisir"
+        },
         "photos": {
           "label": "Photos sauvegardées",
           "value": "Oui"

@@ -13,6 +13,11 @@ import { memoryStorage } from '@/features/purchase/__tests__/billing-fixture'
 import { readUsageSignals } from '@/core/usage/usage-signals'
 import { showToast } from '@/shared/utils/toast'
 import { provideBackupFacts, type BackupFacts } from '@/core/sync/service/backup-facts'
+import {
+  createRestoreFlow,
+  provideRestoreFlow,
+  type RestoreFlow,
+} from '@/core/sync/service/restore-flow'
 
 const exportData = vi.hoisted(() => vi.fn<DataExportService['exportData']>())
 
@@ -70,6 +75,7 @@ afterEach(async () => {
   document.body.innerHTML = ''
   i18n.global.locale.value = 'fr'
   provideBackupFacts(null)
+  provideRestoreFlow(null)
   vi.useRealTimers()
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
@@ -492,6 +498,97 @@ describe('BackupSettingsView', () => {
       expect(wrapper.get('.backup-settings__erase').text()).toContain(
         'Your cloud backup is not affected',
       )
+    })
+  })
+
+  describe('« Restauration en attente »', () => {
+    const SUMMARY = { animalCount: 2, lastBackupAt: '2026-10-20T19:04:00.000Z' }
+
+    function parcours(): RestoreFlow {
+      const flow = createRestoreFlow({
+        pendingMode: async () => null,
+        start: async () => {},
+        run: () => new Promise(() => {}),
+        progress: { done: 0, total: 0 },
+        onProgress: () => () => {},
+      })
+      provideRestoreFlow(flow)
+      return flow
+    }
+
+    function bloc(wrapper: VueWrapper) {
+      return wrapper.find('.backup-settings__restore-pending')
+    }
+
+    it('s’affiche quand la sauvegarde cloud attend « Fusionner » ou « Remplacer »', async () => {
+      parcours().offer(SUMMARY)
+      const wrapper = await monter()
+
+      expect(bloc(wrapper).text().replace(/\s+/g, ' ')).toBe(
+        'Restauration en attente Ta sauvegarde cloud attend ton choix : fusionner avec le carnet de ce téléphone, ou le remplacer.',
+      )
+      expect(bloc(wrapper).classes()).toContain('backup-settings__status--warning')
+      expect(wrapper.get('.backup-settings__restore-choose').text()).toBe('Choisir')
+    })
+
+    it('« Choisir » ouvre « Restaurer mon carnet », qui ramène à la Sauvegarde', async () => {
+      parcours().offer(SUMMARY)
+      const wrapper = await monter()
+
+      await wrapper.get('.backup-settings__restore-choose').trigger('click')
+
+      expect(push).toHaveBeenCalledWith({
+        name: 'account-restore',
+        query: { from: 'settings-backup' },
+      })
+    })
+
+    it('disparaît dès que le choix est fait', async () => {
+      const flow = parcours()
+      flow.offer(SUMMARY)
+      const wrapper = await monter()
+
+      void flow.choose('merge')
+      await flushPromises()
+
+      expect(flow.state.value.step).toBe('restoring')
+      expect(bloc(wrapper).exists()).toBe(false)
+      expect(wrapper.find('.backup-settings__restore-choose').exists()).toBe(false)
+    })
+
+    it('ne s’affiche jamais sans choix en attente', async () => {
+      const flow = parcours()
+      const wrapper = await monter()
+      expect(bloc(wrapper).exists()).toBe(false)
+
+      flow.checking()
+      await flushPromises()
+      expect(bloc(wrapper).exists()).toBe(false)
+
+      flow.unreachable()
+      await flushPromises()
+      expect(bloc(wrapper).exists()).toBe(false)
+
+      flow.noAnswer()
+      await flushPromises()
+      expect(bloc(wrapper).exists()).toBe(false)
+    })
+
+    it('ne s’affiche pas hors compte, sans restauration branchée', async () => {
+      const wrapper = await monter()
+
+      expect(bloc(wrapper).exists()).toBe(false)
+    })
+
+    it('se lit en anglais', async () => {
+      i18n.global.locale.value = 'en'
+      parcours().offer(SUMMARY)
+      const wrapper = await monter()
+
+      expect(bloc(wrapper).text().replace(/\s+/g, ' ')).toBe(
+        'Restore pending Your cloud backup is waiting for your choice: merge with the health record on this phone, or replace it.',
+      )
+      expect(wrapper.get('.backup-settings__restore-choose').text()).toBe('Choose')
     })
   })
 })

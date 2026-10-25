@@ -22,6 +22,7 @@ describe('restoreReturnRoute', () => {
   it('ramène à l’écran d’origine', () => {
     expect(restoreReturnRoute('home')).toEqual({ name: 'home' })
     expect(restoreReturnRoute('settings-plus')).toEqual({ name: 'settings-plus' })
+    expect(restoreReturnRoute('settings-backup')).toEqual({ name: 'settings-backup' })
   })
 
   it('se replie sur l’accueil quand l’origine est absente ou inconnue', () => {
