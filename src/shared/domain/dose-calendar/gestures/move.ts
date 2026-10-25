@@ -19,6 +19,7 @@ import {
   arrivalOnGridDay,
   chosenArrivalKept,
   followerLines,
+  lastOfPair,
   opensRhythm,
   reportsOf,
   reportToRewrite,
@@ -132,7 +133,9 @@ function planOf(
   // R7, R9.2 : partie de son arrivée, la dose rendrait au jour les heures du nouveau rythme.
   if (existing !== undefined && opensRhythm(view, existing)) return { reason: 'not-movable' }
   const shared = existing === undefined || carried ? undefined : sharedArrival(view, existing)
-  if (shared !== undefined) return { reason: 'arrival-shared', on: shared.dueOn }
+  if (shared !== undefined) {
+    return { reason: 'arrival-shared', on: lastOfPair(existing!, shared).dueOn }
+  }
   const locked = reportsOf(view, ids).some((report) => report.targetOn === due.dueOn)
   if (existing === undefined && locked && view.dueState(due) !== 'pending') {
     return { reason: 'arrival-logged' }

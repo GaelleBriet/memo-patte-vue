@@ -1,4 +1,5 @@
 import { chosenAtOf } from '../grid'
+import { isMoreRecent } from '../lines'
 import type {
   Day,
   Due,
@@ -83,6 +84,16 @@ export function sharedArrival(
   )?.line
 }
 
+/**
+ * Q52 : des deux reports arrivés le même jour, celui écrit en dernier, le seul qui se supprime :
+ * celui que l'autre a suivi (Q50, arrivée d'avant sur son jour de départ), sinon le plus récent.
+ */
+export function lastOfPair(a: Line, b: Line): Line {
+  if (b.previousTargetOn === a.dueOn) return a
+  if (a.previousTargetOn === b.dueOn) return b
+  return isMoreRecent(a, b) ? a : b
+}
+
 // R7 : un report est une ligne, il ne se coupe pas ; il n'apporte aucune heure avant l'heure touchée.
 function bringsNothingEarlier(view: TreatmentView, report: Line, time: string | null): boolean {
   const effect = view.history.find(({ line }) => line.id === report.id)?.effect
@@ -119,7 +130,8 @@ export function arrivalOnGridDay(
   if (shared === undefined && bringsNothingEarlier(view, report, due.dueTime)) {
     return { follower: report }
   }
-  return { refusal: { reason: 'arrival-shared', on: (shared ?? report).dueOn } }
+  const named = shared === undefined ? report : lastOfPair(report, shared)
+  return { refusal: { reason: 'arrival-shared', on: named.dueOn } }
 }
 
 /** R7, #1274 : le report qui suit la journée partie arrive au même jour, ou rentre chez lui. */

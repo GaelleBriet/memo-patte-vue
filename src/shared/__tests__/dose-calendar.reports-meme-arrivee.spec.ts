@@ -5,12 +5,14 @@ import {
   moveBounds,
   moveDose,
   noteDose,
+  redateDose,
   removalRefusal,
+  removeLine,
   treatmentView,
   type Due,
   type TreatmentViewInput,
 } from '../domain/dose-calendar'
-import { given, moved, on, recorded } from './dose-calendar.reglage-corrige.aides'
+import { edited, given, moved, on, recorded } from './dose-calendar.reglage-corrige.aides'
 import { keys, line, setting } from './dose-calendar.v2.aides'
 
 // Q51 (#1274) : Milo, tous les 3 jours dès le 1er mars, les doses du 1er données ; le 4, une dose
@@ -73,12 +75,25 @@ describe('deux reports arrivés le même jour ne se séparent pas (Q51, C1)', ()
     ])
   })
 
-  it('« Supprimer » le report du 6 est refusé : « Supprime d’abord le report du 4. » ; celui du 4 de même', () => {
-    expect(removalRefusal(twoAt7, reportFrom(twoAt7, '2026-03-06'))).toEqual(SHARED.refusal)
-    expect(removalRefusal(twoAt7, reportFrom(twoAt7, '2026-03-04'))).toEqual({
-      reason: 'arrival-shared',
-      on: '2026-03-06',
-    })
+  const LAST = { reason: 'arrival-shared', on: '2026-03-06' }
+
+  it('Q52 : le report du 6, écrit en dernier, se supprime seul et rend la fiche d’avant ; celui du 4 attend', () => {
+    const before = milo(['08:00', '20:00'], '20:00')
+    expect(removalRefusal(twoAt7, reportFrom(twoAt7, '2026-03-04'))).toEqual(LAST)
+    const result = removeLine(twoAt7, reportFrom(twoAt7, '2026-03-06'))
+    if ('refusal' in result) throw new Error(JSON.stringify(result))
+    const undone = recorded(twoAt7, result.changes)
+
+    expect(calendar(undone)).toEqual(calendar(before))
+    expect(removalRefusal(undone, reportFrom(undone, '2026-03-04'))).toBeNull()
+  })
+
+  it('Q52 : « Changer la date » de 8 h du 7 nomme le report à supprimer', () => {
+    for (const to of ['2026-03-06', '2026-03-08']) {
+      expect(
+        moveDose(twoAt7, { due: at('2026-03-07', '08:00'), to, shiftsFollowing: false }),
+      ).toEqual({ refusal: LAST })
+    }
   })
 
   const twoAt8 = played(
@@ -93,13 +108,40 @@ describe('deux reports arrivés le même jour ne se séparent pas (Q51, C1)', ()
     for (const to of ['2026-03-07', '2026-03-06', '2026-03-09']) {
       for (const shiftsFollowing of [false, true]) {
         expect(moveDose(twoAt8, { due: at('2026-03-08', '08:00'), to, shiftsFollowing })).toEqual({
-          refusal: { reason: 'arrival-shared', on: '2026-03-04' },
+          refusal: LAST,
         })
       }
     }
-    expect(moveBounds(twoAt8, at('2026-03-08', '20:00'), true)).toEqual({
-      refusal: { reason: 'arrival-shared', on: '2026-03-04' },
+    expect(moveBounds(twoAt8, at('2026-03-08', '20:00'), true)).toEqual({ refusal: LAST })
+  })
+})
+
+describe('trous connus de deux reports arrivés le même jour', () => {
+  const H2 = ['08:00', '20:00']
+  const twoAt = (to: string, shifts: boolean) =>
+    played(milo(H2, '20:00'), at('2026-03-06', '08:00'), to, shifts)
+  const dosesOn7And8 = (input: TreatmentViewInput) =>
+    treatmentView(input).slots('2026-03-07', '2026-03-08').length
+
+  it.fails('#1287 : « Modifier » avec « Prochaine dose » le 8 garde deux doses', () => {
+    const request = { frequency: { value: 3, unit: 'day' as const }, times: H2, endsOn: null }
+    const after = edited(on(twoAt('2026-03-07', true), '2026-03-07'), {
+      ...request,
+      firstDueOn: '2026-03-08',
     })
+    expect(dosesOn7And8(after)).toBe(2)
+  })
+
+  it.fails('#1288 : la prise de 8 h du 4 changée au 4 sans la case garde deux doses', () => {
+    const input = twoAt('2026-03-08', false)
+    const prise = input.lines.find((l) => l.status === 'given' && l.dueOn === '2026-03-04')!
+    const result = redateDose(input, {
+      lineId: prise.id,
+      givenOn: '2026-03-04',
+      shiftsFollowing: false,
+    })
+    if ('refusal' in result) throw new Error(JSON.stringify(result))
+    expect(dosesOn7And8(recorded(input, result.changes))).toBe(2)
   })
 })
 
