@@ -262,4 +262,28 @@ describe('G18 à deux heures : le décalage d’une dose avancée, réécrit par
       expect(result.offersShift).toBe(false)
     },
   )
+
+  it('Luna, le 7 : 8 h du 7 avancée au 6 avec la case, 8 h du 6 donnée le 6 : « Fait à une autre date » au 7 pour 20 h a la case, comme à une heure (Q48 : le décalage est celui du report)', () => {
+    const s1 = setting('s1', '2026-03-01', { value: 3, unit: 'day' }, H)
+    let carnet: TreatmentViewInput = { settings: [s1], lines: [], today: '2026-03-04' }
+    for (const dueOn of ['2026-03-01', '2026-03-04']) {
+      for (const dueTime of H) {
+        carnet = played(carnet, given({ settingId: 's1', dueOn, dueTime }, dueOn))
+      }
+    }
+    const le5 = played(
+      { ...carnet, today: '2026-03-05' },
+      {
+        kind: 'move',
+        due: { settingId: 's1', dueOn: '2026-03-07', dueTime: '08:00' },
+        to: '2026-03-06',
+        shiftsFollowing: true,
+      },
+    )
+    const at8 = { settingId: 's1', dueOn: '2026-03-06', dueTime: '08:00' }
+    const at20 = { settingId: 's1', dueOn: '2026-03-06', dueTime: '20:00' }
+    const le7 = played({ ...le5, today: '2026-03-06' }, given(at8, '2026-03-06'))
+    const result = accepted(play({ ...le7, today: '2026-03-07' }, given(at20, '2026-03-07', true)))
+    expect(result.offersShift).toBe(true)
+  })
 })
