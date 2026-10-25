@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { mulberry32 } from '../../../scripts/dose-engine/carnet'
 import { brokenBy } from '../../../scripts/dose-engine/v2-invariants'
+import { movedArrives } from '../../../scripts/dose-engine/v2-invariants-moved'
 import {
   ONE_PHONE_GESTURES,
   startV2Walk,
@@ -61,7 +62,7 @@ function playCampaign(
     const onStep = (step: V2Step) => {
       played.steps += 1
       if (failure !== null) return
-      const broken = brokenBy(step, checks)
+      const broken = brokenBy(step, checks) ?? movedArrives(step)
       if (broken === null) return
       const name = broken.invariant.replace(/ \(.*$/, '')
       played.byInvariant[name] = (played.byInvariant[name] ?? 0) + 1
@@ -139,6 +140,17 @@ describe('campagne d’invariants du moteur v2', () => {
       expect(playCampaign({ from: 600_000_926, seeds: 1, steps: 30 }).failures).toEqual([])
     },
   )
+
+  // Trous connus de « dose déplacée présente » (#1274) : les quatre doses du 13 reportées au 19, première
+  // dose choisie du nouveau rythme, n'y arrivent pas ; ramenées au 29 mars, sorti du calendrier, les
+  // doses du 8 avril ne sont plus nulle part.
+  it.fails('graine 670000231 : un report arrivé sur la date choisie y emmène ses doses', () => {
+    expect(playCampaign({ from: 670_000_231, seeds: 1, steps: 30 }).failures).toEqual([])
+  })
+
+  it.fails('graine 9500001489 : une dose ramenée à son jour d’origine y revient', () => {
+    expect(playCampaign({ from: 9_500_001_489, seeds: 1, steps: 30 }, {}).failures).toEqual([])
+  })
 
   it.each([
     ['INVARIANTS_SEEDS', 'mille'],
