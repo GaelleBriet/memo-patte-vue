@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.117](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.116...memo-patte-v0.1.117) (2026-10-25)
+
+
+### 🐛 Corrections
+
+* **moteur:** un jour d'arrivée faite d'un autre report ne lit que ses doses arrivées (graine 470000631) ([59c67a1](https://github.com/GaelleBriet/memo-patte-vue/commit/59c67a1b08deade9628d78dafd1529bde77349dc))
+* **moteur:** un report parti d'une simple arrivée n'emporte que les doses arrivées ([#1258](https://github.com/GaelleBriet/memo-patte-vue/issues/1258)) ([e04c8bf](https://github.com/GaelleBriet/memo-patte-vue/commit/e04c8bfbcc20a61264ac6e43ffa1fa2ea6a19538))
+
 ## [0.1.116](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.115...memo-patte-v0.1.116) (2026-10-25)
 
 
