@@ -3861,6 +3861,37 @@ quand ? » d'une notification garde sa borne. — Raison : Q34 I3 vaut pour tout
 récapitulatif annonçait « Dose du 1er nov., donnée le 24 oct. » alors que la prise s'écrivait en
 plus. — Alternative écartée : depuis « À faire », aujourd'hui seulement.
 
+2026-10-25 — **La case « Décaler aussi » : une seule condition pour « Fait à une autre date » et
+« Changer la date »** (#1242, #1253, #1255, #1256, spec `traitements.md` R6, TR-24 bis ; Q38 du 24
+octobre appliquée par la session d'analyse du moteur, à qui Gaelle a délégué les lectures de règles).
+Les deux gestes lisent la même condition, jugée au jour de la nouvelle date sur le carnet sans la
+prise, avec les reports et décalages de la journée : la case est proposée pour la dose du moment et
+toute dose à venir, jamais pour une dose déjà non renseignée ce jour-là, cochée par défaut. Milbemax
+chaque vendredi, le 20, la dose du 16 en retard : la dose du 23 donnée le 18, par « Fait à une autre
+date » comme par « C'est fait » puis « Changer la date », a la case (avant : seulement « Changer la
+date »). Métacam à 8 h et 20 h, la dose de 20 h du 9 mars reportée au 5 avril avec la case ; le 13,
+la dose de 8 h du 9 donnée le 10 a la case par les deux gestes (avant : seulement « Fait à une autre
+date »). — Raison : deux calculs de la même condition donnaient deux écrans pour le
+même geste. —
+Alternative écartée : juger « Changer la date » sans le décalage de la journée. — Pour revenir
+dessus : `offersShiftFor` (`gestures/shift-offer.ts`).
+
+2026-10-25 — **La case « Décaler aussi » : N1 pour les deux gestes, sauf la prise qui porte son
+propre décalage** (#1242, #1253, #1255, #1256, spec `traitements.md` R6, TR-24 bis ; Q46 de la
+session d'analyse du moteur, à qui Gaelle a délégué les lectures de règles, qui remplace Q43 et Q44).
+Dans la même condition pour les deux gestes : une dose déjà non renseignée aujourd'hui, jugée sans la
+prise corrigée, n'a jamais la case (N1) ; une prise qui porte déjà sa propre ligne de décalage (donnée
+en retard ou en avance avec la case) garde la case quand on change sa date, la case déplace son
+décalage (R6) ; sinon, Q38 au jour de la nouvelle date. Milbemax chaque vendredi, rien depuis le 9 :
+la dose du 16 donnée le 17, par « Fait à une autre date » comme par « Changer la date », n'a pas la
+case, le 24, le 25 comme le 31. La dose du 16 donnée le 19 avec la case, changée au 17 : case le 27
+comme le 31, la suite repart du 17. Mensuel du 31, le 3 mars : la dose du 31 janvier donnée le 1er
+février n'a pas la case. Cas résiduel : une prise redatée sans case garde le décalage qu'elle avait
+écrit (Q30). — Raison : la case ne dépend jamais du jour où l'on corrige. — Alternatives écartées :
+la dose du moment ou à venir aujourd'hui et au jour choisi (Q43, retirait la case des corrections
+d'une prise qui porte son décalage) ; comparer le calendrier avec et sans le décalage (Q44, case le
+25 mais pas le 24 ni le 31). — Pour revenir dessus : `offersShiftFor` (`gestures/shift-offer.ts`).
+
 ## 2026-10-24 — Un report redéplacé depuis une date choisie, hors de sa grille, est sans effet (#1231, Q39)
 
 Décision de la session d'analyse du moteur, à qui Gaelle a délégué les lectures de règles (Q26, Q39
