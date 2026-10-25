@@ -4134,6 +4134,23 @@ moteur. — Alternative écartée : les rendre bloquants avec une liste de grain
 pas les graines neuves. — Pour revenir dessus : passer les compteurs `lostMoves` et `addedDoses`
 (`dose-calendar.invariants.spec.ts`) dans les échecs une fois #1281 à #1285 fermés.
 
+2026-10-25 — **Une dose ramenée à son jour d'origine sorti du calendrier y revient** (#1282, spec
+`traitements.md` R7, R11 ; Q55 de la session d'analyse du moteur, à qui Gaelle a délégué les lectures
+de règles, lecture B). Le geste passe et la dose revient sur son jour d'origine, même quand ce jour a
+quitté le calendrier, comme un report vers un jour hors rythme : sa ligne reste, arrivée sur ce jour,
+et rien d'autre ne bouge. Milo, toutes les 2 semaines à 20 h dès le 13 mars ; le 15, la dose du 27
+donnée d'avance avec la case, passage à 8 h, 14 h et 20 h, 8 h du 29 reportée au 8 avril avec la case,
+puis le décalage de la prise supprimé : le 8 avril à 8 h, 14 h et 20 h, puis le 10 ; 8 h du 8 avril
+ramenée au 29 mars : le 29 à 8 h, 14 h et 20 h, puis le 10 (avant : les trois doses du 8 avril
+disparaissaient). Seulement quand l'arrivée n'avait que les doses du report : arrivé sur une journée
+de la grille ou sur une date choisie (#796), le report ramené est supprimé comme avant. Sur 4 000
+carnets aléatoires (graines 731000000 à 731003999), lecture du calendrier identique à `main` sauf 5
+carnets, tous par ce geste, où `main` perdait la dose (731000764, 731000924, 731001040, 731002238,
+731002946). — Raison : un refus laisserait une dose au 8 avril sans geste possible ; la personne veut
+revenir sur une dose précise. — Alternative écartée : refuser le geste (R11). — Pour revenir dessus :
+`homeLine` (`gestures/moved-report.ts`), `homecomings` (`lines.ts`, `calendar-reports.ts`,
+`journeys.ts`) et `returnsOf` (`reference-lines.ts`, `reference-arrivals.ts`).
+
 ## 2026-10-24 — Un report redéplacé depuis une date choisie, hors de sa grille, est sans effet (#1231, Q39)
 
 Décision de la session d'analyse du moteur, à qui Gaelle a délégué les lectures de règles (Q26, Q39
