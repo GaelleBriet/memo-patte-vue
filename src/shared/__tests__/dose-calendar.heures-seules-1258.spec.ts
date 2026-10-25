@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { naive } from '../../../scripts/dose-engine/v2-invariants-readings'
 import { settingsWritten } from '../../../scripts/dose-engine/v2-walk-settings'
 import {
   newSettings,
@@ -107,21 +108,19 @@ describe('Heures seules après deux « Modifier » le jour d’un report parti d
     expect(journee(beforeSecondModify(), '2026-03-27')).toEqual(['12:00 pending', '18:00 pending'])
   })
 
-  // Trou connu #1258 : le 27 reçoit aussi 23 h, que le report n'emportait pas.
-  it.fails(
-    'graine 470000631 : le 27 mars garde les seules heures du report, 12 et 18 h (R7)',
-    () => {
-      expect(journee(milo(), '2026-03-27')).toEqual(['12:00 pending', '18:00 pending'])
-    },
-  )
+  it('graine 470000631 : le 27 mars garde les seules heures du report, 12 et 18 h (R7)', () => {
+    expect(journee(milo(), '2026-03-27')).toEqual(['12:00 pending', '18:00 pending'])
+  })
 
-  it.fails(
-    'graine 470000631 : une minute plus tard ne change pas le 27 mars (heures seules)',
-    () => {
-      const input = milo()
-      expect(journee(minuteLater(input), '2026-03-27')).toEqual(journee(input, '2026-03-27'))
-    },
-  )
+  it('graine 470000631 : une minute plus tard ne change pas le 27 mars (heures seules)', () => {
+    const input = milo()
+    expect(journee(minuteLater(input), '2026-03-27')).toEqual(journee(input, '2026-03-27'))
+  })
+
+  it('graine 470000631 : le modèle naïf lit la même chose, avant et après une minute de plus', () => {
+    expect(naive(milo())).toBeNull()
+    expect(naive(minuteLater(milo()))).toBeNull()
+  })
 })
 
 describe('Heures seules après « Changer la date » avec la case sur une dose d’avant un report (#1258)', () => {
