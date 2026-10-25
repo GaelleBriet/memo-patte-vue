@@ -215,3 +215,51 @@ describe('le décalage d’une journée appartient à la prise de son heure (R6,
     ])
   })
 })
+
+describe('G18 à deux heures : le décalage d’une dose avancée, réécrit par une prise (#1262)', () => {
+  function avancee(givenOn: string) {
+    const s1 = setting('s1', '2026-03-01', { value: 3, unit: 'day' }, H)
+    let carnet: TreatmentViewInput = { settings: [s1], lines: [], today: '2026-03-04' }
+    for (const dueOn of ['2026-03-01', '2026-03-04']) {
+      for (const dueTime of H) {
+        carnet = played(carnet, given({ settingId: 's1', dueOn, dueTime }, dueOn))
+      }
+    }
+    const le5 = played(
+      { ...carnet, today: '2026-03-05' },
+      {
+        kind: 'move',
+        due: { settingId: 's1', dueOn: '2026-03-07', dueTime: '08:00' },
+        to: '2026-03-06',
+        shiftsFollowing: true,
+      },
+    )
+    return dayGivenLate(le5, '2026-03-06', givenOn)
+  }
+
+  it('Luna : 8 h du 7 avancée au 6 avec la case, les doses du 6 données le 5, 20 h avec la case ; le 8, la prise de 20 h changée au 6 : le décalage revient au 6, prochaines doses les 9 et 12', () => {
+    const { carnet, at20 } = avancee('2026-03-05')
+    expect(shifts(carnet)).toEqual(['2026-03-07 08:00 → 2026-03-05'])
+    const le8 = { ...carnet, today: '2026-03-08' }
+    const prise = priseOf(le8, at20)
+    const result = accepted(
+      play(le8, { kind: 'redate', lineId: prise.id, givenOn: '2026-03-06', shiftsFollowing: true }),
+    )
+    const after = applied(le8, result.changes)
+    expect(shifts(after)).toEqual(['2026-03-07 08:00 → 2026-03-06'])
+    expect(nextDays(after).slice(0, 2)).toEqual(['2026-03-09', '2026-03-12'])
+  })
+
+  it.each(['2026-03-04', '2026-03-05', '2026-03-07', '2026-03-08'])(
+    'Luna : 8 h du 7 avancée au 6 avec la case, les doses du 6 données le 6 ; le 8, la prise de 20 h changée au %s : pas de case',
+    (to) => {
+      const { carnet, at20 } = avancee('2026-03-06')
+      const le8 = { ...carnet, today: '2026-03-08' }
+      const prise = priseOf(le8, at20)
+      const result = accepted(
+        play(le8, { kind: 'redate', lineId: prise.id, givenOn: to, shiftsFollowing: true }),
+      )
+      expect(result.offersShift).toBe(false)
+    },
+  )
+})
