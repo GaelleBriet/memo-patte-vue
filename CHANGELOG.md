@@ -5,6 +5,20 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.116](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.115...memo-patte-v0.1.116) (2026-10-25)
+
+
+### 🐛 Corrections
+
+* **moteur:** case de « Décaler aussi » : N1 aux deux gestes, sauf prise qui porte son décalage (Q46) ([5ecbe3e](https://github.com/GaelleBriet/memo-patte-vue/commit/5ecbe3e8541717f249c12666778356420fb76515))
+* **moteur:** décalage d'une dose avancée reconnu par sa date seule, à deux heures (G18, [#1262](https://github.com/GaelleBriet/memo-patte-vue/issues/1262)) ([b0fa8b1](https://github.com/GaelleBriet/memo-patte-vue/commit/b0fa8b12d7fa6333d00854eaa5428b4480c38480))
+* **moteur:** décalage reconnu par jour et heure quand deux heures partagent une date ([#1262](https://github.com/GaelleBriet/memo-patte-vue/issues/1262)) ([4492044](https://github.com/GaelleBriet/memo-patte-vue/commit/4492044802d7c6669c5cc5d9e495e7ef8edf1e8f))
+* **moteur:** instant du choix de la date, ouverture ou grille datée, jamais des heures seules (Q45) ([2500dfc](https://github.com/GaelleBriet/memo-patte-vue/commit/2500dfc4ae70a16e206f8ee73c47ebb7ac4fd59d))
+* **moteur:** pas de case sur le décalage écrit par une autre heure donnée (Q48, [#1262](https://github.com/GaelleBriet/memo-patte-vue/issues/1262)) ([b5d2141](https://github.com/GaelleBriet/memo-patte-vue/commit/b5d2141a7ce865fd6967746a410751f2cf20617b))
+* **moteur:** un geste sur une heure ne réécrit jamais le décalage d'une autre heure ([2bc2ea9](https://github.com/GaelleBriet/memo-patte-vue/commit/2bc2ea9edef2780f815eb60fd3bedc2df4a95173))
+* **moteur:** un report devenu sans effet ne s'affiche plus comme dose du moment ([04b216f](https://github.com/GaelleBriet/memo-patte-vue/commit/04b216fcabe900cb731e4b34d9bccca2fab5905b))
+* **moteur:** une seule condition pour la case « Décaler aussi » (Fait à une autre date et Changer la date) ([6ae5840](https://github.com/GaelleBriet/memo-patte-vue/commit/6ae58403a3e2ee5b369e50d287c92bb9713f3b52))
+
 ## [0.1.115](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.114...memo-patte-v0.1.115) (2026-10-24)
 
 
