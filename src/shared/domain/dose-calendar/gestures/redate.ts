@@ -103,6 +103,23 @@ function redateAsNote(
   })
 }
 
+/**
+ * N2, #1262 : seul le décalage ancré à la date de la prise la suit ; quand une autre heure de sa
+ * journée a été donnée le même jour, il n'est à elle que s'il porte son heure.
+ */
+function ownsDayShift(input: TreatmentViewInput, prise: Line, shift: Line): boolean {
+  if (shift.targetOn !== prise.givenOn) return false
+  const sharedDate = input.lines.some(
+    (other) =>
+      other.status === 'given' &&
+      other.settingId === prise.settingId &&
+      other.dueOn === prise.dueOn &&
+      other.dueTime !== prise.dueTime &&
+      other.givenOn === prise.givenOn,
+  )
+  return !sharedDate || shift.dueTime === prise.dueTime
+}
+
 function redateGiven(input: TreatmentViewInput, line: Line, gesture: RedateGesture): GestureResult {
   const { givenOn, shiftsFollowing } = gesture
   const view = buildView(input)
@@ -114,8 +131,7 @@ function redateGiven(input: TreatmentViewInput, line: Line, gesture: RedateGestu
   if (boundary !== null && givenOn < boundary) {
     return { refusal: { reason: 'too-early', earliest: boundary } }
   }
-  // N2 : seul le décalage ancré à la date de la prise la suit ; un autre décalage de la journée reste.
-  const owned = own !== undefined && own.targetOn === line.givenOn ? own : undefined
+  const owned = own !== undefined && ownsDayShift(input, line, own) ? own : undefined
   const offered = offersShiftFor(
     without(input, [line.id, ...(owned === undefined ? [] : [owned.id])]),
     due,
