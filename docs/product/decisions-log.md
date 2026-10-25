@@ -3904,7 +3904,20 @@ dose avancée) et une prise seule à sa date dans sa journée sont inchangés. �
 défait pas le décalage qu'une autre a écrit. — Alternative écartée : comparer toujours l'heure du
 décalage, qui garde l'heure de la première ligne écrite sur la journée (un report d'une autre heure,
 #1255) et retirerait son décalage à la prise qui l'a réécrit. — Pour revenir dessus : `ownsDayShift`
-(`gestures/redate.ts`).
+(`gestures/changes.ts`).
+
+2026-10-25 — **Un geste sur une heure ne réécrit jamais le décalage d'une autre heure** (#1262, spec
+`traitements.md` R6 ; Q48 de la session d'analyse du moteur, à qui Gaelle a délégué les lectures de
+règles). Pour les deux gestes, la case n'est pas proposée quand la journée porte déjà le décalage
+écrit par la prise d'une autre heure donnée (même définition que l'entrée précédente). Luna, tous les
+3 jours à 8 h et 20 h depuis le 1er mars ; les doses du 7 données le 8, 20 h avec la case ; le 10, la
+prise de 8 h changée au 9, ou « Fait à une autre date » au 9 pour 8 h : pas de case, le décalage reste
+ancré au 8, la suite aux 11, 14, 17 (avant : case proposée, cochée elle ancrait la journée au 9, suite
+aux 12, 15, la prise de 20 h restant au 8). La prise de 20 h changée au 9 garde sa case. Même chose en
+hebdomadaire (doses du 20 octobre données le 21, suite au 28). — Raison : « le décalage est de la
+journée » dit qui le lit, pas qui a le droit de le réécrire. — Alternative écartée : laisser la
+dernière heure sans prise réancrer la journée. — Pour revenir dessus : `offersShiftFor`
+(`gestures/shift-offer.ts`).
 
 ## 2026-10-24 — Un report redéplacé depuis une date choisie, hors de sa grille, est sans effet (#1231, Q39)
 
