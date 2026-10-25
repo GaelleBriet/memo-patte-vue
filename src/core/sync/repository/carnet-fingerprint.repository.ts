@@ -5,12 +5,17 @@ const CARNET_ENTITIES = SYNC_ENTITY_ORDER.filter((entity) => entity !== 'device'
 
 const FINGERPRINT_SQL = `SELECT ${CARNET_ENTITIES.map(
   (entity) =>
-    `(SELECT '${entity}:' || COUNT(*) || ':' || IFNULL(MAX(updated_at), '') FROM ${entity})`,
+    `(SELECT '${entity}:' || COUNT(*) || ':' || IFNULL(MAX(updated_at), '') || ':' ||
+      IFNULL(SUM(CAST((julianday(updated_at) - 2440587.5) * 86400000 AS INTEGER)), 0)
+      FROM ${entity})`,
 ).join(` || '|' || `)} AS fingerprint`
 
 export function createCarnetFingerprintRepository(db: DbClient) {
   return {
-    /** Change dès qu'une ligne du carnet est ajoutée, modifiée ou supprimée, appareils exclus. */
+    /**
+     * Change dès qu'une ligne du carnet est ajoutée, modifiée ou supprimée, appareils exclus, même
+     * quand la nouvelle date de modification reste sous la plus récente (horloge revenue en arrière).
+     */
     async read(): Promise<string> {
       const [row] = await db.query<{ fingerprint: string }>(FINGERPRINT_SQL)
       return row?.fingerprint ?? ''
