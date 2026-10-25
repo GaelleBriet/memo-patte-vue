@@ -2988,14 +2988,25 @@ plan) la restauration effaçait cette pesée sans nouvelle décision.
   de la sauvegarde : « Restaurer mon carnet » repropose « Fusionner » ou « Remplacer », avec le texte
   existant (« Des données existent déjà sur ce téléphone. »). Sans changement, le remplacement
   s'exécute comme avant. « Fusionner » n'est pas concerné : il n'efface rien.
+- Et donc (décision de Gaelle, « ok oui ») : l'écran « Restaurer mon carnet » se rouvre de lui-même
+  au prochain passage par l'accueil, dans le même lancement, ou tout de suite si l'accueil est
+  affiché. Il ne surgit jamais au milieu d'un autre écran : affiché sur la pesée de Milo, il attend
+  le retour à l'accueil, comme la première proposition.
 - Moyen, sans colonne ni migration : l'état du carnet est, pour chaque table du carnet (appareils
-  exclus), le nombre de lignes et la plus grande date de modification ; il est gardé dans le
-  stockage local de l'app avec le choix, et effacé avec les autres réglages. Un état perdu ou
-  illisible (choix fait avant cette version, stockage effacé) vaut « changé » : le choix est
-  reproposé, jamais un remplacement à l'aveugle. La comparaison se fait juste avant l'écriture,
-  après le téléchargement. — Alternative écartée : une colonne de `sync_state` pour garder l'état
-  (migration, décision de modèle de données).
-- Pour revenir dessus : retirer la comparaison de `restore()` dans `account-restore.ts`.
+  exclus), le nombre de lignes, la plus grande date de modification et la somme des dates de
+  modification. La somme fait changer l'état même quand une correction reçoit une date sous la plus
+  récente (horloge du téléphone revenue en arrière). Cet état est gardé dans le stockage local de
+  l'app avec le choix, et aussi en mémoire pour le lancement en cours (un stockage qui refuse
+  d'écrire ne fait pas reproposer le choix à chaque essai) ; il s'efface avec les autres réglages.
+  Un état perdu, illisible ou d'un ancien format (choix fait avant cette version, stockage effacé)
+  vaut « changé » : le choix est reproposé, jamais un remplacement à l'aveugle. — Alternative
+  écartée : une colonne de `sync_state` pour garder l'état (migration, décision de modèle de
+  données).
+- Limite acceptée : la comparaison se fait juste avant l'écriture, après le téléchargement, mais pas
+  dans la même transaction. Une saisie enregistrée dans l'intervalle, de l'ordre de la milliseconde,
+  entre la lecture de l'état et l'écriture du carnet, ne serait pas vue.
+- Pour revenir dessus : retirer la comparaison de `restore()` dans `account-restore.ts`, et la
+  remise à zéro sur `restoring` dans `app/restore-prompt.ts`.
 
 ## 2026-10-25 — Ligne unique de `sync_state` reposée à l'ouverture de la base, sans migration (#1286)
 
