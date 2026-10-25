@@ -1,18 +1,24 @@
 // @vitest-environment node
+import { flushPromises } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createMemoryHistory, createRouter } from 'vue-router'
+import { installRestorePrompt } from '@/app/restore-prompt'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { applyFixtures } from '@/core/dev/fixtures'
 import { createDeviceRepository } from '@/core/device/device.repository'
 import { createFakeSyncServer, type FakeSyncServer } from '@/core/sync/__tests__/fake-sync-server'
+import { keptChoiceSnapshot } from '@/core/sync/__tests__/kept-choice-snapshot'
 import { createLocalSyncOutbox } from '@/core/sync/service/local-sync-outbox'
 import { SYNC_ENTITY_ORDER } from '@/core/sync/repository/sync-entity-order'
 import { createSyncPushRepository } from '@/core/sync/repository/sync-push.repository'
 import { createAccountRestore, type RestoreProgress } from '@/core/sync/service/account-restore'
+import { createRestoreFlow } from '@/core/sync/service/restore-flow'
 import { normalizeSyncTimestamps } from '@/core/sync/service/normalize-sync-timestamps'
 import { createSyncCycle } from '@/core/sync/service/sync-cycle'
 import type { SyncRow } from '@/core/sync/service/syncable-table'
 import { createAnimalsRepository } from '@/features/animals/repository/animals.repository'
 import { createCarnetSettingsRepository } from '@/features/settings/repository/carnet-settings.repository'
+import { createAccountBackupService } from '@/features/settings/service/account-backup.service'
 import { createTreatmentDosesRepository } from '@/features/treatments/repository/treatment-doses.repository'
 import { createTreatmentPeriodsRepository } from '@/features/treatments/repository/treatment-periods.repository'
 import { createTreatmentsRepository } from '@/features/treatments/repository/treatments.repository'
@@ -25,9 +31,16 @@ const PHONE_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
 const TABLET_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
 const CARNET_ENTITIES = SYNC_ENTITY_ORDER.filter((entity) => entity !== 'device')
 
+const Vide = { render: () => null }
+
 const byId = (a: SyncRow, b: SyncRow) => String(a.id).localeCompare(String(b.id))
 
-async function createPhone(server: FakeSyncServer, deviceId: string, db?: InMemoryDb) {
+async function createPhone(
+  server: FakeSyncServer,
+  deviceId: string,
+  db?: InMemoryDb,
+  choiceSnapshot = keptChoiceSnapshot(),
+) {
   const base = db ?? (await createInMemoryDb())
   await base.execute('PRAGMA foreign_keys = ON')
   const deps = { loadSupabaseClient: async () => server.client }
@@ -63,6 +76,14 @@ async function createPhone(server: FakeSyncServer, deviceId: string, db?: InMemo
     tables,
     userId: () => account.userId,
     onRemindersOutdated,
+    choiceSnapshot,
+  })
+  const backup = createAccountBackupService({
+    outbox: () => outbox,
+    tables: () => tables,
+    animals: () => repositories.animals,
+    restore,
+    userId: () => account.userId,
   })
   const cycle = createSyncCycle({
     db: base,
@@ -88,6 +109,8 @@ async function createPhone(server: FakeSyncServer, deviceId: string, db?: InMemo
     settings,
     outbox,
     restore,
+    backup,
+    choiceSnapshot,
     eligible,
     account,
     onRemindersOutdated,
@@ -143,6 +166,7 @@ describe('restauration avec un carnet sur le téléphone', () => {
 
   afterEach(() => {
     vi.useRealTimers()
+    vi.restoreAllMocks()
     phone.db.close()
     tablet.db.close()
   })
@@ -193,10 +217,138 @@ describe('restauration avec un carnet sur le téléphone', () => {
       await expect(tablet.outbox.restoreMode()).resolves.toBe('replace')
       await expect(tablet.outbox.isEnabled()).resolves.toBe(false)
 
-      const relaunched = await createPhone(server, TABLET_ID, tablet.db)
-      await relaunched.restore.run()
+      const relaunched = await createPhone(server, TABLET_ID, tablet.db, tablet.choiceSnapshot)
+      await expect(relaunched.restore.run()).resolves.toBe('restored')
 
       expect(await carnetOf(tablet)).toEqual(serverCarnet())
+    })
+
+    it('une pesée notée entre le choix et la reprise : rien n’est effacé, l’écran repropose le choix', async () => {
+      const pistache = await tablet.repositories.animals.create({
+        name: 'Pistache',
+        species: 'cat',
+      })
+      const router = createRouter({
+        history: createMemoryHistory(),
+        routes: [
+          { path: '/', name: 'home', component: Vide },
+          { path: '/weight', name: 'weight', component: Vide },
+          { path: '/restore', name: 'account-restore', component: Vide },
+        ],
+      })
+      const flow = createRestoreFlow(tablet.restore)
+      flow.onRetryCheck(async () => {
+        const outcome = await tablet.backup.check()
+        if (outcome.kind === 'backup-found') flow.offer(outcome.summary)
+      })
+      await router.push('/')
+      const stopPrompt = installRestorePrompt(router, () => flow)
+      const found = await tablet.backup.check()
+      if (found.kind !== 'backup-found') throw new Error(`sauvegarde attendue : ${found.kind}`)
+      flow.offer(found.summary)
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('account-restore')
+
+      vi.spyOn(console, 'warn').mockImplementation(() => {})
+      server.cutPull('treatment_dose')
+      await expect(flow.choose('replace')).resolves.toBe(false)
+      expect(flow.state.value).toEqual({ step: 'waiting-network' })
+      await router.replace('/')
+      await router.push('/weight')
+      vi.setSystemTime(Date.now() + 60_000)
+      await tablet.repositories.weight.create({
+        animalId: pistache.id,
+        weightKg: 12,
+        measuredOn: '2026-10-21',
+      })
+
+      await expect(flow.resume()).resolves.toBe(false)
+      await flow.whenChecked()
+      await flushPromises()
+
+      expect((await tablet.rows('animal')).map(({ name }) => name)).toEqual(['Pistache'])
+      expect((await tablet.rows('weight_entry')).map(({ weight_kg }) => weight_kg)).toEqual([12])
+      await expect(tablet.outbox.restoreMode()).resolves.toBeNull()
+      await expect(tablet.outbox.isEnabled()).resolves.toBe(false)
+      expect(flow.state.value).toEqual({ step: 'choice', summary: found.summary })
+      expect(tablet.onRemindersOutdated).not.toHaveBeenCalled()
+      expect(router.currentRoute.value.name).toBe('weight')
+
+      await router.push('/')
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('account-restore')
+      stopPrompt()
+    })
+
+    it('une pesée corrigée sous la date de modification la plus récente : rien n’est remplacé', async () => {
+      const pistache = await tablet.repositories.animals.create({
+        name: 'Pistache',
+        species: 'cat',
+      })
+      const now = Date.now()
+      const premiere = await tablet.repositories.weight.create({
+        animalId: pistache.id,
+        weightKg: 4,
+        measuredOn: '2026-10-20',
+      })
+      vi.setSystemTime(now + 10 * 60_000)
+      await tablet.repositories.weight.create({
+        animalId: pistache.id,
+        weightKg: 4.2,
+        measuredOn: '2026-10-21',
+      })
+      vi.setSystemTime(now + 60_000)
+      await tablet.restore.start('replace')
+
+      vi.setSystemTime(now + 2 * 60_000)
+      await tablet.repositories.weight.update(premiere.id, {
+        weightKg: 4.1,
+        measuredOn: '2026-10-20',
+      })
+
+      await expect(tablet.restore.run()).resolves.toBe('carnet-changed')
+      expect((await tablet.rows('weight_entry')).map(({ weight_kg }) => weight_kg).sort()).toEqual([
+        4.1, 4.2,
+      ])
+    })
+
+    it('choix gardé avec une empreinte de l’ancien format : le choix est à refaire', async () => {
+      await tablet.repositories.animals.create({ name: 'Pistache', species: 'cat' })
+      await tablet.restore.start('replace')
+      const tables = await Promise.all(
+        CARNET_ENTITIES.map(async (entity) => {
+          const [row] = await tablet.db.query<{ rows: number; latest: string | null }>(
+            `SELECT COUNT(*) AS rows, MAX(updated_at) AS latest FROM ${entity}`,
+          )
+          return `${entity}:${row!.rows}:${row!.latest ?? ''}`
+        }),
+      )
+      tablet.choiceSnapshot.save(tables.join('|'))
+
+      await expect(tablet.restore.run()).resolves.toBe('carnet-changed')
+      expect((await tablet.rows('animal')).map(({ name }) => name)).toEqual(['Pistache'])
+    })
+
+    it('un réglage changé entre le choix et la reprise : rien n’est remplacé', async () => {
+      await tablet.repositories.animals.create({ name: 'Pistache', species: 'cat' })
+      await tablet.settings.update({ vaccineReminderTime: '07:45' })
+      await tablet.restore.start('replace')
+
+      vi.setSystemTime(Date.now() + 60_000)
+      await tablet.settings.update({ vaccineReminderTime: '06:15' })
+
+      await expect(tablet.restore.run()).resolves.toBe('carnet-changed')
+      await expect(tablet.settings.get()).resolves.toMatchObject({ vaccineReminderTime: '06:15' })
+      expect((await tablet.rows('animal')).map(({ name }) => name)).toEqual(['Pistache'])
+    })
+
+    it('choix fait avant cette version, sans état du carnet gardé : le choix est à refaire', async () => {
+      await tablet.repositories.animals.create({ name: 'Pistache', species: 'cat' })
+      await tablet.restore.start('replace')
+      tablet.choiceSnapshot.clear()
+
+      await expect(tablet.restore.run()).resolves.toBe('carnet-changed')
+      expect((await tablet.rows('animal')).map(({ name }) => name)).toEqual(['Pistache'])
     })
   })
 
@@ -215,6 +367,29 @@ describe('restauration avec un carnet sur le téléphone', () => {
       expect(await carnetOf(tablet)).toEqual(serverCarnet())
       expect(await carnetOf(phone)).toEqual(serverCarnet())
       expect(serverRows('animal').map(({ id }) => id)).toContain(pistache.id)
+    })
+
+    it('une pesée notée entre le choix et la reprise ne l’arrête pas : rien n’est effacé', async () => {
+      const pistache = await tablet.repositories.animals.create({
+        name: 'Pistache',
+        species: 'cat',
+      })
+      server.cutPull('treatment_dose')
+      await tablet.restore.start('merge')
+      await expect(tablet.restore.run()).rejects.toBeDefined()
+
+      vi.setSystemTime(Date.now() + 60_000)
+      const pesee = await tablet.repositories.weight.create({
+        animalId: pistache.id,
+        weightKg: 12,
+        measuredOn: '2026-10-21',
+      })
+      const relaunched = await createPhone(server, TABLET_ID, tablet.db, tablet.choiceSnapshot)
+
+      await expect(relaunched.restore.run()).resolves.toBe('restored')
+      expect((await tablet.rows('weight_entry')).map(({ id }) => id)).toContain(pesee.id)
+      expect(await tablet.rows('vaccination')).toEqual(serverRows('vaccination'))
+      await expect(tablet.outbox.restoreMode()).resolves.toBeNull()
     })
 
     it('réglages : la modification la plus récente gagne', async () => {

@@ -16,6 +16,7 @@ function fakeRunner(overrides: Partial<RestoreRunner> = {}) {
     }),
     run: vi.fn<RestoreRunner['run']>(async () => {
       pending = null
+      return 'restored'
     }),
     progress: { done: 0, total: 0 },
     onProgress(listener) {
@@ -50,8 +51,8 @@ describe('parcours de restauration', () => {
     const runner = fakeRunner()
     runner.run = vi.fn<RestoreRunner['run']>(
       () =>
-        new Promise<void>((resolve) => {
-          finish = resolve
+        new Promise((resolve) => {
+          finish = () => resolve('restored')
         }),
     )
     const flow = createRestoreFlow(runner)
@@ -82,6 +83,24 @@ describe('parcours de restauration', () => {
     await expect(flow.choose('merge')).resolves.toBe(false)
 
     expect(flow.state.value).toEqual({ step: 'waiting-network' })
+  })
+
+  it('carnet du téléphone changé depuis « Remplacer » : redemande le contrôle pour reproposer le choix', async () => {
+    const runner = fakeRunner({
+      run: vi.fn<RestoreRunner['run']>(async () => 'carnet-changed'),
+    })
+    const flow = createRestoreFlow(runner)
+    const restored = vi.fn<() => void>()
+    const retried = vi.fn<() => void>()
+    flow.onRestored(restored)
+    flow.onRetryCheck(retried)
+    await runner.start('replace')
+
+    await expect(flow.resume()).resolves.toBe(false)
+
+    expect(flow.state.value).toEqual({ step: 'checking' })
+    expect(retried).toHaveBeenCalledOnce()
+    expect(restored).not.toHaveBeenCalled()
   })
 
   it('journalise le message d’une lecture ratée de la restauration en attente, en développement', async () => {

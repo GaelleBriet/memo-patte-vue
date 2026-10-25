@@ -2976,6 +2976,45 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
+## 2026-10-25 — « Remplacer » différé : rien n'est effacé si le carnet du téléphone a changé depuis le choix (#1293)
+
+Décision de Gaelle (« oui d'accord »). Cas : le 25 octobre, après la connexion, « Remplacer » est
+choisi et confirmé dans « Restaurer mon carnet » ; le réseau coupe, « Plus tard » ; une pesée de Milo
+à 12 kg est notée ; au retour du réseau (ou par la minuterie, au lancement, au retour au premier
+plan) la restauration effaçait cette pesée sans nouvelle décision.
+
+- Décision : avant d'écrire un « Remplacer », l'app compare le carnet du téléphone à son état au
+  moment du choix confirmé. S'il a changé, elle n'efface rien, oublie le choix et refait le contrôle
+  de la sauvegarde : « Restaurer mon carnet » repropose « Fusionner » ou « Remplacer », avec le texte
+  existant (« Des données existent déjà sur ce téléphone. »). Sans changement, le remplacement
+  s'exécute comme avant. « Fusionner » n'est pas concerné : il n'efface rien.
+- Et donc (décision de Gaelle, « ok oui ») : l'écran « Restaurer mon carnet » se rouvre de lui-même
+  à la prochaine arrivée sur l'accueil, dans le même lancement, jamais au milieu de ce que fait la
+  personne. Si le choix revient pendant que l'accueil est déjà affiché, l'écran attend qu'elle le
+  quitte puis y revienne : une feuille ouverte sur l'accueil (« Ajouter une pesée », « C'est fait »)
+  n'a pas d'adresse propre, et l'ouvrir alors ferait perdre la saisie en cours.
+- Limite connue, inchangée : la toute première proposition d'un lancement s'ouvre encore dès que la
+  sauvegarde est trouvée si l'accueil est affiché ; une feuille ouverte dans les premières secondes
+  du lancement pourrait être recouverte.
+- Moyen, sans colonne ni migration : l'état du carnet est, pour chaque table du carnet (appareils
+  exclus), le nombre de lignes, la plus grande date de modification et la somme des dates de
+  modification. La somme fait changer l'état même quand une correction reçoit une date sous la plus
+  récente (horloge du téléphone revenue en arrière). Cet état est gardé dans le stockage local de
+  l'app avec le choix, et aussi en mémoire pour le lancement en cours (un stockage qui refuse
+  d'écrire ne fait pas reproposer le choix à chaque essai) ; il s'efface avec les autres réglages.
+  Un état perdu, illisible ou d'un ancien format (choix fait avant cette version, stockage effacé)
+  vaut « changé » : le choix est reproposé, jamais un remplacement à l'aveugle. — Alternative
+  écartée : une colonne de `sync_state` pour garder l'état (migration, décision de modèle de
+  données).
+- Limite acceptée : la comparaison se fait juste avant l'écriture, après le téléchargement, mais pas
+  dans la même transaction. Une saisie enregistrée dans l'intervalle, de l'ordre de la milliseconde,
+  entre la lecture de l'état et l'écriture du carnet, ne serait pas vue. Chaque date entre dans la
+  somme arrondie à la milliseconde : une correction datée à moins d'une milliseconde de l'ancienne
+  date ne changerait pas la somme. L'état gardé survit à
+  une déconnexion, sans effet : le choix suivant le remplace.
+- Pour revenir dessus : retirer la comparaison de `restore()` dans `account-restore.ts`, et le
+  traitement d'un choix reproposé dans `app/restore-prompt.ts`.
+
 ## 2026-10-25 — Ligne unique de `sync_state` reposée à l'ouverture de la base, sans migration (#1286)
 
 Choix de bonne pratique de Claude, en autonomie, pas décision de Gaelle. Constat sur MémoPatte Dev : après la connexion Google, « Restaurer mon carnet » s'ouvre et la

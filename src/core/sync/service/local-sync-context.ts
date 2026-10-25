@@ -9,6 +9,7 @@ import { createCarnetPhotosRepository } from '../repository/carnet-photos.reposi
 import { createSyncPushRepository } from '../repository/sync-push.repository'
 import { createLocalSyncOutbox, type LocalSyncOutbox } from './local-sync-outbox'
 import { createAccountRestore, type AccountRestore, type RestorableTable } from './account-restore'
+import { restoreChoiceSnapshot } from './restore-choice-snapshot'
 import { createPhotoRestore, type PhotoRestore } from './photo-restore'
 import { createSyncCycle, type SyncCycle, type SyncCycleDependencies } from './sync-cycle'
 
@@ -50,6 +51,7 @@ export async function createLocalSyncContext(
     tables: deps.tables,
     userId: deps.userId,
     onRemindersOutdated: deps.onRemindersOutdated,
+    choiceSnapshot: restoreChoiceSnapshot,
   })
   const photoRestore = createPhotoRestore({
     carnetPhotos: () => carnetPhotos.listCarnetPhotos(),

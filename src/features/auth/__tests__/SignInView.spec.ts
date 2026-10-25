@@ -555,7 +555,7 @@ describe('SignInView', () => {
       flow = createRestoreFlow({
         pendingMode: async () => null,
         start: async () => {},
-        run: async () => {},
+        run: async () => 'restored',
         progress: { done: 0, total: 0 },
         onProgress: () => () => {},
       })

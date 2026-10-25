@@ -14,6 +14,7 @@ function routeur(): Router {
     routes: [
       { path: '/', name: 'home', component: Vide },
       { path: '/animals', name: 'carnet', component: Vide },
+      { path: '/weight', name: 'weight', component: Vide },
       { path: '/restore', name: 'account-restore', component: Vide },
     ],
   })
@@ -23,7 +24,7 @@ function parcours(): RestoreFlow {
   return createRestoreFlow({
     pendingMode: async () => null,
     start: async () => {},
-    run: async () => {},
+    run: async () => 'restored',
     progress: { done: 0, total: 0 },
     onProgress: () => () => {},
   })
@@ -109,5 +110,77 @@ describe('installRestorePrompt', () => {
     await flushPromises()
 
     expect(router.currentRoute.value.name).toBe('account-restore')
+  })
+
+  describe('« Remplacer » abandonné parce que le carnet du téléphone a changé', () => {
+    function parcoursCoupé() {
+      const reseau = { online: false }
+      let pending: 'replace' | null = null
+      const flow = createRestoreFlow({
+        pendingMode: async () => pending,
+        start: async () => {
+          pending = 'replace'
+        },
+        run: async () => {
+          if (!reseau.online) throw new Error('réseau coupé')
+          pending = null
+          return 'carnet-changed'
+        },
+        progress: { done: 0, total: 0 },
+        onProgress: () => () => {},
+      })
+      flow.onRetryCheck(() => flow.offer(SUMMARY))
+      return { flow, reseau }
+    }
+
+    async function remplacerPuisPlusTard(router: Router, flow: RestoreFlow): Promise<void> {
+      await router.push('/')
+      uninstall = installRestorePrompt(router, () => flow)
+      flow.offer(SUMMARY)
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('account-restore')
+      vi.spyOn(console, 'warn').mockImplementation(() => {})
+      await flow.choose('replace')
+      expect(flow.state.value.step).toBe('waiting-network')
+      await router.replace('/')
+      await router.push('/weight')
+    }
+
+    it('rouvre l’écran au passage suivant par l’accueil, dans le même lancement', async () => {
+      const router = routeur()
+      const { flow, reseau } = parcoursCoupé()
+      await remplacerPuisPlusTard(router, flow)
+
+      reseau.online = true
+      await flow.resume()
+      await flushPromises()
+      expect(flow.state.value.step).toBe('choice')
+      expect(router.currentRoute.value.name).toBe('weight')
+
+      await router.push('/')
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('account-restore')
+    })
+
+    it('choix revenu pendant que l’accueil est affiché : attend la prochaine arrivée sur l’accueil', async () => {
+      const router = routeur()
+      const { flow, reseau } = parcoursCoupé()
+      await remplacerPuisPlusTard(router, flow)
+      await router.push('/')
+
+      reseau.online = true
+      await flow.resume()
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('home')
+
+      await router.push('/').catch(() => {})
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('home')
+
+      await router.push('/weight')
+      await router.push('/')
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('account-restore')
+    })
   })
 })

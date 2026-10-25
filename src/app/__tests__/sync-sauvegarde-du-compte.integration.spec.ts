@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory-db'
 import { createDeviceRepository } from '@/core/device/device.repository'
 import { createFakeSyncServer, type FakeSyncServer } from '@/core/sync/__tests__/fake-sync-server'
+import { keptChoiceSnapshot } from '@/core/sync/__tests__/kept-choice-snapshot'
 import { createLocalSyncOutbox } from '@/core/sync/service/local-sync-outbox'
 import { createSyncPushRepository } from '@/core/sync/repository/sync-push.repository'
 import { createAccountRestore } from '@/core/sync/service/account-restore'
@@ -51,6 +52,7 @@ async function createPhone(server: FakeSyncServer, deviceId: string) {
     tables,
     userId: () => USER_ID,
     onRemindersOutdated: async () => {},
+    choiceSnapshot: keptChoiceSnapshot(),
   })
   const backup = createAccountBackupService({
     outbox: () => outbox,

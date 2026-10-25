@@ -4,6 +4,7 @@ import { createInMemoryDb, type InMemoryDb } from '@/core/db/__tests__/in-memory
 import { ANIMAL_PHOTO_ENTITY } from '@/core/db/schema-statements'
 import { createDeviceRepository } from '@/core/device/device.repository'
 import { createFakeSyncServer, type FakeSyncServer } from '@/core/sync/__tests__/fake-sync-server'
+import { keptChoiceSnapshot } from '@/core/sync/__tests__/kept-choice-snapshot'
 import { createCarnetPhotosRepository } from '@/core/sync/repository/carnet-photos.repository'
 import { createLocalSyncOutbox } from '@/core/sync/service/local-sync-outbox'
 import { createSyncPushRepository } from '@/core/sync/repository/sync-push.repository'
@@ -59,6 +60,7 @@ async function createPhone(server: FakeSyncServer, deviceId: string) {
     tables,
     userId: () => USER_ID,
     onRemindersOutdated: async () => {},
+    choiceSnapshot: keptChoiceSnapshot(),
   })
   const cycle = createSyncCycle({
     db,
