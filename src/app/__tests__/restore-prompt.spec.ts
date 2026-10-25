@@ -112,6 +112,103 @@ describe('installRestorePrompt', () => {
     expect(router.currentRoute.value.name).toBe('account-restore')
   })
 
+  describe('« Plus tard » vaut pour la journée, jour local', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    async function proposéPuisQuitté(router: Router, flow: RestoreFlow, at: Date): Promise<void> {
+      vi.useFakeTimers({ toFake: ['Date'], now: at })
+      await router.push('/')
+      uninstall = installRestorePrompt(router, () => flow)
+      flow.offer(SUMMARY)
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('account-restore')
+      await router.replace('/')
+      await router.push('/weight')
+    }
+
+    it('ne revient pas le même jour, même tard le soir', async () => {
+      const router = routeur()
+      const flow = parcours()
+      await proposéPuisQuitté(router, flow, new Date(2026, 9, 25, 0, 30))
+
+      vi.setSystemTime(new Date(2026, 9, 25, 23, 59))
+      await router.push('/')
+      await flushPromises()
+
+      expect(router.currentRoute.value.name).toBe('home')
+    })
+
+    it('revient à la première arrivée sur l’accueil après minuit', async () => {
+      const router = routeur()
+      const flow = parcours()
+      await proposéPuisQuitté(router, flow, new Date(2026, 9, 25, 23, 58))
+
+      vi.setSystemTime(new Date(2026, 9, 26, 0, 1))
+      await router.push('/')
+      await flushPromises()
+
+      expect(router.currentRoute.value.name).toBe('account-restore')
+      expect(router.currentRoute.value.query).toEqual({ from: 'home' })
+    })
+
+    it('ne revient qu’une fois dans la nouvelle journée', async () => {
+      const router = routeur()
+      const flow = parcours()
+      await proposéPuisQuitté(router, flow, new Date(2026, 9, 25, 9, 0))
+      vi.setSystemTime(new Date(2026, 9, 26, 9, 0))
+      await router.push('/')
+      await flushPromises()
+      await router.replace('/')
+      await router.push('/weight')
+
+      vi.setSystemTime(new Date(2026, 9, 26, 22, 0))
+      await router.push('/')
+      await flushPromises()
+
+      expect(router.currentRoute.value.name).toBe('home')
+    })
+
+    it('le jour suivant, ne s’ouvre jamais sans une vraie arrivée sur l’accueil', async () => {
+      const router = routeur()
+      const flow = parcours()
+      await proposéPuisQuitté(router, flow, new Date(2026, 9, 25, 9, 0))
+      await router.push('/')
+      await flushPromises()
+
+      vi.setSystemTime(new Date(2026, 9, 26, 9, 0))
+      flow.retryCheck()
+      await flushPromises()
+      flow.offer(SUMMARY)
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('home')
+
+      await router.push('/weight')
+      await router.push('/')
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('account-restore')
+    })
+
+    it('compte le jour où l’écran est quitté, pas celui où il s’est ouvert', async () => {
+      const router = routeur()
+      const flow = parcours()
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 25, 23, 50) })
+      await router.push('/')
+      uninstall = installRestorePrompt(router, () => flow)
+      flow.offer(SUMMARY)
+      await flushPromises()
+
+      vi.setSystemTime(new Date(2026, 9, 26, 0, 10))
+      await router.replace('/')
+      await router.push('/weight')
+      await router.push('/')
+      await flushPromises()
+
+      expect(router.currentRoute.value.name).toBe('home')
+    })
+  })
+
   describe('« Remplacer » abandonné parce que le carnet du téléphone a changé', () => {
     function parcoursCoupé() {
       const reseau = { online: false }
