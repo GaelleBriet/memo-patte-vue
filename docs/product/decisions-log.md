@@ -4141,11 +4141,12 @@ Milo, tous les jours à 8 h et 20 h dès le 11 avril ; le 9, 8 h du 11 reportée
 11, « Modifier » : « Prochaine dose » le 13 (le report arrive le 13). 8 h du 13 avancée au 11 sans la
 case : le 11 à 8 h et 20 h, le 13 ne garde rien, puis le 14 (avant : le report et son décalage étaient
 supprimés, rien n'arrivait le 11, le 13 restait à donner) ; 20 h du 13 au 11 : le 11 à 20 h, le 13 garde
-8 h. La ligne du report est réécrite depuis la dose du 13 (G13). Sur 4 000 carnets aléatoires (graines
+8 h ; de même en deux gestes (8 h du 13 au 12, puis du 12 au 11), sans heure ou à une heure. La
+ligne du report est réécrite depuis la dose de la date choisie (G13). Sur 4 000 carnets aléatoires (graines
 730000000 à 730003999, 11 036 déplacements comparés), un seul geste change par rapport à `main`, le même
 cas (graine 730002161 : dose sans heure du 13 mars, date choisie, avancée au 3 sans la case, arrive le
-3). Limite connue : avec la case, rien n'arrive encore le 11 (la ligne de décalage partirait du 13 et
-la série ne repartirait pas du 11 ; correctif de lecture à part). — Raison : une personne seule voyait
+3) ; sur 4 000 autres (732000000 à 732003999, 11 023 déplacements), aucun. Limite connue, #1303 : avec la case, rien n'arrive encore le 11 (la ligne de décalage partirait du
+13 et la série ne repartirait pas du 11 ; correctif de lecture à part). — Raison : une personne seule voyait
 son geste sans effet (R11). — Alternative écartée : refuser le geste. — Pour revenir dessus :
 `homeBeforeChosen` (`gestures/moved-report.ts`).
 
