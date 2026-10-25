@@ -162,7 +162,7 @@ describe('installRestorePrompt', () => {
       expect(router.currentRoute.value.name).toBe('account-restore')
     })
 
-    it('rouvre l’écran tout de suite si le choix revient pendant que l’accueil est affiché', async () => {
+    it('choix revenu pendant que l’accueil est affiché : attend la prochaine arrivée sur l’accueil', async () => {
       const router = routeur()
       const { flow, reseau } = parcoursCoupé()
       await remplacerPuisPlusTard(router, flow)
@@ -171,7 +171,15 @@ describe('installRestorePrompt', () => {
       reseau.online = true
       await flow.resume()
       await flushPromises()
+      expect(router.currentRoute.value.name).toBe('home')
 
+      await router.push('/').catch(() => {})
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('home')
+
+      await router.push('/weight')
+      await router.push('/')
+      await flushPromises()
       expect(router.currentRoute.value.name).toBe('account-restore')
     })
   })
