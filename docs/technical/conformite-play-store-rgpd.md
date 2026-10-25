@@ -91,7 +91,7 @@ Voir le tableau complet en **§3.2**. Résumé de la logique :
 
 **Côté Supabase** (sources : <https://supabase.com/docs/guides/auth/managing-user-data>, <https://supabase.com/docs/reference/javascript/auth-admin-deleteuser>, <https://supabase.com/docs/guides/storage/security/access-control>, consultées le 07/09/2026) :
 
-1. `auth.admin.deleteUser(id)` « Requires a `service_role` key » et « should only be called on a server. Never expose your `service_role` key in the browser » → la suppression se fait dans une **Edge Function** (ou un endpoint serveur), jamais depuis l'app.
+1. `auth.admin.deleteUser(id)` « Requires a `service_role` key » et « should only be called on a server. Never expose your `service_role` key in the browser » → la suppression se fait dans une **Edge Function** (ou un endpoint serveur), jamais depuis l'app (côté MémoPatte : la clé secrète Supabase `sb_secret_…` ; l'ancienne clé `service_role` est désactivée depuis #1112).
 2. Le guide recommande une table `public.profiles` qui « Reference the `auth.users` table […] Specify `on delete cascade` in the reference » : toutes les tables Plus (animaux, vaccins, poids…) doivent porter `user_id references auth.users(id) on delete cascade` pour que la suppression Auth entraîne celle des lignes.
 3. Le guide affirme : « You cannot delete a user if they are the owner of any objects in Supabase Storage. » **Vérifié faux le 21/10/2026** sur une pile Supabase locale (CLI 2.119.0) : `deleteUser` supprime le compte et **laisse ses photos orphelines** dans le bucket. → l'Edge Function doit quand même **d'abord** lister et supprimer les objets du bucket photos (dossier `<user_id>/…`, sous-dossiers compris), **puis** appeler `deleteUser`, sinon les photos restent (test témoin dans `supabase/functions/delete-account/__tests__/delete-account.local.spec.ts`).
 4. Storage est protégé par RLS sur `storage.objects` ; le modèle recommandé restreint chaque utilisateur à son dossier : `(storage.foldername(name))[1] = (select auth.jwt()->>'sub')`. Une policy `delete` est nécessaire pour que l'utilisateur (ou la fonction) puisse effacer ses fichiers.
@@ -274,13 +274,13 @@ Art. 32-1 : mesures « appropriées au risque », dont « la pseudonymisation et
 
 Mesures MémoPatte à documenter dans le registre :
 - **RLS** sur toutes les tables Plus (`user_id = auth.uid()`) et sur `storage.objects` (dossier par utilisateur) ; « By default Storage does not allow any uploads to buckets without RLS policies » (Supabase).
-- Clé secrète (`sb_secret_…`) uniquement côté Edge Functions ; clé `anon`/publishable dans l'app avec RLS.
+- Clé secrète (`sb_secret_…`) uniquement côté Edge Functions ; clé publique (`sb_publishable_…`) dans l'app, avec RLS.
 - TLS en transit (Supabase, PostHog) ; AES-256 au repos chez Supabase.
 - Mots de passe : politique de longueur minimale Supabase Auth ; option Google Sign-In. La protection contre les mots de passe fuités (HaveIBeenPwned, « Prevent the use of leaked passwords ») n'existe qu'à partir de l'offre Pro de Supabase : indisponible tant que le projet est en Free, à activer au passage en Pro (relevé du 2026-10-22, §1.5).
 - Sauvegardes : celles de la plateforme Supabase (documenter le plan) ; Auto Backup Android chiffré de bout en bout sur Android 9+ (« end-to-end encrypted on devices running Android 9 or higher using the device's PIN, pattern, or password »).
 - Journalisation : logs Supabase (Auth/API) ; pas de logs applicatifs contenant des données personnelles.
 - Minimisation : ne synchroniser que les tables nécessaires ; pas de collecte de contacts, localisation, etc.
-- Dépôt public GitHub : **aucun secret** dans le code (clé secrète, DSN, etc.), scan de secrets activé.
+- Dépôt public GitHub : **aucun secret** dans le code (clé secrète Supabase, DSN, etc.), scan de secrets activé.
 
 #### Notification de violation (art. 33-34)
 
@@ -392,7 +392,7 @@ Publiée depuis le 2026-09-26 sur <https://memopatte.app/confidentialite/> (angl
 
 **A. Dans l'app (Plus)** — Paramètres > Compte > *Supprimer mon compte*
 1. Écran d'explication : « Cette action supprime définitivement votre compte MémoPatte Plus, votre sauvegarde cloud et vos photos sauvegardées. Vos données locales sur cet appareil sont conservées. Votre abonnement Google Play n'est pas annulé automatiquement : [lien Gérer mes abonnements] ». Deux boutons : *Annuler* / *Supprimer définitivement* (avec ressaisie du mot de passe ou reconnexion Google — réauthentification recommandée).
-2. L'app appelle une **Edge Function `delete-account`** (JWT utilisateur requis) qui, avec la clé secrète :
+2. L'app appelle une **Edge Function `delete-account`** (JWT utilisateur requis) qui, avec la clé secrète Supabase :
    - supprime la personne PostHog dont le `distinct_id` est l'identifiant du compte (`bulk_delete`, `delete_events=true` ; une personne absente, statistiques jamais acceptées, est un succès) et le client RevenueCat (`DELETE /v1/subscribers/{id}`, même avec un abonnement Google Play actif : l'achat reste chez Google) ; un secret de prestataire absent refuse la suppression, rien n'est effacé ;
    - liste et supprime les objets Storage du dossier `<user_id>/`, sous-dossiers compris (sinon `deleteUser` les laisse orphelins, §1.3 point 3), juste avant le compte ;
    - appelle `auth.admin.deleteUser(user_id, false)` (suppression dure) **en dernier**, les lignes partant par `on delete cascade` : un échec avant laisse le compte, et « Réessayer » reprend (décision du 2026-10-21) ;
@@ -402,7 +402,7 @@ Publiée depuis le 2026-09-26 sur <https://memopatte.app/confidentialite/> (angl
 
 **B. Page web publique** (obligatoire, URL déclarée dans Data safety) — publiée sur <https://memopatte.app/suppression-compte/> (anglais : `/en/delete-account/`), source dans `site/suppression-compte/index.html` et `site/en/delete-account/index.html`, seule version du texte. Elle décrit la méthode dans l'app (A) et la demande par e-mail (C), ce qui est supprimé et ce qui reste, la suppression de la seule sauvegarde cloud et la résiliation de l'abonnement dans Google Play.
 
-**C. Traitement d'une demande reçue par email** : vérifier l'adresse (répondre à l'expéditeur, demander confirmation), exécuter le mode admin de la même Edge Function (secret `ADMIN_DELETE_SECRET` à part, jamais la clé secrète hors du serveur ; commande dans `commandes-utiles.md` §10), qui sait aussi n'effacer que la sauvegarde cloud, confirmer par email, noter la date dans le registre des demandes. Délai RGPD : un mois maximum (art. 12-3).
+**C. Traitement d'une demande reçue par email** : vérifier l'adresse (répondre à l'expéditeur, demander confirmation), exécuter le mode admin de la même Edge Function (secret `ADMIN_DELETE_SECRET` à part, jamais la clé secrète Supabase hors du serveur ; commande dans `commandes-utiles.md` §10), qui sait aussi n'effacer que la sauvegarde cloud, confirmer par email, noter la date dans le registre des demandes. Délai RGPD : un mois maximum (art. 12-3).
 
 ### 3.4 Check-list « avant publication » (ordonnée)
 
@@ -414,7 +414,7 @@ Publiée depuis le 2026-09-26 sur <https://memopatte.app/confidentialite/> (angl
 5. Écrire la politique de remboursement (48 h Google Play, ensuite email). *(Fait le 2026-09-26 : section 7 de la politique publiée.)*
 
 **B. Infrastructure**
-6. Projet Supabase en région UE (Paris/Francfort) ; RLS activée sur toutes les tables et sur `storage.objects` ; `on delete cascade` vers `auth.users` ; aucune clé secrète dans l'app ni dans le dépôt.
+6. Projet Supabase en région UE (Paris/Francfort) ; RLS activée sur toutes les tables et sur `storage.objects` ; `on delete cascade` vers `auth.users` ; aucune clé secrète Supabase dans l'app ni dans le dépôt.
 7. Edge Function `delete-account` (Storage → lignes → Auth → PostHog) testée.
 8. Organisation PostHog sur **EU Cloud**, « Discard client IP data » activé, rétention réglée, autocapture/session replay désactivés, `opt_out_capturing_by_default: true`.
 9. Écran de consentement OAuth Google : URL de politique renseignée.
