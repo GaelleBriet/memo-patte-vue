@@ -19,6 +19,10 @@ export function refusalText(t: Translate, refusal: Refusal, today: string): stri
       return t('treatments.shift.stuckMove', {
         date: formatDayMonthOrYear(refusal.on, today),
       })
+    case 'arrival-shared':
+      return t('treatments.history.refusal.arrivalShared', {
+        date: withoutFinalDot(formatDayMonthOrYear(refusal.on, today)),
+      })
     case 'report-off-rhythm':
       return t('treatments.history.refusal.shiftMoveOffRhythm', {
         date: withoutFinalDot(formatDayMonthOrYear(refusal.on, today)),

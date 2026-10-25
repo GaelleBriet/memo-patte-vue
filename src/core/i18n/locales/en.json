@@ -697,7 +697,8 @@
         "shiftLaterDose": "A later dose is already logged.",
         "removeMoveLaterLine": "A later dose is already postponed. Delete its postponement first.",
         "shiftMoveOffRhythm": "Delete the postponement to {date} first.",
-        "shiftMovePastNext": "Change the postponement date first."
+        "shiftMovePastNext": "Change the postponement date first.",
+        "arrivalShared": "Delete the postponement of the {date} dose first."
       }
     },
     "unlogged": {

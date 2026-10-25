@@ -36,7 +36,10 @@ function nextStamp(input: TreatmentViewInput): string {
   return new Date(Date.parse(latest) + 1000).toISOString()
 }
 
-function recorded(input: TreatmentViewInput, changes: readonly LineChange[]): TreatmentViewInput {
+export function recorded(
+  input: TreatmentViewInput,
+  changes: readonly LineChange[],
+): TreatmentViewInput {
   return changes.reduce((carnet, change) => {
     if (change.action === 'delete') {
       return { ...carnet, lines: carnet.lines.filter(({ id }) => id !== change.id) }
