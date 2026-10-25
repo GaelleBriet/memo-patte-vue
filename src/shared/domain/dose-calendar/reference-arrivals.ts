@@ -149,9 +149,11 @@ export function arriveReports(context: ArrivalContext) {
     if (chosenOn !== undefined && outside) continue
     const written = settingOf(report!.settingId)
     const arrived = arrivedHours.get(dueOn) ?? []
+    // R7 (#1258) : faite des seules doses arrivées, la journée du report n'a que celles-là.
+    const arrivedOnly = arrivalsOnly.has(dueOn) && !left.has(dueOn) && arrived.length > 0
     const itsDay = {
       setting: written,
-      hours: [...new Set([...hoursOf(written), ...arrived])].sort(),
+      hours: [...new Set([...(arrivedOnly ? [] : hoursOf(written)), ...arrived])].sort(),
     }
     const outcome = reportOutcome({
       report: report!,

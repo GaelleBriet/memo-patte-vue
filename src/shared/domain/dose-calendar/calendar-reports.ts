@@ -169,9 +169,12 @@ export function moveReports(input: ReportsInput) {
       )
     const hoursUnseen = translated.has(dueOn) || lines.answered.has(dueOn)
     const source = hoursUnseen && (!sameHours(written, from) || relit) ? written : from
-    // R7 : la journée d'un report, telle qu'il l'a vue, porte aussi les doses qui y sont arrivées (#864).
+    // R7 : la journée d'un report, telle qu'il l'a vue, porte aussi les doses qui y sont arrivées (#864) ;
+    // faite des seules doses arrivées, elle n'a que celles-là (#1258).
+    const arrivedHere = arrived.get(dueOn) ?? []
+    const onlyArrived = arrivalsOnly.has(dueOn) && ceded === undefined && arrivedHere.length > 0
     const writtenHours = [
-      ...new Set([...hoursOf(written.times), ...(arrived.get(dueOn) ?? [])]),
+      ...new Set([...(onlyArrived ? [] : hoursOf(written.times)), ...arrivedHere]),
     ].sort()
     const writtenBefore = (note: Line) => settingOf(note.settingId).createdAt <= written.createdAt
     // R4, R7, #860 : le report garde ses heures ; une prise d'un réglage écrit avant le sien, d'une heure
