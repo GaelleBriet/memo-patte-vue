@@ -38,7 +38,7 @@ type Played = {
   carnets: number
   steps: number
   failures: string[]
-  /** Informatif tant que #1281, #1282 et #1283 restent ouverts : une graine par carnet. */
+  /** Informatif tant que #1281, #1282, #1284 et #1285 restent ouverts : une graine par carnet. */
   lostMoves: string[]
   addedDoses: string[]
   byInvariant: Record<string, number>
@@ -161,9 +161,13 @@ describe('campagne d’invariants du moteur v2', () => {
     },
   )
 
+  // #1283 : 8 h du 13, première dose d'une date choisie, avancée au 11 sans la case, arrive le 11.
+  it('graine 670000934 : la première dose d’une date choisie avancée sans la case arrive', () => {
+    expect(playCampaign({ from: 670_000_934, seeds: 1, steps: 30 }).lostMoves).toEqual([])
+  })
+
   // Trous connus de « dose déplacée présente » : les quatre doses du 13 reportées au 19, première dose
-  // choisie du nouveau rythme (#1281) ; ramenées au 29 mars, sorti du calendrier (#1282) ; la première
-  // dose d'une date choisie avancée sans la case (#1283).
+  // choisie du nouveau rythme (#1281) ; ramenées au 29 mars, sorti du calendrier (#1282).
   it.fails('graine 670000231 : un report arrivé sur la date choisie y emmène ses doses', () => {
     expect(playCampaign({ from: 670_000_231, seeds: 1, steps: 30 }).lostMoves).toEqual([])
   })
@@ -171,13 +175,6 @@ describe('campagne d’invariants du moteur v2', () => {
   it.fails('graine 9500001489 : une dose ramenée à son jour d’origine y revient', () => {
     expect(playCampaign({ from: 9_500_001_489, seeds: 1, steps: 30 }, {}).lostMoves).toEqual([])
   })
-
-  it.fails(
-    'graine 670000934 : la première dose d’une date choisie avancée sans la case arrive',
-    () => {
-      expect(playCampaign({ from: 670_000_934, seeds: 1, steps: 30 }).lostMoves).toEqual([])
-    },
-  )
 
   it.fails(
     'graine 690000860 : le report arrivé dans un mensuel à date choisie y garde sa dose (#1284)',

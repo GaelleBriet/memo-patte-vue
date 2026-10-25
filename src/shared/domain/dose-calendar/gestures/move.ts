@@ -13,19 +13,20 @@ import type {
   TreatmentViewInput,
 } from '../types'
 import { buildView, type TreatmentView } from '../view'
-import { applied, shiftOfDay, shiftWritten, without, written } from './changes'
+import { shiftOfDay, shiftWritten, without, written } from './changes'
 import { linesAfter, livesOn, lostToEnd, outcome } from './outcome'
 import {
   arrivalOnGridDay,
   chosenArrivalKept,
   followerLines,
+  homeBeforeChosen,
   lastOfPair,
   opensRhythm,
   reportsOf,
   reportToRewrite,
+  rewriteStrands,
   sharedArrival,
 } from './moved-report'
-import { strandsNote } from './reports'
 
 export type MoveGesture = Omit<Extract<Gesture, { kind: 'move' }>, 'kind'>
 
@@ -86,26 +87,6 @@ function movedDue(view: TreatmentView, rest: TreatmentView, due: Due, existing?:
       dueOn: existing.dueOn,
       dueTime: existing.dueTime,
     }
-  )
-}
-
-// G13, R6 : réécrit vers l'échéance qu'il remplace, le report laisserait une prise sans échéance.
-function rewriteStrands(
-  input: TreatmentViewInput,
-  view: TreatmentView,
-  existing: Line,
-  moved: Due,
-): boolean {
-  if (keyOf(moved.dueOn, moved.dueTime) === keyOf(existing.dueOn, existing.dueTime)) return false
-  const line: LineFields = {
-    ...moved,
-    status: 'postponed',
-    givenOn: null,
-    targetOn: existing.targetOn,
-  }
-  return strandsNote(
-    view,
-    buildView(applied(input, [{ action: 'rewrite', id: existing.id, line }])),
   )
 }
 
@@ -269,10 +250,13 @@ function reportLines(
 /** R7 : le report de la dose, seul ou avec sa ligne de décalage ancrée au jour d'arrivée (R6). */
 export function moveDose(input: TreatmentViewInput, gesture: MoveGesture): GestureResult {
   const { due, to, shiftsFollowing } = gesture
-  const plan = planOf(input, due, shiftsFollowing)
-  if ('reason' in plan) return { refusal: plan }
-  const refusal = boundsRefusal(plan.bounds, to)
+  const found = planOf(input, due, shiftsFollowing)
+  if ('reason' in found) return { refusal: found }
+  const refusal = boundsRefusal(found.bounds, to)
   if (refusal !== null) return { refusal }
+  const home =
+    to === found.moved.dueOn && !shiftsFollowing ? homeBeforeChosen(input, found, due) : undefined
+  const plan = home === undefined ? found : { ...found, moved: home }
   const { moved, existing } = plan
   if (existing !== undefined && to === existing.targetOn)
     return outcome(input, [], { offersShift: true })

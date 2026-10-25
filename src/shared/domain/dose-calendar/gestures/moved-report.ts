@@ -1,4 +1,4 @@
-import { chosenAtOf } from '../grid'
+import { chosenAtOf, keyOf } from '../grid'
 import { isMoreRecent } from '../lines'
 import type {
   Day,
@@ -11,7 +11,8 @@ import type {
   TreatmentViewInput,
 } from '../types'
 import { buildView, type TreatmentView } from '../view'
-import { shiftOfDay, without } from './changes'
+import { applied, shiftOfDay, without } from './changes'
+import { strandsNote } from './reports'
 
 export const reportsOf = (view: TreatmentView, episode: ReadonlySet<string>): Line[] =>
   view.history
@@ -134,6 +135,26 @@ export function arrivalOnGridDay(
   return { refusal: { reason: 'arrival-shared', on: named.dueOn } }
 }
 
+// G13, R6 : réécrit vers l'échéance qu'il remplace, le report laisserait une prise sans échéance.
+export function rewriteStrands(
+  input: TreatmentViewInput,
+  view: TreatmentView,
+  existing: Line,
+  moved: Due,
+): boolean {
+  if (keyOf(moved.dueOn, moved.dueTime) === keyOf(existing.dueOn, existing.dueTime)) return false
+  const line: LineFields = {
+    ...moved,
+    status: 'postponed',
+    givenOn: null,
+    targetOn: existing.targetOn,
+  }
+  return strandsNote(
+    view,
+    buildView(applied(input, [{ action: 'rewrite', id: existing.id, line }])),
+  )
+}
+
 /** R7, #1274 : le report qui suit la journée partie arrive au même jour, ou rentre chez lui. */
 export function followerLines(follower: Line | undefined, to: Day): LineChange[] {
   if (follower === undefined) return []
@@ -173,4 +194,22 @@ export function chosenArrivalKept(
   return chosen
     ? { previousTargetOn: day, previousTargetTime: report.previousTargetTime ?? null }
     : undefined
+}
+
+// G13, Q50 : un jour d'origine laissé avant une date choisie ne rendrait rien à la suppression du
+// report ; la dose y arrive depuis l'échéance qu'elle remplace désormais.
+export function homeBeforeChosen(
+  input: TreatmentViewInput,
+  { existing, moved, dayShift }: { existing?: Line; moved: Due; dayShift?: Line },
+  due: Due,
+): Due | undefined {
+  if (existing === undefined || due.dueOn !== existing.targetOn) return undefined
+  const ids = dayShift === undefined ? [existing.id] : [existing.id, dayShift.id]
+  const rest = buildView(without(input, ids))
+  if (rest.slots(moved.dueOn, moved.dueOn).length > 0) return undefined
+  const setting = rest.settingAt(moved.dueOn)
+  if (setting?.firstDueChosen !== true || setting.firstDueOn <= moved.dueOn) return undefined
+  return rest
+    .slots(due.dueOn, due.dueOn)
+    .find(({ due: other, state }) => state === 'pending' && other.dueTime === due.dueTime)?.due
 }
