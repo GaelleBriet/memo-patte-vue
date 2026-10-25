@@ -202,13 +202,25 @@ export function homeBeforeChosen(
   input: TreatmentViewInput,
   { existing, moved, dayShift }: { existing?: Line; moved: Due; dayShift?: Line },
   due: Due,
-): Due | undefined {
+): Due | Refusal | undefined {
   if (existing === undefined || due.dueOn !== existing.targetOn) return undefined
   const ids = dayShift === undefined ? [existing.id] : [existing.id, dayShift.id]
   const rest = buildView(without(input, ids))
   if (rest.slots(moved.dueOn, moved.dueOn).length > 0) return undefined
   const setting = rest.settingAt(moved.dueOn)
   if (setting?.firstDueChosen !== true || setting.firstDueOn <= moved.dueOn) return undefined
+  const view = buildView(input)
+  const onChosen = due.dueOn === setting.firstDueOn
+  // La date choisie qui garde sa dose ne l'a pas cédée au report.
+  const kept = view
+    .slots(setting.firstDueOn, setting.firstDueOn)
+    .some(({ due: other }) => other.dueTime === due.dueTime)
+  if (!onChosen && kept) return undefined
+  // Q51, Q59 : hors de la date choisie, le report ne se coupe pas d'une heure plus tôt de son arrivée.
+  const earlier = view
+    .slots(due.dueOn, due.dueOn)
+    .some(({ due: other }) => (other.dueTime ?? '') < (due.dueTime ?? ''))
+  if (!onChosen && earlier) return { reason: 'arrival-shared', on: existing.dueOn }
   return rest
     .slots(setting.firstDueOn, setting.firstDueOn)
     .find(({ due: other, state }) => state === 'pending' && other.dueTime === due.dueTime)?.due

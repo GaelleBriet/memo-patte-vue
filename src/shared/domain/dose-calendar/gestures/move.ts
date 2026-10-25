@@ -164,7 +164,8 @@ function planOf(
       .find(({ state }) => state === 'pending')?.due.dueOn
     if (nextOn !== undefined) {
       const cap = latest !== null && latest < plusDays(nextOn, -1) ? latest : plusDays(nextOn, -1)
-      if (cap < earliest || (earliest === cap && cap === moved.dueOn)) {
+      // Q59 : un report peut toujours revenir à son jour d'origine, même seul possible.
+      if (cap < earliest || (earliest === cap && cap === moved.dueOn && existing === undefined)) {
         return { reason: 'no-date-alone' }
       }
       latest = cap
@@ -256,6 +257,7 @@ export function moveDose(input: TreatmentViewInput, gesture: MoveGesture): Gestu
   if (refusal !== null) return { refusal }
   const home =
     to === found.moved.dueOn && !shiftsFollowing ? homeBeforeChosen(input, found, due) : undefined
+  if (home !== undefined && 'reason' in home) return { refusal: home }
   const plan = home === undefined ? found : { ...found, moved: home }
   const { moved, existing } = plan
   if (existing !== undefined && to === existing.targetOn)

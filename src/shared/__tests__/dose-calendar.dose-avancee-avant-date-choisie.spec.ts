@@ -1,7 +1,13 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { moveDose, treatmentView, type TreatmentViewInput } from '../domain/dose-calendar'
+import {
+  moveBounds,
+  moveDose,
+  removeLine,
+  treatmentView,
+  type TreatmentViewInput,
+} from '../domain/dose-calendar'
 import { referenceReading } from '../domain/dose-calendar/reference-model'
 import { edited, moved, on, recorded } from './dose-calendar.reglage-corrige.aides'
 import { DAY, H, keys, setting } from './dose-calendar.v2.aides'
@@ -129,5 +135,118 @@ describe('La première dose d’une date choisie avancée au jour d’origine de
       moteur: expected,
       reference: expected,
     })
+  })
+})
+
+// Q59 : après le geste, la dose arrivée le 11 garde le 13 comme jour d'origine (G6, Q55).
+const CASES: [string[], string | null, string[]][] = [
+  [H, '08:00', ['2026-04-13 08:00', '2026-04-13 20:00', '2026-04-14 08:00']],
+  [H, '20:00', ['2026-04-13 08:00', '2026-04-13 20:00', '2026-04-14 08:00']],
+  [[], null, ['2026-04-13', '2026-04-14']],
+  [['08:00'], '08:00', ['2026-04-13 08:00', '2026-04-14 08:00']],
+]
+
+function arrivedOn11(times: string[], dueTime: string | null) {
+  const input = movedAlone(milo(times), '2026-04-13', dueTime, '2026-04-11')
+  const settingId = treatmentView(input).currentSetting!.id
+  return { input, due: { settingId, dueOn: '2026-04-11', dueTime } }
+}
+
+describe('La dose arrivée le 11 se redéplace depuis le 13, son jour d’origine (G6, G13, Q59, #1283)', () => {
+  it.each(CASES)(
+    'heures %j, %s : sans la case, seul le retour au 13 est permis',
+    (times, dueTime) => {
+      const { input, due } = arrivedOn11(times, dueTime)
+
+      expect(moveBounds(input, due, false)).toEqual({
+        earliest: '2026-04-13',
+        latest: '2026-04-13',
+        excluded: [],
+      })
+      expect(moveDose(input, { due, to: '2026-04-12', shiftsFollowing: false })).toEqual({
+        refusal: { reason: 'out-of-bounds', earliest: '2026-04-13', latest: '2026-04-13' },
+      })
+    },
+  )
+
+  it.each(CASES)(
+    'heures %j, %s : le retour au 13 sans la case annule le geste',
+    (times, dueTime, expected) => {
+      const { input, due } = arrivedOn11(times, dueTime)
+      const back = movedAlone(input, due.dueOn, due.dueTime, '2026-04-13')
+
+      expect(calendars(back).moteur.slice(0, expected.length)).toEqual(expected)
+      expect(back.lines.filter(({ status }) => status !== 'shift')).toEqual([])
+    },
+  )
+
+  it.each(CASES)('heures %j, %s : avec la case, le 13 et après, jamais le 12', (times, dueTime) => {
+    const { input, due } = arrivedOn11(times, dueTime)
+
+    expect(moveBounds(input, due, true)).toEqual({
+      earliest: '2026-04-13',
+      latest: null,
+      excluded: [],
+    })
+  })
+
+  it.each(CASES)(
+    'heures %j, %s : « Supprimer » le report remet le 13',
+    (times, dueTime, expected) => {
+      const { input } = arrivedOn11(times, dueTime)
+      const report = input.lines.find(({ status }) => status === 'postponed')!
+      const result = removeLine(input, report.id)
+      if ('refusal' in result) throw new Error(JSON.stringify(result))
+
+      expect(calendars(recorded(input, result.changes)).moteur.slice(0, expected.length)).toEqual(
+        expected,
+      )
+    },
+  )
+})
+
+describe('Le 12 porte 8 h et 20 h reportées : 20 h seule ramenée au 11 est refusée (Q51, Q59)', () => {
+  it('le report apporte 8 h, plus tôt que l’heure touchée : « Supprime d’abord le report du 11 »', () => {
+    const input = movedAlone(milo(), '2026-04-13', '08:00', '2026-04-12')
+    const settingId = treatmentView(input).currentSetting!.id
+    const due = { settingId, dueOn: '2026-04-12', dueTime: '20:00' }
+
+    expect(moveDose(input, { due, to: '2026-04-11', shiftsFollowing: false })).toEqual({
+      refusal: { reason: 'arrival-shared', on: '2026-04-11' },
+    })
+  })
+})
+
+describe('Un report plus ancien que la date choisie, ramené à son jour d’origine, ne prend pas sa dose (Q59)', () => {
+  // Graine 733002387 : tous les 2 jours dès le 29 mars ; le 2 avril, la dose du 4 avancée au 3, puis
+  // « Modifier » : chaque mois, « Prochaine dose » le 8 ; la dose du 3 ramenée au 4.
+  it('le 8 garde sa dose', () => {
+    const start: TreatmentViewInput = {
+      settings: [setting('p1', '2026-03-29', { value: 2, unit: 'day' })],
+      lines: [],
+      today: '2026-04-02',
+    }
+    const monthly = { value: 1, unit: 'month' } as const
+    const input = edited(movedAlone(start, '2026-04-04', null, '2026-04-03'), {
+      frequency: monthly,
+      times: [],
+      endsOn: null,
+      firstDueOn: '2026-04-08',
+    })
+    const settingId = treatmentView(input).currentSetting!.id
+    const due = { settingId, dueOn: '2026-04-03', dueTime: null }
+    const result = moveDose(input, { due, to: '2026-04-04', shiftsFollowing: false })
+    if ('refusal' in result) throw new Error(JSON.stringify(result))
+
+    const after = recorded(input, result.changes)
+    const days = (read: TreatmentViewInput) =>
+      keys(
+        treatmentView(read)
+          .slots('2026-04-02', '2026-04-08')
+          .map((slot) => slot.due),
+      )
+
+    expect(days(input)).toEqual(['2026-04-03', '2026-04-08'])
+    expect(days(after)).toContain('2026-04-08')
   })
 })

@@ -13,6 +13,7 @@ import { both, edited, moved, readings, rewrittenOn } from './dose-calendar.regl
 import { DAY, keys, setting, WEEK } from './dose-calendar.v2.aides'
 import fork2324 from './fixtures/dose-calendar-deux-appareils-9050002324.json'
 import fork0270 from './fixtures/dose-calendar-deux-appareils-9140000270.json'
+import fork1597 from './fixtures/dose-calendar-deux-appareils-9140001597.json'
 
 // Report de A contre la réécriture d'un réglage par B (#938, #939, #882) : la plus récente des deux
 // écritures l'emporte, la ligne gagnante garde son jour et son heure (décisions des 17 et 18 octobre 2026).
@@ -55,8 +56,12 @@ const states = (input: TreatmentViewInput, from: string, to: string) =>
     .slots(from, to)
     .map(({ due, state }) => `${due.dueOn} ${due.dueTime} ${state}`)
 
-// Fourches figées : la marche de la graine a changé depuis (case jugée avec le décalage de la journée).
-const FROZEN: Record<string, Fork> = { '9050002324/18': fork2324 as unknown as Fork }
+// Fourches figées : la marche de la graine a changé depuis (case jugée avec le décalage de la journée ;
+// retour au jour d'origine permis, Q59).
+const FROZEN: Record<string, Fork> = {
+  '9050002324/18': fork2324 as unknown as Fork,
+  '9140001597/17': fork1597 as unknown as Fork,
+}
 
 function forkAt(seed: number, step: number): Fork {
   const frozen = FROZEN[`${seed}/${step}`]
