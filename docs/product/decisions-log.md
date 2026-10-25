@@ -4134,6 +4134,21 @@ moteur. — Alternative écartée : les rendre bloquants avec une liste de grain
 pas les graines neuves. — Pour revenir dessus : passer les compteurs `lostMoves` et `addedDoses`
 (`dose-calendar.invariants.spec.ts`) dans les échecs une fois #1281 à #1285 fermés.
 
+2026-10-25 — **La première dose d'une date choisie, ramenée au jour d'origine de son report, y
+arrive** (#1283, spec `traitements.md` G13 ; Q50 de la session d'analyse du moteur, à qui Gaelle a
+délégué les lectures de règles ; différent de Q40, ici le déplacement est plus récent que le réglage).
+Milo, tous les jours à 8 h et 20 h dès le 11 avril ; le 9, 8 h du 11 reportée au 15 avec la case ; le
+11, « Modifier » : « Prochaine dose » le 13 (le report arrive le 13). 8 h du 13 avancée au 11 sans la
+case : le 11 à 8 h et 20 h, le 13 ne garde rien, puis le 14 (avant : le report et son décalage étaient
+supprimés, rien n'arrivait le 11, le 13 restait à donner) ; 20 h du 13 au 11 : le 11 à 20 h, le 13 garde
+8 h. La ligne du report est réécrite depuis la dose du 13 (G13). Sur 4 000 carnets aléatoires (graines
+730000000 à 730003999, 11 036 déplacements comparés), un seul geste change par rapport à `main`, le même
+cas (graine 730002161 : dose sans heure du 13 mars, date choisie, avancée au 3 sans la case, arrive le
+3). Limite connue : avec la case, rien n'arrive encore le 11 (la ligne de décalage partirait du 13 et
+la série ne repartirait pas du 11 ; correctif de lecture à part). — Raison : une personne seule voyait
+son geste sans effet (R11). — Alternative écartée : refuser le geste. — Pour revenir dessus :
+`homeBeforeChosen` (`gestures/moved-report.ts`).
+
 ## 2026-10-24 — Un report redéplacé depuis une date choisie, hors de sa grille, est sans effet (#1231, Q39)
 
 Décision de la session d'analyse du moteur, à qui Gaelle a délégué les lectures de règles (Q26, Q39

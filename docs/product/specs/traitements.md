@@ -564,7 +564,11 @@ Refus, bornes et confirmations qui restent tels quels (leur numéro est gardé p
     elle arrive à son heure, avec les heures suivantes encore sans prise de sa journée, case ou non
     (R7) ; le nombre de doses ne change pas (Luna, chaque jour à 20 h, date choisie du 25 mars à 8 h et
     20 h, sans la case : la dose de 20 h avancée au 20 donne le 20 à 20 h et le 25 à 8 h ; celle de
-    8 h, le 20 à 8 h et 20 h, le 25 ne garde rien). Avancée ou reculée avec la
+    8 h, le 20 à 8 h et 20 h, le 25 ne garde rien), même ramenée au jour d'origine de son report
+    que la date choisie laisse avant elle (Milo, tous les jours à 8 h et 20 h dès le 11 avril, 8 h du
+    11 reportée au 15 avec la case, « Prochaine dose » le 13 : 8 h du 13 avancée au 11 donne le 11 à
+    8 h et 20 h, le 13 ne garde rien ; Q50 du 25 octobre 2026, #1283 ; limite connue : avec la case,
+    rien n'arrive le 11). Avancée ou reculée avec la
     case, elle emmène la journée entière, aux heures du réglage qui a choisi la date (#796), et
     l'arrivée devient le premier jour de la série, même quand le report part d'un jour antérieur à ce
     réglage (Milo, chaque jeudi à 8 h et 20 h, puis 8 h, 14 h et 20 h avec « Prochaine dose » le lundi
