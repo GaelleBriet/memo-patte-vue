@@ -4,7 +4,12 @@ import type { ReferenceLine, ReferenceSetting } from './reference-types'
 
 export type Journey = { setting: ReferenceSetting; hours: Hour[] }
 export type Segment = { origin: string; from: string; to: string | null }
-export type Claim = { setting: ReferenceSetting; end: string | null; segments: Segment[] }
+export type Claim = {
+  setting: ReferenceSetting
+  end: string | null
+  segments: Segment[]
+  rhythm: ReadonlySet<string>
+}
 export type ReferenceDue = { key: string; day: string; covered: boolean }
 export type Replaced = { from: string; to: string; onDueDay: boolean }
 
@@ -17,13 +22,15 @@ export function leftDays(
   landed: readonly ReferenceLine[],
 ): Map<string, Journey> {
   const left = new Map<string, Journey>()
-  for (const { setting, end, segments } of claims) {
+  for (const { setting, end, segments, rhythm } of claims) {
     if (end === null) continue
-    // R6 : un décalage du réglage ne laisse aucune de ses échéances jusqu'à son ancrage.
+    // R6 : un décalage écrit sous son rythme, depuis sa journée de début, ne laisse aucune de ses
+    // échéances jusqu'à son ancrage.
+    const ofRhythm = (turn: ReferenceLine) =>
+      turn.settingId === setting.id ||
+      (rhythm.has(turn.settingId) && turn.dueOn >= setting.startsOn)
     const turnedAway = (day: string) =>
-      landed.some(
-        (turn) => turn.settingId === setting.id && turn.dueOn < day && day <= turn.targetOn!,
-      )
+      landed.some((turn) => ofRhythm(turn) && turn.dueOn < day && day <= turn.targetOn!)
     const reported = reports
       .filter(({ settingId, dueOn }) => settingId === setting.id && !turnedAway(dueOn))
       .map(({ dueOn }) => dueOn)

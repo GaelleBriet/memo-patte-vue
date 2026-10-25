@@ -126,6 +126,11 @@ describe('campagne d’invariants du moteur v2', () => {
     },
   )
 
+  // #1258 : 18 h du 8 avril reportée au 19 avec la case ; une posologie seule faisait apparaître 23 h le 19.
+  it('graine 630000745 : une posologie seule ne change pas l’arrivée d’un report parti d’une arrivée', () => {
+    expect(playCampaign({ from: 630_000_745, seeds: 1, steps: 30 }).failures).toEqual([])
+  })
+
   it.each([
     ['INVARIANTS_SEEDS', 'mille'],
     ['INVARIANTS_FROM', '-3'],

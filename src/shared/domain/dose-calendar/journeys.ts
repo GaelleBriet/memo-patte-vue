@@ -229,7 +229,12 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
       rhythmStartFloor = later(turn.dueOn, turn.targetOn!)
       from = plusDays(turn.dueOn, 1)
     }
-    claims.push({ setting, end, segments })
+    const ofRhythm = lines.shifts.filter(
+      (shift) =>
+        shift.settingId === setting.id ||
+        (shift.dueOn >= setting.startsOn && rhythm.has(shift.settingId)),
+    )
+    claims.push({ setting, end, segments, turns: ofRhythm })
     bounds.push(unbounded)
   })
   for (const shift of lines.shifts) {

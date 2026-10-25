@@ -238,7 +238,7 @@ export function calendarOf(
       landed.push(turn)
       from = plusDays(turn.dueOn, 1)
     }
-    claims.push({ setting, end, segments })
+    claims.push({ setting, end, segments, rhythm: new Set(rhythm) })
   })
 
   const handed = handedOf(claims, chosenRestarts)

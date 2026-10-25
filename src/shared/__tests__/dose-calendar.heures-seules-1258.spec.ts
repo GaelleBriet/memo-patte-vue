@@ -283,12 +283,9 @@ describe('Posologie seule après un report parti de l’arrivée d’un report a
     expect(journee(luna(), '2026-04-21')).toEqual(['12:00 pending', '18:00 pending'])
   })
 
-  // Trou connu #1258 : la posologie seule fait apparaître 23 h le 21, que le 18 n'a jamais portée.
-  // Même cause, graine 630000745 : tous les jours à 6, 12, 18 et 23 h ; 6 h du 27 mars reportée au
-  // 7 avril avec la case, puis 12 h du 7 reportée au 8 avec la case ; le 29 : 12 h du 8 donnée
-  // (« Remplace »), 18 h du 8 donnée en plus, « Modifier » avec une fin le 29 avril ; 18 h du 8
-  // reportée au 19 avec la case : une posologie seule fait apparaître 23 h le 19 avril.
-  it.fails('graine 590000162 : une posologie seule ne change pas le 21 avril (R6)', () => {
+  // Le décalage du 11 au 18, écrit sous le réglage que celui du 18 continue, écarte aussi le 18 de ce
+  // dernier : remplacé le jour même par une posologie seule, il ne cède pas le 18 avec ses quatre heures.
+  it('graine 590000162 : une posologie seule ne change pas le 21 avril (R6)', () => {
     const input = luna()
     expect(
       journee(
@@ -296,6 +293,11 @@ describe('Posologie seule après un report parti de l’arrivée d’un report a
         '2026-04-21',
       ),
     ).toEqual(journee(input, '2026-04-21'))
+  })
+
+  it('graine 590000162 : le modèle naïf lit la même chose après la posologie seule', () => {
+    expect(naive(luna())).toBeNull()
+    expect(naive(hoursOnly(luna(), (times) => [...times]))).toBeNull()
   })
 })
 
