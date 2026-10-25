@@ -1,7 +1,17 @@
 import { chosenAtOf } from '../grid'
-import type { Day, Due, Line, LineFields, Setting, TreatmentViewInput } from '../types'
-import type { TreatmentView } from '../view'
-import { shiftOfDay } from './changes'
+import { isMoreRecent } from '../lines'
+import type {
+  Day,
+  Due,
+  Line,
+  LineChange,
+  LineFields,
+  Refusal,
+  Setting,
+  TreatmentViewInput,
+} from '../types'
+import { buildView, type TreatmentView } from '../view'
+import { shiftOfDay, without } from './changes'
 
 export const reportsOf = (view: TreatmentView, episode: ReadonlySet<string>): Line[] =>
   view.history
@@ -56,6 +66,88 @@ export function reportToRewrite(
     .at(-1)
   if (found === undefined || carried) return found
   return leavesTurnedArrival(input, view, found, due) ? undefined : found
+}
+
+/** Q51 : un autre report en vigueur arrivé le même jour, qu'un geste sur celui-ci séparerait. */
+export function sharedArrival(
+  view: TreatmentView,
+  report: Line,
+  ignored: ReadonlySet<string> = new Set(),
+): Line | undefined {
+  return view.history.find(
+    ({ line, effect }) =>
+      line.status === 'postponed' &&
+      effect.kind === 'moves' &&
+      line.id !== report.id &&
+      !ignored.has(line.id) &&
+      line.targetOn === report.targetOn,
+  )?.line
+}
+
+/**
+ * Q52 : des deux reports arrivés le même jour, celui écrit en dernier, le seul qui se supprime :
+ * celui que l'autre a suivi (Q50, arrivée d'avant sur son jour de départ), sinon le plus récent.
+ */
+export function lastOfPair(a: Line, b: Line): Line {
+  if (b.previousTargetOn === a.dueOn) return a
+  if (a.previousTargetOn === b.dueOn) return b
+  return isMoreRecent(a, b) ? a : b
+}
+
+// R7 : un report est une ligne, il ne se coupe pas ; il n'apporte aucune heure avant l'heure touchée.
+function bringsNothingEarlier(view: TreatmentView, report: Line, time: string | null): boolean {
+  const effect = view.history.find(({ line }) => line.id === report.id)?.effect
+  if (time === null || effect?.kind !== 'moves') return true
+  return effect.keys.every((key) => key.length <= 10 || key.slice(11) >= time)
+}
+
+/**
+ * R7, Q50, Q51 : l'heure touchée sur l'arrivée d'un report sans décalage, que la grille met aussi ce
+ * jour-là (hors date choisie et nouveau rythme, #780) : la journée part et ce report la suit, sauf
+ * s'il partage son arrivée ou apporte une heure plus tôt ; `null` : le report est redéplacé.
+ */
+export function arrivalOnGridDay(
+  input: TreatmentViewInput,
+  view: TreatmentView,
+  report: Line,
+  due: Due,
+): { follower: Line } | { refusal: Refusal } | null {
+  if (report.targetOn !== due.dueOn || report.dueOn === due.dueOn) return null
+  if (shiftOfDay(input.lines, report.dueOn)?.targetOn === report.targetOn) return null
+  if (opensRhythm(view, report)) return null
+  const chosen = input.settings.some(
+    ({ firstDueChosen, firstDueOn }) => firstDueChosen && firstDueOn === due.dueOn,
+  )
+  if (chosen) return null
+  const arriving = view.history
+    .filter(({ line, effect }) => effect.kind === 'moves' && line.targetOn === due.dueOn)
+    .map(({ line }) => line.id)
+  const gridDay = buildView(without(input, arriving))
+    .slots(due.dueOn, due.dueOn)
+    .some((slot) => slot.state === 'pending' && slot.due.dueTime === due.dueTime)
+  if (!gridDay) return null
+  const shared = sharedArrival(view, report)
+  if (shared === undefined && bringsNothingEarlier(view, report, due.dueTime)) {
+    return { follower: report }
+  }
+  const named = shared === undefined ? report : lastOfPair(report, shared)
+  return { refusal: { reason: 'arrival-shared', on: named.dueOn } }
+}
+
+/** R7, #1274 : le report qui suit la journée partie arrive au même jour, ou rentre chez lui. */
+export function followerLines(follower: Line | undefined, to: Day): LineChange[] {
+  if (follower === undefined) return []
+  if (to === follower.dueOn) return [{ action: 'delete', id: follower.id }]
+  const { settingId, dueOn, dueTime } = follower
+  const line: LineFields = {
+    settingId,
+    dueOn,
+    dueTime,
+    status: 'postponed',
+    givenOn: null,
+    targetOn: to,
+  }
+  return [{ action: 'rewrite', id: follower.id, line }]
 }
 
 /**

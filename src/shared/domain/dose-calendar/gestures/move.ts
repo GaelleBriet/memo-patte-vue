@@ -15,7 +15,16 @@ import type {
 import { buildView, type TreatmentView } from '../view'
 import { applied, shiftOfDay, shiftWritten, without, written } from './changes'
 import { linesAfter, livesOn, lostToEnd, outcome } from './outcome'
-import { chosenArrivalKept, opensRhythm, reportsOf, reportToRewrite } from './moved-report'
+import {
+  arrivalOnGridDay,
+  chosenArrivalKept,
+  followerLines,
+  lastOfPair,
+  opensRhythm,
+  reportsOf,
+  reportToRewrite,
+  sharedArrival,
+} from './moved-report'
 import { strandsNote } from './reports'
 
 export type MoveGesture = Omit<Extract<Gesture, { kind: 'move' }>, 'kind'>
@@ -29,6 +38,8 @@ export type MoveBounds = { earliest: Day; latest: Day | null; excluded: Day[] }
 type MovePlan = {
   moved: Due
   existing: Line | undefined
+  /** R7, #1274 : le report arrivé sur la journée qui part, réécrit vers la même arrivée. */
+  follower: Line | undefined
   dayShift: Line | undefined
   bounds: MoveBounds
 }
@@ -113,10 +124,18 @@ function planOf(
   const ids = new Set(episode.map(({ id }) => id))
   const notedOn = (day: Day) =>
     input.lines.some((line) => isTaken(line) && ids.has(line.settingId) && line.dueOn === day)
-  const existing = reportToRewrite(input, view, ids, due, notedOn, carried)
+  const found = reportToRewrite(input, view, ids, due, notedOn, carried)
+  const arrival = found === undefined || carried ? null : arrivalOnGridDay(input, view, found, due)
+  if (arrival !== null && 'refusal' in arrival) return arrival.refusal
+  const follower = arrival?.follower
+  const existing = follower === undefined ? found : undefined
   if (existing !== undefined && notedOn(existing.targetOn!)) return { reason: 'arrival-logged' }
   // R7, R9.2 : partie de son arrivée, la dose rendrait au jour les heures du nouveau rythme.
   if (existing !== undefined && opensRhythm(view, existing)) return { reason: 'not-movable' }
+  const shared = existing === undefined || carried ? undefined : sharedArrival(view, existing)
+  if (shared !== undefined) {
+    return { reason: 'arrival-shared', on: lastOfPair(existing!, shared).dueOn }
+  }
   const locked = reportsOf(view, ids).some((report) => report.targetOn === due.dueOn)
   if (existing === undefined && locked && view.dueState(due) !== 'pending') {
     return { reason: 'arrival-logged' }
@@ -128,7 +147,9 @@ function planOf(
     return { reason: 'later-dose' }
   }
   const dayShift = shiftOfDay(input.lines, existing?.dueOn ?? moved.dueOn)
-  const ignored = new Set([existing?.id, dayShift?.id].filter((id) => id !== undefined))
+  const ignored = new Set(
+    [existing?.id, follower?.id, dayShift?.id].filter((id) => id !== undefined),
+  )
   const livesAt = [moved.dueOn, existing?.targetOn ?? moved.dueOn].sort()[0]!
   // R6 : un décalage déplacerait la grille sous l'échéance d'origine d'une dose avancée plus loin.
   const dayOf = shiftsFollowing ? undefined : livesOn
@@ -169,11 +190,11 @@ function planOf(
     }
   }
   const excluded = reportsOf(view, ids)
-    .filter(({ id, dueOn }) => id !== existing?.id && dueOn !== moved.dueOn)
+    .filter(({ id, dueOn }) => !ignored.has(id) && dueOn !== moved.dueOn)
     .map(({ dueOn }) => dueOn)
     .filter((day) => day >= earliest && (latest === null || day <= latest))
   const bounds = { earliest, latest, excluded: [...new Set(excluded)].sort() }
-  return { moved, existing, dayShift, bounds }
+  return { moved, existing, follower, dayShift, bounds }
 }
 
 /** « Prochaine dose » : bornes du déplacement (TR-9, G6, G8, Q20, Q2 a), ou pourquoi il est refusé (G7, Q25). */
@@ -198,7 +219,7 @@ function boundsRefusal(bounds: MoveBounds, to: Day): Refusal | null {
 // décalage, ancré au jour d'arrivée, seulement quand les doses suivantes le suivent.
 function reportLines(
   input: TreatmentViewInput,
-  { moved, existing, dayShift }: MovePlan,
+  { moved, existing, follower, dayShift }: MovePlan,
   to: Day,
   shiftsFollowing: boolean,
   due: Due,
@@ -229,7 +250,8 @@ function reportLines(
                 ? line
                 : { ...line, previousTargetTime: touched },
         }
-  if (!shiftsFollowing) return [report, ...dropShift]
+  const follows = followerLines(follower, to)
+  if (!shiftsFollowing) return [report, ...follows, ...dropShift]
   // R6, R7 : le décalage appartient au rythme en vigueur ce jour-là, sinon il serait dépassé.
   const inForce = buildView(input).settingAt(moved.dueOn)?.id ?? moved.settingId
   const at = { ...moved, settingId: inForce }
@@ -241,7 +263,7 @@ function reportLines(
           line: { ...at, status: 'shift', givenOn: null, targetOn: to },
         }
       : shiftWritten(input.lines, at, to)
-  return [report, shift]
+  return [report, ...follows, shift]
 }
 
 /** R7 : le report de la dose, seul ou avec sa ligne de décalage ancrée au jour d'arrivée (R6). */
