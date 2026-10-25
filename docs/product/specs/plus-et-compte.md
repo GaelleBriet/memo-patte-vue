@@ -143,10 +143,9 @@ publicité.
   120 éléments sur 348 » ; réseau coupé : « La restauration reprendra dès le retour du réseau. Rien n'est
   perdu. » et « Plus tard ». La restauration se fait même sans Plus actif, la sauvegarde restant en pause
   jusqu'à « Réactiver Plus » (PL-19). Un changement de compte laisse le carnet local en place. V26 bis
-  quitté sans choisir : rien n'est activé, l'écran revient une fois par lancement, et à la
-  première arrivée sur l'accueil d'un autre jour (jour du téléphone), jamais par-dessus une feuille
-  ou une saisie (#1298, Q53). Le texte dit « sur ce
-  téléphone », comme l'import. (#40 ; décisions du 2026-10-21 ; P1 Q2 ; [`proposition-sync.md`](../../technical/proposition-sync.md) §4.3 ; relecture du lot C, QC-7)
+  quitté sans choisir : rien n'est activé, l'écran revient une fois par lancement, et à la première
+  arrivée sur l'accueil d'un autre jour (jour du téléphone), jamais par-dessus une feuille ou une
+  saisie (#1298, Q53). Le texte dit « sur ce téléphone », comme l'import. (#40 ; décisions du 2026-10-21 ; P1 Q2 ; [`proposition-sync.md`](../../technical/proposition-sync.md) §4.3 ; relecture du lot C, QC-7)
 - **PL-17** État visible : Paramètres › Sauvegarde (« Dernière sauvegarde : il y a 5 min », « En attente
   de réseau », « En pause », « Reconnecte-toi… ») et icône de nuage dans l'en-tête de l'accueil pour les
   abonnés (alerte après 7 jours sans synchronisation réussie). « En pause » est réservé à Plus arrêté ;
@@ -155,12 +154,14 @@ publicité.
   pour toujours ajoute la ligne « Un élément n'a pas pu être sauvegardé · Contacter l'aide »
   (« {n} éléments n'ont pas pu être sauvegardés… » au pluriel) sous « Dernière sauvegarde »,
   « Première sauvegarde », « En attente de réseau » et « Reconnecte-toi », jamais seule ; elle ouvre
-  Aide et contact, et une photo refusée masque « Photos sauvegardées ». Un choix de restauration en attente (V26 bis quitté sans
-  choisir, ou « Remplacer » abandonné parce que le carnet du téléphone a changé) ajoute en tête, dans
-  la famille de « Reconnecte-toi » : « Restauration en attente » · « Ta sauvegarde cloud attend ton
-  choix : fusionner avec le carnet de ce téléphone, ou le remplacer. » · « Choisir », qui ouvre
-  « Restaurer mon carnet » ; jamais autrement, il disparaît dès que le choix est fait (#1298, Q53). (P12 Q2 ; relecture du lot
-  C, validé en bloc ; élément refusé : journal du 2026-10-24, #1035)
+  Aide et contact, et une photo refusée masque « Photos sauvegardées ». Un choix de restauration en
+  attente (V26 bis quitté sans choisir, ou « Remplacer » abandonné parce que le carnet du téléphone a
+  changé) ajoute en tête, dans la famille de « Reconnecte-toi » : « Restauration en attente » · « Ta
+  sauvegarde cloud attend ton choix : fusionner avec le carnet de ce téléphone, ou le remplacer. » ·
+  « Choisir », qui ouvre « Restaurer mon carnet » ; jamais autrement, il disparaît dès que le choix
+  est fait (#1298, Q53). Tant qu'il est affiché, seuls « Exporter une copie » et « Effacer les
+  données de ce téléphone » restent sous lui (Q54). (P12 Q2 ; relecture du lot C, validé en bloc ;
+  élément refusé : journal du 2026-10-24, #1035)
 - **PL-18** Un rappel peut sonner sur un appareil pas encore à jour ; accepté en v1. (P14 Q2)
 
 ### 3.4 Fin de Plus et départ
