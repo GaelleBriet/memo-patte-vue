@@ -1,9 +1,11 @@
 import type { PluginListenerHandle } from '@capacitor/core'
 import { Network } from '@capacitor/network'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
-import { nextTick, ref } from 'vue'
+import { nextTick, ref, shallowRef } from 'vue'
 import { simulateWebResume } from '@/core/app-lifecycle/__tests__/simulate-resume'
-import { SYNC_DEBOUNCE_MS } from '@/core/sync/service/sync-scheduler'
+import type { RestoreMode } from '@/core/sync/repository/sync-state.repository'
+import { createRestoreFlow, type RestoreFlowState } from '@/core/sync/service/restore-flow'
+import { SYNC_BACKOFF_STEPS_MS, SYNC_DEBOUNCE_MS } from '@/core/sync/service/sync-scheduler'
 import type { SyncCycleOutbox } from '@/core/sync/service/sync-cycle'
 import type { AccountBackupCheck } from '@/features/settings/service/account-backup.service'
 import { installSync, type SyncDependencies } from '../sync'
@@ -48,6 +50,7 @@ function fakeRestoreFlow(resume: () => Promise<boolean> = async () => false) {
   const restored = new Set<() => void>()
   const retries = new Set<() => void>()
   return {
+    state: shallowRef<RestoreFlowState>({ step: 'idle' }),
     checking: vi.fn<() => void>(),
     noAnswer: vi.fn<() => void>(),
     offer: vi.fn<SyncDependencies['restoreFlow']['offer']>(),
@@ -647,5 +650,54 @@ describe('installSync', () => {
     await runDebounce()
 
     expect(runCycle).not.toHaveBeenCalled()
+  })
+})
+
+describe('restauration qui attend le réseau', () => {
+  it('reprend seule par minuterie quand Android n’annonce jamais de coupure', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const emits: NetworkListener[] = []
+    addNetworkListener.mockImplementation(async (_event, listener) => {
+      emits.push(listener)
+      return { remove: vi.fn<() => Promise<void>>(async () => {}) }
+    })
+    let pending: RestoreMode | null = null
+    let failNext = true
+    const flow = createRestoreFlow({
+      pendingMode: async () => pending,
+      start: async (mode) => {
+        pending = mode
+      },
+      run: async () => {
+        if (failNext) {
+          failNext = false
+          throw new Error('délai dépassé')
+        }
+        pending = null
+      },
+      progress: { done: 0, total: 0 },
+      onProgress: () => () => {},
+    })
+    const stop = await installSync({
+      outbox: fakeOutbox(0),
+      runCycle: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      userId: () => null,
+      ...withoutSession,
+      restoreFlow: flow,
+    })
+    const emit = (connectionType: string) => {
+      for (const listener of emits) listener({ connected: true, connectionType })
+    }
+
+    emit('wifi')
+    await vi.advanceTimersByTimeAsync(0)
+    await flow.choose('replace')
+    expect(flow.state.value.step).toBe('waiting-network')
+
+    for (let index = 0; index < 5; index += 1) emit('wifi')
+    await vi.advanceTimersByTimeAsync(SYNC_BACKOFF_STEPS_MS[0]!)
+
+    expect(flow.state.value.step).toBe('done')
+    stop()
   })
 })
