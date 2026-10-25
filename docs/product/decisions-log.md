@@ -2989,9 +2989,13 @@ plan) la restauration effaçait cette pesée sans nouvelle décision.
   existant (« Des données existent déjà sur ce téléphone. »). Sans changement, le remplacement
   s'exécute comme avant. « Fusionner » n'est pas concerné : il n'efface rien.
 - Et donc (décision de Gaelle, « ok oui ») : l'écran « Restaurer mon carnet » se rouvre de lui-même
-  au prochain passage par l'accueil, dans le même lancement, ou tout de suite si l'accueil est
-  affiché. Il ne surgit jamais au milieu d'un autre écran : affiché sur la pesée de Milo, il attend
-  le retour à l'accueil, comme la première proposition.
+  à la prochaine arrivée sur l'accueil, dans le même lancement, jamais au milieu de ce que fait la
+  personne. Si le choix revient pendant que l'accueil est déjà affiché, l'écran attend qu'elle le
+  quitte puis y revienne : une feuille ouverte sur l'accueil (« Ajouter une pesée », « C'est fait »)
+  n'a pas d'adresse propre, et l'ouvrir alors ferait perdre la saisie en cours.
+- Limite connue, inchangée : la toute première proposition d'un lancement s'ouvre encore dès que la
+  sauvegarde est trouvée si l'accueil est affiché ; une feuille ouverte dans les premières secondes
+  du lancement pourrait être recouverte.
 - Moyen, sans colonne ni migration : l'état du carnet est, pour chaque table du carnet (appareils
   exclus), le nombre de lignes, la plus grande date de modification et la somme des dates de
   modification. La somme fait changer l'état même quand une correction reçoit une date sous la plus
@@ -3004,9 +3008,12 @@ plan) la restauration effaçait cette pesée sans nouvelle décision.
   données).
 - Limite acceptée : la comparaison se fait juste avant l'écriture, après le téléchargement, mais pas
   dans la même transaction. Une saisie enregistrée dans l'intervalle, de l'ordre de la milliseconde,
-  entre la lecture de l'état et l'écriture du carnet, ne serait pas vue.
-- Pour revenir dessus : retirer la comparaison de `restore()` dans `account-restore.ts`, et la
-  remise à zéro sur `restoring` dans `app/restore-prompt.ts`.
+  entre la lecture de l'état et l'écriture du carnet, ne serait pas vue. Chaque date entre dans la
+  somme arrondie à la milliseconde : une correction datée à moins d'une milliseconde de l'ancienne
+  date ne changerait pas la somme. L'état gardé survit à
+  une déconnexion, sans effet : le choix suivant le remplace.
+- Pour revenir dessus : retirer la comparaison de `restore()` dans `account-restore.ts`, et le
+  traitement d'un choix reproposé dans `app/restore-prompt.ts`.
 
 ## 2026-10-25 — Ligne unique de `sync_state` reposée à l'ouverture de la base, sans migration (#1286)
 
