@@ -11,8 +11,9 @@ const KEPT_ON_REPLACE = 'device'
 
 export type { RestoreMode }
 
-/** `carnet-changed` : « Remplacer » abandonné, le carnet du téléphone a changé depuis le choix. */
-export type RestoreRunResult = 'restored' | 'carnet-changed'
+/** `nothing-to-restore` : rien d'écrit (ni choix, ni compte, ou compte changé entre-temps) ;
+ * `carnet-changed` : « Remplacer » abandonné, le carnet du téléphone a changé depuis le choix. */
+export type RestoreRunResult = 'restored' | 'nothing-to-restore' | 'carnet-changed'
 
 export interface RestoreProgress {
   done: number
@@ -115,9 +116,9 @@ export function createAccountRestore(deps: AccountRestoreDependencies) {
   async function restore(): Promise<RestoreRunResult> {
     const mode = await deps.outbox.restoreMode()
     const userId = deps.userId()
-    if (mode === null || userId === null) return 'restored'
+    if (mode === null || userId === null) return 'nothing-to-restore'
     const downloaded = await download(userId)
-    if (deps.userId() !== userId) return 'restored'
+    if (deps.userId() !== userId) return 'nothing-to-restore'
     if (mode === 'replace' && (await carnetChangedSinceChoice())) {
       await deps.outbox.cancelRestore()
       deps.choiceSnapshot.clear()
