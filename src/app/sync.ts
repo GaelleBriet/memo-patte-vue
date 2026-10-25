@@ -90,8 +90,10 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
   }
 
   async function checkBackup(): Promise<void> {
+    const checkedUserId = deps.userId()
     try {
       const outcome = await answeredInTime(deps.checkAccountBackup())
+      if (deps.userId() !== checkedUserId) return
       if (outcome === null) deps.restoreFlow.noAnswer()
       else if (outcome.kind === 'backup-found') deps.restoreFlow.offer(outcome.summary)
       else if (outcome.kind === 'restore-pending') await runRestore()
@@ -104,6 +106,7 @@ export async function installSync(deps: SyncDependencies): Promise<() => void> {
         if (outcome.kind === 'seeded') scheduler.notifyChange()
       }
     } catch (cause) {
+      if (deps.userId() !== checkedUserId) return
       checkedFor = null
       deps.restoreFlow.unreachable()
       console.warn(
