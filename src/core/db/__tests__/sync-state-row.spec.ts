@@ -39,7 +39,7 @@ describe('repairSyncStateRow', () => {
   it('rend lisibles la sauvegarde et la restauration en attente après réparation', async () => {
     await db.run('DELETE FROM sync_state')
     const syncState = createSyncStateRepository(db)
-    await expect(syncState.isEnabled()).rejects.toThrow()
+    await expect(syncState.isEnabled()).rejects.toThrow('sync_state introuvable')
 
     await repairSyncStateRow(db)
 
