@@ -190,6 +190,61 @@ describe('installRestorePrompt', () => {
       expect(router.currentRoute.value.name).toBe('account-restore')
     })
 
+    it('le lendemain, une notification touchée sur l’accueil ouvre sa feuille, pas l’écran', async () => {
+      const router = routeur()
+      const flow = parcours()
+      await proposéPuisQuitté(router, flow, new Date(2026, 9, 25, 20, 0))
+      await router.push('/')
+      await flushPromises()
+
+      vi.setSystemTime(new Date(2026, 9, 26, 8, 0))
+      await router.replace({
+        name: 'home',
+        query: { reminder: 'treatment:vermifuge-milo', step: 'actions' },
+      })
+      await flushPromises()
+
+      expect(router.currentRoute.value.name).toBe('home')
+      expect(router.currentRoute.value.query).toEqual({
+        reminder: 'treatment:vermifuge-milo',
+        step: 'actions',
+      })
+    })
+
+    it('le lendemain, un retour sur l’accueil qui rouvre une feuille passe avant l’écran', async () => {
+      const router = routeur()
+      const flow = parcours()
+      await proposéPuisQuitté(router, flow, new Date(2026, 9, 25, 20, 0))
+      await router.push('/animals')
+
+      vi.setSystemTime(new Date(2026, 9, 26, 8, 0))
+      await router.push({ name: 'home', query: { reminder: 'vaccination:rage-luna' } })
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('home')
+
+      await router.push({ name: 'home', query: { step: 'given-when' } })
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('home')
+    })
+
+    it('le lendemain, un passage de l’accueil à l’accueil n’est pas une arrivée', async () => {
+      const router = routeur()
+      const flow = parcours()
+      await proposéPuisQuitté(router, flow, new Date(2026, 9, 25, 20, 0))
+      await router.push({ name: 'home', query: { reminder: 'treatment:vermifuge-milo' } })
+      await flushPromises()
+
+      vi.setSystemTime(new Date(2026, 9, 26, 8, 0))
+      await router.replace('/')
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('home')
+
+      await router.push('/weight')
+      await router.push('/')
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('account-restore')
+    })
+
     it('compte le jour où l’écran est quitté, pas celui où il s’est ouvert', async () => {
       const router = routeur()
       const flow = parcours()
