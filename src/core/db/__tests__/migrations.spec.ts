@@ -641,7 +641,7 @@ describe('schéma sur une installation neuve', () => {
     })
   })
 
-  it('crée l’état de synchronisation désactivé, sans date de dernière synchronisation', async () => {
+  it('crée la ligne sync_state (id 1) désactivée, sans date de dernière synchronisation, par les seules migrations, sans la repose à l’ouverture', async () => {
     expect(await columnNames(db, 'sync_state')).toEqual([
       'id',
       'enabled',
