@@ -12,7 +12,7 @@ import {
   type GestureOutcome,
   type TreatmentViewInput,
 } from '../domain/dose-calendar'
-import { DAY, H, line, setting, WEEK } from './dose-calendar.v2.aides'
+import { DAY, H, line, MONTH, setting, WEEK } from './dose-calendar.v2.aides'
 
 const accepted = (result: ReturnType<typeof play>): GestureOutcome => {
   if ('refusal' in result) throw new Error(`refusé : ${result.refusal.reason}`)
@@ -185,15 +185,60 @@ describe('la case « Décaler aussi » : une seule condition pour « Fait à une
     })
   })
 
-  it('la case ferait disparaître une dose passée sans prise (Q44) : jamais proposée', () => {
-    // Le 24, rien depuis le 9 : la dose du 16 donnée le 17 ; cochée, la suite repartirait du 17 (24,
-    // 31) et la dose du 23, en retard, disparaîtrait.
-    const carnet = weekly(
-      [line('p1', 'given', '2026-10-02'), line('p1', 'given', '2026-10-09')],
-      '2026-10-24',
-    )
-    expect(bothWays(carnet, friday('2026-10-16'), '2026-10-17').offers).toEqual([false, false])
+  it.each(['2026-10-24', '2026-10-25', '2026-10-29', '2026-10-31'])(
+    'dose non renseignée aujourd’hui, le %s : jamais proposée, par aucun geste (N1, Q46)',
+    (today) => {
+      // Rien depuis le 9 : la dose du 16 donnée le 17, quand la dose du 23 est déjà tombée.
+      const carnet = weekly(
+        [line('p1', 'given', '2026-10-02'), line('p1', 'given', '2026-10-09')],
+        today,
+      )
+      expect(bothWays(carnet, friday('2026-10-16'), '2026-10-17').offers).toEqual([false, false])
+    },
+  )
+
+  it('mensuel le 31 : le 3 mars, la dose du 31 janvier donnée le 1er février, jamais proposée (N1, Q46)', () => {
+    const lePremier = setting('m1', '2026-01-31', MONTH)
+    const carnet = { settings: [lePremier], lines: [], today: '2026-03-03' }
+    const due = { settingId: 'm1', dueOn: '2026-01-31', dueTime: null }
+    expect(bothWays(carnet, due, '2026-02-01').offers).toEqual([false, false])
   })
+
+  it('Milo : la prise du 23 à 20 h changée au 24, rien de noté le 24 : jamais proposée (Q38)', () => {
+    const metacam = setting('s1', '2026-10-20', DAY, H)
+    const prise = line('s1', 'given', '2026-10-23', '20:00')
+    const lines = [line('s1', 'given', '2026-10-23', '08:00'), prise]
+    const result = accepted(
+      play(
+        { settings: [metacam], lines, today: '2026-10-24' },
+        { kind: 'redate', lineId: prise.id, givenOn: '2026-10-24', shiftsFollowing: true },
+      ),
+    )
+    expect(result.offersShift).toBe(false)
+  })
+
+  it.each(['2026-10-27', '2026-10-31'])(
+    'prise qui porte son propre décalage, changée au 17 le %s : proposée, le décalage la suit (R6, Q46)',
+    (today) => {
+      // La dose du 16 donnée le lundi 19 avec la case : la suite passe au lundi.
+      const prise = { ...line('p1', 'given', '2026-10-16'), givenOn: '2026-10-19' }
+      const lines = [
+        line('p1', 'given', '2026-10-02'),
+        line('p1', 'given', '2026-10-09'),
+        prise,
+        line('p1', 'shift', '2026-10-16', null, '2026-10-19'),
+      ]
+      const result = accepted(
+        play(weekly(lines, today), {
+          kind: 'redate',
+          lineId: prise.id,
+          givenOn: '2026-10-17',
+          shiftsFollowing: true,
+        }),
+      )
+      expect(result.offersShift).toBe(true)
+    },
+  )
 
   it('dose plus lointaine que la dose du moment (#1242) : proposée des deux côtés', () => {
     // Le 20, la dose du 16 en retard ; la dose du 23, à venir au 18, donnée au 18.
