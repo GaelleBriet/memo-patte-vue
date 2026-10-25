@@ -43,8 +43,8 @@ export function shiftOfDay(lines: readonly Line[], day: Day): Line | undefined {
 }
 
 /**
- * N2, #1262 : le décalage de la journée est celui de cette prise quand il est ancré à sa date ; quand
- * une autre heure de sa journée a été donnée le même jour, seulement s'il porte son heure.
+ * N2 : ancré à la date de la prise ; à date partagée entre heures, l'heure tranche, sauf pour le
+ * décalage d'une dose avancée (G18), qui garde l'heure de son report.
  */
 export function ownsDayShift(
   input: Pick<TreatmentViewInput, 'lines'>,
@@ -52,6 +52,7 @@ export function ownsDayShift(
   shift: Line,
 ): boolean {
   if (shift.targetOn !== prise.givenOn) return false
+  if (shift.dueOn !== prise.dueOn) return true
   const sharedDate = input.lines.some(
     (other) =>
       other.status === 'given' &&

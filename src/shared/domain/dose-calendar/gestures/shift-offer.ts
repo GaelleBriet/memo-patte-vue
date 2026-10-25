@@ -43,7 +43,7 @@ export function offersShiftFor(
   )
 }
 
-// Q48 : un geste sur une heure ne réécrit jamais le décalage d'une autre heure.
+// Q48 ; une prise donnée le jour de son échéance n'a jamais eu la case, elle n'a donc rien écrit.
 function writtenByAnotherHour(carnet: TreatmentViewInput, due: Due, shift: Line): boolean {
   return carnet.lines.some(
     (prise) =>
@@ -51,6 +51,7 @@ function writtenByAnotherHour(carnet: TreatmentViewInput, due: Due, shift: Line)
       prise.settingId === due.settingId &&
       prise.dueOn === due.dueOn &&
       prise.dueTime !== due.dueTime &&
+      prise.givenOn !== prise.dueOn &&
       ownsDayShift(carnet, prise, shift),
   )
 }
