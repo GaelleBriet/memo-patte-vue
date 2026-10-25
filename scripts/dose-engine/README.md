@@ -52,9 +52,10 @@ sans réponse, règle d'avant Q27). La symétrie se joue aussi pour la première
 moment ou non (`symmetryAhead`). La case vient d'une seule condition pour « Fait à une autre date » et
 « Changer la date » (`gestures/shift-offer.ts`) : la symétrie se juge case cochée ou décochée,
 sans exclusion (#1242, #1255). « Dose déplacée présente » (`v2-invariants-moved.ts`, R7, R11,
-#1274), jugé par cette campagne seule : « Prochaine dose » accepté, la dose touchée et les heures
-suivantes encore à donner de sa journée se retrouvent au jour choisi (une même heure comptée une
-fois) ; trous connus épinglés en `it.fails` (graines 670000231 et 9500001489). La campagne ne
+#1274) : « Prochaine dose » accepté, la dose touchée et les heures suivantes encore à donner de sa
+journée se retrouvent au jour choisi (une même heure comptée une fois). Compteur informatif de cette
+campagne seule (« dose déplacée absente (informatif) N : graines … ») tant que #1281, #1282 et #1283
+restent ouverts ; leurs graines 670000231, 9500001489 et 670000934 sont épinglées en `it.fails`. La campagne ne
 choisit jamais une « Prochaine dose » après la date de fin, que le formulaire refuse (Q20). Variables
 posées directement devant la commande, sous le même verrou :
 

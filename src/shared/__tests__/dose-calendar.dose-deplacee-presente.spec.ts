@@ -33,14 +33,26 @@ function milo(): TreatmentViewInput {
 
 const sixAt = (dueTime: string): Due => ({ settingId: 'p1', dueOn: '2026-03-06', dueTime })
 
-const shownOn = (input: TreatmentViewInput, day: string) =>
+function movedTo(dueTime: string, shiftsFollowing: boolean) {
+  const input = milo()
+  const result = moveDose(input, { due: sixAt(dueTime), to: '2026-03-07', shiftsFollowing })
+  if ('refusal' in result) throw new Error(JSON.stringify(result))
+  return { input, after: recorded(input, result.changes) }
+}
+
+const calendar = (input: TreatmentViewInput) =>
   keys(
     treatmentView(input)
-      .slots(day, day)
+      .slots('2026-03-05', '2026-03-13')
       .map(({ due }) => due),
   )
 
-describe('« Prochaine dose » sur une journée qui reçoit aussi un report : aucune dose ne disparaît (R7, R11, #1274)', () => {
+const shiftOfPrise = (input: TreatmentViewInput) =>
+  input.lines
+    .filter(({ status, dueOn }) => status === 'shift' && dueOn === '2026-03-04')
+    .map(({ dueTime, targetOn }) => [dueTime, targetOn])
+
+describe('« Prochaine dose » sur une journée qui reçoit aussi un report : la journée part entière (R7, Q50, #1274)', () => {
   it('le 6, la fiche montre 8 h et 20 h, puis le 9 et le 12', () => {
     const view = treatmentView(milo())
 
@@ -55,22 +67,53 @@ describe('« Prochaine dose » sur une journée qui reçoit aussi un report : au
     ])
   })
 
-  // Trou connu : le report du 4 et le décalage de la prise de 8 h du 4 sont réécrits vers le 7.
-  it.fails('8 h du 6 au 7 avec la case : 8 h et 20 h arrivent le 7, ou le geste est refusé', () => {
-    const input = milo()
-    const result = moveDose(input, { due: sixAt('08:00'), to: '2026-03-07', shiftsFollowing: true })
+  it('8 h du 6 au 7 avec la case : le 7 à 8 h et 20 h, puis le 10 et le 13 ; le décalage du 4 reste à la prise de 8 h', () => {
+    const { after } = movedTo('08:00', true)
 
-    const after =
-      'refusal' in result ? 'refusé' : shownOn(recorded(input, result.changes), '2026-03-07')
-    expect([['2026-03-07 08:00', '2026-03-07 20:00'], 'refusé']).toContainEqual(after)
+    expect(calendar(after)).toEqual([
+      '2026-03-07 08:00',
+      '2026-03-07 20:00',
+      '2026-03-10 08:00',
+      '2026-03-10 20:00',
+      '2026-03-13 08:00',
+      '2026-03-13 20:00',
+    ])
+    expect(shiftOfPrise(after)).toEqual([['08:00', '2026-03-03']])
+    expect(
+      after.lines
+        .filter(({ status }) => status === 'postponed')
+        .map(({ dueOn, dueTime, targetOn }) => [dueOn, dueTime, targetOn]),
+    ).toEqual([
+      ['2026-03-04', '20:00', '2026-03-07'],
+      ['2026-03-06', '08:00', '2026-03-07'],
+    ])
   })
 
-  it.fails('20 h du 6 au 7 avec la case : le 6 garde 8 h, ou le geste est refusé', () => {
-    const input = milo()
-    const result = moveDose(input, { due: sixAt('20:00'), to: '2026-03-07', shiftsFollowing: true })
+  it('8 h du 6 au 7 sans la case : le 7 à 8 h et 20 h, puis le 9 et le 12', () => {
+    const { input, after } = movedTo('08:00', false)
 
-    const after =
-      'refusal' in result ? 'refusé' : shownOn(recorded(input, result.changes), '2026-03-06')
-    expect([['2026-03-06 08:00'], 'refusé']).toContainEqual(after)
+    expect(calendar(after)).toEqual([
+      '2026-03-07 08:00',
+      '2026-03-07 20:00',
+      '2026-03-09 08:00',
+      '2026-03-09 20:00',
+      '2026-03-12 08:00',
+      '2026-03-12 20:00',
+    ])
+    expect(shiftOfPrise(after)).toEqual(shiftOfPrise(input))
+  })
+
+  it('20 h du 6 au 7 avec la case : le 6 garde 8 h, le 7 à 20 h, puis le 10 et le 13', () => {
+    const { after } = movedTo('20:00', true)
+
+    expect(calendar(after)).toEqual([
+      '2026-03-06 08:00',
+      '2026-03-07 20:00',
+      '2026-03-10 08:00',
+      '2026-03-10 20:00',
+      '2026-03-13 08:00',
+      '2026-03-13 20:00',
+    ])
+    expect(shiftOfPrise(after)).toEqual([['08:00', '2026-03-03']])
   })
 })

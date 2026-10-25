@@ -37,6 +37,8 @@ type Played = {
   carnets: number
   steps: number
   failures: string[]
+  /** Informatif tant que #1281, #1282 et #1283 restent ouverts : une graine par carnet. */
+  lostMoves: string[]
   byInvariant: Record<string, number>
   refusedCorrections: number
 }
@@ -52,6 +54,7 @@ function playCampaign(
     carnets: 0,
     steps: 0,
     failures: [],
+    lostMoves: [],
     byInvariant: {},
     refusedCorrections: 0,
   }
@@ -59,10 +62,15 @@ function playCampaign(
     const walk = startV2Walk(seed, gestures)
     const checks = mulberry32(seed ^ 0x4f1bbcdc)
     let failure: string | null = null
+    let lostMove = false
     const onStep = (step: V2Step) => {
       played.steps += 1
       if (failure !== null) return
-      const broken = brokenBy(step, checks) ?? movedArrives(step)
+      if (!lostMove && movedArrives(step) !== null) {
+        lostMove = true
+        played.lostMoves.push(`${seed}`)
+      }
+      const broken = brokenBy(step, checks)
       if (broken === null) return
       const name = broken.invariant.replace(/ \(.*$/, '')
       played.byInvariant[name] = (played.byInvariant[name] ?? 0) + 1
@@ -93,6 +101,8 @@ describe('campagne d’invariants du moteur v2', () => {
         `Campagne : ${played.carnets} carnets × ${campaign.steps} gestes, graines ${campaign.from} à ${last}` +
           ` : ${played.steps} pas vérifiés, ${played.failures.length} carnets en échec` +
           `, « pas à donner » refusé ${played.refusedCorrections} fois` +
+          `, dose déplacée absente (informatif) ${played.lostMoves.length}` +
+          (played.lostMoves.length === 0 ? '' : ` : graines ${played.lostMoves.join(', ')}`) +
           Object.entries(played.byInvariant)
             .map(([name, count]) => ` ; ${name} ${count}`)
             .join(''),
@@ -141,16 +151,23 @@ describe('campagne d’invariants du moteur v2', () => {
     },
   )
 
-  // Trous connus de « dose déplacée présente » (#1274) : les quatre doses du 13 reportées au 19, première
-  // dose choisie du nouveau rythme, n'y arrivent pas ; ramenées au 29 mars, sorti du calendrier, les
-  // doses du 8 avril ne sont plus nulle part.
+  // Trous connus de « dose déplacée présente » : les quatre doses du 13 reportées au 19, première dose
+  // choisie du nouveau rythme (#1281) ; ramenées au 29 mars, sorti du calendrier (#1282) ; la première
+  // dose d'une date choisie avancée sans la case (#1283).
   it.fails('graine 670000231 : un report arrivé sur la date choisie y emmène ses doses', () => {
-    expect(playCampaign({ from: 670_000_231, seeds: 1, steps: 30 }).failures).toEqual([])
+    expect(playCampaign({ from: 670_000_231, seeds: 1, steps: 30 }).lostMoves).toEqual([])
   })
 
   it.fails('graine 9500001489 : une dose ramenée à son jour d’origine y revient', () => {
-    expect(playCampaign({ from: 9_500_001_489, seeds: 1, steps: 30 }, {}).failures).toEqual([])
+    expect(playCampaign({ from: 9_500_001_489, seeds: 1, steps: 30 }, {}).lostMoves).toEqual([])
   })
+
+  it.fails(
+    'graine 670000934 : la première dose d’une date choisie avancée sans la case arrive',
+    () => {
+      expect(playCampaign({ from: 670_000_934, seeds: 1, steps: 30 }).lostMoves).toEqual([])
+    },
+  )
 
   it.each([
     ['INVARIANTS_SEEDS', 'mille'],

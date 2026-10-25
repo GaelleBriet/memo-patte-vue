@@ -3943,6 +3943,23 @@ qui donne au report des heures qu'il n'a jamais vues). — Pour revenir dessus :
 (`left-days.ts`, `reference-days.ts`) et `onlyArrived` (`calendar-reports.ts`, `arrivedOnly` dans
 `reference-arrivals.ts`).
 
+2026-10-25 — **« Prochaine dose » sur une journée de la grille où arrive aussi un report : la journée
+part entière** (#1274, spec `traitements.md` R7 ; Q50 de la session d'analyse du moteur, à qui Gaelle a
+délégué les lectures de règles). La dose touchée emmène sa journée, avec ou sans la case, et le report
+qui y arrivait la suit au même jour ; le décalage de la journée d'origine du report reste à la prise
+qui l'a écrit (Q48). Milo, tous les 3 jours à 8 h et 20 h dès le 1er mars ; le 4, 20 h reportée au 6
+sans la case, puis 8 h donnée le 3 avec la case (le 6 à 8 h et 20 h, puis le 9 et le 12) ; le 6, 8 h
+déplacée au 7 avec la case : le 7 à 8 h et 20 h, puis le 10 et le 13 (avant : le 7 à 20 h seul, la
+dose de 8 h nulle part) ; sans la case : le 7, puis le 9 et le 12 (avant : refusé) ; 20 h déplacée au 7
+avec la case : le 6 garde 8 h. Sur 4 000 carnets aléatoires (graines 713000000 à 713003999), lecture
+du calendrier identique à `main` sauf 5 carnets, tous par ce geste : la graine 713003143 perdait la
+dose de 8 h du 2 avril sur `main`, les quatre autres changent de bornes ou d'acceptation du
+déplacement. Hors de ce cas (report avec son propre décalage, date choisie, arrivée devenue premier
+jour d'un nouveau rythme, #780), le report arrivé est redéplacé comme avant. — Raison : une personne
+seule voyait une dose disparaître (R11). — Alternative écartée : refuser le geste avec la case comme
+sans elle (refus sans raison visible, la journée ne montrant que deux doses ordinaires). — Pour
+revenir dessus : `arrivalJoinsGridDay` et `followerLines` (`gestures/moved-report.ts`).
+
 ## 2026-10-24 — Un report redéplacé depuis une date choisie, hors de sa grille, est sans effet (#1231, Q39)
 
 Décision de la session d'analyse du moteur, à qui Gaelle a délégué les lectures de règles (Q26, Q39
