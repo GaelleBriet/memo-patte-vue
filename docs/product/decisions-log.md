@@ -3907,6 +3907,8 @@ rien (invariant « heures seules » du 15 octobre). Luna, tous les 3 jours à 20
 1er avril, la dose du 30 mars reportée au 22 avec la case ; le 9, « Prochaine dose » le 10 ; la dose
 du 10 redéplacée au 21 avec la case ; puis 20 h 01 le même jour : rien ne change (graine 480000493,
 avant : le report devenait sans effet et les 30 mars, 2 et 5 avril revenaient à renseigner). — Alternative
-écartée : la dernière réécriture du calendrier (`updatedAt`), qu'une réécriture d'heures avance. — Reste
-ouvert : dater la grille quand une réécriture du jour re-choisit une date sur l'ancienne grille contredit
-« un ou deux Modifier : la même date de grille » (question posée).
+écartée : la dernière réécriture du calendrier (`updatedAt`), qu'une réécriture d'heures avance. —
+Corrigé par Q47 : pas de datation de la grille par un second « Modifier » du jour qui re-choisit une date
+sur l'ancienne grille (l'héritage de #977 et « un ou deux Modifier : la même date de grille » priment) ;
+un report d'un réglage plus ancien écrit entre les deux gestes est jugé contre l'ouverture : trou connu
+#1259, qui pose à Gaelle une colonne pour l'instant du choix.
