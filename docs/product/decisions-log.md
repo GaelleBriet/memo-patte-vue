@@ -2976,6 +2976,29 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
+## 2026-10-25 — Ligne unique de `sync_state` reposée à l'ouverture de la base, sans migration
+
+Constat sur MémoPatte Dev : après la connexion Google, « Restaurer mon carnet » s'ouvre et la
+console répète « Restauration en attente non lue » et « Sauvegarde du compte non contrôlée » ; la
+table `sync_state` existe mais sa ligne `id = 1` manque. Seules les fixtures de développement
+l'effaçaient (`clearAllTables` avant le 2026-10-21, à chaque lancement de développement sur une base
+neuve ou avec un nouveau jeton) ; « Effacer toutes les données » ne fait qu'un `UPDATE`, dans la même
+transaction que le reste.
+
+- Décision : à chaque ouverture, après les migrations, `INSERT OR IGNORE INTO sync_state (id) VALUES
+  (1)` repose la ligne aux valeurs du premier lancement (synchro coupée, aucune restauration en
+  attente). Une ligne présente n'est jamais modifiée. Couvre les lectures, les écritures (un
+  `UPDATE … WHERE id = 1` sur une ligne absente ne fait rien) et les déclencheurs de la file.
+- Alternative écartée : une migration v24 avec le même `INSERT OR IGNORE`. Elle ne repasse qu'une
+  fois : une ligne perdue après la montée de version resterait perdue. Une réparation à la seule
+  lecture de `sync_state` laisserait sans effet une écriture faite avant toute lecture.
+- Avec : le retour du réseau ne compte plus qu'au passage de « hors ligne » à « en ligne ». Sur
+  Android, le plugin Network émet à chaque changement de capacités du réseau (plusieurs fois par
+  seconde), et chaque émission relançait le contrôle de la sauvegarde et la reprise de la
+  restauration, et effaçait l'attente entre deux cycles ratés. Un passage du Wi-Fi aux données
+  mobiles sans coupure ne relance plus rien : le retour au premier plan le fait.
+- Pour revenir dessus : retirer l'appel de `repairSyncStateRow` dans `openDatabase`.
+
 ## 2026-10-24 — La date choisie se juge contre l'instant du « Modifier » qui l'a choisie (#1232, Q40)
 
 Décision de la session d'analyse du moteur, à qui Gaelle a délégué les lectures de règles (Q40,
