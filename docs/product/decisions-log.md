@@ -3899,8 +3899,12 @@ même journée a été donnée le même jour, seulement s'il porte son heure. Lu
 8 h et 20 h depuis le 1er mars ; le 8, les doses du 7 données le 8, 8 h sans la case, 20 h avec (suite
 aux 11, 14, 17) ; le 10, la prise de 8 h changée au 9 (ou au 6), case décochée : le décalage de la
 prise de 20 h reste au 8, la suite aux 11, 14, 17 (avant : il était supprimé, la suite revenait aux
-10, 13, 16). La prise de 20 h changée au 9 garde le comportement d'avant. Le cas G18 (décalage d'une
-dose avancée) et une prise seule à sa date dans sa journée sont inchangés. — Raison : une prise ne
+10, 13, 16). La prise de 20 h changée au 9 garde le comportement d'avant. Une prise seule à sa date
+dans sa journée est inchangée. Le décalage d'une dose avancée (G18) garde l'heure de son report, qui
+ne dit pas quelle prise l'a réécrit : il reste reconnu par sa date seule, comme avant. Luna, la dose de
+8 h du 7 avancée au 6 avec la case, les doses du 6 données le 5, 20 h avec la case ; le 8, la prise
+de 20 h changée au 6 : le décalage revient au 6, doses les 9 et 12, comme à une heure. Résidu, le même
+qu'avant : la prise de 8 h, changée au 6, ramène aussi ce décalage au 6. — Raison : une prise ne
 défait pas le décalage qu'une autre a écrit. — Alternative écartée : comparer toujours l'heure du
 décalage, qui garde l'heure de la première ligne écrite sur la journée (un report d'une autre heure,
 #1255) et retirerait son décalage à la prise qui l'a réécrit. — Pour revenir dessus : `ownsDayShift`
