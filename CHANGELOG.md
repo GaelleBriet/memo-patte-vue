@@ -5,6 +5,19 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.119](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.118...memo-patte-v0.1.119) (2026-10-25)
+
+
+### 🐛 Corrections
+
+* **db:** reposer la ligne unique de sync_state à l'ouverture de la base ([007ebb8](https://github.com/GaelleBriet/memo-patte-vue/commit/007ebb8b97848f4375ee90060e031418673197de))
+* **moteur:** deux reports arrivés le même jour ne se séparent pas (q51) ([fd1957a](https://github.com/GaelleBriet/memo-patte-vue/commit/fd1957a5160a8a6395c95277b61ae25ec0ff49b7)), closes [#1274](https://github.com/GaelleBriet/memo-patte-vue/issues/1274)
+* **moteur:** la dose déplacée par « Prochaine dose » ne disparaît plus, sans doublon ni impasse ([#1274](https://github.com/GaelleBriet/memo-patte-vue/issues/1274)) ([065bb44](https://github.com/GaelleBriet/memo-patte-vue/commit/065bb44411fd46c913232754448240d8e64dc470))
+* **moteur:** le dernier report d'une paire se supprime seul (q52) ([93d45d6](https://github.com/GaelleBriet/memo-patte-vue/commit/93d45d6df69528ab25eae6c7c28e0576ff5bb957)), closes [#1274](https://github.com/GaelleBriet/memo-patte-vue/issues/1274)
+* **sync:** ne relancer la synchro qu'au vrai retour du réseau ([1126518](https://github.com/GaelleBriet/memo-patte-vue/commit/1126518dff29c3828dc833d80794ebf3b008dcef))
+* **sync:** recréer la ligne de sauvegarde absente, couper la boucle réseau, réessayer la restauration ([#1286](https://github.com/GaelleBriet/memo-patte-vue/issues/1286)) ([8bb56f9](https://github.com/GaelleBriet/memo-patte-vue/commit/8bb56f961dd5837e5a0528226c56ba959842ffb9))
+* **sync:** réessayer par minuterie une restauration qui attend le réseau ([47e30e3](https://github.com/GaelleBriet/memo-patte-vue/commit/47e30e3114b94f98110161698e7376d18d104dcf)), closes [#1286](https://github.com/GaelleBriet/memo-patte-vue/issues/1286)
+
 ## [0.1.118](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.117...memo-patte-v0.1.118) (2026-10-25)
 
 
