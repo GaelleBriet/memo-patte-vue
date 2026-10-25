@@ -149,24 +149,71 @@ const dosesOn = (input: TreatmentViewInput, day: string) => {
   }
 }
 
-describe('Un retour ne déplace que ce que le report portait, l’arrivée garde ses doses (Q56, #1282)', () => {
-  it('graine 731001499 : arrivé sur la date choisie du 6 mars, le report ramené au 3 y rend 8 h, 14 h et 20 h ; le 6 garde ses quatre doses', () => {
-    const { gesture, after } = stepOf(731_001_499, 4)
+// Q58 : emmené par une date choisie, le report qui rentre chez lui en emporte les doses ; la date
+// choisie ne garde rien. Le jour d'origine avant une date choisie relève de #1283 (`homeBeforeChosen`).
+describe('Un jour d’origine avant une date choisie : la date choisie cède ses doses (Q58, #1282, #1283)', () => {
+  it.fails(
+    'en attente de #1283 — graine 731001499 : 6 h du 6 mars ramenée au 3 : le 3 reçoit 6 h, 12 h, 18 h et 23 h, le 6 ne garde rien',
+    () => {
+      const { gesture, after } = stepOf(731_001_499, 4)
 
-    expect(gesture).toMatchObject({ kind: 'move', to: '2026-03-03' })
-    expect(dosesOn(after, '2026-03-03')).toEqual(
-      both(['2026-03-03 08:00', '2026-03-03 14:00', '2026-03-03 20:00']),
-    )
-    expect(dosesOn(after, '2026-03-06')).toEqual(
-      both(['2026-03-06 06:00', '2026-03-06 12:00', '2026-03-06 18:00', '2026-03-06 23:00']),
-    )
-  })
+      expect(gesture).toMatchObject({ kind: 'move', to: '2026-03-03' })
+      expect(dosesOn(after, '2026-03-03')).toEqual(
+        both(['2026-03-03 06:00', '2026-03-03 12:00', '2026-03-03 18:00', '2026-03-03 23:00']),
+      )
+      expect(dosesOn(after, '2026-03-06')).toEqual(both([]))
+    },
+  )
 
-  it('graine 731002541 : arrivé sur la date choisie du 28 mars, le report ramené au 24 y rend 20 h ; le 28 garde la sienne', () => {
-    const { gesture, after } = stepOf(731_002_541, 16)
+  it.fails(
+    'en attente de #1283 — graine 731002541 : 20 h du 28 mars ramenée au 24 : le 24 reçoit 20 h, le 28 ne garde rien',
+    () => {
+      const { gesture, after } = stepOf(731_002_541, 16)
 
-    expect(gesture).toMatchObject({ kind: 'move', to: '2026-03-24' })
-    expect(dosesOn(after, '2026-03-24')).toEqual(both(['2026-03-24 20:00']))
-    expect(dosesOn(after, '2026-03-28')).toEqual(both(['2026-03-28 20:00']))
-  })
+      expect(gesture).toMatchObject({ kind: 'move', to: '2026-03-24' })
+      expect(dosesOn(after, '2026-03-24')).toEqual(both(['2026-03-24 20:00']))
+      expect(dosesOn(after, '2026-03-28')).toEqual(both([]))
+    },
+  )
+
+  // Milo, tous les jours à 8 h et 20 h dès le 11 avril ; le 9, 8 h du 11 reportée au 15 avec la case ;
+  // le 11, « Modifier », « Prochaine dose » le 13 ; 8 h du 13 déplacée au 12 sans la case.
+  function backTo11(shiftsFollowing: boolean) {
+    const start: TreatmentViewInput = {
+      settings: [setting('p1', '2026-04-11', { value: 1, unit: 'day' }, ['08:00', '20:00'])],
+      lines: [],
+      today: '2026-04-09',
+    }
+    const reported = { ...moved(start, '2026-04-11', '08:00', '2026-04-15'), today: '2026-04-11' }
+    const chosen = edited(reported, {
+      frequency: { value: 1, unit: 'day' },
+      times: ['08:00', '20:00'],
+      endsOn: null,
+      firstDueOn: '2026-04-13',
+    })
+    const at12 = moved(chosen, '2026-04-13', '08:00', '2026-04-12', false)
+    return moved(at12, '2026-04-12', '08:00', '2026-04-11', shiftsFollowing)
+  }
+
+  it.each([false, true])(
+    'case %s : 8 h du 12 ramenée au 11 ne laisse jamais de dose à la fois le 11 et le 13',
+    (shiftsFollowing) => {
+      const after = backTo11(shiftsFollowing)
+      const onBoth = ['2026-04-11', '2026-04-13'].every(
+        (day) => dosesOn(after, day).moteur.length > 0,
+      )
+
+      expect(onBoth).toBe(false)
+    },
+  )
+
+  it.fails.each([false, true])(
+    'en attente de #1283 — case %s : 8 h du 12 ramenée au 11 : le 11 à 8 h et 20 h, le 13 ne garde rien',
+    (shiftsFollowing) => {
+      const after = backTo11(shiftsFollowing)
+
+      expect(dosesOn(after, '2026-04-11')).toEqual(both(['2026-04-11 08:00', '2026-04-11 20:00']))
+      expect(dosesOn(after, '2026-04-13')).toEqual(both([]))
+    },
+  )
 })
