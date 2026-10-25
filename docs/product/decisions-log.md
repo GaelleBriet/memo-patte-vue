@@ -4001,8 +4001,8 @@ Décision de Gaelle du 2026-10-25. Supabase supprime la clé historique `service
 2026. Les trois fonctions (`delete-account`, `revenuecat-webhook`, `inactive-accounts`) lisent
 désormais la clé secrète « default » de `SUPABASE_SECRET_KEYS` (`sb_secret_…`), et **rien d'autre**.
 Une clé absente ou restée à l'ancienne forme (JWT `eyJ…`) fait refuser chaque demande (503
-`server-key-not-configured`), avec un message de journal qui ne cite jamais la valeur. La CI de la
-pile locale passe de même sur la clé secrète locale (`SUPABASE_LOCAL_SECRET_KEY`).
+`server-key-not-configured`), avec un message de journal qui ne cite jamais la valeur ; le préflight
+CORS de `delete-account` reçoit toujours son `204`.
 
 - Vérification après la bascule : la purge des comptes inactifs tourne une fois à blanc et l'on
   contrôle qu'elle voit bien les comptes (réponse 200, ligne « Purge des comptes inactifs : » dans le
@@ -4012,4 +4012,12 @@ pile locale passe de même sur la clé secrète locale (`SUPABASE_LOCAL_SECRET_K
 - Alternative écartée : lire la clé secrète et retomber sur l'ancienne si elle manque, le temps de la
   transition. Plus tolérant à un mauvais ordre, mais l'ancienne clé resterait lue par le code tant
   que le repli n'est pas retiré.
-- Reste à Gaelle : désactiver ou supprimer l'ancienne clé dans la console (réglage de sécurité).
+- Ancienne clé : Gaelle a décidé le 2026-10-25 de la **désactiver**, pas de la supprimer, une fois
+  les contrôles faits (réactivable au même endroit). — Alternative écartée : la supprimer, ce qui ne
+  s'annule pas.
+- Choix de bonne pratique de Claude, pas décision de Gaelle : les tests de la pile locale et leur CI
+  lisent aussi la clé secrète locale (`SUPABASE_LOCAL_SECRET_KEY`, `auth.secret_key` de
+  `supabase status`), par cohérence avec les fonctions (32 tests locaux verts avec la CLI 2.119.0). —
+  Alternative écartée : garder les clés locales historiques (décision 3 de l'étude). — Pour revenir
+  dessus : renommer `SUPABASE_LOCAL_SECRET_KEY` en `SUPABASE_LOCAL_SERVICE_ROLE_KEY` et relire
+  `auth.service_role_key` dans `ci.yml`.

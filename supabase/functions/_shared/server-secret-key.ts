@@ -37,14 +37,17 @@ export function withServerSecretKey(
   name: string,
   reading: ServerSecretKey,
   handlerFor: (key: string) => Handler,
-  headers: Record<string, string> = {},
+  corsHeaders?: Record<string, string>,
 ): Handler {
   if ('key' in reading) return handlerFor(reading.key)
-  return async () => {
+  return async (request) => {
+    if (corsHeaders && request.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: corsHeaders })
+    }
     console.error(`${name} refusée : ${reading.problem}`)
     return new Response(JSON.stringify({ error: 'server-key-not-configured' }), {
       status: 503,
-      headers: { ...headers, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
 }

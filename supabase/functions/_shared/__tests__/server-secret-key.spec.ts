@@ -81,6 +81,7 @@ describe('serverSecretKeyFrom', () => {
 })
 
 describe('withServerSecretKey', () => {
+  const CORS = { 'Access-Control-Allow-Origin': '*' }
   const request = () => new Request('http://localhost/functions/v1/test', { method: 'POST' })
 
   it('construit le traitement une seule fois, avec la clé lue', async () => {
@@ -111,15 +112,43 @@ describe('withServerSecretKey', () => {
     expect(logged).not.toContain(LEGACY_KEY)
   })
 
-  it('ajoute les en-têtes demandés au refus', async () => {
-    const serve = withServerSecretKey('Essai', readingOf({}), vi.fn<HandlerFor>(), {
-      'Access-Control-Allow-Origin': '*',
-    })
+  it('ajoute les en-têtes CORS au refus', async () => {
+    const serve = withServerSecretKey('Essai', readingOf({}), vi.fn<HandlerFor>(), CORS)
 
     const response = await serve(request())
 
     expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*')
     expect(response.headers.get('Content-Type')).toBe('application/json')
+  })
+
+  it('laisse passer le préflight CORS en 204 même quand la clé est refusée', async () => {
+    const serve = withServerSecretKey(
+      'Suppression de compte',
+      readingOf({}),
+      vi.fn<HandlerFor>(),
+      CORS,
+    )
+
+    const preflight = await serve(
+      new Request('http://localhost/functions/v1/delete-account', { method: 'OPTIONS' }),
+    )
+    const deletion = await serve(request())
+
+    expect(preflight.status).toBe(204)
+    expect(preflight.headers.get('Access-Control-Allow-Origin')).toBe('*')
+    expect(await preflight.text()).toBe('')
+    expect(deletion.status).toBe(503)
+    expect(vi.mocked(console.error)).toHaveBeenCalledOnce()
+  })
+
+  it('refuse aussi le préflight d’une fonction sans CORS', async () => {
+    const serve = withServerSecretKey('Essai', readingOf({}), vi.fn<HandlerFor>())
+
+    const response = await serve(
+      new Request('http://localhost/functions/v1/test', { method: 'OPTIONS' }),
+    )
+
+    expect(response.status).toBe(503)
   })
 })
 
