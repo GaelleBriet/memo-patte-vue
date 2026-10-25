@@ -3896,3 +3896,17 @@ mars reviennent à renseigner. (3) La ligne « Reportée au 17 » d'un report ja
 vigueur (le 17 est montré) ; celle du carnet du ticket est grisée « sans effet ». (4) Le cas #939 à
 deux téléphones, réglage plus récent, n'est plus un résidu (#986). — Alternative écartée : toute prise
 du jour d'arrivée, quelle que soit sa date d'écriture (le report dépendrait d'un hasard de dates).
+
+## 2026-10-24 — L'instant du choix de la date d'un réglage (#1231, Q45)
+
+Décision de la session d'analyse du moteur, à qui Gaelle a délégué les lectures de règles (Q45 du 24
+octobre 2026 ; spec `traitements.md` R10). L'instant où la date d'un réglage a été choisie, contre
+lequel se jugent un report redéplacé depuis cette date (Q26, Q39, Q40, Q41), est l'ouverture du réglage,
+ou la date de sa grille si une réécriture l'a datée plus tard ; une réécriture d'heures seules ne date
+rien (invariant « heures seules » du 15 octobre). Luna, tous les 3 jours à 20 h depuis le 27 mars ; le
+1er avril, la dose du 30 mars reportée au 22 avec la case ; le 9, « Prochaine dose » le 10 ; la dose
+du 10 redéplacée au 21 avec la case ; puis 20 h 01 le même jour : rien ne change (graine 480000493,
+avant : le report devenait sans effet et les 30 mars, 2 et 5 avril revenaient à renseigner). — Alternative
+écartée : la dernière réécriture du calendrier (`updatedAt`), qu'une réécriture d'heures avance. — Reste
+ouvert : dater la grille quand une réécriture du jour re-choisit une date sur l'ancienne grille contredit
+« un ou deux Modifier : la même date de grille » (question posée).
