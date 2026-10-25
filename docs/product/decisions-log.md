@@ -2976,6 +2976,27 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
+## 2026-10-25 — « Remplacer » différé : rien n'est effacé si le carnet du téléphone a changé depuis le choix (#1293)
+
+Décision de Gaelle (« oui d'accord »). Cas : le 25 octobre, après la connexion, « Remplacer » est
+choisi et confirmé dans « Restaurer mon carnet » ; le réseau coupe, « Plus tard » ; une pesée de Milo
+à 12 kg est notée ; au retour du réseau (ou par la minuterie, au lancement, au retour au premier
+plan) la restauration effaçait cette pesée sans nouvelle décision.
+
+- Décision : avant d'écrire un « Remplacer », l'app compare le carnet du téléphone à son état au
+  moment du choix confirmé. S'il a changé, elle n'efface rien, oublie le choix et refait le contrôle
+  de la sauvegarde : « Restaurer mon carnet » repropose « Fusionner » ou « Remplacer », avec le texte
+  existant (« Des données existent déjà sur ce téléphone. »). Sans changement, le remplacement
+  s'exécute comme avant. « Fusionner » n'est pas concerné : il n'efface rien.
+- Moyen, sans colonne ni migration : l'état du carnet est, pour chaque table du carnet (appareils
+  exclus), le nombre de lignes et la plus grande date de modification ; il est gardé dans le
+  stockage local de l'app avec le choix, et effacé avec les autres réglages. Un état perdu ou
+  illisible (choix fait avant cette version, stockage effacé) vaut « changé » : le choix est
+  reproposé, jamais un remplacement à l'aveugle. La comparaison se fait juste avant l'écriture,
+  après le téléchargement. — Alternative écartée : une colonne de `sync_state` pour garder l'état
+  (migration, décision de modèle de données).
+- Pour revenir dessus : retirer la comparaison de `restore()` dans `account-restore.ts`.
+
 ## 2026-10-25 — Ligne unique de `sync_state` reposée à l'ouverture de la base, sans migration (#1286)
 
 Choix de bonne pratique de Claude, en autonomie, pas décision de Gaelle. Constat sur MémoPatte Dev : après la connexion Google, « Restaurer mon carnet » s'ouvre et la
