@@ -3923,6 +3923,26 @@ journée » dit qui le lit, pas qui a le droit de le réécrire. — Alternative
 dernière heure sans prise réancrer la journée. — Pour revenir dessus : `offersShiftFor`
 (`gestures/shift-offer.ts`).
 
+2026-10-25 — **Résidus #1258 : deux défauts de code des « heures seules »** (spec `traitements.md`
+R6, R7 ; décision de bonne pratique dans le périmètre de la décision R7 de la session d'analyse du
+moteur, à qui Gaelle a délégué les lectures de règles : défaut de code, pas une règle nouvelle).
+(1) Un décalage vaut aussi pour les réglages de même rythme qui continuent celui sous lequel il a été
+écrit : Luna, chaque semaine à 6 h, 12 h, 18 h et 23 h ; le 11 avril, la dose de 6 h reportée au 18
+avec la case, « Prochaine dose » le 18, la dose de 12 h du 18 reportée au 21 avec la case : une
+posologie seule n'ajoute plus 23 h au 21 (avant : le réglage remplacé le jour même cédait le 18 avec
+ses quatre heures ; graines 590000162, 630000745). (2) La journée de départ d'un report se juge sur la
+grille du réglage sous lequel il a été écrit : Milo, tous les 3 jours à 6 h, 12 h, 18 h et 23 h dès le
+22 mars ; le 24, la dose de 6 h du 22 reportée au 24, 6 h du 24 donnée, 18 h du 24 reportée au 27 avec
+la case, puis chaque semaine, puis tous les 2 jours : le 27 ne reçoit que 18 h (avant : 18 h et 23 h).
+Sur 4 000 carnets aléatoires (graines 711000000 à 711003999), lecture du calendrier entière, avec
+posologie seule et heures seules à chaque pas, identique à `main` pour chacun des deux pas. Limite
+connue : une grille tournée par un décalage sous le réglage du report n'est pas relue (graine
+600000926 entière, test `it.fails`). — Raison : une personne seule voyait une dose apparaître sans
+geste. — Alternative écartée : juger la journée de départ sur la grille en vigueur (lecture d'avant,
+qui donne au report des heures qu'il n'a jamais vues). — Pour revenir dessus : `leftDays`
+(`left-days.ts`, `reference-days.ts`) et `onlyArrived` (`calendar-reports.ts`, `arrivedOnly` dans
+`reference-arrivals.ts`).
+
 ## 2026-10-24 — Un report redéplacé depuis une date choisie, hors de sa grille, est sans effet (#1231, Q39)
 
 Décision de la session d'analyse du moteur, à qui Gaelle a délégué les lectures de règles (Q26, Q39
