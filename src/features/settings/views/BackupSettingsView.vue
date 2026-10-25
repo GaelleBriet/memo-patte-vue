@@ -22,7 +22,11 @@ const STATUS_LOOK: Record<CloudBackupStatus['kind'], { icon: string; tone: strin
 const { t } = useI18n()
 const router = useRouter()
 const { status, refused, photosBackedUp, now } = useBackupStatus()
-const { isPending: isRestorePending, choose: chooseRestore } = useRestorePending()
+const {
+  isPending: isRestorePending,
+  showsLocalBackup,
+  choose: chooseRestore,
+} = useRestorePending(status)
 
 const cloud = computed<CloudBackupStatus | null>(() =>
   status.value === null || status.value.kind === 'local' || status.value.kind === 'unread'
@@ -83,6 +87,7 @@ function goBack(): void {
           variant="flat"
           color="primary"
           block
+          prepend-icon="ms:settings_backup_restore"
           @click="chooseRestore"
         >
           {{ t('settings.backup.cloud.restorePending.choose') }}
@@ -143,7 +148,7 @@ function goBack(): void {
         />
       </template>
 
-      <template v-else-if="status.kind === 'local'">
+      <template v-else-if="showsLocalBackup">
         <div class="settings-row backup-settings__card backup-settings__local">
           <v-icon class="settings-row__icon" icon="ms:mobile" size="24" />
           <span class="settings-row__text">

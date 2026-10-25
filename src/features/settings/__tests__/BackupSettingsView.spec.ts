@@ -536,6 +536,7 @@ describe('BackupSettingsView', () => {
       )
       expect(bloc(wrapper).classes()).toContain('backup-settings__status--warning')
       expect(wrapper.get('.backup-settings__restore-choose').text()).toBe('Choisir')
+      expect(wrapper.find('.backup-settings__restore-choose .v-btn__prepend').exists()).toBe(true)
     })
 
     it('« Choisir » ouvre « Restaurer mon carnet », qui ramène à la Sauvegarde', async () => {
@@ -585,6 +586,59 @@ describe('BackupSettingsView', () => {
       const wrapper = await monter()
 
       expect(bloc(wrapper).exists()).toBe(false)
+    })
+
+    describe('compte Plus dont la restauration attend un choix', () => {
+      const PLUS_EN_ATTENTE: BackupFacts = {
+        eligible: true,
+        signInNeeded: false,
+        online: true,
+        syncEnabled: false,
+        lastSyncedAt: null,
+        remaining: 0,
+        carnetSize: 0,
+        refused: 0,
+        refusedPhotos: 0,
+      }
+
+      async function monterPlus() {
+        provideBackupFacts(async () => PLUS_EN_ATTENTE)
+        const wrapper = await monter()
+        await flushPromises()
+        return wrapper
+      }
+
+      it('ne garde que le bloc, « Exporter une copie » et « Effacer les données »', async () => {
+        parcours().offer(SUMMARY)
+        const wrapper = await monterPlus()
+        const texte = wrapper.text()
+
+        expect(bloc(wrapper).exists()).toBe(true)
+        expect(texte).not.toContain('Ton carnet est sur ce téléphone')
+        expect(texte).not.toContain('Si ce téléphone est perdu')
+        expect(texte).not.toContain('Sauvegarde d’Android')
+        expect(wrapper.find('.backup-settings__discover').exists()).toBe(false)
+        expect(
+          wrapper.findAll('.backup-settings__content > *').map((element) => element.classes()),
+        ).toEqual([
+          expect.arrayContaining(['backup-settings__restore-pending']),
+          expect.arrayContaining(['backup-settings__restore-choose']),
+          expect.arrayContaining(['backup-settings__export']),
+          expect.arrayContaining(['backup-settings__erase']),
+        ])
+      })
+
+      it('sans choix en attente, garde l’écran sans sauvegarde cloud', async () => {
+        parcours()
+        const wrapper = await monterPlus()
+        const texte = wrapper.text()
+
+        expect(bloc(wrapper).exists()).toBe(false)
+        expect(texte).toContain('Ton carnet est sur ce téléphone')
+        expect(texte).toContain('Si ce téléphone est perdu')
+        expect(texte).toContain('Sauvegarde d’Android')
+        expect(wrapper.find('.backup-settings__discover').exists()).toBe(true)
+      })
     })
 
     it('se lit en anglais', async () => {
