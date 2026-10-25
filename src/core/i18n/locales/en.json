@@ -1364,6 +1364,11 @@
           "signIn": "Sign in again",
           "exportHint": "Recommended while backup is interrupted"
         },
+        "restorePending": {
+          "title": "Restore pending",
+          "hint": "Your cloud backup is waiting for your choice: merge with the health record on this phone, or replace it.",
+          "choose": "Choose"
+        },
         "photos": {
           "label": "Photos backed up",
           "value": "Yes"

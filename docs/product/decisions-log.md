@@ -2976,6 +2976,49 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
+## 2026-10-25 — « Plus tard » vaut pour la journée, et « Restauration en attente » dans Paramètres › Sauvegarde (#1298, Q53, Q54)
+
+Décision Q53 de la session d'analyse, sous délégation de Gaelle. Cas : le 25 octobre, la sauvegarde
+cloud de Milo et Luna est trouvée après la connexion ; « Restaurer mon carnet » est quitté sans
+choisir. Android garde l'app vivante plusieurs jours : l'écran ne revenait qu'au prochain lancement
+à froid, que personne ne provoque, et le carnet restait sans sauvegarde cloud.
+
+- Décision : quitter l'écran sans choisir ne vaut que pour la journée, jour du téléphone (pas
+  l'heure UTC). Le 26 octobre, à la première arrivée sur l'accueil, l'écran se rouvre, une seule
+  fois dans la journée. Comme pour #1293, seule une vraie arrivée sur l'accueil le rouvre, jamais une
+  feuille ou une saisie en cours. Le jour compté est celui où l'écran est quitté : ouvert à 23 h 50
+  et quitté à 0 h 10, il ne revient que le lendemain.
+- Une arrivée sur l'accueil qui porte une feuille à rouvrir ne compte pas, ni un passage de l'accueil
+  à l'accueil (relecture de #1298) : le 26 à 8 h, la notification « Vermifuge de Milo » touchée, ou
+  « Modifier » puis « Enregistrer » depuis « À faire », ouvre sa feuille et non « Restaurer mon
+  carnet », qui attend la prochaine arrivée sur l'accueil sans feuille.
+- Limite connue, d'avant cette décision : la toute première proposition d'un lancement s'ouvre dès
+  que la sauvegarde est trouvée si l'accueil est affiché, sans attendre une arrivée, et peut donc
+  recouvrir une feuille ouverte dans les premières secondes. Une horloge du téléphone reculée d'un
+  jour fait reproposer l'écran une fois.
+- Décision : Paramètres › Sauvegarde affiche en tête un bloc de la famille de « Reconnecte-toi pour
+  reprendre la sauvegarde » (planche V21 ter : ton d'alerte, titre, phrase, bouton), seulement quand
+  un choix de restauration est en attente (après « Plus tard », ou un « Remplacer » abandonné parce
+  que le carnet du téléphone a changé) : « Restauration en attente » · « Ta sauvegarde cloud attend
+  ton choix : fusionner avec le carnet de ce téléphone, ou le remplacer. » · « Choisir » (EN :
+  « Restore pending » · « Your cloud backup is waiting for your choice: merge with the health record
+  on this phone, or replace it. » · « Choose »). « Choisir » ouvre « Restaurer mon carnet », dont le
+  retour ramène à Paramètres › Sauvegarde. Le bloc disparaît dès que le choix est fait ; il ne
+  s'affiche ni pendant le contrôle de la sauvegarde, ni pendant la restauration, ni en attente de
+  réseau, ni hors compte.
+- Choix de cohérence de l'implémentation : l'icône du bloc est celle de la restauration en cours
+  sur « Restaurer mon carnet » (nuage avec flèche vers le bas), et le bouton reprend le style de
+  « Se reconnecter », avec l'icône de restauration (flèche circulaire), comme les autres boutons
+  principaux de la planche (« Se reconnecter » a la sienne).
+- Décision Q54 (session d'analyse, sous délégation de Gaelle) : tant que le bloc est affiché, la
+  rubrique masque « Ton carnet est sur ce téléphone », la phrase sur le risque de perte, la partie
+  « Sauvegarde d'Android » et « Découvrir MémoPatte Plus » ; restent le bloc, « Exporter une copie »
+  et « Effacer les données de ce téléphone ». Aucun texte nouveau. Raison : une personne abonnée ne
+  doit pas lire qu'elle a une sauvegarde cloud, puis une invitation à découvrir Plus. — Alternative
+  écartée : garder l'écran sans sauvegarde cloud sous le bloc.
+- Pour revenir dessus : la journée et l'arrivée se jugent dans `app/restore-prompt.ts` ; le bloc et
+  ce qu'il masque viennent de `use-restore-pending.ts`.
+
 ## 2026-10-25 — « Remplacer » différé : rien n'est effacé si le carnet du téléphone a changé depuis le choix (#1293)
 
 Décision de Gaelle (« oui d'accord »). Cas : le 25 octobre, après la connexion, « Remplacer » est
