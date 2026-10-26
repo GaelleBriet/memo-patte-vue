@@ -118,6 +118,28 @@ describe('parcours de restauration', () => {
     expect(restored).not.toHaveBeenCalled()
   })
 
+  it('rien à restaurer après plusieurs paliers de progression : le parcours repart de rien', async () => {
+    let finish: () => void = () => {}
+    const runner = fakeRunner()
+    runner.run = vi.fn<RestoreRunner['run']>(
+      () =>
+        new Promise((resolve) => {
+          finish = () => resolve('nothing-to-restore')
+        }),
+    )
+    const flow = createRestoreFlow(runner)
+    const choosing = flow.choose('merge')
+    await vi.waitFor(() => expect(runner.run).toHaveBeenCalledOnce())
+
+    runner.emit({ done: 0, total: 10 })
+    runner.emit({ done: 5, total: 10 })
+    expect(flow.state.value).toEqual({ step: 'restoring', progress: { done: 5, total: 10 } })
+
+    finish()
+    await expect(choosing).resolves.toBe(false)
+    expect(flow.state.value).toEqual({ step: 'idle' })
+  })
+
   it('« Fusionner » d’un compte qui finit après l’arrivée d’un autre : le choix du nouveau compte reste affiché', async () => {
     let finish: () => void = () => {}
     const runner = fakeRunner()
