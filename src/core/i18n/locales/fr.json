@@ -1733,7 +1733,9 @@
       "emailBody": "Il sert à retrouver ton carnet et à sécuriser ton compte."
     },
     "google": {
-      "continue": "Continuer avec Google"
+      "continue": "Continuer avec Google",
+      "signedIn": "Connecté avec Google.",
+      "cancelled": "Connexion annulée."
     },
     "accountFirst": {
       "title": "Étape 1 sur 2",

@@ -21,7 +21,7 @@ const { t } = useI18n()
 const router = useRouter()
 const auth = useAuthStore()
 const purchase = usePurchaseStore()
-const { continueWithGoogle } = useGoogleSignIn()
+const { continueWithGoogle, announce } = useGoogleSignIn()
 
 const isGoogleSignIn = ref(false)
 const failureKey = ref<string | null>(null)
@@ -58,6 +58,7 @@ async function signInWithGoogle(): Promise<void> {
 
   const result = await continueWithGoogle()
   if (!isMounted) return
+  announce(result)
   if (result.kind === 'signed-in') {
     backToPlus()
     return
