@@ -33,7 +33,7 @@ paru -S android-studio   # ou yay
 #    sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
 # 6. Vérification : premier build debug
-pnpm build && pnpm cap:sync
+pnpm cap:sync          # fait déjà le build Vite
 cd android && ./gradlew assembleDebug && cd ..
 ```
 
@@ -290,6 +290,29 @@ Interdites, avec leur propre message d'échec : `USE_EXACT_ALARM`, `READ_MEDIA_I
 quelle et `versionCode` vaut `major × 1 000 000 + minor × 1 000 + patch` (0.1.26 → `1026`). Le build échoue si
 `minor` ou `patch` atteint 1000, borne qui garantit que le code reste strictement croissant. Rien à mettre à jour
 à la main avant un upload.
+
+## 7 bis. Build signé pour la Play Console (#53)
+
+`android/app/build.gradle` signe la variante `release` avec une clé lue dans quatre variables d'environnement ; rien n'est
+dans le dépôt, et `.gitignore` couvre `*.jks`, `*.keystore` et `keystore.properties` (garde : `signature-release.spec.ts`).
+
+| Variable                      | Contenu                                  |
+| ----------------------------- | ---------------------------------------- |
+| `MEMOPATTE_KEYSTORE_FILE`     | chemin absolu du fichier de clé d'envoi  |
+| `MEMOPATTE_KEYSTORE_PASSWORD` | mot de passe du fichier                  |
+| `MEMOPATTE_KEY_ALIAS`         | alias de la clé                          |
+| `MEMOPATTE_KEY_PASSWORD`      | mot de passe de la clé                   |
+
+Les quatre ou aucune : sans elles, la variante `release` (`assemble`, `build` et `bundle` compris) sort non signée et Gradle l'écrit en avertissement ; `bundleRelease` n'aboutit sans variables qu'après le merge de `fix/lint-regles-sauvegarde-53` (sans lui, le contrôle lint de la variante `release` échoue) ; debug,
+`devApp` et la CI ne changent pas. Un chemin de fichier introuvable fait échouer le build avec un message clair.
+
+```bash
+pnpm cap:sync          # fait déjà le build Vite
+cd android && ./gradlew :app:bundleRelease
+# sortie : android/app/build/outputs/bundle/release/app-release.aab
+```
+
+Création de la clé et envoi : guide du coffre, `technical/guides/guide-build-signe-et-test-interne.md`.
 
 ## 8. Ce que fait la CI
 

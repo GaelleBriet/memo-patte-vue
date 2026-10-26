@@ -16,6 +16,20 @@ def appVersionCode = appMajor * 1000000 + appMinor * 1000 + appPatch
 def devApp = findProperty('devApp') == 'true'
 def appName = devApp ? 'MémoPatte Dev' : 'MémoPatte'
 
+def signingEnv = [
+    file: System.getenv('MEMOPATTE_KEYSTORE_FILE'),
+    password: System.getenv('MEMOPATTE_KEYSTORE_PASSWORD'),
+    alias: System.getenv('MEMOPATTE_KEY_ALIAS'),
+    keyPassword: System.getenv('MEMOPATTE_KEY_PASSWORD'),
+]
+def releaseSigning = signingEnv.values().every { it }
+if (releaseSigning && !file(signingEnv.file).isFile()) {
+    throw new GradleException("MEMOPATTE_KEYSTORE_FILE pointe vers un fichier introuvable : ${file(signingEnv.file).absolutePath}")
+}
+if (!releaseSigning && gradle.startParameter.taskNames.any { it.toLowerCase() =~ /release|(^|:)(assemble|bundle|build)$/ }) {
+    logger.warn('Build release NON signé : définir MEMOPATTE_KEYSTORE_FILE, MEMOPATTE_KEYSTORE_PASSWORD, MEMOPATTE_KEY_ALIAS et MEMOPATTE_KEY_PASSWORD (voir docs/technical/commandes-utiles.md, « Build signé »).')
+}
+
 android {
     namespace = "com.gaellebriet.memopatte"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -37,8 +51,21 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (releaseSigning) {
+            release {
+                storeFile file(signingEnv.file)
+                storePassword signingEnv.password
+                keyAlias signingEnv.alias
+                keyPassword signingEnv.keyPassword
+            }
+        }
+    }
     buildTypes {
         release {
+            if (releaseSigning) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
