@@ -6,8 +6,9 @@ import { execFileSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { disposableAccounts } from '../../../../scripts/supabase-local/disposable-accounts'
 import { AccountError } from '../logic/account-error'
 import { createAuthRepository, type AuthRepository } from '../repository/auth.repository'
 
@@ -36,6 +37,7 @@ async function refusalOf(promise: Promise<unknown>): Promise<{ reason: string; c
 
 describe.skipIf(url === undefined)('mot de passe actuel exigé par la pile Supabase locale', () => {
   let admin: SupabaseClient
+  const accounts = disposableAccounts()
 
   type Account = { email: string; client: SupabaseClient; repository: AuthRepository }
 
@@ -52,6 +54,7 @@ describe.skipIf(url === undefined)('mot de passe actuel exigé par la pile Supab
       email_confirm: true,
     })
     if (created.error) throw created.error
+    accounts.created(created.data.user.id)
     return anonymous(email)
   }
 
@@ -59,6 +62,7 @@ describe.skipIf(url === undefined)('mot de passe actuel exigé par la pile Supab
     const email = `${randomUUID()}@exemple.test`
     const link = await admin.auth.admin.generateLink({ type: 'signup', email, password: CURRENT })
     if (link.error) throw link.error
+    accounts.created(link.data.user.id)
     const signedUp = anonymous(email)
     await signedUp.repository.verifySignUpCode(email, link.data.properties.email_otp)
     return signedUp
@@ -95,6 +99,8 @@ describe.skipIf(url === undefined)('mot de passe actuel exigé par la pile Supab
   beforeAll(() => {
     admin = createClient(url!, secretKey, options)
   })
+
+  afterAll(() => accounts.removeAll(admin))
 
   it('« Changer mon mot de passe » : accepté avec le bon mot de passe actuel', async () => {
     const { email, repository } = await account()

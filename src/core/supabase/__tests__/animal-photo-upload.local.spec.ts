@@ -4,8 +4,9 @@
 import { randomUUID } from 'node:crypto'
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { disposableAccounts } from '../../../../scripts/supabase-local/disposable-accounts'
 import { PhotoUploadRefusal } from '@/core/sync/service/photo-upload-port'
 import { createAnimalPhotoUpload } from '../animal-photo-upload'
 
@@ -26,13 +27,14 @@ const photoName = () => `${randomUUID()}.jpg`
 
 describe.skipIf(url === undefined)('envoi des photos sur une pile Supabase locale', () => {
   let admin: SupabaseClient
+  const accounts = disposableAccounts()
 
   async function signedIn(plus: boolean): Promise<{ userId: string; client: SupabaseClient }> {
     const email = `${randomUUID()}@exemple.test`
     const password = 'mot-de-passe-de-test'
     const created = await admin.auth.admin.createUser({ email, password, email_confirm: true })
     if (created.error) throw created.error
-    const userId = created.data.user.id
+    const userId = accounts.created(created.data.user.id)
     if (plus) {
       const { error } = await admin
         .from('plus_entitlements')
@@ -54,6 +56,8 @@ describe.skipIf(url === undefined)('envoi des photos sur une pile Supabase local
   beforeAll(() => {
     admin = createClient(url!, secretKey, options)
   })
+
+  afterAll(() => accounts.removeAll(admin))
 
   it('envoie une photo avec Plus actif, et un renvoi remplace l’objet sans erreur', async () => {
     const { userId, client } = await signedIn(true)
