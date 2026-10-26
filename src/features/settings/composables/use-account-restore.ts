@@ -2,7 +2,7 @@ import { computed, onScopeDispose, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
-import { backupSummaryText, restoreProgressText } from '../logic/backup-summary-text'
+import { backupSummaryText } from '../logic/backup-summary-text'
 import { onBackButton } from '@/core/app-lifecycle/back-button'
 import { todayIsoDate } from '@/core/app-lifecycle/today-iso-date'
 import { promptNotificationsIfReminders } from '@/core/notifications/reminders-priming'
@@ -39,13 +39,6 @@ export function useAccountRestore(flow: () => RestoreFlow | null = currentRestor
       ? backupSummaryText(t, state.value.summary, todayIsoDate())
       : null,
   )
-  const progressText = computed(() =>
-    state.value.step === 'restoring' ? restoreProgressText(t, state.value.progress) : null,
-  )
-  const progressValue = computed(() => {
-    if (state.value.step !== 'restoring' || state.value.progress.total === 0) return null
-    return (100 * state.value.progress.done) / state.value.progress.total
-  })
 
   watch(
     () => state.value.step,
@@ -94,8 +87,6 @@ export function useAccountRestore(flow: () => RestoreFlow | null = currentRestor
     state,
     isRestoring,
     summaryText,
-    progressText,
-    progressValue,
     selected,
     isConfirmOpen,
     submit,
