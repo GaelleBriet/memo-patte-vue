@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.122](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.121...memo-patte-v0.1.122) (2026-10-26)
+
+
+### 🐛 Corrections
+
+* **moteur:** une dose avancée au-delà de la date choisie arrive, et le retour au jour d'origine ne perd plus de dose ([2a80b5d](https://github.com/GaelleBriet/memo-patte-vue/commit/2a80b5d7b2ff42ac87ac87ca83f82833b7f6969a))
+
 ## [0.1.121](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.120...memo-patte-v0.1.121) (2026-10-26)
 
 
