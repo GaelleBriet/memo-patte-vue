@@ -23,7 +23,7 @@ const homes = {
     sections: ['comment-ca-marche', 'tarifs', 'questions'],
     prices: ['1,99 € par mois', '12,99 € par an', '39,99 € à vie'],
     pricesNote: 'Prix indicatifs ; Google Play affiche le sien.',
-    plusLater: 'MémoPatte Plus arrive après la sortie de l’app',
+    plusFuture: ['arrive après la sortie', 'sera payant', 'servira qu', 'Plus sera là'],
     bestValue: 'Meilleure offre',
     helpLinks: ['/aide/rappels/', '/aide/exporter/', '/aide/'],
   },
@@ -34,7 +34,13 @@ const homes = {
     sections: ['how-it-works', 'pricing', 'questions'],
     prices: ['€1.99/month', '€12.99/year', '€39.99 lifetime'],
     pricesNote: 'Indicative prices; Google Play shows its own.',
-    plusLater: 'MémoPatte Plus arrives after the app launches',
+    plusFuture: [
+      'arrives after the app',
+      'will be paid',
+      'only need one',
+      'will only be used',
+      'Once MémoPatte Plus is available',
+    ],
     bestValue: 'Best value',
     helpLinks: ['/en/help/reminders/', '/en/help/export/', '/en/help/'],
   },
@@ -103,10 +109,10 @@ describe.each(languages)('page vitrine en %s', (lang) => {
     for (const image of images.slice(1)) expect(image).toContain('loading="lazy"')
   })
 
-  it('affiche les trois offres de Plus, leur mention et leur arrivée après la sortie', () => {
+  it('affiche les trois offres de Plus, leur mention, sans futur sur Plus', () => {
     for (const price of home.prices) expect(text).toContain(price)
     expect(text).toContain(home.pricesNote)
-    expect(text).toContain(home.plusLater)
+    for (const future of home.plusFuture) expect(text).not.toContain(future)
     expect(text).toContain(home.bestValue)
   })
 
