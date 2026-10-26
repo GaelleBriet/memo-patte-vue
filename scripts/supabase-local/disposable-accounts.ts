@@ -7,8 +7,9 @@ export type DisposableAccounts = {
   removeAll(admin: SupabaseClient): Promise<void>
 }
 
-/** Comptes d'un test local, retirés avec leurs photos : la suppression d'un compte n'emporte pas son dossier. */
-export function disposableAccounts(): DisposableAccounts {
+/** Comptes d'un test local, retirés avec leurs photos (la suppression d'un compte n'emporte pas son dossier) ; lève si `url` ne vise pas 127.0.0.1 ou localhost. */
+export function disposableAccounts(url: string | undefined): DisposableAccounts {
+  if (url !== undefined) assertLocalStack(url)
   const userIds = new Set<string>()
   return {
     created(userId) {
@@ -39,4 +40,19 @@ async function photoPaths(admin: SupabaseClient, folder: string): Promise<string
     ),
   )
   return paths.flat()
+}
+
+function assertLocalStack(url: string): void {
+  const host = hostOf(url)
+  if (host !== '127.0.0.1' && host !== 'localhost') {
+    throw new Error(`Pile locale seulement, refusé : ${host ?? JSON.stringify(url)}`)
+  }
+}
+
+function hostOf(url: string): string | undefined {
+  try {
+    return new URL(url).hostname
+  } catch {
+    return undefined
+  }
 }

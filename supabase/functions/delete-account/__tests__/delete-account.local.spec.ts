@@ -40,7 +40,7 @@ describe.skipIf(url === undefined)('delete-account sur une pile Supabase locale'
   let admin: SupabaseClient
   let sophie: Account
   let other: Account
-  const accounts = disposableAccounts()
+  const accounts = disposableAccounts(url)
 
   async function createAccount(): Promise<Account> {
     const email = `${randomUUID()}@exemple.test`
@@ -141,10 +141,6 @@ describe.skipIf(url === undefined)('delete-account sur une pile Supabase locale'
   }
 
   beforeAll(async () => {
-    const host = new URL(url!).hostname
-    if (host !== '127.0.0.1' && host !== 'localhost') {
-      throw new Error(`Pile locale seulement, refusé : ${host}`)
-    }
     admin = createClient(url!, secretKey, options)
     sophie = await createAccount()
     other = await createAccount()
