@@ -110,6 +110,22 @@ Plus réel : la ligne a été reconstituée à la main avec ses styles (une lign
 saisie des codes à 8 chiffres, création de compte et restauration depuis le cloud (aucun serveur) ; anglais ;
 TalkBack ; police au maximum et taille d'affichage agrandie (réglages Android distincts de `font_scale`).
 
+## Repasse du 2026-10-26 : 320, 360 et 412 px, texte à 200 %, FR et EN
+
+Chromium headless (carnet de démo), accueil, Carnet, fiche d'un traitement, fiche d'un vaccin, feuille
+Pesée, Paramètres, Rappels, Plus. Texte à 200 % simulé en doublant la taille des textes (icônes
+exclues) : ce n'est pas le zoom de la WebView Android. Paysage 740 × 360 et 844 × 390 : aucun défilement
+horizontal. `lang` suit la langue, noms accessibles et ordre de tabulation lus en FR et en EN : rien à
+corriger.
+
+Corrigés : « À renseigner » de l'accueil à 12 px (11,5 avant) ; stats du Carnet qui faisaient défiler
+la page à droite à 200 % (colonnes `minmax(0, 1fr)`, mot qui passe à la ligne) ; « Voir l'historique »
+du poids rogné à 200 % (passe sous le poids).
+
+Restent, à décider : à 200 %, les trois stats du Carnet coupent « Rappels » et « Traitements » en deux
+(les empiler en colonne sous un seuil de texte changerait la maquette) ; en-tête du Carnet à 200 % :
+le nom et la race sont tronqués et les chips recouvrent la race.
+
 ## 1. Contrastes
 
 Ratios calculés sur les couleurs réellement rendues (couleur calculée du texte, fond composé des ancêtres),
