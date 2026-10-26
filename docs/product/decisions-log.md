@@ -4377,10 +4377,11 @@ Décisions de Gaelle du 2026-10-26 (questions D1 à D4 de l'audit de #89).
 - **D4 — Webhook d'achat perdu : mis de côté**, rien de codé.
 - **L'en-tête ne contient pas le secret de signature (#1330, décisions de Gaelle du 2026-10-26)** :
   un `REVENUECAT_WEBHOOK_SIGNING_SECRET` contenu dans `REVENUECAT_WEBHOOK_AUTHORIZATION` (après retrait
-  des espaces : valeur identique, `Bearer <secret>`, préfixe ou suffixe) est écarté, chaque envoi reçoit
-  `503` `webhook-not-configured`, et le journal nomme les deux variables sans leurs valeurs. — Raison :
-  sinon un en-tête qui fuit suffit à forger des signatures, ce qui annule D1. — Alternative écartée :
-  refuser la seule égalité, qui laissait passer `Bearer <secret>`.
+  des espaces : valeur identique, `Bearer <secret>`, préfixe, suffixe ou n'importe où dans
+  l'en-tête) est écarté, chaque envoi reçoit `503` `webhook-not-configured`, et le journal nomme les
+  deux variables sans leurs valeurs. — Raison : sinon un en-tête qui fuit suffit à forger des
+  signatures, ce qui annule D1. — Alternative écartée : refuser la seule égalité, qui laissait
+  passer `Bearer <secret>`.
 - Choix de lecture de Claude, d'après la documentation de RevenueCat lue le 2026-10-26 (« Rotate
   secret » invalide l'ancien secret aussitôt ; un seul `v1` documenté) : l'en-tête doit porter
   exactement un `t` et un `v1`, en minuscules, dans un ordre quelconque ; deux `v1`, un champ inconnu
