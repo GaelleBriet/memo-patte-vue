@@ -652,4 +652,96 @@ describe('BackupSettingsView', () => {
       expect(wrapper.get('.backup-settings__restore-choose').text()).toBe('Choose')
     })
   })
+
+  describe('restauration choisie qui attend le réseau', () => {
+    const SUMMARY = { animalCount: 2, lastBackupAt: '2026-10-20T19:04:00.000Z' }
+    const PLUS_SANS_SAUVEGARDE: BackupFacts = {
+      eligible: true,
+      signInNeeded: false,
+      online: false,
+      syncEnabled: false,
+      lastSyncedAt: null,
+      remaining: 0,
+      carnetSize: 0,
+      refused: 0,
+      refusedPhotos: 0,
+    }
+
+    async function choixCoupéParLeRéseau(): Promise<RestoreFlow> {
+      const flow = createRestoreFlow({
+        pendingMode: async () => 'merge',
+        start: async () => {},
+        run: async () => {
+          throw new Error('réseau coupé')
+        },
+        progress: { done: 0, total: 0 },
+        onProgress: () => () => {},
+      })
+      provideRestoreFlow(flow)
+      vi.spyOn(console, 'warn').mockImplementation(() => {})
+      flow.offer(SUMMARY)
+      await flow.choose('merge')
+      expect(flow.state.value.step).toBe('waiting-network')
+      return flow
+    }
+
+    async function monterPlus(facts: BackupFacts = PLUS_SANS_SAUVEGARDE) {
+      provideBackupFacts(async () => facts)
+      const wrapper = await monter()
+      await flushPromises()
+      return wrapper
+    }
+
+    function bloc(wrapper: VueWrapper) {
+      return wrapper.find('.backup-settings__restore-waiting')
+    }
+
+    function texteDuBloc(wrapper: VueWrapper) {
+      return bloc(wrapper)
+        .findAll('.settings-row__label, .settings-row__hint')
+        .map((line) => line.text().replace(/\s+/g, ' '))
+        .join(' ')
+    }
+
+    it('remplace l’écran sans sauvegarde cloud par « En attente de réseau », en gris', async () => {
+      await choixCoupéParLeRéseau()
+      const wrapper = await monterPlus()
+      const texte = wrapper.text()
+
+      expect(texteDuBloc(wrapper)).toBe(
+        'En attente de réseau La restauration reprendra dès le retour du réseau. Rien n’est perdu.',
+      )
+      expect(bloc(wrapper).classes()).toContain('backup-settings__status--neutral')
+      expect(texte).not.toContain('Ton carnet est sur ce téléphone')
+      expect(texte).not.toContain('Si ce téléphone est perdu')
+      expect(texte).not.toContain('Sauvegarde d’Android')
+      expect(wrapper.find('.backup-settings__discover').exists()).toBe(false)
+      expect(wrapper.find('.backup-settings__restore-pending').exists()).toBe(false)
+      expect(
+        wrapper.findAll('.backup-settings__content > *').map((element) => element.classes()),
+      ).toEqual([
+        expect.arrayContaining(['backup-settings__restore-waiting']),
+        expect.arrayContaining(['backup-settings__export']),
+        expect.arrayContaining(['backup-settings__erase']),
+      ])
+    })
+
+    it('se lit en anglais', async () => {
+      i18n.global.locale.value = 'en'
+      await choixCoupéParLeRéseau()
+      const wrapper = await monterPlus()
+
+      expect(texteDuBloc(wrapper)).toBe(
+        'Waiting for network Restoring will resume when you’re back online. Nothing is lost.',
+      )
+    })
+
+    it('ne double pas l’état d’une sauvegarde cloud déjà active', async () => {
+      await choixCoupéParLeRéseau()
+      const wrapper = await monterPlus({ ...PLUS_SANS_SAUVEGARDE, syncEnabled: true })
+
+      expect(bloc(wrapper).exists()).toBe(false)
+      expect(wrapper.find('.backup-settings__status').text()).toContain('En attente de réseau')
+    })
+  })
 })
