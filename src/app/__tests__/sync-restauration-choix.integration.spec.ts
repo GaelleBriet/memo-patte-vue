@@ -252,7 +252,7 @@ describe('restauration avec un carnet sur le téléphone', () => {
       vi.spyOn(console, 'warn').mockImplementation(() => {})
       server.cutPull('treatment_dose')
       await expect(flow.choose('replace')).resolves.toBe(false)
-      expect(flow.state.value).toEqual({ step: 'waiting-network' })
+      expect(flow.state.value).toEqual({ step: 'waiting-network', chosen: true })
       await router.replace('/')
       await router.push('/weight')
       vi.setSystemTime(Date.now() + 60_000)

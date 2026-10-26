@@ -66,6 +66,51 @@ describe('installRestorePrompt', () => {
     expect(router.currentRoute.value.name).toBe('account-restore')
   })
 
+  it('sauvegarde trouvée sur le Carnet, notification touchée ensuite : sa feuille passe avant l’écran', async () => {
+    const router = routeur()
+    const flow = parcours()
+    await router.push('/animals')
+    uninstall = installRestorePrompt(router, () => flow)
+    flow.offer(SUMMARY)
+    await flushPromises()
+
+    await router.push({
+      name: 'home',
+      query: { reminder: 'treatment:vermifuge-milo', step: 'actions' },
+    })
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe('home')
+
+    await router.replace('/')
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe('home')
+
+    await router.push('/weight')
+    await router.push('/')
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe('account-restore')
+  })
+
+  it('sauvegarde trouvée pendant qu’une feuille est dans l’adresse de l’accueil : attend une arrivée', async () => {
+    const router = routeur()
+    const flow = parcours()
+    await router.push({ name: 'home', query: { reminder: 'vaccination:rage-luna' } })
+    uninstall = installRestorePrompt(router, () => flow)
+
+    flow.offer(SUMMARY)
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe('home')
+
+    await router.replace('/')
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe('home')
+
+    await router.push('/weight')
+    await router.push('/')
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe('account-restore')
+  })
+
   it('ne revient qu’une fois par lancement tant qu’aucun choix n’est fait', async () => {
     const router = routeur()
     const flow = parcours()

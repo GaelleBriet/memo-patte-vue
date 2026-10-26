@@ -11,7 +11,7 @@ export type RestoreFlowState =
   | { step: 'no-answer' }
   | { step: 'choice'; summary: BackupSummary }
   | { step: 'restoring'; progress: RestoreProgress }
-  | { step: 'waiting-network' }
+  | { step: 'waiting-network'; chosen: boolean }
   | { step: 'done' }
 
 export type RestoreRunner = Pick<
@@ -46,7 +46,7 @@ export function createRestoreFlow(runner: RestoreRunner) {
       result = await runner.run()
     } catch (cause) {
       console.warn('Restauration interrompue, elle reprendra :', errorSummary(cause))
-      state.value = { step: 'waiting-network' }
+      state.value = { step: 'waiting-network', chosen: true }
       return false
     } finally {
       stop()
@@ -106,7 +106,7 @@ export function createRestoreFlow(runner: RestoreRunner) {
     },
 
     unreachable(): void {
-      state.value = { step: 'waiting-network' }
+      state.value = { step: 'waiting-network', chosen: false }
     },
 
     reset(): void {
@@ -119,7 +119,7 @@ export function createRestoreFlow(runner: RestoreRunner) {
         await runner.start(mode)
       } catch (cause) {
         console.warn('Choix de restauration non gardé :', errorSummary(cause))
-        state.value = { step: 'waiting-network' }
+        state.value = { step: 'waiting-network', chosen: true }
         return false
       }
       return runPending()
