@@ -3894,6 +3894,27 @@ une première valeur choisie par l'appelant ne doit pas masquer la vraie. — Al
 première valeur seule (entrée précédente : l'appelant la choisit) ; la dernière valeur seule (elle
 pourrait n'être qu'une adresse interne de la plateforme).
 
+2026-10-22 — **Webhook RevenueCat : le serveur relit l'état chez RevenueCat à chaque événement**
+(#89, questions Q1 à Q8 du coffre de Gaelle). Réponses de la session d'analyse du 22 octobre, à qui
+Gaelle a délégué les lectures, sauf Q2 et Q7 qui restent à elle. Q1 : quel que soit l'événement, la
+fonction redemande à RevenueCat l'état actuel du droit Plus du compte et le recopie dans
+`plus_entitlements` ; un événement en double ou en retard redonne la même ligne, sans stocker
+`event.id` ; si le compte n'existe plus, rien n'est demandé à RevenueCat. Le compte se cherche dans
+tous les identifiants de l'événement (principal, alias, transfert « de » et « vers ») ; sans aucun
+compte MémoPatte, l'événement est ignoré et journalisé. Q3 : les 12 mois de conservation partent de
+la date de fin d'accès de la ligne, délai de paiement compris, sans nouvelle colonne. Q4 : un achat en
+bac à sable donne Plus côté serveur ; un seul webhook, production et bac à sable. Q5 : le réglage de
+restauration de RevenueCat reste « Transfer to new App User ID » ; le serveur relit les deux comptes.
+Q6 : l'en-tête `Authorization` seul en v1, la signature HMAC renvoyée à #1090 (décision de sécurité,
+à confirmer par Gaelle dans ce ticket). Q8 : le critère de test devient l'événement de test reçu sans
+écriture, puis un achat en bac à sable sur le vrai projet, avec Gaelle. Q2 (un remboursement coupe
+l'accès à sa date, 12 mois comptés depuis) et Q7 (une pause d'abonnement met la sauvegarde en pause
+jusqu'au premier paiement) : recommandation codée, chacune dans une constante, **à confirmer par
+Gaelle**. — Raison : RevenueCat renvoie un événement raté jusqu'à 80 minutes plus tard, donc dans le
+désordre ; relire l'état du moment rend l'ordre indifférent. — Alternative écartée : appliquer chaque
+événement selon son type, avec une table des événements reçus et une règle par type (remboursement
+d'un achat à vie, pause, transfert).
+
 2026-10-23 — **Le retour d'Android revient à l'étape précédente du code, comme la flèche** (#1106).
 Décision de Gaelle du 23 octobre (« oui »). Sur « Changer mon adresse e-mail » et « Mot de passe
 oublié », à l'étape où l'app attend un code, le bouton ou le geste retour d'Android ramène à la saisie
