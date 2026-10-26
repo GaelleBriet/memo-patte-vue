@@ -644,6 +644,55 @@ describe('installSync', () => {
       },
     )
 
+    it('un compte qui part et un autre qui arrive pendant le contrôle du premier : seul le choix du second est proposé', async () => {
+      const first = { animalCount: 3, lastBackupAt: '2026-10-25T19:04:00.000Z' }
+      const second = { animalCount: 1, lastBackupAt: '2026-10-24T08:30:00.000Z' }
+      const { deps, userId, active, restoreFlow, checkAccountBackup } = accountSetup({
+        kind: 'backup-found',
+        summary: second,
+      })
+      let answerFirst = () => {}
+      checkAccountBackup.mockReturnValueOnce(
+        new Promise((resolve) => {
+          answerFirst = () => resolve({ kind: 'backup-found', summary: first })
+        }),
+      )
+      userId.value = 'user-1'
+      active.value = true
+      const stop = await installSync(deps)
+      await vi.advanceTimersByTimeAsync(0)
+      expect(checkAccountBackup).toHaveBeenCalledOnce()
+
+      userId.value = null
+      active.value = false
+      userId.value = 'user-2'
+      active.value = true
+      answerFirst()
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(checkAccountBackup).toHaveBeenCalledTimes(2)
+      expect(restoreFlow.offer).toHaveBeenCalledExactlyOnceWith(second)
+      stop()
+    })
+
+    it('serveur muet puis déconnexion avant les 30 secondes : l’écran n’annonce pas l’absence de réponse', async () => {
+      const { deps, userId, active, restoreFlow, checkAccountBackup } = accountSetup()
+      checkAccountBackup.mockReturnValue(new Promise(() => {}))
+      userId.value = 'user-1'
+      active.value = true
+      const stop = await installSync(deps)
+      await vi.advanceTimersByTimeAsync(10_000)
+
+      userId.value = null
+      active.value = false
+      await vi.advanceTimersByTimeAsync(20_000)
+
+      expect(restoreFlow.reset).toHaveBeenCalledOnce()
+      expect(restoreFlow.noAnswer).not.toHaveBeenCalled()
+      expect(checkAccountBackup).toHaveBeenCalledOnce()
+      stop()
+    })
+
     it('rien à restaurer ou compte changé : le parcours de restauration repart de rien', async () => {
       const { deps, userId, active, restoreFlow } = accountSetup({ kind: 'seeded' })
       userId.value = 'user-1'

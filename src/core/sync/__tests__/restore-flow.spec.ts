@@ -103,7 +103,7 @@ describe('parcours de restauration', () => {
     expect(restored).not.toHaveBeenCalled()
   })
 
-  it('rien à restaurer : le carnet est annoncé prêt, comme après une restauration', async () => {
+  it('rien à restaurer : le carnet n’est pas annoncé prêt, le parcours repart de rien', async () => {
     const runner = fakeRunner({
       run: vi.fn<RestoreRunner['run']>(async () => 'nothing-to-restore'),
     })
@@ -112,10 +112,61 @@ describe('parcours de restauration', () => {
     flow.onRestored(restored)
     await runner.start('merge')
 
-    await expect(flow.resume()).resolves.toBe(true)
+    await expect(flow.resume()).resolves.toBe(false)
 
-    expect(flow.state.value).toEqual({ step: 'done' })
-    expect(restored).toHaveBeenCalledOnce()
+    expect(flow.state.value).toEqual({ step: 'idle' })
+    expect(restored).not.toHaveBeenCalled()
+  })
+
+  it('rien à restaurer après plusieurs paliers de progression : le parcours repart de rien', async () => {
+    let finish: () => void = () => {}
+    const runner = fakeRunner()
+    runner.run = vi.fn<RestoreRunner['run']>(
+      () =>
+        new Promise((resolve) => {
+          finish = () => resolve('nothing-to-restore')
+        }),
+    )
+    const flow = createRestoreFlow(runner)
+    const choosing = flow.choose('merge')
+    await vi.waitFor(() => expect(runner.run).toHaveBeenCalledOnce())
+
+    runner.emit({ done: 0, total: 10 })
+    runner.emit({ done: 5, total: 10 })
+    expect(flow.state.value).toEqual({ step: 'restoring', progress: { done: 5, total: 10 } })
+
+    finish()
+    await expect(choosing).resolves.toBe(false)
+    expect(flow.state.value).toEqual({ step: 'idle' })
+  })
+
+  it('« Fusionner » d’un compte qui finit après l’arrivée d’un autre : le choix du nouveau compte reste affiché', async () => {
+    let finish: () => void = () => {}
+    const runner = fakeRunner()
+    runner.run = vi.fn<RestoreRunner['run']>(
+      () =>
+        new Promise((resolve) => {
+          finish = () => resolve('nothing-to-restore')
+        }),
+    )
+    const flow = createRestoreFlow(runner)
+    const restored = vi.fn<() => void>()
+    flow.onRestored(restored)
+    flow.offer(SUMMARY)
+    const choosing = flow.choose('merge')
+    await vi.waitFor(() => expect(runner.run).toHaveBeenCalledOnce())
+
+    const otherSummary = { animalCount: 1, lastBackupAt: '2026-10-25T08:30:00.000Z' }
+    flow.reset()
+    flow.checking()
+    flow.offer(otherSummary)
+    runner.emit({ done: 120, total: 348 })
+    expect(flow.state.value).toEqual({ step: 'choice', summary: otherSummary })
+
+    finish()
+    await expect(choosing).resolves.toBe(false)
+    expect(flow.state.value).toEqual({ step: 'choice', summary: otherSummary })
+    expect(restored).not.toHaveBeenCalled()
   })
 
   it('journalise le message d’une lecture ratée de la restauration en attente, en développement', async () => {
