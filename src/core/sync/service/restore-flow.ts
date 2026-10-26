@@ -7,7 +7,7 @@ import type { BackupSummary } from './backup-summary'
 
 export type RestoreFlowState =
   | { step: 'idle' }
-  | { step: 'checking' }
+  | { step: 'checking'; chosen: boolean }
   | { step: 'no-answer' }
   | { step: 'choice'; summary: BackupSummary }
   | { step: 'restoring'; progress: RestoreProgress }
@@ -28,8 +28,8 @@ export function createRestoreFlow(runner: RestoreRunner) {
   const restoredListeners = new Set<() => void>()
   const retryListeners = new Set<() => void>()
 
-  function retryCheck(): void {
-    state.value = { step: 'checking' }
+  function recheck(chosen: boolean): void {
+    state.value = { step: 'checking', chosen }
     for (const listener of retryListeners) listener()
   }
 
@@ -52,7 +52,7 @@ export function createRestoreFlow(runner: RestoreRunner) {
       stop()
     }
     if (result === 'carnet-changed') {
-      retryCheck()
+      recheck(true)
       return false
     }
     if (result === 'nothing-to-restore') {
@@ -69,7 +69,7 @@ export function createRestoreFlow(runner: RestoreRunner) {
 
     /** Sans effet sur un écran déjà affiché : il garde son message jusqu'à la réponse. */
     checking(): void {
-      if (state.value.step === 'idle') state.value = { step: 'checking' }
+      if (state.value.step === 'idle') state.value = { step: 'checking', chosen: false }
     },
 
     /** Ce que le contrôle de la sauvegarde a trouvé, dès qu'il a répondu. */
@@ -94,7 +94,9 @@ export function createRestoreFlow(runner: RestoreRunner) {
     },
 
     /** « Réessayer » : le contrôle de la sauvegarde est redemandé tout de suite. */
-    retryCheck,
+    retryCheck(): void {
+      recheck(false)
+    },
 
     onRetryCheck(listener: () => void): () => void {
       retryListeners.add(listener)

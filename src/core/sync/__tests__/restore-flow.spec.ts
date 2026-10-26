@@ -98,7 +98,7 @@ describe('parcours de restauration', () => {
 
     await expect(flow.resume()).resolves.toBe(false)
 
-    expect(flow.state.value).toEqual({ step: 'checking' })
+    expect(flow.state.value).toEqual({ step: 'checking', chosen: true })
     expect(retried).toHaveBeenCalledOnce()
     expect(restored).not.toHaveBeenCalled()
   })
@@ -271,6 +271,14 @@ describe('parcours de restauration', () => {
     await expect(checked).resolves.toEqual({ step: 'choice', summary: SUMMARY })
   })
 
+  it('le premier contrôle de la sauvegarde ne suit aucun choix', () => {
+    const flow = createRestoreFlow(fakeRunner())
+
+    flow.checking()
+
+    expect(flow.state.value).toEqual({ step: 'checking', chosen: false })
+  })
+
   it('répond tout de suite quand aucun contrôle n’est en cours', async () => {
     const flow = createRestoreFlow(fakeRunner())
 
@@ -297,7 +305,7 @@ describe('parcours de restauration', () => {
     await expect(checked).resolves.toEqual({ step: 'no-answer' })
 
     flow.retryCheck()
-    expect(flow.state.value).toEqual({ step: 'checking' })
+    expect(flow.state.value).toEqual({ step: 'checking', chosen: false })
     expect(retried).toHaveBeenCalledOnce()
   })
 })
