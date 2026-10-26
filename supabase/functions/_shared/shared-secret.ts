@@ -1,5 +1,17 @@
 export const MIN_SHARED_SECRET_LENGTH = 32
 
+/** Un secret trop court compte comme absent ; le message nomme la variable, jamais sa valeur. */
+export function longEnoughSecret(
+  value: string | undefined,
+  name: string,
+  refusal: string,
+): string | undefined {
+  if (!value) return undefined
+  if (value.length >= MIN_SHARED_SECRET_LENGTH) return value
+  console.error(`${refusal} : ${name} doit faire au moins ${MIN_SHARED_SECRET_LENGTH} caractères`)
+  return undefined
+}
+
 async function digest(value: string): Promise<Uint8Array> {
   return new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)))
 }
