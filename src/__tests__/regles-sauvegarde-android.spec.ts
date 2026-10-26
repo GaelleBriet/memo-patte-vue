@@ -37,7 +37,7 @@ describe('règles de sauvegarde Android', () => {
     const lint = read('lint.xml')
 
     expect(lint.match(/<issue\b/g)).toHaveLength(1)
-    expect(lint).toMatch(/<issue\s+id="FullBackupContent"/)
+    expect(lint).toMatch(/<issue\s+id="FullBackupContent"\s*>/)
     expect(lint.match(/<ignore\b/g)).toHaveLength(1)
     expect(lint).toMatch(/<ignore\s+regexp="is not in an included path"\s*\/>/)
   })
