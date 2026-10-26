@@ -247,6 +247,24 @@ describe('AccountFirstView — enchaînement', () => {
     expect(toastMessage.value).toBe('Connecté avec Google.')
   })
 
+  it('ne dit rien si l’écran est démonté avant la réponse de Google', async () => {
+    let terminer = (): void => {}
+    googleSignIn.mockReturnValue(
+      new Promise((resolve) => {
+        terminer = () => resolve({ kind: 'signed-in', session: { userId: USER_ID } })
+      }),
+    )
+    choisir('annual')
+    const wrapper = await monter()
+
+    await wrapper.get('.google-button').trigger('click')
+    wrapper.unmount()
+    terminer()
+    await flushPromises()
+
+    expect(toastMessage.value).toBeNull()
+  })
+
   it('montre la connexion en cours, sans laisser relancer', async () => {
     googleSignIn.mockReturnValue(new Promise(() => {}))
     choisir('annual')
