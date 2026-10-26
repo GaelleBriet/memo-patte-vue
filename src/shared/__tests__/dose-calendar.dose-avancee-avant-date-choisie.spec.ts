@@ -14,7 +14,7 @@ import { DAY, H, keys, setting, WEEK } from './dose-calendar.v2.aides'
 
 // #1283 : Milo, tous les jours à 8 h et 20 h dès le 11 avril ; le 9, la dose de 8 h du 11 reportée
 // au 15 avec la case ; le 11, « Modifier » : « Prochaine dose » le 13. Le 13 porte la dose reportée.
-function milo(times: string[] = H): TreatmentViewInput {
+function milo(times: string[] = H, firstDueOn = '2026-04-13'): TreatmentViewInput {
   const start: TreatmentViewInput = {
     settings: [setting('p1', '2026-04-11', DAY, times)],
     lines: [],
@@ -22,7 +22,7 @@ function milo(times: string[] = H): TreatmentViewInput {
   }
   const first = times[0] ?? null
   const reported = on(moved(start, '2026-04-11', first, '2026-04-15'), '2026-04-11')
-  return edited(reported, { frequency: DAY, times, endsOn: null, firstDueOn: '2026-04-13' })
+  return edited(reported, { frequency: DAY, times, endsOn: null, firstDueOn })
 }
 
 function movedAlone(
@@ -325,4 +325,28 @@ describe('Le retour au jour d’origine, seule date, n’est permis que s’il y
       '2026-03-09 20:00',
     ])
   })
+
+  it.each([
+    ['08:00', ['2026-04-11 08:00', '2026-04-11 20:00', '2026-04-13 08:00', '2026-04-13 20:00']],
+    ['20:00', ['2026-04-11 20:00', '2026-04-12 08:00', '2026-04-13 08:00', '2026-04-13 20:00']],
+  ])(
+    'Milo, « Prochaine dose » le 12 : %s du 12 revient au 11, seule date, et y remet la dose',
+    (dueTime, expected) => {
+      const input = milo(H, '2026-04-12')
+      const settingId = treatmentView(input).currentSetting!.id
+      const due = { settingId, dueOn: '2026-04-12', dueTime }
+
+      expect(moveBounds(input, due, false)).toEqual({
+        earliest: '2026-04-11',
+        latest: '2026-04-11',
+        excluded: [],
+      })
+      const { moteur, reference } = calendars(movedAlone(input, due.dueOn, dueTime, '2026-04-11'))
+
+      expect({ moteur: moteur.slice(0, 4), reference: reference.slice(0, 4) }).toEqual({
+        moteur: expected,
+        reference: expected,
+      })
+    },
+  )
 })

@@ -165,7 +165,11 @@ function planOf(
     if (nextOn !== undefined) {
       const cap = latest !== null && latest < plusDays(nextOn, -1) ? latest : plusDays(nextOn, -1)
       // Q59, Q60 : un report revient à son jour d'origine, même seul possible, s'il y remet une dose.
-      const restores = existing !== undefined && alone.slots(moved.dueOn, moved.dueOn).length > 0
+      const home = homeBeforeChosen(input, { existing, moved, dayShift }, due)
+      const restores =
+        existing !== undefined &&
+        (alone.slots(moved.dueOn, moved.dueOn).length > 0 ||
+          (home !== undefined && !('reason' in home)))
       if (cap < earliest || (earliest === cap && cap === moved.dueOn && !restores)) {
         return { reason: 'no-date-alone' }
       }
