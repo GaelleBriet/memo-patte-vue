@@ -4388,3 +4388,19 @@ Décisions de Gaelle du 2026-10-26 (questions D1 à D4 de l'audit de #89).
   ou des espaces sont refusés. — Alternative écartée : accepter plusieurs `v1` pour une rotation
   progressive que RevenueCat ne fait pas. — Pour revenir dessus : `signatureIn` dans
   `supabase/functions/revenuecat-webhook/webhook-signature.ts` et ses tests.
+
+## 2026-10-26 — Paramètres › Sauvegarde pendant une restauration choisie (#1321)
+
+Décision d'affichage de bonne pratique, prise par Claude en autonomie (cohérence avec Q54 et Q62).
+
+- Pendant la restauration, la rubrique affiche la carte de progression de « Restaurer mon carnet »
+  (« Restauration de ton carnet », « 120 éléments sur 348 »), puis « Exporter une copie » et
+  « Effacer les données de ce téléphone ». Pendant le nouveau contrôle qui suit un « Remplacer »
+  abandonné, et entre la fin de la restauration et la lecture de la sauvegarde devenue active,
+  seuls « Exporter une copie » et « Effacer les données » restent, sans bloc d'état. L'écran sans
+  sauvegarde cloud ne revient plus pendant ces étapes. — Raison : Q54 et Q62 ne montrent jamais cet
+  écran à une personne dont la sauvegarde cloud est en cours de restauration ; aucun texte nouveau.
+- Alternative écartée : garder le bloc « En attente de réseau » pendant la restauration en cours,
+  qui dirait une attente alors que les données arrivent.
+- Pour revenir dessus : `use-restore-pending.ts` choisit ce qui s'affiche ; `use-backup-status.ts`
+  relit la sauvegarde à la fin d'une restauration.
