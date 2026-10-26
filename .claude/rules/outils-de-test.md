@@ -42,3 +42,6 @@ Les scripts vivent dans `scripts/test-device/`, versionnés pour suivre d'un pos
 - Attendre une tâche par son fichier de sortie ou par son PID. `while pgrep -f motif` ne s'arrête jamais : le motif figure dans la ligne de commande de la boucle elle-même.
 - Vitest laisse dans `/tmp` un dossier d'environ 12 Mo par lancement (nom de 21 caractères, avec `client/` et `ssr/`). Quand `/tmp` est plein, les commandes échouent sans message clair : supprimer ceux de plus de 20 minutes.
 - Après un merge de `main` dans une branche, relancer `pnpm install`, car `main` a pu ajouter une dépendance. Sinon le type-check du push échoue.
+- Un composant de `shared/` que personne n'importe n'est compilé ni par `build-only` ni par Vitest (`css: false`) : le vert des commandes ne prouve rien sur son style, il faut un build jetable ou une mesure dans un navigateur.
+- Une montée de Vuetify se vérifie aussi à l'œil (captures avant / après avec `pnpm dev:data` et Playwright) : les tests tournent avec `css: false`.
+- Après avoir posé des secrets dans un dépôt, vérifier le projet visé avant de relancer un job qui écrit dans une vraie base.

@@ -139,7 +139,7 @@ Les entrées antérieures au 2026-10-01 sont archivées dans le coffre de notes 
     merge sans la conditionner au merge réussi (`gh pr view --json state` = `MERGED`) ; (3) `adb devices`
     vide : `adb kill-server` puis `start-server`, puis vérifier l'USB.
 
-- 2026-10-04 : **reprendre ici.** travail en autonomie complète. **Étude du modèle des
+- 2026-10-04 : **reprendre ici.** Travail en autonomie complète. **Étude du modèle des
   prises (#488) terminée** (PR #508, `docs/technical/etude-modele-prises.md`, décisions de Gaelle du
   2026-10-03 au §5.1) : case « Décaler aussi les doses suivantes » partout où une date de dose change
   (sauf « C'est fait » en un tap, dose rattrapée, prise d'un traitement de tous les jours), **ligne de
