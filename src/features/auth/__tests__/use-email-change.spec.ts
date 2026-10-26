@@ -361,6 +361,14 @@ describe('useEmailChange, la visite de l’aide', () => {
     expect(await retour.resend()).toBe('sent')
   })
 
+  it('à l’étape de la nouvelle adresse, rien n’est gardé', () => {
+    const change = remplir('ancien-secret', NOUVELLE)
+
+    change.holdForHelp()
+
+    expect(takeHeldEmailChange()).toBeNull()
+  })
+
   it('n’écrit rien dans un stockage', async () => {
     const local = vi.spyOn(Storage.prototype, 'setItem')
     const change = await jusquAuCode()
