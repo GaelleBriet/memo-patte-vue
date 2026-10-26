@@ -113,6 +113,7 @@ function describeDelta(value: WeightDelta): { text: string; trend: 'up' | 'down'
 .weight-section__headline {
   display: flex;
   align-items: baseline;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
