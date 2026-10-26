@@ -84,7 +84,8 @@ MémoPatte a été créé le … sans abonnement Plus »). Aucun texte pour une 
 Jamais par une migration : la CI l'appliquerait au merge. Dans cet ordre : chaque étape a besoin
 des précédentes.
 
-1. **Extensions** : `pg_cron` et `pg_net` activées dans `Database › Extensions`. Sans `pg_net`, le
+1. **Extensions** : `pg_cron` et `pg_net` activées dans `Database › Extensions` (`pg_cron` aussi par
+   `Integrations › Cron`). Sans `pg_net`, le
    schéma `net` n'existe pas (« schema "net" does not exist ») : ni le contrôle de l'étape 4 ni la
    passe planifiée ne peuvent appeler la fonction.
 2. **Secret, à deux endroits, même valeur** (au moins 32 caractères, `openssl rand -hex 32`, rangée
@@ -98,7 +99,10 @@ des précédentes.
      select vault.create_secret('<la même valeur que le secret de la fonction>', 'inactive_accounts_cron_secret');
      ```
 
-   `INACTIVE_ACCOUNTS_MODE` reste absent : la passe est à blanc.
+   La façon de tirer ce secret reste à décider (#1280) : par `openssl` puis collé dans le Vault, comme
+   ci-dessus, ou tiré dans le Vault puis copié dans les secrets de la fonction, pour que la valeur
+   n'apparaisse jamais dans le texte d'une requête. `INACTIVE_ACCOUNTS_MODE` reste absent : la passe
+   est à blanc.
 3. **Déploiement**, depuis `main` à jour :
    `pnpm dlx supabase@2.119.0 functions deploy inactive-accounts --project-ref <ref> --use-api --no-verify-jwt`.
 4. **Une passe à blanc lancée à la main**, avant tout planning : dans `SQL Editor`, l'appel que fera
@@ -127,10 +131,15 @@ des précédentes.
    | Réponse | Ce qui manque |
    | --- | --- |
    | `200`, rapport `"mode":"dry-run"`, ligne « Purge des comptes inactifs : » dans `Edge Functions › inactive-accounts › Logs` | rien : passer à l'étape 5 |
-   | `503` `purge-not-configured` | le secret de la fonction (absent, ou moins de 32 caractères : le journal dit lequel) |
+   | `503` `purge-not-configured` | le secret de la fonction, absent ou de moins de 32 caractères. Le journal de chaque appel dit seulement « Purge refusée : INACTIVE_ACCOUNTS_CRON_SECRET n'est pas réglé » ; un secret trop court se voit à la ligne écrite au démarrage de la fonction, « Purge désactivée : INACTIVE_ACCOUNTS_CRON_SECRET doit faire au moins 32 caractères » |
    | `401` `unauthorized` | la valeur du Vault diffère de celle de la fonction |
    | `503` `server-key-not-configured` | la clé secrète Supabase (section suivante) |
    | `500` `purge-failed` | la base refuse la liste des comptes à la clé lue |
+   | `404` | la fonction n'est pas déployée, ou le chemin est faux : étape 3, ou `project_url` du Vault (sans `/` final) |
+   | `status_code` vide, `error_msg` rempli | l'appel n'a pas atteint la fonction : `project_url` mal écrit dans le Vault, ou délai dépassé (`timed_out` vrai) |
+
+   `content` porte la réponse de la fonction ; `error_msg` n'est rempli que quand `pg_net` n'a pas pu
+   faire l'appel, et dit pourquoi (adresse introuvable, délai…).
 
 5. **Planning**, une fois, seulement après un `200` à l'étape 4 :
 
@@ -159,7 +168,9 @@ des précédentes.
    n'est plus dans `net._http_response` six heures après.
 6. **Laisser tourner à blanc** (décision D5 : un mois proposé) et lire les nombres du journal.
 7. **Passer en `apply`** : secret `INACTIVE_ACCOUNTS_MODE` = `apply`, seulement une fois le canal
-   d'e-mail branché.
+   d'e-mail branché, et après deux vérifications sur le vrai projet décrites hors du dépôt, dans le
+   guide d'exploitation de Gaelle : aucun compte venu d'un fournisseur (Google) sans adresse
+   confirmée, et case « Auto confirm user? » cochée pour le compte de revue Play.
 
 ## Bascule vers la clé secrète Supabase (#1112)
 
