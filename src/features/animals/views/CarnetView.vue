@@ -519,15 +519,18 @@ onMounted(() => {
 .carnet-stat {
   flex: 1 1 0;
   min-width: min-content;
-  padding-inline: 12px;
 }
 
-.carnet-stat:first-child {
-  padding-inline-start: 0;
+.carnet-stat > * {
+  padding-inline-end: 12px;
 }
 
 .carnet-stat + .carnet-stat {
-  border-left: 1px solid tokens.$color-divider;
+  box-shadow: inset 1px 0 0 tokens.$color-divider;
+}
+
+.carnet-stat + .carnet-stat > * {
+  padding-inline-start: 13px;
 }
 
 .carnet-stat__label {

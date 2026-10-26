@@ -78,7 +78,10 @@ describe('CarnetView — contrat de style', () => {
     expect(declaration('.carnet-stat', 'min-width')).toBe('min-content')
     expect(declaration('.carnet-stats', 'border')).toBeUndefined()
     expect(declaration('.carnet-stats', 'background')).toBeUndefined()
-    expect(declaration('.carnet-stat + .carnet-stat', 'border-left')).toBe('1px solid #efece8')
+    expect(declaration('.carnet-stat + .carnet-stat', 'box-shadow')).toBe('inset 1px 0 0 #efece8')
+    expect(declaration('.carnet-stat', 'padding-inline')).toBeUndefined()
+    expect(declaration('.carnet-stat > *', 'padding-inline-end')).toBe('12px')
+    expect(declaration('.carnet-stat + .carnet-stat > *', 'padding-inline-start')).toBe('13px')
   })
 
   it('donne au bouton « Réessayer » la forme du bouton principal des formulaires', () => {

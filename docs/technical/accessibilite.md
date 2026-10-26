@@ -125,7 +125,8 @@ le poids, sa zone de tap reste au-dessus de la ligne de variation : 0 point sur 
 après correction, 800 avant).
 
 Comportement mesuré des stats du Carnet (Poids / Rappels / Traitements, flex qui passe à la ligne, chaque
-colonne au moins aussi large que son plus long mot, texte multiplié, FR et EN) :
+colonne au moins aussi large que son plus long mot, texte multiplié, FR et EN ; la marge intérieure est
+posée sur le contenu des colonnes, pas sur les colonnes, pour qu'elles restent égales) :
 
 | Largeur | 100 % | 130 % | 150 % | 200 % |
 | --- | --- | --- | --- | --- |
@@ -134,8 +135,10 @@ colonne au moins aussi large que son plus long mot, texte multiplié, FR et EN) 
 | 412 px | 1 rangée | 1 rangée | 1 rangée en FR et EN | 2 rangées |
 
 « 2 rangées » : la troisième stat prend toute la largeur sous les deux autres. À toute taille : aucun mot
-coupé, aucun défilement horizontal causé par les stats. À 100 %, les trois colonnes ont la même largeur
-de contenu ; la première est plus étroite de 10 px, car elle n'a pas de marge à gauche. Le chevron de
+coupé, aucun défilement horizontal causé par les stats. À 100 %, les colonnes font 93 / 93 / 94 px à
+320 px, 107 × 3 à 360 px et 124 × 3 à 412 px, comme avec la grille d'origine, et la capture des stats est
+identique octet pour octet à celle de la grille d'origine aux trois largeurs. Aux autres tailles de
+texte, une colonne s'élargit au besoin (ex. 360 px à 130 % : 109 / 96 / 115 px). Le chevron de
 « Traitements terminés » dépasse de 1 px à 320 px et 200 %, hors des stats.
 
 Restent, à décider : en-tête du Carnet à 200 % : le nom et la race sont tronqués et les chips recouvrent
