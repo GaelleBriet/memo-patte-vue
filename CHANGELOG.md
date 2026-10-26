@@ -5,6 +5,15 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.121](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.120...memo-patte-v0.1.121) (2026-10-26)
+
+
+### 🐛 Corrections
+
+* **synchro:** ignorer un contrôle de compte qui répond après un changement de compte ([68035d0](https://github.com/GaelleBriet/memo-patte-vue/commit/68035d0797cb488bb4e22b2f4ad296e984d356c0)), closes [#1290](https://github.com/GaelleBriet/memo-patte-vue/issues/1290)
+* **synchro:** le filtre réseau part d'un état inconnu ([#1295](https://github.com/GaelleBriet/memo-patte-vue/issues/1295)) ([5366d4b](https://github.com/GaelleBriet/memo-patte-vue/commit/5366d4b45715f0d4c02384365870c9a043571552))
+* **synchro:** le premier « en ligne » compte comme un retour du réseau tant que l'état est inconnu ([e38ba77](https://github.com/GaelleBriet/memo-patte-vue/commit/e38ba775224922dbf01f176a38d3518b1ed5f4e9))
+
 ## [0.1.120](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.119...memo-patte-v0.1.120) (2026-10-25)
 
 
