@@ -2,7 +2,7 @@
 
 Première passe le 2026-09-15, sur le carnet de démo (`pnpm dev:data`), plus un animal sans rappel pour
 les états « Tout est à jour » et sections vides, avec des mesures dans Chromium headless (émulation
-mobile). Repasses des 2026-09-21 et 2026-10-24 ci-dessous ; la dernière, sur émulateur Android
+mobile). Repasses des 2026-09-21, 2026-10-24 et 2026-10-26 ci-dessous ; la dernière, sur émulateur Android
 (360 × 640 dp, police à 130 %), remplace les mesures de la première pour les écrans qu'elle couvre.
 Ce qui reste à vérifier sur appareil : voir « Reste à vérifier ».
 

@@ -78,7 +78,7 @@ describe('HomeTodoCard — contrat de style', () => {
     expect(declaration('.home-up-to-date__dot', 'color')).toBe('rgb(var(--v-theme-on-up-to-date))')
   })
 
-  it('range « À renseigner » sous une bande grise en capitales, comme la maquette V16', () => {
+  it('range « À renseigner » sous une bande grise en capitales (12 px par la règle des 12 px, la maquette V16 est à 11,5 px)', () => {
     expect(declaration('.home-todo__group', 'background')).toBe('#f2f0ec')
     expect(declaration('.home-todo__group', 'color')).toBe('#68625c')
     expect(declaration('.home-todo__group', 'font-size')).toBe('12px')
