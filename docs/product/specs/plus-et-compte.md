@@ -161,7 +161,10 @@ publicité.
   sauvegarde cloud attend ton choix : fusionner avec le carnet de ce téléphone, ou le remplacer. » ·
   « Choisir », qui ouvre « Restaurer mon carnet » ; jamais autrement, il disparaît dès que le choix
   est fait (#1298, Q53). Tant qu'il est affiché, seuls « Exporter une copie » et « Effacer les
-  données de ce téléphone » restent sous lui (Q54). (P12 Q2 ; relecture du lot C, validé en bloc ;
+  données de ce téléphone » restent sous lui (Q54). Pendant une restauration choisie, la carte de
+  progression de « Restaurer mon carnet » prend sa place ; pendant le nouveau contrôle d'un choix
+  et jusqu'à la lecture de la sauvegarde devenue active, seuls ces deux éléments restent (#1321).
+  (P12 Q2 ; relecture du lot C, validé en bloc ;
   élément refusé : journal du 2026-10-24, #1035)
 - **PL-18** Un rappel peut sonner sur un appareil pas encore à jour ; accepté en v1. (P14 Q2)
 

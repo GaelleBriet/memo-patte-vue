@@ -3,6 +3,7 @@ import { useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import ChoiceCards from './ChoiceCards.vue'
+import RestoreProgressCard from './RestoreProgressCard.vue'
 import { useAccountRestore } from '../composables/use-account-restore'
 import { useMergeReplaceChoices } from '../composables/use-merge-replace-choices'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
@@ -14,8 +15,6 @@ const {
   state,
   isRestoring,
   summaryText,
-  progressText,
-  progressValue,
   selected,
   isConfirmOpen,
   submit,
@@ -60,25 +59,11 @@ const groupLabelId = useId()
         />
       </template>
 
-      <div
+      <RestoreProgressCard
         v-else-if="state.step === 'restoring'"
-        class="settings-row account-restore__card account-restore__progress"
-        role="status"
-      >
-        <v-icon class="settings-row__icon" icon="ms:cloud_download" size="24" />
-        <span class="settings-row__text">
-          <span class="settings-row__label">{{ t('settings.restore.progress.title') }}</span>
-          <span v-if="progressText" class="settings-row__hint">{{ progressText }}</span>
-          <v-progress-linear
-            class="account-restore__bar"
-            color="primary"
-            rounded
-            :indeterminate="progressValue === null"
-            :model-value="progressValue ?? 0"
-            aria-hidden="true"
-          />
-        </span>
-      </div>
+        class="account-restore__card account-restore__progress"
+        :progress="state.progress"
+      />
 
       <p
         v-else-if="state.step === 'waiting-network'"
@@ -151,10 +136,6 @@ const groupLabelId = useId()
   .settings-row__icon {
     color: rgb(var(--v-theme-primary));
   }
-}
-
-.account-restore__bar {
-  margin-top: 10px;
 }
 
 .account-restore__notice {
