@@ -5,6 +5,30 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.124](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.123...memo-patte-v0.1.124) (2026-10-26)
+
+
+### ✨ Fonctionnalités
+
+* **plus:** le webhook RevenueCat exige une signature HMAC valide et un mot de passe d'en-tête de 32 caractères ([48419ca](https://github.com/GaelleBriet/memo-patte-vue/commit/48419ca454f98d292a8c763524ac5813934b0449))
+* **plus:** pourcentage de l'annuel à 46 % et limite dite sur l'offre à vie ([8370d0b](https://github.com/GaelleBriet/memo-patte-vue/commit/8370d0b140fd5901038fdb7fe8b590157db591df))
+* **plus:** webhook revenuecat refusé sans signature hmac valide ni en-tête de 32 caractères ([9f02360](https://github.com/GaelleBriet/memo-patte-vue/commit/9f02360361222d361a6b9671d0408a9f5d9d6dad)), closes [#89](https://github.com/GaelleBriet/memo-patte-vue/issues/89)
+
+
+### 🐛 Corrections
+
+* **a11y:** « Voir l'historique » du poids passe à la ligne au lieu d'être rogné ([d8c2f05](https://github.com/GaelleBriet/memo-patte-vue/commit/d8c2f058b8738be96f601d8d7c209a533665bd64)), closes [#51](https://github.com/GaelleBriet/memo-patte-vue/issues/51)
+* **a11y:** libellé « À renseigner » de l'accueil à 12 px au lieu de 11,5 ([affd795](https://github.com/GaelleBriet/memo-patte-vue/commit/affd7957f929e19a3ca95f5f9f63c19b474ad1ed)), closes [#51](https://github.com/GaelleBriet/memo-patte-vue/issues/51)
+* **a11y:** repasse accessibilité et affichage du 26 octobre (stats du Carnet, textes à 12 px, zone de tap) ([b21b033](https://github.com/GaelleBriet/memo-patte-vue/commit/b21b033a0bfb7f3853e817b38b6d7c7e13930403))
+* **a11y:** stats du Carnet de largeur égale à 100 %, comme la grille d'origine ([456516b](https://github.com/GaelleBriet/memo-patte-vue/commit/456516b7f690d3959b44cd019d05e1bd7952fd68)), closes [#51](https://github.com/GaelleBriet/memo-patte-vue/issues/51)
+* **a11y:** stats du Carnet en flex, colonnes qui s'élargissent puis passent à la ligne ([fa01a1a](https://github.com/GaelleBriet/memo-patte-vue/commit/fa01a1a80e6bda2085bdc39860d714528e0b38b2)), closes [#51](https://github.com/GaelleBriet/memo-patte-vue/issues/51)
+* **a11y:** stats du Carnet sans défilement horizontal quand le texte grossit ([22b1a4c](https://github.com/GaelleBriet/memo-patte-vue/commit/22b1a4c14f64e891da3538c8edc3db0a42f7bec7)), closes [#51](https://github.com/GaelleBriet/memo-patte-vue/issues/51)
+* **a11y:** trois textes encore sous 12 px passent à 12 px ([09594b5](https://github.com/GaelleBriet/memo-patte-vue/commit/09594b5db0e8d92d8aebfd262dcce1e8c2b088b4)), closes [#51](https://github.com/GaelleBriet/memo-patte-vue/issues/51)
+* **a11y:** zone de tap de « Voir l'historique » au-dessus de la ligne de variation ([51a2acf](https://github.com/GaelleBriet/memo-patte-vue/commit/51a2acfe1ae60b6c603da7b576cbdc97fbfb53bf)), closes [#51](https://github.com/GaelleBriet/memo-patte-vue/issues/51)
+* **plus:** octets signés typés pour webcrypto ([d4d58c1](https://github.com/GaelleBriet/memo-patte-vue/commit/d4d58c177927d0cb34028ca34151410891616c37)), closes [#89](https://github.com/GaelleBriet/memo-patte-vue/issues/89)
+* **plus:** pourcentage de l'annuel à 46 % aussi en français ([11c5ad7](https://github.com/GaelleBriet/memo-patte-vue/commit/11c5ad7139ea372393760c1d90dd58c381cbab89))
+* **plus:** suites de relecture du webhook signé (journal, tests de garde, doc) ([05ffb4f](https://github.com/GaelleBriet/memo-patte-vue/commit/05ffb4f389c52bda76ef8d25deb9b05a3a73d09f)), closes [#89](https://github.com/GaelleBriet/memo-patte-vue/issues/89)
+
 ## [0.1.123](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.122...memo-patte-v0.1.123) (2026-10-26)
 
 
