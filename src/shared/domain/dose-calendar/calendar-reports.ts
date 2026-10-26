@@ -153,8 +153,11 @@ export function moveReports(input: ReportsInput) {
       effects.set(report.id, { kind: 'idle', reason: 'nothing-to-move' })
       continue
     }
-    const covered =
-      origin === undefined
+    // Q61 : revenu à son jour d'origine, le report y arrive ; les prises de ce jour se posent sur l'arrivée.
+    const home = targetOn === dueOn
+    const covered = home
+      ? new Set<Hour>()
+      : origin === undefined
         ? new Set(hours.filter((hour) => noted.has(keyOf(dueOn, hour))))
         : new Set(coveredOn(dueOn, read!).keys())
     const written = settingOf(report.settingId)
@@ -187,9 +190,10 @@ export function moveReports(input: ReportsInput) {
     const writtenBefore = (note: Line) => settingOf(note.settingId).createdAt <= written.createdAt
     // R4, R7, #860 : le report garde ses heures ; une prise d'un réglage écrit avant le sien, d'une heure
     // absente, s'y pose avant lui ; une prise des heures écrites après ne compte qu'à son heure.
-    const ownNoted = new Set(
-      coveredOn(dueOn, { setting: written, hours: writtenHours }, new Set(), writtenBefore).keys(),
-    )
+    const ownDay = { setting: written, hours: writtenHours }
+    const ownNoted = home
+      ? new Set<Hour>()
+      : new Set(coveredOn(dueOn, ownDay, new Set(), writtenBefore).keys())
     if (source === from ? covered.has(dueTime) : ownNoted.has(dueTime)) {
       effects.set(report.id, { kind: 'idle', reason: 'beaten' })
       continue

@@ -4213,6 +4213,17 @@ même report ; l'y ramener sans le décalage perdait une dose. — Alternatives 
 revenir hors rythme (B), garder le résidu (C). — Pour revenir dessus : `no-date-alone` dans `planOf`
 (`gestures/move.ts`).
 
+2026-10-26 — **Une prise sur le jour d'origine où la dose est revenue se pose sur son arrivée**
+(#1282, spec `traitements.md` R7 ; Q61 de la session d'analyse du moteur, à qui Gaelle a délégué les
+lectures de règles ; aucune règle nouvelle, application de Q55). Revenu à son jour d'origine, le
+report y arrive : une prise ce jour-là se lit comme sur l'arrivée de tout report. Milo (cas de Q55),
+8 h du 8 avril ramenée au 29 mars : le 29 à 8 h, 14 h et 20 h ; « C'est fait » sur 8 h du 29 : 8 h
+donnée, 14 h et 20 h à donner (avant : tout le 29 disparaissait). De même 14 h donnée (8 h et 20 h
+restent), 8 h oubliée, 8 h donnée avec la case. — Raison : sans quoi la prise du départ l'emportait sur
+le report et le jour, sorti du calendrier, perdait ses doses. — Alternative écartée : aucune, c'est la
+lecture de R7. — Pour revenir dessus : `home` dans `moveReports` (`calendar-reports.ts`) et
+`arriveReports` (`reference-arrivals.ts`).
+
 ## 2026-10-24 — Un report redéplacé depuis une date choisie, hors de sa grille, est sans effet (#1231, Q39)
 
 Décision de la session d'analyse du moteur, à qui Gaelle a délégué les lectures de règles (Q26, Q39

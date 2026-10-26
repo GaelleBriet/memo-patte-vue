@@ -121,6 +121,73 @@ describe('Une dose ramenée à son jour d’origine sorti du calendrier y revien
   })
 })
 
+// Q61 : le jour revenu à son origine est aussi l'arrivée du report ; ses prises s'y posent.
+describe('Une prise sur le jour d’origine où la dose est revenue s’y pose (R7, Q61, #1282)', () => {
+  function notedHome(time: string, status: 'given' | 'missed', shiftsFollowing = false) {
+    const input = { ...broughtBack(), today: '2026-03-29' }
+    const settingId = treatmentView(input).currentSetting!.id
+    const due = { settingId, dueOn: '2026-03-29', dueTime: time }
+    const note = noteDose(input, { due, status, givenOn: '2026-03-29', shiftsFollowing })
+    if ('refusal' in note) throw new Error(JSON.stringify(note))
+    return recorded(input, note.changes)
+  }
+
+  const on29 = (input: TreatmentViewInput) =>
+    treatmentView(input)
+      .slots('2026-03-29', '2026-03-29')
+      .map(({ due, state }) => `${due.dueTime} ${state}`)
+
+  it('8 h donnée : le 29 garde 14 h et 20 h à donner', () => {
+    const after = notedHome('08:00', 'given')
+
+    expect(on29(after)).toEqual(['08:00 given', '14:00 pending', '20:00 pending'])
+    expect(dosesOn(after, '2026-03-29')).toEqual(both(['2026-03-29 14:00', '2026-03-29 20:00']))
+  })
+
+  it('14 h donnée : le 29 garde 8 h et 20 h à donner', () => {
+    const after = notedHome('14:00', 'given')
+
+    expect(on29(after)).toEqual(['08:00 pending', '14:00 given', '20:00 pending'])
+    expect(dosesOn(after, '2026-03-29')).toEqual(both(['2026-03-29 08:00', '2026-03-29 20:00']))
+  })
+
+  it('8 h oubliée : le 29 garde 14 h et 20 h à donner', () => {
+    const after = notedHome('08:00', 'missed')
+
+    expect(on29(after)).toEqual(['08:00 missed', '14:00 pending', '20:00 pending'])
+    expect(dosesOn(after, '2026-03-29')).toEqual(both(['2026-03-29 14:00', '2026-03-29 20:00']))
+  })
+
+  it('8 h donnée avec la case : le 29 garde 14 h et 20 h à donner', () => {
+    const after = notedHome('08:00', 'given', true)
+
+    expect(on29(after)).toEqual(['08:00 given', '14:00 pending', '20:00 pending'])
+    expect(dosesOn(after, '2026-03-29')).toEqual(both(['2026-03-29 14:00', '2026-03-29 20:00']))
+  })
+
+  it.each([
+    ['08:00', 'given', false],
+    ['14:00', 'given', false],
+    ['08:00', 'missed', false],
+    ['08:00', 'given', true],
+  ] as const)(
+    '%s %s, case %s : le moteur et le modèle de référence lisent la même suite',
+    (time, status, box) => {
+      const { moteur, reference } = calendar(notedHome(time, status, box))
+
+      expect(moteur).toEqual(reference)
+    },
+  )
+
+  it('le report reste arrivé sur son jour d’origine', () => {
+    const report = treatmentView(notedHome('08:00', 'given')).history.find(
+      ({ line }) => line.status === 'postponed',
+    )
+
+    expect(report?.effect).toMatchObject({ kind: 'moves', arrival: '2026-03-29' })
+  })
+})
+
 // Le pas `at` de la graine, gestes des campagnes à un téléphone.
 function stepOf(seed: number, at: number): V2Step {
   const walk = startV2Walk(seed, ONE_PHONE_GESTURES)

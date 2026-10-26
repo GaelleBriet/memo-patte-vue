@@ -138,8 +138,11 @@ export function arriveReports(context: ArrivalContext) {
         .filter((note) => note.dueOn === dueOn && hours.includes(note.dueTime))
         .forEach((note) => matched.add(note))
     }
-    const covered =
-      origin === undefined
+    // Q61 : revenue à son jour d'origine, la dose y arrive ; les prises de ce jour se posent sur l'arrivée.
+    const home = targetOn === dueOn
+    const covered = home
+      ? new Set<Hour>()
+      : origin === undefined
         ? new Set(hours.filter((hour) => noted.has(keyOf(dueOn, hour))))
         : coveredOn(dueOn, read!)
     // R6, TR-9 : hors de sa grille, un report est sans effet, sauf s'il porte la date choisie,
@@ -176,7 +179,9 @@ export function arriveReports(context: ArrivalContext) {
       inForce: settingAt(dueOn),
       hoursChangedSince: hoursChangedSince(live, written, dueOn),
       itsHours: itsDay.hours,
-      coveredAtItsHours: coveredAside(dueOn, itsDay, writtenBefore(written, settingOf)),
+      coveredAtItsHours: home
+        ? new Set<Hour>()
+        : coveredAside(dueOn, itsDay, writtenBefore(written, settingOf)),
     })
     if (outcome.beaten) continue
     if (targetOn! > dueOn) fallen.add(dueOn)
