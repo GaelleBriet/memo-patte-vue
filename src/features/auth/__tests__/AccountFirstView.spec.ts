@@ -36,8 +36,8 @@ const Vide = { render: () => null }
 
 // Prix volontairement différents des tarifs français : seul Google Play les fournit.
 const OFFRES = [
-  { plan: 'monthly', priceString: '1,99 $' },
-  { plan: 'annual', priceString: '12,99 $' },
+  { plan: 'monthly', priceString: '2,49 $' },
+  { plan: 'annual', priceString: '14,99 $' },
   { plan: 'lifetime', priceString: '34,99 $' },
 ] as const
 
@@ -118,14 +118,14 @@ describe('AccountFirstView — écran « Étape 1 sur 2 » (V25 quater)', () => 
     const wrapper = await monter()
 
     expect(traceIcone(wrapper.get('.account-first__offer'))).toBe(getMsIconPath('star')!.path)
-    expect(wrapper.get('.account-first__offer-name').text()).toBe('Plus annuel · 12,99 $/an')
+    expect(wrapper.get('.account-first__offer-name').text()).toBe('Plus annuel · 14,99 $/an')
     expect(wrapper.get('.account-first__offer-payment').text()).toBe(
       'Paiement à l’étape suivante, dans Google Play.',
     )
   })
 
   it.each([
-    ['monthly', 'Plus mensuel · 1,99 $/mois'],
+    ['monthly', 'Plus mensuel · 2,49 $/mois'],
     ['lifetime', 'Plus à vie · 34,99 $'],
   ] as const)('rappelle l’offre %s, seul texte qui change', async (plan, rappel) => {
     choisir(plan)
@@ -163,7 +163,7 @@ describe('AccountFirstView — écran « Étape 1 sur 2 » (V25 quater)', () => 
       expect(wrapper.get('.account-first__body').text()).toBe(
         'Your Plus access is linked to your account: you get it on all your devices, with your health record.',
       )
-      expect(wrapper.get('.account-first__offer-name').text()).toBe('Annual Plus · 12,99 $/year')
+      expect(wrapper.get('.account-first__offer-name').text()).toBe('Annual Plus · 14,99 $/year')
       expect(wrapper.get('.account-first__offer-payment').text()).toBe(
         'Payment at the next step, in Google Play.',
       )
@@ -190,7 +190,7 @@ describe('AccountFirstView — écran « Étape 1 sur 2 » (V25 quater)', () => 
       choisir('monthly')
       const wrapper = await monter()
 
-      expect(wrapper.get('.account-first__offer-name').text()).toBe('Monthly Plus · 1,99 $/month')
+      expect(wrapper.get('.account-first__offer-name').text()).toBe('Monthly Plus · 2,49 $/month')
     } finally {
       i18n.global.locale.value = 'fr'
     }

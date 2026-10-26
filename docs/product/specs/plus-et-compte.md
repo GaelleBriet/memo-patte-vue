@@ -36,9 +36,10 @@ publicité.
 ### 3.1 Offre et achat
 
 - **PL-1** Trois offres au même contenu : mensuel 1,99 €, annuel 12,99 € (mis en avant : « Meilleure
-  offre », « ≈ 44 % d'économie vs mensuel », jamais de prix au mois), à vie 39,99 € (« Soutenir une app
+  offre », « ≈ 46 % d'économie vs mensuel », jamais de prix au mois), à vie 39,99 € (« Soutenir une app
   indépendante ») ; prix affichés par Google Play ; conditions de l'offre cochée affichées avant l'achat
-  (existant, conformité §1.4). (Décision du 2026-10-26, prix remplaçant ceux du 2026-09-15 ; P12 Q1 ; relecture du lot C, QC-1)
+  (existant, conformité §1.4) ; pour l'offre à vie, la ligne dit la limite : « Sauvegarde cloud et photos incluses tant que
+  MémoPatte Plus existe. » (Décision du 2026-10-26, prix remplaçant ceux du 2026-09-15 ; P12 Q1 ; relecture du lot C, QC-1)
 - **PL-2** Contenu de Plus en v1 : sauvegarde et restauration garanties, même carnet sur plusieurs
   appareils, photos sauvegardées. **Le PDF n'en fait plus partie** (gratuit). L'écran Plus annonce
   honnêtement la suite, sans date : « Prévu ensuite dans Plus : le carnet partagé du foyer » (spec Q4).

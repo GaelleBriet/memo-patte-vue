@@ -1831,7 +1831,7 @@
       "annual": {
         "label": "Annual Plus",
         "price": "{price}/year",
-        "detail": "≈ 44% cheaper than monthly",
+        "detail": "≈ 46% cheaper than monthly",
         "terms": "Renews automatically every year. Cancel any time in Google Play — access kept until the end of the paid period.",
         "submit": "Continue with Annual Plus — {price}"
       },
@@ -1839,7 +1839,7 @@
         "label": "Lifetime",
         "price": "{price}",
         "detail": "One-time payment, yours forever.",
-        "terms": "One-time payment of {price}. No subscription, nothing to renew.",
+        "terms": "One-time payment of {price}. No subscription, nothing to renew. Cloud backup and photos included for as long as MémoPatte Plus exists.",
         "submit": "Continue with Lifetime Plus — {price}"
       },
       "pending": "Offers appear as soon as Google Play responds.",

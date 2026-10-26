@@ -60,7 +60,7 @@ dernier document avant toute discussion technique.
 - Règle : **tout ce qui vit sur le téléphone est gratuit, tout ce qui passe par le cloud est dans Plus.**
 - **MémoPatte (gratuit, sans compte)** : animaux illimités, vaccins, traitements, poids, rappels hors-ligne, accueil consolidé, export JSON/CSV/PDF. Pas de pub, pas de limite artificielle.
 - **MémoPatte Plus** : compte + sauvegarde cloud + restauration + multi-appareil + photos sauvegardées. L'export PDF, placé dans Plus le 2026-09-07, est **gratuit** depuis le 2026-09-28 ; Plus se vend sur « ton carnet ne disparaît jamais ».
-- Trois façons de payer la même chose (prix du 2026-10-26) : **1,99 €/mois**, **12,99 €/an** (offre mise en avant, ≈ 44 % d'économie sur le mensuel) ou **39,99 € à vie** (≈ 3 ans d'annuel). Abonnements annulables à tout moment dans Google Play, accès gardé jusqu'à la fin de la période. Prix affichés avant tout paiement, modifiables plus tard sur Play sans effet rétroactif.
+- Trois façons de payer la même chose (prix du 2026-10-26) : **1,99 €/mois**, **12,99 €/an** (offre mise en avant, ≈ 46 % d'économie sur le mensuel) ou **39,99 € à vie** (≈ 3 ans d'annuel). Abonnements annulables à tout moment dans Google Play, accès gardé jusqu'à la fin de la période. Prix affichés avant tout paiement, modifiables plus tard sur Play sans effet rétroactif.
 - Règle d'or inchangée : aucune fonction locale ne passe jamais derrière un paywall, aucune donnée déjà saisie n'est jamais verrouillée. Qui arrête Plus garde son carnet complet en local et perd seulement la sync.
 
 ### Portabilité des données (différenciant n°4, ajouté le 2026-09-07)

@@ -1839,7 +1839,7 @@
         "label": "À vie",
         "price": "{price}",
         "detail": "Paiement unique, pour toujours.",
-        "terms": "Paiement unique de {price}. Pas d’abonnement, rien à renouveler.",
+        "terms": "Paiement unique de {price}. Pas d’abonnement, rien à renouveler. Sauvegarde cloud et photos incluses tant que MémoPatte Plus existe.",
         "submit": "Continuer avec Plus à vie — {price}"
       },
       "pending": "Les offres s’affichent dès que Google Play répond.",

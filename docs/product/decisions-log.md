@@ -4327,6 +4327,6 @@ CORS de `delete-account` reçoit toujours son `204`.
 
 2026-10-26 — **MémoPatte Plus : nouveaux prix, 1,99 €/mois, 12,99 €/an (offre mise en avant) ou 39,99 € à vie, même contenu.**
 Remplace les prix du 2026-09-15 (1,49 / 9,99 / 29,99). Les trois produits, l'entitlement `plus` et le contenu de Plus ne
-changent pas. — Raison : décision de Gaelle ; voir le coffre de Gaelle, `questions-analyse-moteur.md`, entrée « Prix de Plus ».
+changent pas. — Raison : mensuel au plancher du marché, annuel en hausse sans effet attendu sur l'achat, à vie ≈ 3 ans d'annuel ; détail dans le coffre de Gaelle, `questions-analyse-moteur.md`, entrée « Prix de Plus ».
 — Alternative écartée : garder les prix du 2026-09-15. — Reste à faire hors dépôt : produits Play Console et offres RevenueCat.
-Le pourcentage affiché sur l'annuel (« ≈ 44 % ») ne correspond plus (≈ 46 %) : texte à valider par Gaelle.
+Pourcentage affiché sur l'annuel validé par Gaelle le 2026-10-26 : « ≈ 46 % » (12,99 € contre 12 × 1,99 €) remplace « ≈ 44 % ». Ligne de conditions de l'offre à vie validée le même jour : elle ajoute « Sauvegarde cloud et photos incluses tant que MémoPatte Plus existe. » (limite dite avant l'achat).
