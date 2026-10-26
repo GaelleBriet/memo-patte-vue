@@ -5,6 +5,20 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.1.123](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.122...memo-patte-v0.1.123) (2026-10-26)
+
+
+### 🐛 Corrections
+
+* **moteur:** une dose ramenée à son jour d'origine sorti du calendrier ne fait plus perdre de doses ([8d570b8](https://github.com/GaelleBriet/memo-patte-vue/commit/8d570b82ea2c3fb3e35aba098e392fc99990e1c0))
+* **moteur:** une prise sur le jour où la dose est revenue se pose sur son arrivée (Q61) ([8feb035](https://github.com/GaelleBriet/memo-patte-vue/commit/8feb035e0fd0910436e6aeec6dd49155f487218a))
+* **restauration:** la première proposition attend une arrivée sur l'accueil sans feuille ([839b8ab](https://github.com/GaelleBriet/memo-patte-vue/commit/839b8ab7de3b2bafda2bfbc2c3d6ef033cd7a609))
+* **restauration:** la première proposition n'ouvre plus par-dessus une feuille, et l'attente du réseau d'une restauration choisie se voit dans Sauvegarde ([a970099](https://github.com/GaelleBriet/memo-patte-vue/commit/a97009928aa2fae568d8ad175c99dbb4d22f7c7a))
+* **restauration:** un « Fusionner » fini après un changement de compte garde l'écran du nouveau ([f08bfd9](https://github.com/GaelleBriet/memo-patte-vue/commit/f08bfd915b80815dc89c94e6f53e31eb6054c33e)), closes [#1308](https://github.com/GaelleBriet/memo-patte-vue/issues/1308)
+* **restauration:** un « Fusionner » fini après un changement de compte garde l'écran du nouveau compte ([8d2a5e1](https://github.com/GaelleBriet/memo-patte-vue/commit/8d2a5e1433377580c7654c8401ab33eb17d32d77))
+* **sauvegarde:** l'attente du réseau d'une restauration remplace l'écran gratuit (Q62) ([ea2fd95](https://github.com/GaelleBriet/memo-patte-vue/commit/ea2fd954e6f41a5d861afd2c800c4631a57cc298))
+* **sauvegarde:** le bloc d'attente du réseau seulement pour une restauration choisie (Q62) ([e41344d](https://github.com/GaelleBriet/memo-patte-vue/commit/e41344d3d40588d87ccb93cdb700ce7cd486a97e))
+
 ## [0.1.122](https://github.com/GaelleBriet/memo-patte-vue/compare/memo-patte-v0.1.121...memo-patte-v0.1.122) (2026-10-26)
 
 
