@@ -887,7 +887,7 @@ plafond d'alarmes d'Android (~500) au-delà duquel le plugin fait planter l'app.
 traitement non noté (il se tairait après la première prise oubliée) ; rien
 après l'échéance (un oubli passe inaperçu).
 
-2026-09-15 — **MémoPatte Plus en trois offres au même contenu : abonnement
+2026-09-15 — _(prix remplacés le 2026-10-26)_ **MémoPatte Plus en trois offres au même contenu : abonnement
 mensuel 1,49 €/mois, abonnement annuel 9,99 €/an, achat non consommable « à vie »
 29,99 €.** Remplace « 7,99 €/an ou 24,99 € à vie » du 2026-09-07. Les abonnements
 Google Play sont annulables à tout moment, l'accès restant ouvert jusqu'à la fin
@@ -4324,3 +4324,9 @@ CORS de `delete-account` reçoit toujours son `204`.
   Alternative écartée : garder les clés locales historiques (décision 3 de l'étude). — Pour revenir
   dessus : renommer `SUPABASE_LOCAL_SECRET_KEY` en `SUPABASE_LOCAL_SERVICE_ROLE_KEY` et relire
   `auth.service_role_key`, dans les six `*.local.spec.ts`, `commandes-utiles.md` et `ci.yml`.
+
+2026-10-26 — **MémoPatte Plus : nouveaux prix, 1,99 €/mois, 12,99 €/an (offre mise en avant) ou 39,99 € à vie, même contenu.**
+Remplace les prix du 2026-09-15 (1,49 / 9,99 / 29,99). Les trois produits, l'entitlement `plus` et le contenu de Plus ne
+changent pas. — Raison : décision de Gaelle ; voir le coffre de Gaelle, `questions-analyse-moteur.md`, entrée « Prix de Plus ».
+— Alternative écartée : garder les prix du 2026-09-15. — Reste à faire hors dépôt : produits Play Console et offres RevenueCat.
+Le pourcentage affiché sur l'annuel (« ≈ 44 % ») ne correspond plus (≈ 46 %) : texte à valider par Gaelle.

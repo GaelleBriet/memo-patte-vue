@@ -231,9 +231,9 @@ describe('PlusView — offres', () => {
       '$1.99/mois',
       '$34.99',
     ])
-    expect(wrapper.text()).not.toContain('1,49')
-    expect(wrapper.text()).not.toContain('9,99')
-    expect(wrapper.text()).not.toContain('29,99')
+    expect(wrapper.text()).not.toContain('1,99')
+    expect(wrapper.text()).not.toContain('12,99')
+    expect(wrapper.text()).not.toContain('39,99')
   })
 
   it('met l’annuel en tête quel que soit l’ordre de l’offering', async () => {

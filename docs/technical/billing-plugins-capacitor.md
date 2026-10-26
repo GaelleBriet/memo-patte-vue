@@ -5,7 +5,7 @@ RevenueCat / Capgo / Fovea, docs Google Play Billing, docs Supabase). Toutes les
 consultées ce jour-là ; les faits non vérifiables sont regroupés en fin de document.
 
 Besoin : vendre **MémoPatte Plus** sous trois formes pour le même contenu — abonnement mensuel
-(1,49 €), abonnement annuel (9,99 €) et achat non consommable « à vie » (29,99 €), prix du
+(1,99 €), abonnement annuel (12,99 €) et achat non consommable « à vie » (39,99 €), prix du
 2026-09-15 — sur Android uniquement, depuis une app
 Capacitor 8 / Vue 3, développeuse solo, budget zéro. Fonctions attendues : lister les offres avec
 prix localisé, acheter, connaître le statut (actif / expiré / à vie / aucun), restaurer, revérifier
@@ -495,12 +495,12 @@ Le plugin maison est écarté (§3.5).
    including the internal test track ») ; les produits ne peuvent être créés qu'une fois une
    version avec la Billing Library téléversée.
 3. Produit ponctuel : **Monetize with Play > Products > In-app products > Create product** ;
-   id en minuscule/chiffre, titre ≤ 55 caractères, description ≤ 200, prix 29,99 € ; **Activate**
+   id en minuscule/chiffre, titre ≤ 55 caractères, description ≤ 200, prix 39,99 € ; **Activate**
    — [answer/1153481](https://support.google.com/googleplay/android-developer/answer/1153481).
    Proposition d'identifiant : `memopatte_plus_lifetime`.
 4. Abonnement : **Monetize with Play > Products > Subscriptions > Create subscription** (id ≤ 40
    caractères) puis deux **Add base plan**, renouvellement automatique, grâce laissée par défaut,
-   account hold automatique : période **Monthly** à 1,49 € et période **Yearly** à 9,99 € ;
+   account hold automatique : période **Monthly** à 1,99 € et période **Yearly** à 12,99 € ;
    **Activate** — [answer/140504](https://support.google.com/googleplay/android-developer/answer/140504).
    Proposition : abonnement `memopatte_plus`, base plans `monthly` et `annual` → identifiants
    RevenueCat `memopatte_plus:monthly` et `memopatte_plus:annual` ([android-products](https://www.revenuecat.com/docs/getting-started/entitlements/android-products)).

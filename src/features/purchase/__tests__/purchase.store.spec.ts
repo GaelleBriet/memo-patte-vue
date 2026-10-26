@@ -317,12 +317,12 @@ describe('usePurchaseStore', () => {
 
   describe('loadOffers', () => {
     it('expose les offres', async () => {
-      service.listOffers.mockResolvedValueOnce([{ plan: 'annual', priceString: '9,99 €' }])
+      service.listOffers.mockResolvedValueOnce([{ plan: 'annual', priceString: '12,99 €' }])
       const store = usePurchaseStore()
 
       await expect(store.loadOffers()).resolves.toBe(true)
 
-      expect(store.offers).toEqual([{ plan: 'annual', priceString: '9,99 €' }])
+      expect(store.offers).toEqual([{ plan: 'annual', priceString: '12,99 €' }])
       expect(store.error).toBeNull()
     })
 
