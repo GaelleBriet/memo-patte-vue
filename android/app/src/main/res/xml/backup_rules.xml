@@ -6,7 +6,7 @@
   Supabase et drapeau compte Plus, dans localStorage) et les préférences
   Capacitor sont exclus : trop lourds ou propres à l'appareil.
 -->
-<full-backup-content xmlns:tools="http://schemas.android.com/tools" tools:ignore="FullBackupContent">
+<full-backup-content>
     <include domain="database" path="." />
     <exclude domain="file" path="photos/" />
     <exclude domain="root" path="app_webview/" />

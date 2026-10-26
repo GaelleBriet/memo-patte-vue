@@ -4,7 +4,7 @@
   sauvegarde cloud ET le transfert direct entre appareils.
   Voir docs/technical/auto-backup-android.md
 -->
-<data-extraction-rules xmlns:tools="http://schemas.android.com/tools" tools:ignore="FullBackupContent">
+<data-extraction-rules>
     <cloud-backup>
         <include domain="database" path="." />
         <exclude domain="file" path="photos/" />

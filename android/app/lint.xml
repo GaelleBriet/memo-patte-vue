@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lint>
+    <issue id="FullBackupContent">
+        <ignore regexp="is not in an included path" />
+    </issue>
+</lint>
