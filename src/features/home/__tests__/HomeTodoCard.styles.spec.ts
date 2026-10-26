@@ -81,7 +81,7 @@ describe('HomeTodoCard — contrat de style', () => {
   it('range « À renseigner » sous une bande grise en capitales, comme la maquette V16', () => {
     expect(declaration('.home-todo__group', 'background')).toBe('#f2f0ec')
     expect(declaration('.home-todo__group', 'color')).toBe('#68625c')
-    expect(declaration('.home-todo__group', 'font-size')).toBe('11.5px')
+    expect(declaration('.home-todo__group', 'font-size')).toBe('12px')
     expect(declaration('.home-todo__group', 'text-transform')).toBe('uppercase')
   })
 
