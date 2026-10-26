@@ -72,7 +72,8 @@ describe('CarnetView — contrat de style', () => {
   })
 
   it('aligne trois colonnes de stats séparées par des filets, sans cadre', () => {
-    expect(declaration('.carnet-stats', 'grid-template-columns')).toBe('repeat(3, 1fr)')
+    expect(declaration('.carnet-stats', 'grid-template-columns')).toBe('repeat(3, minmax(0, 1fr))')
+    expect(declaration('.carnet-stat', 'overflow-wrap')).toBe('break-word')
     expect(declaration('.carnet-stats', 'border')).toBeUndefined()
     expect(declaration('.carnet-stats', 'background')).toBeUndefined()
     expect(declaration('.carnet-stat + .carnet-stat', 'border-left')).toBe('1px solid #efece8')

@@ -512,12 +512,13 @@ onMounted(() => {
 
 .carnet-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   margin: 22px 20px 0;
 }
 
 .carnet-stat {
   padding-inline: 12px;
+  overflow-wrap: break-word;
 }
 
 .carnet-stat:first-child {
