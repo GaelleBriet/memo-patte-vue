@@ -24,6 +24,7 @@ const router = useRouter()
 const { status, refused, photosBackedUp, now } = useBackupStatus()
 const {
   isPending: isRestorePending,
+  isWaitingNetwork: isRestoreWaitingNetwork,
   showsLocalBackup,
   choose: chooseRestore,
 } = useRestorePending(status)
@@ -93,6 +94,19 @@ function goBack(): void {
           {{ t('settings.backup.cloud.restorePending.choose') }}
         </v-btn>
       </template>
+
+      <div
+        v-if="isRestoreWaitingNetwork"
+        class="settings-row backup-settings__card backup-settings__status backup-settings__status--neutral backup-settings__restore-waiting"
+      >
+        <v-icon class="settings-row__icon" icon="ms:cloud_sync" size="24" />
+        <span class="settings-row__text">
+          <span class="settings-row__label">
+            {{ t('settings.backup.cloud.waitingNetwork.title') }}
+          </span>
+          <span class="settings-row__hint">{{ t('settings.restore.offline') }}</span>
+        </span>
+      </div>
 
       <template v-if="cloud && cloudText && cloudLook">
         <div

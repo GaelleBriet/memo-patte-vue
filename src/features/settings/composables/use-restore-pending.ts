@@ -8,7 +8,8 @@ import type { BackupStatus } from '../logic/backup-status'
 /**
  * « Restauration en attente » : la sauvegarde cloud attend « Fusionner » ou « Remplacer », après
  * « Plus tard » ou un « Remplacer » refusé parce que le carnet du téléphone a changé. Il remplace alors
- * ce que l'écran dit d'un carnet sans sauvegarde cloud.
+ * ce que l'écran dit d'un carnet sans sauvegarde cloud, comme l'attente du réseau d'une restauration
+ * choisie.
  */
 export function useRestorePending(
   status: Readonly<Ref<BackupStatus | null>>,
@@ -17,11 +18,18 @@ export function useRestorePending(
   const router = useRouter()
 
   const isPending = computed(() => flow()?.state.value.step === 'choice')
-  const showsLocalBackup = computed(() => status.value?.kind === 'local' && !isPending.value)
+  const isLocal = computed(() => status.value?.kind === 'local')
+  const isWaitingNetwork = computed(() => {
+    const state = flow()?.state.value
+    return isLocal.value && state?.step === 'waiting-network' && state.chosen
+  })
+  const showsLocalBackup = computed(
+    () => isLocal.value && !isPending.value && !isWaitingNetwork.value,
+  )
 
   function choose(): void {
     void router.push(restoreRoute('settings-backup'))
   }
 
-  return { isPending, showsLocalBackup, choose }
+  return { isPending, isWaitingNetwork, showsLocalBackup, choose }
 }

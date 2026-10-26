@@ -141,7 +141,7 @@ describe('afterSignInRoute', () => {
     expect(afterSignInRoute(query, { step: 'restoring', progress: { done: 0, total: 0 } })).toEqual(
       restore,
     )
-    expect(afterSignInRoute(query, { step: 'waiting-network' })).toEqual(restore)
+    expect(afterSignInRoute(query, { step: 'waiting-network', chosen: true })).toEqual(restore)
     expect(afterSignInRoute(query, { step: 'done' })).toEqual(restore)
   })
 
