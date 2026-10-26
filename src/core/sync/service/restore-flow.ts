@@ -46,7 +46,7 @@ export function createRestoreFlow(runner: RestoreRunner) {
       result = await runner.run()
     } catch (cause) {
       console.warn('Restauration interrompue, elle reprendra :', errorSummary(cause))
-      state.value = { step: 'waiting-network', chosen: true }
+      if (state.value === shown) state.value = { step: 'waiting-network', chosen: true }
       return false
     } finally {
       stop()
