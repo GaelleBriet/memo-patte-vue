@@ -10,8 +10,9 @@ import { RESTORE_ROUTE, restoreRoute } from '@/shared/utils/restore-route'
  * « Restaurer mon carnet » s'ouvre de lui-même une fois par jour local, au passage par l'accueil,
  * tant que la sauvegarde trouvée attend « Fusionner » ou « Remplacer ». Un choix reproposé après
  * une restauration lancée (carnet du téléphone changé depuis « Remplacer ») l'ouvre de nouveau.
- * Hors de la toute première proposition, seule une arrivée sur l'accueil l'ouvre, sans feuille à
- * rouvrir dans l'adresse : une feuille ouverte sur l'accueil n'a pas de route.
+ * Seule la toute première proposition s'ouvre sans arrivée, quand la sauvegarde est trouvée sur
+ * l'accueil sans feuille dans l'adresse ; sinon seule une arrivée sur l'accueil sans feuille à rouvrir
+ * l'ouvre : une feuille ouverte sur l'accueil n'a pas de route.
  */
 export function installRestorePrompt(
   router: Router,
@@ -20,7 +21,7 @@ export function installRestorePrompt(
   let shownOn: string | null = null
   let choiceRan = false
 
-  function promptIfOffered(arrived: boolean, leftRestore: boolean): void {
+  function promptIfOffered(navigation: { arrived: boolean; leftRestore: boolean } | null): void {
     const step = flow()?.state.value.step
     if (step === undefined || step === 'idle') {
       shownOn = null
@@ -33,21 +34,25 @@ export function installRestorePrompt(
       return
     }
     const today = todayIsoDate()
-    const current = router.currentRoute.value.name
-    const onRestore = current === RESTORE_ROUTE || leftRestore
+    const current = router.currentRoute.value
+    const onRestore = current.name === RESTORE_ROUTE || navigation?.leftRestore === true
     if (onRestore && (!choiceRan || step === 'choice')) shownOn = today
-    if (shownOn === today || step !== 'choice' || current !== 'home') return
-    if ((choiceRan || shownOn !== null) && !arrived) return
+    if (shownOn === today || step !== 'choice' || current.name !== 'home') return
+    if (carriesSheet(current)) return
+    if ((navigation !== null || choiceRan || shownOn !== null) && !navigation?.arrived) return
     shownOn = today
     void router.push(restoreRoute('home'))
   }
 
   const stopWatch = watch(
     () => flow()?.state.value.step,
-    () => promptIfOffered(false, false),
+    () => promptIfOffered(null),
   )
   const stopAfterEach = router.afterEach((to, from, failure) =>
-    promptIfOffered(!failure && isArrivalOnHome(to, from), !failure && from.name === RESTORE_ROUTE),
+    promptIfOffered({
+      arrived: !failure && isArrivalOnHome(to, from),
+      leftRestore: !failure && from.name === RESTORE_ROUTE,
+    }),
   )
   return () => {
     stopWatch()
@@ -56,10 +61,12 @@ export function installRestorePrompt(
 }
 
 function isArrivalOnHome(to: RouteLocationNormalized, from: RouteLocationNormalized): boolean {
+  return to.name === 'home' && from.name !== 'home' && !carriesSheet(to)
+}
+
+function carriesSheet(route: RouteLocationNormalized): boolean {
   return (
-    to.name === 'home' &&
-    from.name !== 'home' &&
-    to.query[REMINDER_QUERY_PARAM] === undefined &&
-    to.query[REMINDER_STEP_QUERY_PARAM] === undefined
+    route.query[REMINDER_QUERY_PARAM] !== undefined ||
+    route.query[REMINDER_STEP_QUERY_PARAM] !== undefined
   )
 }
