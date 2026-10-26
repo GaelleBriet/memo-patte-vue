@@ -20,6 +20,7 @@ import {
   chosenArrivalKept,
   followerLines,
   homeBeforeChosen,
+  homeLine,
   lastOfPair,
   opensRhythm,
   reportsOf,
@@ -213,10 +214,10 @@ function reportLines(
 ): LineChange[] {
   const dropShift: LineChange[] =
     dayShift === undefined ? [] : [{ action: 'delete', id: dayShift.id }]
-  if (to === moved.dueOn) {
-    return existing === undefined ? [] : [{ action: 'delete', id: existing.id }, ...dropShift]
-  }
   const line: LineFields = { ...moved, status: 'postponed', givenOn: null, targetOn: to }
+  if (to === moved.dueOn) {
+    return existing === undefined ? [] : [homeLine(input, existing, dayShift, line), ...dropShift]
+  }
   // Q-a : repris sur son arrivée, le report garde l'heure de la dose qu'on y a touchée.
   const touched =
     existing !== undefined && due.dueOn === existing.targetOn ? due.dueTime : undefined

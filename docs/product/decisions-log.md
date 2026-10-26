@@ -4135,6 +4135,40 @@ moteur. — Alternative écartée : les rendre bloquants avec une liste de grain
 pas les graines neuves. — Pour revenir dessus : passer les compteurs `lostMoves` et `addedDoses`
 (`dose-calendar.invariants.spec.ts`) dans les échecs une fois #1281 à #1285 fermés.
 
+2026-10-25 — **Une dose ramenée à son jour d'origine sorti du calendrier y revient** (#1282, spec
+`traitements.md` R7, R11 ; Q55 de la session d'analyse du moteur, à qui Gaelle a délégué les lectures
+de règles, lecture B). Le geste passe et la dose revient sur son jour d'origine, même quand ce jour a
+quitté le calendrier, comme un report vers un jour hors rythme : sa ligne reste, arrivée sur ce jour,
+et rien d'autre ne bouge. Milo, toutes les 2 semaines à 20 h dès le 13 mars ; le 15, la dose du 27
+donnée d'avance avec la case, passage à 8 h, 14 h et 20 h, 8 h du 29 reportée au 8 avril avec la case,
+puis le décalage de la prise supprimé : le 8 avril à 8 h, 14 h et 20 h, puis le 10 ; 8 h du 8 avril
+ramenée au 29 mars : le 29 à 8 h, 14 h et 20 h, puis le 10 (avant : les trois doses du 8 avril
+disparaissaient). Seulement quand l'arrivée n'avait que les doses du report et que le jour d'origine
+n'est pas avant une date choisie : sinon le report ramené est supprimé comme avant, et la date choisie
+cède ses doses (Q58, #1283). Dans l'historique, la ligne prend le titre d'une dose ordinaire (« 29 mars
+2026 », ou avec l'heure), sans « Reportée au ». Sur 4 000 carnets aléatoires (graines 731000000 à
+731003999), lecture du calendrier identique à `main` sauf 3 carnets, tous par ce geste, où `main`
+perdait la dose (731000764, 731000924, 731002238). — Raison : un refus laisserait une dose au 8 avril sans geste possible ; la personne veut
+revenir sur une dose précise. — Alternative écartée : refuser le geste (R11). — Pour revenir dessus :
+`homeLine` (`gestures/moved-report.ts`), `homecomings` (`lines.ts`, `calendar-reports.ts`,
+`journeys.ts`) et `returnsOf` (`reference-lines.ts`, `reference-arrivals.ts`).
+
+2026-10-25 — **Ramenée au jour d'origine d'un report, une dose emmenée par une date choisie la vide**
+(#1282, #1283, spec `traitements.md` R7 ; Q58 de la session d'analyse du moteur, à qui Gaelle a
+délégué les lectures de règles ; remplace Q56, qui laissait ses doses à la date choisie ; confirme
+Q50). Les doses de la date choisie sont celles que le report y avait emmenées : quand il repart, elles
+repartent avec lui. Milo, tous les jours à 8 h et 20 h dès le 11 avril ; le 9, 8 h du 11 reportée au
+15 avec la case ; le 11, « Modifier » : « Prochaine dose » le 13 ; 8 h du 13 déplacée au 12 sans la
+case, puis ramenée au 11 sans la case : le 11 à 8 h et 20 h, le 13 ne garde rien. Avec la case :
+limite connue #1303 (aujourd'hui rien au 11 et le 13 garde ses doses ; G13 attend la série depuis le
+11). Une date choisie aux heures différentes (6 h, 12 h, 18 h et 23 h le 6 mars, report
+parti du 3 à 8 h) : le 3 reçoit 6 h, 12 h, 18 h et 23 h, le 6 ne garde rien. Le retour de Q55 ne
+s'applique pas à un jour d'origine d'avant une date choisie : ce cas relève de la réécriture du report
+depuis la date choisie (#1283). — Raison : rien n'apparaît sans geste (Q51), comme toute dose touchée
+qui quitte sa journée (R7). — Alternative écartée : la date choisie garde ses doses (Q56), qui en
+ajoutait deux. — Pour revenir dessus : la condition `beforeChosen` de `homeLine`
+(`gestures/moved-report.ts`) et `homeBeforeChosen` (#1283).
+
 2026-10-25 — **La première dose d'une date choisie, ramenée au jour d'origine de son report, y
 arrive** (#1283, spec `traitements.md` G13 ; Q50 de la session d'analyse du moteur, à qui Gaelle a
 délégué les lectures de règles ; différent de Q40, ici le déplacement est plus récent que le réglage).
@@ -4178,6 +4212,17 @@ avec la case revient au 7). — Raison : le jour d'origine a quitté le calendri
 même report ; l'y ramener sans le décalage perdait une dose. — Alternatives écartées : la faire
 revenir hors rythme (B), garder le résidu (C). — Pour revenir dessus : `no-date-alone` dans `planOf`
 (`gestures/move.ts`).
+
+2026-10-26 — **Une prise sur le jour d'origine où la dose est revenue se pose sur son arrivée**
+(#1282, spec `traitements.md` R7 ; Q61 de la session d'analyse du moteur, à qui Gaelle a délégué les
+lectures de règles ; aucune règle nouvelle, application de Q55). Revenu à son jour d'origine, le
+report y arrive : une prise ce jour-là se lit comme sur l'arrivée de tout report. Milo (cas de Q55),
+8 h du 8 avril ramenée au 29 mars : le 29 à 8 h, 14 h et 20 h ; « C'est fait » sur 8 h du 29 : 8 h
+donnée, 14 h et 20 h à donner (avant : tout le 29 disparaissait). De même 14 h donnée (8 h et 20 h
+restent), 8 h oubliée, 8 h donnée avec la case. — Raison : sans quoi la prise du départ l'emportait sur
+le report et le jour, sorti du calendrier, perdait ses doses. — Alternative écartée : aucune, c'est la
+lecture de R7. — Pour revenir dessus : `home` dans `moveReports` (`calendar-reports.ts`) et
+`arriveReports` (`reference-arrivals.ts`).
 
 ## 2026-10-24 — Un report redéplacé depuis une date choisie, hors de sa grille, est sans effet (#1231, Q39)
 

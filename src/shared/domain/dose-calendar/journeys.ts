@@ -240,7 +240,8 @@ export function journeys(input: JourneyInput, effects: Map<string, LineEffect>) 
   for (const shift of lines.shifts) {
     if (!effects.has(shift.id)) effects.set(shift.id, { kind: 'idle', reason: 'overtaken' })
   }
-  const left = leftDays(claims, lines.reports, span.closedFrom, handed, journeyOn, landed)
+  const departures = [...lines.reports, ...lines.homecomings]
+  const left = leftDays(claims, departures, span.closedFrom, handed, journeyOn, landed)
   const ends = bounds.filter((day) => day !== null)
   const lastPossibleDay = ends.length < bounds.length ? null : (ends.sort().at(-1) ?? null)
   return {

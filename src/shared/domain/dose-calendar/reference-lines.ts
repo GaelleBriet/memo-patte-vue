@@ -126,6 +126,18 @@ export const reportsOf = (lines: readonly ReferenceLine[]): ReferenceLine[] =>
     (line) => line.dueOn,
   )
 
+// Q55 : la ligne la plus récente d'une dose ramenée à son jour, sur une journée sans autre report.
+export const returnsOf = (lines: readonly ReferenceLine[]): ReferenceLine[] => {
+  const reported = new Set(reportsOf(lines).map(({ dueOn }) => dueOn))
+  return latestBy(
+    lines.filter(
+      (line) =>
+        line.status === 'postponed' && line.targetOn === line.dueOn && !reported.has(line.dueOn),
+    ),
+    (line) => line.dueOn,
+  )
+}
+
 // R10 : remplacé le jour même, un réglage encore sans prise n'a jamais existé.
 export const isLiveIn =
   (episode: readonly ReferenceSetting[], lines: readonly ReferenceLine[]) =>

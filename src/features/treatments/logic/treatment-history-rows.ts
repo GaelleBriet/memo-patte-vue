@@ -99,14 +99,24 @@ export function missedRow(
   }
 }
 
-function moveLine(t: Translate, { reading }: RowContext, dose: TreatmentDose): HistoryLine {
+// Q55 : revenue sur son jour d'origine, la dose se lit comme une dose ordinaire de ce jour.
+function reportTitle(t: Translate, dose: TreatmentDose, period: TreatmentPeriodRecord): string {
+  return dose.targetOn === dose.dueOn ? dueTitle(t, dose, period) : moveText(t, dose)
+}
+
+function moveLine(
+  t: Translate,
+  { reading }: RowContext,
+  dose: TreatmentDose,
+  period: TreatmentPeriodRecord,
+): HistoryLine {
   const bounds = moveBounds(reading.input, movedDueOf(dose), true)
   const found = 'refusal' in bounds ? null : bounds
   const locked = reportRemovalLock(reading.input, dose.id) !== null
   return {
     kind: 'move',
     dose,
-    title: moveText(t, dose),
+    title: reportTitle(t, dose, period),
     optionsLabel: t('treatments.history.moveOptions', { date: formatFullDate(dose.dueOn) }),
     actions: locked ? [] : found === null ? ['remove-move'] : ['change-date', 'remove-move'],
     bounds: found,
@@ -144,7 +154,7 @@ function shiftLine(
 function idleTitle(t: Translate, dose: TreatmentDose, period: TreatmentPeriodRecord): string {
   switch (dose.status) {
     case 'postponed':
-      return moveText(t, dose)
+      return reportTitle(t, dose, period)
     case 'shift':
       return t('treatments.history.shiftWithoutNext')
     case 'extra':
@@ -230,7 +240,7 @@ export function lineOf(
     case 'not-due':
       return notDueLine(t, dose, period)
     case 'postponed':
-      return moveLine(t, context, dose)
+      return moveLine(t, context, dose, period)
     case 'shift':
       return shiftLine(t, context, dose, period)
     case 'extra':

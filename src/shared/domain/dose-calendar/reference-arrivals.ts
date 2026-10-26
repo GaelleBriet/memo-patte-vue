@@ -9,6 +9,8 @@ type Hour = string | null
 
 export type ArrivalContext = {
   reports: readonly ReferenceLine[]
+  /** Q55 : doses ramenées à leur jour ; seules celles d'un jour hors du calendrier y arrivent. */
+  returns: readonly ReferenceLine[]
   days: Map<string, Journey>
   left: Map<string, Journey>
   notes: readonly ReferenceLine[]
@@ -40,10 +42,12 @@ export function arriveReports(context: ArrivalContext) {
   const arrivedBy = new Map<string, ReferenceLine>()
   const arrivedHours = new Map<string, Hour[]>()
   const arrivalsOnly = new Set<string>()
-  const waiting = [...context.reports]
+  const homeless = context.returns.filter(({ dueOn }) => !days.has(dueOn))
+  const waiting = [...context.reports, ...homeless]
   while (waiting.length > 0) {
     const ready = waiting.findIndex(
-      (report) => !waiting.some((other) => other.targetOn === report.dueOn),
+      (report) =>
+        !waiting.some((other) => other.targetOn === report.dueOn && other.dueOn !== report.dueOn),
     )
     const [report] = waiting.splice(Math.max(0, ready), 1)
     const { dueOn, targetOn } = report!
@@ -134,8 +138,11 @@ export function arriveReports(context: ArrivalContext) {
         .filter((note) => note.dueOn === dueOn && hours.includes(note.dueTime))
         .forEach((note) => matched.add(note))
     }
-    const covered =
-      origin === undefined
+    // Q61 : revenue à son jour d'origine, la dose y arrive ; les prises de ce jour se posent sur l'arrivée.
+    const home = targetOn === dueOn
+    const covered = home
+      ? new Set<Hour>()
+      : origin === undefined
         ? new Set(hours.filter((hour) => noted.has(keyOf(dueOn, hour))))
         : coveredOn(dueOn, read!)
     // R6, TR-9 : hors de sa grille, un report est sans effet, sauf s'il porte la date choisie,
@@ -172,7 +179,9 @@ export function arriveReports(context: ArrivalContext) {
       inForce: settingAt(dueOn),
       hoursChangedSince: hoursChangedSince(live, written, dueOn),
       itsHours: itsDay.hours,
-      coveredAtItsHours: coveredAside(dueOn, itsDay, writtenBefore(written, settingOf)),
+      coveredAtItsHours: home
+        ? new Set<Hour>()
+        : coveredAside(dueOn, itsDay, writtenBefore(written, settingOf)),
     })
     if (outcome.beaten) continue
     if (targetOn! > dueOn) fallen.add(dueOn)
