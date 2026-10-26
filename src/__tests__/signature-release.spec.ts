@@ -34,6 +34,14 @@ describe('signature de la version publiée', () => {
     expect(gradle).not.toMatch(/(storePassword|keyPassword)\s*=?\s*['"]/)
   })
 
+  it('exige les quatre variables ensemble et n’y met aucune valeur par défaut', () => {
+    const gradle = readFileSync(resolve(racine, 'android/app/build.gradle'), 'utf8')
+
+    expect(gradle).toMatch(/def releaseSigning = signingEnv\.values\(\)\.every \{ it \}/)
+    expect(gradle.match(/System\.getenv\(/g)).toHaveLength(4)
+    expect(gradle).not.toMatch(/System\.getenv\([^)]*\)\s*(\?:|\|\||\?\s)/)
+  })
+
   it('ne signe la version release que si la configuration est complète', () => {
     const gradle = readFileSync(resolve(racine, 'android/app/build.gradle'), 'utf8')
 
