@@ -291,6 +291,29 @@ quelle et `versionCode` vaut `major × 1 000 000 + minor × 1 000 + patch` (0.1.
 `minor` ou `patch` atteint 1000, borne qui garantit que le code reste strictement croissant. Rien à mettre à jour
 à la main avant un upload.
 
+## 7 bis. Build signé pour la Play Console (#53)
+
+`android/app/build.gradle` signe la variante `release` avec une clé lue dans quatre variables d'environnement ; rien n'est
+dans le dépôt, et `.gitignore` couvre `*.jks`, `*.keystore` et `keystore.properties` (garde : `signature-release.spec.ts`).
+
+| Variable                      | Contenu                                  |
+| ----------------------------- | ---------------------------------------- |
+| `MEMOPATTE_KEYSTORE_FILE`     | chemin du fichier de clé d'envoi         |
+| `MEMOPATTE_KEYSTORE_PASSWORD` | mot de passe du fichier                  |
+| `MEMOPATTE_KEY_ALIAS`         | alias de la clé                          |
+| `MEMOPATTE_KEY_PASSWORD`      | mot de passe de la clé                   |
+
+Les quatre ou aucune : sans elles, `bundleRelease` produit un fichier non signé et Gradle l'écrit en avertissement ; debug,
+`devApp` et la CI ne changent pas. Un chemin de fichier introuvable fait échouer le build avec un message clair.
+
+```bash
+pnpm build && pnpm cap:sync
+cd android && ./gradlew :app:bundleRelease
+# sortie : android/app/build/outputs/bundle/release/app-release.aab
+```
+
+Création de la clé et envoi : guide du coffre, `technical/guides/guide-build-signe-et-test-interne.md`.
+
 ## 8. Ce que fait la CI
 
 `.github/workflows/ci.yml` lance deux jobs en parallèle sur chaque PR vers `main` et sur chaque push sur `main`.

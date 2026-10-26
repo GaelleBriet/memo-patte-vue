@@ -28,6 +28,11 @@ Thumbs.db
 .env.*
 !.env.example
 
+# Clé d'envoi Play Store : jamais dans le dépôt
+*.jks
+*.keystore
+keystore.properties
+
 # Tests / coverage
 coverage/
 *.lcov
