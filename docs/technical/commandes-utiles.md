@@ -312,6 +312,10 @@ cd android && ./gradlew :app:bundleRelease
 # sortie : android/app/build/outputs/bundle/release/app-release.aab
 ```
 
+R8 est désactivé en release (`minifyEnabled false`) : il n'y a pas de `mapping.txt` à joindre. Les bibliothèques natives (SQLCipher,
+CameraX) sont déjà strippées par leurs éditeurs : la Play Console peut donc continuer d'afficher ses deux avertissements
+(fichier de désobscurcissement, symboles natifs). Ce sont des recommandations, sans effet sur le test interne ni sur la publication (#1340).
+
 Création de la clé et envoi : guide du coffre, `technical/guides/guide-build-signe-et-test-interne.md`.
 
 ## 8. Ce que fait la CI

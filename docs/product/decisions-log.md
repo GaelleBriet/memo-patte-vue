@@ -4388,3 +4388,12 @@ Décisions de Gaelle du 2026-10-26 (questions D1 à D4 de l'audit de #89).
   ou des espaces sont refusés. — Alternative écartée : accepter plusieurs `v1` pour une rotation
   progressive que RevenueCat ne fait pas. — Pour revenir dessus : `signatureIn` dans
   `supabase/functions/revenuecat-webhook/webhook-signature.ts` et ses tests.
+
+2026-10-26 — Build release : pas de `debugSymbolLevel`, R8 laissé désactivé,
+les deux avertissements de la Play Console acceptés (#1340). — `debugSymbolLevel`
+n'a aucun effet mesuré (libs natives déjà strippées, AAB identique à 4 octets
+près) et exigerait le NDK pour tout `bundleRelease`, que la CI (`assembleDebug`)
+ne verrait pas casser ; R8 risquerait de casser les plugins Capacitor, la
+WebView, SQLCipher et RevenueCat sans test complet sur appareil. — Pour revenir
+dessus : activer R8 avec règles de conservation et test complet sur appareil
+(ticket à part).
