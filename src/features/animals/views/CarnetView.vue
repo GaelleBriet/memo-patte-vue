@@ -511,14 +511,15 @@ onMounted(() => {
 }
 
 .carnet-stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   margin: 22px 20px 0;
 }
 
 .carnet-stat {
+  flex: 1 1 0;
+  min-width: min-content;
   padding-inline: 12px;
-  overflow-wrap: break-word;
 }
 
 .carnet-stat:first-child {
