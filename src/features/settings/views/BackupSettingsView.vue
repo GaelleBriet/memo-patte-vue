@@ -22,14 +22,14 @@ const STATUS_LOOK: Record<CloudBackupStatus['kind'], { icon: string; tone: strin
 
 const { t } = useI18n()
 const router = useRouter()
-const { status, refused, photosBackedUp, now } = useBackupStatus()
+const { status, refused, photosBackedUp, now, awaitsRestoredStatus } = useBackupStatus()
 const {
   isPending: isRestorePending,
   isWaitingNetwork: isRestoreWaitingNetwork,
   restoreProgress,
   showsLocalBackup,
   choose: chooseRestore,
-} = useRestorePending(status)
+} = useRestorePending(status, awaitsRestoredStatus)
 
 const cloud = computed<CloudBackupStatus | null>(() =>
   status.value === null || status.value.kind === 'local' || status.value.kind === 'unread'

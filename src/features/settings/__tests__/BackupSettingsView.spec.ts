@@ -884,6 +884,44 @@ describe('BackupSettingsView', () => {
       écranGratuitAbsent(wrapper)
     })
 
+    it('restauration terminée : l’état de la sauvegarde active, sans repasser par l’écran gratuit', async () => {
+      const flow = parcours()
+      let answer: (facts: BackupFacts) => void = () => {}
+      const read = vi.fn<() => Promise<BackupFacts>>(async () => PLUS_SANS_SAUVEGARDE)
+      provideBackupFacts(read)
+      flow.offer(SUMMARY)
+      void flow.choose('merge')
+      const wrapper = await monter()
+      await flushPromises()
+      expect(wrapper.find('.backup-settings__restore-progress').exists()).toBe(true)
+
+      read.mockImplementationOnce(
+        () =>
+          new Promise<BackupFacts>((resolve) => {
+            answer = resolve
+          }),
+      )
+      finishRun('restored')
+      await flushPromises()
+
+      expect(flow.state.value.step).toBe('done')
+      écranGratuitAbsent(wrapper)
+      expect(enfants(wrapper)).toEqual([
+        expect.arrayContaining(['backup-settings__export']),
+        expect.arrayContaining(['backup-settings__erase']),
+      ])
+
+      answer({
+        ...PLUS_SANS_SAUVEGARDE,
+        syncEnabled: true,
+        lastSyncedAt: new Date(Date.now() - 60_000).toISOString(),
+      })
+      await flushPromises()
+
+      écranGratuitAbsent(wrapper)
+      expect(wrapper.get('.backup-settings__status').text()).toContain('Dernière sauvegarde')
+    })
+
     it('compte sans choix, pendant le premier contrôle : écran gratuit complet', async () => {
       const flow = parcours()
       flow.checking()

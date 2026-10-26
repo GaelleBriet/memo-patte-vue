@@ -1,9 +1,10 @@
-import { computed, onScopeDispose, shallowRef } from 'vue'
+import { computed, onScopeDispose, readonly, shallowRef, watch } from 'vue'
 
 import { onAppPause } from '@/core/app-lifecycle/app-pause'
 import { onAppResume } from '@/core/app-lifecycle/app-resume'
 import { currentBackupFacts, type BackupFacts } from '@/core/sync/service/backup-facts'
 import { onNetworkOnline } from '@/core/sync/service/network-status'
+import { currentRestoreFlow } from '@/core/sync/service/restore-flow'
 import { errorSummary } from '@/shared/utils/error-summary'
 import {
   backupStatusOf,
@@ -18,15 +19,18 @@ type Reading = 'pending' | 'read' | 'unread' | 'unplugged'
 
 /**
  * L'état de la sauvegarde : relu toutes les 2 s pendant la première sauvegarde ou tant que la synchro
- * n'est pas branchée, sinon au retour au premier plan et du réseau ; `polling: false` : jamais toutes
- * les 2 s. `null` avant la première lecture.
+ * n'est pas branchée, sinon au retour au premier plan et du réseau, et à la fin d'une restauration ;
+ * `polling: false` : jamais toutes les 2 s. `null` avant la première lecture. `awaitsRestoredStatus` :
+ * la restauration est finie, l'état qui la suit n'est pas encore lu.
  */
 export function useBackupStatus({ polling = true } = {}) {
   const facts = shallowRef<BackupFacts | null>(null)
   const reading = shallowRef<Reading>('pending')
   const now = shallowRef(new Date())
+  const awaitsRestoredStatus = shallowRef(false)
   let timer: ReturnType<typeof setTimeout> | null = null
   let busy = false
+  let readAgain = false
   let stopped = false
   let foreground = document.visibilityState !== 'hidden'
 
@@ -52,10 +56,16 @@ export function useBackupStatus({ polling = true } = {}) {
   }
 
   async function refresh(): Promise<void> {
-    if (busy || stopped) return
+    if (stopped) return
+    if (busy) {
+      readAgain = true
+      return
+    }
+    const settles = awaitsRestoredStatus.value
     const read = currentBackupFacts()
     if (read === null) {
       if (reading.value === 'pending') reading.value = 'unplugged'
+      if (settles) awaitsRestoredStatus.value = false
       scheduleNext()
       return
     }
@@ -68,10 +78,23 @@ export function useBackupStatus({ polling = true } = {}) {
       if (reading.value !== 'read') reading.value = 'unread'
     } finally {
       busy = false
+      if (settles) awaitsRestoredStatus.value = false
       now.value = new Date()
-      scheduleNext()
+      if (readAgain) {
+        readAgain = false
+        void refresh()
+      } else scheduleNext()
     }
   }
+
+  watch(
+    () => currentRestoreFlow()?.state.value.step,
+    (step) => {
+      if (step !== 'done') return
+      awaitsRestoredStatus.value = true
+      void refresh()
+    },
+  )
 
   void refresh()
   const stopResume = onAppResume(() => {
@@ -91,5 +114,11 @@ export function useBackupStatus({ polling = true } = {}) {
     stopNetwork()
   })
 
-  return { status, refused, photosBackedUp, now }
+  return {
+    status,
+    refused,
+    photosBackedUp,
+    now,
+    awaitsRestoredStatus: readonly(awaitsRestoredStatus),
+  }
 }
