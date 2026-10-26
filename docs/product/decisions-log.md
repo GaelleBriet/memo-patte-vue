@@ -4330,3 +4330,30 @@ Remplace les prix du 2026-09-15 (1,49 / 9,99 / 29,99). Les trois produits, l'ent
 changent pas. — Raison : mensuel au plancher du marché, annuel en hausse sans effet attendu sur l'achat, à vie ≈ 3 ans d'annuel ; détail dans le coffre de Gaelle, `questions-analyse-moteur.md`, entrée « Prix de Plus ».
 — Alternative écartée : garder les prix du 2026-09-15. — Reste à faire hors dépôt : produits Play Console et offres RevenueCat.
 Pourcentage affiché sur l'annuel validé par Gaelle le 2026-10-26 : « ≈ 46 % » (12,99 € contre 12 × 1,99 €) remplace « ≈ 44 % ». Ligne de conditions de l'offre à vie validée le même jour : elle ajoute « Sauvegarde cloud et photos incluses tant que MémoPatte Plus existe. » (limite dite avant l'achat).
+
+## 2026-10-26 — Webhook RevenueCat : signature HMAC obligatoire, en-tête d'au moins 32 caractères (#1090, #1327)
+
+Décisions de Gaelle du 2026-10-26 (questions D1 à D4 de l'audit de #89).
+
+- **D1 — Signature HMAC obligatoire dès le déploiement.** `revenuecat-webhook` vérifie
+  `X-RevenueCat-Webhook-Signature` (`t=…,v1=…`, HMAC-SHA256 de `"<t>.<corps brut>"`, `t` à 5 minutes
+  au plus) en plus de l'en-tête `Authorization`. Tant que `REVENUECAT_WEBHOOK_SIGNING_SECRET` n'est pas
+  posé, chaque envoi reçoit `503` `webhook-not-configured`. — Raison : un en-tête `Authorization` qui
+  fuit suffirait sinon à rejouer des envois en rafale, à faire limiter les appels à RevenueCat et à
+  perdre les vrais événements à la fin des relances. — Alternative écartée : signature facultative tant
+  que le secret manque, qui retomberait sur l'en-tête seul sans que personne le voie.
+- **D2 — `REVENUECAT_WEBHOOK_AUTHORIZATION` d'au moins 32 caractères**, sinon la fonction refuse tout
+  (`503` `webhook-not-configured`, journal qui nomme la variable sans sa valeur), comme le secret du
+  cron et `ADMIN_DELETE_SECRET` ; la règle est écrite une seule fois (`longEnoughSecret`). —
+  Alternative écartée : ne rien imposer, seulement conseiller 64 caractères dans le guide.
+- **D3 — Production et bac à sable acceptés pendant le test interne** (comportement déjà codé, inchangé),
+  à revoir à la sortie. — Alternative écartée : production seule, qui priverait les testeurs de
+  sauvegarde. Remède au risque (un ancien testeur de licence jamais retiré) : retirer les testeurs à
+  la sortie.
+- **D4 — Webhook d'achat perdu : mis de côté**, rien de codé.
+- Choix de lecture de Claude, d'après la documentation de RevenueCat lue le 2026-10-26 (« Rotate
+  secret » invalide l'ancien secret aussitôt ; un seul `v1` documenté) : l'en-tête doit porter
+  exactement un `t` et un `v1`, en minuscules, dans un ordre quelconque ; deux `v1`, un champ inconnu
+  ou des espaces sont refusés. — Alternative écartée : accepter plusieurs `v1` pour une rotation
+  progressive que RevenueCat ne fait pas. — Pour revenir dessus : `signatureIn` dans
+  `supabase/functions/revenuecat-webhook/webhook-signature.ts` et ses tests.

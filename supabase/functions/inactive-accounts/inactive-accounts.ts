@@ -1,5 +1,5 @@
 import { ErasureNotConfiguredError } from '../_shared/account-erasure.ts'
-import { isSharedSecret, MIN_SHARED_SECRET_LENGTH } from '../_shared/shared-secret.ts'
+import { isSharedSecret, longEnoughSecret } from '../_shared/shared-secret.ts'
 import { runPurgePass, type PurgeMode, type PurgePassPorts } from './purge-pass.ts'
 
 export const CRON_SECRET_HEADER = 'x-memopatte-cron-secret'
@@ -12,15 +12,14 @@ export type InactiveAccountsSettings = { cronSecret: string | undefined; mode: P
 export function inactiveAccountsSettingsFrom(
   env: (name: string) => string | undefined,
 ): InactiveAccountsSettings {
-  const secret = env('INACTIVE_ACCOUNTS_CRON_SECRET')
-  let cronSecret: string | undefined
-  if (secret && secret.length >= MIN_SHARED_SECRET_LENGTH) cronSecret = secret
-  else if (secret) {
-    console.error(
-      `Purge désactivée : INACTIVE_ACCOUNTS_CRON_SECRET doit faire au moins ${MIN_SHARED_SECRET_LENGTH} caractères`,
-    )
+  return {
+    cronSecret: longEnoughSecret(
+      env('INACTIVE_ACCOUNTS_CRON_SECRET'),
+      'INACTIVE_ACCOUNTS_CRON_SECRET',
+      'Purge désactivée',
+    ),
+    mode: env('INACTIVE_ACCOUNTS_MODE') === APPLY ? 'apply' : 'dry-run',
   }
-  return { cronSecret, mode: env('INACTIVE_ACCOUNTS_MODE') === APPLY ? 'apply' : 'dry-run' }
 }
 
 function json(status: number, body: unknown): Response {

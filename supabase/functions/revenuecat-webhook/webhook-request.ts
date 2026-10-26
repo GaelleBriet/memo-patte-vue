@@ -1,4 +1,5 @@
 import { isSharedSecret } from '../_shared/shared-secret.ts'
+import { isSignedByRevenuecat, SIGNATURE_HEADER } from './webhook-signature.ts'
 
 /** L'objet `event` d'un envoi RevenueCat, champs inconnus compris : RevenueCat en ajoute sans prévenir. */
 export type RevenuecatEvent = { id: string; type: string } & Record<string, unknown>
@@ -6,6 +7,9 @@ export type RevenuecatEvent = { id: string; type: string } & Record<string, unkn
 export type WebhookPorts = {
   /** Valeur exacte de l'en-tête `Authorization` réglée dans RevenueCat ; sans elle, tout est refusé. */
   expectedAuthorization: string | undefined
+  /** Secret « HMAC webhook signing » de RevenueCat ; sans lui, tout est refusé. */
+  signingSecret: string | undefined
+  now(): number
   /** Lève pour que RevenueCat renvoie l'événement plus tard. */
   processEvent(event: RevenuecatEvent): Promise<void>
 }
@@ -21,10 +25,10 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-async function eventOf(request: Request): Promise<RevenuecatEvent | null> {
+function eventOf(bytes: Uint8Array): RevenuecatEvent | null {
   let body: unknown
   try {
-    body = await request.json()
+    body = JSON.parse(new TextDecoder().decode(bytes))
   } catch {
     return null
   }
@@ -46,14 +50,26 @@ export async function handleRevenuecatWebhook(
 
   const expected = ports.expectedAuthorization?.trim()
   if (!expected) {
-    console.error('Webhook RevenueCat refusé : REVENUECAT_WEBHOOK_AUTHORIZATION n’est pas réglé')
+    console.error(
+      'Webhook RevenueCat refusé : REVENUECAT_WEBHOOK_AUTHORIZATION n’est pas réglé ou trop court',
+    )
+    return json(503, { error: 'webhook-not-configured' })
+  }
+  const signingSecret = ports.signingSecret?.trim()
+  if (!signingSecret) {
+    console.error('Webhook RevenueCat refusé : REVENUECAT_WEBHOOK_SIGNING_SECRET n’est pas réglé')
     return json(503, { error: 'webhook-not-configured' })
   }
   if (!(await isSharedSecret(request.headers.get('Authorization') ?? '', expected))) {
     return json(401, { error: 'unauthorized' })
   }
+  const body = new Uint8Array(await request.arrayBuffer())
+  const signature = request.headers.get(SIGNATURE_HEADER)
+  if (!(await isSignedByRevenuecat(signature, body, signingSecret, ports.now()))) {
+    return json(401, { error: 'unauthorized' })
+  }
 
-  const event = await eventOf(request)
+  const event = eventOf(body)
   if (!event) return json(400, { error: 'invalid-event' })
   if (event.type === 'TEST') return json(200, { status: 'ignored', reason: 'test' })
 
