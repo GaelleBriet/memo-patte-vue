@@ -1733,7 +1733,9 @@
       "emailBody": "It’s used to recover your health record and secure your account."
     },
     "google": {
-      "continue": "Continue with Google"
+      "continue": "Continue with Google",
+      "signedIn": "Signed in with Google.",
+      "cancelled": "Sign-in canceled."
     },
     "accountFirst": {
       "title": "Step 1 of 2",
