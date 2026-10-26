@@ -1734,7 +1734,7 @@
     },
     "google": {
       "continue": "Continuer avec Google",
-      "signedIn": "Connecté avec Google.",
+      "signedIn": "Connexion avec Google réussie.",
       "cancelled": "Connexion annulée."
     },
     "accountFirst": {

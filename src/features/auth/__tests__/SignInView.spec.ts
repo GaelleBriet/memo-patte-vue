@@ -1259,7 +1259,7 @@ describe('SignInView', () => {
       await flushPromises()
 
       expect(replace).toHaveBeenCalledWith({ name: 'settings' })
-      expect(toastMessage.value).toBe('Connecté avec Google.')
+      expect(toastMessage.value).toBe('Connexion avec Google réussie.')
     })
 
     it('garde le toast de réussite malgré la navigation qui suit', async () => {
@@ -1270,7 +1270,7 @@ describe('SignInView', () => {
       await flushPromises()
       wrapper.unmount()
 
-      expect(toastMessage.value).toBe('Connecté avec Google.')
+      expect(toastMessage.value).toBe('Connexion avec Google réussie.')
     })
 
     it('ne dit rien si l’écran est démonté avant la réponse de Google', async () => {

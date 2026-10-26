@@ -66,7 +66,7 @@ describe('useGoogleSignIn', () => {
     it('confirme la connexion par un toast de réussite', () => {
       inSetup().announce({ kind: 'signed-in' })
 
-      expect(toastMessage.value).toBe('Connecté avec Google.')
+      expect(toastMessage.value).toBe('Connexion avec Google réussie.')
       expect(toastTone.value).toBe('success')
     })
 

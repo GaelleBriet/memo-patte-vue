@@ -244,7 +244,7 @@ describe('AccountFirstView — enchaînement', () => {
 
     expect(back).toHaveBeenCalledTimes(1)
     expect(usePurchaseStore().pendingCheckout).toBe('annual')
-    expect(toastMessage.value).toBe('Connecté avec Google.')
+    expect(toastMessage.value).toBe('Connexion avec Google réussie.')
   })
 
   it('ne dit rien si l’écran est démonté avant la réponse de Google', async () => {
