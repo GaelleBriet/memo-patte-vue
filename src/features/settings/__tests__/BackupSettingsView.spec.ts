@@ -18,6 +18,7 @@ import {
   provideRestoreFlow,
   type RestoreFlow,
 } from '@/core/sync/service/restore-flow'
+import type { RestoreProgress, RestoreRunResult } from '@/core/sync/service/account-restore'
 
 const exportData = vi.hoisted(() => vi.fn<DataExportService['exportData']>())
 
@@ -763,6 +764,162 @@ describe('BackupSettingsView', () => {
 
       expect(bloc(wrapper).exists()).toBe(false)
       expect(wrapper.find('.backup-settings__status').text()).toContain('En attente de réseau')
+    })
+  })
+
+  describe('restauration choisie en cours', () => {
+    const SUMMARY = { animalCount: 2, lastBackupAt: '2026-10-20T19:04:00.000Z' }
+    const PLUS_SANS_SAUVEGARDE: BackupFacts = {
+      eligible: true,
+      signInNeeded: false,
+      online: true,
+      syncEnabled: false,
+      lastSyncedAt: null,
+      remaining: 0,
+      carnetSize: 0,
+      refused: 0,
+      refusedPhotos: 0,
+    }
+
+    let finishRun: (result: RestoreRunResult) => void
+    let failRun: (cause: Error) => void
+
+    function parcours(progress: RestoreProgress = { done: 0, total: 0 }): RestoreFlow {
+      const flow = createRestoreFlow({
+        pendingMode: async () => 'replace',
+        start: async () => {},
+        run: () =>
+          new Promise<RestoreRunResult>((resolve, reject) => {
+            finishRun = resolve
+            failRun = reject
+          }),
+        progress,
+        onProgress: () => () => {},
+      })
+      provideRestoreFlow(flow)
+      return flow
+    }
+
+    async function monterPlus() {
+      provideBackupFacts(async () => PLUS_SANS_SAUVEGARDE)
+      const wrapper = await monter()
+      await flushPromises()
+      return wrapper
+    }
+
+    function enfants(wrapper: VueWrapper) {
+      return wrapper.findAll('.backup-settings__content > *').map((element) => element.classes())
+    }
+
+    function écranGratuitAbsent(wrapper: VueWrapper) {
+      const texte = wrapper.text()
+      expect(texte).not.toContain('Ton carnet est sur ce téléphone')
+      expect(texte).not.toContain('Sauvegarde d’Android')
+      expect(wrapper.find('.backup-settings__discover').exists()).toBe(false)
+    }
+
+    it('montre la progression de « Restaurer mon carnet » à la place de l’écran gratuit', async () => {
+      const flow = parcours({ done: 120, total: 348 })
+      flow.offer(SUMMARY)
+      void flow.choose('replace')
+      const wrapper = await monterPlus()
+
+      expect(flow.state.value.step).toBe('restoring')
+      expect(
+        wrapper
+          .get('.backup-settings__restore-progress')
+          .findAll('.settings-row__label, .settings-row__hint')
+          .map((line) => line.text())
+          .join(' '),
+      ).toBe('Restauration de ton carnet 120 éléments sur 348')
+      écranGratuitAbsent(wrapper)
+      expect(enfants(wrapper)).toEqual([
+        expect.arrayContaining(['backup-settings__restore-progress']),
+        expect.arrayContaining(['backup-settings__export']),
+        expect.arrayContaining(['backup-settings__erase']),
+      ])
+    })
+
+    it('réseau revenu pendant l’attente : la progression remplace « En attente de réseau »', async () => {
+      const flow = parcours()
+      vi.spyOn(console, 'warn').mockImplementation(() => {})
+      flow.offer(SUMMARY)
+      void flow.choose('replace')
+      await flushPromises()
+      failRun(new Error('réseau coupé'))
+      await flushPromises()
+      const wrapper = await monterPlus()
+      expect(wrapper.find('.backup-settings__restore-waiting').exists()).toBe(true)
+
+      void flow.resume()
+      await flushPromises()
+
+      expect(flow.state.value.step).toBe('restoring')
+      expect(wrapper.find('.backup-settings__restore-waiting').exists()).toBe(false)
+      expect(wrapper.get('.backup-settings__restore-progress').text()).toBe(
+        'Restauration de ton carnet',
+      )
+      écranGratuitAbsent(wrapper)
+    })
+
+    it('carnet changé depuis « Remplacer » : le nouveau contrôle ne réaffiche pas l’écran gratuit', async () => {
+      const flow = parcours()
+      flow.offer(SUMMARY)
+      void flow.choose('replace')
+      const wrapper = await monterPlus()
+
+      finishRun('carnet-changed')
+      await flushPromises()
+
+      expect(flow.state.value).toEqual({ step: 'checking', chosen: true })
+      écranGratuitAbsent(wrapper)
+      expect(enfants(wrapper)).toEqual([
+        expect.arrayContaining(['backup-settings__export']),
+        expect.arrayContaining(['backup-settings__erase']),
+      ])
+
+      flow.offer(SUMMARY)
+      await flushPromises()
+      expect(wrapper.find('.backup-settings__restore-pending').exists()).toBe(true)
+      écranGratuitAbsent(wrapper)
+    })
+
+    it('compte sans choix, pendant le premier contrôle : écran gratuit complet', async () => {
+      const flow = parcours()
+      flow.checking()
+      const wrapper = await monterPlus()
+      const texte = wrapper.text()
+
+      expect(flow.state.value).toEqual({ step: 'checking', chosen: false })
+      expect(wrapper.find('.backup-settings__restore-progress').exists()).toBe(false)
+      expect(texte).toContain('Ton carnet est sur ce téléphone')
+      expect(texte).toContain('Si ce téléphone est perdu')
+      expect(texte).toContain('Sauvegarde d’Android')
+      expect(wrapper.find('.backup-settings__discover').exists()).toBe(true)
+    })
+
+    it('se lit en anglais', async () => {
+      i18n.global.locale.value = 'en'
+      const flow = parcours()
+      flow.offer(SUMMARY)
+      void flow.choose('merge')
+      const wrapper = await monterPlus()
+
+      expect(wrapper.get('.backup-settings__restore-progress').text()).toBe(
+        'Restoring your health record',
+      )
+    })
+
+    it('ne double pas l’état d’une sauvegarde cloud déjà active', async () => {
+      const flow = parcours()
+      flow.offer(SUMMARY)
+      void flow.choose('merge')
+      provideBackupFacts(async () => ({ ...PLUS_SANS_SAUVEGARDE, syncEnabled: true }))
+      const wrapper = await monter()
+      await flushPromises()
+
+      expect(wrapper.find('.backup-settings__restore-progress').exists()).toBe(false)
+      expect(wrapper.find('.backup-settings__status').exists()).toBe(true)
     })
   })
 })
