@@ -4,7 +4,7 @@ import { installRestoreRetry } from '../service/restore-retry'
 import type { RestoreFlowState } from '../service/restore-flow'
 import { SYNC_BACKOFF_STEPS_MS } from '../service/sync-scheduler'
 
-const WAITING: RestoreFlowState = { step: 'waiting-network' }
+const WAITING: RestoreFlowState = { step: 'waiting-network', chosen: true }
 const RESTORING: RestoreFlowState = { step: 'restoring', progress: { done: 0, total: 0 } }
 
 beforeEach(() => vi.useFakeTimers())

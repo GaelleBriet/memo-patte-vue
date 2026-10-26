@@ -2991,6 +2991,10 @@ carnet » recouvrait la feuille ouverte sur l'accueil.
   de la planche V21 quater, « En attente de réseau » · « La restauration reprendra dès le retour du
   réseau. Rien n'est perdu. » (textes existants). Restent « Exporter une copie » et « Effacer les
   données de ce téléphone ». Une sauvegarde cloud déjà active garde son propre état.
+- Lecture de Q62 : le bloc ne s'affiche que si une restauration a été choisie (« Fusionner » ou
+  « Remplacer », ou un choix gardé repris au lancement). Un contrôle de la sauvegarde injoignable,
+  sans choix (compte sans Plus lancé hors réseau, par exemple), laisse l'écran sans sauvegarde cloud
+  complet, comme avant.
 - Pour revenir dessus : l'arrivée se juge dans `app/restore-prompt.ts` ; le bloc d'attente vient de
   `use-restore-pending.ts`.
 

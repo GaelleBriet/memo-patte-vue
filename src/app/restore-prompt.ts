@@ -7,13 +7,10 @@ import { REMINDER_QUERY_PARAM, REMINDER_STEP_QUERY_PARAM } from '@/shared/domain
 import { RESTORE_ROUTE, restoreRoute } from '@/shared/utils/restore-route'
 
 /**
- * « Restaurer mon carnet » s'ouvre de lui-même une fois par jour local, au passage par l'accueil,
- * tant que la sauvegarde trouvée attend « Fusionner » ou « Remplacer ». Un choix reproposé après
- * une restauration lancée (carnet du téléphone changé depuis « Remplacer ») l'ouvre de nouveau.
- * La toute première proposition s'ouvre dès que la sauvegarde est trouvée sur l'accueil sans feuille
- * dans l'adresse ; ensuite, seule une arrivée sur l'accueil sans feuille l'ouvre. Limite connue : une
- * feuille déjà ouverte sur l'accueil quand la sauvegarde est trouvée peut encore être recouverte, car
- * l'accueil efface tout de suite l'adresse d'une feuille, qu'elle vienne d'un tap ou d'une notification.
+ * « Restaurer mon carnet » s'ouvre de lui-même une fois par jour local tant que la sauvegarde
+ * attend « Fusionner » ou « Remplacer », et de nouveau quand un choix est reproposé. La première
+ * proposition s'ouvre dès que la sauvegarde est trouvée sur l'accueil sans feuille dans l'adresse ;
+ * ensuite, seule une arrivée sur l'accueil sans feuille l'ouvre.
  */
 export function installRestorePrompt(
   router: Router,

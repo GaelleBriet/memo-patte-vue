@@ -82,7 +82,7 @@ describe('parcours de restauration', () => {
 
     await expect(flow.choose('merge')).resolves.toBe(false)
 
-    expect(flow.state.value).toEqual({ step: 'waiting-network' })
+    expect(flow.state.value).toEqual({ step: 'waiting-network', chosen: true })
   })
 
   it('carnet du téléphone changé depuis « Remplacer » : redemande le contrôle pour reproposer le choix', async () => {
@@ -164,12 +164,41 @@ describe('parcours de restauration', () => {
     expect(flow.state.value).toEqual({ step: 'choice', summary: SUMMARY })
   })
 
+  it('attend le réseau quand le choix n’a pas pu être gardé : la restauration reste choisie', async () => {
+    const runner = fakeRunner({
+      start: vi.fn<RestoreRunner['start']>(async () => {
+        throw new Error('base fermée')
+      }),
+    })
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const flow = createRestoreFlow(runner)
+
+    await expect(flow.choose('replace')).resolves.toBe(false)
+
+    expect(flow.state.value).toEqual({ step: 'waiting-network', chosen: true })
+  })
+
+  it('attend le réseau quand une restauration reprise coupe', async () => {
+    const runner = fakeRunner({
+      pendingMode: vi.fn<RestoreRunner['pendingMode']>(async () => 'merge'),
+      run: vi.fn<RestoreRunner['run']>(async () => {
+        throw new Error('réseau coupé')
+      }),
+    })
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const flow = createRestoreFlow(runner)
+
+    await expect(flow.resume()).resolves.toBe(false)
+
+    expect(flow.state.value).toEqual({ step: 'waiting-network', chosen: true })
+  })
+
   it('attend le réseau quand le serveur ne répond pas avant le choix', () => {
     const flow = createRestoreFlow(fakeRunner())
 
     flow.unreachable()
 
-    expect(flow.state.value).toEqual({ step: 'waiting-network' })
+    expect(flow.state.value).toEqual({ step: 'waiting-network', chosen: false })
   })
 
   it('repart de rien quand le compte change ou n’a rien à restaurer', () => {
@@ -203,7 +232,7 @@ describe('parcours de restauration', () => {
 
     flow.checking()
 
-    expect(flow.state.value).toEqual({ step: 'waiting-network' })
+    expect(flow.state.value).toEqual({ step: 'waiting-network', chosen: false })
   })
 
   it('sans réponse du serveur à temps : la connexion l’apprend, puis peut redemander le contrôle', async () => {

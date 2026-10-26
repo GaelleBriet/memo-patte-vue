@@ -98,7 +98,6 @@ function goBack(): void {
       <div
         v-if="isRestoreWaitingNetwork"
         class="settings-row backup-settings__card backup-settings__status backup-settings__status--neutral backup-settings__restore-waiting"
-        role="status"
       >
         <v-icon class="settings-row__icon" icon="ms:cloud_sync" size="24" />
         <span class="settings-row__text">

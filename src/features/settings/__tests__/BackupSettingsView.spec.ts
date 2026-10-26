@@ -736,6 +736,27 @@ describe('BackupSettingsView', () => {
       )
     })
 
+    it('contrôle de la sauvegarde injoignable, sans restauration choisie : écran gratuit complet', async () => {
+      const flow = createRestoreFlow({
+        pendingMode: async () => null,
+        start: async () => {},
+        run: () => new Promise(() => {}),
+        progress: { done: 0, total: 0 },
+        onProgress: () => () => {},
+      })
+      provideRestoreFlow(flow)
+      flow.checking()
+      flow.unreachable()
+      const wrapper = await monterPlus({ ...PLUS_SANS_SAUVEGARDE, eligible: false })
+      const texte = wrapper.text()
+
+      expect(bloc(wrapper).exists()).toBe(false)
+      expect(texte).not.toContain('La restauration reprendra')
+      expect(texte).toContain('Ton carnet est sur ce téléphone')
+      expect(texte).toContain('Sauvegarde d’Android')
+      expect(wrapper.find('.backup-settings__discover').exists()).toBe(true)
+    })
+
     it('ne double pas l’état d’une sauvegarde cloud déjà active', async () => {
       await choixCoupéParLeRéseau()
       const wrapper = await monterPlus({ ...PLUS_SANS_SAUVEGARDE, syncEnabled: true })
