@@ -40,8 +40,8 @@ const service = vi.mocked(billingService)
 
 // Prix volontairement différents des tarifs français : seul l'offering peut les fournir.
 const OFFRES: PlusOffer[] = [
-  { plan: 'monthly', priceString: '$1.99' },
-  { plan: 'annual', priceString: '$12.99' },
+  { plan: 'monthly', priceString: '$2.49' },
+  { plan: 'annual', priceString: '$14.99' },
   { plan: 'lifetime', priceString: '$34.99' },
 ]
 
@@ -227,13 +227,13 @@ describe('PlusView — offres', () => {
     const wrapper = await monter()
 
     expect(offres(wrapper).map((offre) => offre.get('.plus-offer__price').text())).toEqual([
-      '$12.99/an',
-      '$1.99/mois',
+      '$14.99/an',
+      '$2.49/mois',
       '$34.99',
     ])
-    expect(wrapper.text()).not.toContain('1,49')
-    expect(wrapper.text()).not.toContain('9,99')
-    expect(wrapper.text()).not.toContain('29,99')
+    expect(wrapper.text()).not.toContain('1,99')
+    expect(wrapper.text()).not.toContain('12,99')
+    expect(wrapper.text()).not.toContain('39,99')
   })
 
   it('met l’annuel en tête quel que soit l’ordre de l’offering', async () => {
@@ -251,7 +251,7 @@ describe('PlusView — offres', () => {
     const wrapper = await monter()
 
     expect(offres(wrapper).map((offre) => offre.get('.plus-offer__detail').text())).toEqual([
-      '≈ 44 % d’économie vs mensuel',
+      '≈ 46 % d’économie vs mensuel',
       'Sans engagement',
       'Paiement unique, pour toujours.',
     ])
@@ -279,7 +279,7 @@ describe('PlusView — offres', () => {
       'true',
       'false',
     ])
-    expect(wrapper.get('.plus__submit').text()).toBe('Continuer avec Plus mensuel — $1.99/mois')
+    expect(wrapper.get('.plus__submit').text()).toBe('Continuer avec Plus mensuel — $2.49/mois')
   })
 
   it('regroupe les offres sous un nom lisible par le lecteur d’écran', async () => {
@@ -313,16 +313,16 @@ describe('PlusView — barre d’achat', () => {
     [
       0,
       'Renouvellement automatique chaque année. Annulable à tout moment dans Google Play — accès conservé jusqu’à la fin de la période payée.',
-      'Continuer avec Plus annuel — $12.99/an',
+      'Continuer avec Plus annuel — $14.99/an',
     ],
     [
       1,
       'Renouvellement automatique chaque mois. Annulable à tout moment dans Google Play — accès conservé jusqu’à la fin de la période payée.',
-      'Continuer avec Plus mensuel — $1.99/mois',
+      'Continuer avec Plus mensuel — $2.49/mois',
     ],
     [
       2,
-      'Paiement unique de $34.99. Pas d’abonnement, rien à renouveler.',
+      'Paiement unique de $34.99. Pas d’abonnement, rien à renouveler. Sauvegarde cloud et photos incluses tant que MémoPatte Plus existe.',
       'Continuer avec Plus à vie — $34.99',
     ],
   ])(
@@ -371,7 +371,7 @@ describe('PlusView — offres indisponibles', () => {
     expect(service.listOffers).toHaveBeenCalledTimes(2)
     expect(offres(wrapper)).toHaveLength(3)
     expect(wrapper.find('.plus__unavailable-title').exists()).toBe(false)
-    expect(wrapper.get('.plus__submit').text()).toBe('Continuer avec Plus annuel — $12.99/an')
+    expect(wrapper.get('.plus__submit').text()).toBe('Continuer avec Plus annuel — $14.99/an')
   })
 
   it('montre la connexion à Google Play pendant le réessai, sans relancer', async () => {
@@ -400,7 +400,7 @@ describe('PlusView — offres indisponibles', () => {
     repondre([...OFFRES])
     await flushPromises()
 
-    expect(wrapper.get('.plus__submit').text()).toBe('Continuer avec Plus annuel — $12.99/an')
+    expect(wrapper.get('.plus__submit').text()).toBe('Continuer avec Plus annuel — $14.99/an')
   })
 
   it('se connecte à Google Play à l’ouverture, avant d’annoncer quoi que ce soit', async () => {
@@ -468,7 +468,7 @@ describe('PlusView — déjà abonné', () => {
 
     expect(service.listOffers).toHaveBeenCalledTimes(1)
     expect(offres(wrapper)).toHaveLength(3)
-    expect(wrapper.get('.plus__submit').text()).toBe('Continuer avec Plus annuel — $12.99/an')
+    expect(wrapper.get('.plus__submit').text()).toBe('Continuer avec Plus annuel — $14.99/an')
   })
 })
 

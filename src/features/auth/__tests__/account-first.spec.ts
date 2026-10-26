@@ -3,13 +3,13 @@ import { describe, expect, it } from 'vitest'
 import { accountFirstOffer, leavesAccountFirst } from '../logic/account-first'
 
 const OFFRES = [
-  { plan: 'monthly', priceString: '1,49 €' },
-  { plan: 'annual', priceString: '9,99 €' },
+  { plan: 'monthly', priceString: '1,99 €' },
+  { plan: 'annual', priceString: '12,99 €' },
 ] as const
 
 describe('accountFirstOffer', () => {
   it('retrouve l’offre choisie parmi celles de Google Play', () => {
-    expect(accountFirstOffer('annual', OFFRES)).toEqual({ plan: 'annual', priceString: '9,99 €' })
+    expect(accountFirstOffer('annual', OFFRES)).toEqual({ plan: 'annual', priceString: '12,99 €' })
   })
 
   it('ne rend rien sans offre choisie, ou quand Google Play ne la propose plus', () => {
