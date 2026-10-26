@@ -15,11 +15,21 @@ jobs:
         with:
           version: latest
 
-      - name: Appliquer les migrations en attente
+      - name: Sauvegarder la base puis appliquer les migrations en attente
         env:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
           SUPABASE_POOLER_HOST: ${{ secrets.SUPABASE_POOLER_HOST }}
         run: |
           encoded_password=$(python3 -c "import urllib.parse, os; print(urllib.parse.quote(os.environ['SUPABASE_DB_PASSWORD'], safe=''))")
-          supabase db push --db-url "postgresql://postgres.${SUPABASE_PROJECT_ID}:${encoded_password}@${SUPABASE_POOLER_HOST}:5432/postgres"
+          echo "::add-mask::${encoded_password}"
+          SUPABASE_DB_URL="postgresql://postgres.${SUPABASE_PROJECT_ID}:${encoded_password}@${SUPABASE_POOLER_HOST}:5432/postgres"
+
+          backup_dir="$RUNNER_TEMP/sauvegarde"
+          mkdir -p "$backup_dir"
+          supabase db dump --db-url "$SUPABASE_DB_URL" --role-only -f "$backup_dir/roles.sql"
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f "$backup_dir/schema.sql"
+          supabase db dump --db-url "$SUPABASE_DB_URL" --data-only --use-copy -x "storage.buckets_vectors" -x "storage.vector_indexes" -f "$backup_dir/data.sql"
+          ls -l "$backup_dir"
+
+          supabase db push --db-url "$SUPABASE_DB_URL"
