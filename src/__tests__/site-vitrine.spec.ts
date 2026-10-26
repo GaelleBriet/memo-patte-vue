@@ -37,7 +37,7 @@ const homes = {
     plusFuture: [
       'arrives after the app',
       'will be paid',
-      'only need one',
+      'You’ll only need one',
       'will only be used',
       'Once MémoPatte Plus is available',
     ],
