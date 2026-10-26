@@ -45,4 +45,12 @@ describe('WeightSection — contrat de style du lien « Voir l’historique »',
   it('reprend cette hauteur en marges négatives : la ligne du poids ne grandit pas', () => {
     expect(declaration('.weight-section__history', 'margin-block')).toBe('-14px')
   })
+
+  it('laisse le lien descendre sous le poids quand le texte grossit', () => {
+    expect(declaration('.weight-section__headline', 'flex-wrap')).toBe('wrap')
+  })
+
+  it('garde sa zone de tap au-dessus de la ligne de variation quand il passe à la ligne', () => {
+    expect(declaration('.weight-section__history', 'position')).toBe('relative')
+  })
 })
