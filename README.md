@@ -10,7 +10,7 @@ avec plusieurs animaux, même hors-ligne.
 ## Le projet
 
 MémoPatte est une application mobile de suivi de santé pour animaux
-de compagnie (poids, vaccins, vermifuges), pensée autour de quatre
+de compagnie (poids, vaccins, traitements), pensée autour de quatre
 principes :
 
 - **Rappels fiables, y compris hors-ligne** — les notifications sont
@@ -18,9 +18,10 @@ principes :
 - **Vue consolidée multi-animaux** — un seul écran d’accueil pour
   tous vos animaux et leurs prochaines échéances.
 - **Gratuit sur votre téléphone, sans compte** — animaux illimités,
-  rappels, poids, export libre (JSON, CSV). Seul le cloud est payant :
-  MémoPatte Plus (annuel ou à vie) ajoute la sauvegarde, la
-  restauration, le multi-appareil, les photos et l’export PDF.
+  rappels, poids, export libre (JSON, CSV, PDF). Seul le cloud est payant :
+  MémoPatte Plus (mensuel, annuel ou à vie) ajoute la sauvegarde, la
+  restauration, le même carnet sur plusieurs appareils (un à la fois) et
+  les photos sauvegardées.
 - **Données jamais otages** — rien de ce qui est saisi n’est jamais
   verrouillé, avec ou sans Plus.
 

@@ -1809,8 +1809,8 @@ publie que ce dossier. — Raison : la politique de confidentialité vit à côt
 change dans la même PR. — Alternative écartée : des pages dans le site Nuxt de Gaelle, qui demandaient
 du code propre à Cloudflare pour servir le sous-domaine.
 
-3) **Mentions légales sur `gaelle-briet.fr`** (adresse de domiciliation, SIRET, contact, hébergeur) ; les
-pages MémoPatte y renvoient, et ni l'adresse ni le SIRET n'entrent dans ce dépôt.
+3) **Mentions légales sur `gaelle-briet.fr`** (identité de l'éditeur, contact, hébergeur) ; les
+pages MémoPatte y renvoient, et aucune coordonnée personnelle n'entre dans ce dépôt.
 
 4) **Page d'attente d'abord** (« Bientôt sur Google Play ») pour brancher Cloudflare et le DNS tout de
 suite ; la politique et la page de suppression de compte la rejoignent quand l'e-mail de contact est
