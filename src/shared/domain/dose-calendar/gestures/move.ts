@@ -164,8 +164,9 @@ function planOf(
       .find(({ state }) => state === 'pending')?.due.dueOn
     if (nextOn !== undefined) {
       const cap = latest !== null && latest < plusDays(nextOn, -1) ? latest : plusDays(nextOn, -1)
-      // Q59 : un report peut toujours revenir à son jour d'origine, même seul possible.
-      if (cap < earliest || (earliest === cap && cap === moved.dueOn && existing === undefined)) {
+      // Q59, Q60 : un report revient à son jour d'origine, même seul possible, s'il y remet une dose.
+      const restores = existing !== undefined && alone.slots(moved.dueOn, moved.dueOn).length > 0
+      if (cap < earliest || (earliest === cap && cap === moved.dueOn && !restores)) {
         return { reason: 'no-date-alone' }
       }
       latest = cap

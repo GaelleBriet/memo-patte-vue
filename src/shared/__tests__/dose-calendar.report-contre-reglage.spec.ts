@@ -56,8 +56,8 @@ const states = (input: TreatmentViewInput, from: string, to: string) =>
     .slots(from, to)
     .map(({ due, state }) => `${due.dueOn} ${due.dueTime} ${state}`)
 
-// Fourches figées : la marche de la graine a changé depuis (case jugée avec le décalage de la journée ;
-// retour au jour d'origine permis, Q59).
+// Fourches figées : 9050002324, la marche a changé (case jugée avec le décalage de la journée) ;
+// 9140001597, le tirage de la fourche au pas 17 a changé (retour au jour d'origine, Q59).
 const FROZEN: Record<string, Fork> = {
   '9050002324/18': fork2324 as unknown as Fork,
   '9140001597/17': fork1597 as unknown as Fork,

@@ -10,7 +10,7 @@ import {
 } from '../domain/dose-calendar'
 import { referenceReading } from '../domain/dose-calendar/reference-model'
 import { edited, moved, on, recorded } from './dose-calendar.reglage-corrige.aides'
-import { DAY, H, keys, setting } from './dose-calendar.v2.aides'
+import { DAY, H, keys, setting, WEEK } from './dose-calendar.v2.aides'
 
 // #1283 : Milo, tous les jours à 8 h et 20 h dès le 11 avril ; le 9, la dose de 8 h du 11 reportée
 // au 15 avec la case ; le 11, « Modifier » : « Prochaine dose » le 13. Le 13 porte la dose reportée.
@@ -248,5 +248,81 @@ describe('Un report plus ancien que la date choisie, ramené à son jour d’ori
 
     expect(days(input)).toEqual(['2026-04-03', '2026-04-08'])
     expect(days(after)).toContain('2026-04-08')
+  })
+})
+
+// Q60 : Luna, chaque semaine à 20 h dès le 7 mars ; le 5, la dose du 7 reportée au 25 avec la case,
+// puis « Modifier » : tous les 3 mois, « Prochaine dose » le 8 ; le 7, « Prochaine dose » sur le 25.
+function luna(): TreatmentViewInput {
+  const start: TreatmentViewInput = {
+    settings: [setting('p1', '2026-03-07', WEEK, ['20:00'])],
+    lines: [],
+    today: '2026-03-05',
+  }
+  const reported = moved(start, '2026-03-07', '20:00', '2026-03-25')
+  const quarterly = { value: 3, unit: 'month' } as const
+  return on(
+    edited(reported, {
+      frequency: quarterly,
+      times: ['20:00'],
+      endsOn: null,
+      firstDueOn: '2026-03-08',
+    }),
+    '2026-03-07',
+  )
+}
+
+const lunaDays = (input: TreatmentViewInput) =>
+  keys(
+    treatmentView(input)
+      .slots('2026-03-01', '2026-06-30')
+      .map(({ due }) => due),
+  )
+
+describe('Le retour au jour d’origine, seule date, n’est permis que s’il y remet une dose (Q60)', () => {
+  it('Luna : sans la case, le 25 ne revient pas au 7, d’où le décalage de son report l’a sorti', () => {
+    const input = luna()
+    const settingId = treatmentView(input).currentSetting!.id
+    const due = { settingId, dueOn: '2026-03-25', dueTime: '20:00' }
+
+    expect(lunaDays(input)).toEqual(['2026-03-08 20:00', '2026-03-25 20:00', '2026-06-08 20:00'])
+    expect(moveBounds(input, due, false)).toEqual({ refusal: { reason: 'no-date-alone' } })
+    expect(moveDose(input, { due, to: '2026-03-07', shiftsFollowing: false })).toEqual({
+      refusal: { reason: 'no-date-alone' },
+    })
+  })
+
+  it('Luna : « Supprimer » le report reste permis', () => {
+    const input = luna()
+    const report = input.lines.find(({ status }) => status === 'postponed')!
+    const result = removeLine(input, report.id)
+    if ('refusal' in result) throw new Error(JSON.stringify(result))
+
+    expect(lunaDays(recorded(input, result.changes))).toEqual([
+      '2026-03-08 20:00',
+      '2026-06-08 20:00',
+    ])
+  })
+
+  it('tous les jours à 20 h : la dose du 7 reportée au 10 avec la case revient au 7, seule date', () => {
+    const start: TreatmentViewInput = {
+      settings: [setting('p1', '2026-03-07', DAY, ['20:00'])],
+      lines: [],
+      today: '2026-03-07',
+    }
+    const input = moved(start, '2026-03-07', '20:00', '2026-03-10')
+    const settingId = treatmentView(input).currentSetting!.id
+    const due = { settingId, dueOn: '2026-03-10', dueTime: '20:00' }
+
+    expect(moveBounds(input, due, false)).toEqual({
+      earliest: '2026-03-07',
+      latest: '2026-03-07',
+      excluded: [],
+    })
+    expect(lunaDays(movedAlone(input, due.dueOn, due.dueTime, '2026-03-07')).slice(0, 3)).toEqual([
+      '2026-03-07 20:00',
+      '2026-03-08 20:00',
+      '2026-03-09 20:00',
+    ])
   })
 })
