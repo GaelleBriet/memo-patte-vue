@@ -312,6 +312,10 @@ cd android && ./gradlew :app:bundleRelease
 # sortie : android/app/build/outputs/bundle/release/app-release.aab
 ```
 
+R8 est désactivé en release (`minifyEnabled false`) : il n'y a pas de `mapping.txt` à joindre. `debugSymbolLevel 'FULL'` demande le NDK
+(`sdkmanager "ndk;27.0.12077973"`) ; les bibliothèques natives embarquées (SQLCipher, CameraX) arrivent déjà sans symboles, donc l'AAB n'en
+contient pas et la Play Console peut garder son avertissement sur ce point (#1340).
+
 Création de la clé et envoi : guide du coffre, `technical/guides/guide-build-signe-et-test-interne.md`.
 
 ## 8. Ce que fait la CI

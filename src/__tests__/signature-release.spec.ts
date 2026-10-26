@@ -47,4 +47,10 @@ describe('signature de la version publiée', () => {
 
     expect(gradle).toMatch(/if \(releaseSigning\)\s*\{\s*signingConfig signingConfigs\.release/)
   })
+
+  it('joint les symboles natifs à la version release', () => {
+    const gradle = readFileSync(resolve(racine, 'android/app/build.gradle'), 'utf8')
+
+    expect(gradle).toMatch(/release\s*\{[\s\S]*?ndk\s*\{\s*debugSymbolLevel '(SYMBOL_TABLE|FULL)'/)
+  })
 })

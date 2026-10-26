@@ -4388,3 +4388,10 @@ Décisions de Gaelle du 2026-10-26 (questions D1 à D4 de l'audit de #89).
   ou des espaces sont refusés. — Alternative écartée : accepter plusieurs `v1` pour une rotation
   progressive que RevenueCat ne fait pas. — Pour revenir dessus : `signatureIn` dans
   `supabase/functions/revenuecat-webhook/webhook-signature.ts` et ses tests.
+
+2026-10-26 — Build release : `ndk { debugSymbolLevel 'FULL' }` ajouté, R8
+laissé désactivé (#1340). — Les symboles sont joints dès qu'une bibliothèque
+native en fournit ; R8 ne s'active qu'avec des règles de conservation pour les
+plugins Capacitor, SQLite et RevenueCat, testées sur appareil : ticket à part. —
+Alternative écartée : activer R8 maintenant (risque de casser l'app sans test).
+Pour revenir en arrière : retirer le bloc `ndk` de `android/app/build.gradle`.
