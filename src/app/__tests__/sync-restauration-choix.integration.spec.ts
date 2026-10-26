@@ -457,13 +457,22 @@ describe('restauration avec un carnet sur le téléphone', () => {
     })
 
     await tablet.restore.start('replace')
-    await tablet.restore.run()
+    await expect(tablet.restore.run()).resolves.toBe('nothing-to-restore')
 
     expect((await tablet.rows('animal')).map(({ name }) => name)).toEqual(['Pistache'])
   })
 
+  it('sans compte, ne fait rien', async () => {
+    await tablet.restore.start('merge')
+    tablet.account.userId = null
+
+    await expect(tablet.restore.run()).resolves.toBe('nothing-to-restore')
+
+    await expect(tablet.repositories.animals.list()).resolves.toEqual([])
+  })
+
   it('sans restauration choisie, ne fait rien', async () => {
-    await tablet.restore.run()
+    await expect(tablet.restore.run()).resolves.toBe('nothing-to-restore')
 
     await expect(tablet.repositories.animals.list()).resolves.toEqual([])
     await expect(tablet.outbox.isEnabled()).resolves.toBe(false)

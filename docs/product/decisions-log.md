@@ -3130,10 +3130,11 @@ n'a pas été choisie ». La date de grille ne tranche que les conflits de grill
 
 ## 2026-10-24 — « Changer mon adresse e-mail » : l'état est gardé pendant la visite de l'aide (#1213)
 
-Décision de la session d'analyse du moteur, **validée par Gaelle le 2026-10-24** (garder le code en mémoire pendant la visite de l'aide : oui ; alternative écartée : ne rien garder). Exemple : à l'étape du code
-de l'adresse actuelle, Sophie touche « Tu n'as plus accès à cette adresse ? », lit Aide et contact puis
-revient par la flèche : l'écran retrouve la nouvelle adresse saisie et le code déjà tapé, sans nouvel
-e-mail ni minute d'attente de plus.
+Décision de la session d'analyse du moteur, **validée par Gaelle le 2026-10-24** (garder le code en
+mémoire pendant la visite de l'aide : oui ; alternative écartée : ne rien garder). Exemple : à
+l'étape du code de l'adresse actuelle, Sophie touche « Tu n'as plus accès à cette adresse ? », lit
+Aide et contact puis revient par la flèche : l'écran retrouve la nouvelle adresse saisie et le code
+déjà tapé, sans nouvel e-mail ni minute d'attente de plus.
 
 1. La nouvelle adresse, le code tapé et l'heure du dernier envoi sont gardés en mémoire pendant la
    visite de l'aide, jamais écrits sur l'appareil (un code à usage unique ne se persiste pas).

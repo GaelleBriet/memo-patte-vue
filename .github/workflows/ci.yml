@@ -292,6 +292,12 @@ jobs:
           fi
           pnpm exec vitest run --reporter=verbose .local.spec.ts
 
+      - name: Rien ne reste des tests locaux
+        run: scripts/supabase-local/require-nothing-left.sh
+
+      - name: Tests pgTAP après les tests locaux
+        run: supabase test db
+
       - name: Arrêter la pile
         if: always()
         run: supabase stop --no-backup

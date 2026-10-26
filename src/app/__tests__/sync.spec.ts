@@ -75,6 +75,11 @@ function fakeRestoreFlow(resume: () => Promise<boolean> = async () => false) {
   }
 }
 
+type LateAnswer = (
+  resolve: (check: AccountBackupCheck) => void,
+  reject: (cause: Error) => void,
+) => void
+
 const withoutSession = {
   restoreMissingPhotos: vi.fn<(userId: string, options?: { visible?: boolean }) => Promise<void>>(
     async () => {},
@@ -603,6 +608,41 @@ describe('installSync', () => {
       expect(checkAccountBackup).toHaveBeenCalledTimes(2)
       stop()
     })
+
+    it.each<[string, LateAnswer]>([
+      ['répond injoignable', (resolve) => resolve({ kind: 'unreachable' })],
+      ['échoue', (_resolve, reject) => reject(new Error('réseau coupé'))],
+    ])(
+      'contrôle relancé qui %s après la déconnexion : l’écran n’attend plus le réseau',
+      async (_label, settle) => {
+        vi.spyOn(console, 'warn').mockImplementation(() => {})
+        const { deps, userId, active, restoreFlow, checkAccountBackup } = accountSetup({
+          kind: 'unreachable',
+        })
+        userId.value = 'user-1'
+        active.value = true
+        const stop = await installSync(deps)
+        await vi.advanceTimersByTimeAsync(0)
+        expect(restoreFlow.unreachable).toHaveBeenCalledOnce()
+
+        let answerLate = () => {}
+        checkAccountBackup.mockReturnValueOnce(
+          new Promise((resolve, reject) => {
+            answerLate = () => settle(resolve, reject)
+          }),
+        )
+        restoreFlow.retry()
+        await vi.advanceTimersByTimeAsync(0)
+        expect(checkAccountBackup).toHaveBeenCalledTimes(2)
+        userId.value = null
+        active.value = false
+        answerLate()
+        await vi.advanceTimersByTimeAsync(0)
+
+        expect(restoreFlow.unreachable).toHaveBeenCalledOnce()
+        stop()
+      },
+    )
 
     it('rien à restaurer ou compte changé : le parcours de restauration repart de rien', async () => {
       const { deps, userId, active, restoreFlow } = accountSetup({ kind: 'seeded' })
