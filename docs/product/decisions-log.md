@@ -2976,6 +2976,24 @@ lectures de règles : aucune règle nouvelle, #867 appliqué en entier).
   journée de départ reste au calendrier ; le décalage d'un report gagnant parti après la première
   échéance (lu comme avant en attendant).
 
+## 2026-10-26 — Première proposition de restauration et attente du réseau dans Paramètres › Sauvegarde (#1299, Q53, Q62)
+
+Cas : le 25 octobre, la sauvegarde cloud de Milo et Luna est trouvée pendant que le Carnet de Milo
+est affiché ; plus tard, la notification « Vermifuge de Milo » est touchée et « Restaurer mon
+carnet » recouvrait la feuille ouverte sur l'accueil.
+
+- Choix de cohérence (Q53 appliquée à la première proposition) : après une navigation, la toute
+  première proposition d'un lancement attend elle aussi une arrivée sur l'accueil sans feuille.
+  Elle ne s'ouvre sans arrivée que si la sauvegarde est trouvée pendant que l'accueil est affiché
+  sans feuille dans l'adresse.
+- Décision Q62 (session d'analyse, sous délégation de Gaelle) : pendant qu'une restauration attend
+  le réseau, Paramètres › Sauvegarde applique le masquage de Q54 et affiche à la place le bloc gris
+  de la planche V21 quater, « En attente de réseau » · « La restauration reprendra dès le retour du
+  réseau. Rien n'est perdu. » (textes existants). Restent « Exporter une copie » et « Effacer les
+  données de ce téléphone ». Une sauvegarde cloud déjà active garde son propre état.
+- Pour revenir dessus : l'arrivée se juge dans `app/restore-prompt.ts` ; le bloc d'attente vient de
+  `use-restore-pending.ts`.
+
 ## 2026-10-25 — Retour du réseau : « état inconnu → en ligne » compte comme un passage (#1295)
 
 Avis de la session d'analyse sur #1286 et #1293. Cas : le 25 octobre, l'app est lancée sans réseau
@@ -3012,10 +3030,10 @@ choisir. Android garde l'app vivante plusieurs jours : l'écran ne revenait qu'a
   à l'accueil (relecture de #1298) : le 26 à 8 h, la notification « Vermifuge de Milo » touchée, ou
   « Modifier » puis « Enregistrer » depuis « À faire », ouvre sa feuille et non « Restaurer mon
   carnet », qui attend la prochaine arrivée sur l'accueil sans feuille.
-- Limite connue, d'avant cette décision : la toute première proposition d'un lancement s'ouvre dès
-  que la sauvegarde est trouvée si l'accueil est affiché, sans attendre une arrivée, et peut donc
-  recouvrir une feuille ouverte dans les premières secondes. Une horloge du téléphone reculée d'un
-  jour fait reproposer l'écran une fois.
+- Limite connue, réduite par #1299 : seule une feuille déjà ouverte sur l'accueil quand la
+  sauvegarde est trouvée (d'un tap, ou venue d'une notification au lancement) peut encore être
+  recouverte par la toute première proposition. Une horloge du téléphone reculée d'un jour fait
+  reproposer l'écran une fois.
 - Décision : Paramètres › Sauvegarde affiche en tête un bloc de la famille de « Reconnecte-toi pour
   reprendre la sauvegarde » (planche V21 ter : ton d'alerte, titre, phrase, bouton), seulement quand
   un choix de restauration est en attente (après « Plus tard », ou un « Remplacer » abandonné parce
@@ -3056,9 +3074,9 @@ plan) la restauration effaçait cette pesée sans nouvelle décision.
   personne. Si le choix revient pendant que l'accueil est déjà affiché, l'écran attend qu'elle le
   quitte puis y revienne : une feuille ouverte sur l'accueil (« Ajouter une pesée », « C'est fait »)
   n'a pas d'adresse propre, et l'ouvrir alors ferait perdre la saisie en cours.
-- Limite connue, inchangée : la toute première proposition d'un lancement s'ouvre encore dès que la
-  sauvegarde est trouvée si l'accueil est affiché ; une feuille ouverte dans les premières secondes
-  du lancement pourrait être recouverte.
+- Limite connue, réduite par #1299 : seule une feuille déjà ouverte sur l'accueil quand la
+  sauvegarde est trouvée (d'un tap, ou venue d'une notification au lancement) peut encore être
+  recouverte par la toute première proposition d'un lancement.
 - Moyen, sans colonne ni migration : l'état du carnet est, pour chaque table du carnet (appareils
   exclus), le nombre de lignes, la plus grande date de modification et la somme des dates de
   modification. La somme fait changer l'état même quand une correction reçoit une date sous la plus

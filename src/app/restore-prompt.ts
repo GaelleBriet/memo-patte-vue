@@ -10,9 +10,10 @@ import { RESTORE_ROUTE, restoreRoute } from '@/shared/utils/restore-route'
  * « Restaurer mon carnet » s'ouvre de lui-même une fois par jour local, au passage par l'accueil,
  * tant que la sauvegarde trouvée attend « Fusionner » ou « Remplacer ». Un choix reproposé après
  * une restauration lancée (carnet du téléphone changé depuis « Remplacer ») l'ouvre de nouveau.
- * Seule la toute première proposition s'ouvre sans arrivée, quand la sauvegarde est trouvée sur
- * l'accueil sans feuille dans l'adresse ; sinon seule une arrivée sur l'accueil sans feuille à rouvrir
- * l'ouvre : une feuille ouverte sur l'accueil n'a pas de route.
+ * La toute première proposition s'ouvre dès que la sauvegarde est trouvée sur l'accueil sans feuille
+ * dans l'adresse ; ensuite, seule une arrivée sur l'accueil sans feuille l'ouvre. Limite connue : une
+ * feuille déjà ouverte sur l'accueil quand la sauvegarde est trouvée peut encore être recouverte, car
+ * l'accueil efface tout de suite l'adresse d'une feuille, qu'elle vienne d'un tap ou d'une notification.
  */
 export function installRestorePrompt(
   router: Router,
@@ -61,7 +62,7 @@ export function installRestorePrompt(
 }
 
 function isArrivalOnHome(to: RouteLocationNormalized, from: RouteLocationNormalized): boolean {
-  return to.name === 'home' && from.name !== 'home' && !carriesSheet(to)
+  return to.name === 'home' && from.name !== 'home'
 }
 
 function carriesSheet(route: RouteLocationNormalized): boolean {
