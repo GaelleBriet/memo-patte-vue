@@ -34,9 +34,12 @@ export function createRestoreFlow(runner: RestoreRunner) {
   }
 
   async function runPending(): Promise<boolean> {
-    state.value = { step: 'restoring', progress: runner.progress }
+    let shown: RestoreFlowState = { step: 'restoring', progress: runner.progress }
+    state.value = shown
     const stop = runner.onProgress((progress) => {
-      state.value = { step: 'restoring', progress }
+      if (state.value !== shown) return
+      shown = { step: 'restoring', progress }
+      state.value = shown
     })
     let result: RestoreRunResult
     try {
@@ -50,6 +53,10 @@ export function createRestoreFlow(runner: RestoreRunner) {
     }
     if (result === 'carnet-changed') {
       retryCheck()
+      return false
+    }
+    if (result === 'nothing-to-restore') {
+      if (state.value === shown) state.value = { step: 'idle' }
       return false
     }
     state.value = { step: 'done' }
@@ -106,7 +113,7 @@ export function createRestoreFlow(runner: RestoreRunner) {
       state.value = { step: 'idle' }
     },
 
-    /** Garde le choix (il survit à un redémarrage), puis restaure ; `false` si le réseau a coupé ou si le choix est à refaire. */
+    /** Garde le choix (il survit à un redémarrage), puis restaure ; `false` si le réseau a coupé, si le choix est à refaire ou s'il n'y avait rien à restaurer. */
     async choose(mode: RestoreMode): Promise<boolean> {
       try {
         await runner.start(mode)
@@ -118,7 +125,7 @@ export function createRestoreFlow(runner: RestoreRunner) {
       return runPending()
     },
 
-    /** Reprend une restauration déjà choisie ; `false` s'il n'y en a pas, si le réseau a coupé ou si le choix est à refaire. */
+    /** Reprend une restauration déjà choisie ; `false` s'il n'y en a pas, si le réseau a coupé, si le choix est à refaire ou s'il n'y avait rien à restaurer. */
     async resume(): Promise<boolean> {
       let pending: RestoreMode | null
       try {
