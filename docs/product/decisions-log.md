@@ -4389,9 +4389,11 @@ Décisions de Gaelle du 2026-10-26 (questions D1 à D4 de l'audit de #89).
   progressive que RevenueCat ne fait pas. — Pour revenir dessus : `signatureIn` dans
   `supabase/functions/revenuecat-webhook/webhook-signature.ts` et ses tests.
 
-2026-10-26 — Build release : `ndk { debugSymbolLevel 'FULL' }` ajouté, R8
-laissé désactivé (#1340). — Les symboles sont joints dès qu'une bibliothèque
-native en fournit ; R8 ne s'active qu'avec des règles de conservation pour les
-plugins Capacitor, SQLite et RevenueCat, testées sur appareil : ticket à part. —
-Alternative écartée : activer R8 maintenant (risque de casser l'app sans test).
-Pour revenir en arrière : retirer le bloc `ndk` de `android/app/build.gradle`.
+2026-10-26 — Build release : pas de `debugSymbolLevel`, R8 laissé désactivé,
+les deux avertissements de la Play Console acceptés (#1340). — `debugSymbolLevel`
+n'a aucun effet mesuré (libs natives déjà strippées, AAB identique à 4 octets
+près) et exigerait le NDK pour tout `bundleRelease`, que la CI (`assembleDebug`)
+ne verrait pas casser ; R8 risquerait de casser les plugins Capacitor, la
+WebView, SQLCipher et RevenueCat sans test complet sur appareil. — Pour revenir
+dessus : activer R8 avec règles de conservation et test complet sur appareil
+(ticket à part).
