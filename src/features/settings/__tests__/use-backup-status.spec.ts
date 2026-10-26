@@ -298,12 +298,40 @@ describe('useBackupStatus', () => {
       await vi.advanceTimersByTimeAsync(0)
       expect(awaitsRestoredStatus.value).toBe(true)
 
-      read.mockResolvedValue(SAVED)
+      let answerAgain: (facts: BackupFacts) => void = () => {}
+      read.mockImplementationOnce(
+        () =>
+          new Promise<BackupFacts>((resolve) => {
+            answerAgain = resolve
+          }),
+      )
       answer(LOCAL)
       await vi.advanceTimersByTimeAsync(0)
-
       expect(read).toHaveBeenCalledTimes(3)
+      expect(awaitsRestoredStatus.value).toBe(true)
+
+      answerAgain(SAVED)
+      await vi.advanceTimersByTimeAsync(0)
+
       expect(status.value).toEqual({ kind: 'saved', at: SAVED.lastSyncedAt })
+      expect(awaitsRestoredStatus.value).toBe(false)
+    })
+
+    it('illisible quand la lecture qui suit la fin échoue, plutôt que l’état d’avant', async () => {
+      const flow = restauration()
+      const read = vi.fn<() => Promise<BackupFacts>>(async () => LOCAL)
+      provideBackupFacts(read)
+      const { status, awaitsRestoredStatus } = start()
+      void flow.choose('merge')
+      await vi.advanceTimersByTimeAsync(0)
+      expect(status.value).toEqual({ kind: 'local' })
+      vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      read.mockRejectedValueOnce(new Error('base fermée'))
+      finishRun('restored')
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(status.value).toEqual({ kind: 'unread' })
       expect(awaitsRestoredStatus.value).toBe(false)
     })
   })

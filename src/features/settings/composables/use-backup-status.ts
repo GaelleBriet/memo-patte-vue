@@ -65,7 +65,6 @@ export function useBackupStatus({ polling = true } = {}) {
     const read = currentBackupFacts()
     if (read === null) {
       if (reading.value === 'pending') reading.value = 'unplugged'
-      if (settles) awaitsRestoredStatus.value = false
       scheduleNext()
       return
     }
@@ -75,7 +74,7 @@ export function useBackupStatus({ polling = true } = {}) {
       reading.value = 'read'
     } catch (cause) {
       console.warn('État de la sauvegarde non lu :', errorSummary(cause))
-      if (reading.value !== 'read') reading.value = 'unread'
+      if (settles || reading.value !== 'read') reading.value = 'unread'
     } finally {
       busy = false
       if (settles) awaitsRestoredStatus.value = false
