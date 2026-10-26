@@ -4375,6 +4375,11 @@ Décisions de Gaelle du 2026-10-26 (questions D1 à D4 de l'audit de #89).
   sauvegarde. Remède au risque (un ancien testeur de licence jamais retiré) : retirer les testeurs à
   la sortie.
 - **D4 — Webhook d'achat perdu : mis de côté**, rien de codé.
+- **Secrets distincts (#1330, décision de Gaelle)** : un `REVENUECAT_WEBHOOK_SIGNING_SECRET` identique à
+  `REVENUECAT_WEBHOOK_AUTHORIZATION` (après retrait des espaces) est écarté, chaque envoi reçoit `503`
+  `webhook-not-configured`, et le journal nomme les deux variables sans leurs valeurs. — Raison : sinon
+  un en-tête qui fuit suffit à forger des signatures, ce qui annule D1. — Alternative écartée : accepter
+  la recopie, improbable puisque RevenueCat génère le secret de signature.
 - Choix de lecture de Claude, d'après la documentation de RevenueCat lue le 2026-10-26 (« Rotate
   secret » invalide l'ancien secret aussitôt ; un seul `v1` documenté) : l'en-tête doit porter
   exactement un `t` et un `v1`, en minuscules, dans un ordre quelconque ; deux `v1`, un champ inconnu
