@@ -69,6 +69,14 @@ Gaelle n'a pas fait les étapes ci-dessous, elle ne fait que compter.
 
 La demande du cron ne peut jamais changer le mode : son corps n'est pas lu.
 
+**Secrets de `revenuecat-webhook`** (même écran, `Edge Functions › Secrets`) :
+`REVENUECAT_WEBHOOK_AUTHORIZATION` (au moins 32 caractères, comme le secret du cron et
+`ADMIN_DELETE_SECRET` : la règle est écrite une seule fois, dans `_shared/shared-secret.ts`),
+`REVENUECAT_WEBHOOK_SIGNING_SECRET` (le secret « HMAC webhook signing » de RevenueCat) et
+`REVENUECAT_SECRET_KEY`. Sans l'un des deux premiers, ou avec un en-tête trop court, chaque envoi
+reçoit `503` `webhook-not-configured`. Contrôles d'un envoi :
+[billing-plugins-capacitor.md §4.3](billing-plugins-capacitor.md#43-avec-revenuecat).
+
 **Canal d'e-mail** : aucun n'est branché (`NO_EMAIL_CHANNEL`). Sans canal, même en `apply`, la passe
 ne fait que compter : pas d'avertissement, donc pas de suppression, ni d'effacement RevenueCat, ni
 suppression d'une adresse jamais confirmée (qui n'a pourtant besoin d'aucun e-mail). Le
@@ -198,13 +206,16 @@ locale lit la clé de la pile jetable, `auth.secret_key`), et
    la main »). Doivent exister avant : `pg_net` activée, le secret du cron dans les secrets de la
    fonction **et** dans le Vault, avec `project_url` (étapes 1 et 2). Le planning (étape 5) n'est pas
    nécessaire : il se pose après ce contrôle, jamais avant. Attendu : `200`, `"mode":"dry-run"`.
-5. **Contrôle du webhook** : doivent exister avant : le secret `REVENUECAT_WEBHOOK_AUTHORIZATION` de
-   `revenuecat-webhook` (sans lui : `503` `webhook-not-configured`), et la configuration du webhook
+5. **Contrôle du webhook** : doivent exister avant : les secrets `REVENUECAT_WEBHOOK_AUTHORIZATION`
+   (au moins 32 caractères) et `REVENUECAT_WEBHOOK_SIGNING_SECRET` de `revenuecat-webhook` (l'un
+   absent, ou l'en-tête trop court : `503` `webhook-not-configured`), et la configuration du webhook
    dans `RevenueCat › Integrations › Webhooks`, adresse
    `https://<ref>.supabase.co/functions/v1/revenuecat-webhook`, en-tête d'autorisation identique au
-   secret, caractère pour caractère. Le test envoyé depuis RevenueCat (événement `TEST`) doit recevoir
-   `200` `{"status":"ignored","reason":"test"}` : il prouve l'en-tête, pas la lecture de RevenueCat ni
-   l'écriture en base. Un vrai événement d'un compte MémoPatte a en plus besoin de `REVENUECAT_SECRET_KEY` dans les secrets
+   secret, caractère pour caractère, et « HMAC webhook signing » activé (secret affiché une seule fois,
+   collé dans `REVENUECAT_WEBHOOK_SIGNING_SECRET` ; « Rotate secret » pour le changer). Le test envoyé
+   depuis RevenueCat (événement `TEST`) doit recevoir `200` `{"status":"ignored","reason":"test"}` : il
+   prouve l'en-tête et la signature, pas la lecture de RevenueCat ni l'écriture en base. Une signature
+   absente, fausse ou datée de plus de 5 minutes reçoit `401`. Un vrai événement d'un compte MémoPatte a en plus besoin de `REVENUECAT_SECRET_KEY` dans les secrets
    de la fonction (sans elle : `500` `processing-failed`, puis l'événement est perdu à la fin des
    relances de RevenueCat).
 6. **Contrôle de `delete-account`** : ses secrets de prestataires posés (`POSTHOG_*`, `REVENUECAT_*`,

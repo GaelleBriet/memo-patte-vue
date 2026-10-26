@@ -312,8 +312,29 @@ valide chaque `purchaseToken` avec le service account, et expose :
   — [api-v1](https://www.revenuecat.com/docs/api-v1).
 
 Côté Supabase, une seule Edge Function `revenuecat-webhook` (vérification du header
-`Authorization` configuré dans RevenueCat, upsert dans `plus_entitlements`) suffit ; pas de service
-account Google à manipuler dans Supabase, pas de JWT à signer.
+`Authorization` configuré dans RevenueCat **et** de la signature HMAC, upsert dans
+`plus_entitlements`) suffit ; pas de service account Google à manipuler dans Supabase, pas de JWT à
+signer.
+
+**Contrôles d'un envoi** (#1090, #1327, décisions de Gaelle du 2026-10-26), dans cet ordre, avant
+toute lecture de RevenueCat et toute écriture en base :
+
+1. `REVENUECAT_WEBHOOK_AUTHORIZATION` (au moins 32 caractères) et
+   `REVENUECAT_WEBHOOK_SIGNING_SECRET` posés dans les secrets de la fonction. L'un manque, ou
+   l'en-tête attendu est trop court : **tout est refusé**, `503` `webhook-not-configured`, et le
+   journal nomme la variable sans citer sa valeur ;
+2. en-tête `Authorization` identique au secret, comparé en temps constant, sinon `401` ;
+3. en-tête `X-RevenueCat-Webhook-Signature: t=<horodatage>,v1=<hmac_sha256_hex>` : exactement un
+   `t` (secondes Unix) et un `v1` (64 caractères hexadécimaux minuscules), `t` à 5 minutes au plus
+   de l'heure du serveur, `v1` égal au HMAC-SHA256 de `"<t>.<corps>"` calculé avec le secret de
+   signature sur les octets reçus, avant tout `JSON.parse`, comparé en temps constant ; sinon `401` ;
+4. corps lisible (`400` sinon) ; l'événement `TEST` du tableau de bord reçoit alors `200` sans rien
+   lire ni écrire.
+
+RevenueCat recalcule `t` et `v1` à chaque renvoi : une relance reste valide. « Rotate secret »
+invalide l'ancien secret aussitôt, sans période où deux secrets valent (documentation de RevenueCat,
+section « Webhook Signature Verification (HMAC) », lue le 2026-10-26) ; un en-tête qui porte deux
+`v1` est donc refusé.
 
 ### 4.4 Sans RevenueCat : Supabase Edge Functions + Google Play Developer API
 
@@ -525,6 +546,15 @@ Projet → app Android (package `com.gaellebriet.memopatte`, upload de la clé J
 `$rc_annual`, `$rc_lifetime`) → clé API
 publique Google Play.
 
+**Webhook** (`Integrations › Webhooks`, configuration du webhook) : adresse
+`https://<ref>.supabase.co/functions/v1/revenuecat-webhook`, en-tête d'autorisation identique à
+`REVENUECAT_WEBHOOK_AUTHORIZATION` (au moins 32 caractères, `openssl rand -hex 32`), et **« HMAC
+webhook signing » activé**. Le secret de signature ne s'affiche **qu'une fois**, à l'activation : le
+coller aussitôt dans le secret `REVENUECAT_WEBHOOK_SIGNING_SECRET` de la fonction. Perdu ou à changer :
+**« Rotate secret »** en génère un nouveau et invalide l'ancien tout de suite ; reposer le secret de
+la fonction dans la foulée, les envois refusés entre-temps sont relancés par RevenueCat. Sans ce
+secret dans la fonction, chaque envoi reçoit `503` `webhook-not-configured`.
+
 ### 7.3 Projet
 
 ```bash
@@ -562,7 +592,8 @@ avait manqué côté Flutter).
 - Reste à brancher : l'écran Plus (#45), la revérification au retour au premier plan, le passage
   de `grace` à l'UI (`billingIssueDetectedAt`, bandeau du §5.3).
 
-Côté Supabase : Edge Function `revenuecat-webhook` (secret `REVENUECAT_WEBHOOK_AUTH`), table
+Côté Supabase : Edge Function `revenuecat-webhook` (secrets `REVENUECAT_WEBHOOK_AUTHORIZATION` et
+`REVENUECAT_WEBHOOK_SIGNING_SECRET`, contrôles au §4.3), table
 `plus_entitlements`, policies RLS de la sync conditionnées à `expires_at > now()` ou
 `source = 'lifetime'`.
 
