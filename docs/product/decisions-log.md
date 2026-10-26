@@ -3896,21 +3896,24 @@ pourrait n'être qu'une adresse interne de la plateforme).
 
 2026-10-22 — **Webhook RevenueCat : le serveur relit l'état chez RevenueCat à chaque événement**
 (#89, questions Q1 à Q8 du coffre de Gaelle). Réponses de la session d'analyse du 22 octobre, à qui
-Gaelle a délégué les lectures, sauf Q2 et Q7 qui restent à elle. Q1 : quel que soit l'événement, la
+Gaelle a délégué les lectures, sauf Q2, Q4, Q6 et Q7, tranchées par elle le 2026-10-26. Q1 : quel que soit l'événement, la
 fonction redemande à RevenueCat l'état actuel du droit Plus du compte et le recopie dans
 `plus_entitlements` ; un événement en double ou en retard redonne la même ligne, sans stocker
 `event.id` ; si le compte n'existe plus, rien n'est demandé à RevenueCat. Le compte se cherche dans
 tous les identifiants de l'événement (principal, alias, transfert « de » et « vers ») ; sans aucun
 compte MémoPatte, l'événement est ignoré et journalisé. Q3 : les 12 mois de conservation partent de
 la date de fin d'accès de la ligne, délai de paiement compris, sans nouvelle colonne. Q4 : un achat en
-bac à sable donne Plus côté serveur ; un seul webhook, production et bac à sable. Q5 : le réglage de
-restauration de RevenueCat reste « Transfer to new App User ID » ; le serveur relit les deux comptes.
-Q6 : l'en-tête `Authorization` seul en v1, la signature HMAC renvoyée à #1090 (décision de sécurité,
-à confirmer par Gaelle dans ce ticket). Q8 : le critère de test devient l'événement de test reçu sans
-écriture, puis un achat en bac à sable sur le vrai projet, avec Gaelle. Q2 (un remboursement coupe
-l'accès à sa date, 12 mois comptés depuis) et Q7 (une pause d'abonnement met la sauvegarde en pause
-jusqu'au premier paiement) : recommandation codée, chacune dans une constante, **à confirmer par
-Gaelle**. — Raison : RevenueCat renvoie un événement raté jusqu'à 80 minutes plus tard, donc dans le
+bac à sable donne Plus côté serveur ; un seul webhook, production et bac à sable (confirmé par Gaelle le
+2026-10-26 pour le test interne, à revoir à la sortie). Q5 : le réglage de restauration de RevenueCat
+reste « Transfer to new App User ID » ; le serveur relit les deux comptes. Q6 : décidé par Gaelle le
+2026-10-26, la signature HMAC (#1090) est **obligatoire dès le déploiement** : tant que le secret de
+signature n'est pas posé, la fonction refuse tout ; le secret d'en-tête fait au moins 32 caractères
+(#1327). Q8 : le critère de test devient l'événement de test reçu sans écriture, puis un achat en bac
+à sable sur le vrai projet, avec Gaelle. Q2, confirmée par Gaelle le 2026-10-26 : un remboursement
+coupe l'accès à la date du remboursement ; la dernière sauvegarde reste lisible 12 mois à partir de
+cette date. Q7, confirmée par Gaelle le 2026-10-26 : pendant la pause d'un abonnement mensuel, la
+sauvegarde est en pause et reprend au premier paiement. Un événement d'achat perdu (#1208) est mis de
+côté pour le moment (Gaelle, 2026-10-26). — Raison : RevenueCat renvoie un événement raté jusqu'à 80 minutes plus tard, donc dans le
 désordre ; relire l'état du moment rend l'ordre indifférent. — Alternative écartée : appliquer chaque
 événement selon son type, avec une table des événements reçus et une règle par type (remboursement
 d'un achat à vie, pause, transfert).

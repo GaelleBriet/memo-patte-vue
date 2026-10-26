@@ -1,4 +1,4 @@
-/** Choix produit en attente de Gaelle (#89, questions 2 et 7) : la recommandation est codée. */
+/** Décidé par Gaelle le 2026-10-26 (#89, questions 2 et 7). */
 const REFUND_ENDS_ACCESS = true
 const PAUSE_SUSPENDS_BACKUP = true
 
